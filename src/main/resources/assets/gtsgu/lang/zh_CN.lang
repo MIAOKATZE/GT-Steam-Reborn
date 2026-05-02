@@ -1,0 +1,19 @@
+tile.gtsgu.mtetest.name=测试太阳能机
+gtsgu.tooltip.mtetest.info=白天且上方可见天空时产生能量，雨天降低效率。
+
+# MTETest tier names
+gtsgu.machine.test.ev=测试机器 (EV)
+gtsgu.machine.test.iv=测试机器 (IV)
+gtsgu.machine.test.luv=测试机器 (LuV)
+gtsgu.machine.multitest.hv=测试多方块机器 (HV)
+
+# GregTech style keys used by CommonMetaTileEntity
+gt.blockmachines.gtsgu.mtetest.ev.name=测试太阳能机 EV
+gt.blockmachines.gtsgu.mtetest.iv.name=测试太阳能机 IV
+gt.blockmachines.gtsgu.mtetest.luv.name=测试太阳能机 LuV
+gt.blockmachines.gtsgu.multitest.hv.name=测试多方块机器 (HV)
+gtsgu.recipe.multitest=测试多方块机器
+
+# Items
+item.TestCoin_GTSGU.name=测试硬币
+item.TestCoin_GTSGU_E.name=电子测试硬币

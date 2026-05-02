@@ -1,10 +1,10 @@
 {
 	"modListVersion": 2,
 	"modList": [{
-		"modid": "gtit",
-		"name": "GTInterestingThing",
-		"description": "An interesting mod for Minecraft 1.7.10 with Forge focused on unique items and mechanics.",
-		"version": "0.1.0",
+		"modid": "gtsgu",
+		"name": "GTSteamGeologyUtilities",
+		"description": "GT Steam Geology Utilities - a GregTech addon for Minecraft 1.7.10 providing steam-age geological prospecting and utility machines.",
+		"version": "0.0.1",
 		"mcversion": "1.7.10",
 		"url": "",
 		"updateUrl": "",

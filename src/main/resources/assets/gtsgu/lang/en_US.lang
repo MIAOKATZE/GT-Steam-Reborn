@@ -1,0 +1,19 @@
+tile.gtsgu.mtetest.name=MTETest Machine
+gtsgu.tooltip.mtetest.info=Generates energy like a solar generator during daytime when sky is visible.
+
+# MTETest tier names
+gtsgu.machine.test.ev=Test Machine EV
+gtsgu.machine.test.iv=Test Machine IV
+gtsgu.machine.test.luv=Test Machine (LuV)
+gtsgu.machine.multitest.hv=Test Multiblock Machine (HV)
+
+# GregTech style keys used by CommonMetaTileEntity
+gt.blockmachines.gtsgu.mtetest.ev.name=MTETest EV
+gt.blockmachines.gtsgu.mtetest.iv.name=MTETest IV
+gt.blockmachines.gtsgu.mtetest.luv.name=MTETest LuV
+gt.blockmachines.gtsgu.multitest.hv.name=Test Multiblock Machine (HV)
+gtsgu.recipe.multitest=Test Multiblock Machine
+
+# Items
+item.TestCoin_GTSGU.name=Test Coin
+item.TestCoin_GTSGU_E.name=Electronic Test Coin
