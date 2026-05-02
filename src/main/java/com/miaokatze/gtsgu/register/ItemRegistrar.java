@@ -15,9 +15,10 @@ public class ItemRegistrar {
      */
     public static void init() {
         GTSteamGeologyUtilities.LOG.info("开始通过 ItemRegistrar 注册物品...");
-        registerTestCoin();
+        // [GTSGU-DEV] 临时禁用所有测试物品注册，为后续开发清理环境。源码完整保留。
+        // registerTestCoin();
         // registerTestCoinE(); // 取消测试物品注册，源码保留
-        GTSteamGeologyUtilities.LOG.info("物品注册完成。");
+        GTSteamGeologyUtilities.LOG.info("物品注册完成（当前已禁用所有测试物品）。");
     }
 
     /**

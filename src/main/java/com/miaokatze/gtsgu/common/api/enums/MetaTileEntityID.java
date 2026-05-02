@@ -14,15 +14,15 @@ public enum MetaTileEntityID {
 
     // --- 单方块测试机器 ---
     /** EV 等级测试发电机 (Tier 4) */
-    MTETEST_EV(0),
+    //MTETEST_EV(0),
     /** IV 等级测试发电机 (Tier 5) */
-    MTETEST_IV(1),
+    //MTETEST_IV(1),
     /** LuV 等级测试发电机 (Tier 6) */
-    MTETEST_LuV(2),
+    //MTETEST_LuV(2),
 
     // --- 多方块测试机器 ---
     /** HV 等级测试多方块机器 (Tier 5) */
-    MTETEST_MULTIBLOCK_HV(10),
+    //MTETEST_MULTIBLOCK_HV(10),
 
     ;
 
@@ -30,7 +30,7 @@ public enum MetaTileEntityID {
     public final int ID;
 
     // ID 基准值，用于避免与其他模组的机器 ID 冲突
-    private static final int BASE = 14600;
+    private static final int BASE = 14620;
 
     /**
      * 构造函数：根据相对 ID 计算全局 ID

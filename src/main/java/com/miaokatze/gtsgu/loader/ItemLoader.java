@@ -13,6 +13,7 @@ public class ItemLoader {
      * 建议在 PreInit 阶段调用
      */
     public static void initItems() {
-        ItemRegistrar.init();
+        // [GTSGU-DEV] 临时禁用物品加载器，为后续开发清理环境。源码完整保留。
+        // ItemRegistrar.init();
     }
 }
