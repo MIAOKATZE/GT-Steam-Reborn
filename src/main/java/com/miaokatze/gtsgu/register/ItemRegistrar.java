@@ -1,6 +1,6 @@
 package com.miaokatze.gtsgu.register;
 
-import static com.miaokatze.gtsgu.common.api.enums.GTSGUItemList.TestCoin;
+// import static com.miaokatze.gtsgu.common.api.enums.GTSGUItemList.TestCoin; // [GTSGU-DEV] 测试物品已禁用
 
 import com.miaokatze.gtsgu.main.GTSteamGeologyUtilities;
 
@@ -24,14 +24,16 @@ public class ItemRegistrar {
     /**
      * 注册测试硬币
      */
-    private static void registerTestCoin() {
-        TestCoin.setAndRegister(com.miaokatze.gtsgu.common.items.TestCoin::new);
-    }
+    // [GTSGU-DEV] 测试物品已禁用
+    // private static void registerTestCoin() {
+    //     TestCoin.setAndRegister(com.miaokatze.gtsgu.common.items.TestCoin::new);
+    // }
 
     /**
      * 注册电子测试硬币
      */
-    private static void registerTestCoinE() {
-        // TestCoinE.setAndRegister(com.miaokatze.gtsgu.common.items.TestCoinE::new); // 取消测试物品注册，源码保留
-    }
+    // [GTSGU-DEV] 测试物品已禁用
+    // private static void registerTestCoinE() {
+    //     TestCoinE.setAndRegister(com.miaokatze.gtsgu.common.items.TestCoinE::new);
+    // }
 }

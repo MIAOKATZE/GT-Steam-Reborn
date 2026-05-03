@@ -17,3 +17,13 @@ gtsgu.recipe.multitest=测试多方块机器
 # Items
 item.TestCoin_GTSGU.name=测试硬币
 item.TestCoin_GTSGU_E.name=电子测试硬币
+
+# Steam Cache Node
+gt.blockmachines.gtsgu.steam.cache.node.name=蒸汽缓存节点
+gtsgu.tooltip.steam_cache_node.fluid_type=只可以缓存： 
+gtsgu.tooltip.steam_cache_node.fluid_type.steam=蒸汽
+gtsgu.tooltip.steam_cache_node.output_rate=输出流量： 
+
+# Reinforced Steam Cache Node
+gt.blockmachines.gtsgu.reinforced.steam.cache.node.name=加固蒸汽缓存节点
+gtsgu.tooltip.reinforced_steam_cache_node.fluid_type.superheated_steam=过热蒸汽

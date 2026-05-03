@@ -17,3 +17,13 @@ gtsgu.recipe.multitest=Test Multiblock Machine
 # Items
 item.TestCoin_GTSGU.name=Test Coin
 item.TestCoin_GTSGU_E.name=Electronic Test Coin
+
+# Steam Cache Node
+gt.blockmachines.gtsgu.steam.cache.node.name=Steam Cache Node
+gtsgu.tooltip.steam_cache_node.fluid_type=Can only cache: 
+gtsgu.tooltip.steam_cache_node.fluid_type.steam=Steam
+gtsgu.tooltip.steam_cache_node.output_rate=Output rate: 
+
+# Reinforced Steam Cache Node
+gt.blockmachines.gtsgu.reinforced.steam.cache.node.name=Reinforced Steam Cache Node
+gtsgu.tooltip.reinforced_steam_cache_node.fluid_type.superheated_steam=Superheated Steam

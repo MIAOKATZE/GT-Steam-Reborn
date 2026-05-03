@@ -1,5 +1,10 @@
 package com.miaokatze.gtsgu.loader;
 
+import com.miaokatze.gtsgu.common.api.enums.GTSGUItemList;
+import com.miaokatze.gtsgu.common.api.enums.MetaTileEntityID;
+import com.miaokatze.gtsgu.common.machine.base.MTEReinforcedSteamCacheNode;
+import com.miaokatze.gtsgu.common.machine.base.MTESteamCacheNode;
+import com.miaokatze.gtsgu.register.CreativeTabManager;
 import com.miaokatze.gtsgu.register.MultiblockMachineRegistrar;
 import com.miaokatze.gtsgu.register.RegistrationManager;
 import com.miaokatze.gtsgu.register.StandardMachineRegistrar;
@@ -29,5 +34,24 @@ public class MachineLoader {
 
         // // 统一执行所有已添加的注册任务
         // manager.registerAll();
+
+        // --- v0.0.1: 蒸汽缓存节点 ---
+        registerSteamMachines();
+    }
+
+    private static void registerSteamMachines() {
+        GTSGUItemList.SteamCacheNode.set(
+            new MTESteamCacheNode(
+                MetaTileEntityID.STEAM_CACHE_NODE.ID,
+                "gtsgu.steam.cache.node",
+                "Steam Cache Node"));
+        CreativeTabManager.addItemToTab(GTSGUItemList.SteamCacheNode.get(1));
+
+        GTSGUItemList.ReinforcedSteamCacheNode.set(
+            new MTEReinforcedSteamCacheNode(
+                MetaTileEntityID.REINFORCED_STEAM_CACHE_NODE.ID,
+                "gtsgu.reinforced.steam.cache.node",
+                "Reinforced Steam Cache Node"));
+        CreativeTabManager.addItemToTab(GTSGUItemList.ReinforcedSteamCacheNode.get(1));
     }
 }

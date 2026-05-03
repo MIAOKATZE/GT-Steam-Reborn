@@ -38,31 +38,28 @@ public class CommonProxy {
         //     GTSteamGeologyUtilities.LOG.error("[0/3] 物品注册过程中发生严重错误，请检查日志", t);
         // }
 
-        // [GTSGU-DEV] 临时禁用机器注册流程（含 MTETest / MTEMultiTest 等所有测试机器），为后续开发清理环境。
-        // 源码完整保留于 MachineLoader / StandardMachineRegistrar / MultiblockMachineRegistrar 中，取消下方注释即可恢复。
-        // Runnable registerRunnable = () -> {
-        //     GTSteamGeologyUtilities.LOG.info("[1/3] 开始执行机器注册流程...");
-        //     try {
-        //         MachineLoader.initMachines();
-        //         GTSteamGeologyUtilities.LOG.info("[1/3] 机器注册流程执行完毕。");
-        //     } catch (Throwable t) {
-        //         GTSteamGeologyUtilities.LOG.error("[1/3] 机器注册过程中发生严重错误，请检查日志", t);
-        //     }
-        // };
+        Runnable registerRunnable = () -> {
+            GTSteamGeologyUtilities.LOG.info("[1/3] 开始执行机器注册流程...");
+            try {
+                MachineLoader.initMachines();
+                GTSteamGeologyUtilities.LOG.info("[1/3] 机器注册流程执行完毕。");
+            } catch (Throwable t) {
+                GTSteamGeologyUtilities.LOG.error("[1/3] 机器注册过程中发生严重错误，请检查日志", t);
+            }
+        };
 
-        // [GTSGU-DEV] 机器注册任务入队逻辑同步禁用（与上方 registerRunnable 配套）
-        // try {
-        //     if (GregTechAPI.sAfterGTLoad == null) {
-        //         GTSteamGeologyUtilities.LOG.warn("警告: GregTechAPI.sAfterGTLoad 为空，无法添加注册任务。");
-        //     } else {
-        //         int before = GregTechAPI.sAfterGTLoad.size();
-        //         GregTechAPI.sAfterGTLoad.add(registerRunnable);
-        //         int after = GregTechAPI.sAfterGTLoad.size();
-        //         GTSteamGeologyUtilities.LOG.info("[1/3] 已将机器注册任务加入 GregTech 加载队列 (队列大小: " + before + " -> " + after + ")");
-        //     }
-        // } catch (Throwable t) {
-        //     GTSteamGeologyUtilities.LOG.error("无法将注册任务添加到 GregTech 队列", t);
-        // }
+        try {
+            if (GregTechAPI.sAfterGTLoad == null) {
+                GTSteamGeologyUtilities.LOG.warn("警告: GregTechAPI.sAfterGTLoad 为空，无法添加注册任务。");
+            } else {
+                int before = GregTechAPI.sAfterGTLoad.size();
+                GregTechAPI.sAfterGTLoad.add(registerRunnable);
+                int after = GregTechAPI.sAfterGTLoad.size();
+                GTSteamGeologyUtilities.LOG.info("[1/3] 已将机器注册任务加入 GregTech 加载队列 (队列大小: " + before + " -> " + after + ")");
+            }
+        } catch (Throwable t) {
+            GTSteamGeologyUtilities.LOG.error("无法将注册任务添加到 GregTech 队列", t);
+        }
     }
 
     /**

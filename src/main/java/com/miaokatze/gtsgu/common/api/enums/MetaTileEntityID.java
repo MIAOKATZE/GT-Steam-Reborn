@@ -12,17 +12,23 @@ import com.miaokatze.gtsgu.config.Config;
  */
 public enum MetaTileEntityID {
 
-    // --- 单方块测试机器 ---
-    /** EV 等级测试发电机 (Tier 4) */
-    //MTETEST_EV(0),
-    /** IV 等级测试发电机 (Tier 5) */
-    //MTETEST_IV(1),
-    /** LuV 等级测试发电机 (Tier 6) */
-    //MTETEST_LuV(2),
+    // --- 单方块测试机器 (已禁用) ---
+    // /** EV 等级测试发电机 (Tier 4) */
+    // MTETEST_EV(0),
+    // /** IV 等级测试发电机 (Tier 5) */
+    // MTETEST_IV(1),
+    // /** LuV 等级测试发电机 (Tier 6) */
+    // MTETEST_LuV(2),
 
-    // --- 多方块测试机器 ---
-    /** HV 等级测试多方块机器 (Tier 5) */
-    //MTETEST_MULTIBLOCK_HV(10),
+    // --- 多方块测试机器 (已禁用) ---
+    // /** HV 等级测试多方块机器 (Tier 5) */
+    // MTETEST_MULTIBLOCK_HV(10),
+
+    // --- 基础单方块机器 (1+) ---
+    /** 蒸汽缓存节点 (Tier 3 / HV) */
+    STEAM_CACHE_NODE(1),
+    /** 加固蒸汽缓存节点 (Tier 3 / HV) */
+    REINFORCED_STEAM_CACHE_NODE(2),
 
     ;
 

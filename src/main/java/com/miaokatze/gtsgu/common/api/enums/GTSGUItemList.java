@@ -18,18 +18,24 @@ import gregtech.api.util.GTLog;
  */
 public enum GTSGUItemList implements IItemContainer {
 
-    // 测试机器：EV, IV, LuV 等级
-    //Test_Machine_EV,
-    //Test_Machine_IV,
-    //Test_Machine_LuV,
+    // 测试机器：EV, IV, LuV 等级 (已禁用)
+    // Test_Machine_EV,
+    // Test_Machine_IV,
+    // Test_Machine_LuV,
 
-    // 测试用多方块机器 (HV)
-    //Test_Multiblock_HV,
+    // 测试用多方块机器 (HV) (已禁用)
+    // Test_Multiblock_HV,
 
-    // 测试物品
-    //TestCoin,
+    // 测试物品 (已禁用)
+    // TestCoin,
     // 电子测试硬币 (保留作为框架参考)
-    //TestCoinE;
+    // TestCoinE,
+
+    // 基础单方块机器
+    SteamCacheNode,
+    ReinforcedSteamCacheNode,
+
+    ;
 
     // 存储对应的物品堆栈实例
     private ItemStack mStack;
