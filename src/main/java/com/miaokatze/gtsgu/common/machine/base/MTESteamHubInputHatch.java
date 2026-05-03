@@ -1,6 +1,9 @@
 package com.miaokatze.gtsgu.common.machine.base;
 
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraftforge.fluids.FluidStack;
+
+import com.miaokatze.gtsgu.common.machine.MTESteamHubArray;
 
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
@@ -9,7 +12,7 @@ import gregtech.api.metatileentity.implementations.MTEHatchInput;
 
 public class MTESteamHubInputHatch extends MTEHatchInput {
 
-    private static final int STEAM_HUB_CAPACITY = 2_000_000;
+    public MTESteamHubArray mController;
 
     public MTESteamHubInputHatch(int aID, String aName, String aNameRegional) {
         super(aID, aName, aNameRegional, 1);
@@ -25,8 +28,28 @@ public class MTESteamHubInputHatch extends MTEHatchInput {
     }
 
     @Override
+    public boolean onRightclick(IGregTechTileEntity aBaseMetaTileEntity, EntityPlayer aPlayer) {
+        return true;
+    }
+
+    @Override
+    public int fill(FluidStack aFluid, boolean doFill) {
+        if (mController != null) {
+            if (mController.isFormed()) {
+                return mController.receiveSteam(aFluid, doFill);
+            }
+            mController = null;
+        }
+        return super.fill(aFluid, doFill);
+    }
+
+    @Override
     public int getCapacity() {
-        return STEAM_HUB_CAPACITY;
+        if (mController != null && mController.isFormed()) {
+            long remaining = mController.getTotalCapacity() - mController.getSteamStored();
+            return (int) Math.min(remaining, Integer.MAX_VALUE);
+        }
+        return 2_000_000;
     }
 
     @Override
@@ -36,8 +59,13 @@ public class MTESteamHubInputHatch extends MTEHatchInput {
     }
 
     @Override
+    public boolean doesEmptyContainers() {
+        return false;
+    }
+
+    @Override
     public String[] getDescription() {
-        return new String[] { "Steam Hub Array Input Hatch", "Accepts Steam/Superheated Steam only",
-            "Capacity: 2,000,000 L" };
+        return new String[] { "Steam Hub Array Input Port", "Accepts Steam/Superheated Steam only",
+            "No internal storage - fluid goes directly into the array" };
     }
 }

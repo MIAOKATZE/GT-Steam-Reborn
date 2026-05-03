@@ -1,7 +1,5 @@
 package com.miaokatze.gtsgu.common.machine.base;
 
-import static gregtech.api.enums.Textures.BlockIcons.OVERLAY_PIPE;
-
 import net.minecraftforge.common.util.ForgeDirection;
 
 import gregtech.api.GregTechAPI;
@@ -9,7 +7,6 @@ import gregtech.api.enums.Textures;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
-import gregtech.api.render.TextureFactory;
 import gregtech.api.util.GTUtility;
 
 public class MTEPressureSteamStorageUnit extends MTESteamStorageUnit {
@@ -32,19 +29,12 @@ public class MTEPressureSteamStorageUnit extends MTESteamStorageUnit {
     @Override
     public ITexture[] getTexture(IGregTechTileEntity aBaseMetaTileEntity, ForgeDirection sideDirection,
         ForgeDirection facingDirection, int colorIndex, boolean active, boolean redstoneLevel) {
-        if (sideDirection == facingDirection) {
-            return new ITexture[] { getCasingTexture(), TextureFactory.of(OVERLAY_PIPE) };
-        }
-        return new ITexture[] { getCasingTexture() };
-    }
-
-    private ITexture getCasingTexture() {
-        return Textures.BlockIcons.getCasingTextureForId(CASING_INDEX);
+        return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(CASING_INDEX) };
     }
 
     @Override
     public String[] getDescription() {
         return new String[] { "Pressure Steam Storage Unit", "Structural component for Steam Hub Array",
-            "Capacity contribution: 16,000,000 L" };
+            "Capacity contribution: 16,000,000 L per unit" };
     }
 }

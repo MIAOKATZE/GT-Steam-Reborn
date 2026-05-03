@@ -1,6 +1,9 @@
 package com.miaokatze.gtsgu.common.machine.base;
 
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraftforge.fluids.FluidStack;
+
+import com.miaokatze.gtsgu.common.machine.MTESteamHubArray;
 
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
@@ -10,7 +13,7 @@ import gregtech.api.util.GTModHandler;
 
 public class MTESteamHubOutputHatch extends MTEHatchOutput {
 
-    private static final int STEAM_HUB_CAPACITY = 2_000_000;
+    public MTESteamHubArray mController;
 
     public MTESteamHubOutputHatch(int aID, String aName, String aNameRegional) {
         super(aID, aName, aNameRegional, 1);
@@ -28,8 +31,35 @@ public class MTESteamHubOutputHatch extends MTEHatchOutput {
     }
 
     @Override
+    public boolean onRightclick(IGregTechTileEntity aBaseMetaTileEntity, EntityPlayer aPlayer) {
+        return true;
+    }
+
+    @Override
+    public FluidStack drain(int maxDrain, boolean doDrain) {
+        if (mController != null) {
+            if (mController.isFormed()) {
+                return mController.extractSteam(maxDrain, doDrain);
+            }
+            mController = null;
+        }
+        return super.drain(maxDrain, doDrain);
+    }
+
+    @Override
+    public FluidStack getFluid() {
+        if (mController != null && mController.isFormed()) {
+            return mController.getStoredFluidStack();
+        }
+        return super.getFluid();
+    }
+
+    @Override
     public int getCapacity() {
-        return STEAM_HUB_CAPACITY;
+        if (mController != null && mController.isFormed()) {
+            return (int) Math.min(mController.getTotalCapacity(), Integer.MAX_VALUE);
+        }
+        return 2_000_000;
     }
 
     @Override
@@ -50,7 +80,7 @@ public class MTESteamHubOutputHatch extends MTEHatchOutput {
 
     @Override
     public String[] getDescription() {
-        return new String[] { "Steam Hub Array Output Hatch", "Outputs Steam/Superheated Steam only",
-            "Capacity: 2,000,000 L" };
+        return new String[] { "Steam Hub Array Output Port", "Outputs Steam/Superheated Steam only",
+            "Auto-output: 2,000,000 L/s to adjacent tank", "No internal storage - draws directly from the array" };
     }
 }

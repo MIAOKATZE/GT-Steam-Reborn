@@ -15,6 +15,7 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.FluidStack;
+import net.minecraftforge.fluids.IFluidHandler;
 
 import com.gtnewhorizon.structurelib.alignment.constructable.IConstructable;
 import com.gtnewhorizon.structurelib.alignment.constructable.ISurvivalConstructable;
@@ -27,7 +28,6 @@ import com.miaokatze.gtsgu.common.machine.base.MTESteamHubInputHatch;
 import com.miaokatze.gtsgu.common.machine.base.MTESteamHubOutputHatch;
 
 import gregtech.api.GregTechAPI;
-import gregtech.api.enums.Materials;
 import gregtech.api.enums.Textures;
 import gregtech.api.interfaces.IHatchElement;
 import gregtech.api.interfaces.ITexture;
@@ -49,6 +49,7 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
     private static final String STRUCTURE_PIECE_TOP_HINT = "topHint";
     private static final int MIN_TOTAL_HEIGHT = 2;
     private static final int MAX_TOTAL_HEIGHT = 13;
+    private static final int AUTO_OUTPUT_RATE = 2_000_000;
 
     private static final int CASING_INDEX = GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings1, 10);
 
@@ -184,6 +185,13 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
 
     @Override
     public boolean checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack) {
+        for (MTESteamHubInputHatch hatch : mSteamInputHatches) {
+            hatch.mController = null;
+        }
+        for (MTESteamHubOutputHatch hatch : mSteamOutputHatches) {
+            hatch.mController = null;
+        }
+
         mPressureUnitCount = 0;
         mReinforcedUnitCount = 0;
         mCasingAmount = 0;
@@ -210,6 +218,7 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
         IMetaTileEntity aMetaTileEntity = aTileEntity.getMetaTileEntity();
         if (aMetaTileEntity instanceof MTESteamHubInputHatch hatch) {
             hatch.updateTexture(aBaseCasingIndex);
+            hatch.mController = this;
             return mSteamInputHatches.add(hatch);
         }
         return false;
@@ -220,6 +229,7 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
         IMetaTileEntity aMetaTileEntity = aTileEntity.getMetaTileEntity();
         if (aMetaTileEntity instanceof MTESteamHubOutputHatch hatch) {
             hatch.updateTexture(aBaseCasingIndex);
+            hatch.mController = this;
             return mSteamOutputHatches.add(hatch);
         }
         return false;
@@ -243,6 +253,51 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
             return true;
         }
         return false;
+    }
+
+    public boolean isFormed() {
+        return mMachine;
+    }
+
+    public int receiveSteam(FluidStack aFluid, boolean doFill) {
+        if (aFluid == null) return 0;
+        if (!MTESteamHubOutputHatch.isSteamFluid(aFluid)) return 0;
+        if (mStoredFluidType != null && !mStoredFluidType.isFluidEqual(aFluid)) return 0;
+
+        long capacity = getTotalCapacity();
+        long canAccept = capacity - mSteamStored;
+        int toAccept = (int) Math.min(aFluid.amount, canAccept);
+
+        if (doFill && toAccept > 0) {
+            if (mStoredFluidType == null) {
+                mStoredFluidType = new FluidStack(aFluid.getFluid(), 0);
+            }
+            mSteamStored += toAccept;
+        }
+
+        return toAccept;
+    }
+
+    public FluidStack extractSteam(int maxDrain, boolean doDrain) {
+        if (mSteamStored <= 0 || mStoredFluidType == null) return null;
+
+        int toDrain = (int) Math.min(maxDrain, mSteamStored);
+        FluidStack result = new FluidStack(mStoredFluidType.getFluid(), toDrain);
+
+        if (doDrain) {
+            mSteamStored -= toDrain;
+            if (mSteamStored <= 0) {
+                mStoredFluidType = null;
+            }
+        }
+
+        return result;
+    }
+
+    public FluidStack getStoredFluidStack() {
+        if (mStoredFluidType == null || mSteamStored <= 0) return null;
+        int amount = (int) Math.min(mSteamStored, Integer.MAX_VALUE);
+        return new FluidStack(mStoredFluidType.getFluid(), amount);
     }
 
     private int getTotalHeightFromItemStack(ItemStack stackSize) {
@@ -297,7 +352,17 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
         return false;
     }
 
-    private long getTotalCapacity() {
+    @Override
+    public boolean shouldDisplayCheckRecipeResult() {
+        return false;
+    }
+
+    @Override
+    public boolean showRecipeTextInGUI() {
+        return false;
+    }
+
+    public long getTotalCapacity() {
         return (long) mPressureUnitCount * MTEPressureSteamStorageUnit.PRESSURE_CAPACITY
             + (long) mReinforcedUnitCount * MTEReinforcedSteamStorageUnit.REINFORCED_CAPACITY;
     }
@@ -319,63 +384,35 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
         super.onPostTick(aBaseMetaTileEntity, aTick);
         if (!aBaseMetaTileEntity.isServerSide() || !mMachine) return;
 
-        processSteamInput();
-        processSteamOutput();
-
         long totalCapacity = getTotalCapacity();
         if (mSteamStored > totalCapacity) {
             mSteamStored = totalCapacity;
         }
+
+        autoOutputSteam();
     }
 
-    private void processSteamInput() {
-        for (MTESteamHubInputHatch hatch : mSteamInputHatches) {
-            FluidStack fluid = hatch.getFluid();
-            if (fluid == null || fluid.amount <= 0) continue;
-            if (!MTESteamHubOutputHatch.isSteamFluid(fluid)) continue;
-
-            long capacity = getTotalCapacity();
-            long canAccept = capacity - mSteamStored;
-            if (canAccept <= 0) continue;
-
-            int toTransfer = (int) Math.min(fluid.amount, canAccept);
-            if (toTransfer <= 0) continue;
-
-            if (mStoredFluidType == null) {
-                mStoredFluidType = new FluidStack(fluid.getFluid(), 0);
-            }
-
-            mSteamStored += toTransfer;
-            fluid.amount -= toTransfer;
-            if (fluid.amount <= 0) {
-                hatch.setFillableStack(null);
-            }
-        }
-    }
-
-    private void processSteamOutput() {
-        if (mSteamStored <= 0) return;
+    private void autoOutputSteam() {
+        if (mSteamStored <= 0 || mStoredFluidType == null) return;
         for (MTESteamHubOutputHatch hatch : mSteamOutputHatches) {
             if (mSteamStored <= 0) break;
-            FluidStack existing = hatch.getFluid();
-            int currentAmount = existing != null ? existing.amount : 0;
-            int hatchCapacity = hatch.getCapacity();
-            int canOutput = (int) Math.min(mSteamStored, hatchCapacity - currentAmount);
-            if (canOutput <= 0) continue;
+            IGregTechTileEntity hatchBase = hatch.getBaseMetaTileEntity();
+            if (hatchBase == null) continue;
+            ForgeDirection hatchFront = hatchBase.getFrontFacing();
+            IFluidHandler adjacent = hatchBase.getITankContainerAtSide(hatchFront);
+            if (adjacent == null) continue;
 
-            FluidStack output = createSteamFluidStack(canOutput);
-            int filled = hatch.fill(output, true);
-            if (filled > 0) {
-                mSteamStored -= filled;
+            int toPush = (int) Math.min(AUTO_OUTPUT_RATE, mSteamStored);
+            FluidStack toExport = new FluidStack(mStoredFluidType.getFluid(), toPush);
+            int pushed = adjacent.fill(hatchFront.getOpposite(), toExport, true);
+            if (pushed > 0) {
+                mSteamStored -= pushed;
+                if (mSteamStored <= 0) {
+                    mStoredFluidType = null;
+                    return;
+                }
             }
         }
-    }
-
-    private FluidStack createSteamFluidStack(int amount) {
-        if (mStoredFluidType != null) {
-            return new FluidStack(mStoredFluidType.getFluid(), amount);
-        }
-        return Materials.Steam.getGas(amount);
     }
 
     @Override
@@ -431,33 +468,36 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
     @Override
     public String[] getInfoData() {
         long totalCapacity = getTotalCapacity();
+        double fillRatio = totalCapacity > 0 ? (double) mSteamStored / totalCapacity * 100 : 0;
         return new String[] { EnumChatFormatting.BLUE + "Steam Hub Array",
             EnumChatFormatting.GRAY + "Status: "
-                + (mMachine ? EnumChatFormatting.GREEN + "Formed" : EnumChatFormatting.RED + "Incomplete"),
+                + (mMachine ? EnumChatFormatting.GREEN + "Running" : EnumChatFormatting.RED + "Incomplete"),
+            EnumChatFormatting.GRAY + "Steam Type: "
+                + EnumChatFormatting.AQUA
+                + (mStoredFluidType != null ? mStoredFluidType.getLocalizedName() : "None"),
             EnumChatFormatting.GRAY + "Steam Stored: "
                 + EnumChatFormatting.YELLOW
                 + GTUtility.formatNumbers(mSteamStored)
                 + " / "
                 + GTUtility.formatNumbers(totalCapacity)
                 + " L",
+            EnumChatFormatting.GRAY + "Fill: " + EnumChatFormatting.GREEN + String.format("%.1f%%", fillRatio),
             EnumChatFormatting.GRAY + "Pressure Units: " + EnumChatFormatting.WHITE + mPressureUnitCount,
-            EnumChatFormatting.GRAY + "Reinforced Units: " + EnumChatFormatting.WHITE + mReinforcedUnitCount,
-            EnumChatFormatting.GRAY + "Fluid Type: "
-                + EnumChatFormatting.AQUA
-                + (mStoredFluidType != null ? mStoredFluidType.getLocalizedName() : "None") };
+            EnumChatFormatting.GRAY + "Reinforced Units: " + EnumChatFormatting.WHITE + mReinforcedUnitCount };
     }
 
     @Override
     protected MultiblockTooltipBuilder createTooltip() {
         final MultiblockTooltipBuilder tt = new MultiblockTooltipBuilder();
         tt.addMachineType("Steam Hub Array")
-            .addInfo("Stackable steam storage multiblock structure")
-            .addInfo("Minimum 2 layers (base + 1 storage layer)")
-            .addInfo("Maximum 13 layers (base + 12 storage layers)")
-            .addInfo("Pressure Unit: 16,000,000 L each")
-            .addInfo("Reinforced Unit: 64,000,000 L each")
-            .addInfo("Stores Steam and Superheated Steam only")
+            .addInfo("Centralized steam storage with tiered capacity")
+            .addInfo("Structure height scales with controller stack size (Lv.1-12)")
+            .addInfo("Lv.1 = 2 layers (base + 1 storage), Lv.12 = 13 layers")
+            .addInfo("Pressure Unit: 16,000,000 L | Reinforced Unit: 64,000,000 L")
+            .addInfo("Auto-output rate: 2,000,000 L/s per output hatch")
+            .addInfo("Accepts Steam and Superheated Steam only")
             .addInfo("No maintenance hatch required")
+            .addInfo("Hatches have no internal storage - all fluid held by the array")
             .beginVariableStructureBlock(5, 5, 2, 13, 5, 5, false)
             .addController("Front center of base layer")
             .addCasingInfoMin("Bronze Plated Bricks", 1, false)

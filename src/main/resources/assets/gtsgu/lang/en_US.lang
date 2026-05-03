@@ -30,27 +30,32 @@ gtsgu.tooltip.reinforced_steam_cache_node.fluid_type.superheated_steam=Superheat
 
 # Steam Hub Output Hatch
 gt.blockmachines.gtsgu.steam.hub.output.hatch.name=Steam Hub Output Hatch
-gtsgu.tooltip.steam_hub_output_hatch.info=Dedicated output hatch for Steam Hub Array
+gtsgu.tooltip.steam_hub_output_hatch.info=Dedicated output port for Steam Hub Array
 gtsgu.tooltip.steam_hub_output_hatch.fluid_type=Outputs steam/superheated steam only
-gtsgu.tooltip.steam_hub_output_hatch.output_rate=Output rate: 2,000,000 L/s
+gtsgu.tooltip.steam_hub_output_hatch.output_rate=Auto-output rate: 2,000,000 L/s
+gtsgu.tooltip.steam_hub_output_hatch.no_storage=No internal buffer - draws directly from the array
 
 # Steam Hub Input Hatch
 gt.blockmachines.gtsgu.steam.hub.input.hatch.name=Steam Hub Input Hatch
-gtsgu.tooltip.steam_hub_input_hatch.info=Dedicated input hatch for Steam Hub Array
+gtsgu.tooltip.steam_hub_input_hatch.info=Dedicated input port for Steam Hub Array
 gtsgu.tooltip.steam_hub_input_hatch.fluid_type=Accepts steam/superheated steam only
+gtsgu.tooltip.steam_hub_input_hatch.no_storage=No internal buffer - fluid goes directly into the array
 
 # Pressure Steam Storage Unit
 gt.blockmachines.gtsgu.pressure.steam.storage.unit.name=Pressure Steam Storage Unit
 gtsgu.tooltip.pressure_steam_storage_unit.info=Structural component for Steam Hub Array
-gtsgu.tooltip.pressure_steam_storage_unit.capacity=Capacity contribution: 16,000,000 L
+gtsgu.tooltip.pressure_steam_storage_unit.capacity=Capacity contribution: 16,000,000 L per unit
 
 # Reinforced Steam Storage Unit
 gt.blockmachines.gtsgu.reinforced.steam.storage.unit.name=Reinforced Steam Storage Unit
 gtsgu.tooltip.reinforced_steam_storage_unit.info=Structural component for Steam Hub Array
-gtsgu.tooltip.reinforced_steam_storage_unit.capacity=Capacity contribution: 64,000,000 L
+gtsgu.tooltip.reinforced_steam_storage_unit.capacity=Capacity contribution: 64,000,000 L per unit
 
 # Steam Hub Array
 gt.blockmachines.gtsgu.steam.hub.array.name=Steam Hub Array
-gtsgu.tooltip.steam_hub_array.info=Stackable steam storage multiblock structure
-gtsgu.tooltip.steam_hub_array.structure=5x5 base + 1-12 layers of storage units
-gtsgu.tooltip.steam_hub_array.capacity=Pressure: 16M/unit, Reinforced: 64M/unit
+gtsgu.tooltip.steam_hub_array.info=Centralized steam storage multiblock with tiered capacity
+gtsgu.tooltip.steam_hub_array.structure=5x5 base + 1-12 storage layers (Level 1-12)
+gtsgu.tooltip.steam_hub_array.capacity=Pressure: 16M L/unit | Reinforced: 64M L/unit
+gtsgu.tooltip.steam_hub_array.output=Auto-output: 2,000,000 L/s per output hatch
+gtsgu.tooltip.steam_hub_array.no_maintenance=No maintenance hatch required
+gtsgu.tooltip.steam_hub_array.hatch_note=Hatches have no internal buffer - all fluid held by the array

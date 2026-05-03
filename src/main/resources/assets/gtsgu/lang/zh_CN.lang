@@ -30,27 +30,32 @@ gtsgu.tooltip.reinforced_steam_cache_node.fluid_type.superheated_steam=过热蒸
 
 # Steam Hub Output Hatch
 gt.blockmachines.gtsgu.steam.hub.output.hatch.name=蒸汽枢纽输出仓
-gtsgu.tooltip.steam_hub_output_hatch.info=蒸汽枢纽阵列专用输出仓
+gtsgu.tooltip.steam_hub_output_hatch.info=蒸汽枢纽阵列专用输出端口
 gtsgu.tooltip.steam_hub_output_hatch.fluid_type=仅输出蒸汽/过热蒸汽
-gtsgu.tooltip.steam_hub_output_hatch.output_rate=输出流量：2,000,000 L/s
+gtsgu.tooltip.steam_hub_output_hatch.output_rate=自动输出流量：2,000,000 L/s
+gtsgu.tooltip.steam_hub_output_hatch.no_storage=无内部缓存，直接从阵列抽取
 
 # Steam Hub Input Hatch
 gt.blockmachines.gtsgu.steam.hub.input.hatch.name=蒸汽枢纽输入仓
-gtsgu.tooltip.steam_hub_input_hatch.info=蒸汽枢纽阵列专用输入仓
+gtsgu.tooltip.steam_hub_input_hatch.info=蒸汽枢纽阵列专用输入端口
 gtsgu.tooltip.steam_hub_input_hatch.fluid_type=仅接受蒸汽/过热蒸汽
+gtsgu.tooltip.steam_hub_input_hatch.no_storage=无内部缓存，流体直接进入阵列
 
 # Pressure Steam Storage Unit
 gt.blockmachines.gtsgu.pressure.steam.storage.unit.name=耐压蒸汽存储单元
-gtsgu.tooltip.pressure_steam_storage_unit.info=蒸汽枢纽阵列结构组件
-gtsgu.tooltip.pressure_steam_storage_unit.capacity=容量贡献：16,000,000 L
+gtsgu.tooltip.pressure_steam_storage_unit.info=蒸汽枢纽阵列的结构组件
+gtsgu.tooltip.pressure_steam_storage_unit.capacity=容量贡献：16,000,000 L/个
 
 # Reinforced Steam Storage Unit
 gt.blockmachines.gtsgu.reinforced.steam.storage.unit.name=加固蒸汽存储单元
-gtsgu.tooltip.reinforced_steam_storage_unit.info=蒸汽枢纽阵列结构组件
-gtsgu.tooltip.reinforced_steam_storage_unit.capacity=容量贡献：64,000,000 L
+gtsgu.tooltip.reinforced_steam_storage_unit.info=蒸汽枢纽阵列的结构组件
+gtsgu.tooltip.reinforced_steam_storage_unit.capacity=容量贡献：64,000,000 L/个
 
 # Steam Hub Array
 gt.blockmachines.gtsgu.steam.hub.array.name=蒸汽枢纽阵列
-gtsgu.tooltip.steam_hub_array.info=可堆叠的蒸汽存储多方块结构
-gtsgu.tooltip.steam_hub_array.structure=5×5底座 + 1-12层存储单元
-gtsgu.tooltip.steam_hub_array.capacity=耐压: 16M/个, 加固: 64M/个
+gtsgu.tooltip.steam_hub_array.info=集中式蒸汽存储多方块结构，容量随等级递增
+gtsgu.tooltip.steam_hub_array.structure=5×5底座 + 1~12层存储单元（等级1~12）
+gtsgu.tooltip.steam_hub_array.capacity=耐压单元: 16M L/个 | 加固单元: 64M L/个
+gtsgu.tooltip.steam_hub_array.output=自动输出：2,000,000 L/s（每输出仓）
+gtsgu.tooltip.steam_hub_array.no_maintenance=无需维护仓
+gtsgu.tooltip.steam_hub_array.hatch_note=输入/输出仓无内部缓存，所有流体由阵列统一存储
