@@ -12,8 +12,8 @@ public class MultiblockMachineRegistrar extends MachineRegistrar {
         // registerMachine(
         // () -> new MTEMultiTestMachine(
         // MTETEST_MULTIBLOCK_HV.ID,
-        //         "gtsgu.multitest.hv",
-        //         StatCollector.translateToLocal("gtsgu.machine.multitest.hv")),
+        // "gtsgu.multitest.hv",
+        // StatCollector.translateToLocal("gtsgu.machine.multitest.hv")),
         // Test_Multiblock_HV);
     }
 }

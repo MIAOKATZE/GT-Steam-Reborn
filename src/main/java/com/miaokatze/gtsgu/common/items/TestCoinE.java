@@ -6,9 +6,6 @@ import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.world.World;
 
-import com.miaokatze.gtsgu.common.api.enums.GTSGUItemList;
-
-import ic2.api.item.ElectricItem;
 import ic2.api.item.IElectricItem;
 
 /**

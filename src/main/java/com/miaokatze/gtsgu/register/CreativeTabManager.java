@@ -3,11 +3,11 @@ package com.miaokatze.gtsgu.register;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.miaokatze.gtsgu.main.GTSteamGeologyUtilities;
-
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+
+import com.miaokatze.gtsgu.main.GTSteamGeologyUtilities;
 
 /**
  * 创造模式物品栏管理器

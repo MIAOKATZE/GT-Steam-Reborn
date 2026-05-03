@@ -26,7 +26,7 @@ public class ItemRegistrar {
      */
     // [GTSGU-DEV] 测试物品已禁用
     // private static void registerTestCoin() {
-    //     TestCoin.setAndRegister(com.miaokatze.gtsgu.common.items.TestCoin::new);
+    // TestCoin.setAndRegister(com.miaokatze.gtsgu.common.items.TestCoin::new);
     // }
 
     /**
@@ -34,6 +34,6 @@ public class ItemRegistrar {
      */
     // [GTSGU-DEV] 测试物品已禁用
     // private static void registerTestCoinE() {
-    //     TestCoinE.setAndRegister(com.miaokatze.gtsgu.common.items.TestCoinE::new);
+    // TestCoinE.setAndRegister(com.miaokatze.gtsgu.common.items.TestCoinE::new);
     // }
 }

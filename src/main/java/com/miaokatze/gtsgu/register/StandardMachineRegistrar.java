@@ -16,8 +16,8 @@ public class StandardMachineRegistrar extends MachineRegistrar {
         // registerMachine(
         // () -> new MTETestMachine(
         // MTETEST_EV.ID,
-        //         "gtsgu.mtetest.ev",
-        //         StatCollector.translateToLocal("gtsgu.machine.test.ev"),
+        // "gtsgu.mtetest.ev",
+        // StatCollector.translateToLocal("gtsgu.machine.test.ev"),
         // 4),
         // Test_Machine_EV);
 
@@ -25,8 +25,8 @@ public class StandardMachineRegistrar extends MachineRegistrar {
         // registerMachine(
         // () -> new MTETestMachine(
         // MTETEST_IV.ID,
-        //         "gtsgu.mtetest.iv",
-        //         StatCollector.translateToLocal("gtsgu.machine.test.iv"),
+        // "gtsgu.mtetest.iv",
+        // StatCollector.translateToLocal("gtsgu.machine.test.iv"),
         // 5),
         // Test_Machine_IV);
 
@@ -34,8 +34,8 @@ public class StandardMachineRegistrar extends MachineRegistrar {
         // registerMachine(
         // () -> new MTETestMachine(
         // MTETEST_LuV.ID,
-        //         "gtsgu.mtetest.luv",
-        //         StatCollector.translateToLocal("gtsgu.machine.test.luv"),
+        // "gtsgu.mtetest.luv",
+        // StatCollector.translateToLocal("gtsgu.machine.test.luv"),
         // 6),
         // Test_Machine_LuV);
     }

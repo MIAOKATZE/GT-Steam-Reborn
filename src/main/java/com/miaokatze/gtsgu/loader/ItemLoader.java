@@ -1,7 +1,5 @@
 package com.miaokatze.gtsgu.loader;
 
-import com.miaokatze.gtsgu.register.ItemRegistrar;
-
 /**
  * 物品加载器
  * 负责在模组初始化的正确阶段触发物品注册流程

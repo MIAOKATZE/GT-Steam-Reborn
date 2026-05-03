@@ -8,6 +8,8 @@ import static gregtech.api.enums.Textures.BlockIcons.OVERLAY_PIPE;
 import static gregtech.api.enums.Textures.BlockIcons.OVERLAY_QTANK;
 import static gregtech.api.enums.Textures.BlockIcons.OVERLAY_QTANK_GLOW;
 
+import java.util.List;
+
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
@@ -16,8 +18,6 @@ import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.IFluidHandler;
-
-import java.util.List;
 
 import com.gtnewhorizons.modularui.common.widget.FluidSlotWidget;
 
@@ -57,9 +57,7 @@ public class MTEReinforcedSteamCacheNode extends MTEDigitalTankBase {
     public ITexture[] getTexture(IGregTechTileEntity baseMetaTileEntity, ForgeDirection sideDirection,
         ForgeDirection facingDirection, int colorIndex, boolean active, boolean redstoneLevel) {
         if (sideDirection == ForgeDirection.UP) {
-            return new ITexture[] {
-                TextureFactory.of(MACHINE_STEEL_TOP),
-                TextureFactory.of(OVERLAY_QTANK),
+            return new ITexture[] { TextureFactory.of(MACHINE_STEEL_TOP), TextureFactory.of(OVERLAY_QTANK),
                 TextureFactory.builder()
                     .addIcon(OVERLAY_QTANK_GLOW)
                     .glow()
@@ -75,8 +73,7 @@ public class MTEReinforcedSteamCacheNode extends MTEDigitalTankBase {
 
     @Override
     protected FluidSlotWidget createFluidSlot() {
-        return super.createFluidSlot()
-            .setFilter(fluid -> fluid != null && isAllowedFluidName(fluid.getName()));
+        return super.createFluidSlot().setFilter(fluid -> fluid != null && isAllowedFluidName(fluid.getName()));
     }
 
     @Override
@@ -85,8 +82,7 @@ public class MTEReinforcedSteamCacheNode extends MTEDigitalTankBase {
     }
 
     @Override
-    public void lockFluid(boolean lock) {
-    }
+    public void lockFluid(boolean lock) {}
 
     @Override
     public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
@@ -103,8 +99,7 @@ public class MTEReinforcedSteamCacheNode extends MTEDigitalTankBase {
         super.onPostTick(aBaseMetaTileEntity, aTick);
         if (aBaseMetaTileEntity.isServerSide()) {
             if (mOutputFluid && getDrainableStack() != null && (aTick % 20 == 0)) {
-                IFluidHandler tTank = aBaseMetaTileEntity
-                    .getITankContainerAtSide(aBaseMetaTileEntity.getFrontFacing());
+                IFluidHandler tTank = aBaseMetaTileEntity.getITankContainerAtSide(aBaseMetaTileEntity.getFrontFacing());
                 if (tTank != null) {
                     FluidStack tDrained = drain(OUTPUT_RATE_PER_SEC, false);
                     if (tDrained != null) {
@@ -150,14 +145,13 @@ public class MTEReinforcedSteamCacheNode extends MTEDigitalTankBase {
         String nameKey = "gt.blockmachines." + mName + ".name";
         if (mFluid == null) {
             return new String[] {
-                EnumChatFormatting.BLUE
-                    + StatCollector.translateToLocal(nameKey)
-                    + EnumChatFormatting.RESET,
+                EnumChatFormatting.BLUE + StatCollector.translateToLocal(nameKey) + EnumChatFormatting.RESET,
                 StatCollector.translateToLocal("GT5U.infodata.digital_tank.stored_fluid"),
                 EnumChatFormatting.GOLD
                     + StatCollector.translateToLocal("GT5U.infodata.digital_tank.stored_fluid.empty")
                     + EnumChatFormatting.RESET,
-                EnumChatFormatting.GREEN + "0 L" + EnumChatFormatting.RESET
+                EnumChatFormatting.GREEN + "0 L"
+                    + EnumChatFormatting.RESET
                     + " "
                     + EnumChatFormatting.YELLOW
                     + formatNumber(CAPACITY)
@@ -165,9 +159,7 @@ public class MTEReinforcedSteamCacheNode extends MTEDigitalTankBase {
                     + EnumChatFormatting.RESET };
         }
         return new String[] {
-            EnumChatFormatting.BLUE
-                + StatCollector.translateToLocal(nameKey)
-                + EnumChatFormatting.RESET,
+            EnumChatFormatting.BLUE + StatCollector.translateToLocal(nameKey) + EnumChatFormatting.RESET,
             StatCollector.translateToLocal("GT5U.infodata.digital_tank.stored_fluid"),
             EnumChatFormatting.GOLD + mFluid.getLocalizedName() + EnumChatFormatting.RESET,
             EnumChatFormatting.GREEN + formatNumber(mFluid.amount)
@@ -184,13 +176,12 @@ public class MTEReinforcedSteamCacheNode extends MTEDigitalTankBase {
     public void addAdditionalTooltipInformation(ItemStack stack, List<String> tooltip) {
         super.addAdditionalTooltipInformation(stack, tooltip);
         tooltip.add(
-            EnumChatFormatting.AQUA
-                + StatCollector.translateToLocal("gtsgu.tooltip.steam_cache_node.fluid_type")
+            EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsgu.tooltip.steam_cache_node.fluid_type")
                 + EnumChatFormatting.YELLOW
-                + StatCollector.translateToLocal("gtsgu.tooltip.reinforced_steam_cache_node.fluid_type.superheated_steam"));
+                + StatCollector
+                    .translateToLocal("gtsgu.tooltip.reinforced_steam_cache_node.fluid_type.superheated_steam"));
         tooltip.add(
-            EnumChatFormatting.AQUA
-                + StatCollector.translateToLocal("gtsgu.tooltip.steam_cache_node.output_rate")
+            EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsgu.tooltip.steam_cache_node.output_rate")
                 + EnumChatFormatting.GREEN
                 + String.format("%,d", OUTPUT_RATE_PER_SEC)
                 + " L/s");

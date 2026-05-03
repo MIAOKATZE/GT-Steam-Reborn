@@ -32,7 +32,9 @@ public class GTSteamGeologyUtilities {
     public static final Logger LOG = LogManager.getLogger(MODID);
 
     // 代理类实例，用于处理客户端和服务端的差异化逻辑
-    @SidedProxy(clientSide = "com.miaokatze.gtsgu.main.ClientProxy", serverSide = "com.miaokatze.gtsgu.main.CommonProxy")
+    @SidedProxy(
+        clientSide = "com.miaokatze.gtsgu.main.ClientProxy",
+        serverSide = "com.miaokatze.gtsgu.main.CommonProxy")
     public static CommonProxy proxy;
 
     /**

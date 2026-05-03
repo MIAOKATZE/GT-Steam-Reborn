@@ -34,6 +34,13 @@ public enum GTSGUItemList implements IItemContainer {
     // 基础单方块机器
     SteamCacheNode,
     ReinforcedSteamCacheNode,
+    SteamHubOutputHatch,
+    SteamHubInputHatch,
+    PressureSteamStorageUnit,
+    ReinforcedSteamStorageUnit,
+
+    // 多方块机器
+    SteamHubArray,
 
     ;
 

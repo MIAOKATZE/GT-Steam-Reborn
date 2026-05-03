@@ -29,6 +29,18 @@ public enum MetaTileEntityID {
     STEAM_CACHE_NODE(1),
     /** 加固蒸汽缓存节点 (Tier 3 / HV) */
     REINFORCED_STEAM_CACHE_NODE(2),
+    /** 蒸汽枢纽输出仓 */
+    STEAM_HUB_OUTPUT_HATCH(3),
+    /** 蒸汽枢纽输入仓 */
+    STEAM_HUB_INPUT_HATCH(4),
+    /** 耐压蒸汽存储单元 */
+    PRESSURE_STEAM_STORAGE_UNIT(5),
+    /** 加固蒸汽存储单元 */
+    REINFORCED_STEAM_STORAGE_UNIT(6),
+
+    // --- 多方块机器 (7+) ---
+    /** 蒸汽枢纽阵列 */
+    STEAM_HUB_ARRAY(7),
 
     ;
 

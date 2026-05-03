@@ -2,9 +2,7 @@ package com.miaokatze.gtsgu.main;
 
 import com.miaokatze.gtsgu.Tags;
 import com.miaokatze.gtsgu.config.Config;
-import com.miaokatze.gtsgu.loader.ItemLoader;
 import com.miaokatze.gtsgu.loader.MachineLoader;
-import com.miaokatze.gtsgu.recipe.TestMachineRecipes;
 import com.miaokatze.gtsgu.register.CreativeTabManager;
 
 import cpw.mods.fml.common.event.FMLInitializationEvent;
@@ -32,10 +30,10 @@ public class CommonProxy {
         // 源码完整保留于 ItemLoader / ItemRegistrar 中，取消下方注释即可恢复。
         // GTSteamGeologyUtilities.LOG.info("[0/3] 开始注册物品...");
         // try {
-        //     ItemLoader.initItems();
-        //     GTSteamGeologyUtilities.LOG.info("[0/3] 物品注册完成。");
+        // ItemLoader.initItems();
+        // GTSteamGeologyUtilities.LOG.info("[0/3] 物品注册完成。");
         // } catch (Throwable t) {
-        //     GTSteamGeologyUtilities.LOG.error("[0/3] 物品注册过程中发生严重错误，请检查日志", t);
+        // GTSteamGeologyUtilities.LOG.error("[0/3] 物品注册过程中发生严重错误，请检查日志", t);
         // }
 
         Runnable registerRunnable = () -> {
@@ -55,7 +53,8 @@ public class CommonProxy {
                 int before = GregTechAPI.sAfterGTLoad.size();
                 GregTechAPI.sAfterGTLoad.add(registerRunnable);
                 int after = GregTechAPI.sAfterGTLoad.size();
-                GTSteamGeologyUtilities.LOG.info("[1/3] 已将机器注册任务加入 GregTech 加载队列 (队列大小: " + before + " -> " + after + ")");
+                GTSteamGeologyUtilities.LOG
+                    .info("[1/3] 已将机器注册任务加入 GregTech 加载队列 (队列大小: " + before + " -> " + after + ")");
             }
         } catch (Throwable t) {
             GTSteamGeologyUtilities.LOG.error("无法将注册任务添加到 GregTech 队列", t);
@@ -86,10 +85,10 @@ public class CommonProxy {
         // 源码完整保留于 TestMachineRecipes 中，取消下方注释即可恢复。
         // GTSteamGeologyUtilities.LOG.info("[3/3] 开始注册测试配方...");
         // try {
-        //     TestMachineRecipes.init();
-        //     GTSteamGeologyUtilities.LOG.info("[3/3] 测试配方注册完成。");
+        // TestMachineRecipes.init();
+        // GTSteamGeologyUtilities.LOG.info("[3/3] 测试配方注册完成。");
         // } catch (Throwable t) {
-        //     GTSteamGeologyUtilities.LOG.error("[3/3] 测试配方注册过程中发生错误", t);
+        // GTSteamGeologyUtilities.LOG.error("[3/3] 测试配方注册过程中发生错误", t);
         // }
     }
 
