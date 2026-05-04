@@ -41,6 +41,8 @@ public enum MetaTileEntityID {
     // --- 多方块机器 (7+) ---
     /** 蒸汽枢纽阵列 */
     STEAM_HUB_ARRAY(7),
+    /** 蒸汽流体钻井 */
+    STEAM_FLUID_DRILL(8),
 
     ;
 

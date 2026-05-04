@@ -2,6 +2,7 @@ package com.miaokatze.gtsgu.loader;
 
 import com.miaokatze.gtsgu.common.api.enums.GTSGUItemList;
 import com.miaokatze.gtsgu.common.api.enums.MetaTileEntityID;
+import com.miaokatze.gtsgu.common.machine.MTESteamFluidDrill;
 import com.miaokatze.gtsgu.common.machine.MTESteamHubArray;
 import com.miaokatze.gtsgu.common.machine.base.MTEPressureSteamStorageUnit;
 import com.miaokatze.gtsgu.common.machine.base.MTEReinforcedSteamCacheNode;
@@ -16,6 +17,7 @@ public class MachineLoader {
     public static void initMachines() {
         registerSteamMachines();
         registerSteamHubMachines();
+        registerSteamFluidDrill();
     }
 
     private static void registerSteamMachines() {
@@ -63,5 +65,14 @@ public class MachineLoader {
         GTSGUItemList.SteamHubArray
             .set(new MTESteamHubArray(MetaTileEntityID.STEAM_HUB_ARRAY.ID, "gtsgu.steam.hub.array", "Steam Hub Array"));
         CreativeTabManager.addItemToTab(GTSGUItemList.SteamHubArray.get(1));
+    }
+
+    private static void registerSteamFluidDrill() {
+        GTSGUItemList.SteamFluidDrill.set(
+            new MTESteamFluidDrill(
+                MetaTileEntityID.STEAM_FLUID_DRILL.ID,
+                "gtsgu.steam.fluid.drill",
+                "Steam Fluid Drill"));
+        CreativeTabManager.addItemToTab(GTSGUItemList.SteamFluidDrill.get(1));
     }
 }

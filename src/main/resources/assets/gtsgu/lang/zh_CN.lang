@@ -67,3 +67,20 @@ gtsgu.tooltip.steam_hub_array.output_hatch=蒸汽枢纽输出仓
 gtsgu.tooltip.steam_hub_array.storage_unit=耐压/加固蒸汽存储单元
 gtsgu.tooltip.steam_hub_array.base_layer=底座层任意位置
 gtsgu.tooltip.steam_hub_array.stack_layers=底座上方堆叠层
+
+# Steam Fluid Drill
+gt.blockmachines.gtsgu.steam.fluid.drill.name=蒸汽流体钻井
+gtsgu.recipe.steam_fluid_drill=蒸汽流体钻井
+gtsgu.tooltip.steam_fluid_drill.info=蒸汽驱动的流体钻井，从地脉中挖掘水
+gtsgu.tooltip.steam_fluid_drill.bronze=青铜版: 产出普通水，5分钟达最大效率(200→2000 L/s)
+gtsgu.tooltip.steam_fluid_drill.steel=钢版: 产出蒸馏水，1小时达最大效率(10→1000 L/s)
+gtsgu.tooltip.steam_fluid_drill.output=最大产出:
+gtsgu.tooltip.steam_fluid_drill.steam_cost=蒸汽消耗:
+gtsgu.tooltip.steam_fluid_drill.any_casing=任意外壳位置
+gtsgu.tooltip.steam_fluid_drill.steam_hatch=蒸汽输入舱
+gtsgu.tooltip.steam_fluid_drill.bronze_frame=青铜框架
+gtsgu.tooltip.steam_fluid_drill.bronze_casing=镀铜砖块
+gtsgu.tooltip.steam_fluid_drill.steel_frame=钢框架
+gtsgu.tooltip.steam_fluid_drill.steel_casing=固体钢机械外壳
+gtsgu.efficiency=效率
+gtsgu.current_output=当前产出

@@ -41,6 +41,7 @@ public enum GTSGUItemList implements IItemContainer {
 
     // 多方块机器
     SteamHubArray,
+    SteamFluidDrill,
 
     ;
 

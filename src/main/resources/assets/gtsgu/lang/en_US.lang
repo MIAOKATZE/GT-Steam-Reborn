@@ -67,3 +67,20 @@ gtsgu.tooltip.steam_hub_array.output_hatch=Steam Hub Output Hatch
 gtsgu.tooltip.steam_hub_array.storage_unit=Pressure/Reinforced Steam Storage Unit
 gtsgu.tooltip.steam_hub_array.base_layer=Any base layer position
 gtsgu.tooltip.steam_hub_array.stack_layers=Stack layers above base
+
+# Steam Fluid Drill
+gt.blockmachines.gtsgu.steam.fluid.drill.name=Steam Fluid Drill
+gtsgu.recipe.steam_fluid_drill=Steam Fluid Drill
+gtsgu.tooltip.steam_fluid_drill.info=Steam-powered fluid drill, extracts water from underground veins
+gtsgu.tooltip.steam_fluid_drill.bronze=Bronze: Produces Water, reaches max in 5 min (200->2000 L/s)
+gtsgu.tooltip.steam_fluid_drill.steel=Steel: Produces Distilled Water, reaches max in 1 hr (10->1000 L/s)
+gtsgu.tooltip.steam_fluid_drill.output=Max Output:
+gtsgu.tooltip.steam_fluid_drill.steam_cost=Steam Consumption:
+gtsgu.tooltip.steam_fluid_drill.any_casing=Any casing position
+gtsgu.tooltip.steam_fluid_drill.steam_hatch=Steam Input Hatch
+gtsgu.tooltip.steam_fluid_drill.bronze_frame=Bronze Frame Box
+gtsgu.tooltip.steam_fluid_drill.bronze_casing=Bronze Plated Bricks
+gtsgu.tooltip.steam_fluid_drill.steel_frame=Steel Frame Box
+gtsgu.tooltip.steam_fluid_drill.steel_casing=Solid Steel Machine Casing
+gtsgu.efficiency=Efficiency
+gtsgu.current_output=Current Output
