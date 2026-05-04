@@ -1,6 +1,7 @@
 package com.miaokatze.gtsgu.common.machine.base;
 
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.util.StatCollector;
 import net.minecraftforge.fluids.FluidStack;
 
 import com.miaokatze.gtsgu.common.machine.MTESteamHubArray;
@@ -80,7 +81,9 @@ public class MTESteamHubOutputHatch extends MTEHatchOutput {
 
     @Override
     public String[] getDescription() {
-        return new String[] { "Steam Hub Array Output Port", "Outputs Steam/Superheated Steam only",
-            "Auto-output: 2,000,000 L/s to adjacent tank", "No internal storage - draws directly from the array" };
+        return new String[] { StatCollector.translateToLocal("gtsgu.tooltip.steam_hub_output_hatch.info"),
+            StatCollector.translateToLocal("gtsgu.tooltip.steam_hub_output_hatch.fluid_type"),
+            StatCollector.translateToLocal("gtsgu.tooltip.steam_hub_output_hatch.output_rate"),
+            StatCollector.translateToLocal("gtsgu.tooltip.steam_hub_output_hatch.no_storage") };
     }
 }

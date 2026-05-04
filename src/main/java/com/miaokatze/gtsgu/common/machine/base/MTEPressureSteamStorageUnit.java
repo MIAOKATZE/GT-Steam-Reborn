@@ -1,5 +1,6 @@
 package com.miaokatze.gtsgu.common.machine.base;
 
+import net.minecraft.util.StatCollector;
 import net.minecraftforge.common.util.ForgeDirection;
 
 import gregtech.api.GregTechAPI;
@@ -34,7 +35,7 @@ public class MTEPressureSteamStorageUnit extends MTESteamStorageUnit {
 
     @Override
     public String[] getDescription() {
-        return new String[] { "Pressure Steam Storage Unit", "Structural component for Steam Hub Array",
-            "Capacity contribution: 16,000,000 L per unit" };
+        return new String[] { StatCollector.translateToLocal("gtsgu.tooltip.pressure_steam_storage_unit.info"),
+            StatCollector.translateToLocal("gtsgu.tooltip.pressure_steam_storage_unit.capacity") };
     }
 }

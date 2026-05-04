@@ -1,5 +1,6 @@
 package com.miaokatze.gtsgu.common.machine.base;
 
+import net.minecraft.util.StatCollector;
 import net.minecraftforge.common.util.ForgeDirection;
 
 import gregtech.api.enums.Textures;
@@ -31,7 +32,7 @@ public class MTEReinforcedSteamStorageUnit extends MTESteamStorageUnit {
 
     @Override
     public String[] getDescription() {
-        return new String[] { "Reinforced Steam Storage Unit", "Structural component for Steam Hub Array",
-            "Capacity contribution: 64,000,000 L per unit" };
+        return new String[] { StatCollector.translateToLocal("gtsgu.tooltip.reinforced_steam_storage_unit.info"),
+            StatCollector.translateToLocal("gtsgu.tooltip.reinforced_steam_storage_unit.capacity") };
     }
 }

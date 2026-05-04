@@ -13,6 +13,7 @@ gt.blockmachines.gtsgu.mtetest.iv.name=测试太阳能机 IV
 gt.blockmachines.gtsgu.mtetest.luv.name=测试太阳能机 LuV
 gt.blockmachines.gtsgu.multitest.hv.name=测试多方块机器 (HV)
 gtsgu.recipe.multitest=测试多方块机器
+gtsgu.recipe.steam_hub_array=蒸汽枢纽阵列
 
 # Items
 item.TestCoin_GTSGU.name=测试硬币
@@ -59,3 +60,10 @@ gtsgu.tooltip.steam_hub_array.capacity=耐压单元: 16M L/个 | 加固单元: 6
 gtsgu.tooltip.steam_hub_array.output=自动输出：2,000,000 L/s（每输出仓）
 gtsgu.tooltip.steam_hub_array.no_maintenance=无需维护仓
 gtsgu.tooltip.steam_hub_array.hatch_note=输入/输出仓无内部缓存，所有流体由阵列统一存储
+gtsgu.tooltip.steam_hub_array.ctrl_pos=底座层正面中央
+gtsgu.tooltip.steam_hub_array.casing=青铜镀层砖
+gtsgu.tooltip.steam_hub_array.input_hatch=蒸汽枢纽输入仓
+gtsgu.tooltip.steam_hub_array.output_hatch=蒸汽枢纽输出仓
+gtsgu.tooltip.steam_hub_array.storage_unit=耐压/加固蒸汽存储单元
+gtsgu.tooltip.steam_hub_array.base_layer=底座层任意位置
+gtsgu.tooltip.steam_hub_array.stack_layers=底座上方堆叠层

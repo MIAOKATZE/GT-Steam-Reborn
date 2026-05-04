@@ -13,6 +13,7 @@ gt.blockmachines.gtsgu.mtetest.iv.name=MTETest IV
 gt.blockmachines.gtsgu.mtetest.luv.name=MTETest LuV
 gt.blockmachines.gtsgu.multitest.hv.name=Test Multiblock Machine (HV)
 gtsgu.recipe.multitest=Test Multiblock Machine
+gtsgu.recipe.steam_hub_array=Steam Hub Array
 
 # Items
 item.TestCoin_GTSGU.name=Test Coin
@@ -59,3 +60,10 @@ gtsgu.tooltip.steam_hub_array.capacity=Pressure: 16M L/unit | Reinforced: 64M L/
 gtsgu.tooltip.steam_hub_array.output=Auto-output: 2,000,000 L/s per output hatch
 gtsgu.tooltip.steam_hub_array.no_maintenance=No maintenance hatch required
 gtsgu.tooltip.steam_hub_array.hatch_note=Hatches have no internal buffer - all fluid held by the array
+gtsgu.tooltip.steam_hub_array.ctrl_pos=Front center of base layer
+gtsgu.tooltip.steam_hub_array.casing=Bronze Plated Bricks
+gtsgu.tooltip.steam_hub_array.input_hatch=Steam Hub Input Hatch
+gtsgu.tooltip.steam_hub_array.output_hatch=Steam Hub Output Hatch
+gtsgu.tooltip.steam_hub_array.storage_unit=Pressure/Reinforced Steam Storage Unit
+gtsgu.tooltip.steam_hub_array.base_layer=Any base layer position
+gtsgu.tooltip.steam_hub_array.stack_layers=Stack layers above base

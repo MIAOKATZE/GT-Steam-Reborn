@@ -1,6 +1,7 @@
 package com.miaokatze.gtsgu.common.machine.base;
 
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.util.StatCollector;
 import net.minecraftforge.fluids.FluidStack;
 
 import com.miaokatze.gtsgu.common.machine.MTESteamHubArray;
@@ -65,7 +66,8 @@ public class MTESteamHubInputHatch extends MTEHatchInput {
 
     @Override
     public String[] getDescription() {
-        return new String[] { "Steam Hub Array Input Port", "Accepts Steam/Superheated Steam only",
-            "No internal storage - fluid goes directly into the array" };
+        return new String[] { StatCollector.translateToLocal("gtsgu.tooltip.steam_hub_input_hatch.info"),
+            StatCollector.translateToLocal("gtsgu.tooltip.steam_hub_input_hatch.fluid_type"),
+            StatCollector.translateToLocal("gtsgu.tooltip.steam_hub_input_hatch.no_storage") };
     }
 }

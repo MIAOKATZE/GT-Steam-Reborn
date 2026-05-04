@@ -13,6 +13,7 @@ import java.util.List;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumChatFormatting;
+import net.minecraft.util.StatCollector;
 import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.IFluidHandler;
@@ -489,21 +490,28 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
     @Override
     protected MultiblockTooltipBuilder createTooltip() {
         final MultiblockTooltipBuilder tt = new MultiblockTooltipBuilder();
-        tt.addMachineType("Steam Hub Array")
-            .addInfo("Centralized steam storage with tiered capacity")
-            .addInfo("Structure height scales with controller stack size (Lv.1-12)")
-            .addInfo("Lv.1 = 2 layers (base + 1 storage), Lv.12 = 13 layers")
-            .addInfo("Pressure Unit: 16,000,000 L | Reinforced Unit: 64,000,000 L")
-            .addInfo("Auto-output rate: 2,000,000 L/s per output hatch")
-            .addInfo("Accepts Steam and Superheated Steam only")
-            .addInfo("No maintenance hatch required")
-            .addInfo("Hatches have no internal storage - all fluid held by the array")
+        tt.addMachineType(StatCollector.translateToLocal("gtsgu.recipe.steam_hub_array"))
+            .addInfo(StatCollector.translateToLocal("gtsgu.tooltip.steam_hub_array.info"))
+            .addInfo(StatCollector.translateToLocal("gtsgu.tooltip.steam_hub_array.structure"))
+            .addInfo(StatCollector.translateToLocal("gtsgu.tooltip.steam_hub_array.capacity"))
+            .addInfo(StatCollector.translateToLocal("gtsgu.tooltip.steam_hub_array.output"))
+            .addInfo(StatCollector.translateToLocal("gtsgu.tooltip.steam_hub_array.no_maintenance"))
+            .addInfo(StatCollector.translateToLocal("gtsgu.tooltip.steam_hub_array.hatch_note"))
             .beginVariableStructureBlock(5, 5, 2, 13, 5, 5, false)
-            .addController("Front center of base layer")
-            .addCasingInfoMin("Bronze Plated Bricks", 1, false)
-            .addOtherStructurePart("Steam Hub Input Hatch", "Any base layer position", 1)
-            .addOtherStructurePart("Steam Hub Output Hatch", "Any base layer position", 1)
-            .addOtherStructurePart("Pressure/Reinforced Steam Storage Unit", "Stack layers above base", 2)
+            .addController(StatCollector.translateToLocal("gtsgu.tooltip.steam_hub_array.ctrl_pos"))
+            .addCasingInfoMin(StatCollector.translateToLocal("gtsgu.tooltip.steam_hub_array.casing"), 1, false)
+            .addOtherStructurePart(
+                StatCollector.translateToLocal("gtsgu.tooltip.steam_hub_array.input_hatch"),
+                StatCollector.translateToLocal("gtsgu.tooltip.steam_hub_array.base_layer"),
+                1)
+            .addOtherStructurePart(
+                StatCollector.translateToLocal("gtsgu.tooltip.steam_hub_array.output_hatch"),
+                StatCollector.translateToLocal("gtsgu.tooltip.steam_hub_array.base_layer"),
+                1)
+            .addOtherStructurePart(
+                StatCollector.translateToLocal("gtsgu.tooltip.steam_hub_array.storage_unit"),
+                StatCollector.translateToLocal("gtsgu.tooltip.steam_hub_array.stack_layers"),
+                2)
             .addSubChannelUsage(GTStructureChannels.STRUCTURE_HEIGHT)
             .toolTipFinisher();
         return tt;
