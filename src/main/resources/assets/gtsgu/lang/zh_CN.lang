@@ -84,3 +84,33 @@ gtsgu.tooltip.steam_fluid_drill.steel_frame=钢框架
 gtsgu.tooltip.steam_fluid_drill.steel_casing=固体钢机械外壳
 gtsgu.efficiency=效率
 gtsgu.current_output=当前产出
+
+# Pressure Steam Hatch
+gt.blockmachines.gtsgu.pressure.steam.hatch.name=耐压蒸汽仓
+gtsgu.tooltip.pressure_steam_hatch.info=可接受蒸汽、IC2蒸汽和过热蒸汽的强化蒸汽输入仓
+gtsgu.tooltip.pressure_steam_hatch.boost=通入过热蒸汽时机器速度×2
+
+# Crust Steam Borer
+gt.blockmachines.gtsgu.crust.steam.borer.name=地壳蒸汽掘进机
+gtsgu.tooltip.crust_steam_borer.info=蒸汽驱动的虚空采矿机，从主世界地壳中提取矿石
+gtsgu.tooltip.crust_steam_borer.bronze=青铜版: 消耗2000L/s蒸汽，25秒产出1个矿石
+gtsgu.tooltip.crust_steam_borer.steam_cost=蒸汽消耗:
+gtsgu.tooltip.crust_steam_borer.pressure_hatch=耐压蒸汽仓+过热蒸汽: 速度×2
+gtsgu.tooltip.crust_steam_borer.dim_limit=仅限主世界和下界
+gtsgu.tooltip.crust_steam_borer.any_casing=任意外壳位置
+gtsgu.tooltip.crust_steam_borer.steam_or_pressure_hatch=蒸汽输入舱或耐压蒸汽仓（二选一）
+gtsgu.tooltip.crust_steam_borer.bronze_frame=青铜框架
+gtsgu.tooltip.crust_steam_borer.bronze_casing=镀铜砖块
+
+# Void Crust Steam Borer
+gt.blockmachines.gtsgu.void.crust.steam.borer.name=虚空地壳蒸汽掘进机
+gtsgu.tooltip.void_crust_steam_borer.info=蒸汽驱动的跨维度虚空采矿机
+gtsgu.tooltip.void_crust_steam_borer.steel=钢版: 消耗8000L/s蒸汽，5秒产出1个矿石
+gtsgu.tooltip.void_crust_steam_borer.steam_cost=蒸汽消耗:
+gtsgu.tooltip.void_crust_steam_borer.pressure_hatch=耐压蒸汽仓+过热蒸汽: 速度×2
+gtsgu.tooltip.void_crust_steam_borer.dimension=在控制器槽位放入维度展示方块选择目标维度
+gtsgu.tooltip.void_crust_steam_borer.requires_plugin=需要GT NEI Ore Plugin模组才能工作
+gtsgu.tooltip.void_crust_steam_borer.any_casing=任意外壳位置
+gtsgu.tooltip.void_crust_steam_borer.steam_or_pressure_hatch=蒸汽输入舱或耐压蒸汽仓（二选一）
+gtsgu.tooltip.void_crust_steam_borer.steel_frame=钢框架
+gtsgu.tooltip.void_crust_steam_borer.steel_casing=固体钢机械外壳

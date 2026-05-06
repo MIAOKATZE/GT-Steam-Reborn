@@ -84,3 +84,33 @@ gtsgu.tooltip.steam_fluid_drill.steel_frame=Steel Frame Box
 gtsgu.tooltip.steam_fluid_drill.steel_casing=Solid Steel Machine Casing
 gtsgu.efficiency=Efficiency
 gtsgu.current_output=Current Output
+
+# Pressure Steam Hatch
+gt.blockmachines.gtsgu.pressure.steam.hatch.name=Pressure Steam Hatch
+gtsgu.tooltip.pressure_steam_hatch.info=Reinforced steam input hatch that accepts Steam, IC2 Steam and Superheated Steam
+gtsgu.tooltip.pressure_steam_hatch.boost=Machine speed x2 when supplied with Superheated Steam
+
+# Crust Steam Borer
+gt.blockmachines.gtsgu.crust.steam.borer.name=Crust Steam Borer
+gtsgu.tooltip.crust_steam_borer.info=Steam-powered void miner, extracts ores from the Overworld crust
+gtsgu.tooltip.crust_steam_borer.bronze=Bronze: 2000L/s steam, 1 ore per 25s
+gtsgu.tooltip.crust_steam_borer.steam_cost=Steam Consumption:
+gtsgu.tooltip.crust_steam_borer.pressure_hatch=Pressure Steam Hatch + Superheated Steam: Speed x2
+gtsgu.tooltip.crust_steam_borer.dim_limit=Overworld and Nether only
+gtsgu.tooltip.crust_steam_borer.any_casing=Any casing position
+gtsgu.tooltip.crust_steam_borer.steam_or_pressure_hatch=Steam Input Hatch or Pressure Steam Hatch (one only)
+gtsgu.tooltip.crust_steam_borer.bronze_frame=Bronze Frame Box
+gtsgu.tooltip.crust_steam_borer.bronze_casing=Bronze Plated Bricks
+
+# Void Crust Steam Borer
+gt.blockmachines.gtsgu.void.crust.steam.borer.name=Void Crust Steam Borer
+gtsgu.tooltip.void_crust_steam_borer.info=Steam-powered cross-dimension void miner
+gtsgu.tooltip.void_crust_steam_borer.steel=Steel: 8000L/s steam, 1 ore per 5s
+gtsgu.tooltip.void_crust_steam_borer.steam_cost=Steam Consumption:
+gtsgu.tooltip.void_crust_steam_borer.pressure_hatch=Pressure Steam Hatch + Superheated Steam: Speed x2
+gtsgu.tooltip.void_crust_steam_borer.dimension=Place Dimension Display in controller slot to select dimension
+gtsgu.tooltip.void_crust_steam_borer.requires_plugin=Requires GT NEI Ore Plugin to function
+gtsgu.tooltip.void_crust_steam_borer.any_casing=Any casing position
+gtsgu.tooltip.void_crust_steam_borer.steam_or_pressure_hatch=Steam Input Hatch or Pressure Steam Hatch (one only)
+gtsgu.tooltip.void_crust_steam_borer.steel_frame=Steel Frame Box
+gtsgu.tooltip.void_crust_steam_borer.steel_casing=Solid Steel Machine Casing

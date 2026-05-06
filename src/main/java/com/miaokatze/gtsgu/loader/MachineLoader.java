@@ -2,8 +2,11 @@ package com.miaokatze.gtsgu.loader;
 
 import com.miaokatze.gtsgu.common.api.enums.GTSGUItemList;
 import com.miaokatze.gtsgu.common.api.enums.MetaTileEntityID;
+import com.miaokatze.gtsgu.common.machine.MTECrustSteamBorer;
 import com.miaokatze.gtsgu.common.machine.MTESteamFluidDrill;
 import com.miaokatze.gtsgu.common.machine.MTESteamHubArray;
+import com.miaokatze.gtsgu.common.machine.MTEVoidCrustSteamBorer;
+import com.miaokatze.gtsgu.common.machine.base.MTEHatchPressureSteamInput;
 import com.miaokatze.gtsgu.common.machine.base.MTEPressureSteamStorageUnit;
 import com.miaokatze.gtsgu.common.machine.base.MTEReinforcedSteamCacheNode;
 import com.miaokatze.gtsgu.common.machine.base.MTEReinforcedSteamStorageUnit;
@@ -18,6 +21,8 @@ public class MachineLoader {
         registerSteamMachines();
         registerSteamHubMachines();
         registerSteamFluidDrill();
+        registerCrustSteamBorers();
+        registerPressureSteamHatch();
     }
 
     private static void registerSteamMachines() {
@@ -74,5 +79,31 @@ public class MachineLoader {
                 "gtsgu.steam.fluid.drill",
                 "Steam Fluid Drill"));
         CreativeTabManager.addItemToTab(GTSGUItemList.SteamFluidDrill.get(1));
+    }
+
+    private static void registerCrustSteamBorers() {
+        GTSGUItemList.CrustSteamBorer.set(
+            new MTECrustSteamBorer(
+                MetaTileEntityID.CRUST_STEAM_BORER.ID,
+                "gtsgu.crust.steam.borer",
+                "Crust Steam Borer"));
+        CreativeTabManager.addItemToTab(GTSGUItemList.CrustSteamBorer.get(1));
+
+        GTSGUItemList.VoidCrustSteamBorer.set(
+            new MTEVoidCrustSteamBorer(
+                MetaTileEntityID.VOID_CRUST_STEAM_BORER.ID,
+                "gtsgu.void.crust.steam.borer",
+                "Void Crust Steam Borer"));
+        CreativeTabManager.addItemToTab(GTSGUItemList.VoidCrustSteamBorer.get(1));
+    }
+
+    private static void registerPressureSteamHatch() {
+        GTSGUItemList.PressureSteamHatch.set(
+            new MTEHatchPressureSteamInput(
+                MetaTileEntityID.PRESSURE_STEAM_HATCH.ID,
+                "gtsgu.pressure.steam.hatch",
+                "Pressure Steam Hatch",
+                0));
+        CreativeTabManager.addItemToTab(GTSGUItemList.PressureSteamHatch.get(1));
     }
 }
