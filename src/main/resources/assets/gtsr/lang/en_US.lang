@@ -1,0 +1,116 @@
+tile.gtsr.mtetest.name=MTETest Machine
+gtsr.tooltip.mtetest.info=Generates energy like a solar generator during daytime when sky is visible.
+
+# MTETest tier names
+gtsr.machine.test.ev=Test Machine EV
+gtsr.machine.test.iv=Test Machine IV
+gtsr.machine.test.luv=Test Machine (LuV)
+gtsr.machine.multitest.hv=Test Multiblock Machine (HV)
+
+# GregTech style keys used by CommonMetaTileEntity
+gt.blockmachines.gtsr.mtetest.ev.name=MTETest EV
+gt.blockmachines.gtsr.mtetest.iv.name=MTETest IV
+gt.blockmachines.gtsr.mtetest.luv.name=MTETest LuV
+gt.blockmachines.gtsr.multitest.hv.name=Test Multiblock Machine (HV)
+gtsr.recipe.multitest=Test Multiblock Machine
+gtsr.recipe.steam_hub_array=Steam Hub Array
+
+# Items
+item.TestCoin_GTSR.name=Test Coin
+item.TestCoin_GTSR_E.name=Electronic Test Coin
+
+# Steam Cache Node
+gt.blockmachines.gtsr.steam.cache.node.name=Steam Cache Node
+gtsr.tooltip.steam_cache_node.fluid_type=Can only cache: 
+gtsr.tooltip.steam_cache_node.fluid_type.steam=Steam
+gtsr.tooltip.steam_cache_node.output_rate=Output rate: 
+
+# Reinforced Steam Cache Node
+gt.blockmachines.gtsr.reinforced.steam.cache.node.name=Reinforced Steam Cache Node
+gtsr.tooltip.reinforced_steam_cache_node.fluid_type.superheated_steam=Superheated Steam
+
+# Steam Hub Output Hatch
+gt.blockmachines.gtsr.steam.hub.output.hatch.name=Steam Hub Output Hatch
+gtsr.tooltip.steam_hub_output_hatch.info=Dedicated output port for Steam Hub Array
+gtsr.tooltip.steam_hub_output_hatch.fluid_type=Outputs steam/superheated steam only
+gtsr.tooltip.steam_hub_output_hatch.output_rate=Auto-output rate: 2,000,000 L/s
+gtsr.tooltip.steam_hub_output_hatch.no_storage=No internal buffer - draws directly from the array
+
+# Steam Hub Input Hatch
+gt.blockmachines.gtsr.steam.hub.input.hatch.name=Steam Hub Input Hatch
+gtsr.tooltip.steam_hub_input_hatch.info=Dedicated input port for Steam Hub Array
+gtsr.tooltip.steam_hub_input_hatch.fluid_type=Accepts steam/superheated steam only
+gtsr.tooltip.steam_hub_input_hatch.no_storage=No internal buffer - fluid goes directly into the array
+
+# Pressure Steam Storage Unit
+gt.blockmachines.gtsr.pressure.steam.storage.unit.name=Pressure Steam Storage Unit
+gtsr.tooltip.pressure_steam_storage_unit.info=Structural component for Steam Hub Array
+gtsr.tooltip.pressure_steam_storage_unit.capacity=Capacity contribution: 16,000,000 L per unit
+
+# Reinforced Steam Storage Unit
+gt.blockmachines.gtsr.reinforced.steam.storage.unit.name=Reinforced Steam Storage Unit
+gtsr.tooltip.reinforced_steam_storage_unit.info=Structural component for Steam Hub Array
+gtsr.tooltip.reinforced_steam_storage_unit.capacity=Capacity contribution: 64,000,000 L per unit
+
+# Steam Hub Array
+gt.blockmachines.gtsr.steam.hub.array.name=Steam Hub Array
+gtsr.tooltip.steam_hub_array.info=Centralized steam storage multiblock with tiered capacity
+gtsr.tooltip.steam_hub_array.structure=5x5 base + 1-12 storage layers (Level 1-12)
+gtsr.tooltip.steam_hub_array.capacity=Pressure: 16M L/unit | Reinforced: 64M L/unit
+gtsr.tooltip.steam_hub_array.output=Auto-output: 2,000,000 L/s per output hatch
+gtsr.tooltip.steam_hub_array.no_maintenance=No maintenance hatch required
+gtsr.tooltip.steam_hub_array.hatch_note=Hatches have no internal buffer - all fluid held by the array
+gtsr.tooltip.steam_hub_array.ctrl_pos=Front center of base layer
+gtsr.tooltip.steam_hub_array.casing=Bronze Plated Bricks
+gtsr.tooltip.steam_hub_array.input_hatch=Steam Hub Input Hatch
+gtsr.tooltip.steam_hub_array.output_hatch=Steam Hub Output Hatch
+gtsr.tooltip.steam_hub_array.storage_unit=Pressure/Reinforced Steam Storage Unit
+gtsr.tooltip.steam_hub_array.base_layer=Any base layer position
+gtsr.tooltip.steam_hub_array.stack_layers=Stack layers above base
+
+# Steam Fluid Drill
+gt.blockmachines.gtsr.steam.fluid.drill.name=Steam Fluid Drill
+gtsr.recipe.steam_fluid_drill=Steam Fluid Drill
+gtsr.tooltip.steam_fluid_drill.info=Steam-powered fluid drill, extracts water from underground veins
+gtsr.tooltip.steam_fluid_drill.bronze=Bronze: Produces Water, reaches max in 5 min (200->2000 L/s)
+gtsr.tooltip.steam_fluid_drill.steel=Steel: Produces Distilled Water, reaches max in 1 hr (10->1000 L/s)
+gtsr.tooltip.steam_fluid_drill.output=Max Output:
+gtsr.tooltip.steam_fluid_drill.steam_cost=Steam Consumption:
+gtsr.tooltip.steam_fluid_drill.any_casing=Any casing position
+gtsr.tooltip.steam_fluid_drill.steam_hatch=Steam Input Hatch
+gtsr.tooltip.steam_fluid_drill.bronze_frame=Bronze Frame Box
+gtsr.tooltip.steam_fluid_drill.bronze_casing=Bronze Plated Bricks
+gtsr.tooltip.steam_fluid_drill.steel_frame=Steel Frame Box
+gtsr.tooltip.steam_fluid_drill.steel_casing=Solid Steel Machine Casing
+gtsr.efficiency=Efficiency
+gtsr.current_output=Current Output
+
+# Pressure Steam Hatch
+gt.blockmachines.gtsr.pressure.steam.hatch.name=Pressure Steam Hatch
+gtsr.tooltip.pressure_steam_hatch.info=Reinforced steam input hatch that accepts Steam, IC2 Steam and Superheated Steam
+gtsr.tooltip.pressure_steam_hatch.boost=Machine speed x2 when supplied with Superheated Steam
+
+# Crust Steam Borer
+gt.blockmachines.gtsr.crust.steam.borer.name=Crust Steam Borer
+gtsr.tooltip.crust_steam_borer.info=Steam-powered void miner, extracts ores from the Overworld crust
+gtsr.tooltip.crust_steam_borer.bronze=Bronze: 2000L/s steam, 1 ore per 25s
+gtsr.tooltip.crust_steam_borer.steam_cost=Steam Consumption:
+gtsr.tooltip.crust_steam_borer.pressure_hatch=Pressure Steam Hatch + Superheated Steam: Speed x2
+gtsr.tooltip.crust_steam_borer.dim_limit=Overworld and Nether only
+gtsr.tooltip.crust_steam_borer.any_casing=Any casing position
+gtsr.tooltip.crust_steam_borer.steam_or_pressure_hatch=Steam Input Hatch or Pressure Steam Hatch (one only)
+gtsr.tooltip.crust_steam_borer.bronze_frame=Bronze Frame Box
+gtsr.tooltip.crust_steam_borer.bronze_casing=Bronze Plated Bricks
+
+# Void Crust Steam Borer
+gt.blockmachines.gtsr.void.crust.steam.borer.name=Void Crust Steam Borer
+gtsr.tooltip.void_crust_steam_borer.info=Steam-powered cross-dimension void miner
+gtsr.tooltip.void_crust_steam_borer.steel=Steel: 8000L/s steam, 1 ore per 5s
+gtsr.tooltip.void_crust_steam_borer.steam_cost=Steam Consumption:
+gtsr.tooltip.void_crust_steam_borer.pressure_hatch=Pressure Steam Hatch + Superheated Steam: Speed x2
+gtsr.tooltip.void_crust_steam_borer.dimension=Place Dimension Display in controller slot to select dimension
+gtsr.tooltip.void_crust_steam_borer.requires_plugin=Requires GT NEI Ore Plugin to function
+gtsr.tooltip.void_crust_steam_borer.any_casing=Any casing position
+gtsr.tooltip.void_crust_steam_borer.steam_or_pressure_hatch=Steam Input Hatch or Pressure Steam Hatch (one only)
+gtsr.tooltip.void_crust_steam_borer.steel_frame=Steel Frame Box
+gtsr.tooltip.void_crust_steam_borer.steel_casing=Solid Steel Machine Casing

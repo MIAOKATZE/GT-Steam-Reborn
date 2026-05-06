@@ -1,0 +1,116 @@
+tile.gtsr.mtetest.name=测试太阳能机
+gtsr.tooltip.mtetest.info=白天且上方可见天空时产生能量，雨天降低效率。
+
+# MTETest tier names
+gtsr.machine.test.ev=测试机器 (EV)
+gtsr.machine.test.iv=测试机器 (IV)
+gtsr.machine.test.luv=测试机器 (LuV)
+gtsr.machine.multitest.hv=测试多方块机器 (HV)
+
+# GregTech style keys used by CommonMetaTileEntity
+gt.blockmachines.gtsr.mtetest.ev.name=测试太阳能机 EV
+gt.blockmachines.gtsr.mtetest.iv.name=测试太阳能机 IV
+gt.blockmachines.gtsr.mtetest.luv.name=测试太阳能机 LuV
+gt.blockmachines.gtsr.multitest.hv.name=测试多方块机器 (HV)
+gtsr.recipe.multitest=测试多方块机器
+gtsr.recipe.steam_hub_array=蒸汽枢纽阵列
+
+# Items
+item.TestCoin_GTSR.name=测试硬币
+item.TestCoin_GTSR_E.name=电子测试硬币
+
+# Steam Cache Node
+gt.blockmachines.gtsr.steam.cache.node.name=蒸汽缓存节点
+gtsr.tooltip.steam_cache_node.fluid_type=只可以缓存： 
+gtsr.tooltip.steam_cache_node.fluid_type.steam=蒸汽
+gtsr.tooltip.steam_cache_node.output_rate=输出流量： 
+
+# Reinforced Steam Cache Node
+gt.blockmachines.gtsr.reinforced.steam.cache.node.name=加固蒸汽缓存节点
+gtsr.tooltip.reinforced_steam_cache_node.fluid_type.superheated_steam=过热蒸汽
+
+# Steam Hub Output Hatch
+gt.blockmachines.gtsr.steam.hub.output.hatch.name=蒸汽枢纽输出仓
+gtsr.tooltip.steam_hub_output_hatch.info=蒸汽枢纽阵列专用输出端口
+gtsr.tooltip.steam_hub_output_hatch.fluid_type=仅输出蒸汽/过热蒸汽
+gtsr.tooltip.steam_hub_output_hatch.output_rate=自动输出流量：2,000,000 L/s
+gtsr.tooltip.steam_hub_output_hatch.no_storage=无内部缓存，直接从阵列抽取
+
+# Steam Hub Input Hatch
+gt.blockmachines.gtsr.steam.hub.input.hatch.name=蒸汽枢纽输入仓
+gtsr.tooltip.steam_hub_input_hatch.info=蒸汽枢纽阵列专用输入端口
+gtsr.tooltip.steam_hub_input_hatch.fluid_type=仅接受蒸汽/过热蒸汽
+gtsr.tooltip.steam_hub_input_hatch.no_storage=无内部缓存，流体直接进入阵列
+
+# Pressure Steam Storage Unit
+gt.blockmachines.gtsr.pressure.steam.storage.unit.name=耐压蒸汽存储单元
+gtsr.tooltip.pressure_steam_storage_unit.info=蒸汽枢纽阵列的结构组件
+gtsr.tooltip.pressure_steam_storage_unit.capacity=容量贡献：16,000,000 L/个
+
+# Reinforced Steam Storage Unit
+gt.blockmachines.gtsr.reinforced.steam.storage.unit.name=加固蒸汽存储单元
+gtsr.tooltip.reinforced_steam_storage_unit.info=蒸汽枢纽阵列的结构组件
+gtsr.tooltip.reinforced_steam_storage_unit.capacity=容量贡献：64,000,000 L/个
+
+# Steam Hub Array
+gt.blockmachines.gtsr.steam.hub.array.name=蒸汽枢纽阵列
+gtsr.tooltip.steam_hub_array.info=集中式蒸汽存储多方块结构，容量随等级递增
+gtsr.tooltip.steam_hub_array.structure=5×5底座 + 1~12层存储单元（等级1~12）
+gtsr.tooltip.steam_hub_array.capacity=耐压单元: 16M L/个 | 加固单元: 64M L/个
+gtsr.tooltip.steam_hub_array.output=自动输出：2,000,000 L/s（每输出仓）
+gtsr.tooltip.steam_hub_array.no_maintenance=无需维护仓
+gtsr.tooltip.steam_hub_array.hatch_note=输入/输出仓无内部缓存，所有流体由阵列统一存储
+gtsr.tooltip.steam_hub_array.ctrl_pos=底座层正面中央
+gtsr.tooltip.steam_hub_array.casing=青铜镀层砖
+gtsr.tooltip.steam_hub_array.input_hatch=蒸汽枢纽输入仓
+gtsr.tooltip.steam_hub_array.output_hatch=蒸汽枢纽输出仓
+gtsr.tooltip.steam_hub_array.storage_unit=耐压/加固蒸汽存储单元
+gtsr.tooltip.steam_hub_array.base_layer=底座层任意位置
+gtsr.tooltip.steam_hub_array.stack_layers=底座上方堆叠层
+
+# Steam Fluid Drill
+gt.blockmachines.gtsr.steam.fluid.drill.name=蒸汽流体钻井
+gtsr.recipe.steam_fluid_drill=蒸汽流体钻井
+gtsr.tooltip.steam_fluid_drill.info=蒸汽驱动的流体钻井，从地脉中挖掘水
+gtsr.tooltip.steam_fluid_drill.bronze=青铜版: 产出普通水，5分钟达最大效率(200→2000 L/s)
+gtsr.tooltip.steam_fluid_drill.steel=钢版: 产出蒸馏水，1小时达最大效率(10→1000 L/s)
+gtsr.tooltip.steam_fluid_drill.output=最大产出:
+gtsr.tooltip.steam_fluid_drill.steam_cost=蒸汽消耗:
+gtsr.tooltip.steam_fluid_drill.any_casing=任意外壳位置
+gtsr.tooltip.steam_fluid_drill.steam_hatch=蒸汽输入舱
+gtsr.tooltip.steam_fluid_drill.bronze_frame=青铜框架
+gtsr.tooltip.steam_fluid_drill.bronze_casing=镀铜砖块
+gtsr.tooltip.steam_fluid_drill.steel_frame=钢框架
+gtsr.tooltip.steam_fluid_drill.steel_casing=固体钢机械外壳
+gtsr.efficiency=效率
+gtsr.current_output=当前产出
+
+# Pressure Steam Hatch
+gt.blockmachines.gtsr.pressure.steam.hatch.name=耐压蒸汽仓
+gtsr.tooltip.pressure_steam_hatch.info=可接受蒸汽、IC2蒸汽和过热蒸汽的强化蒸汽输入仓
+gtsr.tooltip.pressure_steam_hatch.boost=通入过热蒸汽时机器速度×2
+
+# Crust Steam Borer
+gt.blockmachines.gtsr.crust.steam.borer.name=地壳蒸汽掘进机
+gtsr.tooltip.crust_steam_borer.info=蒸汽驱动的虚空采矿机，从主世界地壳中提取矿石
+gtsr.tooltip.crust_steam_borer.bronze=青铜版: 消耗2000L/s蒸汽，25秒产出1个矿石
+gtsr.tooltip.crust_steam_borer.steam_cost=蒸汽消耗:
+gtsr.tooltip.crust_steam_borer.pressure_hatch=耐压蒸汽仓+过热蒸汽: 速度×2
+gtsr.tooltip.crust_steam_borer.dim_limit=仅限主世界和下界
+gtsr.tooltip.crust_steam_borer.any_casing=任意外壳位置
+gtsr.tooltip.crust_steam_borer.steam_or_pressure_hatch=蒸汽输入舱或耐压蒸汽仓（二选一）
+gtsr.tooltip.crust_steam_borer.bronze_frame=青铜框架
+gtsr.tooltip.crust_steam_borer.bronze_casing=镀铜砖块
+
+# Void Crust Steam Borer
+gt.blockmachines.gtsr.void.crust.steam.borer.name=虚空地壳蒸汽掘进机
+gtsr.tooltip.void_crust_steam_borer.info=蒸汽驱动的跨维度虚空采矿机
+gtsr.tooltip.void_crust_steam_borer.steel=钢版: 消耗8000L/s蒸汽，5秒产出1个矿石
+gtsr.tooltip.void_crust_steam_borer.steam_cost=蒸汽消耗:
+gtsr.tooltip.void_crust_steam_borer.pressure_hatch=耐压蒸汽仓+过热蒸汽: 速度×2
+gtsr.tooltip.void_crust_steam_borer.dimension=在控制器槽位放入维度展示方块选择目标维度
+gtsr.tooltip.void_crust_steam_borer.requires_plugin=需要GT NEI Ore Plugin模组才能工作
+gtsr.tooltip.void_crust_steam_borer.any_casing=任意外壳位置
+gtsr.tooltip.void_crust_steam_borer.steam_or_pressure_hatch=蒸汽输入舱或耐压蒸汽仓（二选一）
+gtsr.tooltip.void_crust_steam_borer.steel_frame=钢框架
+gtsr.tooltip.void_crust_steam_borer.steel_casing=固体钢机械外壳
