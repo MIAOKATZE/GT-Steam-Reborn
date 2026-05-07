@@ -2,11 +2,12 @@ package com.miaokatze.gtsr.common.machine;
 
 import static gregtech.api.enums.GTValues.V;
 
-import com.miaokatze.gtsr.register.TextureManager;
-
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.world.World;
+
+import com.miaokatze.gtsr.register.TextureManager;
+
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;

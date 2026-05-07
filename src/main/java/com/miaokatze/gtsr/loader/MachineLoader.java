@@ -5,6 +5,7 @@ import com.miaokatze.gtsr.common.api.enums.MetaTileEntityID;
 import com.miaokatze.gtsr.common.machine.MTECrustSteamBorer;
 import com.miaokatze.gtsr.common.machine.MTESteamFluidDrill;
 import com.miaokatze.gtsr.common.machine.MTESteamHubArray;
+import com.miaokatze.gtsr.common.machine.MTEVeinSteamPyrolyzer;
 import com.miaokatze.gtsr.common.machine.MTEVoidCrustSteamBorer;
 import com.miaokatze.gtsr.common.machine.base.MTEHatchPressureSteamInput;
 import com.miaokatze.gtsr.common.machine.base.MTEPressureSteamStorageUnit;
@@ -23,6 +24,7 @@ public class MachineLoader {
         registerSteamFluidDrill();
         registerCrustSteamBorers();
         registerPressureSteamHatch();
+        registerVeinSteamPyrolyzer();
     }
 
     private static void registerSteamMachines() {
@@ -105,5 +107,14 @@ public class MachineLoader {
                 "Pressure Steam Hatch",
                 0));
         CreativeTabManager.addItemToTab(GTSRItemList.PressureSteamHatch.get(1));
+    }
+
+    private static void registerVeinSteamPyrolyzer() {
+        GTSRItemList.VeinSteamPyrolyzer.set(
+            new MTEVeinSteamPyrolyzer(
+                MetaTileEntityID.VEIN_STEAM_PYROLYZER.ID,
+                "gtsr.vein.steam.pyrolyzer",
+                "Vein Steam Pyrolyzer"));
+        CreativeTabManager.addItemToTab(GTSRItemList.VeinSteamPyrolyzer.get(1));
     }
 }

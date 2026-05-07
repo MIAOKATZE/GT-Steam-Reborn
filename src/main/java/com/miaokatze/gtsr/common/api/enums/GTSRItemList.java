@@ -45,6 +45,10 @@ public enum GTSRItemList implements IItemContainer {
     CrustSteamBorer,
     VoidCrustSteamBorer,
     PressureSteamHatch,
+    VeinSteamPyrolyzer,
+    VeinPyrolyzerChipT1,
+    VeinPyrolyzerChipT2,
+    VeinPyrolyzerChipT3,
 
     ;
 

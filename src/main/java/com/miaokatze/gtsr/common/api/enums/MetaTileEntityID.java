@@ -49,6 +49,8 @@ public enum MetaTileEntityID {
     VOID_CRUST_STEAM_BORER(10),
     /** 耐压蒸汽仓 */
     PRESSURE_STEAM_HATCH(11),
+    /** 地脉蒸汽热解机 */
+    VEIN_STEAM_PYROLYZER(12),
 
     ;
 

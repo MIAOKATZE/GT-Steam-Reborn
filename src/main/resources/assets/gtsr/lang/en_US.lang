@@ -114,3 +114,18 @@ gtsr.tooltip.void_crust_steam_borer.any_casing=Any casing position
 gtsr.tooltip.void_crust_steam_borer.steam_or_pressure_hatch=Steam Input Hatch or Pressure Steam Hatch (one only)
 gtsr.tooltip.void_crust_steam_borer.steel_frame=Steel Frame Box
 gtsr.tooltip.void_crust_steam_borer.steel_casing=Solid Steel Machine Casing
+
+# Vein Steam Pyrolyzer
+gt.blockmachines.gtsr.vein.steam.pyrolyzer.name=Vein Steam Pyrolyzer
+gtsr.tooltip.vein_steam_pyrolyzer.0=Steam-age oil field regeneration device
+gtsr.tooltip.vein_steam_pyrolyzer.1=Injects steam heat to increase underground fluid reserves
+gtsr.tooltip.vein_steam_pyrolyzer.2=Work range: 1x1 base + chip expansion
+gtsr.tooltip.vein_steam_pyrolyzer.5=Superheated Steam: 4x speed, 4x consumption
+gtsr.tooltip.vein_steam_pyrolyzer.6=Chip: T1(+1 range) / T2(+3 range) / T3(+7 range)
+gtsr.tooltip.vein_steam_pyrolyzer.7=Fluid lock: Only boosts the host chunk's fluid field
+gtsr.tooltip.vein_steam_pyrolyzer.12=Hatches: Pressure Steam Hatch, Output Bus
+
+# Pyrolyzer Chips
+item.VeinPyrolyzerChipT1.name=Vein Pyrolyzer Chip T1
+item.VeinPyrolyzerChipT2.name=Vein Pyrolyzer Chip T2
+item.VeinPyrolyzerChipT3.name=Vein Pyrolyzer Chip T3

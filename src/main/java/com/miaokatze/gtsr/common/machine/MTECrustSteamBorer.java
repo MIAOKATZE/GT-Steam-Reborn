@@ -254,6 +254,11 @@ public class MTECrustSteamBorer extends MTESteamMultiBase<MTECrustSteamBorer> im
     }
 
     @Override
+    public int getMaxEfficiency(ItemStack aStack) {
+        return 10000;
+    }
+
+    @Override
     public int getTierRecipes() {
         return 0;
     }

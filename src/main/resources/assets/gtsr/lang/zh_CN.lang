@@ -114,3 +114,18 @@ gtsr.tooltip.void_crust_steam_borer.any_casing=任意外壳位置
 gtsr.tooltip.void_crust_steam_borer.steam_or_pressure_hatch=蒸汽输入舱或耐压蒸汽仓（二选一）
 gtsr.tooltip.void_crust_steam_borer.steel_frame=钢框架
 gtsr.tooltip.void_crust_steam_borer.steel_casing=固体钢机械外壳
+
+# Vein Steam Pyrolyzer
+gt.blockmachines.gtsr.vein.steam.pyrolyzer.name=地脉蒸汽热解机
+gtsr.tooltip.vein_steam_pyrolyzer.0=蒸汽时代的油田再生装置
+gtsr.tooltip.vein_steam_pyrolyzer.1=通过注入蒸汽热量提升地下流体储量
+gtsr.tooltip.vein_steam_pyrolyzer.2=工作范围: 1×1基础+芯片扩展
+gtsr.tooltip.vein_steam_pyrolyzer.5=过热蒸汽: 4x 速度, 4x 消耗
+gtsr.tooltip.vein_steam_pyrolyzer.6=芯片: T1(+1范围) / T2(+3范围) / T3(+7范围)
+gtsr.tooltip.vein_steam_pyrolyzer.7=流体锁定: 仅提升主机所在流体田
+gtsr.tooltip.vein_steam_pyrolyzer.12=仓室: 耐压蒸汽仓, 输出仓
+
+# Pyrolyzer Chips
+item.VeinPyrolyzerChipT1.name=地脉热解机芯片T1
+item.VeinPyrolyzerChipT2.name=地脉热解机芯片T2
+item.VeinPyrolyzerChipT3.name=地脉热解机芯片T3

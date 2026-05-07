@@ -2,6 +2,7 @@ package com.miaokatze.gtsr.main;
 
 import com.miaokatze.gtsr.Tags;
 import com.miaokatze.gtsr.config.Config;
+import com.miaokatze.gtsr.loader.ItemLoader;
 import com.miaokatze.gtsr.loader.MachineLoader;
 import com.miaokatze.gtsr.register.CreativeTabManager;
 
@@ -26,15 +27,12 @@ public class CommonProxy {
 
         GTSteamReborn.LOG.info("GTSteamReborn 开始初始化 (版本: " + Tags.VERSION + ")");
 
-        // [GTSR-DEV] 临时禁用物品注册流程（含测试硬币等所有测试物品），为后续开发清理环境。
-        // 源码完整保留于 ItemLoader / ItemRegistrar 中，取消下方注释即可恢复。
-        // GTSteamReborn.LOG.info("[0/3] 开始注册物品...");
-        // try {
-        // ItemLoader.initItems();
-        // GTSteamReborn.LOG.info("[0/3] 物品注册完成。");
-        // } catch (Throwable t) {
-        // GTSteamReborn.LOG.error("[0/3] 物品注册过程中发生严重错误，请检查日志", t);
-        // }
+        try {
+            ItemLoader.initItems();
+            GTSteamReborn.LOG.info("[0/3] 物品注册完成。");
+        } catch (Throwable t) {
+            GTSteamReborn.LOG.error("[0/3] 物品注册过程中发生严重错误，请检查日志", t);
+        }
 
         Runnable registerRunnable = () -> {
             GTSteamReborn.LOG.info("[1/3] 开始执行机器注册流程...");
