@@ -1,0 +1,327 @@
+package com.miaokatze.gtsr.common.machine;
+
+import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlocksTiered;
+import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
+import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
+import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose;
+import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
+import net.minecraft.block.Block;
+import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.util.EnumChatFormatting;
+import net.minecraft.util.StatCollector;
+import net.minecraftforge.common.util.ForgeDirection;
+
+import org.apache.commons.lang3.tuple.Pair;
+
+import com.google.common.collect.ImmutableList;
+import com.gtnewhorizon.structurelib.alignment.IAlignmentLimits;
+import com.gtnewhorizon.structurelib.alignment.constructable.ISurvivalConstructable;
+import com.gtnewhorizon.structurelib.structure.IStructureDefinition;
+import com.gtnewhorizon.structurelib.structure.ISurvivalBuildEnvironment;
+import com.gtnewhorizon.structurelib.structure.StructureDefinition;
+import com.miaokatze.gtsr.common.api.enums.MetaTileEntityID;
+
+import gregtech.api.GregTechAPI;
+import gregtech.api.enums.Textures;
+import gregtech.api.interfaces.ITexture;
+import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
+import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
+import gregtech.api.logic.ProcessingLogic;
+import gregtech.api.metatileentity.implementations.MTEHatch;
+import gregtech.api.recipe.RecipeMap;
+import gregtech.api.recipe.RecipeMaps;
+import gregtech.api.recipe.check.CheckRecipeResult;
+import gregtech.api.recipe.check.CheckRecipeResultRegistry;
+import gregtech.api.render.TextureFactory;
+import gregtech.api.util.GTRecipe;
+import gregtech.api.util.MultiblockTooltipBuilder;
+import gregtech.api.util.OverclockCalculator;
+import gregtech.common.blocks.BlockCasings1;
+import gregtech.common.blocks.BlockCasings2;
+import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTESteamMultiBase;
+
+public class MTELargeSteamFurnace extends MTESteamMultiBase<MTELargeSteamFurnace> implements ISurvivalConstructable {
+
+    private static final String STRUCTURE_PIECE_MAIN = "main";
+    private static final int HORIZONTAL_OFF_SET = 1;
+    private static final int VERTICAL_OFF_SET = 3;
+    private static final int DEPTH_OFF_SET = 0;
+
+    private static IStructureDefinition<MTELargeSteamFurnace> STRUCTURE_DEFINITION = null;
+
+    protected int mSetTier = -1;
+    protected int mCasingCount = 0;
+
+    public MTELargeSteamFurnace(int aID, String aName, String aNameRegional) {
+        super(aID, aName, aNameRegional);
+    }
+
+    public MTELargeSteamFurnace(String aName) {
+        super(aName);
+    }
+
+    @Override
+    public IMetaTileEntity newMetaEntity(IGregTechTileEntity aTileEntity) {
+        return new MTELargeSteamFurnace(mName);
+    }
+
+    @Override
+    public String getMachineType() {
+        return "Furnace";
+    }
+
+    @Nullable
+    public static Integer getFireboxTier(Block block, int meta) {
+        if (block == GregTechAPI.sBlockCasings3) {
+            if (meta == 13) return 1;
+            if (meta == 14) return 2;
+        }
+        return null;
+    }
+
+    @Nullable
+    public static Integer getCasingTier(Block block, int meta) {
+        if (block == GregTechAPI.sBlockCasings1 && meta == 10) return 1;
+        if (block == GregTechAPI.sBlockCasings2 && meta == 0) return 2;
+        return null;
+    }
+
+    protected int getCasingTextureID() {
+        if (mSetTier == 2) {
+            return ((BlockCasings2) GregTechAPI.sBlockCasings2).getTextureIndex(0);
+        }
+        return ((BlockCasings1) GregTechAPI.sBlockCasings1).getTextureIndex(10);
+    }
+
+    protected void updateHatchTexture() {
+        int textureID = getCasingTextureID();
+        for (MTEHatch h : mSteamInputFluids) h.updateTexture(textureID);
+        for (MTEHatch h : mSteamInputs) h.updateTexture(textureID);
+        for (MTEHatch h : mSteamOutputs) h.updateTexture(textureID);
+    }
+
+    @Override
+    public void onValueUpdate(byte aValue) {
+        mSetTier = aValue;
+    }
+
+    @Override
+    public byte getUpdateData() {
+        return (byte) mSetTier;
+    }
+
+    @Override
+    public IStructureDefinition<MTELargeSteamFurnace> getStructureDefinition() {
+        if (STRUCTURE_DEFINITION == null) {
+            final int bronzeCasingIndex = ((BlockCasings1) GregTechAPI.sBlockCasings1).getTextureIndex(10);
+
+            STRUCTURE_DEFINITION = StructureDefinition.<MTELargeSteamFurnace>builder()
+                .addShape(
+                    STRUCTURE_PIECE_MAIN,
+                    transpose(
+                        new String[][] { { "CCC", "CCC", "CCC" }, { "DDD", "D D", "DDD" }, { "DDD", "D D", "DDD" },
+                            { "C~C", "CCC", "CCC" } }))
+                .addElement(
+                    'C',
+                    ofChain(
+                        buildHatchAdder(MTELargeSteamFurnace.class).adder(MTESteamMultiBase::addToMachineList)
+                            .hatchIds(31040, MetaTileEntityID.PRESSURE_STEAM_HATCH.ID)
+                            .casingIndex(bronzeCasingIndex)
+                            .dot(1)
+                            .shouldReject(t -> !t.mSteamInputFluids.isEmpty())
+                            .build(),
+                        buildHatchAdder(MTELargeSteamFurnace.class)
+                            .atLeast(SteamHatchElement.InputBus_Steam, SteamHatchElement.OutputBus_Steam)
+                            .casingIndex(bronzeCasingIndex)
+                            .dot(1)
+                            .buildAndChain(
+                                onElementPass(
+                                    MTELargeSteamFurnace::onCasingAdded,
+                                    ofBlocksTiered(
+                                        MTELargeSteamFurnace::getCasingTier,
+                                        ImmutableList.of(
+                                            Pair.of(GregTechAPI.sBlockCasings1, 10),
+                                            Pair.of(GregTechAPI.sBlockCasings2, 0)),
+                                        -1,
+                                        (MTELargeSteamFurnace t, Integer tier) -> t.mSetTier = tier,
+                                        (MTELargeSteamFurnace t) -> t.mSetTier)))))
+                .addElement(
+                    'D',
+                    ofBlocksTiered(
+                        MTELargeSteamFurnace::getFireboxTier,
+                        ImmutableList
+                            .of(Pair.of(GregTechAPI.sBlockCasings3, 13), Pair.of(GregTechAPI.sBlockCasings3, 14)),
+                        -1,
+                        (MTELargeSteamFurnace t, Integer tier) -> t.mSetTier = tier,
+                        (MTELargeSteamFurnace t) -> t.mSetTier))
+                .build();
+        }
+        return STRUCTURE_DEFINITION;
+    }
+
+    private void onCasingAdded() {
+        mCasingCount++;
+    }
+
+    @Override
+    public void construct(ItemStack stackSize, boolean hintsOnly) {
+        buildPiece(STRUCTURE_PIECE_MAIN, stackSize, hintsOnly, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET);
+    }
+
+    @Override
+    public int survivalConstruct(ItemStack stackSize, int elementBudget, ISurvivalBuildEnvironment env) {
+        if (mMachine) return -1;
+        return survivalBuildPiece(
+            STRUCTURE_PIECE_MAIN,
+            stackSize,
+            HORIZONTAL_OFF_SET,
+            VERTICAL_OFF_SET,
+            DEPTH_OFF_SET,
+            elementBudget,
+            env,
+            false,
+            true);
+    }
+
+    @Override
+    public boolean checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack) {
+        mSetTier = -1;
+        mCasingCount = 0;
+        if (!checkPiece(STRUCTURE_PIECE_MAIN, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET)) return false;
+        if (mSetTier <= 0) return false;
+        if (mSteamInputFluids.isEmpty()) return false;
+        if (mSteamInputs.isEmpty()) return false;
+        if (mSteamOutputs.isEmpty()) return false;
+        updateHatchTexture();
+        return true;
+    }
+
+    @Override
+    public RecipeMap<?> getRecipeMap() {
+        return RecipeMaps.furnaceRecipes;
+    }
+
+    @Override
+    public int getMaxParallelRecipes() {
+        return 8;
+    }
+
+    @Override
+    protected ProcessingLogic createProcessingLogic() {
+        return new ProcessingLogic() {
+
+            @Nonnull
+            @Override
+            protected CheckRecipeResult validateRecipe(@Nonnull GTRecipe recipe) {
+                if (availableVoltage < recipe.mEUt) {
+                    return CheckRecipeResultRegistry.insufficientPower(recipe.mEUt);
+                }
+                return CheckRecipeResultRegistry.SUCCESSFUL;
+            }
+
+            @Override
+            @Nonnull
+            protected OverclockCalculator createOverclockCalculator(@Nonnull GTRecipe recipe) {
+                return OverclockCalculator.ofNoOverclock(recipe)
+                    .setEUtDiscount(1.25 * mSetTier)
+                    .setDurationModifier(1.6 / mSetTier);
+            }
+        }.setMaxParallelSupplier(this::getTrueParallel);
+    }
+
+    @Override
+    public int getTierRecipes() {
+        return 1;
+    }
+
+    @Override
+    public int getMaxEfficiency(ItemStack aStack) {
+        return 10000;
+    }
+
+    @Override
+    protected int getCasingTextureId() {
+        return getCasingTextureID();
+    }
+
+    @Override
+    public ITexture[] getTexture(IGregTechTileEntity aBaseMetaTileEntity, ForgeDirection side, ForgeDirection facing,
+        int aColorIndex, boolean aActive, boolean aRedstone) {
+        if (side == facing) {
+            return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(getCasingTextureID()),
+                aActive ? getFrontOverlayActive() : getFrontOverlay() };
+        }
+        return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(getCasingTextureID()) };
+    }
+
+    @Override
+    protected ITexture getFrontOverlay() {
+        return TextureFactory.of(Textures.BlockIcons.OVERLAY_FRONT_STEAM_FURNACE);
+    }
+
+    @Override
+    protected ITexture getFrontOverlayActive() {
+        return TextureFactory.of(Textures.BlockIcons.OVERLAY_FRONT_STEAM_FURNACE_ACTIVE);
+    }
+
+    @Override
+    protected MultiblockTooltipBuilder createTooltip() {
+        MultiblockTooltipBuilder tt = new MultiblockTooltipBuilder();
+        tt.addMachineType(getMachineType())
+            .addSteamBulkMachineInfo(8, 1.25f, 0.625f)
+            .addInfo(HIGH_PRESSURE_TOOLTIP_NOTICE)
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.large_steam_furnace.0"))
+            .beginStructureBlock(3, 3, 4, false)
+            .addController(StatCollector.translateToLocal("gtsr.tooltip.large_steam_furnace.ctrl"))
+            .addSteamInputBus(EnumChatFormatting.GOLD + "1" + EnumChatFormatting.GRAY + " Any casing", 1)
+            .addSteamOutputBus(EnumChatFormatting.GOLD + "1" + EnumChatFormatting.GRAY + " Any casing", 1)
+            .addStructureInfo(
+                EnumChatFormatting.WHITE + "Steam Input Hatch "
+                    + EnumChatFormatting.GOLD
+                    + "1"
+                    + EnumChatFormatting.GRAY
+                    + " Any casing")
+            .addStructureInfo("")
+            .addStructureInfo(EnumChatFormatting.BLUE + "Bronze " + EnumChatFormatting.DARK_PURPLE + "Tier")
+            .addStructureInfo(EnumChatFormatting.GOLD + "10x" + EnumChatFormatting.GRAY + " Bronze Firebox Casing")
+            .addStructureInfo(EnumChatFormatting.GOLD + "17x" + EnumChatFormatting.GRAY + " Bronze Plated Bricks")
+            .addStructureInfo("")
+            .addStructureInfo(EnumChatFormatting.BLUE + "Steel " + EnumChatFormatting.DARK_PURPLE + "Tier")
+            .addStructureInfo(EnumChatFormatting.GOLD + "10x" + EnumChatFormatting.GRAY + " Steel Firebox Casing")
+            .addStructureInfo(EnumChatFormatting.GOLD + "17x" + EnumChatFormatting.GRAY + " Solid Steel Machine Casing")
+            .toolTipFinisher();
+        return tt;
+    }
+
+    @Override
+    protected IAlignmentLimits getInitialAlignmentLimits() {
+        return (d, r, f) -> d.offsetY == 0 && r.isNotRotated() && !f.isVerticallyFliped();
+    }
+
+    @Override
+    public void saveNBTData(NBTTagCompound aNBT) {
+        super.saveNBTData(aNBT);
+        aNBT.setInteger("mSetTier", mSetTier);
+    }
+
+    @Override
+    public void loadNBTData(NBTTagCompound aNBT) {
+        super.loadNBTData(aNBT);
+        mSetTier = aNBT.getInteger("mSetTier");
+    }
+
+    @Override
+    public String[] getInfoData() {
+        String tierText = mSetTier == 2 ? "Steel" : mSetTier == 1 ? "Bronze" : "N/A";
+        return new String[] { EnumChatFormatting.BLUE + "Large Steam Furnace",
+            EnumChatFormatting.GRAY + "Tier: " + EnumChatFormatting.GOLD + tierText,
+            EnumChatFormatting.GRAY + "Status: "
+                + (mMachine ? EnumChatFormatting.GREEN + "Running" : EnumChatFormatting.RED + "Incomplete"),
+            EnumChatFormatting.GRAY + "Parallel: " + EnumChatFormatting.YELLOW + getMaxParallelRecipes() };
+    }
+}

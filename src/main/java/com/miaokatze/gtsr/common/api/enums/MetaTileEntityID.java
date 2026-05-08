@@ -51,6 +51,8 @@ public enum MetaTileEntityID {
     PRESSURE_STEAM_HATCH(11),
     /** 地脉蒸汽热解机 */
     VEIN_STEAM_PYROLYZER(12),
+    /** 大型蒸汽熔炉 */
+    LARGE_STEAM_FURNACE(13),
 
     ;
 

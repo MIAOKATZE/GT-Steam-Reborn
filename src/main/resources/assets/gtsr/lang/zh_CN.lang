@@ -129,3 +129,9 @@ gtsr.tooltip.vein_steam_pyrolyzer.12=仓室: 耐压蒸汽仓, 输出仓
 item.VeinPyrolyzerChipT1.name=地脉热解机芯片T1
 item.VeinPyrolyzerChipT2.name=地脉热解机芯片T2
 item.VeinPyrolyzerChipT3.name=地脉热解机芯片T3
+
+# Large Steam Furnace
+gt.blockmachines.gtsr.large.steam.furnace.name=大型蒸汽熔炉
+gtsr.tooltip.large_steam_furnace.0=过热蒸汽: 4x 速度, 4x 消耗
+gtsr.tooltip.large_steam_furnace.ctrl=底层正面中央
+gtsr.tooltip.large_steam_furnace.hatches=蒸汽仓×1, 蒸汽输入总线×1+, 蒸汽输出总线×1+

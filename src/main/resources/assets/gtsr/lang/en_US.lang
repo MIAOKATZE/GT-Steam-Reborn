@@ -129,3 +129,9 @@ gtsr.tooltip.vein_steam_pyrolyzer.12=Hatches: Pressure Steam Hatch, Output Bus
 item.VeinPyrolyzerChipT1.name=Vein Pyrolyzer Chip T1
 item.VeinPyrolyzerChipT2.name=Vein Pyrolyzer Chip T2
 item.VeinPyrolyzerChipT3.name=Vein Pyrolyzer Chip T3
+
+# Large Steam Furnace
+gt.blockmachines.gtsr.large.steam.furnace.name=Large Steam Furnace
+gtsr.tooltip.large_steam_furnace.0=Superheated Steam: 4x speed, 4x consumption
+gtsr.tooltip.large_steam_furnace.ctrl=Front center of bottom layer
+gtsr.tooltip.large_steam_furnace.hatches=Steam Hatch x1, Steam Input Bus x1+, Steam Output Bus x1+

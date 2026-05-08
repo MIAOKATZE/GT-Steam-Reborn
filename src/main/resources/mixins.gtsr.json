@@ -6,7 +6,10 @@
   "compatibilityLevel": "JAVA_8",
   "refmap": "mixins.gtsr.refmap.json",
   "mixins": [
-    "MTESteamMultiBaseMixin"
+    "MTESteamMultiBaseMixin",
+    "MTEHatchCustomFluidBaseMixin",
+    "MTEHatchSteamBusInputMixin",
+    "MTEHatchSteamBusOutputMixin"
   ],
   "client": [],
   "server": []
