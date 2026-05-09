@@ -6,12 +6,14 @@ import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.IFluidHandler;
 
+import gregtech.GTMod;
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Textures;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.implementations.MTEHatchOutput;
+import gregtech.api.render.TextureFactory;
 import gregtech.api.util.GTModHandler;
 import gregtech.api.util.GTUtility;
 
@@ -20,16 +22,22 @@ public class MTESteamOutputHatch extends MTEHatchOutput {
     private static final int CAPACITY = 128_000;
     private static final int OUTPUT_PER_TICK = 6_400;
     private static final int OUTPUT_PER_SECOND = 128_000;
-    private static final int BRONZE_CASING_INDEX = GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings1, 10);
+    private static final ITexture BRONZE_TEXTURE = Textures.BlockIcons
+        .getCasingTextureForId(GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings1, 10));
 
     public MTESteamOutputHatch(int aID, String aName, String aNameRegional) {
-        super(aID, aName, aNameRegional, 6);
-        this.mMode = 0;
+        super(
+            aID,
+            aName,
+            aNameRegional,
+            6,
+            new String[] { "Steam Output for Solar Array", "Capacity: " + CAPACITY + "L",
+                "Output: " + OUTPUT_PER_SECOND + "L/s", "Fluid Type: Steam Only", "No External Input Allowed" },
+            4);
     }
 
     public MTESteamOutputHatch(String aName, int aTier, String[] aDescription, ITexture[][][] aTextures) {
         super(aName, aTier, aDescription, aTextures);
-        this.mMode = 0;
     }
 
     @Override
@@ -38,12 +46,21 @@ public class MTESteamOutputHatch extends MTEHatchOutput {
     }
 
     @Override
-    public ITexture[] getTexture(IGregTechTileEntity aBaseMetaTileEntity, ForgeDirection side, ForgeDirection facing,
-        int colorIndex, boolean aActive, boolean redstoneLevel) {
-        if (!isConnectedToParentMachine()) {
-            return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(BRONZE_CASING_INDEX) };
+    public ITexture[] getTexturesActive(ITexture aBaseTexture) {
+        if (GTMod.proxy.mRenderIndicatorsOnHatch) {
+            return new ITexture[] { BRONZE_TEXTURE, TextureFactory.of(Textures.BlockIcons.OVERLAY_PIPE_OUT),
+                TextureFactory.of(Textures.BlockIcons.FLUID_OUT_SIGN) };
         }
-        return super.getTexture(aBaseMetaTileEntity, side, facing, colorIndex, aActive, redstoneLevel);
+        return new ITexture[] { BRONZE_TEXTURE, TextureFactory.of(Textures.BlockIcons.OVERLAY_PIPE_OUT) };
+    }
+
+    @Override
+    public ITexture[] getTexturesInactive(ITexture aBaseTexture) {
+        if (GTMod.proxy.mRenderIndicatorsOnHatch) {
+            return new ITexture[] { BRONZE_TEXTURE, TextureFactory.of(Textures.BlockIcons.OVERLAY_PIPE_OUT),
+                TextureFactory.of(Textures.BlockIcons.FLUID_OUT_SIGN) };
+        }
+        return new ITexture[] { BRONZE_TEXTURE, TextureFactory.of(Textures.BlockIcons.OVERLAY_PIPE_OUT) };
     }
 
     @Override
@@ -59,7 +76,6 @@ public class MTESteamOutputHatch extends MTEHatchOutput {
     public int fill(ForgeDirection side, FluidStack aFluid, boolean doFill) {
         if (aFluid == null) return 0;
         if (!GTModHandler.isSteam(aFluid)) return 0;
-        if (side != ForgeDirection.UNKNOWN && !isConnectedToParentMachine()) return 0;
         return super.fill(side, aFluid, doFill);
     }
 
@@ -88,10 +104,6 @@ public class MTESteamOutputHatch extends MTEHatchOutput {
     public boolean canStoreFluid(FluidStack aFluidToStore) {
         if (aFluidToStore == null) return false;
         return GTModHandler.isSteam(aFluidToStore);
-    }
-
-    private boolean isConnectedToParentMachine() {
-        return getBaseMetaTileEntity() != null && getBaseMetaTileEntity().getMetaTileEntity() != null;
     }
 
     @Override

@@ -135,3 +135,15 @@ gt.blockmachines.gtsr.large.steam.furnace.name=大型蒸汽熔炉
 gtsr.tooltip.large_steam_furnace.0=过热蒸汽: 4x 速度, 4x 消耗
 gtsr.tooltip.large_steam_furnace.ctrl=底层正面中央
 gtsr.tooltip.large_steam_furnace.hatches=蒸汽仓×1, 蒸汽输入总线×1+, 蒸汽输出总线×1+
+
+# Steam Output Hatch
+gt.blockmachines.gtsr.steam.output.hatch.name=蒸汽输出仓
+gtsr.tooltip.steam_output_hatch.name=蒸汽输出仓
+
+# Pressure Steam Output Hatch
+gt.blockmachines.gtsr.pressure.steam.output.hatch.name=耐压蒸汽输出仓
+gtsr.tooltip.pressure_steam_output_hatch.name=耐压蒸汽输出仓
+
+# Large Solar Overpressure Array
+gt.blockmachines.gtsr.large.solar.overpressure.array.name=大型太阳能超压阵列
+gtsr.tooltip.large_solar_overpressure_array.name=大型太阳能超压阵列
