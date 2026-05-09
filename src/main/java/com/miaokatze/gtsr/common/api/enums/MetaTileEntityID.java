@@ -53,6 +53,12 @@ public enum MetaTileEntityID {
     VEIN_STEAM_PYROLYZER(12),
     /** 大型蒸汽熔炉 */
     LARGE_STEAM_FURNACE(13),
+    /** 蒸汽输出仓 */
+    STEAM_OUTPUT_HATCH(14),
+    /** 耐压蒸汽输出仓 */
+    PRESSURE_STEAM_OUTPUT_HATCH(15),
+    /** 大型太阳能超压阵列 (三等级自动检测) */
+    LARGE_SOLAR_OVERPRESSURE_ARRAY(16),
 
     ;
 

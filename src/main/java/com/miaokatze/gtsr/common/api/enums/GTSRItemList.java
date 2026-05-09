@@ -50,6 +50,9 @@ public enum GTSRItemList implements IItemContainer {
     VeinPyrolyzerChipT2,
     VeinPyrolyzerChipT3,
     LargeSteamFurnace,
+    SteamOutputHatch,
+    PressureSteamOutputHatch,
+    LargeSolarOverpressureArray,
 
     ;
 

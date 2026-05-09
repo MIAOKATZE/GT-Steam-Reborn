@@ -3,18 +3,21 @@ package com.miaokatze.gtsr.loader;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.api.enums.MetaTileEntityID;
 import com.miaokatze.gtsr.common.machine.MTECrustSteamBorer;
+import com.miaokatze.gtsr.common.machine.MTELargeSolarOverpressureArray;
 import com.miaokatze.gtsr.common.machine.MTELargeSteamFurnace;
 import com.miaokatze.gtsr.common.machine.MTESteamFluidDrill;
 import com.miaokatze.gtsr.common.machine.MTESteamHubArray;
 import com.miaokatze.gtsr.common.machine.MTEVeinSteamPyrolyzer;
 import com.miaokatze.gtsr.common.machine.MTEVoidCrustSteamBorer;
 import com.miaokatze.gtsr.common.machine.base.MTEHatchPressureSteamInput;
+import com.miaokatze.gtsr.common.machine.base.MTEPressureSteamOutputHatch;
 import com.miaokatze.gtsr.common.machine.base.MTEPressureSteamStorageUnit;
 import com.miaokatze.gtsr.common.machine.base.MTEReinforcedSteamCacheNode;
 import com.miaokatze.gtsr.common.machine.base.MTEReinforcedSteamStorageUnit;
 import com.miaokatze.gtsr.common.machine.base.MTESteamCacheNode;
 import com.miaokatze.gtsr.common.machine.base.MTESteamHubInputHatch;
 import com.miaokatze.gtsr.common.machine.base.MTESteamHubOutputHatch;
+import com.miaokatze.gtsr.common.machine.base.MTESteamOutputHatch;
 import com.miaokatze.gtsr.register.CreativeTabManager;
 
 public class MachineLoader {
@@ -27,6 +30,7 @@ public class MachineLoader {
         registerPressureSteamHatch();
         registerVeinSteamPyrolyzer();
         registerLargeSteamFurnace();
+        registerSolarOverpressureArray();
     }
 
     private static void registerSteamMachines() {
@@ -127,5 +131,28 @@ public class MachineLoader {
                 "gtsr.large.steam.furnace",
                 "Large Steam Furnace"));
         CreativeTabManager.addItemToTab(GTSRItemList.LargeSteamFurnace.get(1));
+    }
+
+    private static void registerSolarOverpressureArray() {
+        GTSRItemList.SteamOutputHatch.set(
+            new MTESteamOutputHatch(
+                MetaTileEntityID.STEAM_OUTPUT_HATCH.ID,
+                "gtsr.steam.output.hatch",
+                "Steam Output Hatch"));
+        CreativeTabManager.addItemToTab(GTSRItemList.SteamOutputHatch.get(1));
+
+        GTSRItemList.PressureSteamOutputHatch.set(
+            new MTEPressureSteamOutputHatch(
+                MetaTileEntityID.PRESSURE_STEAM_OUTPUT_HATCH.ID,
+                "gtsr.pressure.steam.output.hatch",
+                "Pressure Steam Output Hatch"));
+        CreativeTabManager.addItemToTab(GTSRItemList.PressureSteamOutputHatch.get(1));
+
+        GTSRItemList.LargeSolarOverpressureArray.set(
+            new MTELargeSolarOverpressureArray(
+                MetaTileEntityID.LARGE_SOLAR_OVERPRESSURE_ARRAY.ID,
+                "gtsr.large.solar.overpressure.array",
+                "Large Solar Overpressure Array"));
+        CreativeTabManager.addItemToTab(GTSRItemList.LargeSolarOverpressureArray.get(1));
     }
 }
