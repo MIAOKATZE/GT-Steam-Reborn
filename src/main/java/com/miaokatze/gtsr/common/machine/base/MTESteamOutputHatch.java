@@ -23,8 +23,12 @@ public class MTESteamOutputHatch extends MTEHatchOutput {
     private static final int CAPACITY = 128_000;
     private static final int OUTPUT_PER_TICK = 6_400;
     private static final int OUTPUT_PER_SECOND = 128_000;
-    private static final ITexture BRONZE_TEXTURE = Textures.BlockIcons
+    protected static final ITexture BRONZE_TEXTURE = Textures.BlockIcons
         .getCasingTextureForId(GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings1, 10));
+    protected static final ITexture STEEL_TEXTURE = Textures.BlockIcons
+        .getCasingTextureForId(GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings2, 0));
+
+    public boolean isSteelTier = false;
 
     public MTESteamOutputHatch(int aID, String aName, String aNameRegional) {
         super(
@@ -49,6 +53,7 @@ public class MTESteamOutputHatch extends MTEHatchOutput {
     @Override
     public ITexture[] getTexture(IGregTechTileEntity aBaseMetaTileEntity, ForgeDirection side, ForgeDirection facing,
         int colorIndex, boolean aActive, boolean redstoneLevel) {
+        ITexture baseTexture = isSteelTier ? STEEL_TEXTURE : BRONZE_TEXTURE;
         if (side == facing) {
             ITexture[] overlays;
             if (GTMod.proxy.mRenderIndicatorsOnHatch) {
@@ -57,9 +62,9 @@ public class MTESteamOutputHatch extends MTEHatchOutput {
             } else {
                 overlays = new ITexture[] { TextureFactory.of(Textures.BlockIcons.OVERLAY_PIPE_OUT) };
             }
-            return mergeTextures(BRONZE_TEXTURE, overlays);
+            return mergeTextures(baseTexture, overlays);
         }
-        return new ITexture[] { BRONZE_TEXTURE };
+        return new ITexture[] { baseTexture };
     }
 
     private ITexture[] mergeTextures(ITexture background, ITexture[] overlays) {

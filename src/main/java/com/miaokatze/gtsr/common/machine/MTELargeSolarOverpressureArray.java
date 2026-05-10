@@ -17,7 +17,6 @@ import javax.annotation.Nullable;
 
 import net.minecraft.block.Block;
 import net.minecraft.init.Blocks;
-import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumChatFormatting;
@@ -152,10 +151,8 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
 
     @Nullable
     public static Integer getGlassTier(Block block, int meta) {
-        if (block == Blocks.glass || block == GregTechAPI.sBlockGlass1) {
-            if (meta == 0) return 1;
-            if (meta <= 3) return 2;
-        }
+        if (block == Blocks.glass) return 1;
+        if (block == GregTechAPI.sBlockGlass1) return 2;
         return null;
     }
 
@@ -169,8 +166,18 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
     protected void updateHatchTextures() {
         if (mSetTier <= 0) return;
         int textureID = getCasingTextureID();
+        boolean isSteel = mSetTier >= 2;
+
         for (IMetaTileEntity hatch : mOutputHatches) {
-            if (hatch instanceof MTESteamOutputHatch || hatch instanceof MTEPressureSteamOutputHatch) {
+            if (hatch instanceof MTESteamOutputHatch steamHatch) {
+                steamHatch.isSteelTier = isSteel;
+                IGregTechTileEntity base = hatch.getBaseMetaTileEntity();
+                if (base != null) base.issueTextureUpdate();
+            }
+        }
+
+        if (isSteel) {
+            for (IMetaTileEntity hatch : mInputHatches) {
                 IGregTechTileEntity base = hatch.getBaseMetaTileEntity();
                 if (base != null && base.isServerSide()) {
                     if (hatch instanceof gregtech.api.metatileentity.implementations.MTEHatch h) {
@@ -219,7 +226,12 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
                     'G',
                     ofBlocksTiered(
                         MTELargeSolarOverpressureArray::getGlassTier,
-                        ImmutableList.of(Pair.of(Blocks.glass, 0), Pair.of(GregTechAPI.sBlockGlass1, 0)),
+                        ImmutableList.of(
+                            Pair.of(Blocks.glass, 0),
+                            Pair.of(GregTechAPI.sBlockGlass1, 0),
+                            Pair.of(GregTechAPI.sBlockGlass1, 1),
+                            Pair.of(GregTechAPI.sBlockGlass1, 2),
+                            Pair.of(GregTechAPI.sBlockGlass1, 3)),
                         -1,
                         (MTELargeSolarOverpressureArray t, Integer tier) -> t.tierGlass = tier,
                         (MTELargeSolarOverpressureArray t) -> t.tierGlass))
@@ -248,14 +260,6 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
 
         if (!checkPiece(STRUCTURE_PIECE_MAIN, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET)) return false;
 
-        System.out.println("[GT-SR] DEBUG: checkPiece passed");
-        System.out.println(
-            "[GT-SR] DEBUG: tierCasing=" + tierCasing
-                + ", tierGlass="
-                + tierGlass
-                + ", tierConductor="
-                + tierConductor);
-
         if (tierCasing == 1 && tierGlass >= 1 && tierConductor == 1) {
             mSetTier = 1;
         } else if (tierCasing == 2 && tierGlass >= 1 && tierConductor == 2) {
@@ -264,55 +268,15 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
             mSetTier = 3;
         }
 
-        System.out.println("[GT-SR] DEBUG: mSetTier=" + mSetTier);
-
-        if (mSetTier <= 0) {
-            System.out.println("[GT-SR] DEBUG: FAILED - Tier mismatch or not set");
-            return false;
-        }
-
-        System.out
-            .println("[GT-SR] DEBUG: isBronze=" + isBronze() + ", isSteel=" + isSteel() + ", isNickel=" + isNickel());
-        System.out.println("[GT-SR] DEBUG: mOutputHatches count=" + mOutputHatches.size());
-
-        for (IMetaTileEntity hatch : mOutputHatches) {
-            System.out.println(
-                "[GT-SR] DEBUG: OutputHatch type=" + hatch.getClass()
-                    .getSimpleName()
-                    + ", isMTESteamOutputHatch="
-                    + (hatch instanceof MTESteamOutputHatch)
-                    + ", isMTEPressureSteamOutputHatch="
-                    + (hatch instanceof MTEPressureSteamOutputHatch));
-        }
-
-        boolean outputCheck = hasValidOutputHatchesForTier();
-        System.out.println("[GT-SR] DEBUG: hasValidOutputHatchesForTier=" + outputCheck);
-
-        if (!outputCheck) return false;
+        if (mSetTier <= 0) return false;
+        if (!hasValidOutputHatchesForTier()) return false;
 
         updateHatchTextures();
         return true;
     }
 
     private boolean hasValidOutputHatchesForTier() {
-        if (mOutputHatches.isEmpty()) return false;
-
-        System.out.println("[GT-SR] DEBUG: Output hatches found=" + mOutputHatches.size());
-
-        for (IMetaTileEntity hatch : mOutputHatches) {
-            String className = hatch.getClass()
-                .getName();
-            boolean isSteam = hatch instanceof MTESteamOutputHatch;
-            boolean isPressure = hatch instanceof MTEPressureSteamOutputHatch;
-            System.out.println(
-                "[GT-SR] DEBUG: Hatch class=" + className
-                    + ", isSteamOutput="
-                    + isSteam
-                    + ", isPressureSteam="
-                    + isPressure);
-        }
-
-        return true;
+        return !mOutputHatches.isEmpty();
     }
 
     @Override
@@ -320,6 +284,11 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
         super.onPostTick(aBaseMetaTileEntity, aTick);
         if (!aBaseMetaTileEntity.isServerSide()) return;
         if (!mMachine || mSetTier <= 0) return;
+
+        if (!aBaseMetaTileEntity.isAllowedToWork()) {
+            mIsOperating = false;
+            mCurrentSteamOutput = 0;
+        }
 
         World world = aBaseMetaTileEntity.getWorld();
         boolean isClearWeather = !world.isRaining() && !world.isThundering()
@@ -330,7 +299,7 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
         if (aTick % 20 == 0) {
             boolean canHeat = isClearWeather && isSeeSky && isDay;
 
-            if (mMachine && canHeat) {
+            if (canHeat && aBaseMetaTileEntity.isAllowedToWork()) {
                 mHeat += getHeatIncreaseSpeed();
                 if (mHeat > 1.0d) mHeat = 1.0d;
             } else {
@@ -352,8 +321,9 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
     @Nonnull
     @Override
     public CheckRecipeResult checkProcessing() {
-        if (!mMachine || mSetTier <= 0) {
+        if (!mMachine || mSetTier <= 0 || !getBaseMetaTileEntity().isAllowedToWork()) {
             mIsOperating = false;
+            mCurrentSteamOutput = 0;
             return CheckRecipeResultRegistry.NO_RECIPE;
         }
 
@@ -400,6 +370,7 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
                     if (super.depleteInput(liquidToDeplete)) {
                         int steamAmount = consumedWater * STEAM_PER_WATER;
                         mRunningTicks += 20;
+                        mCurrentSteamOutput = steamAmount;
 
                         FluidStack outputSteam;
                         if (isNickel()) {
@@ -421,6 +392,7 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
 
         if (!hasWaterInSystem) {
             mIsOperating = false;
+            mCurrentSteamOutput = 0;
         }
         return CheckRecipeResultRegistry.NO_RECIPE;
     }
@@ -489,8 +461,25 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
                         + numberFormat.format(mCalcification * 100)
                         + "% "
                         + EnumChatFormatting.RESET))
+            .widget(
+                new TextWidget().setStringSupplier(
+                    () -> EnumChatFormatting.WHITE + "Steam Output: "
+                        + EnumChatFormatting.AQUA
+                        + numberFormat.format(mCurrentSteamOutput)
+                        + " L/s "
+                        + EnumChatFormatting.WHITE
+                        + (isNickel() ? "Superheated Steam" : "Steam")
+                        + EnumChatFormatting.RESET))
+            .widget(
+                new TextWidget().setStringSupplier(
+                    () -> EnumChatFormatting.WHITE + "Solar Booster: "
+                        + EnumChatFormatting.GREEN
+                        + numberFormat.format(calculateSolarBooster() * 100)
+                        + "% "
+                        + EnumChatFormatting.RESET))
             .widget(new FakeSyncWidget.DoubleSyncer(() -> mHeat, val -> mHeat = val))
-            .widget(new FakeSyncWidget.DoubleSyncer(() -> mCalcification, val -> mCalcification = val));
+            .widget(new FakeSyncWidget.DoubleSyncer(() -> mCalcification, val -> mCalcification = val))
+            .widget(new FakeSyncWidget.IntegerSyncer(() -> mCurrentSteamOutput, val -> mCurrentSteamOutput = val));
     }
 
     @Override
@@ -516,16 +505,24 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
     private float calculateSolarBooster() {
         float booster = 1.0f;
 
-        ItemStack stack = mInventory[0];
+        ItemStack stack = getControllerSlot();
         if (stack != null) {
-            Item item = stack.getItem();
-            String name = item.getUnlocalizedName()
+            String name = stack.getItem()
+                .getUnlocalizedName()
+                .toLowerCase();
+            String itemName = stack.getDisplayName()
                 .toLowerCase();
 
-            if (name.contains("solarboiler") || name.contains("steam.solar")) {
-                booster += 0.01f * Math.min(stack.stackSize, 64);
-            } else if (name.contains("hpsolarboiler") || name.contains("hp.steam.solar")) {
-                booster += 0.02f * Math.min(stack.stackSize, 64);
+            if (name.contains("boiler.solar") || name.contains("boiler.steel.solar")
+                || itemName.contains("solar boiler")) {
+                if (name.contains("steel.solar") || name.contains("hp")
+                    || itemName.contains("hp")
+                    || itemName.contains("high pressure")
+                    || itemName.contains("advanced")) {
+                    booster += 0.02f * Math.min(stack.stackSize, 64);
+                } else {
+                    booster += 0.01f * Math.min(stack.stackSize, 64);
+                }
             }
         }
 
@@ -711,18 +708,31 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
         return description.toArray(new String[0]);
     }
 
+    protected int mCurrentSteamOutput = 0;
+
     @Override
     public String[] getInfoData() {
         String tierText = isNickel() ? "Nickel" : isSteel() ? "Steel" : isBronze() ? "Bronze" : "N/A";
+        String steamType = isNickel() ? "Superheated Steam" : "Steam";
+        float booster = calculateSolarBooster();
         return new String[] { EnumChatFormatting.BLUE + "Large Solar Overpressure Array",
             EnumChatFormatting.GRAY + "Tier: " + EnumChatFormatting.GOLD + tierText,
             EnumChatFormatting.GRAY + "Status: "
-                + (mMachine ? EnumChatFormatting.GREEN + "Running" : EnumChatFormatting.RED + "Incomplete"),
+                + (mIsOperating ? EnumChatFormatting.GREEN + "Running" : EnumChatFormatting.RED + "Stopped"),
             EnumChatFormatting.GRAY + "Heat: " + EnumChatFormatting.YELLOW + numberFormat.format(mHeat * 100) + "%",
             EnumChatFormatting.GRAY + "Calcification: "
                 + EnumChatFormatting.RED
                 + numberFormat.format(mCalcification * 100)
                 + "%",
-            EnumChatFormatting.GRAY + "Output: " + EnumChatFormatting.AQUA + getBaseSteamProduction() + " L/s" };
+            EnumChatFormatting.GRAY + "Steam Output: "
+                + EnumChatFormatting.AQUA
+                + numberFormat.format(mCurrentSteamOutput)
+                + " L/s "
+                + EnumChatFormatting.WHITE
+                + steamType,
+            EnumChatFormatting.GRAY + "Solar Booster: "
+                + EnumChatFormatting.GREEN
+                + numberFormat.format(booster * 100)
+                + "%" };
     }
 }
