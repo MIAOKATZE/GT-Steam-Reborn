@@ -84,6 +84,9 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
     protected double mCalcification = 0.0d;
     protected long mRunningTicks = 0L;
     protected boolean mIsOperating = false;
+    protected int tierCasing = -1;
+    protected int tierGlass = -1;
+    protected int tierConductor = -1;
 
     private static final int CALCIFICATION_FACTOR = 3;
     private static final int STEAM_PER_WATER = 160;
@@ -210,16 +213,16 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
                                         Pair.of(GregTechAPI.sBlockCasings1, 10),
                                         Pair.of(GregTechAPI.sBlockCasings2, 0)),
                                     -1,
-                                    (MTELargeSolarOverpressureArray t, Integer tier) -> t.mSetTier = tier,
-                                    (MTELargeSolarOverpressureArray t) -> t.mSetTier))))
+                                    (MTELargeSolarOverpressureArray t, Integer tier) -> t.tierCasing = tier,
+                                    (MTELargeSolarOverpressureArray t) -> t.tierCasing))))
                 .addElement(
                     'G',
                     ofBlocksTiered(
                         MTELargeSolarOverpressureArray::getGlassTier,
                         ImmutableList.of(Pair.of(Blocks.glass, 0), Pair.of(GregTechAPI.sBlockGlass1, 0)),
                         -1,
-                        (MTELargeSolarOverpressureArray t, Integer tier) -> t.mSetTier = tier,
-                        (MTELargeSolarOverpressureArray t) -> t.mSetTier))
+                        (MTELargeSolarOverpressureArray t, Integer tier) -> t.tierGlass = tier,
+                        (MTELargeSolarOverpressureArray t) -> t.tierGlass))
                 .addElement(
                     'D',
                     ofBlocksTiered(
@@ -229,8 +232,8 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
                             Pair.of(Blocks.gold_block, 0),
                             Pair.of(GregTechAPI.sBlockMetal5, 4)),
                         -1,
-                        (MTELargeSolarOverpressureArray t, Integer tier) -> t.mSetTier = tier,
-                        (MTELargeSolarOverpressureArray t) -> t.mSetTier))
+                        (MTELargeSolarOverpressureArray t, Integer tier) -> t.tierConductor = tier,
+                        (MTELargeSolarOverpressureArray t) -> t.tierConductor))
                 .build();
         }
         return STRUCTURE_DEFINITION;
@@ -239,12 +242,32 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
     @Override
     public boolean checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack) {
         mSetTier = -1;
+        tierCasing = -1;
+        tierGlass = -1;
+        tierConductor = -1;
+
         if (!checkPiece(STRUCTURE_PIECE_MAIN, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET)) return false;
 
-        System.out.println("[GT-SR] DEBUG: checkPiece passed, mSetTier=" + mSetTier);
+        System.out.println("[GT-SR] DEBUG: checkPiece passed");
+        System.out.println(
+            "[GT-SR] DEBUG: tierCasing=" + tierCasing
+                + ", tierGlass="
+                + tierGlass
+                + ", tierConductor="
+                + tierConductor);
+
+        if (tierCasing == 1 && tierGlass >= 1 && tierConductor == 1) {
+            mSetTier = 1;
+        } else if (tierCasing == 2 && tierGlass >= 1 && tierConductor == 2) {
+            mSetTier = 2;
+        } else if (tierCasing == 2 && tierGlass >= 1 && tierConductor == 3) {
+            mSetTier = 3;
+        }
+
+        System.out.println("[GT-SR] DEBUG: mSetTier=" + mSetTier);
 
         if (mSetTier <= 0) {
-            System.out.println("[GT-SR] DEBUG: FAILED - mSetTier <= 0");
+            System.out.println("[GT-SR] DEBUG: FAILED - Tier mismatch or not set");
             return false;
         }
 
