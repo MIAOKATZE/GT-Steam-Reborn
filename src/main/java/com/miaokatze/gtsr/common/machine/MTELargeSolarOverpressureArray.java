@@ -1,11 +1,11 @@
 package com.miaokatze.gtsr.common.machine;
 
-import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlock;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlocksTiered;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose;
 import static gregtech.api.enums.HatchElement.InputHatch;
 import static gregtech.api.enums.HatchElement.OutputHatch;
+import static gregtech.api.metatileentity.BaseTileEntity.TOOLTIP_DELAY;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 
 import java.text.NumberFormat;
@@ -35,12 +35,22 @@ import com.gtnewhorizon.structurelib.alignment.constructable.ISurvivalConstructa
 import com.gtnewhorizon.structurelib.structure.IStructureDefinition;
 import com.gtnewhorizon.structurelib.structure.ISurvivalBuildEnvironment;
 import com.gtnewhorizon.structurelib.structure.StructureDefinition;
+import com.gtnewhorizons.modularui.api.drawable.IDrawable;
+import com.gtnewhorizons.modularui.api.math.Pos2d;
+import com.gtnewhorizons.modularui.api.screen.ModularWindow;
+import com.gtnewhorizons.modularui.api.screen.UIBuildContext;
+import com.gtnewhorizons.modularui.common.widget.ButtonWidget;
+import com.gtnewhorizons.modularui.common.widget.DynamicPositionedColumn;
+import com.gtnewhorizons.modularui.common.widget.FakeSyncWidget;
+import com.gtnewhorizons.modularui.common.widget.SlotWidget;
+import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import com.miaokatze.gtsr.common.machine.base.MTEPressureSteamOutputHatch;
 import com.miaokatze.gtsr.common.machine.base.MTESteamOutputHatch;
 
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Materials;
 import gregtech.api.enums.Textures;
+import gregtech.api.gui.modularui.GTUITextures;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
@@ -62,12 +72,18 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
     private static final int DEPTH_OFF_SET = 0;
 
     private static IStructureDefinition<MTELargeSolarOverpressureArray> STRUCTURE_DEFINITION = null;
-    private static final NumberFormat numberFormat = NumberFormat.getIntegerInstance();
+    private static final NumberFormat numberFormat = NumberFormat.getNumberInstance();
+
+    static {
+        numberFormat.setMinimumFractionDigits(3);
+        numberFormat.setMaximumFractionDigits(3);
+    }
 
     protected int mSetTier = -1;
     protected double mHeat = 0.0d;
     protected double mCalcification = 0.0d;
     protected long mRunningTicks = 0L;
+    protected boolean mIsOperating = false;
 
     private static final int CALCIFICATION_FACTOR = 3;
     private static final int STEAM_PER_WATER = 160;
@@ -87,6 +103,16 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
 
     @Override
     public boolean getDefaultHasMaintenanceChecks() {
+        return false;
+    }
+
+    @Override
+    public boolean shouldDisplayCheckRecipeResult() {
+        return false;
+    }
+
+    @Override
+    public boolean showRecipeTextInGUI() {
         return false;
     }
 
@@ -150,24 +176,6 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
                 }
             }
         }
-        for (IMetaTileEntity hatch : mInputHatches) {
-            IGregTechTileEntity base = hatch.getBaseMetaTileEntity();
-            if (base != null && base.isServerSide()) {
-                if (hatch instanceof gregtech.api.metatileentity.implementations.MTEHatch h) {
-                    h.updateTexture(textureID);
-                }
-            }
-        }
-    }
-
-    private boolean hasValidOutputHatches() {
-        if (mOutputHatches.isEmpty()) return false;
-        for (IMetaTileEntity hatch : mOutputHatches) {
-            if (hatch instanceof MTESteamOutputHatch || hatch instanceof MTEPressureSteamOutputHatch) {
-                return true;
-            }
-        }
-        return false;
     }
 
     @Override
@@ -223,7 +231,6 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
                         -1,
                         (MTELargeSolarOverpressureArray t, Integer tier) -> t.mSetTier = tier,
                         (MTELargeSolarOverpressureArray t) -> t.mSetTier))
-                .addElement('~', ofBlock(GregTechAPI.sBlockCasings1, 10))
                 .build();
         }
         return STRUCTURE_DEFINITION;
@@ -233,84 +240,61 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
     public boolean checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack) {
         mSetTier = -1;
         if (!checkPiece(STRUCTURE_PIECE_MAIN, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET)) return false;
-        if (mSetTier <= 0) return false;
-        if (!hasValidOutputHatches()) return false;
+
+        System.out.println("[GT-SR] DEBUG: checkPiece passed, mSetTier=" + mSetTier);
+
+        if (mSetTier <= 0) {
+            System.out.println("[GT-SR] DEBUG: FAILED - mSetTier <= 0");
+            return false;
+        }
+
+        System.out
+            .println("[GT-SR] DEBUG: isBronze=" + isBronze() + ", isSteel=" + isSteel() + ", isNickel=" + isNickel());
+        System.out.println("[GT-SR] DEBUG: mOutputHatches count=" + mOutputHatches.size());
+
+        for (IMetaTileEntity hatch : mOutputHatches) {
+            System.out.println(
+                "[GT-SR] DEBUG: OutputHatch type=" + hatch.getClass()
+                    .getSimpleName()
+                    + ", isMTESteamOutputHatch="
+                    + (hatch instanceof MTESteamOutputHatch)
+                    + ", isMTEPressureSteamOutputHatch="
+                    + (hatch instanceof MTEPressureSteamOutputHatch));
+        }
+
+        boolean outputCheck = hasValidOutputHatchesForTier();
+        System.out.println("[GT-SR] DEBUG: hasValidOutputHatchesForTier=" + outputCheck);
+
+        if (!outputCheck) return false;
+
         updateHatchTextures();
         return true;
     }
 
-    @Nonnull
-    @Override
-    public CheckRecipeResult checkProcessing() {
-        if (!mMachine || mSetTier <= 0) {
-            return CheckRecipeResultRegistry.NO_RECIPE;
+    private boolean hasValidOutputHatchesForTier() {
+        if (mOutputHatches.isEmpty()) return false;
+
+        System.out.println("[GT-SR] DEBUG: Output hatches found=" + mOutputHatches.size());
+
+        for (IMetaTileEntity hatch : mOutputHatches) {
+            String className = hatch.getClass()
+                .getName();
+            boolean isSteam = hatch instanceof MTESteamOutputHatch;
+            boolean isPressure = hatch instanceof MTEPressureSteamOutputHatch;
+            System.out.println(
+                "[GT-SR] DEBUG: Hatch class=" + className
+                    + ", isSteamOutput="
+                    + isSteam
+                    + ", isPressureSteam="
+                    + isPressure);
         }
 
-        ArrayList<FluidStack> storedFluids = super.getStoredFluids();
-
-        for (FluidStack hatchFluid : storedFluids) {
-            FluidStack waterFluid = GTModHandler.getWater(1);
-            FluidStack distilledWaterFluid = GTModHandler.getDistilledWater(1);
-
-            boolean hasWater = hatchFluid.isFluidEqual(waterFluid);
-            boolean hasDistilledWater = hatchFluid.isFluidEqual(distilledWaterFluid);
-
-            int amountOfFluidInHatch = 0;
-            if (hasWater || hasDistilledWater) {
-                amountOfFluidInHatch = hatchFluid.amount;
-            }
-
-            long calcificationDelayTicks = getCalcificationDelayTicks();
-            long calcificationInterval = getCalcificationFullTime() / 100;
-
-            if (mRunningTicks > calcificationDelayTicks && (mRunningTicks / 20) % calcificationInterval == 0
-                && hasWater
-                && !hasDistilledWater) {
-                mCalcification += 0.01d;
-                if (mCalcification > 1.0d) mCalcification = 1.0d;
-            }
-
-            if (amountOfFluidInHatch > 0 && mHeat > 0.01d) {
-                float solarBooster = calculateSolarBooster();
-                int baseProduction = (int) (getBaseSteamProduction() * solarBooster);
-
-                int consumedWater = (int) (Math.min(amountOfFluidInHatch, baseProduction / STEAM_PER_WATER) * mHeat
-                    / ((mCalcification * (CALCIFICATION_FACTOR - 1)) + 1));
-
-                if (consumedWater <= 0) continue;
-
-                FluidStack liquidToDeplete;
-                if (hasDistilledWater) {
-                    liquidToDeplete = GTModHandler.getDistilledWater(consumedWater);
-                } else {
-                    liquidToDeplete = GTModHandler.getWater(consumedWater);
-                }
-
-                if (super.depleteInput(liquidToDeplete)) {
-                    int steamAmount = consumedWater * STEAM_PER_WATER;
-
-                    if (isNickel()) {
-                        distributeSuperheatedSteamToOutputHatches(steamAmount);
-                    } else {
-                        distributeSteamToOutputHatches(steamAmount);
-                    }
-
-                    mMaxProgresstime = 20;
-                    mEfficiency = 10000;
-                    mRunningTicks += 20;
-
-                    return CheckRecipeResultRegistry.SUCCESSFUL;
-                }
-            }
-        }
-
-        return CheckRecipeResultRegistry.NO_RECIPE;
+        return true;
     }
 
     @Override
     public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
         super.onPostTick(aBaseMetaTileEntity, aTick);
-
         if (!aBaseMetaTileEntity.isServerSide()) return;
         if (!mMachine || mSetTier <= 0) return;
 
@@ -321,18 +305,117 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
         boolean isDay = world.isDaytime();
 
         if (aTick % 20 == 0) {
-            if (!isClearWeather || !isSeeSky || !isDay) {
-                mHeat -= getHeatDecreaseSpeed();
-                if (mHeat < 0) mHeat = 0;
-            } else {
+            boolean canHeat = isClearWeather && isSeeSky && isDay;
+
+            if (mMachine && canHeat) {
                 mHeat += getHeatIncreaseSpeed();
                 if (mHeat > 1.0d) mHeat = 1.0d;
+            } else {
+                mHeat -= getHeatDecreaseSpeed();
+                if (mHeat < 0) mHeat = 0;
             }
         }
 
-        if (mHeat > 0.01d && isSeeSky && isDay && isClearWeather) {
+        if (mMaxProgresstime > 0) {
+            if (++mProgresstime >= mMaxProgresstime) {
+                mProgresstime = 0;
+                outputSteam();
+            }
+        } else {
             checkProcessing();
         }
+    }
+
+    @Nonnull
+    @Override
+    public CheckRecipeResult checkProcessing() {
+        if (!mMachine || mSetTier <= 0) {
+            mIsOperating = false;
+            return CheckRecipeResultRegistry.NO_RECIPE;
+        }
+
+        ArrayList<FluidStack> storedFluids = super.getStoredFluids();
+
+        boolean hasWaterInSystem = false;
+        for (FluidStack hatchFluid : storedFluids) {
+            FluidStack waterFluid = GTModHandler.getWater(1);
+            FluidStack distilledWaterFluid = GTModHandler.getDistilledWater(1);
+
+            boolean hasWater = hatchFluid.isFluidEqual(waterFluid);
+            boolean hasDistilledWater = hatchFluid.isFluidEqual(distilledWaterFluid);
+
+            if (hasWater || hasDistilledWater) {
+                hasWaterInSystem = true;
+                int amountOfFluidInHatch = hatchFluid.amount;
+
+                long calcificationDelayTicks = getCalcificationDelayTicks();
+                long calcificationInterval = getCalcificationFullTime() / 100;
+
+                if (mRunningTicks > calcificationDelayTicks && (mRunningTicks / 20) % calcificationInterval == 0
+                    && hasWater
+                    && !hasDistilledWater) {
+                    mCalcification += 0.01d;
+                    if (mCalcification > 1.0d) mCalcification = 1.0d;
+                }
+
+                if (amountOfFluidInHatch > 0 && mHeat > 0.01d) {
+                    float solarBooster = calculateSolarBooster();
+                    int baseProduction = (int) (getBaseSteamProduction() * solarBooster);
+
+                    int consumedWater = (int) (Math.min(amountOfFluidInHatch, baseProduction / STEAM_PER_WATER) * mHeat
+                        / ((mCalcification * (CALCIFICATION_FACTOR - 1)) + 1));
+
+                    if (consumedWater <= 0) continue;
+
+                    FluidStack liquidToDeplete;
+                    if (hasDistilledWater) {
+                        liquidToDeplete = GTModHandler.getDistilledWater(consumedWater);
+                    } else {
+                        liquidToDeplete = GTModHandler.getWater(consumedWater);
+                    }
+
+                    if (super.depleteInput(liquidToDeplete)) {
+                        int steamAmount = consumedWater * STEAM_PER_WATER;
+                        mRunningTicks += 20;
+
+                        FluidStack outputSteam;
+                        if (isNickel()) {
+                            outputSteam = FluidRegistry.getFluidStack("ic2superheatedsteam", steamAmount);
+                        } else {
+                            outputSteam = Materials.Steam.getGas(steamAmount);
+                        }
+
+                        super.mOutputFluids = new FluidStack[] { outputSteam };
+                        super.mMaxProgresstime = 20;
+                        super.mEfficiency = getMaxEfficiency(null);
+                        mIsOperating = true;
+
+                        return CheckRecipeResultRegistry.SUCCESSFUL;
+                    }
+                }
+            }
+        }
+
+        if (!hasWaterInSystem) {
+            mIsOperating = false;
+        }
+        return CheckRecipeResultRegistry.NO_RECIPE;
+    }
+
+    private void outputSteam() {
+        if (super.mOutputFluids != null && super.mOutputFluids.length > 0) {
+            FluidStack outputSteam = super.mOutputFluids[0];
+            if (outputSteam != null && outputSteam.amount > 0) {
+                if (isNickel()) {
+                    distributeSuperheatedSteamToOutputHatches(outputSteam.amount);
+                } else {
+                    distributeSteamToOutputHatches(outputSteam.amount);
+                }
+            }
+        }
+        super.mOutputFluids = null;
+        mMaxProgresstime = 0;
+        checkProcessing();
     }
 
     @Override
@@ -342,6 +425,7 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
             .addInfo("Produces Steam using Solar Energy")
             .addInfo("Output: " + getBaseSteamProduction() + " L/s")
             .addInfo("Type: " + (isNickel() ? "Superheated Steam" : "Steam"))
+            .addInfo("Has Heat and Calcification mechanics")
             .beginStructureBlock(11, 4, 3, false)
             .addController("Front top center")
             .addCasingInfoRange("Casing", 60, -1, false)
@@ -357,25 +441,53 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
     public ITexture[] getTexture(IGregTechTileEntity aBaseMetaTileEntity, ForgeDirection side, ForgeDirection facing,
         int colorIndex, boolean active, boolean redstoneLevel) {
         if (side == facing) {
-            if (active) {
-                return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(getCasingTextureID()),
-                    TextureFactory.builder()
-                        .addIcon(Textures.BlockIcons.OVERLAY_FRONT_VACUUM_FREEZER)
-                        .extFacing()
-                        .build(),
-                    TextureFactory.builder()
-                        .addIcon(Textures.BlockIcons.OVERLAY_FRONT_VACUUM_FREEZER_GLOW)
-                        .extFacing()
-                        .glow()
-                        .build() };
-            }
-            return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(getCasingTextureID()),
-                TextureFactory.builder()
-                    .addIcon(Textures.BlockIcons.OVERLAY_FRONT_VACUUM_FREEZER)
-                    .extFacing()
-                    .build() };
+            ITexture frontOverlay = active ? TextureFactory.of(Textures.BlockIcons.OVERLAY_FRONT_ORE_DRILL_ACTIVE)
+                : TextureFactory.of(Textures.BlockIcons.OVERLAY_FRONT_ORE_DRILL);
+            return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(getCasingTextureID()), frontOverlay };
         }
         return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(getCasingTextureID()) };
+    }
+
+    @Override
+    protected void drawTexts(DynamicPositionedColumn screenElements, SlotWidget inventorySlot) {
+        super.drawTexts(screenElements, inventorySlot);
+        screenElements
+            .widget(
+                new TextWidget().setStringSupplier(
+                    () -> EnumChatFormatting.WHITE + "Heat: "
+                        + EnumChatFormatting.GOLD
+                        + numberFormat.format(mHeat * 100)
+                        + "% "
+                        + EnumChatFormatting.RESET))
+            .widget(
+                new TextWidget().setStringSupplier(
+                    () -> EnumChatFormatting.WHITE + "Calcification: "
+                        + EnumChatFormatting.RED
+                        + numberFormat.format(mCalcification * 100)
+                        + "% "
+                        + EnumChatFormatting.RESET))
+            .widget(new FakeSyncWidget.DoubleSyncer(() -> mHeat, val -> mHeat = val))
+            .widget(new FakeSyncWidget.DoubleSyncer(() -> mCalcification, val -> mCalcification = val));
+    }
+
+    @Override
+    public void addUIWidgets(ModularWindow.Builder builder, UIBuildContext buildContext) {
+        super.addUIWidgets(builder, buildContext);
+
+        builder.widget(new ButtonWidget().setOnClick((clickData, widget) -> {
+            if (clickData.mouseButton == 0) {
+                mCalcification = 0;
+                mRunningTicks = 0;
+            }
+        })
+            .setPlayClickSound(true)
+            .setBackground(
+                () -> new IDrawable[] { GTUITextures.BUTTON_STANDARD,
+                    GTUITextures.OVERLAY_BUTTON_MACHINEMODE_WASHPLANT })
+            .addTooltip(EnumChatFormatting.WHITE + "Click to clear calcification" + EnumChatFormatting.RESET)
+            .setTooltipShowUpDelay(TOOLTIP_DELAY)
+            .setPos(new Pos2d(174, 91))
+            .setSize(16, 16));
     }
 
     private float calculateSolarBooster() {
@@ -407,7 +519,6 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
         }
 
         if (validHatches.isEmpty()) return;
-
         int perHatch = totalSteam / validHatches.size();
         int remainder = totalSteam % validHatches.size();
 
@@ -436,7 +547,6 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
         }
 
         if (pressureHatches.isEmpty()) return;
-
         int perHatch = totalSuperheatedSteam / pressureHatches.size();
         int remainder = totalSuperheatedSteam % pressureHatches.size();
 
@@ -524,7 +634,7 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
     @Override
     public int survivalConstruct(ItemStack stackSize, int elementBudget, ISurvivalBuildEnvironment env) {
         if (mMachine) return -1;
-        return survivialBuildPiece(
+        return survivalBuildPiece(
             STRUCTURE_PIECE_MAIN,
             stackSize,
             HORIZONTAL_OFF_SET,
@@ -585,13 +695,10 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
             EnumChatFormatting.GRAY + "Tier: " + EnumChatFormatting.GOLD + tierText,
             EnumChatFormatting.GRAY + "Status: "
                 + (mMachine ? EnumChatFormatting.GREEN + "Running" : EnumChatFormatting.RED + "Incomplete"),
-            EnumChatFormatting.GRAY + "Heat: "
-                + EnumChatFormatting.YELLOW
-                + numberFormat.format((int) (mHeat * 100))
-                + "%",
+            EnumChatFormatting.GRAY + "Heat: " + EnumChatFormatting.YELLOW + numberFormat.format(mHeat * 100) + "%",
             EnumChatFormatting.GRAY + "Calcification: "
                 + EnumChatFormatting.RED
-                + numberFormat.format((int) (mCalcification * 100))
+                + numberFormat.format(mCalcification * 100)
                 + "%",
             EnumChatFormatting.GRAY + "Output: " + EnumChatFormatting.AQUA + getBaseSteamProduction() + " L/s" };
     }

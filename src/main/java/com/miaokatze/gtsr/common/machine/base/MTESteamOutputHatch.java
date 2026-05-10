@@ -1,5 +1,6 @@
 package com.miaokatze.gtsr.common.machine.base;
 
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 import net.minecraftforge.common.util.ForgeDirection;
@@ -46,21 +47,32 @@ public class MTESteamOutputHatch extends MTEHatchOutput {
     }
 
     @Override
-    public ITexture[] getTexturesActive(ITexture aBaseTexture) {
-        if (GTMod.proxy.mRenderIndicatorsOnHatch) {
-            return new ITexture[] { BRONZE_TEXTURE, TextureFactory.of(Textures.BlockIcons.OVERLAY_PIPE_OUT),
-                TextureFactory.of(Textures.BlockIcons.FLUID_OUT_SIGN) };
+    public ITexture[] getTexture(IGregTechTileEntity aBaseMetaTileEntity, ForgeDirection side, ForgeDirection facing,
+        int colorIndex, boolean aActive, boolean redstoneLevel) {
+        if (side == facing) {
+            ITexture[] overlays;
+            if (GTMod.proxy.mRenderIndicatorsOnHatch) {
+                overlays = new ITexture[] { TextureFactory.of(Textures.BlockIcons.OVERLAY_PIPE_OUT),
+                    TextureFactory.of(Textures.BlockIcons.FLUID_OUT_SIGN) };
+            } else {
+                overlays = new ITexture[] { TextureFactory.of(Textures.BlockIcons.OVERLAY_PIPE_OUT) };
+            }
+            return mergeTextures(BRONZE_TEXTURE, overlays);
         }
-        return new ITexture[] { BRONZE_TEXTURE, TextureFactory.of(Textures.BlockIcons.OVERLAY_PIPE_OUT) };
+        return new ITexture[] { BRONZE_TEXTURE };
+    }
+
+    private ITexture[] mergeTextures(ITexture background, ITexture[] overlays) {
+        ITexture[] result = new ITexture[overlays.length + 1];
+        result[0] = background;
+        System.arraycopy(overlays, 0, result, 1, overlays.length);
+        return result;
     }
 
     @Override
-    public ITexture[] getTexturesInactive(ITexture aBaseTexture) {
-        if (GTMod.proxy.mRenderIndicatorsOnHatch) {
-            return new ITexture[] { BRONZE_TEXTURE, TextureFactory.of(Textures.BlockIcons.OVERLAY_PIPE_OUT),
-                TextureFactory.of(Textures.BlockIcons.FLUID_OUT_SIGN) };
-        }
-        return new ITexture[] { BRONZE_TEXTURE, TextureFactory.of(Textures.BlockIcons.OVERLAY_PIPE_OUT) };
+    public boolean onRightclick(IGregTechTileEntity aBaseMetaTileEntity, EntityPlayer aPlayer, ForgeDirection side,
+        float aX, float aY, float aZ) {
+        return false;
     }
 
     @Override
@@ -86,15 +98,14 @@ public class MTESteamOutputHatch extends MTEHatchOutput {
         if (!aBaseMetaTileEntity.isServerSide()) return;
         if (getDrainableStack() == null || getDrainableStack().amount <= 0) return;
 
-        for (ForgeDirection direction : ForgeDirection.VALID_DIRECTIONS) {
-            IFluidHandler tTank = aBaseMetaTileEntity.getITankContainerAtSide(direction);
-            if (tTank != null) {
-                FluidStack tDrained = drain(OUTPUT_PER_TICK, false);
-                if (tDrained != null && tDrained.amount > 0) {
-                    int tFilledAmount = tTank.fill(direction.getOpposite(), tDrained, false);
-                    if (tFilledAmount > 0) {
-                        tTank.fill(direction.getOpposite(), drain(tFilledAmount, true), true);
-                    }
+        ForgeDirection outputDirection = aBaseMetaTileEntity.getFrontFacing();
+        IFluidHandler tTank = aBaseMetaTileEntity.getITankContainerAtSide(outputDirection);
+        if (tTank != null) {
+            FluidStack tDrained = drain(OUTPUT_PER_TICK, false);
+            if (tDrained != null && tDrained.amount > 0) {
+                int tFilledAmount = tTank.fill(outputDirection.getOpposite(), tDrained, false);
+                if (tFilledAmount > 0) {
+                    tTank.fill(outputDirection.getOpposite(), drain(tFilledAmount, true), true);
                 }
             }
         }
