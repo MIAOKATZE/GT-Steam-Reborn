@@ -1,5 +1,7 @@
 package com.miaokatze.gtsr.common.machine.base;
 
+import java.lang.reflect.Field;
+
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 import net.minecraftforge.common.util.ForgeDirection;
@@ -7,51 +9,54 @@ import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.IFluidHandler;
 
-import gregtech.GTMod;
-import gregtech.api.enums.Textures;
+import gregtech.api.GregTechAPI;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
-import gregtech.api.render.TextureFactory;
+import gregtech.api.metatileentity.implementations.MTEHatch;
 import gregtech.api.util.GTModHandler;
+import gregtech.common.blocks.BlockCasings2;
 
 public class MTEPressureSteamOutputHatch extends MTESteamOutputHatch {
 
     private static final int PRESSURE_CAPACITY = 1_024_000;
     private static final int PRESSURE_OUTPUT_PER_TICK = 51_200;
     private static final int PRESSURE_OUTPUT_PER_SECOND = 1_024_000;
+    private static final int DEFAULT_TEXTURE_INDEX = ((BlockCasings2) GregTechAPI.sBlockCasings2).getTextureIndex(0);
 
     public MTEPressureSteamOutputHatch(int aID, String aName, String aNameRegional) {
-        super(aID, aName, aNameRegional);
+        super(
+            aID,
+            aName,
+            aNameRegional,
+            2,
+            new String[] { "Pressure Steam Output for Solar Array", "Capacity: " + PRESSURE_CAPACITY + "L",
+                "Output: " + PRESSURE_OUTPUT_PER_SECOND + "L/s", "Fluid Type: Steam & Superheated Steam",
+                "No External Input Allowed" },
+            4);
+        setPressureDefaultTextureIndex();
     }
 
     public MTEPressureSteamOutputHatch(String aName, int aTier, String[] aDescription, ITexture[][][] aTextures) {
         super(aName, aTier, aDescription, aTextures);
+        setPressureDefaultTextureIndex();
+    }
+
+    private void setPressureDefaultTextureIndex() {
+        try {
+            Field texturePageField = MTEHatch.class.getDeclaredField("texturePage");
+            texturePageField.setAccessible(true);
+            texturePageField.setInt(this, DEFAULT_TEXTURE_INDEX >> 7);
+
+            Field textureIndexField = MTEHatch.class.getDeclaredField("textureIndex");
+            textureIndexField.setAccessible(true);
+            textureIndexField.setInt(this, DEFAULT_TEXTURE_INDEX & 127);
+        } catch (Exception ignored) {}
     }
 
     @Override
     public MetaTileEntity newMetaEntity(IGregTechTileEntity aTileEntity) {
         return new MTEPressureSteamOutputHatch(mName, mTier, mDescriptionArray, mTextures);
-    }
-
-    @Override
-    public ITexture[] getTexture(IGregTechTileEntity aBaseMetaTileEntity, ForgeDirection side, ForgeDirection facing,
-        int colorIndex, boolean aActive, boolean redstoneLevel) {
-        ITexture baseTexture = isSteelTier ? STEEL_TEXTURE : BRONZE_TEXTURE;
-        if (side == facing) {
-            ITexture[] overlays;
-            if (GTMod.proxy.mRenderIndicatorsOnHatch) {
-                overlays = new ITexture[] { TextureFactory.of(Textures.BlockIcons.OVERLAY_PIPE_OUT),
-                    TextureFactory.of(Textures.BlockIcons.FLUID_OUT_SIGN) };
-            } else {
-                overlays = new ITexture[] { TextureFactory.of(Textures.BlockIcons.OVERLAY_PIPE_OUT) };
-            }
-            ITexture[] result = new ITexture[overlays.length + 1];
-            result[0] = baseTexture;
-            System.arraycopy(overlays, 0, result, 1, overlays.length);
-            return result;
-        }
-        return new ITexture[] { baseTexture };
     }
 
     @Override

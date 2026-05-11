@@ -47,6 +47,7 @@ import com.miaokatze.gtsr.common.machine.base.MTEPressureSteamOutputHatch;
 import com.miaokatze.gtsr.common.machine.base.MTESteamOutputHatch;
 
 import gregtech.api.GregTechAPI;
+import gregtech.api.enums.ItemList;
 import gregtech.api.enums.Materials;
 import gregtech.api.enums.Textures;
 import gregtech.api.gui.modularui.GTUITextures;
@@ -82,6 +83,7 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
     protected double mHeat = 0.0d;
     protected double mCalcification = 0.0d;
     protected long mRunningTicks = 0L;
+    protected boolean mIsHeating = false;
     protected boolean mIsOperating = false;
     protected int tierCasing = -1;
     protected int tierGlass = -1;
@@ -166,23 +168,17 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
     protected void updateHatchTextures() {
         if (mSetTier <= 0) return;
         int textureID = getCasingTextureID();
-        boolean isSteel = mSetTier >= 2;
 
         for (IMetaTileEntity hatch : mOutputHatches) {
-            if (hatch instanceof MTESteamOutputHatch steamHatch) {
-                steamHatch.isSteelTier = isSteel;
-                IGregTechTileEntity base = hatch.getBaseMetaTileEntity();
-                if (base != null) base.issueTextureUpdate();
+            if (hatch instanceof gregtech.api.metatileentity.implementations.MTEHatch h) {
+                h.updateTexture(textureID);
             }
         }
 
-        if (isSteel) {
+        if (mSetTier >= 2) {
             for (IMetaTileEntity hatch : mInputHatches) {
-                IGregTechTileEntity base = hatch.getBaseMetaTileEntity();
-                if (base != null && base.isServerSide()) {
-                    if (hatch instanceof gregtech.api.metatileentity.implementations.MTEHatch h) {
-                        h.updateTexture(textureID);
-                    }
+                if (hatch instanceof gregtech.api.metatileentity.implementations.MTEHatch h) {
+                    h.updateTexture(textureID);
                 }
             }
         }
@@ -298,13 +294,20 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
 
         if (aTick % 20 == 0) {
             boolean canHeat = isClearWeather && isSeeSky && isDay;
+            boolean wasHeating = mIsHeating;
 
             if (canHeat && aBaseMetaTileEntity.isAllowedToWork()) {
                 mHeat += getHeatIncreaseSpeed();
                 if (mHeat > 1.0d) mHeat = 1.0d;
+                mIsHeating = true;
             } else {
                 mHeat -= getHeatDecreaseSpeed();
                 if (mHeat < 0) mHeat = 0;
+                mIsHeating = false;
+            }
+
+            if (wasHeating != mIsHeating) {
+                aBaseMetaTileEntity.issueClientUpdate();
             }
         }
 
@@ -436,7 +439,7 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
     public ITexture[] getTexture(IGregTechTileEntity aBaseMetaTileEntity, ForgeDirection side, ForgeDirection facing,
         int colorIndex, boolean active, boolean redstoneLevel) {
         if (side == facing) {
-            ITexture frontOverlay = active ? TextureFactory.of(Textures.BlockIcons.OVERLAY_FRONT_ORE_DRILL_ACTIVE)
+            ITexture frontOverlay = mIsHeating ? TextureFactory.of(Textures.BlockIcons.OVERLAY_FRONT_ORE_DRILL_ACTIVE)
                 : TextureFactory.of(Textures.BlockIcons.OVERLAY_FRONT_ORE_DRILL);
             return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(getCasingTextureID()), frontOverlay };
         }
@@ -507,26 +510,14 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
 
         ItemStack stack = getControllerSlot();
         if (stack != null) {
-            String name = stack.getItem()
-                .getUnlocalizedName()
-                .toLowerCase();
-            String itemName = stack.getDisplayName()
-                .toLowerCase();
-
-            if (name.contains("boiler.solar") || name.contains("boiler.steel.solar")
-                || itemName.contains("solar boiler")) {
-                if (name.contains("steel.solar") || name.contains("hp")
-                    || itemName.contains("hp")
-                    || itemName.contains("high pressure")
-                    || itemName.contains("advanced")) {
-                    booster += 0.02f * Math.min(stack.stackSize, 64);
-                } else {
-                    booster += 0.01f * Math.min(stack.stackSize, 64);
-                }
+            if (ItemList.Machine_HP_Solar.isStackEqual(stack, false, false)) {
+                booster += 2.0f * Math.min(stack.stackSize, 64) / 64.0f;
+            } else if (ItemList.Machine_Bronze_Boiler_Solar.isStackEqual(stack, false, false)) {
+                booster += 1.0f * Math.min(stack.stackSize, 64) / 64.0f;
             }
         }
 
-        return Math.min(booster, 2.0f);
+        return Math.min(booster, 3.0f);
     }
 
     private void distributeSteamToOutputHatches(int totalSteam) {
@@ -686,12 +677,18 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
 
     @Override
     public void onValueUpdate(byte aValue) {
-        mSetTier = aValue;
+        boolean oldHeating = mIsHeating;
+        int oldTier = mSetTier;
+        mIsHeating = (aValue & 0x01) != 0;
+        mSetTier = (aValue >> 1) & 0x0F;
+        if (oldHeating != mIsHeating || oldTier != mSetTier) {
+            getBaseMetaTileEntity().issueTextureUpdate();
+        }
     }
 
     @Override
     public byte getUpdateData() {
-        return (byte) mSetTier;
+        return (byte) ((mSetTier << 1) | (mIsHeating ? 0x01 : 0x00));
     }
 
     @Override
