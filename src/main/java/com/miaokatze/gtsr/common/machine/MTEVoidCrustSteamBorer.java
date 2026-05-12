@@ -115,7 +115,7 @@ public class MTEVoidCrustSteamBorer extends MTESteamMultiBase<MTEVoidCrustSteamB
 
     @Override
     public String getMachineType() {
-        return "Void Crust Steam Borer";
+        return "Singularity Crust Steam Borer";
     }
 
     private int getCasingTextureID() {
@@ -374,37 +374,37 @@ public class MTEVoidCrustSteamBorer extends MTESteamMultiBase<MTEVoidCrustSteamB
     protected MultiblockTooltipBuilder createTooltip() {
         MultiblockTooltipBuilder tt = new MultiblockTooltipBuilder();
         tt.addMachineType(getMachineType())
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.void_crust_steam_borer.info"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.void_crust_steam_borer.steel"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.singularity_crust_steam_borer.info"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.singularity_crust_steam_borer.steel"))
             .addInfo(
                 EnumChatFormatting.RED
-                    + StatCollector.translateToLocal("gtsr.tooltip.void_crust_steam_borer.steam_cost")
+                    + StatCollector.translateToLocal("gtsr.tooltip.singularity_crust_steam_borer.steam_cost")
                     + EnumChatFormatting.WHITE
                     + VOID_STEAM_PER_SECOND
                     + " L/s"
                     + EnumChatFormatting.RESET)
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.void_crust_steam_borer.pressure_hatch"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.void_crust_steam_borer.dimension"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.void_crust_steam_borer.requires_plugin"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.singularity_crust_steam_borer.pressure_hatch"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.singularity_crust_steam_borer.dimension"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.singularity_crust_steam_borer.requires_plugin"))
             .beginStructureBlock(7, 9, 7, false)
             .addOutputBus(
                 EnumChatFormatting.GOLD + "1"
                     + EnumChatFormatting.GRAY
                     + " "
-                    + StatCollector.translateToLocal("gtsr.tooltip.void_crust_steam_borer.any_casing"),
+                    + StatCollector.translateToLocal("gtsr.tooltip.singularity_crust_steam_borer.any_casing"),
                 1)
             .addStructureInfo(
-                StatCollector.translateToLocal("gtsr.tooltip.void_crust_steam_borer.steam_or_pressure_hatch"))
+                StatCollector.translateToLocal("gtsr.tooltip.singularity_crust_steam_borer.steam_or_pressure_hatch"))
             .addStructureInfo(
                 EnumChatFormatting.GOLD + "42"
                     + EnumChatFormatting.GRAY
                     + " "
-                    + StatCollector.translateToLocal("gtsr.tooltip.void_crust_steam_borer.steel_frame"))
+                    + StatCollector.translateToLocal("gtsr.tooltip.singularity_crust_steam_borer.steel_frame"))
             .addStructureInfo(
                 EnumChatFormatting.GOLD + "20"
                     + EnumChatFormatting.GRAY
                     + " "
-                    + StatCollector.translateToLocal("gtsr.tooltip.void_crust_steam_borer.steel_casing"))
+                    + StatCollector.translateToLocal("gtsr.tooltip.singularity_crust_steam_borer.steel_casing"))
             .toolTipFinisher();
         return tt;
     }
@@ -463,7 +463,7 @@ public class MTEVoidCrustSteamBorer extends MTESteamMultiBase<MTEVoidCrustSteamB
                 + (boosted ? " " + EnumChatFormatting.GREEN + "(4x)" : "")
             : EnumChatFormatting.WHITE + "Steam Hatch" + EnumChatFormatting.RESET;
 
-        return new String[] { EnumChatFormatting.BLUE + "Void Crust Steam Borer",
+        return new String[] { EnumChatFormatting.BLUE + "Singularity Crust Steam Borer",
             EnumChatFormatting.GRAY + "Tier: " + EnumChatFormatting.GOLD + "Steel",
             EnumChatFormatting.GRAY + "Status: "
                 + (mMachine ? EnumChatFormatting.GREEN + "Running" : EnumChatFormatting.RED + "Incomplete"),

@@ -1,6 +1,7 @@
 .gradle
 .settings
 .hippo
+.agents
 /temp/
 /plan/
 /.idea/
@@ -38,6 +39,7 @@ addon.local.gradle.kts
 addon.late.local.gradle
 addon.late.local.gradle.kts
 layout.json
+skills-lock.json
 /.trae/
 /.hyperthym/
 /New_Project.md

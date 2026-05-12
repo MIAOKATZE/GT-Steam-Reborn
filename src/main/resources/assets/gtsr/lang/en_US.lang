@@ -102,18 +102,18 @@ gtsr.tooltip.crust_steam_borer.steam_or_pressure_hatch=Steam Input Hatch or Pres
 gtsr.tooltip.crust_steam_borer.bronze_frame=Bronze Frame Box
 gtsr.tooltip.crust_steam_borer.bronze_casing=Bronze Plated Bricks
 
-# Void Crust Steam Borer
-gt.blockmachines.gtsr.void.crust.steam.borer.name=Void Crust Steam Borer
-gtsr.tooltip.void_crust_steam_borer.info=Steam-powered cross-dimension void miner
-gtsr.tooltip.void_crust_steam_borer.steel=Steel: 8000L/s steam, 1 ore per 5s
-gtsr.tooltip.void_crust_steam_borer.steam_cost=Steam Consumption:
-gtsr.tooltip.void_crust_steam_borer.pressure_hatch=Pressure Steam Hatch + Superheated Steam: Speed x2
-gtsr.tooltip.void_crust_steam_borer.dimension=Place Dimension Display in controller slot to select dimension
-gtsr.tooltip.void_crust_steam_borer.requires_plugin=Requires GT NEI Ore Plugin to function
-gtsr.tooltip.void_crust_steam_borer.any_casing=Any casing position
-gtsr.tooltip.void_crust_steam_borer.steam_or_pressure_hatch=Steam Input Hatch or Pressure Steam Hatch (one only)
-gtsr.tooltip.void_crust_steam_borer.steel_frame=Steel Frame Box
-gtsr.tooltip.void_crust_steam_borer.steel_casing=Solid Steel Machine Casing
+# Singularity Crust Steam Borer
+gt.blockmachines.gtsr.singularity.crust.steam.borer.name=Singularity Crust Steam Borer
+gtsr.tooltip.singularity_crust_steam_borer.info=Steam-powered cross-dimension singularity miner
+gtsr.tooltip.singularity_crust_steam_borer.steel=Steel: 8000L/s steam, 1 ore per 5s
+gtsr.tooltip.singularity_crust_steam_borer.steam_cost=Steam Consumption:
+gtsr.tooltip.singularity_crust_steam_borer.pressure_hatch=Pressure Steam Hatch + Superheated Steam: Speed x2
+gtsr.tooltip.singularity_crust_steam_borer.dimension=Place Dimension Display in controller slot to select dimension
+gtsr.tooltip.singularity_crust_steam_borer.requires_plugin=Requires GT NEI Ore Plugin to function
+gtsr.tooltip.singularity_crust_steam_borer.any_casing=Any casing position
+gtsr.tooltip.singularity_crust_steam_borer.steam_or_pressure_hatch=Steam Input Hatch or Pressure Steam Hatch (one only)
+gtsr.tooltip.singularity_crust_steam_borer.steel_frame=Steel Frame Box
+gtsr.tooltip.singularity_crust_steam_borer.steel_casing=Solid Steel Machine Casing
 
 # Vein Steam Pyrolyzer
 gt.blockmachines.gtsr.vein.steam.pyrolyzer.name=Vein Steam Pyrolyzer

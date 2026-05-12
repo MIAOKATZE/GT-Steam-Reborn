@@ -97,12 +97,12 @@ public class MachineLoader {
                 "Crust Steam Borer"));
         CreativeTabManager.addItemToTab(GTSRItemList.CrustSteamBorer.get(1));
 
-        GTSRItemList.VoidCrustSteamBorer.set(
+        GTSRItemList.SingularityCrustSteamBorer.set(
             new MTEVoidCrustSteamBorer(
-                MetaTileEntityID.VOID_CRUST_STEAM_BORER.ID,
-                "gtsr.void.crust.steam.borer",
-                "Void Crust Steam Borer"));
-        CreativeTabManager.addItemToTab(GTSRItemList.VoidCrustSteamBorer.get(1));
+                MetaTileEntityID.SINGULARITY_CRUST_STEAM_BORER.ID,
+                "gtsr.singularity.crust.steam.borer",
+                "Singularity Crust Steam Borer"));
+        CreativeTabManager.addItemToTab(GTSRItemList.SingularityCrustSteamBorer.get(1));
     }
 
     private static void registerPressureSteamHatch() {

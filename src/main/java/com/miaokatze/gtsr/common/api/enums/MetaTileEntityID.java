@@ -45,8 +45,8 @@ public enum MetaTileEntityID {
     STEAM_FLUID_DRILL(8),
     /** 地壳蒸汽掘进机 */
     CRUST_STEAM_BORER(9),
-    /** 虚空地壳蒸汽掘进机 */
-    VOID_CRUST_STEAM_BORER(10),
+    /** 奇点地壳蒸汽掘进机 */
+    SINGULARITY_CRUST_STEAM_BORER(10),
     /** 耐压蒸汽仓 */
     PRESSURE_STEAM_HATCH(11),
     /** 地脉蒸汽热解机 */

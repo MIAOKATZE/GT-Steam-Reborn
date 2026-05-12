@@ -578,10 +578,10 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
         switch (mSetTier) {
             case 3:
             case 2:
-                return 96000;
+                return 30000;
             case 1:
             default:
-                return 24000;
+                return 12000;
         }
     }
 
