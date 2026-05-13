@@ -147,3 +147,13 @@ gtsr.tooltip.pressure_steam_output_hatch.name=耐压蒸汽输出仓
 # Large Solar Overpressure Array
 gt.blockmachines.gtsr.large.solar.overpressure.array.name=大型太阳能超压阵列
 gtsr.tooltip.large_solar_overpressure_array.name=大型太阳能超压阵列
+
+# Large Geothermal Steam Boiler
+gt.blockmachines.gtsr.large.geothermal.steam.boiler.name=大型地热蒸汽锅炉
+gtsr.tooltip.geothermal_boiler.0=利用地热能将岩浆转化为蒸汽的多方块锅炉
+gtsr.tooltip.geothermal_boiler.1=热量系统: 运行时升温，停机时降温，蒸汽输出与热量成正比
+gtsr.tooltip.geothermal_boiler.ctrl=中层正面中央
+gtsr.tooltip.geothermal_boiler.chip=控制器槽位放入过热芯片可输出过热蒸汽
+
+# Geothermal Overheat Chip
+item.GeothermalOverheatChip.name=地热过热芯片

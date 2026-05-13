@@ -1,12 +1,14 @@
 package com.miaokatze.gtsr.loader;
 
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
+import com.miaokatze.gtsr.common.items.GeothermalOverheatChip;
 import com.miaokatze.gtsr.common.items.VeinPyrolyzerChip;
 
 public class ItemLoader {
 
     public static void initItems() {
         registerPyrolyzerChips();
+        registerGeothermalOverheatChip();
     }
 
     private static void registerPyrolyzerChips() {
@@ -18,5 +20,10 @@ public class ItemLoader {
 
         GTSRItemList.VeinPyrolyzerChipT3
             .setAndRegister(new VeinPyrolyzerChip("VeinPyrolyzerChipT3", 7), "VeinPyrolyzerChipT3", true);
+    }
+
+    private static void registerGeothermalOverheatChip() {
+        GTSRItemList.GeothermalOverheatChip
+            .setAndRegister(new GeothermalOverheatChip("GeothermalOverheatChip"), "GeothermalOverheatChip", true);
     }
 }

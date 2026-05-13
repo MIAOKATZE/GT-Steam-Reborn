@@ -53,6 +53,8 @@ public enum GTSRItemList implements IItemContainer {
     SteamOutputHatch,
     PressureSteamOutputHatch,
     LargeSolarOverpressureArray,
+    LargeGeothermalSteamBoiler,
+    GeothermalOverheatChip,
 
     ;
 

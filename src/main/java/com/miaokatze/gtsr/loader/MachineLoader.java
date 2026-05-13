@@ -3,6 +3,7 @@ package com.miaokatze.gtsr.loader;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.api.enums.MetaTileEntityID;
 import com.miaokatze.gtsr.common.machine.MTECrustSteamBorer;
+import com.miaokatze.gtsr.common.machine.MTELargeGeothermalSteamBoiler;
 import com.miaokatze.gtsr.common.machine.MTELargeSolarOverpressureArray;
 import com.miaokatze.gtsr.common.machine.MTELargeSteamFurnace;
 import com.miaokatze.gtsr.common.machine.MTESteamFluidDrill;
@@ -31,6 +32,7 @@ public class MachineLoader {
         registerVeinSteamPyrolyzer();
         registerLargeSteamFurnace();
         registerSolarOverpressureArray();
+        registerGeothermalSteamBoiler();
     }
 
     private static void registerSteamMachines() {
@@ -154,5 +156,14 @@ public class MachineLoader {
                 "gtsr.large.solar.overpressure.array",
                 "Large Solar Overpressure Array"));
         CreativeTabManager.addItemToTab(GTSRItemList.LargeSolarOverpressureArray.get(1));
+    }
+
+    private static void registerGeothermalSteamBoiler() {
+        GTSRItemList.LargeGeothermalSteamBoiler.set(
+            new MTELargeGeothermalSteamBoiler(
+                MetaTileEntityID.LARGE_GEOTHERMAL_STEAM_BOILER.ID,
+                "gtsr.large.geothermal.steam.boiler",
+                "Large Geothermal Steam Boiler"));
+        CreativeTabManager.addItemToTab(GTSRItemList.LargeGeothermalSteamBoiler.get(1));
     }
 }

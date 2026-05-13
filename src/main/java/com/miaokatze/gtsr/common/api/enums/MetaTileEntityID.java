@@ -59,6 +59,8 @@ public enum MetaTileEntityID {
     PRESSURE_STEAM_OUTPUT_HATCH(15),
     /** 大型太阳能超压阵列 (三等级自动检测) */
     LARGE_SOLAR_OVERPRESSURE_ARRAY(16),
+    /** 大型地热蒸汽锅炉 (青铜/钢双等级) */
+    LARGE_GEOTHERMAL_STEAM_BOILER(17),
 
     ;
 

@@ -135,3 +135,25 @@ gt.blockmachines.gtsr.large.steam.furnace.name=Large Steam Furnace
 gtsr.tooltip.large_steam_furnace.0=Superheated Steam: 4x speed, 4x consumption
 gtsr.tooltip.large_steam_furnace.ctrl=Front center of bottom layer
 gtsr.tooltip.large_steam_furnace.hatches=Steam Hatch x1, Steam Input Bus x1+, Steam Output Bus x1+
+
+# Steam Output Hatch
+gt.blockmachines.gtsr.steam.output.hatch.name=Steam Output Hatch
+gtsr.tooltip.steam_output_hatch.name=Steam Output Hatch
+
+# Pressure Steam Output Hatch
+gt.blockmachines.gtsr.pressure.steam.output.hatch.name=Pressure Steam Output Hatch
+gtsr.tooltip.pressure_steam_output_hatch.name=Pressure Steam Output Hatch
+
+# Large Solar Overpressure Array
+gt.blockmachines.gtsr.large.solar.overpressure.array.name=Large Solar Overpressure Array
+gtsr.tooltip.large_solar_overpressure_array.name=Large Solar Overpressure Array
+
+# Large Geothermal Steam Boiler
+gt.blockmachines.gtsr.large.geothermal.steam.boiler.name=Large Geothermal Steam Boiler
+gtsr.tooltip.geothermal_boiler.0=Geothermal multiblock boiler that converts lava into steam
+gtsr.tooltip.geothermal_boiler.1=Heat system: heats up while running, cools down when idle, steam output proportional to heat
+gtsr.tooltip.geothermal_boiler.ctrl=Front center of middle layer
+gtsr.tooltip.geothermal_boiler.chip=Place Overheat Chip in controller slot to output superheated steam
+
+# Geothermal Overheat Chip
+item.GeothermalOverheatChip.name=Geothermal Overheat Chip
