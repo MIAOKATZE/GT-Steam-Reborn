@@ -5,12 +5,10 @@ import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose;
 import static gregtech.api.enums.HatchElement.InputHatch;
-import static gregtech.api.enums.HatchElement.OutputHatch;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 
 import java.text.NumberFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -40,6 +38,7 @@ import com.gtnewhorizons.modularui.common.widget.FakeSyncWidget;
 import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
+import com.miaokatze.gtsr.common.api.enums.MetaTileEntityID;
 import com.miaokatze.gtsr.common.machine.base.MTEPressureSteamOutputHatch;
 import com.miaokatze.gtsr.common.machine.base.MTESteamOutputHatch;
 
@@ -51,32 +50,34 @@ import gregtech.api.interfaces.IHatchElement;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
+import gregtech.api.metatileentity.implementations.MTEEnhancedMultiBlockBase;
 import gregtech.api.metatileentity.implementations.MTEHatch;
 import gregtech.api.metatileentity.implementations.MTEHatchOutput;
 import gregtech.api.recipe.check.CheckRecipeResult;
 import gregtech.api.recipe.check.CheckRecipeResultRegistry;
 import gregtech.api.render.TextureFactory;
 import gregtech.api.util.GTOreDictUnificator;
+import gregtech.api.util.GTUtility;
 import gregtech.api.util.IGTHatchAdder;
 import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.common.blocks.BlockCasings1;
 import gregtech.common.blocks.BlockCasings2;
-import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTESteamMultiBase;
+import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.MTEHatchSteamBusOutput;
 
-public class MTELargeGeothermalSteamBoiler extends MTESteamMultiBase<MTELargeGeothermalSteamBoiler>
+public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTELargeGeothermalSteamBoiler>
     implements IConstructable, ISurvivalConstructable {
 
     private static final String STRUCTURE_PIECE_MAIN = "main";
     private static final int HORIZONTAL_OFF_SET = 1;
-    private static final int VERTICAL_OFF_SET = 2;
-    private static final int DEPTH_OFF_SET = 1;
+    private static final int VERTICAL_OFF_SET = 1;
+    private static final int DEPTH_OFF_SET = 0;
 
     private static IStructureDefinition<MTELargeGeothermalSteamBoiler> STRUCTURE_DEFINITION = null;
     private static final NumberFormat numberFormat = NumberFormat.getNumberInstance();
 
     static {
-        numberFormat.setMinimumFractionDigits(1);
-        numberFormat.setMaximumFractionDigits(1);
+        numberFormat.setMinimumFractionDigits(3);
+        numberFormat.setMaximumFractionDigits(3);
     }
 
     protected int mSetTier = -1;
@@ -102,6 +103,26 @@ public class MTELargeGeothermalSteamBoiler extends MTESteamMultiBase<MTELargeGeo
     private final ArrayList<MTESteamOutputHatch> mSteamOutputHatches = new ArrayList<>();
     private final ArrayList<MTEPressureSteamOutputHatch> mPressureSteamOutputHatches = new ArrayList<>();
 
+    private enum GeothermalHatchElement implements IHatchElement<MTELargeGeothermalSteamBoiler> {
+
+        OutputBus_Steam;
+
+        @Override
+        public List<? extends Class<? extends IMetaTileEntity>> mteClasses() {
+            return Collections.singletonList(MTEHatchSteamBusOutput.class);
+        }
+
+        @Override
+        public long count(MTELargeGeothermalSteamBoiler t) {
+            return t.mOutputBusses.size();
+        }
+
+        @Override
+        public IGTHatchAdder<? super MTELargeGeothermalSteamBoiler> adder() {
+            return MTELargeGeothermalSteamBoiler::addSteamOutputBus;
+        }
+    }
+
     public MTELargeGeothermalSteamBoiler(int aID, String aName, String aNameRegional) {
         super(aID, aName, aNameRegional);
     }
@@ -115,9 +136,23 @@ public class MTELargeGeothermalSteamBoiler extends MTESteamMultiBase<MTELargeGeo
         return new MTELargeGeothermalSteamBoiler(mName);
     }
 
-    @Override
     public String getMachineType() {
         return "Geothermal Boiler";
+    }
+
+    @Override
+    public boolean getDefaultHasMaintenanceChecks() {
+        return false;
+    }
+
+    @Override
+    public boolean shouldDisplayCheckRecipeResult() {
+        return false;
+    }
+
+    @Override
+    public boolean showRecipeTextInGUI() {
+        return true;
     }
 
     @Nullable
@@ -136,9 +171,6 @@ public class MTELargeGeothermalSteamBoiler extends MTESteamMultiBase<MTELargeGeo
 
     protected void updateHatchTexture() {
         int textureID = getCasingTextureID();
-        for (MTEHatch h : mSteamInputFluids) h.updateTexture(textureID);
-        for (MTEHatch h : mSteamInputs) h.updateTexture(textureID);
-        for (MTEHatch h : mSteamOutputs) h.updateTexture(textureID);
         for (MTEHatch h : mSteamOutputHatches) h.updateTexture(textureID);
         for (MTEHatch h : mPressureSteamOutputHatches) h.updateTexture(textureID);
     }
@@ -162,21 +194,25 @@ public class MTELargeGeothermalSteamBoiler extends MTESteamMultiBase<MTELargeGeo
                 .addShape(
                     STRUCTURE_PIECE_MAIN,
                     transpose(
-                        new String[][] { { "CCC", "CCC", "CCC" }, { "CCC", "C C", "CCC" }, { "C~C", "CCC", "CCC" } }))
+                        new String[][] { { "CCC", "CCC", "CCC" }, { "C~C", "C C", "CCC" }, { "CCC", "CCC", "CCC" } }))
                 .addElement(
                     'C',
                     ofChain(
-                        buildHatchAdder(MTELargeGeothermalSteamBoiler.class).atLeast(InputHatch, OutputHatch)
+                        buildHatchAdder(MTELargeGeothermalSteamBoiler.class).atLeast(InputHatch)
                             .casingIndex(bronzeCasingIndex)
                             .dot(1)
                             .build(),
                         buildHatchAdder(MTELargeGeothermalSteamBoiler.class)
-                            .atLeast(GeothermalHatchElement.SteamOutput, GeothermalHatchElement.PressureSteamOutput)
+                            .adder(MTELargeGeothermalSteamBoiler::addSteamOutputToMachineList)
+                            .hatchIds(
+                                MetaTileEntityID.STEAM_OUTPUT_HATCH.ID,
+                                MetaTileEntityID.PRESSURE_STEAM_OUTPUT_HATCH.ID)
                             .casingIndex(bronzeCasingIndex)
                             .dot(1)
+                            .shouldReject(MTELargeGeothermalSteamBoiler::hasSteamOutputHatch)
                             .build(),
-                        buildHatchAdder(MTELargeGeothermalSteamBoiler.class).adder(MTESteamMultiBase::addToMachineList)
-                            .hatchIds(31040)
+                        buildHatchAdder(MTELargeGeothermalSteamBoiler.class)
+                            .atLeast(GeothermalHatchElement.OutputBus_Steam)
                             .casingIndex(bronzeCasingIndex)
                             .dot(1)
                             .buildAndChain(
@@ -197,6 +233,34 @@ public class MTELargeGeothermalSteamBoiler extends MTESteamMultiBase<MTELargeGeo
 
     private void onCasingAdded() {
         mCasingCount++;
+    }
+
+    private boolean hasSteamOutputHatch() {
+        return !mSteamOutputHatches.isEmpty() || !mPressureSteamOutputHatches.isEmpty();
+    }
+
+    private boolean addSteamOutputToMachineList(IGregTechTileEntity aTileEntity, int aBaseCasingIndex) {
+        if (aTileEntity == null) return false;
+        IMetaTileEntity aMetaTileEntity = aTileEntity.getMetaTileEntity();
+        if (aMetaTileEntity instanceof MTESteamOutputHatch hatch) {
+            hatch.updateTexture(aBaseCasingIndex);
+            return mSteamOutputHatches.add(hatch);
+        }
+        if (aMetaTileEntity instanceof MTEPressureSteamOutputHatch hatch) {
+            hatch.updateTexture(aBaseCasingIndex);
+            return mPressureSteamOutputHatches.add(hatch);
+        }
+        return false;
+    }
+
+    private boolean addSteamOutputBus(IGregTechTileEntity aTileEntity, int aBaseCasingIndex) {
+        if (aTileEntity == null) return false;
+        IMetaTileEntity aMetaTileEntity = aTileEntity.getMetaTileEntity();
+        if (aMetaTileEntity instanceof MTEHatchSteamBusOutput bus) {
+            bus.updateTexture(aBaseCasingIndex);
+            return mOutputBusses.add(bus);
+        }
+        return false;
     }
 
     @Override
@@ -246,6 +310,13 @@ public class MTELargeGeothermalSteamBoiler extends MTESteamMultiBase<MTELargeGeo
     }
 
     private boolean hasOverheatChip() {
+        if (mSetTier != 2) return false;
+        ItemStack stack = getControllerSlot();
+        return stack != null && GTSRItemList.GeothermalOverheatChip.isStackEqual(stack, true, true);
+    }
+
+    private boolean hasInvalidChip() {
+        if (mSetTier == 2) return false;
         ItemStack stack = getControllerSlot();
         return stack != null && GTSRItemList.GeothermalOverheatChip.isStackEqual(stack, true, true);
     }
@@ -357,20 +428,31 @@ public class MTELargeGeothermalSteamBoiler extends MTESteamMultiBase<MTELargeGeo
         super.drawTexts(screenElements, inventorySlot);
         screenElements
             .widget(
+                TextWidget
+                    .dynamicString(
+                        () -> hasInvalidChip()
+                            ? EnumChatFormatting.RED
+                                + StatCollector.translateToLocal("gtsr.gui.geothermal_boiler.chip_tier2_warn")
+                            : " ")
+                    .setSynced(false)
+                    .setDefaultColor(COLOR_TEXT_WHITE.get()))
+            .widget(
                 new TextWidget().setStringSupplier(
-                    () -> EnumChatFormatting.WHITE + "Heat: "
+                    () -> EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.gui.geothermal_boiler.heat")
                         + EnumChatFormatting.GOLD
                         + numberFormat.format(mHeat * 100)
                         + "% "
                         + EnumChatFormatting.RESET))
             .widget(
                 new TextWidget().setStringSupplier(
-                    () -> EnumChatFormatting.WHITE + "Steam Output: "
+                    () -> EnumChatFormatting.WHITE
+                        + StatCollector.translateToLocal("gtsr.gui.geothermal_boiler.steam_output")
                         + EnumChatFormatting.AQUA
-                        + numberFormat.format(mCurrentSteamOutput)
+                        + GTUtility.formatNumbers(mCurrentSteamOutput)
                         + " L/s "
                         + EnumChatFormatting.WHITE
-                        + (hasOverheatChip() ? "Superheated" : "Steam")
+                        + (hasOverheatChip() ? StatCollector.translateToLocal("gtsr.gui.geothermal_boiler.superheated")
+                            : StatCollector.translateToLocal("gtsr.gui.geothermal_boiler.steam"))
                         + EnumChatFormatting.RESET))
             .widget(new FakeSyncWidget.DoubleSyncer(() -> mHeat, val -> mHeat = val))
             .widget(new FakeSyncWidget.IntegerSyncer(() -> mCurrentSteamOutput, val -> mCurrentSteamOutput = val));
@@ -382,30 +464,54 @@ public class MTELargeGeothermalSteamBoiler extends MTESteamMultiBase<MTELargeGeo
         tt.addMachineType(getMachineType())
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.0"))
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.1"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.2"))
             .beginStructureBlock(3, 3, 3, false)
             .addController(StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.ctrl"))
-            .addInputHatch(EnumChatFormatting.GOLD + "1+" + EnumChatFormatting.GRAY + " Any casing", 1)
-            .addOutputHatch(EnumChatFormatting.GOLD + "1+" + EnumChatFormatting.GRAY + " Any casing", 1)
+            .addInputHatch(StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.input_hatch"), 1)
             .addStructureInfo(
-                EnumChatFormatting.AQUA + "Steam Output Hatch "
+                EnumChatFormatting.AQUA
+                    + StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.steam_output_hatch")
                     + EnumChatFormatting.GOLD
-                    + "1+"
+                    + " 1"
                     + EnumChatFormatting.GRAY
-                    + " Any casing (Bronze tier)")
+                    + " "
+                    + StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.any_casing"))
             .addStructureInfo(
-                EnumChatFormatting.LIGHT_PURPLE + "Pressure Steam Output Hatch "
-                    + EnumChatFormatting.GOLD
-                    + "1+"
+                EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.output_bus")
                     + EnumChatFormatting.GRAY
-                    + " Any casing (Steel tier)")
+                    + " "
+                    + StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.any_casing"))
             .addStructureInfo("")
-            .addStructureInfo(EnumChatFormatting.BLUE + "Bronze " + EnumChatFormatting.DARK_PURPLE + "Tier")
-            .addStructureInfo(EnumChatFormatting.GOLD + "26x" + EnumChatFormatting.GRAY + " Bronze Plated Bricks")
-            .addStructureInfo(EnumChatFormatting.GOLD + "60,000" + EnumChatFormatting.GRAY + " L/s max steam output")
+            .addStructureInfo(StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.chip"))
             .addStructureInfo("")
-            .addStructureInfo(EnumChatFormatting.BLUE + "Steel " + EnumChatFormatting.DARK_PURPLE + "Tier")
-            .addStructureInfo(EnumChatFormatting.GOLD + "26x" + EnumChatFormatting.GRAY + " Solid Steel Machine Casing")
-            .addStructureInfo(EnumChatFormatting.GOLD + "150,000" + EnumChatFormatting.GRAY + " L/s max steam output")
+            .addStructureInfo(
+                EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.tier_bronze"))
+            .addStructureInfo(
+                EnumChatFormatting.GOLD + "26x"
+                    + EnumChatFormatting.GRAY
+                    + " "
+                    + StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.casing_bronze"))
+            .addStructureInfo(
+                EnumChatFormatting.GOLD + GTUtility.formatNumbers(MAX_OUTPUT_BRONZE)
+                    + EnumChatFormatting.GRAY
+                    + " "
+                    + StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.max_steam"))
+            .addStructureInfo("")
+            .addStructureInfo(
+                EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.tier_steel"))
+            .addStructureInfo(
+                EnumChatFormatting.GOLD + "26x"
+                    + EnumChatFormatting.GRAY
+                    + " "
+                    + StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.casing_steel"))
+            .addStructureInfo(
+                EnumChatFormatting.GOLD + GTUtility.formatNumbers(MAX_OUTPUT_STEEL)
+                    + EnumChatFormatting.GRAY
+                    + " "
+                    + StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.max_steam"))
+            .addStructureInfo(
+                EnumChatFormatting.LIGHT_PURPLE
+                    + StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.chip_tier2"))
             .toolTipFinisher();
         return tt;
     }
@@ -425,12 +531,10 @@ public class MTELargeGeothermalSteamBoiler extends MTESteamMultiBase<MTELargeGeo
         return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(getCasingTextureID()) };
     }
 
-    @Override
     protected ITexture getFrontOverlay() {
         return TextureFactory.of(Textures.BlockIcons.OVERLAY_FRONT_STEAM_FURNACE);
     }
 
-    @Override
     protected ITexture getFrontOverlayActive() {
         return TextureFactory.of(Textures.BlockIcons.OVERLAY_FRONT_STEAM_FURNACE_ACTIVE);
     }
@@ -441,26 +545,26 @@ public class MTELargeGeothermalSteamBoiler extends MTESteamMultiBase<MTELargeGeo
     }
 
     @Override
-    public int getTierRecipes() {
-        return 1;
-    }
-
-    @Override
-    protected int getCasingTextureId() {
-        return getCasingTextureID();
-    }
-
-    @Override
     public String[] getInfoData() {
-        String tierText = mSetTier == 2 ? "Steel" : mSetTier == 1 ? "Bronze" : "N/A";
-        return new String[] { EnumChatFormatting.BLUE + "Large Geothermal Steam Boiler",
-            EnumChatFormatting.GRAY + "Tier: " + EnumChatFormatting.GOLD + tierText,
-            EnumChatFormatting.GRAY + "Status: "
-                + (mMachine ? EnumChatFormatting.GREEN + "Running" : EnumChatFormatting.RED + "Incomplete"),
-            EnumChatFormatting.GRAY + "Heat: " + EnumChatFormatting.YELLOW + numberFormat.format(mHeat * 100) + "%",
-            EnumChatFormatting.GRAY + "Steam Output: "
+        String tierText = mSetTier == 2 ? StatCollector.translateToLocal("gtsr.info.geothermal_boiler.tier_steel")
+            : mSetTier == 1 ? StatCollector.translateToLocal("gtsr.info.geothermal_boiler.tier_bronze") : "N/A";
+        return new String[] {
+            EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.info.geothermal_boiler.name"),
+            EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.info.geothermal_boiler.tier")
+                + EnumChatFormatting.GOLD
+                + tierText,
+            EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.info.geothermal_boiler.status")
+                + (mMachine
+                    ? EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.info.geothermal_boiler.running")
+                    : EnumChatFormatting.RED
+                        + StatCollector.translateToLocal("gtsr.info.geothermal_boiler.incomplete")),
+            EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.gui.geothermal_boiler.heat")
+                + EnumChatFormatting.YELLOW
+                + numberFormat.format(mHeat * 100)
+                + "%",
+            EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.gui.geothermal_boiler.steam_output")
                 + EnumChatFormatting.AQUA
-                + numberFormat.format(mCurrentSteamOutput)
+                + GTUtility.formatNumbers(mCurrentSteamOutput)
                 + " L/s" };
     }
 
@@ -476,60 +580,5 @@ public class MTELargeGeothermalSteamBoiler extends MTESteamMultiBase<MTELargeGeo
         super.loadNBTData(aNBT);
         mSetTier = aNBT.getInteger("mSetTier");
         mHeat = aNBT.getDouble("mHeat");
-    }
-
-    public boolean addSteamOutputToMachineList(IGregTechTileEntity aTileEntity, int aBaseCasingIndex) {
-        if (aTileEntity == null) return false;
-        IMetaTileEntity aMetaTileEntity = aTileEntity.getMetaTileEntity();
-        if (aMetaTileEntity instanceof MTESteamOutputHatch hatch) {
-            hatch.updateTexture(aBaseCasingIndex);
-            return mSteamOutputHatches.add(hatch);
-        }
-        return false;
-    }
-
-    public boolean addPressureSteamOutputToMachineList(IGregTechTileEntity aTileEntity, int aBaseCasingIndex) {
-        if (aTileEntity == null) return false;
-        IMetaTileEntity aMetaTileEntity = aTileEntity.getMetaTileEntity();
-        if (aMetaTileEntity instanceof MTEPressureSteamOutputHatch hatch) {
-            hatch.updateTexture(aBaseCasingIndex);
-            return mPressureSteamOutputHatches.add(hatch);
-        }
-        return false;
-    }
-
-    private enum GeothermalHatchElement implements IHatchElement<MTELargeGeothermalSteamBoiler> {
-
-        SteamOutput(MTELargeGeothermalSteamBoiler::addSteamOutputToMachineList, MTESteamOutputHatch.class),
-        PressureSteamOutput(MTELargeGeothermalSteamBoiler::addPressureSteamOutputToMachineList,
-            MTEPressureSteamOutputHatch.class);
-
-        private final List<Class<? extends IMetaTileEntity>> mteClasses;
-        private final IGTHatchAdder<MTELargeGeothermalSteamBoiler> adder;
-
-        @SafeVarargs
-        GeothermalHatchElement(IGTHatchAdder<MTELargeGeothermalSteamBoiler> adder,
-            Class<? extends IMetaTileEntity>... classes) {
-            this.mteClasses = Collections.unmodifiableList(Arrays.asList(classes));
-            this.adder = adder;
-        }
-
-        @Override
-        public List<? extends Class<? extends IMetaTileEntity>> mteClasses() {
-            return mteClasses;
-        }
-
-        @Override
-        public IGTHatchAdder<? super MTELargeGeothermalSteamBoiler> adder() {
-            return adder;
-        }
-
-        @Override
-        public long count(MTELargeGeothermalSteamBoiler t) {
-            return switch (this) {
-                case SteamOutput -> t.mSteamOutputHatches.size();
-                case PressureSteamOutput -> t.mPressureSteamOutputHatches.size();
-            };
-        }
     }
 }

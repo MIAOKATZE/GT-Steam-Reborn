@@ -148,12 +148,76 @@ gtsr.tooltip.pressure_steam_output_hatch.name=耐压蒸汽输出仓
 gt.blockmachines.gtsr.large.solar.overpressure.array.name=大型太阳能超压阵列
 gtsr.tooltip.large_solar_overpressure_array.name=大型太阳能超压阵列
 
+# Solar Array Tooltip
+gtsr.tooltip.solar_array.0=利用太阳能产出蒸汽
+gtsr.tooltip.solar_array.1=产出: 
+gtsr.tooltip.solar_array.2=拥有热量和钙化机制
+gtsr.tooltip.solar_array.3=钙化会降低效率，可使用GUI按钮手动清除
+gtsr.tooltip.solar_array.ctrl=顶层正面中央
+gtsr.tooltip.solar_array.casing=外壳
+gtsr.tooltip.solar_array.glass=玻璃 (HV/EV)
+gtsr.tooltip.solar_array.glass_pos=顶层
+gtsr.tooltip.solar_array.conductor=导体方块 (银/金/镍)
+gtsr.tooltip.solar_array.conductor_pos=第2层
+gtsr.tooltip.solar_array.output_hatch=蒸汽输出仓 或 耐压蒸汽输出仓
+gtsr.tooltip.solar_array.input_hatch=输入仓 (水)
+
+# Solar Array GUI
+gtsr.gui.solar_array.heat=热量: 
+gtsr.gui.solar_array.calcification=钙化: 
+gtsr.gui.solar_array.steam_output=蒸汽产出: 
+gtsr.gui.solar_array.solar_booster=太阳能增幅: 
+gtsr.gui.solar_array.superheated= (过热蒸汽)
+gtsr.gui.solar_array.steam= (蒸汽)
+gtsr.gui.solar_array.clear_calcification=点击清除钙化
+
+# Solar Array Info
+gtsr.info.solar_array.name=大型太阳能超压阵列
+gtsr.info.solar_array.tier=等级: 
+gtsr.info.solar_array.tier_bronze=青铜 (等级1)
+gtsr.info.solar_array.tier_steel=钢 (等级2)
+gtsr.info.solar_array.tier_nickel=镍 (等级3)
+gtsr.info.solar_array.status=状态: 
+gtsr.info.solar_array.running=运行中
+gtsr.info.solar_array.stopped=已停止
+
 # Large Geothermal Steam Boiler
 gt.blockmachines.gtsr.large.geothermal.steam.boiler.name=大型地热蒸汽锅炉
-gtsr.tooltip.geothermal_boiler.0=利用地热能将岩浆转化为蒸汽的多方块锅炉
-gtsr.tooltip.geothermal_boiler.1=热量系统: 运行时升温，停机时降温，蒸汽输出与热量成正比
-gtsr.tooltip.geothermal_boiler.ctrl=中层正面中央
-gtsr.tooltip.geothermal_boiler.chip=控制器槽位放入过热芯片可输出过热蒸汽
+gtsr.tooltip.geothermal_boiler.0=地热多方块锅炉，将岩浆转化为蒸汽
+gtsr.tooltip.geothermal_boiler.1=热量系统: 运行时升温，闲置时降温，蒸汽产出与热量成正比
+gtsr.tooltip.geothermal_boiler.ctrl=中层正面中心
+gtsr.tooltip.geothermal_boiler.chip=将过热芯片放入控制器槽位以输出过热蒸汽
 
 # Geothermal Overheat Chip
 item.GeothermalOverheatChip.name=地热过热芯片
+
+# Geothermal Boiler GUI
+gtsr.gui.geothermal_boiler.heat=热量: 
+gtsr.gui.geothermal_boiler.steam_output=蒸汽产出: 
+gtsr.gui.geothermal_boiler.superheated= (过热蒸汽)
+gtsr.gui.geothermal_boiler.steam= (蒸汽)
+gtsr.gui.geothermal_boiler.recipe=配方: 1000mb 岩浆 → 1 黑曜石 + 2 硫粉
+gtsr.gui.geothermal_boiler.chip_tier2_warn=⚠ 过热芯片需要等级2 (钢)
+
+# Geothermal Boiler Tooltip
+gtsr.tooltip.geothermal_boiler.2=基础配方: 1000mb 岩浆 → 1 黑曜石 + 2 硫粉 (100 tick)
+gtsr.tooltip.geothermal_boiler.input_hatch=输入仓 (岩浆)
+gtsr.tooltip.geothermal_boiler.steam_output_hatch=蒸汽输出仓
+gtsr.tooltip.geothermal_boiler.any_casing=(任意外壳位置)
+gtsr.tooltip.geothermal_boiler.output_bus=蒸汽输出总线
+gtsr.tooltip.geothermal_boiler.chip=过热芯片: 放入控制器槽位，切换为过热蒸汽输出
+gtsr.tooltip.geothermal_boiler.tier_bronze=等级1 - 青铜:
+gtsr.tooltip.geothermal_boiler.casing_bronze=青铜镀层砖块
+gtsr.tooltip.geothermal_boiler.max_steam=最大蒸汽产出
+gtsr.tooltip.geothermal_boiler.tier_steel=等级2 - 钢:
+gtsr.tooltip.geothermal_boiler.casing_steel=固态钢机械外壳
+gtsr.tooltip.geothermal_boiler.chip_tier2=过热芯片需要等级2 (钢) 才能使用
+
+# Geothermal Boiler Info
+gtsr.info.geothermal_boiler.name=大型地热蒸汽锅炉
+gtsr.info.geothermal_boiler.tier=等级: 
+gtsr.info.geothermal_boiler.tier_bronze=青铜 (等级1)
+gtsr.info.geothermal_boiler.tier_steel=钢 (等级2)
+gtsr.info.geothermal_boiler.status=状态: 
+gtsr.info.geothermal_boiler.running=运行中
+gtsr.info.geothermal_boiler.incomplete=结构不完整

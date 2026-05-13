@@ -59,6 +59,7 @@ import gregtech.api.recipe.check.CheckRecipeResult;
 import gregtech.api.recipe.check.CheckRecipeResultRegistry;
 import gregtech.api.render.TextureFactory;
 import gregtech.api.util.GTModHandler;
+import gregtech.api.util.GTUtility;
 import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.common.blocks.BlockCasings1;
 import gregtech.common.blocks.BlockCasings2;
@@ -419,18 +420,22 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
     @Override
     protected MultiblockTooltipBuilder createTooltip() {
         final MultiblockTooltipBuilder tt = new MultiblockTooltipBuilder();
-        tt.addMachineType("Solar Overpressure Array")
-            .addInfo("Produces Steam using Solar Energy")
-            .addInfo("Output: " + getBaseSteamProduction() + " L/s")
-            .addInfo("Type: " + (isNickel() ? "Superheated Steam" : "Steam"))
-            .addInfo("Has Heat and Calcification mechanics")
+        tt.addMachineType(StatCollector.translateToLocal("gtsr.tooltip.large_solar_overpressure_array.name"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.solar_array.0"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.solar_array.1") + getBaseSteamProduction() + " L/s")
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.solar_array.2"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.solar_array.3"))
             .beginStructureBlock(11, 4, 3, false)
-            .addController("Front top center")
-            .addCasingInfoRange("Casing", 60, -1, false)
-            .addOtherStructurePart("Glass (HV/EV)", "Top layer")
-            .addOtherStructurePart("Conductor Block (Ag/Au/Ni)", "Layer 2")
-            .addOutputHatch("Steam Output Hatch or Pressure Steam Output Hatch", 1)
-            .addInputHatch("Water Input Hatch", 1)
+            .addController(StatCollector.translateToLocal("gtsr.tooltip.solar_array.ctrl"))
+            .addCasingInfoRange(StatCollector.translateToLocal("gtsr.tooltip.solar_array.casing"), 60, -1, false)
+            .addOtherStructurePart(
+                StatCollector.translateToLocal("gtsr.tooltip.solar_array.glass"),
+                StatCollector.translateToLocal("gtsr.tooltip.solar_array.glass_pos"))
+            .addOtherStructurePart(
+                StatCollector.translateToLocal("gtsr.tooltip.solar_array.conductor"),
+                StatCollector.translateToLocal("gtsr.tooltip.solar_array.conductor_pos"))
+            .addOutputHatch(StatCollector.translateToLocal("gtsr.tooltip.solar_array.output_hatch"), 1)
+            .addInputHatch(StatCollector.translateToLocal("gtsr.tooltip.solar_array.input_hatch"), 1)
             .toolTipFinisher();
         return tt;
     }
@@ -452,30 +457,33 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
         screenElements
             .widget(
                 new TextWidget().setStringSupplier(
-                    () -> EnumChatFormatting.WHITE + "Heat: "
+                    () -> EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.gui.solar_array.heat")
                         + EnumChatFormatting.GOLD
                         + numberFormat.format(mHeat * 100)
                         + "% "
                         + EnumChatFormatting.RESET))
             .widget(
                 new TextWidget().setStringSupplier(
-                    () -> EnumChatFormatting.WHITE + "Calcification: "
+                    () -> EnumChatFormatting.WHITE
+                        + StatCollector.translateToLocal("gtsr.gui.solar_array.calcification")
                         + EnumChatFormatting.RED
                         + numberFormat.format(mCalcification * 100)
                         + "% "
                         + EnumChatFormatting.RESET))
             .widget(
                 new TextWidget().setStringSupplier(
-                    () -> EnumChatFormatting.WHITE + "Steam Output: "
+                    () -> EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.gui.solar_array.steam_output")
                         + EnumChatFormatting.AQUA
-                        + numberFormat.format(mCurrentSteamOutput)
+                        + GTUtility.formatNumbers(mCurrentSteamOutput)
                         + " L/s "
                         + EnumChatFormatting.WHITE
-                        + (isNickel() ? "Superheated Steam" : "Steam")
+                        + (isNickel() ? StatCollector.translateToLocal("gtsr.gui.solar_array.superheated")
+                            : StatCollector.translateToLocal("gtsr.gui.solar_array.steam"))
                         + EnumChatFormatting.RESET))
             .widget(
                 new TextWidget().setStringSupplier(
-                    () -> EnumChatFormatting.WHITE + "Solar Booster: "
+                    () -> EnumChatFormatting.WHITE
+                        + StatCollector.translateToLocal("gtsr.gui.solar_array.solar_booster")
                         + EnumChatFormatting.GREEN
                         + numberFormat.format(calculateSolarBooster() * 100)
                         + "% "
@@ -499,7 +507,9 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
             .setBackground(
                 () -> new IDrawable[] { GTUITextures.BUTTON_STANDARD,
                     GTUITextures.OVERLAY_BUTTON_MACHINEMODE_WASHPLANT })
-            .addTooltip(EnumChatFormatting.WHITE + "Click to clear calcification" + EnumChatFormatting.RESET)
+            .addTooltip(
+                EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.gui.solar_array.clear_calcification")
+                    + EnumChatFormatting.RESET)
             .setTooltipShowUpDelay(TOOLTIP_DELAY)
             .setPos(new Pos2d(174, 91))
             .setSize(16, 16));
@@ -698,9 +708,13 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
         description.add(
             EnumChatFormatting.AQUA
                 + StatCollector.translateToLocal("gtsr.tooltip.large_solar_overpressure_array.name"));
-        description.add(EnumChatFormatting.GREEN + "Output: " + getBaseSteamProduction() + " L/s");
-        description
-            .add(isNickel() ? EnumChatFormatting.RED + "Superheated Steam" : EnumChatFormatting.YELLOW + "Steam");
+        description.add(
+            EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.tooltip.solar_array.1")
+                + getBaseSteamProduction()
+                + " L/s");
+        description.add(
+            isNickel() ? EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.gui.solar_array.superheated")
+                : EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.solar_array.steam"));
 
         return description.toArray(new String[0]);
     }
@@ -709,25 +723,35 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
 
     @Override
     public String[] getInfoData() {
-        String tierText = isNickel() ? "Nickel" : isSteel() ? "Steel" : isBronze() ? "Bronze" : "N/A";
-        String steamType = isNickel() ? "Superheated Steam" : "Steam";
+        String tierText = isNickel() ? StatCollector.translateToLocal("gtsr.info.solar_array.tier_nickel")
+            : isSteel() ? StatCollector.translateToLocal("gtsr.info.solar_array.tier_steel")
+                : isBronze() ? StatCollector.translateToLocal("gtsr.info.solar_array.tier_bronze") : "N/A";
+        String steamType = isNickel() ? StatCollector.translateToLocal("gtsr.gui.solar_array.superheated")
+            : StatCollector.translateToLocal("gtsr.gui.solar_array.steam");
         float booster = calculateSolarBooster();
-        return new String[] { EnumChatFormatting.BLUE + "Large Solar Overpressure Array",
-            EnumChatFormatting.GRAY + "Tier: " + EnumChatFormatting.GOLD + tierText,
-            EnumChatFormatting.GRAY + "Status: "
-                + (mIsOperating ? EnumChatFormatting.GREEN + "Running" : EnumChatFormatting.RED + "Stopped"),
-            EnumChatFormatting.GRAY + "Heat: " + EnumChatFormatting.YELLOW + numberFormat.format(mHeat * 100) + "%",
-            EnumChatFormatting.GRAY + "Calcification: "
+        return new String[] { EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.info.solar_array.name"),
+            EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.info.solar_array.tier")
+                + EnumChatFormatting.GOLD
+                + tierText,
+            EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.info.solar_array.status")
+                + (mIsOperating
+                    ? EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.info.solar_array.running")
+                    : EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.info.solar_array.stopped")),
+            EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.gui.solar_array.heat")
+                + EnumChatFormatting.YELLOW
+                + numberFormat.format(mHeat * 100)
+                + "%",
+            EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.gui.solar_array.calcification")
                 + EnumChatFormatting.RED
                 + numberFormat.format(mCalcification * 100)
                 + "%",
-            EnumChatFormatting.GRAY + "Steam Output: "
+            EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.gui.solar_array.steam_output")
                 + EnumChatFormatting.AQUA
-                + numberFormat.format(mCurrentSteamOutput)
+                + GTUtility.formatNumbers(mCurrentSteamOutput)
                 + " L/s "
                 + EnumChatFormatting.WHITE
                 + steamType,
-            EnumChatFormatting.GRAY + "Solar Booster: "
+            EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.gui.solar_array.solar_booster")
                 + EnumChatFormatting.GREEN
                 + numberFormat.format(booster * 100)
                 + "%" };

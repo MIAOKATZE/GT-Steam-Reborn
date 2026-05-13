@@ -148,6 +148,39 @@ gtsr.tooltip.pressure_steam_output_hatch.name=Pressure Steam Output Hatch
 gt.blockmachines.gtsr.large.solar.overpressure.array.name=Large Solar Overpressure Array
 gtsr.tooltip.large_solar_overpressure_array.name=Large Solar Overpressure Array
 
+# Solar Array Tooltip
+gtsr.tooltip.solar_array.0=Produces Steam using Solar Energy
+gtsr.tooltip.solar_array.1=Output: 
+gtsr.tooltip.solar_array.2=Has Heat and Calcification mechanics
+gtsr.tooltip.solar_array.3=Calcification reduces efficiency, can be cleared via GUI button
+gtsr.tooltip.solar_array.ctrl=Front top center
+gtsr.tooltip.solar_array.casing=Casing
+gtsr.tooltip.solar_array.glass=Glass (HV/EV)
+gtsr.tooltip.solar_array.glass_pos=Top layer
+gtsr.tooltip.solar_array.conductor=Conductor Block (Ag/Au/Ni)
+gtsr.tooltip.solar_array.conductor_pos=Layer 2
+gtsr.tooltip.solar_array.output_hatch=Steam Output Hatch or Pressure Steam Output Hatch
+gtsr.tooltip.solar_array.input_hatch=Water Input Hatch
+
+# Solar Array GUI
+gtsr.gui.solar_array.heat=Heat: 
+gtsr.gui.solar_array.calcification=Calcification: 
+gtsr.gui.solar_array.steam_output=Steam Output: 
+gtsr.gui.solar_array.solar_booster=Solar Booster: 
+gtsr.gui.solar_array.superheated= (Superheated Steam)
+gtsr.gui.solar_array.steam= (Steam)
+gtsr.gui.solar_array.clear_calcification=Click to clear calcification
+
+# Solar Array Info
+gtsr.info.solar_array.name=Large Solar Overpressure Array
+gtsr.info.solar_array.tier=Tier: 
+gtsr.info.solar_array.tier_bronze=Bronze (Tier 1)
+gtsr.info.solar_array.tier_steel=Steel (Tier 2)
+gtsr.info.solar_array.tier_nickel=Nickel (Tier 3)
+gtsr.info.solar_array.status=Status: 
+gtsr.info.solar_array.running=Running
+gtsr.info.solar_array.stopped=Stopped
+
 # Large Geothermal Steam Boiler
 gt.blockmachines.gtsr.large.geothermal.steam.boiler.name=Large Geothermal Steam Boiler
 gtsr.tooltip.geothermal_boiler.0=Geothermal multiblock boiler that converts lava into steam
@@ -157,3 +190,34 @@ gtsr.tooltip.geothermal_boiler.chip=Place Overheat Chip in controller slot to ou
 
 # Geothermal Overheat Chip
 item.GeothermalOverheatChip.name=Geothermal Overheat Chip
+
+# Geothermal Boiler GUI
+gtsr.gui.geothermal_boiler.heat=Heat: 
+gtsr.gui.geothermal_boiler.steam_output=Steam Output: 
+gtsr.gui.geothermal_boiler.superheated= (Superheated)
+gtsr.gui.geothermal_boiler.steam= (Steam)
+gtsr.gui.geothermal_boiler.recipe=Recipe: 1000mb Lava → 1 Obsidian + 2 Sulfur Dust
+gtsr.gui.geothermal_boiler.chip_tier2_warn=⚠ Overheat Chip requires Tier 2 (Steel)
+
+# Geothermal Boiler Tooltip
+gtsr.tooltip.geothermal_boiler.2=Base Recipe: 1000mb Lava → 1 Obsidian + 2 Sulfur Dust (100 ticks)
+gtsr.tooltip.geothermal_boiler.input_hatch=Input Hatch (Lava)
+gtsr.tooltip.geothermal_boiler.steam_output_hatch=Steam Output Hatch
+gtsr.tooltip.geothermal_boiler.any_casing=(Any Casing)
+gtsr.tooltip.geothermal_boiler.output_bus=Steam Output Bus
+gtsr.tooltip.geothermal_boiler.chip=Overheat Chip: Place in controller slot to output superheated steam
+gtsr.tooltip.geothermal_boiler.tier_bronze=Tier 1 - Bronze:
+gtsr.tooltip.geothermal_boiler.casing_bronze=Bronze Plated Bricks
+gtsr.tooltip.geothermal_boiler.max_steam=Max Steam Output
+gtsr.tooltip.geothermal_boiler.tier_steel=Tier 2 - Steel:
+gtsr.tooltip.geothermal_boiler.casing_steel=Solid Steel Machine Casing
+gtsr.tooltip.geothermal_boiler.chip_tier2=Overheat Chip requires Tier 2 (Steel)
+
+# Geothermal Boiler Info
+gtsr.info.geothermal_boiler.name=Large Geothermal Steam Boiler
+gtsr.info.geothermal_boiler.tier=Tier: 
+gtsr.info.geothermal_boiler.tier_bronze=Bronze (Tier 1)
+gtsr.info.geothermal_boiler.tier_steel=Steel (Tier 2)
+gtsr.info.geothermal_boiler.status=Status: 
+gtsr.info.geothermal_boiler.running=Running
+gtsr.info.geothermal_boiler.incomplete=Incomplete
