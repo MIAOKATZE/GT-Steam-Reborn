@@ -11,11 +11,13 @@ import com.miaokatze.gtsr.common.machine.MTESteamHubArray;
 import com.miaokatze.gtsr.common.machine.MTEVeinSteamPyrolyzer;
 import com.miaokatze.gtsr.common.machine.MTEVoidCrustSteamBorer;
 import com.miaokatze.gtsr.common.machine.base.MTEHatchPressureSteamInput;
+import com.miaokatze.gtsr.common.machine.base.MTEPressureSteamCoolingHatch;
 import com.miaokatze.gtsr.common.machine.base.MTEPressureSteamOutputHatch;
 import com.miaokatze.gtsr.common.machine.base.MTEPressureSteamStorageUnit;
 import com.miaokatze.gtsr.common.machine.base.MTEReinforcedSteamCacheNode;
 import com.miaokatze.gtsr.common.machine.base.MTEReinforcedSteamStorageUnit;
 import com.miaokatze.gtsr.common.machine.base.MTESteamCacheNode;
+import com.miaokatze.gtsr.common.machine.base.MTESteamCoolingHatch;
 import com.miaokatze.gtsr.common.machine.base.MTESteamHubInputHatch;
 import com.miaokatze.gtsr.common.machine.base.MTESteamHubOutputHatch;
 import com.miaokatze.gtsr.common.machine.base.MTESteamOutputHatch;
@@ -33,6 +35,7 @@ public class MachineLoader {
         registerLargeSteamFurnace();
         registerSolarOverpressureArray();
         registerGeothermalSteamBoiler();
+        registerSteamCoolingHatches();
     }
 
     private static void registerSteamMachines() {
@@ -165,5 +168,21 @@ public class MachineLoader {
                 "gtsr.large.geothermal.steam.boiler",
                 "Large Geothermal Steam Boiler"));
         CreativeTabManager.addItemToTab(GTSRItemList.LargeGeothermalSteamBoiler.get(1));
+    }
+
+    private static void registerSteamCoolingHatches() {
+        GTSRItemList.SteamCoolingHatch.set(
+            new MTESteamCoolingHatch(
+                MetaTileEntityID.STEAM_COOLING_HATCH.ID,
+                "gtsr.steam.cooling.hatch",
+                "Steam Cooling Hatch"));
+        CreativeTabManager.addItemToTab(GTSRItemList.SteamCoolingHatch.get(1));
+
+        GTSRItemList.PressureSteamCoolingHatch.set(
+            new MTEPressureSteamCoolingHatch(
+                MetaTileEntityID.PRESSURE_STEAM_COOLING_HATCH.ID,
+                "gtsr.pressure.steam.cooling.hatch",
+                "Pressure Steam Cooling Hatch"));
+        CreativeTabManager.addItemToTab(GTSRItemList.PressureSteamCoolingHatch.get(1));
     }
 }

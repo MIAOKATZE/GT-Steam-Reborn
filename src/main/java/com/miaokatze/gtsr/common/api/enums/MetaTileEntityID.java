@@ -61,6 +61,10 @@ public enum MetaTileEntityID {
     LARGE_SOLAR_OVERPRESSURE_ARRAY(16),
     /** 大型地热蒸汽锅炉 (青铜/钢双等级) */
     LARGE_GEOTHERMAL_STEAM_BOILER(17),
+    /** 蒸汽冷却仓 */
+    STEAM_COOLING_HATCH(18),
+    /** 耐压蒸汽冷却仓 */
+    PRESSURE_STEAM_COOLING_HATCH(19),
 
     ;
 

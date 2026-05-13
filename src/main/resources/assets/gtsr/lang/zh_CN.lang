@@ -98,7 +98,8 @@ gtsr.tooltip.crust_steam_borer.steam_cost=蒸汽消耗:
 gtsr.tooltip.crust_steam_borer.pressure_hatch=耐压蒸汽仓+过热蒸汽: 速度×2
 gtsr.tooltip.crust_steam_borer.dim_limit=仅限主世界和下界
 gtsr.tooltip.crust_steam_borer.any_casing=任意外壳位置
-gtsr.tooltip.crust_steam_borer.steam_or_pressure_hatch=蒸汽输入舱或耐压蒸汽仓（二选一）
+gtsr.tooltip.crust_steam_borer.steam_or_pressure_hatch=蒸汽输入仓 或 耐压蒸汽输入仓（二选一）
+gtsr.tooltip.crust_steam_borer.cooling_hatch=可选: 蒸汽冷却仓（回收水）或 耐压蒸汽冷却仓（回收蒸汽）
 gtsr.tooltip.crust_steam_borer.bronze_frame=青铜框架
 gtsr.tooltip.crust_steam_borer.bronze_casing=镀铜砖块
 
@@ -180,6 +181,20 @@ gtsr.info.solar_array.tier_nickel=镍 (等级3)
 gtsr.info.solar_array.status=状态: 
 gtsr.info.solar_array.running=运行中
 gtsr.info.solar_array.stopped=已停止
+
+# Steam Cooling Hatch
+gt.blockmachines.gtsr.steam.cooling.hatch.name=蒸汽冷却仓
+gt.blockmachines.gtsr.pressure.steam.cooling.hatch.name=耐压蒸汽冷却仓
+gtsr.tooltip.steam_cooling_hatch.name=蒸汽冷却仓
+gtsr.tooltip.steam_cooling_hatch.capacity=容量: 
+gtsr.tooltip.steam_cooling_hatch.formula=转换率: 蒸汽 / 
+gtsr.tooltip.steam_cooling_hatch.fluid_type=冷却产物: 水
+gtsr.tooltip.steam_cooling_hatch.no_input=禁止外部输入
+gtsr.tooltip.pressure_steam_cooling_hatch.name=耐压蒸汽冷却仓
+gtsr.tooltip.pressure_steam_cooling_hatch.capacity=容量: 
+gtsr.tooltip.pressure_steam_cooling_hatch.formula=转换率: 过热蒸汽 = 蒸汽 (1:1)
+gtsr.tooltip.pressure_steam_cooling_hatch.fluid_type=冷却产物: 蒸汽
+gtsr.tooltip.pressure_steam_cooling_hatch.no_input=禁止外部输入
 
 # Large Geothermal Steam Boiler
 gt.blockmachines.gtsr.large.geothermal.steam.boiler.name=大型地热蒸汽锅炉

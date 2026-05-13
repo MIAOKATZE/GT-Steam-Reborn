@@ -98,7 +98,8 @@ gtsr.tooltip.crust_steam_borer.steam_cost=Steam Consumption:
 gtsr.tooltip.crust_steam_borer.pressure_hatch=Pressure Steam Hatch + Superheated Steam: Speed x2
 gtsr.tooltip.crust_steam_borer.dim_limit=Overworld and Nether only
 gtsr.tooltip.crust_steam_borer.any_casing=Any casing position
-gtsr.tooltip.crust_steam_borer.steam_or_pressure_hatch=Steam Input Hatch or Pressure Steam Hatch (one only)
+gtsr.tooltip.crust_steam_borer.steam_or_pressure_hatch=Steam Input Hatch or Pressure Steam Input Hatch (one only)
+gtsr.tooltip.crust_steam_borer.cooling_hatch=Optional: Steam Cooling Hatch (recovers Water) or Pressure Steam Cooling Hatch (recovers Steam)
 gtsr.tooltip.crust_steam_borer.bronze_frame=Bronze Frame Box
 gtsr.tooltip.crust_steam_borer.bronze_casing=Bronze Plated Bricks
 
@@ -180,6 +181,20 @@ gtsr.info.solar_array.tier_nickel=Nickel (Tier 3)
 gtsr.info.solar_array.status=Status: 
 gtsr.info.solar_array.running=Running
 gtsr.info.solar_array.stopped=Stopped
+
+# Steam Cooling Hatch
+gt.blockmachines.gtsr.steam.cooling.hatch.name=Steam Cooling Hatch
+gt.blockmachines.gtsr.pressure.steam.cooling.hatch.name=Pressure Steam Cooling Hatch
+gtsr.tooltip.steam_cooling_hatch.name=Steam Cooling Hatch
+gtsr.tooltip.steam_cooling_hatch.capacity=Capacity: 
+gtsr.tooltip.steam_cooling_hatch.formula=Conversion: Steam / 
+gtsr.tooltip.steam_cooling_hatch.fluid_type=Cooling Output: Water
+gtsr.tooltip.steam_cooling_hatch.no_input=No External Input
+gtsr.tooltip.pressure_steam_cooling_hatch.name=Pressure Steam Cooling Hatch
+gtsr.tooltip.pressure_steam_cooling_hatch.capacity=Capacity: 
+gtsr.tooltip.pressure_steam_cooling_hatch.formula=Conversion: Superheated Steam = Steam (1:1)
+gtsr.tooltip.pressure_steam_cooling_hatch.fluid_type=Cooling Output: Steam
+gtsr.tooltip.pressure_steam_cooling_hatch.no_input=No External Input
 
 # Large Geothermal Steam Boiler
 gt.blockmachines.gtsr.large.geothermal.steam.boiler.name=Large Geothermal Steam Boiler
