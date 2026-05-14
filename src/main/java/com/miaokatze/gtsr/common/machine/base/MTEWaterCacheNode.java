@@ -1,9 +1,9 @@
 package com.miaokatze.gtsr.common.machine.base;
 
 import static com.gtnewhorizon.gtnhlib.util.numberformatting.NumberFormatUtil.formatNumber;
-import static gregtech.api.enums.Textures.BlockIcons.MACHINE_STEEL_BOTTOM;
-import static gregtech.api.enums.Textures.BlockIcons.MACHINE_STEEL_SIDE;
-import static gregtech.api.enums.Textures.BlockIcons.MACHINE_STEEL_TOP;
+import static gregtech.api.enums.Textures.BlockIcons.MACHINE_BRONZE_BOTTOM;
+import static gregtech.api.enums.Textures.BlockIcons.MACHINE_BRONZE_SIDE;
+import static gregtech.api.enums.Textures.BlockIcons.MACHINE_BRONZE_TOP;
 import static gregtech.api.enums.Textures.BlockIcons.OVERLAY_PIPE;
 import static gregtech.api.enums.Textures.BlockIcons.OVERLAY_QTANK;
 import static gregtech.api.enums.Textures.BlockIcons.OVERLAY_QTANK_GLOW;
@@ -24,22 +24,22 @@ import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.render.TextureFactory;
 
-public class MTEReinforcedSteamCacheNode extends MTEFilteredCacheNode {
+public class MTEWaterCacheNode extends MTEFilteredCacheNode {
 
-    private static final int CAPACITY = 16_000_000;
-    private static final int OUTPUT_RATE_PER_SEC = 1_000_000;
+    private static final int CAPACITY = 128_000;
+    private static final int OUTPUT_PER_TICK = 400;
 
-    public MTEReinforcedSteamCacheNode(int aID, String aName, String aNameRegional) {
+    public MTEWaterCacheNode(int aID, String aName, String aNameRegional) {
         super(aID, aName, aNameRegional, 3);
     }
 
-    public MTEReinforcedSteamCacheNode(String aName, int aTier, String[] aDescription, ITexture[][][] aTextures) {
+    public MTEWaterCacheNode(String aName, int aTier, String[] aDescription, ITexture[][][] aTextures) {
         super(aName, aTier, aDescription, aTextures);
     }
 
     @Override
     public MetaTileEntity newMetaEntity(IGregTechTileEntity aTileEntity) {
-        return new MTEReinforcedSteamCacheNode(mName, mTier, mDescriptionArray, mTextures);
+        return new MTEWaterCacheNode(mName, mTier, mDescriptionArray, mTextures);
     }
 
     @Override
@@ -51,17 +51,17 @@ public class MTEReinforcedSteamCacheNode extends MTEFilteredCacheNode {
     public ITexture[] getTexture(IGregTechTileEntity baseMetaTileEntity, ForgeDirection sideDirection,
         ForgeDirection facingDirection, int colorIndex, boolean active, boolean redstoneLevel) {
         if (sideDirection == ForgeDirection.UP) {
-            return new ITexture[] { TextureFactory.of(MACHINE_STEEL_TOP), TextureFactory.of(OVERLAY_QTANK),
+            return new ITexture[] { TextureFactory.of(MACHINE_BRONZE_TOP), TextureFactory.of(OVERLAY_QTANK),
                 TextureFactory.builder()
                     .addIcon(OVERLAY_QTANK_GLOW)
                     .glow()
                     .build() };
         } else if (sideDirection == ForgeDirection.DOWN) {
-            return new ITexture[] { TextureFactory.of(MACHINE_STEEL_BOTTOM) };
+            return new ITexture[] { TextureFactory.of(MACHINE_BRONZE_BOTTOM) };
         } else if (sideDirection == facingDirection) {
-            return new ITexture[] { TextureFactory.of(MACHINE_STEEL_SIDE), TextureFactory.of(OVERLAY_PIPE) };
+            return new ITexture[] { TextureFactory.of(MACHINE_BRONZE_SIDE), TextureFactory.of(OVERLAY_PIPE) };
         } else {
-            return new ITexture[] { TextureFactory.of(MACHINE_STEEL_SIDE) };
+            return new ITexture[] { TextureFactory.of(MACHINE_BRONZE_SIDE) };
         }
     }
 
@@ -69,7 +69,7 @@ public class MTEReinforcedSteamCacheNode extends MTEFilteredCacheNode {
     protected boolean isFluidAllowed(Fluid fluid) {
         if (fluid == null) return false;
         String name = fluid.getName();
-        return "steam".equals(name) || "ic2superheatedsteam".equals(name);
+        return "water".equals(name) || "ic2distilledwater".equals(name);
     }
 
     @Override
@@ -79,7 +79,7 @@ public class MTEReinforcedSteamCacheNode extends MTEFilteredCacheNode {
             if (mOutputFluid && getDrainableStack() != null && (aTick % 20 == 0)) {
                 IFluidHandler tTank = aBaseMetaTileEntity.getITankContainerAtSide(aBaseMetaTileEntity.getFrontFacing());
                 if (tTank != null) {
-                    FluidStack tDrained = drain(OUTPUT_RATE_PER_SEC, false);
+                    FluidStack tDrained = drain(OUTPUT_PER_TICK * 20, false);
                     if (tDrained != null) {
                         int tFilledAmount = tTank.fill(aBaseMetaTileEntity.getBackFacing(), tDrained, false);
                         if (tFilledAmount > 0)
@@ -92,27 +92,27 @@ public class MTEReinforcedSteamCacheNode extends MTEFilteredCacheNode {
 
     @Override
     public boolean isFluidInputAllowed(FluidStack aFluid) {
-        return isSteamFluid(aFluid);
+        return isWaterFluid(aFluid);
     }
 
     @Override
     public int fill(FluidStack aFluid, boolean doFill) {
-        if (aFluid == null || !isSteamFluid(aFluid)) return 0;
+        if (aFluid == null || !isWaterFluid(aFluid)) return 0;
         return super.fill(aFluid, doFill);
     }
 
     @Override
     public int fill(ForgeDirection side, FluidStack aFluid, boolean doFill) {
-        if (aFluid == null || !isSteamFluid(aFluid)) return 0;
+        if (aFluid == null || !isWaterFluid(aFluid)) return 0;
         return super.fill(side, aFluid, doFill);
     }
 
-    private static boolean isSteamFluid(FluidStack aFluid) {
+    private static boolean isWaterFluid(FluidStack aFluid) {
         if (aFluid == null) return false;
         Fluid fluid = aFluid.getFluid();
         if (fluid == null) return false;
         String name = fluid.getName();
-        return "steam".equals(name) || "ic2superheatedsteam".equals(name);
+        return "water".equals(name) || "ic2distilledwater".equals(name);
     }
 
     @Override
@@ -157,14 +157,13 @@ public class MTEReinforcedSteamCacheNode extends MTEFilteredCacheNode {
     public void addAdditionalTooltipInformation(ItemStack stack, List<String> tooltip) {
         super.addAdditionalTooltipInformation(stack, tooltip);
         tooltip.add(
-            EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.steam_cache_node.fluid_type")
+            EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.water_cache_node.fluid_type")
                 + EnumChatFormatting.YELLOW
-                + StatCollector
-                    .translateToLocal("gtsr.tooltip.reinforced_steam_cache_node.fluid_type.superheated_steam"));
+                + StatCollector.translateToLocal("gtsr.tooltip.water_cache_node.fluid_type.water"));
         tooltip.add(
-            EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.steam_cache_node.output_rate")
+            EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.water_cache_node.output_rate")
                 + EnumChatFormatting.GREEN
-                + String.format("%,d", OUTPUT_RATE_PER_SEC)
+                + String.format("%,d", OUTPUT_PER_TICK * 20)
                 + " L/s");
     }
 }

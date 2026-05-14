@@ -10,30 +10,24 @@ import static gregtech.api.enums.Textures.BlockIcons.OVERLAY_QTANK_GLOW;
 
 import java.util.List;
 
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.Fluid;
-import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.IFluidHandler;
-
-import com.gtnewhorizons.modularui.common.widget.FluidSlotWidget;
 
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.render.TextureFactory;
-import gregtech.common.tileentities.storage.MTEDigitalTankBase;
 
-public class MTESteamCacheNode extends MTEDigitalTankBase {
+public class MTESteamCacheNode extends MTEFilteredCacheNode {
 
     private static final int CAPACITY = 16_000_000;
     private static final int OUTPUT_RATE_PER_SEC = 1_000_000;
-    private static final String LOCKED_FLUID_NAME = "steam";
-
-    private boolean mInitializedLock = false;
 
     public MTESteamCacheNode(int aID, String aName, String aNameRegional) {
         super(aID, aName, aNameRegional, 3);
@@ -72,30 +66,12 @@ public class MTESteamCacheNode extends MTEDigitalTankBase {
     }
 
     @Override
-    protected FluidSlotWidget createFluidSlot() {
-        return super.createFluidSlot().setFilter(fluid -> fluid != null && isAllowedFluidName(fluid.getName()));
+    protected boolean isFluidAllowed(Fluid fluid) {
+        return fluid != null && "steam".equals(fluid.getName());
     }
-
-    @Override
-    public boolean acceptsFluidLock(String name) {
-        return false;
-    }
-
-    @Override
-    public void lockFluid(boolean lock) {}
 
     @Override
     public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
-        if (aBaseMetaTileEntity.isServerSide() && !mInitializedLock) {
-            mInitializedLock = true;
-            mLockFluid = true;
-            if (getLockedFluidName() == null) {
-                Fluid lockedFluid = FluidRegistry.getFluid(LOCKED_FLUID_NAME);
-                if (lockedFluid != null) {
-                    setLockedFluidName(LOCKED_FLUID_NAME);
-                }
-            }
-        }
         super.onPostTick(aBaseMetaTileEntity, aTick);
         if (aBaseMetaTileEntity.isServerSide()) {
             if (mOutputFluid && getDrainableStack() != null && (aTick % 20 == 0)) {
@@ -110,10 +86,6 @@ public class MTESteamCacheNode extends MTEDigitalTankBase {
                 }
             }
         }
-    }
-
-    protected static boolean isAllowedFluidName(String fluidName) {
-        return "steam".equals(fluidName) || "ic2steam".equals(fluidName) || "ic2superheatedsteam".equals(fluidName);
     }
 
     @Override
@@ -137,7 +109,13 @@ public class MTESteamCacheNode extends MTEDigitalTankBase {
         if (aFluid == null) return false;
         Fluid fluid = aFluid.getFluid();
         if (fluid == null) return false;
-        return isAllowedFluidName(fluid.getName());
+        return "steam".equals(fluid.getName());
+    }
+
+    @Override
+    public boolean onRightclick(IGregTechTileEntity aBaseMetaTileEntity, EntityPlayer aPlayer, ForgeDirection side,
+        float aX, float aY, float aZ) {
+        return super.onRightclick(aBaseMetaTileEntity, aPlayer, side, aX, aY, aZ);
     }
 
     @Override

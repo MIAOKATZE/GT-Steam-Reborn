@@ -2,6 +2,8 @@ package com.miaokatze.gtsr.loader;
 
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.items.GeothermalOverheatChip;
+import com.miaokatze.gtsr.common.items.HubSingularityChip;
+import com.miaokatze.gtsr.common.items.SteamEntangledSingularity;
 import com.miaokatze.gtsr.common.items.VeinPyrolyzerChip;
 
 public class ItemLoader {
@@ -9,6 +11,8 @@ public class ItemLoader {
     public static void initItems() {
         registerPyrolyzerChips();
         registerGeothermalOverheatChip();
+        registerHubSingularityChip();
+        registerSteamEntangledSingularity();
     }
 
     private static void registerPyrolyzerChips() {
@@ -25,5 +29,14 @@ public class ItemLoader {
     private static void registerGeothermalOverheatChip() {
         GTSRItemList.GeothermalOverheatChip
             .setAndRegister(new GeothermalOverheatChip("GeothermalOverheatChip"), "GeothermalOverheatChip", true);
+    }
+
+    private static void registerHubSingularityChip() {
+        GTSRItemList.HubSingularityChip.setAndRegister(new HubSingularityChip(), "HubSingularityChip", true);
+    }
+
+    private static void registerSteamEntangledSingularity() {
+        GTSRItemList.SteamEntangledSingularity
+            .setAndRegister(new SteamEntangledSingularity(), "SteamEntangledSingularity", true);
     }
 }

@@ -42,15 +42,15 @@ gtsr.tooltip.steam_hub_input_hatch.info=Dedicated input port for Steam Hub Array
 gtsr.tooltip.steam_hub_input_hatch.fluid_type=Accepts steam/superheated steam only
 gtsr.tooltip.steam_hub_input_hatch.no_storage=No internal buffer - fluid goes directly into the array
 
-# Pressure Steam Storage Unit
-gt.blockmachines.gtsr.pressure.steam.storage.unit.name=Pressure Steam Storage Unit
-gtsr.tooltip.pressure_steam_storage_unit.info=Structural component for Steam Hub Array
-gtsr.tooltip.pressure_steam_storage_unit.capacity=Capacity contribution: 16,000,000 L per unit
+# Hub Storage Unit
+gt.blockmachines.gtsr.hub.storage.unit.name=Hub Storage Unit
+gtsr.tooltip.hub_storage_unit.info=Structural component for Steam Hub Array
+gtsr.tooltip.hub_storage_unit.capacity=Capacity contribution: 16,000,000 L per unit
 
-# Reinforced Steam Storage Unit
-gt.blockmachines.gtsr.reinforced.steam.storage.unit.name=Reinforced Steam Storage Unit
-gtsr.tooltip.reinforced_steam_storage_unit.info=Structural component for Steam Hub Array
-gtsr.tooltip.reinforced_steam_storage_unit.capacity=Capacity contribution: 64,000,000 L per unit
+# Reinforced Hub Storage Unit
+gt.blockmachines.gtsr.reinforced.hub.storage.unit.name=Reinforced Hub Storage Unit
+gtsr.tooltip.reinforced_hub_storage_unit.info=Structural component for Steam Hub Array
+gtsr.tooltip.reinforced_hub_storage_unit.capacity=Capacity contribution: 64,000,000 L per unit
 
 # Steam Hub Array
 gt.blockmachines.gtsr.steam.hub.array.name=Steam Hub Array
@@ -236,3 +236,80 @@ gtsr.info.geothermal_boiler.tier_steel=Steel (Tier 2)
 gtsr.info.geothermal_boiler.status=Status: 
 gtsr.info.geothermal_boiler.running=Running
 gtsr.info.geothermal_boiler.incomplete=Incomplete
+
+# Steam Singularity Compressor
+gt.blockmachines.gtsr.steam.singularity.compressor.name=Steam Singularity Compressor
+gtsr.recipe.steam_singularity_compressor=Steam Singularity Compressor
+gtsr.tooltip.steam_singularity_compressor.0=3x3x3 hollow structure, consumes steam to produce Steam Entangled Singularity
+gtsr.tooltip.steam_singularity_compressor.1=Heat system: heats up at 0.025%/s while running
+gtsr.tooltip.steam_singularity_compressor.2=At 100% heat: outputs 1 Steam Entangled Singularity and resets heat
+gtsr.tooltip.steam_singularity_compressor.3=Cools down at 0.1%/s after 60s of inactivity
+gtsr.tooltip.steam_singularity_compressor.4=Steam Consumption: 256,000 L/s
+gtsr.tooltip.steam_singularity_compressor.5=Superheated Steam: 4x speed
+gtsr.tooltip.steam_singularity_compressor.ctrl=Front center of bottom layer
+gtsr.tooltip.steam_singularity_compressor.casing=Bronze Plated Bricks
+gtsr.tooltip.steam_singularity_compressor.input_hatch=Steam Input Hatch
+gtsr.tooltip.steam_singularity_compressor.output_bus=Steam Output Bus
+gtsr.tooltip.steam_singularity_compressor.cooling=Optional: Steam Cooling Hatch / Pressure Steam Cooling Hatch
+
+# Steam Entangled Singularity
+item.SteamEntangledSingularity.name=Steam Entangled Singularity
+
+# Hub Singularity Chip
+item.HubSingularityChip.name=Hub Singularity Upgrade Chip
+
+# Water Hub Array
+gt.blockmachines.gtsr.water.hub.array.name=Water Hub Array
+gtsr.recipe.water_hub_array=Water Hub Array
+gtsr.tooltip.water_hub_array.info=Centralized water/distilled water storage multiblock
+gtsr.tooltip.water_hub_array.structure=3x3 base + 1-15 storage layers
+gtsr.tooltip.water_hub_array.capacity=Hub Unit: 64,000 L/unit | Reinforced Hub Unit: 256,000 L/unit
+gtsr.tooltip.water_hub_array.output=Auto-output: 128,000 L/s per output hatch
+gtsr.tooltip.water_hub_array.ctrl=Front center of base layer
+gtsr.tooltip.water_hub_array.casing=Bronze Plated Bricks
+gtsr.tooltip.water_hub_array.input_hatch=Water Hub Input Hatch
+gtsr.tooltip.water_hub_array.output_hatch=Water Hub Output Hatch
+gtsr.tooltip.water_hub_array.storage_unit=Hub/Reinforced Hub Storage Unit
+gtsr.tooltip.water_hub_array.base_layer=Any base layer position
+gtsr.tooltip.water_hub_array.stack_layers=Stack layers above base
+
+# Water Hub Output Hatch
+gt.blockmachines.gtsr.water.hub.output.hatch.name=Water Hub Output Hatch
+gtsr.tooltip.water_hub_output_hatch.info=Dedicated output port for Water Hub Array
+gtsr.tooltip.water_hub_output_hatch.fluid_type=Outputs water/distilled water only
+gtsr.tooltip.water_hub_output_hatch.output_rate=Auto-output rate: 128,000 L/s
+gtsr.tooltip.water_hub_output_hatch.no_storage=No internal buffer - draws directly from the array
+
+# Water Hub Input Hatch
+gt.blockmachines.gtsr.water.hub.input.hatch.name=Water Hub Input Hatch
+gtsr.tooltip.water_hub_input_hatch.info=Dedicated input port for Water Hub Array
+gtsr.tooltip.water_hub_input_hatch.fluid_type=Accepts water/distilled water only
+gtsr.tooltip.water_hub_input_hatch.no_storage=No internal buffer - fluid goes directly into the array
+
+# Water Cache Node
+gt.blockmachines.gtsr.water.cache.node.name=Water Cache Node
+gtsr.tooltip.water_cache_node.fluid_type=Can only cache: 
+gtsr.tooltip.water_cache_node.fluid_type.water=Water/Distilled Water
+gtsr.tooltip.water_cache_node.output_rate=Output rate: 8,000 L/s
+
+# Hub Array Binding
+gtsr.binding.bound_output=Bound 
+gtsr.binding.bound_input=Switched 
+gtsr.binding.mode_output= -> Hub Output
+gtsr.binding.mode_input= -> Hub Input
+gtsr.binding.cleared=Unbound
+gtsr.binding.binding= 
+gtsr.binding.no_chip=Chip required: Hub Singularity Upgrade
+gtsr.binding.no_cache_node=Held item is not a cache node
+gtsr.binding.wrong_type=Cache node type does not match this hub
+gtsr.binding.debug_title=Hub Binding Debug
+gtsr.binding.debug_no_bindings=No bound nodes
+gtsr.binding.debug_no_chip=Bound, but chip missing
+gtsr.binding.debug_node=Node: 
+gtsr.binding.debug_mode=Mode: 
+gtsr.binding.debug_output=To Hub
+gtsr.binding.debug_input=From Hub
+gtsr.binding.debug_invalid=Invalid
+gtsr.binding.hub_bound=Bound cache node to hub
+gtsr.binding.bound_to=Bound to
+gtsr.gui.binding_hint=Hold chip and right-click controller for node info

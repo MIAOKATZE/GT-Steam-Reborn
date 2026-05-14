@@ -42,15 +42,15 @@ gtsr.tooltip.steam_hub_input_hatch.info=蒸汽枢纽阵列专用输入端口
 gtsr.tooltip.steam_hub_input_hatch.fluid_type=仅接受蒸汽/过热蒸汽
 gtsr.tooltip.steam_hub_input_hatch.no_storage=无内部缓存，流体直接进入阵列
 
-# Pressure Steam Storage Unit
-gt.blockmachines.gtsr.pressure.steam.storage.unit.name=耐压蒸汽存储单元
-gtsr.tooltip.pressure_steam_storage_unit.info=蒸汽枢纽阵列的结构组件
-gtsr.tooltip.pressure_steam_storage_unit.capacity=容量贡献：16,000,000 L/个
+# Hub Storage Unit
+gt.blockmachines.gtsr.hub.storage.unit.name=枢纽存储单元
+gtsr.tooltip.hub_storage_unit.info=蒸汽枢纽阵列的结构组件
+gtsr.tooltip.hub_storage_unit.capacity=容量贡献：16,000,000 L/个
 
-# Reinforced Steam Storage Unit
-gt.blockmachines.gtsr.reinforced.steam.storage.unit.name=加固蒸汽存储单元
-gtsr.tooltip.reinforced_steam_storage_unit.info=蒸汽枢纽阵列的结构组件
-gtsr.tooltip.reinforced_steam_storage_unit.capacity=容量贡献：64,000,000 L/个
+# Reinforced Hub Storage Unit
+gt.blockmachines.gtsr.reinforced.hub.storage.unit.name=加固枢纽存储单元
+gtsr.tooltip.reinforced_hub_storage_unit.info=蒸汽枢纽阵列的结构组件
+gtsr.tooltip.reinforced_hub_storage_unit.capacity=容量贡献：64,000,000 L/个
 
 # Steam Hub Array
 gt.blockmachines.gtsr.steam.hub.array.name=蒸汽枢纽阵列
@@ -236,3 +236,80 @@ gtsr.info.geothermal_boiler.tier_steel=钢 (等级2)
 gtsr.info.geothermal_boiler.status=状态: 
 gtsr.info.geothermal_boiler.running=运行中
 gtsr.info.geothermal_boiler.incomplete=结构不完整
+
+# Steam Singularity Compressor
+gt.blockmachines.gtsr.steam.singularity.compressor.name=蒸汽奇点压缩机
+gtsr.recipe.steam_singularity_compressor=蒸汽奇点压缩机
+gtsr.tooltip.steam_singularity_compressor.0=3×3×3 中空结构，消耗蒸汽产出蒸汽纠缠奇点
+gtsr.tooltip.steam_singularity_compressor.1=热量系统: 运行时以 0.025%/s 升温
+gtsr.tooltip.steam_singularity_compressor.2=100% 热量时产出 1 个蒸汽纠缠奇点并重置热量
+gtsr.tooltip.steam_singularity_compressor.3=停止运行 60 秒后开始以 0.1%/s 降温
+gtsr.tooltip.steam_singularity_compressor.4=蒸汽消耗: 256,000 L/s
+gtsr.tooltip.steam_singularity_compressor.5=过热蒸汽: 4x 速度
+gtsr.tooltip.steam_singularity_compressor.ctrl=底层正面中央
+gtsr.tooltip.steam_singularity_compressor.casing=青铜镀层砖
+gtsr.tooltip.steam_singularity_compressor.input_hatch=蒸汽输入仓
+gtsr.tooltip.steam_singularity_compressor.output_bus=蒸汽输出总线
+gtsr.tooltip.steam_singularity_compressor.cooling=可选: 蒸汽冷却仓 / 耐压蒸汽冷却仓
+
+# Steam Entangled Singularity
+item.SteamEntangledSingularity.name=蒸汽纠缠奇点
+
+# Hub Singularity Chip
+item.HubSingularityChip.name=枢纽奇点升级芯片
+
+# Water Hub Array
+gt.blockmachines.gtsr.water.hub.array.name=蓄水枢纽阵列
+gtsr.recipe.water_hub_array=蓄水枢纽阵列
+gtsr.tooltip.water_hub_array.info=集中式水/蒸馏水存储多方块结构
+gtsr.tooltip.water_hub_array.structure=3×3 底座 + 1~15 层存储单元
+gtsr.tooltip.water_hub_array.capacity=枢纽单元: 64,000 L/个 | 加固枢纽单元: 256,000 L/个
+gtsr.tooltip.water_hub_array.output=自动输出: 128,000 L/s（每输出仓）
+gtsr.tooltip.water_hub_array.ctrl=底座层正面中央
+gtsr.tooltip.water_hub_array.casing=青铜镀层砖
+gtsr.tooltip.water_hub_array.input_hatch=蓄水枢纽输入仓
+gtsr.tooltip.water_hub_array.output_hatch=蓄水枢纽输出仓
+gtsr.tooltip.water_hub_array.storage_unit=枢纽/加固枢纽存储单元
+gtsr.tooltip.water_hub_array.base_layer=底座层任意位置
+gtsr.tooltip.water_hub_array.stack_layers=底座上方堆叠层
+
+# Water Hub Output Hatch
+gt.blockmachines.gtsr.water.hub.output.hatch.name=蓄水枢纽输出仓
+gtsr.tooltip.water_hub_output_hatch.info=蓄水枢纽阵列专用输出端口
+gtsr.tooltip.water_hub_output_hatch.fluid_type=仅输出水/蒸馏水
+gtsr.tooltip.water_hub_output_hatch.output_rate=自动输出流量: 128,000 L/s
+gtsr.tooltip.water_hub_output_hatch.no_storage=无内部缓存，直接从阵列抽取
+
+# Water Hub Input Hatch
+gt.blockmachines.gtsr.water.hub.input.hatch.name=蓄水枢纽输入仓
+gtsr.tooltip.water_hub_input_hatch.info=蓄水枢纽阵列专用输入端口
+gtsr.tooltip.water_hub_input_hatch.fluid_type=仅接受水/蒸馏水
+gtsr.tooltip.water_hub_input_hatch.no_storage=无内部缓存，流体直接进入阵列
+
+# Water Cache Node
+gt.blockmachines.gtsr.water.cache.node.name=水缓存节点
+gtsr.tooltip.water_cache_node.fluid_type=只可以缓存: 
+gtsr.tooltip.water_cache_node.fluid_type.water=水/蒸馏水
+gtsr.tooltip.water_cache_node.output_rate=输出流量: 8,000 L/s
+
+# Hub Array Binding
+gtsr.binding.bound_output=已绑定 
+gtsr.binding.bound_input=已切换 
+gtsr.binding.mode_output= → 从枢纽输出
+gtsr.binding.mode_input= → 向枢纽输入
+gtsr.binding.cleared=已解除 
+gtsr.binding.binding= 的绑定
+gtsr.binding.no_chip=需要安装枢纽奇点升级芯片
+gtsr.binding.no_cache_node=手持物品不是缓存节点
+gtsr.binding.wrong_type=该缓存节点类型与枢纽不匹配
+gtsr.binding.debug_title=枢纽绑定调试
+gtsr.binding.debug_no_bindings=无绑定节点
+gtsr.binding.debug_no_chip=已绑定，但缺少芯片
+gtsr.binding.debug_node=节点: 
+gtsr.binding.debug_mode=模式: 
+gtsr.binding.debug_output=向枢纽输入
+gtsr.binding.debug_input=从枢纽输出
+gtsr.binding.debug_invalid=失效
+gtsr.binding.hub_bound=已绑定缓存节点到枢纽
+gtsr.binding.bound_to=已绑定到
+gtsr.gui.binding_hint=手持芯片右击控制器获取节点信息

@@ -13,12 +13,11 @@ import java.util.List;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.nbt.NBTTagList;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.ChatComponentText;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 import net.minecraft.world.World;
-import net.minecraftforge.common.DimensionManager;
 import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.IFluidHandler;
@@ -31,8 +30,8 @@ import com.gtnewhorizon.structurelib.structure.StructureDefinition;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.machine.base.MTEHubStorageUnit;
 import com.miaokatze.gtsr.common.machine.base.MTEReinforcedHubStorageUnit;
-import com.miaokatze.gtsr.common.machine.base.MTESteamHubInputHatch;
-import com.miaokatze.gtsr.common.machine.base.MTESteamHubOutputHatch;
+import com.miaokatze.gtsr.common.machine.base.MTEWaterHubInputHatch;
+import com.miaokatze.gtsr.common.machine.base.MTEWaterHubOutputHatch;
 
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Textures;
@@ -47,7 +46,7 @@ import gregtech.api.util.IGTHatchAdder;
 import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.common.misc.GTStructureChannels;
 
-public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray>
+public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray>
     implements IConstructable, ISurvivalConstructable, com.miaokatze.gtsr.common.machine.base.IHubArray {
 
     private static final String STRUCTURE_PIECE_BASE = "base";
@@ -55,64 +54,59 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
     private static final String STRUCTURE_PIECE_STACK_HINT = "stackHint";
     private static final String STRUCTURE_PIECE_TOP_HINT = "topHint";
     private static final int MIN_TOTAL_HEIGHT = 2;
-    private static final int MAX_TOTAL_HEIGHT = 13;
-    private static final int AUTO_OUTPUT_RATE = 2_000_000;
-    private static final int TRANSFER_RATE = 1_000_000;
+    private static final int MAX_TOTAL_HEIGHT = 16;
+    private static final int AUTO_OUTPUT_RATE = 128_000;
+    private static final int HUB_UNIT_CAPACITY = 64_000;
+    private static final int REINFORCED_HUB_UNIT_CAPACITY = 256_000;
+    private static final int BOUND_TRANSFER_RATE = 1_000_000;
+    private static final int BOUND_TRANSFER_INTERVAL = 20;
 
     private static final int CASING_INDEX = GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings1, 10);
 
-    private static final IStructureDefinition<MTESteamHubArray> STRUCTURE_DEFINITION;
+    private static final IStructureDefinition<MTEWaterHubArray> STRUCTURE_DEFINITION;
 
     static {
-        STRUCTURE_DEFINITION = StructureDefinition.<MTESteamHubArray>builder()
-            .addShape(
-                STRUCTURE_PIECE_BASE,
-                transpose(new String[][] { { "HH~HH", "HHHHH", "HHHHH", "HHHHH", "HHHHH" } }))
-            .addShape(
-                STRUCTURE_PIECE_STACK,
-                transpose(new String[][] { { "SSSSS", "SSSSS", "SSSSS", "SSSSS", "SSSSS" } }))
-            .addShape(
-                STRUCTURE_PIECE_STACK_HINT,
-                transpose(new String[][] { { "TTTTT", "TTTTT", "TTTTT", "TTTTT", "TTTTT" } }))
-            .addShape(
-                STRUCTURE_PIECE_TOP_HINT,
-                transpose(new String[][] { { "TTTTT", "TTTTT", "TTTTT", "TTTTT", "TTTTT" } }))
+        STRUCTURE_DEFINITION = StructureDefinition.<MTEWaterHubArray>builder()
+            .addShape(STRUCTURE_PIECE_BASE, transpose(new String[][] { { "H~H", "HHH", "HHH" } }))
+            .addShape(STRUCTURE_PIECE_STACK, transpose(new String[][] { { "SSS", "SSS", "SSS" } }))
+            .addShape(STRUCTURE_PIECE_STACK_HINT, transpose(new String[][] { { "TTT", "TTT", "TTT" } }))
+            .addShape(STRUCTURE_PIECE_TOP_HINT, transpose(new String[][] { { "TTT", "TTT", "TTT" } }))
             .addElement(
                 'H',
-                buildHatchAdder(MTESteamHubArray.class)
-                    .atLeast(SteamHubHatchElement.SteamInput, SteamHubHatchElement.SteamOutput)
+                buildHatchAdder(MTEWaterHubArray.class)
+                    .atLeast(WaterHubHatchElement.WaterInput, WaterHubHatchElement.WaterOutput)
                     .casingIndex(CASING_INDEX)
                     .dot(1)
                     .buildAndChain(
-                        onElementPass(MTESteamHubArray::onCasingAdded, ofBlock(GregTechAPI.sBlockCasings1, 10))))
+                        onElementPass(MTEWaterHubArray::onCasingAdded, ofBlock(GregTechAPI.sBlockCasings1, 10))))
             .addElement(
                 'S',
-                buildHatchAdder(MTESteamHubArray.class)
-                    .atLeast(SteamHubStorageElement.PressureUnit, SteamHubStorageElement.ReinforcedUnit)
+                buildHatchAdder(MTEWaterHubArray.class)
+                    .atLeast(WaterHubStorageElement.HubUnit, WaterHubStorageElement.ReinforcedHubUnit)
                     .casingIndex(CASING_INDEX)
                     .dot(2)
                     .buildAndChain(
-                        onElementPass(MTESteamHubArray::onCasingAdded, ofBlock(GregTechAPI.sBlockCasings1, 10))))
+                        onElementPass(MTEWaterHubArray::onCasingAdded, ofBlock(GregTechAPI.sBlockCasings1, 10))))
             .addElement(
                 'T',
-                buildHatchAdder(MTESteamHubArray.class)
-                    .atLeast(SteamHubStorageElement.PressureUnit, SteamHubStorageElement.ReinforcedUnit)
+                buildHatchAdder(MTEWaterHubArray.class)
+                    .atLeast(WaterHubStorageElement.HubUnit, WaterHubStorageElement.ReinforcedHubUnit)
                     .casingIndex(CASING_INDEX)
                     .dot(2)
                     .buildAndChain(GregTechAPI.sBlockCasings1, 10))
             .build();
     }
 
-    private enum SteamHubHatchElement implements IHatchElement<MTESteamHubArray> {
+    private enum WaterHubHatchElement implements IHatchElement<MTEWaterHubArray> {
 
-        SteamInput(MTESteamHubArray::addSteamInputToMachineList, MTESteamHubInputHatch.class),
-        SteamOutput(MTESteamHubArray::addSteamOutputToMachineList, MTESteamHubOutputHatch.class);
+        WaterInput(MTEWaterHubArray::addWaterInputToMachineList, MTEWaterHubInputHatch.class),
+        WaterOutput(MTEWaterHubArray::addWaterOutputToMachineList, MTEWaterHubOutputHatch.class);
 
         private final List<Class<? extends IMetaTileEntity>> mteClasses;
-        private final IGTHatchAdder<MTESteamHubArray> adder;
+        private final IGTHatchAdder<MTEWaterHubArray> adder;
 
         @SafeVarargs
-        SteamHubHatchElement(IGTHatchAdder<MTESteamHubArray> adder, Class<? extends IMetaTileEntity>... classes) {
+        WaterHubHatchElement(IGTHatchAdder<MTEWaterHubArray> adder, Class<? extends IMetaTileEntity>... classes) {
             this.mteClasses = Collections.unmodifiableList(Arrays.asList(classes));
             this.adder = adder;
         }
@@ -123,26 +117,26 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
         }
 
         @Override
-        public IGTHatchAdder<? super MTESteamHubArray> adder() {
+        public IGTHatchAdder<? super MTEWaterHubArray> adder() {
             return adder;
         }
 
         @Override
-        public long count(MTESteamHubArray t) {
-            return this == SteamInput ? t.mSteamInputHatches.size() : t.mSteamOutputHatches.size();
+        public long count(MTEWaterHubArray t) {
+            return this == WaterInput ? t.mWaterInputHatches.size() : t.mWaterOutputHatches.size();
         }
     }
 
-    private enum SteamHubStorageElement implements IHatchElement<MTESteamHubArray> {
+    private enum WaterHubStorageElement implements IHatchElement<MTEWaterHubArray> {
 
-        PressureUnit(MTESteamHubArray::addPressureUnitToMachineList, MTEHubStorageUnit.class),
-        ReinforcedUnit(MTESteamHubArray::addReinforcedUnitToMachineList, MTEReinforcedHubStorageUnit.class);
+        HubUnit(MTEWaterHubArray::addHubUnitToMachineList, MTEHubStorageUnit.class),
+        ReinforcedHubUnit(MTEWaterHubArray::addReinforcedHubUnitToMachineList, MTEReinforcedHubStorageUnit.class);
 
         private final List<Class<? extends IMetaTileEntity>> mteClasses;
-        private final IGTHatchAdder<MTESteamHubArray> adder;
+        private final IGTHatchAdder<MTEWaterHubArray> adder;
 
         @SafeVarargs
-        SteamHubStorageElement(IGTHatchAdder<MTESteamHubArray> adder, Class<? extends IMetaTileEntity>... classes) {
+        WaterHubStorageElement(IGTHatchAdder<MTEWaterHubArray> adder, Class<? extends IMetaTileEntity>... classes) {
             this.mteClasses = Collections.unmodifiableList(Arrays.asList(classes));
             this.adder = adder;
         }
@@ -153,137 +147,146 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
         }
 
         @Override
-        public IGTHatchAdder<? super MTESteamHubArray> adder() {
+        public IGTHatchAdder<? super MTEWaterHubArray> adder() {
             return adder;
         }
 
         @Override
-        public long count(MTESteamHubArray t) {
-            return this == PressureUnit ? t.mPressureUnitCount : t.mReinforcedUnitCount;
+        public long count(MTEWaterHubArray t) {
+            return this == HubUnit ? t.mHubUnitCount : t.mReinforcedHubUnitCount;
         }
     }
 
-    private static class BoundCacheNode {
+    public static class BoundCacheNode {
 
-        final int x, y, z;
-        final int dimensionId;
-        final boolean isReinforced;
-        boolean isOutputMode;
-        transient IGregTechTileEntity cachedTile;
-        transient long lastLookupTick;
+        public int x;
+        public int y;
+        public int z;
+        public int dimensionId;
+        public boolean isOutputMode;
 
-        BoundCacheNode(int x, int y, int z, int dim, boolean reinforced, boolean outputMode) {
+        public BoundCacheNode(int x, int y, int z, int dimensionId, boolean isOutputMode) {
             this.x = x;
             this.y = y;
             this.z = z;
-            this.dimensionId = dim;
-            this.isReinforced = reinforced;
-            this.isOutputMode = outputMode;
+            this.dimensionId = dimensionId;
+            this.isOutputMode = isOutputMode;
         }
 
-        void invalidateCache() {
-            cachedTile = null;
-            lastLookupTick = 0;
+        public void writeToNBT(NBTTagCompound tag) {
+            tag.setInteger("x", x);
+            tag.setInteger("y", y);
+            tag.setInteger("z", z);
+            tag.setInteger("dim", dimensionId);
+            tag.setBoolean("out", isOutputMode);
+        }
+
+        public static BoundCacheNode readFromNBT(NBTTagCompound tag) {
+            return new BoundCacheNode(
+                tag.getInteger("x"),
+                tag.getInteger("y"),
+                tag.getInteger("z"),
+                tag.getInteger("dim"),
+                tag.getBoolean("out"));
         }
     }
 
-    private final ArrayList<MTESteamHubInputHatch> mSteamInputHatches = new ArrayList<>();
-    private final ArrayList<MTESteamHubOutputHatch> mSteamOutputHatches = new ArrayList<>();
+    private final ArrayList<MTEWaterHubInputHatch> mWaterInputHatches = new ArrayList<>();
+    private final ArrayList<MTEWaterHubOutputHatch> mWaterOutputHatches = new ArrayList<>();
     private final ArrayList<BoundCacheNode> mBoundNodes = new ArrayList<>();
 
-    private int mPressureUnitCount = 0;
-    private int mReinforcedUnitCount = 0;
+    private int mHubUnitCount = 0;
+    private int mReinforcedHubUnitCount = 0;
     private int mCasingAmount = 0;
     private int mHeight = 0;
-    private long mSteamStored = 0;
-    private FluidStack mStoredFluidType = null;
-    private long mTickCounter = 0;
+    private long mWaterStored = 0;
+    private String mStoredFluidType = null;
 
-    public MTESteamHubArray(int aID, String aName, String aNameRegional) {
+    public MTEWaterHubArray(int aID, String aName, String aNameRegional) {
         super(aID, aName, aNameRegional);
     }
 
-    public MTESteamHubArray(String aName) {
+    public MTEWaterHubArray(String aName) {
         super(aName);
     }
 
     @Override
     public IMetaTileEntity newMetaEntity(IGregTechTileEntity aTileEntity) {
-        return new MTESteamHubArray(mName);
+        return new MTEWaterHubArray(mName);
     }
 
     @Override
-    public IStructureDefinition<MTESteamHubArray> getStructureDefinition() {
+    public IStructureDefinition<MTEWaterHubArray> getStructureDefinition() {
         return STRUCTURE_DEFINITION;
     }
 
     @Override
     public boolean checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack) {
-        for (MTESteamHubInputHatch hatch : mSteamInputHatches) {
+        for (MTEWaterHubInputHatch hatch : mWaterInputHatches) {
             hatch.mController = null;
         }
-        for (MTESteamHubOutputHatch hatch : mSteamOutputHatches) {
+        for (MTEWaterHubOutputHatch hatch : mWaterOutputHatches) {
             hatch.mController = null;
         }
 
-        mPressureUnitCount = 0;
-        mReinforcedUnitCount = 0;
+        mHubUnitCount = 0;
+        mReinforcedHubUnitCount = 0;
         mCasingAmount = 0;
         mHeight = 0;
-        mSteamInputHatches.clear();
-        mSteamOutputHatches.clear();
+        mWaterInputHatches.clear();
+        mWaterOutputHatches.clear();
 
-        if (!checkPiece(STRUCTURE_PIECE_BASE, 2, 0, 0)) return false;
+        if (!checkPiece(STRUCTURE_PIECE_BASE, 1, 0, 0)) return false;
 
         while (mHeight < MAX_TOTAL_HEIGHT - 1) {
-            if (!checkPiece(STRUCTURE_PIECE_STACK, 2, mHeight + 1, 0)) break;
+            if (!checkPiece(STRUCTURE_PIECE_STACK, 1, mHeight + 1, 0)) break;
             mHeight++;
         }
 
-        return mHeight >= MIN_TOTAL_HEIGHT - 1 && (mPressureUnitCount + mReinforcedUnitCount) > 0;
+        return mHeight >= MIN_TOTAL_HEIGHT - 1 && (mHubUnitCount + mReinforcedHubUnitCount) > 0;
     }
 
     private void onCasingAdded() {
         mCasingAmount++;
     }
 
-    public boolean addSteamInputToMachineList(IGregTechTileEntity aTileEntity, int aBaseCasingIndex) {
+    public boolean addWaterInputToMachineList(IGregTechTileEntity aTileEntity, int aBaseCasingIndex) {
         if (aTileEntity == null) return false;
         IMetaTileEntity aMetaTileEntity = aTileEntity.getMetaTileEntity();
-        if (aMetaTileEntity instanceof MTESteamHubInputHatch hatch) {
+        if (aMetaTileEntity instanceof MTEWaterHubInputHatch hatch) {
             hatch.updateTexture(aBaseCasingIndex);
             hatch.mController = this;
-            return mSteamInputHatches.add(hatch);
+            return mWaterInputHatches.add(hatch);
         }
         return false;
     }
 
-    public boolean addSteamOutputToMachineList(IGregTechTileEntity aTileEntity, int aBaseCasingIndex) {
+    public boolean addWaterOutputToMachineList(IGregTechTileEntity aTileEntity, int aBaseCasingIndex) {
         if (aTileEntity == null) return false;
         IMetaTileEntity aMetaTileEntity = aTileEntity.getMetaTileEntity();
-        if (aMetaTileEntity instanceof MTESteamHubOutputHatch hatch) {
+        if (aMetaTileEntity instanceof MTEWaterHubOutputHatch hatch) {
             hatch.updateTexture(aBaseCasingIndex);
             hatch.mController = this;
-            return mSteamOutputHatches.add(hatch);
+            return mWaterOutputHatches.add(hatch);
         }
         return false;
     }
 
-    public boolean addPressureUnitToMachineList(IGregTechTileEntity aTileEntity, int aBaseCasingIndex) {
+    public boolean addHubUnitToMachineList(IGregTechTileEntity aTileEntity, int aBaseCasingIndex) {
         if (aTileEntity == null) return false;
         IMetaTileEntity aMetaTileEntity = aTileEntity.getMetaTileEntity();
         if (aMetaTileEntity instanceof MTEHubStorageUnit) {
-            mPressureUnitCount++;
+            mHubUnitCount++;
             return true;
         }
         return false;
     }
 
-    public boolean addReinforcedUnitToMachineList(IGregTechTileEntity aTileEntity, int aBaseCasingIndex) {
+    public boolean addReinforcedHubUnitToMachineList(IGregTechTileEntity aTileEntity, int aBaseCasingIndex) {
         if (aTileEntity == null) return false;
         IMetaTileEntity aMetaTileEntity = aTileEntity.getMetaTileEntity();
         if (aMetaTileEntity instanceof MTEReinforcedHubStorageUnit) {
-            mReinforcedUnitCount++;
+            mReinforcedHubUnitCount++;
             return true;
         }
         return false;
@@ -293,44 +296,59 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
         return mMachine;
     }
 
+    public static boolean isWaterFluid(FluidStack aFluid) {
+        if (aFluid == null || aFluid.getFluid() == null) return false;
+        String name = aFluid.getFluid()
+            .getName();
+        return "water".equals(name) || "ic2distilledwater".equals(name);
+    }
+
+    public static boolean isWaterFluidName(String fluidName) {
+        return "water".equals(fluidName) || "ic2distilledwater".equals(fluidName);
+    }
+
     @Override
     public int receiveFluid(FluidStack fluid, boolean doFill) {
-        return receiveSteam(fluid, doFill);
+        return receiveWater(fluid, doFill);
     }
 
     @Override
     public FluidStack extractFluid(int amount, boolean doDrain) {
-        return extractSteam(amount, doDrain);
+        return extractWater(amount, doDrain);
     }
 
-    public int receiveSteam(FluidStack aFluid, boolean doFill) {
+    public int receiveWater(FluidStack aFluid, boolean doFill) {
         if (aFluid == null) return 0;
-        if (!MTESteamHubOutputHatch.isSteamFluid(aFluid)) return 0;
-        if (mStoredFluidType != null && !mStoredFluidType.isFluidEqual(aFluid)) return 0;
+        if (!isWaterFluid(aFluid)) return 0;
+        if (mStoredFluidType != null && !mStoredFluidType.equals(
+            aFluid.getFluid()
+                .getName()))
+            return 0;
 
         long capacity = getTotalCapacity();
-        long canAccept = capacity - mSteamStored;
+        long canAccept = capacity - mWaterStored;
         int toAccept = (int) Math.min(aFluid.amount, canAccept);
 
         if (doFill && toAccept > 0) {
             if (mStoredFluidType == null) {
-                mStoredFluidType = new FluidStack(aFluid.getFluid(), 0);
+                mStoredFluidType = aFluid.getFluid()
+                    .getName();
             }
-            mSteamStored += toAccept;
+            mWaterStored += toAccept;
         }
 
         return toAccept;
     }
 
-    public FluidStack extractSteam(int maxDrain, boolean doDrain) {
-        if (mSteamStored <= 0 || mStoredFluidType == null) return null;
+    public FluidStack extractWater(int maxDrain, boolean doDrain) {
+        if (mWaterStored <= 0 || mStoredFluidType == null) return null;
 
-        int toDrain = (int) Math.min(maxDrain, mSteamStored);
-        FluidStack result = new FluidStack(mStoredFluidType.getFluid(), toDrain);
+        int toDrain = (int) Math.min(maxDrain, mWaterStored);
+        FluidStack result = FluidStack.loadFluidStackFromNBT(createFluidTag(mStoredFluidType, toDrain));
 
         if (doDrain) {
-            mSteamStored -= toDrain;
-            if (mSteamStored <= 0) {
+            mWaterStored -= toDrain;
+            if (mWaterStored <= 0) {
                 mStoredFluidType = null;
             }
         }
@@ -339,9 +357,16 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
     }
 
     public FluidStack getStoredFluidStack() {
-        if (mStoredFluidType == null || mSteamStored <= 0) return null;
-        int amount = (int) Math.min(mSteamStored, Integer.MAX_VALUE);
-        return new FluidStack(mStoredFluidType.getFluid(), amount);
+        if (mStoredFluidType == null || mWaterStored <= 0) return null;
+        int amount = (int) Math.min(mWaterStored, Integer.MAX_VALUE);
+        return FluidStack.loadFluidStackFromNBT(createFluidTag(mStoredFluidType, amount));
+    }
+
+    private static NBTTagCompound createFluidTag(String fluidName, int amount) {
+        NBTTagCompound tag = new NBTTagCompound();
+        tag.setString("FluidName", fluidName);
+        tag.setInteger("Amount", amount);
+        return tag;
     }
 
     private int getTotalHeightFromItemStack(ItemStack stackSize) {
@@ -352,28 +377,28 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
 
     @Override
     public void construct(ItemStack stackSize, boolean hintsOnly) {
-        buildPiece(STRUCTURE_PIECE_BASE, stackSize, hintsOnly, 2, 0, 0);
+        buildPiece(STRUCTURE_PIECE_BASE, stackSize, hintsOnly, 1, 0, 0);
         int tTotalHeight = getTotalHeightFromItemStack(stackSize);
         for (int i = 1; i < tTotalHeight - 1; i++) {
-            buildPiece(STRUCTURE_PIECE_STACK_HINT, stackSize, hintsOnly, 2, i, 0);
+            buildPiece(STRUCTURE_PIECE_STACK_HINT, stackSize, hintsOnly, 1, i, 0);
         }
-        buildPiece(STRUCTURE_PIECE_TOP_HINT, stackSize, hintsOnly, 2, tTotalHeight - 1, 0);
+        buildPiece(STRUCTURE_PIECE_TOP_HINT, stackSize, hintsOnly, 1, tTotalHeight - 1, 0);
     }
 
     @Override
     public int survivalConstruct(ItemStack stackSize, int elementBudget, ISurvivalBuildEnvironment env) {
         if (mMachine) return -1;
-        int built = survivalBuildPiece(STRUCTURE_PIECE_BASE, stackSize, 2, 0, 0, elementBudget, env, false, true);
+        int built = survivalBuildPiece(STRUCTURE_PIECE_BASE, stackSize, 1, 0, 0, elementBudget, env, false, true);
         if (built >= 0) return built;
         int tTotalHeight = getTotalHeightFromItemStack(stackSize);
         for (int i = 1; i < tTotalHeight - 1; i++) {
-            built = survivalBuildPiece(STRUCTURE_PIECE_STACK_HINT, stackSize, 2, i, 0, elementBudget, env, false, true);
+            built = survivalBuildPiece(STRUCTURE_PIECE_STACK_HINT, stackSize, 1, i, 0, elementBudget, env, false, true);
             if (built >= 0) return built;
         }
         return survivalBuildPiece(
             STRUCTURE_PIECE_TOP_HINT,
             stackSize,
-            2,
+            1,
             tTotalHeight - 1,
             0,
             elementBudget,
@@ -385,10 +410,10 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
     @Override
     public String[] getStructureDescription(ItemStack stackSize) {
         return new String[] { EnumChatFormatting.AQUA + "Structure:",
-            "1. 5x5 base layer with Bronze Plated Bricks and Hatches",
-            "2. Stack Storage Units above the base (1-12 layers)",
+            "1. 3x3 base layer with Bronze Plated Bricks and Hatches",
+            "2. Stack Storage Units above the base (1-15 layers)",
             "3. At least 1 Input Hatch and 1 Output Hatch required",
-            "4. Height: Level 1 = 2 layers, Level 12 = 13 layers" };
+            "4. Height: Level 1 = 2 layers, Level 15 = 16 layers" };
     }
 
     @Override
@@ -407,19 +432,19 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
     }
 
     public long getTotalCapacity() {
-        return (long) mPressureUnitCount * 16_000_000 + (long) mReinforcedUnitCount * 64_000_000;
+        return (long) mHubUnitCount * HUB_UNIT_CAPACITY + (long) mReinforcedHubUnitCount * REINFORCED_HUB_UNIT_CAPACITY;
     }
 
-    public long getSteamStored() {
-        return mSteamStored;
+    public long getWaterStored() {
+        return mWaterStored;
     }
 
-    public int getPressureUnitCount() {
-        return mPressureUnitCount;
+    public int getHubUnitCount() {
+        return mHubUnitCount;
     }
 
-    public int getReinforcedUnitCount() {
-        return mReinforcedUnitCount;
+    public int getReinforcedHubUnitCount() {
+        return mReinforcedHubUnitCount;
     }
 
     @Override
@@ -428,39 +453,100 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
         if (!aBaseMetaTileEntity.isServerSide() || !mMachine) return;
 
         long totalCapacity = getTotalCapacity();
-        if (mSteamStored > totalCapacity) {
-            mSteamStored = totalCapacity;
+        if (mWaterStored > totalCapacity) {
+            mWaterStored = totalCapacity;
         }
 
-        autoOutputSteam();
+        autoOutputWater();
 
-        mTickCounter++;
-        if (mTickCounter % 20 == 0) {
-            transferWithBoundNodes();
+        if (aTick % BOUND_TRANSFER_INTERVAL == 0) {
+            transferWithBoundNodes(aBaseMetaTileEntity);
         }
     }
 
-    private void autoOutputSteam() {
-        if (mSteamStored <= 0 || mStoredFluidType == null) return;
-        for (MTESteamHubOutputHatch hatch : mSteamOutputHatches) {
-            if (mSteamStored <= 0) break;
+    private void autoOutputWater() {
+        if (mWaterStored <= 0 || mStoredFluidType == null) return;
+        for (MTEWaterHubOutputHatch hatch : mWaterOutputHatches) {
+            if (mWaterStored <= 0) break;
             IGregTechTileEntity hatchBase = hatch.getBaseMetaTileEntity();
             if (hatchBase == null) continue;
             ForgeDirection hatchFront = hatchBase.getFrontFacing();
             IFluidHandler adjacent = hatchBase.getITankContainerAtSide(hatchFront);
             if (adjacent == null) continue;
 
-            int toPush = (int) Math.min(AUTO_OUTPUT_RATE, mSteamStored);
-            FluidStack toExport = new FluidStack(mStoredFluidType.getFluid(), toPush);
+            int toPush = (int) Math.min(AUTO_OUTPUT_RATE, mWaterStored);
+            FluidStack toExport = FluidStack.loadFluidStackFromNBT(createFluidTag(mStoredFluidType, toPush));
             int pushed = adjacent.fill(hatchFront.getOpposite(), toExport, true);
             if (pushed > 0) {
-                mSteamStored -= pushed;
-                if (mSteamStored <= 0) {
+                mWaterStored -= pushed;
+                if (mWaterStored <= 0) {
                     mStoredFluidType = null;
                     return;
                 }
             }
         }
+    }
+
+    private void transferWithBoundNodes(IGregTechTileEntity aBaseMetaTileEntity) {
+        if (!hasHubSingularityChip()) {
+            return;
+        }
+
+        World world = aBaseMetaTileEntity.getWorld();
+        if (world == null) return;
+        int dimId = world.provider.dimensionId;
+
+        ArrayList<BoundCacheNode> invalidNodes = new ArrayList<>();
+
+        for (BoundCacheNode node : mBoundNodes) {
+            if (node.dimensionId != dimId) continue;
+
+            TileEntity tile = world.getTileEntity(node.x, node.y, node.z);
+            if (!(tile instanceof IGregTechTileEntity gtTile)) {
+                invalidNodes.add(node);
+                continue;
+            }
+
+            IMetaTileEntity mte = gtTile.getMetaTileEntity();
+            if (!isWaterCacheNode(mte)) {
+                invalidNodes.add(node);
+                continue;
+            }
+
+            if (node.isOutputMode) {
+                FluidStack drained = gtTile.drain(ForgeDirection.UNKNOWN, BOUND_TRANSFER_RATE, false);
+                if (drained != null && isWaterFluid(drained)) {
+                    int accepted = receiveWater(drained, true);
+                    if (accepted > 0) {
+                        gtTile.drain(ForgeDirection.UNKNOWN, accepted, true);
+                    }
+                }
+            } else {
+                if (mWaterStored <= 0 || mStoredFluidType == null) continue;
+                int toTransfer = (int) Math.min(BOUND_TRANSFER_RATE, mWaterStored);
+                FluidStack toExport = FluidStack.loadFluidStackFromNBT(createFluidTag(mStoredFluidType, toTransfer));
+                int filled = gtTile.fill(ForgeDirection.UNKNOWN, toExport, true);
+                if (filled > 0) {
+                    mWaterStored -= filled;
+                    if (mWaterStored <= 0) {
+                        mStoredFluidType = null;
+                    }
+                }
+            }
+        }
+
+        mBoundNodes.removeAll(invalidNodes);
+    }
+
+    private static boolean isWaterCacheNode(IMetaTileEntity mte) {
+        if (mte == null) return false;
+        return mte.getMetaName() != null && mte.getMetaName()
+            .contains("water.cache.node");
+    }
+
+    private boolean hasHubSingularityChip() {
+        ItemStack stack = getControllerSlot();
+        return stack != null && GTSRItemList.HubSingularityChip.isStackEqual(stack, true, true);
     }
 
     @Override
@@ -479,22 +565,13 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
             return super.onRightclick(aBaseMetaTileEntity, aPlayer, side, aX, aY, aZ);
         }
 
-        String type = null;
-        boolean isReinforced = false;
-        if (GTSRItemList.SteamCacheNode.isStackEqual(held, false, true)) {
-            type = "steam";
-        } else if (GTSRItemList.ReinforcedSteamCacheNode.isStackEqual(held, false, true)) {
-            type = "reinforced_steam";
-            isReinforced = true;
-        }
-
-        if (type == null) {
+        if (!GTSRItemList.WaterCacheNode.isStackEqual(held, false, true)) {
             return super.onRightclick(aBaseMetaTileEntity, aPlayer, side, aX, aY, aZ);
         }
 
         if (!aBaseMetaTileEntity.isServerSide()) return true;
 
-        if (!hasChipInstalled()) {
+        if (!hasHubSingularityChip()) {
             GTUtility.sendChatToPlayer(aPlayer, StatCollector.translateToLocal("gtsr.binding.no_chip"));
             return true;
         }
@@ -544,9 +621,8 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
         hubTag.setInteger("y", myY);
         hubTag.setInteger("z", myZ);
         hubTag.setInteger("dim", myDim);
-        hubTag.setString("type", type);
+        hubTag.setString("type", "water");
         hubTag.setBoolean("output", false);
-        hubTag.setBoolean("reinforced", isReinforced);
 
         held.getTagCompound()
             .setTag("gtsr.hubPos", hubTag);
@@ -558,14 +634,9 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
         return true;
     }
 
-    private boolean hasChipInstalled() {
-        ItemStack stack = getControllerSlot();
-        return stack != null && GTSRItemList.HubSingularityChip.isStackEqual(stack, true, true);
-    }
-
-    private BoundCacheNode findBoundNode(int x, int y, int z, int dim) {
+    private BoundCacheNode findBoundNode(int x, int y, int z, int dimId) {
         for (BoundCacheNode node : mBoundNodes) {
-            if (node.x == x && node.y == y && node.z == z && node.dimensionId == dim) {
+            if (node.x == x && node.y == y && node.z == z && node.dimensionId == dimId) {
                 return node;
             }
         }
@@ -578,7 +649,7 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
         if (existing != null) {
             existing.isOutputMode = isOutputMode;
         } else {
-            mBoundNodes.add(new BoundCacheNode(x, y, z, dim, false, isOutputMode));
+            mBoundNodes.add(new BoundCacheNode(x, y, z, dim, isOutputMode));
         }
     }
 
@@ -600,124 +671,83 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
 
     @Override
     public boolean acceptsNodeType(String type) {
-        return "steam".equals(type) || "reinforced_steam".equals(type);
+        return "water".equals(type);
     }
 
     private void sendBindingDebug(EntityPlayer aPlayer) {
-        GTUtility.sendChatToPlayer(aPlayer, StatCollector.translateToLocal("gtsr.binding.debug_title"));
+        aPlayer.addChatMessage(
+            new ChatComponentText(
+                EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.binding.debug_title")));
         if (mBoundNodes.isEmpty()) {
-            GTUtility.sendChatToPlayer(aPlayer, StatCollector.translateToLocal("gtsr.binding.debug_no_bindings"));
-            return;
-        }
-        if (!hasChipInstalled()) {
-            GTUtility.sendChatToPlayer(aPlayer, StatCollector.translateToLocal("gtsr.binding.debug_no_chip"));
-        }
-        for (BoundCacheNode node : mBoundNodes) {
-            String mode = node.isOutputMode ? StatCollector.translateToLocal("gtsr.binding.debug_output")
-                : StatCollector.translateToLocal("gtsr.binding.debug_input");
-            String posInfo = StatCollector.translateToLocal("gtsr.binding.debug_node") + "("
-                + node.x
-                + ", "
-                + node.y
-                + ", "
-                + node.z
-                + ") DIM:"
-                + node.dimensionId
-                + " "
-                + StatCollector.translateToLocal("gtsr.binding.debug_mode")
-                + mode;
-            GTUtility.sendChatToPlayer(aPlayer, posInfo);
-        }
-    }
-
-    private void transferWithBoundNodes() {
-        if (!hasChipInstalled()) {
-            return;
-        }
-
-        ArrayList<BoundCacheNode> invalidNodes = new ArrayList<>();
-
-        for (BoundCacheNode node : mBoundNodes) {
-            World world = DimensionManager.getWorld(node.dimensionId);
-            if (world == null) continue;
-
-            TileEntity te = world.getTileEntity(node.x, node.y, node.z);
-            if (!(te instanceof IGregTechTileEntity)) {
-                invalidNodes.add(node);
-                continue;
+            aPlayer.addChatMessage(
+                new ChatComponentText(
+                    EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.binding.debug_no_bindings")));
+        } else {
+            if (!hasHubSingularityChip()) {
+                aPlayer.addChatMessage(
+                    new ChatComponentText(
+                        EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.binding.debug_no_chip")));
             }
-            IGregTechTileEntity gte = (IGregTechTileEntity) te;
-
-            if (node.isOutputMode) {
-                FluidStack drained = gte.drain(ForgeDirection.UNKNOWN, TRANSFER_RATE, false);
-                if (drained != null && drained.amount > 0) {
-                    int received = receiveSteam(drained, true);
-                    if (received > 0) gte.drain(ForgeDirection.UNKNOWN, received, true);
-                }
-            } else {
-                FluidStack toSend = extractSteam(TRANSFER_RATE, false);
-                if (toSend != null && toSend.amount > 0) {
-                    int filled = gte.fill(ForgeDirection.UNKNOWN, toSend, true);
-                    if (filled > 0) extractSteam(filled, true);
-                }
+            for (BoundCacheNode node : mBoundNodes) {
+                String mode = node.isOutputMode ? StatCollector.translateToLocal("gtsr.binding.debug_output")
+                    : StatCollector.translateToLocal("gtsr.binding.debug_input");
+                aPlayer.addChatMessage(
+                    new ChatComponentText(
+                        EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.binding.debug_node")
+                            + node.x
+                            + ", "
+                            + node.y
+                            + ", "
+                            + node.z
+                            + EnumChatFormatting.WHITE
+                            + " "
+                            + StatCollector.translateToLocal("gtsr.binding.debug_mode")
+                            + EnumChatFormatting.YELLOW
+                            + mode));
             }
         }
-
-        mBoundNodes.removeAll(invalidNodes);
     }
 
     @Override
     public void saveNBTData(NBTTagCompound aNBT) {
         super.saveNBTData(aNBT);
-        aNBT.setLong("mSteamStored", mSteamStored);
-        aNBT.setInteger("mPressureUnitCount", mPressureUnitCount);
-        aNBT.setInteger("mReinforcedUnitCount", mReinforcedUnitCount);
+        aNBT.setLong("mWaterStored", mWaterStored);
+        aNBT.setInteger("mHubUnitCount", mHubUnitCount);
+        aNBT.setInteger("mReinforcedHubUnitCount", mReinforcedHubUnitCount);
         aNBT.setInteger("mHeight", mHeight);
-        aNBT.setLong("mTickCounter", mTickCounter);
         if (mStoredFluidType != null) {
-            NBTTagCompound fluidTag = new NBTTagCompound();
-            mStoredFluidType.writeToNBT(fluidTag);
-            aNBT.setTag("mStoredFluidType", fluidTag);
+            aNBT.setString("mStoredFluidType", mStoredFluidType);
         }
         if (!mBoundNodes.isEmpty()) {
-            NBTTagList boundList = new NBTTagList();
-            for (BoundCacheNode node : mBoundNodes) {
+            NBTTagCompound boundListTag = new NBTTagCompound();
+            boundListTag.setInteger("count", mBoundNodes.size());
+            for (int i = 0; i < mBoundNodes.size(); i++) {
                 NBTTagCompound nodeTag = new NBTTagCompound();
-                nodeTag.setInteger("x", node.x);
-                nodeTag.setInteger("y", node.y);
-                nodeTag.setInteger("z", node.z);
-                nodeTag.setInteger("dim", node.dimensionId);
-                nodeTag.setBoolean("reinforced", node.isReinforced);
-                nodeTag.setBoolean("outputMode", node.isOutputMode);
-                boundList.appendTag(nodeTag);
+                mBoundNodes.get(i)
+                    .writeToNBT(nodeTag);
+                boundListTag.setTag("node" + i, nodeTag);
             }
-            aNBT.setTag("mBoundNodes", boundList);
+            aNBT.setTag("mBoundNodes", boundListTag);
         }
     }
 
     @Override
     public void loadNBTData(NBTTagCompound aNBT) {
         super.loadNBTData(aNBT);
-        mSteamStored = aNBT.getLong("mSteamStored");
-        mPressureUnitCount = aNBT.getInteger("mPressureUnitCount");
-        mReinforcedUnitCount = aNBT.getInteger("mReinforcedUnitCount");
+        mWaterStored = aNBT.getLong("mWaterStored");
+        mHubUnitCount = aNBT.getInteger("mHubUnitCount");
+        mReinforcedHubUnitCount = aNBT.getInteger("mReinforcedHubUnitCount");
         mHeight = aNBT.getInteger("mHeight");
-        mTickCounter = aNBT.getLong("mTickCounter");
         if (aNBT.hasKey("mStoredFluidType")) {
-            mStoredFluidType = FluidStack.loadFluidStackFromNBT(aNBT.getCompoundTag("mStoredFluidType"));
+            mStoredFluidType = aNBT.getString("mStoredFluidType");
         }
         mBoundNodes.clear();
         if (aNBT.hasKey("mBoundNodes")) {
-            NBTTagList boundList = aNBT.getTagList("mBoundNodes", 10);
-            for (int i = 0; i < boundList.tagCount(); i++) {
-                NBTTagCompound nodeTag = boundList.getCompoundTagAt(i);
-                int x = nodeTag.getInteger("x");
-                int y = nodeTag.getInteger("y");
-                int z = nodeTag.getInteger("z");
-                int dim = nodeTag.getInteger("dim");
-                boolean reinforced = nodeTag.getBoolean("reinforced");
-                boolean outputMode = nodeTag.getBoolean("outputMode");
-                mBoundNodes.add(new BoundCacheNode(x, y, z, dim, reinforced, outputMode));
+            NBTTagCompound boundListTag = aNBT.getCompoundTag("mBoundNodes");
+            int count = boundListTag.getInteger("count");
+            for (int i = 0; i < count; i++) {
+                NBTTagCompound nodeTag = boundListTag.getCompoundTag("node" + i);
+                mBoundNodes.add(BoundCacheNode.readFromNBT(nodeTag));
             }
         }
     }
@@ -749,9 +779,9 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
     @Override
     public String[] getInfoData() {
         long totalCapacity = getTotalCapacity();
-        double fillRatio = totalCapacity > 0 ? (double) mSteamStored / totalCapacity * 100 : 0;
+        double fillRatio = totalCapacity > 0 ? (double) mWaterStored / totalCapacity * 100 : 0;
 
-        boolean hasChip = hasChipInstalled();
+        boolean hasChip = hasHubSingularityChip();
         int outputCount = 0;
         int inputCount = 0;
         if (hasChip) {
@@ -762,24 +792,25 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
         }
 
         ArrayList<String> info = new ArrayList<>();
-        info.add(EnumChatFormatting.BLUE + "Steam Hub Array");
+        info.add(EnumChatFormatting.BLUE + "Water Hub Array");
         info.add(
             EnumChatFormatting.GRAY + "Status: "
                 + (mMachine ? EnumChatFormatting.GREEN + "Running" : EnumChatFormatting.RED + "Incomplete"));
         info.add(
-            EnumChatFormatting.GRAY + "Steam Type: "
+            EnumChatFormatting.GRAY + "Fluid Type: "
                 + EnumChatFormatting.AQUA
-                + (mStoredFluidType != null ? mStoredFluidType.getLocalizedName() : "None"));
+                + (mStoredFluidType != null ? mStoredFluidType : "None"));
         info.add(
-            EnumChatFormatting.GRAY + "Steam Stored: "
+            EnumChatFormatting.GRAY + "Water Stored: "
                 + EnumChatFormatting.YELLOW
-                + GTUtility.formatNumbers(mSteamStored)
+                + GTUtility.formatNumbers(mWaterStored)
                 + " / "
                 + GTUtility.formatNumbers(totalCapacity)
                 + " L");
         info.add(EnumChatFormatting.GRAY + "Fill: " + EnumChatFormatting.GREEN + String.format("%.1f%%", fillRatio));
-        info.add(EnumChatFormatting.GRAY + "Pressure Units: " + EnumChatFormatting.WHITE + mPressureUnitCount);
-        info.add(EnumChatFormatting.GRAY + "Reinforced Units: " + EnumChatFormatting.WHITE + mReinforcedUnitCount);
+        info.add(EnumChatFormatting.GRAY + "Hub Units: " + EnumChatFormatting.WHITE + mHubUnitCount);
+        info.add(
+            EnumChatFormatting.GRAY + "Reinforced Hub Units: " + EnumChatFormatting.WHITE + mReinforcedHubUnitCount);
 
         if (hasChip) {
             info.add(
@@ -801,27 +832,27 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
     @Override
     protected MultiblockTooltipBuilder createTooltip() {
         final MultiblockTooltipBuilder tt = new MultiblockTooltipBuilder();
-        tt.addMachineType(StatCollector.translateToLocal("gtsr.recipe.steam_hub_array"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.steam_hub_array.info"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.steam_hub_array.structure"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.steam_hub_array.capacity"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.steam_hub_array.output"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.steam_hub_array.no_maintenance"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.steam_hub_array.hatch_note"))
-            .beginVariableStructureBlock(5, 5, 2, 13, 5, 5, false)
-            .addController(StatCollector.translateToLocal("gtsr.tooltip.steam_hub_array.ctrl_pos"))
-            .addCasingInfoMin(StatCollector.translateToLocal("gtsr.tooltip.steam_hub_array.casing"), 1, false)
+        tt.addMachineType(StatCollector.translateToLocal("gtsr.recipe.water_hub_array"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.water_hub_array.info"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.water_hub_array.structure"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.water_hub_array.capacity"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.water_hub_array.output"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.water_hub_array.no_maintenance"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.water_hub_array.hatch_note"))
+            .beginVariableStructureBlock(3, 3, 2, 16, 3, 3, false)
+            .addController(StatCollector.translateToLocal("gtsr.tooltip.water_hub_array.ctrl"))
+            .addCasingInfoMin(StatCollector.translateToLocal("gtsr.tooltip.water_hub_array.casing"), 1, false)
             .addOtherStructurePart(
-                StatCollector.translateToLocal("gtsr.tooltip.steam_hub_array.input_hatch"),
-                StatCollector.translateToLocal("gtsr.tooltip.steam_hub_array.base_layer"),
+                StatCollector.translateToLocal("gtsr.tooltip.water_hub_array.input_hatch"),
+                StatCollector.translateToLocal("gtsr.tooltip.water_hub_array.base_layer"),
                 1)
             .addOtherStructurePart(
-                StatCollector.translateToLocal("gtsr.tooltip.steam_hub_array.output_hatch"),
-                StatCollector.translateToLocal("gtsr.tooltip.steam_hub_array.base_layer"),
+                StatCollector.translateToLocal("gtsr.tooltip.water_hub_array.output_hatch"),
+                StatCollector.translateToLocal("gtsr.tooltip.water_hub_array.base_layer"),
                 1)
             .addOtherStructurePart(
-                StatCollector.translateToLocal("gtsr.tooltip.steam_hub_array.storage_unit"),
-                StatCollector.translateToLocal("gtsr.tooltip.steam_hub_array.stack_layers"),
+                StatCollector.translateToLocal("gtsr.tooltip.water_hub_array.storage_unit"),
+                StatCollector.translateToLocal("gtsr.tooltip.water_hub_array.stack_layers"),
                 2)
             .addSubChannelUsage(GTStructureChannels.STRUCTURE_HEIGHT)
             .toolTipFinisher();

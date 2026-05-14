@@ -36,8 +36,8 @@ public enum GTSRItemList implements IItemContainer {
     ReinforcedSteamCacheNode,
     SteamHubOutputHatch,
     SteamHubInputHatch,
-    PressureSteamStorageUnit,
-    ReinforcedSteamStorageUnit,
+    HubStorageUnit,
+    ReinforcedHubStorageUnit,
 
     // 多方块机器
     SteamHubArray,
@@ -57,6 +57,13 @@ public enum GTSRItemList implements IItemContainer {
     GeothermalOverheatChip,
     SteamCoolingHatch,
     PressureSteamCoolingHatch,
+    SteamSingularityCompressor,
+    WaterHubArray,
+    WaterHubOutputHatch,
+    WaterHubInputHatch,
+    WaterCacheNode,
+    SteamEntangledSingularity,
+    HubSingularityChip,
 
     ;
 

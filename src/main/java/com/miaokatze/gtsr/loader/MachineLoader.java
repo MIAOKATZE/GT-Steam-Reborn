@@ -8,19 +8,24 @@ import com.miaokatze.gtsr.common.machine.MTELargeSolarOverpressureArray;
 import com.miaokatze.gtsr.common.machine.MTELargeSteamFurnace;
 import com.miaokatze.gtsr.common.machine.MTESteamFluidDrill;
 import com.miaokatze.gtsr.common.machine.MTESteamHubArray;
+import com.miaokatze.gtsr.common.machine.MTESteamSingularityCompressor;
 import com.miaokatze.gtsr.common.machine.MTEVeinSteamPyrolyzer;
 import com.miaokatze.gtsr.common.machine.MTEVoidCrustSteamBorer;
+import com.miaokatze.gtsr.common.machine.MTEWaterHubArray;
 import com.miaokatze.gtsr.common.machine.base.MTEHatchPressureSteamInput;
+import com.miaokatze.gtsr.common.machine.base.MTEHubStorageUnit;
 import com.miaokatze.gtsr.common.machine.base.MTEPressureSteamCoolingHatch;
 import com.miaokatze.gtsr.common.machine.base.MTEPressureSteamOutputHatch;
-import com.miaokatze.gtsr.common.machine.base.MTEPressureSteamStorageUnit;
+import com.miaokatze.gtsr.common.machine.base.MTEReinforcedHubStorageUnit;
 import com.miaokatze.gtsr.common.machine.base.MTEReinforcedSteamCacheNode;
-import com.miaokatze.gtsr.common.machine.base.MTEReinforcedSteamStorageUnit;
 import com.miaokatze.gtsr.common.machine.base.MTESteamCacheNode;
 import com.miaokatze.gtsr.common.machine.base.MTESteamCoolingHatch;
 import com.miaokatze.gtsr.common.machine.base.MTESteamHubInputHatch;
 import com.miaokatze.gtsr.common.machine.base.MTESteamHubOutputHatch;
 import com.miaokatze.gtsr.common.machine.base.MTESteamOutputHatch;
+import com.miaokatze.gtsr.common.machine.base.MTEWaterCacheNode;
+import com.miaokatze.gtsr.common.machine.base.MTEWaterHubInputHatch;
+import com.miaokatze.gtsr.common.machine.base.MTEWaterHubOutputHatch;
 import com.miaokatze.gtsr.register.CreativeTabManager;
 
 public class MachineLoader {
@@ -36,6 +41,9 @@ public class MachineLoader {
         registerSolarOverpressureArray();
         registerGeothermalSteamBoiler();
         registerSteamCoolingHatches();
+        registerSteamSingularityCompressor();
+        registerWaterHubMachines();
+        registerWaterCacheNode();
     }
 
     private static void registerSteamMachines() {
@@ -66,19 +74,16 @@ public class MachineLoader {
                 "Steam Hub Input Hatch"));
         CreativeTabManager.addItemToTab(GTSRItemList.SteamHubInputHatch.get(1));
 
-        GTSRItemList.PressureSteamStorageUnit.set(
-            new MTEPressureSteamStorageUnit(
-                MetaTileEntityID.PRESSURE_STEAM_STORAGE_UNIT.ID,
-                "gtsr.pressure.steam.storage.unit",
-                "Pressure Steam Storage Unit"));
-        CreativeTabManager.addItemToTab(GTSRItemList.PressureSteamStorageUnit.get(1));
+        GTSRItemList.HubStorageUnit.set(
+            new MTEHubStorageUnit(MetaTileEntityID.HUB_STORAGE_UNIT.ID, "gtsr.hub.storage.unit", "Hub Storage Unit"));
+        CreativeTabManager.addItemToTab(GTSRItemList.HubStorageUnit.get(1));
 
-        GTSRItemList.ReinforcedSteamStorageUnit.set(
-            new MTEReinforcedSteamStorageUnit(
-                MetaTileEntityID.REINFORCED_STEAM_STORAGE_UNIT.ID,
-                "gtsr.reinforced.steam.storage.unit",
-                "Reinforced Steam Storage Unit"));
-        CreativeTabManager.addItemToTab(GTSRItemList.ReinforcedSteamStorageUnit.get(1));
+        GTSRItemList.ReinforcedHubStorageUnit.set(
+            new MTEReinforcedHubStorageUnit(
+                MetaTileEntityID.REINFORCED_HUB_STORAGE_UNIT.ID,
+                "gtsr.reinforced.hub.storage.unit",
+                "Reinforced Hub Storage Unit"));
+        CreativeTabManager.addItemToTab(GTSRItemList.ReinforcedHubStorageUnit.get(1));
 
         GTSRItemList.SteamHubArray
             .set(new MTESteamHubArray(MetaTileEntityID.STEAM_HUB_ARRAY.ID, "gtsr.steam.hub.array", "Steam Hub Array"));
@@ -184,5 +189,40 @@ public class MachineLoader {
                 "gtsr.pressure.steam.cooling.hatch",
                 "Pressure Steam Cooling Hatch"));
         CreativeTabManager.addItemToTab(GTSRItemList.PressureSteamCoolingHatch.get(1));
+    }
+
+    private static void registerSteamSingularityCompressor() {
+        GTSRItemList.SteamSingularityCompressor.set(
+            new MTESteamSingularityCompressor(
+                MetaTileEntityID.STEAM_SINGULARITY_COMPRESSOR.ID,
+                "gtsr.steam.singularity.compressor",
+                "Steam Singularity Compressor"));
+        CreativeTabManager.addItemToTab(GTSRItemList.SteamSingularityCompressor.get(1));
+    }
+
+    private static void registerWaterHubMachines() {
+        GTSRItemList.WaterHubOutputHatch.set(
+            new MTEWaterHubOutputHatch(
+                MetaTileEntityID.WATER_HUB_OUTPUT_HATCH.ID,
+                "gtsr.water.hub.output.hatch",
+                "Water Hub Output Hatch"));
+        CreativeTabManager.addItemToTab(GTSRItemList.WaterHubOutputHatch.get(1));
+
+        GTSRItemList.WaterHubInputHatch.set(
+            new MTEWaterHubInputHatch(
+                MetaTileEntityID.WATER_HUB_INPUT_HATCH.ID,
+                "gtsr.water.hub.input.hatch",
+                "Water Hub Input Hatch"));
+        CreativeTabManager.addItemToTab(GTSRItemList.WaterHubInputHatch.get(1));
+
+        GTSRItemList.WaterHubArray
+            .set(new MTEWaterHubArray(MetaTileEntityID.WATER_HUB_ARRAY.ID, "gtsr.water.hub.array", "Water Hub Array"));
+        CreativeTabManager.addItemToTab(GTSRItemList.WaterHubArray.get(1));
+    }
+
+    private static void registerWaterCacheNode() {
+        GTSRItemList.WaterCacheNode.set(
+            new MTEWaterCacheNode(MetaTileEntityID.WATER_CACHE_NODE.ID, "gtsr.water.cache.node", "Water Cache Node"));
+        CreativeTabManager.addItemToTab(GTSRItemList.WaterCacheNode.get(1));
     }
 }

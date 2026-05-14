@@ -1,0 +1,117 @@
+package com.miaokatze.gtsr.common.machine.base;
+
+import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.util.StatCollector;
+import net.minecraftforge.common.util.ForgeDirection;
+import net.minecraftforge.fluids.FluidStack;
+import net.minecraftforge.fluids.IFluidHandler;
+
+import com.miaokatze.gtsr.common.machine.MTEWaterHubArray;
+
+import gregtech.api.interfaces.ITexture;
+import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
+import gregtech.api.metatileentity.MetaTileEntity;
+import gregtech.api.metatileentity.implementations.MTEHatchOutput;
+
+public class MTEWaterHubOutputHatch extends MTEHatchOutput {
+
+    private static final int OUTPUT_PER_TICK = 6_400;
+
+    public MTEWaterHubArray mController;
+
+    public MTEWaterHubOutputHatch(int aID, String aName, String aNameRegional) {
+        super(aID, aName, aNameRegional, 1);
+        this.mMode = 3;
+    }
+
+    public MTEWaterHubOutputHatch(String aName, int aTier, String[] aDescription, ITexture[][][] aTextures) {
+        super(aName, aTier, aDescription, aTextures);
+        this.mMode = 3;
+    }
+
+    @Override
+    public MetaTileEntity newMetaEntity(IGregTechTileEntity aTileEntity) {
+        return new MTEWaterHubOutputHatch(mName, mTier, mDescriptionArray, mTextures);
+    }
+
+    @Override
+    public boolean onRightclick(IGregTechTileEntity aBaseMetaTileEntity, EntityPlayer aPlayer) {
+        return true;
+    }
+
+    @Override
+    public FluidStack drain(int maxDrain, boolean doDrain) {
+        if (mController != null) {
+            if (mController.isFormed()) {
+                return mController.extractWater(maxDrain, doDrain);
+            }
+            mController = null;
+        }
+        return super.drain(maxDrain, doDrain);
+    }
+
+    @Override
+    public FluidStack getFluid() {
+        if (mController != null && mController.isFormed()) {
+            return mController.getStoredFluidStack();
+        }
+        return super.getFluid();
+    }
+
+    @Override
+    public int getCapacity() {
+        if (mController != null && mController.isFormed()) {
+            return (int) Math.min(mController.getTotalCapacity(), Integer.MAX_VALUE);
+        }
+        return 2_000_000;
+    }
+
+    @Override
+    public boolean canStoreFluid(FluidStack fluidStack) {
+        if (fluidStack == null) return false;
+        if (!isWaterFluid(fluidStack)) return false;
+        return super.canStoreFluid(fluidStack);
+    }
+
+    @Override
+    public boolean acceptsFluidLock(String name) {
+        return false;
+    }
+
+    @Override
+    public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
+        super.onPostTick(aBaseMetaTileEntity, aTick);
+        if (!aBaseMetaTileEntity.isServerSide()) return;
+        if (mController == null || !mController.isFormed()) return;
+
+        FluidStack stored = mController.getStoredFluidStack();
+        if (stored == null) return;
+
+        ForgeDirection hatchFront = aBaseMetaTileEntity.getFrontFacing();
+        IFluidHandler adjacent = aBaseMetaTileEntity.getITankContainerAtSide(hatchFront);
+        if (adjacent == null) return;
+
+        int toPush = Math.min(OUTPUT_PER_TICK, stored.amount);
+        FluidStack toExport = new FluidStack(stored.getFluid(), toPush);
+        int pushed = adjacent.fill(hatchFront.getOpposite(), toExport, true);
+        if (pushed > 0) {
+            mController.extractWater(pushed, true);
+        }
+    }
+
+    public static boolean isWaterFluid(FluidStack aFluid) {
+        if (aFluid == null) return false;
+        if (aFluid.getFluid() == null) return false;
+        String fluidName = aFluid.getFluid()
+            .getName();
+        return "water".equals(fluidName) || "ic2distilledwater".equals(fluidName);
+    }
+
+    @Override
+    public String[] getDescription() {
+        return new String[] { StatCollector.translateToLocal("gtsr.tooltip.water_hub_output_hatch.info"),
+            StatCollector.translateToLocal("gtsr.tooltip.water_hub_output_hatch.fluid_type"),
+            StatCollector.translateToLocal("gtsr.tooltip.water_hub_output_hatch.output_rate"),
+            StatCollector.translateToLocal("gtsr.tooltip.water_hub_output_hatch.no_storage") };
+    }
+}

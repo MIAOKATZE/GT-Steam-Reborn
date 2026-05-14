@@ -33,10 +33,10 @@ public enum MetaTileEntityID {
     STEAM_HUB_OUTPUT_HATCH(3),
     /** 蒸汽枢纽输入仓 */
     STEAM_HUB_INPUT_HATCH(4),
-    /** 耐压蒸汽存储单元 */
-    PRESSURE_STEAM_STORAGE_UNIT(5),
-    /** 加固蒸汽存储单元 */
-    REINFORCED_STEAM_STORAGE_UNIT(6),
+    /** 枢纽存储单元 */
+    HUB_STORAGE_UNIT(5),
+    /** 加固枢纽存储单元 */
+    REINFORCED_HUB_STORAGE_UNIT(6),
 
     // --- 多方块机器 (7+) ---
     /** 蒸汽枢纽阵列 */
@@ -65,6 +65,16 @@ public enum MetaTileEntityID {
     STEAM_COOLING_HATCH(18),
     /** 耐压蒸汽冷却仓 */
     PRESSURE_STEAM_COOLING_HATCH(19),
+    /** 蒸汽奇点压缩机 */
+    STEAM_SINGULARITY_COMPRESSOR(20),
+    /** 蓄水枢纽阵列 */
+    WATER_HUB_ARRAY(21),
+    /** 蓄水枢纽输出仓 */
+    WATER_HUB_OUTPUT_HATCH(22),
+    /** 蓄水枢纽输入仓 */
+    WATER_HUB_INPUT_HATCH(23),
+    /** 水缓存节点 */
+    WATER_CACHE_NODE(24),
 
     ;
 
