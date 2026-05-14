@@ -14,7 +14,6 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.ChatComponentText;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 import net.minecraft.world.World;
@@ -675,36 +674,26 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
     }
 
     private void sendBindingDebug(EntityPlayer aPlayer) {
-        aPlayer.addChatMessage(
-            new ChatComponentText(
-                EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.binding.debug_title")));
+        GTUtility.sendChatToPlayer(aPlayer, StatCollector.translateToLocal("gtsr.binding.debug_title"));
         if (mBoundNodes.isEmpty()) {
-            aPlayer.addChatMessage(
-                new ChatComponentText(
-                    EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.binding.debug_no_bindings")));
-        } else {
-            if (!hasHubSingularityChip()) {
-                aPlayer.addChatMessage(
-                    new ChatComponentText(
-                        EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.binding.debug_no_chip")));
-            }
-            for (BoundCacheNode node : mBoundNodes) {
-                String mode = node.isOutputMode ? StatCollector.translateToLocal("gtsr.binding.debug_output")
-                    : StatCollector.translateToLocal("gtsr.binding.debug_input");
-                aPlayer.addChatMessage(
-                    new ChatComponentText(
-                        EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.binding.debug_node")
-                            + node.x
-                            + ", "
-                            + node.y
-                            + ", "
-                            + node.z
-                            + EnumChatFormatting.WHITE
-                            + " "
-                            + StatCollector.translateToLocal("gtsr.binding.debug_mode")
-                            + EnumChatFormatting.YELLOW
-                            + mode));
-            }
+            GTUtility.sendChatToPlayer(aPlayer, StatCollector.translateToLocal("gtsr.binding.debug_no_bindings"));
+            return;
+        }
+        if (!hasHubSingularityChip()) {
+            GTUtility.sendChatToPlayer(aPlayer, StatCollector.translateToLocal("gtsr.binding.debug_no_chip"));
+        }
+        for (BoundCacheNode node : mBoundNodes) {
+            String mode = node.isOutputMode ? StatCollector.translateToLocal("gtsr.binding.debug_output")
+                : StatCollector.translateToLocal("gtsr.binding.debug_input");
+            String posInfo = StatCollector.translateToLocal("gtsr.binding.debug_node") + node.x
+                + ", "
+                + node.y
+                + ", "
+                + node.z
+                + " "
+                + StatCollector.translateToLocal("gtsr.binding.debug_mode")
+                + mode;
+            GTUtility.sendChatToPlayer(aPlayer, posInfo);
         }
     }
 
