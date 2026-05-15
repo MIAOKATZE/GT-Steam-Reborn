@@ -64,6 +64,9 @@ public enum GTSRItemList implements IItemContainer {
     WaterCacheNode,
     SteamEntangledSingularity,
     HubSingularityChip,
+    SingularityDrillingHub,
+    SingularityMinerNode,
+    SingularityDrillingNode,
 
     ;
 

@@ -6,6 +6,9 @@ import com.miaokatze.gtsr.common.machine.MTECrustSteamBorer;
 import com.miaokatze.gtsr.common.machine.MTELargeGeothermalSteamBoiler;
 import com.miaokatze.gtsr.common.machine.MTELargeSolarOverpressureArray;
 import com.miaokatze.gtsr.common.machine.MTELargeSteamFurnace;
+import com.miaokatze.gtsr.common.machine.MTESingularityDrillingHub;
+import com.miaokatze.gtsr.common.machine.MTESingularityDrillingNode;
+import com.miaokatze.gtsr.common.machine.MTESingularityMinerNode;
 import com.miaokatze.gtsr.common.machine.MTESteamFluidDrill;
 import com.miaokatze.gtsr.common.machine.MTESteamHubArray;
 import com.miaokatze.gtsr.common.machine.MTESteamSingularityCompressor;
@@ -44,6 +47,7 @@ public class MachineLoader {
         registerSteamSingularityCompressor();
         registerWaterHubMachines();
         registerWaterCacheNode();
+        registerDrillingHubSystem();
     }
 
     private static void registerSteamMachines() {
@@ -224,5 +228,28 @@ public class MachineLoader {
         GTSRItemList.WaterCacheNode.set(
             new MTEWaterCacheNode(MetaTileEntityID.WATER_CACHE_NODE.ID, "gtsr.water.cache.node", "Water Cache Node"));
         CreativeTabManager.addItemToTab(GTSRItemList.WaterCacheNode.get(1));
+    }
+
+    private static void registerDrillingHubSystem() {
+        GTSRItemList.SingularityDrillingHub.set(
+            new MTESingularityDrillingHub(
+                MetaTileEntityID.SINGULARITY_DRILLING_HUB.ID,
+                "gtsr.singularity.drilling.hub",
+                "Singularity Drilling Hub"));
+        CreativeTabManager.addItemToTab(GTSRItemList.SingularityDrillingHub.get(1));
+
+        GTSRItemList.SingularityMinerNode.set(
+            new MTESingularityMinerNode(
+                MetaTileEntityID.SINGULARITY_MINER_NODE.ID,
+                "gtsr.singularity.miner.node",
+                "Singularity Miner Node"));
+        CreativeTabManager.addItemToTab(GTSRItemList.SingularityMinerNode.get(1));
+
+        GTSRItemList.SingularityDrillingNode.set(
+            new MTESingularityDrillingNode(
+                MetaTileEntityID.SINGULARITY_DRILLING_NODE.ID,
+                "gtsr.singularity.drilling.node",
+                "Singularity Drilling Node"));
+        CreativeTabManager.addItemToTab(GTSRItemList.SingularityDrillingNode.get(1));
     }
 }

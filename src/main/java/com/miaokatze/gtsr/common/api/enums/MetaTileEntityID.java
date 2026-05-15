@@ -75,6 +75,12 @@ public enum MetaTileEntityID {
     WATER_HUB_INPUT_HATCH(23),
     /** 水缓存节点 */
     WATER_CACHE_NODE(24),
+    /** 奇点钻井枢纽 */
+    SINGULARITY_DRILLING_HUB(25),
+    /** 奇点矿机节点 */
+    SINGULARITY_MINER_NODE(26),
+    /** 奇点钻井节点 */
+    SINGULARITY_DRILLING_NODE(27),
 
     ;
 

@@ -313,3 +313,35 @@ gtsr.binding.debug_invalid=失效
 gtsr.binding.hub_bound=已绑定缓存节点到枢纽
 gtsr.binding.bound_to=已绑定到
 gtsr.gui.binding_hint=手持芯片右击控制器获取节点信息
+
+# Singularity Drilling Hub
+gt.blockmachines.gtsr.singularity.drilling.hub.name=奇点钻井枢纽
+gtsr.recipe.singularity_drilling_hub=奇点钻井枢纽
+gtsr.tooltip.singularity_drilling_hub.0=3×3×3 中空结构，蒸汽驱动的远程采矿/钻井控制中心
+gtsr.tooltip.singularity_drilling_hub.1=可绑定奇点矿机节点和奇点钻井节点进行远程作业
+gtsr.tooltip.singularity_drilling_hub.2=需要安装枢纽奇点升级芯片才能进行无线控制
+gtsr.tooltip.singularity_drilling_hub.3=节点工作周期: 8秒 (160 tick)
+gtsr.tooltip.singularity_drilling_hub.4=蒸汽消耗: 12,000 + N×12,000 L/s
+gtsr.tooltip.singularity_drilling_hub.5=过热蒸汽: 4x 速度
+gtsr.tooltip.singularity_drilling_hub.ctrl=中层正面中央
+gtsr.tooltip.singularity_drilling_hub.casing=青铜镀层砖
+gtsr.tooltip.singularity_drilling_hub.input_hatch=蒸汽输入仓
+gtsr.tooltip.singularity_drilling_hub.output_hatch=流体输出仓
+
+# Singularity Miner Node
+gt.blockmachines.gtsr.singularity.miner.node.name=奇点矿机节点
+gtsr.tooltip.singularity_miner_node.0=远程采矿节点，需绑定奇点钻井枢纽
+gtsr.tooltip.singularity_miner_node.1=需要采矿管道作为耗材
+gtsr.tooltip.singularity_miner_node.2=采矿范围: 节点下方至基岩
+
+# Singularity Drilling Node
+gt.blockmachines.gtsr.singularity.drilling.node.name=奇点钻井节点
+gtsr.tooltip.singularity_drilling_node.0=远程流体钻井节点，需绑定奇点钻井枢纽
+gtsr.tooltip.singularity_drilling_node.1=需要采矿管道作为耗材
+gtsr.tooltip.singularity_drilling_node.2=产出: 20× 地下流体
+
+# Drilling Hub Debug
+gtsr.drilling.debug_title=钻井枢纽绑定调试
+gtsr.drilling.node_miner=矿机节点
+gtsr.drilling.node_driller=钻井节点
+gtsr.drilling.no_pipes=采矿管道不足

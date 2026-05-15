@@ -313,3 +313,35 @@ gtsr.binding.debug_invalid=Invalid
 gtsr.binding.hub_bound=Bound cache node to hub
 gtsr.binding.bound_to=Bound to
 gtsr.gui.binding_hint=Hold chip and right-click controller for node info
+
+# Singularity Drilling Hub
+gt.blockmachines.gtsr.singularity.drilling.hub.name=Singularity Drilling Hub
+gtsr.recipe.singularity_drilling_hub=Singularity Drilling Hub
+gtsr.tooltip.singularity_drilling_hub.0=3x3x3 hollow structure, steam-powered remote mining/drilling control center
+gtsr.tooltip.singularity_drilling_hub.1=Bind Singularity Miner Nodes and Singularity Drilling Nodes for remote operation
+gtsr.tooltip.singularity_drilling_hub.2=Requires Hub Singularity Upgrade Chip for wireless control
+gtsr.tooltip.singularity_drilling_hub.3=Node work cycle: 8s (160 ticks)
+gtsr.tooltip.singularity_drilling_hub.4=Steam Consumption: 12,000 + Nx12,000 L/s
+gtsr.tooltip.singularity_drilling_hub.5=Superheated Steam: 4x speed
+gtsr.tooltip.singularity_drilling_hub.ctrl=Front center of middle layer
+gtsr.tooltip.singularity_drilling_hub.casing=Bronze Plated Bricks
+gtsr.tooltip.singularity_drilling_hub.input_hatch=Steam Input Hatch
+gtsr.tooltip.singularity_drilling_hub.output_hatch=Fluid Output Hatch
+
+# Singularity Miner Node
+gt.blockmachines.gtsr.singularity.miner.node.name=Singularity Miner Node
+gtsr.tooltip.singularity_miner_node.0=Remote mining node, requires binding to Singularity Drilling Hub
+gtsr.tooltip.singularity_miner_node.1=Requires Mining Pipes as consumable
+gtsr.tooltip.singularity_miner_node.2=Mining range: Below node down to bedrock
+
+# Singularity Drilling Node
+gt.blockmachines.gtsr.singularity.drilling.node.name=Singularity Drilling Node
+gtsr.tooltip.singularity_drilling_node.0=Remote fluid drilling node, requires binding to Singularity Drilling Hub
+gtsr.tooltip.singularity_drilling_node.1=Requires Mining Pipes as consumable
+gtsr.tooltip.singularity_drilling_node.2=Output: 20x underground fluid
+
+# Drilling Hub Debug
+gtsr.drilling.debug_title=Drilling Hub Binding Debug
+gtsr.drilling.node_miner=Miner Node
+gtsr.drilling.node_driller=Driller Node
+gtsr.drilling.no_pipes=Insufficient Mining Pipes
