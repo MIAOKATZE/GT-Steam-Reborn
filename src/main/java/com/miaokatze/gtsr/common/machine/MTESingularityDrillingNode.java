@@ -6,8 +6,11 @@ import net.minecraftforge.fluids.FluidStack;
 
 import com.miaokatze.gtsr.common.machine.base.MTERemoteWorkerNode;
 
+import gregtech.api.enums.Textures;
+import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
+import gregtech.api.render.TextureFactory;
 
 public class MTESingularityDrillingNode extends MTERemoteWorkerNode {
 
@@ -58,5 +61,15 @@ public class MTESingularityDrillingNode extends MTERemoteWorkerNode {
 
         mIsWorking = true;
         mWorkProgress = (mWorkProgress + 20) % WORK_CYCLE;
+    }
+
+    @Override
+    protected ITexture getFrontOverlay() {
+        return TextureFactory.of(Textures.BlockIcons.OVERLAY_FRONT_WATER_PUMP);
+    }
+
+    @Override
+    protected ITexture getFrontOverlayActive() {
+        return TextureFactory.of(Textures.BlockIcons.OVERLAY_FRONT_WATER_PUMP_ACTIVE);
     }
 }

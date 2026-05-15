@@ -51,6 +51,7 @@ public enum GTSRItemList implements IItemContainer {
     VeinPyrolyzerChipT3,
     LargeSteamFurnace,
     SteamOutputHatch,
+    SteamInputHatch,
     PressureSteamOutputHatch,
     LargeSolarOverpressureArray,
     LargeGeothermalSteamBoiler,
@@ -67,6 +68,10 @@ public enum GTSRItemList implements IItemContainer {
     SingularityDrillingHub,
     SingularityMinerNode,
     SingularityDrillingNode,
+    SteamInputBus,
+    SteamOutputBus,
+    LargeCokeOven,
+    SiemensMartinFurnace,
 
     ;
 

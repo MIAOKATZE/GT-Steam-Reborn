@@ -7,8 +7,11 @@ import net.minecraft.world.World;
 
 import com.miaokatze.gtsr.common.machine.base.MTERemoteWorkerNode;
 
+import gregtech.api.enums.Textures;
+import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
+import gregtech.api.render.TextureFactory;
 
 public class MTESingularityMinerNode extends MTERemoteWorkerNode {
 
@@ -86,6 +89,16 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
         mDepth++;
         mIsWorking = true;
         mWorkProgress = (mWorkProgress + 20) % WORK_CYCLE;
+    }
+
+    @Override
+    protected ITexture getFrontOverlay() {
+        return TextureFactory.of(Textures.BlockIcons.OVERLAY_FRONT_ORE_DRILL);
+    }
+
+    @Override
+    protected ITexture getFrontOverlayActive() {
+        return TextureFactory.of(Textures.BlockIcons.OVERLAY_FRONT_ORE_DRILL_ACTIVE);
     }
 
     @Override

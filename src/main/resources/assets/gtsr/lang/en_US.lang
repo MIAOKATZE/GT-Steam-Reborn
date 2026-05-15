@@ -138,8 +138,12 @@ gtsr.tooltip.large_steam_furnace.ctrl=Front center of bottom layer
 gtsr.tooltip.large_steam_furnace.hatches=Steam Hatch x1, Steam Input Bus x1+, Steam Output Bus x1+
 
 # Steam Output Hatch
-gt.blockmachines.gtsr.steam.output.hatch.name=Steam Output Hatch
-gtsr.tooltip.steam_output_hatch.name=Steam Output Hatch
+gt.blockmachines.gtsr.steam.output.hatch.name=Output Hatch (Steam)
+gtsr.tooltip.steam_output_hatch.name=Output Hatch (Steam)
+
+# Steam Input Hatch
+gt.blockmachines.gtsr.steam.input.hatch.name=Input Hatch (Steam)
+gtsr.tooltip.steam_input_hatch.name=Input Hatch (Steam)
 
 # Pressure Steam Output Hatch
 gt.blockmachines.gtsr.pressure.steam.output.hatch.name=Pressure Steam Output Hatch
@@ -297,6 +301,8 @@ gtsr.binding.bound_output=Bound
 gtsr.binding.bound_input=Switched 
 gtsr.binding.mode_output= -> Hub Output
 gtsr.binding.mode_input= -> Hub Input
+gtsr.binding.bound=Bound 
+gtsr.binding.not_bound=Not bound to any hub
 gtsr.binding.cleared=Unbound
 gtsr.binding.binding= 
 gtsr.binding.no_chip=Chip required: Hub Singularity Upgrade
@@ -345,3 +351,60 @@ gtsr.drilling.debug_title=Drilling Hub Binding Debug
 gtsr.drilling.node_miner=Miner Node
 gtsr.drilling.node_driller=Driller Node
 gtsr.drilling.no_pipes=Insufficient Mining Pipes
+
+# Steam Input Bus
+gt.blockmachines.gtsr.steam.input.bus.name=Input Bus (Steam)
+gtsr.tooltip.steam_input_bus.name=Steam Item Input
+gtsr.tooltip.steam_input_bus.info=Capacity: 4 stacks + 1 circuit slot
+gtsr.tooltip.steam_input_bus.restriction=Only works with steam multiblocks
+
+# Steam Output Bus
+gt.blockmachines.gtsr.steam.output.bus.name=Output Bus (Steam)
+gtsr.tooltip.steam_output_bus.name=Steam Item Output
+gtsr.tooltip.steam_output_bus.info=Capacity: 4 stacks, does not auto-export
+gtsr.tooltip.steam_output_bus.restriction=Only works with steam multiblocks
+
+# Large Coke Oven
+gt.blockmachines.gtsr.large.coke.oven.name=Large Coke Oven
+gtsr.recipe.large_coke_oven=Large Coke Oven
+gtsr.tooltip.large_coke_oven.0=Self-powered coke oven that converts coal into coke and creosote oil
+gtsr.tooltip.large_coke_oven.1=Heat System: Heats up while running (+0.01%/s), cools down when idle (-0.1%/s)
+gtsr.tooltip.large_coke_oven.2=Heat Speedup: Each 1%% heat reduces recipe time by 10s (Base 1800s, Min 800s)
+gtsr.tooltip.large_coke_oven.3=Recipe: 1 Coal -> 1 Coke + 500L Creosote Oil
+gtsr.tooltip.large_coke_oven.ctrl=Front center of middle layer
+gtsr.tooltip.large_coke_oven.casing_t1=Tier 1 - Bronze Plated Bricks (4 Parallel)
+gtsr.tooltip.large_coke_oven.casing_t2=Tier 2 - Solid Steel Casing (16 Parallel)
+gtsr.tooltip.large_coke_oven.input_bus=Input Bus
+gtsr.tooltip.large_coke_oven.output_bus=Output Bus
+gtsr.tooltip.large_coke_oven.output_hatch=Output Hatch
+
+# Large Coke Oven GUI/Info
+gtsr.gui.coke_oven.temperature=Temperature: 
+gtsr.gui.coke_oven.recipe_time=Recipe Time: 
+gtsr.gui.coke_oven.parallel=Parallel: 
+gtsr.info.coke_oven.name=Large Coke Oven
+gtsr.info.coke_oven.tier=Tier: 
+gtsr.info.coke_oven.tier1=Bronze Plated Bricks (4 Parallel)
+gtsr.info.coke_oven.tier2=Solid Steel (16 Parallel)
+
+# Siemens-Martin Furnace
+gt.blockmachines.gtsr.siemens.martin.furnace.name=Siemens-Martin Furnace
+gtsr.recipe.siemens_martin_furnace=Siemens-Martin Furnace
+gtsr.tooltip.siemens_martin_furnace.0=Steelmaking multiblock that uses superheated steam to convert iron and carbon into steel
+gtsr.tooltip.siemens_martin_furnace.1=Consumes 24,000 L/s superheated steam, raising furnace temperature (+0.5%/s)
+gtsr.tooltip.siemens_martin_furnace.2=Recipes can only run at 100%% temperature; steam loss during recipe terminates it
+gtsr.tooltip.siemens_martin_furnace.3=Recipe 1: 1 Iron + 2 Coal -> 1 Steel + 1 Dark Ash (1600s)
+gtsr.tooltip.siemens_martin_furnace.4=Recipe 2: 1 Iron + 1 Coke -> 1 Ash (1200s)
+gtsr.tooltip.siemens_martin_furnace.5=Recipe 3: 1 Iron + 1 Carbon Dust -> 1 Steel + 1 Ash (800s)
+gtsr.tooltip.siemens_martin_furnace.ctrl=Front center of middle layer
+gtsr.tooltip.siemens_martin_furnace.casing=Solid Steel Machine Casing
+gtsr.tooltip.siemens_martin_furnace.pressure_hatch=Required: At least 1 Pressure Steam Input Hatch
+gtsr.tooltip.siemens_martin_furnace.input_bus=Input Bus
+gtsr.tooltip.siemens_martin_furnace.output_bus=Output Bus
+
+# Siemens-Martin Furnace GUI/Info
+gtsr.gui.siemens_martin_furnace.temperature=Temperature: 
+gtsr.gui.siemens_martin_furnace.steam_cost=Steam Cost: 
+gtsr.gui.siemens_martin_furnace.recipe_time=Recipe Time: 
+gtsr.gui.siemens_martin_furnace.parallel=Parallel: 
+gtsr.info.siemens_martin_furnace.name=Siemens-Martin Furnace

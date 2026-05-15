@@ -3,14 +3,18 @@ package com.miaokatze.gtsr.loader;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.api.enums.MetaTileEntityID;
 import com.miaokatze.gtsr.common.machine.MTECrustSteamBorer;
+import com.miaokatze.gtsr.common.machine.MTELargeCokeOven;
 import com.miaokatze.gtsr.common.machine.MTELargeGeothermalSteamBoiler;
 import com.miaokatze.gtsr.common.machine.MTELargeSolarOverpressureArray;
 import com.miaokatze.gtsr.common.machine.MTELargeSteamFurnace;
+import com.miaokatze.gtsr.common.machine.MTESiemensMartinFurnace;
 import com.miaokatze.gtsr.common.machine.MTESingularityDrillingHub;
 import com.miaokatze.gtsr.common.machine.MTESingularityDrillingNode;
 import com.miaokatze.gtsr.common.machine.MTESingularityMinerNode;
 import com.miaokatze.gtsr.common.machine.MTESteamFluidDrill;
 import com.miaokatze.gtsr.common.machine.MTESteamHubArray;
+import com.miaokatze.gtsr.common.machine.MTESteamInputBus;
+import com.miaokatze.gtsr.common.machine.MTESteamOutputBus;
 import com.miaokatze.gtsr.common.machine.MTESteamSingularityCompressor;
 import com.miaokatze.gtsr.common.machine.MTEVeinSteamPyrolyzer;
 import com.miaokatze.gtsr.common.machine.MTEVoidCrustSteamBorer;
@@ -25,6 +29,7 @@ import com.miaokatze.gtsr.common.machine.base.MTESteamCacheNode;
 import com.miaokatze.gtsr.common.machine.base.MTESteamCoolingHatch;
 import com.miaokatze.gtsr.common.machine.base.MTESteamHubInputHatch;
 import com.miaokatze.gtsr.common.machine.base.MTESteamHubOutputHatch;
+import com.miaokatze.gtsr.common.machine.base.MTESteamInputHatch;
 import com.miaokatze.gtsr.common.machine.base.MTESteamOutputHatch;
 import com.miaokatze.gtsr.common.machine.base.MTEWaterCacheNode;
 import com.miaokatze.gtsr.common.machine.base.MTEWaterHubInputHatch;
@@ -48,6 +53,9 @@ public class MachineLoader {
         registerWaterHubMachines();
         registerWaterCacheNode();
         registerDrillingHubSystem();
+        registerSteamBuses();
+        registerLargeCokeOven();
+        registerSiemensMartinFurnace();
     }
 
     private static void registerSteamMachines() {
@@ -155,6 +163,13 @@ public class MachineLoader {
                 "Steam Output Hatch"));
         CreativeTabManager.addItemToTab(GTSRItemList.SteamOutputHatch.get(1));
 
+        GTSRItemList.SteamInputHatch.set(
+            new MTESteamInputHatch(
+                MetaTileEntityID.STEAM_INPUT_HATCH.ID,
+                "gtsr.steam.input.hatch",
+                "Steam Input Hatch"));
+        CreativeTabManager.addItemToTab(GTSRItemList.SteamInputHatch.get(1));
+
         GTSRItemList.PressureSteamOutputHatch.set(
             new MTEPressureSteamOutputHatch(
                 MetaTileEntityID.PRESSURE_STEAM_OUTPUT_HATCH.ID,
@@ -251,5 +266,30 @@ public class MachineLoader {
                 "gtsr.singularity.drilling.node",
                 "Singularity Drilling Node"));
         CreativeTabManager.addItemToTab(GTSRItemList.SingularityDrillingNode.get(1));
+    }
+
+    private static void registerSteamBuses() {
+        GTSRItemList.SteamInputBus
+            .set(new MTESteamInputBus(MetaTileEntityID.STEAM_INPUT_BUS.ID, "gtsr.steam.input.bus", "Steam Input Bus"));
+        CreativeTabManager.addItemToTab(GTSRItemList.SteamInputBus.get(1));
+
+        GTSRItemList.SteamOutputBus.set(
+            new MTESteamOutputBus(MetaTileEntityID.STEAM_OUTPUT_BUS.ID, "gtsr.steam.output.bus", "Steam Output Bus"));
+        CreativeTabManager.addItemToTab(GTSRItemList.SteamOutputBus.get(1));
+    }
+
+    private static void registerLargeCokeOven() {
+        GTSRItemList.LargeCokeOven
+            .set(new MTELargeCokeOven(MetaTileEntityID.LARGE_COKE_OVEN.ID, "gtsr.large.coke.oven", "Large Coke Oven"));
+        CreativeTabManager.addItemToTab(GTSRItemList.LargeCokeOven.get(1));
+    }
+
+    private static void registerSiemensMartinFurnace() {
+        GTSRItemList.SiemensMartinFurnace.set(
+            new MTESiemensMartinFurnace(
+                MetaTileEntityID.SIEMENS_MARTIN_FURNACE.ID,
+                "gtsr.siemens.martin.furnace",
+                "Siemens-Martin Furnace"));
+        CreativeTabManager.addItemToTab(GTSRItemList.SiemensMartinFurnace.get(1));
     }
 }

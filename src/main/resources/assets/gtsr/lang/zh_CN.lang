@@ -138,8 +138,12 @@ gtsr.tooltip.large_steam_furnace.ctrl=底层正面中央
 gtsr.tooltip.large_steam_furnace.hatches=蒸汽仓×1, 蒸汽输入总线×1+, 蒸汽输出总线×1+
 
 # Steam Output Hatch
-gt.blockmachines.gtsr.steam.output.hatch.name=蒸汽输出仓
-gtsr.tooltip.steam_output_hatch.name=蒸汽输出仓
+gt.blockmachines.gtsr.steam.output.hatch.name=输出仓(蒸汽)
+gtsr.tooltip.steam_output_hatch.name=输出仓(蒸汽)
+
+# Steam Input Hatch
+gt.blockmachines.gtsr.steam.input.hatch.name=输入仓(蒸汽)
+gtsr.tooltip.steam_input_hatch.name=输入仓(蒸汽)
 
 # Pressure Steam Output Hatch
 gt.blockmachines.gtsr.pressure.steam.output.hatch.name=耐压蒸汽输出仓
@@ -297,6 +301,8 @@ gtsr.binding.bound_output=已绑定
 gtsr.binding.bound_input=已切换 
 gtsr.binding.mode_output= → 从枢纽输出
 gtsr.binding.mode_input= → 向枢纽输入
+gtsr.binding.bound=已绑定 
+gtsr.binding.not_bound=未绑定到任何枢纽
 gtsr.binding.cleared=已解除 
 gtsr.binding.binding= 的绑定
 gtsr.binding.no_chip=需要安装枢纽奇点升级芯片
@@ -345,3 +351,60 @@ gtsr.drilling.debug_title=钻井枢纽绑定调试
 gtsr.drilling.node_miner=矿机节点
 gtsr.drilling.node_driller=钻井节点
 gtsr.drilling.no_pipes=采矿管道不足
+
+# Steam Input Bus (蒸汽输入总线)
+gt.blockmachines.gtsr.steam.input.bus.name=输入总线(蒸汽)
+gtsr.tooltip.steam_input_bus.name=蒸汽物品输入
+gtsr.tooltip.steam_input_bus.info=容量: 4 组 + 1 电路槽
+gtsr.tooltip.steam_input_bus.restriction=仅可用于蒸汽多方块机器
+
+# Steam Output Bus (蒸汽输出总线)
+gt.blockmachines.gtsr.steam.output.bus.name=输出总线(蒸汽)
+gtsr.tooltip.steam_output_bus.name=蒸汽物品输出
+gtsr.tooltip.steam_output_bus.info=容量: 4 组，不自动输出
+gtsr.tooltip.steam_output_bus.restriction=仅可用于蒸汽多方块机器
+
+# Large Coke Oven
+gt.blockmachines.gtsr.large.coke.oven.name=大型焦炉
+gtsr.recipe.large_coke_oven=大型焦炉
+gtsr.tooltip.large_coke_oven.0=无需供能的自发焦炉，将煤炭转化为焦煤和杂酚油
+gtsr.tooltip.large_coke_oven.1=炉温系统: 运行时升温 (+0.01%/s)，停止时降温 (-0.1%/s)
+gtsr.tooltip.large_coke_oven.2=炉温加速: 每1%%炉温缩短10秒配方时间 (基础1800秒，最快800秒)
+gtsr.tooltip.large_coke_oven.3=配方: 1 煤炭 -> 1 焦煤 + 500L 杂酚油
+gtsr.tooltip.large_coke_oven.ctrl=中层正面中央
+gtsr.tooltip.large_coke_oven.casing_t1=等级1 - 镀铜砖块 (4并行)
+gtsr.tooltip.large_coke_oven.casing_t2=等级2 - 固体钢外壳 (16并行)
+gtsr.tooltip.large_coke_oven.input_bus=输入总线
+gtsr.tooltip.large_coke_oven.output_bus=输出总线
+gtsr.tooltip.large_coke_oven.output_hatch=输出仓
+
+# Large Coke Oven GUI/Info
+gtsr.gui.coke_oven.temperature=炉温: 
+gtsr.gui.coke_oven.recipe_time=配方时间: 
+gtsr.gui.coke_oven.parallel=并行: 
+gtsr.info.coke_oven.name=大型焦炉
+gtsr.info.coke_oven.tier=等级: 
+gtsr.info.coke_oven.tier1=镀铜砖块 (4并行)
+gtsr.info.coke_oven.tier2=固体钢 (16并行)
+
+# Siemens-Martin Furnace (平炉)
+gt.blockmachines.gtsr.siemens.martin.furnace.name=平炉
+gtsr.recipe.siemens_martin_furnace=平炉
+gtsr.tooltip.siemens_martin_furnace.0=利用过热蒸汽的炼钢多方块机器，将铁和碳源转化为钢
+gtsr.tooltip.siemens_martin_furnace.1=消耗 24,000 L/s 过热蒸汽，提升炉温 (+0.5%/s)
+gtsr.tooltip.siemens_martin_furnace.2=炉温达到 100%% 后方可执行配方，蒸汽中断导致炉温不足时配方终止
+gtsr.tooltip.siemens_martin_furnace.3=配方1: 1铁 + 2煤粉/煤炭 -> 1钢 + 1黑色灰烬 (1600s)
+gtsr.tooltip.siemens_martin_furnace.4=配方2: 1铁 + 1焦煤 -> 1灰烬 (1200s)
+gtsr.tooltip.siemens_martin_furnace.5=配方3: 1铁 + 1碳粉 -> 1钢 + 1灰烬 (800s)
+gtsr.tooltip.siemens_martin_furnace.ctrl=中层正面中央
+gtsr.tooltip.siemens_martin_furnace.casing=固体钢机器外壳 (Solid Steel Machine Casing)
+gtsr.tooltip.siemens_martin_furnace.pressure_hatch=强制需求: 至少 1 个耐压蒸汽输入仓
+gtsr.tooltip.siemens_martin_furnace.input_bus=输入总线
+gtsr.tooltip.siemens_martin_furnace.output_bus=输出总线
+
+# Siemens-Martin Furnace GUI/Info
+gtsr.gui.siemens_martin_furnace.temperature=炉温: 
+gtsr.gui.siemens_martin_furnace.steam_cost=蒸汽消耗: 
+gtsr.gui.siemens_martin_furnace.recipe_time=配方时间: 
+gtsr.gui.siemens_martin_furnace.parallel=并行: 
+gtsr.info.siemens_martin_furnace.name=平炉 (Siemens-Martin Furnace)

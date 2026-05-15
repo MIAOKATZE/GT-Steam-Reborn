@@ -15,7 +15,6 @@ import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.implementations.MTEHatch;
 import gregtech.api.metatileentity.implementations.MTEHatchOutput;
-import gregtech.api.util.GTModHandler;
 import gregtech.common.blocks.BlockCasings1;
 
 public class MTESteamOutputHatch extends MTEHatchOutput {
@@ -36,7 +35,7 @@ public class MTESteamOutputHatch extends MTEHatchOutput {
             aNameRegional,
             aTier,
             new String[] { "Steam Output for Solar Array", "Capacity: " + CAPACITY + "L",
-                "Output: " + OUTPUT_PER_SECOND + "L/s", "Fluid Type: Steam Only", "No External Input Allowed" },
+                "Output: " + OUTPUT_PER_SECOND + "L/s", "Fluid Type: Any Fluid", "No External Input Allowed" },
             4);
     }
 
@@ -86,7 +85,6 @@ public class MTESteamOutputHatch extends MTEHatchOutput {
     @Override
     public int fill(ForgeDirection side, FluidStack aFluid, boolean doFill) {
         if (aFluid == null) return 0;
-        if (!GTModHandler.isSteam(aFluid)) return 0;
         return super.fill(side, aFluid, doFill);
     }
 
@@ -112,8 +110,7 @@ public class MTESteamOutputHatch extends MTEHatchOutput {
 
     @Override
     public boolean canStoreFluid(FluidStack aFluidToStore) {
-        if (aFluidToStore == null) return false;
-        return GTModHandler.isSteam(aFluidToStore);
+        return aFluidToStore != null;
     }
 
     @Override
@@ -121,7 +118,6 @@ public class MTESteamOutputHatch extends MTEHatchOutput {
         return new String[] { StatCollector.translateToLocal("gtsr.tooltip.steam_output_hatch.name"),
             EnumChatFormatting.AQUA + "Capacity: " + CAPACITY + " L",
             EnumChatFormatting.GREEN + "Output Rate: " + OUTPUT_PER_SECOND + " L/s",
-            EnumChatFormatting.YELLOW + "Fluid Type: Steam Only",
-            EnumChatFormatting.RED + "No External Input Allowed" };
+            EnumChatFormatting.YELLOW + "Fluid Type: Any Fluid", EnumChatFormatting.RED + "No External Input Allowed" };
     }
 }

@@ -22,8 +22,6 @@ import com.gtnewhorizon.structurelib.structure.ISurvivalBuildEnvironment;
 import com.gtnewhorizon.structurelib.structure.StructureDefinition;
 import com.miaokatze.gtsr.common.api.enums.MetaTileEntityID;
 import com.miaokatze.gtsr.common.machine.base.MTEHatchPressureSteamInput;
-import com.miaokatze.gtsr.common.machine.base.MTEPressureSteamCoolingHatch;
-import com.miaokatze.gtsr.common.machine.base.MTESteamCoolingHatch;
 import com.miaokatze.gtsr.common.machine.base.VoidMinerUtilityShim;
 
 import bwcrossmod.galacticgreg.VoidMinerUtility;
@@ -147,16 +145,6 @@ public class MTECrustSteamBorer extends MTESteamMultiBase<MTECrustSteamBorer> im
                 .addElement(
                     'E',
                     ofChain(
-                        buildHatchAdder(MTECrustSteamBorer.class).adder(MTESteamMultiBase::addToMachineList)
-                            .hatchClass(MTESteamCoolingHatch.class)
-                            .casingIndex(casingIndex)
-                            .dot(2)
-                            .build(),
-                        buildHatchAdder(MTECrustSteamBorer.class).adder(MTESteamMultiBase::addToMachineList)
-                            .hatchClass(MTEPressureSteamCoolingHatch.class)
-                            .casingIndex(casingIndex)
-                            .dot(2)
-                            .build(),
                         buildHatchAdder(MTECrustSteamBorer.class).adder(MTESteamMultiBase::addToMachineList)
                             .hatchIds(31040, MetaTileEntityID.PRESSURE_STEAM_HATCH.ID)
                             .casingIndex(casingIndex)

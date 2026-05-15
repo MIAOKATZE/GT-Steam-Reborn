@@ -4,6 +4,7 @@ import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlock;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose;
+import static gregtech.api.enums.HatchElement.InputBus;
 import static gregtech.api.enums.HatchElement.OutputBus;
 import static gregtech.api.enums.HatchElement.OutputHatch;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
@@ -47,6 +48,7 @@ import gregtech.api.recipe.check.CheckRecipeResultRegistry;
 import gregtech.api.render.TextureFactory;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.MultiblockTooltipBuilder;
+import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.MTEHatchSteamBusOutput;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTESteamMultiBase;
 
 public class MTESingularityDrillingHub extends MTESteamMultiBase<MTESingularityDrillingHub>
@@ -148,7 +150,16 @@ public class MTESingularityDrillingHub extends MTESteamMultiBase<MTESingularityD
                             .dot(1)
                             .shouldReject(t -> !t.mSteamInputFluids.isEmpty())
                             .build(),
+                        buildHatchAdder(MTESingularityDrillingHub.class).atLeast(InputBus)
+                            .casingIndex(casingIndex)
+                            .dot(1)
+                            .build(),
                         buildHatchAdder(MTESingularityDrillingHub.class).atLeast(OutputBus)
+                            .casingIndex(casingIndex)
+                            .dot(1)
+                            .build(),
+                        buildHatchAdder(MTESingularityDrillingHub.class).adder(MTESteamMultiBase::addToMachineList)
+                            .hatchClass(MTEHatchSteamBusOutput.class)
                             .casingIndex(casingIndex)
                             .dot(1)
                             .build(),
@@ -197,7 +208,8 @@ public class MTESingularityDrillingHub extends MTESteamMultiBase<MTESingularityD
         }
 
         if (this.mSteamInputFluids.isEmpty()) return false;
-        if (this.mOutputBusses.isEmpty()) return false;
+        if (this.mInputBusses.isEmpty()) return false;
+        if (this.mOutputBusses.isEmpty() && this.mSteamOutputs.isEmpty()) return false;
         if (this.mOutputHatches.isEmpty()) return false;
 
         updateHatchTexture();
@@ -255,10 +267,6 @@ public class MTESingularityDrillingHub extends MTESteamMultiBase<MTESingularityD
     }
 
     private void transferWithBoundNodes() {
-        if (!hasChipInstalled()) {
-            return;
-        }
-
         ArrayList<BoundDrillNode> invalidNodes = new ArrayList<>();
 
         for (BoundDrillNode node : mBoundNodes) {
@@ -316,11 +324,6 @@ public class MTESingularityDrillingHub extends MTESteamMultiBase<MTESingularityD
 
         if (!aBaseMetaTileEntity.isServerSide()) return true;
 
-        if (!hasChipInstalled()) {
-            GTUtility.sendChatToPlayer(aPlayer, StatCollector.translateToLocal("gtsr.binding.no_chip"));
-            return true;
-        }
-
         int myX = aBaseMetaTileEntity.getXCoord();
         int myY = aBaseMetaTileEntity.getYCoord();
         int myZ = aBaseMetaTileEntity.getZCoord();
@@ -363,10 +366,7 @@ public class MTESingularityDrillingHub extends MTESteamMultiBase<MTESingularityD
         held.getTagCompound()
             .setTag("gtsr.hubPos", hubTag);
 
-        GTUtility.sendChatToPlayer(
-            aPlayer,
-            StatCollector.translateToLocal("gtsr.binding.bound_output") + nodeName
-                + StatCollector.translateToLocal("gtsr.binding.mode_output"));
+        GTUtility.sendChatToPlayer(aPlayer, StatCollector.translateToLocal("gtsr.binding.bound") + nodeName);
         return true;
     }
 
@@ -432,9 +432,6 @@ public class MTESingularityDrillingHub extends MTESteamMultiBase<MTESingularityD
         if (mBoundNodes.isEmpty()) {
             GTUtility.sendChatToPlayer(aPlayer, StatCollector.translateToLocal("gtsr.binding.debug_no_bindings"));
             return;
-        }
-        if (!hasChipInstalled()) {
-            GTUtility.sendChatToPlayer(aPlayer, StatCollector.translateToLocal("gtsr.binding.debug_no_chip"));
         }
         for (BoundDrillNode node : mBoundNodes) {
             String nodeType = node.isMiner ? StatCollector.translateToLocal("gtsr.drilling.node_miner")
@@ -629,7 +626,6 @@ public class MTESingularityDrillingHub extends MTESteamMultiBase<MTESingularityD
 
     @Override
     public String[] getInfoData() {
-        boolean hasChip = hasChipInstalled();
         int minerCount = 0;
         int drillerCount = 0;
         for (BoundDrillNode node : mBoundNodes) {
@@ -653,19 +649,17 @@ public class MTESingularityDrillingHub extends MTESteamMultiBase<MTESingularityD
                 + GTUtility.formatNumbers(STEAM_PER_NODE)
                 + " L/t");
 
-        if (hasChip) {
-            info.add(
-                EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.drilling.node_miner")
-                    + ": "
-                    + EnumChatFormatting.WHITE
-                    + minerCount);
-            info.add(
-                EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.drilling.node_driller")
-                    + ": "
-                    + EnumChatFormatting.WHITE
-                    + drillerCount);
-            info.add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.gui.binding_hint"));
-        }
+        info.add(
+            EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.drilling.node_miner")
+                + ": "
+                + EnumChatFormatting.WHITE
+                + minerCount);
+        info.add(
+            EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.drilling.node_driller")
+                + ": "
+                + EnumChatFormatting.WHITE
+                + drillerCount);
+        info.add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.gui.binding_hint"));
 
         return info.toArray(new String[0]);
     }

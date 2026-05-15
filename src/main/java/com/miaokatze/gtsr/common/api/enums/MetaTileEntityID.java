@@ -81,6 +81,16 @@ public enum MetaTileEntityID {
     SINGULARITY_MINER_NODE(26),
     /** 奇点钻井节点 */
     SINGULARITY_DRILLING_NODE(27),
+    /** 蒸汽输入总线 (独立单方块，4+1槽) */
+    STEAM_INPUT_BUS(28),
+    /** 蒸汽输出总线 (独立单方块，4槽) */
+    STEAM_OUTPUT_BUS(29),
+    /** 大型焦炉 */
+    LARGE_COKE_OVEN(30),
+    /** 平炉（Siemens-Martin Furnace） */
+    SIEMENS_MARTIN_FURNACE(31),
+    /** 蒸汽输入仓 */
+    STEAM_INPUT_HATCH(32),
 
     ;
 

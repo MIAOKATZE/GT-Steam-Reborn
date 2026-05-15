@@ -56,7 +56,7 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity {
 
     @Override
     public void saveNBTData(NBTTagCompound aNBT) {
-        if (mHubDim != 0) {
+        if (isBound()) {
             NBTTagCompound hubTag = new NBTTagCompound();
             hubTag.setInteger("x", mHubX);
             hubTag.setInteger("y", mHubY);
@@ -110,29 +110,32 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity {
         }
     }
 
+    private boolean isBound() {
+        return mHubX != 0 || mHubY != 0 || mHubZ != 0 || mHubDim != 0;
+    }
+
     @Override
     public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
         super.onPostTick(aBaseMetaTileEntity, aTick);
         if (!aBaseMetaTileEntity.isServerSide()) return;
 
-        if (!mRegistered && mHubDim != 0) {
-            mRegistered = true;
-            registerWithHub(aBaseMetaTileEntity);
+        if (!mRegistered && isBound()) {
+            mRegistered = registerWithHub(aBaseMetaTileEntity);
         }
 
         aBaseMetaTileEntity.setActive(mIsWorking);
     }
 
-    private void registerWithHub(IGregTechTileEntity aBaseMetaTileEntity) {
+    private boolean registerWithHub(IGregTechTileEntity aBaseMetaTileEntity) {
         World world = DimensionManager.getWorld(mHubDim);
-        if (world == null || !world.blockExists(mHubX, mHubY, mHubZ)) return;
+        if (world == null || !world.blockExists(mHubX, mHubY, mHubZ)) return false;
 
         TileEntity te = world.getTileEntity(mHubX, mHubY, mHubZ);
-        if (!(te instanceof IGregTechTileEntity gte)) return;
+        if (!(te instanceof IGregTechTileEntity gte)) return false;
 
-        if (!(gte.getMetaTileEntity() instanceof IHubArray hub)) return;
+        if (!(gte.getMetaTileEntity() instanceof IHubArray hub)) return false;
 
-        if (!hub.acceptsNodeType(mHubType)) return;
+        if (!hub.acceptsNodeType(mHubType)) return false;
 
         hub.registerCacheNode(
             aBaseMetaTileEntity.getXCoord(),
@@ -140,10 +143,11 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity {
             aBaseMetaTileEntity.getZCoord(),
             aBaseMetaTileEntity.getWorld().provider.dimensionId,
             mIsOutputMode);
+        return true;
     }
 
     protected MTESingularityDrillingHub getBoundHub() {
-        if (mHubDim == 0) return null;
+        if (!isBound()) return null;
         World world = DimensionManager.getWorld(mHubDim);
         if (world == null || !world.blockExists(mHubX, mHubY, mHubZ)) return null;
 
@@ -160,8 +164,20 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity {
     public boolean onRightclick(IGregTechTileEntity aBaseMetaTileEntity, EntityPlayer aPlayer, ForgeDirection side,
         float aX, float aY, float aZ) {
         ItemStack held = aPlayer.getHeldItem();
-        if (held == null || aBaseMetaTileEntity.isClientSide()) {
+        if (aBaseMetaTileEntity.isClientSide()) {
             return super.onRightclick(aBaseMetaTileEntity, aPlayer, side, aX, aY, aZ);
+        }
+
+        if (held == null) {
+            if (isBound()) {
+                GTUtility.sendChatToPlayer(
+                    aPlayer,
+                    translateToLocal(
+                        "gtsr.binding.bound") + " " + mHubType + " @ " + mHubX + ", " + mHubY + ", " + mHubZ);
+            } else {
+                GTUtility.sendChatToPlayer(aPlayer, translateToLocal("gtsr.binding.not_bound"));
+            }
+            return true;
         }
 
         NBTTagCompound tag = held.getTagCompound();

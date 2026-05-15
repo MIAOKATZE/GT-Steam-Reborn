@@ -2,6 +2,7 @@ package com.miaokatze.gtsr.main;
 
 import com.miaokatze.gtsr.Tags;
 import com.miaokatze.gtsr.config.Config;
+import com.miaokatze.gtsr.loader.GTSRRecipeLoader;
 import com.miaokatze.gtsr.loader.ItemLoader;
 import com.miaokatze.gtsr.loader.MachineLoader;
 import com.miaokatze.gtsr.register.CreativeTabManager;
@@ -78,15 +79,13 @@ public class CommonProxy {
      */
     @SuppressWarnings({ "unused" })
     public void postInit(FMLPostInitializationEvent event) {
-        // [GTSR-DEV] 临时禁用测试配方注册（TestMachineRecipes），为后续开发清理环境。
-        // 源码完整保留于 TestMachineRecipes 中，取消下方注释即可恢复。
-        // GTSteamReborn.LOG.info("[3/3] 开始注册测试配方...");
-        // try {
-        // TestMachineRecipes.init();
-        // GTSteamReborn.LOG.info("[3/3] 测试配方注册完成。");
-        // } catch (Throwable t) {
-        // GTSteamReborn.LOG.error("[3/3] 测试配方注册过程中发生错误", t);
-        // }
+        GTSteamReborn.LOG.info("[3/3] 开始注册 GTSR 配方...");
+        try {
+            new GTSRRecipeLoader().run();
+            GTSteamReborn.LOG.info("[3/3] GTSR 配方注册完成。");
+        } catch (Throwable t) {
+            GTSteamReborn.LOG.error("[3/3] GTSR 配方注册过程中发生错误", t);
+        }
     }
 
     /**
