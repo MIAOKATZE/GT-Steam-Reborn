@@ -2,10 +2,14 @@ package com.miaokatze.gtsr.common.machine;
 
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlock;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
+import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose;
+import static gregtech.api.enums.HatchElement.InputBus;
+import static gregtech.api.enums.HatchElement.OutputBus;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
@@ -21,40 +25,61 @@ import com.gtnewhorizon.structurelib.alignment.constructable.ISurvivalConstructa
 import com.gtnewhorizon.structurelib.structure.IStructureDefinition;
 import com.gtnewhorizon.structurelib.structure.ISurvivalBuildEnvironment;
 import com.gtnewhorizon.structurelib.structure.StructureDefinition;
+import com.gtnewhorizons.modularui.common.widget.DynamicPositionedColumn;
+import com.gtnewhorizons.modularui.common.widget.FakeSyncWidget;
+import com.gtnewhorizons.modularui.common.widget.SlotWidget;
+import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps;
-import com.miaokatze.gtsr.common.api.enums.MetaTileEntityID;
+import com.miaokatze.gtsr.common.machine.base.MTEHatchPressureSteamInput;
 
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Textures;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
+import gregtech.api.logic.ProcessingLogic;
+import gregtech.api.metatileentity.implementations.MTEEnhancedMultiBlockBase;
 import gregtech.api.metatileentity.implementations.MTEHatch;
+import gregtech.api.metatileentity.implementations.MTEHatchInputBus;
 import gregtech.api.recipe.RecipeMap;
 import gregtech.api.recipe.check.CheckRecipeResult;
 import gregtech.api.recipe.check.CheckRecipeResultRegistry;
+import gregtech.api.recipe.check.SimpleCheckRecipeResult;
 import gregtech.api.render.TextureFactory;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.common.blocks.BlockCasings2;
-import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTEHatchCustomFluidBase;
-import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTESteamMultiBase;
 
-public class MTESiemensMartinFurnace extends MTESteamMultiBase<MTESiemensMartinFurnace>
+public class MTESiemensMartinFurnace extends MTEEnhancedMultiBlockBase<MTESiemensMartinFurnace>
     implements ISurvivalConstructable {
 
     private static final String STRUCTURE_PIECE_MAIN = "main";
     private static final int HORIZONTAL_OFF_SET = 1;
     private static final int VERTICAL_OFF_SET = 1;
-    private static final int DEPTH_OFF_SET = 1;
+    private static final int DEPTH_OFF_SET = 0;
 
-    private static final int SUPERHEATED_STEAM_COST = 24_000;
-    private static final double TEMPERATURE_INCREMENT = 0.005d;
+    private static final int SUPERHEATED_STEAM_COST = 1_200;
+    private static final double TEMPERATURE_INCREMENT = 0.00025d;
     private static final int MAX_PARALLEL = 32;
 
     private static IStructureDefinition<MTESiemensMartinFurnace> STRUCTURE_DEFINITION = null;
 
     private double mFurnaceTemperature = 0.0d;
+    private final List<MTEHatchPressureSteamInput> mPressureSteamInputs = new ArrayList<>();
+
+    void addPressureSteamInput(MTEHatchPressureSteamInput hatch) {
+        mPressureSteamInputs.add(hatch);
+    }
+
+    private boolean addPressureSteamToMachineList(IGregTechTileEntity aTileEntity, int aBaseCasingIndex) {
+        if (aTileEntity == null) return false;
+        IMetaTileEntity mte = aTileEntity.getMetaTileEntity();
+        if (mte instanceof MTEHatchPressureSteamInput hatch) {
+            addPressureSteamInput(hatch);
+            return true;
+        }
+        return false;
+    }
 
     public MTESiemensMartinFurnace(int aID, String aName, String aNameRegional) {
         super(aID, aName, aNameRegional);
@@ -69,7 +94,6 @@ public class MTESiemensMartinFurnace extends MTESteamMultiBase<MTESiemensMartinF
         return new MTESiemensMartinFurnace(mName);
     }
 
-    @Override
     public String getMachineType() {
         return "Siemens-Martin Furnace";
     }
@@ -80,9 +104,9 @@ public class MTESiemensMartinFurnace extends MTESteamMultiBase<MTESiemensMartinF
 
     protected void updateHatchTexture() {
         int textureID = getCasingTextureID();
-        for (MTEHatch h : mSteamInputFluids) h.updateTexture(textureID);
-        for (MTEHatch h : mSteamInputs) h.updateTexture(textureID);
-        for (MTEHatch h : mSteamOutputs) h.updateTexture(textureID);
+        for (MTEHatch h : mPressureSteamInputs) h.updateTexture(textureID);
+        for (MTEHatch h : mInputBusses) h.updateTexture(textureID);
+        for (MTEHatch h : mOutputBusses) h.updateTexture(textureID);
     }
 
     @Override
@@ -94,21 +118,24 @@ public class MTESiemensMartinFurnace extends MTESteamMultiBase<MTESiemensMartinF
                 .addShape(
                     STRUCTURE_PIECE_MAIN,
                     transpose(
-                        new String[][] { { "CCC", "CCC", "CCC" }, { "CCC", "C C", "CCC" }, { "C~C", "CCC", "CCC" } }))
+                        new String[][] { { "CCC", "CCC", "CCC" }, { "C~C", "C C", "CCC" }, { "CCC", "CCC", "CCC" } }))
                 .addElement(
                     'C',
                     ofChain(
-                        buildHatchAdder(MTESiemensMartinFurnace.class).adder(MTESteamMultiBase::addToMachineList)
-                            .hatchIds(31040, MetaTileEntityID.PRESSURE_STEAM_HATCH.ID)
-                            .casingIndex(casingIndex)
-                            .dot(1)
-                            .shouldReject(t -> !t.mSteamInputFluids.isEmpty())
-                            .build(),
                         buildHatchAdder(MTESiemensMartinFurnace.class)
-                            .atLeast(SteamHatchElement.InputBus_Steam, SteamHatchElement.OutputBus_Steam)
+                            .adder(MTESiemensMartinFurnace::addPressureSteamToMachineList)
+                            .hatchClass(MTEHatchPressureSteamInput.class)
                             .casingIndex(casingIndex)
                             .dot(1)
-                            .buildAndChain(ofBlock(GregTechAPI.sBlockCasings2, 0))))
+                            .build(),
+                        buildHatchAdder(MTESiemensMartinFurnace.class).atLeast(InputBus)
+                            .casingIndex(casingIndex)
+                            .dot(1)
+                            .build(),
+                        buildHatchAdder(MTESiemensMartinFurnace.class).atLeast(OutputBus)
+                            .casingIndex(casingIndex)
+                            .dot(1)
+                            .buildAndChain(onElementPass(x -> {}, ofBlock(GregTechAPI.sBlockCasings2, 0)))))
                 .build();
         }
         return STRUCTURE_DEFINITION;
@@ -136,13 +163,15 @@ public class MTESiemensMartinFurnace extends MTESteamMultiBase<MTESiemensMartinF
 
     @Override
     public boolean checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack) {
+        mPressureSteamInputs.clear();
+
         if (!checkPiece(STRUCTURE_PIECE_MAIN, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET)) {
             return false;
         }
 
-        if (this.mSteamInputFluids.isEmpty()) return false;
-        if (this.mSteamInputs.isEmpty()) return false;
-        if (this.mSteamOutputs.isEmpty()) return false;
+        if (this.mPressureSteamInputs.isEmpty()) return false;
+        if (this.mInputBusses.isEmpty()) return false;
+        if (this.mOutputBusses.isEmpty()) return false;
 
         updateHatchTexture();
         return true;
@@ -164,23 +193,46 @@ public class MTESiemensMartinFurnace extends MTESteamMultiBase<MTESiemensMartinF
         Fluid superheated = FluidRegistry.getFluid("ic2superheatedsteam");
         if (superheated == null) return false;
 
-        FluidStack request = new FluidStack(superheated, SUPERHEATED_STEAM_COST);
-        for (MTEHatchCustomFluidBase hatch : mSteamInputFluids) {
+        for (MTEHatchPressureSteamInput hatch : mPressureSteamInputs) {
             FluidStack drained = hatch.drain(SUPERHEATED_STEAM_COST, false);
-            if (drained != null && drained.amount >= SUPERHEATED_STEAM_COST && drained.isFluidEqual(request)) {
-                hatch.drain(SUPERHEATED_STEAM_COST, true);
-                return true;
+            if (drained != null && drained.amount >= SUPERHEATED_STEAM_COST) {
+                Fluid fluid = drained.getFluid();
+                if (fluid != null && "ic2superheatedsteam".equals(fluid.getName())) {
+                    hatch.drain(SUPERHEATED_STEAM_COST, true);
+                    return true;
+                }
             }
         }
         return false;
     }
 
     @Override
+    protected ProcessingLogic createProcessingLogic() {
+        return new ProcessingLogic().setMaxParallelSupplier(this::getMaxParallelRecipes);
+    }
+
+    @Override
     public CheckRecipeResult checkProcessing() {
         if (mFurnaceTemperature < 1.0d) {
+            if (hasInputItems()) {
+                return SimpleCheckRecipeResult.ofFailure("gtsr.gui.siemens_martin.temperature_low");
+            }
             return CheckRecipeResultRegistry.NO_RECIPE;
         }
         return super.checkProcessing();
+    }
+
+    private boolean hasInputItems() {
+        for (MTEHatchInputBus bus : mInputBusses) {
+            if (bus.getBaseMetaTileEntity() != null) {
+                for (int i = 0; i < bus.getSizeInventory(); i++) {
+                    if (bus.getStackInSlot(i) != null) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
     }
 
     @Override
@@ -199,14 +251,30 @@ public class MTESiemensMartinFurnace extends MTESteamMultiBase<MTESiemensMartinF
         return 10000;
     }
 
-    @Override
     public int getTierRecipes() {
         return 0;
     }
 
-    @Override
     public boolean supportsPowerPanel() {
         return false;
+    }
+
+    @Override
+    public boolean getDefaultHasMaintenanceChecks() {
+        return false;
+    }
+
+    @Override
+    protected void drawTexts(DynamicPositionedColumn screenElements, SlotWidget inventorySlot) {
+        super.drawTexts(screenElements, inventorySlot);
+        screenElements
+            .widget(
+                new TextWidget().setStringSupplier(
+                    () -> EnumChatFormatting.RED
+                        + StatCollector.translateToLocal("gtsr.gui.siemens_martin_furnace.temperature")
+                        + ": "
+                        + String.format("%.0f%%", mFurnaceTemperature * 100.0d)))
+            .widget(new FakeSyncWidget.DoubleSyncer(() -> mFurnaceTemperature, val -> mFurnaceTemperature = val));
     }
 
     @Override
@@ -219,12 +287,10 @@ public class MTESiemensMartinFurnace extends MTESteamMultiBase<MTESiemensMartinF
         return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(getCasingTextureID()) };
     }
 
-    @Override
     protected ITexture getFrontOverlay() {
         return TextureFactory.of(Textures.BlockIcons.OVERLAY_FRONT_STEAM_FURNACE);
     }
 
-    @Override
     protected ITexture getFrontOverlayActive() {
         return TextureFactory.of(Textures.BlockIcons.OVERLAY_FRONT_STEAM_FURNACE_ACTIVE);
     }
@@ -257,7 +323,7 @@ public class MTESiemensMartinFurnace extends MTESteamMultiBase<MTESiemensMartinF
                 + EnumChatFormatting.RESET);
         info.add(
             EnumChatFormatting.GRAY + "Status: "
-                + (mMachine ? EnumChatFormatting.GREEN + "Running" : EnumChatFormatting.RED + "Incomplete"));
+                + (mMaxProgresstime > 0 ? EnumChatFormatting.GREEN + "Running" : EnumChatFormatting.RED + "Idle"));
         info.add(
             EnumChatFormatting.GRAY + "Steam: "
                 + EnumChatFormatting.RED
@@ -278,7 +344,7 @@ public class MTESiemensMartinFurnace extends MTESteamMultiBase<MTESiemensMartinF
             .addInfo(
                 EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.siemens_martin.steam_cost")
                     + EnumChatFormatting.WHITE
-                    + SUPERHEATED_STEAM_COST
+                    + GTUtility.formatNumbers(SUPERHEATED_STEAM_COST)
                     + " L/t"
                     + EnumChatFormatting.RESET)
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.siemens_martin.temperature"))
@@ -290,13 +356,13 @@ public class MTESiemensMartinFurnace extends MTESteamMultiBase<MTESiemensMartinF
                     + " "
                     + StatCollector.translateToLocal("gtsr.tooltip.siemens_martin.any_casing"),
                 1)
-            .addSteamInputBus(
+            .addInputBus(
                 EnumChatFormatting.GOLD + "1"
                     + EnumChatFormatting.GRAY
                     + " "
                     + StatCollector.translateToLocal("gtsr.tooltip.siemens_martin.any_casing"),
                 1)
-            .addSteamOutputBus(
+            .addOutputBus(
                 EnumChatFormatting.GOLD + "1"
                     + EnumChatFormatting.GRAY
                     + " "

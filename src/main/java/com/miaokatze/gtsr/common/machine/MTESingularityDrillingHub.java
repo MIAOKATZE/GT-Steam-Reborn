@@ -4,7 +4,6 @@ import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlock;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose;
-import static gregtech.api.enums.HatchElement.InputBus;
 import static gregtech.api.enums.HatchElement.OutputBus;
 import static gregtech.api.enums.HatchElement.OutputHatch;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
@@ -48,7 +47,6 @@ import gregtech.api.recipe.check.CheckRecipeResultRegistry;
 import gregtech.api.render.TextureFactory;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.MultiblockTooltipBuilder;
-import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.MTEHatchSteamBusOutput;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTESteamMultiBase;
 
 public class MTESingularityDrillingHub extends MTESteamMultiBase<MTESingularityDrillingHub>
@@ -150,16 +148,7 @@ public class MTESingularityDrillingHub extends MTESteamMultiBase<MTESingularityD
                             .dot(1)
                             .shouldReject(t -> !t.mSteamInputFluids.isEmpty())
                             .build(),
-                        buildHatchAdder(MTESingularityDrillingHub.class).atLeast(InputBus)
-                            .casingIndex(casingIndex)
-                            .dot(1)
-                            .build(),
                         buildHatchAdder(MTESingularityDrillingHub.class).atLeast(OutputBus)
-                            .casingIndex(casingIndex)
-                            .dot(1)
-                            .build(),
-                        buildHatchAdder(MTESingularityDrillingHub.class).adder(MTESteamMultiBase::addToMachineList)
-                            .hatchClass(MTEHatchSteamBusOutput.class)
                             .casingIndex(casingIndex)
                             .dot(1)
                             .build(),
@@ -208,7 +197,6 @@ public class MTESingularityDrillingHub extends MTESteamMultiBase<MTESingularityD
         }
 
         if (this.mSteamInputFluids.isEmpty()) return false;
-        if (this.mInputBusses.isEmpty()) return false;
         if (this.mOutputBusses.isEmpty() && this.mSteamOutputs.isEmpty()) return false;
         if (this.mOutputHatches.isEmpty()) return false;
 
@@ -546,7 +534,7 @@ public class MTESingularityDrillingHub extends MTESteamMultiBase<MTESingularityD
                     + GTUtility.formatNumbers(BASE_STEAM_PER_SECOND)
                     + " + N×"
                     + GTUtility.formatNumbers(STEAM_PER_NODE)
-                    + " L/t"
+                    + " L/s"
                     + EnumChatFormatting.RESET)
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.singularity_drilling_hub.5"))
             .beginStructureBlock(3, 3, 3, false)
@@ -647,7 +635,7 @@ public class MTESingularityDrillingHub extends MTESteamMultiBase<MTESingularityD
                 + GTUtility.formatNumbers(BASE_STEAM_PER_SECOND)
                 + " + N×"
                 + GTUtility.formatNumbers(STEAM_PER_NODE)
-                + " L/t");
+                + " L/s");
 
         info.add(
             EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.drilling.node_miner")

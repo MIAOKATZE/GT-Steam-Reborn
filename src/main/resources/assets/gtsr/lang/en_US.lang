@@ -138,12 +138,16 @@ gtsr.tooltip.large_steam_furnace.ctrl=Front center of bottom layer
 gtsr.tooltip.large_steam_furnace.hatches=Steam Hatch x1, Steam Input Bus x1+, Steam Output Bus x1+
 
 # Steam Output Hatch
-gt.blockmachines.gtsr.steam.output.hatch.name=Output Hatch (Steam)
-gtsr.tooltip.steam_output_hatch.name=Output Hatch (Steam)
+gt.blockmachines.gtsr.steam.output.hatch.name=Steam Output Hatch
+gtsr.tooltip.steam_output_hatch.name=Steam Output Hatch
 
 # Steam Input Hatch
 gt.blockmachines.gtsr.steam.input.hatch.name=Input Hatch (Steam)
 gtsr.tooltip.steam_input_hatch.name=Input Hatch (Steam)
+
+# Steam Output Hatch Generic
+gt.blockmachines.gtsr.steam.output.hatch.generic.name=Output Hatch (Steam)
+gtsr.tooltip.steam_output_hatch_generic.name=Output Hatch (Steam)
 
 # Pressure Steam Output Hatch
 gt.blockmachines.gtsr.pressure.steam.output.hatch.name=Pressure Steam Output Hatch
@@ -407,4 +411,6 @@ gtsr.gui.siemens_martin_furnace.temperature=Temperature:
 gtsr.gui.siemens_martin_furnace.steam_cost=Steam Cost: 
 gtsr.gui.siemens_martin_furnace.recipe_time=Recipe Time: 
 gtsr.gui.siemens_martin_furnace.parallel=Parallel: 
+gtsr.gui.siemens_martin_furnace.temperature=Temperature
 gtsr.info.siemens_martin_furnace.name=Siemens-Martin Furnace
+GT5U.gui.text.gtsr.gui.siemens_martin.temperature_low=Temperature below 100%

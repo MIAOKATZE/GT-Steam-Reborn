@@ -5,6 +5,7 @@ import static net.minecraft.util.StatCollector.translateToLocal;
 import java.util.List;
 
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
@@ -13,18 +14,47 @@ import net.minecraft.world.World;
 import net.minecraftforge.common.DimensionManager;
 import net.minecraftforge.common.util.ForgeDirection;
 
+import com.cleanroommc.modularui.factory.PosGuiData;
+import com.cleanroommc.modularui.screen.ModularPanel;
+import com.cleanroommc.modularui.screen.UISettings;
+import com.cleanroommc.modularui.value.sync.PanelSyncManager;
+import com.cleanroommc.modularui.widgets.slot.ItemSlot;
+import com.cleanroommc.modularui.widgets.slot.ModularSlot;
+import com.gtnewhorizons.modularui.api.screen.ModularWindow;
+import com.gtnewhorizons.modularui.api.screen.UIBuildContext;
+import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.miaokatze.gtsr.common.machine.MTESingularityDrillingHub;
 
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.HarvestTool;
 import gregtech.api.enums.Textures;
 import gregtech.api.interfaces.ITexture;
+import gregtech.api.interfaces.modularui.IAddUIWidgets;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
+import gregtech.api.modularui2.GTGuis;
 import gregtech.api.render.TextureFactory;
-import gregtech.api.util.GTUtility;
+import gregtech.api.util.GTModHandler;
 
-public abstract class MTERemoteWorkerNode extends MetaTileEntity {
+public abstract class MTERemoteWorkerNode extends MetaTileEntity implements IAddUIWidgets {
+
+    private static Item sMiningPipeItem = null;
+
+    protected static Item getMiningPipeItem() {
+        if (sMiningPipeItem == null) {
+            ItemStack pipe = GTModHandler.getIC2Item("miningPipe", 0);
+            if (pipe != null) {
+                sMiningPipeItem = pipe.getItem();
+            }
+        }
+        return sMiningPipeItem;
+    }
+
+    protected boolean isMiningPipe(ItemStack aStack) {
+        if (aStack == null) return false;
+        Item pipeItem = getMiningPipeItem();
+        return pipeItem != null && aStack.getItem() == pipeItem;
+    }
 
     protected int mHubX = 0;
     protected int mHubY = 0;
@@ -50,8 +80,9 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity {
 
     public abstract String getNodeType();
 
-    protected int getCasingTextureID() {
-        return GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings2, 0);
+    @Override
+    public boolean isFacingValid(ForgeDirection facing) {
+        return facing != ForgeDirection.UP && facing != ForgeDirection.DOWN && facing != ForgeDirection.UNKNOWN;
     }
 
     @Override
@@ -124,6 +155,7 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity {
         }
 
         aBaseMetaTileEntity.setActive(mIsWorking);
+        mIsWorking = false;
     }
 
     private boolean registerWithHub(IGregTechTileEntity aBaseMetaTileEntity) {
@@ -163,59 +195,58 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity {
     @Override
     public boolean onRightclick(IGregTechTileEntity aBaseMetaTileEntity, EntityPlayer aPlayer, ForgeDirection side,
         float aX, float aY, float aZ) {
-        ItemStack held = aPlayer.getHeldItem();
-        if (aBaseMetaTileEntity.isClientSide()) {
-            return super.onRightclick(aBaseMetaTileEntity, aPlayer, side, aX, aY, aZ);
+        if (aBaseMetaTileEntity.isServerSide()) {
+            openGui(aPlayer);
+        }
+        return true;
+    }
+
+    @Override
+    protected boolean useMui2() {
+        return true;
+    }
+
+    @Override
+    public ModularPanel buildUI(PosGuiData data, PanelSyncManager syncManager, UISettings uiSettings) {
+        final int slotCount = mInventory.length;
+        syncManager.registerSlotGroup("node_inv", slotCount);
+        ModularPanel panel = GTGuis.mteTemplatePanelBuilder(this, data, syncManager, uiSettings)
+            .doesAddCoverTabs(false)
+            .build();
+
+        panel.child(
+            new ItemSlot().slot(new ModularSlot(inventoryHandler, 0).slotGroup("node_inv"))
+                .left(62)
+                .top(22));
+
+        for (int i = 1; i < slotCount; i++) {
+            final int slot = i;
+            panel.child(
+                new ItemSlot().slot(new ModularSlot(inventoryHandler, slot).slotGroup("node_inv"))
+                    .left(116)
+                    .top(22 + (slot - 1) * 18));
         }
 
-        if (held == null) {
-            if (isBound()) {
-                GTUtility.sendChatToPlayer(
-                    aPlayer,
-                    translateToLocal(
-                        "gtsr.binding.bound") + " " + mHubType + " @ " + mHubX + ", " + mHubY + ", " + mHubZ);
-            } else {
-                GTUtility.sendChatToPlayer(aPlayer, translateToLocal("gtsr.binding.not_bound"));
-            }
-            return true;
+        return panel;
+    }
+
+    @Override
+    public void addUIWidgets(ModularWindow.Builder builder, UIBuildContext buildContext) {
+        final int slotCount = mInventory.length;
+        builder.widget(new SlotWidget(inventoryHandler, 0).setPos(62, 22));
+        for (int i = 1; i < slotCount; i++) {
+            builder.widget(new SlotWidget(inventoryHandler, i).setPos(116, 22 + (i - 1) * 18));
         }
-
-        NBTTagCompound tag = held.getTagCompound();
-        if (tag != null && tag.hasKey("gtsr.hubPos")) {
-            NBTTagCompound hubTag = tag.getCompoundTag("gtsr.hubPos");
-            int hubX = hubTag.getInteger("x");
-            int hubY = hubTag.getInteger("y");
-            int hubZ = hubTag.getInteger("z");
-            int hubDim = hubTag.getInteger("dim");
-
-            if (hubX == mHubX && hubY == mHubY && hubZ == mHubZ && hubDim == mHubDim) {
-                tag.removeTag("gtsr.hubPos");
-                mHubX = 0;
-                mHubY = 0;
-                mHubZ = 0;
-                mHubDim = 0;
-                mHubType = "";
-                mRegistered = false;
-                GTUtility.sendChatToPlayer(
-                    aPlayer,
-                    translateToLocal("gtsr.binding.cleared") + held.getDisplayName()
-                        + translateToLocal("gtsr.binding.binding"));
-                return true;
-            }
-        }
-
-        return super.onRightclick(aBaseMetaTileEntity, aPlayer, side, aX, aY, aZ);
     }
 
     @Override
     public ITexture[] getTexture(IGregTechTileEntity aBaseMetaTileEntity, ForgeDirection side, ForgeDirection facing,
         int aColorIndex, boolean aActive, boolean aRedstone) {
-        int casingId = getCasingTextureID();
+        ITexture background = TextureFactory.of(GregTechAPI.sBlockCasings2, 0);
         if (side == facing) {
-            return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(casingId),
-                aActive ? getFrontOverlayActive() : getFrontOverlay() };
+            return new ITexture[] { background, aActive ? getFrontOverlayActive() : getFrontOverlay() };
         }
-        return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(casingId) };
+        return new ITexture[] { background };
     }
 
     protected ITexture getFrontOverlay() {
@@ -304,6 +335,10 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity {
     @Override
     public boolean allowPutStack(IGregTechTileEntity aBaseMetaTileEntity, int aIndex, ForgeDirection side,
         ItemStack aStack) {
+        return isInputSlot(aIndex) && isMiningPipe(aStack);
+    }
+
+    protected boolean isInputSlot(int aIndex) {
         return aIndex == 0;
     }
 

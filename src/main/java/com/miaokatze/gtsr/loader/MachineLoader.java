@@ -31,6 +31,7 @@ import com.miaokatze.gtsr.common.machine.base.MTESteamHubInputHatch;
 import com.miaokatze.gtsr.common.machine.base.MTESteamHubOutputHatch;
 import com.miaokatze.gtsr.common.machine.base.MTESteamInputHatch;
 import com.miaokatze.gtsr.common.machine.base.MTESteamOutputHatch;
+import com.miaokatze.gtsr.common.machine.base.MTESteamOutputHatchGeneric;
 import com.miaokatze.gtsr.common.machine.base.MTEWaterCacheNode;
 import com.miaokatze.gtsr.common.machine.base.MTEWaterHubInputHatch;
 import com.miaokatze.gtsr.common.machine.base.MTEWaterHubOutputHatch;
@@ -169,6 +170,13 @@ public class MachineLoader {
                 "gtsr.steam.input.hatch",
                 "Steam Input Hatch"));
         CreativeTabManager.addItemToTab(GTSRItemList.SteamInputHatch.get(1));
+
+        GTSRItemList.SteamOutputHatchGeneric.set(
+            new MTESteamOutputHatchGeneric(
+                MetaTileEntityID.STEAM_OUTPUT_HATCH_GENERIC.ID,
+                "gtsr.steam.output.hatch.generic",
+                "Output Hatch (Steam)"));
+        CreativeTabManager.addItemToTab(GTSRItemList.SteamOutputHatchGeneric.get(1));
 
         GTSRItemList.PressureSteamOutputHatch.set(
             new MTEPressureSteamOutputHatch(

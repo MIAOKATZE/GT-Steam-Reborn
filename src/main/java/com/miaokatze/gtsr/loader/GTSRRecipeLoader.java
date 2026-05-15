@@ -3,6 +3,7 @@ package com.miaokatze.gtsr.loader;
 import static com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps.largeCokeOvenRecipes;
 import static com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps.siemensMartinRecipes;
 import static gregtech.api.util.GTRecipeBuilder.MINUTES;
+import static gregtech.api.util.GTRecipeBuilder.SECONDS;
 
 import net.minecraftforge.oredict.OreDictionary;
 
@@ -24,42 +25,73 @@ public class GTSRRecipeLoader implements Runnable {
                 OreDictionary.getOres("fuelCoke")
                     .get(0)
                     .copy())
-            .fluidOutputs(Materials.Creosote.getFluid(500))
             .duration(30 * MINUTES)
-            .eut(0)
-            .addTo(largeCokeOvenRecipes);
-
-        GTValues.RA.stdBuilder()
-            .itemInputs(Materials.Lignite.getGems(1))
-            .itemOutputs(
-                OreDictionary.getOres("fuelCoke")
-                    .get(0)
-                    .copy())
-            .fluidOutputs(Materials.Creosote.getFluid(400))
-            .duration(25 * MINUTES)
             .eut(0)
             .addTo(largeCokeOvenRecipes);
     }
 
     private static void registerSiemensMartinRecipes() {
         GTValues.RA.stdBuilder()
-            .itemInputs(Materials.Iron.getIngots(1))
-            .itemOutputs(Materials.Steel.getIngots(1))
-            .duration(6 * MINUTES)
+            .itemInputs(Materials.Iron.getIngots(1), Materials.Coal.getGems(2))
+            .itemOutputs(Materials.Steel.getIngots(1), Materials.DarkAsh.getDust(1))
+            .duration(1600 * SECONDS)
             .eut(0)
             .addTo(siemensMartinRecipes);
 
         GTValues.RA.stdBuilder()
-            .itemInputs(Materials.Iron.getDust(1))
-            .itemOutputs(Materials.Steel.getIngots(1))
-            .duration(6 * MINUTES)
+            .itemInputs(Materials.Iron.getDust(1), Materials.Coal.getGems(2))
+            .itemOutputs(Materials.Steel.getIngots(1), Materials.DarkAsh.getDust(1))
+            .duration(1600 * SECONDS)
             .eut(0)
             .addTo(siemensMartinRecipes);
 
         GTValues.RA.stdBuilder()
-            .itemInputs(Materials.WroughtIron.getIngots(1))
-            .itemOutputs(Materials.Steel.getIngots(1))
-            .duration(4 * MINUTES)
+            .itemInputs(Materials.Iron.getIngots(1), Materials.Coal.getDust(2))
+            .itemOutputs(Materials.Steel.getIngots(1), Materials.DarkAsh.getDust(1))
+            .duration(1600 * SECONDS)
+            .eut(0)
+            .addTo(siemensMartinRecipes);
+
+        GTValues.RA.stdBuilder()
+            .itemInputs(Materials.Iron.getDust(1), Materials.Coal.getDust(2))
+            .itemOutputs(Materials.Steel.getIngots(1), Materials.DarkAsh.getDust(1))
+            .duration(1600 * SECONDS)
+            .eut(0)
+            .addTo(siemensMartinRecipes);
+
+        GTValues.RA.stdBuilder()
+            .itemInputs(
+                Materials.Iron.getIngots(1),
+                OreDictionary.getOres("fuelCoke")
+                    .get(0)
+                    .copy())
+            .itemOutputs(Materials.Ash.getDust(1))
+            .duration(1200 * SECONDS)
+            .eut(0)
+            .addTo(siemensMartinRecipes);
+
+        GTValues.RA.stdBuilder()
+            .itemInputs(
+                Materials.Iron.getDust(1),
+                OreDictionary.getOres("fuelCoke")
+                    .get(0)
+                    .copy())
+            .itemOutputs(Materials.Ash.getDust(1))
+            .duration(1200 * SECONDS)
+            .eut(0)
+            .addTo(siemensMartinRecipes);
+
+        GTValues.RA.stdBuilder()
+            .itemInputs(Materials.Iron.getIngots(1), Materials.Carbon.getDust(1))
+            .itemOutputs(Materials.Steel.getIngots(1), Materials.Ash.getDust(1))
+            .duration(800 * SECONDS)
+            .eut(0)
+            .addTo(siemensMartinRecipes);
+
+        GTValues.RA.stdBuilder()
+            .itemInputs(Materials.Iron.getDust(1), Materials.Carbon.getDust(1))
+            .itemOutputs(Materials.Steel.getIngots(1), Materials.Ash.getDust(1))
+            .duration(800 * SECONDS)
             .eut(0)
             .addTo(siemensMartinRecipes);
     }

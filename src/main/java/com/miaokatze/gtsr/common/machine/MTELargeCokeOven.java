@@ -11,6 +11,7 @@ import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 
 import java.util.ArrayList;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import net.minecraft.block.Block;
@@ -19,7 +20,6 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 import net.minecraftforge.common.util.ForgeDirection;
-import net.minecraftforge.fluids.FluidStack;
 
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -37,37 +37,31 @@ import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps;
 
 import gregtech.api.GregTechAPI;
-import gregtech.api.enums.Materials;
 import gregtech.api.enums.Textures;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
+import gregtech.api.logic.ProcessingLogic;
 import gregtech.api.metatileentity.implementations.MTEEnhancedMultiBlockBase;
-import gregtech.api.metatileentity.implementations.MTEHatchInputBus;
-import gregtech.api.metatileentity.implementations.MTEHatchOutput;
-import gregtech.api.metatileentity.implementations.MTEHatchOutputBus;
 import gregtech.api.recipe.RecipeMap;
 import gregtech.api.recipe.check.CheckRecipeResult;
-import gregtech.api.recipe.check.CheckRecipeResultRegistry;
 import gregtech.api.render.TextureFactory;
-import gregtech.api.util.GTUtility;
 import gregtech.api.util.MultiblockTooltipBuilder;
 
 public class MTELargeCokeOven extends MTEEnhancedMultiBlockBase<MTELargeCokeOven>
     implements IConstructable, ISurvivalConstructable {
 
-    private static final double HEAT_UP_RATE = 0.001d;
-    private static final double HEAT_DOWN_RATE = 0.002d;
+    private static final double HEAT_PER_RECIPE = 0.1d;
     private static final int BASE_RECIPE_TIME_SECONDS = 1800;
     private static final int HEAT_SPEEDUP_PER_PERCENT = 10;
     private static final int MIN_RECIPE_TIME_SECONDS = 800;
-    private static final int MAX_PARALLEL_T1 = 4;
+    private static final int MAX_PARALLEL_T1 = 8;
     private static final int MAX_PARALLEL_T2 = 16;
-    private static final int CREOSOTE_PER_RECIPE = 500;
 
     private double mHeat = 0.0d;
     private int mTier = 1;
-    private int mActiveRecipes = 0;
+    private int mParallel = 0;
+    private boolean mWasProcessing = false;
 
     private static final String STRUCTURE_PIECE_MAIN = "main";
     private static IStructureDefinition<MTELargeCokeOven> STRUCTURE_DEFINITION = null;
@@ -92,7 +86,7 @@ public class MTELargeCokeOven extends MTEEnhancedMultiBlockBase<MTELargeCokeOven
 
     @Override
     public boolean shouldDisplayCheckRecipeResult() {
-        return false;
+        return true;
     }
 
     @Override
@@ -103,14 +97,6 @@ public class MTELargeCokeOven extends MTEEnhancedMultiBlockBase<MTELargeCokeOven
     @Override
     public RecipeMap<?> getRecipeMap() {
         return GTSRRecipeMaps.largeCokeOvenRecipes;
-    }
-
-    @Override
-    public CheckRecipeResult checkProcessing() {
-        if (mHeat < 0.01d) {
-            return CheckRecipeResultRegistry.NO_RECIPE;
-        }
-        return CheckRecipeResultRegistry.SUCCESSFUL;
     }
 
     @Nullable
@@ -142,10 +128,6 @@ public class MTELargeCokeOven extends MTEEnhancedMultiBlockBase<MTELargeCokeOven
                         buildHatchAdder(MTELargeCokeOven.class).atLeast(OutputHatch)
                             .casingIndex(10)
                             .dot(1)
-                            .shouldReject(
-                                t -> t.mOutputHatches.stream()
-                                    .anyMatch(
-                                        h -> h instanceof com.miaokatze.gtsr.common.machine.base.MTESteamCoolingHatch))
                             .buildAndChain(
                                 onElementPass(
                                     MTELargeCokeOven::onCasingAdded,
@@ -179,7 +161,6 @@ public class MTELargeCokeOven extends MTEEnhancedMultiBlockBase<MTELargeCokeOven
             .addStructureInfo(StatCollector.translateToLocal("gtsr.tooltip.large_coke_oven.casing_t2"))
             .addInputBus(StatCollector.translateToLocal("gtsr.tooltip.large_coke_oven.input_bus"), 1)
             .addOutputBus(StatCollector.translateToLocal("gtsr.tooltip.large_coke_oven.output_bus"), 1)
-            .addOutputHatch(StatCollector.translateToLocal("gtsr.tooltip.large_coke_oven.output_hatch"), 1)
             .toolTipFinisher("GTSR");
         return tt;
     }
@@ -208,207 +189,55 @@ public class MTELargeCokeOven extends MTEEnhancedMultiBlockBase<MTELargeCokeOven
             return false;
         }
 
-        return mInputBusses.size() >= 1 && mOutputBusses.size() >= 1 && mOutputHatches.size() >= 1;
+        return mInputBusses.size() >= 1 && mOutputBusses.size() >= 1;
+    }
+
+    @Override
+    public int getMaxParallelRecipes() {
+        if (mTier >= 2) return MAX_PARALLEL_T2;
+        return MAX_PARALLEL_T1;
+    }
+
+    @Override
+    protected ProcessingLogic createProcessingLogic() {
+        return new ProcessingLogic().setMaxParallelSupplier(this::getMaxParallelRecipes);
+    }
+
+    @Override
+    @Nonnull
+    public CheckRecipeResult checkProcessing() {
+        CheckRecipeResult result = super.checkProcessing();
+        if (!result.wasSuccessful()) return result;
+
+        mParallel = processingLogic.getCurrentParallels();
+
+        if (mHeat > 0.0d) {
+            int reducedSeconds = (int) (mHeat * 100.0d * HEAT_SPEEDUP_PER_PERCENT);
+            int actualSeconds = Math.max(MIN_RECIPE_TIME_SECONDS, BASE_RECIPE_TIME_SECONDS - reducedSeconds);
+            mMaxProgresstime = actualSeconds * 20;
+        }
+
+        return result;
     }
 
     @Override
     public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
         super.onPostTick(aBaseMetaTileEntity, aTick);
-        if (aBaseMetaTileEntity.isServerSide()) {
-            onPostTickServer(aBaseMetaTileEntity, aTick);
-        }
-    }
 
-    private void onPostTickServer(IGregTechTileEntity baseMetaTileEntity, long tick) {
+        if (!aBaseMetaTileEntity.isServerSide()) return;
+
+        if (mMaxProgresstime > 0) {
+            mWasProcessing = true;
+        } else if (mWasProcessing) {
+            mWasProcessing = false;
+            mHeat = Math.min(1.0d, mHeat + HEAT_PER_RECIPE);
+        }
+
         if (!mMachine) {
-            mActiveRecipes = 0;
-            mMaxProgresstime = 0;
-            mProgresstime = 0;
-            mHeat = Math.max(0.0d, mHeat - HEAT_DOWN_RATE);
-            baseMetaTileEntity.setActive(false);
-            return;
+            mWasProcessing = false;
         }
 
-        processRecipeLogic();
-        updateHeat();
-
-        baseMetaTileEntity.setActive(mMaxProgresstime > 0);
-    }
-
-    private void processRecipeLogic() {
-        if (mMaxProgresstime > 0) {
-            mProgresstime++;
-            if (mProgresstime >= mMaxProgresstime) {
-                finishRecipe();
-            }
-            return;
-        }
-
-        tryStartRecipe();
-    }
-
-    private void tryStartRecipe() {
-        if (!getBaseMetaTileEntity().isAllowedToWork()) return;
-
-        int maxParallel = (mTier >= 2) ? MAX_PARALLEL_T2 : MAX_PARALLEL_T1;
-        int coalAvailable = countCoalInInputBusses();
-
-        if (coalAvailable <= 0) return;
-
-        mActiveRecipes = Math.min(coalAvailable, maxParallel);
-
-        if (!checkOutputSpace()) {
-            mActiveRecipes = 0;
-            return;
-        }
-
-        consumeCoalFromInputBusses(mActiveRecipes);
-
-        int recipeTimeTicks = calculateRecipeTimeTicks();
-        mMaxProgresstime = recipeTimeTicks;
-        mProgresstime = 0;
-    }
-
-    private int countCoalInInputBusses() {
-        int count = 0;
-        for (MTEHatchInputBus bus : mInputBusses) {
-            for (int i = 0; i < bus.getSizeInventory(); i++) {
-                ItemStack stack = bus.getStackInSlot(i);
-                if (stack != null && isCoalItem(stack)) {
-                    count += stack.stackSize;
-                }
-            }
-        }
-        return count;
-    }
-
-    private boolean isCoalItem(ItemStack stack) {
-        if (stack == null) return false;
-        int[] oreIDs = net.minecraftforge.oredict.OreDictionary.getOreIDs(stack);
-        for (int id : oreIDs) {
-            String name = net.minecraftforge.oredict.OreDictionary.getOreName(id);
-            if ("gemCoal".equals(name) || "gemLignite".equals(name)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private void consumeCoalFromInputBusses(int amount) {
-        int remaining = amount;
-        for (MTEHatchInputBus bus : mInputBusses) {
-            if (remaining <= 0) break;
-            for (int i = 0; i < bus.getSizeInventory(); i++) {
-                ItemStack stack = bus.getStackInSlot(i);
-                if (stack != null && isCoalItem(stack)) {
-                    int toTake = Math.min(remaining, stack.stackSize);
-                    stack.stackSize -= toTake;
-                    remaining -= toTake;
-                    if (stack.stackSize <= 0) {
-                        bus.setInventorySlotContents(i, null);
-                    }
-                    if (remaining <= 0) break;
-                }
-            }
-        }
-    }
-
-    private boolean checkOutputSpace() {
-        ItemStack cokeItem = getCokeItem();
-        if (cokeItem == null) return false;
-
-        int totalCoke = mActiveRecipes;
-        int cokeSpace = 0;
-        for (MTEHatchOutputBus bus : mOutputBusses) {
-            for (int i = 0; i < bus.getSizeInventory(); i++) {
-                ItemStack stack = bus.getStackInSlot(i);
-                if (stack == null) {
-                    cokeSpace += cokeItem.getMaxStackSize();
-                } else if (GTUtility.areStacksEqual(stack, cokeItem)) {
-                    cokeSpace += cokeItem.getMaxStackSize() - stack.stackSize;
-                }
-            }
-        }
-        if (cokeSpace < totalCoke) return false;
-
-        FluidStack creosoteStack = Materials.Creosote.getFluid(CREOSOTE_PER_RECIPE * mActiveRecipes);
-        if (creosoteStack == null) return false;
-
-        FluidStack copied = creosoteStack.copy();
-        for (MTEHatchOutput hatch : mOutputHatches) {
-            FluidStack existing = hatch.getDrainableStack();
-            if (existing == null) {
-                copied.amount -= hatch.getCapacity();
-            } else if (GTUtility.areFluidsEqual(existing, creosoteStack)) {
-                copied.amount -= hatch.getCapacity() - existing.amount;
-            }
-            if (copied.amount <= 0) return true;
-        }
-        return false;
-    }
-
-    private ItemStack getCokeItem() {
-        ArrayList<ItemStack> ores = net.minecraftforge.oredict.OreDictionary.getOres("fuelCoke");
-        if (!ores.isEmpty()) {
-            ItemStack result = ores.get(0)
-                .copy();
-            result.stackSize = 1;
-            return result;
-        }
-        return null;
-    }
-
-    private int calculateRecipeTimeTicks() {
-        int reducedSeconds = (int) (mHeat * 100.0d * HEAT_SPEEDUP_PER_PERCENT);
-        int actualSeconds = Math.max(MIN_RECIPE_TIME_SECONDS, BASE_RECIPE_TIME_SECONDS - reducedSeconds);
-        return actualSeconds * 20;
-    }
-
-    private void finishRecipe() {
-        ItemStack cokeItem = getCokeItem();
-        FluidStack creosoteStack = Materials.Creosote.getFluid(CREOSOTE_PER_RECIPE * mActiveRecipes);
-
-        if (cokeItem != null) {
-            ItemStack output = cokeItem.copy();
-            output.stackSize = mActiveRecipes;
-            pushCokeToOutputBusses(output);
-        }
-
-        if (creosoteStack != null) {
-            addOutput(creosoteStack);
-        }
-
-        mMaxProgresstime = 0;
-        mProgresstime = 0;
-        mActiveRecipes = 0;
-    }
-
-    private void pushCokeToOutputBusses(ItemStack stack) {
-        if (stack == null) return;
-        for (MTEHatchOutputBus bus : mOutputBusses) {
-            for (int i = 0; i < bus.getSizeInventory(); i++) {
-                ItemStack existing = bus.getStackInSlot(i);
-                if (existing == null) {
-                    bus.setInventorySlotContents(i, stack.copy());
-                    return;
-                }
-                if (GTUtility.areStacksEqual(existing, stack)) {
-                    int space = existing.getMaxStackSize() - existing.stackSize;
-                    int toAdd = Math.min(space, stack.stackSize);
-                    existing.stackSize += toAdd;
-                    stack.stackSize -= toAdd;
-                    if (stack.stackSize <= 0) return;
-                }
-            }
-        }
-    }
-
-    private void updateHeat() {
-        if (mMaxProgresstime > 0) {
-            mHeat = Math.min(1.0d, mHeat + HEAT_UP_RATE);
-        } else {
-            mHeat = Math.max(0.0d, mHeat - HEAT_DOWN_RATE);
-        }
+        aBaseMetaTileEntity.setActive(mMaxProgresstime > 0);
     }
 
     @Override
@@ -418,17 +247,8 @@ public class MTELargeCokeOven extends MTEEnhancedMultiBlockBase<MTELargeCokeOven
             .widget(
                 new TextWidget().setStringSupplier(
                     () -> EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.gui.coke_oven.temperature")
-                        + String.format("%.2f%%", mHeat * 100.0d)))
+                        + String.format("%.0f%%", mHeat * 100.0d)))
             .widget(new FakeSyncWidget.DoubleSyncer(() -> mHeat, val -> mHeat = val));
-        if (mMaxProgresstime > 0) {
-            int secondsRemaining = (mMaxProgresstime - mProgresstime) / 20;
-            screenElements.widget(
-                new TextWidget().setStringSupplier(
-                    () -> StatCollector.translateToLocal("gtsr.gui.coke_oven.recipe_time") + secondsRemaining + "s"))
-                .widget(
-                    new TextWidget().setStringSupplier(
-                        () -> StatCollector.translateToLocal("gtsr.gui.coke_oven.parallel") + mActiveRecipes));
-        }
     }
 
     @Override
@@ -441,11 +261,10 @@ public class MTELargeCokeOven extends MTEEnhancedMultiBlockBase<MTELargeCokeOven
                     : StatCollector.translateToLocal("gtsr.info.coke_oven.tier1")));
         info.add(
             EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.gui.coke_oven.temperature")
-                + String.format("%.2f%%", mHeat * 100.0d));
+                + String.format("%.0f%%", mHeat * 100.0d));
         if (mMaxProgresstime > 0) {
             int secondsRemaining = (mMaxProgresstime - mProgresstime) / 20;
             info.add(StatCollector.translateToLocal("gtsr.gui.coke_oven.recipe_time") + secondsRemaining + "s");
-            info.add(StatCollector.translateToLocal("gtsr.gui.coke_oven.parallel") + mActiveRecipes);
         }
         return info.toArray(new String[0]);
     }
@@ -455,7 +274,6 @@ public class MTELargeCokeOven extends MTEEnhancedMultiBlockBase<MTELargeCokeOven
         super.saveNBTData(aNBT);
         aNBT.setDouble("mHeat", mHeat);
         aNBT.setInteger("mTier", mTier);
-        aNBT.setInteger("mActiveRecipes", mActiveRecipes);
     }
 
     @Override
@@ -463,7 +281,6 @@ public class MTELargeCokeOven extends MTEEnhancedMultiBlockBase<MTELargeCokeOven
         super.loadNBTData(aNBT);
         mHeat = aNBT.getDouble("mHeat");
         mTier = aNBT.getInteger("mTier");
-        mActiveRecipes = aNBT.getInteger("mActiveRecipes");
     }
 
     @Override

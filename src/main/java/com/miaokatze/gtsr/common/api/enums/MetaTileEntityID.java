@@ -91,6 +91,8 @@ public enum MetaTileEntityID {
     SIEMENS_MARTIN_FURNACE(31),
     /** 蒸汽输入仓 */
     STEAM_INPUT_HATCH(32),
+    /** 输出仓(蒸汽) - 通用流体输出仓 */
+    STEAM_OUTPUT_HATCH_GENERIC(33),
 
     ;
 

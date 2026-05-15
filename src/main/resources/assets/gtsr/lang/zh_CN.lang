@@ -138,12 +138,16 @@ gtsr.tooltip.large_steam_furnace.ctrl=底层正面中央
 gtsr.tooltip.large_steam_furnace.hatches=蒸汽仓×1, 蒸汽输入总线×1+, 蒸汽输出总线×1+
 
 # Steam Output Hatch
-gt.blockmachines.gtsr.steam.output.hatch.name=输出仓(蒸汽)
-gtsr.tooltip.steam_output_hatch.name=输出仓(蒸汽)
+gt.blockmachines.gtsr.steam.output.hatch.name=蒸汽输出仓
+gtsr.tooltip.steam_output_hatch.name=蒸汽输出仓
 
 # Steam Input Hatch
 gt.blockmachines.gtsr.steam.input.hatch.name=输入仓(蒸汽)
 gtsr.tooltip.steam_input_hatch.name=输入仓(蒸汽)
+
+# Steam Output Hatch Generic
+gt.blockmachines.gtsr.steam.output.hatch.generic.name=输出仓(蒸汽)
+gtsr.tooltip.steam_output_hatch_generic.name=输出仓(蒸汽)
 
 # Pressure Steam Output Hatch
 gt.blockmachines.gtsr.pressure.steam.output.hatch.name=耐压蒸汽输出仓
@@ -407,4 +411,6 @@ gtsr.gui.siemens_martin_furnace.temperature=炉温:
 gtsr.gui.siemens_martin_furnace.steam_cost=蒸汽消耗: 
 gtsr.gui.siemens_martin_furnace.recipe_time=配方时间: 
 gtsr.gui.siemens_martin_furnace.parallel=并行: 
+gtsr.gui.siemens_martin_furnace.temperature=炉温
 gtsr.info.siemens_martin_furnace.name=平炉 (Siemens-Martin Furnace)
+GT5U.gui.text.gtsr.gui.siemens_martin.temperature_low=炉温未达到100%

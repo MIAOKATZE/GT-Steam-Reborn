@@ -11,14 +11,14 @@ public class GTSRRecipeMaps {
 
     public static final RecipeMap<RecipeMapBackend> largeCokeOvenRecipes = RecipeMapBuilder
         .of("gtsr.recipe.largecokeoven")
-        .maxIO(1, 1, 0, 1)
+        .maxIO(1, 1, 0, 0)
         .minInputs(1, 0)
         .progressBar(GTUITextures.PROGRESSBAR_SIFT, ProgressBar.Direction.DOWN)
         .build();
 
     public static final RecipeMap<RecipeMapBackend> siemensMartinRecipes = RecipeMapBuilder
         .of("gtsr.recipe.siemensmartin")
-        .maxIO(2, 1, 0, 0)
+        .maxIO(2, 2, 0, 0)
         .minInputs(1, 0)
         .progressBar(GTUITextures.PROGRESSBAR_ARROW, ProgressBar.Direction.RIGHT)
         .build();
