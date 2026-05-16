@@ -443,7 +443,11 @@ public class MTESingularityDrillingHub extends MTESteamMultiBase<MTESingularityD
 
     public void pushNodeItemOutput(ItemStack stack) {
         if (stack == null) return;
-        addOutput(stack);
+        addOutputPartial(stack, false);
+    }
+
+    public boolean isMachineRunning() {
+        return mMachine && getBaseMetaTileEntity().isAllowedToWork();
     }
 
     public void pushNodeFluidOutput(FluidStack fluid) {

@@ -1,10 +1,13 @@
 package com.miaokatze.gtsr.common.machine;
 
 import net.minecraft.block.Block;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.StatCollector;
 import net.minecraft.world.World;
 import net.minecraftforge.common.util.FakePlayer;
+import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
 
@@ -15,15 +18,18 @@ import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.render.TextureFactory;
+import gregtech.api.util.GTModHandler;
 import gregtech.api.util.GTUtility;
 
 public class MTESingularityDrillingNode extends MTERemoteWorkerNode {
 
+    private static final Block MINING_PIPE_TIP_BLOCK = GTUtility
+        .getBlockFromStack(GTModHandler.getIC2Item("miningPipeTip", 0));
     private static final int FLUID_MULTIPLIER = 20;
     private static final int FLUID_BASE_AMOUNT = 50;
 
-    private int mDepth = 0;
-    private int mBaseY = -1;
+    private int mTipDepth = 0;
+    private boolean mAtBedrock = false;
     private FakePlayer mFakePlayer;
 
     public MTESingularityDrillingNode(int aID, String aName, String aNameRegional) {
@@ -65,43 +71,52 @@ public class MTESingularityDrillingNode extends MTERemoteWorkerNode {
             return;
         }
 
-        ItemStack pipeStack = mInventory[0];
-        if (!isMiningPipe(pipeStack) || pipeStack.stackSize <= 0) {
-            return;
-        }
-
-        Block pipeBlock = GTUtility.getBlockFromItem(pipeStack.getItem());
-        if (pipeBlock == null || pipeBlock == Blocks.air) {
-            return;
-        }
-
-        if (mBaseY < 0) {
-            mBaseY = aBaseMetaTileEntity.getYCoord();
-        }
-
-        int drillY = mBaseY - 1 - mDepth;
-        if (drillY <= 1) {
-            mDepth = 0;
-            drillY = mBaseY - 1;
-        }
-
-        World world = aBaseMetaTileEntity.getWorld();
         int x = aBaseMetaTileEntity.getXCoord();
+        int y = aBaseMetaTileEntity.getYCoord();
         int z = aBaseMetaTileEntity.getZCoord();
+        World world = aBaseMetaTileEntity.getWorld();
 
-        FluidStack water = FluidRegistry.getFluidStack("water", FLUID_BASE_AMOUNT * FLUID_MULTIPLIER);
-        if (water != null) {
-            hub.pushNodeFluidOutput(water);
+        if (mAtBedrock) {
+            FluidStack water = FluidRegistry.getFluidStack("water", FLUID_BASE_AMOUNT * FLUID_MULTIPLIER);
+            if (water != null) {
+                hub.pushNodeFluidOutput(water);
+            }
+            mIsWorking = true;
+            mWorkProgress = (mWorkProgress + 20) % WORK_CYCLE;
+            return;
         }
 
-        GTUtility.setBlockByFakePlayer(getFakePlayer(aBaseMetaTileEntity), x, drillY, z, pipeBlock, 0, false);
-
-        pipeStack.stackSize--;
-        if (pipeStack.stackSize <= 0) {
-            mInventory[0] = null;
+        int targetY = y + mTipDepth - 1;
+        if (targetY <= 0) {
+            mAtBedrock = true;
+            return;
         }
 
-        mDepth++;
+        boolean isBedrock = GTUtility.getBlockHardnessAt(world, x, targetY, z) < 0;
+        if (isBedrock) {
+            mAtBedrock = true;
+            return;
+        }
+
+        ItemStack consumed = consumeMiningPipeFromInputs();
+        if (consumed == null) {
+            return;
+        }
+
+        if (mTipDepth < 0) {
+            int prevTipY = y + mTipDepth;
+            if (world.getBlock(x, prevTipY, z) == MINING_PIPE_TIP_BLOCK) {
+                Block pipeBlock = GTUtility.getBlockFromItem(consumed.getItem());
+                if (pipeBlock != null && pipeBlock != Blocks.air) {
+                    world.setBlock(x, prevTipY, z, pipeBlock);
+                }
+            }
+        }
+
+        GTUtility
+            .setBlockByFakePlayer(getFakePlayer(aBaseMetaTileEntity), x, targetY, z, MINING_PIPE_TIP_BLOCK, 0, false);
+
+        mTipDepth--;
         mIsWorking = true;
         mWorkProgress = (mWorkProgress + 20) % WORK_CYCLE;
     }
@@ -119,14 +134,26 @@ public class MTESingularityDrillingNode extends MTERemoteWorkerNode {
     @Override
     public void saveNBTData(net.minecraft.nbt.NBTTagCompound aNBT) {
         super.saveNBTData(aNBT);
-        aNBT.setInteger("mDepth", mDepth);
-        aNBT.setInteger("mBaseY", mBaseY);
+        aNBT.setInteger("mTipDepth", mTipDepth);
+        aNBT.setBoolean("mAtBedrock", mAtBedrock);
     }
 
     @Override
     public void loadNBTData(net.minecraft.nbt.NBTTagCompound aNBT) {
         super.loadNBTData(aNBT);
-        mDepth = aNBT.getInteger("mDepth");
-        mBaseY = aNBT.getInteger("mBaseY");
+        mTipDepth = aNBT.getInteger("mTipDepth");
+        mAtBedrock = aNBT.getBoolean("mAtBedrock");
+    }
+
+    @Override
+    public boolean onRightclick(IGregTechTileEntity aBaseMetaTileEntity, EntityPlayer aPlayer, ForgeDirection side,
+        float aX, float aY, float aZ) {
+        if (!aBaseMetaTileEntity.isClientSide() && aPlayer.getHeldItem() == null && mHubX != 0) {
+            GTUtility.sendChatToPlayer(
+                aPlayer,
+                StatCollector.translateToLocal(
+                    "gtsr.binding.bound_to") + " Hub @ " + mHubX + ", " + mHubY + ", " + mHubZ);
+        }
+        return super.onRightclick(aBaseMetaTileEntity, aPlayer, side, aX, aY, aZ);
     }
 }

@@ -356,6 +356,20 @@ gtsr.drilling.node_miner=Miner Node
 gtsr.drilling.node_driller=Driller Node
 gtsr.drilling.no_pipes=Insufficient Mining Pipes
 
+# Node Status Messages
+gtsr.node.status.ok=Running
+gtsr.node.status.no_pipe=No Mining Pipe
+gtsr.node.status.no_hub=No Hub Detected
+gtsr.node.status.hub_off=Hub Not Working
+gtsr.node.status.bedrock=Bedrock Reached
+gtsr.node.status.soft_disabled=Disabled by Soft Hammer
+gtsr.node.status.unminable=Cannot Mine Block
+gtsr.node.status.unknown=Unknown Status
+gtsr.node.depth=Depth
+gtsr.node.pipes_retracted=Pipes Retracted
+gtsr.node.yes=Yes
+gtsr.node.no=No
+
 # Steam Input Bus
 gt.blockmachines.gtsr.steam.input.bus.name=Input Bus (Steam)
 gtsr.tooltip.steam_input_bus.name=Steam Item Input

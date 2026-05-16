@@ -356,6 +356,20 @@ gtsr.drilling.node_miner=矿机节点
 gtsr.drilling.node_driller=钻井节点
 gtsr.drilling.no_pipes=采矿管道不足
 
+# Node Status Messages
+gtsr.node.status.ok=正常运行
+gtsr.node.status.no_pipe=缺少采矿管道
+gtsr.node.status.no_hub=未检测到枢纽
+gtsr.node.status.hub_off=枢纽未工作
+gtsr.node.status.bedrock=已到达基岩
+gtsr.node.status.soft_disabled=已通过软锤关闭
+gtsr.node.status.unminable=无法挖掘当前方块
+gtsr.node.status.unknown=未知状态
+gtsr.node.depth=当前深度
+gtsr.node.pipes_retracted=管道已回收
+gtsr.node.yes=是
+gtsr.node.no=否
+
 # Steam Input Bus (蒸汽输入总线)
 gt.blockmachines.gtsr.steam.input.bus.name=输入总线(蒸汽)
 gtsr.tooltip.steam_input_bus.name=蒸汽物品输入

@@ -50,7 +50,7 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity implements IAdd
         return sMiningPipeItem;
     }
 
-    protected boolean isMiningPipe(ItemStack aStack) {
+    protected static boolean isMiningPipe(ItemStack aStack) {
         if (aStack == null) return false;
         Item pipeItem = getMiningPipeItem();
         return pipeItem != null && aStack.getItem() == pipeItem;
@@ -158,6 +158,11 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity implements IAdd
         mIsWorking = false;
     }
 
+    @Override
+    public String[] getInfoData() {
+        return new String[0];
+    }
+
     private boolean registerWithHub(IGregTechTileEntity aBaseMetaTileEntity) {
         World world = DimensionManager.getWorld(mHubDim);
         if (world == null || !world.blockExists(mHubX, mHubY, mHubZ)) return false;
@@ -214,28 +219,33 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity implements IAdd
             .doesAddCoverTabs(false)
             .build();
 
+        addSlots(panel);
+
+        return panel;
+    }
+
+    protected void addSlots(ModularPanel panel) {
+        final int slotCount = mInventory.length;
         panel.child(
             new ItemSlot().slot(new ModularSlot(inventoryHandler, 0).slotGroup("node_inv"))
-                .left(62)
-                .top(22));
+                .left(52)
+                .top(24));
 
         for (int i = 1; i < slotCount; i++) {
             final int slot = i;
             panel.child(
                 new ItemSlot().slot(new ModularSlot(inventoryHandler, slot).slotGroup("node_inv"))
-                    .left(116)
-                    .top(22 + (slot - 1) * 18));
+                    .left(106 + (slot - 1) * 18)
+                    .top(24));
         }
-
-        return panel;
     }
 
     @Override
     public void addUIWidgets(ModularWindow.Builder builder, UIBuildContext buildContext) {
         final int slotCount = mInventory.length;
-        builder.widget(new SlotWidget(inventoryHandler, 0).setPos(62, 22));
+        builder.widget(new SlotWidget(inventoryHandler, 0).setPos(52, 24));
         for (int i = 1; i < slotCount; i++) {
-            builder.widget(new SlotWidget(inventoryHandler, i).setPos(116, 22 + (i - 1) * 18));
+            builder.widget(new SlotWidget(inventoryHandler, i).setPos(106 + (i - 1) * 18, 24));
         }
     }
 
@@ -345,11 +355,32 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity implements IAdd
     @Override
     public boolean allowPullStack(IGregTechTileEntity aBaseMetaTileEntity, int aIndex, ForgeDirection side,
         ItemStack aStack) {
-        return aIndex > 0;
+        return !isInputSlot(aIndex);
     }
 
     @Override
     public byte getTileEntityBaseType() {
         return HarvestTool.WrenchLevel0.toTileEntityBaseType();
+    }
+
+    protected ItemStack consumeMiningPipeFromInputs() {
+        int inputCount = getInputSlotCount();
+        for (int i = 0; i < inputCount; i++) {
+            ItemStack stack = mInventory[i];
+            if (isMiningPipe(stack) && stack.stackSize > 0) {
+                stack.stackSize--;
+                ItemStack result = stack.copy();
+                result.stackSize = 1;
+                if (stack.stackSize <= 0) {
+                    mInventory[i] = null;
+                }
+                return result;
+            }
+        }
+        return null;
+    }
+
+    protected int getInputSlotCount() {
+        return 1;
     }
 }
