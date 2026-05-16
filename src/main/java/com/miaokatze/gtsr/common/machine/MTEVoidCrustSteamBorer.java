@@ -465,8 +465,7 @@ public class MTEVoidCrustSteamBorer extends MTESteamMultiBase<MTEVoidCrustSteamB
 
         return new String[] { EnumChatFormatting.BLUE + "Singularity Crust Steam Borer",
             EnumChatFormatting.GRAY + "Tier: " + EnumChatFormatting.GOLD + "Steel",
-            EnumChatFormatting.GRAY + "Status: "
-                + (mMachine ? EnumChatFormatting.GREEN + "Running" : EnumChatFormatting.RED + "Incomplete"),
+            EnumChatFormatting.GRAY + "Status: " + getStatusText(),
             EnumChatFormatting.GRAY + "Target Dimension: " + dimInfo, EnumChatFormatting.GRAY + "Mining: " + oreInfo,
             EnumChatFormatting.GRAY + "Hatch: " + hatchInfo,
             EnumChatFormatting.GRAY + "Steam Consumption: "
@@ -474,5 +473,16 @@ public class MTEVoidCrustSteamBorer extends MTESteamMultiBase<MTEVoidCrustSteamB
                 + GTUtility.formatNumbers(VOID_STEAM_PER_SECOND)
                 + " L/s",
             EnumChatFormatting.GRAY + "Work Time: " + EnumChatFormatting.YELLOW + (workTime / 20) + "s" };
+    }
+
+    private String getStatusText() {
+        if (!mMachine) return EnumChatFormatting.RED + "Incomplete" + EnumChatFormatting.RESET;
+        if (!isPluginLoaded()) return EnumChatFormatting.RED + "Plugin Missing" + EnumChatFormatting.RESET;
+        if ("None".equals(lastDimAbbr)) return EnumChatFormatting.RED + "No Dimension" + EnumChatFormatting.RESET;
+        if (!dropMapValid) return EnumChatFormatting.RED + "No Ores" + EnumChatFormatting.RESET;
+        if (!getBaseMetaTileEntity().isAllowedToWork())
+            return EnumChatFormatting.YELLOW + "Disabled" + EnumChatFormatting.RESET;
+        if (getTotalSteamStored() <= 0) return EnumChatFormatting.YELLOW + "No Steam" + EnumChatFormatting.RESET;
+        return EnumChatFormatting.GREEN + "Running" + EnumChatFormatting.RESET;
     }
 }

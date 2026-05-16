@@ -13,9 +13,11 @@ import net.minecraft.world.World;
 import net.minecraftforge.common.util.FakePlayer;
 import net.minecraftforge.common.util.ForgeDirection;
 
-import com.cleanroommc.modularui.screen.ModularPanel;
-import com.cleanroommc.modularui.widgets.slot.ItemSlot;
-import com.cleanroommc.modularui.widgets.slot.ModularSlot;
+import com.gtnewhorizons.modularui.api.screen.ModularWindow;
+import com.gtnewhorizons.modularui.api.screen.UIBuildContext;
+import com.gtnewhorizons.modularui.common.widget.FakeSyncWidget;
+import com.gtnewhorizons.modularui.common.widget.SlotWidget;
+import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import com.miaokatze.gtsr.common.machine.base.MTERemoteWorkerNode;
 
 import gregtech.api.enums.Textures;
@@ -31,7 +33,8 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
     private static final Block MINING_PIPE_TIP_BLOCK = GTUtility
         .getBlockFromStack(GTModHandler.getIC2Item("miningPipeTip", 0));
     private static final int MINING_RADIUS = 8;
-    private static final int FORTUNE = 0;
+    private static final int FORTUNE = 4;
+    private static final int SMALL_ORE_META_OFFSET = 16000;
 
     private static final int STATUS_OK = 0;
     private static final int STATUS_NO_PIPE = 1;
@@ -47,17 +50,18 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
     private boolean mNeedsDescend = true;
     private boolean mSoftDisabled = false;
     private boolean mForcedRetract = false;
+    private boolean mHasStarted = false;
     private int mStatus = STATUS_OK;
     private boolean mLastAllowedToWork = true;
     private final ArrayList<ChunkCoordinates> mOrePositions = new ArrayList<>();
     private FakePlayer mFakePlayer;
 
     public MTESingularityMinerNode(int aID, String aName, String aNameRegional) {
-        super(aID, aName, aNameRegional, 4);
+        super(aID, aName, aNameRegional, 3);
     }
 
     public MTESingularityMinerNode(String aName) {
-        super(aName, 4);
+        super(aName, 3);
     }
 
     @Override
@@ -72,35 +76,81 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
 
     @Override
     protected boolean isInputSlot(int aIndex) {
-        return aIndex == 0 || aIndex == 1;
+        return aIndex >= 0 && aIndex < 3;
     }
 
     @Override
     protected int getInputSlotCount() {
-        return 2;
+        return 3;
     }
 
     @Override
-    protected void addSlots(ModularPanel panel) {
-        panel.child(
-            new ItemSlot().slot(new ModularSlot(inventoryHandler, 0).slotGroup("node_inv"))
-                .left(34)
-                .top(24));
+    public void addUIWidgets(ModularWindow.Builder builder, UIBuildContext buildContext) {
+        builder.widget(new SlotWidget(inventoryHandler, 0).setPos(52, 24));
+        builder.widget(new SlotWidget(inventoryHandler, 1).setPos(70, 24));
+        builder.widget(new SlotWidget(inventoryHandler, 2).setPos(88, 24));
+        addDisplayTexts(builder);
+    }
 
-        panel.child(
-            new ItemSlot().slot(new ModularSlot(inventoryHandler, 1).slotGroup("node_inv"))
-                .left(52)
-                .top(24));
+    @Override
+    protected void addDisplayTexts(ModularWindow.Builder builder) {
+        builder.widget(
+            new TextWidget()
+                .setStringSupplier(
+                    () -> {
+                        switch (mStatus) {
+                            case STATUS_OK:
+                                return EnumChatFormatting.GREEN
+                                    + StatCollector.translateToLocal("gtsr.node.status.ok");
+                            case STATUS_NO_PIPE:
+                                return EnumChatFormatting.RED
+                                    + StatCollector.translateToLocal("gtsr.node.status.no_pipe");
+                            case STATUS_NO_HUB:
+                                return EnumChatFormatting.RED
+                                    + StatCollector.translateToLocal("gtsr.node.status.no_hub");
+                            case STATUS_HUB_OFF:
+                                return EnumChatFormatting.RED
+                                    + StatCollector.translateToLocal("gtsr.node.status.hub_off");
+                            case STATUS_BEDROCK:
+                                return EnumChatFormatting.YELLOW
+                                    + StatCollector.translateToLocal("gtsr.node.status.bedrock");
+                            case STATUS_SOFT_DISABLED:
+                                return EnumChatFormatting.YELLOW
+                                    + StatCollector.translateToLocal("gtsr.node.status.soft_disabled");
+                            case STATUS_UNMINABLE:
+                                return EnumChatFormatting.RED
+                                    + StatCollector.translateToLocal("gtsr.node.status.unminable");
+                            default:
+                                return EnumChatFormatting.GRAY
+                                    + StatCollector.translateToLocal("gtsr.node.status.unknown");
+                        }
+                    })
+                .setDefaultColor(0xFFFFFFFF)
+                .setPos(10, 52));
 
-        panel.child(
-            new ItemSlot().slot(new ModularSlot(inventoryHandler, 2).slotGroup("node_inv"))
-                .left(106)
-                .top(24));
+        builder.widget(
+            new TextWidget()
+                .setStringSupplier(
+                    () -> EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.node.depth")
+                        + ": "
+                        + mTipDepth)
+                .setDefaultColor(0xFFFFFFFF)
+                .setPos(10, 64));
 
-        panel.child(
-            new ItemSlot().slot(new ModularSlot(inventoryHandler, 3).slotGroup("node_inv"))
-                .left(124)
-                .top(24));
+        builder.widget(
+            new TextWidget()
+                .setStringSupplier(
+                    () -> EnumChatFormatting.WHITE
+                        + StatCollector.translateToLocal("gtsr.node.pipes_retracted")
+                        + ": "
+                        + (mRetractDone ? StatCollector.translateToLocal("gtsr.node.yes")
+                            : StatCollector.translateToLocal("gtsr.node.no")))
+                .setDefaultColor(0xFFFFFFFF)
+                .setPos(10, 76));
+
+        builder.widget(new FakeSyncWidget.IntegerSyncer(() -> mStatus, val -> mStatus = val));
+        builder.widget(new FakeSyncWidget.IntegerSyncer(() -> mTipDepth, val -> mTipDepth = val));
+        builder.widget(new FakeSyncWidget.BooleanSyncer(() -> mRetractDone, val -> mRetractDone = val));
     }
 
     private FakePlayer getFakePlayer(IGregTechTileEntity aBaseMetaTileEntity) {
@@ -182,7 +232,8 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
             return;
         }
 
-        ArrayList<ItemStack> drops = block.getDrops(world, oreX, oreY, oreZ, meta, FORTUNE);
+        int fortune = (GTUtility.isOre(block, meta) && meta >= SMALL_ORE_META_OFFSET) ? FORTUNE : 0;
+        ArrayList<ItemStack> drops = block.getDrops(world, oreX, oreY, oreZ, meta, fortune);
 
         GTUtility.eraseBlockByFakePlayer(getFakePlayer(aBaseMetaTileEntity), oreX, oreY, oreZ, false);
 
@@ -195,6 +246,7 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
         }
 
         mStatus = STATUS_OK;
+        mHasStarted = true;
         mIsWorking = true;
         mWorkProgress = (mWorkProgress + 20) % WORK_CYCLE;
     }
@@ -273,8 +325,9 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
             }
         }
 
+        int fortune = (GTUtility.isOre(targetBlock, targetMeta) && targetMeta >= SMALL_ORE_META_OFFSET) ? FORTUNE : 0;
         if (targetBlock != null && targetBlock != Blocks.air && targetBlock != Blocks.bedrock) {
-            ArrayList<ItemStack> drops = targetBlock.getDrops(world, x, targetY, z, targetMeta, FORTUNE);
+            ArrayList<ItemStack> drops = targetBlock.getDrops(world, x, targetY, z, targetMeta, fortune);
             MTESingularityDrillingHub hub = getBoundHub();
             if (drops != null && hub != null) {
                 for (ItemStack drop : drops) {
@@ -306,12 +359,14 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
         if (mLastAllowedToWork && !allowedToWork) {
             mSoftDisabled = true;
             mDisabled = true;
+            mHasStarted = false;
             mForcedRetract = true;
             mRetractDone = false;
             mStatus = STATUS_SOFT_DISABLED;
         } else if (!mLastAllowedToWork && allowedToWork && mSoftDisabled) {
             mSoftDisabled = false;
             mDisabled = false;
+            mHasStarted = false;
             mRetractDone = false;
             mForcedRetract = false;
             mNeedsDescend = true;
@@ -325,10 +380,17 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
             retractOnePipe(aBaseMetaTileEntity);
         }
 
-        boolean shouldBeActive = !mDisabled && mStatus == STATUS_OK;
+        if (!mDisabled) {
+            doWork(aBaseMetaTileEntity);
+        }
+
+        boolean shouldBeActive = mStatus == STATUS_OK && mHasStarted;
         if (shouldBeActive) {
             mIsWorking = true;
         }
+
+        aBaseMetaTileEntity.setActive(mIsWorking);
+        mIsWorking = false;
     }
 
     private void retractOnePipe(IGregTechTileEntity aBaseMetaTileEntity) {
@@ -352,7 +414,8 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
         }
 
         boolean canRecover = false;
-        for (int i = 0; i < 2; i++) {
+        int inputCount = getInputSlotCount();
+        for (int i = 0; i < inputCount; i++) {
             ItemStack slot = mInventory[i];
             if (slot == null || slot.stackSize < slot.getMaxStackSize()) {
                 canRecover = true;
@@ -373,7 +436,7 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
         if (recoveredPipe != null) {
             ItemStack pipe = recoveredPipe.copy();
             pipe.stackSize = 1;
-            for (int i = 0; i < 2; i++) {
+            for (int i = 0; i < inputCount; i++) {
                 if (mInventory[i] == null) {
                     mInventory[i] = pipe;
                     break;
@@ -449,6 +512,7 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
         aNBT.setBoolean("mNeedsDescend", mNeedsDescend);
         aNBT.setBoolean("mSoftDisabled", mSoftDisabled);
         aNBT.setBoolean("mForcedRetract", mForcedRetract);
+        aNBT.setBoolean("mHasStarted", mHasStarted);
         aNBT.setInteger("mStatus", mStatus);
     }
 
@@ -464,6 +528,9 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
         }
         if (aNBT.hasKey("mForcedRetract")) {
             mForcedRetract = aNBT.getBoolean("mForcedRetract");
+        }
+        if (aNBT.hasKey("mHasStarted")) {
+            mHasStarted = aNBT.getBoolean("mHasStarted");
         }
         if (aNBT.hasKey("mStatus")) {
             mStatus = aNBT.getInteger("mStatus");

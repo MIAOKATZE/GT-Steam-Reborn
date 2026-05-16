@@ -370,14 +370,21 @@ public class MTECrustSteamBorer extends MTESteamMultiBase<MTECrustSteamBorer> im
 
         return new String[] { EnumChatFormatting.BLUE + "Crust Steam Borer",
             EnumChatFormatting.GRAY + "Tier: " + EnumChatFormatting.GOLD + "Bronze",
-            EnumChatFormatting.GRAY + "Status: "
-                + (mMachine ? EnumChatFormatting.GREEN + "Running" : EnumChatFormatting.RED + "Incomplete"),
-            EnumChatFormatting.GRAY + "Dimension: " + dimInfo, EnumChatFormatting.GRAY + "Mining: " + oreInfo,
-            EnumChatFormatting.GRAY + "Hatch: " + hatchInfo,
+            EnumChatFormatting.GRAY + "Status: " + getStatusText(), EnumChatFormatting.GRAY + "Dimension: " + dimInfo,
+            EnumChatFormatting.GRAY + "Mining: " + oreInfo, EnumChatFormatting.GRAY + "Hatch: " + hatchInfo,
             EnumChatFormatting.GRAY + "Steam Consumption: "
                 + EnumChatFormatting.RED
                 + GTUtility.formatNumbers(STEAM_PER_SECOND)
                 + " L/s",
             EnumChatFormatting.GRAY + "Work Time: " + EnumChatFormatting.YELLOW + (workTime / 20) + "s" };
+    }
+
+    private String getStatusText() {
+        if (!mMachine) return EnumChatFormatting.RED + "Incomplete" + EnumChatFormatting.RESET;
+        if (!canMineInCurrentDim) return EnumChatFormatting.RED + "Invalid Dimension" + EnumChatFormatting.RESET;
+        if (!getBaseMetaTileEntity().isAllowedToWork())
+            return EnumChatFormatting.YELLOW + "Disabled" + EnumChatFormatting.RESET;
+        if (getTotalSteamStored() <= 0) return EnumChatFormatting.YELLOW + "No Steam" + EnumChatFormatting.RESET;
+        return EnumChatFormatting.GREEN + "Running" + EnumChatFormatting.RESET;
     }
 }

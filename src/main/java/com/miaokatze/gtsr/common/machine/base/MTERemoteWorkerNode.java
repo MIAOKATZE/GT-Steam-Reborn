@@ -14,12 +14,6 @@ import net.minecraft.world.World;
 import net.minecraftforge.common.DimensionManager;
 import net.minecraftforge.common.util.ForgeDirection;
 
-import com.cleanroommc.modularui.factory.PosGuiData;
-import com.cleanroommc.modularui.screen.ModularPanel;
-import com.cleanroommc.modularui.screen.UISettings;
-import com.cleanroommc.modularui.value.sync.PanelSyncManager;
-import com.cleanroommc.modularui.widgets.slot.ItemSlot;
-import com.cleanroommc.modularui.widgets.slot.ModularSlot;
 import com.gtnewhorizons.modularui.api.screen.ModularWindow;
 import com.gtnewhorizons.modularui.api.screen.UIBuildContext;
 import com.gtnewhorizons.modularui.common.widget.SlotWidget;
@@ -32,7 +26,6 @@ import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.modularui.IAddUIWidgets;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
-import gregtech.api.modularui2.GTGuis;
 import gregtech.api.render.TextureFactory;
 import gregtech.api.util.GTModHandler;
 
@@ -208,36 +201,7 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity implements IAdd
 
     @Override
     protected boolean useMui2() {
-        return true;
-    }
-
-    @Override
-    public ModularPanel buildUI(PosGuiData data, PanelSyncManager syncManager, UISettings uiSettings) {
-        final int slotCount = mInventory.length;
-        syncManager.registerSlotGroup("node_inv", slotCount);
-        ModularPanel panel = GTGuis.mteTemplatePanelBuilder(this, data, syncManager, uiSettings)
-            .doesAddCoverTabs(false)
-            .build();
-
-        addSlots(panel);
-
-        return panel;
-    }
-
-    protected void addSlots(ModularPanel panel) {
-        final int slotCount = mInventory.length;
-        panel.child(
-            new ItemSlot().slot(new ModularSlot(inventoryHandler, 0).slotGroup("node_inv"))
-                .left(52)
-                .top(24));
-
-        for (int i = 1; i < slotCount; i++) {
-            final int slot = i;
-            panel.child(
-                new ItemSlot().slot(new ModularSlot(inventoryHandler, slot).slotGroup("node_inv"))
-                    .left(106 + (slot - 1) * 18)
-                    .top(24));
-        }
+        return false;
     }
 
     @Override
@@ -247,7 +211,10 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity implements IAdd
         for (int i = 1; i < slotCount; i++) {
             builder.widget(new SlotWidget(inventoryHandler, i).setPos(106 + (i - 1) * 18, 24));
         }
+        addDisplayTexts(builder);
     }
+
+    protected void addDisplayTexts(ModularWindow.Builder builder) {}
 
     @Override
     public ITexture[] getTexture(IGregTechTileEntity aBaseMetaTileEntity, ForgeDirection side, ForgeDirection facing,
