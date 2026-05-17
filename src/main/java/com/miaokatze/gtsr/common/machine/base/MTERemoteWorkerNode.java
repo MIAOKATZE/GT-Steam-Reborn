@@ -134,7 +134,7 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity implements IAdd
         }
     }
 
-    private boolean isBound() {
+    protected boolean isBound() {
         return mHubX != 0 || mHubY != 0 || mHubZ != 0 || mHubDim != 0;
     }
 
@@ -156,7 +156,7 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity implements IAdd
         return new String[0];
     }
 
-    private boolean registerWithHub(IGregTechTileEntity aBaseMetaTileEntity) {
+    protected boolean registerWithHub(IGregTechTileEntity aBaseMetaTileEntity) {
         World world = DimensionManager.getWorld(mHubDim);
         if (world == null || !world.blockExists(mHubX, mHubY, mHubZ)) return false;
 
@@ -202,6 +202,11 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity implements IAdd
     @Override
     protected boolean useMui2() {
         return false;
+    }
+
+    @Override
+    public int getGUIHeight() {
+        return 182;
     }
 
     @Override

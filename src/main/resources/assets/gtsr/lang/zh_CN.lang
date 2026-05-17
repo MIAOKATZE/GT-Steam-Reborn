@@ -364,9 +364,12 @@ gtsr.node.status.hub_off=枢纽未工作
 gtsr.node.status.bedrock=已到达基岩
 gtsr.node.status.soft_disabled=已通过软锤关闭
 gtsr.node.status.unminable=无法挖掘当前方块
+gtsr.node.status.extracting=抽取中
+gtsr.node.status.fluid_depleted=地下流体枯竭
 gtsr.node.status.unknown=未知状态
 gtsr.node.depth=当前深度
 gtsr.node.pipes_retracted=管道已回收
+gtsr.node.driller_bedrock=到达基岩
 gtsr.node.yes=是
 gtsr.node.no=否
 

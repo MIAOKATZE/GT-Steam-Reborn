@@ -21,7 +21,6 @@ import net.minecraft.world.World;
 import net.minecraftforge.common.DimensionManager;
 import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.FluidStack;
-import net.minecraftforge.fluids.IFluidHandler;
 
 import com.gtnewhorizon.structurelib.alignment.IAlignmentLimits;
 import com.gtnewhorizon.structurelib.alignment.constructable.ISurvivalConstructable;
@@ -454,13 +453,12 @@ public class MTESingularityDrillingHub extends MTESteamMultiBase<MTESingularityD
         if (fluid == null || fluid.amount <= 0) return;
         for (MTEHatch hatch : mOutputHatches) {
             if (fluid.amount <= 0) break;
-            IGregTechTileEntity hatchBase = hatch.getBaseMetaTileEntity();
-            if (hatchBase == null) continue;
-            IFluidHandler handler = hatchBase.getITankContainerAtSide(ForgeDirection.UNKNOWN);
-            if (handler == null) continue;
-            int filled = handler.fill(ForgeDirection.UNKNOWN, fluid, true);
-            if (filled > 0) {
-                fluid.amount -= filled;
+            int tAmount = hatch.fill(fluid, false);
+            if (tAmount >= fluid.amount) {
+                hatch.fill(fluid, true);
+                break;
+            } else if (tAmount > 0) {
+                fluid.amount -= hatch.fill(fluid, true);
             }
         }
     }

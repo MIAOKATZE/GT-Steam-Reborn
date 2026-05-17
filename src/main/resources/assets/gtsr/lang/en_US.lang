@@ -364,9 +364,12 @@ gtsr.node.status.hub_off=Hub Not Working
 gtsr.node.status.bedrock=Bedrock Reached
 gtsr.node.status.soft_disabled=Disabled by Soft Hammer
 gtsr.node.status.unminable=Cannot Mine Block
+gtsr.node.status.extracting=Extracting
+gtsr.node.status.fluid_depleted=Fluid Depleted
 gtsr.node.status.unknown=Unknown Status
 gtsr.node.depth=Depth
 gtsr.node.pipes_retracted=Pipes Retracted
+gtsr.node.driller_bedrock=Reached Bedrock
 gtsr.node.yes=Yes
 gtsr.node.no=No
 

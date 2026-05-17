@@ -53,6 +53,7 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
     private boolean mHasStarted = false;
     private int mStatus = STATUS_OK;
     private boolean mLastAllowedToWork = true;
+    private int mCycleTimer = 0;
     private final ArrayList<ChunkCoordinates> mOrePositions = new ArrayList<>();
     private FakePlayer mFakePlayer;
 
@@ -94,54 +95,39 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
 
     @Override
     protected void addDisplayTexts(ModularWindow.Builder builder) {
-        builder.widget(
-            new TextWidget()
-                .setStringSupplier(
-                    () -> {
-                        switch (mStatus) {
-                            case STATUS_OK:
-                                return EnumChatFormatting.GREEN
-                                    + StatCollector.translateToLocal("gtsr.node.status.ok");
-                            case STATUS_NO_PIPE:
-                                return EnumChatFormatting.RED
-                                    + StatCollector.translateToLocal("gtsr.node.status.no_pipe");
-                            case STATUS_NO_HUB:
-                                return EnumChatFormatting.RED
-                                    + StatCollector.translateToLocal("gtsr.node.status.no_hub");
-                            case STATUS_HUB_OFF:
-                                return EnumChatFormatting.RED
-                                    + StatCollector.translateToLocal("gtsr.node.status.hub_off");
-                            case STATUS_BEDROCK:
-                                return EnumChatFormatting.YELLOW
-                                    + StatCollector.translateToLocal("gtsr.node.status.bedrock");
-                            case STATUS_SOFT_DISABLED:
-                                return EnumChatFormatting.YELLOW
-                                    + StatCollector.translateToLocal("gtsr.node.status.soft_disabled");
-                            case STATUS_UNMINABLE:
-                                return EnumChatFormatting.RED
-                                    + StatCollector.translateToLocal("gtsr.node.status.unminable");
-                            default:
-                                return EnumChatFormatting.GRAY
-                                    + StatCollector.translateToLocal("gtsr.node.status.unknown");
-                        }
-                    })
-                .setDefaultColor(0xFFFFFFFF)
-                .setPos(10, 52));
+        builder.widget(new TextWidget().setStringSupplier(() -> {
+            switch (mStatus) {
+                case STATUS_OK:
+                    return EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.node.status.ok");
+                case STATUS_NO_PIPE:
+                    return EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.node.status.no_pipe");
+                case STATUS_NO_HUB:
+                    return EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.node.status.no_hub");
+                case STATUS_HUB_OFF:
+                    return EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.node.status.hub_off");
+                case STATUS_BEDROCK:
+                    return EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.node.status.bedrock");
+                case STATUS_SOFT_DISABLED:
+                    return EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.node.status.soft_disabled");
+                case STATUS_UNMINABLE:
+                    return EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.node.status.unminable");
+                default:
+                    return EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.node.status.unknown");
+            }
+        })
+            .setDefaultColor(0xFFFFFFFF)
+            .setPos(10, 52));
 
         builder.widget(
-            new TextWidget()
-                .setStringSupplier(
-                    () -> EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.node.depth")
-                        + ": "
-                        + mTipDepth)
+            new TextWidget().setStringSupplier(
+                () -> EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.node.depth") + ": " + mTipDepth)
                 .setDefaultColor(0xFFFFFFFF)
                 .setPos(10, 64));
 
         builder.widget(
             new TextWidget()
                 .setStringSupplier(
-                    () -> EnumChatFormatting.WHITE
-                        + StatCollector.translateToLocal("gtsr.node.pipes_retracted")
+                    () -> EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.node.pipes_retracted")
                         + ": "
                         + (mRetractDone ? StatCollector.translateToLocal("gtsr.node.yes")
                             : StatCollector.translateToLocal("gtsr.node.no")))
@@ -351,19 +337,14 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
 
     @Override
     public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
-        super.onPostTick(aBaseMetaTileEntity, aTick);
         if (!aBaseMetaTileEntity.isServerSide()) return;
 
-        boolean allowedToWork = aBaseMetaTileEntity.isAllowedToWork();
+        if (!mRegistered && isBound()) {
+            mRegistered = registerWithHub(aBaseMetaTileEntity);
+        }
 
-        if (mLastAllowedToWork && !allowedToWork) {
-            mSoftDisabled = true;
-            mDisabled = true;
-            mHasStarted = false;
-            mForcedRetract = true;
-            mRetractDone = false;
-            mStatus = STATUS_SOFT_DISABLED;
-        } else if (!mLastAllowedToWork && allowedToWork && mSoftDisabled) {
+        boolean currentlyAllowed = aBaseMetaTileEntity.isAllowedToWork();
+        if (currentlyAllowed && !mLastAllowedToWork) {
             mSoftDisabled = false;
             mDisabled = false;
             mHasStarted = false;
@@ -372,25 +353,31 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
             mNeedsDescend = true;
             mOrePositions.clear();
             mStatus = STATUS_OK;
+            mCycleTimer = 0;
+        } else if (!currentlyAllowed && mLastAllowedToWork) {
+            mSoftDisabled = true;
+            mDisabled = true;
+            mHasStarted = false;
+            mForcedRetract = true;
+            mRetractDone = false;
+            mStatus = STATUS_SOFT_DISABLED;
         }
+        mLastAllowedToWork = currentlyAllowed;
 
-        mLastAllowedToWork = allowedToWork;
-
-        if (mDisabled && !mRetractDone && aTick % 5 == 0) {
+        if (mDisabled && !mRetractDone) {
             retractOnePipe(aBaseMetaTileEntity);
-        }
-
-        if (!mDisabled) {
-            doWork(aBaseMetaTileEntity);
+        } else if (!mDisabled) {
+            mCycleTimer++;
+            mWorkProgress = mCycleTimer;
+            if (mCycleTimer >= WORK_CYCLE) {
+                mCycleTimer = 0;
+                mIsWorking = true;
+                doWork(aBaseMetaTileEntity);
+            }
         }
 
         boolean shouldBeActive = mStatus == STATUS_OK && mHasStarted;
-        if (shouldBeActive) {
-            mIsWorking = true;
-        }
-
-        aBaseMetaTileEntity.setActive(mIsWorking);
-        mIsWorking = false;
+        aBaseMetaTileEntity.setActive(shouldBeActive);
     }
 
     private void retractOnePipe(IGregTechTileEntity aBaseMetaTileEntity) {
@@ -514,6 +501,7 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
         aNBT.setBoolean("mForcedRetract", mForcedRetract);
         aNBT.setBoolean("mHasStarted", mHasStarted);
         aNBT.setInteger("mStatus", mStatus);
+        aNBT.setInteger("mCycleTimer", mCycleTimer);
     }
 
     @Override
@@ -534,6 +522,9 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
         }
         if (aNBT.hasKey("mStatus")) {
             mStatus = aNBT.getInteger("mStatus");
+        }
+        if (aNBT.hasKey("mCycleTimer")) {
+            mCycleTimer = aNBT.getInteger("mCycleTimer");
         }
     }
 
