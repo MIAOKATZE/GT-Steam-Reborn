@@ -59,7 +59,7 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity implements IAdd
 
     protected boolean mIsWorking = false;
     protected int mWorkProgress = 0;
-    protected static final int WORK_CYCLE = 160;
+    protected static final int WORK_CYCLE = 20;
 
     public MTERemoteWorkerNode(int aID, String aName, String aNameRegional, int aInvSlotCount) {
         super(aID, aName, aNameRegional, aInvSlotCount);

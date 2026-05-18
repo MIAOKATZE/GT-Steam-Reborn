@@ -32,7 +32,8 @@ public class MTESingularityDrillingNode extends MTERemoteWorkerNode {
 
     private static final Block MINING_PIPE_TIP_BLOCK = GTUtility
         .getBlockFromStack(GTModHandler.getIC2Item("miningPipeTip", 0));
-    private static final float EXTRACTION_COEFFICIENT = 0.5f;
+    private static final float EXTRACTION_COEFFICIENT = 80.0f;
+    private static final int EXTRACTION_INTERVAL = 16;
 
     private static final int STATUS_OK = 0;
     private static final int STATUS_NO_PIPE = 1;
@@ -52,9 +53,11 @@ public class MTESingularityDrillingNode extends MTERemoteWorkerNode {
     private boolean mLastAllowedToWork = true;
     private boolean mForcedRetract = false;
     private int mCycleTimer = 0;
+    private int mExtractionCounter = 0;
 
     private String mLastFluidName = "";
     private int mLastExtractedAmount = 0;
+    private int mDisplayRate = 0;
     private Fluid mLockedFluid = null;
 
     private FakePlayer mFakePlayer;
@@ -136,28 +139,35 @@ public class MTESingularityDrillingNode extends MTERemoteWorkerNode {
         }
 
         if (mAtBedrock) {
-            int chunkX = x >> 4;
-            int chunkZ = z >> 4;
-
-            FluidStack extracted = UndergroundOil.undergroundOil(world, chunkX, chunkZ, EXTRACTION_COEFFICIENT);
-
-            if (extracted == null || extracted.amount <= 0) {
-                mDisabled = true;
-                mStatus = STATUS_FLUID_DEPLETED;
-                return;
-            }
-
-            if (mLockedFluid == null) {
-                mLockedFluid = extracted.getFluid();
-            }
-
-            mLastExtractedAmount = extracted.amount;
-            mLastFluidName = extracted.getLocalizedName();
-            FluidStack toPush = extracted.copy();
-            hub.pushNodeFluidOutput(toPush);
-
+            mExtractionCounter++;
             mStatus = STATUS_EXTRACTING;
             mHasStarted = true;
+
+            if (mExtractionCounter >= EXTRACTION_INTERVAL) {
+                mExtractionCounter = 0;
+
+                int chunkX = x >> 4;
+                int chunkZ = z >> 4;
+
+                FluidStack extracted = UndergroundOil.undergroundOil(world, chunkX, chunkZ, EXTRACTION_COEFFICIENT);
+
+                if (extracted == null || extracted.amount <= 0) {
+                    mDisabled = true;
+                    mStatus = STATUS_FLUID_DEPLETED;
+                    return;
+                }
+
+                if (mLockedFluid == null) {
+                    mLockedFluid = extracted.getFluid();
+                }
+
+                mLastExtractedAmount = extracted.amount;
+                mDisplayRate = mLastExtractedAmount / 160;
+                mLastFluidName = extracted.getLocalizedName();
+                FluidStack toPush = extracted.copy();
+                hub.pushNodeFluidOutput(toPush);
+            }
+
             mIsWorking = true;
             return;
         }
@@ -251,9 +261,11 @@ public class MTESingularityDrillingNode extends MTERemoteWorkerNode {
             mAtBedrock = false;
             mTipDepth = 0;
             mCycleTimer = 0;
+            mExtractionCounter = 0;
             mHasStarted = false;
             mLastFluidName = "";
             mLastExtractedAmount = 0;
+            mDisplayRate = 0;
             mLockedFluid = null;
         } else if (!currentlyAllowed && mLastAllowedToWork) {
             mSoftDisabled = true;
@@ -268,7 +280,7 @@ public class MTESingularityDrillingNode extends MTERemoteWorkerNode {
             }
         } else if (!mDisabled) {
             mCycleTimer++;
-            mWorkProgress = mCycleTimer;
+            mWorkProgress = mAtBedrock ? mExtractionCounter : mCycleTimer;
             if (mCycleTimer >= WORK_CYCLE) {
                 mCycleTimer = 0;
                 mIsWorking = true;
@@ -309,7 +321,7 @@ public class MTESingularityDrillingNode extends MTERemoteWorkerNode {
                 break;
             case STATUS_EXTRACTING:
                 statusText = EnumChatFormatting.GREEN + StatCollector.translateToLocal(
-                    "gtsr.node.status.extracting") + ": " + mLastFluidName + " @ " + mLastExtractedAmount + "L";
+                    "gtsr.node.status.extracting") + ": " + mLastFluidName + " " + mDisplayRate + " L/s";
                 break;
             case STATUS_FLUID_DEPLETED:
                 statusText = EnumChatFormatting.YELLOW
@@ -366,7 +378,7 @@ public class MTESingularityDrillingNode extends MTERemoteWorkerNode {
                     return EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.node.status.soft_disabled");
                 case STATUS_EXTRACTING:
                     return EnumChatFormatting.GREEN + StatCollector.translateToLocal(
-                        "gtsr.node.status.extracting") + ": " + mLastFluidName + " @ " + mLastExtractedAmount + "L";
+                        "gtsr.node.status.extracting") + ": " + mLastFluidName + " " + mDisplayRate + " L/s";
                 case STATUS_FLUID_DEPLETED:
                     return EnumChatFormatting.YELLOW
                         + StatCollector.translateToLocal("gtsr.node.status.fluid_depleted");
@@ -397,6 +409,7 @@ public class MTESingularityDrillingNode extends MTERemoteWorkerNode {
         builder.widget(new FakeSyncWidget.IntegerSyncer(() -> mTipDepth, val -> mTipDepth = val));
         builder.widget(new FakeSyncWidget.BooleanSyncer(() -> mAtBedrock, val -> mAtBedrock = val));
         builder.widget(new FakeSyncWidget.IntegerSyncer(() -> mLastExtractedAmount, val -> mLastExtractedAmount = val));
+        builder.widget(new FakeSyncWidget.IntegerSyncer(() -> mDisplayRate, val -> mDisplayRate = val));
         builder.widget(new FakeSyncWidget.StringSyncer(() -> mLastFluidName, val -> mLastFluidName = val));
     }
 
@@ -412,6 +425,8 @@ public class MTESingularityDrillingNode extends MTERemoteWorkerNode {
         aNBT.setBoolean("mRetractDone", mRetractDone);
         aNBT.setBoolean("mForcedRetract", mForcedRetract);
         aNBT.setInteger("mCycleTimer", mCycleTimer);
+        aNBT.setInteger("mExtractionCounter", mExtractionCounter);
+        aNBT.setInteger("mDisplayRate", mDisplayRate);
         aNBT.setString("mLastFluidName", mLastFluidName);
         aNBT.setInteger("mLastExtractedAmount", mLastExtractedAmount);
         if (mLockedFluid != null) {
@@ -444,6 +459,12 @@ public class MTESingularityDrillingNode extends MTERemoteWorkerNode {
         }
         if (aNBT.hasKey("mCycleTimer")) {
             mCycleTimer = aNBT.getInteger("mCycleTimer");
+        }
+        if (aNBT.hasKey("mExtractionCounter")) {
+            mExtractionCounter = aNBT.getInteger("mExtractionCounter");
+        }
+        if (aNBT.hasKey("mDisplayRate")) {
+            mDisplayRate = aNBT.getInteger("mDisplayRate");
         }
         if (aNBT.hasKey("mLastFluidName")) {
             mLastFluidName = aNBT.getString("mLastFluidName");
