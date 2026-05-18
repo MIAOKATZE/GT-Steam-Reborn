@@ -1,6 +1,7 @@
 package com.miaokatze.gtsr.common.machine;
 
 import net.minecraft.block.Block;
+import net.minecraft.client.renderer.texture.IIconRegister;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
@@ -19,6 +20,8 @@ import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import com.miaokatze.gtsr.common.machine.base.MTERemoteWorkerNode;
 
+import cpw.mods.fml.relauncher.Side;
+import cpw.mods.fml.relauncher.SideOnly;
 import gregtech.api.enums.Textures;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
@@ -344,14 +347,25 @@ public class MTESingularityDrillingNode extends MTERemoteWorkerNode {
         return new String[] { statusText, depthText, bedrockText };
     }
 
+    private static Textures.BlockIcons.CustomIcon OVERLAY_OFF;
+    private static Textures.BlockIcons.CustomIcon OVERLAY_ON;
+
+    @Override
+    @SideOnly(Side.CLIENT)
+    public void registerIcons(IIconRegister aBlockIconRegister) {
+        OVERLAY_OFF = new Textures.BlockIcons.CustomIcon("gtsr:MTESingularityDrillingNode_OFF");
+        OVERLAY_ON = new Textures.BlockIcons.CustomIcon("gtsr:MTESingularityDrillingNode_ON");
+        super.registerIcons(aBlockIconRegister);
+    }
+
     @Override
     protected ITexture getFrontOverlay() {
-        return TextureFactory.of(Textures.BlockIcons.OVERLAY_FRONT_ORE_DRILL);
+        return TextureFactory.of(OVERLAY_OFF);
     }
 
     @Override
     protected ITexture getFrontOverlayActive() {
-        return TextureFactory.of(Textures.BlockIcons.OVERLAY_FRONT_ORE_DRILL_ACTIVE);
+        return TextureFactory.of(OVERLAY_ON);
     }
 
     @Override

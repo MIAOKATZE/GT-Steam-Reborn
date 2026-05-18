@@ -10,6 +10,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import net.minecraft.client.renderer.texture.IIconRegister;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
@@ -32,6 +33,8 @@ import com.miaokatze.gtsr.common.machine.base.MTEReinforcedHubStorageUnit;
 import com.miaokatze.gtsr.common.machine.base.MTEWaterHubInputHatch;
 import com.miaokatze.gtsr.common.machine.base.MTEWaterHubOutputHatch;
 
+import cpw.mods.fml.relauncher.Side;
+import cpw.mods.fml.relauncher.SideOnly;
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Textures;
 import gregtech.api.interfaces.IHatchElement;
@@ -61,6 +64,8 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
     private static final int BOUND_TRANSFER_INTERVAL = 20;
 
     private static final int CASING_INDEX = GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings1, 10);
+
+    private static Textures.BlockIcons.CustomIcon CONTROLLER_OVERLAY;
 
     private static final IStructureDefinition<MTEWaterHubArray> STRUCTURE_DEFINITION;
 
@@ -207,6 +212,13 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
 
     public MTEWaterHubArray(String aName) {
         super(aName);
+    }
+
+    @Override
+    @SideOnly(Side.CLIENT)
+    public void registerIcons(IIconRegister aBlockIconRegister) {
+        CONTROLLER_OVERLAY = new Textures.BlockIcons.CustomIcon("gtsr:MTEWaterCacheNode");
+        super.registerIcons(aBlockIconRegister);
     }
 
     @Override
@@ -745,20 +757,8 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
     public ITexture[] getTexture(IGregTechTileEntity aBaseMetaTileEntity, ForgeDirection side, ForgeDirection facing,
         int colorIndex, boolean active, boolean redstoneLevel) {
         if (side == facing) {
-            if (active) {
-                return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(CASING_INDEX),
-                    TextureFactory.builder()
-                        .addIcon(Textures.BlockIcons.OVERLAY_FRONT_VACUUM_FREEZER)
-                        .extFacing()
-                        .build(),
-                    TextureFactory.builder()
-                        .addIcon(Textures.BlockIcons.OVERLAY_FRONT_VACUUM_FREEZER_GLOW)
-                        .extFacing()
-                        .glow()
-                        .build() };
-            }
             return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(CASING_INDEX), TextureFactory.builder()
-                .addIcon(Textures.BlockIcons.OVERLAY_FRONT_VACUUM_FREEZER)
+                .addIcon(CONTROLLER_OVERLAY)
                 .extFacing()
                 .build() };
         }

@@ -5,11 +5,10 @@ import static gregtech.api.enums.Textures.BlockIcons.MACHINE_BRONZE_BOTTOM;
 import static gregtech.api.enums.Textures.BlockIcons.MACHINE_BRONZE_SIDE;
 import static gregtech.api.enums.Textures.BlockIcons.MACHINE_BRONZE_TOP;
 import static gregtech.api.enums.Textures.BlockIcons.OVERLAY_PIPE;
-import static gregtech.api.enums.Textures.BlockIcons.OVERLAY_QTANK;
-import static gregtech.api.enums.Textures.BlockIcons.OVERLAY_QTANK_GLOW;
 
 import java.util.List;
 
+import net.minecraft.client.renderer.texture.IIconRegister;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumChatFormatting;
@@ -19,6 +18,9 @@ import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.IFluidHandler;
 
+import cpw.mods.fml.relauncher.Side;
+import cpw.mods.fml.relauncher.SideOnly;
+import gregtech.api.enums.Textures;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
@@ -29,12 +31,21 @@ public class MTEWaterCacheNode extends MTEFilteredCacheNode {
     private static final int CAPACITY = 128_000;
     private static final int OUTPUT_PER_TICK = 400;
 
+    private static Textures.BlockIcons.CustomIcon TOP_OVERLAY;
+
     public MTEWaterCacheNode(int aID, String aName, String aNameRegional) {
         super(aID, aName, aNameRegional, 3);
     }
 
     public MTEWaterCacheNode(String aName, int aTier, String[] aDescription, ITexture[][][] aTextures) {
         super(aName, aTier, aDescription, aTextures);
+    }
+
+    @Override
+    @SideOnly(Side.CLIENT)
+    public void registerIcons(IIconRegister aBlockIconRegister) {
+        TOP_OVERLAY = new Textures.BlockIcons.CustomIcon("gtsr:MTEWaterCacheNode");
+        super.registerIcons(aBlockIconRegister);
     }
 
     @Override
@@ -51,11 +62,7 @@ public class MTEWaterCacheNode extends MTEFilteredCacheNode {
     public ITexture[] getTexture(IGregTechTileEntity baseMetaTileEntity, ForgeDirection sideDirection,
         ForgeDirection facingDirection, int colorIndex, boolean active, boolean redstoneLevel) {
         if (sideDirection == ForgeDirection.UP) {
-            return new ITexture[] { TextureFactory.of(MACHINE_BRONZE_TOP), TextureFactory.of(OVERLAY_QTANK),
-                TextureFactory.builder()
-                    .addIcon(OVERLAY_QTANK_GLOW)
-                    .glow()
-                    .build() };
+            return new ITexture[] { TextureFactory.of(MACHINE_BRONZE_TOP), TextureFactory.of(TOP_OVERLAY) };
         } else if (sideDirection == ForgeDirection.DOWN) {
             return new ITexture[] { TextureFactory.of(MACHINE_BRONZE_BOTTOM) };
         } else if (sideDirection == facingDirection) {

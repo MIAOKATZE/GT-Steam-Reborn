@@ -10,7 +10,7 @@ public class SteamEntangledSingularity extends Item {
         super();
         setUnlocalizedName("SteamEntangledSingularity");
         setCreativeTab(GregTechAPI.TAB_GREGTECH);
-        setTextureName("miscutils:MU-metaitem.01/152");
+        setTextureName("gtsr:SteamEntangledSingularity");
         setMaxStackSize(64);
     }
 }
