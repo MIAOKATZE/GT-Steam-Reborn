@@ -215,7 +215,7 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
     @Override
     @SideOnly(Side.CLIENT)
     public void registerIcons(IIconRegister aBlockIconRegister) {
-        CONTROLLER_OVERLAY = new Textures.BlockIcons.CustomIcon("gtsr:SteamCacheNode");
+        CONTROLLER_OVERLAY = new Textures.BlockIcons.CustomIcon("gtsr:MTESteamHubArray");
         super.registerIcons(aBlockIconRegister);
     }
 

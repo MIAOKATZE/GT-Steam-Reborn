@@ -16,6 +16,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import net.minecraft.block.Block;
+import net.minecraft.client.renderer.texture.IIconRegister;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
@@ -46,6 +47,8 @@ import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import com.miaokatze.gtsr.common.machine.base.MTEPressureSteamOutputHatch;
 import com.miaokatze.gtsr.common.machine.base.MTESteamOutputHatch;
 
+import cpw.mods.fml.relauncher.Side;
+import cpw.mods.fml.relauncher.SideOnly;
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.ItemList;
 import gregtech.api.enums.Materials;
@@ -93,12 +96,23 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
     private static final int CALCIFICATION_FACTOR = 3;
     private static final int STEAM_PER_WATER = 160;
 
+    private static Textures.BlockIcons.CustomIcon OVERLAY_OFF;
+    private static Textures.BlockIcons.CustomIcon OVERLAY_ON;
+
     public MTELargeSolarOverpressureArray(int aID, String aName, String aNameRegional) {
         super(aID, aName, aNameRegional);
     }
 
     public MTELargeSolarOverpressureArray(String aName) {
         super(aName);
+    }
+
+    @Override
+    @SideOnly(Side.CLIENT)
+    public void registerIcons(IIconRegister aBlockIconRegister) {
+        OVERLAY_OFF = new Textures.BlockIcons.CustomIcon("gtsr:MTELargeSolarOverpressureArray_OFF");
+        OVERLAY_ON = new Textures.BlockIcons.CustomIcon("gtsr:MTELargeSolarOverpressureArray_ON");
+        super.registerIcons(aBlockIconRegister);
     }
 
     @Override
@@ -444,8 +458,7 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
     public ITexture[] getTexture(IGregTechTileEntity aBaseMetaTileEntity, ForgeDirection side, ForgeDirection facing,
         int colorIndex, boolean active, boolean redstoneLevel) {
         if (side == facing) {
-            ITexture frontOverlay = mIsHeating ? TextureFactory.of(Textures.BlockIcons.OVERLAY_FRONT_ORE_DRILL_ACTIVE)
-                : TextureFactory.of(Textures.BlockIcons.OVERLAY_FRONT_ORE_DRILL);
+            ITexture frontOverlay = mIsHeating ? TextureFactory.of(OVERLAY_ON) : TextureFactory.of(OVERLAY_OFF);
             return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(getCasingTextureID()), frontOverlay };
         }
         return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(getCasingTextureID()) };

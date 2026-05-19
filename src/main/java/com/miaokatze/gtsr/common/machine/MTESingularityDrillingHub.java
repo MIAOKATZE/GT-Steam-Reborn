@@ -10,6 +10,7 @@ import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 
 import java.util.ArrayList;
 
+import net.minecraft.client.renderer.texture.IIconRegister;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
@@ -34,6 +35,8 @@ import com.miaokatze.gtsr.common.machine.base.MTEPressureSteamCoolingHatch;
 import com.miaokatze.gtsr.common.machine.base.MTERemoteWorkerNode;
 import com.miaokatze.gtsr.common.machine.base.MTESteamCoolingHatch;
 
+import cpw.mods.fml.relauncher.Side;
+import cpw.mods.fml.relauncher.SideOnly;
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Materials;
 import gregtech.api.enums.Textures;
@@ -81,12 +84,23 @@ public class MTESingularityDrillingHub extends MTESteamMultiBase<MTESingularityD
     private final ArrayList<BoundDrillNode> mBoundNodes = new ArrayList<>();
     private int mCasingCount = 0;
 
+    private static Textures.BlockIcons.CustomIcon OVERLAY_OFF;
+    private static Textures.BlockIcons.CustomIcon OVERLAY_ON;
+
     public MTESingularityDrillingHub(int aID, String aName, String aNameRegional) {
         super(aID, aName, aNameRegional);
     }
 
     public MTESingularityDrillingHub(String aName) {
         super(aName);
+    }
+
+    @Override
+    @SideOnly(Side.CLIENT)
+    public void registerIcons(IIconRegister aBlockIconRegister) {
+        OVERLAY_OFF = new Textures.BlockIcons.CustomIcon("gtsr:MTESingularityDrillingHub_OFF");
+        OVERLAY_ON = new Textures.BlockIcons.CustomIcon("gtsr:MTESingularityDrillingHub_ON");
+        super.registerIcons(aBlockIconRegister);
     }
 
     @Override
@@ -513,12 +527,12 @@ public class MTESingularityDrillingHub extends MTESteamMultiBase<MTESingularityD
 
     @Override
     protected ITexture getFrontOverlay() {
-        return TextureFactory.of(Textures.BlockIcons.OVERLAY_FRONT_STEAM_FURNACE);
+        return TextureFactory.of(OVERLAY_OFF);
     }
 
     @Override
     protected ITexture getFrontOverlayActive() {
-        return TextureFactory.of(Textures.BlockIcons.OVERLAY_FRONT_STEAM_FURNACE_ACTIVE);
+        return TextureFactory.of(OVERLAY_ON);
     }
 
     @Override

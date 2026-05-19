@@ -217,7 +217,7 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
     @Override
     @SideOnly(Side.CLIENT)
     public void registerIcons(IIconRegister aBlockIconRegister) {
-        CONTROLLER_OVERLAY = new Textures.BlockIcons.CustomIcon("gtsr:MTEWaterCacheNode");
+        CONTROLLER_OVERLAY = new Textures.BlockIcons.CustomIcon("gtsr:MTEWaterHubArray");
         super.registerIcons(aBlockIconRegister);
     }
 
