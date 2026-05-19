@@ -1,6 +1,7 @@
 package com.miaokatze.gtsr.common.machine;
 
-import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlock;
+import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlocksTiered;
+import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose;
 import static gregtech.api.enums.HatchElement.Dynamo;
@@ -9,7 +10,11 @@ import static gregtech.api.enums.HatchElement.OutputHatch;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 
 import java.util.ArrayList;
+import java.util.List;
 
+import javax.annotation.Nullable;
+
+import net.minecraft.block.Block;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumChatFormatting;
@@ -17,6 +22,9 @@ import net.minecraft.util.StatCollector;
 import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.FluidStack;
 
+import org.apache.commons.lang3.tuple.Pair;
+
+import com.google.common.collect.ImmutableList;
 import com.gtnewhorizon.structurelib.alignment.constructable.IConstructable;
 import com.gtnewhorizon.structurelib.alignment.constructable.ISurvivalConstructable;
 import com.gtnewhorizon.structurelib.structure.IStructureDefinition;
@@ -49,14 +57,16 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
     private static final String STRUCTURE_PIECE_STACK_HINT = "stackHint";
     private static final String STRUCTURE_PIECE_CAP = "cap";
 
-    private static final int CASING_INDEX = GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings2, 0);
-
+    private static final int BRONZE_CASING_INDEX = GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings1, 10);
     private static IStructureDefinition<MTEMegaSteamTurbineArray> STRUCTURE_DEFINITION;
 
     private int mCasingAmount = 0;
     private int mStackCount = 0;
-    private int mTotalHeight = 0;
+    private int mCasingTier = -1;
     private int excessWater = 0;
+
+    private int mTheoreticalEUt = 0;
+    private int mSteamConsumption = 0;
 
     public MTEMegaSteamTurbineArray(int aID, String aName, String aNameRegional) {
         super(aID, aName, aNameRegional);
@@ -76,29 +86,75 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         if (STRUCTURE_DEFINITION == null) {
             STRUCTURE_DEFINITION = StructureDefinition.<MTEMegaSteamTurbineArray>builder()
                 .addShape(STRUCTURE_PIECE_BASE_1, transpose(new String[][] { { "HHH", "HHH", "HHH" } }))
-                .addShape(STRUCTURE_PIECE_BASE_2, transpose(new String[][] { { "HHH", "H~H", "HHH" } }))
+                .addShape(STRUCTURE_PIECE_BASE_2, transpose(new String[][] { { "H~H", "H H", "HHH" } }))
                 .addShape(STRUCTURE_PIECE_BASE_3, transpose(new String[][] { { "HHH", "HHH", "HHH" } }))
                 .addShape(STRUCTURE_PIECE_STACK, transpose(new String[][] { { "SSS", "S S", "SSS" } }))
                 .addShape(STRUCTURE_PIECE_STACK_HINT, transpose(new String[][] { { "SSS", "S S", "SSS" } }))
                 .addShape(STRUCTURE_PIECE_CAP, transpose(new String[][] { { "TTT", "TTT", "TTT" } }))
                 .addElement(
                     'H',
-                    buildHatchAdder(MTEMegaSteamTurbineArray.class).atLeast(InputHatch, OutputHatch, Dynamo)
-                        .casingIndex(CASING_INDEX)
-                        .dot(1)
-                        .buildAndChain(
-                            onElementPass(
-                                MTEMegaSteamTurbineArray::onCasingAdded,
-                                ofBlock(GregTechAPI.sBlockCasings2, 0))))
+                    ofChain(
+                        buildHatchAdder(MTEMegaSteamTurbineArray.class).atLeast(InputHatch, OutputHatch, Dynamo)
+                            .casingIndex(BRONZE_CASING_INDEX)
+                            .dot(1)
+                            .build(),
+                        onElementPass(
+                            MTEMegaSteamTurbineArray::onCasingAdded,
+                            ofBlocksTiered(
+                                MTEMegaSteamTurbineArray::getCasingTier,
+                                ALLOWED_CASINGS,
+                                -1,
+                                (t, tier) -> t.mCasingTier = tier,
+                                t -> t.mCasingTier))))
                 .addElement(
                     'S',
-                    onElementPass(MTEMegaSteamTurbineArray::onCasingAdded, ofBlock(GregTechAPI.sBlockCasings2, 0)))
+                    onElementPass(
+                        MTEMegaSteamTurbineArray::onCasingAdded,
+                        ofBlocksTiered(
+                            MTEMegaSteamTurbineArray::getCasingTier,
+                            ALLOWED_CASINGS,
+                            -1,
+                            (t, tier) -> t.mCasingTier = tier,
+                            t -> t.mCasingTier)))
                 .addElement(
                     'T',
-                    onElementPass(MTEMegaSteamTurbineArray::onCasingAdded, ofBlock(GregTechAPI.sBlockCasings2, 0)))
+                    onElementPass(
+                        MTEMegaSteamTurbineArray::onCasingAdded,
+                        ofBlocksTiered(
+                            MTEMegaSteamTurbineArray::getCasingTier,
+                            ALLOWED_CASINGS,
+                            -1,
+                            (t, tier) -> t.mCasingTier = tier,
+                            t -> t.mCasingTier)))
                 .build();
         }
         return STRUCTURE_DEFINITION;
+    }
+
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    private static final List<Pair<Block, Integer>> ALLOWED_CASINGS = ImmutableList.of(
+        Pair.of(GregTechAPI.sBlockCasings2, 0),
+        Pair.of(GregTechAPI.sBlockCasings4, 1),
+        Pair.of(GregTechAPI.sBlockCasings4, 2),
+        Pair.of(GregTechAPI.sBlockCasings4, 0),
+        Pair.of(GregTechAPI.sBlockCasings8, 5),
+        Pair.of(GregTechAPI.sBlockCasings8, 6),
+        Pair.of(GregTechAPI.sBlockCasings8, 7));
+
+    @Nullable
+    public static Integer getCasingTier(Block block, int meta) {
+        if (block == GregTechAPI.sBlockCasings2 && meta == 0) return 1;
+        if (block == GregTechAPI.sBlockCasings4) {
+            if (meta == 1) return 2;
+            if (meta == 2) return 3;
+            if (meta == 0) return 4;
+        }
+        if (block == GregTechAPI.sBlockCasings8) {
+            if (meta == 5) return 5;
+            if (meta == 6) return 6;
+            if (meta == 7) return 7;
+        }
+        return null;
     }
 
     private void onCasingAdded() {
@@ -109,24 +165,22 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
     public boolean checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack) {
         mCasingAmount = 0;
         mStackCount = 0;
-        mTotalHeight = 0;
+        mCasingTier = -1;
 
         if (!checkPiece(STRUCTURE_PIECE_BASE_1, 1, -1, 1)) return false;
         if (!checkPiece(STRUCTURE_PIECE_BASE_2, 1, 0, 1)) return false;
         if (!checkPiece(STRUCTURE_PIECE_BASE_3, 1, 1, 1)) return false;
-        mTotalHeight = 3;
 
         mStackCount = 0;
         for (int i = 2; i < 12; i++) {
             if (!checkPiece(STRUCTURE_PIECE_STACK, 1, i, 1)) break;
             mStackCount++;
-            mTotalHeight++;
         }
 
         if (mStackCount < 1 || mStackCount > 10) return false;
+        if (mCasingTier <= 0 || mCasingTier > 7) return false;
 
         if (!checkPiece(STRUCTURE_PIECE_CAP, 1, 2 + mStackCount, 1)) return false;
-        mTotalHeight++;
 
         return mInputHatches.size() >= 1 && mOutputHatches.size() >= 1 && mDynamoHatches.size() >= 1;
     }
@@ -135,7 +189,13 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         return Math.max(1, mStackCount / 2);
     }
 
-    private static final long[] V = GTValues.V;
+    private long getVoltage() {
+        return GTValues.V[mCasingTier > 0 ? mCasingTier : 1];
+    }
+
+    private float getEfficiency(int stackLayers) {
+        return Math.min(0.60f + (stackLayers - 1) * 0.07f, 0.95f);
+    }
 
     @Override
     public CheckRecipeResult checkProcessing() {
@@ -143,6 +203,8 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         if (tFluids.isEmpty()) {
             mEUt = 0;
             mEfficiency = 0;
+            mTheoreticalEUt = 0;
+            mSteamConsumption = 0;
             return CheckRecipeResultRegistry.NO_FUEL_FOUND;
         }
 
@@ -151,8 +213,8 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
             return CheckRecipeResultRegistry.NO_FUEL_FOUND;
         }
 
-        long voltage = V[1];
-        float efficiency = Math.min(0.60f + (stackLayers - 1) * 0.07f, 0.95f);
+        long voltage = getVoltage();
+        float efficiency = getEfficiency(stackLayers);
 
         boolean hasSuperheated = false;
         boolean hasNormalSteam = false;
@@ -172,25 +234,35 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
                 if (hasNormalSteam) {
                     generatedEUt = (long) (voltage * 4 * stackLayers * efficiency);
                     steamConsumption = (long) (voltage * 4 * stackLayers * (1 - 0.025 * stackLayers));
+                    this.mTheoreticalEUt = (int) generatedEUt;
+                    this.mSteamConsumption = (int) steamConsumption;
                     depleteSteam((int) steamConsumption);
                     int waterOutput = condenseSteam((int) steamConsumption);
                     addOutput(GTModHandler.getDistilledWater(waterOutput));
                 } else {
                     mEUt = 0;
+                    mTheoreticalEUt = 0;
+                    mSteamConsumption = 0;
                     return CheckRecipeResultRegistry.NO_FUEL_FOUND;
                 }
             } else {
+                this.mTheoreticalEUt = (int) generatedEUt;
+                this.mSteamConsumption = (int) steamConsumption;
                 depleteSuperheatedSteam((int) steamConsumption);
                 addOutput(gregtech.api.enums.Materials.Steam.getGas((int) steamConsumption));
             }
         } else if (hasNormalSteam) {
             generatedEUt = (long) (voltage * 4 * stackLayers * efficiency);
             steamConsumption = (long) (voltage * 4 * stackLayers * (1 - 0.025 * stackLayers));
+            this.mTheoreticalEUt = (int) generatedEUt;
+            this.mSteamConsumption = (int) steamConsumption;
             depleteSteam((int) steamConsumption);
             int waterOutput = condenseSteam((int) steamConsumption);
             addOutput(GTModHandler.getDistilledWater(waterOutput));
         } else {
             mEUt = 0;
+            mTheoreticalEUt = 0;
+            mSteamConsumption = 0;
             return CheckRecipeResultRegistry.NO_FUEL_FOUND;
         }
 
@@ -261,21 +333,95 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
     }
 
     @Override
+    public String[] getInfoData() {
+        String tierName;
+        switch (mCasingTier) {
+            case 1:
+                tierName = "LV (Solid Steel)";
+                break;
+            case 2:
+                tierName = "MV (Clean Stainless Steel)";
+                break;
+            case 3:
+                tierName = "HV (Stable Titanium)";
+                break;
+            case 4:
+                tierName = "EV (Robust Tungstensteel)";
+                break;
+            case 5:
+                tierName = "IV (Advanced Radiation Proof)";
+                break;
+            case 6:
+                tierName = "LuV (Rhodium-Palladium)";
+                break;
+            case 7:
+                tierName = "ZPM (Iridium)";
+                break;
+            default:
+                tierName = "Unknown";
+                break;
+        }
+
+        int stackLayers = getStackLayers();
+        long voltage = getVoltage();
+        float efficiency = getEfficiency(stackLayers);
+        long theoreticalSteamEU = (long) (voltage * 4 * stackLayers * efficiency);
+        long theoreticalHPSteamEU = (long) (voltage * 16 * stackLayers * efficiency);
+
+        return new String[] { EnumChatFormatting.BLUE + "Mega Steam Turbine Array",
+            EnumChatFormatting.GRAY + "Tier: " + EnumChatFormatting.GOLD + tierName,
+            EnumChatFormatting.GRAY + "Status: "
+                + (mMachine ? EnumChatFormatting.GREEN + "Running" : EnumChatFormatting.RED + "Incomplete"),
+            EnumChatFormatting.GRAY + "Stack Layers: " + EnumChatFormatting.AQUA + stackLayers,
+            EnumChatFormatting.GRAY + "Efficiency: "
+                + EnumChatFormatting.YELLOW
+                + String.format("%.1f", efficiency * 100)
+                + "%",
+            EnumChatFormatting.GRAY + "Theoretical EU/t (Steam): "
+                + EnumChatFormatting.GOLD
+                + GTUtility.formatNumbers(theoreticalSteamEU)
+                + " EU/t",
+            EnumChatFormatting.GRAY + "Theoretical EU/t (HP Steam): "
+                + EnumChatFormatting.GOLD
+                + GTUtility.formatNumbers(theoreticalHPSteamEU)
+                + " EU/t",
+            EnumChatFormatting.GRAY + "Current EU/t: "
+                + EnumChatFormatting.GREEN
+                + GTUtility.formatNumbers(Math.abs(mEUt))
+                + " EU/t",
+            EnumChatFormatting.GRAY + "Steam Consumption: "
+                + EnumChatFormatting.RED
+                + GTUtility.formatNumbers(mSteamConsumption)
+                + " L/t",
+            EnumChatFormatting.GRAY + "Dynamo Capacity: "
+                + EnumChatFormatting.AQUA
+                + GTUtility.formatNumbers(getMaximumOutput())
+                + " EU/t" };
+    }
+
+    @Override
     public void saveNBTData(NBTTagCompound aNBT) {
         super.saveNBTData(aNBT);
         aNBT.setInteger("excessWater", excessWater);
+        aNBT.setInteger("mCasingTier", mCasingTier);
+        aNBT.setInteger("mTheoreticalEUt", mTheoreticalEUt);
+        aNBT.setInteger("mSteamConsumption", mSteamConsumption);
     }
 
     @Override
     public void loadNBTData(NBTTagCompound aNBT) {
         super.loadNBTData(aNBT);
         excessWater = aNBT.getInteger("excessWater");
+        mCasingTier = aNBT.getInteger("mCasingTier");
+        mTheoreticalEUt = aNBT.getInteger("mTheoreticalEUt");
+        mSteamConsumption = aNBT.getInteger("mSteamConsumption");
     }
 
     @Override
     public boolean addToMachineList(IGregTechTileEntity tTileEntity, int aBaseCasingIndex) {
-        return addInputToMachineList(tTileEntity, CASING_INDEX) || addOutputToMachineList(tTileEntity, CASING_INDEX)
-            || addDynamoToMachineList(tTileEntity, CASING_INDEX);
+        return addInputToMachineList(tTileEntity, BRONZE_CASING_INDEX)
+            || addOutputToMachineList(tTileEntity, BRONZE_CASING_INDEX)
+            || addDynamoToMachineList(tTileEntity, BRONZE_CASING_INDEX);
     }
 
     @Override
@@ -377,11 +523,30 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
     @Override
     public ITexture[] getTexture(IGregTechTileEntity aBaseMetaTileEntity, ForgeDirection side, ForgeDirection facing,
         int aColorIndex, boolean aActive, boolean aRedstone) {
+        int casingIndex;
+        switch (mCasingTier) {
+            case 1:
+                casingIndex = GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings2, 0);
+                break;
+            case 2:
+            case 3:
+            case 4:
+                casingIndex = GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings4, 0);
+                break;
+            case 5:
+            case 6:
+            case 7:
+                casingIndex = GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings8, 7);
+                break;
+            default:
+                casingIndex = BRONZE_CASING_INDEX;
+                break;
+        }
         if (side == facing) {
-            return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(CASING_INDEX),
+            return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(casingIndex),
                 aActive ? TextureFactory.of(Textures.BlockIcons.LARGETURBINE_NEW_ACTIVE5)
                     : TextureFactory.of(Textures.BlockIcons.LARGETURBINE_NEW5) };
         }
-        return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(CASING_INDEX) };
+        return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(casingIndex) };
     }
 }
