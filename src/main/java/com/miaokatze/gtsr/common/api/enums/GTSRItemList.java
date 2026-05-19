@@ -73,6 +73,7 @@ public enum GTSRItemList implements IItemContainer {
     LargeCokeOven,
     SiemensMartinFurnace,
     SteamOutputHatchGeneric,
+    MegaSteamTurbineArray,
 
     ;
 

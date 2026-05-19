@@ -417,6 +417,17 @@ gtsr.tooltip.siemens_martin_furnace.2=Recipes can only run at 100%% temperature;
 gtsr.tooltip.siemens_martin_furnace.3=Recipe 1: 1 Iron + 2 Coal -> 1 Steel + 1 Dark Ash (1600s)
 gtsr.tooltip.siemens_martin_furnace.4=Recipe 2: 1 Iron + 1 Coke -> 1 Ash (1200s)
 gtsr.tooltip.siemens_martin_furnace.5=Recipe 3: 1 Iron + 1 Carbon Dust -> 1 Steel + 1 Ash (800s)
+
+# Mega Steam Turbine Array
+gt.blockmachines.gtsr.mega.steam.turbine.array.name=Mega Steam Turbine Array
+gtsr.recipe.mega_steam_turbine_array=Mega Steam Turbine
+gtsr.tooltip.mega_steam_turbine.info=Giant multiblock turbine that converts steam to EU, power scales with stack layers
+gtsr.tooltip.mega_steam_turbine.info2=Supports normal steam (0.5x efficiency) and superheated steam (4x efficiency)
+gtsr.tooltip.mega_steam_turbine.info3=Superheated steam mode outputs Steam; normal steam mode outputs Distilled Water
+gtsr.tooltip.mega_steam_turbine.controller=Base Layer 2, Front Center
+gtsr.tooltip.mega_steam_turbine.input=Steam / Superheated Steam
+gtsr.tooltip.mega_steam_turbine.dynamo=Any Dynamo Hatch
+gtsr.tooltip.mega_steam_turbine.output=Distilled Water / Steam
 gtsr.tooltip.siemens_martin_furnace.ctrl=Front center of middle layer
 gtsr.tooltip.siemens_martin_furnace.casing=Solid Steel Machine Casing
 gtsr.tooltip.siemens_martin_furnace.pressure_hatch=Required: At least 1 Pressure Steam Input Hatch

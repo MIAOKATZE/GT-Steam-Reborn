@@ -7,6 +7,7 @@ import com.miaokatze.gtsr.common.machine.MTELargeCokeOven;
 import com.miaokatze.gtsr.common.machine.MTELargeGeothermalSteamBoiler;
 import com.miaokatze.gtsr.common.machine.MTELargeSolarOverpressureArray;
 import com.miaokatze.gtsr.common.machine.MTELargeSteamFurnace;
+import com.miaokatze.gtsr.common.machine.MTEMegaSteamTurbineArray;
 import com.miaokatze.gtsr.common.machine.MTESiemensMartinFurnace;
 import com.miaokatze.gtsr.common.machine.MTESingularityDrillingHub;
 import com.miaokatze.gtsr.common.machine.MTESingularityDrillingNode;
@@ -57,6 +58,7 @@ public class MachineLoader {
         registerSteamBuses();
         registerLargeCokeOven();
         registerSiemensMartinFurnace();
+        registerMegaSteamTurbineArray();
     }
 
     private static void registerSteamMachines() {
@@ -299,5 +301,14 @@ public class MachineLoader {
                 "gtsr.siemens.martin.furnace",
                 "Siemens-Martin Furnace"));
         CreativeTabManager.addItemToTab(GTSRItemList.SiemensMartinFurnace.get(1));
+    }
+
+    private static void registerMegaSteamTurbineArray() {
+        GTSRItemList.MegaSteamTurbineArray.set(
+            new MTEMegaSteamTurbineArray(
+                MetaTileEntityID.MEGA_STEAM_TURBINE_ARRAY.ID,
+                "gtsr.mega.steam.turbine.array",
+                "Mega Steam Turbine Array"));
+        CreativeTabManager.addItemToTab(GTSRItemList.MegaSteamTurbineArray.get(1));
     }
 }
