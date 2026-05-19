@@ -52,6 +52,8 @@ public class MTELargeCokeOven extends MTEEnhancedMultiBlockBase<MTELargeCokeOven
     implements IConstructable, ISurvivalConstructable {
 
     private static final double HEAT_PER_RECIPE = 0.1d;
+    private static final double HEAT_UP_PER_SECOND = 0.0001d;
+    private static final double HEAT_DOWN_PER_SECOND = 0.00006d;
     private static final int BASE_RECIPE_TIME_SECONDS = 1800;
     private static final int HEAT_SPEEDUP_PER_PERCENT = 10;
     private static final int MIN_RECIPE_TIME_SECONDS = 800;
@@ -61,7 +63,6 @@ public class MTELargeCokeOven extends MTEEnhancedMultiBlockBase<MTELargeCokeOven
     private double mHeat = 0.0d;
     private int mTier = 1;
     private int mParallel = 0;
-    private boolean mWasProcessing = false;
 
     private static final String STRUCTURE_PIECE_MAIN = "main";
     private static IStructureDefinition<MTELargeCokeOven> STRUCTURE_DEFINITION = null;
@@ -226,15 +227,12 @@ public class MTELargeCokeOven extends MTEEnhancedMultiBlockBase<MTELargeCokeOven
 
         if (!aBaseMetaTileEntity.isServerSide()) return;
 
-        if (mMaxProgresstime > 0) {
-            mWasProcessing = true;
-        } else if (mWasProcessing) {
-            mWasProcessing = false;
-            mHeat = Math.min(1.0d, mHeat + HEAT_PER_RECIPE);
-        }
-
-        if (!mMachine) {
-            mWasProcessing = false;
+        if (mMachine && aTick % 20 == 0) {
+            if (mMaxProgresstime > 0) {
+                mHeat = Math.min(1.0d, mHeat + HEAT_UP_PER_SECOND);
+            } else {
+                mHeat = Math.max(0.0d, mHeat - HEAT_DOWN_PER_SECOND);
+            }
         }
 
         aBaseMetaTileEntity.setActive(mMaxProgresstime > 0);

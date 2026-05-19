@@ -60,6 +60,7 @@ public class MTESiemensMartinFurnace extends MTEEnhancedMultiBlockBase<MTESiemen
 
     private static final int SUPERHEATED_STEAM_COST = 1_200;
     private static final double TEMPERATURE_INCREMENT = 0.00025d;
+    private static final double TEMPERATURE_DECREMENT = 0.001d;
     private static final int MAX_PARALLEL = 32;
 
     private static IStructureDefinition<MTESiemensMartinFurnace> STRUCTURE_DEFINITION = null;
@@ -185,6 +186,8 @@ public class MTESiemensMartinFurnace extends MTEEnhancedMultiBlockBase<MTESiemen
         if (mMachine) {
             if (consumeSuperheatedSteam()) {
                 mFurnaceTemperature = Math.min(1.0d, mFurnaceTemperature + TEMPERATURE_INCREMENT);
+            } else {
+                mFurnaceTemperature = Math.max(0.0d, mFurnaceTemperature - TEMPERATURE_DECREMENT);
             }
         }
     }

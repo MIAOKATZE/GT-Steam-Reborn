@@ -4,6 +4,7 @@ import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlock;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose;
+import static gregtech.api.enums.GTValues.emptyItemStackArray;
 import static gregtech.api.enums.HatchElement.OutputBus;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 
@@ -15,13 +16,16 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 import net.minecraftforge.common.util.ForgeDirection;
-import net.minecraftforge.fluids.FluidStack;
 
 import com.gtnewhorizon.structurelib.alignment.IAlignmentLimits;
 import com.gtnewhorizon.structurelib.alignment.constructable.ISurvivalConstructable;
 import com.gtnewhorizon.structurelib.structure.IStructureDefinition;
 import com.gtnewhorizon.structurelib.structure.ISurvivalBuildEnvironment;
 import com.gtnewhorizon.structurelib.structure.StructureDefinition;
+import com.gtnewhorizons.modularui.common.widget.DynamicPositionedColumn;
+import com.gtnewhorizons.modularui.common.widget.FakeSyncWidget;
+import com.gtnewhorizons.modularui.common.widget.SlotWidget;
+import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.api.enums.MetaTileEntityID;
 import com.miaokatze.gtsr.common.machine.base.MTEPressureSteamCoolingHatch;
@@ -30,7 +34,6 @@ import com.miaokatze.gtsr.common.machine.base.MTESteamCoolingHatch;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 import gregtech.api.GregTechAPI;
-import gregtech.api.enums.Materials;
 import gregtech.api.enums.Textures;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
@@ -52,10 +55,11 @@ public class MTESteamSingularityCompressor extends MTESteamMultiBase<MTESteamSin
     private static final int VERTICAL_OFF_SET = 1;
     private static final int DEPTH_OFF_SET = 0;
 
-    private static final int STEAM_PER_CYCLE = 256_000;
-    private static final double HEAT_UP_RATE = 0.00025d;
+    private static final int STEAM_L_EUT = 6000;
+    private static final double HEAT_UP_PER_RECIPE = 0.0002d;
     private static final double HEAT_DOWN_RATE = 0.001d;
     private static final long STOP_THRESHOLD = 1200;
+    private static final int HEAT_RECIPE_TIME = 20;
 
     private static final NumberFormat numberFormat = NumberFormat.getNumberInstance();
 
@@ -198,22 +202,23 @@ public class MTESteamSingularityCompressor extends MTESteamMultiBase<MTESteamSin
 
     @Override
     public CheckRecipeResult checkProcessing() {
-        FluidStack steamStack = Materials.Steam.getGas(STEAM_PER_CYCLE);
-        if (!depleteInput(steamStack)) {
-            return CheckRecipeResultRegistry.NO_RECIPE;
-        }
+        lEUt = -STEAM_L_EUT;
+        mMaxProgresstime = HEAT_RECIPE_TIME;
+        mEfficiency = 10000;
+        mEfficiencyIncrease = 10000;
+        mOutputItems = emptyItemStackArray;
+        return CheckRecipeResultRegistry.SUCCESSFUL;
+    }
 
-        mHeat += HEAT_UP_RATE;
+    @Override
+    protected void outputAfterRecipe() {
+        mHeat += HEAT_UP_PER_RECIPE;
 
         if (mHeat >= 1.0d) {
             addOutput(GTSRItemList.SteamEntangledSingularity.get(1));
             mHeat = 0.0d;
         }
-
-        mMaxProgresstime = 20;
-        mEfficiencyIncrease = 10000;
-
-        return CheckRecipeResultRegistry.SUCCESSFUL;
+        updateSlots();
     }
 
     @Override
@@ -270,6 +275,18 @@ public class MTESteamSingularityCompressor extends MTESteamMultiBase<MTESteamSin
     }
 
     @Override
+    protected void drawTexts(DynamicPositionedColumn screenElements, SlotWidget inventorySlot) {
+        super.drawTexts(screenElements, inventorySlot);
+        screenElements
+            .widget(
+                new TextWidget().setStringSupplier(
+                    () -> EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.gui.geothermal_boiler.heat")
+                        + ": "
+                        + String.format("%.3f%%", mHeat * 100.0d)))
+            .widget(new FakeSyncWidget.DoubleSyncer(() -> mHeat, val -> mHeat = val));
+    }
+
+    @Override
     public ITexture[] getTexture(IGregTechTileEntity aBaseMetaTileEntity, ForgeDirection side, ForgeDirection facing,
         int aColorIndex, boolean aActive, boolean aRedstone) {
         if (side == facing) {
@@ -301,8 +318,8 @@ public class MTESteamSingularityCompressor extends MTESteamMultiBase<MTESteamSin
                 EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.steam_singularity_compressor.4")
                     + EnumChatFormatting.WHITE
                     + " "
-                    + GTUtility.formatNumbers(STEAM_PER_CYCLE)
-                    + " L/t"
+                    + GTUtility.formatNumbers(STEAM_L_EUT * 20)
+                    + " L/s"
                     + EnumChatFormatting.RESET)
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.steam_singularity_compressor.5"))
             .beginStructureBlock(3, 3, 3, false)
@@ -363,7 +380,7 @@ public class MTESteamSingularityCompressor extends MTESteamMultiBase<MTESteamSin
                 + "%",
             EnumChatFormatting.GRAY + "Steam: "
                 + EnumChatFormatting.RED
-                + GTUtility.formatNumbers(STEAM_PER_CYCLE)
-                + " L/t" };
+                + GTUtility.formatNumbers(STEAM_L_EUT * 20)
+                + " L/s" };
     }
 }
