@@ -37,6 +37,8 @@ import com.gtnewhorizons.modularui.common.widget.FakeSyncWidget;
 import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import com.miaokatze.gtsr.common.machine.base.MTEHatchPressureSteamInput;
+import com.miaokatze.gtsr.common.machine.base.MTEPressureSteamCoolingHatch;
+import com.miaokatze.gtsr.common.machine.base.MTESteamCoolingHatch;
 
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.GTValues;
@@ -79,6 +81,8 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
     private int mSteamConsumption = 0;
 
     private final List<MTEHatchPressureSteamInput> mPressureSteamInputs = new ArrayList<>();
+    private final List<MTESteamCoolingHatch> mSteamCoolingHatches = new ArrayList<>();
+    private final List<MTEPressureSteamCoolingHatch> mPressureCoolingHatches = new ArrayList<>();
     protected final List<RenderOverlay.OverlayTicket> overlayTickets = new ArrayList<>();
 
     public MTEMegaSteamTurbineArray(int aID, String aName, String aNameRegional) {
@@ -194,6 +198,18 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
                             .casingIndex(SOLID_STEEL_CASING_INDEX)
                             .dot(1)
                             .build(),
+                        buildHatchAdder(MTEMegaSteamTurbineArray.class)
+                            .adder(MTEMegaSteamTurbineArray::addSteamCoolingToMachineList)
+                            .hatchClass(MTESteamCoolingHatch.class)
+                            .casingIndex(SOLID_STEEL_CASING_INDEX)
+                            .dot(2)
+                            .build(),
+                        buildHatchAdder(MTEMegaSteamTurbineArray.class)
+                            .adder(MTEMegaSteamTurbineArray::addPressureCoolingToMachineList)
+                            .hatchClass(MTEPressureSteamCoolingHatch.class)
+                            .casingIndex(SOLID_STEEL_CASING_INDEX)
+                            .dot(2)
+                            .build(),
                         buildHatchAdder(MTEMegaSteamTurbineArray.class).atLeast(InputHatch, OutputHatch)
                             .casingIndex(SOLID_STEEL_CASING_INDEX)
                             .dot(1)
@@ -280,6 +296,36 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         return !mPressureSteamInputs.isEmpty();
     }
 
+    private boolean hasSteamCoolingHatch() {
+        return !mSteamCoolingHatches.isEmpty();
+    }
+
+    private boolean hasPressureCoolingHatch() {
+        return !mPressureCoolingHatches.isEmpty();
+    }
+
+    private boolean addSteamCoolingToMachineList(IGregTechTileEntity aTileEntity, int aBaseCasingIndex) {
+        if (aTileEntity == null) return false;
+        IMetaTileEntity mte = aTileEntity.getMetaTileEntity();
+        if (mte instanceof MTESteamCoolingHatch hatch && !(mte instanceof MTEPressureSteamCoolingHatch)) {
+            hatch.updateTexture(aBaseCasingIndex);
+            mSteamCoolingHatches.add(hatch);
+            return true;
+        }
+        return false;
+    }
+
+    private boolean addPressureCoolingToMachineList(IGregTechTileEntity aTileEntity, int aBaseCasingIndex) {
+        if (aTileEntity == null) return false;
+        IMetaTileEntity mte = aTileEntity.getMetaTileEntity();
+        if (mte instanceof MTEPressureSteamCoolingHatch hatch) {
+            hatch.updateTexture(aBaseCasingIndex);
+            mPressureCoolingHatches.add(hatch);
+            return true;
+        }
+        return false;
+    }
+
     @Override
     public boolean checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack) {
         mCasingAmount = 0;
@@ -287,6 +333,8 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         mCasingTier = -1;
         mEfficiency = 0;
         mPressureSteamInputs.clear();
+        mSteamCoolingHatches.clear();
+        mPressureCoolingHatches.clear();
 
         if (!checkPiece(STRUCTURE_PIECE_BASE_1, 1, -1, 0)) return false;
         if (!checkPiece(STRUCTURE_PIECE_BASE_2, 1, 0, 0)) return false;
@@ -305,7 +353,8 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         if (!checkPiece(STRUCTURE_PIECE_CAP, 1, capY, 0)) return false;
 
         boolean hasInput = !mInputHatches.isEmpty() || hasPressureSteamHatch();
-        if (!hasInput || mOutputHatches.isEmpty() || mDynamoHatches.isEmpty()) return false;
+        boolean hasOutput = !mOutputHatches.isEmpty() || hasSteamCoolingHatch() || hasPressureCoolingHatch();
+        if (!hasInput || !hasOutput || mDynamoHatches.isEmpty()) return false;
 
         updateAllHatchTextures();
         return true;
@@ -366,7 +415,8 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         for (MTEHatchPressureSteamInput hatch : mPressureSteamInputs) {
             FluidStack fs = hatch.getFluid();
             if (fs != null && fs.amount > 0) {
-                if (GTModHandler.isAnySteam(fs) && !GTModHandler.isSuperHeatedSteam(fs)) hasNormalSteam = true;
+                if (GTModHandler.isSuperHeatedSteam(fs)) hasSuperheated = true;
+                else if (GTModHandler.isAnySteam(fs)) hasNormalSteam = true;
             }
         }
 
@@ -386,7 +436,7 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
                     this.mSteamConsumption = (int) steamConsumption;
                     depleteSteam((int) steamConsumption);
                     int waterOutput = condenseSteam((int) steamConsumption);
-                    addOutput(GTModHandler.getDistilledWater(waterOutput));
+                    outputCoolingWater(waterOutput);
                 } else {
                     mEUt = 0;
                     mTheoreticalEUt = 0;
@@ -398,7 +448,7 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
                 this.mTheoreticalEUt = (int) generatedEUt;
                 this.mSteamConsumption = (int) steamConsumption;
                 depleteSuperheatedSteam((int) steamConsumption);
-                addOutput(gregtech.api.enums.Materials.Steam.getGas((int) steamConsumption));
+                outputCoolingSteam((int) steamConsumption);
             }
         } else if (hasNormalSteam) {
             generatedEUt = (long) (voltage * 4 * n * efficiency);
@@ -408,7 +458,7 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
             this.mSteamConsumption = (int) steamConsumption;
             depleteSteam((int) steamConsumption);
             int waterOutput = condenseSteam((int) steamConsumption);
-            addOutput(GTModHandler.getDistilledWater(waterOutput));
+            outputCoolingWater(waterOutput);
         } else {
             mEUt = 0;
             mTheoreticalEUt = 0;
@@ -449,6 +499,12 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
     private FluidStack getSuperheatedSteam() {
         for (FluidStack fs : getStoredFluids()) {
             if (GTModHandler.isSuperHeatedSteam(fs)) {
+                return fs;
+            }
+        }
+        for (MTEHatchPressureSteamInput hatch : mPressureSteamInputs) {
+            FluidStack fs = hatch.getFluid();
+            if (fs != null && GTModHandler.isSuperHeatedSteam(fs) && fs.amount > 0) {
                 return fs;
             }
         }
@@ -514,6 +570,38 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         return water;
     }
 
+    private void outputCoolingWater(int waterAmount) {
+        if (waterAmount <= 0) return;
+        boolean pushedToCoolingHatch = false;
+        for (MTESteamCoolingHatch hatch : mSteamCoolingHatches) {
+            int pushed = hatch.pushCoolingWater(waterAmount);
+            if (pushed > 0) {
+                waterAmount -= pushed;
+                pushedToCoolingHatch = true;
+            }
+            if (waterAmount <= 0) return;
+        }
+        if (!pushedToCoolingHatch || waterAmount > 0) {
+            addOutput(GTModHandler.getDistilledWater(waterAmount));
+        }
+    }
+
+    private void outputCoolingSteam(int steamAmount) {
+        if (steamAmount <= 0) return;
+        boolean pushedToCoolingHatch = false;
+        for (MTEPressureSteamCoolingHatch hatch : mPressureCoolingHatches) {
+            int pushed = hatch.pushCoolingSteam(steamAmount);
+            if (pushed > 0) {
+                steamAmount -= pushed;
+                pushedToCoolingHatch = true;
+            }
+            if (steamAmount <= 0) return;
+        }
+        if (!pushedToCoolingHatch || steamAmount > 0) {
+            addOutput(gregtech.api.enums.Materials.Steam.getGas(steamAmount));
+        }
+    }
+
     @Override
     public String[] getInfoData() {
         int stackLayers = getStackLayers();
@@ -574,6 +662,8 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
     @Override
     public boolean addToMachineList(IGregTechTileEntity tTileEntity, int aBaseCasingIndex) {
         return addPressureSteamToMachineList(tTileEntity, aBaseCasingIndex)
+            || addSteamCoolingToMachineList(tTileEntity, aBaseCasingIndex)
+            || addPressureCoolingToMachineList(tTileEntity, aBaseCasingIndex)
             || addInputToMachineList(tTileEntity, aBaseCasingIndex)
             || addOutputToMachineList(tTileEntity, aBaseCasingIndex)
             || addDynamoToMachineList(tTileEntity, aBaseCasingIndex);
@@ -582,6 +672,12 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
     private void updateAllHatchTextures() {
         int textureIndex = getCasingTextureIndex();
         for (MTEHatchPressureSteamInput hatch : mPressureSteamInputs) {
+            hatch.updateTexture(textureIndex);
+        }
+        for (MTESteamCoolingHatch hatch : mSteamCoolingHatches) {
+            hatch.updateTexture(textureIndex);
+        }
+        for (MTEPressureSteamCoolingHatch hatch : mPressureCoolingHatches) {
             hatch.updateTexture(textureIndex);
         }
         for (var inputHatch : GTUtility.validMTEList(mInputHatches)) {
@@ -684,6 +780,8 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
             .addInputHatch(StatCollector.translateToLocal("gtsr.tooltip.mega_steam_turbine.input"), 1)
             .addDynamoHatch(StatCollector.translateToLocal("gtsr.tooltip.mega_steam_turbine.dynamo"), 1)
             .addOutputHatch(StatCollector.translateToLocal("gtsr.tooltip.mega_steam_turbine.output"), 1)
+            .addInfo(
+                EnumChatFormatting.AQUA + "Steam Cooling Hatch / Pressure Steam Cooling Hatch can replace Output Hatch")
             .toolTipFinisher();
         return tt;
     }

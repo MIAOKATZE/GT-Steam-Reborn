@@ -95,6 +95,8 @@ public enum MetaTileEntityID {
     STEAM_OUTPUT_HATCH_GENERIC(33),
     /** 巨型蒸汽轮机机组 */
     MEGA_STEAM_TURBINE_ARRAY(34),
+    /** 动力加工阵列 */
+    KINETIC_PROCESSING_ARRAY(35),
 
     ;
 

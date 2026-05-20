@@ -74,6 +74,7 @@ public enum GTSRItemList implements IItemContainer {
     SiemensMartinFurnace,
     SteamOutputHatchGeneric,
     MegaSteamTurbineArray,
+    KineticProcessingArray,
 
     ;
 
