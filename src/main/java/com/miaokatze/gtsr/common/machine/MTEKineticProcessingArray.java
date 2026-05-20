@@ -75,8 +75,8 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
     private static final int SOLID_STEEL_CASING_INDEX = GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings2, 0);
     private static IStructureDefinition<MTEKineticProcessingArray> STRUCTURE_DEFINITION;
 
-    private static final double[] STEAM_CONSUMPTION_RATES = { 1.0, 1.0, 0.7, 0.5, 0.3, 0.1, 0.05, 0.05, 0.05, 0.05,
-        0.05, 0.05, 0.05, 0.05, 0.05, 0.05 };
+    private static final double[] STEAM_CONSUMPTION_RATES = { 8.0, 4.0, 2.0, 1.0, 0.5, 0.25, 0.1, 0.1, 0.1, 0.1, 0.1,
+        0.1, 0.1, 0.1, 0.1, 0.1 };
 
     private int mCasingAmount = 0;
     private int mCasingTier = -1;
@@ -299,7 +299,7 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
     }
 
     private double getSteamConsumptionRate() {
-        int tier = Math.min(mMachineTier, mCasingTier);
+        int tier = mMachineTier;
         if (tier < 0) tier = 0;
         if (tier >= STEAM_CONSUMPTION_RATES.length) tier = STEAM_CONSUMPTION_RATES.length - 1;
         return STEAM_CONSUMPTION_RATES[tier];

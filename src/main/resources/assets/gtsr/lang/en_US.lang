@@ -442,3 +442,19 @@ gtsr.gui.siemens_martin_furnace.parallel=Parallel:
 gtsr.gui.siemens_martin_furnace.temperature=Temperature
 gtsr.info.siemens_martin_furnace.name=Siemens-Martin Furnace
 GT5U.gui.text.gtsr.gui.siemens_martin.temperature_low=Temperature below 100%
+
+# Kinetic Processing Array
+gt.blockmachines.gtsr.kinetic.processing.array.name=Kinetic Processing Array
+gtsr.recipe.kinetic_processing_array=Kinetic Processing Array
+gtsr.tooltip.kinetic_processing_array.info=Place GT singleblock machines in controller, runs with EU + superheated steam
+gtsr.tooltip.kinetic_processing_array.info2=Parallel=(1+2*tier)+stackSize, casing tier limits max voltage
+gtsr.tooltip.kinetic_processing_array.controller=Front Center
+gtsr.tooltip.kinetic_processing_array.energy=Any Energy Hatch
+gtsr.tooltip.kinetic_processing_array.steam_input=Pressure Steam Input (Superheated Steam)
+gtsr.tooltip.kinetic_processing_array.input=Input Bus
+gtsr.tooltip.kinetic_processing_array.output=Output Bus
+gtsr.tooltip.kinetic_processing_array.output_hatch=Output Hatch / Pressure Steam Cooling Hatch
+
+# Mega Steam Turbine Array - Cooling Hatch
+gtsr.tooltip.mega_steam_turbine.cooling_hatch=Steam Cooling Hatch (replaces Output Hatch)
+gtsr.tooltip.mega_steam_turbine.pressure_cooling_hatch=Pressure Steam Cooling Hatch (replaces Output Hatch)

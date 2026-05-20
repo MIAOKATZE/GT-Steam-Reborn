@@ -442,3 +442,19 @@ gtsr.gui.siemens_martin_furnace.parallel=并行:
 gtsr.gui.siemens_martin_furnace.temperature=炉温
 gtsr.info.siemens_martin_furnace.name=平炉 (Siemens-Martin Furnace)
 GT5U.gui.text.gtsr.gui.siemens_martin.temperature_low=炉温未达到100%
+
+# Kinetic Processing Array (动力加工阵列)
+gt.blockmachines.gtsr.kinetic.processing.array.name=动力加工阵列
+gtsr.recipe.kinetic_processing_array=动力加工阵列
+gtsr.tooltip.kinetic_processing_array.info=在控制器中放入GT单方块机器，以电力+过热蒸汽辅助运行
+gtsr.tooltip.kinetic_processing_array.info2=并行数=(1+2×机器等级)+机器数量，外壳等级限制最高电压
+gtsr.tooltip.kinetic_processing_array.controller=正面中央
+gtsr.tooltip.kinetic_processing_array.energy=任意电力仓
+gtsr.tooltip.kinetic_processing_array.steam_input=耐压蒸汽输入仓(过热蒸汽)
+gtsr.tooltip.kinetic_processing_array.input=输入总线
+gtsr.tooltip.kinetic_processing_array.output=输出总线
+gtsr.tooltip.kinetic_processing_array.output_hatch=输出仓/耐压蒸汽冷却仓
+
+# Mega Steam Turbine Array - Cooling Hatch (巨型蒸汽轮机机组-冷却仓)
+gtsr.tooltip.mega_steam_turbine.cooling_hatch=蒸汽冷却仓(代替输出仓)
+gtsr.tooltip.mega_steam_turbine.pressure_cooling_hatch=耐压蒸汽冷却仓(代替输出仓)

@@ -781,7 +781,11 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
             .addDynamoHatch(StatCollector.translateToLocal("gtsr.tooltip.mega_steam_turbine.dynamo"), 1)
             .addOutputHatch(StatCollector.translateToLocal("gtsr.tooltip.mega_steam_turbine.output"), 1)
             .addInfo(
-                EnumChatFormatting.AQUA + "Steam Cooling Hatch / Pressure Steam Cooling Hatch can replace Output Hatch")
+                EnumChatFormatting.AQUA
+                    + StatCollector.translateToLocal("gtsr.tooltip.mega_steam_turbine.cooling_hatch"))
+            .addInfo(
+                EnumChatFormatting.AQUA
+                    + StatCollector.translateToLocal("gtsr.tooltip.mega_steam_turbine.pressure_cooling_hatch"))
             .toolTipFinisher();
         return tt;
     }
