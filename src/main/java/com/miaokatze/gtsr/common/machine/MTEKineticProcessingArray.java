@@ -9,6 +9,10 @@ import static gregtech.api.enums.HatchElement.InputBus;
 import static gregtech.api.enums.HatchElement.InputHatch;
 import static gregtech.api.enums.HatchElement.OutputBus;
 import static gregtech.api.enums.HatchElement.OutputHatch;
+import static gregtech.api.enums.Textures.BlockIcons.OVERLAY_FRONT_ORE_DRILL;
+import static gregtech.api.enums.Textures.BlockIcons.OVERLAY_FRONT_ORE_DRILL_ACTIVE;
+import static gregtech.api.enums.Textures.BlockIcons.OVERLAY_FRONT_ORE_DRILL_ACTIVE_GLOW;
+import static gregtech.api.enums.Textures.BlockIcons.OVERLAY_FRONT_ORE_DRILL_GLOW;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 
 import java.util.ArrayList;
@@ -45,6 +49,7 @@ import com.miaokatze.gtsr.common.machine.base.MTEPressureSteamCoolingHatch;
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.GTValues;
 import gregtech.api.enums.Materials;
+import gregtech.api.enums.Textures;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
@@ -57,6 +62,7 @@ import gregtech.api.recipe.check.CheckRecipeResult;
 import gregtech.api.recipe.check.CheckRecipeResultRegistry;
 import gregtech.api.recipe.check.SimpleCheckRecipeResult;
 import gregtech.api.recipe.metadata.CompressionTierKey;
+import gregtech.api.render.TextureFactory;
 import gregtech.api.util.GTModHandler;
 import gregtech.api.util.GTRecipe;
 import gregtech.api.util.GTUtility;
@@ -80,6 +86,7 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
     private long voltage = 0;
     private int mMachineTier = 0;
     private int maxParallel = 0;
+    private int mStackSize = 0;
 
     private final List<MTEHatchPressureSteamInput> mPressureSteamInputs = new ArrayList<>();
     private final List<MTEPressureSteamCoolingHatch> mPressureCoolingHatches = new ArrayList<>();
@@ -115,18 +122,6 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
                     'C',
                     ofChain(
                         buildHatchAdder(MTEKineticProcessingArray.class)
-                            .adder(MTEKineticProcessingArray::addPressureSteamToMachineList)
-                            .hatchClass(MTEHatchPressureSteamInput.class)
-                            .casingIndex(SOLID_STEEL_CASING_INDEX)
-                            .dot(1)
-                            .build(),
-                        buildHatchAdder(MTEKineticProcessingArray.class)
-                            .adder(MTEKineticProcessingArray::addPressureCoolingToMachineList)
-                            .hatchClass(MTEPressureSteamCoolingHatch.class)
-                            .casingIndex(SOLID_STEEL_CASING_INDEX)
-                            .dot(2)
-                            .build(),
-                        buildHatchAdder(MTEKineticProcessingArray.class)
                             .atLeast(InputBus, InputHatch, OutputBus, OutputHatch, Energy)
                             .casingIndex(SOLID_STEEL_CASING_INDEX)
                             .dot(1)
@@ -138,7 +133,19 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
                                         ALLOWED_CASINGS,
                                         -1,
                                         (t, tier) -> t.mCasingTier = tier,
-                                        t -> t.mCasingTier)))))
+                                        t -> t.mCasingTier))),
+                        buildHatchAdder(MTEKineticProcessingArray.class)
+                            .adder(MTEKineticProcessingArray::addPressureSteamToMachineList)
+                            .hatchClass(MTEHatchPressureSteamInput.class)
+                            .casingIndex(SOLID_STEEL_CASING_INDEX)
+                            .dot(2)
+                            .build(),
+                        buildHatchAdder(MTEKineticProcessingArray.class)
+                            .adder(MTEKineticProcessingArray::addPressureCoolingToMachineList)
+                            .hatchClass(MTEPressureSteamCoolingHatch.class)
+                            .casingIndex(SOLID_STEEL_CASING_INDEX)
+                            .dot(3)
+                            .build()))
                 .build();
         }
         return STRUCTURE_DEFINITION;
@@ -239,7 +246,6 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
             voltage = GTValues.V[mte.mTier] * mte.mAmperage;
             mMachineTier = mte.mTier;
             mMachineName = mte.getInventoryName();
-            maxParallel = controllerStack.stackSize;
 
             for (var tInputBus : mInputBusses) {
                 tInputBus.mRecipeMap = recipeMap;
@@ -249,7 +255,8 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
             }
         }
 
-        maxParallel = controllerStack.stackSize;
+        mStackSize = controllerStack.stackSize;
+        maxParallel = (1 + 2 * mMachineTier) + mStackSize;
     }
 
     private void resetMachineInfo() {
@@ -259,6 +266,7 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
         voltage = 0;
         mMachineTier = 0;
         maxParallel = 0;
+        mStackSize = 0;
         mMachineName = "";
         mSteamRate = 0;
         mSteamPerAmp = 0;
@@ -297,10 +305,10 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
         return STEAM_CONSUMPTION_RATES[tier];
     }
 
-    private long calculateSteamCost() {
-        long effectiveV = getEffectiveVoltage();
+    private long calculateSteamCostPerTick() {
+        if (mEUt >= 0) return 0;
         double rate = getSteamConsumptionRate();
-        return (long) (rate * effectiveV * maxParallel);
+        return (long) (rate * Math.abs(mEUt));
     }
 
     private boolean hasSufficientSuperheatedSteam(long required) {
@@ -366,6 +374,22 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
         }
     }
 
+    @Override
+    public boolean onRunningTick(ItemStack aStack) {
+        if (mEUt < 0) {
+            long steamPerTick = calculateSteamCostPerTick();
+            if (steamPerTick > 0) {
+                if (!depleteSuperheatedSteam(steamPerTick)) {
+                    stopMachine();
+                    return false;
+                }
+                outputCoolingSteam(steamPerTick);
+                mRealtimeSteamCost = steamPerTick;
+            }
+        }
+        return super.onRunningTick(aStack);
+    }
+
     @Nonnull
     @Override
     public CheckRecipeResult checkProcessing() {
@@ -375,21 +399,27 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
         }
 
         long effectiveV = getEffectiveVoltage();
-        long steamCost = calculateSteamCost();
+        double rate = getSteamConsumptionRate();
+        long estimatedSteamPerTick = (long) (rate * effectiveV);
 
-        if (!hasSufficientSuperheatedSteam(steamCost)) {
+        if (!hasSufficientSuperheatedSteam(estimatedSteamPerTick)) {
             return SimpleCheckRecipeResult.ofFailure("insufficient_steam");
         }
 
-        depleteSuperheatedSteam(steamCost);
-        outputCoolingSteam(steamCost);
-
-        mSteamRate = getSteamConsumptionRate();
-        mSteamPerAmp = (long) (mSteamRate * effectiveV);
-        mRealtimeSteamCost = steamCost;
+        mSteamRate = rate;
+        mSteamPerAmp = (long) (rate * effectiveV);
         mParallelCount = maxParallel;
 
-        return super.checkProcessing();
+        CheckRecipeResult result = super.checkProcessing();
+
+        if (result.wasSuccessful()) {
+            mRealtimeSteamCost = calculateSteamCostPerTick();
+            if (processingLogic != null) {
+                mParallelCount = processingLogic.getCurrentParallels();
+            }
+        }
+
+        return result;
     }
 
     @Override
@@ -404,14 +434,19 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
                 }
                 return CheckRecipeResultRegistry.SUCCESSFUL;
             }
-        };
+        }.setMaxParallelSupplier(this::getTrueParallel);
     }
 
     @Override
     protected void setProcessingLogicPower(ProcessingLogic logic) {
         logic.setAvailableVoltage(getEffectiveVoltage());
-        logic.setAvailableAmperage(maxParallel);
+        logic.setAvailableAmperage(getMaxParallelRecipes());
         logic.setAmperageOC(false);
+    }
+
+    @Override
+    public int getMaxParallelRecipes() {
+        return maxParallel;
     }
 
     @Override
@@ -476,6 +511,14 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
                 .setTextAlignment(Alignment.CenterLeft)
                 .setDefaultColor(COLOR_TEXT_WHITE.get())
                 .setEnabled(w -> mMachine));
+
+        screenElements.widget(
+            TextWidget
+                .dynamicString(
+                    () -> EnumChatFormatting.GOLD + "Parallel: " + EnumChatFormatting.LIGHT_PURPLE + mParallelCount)
+                .setTextAlignment(Alignment.CenterLeft)
+                .setDefaultColor(COLOR_TEXT_WHITE.get())
+                .setEnabled(w -> mMachine));
     }
 
     @Override
@@ -485,6 +528,7 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
         aNBT.setInteger("mMachineTier", mMachineTier);
         aNBT.setLong("voltage", voltage);
         aNBT.setInteger("maxParallel", maxParallel);
+        aNBT.setInteger("mStackSize", mStackSize);
         aNBT.setDouble("mSteamRate", mSteamRate);
         aNBT.setLong("mSteamPerAmp", mSteamPerAmp);
         aNBT.setLong("mRealtimeSteamCost", mRealtimeSteamCost);
@@ -506,6 +550,7 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
         mMachineTier = aNBT.getInteger("mMachineTier");
         voltage = aNBT.getLong("voltage");
         maxParallel = aNBT.getInteger("maxParallel");
+        mStackSize = aNBT.getInteger("mStackSize");
         mSteamRate = aNBT.getDouble("mSteamRate");
         mSteamPerAmp = aNBT.getLong("mSteamPerAmp");
         mRealtimeSteamCost = aNBT.getLong("mRealtimeSteamCost");
@@ -518,11 +563,11 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
 
     @Override
     public boolean addToMachineList(IGregTechTileEntity tTileEntity, int aBaseCasingIndex) {
-        return addPressureSteamToMachineList(tTileEntity, aBaseCasingIndex)
-            || addPressureCoolingToMachineList(tTileEntity, aBaseCasingIndex)
-            || addInputToMachineList(tTileEntity, aBaseCasingIndex)
+        return addInputToMachineList(tTileEntity, aBaseCasingIndex)
             || addOutputToMachineList(tTileEntity, aBaseCasingIndex)
-            || addEnergyInputToMachineList(tTileEntity, aBaseCasingIndex);
+            || addEnergyInputToMachineList(tTileEntity, aBaseCasingIndex)
+            || addPressureSteamToMachineList(tTileEntity, aBaseCasingIndex)
+            || addPressureCoolingToMachineList(tTileEntity, aBaseCasingIndex);
     }
 
     private void updateAllHatchTextures() {
@@ -620,7 +665,21 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
     public ITexture[] getTexture(IGregTechTileEntity aBaseMetaTileEntity, ForgeDirection side, ForgeDirection facing,
         int aColorIndex, boolean aActive, boolean aRedstone) {
         int casingIndex = getCasingTextureIndex();
-        return new ITexture[] { gregtech.api.enums.Textures.BlockIcons.getCasingTextureForId(casingIndex) };
+        if (side == facing) {
+            if (aActive) return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(casingIndex),
+                TextureFactory.of(OVERLAY_FRONT_ORE_DRILL_ACTIVE), TextureFactory.builder()
+                    .addIcon(OVERLAY_FRONT_ORE_DRILL_ACTIVE_GLOW)
+                    .extFacing()
+                    .glow()
+                    .build() };
+            return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(casingIndex),
+                TextureFactory.of(OVERLAY_FRONT_ORE_DRILL), TextureFactory.builder()
+                    .addIcon(OVERLAY_FRONT_ORE_DRILL_GLOW)
+                    .extFacing()
+                    .glow()
+                    .build() };
+        }
+        return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(casingIndex) };
     }
 
     @Override
@@ -633,7 +692,7 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
             .beginStructureBlock(3, 3, 3, true)
             .addController(StatCollector.translateToLocal("gtsr.tooltip.kinetic_processing_array.controller"))
             .addEnergyHatch(StatCollector.translateToLocal("gtsr.tooltip.kinetic_processing_array.energy"), 1)
-            .addInputHatch(StatCollector.translateToLocal("gtsr.tooltip.kinetic_processing_array.steam_input"), 1)
+            .addInputHatch(StatCollector.translateToLocal("gtsr.tooltip.kinetic_processing_array.steam_input"), 2)
             .addInputBus(StatCollector.translateToLocal("gtsr.tooltip.kinetic_processing_array.input"), 1)
             .addOutputBus(StatCollector.translateToLocal("gtsr.tooltip.kinetic_processing_array.output"), 1)
             .addOutputHatch(StatCollector.translateToLocal("gtsr.tooltip.kinetic_processing_array.output_hatch"), 1)
