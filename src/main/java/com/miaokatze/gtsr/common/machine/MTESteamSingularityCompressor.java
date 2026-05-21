@@ -73,6 +73,7 @@ public class MTESteamSingularityCompressor extends MTESteamMultiBase<MTESteamSin
     protected int mCasingCount = 0;
     protected double mHeat = 0.0d;
     protected long mStoppedTicks = 0;
+    protected int mStartUpCheck = 100;
 
     private static Textures.BlockIcons.CustomIcon OVERLAY_OFF;
     private static Textures.BlockIcons.CustomIcon OVERLAY_ON;
@@ -226,9 +227,15 @@ public class MTESteamSingularityCompressor extends MTESteamMultiBase<MTESteamSin
         super.onPostTick(aBaseMetaTileEntity, aTick);
         if (!aBaseMetaTileEntity.isServerSide()) return;
 
+        if (mMachine) {
+            mStartUpCheck = 100;
+        } else if (mStartUpCheck > 0) {
+            mStartUpCheck--;
+        }
+
         if (mMaxProgresstime <= 0) {
             mStoppedTicks++;
-            if (mStoppedTicks > STOP_THRESHOLD) {
+            if (mStoppedTicks > STOP_THRESHOLD && mStartUpCheck <= 0) {
                 mHeat = Math.max(0.0d, mHeat - HEAT_DOWN_RATE);
             }
         } else {

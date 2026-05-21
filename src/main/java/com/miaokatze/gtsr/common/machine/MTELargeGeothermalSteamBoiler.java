@@ -84,6 +84,7 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
     protected int mCasingCount = 0;
     protected double mHeat = 0.0d;
     protected int mCurrentSteamOutput = 0;
+    protected int mStartUpCheck = 100;
 
     private static final double HEAT_UP_BRONZE = 0.00006d;
     private static final double HEAT_UP_STEEL = 0.00003d;
@@ -372,12 +373,18 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
         super.onPostTick(aBaseMetaTileEntity, aTick);
         if (!aBaseMetaTileEntity.isServerSide()) return;
 
+        if (mMachine) {
+            mStartUpCheck = 100;
+        } else if (mStartUpCheck > 0) {
+            mStartUpCheck--;
+        }
+
         if (aTick % 20 == 0) {
             boolean isRunning = mMaxProgresstime > 0 && mProgresstime > 0;
             if (isRunning) {
                 double rate = hasOverheatChip() ? HEAT_UP_CHIP : (mSetTier == 1 ? HEAT_UP_BRONZE : HEAT_UP_STEEL);
                 mHeat = Math.min(1.0d, mHeat + rate);
-            } else {
+            } else if (mStartUpCheck <= 0) {
                 mHeat = Math.max(0.0d, mHeat - HEAT_DOWN);
             }
         }

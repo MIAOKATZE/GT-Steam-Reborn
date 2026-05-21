@@ -13,6 +13,7 @@ import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import net.minecraft.block.Block;
@@ -57,6 +58,8 @@ import gregtech.api.util.GTModHandler;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.GTUtilityClient;
 import gregtech.api.util.MultiblockTooltipBuilder;
+import gregtech.api.util.shutdown.ShutDownReason;
+import gregtech.api.util.shutdown.ShutDownReasonRegistry;
 import gregtech.common.misc.GTStructureChannels;
 
 public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaSteamTurbineArray>
@@ -331,7 +334,6 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         mCasingAmount = 0;
         mStackCount = 0;
         mCasingTier = -1;
-        mEfficiency = 0;
         mPressureSteamInputs.clear();
         mSteamCoolingHatches.clear();
         mPressureCoolingHatches.clear();
@@ -648,6 +650,7 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         aNBT.setInteger("mCasingTier", mCasingTier);
         aNBT.setInteger("mTheoreticalEUt", mTheoreticalEUt);
         aNBT.setInteger("mSteamConsumption", mSteamConsumption);
+        aNBT.setInteger("mEfficiency", mEfficiency);
     }
 
     @Override
@@ -657,6 +660,16 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         mCasingTier = aNBT.getInteger("mCasingTier");
         mTheoreticalEUt = aNBT.getInteger("mTheoreticalEUt");
         mSteamConsumption = aNBT.getInteger("mSteamConsumption");
+        mEfficiency = aNBT.getInteger("mEfficiency");
+    }
+
+    @Override
+    public void stopMachine(@Nonnull ShutDownReason reason) {
+        int savedEfficiency = mEfficiency;
+        super.stopMachine(reason);
+        if (reason == ShutDownReasonRegistry.STRUCTURE_INCOMPLETE) {
+            mEfficiency = savedEfficiency;
+        }
     }
 
     @Override
