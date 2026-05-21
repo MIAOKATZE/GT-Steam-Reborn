@@ -75,6 +75,14 @@ public enum GTSRItemList implements IItemContainer {
     SteamOutputHatchGeneric,
     MegaSteamTurbineArray,
     KineticProcessingArray,
+    AmmoniaPlant,
+    AmmoniaCatalystNickel,
+    AmmoniaCatalystPlatinum,
+    AmmoniaCatalystUranium,
+    AmmoniaCatalystOsmium,
+    AmmoniaCatalystFeCo,
+    AmmoniaCatalystRuthenium,
+    AmmoniaCatalystQuantum,
 
     ;
 

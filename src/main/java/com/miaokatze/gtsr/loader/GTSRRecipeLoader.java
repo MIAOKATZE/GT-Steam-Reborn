@@ -1,5 +1,6 @@
 package com.miaokatze.gtsr.loader;
 
+import static com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps.ammoniaPlantRecipes;
 import static com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps.largeCokeOvenRecipes;
 import static com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps.siemensMartinRecipes;
 import static gregtech.api.util.GTRecipeBuilder.MINUTES;
@@ -16,6 +17,7 @@ public class GTSRRecipeLoader implements Runnable {
     public void run() {
         registerCokeOvenRecipes();
         registerSiemensMartinRecipes();
+        registerAmmoniaRecipes();
     }
 
     private static void registerCokeOvenRecipes() {
@@ -94,5 +96,14 @@ public class GTSRRecipeLoader implements Runnable {
             .duration(800 * SECONDS)
             .eut(0)
             .addTo(siemensMartinRecipes);
+    }
+
+    private static void registerAmmoniaRecipes() {
+        GTValues.RA.stdBuilder()
+            .fluidInputs(Materials.Gas.getGas(1000), Materials.Nitrogen.getGas(1000))
+            .fluidOutputs(Materials.Ammonia.getGas(1000))
+            .duration(64 * SECONDS)
+            .eut(0)
+            .addTo(ammoniaPlantRecipes);
     }
 }

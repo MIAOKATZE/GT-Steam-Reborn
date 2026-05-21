@@ -2,6 +2,7 @@ package com.miaokatze.gtsr.loader;
 
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.api.enums.MetaTileEntityID;
+import com.miaokatze.gtsr.common.machine.MTEAmmoniaPlant;
 import com.miaokatze.gtsr.common.machine.MTECrustSteamBorer;
 import com.miaokatze.gtsr.common.machine.MTEKineticProcessingArray;
 import com.miaokatze.gtsr.common.machine.MTELargeCokeOven;
@@ -61,6 +62,7 @@ public class MachineLoader {
         registerSiemensMartinFurnace();
         registerMegaSteamTurbineArray();
         registerKineticProcessingArray();
+        registerAmmoniaPlant();
     }
 
     private static void registerSteamMachines() {
@@ -321,5 +323,11 @@ public class MachineLoader {
                 "gtsr.kinetic.processing.array",
                 "Kinetic Processing Array"));
         CreativeTabManager.addItemToTab(GTSRItemList.KineticProcessingArray.get(1));
+    }
+
+    private static void registerAmmoniaPlant() {
+        GTSRItemList.AmmoniaPlant
+            .set(new MTEAmmoniaPlant(MetaTileEntityID.AMMONIA_PLANT.ID, "gtsr.ammonia.plant", "Ammonia Plant"));
+        CreativeTabManager.addItemToTab(GTSRItemList.AmmoniaPlant.get(1));
     }
 }

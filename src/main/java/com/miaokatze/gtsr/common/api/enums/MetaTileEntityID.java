@@ -97,6 +97,8 @@ public enum MetaTileEntityID {
     MEGA_STEAM_TURBINE_ARRAY(34),
     /** 动力加工阵列 */
     KINETIC_PROCESSING_ARRAY(35),
+    /** 制氨工厂 */
+    AMMONIA_PLANT(36),
 
     ;
 

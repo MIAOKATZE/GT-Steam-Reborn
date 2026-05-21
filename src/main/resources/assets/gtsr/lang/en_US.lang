@@ -458,3 +458,22 @@ gtsr.tooltip.kinetic_processing_array.output_hatch=Output Hatch / Pressure Steam
 # Mega Steam Turbine Array - Cooling Hatch
 gtsr.tooltip.mega_steam_turbine.cooling_hatch=Steam Cooling Hatch (replaces Output Hatch)
 gtsr.tooltip.mega_steam_turbine.pressure_cooling_hatch=Pressure Steam Cooling Hatch (replaces Output Hatch)
+
+# Ammonia Plant
+gtsr.tooltip.ammonia_plant.type=Ammonia Plant
+gtsr.tooltip.ammonia_plant.info=Pure steam-driven chemical machine, synthesizes ammonia from refinery gas and nitrogen
+gtsr.tooltip.ammonia_plant.info2=Consumes steam + refinery gas during preheat, can execute recipes when fully heated
+gtsr.tooltip.ammonia_plant.controller=Front Center
+gtsr.tooltip.ammonia_plant.input_bus=Input Bus (Refinery Gas, Nitrogen)
+gtsr.tooltip.ammonia_plant.input_hatch=Input Hatch / Pressure Steam Input (Steam)
+gtsr.tooltip.ammonia_plant.output_bus=Output Bus (Ammonia)
+gtsr.tooltip.ammonia_plant.output_hatch=Output Hatch (Superheated Steam)
+
+# Ammonia Catalysts
+gtsr.item.ammonia_catalyst_nickel.name=Nickel-Based Catalyst
+gtsr.item.ammonia_catalyst_platinum.name=Platinum Catalyst
+gtsr.item.ammonia_catalyst_uranium.name=Uranium Catalyst
+gtsr.item.ammonia_catalyst_osmium.name=Osmium Catalyst
+gtsr.item.ammonia_catalyst_feco.name=Iron-Cobalt Modified Catalyst
+gtsr.item.ammonia_catalyst_ruthenium.name=Ruthenium Catalyst
+gtsr.item.ammonia_catalyst_quantum.name=Quantum Catalyst
