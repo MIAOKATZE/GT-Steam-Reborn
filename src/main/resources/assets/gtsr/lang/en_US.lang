@@ -460,12 +460,13 @@ gtsr.tooltip.mega_steam_turbine.cooling_hatch=Steam Cooling Hatch (replaces Outp
 gtsr.tooltip.mega_steam_turbine.pressure_cooling_hatch=Pressure Steam Cooling Hatch (replaces Output Hatch)
 
 # Ammonia Plant
+gt.blockmachines.gtsr.ammonia.plant.name=Ammonia Plant
 gtsr.tooltip.ammonia_plant.type=Ammonia Plant
 gtsr.tooltip.ammonia_plant.info=Pure steam-driven chemical machine, synthesizes ammonia from refinery gas and nitrogen
 gtsr.tooltip.ammonia_plant.info2=Consumes steam + refinery gas during preheat, can execute recipes when fully heated
 gtsr.tooltip.ammonia_plant.controller=Front Center
 gtsr.tooltip.ammonia_plant.input_bus=Input Bus (Refinery Gas, Nitrogen)
-gtsr.tooltip.ammonia_plant.input_hatch=Input Hatch / Pressure Steam Input (Steam)
+gtsr.tooltip.ammonia_plant.input_hatch=Input Hatch (Steam/Refinery Gas/Nitrogen)
 gtsr.tooltip.ammonia_plant.output_bus=Output Bus (Ammonia)
 gtsr.tooltip.ammonia_plant.output_hatch=Output Hatch (Superheated Steam)
 
@@ -477,3 +478,15 @@ gtsr.item.ammonia_catalyst_osmium.name=Osmium Catalyst
 gtsr.item.ammonia_catalyst_feco.name=Iron-Cobalt Modified Catalyst
 gtsr.item.ammonia_catalyst_ruthenium.name=Ruthenium Catalyst
 gtsr.item.ammonia_catalyst_quantum.name=Quantum Catalyst
+
+# Ammonia Plant GUI
+gtsr.gui.ammonia_plant.name=Ammonia Plant
+gtsr.gui.ammonia_plant.heat=Heat: 
+gtsr.gui.ammonia_plant.status=Status: 
+gtsr.gui.ammonia_plant.steam=Steam Cost: 
+gtsr.gui.ammonia_plant.hp_steam=HP Steam Output: 
+gtsr.gui.ammonia_plant.parallel=Parallel: 
+gtsr.gui.ammonia_plant.cold=Cold
+gtsr.gui.ammonia_plant.preheating=Preheating
+gtsr.gui.ammonia_plant.standby=Standby
+gtsr.gui.ammonia_plant.running=Running

@@ -48,6 +48,7 @@ import gregtech.api.recipe.check.SimpleCheckRecipeResult;
 import gregtech.api.render.TextureFactory;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.MultiblockTooltipBuilder;
+import gregtech.api.util.shutdown.ShutDownReasonRegistry;
 import gregtech.common.blocks.BlockCasings2;
 
 public class MTESiemensMartinFurnace extends MTEEnhancedMultiBlockBase<MTESiemensMartinFurnace>
@@ -67,6 +68,7 @@ public class MTESiemensMartinFurnace extends MTEEnhancedMultiBlockBase<MTESiemen
 
     private double mFurnaceTemperature = 0.0d;
     private final List<MTEHatchPressureSteamInput> mPressureSteamInputs = new ArrayList<>();
+    private int mStartUpCheck = 100;
 
     void addPressureSteamInput(MTEHatchPressureSteamInput hatch) {
         mPressureSteamInputs.add(hatch);
@@ -184,11 +186,33 @@ public class MTESiemensMartinFurnace extends MTEEnhancedMultiBlockBase<MTESiemen
         if (!aBaseMetaTileEntity.isServerSide()) return;
 
         if (mMachine) {
+            mStartUpCheck = 100;
+        } else if (mStartUpCheck > 0) {
+            mStartUpCheck--;
+        }
+
+        boolean inGracePeriod = mStartUpCheck > 0;
+
+        if (mMachine && aBaseMetaTileEntity.isAllowedToWork()) {
+            if (mFurnaceTemperature < 1.0d && mMaxProgresstime > 0) {
+                stopMachine(ShutDownReasonRegistry.POWER_LOSS);
+            }
+
             if (consumeSuperheatedSteam()) {
                 mFurnaceTemperature = Math.min(1.0d, mFurnaceTemperature + TEMPERATURE_INCREMENT);
             } else {
                 mFurnaceTemperature = Math.max(0.0d, mFurnaceTemperature - TEMPERATURE_DECREMENT);
+                if (mMaxProgresstime > 0) {
+                    stopMachine(ShutDownReasonRegistry.POWER_LOSS);
+                }
             }
+        } else if (mMachine && !aBaseMetaTileEntity.isAllowedToWork()) {
+            if (mMaxProgresstime > 0) {
+                stopMachine(ShutDownReasonRegistry.POWER_LOSS);
+            }
+            mFurnaceTemperature = Math.max(0.0d, mFurnaceTemperature - TEMPERATURE_DECREMENT);
+        } else if (!mMachine && !inGracePeriod) {
+            mFurnaceTemperature = Math.max(0.0d, mFurnaceTemperature - TEMPERATURE_DECREMENT);
         }
     }
 

@@ -102,6 +102,8 @@ public class GTSRRecipeLoader implements Runnable {
         GTValues.RA.stdBuilder()
             .fluidInputs(Materials.Gas.getGas(1000), Materials.Nitrogen.getGas(1000))
             .fluidOutputs(Materials.Ammonia.getGas(1000))
+            .itemOutputs(Materials.Ash.getDust(1), Materials.Carbon.getDust(1))
+            .outputChances(10000, 1000)
             .duration(64 * SECONDS)
             .eut(0)
             .addTo(ammoniaPlantRecipes);

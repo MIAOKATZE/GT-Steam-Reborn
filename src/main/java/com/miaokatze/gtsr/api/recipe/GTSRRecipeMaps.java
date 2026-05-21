@@ -25,7 +25,7 @@ public class GTSRRecipeMaps {
 
     public static final RecipeMap<RecipeMapBackend> ammoniaPlantRecipes = RecipeMapBuilder
         .of("gtsr.recipe.ammoniaplant")
-        .maxIO(0, 0, 2, 1)
+        .maxIO(0, 2, 2, 1)
         .minInputs(0, 2)
         .progressBar(GTUITextures.PROGRESSBAR_ARROW, ProgressBar.Direction.RIGHT)
         .build();
