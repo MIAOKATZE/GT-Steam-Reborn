@@ -490,3 +490,29 @@ gtsr.gui.ammonia_plant.cold=Cold
 gtsr.gui.ammonia_plant.preheating=Preheating
 gtsr.gui.ammonia_plant.standby=Standby
 gtsr.gui.ammonia_plant.running=Running
+
+gt.blockmachines.gtsr.air_compressor.name=Air Compressor
+gtsr.tooltip.air_compressor.0=Steam-driven air compression equipment, continuously produces compressed air
+gtsr.tooltip.air_compressor.1=Supports regular steam, pressure steam, and superheated steam (4x speed)
+gtsr.tooltip.air_compressor.ctrl=Front Center
+gtsr.tooltip.air_compressor.input_hatch=Input Hatch (Steam)
+gtsr.tooltip.air_compressor.output_hatch=Output Hatch (Air)
+gtsr.recipe.air_compressor=Air Compressor
+gtsr.info.air_compressor.tier=Tier: 
+gtsr.info.air_compressor.steam_type=Steam Type: 
+gtsr.info.air_compressor.parallel=Parallel: 
+
+gt.blockmachines.gtsr.atmospheric_centrifuge.name=Atmospheric Centrifuge
+gtsr.tooltip.atmospheric_centrifuge.0=Steam-driven air separation equipment, decomposes air into various gases
+gtsr.tooltip.atmospheric_centrifuge.1=T2 tier can use Rare Gas Separation Chip to unlock rare gas recipes
+gtsr.tooltip.atmospheric_centrifuge.2=Supports regular steam, pressure steam, and superheated steam (4x speed)
+gtsr.tooltip.atmospheric_centrifuge.ctrl=Front Center
+gtsr.tooltip.atmospheric_centrifuge.input_hatch=Input Hatch (Air/Steam)
+gtsr.tooltip.atmospheric_centrifuge.output_hatch=Output Hatch (Various Gases)
+gtsr.recipe.atmospheric_centrifuge=Atmospheric Centrifuge
+gtsr.info.atmospheric_centrifuge.tier=Tier: 
+gtsr.info.atmospheric_centrifuge.steam_type=Steam Type: 
+gtsr.info.atmospheric_centrifuge.parallel=Parallel: 
+gtsr.info.atmospheric_centrifuge.chip=Chip: 
+
+gtsr.item.rare_gas_separation_chip.name=Rare Gas Separation Chip

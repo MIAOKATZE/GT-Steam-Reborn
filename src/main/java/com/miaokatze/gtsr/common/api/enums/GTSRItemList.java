@@ -83,6 +83,9 @@ public enum GTSRItemList implements IItemContainer {
     AmmoniaCatalystFeCo,
     AmmoniaCatalystRuthenium,
     AmmoniaCatalystQuantum,
+    AirCompressor,
+    AtmosphericCentrifuge,
+    RareGasSeparationChip,
 
     ;
 

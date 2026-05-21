@@ -1,6 +1,8 @@
 package com.miaokatze.gtsr.loader;
 
+import static com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps.airCompressorRecipes;
 import static com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps.ammoniaPlantRecipes;
+import static com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps.atmosphericCentrifugeRecipes;
 import static com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps.largeCokeOvenRecipes;
 import static com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps.siemensMartinRecipes;
 import static gregtech.api.util.GTRecipeBuilder.MINUTES;
@@ -8,6 +10,7 @@ import static gregtech.api.util.GTRecipeBuilder.SECONDS;
 
 import net.minecraftforge.oredict.OreDictionary;
 
+import bartworks.system.material.WerkstoffLoader;
 import gregtech.api.enums.GTValues;
 import gregtech.api.enums.Materials;
 
@@ -18,6 +21,8 @@ public class GTSRRecipeLoader implements Runnable {
         registerCokeOvenRecipes();
         registerSiemensMartinRecipes();
         registerAmmoniaRecipes();
+        registerAirCompressorRecipes();
+        registerAtmosphericCentrifugeRecipes();
     }
 
     private static void registerCokeOvenRecipes() {
@@ -107,5 +112,37 @@ public class GTSRRecipeLoader implements Runnable {
             .duration(64 * SECONDS)
             .eut(0)
             .addTo(ammoniaPlantRecipes);
+    }
+
+    private static void registerAirCompressorRecipes() {
+        GTValues.RA.stdBuilder()
+            .fluidOutputs(Materials.Air.getGas(800))
+            .duration(20)
+            .eut(-60)
+            .addTo(airCompressorRecipes);
+    }
+
+    private static void registerAtmosphericCentrifugeRecipes() {
+        GTValues.RA.stdBuilder()
+            .fluidInputs(Materials.Air.getGas(10000))
+            .fluidOutputs(Materials.Nitrogen.getGas(7800), Materials.Oxygen.getGas(2100))
+            .duration(1000)
+            .eut(-25)
+            .addTo(atmosphericCentrifugeRecipes);
+
+        GTValues.RA.stdBuilder()
+            .fluidInputs(Materials.Air.getGas(2000000))
+            .fluidOutputs(
+                Materials.Nitrogen.getGas(1560000),
+                Materials.Oxygen.getGas(420000),
+                Materials.Argon.getGas(3860),
+                Materials.CarbonDioxide.getGas(600),
+                WerkstoffLoader.Neon.getFluidOrGas(40),
+                Materials.Methane.getGas(4),
+                WerkstoffLoader.Krypton.getFluidOrGas(2),
+                Materials.Helium.getGas(1))
+            .duration(40000)
+            .eut(-250)
+            .addTo(atmosphericCentrifugeRecipes);
     }
 }

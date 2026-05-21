@@ -99,6 +99,10 @@ public enum MetaTileEntityID {
     KINETIC_PROCESSING_ARRAY(35),
     /** 制氨工厂 */
     AMMONIA_PLANT(36),
+    /** 空气压缩机 */
+    AIR_COMPRESSOR(37),
+    /** 空气离心机 */
+    ATMOSPHERIC_CENTRIFUGE(38),
 
     ;
 

@@ -29,4 +29,19 @@ public class GTSRRecipeMaps {
         .minInputs(0, 2)
         .progressBar(GTUITextures.PROGRESSBAR_ARROW, ProgressBar.Direction.RIGHT)
         .build();
+
+    public static final RecipeMap<RecipeMapBackend> airCompressorRecipes = RecipeMapBuilder
+        .of("gtsr.recipe.aircompressor")
+        .maxIO(0, 0, 1, 1)
+        .minInputs(0, 0)
+        .progressBar(GTUITextures.PROGRESSBAR_ARROW, ProgressBar.Direction.RIGHT)
+        .build();
+
+    public static final RecipeMap<RecipeMapBackend> atmosphericCentrifugeRecipes = RecipeMapBuilder
+        .of("gtsr.recipe.atmosphericcentrifuge")
+        .maxIO(0, 0, 1, 8)
+        .minInputs(0, 1)
+        .progressBar(GTUITextures.PROGRESSBAR_ARROW, ProgressBar.Direction.RIGHT)
+        .frontend(FluidGridFrontend::new)
+        .build();
 }

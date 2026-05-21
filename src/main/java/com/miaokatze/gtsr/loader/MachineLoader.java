@@ -2,7 +2,9 @@ package com.miaokatze.gtsr.loader;
 
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.api.enums.MetaTileEntityID;
+import com.miaokatze.gtsr.common.machine.MTEAirCompressor;
 import com.miaokatze.gtsr.common.machine.MTEAmmoniaPlant;
+import com.miaokatze.gtsr.common.machine.MTEAtmosphericCentrifuge;
 import com.miaokatze.gtsr.common.machine.MTECrustSteamBorer;
 import com.miaokatze.gtsr.common.machine.MTEKineticProcessingArray;
 import com.miaokatze.gtsr.common.machine.MTELargeCokeOven;
@@ -63,6 +65,8 @@ public class MachineLoader {
         registerMegaSteamTurbineArray();
         registerKineticProcessingArray();
         registerAmmoniaPlant();
+        registerAirCompressor();
+        registerAtmosphericCentrifuge();
     }
 
     private static void registerSteamMachines() {
@@ -329,5 +333,20 @@ public class MachineLoader {
         GTSRItemList.AmmoniaPlant
             .set(new MTEAmmoniaPlant(MetaTileEntityID.AMMONIA_PLANT.ID, "gtsr.ammonia.plant", "Ammonia Plant"));
         CreativeTabManager.addItemToTab(GTSRItemList.AmmoniaPlant.get(1));
+    }
+
+    private static void registerAirCompressor() {
+        GTSRItemList.AirCompressor
+            .set(new MTEAirCompressor(MetaTileEntityID.AIR_COMPRESSOR.ID, "gtsr.air.compressor", "Air Compressor"));
+        CreativeTabManager.addItemToTab(GTSRItemList.AirCompressor.get(1));
+    }
+
+    private static void registerAtmosphericCentrifuge() {
+        GTSRItemList.AtmosphericCentrifuge.set(
+            new MTEAtmosphericCentrifuge(
+                MetaTileEntityID.ATMOSPHERIC_CENTRIFUGE.ID,
+                "gtsr.atmospheric.centrifuge",
+                "Atmospheric Centrifuge"));
+        CreativeTabManager.addItemToTab(GTSRItemList.AtmosphericCentrifuge.get(1));
     }
 }
