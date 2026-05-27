@@ -170,8 +170,15 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
 
     @Nullable
     public static Integer getGlassTier(Block block, int meta) {
-        if (block == Blocks.glass) return 1;
-        if (block == GregTechAPI.sBlockGlass1) return 2;
+        if (block == Blocks.glass && meta == 0) return 1;
+        if (block == cpw.mods.fml.common.registry.GameRegistry.findBlock("IC2", "blockAlloyGlass")) return 2;
+        return null;
+    }
+
+    @Nullable
+    public static Integer getFrameTier(Block block, int meta) {
+        if (block == GregTechAPI.sBlockFrames && meta == Materials.Bronze.mMetaItemSubID) return 1;
+        if (block == GregTechAPI.sBlockFrames && meta == Materials.Steel.mMetaItemSubID) return 2;
         return null;
     }
 
@@ -259,16 +266,21 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
                         MTELargeSolarOverpressureArray::getGlassTier,
                         ImmutableList.of(
                             Pair.of(Blocks.glass, 0),
-                            Pair.of(GregTechAPI.sBlockGlass1, 0),
-                            Pair.of(GregTechAPI.sBlockGlass1, 1),
-                            Pair.of(GregTechAPI.sBlockGlass1, 2),
-                            Pair.of(GregTechAPI.sBlockGlass1, 3)),
+                            Pair.of(cpw.mods.fml.common.registry.GameRegistry.findBlock("IC2", "blockAlloyGlass"), 0)),
                         -1,
-                        (MTELargeSolarOverpressureArray t, Integer tier) -> t.tierGlass = tier,
+                        (MTELargeSolarOverpressureArray t, Integer tier) -> t.tierGlass = Math.max(t.tierGlass, tier),
                         (MTELargeSolarOverpressureArray t) -> t.tierGlass))
                 .addElement(
                     'G',
-                    onElementPass(t -> {}, ofBlock(GregTechAPI.sBlockFrames, Materials.Bronze.mMetaItemSubID)))
+                    ofBlocksTiered(
+                        MTELargeSolarOverpressureArray::getFrameTier,
+                        ImmutableList.of(
+                            Pair.of(GregTechAPI.sBlockFrames, Materials.Bronze.mMetaItemSubID),
+                            Pair.of(GregTechAPI.sBlockFrames, Materials.Steel.mMetaItemSubID),
+                            Pair.of(GregTechAPI.sBlockFrames, Materials.Steel.mMetaItemSubID)),
+                        -1,
+                        (MTELargeSolarOverpressureArray t, Integer tier) -> t.tierCasing = Math.max(t.tierCasing, tier),
+                        (MTELargeSolarOverpressureArray t) -> t.tierCasing))
                 .build();
         }
         return STRUCTURE_DEFINITION;

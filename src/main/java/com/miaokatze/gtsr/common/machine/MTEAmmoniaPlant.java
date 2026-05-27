@@ -72,9 +72,9 @@ public class MTEAmmoniaPlant extends MTEEnhancedMultiBlockBase<MTEAmmoniaPlant> 
         { 256, 8 }, { 256, 4 }, { 256, 1 } };
 
     private static final String STRUCTURE_PIECE_MAIN = "main";
-    private static final int HORIZONTAL_OFF_SET = 9;
+    private static final int HORIZONTAL_OFF_SET = 10;
     private static final int VERTICAL_OFF_SET = 11;
-    private static final int DEPTH_OFF_SET = 2;
+    private static final int DEPTH_OFF_SET = 1;
     private static IStructureDefinition<MTEAmmoniaPlant> STRUCTURE_DEFINITION = null;
 
     private int mHeatLevel = 0;
@@ -156,7 +156,7 @@ public class MTEAmmoniaPlant extends MTEEnhancedMultiBlockBase<MTEAmmoniaPlant> 
                             .casingIndex(CASING_TEXTURE_ID)
                             .dot(2)
                             .buildAndChain(
-                                onElementPass(MTEAmmoniaPlant::onCasingAdded, ofBlock(GregTechAPI.sBlockCasings4, 9)))))
+                                onElementPass(MTEAmmoniaPlant::onCasingAdded, ofBlock(GregTechAPI.sBlockCasings8, 0)))))
                 .addElement('F', onElementPass(MTEAmmoniaPlant::onCasingAdded, ofBlock(GregTechAPI.sBlockCasings8, 1)))
                 .addElement('G', onElementPass(MTEAmmoniaPlant::onCasingAdded, ofBlock(GregTechAPI.sBlockCasings8, 1)))
                 .addElement(

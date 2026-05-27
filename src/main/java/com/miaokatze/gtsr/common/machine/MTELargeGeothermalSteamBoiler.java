@@ -6,12 +6,11 @@ import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose;
 import static gregtech.api.enums.HatchElement.InputHatch;
+import static gregtech.api.enums.HatchElement.OutputBus;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 
 import java.text.NumberFormat;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 
 import javax.annotation.Nullable;
 
@@ -47,7 +46,6 @@ import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Materials;
 import gregtech.api.enums.OrePrefixes;
 import gregtech.api.enums.Textures;
-import gregtech.api.interfaces.IHatchElement;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
@@ -59,11 +57,9 @@ import gregtech.api.recipe.check.CheckRecipeResultRegistry;
 import gregtech.api.render.TextureFactory;
 import gregtech.api.util.GTOreDictUnificator;
 import gregtech.api.util.GTUtility;
-import gregtech.api.util.IGTHatchAdder;
 import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.common.blocks.BlockCasings1;
 import gregtech.common.blocks.BlockCasings2;
-import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.MTEHatchSteamBusOutput;
 
 public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTELargeGeothermalSteamBoiler>
     implements IConstructable, ISurvivalConstructable {
@@ -104,26 +100,6 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
 
     private final ArrayList<MTESteamOutputHatch> mSteamOutputHatches = new ArrayList<>();
     private final ArrayList<MTEPressureSteamOutputHatch> mPressureSteamOutputHatches = new ArrayList<>();
-
-    private enum GeothermalHatchElement implements IHatchElement<MTELargeGeothermalSteamBoiler> {
-
-        OutputBus_Steam;
-
-        @Override
-        public List<? extends Class<? extends IMetaTileEntity>> mteClasses() {
-            return Collections.singletonList(MTEHatchSteamBusOutput.class);
-        }
-
-        @Override
-        public long count(MTELargeGeothermalSteamBoiler t) {
-            return t.mOutputBusses.size();
-        }
-
-        @Override
-        public IGTHatchAdder<? super MTELargeGeothermalSteamBoiler> adder() {
-            return MTELargeGeothermalSteamBoiler::addSteamOutputBus;
-        }
-    }
 
     public MTELargeGeothermalSteamBoiler(int aID, String aName, String aNameRegional) {
         super(aID, aName, aNameRegional);
@@ -180,6 +156,8 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
 
     protected void updateHatchTexture() {
         int textureID = getCasingTextureID();
+        for (MTEHatch h : mInputHatches) h.updateTexture(textureID);
+        for (MTEHatch h : mOutputBusses) h.updateTexture(textureID);
         for (MTEHatch h : mSteamOutputHatches) h.updateTexture(textureID);
         for (MTEHatch h : mPressureSteamOutputHatches) h.updateTexture(textureID);
     }
@@ -228,8 +206,7 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
                             .dot(1)
                             .shouldReject(MTELargeGeothermalSteamBoiler::hasSteamOutputHatch)
                             .build(),
-                        buildHatchAdder(MTELargeGeothermalSteamBoiler.class)
-                            .atLeast(GeothermalHatchElement.OutputBus_Steam)
+                        buildHatchAdder(MTELargeGeothermalSteamBoiler.class).atLeast(OutputBus)
                             .casingIndex(bronzeCasingIndex)
                             .dot(1)
                             .buildAndChain(
@@ -293,16 +270,6 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
         if (aMetaTileEntity instanceof MTEPressureSteamOutputHatch hatch) {
             hatch.updateTexture(aBaseCasingIndex);
             return mPressureSteamOutputHatches.add(hatch);
-        }
-        return false;
-    }
-
-    private boolean addSteamOutputBus(IGregTechTileEntity aTileEntity, int aBaseCasingIndex) {
-        if (aTileEntity == null) return false;
-        IMetaTileEntity aMetaTileEntity = aTileEntity.getMetaTileEntity();
-        if (aMetaTileEntity instanceof MTEHatchSteamBusOutput bus) {
-            bus.updateTexture(aBaseCasingIndex);
-            return mOutputBusses.add(bus);
         }
         return false;
     }

@@ -5,6 +5,8 @@ import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlocksT
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose;
+import static gregtech.api.enums.HatchElement.InputBus;
+import static gregtech.api.enums.HatchElement.OutputBus;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 
 import javax.annotation.Nonnull;
@@ -110,8 +112,8 @@ public class MTELargeSteamFurnace extends MTESteamMultiBase<MTELargeSteamFurnace
     protected void updateHatchTexture() {
         int textureID = getCasingTextureID();
         for (MTEHatch h : mSteamInputFluids) h.updateTexture(textureID);
-        for (MTEHatch h : mSteamInputs) h.updateTexture(textureID);
-        for (MTEHatch h : mSteamOutputs) h.updateTexture(textureID);
+        for (MTEHatch h : mInputBusses) h.updateTexture(textureID);
+        for (MTEHatch h : mOutputBusses) h.updateTexture(textureID);
     }
 
     @Override
@@ -147,8 +149,7 @@ public class MTELargeSteamFurnace extends MTESteamMultiBase<MTELargeSteamFurnace
                             .dot(1)
                             .shouldReject(t -> !t.mSteamInputFluids.isEmpty())
                             .build(),
-                        buildHatchAdder(MTELargeSteamFurnace.class)
-                            .atLeast(SteamHatchElement.InputBus_Steam, SteamHatchElement.OutputBus_Steam)
+                        buildHatchAdder(MTELargeSteamFurnace.class).atLeast(InputBus, OutputBus)
                             .casingIndex(bronzeCasingIndex)
                             .dot(1)
                             .buildAndChain(
@@ -213,8 +214,8 @@ public class MTELargeSteamFurnace extends MTESteamMultiBase<MTELargeSteamFurnace
         if (!checkPiece(STRUCTURE_PIECE_MAIN, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET)) return false;
         if (mSetTier <= 0) return false;
         if (mSteamInputFluids.isEmpty()) return false;
-        if (mSteamInputs.isEmpty()) return false;
-        if (mSteamOutputs.isEmpty()) return false;
+        if (mInputBusses.isEmpty()) return false;
+        if (mOutputBusses.isEmpty()) return false;
         updateHatchTexture();
         return true;
     }

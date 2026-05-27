@@ -212,11 +212,11 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
     @SuppressWarnings({ "rawtypes", "unchecked" })
     private static final List<Pair<Block, Integer>> FRAME_CASINGS = ImmutableList.of(
         Pair.of(GregTechAPI.sBlockFrames, Materials.Steel.mMetaItemSubID),
+        Pair.of(GregTechAPI.sBlockFrames, Materials.Aluminium.mMetaItemSubID),
+        Pair.of(GregTechAPI.sBlockFrames, Materials.StainlessSteel.mMetaItemSubID),
         Pair.of(GregTechAPI.sBlockFrames, Materials.Titanium.mMetaItemSubID),
         Pair.of(GregTechAPI.sBlockFrames, Materials.TungstenSteel.mMetaItemSubID),
-        Pair.of(GregTechAPI.sBlockFrames, Materials.Chrome.mMetaItemSubID),
         Pair.of(GregTechAPI.sBlockFrames, Materials.Iridium.mMetaItemSubID),
-        Pair.of(GregTechAPI.sBlockFrames, Materials.Osmium.mMetaItemSubID),
         Pair.of(GregTechAPI.sBlockFrames, Materials.NaquadahAlloy.mMetaItemSubID));
 
     @Nullable
