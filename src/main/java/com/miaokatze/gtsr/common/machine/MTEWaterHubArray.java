@@ -103,9 +103,9 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
                                 MTEWaterHubArray::onCasingAdded,
                                 ofBlocksTiered(
                                     MTEWaterHubArray::getCasingTier,
-                                    ImmutableList
-                                        .of(Pair.of(GregTechAPI.sBlockCasings1, 10),
-                                            Pair.of(GregTechAPI.sBlockCasings2, 0)),
+                                    ImmutableList.of(
+                                        Pair.of(GregTechAPI.sBlockCasings1, 10),
+                                        Pair.of(GregTechAPI.sBlockCasings2, 0)),
                                     -1,
                                     (MTEWaterHubArray t, Integer tier) -> t.mSetTier = Math.max(t.mSetTier, tier),
                                     (MTEWaterHubArray t) -> t.mSetTier)))))

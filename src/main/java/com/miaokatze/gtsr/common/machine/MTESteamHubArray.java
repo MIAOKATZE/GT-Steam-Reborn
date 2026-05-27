@@ -107,9 +107,9 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
                                 MTESteamHubArray::onCasingAdded,
                                 ofBlocksTiered(
                                     MTESteamHubArray::getCasingTier,
-                                    ImmutableList
-                                        .of(Pair.of(GregTechAPI.sBlockCasings1, 10),
-                                            Pair.of(GregTechAPI.sBlockCasings2, 0)),
+                                    ImmutableList.of(
+                                        Pair.of(GregTechAPI.sBlockCasings1, 10),
+                                        Pair.of(GregTechAPI.sBlockCasings2, 0)),
                                     -1,
                                     (MTESteamHubArray t, Integer tier) -> t.mSetTier = Math.max(t.mSetTier, tier),
                                     (MTESteamHubArray t) -> t.mSetTier)))))

@@ -114,17 +114,18 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
             .widget(new FakeSyncWidget.IntegerSyncer(() -> mSteamConsumption, val -> mSteamConsumption = val));
 
         screenElements.widget(
-            TextWidget
-                .dynamicString(
-                    () -> EnumChatFormatting.GOLD + "EU/t: "
-                        + EnumChatFormatting.AQUA
-                        + GTUtility.formatNumbers(getVoltage() * 4 * (getStackLayers() + 1) * 2)
-                        + EnumChatFormatting.GRAY
-                        + " (HP: "
-                        + EnumChatFormatting.RED
-                        + GTUtility.formatNumbers(getVoltage() * 8 * (getStackLayers() + 1) * 2)
-                        + EnumChatFormatting.GRAY
-                        + ")")
+            TextWidget.dynamicString(
+                () -> EnumChatFormatting.GOLD + "EU/t: "
+                    + EnumChatFormatting.AQUA
+                    + GTUtility.formatNumbers(
+                        (long) (getVoltage() * 4 * (getStackLayers() + 1) * (getMaxEfficiencyLimit(false) / 10000.0)))
+                    + EnumChatFormatting.GRAY
+                    + " (HP: "
+                    + EnumChatFormatting.RED
+                    + GTUtility.formatNumbers(
+                        (long) (getVoltage() * 8 * (getStackLayers() + 1) * (getMaxEfficiencyLimit(true) / 10000.0)))
+                    + EnumChatFormatting.GRAY
+                    + ")")
                 .setTextAlignment(Alignment.CenterLeft)
                 .setDefaultColor(COLOR_TEXT_WHITE.get())
                 .setEnabled(w -> mMachine));
@@ -150,7 +151,7 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
                 .dynamicString(
                     () -> EnumChatFormatting.GOLD + "Savings: "
                         + EnumChatFormatting.GREEN
-                        + String.format("%.0f%%", 0.05 * getStackLayers() * 100))
+                        + String.format("%.0f%%", (0.05 * getStackLayers() + (mGearTier > 1 ? 0.05 : 0)) * 100))
                 .setTextAlignment(Alignment.CenterLeft)
                 .setDefaultColor(COLOR_TEXT_WHITE.get())
                 .setEnabled(w -> mMachine));
@@ -159,10 +160,10 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
             TextWidget
                 .dynamicString(
                     () -> EnumChatFormatting.GOLD + "Eff: "
-                        + (mEfficiency >= MAX_EFFICIENCY_HP_STEAM ? EnumChatFormatting.LIGHT_PURPLE
+                        + (mEfficiency >= getMaxEfficiencyLimit(true) ? EnumChatFormatting.LIGHT_PURPLE
                             : mEfficiency >= 10000 ? EnumChatFormatting.GREEN : EnumChatFormatting.YELLOW)
                         + String.format("%.1f%%", mEfficiency / 100.0)
-                        + (mEfficiency >= MAX_EFFICIENCY_HP_STEAM ? " MAX" : ""))
+                        + (mEfficiency >= getMaxEfficiencyLimit(true) ? " MAX" : ""))
                 .setTextAlignment(Alignment.CenterLeft)
                 .setDefaultColor(COLOR_TEXT_WHITE.get())
                 .setEnabled(w -> mMachine));
@@ -334,20 +335,20 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
 
     private static final List<Pair<Block, Integer>> PIPE_CASINGS = ImmutableList.of(
         Pair.of(GregTechAPI.sBlockCasings2, 13),
-        Pair.of(GregTechAPI.sBlockCasings4, 11),
-        Pair.of(GregTechAPI.sBlockCasings8, 1));
+        Pair.of(GregTechAPI.sBlockCasings2, 14),
+        Pair.of(GregTechAPI.sBlockCasings2, 15));
 
     private static final List<Pair<Block, Integer>> GEAR_CASINGS = ImmutableList
-        .of(Pair.of(GregTechAPI.sBlockCasings2, 3), Pair.of(GregTechAPI.sBlockCasings4, 9));
+        .of(Pair.of(GregTechAPI.sBlockCasings2, 3), Pair.of(GregTechAPI.sBlockCasings2, 4));
 
     private static final List<Pair<Block, Integer>> FRAME_CASINGS = ImmutableList.of(
         Pair.of(GregTechAPI.sBlockFrames, Materials.Steel.mMetaItemSubID),
+        Pair.of(GregTechAPI.sBlockFrames, Materials.Aluminium.mMetaItemSubID),
+        Pair.of(GregTechAPI.sBlockFrames, Materials.StainlessSteel.mMetaItemSubID),
         Pair.of(GregTechAPI.sBlockFrames, Materials.Titanium.mMetaItemSubID),
         Pair.of(GregTechAPI.sBlockFrames, Materials.TungstenSteel.mMetaItemSubID),
-        Pair.of(GregTechAPI.sBlockFrames, Materials.Chrome.mMetaItemSubID),
-        Pair.of(GregTechAPI.sBlockFrames, Materials.Iridium.mMetaItemSubID),
-        Pair.of(GregTechAPI.sBlockFrames, Materials.Osmium.mMetaItemSubID),
-        Pair.of(GregTechAPI.sBlockFrames, Materials.NaquadahAlloy.mMetaItemSubID));
+        Pair.of(GregTechAPI.sBlockFrames, Materials.Palladium.mMetaItemSubID),
+        Pair.of(GregTechAPI.sBlockFrames, Materials.Iridium.mMetaItemSubID));
 
     @Nullable
     public static Integer getCasingTier(Block block, int meta) {
@@ -368,15 +369,15 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
     @Nullable
     public static Integer getPipeTier(Block block, int meta) {
         if (block == GregTechAPI.sBlockCasings2 && meta == 13) return 1;
-        if (block == GregTechAPI.sBlockCasings4 && meta == 11) return 2;
-        if (block == GregTechAPI.sBlockCasings8 && meta == 1) return 3;
+        if (block == GregTechAPI.sBlockCasings2 && meta == 14) return 2;
+        if (block == GregTechAPI.sBlockCasings2 && meta == 15) return 3;
         return null;
     }
 
     @Nullable
     public static Integer getGearTier(Block block, int meta) {
         if (block == GregTechAPI.sBlockCasings2 && meta == 3) return 1;
-        if (block == GregTechAPI.sBlockCasings4 && meta == 9) return 2;
+        if (block == GregTechAPI.sBlockCasings2 && meta == 4) return 2;
         return null;
     }
 
@@ -384,12 +385,12 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
     public static Integer getFrameTier(Block block, int meta) {
         if (block == GregTechAPI.sBlockFrames) {
             if (meta == Materials.Steel.mMetaItemSubID) return 1;
-            if (meta == Materials.Titanium.mMetaItemSubID) return 2;
-            if (meta == Materials.TungstenSteel.mMetaItemSubID) return 3;
-            if (meta == Materials.Chrome.mMetaItemSubID) return 4;
-            if (meta == Materials.Iridium.mMetaItemSubID) return 5;
-            if (meta == Materials.Osmium.mMetaItemSubID) return 6;
-            if (meta == Materials.NaquadahAlloy.mMetaItemSubID) return 7;
+            if (meta == Materials.Aluminium.mMetaItemSubID) return 2;
+            if (meta == Materials.StainlessSteel.mMetaItemSubID) return 3;
+            if (meta == Materials.Titanium.mMetaItemSubID) return 4;
+            if (meta == Materials.TungstenSteel.mMetaItemSubID) return 5;
+            if (meta == Materials.Palladium.mMetaItemSubID) return 6;
+            if (meta == Materials.Iridium.mMetaItemSubID) return 7;
         }
         return null;
     }
@@ -448,6 +449,9 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         mCasingAmount = 0;
         mStackCount = 0;
         mCasingTier = -1;
+        mPipeTier = -1;
+        mGearTier = -1;
+        mFrameTier = -1;
         mPressureSteamInputs.clear();
         mSteamCoolingHatches.clear();
         mPressureCoolingHatches.clear();
@@ -456,14 +460,12 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         if (!checkPiece(STRUCTURE_PIECE_BASE_2, 7, 0, 0)) return false;
         if (!checkPiece(STRUCTURE_PIECE_BASE_3, 7, 1, 0)) return false;
 
-        mStackCount = 0;
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < 2; i++) {
             int baseY = 2 + i * 4;
             if (!checkPiece(STRUCTURE_PIECE_STACK, 7, baseY, 0)) break;
             mStackCount++;
         }
 
-        if (mStackCount < 0) return false;
         if (mCasingTier <= 0 || mCasingTier > 7) return false;
 
         int capY = 2 + mStackCount * 4;
@@ -478,8 +480,30 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         return true;
     }
 
+    /**
+     * 叠加层数 (用于发电公式中的 n).
+     * 每个 STACK piece = 4 层 = 1 个叠加组.
+     * n = getStackLayers() + 1 = mStackCount * 4 + 1
+     *
+     * 例: 0个STACK → n=1, 1个STACK(4层) → n=5
+     *
+     * @see checkProcessing() 公式: EU/t = voltage × multiplier × n × efficiency
+     */
     private int getStackLayers() {
-        return Math.max(0, mStackCount) * 4;
+        return mStackCount * 4;
+    }
+
+    /**
+     * 最大效率上限 (含管道升级奖励).
+     * mPipeTier: 1=钢(无奖励), 2=钛(+10%), 3=钨钢(+20%)
+     */
+    private int getMaxEfficiencyLimit(boolean isHP) {
+        int base = isHP ? MAX_EFFICIENCY_HP_STEAM : MAX_EFFICIENCY_STEAM;
+        if (mPipeTier > 1) {
+            float pipeBonus = 0.1f * (mPipeTier - 1);
+            return (int) (base * (1f + pipeBonus));
+        }
+        return base;
     }
 
     private long getVoltage() {
@@ -496,7 +520,7 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         int stackLayers = getStackLayers();
         long voltage = getVoltage();
         int n = stackLayers + 1;
-        float savings = 0.05f * stackLayers;
+        float savings = 0.05f * stackLayers + (mGearTier > 1 ? 0.05f : 0f);
         if (isHP) {
             long baseEU = voltage * 8 * n;
             return (long) (baseEU * Math.max(0, 1 - savings));
@@ -521,7 +545,7 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         long voltage = getVoltage();
         int n = stackLayers + 1;
         float efficiency = getCustomEfficiency();
-        float savings = 0.05f * stackLayers;
+        float savings = 0.05f * stackLayers + (mGearTier > 1 ? 0.05f : 0f);
 
         boolean hasSuperheated = false;
         boolean hasNormalSteam = false;
@@ -594,7 +618,7 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         }
 
         mMaxProgresstime = 1;
-        int maxEff = hasSuperheated ? MAX_EFFICIENCY_HP_STEAM : MAX_EFFICIENCY_STEAM;
+        int maxEff = getMaxEfficiencyLimit(hasSuperheated);
         if (mEfficiency < 10000) {
             mEfficiencyIncrease = 10;
         } else if (mEfficiency < maxEff) {
@@ -726,10 +750,10 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         long voltage = getVoltage();
         int n = stackLayers + 1;
         float eff = getCustomEfficiency();
-        float savings = 0.05f * stackLayers;
+        float savings = 0.05f * stackLayers + (mGearTier > 1 ? 0.05f : 0f);
 
-        long maxEUt = voltage * 4 * n * 2;
-        long maxHPEUt = voltage * 8 * n * 2;
+        long maxEUt = (long) (voltage * 4 * n * (getMaxEfficiencyLimit(false) / 10000.0));
+        long maxHPEUt = (long) (voltage * 8 * n * (getMaxEfficiencyLimit(true) / 10000.0));
         long steamCons = calcSteamConsumption(false);
         long hpSteamCons = calcSteamConsumption(true);
 
@@ -829,7 +853,7 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         int stackGroups = (tTotalHeight - 2) / 4;
         for (int i = 0; i < stackGroups; i++) {
             int baseY = 2 + i * 4;
-            buildPiece(STRUCTURE_PIECE_STACK_HINT, stackSize, hintsOnly, 7, baseY, 0);
+            buildPiece(STRUCTURE_PIECE_STACK, stackSize, hintsOnly, 7, baseY, 0);
         }
         int capY = 2 + stackGroups * 4;
         buildPiece(STRUCTURE_PIECE_CAP_1, stackSize, hintsOnly, 7, capY, 0);
@@ -849,16 +873,7 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         int stackGroups = (tTotalHeight - 2) / 4;
         for (int i = 0; i < stackGroups; i++) {
             int baseY = 2 + i * 4;
-            built = survivalBuildPiece(
-                STRUCTURE_PIECE_STACK_HINT,
-                stackSize,
-                7,
-                baseY,
-                0,
-                elementBudget,
-                env,
-                false,
-                true);
+            built = survivalBuildPiece(STRUCTURE_PIECE_STACK, stackSize, 7, baseY, 0, elementBudget, env, false, true);
             if (built >= 0) return built;
         }
         int capY = 2 + stackGroups * 4;
@@ -913,6 +928,9 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.mega_steam_turbine.info2"))
             .addSeparator()
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.mega_steam_turbine.info3"))
+            .addInfo(EnumChatFormatting.AQUA + "Titanium Pipe: Max Efficiency +10%")
+            .addInfo(EnumChatFormatting.AQUA + "Tungstensteel Pipe: Max Efficiency +20%")
+            .addInfo(EnumChatFormatting.AQUA + "Titanium Gearbox: Steam Savings +5%")
             .beginStructureBlock(13, 9, 13, true)
             .addController(StatCollector.translateToLocal("gtsr.tooltip.mega_steam_turbine.controller"))
             .addInputHatch(StatCollector.translateToLocal("gtsr.tooltip.mega_steam_turbine.input"), 1)
