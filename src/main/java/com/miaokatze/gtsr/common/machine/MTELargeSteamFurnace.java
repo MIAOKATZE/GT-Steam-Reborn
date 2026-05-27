@@ -1,5 +1,6 @@
 package com.miaokatze.gtsr.common.machine;
 
+import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlock;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlocksTiered;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
@@ -27,6 +28,7 @@ import com.gtnewhorizon.structurelib.structure.StructureDefinition;
 import com.miaokatze.gtsr.common.api.enums.MetaTileEntityID;
 
 import gregtech.api.GregTechAPI;
+import gregtech.api.enums.Materials;
 import gregtech.api.enums.Textures;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
@@ -48,8 +50,8 @@ import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTESteam
 public class MTELargeSteamFurnace extends MTESteamMultiBase<MTELargeSteamFurnace> implements ISurvivalConstructable {
 
     private static final String STRUCTURE_PIECE_MAIN = "main";
-    private static final int HORIZONTAL_OFF_SET = 1;
-    private static final int VERTICAL_OFF_SET = 3;
+    private static final int HORIZONTAL_OFF_SET = 2;
+    private static final int VERTICAL_OFF_SET = 4;
     private static final int DEPTH_OFF_SET = 0;
 
     private static IStructureDefinition<MTELargeSteamFurnace> STRUCTURE_DEFINITION = null;
@@ -91,6 +93,13 @@ public class MTELargeSteamFurnace extends MTESteamMultiBase<MTELargeSteamFurnace
         return null;
     }
 
+    @Nullable
+    public static Integer getFrameTier(Block block, int meta) {
+        if (block == GregTechAPI.sBlockFrames && meta == Materials.Bronze.mMetaItemSubID) return 1;
+        if (block == GregTechAPI.sBlockFrames && meta == Materials.Steel.mMetaItemSubID) return 2;
+        return null;
+    }
+
     protected int getCasingTextureID() {
         if (mSetTier == 2) {
             return ((BlockCasings2) GregTechAPI.sBlockCasings2).getTextureIndex(0);
@@ -124,10 +133,13 @@ public class MTELargeSteamFurnace extends MTESteamMultiBase<MTELargeSteamFurnace
                 .addShape(
                     STRUCTURE_PIECE_MAIN,
                     transpose(
-                        new String[][] { { "CCC", "CCC", "CCC" }, { "DDD", "D D", "DDD" }, { "DDD", "D D", "DDD" },
-                            { "C~C", "CCC", "CCC" } }))
+                        new String[][] { { "DBBBD", "BBBBB", "BBBBB", "BBBBB", "DBBBD" },
+                            { "D   D", " CCC ", " CCC ", " CCC ", "D   D" },
+                            { "D   D", " CCC ", " CCC ", " CCC ", "D   D" },
+                            { "D   D", " CCC ", " CCC ", " CCC ", "D   D" },
+                            { "DB~BD", "BBBBB", "BBBBB", "BBBBB", "DBBBD" } }))
                 .addElement(
-                    'C',
+                    'B',
                     ofChain(
                         buildHatchAdder(MTELargeSteamFurnace.class).adder(MTESteamMultiBase::addToMachineList)
                             .hatchIds(31040, MetaTileEntityID.PRESSURE_STEAM_HATCH.ID)
@@ -151,14 +163,20 @@ public class MTELargeSteamFurnace extends MTESteamMultiBase<MTELargeSteamFurnace
                                         (MTELargeSteamFurnace t, Integer tier) -> t.mSetTier = tier,
                                         (MTELargeSteamFurnace t) -> t.mSetTier)))))
                 .addElement(
+                    'C',
+                    onElementPass(MTELargeSteamFurnace::onCasingAdded, ofBlock(GregTechAPI.sBlockCasings3, 13)))
+                .addElement(
                     'D',
-                    ofBlocksTiered(
-                        MTELargeSteamFurnace::getFireboxTier,
-                        ImmutableList
-                            .of(Pair.of(GregTechAPI.sBlockCasings3, 13), Pair.of(GregTechAPI.sBlockCasings3, 14)),
-                        -1,
-                        (MTELargeSteamFurnace t, Integer tier) -> t.mSetTier = tier,
-                        (MTELargeSteamFurnace t) -> t.mSetTier))
+                    onElementPass(
+                        MTELargeSteamFurnace::onCasingAdded,
+                        ofBlocksTiered(
+                            MTELargeSteamFurnace::getFrameTier,
+                            ImmutableList.of(
+                                Pair.of(GregTechAPI.sBlockFrames, Materials.Bronze.mMetaItemSubID),
+                                Pair.of(GregTechAPI.sBlockFrames, Materials.Steel.mMetaItemSubID)),
+                            -1,
+                            (MTELargeSteamFurnace t, Integer tier) -> { if (tier > t.mSetTier) t.mSetTier = tier; },
+                            (MTELargeSteamFurnace t) -> t.mSetTier)))
                 .build();
         }
         return STRUCTURE_DEFINITION;
@@ -276,7 +294,7 @@ public class MTELargeSteamFurnace extends MTESteamMultiBase<MTELargeSteamFurnace
             .addSteamBulkMachineInfo(8, 1.25f, 0.625f)
             .addInfo(HIGH_PRESSURE_TOOLTIP_NOTICE)
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.large_steam_furnace.0"))
-            .beginStructureBlock(3, 3, 4, false)
+            .beginStructureBlock(5, 5, 5, false)
             .addController(StatCollector.translateToLocal("gtsr.tooltip.large_steam_furnace.ctrl"))
             .addSteamInputBus(EnumChatFormatting.GOLD + "1" + EnumChatFormatting.GRAY + " Any casing", 1)
             .addSteamOutputBus(EnumChatFormatting.GOLD + "1" + EnumChatFormatting.GRAY + " Any casing", 1)

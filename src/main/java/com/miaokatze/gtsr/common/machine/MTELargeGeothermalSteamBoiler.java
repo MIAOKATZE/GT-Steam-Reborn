@@ -1,5 +1,6 @@
 package com.miaokatze.gtsr.common.machine;
 
+import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlock;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlocksTiered;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
@@ -68,9 +69,9 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
     implements IConstructable, ISurvivalConstructable {
 
     private static final String STRUCTURE_PIECE_MAIN = "main";
-    private static final int HORIZONTAL_OFF_SET = 1;
-    private static final int VERTICAL_OFF_SET = 1;
-    private static final int DEPTH_OFF_SET = 0;
+    private static final int HORIZONTAL_OFF_SET = 3;
+    private static final int VERTICAL_OFF_SET = 6;
+    private static final int DEPTH_OFF_SET = 1;
 
     private static IStructureDefinition<MTELargeGeothermalSteamBoiler> STRUCTURE_DEFINITION = null;
     private static final NumberFormat numberFormat = NumberFormat.getNumberInstance();
@@ -163,6 +164,13 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
         return null;
     }
 
+    @Nullable
+    public static Integer getFrameTier(Block block, int meta) {
+        if (block == GregTechAPI.sBlockFrames && meta == Materials.Bronze.mMetaItemSubID) return 1;
+        if (block == GregTechAPI.sBlockFrames && meta == Materials.Steel.mMetaItemSubID) return 2;
+        return null;
+    }
+
     protected int getCasingTextureID() {
         if (mSetTier == 2) {
             return ((BlockCasings2) GregTechAPI.sBlockCasings2).getTextureIndex(0);
@@ -195,9 +203,17 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
                 .addShape(
                     STRUCTURE_PIECE_MAIN,
                     transpose(
-                        new String[][] { { "CCC", "CCC", "CCC" }, { "C~C", "C C", "CCC" }, { "CCC", "CCC", "CCC" } }))
+                        new String[][] {
+                            { "       ", " FBBBF ", " B   B ", " B   B ", " B   B ", " FBBBF ", "       " },
+                            { "       ", " FBBBF ", " BFFFB ", " BFFFB ", " BFFFB ", " FBBBF ", "       " },
+                            { "       ", " FBBBF ", " B   B ", " B   B ", " B   B ", " FBBBF ", "       " },
+                            { "       ", " FBBBF ", " B   B ", " B   B ", " B   B ", " FBBBF ", "       " },
+                            { "       ", " FCCCF ", " C   C ", " C   C ", " C   C ", " FCCCF ", "       " },
+                            { " F   F ", "FDBBBDF", " B   B ", " B   B ", " B   B ", "FDBBBDF", " F   F " },
+                            { " F   F ", "FDB~BDF", " B   B ", " B   B ", " B   B ", "FDBBBDF", " F   F " },
+                            { " F   F ", "FDEEEDF", " EEEEE ", " EEEEE ", " EEEEE ", "FDEEEDF", " F   F " } }))
                 .addElement(
-                    'C',
+                    'B',
                     ofChain(
                         buildHatchAdder(MTELargeGeothermalSteamBoiler.class).atLeast(InputHatch)
                             .casingIndex(bronzeCasingIndex)
@@ -227,6 +243,33 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
                                         -1,
                                         (MTELargeGeothermalSteamBoiler t, Integer tier) -> t.mSetTier = tier,
                                         (MTELargeGeothermalSteamBoiler t) -> t.mSetTier)))))
+                .addElement(
+                    'C',
+                    onElementPass(
+                        MTELargeGeothermalSteamBoiler::onCasingAdded,
+                        ofBlock(GregTechAPI.sBlockCasings2, 12)))
+                .addElement(
+                    'D',
+                    onElementPass(MTELargeGeothermalSteamBoiler::onCasingAdded, ofBlock(GregTechAPI.sBlockCasings2, 2)))
+                .addElement(
+                    'E',
+                    onElementPass(
+                        MTELargeGeothermalSteamBoiler::onCasingAdded,
+                        ofBlock(GregTechAPI.sBlockCasings3, 13)))
+                .addElement(
+                    'F',
+                    onElementPass(
+                        MTELargeGeothermalSteamBoiler::onCasingAdded,
+                        ofBlocksTiered(
+                            MTELargeGeothermalSteamBoiler::getFrameTier,
+                            ImmutableList.of(
+                                Pair.of(GregTechAPI.sBlockFrames, Materials.Bronze.mMetaItemSubID),
+                                Pair.of(GregTechAPI.sBlockFrames, Materials.Steel.mMetaItemSubID)),
+                            -1,
+                            (MTELargeGeothermalSteamBoiler t, Integer tier) -> {
+                                if (tier > t.mSetTier) t.mSetTier = tier;
+                            },
+                            (MTELargeGeothermalSteamBoiler t) -> t.mSetTier)))
                 .build();
         }
         return STRUCTURE_DEFINITION;
@@ -472,7 +515,7 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.0"))
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.1"))
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.2"))
-            .beginStructureBlock(3, 3, 3, false)
+            .beginStructureBlock(7, 8, 7, false)
             .addController(StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.ctrl"))
             .addInputHatch(StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.input_hatch"), 1)
             .addStructureInfo(

@@ -210,7 +210,7 @@ public class MTELargeCokeOven extends MTEEnhancedMultiBlockBase<MTELargeCokeOven
                             (MTELargeCokeOven t) -> t.mTier)))
                 .addElement(
                     'F',
-                    onElementPass(MTELargeCokeOven::onCasingAdded, ofBlock(GregTechAPI.sBlockCasings1, 11)))
+                    onElementPass(MTELargeCokeOven::onCasingAdded, ofBlock(GregTechAPI.sBlockCasings12, 0)))
                 .addElement(
                     'G',
                     onElementPass(

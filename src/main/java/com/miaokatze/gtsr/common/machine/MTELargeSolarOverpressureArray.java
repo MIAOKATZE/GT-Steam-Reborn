@@ -1,6 +1,8 @@
 package com.miaokatze.gtsr.common.machine;
 
+import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlock;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlocksTiered;
+import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose;
 import static gregtech.api.enums.HatchElement.InputHatch;
@@ -71,7 +73,7 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
     implements IConstructable, ISurvivalConstructable {
 
     private static final String STRUCTURE_PIECE_MAIN = "main";
-    private static final int HORIZONTAL_OFF_SET = 5;
+    private static final int HORIZONTAL_OFF_SET = 6;
     private static final int VERTICAL_OFF_SET = 0;
     private static final int DEPTH_OFF_SET = 0;
 
@@ -209,32 +211,50 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
                     STRUCTURE_PIECE_MAIN,
                     transpose(
                         new String[][] {
-                            { "CCCCC~CCCCC", "CGGGGGGGGGC", "CGGGGGGGGGC", "CGGGGGGGGGC", "CGGGGGGGGGC", "CGGGGGGGGGC",
-                                "CGGGGGGGGGC", "CGGGGGGGGGC", "CGGGGGGGGGC", "CGGGGGGGGGC", "CCCCCCCCCCC" },
-                            { "CCCCCCCCCCC", "C         C", "C         C", "C         C", "C         C", "C         C",
-                                "C         C", "C         C", "C         C", "C         C", "CCCCCCCCCCC" },
-                            { "CCCCCCCCCCC", "CDDDDDDDDDC", "CDDDDDDDDDC", "CDDDDDDDDDC", "CDDDDDDDDDC", "CDDDDDDDDDC",
-                                "CDDDDDDDDDC", "CDDDDDDDDDC", "CDDDDDDDDDC", "CDDDDDDDDDC", "CCCCCCCCCCC" },
-                            { "CCCCCCCCCCC", "CCCCCCCCCCC", "CCCCCCCCCCC", "CCCCCCCCCCC", "CCCCCCCCCCC", "CCCCCCCCCCC",
-                                "CCCCCCCCCCC", "CCCCCCCCCCC", "CCCCCCCCCCC", "CCCCCCCCCCC", "CCCCCCCCCCC" } }))
+                            { " GBBBB~BBBBG ", "GBFFFFFFFFFBG", "BFFFFFFFFFFFB", "BFFFFFFFFFFFB", "BFFFFFFFFFFFB",
+                                "BFFFFFFFFFFFB", "BFFFFFFFFFFFB", "BFFFFFFFFFFFB", "BFFFFFFFFFFFB", "BFFFFFFFFFFFB",
+                                "BFFFFFFFFFFFB", "GBFFFFFFFFFBG", " GBBBBBBBBB  " },
+                            { " GCCCCCCCCCG ", "GD         DG", "C           C", "C           C", "C           C",
+                                "C           C", "C           C", "C           C", "C           C", "C           C",
+                                "C           C", "GD         DG", " GCCCCCCCCCG " },
+                            { " GBBBBBBBBBG ", "GDEEEEEEEEEDG", "BEEEEEEEEEEEB", "BEEEEEEEEEEEB", "BEEEEEEEEEEEB",
+                                "BEEEEEEEEEEEB", "BEEEEEEEEEEEB", "BEEEEEEEEEEEB", "BEEEEEEEEEEEB", "BEEEEEEEEEEEB",
+                                "BEEEEEEEEEEEB", "GDEEEEEEEEEDG", " GBBBBBBBBBG " },
+                            { " GBBBBBBBBBG ", "GDBBBBCBBBBDG", "BBCBBBCBBBCBB", "BBBCBBCBBCBBB", "BBBBCBCBCBBBB",
+                                "BBBBBCCCBBBBB", "BCCCCCCCCCCCB", "BBBBBCCCBBBBB", "BBBBCBCBCBBBB", "BBBCBBCBBCBBB",
+                                "BBCBBBCBBBCBB", "GDBBBBCBBBBDG", " GBBBBBBBBBG " } }))
                 .addElement(
-                    'C',
-                    buildHatchAdder(MTELargeSolarOverpressureArray.class).atLeast(OutputHatch, InputHatch)
-                        .casingIndex(bronzeCasingIndex)
-                        .dot(1)
-                        .buildAndChain(
-                            onElementPass(
-                                t -> {},
-                                ofBlocksTiered(
-                                    MTELargeSolarOverpressureArray::getCasingTier,
-                                    ImmutableList.of(
-                                        Pair.of(GregTechAPI.sBlockCasings1, 10),
-                                        Pair.of(GregTechAPI.sBlockCasings2, 0)),
-                                    -1,
-                                    (MTELargeSolarOverpressureArray t, Integer tier) -> t.tierCasing = tier,
-                                    (MTELargeSolarOverpressureArray t) -> t.tierCasing))))
+                    'B',
+                    ofChain(
+                        buildHatchAdder(MTELargeSolarOverpressureArray.class).atLeast(OutputHatch, InputHatch)
+                            .casingIndex(bronzeCasingIndex)
+                            .dot(1)
+                            .buildAndChain(
+                                onElementPass(
+                                    t -> {},
+                                    ofBlocksTiered(
+                                        MTELargeSolarOverpressureArray::getCasingTier,
+                                        ImmutableList.of(
+                                            Pair.of(GregTechAPI.sBlockCasings1, 10),
+                                            Pair.of(GregTechAPI.sBlockCasings2, 0)),
+                                        -1,
+                                        (MTELargeSolarOverpressureArray t, Integer tier) -> t.tierCasing = tier,
+                                        (MTELargeSolarOverpressureArray t) -> t.tierCasing)))))
+                .addElement('C', onElementPass(t -> {}, ofBlock(GregTechAPI.sBlockCasings2, 12)))
+                .addElement('D', onElementPass(t -> {}, ofBlock(GregTechAPI.sBlockCasings2, 2)))
                 .addElement(
-                    'G',
+                    'E',
+                    ofBlocksTiered(
+                        MTELargeSolarOverpressureArray::getConductorTier,
+                        ImmutableList.of(
+                            Pair.of(GregTechAPI.sBlockMetal6, 10),
+                            Pair.of(Blocks.gold_block, 0),
+                            Pair.of(GregTechAPI.sBlockMetal5, 4)),
+                        -1,
+                        (MTELargeSolarOverpressureArray t, Integer tier) -> t.tierConductor = tier,
+                        (MTELargeSolarOverpressureArray t) -> t.tierConductor))
+                .addElement(
+                    'F',
                     ofBlocksTiered(
                         MTELargeSolarOverpressureArray::getGlassTier,
                         ImmutableList.of(
@@ -247,16 +267,8 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
                         (MTELargeSolarOverpressureArray t, Integer tier) -> t.tierGlass = tier,
                         (MTELargeSolarOverpressureArray t) -> t.tierGlass))
                 .addElement(
-                    'D',
-                    ofBlocksTiered(
-                        MTELargeSolarOverpressureArray::getConductorTier,
-                        ImmutableList.of(
-                            Pair.of(GregTechAPI.sBlockMetal6, 10),
-                            Pair.of(Blocks.gold_block, 0),
-                            Pair.of(GregTechAPI.sBlockMetal5, 4)),
-                        -1,
-                        (MTELargeSolarOverpressureArray t, Integer tier) -> t.tierConductor = tier,
-                        (MTELargeSolarOverpressureArray t) -> t.tierConductor))
+                    'G',
+                    onElementPass(t -> {}, ofBlock(GregTechAPI.sBlockFrames, Materials.Bronze.mMetaItemSubID)))
                 .build();
         }
         return STRUCTURE_DEFINITION;
@@ -439,7 +451,7 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.solar_array.1") + getBaseSteamProduction() + " L/s")
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.solar_array.2"))
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.solar_array.3"))
-            .beginStructureBlock(11, 4, 3, false)
+            .beginStructureBlock(13, 4, 13, false)
             .addController(StatCollector.translateToLocal("gtsr.tooltip.solar_array.ctrl"))
             .addCasingInfoRange(StatCollector.translateToLocal("gtsr.tooltip.solar_array.casing"), 60, -1, false)
             .addOtherStructurePart(

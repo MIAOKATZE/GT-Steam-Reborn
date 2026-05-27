@@ -74,7 +74,7 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
     private static final String STRUCTURE_PIECE_MAIN = "main";
     private static final int HORIZONTAL_OFF_SET = 3;
     private static final int VERTICAL_OFF_SET = 2;
-    private static final int DEPTH_OFF_SET = 0;
+    private static final int DEPTH_OFF_SET = 2;
     private static final int SOLID_STEEL_CASING_INDEX = GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings2, 0);
     private static IStructureDefinition<MTEKineticProcessingArray> STRUCTURE_DEFINITION;
 
