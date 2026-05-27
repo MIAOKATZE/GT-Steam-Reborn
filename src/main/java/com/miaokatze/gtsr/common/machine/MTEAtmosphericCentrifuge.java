@@ -1,5 +1,6 @@
 package com.miaokatze.gtsr.common.machine;
 
+import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlock;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlocksTiered;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
@@ -54,8 +55,8 @@ public class MTEAtmosphericCentrifuge extends MTESteamMultiBase<MTEAtmosphericCe
     implements ISurvivalConstructable {
 
     private static final String STRUCTURE_PIECE_MAIN = "main";
-    private static final int HORIZONTAL_OFF_SET = 1;
-    private static final int VERTICAL_OFF_SET = 1;
+    private static final int HORIZONTAL_OFF_SET = 3;
+    private static final int VERTICAL_OFF_SET = 2;
     private static final int DEPTH_OFF_SET = 0;
 
     private static IStructureDefinition<MTEAtmosphericCentrifuge> STRUCTURE_DEFINITION = null;
@@ -85,6 +86,20 @@ public class MTEAtmosphericCentrifuge extends MTESteamMultiBase<MTEAtmosphericCe
     public static Integer getCasingTier(Block block, int meta) {
         if (block == GregTechAPI.sBlockCasings1 && meta == 10) return 1;
         if (block == GregTechAPI.sBlockCasings2 && meta == 0) return 2;
+        return null;
+    }
+
+    @Nullable
+    public static Integer getGearTier(Block block, int meta) {
+        if (block == GregTechAPI.sBlockCasings2 && meta == 2) return 1;
+        if (block == GregTechAPI.sBlockCasings2 && meta == 3) return 2;
+        return null;
+    }
+
+    @Nullable
+    public static Integer getFrameTier(Block block, int meta) {
+        if (block == GregTechAPI.sBlockFrames && meta == gregtech.api.enums.Materials.Bronze.mMetaItemSubID) return 1;
+        if (block == GregTechAPI.sBlockFrames && meta == gregtech.api.enums.Materials.Steel.mMetaItemSubID) return 2;
         return null;
     }
 
@@ -121,9 +136,13 @@ public class MTEAtmosphericCentrifuge extends MTESteamMultiBase<MTEAtmosphericCe
                 .addShape(
                     STRUCTURE_PIECE_MAIN,
                     transpose(
-                        new String[][] { { "CCC", "CCC", "CCC" }, { "C~C", "C C", "CCC" }, { "CCC", "CCC", "CCC" } }))
+                        new String[][] {
+                            { " EBBBE ", "EBBBBBE", "BBBBBBB", "BBBBBBB", "BBBBBBB", "EBBBBBE", " EBBBE " },
+                            { " EDDDE ", "ED   DE", "D     D", "D  C  D", "D     D", "ED   DE", " EDDDE " },
+                            { " EB~BE ", "EB C BE", "B  C  B", "BCCCCCB", "B  C  B", "EB C BE", " EBBBE " },
+                            { " EBBBE ", "EBBBBBE", "BBBBBBB", "BBBBBBB", "BBBBBBB", "EBBBBBE", " EBBBE " } }))
                 .addElement(
-                    'C',
+                    'B',
                     ofChain(
                         buildHatchAdder(MTEAtmosphericCentrifuge.class).adder(MTESteamMultiBase::addToMachineList)
                             .hatchIds(31040, MetaTileEntityID.PRESSURE_STEAM_HATCH.ID)
@@ -145,6 +164,34 @@ public class MTEAtmosphericCentrifuge extends MTESteamMultiBase<MTEAtmosphericCe
                                         -1,
                                         (MTEAtmosphericCentrifuge t, Integer tier) -> t.mSetTier = tier,
                                         (MTEAtmosphericCentrifuge t) -> t.mSetTier)))))
+                .addElement(
+                    'C',
+                    onElementPass(
+                        MTEAtmosphericCentrifuge::onCasingAdded,
+                        ofBlocksTiered(
+                            MTEAtmosphericCentrifuge::getGearTier,
+                            ImmutableList
+                                .of(Pair.of(GregTechAPI.sBlockCasings2, 2), Pair.of(GregTechAPI.sBlockCasings2, 3)),
+                            -1,
+                            (MTEAtmosphericCentrifuge t, Integer tier) -> { if (tier > t.mSetTier) t.mSetTier = tier; },
+                            (MTEAtmosphericCentrifuge t) -> t.mSetTier)))
+                .addElement(
+                    'D',
+                    onElementPass(
+                        MTEAtmosphericCentrifuge::onCasingAdded,
+                        ofBlock(cpw.mods.fml.common.registry.GameRegistry.findBlock("IC2", "blockAlloyGlass"), 0)))
+                .addElement(
+                    'E',
+                    onElementPass(
+                        MTEAtmosphericCentrifuge::onCasingAdded,
+                        ofBlocksTiered(
+                            MTEAtmosphericCentrifuge::getFrameTier,
+                            ImmutableList.of(
+                                Pair.of(GregTechAPI.sBlockFrames, gregtech.api.enums.Materials.Bronze.mMetaItemSubID),
+                                Pair.of(GregTechAPI.sBlockFrames, gregtech.api.enums.Materials.Steel.mMetaItemSubID)),
+                            -1,
+                            (MTEAtmosphericCentrifuge t, Integer tier) -> { if (tier > t.mSetTier) t.mSetTier = tier; },
+                            (MTEAtmosphericCentrifuge t) -> t.mSetTier)))
                 .build();
         }
         return STRUCTURE_DEFINITION;
@@ -274,7 +321,7 @@ public class MTEAtmosphericCentrifuge extends MTESteamMultiBase<MTEAtmosphericCe
         tt.addMachineType(getMachineType())
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.atmospheric_centrifuge.0"))
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.atmospheric_centrifuge.1"))
-            .beginStructureBlock(3, 3, 3, false)
+            .beginStructureBlock(7, 4, 7, false)
             .addController(StatCollector.translateToLocal("gtsr.tooltip.atmospheric_centrifuge.ctrl"))
             .addInputHatch(StatCollector.translateToLocal("gtsr.tooltip.atmospheric_centrifuge.input_hatch"), 1)
             .addOutputHatch(StatCollector.translateToLocal("gtsr.tooltip.atmospheric_centrifuge.output_hatch"), 1)

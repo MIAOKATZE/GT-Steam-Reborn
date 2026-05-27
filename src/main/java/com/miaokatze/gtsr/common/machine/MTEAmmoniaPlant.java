@@ -72,6 +72,9 @@ public class MTEAmmoniaPlant extends MTEEnhancedMultiBlockBase<MTEAmmoniaPlant> 
         { 256, 8 }, { 256, 4 }, { 256, 1 } };
 
     private static final String STRUCTURE_PIECE_MAIN = "main";
+    private static final int HORIZONTAL_OFF_SET = 9;
+    private static final int VERTICAL_OFF_SET = 11;
+    private static final int DEPTH_OFF_SET = 0;
     private static IStructureDefinition<MTEAmmoniaPlant> STRUCTURE_DEFINITION = null;
 
     private int mHeatLevel = 0;
@@ -106,15 +109,65 @@ public class MTEAmmoniaPlant extends MTEEnhancedMultiBlockBase<MTEAmmoniaPlant> 
                 .addShape(
                     STRUCTURE_PIECE_MAIN,
                     transpose(
-                        new String[][] { { "CCC", "CCC", "CCC" }, { "C~C", "C C", "CCC" }, { "CCC", "CCC", "CCC" } }))
+                        new String[][] {
+                            { "             ", "             ", "             ", "             ", "H  EEE       ",
+                                "H EEEEE      ", "HHEEEEE      ", "H EEEEE      ", "H  EEE       ", "             " },
+                            { "             ", "             ", "             ", "   EEE       ", "H E   E      ",
+                                " E F F E     ", "CC  G  E     ", " E F F E     ", "H E   E      ", "   EEE       " },
+                            { "             ", "             ", "             ", "   EEE       ", "H E   E      ",
+                                " E F F E     ", "CC  G  E     ", " E F F E     ", "H E   E      ", "   EEE       " },
+                            { "             ", "             ", "             ", "   EEE       ", "H E   E      ",
+                                " E F F E     ", "CE  G  E     ", " E F F E     ", "H E   E      ", "   EEE       " },
+                            { "             ", "             ", "             ", "   EEE       ", "H E   E      ",
+                                " E F F E     ", "CE  G  E     ", " E F F E     ", "H E   E      ", "   EEE       " },
+                            { "             ", "             ", "             ", "   EEE       ", "H E   E      ",
+                                " E F F E     ", "CE  G  E     ", " E F F E     ", "H E   E      ", "   EEE       " },
+                            { "             ", "             ", "             ", "   EEE       ", "H E   E      ",
+                                " E F F E     ", "CE  G  E     ", " E F F E     ", "H E   E      ", "   EEE       " },
+                            { "             ", "             ", "             ", "   EEE       ", "H E   E      ",
+                                " E F F E     ", "CE  G  E     ", " E F F E     ", "H E   E      ", "   EEE       " },
+                            { "             ", "        HBBBH", "        BBBBB", "   EEE  BBBBB", "H E   E BBBBB",
+                                " E F F EBBBBB", "CE  G  EBBBBB", " E F F EBBBBB", "H E   E BBBBB", "   EEE  HBBBH" },
+                            { "             ", "        H   H", "         BBB ", "   EEE   B B ", "H E   E  B B ",
+                                " E F F CCC B ", "CE  G  CCC B ", " E F F CCC B ", "H E   E  BBB ", "   EEE  H   H" },
+                            { "             ", "        H   H", "   EEE   BBB ", "   EEE   B B ", "H E   E  B B ",
+                                " E F F CCC B ", "CE  G  CCC B ", " E F F CCC B ", "H E   E  BBB ", "   EEE  H   H" },
+                            { "             ", "   EEE  H   H", "   EFE   B~B ", "  EEFEE  B B ", "H E   E  B B ",
+                                " E F F CCC B ", "CE  G  CCC B ", " E F F CCC B ", "H E   E  BBB ", "   EEE  H   H" },
+                            { "             ", "   EEE  H   H", "  EEFFFFFBBB ", "  EEFEE  B B ", "H E   E BB B ",
+                                " E F F CCC B ", "CE  G  CCC B ", " E F F CCC B ", "H E   E BBBB ", "   EEE  H   H" },
+                            { "   EEE       ", "  EEEEE HBBBH", " EEEEEEEBDDDB", " EEEEEEEBDDDB", "HEEEEEEBBDDDB",
+                                "EEEEEEEBBDDDB", "EEEEEEEBBDDDB", "EEEEEEEBBDDDB", "HEEEEEEBBDDDB",
+                                "  EEEEE HBBBH" } }))
                 .addElement(
-                    'C',
+                    'B',
                     ofChain(
                         buildHatchAdder(MTEAmmoniaPlant.class).atLeast(InputHatch, OutputBus, OutputHatch)
                             .casingIndex(CASING_TEXTURE_ID)
                             .dot(1)
                             .buildAndChain(
                                 onElementPass(MTEAmmoniaPlant::onCasingAdded, ofBlock(GregTechAPI.sBlockCasings2, 0)))))
+                .addElement('C', onElementPass(MTEAmmoniaPlant::onCasingAdded, ofBlock(GregTechAPI.sBlockCasings2, 13)))
+                .addElement('D', onElementPass(MTEAmmoniaPlant::onCasingAdded, ofBlock(GregTechAPI.sBlockCasings3, 14)))
+                .addElement(
+                    'E',
+                    ofChain(
+                        buildHatchAdder(MTEAmmoniaPlant.class).atLeast(InputHatch, OutputBus, OutputHatch)
+                            .casingIndex(CASING_TEXTURE_ID)
+                            .dot(2)
+                            .buildAndChain(
+                                onElementPass(MTEAmmoniaPlant::onCasingAdded, ofBlock(GregTechAPI.sBlockCasings4, 9)))))
+                .addElement('F', onElementPass(MTEAmmoniaPlant::onCasingAdded, ofBlock(GregTechAPI.sBlockCasings4, 11)))
+                .addElement(
+                    'G',
+                    onElementPass(
+                        MTEAmmoniaPlant::onCasingAdded,
+                        ofBlock(GregTechAPI.sBlockFrames, Materials.Steel.mMetaItemSubID)))
+                .addElement(
+                    'H',
+                    onElementPass(
+                        MTEAmmoniaPlant::onCasingAdded,
+                        ofBlock(GregTechAPI.sBlockFrames, Materials.Steel.mMetaItemSubID)))
                 .build();
         }
         return STRUCTURE_DEFINITION;
@@ -126,19 +179,28 @@ public class MTEAmmoniaPlant extends MTEEnhancedMultiBlockBase<MTEAmmoniaPlant> 
 
     @Override
     public void construct(ItemStack stackSize, boolean hintsOnly) {
-        buildPiece(STRUCTURE_PIECE_MAIN, stackSize, hintsOnly, 1, 1, 0);
+        buildPiece(STRUCTURE_PIECE_MAIN, stackSize, hintsOnly, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET);
     }
 
     @Override
     public int survivalConstruct(ItemStack stackSize, int elementBudget, ISurvivalBuildEnvironment env) {
         if (mMachine) return -1;
-        return survivialBuildPiece(STRUCTURE_PIECE_MAIN, stackSize, 1, 1, 0, elementBudget, env, false, true);
+        return survivalBuildPiece(
+            STRUCTURE_PIECE_MAIN,
+            stackSize,
+            HORIZONTAL_OFF_SET,
+            VERTICAL_OFF_SET,
+            DEPTH_OFF_SET,
+            elementBudget,
+            env,
+            false,
+            true);
     }
 
     @Override
     public boolean checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack) {
         mCasingCount = 0;
-        if (!checkPiece(STRUCTURE_PIECE_MAIN, 1, 1, 0)) return false;
+        if (!checkPiece(STRUCTURE_PIECE_MAIN, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET)) return false;
         if (mCasingCount < 10) return false;
         if (mInputHatches.isEmpty()) return false;
         if (mOutputHatches.isEmpty()) return false;
@@ -535,7 +597,7 @@ public class MTEAmmoniaPlant extends MTEEnhancedMultiBlockBase<MTEAmmoniaPlant> 
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.ammonia_plant.info"))
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.ammonia_plant.info2"))
             .addSeparator()
-            .beginStructureBlock(3, 3, 3, false)
+            .beginStructureBlock(10, 14, 13, false)
             .addController(StatCollector.translateToLocal("gtsr.tooltip.ammonia_plant.controller"))
             .addInputHatch(StatCollector.translateToLocal("gtsr.tooltip.ammonia_plant.input_hatch"), 1)
             .addOutputBus(StatCollector.translateToLocal("gtsr.tooltip.ammonia_plant.output_bus"), 1)

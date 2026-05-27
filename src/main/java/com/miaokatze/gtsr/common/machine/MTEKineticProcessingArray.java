@@ -72,6 +72,9 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
     implements IConstructable, ISurvivalConstructable {
 
     private static final String STRUCTURE_PIECE_MAIN = "main";
+    private static final int HORIZONTAL_OFF_SET = 3;
+    private static final int VERTICAL_OFF_SET = 2;
+    private static final int DEPTH_OFF_SET = 0;
     private static final int SOLID_STEEL_CASING_INDEX = GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings2, 0);
     private static IStructureDefinition<MTEKineticProcessingArray> STRUCTURE_DEFINITION;
 
@@ -117,9 +120,14 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
                 .addShape(
                     STRUCTURE_PIECE_MAIN,
                     transpose(
-                        new String[][] { { "CCC", "CCC", "CCC" }, { "C~C", "C C", "CCC" }, { "CCC", "CCC", "CCC" } }))
+                        new String[][] {
+                            { "  BBB  ", " BDDDB ", "BDCBCDB", "BDBBBDB", "BDCBCDB", " BDDDB ", "  BBB  " },
+                            { "       ", " EB BE ", " BCBCB ", "  BDB  ", " BCBCB ", " EB BE ", "       " },
+                            { "       ", " E   E ", "  C~C  ", "  BDB  ", "  CBC  ", " E   E ", "       " },
+                            { "       ", " EB BE ", " BBBBB ", "  BDB  ", " BBBBB ", " EB BE ", "       " },
+                            { "  BBB  ", " BBBBB ", "BBBBBBB", "BBBBBBB", "BBBBBBB", " BBBBB ", "  BBB  " } }))
                 .addElement(
-                    'C',
+                    'B',
                     ofChain(
                         buildHatchAdder(MTEKineticProcessingArray.class)
                             .atLeast(InputBus, InputHatch, OutputBus, OutputHatch, Energy)
@@ -146,6 +154,36 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
                             .casingIndex(SOLID_STEEL_CASING_INDEX)
                             .dot(3)
                             .build()))
+                .addElement(
+                    'C',
+                    onElementPass(
+                        MTEKineticProcessingArray::onCasingAdded,
+                        ofBlocksTiered(
+                            MTEKineticProcessingArray::getPipeTier,
+                            PIPE_CASINGS,
+                            -1,
+                            (t, tier) -> t.mCasingTier = Math.max(t.mCasingTier, tier),
+                            t -> t.mCasingTier)))
+                .addElement(
+                    'D',
+                    onElementPass(
+                        MTEKineticProcessingArray::onCasingAdded,
+                        ofBlocksTiered(
+                            MTEKineticProcessingArray::getGearTier,
+                            GEAR_CASINGS,
+                            -1,
+                            (t, tier) -> t.mCasingTier = Math.max(t.mCasingTier, tier),
+                            t -> t.mCasingTier)))
+                .addElement(
+                    'E',
+                    onElementPass(
+                        MTEKineticProcessingArray::onCasingAdded,
+                        ofBlocksTiered(
+                            MTEKineticProcessingArray::getFrameTier,
+                            FRAME_CASINGS,
+                            -1,
+                            (t, tier) -> t.mCasingTier = Math.max(t.mCasingTier, tier),
+                            t -> t.mCasingTier)))
                 .build();
         }
         return STRUCTURE_DEFINITION;
@@ -161,6 +199,26 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
         Pair.of(GregTechAPI.sBlockCasings8, 6),
         Pair.of(GregTechAPI.sBlockCasings8, 7));
 
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    private static final List<Pair<Block, Integer>> PIPE_CASINGS = ImmutableList.of(
+        Pair.of(GregTechAPI.sBlockCasings2, 13),
+        Pair.of(GregTechAPI.sBlockCasings4, 11),
+        Pair.of(GregTechAPI.sBlockCasings8, 1));
+
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    private static final List<Pair<Block, Integer>> GEAR_CASINGS = ImmutableList
+        .of(Pair.of(GregTechAPI.sBlockCasings2, 3), Pair.of(GregTechAPI.sBlockCasings4, 9));
+
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    private static final List<Pair<Block, Integer>> FRAME_CASINGS = ImmutableList.of(
+        Pair.of(GregTechAPI.sBlockFrames, Materials.Steel.mMetaItemSubID),
+        Pair.of(GregTechAPI.sBlockFrames, Materials.Titanium.mMetaItemSubID),
+        Pair.of(GregTechAPI.sBlockFrames, Materials.TungstenSteel.mMetaItemSubID),
+        Pair.of(GregTechAPI.sBlockFrames, Materials.Chrome.mMetaItemSubID),
+        Pair.of(GregTechAPI.sBlockFrames, Materials.Iridium.mMetaItemSubID),
+        Pair.of(GregTechAPI.sBlockFrames, Materials.Osmium.mMetaItemSubID),
+        Pair.of(GregTechAPI.sBlockFrames, Materials.NaquadahAlloy.mMetaItemSubID));
+
     @Nullable
     public static Integer getCasingTier(Block block, int meta) {
         if (block == GregTechAPI.sBlockCasings2 && meta == 0) return 1;
@@ -173,6 +231,35 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
             if (meta == 5) return 5;
             if (meta == 6) return 6;
             if (meta == 7) return 7;
+        }
+        return null;
+    }
+
+    @Nullable
+    public static Integer getPipeTier(Block block, int meta) {
+        if (block == GregTechAPI.sBlockCasings2 && meta == 13) return 1;
+        if (block == GregTechAPI.sBlockCasings4 && meta == 11) return 2;
+        if (block == GregTechAPI.sBlockCasings8 && meta == 1) return 3;
+        return null;
+    }
+
+    @Nullable
+    public static Integer getGearTier(Block block, int meta) {
+        if (block == GregTechAPI.sBlockCasings2 && meta == 3) return 1;
+        if (block == GregTechAPI.sBlockCasings4 && meta == 9) return 2;
+        return null;
+    }
+
+    @Nullable
+    public static Integer getFrameTier(Block block, int meta) {
+        if (block == GregTechAPI.sBlockFrames) {
+            if (meta == Materials.Steel.mMetaItemSubID) return 1;
+            if (meta == Materials.Titanium.mMetaItemSubID) return 2;
+            if (meta == Materials.TungstenSteel.mMetaItemSubID) return 3;
+            if (meta == Materials.Chrome.mMetaItemSubID) return 4;
+            if (meta == Materials.Iridium.mMetaItemSubID) return 5;
+            if (meta == Materials.Osmium.mMetaItemSubID) return 6;
+            if (meta == Materials.NaquadahAlloy.mMetaItemSubID) return 7;
         }
         return null;
     }
@@ -210,7 +297,7 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
         mPressureSteamInputs.clear();
         mPressureCoolingHatches.clear();
 
-        if (!checkPiece(STRUCTURE_PIECE_MAIN, 1, 1, 0)) return false;
+        if (!checkPiece(STRUCTURE_PIECE_MAIN, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET)) return false;
         if (mCasingTier <= 0 || mCasingTier > 7) return false;
 
         boolean hasEnergy = !mEnergyHatches.isEmpty();
@@ -618,13 +705,22 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
 
     @Override
     public void construct(ItemStack stackSize, boolean hintsOnly) {
-        buildPiece(STRUCTURE_PIECE_MAIN, stackSize, hintsOnly, 1, 1, 0);
+        buildPiece(STRUCTURE_PIECE_MAIN, stackSize, hintsOnly, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET);
     }
 
     @Override
     public int survivalConstruct(ItemStack stackSize, int elementBudget, ISurvivalBuildEnvironment env) {
         if (mMachine) return -1;
-        return survivalBuildPiece(STRUCTURE_PIECE_MAIN, stackSize, 1, 1, 0, elementBudget, env, false, true);
+        return survivalBuildPiece(
+            STRUCTURE_PIECE_MAIN,
+            stackSize,
+            HORIZONTAL_OFF_SET,
+            VERTICAL_OFF_SET,
+            DEPTH_OFF_SET,
+            elementBudget,
+            env,
+            false,
+            true);
     }
 
     @Override
@@ -689,7 +785,7 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.kinetic_processing_array.info"))
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.kinetic_processing_array.info2"))
             .addSeparator()
-            .beginStructureBlock(3, 3, 3, true)
+            .beginStructureBlock(7, 5, 7, true)
             .addController(StatCollector.translateToLocal("gtsr.tooltip.kinetic_processing_array.controller"))
             .addEnergyHatch(StatCollector.translateToLocal("gtsr.tooltip.kinetic_processing_array.energy"), 1)
             .addInputHatch(StatCollector.translateToLocal("gtsr.tooltip.kinetic_processing_array.steam_input"), 2)

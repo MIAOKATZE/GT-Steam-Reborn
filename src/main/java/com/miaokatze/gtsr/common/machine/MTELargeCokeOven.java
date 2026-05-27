@@ -1,5 +1,6 @@
 package com.miaokatze.gtsr.common.machine;
 
+import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlock;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlocksTiered;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
@@ -65,6 +66,9 @@ public class MTELargeCokeOven extends MTEEnhancedMultiBlockBase<MTELargeCokeOven
     private int mParallel = 0;
 
     private static final String STRUCTURE_PIECE_MAIN = "main";
+    private static final int HORIZONTAL_OFF_SET = 1;
+    private static final int VERTICAL_OFF_SET = 5;
+    private static final int DEPTH_OFF_SET = 0;
     private static IStructureDefinition<MTELargeCokeOven> STRUCTURE_DEFINITION = null;
 
     public MTELargeCokeOven(int aID, String aName, String aNameRegional) {
@@ -107,6 +111,34 @@ public class MTELargeCokeOven extends MTEEnhancedMultiBlockBase<MTELargeCokeOven
         return null;
     }
 
+    @Nullable
+    public static Integer getPipeTier(Block block, int meta) {
+        if (block == GregTechAPI.sBlockCasings2 && meta == 12) return 1;
+        if (block == GregTechAPI.sBlockCasings2 && meta == 13) return 2;
+        return null;
+    }
+
+    @Nullable
+    public static Integer getGearTier(Block block, int meta) {
+        if (block == GregTechAPI.sBlockCasings2 && meta == 2) return 1;
+        if (block == GregTechAPI.sBlockCasings2 && meta == 3) return 2;
+        return null;
+    }
+
+    @Nullable
+    public static Integer getFireboxTier(Block block, int meta) {
+        if (block == GregTechAPI.sBlockCasings3 && meta == 13) return 1;
+        if (block == GregTechAPI.sBlockCasings3 && meta == 14) return 2;
+        return null;
+    }
+
+    @Nullable
+    public static Integer getFrameTier(Block block, int meta) {
+        if (block == GregTechAPI.sBlockFrames && meta == gregtech.api.enums.Materials.Bronze.mMetaItemSubID) return 1;
+        if (block == GregTechAPI.sBlockFrames && meta == gregtech.api.enums.Materials.Steel.mMetaItemSubID) return 2;
+        return null;
+    }
+
     @Override
     public IStructureDefinition<MTELargeCokeOven> getStructureDefinition() {
         if (STRUCTURE_DEFINITION == null) {
@@ -114,9 +146,12 @@ public class MTELargeCokeOven extends MTEEnhancedMultiBlockBase<MTELargeCokeOven
                 .addShape(
                     STRUCTURE_PIECE_MAIN,
                     transpose(
-                        new String[][] { { "CCC", "CCC", "CCC" }, { "C~C", "C C", "CCC" }, { "CCC", "CCC", "CCC" } }))
+                        new String[][] { { "   GFFF", "    F F", "   GFFF" }, { "   GFFF", "    F F", "   GFFF" },
+                            { "BBBGFFF", "BBBBF F", "BBBGFFF" }, { "BBBGFFF", "BCCCC F", "BBBGFFF" },
+                            { "BBBGFFF", "BCCCC F", "BBBGFFF" }, { "B~BGFFF", "BCCCC F", "BBBGFFF" },
+                            { "BBBGEEE", "BBBDEEE", "BBBGEEE" } }))
                 .addElement(
-                    'C',
+                    'B',
                     ofChain(
                         buildHatchAdder(MTELargeCokeOven.class).atLeast(InputBus)
                             .casingIndex(10)
@@ -140,6 +175,54 @@ public class MTELargeCokeOven extends MTEEnhancedMultiBlockBase<MTELargeCokeOven
                                         -1,
                                         (MTELargeCokeOven t, Integer tier) -> t.mTier = tier,
                                         (MTELargeCokeOven t) -> t.mTier)))))
+                .addElement(
+                    'C',
+                    onElementPass(
+                        MTELargeCokeOven::onCasingAdded,
+                        ofBlocksTiered(
+                            MTELargeCokeOven::getPipeTier,
+                            ImmutableList
+                                .of(Pair.of(GregTechAPI.sBlockCasings2, 12), Pair.of(GregTechAPI.sBlockCasings2, 13)),
+                            -1,
+                            (MTELargeCokeOven t, Integer tier) -> { if (tier > t.mTier) t.mTier = tier; },
+                            (MTELargeCokeOven t) -> t.mTier)))
+                .addElement(
+                    'D',
+                    onElementPass(
+                        MTELargeCokeOven::onCasingAdded,
+                        ofBlocksTiered(
+                            MTELargeCokeOven::getGearTier,
+                            ImmutableList
+                                .of(Pair.of(GregTechAPI.sBlockCasings2, 2), Pair.of(GregTechAPI.sBlockCasings2, 3)),
+                            -1,
+                            (MTELargeCokeOven t, Integer tier) -> { if (tier > t.mTier) t.mTier = tier; },
+                            (MTELargeCokeOven t) -> t.mTier)))
+                .addElement(
+                    'E',
+                    onElementPass(
+                        MTELargeCokeOven::onCasingAdded,
+                        ofBlocksTiered(
+                            MTELargeCokeOven::getFireboxTier,
+                            ImmutableList
+                                .of(Pair.of(GregTechAPI.sBlockCasings3, 13), Pair.of(GregTechAPI.sBlockCasings3, 14)),
+                            -1,
+                            (MTELargeCokeOven t, Integer tier) -> { if (tier > t.mTier) t.mTier = tier; },
+                            (MTELargeCokeOven t) -> t.mTier)))
+                .addElement(
+                    'F',
+                    onElementPass(MTELargeCokeOven::onCasingAdded, ofBlock(GregTechAPI.sBlockCasings1, 11)))
+                .addElement(
+                    'G',
+                    onElementPass(
+                        MTELargeCokeOven::onCasingAdded,
+                        ofBlocksTiered(
+                            MTELargeCokeOven::getFrameTier,
+                            ImmutableList.of(
+                                Pair.of(GregTechAPI.sBlockFrames, gregtech.api.enums.Materials.Bronze.mMetaItemSubID),
+                                Pair.of(GregTechAPI.sBlockFrames, gregtech.api.enums.Materials.Steel.mMetaItemSubID)),
+                            -1,
+                            (MTELargeCokeOven t, Integer tier) -> { if (tier > t.mTier) t.mTier = tier; },
+                            (MTELargeCokeOven t) -> t.mTier)))
                 .build();
         }
         return STRUCTURE_DEFINITION;
@@ -157,7 +240,7 @@ public class MTELargeCokeOven extends MTEEnhancedMultiBlockBase<MTELargeCokeOven
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.large_coke_oven.3"))
             .addSeparator()
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.large_coke_oven.ctrl"))
-            .beginStructureBlock(3, 3, 3, true)
+            .beginStructureBlock(3, 7, 7, true)
             .addStructureInfo(StatCollector.translateToLocal("gtsr.tooltip.large_coke_oven.casing_t1"))
             .addStructureInfo(StatCollector.translateToLocal("gtsr.tooltip.large_coke_oven.casing_t2"))
             .addInputBus(StatCollector.translateToLocal("gtsr.tooltip.large_coke_oven.input_bus"), 1)
@@ -168,13 +251,22 @@ public class MTELargeCokeOven extends MTEEnhancedMultiBlockBase<MTELargeCokeOven
 
     @Override
     public void construct(ItemStack stackSize, boolean hintsOnly) {
-        buildPiece(STRUCTURE_PIECE_MAIN, stackSize, hintsOnly, 1, 1, 0);
+        buildPiece(STRUCTURE_PIECE_MAIN, stackSize, hintsOnly, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET);
     }
 
     @Override
     public int survivalConstruct(ItemStack stackSize, int elementBudget, ISurvivalBuildEnvironment env) {
         if (mMachine) return -1;
-        return survivalBuildPiece(STRUCTURE_PIECE_MAIN, stackSize, 1, 1, 0, elementBudget, env, false, true);
+        return survivalBuildPiece(
+            STRUCTURE_PIECE_MAIN,
+            stackSize,
+            HORIZONTAL_OFF_SET,
+            VERTICAL_OFF_SET,
+            DEPTH_OFF_SET,
+            elementBudget,
+            env,
+            false,
+            true);
     }
 
     @Override
@@ -182,7 +274,7 @@ public class MTELargeCokeOven extends MTEEnhancedMultiBlockBase<MTELargeCokeOven
         clearHatches();
         mTier = 1;
 
-        if (!checkPiece(STRUCTURE_PIECE_MAIN, 1, 1, 0)) {
+        if (!checkPiece(STRUCTURE_PIECE_MAIN, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET)) {
             return false;
         }
 

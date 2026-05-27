@@ -1,6 +1,5 @@
 package com.miaokatze.gtsr.common.machine;
 
-import static com.gtnewhorizon.structurelib.structure.StructureUtility.isAir;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlocksTiered;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
@@ -43,6 +42,7 @@ import com.miaokatze.gtsr.common.machine.base.MTESteamCoolingHatch;
 
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.GTValues;
+import gregtech.api.enums.Materials;
 import gregtech.api.enums.Textures;
 import gregtech.api.interfaces.IIconContainer;
 import gregtech.api.interfaces.ITexture;
@@ -70,7 +70,8 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
     private static final String STRUCTURE_PIECE_BASE_3 = "base3";
     private static final String STRUCTURE_PIECE_STACK = "stack";
     private static final String STRUCTURE_PIECE_STACK_HINT = "stackHint";
-    private static final String STRUCTURE_PIECE_CAP = "cap";
+    private static final String STRUCTURE_PIECE_CAP_1 = "cap1";
+    private static final String STRUCTURE_PIECE_CAP_2 = "cap2";
 
     private static final int SOLID_STEEL_CASING_INDEX = GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings2, 0);
     private static IStructureDefinition<MTEMegaSteamTurbineArray> STRUCTURE_DEFINITION;
@@ -78,6 +79,9 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
     private int mCasingAmount = 0;
     private int mStackCount = 0;
     private int mCasingTier = -1;
+    private int mPipeTier = -1;
+    private int mGearTier = -1;
+    private int mFrameTier = -1;
     private int excessWater = 0;
 
     private int mTheoreticalEUt = 0;
@@ -184,16 +188,70 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
     public IStructureDefinition<MTEMegaSteamTurbineArray> getStructureDefinition() {
         if (STRUCTURE_DEFINITION == null) {
             STRUCTURE_DEFINITION = StructureDefinition.<MTEMegaSteamTurbineArray>builder()
-                .addShape(STRUCTURE_PIECE_BASE_1, transpose(new String[][] { { "HHH", "HHH", "HHH" } }))
-                .addShape(STRUCTURE_PIECE_BASE_2, transpose(new String[][] { { "H~H", "H H", "HHH" } }))
-                .addShape(STRUCTURE_PIECE_BASE_3, transpose(new String[][] { { "HHH", "HHH", "HHH" } }))
-                .addShape(STRUCTURE_PIECE_STACK, transpose(new String[][] { { "SSS", "SXS", "SSS" } })) // X=isAir()
-                                                                                                        // 防止CAP被误识别为STACK
-                .addShape(STRUCTURE_PIECE_STACK_HINT, transpose(new String[][] { { "SSS", "SXS", "SSS" } }))
-                .addShape(STRUCTURE_PIECE_CAP, transpose(new String[][] { { "TTT", "TTT", "TTT" } }))
-                .addElement('X', isAir())
+                .addShape(
+                    STRUCTURE_PIECE_BASE_1,
+                    transpose(
+                        new String[][] { { "             ", "             ", "    CCBCC    ", "    BBCBB    ",
+                            "  CBBBCBBBC  ", "  CBBBBBBBC  ", "  BCCBBBCCB  ", "  CBBBBBBBC  ", "  CBBBCBBBC  ",
+                            "    BBCBB    ", "    CCBCC    ", "             ", "             " } }))
+                .addShape(
+                    STRUCTURE_PIECE_BASE_2,
+                    transpose(
+                        new String[][] { { "             ", "    BBBBB    ", "   BBEEEBB   ", "  BBEEEEEBB  ",
+                            " BBEEEEEEEBB ", " BEEEEEEEEEB ", " BEEEEDEEEEB ", " BEEEEEEEEEB ", " BBEEEEEEEBB ",
+                            "  BBEEEEEBB  ", "   BBEEEBB   ", "    BBBBB    ", "             " } }))
+                .addShape(
+                    STRUCTURE_PIECE_BASE_3,
+                    transpose(
+                        new String[][] { { "EEEEBBBBBEEEE", "E EBBBBBBBE E", "EEB       BEE", "EB DDDDDDD BE",
+                            "BB DCCCCCD BB", "BB DCDDDCD BB", "BB DCDDDCD BB", "BB DCDDDCD BB", "BB DCCCCCD BB",
+                            "EB DDDDDDD BE", "EEB       BEE", "E EBBBBBBBE E", "EEEEBBBBBEEEE" } }))
+                .addShape(
+                    STRUCTURE_PIECE_STACK,
+                    transpose(
+                        new String[][] {
+                            { "E   DDDDD   E", "  EBBBBBBBE  ", " EB       BE ", " B DDDDDDD B ", "DB DCCCCCD BD",
+                                "DB DCDDDCD BD", "DB DCDDDCD BD", "DB DCDDDCD BD", "DB DCCCCCD BD", " B DDDDDDD B ",
+                                " EB       BE ", "  EBBBBBBBE  ", "E   DDDDD   E" },
+                            { "E   BBBBB   E", "  EBBBBBBBE  ", " EB       BE ", " B DDDDDDD B ", "BB DCCCCCD BB",
+                                "BB DCDDDCD BB", "BB DCDDDCD BB", "BB DCDDDCD BB", "BB DCCCCCD BB", " B DDDDDDD B ",
+                                " EB       BE ", "  EBBBBBBBE  ", "E   BBBBB   E" },
+                            { "E           E", "  E BBBB  E  ", " E BBEEEBB E ", "  BBEEEEEBB  ", "  BEEEEEEEB  ",
+                                " BEEEEEEEEEB ", " BEEEEDEEEEB ", " BEEEEEEEEEB ", "  BEEEEEEEB  ", "  BBEEEEEBB  ",
+                                " E BBEEEBB E ", "  E  BBB  E  ", "E           E" },
+                            { "EEEBBBBBBBEEE", "E BBBBBBBBB E", "EBB       BBE", "BB         BB", "BB         BB",
+                                "BB         BB", "BB    D    BB", "BB         BB", "BB         BB", "BB         BB",
+                                "EBB       BBE", "E BBBBBBBBB E", "EEEBBBBBBEE E" } }))
+                .addShape(
+                    STRUCTURE_PIECE_STACK_HINT,
+                    transpose(
+                        new String[][] {
+                            { "E   DDDDD   E", "  EBBBBBBBE  ", " EB       BE ", " B DDDDDDD B ", "DB DCCCCCD BD",
+                                "DB DCDDDCD BD", "DB DCDDDCD BD", "DB DCDDDCD BD", "DB DCCCCCD BD", " B DDDDDDD B ",
+                                " EB       BE ", "  EBBBBBBBE  ", "E   DDDDD   E" },
+                            { "E   BBBBB   E", "  EBBBBBBBE  ", " EB       BE ", " B DDDDDDD B ", "BB DCCCCCD BB",
+                                "BB DCDDDCD BB", "BB DCDDDCD BB", "BB DCDDDCD BB", "BB DCCCCCD BB", " B DDDDDDD B ",
+                                " EB       BE ", "  EBBBBBBBE  ", "E   BBBBB   E" },
+                            { "E           E", "  E BBBB  E  ", " E BBEEEBB E ", "  BBEEEEEBB  ", "  BEEEEEEEB  ",
+                                " BEEEEEEEEEB ", " BEEEEDEEEEB ", " BEEEEEEEEEB ", "  BEEEEEEEB  ", "  BBEEEEEBB  ",
+                                " E BBEEEBB E ", "  E  BBB  E  ", "E           E" },
+                            { "EEEBBBBBBBEEE", "E BBBBBBBBB E", "EBB       BBE", "BB         BB", "BB         BB",
+                                "BB         BB", "BB    D    BB", "BB         BB", "BB         BB", "BB         BB",
+                                "EBB       BBE", "E BBBBBBBBB E", "EEEBBBBBBEE E" } }))
+                .addShape(
+                    STRUCTURE_PIECE_CAP_1,
+                    transpose(
+                        new String[][] { { "E  DDB~BDD  E", "  BBBBCBBBB  ", " BBDDDCDDDBB ", "DBDCDDCDDCDBD",
+                            "DBDDCDCDCDDBD", "DBDDDCCCDDDBD", "DBCCCCDCCCCBD", "DBDDDCCCDDDBD", "DBDDCDCDCDDBD",
+                            "DBDCDDCDDCDBD", " BBDDDCDDDBB ", "  BBBBBBBBB  ", "E  DDDDDD   E" } }))
+                .addShape(
+                    STRUCTURE_PIECE_CAP_2,
+                    transpose(
+                        new String[][] { { "E  BBBBBBB  E", "  BBBBBBBBB  ", " BBBBBBBBBBB ", "BBBBBBBBBBBBB",
+                            "BBBBBBBBBBBBB", "BBBBBBBBBBBBB", "BBBBBBBBBBBBB", "BBBBBBBBBBBBB", "BBBBBBBBBBBBB",
+                            "BBBBBBBBBBBBB", " BBBBBBBBBBB ", "  BBBBBBBBB  ", "E  BBBBBB   E" } }))
                 .addElement(
-                    'H',
+                    'B',
                     ofChain(
                         buildHatchAdder(MTEMegaSteamTurbineArray.class)
                             .adder(MTEMegaSteamTurbineArray::addPressureSteamToMachineList)
@@ -230,25 +288,35 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
                                         (t, tier) -> t.mCasingTier = tier,
                                         t -> t.mCasingTier)))))
                 .addElement(
-                    'S',
+                    'C',
                     onElementPass(
                         MTEMegaSteamTurbineArray::onCasingAdded,
                         ofBlocksTiered(
-                            MTEMegaSteamTurbineArray::getCasingTier,
-                            ALLOWED_CASINGS,
+                            MTEMegaSteamTurbineArray::getPipeTier,
+                            PIPE_CASINGS,
                             -1,
-                            (t, tier) -> t.mCasingTier = tier,
-                            t -> t.mCasingTier)))
+                            (t, tier) -> t.mPipeTier = tier,
+                            t -> t.mPipeTier)))
                 .addElement(
-                    'T',
+                    'D',
                     onElementPass(
                         MTEMegaSteamTurbineArray::onCasingAdded,
                         ofBlocksTiered(
-                            MTEMegaSteamTurbineArray::getCasingTier,
-                            ALLOWED_CASINGS,
+                            MTEMegaSteamTurbineArray::getGearTier,
+                            GEAR_CASINGS,
                             -1,
-                            (t, tier) -> t.mCasingTier = tier,
-                            t -> t.mCasingTier)))
+                            (t, tier) -> t.mGearTier = tier,
+                            t -> t.mGearTier)))
+                .addElement(
+                    'E',
+                    onElementPass(
+                        MTEMegaSteamTurbineArray::onCasingAdded,
+                        ofBlocksTiered(
+                            MTEMegaSteamTurbineArray::getFrameTier,
+                            FRAME_CASINGS,
+                            -1,
+                            (t, tier) -> t.mFrameTier = tier,
+                            t -> t.mFrameTier)))
                 .build();
         }
         return STRUCTURE_DEFINITION;
@@ -264,6 +332,23 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         Pair.of(GregTechAPI.sBlockCasings8, 6),
         Pair.of(GregTechAPI.sBlockCasings8, 7));
 
+    private static final List<Pair<Block, Integer>> PIPE_CASINGS = ImmutableList.of(
+        Pair.of(GregTechAPI.sBlockCasings2, 13),
+        Pair.of(GregTechAPI.sBlockCasings4, 11),
+        Pair.of(GregTechAPI.sBlockCasings8, 1));
+
+    private static final List<Pair<Block, Integer>> GEAR_CASINGS = ImmutableList
+        .of(Pair.of(GregTechAPI.sBlockCasings2, 3), Pair.of(GregTechAPI.sBlockCasings4, 9));
+
+    private static final List<Pair<Block, Integer>> FRAME_CASINGS = ImmutableList.of(
+        Pair.of(GregTechAPI.sBlockFrames, Materials.Steel.mMetaItemSubID),
+        Pair.of(GregTechAPI.sBlockFrames, Materials.Titanium.mMetaItemSubID),
+        Pair.of(GregTechAPI.sBlockFrames, Materials.TungstenSteel.mMetaItemSubID),
+        Pair.of(GregTechAPI.sBlockFrames, Materials.Chrome.mMetaItemSubID),
+        Pair.of(GregTechAPI.sBlockFrames, Materials.Iridium.mMetaItemSubID),
+        Pair.of(GregTechAPI.sBlockFrames, Materials.Osmium.mMetaItemSubID),
+        Pair.of(GregTechAPI.sBlockFrames, Materials.NaquadahAlloy.mMetaItemSubID));
+
     @Nullable
     public static Integer getCasingTier(Block block, int meta) {
         if (block == GregTechAPI.sBlockCasings2 && meta == 0) return 1;
@@ -276,6 +361,35 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         if (block == GregTechAPI.sBlockCasings8) {
             if (meta == 6) return 6;
             if (meta == 7) return 7;
+        }
+        return null;
+    }
+
+    @Nullable
+    public static Integer getPipeTier(Block block, int meta) {
+        if (block == GregTechAPI.sBlockCasings2 && meta == 13) return 1;
+        if (block == GregTechAPI.sBlockCasings4 && meta == 11) return 2;
+        if (block == GregTechAPI.sBlockCasings8 && meta == 1) return 3;
+        return null;
+    }
+
+    @Nullable
+    public static Integer getGearTier(Block block, int meta) {
+        if (block == GregTechAPI.sBlockCasings2 && meta == 3) return 1;
+        if (block == GregTechAPI.sBlockCasings4 && meta == 9) return 2;
+        return null;
+    }
+
+    @Nullable
+    public static Integer getFrameTier(Block block, int meta) {
+        if (block == GregTechAPI.sBlockFrames) {
+            if (meta == Materials.Steel.mMetaItemSubID) return 1;
+            if (meta == Materials.Titanium.mMetaItemSubID) return 2;
+            if (meta == Materials.TungstenSteel.mMetaItemSubID) return 3;
+            if (meta == Materials.Chrome.mMetaItemSubID) return 4;
+            if (meta == Materials.Iridium.mMetaItemSubID) return 5;
+            if (meta == Materials.Osmium.mMetaItemSubID) return 6;
+            if (meta == Materials.NaquadahAlloy.mMetaItemSubID) return 7;
         }
         return null;
     }
@@ -338,21 +452,23 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         mSteamCoolingHatches.clear();
         mPressureCoolingHatches.clear();
 
-        if (!checkPiece(STRUCTURE_PIECE_BASE_1, 1, -1, 0)) return false;
-        if (!checkPiece(STRUCTURE_PIECE_BASE_2, 1, 0, 0)) return false;
-        if (!checkPiece(STRUCTURE_PIECE_BASE_3, 1, 1, 0)) return false;
+        if (!checkPiece(STRUCTURE_PIECE_BASE_1, 7, -1, 0)) return false;
+        if (!checkPiece(STRUCTURE_PIECE_BASE_2, 7, 0, 0)) return false;
+        if (!checkPiece(STRUCTURE_PIECE_BASE_3, 7, 1, 0)) return false;
 
         mStackCount = 0;
-        for (int i = 2; i < 12; i++) {
-            if (!checkPiece(STRUCTURE_PIECE_STACK, 1, i, 0)) break;
+        for (int i = 0; i < 10; i++) {
+            int baseY = 2 + i * 4;
+            if (!checkPiece(STRUCTURE_PIECE_STACK, 7, baseY, 0)) break;
             mStackCount++;
         }
 
-        if (mStackCount < 0 || mStackCount > 10) return false;
+        if (mStackCount < 0) return false;
         if (mCasingTier <= 0 || mCasingTier > 7) return false;
 
-        int capY = 2 + mStackCount;
-        if (!checkPiece(STRUCTURE_PIECE_CAP, 1, capY, 0)) return false;
+        int capY = 2 + mStackCount * 4;
+        if (!checkPiece(STRUCTURE_PIECE_CAP_1, 7, capY, 0)) return false;
+        if (!checkPiece(STRUCTURE_PIECE_CAP_2, 7, capY + 1, 0)) return false;
 
         boolean hasInput = !mInputHatches.isEmpty() || hasPressureSteamHatch();
         boolean hasOutput = !mOutputHatches.isEmpty() || hasSteamCoolingHatch() || hasPressureCoolingHatch();
@@ -363,7 +479,7 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
     }
 
     private int getStackLayers() {
-        return Math.max(0, mStackCount);
+        return Math.max(0, mStackCount) * 4;
     }
 
     private long getVoltage() {
@@ -706,40 +822,49 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
 
     @Override
     public void construct(ItemStack stackSize, boolean hintsOnly) {
-        buildPiece(STRUCTURE_PIECE_BASE_1, stackSize, hintsOnly, 1, -1, 0);
-        buildPiece(STRUCTURE_PIECE_BASE_2, stackSize, hintsOnly, 1, 0, 0);
-        buildPiece(STRUCTURE_PIECE_BASE_3, stackSize, hintsOnly, 1, 1, 0);
+        buildPiece(STRUCTURE_PIECE_BASE_1, stackSize, hintsOnly, 7, -1, 0);
+        buildPiece(STRUCTURE_PIECE_BASE_2, stackSize, hintsOnly, 7, 0, 0);
+        buildPiece(STRUCTURE_PIECE_BASE_3, stackSize, hintsOnly, 7, 1, 0);
         int tTotalHeight = Math.max(3, GTStructureChannels.STRUCTURE_HEIGHT.getValueClamped(stackSize, 3, 13));
-        for (int i = 2; i < tTotalHeight - 1; i++) {
-            buildPiece(STRUCTURE_PIECE_STACK_HINT, stackSize, hintsOnly, 1, i, 0);
+        int stackGroups = (tTotalHeight - 2) / 4;
+        for (int i = 0; i < stackGroups; i++) {
+            int baseY = 2 + i * 4;
+            buildPiece(STRUCTURE_PIECE_STACK_HINT, stackSize, hintsOnly, 7, baseY, 0);
         }
-        buildPiece(STRUCTURE_PIECE_CAP, stackSize, hintsOnly, 1, tTotalHeight - 1, 0);
+        int capY = 2 + stackGroups * 4;
+        buildPiece(STRUCTURE_PIECE_CAP_1, stackSize, hintsOnly, 7, capY, 0);
+        buildPiece(STRUCTURE_PIECE_CAP_2, stackSize, hintsOnly, 7, capY + 1, 0);
     }
 
     @Override
     public int survivalConstruct(ItemStack stackSize, int elementBudget, ISurvivalBuildEnvironment env) {
         if (mMachine) return -1;
-        int built = survivalBuildPiece(STRUCTURE_PIECE_BASE_1, stackSize, 1, -1, 0, elementBudget, env, false, true);
+        int built = survivalBuildPiece(STRUCTURE_PIECE_BASE_1, stackSize, 7, -1, 0, elementBudget, env, false, true);
         if (built >= 0) return built;
-        built = survivalBuildPiece(STRUCTURE_PIECE_BASE_2, stackSize, 1, 0, 0, elementBudget, env, false, true);
+        built = survivalBuildPiece(STRUCTURE_PIECE_BASE_2, stackSize, 7, 0, 0, elementBudget, env, false, true);
         if (built >= 0) return built;
-        built = survivalBuildPiece(STRUCTURE_PIECE_BASE_3, stackSize, 1, 1, 0, elementBudget, env, false, true);
+        built = survivalBuildPiece(STRUCTURE_PIECE_BASE_3, stackSize, 7, 1, 0, elementBudget, env, false, true);
         if (built >= 0) return built;
         int tTotalHeight = Math.max(3, GTStructureChannels.STRUCTURE_HEIGHT.getValueClamped(stackSize, 3, 13));
-        for (int i = 2; i < tTotalHeight - 1; i++) {
-            built = survivalBuildPiece(STRUCTURE_PIECE_STACK_HINT, stackSize, 1, i, 0, elementBudget, env, false, true);
+        int stackGroups = (tTotalHeight - 2) / 4;
+        for (int i = 0; i < stackGroups; i++) {
+            int baseY = 2 + i * 4;
+            built = survivalBuildPiece(
+                STRUCTURE_PIECE_STACK_HINT,
+                stackSize,
+                7,
+                baseY,
+                0,
+                elementBudget,
+                env,
+                false,
+                true);
             if (built >= 0) return built;
         }
-        return survivalBuildPiece(
-            STRUCTURE_PIECE_CAP,
-            stackSize,
-            1,
-            tTotalHeight - 1,
-            0,
-            elementBudget,
-            env,
-            false,
-            true);
+        int capY = 2 + stackGroups * 4;
+        built = survivalBuildPiece(STRUCTURE_PIECE_CAP_1, stackSize, 7, capY, 0, elementBudget, env, false, true);
+        if (built >= 0) return built;
+        return survivalBuildPiece(STRUCTURE_PIECE_CAP_2, stackSize, 7, capY + 1, 0, elementBudget, env, false, true);
     }
 
     @Override
@@ -788,7 +913,7 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.mega_steam_turbine.info2"))
             .addSeparator()
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.mega_steam_turbine.info3"))
-            .beginStructureBlock(3, 5, 3, true)
+            .beginStructureBlock(13, 9, 13, true)
             .addController(StatCollector.translateToLocal("gtsr.tooltip.mega_steam_turbine.controller"))
             .addInputHatch(StatCollector.translateToLocal("gtsr.tooltip.mega_steam_turbine.input"), 1)
             .addDynamoHatch(StatCollector.translateToLocal("gtsr.tooltip.mega_steam_turbine.dynamo"), 1)

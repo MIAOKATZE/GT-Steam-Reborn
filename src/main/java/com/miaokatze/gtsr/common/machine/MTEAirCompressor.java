@@ -50,7 +50,7 @@ public class MTEAirCompressor extends MTESteamMultiBase<MTEAirCompressor> implem
 
     private static final String STRUCTURE_PIECE_MAIN = "main";
     private static final int HORIZONTAL_OFF_SET = 1;
-    private static final int VERTICAL_OFF_SET = 1;
+    private static final int VERTICAL_OFF_SET = 2;
     private static final int DEPTH_OFF_SET = 0;
 
     private static IStructureDefinition<MTEAirCompressor> STRUCTURE_DEFINITION = null;
@@ -80,6 +80,27 @@ public class MTEAirCompressor extends MTESteamMultiBase<MTEAirCompressor> implem
     public static Integer getCasingTier(Block block, int meta) {
         if (block == GregTechAPI.sBlockCasings1 && meta == 10) return 1;
         if (block == GregTechAPI.sBlockCasings2 && meta == 0) return 2;
+        return null;
+    }
+
+    @Nullable
+    public static Integer getPipeTier(Block block, int meta) {
+        if (block == GregTechAPI.sBlockCasings2 && meta == 12) return 1;
+        if (block == GregTechAPI.sBlockCasings2 && meta == 13) return 2;
+        return null;
+    }
+
+    @Nullable
+    public static Integer getGearTier(Block block, int meta) {
+        if (block == GregTechAPI.sBlockCasings2 && meta == 2) return 1;
+        if (block == GregTechAPI.sBlockCasings2 && meta == 3) return 2;
+        return null;
+    }
+
+    @Nullable
+    public static Integer getFrameTier(Block block, int meta) {
+        if (block == GregTechAPI.sBlockFrames && meta == Materials.Bronze.mMetaItemSubID) return 1;
+        if (block == GregTechAPI.sBlockFrames && meta == Materials.Steel.mMetaItemSubID) return 2;
         return null;
     }
 
@@ -115,9 +136,10 @@ public class MTEAirCompressor extends MTESteamMultiBase<MTEAirCompressor> implem
                 .addShape(
                     STRUCTURE_PIECE_MAIN,
                     transpose(
-                        new String[][] { { "CCC", "CCC", "CCC" }, { "C~C", "C C", "CCC" }, { "CCC", "CCC", "CCC" } }))
+                        new String[][] { { "EBE", "CDC", "BBB", "CDC", "EBE" }, { "EBE", "CDC", "B B", "CDC", "EBE" },
+                            { "E~E", "CDC", "B B", "CDC", "EBE" }, { "EBE", "BBB", "BBB", "BBB", "EBE" } }))
                 .addElement(
-                    'C',
+                    'B',
                     ofChain(
                         buildHatchAdder(MTEAirCompressor.class).adder(MTESteamMultiBase::addToMachineList)
                             .hatchIds(31040, MetaTileEntityID.PRESSURE_STEAM_HATCH.ID)
@@ -139,6 +161,40 @@ public class MTEAirCompressor extends MTESteamMultiBase<MTEAirCompressor> implem
                                         -1,
                                         (MTEAirCompressor t, Integer tier) -> t.mSetTier = tier,
                                         (MTEAirCompressor t) -> t.mSetTier)))))
+                .addElement(
+                    'C',
+                    onElementPass(
+                        MTEAirCompressor::onCasingAdded,
+                        ofBlocksTiered(
+                            MTEAirCompressor::getPipeTier,
+                            ImmutableList
+                                .of(Pair.of(GregTechAPI.sBlockCasings2, 12), Pair.of(GregTechAPI.sBlockCasings2, 13)),
+                            -1,
+                            (MTEAirCompressor t, Integer tier) -> { if (tier > t.mSetTier) t.mSetTier = tier; },
+                            (MTEAirCompressor t) -> t.mSetTier)))
+                .addElement(
+                    'D',
+                    onElementPass(
+                        MTEAirCompressor::onCasingAdded,
+                        ofBlocksTiered(
+                            MTEAirCompressor::getGearTier,
+                            ImmutableList
+                                .of(Pair.of(GregTechAPI.sBlockCasings2, 2), Pair.of(GregTechAPI.sBlockCasings2, 3)),
+                            -1,
+                            (MTEAirCompressor t, Integer tier) -> { if (tier > t.mSetTier) t.mSetTier = tier; },
+                            (MTEAirCompressor t) -> t.mSetTier)))
+                .addElement(
+                    'E',
+                    onElementPass(
+                        MTEAirCompressor::onCasingAdded,
+                        ofBlocksTiered(
+                            MTEAirCompressor::getFrameTier,
+                            ImmutableList.of(
+                                Pair.of(GregTechAPI.sBlockFrames, Materials.Bronze.mMetaItemSubID),
+                                Pair.of(GregTechAPI.sBlockFrames, Materials.Steel.mMetaItemSubID)),
+                            -1,
+                            (MTEAirCompressor t, Integer tier) -> { if (tier > t.mSetTier) t.mSetTier = tier; },
+                            (MTEAirCompressor t) -> t.mSetTier)))
                 .build();
         }
         return STRUCTURE_DEFINITION;
@@ -249,7 +305,7 @@ public class MTEAirCompressor extends MTESteamMultiBase<MTEAirCompressor> implem
         tt.addMachineType(getMachineType())
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.air_compressor.0"))
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.air_compressor.1"))
-            .beginStructureBlock(3, 3, 3, false)
+            .beginStructureBlock(5, 4, 3, false)
             .addController(StatCollector.translateToLocal("gtsr.tooltip.air_compressor.ctrl"))
             .addInputHatch(StatCollector.translateToLocal("gtsr.tooltip.air_compressor.input_hatch"), 1)
             .addOutputHatch(StatCollector.translateToLocal("gtsr.tooltip.air_compressor.output_hatch"), 1)

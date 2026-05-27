@@ -1,6 +1,6 @@
 package com.miaokatze.gtsr.common.machine;
 
-import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlock;
+import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlocksTiered;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose;
@@ -8,6 +8,9 @@ import static gregtech.api.enums.GTValues.emptyItemStackArray;
 import static gregtech.api.enums.HatchElement.OutputBus;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 
+import javax.annotation.Nullable;
+
+import net.minecraft.block.Block;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumChatFormatting;
@@ -15,6 +18,9 @@ import net.minecraft.util.StatCollector;
 import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.FluidStack;
 
+import org.apache.commons.lang3.tuple.Pair;
+
+import com.google.common.collect.ImmutableList;
 import com.gtnewhorizon.structurelib.alignment.IAlignmentLimits;
 import com.gtnewhorizon.structurelib.alignment.constructable.ISurvivalConstructable;
 import com.gtnewhorizon.structurelib.structure.IStructureDefinition;
@@ -44,9 +50,9 @@ import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTESteam
 public class MTECrustSteamBorer extends MTESteamMultiBase<MTECrustSteamBorer> implements ISurvivalConstructable {
 
     private static final String STRUCTURE_PIECE_MAIN = "main";
-    private static final int HORIZONTAL_OFF_SET = 3;
-    private static final int VERTICAL_OFF_SET = 7;
-    private static final int DEPTH_OFF_SET = 1;
+    private static final int HORIZONTAL_OFF_SET = 4;
+    private static final int VERTICAL_OFF_SET = 9;
+    private static final int DEPTH_OFF_SET = 0;
 
     protected static final int STEAM_L_EUT = 100;
     protected static final int WORK_TIME_TICKS = 500;
@@ -55,6 +61,7 @@ public class MTECrustSteamBorer extends MTESteamMultiBase<MTECrustSteamBorer> im
     private static IStructureDefinition<MTECrustSteamBorer> STRUCTURE_DEFINITION = null;
 
     protected int mCountCasing = 0;
+    protected int mSetTier = -1;
     protected VoidMinerUtility.DropMap dropMap = null;
     protected VoidMinerUtility.DropMap extraDropMap = null;
 
@@ -78,6 +85,41 @@ public class MTECrustSteamBorer extends MTESteamMultiBase<MTECrustSteamBorer> im
     @Override
     public String getMachineType() {
         return "Crust Steam Borer";
+    }
+
+    @Nullable
+    public static Integer getCasingTier(Block block, int meta) {
+        if (block == GregTechAPI.sBlockCasings1 && meta == 10) return 1;
+        if (block == GregTechAPI.sBlockCasings2 && meta == 0) return 2;
+        return null;
+    }
+
+    @Nullable
+    public static Integer getPipeTier(Block block, int meta) {
+        if (block == GregTechAPI.sBlockCasings2 && meta == 12) return 1;
+        if (block == GregTechAPI.sBlockCasings2 && meta == 13) return 2;
+        return null;
+    }
+
+    @Nullable
+    public static Integer getGearTier(Block block, int meta) {
+        if (block == GregTechAPI.sBlockCasings2 && meta == 2) return 1;
+        if (block == GregTechAPI.sBlockCasings2 && meta == 3) return 2;
+        return null;
+    }
+
+    @Nullable
+    public static Integer getFireboxTier(Block block, int meta) {
+        if (block == GregTechAPI.sBlockCasings3 && meta == 13) return 1;
+        if (block == GregTechAPI.sBlockCasings3 && meta == 14) return 2;
+        return null;
+    }
+
+    @Nullable
+    public static Integer getFrameTier(Block block, int meta) {
+        if (block == GregTechAPI.sBlockFrames && meta == Materials.Bronze.mMetaItemSubID) return 1;
+        if (block == GregTechAPI.sBlockFrames && meta == Materials.Steel.mMetaItemSubID) return 2;
+        return null;
     }
 
     protected int getCasingTextureID() {
@@ -129,21 +171,30 @@ public class MTECrustSteamBorer extends MTESteamMultiBase<MTECrustSteamBorer> im
                     STRUCTURE_PIECE_MAIN,
                     transpose(
                         new String[][] {
-                            { "       ", "       ", "       ", "   B   ", "       ", "       ", "       " },
-                            { "       ", "       ", "       ", "   B   ", "       ", "       ", "       " },
-                            { "       ", "       ", "       ", "   B   ", "       ", "       ", "       " },
-                            { "       ", "       ", "   B   ", "  BCB  ", "   B   ", "       ", "       " },
-                            { "       ", "       ", "   B   ", "  BCB  ", "   B   ", "       ", "       " },
-                            { "       ", "       ", "   B   ", "  BCB  ", "   B   ", "       ", "       " },
-                            { "       ", " B   B ", "  DAD  ", "  ACA  ", "  DAD  ", " B   B ", "       " },
-                            { "  D D  ", " BA~AB ", " A   A ", " B C B ", " A   A ", " BABAB ", "       " },
-                            { "  E E  ", " BBBBB ", "EB   BE", " B C B ", "EB   BE", " BBBBB ", "  E E  " } }))
-                .addElement('A', ofBlock(GregTechAPI.sBlockCasings1, 10))
-                .addElement('B', ofBlock(GregTechAPI.sBlockFrames, Materials.Bronze.mMetaItemSubID))
-                .addElement('C', ofBlock(GregTechAPI.sBlockCasings1, 10))
-                .addElement('D', ofBlock(GregTechAPI.sBlockCasings1, 10))
+                            { "         ", "         ", "         ", "         ", "    F    ", "         ", "         ",
+                                "         ", "         " },
+                            { "         ", "         ", "         ", "         ", "    F    ", "         ", "         ",
+                                "         ", "         " },
+                            { "         ", "         ", "         ", "         ", "    F    ", "         ", "         ",
+                                "         ", "         " },
+                            { "         ", "         ", "         ", "         ", "    F    ", "         ", "         ",
+                                "         ", "         " },
+                            { "         ", "         ", "         ", "    F    ", "   FCF   ", "    F    ", "         ",
+                                "         ", "         " },
+                            { "         ", "         ", "         ", "    F    ", "   FCF   ", "    F    ", "         ",
+                                "         ", "         " },
+                            { "         ", "         ", "         ", "    F    ", "   FCF   ", "    F    ", "         ",
+                                "         ", "         " },
+                            { "         ", "         ", "         ", "   EFE   ", "   FCF   ", "   EFE   ", "         ",
+                                "         ", "         " },
+                            { "         ", "         ", "  FD DF  ", "  DCBCD  ", "   BCB   ", "  DCBCD  ", "  FD DF  ",
+                                "         ", "         " },
+                            { "         ", "   B B   ", "  FB~BF  ", " BB   BB ", "  F C F  ", " BB   BB ", "  FBFBF  ",
+                                "   B B   ", "         " },
+                            { "   B B   ", "  BBBBB  ", " BFFFFFB ", "BBF   FBB", " BF C FB ", "BBF   FBB", " BFFFFFB ",
+                                "  BBBBB  ", "   B B   " } }))
                 .addElement(
-                    'E',
+                    'B',
                     ofChain(
                         buildHatchAdder(MTECrustSteamBorer.class).adder(MTESteamMultiBase::addToMachineList)
                             .hatchIds(31040, MetaTileEntityID.PRESSURE_STEAM_HATCH.ID)
@@ -157,7 +208,59 @@ public class MTECrustSteamBorer extends MTESteamMultiBase<MTECrustSteamBorer> im
                             .buildAndChain(
                                 onElementPass(
                                     MTECrustSteamBorer::onCasingAdded,
-                                    ofBlock(GregTechAPI.sBlockCasings1, 10)))))
+                                    ofBlocksTiered(
+                                        MTECrustSteamBorer::getCasingTier,
+                                        ImmutableList.of(
+                                            Pair.of(GregTechAPI.sBlockCasings1, 10),
+                                            Pair.of(GregTechAPI.sBlockCasings2, 0)),
+                                        -1,
+                                        (MTECrustSteamBorer t, Integer tier) -> t.mSetTier = tier,
+                                        (MTECrustSteamBorer t) -> t.mSetTier)))))
+                .addElement(
+                    'C',
+                    onElementPass(
+                        MTECrustSteamBorer::onCasingAdded,
+                        ofBlocksTiered(
+                            MTECrustSteamBorer::getPipeTier,
+                            ImmutableList
+                                .of(Pair.of(GregTechAPI.sBlockCasings2, 12), Pair.of(GregTechAPI.sBlockCasings2, 13)),
+                            -1,
+                            (MTECrustSteamBorer t, Integer tier) -> { if (tier > t.mSetTier) t.mSetTier = tier; },
+                            (MTECrustSteamBorer t) -> t.mSetTier)))
+                .addElement(
+                    'D',
+                    onElementPass(
+                        MTECrustSteamBorer::onCasingAdded,
+                        ofBlocksTiered(
+                            MTECrustSteamBorer::getGearTier,
+                            ImmutableList
+                                .of(Pair.of(GregTechAPI.sBlockCasings2, 2), Pair.of(GregTechAPI.sBlockCasings2, 3)),
+                            -1,
+                            (MTECrustSteamBorer t, Integer tier) -> { if (tier > t.mSetTier) t.mSetTier = tier; },
+                            (MTECrustSteamBorer t) -> t.mSetTier)))
+                .addElement(
+                    'E',
+                    onElementPass(
+                        MTECrustSteamBorer::onCasingAdded,
+                        ofBlocksTiered(
+                            MTECrustSteamBorer::getFireboxTier,
+                            ImmutableList
+                                .of(Pair.of(GregTechAPI.sBlockCasings3, 13), Pair.of(GregTechAPI.sBlockCasings3, 14)),
+                            -1,
+                            (MTECrustSteamBorer t, Integer tier) -> { if (tier > t.mSetTier) t.mSetTier = tier; },
+                            (MTECrustSteamBorer t) -> t.mSetTier)))
+                .addElement(
+                    'F',
+                    onElementPass(
+                        MTECrustSteamBorer::onCasingAdded,
+                        ofBlocksTiered(
+                            MTECrustSteamBorer::getFrameTier,
+                            ImmutableList.of(
+                                Pair.of(GregTechAPI.sBlockFrames, Materials.Bronze.mMetaItemSubID),
+                                Pair.of(GregTechAPI.sBlockFrames, Materials.Steel.mMetaItemSubID)),
+                            -1,
+                            (MTECrustSteamBorer t, Integer tier) -> { if (tier > t.mSetTier) t.mSetTier = tier; },
+                            (MTECrustSteamBorer t) -> t.mSetTier)))
                 .build();
         }
         return STRUCTURE_DEFINITION;
@@ -190,6 +293,7 @@ public class MTECrustSteamBorer extends MTESteamMultiBase<MTECrustSteamBorer> im
     @Override
     public boolean checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack) {
         mCountCasing = 0;
+        mSetTier = -1;
 
         if (!checkPiece(STRUCTURE_PIECE_MAIN, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET)) {
             return false;
@@ -302,7 +406,7 @@ public class MTECrustSteamBorer extends MTESteamMultiBase<MTECrustSteamBorer> im
                     + EnumChatFormatting.RESET)
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.crust_steam_borer.pressure_hatch"))
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.crust_steam_borer.dim_limit"))
-            .beginStructureBlock(7, 9, 7, false)
+            .beginStructureBlock(9, 11, 9, false)
             .addOutputBus(
                 EnumChatFormatting.GOLD + "1"
                     + EnumChatFormatting.GRAY
