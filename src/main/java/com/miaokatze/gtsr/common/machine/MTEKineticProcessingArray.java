@@ -192,10 +192,10 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
     @SuppressWarnings({ "rawtypes", "unchecked" })
     private static final List<Pair<Block, Integer>> ALLOWED_CASINGS = ImmutableList.of(
         Pair.of(GregTechAPI.sBlockCasings2, 0),
+        Pair.of(GregTechAPI.sBlockCasings1, 2),
         Pair.of(GregTechAPI.sBlockCasings4, 1),
         Pair.of(GregTechAPI.sBlockCasings4, 2),
         Pair.of(GregTechAPI.sBlockCasings4, 0),
-        Pair.of(GregTechAPI.sBlockCasings8, 5),
         Pair.of(GregTechAPI.sBlockCasings8, 6),
         Pair.of(GregTechAPI.sBlockCasings8, 7));
 
@@ -216,19 +216,19 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
         Pair.of(GregTechAPI.sBlockFrames, Materials.StainlessSteel.mMetaItemSubID),
         Pair.of(GregTechAPI.sBlockFrames, Materials.Titanium.mMetaItemSubID),
         Pair.of(GregTechAPI.sBlockFrames, Materials.TungstenSteel.mMetaItemSubID),
-        Pair.of(GregTechAPI.sBlockFrames, Materials.Iridium.mMetaItemSubID),
-        Pair.of(GregTechAPI.sBlockFrames, Materials.NaquadahAlloy.mMetaItemSubID));
+        Pair.of(GregTechAPI.sBlockFrames, Materials.Palladium.mMetaItemSubID),
+        Pair.of(GregTechAPI.sBlockFrames, Materials.Iridium.mMetaItemSubID));
 
     @Nullable
     public static Integer getCasingTier(Block block, int meta) {
         if (block == GregTechAPI.sBlockCasings2 && meta == 0) return 1;
+        if (block == GregTechAPI.sBlockCasings1 && meta == 2) return 2;
         if (block == GregTechAPI.sBlockCasings4) {
-            if (meta == 1) return 2;
-            if (meta == 2) return 3;
-            if (meta == 0) return 4;
+            if (meta == 1) return 3;
+            if (meta == 2) return 4;
+            if (meta == 0) return 5;
         }
         if (block == GregTechAPI.sBlockCasings8) {
-            if (meta == 5) return 5;
             if (meta == 6) return 6;
             if (meta == 7) return 7;
         }
@@ -254,12 +254,12 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
     public static Integer getFrameTier(Block block, int meta) {
         if (block == GregTechAPI.sBlockFrames) {
             if (meta == Materials.Steel.mMetaItemSubID) return 1;
-            if (meta == Materials.Titanium.mMetaItemSubID) return 2;
-            if (meta == Materials.TungstenSteel.mMetaItemSubID) return 3;
-            if (meta == Materials.Chrome.mMetaItemSubID) return 4;
-            if (meta == Materials.Iridium.mMetaItemSubID) return 5;
-            if (meta == Materials.Osmium.mMetaItemSubID) return 6;
-            if (meta == Materials.NaquadahAlloy.mMetaItemSubID) return 7;
+            if (meta == Materials.Aluminium.mMetaItemSubID) return 2;
+            if (meta == Materials.StainlessSteel.mMetaItemSubID) return 3;
+            if (meta == Materials.Titanium.mMetaItemSubID) return 4;
+            if (meta == Materials.TungstenSteel.mMetaItemSubID) return 5;
+            if (meta == Materials.Palladium.mMetaItemSubID) return 6;
+            if (meta == Materials.Iridium.mMetaItemSubID) return 7;
         }
         return null;
     }
@@ -687,13 +687,13 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
             case 1:
                 return GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings2, 0);
             case 2:
-                return GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings4, 1);
+                return GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings1, 2);
             case 3:
-                return GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings4, 2);
+                return GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings4, 1);
             case 4:
-                return GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings4, 0);
+                return GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings4, 2);
             case 5:
-                return GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings8, 5);
+                return GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings4, 0);
             case 6:
                 return GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings8, 6);
             case 7:
