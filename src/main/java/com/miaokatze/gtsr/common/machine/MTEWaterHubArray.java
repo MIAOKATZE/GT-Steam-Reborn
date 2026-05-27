@@ -86,11 +86,6 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
                 'A',
                 ofChain(
                     buildHatchAdder(MTEWaterHubArray.class)
-                        .atLeast(WaterHubHatchElement.WaterInput, WaterHubHatchElement.WaterOutput)
-                        .casingIndex(CASING_INDEX)
-                        .dot(1)
-                        .build(),
-                    buildHatchAdder(MTEWaterHubArray.class)
                         .atLeast(WaterHubStorageElement.HubUnit, WaterHubStorageElement.ReinforcedHubUnit)
                         .casingIndex(CASING_INDEX)
                         .dot(2)
@@ -98,15 +93,22 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
                             onElementPass(MTEWaterHubArray::onCasingAdded, ofBlock(GregTechAPI.sBlockCasings1, 10)))))
             .addElement(
                 'C',
-                onElementPass(
-                    MTEWaterHubArray::onCasingAdded,
-                    ofBlocksTiered(
-                        MTEWaterHubArray::getCasingTier,
-                        ImmutableList
-                            .of(Pair.of(GregTechAPI.sBlockCasings1, 10), Pair.of(GregTechAPI.sBlockCasings2, 0)),
-                        -1,
-                        (MTEWaterHubArray t, Integer tier) -> t.mSetTier = Math.max(t.mSetTier, tier),
-                        (MTEWaterHubArray t) -> t.mSetTier)))
+                ofChain(
+                    buildHatchAdder(MTEWaterHubArray.class)
+                        .atLeast(WaterHubHatchElement.WaterInput, WaterHubHatchElement.WaterOutput)
+                        .casingIndex(CASING_INDEX)
+                        .dot(1)
+                        .buildAndChain(
+                            onElementPass(
+                                MTEWaterHubArray::onCasingAdded,
+                                ofBlocksTiered(
+                                    MTEWaterHubArray::getCasingTier,
+                                    ImmutableList
+                                        .of(Pair.of(GregTechAPI.sBlockCasings1, 10),
+                                            Pair.of(GregTechAPI.sBlockCasings2, 0)),
+                                    -1,
+                                    (MTEWaterHubArray t, Integer tier) -> t.mSetTier = Math.max(t.mSetTier, tier),
+                                    (MTEWaterHubArray t) -> t.mSetTier)))))
             .addElement(
                 'D',
                 onElementPass(
