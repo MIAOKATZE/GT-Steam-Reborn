@@ -203,18 +203,18 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
                 .addShape(
                     STRUCTURE_PIECE_BASE_3,
                     transpose(
-                        new String[][] { { "EEEEBBBBBEEEE", "E EBBBBBBBE E", "EEB       BEE", "EB DDDDDDD BE",
+                        new String[][] { { "EEEEBBBBBEEEE", "E EBBBBBBBE E", "EEB       BEE", "EB BBBBBBB BE",
                             "BB DCCCCCD BB", "BB DCDDDCD BB", "BB DCDDDCD BB", "BB DCDDDCD BB", "BB DCCCCCD BB",
-                            "EB DDDDDDD BE", "EEB       BEE", "E EBBBBBBBE E", "EEEEBBBBBEEEE" } }))
+                            "EB BBBBBBB BE", "EEB       BEE", "E EBBBBBBBE E", "EEEEBBBBBEEEE" } }))
                 .addShape(
                     STRUCTURE_PIECE_STACK,
                     transpose(
                         new String[][] {
-                            { "E   DDDDD   E", "  EBBBBBBBE  ", " EB       BE ", " B DDDDDDD B ", "DB DCCCCCD BD",
-                                "DB DCDDDCD BD", "DB DCDDDCD BD", "DB DCDDDCD BD", "DB DCCCCCD BD", " B DDDDDDD B ",
-                                " EB       BE ", "  EBBBBBBBE  ", "E   DDDDD   E" },
-                            { "E   BBBBB   E", "  EBBBBBBBE  ", " EB       BE ", " B DDDDDDD B ", "BB DCCCCCD BB",
-                                "BB DCDDDCD BB", "BB DCDDDCD BB", "BB DCDDDCD BB", "BB DCCCCCD BB", " B DDDDDDD B ",
+                            { "E   BBBBB   E", "  EBBBBBBBE  ", " EB       BE ", " B BBBBBBB B ", "BB DCCCCCD BB",
+                                "BB DCDDDCD BB", "BB DCDDDCD BB", "BB DCDDDCD BB", "BB DCCCCCD BB", " B BBBBBBB B ",
+                                " EB       BE ", "  EBBBBBBBE  ", "E   BBBBB   E" },
+                            { "E   BBBBB   E", "  EBBBBBBBE  ", " EB       BE ", " B BBBBBBB B ", "BB BCCCCCB BB",
+                                "BB BCBBBCB BB", "BB BCBBBCB BB", "BB BCBBBCB BB", "BB BCCCCCB BB", " B BBBBBBB B ",
                                 " EB       BE ", "  EBBBBBBBE  ", "E   BBBBB   E" },
                             { "E           E", "  E BBBB  E  ", " E BBEEEBB E ", "  BBEEEEEBB  ", "  BEEEEEEEB  ",
                                 " BEEEEEEEEEB ", " BEEEEDEEEEB ", " BEEEEEEEEEB ", "  BEEEEEEEB  ", "  BBEEEEEBB  ",
@@ -226,11 +226,11 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
                     STRUCTURE_PIECE_STACK_HINT,
                     transpose(
                         new String[][] {
-                            { "E   DDDDD   E", "  EBBBBBBBE  ", " EB       BE ", " B DDDDDDD B ", "DB DCCCCCD BD",
-                                "DB DCDDDCD BD", "DB DCDDDCD BD", "DB DCDDDCD BD", "DB DCCCCCD BD", " B DDDDDDD B ",
-                                " EB       BE ", "  EBBBBBBBE  ", "E   DDDDD   E" },
-                            { "E   BBBBB   E", "  EBBBBBBBE  ", " EB       BE ", " B DDDDDDD B ", "BB DCCCCCD BB",
-                                "BB DCDDDCD BB", "BB DCDDDCD BB", "BB DCDDDCD BB", "BB DCCCCCD BB", " B DDDDDDD B ",
+                            { "E   BBBBB   E", "  EBBBBBBBE  ", " EB       BE ", " B BBBBBBB B ", "BB DCCCCCD BB",
+                                "BB DCDDDCD BB", "BB DCDDDCD BB", "BB DCDDDCD BB", "BB DCCCCCD BB", " B BBBBBBB B ",
+                                " EB       BE ", "  EBBBBBBBE  ", "E   BBBBB   E" },
+                            { "E   BBBBB   E", "  EBBBBBBBE  ", " EB       BE ", " B BBBBBBB B ", "BB BCCCCCB BB",
+                                "BB BCBBBCB BB", "BB BCBBBCB BB", "BB BCBBBCB BB", "BB BCCCCCB BB", " B BBBBBBB B ",
                                 " EB       BE ", "  EBBBBBBBE  ", "E   BBBBB   E" },
                             { "E           E", "  E BBBB  E  ", " E BBEEEBB E ", "  BBEEEEEBB  ", "  BEEEEEEEB  ",
                                 " BEEEEEEEEEB ", " BEEEEDEEEEB ", " BEEEEEEEEEB ", "  BEEEEEEEB  ", "  BBEEEEEBB  ",
@@ -241,9 +241,9 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
                 .addShape(
                     STRUCTURE_PIECE_CAP_1,
                     transpose(
-                        new String[][] { { "E  DDB~BDD  E", "  BBBBCBBBB  ", " BBDDDCDDDBB ", "DBDCDDCDDCDBD",
-                            "DBDDCDCDCDDBD", "DBDDDCCCDDDBD", "DBCCCCDCCCCBD", "DBDDDCCCDDDBD", "DBDDCDCDCDDBD",
-                            "DBDCDDCDDCDBD", " BBDDDCDDDBB ", "  BBBBBBBBB  ", "E  DDDDDD   E" } }))
+                        new String[][] { { "E  BBB~BBB  E", "  BBBBCBBBB  ", " BBBDBCBDBBB ", "BBBCDCDDCBBB",
+                            "BBBBCDCDCBBBB", "BBBBBCCCBBBBB", "BBCCCCDCCCCBB", "BBBBBCCCBBBBB", "BBBBCDCDCBBBB",
+                            "BBBCDCDDCBBB", " BBBDBCBDBBB ", "  BBBBBBBBB  ", "E  BBDDBB   E" } }))
                 .addShape(
                     STRUCTURE_PIECE_CAP_2,
                     transpose(

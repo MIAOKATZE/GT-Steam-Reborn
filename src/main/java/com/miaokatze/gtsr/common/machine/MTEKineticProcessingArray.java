@@ -123,7 +123,7 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
                         new String[][] {
                             { "  BBB  ", " BDDDB ", "BDCBCDB", "BDBBBDB", "BDCBCDB", " BDDDB ", "  BBB  " },
                             { "       ", " EB BE ", " BCBCB ", "  BDB  ", " BCBCB ", " EB BE ", "       " },
-                            { "       ", " E   E ", "  C~C  ", "  BDB  ", "  CBC  ", " E   E ", "       " },
+                            { "       ", " E   E ", "  B~B  ", "  BDB  ", "  BBB  ", " E   E ", "       " },
                             { "       ", " EB BE ", " BBBBB ", "  BDB  ", " BBBBB ", " EB BE ", "       " },
                             { "  BBB  ", " BBBBB ", "BBBBBBB", "BBBBBBB", "BBBBBBB", " BBBBB ", "  BBB  " } }))
                 .addElement(
@@ -202,12 +202,12 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
     @SuppressWarnings({ "rawtypes", "unchecked" })
     private static final List<Pair<Block, Integer>> PIPE_CASINGS = ImmutableList.of(
         Pair.of(GregTechAPI.sBlockCasings2, 13),
-        Pair.of(GregTechAPI.sBlockCasings4, 11),
-        Pair.of(GregTechAPI.sBlockCasings8, 1));
+        Pair.of(GregTechAPI.sBlockCasings2, 14),
+        Pair.of(GregTechAPI.sBlockCasings2, 15));
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
     private static final List<Pair<Block, Integer>> GEAR_CASINGS = ImmutableList
-        .of(Pair.of(GregTechAPI.sBlockCasings2, 3), Pair.of(GregTechAPI.sBlockCasings4, 9));
+        .of(Pair.of(GregTechAPI.sBlockCasings2, 3), Pair.of(GregTechAPI.sBlockCasings2, 4));
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
     private static final List<Pair<Block, Integer>> FRAME_CASINGS = ImmutableList.of(
@@ -238,15 +238,15 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
     @Nullable
     public static Integer getPipeTier(Block block, int meta) {
         if (block == GregTechAPI.sBlockCasings2 && meta == 13) return 1;
-        if (block == GregTechAPI.sBlockCasings4 && meta == 11) return 2;
-        if (block == GregTechAPI.sBlockCasings8 && meta == 1) return 3;
+        if (block == GregTechAPI.sBlockCasings2 && meta == 14) return 2;
+        if (block == GregTechAPI.sBlockCasings2 && meta == 15) return 3;
         return null;
     }
 
     @Nullable
     public static Integer getGearTier(Block block, int meta) {
         if (block == GregTechAPI.sBlockCasings2 && meta == 3) return 1;
-        if (block == GregTechAPI.sBlockCasings4 && meta == 9) return 2;
+        if (block == GregTechAPI.sBlockCasings2 && meta == 4) return 2;
         return null;
     }
 
