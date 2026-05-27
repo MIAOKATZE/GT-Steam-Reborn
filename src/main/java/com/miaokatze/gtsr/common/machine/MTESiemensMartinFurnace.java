@@ -33,6 +33,7 @@ import com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps;
 import com.miaokatze.gtsr.common.machine.base.MTEHatchPressureSteamInput;
 
 import gregtech.api.GregTechAPI;
+import gregtech.api.enums.Materials;
 import gregtech.api.enums.Textures;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
@@ -55,9 +56,9 @@ public class MTESiemensMartinFurnace extends MTEEnhancedMultiBlockBase<MTESiemen
     implements ISurvivalConstructable {
 
     private static final String STRUCTURE_PIECE_MAIN = "main";
-    private static final int HORIZONTAL_OFF_SET = 1;
-    private static final int VERTICAL_OFF_SET = 1;
-    private static final int DEPTH_OFF_SET = 0;
+    private static final int HORIZONTAL_OFF_SET = 7;
+    private static final int VERTICAL_OFF_SET = 16;
+    private static final int DEPTH_OFF_SET = 3;
 
     private static final int SUPERHEATED_STEAM_COST = 1_200;
     private static final double TEMPERATURE_INCREMENT = 0.00025d;
@@ -121,9 +122,67 @@ public class MTESiemensMartinFurnace extends MTEEnhancedMultiBlockBase<MTESiemen
                 .addShape(
                     STRUCTURE_PIECE_MAIN,
                     transpose(
-                        new String[][] { { "CCC", "CCC", "CCC" }, { "C~C", "C C", "CCC" }, { "CCC", "CCC", "CCC" } }))
+                        new String[][] {
+                            { "              ", "              ", "              ", "      BBBG    ", "     B   BG   ",
+                                "    B     B   ", "    B     B   ", "    B     B   ", "     B   BG   ",
+                                "      BBBG    ", "              ", "              " },
+                            { "              ", "              ", "              ", "      BBBG    ", "     BGGGBG   ",
+                                "    BGGGGGB   ", "    BGGGGGB   ", "    BGGGGGB   ", "     BGGGBG   ",
+                                "      BBBG    ", "              ", "              " },
+                            { "              ", "              ", "              ", "      BBBG    ", "     B   BG   ",
+                                "    B     B   ", "    B     B   ", "    B     B   ", "     B   BG   ",
+                                "      BBBG    ", "              ", "              " },
+                            { "              ", "              ", "              ", "      BBBG    ", "     B   BG   ",
+                                "    B     B   ", "    B     B   ", "    B     B   ", "     B   BG   ",
+                                "      BBBG    ", "              ", "              " },
+                            { "              ", "              ", "              ", "      BBBG    ", "     B   BG   ",
+                                "    B     B   ", "    B     B   ", "    B     B   ", "     B   BG   ",
+                                "      BBBG    ", "              ", "              " },
+                            { "              ", "              ", "              ", "      BBBG    ", "     B   BG   ",
+                                "    B     B   ", "    B     B   ", "    B     B   ", "     B   BG   ",
+                                "      BBBG    ", "              ", "              " },
+                            { "              ", "              ", "              ", "      BBBG    ", "     B   BG   ",
+                                "    B     B   ", "    B     B   ", "    B     B   ", "     B   BG   ",
+                                "      BBBG    ", "              ", "              " },
+                            { " GFG          ", " F F          ", "F   F         ", "F   F BBBG    ", "F   FB   BG   ",
+                                "F   B     B   ", "F   B     B   ", "F   B     B   ", "F   FB   BG   ",
+                                "F   F BBBG    ", " F F          ", " GFG          " },
+                            { " GFG          ", " FGF          ", "FGGGF         ", "FGGGF BBBG    ", "FGGGFB   BG   ",
+                                "FGGGB     B   ", "FGGGB     B   ", "FGGGB     B   ", "FGGGFB   BG   ",
+                                "FGGGF BBBG    ", " FGF          ", " GFG          " },
+                            { " GFG          ", " F F          ", "F   F         ", "F   F BBBG    ", "F   FB   BG   ",
+                                "F   B     B   ", "F   B     B   ", "F   B     B   ", "F   FB   BG   ",
+                                "F   F BBBG    ", " F F          ", " GFG          " },
+                            { " GFG          ", " F F          ", "F   F         ", "F   F BBBG    ", "F   FB   BG   ",
+                                "F   B     B   ", "F   B     B   ", "F   B     B   ", "F   FB   BG   ",
+                                "F   F BBBG    ", " F F          ", " GFG          " },
+                            { " GFG          ", " F F          ", "F   F         ", "F   F BBBG    ", "F   FB   BG   ",
+                                "F   B     B   ", "F   C     B   ", "F   B     B   ", "F   FB   BG   ",
+                                "F   F BBBG    ", " F F          ", " GFG          " },
+                            { " GFG          ", " F F          ", "F   F         ", "F   F BBBG    ", "F   FB   BG   ",
+                                "F   B     B   ", "F   C     B   ", "F   B     B   ", "F   FB   BG   ",
+                                "F   F BBBG    ", " F F          ", " GFG          " },
+                            { " GFG          ", " F F          ", "F   F         ", "F   F BBBG    ", "F   FB   BG   ",
+                                "F   B     B   ", "F   C     B   ", "F   B     B   ", "F   FB   BG   ",
+                                "F   F BBBG    ", " F F          ", " GFG          " },
+                            { " GFG          ", " F F          ", "F   F         ", "F   F BBBG    ", "F   FB   BGF  ",
+                                "F   B     BFF ", "F   C     BFFF", "F   B     BFF ", "F   FB   BGF  ",
+                                "F   F BBBG    ", " F F          ", " GFG          " },
+                            { " GFG          ", " F F          ", "F   F     BBB ", "F   F BBBGBBB ", "F   FB   BBFB ",
+                                "F   B     BFF ", "F   C     CCFF", "F   B     BFF ", "F   FB   BGF  ",
+                                "F   F BBBG    ", " F F          ", " GFG          " },
+                            { " GFG          ", " F F      BBB ", "F   F     BCB ", "F   F B~BGBCB ", "F   FB   BDCD ",
+                                "F   B     BCF ", "F   C     CCFF", "F   B     BFF ", "F   FB   BGF  ",
+                                "F   F BBBG    ", " F F          ", " GFG          " },
+                            { " GFG          ", " F F      BBB ", "F   F BBB BCB ", "F   F BBBGBCB ", "F   FB   BDCD ",
+                                "F   B     BCF ", "F   B     CCFF", "F   B     BFF ", "F   FB   BGF  ",
+                                "F   F BBBG    ", " F F          ", " GFG          " },
+                            { " GEG          ", " EEE  BBB BBB ", "EEEEE BBB BBB ", "EEEEE EEEGBBB ", "EEEEEEEEEEDED ",
+                                "EEEEEEEEEEEEE ", "EEEEEEEEEEEEEE", "EEEEEEEEEEEEE ", "EEEEEEEEEEGE  ",
+                                "EEEEE EEEG    ", " EEE          ", " GEG          " } }))
+                .addElement('~', onElementPass(x -> {}, ofBlock(GregTechAPI.sBlockCasings2, 0)))
                 .addElement(
-                    'C',
+                    'B',
                     ofChain(
                         buildHatchAdder(MTESiemensMartinFurnace.class)
                             .adder(MTESiemensMartinFurnace::addPressureSteamToMachineList)
@@ -139,6 +198,11 @@ public class MTESiemensMartinFurnace extends MTEEnhancedMultiBlockBase<MTESiemen
                             .casingIndex(casingIndex)
                             .dot(1)
                             .buildAndChain(onElementPass(x -> {}, ofBlock(GregTechAPI.sBlockCasings2, 0)))))
+                .addElement('C', ofBlock(GregTechAPI.sBlockCasings2, 13))
+                .addElement('D', ofBlock(GregTechAPI.sBlockCasings2, 3))
+                .addElement('E', ofBlock(GregTechAPI.sBlockCasings3, 14))
+                .addElement('F', ofBlock(GregTechAPI.sBlockCasings4, 15))
+                .addElement('G', ofBlock(GregTechAPI.sBlockFrames, Materials.Steel.mMetaItemSubID))
                 .build();
         }
         return STRUCTURE_DEFINITION;
@@ -366,41 +430,20 @@ public class MTESiemensMartinFurnace extends MTEEnhancedMultiBlockBase<MTESiemen
     protected MultiblockTooltipBuilder createTooltip() {
         MultiblockTooltipBuilder tt = new MultiblockTooltipBuilder();
         tt.addMachineType(getMachineType())
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.siemens_martin.info"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.siemens_martin.superheated"))
-            .addInfo(
-                EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.siemens_martin.steam_cost")
-                    + EnumChatFormatting.WHITE
-                    + GTUtility.formatNumbers(SUPERHEATED_STEAM_COST)
-                    + " L/t"
-                    + EnumChatFormatting.RESET)
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.siemens_martin.temperature"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.siemens_martin.parallel"))
-            .beginStructureBlock(3, 3, 3, false)
-            .addInputHatch(
-                EnumChatFormatting.GOLD + "1"
-                    + EnumChatFormatting.GRAY
-                    + " "
-                    + StatCollector.translateToLocal("gtsr.tooltip.siemens_martin.any_casing"),
-                1)
-            .addInputBus(
-                EnumChatFormatting.GOLD + "1"
-                    + EnumChatFormatting.GRAY
-                    + " "
-                    + StatCollector.translateToLocal("gtsr.tooltip.siemens_martin.any_casing"),
-                1)
-            .addOutputBus(
-                EnumChatFormatting.GOLD + "1"
-                    + EnumChatFormatting.GRAY
-                    + " "
-                    + StatCollector.translateToLocal("gtsr.tooltip.siemens_martin.any_casing"),
-                1)
-            .addStructureInfo(
-                EnumChatFormatting.GOLD + "26"
-                    + EnumChatFormatting.GRAY
-                    + " "
-                    + StatCollector.translateToLocal("gtsr.tooltip.siemens_martin.casing"))
-            .toolTipFinisher();
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.siemens_martin_furnace.0"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.siemens_martin_furnace.1"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.siemens_martin_furnace.2"))
+            .addSeparator()
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.siemens_martin_furnace.3"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.siemens_martin_furnace.4"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.siemens_martin_furnace.5"))
+            .beginStructureBlock(12, 19, 14, false)
+            .addStructureInfo(StatCollector.translateToLocal("gtsr.tooltip.siemens_martin_furnace.ctrl"))
+            .addStructureInfo(StatCollector.translateToLocal("gtsr.tooltip.siemens_martin_furnace.casing"))
+            .addInputHatch(StatCollector.translateToLocal("gtsr.tooltip.siemens_martin_furnace.pressure_hatch"), 1)
+            .addInputBus(StatCollector.translateToLocal("gtsr.tooltip.siemens_martin_furnace.input_bus"), 1)
+            .addOutputBus(StatCollector.translateToLocal("gtsr.tooltip.siemens_martin_furnace.output_bus"), 1)
+            .toolTipFinisher("GTSR");
         return tt;
     }
 }

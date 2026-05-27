@@ -55,9 +55,9 @@ import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTESteam
 public class MTEVeinSteamPyrolyzer extends MTESteamMultiBase<MTEVeinSteamPyrolyzer> implements ISurvivalConstructable {
 
     private static final String STRUCTURE_PIECE_MAIN = "main";
-    private static final int HORIZONTAL_OFF_SET = 1;
-    private static final int VERTICAL_OFF_SET = 4;
-    private static final int DEPTH_OFF_SET = 0;
+    private static final int HORIZONTAL_OFF_SET = 3;
+    private static final int VERTICAL_OFF_SET = 5;
+    private static final int DEPTH_OFF_SET = 1;
 
     private static IStructureDefinition<MTEVeinSteamPyrolyzer> STRUCTURE_DEFINITION = null;
 
@@ -89,11 +89,16 @@ public class MTEVeinSteamPyrolyzer extends MTESteamMultiBase<MTEVeinSteamPyrolyz
     }
 
     @Nullable
-    public static Integer getFrameTier(Block block, int meta) {
-        if (block == GregTechAPI.sBlockFrames) {
-            if (meta == Materials.Bronze.mMetaItemSubID) return 1;
-            if (meta == Materials.Steel.mMetaItemSubID) return 2;
-        }
+    public static Integer getCasingTier(Block block, int meta) {
+        if (block == GregTechAPI.sBlockCasings1 && meta == 10) return 1;
+        if (block == GregTechAPI.sBlockCasings2 && meta == 0) return 2;
+        return null;
+    }
+
+    @Nullable
+    public static Integer getGearTier(Block block, int meta) {
+        if (block == GregTechAPI.sBlockCasings2 && meta == 2) return 1;
+        if (block == GregTechAPI.sBlockCasings2 && meta == 3) return 2;
         return null;
     }
 
@@ -107,9 +112,9 @@ public class MTEVeinSteamPyrolyzer extends MTESteamMultiBase<MTEVeinSteamPyrolyz
     }
 
     @Nullable
-    public static Integer getCasingTier(Block block, int meta) {
-        if (block == GregTechAPI.sBlockCasings1 && meta == 10) return 1;
-        if (block == GregTechAPI.sBlockCasings2 && meta == 0) return 2;
+    public static Integer getFrameTier(Block block, int meta) {
+        if (block == GregTechAPI.sBlockFrames && meta == Materials.Bronze.mMetaItemSubID) return 1;
+        if (block == GregTechAPI.sBlockFrames && meta == Materials.Steel.mMetaItemSubID) return 2;
         return null;
     }
 
@@ -145,29 +150,16 @@ public class MTEVeinSteamPyrolyzer extends MTESteamMultiBase<MTEVeinSteamPyrolyz
                 .addShape(
                     STRUCTURE_PIECE_MAIN,
                     transpose(
-                        new String[][] { { "   ", " f ", "   " }, { " f ", "fcf", " f " }, { " c ", "ccc", " c " },
-                            { " c ", "ccc", " c " }, { "b~b", "bbb", "bbb" } }))
+                        new String[][] {
+                            { "       ", "       ", "       ", "   E   ", "       ", "       ", "       " },
+                            { "       ", "       ", "       ", "   E   ", "       ", "       ", "       " },
+                            { "       ", "       ", "   E   ", "  EDE  ", "   E   ", "       ", "       " },
+                            { "       ", "       ", "   E   ", "  EDE  ", "   E   ", "       ", "       " },
+                            { "       ", "       ", "   D   ", "  DDD  ", "   D   ", "       ", "       " },
+                            { "       ", "   ~   ", "  DDD  ", " CDDDC ", "  DDD  ", "   C   ", "       " },
+                            { "   B   ", "  DBD  ", " DDDDD ", "BBDDDBB", " DDDDD ", "  DBD  ", "   B   " } }))
                 .addElement(
-                    'f',
-                    ofBlocksTiered(
-                        MTEVeinSteamPyrolyzer::getFrameTier,
-                        ImmutableList.of(
-                            Pair.of(GregTechAPI.sBlockFrames, Materials.Bronze.mMetaItemSubID),
-                            Pair.of(GregTechAPI.sBlockFrames, Materials.Steel.mMetaItemSubID)),
-                        -1,
-                        (MTEVeinSteamPyrolyzer t, Integer tier) -> t.mSetTier = tier,
-                        (MTEVeinSteamPyrolyzer t) -> t.mSetTier))
-                .addElement(
-                    'c',
-                    ofBlocksTiered(
-                        MTEVeinSteamPyrolyzer::getFireboxTier,
-                        ImmutableList
-                            .of(Pair.of(GregTechAPI.sBlockCasings3, 13), Pair.of(GregTechAPI.sBlockCasings3, 14)),
-                        -1,
-                        (MTEVeinSteamPyrolyzer t, Integer tier) -> t.mSetTier = tier,
-                        (MTEVeinSteamPyrolyzer t) -> t.mSetTier))
-                .addElement(
-                    'b',
+                    'B',
                     ofChain(
                         buildHatchAdder(MTEVeinSteamPyrolyzer.class).adder(MTESteamMultiBase::addToMachineList)
                             .hatchIds(31040, MetaTileEntityID.PRESSURE_STEAM_HATCH.ID)
@@ -189,6 +181,40 @@ public class MTEVeinSteamPyrolyzer extends MTESteamMultiBase<MTEVeinSteamPyrolyz
                                         -1,
                                         (MTEVeinSteamPyrolyzer t, Integer tier) -> t.mSetTier = tier,
                                         (MTEVeinSteamPyrolyzer t) -> t.mSetTier)))))
+                .addElement(
+                    'C',
+                    onElementPass(
+                        MTEVeinSteamPyrolyzer::onCasingAdded,
+                        ofBlocksTiered(
+                            MTEVeinSteamPyrolyzer::getGearTier,
+                            ImmutableList
+                                .of(Pair.of(GregTechAPI.sBlockCasings2, 2), Pair.of(GregTechAPI.sBlockCasings2, 3)),
+                            -1,
+                            (MTEVeinSteamPyrolyzer t, Integer tier) -> { if (tier > t.mSetTier) t.mSetTier = tier; },
+                            (MTEVeinSteamPyrolyzer t) -> t.mSetTier)))
+                .addElement(
+                    'D',
+                    onElementPass(
+                        MTEVeinSteamPyrolyzer::onCasingAdded,
+                        ofBlocksTiered(
+                            MTEVeinSteamPyrolyzer::getFireboxTier,
+                            ImmutableList
+                                .of(Pair.of(GregTechAPI.sBlockCasings3, 13), Pair.of(GregTechAPI.sBlockCasings3, 14)),
+                            -1,
+                            (MTEVeinSteamPyrolyzer t, Integer tier) -> { if (tier > t.mSetTier) t.mSetTier = tier; },
+                            (MTEVeinSteamPyrolyzer t) -> t.mSetTier)))
+                .addElement(
+                    'E',
+                    onElementPass(
+                        MTEVeinSteamPyrolyzer::onCasingAdded,
+                        ofBlocksTiered(
+                            MTEVeinSteamPyrolyzer::getFrameTier,
+                            ImmutableList.of(
+                                Pair.of(GregTechAPI.sBlockFrames, Materials.Bronze.mMetaItemSubID),
+                                Pair.of(GregTechAPI.sBlockFrames, Materials.Steel.mMetaItemSubID)),
+                            -1,
+                            (MTEVeinSteamPyrolyzer t, Integer tier) -> { if (tier > t.mSetTier) t.mSetTier = tier; },
+                            (MTEVeinSteamPyrolyzer t) -> t.mSetTier)))
                 .build();
         }
         return STRUCTURE_DEFINITION;
@@ -367,8 +393,66 @@ public class MTEVeinSteamPyrolyzer extends MTESteamMultiBase<MTEVeinSteamPyrolyz
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.vein_steam_pyrolyzer.5"))
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.vein_steam_pyrolyzer.6"))
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.vein_steam_pyrolyzer.7"))
-            .beginStructureBlock(3, 5, 3, false)
-            .addStructureInfo(StatCollector.translateToLocal("gtsr.tooltip.vein_steam_pyrolyzer.12"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.vein_steam_pyrolyzer.pressure_hatch"))
+            .beginStructureBlock(7, 7, 7, false)
+            .addOutputBus(
+                EnumChatFormatting.GOLD + "1"
+                    + EnumChatFormatting.GRAY
+                    + " "
+                    + StatCollector.translateToLocal("gtsr.tooltip.vein_steam_pyrolyzer.any_casing"),
+                1)
+            .addStructureInfo(
+                EnumChatFormatting.WHITE + "Pressure Steam Input Hatch "
+                    + EnumChatFormatting.GOLD
+                    + "1"
+                    + EnumChatFormatting.GRAY
+                    + " "
+                    + StatCollector.translateToLocal("gtsr.tooltip.vein_steam_pyrolyzer.any_casing"))
+            .addStructureInfo("")
+            .addStructureInfo(EnumChatFormatting.BLUE + "Bronze " + EnumChatFormatting.DARK_PURPLE + "Tier")
+            .addStructureInfo(
+                EnumChatFormatting.GOLD + "8"
+                    + EnumChatFormatting.GRAY
+                    + " "
+                    + StatCollector.translateToLocal("gtsr.tooltip.vein_steam_pyrolyzer.bronze_casing"))
+            .addStructureInfo(
+                EnumChatFormatting.GOLD + "33"
+                    + EnumChatFormatting.GRAY
+                    + " "
+                    + StatCollector.translateToLocal("gtsr.tooltip.vein_steam_pyrolyzer.bronze_firebox"))
+            .addStructureInfo(
+                EnumChatFormatting.GOLD + "3"
+                    + EnumChatFormatting.GRAY
+                    + " "
+                    + StatCollector.translateToLocal("gtsr.tooltip.vein_steam_pyrolyzer.bronze_gear"))
+            .addStructureInfo(
+                EnumChatFormatting.GOLD + "10"
+                    + EnumChatFormatting.GRAY
+                    + " "
+                    + StatCollector.translateToLocal("gtsr.tooltip.vein_steam_pyrolyzer.bronze_frame"))
+            .addStructureInfo("")
+            .addStructureInfo(EnumChatFormatting.BLUE + "Steel " + EnumChatFormatting.DARK_PURPLE + "Tier")
+            .addStructureInfo(
+                EnumChatFormatting.GOLD + "8"
+                    + EnumChatFormatting.GRAY
+                    + " "
+                    + StatCollector.translateToLocal("gtsr.tooltip.vein_steam_pyrolyzer.steel_casing"))
+            .addStructureInfo(
+                EnumChatFormatting.GOLD + "33"
+                    + EnumChatFormatting.GRAY
+                    + " "
+                    + StatCollector.translateToLocal("gtsr.tooltip.vein_steam_pyrolyzer.steel_firebox"))
+            .addStructureInfo(
+                EnumChatFormatting.GOLD + "3"
+                    + EnumChatFormatting.GRAY
+                    + " "
+                    + StatCollector.translateToLocal("gtsr.tooltip.vein_steam_pyrolyzer.steel_gear"))
+            .addStructureInfo(
+                EnumChatFormatting.GOLD + "10"
+                    + EnumChatFormatting.GRAY
+                    + " "
+                    + StatCollector.translateToLocal("gtsr.tooltip.vein_steam_pyrolyzer.steel_frame"))
+            .addStructureInfo(StatCollector.translateToLocal("gtsr.tooltip.vein_steam_pyrolyzer.18"))
             .toolTipFinisher();
         return tt;
     }

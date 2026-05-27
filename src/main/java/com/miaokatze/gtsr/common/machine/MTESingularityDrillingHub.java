@@ -55,8 +55,8 @@ public class MTESingularityDrillingHub extends MTESteamMultiBase<MTESingularityD
     implements ISurvivalConstructable, IHubArray {
 
     private static final String STRUCTURE_PIECE_MAIN = "main";
-    private static final int HORIZONTAL_OFF_SET = 1;
-    private static final int VERTICAL_OFF_SET = 1;
+    private static final int HORIZONTAL_OFF_SET = 9;
+    private static final int VERTICAL_OFF_SET = 10;
     private static final int DEPTH_OFF_SET = 0;
 
     private static final int BASE_STEAM_PER_SECOND = 12_000;
@@ -114,7 +114,7 @@ public class MTESingularityDrillingHub extends MTESteamMultiBase<MTESingularityD
     }
 
     protected int getCasingTextureID() {
-        return GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings1, 10);
+        return GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings2, 0);
     }
 
     protected void updateHatchTexture() {
@@ -141,9 +141,46 @@ public class MTESingularityDrillingHub extends MTESteamMultiBase<MTESingularityD
                 .addShape(
                     STRUCTURE_PIECE_MAIN,
                     transpose(
-                        new String[][] { { "CCC", "CCC", "CCC" }, { "C~C", "C C", "CCC" }, { "CCC", "CCC", "CCC" } }))
+                        new String[][] {
+                            { "            ", "            ", "            ", "            ", "            ",
+                                "            ", "            ", "  BBB   BBB ", " B   B B   B", " B   B B   B",
+                                " B   B B   B", "  BBB   BBB " },
+                            { "            ", "            ", "            ", "            ", "            ",
+                                "            ", "            ", "  BBB   BBB ", " BGGGB BGGGB", " BGGGB BGGGB",
+                                " BGGGB BGGGB", "  BBB   BBB " },
+                            { "            ", "            ", "            ", "            ", "            ",
+                                "            ", "            ", "  BBB   BBB ", " B   B B   B", " B   B B   B",
+                                " B   B B   B", "  BBB   BBB " },
+                            { "            ", "         F  ", "        FCF ", "         F  ", "            ",
+                                "            ", "            ", "  BBB   BBB ", " B   B B   B", " B   B B   B",
+                                " B   B B   B", "  BBB   BBB " },
+                            { "         F  ", "        BCB ", "       FC CF", "        BCB ", "         F  ",
+                                "            ", "            ", " GBBBG GBBBG", " B   B B   B", " B   B B   B",
+                                " B   B B   B", " GBBBG GBBBG" },
+                            { "       GBBBG", "       B C B", "       BC CB", "       B C B", "       GBBBG",
+                                "            ", "            ", " GBBBG GBBBG", " B   B B   B", " B   B B   B",
+                                " B   B B   B", " GBBBG GBBBG" },
+                            { "       GFFFG", "       F C F", "       FC CF", "       F C F", "       GFCFG",
+                                "         C  ", "         C  ", " GBBBG GBCBG", " B   B B   B", " B   CCC   B",
+                                " B   B B   B", " GBBBG GBBBG" },
+                            { "       GFFFG", "       F C F", " FFFFFFFC CF", "       F C F", "       GFCFG",
+                                "         C  ", "         C  ", " GBBBG GBCBG", " B   B B   B", " B   CCC   B",
+                                " B   B B   B", " GBBBG GBBBG" },
+                            { "       GFFFG", "GBBBBBBF C F", "DCCCCCCCC CF", "GEEEEEEF C F", "       GFCFG",
+                                "         C  ", "         C  ", " GBBBG GBCBG", " B   B B   B", " B   CCC   B",
+                                " B   B B   B", " GBBBG GBBBG" },
+                            { "       GFFFG", "GBBBBBBF C F", "DCCCCCCCC CF", "GEEEEEEF C F", "       GFCFG",
+                                "         C  ", "         C  ", " GBBBG GBCBG", " B   B B   B", " B   CCC   B",
+                                " B   B B   B", " GBBBG GBBBG" },
+                            { "       GF~FG", "GBBBBBBFEEEF", "DDDDDDDFEEEF", "GEEEEEEFEEEF", "       GFBFG",
+                                "         G  ", "         G  ", " GBBBG GBBBG", " BEEEB BEEEB", " BEEEBGBEEEB",
+                                " BEEEB BEEEB", " GBBBG GBBBG" },
+                            { " BBBBBBGBBBG", "GBBBBBBBBBBB", "BBBBBBBBBBBB", "GBBBBBBBBBBB", " BBBBBBGBBBG",
+                                "         G  ", "         G  ", " GBBBG GBBBG", " BBBBB BBBBB", " BBBBBGBBBBB",
+                                " BBBBB BBBBB", " GBBBG GBBBG" } }))
+                .addElement('~', onElementPass(x -> {}, ofBlock(GregTechAPI.sBlockCasings2, 0)))
                 .addElement(
-                    'C',
+                    'B',
                     ofChain(
                         buildHatchAdder(MTESingularityDrillingHub.class).adder(MTESteamMultiBase::addToMachineList)
                             .hatchClass(MTESteamCoolingHatch.class)
@@ -171,7 +208,14 @@ public class MTESingularityDrillingHub extends MTESteamMultiBase<MTESingularityD
                             .buildAndChain(
                                 onElementPass(
                                     MTESingularityDrillingHub::onCasingAdded,
-                                    ofBlock(GregTechAPI.sBlockCasings1, 10)))))
+                                    ofBlock(GregTechAPI.sBlockCasings2, 0)))))
+                .addElement('C', ofBlock(GregTechAPI.sBlockCasings2, 13))
+                .addElement('D', ofBlock(GregTechAPI.sBlockCasings2, 3))
+                .addElement('E', ofBlock(GregTechAPI.sBlockCasings3, 14))
+                .addElement(
+                    'F',
+                    ofBlock(cpw.mods.fml.common.registry.GameRegistry.findBlock("IC2", "blockAlloyGlass"), 0))
+                .addElement('G', ofBlock(GregTechAPI.sBlockFrames, Materials.Steel.mMetaItemSubID))
                 .build();
         }
         return STRUCTURE_DEFINITION;
@@ -553,7 +597,7 @@ public class MTESingularityDrillingHub extends MTESteamMultiBase<MTESingularityD
                     + " L/s"
                     + EnumChatFormatting.RESET)
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.singularity_drilling_hub.5"))
-            .beginStructureBlock(3, 3, 3, false)
+            .beginStructureBlock(12, 12, 12, false)
             .addController(StatCollector.translateToLocal("gtsr.tooltip.singularity_drilling_hub.ctrl"))
             .addStructureInfo(
                 EnumChatFormatting.GOLD

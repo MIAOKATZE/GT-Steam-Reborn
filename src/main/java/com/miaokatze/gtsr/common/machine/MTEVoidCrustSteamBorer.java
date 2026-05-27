@@ -5,6 +5,7 @@ import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose;
 import static gregtech.api.enums.GTValues.emptyItemStackArray;
+import static gregtech.api.enums.HatchElement.InputBus;
 import static gregtech.api.enums.HatchElement.OutputBus;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 
@@ -50,8 +51,8 @@ public class MTEVoidCrustSteamBorer extends MTESteamMultiBase<MTEVoidCrustSteamB
     implements ISurvivalConstructable {
 
     private static final String STRUCTURE_PIECE_MAIN = "main";
-    private static final int HORIZONTAL_OFF_SET = 3;
-    private static final int VERTICAL_OFF_SET = 7;
+    private static final int HORIZONTAL_OFF_SET = 4;
+    private static final int VERTICAL_OFF_SET = 10;
     private static final int DEPTH_OFF_SET = 1;
 
     protected static final int VOID_STEAM_L_EUT = 400;
@@ -167,21 +168,32 @@ public class MTEVoidCrustSteamBorer extends MTESteamMultiBase<MTEVoidCrustSteamB
                     STRUCTURE_PIECE_MAIN,
                     transpose(
                         new String[][] {
-                            { "       ", "       ", "       ", "   B   ", "       ", "       ", "       " },
-                            { "       ", "       ", "       ", "   B   ", "       ", "       ", "       " },
-                            { "       ", "       ", "       ", "   B   ", "       ", "       ", "       " },
-                            { "       ", "       ", "   B   ", "  BCB  ", "   B   ", "       ", "       " },
-                            { "       ", "       ", "   B   ", "  BCB  ", "   B   ", "       ", "       " },
-                            { "       ", "       ", "   B   ", "  BCB  ", "   B   ", "       ", "       " },
-                            { "       ", " B   B ", "  DAD  ", "  ACA  ", "  DAD  ", " B   B ", "       " },
-                            { "  D D  ", " BA~AB ", " A   A ", " B C B ", " A   A ", " BABAB ", "       " },
-                            { "  E E  ", " BBBBB ", "EB   BE", " B C B ", "EB   BE", " BBBBB ", "  E E  " } }))
-                .addElement('A', ofBlock(GregTechAPI.sBlockCasings2, 0))
-                .addElement('B', ofBlock(GregTechAPI.sBlockFrames, Materials.Steel.mMetaItemSubID))
-                .addElement('C', ofBlock(GregTechAPI.sBlockCasings2, 0))
-                .addElement('D', ofBlock(GregTechAPI.sBlockCasings2, 0))
+                            { "         ", "         ", "         ", "         ", "    F    ", "         ", "         ",
+                                "         ", "         " },
+                            { "         ", "         ", "         ", "         ", "    F    ", "         ", "         ",
+                                "         ", "         " },
+                            { "         ", "         ", "         ", "         ", "    F    ", "         ", "         ",
+                                "         ", "         " },
+                            { "         ", "         ", "         ", "         ", "    F    ", "         ", "         ",
+                                "         ", "         " },
+                            { "         ", "         ", "         ", "   F F   ", "    C    ", "   F F   ", "         ",
+                                "         ", "         " },
+                            { "         ", "         ", "         ", "   F F   ", "    C    ", "   F F   ", "         ",
+                                "         ", "         " },
+                            { "         ", "         ", "         ", "   F F   ", "    C    ", "   F F   ", "         ",
+                                "         ", "         " },
+                            { "         ", "         ", "         ", "   F F   ", "    C    ", "   F F   ", "         ",
+                                "         ", "         " },
+                            { "         ", "         ", "  F   F  ", "   BBB   ", "   BCB   ", "   BBB   ", "  F   F  ",
+                                "         ", "         " },
+                            { "         ", "         ", "  F B F  ", "   EBE   ", "  BBCBB  ", "   EBE   ", "  F B F  ",
+                                "         ", "         " },
+                            { "         ", "  BD~DB  ", " BFBDBFB ", " DBBDBBD ", " BDDCDDB ", " DBBDBBD ", " BFBDBFB ",
+                                "  BDBDB  ", "         " },
+                            { "  B B B  ", " BFFFFFB ", "B F   F B", " F     F ", "BF  C  FB", " F     F ", "BFF   FFB",
+                                " BFFFFFB ", "  B B B  " } }))
                 .addElement(
-                    'E',
+                    'B',
                     ofChain(
                         buildHatchAdder(MTEVoidCrustSteamBorer.class).adder(MTESteamMultiBase::addToMachineList)
                             .hatchIds(31040, MetaTileEntityID.PRESSURE_STEAM_HATCH.ID)
@@ -189,13 +201,27 @@ public class MTEVoidCrustSteamBorer extends MTESteamMultiBase<MTEVoidCrustSteamB
                             .dot(1)
                             .shouldReject(t -> !t.mSteamInputFluids.isEmpty())
                             .build(),
-                        buildHatchAdder(MTEVoidCrustSteamBorer.class).atLeast(OutputBus)
+                        buildHatchAdder(MTEVoidCrustSteamBorer.class).atLeast(InputBus, OutputBus)
                             .casingIndex(casingIndex)
                             .dot(1)
                             .buildAndChain(
                                 onElementPass(
                                     MTEVoidCrustSteamBorer::onCasingAdded,
                                     ofBlock(GregTechAPI.sBlockCasings2, 0)))))
+                .addElement(
+                    'C',
+                    onElementPass(MTEVoidCrustSteamBorer::onCasingAdded, ofBlock(GregTechAPI.sBlockCasings2, 13)))
+                .addElement(
+                    'D',
+                    onElementPass(MTEVoidCrustSteamBorer::onCasingAdded, ofBlock(GregTechAPI.sBlockCasings2, 3)))
+                .addElement(
+                    'E',
+                    onElementPass(MTEVoidCrustSteamBorer::onCasingAdded, ofBlock(GregTechAPI.sBlockCasings3, 14)))
+                .addElement(
+                    'F',
+                    onElementPass(
+                        MTEVoidCrustSteamBorer::onCasingAdded,
+                        ofBlock(GregTechAPI.sBlockFrames, Materials.Steel.mMetaItemSubID)))
                 .build();
         }
         return STRUCTURE_DEFINITION;
@@ -386,7 +412,7 @@ public class MTEVoidCrustSteamBorer extends MTESteamMultiBase<MTEVoidCrustSteamB
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.singularity_crust_steam_borer.pressure_hatch"))
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.singularity_crust_steam_borer.dimension"))
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.singularity_crust_steam_borer.requires_plugin"))
-            .beginStructureBlock(7, 9, 7, false)
+            .beginStructureBlock(9, 12, 9, false)
             .addOutputBus(
                 EnumChatFormatting.GOLD + "1"
                     + EnumChatFormatting.GRAY

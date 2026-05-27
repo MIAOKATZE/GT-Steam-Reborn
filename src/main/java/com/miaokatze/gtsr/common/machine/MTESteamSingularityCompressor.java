@@ -31,9 +31,11 @@ import com.miaokatze.gtsr.common.api.enums.MetaTileEntityID;
 import com.miaokatze.gtsr.common.machine.base.MTEPressureSteamCoolingHatch;
 import com.miaokatze.gtsr.common.machine.base.MTESteamCoolingHatch;
 
+import cpw.mods.fml.common.registry.GameRegistry;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 import gregtech.api.GregTechAPI;
+import gregtech.api.enums.Materials;
 import gregtech.api.enums.Textures;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
@@ -44,16 +46,16 @@ import gregtech.api.recipe.check.CheckRecipeResultRegistry;
 import gregtech.api.render.TextureFactory;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.MultiblockTooltipBuilder;
-import gregtech.common.blocks.BlockCasings1;
+import gregtech.common.blocks.BlockCasings2;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTESteamMultiBase;
 
 public class MTESteamSingularityCompressor extends MTESteamMultiBase<MTESteamSingularityCompressor>
     implements ISurvivalConstructable {
 
     private static final String STRUCTURE_PIECE_MAIN = "main";
-    private static final int HORIZONTAL_OFF_SET = 1;
-    private static final int VERTICAL_OFF_SET = 1;
-    private static final int DEPTH_OFF_SET = 0;
+    private static final int HORIZONTAL_OFF_SET = 5;
+    private static final int VERTICAL_OFF_SET = 8;
+    private static final int DEPTH_OFF_SET = 2;
 
     private static final int STEAM_L_EUT = 6000;
     private static final double HEAT_UP_PER_RECIPE = 0.0002d;
@@ -105,7 +107,7 @@ public class MTESteamSingularityCompressor extends MTESteamMultiBase<MTESteamSin
     }
 
     protected int getCasingTextureID() {
-        return ((BlockCasings1) GregTechAPI.sBlockCasings1).getTextureIndex(10);
+        return ((BlockCasings2) GregTechAPI.sBlockCasings2).getTextureIndex(0);
     }
 
     protected void updateHatchTexture() {
@@ -125,15 +127,37 @@ public class MTESteamSingularityCompressor extends MTESteamMultiBase<MTESteamSin
     @Override
     public IStructureDefinition<MTESteamSingularityCompressor> getStructureDefinition() {
         if (STRUCTURE_DEFINITION == null) {
-            final int casingIndex = GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings1, 10);
+            final int casingIndex = GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings2, 0);
 
             STRUCTURE_DEFINITION = StructureDefinition.<MTESteamSingularityCompressor>builder()
                 .addShape(
                     STRUCTURE_PIECE_MAIN,
                     transpose(
-                        new String[][] { { "CCC", "CCC", "CCC" }, { "C~C", "C C", "CCC" }, { "CCC", "CCC", "CCC" } }))
+                        new String[][] {
+                            { " DBBBBBBBD ", "DB  EBE  BD", "B DEBDBED B", "B EEEEEEE B", "BEBEEEEEBEB", "BBDEEEEEDBB",
+                                "BEBEEEEEBEB", "B EEEEEEE B", "B DEBDBED B", "DB   B   BD", " DBBBBBBBD " },
+                            { " F       F ", "FD  EBE  DF", "  BEFBFEB  ", "  E     E  ", " EF     FE ", " BB     BB ",
+                                " EF     FE ", "  E     E  ", "  BEFBFEB  ", "FD  EBE  DF", " F       F " },
+                            { " F       F ", "FD  E E  DF", "  BEFBFEB  ", "  EB B BE  ", " EF     FE ", "  BB   BB  ",
+                                " EF     FE ", "  EB B BE  ", "  BEFBFEB  ", "FD  E E  DF", " F       F " },
+                            { " F       F ", "F   E E   F", "  CEFEFEC  ", "  ED D DE  ", " EF     FE ", "  ED   DE  ",
+                                " EF     FE ", "  ED D DE  ", "  CEFEFEC  ", "F   E E  DF", " F       F " },
+                            { " F       F ", "F   E E   F", "  CEFEFEC  ", "  EB B BE  ", " EF BBB FE ", "  EBB BBE  ",
+                                " EF BBB FE ", "  EB B BE  ", "  CEFEFEC  ", "F   E E   F", " F       F " },
+                            { " F       F ", "F   E E   F", "   EFEFE   ", "  E     E  ", " EF EEE FE ", "  E E E E  ",
+                                " EF EEE FE ", "  E     E  ", "   EFEFE   ", "F   E E   F", " F       F " },
+                            { " F       F ", "F   E E   F", "  CEFEFEC  ", "  EB B BE  ", " EF BBB FE ", "  EBB BBE  ",
+                                " EF BBB FE ", "  EB B BE  ", "  CEFEFEC  ", "F   E E   F", " F       F " },
+                            { " F       F ", "F   E E   F", "  CEFEFEC  ", "  ED D DE  ", " EF     FE ", "  ED   DE  ",
+                                " EF     FE ", "  ED D DE  ", "  CEFEFEC  ", "F   E E   F", " F       F " },
+                            { " F       F ", "FD  E E  DF", "  BEF~FEB  ", "  EB B BE  ", " EF     FE ", "  BB   BB  ",
+                                " EF     FE ", "  EB B BE  ", "  BEFBFEB  ", "FD  E E  DF", " F       F " },
+                            { " F       F ", "FD  EBE  DF", "  BEFBFEB  ", "  ED D DE  ", " EF     FE ", " BBD   DBB ",
+                                " EF     FE ", "  ED D DE  ", "  BEFBFEB  ", "FD  EBE  DF", " F       F " },
+                            { " DBBBBBBBD ", "DB  EBE  BD", "B DEBDBED B", "B EEEEEEE B", "BEBEEEEEBEB", "BBDEEEEEDBB",
+                                "BEBEEEEEBEB", "B EEEEEEE B", "B DEBDBED B", "DB  EBE  BD", " DBBBBBBBD " } }))
                 .addElement(
-                    'C',
+                    'B',
                     ofChain(
                         buildHatchAdder(MTESteamSingularityCompressor.class).adder(MTESteamMultiBase::addToMachineList)
                             .hatchClass(MTESteamCoolingHatch.class)
@@ -157,7 +181,25 @@ public class MTESteamSingularityCompressor extends MTESteamMultiBase<MTESteamSin
                             .buildAndChain(
                                 onElementPass(
                                     MTESteamSingularityCompressor::onCasingAdded,
-                                    ofBlock(GregTechAPI.sBlockCasings1, 10)))))
+                                    ofBlock(GregTechAPI.sBlockCasings2, 0)))))
+                .addElement(
+                    'C',
+                    onElementPass(
+                        MTESteamSingularityCompressor::onCasingAdded,
+                        ofBlock(GregTechAPI.sBlockCasings2, 13)))
+                .addElement(
+                    'D',
+                    onElementPass(MTESteamSingularityCompressor::onCasingAdded, ofBlock(GregTechAPI.sBlockCasings2, 3)))
+                .addElement(
+                    'E',
+                    onElementPass(
+                        MTESteamSingularityCompressor::onCasingAdded,
+                        ofBlock(GameRegistry.findBlock("IC2", "blockAlloyGlass"), 0)))
+                .addElement(
+                    'F',
+                    onElementPass(
+                        MTESteamSingularityCompressor::onCasingAdded,
+                        ofBlock(GregTechAPI.sBlockFrames, Materials.Steel.mMetaItemSubID)))
                 .build();
         }
         return STRUCTURE_DEFINITION;
@@ -329,7 +371,7 @@ public class MTESteamSingularityCompressor extends MTESteamMultiBase<MTESteamSin
                     + " L/s"
                     + EnumChatFormatting.RESET)
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.steam_singularity_compressor.5"))
-            .beginStructureBlock(3, 3, 3, false)
+            .beginStructureBlock(11, 11, 11, false)
             .addController(StatCollector.translateToLocal("gtsr.tooltip.steam_singularity_compressor.ctrl"))
             .addStructureInfo(
                 EnumChatFormatting.GOLD

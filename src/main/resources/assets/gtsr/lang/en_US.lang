@@ -78,10 +78,15 @@ gtsr.tooltip.steam_fluid_drill.output=Max Output:
 gtsr.tooltip.steam_fluid_drill.steam_cost=Steam Consumption:
 gtsr.tooltip.steam_fluid_drill.any_casing=Any casing position
 gtsr.tooltip.steam_fluid_drill.steam_hatch=Steam Input Hatch
-gtsr.tooltip.steam_fluid_drill.bronze_frame=Bronze Frame Box
+gtsr.tooltip.steam_fluid_drill.pressure_hatch=Use Pressure Steam Hatch
 gtsr.tooltip.steam_fluid_drill.bronze_casing=Bronze Plated Bricks
-gtsr.tooltip.steam_fluid_drill.steel_frame=Steel Frame Box
+gtsr.tooltip.steam_fluid_drill.bronze_pipe=Bronze Pipe Casing
+gtsr.tooltip.steam_fluid_drill.bronze_gear=Bronze Gearbox Casing
+gtsr.tooltip.steam_fluid_drill.bronze_frame=Bronze Frame Box
 gtsr.tooltip.steam_fluid_drill.steel_casing=Solid Steel Machine Casing
+gtsr.tooltip.steam_fluid_drill.steel_pipe=Steel Pipe Casing
+gtsr.tooltip.steam_fluid_drill.steel_gear=Steel Gearbox Casing
+gtsr.tooltip.steam_fluid_drill.steel_frame=Steel Frame Box
 gtsr.efficiency=Efficiency
 gtsr.current_output=Current Output
 
@@ -125,6 +130,17 @@ gtsr.tooltip.vein_steam_pyrolyzer.5=Superheated Steam: 4x speed, 4x consumption
 gtsr.tooltip.vein_steam_pyrolyzer.6=Chip: T1(+1 range) / T2(+3 range) / T3(+7 range)
 gtsr.tooltip.vein_steam_pyrolyzer.7=Fluid lock: Only boosts the host chunk's fluid field
 gtsr.tooltip.vein_steam_pyrolyzer.12=Hatches: Pressure Steam Hatch, Output Bus
+gtsr.tooltip.vein_steam_pyrolyzer.pressure_hatch=Use Pressure Steam Hatch
+gtsr.tooltip.vein_steam_pyrolyzer.any_casing=Any casing position
+gtsr.tooltip.vein_steam_pyrolyzer.bronze_casing=Bronze Plated Bricks
+gtsr.tooltip.vein_steam_pyrolyzer.bronze_firebox=Bronze Firebox Casing
+gtsr.tooltip.vein_steam_pyrolyzer.bronze_gear=Bronze Gearbox Casing
+gtsr.tooltip.vein_steam_pyrolyzer.bronze_frame=Bronze Frame Box
+gtsr.tooltip.vein_steam_pyrolyzer.steel_casing=Solid Steel Machine Casing
+gtsr.tooltip.vein_steam_pyrolyzer.steel_firebox=Steel Firebox Casing
+gtsr.tooltip.vein_steam_pyrolyzer.steel_gear=Steel Gearbox Casing
+gtsr.tooltip.vein_steam_pyrolyzer.steel_frame=Steel Frame Box
+gtsr.tooltip.vein_steam_pyrolyzer.18=Requires 1 Pressure Steam Input Hatch and 1 Output Bus
 
 # Pyrolyzer Chips
 item.VeinPyrolyzerChipT1.name=Vein Pyrolyzer Chip T1

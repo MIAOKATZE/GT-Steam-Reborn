@@ -78,10 +78,15 @@ gtsr.tooltip.steam_fluid_drill.output=最大产出:
 gtsr.tooltip.steam_fluid_drill.steam_cost=蒸汽消耗:
 gtsr.tooltip.steam_fluid_drill.any_casing=任意外壳位置
 gtsr.tooltip.steam_fluid_drill.steam_hatch=蒸汽输入舱
-gtsr.tooltip.steam_fluid_drill.bronze_frame=青铜框架
+gtsr.tooltip.steam_fluid_drill.pressure_hatch=使用耐压蒸汽仓
 gtsr.tooltip.steam_fluid_drill.bronze_casing=镀铜砖块
-gtsr.tooltip.steam_fluid_drill.steel_frame=钢框架
+gtsr.tooltip.steam_fluid_drill.bronze_pipe=青铜管道方块
+gtsr.tooltip.steam_fluid_drill.bronze_gear=青铜齿轮箱机械方块
+gtsr.tooltip.steam_fluid_drill.bronze_frame=青铜框架
 gtsr.tooltip.steam_fluid_drill.steel_casing=固体钢机械外壳
+gtsr.tooltip.steam_fluid_drill.steel_pipe=钢管道方块
+gtsr.tooltip.steam_fluid_drill.steel_gear=钢齿轮箱机械方块
+gtsr.tooltip.steam_fluid_drill.steel_frame=钢框架
 gtsr.efficiency=效率
 gtsr.current_output=当前产出
 
@@ -125,6 +130,17 @@ gtsr.tooltip.vein_steam_pyrolyzer.5=过热蒸汽: 4x 速度, 4x 消耗
 gtsr.tooltip.vein_steam_pyrolyzer.6=芯片: T1(+1范围) / T2(+3范围) / T3(+7范围)
 gtsr.tooltip.vein_steam_pyrolyzer.7=流体锁定: 仅提升主机所在流体田
 gtsr.tooltip.vein_steam_pyrolyzer.12=仓室: 耐压蒸汽仓, 输出仓
+gtsr.tooltip.vein_steam_pyrolyzer.pressure_hatch=使用耐压蒸汽仓
+gtsr.tooltip.vein_steam_pyrolyzer.any_casing=任意外壳位置
+gtsr.tooltip.vein_steam_pyrolyzer.bronze_casing=镀铜砖块
+gtsr.tooltip.vein_steam_pyrolyzer.bronze_firebox=青铜燃烧室
+gtsr.tooltip.vein_steam_pyrolyzer.bronze_gear=青铜齿轮箱机械方块
+gtsr.tooltip.vein_steam_pyrolyzer.bronze_frame=青铜框架
+gtsr.tooltip.vein_steam_pyrolyzer.steel_casing=固体钢机械外壳
+gtsr.tooltip.vein_steam_pyrolyzer.steel_firebox=钢燃烧室
+gtsr.tooltip.vein_steam_pyrolyzer.steel_gear=钢齿轮箱机械方块
+gtsr.tooltip.vein_steam_pyrolyzer.steel_frame=钢框架
+gtsr.tooltip.vein_steam_pyrolyzer.18=需要1个耐压蒸汽输入仓和1个输出总线
 
 # Pyrolyzer Chips
 item.VeinPyrolyzerChipT1.name=地脉热解机芯片T1

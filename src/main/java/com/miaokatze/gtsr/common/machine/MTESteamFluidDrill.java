@@ -25,6 +25,7 @@ import com.gtnewhorizon.structurelib.alignment.constructable.ISurvivalConstructa
 import com.gtnewhorizon.structurelib.structure.IStructureDefinition;
 import com.gtnewhorizon.structurelib.structure.ISurvivalBuildEnvironment;
 import com.gtnewhorizon.structurelib.structure.StructureDefinition;
+import com.miaokatze.gtsr.common.api.enums.MetaTileEntityID;
 
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Materials;
@@ -47,8 +48,8 @@ import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTESteam
 public class MTESteamFluidDrill extends MTESteamMultiBase<MTESteamFluidDrill> implements ISurvivalConstructable {
 
     private static final String STRUCTURE_PIECE_MAIN = "main";
-    private static final int HORIZONTAL_OFF_SET = 1;
-    private static final int VERTICAL_OFF_SET = 2;
+    private static final int HORIZONTAL_OFF_SET = 2;
+    private static final int VERTICAL_OFF_SET = 5;
     private static final int DEPTH_OFF_SET = 0;
 
     private static final int BRONZE_MIN_OUTPUT = 200;
@@ -62,7 +63,6 @@ public class MTESteamFluidDrill extends MTESteamMultiBase<MTESteamFluidDrill> im
 
     private int mCountCasing = 0;
     private int mSetTier = -1;
-    private int mCasingTier = -1;
 
     public MTESteamFluidDrill(int aID, String aName, String aNameRegional) {
         super(aID, aName, aNameRegional);
@@ -82,8 +82,36 @@ public class MTESteamFluidDrill extends MTESteamMultiBase<MTESteamFluidDrill> im
         return "Fluid Drill";
     }
 
+    @Nullable
+    public static Integer getCasingTier(Block block, int meta) {
+        if (block == GregTechAPI.sBlockCasings1 && meta == 10) return 1;
+        if (block == GregTechAPI.sBlockCasings2 && meta == 0) return 2;
+        return null;
+    }
+
+    @Nullable
+    public static Integer getPipeTier(Block block, int meta) {
+        if (block == GregTechAPI.sBlockCasings2 && meta == 12) return 1;
+        if (block == GregTechAPI.sBlockCasings2 && meta == 13) return 2;
+        return null;
+    }
+
+    @Nullable
+    public static Integer getGearTier(Block block, int meta) {
+        if (block == GregTechAPI.sBlockCasings2 && meta == 2) return 1;
+        if (block == GregTechAPI.sBlockCasings2 && meta == 3) return 2;
+        return null;
+    }
+
+    @Nullable
+    public static Integer getFrameTier(Block block, int meta) {
+        if (block == GregTechAPI.sBlockFrames && meta == Materials.Bronze.mMetaItemSubID) return 1;
+        if (block == GregTechAPI.sBlockFrames && meta == Materials.Steel.mMetaItemSubID) return 2;
+        return null;
+    }
+
     private int getCasingTextureID() {
-        if (mCasingTier == 2) {
+        if (mSetTier == 2) {
             return ((BlockCasings2) GregTechAPI.sBlockCasings2).getTextureIndex(0);
         }
         return ((BlockCasings1) GregTechAPI.sBlockCasings1).getTextureIndex(10);
@@ -97,39 +125,37 @@ public class MTESteamFluidDrill extends MTESteamMultiBase<MTESteamFluidDrill> im
 
     @Override
     public void onValueUpdate(byte aValue) {
-        mCasingTier = aValue;
+        mSetTier = aValue;
     }
 
     @Override
     public byte getUpdateData() {
-        return (byte) mCasingTier;
+        return (byte) mSetTier;
     }
 
     @Override
     public IStructureDefinition<MTESteamFluidDrill> getStructureDefinition() {
         if (STRUCTURE_DEFINITION == null) {
-            final int bronzeCasingIndex = GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings1, 10);
+            final int bronzeCasingIndex = ((BlockCasings1) GregTechAPI.sBlockCasings1).getTextureIndex(10);
 
             STRUCTURE_DEFINITION = StructureDefinition.<MTESteamFluidDrill>builder()
                 .addShape(
                     STRUCTURE_PIECE_MAIN,
                     transpose(
-                        new String[][] { { "   ", " C ", "   " }, { " A ", "ACA", " A " }, { "C~C", "CCC", "CCC" } }))
+                        new String[][] { { "     ", "     ", "  E  ", "     ", "     " },
+                            { "     ", "     ", "  E  ", "     ", "     " },
+                            { "     ", "  E  ", " ECE ", "  E  ", "     " },
+                            { "     ", "  E  ", " ECE ", "  E  ", "     " },
+                            { "     ", "  D  ", " DCD ", "  D  ", "     " },
+                            { "  ~  ", " BBB ", "BBCBB", " BBB ", "  B  " } }))
                 .addElement(
-                    'A',
-                    ofBlocksTiered(
-                        MTESteamFluidDrill::getFrameTier,
-                        ImmutableList.of(
-                            Pair.of(GregTechAPI.sBlockFrames, Materials.Bronze.mMetaItemSubID),
-                            Pair.of(GregTechAPI.sBlockFrames, Materials.Steel.mMetaItemSubID)),
-                        -1,
-                        (MTESteamFluidDrill drill, Integer tier) -> drill.mSetTier = tier,
-                        (MTESteamFluidDrill drill) -> drill.mSetTier))
-                .addElement(
-                    'C',
+                    'B',
                     ofChain(
-                        buildSteamInput(MTESteamFluidDrill.class).casingIndex(bronzeCasingIndex)
+                        buildHatchAdder(MTESteamFluidDrill.class).adder(MTESteamMultiBase::addToMachineList)
+                            .hatchIds(31040, MetaTileEntityID.PRESSURE_STEAM_HATCH.ID)
+                            .casingIndex(bronzeCasingIndex)
                             .dot(1)
+                            .shouldReject(t -> !t.mSteamInputFluids.isEmpty())
                             .build(),
                         buildHatchAdder(MTESteamFluidDrill.class).atLeast(OutputHatch)
                             .casingIndex(bronzeCasingIndex)
@@ -143,8 +169,42 @@ public class MTESteamFluidDrill extends MTESteamMultiBase<MTESteamFluidDrill> im
                                             Pair.of(GregTechAPI.sBlockCasings1, 10),
                                             Pair.of(GregTechAPI.sBlockCasings2, 0)),
                                         -1,
-                                        (MTESteamFluidDrill drill, Integer tier) -> drill.mCasingTier = tier,
-                                        (MTESteamFluidDrill drill) -> drill.mCasingTier)))))
+                                        (MTESteamFluidDrill t, Integer tier) -> t.mSetTier = tier,
+                                        (MTESteamFluidDrill t) -> t.mSetTier)))))
+                .addElement(
+                    'C',
+                    onElementPass(
+                        MTESteamFluidDrill::onCasingAdded,
+                        ofBlocksTiered(
+                            MTESteamFluidDrill::getPipeTier,
+                            ImmutableList
+                                .of(Pair.of(GregTechAPI.sBlockCasings2, 12), Pair.of(GregTechAPI.sBlockCasings2, 13)),
+                            -1,
+                            (MTESteamFluidDrill t, Integer tier) -> { if (tier > t.mSetTier) t.mSetTier = tier; },
+                            (MTESteamFluidDrill t) -> t.mSetTier)))
+                .addElement(
+                    'D',
+                    onElementPass(
+                        MTESteamFluidDrill::onCasingAdded,
+                        ofBlocksTiered(
+                            MTESteamFluidDrill::getGearTier,
+                            ImmutableList
+                                .of(Pair.of(GregTechAPI.sBlockCasings2, 2), Pair.of(GregTechAPI.sBlockCasings2, 3)),
+                            -1,
+                            (MTESteamFluidDrill t, Integer tier) -> { if (tier > t.mSetTier) t.mSetTier = tier; },
+                            (MTESteamFluidDrill t) -> t.mSetTier)))
+                .addElement(
+                    'E',
+                    onElementPass(
+                        MTESteamFluidDrill::onCasingAdded,
+                        ofBlocksTiered(
+                            MTESteamFluidDrill::getFrameTier,
+                            ImmutableList.of(
+                                Pair.of(GregTechAPI.sBlockFrames, Materials.Bronze.mMetaItemSubID),
+                                Pair.of(GregTechAPI.sBlockFrames, Materials.Steel.mMetaItemSubID)),
+                            -1,
+                            (MTESteamFluidDrill t, Integer tier) -> { if (tier > t.mSetTier) t.mSetTier = tier; },
+                            (MTESteamFluidDrill t) -> t.mSetTier)))
                 .build();
         }
         return STRUCTURE_DEFINITION;
@@ -152,22 +212,6 @@ public class MTESteamFluidDrill extends MTESteamMultiBase<MTESteamFluidDrill> im
 
     private void onCasingAdded() {
         mCountCasing++;
-    }
-
-    @Nullable
-    public static Integer getFrameTier(Block block, int meta) {
-        if (block == GregTechAPI.sBlockFrames) {
-            if (meta == Materials.Bronze.mMetaItemSubID) return 1;
-            if (meta == Materials.Steel.mMetaItemSubID) return 2;
-        }
-        return null;
-    }
-
-    @Nullable
-    public static Integer getCasingTier(Block block, int meta) {
-        if (block == GregTechAPI.sBlockCasings1 && meta == 10) return 1;
-        if (block == GregTechAPI.sBlockCasings2 && meta == 0) return 2;
-        return null;
     }
 
     @Override
@@ -194,7 +238,6 @@ public class MTESteamFluidDrill extends MTESteamMultiBase<MTESteamFluidDrill> im
     public boolean checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack) {
         mCountCasing = 0;
         mSetTier = -1;
-        mCasingTier = -1;
 
         if (!checkPiece(STRUCTURE_PIECE_MAIN, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET)) {
             return false;
@@ -202,8 +245,7 @@ public class MTESteamFluidDrill extends MTESteamMultiBase<MTESteamFluidDrill> im
 
         if (this.mOutputHatches.size() != 1 || this.mSteamInputFluids.size() != 1) return false;
 
-        if (mSetTier == -1 || mCasingTier == -1) return false;
-        if (mSetTier != mCasingTier) return false;
+        if (mSetTier <= 0) return false;
 
         updateHatchTexture();
         return true;
@@ -228,10 +270,6 @@ public class MTESteamFluidDrill extends MTESteamMultiBase<MTESteamFluidDrill> im
             return (int) (BRONZE_MIN_OUTPUT + ratio * (BRONZE_MAX_OUTPUT - BRONZE_MIN_OUTPUT));
         }
         return (int) (STEEL_MIN_OUTPUT + ratio * (STEEL_MAX_OUTPUT - STEEL_MIN_OUTPUT));
-    }
-
-    private int getMaxOutput() {
-        return mSetTier == 1 ? BRONZE_MAX_OUTPUT : STEEL_MAX_OUTPUT;
     }
 
     private FluidStack[] getOutputFluid(int amount) {
@@ -311,7 +349,8 @@ public class MTESteamFluidDrill extends MTESteamMultiBase<MTESteamFluidDrill> im
                     + BASE_STEAM_PER_SECOND
                     + " L/s"
                     + EnumChatFormatting.RESET)
-            .beginStructureBlock(3, 3, 3, false)
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.steam_fluid_drill.pressure_hatch"))
+            .beginStructureBlock(5, 6, 5, false)
             .addOutputHatch(
                 EnumChatFormatting.GOLD + "1"
                     + EnumChatFormatting.GRAY
@@ -319,14 +358,14 @@ public class MTESteamFluidDrill extends MTESteamMultiBase<MTESteamFluidDrill> im
                     + StatCollector.translateToLocal("gtsr.tooltip.steam_fluid_drill.any_casing"),
                 1)
             .addStructureInfo(
-                EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.tooltip.steam_fluid_drill.steam_hatch")
+                EnumChatFormatting.WHITE + "Pressure Steam Input Hatch "
                     + EnumChatFormatting.GOLD
                     + "1"
                     + EnumChatFormatting.GRAY
                     + " "
                     + StatCollector.translateToLocal("gtsr.tooltip.steam_fluid_drill.any_casing"))
             .addStructureInfo("")
-            .addStructureInfo(EnumChatFormatting.BLUE + "Tier " + EnumChatFormatting.DARK_PURPLE + 1)
+            .addStructureInfo(EnumChatFormatting.BLUE + "Bronze " + EnumChatFormatting.DARK_PURPLE + "Tier")
             .addStructureInfo(
                 EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.steam_fluid_drill.output")
                     + EnumChatFormatting.WHITE
@@ -336,17 +375,27 @@ public class MTESteamFluidDrill extends MTESteamMultiBase<MTESteamFluidDrill> im
                     + " L/s"
                     + EnumChatFormatting.RESET)
             .addStructureInfo(
-                EnumChatFormatting.GOLD + "6"
+                EnumChatFormatting.GOLD + "11"
                     + EnumChatFormatting.GRAY
                     + " "
-                    + StatCollector.translateToLocal("gtsr.tooltip.steam_fluid_drill.bronze_frame"))
+                    + StatCollector.translateToLocal("gtsr.tooltip.steam_fluid_drill.bronze_casing"))
+            .addStructureInfo(
+                EnumChatFormatting.GOLD + "4"
+                    + EnumChatFormatting.GRAY
+                    + " "
+                    + StatCollector.translateToLocal("gtsr.tooltip.steam_fluid_drill.bronze_pipe"))
+            .addStructureInfo(
+                EnumChatFormatting.GOLD + "4"
+                    + EnumChatFormatting.GRAY
+                    + " "
+                    + StatCollector.translateToLocal("gtsr.tooltip.steam_fluid_drill.bronze_gear"))
             .addStructureInfo(
                 EnumChatFormatting.GOLD + "10"
                     + EnumChatFormatting.GRAY
                     + " "
-                    + StatCollector.translateToLocal("gtsr.tooltip.steam_fluid_drill.bronze_casing"))
+                    + StatCollector.translateToLocal("gtsr.tooltip.steam_fluid_drill.bronze_frame"))
             .addStructureInfo("")
-            .addStructureInfo(EnumChatFormatting.BLUE + "Tier " + EnumChatFormatting.DARK_PURPLE + 2)
+            .addStructureInfo(EnumChatFormatting.BLUE + "Steel " + EnumChatFormatting.DARK_PURPLE + "Tier")
             .addStructureInfo(
                 EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.steam_fluid_drill.output")
                     + EnumChatFormatting.WHITE
@@ -356,15 +405,25 @@ public class MTESteamFluidDrill extends MTESteamMultiBase<MTESteamFluidDrill> im
                     + " L/s"
                     + EnumChatFormatting.RESET)
             .addStructureInfo(
-                EnumChatFormatting.GOLD + "6"
+                EnumChatFormatting.GOLD + "11"
                     + EnumChatFormatting.GRAY
                     + " "
-                    + StatCollector.translateToLocal("gtsr.tooltip.steam_fluid_drill.steel_frame"))
+                    + StatCollector.translateToLocal("gtsr.tooltip.steam_fluid_drill.steel_casing"))
+            .addStructureInfo(
+                EnumChatFormatting.GOLD + "4"
+                    + EnumChatFormatting.GRAY
+                    + " "
+                    + StatCollector.translateToLocal("gtsr.tooltip.steam_fluid_drill.steel_pipe"))
+            .addStructureInfo(
+                EnumChatFormatting.GOLD + "4"
+                    + EnumChatFormatting.GRAY
+                    + " "
+                    + StatCollector.translateToLocal("gtsr.tooltip.steam_fluid_drill.steel_gear"))
             .addStructureInfo(
                 EnumChatFormatting.GOLD + "10"
                     + EnumChatFormatting.GRAY
                     + " "
-                    + StatCollector.translateToLocal("gtsr.tooltip.steam_fluid_drill.steel_casing"))
+                    + StatCollector.translateToLocal("gtsr.tooltip.steam_fluid_drill.steel_frame"))
             .toolTipFinisher();
         return tt;
     }
@@ -378,14 +437,12 @@ public class MTESteamFluidDrill extends MTESteamMultiBase<MTESteamFluidDrill> im
     public void saveNBTData(NBTTagCompound aNBT) {
         super.saveNBTData(aNBT);
         aNBT.setInteger("mSetTier", mSetTier);
-        aNBT.setInteger("mCasingTier", mCasingTier);
     }
 
     @Override
     public void loadNBTData(NBTTagCompound aNBT) {
         super.loadNBTData(aNBT);
         mSetTier = aNBT.getInteger("mSetTier");
-        mCasingTier = aNBT.getInteger("mCasingTier");
     }
 
     @Override
