@@ -532,3 +532,12 @@ gtsr.info.atmospheric_centrifuge.parallel=Parallel:
 gtsr.info.atmospheric_centrifuge.chip=Chip: 
 
 gtsr.item.rare_gas_separation_chip.name=Rare Gas Separation Chip
+
+# Gear Steam Compressor
+gt.blockmachines.gtsr.gear.steam.compressor.name=Gear Steam Compressor
+gtsr.recipe.gear_steam_compressor=Gear Steam Compressor
+gtsr.tooltip.gear_steam_compressor.info=Self-driven mechanical steam compressor, converts steam into superheated steam and distilled water
+gtsr.tooltip.gear_steam_compressor.controller=Front center of layer 3
+gtsr.tooltip.gear_steam_compressor.steam_input=Steam Input Hatch / Pressure Steam Input Hatch
+gtsr.tooltip.gear_steam_compressor.output=Output Hatch (Superheated Steam / Distilled Water)
+gtsr.tooltip.gear_steam_compressor.cooling_hatch=Steam Cooling Hatch / Pressure Steam Cooling Hatch

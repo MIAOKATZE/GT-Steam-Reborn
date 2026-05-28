@@ -532,3 +532,12 @@ gtsr.info.atmospheric_centrifuge.parallel=并行:
 gtsr.info.atmospheric_centrifuge.chip=芯片: 
 
 gtsr.item.rare_gas_separation_chip.name=稀有气体分离芯片
+
+# Gear Steam Compressor
+gt.blockmachines.gtsr.gear.steam.compressor.name=自驱式机械蒸汽压缩机
+gtsr.recipe.gear_steam_compressor=自驱式机械蒸汽压缩机
+gtsr.tooltip.gear_steam_compressor.info=自驱式机械蒸汽压缩机，将蒸汽压缩为过热蒸汽并冷凝出蒸馏水
+gtsr.tooltip.gear_steam_compressor.controller=第3层正面中央
+gtsr.tooltip.gear_steam_compressor.steam_input=蒸汽输入仓 / 耐压蒸汽输入仓
+gtsr.tooltip.gear_steam_compressor.output=输出仓(过热蒸汽/蒸馏水)
+gtsr.tooltip.gear_steam_compressor.cooling_hatch=蒸汽冷却仓 / 耐压蒸汽冷却仓

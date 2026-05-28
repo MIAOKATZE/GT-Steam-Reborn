@@ -6,6 +6,7 @@ import com.miaokatze.gtsr.common.machine.MTEAirCompressor;
 import com.miaokatze.gtsr.common.machine.MTEAmmoniaPlant;
 import com.miaokatze.gtsr.common.machine.MTEAtmosphericCentrifuge;
 import com.miaokatze.gtsr.common.machine.MTECrustSteamBorer;
+import com.miaokatze.gtsr.common.machine.MTEGearSteamCompressor;
 import com.miaokatze.gtsr.common.machine.MTEKineticProcessingArray;
 import com.miaokatze.gtsr.common.machine.MTELargeCokeOven;
 import com.miaokatze.gtsr.common.machine.MTELargeGeothermalSteamBoiler;
@@ -117,6 +118,13 @@ public class MachineLoader {
                 "gtsr.large.geothermal.steam.boiler",
                 "Large Geothermal Steam Boiler"));
         CreativeTabManager.addItemToTab(GTSRItemList.LargeGeothermalSteamBoiler.get(1));
+
+        GTSRItemList.GearSteamCompressor.set(
+            new MTEGearSteamCompressor(
+                MetaTileEntityID.GEAR_STEAM_COMPRESSOR.ID,
+                "gtsr.gear.steam.compressor",
+                "Gear Steam Compressor"));
+        CreativeTabManager.addItemToTab(GTSRItemList.GearSteamCompressor.get(1));
     }
 
     private static void registerSteamPowerGeneration() {

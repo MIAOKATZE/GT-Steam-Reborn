@@ -86,6 +86,7 @@ public enum GTSRItemList implements IItemContainer {
     AirCompressor,
     AtmosphericCentrifuge,
     RareGasSeparationChip,
+    GearSteamCompressor,
 
     ;
 
