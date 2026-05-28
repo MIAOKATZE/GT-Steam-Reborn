@@ -65,13 +65,9 @@ import gregtech.common.misc.GTStructureChannels;
 public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaSteamTurbineArray>
     implements IConstructable, ISurvivalConstructable {
 
-    private static final String STRUCTURE_PIECE_BASE_1 = "base1";
-    private static final String STRUCTURE_PIECE_BASE_2 = "base2";
-    private static final String STRUCTURE_PIECE_BASE_3 = "base3";
+    private static final String STRUCTURE_PIECE_BASE = "base";
     private static final String STRUCTURE_PIECE_STACK = "stack";
-    private static final String STRUCTURE_PIECE_STACK_HINT = "stackHint";
-    private static final String STRUCTURE_PIECE_CAP_1 = "cap1";
-    private static final String STRUCTURE_PIECE_CAP_2 = "cap2";
+    private static final String STRUCTURE_PIECE_CAP = "cap";
 
     private static final int SOLID_STEEL_CASING_INDEX = GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings2, 0);
     private static IStructureDefinition<MTEMegaSteamTurbineArray> STRUCTURE_DEFINITION;
@@ -159,6 +155,21 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         screenElements.widget(
             TextWidget
                 .dynamicString(
+                    () -> EnumChatFormatting.GOLD + "Stacks: "
+                        + EnumChatFormatting.AQUA
+                        + (1 + mStackCount)
+                        + " group(s)"
+                        + EnumChatFormatting.GRAY
+                        + " ("
+                        + (mStackCount == 0 ? "baseline" : "+" + mStackCount + " extra")
+                        + ")")
+                .setTextAlignment(Alignment.CenterLeft)
+                .setDefaultColor(COLOR_TEXT_WHITE.get())
+                .setEnabled(w -> mMachine));
+
+        screenElements.widget(
+            TextWidget
+                .dynamicString(
                     () -> EnumChatFormatting.GOLD + "Eff: "
                         + (mEfficiency >= getMaxEfficiencyLimit(true) ? EnumChatFormatting.LIGHT_PURPLE
                             : mEfficiency >= 10000 ? EnumChatFormatting.GREEN : EnumChatFormatting.YELLOW)
@@ -190,27 +201,37 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         if (STRUCTURE_DEFINITION == null) {
             STRUCTURE_DEFINITION = StructureDefinition.<MTEMegaSteamTurbineArray>builder()
                 .addShape(
-                    STRUCTURE_PIECE_BASE_1,
+                    STRUCTURE_PIECE_BASE,
                     transpose(
-                        new String[][] { { "             ", "             ", "    CCBCC    ", "    BBCBB    ",
-                            "  CBBBCBBBC  ", "  CBBBBBBBC  ", "  BCCBBBCCB  ", "  CBBBBBBBC  ", "  CBBBCBBBC  ",
-                            "    BBCBB    ", "    CCBCC    ", "             ", "             " } }))
-                .addShape(
-                    STRUCTURE_PIECE_BASE_2,
-                    transpose(
-                        new String[][] { { "             ", "    BBBBB    ", "   BBEEEBB   ", "  BBEEEEEBB  ",
-                            " BBEEEEEEEBB ", " BEEEEEEEEEB ", " BEEEEDEEEEB ", " BEEEEEEEEEB ", " BBEEEEEEEBB ",
-                            "  BBEEEEEBB  ", "   BBEEEBB   ", "    BBBBB    ", "             " } }))
-                .addShape(
-                    STRUCTURE_PIECE_BASE_3,
-                    transpose(
-                        new String[][] { { "EEEEBBBBBEEEE", "E EBBBBBBBE E", "EEB       BEE", "EB BBBBBBB BE",
-                            "BB DCCCCCD BB", "BB DCDDDCD BB", "BB DCDDDCD BB", "BB DCDDDCD BB", "BB DCCCCCD BB",
-                            "EB BBBBBBB BE", "EEB       BEE", "E EBBBBBBBE E", "EEEEBBBBBEEEE" } }))
+                        new String[][] {
+                            { "EEEEBBBBBEEEE", "E EBBBBBBBE E", "EEB       BEE", "EB BBBBBBB BE", "BB DCCCCCD BB",
+                                "BB DCDDDCD BB", "BB DCDDDCD BB", "BB DCDDDCD BB", "BB DCCCCCD BB", "EB BBBBBBB BE",
+                                "EEB       BEE", "E EBBBBBBBE E", "EEEEBBBBBEEEE" },
+                            { "E   BBBBB   E", "  EBBBBBBBE  ", " EB       BE ", " B BBBBBBB B ", "BB DCCCCCD BB",
+                                "BB DCDDDCD BB", "BB DCDDDCD BB", "BB DCDDDCD BB", "BB DCCCCCD BB", " B BBBBBBB B ",
+                                " EB       BE ", "  EBBBBBBBE  ", "E   BBBBB   E" },
+                            { "E   BBBBB   E", "  EBBBBBBBE  ", " EB       BE ", " B BBBBBBB B ", "BB BCCCCCB BB",
+                                "BB BCBBBCB BB", "BB BCBBBCB BB", "BB BCBBBCB BB", "BB BCCCCCB BB", " B BBBBBBB B ",
+                                " EB       BE ", "  EBBBBBBBE  ", "E   BBBBB   E" },
+                            { "E           E", "  E BBBB  E  ", " E BBEEEBB E ", "  BBEEEEEBB  ", "  BEEEEEEEB  ",
+                                " BEEEEEEEEEB ", " BEEEEDEEEEB ", " BEEEEEEEEEB ", "  BEEEEEEEB  ", "  BBEEEEEBB  ",
+                                " E BBEEEBB E ", "  E  BBB  E  ", "E           E" },
+                            { "EEEBBBBBBBEEE", "E BBBBBBBBB E", "EBB       BBE", "BB         BB", "BB         BB",
+                                "BB         BB", "BB    D    BB", "BB         BB", "BB         BB", "BB         BB",
+                                "EBB       BBE", "E BBBBBBBBB E", "EEEBBBBBBEE E" },
+                            { "E  BBB~BBB  E", "  BBBBCBBBB  ", " BBBDBCBDBBB ", "BBBCDCDDCBBB", "BBBBCDCDCBBBB",
+                                "BBBBBCCCBBBBB", "BBCCCCDCCCCBB", "BBBBBCCCBBBBB", "BBBBCDCDCBBBB", "BBBCDCDDCBBB",
+                                " BBBDBCBDBBB ", "  BBBBBBBBB  ", "E  BBDDBB   E" },
+                            { "E  BBBBBBB  E", "  BBBBBBBBB  ", " BBBBBBBBBBB ", "BBBBBBBBBBBBB", "BBBBBBBBBBBBB",
+                                "BBBBBBBBBBBBB", "BBBBBBBBBBBBB", "BBBBBBBBBBBBB", "BBBBBBBBBBBBB", "BBBBBBBBBBBBB",
+                                " BBBBBBBBBBB ", "  BBBBBBBBB  ", "E  BBBBBB   E" } }))
                 .addShape(
                     STRUCTURE_PIECE_STACK,
                     transpose(
                         new String[][] {
+                            { "EEEEBBBBBEEEE", "E EBBBBBBBE E", "EEB       BEE", "EB BBBBBBB BE", "BB DCCCCCD BB",
+                                "BB DCDDDCD BB", "BB DCDDDCD BB", "BB DCDDDCD BB", "BB DCCCCCD BB", "EB BBBBBBB BE",
+                                "EEB       BEE", "E EBBBBBBBE E", "EEEEBBBBBEEEE" },
                             { "E   BBBBB   E", "  EBBBBBBBE  ", " EB       BE ", " B BBBBBBB B ", "BB DCCCCCD BB",
                                 "BB DCDDDCD BB", "BB DCDDDCD BB", "BB DCDDDCD BB", "BB DCCCCCD BB", " B BBBBBBB B ",
                                 " EB       BE ", "  EBBBBBBBE  ", "E   BBBBB   E" },
@@ -219,41 +240,28 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
                                 " EB       BE ", "  EBBBBBBBE  ", "E   BBBBB   E" },
                             { "E           E", "  E BBBB  E  ", " E BBEEEBB E ", "  BBEEEEEBB  ", "  BEEEEEEEB  ",
                                 " BEEEEEEEEEB ", " BEEEEDEEEEB ", " BEEEEEEEEEB ", "  BEEEEEEEB  ", "  BBEEEEEBB  ",
-                                " E BBEEEBB E ", "  E  BBB  E  ", "E           E" },
-                            { "EEEBBBBBBBEEE", "E BBBBBBBBB E", "EBB       BBE", "BB         BB", "BB         BB",
-                                "BB         BB", "BB    D    BB", "BB         BB", "BB         BB", "BB         BB",
-                                "EBB       BBE", "E BBBBBBBBB E", "EEEBBBBBBEE E" } }))
+                                " E BBEEEBB E ", "  E  BBB  E  ", "E           E" } }))
                 .addShape(
-                    STRUCTURE_PIECE_STACK_HINT,
+                    STRUCTURE_PIECE_CAP,
                     transpose(
                         new String[][] {
-                            { "E   BBBBB   E", "  EBBBBBBBE  ", " EB       BE ", " B BBBBBBB B ", "BB DCCCCCD BB",
-                                "BB DCDDDCD BB", "BB DCDDDCD BB", "BB DCDDDCD BB", "BB DCCCCCD BB", " B BBBBBBB B ",
-                                " EB       BE ", "  EBBBBBBBE  ", "E   BBBBB   E" },
-                            { "E   BBBBB   E", "  EBBBBBBBE  ", " EB       BE ", " B BBBBBBB B ", "BB BCCCCCB BB",
-                                "BB BCBBBCB BB", "BB BCBBBCB BB", "BB BCBBBCB BB", "BB BCCCCCB BB", " B BBBBBBB B ",
-                                " EB       BE ", "  EBBBBBBBE  ", "E   BBBBB   E" },
-                            { "E           E", "  E BBBB  E  ", " E BBEEEBB E ", "  BBEEEEEBB  ", "  BEEEEEEEB  ",
-                                " BEEEEEEEEEB ", " BEEEEDEEEEB ", " BEEEEEEEEEB ", "  BEEEEEEEB  ", "  BBEEEEEBB  ",
-                                " E BBEEEBB E ", "  E  BBB  E  ", "E           E" },
-                            { "EEEBBBBBBBEEE", "E BBBBBBBBB E", "EBB       BBE", "BB         BB", "BB         BB",
-                                "BB         BB", "BB    D    BB", "BB         BB", "BB         BB", "BB         BB",
-                                "EBB       BBE", "E BBBBBBBBB E", "EEEBBBBBBEE E" } }))
-                .addShape(
-                    STRUCTURE_PIECE_CAP_1,
-                    transpose(
-                        new String[][] { { "E  BBB~BBB  E", "  BBBBCBBBB  ", " BBBDBCBDBBB ", "BBBCDCDDCBBB",
-                            "BBBBCDCDCBBBB", "BBBBBCCCBBBBB", "BBCCCCDCCCCBB", "BBBBBCCCBBBBB", "BBBBCDCDCBBBB",
-                            "BBBCDCDDCBBB", " BBBDBCBDBBB ", "  BBBBBBBBB  ", "E  BBDDBB   E" } }))
-                .addShape(
-                    STRUCTURE_PIECE_CAP_2,
-                    transpose(
-                        new String[][] { { "E  BBBBBBB  E", "  BBBBBBBBB  ", " BBBBBBBBBBB ", "BBBBBBBBBBBBB",
-                            "BBBBBBBBBBBBB", "BBBBBBBBBBBBB", "BBBBBBBBBBBBB", "BBBBBBBBBBBBB", "BBBBBBBBBBBBB",
-                            "BBBBBBBBBBBBB", " BBBBBBBBBBB ", "  BBBBBBBBB  ", "E  BBBBBB   E" } }))
+                            { "             ", "             ", "    CCBCC    ", "    BBCBB    ", "  CBBBCBBBC  ",
+                                "  CBBBBBBBC  ", "  BCCBBBCCB  ", "  CBBBBBBBC  ", "  CBBBCBBBC  ", "    BBCBB    ",
+                                "    CCBCC    ", "             ", "             " },
+                            { "             ", "    BBBBB    ", "   BBEEEBB   ", "  BBEEEEEBB  ", " BBEEEEEEEBB ",
+                                " BEEEEEEEEEB ", " BEEEEDEEEEB ", " BEEEEEEEEEB ", " BBEEEEEEEBB ", "  BBEEEEEBB  ",
+                                "   BBEEEBB   ", "    BBBBB    ", "             " } }))
                 .addElement(
                     'B',
                     ofChain(
+                        onElementPass(
+                            MTEMegaSteamTurbineArray::onCasingAdded,
+                            ofBlocksTiered(
+                                MTEMegaSteamTurbineArray::getCasingTier,
+                                ALLOWED_CASINGS,
+                                -1,
+                                (t, tier) -> t.mCasingTier = Math.max(t.mCasingTier, tier),
+                                t -> t.mCasingTier)),
                         buildHatchAdder(MTEMegaSteamTurbineArray.class)
                             .adder(MTEMegaSteamTurbineArray::addPressureSteamToMachineList)
                             .hatchClass(MTEHatchPressureSteamInput.class)
@@ -279,15 +287,7 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
                         buildHatchAdder(MTEMegaSteamTurbineArray.class).atLeast(Dynamo)
                             .casingIndex(SOLID_STEEL_CASING_INDEX)
                             .dot(1)
-                            .buildAndChain(
-                                onElementPass(
-                                    MTEMegaSteamTurbineArray::onCasingAdded,
-                                    ofBlocksTiered(
-                                        MTEMegaSteamTurbineArray::getCasingTier,
-                                        ALLOWED_CASINGS,
-                                        -1,
-                                        (t, tier) -> t.mCasingTier = tier,
-                                        t -> t.mCasingTier)))))
+                            .build()))
                 .addElement(
                     'C',
                     onElementPass(
@@ -456,21 +456,18 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         mSteamCoolingHatches.clear();
         mPressureCoolingHatches.clear();
 
-        if (!checkPiece(STRUCTURE_PIECE_BASE_1, 7, -1, 0)) return false;
-        if (!checkPiece(STRUCTURE_PIECE_BASE_2, 7, 0, 0)) return false;
-        if (!checkPiece(STRUCTURE_PIECE_BASE_3, 7, 1, 0)) return false;
+        if (!checkPiece(STRUCTURE_PIECE_BASE, 7, 0, 0)) return false;
 
         for (int i = 0; i < 2; i++) {
-            int baseY = 2 + i * 4;
+            int baseY = 7 + i * 4;
             if (!checkPiece(STRUCTURE_PIECE_STACK, 7, baseY, 0)) break;
             mStackCount++;
         }
 
         if (mCasingTier <= 0 || mCasingTier > 7) return false;
 
-        int capY = 2 + mStackCount * 4;
-        if (!checkPiece(STRUCTURE_PIECE_CAP_1, 7, capY, 0)) return false;
-        if (!checkPiece(STRUCTURE_PIECE_CAP_2, 7, capY + 1, 0)) return false;
+        int capY = 7 + mStackCount * 4;
+        if (!checkPiece(STRUCTURE_PIECE_CAP, 7, capY, 0)) return false;
 
         boolean hasInput = !mInputHatches.isEmpty() || hasPressureSteamHatch();
         boolean hasOutput = !mOutputHatches.isEmpty() || hasSteamCoolingHatch() || hasPressureCoolingHatch();
@@ -481,11 +478,13 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
     }
 
     /**
-     * 叠加层数 (用于发电公式中的 n).
-     * 每个 STACK piece = 4 层 = 1 个叠加组.
+     * 追加叠加层数 (用于发电公式中的 n).
+     * mStackCount = 追加叠加组数 (不含 BASE 内嵌的 1 组基线);
+     * 每组 = 4 层 (L5~L2).
      * n = getStackLayers() + 1 = mStackCount * 4 + 1
      *
-     * 例: 0个STACK → n=1, 1个STACK(4层) → n=5
+     * 例: 0 个追加组 → stackLayers=0, n=1, savings=0%
+     * 1 个追加组 → stackLayers=4, n=5, savings=20%
      *
      * @see checkProcessing() 公式: EU/t = voltage × multiplier × n × efficiency
      */
@@ -846,40 +845,31 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
 
     @Override
     public void construct(ItemStack stackSize, boolean hintsOnly) {
-        buildPiece(STRUCTURE_PIECE_BASE_1, stackSize, hintsOnly, 7, -1, 0);
-        buildPiece(STRUCTURE_PIECE_BASE_2, stackSize, hintsOnly, 7, 0, 0);
-        buildPiece(STRUCTURE_PIECE_BASE_3, stackSize, hintsOnly, 7, 1, 0);
-        int tTotalHeight = Math.max(3, GTStructureChannels.STRUCTURE_HEIGHT.getValueClamped(stackSize, 3, 13));
-        int stackGroups = (tTotalHeight - 2) / 4;
-        for (int i = 0; i < stackGroups; i++) {
-            int baseY = 2 + i * 4;
+        buildPiece(STRUCTURE_PIECE_BASE, stackSize, hintsOnly, 7, 0, 0);
+        int tTotalHeight = Math.max(9, GTStructureChannels.STRUCTURE_HEIGHT.getValueClamped(stackSize, 9, 17));
+        int extraStacks = (tTotalHeight - 9) / 4;
+        for (int i = 0; i < extraStacks; i++) {
+            int baseY = 7 + i * 4;
             buildPiece(STRUCTURE_PIECE_STACK, stackSize, hintsOnly, 7, baseY, 0);
         }
-        int capY = 2 + stackGroups * 4;
-        buildPiece(STRUCTURE_PIECE_CAP_1, stackSize, hintsOnly, 7, capY, 0);
-        buildPiece(STRUCTURE_PIECE_CAP_2, stackSize, hintsOnly, 7, capY + 1, 0);
+        int capY = 7 + extraStacks * 4;
+        buildPiece(STRUCTURE_PIECE_CAP, stackSize, hintsOnly, 7, capY, 0);
     }
 
     @Override
     public int survivalConstruct(ItemStack stackSize, int elementBudget, ISurvivalBuildEnvironment env) {
         if (mMachine) return -1;
-        int built = survivalBuildPiece(STRUCTURE_PIECE_BASE_1, stackSize, 7, -1, 0, elementBudget, env, false, true);
+        int built = survivalBuildPiece(STRUCTURE_PIECE_BASE, stackSize, 7, 0, 0, elementBudget, env, false, true);
         if (built >= 0) return built;
-        built = survivalBuildPiece(STRUCTURE_PIECE_BASE_2, stackSize, 7, 0, 0, elementBudget, env, false, true);
-        if (built >= 0) return built;
-        built = survivalBuildPiece(STRUCTURE_PIECE_BASE_3, stackSize, 7, 1, 0, elementBudget, env, false, true);
-        if (built >= 0) return built;
-        int tTotalHeight = Math.max(3, GTStructureChannels.STRUCTURE_HEIGHT.getValueClamped(stackSize, 3, 13));
-        int stackGroups = (tTotalHeight - 2) / 4;
-        for (int i = 0; i < stackGroups; i++) {
-            int baseY = 2 + i * 4;
+        int tTotalHeight = Math.max(9, GTStructureChannels.STRUCTURE_HEIGHT.getValueClamped(stackSize, 9, 17));
+        int extraStacks = (tTotalHeight - 9) / 4;
+        for (int i = 0; i < extraStacks; i++) {
+            int baseY = 7 + i * 4;
             built = survivalBuildPiece(STRUCTURE_PIECE_STACK, stackSize, 7, baseY, 0, elementBudget, env, false, true);
             if (built >= 0) return built;
         }
-        int capY = 2 + stackGroups * 4;
-        built = survivalBuildPiece(STRUCTURE_PIECE_CAP_1, stackSize, 7, capY, 0, elementBudget, env, false, true);
-        if (built >= 0) return built;
-        return survivalBuildPiece(STRUCTURE_PIECE_CAP_2, stackSize, 7, capY + 1, 0, elementBudget, env, false, true);
+        int capY = 7 + extraStacks * 4;
+        return survivalBuildPiece(STRUCTURE_PIECE_CAP, stackSize, 7, capY, 0, elementBudget, env, false, true);
     }
 
     @Override
@@ -917,7 +907,10 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
 
     @Override
     public String[] getStructureDescription(ItemStack stackSize) {
-        return new String[0];
+        return new String[] { EnumChatFormatting.GRAY + "BASE (7 layers, L8~L2): Controller + 1 baseline stack",
+            EnumChatFormatting.GRAY + "STACK (4 layers, L5~L2): Repeatable, each +4 layers",
+            EnumChatFormatting.GRAY + "CAP (2 layers, L1~L0): Top cover",
+            EnumChatFormatting.GRAY + "Extra Stacks: 0 ~ 2 (9~17 total height)" };
     }
 
     @Override
@@ -931,7 +924,8 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
             .addInfo(EnumChatFormatting.AQUA + "Titanium Pipe: Max Efficiency +10%")
             .addInfo(EnumChatFormatting.AQUA + "Tungstensteel Pipe: Max Efficiency +20%")
             .addInfo(EnumChatFormatting.AQUA + "Titanium Gearbox: Steam Savings +5%")
-            .beginStructureBlock(13, 9, 13, true)
+            .addInfo(EnumChatFormatting.GRAY + "Stack Groups: 0~2 additional (each +4 layers)")
+            .beginStructureBlock(13, 9, 13, false)
             .addController(StatCollector.translateToLocal("gtsr.tooltip.mega_steam_turbine.controller"))
             .addInputHatch(StatCollector.translateToLocal("gtsr.tooltip.mega_steam_turbine.input"), 1)
             .addDynamoHatch(StatCollector.translateToLocal("gtsr.tooltip.mega_steam_turbine.dynamo"), 1)
