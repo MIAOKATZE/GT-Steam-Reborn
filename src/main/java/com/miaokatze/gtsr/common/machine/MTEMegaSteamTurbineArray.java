@@ -459,14 +459,14 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         if (!checkPiece(STRUCTURE_PIECE_BASE, 6, 5, 0)) return false;
 
         for (int i = 0; i < 2; i++) {
-            int bOffset = 6 + i * 4;
+            int bOffset = 9 + i * 4;
             if (!checkPiece(STRUCTURE_PIECE_STACK, 6, bOffset, 0)) break;
             mStackCount++;
         }
 
         if (mCasingTier <= 0 || mCasingTier > 7) return false;
 
-        int capB = 6 + mStackCount * 4;
+        int capB = 7 + mStackCount * 4;
         if (!checkPiece(STRUCTURE_PIECE_CAP, 6, capB, 0)) return false;
 
         boolean hasInput = !mInputHatches.isEmpty() || hasPressureSteamHatch();
@@ -849,10 +849,10 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         int tTotalHeight = Math.max(9, GTStructureChannels.STRUCTURE_HEIGHT.getValueClamped(stackSize, 9, 17));
         int extraStacks = (tTotalHeight - 9) / 4;
         for (int i = 0; i < extraStacks; i++) {
-            int bOffset = 6 + i * 4;
+            int bOffset = 9 + i * 4;
             buildPiece(STRUCTURE_PIECE_STACK, stackSize, hintsOnly, 6, bOffset, 0);
         }
-        int capB = 6 + extraStacks * 4;
+        int capB = 7 + extraStacks * 4;
         buildPiece(STRUCTURE_PIECE_CAP, stackSize, hintsOnly, 6, capB, 0);
     }
 
@@ -864,7 +864,7 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         int tTotalHeight = Math.max(9, GTStructureChannels.STRUCTURE_HEIGHT.getValueClamped(stackSize, 9, 17));
         int extraStacks = (tTotalHeight - 9) / 4;
         for (int i = 0; i < extraStacks; i++) {
-            int bOffset = 6 + i * 4;
+            int bOffset = 9 + i * 4;
             built = survivalBuildPiece(
                 STRUCTURE_PIECE_STACK,
                 stackSize,
@@ -877,7 +877,7 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
                 true);
             if (built >= 0) return built;
         }
-        int capB = 6 + extraStacks * 4;
+        int capB = 7 + extraStacks * 4;
         return survivalBuildPiece(STRUCTURE_PIECE_CAP, stackSize, 6, capB, 0, elementBudget, env, false, true);
     }
 
