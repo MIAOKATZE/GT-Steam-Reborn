@@ -456,18 +456,18 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         mSteamCoolingHatches.clear();
         mPressureCoolingHatches.clear();
 
-        if (!checkPiece(STRUCTURE_PIECE_BASE, 6, 0, 5)) return false;
+        if (!checkPiece(STRUCTURE_PIECE_BASE, 6, 5, 0)) return false;
 
         for (int i = 0; i < 2; i++) {
-            int cOffset = 9 + i * 4;
-            if (!checkPiece(STRUCTURE_PIECE_STACK, 6, 0, cOffset)) break;
+            int bOffset = 6 + i * 4;
+            if (!checkPiece(STRUCTURE_PIECE_STACK, 6, bOffset, 0)) break;
             mStackCount++;
         }
 
         if (mCasingTier <= 0 || mCasingTier > 7) return false;
 
-        int capC = 7 + mStackCount * 4;
-        if (!checkPiece(STRUCTURE_PIECE_CAP, 6, 0, capC)) return false;
+        int capB = 6 + mStackCount * 4;
+        if (!checkPiece(STRUCTURE_PIECE_CAP, 6, capB, 0)) return false;
 
         boolean hasInput = !mInputHatches.isEmpty() || hasPressureSteamHatch();
         boolean hasOutput = !mOutputHatches.isEmpty() || hasSteamCoolingHatch() || hasPressureCoolingHatch();
@@ -845,40 +845,40 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
 
     @Override
     public void construct(ItemStack stackSize, boolean hintsOnly) {
-        buildPiece(STRUCTURE_PIECE_BASE, stackSize, hintsOnly, 6, 0, 5);
+        buildPiece(STRUCTURE_PIECE_BASE, stackSize, hintsOnly, 6, 5, 0);
         int tTotalHeight = Math.max(9, GTStructureChannels.STRUCTURE_HEIGHT.getValueClamped(stackSize, 9, 17));
         int extraStacks = (tTotalHeight - 9) / 4;
         for (int i = 0; i < extraStacks; i++) {
-            int cOffset = 9 + i * 4;
-            buildPiece(STRUCTURE_PIECE_STACK, stackSize, hintsOnly, 6, 0, cOffset);
+            int bOffset = 6 + i * 4;
+            buildPiece(STRUCTURE_PIECE_STACK, stackSize, hintsOnly, 6, bOffset, 0);
         }
-        int capC = 7 + extraStacks * 4;
-        buildPiece(STRUCTURE_PIECE_CAP, stackSize, hintsOnly, 6, 0, capC);
+        int capB = 6 + extraStacks * 4;
+        buildPiece(STRUCTURE_PIECE_CAP, stackSize, hintsOnly, 6, capB, 0);
     }
 
     @Override
     public int survivalConstruct(ItemStack stackSize, int elementBudget, ISurvivalBuildEnvironment env) {
         if (mMachine) return -1;
-        int built = survivalBuildPiece(STRUCTURE_PIECE_BASE, stackSize, 6, 0, 5, elementBudget, env, false, true);
+        int built = survivalBuildPiece(STRUCTURE_PIECE_BASE, stackSize, 6, 5, 0, elementBudget, env, false, true);
         if (built >= 0) return built;
         int tTotalHeight = Math.max(9, GTStructureChannels.STRUCTURE_HEIGHT.getValueClamped(stackSize, 9, 17));
         int extraStacks = (tTotalHeight - 9) / 4;
         for (int i = 0; i < extraStacks; i++) {
-            int cOffset = 9 + i * 4;
+            int bOffset = 6 + i * 4;
             built = survivalBuildPiece(
                 STRUCTURE_PIECE_STACK,
                 stackSize,
                 6,
+                bOffset,
                 0,
-                cOffset,
                 elementBudget,
                 env,
                 false,
                 true);
             if (built >= 0) return built;
         }
-        int capC = 7 + extraStacks * 4;
-        return survivalBuildPiece(STRUCTURE_PIECE_CAP, stackSize, 6, 0, capC, elementBudget, env, false, true);
+        int capB = 6 + extraStacks * 4;
+        return survivalBuildPiece(STRUCTURE_PIECE_CAP, stackSize, 6, capB, 0, elementBudget, env, false, true);
     }
 
     @Override
