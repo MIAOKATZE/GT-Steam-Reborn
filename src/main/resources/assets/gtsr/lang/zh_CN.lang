@@ -390,18 +390,6 @@ gtsr.node.driller_bedrock=到达基岩
 gtsr.node.yes=是
 gtsr.node.no=否
 
-# Steam Input Bus (蒸汽输入总线)
-gt.blockmachines.gtsr.steam.input.bus.name=输入总线(蒸汽)
-gtsr.tooltip.steam_input_bus.name=蒸汽物品输入
-gtsr.tooltip.steam_input_bus.info=容量: 4 组 + 1 电路槽
-gtsr.tooltip.steam_input_bus.restriction=仅可用于蒸汽多方块机器
-
-# Steam Output Bus (蒸汽输出总线)
-gt.blockmachines.gtsr.steam.output.bus.name=输出总线(蒸汽)
-gtsr.tooltip.steam_output_bus.name=蒸汽物品输出
-gtsr.tooltip.steam_output_bus.info=容量: 4 组，不自动输出
-gtsr.tooltip.steam_output_bus.restriction=仅可用于蒸汽多方块机器
-
 # Large Coke Oven
 gt.blockmachines.gtsr.large.coke.oven.name=大型焦炉
 gtsr.recipe.large_coke_oven=大型焦炉

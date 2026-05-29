@@ -68,8 +68,6 @@ public enum GTSRItemList implements IItemContainer {
     SingularityDrillingHub,
     SingularityMinerNode,
     SingularityDrillingNode,
-    SteamInputBus,
-    SteamOutputBus,
     LargeCokeOven,
     SiemensMartinFurnace,
     SteamOutputHatchGeneric,

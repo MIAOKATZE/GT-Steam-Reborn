@@ -19,8 +19,6 @@ import com.miaokatze.gtsr.common.machine.MTESingularityDrillingNode;
 import com.miaokatze.gtsr.common.machine.MTESingularityMinerNode;
 import com.miaokatze.gtsr.common.machine.MTESteamFluidDrill;
 import com.miaokatze.gtsr.common.machine.MTESteamHubArray;
-import com.miaokatze.gtsr.common.machine.MTESteamInputBus;
-import com.miaokatze.gtsr.common.machine.MTESteamOutputBus;
 import com.miaokatze.gtsr.common.machine.MTESteamSingularityCompressor;
 import com.miaokatze.gtsr.common.machine.MTEVeinSteamPyrolyzer;
 import com.miaokatze.gtsr.common.machine.MTEVoidCrustSteamBorer;
@@ -295,14 +293,6 @@ public class MachineLoader {
                 "gtsr.water.hub.output.hatch",
                 "Water Hub Output Hatch"));
         CreativeTabManager.addItemToTab(GTSRItemList.WaterHubOutputHatch.get(1));
-
-        GTSRItemList.SteamInputBus
-            .set(new MTESteamInputBus(MetaTileEntityID.STEAM_INPUT_BUS.ID, "gtsr.steam.input.bus", "Steam Input Bus"));
-        CreativeTabManager.addItemToTab(GTSRItemList.SteamInputBus.get(1));
-
-        GTSRItemList.SteamOutputBus.set(
-            new MTESteamOutputBus(MetaTileEntityID.STEAM_OUTPUT_BUS.ID, "gtsr.steam.output.bus", "Steam Output Bus"));
-        CreativeTabManager.addItemToTab(GTSRItemList.SteamOutputBus.get(1));
 
         GTSRItemList.HubStorageUnit.set(
             new MTEHubStorageUnit(MetaTileEntityID.HUB_STORAGE_UNIT.ID, "gtsr.hub.storage.unit", "Hub Storage Unit"));

@@ -390,18 +390,6 @@ gtsr.node.driller_bedrock=Reached Bedrock
 gtsr.node.yes=Yes
 gtsr.node.no=No
 
-# Steam Input Bus
-gt.blockmachines.gtsr.steam.input.bus.name=Input Bus (Steam)
-gtsr.tooltip.steam_input_bus.name=Steam Item Input
-gtsr.tooltip.steam_input_bus.info=Capacity: 4 stacks + 1 circuit slot
-gtsr.tooltip.steam_input_bus.restriction=Only works with steam multiblocks
-
-# Steam Output Bus
-gt.blockmachines.gtsr.steam.output.bus.name=Output Bus (Steam)
-gtsr.tooltip.steam_output_bus.name=Steam Item Output
-gtsr.tooltip.steam_output_bus.info=Capacity: 4 stacks, does not auto-export
-gtsr.tooltip.steam_output_bus.restriction=Only works with steam multiblocks
-
 # Large Coke Oven
 gt.blockmachines.gtsr.large.coke.oven.name=Large Coke Oven
 gtsr.recipe.large_coke_oven=Large Coke Oven
