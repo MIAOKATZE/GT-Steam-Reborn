@@ -11,7 +11,7 @@ public class VeinPyrolyzerChip extends Item {
     public VeinPyrolyzerChip(String unlocalizedName, int rangeBonus) {
         super();
         setUnlocalizedName(unlocalizedName);
-        setTextureName("miscutils:MU-metaitem.01/152");
+        setTextureName("gtsr:" + unlocalizedName);
         setCreativeTab(CreativeTabManager.CREATIVE_TAB);
         setMaxStackSize(1);
         this.rangeBonus = rangeBonus;

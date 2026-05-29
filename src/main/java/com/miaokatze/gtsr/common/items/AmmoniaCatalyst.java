@@ -9,7 +9,7 @@ public class AmmoniaCatalyst extends Item {
     public AmmoniaCatalyst(String unlocalizedName) {
         super();
         setUnlocalizedName(unlocalizedName);
-        setTextureName("miscutils:MU-metaitem.01/152");
+        setTextureName("gtsr:" + unlocalizedName);
         setCreativeTab(CreativeTabManager.CREATIVE_TAB);
         setMaxStackSize(1);
     }

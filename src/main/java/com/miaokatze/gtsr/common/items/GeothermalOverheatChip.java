@@ -9,7 +9,7 @@ public class GeothermalOverheatChip extends Item {
     public GeothermalOverheatChip(String unlocalizedName) {
         super();
         setUnlocalizedName(unlocalizedName);
-        setTextureName("miscutils:MU-metaitem.01/152");
+        setTextureName("gtsr:GeothermalOverheatChip");
         setCreativeTab(CreativeTabManager.CREATIVE_TAB);
         setMaxStackSize(1);
     }

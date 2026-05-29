@@ -2,15 +2,15 @@ package com.miaokatze.gtsr.common.items;
 
 import net.minecraft.item.Item;
 
-import gregtech.api.GregTechAPI;
+import com.miaokatze.gtsr.register.CreativeTabManager;
 
 public class HubSingularityChip extends Item {
 
     public HubSingularityChip() {
         super();
         setUnlocalizedName("HubSingularityChip");
-        setCreativeTab(GregTechAPI.TAB_GREGTECH);
-        setTextureName("miscutils:MU-metaitem.01/152");
+        setCreativeTab(CreativeTabManager.CREATIVE_TAB);
+        setTextureName("gtsr:HubSingularityChip");
         setMaxStackSize(1);
     }
 }

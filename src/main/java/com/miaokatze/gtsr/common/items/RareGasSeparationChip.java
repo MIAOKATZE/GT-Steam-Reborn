@@ -9,7 +9,7 @@ public class RareGasSeparationChip extends Item {
     public RareGasSeparationChip() {
         super();
         setUnlocalizedName("RareGasSeparationChip");
-        setTextureName("miscutils:MU-metaitem.01/152");
+        setTextureName("gtsr:RareGasSeparationChip");
         setCreativeTab(CreativeTabManager.CREATIVE_TAB);
         setMaxStackSize(1);
     }

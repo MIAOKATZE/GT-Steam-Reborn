@@ -21,13 +21,13 @@ public class ItemLoader {
 
     private static void registerPyrolyzerChips() {
         GTSRItemList.VeinPyrolyzerChipT1
-            .setAndRegister(new VeinPyrolyzerChip("VeinPyrolyzerChipT1", 1), "VeinPyrolyzerChipT1", true);
+            .setAndRegister(new VeinPyrolyzerChip("VeinPyrolyzerChip_T1", 1), "VeinPyrolyzerChipT1", true);
 
         GTSRItemList.VeinPyrolyzerChipT2
-            .setAndRegister(new VeinPyrolyzerChip("VeinPyrolyzerChipT2", 3), "VeinPyrolyzerChipT2", true);
+            .setAndRegister(new VeinPyrolyzerChip("VeinPyrolyzerChip_T2", 3), "VeinPyrolyzerChipT2", true);
 
         GTSRItemList.VeinPyrolyzerChipT3
-            .setAndRegister(new VeinPyrolyzerChip("VeinPyrolyzerChipT3", 7), "VeinPyrolyzerChipT3", true);
+            .setAndRegister(new VeinPyrolyzerChip("VeinPyrolyzerChip_T3", 7), "VeinPyrolyzerChipT3", true);
     }
 
     private static void registerGeothermalOverheatChip() {
