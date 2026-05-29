@@ -111,12 +111,12 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
 
         screenElements.widget(
             TextWidget.dynamicString(
-                () -> EnumChatFormatting.GOLD + "EU/t: "
+                () -> EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.turbine_array.eu_t")
                     + EnumChatFormatting.AQUA
                     + GTUtility.formatNumbers(
                         (long) (getVoltage() * 4 * (getStackLayers() + 1) * (getMaxEfficiencyLimit(false) / 10000.0)))
                     + EnumChatFormatting.GRAY
-                    + " (HP: "
+                    + StatCollector.translateToLocal("gtsr.gui.turbine_array.hp_prefix")
                     + EnumChatFormatting.RED
                     + GTUtility.formatNumbers(
                         (long) (getVoltage() * 8 * (getStackLayers() + 1) * (getMaxEfficiencyLimit(true) / 10000.0)))
@@ -129,12 +129,12 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         screenElements.widget(
             TextWidget
                 .dynamicString(
-                    () -> EnumChatFormatting.GOLD + "Steam: "
+                    () -> EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.turbine_array.steam")
                         + EnumChatFormatting.AQUA
                         + GTUtility.formatNumbers(calcSteamConsumption(false))
                         + " L/t"
                         + EnumChatFormatting.GRAY
-                        + " (HP: "
+                        + StatCollector.translateToLocal("gtsr.gui.turbine_array.hp_prefix")
                         + EnumChatFormatting.RED
                         + GTUtility.formatNumbers(calcSteamConsumption(true))
                         + ")")
@@ -145,7 +145,7 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         screenElements.widget(
             TextWidget
                 .dynamicString(
-                    () -> EnumChatFormatting.GOLD + "Savings: "
+                    () -> EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.turbine_array.savings")
                         + EnumChatFormatting.GREEN
                         + String.format("%.0f%%", (0.05 * getStackLayers() + (mGearTier > 1 ? 0.05 : 0)) * 100))
                 .setTextAlignment(Alignment.CenterLeft)
@@ -155,13 +155,14 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         screenElements.widget(
             TextWidget
                 .dynamicString(
-                    () -> EnumChatFormatting.GOLD + "Stacks: "
+                    () -> EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.turbine_array.stacks")
                         + EnumChatFormatting.AQUA
                         + (1 + mStackCount)
-                        + " group(s)"
+                        + StatCollector.translateToLocal("gtsr.gui.turbine_array.groups")
                         + EnumChatFormatting.GRAY
                         + " ("
-                        + (mStackCount == 0 ? "baseline" : "+" + mStackCount + " extra")
+                        + (mStackCount == 0 ? StatCollector.translateToLocal("gtsr.gui.turbine_array.baseline")
+                            : "+" + mStackCount + StatCollector.translateToLocal("gtsr.gui.turbine_array.extra"))
                         + ")")
                 .setTextAlignment(Alignment.CenterLeft)
                 .setDefaultColor(COLOR_TEXT_WHITE.get())
@@ -170,11 +171,13 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         screenElements.widget(
             TextWidget
                 .dynamicString(
-                    () -> EnumChatFormatting.GOLD + "Eff: "
+                    () -> EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.turbine_array.efficiency")
                         + (mEfficiency >= getMaxEfficiencyLimit(true) ? EnumChatFormatting.LIGHT_PURPLE
                             : mEfficiency >= 10000 ? EnumChatFormatting.GREEN : EnumChatFormatting.YELLOW)
                         + String.format("%.1f%%", mEfficiency / 100.0)
-                        + (mEfficiency >= getMaxEfficiencyLimit(true) ? " MAX" : ""))
+                        + (mEfficiency >= getMaxEfficiencyLimit(true)
+                            ? StatCollector.translateToLocal("gtsr.gui.turbine_array.max")
+                            : ""))
                 .setTextAlignment(Alignment.CenterLeft)
                 .setDefaultColor(COLOR_TEXT_WHITE.get())
                 .setEnabled(w -> mMachine));
@@ -182,7 +185,7 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         screenElements.widget(
             TextWidget
                 .dynamicString(
-                    () -> EnumChatFormatting.GOLD + "Output: "
+                    () -> EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.turbine_array.output")
                         + EnumChatFormatting.GREEN
                         + GTUtility.formatNumbers(Math.abs(mEUt))
                         + " EU/t")
@@ -951,7 +954,8 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
             .addInputHatch(StatCollector.translateToLocal("gtsr.tooltip.turbine_array.input_hatch"), 1)
             .addDynamoHatch(StatCollector.translateToLocal("gtsr.tooltip.turbine_array.dynamo"), 1)
             .addStructureInfo("")
-            .addStructureInfo(EnumChatFormatting.BLUE + "Bronze/Steel " + EnumChatFormatting.DARK_PURPLE + "Tier")
+            .addStructureInfo(
+                EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.shared.bronze_steel_tier"))
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.casing"), 38, false)
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.gear_box"), 8, false)
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.pipe"), 8, false)

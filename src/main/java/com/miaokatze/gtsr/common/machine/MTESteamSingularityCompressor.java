@@ -332,10 +332,39 @@ public class MTESteamSingularityCompressor extends MTESteamMultiBase<MTESteamSin
         screenElements
             .widget(
                 new TextWidget().setStringSupplier(
-                    () -> EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.gui.geothermal_boiler.heat")
-                        + ": "
-                        + String.format("%.3f%%", mHeat * 100.0d)))
-            .widget(new FakeSyncWidget.DoubleSyncer(() -> mHeat, val -> mHeat = val));
+                    () -> EnumChatFormatting.YELLOW
+                        + StatCollector.translateToLocal("gtsr.gui.singularity_compressor.heat")
+                        + EnumChatFormatting.RED
+                        + String.format("%.1f%%", mHeat * 100.0d)
+                        + EnumChatFormatting.RESET))
+            .widget(new TextWidget().setStringSupplier(() -> {
+                String statusKey;
+                EnumChatFormatting statusColor;
+                if (mMaxProgresstime > 0) {
+                    statusKey = "gtsr.gui.status.running";
+                    statusColor = EnumChatFormatting.AQUA;
+                } else if (mHeat > 0) {
+                    statusKey = "gtsr.gui.singularity_compressor.status.accumulating";
+                    statusColor = EnumChatFormatting.YELLOW;
+                } else {
+                    statusKey = "gtsr.gui.status.idle";
+                    statusColor = EnumChatFormatting.GRAY;
+                }
+                return EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.status")
+                    + " "
+                    + statusColor
+                    + StatCollector.translateToLocal(statusKey)
+                    + EnumChatFormatting.RESET;
+            }))
+            .widget(new TextWidget().setStringSupplier(() -> {
+                String steamType = hasSuperheatedSteamInHatch()
+                    ? StatCollector.translateToLocal("gtsr.gui.steam_type.superheated")
+                    : StatCollector.translateToLocal("gtsr.gui.steam_type.normal");
+                return EnumChatFormatting.YELLOW + StatCollector.translateToLocal(
+                    "gtsr.gui.steam_type") + " " + EnumChatFormatting.YELLOW + steamType + EnumChatFormatting.RESET;
+            }))
+            .widget(new FakeSyncWidget.DoubleSyncer(() -> mHeat, val -> mHeat = val))
+            .widget(new FakeSyncWidget.IntegerSyncer(() -> mMaxProgresstime, val -> mMaxProgresstime = val));
     }
 
     @Override
@@ -370,15 +399,7 @@ public class MTESteamSingularityCompressor extends MTESteamMultiBase<MTESteamSin
                     + EnumChatFormatting.WHITE
                     + " 500 L/s")
             .addInfo(
-                EnumChatFormatting.GREEN + "Superheated Steam"
-                    + EnumChatFormatting.GRAY
-                    + " quadruples "
-                    + EnumChatFormatting.GREEN
-                    + "Speed"
-                    + EnumChatFormatting.GRAY
-                    + " and "
-                    + EnumChatFormatting.AQUA
-                    + "Steam Usage")
+                EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.tooltip.shared.superheated_quadruples"))
             .beginStructureBlock(11, 11, 11, false)
             .addController(StatCollector.translateToLocal("gtsr.tooltip.singularity_compressor.ctrl"))
             .addOtherStructurePart(
@@ -391,12 +412,16 @@ public class MTESteamSingularityCompressor extends MTESteamMultiBase<MTESteamSin
                 StatCollector.translateToLocal("gtsr.tooltip.shared.any_casing"),
                 2)
             .addStructureInfo("")
-            .addStructureInfo(EnumChatFormatting.DARK_PURPLE + "Steel Only")
-            .addCasingInfoExactly("Solid Steel Machine Casing", 175, false)
-            .addCasingInfoExactly("Steel Pipe Casing", 16, false)
-            .addCasingInfoExactly("Steel Gear Box Casing", 73, false)
-            .addCasingInfoExactly("Reinforced Glass", 252, false)
-            .addCasingInfoExactly("Steel Frame Box", 144, false)
+            .addStructureInfo(
+                EnumChatFormatting.DARK_PURPLE + StatCollector.translateToLocal("gtsr.tooltip.shared.steel_only"))
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.steel_casing"), 175, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.steel_pipe_casing"), 16, false)
+            .addCasingInfoExactly(
+                StatCollector.translateToLocal("gtsr.tooltip.shared.steel_gear_box_casing"),
+                73,
+                false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.reinforced_glass"), 252, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.steel_frame_box"), 144, false)
             .addStructureHint("gtsr.tooltip.shared.no_maintenance")
             .toolTipFinisher(
                 EnumChatFormatting.AQUA + "GT"

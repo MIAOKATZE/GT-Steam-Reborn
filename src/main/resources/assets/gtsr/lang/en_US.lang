@@ -746,10 +746,12 @@ gtsr.tooltip.fluid_drill.hint_bronze=Bronze tier reaches max efficiency in ~5 mi
 # 14. Steam Hub Array - missing GUI keys
 gtsr.gui.steam_hub.storage_units=Storage Units: 
 gtsr.gui.steam_hub.steam_buffer=Steam Buffer: 
+gtsr.gui.steam_hub.total_capacity=Total Capacity: 
 
 # 15. Water Hub Array - missing GUI keys
 gtsr.gui.water_hub.storage_units=Storage Units: 
 gtsr.gui.water_hub.water_buffer=Water Buffer: 
+gtsr.gui.water_hub.total_capacity=Total Capacity: 
 
 # 16. Vein Steam Pyrolyzer - missing hint
 gtsr.tooltip.vein_pyrolyzer.hint_bronze=Supports Pyrolyzer Chips: T1(+1 chunk), T2(+3 chunks), T3(+7 chunks)
@@ -793,3 +795,46 @@ gtsr.tooltip.gear_compressor.output_hatch=Distilled Water Output
 gtsr.gui.gear_compressor.steam_in=Steam In: 
 gtsr.gui.gear_compressor.sh_steam_out=SH Steam Out: 
 gtsr.gui.gear_compressor.water_out=Water Out:
+gtsr.gui.gear_compressor.tier=Tier: 
+gtsr.gui.tier.none=None
+
+# ===== KPA & MSTA GUI Keys =====
+gtsr.gui.kinetic_array.tier=Tier: 
+gtsr.gui.kinetic_array.steam_rate=Steam Rate: 
+gtsr.gui.kinetic_array.steam_per_amp=Steam/A: 
+gtsr.gui.kinetic_array.hp_steam=HP Steam: 
+gtsr.gui.kinetic_array.parallel=Parallel: 
+gtsr.gui.turbine_array.eu_t=EU/t: 
+gtsr.gui.turbine_array.hp_prefix= (HP: 
+gtsr.gui.turbine_array.steam=Steam: 
+gtsr.gui.turbine_array.savings=Savings: 
+gtsr.gui.turbine_array.stacks=Stacks: 
+gtsr.gui.turbine_array.groups= group(s)
+gtsr.gui.turbine_array.baseline=baseline
+gtsr.gui.turbine_array.extra= extra
+gtsr.gui.turbine_array.efficiency=Eff: 
+gtsr.gui.turbine_array.max= MAX
+gtsr.gui.turbine_array.output=Output: 
+
+# ===== v1.1.0 Hardcoded English Fix =====
+gtsr.tooltip.shared.superheated_quadruples=Superheated Steam quadruples Speed and Steam Usage
+gtsr.tooltip.shared.bronze_steel_tier=Bronze/Steel Tier
+gtsr.tooltip.shared.steel_only=Steel Only
+gtsr.tooltip.shared.steel_casing=Solid Steel Machine Casing
+gtsr.tooltip.shared.steel_pipe_casing=Steel Pipe Casing
+gtsr.tooltip.shared.steel_gear_box_casing=Steel Gear Box Casing
+gtsr.tooltip.shared.steel_firebox_casing=Steel Firebox Casing
+gtsr.tooltip.shared.reinforced_glass=Reinforced Glass
+gtsr.tooltip.shared.steel_frame_box=Steel Frame Box
+gtsr.tooltip.shared.firebricks=Firebricks
+gtsr.tooltip.shared.parallel=Parallel
+gtsr.gui.status.idle=Idle
+gtsr.gui.singularity_compressor.status.accumulating=Accumulating
+gtsr.gui.singularity_compressor.heat=Heat
+gtsr.gui.coke_oven.temperature=Temperature
+gtsr.gui.coke_oven.status.heating=Heating
+gtsr.gui.coke_oven.recipe_time=Recipe Time
+gtsr.gui.siemens_martin.status.heating=Heating
+gtsr.gui.steam_hub.total_capacity=Total Capacity
+gtsr.gui.water_hub.total_capacity=Total Capacity
+gtsr.tooltip.solar_array.three_tier=Bronze/Steel/Overpressure Tier

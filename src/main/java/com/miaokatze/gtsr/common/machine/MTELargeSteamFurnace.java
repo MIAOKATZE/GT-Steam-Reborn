@@ -314,7 +314,8 @@ public class MTELargeSteamFurnace extends MTESteamMultiBase<MTELargeSteamFurnace
                 StatCollector.translateToLocal("gtsr.tooltip.shared.steam_or_pressure"),
                 1)
             .addStructureInfo("")
-            .addStructureInfo(EnumChatFormatting.BLUE + "Bronze/Steel " + EnumChatFormatting.DARK_PURPLE + "Tier")
+            .addStructureInfo(
+                EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.shared.bronze_steel_tier"))
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.casing"), 19, false)
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.firebox"), 3, false)
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.pipe"), 6, false)

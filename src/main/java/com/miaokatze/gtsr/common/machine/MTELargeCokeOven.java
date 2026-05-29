@@ -247,7 +247,8 @@ public class MTELargeCokeOven extends MTEEnhancedMultiBlockBase<MTELargeCokeOven
             .addOutputBus(StatCollector.translateToLocal("gtsr.tooltip.coke_oven.output_bus"), 1)
             .addOutputHatch(StatCollector.translateToLocal("gtsr.tooltip.coke_oven.output_hatch"), 1)
             .addStructureInfo("")
-            .addStructureInfo(EnumChatFormatting.BLUE + "Bronze/Steel " + EnumChatFormatting.DARK_PURPLE + "Tier")
+            .addStructureInfo(
+                EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.shared.bronze_steel_tier"))
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.casing"), 39, false)
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.firebox"), 9, false)
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.pipe"), 12, false)
@@ -365,9 +366,54 @@ public class MTELargeCokeOven extends MTEEnhancedMultiBlockBase<MTELargeCokeOven
         screenElements
             .widget(
                 new TextWidget().setStringSupplier(
-                    () -> EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.gui.coke_oven.temperature")
-                        + String.format("%.0f%%", mHeat * 100.0d)))
-            .widget(new FakeSyncWidget.DoubleSyncer(() -> mHeat, val -> mHeat = val));
+                    () -> EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.coke_oven.temperature")
+                        + EnumChatFormatting.RED
+                        + String.format("%.1f%%", mHeat * 100.0d)
+                        + EnumChatFormatting.RESET))
+            .widget(new TextWidget().setStringSupplier(() -> {
+                String statusKey;
+                EnumChatFormatting statusColor;
+                if (mMaxProgresstime > 0) {
+                    statusKey = "gtsr.gui.status.running";
+                    statusColor = EnumChatFormatting.AQUA;
+                } else if (mHeat > 0) {
+                    statusKey = "gtsr.gui.coke_oven.status.heating";
+                    statusColor = EnumChatFormatting.GREEN;
+                } else {
+                    statusKey = "gtsr.gui.status.idle";
+                    statusColor = EnumChatFormatting.GRAY;
+                }
+                return EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.status")
+                    + " "
+                    + statusColor
+                    + StatCollector.translateToLocal(statusKey)
+                    + EnumChatFormatting.RESET;
+            }))
+            .widget(new TextWidget().setStringSupplier(() -> {
+                if (mMaxProgresstime > 0) {
+                    int secondsRemaining = (mMaxProgresstime - mProgresstime) / 20;
+                    return EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.coke_oven.recipe_time")
+                        + EnumChatFormatting.GOLD
+                        + secondsRemaining
+                        + "s"
+                        + EnumChatFormatting.RESET;
+                }
+                return EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.coke_oven.recipe_time")
+                    + EnumChatFormatting.GRAY
+                    + "-"
+                    + EnumChatFormatting.RESET;
+            }))
+            .widget(
+                new TextWidget().setStringSupplier(
+                    () -> EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.parallel")
+                        + " "
+                        + EnumChatFormatting.GOLD
+                        + (mTier >= 2 ? "4/16" : "4")
+                        + EnumChatFormatting.RESET))
+            .widget(new FakeSyncWidget.DoubleSyncer(() -> mHeat, val -> mHeat = val))
+            .widget(new FakeSyncWidget.IntegerSyncer(() -> mMaxProgresstime, val -> mMaxProgresstime = val))
+            .widget(new FakeSyncWidget.IntegerSyncer(() -> mProgresstime, val -> mProgresstime = val))
+            .widget(new FakeSyncWidget.IntegerSyncer(() -> mTier, val -> mTier = val));
     }
 
     @Override

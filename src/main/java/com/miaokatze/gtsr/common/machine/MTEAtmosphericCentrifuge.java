@@ -339,15 +339,7 @@ public class MTEAtmosphericCentrifuge extends MTESteamMultiBase<MTEAtmosphericCe
                     + EnumChatFormatting.GRAY
                     + " (Base/Rare Gas)")
             .addInfo(
-                EnumChatFormatting.GREEN + "Superheated Steam"
-                    + EnumChatFormatting.GRAY
-                    + " quadruples "
-                    + EnumChatFormatting.GREEN
-                    + "Speed"
-                    + EnumChatFormatting.GRAY
-                    + " and "
-                    + EnumChatFormatting.AQUA
-                    + "Steam Usage")
+                EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.tooltip.shared.superheated_quadruples"))
             .beginStructureBlock(7, 4, 7, false)
             .addController(StatCollector.translateToLocal("gtsr.tooltip.atmospheric_centrifuge.ctrl"))
             .addInputHatch(StatCollector.translateToLocal("gtsr.tooltip.atmospheric_centrifuge.input_hatch"), 1)

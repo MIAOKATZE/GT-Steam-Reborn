@@ -407,15 +407,7 @@ public class MTECrustSteamBorer extends MTESteamMultiBase<MTECrustSteamBorer> im
                     + EnumChatFormatting.WHITE
                     + " 2000 L/s")
             .addInfo(
-                EnumChatFormatting.GREEN + "Superheated Steam"
-                    + EnumChatFormatting.GRAY
-                    + " quadruples "
-                    + EnumChatFormatting.GREEN
-                    + "Speed"
-                    + EnumChatFormatting.GRAY
-                    + " and "
-                    + EnumChatFormatting.AQUA
-                    + "Steam Usage")
+                EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.tooltip.shared.superheated_quadruples"))
             .beginStructureBlock(9, 11, 9, false)
             .addController(StatCollector.translateToLocal("gtsr.tooltip.crust_borer.ctrl"))
             .addOutputBus(StatCollector.translateToLocal("gtsr.tooltip.crust_borer.output_bus"), 1)

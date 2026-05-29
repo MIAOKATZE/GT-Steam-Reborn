@@ -611,15 +611,7 @@ public class MTESingularityDrillingHub extends MTESteamMultiBase<MTESingularityD
                     + GTUtility.formatNumbers(STEAM_PER_NODE)
                     + "×N L/s")
             .addInfo(
-                EnumChatFormatting.GREEN + "Superheated Steam"
-                    + EnumChatFormatting.GRAY
-                    + " quadruples "
-                    + EnumChatFormatting.GREEN
-                    + "Speed"
-                    + EnumChatFormatting.GRAY
-                    + " and "
-                    + EnumChatFormatting.AQUA
-                    + "Steam Usage")
+                EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.tooltip.shared.superheated_quadruples"))
             .beginStructureBlock(12, 12, 12, false)
             .addController(StatCollector.translateToLocal("gtsr.tooltip.singularity_hub.ctrl"))
             .addOtherStructurePart(
@@ -629,13 +621,14 @@ public class MTESingularityDrillingHub extends MTESteamMultiBase<MTESingularityD
             .addOutputBus(StatCollector.translateToLocal("gtsr.tooltip.singularity_hub.output_bus"), 1)
             .addOutputHatch(StatCollector.translateToLocal("gtsr.tooltip.singularity_hub.output_hatch"), 1)
             .addStructureInfo("")
-            .addStructureInfo(EnumChatFormatting.DARK_PURPLE + "Steel Only")
-            .addCasingInfoExactly("Solid Steel Machine Casing", 381, false)
-            .addCasingInfoExactly("Steel Pipe Casing", 67, false)
-            .addCasingInfoExactly("Steel Gear Box Casing", 9, false)
-            .addCasingInfoExactly("Steel Firebox Casing", 45, false)
-            .addCasingInfoExactly("Reinforced Glass", 66, false)
-            .addCasingInfoExactly("Steel Frame Box", 124, false)
+            .addStructureInfo(
+                EnumChatFormatting.DARK_PURPLE + StatCollector.translateToLocal("gtsr.tooltip.shared.steel_only"))
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.steel_casing"), 381, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.steel_pipe_casing"), 67, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.steel_gear_box_casing"), 9, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.steel_firebox_casing"), 45, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.reinforced_glass"), 66, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.steel_frame_box"), 124, false)
             .addStructureHint("gtsr.tooltip.shared.no_maintenance")
             .addStructureHint("gtsr.tooltip.singularity_hub.hint_node")
             .addStructureHint("gtsr.tooltip.singularity_hub.hint_chunk")

@@ -361,11 +361,43 @@ public class MTESiemensMartinFurnace extends MTEEnhancedMultiBlockBase<MTESiemen
         screenElements
             .widget(
                 new TextWidget().setStringSupplier(
-                    () -> EnumChatFormatting.RED
-                        + StatCollector.translateToLocal("gtsr.gui.siemens_martin_furnace.temperature")
-                        + ": "
-                        + String.format("%.0f%%", mFurnaceTemperature * 100.0d)))
-            .widget(new FakeSyncWidget.DoubleSyncer(() -> mFurnaceTemperature, val -> mFurnaceTemperature = val));
+                    () -> EnumChatFormatting.YELLOW
+                        + StatCollector.translateToLocal("gtsr.gui.siemens_martin.temperature")
+                        + EnumChatFormatting.RED
+                        + String.format("%.1f%%", mFurnaceTemperature * 100.0d)
+                        + EnumChatFormatting.RESET))
+            .widget(new TextWidget().setStringSupplier(() -> {
+                String statusKey;
+                EnumChatFormatting statusColor;
+                if (mMaxProgresstime > 0) {
+                    statusKey = "gtsr.gui.status.running";
+                    statusColor = EnumChatFormatting.AQUA;
+                } else if (mFurnaceTemperature > 0 && mFurnaceTemperature < 1.0d) {
+                    statusKey = "gtsr.gui.siemens_martin.status.heating";
+                    statusColor = EnumChatFormatting.YELLOW;
+                } else {
+                    statusKey = "gtsr.gui.status.idle";
+                    statusColor = EnumChatFormatting.GRAY;
+                }
+                return EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.status")
+                    + " "
+                    + statusColor
+                    + StatCollector.translateToLocal(statusKey)
+                    + EnumChatFormatting.RESET;
+            }))
+            .widget(
+                new TextWidget().setStringSupplier(
+                    () -> EnumChatFormatting.YELLOW + StatCollector.translateToLocal(
+                        "gtsr.gui.parallel") + " " + EnumChatFormatting.GOLD + MAX_PARALLEL + EnumChatFormatting.RESET))
+            .widget(new TextWidget().setStringSupplier(() -> {
+                String recipeInfo = mMaxProgresstime > 0
+                    ? EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.gui.siemens_martin.recipe.active")
+                    : EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.gui.siemens_martin.recipe.none");
+                return EnumChatFormatting.YELLOW + StatCollector.translateToLocal(
+                    "gtsr.gui.siemens_martin.current_recipe") + " " + recipeInfo + EnumChatFormatting.RESET;
+            }))
+            .widget(new FakeSyncWidget.DoubleSyncer(() -> mFurnaceTemperature, val -> mFurnaceTemperature = val))
+            .widget(new FakeSyncWidget.IntegerSyncer(() -> mMaxProgresstime, val -> mMaxProgresstime = val));
     }
 
     @Override
@@ -469,14 +501,19 @@ public class MTESiemensMartinFurnace extends MTEEnhancedMultiBlockBase<MTESiemen
             .addInputBus(StatCollector.translateToLocal("gtsr.tooltip.siemens_martin.input_bus"), 1)
             .addOutputBus(StatCollector.translateToLocal("gtsr.tooltip.siemens_martin.output_bus"), 1)
             .addStructureInfo("")
-            .addStructureInfo(EnumChatFormatting.DARK_PURPLE + "Steel Only")
-            .addCasingInfoExactly("Solid Steel Machine Casing", 318, false)
-            .addCasingInfoExactly("Steel Pipe Casing", 20, false)
-            .addCasingInfoExactly("Steel Gear Box Casing", 6, false)
-            .addCasingInfoExactly("Steel Firebox Casing", 91, false)
-            .addCasingInfoExactly("Firebricks", 238, false)
-            .addCasingInfoExactly("Steel Frame Box", 167, false)
-            .addStructureInfo(EnumChatFormatting.YELLOW + "Parallel: " + EnumChatFormatting.GOLD + "32")
+            .addStructureInfo(
+                EnumChatFormatting.DARK_PURPLE + StatCollector.translateToLocal("gtsr.tooltip.shared.steel_only"))
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.steel_casing"), 318, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.steel_pipe_casing"), 20, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.steel_gear_box_casing"), 6, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.steel_firebox_casing"), 91, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.firebricks"), 238, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.steel_frame_box"), 167, false)
+            .addStructureInfo(
+                EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.shared.parallel")
+                    + ": "
+                    + EnumChatFormatting.GOLD
+                    + "32")
             .addStructureHint("gtsr.tooltip.shared.no_maintenance")
             .addStructureHint("gtsr.tooltip.siemens_martin.hint_temp")
             .addStructureHint("gtsr.tooltip.siemens_martin.hint_interrupt")

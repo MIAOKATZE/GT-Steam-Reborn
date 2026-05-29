@@ -836,6 +836,15 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
                         + GTUtility.formatNumbers(mSteamStored)
                         + " L"
                         + EnumChatFormatting.RESET))
+            .widget(
+                new TextWidget().setStringSupplier(
+                    () -> EnumChatFormatting.YELLOW
+                        + StatCollector.translateToLocal("gtsr.gui.steam_hub.total_capacity")
+                        + " "
+                        + EnumChatFormatting.LIGHT_PURPLE
+                        + GTUtility.formatNumbers(getTotalCapacity())
+                        + " L"
+                        + EnumChatFormatting.RESET))
             .widget(new FakeSyncWidget.IntegerSyncer(() -> mSetTier, val -> mSetTier = val))
             .widget(new FakeSyncWidget.IntegerSyncer(() -> mMaxProgresstime, val -> mMaxProgresstime = val))
             .widget(new FakeSyncWidget.IntegerSyncer(() -> mPressureUnitCount, val -> mPressureUnitCount = val))

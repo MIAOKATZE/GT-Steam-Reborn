@@ -560,7 +560,7 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
         screenElements.widget(
             TextWidget
                 .dynamicString(
-                    () -> EnumChatFormatting.GOLD + "Tier: "
+                    () -> EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.kinetic_array.tier")
                         + EnumChatFormatting.GREEN
                         + GTValues.VN[mMachineTier > 0 && mMachineTier < GTValues.VN.length ? mMachineTier : 0])
                 .setTextAlignment(Alignment.CenterLeft)
@@ -570,7 +570,7 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
         screenElements.widget(
             TextWidget
                 .dynamicString(
-                    () -> EnumChatFormatting.GOLD + "Steam Rate: "
+                    () -> EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.kinetic_array.steam_rate")
                         + EnumChatFormatting.AQUA
                         + String.format("%.2f", mSteamRate))
                 .setTextAlignment(Alignment.CenterLeft)
@@ -580,7 +580,8 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
         screenElements.widget(
             TextWidget
                 .dynamicString(
-                    () -> EnumChatFormatting.GOLD + "Steam/A: "
+                    () -> EnumChatFormatting.GOLD
+                        + StatCollector.translateToLocal("gtsr.gui.kinetic_array.steam_per_amp")
                         + EnumChatFormatting.YELLOW
                         + GTUtility.formatNumbers(mSteamPerAmp)
                         + " L/t")
@@ -591,7 +592,7 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
         screenElements.widget(
             TextWidget
                 .dynamicString(
-                    () -> EnumChatFormatting.GOLD + "HP Steam: "
+                    () -> EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.kinetic_array.hp_steam")
                         + EnumChatFormatting.RED
                         + GTUtility.formatNumbers(mRealtimeSteamCost)
                         + " L/t")
@@ -602,7 +603,9 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
         screenElements.widget(
             TextWidget
                 .dynamicString(
-                    () -> EnumChatFormatting.GOLD + "Parallel: " + EnumChatFormatting.LIGHT_PURPLE + mParallelCount)
+                    () -> EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.kinetic_array.parallel")
+                        + EnumChatFormatting.LIGHT_PURPLE
+                        + mParallelCount)
                 .setTextAlignment(Alignment.CenterLeft)
                 .setDefaultColor(COLOR_TEXT_WHITE.get())
                 .setEnabled(w -> mMachine));
@@ -762,19 +765,23 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
         }
         return new String[] {
             EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.type"),
-            EnumChatFormatting.GOLD + "Tier: "
+            EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.kinetic_array.tier")
                 + EnumChatFormatting.GREEN
                 + GTValues.VN[mMachineTier > 0 && mMachineTier < GTValues.VN.length ? mMachineTier : 0],
-            EnumChatFormatting.GOLD + "Steam Rate: " + EnumChatFormatting.AQUA + String.format("%.2f", mSteamRate),
-            EnumChatFormatting.GOLD + "Steam/A: "
+            EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.kinetic_array.steam_rate")
+                + EnumChatFormatting.AQUA
+                + String.format("%.2f", mSteamRate),
+            EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.kinetic_array.steam_per_amp")
                 + EnumChatFormatting.YELLOW
                 + GTUtility.formatNumbers(mSteamPerAmp)
                 + " L/t",
-            EnumChatFormatting.GOLD + "HP Steam: "
+            EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.kinetic_array.hp_steam")
                 + EnumChatFormatting.RED
                 + GTUtility.formatNumbers(mRealtimeSteamCost)
                 + " L/t",
-            EnumChatFormatting.GOLD + "Parallel: " + EnumChatFormatting.LIGHT_PURPLE + mParallelCount };
+            EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.kinetic_array.parallel")
+                + EnumChatFormatting.LIGHT_PURPLE
+                + mParallelCount };
     }
 
     public int getTierRecipes() {

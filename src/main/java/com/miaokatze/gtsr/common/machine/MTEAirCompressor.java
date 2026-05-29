@@ -316,15 +316,7 @@ public class MTEAirCompressor extends MTESteamMultiBase<MTEAirCompressor> implem
                     + EnumChatFormatting.GRAY
                     + " (Bronze/Steel)")
             .addInfo(
-                EnumChatFormatting.GREEN + "Superheated Steam"
-                    + EnumChatFormatting.GRAY
-                    + " quadruples "
-                    + EnumChatFormatting.GREEN
-                    + "Speed"
-                    + EnumChatFormatting.GRAY
-                    + " and "
-                    + EnumChatFormatting.AQUA
-                    + "Steam Usage")
+                EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.tooltip.shared.superheated_quadruples"))
             .beginStructureBlock(5, 4, 3, false)
             .addController(StatCollector.translateToLocal("gtsr.tooltip.air_compressor.ctrl"))
             .addInputHatch(StatCollector.translateToLocal("gtsr.tooltip.air_compressor.input_hatch"), 1)

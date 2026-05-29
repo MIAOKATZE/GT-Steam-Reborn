@@ -547,13 +547,7 @@ public class MTEGearSteamCompressor extends MTEEnhancedMultiBlockBase<MTEGearSte
             .addOutputHatch(StatCollector.translateToLocal("gtsr.tooltip.gear_compressor.output_hatch"), 3)
             .addStructureInfo("")
             .addStructureInfo(
-                EnumChatFormatting.BLUE + "Bronze"
-                    + EnumChatFormatting.DARK_PURPLE
-                    + "/"
-                    + EnumChatFormatting.BLUE
-                    + "Steel "
-                    + EnumChatFormatting.DARK_PURPLE
-                    + "Tier")
+                EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.shared.bronze_steel_tier"))
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.casing"), 70, false)
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.pipe"), 7, false)
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.gear_box"), 4, false)
@@ -616,9 +610,11 @@ public class MTEGearSteamCompressor extends MTEEnhancedMultiBlockBase<MTEGearSte
         screenElements.widget(
             TextWidget
                 .dynamicString(
-                    () -> EnumChatFormatting.GOLD + "Tier: "
+                    () -> EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.gear_compressor.tier")
                         + EnumChatFormatting.GREEN
-                        + (mCasingTier == 2 ? "Steel" : mCasingTier == 1 ? "Bronze" : "None"))
+                        + (mCasingTier == 2 ? StatCollector.translateToLocal("gtsr.gui.tier.steel")
+                            : mCasingTier == 1 ? StatCollector.translateToLocal("gtsr.gui.tier.bronze")
+                                : StatCollector.translateToLocal("gtsr.gui.tier.none")))
                 .setTextAlignment(Alignment.CenterLeft)
                 .setDefaultColor(COLOR_TEXT_WHITE.get())
                 .setEnabled(w -> mMachine));
@@ -626,7 +622,7 @@ public class MTEGearSteamCompressor extends MTEEnhancedMultiBlockBase<MTEGearSte
         screenElements.widget(
             TextWidget
                 .dynamicString(
-                    () -> EnumChatFormatting.GOLD + "Steam In: "
+                    () -> EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.gear_compressor.steam_in")
                         + EnumChatFormatting.RED
                         + GTUtility.formatNumbers(mSteamConsumedLastTick)
                         + " L/s")
@@ -637,7 +633,8 @@ public class MTEGearSteamCompressor extends MTEEnhancedMultiBlockBase<MTEGearSte
         screenElements.widget(
             TextWidget
                 .dynamicString(
-                    () -> EnumChatFormatting.GOLD + "SH Steam Out: "
+                    () -> EnumChatFormatting.GOLD
+                        + StatCollector.translateToLocal("gtsr.gui.gear_compressor.sh_steam_out")
                         + EnumChatFormatting.AQUA
                         + GTUtility.formatNumbers(mSuperheatedOutputLastTick)
                         + " L/s")
@@ -648,7 +645,7 @@ public class MTEGearSteamCompressor extends MTEEnhancedMultiBlockBase<MTEGearSte
         screenElements.widget(
             TextWidget
                 .dynamicString(
-                    () -> EnumChatFormatting.GOLD + "Water Out: "
+                    () -> EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.gear_compressor.water_out")
                         + EnumChatFormatting.BLUE
                         + GTUtility.formatNumbers(mWaterOutputLastTick)
                         + " L/s")

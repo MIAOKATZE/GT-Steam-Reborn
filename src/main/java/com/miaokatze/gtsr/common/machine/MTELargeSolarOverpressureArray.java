@@ -473,7 +473,7 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
                 1)
             .addStructureInfo("")
             .addStructureInfo(
-                EnumChatFormatting.BLUE + "Bronze/Steel/Overpressure " + EnumChatFormatting.DARK_PURPLE + "Tier")
+                EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.solar_array.three_tier"))
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.solar_array.casing"), 191, false)
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.pipe"), 73, false)
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.gear_box"), 12, false)
