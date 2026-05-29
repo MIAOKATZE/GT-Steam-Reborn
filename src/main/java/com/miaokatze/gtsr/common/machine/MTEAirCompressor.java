@@ -331,15 +331,20 @@ public class MTEAirCompressor extends MTESteamMultiBase<MTEAirCompressor> implem
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.gear_box"), 6, false)
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.frame"), 16, false)
             .addStructureInfo(
-                EnumChatFormatting.YELLOW + "Parallel: "
+                EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.shared.parallel")
+                    + ": "
                     + EnumChatFormatting.GOLD
                     + "1"
                     + EnumChatFormatting.GRAY
-                    + " (Bronze)"
+                    + " ("
+                    + StatCollector.translateToLocal("gtsr.gui.tier.bronze")
+                    + ")"
                     + EnumChatFormatting.GOLD
                     + "/4"
                     + EnumChatFormatting.GRAY
-                    + " (Steel)")
+                    + " ("
+                    + StatCollector.translateToLocal("gtsr.gui.tier.steel")
+                    + ")")
             .addStructureHint("gtsr.tooltip.shared.no_maintenance")
             .toolTipFinisher(
                 EnumChatFormatting.AQUA + "GT"

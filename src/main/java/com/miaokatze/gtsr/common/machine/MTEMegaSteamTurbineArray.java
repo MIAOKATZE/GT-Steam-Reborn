@@ -961,11 +961,13 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.pipe"), 8, false)
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.frame"), 12, false)
             .addStructureInfo(
-                EnumChatFormatting.YELLOW + "Stack Layers: "
+                EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.turbine_array.stack_layers")
                     + EnumChatFormatting.GOLD
                     + "1-4"
                     + EnumChatFormatting.GRAY
-                    + " (Each +1 Tier)")
+                    + " ("
+                    + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.each_tier")
+                    + ")")
             .addStructureHint("gtsr.tooltip.shared.no_maintenance")
             .toolTipFinisher(
                 EnumChatFormatting.AQUA + "GT"

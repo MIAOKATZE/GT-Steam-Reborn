@@ -236,6 +236,7 @@ gtsr.gui.geothermal_boiler.steam_output=蒸汽产出:
 gtsr.gui.geothermal_boiler.superheated= (过热蒸汽)
 gtsr.gui.geothermal_boiler.steam= (蒸汽)
 gtsr.gui.geothermal_boiler.recipe=配方: 1000mb 岩浆 → 1 黑曜石 + 2 硫粉
+gtsr.gui.geothermal_boiler.recipe_detail=1000mb 岩浆 → 1 黑曜石 + 2 硫粉
 gtsr.gui.geothermal_boiler.chip_tier2_warn=⚠ 过热芯片需要等级2 (钢)
 
 # Geothermal Boiler Tooltip
@@ -782,9 +783,12 @@ gtsr.tooltip.solar_array.tier_overpressure=超压
 
 # 9. Large Steam Furnace - missing keys
 gtsr.tooltip.steam_furnace.desc2=蒸汽驱动的工业化熔炼设备，具有更大的并行数，可同时处理大量熔炉配方。
+gtsr.tooltip.steam_furnace.speed=工作速度: 200% (青铜级) / 300% (钢级)
+gtsr.tooltip.steam_furnace.steam_eff=等效蒸汽消耗: 80% (青铜级) / 60% (钢级)
 
 # 10. Mega Steam Turbine Array - missing keys
 gtsr.gui.turbine_array.stack_layers=堆叠层: 
+gtsr.tooltip.turbine_array.each_tier=每层+1等级
 gtsr.gui.turbine_array.output_power=输出功率: 
 gtsr.tooltip.turbine_array.formula=并行数=(1+2×机器等级)+机器数量，外壳等级限制最高供电电压。
 gtsr.tooltip.turbine_array.input_hatch=蒸汽输入
@@ -802,6 +806,8 @@ gtsr.tooltip.siemens_martin.ctrl=Layer 16 侧面
 gtsr.tooltip.siemens_martin.steam_input=过热蒸汽输入
 gtsr.tooltip.siemens_martin.hint_temp=炉温需达100%方可运行
 gtsr.tooltip.siemens_martin.hint_interrupt=蒸汽中断导致炉温下降与配方终止
+gtsr.tooltip.siemens_martin.input_bus=铁+煤/焦炭/碳
+gtsr.tooltip.siemens_martin.output_bus=钢/灰烬
 
 # 13. Steam Fluid Drill - missing hint
 gtsr.tooltip.fluid_drill.hint_bronze=青铜版约5分钟达满效；钢版约1小时达满效
@@ -901,3 +907,4 @@ gtsr.gui.turbine_array.extra= 额外
 gtsr.gui.turbine_array.efficiency=效率: 
 gtsr.gui.turbine_array.max= 最大
 gtsr.gui.turbine_array.output=输出: 
+gtsr.gui.parallel=并行: 

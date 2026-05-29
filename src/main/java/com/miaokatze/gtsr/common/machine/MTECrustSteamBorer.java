@@ -421,7 +421,11 @@ public class MTECrustSteamBorer extends MTESteamMultiBase<MTECrustSteamBorer> im
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.gear_box"), 8, false)
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.pipe"), 11, false)
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.firebox"), 4, false)
-            .addStructureInfo(EnumChatFormatting.YELLOW + "Parallel: " + EnumChatFormatting.GOLD + "1")
+            .addStructureInfo(
+                EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.shared.parallel")
+                    + ": "
+                    + EnumChatFormatting.GOLD
+                    + "1")
             .addStructureHint("gtsr.tooltip.shared.no_maintenance")
             .addStructureHint("gtsr.tooltip.shared.optional_cooling")
             .toolTipFinisher(

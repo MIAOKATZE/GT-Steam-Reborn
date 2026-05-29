@@ -754,24 +754,6 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
         return (byte) ((mSetTier << 1) | (mIsHeating ? 0x01 : 0x00));
     }
 
-    @Override
-    public String[] getDescription() {
-        List<String> description = new ArrayList<>();
-
-        description.add(
-            EnumChatFormatting.AQUA
-                + StatCollector.translateToLocal("gtsr.tooltip.large_solar_overpressure_array.name"));
-        description.add(
-            EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.tooltip.solar_array.1")
-                + getBaseSteamProduction()
-                + " L/s");
-        description.add(
-            isNickel() ? EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.gui.solar_array.superheated")
-                : EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.solar_array.steam"));
-
-        return description.toArray(new String[0]);
-    }
-
     protected int mCurrentSteamOutput = 0;
 
     @Override

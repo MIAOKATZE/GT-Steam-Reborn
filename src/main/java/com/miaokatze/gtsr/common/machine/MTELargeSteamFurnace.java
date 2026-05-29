@@ -233,7 +233,7 @@ public class MTELargeSteamFurnace extends MTESteamMultiBase<MTELargeSteamFurnace
 
     @Override
     public int getMaxParallelRecipes() {
-        return 8;
+        return mSetTier == 2 ? 16 : 4;
     }
 
     @Override
@@ -252,9 +252,11 @@ public class MTELargeSteamFurnace extends MTESteamMultiBase<MTELargeSteamFurnace
             @Override
             @Nonnull
             protected OverclockCalculator createOverclockCalculator(@Nonnull GTRecipe recipe) {
+                double eutDiscount = mSetTier == 2 ? 0.6 : 0.8;
+                double durationModifier = mSetTier == 2 ? (1.0 / 3.0) : 0.5;
                 return OverclockCalculator.ofNoOverclock(recipe)
-                    .setEUtDiscount(1.25 * mSetTier)
-                    .setDurationModifier(1.6 / mSetTier);
+                    .setEUtDiscount(eutDiscount)
+                    .setDurationModifier(durationModifier);
             }
         }.setMaxParallelSupplier(this::getTrueParallel);
     }
@@ -299,7 +301,8 @@ public class MTELargeSteamFurnace extends MTESteamMultiBase<MTELargeSteamFurnace
         MultiblockTooltipBuilder tt = new MultiblockTooltipBuilder();
         tt.addMachineType(StatCollector.translateToLocal("gtsr.tooltip.steam_furnace.type"))
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.steam_furnace.desc"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.steam_furnace.desc2"))
+            .addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.steam_furnace.speed"))
+            .addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.steam_furnace.steam_eff"))
             .addSeparator()
             .addInfo(
                 EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.shared.steam_cost")
@@ -322,15 +325,20 @@ public class MTELargeSteamFurnace extends MTESteamMultiBase<MTELargeSteamFurnace
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.gear_box"), 1, false)
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.frame"), 6, false)
             .addStructureInfo(
-                EnumChatFormatting.YELLOW + "Parallel: "
+                EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.shared.parallel")
+                    + ": "
                     + EnumChatFormatting.GOLD
                     + "4"
                     + EnumChatFormatting.GRAY
-                    + " (Bronze)"
+                    + " ("
+                    + StatCollector.translateToLocal("gtsr.gui.tier.bronze")
+                    + ")"
                     + EnumChatFormatting.GOLD
                     + "/16"
                     + EnumChatFormatting.GRAY
-                    + " (Steel)")
+                    + " ("
+                    + StatCollector.translateToLocal("gtsr.gui.tier.steel")
+                    + ")")
             .addStructureHint("gtsr.tooltip.shared.no_maintenance")
             .toolTipFinisher(
                 EnumChatFormatting.AQUA + "GT"

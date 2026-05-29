@@ -482,7 +482,6 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.desc"))
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.heat"))
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.chip_info"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.byproduct"))
             .addSeparator()
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.recipe"))
             .beginStructureBlock(7, 8, 7, false)
@@ -589,7 +588,7 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
             EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.geothermal_boiler.recipe")
                 + " "
                 + EnumChatFormatting.GOLD
-                + "1000mb Lava\u21921 Obsidian+2 Sulfur");
+                + StatCollector.translateToLocal("gtsr.gui.geothermal_boiler.recipe_detail"));
 
         return info.toArray(new String[0]);
     }

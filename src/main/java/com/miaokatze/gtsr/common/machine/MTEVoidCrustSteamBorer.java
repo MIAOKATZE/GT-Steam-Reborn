@@ -422,13 +422,7 @@ public class MTEVoidCrustSteamBorer extends MTESteamMultiBase<MTEVoidCrustSteamB
             .addOutputBus(StatCollector.translateToLocal("gtsr.tooltip.void_borer.output_bus"), 1)
             .addStructureInfo("")
             .addStructureInfo(
-                EnumChatFormatting.BLUE + "Bronze"
-                    + EnumChatFormatting.DARK_PURPLE
-                    + "/"
-                    + EnumChatFormatting.BLUE
-                    + "Steel "
-                    + EnumChatFormatting.DARK_PURPLE
-                    + "Tier")
+                EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.shared.bronze_steel_tier"))
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.casing"), 11, false)
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.pipe"), 4, false)
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.gear_box"), 4, false)
@@ -515,7 +509,14 @@ public class MTEVoidCrustSteamBorer extends MTESteamMultiBase<MTEVoidCrustSteamB
                     () -> EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.void_borer.steam_cost")
                         + EnumChatFormatting.RED
                         + GTUtility.formatNumbers(VOID_STEAM_PER_SECOND)
-                        + " L/s"));
+                        + " L/s"))
+            .widget(
+                new TextWidget().setStringSupplier(
+                    () -> EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.crust_borer.work_cycle")
+                        + EnumChatFormatting.YELLOW
+                        + (VOID_WORK_TIME_TICKS / 20)
+                        + "s"
+                        + EnumChatFormatting.RESET));
     }
 
     @Override

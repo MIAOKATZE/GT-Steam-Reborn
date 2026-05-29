@@ -236,6 +236,7 @@ gtsr.gui.geothermal_boiler.steam_output=Steam Output:
 gtsr.gui.geothermal_boiler.superheated= (Superheated)
 gtsr.gui.geothermal_boiler.steam= (Steam)
 gtsr.gui.geothermal_boiler.recipe=Recipe: 1000mb Lava → 1 Obsidian + 2 Sulfur Dust
+gtsr.gui.geothermal_boiler.recipe_detail=1000mb Lava → 1 Obsidian + 2 Sulfur Dust
 gtsr.gui.geothermal_boiler.chip_tier2_warn=⚠ Overheat Chip requires Tier 2 (Steel)
 
 # Geothermal Boiler Tooltip
@@ -716,9 +717,12 @@ gtsr.tooltip.solar_array.tier_overpressure=Overpressure
 
 # 9. Large Steam Furnace - missing keys
 gtsr.tooltip.steam_furnace.desc2=Steam-driven industrial smelting equipment with greater parallel capacity for processing large quantities of furnace recipes simultaneously.
+gtsr.tooltip.steam_furnace.speed=Work Speed: 200% (Bronze) / 300% (Steel)
+gtsr.tooltip.steam_furnace.steam_eff=Steam Efficiency: 80% (Bronze) / 60% (Steel)
 
 # 10. Mega Steam Turbine Array - missing keys
 gtsr.gui.turbine_array.stack_layers=Stack Layers: 
+gtsr.tooltip.turbine_array.each_tier=Each +1 Tier
 gtsr.gui.turbine_array.output_power=Output Power: 
 gtsr.tooltip.turbine_array.formula=Parallel=(1+2*tier)+machine count, casing tier limits max voltage.
 gtsr.tooltip.turbine_array.input_hatch=Steam Input
@@ -736,6 +740,8 @@ gtsr.tooltip.siemens_martin.ctrl=Layer 16 Side
 gtsr.tooltip.siemens_martin.steam_input=Superheated Steam Input
 gtsr.tooltip.siemens_martin.hint_temp=Furnace temperature must reach 100% to operate
 gtsr.tooltip.siemens_martin.hint_interrupt=Steam interruption causes temperature drop and recipe termination
+gtsr.tooltip.siemens_martin.input_bus=Iron+Coal/Coke/Carbon
+gtsr.tooltip.siemens_martin.output_bus=Steel/Ash
 
 # 12. SDH - fix output_hatch
 gtsr.tooltip.singularity_hub.output_hatch=Fluid Products
@@ -815,6 +821,7 @@ gtsr.gui.turbine_array.extra= extra
 gtsr.gui.turbine_array.efficiency=Eff: 
 gtsr.gui.turbine_array.max= MAX
 gtsr.gui.turbine_array.output=Output: 
+gtsr.gui.parallel=Parallel: 
 
 # ===== v1.1.0 Hardcoded English Fix =====
 gtsr.tooltip.shared.superheated_quadruples=Superheated Steam quadruples Speed and Steam Usage

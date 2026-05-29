@@ -354,15 +354,20 @@ public class MTEAtmosphericCentrifuge extends MTESteamMultiBase<MTEAtmosphericCe
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.gear_box"), 6, false)
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.frame"), 16, false)
             .addStructureInfo(
-                EnumChatFormatting.YELLOW + "Parallel: "
+                EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.shared.parallel")
+                    + ": "
                     + EnumChatFormatting.GOLD
                     + "4"
                     + EnumChatFormatting.GRAY
-                    + " (Bronze)"
+                    + " ("
+                    + StatCollector.translateToLocal("gtsr.gui.tier.bronze")
+                    + ")"
                     + EnumChatFormatting.GOLD
                     + "/16"
                     + EnumChatFormatting.GRAY
-                    + " (Steel)")
+                    + " ("
+                    + StatCollector.translateToLocal("gtsr.gui.tier.steel")
+                    + ")")
             .addStructureInfo("")
             .addOtherStructurePart(
                 StatCollector.translateToLocal("gtsr.tooltip.atmospheric_centrifuge.chip"),
