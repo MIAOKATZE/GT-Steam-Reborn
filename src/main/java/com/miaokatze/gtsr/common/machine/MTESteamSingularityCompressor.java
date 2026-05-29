@@ -9,6 +9,7 @@ import static gregtech.api.enums.HatchElement.OutputBus;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 
 import java.text.NumberFormat;
+import java.util.ArrayList;
 
 import net.minecraft.client.renderer.texture.IIconRegister;
 import net.minecraft.item.ItemStack;
@@ -16,6 +17,7 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 import net.minecraftforge.common.util.ForgeDirection;
+import net.minecraftforge.fluids.FluidStack;
 
 import com.gtnewhorizon.structurelib.alignment.IAlignmentLimits;
 import com.gtnewhorizon.structurelib.alignment.constructable.ISurvivalConstructable;
@@ -47,6 +49,7 @@ import gregtech.api.render.TextureFactory;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.common.blocks.BlockCasings2;
+import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTEHatchCustomFluidBase;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTESteamMultiBase;
 
 public class MTESteamSingularityCompressor extends MTESteamMultiBase<MTESteamSingularityCompressor>
@@ -358,40 +361,53 @@ public class MTESteamSingularityCompressor extends MTESteamMultiBase<MTESteamSin
     @Override
     protected MultiblockTooltipBuilder createTooltip() {
         MultiblockTooltipBuilder tt = new MultiblockTooltipBuilder();
-        tt.addMachineType(getMachineType())
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.steam_singularity_compressor.0"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.steam_singularity_compressor.1"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.steam_singularity_compressor.2"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.steam_singularity_compressor.3"))
+        tt.addMachineType(StatCollector.translateToLocal("gtsr.tooltip.singularity_compressor.type"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.singularity_compressor.desc"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.singularity_compressor.desc2"))
+            .addSeparator()
             .addInfo(
-                EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.steam_singularity_compressor.4")
+                EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.shared.steam_cost")
                     + EnumChatFormatting.WHITE
-                    + " "
-                    + GTUtility.formatNumbers(STEAM_L_EUT * 20)
-                    + " L/s"
-                    + EnumChatFormatting.RESET)
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.steam_singularity_compressor.5"))
+                    + " 500 L/s")
+            .addInfo(
+                EnumChatFormatting.GREEN + "Superheated Steam"
+                    + EnumChatFormatting.GRAY
+                    + " quadruples "
+                    + EnumChatFormatting.GREEN
+                    + "Speed"
+                    + EnumChatFormatting.GRAY
+                    + " and "
+                    + EnumChatFormatting.AQUA
+                    + "Steam Usage")
             .beginStructureBlock(11, 11, 11, false)
-            .addController(StatCollector.translateToLocal("gtsr.tooltip.steam_singularity_compressor.ctrl"))
-            .addStructureInfo(
-                EnumChatFormatting.GOLD
-                    + StatCollector.translateToLocal("gtsr.tooltip.steam_singularity_compressor.casing"))
-            .addStructureInfo(
-                EnumChatFormatting.AQUA
-                    + StatCollector.translateToLocal("gtsr.tooltip.steam_singularity_compressor.input_hatch")
-                    + EnumChatFormatting.GRAY
-                    + " "
-                    + StatCollector.translateToLocal("gtsr.tooltip.crust_steam_borer.any_casing"))
-            .addOutputBus(
-                EnumChatFormatting.GOLD + "1"
-                    + EnumChatFormatting.GRAY
-                    + " "
-                    + StatCollector.translateToLocal("gtsr.tooltip.crust_steam_borer.any_casing"),
+            .addController(StatCollector.translateToLocal("gtsr.tooltip.singularity_compressor.ctrl"))
+            .addOtherStructurePart(
+                StatCollector.translateToLocal("gtsr.tooltip.shared.steam_input_hatch"),
+                StatCollector.translateToLocal("gtsr.tooltip.singularity_compressor.steam_input"),
                 1)
-            .addStructureInfo(
-                EnumChatFormatting.GRAY
-                    + StatCollector.translateToLocal("gtsr.tooltip.steam_singularity_compressor.cooling"))
-            .toolTipFinisher();
+            .addOutputBus(StatCollector.translateToLocal("gtsr.tooltip.singularity_compressor.output_bus"), 1)
+            .addOtherStructurePart(
+                StatCollector.translateToLocal("gtsr.tooltip.singularity_compressor.cooling"),
+                StatCollector.translateToLocal("gtsr.tooltip.shared.any_casing"),
+                2)
+            .addStructureInfo("")
+            .addStructureInfo(EnumChatFormatting.DARK_PURPLE + "Steel Only")
+            .addCasingInfoExactly("Solid Steel Machine Casing", 175, false)
+            .addCasingInfoExactly("Steel Pipe Casing", 16, false)
+            .addCasingInfoExactly("Steel Gear Box Casing", 73, false)
+            .addCasingInfoExactly("Reinforced Glass", 252, false)
+            .addCasingInfoExactly("Steel Frame Box", 144, false)
+            .addStructureHint("gtsr.tooltip.shared.no_maintenance")
+            .toolTipFinisher(
+                EnumChatFormatting.AQUA + "GT"
+                    + EnumChatFormatting.GREEN
+                    + "-"
+                    + EnumChatFormatting.GOLD
+                    + "Steam"
+                    + EnumChatFormatting.RED
+                    + "-"
+                    + EnumChatFormatting.BLUE
+                    + "Reborn");
         return tt;
     }
 
@@ -414,22 +430,60 @@ public class MTESteamSingularityCompressor extends MTESteamMultiBase<MTESteamSin
         mStoppedTicks = aNBT.getLong("mStoppedTicks");
     }
 
+    private boolean hasSuperheatedSteamInHatch() {
+        for (MTEHatchCustomFluidBase hatch : mSteamInputFluids) {
+            FluidStack fs = hatch.getFluid();
+            if (fs != null && fs.getFluid() != null
+                && "ic2superheatedsteam".equals(
+                    fs.getFluid()
+                        .getName())
+                && fs.amount > 0) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     @Override
     public String[] getInfoData() {
-        return new String[] {
-            EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.recipe.steam_singularity_compressor"),
-            EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.info.geothermal_boiler.status")
-                + (mMachine
-                    ? EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.info.geothermal_boiler.running")
-                    : EnumChatFormatting.RED
-                        + StatCollector.translateToLocal("gtsr.info.geothermal_boiler.incomplete")),
-            EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.gui.geothermal_boiler.heat")
-                + EnumChatFormatting.YELLOW
-                + numberFormat.format(mHeat * 100)
-                + "%",
-            EnumChatFormatting.GRAY + "Steam: "
+        ArrayList<String> info = new ArrayList<>();
+        info.add(
+            EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.singularity_compressor.type")
+                + EnumChatFormatting.RESET);
+        if (!mMachine) {
+            info.add(EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.gui.building"));
+            return info.toArray(new String[0]);
+        }
+        info.add(
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.geothermal_boiler.heat")
+                + " "
                 + EnumChatFormatting.RED
-                + GTUtility.formatNumbers(STEAM_L_EUT * 20)
-                + " L/s" };
+                + String.format("%.1f%%", mHeat * 100.0d)
+                + EnumChatFormatting.RESET);
+        String statusKey;
+        EnumChatFormatting statusColor;
+        if (mMaxProgresstime > 0) {
+            statusKey = "gtsr.gui.status.running";
+            statusColor = EnumChatFormatting.AQUA;
+        } else if (mHeat > 0) {
+            statusKey = "gtsr.gui.singularity_compressor.status.accumulating";
+            statusColor = EnumChatFormatting.YELLOW;
+        } else {
+            statusKey = "gtsr.gui.status.idle";
+            statusColor = EnumChatFormatting.GRAY;
+        }
+        info.add(
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.status")
+                + " "
+                + statusColor
+                + StatCollector.translateToLocal(statusKey)
+                + EnumChatFormatting.RESET);
+        String steamType = hasSuperheatedSteamInHatch()
+            ? StatCollector.translateToLocal("gtsr.gui.steam_type.superheated")
+            : StatCollector.translateToLocal("gtsr.gui.steam_type.normal");
+        info.add(
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal(
+                "gtsr.gui.steam_type") + " " + EnumChatFormatting.YELLOW + steamType + EnumChatFormatting.RESET);
+        return info.toArray(new String[0]);
     }
 }

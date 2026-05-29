@@ -801,83 +801,93 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
 
     @Override
     public String[] getInfoData() {
-        long totalCapacity = getTotalCapacity();
-        double fillRatio = totalCapacity > 0 ? (double) mWaterStored / totalCapacity * 100 : 0;
-
-        boolean hasChip = hasHubSingularityChip();
-        int outputCount = 0;
-        int inputCount = 0;
-        if (hasChip) {
-            for (BoundCacheNode node : mBoundNodes) {
-                if (node.isOutputMode) outputCount++;
-                else inputCount++;
-            }
-        }
-
         ArrayList<String> info = new ArrayList<>();
-        info.add(EnumChatFormatting.BLUE + "Water Hub Array");
         info.add(
-            EnumChatFormatting.GRAY + "Status: "
-                + (mMachine ? EnumChatFormatting.GREEN + "Running" : EnumChatFormatting.RED + "Incomplete"));
-        info.add(
-            EnumChatFormatting.GRAY + "Fluid Type: "
-                + EnumChatFormatting.AQUA
-                + (mStoredFluidType != null ? mStoredFluidType : "None"));
-        info.add(
-            EnumChatFormatting.GRAY + "Water Stored: "
-                + EnumChatFormatting.YELLOW
-                + GTUtility.formatNumbers(mWaterStored)
-                + " / "
-                + GTUtility.formatNumbers(totalCapacity)
-                + " L");
-        info.add(EnumChatFormatting.GRAY + "Fill: " + EnumChatFormatting.GREEN + String.format("%.1f%%", fillRatio));
-        info.add(EnumChatFormatting.GRAY + "Hub Units: " + EnumChatFormatting.WHITE + mHubUnitCount);
-        info.add(
-            EnumChatFormatting.GRAY + "Reinforced Hub Units: " + EnumChatFormatting.WHITE + mReinforcedHubUnitCount);
-
-        if (hasChip) {
-            info.add(
-                EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.binding.debug_input")
-                    + ": "
-                    + EnumChatFormatting.WHITE
-                    + inputCount);
-            info.add(
-                EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.binding.debug_output")
-                    + ": "
-                    + EnumChatFormatting.WHITE
-                    + outputCount);
-            info.add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.gui.binding_hint"));
+            EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.water_hub.type")
+                + EnumChatFormatting.RESET);
+        if (!mMachine) {
+            info.add(EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.gui.building"));
+            return info.toArray(new String[0]);
         }
-
+        String tierText = mSetTier == 2 ? StatCollector.translateToLocal("gtsr.gui.tier.steel")
+            : StatCollector.translateToLocal("gtsr.gui.tier.bronze");
+        info.add(
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.tier")
+                + EnumChatFormatting.GOLD
+                + tierText
+                + EnumChatFormatting.RESET);
+        String statusKey = mMaxProgresstime > 0 ? "gtsr.gui.status.running" : "gtsr.gui.status.idle";
+        EnumChatFormatting statusColor = mMaxProgresstime > 0 ? EnumChatFormatting.AQUA : EnumChatFormatting.GRAY;
+        info.add(
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.status")
+                + " "
+                + statusColor
+                + StatCollector.translateToLocal(statusKey)
+                + EnumChatFormatting.RESET);
+        int totalUnits = mHubUnitCount + mReinforcedHubUnitCount;
+        info.add(
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.water_hub.storage_units")
+                + " "
+                + EnumChatFormatting.GOLD
+                + totalUnits
+                + "/25"
+                + EnumChatFormatting.RESET);
+        info.add(
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.water_hub.water_buffer")
+                + " "
+                + EnumChatFormatting.LIGHT_PURPLE
+                + GTUtility.formatNumbers(mWaterStored)
+                + " L"
+                + EnumChatFormatting.RESET);
         return info.toArray(new String[0]);
     }
 
     @Override
     protected MultiblockTooltipBuilder createTooltip() {
         final MultiblockTooltipBuilder tt = new MultiblockTooltipBuilder();
-        tt.addMachineType(StatCollector.translateToLocal("gtsr.recipe.water_hub_array"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.water_hub_array.info"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.water_hub_array.structure"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.water_hub_array.capacity"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.water_hub_array.output"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.water_hub_array.no_maintenance"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.water_hub_array.hatch_note"))
-            .beginStructureBlock(7, 2, 7, false)
-            .addController(StatCollector.translateToLocal("gtsr.tooltip.water_hub_array.ctrl"))
-            .addCasingInfoMin(StatCollector.translateToLocal("gtsr.tooltip.water_hub_array.casing"), 1, false)
+        tt.addMachineType(StatCollector.translateToLocal("gtsr.tooltip.water_hub.type"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.water_hub.desc"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.water_hub.desc2"))
+            .beginStructureBlock(9, 3, 9, false)
+            .addController(StatCollector.translateToLocal("gtsr.tooltip.water_hub.ctrl"))
             .addOtherStructurePart(
-                StatCollector.translateToLocal("gtsr.tooltip.water_hub_array.input_hatch"),
-                StatCollector.translateToLocal("gtsr.tooltip.water_hub_array.base_layer"),
+                StatCollector.translateToLocal("gtsr.tooltip.water_hub.hub_input"),
+                StatCollector.translateToLocal("gtsr.tooltip.shared.any_casing"),
                 1)
             .addOtherStructurePart(
-                StatCollector.translateToLocal("gtsr.tooltip.water_hub_array.output_hatch"),
-                StatCollector.translateToLocal("gtsr.tooltip.water_hub_array.base_layer"),
+                StatCollector.translateToLocal("gtsr.tooltip.water_hub.hub_output"),
+                StatCollector.translateToLocal("gtsr.tooltip.shared.any_casing"),
                 1)
             .addOtherStructurePart(
-                StatCollector.translateToLocal("gtsr.tooltip.water_hub_array.storage_unit"),
-                StatCollector.translateToLocal("gtsr.tooltip.water_hub_array.stack_layers"),
+                StatCollector.translateToLocal("gtsr.tooltip.water_hub.storage"),
+                StatCollector.translateToLocal("gtsr.tooltip.water_hub.storage"),
                 2)
-            .toolTipFinisher();
+            .addStructureInfo("")
+            .addStructureInfo(
+                EnumChatFormatting.BLUE + "Bronze"
+                    + EnumChatFormatting.DARK_PURPLE
+                    + "/"
+                    + EnumChatFormatting.BLUE
+                    + "Steel "
+                    + EnumChatFormatting.DARK_PURPLE
+                    + "Tier")
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.casing"), 70, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.pipe"), 7, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.gear_box"), 4, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.frame"), 24, false)
+            .addStructureHint("gtsr.tooltip.shared.no_maintenance")
+            .addStructureHint("gtsr.tooltip.water_hub.hint_tier1")
+            .addStructureHint("gtsr.tooltip.water_hub.hint_tier2")
+            .toolTipFinisher(
+                EnumChatFormatting.AQUA + "GT"
+                    + EnumChatFormatting.GREEN
+                    + "-"
+                    + EnumChatFormatting.GOLD
+                    + "Steam"
+                    + EnumChatFormatting.RED
+                    + "-"
+                    + EnumChatFormatting.BLUE
+                    + "Reborn");
         return tt;
     }
 }

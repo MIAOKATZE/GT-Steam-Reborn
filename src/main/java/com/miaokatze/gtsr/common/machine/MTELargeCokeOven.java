@@ -233,19 +233,48 @@ public class MTELargeCokeOven extends MTEEnhancedMultiBlockBase<MTELargeCokeOven
     @Override
     protected MultiblockTooltipBuilder createTooltip() {
         MultiblockTooltipBuilder tt = new MultiblockTooltipBuilder();
-        tt.addMachineType(StatCollector.translateToLocal("gtsr.recipe.large_coke_oven"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.large_coke_oven.0"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.large_coke_oven.1"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.large_coke_oven.2"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.large_coke_oven.3"))
+        tt.addMachineType(StatCollector.translateToLocal("gtsr.tooltip.coke_oven.type"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.coke_oven.desc"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.coke_oven.desc2"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.coke_oven.desc3"))
             .addSeparator()
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.large_coke_oven.ctrl"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.coke_oven.formula"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.coke_oven.accel"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.coke_oven.recipe"))
             .beginStructureBlock(3, 7, 7, true)
-            .addStructureInfo(StatCollector.translateToLocal("gtsr.tooltip.large_coke_oven.casing_t1"))
-            .addStructureInfo(StatCollector.translateToLocal("gtsr.tooltip.large_coke_oven.casing_t2"))
-            .addInputBus(StatCollector.translateToLocal("gtsr.tooltip.large_coke_oven.input_bus"), 1)
-            .addOutputBus(StatCollector.translateToLocal("gtsr.tooltip.large_coke_oven.output_bus"), 1)
-            .toolTipFinisher("GTSR");
+            .addController(StatCollector.translateToLocal("gtsr.tooltip.coke_oven.ctrl"))
+            .addInputBus(StatCollector.translateToLocal("gtsr.tooltip.coke_oven.input_bus"), 1)
+            .addOutputBus(StatCollector.translateToLocal("gtsr.tooltip.coke_oven.output_bus"), 1)
+            .addOutputHatch(StatCollector.translateToLocal("gtsr.tooltip.coke_oven.output_hatch"), 1)
+            .addStructureInfo("")
+            .addStructureInfo(EnumChatFormatting.BLUE + "Bronze/Steel " + EnumChatFormatting.DARK_PURPLE + "Tier")
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.casing"), 39, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.firebox"), 9, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.pipe"), 12, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.gear_box"), 1, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.frame"), 14, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.firebrick"), 45, false)
+            .addStructureInfo(
+                EnumChatFormatting.YELLOW + "Parallel: "
+                    + EnumChatFormatting.GOLD
+                    + "4"
+                    + EnumChatFormatting.GRAY
+                    + " (Bronze)"
+                    + EnumChatFormatting.GOLD
+                    + "/16"
+                    + EnumChatFormatting.GRAY
+                    + " (Steel)")
+            .addStructureHint("gtsr.tooltip.shared.no_maintenance")
+            .toolTipFinisher(
+                EnumChatFormatting.AQUA + "GT"
+                    + EnumChatFormatting.GREEN
+                    + "-"
+                    + EnumChatFormatting.GOLD
+                    + "Steam"
+                    + EnumChatFormatting.RED
+                    + "-"
+                    + EnumChatFormatting.BLUE
+                    + "Reborn");
         return tt;
     }
 
@@ -344,18 +373,51 @@ public class MTELargeCokeOven extends MTEEnhancedMultiBlockBase<MTELargeCokeOven
     @Override
     public String[] getInfoData() {
         ArrayList<String> info = new ArrayList<>();
-        info.add(EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.info.coke_oven.name"));
+        info.add(EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.coke_oven.type"));
+
+        if (!mMachine) {
+            info.add(EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.gui.building"));
+            return info.toArray(new String[0]);
+        }
+
         info.add(
-            StatCollector.translateToLocal("gtsr.info.coke_oven.tier") + EnumChatFormatting.YELLOW
-                + (mTier >= 2 ? StatCollector.translateToLocal("gtsr.info.coke_oven.tier2")
-                    : StatCollector.translateToLocal("gtsr.info.coke_oven.tier1")));
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.coke_oven.temperature")
+                + EnumChatFormatting.RED
+                + String.format("%.1f%%", mHeat * 100.0d));
+
+        String statusKey;
+        EnumChatFormatting statusColor;
+        if (mMaxProgresstime > 0) {
+            statusKey = "gtsr.gui.status.running";
+            statusColor = EnumChatFormatting.AQUA;
+        } else if (mHeat > 0) {
+            statusKey = "gtsr.gui.coke_oven.status.heating";
+            statusColor = EnumChatFormatting.GREEN;
+        } else {
+            statusKey = "gtsr.gui.status.idle";
+            statusColor = EnumChatFormatting.GRAY;
+        }
         info.add(
-            EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.gui.coke_oven.temperature")
-                + String.format("%.0f%%", mHeat * 100.0d));
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.status")
+                + " "
+                + statusColor
+                + StatCollector.translateToLocal(statusKey));
+
         if (mMaxProgresstime > 0) {
             int secondsRemaining = (mMaxProgresstime - mProgresstime) / 20;
-            info.add(StatCollector.translateToLocal("gtsr.gui.coke_oven.recipe_time") + secondsRemaining + "s");
+            info.add(
+                EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.coke_oven.recipe_time")
+                    + EnumChatFormatting.GOLD
+                    + secondsRemaining
+                    + "s");
         }
+
+        info.add(
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.parallel")
+                + " "
+                + EnumChatFormatting.GOLD
+                + (mTier >= 2 ? "4/16" : "4"));
+
         return info.toArray(new String[0]);
     }
 

@@ -318,24 +318,70 @@ public class MTEAtmosphericCentrifuge extends MTESteamMultiBase<MTEAtmosphericCe
     @Override
     protected MultiblockTooltipBuilder createTooltip() {
         MultiblockTooltipBuilder tt = new MultiblockTooltipBuilder();
-        tt.addMachineType(getMachineType())
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.atmospheric_centrifuge.0"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.atmospheric_centrifuge.1"))
+        tt.addMachineType(StatCollector.translateToLocal("gtsr.tooltip.atmospheric_centrifuge.type"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.atmospheric_centrifuge.desc"))
+            .addInfo(
+                EnumChatFormatting.GRAY
+                    + StatCollector.translateToLocal("gtsr.tooltip.atmospheric_centrifuge.chip_info.1")
+                    + EnumChatFormatting.YELLOW
+                    + StatCollector.translateToLocal("gtsr.tooltip.atmospheric_centrifuge.chip_info.2")
+                    + EnumChatFormatting.GRAY
+                    + StatCollector.translateToLocal("gtsr.tooltip.atmospheric_centrifuge.chip_info.3"))
+            .addSeparator()
+            .addInfo(
+                EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.shared.steam_cost")
+                    + EnumChatFormatting.WHITE
+                    + " 500/5000 L/s"
+                    + EnumChatFormatting.GRAY
+                    + " (Base/Rare Gas)")
+            .addInfo(
+                EnumChatFormatting.GREEN + "Superheated Steam"
+                    + EnumChatFormatting.GRAY
+                    + " quadruples "
+                    + EnumChatFormatting.GREEN
+                    + "Speed"
+                    + EnumChatFormatting.GRAY
+                    + " and "
+                    + EnumChatFormatting.AQUA
+                    + "Steam Usage")
             .beginStructureBlock(7, 4, 7, false)
             .addController(StatCollector.translateToLocal("gtsr.tooltip.atmospheric_centrifuge.ctrl"))
             .addInputHatch(StatCollector.translateToLocal("gtsr.tooltip.atmospheric_centrifuge.input_hatch"), 1)
             .addOutputHatch(StatCollector.translateToLocal("gtsr.tooltip.atmospheric_centrifuge.output_hatch"), 1)
+            .addOtherStructurePart(
+                StatCollector.translateToLocal("gtsr.tooltip.shared.steam_input_hatch"),
+                StatCollector.translateToLocal("gtsr.tooltip.shared.any_casing"),
+                1)
             .addStructureInfo("")
-            .addStructureInfo(EnumChatFormatting.BLUE + "青铜" + EnumChatFormatting.DARK_PURPLE + " 等级")
-            .addStructureInfo(EnumChatFormatting.GOLD + "26x" + EnumChatFormatting.GRAY + " 青铜镀层砖")
-            .addStructureInfo(EnumChatFormatting.GOLD + "1x" + EnumChatFormatting.GRAY + " 并行: 4")
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.casing"), 23, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.pipe"), 12, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.gear_box"), 6, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.frame"), 16, false)
+            .addStructureInfo(
+                EnumChatFormatting.YELLOW + "Parallel: "
+                    + EnumChatFormatting.GOLD
+                    + "4"
+                    + EnumChatFormatting.GRAY
+                    + " (Bronze)"
+                    + EnumChatFormatting.GOLD
+                    + "/16"
+                    + EnumChatFormatting.GRAY
+                    + " (Steel)")
             .addStructureInfo("")
-            .addStructureInfo(EnumChatFormatting.BLUE + "钢" + EnumChatFormatting.DARK_PURPLE + " 等级")
-            .addStructureInfo(EnumChatFormatting.GOLD + "26x" + EnumChatFormatting.GRAY + " 实心钢机壳")
-            .addStructureInfo(EnumChatFormatting.GOLD + "1x" + EnumChatFormatting.GRAY + " 并行: 16")
-            .addStructureInfo("")
-            .addStructureInfo(EnumChatFormatting.YELLOW + "稀有气体分离芯片" + EnumChatFormatting.GRAY + ": 放入控制器槽位，解锁稀有气体配方")
-            .toolTipFinisher();
+            .addOtherStructurePart(
+                StatCollector.translateToLocal("gtsr.tooltip.atmospheric_centrifuge.chip"),
+                StatCollector.translateToLocal("gtsr.tooltip.atmospheric_centrifuge.chip_desc"))
+            .addStructureHint("gtsr.tooltip.shared.no_maintenance")
+            .toolTipFinisher(
+                EnumChatFormatting.AQUA + "GT"
+                    + EnumChatFormatting.GREEN
+                    + "-"
+                    + EnumChatFormatting.GOLD
+                    + "Steam"
+                    + EnumChatFormatting.RED
+                    + "-"
+                    + EnumChatFormatting.BLUE
+                    + "Reborn");
         return tt;
     }
 
@@ -379,27 +425,29 @@ public class MTEAtmosphericCentrifuge extends MTESteamMultiBase<MTEAtmosphericCe
 
     @Override
     public String[] getInfoData() {
-        String tierText = mSetTier == 2 ? "钢" : mSetTier == 1 ? "青铜" : "N/A";
-        String steamType = hasPressureSteamHatch() ? "耐压蒸汽" : hasSuperheatedSteamInHatch() ? "过热蒸汽" : "普通蒸汽";
-        String chipText = hasRareGasChip() ? "已安装" : "未安装";
+        if (!mMachine) {
+            return new String[] {
+                EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.atmospheric_centrifuge.type"),
+                EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.gui.building") };
+        }
+        String tierText = mSetTier == 2 ? StatCollector.translateToLocal("gtsr.gui.tier.steel")
+            : StatCollector.translateToLocal("gtsr.gui.tier.bronze");
+        String steamType = hasSuperheatedSteamInHatch()
+            ? StatCollector.translateToLocal("gtsr.gui.steam_type.superheated")
+            : StatCollector.translateToLocal("gtsr.gui.steam_type.normal");
         return new String[] {
-            EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.recipe.atmospheric_centrifuge"),
-            EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.info.atmospheric_centrifuge.tier")
+            EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.atmospheric_centrifuge.type"),
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.tier")
                 + EnumChatFormatting.GOLD
                 + tierText,
-            EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.info.geothermal_boiler.status")
-                + (mMachine
-                    ? EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.info.geothermal_boiler.running")
-                    : EnumChatFormatting.RED
-                        + StatCollector.translateToLocal("gtsr.info.geothermal_boiler.incomplete")),
-            EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.info.atmospheric_centrifuge.steam_type")
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.steam_type")
                 + EnumChatFormatting.YELLOW
                 + steamType,
-            EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.info.atmospheric_centrifuge.parallel")
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.parallel")
                 + EnumChatFormatting.YELLOW
                 + getMaxParallelRecipes(),
-            EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.info.atmospheric_centrifuge.chip")
-                + (hasRareGasChip() ? EnumChatFormatting.GREEN : EnumChatFormatting.RED)
-                + chipText };
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.atmospheric_centrifuge.chip")
+                + (hasRareGasChip() ? EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.gui.installed")
+                    : EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.gui.not_installed")) };
     }
 }

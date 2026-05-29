@@ -399,39 +399,56 @@ public class MTEVoidCrustSteamBorer extends MTESteamMultiBase<MTEVoidCrustSteamB
     @Override
     protected MultiblockTooltipBuilder createTooltip() {
         MultiblockTooltipBuilder tt = new MultiblockTooltipBuilder();
-        tt.addMachineType(getMachineType())
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.singularity_crust_steam_borer.info"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.singularity_crust_steam_borer.steel"))
+        tt.addMachineType(StatCollector.translateToLocal("gtsr.tooltip.void_borer.type"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.void_borer.desc"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.void_borer.desc2"))
+            .addSeparator()
             .addInfo(
-                EnumChatFormatting.RED
-                    + StatCollector.translateToLocal("gtsr.tooltip.singularity_crust_steam_borer.steam_cost")
+                EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.shared.steam_cost")
                     + EnumChatFormatting.WHITE
-                    + VOID_STEAM_PER_SECOND
-                    + " L/s"
-                    + EnumChatFormatting.RESET)
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.singularity_crust_steam_borer.pressure_hatch"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.singularity_crust_steam_borer.dimension"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.singularity_crust_steam_borer.requires_plugin"))
-            .beginStructureBlock(9, 12, 9, false)
-            .addOutputBus(
-                EnumChatFormatting.GOLD + "1"
+                    + " 500 L/s")
+            .addInfo(
+                EnumChatFormatting.GREEN + "Superheated Steam"
                     + EnumChatFormatting.GRAY
-                    + " "
-                    + StatCollector.translateToLocal("gtsr.tooltip.singularity_crust_steam_borer.any_casing"),
+                    + " quadruples "
+                    + EnumChatFormatting.GREEN
+                    + "Speed"
+                    + EnumChatFormatting.GRAY
+                    + " and "
+                    + EnumChatFormatting.AQUA
+                    + "Steam Usage")
+            .beginStructureBlock(5, 6, 5, false)
+            .addController(StatCollector.translateToLocal("gtsr.tooltip.void_borer.ctrl"))
+            .addOtherStructurePart(
+                StatCollector.translateToLocal("gtsr.tooltip.shared.steam_input_hatch"),
+                StatCollector.translateToLocal("gtsr.tooltip.shared.any_casing"),
                 1)
+            .addOutputBus(StatCollector.translateToLocal("gtsr.tooltip.void_borer.output_bus"), 1)
+            .addStructureInfo("")
             .addStructureInfo(
-                StatCollector.translateToLocal("gtsr.tooltip.singularity_crust_steam_borer.steam_or_pressure_hatch"))
-            .addStructureInfo(
-                EnumChatFormatting.GOLD + "42"
-                    + EnumChatFormatting.GRAY
-                    + " "
-                    + StatCollector.translateToLocal("gtsr.tooltip.singularity_crust_steam_borer.steel_frame"))
-            .addStructureInfo(
-                EnumChatFormatting.GOLD + "20"
-                    + EnumChatFormatting.GRAY
-                    + " "
-                    + StatCollector.translateToLocal("gtsr.tooltip.singularity_crust_steam_borer.steel_casing"))
-            .toolTipFinisher();
+                EnumChatFormatting.BLUE + "Bronze"
+                    + EnumChatFormatting.DARK_PURPLE
+                    + "/"
+                    + EnumChatFormatting.BLUE
+                    + "Steel "
+                    + EnumChatFormatting.DARK_PURPLE
+                    + "Tier")
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.casing"), 11, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.pipe"), 4, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.gear_box"), 4, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.frame"), 10, false)
+            .addStructureHint("gtsr.tooltip.shared.no_maintenance")
+            .addStructureHint("gtsr.tooltip.void_borer.hint_bronze")
+            .toolTipFinisher(
+                EnumChatFormatting.AQUA + "GT"
+                    + EnumChatFormatting.GREEN
+                    + "-"
+                    + EnumChatFormatting.GOLD
+                    + "Steam"
+                    + EnumChatFormatting.RED
+                    + "-"
+                    + EnumChatFormatting.BLUE
+                    + "Reborn");
         return tt;
     }
 
@@ -461,44 +478,35 @@ public class MTEVoidCrustSteamBorer extends MTESteamMultiBase<MTEVoidCrustSteamB
 
     @Override
     public String[] getInfoData() {
-        String dimInfo;
-        if (!isPluginLoaded()) {
-            dimInfo = EnumChatFormatting.RED + "GT NEI Ore Plugin not found" + EnumChatFormatting.RESET;
-        } else if ("None".equals(lastDimAbbr)) {
-            dimInfo = EnumChatFormatting.RED + "No dimension selected" + EnumChatFormatting.RESET;
-        } else {
-            Integer dimId = ABBR_TO_DIM_ID.getOrDefault(lastDimAbbr, -999);
-            dimInfo = EnumChatFormatting.AQUA + lastDimAbbr
-                + EnumChatFormatting.RESET
-                + " (ID:"
-                + dimId
-                + ")"
-                + (dropMapValid ? EnumChatFormatting.GREEN + " OK" : EnumChatFormatting.RED + " No Ores");
+        if (!mMachine) {
+            return new String[] {
+                EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.void_borer.type"),
+                EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.gui.building") };
         }
-
-        String oreInfo = mLastOreName != null && !mLastOreName.isEmpty()
-            ? EnumChatFormatting.GREEN + mLastOreName + EnumChatFormatting.RESET
-            : EnumChatFormatting.GRAY + "None" + EnumChatFormatting.RESET;
-
-        boolean boosted = hasSuperheatedSteamInHatch();
-        int workTime = boosted ? VOID_WORK_TIME_TICKS / 4 : VOID_WORK_TIME_TICKS;
-
-        String hatchInfo = hasPressureSteamHatch()
-            ? EnumChatFormatting.GOLD + "Pressure Steam Hatch"
-                + EnumChatFormatting.RESET
-                + (boosted ? " " + EnumChatFormatting.GREEN + "(4x)" : "")
-            : EnumChatFormatting.WHITE + "Steam Hatch" + EnumChatFormatting.RESET;
-
-        return new String[] { EnumChatFormatting.BLUE + "Singularity Crust Steam Borer",
-            EnumChatFormatting.GRAY + "Tier: " + EnumChatFormatting.GOLD + "Steel",
-            EnumChatFormatting.GRAY + "Status: " + getStatusText(),
-            EnumChatFormatting.GRAY + "Target Dimension: " + dimInfo, EnumChatFormatting.GRAY + "Mining: " + oreInfo,
-            EnumChatFormatting.GRAY + "Hatch: " + hatchInfo,
-            EnumChatFormatting.GRAY + "Steam Consumption: "
-                + EnumChatFormatting.RED
-                + GTUtility.formatNumbers(VOID_STEAM_PER_SECOND)
-                + " L/s",
-            EnumChatFormatting.GRAY + "Work Time: " + EnumChatFormatting.YELLOW + (workTime / 20) + "s" };
+        String tierText = StatCollector.translateToLocal("gtsr.gui.tier.steel");
+        String statusKey;
+        EnumChatFormatting statusColor;
+        if (mMaxProgresstime > 0) {
+            statusKey = "gtsr.gui.status.running";
+            statusColor = EnumChatFormatting.AQUA;
+        } else {
+            statusKey = "gtsr.gui.status.idle";
+            statusColor = EnumChatFormatting.GRAY;
+        }
+        String steamType = hasSuperheatedSteamInHatch()
+            ? StatCollector.translateToLocal("gtsr.gui.steam_type.superheated")
+            : StatCollector.translateToLocal("gtsr.gui.steam_type.normal");
+        return new String[] { EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.void_borer.type"),
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.tier")
+                + EnumChatFormatting.GOLD
+                + tierText,
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.status")
+                + " "
+                + statusColor
+                + StatCollector.translateToLocal(statusKey),
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.steam_type")
+                + EnumChatFormatting.YELLOW
+                + steamType };
     }
 
     private String getStatusText() {

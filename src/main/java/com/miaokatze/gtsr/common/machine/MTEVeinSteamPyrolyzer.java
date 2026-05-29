@@ -44,12 +44,12 @@ import gregtech.api.metatileentity.implementations.MTEHatch;
 import gregtech.api.recipe.check.CheckRecipeResult;
 import gregtech.api.recipe.check.CheckRecipeResultRegistry;
 import gregtech.api.render.TextureFactory;
-import gregtech.api.util.GTUtility;
 import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.api.util.shutdown.ShutDownReason;
 import gregtech.common.UndergroundOil;
 import gregtech.common.blocks.BlockCasings1;
 import gregtech.common.blocks.BlockCasings2;
+import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTEHatchCustomFluidBase;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTESteamMultiBase;
 
 public class MTEVeinSteamPyrolyzer extends MTESteamMultiBase<MTEVeinSteamPyrolyzer> implements ISurvivalConstructable {
@@ -386,74 +386,58 @@ public class MTEVeinSteamPyrolyzer extends MTESteamMultiBase<MTEVeinSteamPyrolyz
     @Override
     protected MultiblockTooltipBuilder createTooltip() {
         MultiblockTooltipBuilder tt = new MultiblockTooltipBuilder();
-        tt.addMachineType(getMachineType())
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.vein_steam_pyrolyzer.0"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.vein_steam_pyrolyzer.1"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.vein_steam_pyrolyzer.2"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.vein_steam_pyrolyzer.5"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.vein_steam_pyrolyzer.6"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.vein_steam_pyrolyzer.7"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.vein_steam_pyrolyzer.pressure_hatch"))
-            .beginStructureBlock(7, 7, 7, false)
-            .addOutputBus(
-                EnumChatFormatting.GOLD + "1"
+        tt.addMachineType(StatCollector.translateToLocal("gtsr.tooltip.vein_pyrolyzer.type"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.vein_pyrolyzer.desc"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.vein_pyrolyzer.desc2"))
+            .addSeparator()
+            .addInfo(
+                EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.shared.steam_cost")
+                    + EnumChatFormatting.WHITE
+                    + " 500 L/s")
+            .addInfo(
+                EnumChatFormatting.GREEN + "Superheated Steam"
                     + EnumChatFormatting.GRAY
-                    + " "
-                    + StatCollector.translateToLocal("gtsr.tooltip.vein_steam_pyrolyzer.any_casing"),
+                    + " quadruples "
+                    + EnumChatFormatting.GREEN
+                    + "Speed"
+                    + EnumChatFormatting.GRAY
+                    + " and "
+                    + EnumChatFormatting.AQUA
+                    + "Steam Usage")
+            .beginStructureBlock(5, 7, 5, false)
+            .addController(StatCollector.translateToLocal("gtsr.tooltip.vein_pyrolyzer.ctrl"))
+            .addOtherStructurePart(
+                StatCollector.translateToLocal("gtsr.tooltip.shared.steam_input_hatch"),
+                StatCollector.translateToLocal("gtsr.tooltip.shared.any_casing"),
                 1)
+            .addInputBus(StatCollector.translateToLocal("gtsr.tooltip.vein_pyrolyzer.input_bus"), 1)
+            .addOutputBus(StatCollector.translateToLocal("gtsr.tooltip.vein_pyrolyzer.output_bus"), 1)
+            .addOutputHatch(StatCollector.translateToLocal("gtsr.tooltip.vein_pyrolyzer.output_hatch"), 1)
+            .addStructureInfo("")
             .addStructureInfo(
-                EnumChatFormatting.WHITE + "Pressure Steam Input Hatch "
+                EnumChatFormatting.BLUE + "Bronze"
+                    + EnumChatFormatting.DARK_PURPLE
+                    + "/"
+                    + EnumChatFormatting.BLUE
+                    + "Steel "
+                    + EnumChatFormatting.DARK_PURPLE
+                    + "Tier")
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.casing"), 14, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.pipe"), 4, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.gear_box"), 4, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.frame"), 18, false)
+            .addStructureHint("gtsr.tooltip.shared.no_maintenance")
+            .addStructureHint("gtsr.tooltip.vein_pyrolyzer.hint_bronze")
+            .toolTipFinisher(
+                EnumChatFormatting.AQUA + "GT"
+                    + EnumChatFormatting.GREEN
+                    + "-"
                     + EnumChatFormatting.GOLD
-                    + "1"
-                    + EnumChatFormatting.GRAY
-                    + " "
-                    + StatCollector.translateToLocal("gtsr.tooltip.vein_steam_pyrolyzer.any_casing"))
-            .addStructureInfo("")
-            .addStructureInfo(EnumChatFormatting.BLUE + "Bronze " + EnumChatFormatting.DARK_PURPLE + "Tier")
-            .addStructureInfo(
-                EnumChatFormatting.GOLD + "8"
-                    + EnumChatFormatting.GRAY
-                    + " "
-                    + StatCollector.translateToLocal("gtsr.tooltip.vein_steam_pyrolyzer.bronze_casing"))
-            .addStructureInfo(
-                EnumChatFormatting.GOLD + "33"
-                    + EnumChatFormatting.GRAY
-                    + " "
-                    + StatCollector.translateToLocal("gtsr.tooltip.vein_steam_pyrolyzer.bronze_firebox"))
-            .addStructureInfo(
-                EnumChatFormatting.GOLD + "3"
-                    + EnumChatFormatting.GRAY
-                    + " "
-                    + StatCollector.translateToLocal("gtsr.tooltip.vein_steam_pyrolyzer.bronze_gear"))
-            .addStructureInfo(
-                EnumChatFormatting.GOLD + "10"
-                    + EnumChatFormatting.GRAY
-                    + " "
-                    + StatCollector.translateToLocal("gtsr.tooltip.vein_steam_pyrolyzer.bronze_frame"))
-            .addStructureInfo("")
-            .addStructureInfo(EnumChatFormatting.BLUE + "Steel " + EnumChatFormatting.DARK_PURPLE + "Tier")
-            .addStructureInfo(
-                EnumChatFormatting.GOLD + "8"
-                    + EnumChatFormatting.GRAY
-                    + " "
-                    + StatCollector.translateToLocal("gtsr.tooltip.vein_steam_pyrolyzer.steel_casing"))
-            .addStructureInfo(
-                EnumChatFormatting.GOLD + "33"
-                    + EnumChatFormatting.GRAY
-                    + " "
-                    + StatCollector.translateToLocal("gtsr.tooltip.vein_steam_pyrolyzer.steel_firebox"))
-            .addStructureInfo(
-                EnumChatFormatting.GOLD + "3"
-                    + EnumChatFormatting.GRAY
-                    + " "
-                    + StatCollector.translateToLocal("gtsr.tooltip.vein_steam_pyrolyzer.steel_gear"))
-            .addStructureInfo(
-                EnumChatFormatting.GOLD + "10"
-                    + EnumChatFormatting.GRAY
-                    + " "
-                    + StatCollector.translateToLocal("gtsr.tooltip.vein_steam_pyrolyzer.steel_frame"))
-            .addStructureInfo(StatCollector.translateToLocal("gtsr.tooltip.vein_steam_pyrolyzer.18"))
-            .toolTipFinisher();
+                    + "Steam"
+                    + EnumChatFormatting.RED
+                    + "-"
+                    + EnumChatFormatting.BLUE
+                    + "Reborn");
         return tt;
     }
 
@@ -483,30 +467,52 @@ public class MTEVeinSteamPyrolyzer extends MTESteamMultiBase<MTEVeinSteamPyrolyz
         mSetTier = aNBT.getInteger("mSetTier");
     }
 
+    private boolean hasSuperheatedSteamInHatch() {
+        for (MTEHatchCustomFluidBase hatch : mSteamInputFluids) {
+            FluidStack fs = hatch.getFluid();
+            if (fs != null && fs.getFluid() != null
+                && "ic2superheatedsteam".equals(
+                    fs.getFluid()
+                        .getName())
+                && fs.amount > 0) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     @Override
     public String[] getInfoData() {
-        String fluidInfo = mLockedFluid != null
-            ? EnumChatFormatting.GREEN + mLockedFluid.getLocalizedName(null) + EnumChatFormatting.RESET
-            : EnumChatFormatting.GRAY + "None" + EnumChatFormatting.RESET;
-
-        String rangeInfo = EnumChatFormatting.GOLD + (mChunkRange > 0 ? mChunkRange + "x" + mChunkRange : "N/A")
-            + EnumChatFormatting.RESET;
-
-        String chipInfo = EnumChatFormatting.AQUA + "+" + getChipRangeBonus() + EnumChatFormatting.RESET;
-
-        int steamPerTick = mSetTier == 2 ? 200 : 50;
-        int workTime = mSetTier == 2 ? 3600 : 7200;
-
-        return new String[] { EnumChatFormatting.BLUE + "Vein Steam Pyrolyzer",
-            EnumChatFormatting.GRAY + "Tier: " + EnumChatFormatting.GOLD + (mSetTier == 2 ? "Steel" : "Bronze"),
-            EnumChatFormatting.GRAY + "Status: "
-                + (mMachine ? EnumChatFormatting.GREEN + "Running" : EnumChatFormatting.RED + "Incomplete"),
-            EnumChatFormatting.GRAY + "Fluid: " + fluidInfo,
-            EnumChatFormatting.GRAY + "Range: " + rangeInfo + " (chip: " + chipInfo + ")",
-            EnumChatFormatting.GRAY + "Steam: "
-                + EnumChatFormatting.RED
-                + GTUtility.formatNumbers(steamPerTick * 20)
-                + " L/s",
-            EnumChatFormatting.GRAY + "Work Time: " + EnumChatFormatting.YELLOW + (workTime / 20) + "s" };
+        if (!mMachine) {
+            return new String[] {
+                EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.vein_pyrolyzer.type"),
+                EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.gui.building") };
+        }
+        String tierText = mSetTier == 2 ? StatCollector.translateToLocal("gtsr.gui.tier.steel")
+            : StatCollector.translateToLocal("gtsr.gui.tier.bronze");
+        String statusKey;
+        EnumChatFormatting statusColor;
+        if (mMaxProgresstime > 0) {
+            statusKey = "gtsr.gui.status.running";
+            statusColor = EnumChatFormatting.AQUA;
+        } else {
+            statusKey = "gtsr.gui.status.idle";
+            statusColor = EnumChatFormatting.GRAY;
+        }
+        String steamType = hasSuperheatedSteamInHatch()
+            ? StatCollector.translateToLocal("gtsr.gui.steam_type.superheated")
+            : StatCollector.translateToLocal("gtsr.gui.steam_type.normal");
+        return new String[] {
+            EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.vein_pyrolyzer.type"),
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.tier")
+                + EnumChatFormatting.GOLD
+                + tierText,
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.status")
+                + " "
+                + statusColor
+                + StatCollector.translateToLocal(statusKey),
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.steam_type")
+                + EnumChatFormatting.YELLOW
+                + steamType };
     }
 }

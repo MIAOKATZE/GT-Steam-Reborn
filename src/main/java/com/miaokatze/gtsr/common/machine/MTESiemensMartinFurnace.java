@@ -406,44 +406,90 @@ public class MTESiemensMartinFurnace extends MTEEnhancedMultiBlockBase<MTESiemen
     @Override
     public String[] getInfoData() {
         ArrayList<String> info = new ArrayList<>();
-        info.add(EnumChatFormatting.BLUE + "Siemens-Martin Furnace" + EnumChatFormatting.RESET);
         info.add(
-            EnumChatFormatting.GRAY + "Temperature: "
+            EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.siemens_martin.type")
+                + EnumChatFormatting.RESET);
+        if (!mMachine) {
+            info.add(EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.gui.building"));
+            return info.toArray(new String[0]);
+        }
+        info.add(
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.siemens_martin.temperature")
+                + " "
                 + EnumChatFormatting.RED
-                + String.format("%.0f%%", mFurnaceTemperature * 100)
+                + String.format("%.1f%%", mFurnaceTemperature * 100.0d)
+                + EnumChatFormatting.RESET);
+        String statusKey;
+        EnumChatFormatting statusColor;
+        if (mMaxProgresstime > 0) {
+            statusKey = "gtsr.gui.status.running";
+            statusColor = EnumChatFormatting.AQUA;
+        } else if (mFurnaceTemperature > 0 && mFurnaceTemperature < 1.0d) {
+            statusKey = "gtsr.gui.siemens_martin.status.heating";
+            statusColor = EnumChatFormatting.YELLOW;
+        } else {
+            statusKey = "gtsr.gui.status.idle";
+            statusColor = EnumChatFormatting.GRAY;
+        }
+        info.add(
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.status")
+                + " "
+                + statusColor
+                + StatCollector.translateToLocal(statusKey)
                 + EnumChatFormatting.RESET);
         info.add(
-            EnumChatFormatting.GRAY + "Status: "
-                + (mMaxProgresstime > 0 ? EnumChatFormatting.GREEN + "Running" : EnumChatFormatting.RED + "Idle"));
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal(
+                "gtsr.gui.parallel") + " " + EnumChatFormatting.GOLD + MAX_PARALLEL + EnumChatFormatting.RESET);
+        String recipeInfo = mMaxProgresstime > 0
+            ? EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.gui.siemens_martin.recipe.active")
+            : EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.gui.siemens_martin.recipe.none");
         info.add(
-            EnumChatFormatting.GRAY + "Steam: "
-                + EnumChatFormatting.RED
-                + GTUtility.formatNumbers(SUPERHEATED_STEAM_COST)
-                + " L/t"
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.siemens_martin.current_recipe")
+                + " "
+                + recipeInfo
                 + EnumChatFormatting.RESET);
-        info.add(
-            EnumChatFormatting.GRAY + "Parallel: " + EnumChatFormatting.GOLD + MAX_PARALLEL + EnumChatFormatting.RESET);
         return info.toArray(new String[0]);
     }
 
     @Override
     protected MultiblockTooltipBuilder createTooltip() {
         MultiblockTooltipBuilder tt = new MultiblockTooltipBuilder();
-        tt.addMachineType(getMachineType())
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.siemens_martin_furnace.0"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.siemens_martin_furnace.1"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.siemens_martin_furnace.2"))
+        tt.addMachineType(StatCollector.translateToLocal("gtsr.tooltip.siemens_martin.type"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.siemens_martin.desc"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.siemens_martin.desc2"))
             .addSeparator()
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.siemens_martin_furnace.3"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.siemens_martin_furnace.4"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.siemens_martin_furnace.5"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.siemens_martin.recipe"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.siemens_martin.steam_only"))
             .beginStructureBlock(12, 19, 14, false)
-            .addStructureInfo(StatCollector.translateToLocal("gtsr.tooltip.siemens_martin_furnace.ctrl"))
-            .addStructureInfo(StatCollector.translateToLocal("gtsr.tooltip.siemens_martin_furnace.casing"))
-            .addInputHatch(StatCollector.translateToLocal("gtsr.tooltip.siemens_martin_furnace.pressure_hatch"), 1)
-            .addInputBus(StatCollector.translateToLocal("gtsr.tooltip.siemens_martin_furnace.input_bus"), 1)
-            .addOutputBus(StatCollector.translateToLocal("gtsr.tooltip.siemens_martin_furnace.output_bus"), 1)
-            .toolTipFinisher("GTSR");
+            .addController(StatCollector.translateToLocal("gtsr.tooltip.siemens_martin.ctrl"))
+            .addOtherStructurePart(
+                StatCollector.translateToLocal("gtsr.tooltip.shared.steam_input_hatch"),
+                StatCollector.translateToLocal("gtsr.tooltip.siemens_martin.steam_input"),
+                1)
+            .addInputBus(StatCollector.translateToLocal("gtsr.tooltip.siemens_martin.input_bus"), 1)
+            .addOutputBus(StatCollector.translateToLocal("gtsr.tooltip.siemens_martin.output_bus"), 1)
+            .addStructureInfo("")
+            .addStructureInfo(EnumChatFormatting.DARK_PURPLE + "Steel Only")
+            .addCasingInfoExactly("Solid Steel Machine Casing", 318, false)
+            .addCasingInfoExactly("Steel Pipe Casing", 20, false)
+            .addCasingInfoExactly("Steel Gear Box Casing", 6, false)
+            .addCasingInfoExactly("Steel Firebox Casing", 91, false)
+            .addCasingInfoExactly("Firebricks", 238, false)
+            .addCasingInfoExactly("Steel Frame Box", 167, false)
+            .addStructureInfo(EnumChatFormatting.YELLOW + "Parallel: " + EnumChatFormatting.GOLD + "32")
+            .addStructureHint("gtsr.tooltip.shared.no_maintenance")
+            .addStructureHint("gtsr.tooltip.siemens_martin.hint_temp")
+            .addStructureHint("gtsr.tooltip.siemens_martin.hint_interrupt")
+            .toolTipFinisher(
+                EnumChatFormatting.AQUA + "GT"
+                    + EnumChatFormatting.GREEN
+                    + "-"
+                    + EnumChatFormatting.GOLD
+                    + "Steam"
+                    + EnumChatFormatting.RED
+                    + "-"
+                    + EnumChatFormatting.BLUE
+                    + "Reborn");
         return tt;
     }
 }

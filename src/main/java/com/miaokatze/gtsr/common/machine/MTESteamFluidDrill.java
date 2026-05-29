@@ -43,6 +43,7 @@ import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.api.util.VoidProtectionHelper;
 import gregtech.common.blocks.BlockCasings1;
 import gregtech.common.blocks.BlockCasings2;
+import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTEHatchCustomFluidBase;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTESteamMultiBase;
 
 public class MTESteamFluidDrill extends MTESteamMultiBase<MTESteamFluidDrill> implements ISurvivalConstructable {
@@ -339,92 +340,56 @@ public class MTESteamFluidDrill extends MTESteamMultiBase<MTESteamFluidDrill> im
     @Override
     protected MultiblockTooltipBuilder createTooltip() {
         MultiblockTooltipBuilder tt = new MultiblockTooltipBuilder();
-        tt.addMachineType(getMachineType())
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.steam_fluid_drill.info"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.steam_fluid_drill.bronze"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.steam_fluid_drill.steel"))
+        tt.addMachineType(StatCollector.translateToLocal("gtsr.tooltip.fluid_drill.type"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.fluid_drill.desc"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.fluid_drill.desc2"))
+            .addSeparator()
             .addInfo(
-                EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.steam_fluid_drill.steam_cost")
+                EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.shared.steam_cost")
                     + EnumChatFormatting.WHITE
-                    + BASE_STEAM_PER_SECOND
-                    + " L/s"
-                    + EnumChatFormatting.RESET)
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.steam_fluid_drill.pressure_hatch"))
+                    + " 500 L/s")
+            .addInfo(
+                EnumChatFormatting.GREEN + "Superheated Steam"
+                    + EnumChatFormatting.GRAY
+                    + " quadruples "
+                    + EnumChatFormatting.GREEN
+                    + "Speed"
+                    + EnumChatFormatting.GRAY
+                    + " and "
+                    + EnumChatFormatting.AQUA
+                    + "Steam Usage")
             .beginStructureBlock(5, 6, 5, false)
-            .addOutputHatch(
-                EnumChatFormatting.GOLD + "1"
-                    + EnumChatFormatting.GRAY
-                    + " "
-                    + StatCollector.translateToLocal("gtsr.tooltip.steam_fluid_drill.any_casing"),
+            .addController(StatCollector.translateToLocal("gtsr.tooltip.fluid_drill.ctrl"))
+            .addOtherStructurePart(
+                StatCollector.translateToLocal("gtsr.tooltip.shared.steam_input_hatch"),
+                StatCollector.translateToLocal("gtsr.tooltip.shared.any_casing"),
                 1)
+            .addOutputHatch(StatCollector.translateToLocal("gtsr.tooltip.fluid_drill.output_hatch"), 1)
+            .addStructureInfo("")
             .addStructureInfo(
-                EnumChatFormatting.WHITE + "Pressure Steam Input Hatch "
+                EnumChatFormatting.BLUE + "Bronze"
+                    + EnumChatFormatting.DARK_PURPLE
+                    + "/"
+                    + EnumChatFormatting.BLUE
+                    + "Steel "
+                    + EnumChatFormatting.DARK_PURPLE
+                    + "Tier")
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.casing"), 11, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.pipe"), 4, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.gear_box"), 4, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.frame"), 10, false)
+            .addStructureHint("gtsr.tooltip.shared.no_maintenance")
+            .addStructureHint("gtsr.tooltip.fluid_drill.hint_bronze")
+            .toolTipFinisher(
+                EnumChatFormatting.AQUA + "GT"
+                    + EnumChatFormatting.GREEN
+                    + "-"
                     + EnumChatFormatting.GOLD
-                    + "1"
-                    + EnumChatFormatting.GRAY
-                    + " "
-                    + StatCollector.translateToLocal("gtsr.tooltip.steam_fluid_drill.any_casing"))
-            .addStructureInfo("")
-            .addStructureInfo(EnumChatFormatting.BLUE + "Bronze " + EnumChatFormatting.DARK_PURPLE + "Tier")
-            .addStructureInfo(
-                EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.steam_fluid_drill.output")
-                    + EnumChatFormatting.WHITE
-                    + BRONZE_MIN_OUTPUT
+                    + "Steam"
+                    + EnumChatFormatting.RED
                     + "-"
-                    + BRONZE_MAX_OUTPUT
-                    + " L/s"
-                    + EnumChatFormatting.RESET)
-            .addStructureInfo(
-                EnumChatFormatting.GOLD + "11"
-                    + EnumChatFormatting.GRAY
-                    + " "
-                    + StatCollector.translateToLocal("gtsr.tooltip.steam_fluid_drill.bronze_casing"))
-            .addStructureInfo(
-                EnumChatFormatting.GOLD + "4"
-                    + EnumChatFormatting.GRAY
-                    + " "
-                    + StatCollector.translateToLocal("gtsr.tooltip.steam_fluid_drill.bronze_pipe"))
-            .addStructureInfo(
-                EnumChatFormatting.GOLD + "4"
-                    + EnumChatFormatting.GRAY
-                    + " "
-                    + StatCollector.translateToLocal("gtsr.tooltip.steam_fluid_drill.bronze_gear"))
-            .addStructureInfo(
-                EnumChatFormatting.GOLD + "10"
-                    + EnumChatFormatting.GRAY
-                    + " "
-                    + StatCollector.translateToLocal("gtsr.tooltip.steam_fluid_drill.bronze_frame"))
-            .addStructureInfo("")
-            .addStructureInfo(EnumChatFormatting.BLUE + "Steel " + EnumChatFormatting.DARK_PURPLE + "Tier")
-            .addStructureInfo(
-                EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.steam_fluid_drill.output")
-                    + EnumChatFormatting.WHITE
-                    + STEEL_MIN_OUTPUT
-                    + "-"
-                    + STEEL_MAX_OUTPUT
-                    + " L/s"
-                    + EnumChatFormatting.RESET)
-            .addStructureInfo(
-                EnumChatFormatting.GOLD + "11"
-                    + EnumChatFormatting.GRAY
-                    + " "
-                    + StatCollector.translateToLocal("gtsr.tooltip.steam_fluid_drill.steel_casing"))
-            .addStructureInfo(
-                EnumChatFormatting.GOLD + "4"
-                    + EnumChatFormatting.GRAY
-                    + " "
-                    + StatCollector.translateToLocal("gtsr.tooltip.steam_fluid_drill.steel_pipe"))
-            .addStructureInfo(
-                EnumChatFormatting.GOLD + "4"
-                    + EnumChatFormatting.GRAY
-                    + " "
-                    + StatCollector.translateToLocal("gtsr.tooltip.steam_fluid_drill.steel_gear"))
-            .addStructureInfo(
-                EnumChatFormatting.GOLD + "10"
-                    + EnumChatFormatting.GRAY
-                    + " "
-                    + StatCollector.translateToLocal("gtsr.tooltip.steam_fluid_drill.steel_frame"))
-            .toolTipFinisher();
+                    + EnumChatFormatting.BLUE
+                    + "Reborn");
         return tt;
     }
 
@@ -445,32 +410,47 @@ public class MTESteamFluidDrill extends MTESteamMultiBase<MTESteamFluidDrill> im
         mSetTier = aNBT.getInteger("mSetTier");
     }
 
+    private boolean hasSuperheatedSteamInHatch() {
+        for (MTEHatchCustomFluidBase hatch : mSteamInputFluids) {
+            FluidStack fs = hatch.getFluid();
+            if (fs != null && fs.getFluid() != null
+                && "ic2superheatedsteam".equals(
+                    fs.getFluid()
+                        .getName())
+                && fs.amount > 0) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     @Override
     public String[] getInfoData() {
+        if (!mMachine) {
+            return new String[] {
+                EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.fluid_drill.type"),
+                EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.gui.building") };
+        }
         float efficiencyPercent = mEfficiency / 100F;
         int currentOutput = calculateFinalWaterOutput();
-        String tierText = mSetTier == 1 ? "Bronze" : mSetTier == 2 ? "Steel" : "Unknown";
-        String fluidType = mSetTier >= 2 ? "Distilled Water" : "Water";
-
-        return new String[] { EnumChatFormatting.BLUE + "Steam Fluid Drill",
-            EnumChatFormatting.GRAY + "Tier: " + EnumChatFormatting.GOLD + tierText,
-            EnumChatFormatting.GRAY + "Status: "
-                + (mMachine ? EnumChatFormatting.GREEN + "Running" : EnumChatFormatting.RED + "Incomplete"),
-            StatCollector.translateToLocal("GT5U.engine.efficiency") + ": "
+        String tierText = mSetTier == 2 ? StatCollector.translateToLocal("gtsr.gui.tier.steel")
+            : StatCollector.translateToLocal("gtsr.gui.tier.bronze");
+        String steamType = hasSuperheatedSteamInHatch()
+            ? StatCollector.translateToLocal("gtsr.gui.steam_type.superheated")
+            : StatCollector.translateToLocal("gtsr.gui.steam_type.normal");
+        return new String[] { EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.fluid_drill.type"),
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.tier")
+                + EnumChatFormatting.GOLD
+                + tierText,
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.steam_type")
                 + EnumChatFormatting.YELLOW
-                + String.format("%.1f", efficiencyPercent)
-                + EnumChatFormatting.YELLOW
-                + " %",
-            EnumChatFormatting.GRAY + "Current Output: "
-                + EnumChatFormatting.AQUA
+                + steamType,
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.fluid_drill.efficiency")
+                + EnumChatFormatting.GREEN
+                + String.format("%.1f%%", efficiencyPercent),
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.fluid_drill.output")
+                + EnumChatFormatting.LIGHT_PURPLE
                 + GTUtility.formatNumbers(currentOutput)
-                + " L/s"
-                + " ("
-                + fluidType
-                + ")",
-            EnumChatFormatting.GRAY + "Steam Consumption: "
-                + EnumChatFormatting.RED
-                + GTUtility.formatNumbers(BASE_STEAM_PER_SECOND)
-                + " L/s" };
+                + " L/tick" };
     }
 }

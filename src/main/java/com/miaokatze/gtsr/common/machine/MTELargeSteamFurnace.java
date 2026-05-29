@@ -18,6 +18,7 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 import net.minecraftforge.common.util.ForgeDirection;
+import net.minecraftforge.fluids.FluidStack;
 
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -47,6 +48,7 @@ import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.api.util.OverclockCalculator;
 import gregtech.common.blocks.BlockCasings1;
 import gregtech.common.blocks.BlockCasings2;
+import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTEHatchCustomFluidBase;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTESteamMultiBase;
 
 public class MTELargeSteamFurnace extends MTESteamMultiBase<MTELargeSteamFurnace> implements ISurvivalConstructable {
@@ -291,29 +293,50 @@ public class MTELargeSteamFurnace extends MTESteamMultiBase<MTELargeSteamFurnace
     @Override
     protected MultiblockTooltipBuilder createTooltip() {
         MultiblockTooltipBuilder tt = new MultiblockTooltipBuilder();
-        tt.addMachineType(getMachineType())
-            .addSteamBulkMachineInfo(8, 1.25f, 0.625f)
-            .addInfo(HIGH_PRESSURE_TOOLTIP_NOTICE)
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.large_steam_furnace.0"))
-            .beginStructureBlock(5, 5, 5, false)
-            .addController(StatCollector.translateToLocal("gtsr.tooltip.large_steam_furnace.ctrl"))
-            .addSteamInputBus(EnumChatFormatting.GOLD + "1" + EnumChatFormatting.GRAY + " Any casing", 1)
-            .addSteamOutputBus(EnumChatFormatting.GOLD + "1" + EnumChatFormatting.GRAY + " Any casing", 1)
+        tt.addMachineType(StatCollector.translateToLocal("gtsr.tooltip.steam_furnace.type"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.steam_furnace.desc"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.steam_furnace.desc2"))
+            .addSeparator()
+            .addInfo(
+                EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.shared.steam_cost")
+                    + EnumChatFormatting.WHITE
+                    + " 160 L/s")
+            .beginStructureBlock(3, 3, 5, false)
+            .addController(StatCollector.translateToLocal("gtsr.tooltip.steam_furnace.ctrl"))
+            .addInputBus(StatCollector.translateToLocal("gtsr.tooltip.steam_furnace.input_bus"), 1)
+            .addOutputBus(StatCollector.translateToLocal("gtsr.tooltip.steam_furnace.output_bus"), 1)
+            .addOtherStructurePart(
+                StatCollector.translateToLocal("gtsr.tooltip.shared.steam_input_hatch"),
+                StatCollector.translateToLocal("gtsr.tooltip.shared.steam_or_pressure"),
+                1)
+            .addStructureInfo("")
+            .addStructureInfo(EnumChatFormatting.BLUE + "Bronze/Steel " + EnumChatFormatting.DARK_PURPLE + "Tier")
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.casing"), 19, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.firebox"), 3, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.pipe"), 6, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.gear_box"), 1, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.frame"), 6, false)
             .addStructureInfo(
-                EnumChatFormatting.WHITE + "Steam Input Hatch "
+                EnumChatFormatting.YELLOW + "Parallel: "
                     + EnumChatFormatting.GOLD
-                    + "1"
+                    + "4"
                     + EnumChatFormatting.GRAY
-                    + " Any casing")
-            .addStructureInfo("")
-            .addStructureInfo(EnumChatFormatting.BLUE + "Bronze " + EnumChatFormatting.DARK_PURPLE + "Tier")
-            .addStructureInfo(EnumChatFormatting.GOLD + "10x" + EnumChatFormatting.GRAY + " Bronze Firebox Casing")
-            .addStructureInfo(EnumChatFormatting.GOLD + "17x" + EnumChatFormatting.GRAY + " Bronze Plated Bricks")
-            .addStructureInfo("")
-            .addStructureInfo(EnumChatFormatting.BLUE + "Steel " + EnumChatFormatting.DARK_PURPLE + "Tier")
-            .addStructureInfo(EnumChatFormatting.GOLD + "10x" + EnumChatFormatting.GRAY + " Steel Firebox Casing")
-            .addStructureInfo(EnumChatFormatting.GOLD + "17x" + EnumChatFormatting.GRAY + " Solid Steel Machine Casing")
-            .toolTipFinisher();
+                    + " (Bronze)"
+                    + EnumChatFormatting.GOLD
+                    + "/16"
+                    + EnumChatFormatting.GRAY
+                    + " (Steel)")
+            .addStructureHint("gtsr.tooltip.shared.no_maintenance")
+            .toolTipFinisher(
+                EnumChatFormatting.AQUA + "GT"
+                    + EnumChatFormatting.GREEN
+                    + "-"
+                    + EnumChatFormatting.GOLD
+                    + "Steam"
+                    + EnumChatFormatting.RED
+                    + "-"
+                    + EnumChatFormatting.BLUE
+                    + "Reborn");
         return tt;
     }
 
@@ -336,11 +359,40 @@ public class MTELargeSteamFurnace extends MTESteamMultiBase<MTELargeSteamFurnace
 
     @Override
     public String[] getInfoData() {
-        String tierText = mSetTier == 2 ? "Steel" : mSetTier == 1 ? "Bronze" : "N/A";
-        return new String[] { EnumChatFormatting.BLUE + "Large Steam Furnace",
-            EnumChatFormatting.GRAY + "Tier: " + EnumChatFormatting.GOLD + tierText,
-            EnumChatFormatting.GRAY + "Status: "
-                + (mMachine ? EnumChatFormatting.GREEN + "Running" : EnumChatFormatting.RED + "Incomplete"),
-            EnumChatFormatting.GRAY + "Parallel: " + EnumChatFormatting.YELLOW + getMaxParallelRecipes() };
+        if (!mMachine) {
+            return new String[] {
+                EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.steam_furnace.type"),
+                EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.gui.building") };
+        }
+        String tierText = mSetTier >= 2 ? StatCollector.translateToLocal("gtsr.gui.tier.steel")
+            : StatCollector.translateToLocal("gtsr.gui.tier.bronze");
+        String steamType = hasSuperheatedSteamInHatch()
+            ? StatCollector.translateToLocal("gtsr.gui.steam_type.superheated")
+            : StatCollector.translateToLocal("gtsr.gui.steam_type.normal");
+        return new String[] {
+            EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.steam_furnace.type"),
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.tier")
+                + EnumChatFormatting.GOLD
+                + tierText,
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.steam_type")
+                + EnumChatFormatting.YELLOW
+                + steamType,
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.parallel")
+                + EnumChatFormatting.GOLD
+                + getMaxParallelRecipes() };
+    }
+
+    protected boolean hasSuperheatedSteamInHatch() {
+        for (MTEHatchCustomFluidBase hatch : mSteamInputFluids) {
+            FluidStack fs = hatch.getFluid();
+            if (fs != null && fs.getFluid() != null
+                && "ic2superheatedsteam".equals(
+                    fs.getFluid()
+                        .getName())
+                && fs.amount > 0) {
+                return true;
+            }
+        }
+        return false;
     }
 }

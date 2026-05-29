@@ -534,37 +534,70 @@ public class MTEAmmoniaPlant extends MTEEnhancedMultiBlockBase<MTEAmmoniaPlant> 
     public String[] getInfoData() {
         ArrayList<String> info = new ArrayList<>();
         info.add(
-            EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.gui.ammonia_plant.name")
+            EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.ammonia_plant.type")
                 + EnumChatFormatting.RESET);
+
+        if (!mMachine) {
+            info.add(EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.gui.building"));
+            return info.toArray(new String[0]);
+        }
+
         info.add(
-            EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.gui.ammonia_plant.heat")
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.ammonia_plant.heat")
                 + " "
                 + EnumChatFormatting.RED
                 + String.format("%.1f%%", mHeatLevel / 100.0)
                 + EnumChatFormatting.RESET);
+
+        String statusKey;
+        EnumChatFormatting statusColor;
+        if (mMaxProgresstime > 0) {
+            statusKey = "gtsr.gui.status.running";
+            statusColor = EnumChatFormatting.GREEN;
+        } else if (mHeatLevel > 0) {
+            statusKey = "gtsr.gui.ammonia_plant.status.preheating";
+            statusColor = EnumChatFormatting.GREEN;
+        } else {
+            statusKey = "gtsr.gui.status.idle";
+            statusColor = EnumChatFormatting.GRAY;
+        }
         info.add(
-            EnumChatFormatting.GRAY + StatCollector.translateToLocal(
-                "gtsr.gui.ammonia_plant.status") + " " + getStatusColor() + getStatusText() + EnumChatFormatting.RESET);
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.status")
+                + " "
+                + statusColor
+                + StatCollector.translateToLocal(statusKey)
+                + EnumChatFormatting.RESET);
+
         info.add(
-            EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.gui.ammonia_plant.steam")
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.ammonia_plant.steam")
                 + " "
                 + EnumChatFormatting.AQUA
                 + GTUtility.formatNumbers(mRealtimeSteamCost)
                 + " L/s"
                 + EnumChatFormatting.RESET);
+
         info.add(
-            EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.gui.ammonia_plant.hp_steam")
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.ammonia_plant.hp_steam")
                 + " "
                 + EnumChatFormatting.LIGHT_PURPLE
                 + GTUtility.formatNumbers(mRealtimeSteamOutput)
                 + " L/s"
                 + EnumChatFormatting.RESET);
+
         info.add(
-            EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.gui.ammonia_plant.parallel")
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal(
+                "gtsr.gui.parallel") + " " + EnumChatFormatting.GOLD + mParallelCount + EnumChatFormatting.RESET);
+
+        String catalystName = mCatalystType > 0
+            ? EnumChatFormatting.GREEN
+                + StatCollector.translateToLocal("gtsr.gui.ammonia_plant.catalyst." + mCatalystType)
+            : EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.gui.not_installed");
+        info.add(
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.ammonia_plant.catalyst")
                 + " "
-                + EnumChatFormatting.GOLD
-                + mParallelCount
+                + catalystName
                 + EnumChatFormatting.RESET);
+
         return info.toArray(new String[0]);
     }
 
@@ -590,15 +623,73 @@ public class MTEAmmoniaPlant extends MTEEnhancedMultiBlockBase<MTEAmmoniaPlant> 
     protected MultiblockTooltipBuilder createTooltip() {
         final MultiblockTooltipBuilder tt = new MultiblockTooltipBuilder();
         tt.addMachineType(StatCollector.translateToLocal("gtsr.tooltip.ammonia_plant.type"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.ammonia_plant.info"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.ammonia_plant.info2"))
+            .addInfo(
+                EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.ammonia_plant.desc.1")
+                    + EnumChatFormatting.GREEN
+                    + StatCollector.translateToLocal("gtsr.tooltip.ammonia_plant.desc.2")
+                    + EnumChatFormatting.GRAY
+                    + StatCollector.translateToLocal("gtsr.tooltip.ammonia_plant.desc.3")
+                    + EnumChatFormatting.RED
+                    + StatCollector.translateToLocal("gtsr.tooltip.ammonia_plant.desc.4")
+                    + EnumChatFormatting.GRAY
+                    + StatCollector.translateToLocal("gtsr.tooltip.ammonia_plant.desc.5")
+                    + EnumChatFormatting.RED
+                    + StatCollector.translateToLocal("gtsr.tooltip.ammonia_plant.desc.6")
+                    + EnumChatFormatting.GRAY
+                    + StatCollector.translateToLocal("gtsr.tooltip.ammonia_plant.desc.7"))
             .addSeparator()
+            .addInfo(
+                EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.ammonia_plant.preheat.1")
+                    + EnumChatFormatting.RED
+                    + StatCollector.translateToLocal("gtsr.tooltip.ammonia_plant.preheat.2")
+                    + EnumChatFormatting.GRAY
+                    + StatCollector.translateToLocal("gtsr.tooltip.ammonia_plant.preheat.3"))
+            .addInfo(
+                EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.ammonia_plant.heat_cost.1")
+                    + EnumChatFormatting.WHITE
+                    + "8,000 L/s "
+                    + StatCollector.translateToLocal("gtsr.tooltip.ammonia_plant.steam_unit")
+                    + " + 200 L/s "
+                    + StatCollector.translateToLocal("gtsr.tooltip.ammonia_plant.refinery_gas")
+                    + EnumChatFormatting.GRAY
+                    + " | "
+                    + EnumChatFormatting.RED
+                    + StatCollector.translateToLocal("gtsr.tooltip.ammonia_plant.heat_cost.2")
+                    + EnumChatFormatting.WHITE
+                    + "12,000 L/s "
+                    + StatCollector.translateToLocal("gtsr.tooltip.ammonia_plant.steam_unit")
+                    + " + 200 L/s "
+                    + StatCollector.translateToLocal("gtsr.tooltip.ammonia_plant.refinery_gas"))
+            .addSeparator()
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.ammonia_plant.catalyst"))
+            .addInfo(
+                EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.ammonia_plant.catalyst_detail.1")
+                    + EnumChatFormatting.GOLD
+                    + "64\u2192256"
+                    + EnumChatFormatting.GRAY
+                    + StatCollector.translateToLocal("gtsr.tooltip.ammonia_plant.catalyst_detail.2")
+                    + EnumChatFormatting.GOLD
+                    + "64s\u21921s"
+                    + EnumChatFormatting.GRAY
+                    + StatCollector.translateToLocal("gtsr.tooltip.ammonia_plant.catalyst_detail.3"))
             .beginStructureBlock(10, 14, 13, false)
-            .addController(StatCollector.translateToLocal("gtsr.tooltip.ammonia_plant.controller"))
+            .addController(StatCollector.translateToLocal("gtsr.tooltip.ammonia_plant.ctrl"))
             .addInputHatch(StatCollector.translateToLocal("gtsr.tooltip.ammonia_plant.input_hatch"), 1)
             .addOutputBus(StatCollector.translateToLocal("gtsr.tooltip.ammonia_plant.output_bus"), 1)
             .addOutputHatch(StatCollector.translateToLocal("gtsr.tooltip.ammonia_plant.output_hatch"), 1)
-            .toolTipFinisher("GTSR");
+            .addStructureInfo("")
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.casing"), 26, false)
+            .addStructureHint("gtsr.tooltip.shared.no_maintenance")
+            .toolTipFinisher(
+                EnumChatFormatting.AQUA + "GT"
+                    + EnumChatFormatting.GREEN
+                    + "-"
+                    + EnumChatFormatting.GOLD
+                    + "Steam"
+                    + EnumChatFormatting.RED
+                    + "-"
+                    + EnumChatFormatting.BLUE
+                    + "Reborn");
         return tt;
     }
 

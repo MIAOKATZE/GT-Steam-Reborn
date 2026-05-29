@@ -753,6 +753,30 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
         return 10000;
     }
 
+    @Override
+    public String[] getInfoData() {
+        if (!mMachine) {
+            return new String[] {
+                EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.type"),
+                EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.gui.building") };
+        }
+        return new String[] {
+            EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.type"),
+            EnumChatFormatting.GOLD + "Tier: "
+                + EnumChatFormatting.GREEN
+                + GTValues.VN[mMachineTier > 0 && mMachineTier < GTValues.VN.length ? mMachineTier : 0],
+            EnumChatFormatting.GOLD + "Steam Rate: " + EnumChatFormatting.AQUA + String.format("%.2f", mSteamRate),
+            EnumChatFormatting.GOLD + "Steam/A: "
+                + EnumChatFormatting.YELLOW
+                + GTUtility.formatNumbers(mSteamPerAmp)
+                + " L/t",
+            EnumChatFormatting.GOLD + "HP Steam: "
+                + EnumChatFormatting.RED
+                + GTUtility.formatNumbers(mRealtimeSteamCost)
+                + " L/t",
+            EnumChatFormatting.GOLD + "Parallel: " + EnumChatFormatting.LIGHT_PURPLE + mParallelCount };
+    }
+
     public int getTierRecipes() {
         return mMachineTier;
     }
@@ -781,18 +805,38 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
     @Override
     protected MultiblockTooltipBuilder createTooltip() {
         MultiblockTooltipBuilder tt = new MultiblockTooltipBuilder();
-        tt.addMachineType("Kinetic Processing Array")
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.kinetic_processing_array.info"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.kinetic_processing_array.info2"))
+        tt.addMachineType(StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.type"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.desc"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.desc2"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.desc3"))
             .addSeparator()
             .beginStructureBlock(7, 5, 7, true)
-            .addController(StatCollector.translateToLocal("gtsr.tooltip.kinetic_processing_array.controller"))
-            .addEnergyHatch(StatCollector.translateToLocal("gtsr.tooltip.kinetic_processing_array.energy"), 1)
-            .addInputHatch(StatCollector.translateToLocal("gtsr.tooltip.kinetic_processing_array.steam_input"), 2)
-            .addInputBus(StatCollector.translateToLocal("gtsr.tooltip.kinetic_processing_array.input"), 1)
-            .addOutputBus(StatCollector.translateToLocal("gtsr.tooltip.kinetic_processing_array.output"), 1)
-            .addOutputHatch(StatCollector.translateToLocal("gtsr.tooltip.kinetic_processing_array.output_hatch"), 1)
-            .toolTipFinisher();
+            .addController(StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.ctrl"))
+            .addEnergyHatch(StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.energy"), 1)
+            .addInputHatch(StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.steam_input"), 2)
+            .addInputBus(StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.input"), 1)
+            .addOutputBus(StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.output"), 1)
+            .addOutputHatch(StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.output_hatch"), 1)
+            .addStructureInfo("")
+            .addStructureInfo(EnumChatFormatting.YELLOW + "7-Tier Casing" + EnumChatFormatting.GRAY + " (LV\u2192ZPM)")
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.casing"), 93, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.gear_box"), 15, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.pipe"), 8, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.frame"), 12, false)
+            .addStructureInfo(EnumChatFormatting.YELLOW + "Parallel: (1+2\u00d7Tier)+Machine Count")
+            .addStructureHint("gtsr.tooltip.shared.no_maintenance")
+            .addStructureHint("gtsr.tooltip.kinetic_array.hint_pipe")
+            .addStructureHint("gtsr.tooltip.kinetic_array.hint_gear")
+            .toolTipFinisher(
+                EnumChatFormatting.AQUA + "GT"
+                    + EnumChatFormatting.GREEN
+                    + "-"
+                    + EnumChatFormatting.GOLD
+                    + "Steam"
+                    + EnumChatFormatting.RED
+                    + "-"
+                    + EnumChatFormatting.BLUE
+                    + "Reborn");
         return tt;
     }
 }

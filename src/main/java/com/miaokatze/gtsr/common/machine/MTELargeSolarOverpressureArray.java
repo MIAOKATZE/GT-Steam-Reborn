@@ -458,23 +458,39 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
     @Override
     protected MultiblockTooltipBuilder createTooltip() {
         final MultiblockTooltipBuilder tt = new MultiblockTooltipBuilder();
-        tt.addMachineType(StatCollector.translateToLocal("gtsr.tooltip.large_solar_overpressure_array.name"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.solar_array.0"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.solar_array.1") + getBaseSteamProduction() + " L/s")
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.solar_array.2"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.solar_array.3"))
+        tt.addMachineType(StatCollector.translateToLocal("gtsr.tooltip.solar_array.type"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.solar_array.desc"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.solar_array.desc2"))
+            .addSeparator()
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.solar_array.calcification"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.solar_array.calcification_d"))
             .beginStructureBlock(13, 4, 13, false)
             .addController(StatCollector.translateToLocal("gtsr.tooltip.solar_array.ctrl"))
-            .addCasingInfoRange(StatCollector.translateToLocal("gtsr.tooltip.solar_array.casing"), 60, -1, false)
-            .addOtherStructurePart(
-                StatCollector.translateToLocal("gtsr.tooltip.solar_array.glass"),
-                StatCollector.translateToLocal("gtsr.tooltip.solar_array.glass_pos"))
-            .addOtherStructurePart(
-                StatCollector.translateToLocal("gtsr.tooltip.solar_array.conductor"),
-                StatCollector.translateToLocal("gtsr.tooltip.solar_array.conductor_pos"))
-            .addOutputHatch(StatCollector.translateToLocal("gtsr.tooltip.solar_array.output_hatch"), 1)
             .addInputHatch(StatCollector.translateToLocal("gtsr.tooltip.solar_array.input_hatch"), 1)
-            .toolTipFinisher();
+            .addOtherStructurePart(
+                StatCollector.translateToLocal("gtsr.tooltip.solar_array.steam_output"),
+                StatCollector.translateToLocal("gtsr.tooltip.shared.any_casing"),
+                1)
+            .addStructureInfo("")
+            .addStructureInfo(
+                EnumChatFormatting.BLUE + "Bronze/Steel/Overpressure " + EnumChatFormatting.DARK_PURPLE + "Tier")
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.solar_array.casing"), 191, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.pipe"), 73, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.gear_box"), 12, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.solar_array.conductor"), 117, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.solar_array.glass"), 117, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.frame"), 31, false)
+            .addStructureHint("gtsr.tooltip.shared.no_maintenance")
+            .toolTipFinisher(
+                EnumChatFormatting.AQUA + "GT"
+                    + EnumChatFormatting.GREEN
+                    + "-"
+                    + EnumChatFormatting.GOLD
+                    + "Steam"
+                    + EnumChatFormatting.RED
+                    + "-"
+                    + EnumChatFormatting.BLUE
+                    + "Reborn");
         return tt;
     }
 
@@ -760,37 +776,61 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
 
     @Override
     public String[] getInfoData() {
-        String tierText = isNickel() ? StatCollector.translateToLocal("gtsr.info.solar_array.tier_nickel")
-            : isSteel() ? StatCollector.translateToLocal("gtsr.info.solar_array.tier_steel")
-                : isBronze() ? StatCollector.translateToLocal("gtsr.info.solar_array.tier_bronze") : "N/A";
-        String steamType = isNickel() ? StatCollector.translateToLocal("gtsr.gui.solar_array.superheated")
-            : StatCollector.translateToLocal("gtsr.gui.solar_array.steam");
-        float booster = calculateSolarBooster();
-        return new String[] { EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.info.solar_array.name"),
-            EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.info.solar_array.tier")
+        ArrayList<String> info = new ArrayList<>();
+        info.add(EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.solar_array.type"));
+
+        if (!mMachine) {
+            info.add(EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.gui.building"));
+            return info.toArray(new String[0]);
+        }
+
+        String tierText = isNickel() ? StatCollector.translateToLocal("gtsr.tooltip.solar_array.tier_overpressure")
+            : isSteel() ? StatCollector.translateToLocal("gtsr.tooltip.solar_array.tier_steel")
+                : StatCollector.translateToLocal("gtsr.tooltip.solar_array.tier_bronze");
+        info.add(
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.tier")
                 + EnumChatFormatting.GOLD
-                + tierText,
-            EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.info.solar_array.status")
-                + (mIsOperating
-                    ? EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.info.solar_array.running")
-                    : EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.info.solar_array.stopped")),
-            EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.gui.solar_array.heat")
-                + EnumChatFormatting.YELLOW
-                + numberFormat.format(mHeat * 100)
-                + "%",
-            EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.gui.solar_array.calcification")
+                + tierText);
+
+        info.add(
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.solar_array.heat")
                 + EnumChatFormatting.RED
-                + numberFormat.format(mCalcification * 100)
-                + "%",
-            EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.gui.solar_array.steam_output")
-                + EnumChatFormatting.AQUA
-                + GTUtility.formatNumbers(mCurrentSteamOutput)
-                + " L/s "
-                + EnumChatFormatting.WHITE
-                + steamType,
-            EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.gui.solar_array.solar_booster")
-                + EnumChatFormatting.GREEN
-                + numberFormat.format(booster * 100)
-                + "%" };
+                + String.format("%.1f%%", mHeat * 100.0d));
+
+        String statusKey;
+        EnumChatFormatting statusColor;
+        if (mIsOperating) {
+            statusKey = "gtsr.gui.status.running";
+            statusColor = EnumChatFormatting.AQUA;
+        } else {
+            statusKey = "gtsr.gui.status.idle";
+            statusColor = EnumChatFormatting.GRAY;
+        }
+        info.add(
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.status")
+                + " "
+                + statusColor
+                + StatCollector.translateToLocal(statusKey));
+
+        String steamOutputType = isNickel() ? StatCollector.translateToLocal("gtsr.gui.steam_type.superheated")
+            : StatCollector.translateToLocal("gtsr.gui.steam_type.normal");
+        info.add(
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.solar_array.steam_output")
+                + " "
+                + EnumChatFormatting.LIGHT_PURPLE
+                + steamOutputType);
+
+        info.add(
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.solar_array.calcification")
+                + EnumChatFormatting.RED
+                + String.format("%.1f%%", mCalcification * 100.0d));
+
+        float booster = calculateSolarBooster();
+        info.add(
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.solar_array.solar_booster")
+                + EnumChatFormatting.GOLD
+                + String.format("x%.2f", booster));
+
+        return info.toArray(new String[0]);
     }
 }

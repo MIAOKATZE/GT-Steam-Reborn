@@ -478,58 +478,43 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
     @Override
     protected MultiblockTooltipBuilder createTooltip() {
         MultiblockTooltipBuilder tt = new MultiblockTooltipBuilder();
-        tt.addMachineType(getMachineType())
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.0"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.1"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.2"))
+        tt.addMachineType(StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.type"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.desc"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.heat"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.chip_info"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.byproduct"))
+            .addSeparator()
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.recipe"))
             .beginStructureBlock(7, 8, 7, false)
             .addController(StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.ctrl"))
             .addInputHatch(StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.input_hatch"), 1)
+            .addOtherStructurePart(
+                StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.steam_output"),
+                StatCollector.translateToLocal("gtsr.tooltip.shared.any_casing"),
+                1)
+            .addOutputBus(StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.output_bus"), 1)
+            .addStructureInfo("")
+            .addStructureInfo(EnumChatFormatting.BLUE + "Bronze/Steel " + EnumChatFormatting.DARK_PURPLE + "Tier")
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.casing"), 71, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.firebox"), 21, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.pipe"), 12, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.gear_box"), 12, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.frame"), 53, false)
             .addStructureInfo(
-                EnumChatFormatting.AQUA
-                    + StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.steam_output_hatch")
+                EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.chip")
+                    + ": "
+                    + StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.chip_desc"))
+            .addStructureHint("gtsr.tooltip.shared.no_maintenance")
+            .toolTipFinisher(
+                EnumChatFormatting.AQUA + "GT"
+                    + EnumChatFormatting.GREEN
+                    + "-"
                     + EnumChatFormatting.GOLD
-                    + " 1"
-                    + EnumChatFormatting.GRAY
-                    + " "
-                    + StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.any_casing"))
-            .addStructureInfo(
-                EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.output_bus")
-                    + EnumChatFormatting.GRAY
-                    + " "
-                    + StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.any_casing"))
-            .addStructureInfo("")
-            .addStructureInfo(StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.chip"))
-            .addStructureInfo("")
-            .addStructureInfo(
-                EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.tier_bronze"))
-            .addStructureInfo(
-                EnumChatFormatting.GOLD + "26x"
-                    + EnumChatFormatting.GRAY
-                    + " "
-                    + StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.casing_bronze"))
-            .addStructureInfo(
-                EnumChatFormatting.GOLD + GTUtility.formatNumbers(MAX_OUTPUT_BRONZE)
-                    + EnumChatFormatting.GRAY
-                    + " "
-                    + StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.max_steam"))
-            .addStructureInfo("")
-            .addStructureInfo(
-                EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.tier_steel"))
-            .addStructureInfo(
-                EnumChatFormatting.GOLD + "26x"
-                    + EnumChatFormatting.GRAY
-                    + " "
-                    + StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.casing_steel"))
-            .addStructureInfo(
-                EnumChatFormatting.GOLD + GTUtility.formatNumbers(MAX_OUTPUT_STEEL)
-                    + EnumChatFormatting.GRAY
-                    + " "
-                    + StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.max_steam"))
-            .addStructureInfo(
-                EnumChatFormatting.LIGHT_PURPLE
-                    + StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.chip_tier2"))
-            .toolTipFinisher();
+                    + "Steam"
+                    + EnumChatFormatting.RED
+                    + "-"
+                    + EnumChatFormatting.BLUE
+                    + "Reborn");
         return tt;
     }
 
@@ -563,26 +548,49 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
 
     @Override
     public String[] getInfoData() {
-        String tierText = mSetTier == 2 ? StatCollector.translateToLocal("gtsr.info.geothermal_boiler.tier_steel")
-            : mSetTier == 1 ? StatCollector.translateToLocal("gtsr.info.geothermal_boiler.tier_bronze") : "N/A";
-        return new String[] {
-            EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.info.geothermal_boiler.name"),
-            EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.info.geothermal_boiler.tier")
+        ArrayList<String> info = new ArrayList<>();
+        info.add(EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.type"));
+
+        if (!mMachine) {
+            info.add(EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.gui.building"));
+            return info.toArray(new String[0]);
+        }
+
+        info.add(
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.geothermal_boiler.heat")
+                + EnumChatFormatting.RED
+                + String.format("%.1f%%", mHeat * 100.0d));
+
+        String statusKey;
+        EnumChatFormatting statusColor;
+        if (mMaxProgresstime > 0) {
+            statusKey = "gtsr.gui.status.running";
+            statusColor = EnumChatFormatting.AQUA;
+        } else {
+            statusKey = "gtsr.gui.status.idle";
+            statusColor = EnumChatFormatting.GRAY;
+        }
+        info.add(
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.status")
+                + " "
+                + statusColor
+                + StatCollector.translateToLocal(statusKey));
+
+        String steamOutputType = hasOverheatChip() ? StatCollector.translateToLocal("gtsr.gui.steam_type.superheated")
+            : StatCollector.translateToLocal("gtsr.gui.steam_type.normal");
+        info.add(
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.geothermal_boiler.steam_output")
+                + " "
+                + EnumChatFormatting.LIGHT_PURPLE
+                + steamOutputType);
+
+        info.add(
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.geothermal_boiler.recipe")
+                + " "
                 + EnumChatFormatting.GOLD
-                + tierText,
-            EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.info.geothermal_boiler.status")
-                + (mMachine
-                    ? EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.info.geothermal_boiler.running")
-                    : EnumChatFormatting.RED
-                        + StatCollector.translateToLocal("gtsr.info.geothermal_boiler.incomplete")),
-            EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.gui.geothermal_boiler.heat")
-                + EnumChatFormatting.YELLOW
-                + numberFormat.format(mHeat * 100)
-                + "%",
-            EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.gui.geothermal_boiler.steam_output")
-                + EnumChatFormatting.AQUA
-                + GTUtility.formatNumbers(mCurrentSteamOutput)
-                + " L/s" };
+                + "1000mb Lava\u21921 Obsidian+2 Sulfur");
+
+        return info.toArray(new String[0]);
     }
 
     @Override

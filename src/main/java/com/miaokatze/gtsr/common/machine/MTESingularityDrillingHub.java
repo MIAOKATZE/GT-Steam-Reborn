@@ -49,6 +49,7 @@ import gregtech.api.recipe.check.CheckRecipeResultRegistry;
 import gregtech.api.render.TextureFactory;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.MultiblockTooltipBuilder;
+import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTEHatchCustomFluidBase;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTESteamMultiBase;
 
 public class MTESingularityDrillingHub extends MTESteamMultiBase<MTESingularityDrillingHub>
@@ -582,48 +583,57 @@ public class MTESingularityDrillingHub extends MTESteamMultiBase<MTESingularityD
     @Override
     protected MultiblockTooltipBuilder createTooltip() {
         MultiblockTooltipBuilder tt = new MultiblockTooltipBuilder();
-        tt.addMachineType(getMachineType())
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.singularity_drilling_hub.0"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.singularity_drilling_hub.1"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.singularity_drilling_hub.2"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.singularity_drilling_hub.3"))
+        tt.addMachineType(StatCollector.translateToLocal("gtsr.tooltip.singularity_hub.type"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.singularity_hub.desc"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.singularity_hub.desc2"))
+            .addSeparator()
             .addInfo(
-                EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.singularity_drilling_hub.4")
+                EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.shared.steam_cost")
                     + EnumChatFormatting.WHITE
                     + " "
                     + GTUtility.formatNumbers(BASE_STEAM_PER_SECOND)
-                    + " + N×"
+                    + " + "
                     + GTUtility.formatNumbers(STEAM_PER_NODE)
-                    + " L/s"
-                    + EnumChatFormatting.RESET)
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.singularity_drilling_hub.5"))
+                    + "×N L/s")
+            .addInfo(
+                EnumChatFormatting.GREEN + "Superheated Steam"
+                    + EnumChatFormatting.GRAY
+                    + " quadruples "
+                    + EnumChatFormatting.GREEN
+                    + "Speed"
+                    + EnumChatFormatting.GRAY
+                    + " and "
+                    + EnumChatFormatting.AQUA
+                    + "Steam Usage")
             .beginStructureBlock(12, 12, 12, false)
-            .addController(StatCollector.translateToLocal("gtsr.tooltip.singularity_drilling_hub.ctrl"))
-            .addStructureInfo(
-                EnumChatFormatting.GOLD
-                    + StatCollector.translateToLocal("gtsr.tooltip.singularity_drilling_hub.casing"))
-            .addStructureInfo(
-                EnumChatFormatting.AQUA
-                    + StatCollector.translateToLocal("gtsr.tooltip.singularity_drilling_hub.input_hatch")
-                    + EnumChatFormatting.GRAY
-                    + " "
-                    + StatCollector.translateToLocal("gtsr.tooltip.crust_steam_borer.any_casing"))
-            .addOutputBus(
-                EnumChatFormatting.GOLD + "1"
-                    + EnumChatFormatting.GRAY
-                    + " "
-                    + StatCollector.translateToLocal("gtsr.tooltip.crust_steam_borer.any_casing"),
+            .addController(StatCollector.translateToLocal("gtsr.tooltip.singularity_hub.ctrl"))
+            .addOtherStructurePart(
+                StatCollector.translateToLocal("gtsr.tooltip.shared.steam_input_hatch"),
+                StatCollector.translateToLocal("gtsr.tooltip.singularity_hub.steam_input"),
                 1)
-            .addOutputHatch(
-                EnumChatFormatting.GOLD + "1"
-                    + EnumChatFormatting.GRAY
-                    + " "
-                    + StatCollector.translateToLocal("gtsr.tooltip.crust_steam_borer.any_casing"),
-                1)
-            .addStructureInfo(
-                EnumChatFormatting.GRAY
-                    + StatCollector.translateToLocal("gtsr.tooltip.steam_singularity_compressor.cooling"))
-            .toolTipFinisher();
+            .addOutputBus(StatCollector.translateToLocal("gtsr.tooltip.singularity_hub.output_bus"), 1)
+            .addOutputHatch(StatCollector.translateToLocal("gtsr.tooltip.singularity_hub.output_hatch"), 1)
+            .addStructureInfo("")
+            .addStructureInfo(EnumChatFormatting.DARK_PURPLE + "Steel Only")
+            .addCasingInfoExactly("Solid Steel Machine Casing", 381, false)
+            .addCasingInfoExactly("Steel Pipe Casing", 67, false)
+            .addCasingInfoExactly("Steel Gear Box Casing", 9, false)
+            .addCasingInfoExactly("Steel Firebox Casing", 45, false)
+            .addCasingInfoExactly("Reinforced Glass", 66, false)
+            .addCasingInfoExactly("Steel Frame Box", 124, false)
+            .addStructureHint("gtsr.tooltip.shared.no_maintenance")
+            .addStructureHint("gtsr.tooltip.singularity_hub.hint_node")
+            .addStructureHint("gtsr.tooltip.singularity_hub.hint_chunk")
+            .toolTipFinisher(
+                EnumChatFormatting.AQUA + "GT"
+                    + EnumChatFormatting.GREEN
+                    + "-"
+                    + EnumChatFormatting.GOLD
+                    + "Steam"
+                    + EnumChatFormatting.RED
+                    + "-"
+                    + EnumChatFormatting.BLUE
+                    + "Reborn");
         return tt;
     }
 
@@ -672,43 +682,70 @@ public class MTESingularityDrillingHub extends MTESteamMultiBase<MTESingularityD
         }
     }
 
+    private boolean hasSuperheatedSteamInHatch() {
+        for (MTEHatchCustomFluidBase hatch : mSteamInputFluids) {
+            FluidStack fs = hatch.getFluid();
+            if (fs != null && fs.getFluid() != null
+                && "ic2superheatedsteam".equals(
+                    fs.getFluid()
+                        .getName())
+                && fs.amount > 0) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     @Override
     public String[] getInfoData() {
-        int minerCount = 0;
-        int drillerCount = 0;
+        int activeNodeCount = 0;
         for (BoundDrillNode node : mBoundNodes) {
-            if (node.isMiner) minerCount++;
-            else drillerCount++;
+            if (node.isActive) activeNodeCount++;
         }
 
         ArrayList<String> info = new ArrayList<>();
-        info.add(EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.recipe.singularity_drilling_hub"));
         info.add(
-            EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.info.geothermal_boiler.status")
-                + (mMachine
-                    ? EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.info.geothermal_boiler.running")
-                    : EnumChatFormatting.RED
-                        + StatCollector.translateToLocal("gtsr.info.geothermal_boiler.incomplete")));
+            EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.singularity_hub.type")
+                + EnumChatFormatting.RESET);
+        if (!mMachine) {
+            info.add(EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.gui.building"));
+            return info.toArray(new String[0]);
+        }
+        String statusKey;
+        EnumChatFormatting statusColor;
+        if (mMaxProgresstime > 0) {
+            statusKey = "gtsr.gui.status.running";
+            statusColor = EnumChatFormatting.AQUA;
+        } else {
+            statusKey = "gtsr.gui.status.idle";
+            statusColor = EnumChatFormatting.GRAY;
+        }
         info.add(
-            EnumChatFormatting.GRAY + "Steam: "
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.status")
+                + " "
+                + statusColor
+                + StatCollector.translateToLocal(statusKey)
+                + EnumChatFormatting.RESET);
+        info.add(
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.singularity_hub.bound_nodes")
+                + " "
+                + EnumChatFormatting.GOLD
+                + mBoundNodes.size()
+                + EnumChatFormatting.RESET);
+        int totalCost = BASE_STEAM_PER_SECOND + activeNodeCount * STEAM_PER_NODE;
+        info.add(
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.shared.steam_cost")
+                + " "
                 + EnumChatFormatting.RED
-                + GTUtility.formatNumbers(BASE_STEAM_PER_SECOND)
-                + " + N×"
-                + GTUtility.formatNumbers(STEAM_PER_NODE)
-                + " L/s");
-
+                + GTUtility.formatNumbers(totalCost)
+                + " L/s"
+                + EnumChatFormatting.RESET);
+        String steamType = hasSuperheatedSteamInHatch()
+            ? StatCollector.translateToLocal("gtsr.gui.steam_type.superheated")
+            : StatCollector.translateToLocal("gtsr.gui.steam_type.normal");
         info.add(
-            EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.drilling.node_miner")
-                + ": "
-                + EnumChatFormatting.WHITE
-                + minerCount);
-        info.add(
-            EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.drilling.node_driller")
-                + ": "
-                + EnumChatFormatting.WHITE
-                + drillerCount);
-        info.add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.gui.binding_hint"));
-
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal(
+                "gtsr.gui.steam_type") + " " + EnumChatFormatting.YELLOW + steamType + EnumChatFormatting.RESET);
         return info.toArray(new String[0]);
     }
 }

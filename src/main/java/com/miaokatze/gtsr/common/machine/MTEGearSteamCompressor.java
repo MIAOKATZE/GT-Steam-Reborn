@@ -504,15 +504,101 @@ public class MTEGearSteamCompressor extends MTEEnhancedMultiBlockBase<MTEGearSte
     @Override
     protected MultiblockTooltipBuilder createTooltip() {
         MultiblockTooltipBuilder tt = new MultiblockTooltipBuilder();
-        tt.addMachineType("Gear Steam Compressor")
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.gear_steam_compressor.info"))
+        tt.addMachineType(StatCollector.translateToLocal("gtsr.tooltip.gear_compressor.type"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.gear_compressor.desc"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.gear_compressor.desc2"))
             .addSeparator()
+            .addInfo(
+                EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.gear_compressor.bronze_steam_in")
+                    + EnumChatFormatting.WHITE
+                    + " 6,400 L/s")
+            .addInfo(
+                EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.gear_compressor.bronze_sh_out")
+                    + EnumChatFormatting.WHITE
+                    + " 1,600 L/s")
+            .addInfo(
+                EnumChatFormatting.BLUE
+                    + StatCollector.translateToLocal("gtsr.tooltip.gear_compressor.bronze_water_out")
+                    + EnumChatFormatting.WHITE
+                    + " 30 L/s")
+            .addSeparator()
+            .addInfo(
+                EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.gear_compressor.steel_steam_in")
+                    + EnumChatFormatting.WHITE
+                    + " 25,600 L/s")
+            .addInfo(
+                EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.gear_compressor.steel_sh_out")
+                    + EnumChatFormatting.WHITE
+                    + " 6,400 L/s")
+            .addInfo(
+                EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.gear_compressor.steel_water_out")
+                    + EnumChatFormatting.WHITE
+                    + " 120 L/s")
             .beginStructureBlock(9, 5, 7, true)
-            .addController(StatCollector.translateToLocal("gtsr.tooltip.gear_steam_compressor.controller"))
-            .addInputHatch(StatCollector.translateToLocal("gtsr.tooltip.gear_steam_compressor.steam_input"), 1)
-            .addOutputHatch(StatCollector.translateToLocal("gtsr.tooltip.gear_steam_compressor.output"), 3)
-            .toolTipFinisher();
+            .addController(StatCollector.translateToLocal("gtsr.tooltip.gear_compressor.ctrl"))
+            .addOtherStructurePart(
+                StatCollector.translateToLocal("gtsr.tooltip.gear_compressor.steam_input"),
+                StatCollector.translateToLocal("gtsr.tooltip.shared.any_casing"),
+                1)
+            .addOtherStructurePart(
+                StatCollector.translateToLocal("gtsr.tooltip.gear_compressor.cooling_hatch"),
+                StatCollector.translateToLocal("gtsr.tooltip.shared.any_casing"),
+                2)
+            .addOutputHatch(StatCollector.translateToLocal("gtsr.tooltip.gear_compressor.output_hatch"), 3)
+            .addStructureInfo("")
+            .addStructureInfo(
+                EnumChatFormatting.BLUE + "Bronze"
+                    + EnumChatFormatting.DARK_PURPLE
+                    + "/"
+                    + EnumChatFormatting.BLUE
+                    + "Steel "
+                    + EnumChatFormatting.DARK_PURPLE
+                    + "Tier")
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.casing"), 70, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.pipe"), 7, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.gear_box"), 4, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.frame"), 24, false)
+            .addStructureHint("gtsr.tooltip.shared.no_maintenance")
+            .toolTipFinisher(
+                EnumChatFormatting.AQUA + "GT"
+                    + EnumChatFormatting.GREEN
+                    + "-"
+                    + EnumChatFormatting.GOLD
+                    + "Steam"
+                    + EnumChatFormatting.RED
+                    + "-"
+                    + EnumChatFormatting.BLUE
+                    + "Reborn");
         return tt;
+    }
+
+    @Override
+    public String[] getInfoData() {
+        if (!mMachine) {
+            return new String[] {
+                EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.gear_compressor.type"),
+                EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.gui.building") };
+        }
+        int tier = getEffectiveTier();
+        String tierText = tier == 2 ? StatCollector.translateToLocal("gtsr.gui.tier.steel")
+            : StatCollector.translateToLocal("gtsr.gui.tier.bronze");
+        return new String[] {
+            EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.gear_compressor.type"),
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.tier")
+                + EnumChatFormatting.GOLD
+                + tierText,
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.gear_compressor.steam_in")
+                + EnumChatFormatting.RED
+                + GTUtility.formatNumbers(mSteamConsumedLastTick)
+                + " L/s",
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.gear_compressor.sh_steam_out")
+                + EnumChatFormatting.AQUA
+                + GTUtility.formatNumbers(mSuperheatedOutputLastTick)
+                + " L/s",
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.gear_compressor.water_out")
+                + EnumChatFormatting.BLUE
+                + GTUtility.formatNumbers(mWaterOutputLastTick)
+                + " L/s" };
     }
 
     @Override

@@ -745,41 +745,56 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
 
     @Override
     public String[] getInfoData() {
-        int stackLayers = getStackLayers();
-        long voltage = getVoltage();
-        int n = stackLayers + 1;
-        float eff = getCustomEfficiency();
-        float savings = 0.05f * stackLayers + (mGearTier > 1 ? 0.05f : 0f);
+        ArrayList<String> info = new ArrayList<>();
+        info.add(EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.type"));
 
-        long maxEUt = (long) (voltage * 4 * n * (getMaxEfficiencyLimit(false) / 10000.0));
-        long maxHPEUt = (long) (voltage * 8 * n * (getMaxEfficiencyLimit(true) / 10000.0));
-        long steamCons = calcSteamConsumption(false);
-        long hpSteamCons = calcSteamConsumption(true);
+        if (!mMachine) {
+            info.add(EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.gui.building"));
+            return info.toArray(new String[0]);
+        }
 
-        return new String[] {
-            EnumChatFormatting.GOLD + "EU/t: "
-                + EnumChatFormatting.AQUA
-                + GTUtility.formatNumbers(maxEUt)
-                + EnumChatFormatting.GRAY
-                + " (HP: "
-                + EnumChatFormatting.RED
-                + GTUtility.formatNumbers(maxHPEUt)
-                + ")",
-            EnumChatFormatting.GOLD + "Steam: "
-                + EnumChatFormatting.AQUA
-                + GTUtility.formatNumbers(steamCons)
-                + " L/t"
-                + EnumChatFormatting.GRAY
-                + " (HP: "
-                + EnumChatFormatting.RED
-                + GTUtility.formatNumbers(hpSteamCons)
-                + ")",
-            EnumChatFormatting.GOLD + "Savings: " + EnumChatFormatting.GREEN + String.format("%.0f%%", savings * 100),
-            EnumChatFormatting.GOLD + "Efficiency: "
-                + (eff >= 2.0f ? EnumChatFormatting.LIGHT_PURPLE
-                    : eff >= 1.0f ? EnumChatFormatting.GREEN : EnumChatFormatting.YELLOW)
-                + String.format("%.1f%%", eff * 100)
-                + (eff >= 2.0f ? " MAX" : "") };
+        String tierText = mCasingTier >= 2 ? StatCollector.translateToLocal("gtsr.gui.tier.steel")
+            : StatCollector.translateToLocal("gtsr.gui.tier.bronze");
+        info.add(
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.tier")
+                + EnumChatFormatting.GOLD
+                + tierText);
+
+        String statusKey;
+        EnumChatFormatting statusColor;
+        if (mMaxProgresstime > 0) {
+            statusKey = "gtsr.gui.status.running";
+            statusColor = EnumChatFormatting.AQUA;
+        } else {
+            statusKey = "gtsr.gui.status.idle";
+            statusColor = EnumChatFormatting.GRAY;
+        }
+        info.add(
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.status")
+                + " "
+                + statusColor
+                + StatCollector.translateToLocal(statusKey));
+
+        info.add(
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.turbine_array.stack_layers")
+                + EnumChatFormatting.GOLD
+                + getStackLayers());
+
+        String steamType = mEfficiency >= MAX_EFFICIENCY_HP_STEAM
+            ? StatCollector.translateToLocal("gtsr.gui.steam_type.superheated")
+            : StatCollector.translateToLocal("gtsr.gui.steam_type.normal");
+        info.add(
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.steam_type")
+                + EnumChatFormatting.YELLOW
+                + steamType);
+
+        info.add(
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.turbine_array.output_power")
+                + EnumChatFormatting.GREEN
+                + GTUtility.formatNumbers(mTheoreticalEUt)
+                + " EU/t");
+
+        return info.toArray(new String[0]);
     }
 
     @Override
@@ -925,27 +940,39 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
     @Override
     protected MultiblockTooltipBuilder createTooltip() {
         MultiblockTooltipBuilder tt = new MultiblockTooltipBuilder();
-        tt.addMachineType(getMachineType())
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.mega_steam_turbine.info"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.mega_steam_turbine.info2"))
+        tt.addMachineType(StatCollector.translateToLocal("gtsr.tooltip.turbine_array.type"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.turbine_array.desc"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.turbine_array.desc2"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.turbine_array.desc3"))
             .addSeparator()
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.mega_steam_turbine.info3"))
-            .addInfo(EnumChatFormatting.AQUA + "Titanium Pipe: Max Efficiency +10%")
-            .addInfo(EnumChatFormatting.AQUA + "Tungstensteel Pipe: Max Efficiency +20%")
-            .addInfo(EnumChatFormatting.AQUA + "Titanium Gearbox: Steam Savings +5%")
-            .addInfo(EnumChatFormatting.GRAY + "Stack Groups: 0~2 additional (each +4 layers)")
-            .beginStructureBlock(13, 9, 13, false)
-            .addController(StatCollector.translateToLocal("gtsr.tooltip.mega_steam_turbine.controller"))
-            .addInputHatch(StatCollector.translateToLocal("gtsr.tooltip.mega_steam_turbine.input"), 1)
-            .addDynamoHatch(StatCollector.translateToLocal("gtsr.tooltip.mega_steam_turbine.dynamo"), 1)
-            .addOutputHatch(StatCollector.translateToLocal("gtsr.tooltip.mega_steam_turbine.output"), 1)
-            .addInfo(
-                EnumChatFormatting.AQUA
-                    + StatCollector.translateToLocal("gtsr.tooltip.mega_steam_turbine.cooling_hatch"))
-            .addInfo(
-                EnumChatFormatting.AQUA
-                    + StatCollector.translateToLocal("gtsr.tooltip.mega_steam_turbine.pressure_cooling_hatch"))
-            .toolTipFinisher();
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.turbine_array.formula"))
+            .beginStructureBlock(5, 6, 5, true)
+            .addController(StatCollector.translateToLocal("gtsr.tooltip.turbine_array.ctrl"))
+            .addInputHatch(StatCollector.translateToLocal("gtsr.tooltip.turbine_array.input_hatch"), 1)
+            .addDynamoHatch(StatCollector.translateToLocal("gtsr.tooltip.turbine_array.dynamo"), 1)
+            .addStructureInfo("")
+            .addStructureInfo(EnumChatFormatting.BLUE + "Bronze/Steel " + EnumChatFormatting.DARK_PURPLE + "Tier")
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.casing"), 38, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.gear_box"), 8, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.pipe"), 8, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.frame"), 12, false)
+            .addStructureInfo(
+                EnumChatFormatting.YELLOW + "Stack Layers: "
+                    + EnumChatFormatting.GOLD
+                    + "1-4"
+                    + EnumChatFormatting.GRAY
+                    + " (Each +1 Tier)")
+            .addStructureHint("gtsr.tooltip.shared.no_maintenance")
+            .toolTipFinisher(
+                EnumChatFormatting.AQUA + "GT"
+                    + EnumChatFormatting.GREEN
+                    + "-"
+                    + EnumChatFormatting.GOLD
+                    + "Steam"
+                    + EnumChatFormatting.RED
+                    + "-"
+                    + EnumChatFormatting.BLUE
+                    + "Reborn");
         return tt;
     }
 

@@ -302,22 +302,59 @@ public class MTEAirCompressor extends MTESteamMultiBase<MTEAirCompressor> implem
     @Override
     protected MultiblockTooltipBuilder createTooltip() {
         MultiblockTooltipBuilder tt = new MultiblockTooltipBuilder();
-        tt.addMachineType(getMachineType())
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.air_compressor.0"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.air_compressor.1"))
+        tt.addMachineType(StatCollector.translateToLocal("gtsr.tooltip.air_compressor.type"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.air_compressor.desc"))
+            .addSeparator()
+            .addInfo(
+                EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.shared.steam_cost")
+                    + EnumChatFormatting.WHITE
+                    + " 1200/3600 L/s"
+                    + EnumChatFormatting.GRAY
+                    + " (Bronze/Steel)")
+            .addInfo(
+                EnumChatFormatting.GREEN + "Superheated Steam"
+                    + EnumChatFormatting.GRAY
+                    + " quadruples "
+                    + EnumChatFormatting.GREEN
+                    + "Speed"
+                    + EnumChatFormatting.GRAY
+                    + " and "
+                    + EnumChatFormatting.AQUA
+                    + "Steam Usage")
             .beginStructureBlock(5, 4, 3, false)
             .addController(StatCollector.translateToLocal("gtsr.tooltip.air_compressor.ctrl"))
             .addInputHatch(StatCollector.translateToLocal("gtsr.tooltip.air_compressor.input_hatch"), 1)
             .addOutputHatch(StatCollector.translateToLocal("gtsr.tooltip.air_compressor.output_hatch"), 1)
+            .addOtherStructurePart(
+                StatCollector.translateToLocal("gtsr.tooltip.shared.steam_input_hatch"),
+                StatCollector.translateToLocal("gtsr.tooltip.shared.any_casing"),
+                1)
             .addStructureInfo("")
-            .addStructureInfo(EnumChatFormatting.BLUE + "青铜" + EnumChatFormatting.DARK_PURPLE + " 等级")
-            .addStructureInfo(EnumChatFormatting.GOLD + "26x" + EnumChatFormatting.GRAY + " 青铜镀层砖")
-            .addStructureInfo(EnumChatFormatting.GOLD + "1x" + EnumChatFormatting.GRAY + " 并行: 1")
-            .addStructureInfo("")
-            .addStructureInfo(EnumChatFormatting.BLUE + "钢" + EnumChatFormatting.DARK_PURPLE + " 等级")
-            .addStructureInfo(EnumChatFormatting.GOLD + "26x" + EnumChatFormatting.GRAY + " 实心钢机壳")
-            .addStructureInfo(EnumChatFormatting.GOLD + "1x" + EnumChatFormatting.GRAY + " 并行: 4")
-            .toolTipFinisher();
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.casing"), 23, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.pipe"), 12, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.gear_box"), 6, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.frame"), 16, false)
+            .addStructureInfo(
+                EnumChatFormatting.YELLOW + "Parallel: "
+                    + EnumChatFormatting.GOLD
+                    + "1"
+                    + EnumChatFormatting.GRAY
+                    + " (Bronze)"
+                    + EnumChatFormatting.GOLD
+                    + "/4"
+                    + EnumChatFormatting.GRAY
+                    + " (Steel)")
+            .addStructureHint("gtsr.tooltip.shared.no_maintenance")
+            .toolTipFinisher(
+                EnumChatFormatting.AQUA + "GT"
+                    + EnumChatFormatting.GREEN
+                    + "-"
+                    + EnumChatFormatting.GOLD
+                    + "Steam"
+                    + EnumChatFormatting.RED
+                    + "-"
+                    + EnumChatFormatting.BLUE
+                    + "Reborn");
         return tt;
     }
 
@@ -361,21 +398,25 @@ public class MTEAirCompressor extends MTESteamMultiBase<MTEAirCompressor> implem
 
     @Override
     public String[] getInfoData() {
-        String tierText = mSetTier == 2 ? "钢" : mSetTier == 1 ? "青铜" : "N/A";
-        String steamType = hasPressureSteamHatch() ? "耐压蒸汽" : hasSuperheatedSteamInHatch() ? "过热蒸汽" : "普通蒸汽";
-        return new String[] { EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.recipe.air_compressor"),
-            EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.info.air_compressor.tier")
+        if (!mMachine) {
+            return new String[] {
+                EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.air_compressor.type"),
+                EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.gui.building") };
+        }
+        String tierText = mSetTier == 2 ? StatCollector.translateToLocal("gtsr.gui.tier.steel")
+            : StatCollector.translateToLocal("gtsr.gui.tier.bronze");
+        String steamType = hasSuperheatedSteamInHatch()
+            ? StatCollector.translateToLocal("gtsr.gui.steam_type.superheated")
+            : StatCollector.translateToLocal("gtsr.gui.steam_type.normal");
+        return new String[] {
+            EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.air_compressor.type"),
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.tier")
                 + EnumChatFormatting.GOLD
                 + tierText,
-            EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.info.geothermal_boiler.status")
-                + (mMachine
-                    ? EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.info.geothermal_boiler.running")
-                    : EnumChatFormatting.RED
-                        + StatCollector.translateToLocal("gtsr.info.geothermal_boiler.incomplete")),
-            EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.info.air_compressor.steam_type")
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.steam_type")
                 + EnumChatFormatting.YELLOW
                 + steamType,
-            EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.info.air_compressor.parallel")
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.parallel")
                 + EnumChatFormatting.YELLOW
                 + getMaxParallelRecipes() };
     }
