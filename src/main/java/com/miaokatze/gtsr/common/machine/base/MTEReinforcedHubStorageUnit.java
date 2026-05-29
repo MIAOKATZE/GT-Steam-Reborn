@@ -1,5 +1,6 @@
 package com.miaokatze.gtsr.common.machine.base;
 
+import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 import net.minecraftforge.common.util.ForgeDirection;
 
@@ -36,6 +37,34 @@ public class MTEReinforcedHubStorageUnit extends MTESteamStorageUnit {
     @Override
     public String[] getDescription() {
         return new String[] { StatCollector.translateToLocal("gtsr.tooltip.reinforced_hub_storage_unit.info"),
-            StatCollector.translateToLocal("gtsr.tooltip.reinforced_hub_storage_unit.capacity") };
+            EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.shared.capacity")
+                + EnumChatFormatting.GOLD
+                + String.format("%,d", REINFORCED_CAPACITY)
+                + " "
+                + StatCollector.translateToLocal("gtsr.tooltip.shared.l")
+                + EnumChatFormatting.GRAY
+                + " ("
+                + StatCollector.translateToLocal("gtsr.tooltip.hub_storage_unit.steam_hub")
+                + ")"
+                + EnumChatFormatting.YELLOW
+                + " / "
+                + EnumChatFormatting.GOLD
+                + String.format("%,d", 256_000)
+                + " "
+                + StatCollector.translateToLocal("gtsr.tooltip.shared.l")
+                + EnumChatFormatting.GRAY
+                + " ("
+                + StatCollector.translateToLocal("gtsr.tooltip.hub_storage_unit.water_hub")
+                + ")",
+            EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.hub_storage_unit.dual_hub"),
+            EnumChatFormatting.AQUA + "GT"
+                + EnumChatFormatting.GREEN
+                + "-"
+                + EnumChatFormatting.GOLD
+                + "Steam"
+                + EnumChatFormatting.RED
+                + "-"
+                + EnumChatFormatting.BLUE
+                + "Reborn" };
     }
 }

@@ -233,7 +233,7 @@ public class MTELargeSteamFurnace extends MTESteamMultiBase<MTELargeSteamFurnace
 
     @Override
     public int getMaxParallelRecipes() {
-        return mSetTier == 2 ? 16 : 4;
+        return mSetTier == 2 ? 12 : 4;
     }
 
     @Override
@@ -303,6 +303,21 @@ public class MTELargeSteamFurnace extends MTESteamMultiBase<MTELargeSteamFurnace
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.steam_furnace.desc"))
             .addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.steam_furnace.speed"))
             .addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.steam_furnace.steam_eff"))
+            .addInfo(
+                EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.shared.parallel")
+                    + ": "
+                    + EnumChatFormatting.GOLD
+                    + "4"
+                    + EnumChatFormatting.GRAY
+                    + " ("
+                    + StatCollector.translateToLocal("gtsr.gui.tier.bronze")
+                    + ")"
+                    + EnumChatFormatting.GOLD
+                    + "/12"
+                    + EnumChatFormatting.GRAY
+                    + " ("
+                    + StatCollector.translateToLocal("gtsr.gui.tier.steel")
+                    + ")")
             .addSeparator()
             .addInfo(
                 EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.shared.steam_cost")
@@ -334,7 +349,7 @@ public class MTELargeSteamFurnace extends MTESteamMultiBase<MTELargeSteamFurnace
                     + StatCollector.translateToLocal("gtsr.gui.tier.bronze")
                     + ")"
                     + EnumChatFormatting.GOLD
-                    + "/16"
+                    + "/12"
                     + EnumChatFormatting.GRAY
                     + " ("
                     + StatCollector.translateToLocal("gtsr.gui.tier.steel")

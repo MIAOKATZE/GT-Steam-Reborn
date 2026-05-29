@@ -1,5 +1,7 @@
 package com.miaokatze.gtsr.common.machine;
 
+import java.util.List;
+
 import net.minecraft.block.Block;
 import net.minecraft.client.renderer.texture.IIconRegister;
 import net.minecraft.entity.player.EntityPlayer;
@@ -81,6 +83,32 @@ public class MTESingularityDrillingNode extends MTERemoteWorkerNode {
     @Override
     public String getNodeType() {
         return "driller";
+    }
+
+    @Override
+    public void addAdditionalTooltipInformation(ItemStack stack, List<String> tooltip) {
+        super.addAdditionalTooltipInformation(stack, tooltip);
+        tooltip.add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.drilling_node.desc"));
+        tooltip.add(
+            EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.drilling_node.extraction")
+                + EnumChatFormatting.GOLD
+                + StatCollector.translateToLocal("gtsr.tooltip.drilling_node.extraction_value"));
+        tooltip.add(
+            EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.shared.work_cycle")
+                + EnumChatFormatting.GREEN
+                + StatCollector.translateToLocal("gtsr.tooltip.shared.8s"));
+        tooltip.add(EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.shared.node_steam_cost"));
+        tooltip.add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.shared.node_bind_hint"));
+        tooltip.add(
+            EnumChatFormatting.AQUA + "GT"
+                + EnumChatFormatting.GREEN
+                + "-"
+                + EnumChatFormatting.GOLD
+                + "Steam"
+                + EnumChatFormatting.RED
+                + "-"
+                + EnumChatFormatting.BLUE
+                + "Reborn");
     }
 
     @Override

@@ -77,8 +77,23 @@ public class MTESteamInputHatch extends MTEHatchInput {
     @Override
     public String[] getDescription() {
         return new String[] { StatCollector.translateToLocal("gtsr.tooltip.steam_input_hatch.name"),
-            EnumChatFormatting.AQUA + "Capacity: " + CAPACITY + " L",
-            EnumChatFormatting.GREEN + "Fluid Type: Any Fluid",
-            EnumChatFormatting.RED + "For Steam Multiblock Machines" };
+            EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.shared.capacity")
+                + EnumChatFormatting.GOLD
+                + String.format("%,d", CAPACITY)
+                + " "
+                + StatCollector.translateToLocal("gtsr.tooltip.shared.l"),
+            EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.shared.fluid_type")
+                + EnumChatFormatting.YELLOW
+                + StatCollector.translateToLocal("gtsr.tooltip.shared.any_fluid"),
+            EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.shared.steam_machine_only"),
+            EnumChatFormatting.AQUA + "GT"
+                + EnumChatFormatting.GREEN
+                + "-"
+                + EnumChatFormatting.GOLD
+                + "Steam"
+                + EnumChatFormatting.RED
+                + "-"
+                + EnumChatFormatting.BLUE
+                + "Reborn" };
     }
 }

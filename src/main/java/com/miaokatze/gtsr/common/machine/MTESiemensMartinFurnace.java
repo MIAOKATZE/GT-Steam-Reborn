@@ -490,7 +490,6 @@ public class MTESiemensMartinFurnace extends MTEEnhancedMultiBlockBase<MTESiemen
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.siemens_martin.desc"))
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.siemens_martin.desc2"))
             .addSeparator()
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.siemens_martin.recipe"))
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.siemens_martin.steam_only"))
             .beginStructureBlock(12, 19, 14, false)
             .addController(StatCollector.translateToLocal("gtsr.tooltip.siemens_martin.ctrl"))

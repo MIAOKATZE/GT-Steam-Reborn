@@ -240,7 +240,6 @@ public class MTELargeCokeOven extends MTEEnhancedMultiBlockBase<MTELargeCokeOven
             .addSeparator()
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.coke_oven.formula"))
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.coke_oven.accel"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.coke_oven.recipe"))
             .beginStructureBlock(3, 7, 7, true)
             .addController(StatCollector.translateToLocal("gtsr.tooltip.coke_oven.ctrl"))
             .addInputBus(StatCollector.translateToLocal("gtsr.tooltip.coke_oven.input_bus"), 1)

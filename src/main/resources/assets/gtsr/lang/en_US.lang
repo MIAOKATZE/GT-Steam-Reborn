@@ -19,11 +19,28 @@ gtsr.recipe.steam_hub_array=Steam Hub Array
 item.TestCoin_GTSR.name=Test Coin
 item.TestCoin_GTSR_E.name=Electronic Test Coin
 
+# Shared Tooltip Keys
+gtsr.tooltip.shared.fluid_type=Fluid Type: 
+gtsr.tooltip.shared.output_rate=Output Rate: 
+gtsr.tooltip.shared.capacity=Capacity: 
+gtsr.tooltip.shared.l_s=L/s
+gtsr.tooltip.shared.l=L
+gtsr.tooltip.shared.any_fluid=Any Fluid
+gtsr.tooltip.shared.steam_only=Steam Only
+gtsr.tooltip.shared.steam_and_superheated=Steam / Superheated Steam
+gtsr.tooltip.shared.no_external_input=No External Input Allowed
+gtsr.tooltip.shared.steam_machine_only=For Steam Multiblock Machines Only
+gtsr.tooltip.shared.bind_hint=Right-click a Hub with Singularity Chip installed to bind
+gtsr.tooltip.shared.node_bind_hint=Right-click Singularity Drilling Hub to bind
+gtsr.tooltip.shared.node_steam_cost=Each node adds 12,000 L/s steam cost to Hub, consumed on placement regardless of operation
+gtsr.tooltip.shared.work_cycle=Work Cycle: 
+gtsr.tooltip.shared.8s=8s
+gtsr.tooltip.shared.cache_node_standalone=Can be used standalone as high-speed auto-output fluid container
+gtsr.tooltip.shared.cache_node_hub_transfer=Can connect to Hub for cross-dimensional fluid transfer
+
 # Steam Cache Node
 gt.blockmachines.gtsr.steam.cache.node.name=Steam Cache Node
-gtsr.tooltip.steam_cache_node.fluid_type=Can only cache: 
-gtsr.tooltip.steam_cache_node.fluid_type.steam=Steam
-gtsr.tooltip.steam_cache_node.output_rate=Output rate: 
+gtsr.tooltip.steam_cache_node.fluid_type.steam=Steam / Superheated Steam / Distilled Water
 
 # Reinforced Steam Cache Node
 gt.blockmachines.gtsr.reinforced.steam.cache.node.name=Reinforced Steam Cache Node
@@ -44,13 +61,14 @@ gtsr.tooltip.steam_hub_input_hatch.no_storage=No internal buffer - fluid goes di
 
 # Hub Storage Unit
 gt.blockmachines.gtsr.hub.storage.unit.name=Hub Storage Unit
-gtsr.tooltip.hub_storage_unit.info=Structural component for Steam Hub Array
-gtsr.tooltip.hub_storage_unit.capacity=Capacity contribution: 16,000,000 L per unit
+gtsr.tooltip.hub_storage_unit.info=Structural component for Hub Array
+gtsr.tooltip.hub_storage_unit.dual_hub=Usable in both Steam Hub Array and Water Hub Array
+gtsr.tooltip.hub_storage_unit.steam_hub=Steam Hub
+gtsr.tooltip.hub_storage_unit.water_hub=Water Hub
 
 # Reinforced Hub Storage Unit
 gt.blockmachines.gtsr.reinforced.hub.storage.unit.name=Reinforced Hub Storage Unit
-gtsr.tooltip.reinforced_hub_storage_unit.info=Structural component for Steam Hub Array
-gtsr.tooltip.reinforced_hub_storage_unit.capacity=Capacity contribution: 64,000,000 L per unit
+gtsr.tooltip.reinforced_hub_storage_unit.info=Structural component for Hub Array
 
 # Steam Hub Array
 gt.blockmachines.gtsr.steam.hub.array.name=Steam Hub Array
@@ -169,6 +187,9 @@ gtsr.tooltip.steam_output_hatch_generic.name=Output Hatch (Steam)
 gt.blockmachines.gtsr.pressure.steam.output.hatch.name=Pressure Steam Output Hatch
 gtsr.tooltip.pressure_steam_output_hatch.name=Pressure Steam Output Hatch
 
+# Pressure Steam Input Hatch
+gtsr.tooltip.pressure_steam_input_hatch.name=Pressure Steam Hatch
+
 # Large Solar Overpressure Array
 gt.blockmachines.gtsr.large.solar.overpressure.array.name=Large Solar Overpressure Array
 gtsr.tooltip.large_solar_overpressure_array.name=Large Solar Overpressure Array
@@ -210,15 +231,9 @@ gtsr.info.solar_array.stopped=Stopped
 gt.blockmachines.gtsr.steam.cooling.hatch.name=Steam Cooling Hatch
 gt.blockmachines.gtsr.pressure.steam.cooling.hatch.name=Pressure Steam Cooling Hatch
 gtsr.tooltip.steam_cooling_hatch.name=Steam Cooling Hatch
-gtsr.tooltip.steam_cooling_hatch.capacity=Capacity: 
-gtsr.tooltip.steam_cooling_hatch.formula=Conversion: Steam / 
-gtsr.tooltip.steam_cooling_hatch.fluid_type=Cooling Output: Water
-gtsr.tooltip.steam_cooling_hatch.no_input=No External Input
+gtsr.tooltip.steam_cooling_hatch.desc=Recovers distilled water from condensed steam during operation
 gtsr.tooltip.pressure_steam_cooling_hatch.name=Pressure Steam Cooling Hatch
-gtsr.tooltip.pressure_steam_cooling_hatch.capacity=Capacity: 
-gtsr.tooltip.pressure_steam_cooling_hatch.formula=Conversion: Superheated Steam = Steam (1:1)
-gtsr.tooltip.pressure_steam_cooling_hatch.fluid_type=Cooling Output: Steam
-gtsr.tooltip.pressure_steam_cooling_hatch.no_input=No External Input
+gtsr.tooltip.pressure_steam_cooling_hatch.desc=Recovers steam from cooled superheated steam during operation
 
 # Large Geothermal Steam Boiler
 gt.blockmachines.gtsr.large.geothermal.steam.boiler.name=Large Geothermal Steam Boiler
@@ -313,9 +328,7 @@ gtsr.tooltip.water_hub_input_hatch.no_storage=No internal buffer - fluid goes di
 
 # Water Cache Node
 gt.blockmachines.gtsr.water.cache.node.name=Water Cache Node
-gtsr.tooltip.water_cache_node.fluid_type=Can only cache: 
 gtsr.tooltip.water_cache_node.fluid_type.water=Water/Distilled Water
-gtsr.tooltip.water_cache_node.output_rate=Output rate: 8,000 L/s
 
 # Hub Array Binding
 gtsr.binding.bound_output=Bound 
@@ -357,15 +370,17 @@ gtsr.tooltip.singularity_drilling_hub.output_hatch=Fluid Output Hatch
 
 # Singularity Miner Node
 gt.blockmachines.gtsr.singularity.miner.node.name=Singularity Miner Node
-gtsr.tooltip.singularity_miner_node.0=Remote mining node, requires binding to Singularity Drilling Hub
-gtsr.tooltip.singularity_miner_node.1=Requires Mining Pipes as consumable
-gtsr.tooltip.singularity_miner_node.2=Mining range: Below node down to bedrock
+gtsr.tooltip.miner_node.desc=Steam-driven remote mining node, auto-mines when bound to Singularity Drilling Hub
+gtsr.tooltip.miner_node.range=Mining Range: 
+gtsr.tooltip.miner_node.radius=Radius
+gtsr.tooltip.miner_node.fortune=Fortune Level: 
+gtsr.tooltip.miner_node.requires_pipe=Requires Mining Pipe to operate
 
 # Singularity Drilling Node
 gt.blockmachines.gtsr.singularity.drilling.node.name=Singularity Drilling Node
-gtsr.tooltip.singularity_drilling_node.0=Remote fluid drilling node, requires binding to Singularity Drilling Hub
-gtsr.tooltip.singularity_drilling_node.1=Requires Mining Pipes as consumable
-gtsr.tooltip.singularity_drilling_node.2=Output: 20x underground fluid
+gtsr.tooltip.drilling_node.desc=Steam-driven remote drilling node, drills to bedrock and pumps underground fluids when bound to Singularity Drilling Hub
+gtsr.tooltip.drilling_node.extraction=Extraction Rate: 
+gtsr.tooltip.drilling_node.extraction_value=20x Fluid Output
 
 # Drilling Hub Debug
 gtsr.drilling.debug_title=Drilling Hub Binding Debug

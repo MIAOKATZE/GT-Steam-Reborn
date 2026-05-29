@@ -483,7 +483,6 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.heat"))
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.chip_info"))
             .addSeparator()
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.recipe"))
             .beginStructureBlock(7, 8, 7, false)
             .addController(StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.ctrl"))
             .addInputHatch(StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.input_hatch"), 1)
@@ -583,12 +582,6 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
                 + " "
                 + EnumChatFormatting.LIGHT_PURPLE
                 + steamOutputType);
-
-        info.add(
-            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.geothermal_boiler.recipe")
-                + " "
-                + EnumChatFormatting.GOLD
-                + StatCollector.translateToLocal("gtsr.gui.geothermal_boiler.recipe_detail"));
 
         return info.toArray(new String[0]);
     }

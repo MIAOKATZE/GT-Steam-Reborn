@@ -119,9 +119,28 @@ public class MTESteamOutputHatch extends MTEHatchOutput {
     @Override
     public String[] getDescription() {
         return new String[] { StatCollector.translateToLocal("gtsr.tooltip.steam_output_hatch.name"),
-            EnumChatFormatting.AQUA + "Capacity: " + CAPACITY + " L",
-            EnumChatFormatting.GREEN + "Output Rate: " + OUTPUT_PER_SECOND + " L/s",
-            EnumChatFormatting.YELLOW + "Fluid Type: Steam Only",
-            EnumChatFormatting.RED + "No External Input Allowed" };
+            EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.shared.capacity")
+                + EnumChatFormatting.GOLD
+                + String.format("%,d", CAPACITY)
+                + " "
+                + StatCollector.translateToLocal("gtsr.tooltip.shared.l"),
+            EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.tooltip.shared.output_rate")
+                + EnumChatFormatting.GOLD
+                + String.format("%,d", OUTPUT_PER_SECOND)
+                + " "
+                + StatCollector.translateToLocal("gtsr.tooltip.shared.l_s"),
+            EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.shared.fluid_type")
+                + EnumChatFormatting.YELLOW
+                + StatCollector.translateToLocal("gtsr.tooltip.shared.steam_only"),
+            EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.shared.no_external_input"),
+            EnumChatFormatting.AQUA + "GT"
+                + EnumChatFormatting.GREEN
+                + "-"
+                + EnumChatFormatting.GOLD
+                + "Steam"
+                + EnumChatFormatting.RED
+                + "-"
+                + EnumChatFormatting.BLUE
+                + "Reborn" };
     }
 }

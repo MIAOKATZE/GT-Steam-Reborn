@@ -1,6 +1,8 @@
 package com.miaokatze.gtsr.common.machine.base;
 
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.EnumChatFormatting;
+import net.minecraft.util.StatCollector;
 import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidRegistry;
@@ -97,5 +99,28 @@ public class MTEHatchPressureSteamInput extends MTEHatchCustomFluidBase {
 
     private void setFluid(FluidStack aFluid) {
         mFluid = aFluid;
+    }
+
+    @Override
+    public String[] getDescription() {
+        return new String[] { StatCollector.translateToLocal("gtsr.tooltip.pressure_steam_input_hatch.name"),
+            EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.shared.capacity")
+                + EnumChatFormatting.GOLD
+                + String.format("%,d", getCapacity())
+                + " "
+                + StatCollector.translateToLocal("gtsr.tooltip.shared.l"),
+            EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.shared.fluid_type")
+                + EnumChatFormatting.YELLOW
+                + StatCollector.translateToLocal("gtsr.tooltip.shared.steam_and_superheated"),
+            EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.shared.steam_machine_only"),
+            EnumChatFormatting.AQUA + "GT"
+                + EnumChatFormatting.GREEN
+                + "-"
+                + EnumChatFormatting.GOLD
+                + "Steam"
+                + EnumChatFormatting.RED
+                + "-"
+                + EnumChatFormatting.BLUE
+                + "Reborn" };
     }
 }

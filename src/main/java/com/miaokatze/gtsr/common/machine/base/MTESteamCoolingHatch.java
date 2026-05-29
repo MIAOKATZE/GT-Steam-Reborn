@@ -119,13 +119,26 @@ public class MTESteamCoolingHatch extends MTEHatchOutput {
     @Override
     public String[] getDescription() {
         return new String[] { StatCollector.translateToLocal("gtsr.tooltip.steam_cooling_hatch.name"),
-            EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.steam_cooling_hatch.capacity")
-                + CAPACITY
-                + " L",
-            EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.tooltip.steam_cooling_hatch.formula")
-                + STEAM_PER_WATER,
-            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.steam_cooling_hatch.fluid_type"),
-            EnumChatFormatting.GRAY + "Output: " + OUTPUT_PER_TICK + " L/tick",
-            EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.steam_cooling_hatch.no_input") };
+            EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.shared.capacity")
+                + EnumChatFormatting.GOLD
+                + String.format("%,d", CAPACITY)
+                + " "
+                + StatCollector.translateToLocal("gtsr.tooltip.shared.l"),
+            EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.tooltip.steam_cooling_hatch.desc"),
+            EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.tooltip.shared.output_rate")
+                + EnumChatFormatting.GOLD
+                + String.format("%,d", OUTPUT_PER_TICK * 20)
+                + " "
+                + StatCollector.translateToLocal("gtsr.tooltip.shared.l_s"),
+            EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.shared.no_external_input"),
+            EnumChatFormatting.AQUA + "GT"
+                + EnumChatFormatting.GREEN
+                + "-"
+                + EnumChatFormatting.GOLD
+                + "Steam"
+                + EnumChatFormatting.RED
+                + "-"
+                + EnumChatFormatting.BLUE
+                + "Reborn" };
     }
 }

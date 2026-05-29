@@ -164,14 +164,36 @@ public class MTEReinforcedSteamCacheNode extends MTEFilteredCacheNode {
     public void addAdditionalTooltipInformation(ItemStack stack, List<String> tooltip) {
         super.addAdditionalTooltipInformation(stack, tooltip);
         tooltip.add(
-            EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.steam_cache_node.fluid_type")
+            EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.shared.fluid_type")
                 + EnumChatFormatting.YELLOW
                 + StatCollector
                     .translateToLocal("gtsr.tooltip.reinforced_steam_cache_node.fluid_type.superheated_steam"));
         tooltip.add(
-            EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.steam_cache_node.output_rate")
+            EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.shared.output_rate")
                 + EnumChatFormatting.GREEN
                 + String.format("%,d", OUTPUT_RATE_PER_SEC)
-                + " L/s");
+                + " "
+                + StatCollector.translateToLocal("gtsr.tooltip.shared.l_s"));
+        tooltip.add(
+            EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.shared.capacity")
+                + EnumChatFormatting.GOLD
+                + String.format("%,d", getRealCapacity())
+                + " "
+                + StatCollector.translateToLocal("gtsr.tooltip.shared.l"));
+        tooltip
+            .add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.shared.cache_node_standalone"));
+        tooltip.add(
+            EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.shared.cache_node_hub_transfer"));
+        tooltip.add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.shared.bind_hint"));
+        tooltip.add(
+            EnumChatFormatting.AQUA + "GT"
+                + EnumChatFormatting.GREEN
+                + "-"
+                + EnumChatFormatting.GOLD
+                + "Steam"
+                + EnumChatFormatting.RED
+                + "-"
+                + EnumChatFormatting.BLUE
+                + "Reborn");
     }
 }

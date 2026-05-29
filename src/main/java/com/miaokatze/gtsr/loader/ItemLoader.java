@@ -14,9 +14,9 @@ public class ItemLoader {
         registerPyrolyzerChips();
         registerGeothermalOverheatChip();
         registerHubSingularityChip();
-        registerSteamEntangledSingularity();
-        registerAmmoniaCatalysts();
         registerRareGasSeparationChip();
+        registerAmmoniaCatalysts();
+        registerSteamEntangledSingularity();
     }
 
     private static void registerPyrolyzerChips() {
