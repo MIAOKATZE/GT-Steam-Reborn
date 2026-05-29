@@ -477,7 +477,7 @@ gtsr.tooltip.mega_steam_turbine.pressure_cooling_hatch=Pressure Steam Cooling Ha
 
 # Ammonia Plant
 gt.blockmachines.gtsr.ammonia.plant.name=Ammonia Plant
-gtsr.tooltip.ammonia_plant.type=Ammonia Plant
+gtsr.tooltip.ammonia_plant.type=Ammonia Plant, AP
 gtsr.tooltip.ammonia_plant.info=Pure steam-driven chemical machine, synthesizes ammonia from refinery gas and nitrogen
 gtsr.tooltip.ammonia_plant.info2=Consumes steam + refinery gas during preheat, can execute recipes when fully heated
 gtsr.tooltip.ammonia_plant.controller=Front Center
@@ -541,3 +541,255 @@ gtsr.tooltip.gear_steam_compressor.controller=Front center of layer 3
 gtsr.tooltip.gear_steam_compressor.steam_input=Steam Input Hatch / Pressure Steam Input Hatch
 gtsr.tooltip.gear_steam_compressor.output=Output Hatch (Superheated Steam / Distilled Water)
 gtsr.tooltip.gear_steam_compressor.cooling_hatch=Steam Cooling Hatch / Pressure Steam Cooling Hatch
+
+# Shared Tooltip Keys
+gtsr.tooltip.shared.steam_cost=Steam Consumption: 
+gtsr.tooltip.shared.steam_input_hatch=Steam Input Hatch
+gtsr.tooltip.shared.any_casing=Any casing position
+gtsr.tooltip.shared.casing=Machine Casing
+gtsr.tooltip.shared.pipe=Pipe Casing
+gtsr.tooltip.shared.gear_box=Gearbox Casing
+gtsr.tooltip.shared.frame=Frame Box
+gtsr.tooltip.shared.no_maintenance=No maintenance hatch required
+gtsr.tooltip.shared.cooling_hatch=Optional: Steam Cooling Hatch (recovers distilled water from condensed steam) or Pressure Steam Cooling Hatch (recovers steam from cooled superheated steam)
+
+# Shared GUI Keys
+gtsr.gui.building=Building...
+gtsr.gui.tier=Tier: 
+gtsr.gui.tier.bronze=Bronze
+gtsr.gui.tier.steel=Steel
+gtsr.gui.steam_type=Steam Type: 
+gtsr.gui.steam_type.normal=Steam
+gtsr.gui.steam_type.superheated=Superheated Steam
+gtsr.gui.status=Status: 
+gtsr.gui.installed=Installed
+gtsr.gui.not_installed=Not Installed
+
+# Air Compressor (AC)
+gtsr.tooltip.air_compressor.type=Air Compressor, AC
+gtsr.tooltip.air_compressor.desc=Steam-driven air compressor that draws air from the environment and converts it to compressed air fluid, with far greater speed and convenience than ordinary compressors.
+
+# Atmospheric Centrifuge (ATC)
+gtsr.tooltip.atmospheric_centrifuge.type=Atmospheric Centrifuge, ATC
+gtsr.tooltip.atmospheric_centrifuge.desc=Steam-driven gas centrifuge that can separate high-pressure air fluid into oxygen and nitrogen.
+
+# Crust Steam Borer (CSB)
+gtsr.tooltip.crust_borer.type=Crust Steam Borer, CSB
+gtsr.tooltip.crust_borer.desc=Steam-driven void mining device that directly extracts void minerals from the Overworld and Nether.
+
+# Kinetic Processing Array (KPA)
+gtsr.tooltip.kinetic_array.type=Kinetic Processing Array, KPA
+
+# Large Coke Oven (LCO)
+gtsr.tooltip.coke_oven.type=Large Coke Oven, LCO
+
+# Large Steam Furnace (LSF)
+gtsr.tooltip.steam_furnace.type=Large Steam Furnace, LSF
+gtsr.tooltip.steam_furnace.desc=Steam-driven industrial smelting equipment with greater parallel capacity for processing large quantities of furnace recipes simultaneously.
+
+# Siemens-Martin Furnace (SMF)
+gtsr.tooltip.siemens_martin.type=Siemens-Martin Furnace, SMF
+gtsr.tooltip.siemens_martin.desc=A new era of mass steelmaking blast furnace: reforms coal via superheated steam, produces reducing gas for steelmaking with higher efficiency and zero pollution!
+
+# Singularity Drilling Hub (SDH)
+gtsr.tooltip.singularity_hub.type=Singularity Drilling Hub, SDH
+gtsr.tooltip.singularity_hub.desc=A marvel of the steam age: based on steam-entangled singularities, creations of the steam age can reach every corner of the world, extracting all needed resources.
+
+# Steam Fluid Drill (SFD)
+gtsr.tooltip.fluid_drill.type=Steam Fluid Drill, SFD
+gtsr.tooltip.fluid_drill.desc=Consumes steam to extract water or distilled water directly from underground.
+gtsr.tooltip.fluid_drill.desc2=Bronze tier can only extract water; Steel tier efficiency grows slower but can extract distilled water.
+
+# Steam Hub Array (SHA)
+gtsr.tooltip.steam_hub.type=Steam Hub Array, SHA
+gtsr.tooltip.steam_hub.desc=Central dispatch station of the steam network, providing bidirectional steam interface with embedded storage buffer.
+gtsr.tooltip.steam_hub.desc2=Receives and distributes steam through hub input/output hatches; right-click with a Steam Cache Node to bind for remote steam transfer.
+
+# Steam Singularity Compressor (SSC)
+gtsr.tooltip.singularity_compressor.type=Steam Singularity Compressor, SSC
+gtsr.tooltip.singularity_compressor.desc=A marvel of the steam age: compressing massive amounts of steam, breaking through spatial limitations, creating cross-dimensional connections -- the Steam Entangled Singularity.
+
+# Vein Steam Pyrolyzer (VSP)
+gtsr.tooltip.vein_pyrolyzer.type=Vein Steam Pyrolyzer, VSP
+gtsr.tooltip.vein_pyrolyzer.desc=Reverse-injects steam energy underground to increase underground fluid reserves (oil, water, natural gas, etc.), solving long-term save fluid depletion.
+
+# Void Crust Steam Borer (SCSB)
+gtsr.tooltip.void_borer.type=Void Crust Steam Borer, SCSB
+gtsr.tooltip.void_borer.desc=Cross-dimensional void mining enabled by GT NEI Ore Plugin, extracting special cross-dimensional minerals.
+
+# Water Hub Array (WHA)
+gtsr.tooltip.water_hub.type=Water Hub Array, WHA
+gtsr.tooltip.water_hub.desc=Central dispatch station for water systems, providing bidirectional water interface (water/distilled water) with embedded storage buffer.
+gtsr.tooltip.water_hub.desc2=Receives and distributes water through hub input/output hatches; right-click with a Water Cache Node to bind for remote water transfer.
+
+# Gear Steam Compressor (GSC)
+gtsr.tooltip.gear_compressor.type=Gear Steam Compressor, GSC
+gtsr.tooltip.gear_compressor.info=Mechanically compresses normal steam into superheated steam while condensing distilled water as byproduct.
+
+# GUI Keys - Fluid Drill
+gtsr.gui.fluid_drill.efficiency=Efficiency: 
+gtsr.gui.fluid_drill.output=Output: 
+
+# GUI Keys - Singularity Hub
+gtsr.gui.singularity_hub.bound_nodes=Bound Nodes: 
+
+# GUI Keys - Solar Array
+gtsr.gui.solar_array.tier_overpressure=Overpressure
+
+# GUI Keys - Ammonia Plant
+gtsr.gui.ammonia_plant.catalyst.1=Iron-based Catalyst
+gtsr.gui.ammonia_plant.catalyst.2=Ruthenium Catalyst
+gtsr.gui.ammonia_plant.catalyst=Catalyst: 
+gtsr.gui.ammonia_plant.catalyst.not_installed=Not Installed
+
+# ===== v1.1.0 Missing Tooltip Keys =====
+
+# Shared missing keys
+gtsr.tooltip.shared.firebox=Firebox Casing
+gtsr.tooltip.shared.firebrick=Firebrick
+gtsr.tooltip.shared.steam_or_pressure=Steam Input Hatch or Pressure Steam Input Hatch (one only)
+gtsr.tooltip.shared.optional_cooling=Optional: Steam Cooling Hatch (recovers distilled water from condensed steam) or Pressure Steam Cooling Hatch (recovers steam from cooled superheated steam)
+
+# 2. Ammonia Plant - missing desc keys
+gtsr.tooltip.ammonia_plant.desc.1=Reforms 
+gtsr.tooltip.ammonia_plant.desc.2=refinery gas
+gtsr.tooltip.ammonia_plant.desc.3= to obtain hydrogen, synthesizes ammonia with nitrogen on a 
+gtsr.tooltip.ammonia_plant.desc.4=high-temperature catalyst bed
+gtsr.tooltip.ammonia_plant.desc.5=. The reaction is 
+gtsr.tooltip.ammonia_plant.desc.6=strongly exothermic
+gtsr.tooltip.ammonia_plant.desc.7=; steam acts as heat transfer medium to carry away excess heat, producing superheated steam as a byproduct.
+gtsr.tooltip.ammonia_plant.preheat.1=Reactor requires continuous steam heating to raise catalyst bed to 
+gtsr.tooltip.ammonia_plant.preheat.2=working temperature
+gtsr.tooltip.ammonia_plant.preheat.3=; recipes cannot execute below threshold.
+gtsr.tooltip.ammonia_plant.heat_cost.1=Preheat: 
+gtsr.tooltip.ammonia_plant.heat_cost.2=Maintain: 
+gtsr.tooltip.ammonia_plant.steam_unit=Steam
+gtsr.tooltip.ammonia_plant.refinery_gas=Refinery Gas
+gtsr.tooltip.ammonia_plant.catalyst=Catalyst System: place catalyst in controller slot (8 types), different catalysts affect parallel count and reaction speed.
+gtsr.tooltip.ammonia_plant.catalyst_detail.1=Catalysts scale parallel (
+gtsr.tooltip.ammonia_plant.catalyst_detail.2=) and reduce reaction time (
+gtsr.tooltip.ammonia_plant.catalyst_detail.3=)
+gtsr.tooltip.ammonia_plant.ctrl=Front center
+gtsr.tooltip.ammonia_plant.output_bus=Ammonia
+gtsr.tooltip.ammonia_plant.output_hatch=Superheated Steam
+
+# 3. Atmospheric Centrifuge - missing chip keys
+gtsr.tooltip.atmospheric_centrifuge.chip_info.1=Steel tier can install 
+gtsr.tooltip.atmospheric_centrifuge.chip_info.2=Rare Gas Separation Chip
+gtsr.tooltip.atmospheric_centrifuge.chip_info.3= to unlock deep extraction of trace gases (He/Ne/Kr/Xe).
+gtsr.tooltip.atmospheric_centrifuge.chip=Rare Gas Separation Chip
+gtsr.tooltip.atmospheric_centrifuge.chip_desc=Place in controller slot to unlock rare gas recipes
+gtsr.gui.atmospheric_centrifuge.chip=Rare Gas Chip: 
+
+# 5. Kinetic Processing Array - missing energy key
+gtsr.tooltip.kinetic_array.energy=Any Energy Hatch
+
+# 6. Large Coke Oven - missing desc keys
+gtsr.tooltip.coke_oven.desc=Self-powered coke oven that converts coal into coke and creosote oil.
+gtsr.tooltip.coke_oven.desc2=Heat System: Heats up while running, cools down when idle, recipe time decreases with temperature.
+gtsr.tooltip.coke_oven.desc3=After shutdown, temperature slowly drops and recipe time increases accordingly.
+gtsr.tooltip.coke_oven.formula=Heat change: +0.01%/s (running) | -0.006%/s (idle)
+gtsr.tooltip.coke_oven.accel=Heat speedup: Each 1% heat reduces recipe time by 10s (Base 1800s, Min 800s)
+gtsr.tooltip.coke_oven.recipe=Recipe: 1 Coal -> 1 Coke + 500L Creosote Oil
+gtsr.tooltip.coke_oven.input_bus=Logs/Coal
+gtsr.tooltip.coke_oven.output_bus=Charcoal/Coke
+gtsr.tooltip.coke_oven.output_hatch=Creosote Oil
+
+# 7. Large Geothermal Steam Boiler - missing desc keys
+gtsr.tooltip.geothermal_boiler.desc=Transfers underground lava heat through heat exchange tubes to the water chamber, producing steam via thermal convection.
+gtsr.tooltip.geothermal_boiler.heat=Heat system: heats up while running, cools down when idle, steam output proportional to heat.
+gtsr.tooltip.geothermal_boiler.chip_info=Install Geothermal Overheat Chip in controller slot (steel tier only) to switch to superheated steam output.
+gtsr.tooltip.geothermal_boiler.byproduct=Obsidian and sulfur dust can be obtained from cooled lava during the reaction process.
+gtsr.tooltip.geothermal_boiler.recipe=Base Recipe: 1000mb Lava -> 1 Obsidian + 2 Sulfur Dust (100 ticks)
+gtsr.tooltip.geothermal_boiler.steam_output=Steam Output
+gtsr.tooltip.geothermal_boiler.chip_desc=Place in controller slot to switch to superheated steam output (requires steel tier)
+
+# 8. Large Solar Overpressure Array - missing desc keys
+gtsr.tooltip.solar_array.desc=Uses solar energy to heat water medium and produce steam.
+gtsr.tooltip.solar_array.desc2=Output efficiency is affected by sunlight intensity and weather; temperature drops at night and during bad weather, significantly reducing efficiency.
+gtsr.tooltip.solar_array.calcification=Continuous operation causes calcification deposits in heat pipes, gradually reducing conversion efficiency.
+gtsr.tooltip.solar_array.calcification_d=Using distilled water as working medium can prevent calcification.
+gtsr.tooltip.solar_array.steam_output=Steam Output
+gtsr.tooltip.solar_array.tier_bronze=Bronze
+gtsr.tooltip.solar_array.tier_steel=Steel
+gtsr.tooltip.solar_array.tier_overpressure=Overpressure
+
+# 9. Large Steam Furnace - missing keys
+gtsr.tooltip.steam_furnace.desc2=Steam-driven industrial smelting equipment with greater parallel capacity for processing large quantities of furnace recipes simultaneously.
+
+# 10. Mega Steam Turbine Array - missing keys
+gtsr.gui.turbine_array.stack_layers=Stack Layers: 
+gtsr.gui.turbine_array.output_power=Output Power: 
+gtsr.tooltip.turbine_array.formula=Parallel=(1+2*tier)+machine count, casing tier limits max voltage.
+gtsr.tooltip.turbine_array.input_hatch=Steam Input
+gtsr.tooltip.turbine_array.dynamo=Energy Output
+
+# 11. Siemens-Martin Furnace - missing keys
+gtsr.gui.siemens_martin.temperature=Temperature: 
+gtsr.gui.siemens_martin.recipe.active=Running
+gtsr.gui.siemens_martin.recipe.none=None
+gtsr.gui.siemens_martin.current_recipe=Current Recipe: 
+gtsr.tooltip.siemens_martin.desc2=Furnace temperature must reach 100% to process recipes; steam interruption causes temperature drop and terminates current recipe.
+gtsr.tooltip.siemens_martin.recipe=Fixed Recipes: Iron+Coal->Steel | Iron+Coke->Ash | Iron+Carbon->Steel
+gtsr.tooltip.siemens_martin.steam_only=Superheated Steam only
+gtsr.tooltip.siemens_martin.ctrl=Layer 16 Side
+gtsr.tooltip.siemens_martin.steam_input=Superheated Steam Input
+gtsr.tooltip.siemens_martin.hint_temp=Furnace temperature must reach 100% to operate
+gtsr.tooltip.siemens_martin.hint_interrupt=Steam interruption causes temperature drop and recipe termination
+
+# 12. SDH - fix output_hatch
+gtsr.tooltip.singularity_hub.output_hatch=Fluid Products
+
+# 13. Steam Fluid Drill - missing hint
+gtsr.tooltip.fluid_drill.hint_bronze=Bronze tier reaches max efficiency in ~5 min; Steel tier in ~1 hr
+
+# 14. Steam Hub Array - missing GUI keys
+gtsr.gui.steam_hub.storage_units=Storage Units: 
+gtsr.gui.steam_hub.steam_buffer=Steam Buffer: 
+
+# 15. Water Hub Array - missing GUI keys
+gtsr.gui.water_hub.storage_units=Storage Units: 
+gtsr.gui.water_hub.water_buffer=Water Buffer: 
+
+# 16. Vein Steam Pyrolyzer - missing hint
+gtsr.tooltip.vein_pyrolyzer.hint_bronze=Supports Pyrolyzer Chips: T1(+1 chunk), T2(+3 chunks), T3(+7 chunks)
+
+# 17. Void Crust Steam Borer - missing keys
+gtsr.tooltip.void_borer.desc2=Cross-dimensional void mining device, requires GT NEI Ore Plugin.
+gtsr.tooltip.void_borer.output_bus=Ore Output
+gtsr.tooltip.void_borer.hint_bronze=Can operate in any dimension, but requires GT NEI Ore Plugin
+
+# 4. Crust Steam Borer - missing GUI keys
+gtsr.gui.crust_borer.invalid_dim=Invalid Dimension
+gtsr.gui.crust_borer.no_steam=No Steam
+gtsr.gui.crust_borer.dimension=Dimension: 
+gtsr.gui.crust_borer.mining=Mining: 
+gtsr.gui.crust_borer.steam_cost=Steam Cost: 
+gtsr.gui.crust_borer.work_cycle=Work Cycle: 
+gtsr.gui.void_borer.no_dimension=No Dimension
+gtsr.gui.void_borer.no_ores=No Ores
+gtsr.gui.void_borer.no_steam=No Steam
+gtsr.gui.void_borer.dimension=Dimension: 
+gtsr.gui.void_borer.mining=Mining: 
+gtsr.gui.void_borer.steam_cost=Steam Cost: 
+gtsr.gui.status.running=Running
+gtsr.gui.none=None
+gtsr.gui.vein_pyrolyzer.chip=Chip: 
+gtsr.gui.vein_pyrolyzer.target_fluid=Target Fluid: 
+
+# 19. Gear Steam Compressor - missing keys
+gtsr.tooltip.gear_compressor.desc=Mechanically compresses normal steam into superheated steam while condensing distilled water as byproduct.
+gtsr.tooltip.gear_compressor.desc2=Fixed compression ratio 4:1 - 4 parts steam compressed into 1 part superheated steam.
+gtsr.tooltip.gear_compressor.bronze_steam_in=Steam Consumption: 
+gtsr.tooltip.gear_compressor.bronze_sh_out=SH Steam Output: 
+gtsr.tooltip.gear_compressor.bronze_water_out=Distilled Water Output: 
+gtsr.tooltip.gear_compressor.steel_steam_in=Steam Consumption: 
+gtsr.tooltip.gear_compressor.steel_sh_out=SH Steam Output: 
+gtsr.tooltip.gear_compressor.steel_water_out=Distilled Water Output: 
+gtsr.tooltip.gear_compressor.ctrl=Side Center
+gtsr.tooltip.gear_compressor.steam_input=Steam Input
+gtsr.tooltip.gear_compressor.cooling_hatch=SH Steam Output
+gtsr.tooltip.gear_compressor.output_hatch=Distilled Water Output
+gtsr.gui.gear_compressor.steam_in=Steam In: 
+gtsr.gui.gear_compressor.sh_steam_out=SH Steam Out: 
+gtsr.gui.gear_compressor.water_out=Water Out:

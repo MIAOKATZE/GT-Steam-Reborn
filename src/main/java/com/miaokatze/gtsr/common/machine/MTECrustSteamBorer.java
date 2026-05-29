@@ -26,6 +26,10 @@ import com.gtnewhorizon.structurelib.alignment.constructable.ISurvivalConstructa
 import com.gtnewhorizon.structurelib.structure.IStructureDefinition;
 import com.gtnewhorizon.structurelib.structure.ISurvivalBuildEnvironment;
 import com.gtnewhorizon.structurelib.structure.StructureDefinition;
+import com.gtnewhorizons.modularui.common.widget.DynamicPositionedColumn;
+import com.gtnewhorizons.modularui.common.widget.FakeSyncWidget;
+import com.gtnewhorizons.modularui.common.widget.SlotWidget;
+import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import com.miaokatze.gtsr.common.api.enums.MetaTileEntityID;
 import com.miaokatze.gtsr.common.machine.base.MTEHatchPressureSteamInput;
 import com.miaokatze.gtsr.common.machine.base.VoidMinerUtilityShim;
@@ -463,6 +467,59 @@ public class MTECrustSteamBorer extends MTESteamMultiBase<MTECrustSteamBorer> im
         if (canMineInCurrentDim) {
             calculateDropMap();
         }
+    }
+
+    @Override
+    protected void drawTexts(DynamicPositionedColumn screenElements, SlotWidget inventorySlot) {
+        super.drawTexts(screenElements, inventorySlot);
+        screenElements
+            .widget(
+                new TextWidget().setStringSupplier(
+                    () -> EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.tier")
+                        + EnumChatFormatting.GOLD
+                        + (mSetTier == 2 ? StatCollector.translateToLocal("gtsr.gui.tier.steel")
+                            : mSetTier == 1 ? StatCollector.translateToLocal("gtsr.gui.tier.bronze") : "None")))
+            .widget(new FakeSyncWidget.IntegerSyncer(() -> mSetTier, val -> mSetTier = val))
+            .widget(new TextWidget().setStringSupplier(() -> {
+                String statusText;
+                if (!canMineInCurrentDim) {
+                    statusText = EnumChatFormatting.RED
+                        + StatCollector.translateToLocal("gtsr.gui.crust_borer.invalid_dim");
+                } else if (mMaxProgresstime <= 0) {
+                    statusText = EnumChatFormatting.YELLOW
+                        + StatCollector.translateToLocal("gtsr.gui.crust_borer.no_steam");
+                } else {
+                    statusText = EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.gui.status.running");
+                }
+                return EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.status") + statusText;
+            }))
+            .widget(new FakeSyncWidget.BooleanSyncer(() -> canMineInCurrentDim, val -> canMineInCurrentDim = val))
+            .widget(new FakeSyncWidget.IntegerSyncer(() -> mMaxProgresstime, val -> mMaxProgresstime = val))
+            .widget(
+                new TextWidget().setStringSupplier(
+                    () -> EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.crust_borer.dimension")
+                        + (canMineInCurrentDim ? EnumChatFormatting.GREEN + String.valueOf(mCurrentDimId)
+                            : EnumChatFormatting.RED
+                                + StatCollector.translateToLocal("gtsr.gui.crust_borer.invalid_dim"))))
+            .widget(new FakeSyncWidget.IntegerSyncer(() -> mCurrentDimId, val -> mCurrentDimId = val))
+            .widget(
+                new TextWidget().setStringSupplier(
+                    () -> EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.crust_borer.mining")
+                        + (mLastOreName != null && !mLastOreName.isEmpty() ? EnumChatFormatting.GREEN + mLastOreName
+                            : EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.gui.none"))))
+            .widget(new FakeSyncWidget.StringSyncer(() -> mLastOreName, val -> mLastOreName = val))
+            .widget(
+                new TextWidget().setStringSupplier(
+                    () -> EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.crust_borer.steam_cost")
+                        + EnumChatFormatting.RED
+                        + GTUtility.formatNumbers(STEAM_PER_SECOND)
+                        + " L/s"))
+            .widget(
+                new TextWidget().setStringSupplier(
+                    () -> EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.crust_borer.work_cycle")
+                        + EnumChatFormatting.YELLOW
+                        + (WORK_TIME_TICKS / 20)
+                        + "s"));
     }
 
     @Override

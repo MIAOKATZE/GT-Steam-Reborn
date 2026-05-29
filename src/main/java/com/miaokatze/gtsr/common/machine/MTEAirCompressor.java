@@ -25,6 +25,10 @@ import com.gtnewhorizon.structurelib.alignment.constructable.ISurvivalConstructa
 import com.gtnewhorizon.structurelib.structure.IStructureDefinition;
 import com.gtnewhorizon.structurelib.structure.ISurvivalBuildEnvironment;
 import com.gtnewhorizon.structurelib.structure.StructureDefinition;
+import com.gtnewhorizons.modularui.common.widget.DynamicPositionedColumn;
+import com.gtnewhorizons.modularui.common.widget.FakeSyncWidget;
+import com.gtnewhorizons.modularui.common.widget.SlotWidget;
+import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps;
 import com.miaokatze.gtsr.common.api.enums.MetaTileEntityID;
 import com.miaokatze.gtsr.common.machine.base.MTEHatchPressureSteamInput;
@@ -394,6 +398,35 @@ public class MTEAirCompressor extends MTESteamMultiBase<MTEAirCompressor> implem
             }
         }
         return false;
+    }
+
+    @Override
+    protected void drawTexts(DynamicPositionedColumn screenElements, SlotWidget inventorySlot) {
+        super.drawTexts(screenElements, inventorySlot);
+        screenElements.widget(new TextWidget().setStringSupplier(() -> {
+            String tierText = mSetTier == 2 ? StatCollector.translateToLocal("gtsr.gui.tier.steel")
+                : StatCollector.translateToLocal("gtsr.gui.tier.bronze");
+            return EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.tier")
+                + EnumChatFormatting.GOLD
+                + tierText
+                + EnumChatFormatting.RESET;
+        }))
+            .widget(new TextWidget().setStringSupplier(() -> {
+                String steamType = hasSuperheatedSteamInHatch()
+                    ? StatCollector.translateToLocal("gtsr.gui.steam_type.superheated")
+                    : StatCollector.translateToLocal("gtsr.gui.steam_type.normal");
+                return EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.steam_type")
+                    + EnumChatFormatting.YELLOW
+                    + steamType
+                    + EnumChatFormatting.RESET;
+            }))
+            .widget(
+                new TextWidget().setStringSupplier(
+                    () -> EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.parallel")
+                        + EnumChatFormatting.YELLOW
+                        + getMaxParallelRecipes()
+                        + EnumChatFormatting.RESET))
+            .widget(new FakeSyncWidget.IntegerSyncer(() -> mSetTier, val -> mSetTier = val));
     }
 
     @Override

@@ -25,6 +25,10 @@ import com.gtnewhorizon.structurelib.alignment.constructable.ISurvivalConstructa
 import com.gtnewhorizon.structurelib.structure.IStructureDefinition;
 import com.gtnewhorizon.structurelib.structure.ISurvivalBuildEnvironment;
 import com.gtnewhorizon.structurelib.structure.StructureDefinition;
+import com.gtnewhorizons.modularui.common.widget.DynamicPositionedColumn;
+import com.gtnewhorizons.modularui.common.widget.FakeSyncWidget;
+import com.gtnewhorizons.modularui.common.widget.SlotWidget;
+import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import com.miaokatze.gtsr.common.api.enums.MetaTileEntityID;
 import com.miaokatze.gtsr.common.machine.base.MTEHatchPressureSteamInput;
 import com.miaokatze.gtsr.common.machine.base.VoidMinerUtilityShim;
@@ -474,6 +478,52 @@ public class MTEVoidCrustSteamBorer extends MTESteamMultiBase<MTEVoidCrustSteamB
         if (!"None".equals(lastDimAbbr) && isPluginLoaded()) {
             recalculateDropMap(lastDimAbbr);
         }
+    }
+
+    @Override
+    protected void drawTexts(DynamicPositionedColumn screenElements, SlotWidget inventorySlot) {
+        super.drawTexts(screenElements, inventorySlot);
+        screenElements
+            .widget(
+                new TextWidget().setStringSupplier(
+                    () -> EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.tier")
+                        + EnumChatFormatting.GOLD
+                        + StatCollector.translateToLocal("gtsr.gui.tier.steel")))
+            .widget(new TextWidget().setStringSupplier(() -> {
+                String statusText;
+                if ("None".equals(lastDimAbbr)) {
+                    statusText = EnumChatFormatting.RED
+                        + StatCollector.translateToLocal("gtsr.gui.void_borer.no_dimension");
+                } else if (!dropMapValid) {
+                    statusText = EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.gui.void_borer.no_ores");
+                } else if (mMaxProgresstime <= 0) {
+                    statusText = EnumChatFormatting.YELLOW
+                        + StatCollector.translateToLocal("gtsr.gui.void_borer.no_steam");
+                } else {
+                    statusText = EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.gui.status.running");
+                }
+                return EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.status") + statusText;
+            }))
+            .widget(new FakeSyncWidget.StringSyncer(() -> lastDimAbbr, val -> lastDimAbbr = val))
+            .widget(new FakeSyncWidget.BooleanSyncer(() -> dropMapValid, val -> dropMapValid = val))
+            .widget(new FakeSyncWidget.IntegerSyncer(() -> mMaxProgresstime, val -> mMaxProgresstime = val))
+            .widget(
+                new TextWidget().setStringSupplier(
+                    () -> EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.void_borer.dimension")
+                        + EnumChatFormatting.GREEN
+                        + lastDimAbbr))
+            .widget(
+                new TextWidget().setStringSupplier(
+                    () -> EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.void_borer.mining")
+                        + (mLastOreName != null && !mLastOreName.isEmpty() ? EnumChatFormatting.GREEN + mLastOreName
+                            : EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.gui.none"))))
+            .widget(new FakeSyncWidget.StringSyncer(() -> mLastOreName, val -> mLastOreName = val))
+            .widget(
+                new TextWidget().setStringSupplier(
+                    () -> EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.void_borer.steam_cost")
+                        + EnumChatFormatting.RED
+                        + GTUtility.formatNumbers(VOID_STEAM_PER_SECOND)
+                        + " L/s"));
     }
 
     @Override

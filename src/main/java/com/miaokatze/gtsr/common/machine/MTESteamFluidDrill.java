@@ -25,6 +25,10 @@ import com.gtnewhorizon.structurelib.alignment.constructable.ISurvivalConstructa
 import com.gtnewhorizon.structurelib.structure.IStructureDefinition;
 import com.gtnewhorizon.structurelib.structure.ISurvivalBuildEnvironment;
 import com.gtnewhorizon.structurelib.structure.StructureDefinition;
+import com.gtnewhorizons.modularui.common.widget.DynamicPositionedColumn;
+import com.gtnewhorizons.modularui.common.widget.FakeSyncWidget;
+import com.gtnewhorizons.modularui.common.widget.SlotWidget;
+import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import com.miaokatze.gtsr.common.api.enums.MetaTileEntityID;
 
 import gregtech.api.GregTechAPI;
@@ -422,6 +426,37 @@ public class MTESteamFluidDrill extends MTESteamMultiBase<MTESteamFluidDrill> im
             }
         }
         return false;
+    }
+
+    @Override
+    protected void drawTexts(DynamicPositionedColumn screenElements, SlotWidget inventorySlot) {
+        super.drawTexts(screenElements, inventorySlot);
+        screenElements.widget(new FakeSyncWidget.IntegerSyncer(() -> mSetTier, val -> mSetTier = val))
+            .widget(new FakeSyncWidget.IntegerSyncer(() -> mEfficiency, val -> mEfficiency = val))
+            .widget(
+                new TextWidget().setStringSupplier(
+                    () -> EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.tier")
+                        + EnumChatFormatting.GOLD
+                        + (mSetTier == 2 ? StatCollector.translateToLocal("gtsr.gui.tier.steel")
+                            : StatCollector.translateToLocal("gtsr.gui.tier.bronze"))))
+            .widget(
+                new TextWidget().setStringSupplier(
+                    () -> EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.steam_type")
+                        + EnumChatFormatting.YELLOW
+                        + (hasSuperheatedSteamInHatch()
+                            ? StatCollector.translateToLocal("gtsr.gui.steam_type.superheated")
+                            : StatCollector.translateToLocal("gtsr.gui.steam_type.normal"))))
+            .widget(
+                new TextWidget().setStringSupplier(
+                    () -> EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.fluid_drill.efficiency")
+                        + EnumChatFormatting.GREEN
+                        + String.format("%.1f%%", mEfficiency / 100F)))
+            .widget(
+                new TextWidget().setStringSupplier(
+                    () -> EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.fluid_drill.output")
+                        + EnumChatFormatting.LIGHT_PURPLE
+                        + GTUtility.formatNumbers(calculateFinalWaterOutput())
+                        + " L/tick"));
     }
 
     @Override

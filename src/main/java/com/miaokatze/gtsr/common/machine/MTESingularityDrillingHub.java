@@ -28,6 +28,10 @@ import com.gtnewhorizon.structurelib.alignment.constructable.ISurvivalConstructa
 import com.gtnewhorizon.structurelib.structure.IStructureDefinition;
 import com.gtnewhorizon.structurelib.structure.ISurvivalBuildEnvironment;
 import com.gtnewhorizon.structurelib.structure.StructureDefinition;
+import com.gtnewhorizons.modularui.common.widget.DynamicPositionedColumn;
+import com.gtnewhorizons.modularui.common.widget.FakeSyncWidget;
+import com.gtnewhorizons.modularui.common.widget.SlotWidget;
+import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.api.enums.MetaTileEntityID;
 import com.miaokatze.gtsr.common.machine.base.IHubArray;
@@ -84,6 +88,9 @@ public class MTESingularityDrillingHub extends MTESteamMultiBase<MTESingularityD
 
     private final ArrayList<BoundDrillNode> mBoundNodes = new ArrayList<>();
     private int mCasingCount = 0;
+    private int mBoundNodeCount = 0;
+    private int mSteamCost = 0;
+    private boolean mIsSuperheated = false;
 
     private static Textures.BlockIcons.CustomIcon OVERLAY_OFF;
     private static Textures.BlockIcons.CustomIcon OVERLAY_ON;
@@ -306,6 +313,14 @@ public class MTESingularityDrillingHub extends MTESteamMultiBase<MTESingularityD
     public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
         super.onPostTick(aBaseMetaTileEntity, aTick);
         if (!aBaseMetaTileEntity.isServerSide() || !mMachine) return;
+
+        mBoundNodeCount = mBoundNodes.size();
+        int activeNodeCount = 0;
+        for (BoundDrillNode node : mBoundNodes) {
+            if (node.isActive) activeNodeCount++;
+        }
+        mSteamCost = BASE_STEAM_PER_SECOND + activeNodeCount * STEAM_PER_NODE;
+        mIsSuperheated = hasSuperheatedSteamInHatch();
 
         if (aTick % 20 == 0) {
             transferWithBoundNodes();
@@ -694,6 +709,46 @@ public class MTESingularityDrillingHub extends MTESteamMultiBase<MTESingularityD
             }
         }
         return false;
+    }
+
+    @Override
+    protected void drawTexts(DynamicPositionedColumn screenElements, SlotWidget inventorySlot) {
+        super.drawTexts(screenElements, inventorySlot);
+        screenElements.widget(new TextWidget().setStringSupplier(() -> {
+            String status = mMaxProgresstime > 0
+                ? EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.gui.status.running")
+                : EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.gui.status.idle");
+            return EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.status")
+                + " "
+                + status
+                + EnumChatFormatting.RESET;
+        }))
+            .widget(
+                new TextWidget().setStringSupplier(
+                    () -> EnumChatFormatting.YELLOW
+                        + StatCollector.translateToLocal("gtsr.gui.singularity_hub.bound_nodes")
+                        + " "
+                        + EnumChatFormatting.GOLD
+                        + mBoundNodeCount
+                        + EnumChatFormatting.RESET))
+            .widget(
+                new TextWidget().setStringSupplier(
+                    () -> EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.shared.steam_cost")
+                        + " "
+                        + EnumChatFormatting.RED
+                        + GTUtility.formatNumbers(mSteamCost)
+                        + " L/s"
+                        + EnumChatFormatting.RESET))
+            .widget(new TextWidget().setStringSupplier(() -> {
+                String steamType = mIsSuperheated ? StatCollector.translateToLocal("gtsr.gui.steam_type.superheated")
+                    : StatCollector.translateToLocal("gtsr.gui.steam_type.normal");
+                return EnumChatFormatting.YELLOW + StatCollector.translateToLocal(
+                    "gtsr.gui.steam_type") + " " + EnumChatFormatting.YELLOW + steamType + EnumChatFormatting.RESET;
+            }))
+            .widget(new FakeSyncWidget.IntegerSyncer(() -> mMaxProgresstime, val -> mMaxProgresstime = val))
+            .widget(new FakeSyncWidget.IntegerSyncer(() -> mBoundNodeCount, val -> mBoundNodeCount = val))
+            .widget(new FakeSyncWidget.IntegerSyncer(() -> mSteamCost, val -> mSteamCost = val))
+            .widget(new FakeSyncWidget.BooleanSyncer(() -> mIsSuperheated, val -> mIsSuperheated = val));
     }
 
     @Override

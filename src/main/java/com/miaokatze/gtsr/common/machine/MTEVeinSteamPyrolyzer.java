@@ -20,6 +20,7 @@ import net.minecraft.util.StatCollector;
 import net.minecraft.world.ChunkCoordIntPair;
 import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.Fluid;
+import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
 
 import org.apache.commons.lang3.tuple.Pair;
@@ -30,6 +31,10 @@ import com.gtnewhorizon.structurelib.alignment.constructable.ISurvivalConstructa
 import com.gtnewhorizon.structurelib.structure.IStructureDefinition;
 import com.gtnewhorizon.structurelib.structure.ISurvivalBuildEnvironment;
 import com.gtnewhorizon.structurelib.structure.StructureDefinition;
+import com.gtnewhorizons.modularui.common.widget.DynamicPositionedColumn;
+import com.gtnewhorizons.modularui.common.widget.FakeSyncWidget;
+import com.gtnewhorizons.modularui.common.widget.SlotWidget;
+import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.api.enums.MetaTileEntityID;
 import com.miaokatze.gtsr.common.util.UndergroundOilHelper;
@@ -69,6 +74,8 @@ public class MTEVeinSteamPyrolyzer extends MTESteamMultiBase<MTEVeinSteamPyrolyz
     protected int mSetTier = -1;
 
     private boolean mApplyFluidIncrease = false;
+    private String mLockedFluidName = "";
+    private int mChipRangeBonus = 0;
 
     public MTEVeinSteamPyrolyzer(int aID, String aName, String aNameRegional) {
         super(aID, aName, aNameRegional);
@@ -257,6 +264,7 @@ public class MTEVeinSteamPyrolyzer extends MTESteamMultiBase<MTEVeinSteamPyrolyz
         if (mSteamInputFluids.size() < 1) return false;
 
         updateHatchTexture();
+        mChipRangeBonus = getChipRangeBonus();
         return true;
     }
 
@@ -289,10 +297,12 @@ public class MTEVeinSteamPyrolyzer extends MTESteamMultiBase<MTEVeinSteamPyrolyz
                 return CheckRecipeResultRegistry.NO_RECIPE;
             }
             mLockedFluid = undergroundFluid.getFluid();
+            mLockedFluidName = mLockedFluid.getName();
         }
 
         int baseRange = 1;
         int chipBonus = getChipRangeBonus();
+        mChipRangeBonus = chipBonus;
         int currentRange = baseRange + chipBonus;
 
         if (mChunkRange != currentRange) {
@@ -462,6 +472,7 @@ public class MTEVeinSteamPyrolyzer extends MTESteamMultiBase<MTEVeinSteamPyrolyz
         if (aNBT.hasKey("mLockedFluid")) {
             String fluidName = aNBT.getString("mLockedFluid");
             mLockedFluid = net.minecraftforge.fluids.FluidRegistry.getFluid(fluidName);
+            if (mLockedFluid != null) mLockedFluidName = mLockedFluid.getName();
         }
         mChunkRange = aNBT.getInteger("mChunkRange");
         mSetTier = aNBT.getInteger("mSetTier");
@@ -479,6 +490,48 @@ public class MTEVeinSteamPyrolyzer extends MTESteamMultiBase<MTEVeinSteamPyrolyz
             }
         }
         return false;
+    }
+
+    @Override
+    protected void drawTexts(DynamicPositionedColumn screenElements, SlotWidget inventorySlot) {
+        super.drawTexts(screenElements, inventorySlot);
+        screenElements.widget(new FakeSyncWidget.IntegerSyncer(() -> mSetTier, val -> mSetTier = val))
+            .widget(new FakeSyncWidget.StringSyncer(() -> mLockedFluidName, val -> mLockedFluidName = val))
+            .widget(new FakeSyncWidget.IntegerSyncer(() -> mChipRangeBonus, val -> mChipRangeBonus = val))
+            .widget(
+                new TextWidget().setStringSupplier(
+                    () -> EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.tier")
+                        + EnumChatFormatting.GOLD
+                        + (mSetTier == 2 ? StatCollector.translateToLocal("gtsr.gui.tier.steel")
+                            : StatCollector.translateToLocal("gtsr.gui.tier.bronze"))))
+            .widget(
+                new TextWidget().setStringSupplier(
+                    () -> EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.steam_type")
+                        + EnumChatFormatting.YELLOW
+                        + (hasSuperheatedSteamInHatch()
+                            ? StatCollector.translateToLocal("gtsr.gui.steam_type.superheated")
+                            : StatCollector.translateToLocal("gtsr.gui.steam_type.normal"))))
+            .widget(
+                new TextWidget().setStringSupplier(
+                    () -> EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.vein_pyrolyzer.chip")
+                        + EnumChatFormatting.GREEN
+                        + (mChipRangeBonus >= 7 ? "T3(+7)"
+                            : mChipRangeBonus >= 3 ? "T2(+3)"
+                                : mChipRangeBonus >= 1 ? "T1(+1)" : StatCollector.translateToLocal("gtsr.gui.none"))))
+            .widget(new TextWidget().setStringSupplier(() -> {
+                if (mLockedFluidName.isEmpty()) {
+                    return EnumChatFormatting.YELLOW
+                        + StatCollector.translateToLocal("gtsr.gui.vein_pyrolyzer.target_fluid")
+                        + EnumChatFormatting.LIGHT_PURPLE
+                        + StatCollector.translateToLocal("gtsr.gui.none");
+                }
+                Fluid fluid = FluidRegistry.getFluid(mLockedFluidName);
+                String localName = fluid != null ? fluid.getLocalizedName(new FluidStack(fluid, 0)) : mLockedFluidName;
+                return EnumChatFormatting.YELLOW
+                    + StatCollector.translateToLocal("gtsr.gui.vein_pyrolyzer.target_fluid")
+                    + EnumChatFormatting.LIGHT_PURPLE
+                    + localName;
+            }));
     }
 
     @Override
