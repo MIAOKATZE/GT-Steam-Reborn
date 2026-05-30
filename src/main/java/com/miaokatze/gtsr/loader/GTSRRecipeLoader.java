@@ -27,7 +27,6 @@ import gregtech.api.enums.OrePrefixes;
 import gregtech.api.enums.TierEU;
 import gregtech.api.util.GTModHandler;
 import gregtech.api.util.GTOreDictUnificator;
-import gtPlusPlus.core.material.MaterialsAlloy;
 import gtPlusPlus.xmod.gregtech.api.enums.GregtechItemList;
 
 public class GTSRRecipeLoader implements Runnable {
@@ -409,11 +408,15 @@ public class GTSRRecipeLoader implements Runnable {
 
         ItemStack feCoOut = get(GTSRItemList.AmmoniaCatalystFeCo, 1);
         if (!hasNull(feCoOut)) {
+            ItemStack luvPlate = WerkstoffLoader.LuVTierMaterial.get(OrePrefixes.plateDense, 32);
+            if (luvPlate == null) {
+                warn("WerkstoffLoader.LuVTierMaterial.get(plateDense, 32) returned null!");
+            }
             ItemStack[] inputs = filterNulls(
                 get(OrePrefixes.dust, Materials.Iron, 64),
                 get(OrePrefixes.dust, Materials.Cobalt, 8),
                 get(OrePrefixes.dust, Materials.Aluminium, 16),
-                get(OrePrefixes.plateDense, Materials.Titanium, 32));
+                luvPlate);
             GTValues.RA.stdBuilder()
                 .itemInputs(inputs)
                 .itemOutputs(feCoOut)
@@ -449,9 +452,9 @@ public class GTSRRecipeLoader implements Runnable {
 
         ItemStack qOut = get(GTSRItemList.AmmoniaCatalystQuantum, 1);
         if (!hasNull(qOut)) {
-            ItemStack quantumDust = MaterialsAlloy.QUANTUM.getDust(64);
+            ItemStack quantumDust = Materials.Quantium.getDust(64);
             if (quantumDust == null) {
-                warn("MaterialsAlloy.QUANTUM.getDust(64) returned null!");
+                warn("Materials.Quantium.getDust(64) returned null!");
             }
             ItemStack[] inputs = filterNulls(
                 get(OrePrefixes.dust, Materials.CosmicNeutronium, 16),
@@ -482,7 +485,7 @@ public class GTSRRecipeLoader implements Runnable {
                 steamCacheResult,
                 GTModHandler.RecipeBits.BITSD,
                 new Object[] { "MPM", "PTP", "MPM", 'M', "plateTripleBronze", 'P', "pipeLargeBronze", 'T',
-                    GregtechItemList.GTFluidTank_ULV });
+                    GregtechItemList.GTFluidTank_ULV.get(1) });
         }
 
         ItemStack reinforcedResult = GTSRItemList.ReinforcedSteamCacheNode.get(1);
