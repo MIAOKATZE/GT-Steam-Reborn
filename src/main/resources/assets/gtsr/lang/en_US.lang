@@ -161,9 +161,9 @@ gtsr.tooltip.vein_steam_pyrolyzer.steel_frame=Steel Frame Box
 gtsr.tooltip.vein_steam_pyrolyzer.18=Requires 1 Pressure Steam Input Hatch and 1 Output Bus
 
 # Pyrolyzer Chips
-item.VeinPyrolyzerChipT1.name=Vein Pyrolyzer Chip T1
-item.VeinPyrolyzerChipT2.name=Vein Pyrolyzer Chip T2
-item.VeinPyrolyzerChipT3.name=Vein Pyrolyzer Chip T3
+item.VeinPyrolyzerChip_T1.name=Vein Pyrolyzer Chip T1
+item.VeinPyrolyzerChip_T2.name=Vein Pyrolyzer Chip T2
+item.VeinPyrolyzerChip_T3.name=Vein Pyrolyzer Chip T3
 
 # Large Steam Furnace
 gt.blockmachines.gtsr.large.steam.furnace.name=Large Steam Furnace
@@ -491,13 +491,13 @@ gtsr.tooltip.ammonia_plant.output_bus=Output Bus (Ammonia)
 gtsr.tooltip.ammonia_plant.output_hatch=Output Hatch (Superheated Steam)
 
 # Ammonia Catalysts
-gtsr.item.ammonia_catalyst_nickel.name=Nickel-Based Catalyst
-gtsr.item.ammonia_catalyst_platinum.name=Platinum Catalyst
-gtsr.item.ammonia_catalyst_uranium.name=Uranium Catalyst
-gtsr.item.ammonia_catalyst_osmium.name=Osmium Catalyst
-gtsr.item.ammonia_catalyst_feco.name=Iron-Cobalt Modified Catalyst
-gtsr.item.ammonia_catalyst_ruthenium.name=Ruthenium Catalyst
-gtsr.item.ammonia_catalyst_quantum.name=Quantum Catalyst
+item.AmmoniaCatalystNickel.name=Nickel-Based Catalyst
+item.AmmoniaCatalystPlatinum.name=Platinum Catalyst
+item.AmmoniaCatalystUranium.name=Uranium Catalyst
+item.AmmoniaCatalystOsmium.name=Osmium Catalyst
+item.AmmoniaCatalystFeCo.name=Iron-Cobalt Modified Catalyst
+item.AmmoniaCatalystRuthenium.name=Ruthenium Catalyst
+item.AmmoniaCatalystQuantum.name=Quantum Catalyst
 
 # Ammonia Plant GUI
 gtsr.gui.ammonia_plant.name=Ammonia Plant
@@ -535,7 +535,7 @@ gtsr.info.atmospheric_centrifuge.steam_type=Steam Type:
 gtsr.info.atmospheric_centrifuge.parallel=Parallel: 
 gtsr.info.atmospheric_centrifuge.chip=Chip: 
 
-gtsr.item.rare_gas_separation_chip.name=Rare Gas Separation Chip
+item.RareGasSeparationChip.name=Rare Gas Separation Chip
 
 # Gear Steam Compressor
 gt.blockmachines.gtsr.gear.steam.compressor.name=Gear Steam Compressor

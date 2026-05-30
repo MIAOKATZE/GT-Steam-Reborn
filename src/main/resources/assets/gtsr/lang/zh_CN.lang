@@ -161,9 +161,9 @@ gtsr.tooltip.vein_steam_pyrolyzer.steel_frame=钢框架
 gtsr.tooltip.vein_steam_pyrolyzer.18=需要1个耐压蒸汽输入仓和1个输出总线
 
 # Pyrolyzer Chips
-item.VeinPyrolyzerChipT1.name=地脉热解机芯片T1
-item.VeinPyrolyzerChipT2.name=地脉热解机芯片T2
-item.VeinPyrolyzerChipT3.name=地脉热解机芯片T3
+item.VeinPyrolyzerChip_T1.name=地脉热解机芯片T1
+item.VeinPyrolyzerChip_T2.name=地脉热解机芯片T2
+item.VeinPyrolyzerChip_T3.name=地脉热解机芯片T3
 
 # Large Steam Furnace
 gt.blockmachines.gtsr.large.steam.furnace.name=大型蒸汽熔炉
@@ -491,13 +491,13 @@ gtsr.tooltip.ammonia_plant.output_bus=输出总线(氨)
 gtsr.tooltip.ammonia_plant.output_hatch=输出仓(过热蒸汽)
 
 # Ammonia Catalyst (氨催化剂)
-gtsr.item.ammonia_catalyst_nickel.name=镍基催化剂
-gtsr.item.ammonia_catalyst_platinum.name=铂催化剂
-gtsr.item.ammonia_catalyst_uranium.name=铀催化剂
-gtsr.item.ammonia_catalyst_osmium.name=锇催化剂
-gtsr.item.ammonia_catalyst_feco.name=铁钴改型催化剂
-gtsr.item.ammonia_catalyst_ruthenium.name=钌催化剂
-gtsr.item.ammonia_catalyst_quantum.name=量子催化剂
+item.AmmoniaCatalystNickel.name=镍基催化剂
+item.AmmoniaCatalystPlatinum.name=铂催化剂
+item.AmmoniaCatalystUranium.name=铀催化剂
+item.AmmoniaCatalystOsmium.name=锇催化剂
+item.AmmoniaCatalystFeCo.name=铁钴改型催化剂
+item.AmmoniaCatalystRuthenium.name=钌催化剂
+item.AmmoniaCatalystQuantum.name=量子催化剂
 
 # Ammonia Plant GUI
 gtsr.gui.ammonia_plant.name=制氨工厂
@@ -535,7 +535,7 @@ gtsr.info.atmospheric_centrifuge.steam_type=蒸汽类型:
 gtsr.info.atmospheric_centrifuge.parallel=并行: 
 gtsr.info.atmospheric_centrifuge.chip=芯片: 
 
-gtsr.item.rare_gas_separation_chip.name=稀有气体分离芯片
+item.RareGasSeparationChip.name=稀有气体分离芯片
 
 # Gear Steam Compressor
 gt.blockmachines.gtsr.gear.steam.compressor.name=自驱式机械蒸汽压缩机
