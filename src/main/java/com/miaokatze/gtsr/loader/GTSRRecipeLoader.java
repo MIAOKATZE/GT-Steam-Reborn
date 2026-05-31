@@ -27,6 +27,7 @@ import gregtech.api.enums.OrePrefixes;
 import gregtech.api.enums.TierEU;
 import gregtech.api.util.GTModHandler;
 import gregtech.api.util.GTOreDictUnificator;
+import gtPlusPlus.core.material.MaterialsAlloy;
 import gtPlusPlus.xmod.gregtech.api.enums.GregtechItemList;
 
 public class GTSRRecipeLoader implements Runnable {
@@ -587,7 +588,11 @@ public class GTSRRecipeLoader implements Runnable {
         log("Registering multiblock workbench recipes...");
 
         ItemStack copperPlatedBrick = ItemList.Casing_BronzePlatedBricks.get(1);
-        ItemStack roseGoldFrame = get(OrePrefixes.frameGt, Materials.RoseGold, 1);
+        ItemStack roseGoldFrame = MaterialsAlloy.TUMBAGA.getFrameBox(1);
+        if (roseGoldFrame == null) {
+            warn("MaterialsAlloy.TUMBAGA.getFrameBox(1) returned null! Falling back to RoseGold frame.");
+            roseGoldFrame = get(OrePrefixes.frameGt, Materials.RoseGold, 1);
+        }
         ItemStack efrBlastFurnace = GTModHandler.getModItem("etfuturum", "blast_furnace", 1);
         if (efrBlastFurnace == null) {
             warn("EFR blast_furnace (etfuturum) is null!");
@@ -637,7 +642,7 @@ public class GTSRRecipeLoader implements Runnable {
             GTSRItemList.LargeCokeOven.get(1),
             GTModHandler.RecipeBits.BITSD,
             new Object[] { "ABA", "CDC", "ABA", 'A', copperPlatedBrick, 'B', brickBlock, 'C', efrBlastFurnace, 'D',
-                GTModHandler.getModItem("gregtech", "gt.blockcasings12", 1, 0) });
+                GTModHandler.getModItem("Railcraft", "machine.alpha", 1, 7) });
 
         GTModHandler.addCraftingRecipe(
             GTSRItemList.LargeGeothermalSteamBoiler.get(1),
@@ -660,8 +665,8 @@ public class GTSRRecipeLoader implements Runnable {
         GTModHandler.addCraftingRecipe(
             GTSRItemList.LargeSolarOverpressureArray.get(1),
             GTModHandler.RecipeBits.BITSD,
-            new Object[] { "AAA", "BCB", "BDB", 'A', glass, 'B', copperPlatedBrick, 'C',
-                get(OrePrefixes.circuit, Materials.LV, 1), 'D', get(OrePrefixes.block, Materials.Silver, 1) });
+            new Object[] { "AAA", "BDB", "BEB", 'A', glass, 'B', copperPlatedBrick, 'D', roseGoldFrame, 'E',
+                get(OrePrefixes.block, Materials.Silver, 1) });
 
         GTModHandler.addCraftingRecipe(
             GTSRItemList.SteamHubArray.get(1),
@@ -715,7 +720,7 @@ public class GTSRRecipeLoader implements Runnable {
                 get(OrePrefixes.frameGt, Materials.Steel, 4),
                 ItemList.Casing_Firebox_Steel.get(4),
                 get(OrePrefixes.plateDense, Materials.Steel, 12),
-                ItemList.Firebrick.get(32),
+                ItemList.Casing_Firebricks.get(32),
                 get(OrePrefixes.circuit, Materials.LV, 2),
                 get(OrePrefixes.pipeLarge, Materials.Steel, 4))
             .itemOutputs(GTSRItemList.SiemensMartinFurnace.get(1))
