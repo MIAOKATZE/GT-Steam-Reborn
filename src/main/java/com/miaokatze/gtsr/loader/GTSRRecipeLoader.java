@@ -92,6 +92,7 @@ public class GTSRRecipeLoader implements Runnable {
         registerNodeRecipes();
         registerMultiblockWorkbenchRecipes();
         registerMultiblockAssemblerRecipes();
+        registerHatchRecipes();
     }
 
     private static void registerCokeOvenRecipes() {
@@ -812,5 +813,106 @@ public class GTSRRecipeLoader implements Runnable {
         }
 
         log("Multiblock assembler recipes done.");
+    }
+
+    private static void registerHatchRecipes() {
+        log("Registering hatch recipes...");
+
+        ItemStack tumbagaPlate = MaterialsAlloy.TUMBAGA.getPlate(1);
+        if (tumbagaPlate == null) {
+            warn("MaterialsAlloy.TUMBAGA.getPlate(1) returned null! Falling back to RoseGold plate.");
+            tumbagaPlate = get(OrePrefixes.plate, Materials.RoseGold, 1);
+        }
+
+        ItemStack bcTank = GTModHandler.getModItem("BuildCraft|Factory", "tankBlock", 1);
+        if (bcTank == null) {
+            bcTank = GTModHandler.getModItem("BuildCraft:Factory", "tankBlock", 1);
+        }
+        if (bcTank == null) {
+            warn("BuildCraft tank is null! Some hatch recipes may fail.");
+        }
+
+        ItemStack gtSteamHatch = GregtechItemList.Hatch_Input_Steam.get(1);
+        if (gtSteamHatch == null) {
+            warn("GregtechItemList.Hatch_Input_Steam is null!");
+        }
+
+        GTModHandler.addCraftingRecipe(
+            GTSRItemList.SteamInputHatch.get(1),
+            GTModHandler.RecipeBits.BITSD,
+            new Object[] { "ABA", "CDC", "ABA", 'A', "plateBronze", 'B', tumbagaPlate, 'C', "plateTin", 'D', bcTank });
+
+        GTModHandler.addCraftingRecipe(
+            GTSRItemList.SteamOutputHatchGeneric.get(1),
+            GTModHandler.RecipeBits.BITSD,
+            new Object[] { "ABA", "CDC", "ABA", 'A', "plateBronze", 'B', "plateTin", 'C', tumbagaPlate, 'D', bcTank });
+
+        GTModHandler.addCraftingRecipe(
+            GTSRItemList.SteamOutputHatch.get(1),
+            GTModHandler.RecipeBits.BITSD,
+            new Object[] { "ABA", "CDC", "ABA", 'A', "plateBronze", 'B', "plateTin", 'C', tumbagaPlate, 'D',
+                "pipeHugeBronze" });
+
+        GTModHandler.addCraftingRecipe(
+            GTSRItemList.PressureSteamOutputHatch.get(1),
+            GTModHandler.RecipeBits.BITSD,
+            new Object[] { "ABA", "CDC", "ABA", 'A', "screwSteel", 'B', "plateSteel", 'C', "plateSteel", 'D',
+                GTSRItemList.SteamOutputHatch.get(1) });
+
+        GTModHandler.addCraftingRecipe(
+            GTSRItemList.PressureSteamHatch.get(1),
+            GTModHandler.RecipeBits.BITSD,
+            new Object[] { "ABA", "CDC", "ABA", 'A', "screwSteel", 'B', "plateSteel", 'C', "plateSteel", 'D',
+                gtSteamHatch });
+
+        GTModHandler.addCraftingRecipe(
+            GTSRItemList.SteamCoolingHatch.get(1),
+            GTModHandler.RecipeBits.BITSD,
+            new Object[] { "ABA", "CDC", "ABA", 'A', "plateBronze", 'B', "pipeNonupleCopper", 'C', "pipeNonupleCopper",
+                'D', get(OrePrefixes.frameGt, Materials.Bronze, 1) });
+
+        GTModHandler.addCraftingRecipe(
+            GTSRItemList.PressureSteamCoolingHatch.get(1),
+            GTModHandler.RecipeBits.BITSD,
+            new Object[] { "ABA", "CDC", "ABA", 'A', "screwSteel", 'B', "plateSteel", 'C', "plateSteel", 'D',
+                GTSRItemList.SteamCoolingHatch.get(1) });
+
+        GTModHandler.addCraftingRecipe(
+            GTSRItemList.SteamHubInputHatch.get(1),
+            GTModHandler.RecipeBits.BITSD,
+            new Object[] { "ABA", "CDC", "ABA", 'A', "screwBronze", 'B', "pipeHugeBronze", 'C', "pipeHugeBronze", 'D',
+                GTSRItemList.SteamInputHatch.get(1) });
+
+        GTModHandler.addCraftingRecipe(
+            GTSRItemList.SteamHubOutputHatch.get(1),
+            GTModHandler.RecipeBits.BITSD,
+            new Object[] { "ABA", "CDC", "ABA", 'A', "screwBronze", 'B', "pipeHugeBronze", 'C', "pipeHugeBronze", 'D',
+                GTSRItemList.SteamOutputHatch.get(1) });
+
+        GTModHandler.addCraftingRecipe(
+            GTSRItemList.WaterHubInputHatch.get(1),
+            GTModHandler.RecipeBits.BITSD,
+            new Object[] { "ABA", "CDC", "ABA", 'A', "screwBronze", 'B', "plateBronze", 'C', "pipeLargeBronze", 'D',
+                GTSRItemList.SteamInputHatch.get(1) });
+
+        GTModHandler.addCraftingRecipe(
+            GTSRItemList.WaterHubOutputHatch.get(1),
+            GTModHandler.RecipeBits.BITSD,
+            new Object[] { "ABA", "CDC", "ABA", 'A', "screwBronze", 'B', "plateBronze", 'C', "pipeLargeBronze", 'D',
+                GTSRItemList.SteamOutputHatch.get(1) });
+
+        GTModHandler.addCraftingRecipe(
+            GTSRItemList.HubStorageUnit.get(1),
+            GTModHandler.RecipeBits.BITSD,
+            new Object[] { "ABA", "CDC", "ABA", 'A', "screwBronze", 'B', "plateTripleBronze", 'C', "plateTripleBronze",
+                'D', GregtechItemList.GTFluidTank_ULV.get(1) });
+
+        GTModHandler.addCraftingRecipe(
+            GTSRItemList.ReinforcedHubStorageUnit.get(1),
+            GTModHandler.RecipeBits.BITSD,
+            new Object[] { "ABA", "CDC", "ABA", 'A', "screwSteel", 'B', "plateTripleSteel", 'C', "plateTripleBronze",
+                'D', GTSRItemList.HubStorageUnit.get(1) });
+
+        log("Hatch recipes done.");
     }
 }
