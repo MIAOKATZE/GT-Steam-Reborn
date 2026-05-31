@@ -322,7 +322,8 @@ public class MTELargeSteamFurnace extends MTESteamMultiBase<MTELargeSteamFurnace
             .addInfo(
                 EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.shared.steam_cost")
                     + EnumChatFormatting.WHITE
-                    + " 160 L/s")
+                    + " "
+                    + StatCollector.translateToLocal("gtsr.tooltip.steam_furnace.recipe_based"))
             .beginStructureBlock(3, 3, 5, false)
             .addController(StatCollector.translateToLocal("gtsr.tooltip.steam_furnace.ctrl"))
             .addInputBus(StatCollector.translateToLocal("gtsr.tooltip.steam_furnace.input_bus"), 1)

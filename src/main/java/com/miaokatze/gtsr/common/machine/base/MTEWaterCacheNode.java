@@ -179,6 +179,7 @@ public class MTEWaterCacheNode extends MTEFilteredCacheNode {
                 + String.format("%,d", getRealCapacity())
                 + " "
                 + StatCollector.translateToLocal("gtsr.tooltip.shared.l"));
+        tooltip.add(EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.shared.singularity_cost"));
         tooltip
             .add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.shared.cache_node_standalone"));
         tooltip.add(

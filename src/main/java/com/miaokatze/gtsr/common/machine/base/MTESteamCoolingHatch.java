@@ -23,7 +23,7 @@ public class MTESteamCoolingHatch extends MTEHatchOutput {
 
     private static final int CAPACITY = 64_000;
     private static final int STEAM_PER_WATER = 160;
-    private static final int OUTPUT_PER_TICK = 4_800;
+    private static final int OUTPUT_PER_TICK = 3_200;
     private static final int DEFAULT_TEXTURE_INDEX = ((BlockCasings1) GregTechAPI.sBlockCasings1).getTextureIndex(10);
 
     public MTESteamCoolingHatch(int aID, String aName, String aNameRegional) {

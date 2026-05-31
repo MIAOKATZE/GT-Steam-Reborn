@@ -28,6 +28,7 @@ import com.gtnewhorizons.modularui.common.widget.DynamicPositionedColumn;
 import com.gtnewhorizons.modularui.common.widget.FakeSyncWidget;
 import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
+import com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.api.enums.MetaTileEntityID;
 import com.miaokatze.gtsr.common.machine.base.MTEPressureSteamCoolingHatch;
@@ -43,6 +44,8 @@ import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.implementations.MTEHatch;
+import gregtech.api.objects.overclockdescriber.OverclockDescriber;
+import gregtech.api.recipe.RecipeMap;
 import gregtech.api.recipe.check.CheckRecipeResult;
 import gregtech.api.recipe.check.CheckRecipeResultRegistry;
 import gregtech.api.render.TextureFactory;
@@ -247,6 +250,16 @@ public class MTESteamSingularityCompressor extends MTESteamMultiBase<MTESteamSin
     }
 
     @Override
+    public RecipeMap<?> getRecipeMap() {
+        return GTSRRecipeMaps.steamSingularityCompressorRecipes;
+    }
+
+    @Override
+    public OverclockDescriber getOverclockDescriber() {
+        return null;
+    }
+
+    @Override
     public CheckRecipeResult checkProcessing() {
         lEUt = -STEAM_L_EUT;
         mMaxProgresstime = HEAT_RECIPE_TIME;
@@ -397,7 +410,7 @@ public class MTESteamSingularityCompressor extends MTESteamMultiBase<MTESteamSin
             .addInfo(
                 EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.shared.steam_cost")
                     + EnumChatFormatting.WHITE
-                    + " 500 L/s")
+                    + " 120,000 L/s")
             .addInfo(
                 EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.tooltip.shared.superheated_quadruples"))
             .beginStructureBlock(11, 11, 11, false)

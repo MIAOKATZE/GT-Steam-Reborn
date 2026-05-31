@@ -40,6 +40,7 @@ import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.implementations.MTEHatch;
+import gregtech.api.objects.overclockdescriber.OverclockDescriber;
 import gregtech.api.recipe.RecipeMap;
 import gregtech.api.recipe.check.CheckRecipeResult;
 import gregtech.api.recipe.check.CheckRecipeResultRegistry;
@@ -243,6 +244,11 @@ public class MTEAirCompressor extends MTESteamMultiBase<MTEAirCompressor> implem
     @Override
     public RecipeMap<?> getRecipeMap() {
         return GTSRRecipeMaps.airCompressorRecipes;
+    }
+
+    @Override
+    public OverclockDescriber getOverclockDescriber() {
+        return null;
     }
 
     @Override

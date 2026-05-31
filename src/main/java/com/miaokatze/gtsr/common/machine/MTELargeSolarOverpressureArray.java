@@ -464,6 +464,40 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
             .addSeparator()
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.solar_array.calcification"))
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.solar_array.calcification_d"))
+            .addStructureInfo("")
+            .addStructureInfo(
+                EnumChatFormatting.BLUE + "Tier 1 "
+                    + EnumChatFormatting.DARK_PURPLE
+                    + StatCollector.translateToLocal("gtsr.tooltip.solar_array.tier_bronze"))
+            .addStructureInfo(
+                EnumChatFormatting.GOLD + "12,000"
+                    + EnumChatFormatting.GRAY
+                    + " L/s "
+                    + StatCollector.translateToLocal("gtsr.tooltip.solar_array.base_output"))
+            .addStructureInfo("")
+            .addStructureInfo(
+                EnumChatFormatting.BLUE + "Tier 2 "
+                    + EnumChatFormatting.DARK_PURPLE
+                    + StatCollector.translateToLocal("gtsr.tooltip.solar_array.tier_steel"))
+            .addStructureInfo(
+                EnumChatFormatting.GOLD + "30,000"
+                    + EnumChatFormatting.GRAY
+                    + " L/s "
+                    + StatCollector.translateToLocal("gtsr.tooltip.solar_array.base_output"))
+            .addStructureInfo("")
+            .addStructureInfo(
+                EnumChatFormatting.BLUE + "Tier 3 "
+                    + EnumChatFormatting.DARK_PURPLE
+                    + StatCollector.translateToLocal("gtsr.tooltip.solar_array.tier_nickel"))
+            .addStructureInfo(
+                EnumChatFormatting.GOLD + "30,000"
+                    + EnumChatFormatting.GRAY
+                    + " L/s "
+                    + StatCollector.translateToLocal("gtsr.tooltip.solar_array.base_output")
+                    + EnumChatFormatting.GREEN
+                    + " ("
+                    + StatCollector.translateToLocal("gtsr.tooltip.solar_array.superheated_steam")
+                    + ")")
             .beginStructureBlock(13, 4, 13, false)
             .addController(StatCollector.translateToLocal("gtsr.tooltip.solar_array.ctrl"))
             .addInputHatch(StatCollector.translateToLocal("gtsr.tooltip.solar_array.input_hatch"), 1)

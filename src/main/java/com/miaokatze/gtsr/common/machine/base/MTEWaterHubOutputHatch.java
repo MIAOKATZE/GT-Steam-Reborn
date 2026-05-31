@@ -1,6 +1,8 @@
 package com.miaokatze.gtsr.common.machine.base;
 
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 import net.minecraftforge.common.util.ForgeDirection;
@@ -13,12 +15,14 @@ import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.implementations.MTEHatchOutput;
+import gregtech.api.util.GTUtility;
 
 public class MTEWaterHubOutputHatch extends MTEHatchOutput {
 
     private static final int OUTPUT_PER_TICK = 6_400;
 
     public MTEWaterHubArray mController;
+    public boolean mOverflowOutput = false;
 
     public MTEWaterHubOutputHatch(int aID, String aName, String aNameRegional) {
         super(aID, aName, aNameRegional, 1);
@@ -41,7 +45,28 @@ public class MTEWaterHubOutputHatch extends MTEHatchOutput {
     }
 
     @Override
+    public void onScrewdriverRightClick(ForgeDirection side, EntityPlayer aPlayer, float aX, float aY, float aZ,
+        ItemStack aTool) {
+        mOverflowOutput = !mOverflowOutput;
+        if (aPlayer.worldObj.isRemote) return;
+        GTUtility.sendChatToPlayer(
+            aPlayer,
+            StatCollector.translateToLocal("gtsr.tooltip.shared.overflow_output") + ": "
+                + (mOverflowOutput ? EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.tooltip.shared.on")
+                    : EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.shared.off")));
+    }
+
+    private boolean isOverflowBlocked() {
+        if (!mOverflowOutput) return false;
+        if (mController == null || !mController.isFormed()) return false;
+        long capacity = mController.getTotalCapacity();
+        if (capacity <= 0) return false;
+        return mController.getWaterStored() < (long) (capacity * 0.9);
+    }
+
+    @Override
     public FluidStack drain(int maxDrain, boolean doDrain) {
+        if (isOverflowBlocked()) return null;
         if (mController != null) {
             if (mController.isFormed()) {
                 return mController.extractWater(maxDrain, doDrain);
@@ -84,6 +109,7 @@ public class MTEWaterHubOutputHatch extends MTEHatchOutput {
         super.onPostTick(aBaseMetaTileEntity, aTick);
         if (!aBaseMetaTileEntity.isServerSide()) return;
         if (mController == null || !mController.isFormed()) return;
+        if (isOverflowBlocked()) return;
 
         FluidStack stored = mController.getStoredFluidStack();
         if (stored == null) return;
@@ -109,11 +135,25 @@ public class MTEWaterHubOutputHatch extends MTEHatchOutput {
     }
 
     @Override
+    public void saveNBTData(NBTTagCompound aNBT) {
+        super.saveNBTData(aNBT);
+        aNBT.setBoolean("mOverflowOutput", mOverflowOutput);
+    }
+
+    @Override
+    public void loadNBTData(NBTTagCompound aNBT) {
+        super.loadNBTData(aNBT);
+        mOverflowOutput = aNBT.getBoolean("mOverflowOutput");
+    }
+
+    @Override
     public String[] getDescription() {
         return new String[] { StatCollector.translateToLocal("gtsr.tooltip.water_hub_output_hatch.info"),
             StatCollector.translateToLocal("gtsr.tooltip.water_hub_output_hatch.fluid_type"),
             StatCollector.translateToLocal("gtsr.tooltip.water_hub_output_hatch.output_rate"),
             StatCollector.translateToLocal("gtsr.tooltip.water_hub_output_hatch.no_storage"),
+            EnumChatFormatting.YELLOW
+                + StatCollector.translateToLocal("gtsr.tooltip.shared.overflow_output_screwdriver"),
             EnumChatFormatting.AQUA + "GT"
                 + EnumChatFormatting.GREEN
                 + "-"

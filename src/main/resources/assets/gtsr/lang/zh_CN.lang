@@ -31,6 +31,9 @@ gtsr.tooltip.shared.steam_and_superheated=蒸汽/过热蒸汽
 gtsr.tooltip.shared.no_external_input=禁止外部输入
 gtsr.tooltip.shared.steam_machine_only=仅限蒸汽多方块机器使用
 gtsr.tooltip.shared.bind_hint=右击装配枢纽奇点芯片的枢纽绑定
+gtsr.tooltip.shared.singularity_cost=首次绑定枢纽时消耗1个蒸汽纠缠奇点（仅消耗一次）
+gtsr.tooltip.shared.hub_singularity_cost=绑定节点时消耗1个蒸汽纠缠奇点（每个节点仅消耗一次）
+gtsr.binding.no_singularity=背包中没有蒸汽纠缠奇点！
 gtsr.tooltip.shared.node_bind_hint=右击奇点钻井枢纽绑定
 gtsr.tooltip.shared.node_steam_cost=每个节点增加枢纽12,000 L/s蒸汽消耗，放置即消耗，无论工作与否
 gtsr.tooltip.shared.work_cycle=工作周期: 
@@ -510,6 +513,7 @@ gtsr.gui.ammonia_plant.cold=冷机
 gtsr.gui.ammonia_plant.preheating=预热中
 gtsr.gui.ammonia_plant.standby=待机
 gtsr.gui.ammonia_plant.running=运行中
+gtsr.recipe.ammonia_plant=制氨工厂
 
 gt.blockmachines.gtsr.air_compressor.name=空气压缩机
 gtsr.tooltip.air_compressor.0=蒸汽驱动的空气压缩设备，持续产出压缩空气
@@ -558,6 +562,12 @@ gtsr.tooltip.shared.gear_box=齿轮箱机械方块
 gtsr.tooltip.shared.frame=框架
 gtsr.tooltip.shared.no_maintenance=无需维护仓
 gtsr.tooltip.shared.cooling_hatch=可选: 蒸汽冷却仓（回收蒸汽冷凝后的蒸馏水）或耐压蒸汽冷却仓（回收过热蒸汽降温后的蒸汽）
+gtsr.tooltip.shared.overflow_output=溢流输出
+gtsr.tooltip.shared.overflow_input=溢流输入
+gtsr.tooltip.shared.on=开
+gtsr.tooltip.shared.off=关
+gtsr.tooltip.shared.overflow_output_screwdriver=螺丝刀: 切换溢流输出（储量>90%时才输出）
+gtsr.tooltip.shared.overflow_input_screwdriver=螺丝刀: 切换溢流输入（满时仍可输入，溢出销毁）
 
 # Shared GUI Keys
 gtsr.gui.building=构建中...
@@ -773,6 +783,7 @@ gtsr.tooltip.geothermal_boiler.byproduct=机器可以从反应过程冷却的岩
 gtsr.tooltip.geothermal_boiler.recipe=基础配方：1000mb岩浆 → 1黑曜石 + 2硫粉（100 tick）
 gtsr.tooltip.geothermal_boiler.steam_output=蒸汽输出
 gtsr.tooltip.geothermal_boiler.chip_desc=放入控制器槽位，切换为过热蒸汽输出（需钢级）
+gtsr.tooltip.geothermal_boiler.max_output=最大产出
 
 # 8. Large Solar Overpressure Array - missing desc keys
 gtsr.tooltip.solar_array.desc=利用太阳能聚焦加热水介质，产生蒸汽。
@@ -782,12 +793,16 @@ gtsr.tooltip.solar_array.calcification_d=使用蒸馏水作为工作介质可避
 gtsr.tooltip.solar_array.steam_output=蒸汽输出
 gtsr.tooltip.solar_array.tier_bronze=青铜
 gtsr.tooltip.solar_array.tier_steel=钢
+gtsr.tooltip.solar_array.tier_nickel=镍
 gtsr.tooltip.solar_array.tier_overpressure=超压
+gtsr.tooltip.solar_array.base_output=基础产出
+gtsr.tooltip.solar_array.superheated_steam=过热蒸汽
 
 # 9. Large Steam Furnace - missing keys
 gtsr.tooltip.steam_furnace.desc2=蒸汽驱动的工业化熔炼设备，具有更大的并行数，可同时处理大量熔炉配方。
 gtsr.tooltip.steam_furnace.speed=工作速度: 200% (青铜级) / 300% (钢级)
 gtsr.tooltip.steam_furnace.steam_eff=等效蒸汽消耗: 80% (青铜级) / 60% (钢级)
+gtsr.tooltip.steam_furnace.recipe_based=依配方而定
 
 # 10. Mega Steam Turbine Array - missing keys
 gtsr.gui.turbine_array.stack_layers=堆叠层: 
@@ -811,6 +826,7 @@ gtsr.tooltip.siemens_martin.hint_temp=炉温需达100%方可运行
 gtsr.tooltip.siemens_martin.hint_interrupt=蒸汽中断导致炉温下降与配方终止
 gtsr.tooltip.siemens_martin.input_bus=铁+煤/焦炭/碳
 gtsr.tooltip.siemens_martin.output_bus=钢/灰烬
+gtsr.tooltip.siemens_martin.superheated_only=仅过热蒸汽
 
 # 13. Steam Fluid Drill - missing hint
 gtsr.tooltip.fluid_drill.hint_bronze=青铜版约5分钟达满效；钢版约1小时达满效

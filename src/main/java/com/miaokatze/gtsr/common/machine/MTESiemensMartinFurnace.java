@@ -490,6 +490,16 @@ public class MTESiemensMartinFurnace extends MTEEnhancedMultiBlockBase<MTESiemen
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.siemens_martin.desc"))
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.siemens_martin.desc2"))
             .addSeparator()
+            .addInfo(
+                EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.shared.steam_cost")
+                    + EnumChatFormatting.WHITE
+                    + GTUtility.formatNumbers(SUPERHEATED_STEAM_COST * 20)
+                    + " L/s"
+                    + EnumChatFormatting.GRAY
+                    + " ("
+                    + StatCollector.translateToLocal("gtsr.tooltip.siemens_martin.superheated_only")
+                    + ")"
+                    + EnumChatFormatting.RESET)
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.siemens_martin.steam_only"))
             .beginStructureBlock(12, 19, 14, false)
             .addController(StatCollector.translateToLocal("gtsr.tooltip.siemens_martin.ctrl"))

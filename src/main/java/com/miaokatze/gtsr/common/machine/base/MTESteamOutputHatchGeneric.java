@@ -6,6 +6,8 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 import net.minecraftforge.common.util.ForgeDirection;
+import net.minecraftforge.fluids.FluidStack;
+import net.minecraftforge.fluids.IFluidHandler;
 
 import gregtech.api.GregTechAPI;
 import gregtech.api.interfaces.ITexture;
@@ -18,6 +20,8 @@ import gregtech.common.blocks.BlockCasings1;
 public class MTESteamOutputHatchGeneric extends MTEHatchOutput {
 
     private static final int CAPACITY = 128_000;
+    private static final int OUTPUT_PER_TICK = 6_400;
+    private static final int OUTPUT_PER_SECOND = 128_000;
     private static final int DEFAULT_TEXTURE_INDEX = ((BlockCasings1) GregTechAPI.sBlockCasings1).getTextureIndex(10);
 
     public MTESteamOutputHatchGeneric(int aID, String aName, String aNameRegional) {
@@ -30,8 +34,8 @@ public class MTESteamOutputHatchGeneric extends MTEHatchOutput {
             aName,
             aNameRegional,
             aTier,
-            new String[] { "Output Hatch for Multiblocks", "Capacity: " + CAPACITY + "L", "Fluid Type: Any Fluid",
-                "For Steam Multiblock Machines" },
+            new String[] { "Output Hatch for Multiblocks", "Capacity: " + CAPACITY + "L",
+                "Output: " + OUTPUT_PER_SECOND + "L/s", "Fluid Type: Any Fluid", "For Steam Multiblock Machines" },
             4);
     }
 
@@ -66,12 +70,32 @@ public class MTESteamOutputHatchGeneric extends MTEHatchOutput {
     @Override
     public boolean onRightclick(IGregTechTileEntity aBaseMetaTileEntity, EntityPlayer aPlayer, ForgeDirection side,
         float aX, float aY, float aZ) {
-        return false;
+        return super.onRightclick(aBaseMetaTileEntity, aPlayer, side, aX, aY, aZ);
     }
 
     @Override
     public int getCapacity() {
         return CAPACITY;
+    }
+
+    @Override
+    public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
+        super.onPostTick(aBaseMetaTileEntity, aTick);
+
+        if (!aBaseMetaTileEntity.isServerSide()) return;
+        if (getDrainableStack() == null || getDrainableStack().amount <= 0) return;
+
+        ForgeDirection outputDirection = aBaseMetaTileEntity.getFrontFacing();
+        IFluidHandler tTank = aBaseMetaTileEntity.getITankContainerAtSide(outputDirection);
+        if (tTank != null) {
+            FluidStack tDrained = drain(OUTPUT_PER_TICK, false);
+            if (tDrained != null && tDrained.amount > 0) {
+                int tFilledAmount = tTank.fill(outputDirection.getOpposite(), tDrained, false);
+                if (tFilledAmount > 0) {
+                    tTank.fill(outputDirection.getOpposite(), drain(tFilledAmount, true), true);
+                }
+            }
+        }
     }
 
     @Override
@@ -82,6 +106,11 @@ public class MTESteamOutputHatchGeneric extends MTEHatchOutput {
                 + String.format("%,d", CAPACITY)
                 + " "
                 + StatCollector.translateToLocal("gtsr.tooltip.shared.l"),
+            EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.tooltip.shared.output_rate")
+                + EnumChatFormatting.GOLD
+                + String.format("%,d", OUTPUT_PER_SECOND)
+                + " "
+                + StatCollector.translateToLocal("gtsr.tooltip.shared.l_s"),
             EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.shared.fluid_type")
                 + EnumChatFormatting.YELLOW
                 + StatCollector.translateToLocal("gtsr.tooltip.shared.any_fluid"),

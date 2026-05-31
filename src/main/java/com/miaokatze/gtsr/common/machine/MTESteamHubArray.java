@@ -277,6 +277,7 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
     private long mSteamStored = 0;
     private FluidStack mStoredFluidType = null;
     private long mTickCounter = 0;
+    public boolean mOverflowInput = false;
 
     public MTESteamHubArray(int aID, String aName, String aNameRegional) {
         super(aID, aName, aNameRegional);
@@ -393,6 +394,18 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
 
         long capacity = getTotalCapacity();
         long canAccept = capacity - mSteamStored;
+
+        if (mOverflowInput) {
+            if (doFill) {
+                if (mStoredFluidType == null) {
+                    mStoredFluidType = new FluidStack(aFluid.getFluid(), 0);
+                }
+                long actualStore = Math.min(aFluid.amount, canAccept);
+                mSteamStored += actualStore;
+            }
+            return aFluid.amount;
+        }
+
         int toAccept = (int) Math.min(aFluid.amount, canAccept);
 
         if (doFill && toAccept > 0) {
@@ -530,6 +543,18 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
     }
 
     @Override
+    public void onScrewdriverRightClick(ForgeDirection side, EntityPlayer aPlayer, float aX, float aY, float aZ,
+        ItemStack aTool) {
+        mOverflowInput = !mOverflowInput;
+        if (aPlayer.worldObj.isRemote) return;
+        GTUtility.sendChatToPlayer(
+            aPlayer,
+            StatCollector.translateToLocal("gtsr.tooltip.shared.overflow_input") + ": "
+                + (mOverflowInput ? EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.tooltip.shared.on")
+                    : EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.shared.off")));
+    }
+
+    @Override
     public boolean onRightclick(IGregTechTileEntity aBaseMetaTileEntity, EntityPlayer aPlayer, ForgeDirection side,
         float aX, float aY, float aZ) {
         ItemStack held = aPlayer.getHeldItem();
@@ -563,6 +588,31 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
         if (!hasChipInstalled()) {
             GTUtility.sendChatToPlayer(aPlayer, StatCollector.translateToLocal("gtsr.binding.no_chip"));
             return true;
+        }
+
+        if (!held.hasTagCompound() || !held.getTagCompound()
+            .hasKey("gtsr.singularity_consumed")) {
+            boolean consumed = false;
+            for (int i = 0; i < aPlayer.inventory.mainInventory.length; i++) {
+                ItemStack invStack = aPlayer.inventory.mainInventory[i];
+                if (invStack != null && GTSRItemList.SteamEntangledSingularity.isStackEqual(invStack, true, true)) {
+                    invStack.stackSize--;
+                    if (invStack.stackSize <= 0) {
+                        aPlayer.inventory.mainInventory[i] = null;
+                    }
+                    consumed = true;
+                    break;
+                }
+            }
+            if (!consumed) {
+                GTUtility.sendChatToPlayer(aPlayer, StatCollector.translateToLocal("gtsr.binding.no_singularity"));
+                return true;
+            }
+            if (!held.hasTagCompound()) {
+                held.setTagCompound(new NBTTagCompound());
+            }
+            held.getTagCompound()
+                .setBoolean("gtsr.singularity_consumed", true);
         }
 
         int myX = aBaseMetaTileEntity.getXCoord();
@@ -740,6 +790,7 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
         aNBT.setInteger("mReinforcedUnitCount", mReinforcedUnitCount);
         aNBT.setInteger("mSetTier", mSetTier);
         aNBT.setLong("mTickCounter", mTickCounter);
+        aNBT.setBoolean("mOverflowInput", mOverflowInput);
         if (mStoredFluidType != null) {
             NBTTagCompound fluidTag = new NBTTagCompound();
             mStoredFluidType.writeToNBT(fluidTag);
@@ -769,6 +820,7 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
         mReinforcedUnitCount = aNBT.getInteger("mReinforcedUnitCount");
         mSetTier = aNBT.getInteger("mSetTier");
         mTickCounter = aNBT.getLong("mTickCounter");
+        mOverflowInput = aNBT.getBoolean("mOverflowInput");
         if (aNBT.hasKey("mStoredFluidType")) {
             mStoredFluidType = FluidStack.loadFluidStackFromNBT(aNBT.getCompoundTag("mStoredFluidType"));
         }
@@ -931,6 +983,8 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
             .addStructureHint("gtsr.tooltip.shared.no_maintenance")
             .addStructureHint("gtsr.tooltip.steam_hub.hint_tier1")
             .addStructureHint("gtsr.tooltip.steam_hub.hint_tier2")
+            .addStructureHint("gtsr.tooltip.shared.hub_singularity_cost")
+            .addStructureHint("gtsr.tooltip.shared.overflow_input_screwdriver")
             .toolTipFinisher(
                 EnumChatFormatting.AQUA + "GT"
                     + EnumChatFormatting.GREEN

@@ -403,7 +403,10 @@ public class MTEVeinSteamPyrolyzer extends MTESteamMultiBase<MTEVeinSteamPyrolyz
             .addInfo(
                 EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.shared.steam_cost")
                     + EnumChatFormatting.WHITE
-                    + " 500 L/s")
+                    + " 1,000/4,000 L/s"
+                    + EnumChatFormatting.GRAY
+                    + " (Bronze/Steel)"
+                    + EnumChatFormatting.RESET)
             .addInfo(
                 EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.tooltip.shared.superheated_quadruples"))
             .beginStructureBlock(5, 7, 5, false)

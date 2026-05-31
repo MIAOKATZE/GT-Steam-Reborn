@@ -494,6 +494,22 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
             .addStructureInfo("")
             .addStructureInfo(
                 EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.shared.bronze_steel_tier"))
+            .addStructureInfo(
+                EnumChatFormatting.GOLD + GTUtility.formatNumbers(MAX_OUTPUT_BRONZE)
+                    + EnumChatFormatting.GRAY
+                    + " L/s "
+                    + StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.max_output")
+                    + " ("
+                    + StatCollector.translateToLocal("gtsr.tooltip.solar_array.tier_bronze")
+                    + ")")
+            .addStructureInfo(
+                EnumChatFormatting.GOLD + GTUtility.formatNumbers(MAX_OUTPUT_STEEL)
+                    + EnumChatFormatting.GRAY
+                    + " L/s "
+                    + StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.max_output")
+                    + " ("
+                    + StatCollector.translateToLocal("gtsr.tooltip.solar_array.tier_steel")
+                    + ")")
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.casing"), 71, false)
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.firebox"), 21, false)
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.pipe"), 12, false)

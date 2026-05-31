@@ -171,13 +171,13 @@ public class MachineLoader {
         CreativeTabManager.addItemToTab(GTSRItemList.LargeSteamFurnace.get(1));
 
         GTSRItemList.AirCompressor
-            .set(new MTEAirCompressor(MetaTileEntityID.AIR_COMPRESSOR.ID, "gtsr.air.compressor", "Air Compressor"));
+            .set(new MTEAirCompressor(MetaTileEntityID.AIR_COMPRESSOR.ID, "gtsr.air_compressor", "Air Compressor"));
         CreativeTabManager.addItemToTab(GTSRItemList.AirCompressor.get(1));
 
         GTSRItemList.AtmosphericCentrifuge.set(
             new MTEAtmosphericCentrifuge(
                 MetaTileEntityID.ATMOSPHERIC_CENTRIFUGE.ID,
-                "gtsr.atmospheric.centrifuge",
+                "gtsr.atmospheric_centrifuge",
                 "Atmospheric Centrifuge"));
         CreativeTabManager.addItemToTab(GTSRItemList.AtmosphericCentrifuge.get(1));
 

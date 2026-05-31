@@ -98,6 +98,7 @@ public class MTESingularityDrillingNode extends MTERemoteWorkerNode {
                 + EnumChatFormatting.GREEN
                 + StatCollector.translateToLocal("gtsr.tooltip.shared.8s"));
         tooltip.add(EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.shared.node_steam_cost"));
+        tooltip.add(EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.shared.singularity_cost"));
         tooltip.add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.shared.node_bind_hint"));
         tooltip.add(
             EnumChatFormatting.AQUA + "GT"

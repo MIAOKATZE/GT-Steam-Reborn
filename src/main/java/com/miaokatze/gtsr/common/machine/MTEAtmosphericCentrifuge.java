@@ -44,6 +44,7 @@ import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.logic.ProcessingLogic;
 import gregtech.api.metatileentity.implementations.MTEHatch;
+import gregtech.api.objects.overclockdescriber.OverclockDescriber;
 import gregtech.api.recipe.RecipeMap;
 import gregtech.api.recipe.check.CheckRecipeResult;
 import gregtech.api.recipe.check.CheckRecipeResultRegistry;
@@ -242,6 +243,11 @@ public class MTEAtmosphericCentrifuge extends MTESteamMultiBase<MTEAtmosphericCe
     @Override
     public RecipeMap<?> getRecipeMap() {
         return GTSRRecipeMaps.atmosphericCentrifugeRecipes;
+    }
+
+    @Override
+    public OverclockDescriber getOverclockDescriber() {
+        return null;
     }
 
     @Override

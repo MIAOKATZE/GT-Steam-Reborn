@@ -351,7 +351,9 @@ public class MTESteamFluidDrill extends MTESteamMultiBase<MTESteamFluidDrill> im
             .addInfo(
                 EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.shared.steam_cost")
                     + EnumChatFormatting.WHITE
-                    + " 500 L/s")
+                    + " "
+                    + GTUtility.formatNumbers(BASE_STEAM_PER_SECOND)
+                    + " L/s")
             .addInfo(
                 EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.tooltip.shared.superheated_quadruples"))
             .beginStructureBlock(5, 6, 5, false)

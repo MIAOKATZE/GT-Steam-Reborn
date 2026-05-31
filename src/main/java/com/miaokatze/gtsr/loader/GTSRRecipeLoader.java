@@ -5,6 +5,7 @@ import static com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps.ammoniaPlantRecipes;
 import static com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps.atmosphericCentrifugeRecipes;
 import static com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps.largeCokeOvenRecipes;
 import static com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps.siemensMartinRecipes;
+import static com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps.steamSingularityCompressorRecipes;
 import static gregtech.api.recipe.RecipeMaps.assemblerRecipes;
 import static gregtech.api.util.GTRecipeBuilder.INGOTS;
 import static gregtech.api.util.GTRecipeBuilder.MINUTES;
@@ -93,6 +94,7 @@ public class GTSRRecipeLoader implements Runnable {
         registerMultiblockWorkbenchRecipes();
         registerMultiblockAssemblerRecipes();
         registerHatchRecipes();
+        registerSingularityCompressorDisplayRecipe();
     }
 
     private static void registerCokeOvenRecipes() {
@@ -914,5 +916,15 @@ public class GTSRRecipeLoader implements Runnable {
                 'D', GTSRItemList.HubStorageUnit.get(1) });
 
         log("Hatch recipes done.");
+    }
+
+    private static void registerSingularityCompressorDisplayRecipe() {
+        GTValues.RA.stdBuilder()
+            .fluidInputs(Materials.Steam.getGas(600_000_000))
+            .itemOutputs(GTSRItemList.SteamEntangledSingularity.get(1))
+            .duration(800)
+            .eut(0)
+            .addTo(steamSingularityCompressorRecipes);
+        log("Singularity compressor display recipe done.");
     }
 }

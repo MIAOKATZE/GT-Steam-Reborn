@@ -385,6 +385,31 @@ public class MTESingularityDrillingHub extends MTESteamMultiBase<MTESingularityD
 
         if (!aBaseMetaTileEntity.isServerSide()) return true;
 
+        if (!held.hasTagCompound() || !held.getTagCompound()
+            .hasKey("gtsr.singularity_consumed")) {
+            boolean consumed = false;
+            for (int i = 0; i < aPlayer.inventory.mainInventory.length; i++) {
+                ItemStack invStack = aPlayer.inventory.mainInventory[i];
+                if (invStack != null && GTSRItemList.SteamEntangledSingularity.isStackEqual(invStack, true, true)) {
+                    invStack.stackSize--;
+                    if (invStack.stackSize <= 0) {
+                        aPlayer.inventory.mainInventory[i] = null;
+                    }
+                    consumed = true;
+                    break;
+                }
+            }
+            if (!consumed) {
+                GTUtility.sendChatToPlayer(aPlayer, StatCollector.translateToLocal("gtsr.binding.no_singularity"));
+                return true;
+            }
+            if (!held.hasTagCompound()) {
+                held.setTagCompound(new NBTTagCompound());
+            }
+            held.getTagCompound()
+                .setBoolean("gtsr.singularity_consumed", true);
+        }
+
         int myX = aBaseMetaTileEntity.getXCoord();
         int myY = aBaseMetaTileEntity.getYCoord();
         int myZ = aBaseMetaTileEntity.getZCoord();
@@ -632,6 +657,7 @@ public class MTESingularityDrillingHub extends MTESteamMultiBase<MTESingularityD
             .addStructureHint("gtsr.tooltip.shared.no_maintenance")
             .addStructureHint("gtsr.tooltip.singularity_hub.hint_node")
             .addStructureHint("gtsr.tooltip.singularity_hub.hint_chunk")
+            .addStructureHint("gtsr.tooltip.shared.hub_singularity_cost")
             .toolTipFinisher(
                 EnumChatFormatting.AQUA + "GT"
                     + EnumChatFormatting.GREEN

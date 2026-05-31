@@ -31,6 +31,9 @@ gtsr.tooltip.shared.steam_and_superheated=Steam / Superheated Steam
 gtsr.tooltip.shared.no_external_input=No External Input Allowed
 gtsr.tooltip.shared.steam_machine_only=For Steam Multiblock Machines Only
 gtsr.tooltip.shared.bind_hint=Right-click a Hub with Singularity Chip installed to bind
+gtsr.tooltip.shared.singularity_cost=Consumes 1 Steam Entangled Singularity on first hub binding (once only)
+gtsr.tooltip.shared.hub_singularity_cost=Consumes 1 Steam Entangled Singularity when binding a node (once per node)
+gtsr.binding.no_singularity=No Steam Entangled Singularity in inventory!
 gtsr.tooltip.shared.node_bind_hint=Right-click Singularity Drilling Hub to bind
 gtsr.tooltip.shared.node_steam_cost=Each node adds 12,000 L/s steam cost to Hub, consumed on placement regardless of operation
 gtsr.tooltip.shared.work_cycle=Work Cycle: 
@@ -510,6 +513,7 @@ gtsr.gui.ammonia_plant.cold=Cold
 gtsr.gui.ammonia_plant.preheating=Preheating
 gtsr.gui.ammonia_plant.standby=Standby
 gtsr.gui.ammonia_plant.running=Running
+gtsr.recipe.ammonia_plant=Ammonia Plant
 
 gt.blockmachines.gtsr.air_compressor.name=Air Compressor
 gtsr.tooltip.air_compressor.0=Steam-driven air compression equipment, continuously produces compressed air
@@ -556,6 +560,12 @@ gtsr.tooltip.shared.gear_box=Gearbox Casing
 gtsr.tooltip.shared.frame=Frame Box
 gtsr.tooltip.shared.no_maintenance=No maintenance hatch required
 gtsr.tooltip.shared.cooling_hatch=Optional: Steam Cooling Hatch (recovers distilled water from condensed steam) or Pressure Steam Cooling Hatch (recovers steam from cooled superheated steam)
+gtsr.tooltip.shared.overflow_output=Overflow Output
+gtsr.tooltip.shared.overflow_input=Overflow Input
+gtsr.tooltip.shared.on=ON
+gtsr.tooltip.shared.off=OFF
+gtsr.tooltip.shared.overflow_output_screwdriver=Screwdriver: Toggle Overflow Output (only outputs when >90% full)
+gtsr.tooltip.shared.overflow_input_screwdriver=Screwdriver: Toggle Overflow Input (accepts input when full, excess destroyed)
 
 # Shared GUI Keys
 gtsr.gui.building=Building...
@@ -707,6 +717,7 @@ gtsr.tooltip.geothermal_boiler.byproduct=Obsidian and sulfur dust can be obtaine
 gtsr.tooltip.geothermal_boiler.recipe=Base Recipe: 1000mb Lava -> 1 Obsidian + 2 Sulfur Dust (100 ticks)
 gtsr.tooltip.geothermal_boiler.steam_output=Steam Output
 gtsr.tooltip.geothermal_boiler.chip_desc=Place in controller slot to switch to superheated steam output (requires steel tier)
+gtsr.tooltip.geothermal_boiler.max_output=max output
 
 # 8. Large Solar Overpressure Array - missing desc keys
 gtsr.tooltip.solar_array.desc=Uses solar energy to heat water medium and produce steam.
@@ -716,12 +727,16 @@ gtsr.tooltip.solar_array.calcification_d=Using distilled water as working medium
 gtsr.tooltip.solar_array.steam_output=Steam Output
 gtsr.tooltip.solar_array.tier_bronze=Bronze
 gtsr.tooltip.solar_array.tier_steel=Steel
+gtsr.tooltip.solar_array.tier_nickel=Nickel
 gtsr.tooltip.solar_array.tier_overpressure=Overpressure
+gtsr.tooltip.solar_array.base_output=base output
+gtsr.tooltip.solar_array.superheated_steam=Superheated Steam
 
 # 9. Large Steam Furnace - missing keys
 gtsr.tooltip.steam_furnace.desc2=Steam-driven industrial smelting equipment with greater parallel capacity for processing large quantities of furnace recipes simultaneously.
 gtsr.tooltip.steam_furnace.speed=Work Speed: 200% (Bronze) / 300% (Steel)
 gtsr.tooltip.steam_furnace.steam_eff=Steam Efficiency: 80% (Bronze) / 60% (Steel)
+gtsr.tooltip.steam_furnace.recipe_based=Recipe-dependent
 
 # 10. Mega Steam Turbine Array - missing keys
 gtsr.gui.turbine_array.stack_layers=Stack Layers: 
@@ -745,6 +760,7 @@ gtsr.tooltip.siemens_martin.hint_temp=Furnace temperature must reach 100% to ope
 gtsr.tooltip.siemens_martin.hint_interrupt=Steam interruption causes temperature drop and recipe termination
 gtsr.tooltip.siemens_martin.input_bus=Iron+Coal/Coke/Carbon
 gtsr.tooltip.siemens_martin.output_bus=Steel/Ash
+gtsr.tooltip.siemens_martin.superheated_only=Superheated Steam Only
 
 # 12. SDH - fix output_hatch
 gtsr.tooltip.singularity_hub.output_hatch=Fluid Products
