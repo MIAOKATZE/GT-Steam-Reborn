@@ -89,6 +89,8 @@ public class GTSRRecipeLoader implements Runnable {
         registerCatalystRecipes();
         registerCacheNodeRecipes();
         registerNodeRecipes();
+        registerMultiblockWorkbenchRecipes();
+        registerMultiblockAssemblerRecipes();
     }
 
     private static void registerCokeOvenRecipes() {
@@ -579,5 +581,231 @@ public class GTSRRecipeLoader implements Runnable {
         }
 
         log("Node recipes done.");
+    }
+
+    private static void registerMultiblockWorkbenchRecipes() {
+        log("Registering multiblock workbench recipes...");
+
+        ItemStack copperPlatedBrick = ItemList.Casing_BronzePlatedBricks.get(1);
+        ItemStack roseGoldFrame = get(OrePrefixes.frameGt, Materials.RoseGold, 1);
+        ItemStack efrBlastFurnace = GTModHandler.getModItem("etfuturum", "blast_furnace", 1);
+        if (efrBlastFurnace == null) {
+            warn("EFR blast_furnace (etfuturum) is null!");
+        }
+        ItemStack piston = new ItemStack(
+            net.minecraft.init.Blocks.piston,
+            1,
+            net.minecraftforge.oredict.OreDictionary.WILDCARD_VALUE);
+        ItemStack stickyPiston = new ItemStack(
+            net.minecraft.init.Blocks.sticky_piston,
+            1,
+            net.minecraftforge.oredict.OreDictionary.WILDCARD_VALUE);
+        ItemStack glass = new ItemStack(
+            net.minecraft.init.Blocks.glass,
+            1,
+            net.minecraftforge.oredict.OreDictionary.WILDCARD_VALUE);
+        ItemStack brickBlock = new ItemStack(
+            net.minecraft.init.Blocks.brick_block,
+            1,
+            net.minecraftforge.oredict.OreDictionary.WILDCARD_VALUE);
+
+        GTModHandler.addCraftingRecipe(
+            GTSRItemList.AirCompressor.get(1),
+            GTModHandler.RecipeBits.BITSD,
+            new Object[] { "ABA", "CDC", "EFE", 'A', copperPlatedBrick, 'B', "pipeHugeBronze", 'C', piston, 'D',
+                roseGoldFrame, 'E', "gearGtBronze", 'F', "gearGtBronze" });
+
+        GTModHandler.addCraftingRecipe(
+            GTSRItemList.AtmosphericCentrifuge.get(1),
+            GTModHandler.RecipeBits.BITSD,
+            new Object[] { "ABA", "CDC", "BBB", 'A', copperPlatedBrick, 'B', "pipeHugeBronze", 'C', "gearGtBronze", 'D',
+                roseGoldFrame });
+
+        GTModHandler.addCraftingRecipe(
+            GTSRItemList.CrustSteamBorer.get(1),
+            GTModHandler.RecipeBits.BITSD,
+            new Object[] { "ABA", "CDC", "CEC", 'A', copperPlatedBrick, 'B', "gearGtBronze", 'C', "gearGtBronze", 'D',
+                roseGoldFrame, 'E', "pipeLargeBronze" });
+
+        GTModHandler.addCraftingRecipe(
+            GTSRItemList.GearSteamCompressor.get(1),
+            GTModHandler.RecipeBits.BITSD,
+            new Object[] { "ABA", "CDC", "CEC", 'A', copperPlatedBrick, 'B', "pipeLargeBronze", 'C', piston, 'D',
+                roseGoldFrame, 'E', "pipeHugeBronze" });
+
+        GTModHandler.addCraftingRecipe(
+            GTSRItemList.LargeCokeOven.get(1),
+            GTModHandler.RecipeBits.BITSD,
+            new Object[] { "ABA", "CDC", "ABA", 'A', copperPlatedBrick, 'B', brickBlock, 'C', efrBlastFurnace, 'D',
+                GTModHandler.getModItem("gregtech", "gt.blockcasings12", 1, 0) });
+
+        GTModHandler.addCraftingRecipe(
+            GTSRItemList.LargeGeothermalSteamBoiler.get(1),
+            GTModHandler.RecipeBits.BITSD,
+            new Object[] { "ABA", "CDC", "ABA", 'A', copperPlatedBrick, 'B', "pipeHugeBronze", 'C', efrBlastFurnace,
+                'D', ItemList.Machine_Steel_Boiler_Lava.get(1) });
+
+        GTModHandler.addCraftingRecipe(
+            GTSRItemList.LargeSteamFurnace.get(1),
+            GTModHandler.RecipeBits.BITSD,
+            new Object[] { "ABA", "CDC", "ABA", 'A', copperPlatedBrick, 'B', ItemList.Casing_Firebox_Bronze.get(1), 'C',
+                efrBlastFurnace, 'D', roseGoldFrame });
+
+        GTModHandler.addCraftingRecipe(
+            GTSRItemList.SteamFluidDrill.get(1),
+            GTModHandler.RecipeBits.BITSD,
+            new Object[] { "ABA", "CDC", "BEB", 'A', copperPlatedBrick, 'B', "gearGtBronze", 'C',
+                get(OrePrefixes.frameGt, Materials.Bronze, 1), 'D', roseGoldFrame, 'E', "pipeMediumBronze" });
+
+        GTModHandler.addCraftingRecipe(
+            GTSRItemList.LargeSolarOverpressureArray.get(1),
+            GTModHandler.RecipeBits.BITSD,
+            new Object[] { "AAA", "BCB", "BDB", 'A', glass, 'B', copperPlatedBrick, 'C',
+                get(OrePrefixes.circuit, Materials.LV, 1), 'D', get(OrePrefixes.block, Materials.Silver, 1) });
+
+        GTModHandler.addCraftingRecipe(
+            GTSRItemList.SteamHubArray.get(1),
+            GTModHandler.RecipeBits.BITSD,
+            new Object[] { "ABA", "CDC", "AEB", 'A', copperPlatedBrick, 'B', "pipeHugeBronze", 'C',
+                get(OrePrefixes.frameGt, Materials.Bronze, 1), 'D', roseGoldFrame, 'E', "plateTripleBronze" });
+
+        GTModHandler.addCraftingRecipe(
+            GTSRItemList.WaterHubArray.get(1),
+            GTModHandler.RecipeBits.BITSD,
+            new Object[] { "ABA", "CDC", "EEE", 'A', copperPlatedBrick, 'B', "plateTripleBronze", 'C',
+                "plateTripleBronze", 'D', roseGoldFrame, 'E', "pipeMediumBronze" });
+
+        log("Multiblock workbench recipes done.");
+    }
+
+    private static void registerMultiblockAssemblerRecipes() {
+        log("Registering multiblock assembler recipes...");
+
+        GTValues.RA.stdBuilder()
+            .itemInputs(
+                get(OrePrefixes.frameGt, Materials.Bronze, 4),
+                ItemList.Casing_Firebox_Bronze.get(8),
+                get(OrePrefixes.gearGt, Materials.Bronze, 4),
+                get(OrePrefixes.circuit, Materials.LV, 4),
+                get(OrePrefixes.plateTriple, Materials.Bronze, 12))
+            .itemOutputs(GTSRItemList.VeinSteamPyrolyzer.get(1))
+            .fluidInputs(Materials.SolderingAlloy.getMolten(288))
+            .duration(30 * SECONDS)
+            .eut(TierEU.RECIPE_LV)
+            .addTo(assemblerRecipes);
+
+        GTValues.RA.stdBuilder()
+            .itemInputs(
+                ItemList.Machine_Multi_LargeChemicalReactor.get(2),
+                get(OrePrefixes.frameGt, Materials.Steel, 4),
+                ItemList.Casing_Firebox_Steel.get(6),
+                get(OrePrefixes.frameGt, Materials.Polytetrafluoroethylene, 8),
+                ItemList.Casing_Pipe_Polytetrafluoroethylene.get(8),
+                get(OrePrefixes.plateDense, Materials.StainlessSteel, 8),
+                get(OrePrefixes.circuit, Materials.HV, 6),
+                ItemList.Electric_Pump_HV.get(12))
+            .itemOutputs(GTSRItemList.AmmoniaPlant.get(1))
+            .fluidInputs(Materials.SolderingAlloy.getMolten(1728))
+            .duration(720 * SECONDS)
+            .eut(TierEU.RECIPE_HV)
+            .addTo(assemblerRecipes);
+
+        GTValues.RA.stdBuilder()
+            .itemInputs(
+                get(OrePrefixes.frameGt, Materials.Steel, 4),
+                ItemList.Casing_Firebox_Steel.get(4),
+                get(OrePrefixes.plateDense, Materials.Steel, 12),
+                ItemList.Firebrick.get(32),
+                get(OrePrefixes.circuit, Materials.LV, 2),
+                get(OrePrefixes.pipeLarge, Materials.Steel, 4))
+            .itemOutputs(GTSRItemList.SiemensMartinFurnace.get(1))
+            .fluidInputs(Materials.SolderingAlloy.getMolten(288))
+            .duration(120 * SECONDS)
+            .eut(TierEU.RECIPE_LV)
+            .addTo(assemblerRecipes);
+
+        GTValues.RA.stdBuilder()
+            .itemInputs(
+                GTSRItemList.SteamEntangledSingularity.get(16),
+                get(OrePrefixes.frameGt, Materials.Steel, 8),
+                get(OrePrefixes.plateTriple, Materials.Steel, 16),
+                ItemList.Sensor_LV.get(12),
+                ItemList.Electric_Pump_LV.get(8),
+                ItemList.Conveyor_Module_LV.get(8))
+            .itemOutputs(GTSRItemList.SingularityDrillingHub.get(1))
+            .fluidInputs(Materials.SolderingAlloy.getMolten(1152))
+            .duration(60 * SECONDS)
+            .eut(TierEU.RECIPE_LV)
+            .addTo(assemblerRecipes);
+
+        GTValues.RA.stdBuilder()
+            .itemInputs(
+                get(OrePrefixes.frameGt, Materials.Steel, 8),
+                get(OrePrefixes.plateTriple, Materials.Steel, 16),
+                get(OrePrefixes.circuit, Materials.LV, 4),
+                ItemList.Electric_Piston_LV.get(12),
+                get(OrePrefixes.pipeHuge, Materials.Steel, 4),
+                get(OrePrefixes.plate, Materials.Obsidian, 32))
+            .itemOutputs(GTSRItemList.SteamSingularityCompressor.get(1))
+            .fluidInputs(Materials.SolderingAlloy.getMolten(2304))
+            .duration(60 * SECONDS)
+            .eut(TierEU.RECIPE_LV)
+            .addTo(assemblerRecipes);
+
+        GTValues.RA.stdBuilder()
+            .itemInputs(
+                GTSRItemList.SteamEntangledSingularity.get(24),
+                get(OrePrefixes.frameGt, Materials.Steel, 12),
+                get(OrePrefixes.plateTriple, Materials.Steel, 24),
+                get(OrePrefixes.circuit, Materials.LV, 8),
+                ItemList.Electric_Piston_LV.get(12),
+                get(OrePrefixes.rotor, Materials.Steel, 16))
+            .itemOutputs(GTSRItemList.MegaSteamTurbineArray.get(1))
+            .fluidInputs(Materials.SolderingAlloy.getMolten(1152))
+            .duration(45 * SECONDS)
+            .eut(TierEU.RECIPE_LV)
+            .addTo(assemblerRecipes);
+
+        ItemStack paOut = get(GTSRItemList.KineticProcessingArray, 1);
+        if (!hasNull(paOut)) {
+            ItemStack[] inputs = filterNulls(
+                GTSRItemList.SteamEntangledSingularity.get(8),
+                get(OrePrefixes.frameGt, Materials.Steel, 4),
+                get(OrePrefixes.circuit, Materials.LV, 4),
+                ItemList.Electric_Motor_LV.get(4),
+                ItemList.Conveyor_Module_LV.get(4),
+                ItemList.Electric_Pump_LV.get(4));
+            GTValues.RA.stdBuilder()
+                .itemInputs(inputs)
+                .itemOutputs(paOut)
+                .fluidInputs(Materials.SolderingAlloy.getMolten(16 * INGOTS))
+                .duration(60 * SECONDS)
+                .eut(TierEU.RECIPE_LV)
+                .addTo(assemblerRecipes);
+        } else {
+            warn("Skipped KineticProcessingArray recipe - output is null");
+        }
+
+        ItemStack voidBorerOut = get(GTSRItemList.SingularityCrustSteamBorer, 1);
+        if (!hasNull(voidBorerOut)) {
+            ItemStack[] inputs = filterNulls(
+                GTSRItemList.SteamEntangledSingularity.get(8),
+                GTSRItemList.CrustSteamBorer.get(1),
+                get(OrePrefixes.plateTriple, Materials.Steel, 8),
+                get(OrePrefixes.frameGt, Materials.Steel, 2),
+                get(OrePrefixes.circuit, Materials.LV, 2),
+                ItemList.Electric_Piston_LV.get(4));
+            GTValues.RA.stdBuilder()
+                .itemInputs(inputs)
+                .itemOutputs(voidBorerOut)
+                .fluidInputs(Materials.SolderingAlloy.getMolten(4 * INGOTS))
+                .duration(30 * SECONDS)
+                .eut(TierEU.RECIPE_LV)
+                .addTo(assemblerRecipes);
+        } else {
+            warn("Skipped SingularityCrustSteamBorer recipe - output is null");
+        }
+
+        log("Multiblock assembler recipes done.");
     }
 }
