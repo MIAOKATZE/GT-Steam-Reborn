@@ -74,26 +74,6 @@ public abstract class MTEHatchInputMixin extends MTEHatch {
                     : EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.shared.off")));
     }
 
-    @Inject(method = "onPostTick", at = @At("HEAD"), remap = false)
-    private void gtsr$onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick, CallbackInfo ci) {
-        if (!aBaseMetaTileEntity.isServerSide() || !gtsr$autoInput) return;
-        if (!aBaseMetaTileEntity.isAllowedToWork()) return;
-
-        MTEHatchInput self = (MTEHatchInput) (Object) this;
-
-        ForgeDirection front = aBaseMetaTileEntity.getFrontFacing();
-        IFluidHandler tTileEntity = aBaseMetaTileEntity.getITankContainerAtSide(front);
-        if (tTileEntity == null) return;
-
-        FluidStack drained = tTileEntity.drain(front.getOpposite(), 2000, false);
-        if (drained == null) return;
-
-        int filled = self.fill(front, drained, true);
-        if (filled > 0) {
-            tTileEntity.drain(front.getOpposite(), filled, true);
-        }
-    }
-
     @Inject(method = "saveNBTData", at = @At("TAIL"), remap = false)
     private void gtsr$saveNBTData(NBTTagCompound aNBT, CallbackInfo ci) {
         aNBT.setBoolean("gtsr$autoInput", gtsr$autoInput);
@@ -102,5 +82,29 @@ public abstract class MTEHatchInputMixin extends MTEHatch {
     @Inject(method = "loadNBTData", at = @At("TAIL"), remap = false)
     private void gtsr$loadNBTData(NBTTagCompound aNBT, CallbackInfo ci) {
         gtsr$autoInput = aNBT.getBoolean("gtsr$autoInput");
+    }
+
+    @Unique
+    public boolean gtsr$isAutoInput() {
+        return gtsr$autoInput;
+    }
+
+    @Unique
+    public void gtsr$doAutoInput(IGregTechTileEntity aBaseMetaTileEntity) {
+        if (!aBaseMetaTileEntity.isAllowedToWork()) return;
+
+        MTEHatchInput self = (MTEHatchInput) (Object) this;
+
+        ForgeDirection front = aBaseMetaTileEntity.getFrontFacing();
+        IFluidHandler tTileEntity = aBaseMetaTileEntity.getITankContainerAtSide(front);
+        if (tTileEntity == null) return;
+
+        FluidStack drained = tTileEntity.drain(front.getOpposite(), 100, false);
+        if (drained == null) return;
+
+        int filled = self.fill(front, drained, true);
+        if (filled > 0) {
+            tTileEntity.drain(front.getOpposite(), filled, true);
+        }
     }
 }

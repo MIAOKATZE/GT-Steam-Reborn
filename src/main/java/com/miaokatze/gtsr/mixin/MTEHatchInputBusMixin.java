@@ -111,11 +111,25 @@ public abstract class MTEHatchInputBusMixin extends MTEHatch {
         }
     }
 
-    @Inject(method = "onPostTick", at = @At("TAIL"), remap = false)
-    private void gtsr$onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick, CallbackInfo ci) {
-        if (!aBaseMetaTileEntity.isServerSide() || !gtsr$autoInput) return;
+    @Inject(method = "saveNBTData", at = @At("TAIL"), remap = false)
+    private void gtsr$saveNBTData(NBTTagCompound aNBT, CallbackInfo ci) {
+        aNBT.setBoolean("gtsr$autoInput", gtsr$autoInput);
+    }
+
+    @Inject(method = "loadNBTData", at = @At("TAIL"), remap = false)
+    private void gtsr$loadNBTData(NBTTagCompound aNBT, CallbackInfo ci) {
+        gtsr$autoInput = aNBT.getBoolean("gtsr$autoInput");
+    }
+
+    @Unique
+    public boolean gtsr$isAutoInput() {
+        return gtsr$autoInput;
+    }
+
+    @Unique
+    public void gtsr$doAutoInput(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
         if (!aBaseMetaTileEntity.isAllowedToWork()) return;
-        if ((aTick & 0x63) != 0) return;
+        if (aTick % 100 != 0) return;
 
         MTEHatchInputBus self = (MTEHatchInputBus) (Object) this;
 
@@ -167,15 +181,5 @@ public abstract class MTEHatchInputBusMixin extends MTEHatch {
         if (transferred > 0) {
             self.updateSlots();
         }
-    }
-
-    @Inject(method = "saveNBTData", at = @At("TAIL"), remap = false)
-    private void gtsr$saveNBTData(NBTTagCompound aNBT, CallbackInfo ci) {
-        aNBT.setBoolean("gtsr$autoInput", gtsr$autoInput);
-    }
-
-    @Inject(method = "loadNBTData", at = @At("TAIL"), remap = false)
-    private void gtsr$loadNBTData(NBTTagCompound aNBT, CallbackInfo ci) {
-        gtsr$autoInput = aNBT.getBoolean("gtsr$autoInput");
     }
 }
