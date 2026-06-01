@@ -55,6 +55,7 @@ public abstract class MTEHatchInputMixin extends MTEHatch {
         } else if (disableFilter && gtsr$autoInput) {
             disableFilter = false;
         } else {
+            disableFilter = true;
             gtsr$autoInput = false;
         }
 
