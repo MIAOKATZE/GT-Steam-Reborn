@@ -20,9 +20,9 @@ import gregtech.common.blocks.BlockCasings1;
 
 public class MTESteamOutputHatch extends MTEHatchOutput {
 
-    private static final int CAPACITY = 8_000;
-    private static final int OUTPUT_PER_TICK = 400;
-    private static final int OUTPUT_PER_SECOND = 8_000;
+    private static final int CAPACITY = 128_000;
+    private static final int OUTPUT_PER_TICK = 6_400;
+    private static final int OUTPUT_PER_SECOND = 128_000;
     private static final int DEFAULT_TEXTURE_INDEX = ((BlockCasings1) GregTechAPI.sBlockCasings1).getTextureIndex(10);
 
     public MTESteamOutputHatch(int aID, String aName, String aNameRegional) {

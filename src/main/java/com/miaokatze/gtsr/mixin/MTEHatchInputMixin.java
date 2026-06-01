@@ -98,31 +98,18 @@ public abstract class MTEHatchInputMixin extends MTEHatch implements IAutoInputH
 
     @Override
     public void gtsr$doAutoInput(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
-        if (!aBaseMetaTileEntity.isAllowedToWork()) {
-            System.out.println("[GTSR-DEBUG] doAutoInput: not allowed to work");
-            return;
-        }
+        if (!aBaseMetaTileEntity.isAllowedToWork()) return;
 
         MTEHatchInput self = (MTEHatchInput) (Object) this;
 
         ForgeDirection front = aBaseMetaTileEntity.getFrontFacing();
         IFluidHandler tTileEntity = aBaseMetaTileEntity.getITankContainerAtSide(front);
-        if (tTileEntity == null) {
-            System.out.println("[GTSR-DEBUG] doAutoInput: no IFluidHandler at front side=" + front);
-            return;
-        }
+        if (tTileEntity == null) return;
 
         FluidStack drained = tTileEntity.drain(front.getOpposite(), 100, false);
-        if (drained == null) {
-            System.out.println("[GTSR-DEBUG] doAutoInput: drain returned null from side=" + front.getOpposite());
-            return;
-        }
-
-        System.out
-            .println("[GTSR-DEBUG] doAutoInput: drained=" + drained.amount + "L of " + drained.getLocalizedName());
+        if (drained == null) return;
 
         int filled = self.fill(front, drained, true);
-        System.out.println("[GTSR-DEBUG] doAutoInput: filled=" + filled + "L");
         if (filled > 0) {
             tTileEntity.drain(front.getOpposite(), filled, true);
         }
