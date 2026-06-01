@@ -7,7 +7,6 @@ import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.FluidStack;
-import net.minecraftforge.fluids.IFluidHandler;
 
 import com.miaokatze.gtsr.common.machine.MTEWaterHubArray;
 
@@ -18,8 +17,6 @@ import gregtech.api.metatileentity.implementations.MTEHatchOutput;
 import gregtech.api.util.GTUtility;
 
 public class MTEWaterHubOutputHatch extends MTEHatchOutput {
-
-    private static final int OUTPUT_PER_TICK = 6_400;
 
     public MTEWaterHubArray mController;
     public boolean mOverflowOutput = false;
@@ -56,17 +53,12 @@ public class MTEWaterHubOutputHatch extends MTEHatchOutput {
                     : EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.shared.off")));
     }
 
-    private boolean isOverflowBlocked() {
-        if (!mOverflowOutput) return false;
-        if (mController == null || !mController.isFormed()) return false;
-        long capacity = mController.getTotalCapacity();
-        if (capacity <= 0) return false;
-        return mController.getWaterStored() < (long) (capacity * 0.9);
-    }
-
     @Override
     public FluidStack drain(int maxDrain, boolean doDrain) {
-        if (isOverflowBlocked()) return null;
+        if (mOverflowOutput && mController != null && mController.isFormed()) {
+            long capacity = mController.getTotalCapacity();
+            if (capacity > 0 && mController.getWaterStored() < (long) (capacity * 0.9)) return null;
+        }
         if (mController != null) {
             if (mController.isFormed()) {
                 return mController.extractWater(maxDrain, doDrain);
@@ -104,28 +96,6 @@ public class MTEWaterHubOutputHatch extends MTEHatchOutput {
         return false;
     }
 
-    @Override
-    public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
-        super.onPostTick(aBaseMetaTileEntity, aTick);
-        if (!aBaseMetaTileEntity.isServerSide()) return;
-        if (mController == null || !mController.isFormed()) return;
-        if (isOverflowBlocked()) return;
-
-        FluidStack stored = mController.getStoredFluidStack();
-        if (stored == null) return;
-
-        ForgeDirection hatchFront = aBaseMetaTileEntity.getFrontFacing();
-        IFluidHandler adjacent = aBaseMetaTileEntity.getITankContainerAtSide(hatchFront);
-        if (adjacent == null) return;
-
-        int toPush = Math.min(OUTPUT_PER_TICK, stored.amount);
-        FluidStack toExport = new FluidStack(stored.getFluid(), toPush);
-        int pushed = adjacent.fill(hatchFront.getOpposite(), toExport, true);
-        if (pushed > 0) {
-            mController.extractWater(pushed, true);
-        }
-    }
-
     public static boolean isWaterFluid(FluidStack aFluid) {
         if (aFluid == null) return false;
         if (aFluid.getFluid() == null) return false;
@@ -148,10 +118,11 @@ public class MTEWaterHubOutputHatch extends MTEHatchOutput {
 
     @Override
     public String[] getDescription() {
-        return new String[] { StatCollector.translateToLocal("gtsr.tooltip.water_hub_output_hatch.info"),
-            StatCollector.translateToLocal("gtsr.tooltip.water_hub_output_hatch.fluid_type"),
-            StatCollector.translateToLocal("gtsr.tooltip.water_hub_output_hatch.output_rate"),
-            StatCollector.translateToLocal("gtsr.tooltip.water_hub_output_hatch.no_storage"),
+        return new String[] {
+            EnumChatFormatting.DARK_AQUA + StatCollector.translateToLocal("gtsr.tooltip.water_hub_output_hatch.info"),
+            EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.water_hub_output_hatch.fluid_type"),
+            EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.tooltip.water_hub_output_hatch.output_rate"),
+            EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.water_hub_output_hatch.no_storage"),
             EnumChatFormatting.YELLOW
                 + StatCollector.translateToLocal("gtsr.tooltip.shared.overflow_output_screwdriver"),
             EnumChatFormatting.AQUA + "GT"

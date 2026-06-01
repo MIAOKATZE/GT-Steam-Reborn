@@ -521,8 +521,10 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
 
     private void autoOutputSteam() {
         if (mSteamStored <= 0 || mStoredFluidType == null) return;
+        long capacity = getTotalCapacity();
         for (MTESteamHubOutputHatch hatch : mSteamOutputHatches) {
             if (mSteamStored <= 0) break;
+            if (hatch.mOverflowOutput && mSteamStored < (long) (capacity * 0.9)) continue;
             IGregTechTileEntity hatchBase = hatch.getBaseMetaTileEntity();
             if (hatchBase == null) continue;
             ForgeDirection hatchFront = hatchBase.getFrontFacing();

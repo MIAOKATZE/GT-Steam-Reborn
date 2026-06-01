@@ -464,33 +464,31 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
             .addSeparator()
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.solar_array.calcification"))
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.solar_array.calcification_d"))
-            .addStructureInfo("")
-            .addStructureInfo(
+            .addSeparator()
+            .addInfo(
                 EnumChatFormatting.BLUE + "Tier 1 "
                     + EnumChatFormatting.DARK_PURPLE
-                    + StatCollector.translateToLocal("gtsr.tooltip.solar_array.tier_bronze"))
-            .addStructureInfo(
-                EnumChatFormatting.GOLD + "12,000"
+                    + StatCollector.translateToLocal("gtsr.tooltip.solar_array.tier_bronze")
+                    + EnumChatFormatting.GOLD
+                    + " 12,000"
                     + EnumChatFormatting.GRAY
                     + " L/s "
                     + StatCollector.translateToLocal("gtsr.tooltip.solar_array.base_output"))
-            .addStructureInfo("")
-            .addStructureInfo(
+            .addInfo(
                 EnumChatFormatting.BLUE + "Tier 2 "
                     + EnumChatFormatting.DARK_PURPLE
-                    + StatCollector.translateToLocal("gtsr.tooltip.solar_array.tier_steel"))
-            .addStructureInfo(
-                EnumChatFormatting.GOLD + "30,000"
+                    + StatCollector.translateToLocal("gtsr.tooltip.solar_array.tier_steel")
+                    + EnumChatFormatting.GOLD
+                    + " 30,000"
                     + EnumChatFormatting.GRAY
                     + " L/s "
                     + StatCollector.translateToLocal("gtsr.tooltip.solar_array.base_output"))
-            .addStructureInfo("")
-            .addStructureInfo(
+            .addInfo(
                 EnumChatFormatting.BLUE + "Tier 3 "
                     + EnumChatFormatting.DARK_PURPLE
-                    + StatCollector.translateToLocal("gtsr.tooltip.solar_array.tier_nickel"))
-            .addStructureInfo(
-                EnumChatFormatting.GOLD + "30,000"
+                    + StatCollector.translateToLocal("gtsr.tooltip.solar_array.tier_nickel")
+                    + EnumChatFormatting.GOLD
+                    + " 30,000"
                     + EnumChatFormatting.GRAY
                     + " L/s "
                     + StatCollector.translateToLocal("gtsr.tooltip.solar_array.base_output")

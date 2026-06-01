@@ -483,6 +483,24 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.heat"))
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.chip_info"))
             .addSeparator()
+            .addInfo(
+                EnumChatFormatting.BLUE + "Tier 1 "
+                    + EnumChatFormatting.DARK_PURPLE
+                    + StatCollector.translateToLocal("gtsr.tooltip.solar_array.tier_bronze")
+                    + EnumChatFormatting.GOLD
+                    + " 60,000"
+                    + EnumChatFormatting.GRAY
+                    + " L/s "
+                    + StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.max_output"))
+            .addInfo(
+                EnumChatFormatting.BLUE + "Tier 2 "
+                    + EnumChatFormatting.DARK_PURPLE
+                    + StatCollector.translateToLocal("gtsr.tooltip.solar_array.tier_steel")
+                    + EnumChatFormatting.GOLD
+                    + " 150,000"
+                    + EnumChatFormatting.GRAY
+                    + " L/s "
+                    + StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.max_output"))
             .beginStructureBlock(7, 8, 7, false)
             .addController(StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.ctrl"))
             .addInputHatch(StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.input_hatch"), 1)
@@ -494,22 +512,6 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
             .addStructureInfo("")
             .addStructureInfo(
                 EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.shared.bronze_steel_tier"))
-            .addStructureInfo(
-                EnumChatFormatting.GOLD + GTUtility.formatNumbers(MAX_OUTPUT_BRONZE)
-                    + EnumChatFormatting.GRAY
-                    + " L/s "
-                    + StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.max_output")
-                    + " ("
-                    + StatCollector.translateToLocal("gtsr.tooltip.solar_array.tier_bronze")
-                    + ")")
-            .addStructureInfo(
-                EnumChatFormatting.GOLD + GTUtility.formatNumbers(MAX_OUTPUT_STEEL)
-                    + EnumChatFormatting.GRAY
-                    + " L/s "
-                    + StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.max_output")
-                    + " ("
-                    + StatCollector.translateToLocal("gtsr.tooltip.solar_array.tier_steel")
-                    + ")")
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.casing"), 71, false)
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.firebox"), 21, false)
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.pipe"), 12, false)

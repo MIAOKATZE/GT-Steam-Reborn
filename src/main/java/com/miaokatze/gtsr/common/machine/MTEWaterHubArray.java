@@ -529,8 +529,10 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
 
     private void autoOutputWater() {
         if (mWaterStored <= 0 || mStoredFluidType == null) return;
+        long capacity = getTotalCapacity();
         for (MTEWaterHubOutputHatch hatch : mWaterOutputHatches) {
             if (mWaterStored <= 0) break;
+            if (hatch.mOverflowOutput && mWaterStored < (long) (capacity * 0.9)) continue;
             IGregTechTileEntity hatchBase = hatch.getBaseMetaTileEntity();
             if (hatchBase == null) continue;
             ForgeDirection hatchFront = hatchBase.getFrontFacing();

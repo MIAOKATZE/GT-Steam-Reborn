@@ -67,9 +67,10 @@ public class MTEWaterHubInputHatch extends MTEHatchInput {
 
     @Override
     public String[] getDescription() {
-        return new String[] { StatCollector.translateToLocal("gtsr.tooltip.water_hub_input_hatch.info"),
-            StatCollector.translateToLocal("gtsr.tooltip.water_hub_input_hatch.fluid_type"),
-            StatCollector.translateToLocal("gtsr.tooltip.water_hub_input_hatch.no_storage"),
+        return new String[] {
+            EnumChatFormatting.DARK_AQUA + StatCollector.translateToLocal("gtsr.tooltip.water_hub_input_hatch.info"),
+            EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.water_hub_input_hatch.fluid_type"),
+            EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.water_hub_input_hatch.no_storage"),
             EnumChatFormatting.AQUA + "GT"
                 + EnumChatFormatting.GREEN
                 + "-"
