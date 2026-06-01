@@ -18,6 +18,8 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+import com.miaokatze.gtsr.api.IAutoInputHatch;
+
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.implementations.MTEHatch;
@@ -25,7 +27,7 @@ import gregtech.api.metatileentity.implementations.MTEHatchInputBus;
 import gregtech.api.util.GTUtility;
 
 @Mixin(value = MTEHatchInputBus.class, remap = false)
-public abstract class MTEHatchInputBusMixin extends MTEHatch {
+public abstract class MTEHatchInputBusMixin extends MTEHatch implements IAutoInputHatch {
 
     public MTEHatchInputBusMixin(String aName, int aTier, int aInvSlotCount, String[] aDescription,
         ITexture[][][] aTextures) {
@@ -121,12 +123,17 @@ public abstract class MTEHatchInputBusMixin extends MTEHatch {
         gtsr$autoInput = aNBT.getBoolean("gtsr$autoInput");
     }
 
-    @Unique
+    @Override
     public boolean gtsr$isAutoInput() {
         return gtsr$autoInput;
     }
 
-    @Unique
+    @Override
+    public void gtsr$setAutoInput(boolean value) {
+        gtsr$autoInput = value;
+    }
+
+    @Override
     public void gtsr$doAutoInput(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
         if (!aBaseMetaTileEntity.isAllowedToWork()) return;
         if (aTick % 100 != 0) return;

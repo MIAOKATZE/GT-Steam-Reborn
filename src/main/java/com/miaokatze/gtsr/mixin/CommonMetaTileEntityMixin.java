@@ -5,8 +5,6 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 import net.minecraftforge.common.util.ForgeDirection;
-import net.minecraftforge.fluids.FluidStack;
-import net.minecraftforge.fluids.IFluidHandler;
 
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -14,10 +12,10 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
+import com.miaokatze.gtsr.api.IAutoInputHatch;
+
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.CommonMetaTileEntity;
-import gregtech.api.metatileentity.implementations.MTEHatchInput;
-import gregtech.api.metatileentity.implementations.MTEHatchInputBus;
 import gregtech.api.util.GTUtility;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTEHatchCustomFluidBase;
 
@@ -30,20 +28,10 @@ public abstract class CommonMetaTileEntityMixin {
 
         CommonMetaTileEntity self = (CommonMetaTileEntity) (Object) this;
 
-        if (self instanceof MTEHatchInput && !(self instanceof MTEHatchCustomFluidBase)) {
-            MTEHatchInput hatch = (MTEHatchInput) self;
-            if (((MTEHatchInputMixin) (Object) hatch).gtsr$isAutoInput()) {
-                ((MTEHatchInputMixin) (Object) hatch).gtsr$doAutoInput(aBaseMetaTileEntity);
-            }
-        } else if (self instanceof MTEHatchCustomFluidBase) {
-            MTEHatchCustomFluidBase hatch = (MTEHatchCustomFluidBase) self;
-            if (((MTEHatchCustomFluidBaseMixin) (Object) hatch).gtsr$isAutoInput()) {
-                gtsr$doFluidAutoInput(hatch, aBaseMetaTileEntity);
-            }
-        } else if (self instanceof MTEHatchInputBus) {
-            MTEHatchInputBus bus = (MTEHatchInputBus) self;
-            if (((MTEHatchInputBusMixin) (Object) bus).gtsr$isAutoInput()) {
-                ((MTEHatchInputBusMixin) (Object) bus).gtsr$doAutoInput(aBaseMetaTileEntity, aTick);
+        if (self instanceof IAutoInputHatch) {
+            IAutoInputHatch hatch = (IAutoInputHatch) self;
+            if (hatch.gtsr$isAutoInput()) {
+                hatch.gtsr$doAutoInput(aBaseMetaTileEntity, aTick);
             }
         }
     }
@@ -54,38 +42,21 @@ public abstract class CommonMetaTileEntityMixin {
         CommonMetaTileEntity self = (CommonMetaTileEntity) (Object) this;
 
         if (self instanceof MTEHatchCustomFluidBase) {
-            MTEHatchCustomFluidBase hatch = (MTEHatchCustomFluidBase) self;
-            if (!hatch.getBaseMetaTileEntity()
+            if (!self.getBaseMetaTileEntity()
                 .getCoverAtSide(side)
                 .isGUIClickable()) return;
 
-            MTEHatchCustomFluidBaseMixin mixin = (MTEHatchCustomFluidBaseMixin) (Object) hatch;
-            mixin.gtsr$setAutoInput(!mixin.gtsr$isAutoInput());
+            IAutoInputHatch hatch = (IAutoInputHatch) self;
+            hatch.gtsr$setAutoInput(!hatch.gtsr$isAutoInput());
             cir.setReturnValue(true);
 
             GTUtility.sendChatToPlayer(
                 aPlayer,
                 EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.hatch.auto_input")
                     + " "
-                    + (mixin.gtsr$isAutoInput()
+                    + (hatch.gtsr$isAutoInput()
                         ? EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.tooltip.shared.on")
                         : EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.shared.off")));
-        }
-    }
-
-    private void gtsr$doFluidAutoInput(MTEHatchCustomFluidBase hatch, IGregTechTileEntity aBaseMetaTileEntity) {
-        if (!aBaseMetaTileEntity.isAllowedToWork()) return;
-
-        ForgeDirection front = aBaseMetaTileEntity.getFrontFacing();
-        IFluidHandler tTileEntity = aBaseMetaTileEntity.getITankContainerAtSide(front);
-        if (tTileEntity == null) return;
-
-        FluidStack drained = tTileEntity.drain(front.getOpposite(), 100, false);
-        if (drained == null) return;
-
-        int filled = hatch.fill(front, drained, true);
-        if (filled > 0) {
-            tTileEntity.drain(front.getOpposite(), filled, true);
         }
     }
 }

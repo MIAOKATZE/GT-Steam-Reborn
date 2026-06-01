@@ -17,6 +17,8 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+import com.miaokatze.gtsr.api.IAutoInputHatch;
+
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.implementations.MTEHatch;
@@ -24,7 +26,7 @@ import gregtech.api.metatileentity.implementations.MTEHatchInput;
 import gregtech.api.util.GTUtility;
 
 @Mixin(value = MTEHatchInput.class, remap = false)
-public abstract class MTEHatchInputMixin extends MTEHatch {
+public abstract class MTEHatchInputMixin extends MTEHatch implements IAutoInputHatch {
 
     public MTEHatchInputMixin(String aName, int aTier, int aInvSlotCount, String[] aDescription,
         ITexture[][][] aTextures) {
@@ -84,25 +86,43 @@ public abstract class MTEHatchInputMixin extends MTEHatch {
         gtsr$autoInput = aNBT.getBoolean("gtsr$autoInput");
     }
 
-    @Unique
+    @Override
     public boolean gtsr$isAutoInput() {
         return gtsr$autoInput;
     }
 
-    @Unique
-    public void gtsr$doAutoInput(IGregTechTileEntity aBaseMetaTileEntity) {
-        if (!aBaseMetaTileEntity.isAllowedToWork()) return;
+    @Override
+    public void gtsr$setAutoInput(boolean value) {
+        gtsr$autoInput = value;
+    }
+
+    @Override
+    public void gtsr$doAutoInput(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
+        if (!aBaseMetaTileEntity.isAllowedToWork()) {
+            System.out.println("[GTSR-DEBUG] doAutoInput: not allowed to work");
+            return;
+        }
 
         MTEHatchInput self = (MTEHatchInput) (Object) this;
 
         ForgeDirection front = aBaseMetaTileEntity.getFrontFacing();
         IFluidHandler tTileEntity = aBaseMetaTileEntity.getITankContainerAtSide(front);
-        if (tTileEntity == null) return;
+        if (tTileEntity == null) {
+            System.out.println("[GTSR-DEBUG] doAutoInput: no IFluidHandler at front side=" + front);
+            return;
+        }
 
         FluidStack drained = tTileEntity.drain(front.getOpposite(), 100, false);
-        if (drained == null) return;
+        if (drained == null) {
+            System.out.println("[GTSR-DEBUG] doAutoInput: drain returned null from side=" + front.getOpposite());
+            return;
+        }
+
+        System.out
+            .println("[GTSR-DEBUG] doAutoInput: drained=" + drained.amount + "L of " + drained.getLocalizedName());
 
         int filled = self.fill(front, drained, true);
+        System.out.println("[GTSR-DEBUG] doAutoInput: filled=" + filled + "L");
         if (filled > 0) {
             tTileEntity.drain(front.getOpposite(), filled, true);
         }
