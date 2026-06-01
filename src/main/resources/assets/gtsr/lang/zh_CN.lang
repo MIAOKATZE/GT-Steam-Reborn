@@ -566,6 +566,12 @@ gtsr.tooltip.shared.overflow_output=溢流输出
 gtsr.tooltip.shared.overflow_input=溢流输入
 gtsr.tooltip.shared.on=开
 gtsr.tooltip.shared.off=关
+
+# Auto Input Hatch Keys
+gtsr.hatch.input_filter=输入过滤:
+gtsr.hatch.auto_input=自动输入:
+gtsr.hatch.sort_mode=排序模式:
+gtsr.hatch.limit_mode=限制模式:
 gtsr.tooltip.shared.overflow_output_screwdriver=螺丝刀: 切换溢流输出（储量>90%时才输出）
 gtsr.tooltip.shared.overflow_output_desc=溢流输出: 仅当枢纽储量超过90%时才输出流体
 gtsr.tooltip.shared.overflow_input_screwdriver=螺丝刀: 切换溢流输入（满时仍可输入，溢出销毁）
@@ -669,8 +675,10 @@ gtsr.gui.singularity_hub.bound_nodes=绑定节点:
 gtsr.tooltip.fluid_drill.type=蒸汽流体钻机, SFD
 gtsr.tooltip.fluid_drill.desc=消耗蒸汽从地下直接抽取水、蒸馏水或盐水。
 gtsr.tooltip.fluid_drill.desc2=螺丝刀右击切换产出模式（水/蒸馏水/盐水），默认为水。蒸馏水/盐水模式产出仅为10%。
-gtsr.tooltip.fluid_drill.mode_switch=螺丝刀: 切换产出模式（水/蒸馏水/盐水），默认水
+gtsr.tooltip.fluid_drill.mode_switch=螺丝刀: 切换产出模式（水/蒸馏水/盐水），默认水（仅钢级）
 gtsr.tooltip.fluid_drill.mode_penalty=蒸馏水/盐水模式产出仅为10%，切换模式重置效率
+gtsr.tooltip.fluid_drill.mode_bronze_only=青铜级仅支持水模式，钢级可切换蒸馏水/盐水
+gtsr.tooltip.fluid_drill.mode_bronze_locked=青铜级仅支持水模式，升级至钢级后可切换
 gtsr.tooltip.fluid_drill.mode_water=水
 gtsr.tooltip.fluid_drill.mode_distilled=蒸馏水
 gtsr.tooltip.fluid_drill.mode_brine=盐水

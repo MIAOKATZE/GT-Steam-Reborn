@@ -301,6 +301,12 @@ public class MTESteamFluidDrill extends MTESteamMultiBase<MTESteamFluidDrill> im
 
     @Override
     public void onModeChangeByScrewdriver(ForgeDirection side, EntityPlayer aPlayer, float aX, float aY, float aZ) {
+        if (mSetTier < 2) {
+            GTUtility.sendChatToPlayer(
+                aPlayer,
+                EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.fluid_drill.mode_bronze_locked"));
+            return;
+        }
         mOutputMode = (mOutputMode + 1) % 3;
         mEfficiency = 0;
         String modeText;
@@ -385,6 +391,8 @@ public class MTESteamFluidDrill extends MTESteamMultiBase<MTESteamFluidDrill> im
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.fluid_drill.desc2"))
             .addInfo(EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.fluid_drill.mode_switch"))
             .addInfo(EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.tooltip.fluid_drill.mode_penalty"))
+            .addInfo(
+                EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.fluid_drill.mode_bronze_only"))
             .addSeparator()
             .addInfo(
                 EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.shared.steam_cost")

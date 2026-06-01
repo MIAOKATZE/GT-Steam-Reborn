@@ -10,7 +10,9 @@
     "MTEHatchCustomFluidBaseMixin",
     "MTEHatchSteamBusInputMixin",
     "MTEHatchSteamBusOutputMixin",
-    "MTERockBreakerRecipeBuilderMixin"
+    "MTERockBreakerRecipeBuilderMixin",
+    "MTEHatchInputMixin",
+    "MTEHatchInputBusMixin"
   ],
   "client": [],
   "server": []

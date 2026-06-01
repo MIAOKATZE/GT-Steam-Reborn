@@ -564,6 +564,12 @@ gtsr.tooltip.shared.overflow_output=Overflow Output
 gtsr.tooltip.shared.overflow_input=Overflow Input
 gtsr.tooltip.shared.on=ON
 gtsr.tooltip.shared.off=OFF
+
+# Auto Input Hatch Keys
+gtsr.hatch.input_filter=Input Filter:
+gtsr.hatch.auto_input=Auto Input:
+gtsr.hatch.sort_mode=Sort Mode:
+gtsr.hatch.limit_mode=Limit Mode:
 gtsr.tooltip.shared.overflow_output_screwdriver=Screwdriver: Toggle Overflow Output (only outputs when >90% full)
 gtsr.tooltip.shared.overflow_output_desc=Overflow Output: Only outputs fluid when hub storage exceeds 90%
 gtsr.tooltip.shared.overflow_input_screwdriver=Screwdriver: Toggle Overflow Input (accepts input when full, excess destroyed)
@@ -617,8 +623,10 @@ gtsr.tooltip.singularity_hub.desc=A marvel of the steam age: based on steam-enta
 gtsr.tooltip.fluid_drill.type=Steam Fluid Drill, SFD
 gtsr.tooltip.fluid_drill.desc=Consumes steam to extract water, distilled water, or brine directly from underground.
 gtsr.tooltip.fluid_drill.desc2=Screwdriver right-click to cycle output mode (Water/Distilled Water/Brine), default is Water. Distilled Water/Brine mode yields only 10%.
-gtsr.tooltip.fluid_drill.mode_switch=Screwdriver: Cycle output mode (Water/Distilled Water/Brine), default Water
+gtsr.tooltip.fluid_drill.mode_switch=Screwdriver: Cycle output mode (Water/Distilled Water/Brine), default Water (Steel only)
 gtsr.tooltip.fluid_drill.mode_penalty=Distilled Water/Brine mode yields only 10%, switching mode resets efficiency
+gtsr.tooltip.fluid_drill.mode_bronze_only=Bronze tier only supports Water mode, Steel tier can switch to Distilled Water/Brine
+gtsr.tooltip.fluid_drill.mode_bronze_locked=Bronze tier only supports Water mode, upgrade to Steel to switch
 gtsr.tooltip.fluid_drill.mode_water=Water
 gtsr.tooltip.fluid_drill.mode_distilled=Distilled Water
 gtsr.tooltip.fluid_drill.mode_brine=Brine

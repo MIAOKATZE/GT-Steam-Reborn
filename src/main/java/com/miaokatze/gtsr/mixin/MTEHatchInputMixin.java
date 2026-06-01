@@ -6,55 +6,68 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 import net.minecraftforge.common.util.ForgeDirection;
-import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.IFluidHandler;
 
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Overwrite;
+import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
+import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
+import gregtech.api.metatileentity.implementations.MTEHatch;
+import gregtech.api.metatileentity.implementations.MTEHatchInput;
 import gregtech.api.util.GTUtility;
-import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTEHatchCustomFluidBase;
 
-@Mixin(value = MTEHatchCustomFluidBase.class, remap = false)
-public abstract class MTEHatchCustomFluidBaseMixin {
+@Mixin(value = MTEHatchInput.class, remap = false)
+public abstract class MTEHatchInputMixin extends MTEHatch {
+
+    public MTEHatchInputMixin(String aName, int aTier, int aInvSlotCount, String[] aDescription,
+        ITexture[][][] aTextures) {
+        super(aName, aTier, aInvSlotCount, aDescription, aTextures);
+    }
+
+    @Shadow(remap = false)
+    public boolean disableFilter;
 
     @Unique
     private boolean gtsr$autoInput = false;
 
-    @Inject(method = "isFluidInputAllowed", at = @At("HEAD"), cancellable = true, remap = false)
-    private void gtsr$allowAllSteamPipeInput(FluidStack aFluid, CallbackInfoReturnable<Boolean> cir) {
-        MTEHatchCustomFluidBase self = (MTEHatchCustomFluidBase) (Object) this;
-        Fluid locked = self.mLockedFluid;
-        if (locked != null && gtsr$isSteamType(locked.getName())) {
-            if (aFluid != null && aFluid.getFluid() != null
-                && gtsr$isSteamType(
-                    aFluid.getFluid()
-                        .getName())) {
-                cir.setReturnValue(true);
-            }
-        }
-    }
-
-    @Inject(method = "onScrewdriverRightClick", at = @At("HEAD"), cancellable = true, remap = false)
-    private void gtsr$onScrewdriverRightClick(ForgeDirection side, EntityPlayer aPlayer, float aX, float aY, float aZ,
-        ItemStack aTool, CallbackInfo ci) {
-        MTEHatchCustomFluidBase self = (MTEHatchCustomFluidBase) (Object) this;
-        if (!self.getBaseMetaTileEntity()
-            .getCoverAtSide(side)
+    /**
+     * @reason 4-state orthogonal toggle: input filter × auto-input
+     * @author GTSR
+     */
+    @Overwrite
+    public void onScrewdriverRightClick(ForgeDirection side, EntityPlayer aPlayer, float aX, float aY, float aZ,
+        ItemStack aTool) {
+        if (!getBaseMetaTileEntity().getCoverAtSide(side)
             .isGUIClickable()) return;
 
-        gtsr$autoInput = !gtsr$autoInput;
-        ci.cancel();
+        if (disableFilter && !gtsr$autoInput) {
+            disableFilter = false;
+        } else if (!disableFilter && !gtsr$autoInput) {
+            disableFilter = true;
+            gtsr$autoInput = true;
+        } else if (disableFilter && gtsr$autoInput) {
+            disableFilter = false;
+        } else {
+            gtsr$autoInput = false;
+        }
 
         GTUtility.sendChatToPlayer(
             aPlayer,
-            EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.hatch.auto_input")
+            EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.hatch.input_filter")
+                + " "
+                + (disableFilter ? EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.shared.off")
+                    : EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.tooltip.shared.on"))
+                + EnumChatFormatting.RESET
+                + "  "
+                + EnumChatFormatting.GOLD
+                + StatCollector.translateToLocal("gtsr.hatch.auto_input")
                 + " "
                 + (gtsr$autoInput ? EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.tooltip.shared.on")
                     : EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.shared.off")));
@@ -65,7 +78,7 @@ public abstract class MTEHatchCustomFluidBaseMixin {
         if (!aBaseMetaTileEntity.isServerSide() || !gtsr$autoInput) return;
         if (!aBaseMetaTileEntity.isAllowedToWork()) return;
 
-        MTEHatchCustomFluidBase self = (MTEHatchCustomFluidBase) (Object) this;
+        MTEHatchInput self = (MTEHatchInput) (Object) this;
 
         ForgeDirection front = aBaseMetaTileEntity.getFrontFacing();
         IFluidHandler tTileEntity = aBaseMetaTileEntity.getITankContainerAtSide(front);
@@ -88,10 +101,5 @@ public abstract class MTEHatchCustomFluidBaseMixin {
     @Inject(method = "loadNBTData", at = @At("TAIL"), remap = false)
     private void gtsr$loadNBTData(NBTTagCompound aNBT, CallbackInfo ci) {
         gtsr$autoInput = aNBT.getBoolean("gtsr$autoInput");
-    }
-
-    @Unique
-    private boolean gtsr$isSteamType(String fluidName) {
-        return "steam".equals(fluidName) || "ic2steam".equals(fluidName) || "ic2superheatedsteam".equals(fluidName);
     }
 }
