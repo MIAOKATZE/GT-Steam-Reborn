@@ -438,8 +438,8 @@ gtsr.tooltip.siemens_martin_furnace.0=利用过热蒸汽的炼钢多方块机器
 gtsr.tooltip.siemens_martin_furnace.1=消耗 24,000 L/s 过热蒸汽，提升炉温 (+0.5%/s)
 gtsr.tooltip.siemens_martin_furnace.2=炉温达到 100%% 后方可执行配方，蒸汽中断导致炉温不足时配方终止
 gtsr.tooltip.siemens_martin_furnace.3=配方1: 1铁 + 2煤粉/煤炭 -> 1钢 + 1黑色灰烬 (1600s)
-gtsr.tooltip.siemens_martin_furnace.4=配方2: 1铁 + 1焦煤 -> 1灰烬 (1200s)
-gtsr.tooltip.siemens_martin_furnace.5=配方3: 1铁 + 1碳粉 -> 1钢 + 1灰烬 (800s)
+gtsr.tooltip.siemens_martin_furnace.4=配方2: 1铁 + 1焦煤 -> 1钢 + 70%灰烬 (1200s)
+gtsr.tooltip.siemens_martin_furnace.5=配方3: 1铁 + 1碳粉 -> 1钢 + 30%灰烬 (800s)
 
 # Mega Steam Turbine Array (巨型蒸汽轮机机组)
 gt.blockmachines.gtsr.mega.steam.turbine.array.name=巨型蒸汽轮机机组
@@ -567,7 +567,9 @@ gtsr.tooltip.shared.overflow_input=溢流输入
 gtsr.tooltip.shared.on=开
 gtsr.tooltip.shared.off=关
 gtsr.tooltip.shared.overflow_output_screwdriver=螺丝刀: 切换溢流输出（储量>90%时才输出）
+gtsr.tooltip.shared.overflow_output_desc=溢流输出: 仅当枢纽储量超过90%时才输出流体
 gtsr.tooltip.shared.overflow_input_screwdriver=螺丝刀: 切换溢流输入（满时仍可输入，溢出销毁）
+gtsr.tooltip.shared.overflow_input_desc=溢流输入: 枢纽满时仍可输入，溢出流体自动销毁
 
 # Shared GUI Keys
 gtsr.gui.building=构建中...
@@ -585,7 +587,8 @@ gtsr.gui.not_installed=未安装
 
 # 1. Air Compressor
 gtsr.tooltip.air_compressor.type=空气压缩机, AC
-gtsr.tooltip.air_compressor.desc=蒸汽驱动的空气压缩机，可以直接从外部获取空气，转化为压缩空气流体，其工作速度与便捷度远优于普通压缩机。
+gtsr.tooltip.air_compressor.desc=蒸汽驱动的空气压缩机，可以直接从外部获取空气，转化为压缩空气流体，其工作速度与便捷度远优于普通压缩机。下界维度自动产出下界空气。
+gtsr.tooltip.air_compressor.nether=维度限制: 下界维度自动产出下界空气
 
 # 2. Ammonia Plant
 gtsr.tooltip.ammonia_plant.type=制氨工厂, AP

@@ -602,6 +602,7 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
                     if (invStack.stackSize <= 0) {
                         aPlayer.inventory.mainInventory[i] = null;
                     }
+                    aPlayer.inventoryContainer.detectAndSendChanges();
                     consumed = true;
                     break;
                 }
@@ -955,6 +956,8 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
         tt.addMachineType(StatCollector.translateToLocal("gtsr.tooltip.steam_hub.type"))
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.steam_hub.desc"))
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.steam_hub.desc2"))
+            .addInfo(
+                EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.tooltip.shared.overflow_input_desc"))
             .beginStructureBlock(9, 3, 9, false)
             .addController(StatCollector.translateToLocal("gtsr.tooltip.steam_hub.ctrl"))
             .addOtherStructurePart(

@@ -663,6 +663,7 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
                     if (invStack.stackSize <= 0) {
                         aPlayer.inventory.mainInventory[i] = null;
                     }
+                    aPlayer.inventoryContainer.detectAndSendChanges();
                     consumed = true;
                     break;
                 }
@@ -960,6 +961,8 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
         tt.addMachineType(StatCollector.translateToLocal("gtsr.tooltip.water_hub.type"))
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.water_hub.desc"))
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.water_hub.desc2"))
+            .addInfo(
+                EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.tooltip.shared.overflow_input_desc"))
             .beginStructureBlock(9, 3, 9, false)
             .addController(StatCollector.translateToLocal("gtsr.tooltip.water_hub.ctrl"))
             .addOtherStructurePart(

@@ -125,6 +125,7 @@ public class MTEWaterHubOutputHatch extends MTEHatchOutput {
             EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.water_hub_output_hatch.no_storage"),
             EnumChatFormatting.YELLOW
                 + StatCollector.translateToLocal("gtsr.tooltip.shared.overflow_output_screwdriver"),
+            EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.tooltip.shared.overflow_output_desc"),
             EnumChatFormatting.AQUA + "GT"
                 + EnumChatFormatting.GREEN
                 + "-"

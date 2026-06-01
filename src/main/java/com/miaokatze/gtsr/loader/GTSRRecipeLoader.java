@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import net.minecraft.item.ItemStack;
+import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.oredict.OreDictionary;
 
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
@@ -28,6 +29,7 @@ import gregtech.api.enums.OrePrefixes;
 import gregtech.api.enums.TierEU;
 import gregtech.api.util.GTModHandler;
 import gregtech.api.util.GTOreDictUnificator;
+import gtPlusPlus.core.fluids.GTPPFluids;
 import gtPlusPlus.core.material.MaterialsAlloy;
 import gtPlusPlus.xmod.gregtech.api.enums.GregtechItemList;
 
@@ -144,7 +146,8 @@ public class GTSRRecipeLoader implements Runnable {
                 OreDictionary.getOres("fuelCoke")
                     .get(0)
                     .copy())
-            .itemOutputs(Materials.Ash.getDust(1))
+            .itemOutputs(Materials.Steel.getIngots(1), Materials.Ash.getDust(1))
+            .outputChances(10000, 7000)
             .duration(1200 * SECONDS)
             .eut(0)
             .addTo(siemensMartinRecipes);
@@ -155,7 +158,8 @@ public class GTSRRecipeLoader implements Runnable {
                 OreDictionary.getOres("fuelCoke")
                     .get(0)
                     .copy())
-            .itemOutputs(Materials.Ash.getDust(1))
+            .itemOutputs(Materials.Steel.getIngots(1), Materials.Ash.getDust(1))
+            .outputChances(10000, 7000)
             .duration(1200 * SECONDS)
             .eut(0)
             .addTo(siemensMartinRecipes);
@@ -163,6 +167,7 @@ public class GTSRRecipeLoader implements Runnable {
         GTValues.RA.stdBuilder()
             .itemInputs(Materials.Iron.getIngots(1), Materials.Carbon.getDust(1))
             .itemOutputs(Materials.Steel.getIngots(1), Materials.Ash.getDust(1))
+            .outputChances(10000, 3000)
             .duration(800 * SECONDS)
             .eut(0)
             .addTo(siemensMartinRecipes);
@@ -170,6 +175,7 @@ public class GTSRRecipeLoader implements Runnable {
         GTValues.RA.stdBuilder()
             .itemInputs(Materials.Iron.getDust(1), Materials.Carbon.getDust(1))
             .itemOutputs(Materials.Steel.getIngots(1), Materials.Ash.getDust(1))
+            .outputChances(10000, 3000)
             .duration(800 * SECONDS)
             .eut(0)
             .addTo(siemensMartinRecipes);
@@ -189,6 +195,12 @@ public class GTSRRecipeLoader implements Runnable {
     private static void registerAirCompressorRecipes() {
         GTValues.RA.stdBuilder()
             .fluidOutputs(Materials.Air.getGas(800))
+            .duration(20)
+            .eut(-60)
+            .addTo(airCompressorRecipes);
+
+        GTValues.RA.stdBuilder()
+            .fluidOutputs(Materials.NetherAir.getGas(800))
             .duration(20)
             .eut(-60)
             .addTo(airCompressorRecipes);
@@ -214,6 +226,30 @@ public class GTSRRecipeLoader implements Runnable {
                 WerkstoffLoader.Krypton.getFluidOrGas(2),
                 Materials.Helium.getGas(1))
             .duration(40000)
+            .eut(-250)
+            .addTo(atmosphericCentrifugeRecipes);
+
+        GTValues.RA.stdBuilder()
+            .fluidInputs(Materials.NetherAir.getGas(10000))
+            .fluidOutputs(
+                Materials.NitrogenDioxide.getGas(1400),
+                Materials.SulfurDioxide.getGas(3800),
+                Materials.SulfurTrioxide.getGas(2100))
+            .duration(1000)
+            .eut(-25)
+            .addTo(atmosphericCentrifugeRecipes);
+
+        GTValues.RA.stdBuilder()
+            .fluidInputs(Materials.NetherAir.getGas(100000))
+            .fluidOutputs(
+                Materials.NitrogenDioxide.getGas(14000),
+                Materials.SulfurDioxide.getGas(35000),
+                Materials.SulfurTrioxide.getGas(20000),
+                Materials.Chlorine.getGas(2000),
+                WerkstoffLoader.Neon.getFluidOrGas(1200),
+                new FluidStack(GTPPFluids.Anthracene, 2500),
+                Materials.Radon.getGas(1))
+            .duration(20000)
             .eut(-250)
             .addTo(atmosphericCentrifugeRecipes);
     }

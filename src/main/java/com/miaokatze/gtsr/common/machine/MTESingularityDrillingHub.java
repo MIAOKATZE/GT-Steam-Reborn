@@ -395,6 +395,7 @@ public class MTESingularityDrillingHub extends MTESteamMultiBase<MTESingularityD
                     if (invStack.stackSize <= 0) {
                         aPlayer.inventory.mainInventory[i] = null;
                     }
+                    aPlayer.inventoryContainer.detectAndSendChanges();
                     consumed = true;
                     break;
                 }

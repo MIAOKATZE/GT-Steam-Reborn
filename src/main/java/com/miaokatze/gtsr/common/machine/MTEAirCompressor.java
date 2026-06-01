@@ -259,7 +259,10 @@ public class MTEAirCompressor extends MTESteamMultiBase<MTEAirCompressor> implem
         lEUt = mSetTier == 2 ? -180 : -60;
         mMaxProgresstime = 20;
         mEfficiencyIncrease = 10000;
-        mOutputFluids = new FluidStack[] { Materials.Air.getGas(800 * getMaxParallelRecipes()) };
+        boolean isNether = getBaseMetaTileEntity().getWorld().provider.dimensionId == -1;
+        int amount = 800 * getMaxParallelRecipes();
+        mOutputFluids = new FluidStack[] {
+            isNether ? Materials.NetherAir.getGas(amount) : Materials.Air.getGas(amount) };
         updateSlots();
         return CheckRecipeResultRegistry.SUCCESSFUL;
     }
@@ -323,6 +326,8 @@ public class MTEAirCompressor extends MTESteamMultiBase<MTEAirCompressor> implem
                     + " (Bronze/Steel)")
             .addInfo(
                 EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.tooltip.shared.superheated_quadruples"))
+            .addInfo(
+                EnumChatFormatting.LIGHT_PURPLE + StatCollector.translateToLocal("gtsr.tooltip.air_compressor.nether"))
             .beginStructureBlock(5, 4, 3, false)
             .addController(StatCollector.translateToLocal("gtsr.tooltip.air_compressor.ctrl"))
             .addInputHatch(StatCollector.translateToLocal("gtsr.tooltip.air_compressor.input_hatch"), 1)

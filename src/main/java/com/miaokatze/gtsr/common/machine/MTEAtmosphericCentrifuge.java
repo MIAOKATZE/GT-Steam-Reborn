@@ -277,7 +277,7 @@ public class MTEAtmosphericCentrifuge extends MTESteamMultiBase<MTEAtmosphericCe
             @Nonnull
             @Override
             protected CheckRecipeResult validateRecipe(@Nonnull GTRecipe recipe) {
-                if (!hasRareGasChip() && recipe.mFluidOutputs.length > 2) {
+                if (!hasRareGasChip() && recipe.mFluidOutputs.length > 3) {
                     return CheckRecipeResultRegistry.NO_RECIPE;
                 }
                 return CheckRecipeResultRegistry.SUCCESSFUL;

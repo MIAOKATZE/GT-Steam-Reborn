@@ -437,9 +437,9 @@ gtsr.recipe.siemens_martin_furnace=Siemens-Martin Furnace
 gtsr.tooltip.siemens_martin_furnace.0=Steelmaking multiblock that uses superheated steam to convert iron and carbon into steel
 gtsr.tooltip.siemens_martin_furnace.1=Consumes 24,000 L/s superheated steam, raising furnace temperature (+0.5%/s)
 gtsr.tooltip.siemens_martin_furnace.2=Recipes can only run at 100%% temperature; steam loss during recipe terminates it
-gtsr.tooltip.siemens_martin_furnace.3=Recipe 1: 1 Iron + 2 Coal -> 1 Steel + 1 Dark Ash (1600s)
-gtsr.tooltip.siemens_martin_furnace.4=Recipe 2: 1 Iron + 1 Coke -> 1 Ash (1200s)
-gtsr.tooltip.siemens_martin_furnace.5=Recipe 3: 1 Iron + 1 Carbon Dust -> 1 Steel + 1 Ash (800s)
+gtsr.tooltip.siemens_martin_furnace.3=Recipe 1: 1 Iron + 2 Coal/Dust -> 1 Steel + 1 Dark Ash (1600s)
+gtsr.tooltip.siemens_martin_furnace.4=Recipe 2: 1 Iron + 1 Coke -> 1 Steel + 70% Ash (1200s)
+gtsr.tooltip.siemens_martin_furnace.5=Recipe 3: 1 Iron + 1 Carbon Dust -> 1 Steel + 30% Ash (800s)
 
 # Mega Steam Turbine Array
 gt.blockmachines.gtsr.mega.steam.turbine.array.name=Mega Steam Turbine Array
@@ -565,7 +565,9 @@ gtsr.tooltip.shared.overflow_input=Overflow Input
 gtsr.tooltip.shared.on=ON
 gtsr.tooltip.shared.off=OFF
 gtsr.tooltip.shared.overflow_output_screwdriver=Screwdriver: Toggle Overflow Output (only outputs when >90% full)
+gtsr.tooltip.shared.overflow_output_desc=Overflow Output: Only outputs fluid when hub storage exceeds 90%
 gtsr.tooltip.shared.overflow_input_screwdriver=Screwdriver: Toggle Overflow Input (accepts input when full, excess destroyed)
+gtsr.tooltip.shared.overflow_input_desc=Overflow Input: Accepts input even when full, excess fluid is destroyed
 
 # Shared GUI Keys
 gtsr.gui.building=Building...
@@ -581,7 +583,8 @@ gtsr.gui.not_installed=Not Installed
 
 # Air Compressor (AC)
 gtsr.tooltip.air_compressor.type=Air Compressor, AC
-gtsr.tooltip.air_compressor.desc=Steam-driven air compressor that draws air from the environment and converts it to compressed air fluid, with far greater speed and convenience than ordinary compressors.
+gtsr.tooltip.air_compressor.desc=Steam-driven air compressor that draws air from the environment and converts it to compressed air fluid, with far greater speed and convenience than ordinary compressors. Automatically produces Nether Air in the Nether dimension.
+gtsr.tooltip.air_compressor.nether=Dimension Restriction: Automatically produces Nether Air in the Nether
 
 # Atmospheric Centrifuge (ATC)
 gtsr.tooltip.atmospheric_centrifuge.type=Atmospheric Centrifuge, ATC
