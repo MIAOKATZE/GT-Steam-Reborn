@@ -10,6 +10,7 @@ import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 import javax.annotation.Nullable;
 
 import net.minecraft.block.Block;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumChatFormatting;
@@ -59,8 +60,8 @@ public class MTESteamFluidDrill extends MTESteamMultiBase<MTESteamFluidDrill> im
 
     private static final int BRONZE_MIN_OUTPUT = 200;
     private static final int BRONZE_MAX_OUTPUT = 2_000;
-    private static final int STEEL_MIN_OUTPUT = 10;
-    private static final int STEEL_MAX_OUTPUT = 1_000;
+    private static final int STEEL_MIN_OUTPUT = 200;
+    private static final int STEEL_MAX_OUTPUT = 8_000;
     private static final int BASE_STEAM_PER_SECOND = 1_000;
     private static final int PROGRESSION_TIME_TICKS = 20;
 
@@ -68,6 +69,7 @@ public class MTESteamFluidDrill extends MTESteamMultiBase<MTESteamFluidDrill> im
 
     private int mCountCasing = 0;
     private int mSetTier = -1;
+    private int mOutputMode = 0;
 
     public MTESteamFluidDrill(int aID, String aName, String aNameRegional) {
         super(aID, aName, aNameRegional);
@@ -271,17 +273,51 @@ public class MTESteamFluidDrill extends MTESteamMultiBase<MTESteamFluidDrill> im
 
     private int calculateFinalWaterOutput() {
         float ratio = getEfficiencyRatio();
+        int minOutput, maxOutput;
         if (mSetTier == 1) {
-            return (int) (BRONZE_MIN_OUTPUT + ratio * (BRONZE_MAX_OUTPUT - BRONZE_MIN_OUTPUT));
+            minOutput = BRONZE_MIN_OUTPUT;
+            maxOutput = BRONZE_MAX_OUTPUT;
+        } else {
+            minOutput = STEEL_MIN_OUTPUT;
+            maxOutput = STEEL_MAX_OUTPUT;
         }
-        return (int) (STEEL_MIN_OUTPUT + ratio * (STEEL_MAX_OUTPUT - STEEL_MIN_OUTPUT));
+        int output = (int) (minOutput + ratio * (maxOutput - minOutput));
+        if (mOutputMode != 0) {
+            output = (int) (output * 0.1);
+        }
+        return output;
     }
 
     private FluidStack[] getOutputFluid(int amount) {
-        if (mSetTier >= 2) {
-            return new FluidStack[] { GTModHandler.getDistilledWater(amount) };
+        switch (mOutputMode) {
+            case 1:
+                return new FluidStack[] { GTModHandler.getDistilledWater(amount) };
+            case 2:
+                return new FluidStack[] { Materials.SaltWater.getFluid(amount) };
+            default:
+                return new FluidStack[] { Materials.Water.getFluid(amount) };
         }
-        return new FluidStack[] { Materials.Water.getFluid(amount) };
+    }
+
+    @Override
+    public void onModeChangeByScrewdriver(ForgeDirection side, EntityPlayer aPlayer, float aX, float aY, float aZ) {
+        mOutputMode = (mOutputMode + 1) % 3;
+        mEfficiency = 0;
+        String modeText;
+        switch (mOutputMode) {
+            case 1:
+                modeText = StatCollector.translateToLocal("gtsr.tooltip.fluid_drill.mode_distilled");
+                break;
+            case 2:
+                modeText = StatCollector.translateToLocal("gtsr.tooltip.fluid_drill.mode_brine");
+                break;
+            default:
+                modeText = StatCollector.translateToLocal("gtsr.tooltip.fluid_drill.mode_water");
+                break;
+        }
+        GTUtility.sendChatToPlayer(
+            aPlayer,
+            StatCollector.translateToLocal("gtsr.tooltip.fluid_drill.output_mode") + ": " + modeText);
     }
 
     @Override
@@ -347,6 +383,8 @@ public class MTESteamFluidDrill extends MTESteamMultiBase<MTESteamFluidDrill> im
         tt.addMachineType(StatCollector.translateToLocal("gtsr.tooltip.fluid_drill.type"))
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.fluid_drill.desc"))
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.fluid_drill.desc2"))
+            .addInfo(EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.fluid_drill.mode_switch"))
+            .addInfo(EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.tooltip.fluid_drill.mode_penalty"))
             .addSeparator()
             .addInfo(
                 EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.shared.steam_cost")
@@ -400,12 +438,14 @@ public class MTESteamFluidDrill extends MTESteamMultiBase<MTESteamFluidDrill> im
     public void saveNBTData(NBTTagCompound aNBT) {
         super.saveNBTData(aNBT);
         aNBT.setInteger("mSetTier", mSetTier);
+        aNBT.setInteger("mOutputMode", mOutputMode);
     }
 
     @Override
     public void loadNBTData(NBTTagCompound aNBT) {
         super.loadNBTData(aNBT);
         mSetTier = aNBT.getInteger("mSetTier");
+        mOutputMode = aNBT.getInteger("mOutputMode");
     }
 
     private boolean hasSuperheatedSteamInHatch() {
@@ -427,6 +467,7 @@ public class MTESteamFluidDrill extends MTESteamMultiBase<MTESteamFluidDrill> im
         super.drawTexts(screenElements, inventorySlot);
         screenElements.widget(new FakeSyncWidget.IntegerSyncer(() -> mSetTier, val -> mSetTier = val))
             .widget(new FakeSyncWidget.IntegerSyncer(() -> mEfficiency, val -> mEfficiency = val))
+            .widget(new FakeSyncWidget.IntegerSyncer(() -> mOutputMode, val -> mOutputMode = val))
             .widget(
                 new TextWidget().setStringSupplier(
                     () -> EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.tier")
@@ -442,6 +483,11 @@ public class MTESteamFluidDrill extends MTESteamMultiBase<MTESteamFluidDrill> im
                             : StatCollector.translateToLocal("gtsr.gui.steam_type.normal"))))
             .widget(
                 new TextWidget().setStringSupplier(
+                    () -> EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.fluid_drill.output_mode")
+                        + EnumChatFormatting.LIGHT_PURPLE
+                        + getOutputModeDisplayName()))
+            .widget(
+                new TextWidget().setStringSupplier(
                     () -> EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.fluid_drill.efficiency")
                         + EnumChatFormatting.GREEN
                         + String.format("%.1f%%", mEfficiency / 100F)))
@@ -450,7 +496,18 @@ public class MTESteamFluidDrill extends MTESteamMultiBase<MTESteamFluidDrill> im
                     () -> EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.fluid_drill.output")
                         + EnumChatFormatting.LIGHT_PURPLE
                         + GTUtility.formatNumbers(calculateFinalWaterOutput())
-                        + " L/tick"));
+                        + " L/s"));
+    }
+
+    private String getOutputModeDisplayName() {
+        switch (mOutputMode) {
+            case 1:
+                return StatCollector.translateToLocal("gtsr.tooltip.fluid_drill.mode_distilled");
+            case 2:
+                return StatCollector.translateToLocal("gtsr.tooltip.fluid_drill.mode_brine");
+            default:
+                return StatCollector.translateToLocal("gtsr.tooltip.fluid_drill.mode_water");
+        }
     }
 
     @Override
@@ -474,12 +531,15 @@ public class MTESteamFluidDrill extends MTESteamMultiBase<MTESteamFluidDrill> im
             EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.steam_type")
                 + EnumChatFormatting.YELLOW
                 + steamType,
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.fluid_drill.output_mode")
+                + EnumChatFormatting.LIGHT_PURPLE
+                + getOutputModeDisplayName(),
             EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.fluid_drill.efficiency")
                 + EnumChatFormatting.GREEN
                 + String.format("%.1f%%", efficiencyPercent),
             EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.fluid_drill.output")
                 + EnumChatFormatting.LIGHT_PURPLE
                 + GTUtility.formatNumbers(currentOutput)
-                + " L/tick" };
+                + " L/s" };
     }
 }

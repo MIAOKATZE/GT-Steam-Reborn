@@ -262,7 +262,7 @@ public class MTEAirCompressor extends MTESteamMultiBase<MTEAirCompressor> implem
         boolean isNether = getBaseMetaTileEntity().getWorld().provider.dimensionId == -1;
         int amount = 800 * getMaxParallelRecipes();
         mOutputFluids = new FluidStack[] {
-            isNether ? Materials.NetherAir.getGas(amount) : Materials.Air.getGas(amount) };
+            isNether ? Materials.NetherAir.getFluid(amount) : Materials.Air.getGas(amount) };
         updateSlots();
         return CheckRecipeResultRegistry.SUCCESSFUL;
     }

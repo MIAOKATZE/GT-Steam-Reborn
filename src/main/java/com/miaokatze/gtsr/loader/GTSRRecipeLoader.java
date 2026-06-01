@@ -199,11 +199,20 @@ public class GTSRRecipeLoader implements Runnable {
             .eut(-60)
             .addTo(airCompressorRecipes);
 
-        GTValues.RA.stdBuilder()
-            .fluidOutputs(Materials.NetherAir.getGas(800))
-            .duration(20)
-            .eut(-60)
-            .addTo(airCompressorRecipes);
+        try {
+            FluidStack netherAir = Materials.NetherAir.getFluid(800);
+            if (netherAir != null) {
+                GTValues.RA.stdBuilder()
+                    .fluidOutputs(netherAir)
+                    .duration(20)
+                    .eut(-60)
+                    .addTo(airCompressorRecipes);
+            } else {
+                warn("Materials.NetherAir.getFluid(800) returned null, skipping Nether Air recipe!");
+            }
+        } catch (Exception e) {
+            warn("Failed to register Nether Air compressor recipe: " + e.getMessage());
+        }
     }
 
     private static void registerAtmosphericCentrifugeRecipes() {
@@ -229,29 +238,52 @@ public class GTSRRecipeLoader implements Runnable {
             .eut(-250)
             .addTo(atmosphericCentrifugeRecipes);
 
-        GTValues.RA.stdBuilder()
-            .fluidInputs(Materials.NetherAir.getGas(10000))
-            .fluidOutputs(
-                Materials.NitrogenDioxide.getGas(1400),
-                Materials.SulfurDioxide.getGas(3800),
-                Materials.SulfurTrioxide.getGas(2100))
-            .duration(1000)
-            .eut(-25)
-            .addTo(atmosphericCentrifugeRecipes);
+        try {
+            FluidStack netherAirInput = Materials.NetherAir.getFluid(10000);
+            if (netherAirInput == null) {
+                warn("Materials.NetherAir.getFluid() returned null, skipping Nether Air centrifuge recipes!");
+                return;
+            }
+            GTValues.RA.stdBuilder()
+                .fluidInputs(netherAirInput)
+                .fluidOutputs(
+                    Materials.NitrogenDioxide.getGas(1400),
+                    Materials.SulfurDioxide.getGas(3800),
+                    Materials.SulfurTrioxide.getGas(2100))
+                .duration(1000)
+                .eut(-25)
+                .addTo(atmosphericCentrifugeRecipes);
+        } catch (Exception e) {
+            warn("Failed to register Nether Air basic centrifuge recipe: " + e.getMessage());
+        }
 
-        GTValues.RA.stdBuilder()
-            .fluidInputs(Materials.NetherAir.getGas(100000))
-            .fluidOutputs(
-                Materials.NitrogenDioxide.getGas(14000),
-                Materials.SulfurDioxide.getGas(35000),
-                Materials.SulfurTrioxide.getGas(20000),
-                Materials.Chlorine.getGas(2000),
-                WerkstoffLoader.Neon.getFluidOrGas(1200),
-                new FluidStack(GTPPFluids.Anthracene, 2500),
-                Materials.Radon.getGas(1))
-            .duration(20000)
-            .eut(-250)
-            .addTo(atmosphericCentrifugeRecipes);
+        try {
+            FluidStack netherAirInput2 = Materials.NetherAir.getFluid(100000);
+            FluidStack anthracene = (GTPPFluids.Anthracene != null) ? new FluidStack(GTPPFluids.Anthracene, 2500)
+                : null;
+            if (netherAirInput2 == null || anthracene == null) {
+                warn(
+                    "Skipping Nether Air rare gas centrifuge recipe - NetherAir=" + (netherAirInput2 != null)
+                        + ", Anthracene="
+                        + (anthracene != null));
+                return;
+            }
+            GTValues.RA.stdBuilder()
+                .fluidInputs(netherAirInput2)
+                .fluidOutputs(
+                    Materials.NitrogenDioxide.getGas(14000),
+                    Materials.SulfurDioxide.getGas(35000),
+                    Materials.SulfurTrioxide.getGas(20000),
+                    Materials.Chlorine.getGas(2000),
+                    WerkstoffLoader.Neon.getFluidOrGas(1200),
+                    anthracene,
+                    Materials.Radon.getGas(1))
+                .duration(20000)
+                .eut(-250)
+                .addTo(atmosphericCentrifugeRecipes);
+        } catch (Exception e) {
+            warn("Failed to register Nether Air rare gas centrifuge recipe: " + e.getMessage());
+        }
     }
 
     private static void registerChipRecipes() {

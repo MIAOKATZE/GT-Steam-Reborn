@@ -589,6 +589,7 @@ gtsr.gui.not_installed=未安装
 gtsr.tooltip.air_compressor.type=空气压缩机, AC
 gtsr.tooltip.air_compressor.desc=蒸汽驱动的空气压缩机，可以直接从外部获取空气，转化为压缩空气流体，其工作速度与便捷度远优于普通压缩机。下界维度自动产出下界空气。
 gtsr.tooltip.air_compressor.nether=维度限制: 下界维度自动产出下界空气
+gtsr.tooltip.air_compressor.nether_recipe=需要在下界
 
 # 2. Ammonia Plant
 gtsr.tooltip.ammonia_plant.type=制氨工厂, AP
@@ -666,12 +667,19 @@ gtsr.gui.singularity_hub.bound_nodes=绑定节点:
 
 # 13. Steam Fluid Drill
 gtsr.tooltip.fluid_drill.type=蒸汽流体钻机, SFD
-gtsr.tooltip.fluid_drill.desc=消耗蒸汽从地下直接抽取水或蒸馏水。
-gtsr.tooltip.fluid_drill.desc2=青铜版只能抽取水；钢版效率增长更慢，但可以抽取蒸馏水。
+gtsr.tooltip.fluid_drill.desc=消耗蒸汽从地下直接抽取水、蒸馏水或盐水。
+gtsr.tooltip.fluid_drill.desc2=螺丝刀右击切换产出模式（水/蒸馏水/盐水），默认为水。蒸馏水/盐水模式产出仅为10%。
+gtsr.tooltip.fluid_drill.mode_switch=螺丝刀: 切换产出模式（水/蒸馏水/盐水），默认水
+gtsr.tooltip.fluid_drill.mode_penalty=蒸馏水/盐水模式产出仅为10%，切换模式重置效率
+gtsr.tooltip.fluid_drill.mode_water=水
+gtsr.tooltip.fluid_drill.mode_distilled=蒸馏水
+gtsr.tooltip.fluid_drill.mode_brine=盐水
+gtsr.tooltip.fluid_drill.output_mode=产出模式
 gtsr.tooltip.fluid_drill.ctrl=底层正面中央
 gtsr.tooltip.fluid_drill.output_hatch=流体产出
 gtsr.gui.fluid_drill.efficiency=效率: 
 gtsr.gui.fluid_drill.output=产出: 
+gtsr.gui.fluid_drill.output_mode=产出模式: 
 
 # 14. Steam Hub Array
 gtsr.tooltip.steam_hub.type=蒸汽枢纽阵列, SHA
