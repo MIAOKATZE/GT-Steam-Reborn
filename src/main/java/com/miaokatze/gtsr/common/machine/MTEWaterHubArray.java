@@ -871,6 +871,20 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
                 + EnumChatFormatting.RESET;
         }))
             .widget(new TextWidget().setStringSupplier(() -> {
+                ItemStack chip = getControllerSlot();
+                String chipText;
+                if (chip != null && GTSRItemList.HubSingularityChip.isStackEqual(chip, true, true)) {
+                    chipText = EnumChatFormatting.GREEN
+                        + StatCollector.translateToLocal("gtsr.gui.chip.singularity_installed");
+                } else {
+                    chipText = EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.gui.chip.none");
+                }
+                return EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.chip")
+                    + " "
+                    + chipText
+                    + EnumChatFormatting.RESET;
+            }))
+            .widget(new TextWidget().setStringSupplier(() -> {
                 String status = mMaxProgresstime > 0
                     ? EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.gui.status.running")
                     : EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.gui.status.idle");

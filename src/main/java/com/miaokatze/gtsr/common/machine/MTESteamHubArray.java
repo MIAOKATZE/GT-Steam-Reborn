@@ -42,7 +42,9 @@ import com.gtnewhorizons.modularui.common.widget.FakeSyncWidget;
 import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
+import com.miaokatze.gtsr.common.machine.base.MTEFilteredCacheNode;
 import com.miaokatze.gtsr.common.machine.base.MTEHubStorageUnit;
+import com.miaokatze.gtsr.common.machine.base.MTEOverpressureHubStorageUnit;
 import com.miaokatze.gtsr.common.machine.base.MTEReinforcedHubStorageUnit;
 import com.miaokatze.gtsr.common.machine.base.MTESteamHubInputHatch;
 import com.miaokatze.gtsr.common.machine.base.MTESteamHubOutputHatch;
@@ -94,7 +96,10 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
                 'A',
                 ofChain(
                     buildHatchAdder(MTESteamHubArray.class)
-                        .atLeast(SteamHubStorageElement.PressureUnit, SteamHubStorageElement.ReinforcedUnit)
+                        .atLeast(
+                            SteamHubStorageElement.PressureUnit,
+                            SteamHubStorageElement.ReinforcedUnit,
+                            SteamHubStorageElement.OverpressureUnit)
                         .casingIndex(CASING_INDEX)
                         .dot(2)
                         .buildAndChain(
@@ -113,7 +118,8 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
                                     MTESteamHubArray::getCasingTier,
                                     ImmutableList.of(
                                         Pair.of(GregTechAPI.sBlockCasings1, 10),
-                                        Pair.of(GregTechAPI.sBlockCasings2, 0)),
+                                        Pair.of(GregTechAPI.sBlockCasings2, 0),
+                                        Pair.of(GregTechAPI.sBlockCasings4, 1)),
                                     -1,
                                     (MTESteamHubArray t, Integer tier) -> t.mSetTier = Math.max(t.mSetTier, tier),
                                     (MTESteamHubArray t) -> t.mSetTier)))))
@@ -123,8 +129,10 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
                     MTESteamHubArray::onCasingAdded,
                     ofBlocksTiered(
                         MTESteamHubArray::getPipeTier,
-                        ImmutableList
-                            .of(Pair.of(GregTechAPI.sBlockCasings2, 12), Pair.of(GregTechAPI.sBlockCasings2, 13)),
+                        ImmutableList.of(
+                            Pair.of(GregTechAPI.sBlockCasings2, 12),
+                            Pair.of(GregTechAPI.sBlockCasings2, 13),
+                            Pair.of(GregTechAPI.sBlockCasings2, 15)),
                         -1,
                         (MTESteamHubArray t, Integer tier) -> t.mSetTier = Math.max(t.mSetTier, tier),
                         (MTESteamHubArray t) -> t.mSetTier)))
@@ -134,8 +142,10 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
                     MTESteamHubArray::onCasingAdded,
                     ofBlocksTiered(
                         MTESteamHubArray::getGearTier,
-                        ImmutableList
-                            .of(Pair.of(GregTechAPI.sBlockCasings2, 2), Pair.of(GregTechAPI.sBlockCasings2, 3)),
+                        ImmutableList.of(
+                            Pair.of(GregTechAPI.sBlockCasings2, 2),
+                            Pair.of(GregTechAPI.sBlockCasings2, 3),
+                            Pair.of(GregTechAPI.sBlockCasings2, 15)),
                         -1,
                         (MTESteamHubArray t, Integer tier) -> t.mSetTier = Math.max(t.mSetTier, tier),
                         (MTESteamHubArray t) -> t.mSetTier)))
@@ -147,7 +157,8 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
                         MTESteamHubArray::getFrameTier,
                         ImmutableList.of(
                             Pair.of(GregTechAPI.sBlockFrames, Materials.Bronze.mMetaItemSubID),
-                            Pair.of(GregTechAPI.sBlockFrames, Materials.Steel.mMetaItemSubID)),
+                            Pair.of(GregTechAPI.sBlockFrames, Materials.Steel.mMetaItemSubID),
+                            Pair.of(GregTechAPI.sBlockFrames, Materials.TungstenSteel.mMetaItemSubID)),
                         -1,
                         (MTESteamHubArray t, Integer tier) -> t.mSetTier = Math.max(t.mSetTier, tier),
                         (MTESteamHubArray t) -> t.mSetTier)))
@@ -158,6 +169,7 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
     public static Integer getCasingTier(Block block, int meta) {
         if (block == GregTechAPI.sBlockCasings1 && meta == 10) return 1;
         if (block == GregTechAPI.sBlockCasings2 && meta == 0) return 2;
+        if (block == GregTechAPI.sBlockCasings4 && meta == 1) return 3;
         return null;
     }
 
@@ -165,6 +177,7 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
     public static Integer getPipeTier(Block block, int meta) {
         if (block == GregTechAPI.sBlockCasings2 && meta == 12) return 1;
         if (block == GregTechAPI.sBlockCasings2 && meta == 13) return 2;
+        if (block == GregTechAPI.sBlockCasings2 && meta == 15) return 3;
         return null;
     }
 
@@ -172,6 +185,7 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
     public static Integer getGearTier(Block block, int meta) {
         if (block == GregTechAPI.sBlockCasings2 && meta == 2) return 1;
         if (block == GregTechAPI.sBlockCasings2 && meta == 3) return 2;
+        if (block == GregTechAPI.sBlockCasings2 && meta == 15) return 3;
         return null;
     }
 
@@ -179,6 +193,7 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
     public static Integer getFrameTier(Block block, int meta) {
         if (block == GregTechAPI.sBlockFrames && meta == Materials.Bronze.mMetaItemSubID) return 1;
         if (block == GregTechAPI.sBlockFrames && meta == Materials.Steel.mMetaItemSubID) return 2;
+        if (block == GregTechAPI.sBlockFrames && meta == Materials.TungstenSteel.mMetaItemSubID) return 3;
         return null;
     }
 
@@ -215,7 +230,8 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
     private enum SteamHubStorageElement implements IHatchElement<MTESteamHubArray> {
 
         PressureUnit(MTESteamHubArray::addPressureUnitToMachineList, MTEHubStorageUnit.class),
-        ReinforcedUnit(MTESteamHubArray::addReinforcedUnitToMachineList, MTEReinforcedHubStorageUnit.class);
+        ReinforcedUnit(MTESteamHubArray::addReinforcedUnitToMachineList, MTEReinforcedHubStorageUnit.class),
+        OverpressureUnit(MTESteamHubArray::addOverpressureUnitToMachineList, MTEOverpressureHubStorageUnit.class);
 
         private final List<Class<? extends IMetaTileEntity>> mteClasses;
         private final IGTHatchAdder<MTESteamHubArray> adder;
@@ -238,7 +254,9 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
 
         @Override
         public long count(MTESteamHubArray t) {
-            return this == PressureUnit ? t.mPressureUnitCount : t.mReinforcedUnitCount;
+            if (this == PressureUnit) return t.mPressureUnitCount;
+            if (this == ReinforcedUnit) return t.mReinforcedUnitCount;
+            return t.mOverpressureUnitCount;
         }
     }
 
@@ -272,6 +290,7 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
 
     private int mPressureUnitCount = 0;
     private int mReinforcedUnitCount = 0;
+    private int mOverpressureUnitCount = 0;
     private int mCasingAmount = 0;
     private int mSetTier = -1;
     private long mSteamStored = 0;
@@ -315,6 +334,7 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
 
         mPressureUnitCount = 0;
         mReinforcedUnitCount = 0;
+        mOverpressureUnitCount = 0;
         mCasingAmount = 0;
         mSetTier = -1;
         mSteamInputHatches.clear();
@@ -324,7 +344,9 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
 
         if (mSetTier <= 0) return false;
 
-        return (mPressureUnitCount + mReinforcedUnitCount) > 0;
+        if (mSetTier >= 3 && mOverpressureUnitCount <= 0) return false;
+
+        return (mPressureUnitCount + mReinforcedUnitCount + mOverpressureUnitCount) > 0;
     }
 
     private void onCasingAdded() {
@@ -373,6 +395,16 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
         return false;
     }
 
+    public boolean addOverpressureUnitToMachineList(IGregTechTileEntity aTileEntity, int aBaseCasingIndex) {
+        if (aTileEntity == null) return false;
+        IMetaTileEntity aMetaTileEntity = aTileEntity.getMetaTileEntity();
+        if (aMetaTileEntity instanceof MTEOverpressureHubStorageUnit) {
+            mOverpressureUnitCount++;
+            return true;
+        }
+        return false;
+    }
+
     public boolean isFormed() {
         return mMachine;
     }
@@ -389,7 +421,10 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
 
     public int receiveSteam(FluidStack aFluid, boolean doFill) {
         if (aFluid == null) return 0;
-        if (!MTESteamHubOutputHatch.isSteamFluid(aFluid)) return 0;
+        boolean isAllowed = mSetTier >= 3 && hasReinforcedChipInstalled()
+            ? MTESteamHubOutputHatch.isAnySteamFluid(aFluid)
+            : MTESteamHubOutputHatch.isSteamFluid(aFluid);
+        if (!isAllowed) return 0;
         if (mStoredFluidType != null && !mStoredFluidType.isFluidEqual(aFluid)) return 0;
 
         long capacity = getTotalCapacity();
@@ -486,7 +521,9 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
     }
 
     public long getTotalCapacity() {
-        return (long) mPressureUnitCount * 16_000_000 + (long) mReinforcedUnitCount * 64_000_000;
+        long base = (long) mPressureUnitCount * 16_000_000 + (long) mReinforcedUnitCount * 64_000_000
+            + (long) mOverpressureUnitCount * 512_000_000;
+        return hasReinforcedChipInstalled() ? base * 10 : base;
     }
 
     public long getSteamStored() {
@@ -517,6 +554,14 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
         if (mTickCounter % 20 == 0) {
             transferWithBoundNodes();
         }
+    }
+
+    private int getNodeTransferRate(IGregTechTileEntity gte) {
+        IMetaTileEntity mte = gte.getMetaTileEntity();
+        if (mte instanceof MTEFilteredCacheNode cacheNode) {
+            return (int) Math.min(cacheNode.getEffectiveHubTransferRate(), Integer.MAX_VALUE);
+        }
+        return TRANSFER_RATE;
     }
 
     private void autoOutputSteam() {
@@ -561,7 +606,8 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
         float aX, float aY, float aZ) {
         ItemStack held = aPlayer.getHeldItem();
 
-        if (held != null && GTSRItemList.HubSingularityChip.isStackEqual(held, true, true)) {
+        if (held != null && (GTSRItemList.HubSingularityChip.isStackEqual(held, true, true)
+            || GTSRItemList.ReinforcedHubSingularityChip.isStackEqual(held, true, true))) {
             if (aBaseMetaTileEntity.isServerSide()) {
                 sendBindingDebug(aPlayer);
             }
@@ -579,6 +625,8 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
         } else if (GTSRItemList.ReinforcedSteamCacheNode.isStackEqual(held, false, true)) {
             type = "reinforced_steam";
             isReinforced = true;
+        } else if (GTSRItemList.OverpressureSteamCacheNode.isStackEqual(held, false, true)) {
+            type = "overpressure_steam";
         }
 
         if (type == null) {
@@ -586,6 +634,13 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
         }
 
         if (!aBaseMetaTileEntity.isServerSide()) return true;
+
+        if ("overpressure_steam".equals(type) && !hasReinforcedChipInstalled()) {
+            GTUtility.sendChatToPlayer(
+                aPlayer,
+                StatCollector.translateToLocal("gtsr.binding.overpressure_no_reinforced_chip"));
+            return true;
+        }
 
         if (!hasChipInstalled()) {
             GTUtility.sendChatToPlayer(aPlayer, StatCollector.translateToLocal("gtsr.binding.no_chip"));
@@ -679,7 +734,14 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
 
     private boolean hasChipInstalled() {
         ItemStack stack = getControllerSlot();
-        return stack != null && GTSRItemList.HubSingularityChip.isStackEqual(stack, true, true);
+        return stack != null && (GTSRItemList.HubSingularityChip.isStackEqual(stack, true, true)
+            || GTSRItemList.ReinforcedHubSingularityChip.isStackEqual(stack, true, true));
+    }
+
+    private boolean hasReinforcedChipInstalled() {
+        if (mSetTier < 3) return false;
+        ItemStack stack = getControllerSlot();
+        return stack != null && GTSRItemList.ReinforcedHubSingularityChip.isStackEqual(stack, true, true);
     }
 
     private BoundCacheNode findBoundNode(int x, int y, int z, int dim) {
@@ -719,7 +781,7 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
 
     @Override
     public boolean acceptsNodeType(String type) {
-        return "steam".equals(type) || "reinforced_steam".equals(type);
+        return "steam".equals(type) || "reinforced_steam".equals(type) || "overpressure_steam".equals(type);
     }
 
     private void sendBindingDebug(EntityPlayer aPlayer) {
@@ -768,13 +830,15 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
             IGregTechTileEntity gte = (IGregTechTileEntity) te;
 
             if (node.isOutputMode) {
-                FluidStack drained = gte.drain(ForgeDirection.UNKNOWN, TRANSFER_RATE, false);
+                int nodeRate = getNodeTransferRate(gte);
+                FluidStack drained = gte.drain(ForgeDirection.UNKNOWN, nodeRate, false);
                 if (drained != null && drained.amount > 0) {
                     int received = receiveSteam(drained, true);
                     if (received > 0) gte.drain(ForgeDirection.UNKNOWN, received, true);
                 }
             } else {
-                FluidStack toSend = extractSteam(TRANSFER_RATE, false);
+                int nodeRate = getNodeTransferRate(gte);
+                FluidStack toSend = extractSteam(nodeRate, false);
                 if (toSend != null && toSend.amount > 0) {
                     int filled = gte.fill(ForgeDirection.UNKNOWN, toSend, true);
                     if (filled > 0) extractSteam(filled, true);
@@ -859,13 +923,41 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
     protected void drawTexts(DynamicPositionedColumn screenElements, SlotWidget inventorySlot) {
         super.drawTexts(screenElements, inventorySlot);
         screenElements.widget(new TextWidget().setStringSupplier(() -> {
-            String tierText = mSetTier == 2 ? StatCollector.translateToLocal("gtsr.gui.tier.steel")
-                : StatCollector.translateToLocal("gtsr.gui.tier.bronze");
+            String tierText;
+            if (mSetTier >= 3) {
+                tierText = StatCollector.translateToLocal("gtsr.gui.tier.tungstensteel");
+            } else if (mSetTier == 2) {
+                tierText = StatCollector.translateToLocal("gtsr.gui.tier.steel");
+            } else {
+                tierText = StatCollector.translateToLocal("gtsr.gui.tier.bronze");
+            }
             return EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.tier")
                 + EnumChatFormatting.GOLD
                 + tierText
                 + EnumChatFormatting.RESET;
         }))
+            .widget(new TextWidget().setStringSupplier(() -> {
+                ItemStack chip = getControllerSlot();
+                String chipText;
+                if (chip != null && GTSRItemList.ReinforcedHubSingularityChip.isStackEqual(chip, true, true)) {
+                    if (mSetTier >= 3) {
+                        chipText = EnumChatFormatting.GREEN
+                            + StatCollector.translateToLocal("gtsr.gui.chip.reinforced_installed");
+                    } else {
+                        chipText = EnumChatFormatting.RED
+                            + StatCollector.translateToLocal("gtsr.gui.chip.need_higher_tier");
+                    }
+                } else if (chip != null && GTSRItemList.HubSingularityChip.isStackEqual(chip, true, true)) {
+                    chipText = EnumChatFormatting.GREEN
+                        + StatCollector.translateToLocal("gtsr.gui.chip.singularity_installed");
+                } else {
+                    chipText = EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.gui.chip.none");
+                }
+                return EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.chip")
+                    + " "
+                    + chipText
+                    + EnumChatFormatting.RESET;
+            }))
             .widget(new TextWidget().setStringSupplier(() -> {
                 String status = mMaxProgresstime > 0
                     ? EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.gui.status.running")
@@ -880,7 +972,7 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
                     () -> EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.steam_hub.storage_units")
                         + " "
                         + EnumChatFormatting.GOLD
-                        + (mPressureUnitCount + mReinforcedUnitCount)
+                        + (mPressureUnitCount + mReinforcedUnitCount + mOverpressureUnitCount)
                         + "/25"
                         + EnumChatFormatting.RESET))
             .widget(

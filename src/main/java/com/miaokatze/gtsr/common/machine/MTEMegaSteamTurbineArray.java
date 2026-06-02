@@ -10,6 +10,7 @@ import static gregtech.api.enums.HatchElement.OutputHatch;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
 
 import javax.annotation.Nonnull;
@@ -21,6 +22,8 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 import net.minecraftforge.common.util.ForgeDirection;
+import net.minecraftforge.fluids.Fluid;
+import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
 
 import org.apache.commons.lang3.tuple.Pair;
@@ -37,6 +40,7 @@ import com.gtnewhorizons.modularui.common.widget.FakeSyncWidget;
 import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import com.miaokatze.gtsr.common.machine.base.MTEHatchPressureSteamInput;
+import com.miaokatze.gtsr.common.machine.base.MTEOverpressureTurbineInputHatch;
 import com.miaokatze.gtsr.common.machine.base.MTEPressureSteamCoolingHatch;
 import com.miaokatze.gtsr.common.machine.base.MTESteamCoolingHatch;
 
@@ -84,6 +88,7 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
     private int mSteamConsumption = 0;
 
     private final List<MTEHatchPressureSteamInput> mPressureSteamInputs = new ArrayList<>();
+    private final List<MTEOverpressureTurbineInputHatch> mOverpressureInputs = new ArrayList<>();
     private final List<MTESteamCoolingHatch> mSteamCoolingHatches = new ArrayList<>();
     private final List<MTEPressureSteamCoolingHatch> mPressureCoolingHatches = new ArrayList<>();
     protected final List<RenderOverlay.OverlayTicket> overlayTickets = new ArrayList<>();
@@ -96,8 +101,41 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         super(aName);
     }
 
-    private static final int MAX_EFFICIENCY_STEAM = 15000;
-    private static final int MAX_EFFICIENCY_HP_STEAM = 20000;
+    private enum SteamType {
+
+        NONE(0, 0, 0, ""),
+        STEAM(0.5f, 0.5f, 15000, "gtsr.gui.steam_type.normal"),
+        DENSE_STEAM(0.5f, 500, 20000, "gtsr.gui.steam_type.dense"),
+        SH_STEAM(1.0f, 1.0f, 20000, "gtsr.gui.steam_type.superheated"),
+        DENSE_SH_STEAM(1.0f, 1000, 25000, "gtsr.gui.steam_type.dense_superheated"),
+        SC_STEAM(1.0f, 1.0f, 25000, "gtsr.gui.steam_type.supercritical"),
+        DENSE_SC_STEAM(1.0f, 1000, 30000, "gtsr.gui.steam_type.dense_supercritical");
+
+        final float steamEffFactor;
+        final float euPerL;
+        final int maxEfficiency;
+        final String nameKey;
+
+        SteamType(float steamEffFactor, float euPerL, int maxEfficiency, String nameKey) {
+            this.steamEffFactor = steamEffFactor;
+            this.euPerL = euPerL;
+            this.maxEfficiency = maxEfficiency;
+            this.nameKey = nameKey;
+        }
+
+        boolean isDense() {
+            return this == DENSE_STEAM || this == DENSE_SH_STEAM || this == DENSE_SC_STEAM;
+        }
+
+        boolean requiresHighTier() {
+            return this == DENSE_STEAM || this == DENSE_SH_STEAM || this == SC_STEAM || this == DENSE_SC_STEAM;
+        }
+    }
+
+    private static final SteamType[] STEAM_TYPE_PRIORITY = { SteamType.DENSE_SC_STEAM, SteamType.SC_STEAM,
+        SteamType.DENSE_SH_STEAM, SteamType.DENSE_STEAM, SteamType.SH_STEAM, SteamType.STEAM };
+
+    private SteamType mSteamType = SteamType.NONE;
 
     @Override
     protected void drawTexts(DynamicPositionedColumn screenElements, SlotWidget inventorySlot) {
@@ -108,20 +146,32 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         screenElements.widget(new FakeSyncWidget.IntegerSyncer(() -> mTheoreticalEUt, val -> mTheoreticalEUt = val));
         screenElements
             .widget(new FakeSyncWidget.IntegerSyncer(() -> mSteamConsumption, val -> mSteamConsumption = val));
+        screenElements.widget(
+            new FakeSyncWidget.IntegerSyncer(() -> mSteamType.ordinal(), val -> mSteamType = SteamType.values()[val]));
+
+        screenElements
+            .widget(
+                TextWidget
+                    .dynamicString(
+                        () -> EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.steam_type")
+                            + (mSteamType.requiresHighTier() ? EnumChatFormatting.LIGHT_PURPLE
+                                : EnumChatFormatting.YELLOW)
+                            + StatCollector.translateToLocal(mSteamType.nameKey)
+                            + (mSteamType.requiresHighTier() ? EnumChatFormatting.GRAY + " (Tier 6+)" : ""))
+                    .setTextAlignment(Alignment.CenterLeft)
+                    .setDefaultColor(COLOR_TEXT_WHITE.get())
+                    .setEnabled(w -> mMachine));
 
         screenElements.widget(
-            TextWidget.dynamicString(
-                () -> EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.turbine_array.eu_t")
-                    + EnumChatFormatting.AQUA
-                    + GTUtility.formatNumbers(
-                        (long) (getVoltage() * 4 * (getStackLayers() + 1) * (getMaxEfficiencyLimit(false) / 10000.0)))
-                    + EnumChatFormatting.GRAY
-                    + StatCollector.translateToLocal("gtsr.gui.turbine_array.hp_prefix")
-                    + EnumChatFormatting.RED
-                    + GTUtility.formatNumbers(
-                        (long) (getVoltage() * 8 * (getStackLayers() + 1) * (getMaxEfficiencyLimit(true) / 10000.0)))
-                    + EnumChatFormatting.GRAY
-                    + ")")
+            TextWidget
+                .dynamicString(
+                    () -> EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.turbine_array.eu_t")
+                        + EnumChatFormatting.AQUA
+                        + GTUtility.formatNumbers(
+                            (long) (getVoltage() * 8
+                                * (getStackLayers() + 1)
+                                * (getMaxEfficiencyLimit(mSteamType) / 10000.0)
+                                * mSteamType.steamEffFactor)))
                 .setTextAlignment(Alignment.CenterLeft)
                 .setDefaultColor(COLOR_TEXT_WHITE.get())
                 .setEnabled(w -> mMachine));
@@ -131,13 +181,8 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
                 .dynamicString(
                     () -> EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.turbine_array.steam")
                         + EnumChatFormatting.AQUA
-                        + GTUtility.formatNumbers(calcSteamConsumption(false))
-                        + " L/t"
-                        + EnumChatFormatting.GRAY
-                        + StatCollector.translateToLocal("gtsr.gui.turbine_array.hp_prefix")
-                        + EnumChatFormatting.RED
-                        + GTUtility.formatNumbers(calcSteamConsumption(true))
-                        + ")")
+                        + GTUtility.formatNumbers(calcSteamConsumption(mSteamType))
+                        + " L/t")
                 .setTextAlignment(Alignment.CenterLeft)
                 .setDefaultColor(COLOR_TEXT_WHITE.get())
                 .setEnabled(w -> mMachine));
@@ -172,10 +217,10 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
             TextWidget
                 .dynamicString(
                     () -> EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.turbine_array.efficiency")
-                        + (mEfficiency >= getMaxEfficiencyLimit(true) ? EnumChatFormatting.LIGHT_PURPLE
+                        + (mEfficiency >= getMaxEfficiencyLimit(mSteamType) ? EnumChatFormatting.LIGHT_PURPLE
                             : mEfficiency >= 10000 ? EnumChatFormatting.GREEN : EnumChatFormatting.YELLOW)
                         + String.format("%.1f%%", mEfficiency / 100.0)
-                        + (mEfficiency >= getMaxEfficiencyLimit(true)
+                        + (mEfficiency >= getMaxEfficiencyLimit(mSteamType)
                             ? StatCollector.translateToLocal("gtsr.gui.turbine_array.max")
                             : ""))
                 .setTextAlignment(Alignment.CenterLeft)
@@ -268,6 +313,12 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
                         buildHatchAdder(MTEMegaSteamTurbineArray.class)
                             .adder(MTEMegaSteamTurbineArray::addPressureSteamToMachineList)
                             .hatchClass(MTEHatchPressureSteamInput.class)
+                            .casingIndex(SOLID_STEEL_CASING_INDEX)
+                            .dot(1)
+                            .build(),
+                        buildHatchAdder(MTEMegaSteamTurbineArray.class)
+                            .adder(MTEMegaSteamTurbineArray::addOverpressureInputToMachineList)
+                            .hatchClass(MTEOverpressureTurbineInputHatch.class)
                             .casingIndex(SOLID_STEEL_CASING_INDEX)
                             .dot(1)
                             .build(),
@@ -413,8 +464,19 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         return false;
     }
 
+    private boolean addOverpressureInputToMachineList(IGregTechTileEntity aTileEntity, int aBaseCasingIndex) {
+        if (aTileEntity == null) return false;
+        IMetaTileEntity mte = aTileEntity.getMetaTileEntity();
+        if (mte instanceof MTEOverpressureTurbineInputHatch hatch) {
+            hatch.updateTexture(aBaseCasingIndex);
+            mOverpressureInputs.add(hatch);
+            return true;
+        }
+        return false;
+    }
+
     private boolean hasPressureSteamHatch() {
-        return !mPressureSteamInputs.isEmpty();
+        return !mPressureSteamInputs.isEmpty() || !mOverpressureInputs.isEmpty();
     }
 
     private boolean hasSteamCoolingHatch() {
@@ -456,6 +518,7 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         mGearTier = -1;
         mFrameTier = -1;
         mPressureSteamInputs.clear();
+        mOverpressureInputs.clear();
         mSteamCoolingHatches.clear();
         mPressureCoolingHatches.clear();
 
@@ -499,8 +562,8 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
      * 最大效率上限 (含管道升级奖励).
      * mPipeTier: 1=钢(无奖励), 2=钛(+10%), 3=钨钢(+20%)
      */
-    private int getMaxEfficiencyLimit(boolean isHP) {
-        int base = isHP ? MAX_EFFICIENCY_HP_STEAM : MAX_EFFICIENCY_STEAM;
+    private int getMaxEfficiencyLimit(SteamType type) {
+        int base = type.maxEfficiency;
         if (mPipeTier > 1) {
             float pipeBonus = 0.1f * (mPipeTier - 1);
             return (int) (base * (1f + pipeBonus));
@@ -518,18 +581,13 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         return eff / 10000.0f;
     }
 
-    private long calcSteamConsumption(boolean isHP) {
+    private long calcSteamConsumption(SteamType type) {
+        if (type == SteamType.NONE) return 0;
         int stackLayers = getStackLayers();
         long voltage = getVoltage();
         int n = stackLayers + 1;
         float savings = 0.05f * stackLayers + (mGearTier > 1 ? 0.05f : 0f);
-        if (isHP) {
-            long baseEU = voltage * 8 * n;
-            return (long) (baseEU * Math.max(0, 1 - savings));
-        } else {
-            long baseEU = voltage * 4 * n;
-            return (long) (baseEU * Math.max(0, 1 - savings) / 0.5f);
-        }
+        return (long) (voltage * 8 * n * Math.max(0, 1 - savings) * type.steamEffFactor / type.euPerL);
     }
 
     @Override
@@ -539,6 +597,7 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
             mEUt = 0;
             mTheoreticalEUt = 0;
             mSteamConsumption = 0;
+            mSteamType = SteamType.NONE;
             mEfficiency = Math.max(0, mEfficiency - 500);
             return CheckRecipeResultRegistry.NO_FUEL_FOUND;
         }
@@ -549,67 +608,66 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         float efficiency = getCustomEfficiency();
         float savings = 0.05f * stackLayers + (mGearTier > 1 ? 0.05f : 0f);
 
-        boolean hasSuperheated = false;
-        boolean hasNormalSteam = false;
+        EnumSet<SteamType> availableTypes = EnumSet.noneOf(SteamType.class);
         for (FluidStack fs : tFluids) {
-            if (GTModHandler.isSuperHeatedSteam(fs)) hasSuperheated = true;
-            else if (GTModHandler.isAnySteam(fs)) hasNormalSteam = true;
+            SteamType type = classifyFluid(fs);
+            if (type != SteamType.NONE) availableTypes.add(type);
         }
-
         for (MTEHatchPressureSteamInput hatch : mPressureSteamInputs) {
             FluidStack fs = hatch.getFluid();
             if (fs != null && fs.amount > 0) {
-                if (GTModHandler.isSuperHeatedSteam(fs)) hasSuperheated = true;
-                else if (GTModHandler.isAnySteam(fs)) hasNormalSteam = true;
+                SteamType type = classifyFluid(fs);
+                if (type != SteamType.NONE) availableTypes.add(type);
+            }
+        }
+        for (MTEOverpressureTurbineInputHatch hatch : mOverpressureInputs) {
+            FluidStack fs = hatch.getFluid();
+            if (fs != null && hatch.getSteamStored() > 0) {
+                SteamType type = classifyFluid(fs);
+                if (type != SteamType.NONE) availableTypes.add(type);
             }
         }
 
-        long generatedEUt;
-        long steamConsumption;
+        boolean canUseHighTier = mCasingTier >= 6;
+        if (!canUseHighTier) {
+            availableTypes.remove(SteamType.DENSE_STEAM);
+            availableTypes.remove(SteamType.DENSE_SH_STEAM);
+            availableTypes.remove(SteamType.SC_STEAM);
+            availableTypes.remove(SteamType.DENSE_SC_STEAM);
+        }
 
-        if (hasSuperheated) {
-            generatedEUt = (long) (voltage * 8 * n * efficiency);
-            steamConsumption = (long) (voltage * 8 * n * Math.max(0, 1 - savings));
-            FluidStack superheated = getSuperheatedSteam();
-            if (superheated == null || superheated.amount < steamConsumption) {
-                if (hasNormalSteam) {
-                    generatedEUt = (long) (voltage * 4 * n * efficiency);
-                    long steamBaseEU = (long) (voltage * 4 * n * Math.max(0, 1 - savings));
-                    steamConsumption = (long) (steamBaseEU / 0.5f);
-                    this.mTheoreticalEUt = (int) generatedEUt;
-                    this.mSteamConsumption = (int) steamConsumption;
-                    depleteSteam((int) steamConsumption);
-                    int waterOutput = condenseSteam((int) steamConsumption);
-                    outputCoolingWater(waterOutput);
-                } else {
-                    mEUt = 0;
-                    mTheoreticalEUt = 0;
-                    mSteamConsumption = 0;
-                    mEfficiency = Math.max(0, mEfficiency - 500);
-                    return CheckRecipeResultRegistry.NO_FUEL_FOUND;
-                }
-            } else {
-                this.mTheoreticalEUt = (int) generatedEUt;
-                this.mSteamConsumption = (int) steamConsumption;
-                depleteSuperheatedSteam((int) steamConsumption);
-                outputCoolingSteam((int) steamConsumption);
+        SteamType selectedType = SteamType.NONE;
+        long generatedEUt = 0;
+        long steamConsumption = 0;
+
+        for (SteamType type : STEAM_TYPE_PRIORITY) {
+            if (!availableTypes.contains(type)) continue;
+            long eu = (long) (voltage * 8 * n * efficiency * type.steamEffFactor);
+            long consumption = (long) (voltage * 8 * n * Math.max(0, 1 - savings) * type.steamEffFactor / type.euPerL);
+            int totalAvailable = getTotalSteamAmount(type);
+            if (totalAvailable >= consumption) {
+                selectedType = type;
+                generatedEUt = eu;
+                steamConsumption = consumption;
+                break;
             }
-        } else if (hasNormalSteam) {
-            generatedEUt = (long) (voltage * 4 * n * efficiency);
-            long steamBaseEU = (long) (voltage * 4 * n * Math.max(0, 1 - savings));
-            steamConsumption = (long) (steamBaseEU / 0.5f);
-            this.mTheoreticalEUt = (int) generatedEUt;
-            this.mSteamConsumption = (int) steamConsumption;
-            depleteSteam((int) steamConsumption);
-            int waterOutput = condenseSteam((int) steamConsumption);
-            outputCoolingWater(waterOutput);
-        } else {
+        }
+
+        if (selectedType == SteamType.NONE) {
             mEUt = 0;
             mTheoreticalEUt = 0;
             mSteamConsumption = 0;
+            mSteamType = SteamType.NONE;
             mEfficiency = Math.max(0, mEfficiency - 500);
             return CheckRecipeResultRegistry.NO_FUEL_FOUND;
         }
+
+        this.mTheoreticalEUt = (int) generatedEUt;
+        this.mSteamConsumption = (int) steamConsumption;
+        this.mSteamType = selectedType;
+
+        depleteSteamByType(selectedType, (int) steamConsumption);
+        outputCoolingProduct(selectedType, (int) steamConsumption);
 
         int difference = (int) (generatedEUt - mEUt);
         int maxChange = Math.max(10, Math.abs(difference) / 100);
@@ -620,7 +678,7 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         }
 
         mMaxProgresstime = 1;
-        int maxEff = getMaxEfficiencyLimit(hasSuperheated);
+        int maxEff = getMaxEfficiencyLimit(selectedType);
         if (mEfficiency < 10000) {
             mEfficiencyIncrease = 10;
         } else if (mEfficiency < maxEff) {
@@ -640,25 +698,59 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         return aTotal;
     }
 
-    private FluidStack getSuperheatedSteam() {
+    private SteamType classifyFluid(FluidStack fs) {
+        if (fs == null || fs.amount <= 0) return SteamType.NONE;
+        if (isDenseSupercriticalSteamFluid(fs)) return SteamType.DENSE_SC_STEAM;
+        if (isSupercriticalSteamFluid(fs)) return SteamType.SC_STEAM;
+        if (isDenseSuperheatedSteamFluid(fs)) return SteamType.DENSE_SH_STEAM;
+        if (isDenseSteamFluid(fs)) return SteamType.DENSE_STEAM;
+        if (GTModHandler.isSuperHeatedSteam(fs)) return SteamType.SH_STEAM;
+        if (GTModHandler.isAnySteam(fs)) return SteamType.STEAM;
+        return SteamType.NONE;
+    }
+
+    private static boolean isDenseSteamFluid(FluidStack fs) {
+        if (fs == null || Materials.DenseSteam.mGas == null) return false;
+        return fs.getFluid() == Materials.DenseSteam.mGas;
+    }
+
+    private static boolean isDenseSuperheatedSteamFluid(FluidStack fs) {
+        if (fs == null || Materials.DenseSuperheatedSteam.mGas == null) return false;
+        return fs.getFluid() == Materials.DenseSuperheatedSteam.mGas;
+    }
+
+    private static boolean isSupercriticalSteamFluid(FluidStack fs) {
+        if (fs == null) return false;
+        Fluid scFluid = FluidRegistry.getFluid("supercriticalsteam");
+        return scFluid != null && fs.getFluid() == scFluid;
+    }
+
+    private static boolean isDenseSupercriticalSteamFluid(FluidStack fs) {
+        if (fs == null || Materials.DenseSupercriticalSteam.mGas == null) return false;
+        return fs.getFluid() == Materials.DenseSupercriticalSteam.mGas;
+    }
+
+    private int getTotalSteamAmount(SteamType type) {
+        int total = 0;
         for (FluidStack fs : getStoredFluids()) {
-            if (GTModHandler.isSuperHeatedSteam(fs)) {
-                return fs;
-            }
+            if (classifyFluid(fs) == type) total += fs.amount;
         }
         for (MTEHatchPressureSteamInput hatch : mPressureSteamInputs) {
             FluidStack fs = hatch.getFluid();
-            if (fs != null && GTModHandler.isSuperHeatedSteam(fs) && fs.amount > 0) {
-                return fs;
-            }
+            if (fs != null && classifyFluid(fs) == type) total += fs.amount;
         }
-        return null;
+        for (MTEOverpressureTurbineInputHatch hatch : mOverpressureInputs) {
+            FluidStack fs = hatch.getFluid();
+            if (fs != null && classifyFluid(fs) == type)
+                total += (int) Math.min(hatch.getSteamStored(), Integer.MAX_VALUE);
+        }
+        return total;
     }
 
-    private boolean depleteSteam(int amount) {
+    private boolean depleteSteamByType(SteamType type, int amount) {
         int remaining = amount;
         for (FluidStack fs : getStoredFluids()) {
-            if (GTModHandler.isAnySteam(fs) && !GTModHandler.isSuperHeatedSteam(fs)) {
+            if (classifyFluid(fs) == type) {
                 int canDrain = Math.min(fs.amount, remaining);
                 if (canDrain > 0) {
                     depleteInput(new FluidStack(fs, canDrain));
@@ -669,10 +761,21 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         }
         for (MTEHatchPressureSteamInput hatch : mPressureSteamInputs) {
             FluidStack fs = hatch.getFluid();
-            if (fs != null && GTModHandler.isAnySteam(fs) && !GTModHandler.isSuperHeatedSteam(fs)) {
+            if (fs != null && classifyFluid(fs) == type) {
                 int canDrain = Math.min(fs.amount, remaining);
                 if (canDrain > 0) {
                     hatch.drain(canDrain, true);
+                    remaining -= canDrain;
+                }
+                if (remaining <= 0) return true;
+            }
+        }
+        for (MTEOverpressureTurbineInputHatch hatch : mOverpressureInputs) {
+            FluidStack fs = hatch.getFluid();
+            if (fs != null && classifyFluid(fs) == type) {
+                int canDrain = (int) Math.min(hatch.getSteamStored(), remaining);
+                if (canDrain > 0) {
+                    hatch.consumeSteam(canDrain);
                     remaining -= canDrain;
                 }
                 if (remaining <= 0) return true;
@@ -681,30 +784,42 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         return remaining <= 0;
     }
 
-    private boolean depleteSuperheatedSteam(int amount) {
-        int remaining = amount;
-        for (FluidStack fs : getStoredFluids()) {
-            if (GTModHandler.isSuperHeatedSteam(fs)) {
-                int canDrain = Math.min(fs.amount, remaining);
-                if (canDrain > 0) {
-                    depleteInput(new FluidStack(fs, canDrain));
-                    remaining -= canDrain;
-                }
-                if (remaining <= 0) return true;
+    private void outputCoolingProduct(SteamType type, int consumedAmount) {
+        if (consumedAmount <= 0) return;
+        switch (type) {
+            case STEAM: {
+                int waterOutput = condenseSteam(consumedAmount);
+                outputCoolingWater(waterOutput);
+                break;
             }
-        }
-        for (MTEHatchPressureSteamInput hatch : mPressureSteamInputs) {
-            FluidStack fs = hatch.getFluid();
-            if (fs != null && GTModHandler.isSuperHeatedSteam(fs)) {
-                int canDrain = Math.min(fs.amount, remaining);
-                if (canDrain > 0) {
-                    hatch.drain(canDrain, true);
-                    remaining -= canDrain;
-                }
-                if (remaining <= 0) return true;
+            case DENSE_STEAM: {
+                int equivalentSteam = consumedAmount * 1000;
+                int waterOutput = condenseSteam(equivalentSteam);
+                outputCoolingWater(waterOutput);
+                break;
             }
+            case SH_STEAM: {
+                outputCoolingSteam(consumedAmount);
+                break;
+            }
+            case DENSE_SH_STEAM: {
+                FluidStack denseSteam = Materials.DenseSteam.getGas(consumedAmount);
+                if (denseSteam != null) addOutput(denseSteam);
+                break;
+            }
+            case SC_STEAM: {
+                FluidStack shSteam = FluidRegistry.getFluidStack("ic2superheatedsteam", consumedAmount);
+                if (shSteam != null) addOutput(shSteam);
+                break;
+            }
+            case DENSE_SC_STEAM: {
+                FluidStack denseSHSteam = Materials.DenseSuperheatedSteam.getGas(consumedAmount);
+                if (denseSHSteam != null) addOutput(denseSHSteam);
+                break;
+            }
+            default:
+                break;
         }
-        return remaining <= 0;
     }
 
     private int condenseSteam(int steam) {
@@ -783,12 +898,11 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
                 + EnumChatFormatting.GOLD
                 + getStackLayers());
 
-        String steamType = mEfficiency >= MAX_EFFICIENCY_HP_STEAM
-            ? StatCollector.translateToLocal("gtsr.gui.steam_type.superheated")
+        String steamType = mSteamType != SteamType.NONE ? StatCollector.translateToLocal(mSteamType.nameKey)
             : StatCollector.translateToLocal("gtsr.gui.steam_type.normal");
         info.add(
             EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.steam_type")
-                + EnumChatFormatting.YELLOW
+                + (mSteamType.requiresHighTier() ? EnumChatFormatting.LIGHT_PURPLE : EnumChatFormatting.YELLOW)
                 + steamType);
 
         info.add(
@@ -920,7 +1034,7 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
 
     @Override
     public int getMaxEfficiency(ItemStack aStack) {
-        return 20000;
+        return 30000;
     }
 
     public int getTierRecipes() {
@@ -947,6 +1061,7 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.turbine_array.desc"))
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.turbine_array.desc2"))
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.turbine_array.desc3"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.turbine_array.desc4"))
             .addSeparator()
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.turbine_array.formula"))
             .beginStructureBlock(5, 6, 5, true)

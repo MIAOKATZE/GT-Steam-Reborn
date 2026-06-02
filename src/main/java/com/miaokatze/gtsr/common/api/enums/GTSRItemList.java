@@ -85,6 +85,10 @@ public enum GTSRItemList implements IItemContainer {
     AtmosphericCentrifuge,
     RareGasSeparationChip,
     GearSteamCompressor,
+    ReinforcedHubSingularityChip,
+    OverpressureSteamCacheNode,
+    OverpressureTurbineInputHatch,
+    OverpressureHubStorageUnit,
 
     ;
 

@@ -42,6 +42,11 @@ public class MTEWaterCacheNode extends MTEFilteredCacheNode {
     }
 
     @Override
+    protected int getBaseHubTransferRate() {
+        return OUTPUT_PER_TICK * 20;
+    }
+
+    @Override
     @SideOnly(Side.CLIENT)
     public void registerIcons(IIconRegister aBlockIconRegister) {
         TOP_OVERLAY = new Textures.BlockIcons.CustomIcon("gtsr:MTEWaterCacheNode");

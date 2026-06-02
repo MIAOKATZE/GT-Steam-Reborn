@@ -1,9 +1,6 @@
 package com.miaokatze.gtsr.common.machine.base;
 
 import static com.gtnewhorizon.gtnhlib.util.numberformatting.NumberFormatUtil.formatNumber;
-import static gregtech.api.enums.Textures.BlockIcons.MACHINE_BRONZE_BOTTOM;
-import static gregtech.api.enums.Textures.BlockIcons.MACHINE_BRONZE_SIDE;
-import static gregtech.api.enums.Textures.BlockIcons.MACHINE_BRONZE_TOP;
 import static gregtech.api.enums.Textures.BlockIcons.OVERLAY_PIPE;
 
 import java.util.List;
@@ -20,30 +17,34 @@ import net.minecraftforge.fluids.IFluidHandler;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
+import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Textures;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.render.TextureFactory;
+import gregtech.api.util.GTUtility;
 
-public class MTESteamCacheNode extends MTEFilteredCacheNode {
+public class MTEOverpressureSteamCacheNode extends MTEFilteredCacheNode {
 
-    private static final int CAPACITY = 16_000_000;
-    private static final int OUTPUT_RATE_PER_SEC = 1_000_000;
+    private static final int CAPACITY = 256_000_000;
+    private static final int OUTPUT_RATE_PER_SEC = 32_000_000;
+    private static final int HUB_TRANSFER_RATE = 32_000_000;
+    private static final int CASING_INDEX = GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings8, 6);
 
     private static Textures.BlockIcons.CustomIcon TOP_OVERLAY;
 
-    public MTESteamCacheNode(int aID, String aName, String aNameRegional) {
-        super(aID, aName, aNameRegional, 3);
+    public MTEOverpressureSteamCacheNode(int aID, String aName, String aNameRegional) {
+        super(aID, aName, aNameRegional, 4);
     }
 
-    public MTESteamCacheNode(String aName, int aTier, String[] aDescription, ITexture[][][] aTextures) {
+    public MTEOverpressureSteamCacheNode(String aName, int aTier, String[] aDescription, ITexture[][][] aTextures) {
         super(aName, aTier, aDescription, aTextures);
     }
 
     @Override
     protected int getBaseHubTransferRate() {
-        return 1_000_000;
+        return HUB_TRANSFER_RATE;
     }
 
     @Override
@@ -55,7 +56,7 @@ public class MTESteamCacheNode extends MTEFilteredCacheNode {
 
     @Override
     public MetaTileEntity newMetaEntity(IGregTechTileEntity aTileEntity) {
-        return new MTESteamCacheNode(mName, mTier, mDescriptionArray, mTextures);
+        return new MTEOverpressureSteamCacheNode(mName, mTier, mDescriptionArray, mTextures);
     }
 
     @Override
@@ -67,19 +68,21 @@ public class MTESteamCacheNode extends MTEFilteredCacheNode {
     public ITexture[] getTexture(IGregTechTileEntity baseMetaTileEntity, ForgeDirection sideDirection,
         ForgeDirection facingDirection, int colorIndex, boolean active, boolean redstoneLevel) {
         if (sideDirection == ForgeDirection.UP) {
-            return new ITexture[] { TextureFactory.of(MACHINE_BRONZE_TOP), TextureFactory.of(TOP_OVERLAY) };
+            return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(CASING_INDEX),
+                TextureFactory.of(TOP_OVERLAY) };
         } else if (sideDirection == ForgeDirection.DOWN) {
-            return new ITexture[] { TextureFactory.of(MACHINE_BRONZE_BOTTOM) };
+            return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(CASING_INDEX) };
         } else if (sideDirection == facingDirection) {
-            return new ITexture[] { TextureFactory.of(MACHINE_BRONZE_SIDE), TextureFactory.of(OVERLAY_PIPE) };
+            return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(CASING_INDEX),
+                TextureFactory.of(OVERLAY_PIPE) };
         } else {
-            return new ITexture[] { TextureFactory.of(MACHINE_BRONZE_SIDE) };
+            return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(CASING_INDEX) };
         }
     }
 
     @Override
     protected boolean isFluidAllowed(Fluid fluid) {
-        return fluid != null && "steam".equals(fluid.getName());
+        return MTESteamHubOutputHatch.isAnySteamFluidType(fluid);
     }
 
     @Override
@@ -120,8 +123,7 @@ public class MTESteamCacheNode extends MTEFilteredCacheNode {
     private static boolean isSteamFluid(FluidStack aFluid) {
         if (aFluid == null) return false;
         Fluid fluid = aFluid.getFluid();
-        if (fluid == null) return false;
-        return "steam".equals(fluid.getName());
+        return MTESteamHubOutputHatch.isAnySteamFluidType(fluid);
     }
 
     @Override
@@ -168,7 +170,7 @@ public class MTESteamCacheNode extends MTEFilteredCacheNode {
         tooltip.add(
             EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.shared.fluid_type")
                 + EnumChatFormatting.YELLOW
-                + StatCollector.translateToLocal("gtsr.tooltip.steam_cache_node.fluid_type.steam"));
+                + StatCollector.translateToLocal("gtsr.tooltip.overpressure_steam_cache_node.fluid_type"));
         tooltip.add(
             EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.shared.output_rate")
                 + EnumChatFormatting.GREEN

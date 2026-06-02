@@ -301,6 +301,24 @@ item.SteamEntangledSingularity.name=蒸汽纠缠奇点
 # Hub Singularity Chip
 item.HubSingularityChip.name=枢纽奇点升级芯片
 
+# Reinforced Hub Singularity Chip
+item.ReinforcedHubSingularityChip.name=强化奇点枢纽升级芯片
+
+# Overpressure Steam Cache Node
+gt.blockmachines.gtsr.overpressure.steam.cache.node.name=超压蒸汽缓存节点
+gtsr.tooltip.overpressure_steam_cache_node.fluid_type=所有蒸汽类型
+
+# Overpressure Turbine Input Hatch
+gt.blockmachines.gtsr.overpressure.turbine.input.hatch.name=超压巨型蒸汽轮机阵列输入仓
+gtsr.tooltip.overpressure_turbine_input_hatch.info=巨型蒸汽轮机阵列专用超压输入端口
+gtsr.tooltip.overpressure_turbine_input_hatch.fluid_type=接受所有蒸汽类型
+gtsr.tooltip.overpressure_turbine_input_hatch.turbine_only=仅限巨型蒸汽轮机阵列使用
+
+# Overpressure Hub Storage Unit
+gt.blockmachines.gtsr.overpressure.hub.storage.unit.name=超压枢纽存储单元
+gtsr.tooltip.overpressure_hub_storage_unit.info=蒸汽枢纽阵列等级3专用存储单元
+gtsr.tooltip.overpressure_hub_storage_unit.tier3_only=仅限等级3蒸汽枢纽阵列使用
+
 # Water Hub Array
 gt.blockmachines.gtsr.water.hub.array.name=蓄水枢纽阵列
 gtsr.recipe.water_hub_array=蓄水枢纽阵列
@@ -343,6 +361,13 @@ gtsr.binding.not_bound=未绑定到任何枢纽
 gtsr.binding.cleared=已解除 
 gtsr.binding.binding= 的绑定
 gtsr.binding.no_chip=需要安装枢纽奇点升级芯片
+gtsr.binding.overpressure_no_reinforced_chip=超压蒸汽缓存节点需要枢纽安装强化奇点枢纽升级芯片
+
+# Cache Node Screwdriver
+gtsr.cache_node.need_bind_first=需要先绑定枢纽节点
+gtsr.cache_node.transfer_rate=交互速率:
+gtsr.tooltip.cache_node.base_transfer_rate=基础枢纽交互速率:
+gtsr.tooltip.cache_node.screwdriver_adjust=Shift+螺丝刀右击调整枢纽交互速率
 gtsr.binding.no_cache_node=手持物品不是缓存节点
 gtsr.binding.wrong_type=该缓存节点类型与枢纽不匹配
 gtsr.binding.debug_title=枢纽绑定调试
@@ -582,9 +607,19 @@ gtsr.gui.building=构建中...
 gtsr.gui.tier=等级: 
 gtsr.gui.tier.bronze=青铜
 gtsr.gui.tier.steel=钢
+gtsr.gui.tier.tungstensteel=钨钢
+gtsr.gui.chip=芯片:
+gtsr.gui.chip.singularity_installed=奇点枢纽升级芯片已安装
+gtsr.gui.chip.reinforced_installed=强化奇点枢纽升级芯片已安装
+gtsr.gui.chip.need_higher_tier=需要更高的枢纽等级
+gtsr.gui.chip.none=未安装
 gtsr.gui.steam_type=蒸汽类型: 
 gtsr.gui.steam_type.normal=蒸汽
 gtsr.gui.steam_type.superheated=过热蒸汽
+gtsr.gui.steam_type.dense=致密蒸汽
+gtsr.gui.steam_type.dense_superheated=致密过热蒸汽
+gtsr.gui.steam_type.supercritical=超临界蒸汽
+gtsr.gui.steam_type.dense_supercritical=致密超临界蒸汽
 gtsr.gui.status=状态: 
 gtsr.gui.installed=已安装
 gtsr.gui.not_installed=未安装
@@ -651,6 +686,7 @@ gtsr.tooltip.turbine_array.type=巨型蒸汽轮机机组, MSTA
 gtsr.tooltip.turbine_array.desc=将蒸汽的动能转化为电能（EU）输出的巨型多方块涡轮机组。
 gtsr.tooltip.turbine_array.desc2=蒸汽机结构可以垂直堆叠，获取更高的输出性能。
 gtsr.tooltip.turbine_array.desc3=堆叠层数越多，机器功率越高。
+gtsr.tooltip.turbine_array.desc4=等级6+(镎)以上可处理致密/超临界蒸汽，最大效率300%
 gtsr.tooltip.turbine_array.ctrl=CAP层正面中央
 gtsr.tooltip.turbine_array.hint_pipe=管道方块: 钛制提升最大效率10%；钨钢制20%
 gtsr.tooltip.turbine_array.hint_gear=齿轮箱机械方块: 钛制蒸汽额外节约5%

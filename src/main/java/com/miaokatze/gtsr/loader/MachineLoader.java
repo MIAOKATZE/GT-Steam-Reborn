@@ -25,6 +25,9 @@ import com.miaokatze.gtsr.common.machine.MTEVoidCrustSteamBorer;
 import com.miaokatze.gtsr.common.machine.MTEWaterHubArray;
 import com.miaokatze.gtsr.common.machine.base.MTEHatchPressureSteamInput;
 import com.miaokatze.gtsr.common.machine.base.MTEHubStorageUnit;
+import com.miaokatze.gtsr.common.machine.base.MTEOverpressureHubStorageUnit;
+import com.miaokatze.gtsr.common.machine.base.MTEOverpressureSteamCacheNode;
+import com.miaokatze.gtsr.common.machine.base.MTEOverpressureTurbineInputHatch;
 import com.miaokatze.gtsr.common.machine.base.MTEPressureSteamCoolingHatch;
 import com.miaokatze.gtsr.common.machine.base.MTEPressureSteamOutputHatch;
 import com.miaokatze.gtsr.common.machine.base.MTEReinforcedHubStorageUnit;
@@ -304,5 +307,26 @@ public class MachineLoader {
                 "gtsr.reinforced.hub.storage.unit",
                 "Reinforced Hub Storage Unit"));
         CreativeTabManager.addItemToTab(GTSRItemList.ReinforcedHubStorageUnit.get(1));
+
+        GTSRItemList.OverpressureSteamCacheNode.set(
+            new MTEOverpressureSteamCacheNode(
+                MetaTileEntityID.OVERPRESSURE_STEAM_CACHE_NODE.ID,
+                "gtsr.overpressure.steam.cache.node",
+                "Overpressure Steam Cache Node"));
+        CreativeTabManager.addItemToTab(GTSRItemList.OverpressureSteamCacheNode.get(1));
+
+        GTSRItemList.OverpressureTurbineInputHatch.set(
+            new MTEOverpressureTurbineInputHatch(
+                MetaTileEntityID.OVERPRESSURE_TURBINE_INPUT_HATCH.ID,
+                "gtsr.overpressure.turbine.input.hatch",
+                "Overpressure Turbine Input Hatch"));
+        CreativeTabManager.addItemToTab(GTSRItemList.OverpressureTurbineInputHatch.get(1));
+
+        GTSRItemList.OverpressureHubStorageUnit.set(
+            new MTEOverpressureHubStorageUnit(
+                MetaTileEntityID.OVERPRESSURE_HUB_STORAGE_UNIT.ID,
+                "gtsr.overpressure.hub.storage.unit",
+                "Overpressure Hub Storage Unit"));
+        CreativeTabManager.addItemToTab(GTSRItemList.OverpressureHubStorageUnit.get(1));
     }
 }

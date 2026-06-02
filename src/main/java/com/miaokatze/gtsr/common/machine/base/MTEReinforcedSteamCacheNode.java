@@ -42,6 +42,11 @@ public class MTEReinforcedSteamCacheNode extends MTEFilteredCacheNode {
     }
 
     @Override
+    protected int getBaseHubTransferRate() {
+        return 1_000_000;
+    }
+
+    @Override
     @SideOnly(Side.CLIENT)
     public void registerIcons(IIconRegister aBlockIconRegister) {
         TOP_OVERLAY = new Textures.BlockIcons.CustomIcon("gtsr:SteamCacheNode");

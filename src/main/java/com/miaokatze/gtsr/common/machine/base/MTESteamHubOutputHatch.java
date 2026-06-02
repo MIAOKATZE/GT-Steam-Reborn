@@ -6,6 +6,7 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 import net.minecraftforge.common.util.ForgeDirection;
+import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidStack;
 
 import com.miaokatze.gtsr.common.machine.MTESteamHubArray;
@@ -99,6 +100,27 @@ public class MTESteamHubOutputHatch extends MTEHatchOutput {
 
     public static boolean isSteamFluid(FluidStack aFluid) {
         return GTModHandler.isAnySteam(aFluid) || GTModHandler.isSuperHeatedSteam(aFluid);
+    }
+
+    public static boolean isAnySteamFluid(FluidStack aFluid) {
+        if (aFluid == null) return false;
+        if (isSteamFluid(aFluid)) return true;
+        return isAnySteamFluidType(aFluid.getFluid());
+    }
+
+    public static boolean isAnySteamFluidType(Fluid fluid) {
+        if (fluid == null) return false;
+        String name = fluid.getName();
+        if (name == null) return false;
+        switch (name) {
+            case "densesteam":
+            case "densesuperheatedsteam":
+            case "supercriticalsteam":
+            case "densesupercriticalsteam":
+                return true;
+            default:
+                return false;
+        }
     }
 
     @Override

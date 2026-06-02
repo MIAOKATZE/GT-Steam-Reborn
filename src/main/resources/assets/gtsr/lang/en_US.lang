@@ -301,6 +301,24 @@ item.SteamEntangledSingularity.name=Steam Entangled Singularity
 # Hub Singularity Chip
 item.HubSingularityChip.name=Hub Singularity Upgrade Chip
 
+# Reinforced Hub Singularity Chip
+item.ReinforcedHubSingularityChip.name=Reinforced Hub Singularity Upgrade Chip
+
+# Overpressure Steam Cache Node
+gt.blockmachines.gtsr.overpressure.steam.cache.node.name=Overpressure Steam Cache Node
+gtsr.tooltip.overpressure_steam_cache_node.fluid_type=All Steam Types
+
+# Overpressure Turbine Input Hatch
+gt.blockmachines.gtsr.overpressure.turbine.input.hatch.name=Overpressure Mega Steam Turbine Array Input Hatch
+gtsr.tooltip.overpressure_turbine_input_hatch.info=Dedicated overpressure input port for Mega Steam Turbine Array
+gtsr.tooltip.overpressure_turbine_input_hatch.fluid_type=Accepts all steam types
+gtsr.tooltip.overpressure_turbine_input_hatch.turbine_only=For Mega Steam Turbine Array only
+
+# Overpressure Hub Storage Unit
+gt.blockmachines.gtsr.overpressure.hub.storage.unit.name=Overpressure Hub Storage Unit
+gtsr.tooltip.overpressure_hub_storage_unit.info=Dedicated storage unit for Tier 3 Steam Hub Array
+gtsr.tooltip.overpressure_hub_storage_unit.tier3_only=For Tier 3 Steam Hub Array only
+
 # Water Hub Array
 gt.blockmachines.gtsr.water.hub.array.name=Water Hub Array
 gtsr.recipe.water_hub_array=Water Hub Array
@@ -343,6 +361,13 @@ gtsr.binding.not_bound=Not bound to any hub
 gtsr.binding.cleared=Unbound
 gtsr.binding.binding= 
 gtsr.binding.no_chip=Chip required: Hub Singularity Upgrade
+gtsr.binding.overpressure_no_reinforced_chip=Overpressure Cache Node requires Reinforced Hub Singularity Chip
+
+# Cache Node Screwdriver
+gtsr.cache_node.need_bind_first=Need to bind hub node first
+gtsr.cache_node.transfer_rate=Transfer Rate:
+gtsr.tooltip.cache_node.base_transfer_rate=Base Hub Transfer Rate:
+gtsr.tooltip.cache_node.screwdriver_adjust=Shift+Screwdriver right-click to adjust hub transfer rate
 gtsr.binding.no_cache_node=Held item is not a cache node
 gtsr.binding.wrong_type=Cache node type does not match this hub
 gtsr.binding.debug_title=Hub Binding Debug
@@ -580,9 +605,19 @@ gtsr.gui.building=Building...
 gtsr.gui.tier=Tier: 
 gtsr.gui.tier.bronze=Bronze
 gtsr.gui.tier.steel=Steel
+gtsr.gui.tier.tungstensteel=TungstenSteel
+gtsr.gui.chip=Chip:
+gtsr.gui.chip.singularity_installed=Hub Singularity Chip Installed
+gtsr.gui.chip.reinforced_installed=Reinforced Hub Singularity Chip Installed
+gtsr.gui.chip.need_higher_tier=Higher Hub Tier Required
+gtsr.gui.chip.none=None
 gtsr.gui.steam_type=Steam Type: 
 gtsr.gui.steam_type.normal=Steam
 gtsr.gui.steam_type.superheated=Superheated Steam
+gtsr.gui.steam_type.dense=Dense Steam
+gtsr.gui.steam_type.dense_superheated=Dense Superheated Steam
+gtsr.gui.steam_type.supercritical=Supercritical Steam
+gtsr.gui.steam_type.dense_supercritical=Dense Supercritical Steam
 gtsr.gui.status=Status: 
 gtsr.gui.installed=Installed
 gtsr.gui.not_installed=Not Installed

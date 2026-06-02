@@ -5,11 +5,15 @@ import static net.minecraft.util.StatCollector.translateToLocal;
 
 import java.util.List;
 
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.EnumChatFormatting;
+import net.minecraft.util.StatCollector;
 import net.minecraft.world.World;
 import net.minecraftforge.common.DimensionManager;
+import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
@@ -47,12 +51,65 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase {
     protected String mHubType = "";
     protected boolean mIsOutputMode = true;
     protected boolean mRegistered = false;
+    protected int mTransferRatePercent = 100;
+
+    private static final int[] TRANSFER_RATE_CYCLE = { 100, 80, 60, 40, 20, 10, 5, 1, 0 };
 
     protected abstract boolean isFluidAllowed(Fluid fluid);
+
+    protected abstract int getBaseHubTransferRate();
+
+    @Override
+    public boolean onRightclick(IGregTechTileEntity aBaseMetaTileEntity, EntityPlayer aPlayer, ForgeDirection side,
+        float aX, float aY, float aZ) {
+        if (aBaseMetaTileEntity.isServerSide() && aPlayer.isSneaking()) {
+            ItemStack held = aPlayer.getCurrentEquippedItem();
+            if (held != null && held.getItem() != null
+                && held.getItem()
+                    .getUnlocalizedName()
+                    .contains("screwdriver")) {
+                if (mHubDim == 0) {
+                    GTUtility
+                        .sendChatToPlayer(aPlayer, StatCollector.translateToLocal("gtsr.cache_node.need_bind_first"));
+                    return true;
+                }
+                int currentIdx = -1;
+                for (int i = 0; i < TRANSFER_RATE_CYCLE.length; i++) {
+                    if (TRANSFER_RATE_CYCLE[i] == mTransferRatePercent) {
+                        currentIdx = i;
+                        break;
+                    }
+                }
+                int nextIdx = (currentIdx + 1) % TRANSFER_RATE_CYCLE.length;
+                mTransferRatePercent = TRANSFER_RATE_CYCLE[nextIdx];
+                long actualRate = (long) getBaseHubTransferRate() * mTransferRatePercent / 100;
+                String msg = StatCollector.translateToLocal("gtsr.cache_node.transfer_rate") + " "
+                    + mTransferRatePercent
+                    + "% ("
+                    + String.format("%,d", actualRate)
+                    + " "
+                    + StatCollector.translateToLocal("gtsr.tooltip.shared.l_s")
+                    + ")";
+                GTUtility.sendChatToPlayer(aPlayer, msg);
+                return true;
+            }
+        }
+        return super.onRightclick(aBaseMetaTileEntity, aPlayer, side, aX, aY, aZ);
+    }
+
+    public int getTransferRatePercent() {
+        return mTransferRatePercent;
+    }
+
+    public long getEffectiveHubTransferRate() {
+        return (long) getBaseHubTransferRate() * mTransferRatePercent / 100;
+    }
 
     @Override
     public void saveNBTData(NBTTagCompound aNBT) {
         super.saveNBTData(aNBT);
+        aNBT.setBoolean("mIsOutputMode", mIsOutputMode);
+        aNBT.setInteger("mTransferRatePercent", mTransferRatePercent);
         if (mHubDim != 0) {
             NBTTagCompound hubTag = new NBTTagCompound();
             hubTag.setInteger("x", mHubX);
@@ -60,7 +117,6 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase {
             hubTag.setInteger("z", mHubZ);
             hubTag.setInteger("dim", mHubDim);
             hubTag.setString("type", mHubType);
-            hubTag.setBoolean("output", mIsOutputMode);
             aNBT.setTag("gtsr.hubPos", hubTag);
         }
     }
@@ -68,6 +124,8 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase {
     @Override
     public void loadNBTData(NBTTagCompound aNBT) {
         super.loadNBTData(aNBT);
+        mIsOutputMode = aNBT.hasKey("mIsOutputMode") ? aNBT.getBoolean("mIsOutputMode") : true;
+        mTransferRatePercent = aNBT.hasKey("mTransferRatePercent") ? aNBT.getInteger("mTransferRatePercent") : 100;
         if (aNBT.hasKey("gtsr.hubPos")) {
             NBTTagCompound hubTag = aNBT.getCompoundTag("gtsr.hubPos");
             mHubX = hubTag.getInteger("x");
@@ -75,7 +133,6 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase {
             mHubZ = hubTag.getInteger("z");
             mHubDim = hubTag.getInteger("dim");
             mHubType = hubTag.getString("type");
-            mIsOutputMode = hubTag.hasKey("output") && hubTag.getBoolean("output");
         } else {
             mHubX = 0;
             mHubY = 0;
@@ -90,6 +147,14 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase {
     @Override
     public void addAdditionalTooltipInformation(ItemStack stack, List<String> tooltip) {
         super.addAdditionalTooltipInformation(stack, tooltip);
+        tooltip.add(
+            EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.cache_node.base_transfer_rate")
+                + EnumChatFormatting.GREEN
+                + String.format("%,d", getBaseHubTransferRate())
+                + " "
+                + StatCollector.translateToLocal("gtsr.tooltip.shared.l_s"));
+        tooltip.add(
+            EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.cache_node.screwdriver_adjust"));
         if (stack != null && stack.hasTagCompound()
             && stack.getTagCompound()
                 .hasKey("gtsr.hubPos")) {
