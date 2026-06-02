@@ -68,10 +68,12 @@ gtsr.tooltip.hub_storage_unit.info=Structural component for Hub Array
 gtsr.tooltip.hub_storage_unit.dual_hub=Usable in both Steam Hub Array and Water Hub Array
 gtsr.tooltip.hub_storage_unit.steam_hub=Steam Hub
 gtsr.tooltip.hub_storage_unit.water_hub=Water Hub
+gtsr.tooltip.hub_storage_unit.tier1_only=Tier 1 Steam Hub Array only
 
 # Reinforced Hub Storage Unit
 gt.blockmachines.gtsr.reinforced.hub.storage.unit.name=Reinforced Hub Storage Unit
 gtsr.tooltip.reinforced_hub_storage_unit.info=Structural component for Hub Array
+gtsr.tooltip.reinforced_hub_storage_unit.tier2_only=Tier 2 Steam Hub Array only
 
 # Steam Hub Array
 gt.blockmachines.gtsr.steam.hub.array.name=Steam Hub Array
@@ -672,6 +674,13 @@ gtsr.tooltip.fluid_drill.output_mode=Output Mode
 gtsr.tooltip.steam_hub.type=Steam Hub Array, SHA
 gtsr.tooltip.steam_hub.desc=Central dispatch station of the steam network, providing bidirectional steam interface with embedded storage buffer.
 gtsr.tooltip.steam_hub.desc2=Receives and distributes steam through hub input/output hatches; right-click with a Steam Cache Node to bind for remote steam transfer.
+gtsr.tooltip.steam_hub.ctrl=Middle layer front center-right
+gtsr.tooltip.steam_hub.hub_input=Hub Steam Input Hatch
+gtsr.tooltip.steam_hub.hub_output=Hub Steam Output Hatch
+gtsr.tooltip.steam_hub.storage=Hub Storage Unit(T1 only)/Reinforced Hub Storage Unit(T2 only)/Overpressure Hub Storage Unit(T3 only)
+gtsr.tooltip.steam_hub.hint_tier1=T1: Bronze Casing+Bronze Pipe+Bronze Gearbox+Bronze Frame+Hub Storage Unit
+gtsr.tooltip.steam_hub.hint_tier2=T2: Steel Casing+Steel Pipe+Steel Gearbox+Steel Frame+Reinforced Hub Storage Unit
+gtsr.tooltip.steam_hub.hint_tier3=T3: TungstenSteel Casing+TungstenSteel Pipe+TungstenSteel Frame+Overpressure Hub Storage Unit (Reinforced Chip T3 only)
 
 # Steam Singularity Compressor (SSC)
 gtsr.tooltip.singularity_compressor.type=Steam Singularity Compressor, SSC

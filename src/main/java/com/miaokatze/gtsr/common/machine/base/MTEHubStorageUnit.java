@@ -57,6 +57,7 @@ public class MTEHubStorageUnit extends MTESteamStorageUnit {
                 + StatCollector.translateToLocal("gtsr.tooltip.hub_storage_unit.water_hub")
                 + ")",
             EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.hub_storage_unit.dual_hub"),
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.hub_storage_unit.tier1_only"),
             EnumChatFormatting.AQUA + "GT"
                 + EnumChatFormatting.GREEN
                 + "-"

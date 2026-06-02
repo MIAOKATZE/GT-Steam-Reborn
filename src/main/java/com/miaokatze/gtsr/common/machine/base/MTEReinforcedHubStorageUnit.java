@@ -57,6 +57,8 @@ public class MTEReinforcedHubStorageUnit extends MTESteamStorageUnit {
                 + StatCollector.translateToLocal("gtsr.tooltip.hub_storage_unit.water_hub")
                 + ")",
             EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.hub_storage_unit.dual_hub"),
+            EnumChatFormatting.YELLOW
+                + StatCollector.translateToLocal("gtsr.tooltip.reinforced_hub_storage_unit.tier2_only"),
             EnumChatFormatting.AQUA + "GT"
                 + EnumChatFormatting.GREEN
                 + "-"

@@ -344,9 +344,32 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
 
         if (mSetTier <= 0) return false;
 
+        if (mSetTier == 1 && (mReinforcedUnitCount > 0 || mOverpressureUnitCount > 0)) return false;
+        if (mSetTier == 2 && (mPressureUnitCount > 0 || mOverpressureUnitCount > 0)) return false;
+        if (mSetTier >= 3 && (mPressureUnitCount > 0 || mReinforcedUnitCount > 0)) return false;
+
         if (mSetTier >= 3 && mOverpressureUnitCount <= 0) return false;
 
-        return (mPressureUnitCount + mReinforcedUnitCount + mOverpressureUnitCount) > 0;
+        if ((mPressureUnitCount + mReinforcedUnitCount + mOverpressureUnitCount) <= 0) return false;
+
+        int tierCasingIndex;
+        if (mSetTier >= 3) {
+            tierCasingIndex = GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings4, 0);
+        } else if (mSetTier == 2) {
+            tierCasingIndex = GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings2, 0);
+        } else {
+            tierCasingIndex = CASING_INDEX;
+        }
+        for (MTESteamHubInputHatch hatch : mSteamInputHatches) {
+            hatch.updateTexture(tierCasingIndex);
+        }
+        for (MTESteamHubOutputHatch hatch : mSteamOutputHatches) {
+            hatch.updateTexture(tierCasingIndex);
+        }
+
+        getBaseMetaTileEntity().issueTileUpdate();
+
+        return true;
     }
 
     private void onCasingAdded() {
@@ -855,6 +878,7 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
         aNBT.setLong("mSteamStored", mSteamStored);
         aNBT.setInteger("mPressureUnitCount", mPressureUnitCount);
         aNBT.setInteger("mReinforcedUnitCount", mReinforcedUnitCount);
+        aNBT.setInteger("mOverpressureUnitCount", mOverpressureUnitCount);
         aNBT.setInteger("mSetTier", mSetTier);
         aNBT.setLong("mTickCounter", mTickCounter);
         aNBT.setBoolean("mOverflowInput", mOverflowInput);
@@ -885,6 +909,7 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
         mSteamStored = aNBT.getLong("mSteamStored");
         mPressureUnitCount = aNBT.getInteger("mPressureUnitCount");
         mReinforcedUnitCount = aNBT.getInteger("mReinforcedUnitCount");
+        mOverpressureUnitCount = aNBT.getInteger("mOverpressureUnitCount");
         mSetTier = aNBT.getInteger("mSetTier");
         mTickCounter = aNBT.getLong("mTickCounter");
         mOverflowInput = aNBT.getBoolean("mOverflowInput");
@@ -908,15 +933,37 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
     }
 
     @Override
+    public NBTTagCompound getDescriptionData() {
+        NBTTagCompound data = super.getDescriptionData();
+        if (data == null) data = new NBTTagCompound();
+        data.setInteger("mSetTier", mSetTier);
+        return data;
+    }
+
+    @Override
+    public void onDescriptionPacket(NBTTagCompound data) {
+        super.onDescriptionPacket(data);
+        mSetTier = data.getInteger("mSetTier");
+    }
+
+    @Override
     public ITexture[] getTexture(IGregTechTileEntity aBaseMetaTileEntity, ForgeDirection side, ForgeDirection facing,
         int colorIndex, boolean active, boolean redstoneLevel) {
+        int casingTextureId;
+        if (mSetTier >= 3) {
+            casingTextureId = GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings4, 0);
+        } else if (mSetTier == 2) {
+            casingTextureId = GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings2, 0);
+        } else {
+            casingTextureId = CASING_INDEX;
+        }
         if (side == facing) {
-            return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(CASING_INDEX), TextureFactory.builder()
+            return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(casingTextureId), TextureFactory.builder()
                 .addIcon(CONTROLLER_OVERLAY)
                 .extFacing()
                 .build() };
         }
-        return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(CASING_INDEX) };
+        return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(casingTextureId) };
     }
 
     @Override
@@ -1070,7 +1117,11 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
                     + EnumChatFormatting.DARK_PURPLE
                     + "/"
                     + EnumChatFormatting.BLUE
-                    + "Steel "
+                    + "Steel"
+                    + EnumChatFormatting.DARK_PURPLE
+                    + "/"
+                    + EnumChatFormatting.BLUE
+                    + "TungstenSteel "
                     + EnumChatFormatting.DARK_PURPLE
                     + "Tier")
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.casing"), 70, false)
@@ -1080,6 +1131,7 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
             .addStructureHint("gtsr.tooltip.shared.no_maintenance")
             .addStructureHint("gtsr.tooltip.steam_hub.hint_tier1")
             .addStructureHint("gtsr.tooltip.steam_hub.hint_tier2")
+            .addStructureHint("gtsr.tooltip.steam_hub.hint_tier3")
             .addStructureHint("gtsr.tooltip.shared.hub_singularity_cost")
             .addStructureHint("gtsr.tooltip.shared.overflow_input_screwdriver")
             .toolTipFinisher(
