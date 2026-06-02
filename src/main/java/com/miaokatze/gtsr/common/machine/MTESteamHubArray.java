@@ -1,6 +1,5 @@
 package com.miaokatze.gtsr.common.machine;
 
-import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlock;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlocksTiered;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
@@ -103,7 +102,17 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
                         .casingIndex(CASING_INDEX)
                         .dot(2)
                         .buildAndChain(
-                            onElementPass(MTESteamHubArray::onCasingAdded, ofBlock(GregTechAPI.sBlockCasings1, 10)))))
+                            onElementPass(
+                                MTESteamHubArray::onCasingAdded,
+                                ofBlocksTiered(
+                                    MTESteamHubArray::getCasingTier,
+                                    ImmutableList.of(
+                                        Pair.of(GregTechAPI.sBlockCasings1, 10),
+                                        Pair.of(GregTechAPI.sBlockCasings2, 0),
+                                        Pair.of(GregTechAPI.sBlockCasings4, 0)),
+                                    -1,
+                                    (MTESteamHubArray t, Integer tier) -> t.mSetTier = Math.max(t.mSetTier, tier),
+                                    (MTESteamHubArray t) -> t.mSetTier)))))
             .addElement(
                 'C',
                 ofChain(
@@ -348,9 +357,9 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
         if (mSetTier == 2 && (mPressureUnitCount > 0 || mOverpressureUnitCount > 0)) return false;
         if (mSetTier >= 3 && (mPressureUnitCount > 0 || mReinforcedUnitCount > 0)) return false;
 
+        if (mSetTier == 1 && mPressureUnitCount <= 0) return false;
+        if (mSetTier == 2 && mReinforcedUnitCount <= 0) return false;
         if (mSetTier >= 3 && mOverpressureUnitCount <= 0) return false;
-
-        if ((mPressureUnitCount + mReinforcedUnitCount + mOverpressureUnitCount) <= 0) return false;
 
         int tierCasingIndex;
         if (mSetTier >= 3) {

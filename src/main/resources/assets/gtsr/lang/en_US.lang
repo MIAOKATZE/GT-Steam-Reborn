@@ -698,6 +698,12 @@ gtsr.tooltip.void_borer.desc=Cross-dimensional void mining enabled by GT NEI Ore
 gtsr.tooltip.water_hub.type=Water Hub Array, WHA
 gtsr.tooltip.water_hub.desc=Central dispatch station for water systems, providing bidirectional water interface (water/distilled water) with embedded storage buffer.
 gtsr.tooltip.water_hub.desc2=Receives and distributes water through hub input/output hatches; right-click with a Water Cache Node to bind for remote water transfer.
+gtsr.tooltip.water_hub.ctrl=Middle layer front center-right
+gtsr.tooltip.water_hub.hub_input=Water Hub Input Hatch
+gtsr.tooltip.water_hub.hub_output=Water Hub Output Hatch
+gtsr.tooltip.water_hub.storage=Hub Storage Unit(T1 only)/Reinforced Hub Storage Unit(T2 only)
+gtsr.tooltip.water_hub.hint_tier1=T1: Bronze Casing+Bronze Pipe+Bronze Gearbox+Bronze Frame+Hub Storage Unit
+gtsr.tooltip.water_hub.hint_tier2=T2: Steel Casing+Steel Pipe+Steel Gearbox+Steel Frame+Reinforced Hub Storage Unit
 
 # Gear Steam Compressor (GSC)
 gtsr.tooltip.gear_compressor.type=Gear Steam Compressor, GSC

@@ -1,6 +1,5 @@
 package com.miaokatze.gtsr.common.machine;
 
-import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlock;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlocksTiered;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
@@ -94,7 +93,16 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
                         .casingIndex(CASING_INDEX)
                         .dot(2)
                         .buildAndChain(
-                            onElementPass(MTEWaterHubArray::onCasingAdded, ofBlock(GregTechAPI.sBlockCasings1, 10)))))
+                            onElementPass(
+                                MTEWaterHubArray::onCasingAdded,
+                                ofBlocksTiered(
+                                    MTEWaterHubArray::getCasingTier,
+                                    ImmutableList.of(
+                                        Pair.of(GregTechAPI.sBlockCasings1, 10),
+                                        Pair.of(GregTechAPI.sBlockCasings2, 0)),
+                                    -1,
+                                    (MTEWaterHubArray t, Integer tier) -> t.mSetTier = Math.max(t.mSetTier, tier),
+                                    (MTEWaterHubArray t) -> t.mSetTier)))))
             .addElement(
                 'C',
                 ofChain(
@@ -311,7 +319,28 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
 
         if (mSetTier <= 0) return false;
 
-        return (mHubUnitCount + mReinforcedHubUnitCount) > 0;
+        if (mSetTier == 1 && mReinforcedHubUnitCount > 0) return false;
+        if (mSetTier >= 2 && mHubUnitCount > 0) return false;
+
+        if (mSetTier == 1 && mHubUnitCount <= 0) return false;
+        if (mSetTier >= 2 && mReinforcedHubUnitCount <= 0) return false;
+
+        int tierCasingIndex;
+        if (mSetTier >= 2) {
+            tierCasingIndex = GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings2, 0);
+        } else {
+            tierCasingIndex = CASING_INDEX;
+        }
+        for (MTEWaterHubInputHatch hatch : mWaterInputHatches) {
+            hatch.updateTexture(tierCasingIndex);
+        }
+        for (MTEWaterHubOutputHatch hatch : mWaterOutputHatches) {
+            hatch.updateTexture(tierCasingIndex);
+        }
+
+        getBaseMetaTileEntity().issueTileUpdate();
+
+        return true;
     }
 
     private void onCasingAdded() {
@@ -848,15 +877,35 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
     }
 
     @Override
+    public NBTTagCompound getDescriptionData() {
+        NBTTagCompound data = super.getDescriptionData();
+        if (data == null) data = new NBTTagCompound();
+        data.setInteger("mSetTier", mSetTier);
+        return data;
+    }
+
+    @Override
+    public void onDescriptionPacket(NBTTagCompound data) {
+        super.onDescriptionPacket(data);
+        mSetTier = data.getInteger("mSetTier");
+    }
+
+    @Override
     public ITexture[] getTexture(IGregTechTileEntity aBaseMetaTileEntity, ForgeDirection side, ForgeDirection facing,
         int colorIndex, boolean active, boolean redstoneLevel) {
+        int casingTextureId;
+        if (mSetTier >= 2) {
+            casingTextureId = GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings2, 0);
+        } else {
+            casingTextureId = CASING_INDEX;
+        }
         if (side == facing) {
-            return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(CASING_INDEX), TextureFactory.builder()
+            return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(casingTextureId), TextureFactory.builder()
                 .addIcon(CONTROLLER_OVERLAY)
                 .extFacing()
                 .build() };
         }
-        return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(CASING_INDEX) };
+        return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(casingTextureId) };
     }
 
     @Override
