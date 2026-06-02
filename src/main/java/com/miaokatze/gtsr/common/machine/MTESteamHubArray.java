@@ -119,7 +119,7 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
                                     ImmutableList.of(
                                         Pair.of(GregTechAPI.sBlockCasings1, 10),
                                         Pair.of(GregTechAPI.sBlockCasings2, 0),
-                                        Pair.of(GregTechAPI.sBlockCasings4, 1)),
+                                        Pair.of(GregTechAPI.sBlockCasings4, 0)),
                                     -1,
                                     (MTESteamHubArray t, Integer tier) -> t.mSetTier = Math.max(t.mSetTier, tier),
                                     (MTESteamHubArray t) -> t.mSetTier)))))
@@ -169,7 +169,7 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
     public static Integer getCasingTier(Block block, int meta) {
         if (block == GregTechAPI.sBlockCasings1 && meta == 10) return 1;
         if (block == GregTechAPI.sBlockCasings2 && meta == 0) return 2;
-        if (block == GregTechAPI.sBlockCasings4 && meta == 1) return 3;
+        if (block == GregTechAPI.sBlockCasings4 && meta == 0) return 3;
         return null;
     }
 

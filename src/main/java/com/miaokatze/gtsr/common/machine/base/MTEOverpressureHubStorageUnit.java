@@ -15,7 +15,7 @@ public class MTEOverpressureHubStorageUnit extends MTESteamStorageUnit {
 
     public static final int OVERPRESSURE_CAPACITY = 512_000_000;
 
-    private static final int CASING_INDEX = GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings4, 1);
+    private static final int CASING_INDEX = GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings4, 0);
 
     public MTEOverpressureHubStorageUnit(int aID, String aName, String aNameRegional) {
         super(aID, aName, aNameRegional, OVERPRESSURE_CAPACITY);

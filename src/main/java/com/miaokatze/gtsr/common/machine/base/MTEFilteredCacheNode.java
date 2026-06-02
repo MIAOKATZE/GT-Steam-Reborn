@@ -26,6 +26,7 @@ import com.gtnewhorizons.modularui.common.widget.DrawableWidget;
 import com.gtnewhorizons.modularui.common.widget.FluidSlotWidget;
 import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
+import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 
 import gregtech.api.gui.modularui.GTUITextures;
 import gregtech.api.interfaces.ITexture;
@@ -62,12 +63,10 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase {
     @Override
     public boolean onRightclick(IGregTechTileEntity aBaseMetaTileEntity, EntityPlayer aPlayer, ForgeDirection side,
         float aX, float aY, float aZ) {
-        if (aBaseMetaTileEntity.isServerSide() && aPlayer.isSneaking()) {
+        if (aBaseMetaTileEntity.isServerSide()) {
             ItemStack held = aPlayer.getCurrentEquippedItem();
-            if (held != null && held.getItem() != null
-                && held.getItem()
-                    .getUnlocalizedName()
-                    .contains("screwdriver")) {
+            if (held != null && (GTSRItemList.HubSingularityChip.isStackEqual(held, true, true)
+                || GTSRItemList.ReinforcedHubSingularityChip.isStackEqual(held, true, true))) {
                 if (mHubDim == 0) {
                     GTUtility
                         .sendChatToPlayer(aPlayer, StatCollector.translateToLocal("gtsr.cache_node.need_bind_first"));
@@ -153,8 +152,7 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase {
                 + String.format("%,d", getBaseHubTransferRate())
                 + " "
                 + StatCollector.translateToLocal("gtsr.tooltip.shared.l_s"));
-        tooltip.add(
-            EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.cache_node.screwdriver_adjust"));
+        tooltip.add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.cache_node.chip_adjust"));
         if (stack != null && stack.hasTagCompound()
             && stack.getTagCompound()
                 .hasKey("gtsr.hubPos")) {
