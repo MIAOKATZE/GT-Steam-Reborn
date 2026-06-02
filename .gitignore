@@ -44,3 +44,5 @@ skills-lock.json
 /.hyperthym/
 /New_Project.md
 /GUIDE.md
+temp_err.log
+temp_build.log
