@@ -46,6 +46,7 @@ import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import com.miaokatze.gtsr.common.machine.base.MTEHatchPressureSteamInput;
 import com.miaokatze.gtsr.common.machine.base.MTEPressureSteamCoolingHatch;
 
+import bartworks.system.material.WerkstoffLoader;
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.GTValues;
 import gregtech.api.enums.Materials;
@@ -191,13 +192,18 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
     private static final List<Pair<Block, Integer>> ALLOWED_CASINGS = ImmutableList.of(
-        Pair.of(GregTechAPI.sBlockCasings2, 0),
-        Pair.of(GregTechAPI.sBlockCasings1, 2),
-        Pair.of(GregTechAPI.sBlockCasings4, 1),
-        Pair.of(GregTechAPI.sBlockCasings4, 2),
-        Pair.of(GregTechAPI.sBlockCasings4, 0),
-        Pair.of(GregTechAPI.sBlockCasings8, 6),
-        Pair.of(GregTechAPI.sBlockCasings8, 7));
+        Pair.of(GregTechAPI.sBlockCasings2, 0), // Tier 1 - Steel
+        Pair.of(GregTechAPI.sBlockCasings1, 2), // Tier 2 - Stainless Steel
+        Pair.of(GregTechAPI.sBlockCasings4, 1), // Tier 3 - Titanium
+        Pair.of(GregTechAPI.sBlockCasings4, 2), // Tier 4 - Tungstensteel
+        Pair.of(GregTechAPI.sBlockCasings4, 0), // Tier 5 - Chrome
+        Pair.of(GregTechAPI.sBlockCasings8, 6), // Tier 6 - Advanced Rhodium Palladium
+        Pair.of(GregTechAPI.sBlockCasings8, 7), // Tier 7 - Advanced Iridium
+        Pair.of(GregTechAPI.sBlockCasings4, 14), // Tier 8 - Mining Osmiridium (UV)
+        Pair.of(WerkstoffLoader.BWBlockCasings, 31895), // Tier 9 - Bolted Neutronium (UHV)
+        Pair.of(GregTechAPI.sBlockReinforced, 10), // Tier 10 - Naquadah Reinforced (UEV)
+        Pair.of(WerkstoffLoader.BWBlockCasings, 32091), // Tier 11 - Bolted Naquadah Alloy (UIV)
+        Pair.of(GregTechAPI.sBlockCasings8, 10)); // Tier 12 - Radiant Naquadah Alloy (UMV)
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
     private static final List<Pair<Block, Integer>> PIPE_CASINGS = ImmutableList.of(
@@ -211,13 +217,18 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
     private static final List<Pair<Block, Integer>> FRAME_CASINGS = ImmutableList.of(
-        Pair.of(GregTechAPI.sBlockFrames, Materials.Steel.mMetaItemSubID),
-        Pair.of(GregTechAPI.sBlockFrames, Materials.Aluminium.mMetaItemSubID),
-        Pair.of(GregTechAPI.sBlockFrames, Materials.StainlessSteel.mMetaItemSubID),
-        Pair.of(GregTechAPI.sBlockFrames, Materials.Titanium.mMetaItemSubID),
-        Pair.of(GregTechAPI.sBlockFrames, Materials.TungstenSteel.mMetaItemSubID),
-        Pair.of(GregTechAPI.sBlockFrames, Materials.Palladium.mMetaItemSubID),
-        Pair.of(GregTechAPI.sBlockFrames, Materials.Iridium.mMetaItemSubID));
+        Pair.of(GregTechAPI.sBlockFrames, Materials.Steel.mMetaItemSubID), // 1
+        Pair.of(GregTechAPI.sBlockFrames, Materials.Aluminium.mMetaItemSubID), // 2
+        Pair.of(GregTechAPI.sBlockFrames, Materials.StainlessSteel.mMetaItemSubID), // 3
+        Pair.of(GregTechAPI.sBlockFrames, Materials.Titanium.mMetaItemSubID), // 4
+        Pair.of(GregTechAPI.sBlockFrames, Materials.TungstenSteel.mMetaItemSubID), // 5
+        Pair.of(GregTechAPI.sBlockFrames, Materials.Palladium.mMetaItemSubID), // 6
+        Pair.of(GregTechAPI.sBlockFrames, Materials.Iridium.mMetaItemSubID), // 7
+        Pair.of(GregTechAPI.sBlockFrames, Materials.Osmium.mMetaItemSubID), // 8 - UV
+        Pair.of(GregTechAPI.sBlockFrames, Materials.Neutronium.mMetaItemSubID), // 9 - UHV
+        Pair.of(GregTechAPI.sBlockFrames, Materials.Bedrockium.mMetaItemSubID), // 10 - UEV
+        Pair.of(GregTechAPI.sBlockFrames, Materials.BlackPlutonium.mMetaItemSubID), // 11 - UIV
+        Pair.of(GregTechAPI.sBlockFrames, 588)); // 12 - UMV (SpaceTime)
 
     @Nullable
     public static Integer getCasingTier(Block block, int meta) {
@@ -227,10 +238,19 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
             if (meta == 1) return 3;
             if (meta == 2) return 4;
             if (meta == 0) return 5;
+            if (meta == 14) return 8;
         }
         if (block == GregTechAPI.sBlockCasings8) {
             if (meta == 6) return 6;
             if (meta == 7) return 7;
+            if (meta == 10) return 12; // Radiant Naquadah Alloy (UMV)
+        }
+        if (block == WerkstoffLoader.BWBlockCasings) {
+            if (meta == 31895) return 9; // Bolted Neutronium (UHV)
+            if (meta == 32091) return 11; // Bolted Naquadah Alloy (UIV)
+        }
+        if (block == GregTechAPI.sBlockReinforced) {
+            if (meta == 10) return 10; // Naquadah Reinforced (UEV)
         }
         return null;
     }
@@ -260,6 +280,11 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
             if (meta == Materials.TungstenSteel.mMetaItemSubID) return 5;
             if (meta == Materials.Palladium.mMetaItemSubID) return 6;
             if (meta == Materials.Iridium.mMetaItemSubID) return 7;
+            if (meta == Materials.Osmium.mMetaItemSubID) return 8;
+            if (meta == Materials.Neutronium.mMetaItemSubID) return 9;
+            if (meta == Materials.Bedrockium.mMetaItemSubID) return 10;
+            if (meta == Materials.BlackPlutonium.mMetaItemSubID) return 11;
+            if (meta == 588) return 12; // SpaceTime
         }
         return null;
     }
@@ -298,7 +323,7 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
         mPressureCoolingHatches.clear();
 
         if (!checkPiece(STRUCTURE_PIECE_MAIN, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET)) return false;
-        if (mCasingTier <= 0 || mCasingTier > 7) return false;
+        if (mCasingTier <= 0 || mCasingTier > 12) return false;
 
         boolean hasEnergy = !mEnergyHatches.isEmpty();
         boolean hasSteamInput = !mPressureSteamInputs.isEmpty();
@@ -701,6 +726,16 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
                 return GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings8, 6);
             case 7:
                 return GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings8, 7);
+            case 8:
+                return GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings4, 14);
+            case 9:
+                return GTUtility.getCasingTextureIndex(WerkstoffLoader.BWBlockCasings, 31895);
+            case 10:
+                return GTUtility.getCasingTextureIndex(GregTechAPI.sBlockReinforced, 10);
+            case 11:
+                return GTUtility.getCasingTextureIndex(WerkstoffLoader.BWBlockCasings, 32091);
+            case 12:
+                return GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings8, 10);
             default:
                 return SOLID_STEEL_CASING_INDEX;
         }

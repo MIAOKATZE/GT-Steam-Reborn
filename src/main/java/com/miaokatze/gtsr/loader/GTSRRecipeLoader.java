@@ -518,7 +518,7 @@ public class GTSRRecipeLoader implements Runnable {
                 .itemOutputs(ruOut)
                 .fluidInputs(Materials.Hydrogen.getGas(24000))
                 .duration(1200 * SECONDS)
-                .eut(TierEU.RECIPE_UV)
+                .eut(TierEU.RECIPE_ZPM)
                 .addTo(assemblerRecipes);
         } else {
             warn("Skipped AmmoniaCatalystRuthenium recipe");
