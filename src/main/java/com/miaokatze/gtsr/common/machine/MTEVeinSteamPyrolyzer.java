@@ -434,7 +434,10 @@ public class MTEVeinSteamPyrolyzer extends MTESteamMultiBase<MTEVeinSteamPyrolyz
             .addStructureHint("gtsr.tooltip.shared.no_maintenance")
             .addStructureHint("gtsr.tooltip.vein_pyrolyzer.hint_bronze")
             .toolTipFinisher(
-                EnumChatFormatting.AQUA + "GT"
+                EnumChatFormatting.DARK_AQUA + StatCollector.translateToLocal("gtsr.tooltip.added_by")
+                    + " "
+                    + EnumChatFormatting.AQUA
+                    + "GT"
                     + EnumChatFormatting.GREEN
                     + "-"
                     + EnumChatFormatting.GOLD

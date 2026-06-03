@@ -104,7 +104,10 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
         tooltip.add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.miner_node.requires_pipe"));
         tooltip.add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.shared.node_bind_hint"));
         tooltip.add(
-            EnumChatFormatting.AQUA + "GT"
+            EnumChatFormatting.DARK_AQUA + StatCollector.translateToLocal("gtsr.tooltip.added_by")
+                + " "
+                + EnumChatFormatting.AQUA
+                + "GT"
                 + EnumChatFormatting.GREEN
                 + "-"
                 + EnumChatFormatting.GOLD

@@ -357,7 +357,10 @@ public class MTELargeSteamFurnace extends MTESteamMultiBase<MTELargeSteamFurnace
                     + ")")
             .addStructureHint("gtsr.tooltip.shared.no_maintenance")
             .toolTipFinisher(
-                EnumChatFormatting.AQUA + "GT"
+                EnumChatFormatting.DARK_AQUA + StatCollector.translateToLocal("gtsr.tooltip.added_by")
+                    + " "
+                    + EnumChatFormatting.AQUA
+                    + "GT"
                     + EnumChatFormatting.GREEN
                     + "-"
                     + EnumChatFormatting.GOLD

@@ -1100,6 +1100,10 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.turbine_array.desc2"))
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.turbine_array.desc3"))
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.turbine_array.desc4"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.turbine_array.tier6_desc"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.turbine_array.tier_system"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.turbine_array.steam_progression"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.turbine_array.stacking_desc"))
             .addSeparator()
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.turbine_array.formula"))
             .beginStructureBlock(5, 6, 5, true)
@@ -1123,7 +1127,10 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
                     + ")")
             .addStructureHint("gtsr.tooltip.shared.no_maintenance")
             .toolTipFinisher(
-                EnumChatFormatting.AQUA + "GT"
+                EnumChatFormatting.DARK_AQUA + StatCollector.translateToLocal("gtsr.tooltip.added_by")
+                    + " "
+                    + EnumChatFormatting.AQUA
+                    + "GT"
                     + EnumChatFormatting.GREEN
                     + "-"
                     + EnumChatFormatting.GOLD

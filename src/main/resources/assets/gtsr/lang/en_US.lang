@@ -668,7 +668,15 @@ gtsr.tooltip.fluid_drill.mode_bronze_locked=Bronze tier only supports Water mode
 gtsr.tooltip.fluid_drill.mode_water=Water
 gtsr.tooltip.fluid_drill.mode_distilled=Distilled Water
 gtsr.tooltip.fluid_drill.mode_brine=Brine
+gtsr.tooltip.fluid_drill.mode_lava=Lava
 gtsr.tooltip.fluid_drill.output_mode=Output Mode
+gtsr.tooltip.fluid_drill.output_rates=Output Rates (Water mode, max efficiency):
+gtsr.tooltip.fluid_drill.rate_water=Bronze: 200~2,000 L/s | Steel: 200~8,000 L/s
+gtsr.tooltip.fluid_drill.rate_distilled_brine=Distilled Water / Brine: 10% of Water rate
+gtsr.tooltip.fluid_drill.rate_lava=Lava: 0.5% of Water rate (Steel only)
+gtsr.tooltip.fluid_drill.high_steam_cost=Brine/Lava modes consume 8,000 L/s steam (instead of 1,000 L/s)
+gtsr.tooltip.fluid_drill.nei_efficiency_10=10% efficiency of Water mode
+gtsr.tooltip.fluid_drill.nei_efficiency_05=0.5% efficiency of Water mode
 
 # Steam Hub Array (SHA)
 gtsr.tooltip.steam_hub.type=Steam Hub Array, SHA
@@ -934,3 +942,45 @@ gtsr.gui.siemens_martin.status.heating=Heating
 gtsr.gui.steam_hub.total_capacity=Total Capacity
 gtsr.gui.water_hub.total_capacity=Total Capacity
 gtsr.tooltip.solar_array.three_tier=Bronze/Steel/Overpressure Tier
+
+# ===== v1.5.1 Translation Keys =====
+
+# Geothermal Boiler - NEI & Tooltip
+gtsr.recipe.geothermal_steam_boiler=Large Geothermal Steam Boiler
+gtsr.tooltip.geothermal_boiler.chip_required=Requires Geothermal Overheat Chip
+gtsr.tooltip.geothermal_boiler.products=Byproduct Probabilities:
+gtsr.tooltip.geothermal_boiler.products_line1=45% Obsidian | 15% Ash | 10% Sulfur | 8% Tantalite
+gtsr.tooltip.geothermal_boiler.products_line2=6% Alumina | 2% Copper | 1% Tin | 0.5% Silver
+gtsr.tooltip.geothermal_boiler.chip_products_line=+ 0.2% Rutile | + 0.1% Scheelite
+gtsr.tooltip.geothermal_boiler.lava_rate=Lava Consumption Rate (1000mB/recipe):
+gtsr.tooltip.geothermal_boiler.lava_rate_bronze=Bronze cold: 333 mB/s | hot: 100 mB/s
+gtsr.tooltip.geothermal_boiler.lava_rate_steel=Steel cold: 333 mB/s | hot: 200 mB/s
+gtsr.tooltip.geothermal_boiler.lava_rate_chip=Chip cold: 333 mB/s | hot: 250 mB/s
+
+# Steam Fluid Drill - NEI & Tooltip
+gtsr.tooltip.fluid_drill.mode_lava=Lava
+gtsr.tooltip.fluid_drill.output_rates=Output Rates (Water mode, max efficiency):
+gtsr.tooltip.fluid_drill.rate_water=Bronze: 200~2,000 L/s | Steel: 200~8,000 L/s
+gtsr.tooltip.fluid_drill.rate_distilled_brine=Distilled Water / Brine: 10% of Water rate (Steel tier)
+gtsr.tooltip.fluid_drill.rate_lava=Lava: 0.5% of Water rate (Steel tier)
+gtsr.tooltip.fluid_drill.high_steam_cost=Brine/Lava mode steam cost: 8,000 L/s
+gtsr.tooltip.fluid_drill.nei_efficiency_10=Efficiency: 10% (Requires Steel tier)
+gtsr.tooltip.fluid_drill.nei_efficiency_05=Efficiency: 0.5% (Requires Steel tier)
+
+# ===== v1.6.0 Tooltip & Translation Keys =====
+gtsr.tooltip.shared.screwdriver_overflow=Screwdriver Right-Click: Toggle Overflow Input
+gtsr.tooltip.shared.screwdriver_rightclick_overflow=Screwdriver Right-Click: Toggle Overflow Output
+gtsr.tooltip.hub_storage_unit.steam_water_hub=(Steam/Water Hub)
+gtsr.tooltip.hub_storage_unit.water_hub=(Water Hub)
+gtsr.tooltip.turbine_array.tier6_desc=Tier 6+ can process supercritical steam and other advanced steam types with improved efficiency
+gtsr.tooltip.turbine_array.tier_system=12-tier voltage system: LV→MV→HV→EV→IV→LuV→ZPM→UV→UHV→UEV→UIV→UMV
+gtsr.tooltip.turbine_array.steam_progression=Steam types: Normal→Superheated→Dense→Dense Superheated→Supercritical→Dense Supercritical
+gtsr.tooltip.turbine_array.stacking_desc=Stacking layers 1-4, each layer adds turbines and dynamos to increase steam processing
+gtsr.tooltip.chip.geothermal_overheat=Install in Large Geothermal Steam Boiler to boost steam output and add byproducts
+gtsr.tooltip.chip.hub_singularity=Install in Steam/Water Hub Array to unlock Tier 2
+gtsr.tooltip.chip.rare_gas=Install in Atmospheric Centrifuge to unlock rare gas separation recipes
+gtsr.tooltip.chip.reinforced_hub_singularity=Install in Steam Hub Array to unlock Tier 3
+gtsr.tooltip.catalyst.ammonia=Install in Ammonia Plant to boost parallel and reaction speed
+gtsr.tooltip.singularity.desc=Steam Entangled Singularity, used for crafting advanced components and machines
+gtsr.tooltip.added_by=Added by: GT-Steam-Reborn
+gtsr.recipe.gear_steam_compressor=Gear Steam Compressor

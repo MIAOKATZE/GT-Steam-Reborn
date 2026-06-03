@@ -1,5 +1,7 @@
 package com.miaokatze.gtsr.common.machine.base;
 
+import java.lang.reflect.Field;
+
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumChatFormatting;
@@ -8,7 +10,6 @@ import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidStack;
 
 import gregtech.api.GregTechAPI;
-import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.implementations.MTEHatchInput;
@@ -17,17 +18,34 @@ import gregtech.api.util.GTUtility;
 public class MTEOverpressureTurbineInputHatch extends MTEHatchInput {
 
     private static final long CAPACITY = 2_560_000_000L;
-    private static final int CASING_INDEX = GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings8, 6);
+    private static final int DEFAULT_TEXTURE_INDEX = GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings8, 6);
 
     private long mSteamStored = 0;
     private FluidStack mStoredFluidType = null;
 
     public MTEOverpressureTurbineInputHatch(int aID, String aName, String aNameRegional) {
         super(aID, aName, aNameRegional, 1);
+        setDefaultTextureIndex();
     }
 
-    public MTEOverpressureTurbineInputHatch(String aName, int aTier, String[] aDescription, ITexture[][][] aTextures) {
+    public MTEOverpressureTurbineInputHatch(String aName, int aTier, String[] aDescription,
+        gregtech.api.interfaces.ITexture[][][] aTextures) {
         super(aName, aTier, aDescription, aTextures);
+        setDefaultTextureIndex();
+    }
+
+    private void setDefaultTextureIndex() {
+        try {
+            Field texturePageField = gregtech.api.metatileentity.implementations.MTEHatch.class
+                .getDeclaredField("texturePage");
+            texturePageField.setAccessible(true);
+            texturePageField.setInt(this, DEFAULT_TEXTURE_INDEX >> 7);
+
+            Field textureIndexField = gregtech.api.metatileentity.implementations.MTEHatch.class
+                .getDeclaredField("textureIndex");
+            textureIndexField.setAccessible(true);
+            textureIndexField.setInt(this, DEFAULT_TEXTURE_INDEX & 127);
+        } catch (Exception ignored) {}
     }
 
     @Override
@@ -161,7 +179,10 @@ public class MTEOverpressureTurbineInputHatch extends MTEHatchInput {
                 + StatCollector.translateToLocal("gtsr.tooltip.shared.l"),
             EnumChatFormatting.GRAY
                 + StatCollector.translateToLocal("gtsr.tooltip.overpressure_turbine_input_hatch.turbine_only"),
-            EnumChatFormatting.AQUA + "GT"
+            EnumChatFormatting.DARK_AQUA + StatCollector.translateToLocal("gtsr.tooltip.added_by")
+                + " "
+                + EnumChatFormatting.AQUA
+                + "GT"
                 + EnumChatFormatting.GREEN
                 + "-"
                 + EnumChatFormatting.GOLD

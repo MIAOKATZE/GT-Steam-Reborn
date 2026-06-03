@@ -192,7 +192,10 @@ public class MTEReinforcedSteamCacheNode extends MTEFilteredCacheNode {
             EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.shared.cache_node_hub_transfer"));
         tooltip.add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.shared.bind_hint"));
         tooltip.add(
-            EnumChatFormatting.AQUA + "GT"
+            EnumChatFormatting.DARK_AQUA + StatCollector.translateToLocal("gtsr.tooltip.added_by")
+                + " "
+                + EnumChatFormatting.AQUA
+                + "GT"
                 + EnumChatFormatting.GREEN
                 + "-"
                 + EnumChatFormatting.GOLD

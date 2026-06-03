@@ -44,7 +44,7 @@ public class MTEReinforcedHubStorageUnit extends MTESteamStorageUnit {
                 + StatCollector.translateToLocal("gtsr.tooltip.shared.l")
                 + EnumChatFormatting.GRAY
                 + " ("
-                + StatCollector.translateToLocal("gtsr.tooltip.hub_storage_unit.steam_hub")
+                + StatCollector.translateToLocal("gtsr.tooltip.hub_storage_unit.steam_water_hub")
                 + ")"
                 + EnumChatFormatting.YELLOW
                 + " / "
@@ -59,7 +59,10 @@ public class MTEReinforcedHubStorageUnit extends MTESteamStorageUnit {
             EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.hub_storage_unit.dual_hub"),
             EnumChatFormatting.YELLOW
                 + StatCollector.translateToLocal("gtsr.tooltip.reinforced_hub_storage_unit.tier2_only"),
-            EnumChatFormatting.AQUA + "GT"
+            EnumChatFormatting.DARK_AQUA + StatCollector.translateToLocal("gtsr.tooltip.added_by")
+                + " "
+                + EnumChatFormatting.AQUA
+                + "GT"
                 + EnumChatFormatting.GREEN
                 + "-"
                 + EnumChatFormatting.GOLD

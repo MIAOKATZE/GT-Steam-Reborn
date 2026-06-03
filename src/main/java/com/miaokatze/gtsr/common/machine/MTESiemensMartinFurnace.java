@@ -527,7 +527,10 @@ public class MTESiemensMartinFurnace extends MTEEnhancedMultiBlockBase<MTESiemen
             .addStructureHint("gtsr.tooltip.siemens_martin.hint_temp")
             .addStructureHint("gtsr.tooltip.siemens_martin.hint_interrupt")
             .toolTipFinisher(
-                EnumChatFormatting.AQUA + "GT"
+                EnumChatFormatting.DARK_AQUA + StatCollector.translateToLocal("gtsr.tooltip.added_by")
+                    + " "
+                    + EnumChatFormatting.AQUA
+                    + "GT"
                     + EnumChatFormatting.GREEN
                     + "-"
                     + EnumChatFormatting.GOLD

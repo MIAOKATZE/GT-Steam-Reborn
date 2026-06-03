@@ -870,7 +870,10 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
             .addStructureHint("gtsr.tooltip.kinetic_array.hint_pipe")
             .addStructureHint("gtsr.tooltip.kinetic_array.hint_gear")
             .toolTipFinisher(
-                EnumChatFormatting.AQUA + "GT"
+                EnumChatFormatting.DARK_AQUA + StatCollector.translateToLocal("gtsr.tooltip.added_by")
+                    + " "
+                    + EnumChatFormatting.AQUA
+                    + "GT"
                     + EnumChatFormatting.GREEN
                     + "-"
                     + EnumChatFormatting.GOLD

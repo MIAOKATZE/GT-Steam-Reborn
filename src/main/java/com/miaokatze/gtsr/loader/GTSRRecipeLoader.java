@@ -3,8 +3,11 @@ package com.miaokatze.gtsr.loader;
 import static com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps.airCompressorRecipes;
 import static com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps.ammoniaPlantRecipes;
 import static com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps.atmosphericCentrifugeRecipes;
+import static com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps.gearSteamCompressorRecipes;
+import static com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps.geothermalSteamBoilerRecipes;
 import static com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps.largeCokeOvenRecipes;
 import static com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps.siemensMartinRecipes;
+import static com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps.steamFluidDrillRecipes;
 import static com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps.steamSingularityCompressorRecipes;
 import static gregtech.api.recipe.RecipeMaps.assemblerRecipes;
 import static gregtech.api.util.GTRecipeBuilder.INGOTS;
@@ -15,6 +18,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import net.minecraft.item.ItemStack;
+import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.oredict.OreDictionary;
 
@@ -27,6 +31,7 @@ import gregtech.api.enums.ItemList;
 import gregtech.api.enums.Materials;
 import gregtech.api.enums.OrePrefixes;
 import gregtech.api.enums.TierEU;
+import gregtech.api.util.ExternalMaterials;
 import gregtech.api.util.GTModHandler;
 import gregtech.api.util.GTOreDictUnificator;
 import gtPlusPlus.core.fluids.GTPPFluids;
@@ -97,6 +102,9 @@ public class GTSRRecipeLoader implements Runnable {
         registerMultiblockAssemblerRecipes();
         registerHatchRecipes();
         registerSingularityCompressorDisplayRecipe();
+        registerGeothermalBoilerDisplayRecipes();
+        registerFluidDrillDisplayRecipes();
+        registerGearSteamCompressorDisplayRecipes();
     }
 
     private static void registerCokeOvenRecipes() {
@@ -882,6 +890,107 @@ public class GTSRRecipeLoader implements Runnable {
             warn("Skipped SingularityCrustSteamBorer recipe - output is null");
         }
 
+        // --- 强化奇点枢纽升级芯片 ---
+        ItemStack reinforcedChipOut = get(GTSRItemList.ReinforcedHubSingularityChip, 1);
+        if (!hasNull(reinforcedChipOut)) {
+            ItemStack[] inputs = filterNulls(
+                GTSRItemList.SteamEntangledSingularity.get(64),
+                GTSRItemList.SteamEntangledSingularity.get(64),
+                GTSRItemList.SteamEntangledSingularity.get(64),
+                GTSRItemList.SteamEntangledSingularity.get(64),
+                GTSRItemList.SteamEntangledSingularity.get(64),
+                GTSRItemList.SteamEntangledSingularity.get(64),
+                get(OrePrefixes.circuit, Materials.UV, 16),
+                get(OrePrefixes.plateDense, Materials.Europium, 32),
+                get(OrePrefixes.plateDense, ExternalMaterials.getRhodiumPlatedPalladium(), 64));
+            if (!hasNull(inputs)) {
+                GTValues.RA.stdBuilder()
+                    .itemInputs(inputs)
+                    .itemOutputs(reinforcedChipOut)
+                    .fluidInputs(Materials.Radon.getGas(128000))
+                    .duration(960 * SECONDS)
+                    .eut(TierEU.RECIPE_LuV)
+                    .addTo(assemblerRecipes);
+            } else {
+                warn("Skipped ReinforcedHubSingularityChip recipe - inputs contain null");
+            }
+        } else {
+            warn("Skipped ReinforcedHubSingularityChip recipe - output is null");
+        }
+
+        // --- 超压蒸汽缓存节点 ---
+        ItemStack overpressureCacheOut = get(GTSRItemList.OverpressureSteamCacheNode, 1);
+        if (!hasNull(overpressureCacheOut)) {
+            ItemStack[] inputs = filterNulls(
+                GTSRItemList.SteamEntangledSingularity.get(32),
+                GTSRItemList.ReinforcedSteamCacheNode.get(1),
+                get(OrePrefixes.circuit, Materials.LuV, 4),
+                ItemList.Sensor_LuV.get(2),
+                get(OrePrefixes.screw, ExternalMaterials.getRhodiumPlatedPalladium(), 64),
+                get(OrePrefixes.plateDense, ExternalMaterials.getRhodiumPlatedPalladium(), 16));
+            if (!hasNull(inputs)) {
+                GTValues.RA.stdBuilder()
+                    .itemInputs(inputs)
+                    .itemOutputs(overpressureCacheOut)
+                    .duration(90 * SECONDS)
+                    .eut(TierEU.RECIPE_LuV)
+                    .addTo(assemblerRecipes);
+            } else {
+                warn("Skipped OverpressureSteamCacheNode recipe - inputs contain null");
+            }
+        } else {
+            warn("Skipped OverpressureSteamCacheNode recipe - output is null");
+        }
+
+        // --- 超压枢纽存储单元 ---
+        ItemStack overpressureHubOut = get(GTSRItemList.OverpressureHubStorageUnit, 1);
+        if (!hasNull(overpressureHubOut)) {
+            ItemStack[] inputs = filterNulls(
+                GTSRItemList.SteamEntangledSingularity.get(16),
+                GTSRItemList.ReinforcedHubStorageUnit.get(1),
+                ItemList.Super_Tank_IV.get(1),
+                get(OrePrefixes.screw, Materials.TungstenSteel, 16),
+                get(OrePrefixes.plateDense, Materials.TungstenSteel, 4));
+            if (!hasNull(inputs)) {
+                GTValues.RA.stdBuilder()
+                    .itemInputs(inputs)
+                    .itemOutputs(overpressureHubOut)
+                    .duration(80 * SECONDS)
+                    .eut(TierEU.RECIPE_IV)
+                    .addTo(assemblerRecipes);
+            } else {
+                warn("Skipped OverpressureHubStorageUnit recipe - inputs contain null");
+            }
+        } else {
+            warn("Skipped OverpressureHubStorageUnit recipe - output is null");
+        }
+
+        // --- 超压巨型轮机阵列输入仓 ---
+        ItemStack overpressureTurbineOut = get(GTSRItemList.OverpressureTurbineInputHatch, 1);
+        if (!hasNull(overpressureTurbineOut)) {
+            ItemStack[] inputs = filterNulls(
+                GTSRItemList.SteamEntangledSingularity.get(64),
+                GTSRItemList.SteamEntangledSingularity.get(64),
+                GTSRItemList.PressureSteamHatch.get(1),
+                ItemList.Quantum_Tank_LV.get(1),
+                ItemList.Electric_Pump_LuV.get(16),
+                get(OrePrefixes.screw, ExternalMaterials.getRhodiumPlatedPalladium(), 16),
+                get(OrePrefixes.plateDense, ExternalMaterials.getRhodiumPlatedPalladium(), 4));
+            if (!hasNull(inputs)) {
+                GTValues.RA.stdBuilder()
+                    .itemInputs(inputs)
+                    .itemOutputs(overpressureTurbineOut)
+                    .fluidInputs(Materials.SolderingAlloy.getMolten(2880))
+                    .duration(360 * SECONDS)
+                    .eut(TierEU.RECIPE_LuV)
+                    .addTo(assemblerRecipes);
+            } else {
+                warn("Skipped OverpressureTurbineInputHatch recipe - inputs contain null");
+            }
+        } else {
+            warn("Skipped OverpressureTurbineInputHatch recipe - output is null");
+        }
+
         log("Multiblock assembler recipes done.");
     }
 
@@ -990,9 +1099,91 @@ public class GTSRRecipeLoader implements Runnable {
         GTValues.RA.stdBuilder()
             .fluidInputs(Materials.Steam.getGas(600_000_000))
             .itemOutputs(GTSRItemList.SteamEntangledSingularity.get(1))
-            .duration(800)
+            .duration(100000)
             .eut(0)
             .addTo(steamSingularityCompressorRecipes);
         log("Singularity compressor display recipe done.");
+    }
+
+    private static void registerGeothermalBoilerDisplayRecipes() {
+        // 无芯片配方
+        GTValues.RA.stdBuilder()
+            .fluidInputs(new FluidStack(net.minecraftforge.fluids.FluidRegistry.getFluid("lava"), 1000))
+            .itemOutputs(
+                new ItemStack(net.minecraft.init.Blocks.obsidian, 1),
+                GTOreDictUnificator.get(OrePrefixes.dust, Materials.Ash, 1),
+                GTOreDictUnificator.get(OrePrefixes.dust, Materials.Sulfur, 1),
+                GTOreDictUnificator.get(OrePrefixes.dust, Materials.Tantalite, 1),
+                GTOreDictUnificator.get(OrePrefixes.dust, Materials.Aluminiumoxide, 1),
+                GTOreDictUnificator.get(OrePrefixes.ingot, Materials.Copper, 1),
+                GTOreDictUnificator.get(OrePrefixes.ingot, Materials.Tin, 1),
+                GTOreDictUnificator.get(OrePrefixes.ingot, Materials.Silver, 1))
+            .outputChances(4500, 1500, 1000, 800, 600, 200, 100, 50)
+            .duration(0)
+            .eut(0)
+            .addTo(geothermalSteamBoilerRecipes);
+
+        // 有芯片配方（额外产出金红石粉和白钨矿粉）
+        GTValues.RA.stdBuilder()
+            .fluidInputs(new FluidStack(net.minecraftforge.fluids.FluidRegistry.getFluid("lava"), 1000))
+            .itemOutputs(
+                new ItemStack(net.minecraft.init.Blocks.obsidian, 1),
+                GTOreDictUnificator.get(OrePrefixes.dust, Materials.Ash, 1),
+                GTOreDictUnificator.get(OrePrefixes.dust, Materials.Sulfur, 1),
+                GTOreDictUnificator.get(OrePrefixes.dust, Materials.Tantalite, 1),
+                GTOreDictUnificator.get(OrePrefixes.dust, Materials.Aluminiumoxide, 1),
+                GTOreDictUnificator.get(OrePrefixes.ingot, Materials.Copper, 1),
+                GTOreDictUnificator.get(OrePrefixes.ingot, Materials.Tin, 1),
+                GTOreDictUnificator.get(OrePrefixes.ingot, Materials.Silver, 1),
+                GTOreDictUnificator.get(OrePrefixes.dust, Materials.Rutile, 1),
+                GTOreDictUnificator.get(OrePrefixes.dust, Materials.Scheelite, 1))
+            .outputChances(4500, 1500, 1000, 800, 600, 200, 100, 50, 20, 10)
+            .duration(0)
+            .eut(0)
+            .addTo(geothermalSteamBoilerRecipes);
+        log("Geothermal boiler display recipes done.");
+    }
+
+    private static void registerFluidDrillDisplayRecipes() {
+        // Water mode (Bronze: 200~2000 L/s, Steel: 200~8000 L/s)
+        GTValues.RA.stdBuilder()
+            .fluidOutputs(Materials.Water.getFluid(2000))
+            .duration(0)
+            .eut(0)
+            .addTo(steamFluidDrillRecipes);
+
+        // Distilled Water mode (10% efficiency, requires Steel tier)
+        GTValues.RA.stdBuilder()
+            .fluidOutputs(GTModHandler.getDistilledWater(200))
+            .duration(0)
+            .eut(0)
+            .addTo(steamFluidDrillRecipes);
+
+        // Brine mode (10% efficiency, requires Steel tier)
+        GTValues.RA.stdBuilder()
+            .fluidOutputs(Materials.SaltWater.getFluid(200))
+            .duration(0)
+            .eut(0)
+            .addTo(steamFluidDrillRecipes);
+
+        // Lava mode (0.5% efficiency, requires Steel tier)
+        GTValues.RA.stdBuilder()
+            .fluidOutputs(new FluidStack(net.minecraftforge.fluids.FluidRegistry.getFluid("lava"), 10))
+            .duration(0)
+            .eut(0)
+            .addTo(steamFluidDrillRecipes);
+
+        log("Fluid drill display recipes done.");
+    }
+
+    private static void registerGearSteamCompressorDisplayRecipes() {
+        // Bronze tier: 6400 L/s steam → 1600 L/s superheated steam + 30 L/s distilled water
+        GTValues.RA.stdBuilder()
+            .fluidOutputs(FluidRegistry.getFluidStack("ic2superheatedsteam", 1600), GTModHandler.getDistilledWater(30))
+            .duration(0)
+            .eut(0)
+            .addTo(gearSteamCompressorRecipes);
+
+        log("Gear steam compressor display recipes done.");
     }
 }

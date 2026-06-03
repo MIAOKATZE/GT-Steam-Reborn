@@ -191,16 +191,6 @@ public class MTESingularityDrillingHub extends MTESteamMultiBase<MTESingularityD
                     'B',
                     ofChain(
                         buildHatchAdder(MTESingularityDrillingHub.class).adder(MTESteamMultiBase::addToMachineList)
-                            .hatchClass(MTESteamCoolingHatch.class)
-                            .casingIndex(casingIndex)
-                            .dot(2)
-                            .build(),
-                        buildHatchAdder(MTESingularityDrillingHub.class).adder(MTESteamMultiBase::addToMachineList)
-                            .hatchClass(MTEPressureSteamCoolingHatch.class)
-                            .casingIndex(casingIndex)
-                            .dot(2)
-                            .build(),
-                        buildHatchAdder(MTESingularityDrillingHub.class).adder(MTESteamMultiBase::addToMachineList)
                             .hatchIds(31040, MetaTileEntityID.PRESSURE_STEAM_HATCH.ID)
                             .casingIndex(casingIndex)
                             .dot(1)
@@ -216,7 +206,17 @@ public class MTESingularityDrillingHub extends MTESteamMultiBase<MTESingularityD
                             .buildAndChain(
                                 onElementPass(
                                     MTESingularityDrillingHub::onCasingAdded,
-                                    ofBlock(GregTechAPI.sBlockCasings2, 0)))))
+                                    ofBlock(GregTechAPI.sBlockCasings2, 0))),
+                        buildHatchAdder(MTESingularityDrillingHub.class).adder(MTESteamMultiBase::addToMachineList)
+                            .hatchClass(MTESteamCoolingHatch.class)
+                            .casingIndex(casingIndex)
+                            .dot(2)
+                            .build(),
+                        buildHatchAdder(MTESingularityDrillingHub.class).adder(MTESteamMultiBase::addToMachineList)
+                            .hatchClass(MTEPressureSteamCoolingHatch.class)
+                            .casingIndex(casingIndex)
+                            .dot(2)
+                            .build()))
                 .addElement('C', ofBlock(GregTechAPI.sBlockCasings2, 13))
                 .addElement('D', ofBlock(GregTechAPI.sBlockCasings2, 3))
                 .addElement('E', ofBlock(GregTechAPI.sBlockCasings3, 14))
@@ -660,7 +660,10 @@ public class MTESingularityDrillingHub extends MTESteamMultiBase<MTESingularityD
             .addStructureHint("gtsr.tooltip.singularity_hub.hint_chunk")
             .addStructureHint("gtsr.tooltip.shared.hub_singularity_cost")
             .toolTipFinisher(
-                EnumChatFormatting.AQUA + "GT"
+                EnumChatFormatting.DARK_AQUA + StatCollector.translateToLocal("gtsr.tooltip.added_by")
+                    + " "
+                    + EnumChatFormatting.AQUA
+                    + "GT"
                     + EnumChatFormatting.GREEN
                     + "-"
                     + EnumChatFormatting.GOLD

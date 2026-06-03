@@ -721,7 +721,15 @@ gtsr.tooltip.fluid_drill.mode_bronze_locked=青铜级仅支持水模式，升级
 gtsr.tooltip.fluid_drill.mode_water=水
 gtsr.tooltip.fluid_drill.mode_distilled=蒸馏水
 gtsr.tooltip.fluid_drill.mode_brine=盐水
+gtsr.tooltip.fluid_drill.mode_lava=岩浆
 gtsr.tooltip.fluid_drill.output_mode=产出模式
+gtsr.tooltip.fluid_drill.output_rates=产出速率（水模式，最大效率）：
+gtsr.tooltip.fluid_drill.rate_water=青铜: 200~2,000 L/s | 钢: 200~8,000 L/s
+gtsr.tooltip.fluid_drill.rate_distilled_brine=蒸馏水/盐水: 水模式的10%
+gtsr.tooltip.fluid_drill.rate_lava=岩浆: 水模式的0.5%（仅钢级）
+gtsr.tooltip.fluid_drill.high_steam_cost=盐水/岩浆模式消耗8,000 L/s蒸汽（而非1,000 L/s）
+gtsr.tooltip.fluid_drill.nei_efficiency_10=水模式10%效率
+gtsr.tooltip.fluid_drill.nei_efficiency_05=水模式0.5%效率
 gtsr.tooltip.fluid_drill.ctrl=底层正面中央
 gtsr.tooltip.fluid_drill.output_hatch=流体产出
 gtsr.gui.fluid_drill.efficiency=效率: 
@@ -986,3 +994,45 @@ gtsr.gui.turbine_array.efficiency=效率:
 gtsr.gui.turbine_array.max= 最大
 gtsr.gui.turbine_array.output=输出: 
 gtsr.gui.parallel=并行: 
+
+# ===== v1.5.1 Translation Keys =====
+
+# Geothermal Boiler - NEI & Tooltip
+gtsr.recipe.geothermal_steam_boiler=大型地热蒸汽锅炉
+gtsr.tooltip.geothermal_boiler.chip_required=需要地热过热芯片
+gtsr.tooltip.geothermal_boiler.products=副产物概率:
+gtsr.tooltip.geothermal_boiler.products_line1=45%黑曜石 | 15%灰烬 | 10%硫粉 | 8%钽铁矿粉
+gtsr.tooltip.geothermal_boiler.products_line2=6%氧化铝粉 | 2%铜锭 | 1%锡锭 | 0.5%银锭
+gtsr.tooltip.geothermal_boiler.chip_products_line=+ 0.2%金红石粉 | + 0.1%白钨矿粉
+gtsr.tooltip.geothermal_boiler.lava_rate=岩浆消耗速率 (1000mB/次):
+gtsr.tooltip.geothermal_boiler.lava_rate_bronze=青铜 冷态: 333 mB/s | 热态: 100 mB/s
+gtsr.tooltip.geothermal_boiler.lava_rate_steel=钢 冷态: 333 mB/s | 热态: 200 mB/s
+gtsr.tooltip.geothermal_boiler.lava_rate_chip=芯片 冷态: 333 mB/s | 热态: 250 mB/s
+
+# Steam Fluid Drill - NEI & Tooltip
+gtsr.tooltip.fluid_drill.mode_lava=岩浆
+gtsr.tooltip.fluid_drill.output_rates=产出速率 (水模式, 满效率):
+gtsr.tooltip.fluid_drill.rate_water=青铜: 200~2,000 L/s | 钢: 200~8,000 L/s
+gtsr.tooltip.fluid_drill.rate_distilled_brine=蒸馏水/盐水: 水模式的10% (需钢级)
+gtsr.tooltip.fluid_drill.rate_lava=岩浆: 水模式的0.5% (需钢级)
+gtsr.tooltip.fluid_drill.high_steam_cost=盐水/岩浆模式蒸汽消耗: 8,000 L/s
+gtsr.tooltip.fluid_drill.nei_efficiency_10=效率: 10% (需要钢级)
+gtsr.tooltip.fluid_drill.nei_efficiency_05=效率: 0.5% (需要钢级)
+
+# ===== v1.6.0 Tooltip & Translation Keys =====
+gtsr.tooltip.shared.screwdriver_overflow=螺丝刀右击：切换溢流输入
+gtsr.tooltip.shared.screwdriver_rightclick_overflow=螺丝刀右击：切换溢流输出
+gtsr.tooltip.hub_storage_unit.steam_water_hub=(蒸汽/蓄水枢纽)
+gtsr.tooltip.hub_storage_unit.water_hub=(蓄水枢纽)
+gtsr.tooltip.turbine_array.tier6_desc=等级6+可处理超临界蒸汽等高级蒸汽，且效率进一步提升
+gtsr.tooltip.turbine_array.tier_system=12级电压体系：LV→MV→HV→EV→IV→LuV→ZPM→UV→UHV→UEV→UIV→UMV
+gtsr.tooltip.turbine_array.steam_progression=蒸汽类型：普通→过热→致密→致密过热→超临界→致密超临界
+gtsr.tooltip.turbine_array.stacking_desc=叠加层数1-4，每层增加涡轮和动力仓，提升蒸汽处理量
+gtsr.tooltip.chip.geothermal_overheat=装载至大型地热蒸汽锅炉，提升蒸汽产出并增加副产物
+gtsr.tooltip.chip.hub_singularity=装载至蒸汽/蓄水枢纽阵列，解锁等级2功能
+gtsr.tooltip.chip.rare_gas=装载至大气离心机，解锁稀有气体分离配方
+gtsr.tooltip.chip.reinforced_hub_singularity=装载至蒸汽枢纽阵列，解锁等级3功能
+gtsr.tooltip.catalyst.ammonia=装载至制氨工厂，提升并行数和反应速度
+gtsr.tooltip.singularity.desc=蒸汽纠缠奇点，用于合成高级组件和机器
+gtsr.tooltip.added_by=添加模组：GT-Steam-Reborn
+gtsr.recipe.gear_steam_compressor=齿轮蒸汽压缩机

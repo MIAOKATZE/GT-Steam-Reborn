@@ -37,6 +37,7 @@ import com.gtnewhorizons.modularui.common.widget.DynamicPositionedColumn;
 import com.gtnewhorizons.modularui.common.widget.FakeSyncWidget;
 import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
+import com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.api.enums.MetaTileEntityID;
 import com.miaokatze.gtsr.common.machine.base.MTEPressureSteamOutputHatch;
@@ -52,6 +53,7 @@ import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.implementations.MTEEnhancedMultiBlockBase;
 import gregtech.api.metatileentity.implementations.MTEHatch;
 import gregtech.api.metatileentity.implementations.MTEHatchOutput;
+import gregtech.api.recipe.RecipeMap;
 import gregtech.api.recipe.check.CheckRecipeResult;
 import gregtech.api.recipe.check.CheckRecipeResultRegistry;
 import gregtech.api.render.TextureFactory;
@@ -91,10 +93,10 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
     private static final int MAX_OUTPUT_BRONZE = 60_000;
     private static final int MAX_OUTPUT_STEEL = 150_000;
 
-    private static final int BASE_RECIPE_TIME = 100;
-    private static final int HEATED_RECIPE_TIME_BRONZE = 400;
-    private static final int HEATED_RECIPE_TIME_STEEL = 200;
-    private static final int OVERHEAT_CHIP_RECIPE_TIME = 140;
+    private static final int BASE_RECIPE_TIME = 60;
+    private static final int HEATED_RECIPE_TIME_BRONZE = 200;
+    private static final int HEATED_RECIPE_TIME_STEEL = 100;
+    private static final int OVERHEAT_CHIP_RECIPE_TIME = 80;
 
     private static final int LAVA_PER_RECIPE = 1000;
 
@@ -116,6 +118,11 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
 
     public String getMachineType() {
         return "Geothermal Boiler";
+    }
+
+    @Override
+    public RecipeMap<?> getRecipeMap() {
+        return GTSRRecipeMaps.geothermalSteamBoilerRecipes;
     }
 
     @Override
@@ -341,8 +348,38 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
 
         drainLavaInput(LAVA_PER_RECIPE, true);
 
-        mOutputItems = new ItemStack[] { new ItemStack(Blocks.obsidian, 1),
-            GTOreDictUnificator.get(OrePrefixes.dust, Materials.Sulfur, 2) };
+        boolean hasChip = hasOverheatChip();
+        java.util.ArrayList<ItemStack> outputs = new java.util.ArrayList<>();
+        java.util.Random rng = getBaseMetaTileEntity().getWorld().rand;
+
+        // 45% 黑曜石
+        if (rng.nextDouble() < 0.45) outputs.add(new ItemStack(Blocks.obsidian, 1));
+        // 15% 灰烬粉
+        if (rng.nextDouble() < 0.15) outputs.add(GTOreDictUnificator.get(OrePrefixes.dust, Materials.Ash, 1));
+        // 10% 硫粉
+        if (rng.nextDouble() < 0.10) outputs.add(GTOreDictUnificator.get(OrePrefixes.dust, Materials.Sulfur, 1));
+        // 8% 钽铁矿粉
+        if (rng.nextDouble() < 0.08) outputs.add(GTOreDictUnificator.get(OrePrefixes.dust, Materials.Tantalite, 1));
+        // 6% 氧化铝粉
+        if (rng.nextDouble() < 0.06)
+            outputs.add(GTOreDictUnificator.get(OrePrefixes.dust, Materials.Aluminiumoxide, 1));
+        // 2% 铜锭
+        if (rng.nextDouble() < 0.02) outputs.add(GTOreDictUnificator.get(OrePrefixes.ingot, Materials.Copper, 1));
+        // 1% 锡锭
+        if (rng.nextDouble() < 0.01) outputs.add(GTOreDictUnificator.get(OrePrefixes.ingot, Materials.Tin, 1));
+        // 0.5% 银锭
+        if (rng.nextDouble() < 0.005) outputs.add(GTOreDictUnificator.get(OrePrefixes.ingot, Materials.Silver, 1));
+
+        // 装载地热过热芯片后额外产出
+        if (hasChip) {
+            // 0.2% 金红石粉
+            if (rng.nextDouble() < 0.002) outputs.add(GTOreDictUnificator.get(OrePrefixes.dust, Materials.Rutile, 1));
+            // 0.1% 白钨矿粉
+            if (rng.nextDouble() < 0.001)
+                outputs.add(GTOreDictUnificator.get(OrePrefixes.dust, Materials.Scheelite, 1));
+        }
+
+        mOutputItems = outputs.toArray(new ItemStack[0]);
 
         int duration = calculateActualDuration();
         mMaxProgresstime = duration;
@@ -501,6 +538,33 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
                     + EnumChatFormatting.GRAY
                     + " L/s "
                     + StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.max_output"))
+            .addSeparator()
+            .addInfo(
+                EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.products"))
+            .addInfo(
+                EnumChatFormatting.GRAY
+                    + StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.products_line1"))
+            .addInfo(
+                EnumChatFormatting.GRAY
+                    + StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.products_line2"))
+            .addInfo(
+                EnumChatFormatting.DARK_AQUA
+                    + StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.chip_products"))
+            .addInfo(
+                EnumChatFormatting.GRAY
+                    + StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.chip_products_line"))
+            .addSeparator()
+            .addInfo(
+                EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.lava_rate"))
+            .addInfo(
+                EnumChatFormatting.GRAY
+                    + StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.lava_rate_bronze"))
+            .addInfo(
+                EnumChatFormatting.GRAY
+                    + StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.lava_rate_steel"))
+            .addInfo(
+                EnumChatFormatting.GRAY
+                    + StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.lava_rate_chip"))
             .beginStructureBlock(7, 8, 7, false)
             .addController(StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.ctrl"))
             .addInputHatch(StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.input_hatch"), 1)
@@ -523,7 +587,10 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
                     + StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.chip_desc"))
             .addStructureHint("gtsr.tooltip.shared.no_maintenance")
             .toolTipFinisher(
-                EnumChatFormatting.AQUA + "GT"
+                EnumChatFormatting.DARK_AQUA + StatCollector.translateToLocal("gtsr.tooltip.added_by")
+                    + " "
+                    + EnumChatFormatting.AQUA
+                    + "GT"
                     + EnumChatFormatting.GREEN
                     + "-"
                     + EnumChatFormatting.GOLD

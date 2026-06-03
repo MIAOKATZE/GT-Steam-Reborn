@@ -47,286 +47,256 @@ import com.miaokatze.gtsr.register.CreativeTabManager;
 public class MachineLoader {
 
     public static void initMachines() {
-        registerSingleBlockMachines();
-        registerHubArrays();
-        registerSteamProductionMachines();
-        registerSteamPowerGeneration();
-        registerWorkingMachines();
-        registerSpecialMachines();
-        registerAtypicalSteamMachines();
-        registerHatches();
+        registerAllMachines();
+        addItemsToCreativeTab();
     }
 
-    private static void registerSingleBlockMachines() {
+    private static void registerAllMachines() {
+        // --- 单方块机器 ---
         GTSRItemList.SteamCacheNode.set(
             new MTESteamCacheNode(MetaTileEntityID.STEAM_CACHE_NODE.ID, "gtsr.steam.cache.node", "Steam Cache Node"));
-        CreativeTabManager.addItemToTab(GTSRItemList.SteamCacheNode.get(1));
-
         GTSRItemList.ReinforcedSteamCacheNode.set(
             new MTEReinforcedSteamCacheNode(
                 MetaTileEntityID.REINFORCED_STEAM_CACHE_NODE.ID,
                 "gtsr.reinforced.steam.cache.node",
                 "Reinforced Steam Cache Node"));
-        CreativeTabManager.addItemToTab(GTSRItemList.ReinforcedSteamCacheNode.get(1));
-
+        GTSRItemList.OverpressureHubStorageUnit.set(
+            new MTEOverpressureHubStorageUnit(
+                MetaTileEntityID.OVERPRESSURE_HUB_STORAGE_UNIT.ID,
+                "gtsr.overpressure.hub.storage.unit",
+                "Overpressure Hub Storage Unit"));
         GTSRItemList.WaterCacheNode.set(
             new MTEWaterCacheNode(MetaTileEntityID.WATER_CACHE_NODE.ID, "gtsr.water.cache.node", "Water Cache Node"));
-        CreativeTabManager.addItemToTab(GTSRItemList.WaterCacheNode.get(1));
-
         GTSRItemList.SingularityMinerNode.set(
             new MTESingularityMinerNode(
                 MetaTileEntityID.SINGULARITY_MINER_NODE.ID,
                 "gtsr.singularity.miner.node",
                 "Singularity Miner Node"));
-        CreativeTabManager.addItemToTab(GTSRItemList.SingularityMinerNode.get(1));
-
         GTSRItemList.SingularityDrillingNode.set(
             new MTESingularityDrillingNode(
                 MetaTileEntityID.SINGULARITY_DRILLING_NODE.ID,
                 "gtsr.singularity.drilling.node",
                 "Singularity Drilling Node"));
-        CreativeTabManager.addItemToTab(GTSRItemList.SingularityDrillingNode.get(1));
-
         GTSRItemList.SteamSingularityCompressor.set(
             new MTESteamSingularityCompressor(
                 MetaTileEntityID.STEAM_SINGULARITY_COMPRESSOR.ID,
                 "gtsr.steam.singularity.compressor",
                 "Steam Singularity Compressor"));
-        CreativeTabManager.addItemToTab(GTSRItemList.SteamSingularityCompressor.get(1));
-    }
 
-    private static void registerHubArrays() {
+        // --- 多方块机器: 存储枢纽及其仓室和模块 ---
         GTSRItemList.SteamHubArray
             .set(new MTESteamHubArray(MetaTileEntityID.STEAM_HUB_ARRAY.ID, "gtsr.steam.hub.array", "Steam Hub Array"));
-        CreativeTabManager.addItemToTab(GTSRItemList.SteamHubArray.get(1));
-
         GTSRItemList.WaterHubArray
             .set(new MTEWaterHubArray(MetaTileEntityID.WATER_HUB_ARRAY.ID, "gtsr.water.hub.array", "Water Hub Array"));
-        CreativeTabManager.addItemToTab(GTSRItemList.WaterHubArray.get(1));
-    }
+        GTSRItemList.SteamHubInputHatch.set(
+            new MTESteamHubInputHatch(
+                MetaTileEntityID.STEAM_HUB_INPUT_HATCH.ID,
+                "gtsr.steam.hub.input.hatch",
+                "Steam Hub Input Hatch"));
+        GTSRItemList.SteamHubOutputHatch.set(
+            new MTESteamHubOutputHatch(
+                MetaTileEntityID.STEAM_HUB_OUTPUT_HATCH.ID,
+                "gtsr.steam.hub.output.hatch",
+                "Steam Hub Output Hatch"));
+        GTSRItemList.WaterHubInputHatch.set(
+            new MTEWaterHubInputHatch(
+                MetaTileEntityID.WATER_HUB_INPUT_HATCH.ID,
+                "gtsr.water.hub.input.hatch",
+                "Water Hub Input Hatch"));
+        GTSRItemList.WaterHubOutputHatch.set(
+            new MTEWaterHubOutputHatch(
+                MetaTileEntityID.WATER_HUB_OUTPUT_HATCH.ID,
+                "gtsr.water.hub.output.hatch",
+                "Water Hub Output Hatch"));
+        GTSRItemList.OverpressureTurbineInputHatch.set(
+            new MTEOverpressureTurbineInputHatch(
+                MetaTileEntityID.OVERPRESSURE_TURBINE_INPUT_HATCH.ID,
+                "gtsr.overpressure.turbine.input.hatch",
+                "Overpressure Turbine Input Hatch"));
+        GTSRItemList.HubStorageUnit.set(
+            new MTEHubStorageUnit(MetaTileEntityID.HUB_STORAGE_UNIT.ID, "gtsr.hub.storage.unit", "Hub Storage Unit"));
+        GTSRItemList.ReinforcedHubStorageUnit.set(
+            new MTEReinforcedHubStorageUnit(
+                MetaTileEntityID.REINFORCED_HUB_STORAGE_UNIT.ID,
+                "gtsr.reinforced.hub.storage.unit",
+                "Reinforced Hub Storage Unit"));
+        GTSRItemList.OverpressureSteamCacheNode.set(
+            new MTEOverpressureSteamCacheNode(
+                MetaTileEntityID.OVERPRESSURE_STEAM_CACHE_NODE.ID,
+                "gtsr.overpressure.steam.cache.node",
+                "Overpressure Steam Cache Node"));
 
-    private static void registerSteamProductionMachines() {
+        // --- 多方块机器: 蒸汽生产 ---
         GTSRItemList.LargeSolarOverpressureArray.set(
             new MTELargeSolarOverpressureArray(
                 MetaTileEntityID.LARGE_SOLAR_OVERPRESSURE_ARRAY.ID,
                 "gtsr.large.solar.overpressure.array",
                 "Large Solar Overpressure Array"));
-        CreativeTabManager.addItemToTab(GTSRItemList.LargeSolarOverpressureArray.get(1));
-
         GTSRItemList.LargeGeothermalSteamBoiler.set(
             new MTELargeGeothermalSteamBoiler(
                 MetaTileEntityID.LARGE_GEOTHERMAL_STEAM_BOILER.ID,
                 "gtsr.large.geothermal.steam.boiler",
                 "Large Geothermal Steam Boiler"));
-        CreativeTabManager.addItemToTab(GTSRItemList.LargeGeothermalSteamBoiler.get(1));
 
-        GTSRItemList.GearSteamCompressor.set(
-            new MTEGearSteamCompressor(
-                MetaTileEntityID.GEAR_STEAM_COMPRESSOR.ID,
-                "gtsr.gear.steam.compressor",
-                "Gear Steam Compressor"));
-        CreativeTabManager.addItemToTab(GTSRItemList.GearSteamCompressor.get(1));
-    }
-
-    private static void registerSteamPowerGeneration() {
+        // --- 多方块机器: 蒸汽产电 ---
         GTSRItemList.MegaSteamTurbineArray.set(
             new MTEMegaSteamTurbineArray(
                 MetaTileEntityID.MEGA_STEAM_TURBINE_ARRAY.ID,
                 "gtsr.mega.steam.turbine.array",
                 "Mega Steam Turbine Array"));
-        CreativeTabManager.addItemToTab(GTSRItemList.MegaSteamTurbineArray.get(1));
-    }
 
-    private static void registerWorkingMachines() {
+        // --- 多方块机器: 工作机器 ---
         GTSRItemList.SteamFluidDrill.set(
             new MTESteamFluidDrill(
                 MetaTileEntityID.STEAM_FLUID_DRILL.ID,
                 "gtsr.steam.fluid.drill",
                 "Steam Fluid Drill"));
-        CreativeTabManager.addItemToTab(GTSRItemList.SteamFluidDrill.get(1));
-
         GTSRItemList.CrustSteamBorer.set(
             new MTECrustSteamBorer(
                 MetaTileEntityID.CRUST_STEAM_BORER.ID,
                 "gtsr.crust.steam.borer",
                 "Crust Steam Borer"));
-        CreativeTabManager.addItemToTab(GTSRItemList.CrustSteamBorer.get(1));
-
         GTSRItemList.SingularityCrustSteamBorer.set(
             new MTEVoidCrustSteamBorer(
                 MetaTileEntityID.SINGULARITY_CRUST_STEAM_BORER.ID,
                 "gtsr.singularity.crust.steam.borer",
                 "Singularity Crust Steam Borer"));
-        CreativeTabManager.addItemToTab(GTSRItemList.SingularityCrustSteamBorer.get(1));
-
         GTSRItemList.VeinSteamPyrolyzer.set(
             new MTEVeinSteamPyrolyzer(
                 MetaTileEntityID.VEIN_STEAM_PYROLYZER.ID,
                 "gtsr.vein.steam.pyrolyzer",
                 "Vein Steam Pyrolyzer"));
-        CreativeTabManager.addItemToTab(GTSRItemList.VeinSteamPyrolyzer.get(1));
-
         GTSRItemList.LargeSteamFurnace.set(
             new MTELargeSteamFurnace(
                 MetaTileEntityID.LARGE_STEAM_FURNACE.ID,
                 "gtsr.large.steam.furnace",
                 "Large Steam Furnace"));
-        CreativeTabManager.addItemToTab(GTSRItemList.LargeSteamFurnace.get(1));
-
         GTSRItemList.AirCompressor
             .set(new MTEAirCompressor(MetaTileEntityID.AIR_COMPRESSOR.ID, "gtsr.air_compressor", "Air Compressor"));
-        CreativeTabManager.addItemToTab(GTSRItemList.AirCompressor.get(1));
-
         GTSRItemList.AtmosphericCentrifuge.set(
             new MTEAtmosphericCentrifuge(
                 MetaTileEntityID.ATMOSPHERIC_CENTRIFUGE.ID,
                 "gtsr.atmospheric_centrifuge",
                 "Atmospheric Centrifuge"));
-        CreativeTabManager.addItemToTab(GTSRItemList.AtmosphericCentrifuge.get(1));
-
         GTSRItemList.KineticProcessingArray.set(
             new MTEKineticProcessingArray(
                 MetaTileEntityID.KINETIC_PROCESSING_ARRAY.ID,
                 "gtsr.kinetic.processing.array",
                 "Kinetic Processing Array"));
-        CreativeTabManager.addItemToTab(GTSRItemList.KineticProcessingArray.get(1));
-    }
 
-    private static void registerSpecialMachines() {
+        // --- 多方块机器: 特殊机器 ---
         GTSRItemList.SingularityDrillingHub.set(
             new MTESingularityDrillingHub(
                 MetaTileEntityID.SINGULARITY_DRILLING_HUB.ID,
                 "gtsr.singularity.drilling.hub",
                 "Singularity Drilling Hub"));
-        CreativeTabManager.addItemToTab(GTSRItemList.SingularityDrillingHub.get(1));
-    }
 
-    private static void registerAtypicalSteamMachines() {
+        // --- 多方块机器: 非典型蒸汽机 ---
         GTSRItemList.LargeCokeOven
             .set(new MTELargeCokeOven(MetaTileEntityID.LARGE_COKE_OVEN.ID, "gtsr.large.coke.oven", "Large Coke Oven"));
-        CreativeTabManager.addItemToTab(GTSRItemList.LargeCokeOven.get(1));
-
         GTSRItemList.SiemensMartinFurnace.set(
             new MTESiemensMartinFurnace(
                 MetaTileEntityID.SIEMENS_MARTIN_FURNACE.ID,
                 "gtsr.siemens.martin.furnace",
                 "Siemens-Martin Furnace"));
-        CreativeTabManager.addItemToTab(GTSRItemList.SiemensMartinFurnace.get(1));
-
         GTSRItemList.AmmoniaPlant
             .set(new MTEAmmoniaPlant(MetaTileEntityID.AMMONIA_PLANT.ID, "gtsr.ammonia.plant", "Ammonia Plant"));
-        CreativeTabManager.addItemToTab(GTSRItemList.AmmoniaPlant.get(1));
-    }
+        GTSRItemList.GearSteamCompressor.set(
+            new MTEGearSteamCompressor(
+                MetaTileEntityID.GEAR_STEAM_COMPRESSOR.ID,
+                "gtsr.gear.steam.compressor",
+                "Gear Steam Compressor"));
 
-    private static void registerHatches() {
+        // --- 仓室 ---
         GTSRItemList.SteamInputHatchGeneric.set(
             new MTESteamInputHatchGeneric(
                 MetaTileEntityID.STEAM_INPUT_HATCH_GENERIC.ID,
                 "gtsr.steam.input.hatch",
                 "Steam Input Hatch"));
-        CreativeTabManager.addItemToTab(GTSRItemList.SteamInputHatchGeneric.get(1));
-
-        GTSRItemList.SteamOutputHatch.set(
-            new MTESteamOutputHatch(
-                MetaTileEntityID.STEAM_OUTPUT_HATCH.ID,
-                "gtsr.steam.output.hatch",
-                "Steam Output Hatch"));
-        CreativeTabManager.addItemToTab(GTSRItemList.SteamOutputHatch.get(1));
-
         GTSRItemList.SteamOutputHatchGeneric.set(
             new MTESteamOutputHatchGeneric(
                 MetaTileEntityID.STEAM_OUTPUT_HATCH_GENERIC.ID,
                 "gtsr.steam.output.hatch.generic",
                 "Output Hatch (Steam)"));
-        CreativeTabManager.addItemToTab(GTSRItemList.SteamOutputHatchGeneric.get(1));
-
         GTSRItemList.PressureSteamHatch.set(
             new MTEHatchPressureSteamInput(
                 MetaTileEntityID.PRESSURE_STEAM_HATCH.ID,
                 "gtsr.pressure.steam.hatch",
                 "Pressure Steam Hatch",
                 0));
-        CreativeTabManager.addItemToTab(GTSRItemList.PressureSteamHatch.get(1));
-
         GTSRItemList.PressureSteamOutputHatch.set(
             new MTEPressureSteamOutputHatch(
                 MetaTileEntityID.PRESSURE_STEAM_OUTPUT_HATCH.ID,
                 "gtsr.pressure.steam.output.hatch",
                 "Pressure Steam Output Hatch"));
-        CreativeTabManager.addItemToTab(GTSRItemList.PressureSteamOutputHatch.get(1));
-
+        GTSRItemList.SteamOutputHatch.set(
+            new MTESteamOutputHatch(
+                MetaTileEntityID.STEAM_OUTPUT_HATCH.ID,
+                "gtsr.steam.output.hatch",
+                "Steam Output Hatch"));
         GTSRItemList.SteamCoolingHatch.set(
             new MTESteamCoolingHatch(
                 MetaTileEntityID.STEAM_COOLING_HATCH.ID,
                 "gtsr.steam.cooling.hatch",
                 "Steam Cooling Hatch"));
-        CreativeTabManager.addItemToTab(GTSRItemList.SteamCoolingHatch.get(1));
-
         GTSRItemList.PressureSteamCoolingHatch.set(
             new MTEPressureSteamCoolingHatch(
                 MetaTileEntityID.PRESSURE_STEAM_COOLING_HATCH.ID,
                 "gtsr.pressure.steam.cooling.hatch",
                 "Pressure Steam Cooling Hatch"));
-        CreativeTabManager.addItemToTab(GTSRItemList.PressureSteamCoolingHatch.get(1));
+    }
 
-        GTSRItemList.SteamHubInputHatch.set(
-            new MTESteamHubInputHatch(
-                MetaTileEntityID.STEAM_HUB_INPUT_HATCH.ID,
-                "gtsr.steam.hub.input.hatch",
-                "Steam Hub Input Hatch"));
-        CreativeTabManager.addItemToTab(GTSRItemList.SteamHubInputHatch.get(1));
-
-        GTSRItemList.SteamHubOutputHatch.set(
-            new MTESteamHubOutputHatch(
-                MetaTileEntityID.STEAM_HUB_OUTPUT_HATCH.ID,
-                "gtsr.steam.hub.output.hatch",
-                "Steam Hub Output Hatch"));
-        CreativeTabManager.addItemToTab(GTSRItemList.SteamHubOutputHatch.get(1));
-
-        GTSRItemList.WaterHubInputHatch.set(
-            new MTEWaterHubInputHatch(
-                MetaTileEntityID.WATER_HUB_INPUT_HATCH.ID,
-                "gtsr.water.hub.input.hatch",
-                "Water Hub Input Hatch"));
-        CreativeTabManager.addItemToTab(GTSRItemList.WaterHubInputHatch.get(1));
-
-        GTSRItemList.WaterHubOutputHatch.set(
-            new MTEWaterHubOutputHatch(
-                MetaTileEntityID.WATER_HUB_OUTPUT_HATCH.ID,
-                "gtsr.water.hub.output.hatch",
-                "Water Hub Output Hatch"));
-        CreativeTabManager.addItemToTab(GTSRItemList.WaterHubOutputHatch.get(1));
-
-        GTSRItemList.HubStorageUnit.set(
-            new MTEHubStorageUnit(MetaTileEntityID.HUB_STORAGE_UNIT.ID, "gtsr.hub.storage.unit", "Hub Storage Unit"));
-        CreativeTabManager.addItemToTab(GTSRItemList.HubStorageUnit.get(1));
-
-        GTSRItemList.ReinforcedHubStorageUnit.set(
-            new MTEReinforcedHubStorageUnit(
-                MetaTileEntityID.REINFORCED_HUB_STORAGE_UNIT.ID,
-                "gtsr.reinforced.hub.storage.unit",
-                "Reinforced Hub Storage Unit"));
-        CreativeTabManager.addItemToTab(GTSRItemList.ReinforcedHubStorageUnit.get(1));
-
-        GTSRItemList.OverpressureSteamCacheNode.set(
-            new MTEOverpressureSteamCacheNode(
-                MetaTileEntityID.OVERPRESSURE_STEAM_CACHE_NODE.ID,
-                "gtsr.overpressure.steam.cache.node",
-                "Overpressure Steam Cache Node"));
+    /**
+     * Add items to creative tab in the same order as MetaTileEntityID enum.
+     */
+    private static void addItemsToCreativeTab() {
+        // --- 单方块机器 (1-5) ---
+        CreativeTabManager.addItemToTab(GTSRItemList.SteamCacheNode.get(1));
+        CreativeTabManager.addItemToTab(GTSRItemList.ReinforcedSteamCacheNode.get(1));
         CreativeTabManager.addItemToTab(GTSRItemList.OverpressureSteamCacheNode.get(1));
-
-        GTSRItemList.OverpressureTurbineInputHatch.set(
-            new MTEOverpressureTurbineInputHatch(
-                MetaTileEntityID.OVERPRESSURE_TURBINE_INPUT_HATCH.ID,
-                "gtsr.overpressure.turbine.input.hatch",
-                "Overpressure Turbine Input Hatch"));
-        CreativeTabManager.addItemToTab(GTSRItemList.OverpressureTurbineInputHatch.get(1));
-
-        GTSRItemList.OverpressureHubStorageUnit.set(
-            new MTEOverpressureHubStorageUnit(
-                MetaTileEntityID.OVERPRESSURE_HUB_STORAGE_UNIT.ID,
-                "gtsr.overpressure.hub.storage.unit",
-                "Overpressure Hub Storage Unit"));
+        CreativeTabManager.addItemToTab(GTSRItemList.WaterCacheNode.get(1));
+        CreativeTabManager.addItemToTab(GTSRItemList.SteamSingularityCompressor.get(1));
+        // --- 多方块机器: 枢纽及仓室模块 (6-14) ---
+        CreativeTabManager.addItemToTab(GTSRItemList.SteamHubArray.get(1));
+        CreativeTabManager.addItemToTab(GTSRItemList.WaterHubArray.get(1));
+        CreativeTabManager.addItemToTab(GTSRItemList.SteamHubInputHatch.get(1));
+        CreativeTabManager.addItemToTab(GTSRItemList.SteamHubOutputHatch.get(1));
+        CreativeTabManager.addItemToTab(GTSRItemList.WaterHubInputHatch.get(1));
+        CreativeTabManager.addItemToTab(GTSRItemList.WaterHubOutputHatch.get(1));
+        CreativeTabManager.addItemToTab(GTSRItemList.HubStorageUnit.get(1));
+        CreativeTabManager.addItemToTab(GTSRItemList.ReinforcedHubStorageUnit.get(1));
         CreativeTabManager.addItemToTab(GTSRItemList.OverpressureHubStorageUnit.get(1));
+        // --- 多方块机器: 蒸汽生产 (15-16) ---
+        CreativeTabManager.addItemToTab(GTSRItemList.LargeSolarOverpressureArray.get(1));
+        CreativeTabManager.addItemToTab(GTSRItemList.LargeGeothermalSteamBoiler.get(1));
+        // --- 多方块机器: 蒸汽产电及特殊仓室 (17-18) ---
+        CreativeTabManager.addItemToTab(GTSRItemList.MegaSteamTurbineArray.get(1));
+        CreativeTabManager.addItemToTab(GTSRItemList.OverpressureTurbineInputHatch.get(1));
+        // --- 多方块机器: 工作机器 (19-26) ---
+        CreativeTabManager.addItemToTab(GTSRItemList.SteamFluidDrill.get(1));
+        CreativeTabManager.addItemToTab(GTSRItemList.CrustSteamBorer.get(1));
+        CreativeTabManager.addItemToTab(GTSRItemList.SingularityCrustSteamBorer.get(1));
+        CreativeTabManager.addItemToTab(GTSRItemList.VeinSteamPyrolyzer.get(1));
+        CreativeTabManager.addItemToTab(GTSRItemList.LargeSteamFurnace.get(1));
+        CreativeTabManager.addItemToTab(GTSRItemList.AirCompressor.get(1));
+        CreativeTabManager.addItemToTab(GTSRItemList.AtmosphericCentrifuge.get(1));
+        CreativeTabManager.addItemToTab(GTSRItemList.KineticProcessingArray.get(1));
+        // --- 多方块机器: 特殊机器 (27-29) ---
+        CreativeTabManager.addItemToTab(GTSRItemList.SingularityDrillingHub.get(1));
+        CreativeTabManager.addItemToTab(GTSRItemList.SingularityMinerNode.get(1));
+        CreativeTabManager.addItemToTab(GTSRItemList.SingularityDrillingNode.get(1));
+        // --- 多方块机器: 非典型蒸汽机 (30-33) ---
+        CreativeTabManager.addItemToTab(GTSRItemList.LargeCokeOven.get(1));
+        CreativeTabManager.addItemToTab(GTSRItemList.SiemensMartinFurnace.get(1));
+        CreativeTabManager.addItemToTab(GTSRItemList.AmmoniaPlant.get(1));
+        CreativeTabManager.addItemToTab(GTSRItemList.GearSteamCompressor.get(1));
+        // --- 仓室 (34-40) ---
+        CreativeTabManager.addItemToTab(GTSRItemList.SteamInputHatchGeneric.get(1));
+        CreativeTabManager.addItemToTab(GTSRItemList.SteamOutputHatchGeneric.get(1));
+        CreativeTabManager.addItemToTab(GTSRItemList.PressureSteamHatch.get(1));
+        CreativeTabManager.addItemToTab(GTSRItemList.PressureSteamOutputHatch.get(1));
+        CreativeTabManager.addItemToTab(GTSRItemList.SteamOutputHatch.get(1));
+        CreativeTabManager.addItemToTab(GTSRItemList.SteamCoolingHatch.get(1));
+        CreativeTabManager.addItemToTab(GTSRItemList.PressureSteamCoolingHatch.get(1));
     }
 }

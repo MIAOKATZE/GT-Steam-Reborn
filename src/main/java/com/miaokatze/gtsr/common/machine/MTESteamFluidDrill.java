@@ -30,6 +30,7 @@ import com.gtnewhorizons.modularui.common.widget.DynamicPositionedColumn;
 import com.gtnewhorizons.modularui.common.widget.FakeSyncWidget;
 import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
+import com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps;
 import com.miaokatze.gtsr.common.api.enums.MetaTileEntityID;
 
 import gregtech.api.GregTechAPI;
@@ -39,6 +40,7 @@ import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.implementations.MTEHatch;
+import gregtech.api.recipe.RecipeMap;
 import gregtech.api.recipe.check.CheckRecipeResult;
 import gregtech.api.recipe.check.CheckRecipeResultRegistry;
 import gregtech.api.render.TextureFactory;
@@ -258,6 +260,12 @@ public class MTESteamFluidDrill extends MTESteamMultiBase<MTESteamFluidDrill> im
         return true;
     }
 
+    private static final int HIGH_STEAM_PER_SECOND = 8_000;
+
+    private int getSteamPerSecond() {
+        return (mOutputMode == 2 || mOutputMode == 3) ? HIGH_STEAM_PER_SECOND : BASE_STEAM_PER_SECOND;
+    }
+
     private int getEfficiencyIncrease() {
         return mSetTier == 1 ? 33 : 3;
     }
@@ -282,8 +290,10 @@ public class MTESteamFluidDrill extends MTESteamMultiBase<MTESteamFluidDrill> im
             maxOutput = STEEL_MAX_OUTPUT;
         }
         int output = (int) (minOutput + ratio * (maxOutput - minOutput));
-        if (mOutputMode != 0) {
+        if (mOutputMode == 1 || mOutputMode == 2) {
             output = (int) (output * 0.1);
+        } else if (mOutputMode == 3) {
+            output = (int) (output * 0.005);
         }
         return output;
     }
@@ -294,6 +304,9 @@ public class MTESteamFluidDrill extends MTESteamMultiBase<MTESteamFluidDrill> im
                 return new FluidStack[] { GTModHandler.getDistilledWater(amount) };
             case 2:
                 return new FluidStack[] { Materials.SaltWater.getFluid(amount) };
+            case 3:
+                return new FluidStack[] {
+                    new FluidStack(net.minecraftforge.fluids.FluidRegistry.getFluid("lava"), amount) };
             default:
                 return new FluidStack[] { Materials.Water.getFluid(amount) };
         }
@@ -307,7 +320,7 @@ public class MTESteamFluidDrill extends MTESteamMultiBase<MTESteamFluidDrill> im
                 EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.fluid_drill.mode_bronze_locked"));
             return;
         }
-        mOutputMode = (mOutputMode + 1) % 3;
+        mOutputMode = (mOutputMode + 1) % 4;
         mEfficiency = 0;
         String modeText;
         switch (mOutputMode) {
@@ -316,6 +329,9 @@ public class MTESteamFluidDrill extends MTESteamMultiBase<MTESteamFluidDrill> im
                 break;
             case 2:
                 modeText = StatCollector.translateToLocal("gtsr.tooltip.fluid_drill.mode_brine");
+                break;
+            case 3:
+                modeText = StatCollector.translateToLocal("gtsr.tooltip.fluid_drill.mode_lava");
                 break;
             default:
                 modeText = StatCollector.translateToLocal("gtsr.tooltip.fluid_drill.mode_water");
@@ -340,10 +356,10 @@ public class MTESteamFluidDrill extends MTESteamMultiBase<MTESteamFluidDrill> im
             return CheckRecipeResultRegistry.FLUID_OUTPUT_FULL;
         }
 
-        if (getTotalSteamStored() >= BASE_STEAM_PER_SECOND) {
+        if (getTotalSteamStored() >= getSteamPerSecond()) {
             mMaxProgresstime = PROGRESSION_TIME_TICKS;
             mEfficiencyIncrease = getEfficiencyIncrease();
-            tryConsumeSteam(BASE_STEAM_PER_SECOND);
+            tryConsumeSteam(getSteamPerSecond());
             mOutputFluids = getOutputFluid(waterOutput);
             updateSlots();
             return CheckRecipeResultRegistry.SUCCESSFUL;
@@ -356,6 +372,11 @@ public class MTESteamFluidDrill extends MTESteamMultiBase<MTESteamFluidDrill> im
     @Override
     public int getTierRecipes() {
         return 0;
+    }
+
+    @Override
+    public RecipeMap<?> getRecipeMap() {
+        return GTSRRecipeMaps.steamFluidDrillRecipes;
     }
 
     @Override
@@ -395,11 +416,23 @@ public class MTESteamFluidDrill extends MTESteamMultiBase<MTESteamFluidDrill> im
                 EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.fluid_drill.mode_bronze_only"))
             .addSeparator()
             .addInfo(
+                EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.fluid_drill.output_rates"))
+            .addInfo(EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.fluid_drill.rate_water"))
+            .addInfo(
+                EnumChatFormatting.GRAY
+                    + StatCollector.translateToLocal("gtsr.tooltip.fluid_drill.rate_distilled_brine"))
+            .addInfo(EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.fluid_drill.rate_lava"))
+            .addInfo(
+                EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.fluid_drill.high_steam_cost"))
+            .addSeparator()
+            .addInfo(
                 EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.shared.steam_cost")
                     + EnumChatFormatting.WHITE
                     + " "
                     + GTUtility.formatNumbers(BASE_STEAM_PER_SECOND)
-                    + " L/s")
+                    + " L/s ("
+                    + GTUtility.formatNumbers(HIGH_STEAM_PER_SECOND)
+                    + " L/s Brine/Lava)")
             .addInfo(
                 EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.tooltip.shared.superheated_quadruples"))
             .beginStructureBlock(5, 6, 5, false)
@@ -425,7 +458,10 @@ public class MTESteamFluidDrill extends MTESteamMultiBase<MTESteamFluidDrill> im
             .addStructureHint("gtsr.tooltip.shared.no_maintenance")
             .addStructureHint("gtsr.tooltip.fluid_drill.hint_bronze")
             .toolTipFinisher(
-                EnumChatFormatting.AQUA + "GT"
+                EnumChatFormatting.DARK_AQUA + StatCollector.translateToLocal("gtsr.tooltip.added_by")
+                    + " "
+                    + EnumChatFormatting.AQUA
+                    + "GT"
                     + EnumChatFormatting.GREEN
                     + "-"
                     + EnumChatFormatting.GOLD
@@ -513,6 +549,8 @@ public class MTESteamFluidDrill extends MTESteamMultiBase<MTESteamFluidDrill> im
                 return StatCollector.translateToLocal("gtsr.tooltip.fluid_drill.mode_distilled");
             case 2:
                 return StatCollector.translateToLocal("gtsr.tooltip.fluid_drill.mode_brine");
+            case 3:
+                return StatCollector.translateToLocal("gtsr.tooltip.fluid_drill.mode_lava");
             default:
                 return StatCollector.translateToLocal("gtsr.tooltip.fluid_drill.mode_water");
         }

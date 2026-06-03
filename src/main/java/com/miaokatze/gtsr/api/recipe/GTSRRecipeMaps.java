@@ -79,4 +79,58 @@ public class GTSRRecipeMaps {
         .minInputs(0, 1)
         .progressBar(GTUITextures.PROGRESSBAR_ARROW, ProgressBar.Direction.RIGHT)
         .build();
+
+    private static final INEISpecialInfoFormatter GEOTHERMAL_CHIP_FORMATTER = recipeInfo -> {
+        List<String> result = new ArrayList<>(DefaultSpecialValueFormatter.INSTANCE.format(recipeInfo));
+        if (recipeInfo.recipe.mOutputs != null && recipeInfo.recipe.mOutputs.length > 8) {
+            result.add(
+                EnumChatFormatting.DARK_AQUA
+                    + StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.chip_required"));
+        }
+        return result;
+    };
+
+    public static final RecipeMap<RecipeMapBackend> geothermalSteamBoilerRecipes = RecipeMapBuilder
+        .of("gtsr.recipe.geothermal_steam_boiler")
+        .maxIO(0, 10, 1, 0)
+        .minInputs(0, 1)
+        .progressBar(GTUITextures.PROGRESSBAR_ARROW, ProgressBar.Direction.RIGHT)
+        .neiSpecialInfoFormatter(GEOTHERMAL_CHIP_FORMATTER)
+        .build();
+
+    private static final INEISpecialInfoFormatter STEAM_FLUID_DRILL_FORMATTER = recipeInfo -> {
+        List<String> result = new ArrayList<>();
+        if (recipeInfo.recipe.mFluidOutputs != null && recipeInfo.recipe.mFluidOutputs.length > 0) {
+            FluidStack output = recipeInfo.recipe.mFluidOutputs[0];
+            if (output != null && output.getFluid() != null) {
+                String fluidName = output.getFluid()
+                    .getName();
+                if ("saltwater".equals(fluidName) || "ic2distilledwater".equals(fluidName)) {
+                    result.add(
+                        EnumChatFormatting.GOLD
+                            + StatCollector.translateToLocal("gtsr.tooltip.fluid_drill.nei_efficiency_10"));
+                } else if ("lava".equals(fluidName)) {
+                    result.add(
+                        EnumChatFormatting.GOLD
+                            + StatCollector.translateToLocal("gtsr.tooltip.fluid_drill.nei_efficiency_05"));
+                }
+            }
+        }
+        return result;
+    };
+
+    public static final RecipeMap<RecipeMapBackend> steamFluidDrillRecipes = RecipeMapBuilder
+        .of("gtsr.recipe.steam_fluid_drill")
+        .maxIO(0, 1, 1, 0)
+        .minInputs(0, 1)
+        .progressBar(GTUITextures.PROGRESSBAR_ARROW, ProgressBar.Direction.RIGHT)
+        .neiSpecialInfoFormatter(STEAM_FLUID_DRILL_FORMATTER)
+        .build();
+
+    public static final RecipeMap<RecipeMapBackend> gearSteamCompressorRecipes = RecipeMapBuilder
+        .of("gtsr.recipe.gear_steam_compressor")
+        .maxIO(0, 0, 1, 2)
+        .minInputs(0, 1)
+        .progressBar(GTUITextures.PROGRESSBAR_ARROW, ProgressBar.Direction.RIGHT)
+        .build();
 }

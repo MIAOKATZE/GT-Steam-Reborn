@@ -470,7 +470,7 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
                     + EnumChatFormatting.DARK_PURPLE
                     + StatCollector.translateToLocal("gtsr.tooltip.solar_array.tier_bronze")
                     + EnumChatFormatting.GOLD
-                    + " 12,000"
+                    + " 16,000"
                     + EnumChatFormatting.GRAY
                     + " L/s "
                     + StatCollector.translateToLocal("gtsr.tooltip.solar_array.base_output"))
@@ -479,7 +479,7 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
                     + EnumChatFormatting.DARK_PURPLE
                     + StatCollector.translateToLocal("gtsr.tooltip.solar_array.tier_steel")
                     + EnumChatFormatting.GOLD
-                    + " 30,000"
+                    + " 40,000"
                     + EnumChatFormatting.GRAY
                     + " L/s "
                     + StatCollector.translateToLocal("gtsr.tooltip.solar_array.base_output"))
@@ -488,7 +488,7 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
                     + EnumChatFormatting.DARK_PURPLE
                     + StatCollector.translateToLocal("gtsr.tooltip.solar_array.tier_nickel")
                     + EnumChatFormatting.GOLD
-                    + " 30,000"
+                    + " 40,000"
                     + EnumChatFormatting.GRAY
                     + " L/s "
                     + StatCollector.translateToLocal("gtsr.tooltip.solar_array.base_output")
@@ -514,7 +514,10 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.frame"), 31, false)
             .addStructureHint("gtsr.tooltip.shared.no_maintenance")
             .toolTipFinisher(
-                EnumChatFormatting.AQUA + "GT"
+                EnumChatFormatting.DARK_AQUA + StatCollector.translateToLocal("gtsr.tooltip.added_by")
+                    + " "
+                    + EnumChatFormatting.AQUA
+                    + "GT"
                     + EnumChatFormatting.GREEN
                     + "-"
                     + EnumChatFormatting.GOLD
@@ -673,10 +676,10 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
         switch (mSetTier) {
             case 3:
             case 2:
-                return 30000;
+                return 40000;
             case 1:
             default:
-                return 12000;
+                return 16000;
         }
     }
 

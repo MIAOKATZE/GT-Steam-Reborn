@@ -1096,6 +1096,8 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.steam_hub.desc"))
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.steam_hub.desc2"))
             .addInfo(
+                EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.shared.screwdriver_overflow"))
+            .addInfo(
                 EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.tooltip.shared.overflow_input_desc"))
             .beginStructureBlock(9, 3, 9, false)
             .addController(StatCollector.translateToLocal("gtsr.tooltip.steam_hub.ctrl"))
@@ -1135,7 +1137,10 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
             .addStructureHint("gtsr.tooltip.shared.hub_singularity_cost")
             .addStructureHint("gtsr.tooltip.shared.overflow_input_screwdriver")
             .toolTipFinisher(
-                EnumChatFormatting.AQUA + "GT"
+                EnumChatFormatting.DARK_AQUA + StatCollector.translateToLocal("gtsr.tooltip.added_by")
+                    + " "
+                    + EnumChatFormatting.AQUA
+                    + "GT"
                     + EnumChatFormatting.GREEN
                     + "-"
                     + EnumChatFormatting.GOLD
