@@ -238,8 +238,8 @@ public class MTELargeCokeOven extends MTEEnhancedMultiBlockBase<MTELargeCokeOven
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.coke_oven.desc2"))
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.coke_oven.desc3"))
             .addSeparator()
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.coke_oven.formula"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.coke_oven.accel"))
+            .addInfo(EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.coke_oven.formula"))
+            .addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.coke_oven.accel"))
             .beginStructureBlock(3, 7, 7, true)
             .addController(StatCollector.translateToLocal("gtsr.tooltip.coke_oven.ctrl"))
             .addInputBus(StatCollector.translateToLocal("gtsr.tooltip.coke_oven.input_bus"), 1)
@@ -271,10 +271,7 @@ public class MTELargeCokeOven extends MTEEnhancedMultiBlockBase<MTELargeCokeOven
                     + ")")
             .addStructureHint("gtsr.tooltip.shared.no_maintenance")
             .toolTipFinisher(
-                EnumChatFormatting.DARK_AQUA + StatCollector.translateToLocal("gtsr.tooltip.added_by")
-                    + " "
-                    + EnumChatFormatting.AQUA
-                    + "GT"
+                EnumChatFormatting.AQUA + "GT"
                     + EnumChatFormatting.GREEN
                     + "-"
                     + EnumChatFormatting.GOLD

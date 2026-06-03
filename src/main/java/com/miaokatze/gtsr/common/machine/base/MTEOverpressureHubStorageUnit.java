@@ -46,7 +46,7 @@ public class MTEOverpressureHubStorageUnit extends MTESteamStorageUnit {
                 + StatCollector.translateToLocal("gtsr.tooltip.shared.l"),
             EnumChatFormatting.GRAY
                 + StatCollector.translateToLocal("gtsr.tooltip.overpressure_hub_storage_unit.tier3_only"),
-            EnumChatFormatting.DARK_AQUA + StatCollector.translateToLocal("gtsr.tooltip.added_by")
+            EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.tooltip.added_by")
                 + " "
                 + EnumChatFormatting.AQUA
                 + "GT"

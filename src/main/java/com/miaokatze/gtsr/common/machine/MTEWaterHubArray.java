@@ -1061,10 +1061,7 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
             .addStructureHint("gtsr.tooltip.shared.hub_singularity_cost")
             .addStructureHint("gtsr.tooltip.shared.overflow_input_screwdriver")
             .toolTipFinisher(
-                EnumChatFormatting.DARK_AQUA + StatCollector.translateToLocal("gtsr.tooltip.added_by")
-                    + " "
-                    + EnumChatFormatting.AQUA
-                    + "GT"
+                EnumChatFormatting.AQUA + "GT"
                     + EnumChatFormatting.GREEN
                     + "-"
                     + EnumChatFormatting.GOLD

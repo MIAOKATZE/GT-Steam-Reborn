@@ -122,7 +122,7 @@ public class GTSRRecipeMaps {
     public static final RecipeMap<RecipeMapBackend> steamFluidDrillRecipes = RecipeMapBuilder
         .of("gtsr.recipe.steam_fluid_drill")
         .maxIO(0, 1, 1, 0)
-        .minInputs(0, 1)
+        .minInputs(0, 0)
         .progressBar(GTUITextures.PROGRESSBAR_ARROW, ProgressBar.Direction.RIGHT)
         .neiSpecialInfoFormatter(STEAM_FLUID_DRILL_FORMATTER)
         .build();
@@ -130,7 +130,7 @@ public class GTSRRecipeMaps {
     public static final RecipeMap<RecipeMapBackend> gearSteamCompressorRecipes = RecipeMapBuilder
         .of("gtsr.recipe.gear_steam_compressor")
         .maxIO(0, 0, 1, 2)
-        .minInputs(0, 1)
+        .minInputs(0, 0)
         .progressBar(GTUITextures.PROGRESSBAR_ARROW, ProgressBar.Direction.RIGHT)
         .build();
 }

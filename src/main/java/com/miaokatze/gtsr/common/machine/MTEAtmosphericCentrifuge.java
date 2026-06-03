@@ -380,10 +380,7 @@ public class MTEAtmosphericCentrifuge extends MTESteamMultiBase<MTEAtmosphericCe
                 StatCollector.translateToLocal("gtsr.tooltip.atmospheric_centrifuge.chip_desc"))
             .addStructureHint("gtsr.tooltip.shared.no_maintenance")
             .toolTipFinisher(
-                EnumChatFormatting.DARK_AQUA + StatCollector.translateToLocal("gtsr.tooltip.added_by")
-                    + " "
-                    + EnumChatFormatting.AQUA
-                    + "GT"
+                EnumChatFormatting.AQUA + "GT"
                     + EnumChatFormatting.GREEN
                     + "-"
                     + EnumChatFormatting.GOLD

@@ -51,6 +51,7 @@ import gregtech.api.GregTechAPI;
 import gregtech.api.enums.GTValues;
 import gregtech.api.enums.Materials;
 import gregtech.api.enums.Textures;
+import gregtech.api.interfaces.ICleanroom;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
@@ -62,7 +63,6 @@ import gregtech.api.recipe.RecipeMap;
 import gregtech.api.recipe.check.CheckRecipeResult;
 import gregtech.api.recipe.check.CheckRecipeResultRegistry;
 import gregtech.api.recipe.check.SimpleCheckRecipeResult;
-import gregtech.api.recipe.metadata.CompressionTierKey;
 import gregtech.api.render.TextureFactory;
 import gregtech.api.util.GTModHandler;
 import gregtech.api.util.GTRecipe;
@@ -103,10 +103,12 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
 
     public MTEKineticProcessingArray(int aID, String aName, String aNameRegional) {
         super(aID, aName, aNameRegional);
+        cleanroomReference.setCleanroom(KineticCleanroom.INSTANCE);
     }
 
     public MTEKineticProcessingArray(String aName) {
         super(aName);
+        cleanroomReference.setCleanroom(KineticCleanroom.INSTANCE);
     }
 
     @Override
@@ -541,9 +543,6 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
             @Nonnull
             @Override
             protected CheckRecipeResult validateRecipe(@Nonnull GTRecipe recipe) {
-                if (recipe.getMetadataOrDefault(CompressionTierKey.INSTANCE, 0) > 0) {
-                    return CheckRecipeResultRegistry.NO_RECIPE;
-                }
                 return CheckRecipeResultRegistry.SUCCESSFUL;
             }
         }.setMaxParallelSupplier(this::getTrueParallel);
@@ -848,9 +847,10 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
     protected MultiblockTooltipBuilder createTooltip() {
         MultiblockTooltipBuilder tt = new MultiblockTooltipBuilder();
         tt.addMachineType(StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.type"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.desc"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.desc2"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.desc3"))
+            .addInfo(EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.desc"))
+            .addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.desc2"))
+            .addInfo(
+                EnumChatFormatting.LIGHT_PURPLE + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.desc3"))
             .addSeparator()
             .beginStructureBlock(7, 5, 7, true)
             .addController(StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.ctrl"))
@@ -870,10 +870,7 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
             .addStructureHint("gtsr.tooltip.kinetic_array.hint_pipe")
             .addStructureHint("gtsr.tooltip.kinetic_array.hint_gear")
             .toolTipFinisher(
-                EnumChatFormatting.DARK_AQUA + StatCollector.translateToLocal("gtsr.tooltip.added_by")
-                    + " "
-                    + EnumChatFormatting.AQUA
-                    + "GT"
+                EnumChatFormatting.AQUA + "GT"
                     + EnumChatFormatting.GREEN
                     + "-"
                     + EnumChatFormatting.GOLD
@@ -883,5 +880,28 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
                     + EnumChatFormatting.BLUE
                     + "Reborn");
         return tt;
+    }
+
+    /**
+     * Built-in cleanroom provider for the Kinetic Processing Array. Allows recipes requiring cleanroom to run.
+     */
+    private static class KineticCleanroom implements ICleanroom {
+
+        static final KineticCleanroom INSTANCE = new KineticCleanroom();
+
+        private KineticCleanroom() {}
+
+        @Override
+        public int getCleanness() {
+            return 10000;
+        }
+
+        @Override
+        public boolean isValidCleanroom() {
+            return true;
+        }
+
+        @Override
+        public void pollute() {}
     }
 }

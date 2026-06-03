@@ -71,7 +71,7 @@ public class MTESteamHubInputHatch extends MTEHatchInput {
             EnumChatFormatting.DARK_AQUA + StatCollector.translateToLocal("gtsr.tooltip.steam_hub_input_hatch.info"),
             EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.steam_hub_input_hatch.fluid_type"),
             EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.steam_hub_input_hatch.no_storage"),
-            EnumChatFormatting.DARK_AQUA + StatCollector.translateToLocal("gtsr.tooltip.added_by")
+            EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.tooltip.added_by")
                 + " "
                 + EnumChatFormatting.AQUA
                 + "GT"

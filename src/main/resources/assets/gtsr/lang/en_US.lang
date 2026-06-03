@@ -628,7 +628,7 @@ gtsr.gui.not_installed=Not Installed
 # Air Compressor (AC)
 gtsr.tooltip.air_compressor.type=Air Compressor, AC
 gtsr.tooltip.air_compressor.desc=Steam-driven air compressor that draws air from the environment and converts it to compressed air fluid, with far greater speed and convenience than ordinary compressors. Automatically produces Nether Air in the Nether dimension.
-gtsr.tooltip.air_compressor.nether=Dimension Restriction: Automatically produces Nether Air in the Nether
+gtsr.tooltip.air_compressor.nether=Dimension Restriction: Can produce Nether Air in the Nether
 gtsr.tooltip.air_compressor.nether_recipe=Requires Nether Dimension
 
 # Atmospheric Centrifuge (ATC)
@@ -952,6 +952,7 @@ gtsr.tooltip.geothermal_boiler.products=Byproduct Probabilities:
 gtsr.tooltip.geothermal_boiler.products_line1=45% Obsidian | 15% Ash | 10% Sulfur | 8% Tantalite
 gtsr.tooltip.geothermal_boiler.products_line2=6% Alumina | 2% Copper | 1% Tin | 0.5% Silver
 gtsr.tooltip.geothermal_boiler.chip_products_line=+ 0.2% Rutile | + 0.1% Scheelite
+gtsr.tooltip.geothermal_boiler.chip_products=Chip Bonus:
 gtsr.tooltip.geothermal_boiler.lava_rate=Lava Consumption Rate (1000mB/recipe):
 gtsr.tooltip.geothermal_boiler.lava_rate_bronze=Bronze cold: 333 mB/s | hot: 100 mB/s
 gtsr.tooltip.geothermal_boiler.lava_rate_steel=Steel cold: 333 mB/s | hot: 200 mB/s
@@ -970,8 +971,8 @@ gtsr.tooltip.fluid_drill.nei_efficiency_05=Efficiency: 0.5% (Requires Steel tier
 # ===== v1.6.0 Tooltip & Translation Keys =====
 gtsr.tooltip.shared.screwdriver_overflow=Screwdriver Right-Click: Toggle Overflow Input
 gtsr.tooltip.shared.screwdriver_rightclick_overflow=Screwdriver Right-Click: Toggle Overflow Output
-gtsr.tooltip.hub_storage_unit.steam_water_hub=(Steam/Water Hub)
-gtsr.tooltip.hub_storage_unit.water_hub=(Water Hub)
+gtsr.tooltip.hub_storage_unit.steam_water_hub=Steam/Water Hub
+gtsr.tooltip.hub_storage_unit.water_hub=Water Hub
 gtsr.tooltip.turbine_array.tier6_desc=Tier 6+ can process supercritical steam and other advanced steam types with improved efficiency
 gtsr.tooltip.turbine_array.tier_system=12-tier voltage system: LV→MV→HV→EV→IV→LuV→ZPM→UV→UHV→UEV→UIV→UMV
 gtsr.tooltip.turbine_array.steam_progression=Steam types: Normal→Superheated→Dense→Dense Superheated→Supercritical→Dense Supercritical
@@ -980,7 +981,15 @@ gtsr.tooltip.chip.geothermal_overheat=Install in Large Geothermal Steam Boiler t
 gtsr.tooltip.chip.hub_singularity=Install in Steam/Water Hub Array to unlock Tier 2
 gtsr.tooltip.chip.rare_gas=Install in Atmospheric Centrifuge to unlock rare gas separation recipes
 gtsr.tooltip.chip.reinforced_hub_singularity=Install in Steam Hub Array to unlock Tier 3
+gtsr.tooltip.chip.vein_pyrolyzer=Install in Vein Pyrolyzer to increase underground fluid enrichment range
 gtsr.tooltip.catalyst.ammonia=Install in Ammonia Plant to boost parallel and reaction speed
+gtsr.tooltip.catalyst.ammonia.nickel=Parallel: 64 | Time: 64s
+gtsr.tooltip.catalyst.ammonia.platinum=Parallel: 96 | Time: 48s
+gtsr.tooltip.catalyst.ammonia.uranium=Parallel: 128 | Time: 64s
+gtsr.tooltip.catalyst.ammonia.osmium=Parallel: 192 | Time: 24s
+gtsr.tooltip.catalyst.ammonia.feco=Parallel: 256 | Time: 16s
+gtsr.tooltip.catalyst.ammonia.ruthenium=Parallel: 256 | Time: 8s
+gtsr.tooltip.catalyst.ammonia.quantum=Parallel: 256 | Time: 1s
 gtsr.tooltip.singularity.desc=Steam Entangled Singularity, used for crafting advanced components and machines
-gtsr.tooltip.added_by=Added by: GT-Steam-Reborn
+gtsr.tooltip.added_by=Added by:
 gtsr.recipe.gear_steam_compressor=Gear Steam Compressor

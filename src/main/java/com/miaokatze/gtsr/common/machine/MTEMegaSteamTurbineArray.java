@@ -1100,12 +1100,15 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.turbine_array.desc2"))
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.turbine_array.desc3"))
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.turbine_array.desc4"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.turbine_array.tier6_desc"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.turbine_array.tier_system"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.turbine_array.steam_progression"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.turbine_array.stacking_desc"))
             .addSeparator()
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.turbine_array.formula"))
+            .addInfo(EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.tier_system"))
+            .addInfo(
+                EnumChatFormatting.GOLD
+                    + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.steam_progression"))
+            .addInfo(
+                EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.stacking_desc"))
+            .addSeparator()
+            .addInfo(EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.formula"))
             .beginStructureBlock(5, 6, 5, true)
             .addController(StatCollector.translateToLocal("gtsr.tooltip.turbine_array.ctrl"))
             .addInputHatch(StatCollector.translateToLocal("gtsr.tooltip.turbine_array.input_hatch"), 1)
@@ -1127,10 +1130,7 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
                     + ")")
             .addStructureHint("gtsr.tooltip.shared.no_maintenance")
             .toolTipFinisher(
-                EnumChatFormatting.DARK_AQUA + StatCollector.translateToLocal("gtsr.tooltip.added_by")
-                    + " "
-                    + EnumChatFormatting.AQUA
-                    + "GT"
+                EnumChatFormatting.AQUA + "GT"
                     + EnumChatFormatting.GREEN
                     + "-"
                     + EnumChatFormatting.GOLD

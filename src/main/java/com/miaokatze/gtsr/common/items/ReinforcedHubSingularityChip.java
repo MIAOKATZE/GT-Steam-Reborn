@@ -24,6 +24,18 @@ public class ReinforcedHubSingularityChip extends Item {
     public void addInformation(ItemStack stack, EntityPlayer player, List list, boolean adv) {
         list.add(
             EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.tooltip.chip.reinforced_hub_singularity"));
-        list.add(EnumChatFormatting.DARK_AQUA + StatCollector.translateToLocal("gtsr.tooltip.added_by"));
+        list.add(
+            EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.tooltip.added_by")
+                + " "
+                + EnumChatFormatting.AQUA
+                + "GT"
+                + EnumChatFormatting.GREEN
+                + "-"
+                + EnumChatFormatting.GOLD
+                + "Steam"
+                + EnumChatFormatting.RED
+                + "-"
+                + EnumChatFormatting.BLUE
+                + "Reborn");
     }
 }

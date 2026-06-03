@@ -145,7 +145,7 @@ public class MTESteamHubOutputHatch extends MTEHatchOutput {
             EnumChatFormatting.YELLOW
                 + StatCollector.translateToLocal("gtsr.tooltip.shared.screwdriver_rightclick_overflow"),
             EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.tooltip.shared.overflow_output_desc"),
-            EnumChatFormatting.DARK_AQUA + StatCollector.translateToLocal("gtsr.tooltip.added_by")
+            EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.tooltip.added_by")
                 + " "
                 + EnumChatFormatting.AQUA
                 + "GT"

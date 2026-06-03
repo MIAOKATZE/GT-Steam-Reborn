@@ -405,7 +405,11 @@ public class MTEVeinSteamPyrolyzer extends MTESteamMultiBase<MTEVeinSteamPyrolyz
                     + EnumChatFormatting.WHITE
                     + " 1,000/4,000 L/s"
                     + EnumChatFormatting.GRAY
-                    + " (Bronze/Steel)"
+                    + " ("
+                    + StatCollector.translateToLocal("gtsr.gui.tier.bronze")
+                    + "/"
+                    + StatCollector.translateToLocal("gtsr.gui.tier.steel")
+                    + ")"
                     + EnumChatFormatting.RESET)
             .addInfo(
                 EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.tooltip.shared.superheated_quadruples"))
@@ -420,13 +424,14 @@ public class MTEVeinSteamPyrolyzer extends MTESteamMultiBase<MTEVeinSteamPyrolyz
             .addOutputHatch(StatCollector.translateToLocal("gtsr.tooltip.vein_pyrolyzer.output_hatch"), 1)
             .addStructureInfo("")
             .addStructureInfo(
-                EnumChatFormatting.BLUE + "Bronze"
+                EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.gui.tier.bronze")
                     + EnumChatFormatting.DARK_PURPLE
                     + "/"
                     + EnumChatFormatting.BLUE
-                    + "Steel "
+                    + StatCollector.translateToLocal("gtsr.gui.tier.steel")
+                    + " "
                     + EnumChatFormatting.DARK_PURPLE
-                    + "Tier")
+                    + StatCollector.translateToLocal("gtsr.gui.tier"))
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.casing"), 14, false)
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.pipe"), 4, false)
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.gear_box"), 4, false)
@@ -434,10 +439,7 @@ public class MTEVeinSteamPyrolyzer extends MTESteamMultiBase<MTEVeinSteamPyrolyz
             .addStructureHint("gtsr.tooltip.shared.no_maintenance")
             .addStructureHint("gtsr.tooltip.vein_pyrolyzer.hint_bronze")
             .toolTipFinisher(
-                EnumChatFormatting.DARK_AQUA + StatCollector.translateToLocal("gtsr.tooltip.added_by")
-                    + " "
-                    + EnumChatFormatting.AQUA
-                    + "GT"
+                EnumChatFormatting.AQUA + "GT"
                     + EnumChatFormatting.GREEN
                     + "-"
                     + EnumChatFormatting.GOLD

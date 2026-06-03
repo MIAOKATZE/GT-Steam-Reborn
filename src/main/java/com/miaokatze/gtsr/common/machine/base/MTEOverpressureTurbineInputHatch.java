@@ -179,7 +179,7 @@ public class MTEOverpressureTurbineInputHatch extends MTEHatchInput {
                 + StatCollector.translateToLocal("gtsr.tooltip.shared.l"),
             EnumChatFormatting.GRAY
                 + StatCollector.translateToLocal("gtsr.tooltip.overpressure_turbine_input_hatch.turbine_only"),
-            EnumChatFormatting.DARK_AQUA + StatCollector.translateToLocal("gtsr.tooltip.added_by")
+            EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.tooltip.added_by")
                 + " "
                 + EnumChatFormatting.AQUA
                 + "GT"

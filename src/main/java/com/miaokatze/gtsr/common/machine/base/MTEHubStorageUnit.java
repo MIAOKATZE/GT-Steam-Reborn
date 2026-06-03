@@ -58,7 +58,7 @@ public class MTEHubStorageUnit extends MTESteamStorageUnit {
                 + ")",
             EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.hub_storage_unit.dual_hub"),
             EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.hub_storage_unit.tier1_only"),
-            EnumChatFormatting.DARK_AQUA + StatCollector.translateToLocal("gtsr.tooltip.added_by")
+            EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.tooltip.added_by")
                 + " "
                 + EnumChatFormatting.AQUA
                 + "GT"

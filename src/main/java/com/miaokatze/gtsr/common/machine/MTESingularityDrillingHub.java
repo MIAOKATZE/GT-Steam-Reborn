@@ -660,10 +660,7 @@ public class MTESingularityDrillingHub extends MTESteamMultiBase<MTESingularityD
             .addStructureHint("gtsr.tooltip.singularity_hub.hint_chunk")
             .addStructureHint("gtsr.tooltip.shared.hub_singularity_cost")
             .toolTipFinisher(
-                EnumChatFormatting.DARK_AQUA + StatCollector.translateToLocal("gtsr.tooltip.added_by")
-                    + " "
-                    + EnumChatFormatting.AQUA
-                    + "GT"
+                EnumChatFormatting.AQUA + "GT"
                     + EnumChatFormatting.GREEN
                     + "-"
                     + EnumChatFormatting.GOLD

@@ -87,7 +87,6 @@ public class MTESingularityDrillingNode extends MTERemoteWorkerNode {
 
     @Override
     public void addAdditionalTooltipInformation(ItemStack stack, List<String> tooltip) {
-        super.addAdditionalTooltipInformation(stack, tooltip);
         tooltip.add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.drilling_node.desc"));
         tooltip.add(
             EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.drilling_node.extraction")
@@ -101,7 +100,7 @@ public class MTESingularityDrillingNode extends MTERemoteWorkerNode {
         tooltip.add(EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.shared.singularity_cost"));
         tooltip.add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.shared.node_bind_hint"));
         tooltip.add(
-            EnumChatFormatting.DARK_AQUA + StatCollector.translateToLocal("gtsr.tooltip.added_by")
+            EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.tooltip.added_by")
                 + " "
                 + EnumChatFormatting.AQUA
                 + "GT"

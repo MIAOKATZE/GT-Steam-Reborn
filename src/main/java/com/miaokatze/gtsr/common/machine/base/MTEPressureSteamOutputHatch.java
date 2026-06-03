@@ -121,7 +121,7 @@ public class MTEPressureSteamOutputHatch extends MTESteamOutputHatch {
                 + EnumChatFormatting.YELLOW
                 + StatCollector.translateToLocal("gtsr.tooltip.shared.steam_and_superheated"),
             EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.shared.no_external_input"),
-            EnumChatFormatting.DARK_AQUA + StatCollector.translateToLocal("gtsr.tooltip.added_by")
+            EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.tooltip.added_by")
                 + " "
                 + EnumChatFormatting.AQUA
                 + "GT"

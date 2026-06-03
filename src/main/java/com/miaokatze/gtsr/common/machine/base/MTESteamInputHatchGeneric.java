@@ -66,7 +66,7 @@ public class MTESteamInputHatchGeneric extends MTEHatchInput {
                 + EnumChatFormatting.YELLOW
                 + StatCollector.translateToLocal("gtsr.tooltip.shared.any_fluid"),
             EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.shared.steam_machine_only"),
-            EnumChatFormatting.DARK_AQUA + StatCollector.translateToLocal("gtsr.tooltip.added_by")
+            EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.tooltip.added_by")
                 + " "
                 + EnumChatFormatting.AQUA
                 + "GT"

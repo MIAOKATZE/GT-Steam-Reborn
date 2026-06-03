@@ -487,8 +487,8 @@ public class MTESiemensMartinFurnace extends MTEEnhancedMultiBlockBase<MTESiemen
     protected MultiblockTooltipBuilder createTooltip() {
         MultiblockTooltipBuilder tt = new MultiblockTooltipBuilder();
         tt.addMachineType(StatCollector.translateToLocal("gtsr.tooltip.siemens_martin.type"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.siemens_martin.desc"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.siemens_martin.desc2"))
+            .addInfo(EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.tooltip.siemens_martin.desc"))
+            .addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.siemens_martin.desc2"))
             .addSeparator()
             .addInfo(
                 EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.shared.steam_cost")
@@ -527,10 +527,7 @@ public class MTESiemensMartinFurnace extends MTEEnhancedMultiBlockBase<MTESiemen
             .addStructureHint("gtsr.tooltip.siemens_martin.hint_temp")
             .addStructureHint("gtsr.tooltip.siemens_martin.hint_interrupt")
             .toolTipFinisher(
-                EnumChatFormatting.DARK_AQUA + StatCollector.translateToLocal("gtsr.tooltip.added_by")
-                    + " "
-                    + EnumChatFormatting.AQUA
-                    + "GT"
+                EnumChatFormatting.AQUA + "GT"
                     + EnumChatFormatting.GREEN
                     + "-"
                     + EnumChatFormatting.GOLD

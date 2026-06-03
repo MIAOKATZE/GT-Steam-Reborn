@@ -323,7 +323,11 @@ public class MTEAirCompressor extends MTESteamMultiBase<MTEAirCompressor> implem
                     + EnumChatFormatting.WHITE
                     + " 1200/3600 L/s"
                     + EnumChatFormatting.GRAY
-                    + " (Bronze/Steel)")
+                    + " ("
+                    + StatCollector.translateToLocal("gtsr.gui.tier.bronze")
+                    + "/"
+                    + StatCollector.translateToLocal("gtsr.gui.tier.steel")
+                    + ")")
             .addInfo(
                 EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.tooltip.shared.superheated_quadruples"))
             .addInfo(
@@ -358,10 +362,7 @@ public class MTEAirCompressor extends MTESteamMultiBase<MTEAirCompressor> implem
                     + ")")
             .addStructureHint("gtsr.tooltip.shared.no_maintenance")
             .toolTipFinisher(
-                EnumChatFormatting.DARK_AQUA + StatCollector.translateToLocal("gtsr.tooltip.added_by")
-                    + " "
-                    + EnumChatFormatting.AQUA
-                    + "GT"
+                EnumChatFormatting.AQUA + "GT"
                     + EnumChatFormatting.GREEN
                     + "-"
                     + EnumChatFormatting.GOLD

@@ -306,7 +306,7 @@ public class GTSRRecipeLoader implements Runnable {
 
         if (!hasNull(t1out)) {
             ItemStack[] inputs = filterNulls(
-                get(ItemList.OilDrill1, 1),
+                get(ItemList.OilDrill2, 1),
                 get(GTSRItemList.SteamEntangledSingularity, 16),
                 get(OrePrefixes.plateDouble, Materials.StainlessSteel, 32),
                 get(OrePrefixes.circuit, Materials.HV, 8));
@@ -323,7 +323,7 @@ public class GTSRRecipeLoader implements Runnable {
 
         if (!hasNull(t2out)) {
             ItemStack[] inputs = filterNulls(
-                get(ItemList.OilDrill2, 1),
+                get(ItemList.OilDrill3, 1),
                 get(GTSRItemList.SteamEntangledSingularity, 32),
                 get(OrePrefixes.plateTriple, Materials.Titanium, 64),
                 get(OrePrefixes.circuit, Materials.EV, 16),
@@ -341,7 +341,7 @@ public class GTSRRecipeLoader implements Runnable {
 
         if (!hasNull(t3out)) {
             ItemStack[] inputs = filterNulls(
-                get(ItemList.OilDrill3, 1),
+                get(ItemList.OilDrill4, 1),
                 get(GTSRItemList.SteamEntangledSingularity, 64),
                 get(OrePrefixes.plateDense, Materials.TungstenSteel, 64),
                 get(OrePrefixes.circuit, Materials.IV, 32),
@@ -1179,6 +1179,7 @@ public class GTSRRecipeLoader implements Runnable {
     private static void registerGearSteamCompressorDisplayRecipes() {
         // Bronze tier: 6400 L/s steam → 1600 L/s superheated steam + 30 L/s distilled water
         GTValues.RA.stdBuilder()
+            .fluidInputs(Materials.Steam.getGas(6400))
             .fluidOutputs(FluidRegistry.getFluidStack("ic2superheatedsteam", 1600), GTModHandler.getDistilledWater(30))
             .duration(0)
             .eut(0)

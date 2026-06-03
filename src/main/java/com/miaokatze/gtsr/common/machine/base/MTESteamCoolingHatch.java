@@ -131,7 +131,7 @@ public class MTESteamCoolingHatch extends MTEHatchOutput {
                 + " "
                 + StatCollector.translateToLocal("gtsr.tooltip.shared.l_s"),
             EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.shared.no_external_input"),
-            EnumChatFormatting.DARK_AQUA + StatCollector.translateToLocal("gtsr.tooltip.added_by")
+            EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.tooltip.added_by")
                 + " "
                 + EnumChatFormatting.AQUA
                 + "GT"
