@@ -80,8 +80,13 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
     }
 
     @Override
+    public String[] getDescription() {
+        return new String[] {
+            EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.miner_node.desc") };
+    }
+
+    @Override
     public void addAdditionalTooltipInformation(ItemStack stack, List<String> tooltip) {
-        tooltip.add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.miner_node.desc"));
         tooltip.add(
             EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.miner_node.range")
                 + EnumChatFormatting.GOLD

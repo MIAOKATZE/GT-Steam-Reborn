@@ -38,7 +38,7 @@ public class GTSRRecipeMaps {
 
     public static final RecipeMap<RecipeMapBackend> largeCokeOvenRecipes = RecipeMapBuilder
         .of("gtsr.recipe.large_coke_oven")
-        .maxIO(1, 1, 0, 0)
+        .maxIO(1, 1, 0, 1)
         .minInputs(1, 0)
         .progressBar(GTUITextures.PROGRESSBAR_ARROW, ProgressBar.Direction.RIGHT)
         .build();
@@ -67,7 +67,7 @@ public class GTSRRecipeMaps {
 
     public static final RecipeMap<RecipeMapBackend> atmosphericCentrifugeRecipes = RecipeMapBuilder
         .of("gtsr.recipe.atmospheric_centrifuge")
-        .maxIO(0, 0, 1, 8)
+        .maxIO(0, 0, 1, 9)
         .minInputs(0, 1)
         .progressBar(GTUITextures.PROGRESSBAR_ARROW, ProgressBar.Direction.RIGHT)
         .frontend(FluidGridFrontend::new)
@@ -92,7 +92,7 @@ public class GTSRRecipeMaps {
 
     public static final RecipeMap<RecipeMapBackend> geothermalSteamBoilerRecipes = RecipeMapBuilder
         .of("gtsr.recipe.geothermal_steam_boiler")
-        .maxIO(0, 10, 1, 0)
+        .maxIO(0, 12, 1, 0)
         .minInputs(0, 1)
         .progressBar(GTUITextures.PROGRESSBAR_ARROW, ProgressBar.Direction.RIGHT)
         .neiSpecialInfoFormatter(GEOTHERMAL_CHIP_FORMATTER)

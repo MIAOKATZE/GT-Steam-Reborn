@@ -11,7 +11,6 @@ import static com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps.steamFluidDrillRecipe
 import static com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps.steamSingularityCompressorRecipes;
 import static gregtech.api.recipe.RecipeMaps.assemblerRecipes;
 import static gregtech.api.util.GTRecipeBuilder.INGOTS;
-import static gregtech.api.util.GTRecipeBuilder.MINUTES;
 import static gregtech.api.util.GTRecipeBuilder.SECONDS;
 
 import java.util.ArrayList;
@@ -114,7 +113,8 @@ public class GTSRRecipeLoader implements Runnable {
                 OreDictionary.getOres("fuelCoke")
                     .get(0)
                     .copy())
-            .duration(30 * MINUTES)
+            .fluidOutputs(Materials.Creosote.getFluid(500))
+            .duration(1800)
             .eut(0)
             .addTo(largeCokeOvenRecipes);
     }
@@ -1117,8 +1117,9 @@ public class GTSRRecipeLoader implements Runnable {
                 GTOreDictUnificator.get(OrePrefixes.dust, Materials.Aluminiumoxide, 1),
                 GTOreDictUnificator.get(OrePrefixes.ingot, Materials.Copper, 1),
                 GTOreDictUnificator.get(OrePrefixes.ingot, Materials.Tin, 1),
-                GTOreDictUnificator.get(OrePrefixes.ingot, Materials.Silver, 1))
-            .outputChances(4500, 1500, 1000, 800, 600, 200, 100, 50)
+                GTOreDictUnificator.get(OrePrefixes.ingot, Materials.Silver, 1),
+                GTOreDictUnificator.get(OrePrefixes.ingot, Materials.Gold, 1))
+            .outputChances(4500, 1500, 1000, 800, 600, 200, 100, 50, 35)
             .duration(0)
             .eut(0)
             .addTo(geothermalSteamBoilerRecipes);
@@ -1135,9 +1136,11 @@ public class GTSRRecipeLoader implements Runnable {
                 GTOreDictUnificator.get(OrePrefixes.ingot, Materials.Copper, 1),
                 GTOreDictUnificator.get(OrePrefixes.ingot, Materials.Tin, 1),
                 GTOreDictUnificator.get(OrePrefixes.ingot, Materials.Silver, 1),
+                GTOreDictUnificator.get(OrePrefixes.ingot, Materials.Gold, 1),
+                GTOreDictUnificator.get(OrePrefixes.dust, Materials.Phosphorus, 1),
                 GTOreDictUnificator.get(OrePrefixes.dust, Materials.Rutile, 1),
                 GTOreDictUnificator.get(OrePrefixes.dust, Materials.Scheelite, 1))
-            .outputChances(4500, 1500, 1000, 800, 600, 200, 100, 50, 20, 10)
+            .outputChances(4500, 1500, 1000, 800, 600, 200, 100, 50, 35, 10, 5, 2)
             .duration(0)
             .eut(0)
             .addTo(geothermalSteamBoilerRecipes);

@@ -369,13 +369,18 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
         if (rng.nextDouble() < 0.01) outputs.add(GTOreDictUnificator.get(OrePrefixes.ingot, Materials.Tin, 1));
         // 0.5% 银锭
         if (rng.nextDouble() < 0.005) outputs.add(GTOreDictUnificator.get(OrePrefixes.ingot, Materials.Silver, 1));
+        // 0.35% 金锭
+        if (rng.nextDouble() < 0.0035) outputs.add(GTOreDictUnificator.get(OrePrefixes.ingot, Materials.Gold, 1));
 
         // 装载地热过热芯片后额外产出
         if (hasChip) {
-            // 0.2% 金红石粉
-            if (rng.nextDouble() < 0.002) outputs.add(GTOreDictUnificator.get(OrePrefixes.dust, Materials.Rutile, 1));
-            // 0.1% 白钨矿粉
+            // 0.1% 磷粉
             if (rng.nextDouble() < 0.001)
+                outputs.add(GTOreDictUnificator.get(OrePrefixes.dust, Materials.Phosphorus, 1));
+            // 0.05% 金红石粉
+            if (rng.nextDouble() < 0.0005) outputs.add(GTOreDictUnificator.get(OrePrefixes.dust, Materials.Rutile, 1));
+            // 0.02% 白钨矿粉
+            if (rng.nextDouble() < 0.0002)
                 outputs.add(GTOreDictUnificator.get(OrePrefixes.dust, Materials.Scheelite, 1));
         }
 

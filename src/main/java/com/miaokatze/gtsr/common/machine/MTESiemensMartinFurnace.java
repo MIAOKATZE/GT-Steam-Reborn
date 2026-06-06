@@ -63,7 +63,7 @@ public class MTESiemensMartinFurnace extends MTEEnhancedMultiBlockBase<MTESiemen
     private static final int SUPERHEATED_STEAM_COST = 1_200;
     private static final double TEMPERATURE_INCREMENT = 0.00025d;
     private static final double TEMPERATURE_DECREMENT = 0.001d;
-    private static final int MAX_PARALLEL = 32;
+    private static final int MAX_PARALLEL = 64;
 
     private static IStructureDefinition<MTESiemensMartinFurnace> STRUCTURE_DEFINITION = null;
 
@@ -522,10 +522,11 @@ public class MTESiemensMartinFurnace extends MTEEnhancedMultiBlockBase<MTESiemen
                 EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.shared.parallel")
                     + ": "
                     + EnumChatFormatting.GOLD
-                    + "32")
+                    + "64")
             .addStructureHint("gtsr.tooltip.shared.no_maintenance")
             .addStructureHint("gtsr.tooltip.siemens_martin.hint_temp")
             .addStructureHint("gtsr.tooltip.siemens_martin.hint_interrupt")
+            .addStructureHint("gtsr.tooltip.siemens_martin.steam_note")
             .toolTipFinisher(
                 EnumChatFormatting.AQUA + "GT"
                     + EnumChatFormatting.GREEN

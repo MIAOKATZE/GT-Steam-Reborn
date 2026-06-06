@@ -86,8 +86,13 @@ public class MTESingularityDrillingNode extends MTERemoteWorkerNode {
     }
 
     @Override
+    public String[] getDescription() {
+        return new String[] {
+            EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.drilling_node.desc") };
+    }
+
+    @Override
     public void addAdditionalTooltipInformation(ItemStack stack, List<String> tooltip) {
-        tooltip.add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.drilling_node.desc"));
         tooltip.add(
             EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.drilling_node.extraction")
                 + EnumChatFormatting.GOLD

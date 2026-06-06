@@ -58,8 +58,8 @@ public class MTELargeCokeOven extends MTEEnhancedMultiBlockBase<MTELargeCokeOven
     private static final int BASE_RECIPE_TIME_SECONDS = 1800;
     private static final int HEAT_SPEEDUP_PER_PERCENT = 10;
     private static final int MIN_RECIPE_TIME_SECONDS = 800;
-    private static final int MAX_PARALLEL_T1 = 8;
-    private static final int MAX_PARALLEL_T2 = 16;
+    private static final int MAX_PARALLEL_T1 = 12;
+    private static final int MAX_PARALLEL_T2 = 32;
 
     private double mHeat = 0.0d;
     private int mTier = 1;
@@ -258,13 +258,13 @@ public class MTELargeCokeOven extends MTEEnhancedMultiBlockBase<MTELargeCokeOven
                 EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.shared.parallel")
                     + ": "
                     + EnumChatFormatting.GOLD
-                    + "4"
+                    + "12"
                     + EnumChatFormatting.GRAY
                     + " ("
                     + StatCollector.translateToLocal("gtsr.gui.tier.bronze")
                     + ")"
                     + EnumChatFormatting.GOLD
-                    + "/16"
+                    + "/32"
                     + EnumChatFormatting.GRAY
                     + " ("
                     + StatCollector.translateToLocal("gtsr.gui.tier.steel")
@@ -412,7 +412,7 @@ public class MTELargeCokeOven extends MTEEnhancedMultiBlockBase<MTELargeCokeOven
                     () -> EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.parallel")
                         + " "
                         + EnumChatFormatting.GOLD
-                        + (mTier >= 2 ? "4/16" : "4")
+                        + (mTier >= 2 ? "12/32" : "12")
                         + EnumChatFormatting.RESET))
             .widget(new FakeSyncWidget.DoubleSyncer(() -> mHeat, val -> mHeat = val))
             .widget(new FakeSyncWidget.IntegerSyncer(() -> mMaxProgresstime, val -> mMaxProgresstime = val))
@@ -466,7 +466,7 @@ public class MTELargeCokeOven extends MTEEnhancedMultiBlockBase<MTELargeCokeOven
             EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.parallel")
                 + " "
                 + EnumChatFormatting.GOLD
-                + (mTier >= 2 ? "4/16" : "4"));
+                + (mTier >= 2 ? "12/32" : "12"));
 
         return info.toArray(new String[0]);
     }

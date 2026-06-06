@@ -343,7 +343,11 @@ public class MTEAtmosphericCentrifuge extends MTESteamMultiBase<MTEAtmosphericCe
                     + EnumChatFormatting.WHITE
                     + " 500/5000 L/s"
                     + EnumChatFormatting.GRAY
-                    + " (Base/Rare Gas)")
+                    + " ("
+                    + StatCollector.translateToLocal("gtsr.gui.tier.base")
+                    + "/"
+                    + StatCollector.translateToLocal("gtsr.gui.tier.rare_gas")
+                    + ")")
             .addInfo(
                 EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.tooltip.shared.superheated_quadruples"))
             .beginStructureBlock(7, 4, 7, false)
