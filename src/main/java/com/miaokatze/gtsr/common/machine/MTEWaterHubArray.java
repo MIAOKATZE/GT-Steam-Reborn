@@ -101,7 +101,7 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
                                         Pair.of(GregTechAPI.sBlockCasings1, 10),
                                         Pair.of(GregTechAPI.sBlockCasings2, 0)),
                                     -1,
-                                    (MTEWaterHubArray t, Integer tier) -> t.mSetTier = Math.max(t.mSetTier, tier),
+                                    (MTEWaterHubArray t, Integer tier) -> t.mSetTier = tier,
                                     (MTEWaterHubArray t) -> t.mSetTier)))))
             .addElement(
                 'C',
@@ -119,7 +119,7 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
                                         Pair.of(GregTechAPI.sBlockCasings1, 10),
                                         Pair.of(GregTechAPI.sBlockCasings2, 0)),
                                     -1,
-                                    (MTEWaterHubArray t, Integer tier) -> t.mSetTier = Math.max(t.mSetTier, tier),
+                                    (MTEWaterHubArray t, Integer tier) -> t.mSetTier = tier,
                                     (MTEWaterHubArray t) -> t.mSetTier)))))
             .addElement(
                 'D',
@@ -130,7 +130,7 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
                         ImmutableList
                             .of(Pair.of(GregTechAPI.sBlockCasings2, 12), Pair.of(GregTechAPI.sBlockCasings2, 13)),
                         -1,
-                        (MTEWaterHubArray t, Integer tier) -> t.mSetTier = Math.max(t.mSetTier, tier),
+                        (MTEWaterHubArray t, Integer tier) -> t.mSetTier = tier,
                         (MTEWaterHubArray t) -> t.mSetTier)))
             .addElement(
                 'E',
@@ -142,7 +142,7 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
                             Pair.of(GregTechAPI.sBlockFrames, Materials.Bronze.mMetaItemSubID),
                             Pair.of(GregTechAPI.sBlockFrames, Materials.Steel.mMetaItemSubID)),
                         -1,
-                        (MTEWaterHubArray t, Integer tier) -> t.mSetTier = Math.max(t.mSetTier, tier),
+                        (MTEWaterHubArray t, Integer tier) -> t.mSetTier = tier,
                         (MTEWaterHubArray t) -> t.mSetTier)))
             .build();
     }
@@ -608,14 +608,6 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
             }
 
             if (node.isOutputMode) {
-                FluidStack drained = gtTile.drain(ForgeDirection.UNKNOWN, BOUND_TRANSFER_RATE, false);
-                if (drained != null && isWaterFluid(drained)) {
-                    int accepted = receiveWater(drained, true);
-                    if (accepted > 0) {
-                        gtTile.drain(ForgeDirection.UNKNOWN, accepted, true);
-                    }
-                }
-            } else {
                 if (mWaterStored <= 0 || mStoredFluidType == null) continue;
                 int toTransfer = (int) Math.min(BOUND_TRANSFER_RATE, mWaterStored);
                 FluidStack toExport = FluidStack.loadFluidStackFromNBT(createFluidTag(mStoredFluidType, toTransfer));
@@ -624,6 +616,14 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
                     mWaterStored -= filled;
                     if (mWaterStored <= 0) {
                         mStoredFluidType = null;
+                    }
+                }
+            } else {
+                FluidStack drained = gtTile.drain(ForgeDirection.UNKNOWN, BOUND_TRANSFER_RATE, false);
+                if (drained != null && isWaterFluid(drained)) {
+                    int accepted = receiveWater(drained, true);
+                    if (accepted > 0) {
+                        gtTile.drain(ForgeDirection.UNKNOWN, accepted, true);
                     }
                 }
             }

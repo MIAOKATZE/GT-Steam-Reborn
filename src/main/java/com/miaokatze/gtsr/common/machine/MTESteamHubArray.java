@@ -103,7 +103,17 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
                         .casingIndex(CASING_INDEX)
                         .dot(2)
                         .buildAndChain(
-                            onElementPass(MTESteamHubArray::onCasingAdded, ofBlock(GregTechAPI.sBlockCasings1, 10)))))
+                            onElementPass(
+                                MTESteamHubArray::onCasingAdded,
+                                ofBlocksTiered(
+                                    MTESteamHubArray::getCasingTier,
+                                    ImmutableList.of(
+                                        Pair.of(GregTechAPI.sBlockCasings1, 10),
+                                        Pair.of(GregTechAPI.sBlockCasings2, 0),
+                                        Pair.of(GregTechAPI.sBlockCasings4, 0)),
+                                    -1,
+                                    (MTESteamHubArray t, Integer tier) -> t.mSetTier = tier,
+                                    (MTESteamHubArray t) -> t.mSetTier)))))
             .addElement(
                 'C',
                 ofChain(
@@ -121,7 +131,7 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
                                         Pair.of(GregTechAPI.sBlockCasings2, 0),
                                         Pair.of(GregTechAPI.sBlockCasings4, 0)),
                                     -1,
-                                    (MTESteamHubArray t, Integer tier) -> t.mSetTier = Math.max(t.mSetTier, tier),
+                                    (MTESteamHubArray t, Integer tier) -> t.mSetTier = tier,
                                     (MTESteamHubArray t) -> t.mSetTier)))))
             .addElement(
                 'D',
@@ -134,7 +144,7 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
                             Pair.of(GregTechAPI.sBlockCasings2, 13),
                             Pair.of(GregTechAPI.sBlockCasings2, 15)),
                         -1,
-                        (MTESteamHubArray t, Integer tier) -> t.mSetTier = Math.max(t.mSetTier, tier),
+                        (MTESteamHubArray t, Integer tier) -> t.mSetTier = tier,
                         (MTESteamHubArray t) -> t.mSetTier)))
             .addElement(
                 'E',
@@ -147,7 +157,7 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
                             Pair.of(GregTechAPI.sBlockCasings2, 3),
                             Pair.of(GregTechAPI.sBlockCasings2, 15)),
                         -1,
-                        (MTESteamHubArray t, Integer tier) -> t.mSetTier = Math.max(t.mSetTier, tier),
+                        (MTESteamHubArray t, Integer tier) -> t.mSetTier = tier,
                         (MTESteamHubArray t) -> t.mSetTier)))
             .addElement(
                 'F',
@@ -160,7 +170,7 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
                             Pair.of(GregTechAPI.sBlockFrames, Materials.Steel.mMetaItemSubID),
                             Pair.of(GregTechAPI.sBlockFrames, Materials.TungstenSteel.mMetaItemSubID)),
                         -1,
-                        (MTESteamHubArray t, Integer tier) -> t.mSetTier = Math.max(t.mSetTier, tier),
+                        (MTESteamHubArray t, Integer tier) -> t.mSetTier = tier,
                         (MTESteamHubArray t) -> t.mSetTier)))
             .build();
     }
@@ -854,17 +864,17 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
 
             if (node.isOutputMode) {
                 int nodeRate = getNodeTransferRate(gte);
-                FluidStack drained = gte.drain(ForgeDirection.UNKNOWN, nodeRate, false);
-                if (drained != null && drained.amount > 0) {
-                    int received = receiveSteam(drained, true);
-                    if (received > 0) gte.drain(ForgeDirection.UNKNOWN, received, true);
-                }
-            } else {
-                int nodeRate = getNodeTransferRate(gte);
                 FluidStack toSend = extractSteam(nodeRate, false);
                 if (toSend != null && toSend.amount > 0) {
                     int filled = gte.fill(ForgeDirection.UNKNOWN, toSend, true);
                     if (filled > 0) extractSteam(filled, true);
+                }
+            } else {
+                int nodeRate = getNodeTransferRate(gte);
+                FluidStack drained = gte.drain(ForgeDirection.UNKNOWN, nodeRate, false);
+                if (drained != null && drained.amount > 0) {
+                    int received = receiveSteam(drained, true);
+                    if (received > 0) gte.drain(ForgeDirection.UNKNOWN, received, true);
                 }
             }
         }
@@ -1071,7 +1081,7 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
                 + statusColor
                 + StatCollector.translateToLocal(statusKey)
                 + EnumChatFormatting.RESET);
-        int totalUnits = mPressureUnitCount + mReinforcedUnitCount;
+        int totalUnits = mPressureUnitCount + mReinforcedUnitCount + mOverpressureUnitCount;
         info.add(
             EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.steam_hub.storage_units")
                 + " "

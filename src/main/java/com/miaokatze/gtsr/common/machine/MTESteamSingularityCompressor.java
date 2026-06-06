@@ -44,6 +44,7 @@ import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.implementations.MTEHatch;
+import gregtech.api.metatileentity.implementations.MTEHatchOutputBus;
 import gregtech.api.objects.overclockdescriber.OverclockDescriber;
 import gregtech.api.recipe.RecipeMap;
 import gregtech.api.recipe.check.CheckRecipeResult;
@@ -52,6 +53,7 @@ import gregtech.api.render.TextureFactory;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.common.blocks.BlockCasings2;
+import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.MTEHatchSteamBusOutput;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTEHatchCustomFluidBase;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTESteamMultiBase;
 
@@ -166,6 +168,22 @@ public class MTESteamSingularityCompressor extends MTESteamMultiBase<MTESteamSin
                     'B',
                     ofChain(
                         buildHatchAdder(MTESteamSingularityCompressor.class).adder(MTESteamMultiBase::addToMachineList)
+                            .hatchIds(31040, MetaTileEntityID.PRESSURE_STEAM_HATCH.ID)
+                            .casingIndex(casingIndex)
+                            .dot(1)
+                            .shouldReject(t -> !t.mSteamInputFluids.isEmpty())
+                            .build(),
+                        buildHatchAdder(MTESteamSingularityCompressor.class).atLeast(OutputBus)
+                            .casingIndex(casingIndex)
+                            .dot(1)
+                            .build(),
+                        buildHatchAdder(MTESteamSingularityCompressor.class)
+                            .adder(MTESteamSingularityCompressor::addSteamOutputBusToMachineList)
+                            .hatchClass(MTEHatchSteamBusOutput.class)
+                            .casingIndex(casingIndex)
+                            .dot(1)
+                            .build(),
+                        buildHatchAdder(MTESteamSingularityCompressor.class).adder(MTESteamMultiBase::addToMachineList)
                             .hatchClass(MTESteamCoolingHatch.class)
                             .casingIndex(casingIndex)
                             .dot(2)
@@ -175,19 +193,9 @@ public class MTESteamSingularityCompressor extends MTESteamMultiBase<MTESteamSin
                             .casingIndex(casingIndex)
                             .dot(2)
                             .build(),
-                        buildHatchAdder(MTESteamSingularityCompressor.class).adder(MTESteamMultiBase::addToMachineList)
-                            .hatchIds(31040, MetaTileEntityID.PRESSURE_STEAM_HATCH.ID)
-                            .casingIndex(casingIndex)
-                            .dot(1)
-                            .shouldReject(t -> !t.mSteamInputFluids.isEmpty())
-                            .build(),
-                        buildHatchAdder(MTESteamSingularityCompressor.class).atLeast(OutputBus)
-                            .casingIndex(casingIndex)
-                            .dot(1)
-                            .buildAndChain(
-                                onElementPass(
-                                    MTESteamSingularityCompressor::onCasingAdded,
-                                    ofBlock(GregTechAPI.sBlockCasings2, 0)))))
+                        onElementPass(
+                            MTESteamSingularityCompressor::onCasingAdded,
+                            ofBlock(GregTechAPI.sBlockCasings2, 0))))
                 .addElement(
                     'C',
                     onElementPass(
@@ -213,6 +221,16 @@ public class MTESteamSingularityCompressor extends MTESteamMultiBase<MTESteamSin
 
     private void onCasingAdded() {
         mCasingCount++;
+    }
+
+    private boolean addSteamOutputBusToMachineList(IGregTechTileEntity aTileEntity, int aBaseCasingIndex) {
+        if (aTileEntity == null) return false;
+        IMetaTileEntity aMetaTileEntity = aTileEntity.getMetaTileEntity();
+        if (aMetaTileEntity instanceof MTEHatchSteamBusOutput hatch) {
+            hatch.updateTexture(aBaseCasingIndex);
+            return mOutputBusses.add(hatch);
+        }
+        return false;
     }
 
     @Override

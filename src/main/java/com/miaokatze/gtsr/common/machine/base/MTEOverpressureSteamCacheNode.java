@@ -23,6 +23,7 @@ import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.render.TextureFactory;
+import gregtech.api.util.GTModHandler;
 import gregtech.api.util.GTUtility;
 
 public class MTEOverpressureSteamCacheNode extends MTEFilteredCacheNode {
@@ -82,7 +83,9 @@ public class MTEOverpressureSteamCacheNode extends MTEFilteredCacheNode {
 
     @Override
     protected boolean isFluidAllowed(Fluid fluid) {
-        return MTESteamHubOutputHatch.isAnySteamFluidType(fluid);
+        return MTESteamHubOutputHatch.isAnySteamFluidType(fluid)
+            || GTModHandler.isAnySteam(new FluidStack(fluid, 1))
+            || GTModHandler.isSuperHeatedSteam(new FluidStack(fluid, 1));
     }
 
     @Override
@@ -122,8 +125,7 @@ public class MTEOverpressureSteamCacheNode extends MTEFilteredCacheNode {
 
     private static boolean isSteamFluid(FluidStack aFluid) {
         if (aFluid == null) return false;
-        Fluid fluid = aFluid.getFluid();
-        return MTESteamHubOutputHatch.isAnySteamFluidType(fluid);
+        return MTESteamHubOutputHatch.isAnySteamFluid(aFluid);
     }
 
     @Override

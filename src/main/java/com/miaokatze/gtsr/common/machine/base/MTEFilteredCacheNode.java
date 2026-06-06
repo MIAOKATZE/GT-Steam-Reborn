@@ -132,6 +132,12 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase {
             mHubZ = hubTag.getInteger("z");
             mHubDim = hubTag.getInteger("dim");
             mHubType = hubTag.getString("type");
+            // 物品NBT中 output=false 表示输出模式(节点→枢纽), output=true 表示输入模式(枢纽→节点)
+            // mIsOutputMode=true 表示输出模式(节点→枢纽), mIsOutputMode=false 表示输入模式(枢纽→节点)
+            // 语义一致：output字段的值取反即为mIsOutputMode的值
+            if (hubTag.hasKey("output")) {
+                mIsOutputMode = !hubTag.getBoolean("output");
+            }
         } else {
             mHubX = 0;
             mHubY = 0;
@@ -162,7 +168,7 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase {
             int hubY = hubTag.getInteger("y");
             int hubZ = hubTag.getInteger("z");
             String hubType = hubTag.getString("type");
-            boolean isOutput = hubTag.hasKey("output") && hubTag.getBoolean("output");
+            boolean isOutput = hubTag.hasKey("output") && !hubTag.getBoolean("output");
             String mode = isOutput ? translateToLocal("gtsr.binding.debug_output")
                 : translateToLocal("gtsr.binding.debug_input");
             tooltip.add(
