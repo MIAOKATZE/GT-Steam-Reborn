@@ -83,8 +83,7 @@ public class MTEOverpressureSteamCacheNode extends MTEFilteredCacheNode {
 
     @Override
     protected boolean isFluidAllowed(Fluid fluid) {
-        return MTESteamHubOutputHatch.isAnySteamFluidType(fluid)
-            || GTModHandler.isAnySteam(new FluidStack(fluid, 1))
+        return MTESteamHubOutputHatch.isAnySteamFluidType(fluid) || GTModHandler.isAnySteam(new FluidStack(fluid, 1))
             || GTModHandler.isSuperHeatedSteam(new FluidStack(fluid, 1));
     }
 

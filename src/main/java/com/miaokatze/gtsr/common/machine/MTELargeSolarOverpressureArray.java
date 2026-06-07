@@ -1,6 +1,5 @@
 package com.miaokatze.gtsr.common.machine;
 
-import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlock;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlocksTiered;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
@@ -94,6 +93,8 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
     protected int tierCasing = -1;
     protected int tierGlass = -1;
     protected int tierConductor = -1;
+    protected int tierPipe = -1;
+    protected int tierGear = -1;
 
     private static final int CALCIFICATION_FACTOR = 3;
     private static final int STEAM_PER_WATER = 160;
@@ -182,6 +183,20 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
         return null;
     }
 
+    @Nullable
+    public static Integer getPipeTier(Block block, int meta) {
+        if (block == GregTechAPI.sBlockCasings2 && meta == 12) return 1;
+        if (block == GregTechAPI.sBlockCasings2 && meta == 13) return 2;
+        return null;
+    }
+
+    @Nullable
+    public static Integer getGearTier(Block block, int meta) {
+        if (block == GregTechAPI.sBlockCasings2 && meta == 2) return 1;
+        if (block == GregTechAPI.sBlockCasings2 && meta == 3) return 2;
+        return null;
+    }
+
     protected int getCasingTextureID() {
         if (mSetTier == 2 || mSetTier == 3) {
             return ((BlockCasings2) GregTechAPI.sBlockCasings2).getTextureIndex(0);
@@ -247,8 +262,24 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
                                         -1,
                                         (MTELargeSolarOverpressureArray t, Integer tier) -> t.tierCasing = tier,
                                         (MTELargeSolarOverpressureArray t) -> t.tierCasing)))))
-                .addElement('C', onElementPass(t -> {}, ofBlock(GregTechAPI.sBlockCasings2, 12)))
-                .addElement('D', onElementPass(t -> {}, ofBlock(GregTechAPI.sBlockCasings2, 2)))
+                .addElement(
+                    'C',
+                    ofBlocksTiered(
+                        MTELargeSolarOverpressureArray::getPipeTier,
+                        ImmutableList
+                            .of(Pair.of(GregTechAPI.sBlockCasings2, 12), Pair.of(GregTechAPI.sBlockCasings2, 13)),
+                        -1,
+                        (MTELargeSolarOverpressureArray t, Integer tier) -> t.tierPipe = tier,
+                        (MTELargeSolarOverpressureArray t) -> t.tierPipe))
+                .addElement(
+                    'D',
+                    ofBlocksTiered(
+                        MTELargeSolarOverpressureArray::getGearTier,
+                        ImmutableList
+                            .of(Pair.of(GregTechAPI.sBlockCasings2, 2), Pair.of(GregTechAPI.sBlockCasings2, 3)),
+                        -1,
+                        (MTELargeSolarOverpressureArray t, Integer tier) -> t.tierGear = tier,
+                        (MTELargeSolarOverpressureArray t) -> t.tierGear))
                 .addElement(
                     'E',
                     ofBlocksTiered(
@@ -292,14 +323,16 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
         tierCasing = -1;
         tierGlass = -1;
         tierConductor = -1;
+        tierPipe = -1;
+        tierGear = -1;
 
         if (!checkPiece(STRUCTURE_PIECE_MAIN, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET)) return false;
 
-        if (tierCasing == 1 && tierGlass >= 1 && tierConductor == 1) {
+        if (tierCasing == 1 && tierGlass >= 1 && tierConductor == 1 && tierPipe == 1 && tierGear == 1) {
             mSetTier = 1;
-        } else if (tierCasing == 2 && tierGlass >= 1 && tierConductor == 2) {
+        } else if (tierCasing == 2 && tierGlass >= 1 && tierConductor == 2 && tierPipe >= 2 && tierGear >= 2) {
             mSetTier = 2;
-        } else if (tierCasing == 2 && tierGlass >= 1 && tierConductor == 3) {
+        } else if (tierCasing == 2 && tierGlass >= 1 && tierConductor == 3 && tierPipe >= 2 && tierGear >= 2) {
             mSetTier = 3;
         }
 

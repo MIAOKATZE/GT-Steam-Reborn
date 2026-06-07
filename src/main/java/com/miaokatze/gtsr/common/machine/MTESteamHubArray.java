@@ -1,6 +1,5 @@
 package com.miaokatze.gtsr.common.machine;
 
-import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlock;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlocksTiered;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
@@ -63,13 +62,16 @@ import gregtech.api.render.TextureFactory;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.IGTHatchAdder;
 import gregtech.api.util.MultiblockTooltipBuilder;
+import gregtech.common.misc.GTStructureChannels;
 
 public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray>
     implements IConstructable, ISurvivalConstructable, com.miaokatze.gtsr.common.machine.base.IHubArray {
 
-    private static final String STRUCTURE_PIECE_MAIN = "main";
+    private static final String STRUCTURE_PIECE_BASE = "base";
+    private static final String STRUCTURE_PIECE_STACK = "stack";
+    private static final String STRUCTURE_PIECE_CAP = "cap";
     private static final int HORIZONTAL_OFF_SET = 4;
-    private static final int VERTICAL_OFF_SET = 1;
+    private static final int VERTICAL_OFF_SET = 0;
     private static final int DEPTH_OFF_SET = 1;
     private static final int AUTO_OUTPUT_RATE = 2_000_000;
     private static final int TRANSFER_RATE = 1_000_000;
@@ -83,15 +85,20 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
     static {
         STRUCTURE_DEFINITION = StructureDefinition.<MTESteamHubArray>builder()
             .addShape(
-                STRUCTURE_PIECE_MAIN,
+                STRUCTURE_PIECE_BASE,
                 transpose(
-                    new String[][] {
-                        { "         ", "   FDF   ", "  AAAAA  ", " FAAAAAF ", " DAAAAAD ", " FAAAAAF ", "  AAAAA  ",
-                            "   FDF   ", "         " },
-                        { "         ", "   F~F   ", "  ECCCE  ", " FCCCCCF ", " DCCCCCD ", " FCCCCCF ", "  ECCCE  ",
-                            "   FDF   ", "         " },
-                        { "   CCC   ", "  CFCFC  ", " CCCCCCC ", "CFCCCCCFC", "CCCCCCCCC", "CFCCCCCFC", " CCCCCCC ",
-                            "  CFCFC  ", "   CCC   " } }))
+                    new String[][] { { "         ", "   F~F   ", "  ECCCE  ", " FCCCCCF ", " DCCCCCD ", " FCCCCCF ",
+                        "  ECCCE  ", "   FDF   ", "         " } }))
+            .addShape(
+                STRUCTURE_PIECE_STACK,
+                transpose(
+                    new String[][] { { "         ", "   FDF   ", "  AAAAA  ", " FAAAAAF ", " DAAAAAD ", " FAAAAAF ",
+                        "  AAAAA  ", "   FDF   ", "         " } }))
+            .addShape(
+                STRUCTURE_PIECE_CAP,
+                transpose(
+                    new String[][] { { "   CCC   ", "  CFCFC  ", " CCCCCCC ", "CFCCCCCFC", "CCCCCCCCC", "CFCCCCCFC",
+                        " CCCCCCC ", "  CFCFC  ", "   CCC   " } }))
             .addElement(
                 'A',
                 ofChain(
@@ -112,8 +119,8 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
                                         Pair.of(GregTechAPI.sBlockCasings2, 0),
                                         Pair.of(GregTechAPI.sBlockCasings4, 0)),
                                     -1,
-                                    (MTESteamHubArray t, Integer tier) -> t.mSetTier = tier,
-                                    (MTESteamHubArray t) -> t.mSetTier)))))
+                                    (MTESteamHubArray t, Integer tier) -> t.mCasingTier = tier,
+                                    (MTESteamHubArray t) -> t.mCasingTier)))))
             .addElement(
                 'C',
                 ofChain(
@@ -131,8 +138,8 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
                                         Pair.of(GregTechAPI.sBlockCasings2, 0),
                                         Pair.of(GregTechAPI.sBlockCasings4, 0)),
                                     -1,
-                                    (MTESteamHubArray t, Integer tier) -> t.mSetTier = tier,
-                                    (MTESteamHubArray t) -> t.mSetTier)))))
+                                    (MTESteamHubArray t, Integer tier) -> t.mCasingTier = tier,
+                                    (MTESteamHubArray t) -> t.mCasingTier)))))
             .addElement(
                 'D',
                 onElementPass(
@@ -144,8 +151,8 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
                             Pair.of(GregTechAPI.sBlockCasings2, 13),
                             Pair.of(GregTechAPI.sBlockCasings2, 15)),
                         -1,
-                        (MTESteamHubArray t, Integer tier) -> t.mSetTier = tier,
-                        (MTESteamHubArray t) -> t.mSetTier)))
+                        (MTESteamHubArray t, Integer tier) -> t.mPipeTier = tier,
+                        (MTESteamHubArray t) -> t.mPipeTier)))
             .addElement(
                 'E',
                 onElementPass(
@@ -157,8 +164,8 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
                             Pair.of(GregTechAPI.sBlockCasings2, 3),
                             Pair.of(GregTechAPI.sBlockCasings2, 15)),
                         -1,
-                        (MTESteamHubArray t, Integer tier) -> t.mSetTier = tier,
-                        (MTESteamHubArray t) -> t.mSetTier)))
+                        (MTESteamHubArray t, Integer tier) -> t.mGearTier = tier,
+                        (MTESteamHubArray t) -> t.mGearTier)))
             .addElement(
                 'F',
                 onElementPass(
@@ -170,8 +177,8 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
                             Pair.of(GregTechAPI.sBlockFrames, Materials.Steel.mMetaItemSubID),
                             Pair.of(GregTechAPI.sBlockFrames, Materials.TungstenSteel.mMetaItemSubID)),
                         -1,
-                        (MTESteamHubArray t, Integer tier) -> t.mSetTier = tier,
-                        (MTESteamHubArray t) -> t.mSetTier)))
+                        (MTESteamHubArray t, Integer tier) -> t.mFrameTier = tier,
+                        (MTESteamHubArray t) -> t.mFrameTier)))
             .build();
     }
 
@@ -303,6 +310,11 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
     private int mOverpressureUnitCount = 0;
     private int mCasingAmount = 0;
     private int mSetTier = -1;
+    private int mCasingTier = -1;
+    private int mPipeTier = -1;
+    private int mGearTier = -1;
+    private int mFrameTier = -1;
+    private int mStackCount = 0;
     private long mSteamStored = 0;
     private FluidStack mStoredFluidType = null;
     private long mTickCounter = 0;
@@ -347,12 +359,30 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
         mOverpressureUnitCount = 0;
         mCasingAmount = 0;
         mSetTier = -1;
+        mCasingTier = -1;
+        mPipeTier = -1;
+        mGearTier = -1;
+        mFrameTier = -1;
+        mStackCount = 0;
         mSteamInputHatches.clear();
         mSteamOutputHatches.clear();
 
-        if (!checkPiece(STRUCTURE_PIECE_MAIN, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET)) return false;
+        if (!checkPiece(STRUCTURE_PIECE_BASE, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET)) return false;
 
-        if (mSetTier <= 0) return false;
+        for (int i = 0; i < 3; i++) {
+            int bOffset = 1 + i;
+            if (!checkPiece(STRUCTURE_PIECE_STACK, HORIZONTAL_OFF_SET, bOffset, DEPTH_OFF_SET)) break;
+            mStackCount++;
+        }
+
+        if (mStackCount == 0) return false;
+
+        if (!checkPiece(STRUCTURE_PIECE_CAP, HORIZONTAL_OFF_SET, -1, DEPTH_OFF_SET)) return false;
+
+        // Validate all tier fields are consistent
+        if (mCasingTier <= 0 || mPipeTier <= 0 || mGearTier <= 0 || mFrameTier <= 0) return false;
+        if (mCasingTier != mPipeTier || mCasingTier != mGearTier || mCasingTier != mFrameTier) return false;
+        mSetTier = mCasingTier;
 
         if (mSetTier == 1 && (mReinforcedUnitCount > 0 || mOverpressureUnitCount > 0)) return false;
         if (mSetTier == 2 && (mPressureUnitCount > 0 || mOverpressureUnitCount > 0)) return false;
@@ -510,14 +540,32 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
 
     @Override
     public void construct(ItemStack stackSize, boolean hintsOnly) {
-        buildPiece(STRUCTURE_PIECE_MAIN, stackSize, hintsOnly, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET);
+        buildPiece(STRUCTURE_PIECE_CAP, stackSize, hintsOnly, HORIZONTAL_OFF_SET, -1, DEPTH_OFF_SET);
+        buildPiece(STRUCTURE_PIECE_BASE, stackSize, hintsOnly, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET);
+        int tTotalHeight = Math.max(3, GTStructureChannels.STRUCTURE_HEIGHT.getValueClamped(stackSize, 3, 5));
+        int stackCount = tTotalHeight - 2;
+        for (int i = 0; i < stackCount; i++) {
+            int bOffset = 1 + i;
+            buildPiece(STRUCTURE_PIECE_STACK, stackSize, hintsOnly, HORIZONTAL_OFF_SET, bOffset, DEPTH_OFF_SET);
+        }
     }
 
     @Override
     public int survivalConstruct(ItemStack stackSize, int elementBudget, ISurvivalBuildEnvironment env) {
         if (mMachine) return -1;
-        return survivalBuildPiece(
-            STRUCTURE_PIECE_MAIN,
+        int built = survivalBuildPiece(
+            STRUCTURE_PIECE_CAP,
+            stackSize,
+            HORIZONTAL_OFF_SET,
+            -1,
+            DEPTH_OFF_SET,
+            elementBudget,
+            env,
+            false,
+            true);
+        if (built >= 0) return built;
+        built = survivalBuildPiece(
+            STRUCTURE_PIECE_BASE,
             stackSize,
             HORIZONTAL_OFF_SET,
             VERTICAL_OFF_SET,
@@ -526,16 +574,31 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
             env,
             false,
             true);
+        if (built >= 0) return built;
+        int tTotalHeight = Math.max(3, GTStructureChannels.STRUCTURE_HEIGHT.getValueClamped(stackSize, 3, 5));
+        int stackCount = tTotalHeight - 2;
+        for (int i = 0; i < stackCount; i++) {
+            int bOffset = 1 + i;
+            built = survivalBuildPiece(
+                STRUCTURE_PIECE_STACK,
+                stackSize,
+                HORIZONTAL_OFF_SET,
+                bOffset,
+                DEPTH_OFF_SET,
+                elementBudget,
+                env,
+                false,
+                true);
+            if (built >= 0) return built;
+        }
+        return -1;
     }
 
     @Override
     public String[] getStructureDescription(ItemStack stackSize) {
-        return new String[] { EnumChatFormatting.AQUA + "Structure:",
-            "1. 9x9x3 fixed structure with Bronze/Steel dual-tier casing",
-            "2. Layer 0: Storage unit slots (A) surrounded by Frames (F) and Pipes (D)",
-            "3. Layer 1: Controller (~) with Gears (E), Pipes (D), Casing (C), Frames (F)",
-            "4. Layer 2: Solid top cover of Casing (C) and Frames (F)",
-            "5. At least 1 Input Hatch and 1 Output Hatch required" };
+        return new String[] { EnumChatFormatting.AQUA + "Structure:", "1. CAP (1 layer): Base foundation (bottom)",
+            "2. BASE (1 layer): Controller layer", "3. STACK (1 layer): Repeatable storage unit layer (1~3)",
+            "4. Total height: 3~5 layers (9x9x3 to 9x9x5)", "5. At least 1 Input Hatch and 1 Output Hatch required" };
     }
 
     @Override
@@ -890,6 +953,10 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
         aNBT.setInteger("mReinforcedUnitCount", mReinforcedUnitCount);
         aNBT.setInteger("mOverpressureUnitCount", mOverpressureUnitCount);
         aNBT.setInteger("mSetTier", mSetTier);
+        aNBT.setInteger("mCasingTier", mCasingTier);
+        aNBT.setInteger("mPipeTier", mPipeTier);
+        aNBT.setInteger("mGearTier", mGearTier);
+        aNBT.setInteger("mFrameTier", mFrameTier);
         aNBT.setLong("mTickCounter", mTickCounter);
         aNBT.setBoolean("mOverflowInput", mOverflowInput);
         if (mStoredFluidType != null) {
@@ -921,6 +988,10 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
         mReinforcedUnitCount = aNBT.getInteger("mReinforcedUnitCount");
         mOverpressureUnitCount = aNBT.getInteger("mOverpressureUnitCount");
         mSetTier = aNBT.getInteger("mSetTier");
+        mCasingTier = aNBT.getInteger("mCasingTier");
+        mPipeTier = aNBT.getInteger("mPipeTier");
+        mGearTier = aNBT.getInteger("mGearTier");
+        mFrameTier = aNBT.getInteger("mFrameTier");
         mTickCounter = aNBT.getLong("mTickCounter");
         mOverflowInput = aNBT.getBoolean("mOverflowInput");
         if (aNBT.hasKey("mStoredFluidType")) {
@@ -1030,7 +1101,8 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
                         + " "
                         + EnumChatFormatting.GOLD
                         + (mPressureUnitCount + mReinforcedUnitCount + mOverpressureUnitCount)
-                        + "/25"
+                        + "/"
+                        + (25 * mStackCount)
                         + EnumChatFormatting.RESET))
             .widget(
                 new TextWidget().setStringSupplier(
@@ -1051,8 +1123,10 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
                         + EnumChatFormatting.RESET))
             .widget(new FakeSyncWidget.IntegerSyncer(() -> mSetTier, val -> mSetTier = val))
             .widget(new FakeSyncWidget.IntegerSyncer(() -> mMaxProgresstime, val -> mMaxProgresstime = val))
+            .widget(new FakeSyncWidget.IntegerSyncer(() -> mStackCount, val -> mStackCount = val))
             .widget(new FakeSyncWidget.IntegerSyncer(() -> mPressureUnitCount, val -> mPressureUnitCount = val))
             .widget(new FakeSyncWidget.IntegerSyncer(() -> mReinforcedUnitCount, val -> mReinforcedUnitCount = val))
+            .widget(new FakeSyncWidget.IntegerSyncer(() -> mOverpressureUnitCount, val -> mOverpressureUnitCount = val))
             .widget(new FakeSyncWidget.LongSyncer(() -> mSteamStored, val -> mSteamStored = val));
     }
 
@@ -1087,7 +1161,8 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
                 + " "
                 + EnumChatFormatting.GOLD
                 + totalUnits
-                + "/25"
+                + "/"
+                + (25 * mStackCount)
                 + EnumChatFormatting.RESET);
         info.add(
             EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.steam_hub.steam_buffer")
@@ -1109,7 +1184,7 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
                 EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.shared.screwdriver_overflow"))
             .addInfo(
                 EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.tooltip.shared.overflow_input_desc"))
-            .beginStructureBlock(9, 3, 9, false)
+            .beginStructureBlock(9, 5, 9, false)
             .addController(StatCollector.translateToLocal("gtsr.tooltip.steam_hub.ctrl"))
             .addOtherStructurePart(
                 StatCollector.translateToLocal("gtsr.tooltip.steam_hub.hub_input"),

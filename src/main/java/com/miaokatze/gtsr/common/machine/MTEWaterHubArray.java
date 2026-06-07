@@ -58,13 +58,16 @@ import gregtech.api.render.TextureFactory;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.IGTHatchAdder;
 import gregtech.api.util.MultiblockTooltipBuilder;
+import gregtech.common.misc.GTStructureChannels;
 
 public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray>
     implements IConstructable, ISurvivalConstructable, com.miaokatze.gtsr.common.machine.base.IHubArray {
 
-    private static final String STRUCTURE_PIECE_MAIN = "main";
+    private static final String STRUCTURE_PIECE_BASE = "base";
+    private static final String STRUCTURE_PIECE_STACK = "stack";
+    private static final String STRUCTURE_PIECE_CAP = "cap";
     private static final int HORIZONTAL_OFF_SET = 3;
-    private static final int VERTICAL_OFF_SET = 1;
+    private static final int VERTICAL_OFF_SET = 0;
     private static final int DEPTH_OFF_SET = 0;
     private static final int AUTO_OUTPUT_RATE = 128_000;
     private static final int HUB_UNIT_CAPACITY = 64_000;
@@ -81,10 +84,17 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
     static {
         STRUCTURE_DEFINITION = StructureDefinition.<MTEWaterHubArray>builder()
             .addShape(
-                STRUCTURE_PIECE_MAIN,
+                STRUCTURE_PIECE_BASE,
                 transpose(
-                    new String[][] { { "       ", "  DCD  ", " DAAAD ", "ECAAACE", " DAAAD ", "  DCD  ", "   E   " },
-                        { "  C~C  ", " CDCDC ", "CDCCCDC", "ECCCCCE", "CDCCCDC", " CDCDC ", "  CEC  " } }))
+                    new String[][] { { "  C~C  ", " CDCDC ", "CDCCCDC", "ECCCCCE", "CDCCCDC", " CDCDC ", "  CEC  " } }))
+            .addShape(
+                STRUCTURE_PIECE_STACK,
+                transpose(
+                    new String[][] { { "       ", "  DCD  ", " DAAAD ", "ECAAACE", " DAAAD ", "  DCD  ", "   E   " } }))
+            .addShape(
+                STRUCTURE_PIECE_CAP,
+                transpose(
+                    new String[][] { { "   C   ", "  CDC  ", " CCCCC ", "DCCCCCD", " CCCCC ", "  CDC  ", "   C   " } }))
             .addElement(
                 'A',
                 ofChain(
@@ -101,26 +111,28 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
                                         Pair.of(GregTechAPI.sBlockCasings1, 10),
                                         Pair.of(GregTechAPI.sBlockCasings2, 0)),
                                     -1,
-                                    (MTEWaterHubArray t, Integer tier) -> t.mSetTier = tier,
-                                    (MTEWaterHubArray t) -> t.mSetTier)))))
+                                    (MTEWaterHubArray t, Integer tier) -> t.mCasingTier = tier,
+                                    (MTEWaterHubArray t) -> t.mCasingTier)))))
             .addElement(
                 'C',
                 ofChain(
-                    buildHatchAdder(MTEWaterHubArray.class)
-                        .atLeast(WaterHubHatchElement.WaterInput, WaterHubHatchElement.WaterOutput)
+                    buildHatchAdder(MTEWaterHubArray.class).atLeast(WaterHubHatchElement.WaterOutput)
                         .casingIndex(CASING_INDEX)
                         .dot(1)
-                        .buildAndChain(
-                            onElementPass(
-                                MTEWaterHubArray::onCasingAdded,
-                                ofBlocksTiered(
-                                    MTEWaterHubArray::getCasingTier,
-                                    ImmutableList.of(
-                                        Pair.of(GregTechAPI.sBlockCasings1, 10),
-                                        Pair.of(GregTechAPI.sBlockCasings2, 0)),
-                                    -1,
-                                    (MTEWaterHubArray t, Integer tier) -> t.mSetTier = tier,
-                                    (MTEWaterHubArray t) -> t.mSetTier)))))
+                        .build(),
+                    buildHatchAdder(MTEWaterHubArray.class).atLeast(WaterHubHatchElement.WaterInput)
+                        .casingIndex(CASING_INDEX)
+                        .dot(1)
+                        .build(),
+                    onElementPass(
+                        MTEWaterHubArray::onCasingAdded,
+                        ofBlocksTiered(
+                            MTEWaterHubArray::getCasingTier,
+                            ImmutableList
+                                .of(Pair.of(GregTechAPI.sBlockCasings1, 10), Pair.of(GregTechAPI.sBlockCasings2, 0)),
+                            -1,
+                            (MTEWaterHubArray t, Integer tier) -> t.mCasingTier = tier,
+                            (MTEWaterHubArray t) -> t.mCasingTier))))
             .addElement(
                 'D',
                 onElementPass(
@@ -130,8 +142,8 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
                         ImmutableList
                             .of(Pair.of(GregTechAPI.sBlockCasings2, 12), Pair.of(GregTechAPI.sBlockCasings2, 13)),
                         -1,
-                        (MTEWaterHubArray t, Integer tier) -> t.mSetTier = tier,
-                        (MTEWaterHubArray t) -> t.mSetTier)))
+                        (MTEWaterHubArray t, Integer tier) -> t.mPipeTier = tier,
+                        (MTEWaterHubArray t) -> t.mPipeTier)))
             .addElement(
                 'E',
                 onElementPass(
@@ -142,8 +154,8 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
                             Pair.of(GregTechAPI.sBlockFrames, Materials.Bronze.mMetaItemSubID),
                             Pair.of(GregTechAPI.sBlockFrames, Materials.Steel.mMetaItemSubID)),
                         -1,
-                        (MTEWaterHubArray t, Integer tier) -> t.mSetTier = tier,
-                        (MTEWaterHubArray t) -> t.mSetTier)))
+                        (MTEWaterHubArray t, Integer tier) -> t.mFrameTier = tier,
+                        (MTEWaterHubArray t) -> t.mFrameTier)))
             .build();
     }
 
@@ -270,6 +282,10 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
     private int mReinforcedHubUnitCount = 0;
     private int mCasingAmount = 0;
     private int mSetTier = -1;
+    private int mCasingTier = -1;
+    private int mPipeTier = -1;
+    private int mFrameTier = -1;
+    private int mStackCount = 0;
     private long mWaterStored = 0;
     private String mStoredFluidType = null;
     public boolean mOverflowInput = false;
@@ -312,12 +328,27 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
         mReinforcedHubUnitCount = 0;
         mCasingAmount = 0;
         mSetTier = -1;
+        mCasingTier = -1;
+        mPipeTier = -1;
+        mFrameTier = -1;
+        mStackCount = 0;
         mWaterInputHatches.clear();
         mWaterOutputHatches.clear();
 
-        if (!checkPiece(STRUCTURE_PIECE_MAIN, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET)) return false;
+        if (!checkPiece(STRUCTURE_PIECE_BASE, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET)) return false;
 
-        if (mSetTier <= 0) return false;
+        for (int i = 0; i < 3; i++) {
+            int bOffset = 1 + i;
+            if (!checkPiece(STRUCTURE_PIECE_STACK, HORIZONTAL_OFF_SET, bOffset, DEPTH_OFF_SET)) break;
+            mStackCount++;
+        }
+
+        if (mStackCount == 0) return false;
+
+        // Validate all tier fields are consistent
+        if (mCasingTier <= 0 || mPipeTier <= 0 || mFrameTier <= 0) return false;
+        if (mCasingTier != mPipeTier || mCasingTier != mFrameTier) return false;
+        mSetTier = mCasingTier;
 
         if (mSetTier == 1 && mReinforcedHubUnitCount > 0) return false;
         if (mSetTier >= 2 && mHubUnitCount > 0) return false;
@@ -481,14 +512,20 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
 
     @Override
     public void construct(ItemStack stackSize, boolean hintsOnly) {
-        buildPiece(STRUCTURE_PIECE_MAIN, stackSize, hintsOnly, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET);
+        buildPiece(STRUCTURE_PIECE_BASE, stackSize, hintsOnly, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET);
+        int tTotalHeight = Math.max(2, GTStructureChannels.STRUCTURE_HEIGHT.getValueClamped(stackSize, 2, 4));
+        int stackCount = tTotalHeight - 1;
+        for (int i = 0; i < stackCount; i++) {
+            int bOffset = 1 + i;
+            buildPiece(STRUCTURE_PIECE_STACK, stackSize, hintsOnly, HORIZONTAL_OFF_SET, bOffset, DEPTH_OFF_SET);
+        }
     }
 
     @Override
     public int survivalConstruct(ItemStack stackSize, int elementBudget, ISurvivalBuildEnvironment env) {
         if (mMachine) return -1;
-        return survivalBuildPiece(
-            STRUCTURE_PIECE_MAIN,
+        int built = survivalBuildPiece(
+            STRUCTURE_PIECE_BASE,
             stackSize,
             HORIZONTAL_OFF_SET,
             VERTICAL_OFF_SET,
@@ -497,15 +534,31 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
             env,
             false,
             true);
+        if (built >= 0) return built;
+        int tTotalHeight = Math.max(2, GTStructureChannels.STRUCTURE_HEIGHT.getValueClamped(stackSize, 2, 4));
+        int stackCount = tTotalHeight - 1;
+        for (int i = 0; i < stackCount; i++) {
+            int bOffset = 1 + i;
+            built = survivalBuildPiece(
+                STRUCTURE_PIECE_STACK,
+                stackSize,
+                HORIZONTAL_OFF_SET,
+                bOffset,
+                DEPTH_OFF_SET,
+                elementBudget,
+                env,
+                false,
+                true);
+            if (built >= 0) return built;
+        }
+        return -1;
     }
 
     @Override
     public String[] getStructureDescription(ItemStack stackSize) {
-        return new String[] { EnumChatFormatting.AQUA + "Structure:",
-            "1. 7x7x2 fixed structure with Bronze/Steel dual-tier casing",
-            "2. Layer 0: Storage unit slots (A) surrounded by Frames (E) and Pipes (D)",
-            "3. Layer 1: Controller (~) with Pipes (D), Casing (C), Frames (E)",
-            "4. At least 1 Input Hatch and 1 Output Hatch required" };
+        return new String[] { EnumChatFormatting.AQUA + "Structure:", "1. BASE (1 layer): Controller layer (bottom)",
+            "2. STACK (1 layer): Repeatable storage unit layer (1~3, on top of BASE)",
+            "3. Total height: 2~4 layers (7x7x2 to 7x7x4)", "4. At least 1 Input Hatch and 1 Output Hatch required" };
     }
 
     @Override
@@ -837,6 +890,9 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
         aNBT.setInteger("mHubUnitCount", mHubUnitCount);
         aNBT.setInteger("mReinforcedHubUnitCount", mReinforcedHubUnitCount);
         aNBT.setInteger("mSetTier", mSetTier);
+        aNBT.setInteger("mCasingTier", mCasingTier);
+        aNBT.setInteger("mPipeTier", mPipeTier);
+        aNBT.setInteger("mFrameTier", mFrameTier);
         aNBT.setBoolean("mOverflowInput", mOverflowInput);
         if (mStoredFluidType != null) {
             aNBT.setString("mStoredFluidType", mStoredFluidType);
@@ -861,6 +917,9 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
         mHubUnitCount = aNBT.getInteger("mHubUnitCount");
         mReinforcedHubUnitCount = aNBT.getInteger("mReinforcedHubUnitCount");
         mSetTier = aNBT.getInteger("mSetTier");
+        mCasingTier = aNBT.getInteger("mCasingTier");
+        mPipeTier = aNBT.getInteger("mPipeTier");
+        mFrameTier = aNBT.getInteger("mFrameTier");
         mOverflowInput = aNBT.getBoolean("mOverflowInput");
         if (aNBT.hasKey("mStoredFluidType")) {
             mStoredFluidType = aNBT.getString("mStoredFluidType");
@@ -948,7 +1007,8 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
                         + " "
                         + EnumChatFormatting.GOLD
                         + (mHubUnitCount + mReinforcedHubUnitCount)
-                        + "/9"
+                        + "/"
+                        + (9 * mStackCount)
                         + EnumChatFormatting.RESET))
             .widget(
                 new TextWidget().setStringSupplier(
@@ -969,6 +1029,7 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
                         + EnumChatFormatting.RESET))
             .widget(new FakeSyncWidget.IntegerSyncer(() -> mSetTier, val -> mSetTier = val))
             .widget(new FakeSyncWidget.IntegerSyncer(() -> mMaxProgresstime, val -> mMaxProgresstime = val))
+            .widget(new FakeSyncWidget.IntegerSyncer(() -> mStackCount, val -> mStackCount = val))
             .widget(new FakeSyncWidget.IntegerSyncer(() -> mHubUnitCount, val -> mHubUnitCount = val))
             .widget(
                 new FakeSyncWidget.IntegerSyncer(() -> mReinforcedHubUnitCount, val -> mReinforcedHubUnitCount = val))
@@ -1006,7 +1067,8 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
                 + " "
                 + EnumChatFormatting.GOLD
                 + totalUnits
-                + "/25"
+                + "/"
+                + (9 * mStackCount)
                 + EnumChatFormatting.RESET);
         info.add(
             EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.water_hub.water_buffer")
@@ -1028,7 +1090,7 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
                 EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.shared.screwdriver_overflow"))
             .addInfo(
                 EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.tooltip.shared.overflow_input_desc"))
-            .beginStructureBlock(9, 3, 9, false)
+            .beginStructureBlock(7, 4, 7, false)
             .addController(StatCollector.translateToLocal("gtsr.tooltip.water_hub.ctrl"))
             .addOtherStructurePart(
                 StatCollector.translateToLocal("gtsr.tooltip.water_hub.hub_input"),
