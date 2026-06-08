@@ -65,7 +65,7 @@ public class MTESteamSingularityCompressor extends MTESteamMultiBase<MTESteamSin
     private static final int DEPTH_OFF_SET = 2;
 
     private static final int STEAM_L_EUT = 6000;
-    private static final double HEAT_UP_PER_RECIPE = 0.0002d;
+    private static final double HEAT_UP_PER_RECIPE = 0.1d; // Temporarily 10%/s for testing, original: 0.0002d
     private static final double HEAT_DOWN_RATE = 0.001d;
     private static final long STOP_THRESHOLD = 1200;
     private static final int HEAT_RECIPE_TIME = 20;
