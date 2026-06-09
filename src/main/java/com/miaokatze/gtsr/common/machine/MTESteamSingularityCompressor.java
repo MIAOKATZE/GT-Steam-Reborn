@@ -278,6 +278,15 @@ public class MTESteamSingularityCompressor extends MTESteamMultiBase<MTESteamSin
 
     @Override
     public CheckRecipeResult checkProcessing() {
+        // Check if there's enough steam before starting a recipe
+        long aSteamVal = ((long) STEAM_L_EUT * 10000) / Math.max(1000, mEfficiency);
+        if (hasSuperheatedSteamInHatch()) {
+            aSteamVal *= 4;
+        }
+        if (getTotalSteamStored() < aSteamVal) {
+            return CheckRecipeResultRegistry.NO_RECIPE;
+        }
+
         lEUt = -STEAM_L_EUT;
         mMaxProgresstime = HEAT_RECIPE_TIME;
         mEfficiency = 10000;

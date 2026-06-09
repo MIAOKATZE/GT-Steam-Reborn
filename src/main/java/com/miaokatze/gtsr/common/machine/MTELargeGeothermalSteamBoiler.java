@@ -234,12 +234,6 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
                             .dot(1)
                             .shouldReject(MTELargeGeothermalSteamBoiler::hasSteamOutputHatch)
                             .build(),
-                        buildHatchAdder(MTELargeGeothermalSteamBoiler.class)
-                            .adder(MTELargeGeothermalSteamBoiler::addSteamBusOutputToMachineList)
-                            .hatchClass(MTEHatchSteamBusOutput.class)
-                            .casingIndex(bronzeCasingIndex)
-                            .dot(1)
-                            .build(),
                         buildHatchAdder(MTELargeGeothermalSteamBoiler.class).atLeast(OutputBus)
                             .casingIndex(bronzeCasingIndex)
                             .dot(1)
@@ -252,8 +246,17 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
                                             Pair.of(GregTechAPI.sBlockCasings1, 10),
                                             Pair.of(GregTechAPI.sBlockCasings2, 0)),
                                         -1,
-                                        (MTELargeGeothermalSteamBoiler t, Integer tier) -> t.mSetTier = tier,
-                                        (MTELargeGeothermalSteamBoiler t) -> t.mSetTier)))))
+                                        (MTELargeGeothermalSteamBoiler t, Integer tier) -> {
+                                            if (tier > t.mSetTier) t.mSetTier = tier;
+                                        },
+                                        (MTELargeGeothermalSteamBoiler t) -> t.mSetTier))),
+                        buildHatchAdder(MTELargeGeothermalSteamBoiler.class)
+                            .adder(MTELargeGeothermalSteamBoiler::addSteamBusOutputToMachineList)
+                            .hatchClass(MTEHatchSteamBusOutput.class)
+                            .casingIndex(bronzeCasingIndex)
+                            .dot(1)
+                            .shouldReject(MTELargeGeothermalSteamBoiler::hasSteamBusOutput)
+                            .build()))
                 .addElement(
                     'C',
                     onElementPass(
@@ -318,6 +321,11 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
 
     private boolean hasSteamOutputHatch() {
         return !mSteamOutputHatches.isEmpty() || !mPressureSteamOutputHatches.isEmpty();
+    }
+
+    private boolean hasSteamBusOutput() {
+        return mOutputBusses.stream()
+            .anyMatch(h -> h instanceof MTEHatchSteamBusOutput);
     }
 
     private boolean addSteamOutputToMachineList(IGregTechTileEntity aTileEntity, int aBaseCasingIndex) {
@@ -415,14 +423,14 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
         java.util.ArrayList<ItemStack> outputs = new java.util.ArrayList<>();
         java.util.Random rng = getBaseMetaTileEntity().getWorld().rand;
 
-        // 45% 黑曜石
-        if (rng.nextDouble() < 0.45) outputs.add(new ItemStack(Blocks.obsidian, 1));
-        // 15% 灰烬粉
-        if (rng.nextDouble() < 0.15) outputs.add(GTOreDictUnificator.get(OrePrefixes.dust, Materials.Ash, 1));
-        // 10% 硫粉
-        if (rng.nextDouble() < 0.10) outputs.add(GTOreDictUnificator.get(OrePrefixes.dust, Materials.Sulfur, 1));
-        // 8% 钽铁矿粉
-        if (rng.nextDouble() < 0.08) outputs.add(GTOreDictUnificator.get(OrePrefixes.dust, Materials.Tantalite, 1));
+        // 20% 黑曜石
+        if (rng.nextDouble() < 0.20) outputs.add(new ItemStack(Blocks.obsidian, 1));
+        // 10% 灰烬粉
+        if (rng.nextDouble() < 0.10) outputs.add(GTOreDictUnificator.get(OrePrefixes.dust, Materials.Ash, 1));
+        // 8% 硫粉
+        if (rng.nextDouble() < 0.08) outputs.add(GTOreDictUnificator.get(OrePrefixes.dust, Materials.Sulfur, 1));
+        // 4% 钽铁矿粉
+        if (rng.nextDouble() < 0.04) outputs.add(GTOreDictUnificator.get(OrePrefixes.dust, Materials.Tantalite, 1));
         // 6% 氧化铝粉
         if (rng.nextDouble() < 0.06)
             outputs.add(GTOreDictUnificator.get(OrePrefixes.dust, Materials.Aluminiumoxide, 1));
