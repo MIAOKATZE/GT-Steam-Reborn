@@ -17,7 +17,7 @@ import gregtech.api.util.GTUtility;
 
 public class MTEOverpressureTurbineInputHatch extends MTEHatchInput {
 
-    private static final long CAPACITY = 2_560_000_000L;
+    private static final long CAPACITY = 2_000_000_000L;
     private static final int DEFAULT_TEXTURE_INDEX = GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings8, 6);
 
     private long mSteamStored = 0;
@@ -118,10 +118,28 @@ public class MTEOverpressureTurbineInputHatch extends MTEHatchInput {
     }
 
     @Override
+    public FluidStack getFillableStack() {
+        return getFluid();
+    }
+
+    @Override
     public boolean isFluidInputAllowed(FluidStack aFluid) {
         if (aFluid == null) return false;
         Fluid fluid = aFluid.getFluid();
-        return MTESteamHubOutputHatch.isAnySteamFluidType(fluid);
+        if (fluid == null) return false;
+        String name = fluid.getName();
+        if (name == null) return false;
+        switch (name) {
+            case "steam":
+            case "ic2superheatedsteam":
+            case "densesteam":
+            case "densesuperheatedsteam":
+            case "supercriticalsteam":
+            case "densesupercriticalsteam":
+                return true;
+            default:
+                return false;
+        }
     }
 
     @Override

@@ -1015,11 +1015,21 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
     @Override
     public boolean addToMachineList(IGregTechTileEntity tTileEntity, int aBaseCasingIndex) {
         return addPressureSteamToMachineList(tTileEntity, aBaseCasingIndex)
+            || addOverpressureInputToMachineList(tTileEntity, aBaseCasingIndex)
             || addSteamCoolingToMachineList(tTileEntity, aBaseCasingIndex)
             || addPressureCoolingToMachineList(tTileEntity, aBaseCasingIndex)
             || addInputToMachineList(tTileEntity, aBaseCasingIndex)
             || addOutputToMachineList(tTileEntity, aBaseCasingIndex)
             || addDynamoToMachineList(tTileEntity, aBaseCasingIndex);
+    }
+
+    @Override
+    public boolean addInputToMachineList(IGregTechTileEntity aTileEntity, int aBaseCasingIndex) {
+        // Exclude MTEOverpressureTurbineInputHatch - it has its own adder
+        if (aTileEntity != null && aTileEntity.getMetaTileEntity() instanceof MTEOverpressureTurbineInputHatch) {
+            return false;
+        }
+        return super.addInputToMachineList(aTileEntity, aBaseCasingIndex);
     }
 
     @Override
