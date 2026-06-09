@@ -651,7 +651,7 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         }
         for (MTEOverpressureTurbineInputHatch hatch : mOverpressureInputs) {
             FluidStack fs = hatch.getFluid();
-            if (fs != null && hatch.getSteamStored() > 0) {
+            if (fs != null && fs.amount > 0) {
                 SteamType type = classifyFluid(fs);
                 if (type != SteamType.NONE) availableTypes.add(type);
             }
@@ -797,8 +797,7 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         }
         for (MTEOverpressureTurbineInputHatch hatch : mOverpressureInputs) {
             FluidStack fs = hatch.getFluid();
-            if (fs != null && classifyFluid(fs) == type)
-                total += (int) Math.min(hatch.getSteamStored(), Integer.MAX_VALUE);
+            if (fs != null && classifyFluid(fs) == type) total += fs.amount;
         }
         return total;
     }
@@ -829,7 +828,7 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         for (MTEOverpressureTurbineInputHatch hatch : mOverpressureInputs) {
             FluidStack fs = hatch.getFluid();
             if (fs != null && classifyFluid(fs) == type) {
-                int canDrain = (int) Math.min(hatch.getSteamStored(), remaining);
+                int canDrain = Math.min(fs.amount, remaining);
                 if (canDrain > 0) {
                     hatch.consumeSteam(canDrain);
                     remaining -= canDrain;

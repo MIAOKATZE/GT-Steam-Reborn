@@ -2,8 +2,6 @@ package com.miaokatze.gtsr.common.machine.base;
 
 import java.lang.reflect.Field;
 
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 import net.minecraftforge.fluids.Fluid;
@@ -15,22 +13,25 @@ import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.implementations.MTEHatchInput;
 import gregtech.api.util.GTUtility;
 
+/**
+ * Overpressure Turbine Input Hatch - a specialized input hatch that only accepts steam fluids.
+ * Uses the standard MTEBasicTank mFluid storage (no dual storage).
+ */
 public class MTEOverpressureTurbineInputHatch extends MTEHatchInput {
 
-    private static final long CAPACITY = 2_000_000_000L;
+    private static final int CAPACITY = 2_000_000_000;
     private static final int DEFAULT_TEXTURE_INDEX = GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings8, 6);
-
-    private long mSteamStored = 0;
-    private FluidStack mStoredFluidType = null;
 
     public MTEOverpressureTurbineInputHatch(int aID, String aName, String aNameRegional) {
         super(aID, aName, aNameRegional, 1);
+        setCustomCapacity(CAPACITY);
         setDefaultTextureIndex();
     }
 
     public MTEOverpressureTurbineInputHatch(String aName, int aTier, String[] aDescription,
         gregtech.api.interfaces.ITexture[][][] aTextures) {
         super(aName, aTier, aDescription, aTextures);
+        setCustomCapacity(CAPACITY);
         setDefaultTextureIndex();
     }
 
@@ -51,75 +52,6 @@ public class MTEOverpressureTurbineInputHatch extends MTEHatchInput {
     @Override
     public MetaTileEntity newMetaEntity(IGregTechTileEntity aTileEntity) {
         return new MTEOverpressureTurbineInputHatch(mName, mTier, mDescriptionArray, mTextures);
-    }
-
-    @Override
-    public boolean onRightclick(IGregTechTileEntity aBaseMetaTileEntity, EntityPlayer aPlayer) {
-        return super.onRightclick(aBaseMetaTileEntity, aPlayer);
-    }
-
-    @Override
-    public int fill(FluidStack aFluid, boolean doFill) {
-        if (aFluid == null || aFluid.getFluid() == null) return 0;
-        if (!isFluidInputAllowed(aFluid)) return 0;
-        if (mStoredFluidType != null && !mStoredFluidType.isFluidEqual(aFluid)) return 0;
-        long canAccept = CAPACITY - mSteamStored;
-        int toAccept = (int) Math.min(aFluid.amount, canAccept);
-        if (doFill && toAccept > 0) {
-            if (mStoredFluidType == null) {
-                mStoredFluidType = new FluidStack(aFluid.getFluid(), 0);
-            }
-            mSteamStored += toAccept;
-        }
-        return toAccept;
-    }
-
-    @Override
-    public int fill(net.minecraftforge.common.util.ForgeDirection side, FluidStack aFluid, boolean doFill) {
-        return fill(aFluid, doFill);
-    }
-
-    @Override
-    public FluidStack drain(int maxDrain, boolean doDrain) {
-        if (mSteamStored <= 0 || mStoredFluidType == null) return null;
-        int toDrain = (int) Math.min(maxDrain, mSteamStored);
-        FluidStack result = new FluidStack(mStoredFluidType.getFluid(), toDrain);
-        if (doDrain) {
-            mSteamStored -= toDrain;
-            if (mSteamStored <= 0) {
-                mSteamStored = 0;
-                mStoredFluidType = null;
-            }
-        }
-        return result;
-    }
-
-    @Override
-    public FluidStack drain(net.minecraftforge.common.util.ForgeDirection side, FluidStack aFluid, boolean doDrain) {
-        if (aFluid == null || !aFluid.isFluidEqual(mStoredFluidType)) return null;
-        return drain(aFluid.amount, doDrain);
-    }
-
-    @Override
-    public FluidStack drain(net.minecraftforge.common.util.ForgeDirection side, int maxDrain, boolean doDrain) {
-        return drain(maxDrain, doDrain);
-    }
-
-    @Override
-    public int getCapacity() {
-        return (int) Math.min(CAPACITY, Integer.MAX_VALUE);
-    }
-
-    @Override
-    public FluidStack getFluid() {
-        if (mStoredFluidType == null || mSteamStored <= 0) return null;
-        int amount = (int) Math.min(mSteamStored, Integer.MAX_VALUE);
-        return new FluidStack(mStoredFluidType.getFluid(), amount);
-    }
-
-    @Override
-    public FluidStack getFillableStack() {
-        return getFluid();
     }
 
     @Override
@@ -144,43 +76,19 @@ public class MTEOverpressureTurbineInputHatch extends MTEHatchInput {
 
     @Override
     public boolean doesEmptyContainers() {
-        return false;
+        return true;
     }
 
-    public long getSteamStored() {
-        return mSteamStored;
-    }
-
-    public FluidStack getStoredFluidType() {
-        return mStoredFluidType;
-    }
-
-    public void consumeSteam(long amount) {
-        mSteamStored -= amount;
-        if (mSteamStored <= 0) {
-            mSteamStored = 0;
-            mStoredFluidType = null;
+    /**
+     * Consume steam from this hatch. Used by the turbine array.
+     */
+    public void consumeSteam(int amount) {
+        if (mFluid == null || amount <= 0) return;
+        mFluid.amount -= amount;
+        if (mFluid.amount <= 0) {
+            mFluid = null;
         }
-    }
-
-    @Override
-    public void saveNBTData(NBTTagCompound aNBT) {
-        super.saveNBTData(aNBT);
-        aNBT.setLong("mSteamStored", mSteamStored);
-        if (mStoredFluidType != null) {
-            NBTTagCompound fluidTag = new NBTTagCompound();
-            mStoredFluidType.writeToNBT(fluidTag);
-            aNBT.setTag("mStoredFluidType", fluidTag);
-        }
-    }
-
-    @Override
-    public void loadNBTData(NBTTagCompound aNBT) {
-        super.loadNBTData(aNBT);
-        mSteamStored = aNBT.getLong("mSteamStored");
-        if (aNBT.hasKey("mStoredFluidType")) {
-            mStoredFluidType = FluidStack.loadFluidStackFromNBT(aNBT.getCompoundTag("mStoredFluidType"));
-        }
+        getBaseMetaTileEntity().markDirty();
     }
 
     @Override
