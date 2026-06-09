@@ -317,7 +317,7 @@ public class MTESteamSingularityCompressor extends MTESteamMultiBase<MTESteamSin
             mStartUpCheck--;
         }
 
-        if (mMaxProgresstime <= 0) {
+        if (!aBaseMetaTileEntity.isAllowedToWork() || mMaxProgresstime <= 0) {
             mStoppedTicks++;
             if (mStoppedTicks > STOP_THRESHOLD && mStartUpCheck <= 0) {
                 mHeat = Math.max(0.0d, mHeat - HEAT_DOWN_RATE);

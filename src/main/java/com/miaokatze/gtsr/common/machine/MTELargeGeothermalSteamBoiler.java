@@ -1,5 +1,6 @@
 package com.miaokatze.gtsr.common.machine;
 
+import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlock;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlocksTiered;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
@@ -154,27 +155,6 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
         return null;
     }
 
-    @Nullable
-    public static Integer getPipeTier(Block block, int meta) {
-        if (block == GregTechAPI.sBlockCasings2 && meta == 12) return 1;
-        if (block == GregTechAPI.sBlockCasings2 && meta == 13) return 2;
-        return null;
-    }
-
-    @Nullable
-    public static Integer getGearTier(Block block, int meta) {
-        if (block == GregTechAPI.sBlockCasings2 && meta == 2) return 1;
-        if (block == GregTechAPI.sBlockCasings2 && meta == 3) return 2;
-        return null;
-    }
-
-    @Nullable
-    public static Integer getFireboxTier(Block block, int meta) {
-        if (block == GregTechAPI.sBlockCasings3 && meta == 13) return 1;
-        if (block == GregTechAPI.sBlockCasings3 && meta == 14) return 2;
-        return null;
-    }
-
     protected int getCasingTextureID() {
         if (mSetTier == 2) {
             return ((BlockCasings2) GregTechAPI.sBlockCasings2).getTextureIndex(0);
@@ -255,47 +235,34 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
                             .hatchClass(MTEHatchSteamBusOutput.class)
                             .casingIndex(bronzeCasingIndex)
                             .dot(1)
-                            .shouldReject(MTELargeGeothermalSteamBoiler::hasSteamBusOutput)
                             .build()))
                 .addElement(
                     'C',
-                    onElementPass(
-                        MTELargeGeothermalSteamBoiler::onCasingAdded,
-                        ofBlocksTiered(
-                            MTELargeGeothermalSteamBoiler::getPipeTier,
-                            ImmutableList
-                                .of(Pair.of(GregTechAPI.sBlockCasings2, 12), Pair.of(GregTechAPI.sBlockCasings2, 13)),
-                            -1,
-                            (MTELargeGeothermalSteamBoiler t, Integer tier) -> {
-                                if (tier > t.mSetTier) t.mSetTier = tier;
-                            },
-                            (MTELargeGeothermalSteamBoiler t) -> t.mSetTier)))
+                    ofChain(
+                        onElementPass(
+                            MTELargeGeothermalSteamBoiler::onCasingAddedTier2,
+                            ofBlock(GregTechAPI.sBlockCasings2, 13)),
+                        onElementPass(
+                            MTELargeGeothermalSteamBoiler::onCasingAddedTier1,
+                            ofBlock(GregTechAPI.sBlockCasings2, 12))))
                 .addElement(
                     'D',
-                    onElementPass(
-                        MTELargeGeothermalSteamBoiler::onCasingAdded,
-                        ofBlocksTiered(
-                            MTELargeGeothermalSteamBoiler::getGearTier,
-                            ImmutableList
-                                .of(Pair.of(GregTechAPI.sBlockCasings2, 2), Pair.of(GregTechAPI.sBlockCasings2, 3)),
-                            -1,
-                            (MTELargeGeothermalSteamBoiler t, Integer tier) -> {
-                                if (tier > t.mSetTier) t.mSetTier = tier;
-                            },
-                            (MTELargeGeothermalSteamBoiler t) -> t.mSetTier)))
+                    ofChain(
+                        onElementPass(
+                            MTELargeGeothermalSteamBoiler::onCasingAddedTier2,
+                            ofBlock(GregTechAPI.sBlockCasings2, 3)),
+                        onElementPass(
+                            MTELargeGeothermalSteamBoiler::onCasingAddedTier1,
+                            ofBlock(GregTechAPI.sBlockCasings2, 2))))
                 .addElement(
                     'E',
-                    onElementPass(
-                        MTELargeGeothermalSteamBoiler::onCasingAdded,
-                        ofBlocksTiered(
-                            MTELargeGeothermalSteamBoiler::getFireboxTier,
-                            ImmutableList
-                                .of(Pair.of(GregTechAPI.sBlockCasings3, 13), Pair.of(GregTechAPI.sBlockCasings3, 14)),
-                            -1,
-                            (MTELargeGeothermalSteamBoiler t, Integer tier) -> {
-                                if (tier > t.mSetTier) t.mSetTier = tier;
-                            },
-                            (MTELargeGeothermalSteamBoiler t) -> t.mSetTier)))
+                    ofChain(
+                        onElementPass(
+                            MTELargeGeothermalSteamBoiler::onCasingAddedTier2,
+                            ofBlock(GregTechAPI.sBlockCasings3, 14)),
+                        onElementPass(
+                            MTELargeGeothermalSteamBoiler::onCasingAddedTier1,
+                            ofBlock(GregTechAPI.sBlockCasings3, 13))))
                 .addElement(
                     'F',
                     onElementPass(
@@ -319,13 +286,18 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
         mCasingCount++;
     }
 
-    private boolean hasSteamOutputHatch() {
-        return !mSteamOutputHatches.isEmpty() || !mPressureSteamOutputHatches.isEmpty();
+    private void onCasingAddedTier1() {
+        mCasingCount++;
+        mSetTier = Math.max(mSetTier, 1);
     }
 
-    private boolean hasSteamBusOutput() {
-        return mOutputBusses.stream()
-            .anyMatch(h -> h instanceof MTEHatchSteamBusOutput);
+    private void onCasingAddedTier2() {
+        mCasingCount++;
+        mSetTier = Math.max(mSetTier, 2);
+    }
+
+    private boolean hasSteamOutputHatch() {
+        return !mSteamOutputHatches.isEmpty() || !mPressureSteamOutputHatches.isEmpty();
     }
 
     private boolean addSteamOutputToMachineList(IGregTechTileEntity aTileEntity, int aBaseCasingIndex) {
@@ -393,7 +365,7 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
             return !mSteamOutputHatches.isEmpty();
         }
         if (mSetTier == 2 || hasChip) {
-            return !mPressureSteamOutputHatches.isEmpty();
+            return !mPressureSteamOutputHatches.isEmpty() || !mSteamOutputHatches.isEmpty();
         }
         return !mSteamOutputHatches.isEmpty() || !mPressureSteamOutputHatches.isEmpty();
     }
