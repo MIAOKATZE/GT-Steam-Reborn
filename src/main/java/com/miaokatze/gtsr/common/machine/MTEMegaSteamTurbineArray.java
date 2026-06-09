@@ -622,7 +622,7 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
     @Override
     public CheckRecipeResult checkProcessing() {
         ArrayList<FluidStack> tFluids = getStoredFluids();
-        if (tFluids.isEmpty() && mPressureSteamInputs.isEmpty()) {
+        if (tFluids.isEmpty() && mPressureSteamInputs.isEmpty() && mOverpressureInputs.isEmpty()) {
             mEUt = 0;
             mTheoreticalEUt = 0;
             mSteamConsumption = 0;
