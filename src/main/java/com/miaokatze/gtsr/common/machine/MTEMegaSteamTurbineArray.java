@@ -54,6 +54,7 @@ import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.implementations.MTEEnhancedMultiBlockBase;
+import gregtech.api.metatileentity.implementations.MTEHatch;
 import gregtech.api.metatileentity.implementations.MTEHatchDynamo;
 import gregtech.api.recipe.check.CheckRecipeResult;
 import gregtech.api.recipe.check.CheckRecipeResultRegistry;
@@ -66,6 +67,7 @@ import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.api.util.shutdown.ShutDownReason;
 import gregtech.api.util.shutdown.ShutDownReasonRegistry;
 import gregtech.common.misc.GTStructureChannels;
+import tectech.thing.metaTileEntity.hatch.MTEHatchDynamoMulti;
 
 public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaSteamTurbineArray>
     implements IConstructable, ISurvivalConstructable {
@@ -92,6 +94,7 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
     private final List<MTEOverpressureTurbineInputHatch> mOverpressureInputs = new ArrayList<>();
     private final List<MTESteamCoolingHatch> mSteamCoolingHatches = new ArrayList<>();
     private final List<MTEPressureSteamCoolingHatch> mPressureCoolingHatches = new ArrayList<>();
+    private final ArrayList<MTEHatchDynamoMulti> eDynamoMulti = new ArrayList<>();
     protected final List<RenderOverlay.OverlayTicket> overlayTickets = new ArrayList<>();
 
     public MTEMegaSteamTurbineArray(int aID, String aName, String aNameRegional) {
@@ -546,10 +549,11 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         mOverpressureInputs.clear();
         mSteamCoolingHatches.clear();
         mPressureCoolingHatches.clear();
+        eDynamoMulti.clear();
 
         if (!checkPiece(STRUCTURE_PIECE_BASE, 6, 5, 0)) return false;
 
-        for (int i = 0; i < 2; i++) {
+        for (int i = 0; i < 4; i++) {
             int bOffset = 9 + i * 4;
             if (!checkPiece(STRUCTURE_PIECE_STACK, 6, bOffset, 0)) break;
             mStackCount++;
@@ -562,7 +566,7 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
 
         boolean hasInput = !mInputHatches.isEmpty() || hasPressureSteamHatch();
         boolean hasOutput = !mOutputHatches.isEmpty() || hasSteamCoolingHatch() || hasPressureCoolingHatch();
-        if (!hasInput || !hasOutput || mDynamoHatches.isEmpty()) return false;
+        if (!hasInput || !hasOutput || (mDynamoHatches.isEmpty() && eDynamoMulti.isEmpty())) return false;
 
         updateAllHatchTextures();
         return true;
@@ -720,7 +724,34 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         for (MTEHatchDynamo aDynamo : GTUtility.validMTEList(mDynamoHatches)) {
             aTotal += aDynamo.maxAmperesOut() * aDynamo.maxEUOutput();
         }
+        for (MTEHatchDynamoMulti aExoticDynamo : GTUtility.validMTEList(eDynamoMulti)) {
+            aTotal += aExoticDynamo.maxAmperesOut() * aExoticDynamo.maxEUOutput();
+        }
         return aTotal;
+    }
+
+    @Override
+    public boolean addEnergyOutputMultipleDynamos(long aEU, boolean aAllowMixedVoltageDynamos) {
+        // Try standard dynamos first
+        if (!mDynamoHatches.isEmpty()) {
+            if (super.addEnergyOutputMultipleDynamos(aEU, aAllowMixedVoltageDynamos)) {
+                return true;
+            }
+        }
+        // Try exotic (multi-amp) dynamos
+        if (!eDynamoMulti.isEmpty()) {
+            for (MTEHatchDynamoMulti tHatch : GTUtility.validMTEList(eDynamoMulti)) {
+                if (tHatch.maxEUOutput() * tHatch.maxAmperesOut() >= aEU) {
+                    tHatch.setEUVar(
+                        Math.min(
+                            tHatch.maxEUStore(),
+                            tHatch.getBaseMetaTileEntity()
+                                .getStoredEU() + aEU));
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     private SteamType classifyFluid(FluidStack fs) {
@@ -991,9 +1022,26 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
             || addDynamoToMachineList(tTileEntity, aBaseCasingIndex);
     }
 
+    @Override
+    public boolean addDynamoToMachineList(IGregTechTileEntity aTileEntity, int aBaseCasingIndex) {
+        if (aTileEntity == null) return false;
+        IMetaTileEntity aMetaTileEntity = aTileEntity.getMetaTileEntity();
+        if (aMetaTileEntity instanceof MTEHatchDynamo) {
+            ((MTEHatch) aMetaTileEntity).updateTexture(aBaseCasingIndex);
+            return mDynamoHatches.add((MTEHatchDynamo) aMetaTileEntity);
+        } else if (aMetaTileEntity instanceof MTEHatchDynamoMulti) {
+            ((MTEHatch) aMetaTileEntity).updateTexture(aBaseCasingIndex);
+            return eDynamoMulti.add((MTEHatchDynamoMulti) aMetaTileEntity);
+        }
+        return false;
+    }
+
     private void updateAllHatchTextures() {
         int textureIndex = getCasingTextureIndex();
         for (MTEHatchPressureSteamInput hatch : mPressureSteamInputs) {
+            hatch.updateTexture(textureIndex);
+        }
+        for (MTEOverpressureTurbineInputHatch hatch : mOverpressureInputs) {
             hatch.updateTexture(textureIndex);
         }
         for (MTESteamCoolingHatch hatch : mSteamCoolingHatches) {
@@ -1011,12 +1059,15 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         for (var dynamoHatch : GTUtility.validMTEList(mDynamoHatches)) {
             dynamoHatch.updateTexture(textureIndex);
         }
+        for (var exoticDynamoHatch : GTUtility.validMTEList(eDynamoMulti)) {
+            exoticDynamoHatch.updateTexture(textureIndex);
+        }
     }
 
     @Override
     public void construct(ItemStack stackSize, boolean hintsOnly) {
         buildPiece(STRUCTURE_PIECE_BASE, stackSize, hintsOnly, 6, 5, 0);
-        int tTotalHeight = Math.max(9, GTStructureChannels.STRUCTURE_HEIGHT.getValueClamped(stackSize, 9, 17));
+        int tTotalHeight = Math.max(9, GTStructureChannels.STRUCTURE_HEIGHT.getValueClamped(stackSize, 9, 25));
         int extraStacks = (tTotalHeight - 9) / 4;
         for (int i = 0; i < extraStacks; i++) {
             int bOffset = 9 + i * 4;
@@ -1031,7 +1082,7 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         if (mMachine) return -1;
         int built = survivalBuildPiece(STRUCTURE_PIECE_BASE, stackSize, 6, 5, 0, elementBudget, env, false, true);
         if (built >= 0) return built;
-        int tTotalHeight = Math.max(9, GTStructureChannels.STRUCTURE_HEIGHT.getValueClamped(stackSize, 9, 17));
+        int tTotalHeight = Math.max(9, GTStructureChannels.STRUCTURE_HEIGHT.getValueClamped(stackSize, 9, 25));
         int extraStacks = (tTotalHeight - 9) / 4;
         for (int i = 0; i < extraStacks; i++) {
             int bOffset = 9 + i * 4;
@@ -1089,7 +1140,7 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         return new String[] { EnumChatFormatting.GRAY + "BASE (7 layers, L8~L2): Controller + 1 baseline stack",
             EnumChatFormatting.GRAY + "STACK (4 layers, L5~L2): Repeatable, each +4 layers",
             EnumChatFormatting.GRAY + "CAP (2 layers, L1~L0): Top cover",
-            EnumChatFormatting.GRAY + "Extra Stacks: 0 ~ 2 (9~17 total height)" };
+            EnumChatFormatting.GRAY + "Extra Stacks: 0 ~ 4 (9~25 total height)" };
     }
 
     @Override
@@ -1115,13 +1166,13 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
             .addDynamoHatch(StatCollector.translateToLocal("gtsr.tooltip.turbine_array.dynamo"), 1)
             .addStructureInfo("")
             .addStructureInfo(
-                EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.shared.bronze_steel_tier"))
+                EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.multi_tier"))
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.casing"), 38, false)
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.gear_box"), 8, false)
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.pipe"), 8, false)
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.frame"), 12, false)
             .addStructureInfo(
-                EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.turbine_array.stack_layers")
+                EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.turbine_array.extra_stack_layers")
                     + EnumChatFormatting.GOLD
                     + "1-4"
                     + EnumChatFormatting.GRAY

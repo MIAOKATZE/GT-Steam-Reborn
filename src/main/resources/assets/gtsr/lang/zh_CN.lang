@@ -875,6 +875,8 @@ gtsr.tooltip.steam_furnace.recipe_based=依配方而定
 
 # 10. Mega Steam Turbine Array - missing keys
 gtsr.gui.turbine_array.stack_layers=堆叠层: 
+gtsr.gui.turbine_array.extra_stack_layers=额外堆叠层: 
+gtsr.tooltip.turbine_array.multi_tier=多 等级
 gtsr.tooltip.turbine_array.each_tier=每层+1等级
 gtsr.gui.turbine_array.output_power=输出功率: 
 gtsr.tooltip.turbine_array.formula=并行数=(1+2×机器等级)+机器数量，外壳等级限制最高供电电压。

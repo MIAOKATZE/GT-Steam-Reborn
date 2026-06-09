@@ -820,6 +820,8 @@ gtsr.tooltip.steam_furnace.recipe_based=Recipe-dependent
 
 # 10. Mega Steam Turbine Array - missing keys
 gtsr.gui.turbine_array.stack_layers=Stack Layers: 
+gtsr.gui.turbine_array.extra_stack_layers=Extra Stack Layers: 
+gtsr.tooltip.turbine_array.multi_tier=Multi Tier
 gtsr.tooltip.turbine_array.each_tier=Each +1 Tier
 gtsr.gui.turbine_array.output_power=Output Power: 
 gtsr.tooltip.turbine_array.formula=Parallel=(1+2*tier)+machine count, casing tier limits max voltage.

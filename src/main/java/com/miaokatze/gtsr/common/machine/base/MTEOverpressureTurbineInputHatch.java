@@ -55,7 +55,7 @@ public class MTEOverpressureTurbineInputHatch extends MTEHatchInput {
 
     @Override
     public boolean onRightclick(IGregTechTileEntity aBaseMetaTileEntity, EntityPlayer aPlayer) {
-        return true;
+        return super.onRightclick(aBaseMetaTileEntity, aPlayer);
     }
 
     @Override
