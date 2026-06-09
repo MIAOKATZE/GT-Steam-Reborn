@@ -57,12 +57,6 @@ public abstract class MTESteamMultiBaseMixin {
         return (MTESteamMultiBase) (Object) this;
     }
 
-    // GTSR Debug: temporary logging method - remove after verification
-    @Unique
-    private void gtsr$log(String message) {
-        System.out.println("[GTSR-Mixin] " + message);
-    }
-
     @Unique
     private boolean gtsr$hasSuperheatedSteamInAnyHatch() {
         for (MTEHatchCustomFluidBase hatch : mSteamInputFluids) {
@@ -98,12 +92,8 @@ public abstract class MTESteamMultiBaseMixin {
                 if (self.mProgresstime == 0) {
                     self.mMaxProgresstime = Math.max(1, self.mMaxProgresstime / 4);
                 }
-                // GTSR Debug
-                gtsr$log("onRunningTick: superheated steam, consumption=" + aSteamVal + ", speed=4x");
             }
             if (!self.tryConsumeSteam((int) aSteamVal)) {
-                // GTSR Debug
-                gtsr$log("onRunningTick: steam consumption FAILED, stopping machine");
                 self.stopMachine(ShutDownReasonRegistry.POWER_LOSS);
                 return false;
             }
@@ -161,13 +151,7 @@ public abstract class MTESteamMultiBaseMixin {
             tHatch.storePartial(aStack, false);
         }
         if (aStack.stackSize <= 0) {
-            // GTSR Debug
-            gtsr$log("addOutput: output to mSteamOutputs (full)");
             return true;
-        }
-        // GTSR Debug: partial output to mSteamOutputs
-        if (!mSteamOutputs.isEmpty()) {
-            gtsr$log("addOutput: mSteamOutputs partial, remaining=" + aStack.stackSize);
         }
 
         // Step 2: Try mOutputBusses (standard output buses - NEW behavior)
@@ -177,13 +161,9 @@ public abstract class MTESteamMultiBaseMixin {
             tHatch.storePartial(aStack, false);
         }
         if (aStack.stackSize <= 0) {
-            // GTSR Debug
-            gtsr$log("addOutput: output to mOutputBusses (full)");
             return true;
         }
 
-        // GTSR Debug
-        gtsr$log("addOutput: FAILED to fully output item, remaining=" + aStack.stackSize);
         return false;
     }
 
@@ -217,8 +197,6 @@ public abstract class MTESteamMultiBaseMixin {
             // Avoid duplicate if already in mOutputBusses (e.g., from a custom adder)
             if (!multiBlockSelf.mOutputBusses.contains(hatch)) {
                 multiBlockSelf.mOutputBusses.add(hatch);
-                // GTSR Debug
-                gtsr$log("SteamBusOutput dual-list: added to mOutputBusses, mSteamOutputs handled by original method");
             }
             // Don't cancel - let original method also add to mSteamOutputs
         }
@@ -230,8 +208,6 @@ public abstract class MTESteamMultiBaseMixin {
                 ((MTEHatch) hatch).updateTexture(aBaseCasingIndex);
             }
             gtsr$mPressureCoolingHatches.add(hatch);
-            // GTSR Debug: log cooling hatch registration
-            gtsr$log("Pressure cooling hatch registered");
             cir.setReturnValue(true);
             return;
         }
@@ -243,8 +219,6 @@ public abstract class MTESteamMultiBaseMixin {
                 ((MTEHatch) hatch).updateTexture(aBaseCasingIndex);
             }
             gtsr$mSteamCoolingHatches.add(hatch);
-            // GTSR Debug: log cooling hatch registration
-            gtsr$log("Cooling hatch registered");
             cir.setReturnValue(true);
             return;
         }

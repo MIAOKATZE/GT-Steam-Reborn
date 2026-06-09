@@ -1,6 +1,5 @@
 package com.miaokatze.gtsr.common.machine;
 
-import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlock;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlocksTiered;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
@@ -62,6 +61,7 @@ import gregtech.api.util.GTUtility;
 import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.common.blocks.BlockCasings1;
 import gregtech.common.blocks.BlockCasings2;
+import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.MTEHatchSteamBusOutput;
 
 public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTELargeGeothermalSteamBoiler>
     implements IConstructable, ISurvivalConstructable {
@@ -154,6 +154,27 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
         return null;
     }
 
+    @Nullable
+    public static Integer getPipeTier(Block block, int meta) {
+        if (block == GregTechAPI.sBlockCasings2 && meta == 12) return 1;
+        if (block == GregTechAPI.sBlockCasings2 && meta == 13) return 2;
+        return null;
+    }
+
+    @Nullable
+    public static Integer getGearTier(Block block, int meta) {
+        if (block == GregTechAPI.sBlockCasings2 && meta == 2) return 1;
+        if (block == GregTechAPI.sBlockCasings2 && meta == 3) return 2;
+        return null;
+    }
+
+    @Nullable
+    public static Integer getFireboxTier(Block block, int meta) {
+        if (block == GregTechAPI.sBlockCasings3 && meta == 13) return 1;
+        if (block == GregTechAPI.sBlockCasings3 && meta == 14) return 2;
+        return null;
+    }
+
     protected int getCasingTextureID() {
         if (mSetTier == 2) {
             return ((BlockCasings2) GregTechAPI.sBlockCasings2).getTextureIndex(0);
@@ -213,6 +234,12 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
                             .dot(1)
                             .shouldReject(MTELargeGeothermalSteamBoiler::hasSteamOutputHatch)
                             .build(),
+                        buildHatchAdder(MTELargeGeothermalSteamBoiler.class)
+                            .adder(MTELargeGeothermalSteamBoiler::addSteamBusOutputToMachineList)
+                            .hatchClass(MTEHatchSteamBusOutput.class)
+                            .casingIndex(bronzeCasingIndex)
+                            .dot(1)
+                            .build(),
                         buildHatchAdder(MTELargeGeothermalSteamBoiler.class).atLeast(OutputBus)
                             .casingIndex(bronzeCasingIndex)
                             .dot(1)
@@ -231,15 +258,41 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
                     'C',
                     onElementPass(
                         MTELargeGeothermalSteamBoiler::onCasingAdded,
-                        ofBlock(GregTechAPI.sBlockCasings2, 12)))
+                        ofBlocksTiered(
+                            MTELargeGeothermalSteamBoiler::getPipeTier,
+                            ImmutableList
+                                .of(Pair.of(GregTechAPI.sBlockCasings2, 12), Pair.of(GregTechAPI.sBlockCasings2, 13)),
+                            -1,
+                            (MTELargeGeothermalSteamBoiler t, Integer tier) -> {
+                                if (tier > t.mSetTier) t.mSetTier = tier;
+                            },
+                            (MTELargeGeothermalSteamBoiler t) -> t.mSetTier)))
                 .addElement(
                     'D',
-                    onElementPass(MTELargeGeothermalSteamBoiler::onCasingAdded, ofBlock(GregTechAPI.sBlockCasings2, 2)))
+                    onElementPass(
+                        MTELargeGeothermalSteamBoiler::onCasingAdded,
+                        ofBlocksTiered(
+                            MTELargeGeothermalSteamBoiler::getGearTier,
+                            ImmutableList
+                                .of(Pair.of(GregTechAPI.sBlockCasings2, 2), Pair.of(GregTechAPI.sBlockCasings2, 3)),
+                            -1,
+                            (MTELargeGeothermalSteamBoiler t, Integer tier) -> {
+                                if (tier > t.mSetTier) t.mSetTier = tier;
+                            },
+                            (MTELargeGeothermalSteamBoiler t) -> t.mSetTier)))
                 .addElement(
                     'E',
                     onElementPass(
                         MTELargeGeothermalSteamBoiler::onCasingAdded,
-                        ofBlock(GregTechAPI.sBlockCasings3, 13)))
+                        ofBlocksTiered(
+                            MTELargeGeothermalSteamBoiler::getFireboxTier,
+                            ImmutableList
+                                .of(Pair.of(GregTechAPI.sBlockCasings3, 13), Pair.of(GregTechAPI.sBlockCasings3, 14)),
+                            -1,
+                            (MTELargeGeothermalSteamBoiler t, Integer tier) -> {
+                                if (tier > t.mSetTier) t.mSetTier = tier;
+                            },
+                            (MTELargeGeothermalSteamBoiler t) -> t.mSetTier)))
                 .addElement(
                     'F',
                     onElementPass(
@@ -277,6 +330,16 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
         if (aMetaTileEntity instanceof MTEPressureSteamOutputHatch hatch) {
             hatch.updateTexture(aBaseCasingIndex);
             return mPressureSteamOutputHatches.add(hatch);
+        }
+        return false;
+    }
+
+    private boolean addSteamBusOutputToMachineList(IGregTechTileEntity aTileEntity, int aBaseCasingIndex) {
+        if (aTileEntity == null) return false;
+        IMetaTileEntity aMetaTileEntity = aTileEntity.getMetaTileEntity();
+        if (aMetaTileEntity instanceof MTEHatchSteamBusOutput hatch) {
+            hatch.updateTexture(aBaseCasingIndex);
+            return mOutputBusses.add(hatch);
         }
         return false;
     }
