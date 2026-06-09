@@ -262,18 +262,18 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
                             { "E   BBBBB   E", "  EBBBBBBBE  ", " EB       BE ", " B BBBBBBB B ", "BB BCCCCCB BB",
                                 "BB BCBBBCB BB", "BB BCBBBCB BB", "BB BCBBBCB BB", "BB BCCCCCB BB", " B BBBBBBB B ",
                                 " EB       BE ", "  EBBBBBBBE  ", "E   BBBBB   E" },
-                            { "E           E", "  E BBBB  E  ", " E BBEEEBB E ", "  BBEEEEEBB  ", "  BEEEEEEEB  ",
+                            { "E           E", "  E  BBB  E  ", " E BBEEEBB E ", "  BBEEEEEBB  ", "  BEEEEEEEB  ",
                                 " BEEEEEEEEEB ", " BEEEEDEEEEB ", " BEEEEEEEEEB ", "  BEEEEEEEB  ", "  BBEEEEEBB  ",
                                 " E BBEEEBB E ", "  E  BBB  E  ", "E           E" },
                             { "EEEBBBBBBBEEE", "E BBBBBBBBB E", "EBB       BBE", "BB         BB", "BB         BB",
                                 "BB         BB", "BB    D    BB", "BB         BB", "BB         BB", "BB         BB",
-                                "EBB       BBE", "E BBBBBBBBB E", "EEEBBBBBBEE E" },
+                                "EBB       BBE", "E BBBBBBBBB E", "EEEBBBBBBBEEE" },
                             { "E  BBB~BBB  E", "  BBBBCBBBB  ", " BBBDBCBDBBB ", "BBBCDCDDCBBB", "BBBBCDCDCBBBB",
                                 "BBBBBCCCBBBBB", "BBCCCCDCCCCBB", "BBBBBCCCBBBBB", "BBBBCDCDCBBBB", "BBBCDCDDCBBB",
-                                " BBBDBCBDBBB ", "  BBBBBBBBB  ", "E  BBDDBB   E" },
+                                " BBBDBCBDBBB ", "  BBBBBBBBB  ", "E  BBBBBBB  E" },
                             { "E  BBBBBBB  E", "  BBBBBBBBB  ", " BBBBBBBBBBB ", "BBBBBBBBBBBBB", "BBBBBBBBBBBBB",
                                 "BBBBBBBBBBBBB", "BBBBBBBBBBBBB", "BBBBBBBBBBBBB", "BBBBBBBBBBBBB", "BBBBBBBBBBBBB",
-                                " BBBBBBBBBBB ", "  BBBBBBBBB  ", "E  BBBBBB   E" } }))
+                                " BBBBBBBBBBB ", "  BBBBBBBBB  ", "E  BBBBBBB  E" } }))
                 .addShape(
                     STRUCTURE_PIECE_STACK,
                     transpose(
@@ -287,7 +287,7 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
                             { "E   BBBBB   E", "  EBBBBBBBE  ", " EB       BE ", " B BBBBBBB B ", "BB BCCCCCB BB",
                                 "BB BCBBBCB BB", "BB BCBBBCB BB", "BB BCBBBCB BB", "BB BCCCCCB BB", " B BBBBBBB B ",
                                 " EB       BE ", "  EBBBBBBBE  ", "E   BBBBB   E" },
-                            { "E           E", "  E BBBB  E  ", " E BBEEEBB E ", "  BBEEEEEBB  ", "  BEEEEEEEB  ",
+                            { "E           E", "  E  BBB  E  ", " E BBEEEBB E ", "  BBEEEEEBB  ", "  BEEEEEEEB  ",
                                 " BEEEEEEEEEB ", " BEEEEDEEEEB ", " BEEEEEEEEEB ", "  BEEEEEEEB  ", "  BBEEEEEBB  ",
                                 " E BBEEEBB E ", "  E  BBB  E  ", "E           E" } }))
                 .addShape(

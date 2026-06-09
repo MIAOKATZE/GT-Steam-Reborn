@@ -67,7 +67,6 @@ public class MTESteamSingularityCompressor extends MTESteamMultiBase<MTESteamSin
     private static final int STEAM_L_EUT = 6000;
     private static final double HEAT_UP_PER_RECIPE = 0.0002d;
     private static final double HEAT_DOWN_RATE = 0.001d;
-    private static final long STOP_THRESHOLD = 1200;
     private static final int HEAT_RECIPE_TIME = 20;
 
     private static final NumberFormat numberFormat = NumberFormat.getNumberInstance();
@@ -81,8 +80,6 @@ public class MTESteamSingularityCompressor extends MTESteamMultiBase<MTESteamSin
 
     protected int mCasingCount = 0;
     protected double mHeat = 0.0d;
-    protected long mStoppedTicks = 0;
-    protected int mStartUpCheck = 100;
 
     private static Textures.BlockIcons.CustomIcon OVERLAY_OFF;
     private static Textures.BlockIcons.CustomIcon OVERLAY_ON;
@@ -311,19 +308,9 @@ public class MTESteamSingularityCompressor extends MTESteamMultiBase<MTESteamSin
         super.onPostTick(aBaseMetaTileEntity, aTick);
         if (!aBaseMetaTileEntity.isServerSide()) return;
 
-        if (mMachine) {
-            mStartUpCheck = 100;
-        } else if (mStartUpCheck > 0) {
-            mStartUpCheck--;
-        }
-
-        if (!aBaseMetaTileEntity.isAllowedToWork() || mMaxProgresstime <= 0) {
-            mStoppedTicks++;
-            if (mStoppedTicks > STOP_THRESHOLD && mStartUpCheck <= 0) {
-                mHeat = Math.max(0.0d, mHeat - HEAT_DOWN_RATE);
-            }
-        } else {
-            mStoppedTicks = 0;
+        // Heat decay: whenever the machine is not actively running, heat decreases
+        if (!mMachine || mMaxProgresstime <= 0) {
+            mHeat = Math.max(0.0d, mHeat - HEAT_DOWN_RATE);
         }
     }
 
@@ -484,14 +471,12 @@ public class MTESteamSingularityCompressor extends MTESteamMultiBase<MTESteamSin
     public void saveNBTData(NBTTagCompound aNBT) {
         super.saveNBTData(aNBT);
         aNBT.setDouble("mHeat", mHeat);
-        aNBT.setLong("mStoppedTicks", mStoppedTicks);
     }
 
     @Override
     public void loadNBTData(NBTTagCompound aNBT) {
         super.loadNBTData(aNBT);
         mHeat = aNBT.getDouble("mHeat");
-        mStoppedTicks = aNBT.getLong("mStoppedTicks");
     }
 
     private boolean hasSuperheatedSteamInHatch() {
