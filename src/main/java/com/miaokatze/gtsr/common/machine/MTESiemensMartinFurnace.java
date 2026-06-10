@@ -4,11 +4,11 @@ import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlock;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose;
-import static gregtech.api.enums.HatchElement.InputBus;
-import static gregtech.api.enums.HatchElement.OutputBus;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import net.minecraft.item.ItemStack;
@@ -35,6 +35,7 @@ import com.miaokatze.gtsr.common.machine.base.MTEHatchPressureSteamInput;
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Materials;
 import gregtech.api.enums.Textures;
+import gregtech.api.interfaces.IHatchElement;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
@@ -42,12 +43,14 @@ import gregtech.api.logic.ProcessingLogic;
 import gregtech.api.metatileentity.implementations.MTEEnhancedMultiBlockBase;
 import gregtech.api.metatileentity.implementations.MTEHatch;
 import gregtech.api.metatileentity.implementations.MTEHatchInputBus;
+import gregtech.api.metatileentity.implementations.MTEHatchOutputBus;
 import gregtech.api.recipe.RecipeMap;
 import gregtech.api.recipe.check.CheckRecipeResult;
 import gregtech.api.recipe.check.CheckRecipeResultRegistry;
 import gregtech.api.recipe.check.SimpleCheckRecipeResult;
 import gregtech.api.render.TextureFactory;
 import gregtech.api.util.GTUtility;
+import gregtech.api.util.IGTHatchAdder;
 import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.api.util.shutdown.ShutDownReasonRegistry;
 import gregtech.common.blocks.BlockCasings2;
@@ -61,8 +64,15 @@ public class MTESiemensMartinFurnace extends MTEEnhancedMultiBlockBase<MTESiemen
     private static final int DEPTH_OFF_SET = 3;
 
     private static final int SUPERHEATED_STEAM_COST = 1_200;
+    private static final int SUPERHEATED_STEAM_COST_OVERHEAT = 12_000;
+    private static final int SUPERHEATED_STEAM_COST_MAX = 6_000;
     private static final double TEMPERATURE_INCREMENT = 0.00025d;
     private static final double TEMPERATURE_DECREMENT = 0.001d;
+    private static final double OVERHEAT_INCREMENT = 0.0001d; // +0.01%/s above 100%
+    private static final double OVERHEAT_DECREMENT = 0.01d; // -1%/s when not running
+    private static final double MAX_OVERHEAT = 2.0d; // 200%
+    private static final double RECIPE_TIME_REDUCTION_PER_PERCENT = 0.005d; // 0.5% per 1% above 100%
+    private static final double MAX_RECIPE_TIME_REDUCTION = 0.5d; // 50% max reduction
     private static final int MAX_PARALLEL = 64;
 
     private static IStructureDefinition<MTESiemensMartinFurnace> STRUCTURE_DEFINITION = null;
@@ -83,6 +93,75 @@ public class MTESiemensMartinFurnace extends MTEEnhancedMultiBlockBase<MTESiemen
             return true;
         }
         return false;
+    }
+
+    public boolean addInputBusToMachineList(IGregTechTileEntity aTileEntity, int aBaseCasingIndex) {
+        if (aTileEntity == null) return false;
+        IMetaTileEntity aMetaTileEntity = aTileEntity.getMetaTileEntity();
+        if (aMetaTileEntity == null) return false;
+        if (aMetaTileEntity instanceof MTEHatchInputBus hatch) {
+            hatch.mRecipeMap = getRecipeMap();
+            hatch.updateTexture(aBaseCasingIndex);
+            return mInputBusses.add(hatch);
+        }
+        return false;
+    }
+
+    public boolean addOutputBusToMachineList(IGregTechTileEntity aTileEntity, int aBaseCasingIndex) {
+        if (aTileEntity == null) return false;
+        IMetaTileEntity aMetaTileEntity = aTileEntity.getMetaTileEntity();
+        if (aMetaTileEntity == null) return false;
+        if (aMetaTileEntity instanceof MTEHatchOutputBus hatch) {
+            hatch.updateTexture(aBaseCasingIndex);
+            return mOutputBusses.add(hatch);
+        }
+        return false;
+    }
+
+    private enum SiemensMartinInputBusElement implements IHatchElement<MTESiemensMartinFurnace> {
+
+        INSTANCE;
+
+        private final List<Class<? extends IMetaTileEntity>> mteClasses = Collections
+            .unmodifiableList(Arrays.asList(MTEHatchInputBus.class));
+
+        @Override
+        public List<? extends Class<? extends IMetaTileEntity>> mteClasses() {
+            return mteClasses;
+        }
+
+        @Override
+        public IGTHatchAdder<? super MTESiemensMartinFurnace> adder() {
+            return MTESiemensMartinFurnace::addInputBusToMachineList;
+        }
+
+        @Override
+        public long count(MTESiemensMartinFurnace t) {
+            return t.mInputBusses.size();
+        }
+    }
+
+    private enum SiemensMartinOutputBusElement implements IHatchElement<MTESiemensMartinFurnace> {
+
+        INSTANCE;
+
+        private final List<Class<? extends IMetaTileEntity>> mteClasses = Collections
+            .unmodifiableList(Arrays.asList(MTEHatchOutputBus.class));
+
+        @Override
+        public List<? extends Class<? extends IMetaTileEntity>> mteClasses() {
+            return mteClasses;
+        }
+
+        @Override
+        public IGTHatchAdder<? super MTESiemensMartinFurnace> adder() {
+            return MTESiemensMartinFurnace::addOutputBusToMachineList;
+        }
+
+        @Override
+        public long count(MTESiemensMartinFurnace t) {
+            return t.mOutputBusses.size();
+        }
     }
 
     public MTESiemensMartinFurnace(int aID, String aName, String aNameRegional) {
@@ -185,16 +264,13 @@ public class MTESiemensMartinFurnace extends MTEEnhancedMultiBlockBase<MTESiemen
                     'B',
                     ofChain(
                         buildHatchAdder(MTESiemensMartinFurnace.class)
+                            .atLeast(SiemensMartinInputBusElement.INSTANCE, SiemensMartinOutputBusElement.INSTANCE)
+                            .casingIndex(casingIndex)
+                            .dot(1)
+                            .build(),
+                        buildHatchAdder(MTESiemensMartinFurnace.class)
                             .adder(MTESiemensMartinFurnace::addPressureSteamToMachineList)
                             .hatchClass(MTEHatchPressureSteamInput.class)
-                            .casingIndex(casingIndex)
-                            .dot(1)
-                            .build(),
-                        buildHatchAdder(MTESiemensMartinFurnace.class).atLeast(InputBus)
-                            .casingIndex(casingIndex)
-                            .dot(1)
-                            .build(),
-                        buildHatchAdder(MTESiemensMartinFurnace.class).atLeast(OutputBus)
                             .casingIndex(casingIndex)
                             .dot(1)
                             .buildAndChain(onElementPass(x -> {}, ofBlock(GregTechAPI.sBlockCasings2, 0)))))
@@ -262,34 +338,59 @@ public class MTESiemensMartinFurnace extends MTEEnhancedMultiBlockBase<MTESiemen
                 stopMachine(ShutDownReasonRegistry.POWER_LOSS);
             }
 
-            if (consumeSuperheatedSteam()) {
-                mFurnaceTemperature = Math.min(1.0d, mFurnaceTemperature + TEMPERATURE_INCREMENT);
+            // Determine steam cost based on temperature and running state
+            int steamCost = SUPERHEATED_STEAM_COST; // default 1200 L/tick = 24000 L/s
+            if (mMaxProgresstime > 0) {
+                if (mFurnaceTemperature >= MAX_OVERHEAT) {
+                    steamCost = SUPERHEATED_STEAM_COST_MAX / 20; // 300 L/tick = 6000 L/s
+                } else if (mFurnaceTemperature >= 1.0d) {
+                    steamCost = SUPERHEATED_STEAM_COST_OVERHEAT / 20; // 600 L/tick = 12000 L/s
+                }
+            }
+
+            if (consumeSuperheatedSteam(steamCost)) {
+                if (mFurnaceTemperature < 1.0d) {
+                    mFurnaceTemperature = Math.min(1.0d, mFurnaceTemperature + TEMPERATURE_INCREMENT);
+                }
+                // Overheat: only when running recipe, applied per second
+                else if (mMaxProgresstime > 0 && aTick % 20 == 0) {
+                    mFurnaceTemperature = Math.min(MAX_OVERHEAT, mFurnaceTemperature + OVERHEAT_INCREMENT);
+                }
             } else {
                 mFurnaceTemperature = Math.max(0.0d, mFurnaceTemperature - TEMPERATURE_DECREMENT);
                 if (mMaxProgresstime > 0) {
                     stopMachine(ShutDownReasonRegistry.POWER_LOSS);
                 }
             }
+
+            // Overheat decay when not running recipe, applied per second
+            if (mMaxProgresstime <= 0 && mFurnaceTemperature > 1.0d && aTick % 20 == 0) {
+                mFurnaceTemperature = Math.max(1.0d, mFurnaceTemperature - OVERHEAT_DECREMENT);
+            }
         } else if (mMachine && !aBaseMetaTileEntity.isAllowedToWork()) {
             if (mMaxProgresstime > 0) {
                 stopMachine(ShutDownReasonRegistry.POWER_LOSS);
             }
             mFurnaceTemperature = Math.max(0.0d, mFurnaceTemperature - TEMPERATURE_DECREMENT);
+            // Overheat decay when not allowed to work
+            if (mFurnaceTemperature > 1.0d && aTick % 20 == 0) {
+                mFurnaceTemperature = Math.max(1.0d, mFurnaceTemperature - OVERHEAT_DECREMENT);
+            }
         } else if (!mMachine && !inGracePeriod) {
             mFurnaceTemperature = Math.max(0.0d, mFurnaceTemperature - TEMPERATURE_DECREMENT);
         }
     }
 
-    private boolean consumeSuperheatedSteam() {
+    private boolean consumeSuperheatedSteam(int amount) {
         Fluid superheated = FluidRegistry.getFluid("ic2superheatedsteam");
         if (superheated == null) return false;
 
         for (MTEHatchPressureSteamInput hatch : mPressureSteamInputs) {
-            FluidStack drained = hatch.drain(SUPERHEATED_STEAM_COST, false);
-            if (drained != null && drained.amount >= SUPERHEATED_STEAM_COST) {
+            FluidStack drained = hatch.drain(amount, false);
+            if (drained != null && drained.amount >= amount) {
                 Fluid fluid = drained.getFluid();
                 if (fluid != null && "ic2superheatedsteam".equals(fluid.getName())) {
-                    hatch.drain(SUPERHEATED_STEAM_COST, true);
+                    hatch.drain(amount, true);
                     return true;
                 }
             }
@@ -310,7 +411,18 @@ public class MTESiemensMartinFurnace extends MTEEnhancedMultiBlockBase<MTESiemen
             }
             return CheckRecipeResultRegistry.NO_RECIPE;
         }
-        return super.checkProcessing();
+
+        CheckRecipeResult result = super.checkProcessing();
+        if (!result.wasSuccessful()) return result;
+
+        // Apply overheat recipe time reduction
+        if (mFurnaceTemperature > 1.0d) {
+            double overheatPercent = (mFurnaceTemperature - 1.0d) * 100.0d; // 0-100%
+            double reduction = Math.min(MAX_RECIPE_TIME_REDUCTION, overheatPercent * RECIPE_TIME_REDUCTION_PER_PERCENT);
+            mMaxProgresstime = (int) (mMaxProgresstime * (1.0d - reduction));
+        }
+
+        return result;
     }
 
     private boolean hasInputItems() {
@@ -363,7 +475,7 @@ public class MTESiemensMartinFurnace extends MTEEnhancedMultiBlockBase<MTESiemen
                 new TextWidget().setStringSupplier(
                     () -> EnumChatFormatting.YELLOW
                         + StatCollector.translateToLocal("gtsr.gui.siemens_martin.temperature")
-                        + EnumChatFormatting.RED
+                        + (mFurnaceTemperature > 1.0d ? EnumChatFormatting.LIGHT_PURPLE : EnumChatFormatting.RED)
                         + String.format("%.1f%%", mFurnaceTemperature * 100.0d)
                         + EnumChatFormatting.RESET))
             .widget(new TextWidget().setStringSupplier(() -> {
@@ -385,10 +497,46 @@ public class MTESiemensMartinFurnace extends MTEEnhancedMultiBlockBase<MTESiemen
                     + StatCollector.translateToLocal(statusKey)
                     + EnumChatFormatting.RESET;
             }))
+            .widget(new TextWidget().setStringSupplier(() -> {
+                int steamCostLps;
+                if (mMaxProgresstime > 0) {
+                    if (mFurnaceTemperature >= MAX_OVERHEAT) {
+                        steamCostLps = SUPERHEATED_STEAM_COST_MAX;
+                    } else if (mFurnaceTemperature >= 1.0d) {
+                        steamCostLps = SUPERHEATED_STEAM_COST_OVERHEAT;
+                    } else {
+                        steamCostLps = SUPERHEATED_STEAM_COST * 20;
+                    }
+                } else {
+                    steamCostLps = SUPERHEATED_STEAM_COST * 20;
+                }
+                return EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.siemens_martin.steam_cost")
+                    + EnumChatFormatting.RED
+                    + GTUtility.formatNumbers(steamCostLps)
+                    + " L/s"
+                    + EnumChatFormatting.RESET;
+            }))
             .widget(
                 new TextWidget().setStringSupplier(
                     () -> EnumChatFormatting.YELLOW + StatCollector.translateToLocal(
                         "gtsr.gui.parallel") + " " + EnumChatFormatting.GOLD + MAX_PARALLEL + EnumChatFormatting.RESET))
+            .widget(new TextWidget().setStringSupplier(() -> {
+                if (mFurnaceTemperature > 1.0d) {
+                    double overheatPercent = (mFurnaceTemperature - 1.0d) * 100.0d;
+                    double reduction = Math
+                        .min(MAX_RECIPE_TIME_REDUCTION, overheatPercent * RECIPE_TIME_REDUCTION_PER_PERCENT);
+                    return EnumChatFormatting.YELLOW
+                        + StatCollector.translateToLocal("gtsr.gui.siemens_martin.overheat_reduction")
+                        + EnumChatFormatting.GOLD
+                        + String.format("%.1f%%", reduction * 100.0d)
+                        + EnumChatFormatting.RESET;
+                }
+                return EnumChatFormatting.YELLOW
+                    + StatCollector.translateToLocal("gtsr.gui.siemens_martin.overheat_reduction")
+                    + EnumChatFormatting.GRAY
+                    + "0%"
+                    + EnumChatFormatting.RESET;
+            }))
             .widget(new TextWidget().setStringSupplier(() -> {
                 String recipeInfo = mMaxProgresstime > 0
                     ? EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.gui.siemens_martin.recipe.active")
@@ -448,7 +596,7 @@ public class MTESiemensMartinFurnace extends MTEEnhancedMultiBlockBase<MTESiemen
         info.add(
             EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.siemens_martin.temperature")
                 + " "
-                + EnumChatFormatting.RED
+                + (mFurnaceTemperature > 1.0d ? EnumChatFormatting.LIGHT_PURPLE : EnumChatFormatting.RED)
                 + String.format("%.1f%%", mFurnaceTemperature * 100.0d)
                 + EnumChatFormatting.RESET);
         String statusKey;
@@ -469,9 +617,38 @@ public class MTESiemensMartinFurnace extends MTEEnhancedMultiBlockBase<MTESiemen
                 + statusColor
                 + StatCollector.translateToLocal(statusKey)
                 + EnumChatFormatting.RESET);
+        int steamCostLps;
+        if (mMaxProgresstime > 0) {
+            if (mFurnaceTemperature >= MAX_OVERHEAT) {
+                steamCostLps = SUPERHEATED_STEAM_COST_MAX;
+            } else if (mFurnaceTemperature >= 1.0d) {
+                steamCostLps = SUPERHEATED_STEAM_COST_OVERHEAT;
+            } else {
+                steamCostLps = SUPERHEATED_STEAM_COST * 20;
+            }
+        } else {
+            steamCostLps = SUPERHEATED_STEAM_COST * 20;
+        }
+        info.add(
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.siemens_martin.steam_cost")
+                + " "
+                + EnumChatFormatting.RED
+                + GTUtility.formatNumbers(steamCostLps)
+                + " L/s"
+                + EnumChatFormatting.RESET);
         info.add(
             EnumChatFormatting.YELLOW + StatCollector.translateToLocal(
                 "gtsr.gui.parallel") + " " + EnumChatFormatting.GOLD + MAX_PARALLEL + EnumChatFormatting.RESET);
+        if (mFurnaceTemperature > 1.0d) {
+            double overheatPercent = (mFurnaceTemperature - 1.0d) * 100.0d;
+            double reduction = Math.min(MAX_RECIPE_TIME_REDUCTION, overheatPercent * RECIPE_TIME_REDUCTION_PER_PERCENT);
+            info.add(
+                EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.siemens_martin.overheat_reduction")
+                    + " "
+                    + EnumChatFormatting.GOLD
+                    + String.format("%.1f%%", reduction * 100.0d)
+                    + EnumChatFormatting.RESET);
+        }
         String recipeInfo = mMaxProgresstime > 0
             ? EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.gui.siemens_martin.recipe.active")
             : EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.gui.siemens_martin.recipe.none");
@@ -501,6 +678,13 @@ public class MTESiemensMartinFurnace extends MTEEnhancedMultiBlockBase<MTESiemen
                     + ")"
                     + EnumChatFormatting.RESET)
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.siemens_martin.steam_only"))
+            .addInfo(
+                EnumChatFormatting.LIGHT_PURPLE
+                    + StatCollector.translateToLocal("gtsr.tooltip.siemens_martin.overheat"))
+            .addInfo(
+                EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.tooltip.siemens_martin.overheat_steam"))
+            .addInfo(
+                EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.tooltip.siemens_martin.overheat_recipe"))
             .beginStructureBlock(12, 19, 14, false)
             .addController(StatCollector.translateToLocal("gtsr.tooltip.siemens_martin.ctrl"))
             .addOtherStructurePart(
@@ -522,7 +706,7 @@ public class MTESiemensMartinFurnace extends MTEEnhancedMultiBlockBase<MTESiemen
                 EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.shared.parallel")
                     + ": "
                     + EnumChatFormatting.GOLD
-                    + "64")
+                    + MAX_PARALLEL)
             .addStructureHint("gtsr.tooltip.shared.no_maintenance")
             .addStructureHint("gtsr.tooltip.siemens_martin.hint_temp")
             .addStructureHint("gtsr.tooltip.siemens_martin.hint_interrupt")

@@ -774,6 +774,7 @@ gtsr.tooltip.atmospheric_centrifuge.chip_info.3= to unlock deep extraction of tr
 gtsr.tooltip.atmospheric_centrifuge.chip=Rare Gas Separation Chip
 gtsr.tooltip.atmospheric_centrifuge.chip_desc=Place in controller slot to unlock rare gas recipes
 gtsr.gui.atmospheric_centrifuge.chip=Rare Gas Chip: 
+gtsr.gui.atmospheric_centrifuge.need_steel=Requires Steel Tier
 
 # 5. Kinetic Processing Array - missing energy key
 gtsr.tooltip.kinetic_array.energy=Any Energy Hatch
@@ -841,6 +842,11 @@ gtsr.tooltip.siemens_martin.steam_input=Superheated Steam Input
 gtsr.tooltip.siemens_martin.hint_temp=Furnace temperature must reach 100% to operate
 gtsr.tooltip.siemens_martin.hint_interrupt=Steam interruption causes temperature drop and recipe termination
 gtsr.tooltip.siemens_martin.steam_note=Superheated steam maintains furnace temperature (constant), recipes have no extra steam cost
+gtsr.tooltip.siemens_martin.overheat=Overheat: Temperature can exceed 100% while running (max 200%, +0.01%/s), drops to 100% when idle (-1%/s)
+gtsr.tooltip.siemens_martin.overheat_steam=Reduced steam cost at high temp: 12,000 L/s at 100%-200%, 6,000 L/s at 200%
+gtsr.tooltip.siemens_martin.overheat_recipe=Recipe time reduction: Each 1% above 100% reduces recipe time by 0.5%, max 50%
+gtsr.gui.siemens_martin.steam_cost=Steam Cost: 
+gtsr.gui.siemens_martin.overheat_reduction=Time Reduction: 
 gtsr.tooltip.siemens_martin.input_bus=Iron+Coal/Coke/Carbon
 gtsr.tooltip.siemens_martin.output_bus=Steel/Ash
 gtsr.tooltip.siemens_martin.superheated_only=Superheated Steam Only

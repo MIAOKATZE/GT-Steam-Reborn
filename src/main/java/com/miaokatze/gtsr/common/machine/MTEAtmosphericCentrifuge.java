@@ -277,8 +277,17 @@ public class MTEAtmosphericCentrifuge extends MTESteamMultiBase<MTEAtmosphericCe
             @Nonnull
             @Override
             protected CheckRecipeResult validateRecipe(@Nonnull GTRecipe recipe) {
-                if (!hasRareGasChip() && recipe.mFluidOutputs.length > 3) {
-                    return CheckRecipeResultRegistry.NO_RECIPE;
+                boolean hasChip = hasRareGasChip() && mSetTier >= 2;
+                if (hasChip) {
+                    // With chip (steel tier only): only allow rare gas recipes (>3 fluid outputs)
+                    if (recipe.mFluidOutputs.length <= 3) {
+                        return CheckRecipeResultRegistry.NO_RECIPE;
+                    }
+                } else {
+                    // Without chip (or bronze with chip): only allow normal recipes (<=3 fluid outputs)
+                    if (recipe.mFluidOutputs.length > 3) {
+                        return CheckRecipeResultRegistry.NO_RECIPE;
+                    }
                 }
                 return CheckRecipeResultRegistry.SUCCESSFUL;
             }
@@ -462,6 +471,13 @@ public class MTEAtmosphericCentrifuge extends MTESteamMultiBase<MTEAtmosphericCe
                         + EnumChatFormatting.RESET))
             .widget(new TextWidget().setStringSupplier(() -> {
                 boolean hasChip = hasRareGasChip();
+                if (hasChip && mSetTier < 2) {
+                    return EnumChatFormatting.YELLOW
+                        + StatCollector.translateToLocal("gtsr.gui.atmospheric_centrifuge.chip")
+                        + EnumChatFormatting.RED
+                        + StatCollector.translateToLocal("gtsr.gui.atmospheric_centrifuge.need_steel")
+                        + EnumChatFormatting.RESET;
+                }
                 return EnumChatFormatting.YELLOW
                     + StatCollector.translateToLocal("gtsr.gui.atmospheric_centrifuge.chip")
                     + (hasChip ? EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.gui.installed")
@@ -495,7 +511,10 @@ public class MTEAtmosphericCentrifuge extends MTESteamMultiBase<MTEAtmosphericCe
                 + EnumChatFormatting.YELLOW
                 + getMaxParallelRecipes(),
             EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.atmospheric_centrifuge.chip")
-                + (hasRareGasChip() ? EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.gui.installed")
-                    : EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.gui.not_installed")) };
+                + (hasRareGasChip() && mSetTier < 2
+                    ? EnumChatFormatting.RED
+                        + StatCollector.translateToLocal("gtsr.gui.atmospheric_centrifuge.need_steel")
+                    : hasRareGasChip() ? EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.gui.installed")
+                        : EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.gui.not_installed")) };
     }
 }

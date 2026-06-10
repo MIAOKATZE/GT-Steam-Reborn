@@ -5,12 +5,13 @@ import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlocksT
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose;
-import static gregtech.api.enums.HatchElement.InputBus;
-import static gregtech.api.enums.HatchElement.OutputBus;
 import static gregtech.api.enums.HatchElement.OutputHatch;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -39,14 +40,19 @@ import com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps;
 
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Textures;
+import gregtech.api.interfaces.IHatchElement;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.logic.ProcessingLogic;
 import gregtech.api.metatileentity.implementations.MTEEnhancedMultiBlockBase;
+import gregtech.api.metatileentity.implementations.MTEHatch;
+import gregtech.api.metatileentity.implementations.MTEHatchInputBus;
+import gregtech.api.metatileentity.implementations.MTEHatchOutputBus;
 import gregtech.api.recipe.RecipeMap;
 import gregtech.api.recipe.check.CheckRecipeResult;
 import gregtech.api.render.TextureFactory;
+import gregtech.api.util.IGTHatchAdder;
 import gregtech.api.util.MultiblockTooltipBuilder;
 
 public class MTELargeCokeOven extends MTEEnhancedMultiBlockBase<MTELargeCokeOven>
@@ -55,15 +61,93 @@ public class MTELargeCokeOven extends MTEEnhancedMultiBlockBase<MTELargeCokeOven
     private static final double HEAT_PER_RECIPE = 0.1d;
     private static final double HEAT_UP_PER_SECOND = 0.0001d;
     private static final double HEAT_DOWN_PER_SECOND = 0.00006d;
-    private static final int BASE_RECIPE_TIME_SECONDS = 1800;
-    private static final int HEAT_SPEEDUP_PER_PERCENT = 10;
-    private static final int MIN_RECIPE_TIME_SECONDS = 800;
+    private static final int BASE_RECIPE_TIME_SECONDS = 90;
+    private static final int HEAT_SPEEDUP_PER_PERCENT = 1;
+    private static final int MIN_RECIPE_TIME_SECONDS = 10;
     private static final int MAX_PARALLEL_T1 = 12;
     private static final int MAX_PARALLEL_T2 = 32;
 
     private double mHeat = 0.0d;
     private int mTier = 1;
     private int mParallel = 0;
+    private int mOriginalRecipeTime = 0;
+
+    /**
+     * Custom HatchElement that accepts both standard InputBus and SteamBusInput,
+     * bypassing GT5U's blacklist that prevents SteamBusInput from being used with InputBus.
+     */
+    private enum CokeOvenInputBusElement implements IHatchElement<MTELargeCokeOven> {
+
+        INSTANCE;
+
+        private final List<Class<? extends IMetaTileEntity>> mteClasses = Collections
+            .unmodifiableList(Arrays.asList(MTEHatchInputBus.class));
+
+        @Override
+        public List<? extends Class<? extends IMetaTileEntity>> mteClasses() {
+            return mteClasses;
+        }
+
+        @Override
+        public IGTHatchAdder<? super MTELargeCokeOven> adder() {
+            return MTELargeCokeOven::addInputBusToMachineList;
+        }
+
+        @Override
+        public long count(MTELargeCokeOven t) {
+            return t.mInputBusses.size();
+        }
+    }
+
+    /**
+     * Custom HatchElement that accepts both standard OutputBus and SteamBusOutput,
+     * bypassing GT5U's blacklist that prevents SteamBusOutput from being used with OutputBus.
+     */
+    private enum CokeOvenOutputBusElement implements IHatchElement<MTELargeCokeOven> {
+
+        INSTANCE;
+
+        private final List<Class<? extends IMetaTileEntity>> mteClasses = Collections
+            .unmodifiableList(Arrays.asList(MTEHatchOutputBus.class));
+
+        @Override
+        public List<? extends Class<? extends IMetaTileEntity>> mteClasses() {
+            return mteClasses;
+        }
+
+        @Override
+        public IGTHatchAdder<? super MTELargeCokeOven> adder() {
+            return MTELargeCokeOven::addOutputBusToMachineList;
+        }
+
+        @Override
+        public long count(MTELargeCokeOven t) {
+            return t.mOutputBusses.size();
+        }
+    }
+
+    public boolean addInputBusToMachineList(IGregTechTileEntity aTileEntity, int aBaseCasingIndex) {
+        if (aTileEntity == null) return false;
+        IMetaTileEntity aMetaTileEntity = aTileEntity.getMetaTileEntity();
+        if (aMetaTileEntity == null) return false;
+        if (aMetaTileEntity instanceof MTEHatchInputBus hatch) {
+            hatch.mRecipeMap = getRecipeMap();
+            hatch.updateTexture(aBaseCasingIndex);
+            return mInputBusses.add(hatch);
+        }
+        return false;
+    }
+
+    public boolean addOutputBusToMachineList(IGregTechTileEntity aTileEntity, int aBaseCasingIndex) {
+        if (aTileEntity == null) return false;
+        IMetaTileEntity aMetaTileEntity = aTileEntity.getMetaTileEntity();
+        if (aMetaTileEntity == null) return false;
+        if (aMetaTileEntity instanceof MTEHatchOutputBus hatch) {
+            hatch.updateTexture(aBaseCasingIndex);
+            return mOutputBusses.add(hatch);
+        }
+        return false;
+    }
 
     private static final String STRUCTURE_PIECE_MAIN = "main";
     private static final int HORIZONTAL_OFF_SET = 1;
@@ -153,11 +237,8 @@ public class MTELargeCokeOven extends MTEEnhancedMultiBlockBase<MTELargeCokeOven
                 .addElement(
                     'B',
                     ofChain(
-                        buildHatchAdder(MTELargeCokeOven.class).atLeast(InputBus)
-                            .casingIndex(10)
-                            .dot(1)
-                            .build(),
-                        buildHatchAdder(MTELargeCokeOven.class).atLeast(OutputBus)
+                        buildHatchAdder(MTELargeCokeOven.class)
+                            .atLeast(CokeOvenInputBusElement.INSTANCE, CokeOvenOutputBusElement.INSTANCE)
                             .casingIndex(10)
                             .dot(1)
                             .build(),
@@ -229,6 +310,13 @@ public class MTELargeCokeOven extends MTEEnhancedMultiBlockBase<MTELargeCokeOven
     }
 
     private void onCasingAdded() {}
+
+    private void updateHatchTexture() {
+        int textureID = getCasingTextureID();
+        for (MTEHatch h : mInputBusses) h.updateTexture(textureID);
+        for (MTEHatch h : mOutputBusses) h.updateTexture(textureID);
+        for (MTEHatch h : mOutputHatches) h.updateTexture(textureID);
+    }
 
     @Override
     protected MultiblockTooltipBuilder createTooltip() {
@@ -306,7 +394,7 @@ public class MTELargeCokeOven extends MTEEnhancedMultiBlockBase<MTELargeCokeOven
     @Override
     public boolean checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack) {
         clearHatches();
-        mTier = 1;
+        mTier = -1;
 
         if (!checkPiece(STRUCTURE_PIECE_MAIN, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET)) {
             return false;
@@ -316,7 +404,12 @@ public class MTELargeCokeOven extends MTEEnhancedMultiBlockBase<MTELargeCokeOven
             return false;
         }
 
-        return mInputBusses.size() >= 1 && mOutputBusses.size() >= 1;
+        if (mInputBusses.size() < 1 || mOutputBusses.size() < 1) {
+            return false;
+        }
+
+        updateHatchTexture();
+        return true;
     }
 
     @Override
@@ -337,10 +430,12 @@ public class MTELargeCokeOven extends MTEEnhancedMultiBlockBase<MTELargeCokeOven
         if (!result.wasSuccessful()) return result;
 
         mParallel = processingLogic.getCurrentParallels();
+        mOriginalRecipeTime = mMaxProgresstime;
 
         if (mHeat > 0.0d) {
+            int originalSeconds = mMaxProgresstime / 20;
             int reducedSeconds = (int) (mHeat * 100.0d * HEAT_SPEEDUP_PER_PERCENT);
-            int actualSeconds = Math.max(MIN_RECIPE_TIME_SECONDS, BASE_RECIPE_TIME_SECONDS - reducedSeconds);
+            int actualSeconds = Math.max(MIN_RECIPE_TIME_SECONDS, originalSeconds - reducedSeconds);
             mMaxProgresstime = actualSeconds * 20;
         }
 
@@ -394,11 +489,13 @@ public class MTELargeCokeOven extends MTEEnhancedMultiBlockBase<MTELargeCokeOven
                     + EnumChatFormatting.RESET;
             }))
             .widget(new TextWidget().setStringSupplier(() -> {
-                if (mMaxProgresstime > 0) {
-                    int secondsRemaining = (mMaxProgresstime - mProgresstime) / 20;
+                if (mOriginalRecipeTime > 0) {
+                    int originalSeconds = mOriginalRecipeTime / 20;
+                    int reducedSeconds = (int) (mHeat * 100.0d * HEAT_SPEEDUP_PER_PERCENT);
+                    int theoreticalSeconds = Math.max(MIN_RECIPE_TIME_SECONDS, originalSeconds - reducedSeconds);
                     return EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.coke_oven.recipe_time")
                         + EnumChatFormatting.GOLD
-                        + secondsRemaining
+                        + theoreticalSeconds
                         + "s"
                         + EnumChatFormatting.RESET;
                 }
@@ -412,12 +509,13 @@ public class MTELargeCokeOven extends MTEEnhancedMultiBlockBase<MTELargeCokeOven
                     () -> EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.parallel")
                         + " "
                         + EnumChatFormatting.GOLD
-                        + (mTier >= 2 ? "12/32" : "12")
+                        + getMaxParallelRecipes()
                         + EnumChatFormatting.RESET))
             .widget(new FakeSyncWidget.DoubleSyncer(() -> mHeat, val -> mHeat = val))
             .widget(new FakeSyncWidget.IntegerSyncer(() -> mMaxProgresstime, val -> mMaxProgresstime = val))
             .widget(new FakeSyncWidget.IntegerSyncer(() -> mProgresstime, val -> mProgresstime = val))
-            .widget(new FakeSyncWidget.IntegerSyncer(() -> mTier, val -> mTier = val));
+            .widget(new FakeSyncWidget.IntegerSyncer(() -> mTier, val -> mTier = val))
+            .widget(new FakeSyncWidget.IntegerSyncer(() -> mOriginalRecipeTime, val -> mOriginalRecipeTime = val));
     }
 
     @Override
