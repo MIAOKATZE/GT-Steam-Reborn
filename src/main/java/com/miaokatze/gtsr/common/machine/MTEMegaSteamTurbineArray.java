@@ -173,7 +173,7 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
                         + EnumChatFormatting.AQUA
                         + GTUtility.formatNumbers(
                             (long) (getVoltage() * 8
-                                * (getStackLayers() + 1)
+                                * getGroupCount()
                                 * (getMaxEfficiencyLimit(mSteamType) / 10000.0)
                                 * mSteamType.steamEffFactor)))
                 .setTextAlignment(Alignment.CenterLeft)
@@ -196,7 +196,10 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
                 .dynamicString(
                     () -> EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.turbine_array.savings")
                         + EnumChatFormatting.GREEN
-                        + String.format("%.0f%%", (0.05 * getStackLayers() + (mGearTier > 1 ? 0.05 : 0)) * 100))
+                        + String.format(
+                            "%.0f%%",
+                            (0.05 * mStackCount + (mGearTier > 1 ? 0.025 : 0)
+                                + (mPipeTier == 2 ? 0.025 : mPipeTier == 3 ? 0.075 : 0)) * 100))
                 .setTextAlignment(Alignment.CenterLeft)
                 .setDefaultColor(COLOR_TEXT_WHITE.get())
                 .setEnabled(w -> mMachine));
@@ -227,6 +230,17 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
                         + (mEfficiency >= getMaxEfficiencyLimit(mSteamType)
                             ? StatCollector.translateToLocal("gtsr.gui.turbine_array.max")
                             : ""))
+                .setTextAlignment(Alignment.CenterLeft)
+                .setDefaultColor(COLOR_TEXT_WHITE.get())
+                .setEnabled(w -> mMachine));
+
+        screenElements.widget(
+            TextWidget
+                .dynamicString(
+                    () -> EnumChatFormatting.GOLD
+                        + StatCollector.translateToLocal("gtsr.gui.turbine_array.max_efficiency")
+                        + EnumChatFormatting.LIGHT_PURPLE
+                        + String.format("%.1f%%", getMaxEfficiencyLimit(mSteamType) / 100.0))
                 .setTextAlignment(Alignment.CenterLeft)
                 .setDefaultColor(COLOR_TEXT_WHITE.get())
                 .setEnabled(w -> mMachine));
@@ -588,16 +602,29 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
     }
 
     /**
-     * 最大效率上限 (含管道升级奖励).
-     * mPipeTier: 1=钢(无奖励), 2=钛(+10%), 3=钨钢(+20%)
+     * 获取叠加组数（含基线）。
+     * 用于蒸汽节省和发电公式计算。
+     * 组数 = mStackCount + 1（基线算1组）
+     */
+    private int getGroupCount() {
+        return mStackCount + 1;
+    }
+
+    /**
+     * 最大效率上限 (含所有加成，加算).
+     * 基准: 10000 = 100%效率，1% = 100
+     * - 每额外组+10%效率上限 = +1000
+     * - 高级Gear额外+5%效率上限 = +500
+     * - 钛管+10%效率上限 = +1000，钨钢管+25%效率上限 = +2500
+     * - 机器等级每提高一级(等级-1)，增加5%效率上限 = +500
      */
     private int getMaxEfficiencyLimit(SteamType type) {
         int base = type.maxEfficiency;
-        if (mPipeTier > 1) {
-            float pipeBonus = 0.1f * (mPipeTier - 1);
-            return (int) (base * (1f + pipeBonus));
-        }
-        return base;
+        // 效率上限加成（加算）：每额外组+1000，高级Gear+500，钛管+1000，钨钢管+2500，机器等级每级+500
+        int bonus = 1000 * mStackCount + (mGearTier > 1 ? 500 : 0)
+            + (mPipeTier == 2 ? 1000 : mPipeTier == 3 ? 2500 : 0)
+            + 500 * (mCasingTier - 1);
+        return base + bonus;
     }
 
     private long getVoltage() {
@@ -612,11 +639,12 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
 
     private long calcSteamConsumption(SteamType type) {
         if (type == SteamType.NONE) return 0;
-        int stackLayers = getStackLayers();
+        int groupCount = getGroupCount();
         long voltage = getVoltage();
-        int n = stackLayers + 1;
-        float savings = 0.05f * stackLayers + (mGearTier > 1 ? 0.05f : 0f);
-        return (long) (voltage * 8 * n * Math.max(0, 1 - savings) * type.steamEffFactor / type.euPerL);
+        // 蒸汽节省: 每额外组+5%，高级Gear额外+2.5%，钛管+2.5%，钨钢管+7.5%
+        float savings = 0.05f * mStackCount + (mGearTier > 1 ? 0.025f : 0f)
+            + (mPipeTier == 2 ? 0.025f : mPipeTier == 3 ? 0.075f : 0f);
+        return (long) (voltage * 8 * groupCount * Math.max(0, 1 - savings) * type.steamEffFactor / type.euPerL);
     }
 
     @Override
@@ -631,11 +659,12 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
             return CheckRecipeResultRegistry.NO_FUEL_FOUND;
         }
 
-        int stackLayers = getStackLayers();
+        int groupCount = getGroupCount();
         long voltage = getVoltage();
-        int n = stackLayers + 1;
         float efficiency = getCustomEfficiency();
-        float savings = 0.05f * stackLayers + (mGearTier > 1 ? 0.05f : 0f);
+        // 蒸汽节省: 每额外组+5%，高级Gear额外+2.5%，钛管+2.5%，钨钢管+7.5%
+        float savings = 0.05f * mStackCount + (mGearTier > 1 ? 0.025f : 0f)
+            + (mPipeTier == 2 ? 0.025f : mPipeTier == 3 ? 0.075f : 0f);
 
         EnumSet<SteamType> availableTypes = EnumSet.noneOf(SteamType.class);
         for (FluidStack fs : tFluids) {
@@ -671,8 +700,14 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
 
         for (SteamType type : STEAM_TYPE_PRIORITY) {
             if (!availableTypes.contains(type)) continue;
-            long eu = (long) (voltage * 8 * n * efficiency * type.steamEffFactor);
-            long consumption = (long) (voltage * 8 * n * Math.max(0, 1 - savings) * type.steamEffFactor / type.euPerL);
+            // 发电公式: EU/t = V[tier] × 8 × steamEffFactor × n × efficiency
+            // n = groupCount
+            long eu = (long) (voltage * 8 * groupCount * efficiency * type.steamEffFactor);
+            long consumption = (long) (voltage * 8
+                * groupCount
+                * Math.max(0, 1 - savings)
+                * type.steamEffFactor
+                / type.euPerL);
             int totalAvailable = getTotalSteamAmount(type);
             if (totalAvailable >= consumption) {
                 selectedType = type;
@@ -1188,6 +1223,8 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
                     + " ("
                     + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.each_tier")
                     + ")")
+            .addStructureHint("gtsr.tooltip.turbine_array.hint_pipe")
+            .addStructureHint("gtsr.tooltip.turbine_array.hint_gear")
             .addStructureHint("gtsr.tooltip.shared.no_maintenance")
             .toolTipFinisher(
                 EnumChatFormatting.AQUA + "GT"

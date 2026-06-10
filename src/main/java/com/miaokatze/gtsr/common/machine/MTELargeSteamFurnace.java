@@ -1,6 +1,5 @@
 package com.miaokatze.gtsr.common.machine;
 
-import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlock;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlocksTiered;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
@@ -171,7 +170,15 @@ public class MTELargeSteamFurnace extends MTESteamMultiBase<MTELargeSteamFurnace
                                         (MTELargeSteamFurnace t) -> t.mSetTier)))))
                 .addElement(
                     'C',
-                    onElementPass(MTELargeSteamFurnace::onCasingAdded, ofBlock(GregTechAPI.sBlockCasings3, 13)))
+                    onElementPass(
+                        MTELargeSteamFurnace::onCasingAdded,
+                        ofBlocksTiered(
+                            MTELargeSteamFurnace::getFireboxTier,
+                            ImmutableList
+                                .of(Pair.of(GregTechAPI.sBlockCasings3, 13), Pair.of(GregTechAPI.sBlockCasings3, 14)),
+                            -1,
+                            (MTELargeSteamFurnace t, Integer tier) -> { if (tier > t.mSetTier) t.mSetTier = tier; },
+                            (MTELargeSteamFurnace t) -> t.mSetTier)))
                 .addElement(
                     'D',
                     onElementPass(

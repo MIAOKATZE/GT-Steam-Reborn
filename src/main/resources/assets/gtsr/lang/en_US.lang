@@ -824,7 +824,7 @@ gtsr.gui.turbine_array.extra_stack_layers=Extra Stack Layers:
 gtsr.tooltip.turbine_array.multi_tier=Multi Tier
 gtsr.tooltip.turbine_array.each_tier=Each +1 Tier
 gtsr.gui.turbine_array.output_power=Output Power: 
-gtsr.tooltip.turbine_array.formula=Parallel=(1+2*tier)+machine count, casing tier limits max voltage.
+gtsr.tooltip.turbine_array.formula=EU/t = V[tier] × 8 × steamEffFactor × groups × efficiency%, casing tier limits max voltage
 gtsr.tooltip.turbine_array.input_hatch=Steam Input
 gtsr.tooltip.turbine_array.dynamo=Energy Output
 
@@ -922,6 +922,7 @@ gtsr.gui.turbine_array.baseline=baseline
 gtsr.gui.turbine_array.extra= extra
 gtsr.gui.turbine_array.efficiency=Eff: 
 gtsr.gui.turbine_array.max= MAX
+gtsr.gui.turbine_array.max_efficiency=Max Eff: 
 gtsr.gui.turbine_array.output=Output: 
 gtsr.gui.parallel=Parallel: 
 
@@ -979,9 +980,11 @@ gtsr.tooltip.shared.screwdriver_rightclick_overflow=Screwdriver Right-Click: Tog
 gtsr.tooltip.hub_storage_unit.steam_water_hub=Steam/Water Hub
 gtsr.tooltip.hub_storage_unit.water_hub=Water Hub
 gtsr.tooltip.turbine_array.tier6_desc=Tier 6+ can process supercritical steam and other advanced steam types with improved efficiency
+gtsr.tooltip.turbine_array.hint_pipe=Pipe block: Titanium +10% max eff +2.5% steam savings; Tungstensteel +25% max eff +7.5% steam savings
+gtsr.tooltip.turbine_array.hint_gear=Gear box block: Titanium +2.5% steam savings +5% max eff
 gtsr.tooltip.turbine_array.tier_system=12-tier voltage system: LV→MV→HV→EV→IV→LuV→ZPM→UV→UHV→UEV→UIV→UMV
 gtsr.tooltip.turbine_array.steam_progression=Steam types: Normal→Superheated→Dense→Dense Superheated→Supercritical→Dense Supercritical
-gtsr.tooltip.turbine_array.stacking_desc=Stacking layers 1-4, each layer adds turbines and dynamos to increase steam processing
+gtsr.tooltip.turbine_array.stacking_desc=4 layers per Stack group, up to 4 extra groups; +5% steam savings +10% eff cap per extra group; +5% eff cap per tier above 1
 gtsr.tooltip.chip.geothermal_overheat=Install in Large Geothermal Steam Boiler to boost steam output and add byproducts
 gtsr.tooltip.chip.hub_singularity=Install in Steam/Water Hub Array to unlock Tier 2
 gtsr.tooltip.chip.rare_gas=Install in Atmospheric Centrifuge to unlock rare gas separation recipes

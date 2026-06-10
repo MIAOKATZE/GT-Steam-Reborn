@@ -25,6 +25,7 @@ import gregtech.api.metatileentity.implementations.MTEHatchOutputBus;
 import gregtech.api.metatileentity.implementations.MTEMultiBlockBase;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.shutdown.ShutDownReasonRegistry;
+import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.MTEHatchSteamBusInput;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.MTEHatchSteamBusOutput;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTEHatchCustomFluidBase;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTESteamMultiBase;
@@ -199,6 +200,21 @@ public abstract class MTESteamMultiBaseMixin {
                 multiBlockSelf.mOutputBusses.add(hatch);
             }
             // Don't cancel - let original method also add to mSteamOutputs
+        }
+
+        // Handle MTEHatchSteamBusInput: add to mInputBusses IN ADDITION to mSteamInputs.
+        // Original addToMachineList puts MTEHatchSteamBusInput into mSteamInputs.
+        // We also add it to mInputBusses so that machines checking mInputBusses
+        // and input-related methods can find it there.
+        // We do NOT cancel the original method, so mSteamInputs still gets the hatch.
+        if (aMetaTileEntity instanceof MTEHatchSteamBusInput) {
+            MTEHatchSteamBusInput hatch = (MTEHatchSteamBusInput) aMetaTileEntity;
+            MTEMultiBlockBase multiBlockSelf = (MTEMultiBlockBase) (Object) this;
+            // Avoid duplicate if already in mInputBusses
+            if (!multiBlockSelf.mInputBusses.contains(hatch)) {
+                multiBlockSelf.mInputBusses.add(hatch);
+            }
+            // Don't cancel - let original method also add to mSteamInputs
         }
 
         // Handle pressure cooling hatch first (more specific subclass of MTESteamCoolingHatch)
