@@ -665,6 +665,16 @@ gtsr.tooltip.crust_borer.desc=Steam-driven void mining device that directly extr
 
 # Kinetic Processing Array (KPA)
 gtsr.tooltip.kinetic_array.type=Kinetic Processing Array, KPA
+gtsr.tooltip.kinetic_array.desc=Insert GT single-block machines into the controller GUI, powered by electricity + superheated steam, executes the machine's recipes.
+gtsr.tooltip.kinetic_array.desc2=Parallel=(1+2×machineTier)+stackSize. Casing tier limits max voltage. Base speed 200%, 40% energy discount.
+gtsr.tooltip.kinetic_array.desc3=Steam consumption rate decreases with voltage tier: ULV=8→LV=4→MV=2→HV=1→EV=0.5→IV=0.25→LuV+=0.1 L/t.
+gtsr.tooltip.kinetic_array.ctrl=Front center
+gtsr.tooltip.kinetic_array.steam_input=Pressure Steam Input Hatch (Superheated Steam)
+gtsr.tooltip.kinetic_array.input=Input Bus
+gtsr.tooltip.kinetic_array.output=Output Bus
+gtsr.tooltip.kinetic_array.output_hatch=Output Hatch/Pressure Steam Cooling Hatch
+gtsr.tooltip.kinetic_array.hint_pipe=Pipe Casing: Stainless Steel=250% speed, Titanium=300% speed
+gtsr.tooltip.kinetic_array.hint_gear=Gearbox Casing: Titanium=60% energy discount (base 40%)
 
 # Large Coke Oven (LCO)
 gtsr.tooltip.coke_oven.type=Large Coke Oven, LCO
@@ -937,6 +947,8 @@ gtsr.gui.tier.none=None
 
 # ===== KPA & MSTA GUI Keys =====
 gtsr.gui.kinetic_array.tier=Tier: 
+gtsr.gui.kinetic_array.no_machine=Please insert a single-block machine
+gtsr.gui.kinetic_array.voltage_cap=Voltage Cap:
 gtsr.gui.kinetic_array.steam_rate=Steam Rate: 
 gtsr.gui.kinetic_array.steam_per_amp=Steam/A: 
 gtsr.gui.kinetic_array.hp_steam=HP Steam: 

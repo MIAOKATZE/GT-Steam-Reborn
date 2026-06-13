@@ -68,6 +68,7 @@ import gregtech.api.util.GTModHandler;
 import gregtech.api.util.GTRecipe;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.MultiblockTooltipBuilder;
+import gregtech.api.util.OverclockCalculator;
 
 public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKineticProcessingArray>
     implements IConstructable, ISurvivalConstructable {
@@ -84,6 +85,9 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
 
     private int mCasingAmount = 0;
     private int mCasingTier = -1;
+    private int mPipeTier = -1;
+    private int mGearTier = -1;
+    private int mSyncedCasingTier = -1;
 
     private ItemStack internalMachineStack = null;
     private RecipeMap<?> recipeMap = null;
@@ -165,8 +169,8 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
                             MTEKineticProcessingArray::getPipeTier,
                             PIPE_CASINGS,
                             -1,
-                            (t, tier) -> t.mCasingTier = Math.max(t.mCasingTier, tier),
-                            t -> t.mCasingTier)))
+                            (t, tier) -> { t.mPipeTier = tier; },
+                            t -> t.mPipeTier)))
                 .addElement(
                     'D',
                     onElementPass(
@@ -175,8 +179,8 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
                             MTEKineticProcessingArray::getGearTier,
                             GEAR_CASINGS,
                             -1,
-                            (t, tier) -> t.mCasingTier = Math.max(t.mCasingTier, tier),
-                            t -> t.mCasingTier)))
+                            (t, tier) -> { t.mGearTier = tier; },
+                            t -> t.mGearTier)))
                 .addElement(
                     'E',
                     onElementPass(
@@ -321,6 +325,9 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
     public boolean checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack) {
         mCasingAmount = 0;
         mCasingTier = -1;
+        mPipeTier = -1;
+        mGearTier = -1;
+        mSyncedCasingTier = -1;
         mPressureSteamInputs.clear();
         mPressureCoolingHatches.clear();
 
@@ -536,6 +543,19 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
         return result;
     }
 
+    private double getEUtDiscount() {
+        // Base: 0.6 (40% discount); Gear tier 2: 0.4 (60% discount)
+        if (mGearTier >= 2) return 0.4;
+        return 0.6;
+    }
+
+    private double getDurationModifier() {
+        // Pipe tier 1 (or none): 0.5 (2x speed); tier 2: 0.4 (2.5x); tier 3: 1/3 (3x)
+        if (mPipeTier >= 3) return 1.0 / 3.0;
+        if (mPipeTier >= 2) return 0.4;
+        return 0.5;
+    }
+
     @Override
     protected ProcessingLogic createProcessingLogic() {
         return new ProcessingLogic() {
@@ -544,6 +564,14 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
             @Override
             protected CheckRecipeResult validateRecipe(@Nonnull GTRecipe recipe) {
                 return CheckRecipeResultRegistry.SUCCESSFUL;
+            }
+
+            @Override
+            @Nonnull
+            protected OverclockCalculator createOverclockCalculator(@Nonnull GTRecipe recipe) {
+                return OverclockCalculator.ofNoOverclock(recipe)
+                    .setEUtDiscount(getEUtDiscount())
+                    .setDurationModifier(getDurationModifier());
             }
         }.setMaxParallelSupplier(this::getTrueParallel);
     }
@@ -575,21 +603,33 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
         super.drawTexts(screenElements, inventorySlot);
 
         screenElements.widget(new FakeSyncWidget.IntegerSyncer(() -> mMachineTier, val -> mMachineTier = val));
+        screenElements.widget(new FakeSyncWidget.IntegerSyncer(() -> mCasingTier, val -> mCasingTier = val));
         screenElements.widget(new FakeSyncWidget.DoubleSyncer(() -> mSteamRate, val -> mSteamRate = val));
         screenElements.widget(new FakeSyncWidget.LongSyncer(() -> mSteamPerAmp, val -> mSteamPerAmp = val));
         screenElements.widget(new FakeSyncWidget.LongSyncer(() -> mRealtimeSteamCost, val -> mRealtimeSteamCost = val));
+        screenElements.widget(new FakeSyncWidget.IntegerSyncer(() -> maxParallel, val -> maxParallel = val));
         screenElements.widget(new FakeSyncWidget.IntegerSyncer(() -> mParallelCount, val -> mParallelCount = val));
         screenElements.widget(new FakeSyncWidget.StringSyncer(() -> mMachineName, val -> mMachineName = val));
 
-        screenElements.widget(
-            TextWidget
-                .dynamicString(
-                    () -> EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.kinetic_array.tier")
-                        + EnumChatFormatting.GREEN
-                        + GTValues.VN[mMachineTier > 0 && mMachineTier < GTValues.VN.length ? mMachineTier : 0])
-                .setTextAlignment(Alignment.CenterLeft)
-                .setDefaultColor(COLOR_TEXT_WHITE.get())
-                .setEnabled(w -> mMachine));
+        screenElements.widget(TextWidget.dynamicString(() -> {
+            if (mMachineTier <= 0) {
+                return EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.gui.kinetic_array.no_machine");
+            }
+            return EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.kinetic_array.tier")
+                + EnumChatFormatting.GREEN
+                + GTValues.VN[mMachineTier > 0 && mMachineTier < GTValues.VN.length ? mMachineTier : 0]
+                + EnumChatFormatting.GRAY
+                + " ("
+                + StatCollector.translateToLocal("gtsr.gui.kinetic_array.voltage_cap")
+                + " "
+                + EnumChatFormatting.YELLOW
+                + GTValues.VN[mCasingTier > 0 && mCasingTier < GTValues.VN.length ? mCasingTier : 0]
+                + EnumChatFormatting.GRAY
+                + ")";
+        })
+            .setTextAlignment(Alignment.CenterLeft)
+            .setDefaultColor(COLOR_TEXT_WHITE.get())
+            .setEnabled(w -> mMachine));
 
         screenElements.widget(
             TextWidget
@@ -629,7 +669,11 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
                 .dynamicString(
                     () -> EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.kinetic_array.parallel")
                         + EnumChatFormatting.LIGHT_PURPLE
-                        + mParallelCount)
+                        + mParallelCount
+                        + EnumChatFormatting.GRAY
+                        + "/"
+                        + EnumChatFormatting.YELLOW
+                        + maxParallel)
                 .setTextAlignment(Alignment.CenterLeft)
                 .setDefaultColor(COLOR_TEXT_WHITE.get())
                 .setEnabled(w -> mMachine));
@@ -639,6 +683,7 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
     public void saveNBTData(NBTTagCompound aNBT) {
         super.saveNBTData(aNBT);
         aNBT.setInteger("mCasingTier", mCasingTier);
+        aNBT.setInteger("mSyncedCasingTier", mSyncedCasingTier);
         aNBT.setInteger("mMachineTier", mMachineTier);
         aNBT.setLong("voltage", voltage);
         aNBT.setInteger("maxParallel", maxParallel);
@@ -661,6 +706,7 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
     public void loadNBTData(NBTTagCompound aNBT) {
         super.loadNBTData(aNBT);
         mCasingTier = aNBT.getInteger("mCasingTier");
+        mSyncedCasingTier = aNBT.getInteger("mSyncedCasingTier");
         mMachineTier = aNBT.getInteger("mMachineTier");
         voltage = aNBT.getLong("voltage");
         maxParallel = aNBT.getInteger("maxParallel");
@@ -710,7 +756,8 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
     }
 
     private int getCasingTextureIndex() {
-        switch (mCasingTier) {
+        int tier = mSyncedCasingTier > 0 ? mSyncedCasingTier : mCasingTier;
+        switch (tier) {
             case 1:
                 return GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings2, 0);
             case 2:
@@ -763,6 +810,16 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
     @Override
     public boolean getDefaultHasMaintenanceChecks() {
         return false;
+    }
+
+    @Override
+    public void onValueUpdate(byte aValue) {
+        mSyncedCasingTier = aValue;
+    }
+
+    @Override
+    public byte getUpdateData() {
+        return (byte) mCasingTier;
     }
 
     @Override

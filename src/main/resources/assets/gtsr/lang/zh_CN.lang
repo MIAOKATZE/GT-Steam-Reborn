@@ -679,15 +679,15 @@ gtsr.tooltip.crust_borer.output_bus=矿石产出
 # 5. Kinetic Processing Array
 gtsr.tooltip.kinetic_array.type=动力加工阵列, KPA
 gtsr.tooltip.kinetic_array.desc=在控制器GUI中放入GT单方块机器，以电力+过热蒸汽辅助运行，执行该机器对应配方。
-gtsr.tooltip.kinetic_array.desc2=并行数=(1+2×机器等级)+机器数量，外壳等级限制最高供电电压。
+gtsr.tooltip.kinetic_array.desc2=并行数=(1+2×机器等级)+机器数量，外壳等级限制最高供电电压。基础运行速度200%，能耗减免40%。
 gtsr.tooltip.kinetic_array.desc3=蒸汽消耗率随电压等级递减：ULV=8→LV=4→MV=2→HV=1→EV=0.5→IV=0.25→LuV+=0.1 L/t。
 gtsr.tooltip.kinetic_array.ctrl=正面中央
 gtsr.tooltip.kinetic_array.steam_input=耐压蒸汽输入仓(过热蒸汽)
 gtsr.tooltip.kinetic_array.input=输入总线
 gtsr.tooltip.kinetic_array.output=输出总线
 gtsr.tooltip.kinetic_array.output_hatch=输出仓/耐压蒸汽冷却仓
-gtsr.tooltip.kinetic_array.hint_pipe=管道方块: 钛制加速100%，钨钢制加速200%
-gtsr.tooltip.kinetic_array.hint_gear=齿轮箱机械方块: 钛制能量消耗降低至80%
+gtsr.tooltip.kinetic_array.hint_pipe=管道方块: 不锈钢=250%速度，钛=300%速度
+gtsr.tooltip.kinetic_array.hint_gear=齿轮箱机械方块: 钛制能耗减免60%（基础40%）
 
 # 6. Large Coke Oven
 gtsr.tooltip.coke_oven.type=大型焦炉, LCO
@@ -1012,6 +1012,8 @@ gtsr.tooltip.solar_array.three_tier=青铜/钢/超压 等级
 
 # ===== KPA & MSTA GUI Keys =====
 gtsr.gui.kinetic_array.tier=等级: 
+gtsr.gui.kinetic_array.no_machine=请放入单方块机器
+gtsr.gui.kinetic_array.voltage_cap=电压上限:
 gtsr.gui.kinetic_array.steam_rate=蒸汽速率: 
 gtsr.gui.kinetic_array.steam_per_amp=蒸汽/安培: 
 gtsr.gui.kinetic_array.hp_steam=高压蒸汽: 
