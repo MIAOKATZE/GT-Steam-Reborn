@@ -27,6 +27,7 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 import gregtech.api.enums.ItemList;
 import gregtech.api.enums.Textures;
+import gregtech.api.interfaces.IIconContainer;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
@@ -449,14 +450,14 @@ public class MTESingularityDrillingNode extends MTERemoteWorkerNode {
         return new String[] { statusText, depthText, bedrockText };
     }
 
-    private static Textures.BlockIcons.CustomIcon OVERLAY_OFF;
-    private static Textures.BlockIcons.CustomIcon OVERLAY_ON;
+    private static IIconContainer OVERLAY_OFF;
+    private static IIconContainer OVERLAY_ON;
 
     @Override
     @SideOnly(Side.CLIENT)
     public void registerIcons(IIconRegister aBlockIconRegister) {
-        OVERLAY_OFF = new Textures.BlockIcons.CustomIcon("gtsr:MTESingularityDrillingNode_OFF");
-        OVERLAY_ON = new Textures.BlockIcons.CustomIcon("gtsr:MTESingularityDrillingNode_ON");
+        OVERLAY_OFF = Textures.BlockIcons.custom("gtsr:MTESingularityDrillingNode_OFF");
+        OVERLAY_ON = Textures.BlockIcons.custom("gtsr:MTESingularityDrillingNode_ON");
         super.registerIcons(aBlockIconRegister);
     }
 

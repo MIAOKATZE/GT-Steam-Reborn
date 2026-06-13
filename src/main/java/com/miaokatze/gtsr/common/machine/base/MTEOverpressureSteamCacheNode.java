@@ -19,6 +19,7 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Textures;
+import gregtech.api.interfaces.IIconContainer;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
@@ -33,7 +34,7 @@ public class MTEOverpressureSteamCacheNode extends MTEFilteredCacheNode {
     private static final int HUB_TRANSFER_RATE = 32_000_000;
     private static final int CASING_INDEX = GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings8, 6);
 
-    private static Textures.BlockIcons.CustomIcon TOP_OVERLAY;
+    private static IIconContainer TOP_OVERLAY;
 
     public MTEOverpressureSteamCacheNode(int aID, String aName, String aNameRegional) {
         super(aID, aName, aNameRegional, 4);
@@ -51,7 +52,7 @@ public class MTEOverpressureSteamCacheNode extends MTEFilteredCacheNode {
     @Override
     @SideOnly(Side.CLIENT)
     public void registerIcons(IIconRegister aBlockIconRegister) {
-        TOP_OVERLAY = new Textures.BlockIcons.CustomIcon("gtsr:SteamCacheNode");
+        TOP_OVERLAY = Textures.BlockIcons.custom("gtsr:SteamCacheNode");
         super.registerIcons(aBlockIconRegister);
     }
 

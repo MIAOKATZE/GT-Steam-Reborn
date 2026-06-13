@@ -6,6 +6,7 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 import net.minecraftforge.common.util.ForgeDirection;
+import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidStack;
 
 import com.miaokatze.gtsr.common.machine.MTEWaterHubArray;
@@ -92,7 +93,7 @@ public class MTEWaterHubOutputHatch extends MTEHatchOutput {
     }
 
     @Override
-    public boolean acceptsFluidLock(String name) {
+    public boolean acceptsFluidLock(Fluid fluid) {
         return false;
     }
 

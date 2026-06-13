@@ -9,6 +9,8 @@ import static gregtech.api.enums.HatchElement.InputHatch;
 import static gregtech.api.enums.HatchElement.OutputHatch;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 
+import java.util.List;
+
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
@@ -17,7 +19,6 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
-import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.FluidStack;
 
 import org.apache.commons.lang3.tuple.Pair;
@@ -39,7 +40,7 @@ import com.miaokatze.gtsr.common.machine.base.MTEHatchPressureSteamInput;
 
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Textures;
-import gregtech.api.interfaces.ITexture;
+import gregtech.api.interfaces.IIconContainer;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.logic.ProcessingLogic;
@@ -48,15 +49,16 @@ import gregtech.api.objects.overclockdescriber.OverclockDescriber;
 import gregtech.api.recipe.RecipeMap;
 import gregtech.api.recipe.check.CheckRecipeResult;
 import gregtech.api.recipe.check.CheckRecipeResultRegistry;
-import gregtech.api.render.TextureFactory;
+import gregtech.api.structure.error.StructureError;
+import gregtech.api.structure.error.StructureErrorRegistry;
 import gregtech.api.util.GTRecipe;
 import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.common.blocks.BlockCasings1;
 import gregtech.common.blocks.BlockCasings2;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTEHatchCustomFluidBase;
-import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTESteamMultiBase;
+import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTESteamMultiBlockBase;
 
-public class MTEAtmosphericCentrifuge extends MTESteamMultiBase<MTEAtmosphericCentrifuge>
+public class MTEAtmosphericCentrifuge extends MTESteamMultiBlockBase<MTEAtmosphericCentrifuge>
     implements ISurvivalConstructable {
 
     private static final String STRUCTURE_PIECE_MAIN = "main";
@@ -66,7 +68,7 @@ public class MTEAtmosphericCentrifuge extends MTESteamMultiBase<MTEAtmosphericCe
 
     private static IStructureDefinition<MTEAtmosphericCentrifuge> STRUCTURE_DEFINITION = null;
 
-    protected int mSetTier = -1;
+    public int mSetTier = -1;
     protected int mCasingCount = 0;
 
     public MTEAtmosphericCentrifuge(int aID, String aName, String aNameRegional) {
@@ -84,7 +86,12 @@ public class MTEAtmosphericCentrifuge extends MTESteamMultiBase<MTEAtmosphericCe
 
     @Override
     public String getMachineType() {
-        return "Atmospheric Centrifuge";
+        return "大气离心机";
+    }
+
+    @Override
+    public boolean isHighPressure() {
+        return mSetTier >= 2;
     }
 
     @Nullable
@@ -149,15 +156,15 @@ public class MTEAtmosphericCentrifuge extends MTESteamMultiBase<MTEAtmosphericCe
                 .addElement(
                     'B',
                     ofChain(
-                        buildHatchAdder(MTEAtmosphericCentrifuge.class).adder(MTESteamMultiBase::addToMachineList)
+                        buildHatchAdder(MTEAtmosphericCentrifuge.class).adder(MTESteamMultiBlockBase::addToMachineList)
                             .hatchIds(31040, MetaTileEntityID.PRESSURE_STEAM_HATCH.ID)
                             .casingIndex(bronzeCasingIndex)
-                            .dot(1)
+                            .hint(1)
                             .shouldReject(t -> !t.mSteamInputFluids.isEmpty())
                             .build(),
                         buildHatchAdder(MTEAtmosphericCentrifuge.class).atLeast(InputHatch, OutputHatch)
                             .casingIndex(bronzeCasingIndex)
-                            .dot(1)
+                            .hint(1)
                             .buildAndChain(
                                 onElementPass(
                                     MTEAtmosphericCentrifuge::onCasingAdded,
@@ -227,17 +234,34 @@ public class MTEAtmosphericCentrifuge extends MTESteamMultiBase<MTEAtmosphericCe
     }
 
     @Override
-    public boolean checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack) {
+    public void checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack, List<StructureError> errors) {
         mSetTier = -1;
         mCasingCount = 0;
-        if (!checkPiece(STRUCTURE_PIECE_MAIN, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET)) return false;
-        if (mSetTier <= 0) return false;
-        if (mSteamInputFluids.isEmpty()) return false;
-        if (mInputHatches.size() > 10) return false;
-        if (mOutputHatches.isEmpty()) return false;
-        if (mOutputHatches.size() > 10) return false;
+        if (!checkPiece(STRUCTURE_PIECE_MAIN, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET)) {
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            return;
+        }
+        if (mSetTier <= 0) {
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            return;
+        }
+        if (mSteamInputFluids.isEmpty()) {
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            return;
+        }
+        if (mInputHatches.size() > 10) {
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            return;
+        }
+        if (mOutputHatches.isEmpty()) {
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            return;
+        }
+        if (mOutputHatches.size() > 10) {
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            return;
+        }
         updateHatchTexture();
-        return true;
     }
 
     @Override
@@ -255,7 +279,7 @@ public class MTEAtmosphericCentrifuge extends MTESteamMultiBase<MTEAtmosphericCe
         return false;
     }
 
-    protected boolean hasRareGasChip() {
+    public boolean hasRareGasChip() {
         ItemStack stack = getControllerSlot();
         return stack != null && GTSRItemList.RareGasSeparationChip.isStackEqual(stack, true, true);
     }
@@ -310,28 +334,13 @@ public class MTEAtmosphericCentrifuge extends MTESteamMultiBase<MTEAtmosphericCe
     }
 
     @Override
-    protected int getCasingTextureId() {
-        return getCasingTextureID();
+    protected IIconContainer getInactiveOverlay() {
+        return Textures.BlockIcons.OVERLAY_FRONT_STEAM_CENTRIFUGE;
     }
 
     @Override
-    public ITexture[] getTexture(IGregTechTileEntity aBaseMetaTileEntity, ForgeDirection side, ForgeDirection facing,
-        int aColorIndex, boolean aActive, boolean aRedstone) {
-        if (side == facing) {
-            return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(getCasingTextureID()),
-                aActive ? getFrontOverlayActive() : getFrontOverlay() };
-        }
-        return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(getCasingTextureID()) };
-    }
-
-    @Override
-    protected ITexture getFrontOverlay() {
-        return TextureFactory.of(Textures.BlockIcons.OVERLAY_FRONT_STEAM_CENTRIFUGE);
-    }
-
-    @Override
-    protected ITexture getFrontOverlayActive() {
-        return TextureFactory.of(Textures.BlockIcons.OVERLAY_FRONT_STEAM_CENTRIFUGE_ACTIVE);
+    protected IIconContainer getActiveOverlay() {
+        return Textures.BlockIcons.OVERLAY_FRONT_STEAM_CENTRIFUGE_ACTIVE;
     }
 
     @Override
@@ -429,7 +438,7 @@ public class MTEAtmosphericCentrifuge extends MTESteamMultiBase<MTEAtmosphericCe
         return false;
     }
 
-    protected boolean hasSuperheatedSteamInHatch() {
+    public boolean hasSuperheatedSteamInHatch() {
         for (MTEHatchCustomFluidBase hatch : mSteamInputFluids) {
             FluidStack fs = hatch.getFluid();
             if (fs != null && fs.getFluid() != null
@@ -485,6 +494,11 @@ public class MTEAtmosphericCentrifuge extends MTESteamMultiBase<MTEAtmosphericCe
                     + EnumChatFormatting.RESET;
             }))
             .widget(new FakeSyncWidget.IntegerSyncer(() -> mSetTier, val -> mSetTier = val));
+    }
+
+    @Override
+    protected gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui<?> getGui() {
+        return new com.miaokatze.gtsr.common.gui.MTEAtmosphericCentrifugeGui(this);
     }
 
     @Override

@@ -21,6 +21,7 @@ import net.minecraftforge.fluids.IFluidHandler;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 import gregtech.api.enums.Textures;
+import gregtech.api.interfaces.IIconContainer;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
@@ -31,7 +32,7 @@ public class MTEReinforcedSteamCacheNode extends MTEFilteredCacheNode {
     private static final int CAPACITY = 16_000_000;
     private static final int OUTPUT_RATE_PER_SEC = 1_000_000;
 
-    private static Textures.BlockIcons.CustomIcon TOP_OVERLAY;
+    private static IIconContainer TOP_OVERLAY;
 
     public MTEReinforcedSteamCacheNode(int aID, String aName, String aNameRegional) {
         super(aID, aName, aNameRegional, 3);
@@ -49,7 +50,7 @@ public class MTEReinforcedSteamCacheNode extends MTEFilteredCacheNode {
     @Override
     @SideOnly(Side.CLIENT)
     public void registerIcons(IIconRegister aBlockIconRegister) {
-        TOP_OVERLAY = new Textures.BlockIcons.CustomIcon("gtsr:SteamCacheNode");
+        TOP_OVERLAY = Textures.BlockIcons.custom("gtsr:SteamCacheNode");
         super.registerIcons(aBlockIconRegister);
     }
 

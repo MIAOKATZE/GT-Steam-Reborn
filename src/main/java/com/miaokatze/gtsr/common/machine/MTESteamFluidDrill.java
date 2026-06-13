@@ -7,6 +7,8 @@ import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose
 import static gregtech.api.enums.HatchElement.OutputHatch;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 
+import java.util.List;
+
 import javax.annotation.Nullable;
 
 import net.minecraft.block.Block;
@@ -21,6 +23,7 @@ import net.minecraftforge.fluids.FluidStack;
 import org.apache.commons.lang3.tuple.Pair;
 
 import com.google.common.collect.ImmutableList;
+import com.gtnewhorizon.gtnhlib.util.numberformatting.NumberFormatUtil;
 import com.gtnewhorizon.structurelib.alignment.IAlignmentLimits;
 import com.gtnewhorizon.structurelib.alignment.constructable.ISurvivalConstructable;
 import com.gtnewhorizon.structurelib.structure.IStructureDefinition;
@@ -36,14 +39,15 @@ import com.miaokatze.gtsr.common.api.enums.MetaTileEntityID;
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Materials;
 import gregtech.api.enums.Textures;
-import gregtech.api.interfaces.ITexture;
+import gregtech.api.interfaces.IIconContainer;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.implementations.MTEHatch;
 import gregtech.api.recipe.RecipeMap;
 import gregtech.api.recipe.check.CheckRecipeResult;
 import gregtech.api.recipe.check.CheckRecipeResultRegistry;
-import gregtech.api.render.TextureFactory;
+import gregtech.api.structure.error.StructureError;
+import gregtech.api.structure.error.StructureErrorRegistry;
 import gregtech.api.util.GTModHandler;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.MultiblockTooltipBuilder;
@@ -51,9 +55,9 @@ import gregtech.api.util.VoidProtectionHelper;
 import gregtech.common.blocks.BlockCasings1;
 import gregtech.common.blocks.BlockCasings2;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTEHatchCustomFluidBase;
-import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTESteamMultiBase;
+import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTESteamMultiBlockBase;
 
-public class MTESteamFluidDrill extends MTESteamMultiBase<MTESteamFluidDrill> implements ISurvivalConstructable {
+public class MTESteamFluidDrill extends MTESteamMultiBlockBase<MTESteamFluidDrill> implements ISurvivalConstructable {
 
     private static final String STRUCTURE_PIECE_MAIN = "main";
     private static final int HORIZONTAL_OFF_SET = 2;
@@ -70,8 +74,8 @@ public class MTESteamFluidDrill extends MTESteamMultiBase<MTESteamFluidDrill> im
     private static IStructureDefinition<MTESteamFluidDrill> STRUCTURE_DEFINITION = null;
 
     private int mCountCasing = 0;
-    private int mSetTier = -1;
-    private int mOutputMode = 0;
+    public int mSetTier = -1;
+    public int mOutputMode = 0;
 
     public MTESteamFluidDrill(int aID, String aName, String aNameRegional) {
         super(aID, aName, aNameRegional);
@@ -88,7 +92,12 @@ public class MTESteamFluidDrill extends MTESteamMultiBase<MTESteamFluidDrill> im
 
     @Override
     public String getMachineType() {
-        return "Fluid Drill";
+        return "蒸汽流体钻";
+    }
+
+    @Override
+    public boolean isHighPressure() {
+        return mSetTier >= 2;
     }
 
     @Nullable
@@ -126,9 +135,10 @@ public class MTESteamFluidDrill extends MTESteamMultiBase<MTESteamFluidDrill> im
         return ((BlockCasings1) GregTechAPI.sBlockCasings1).getTextureIndex(10);
     }
 
+    @Override
     protected void updateHatchTexture() {
+        super.updateHatchTexture();
         int textureID = getCasingTextureID();
-        for (MTEHatch h : mSteamInputFluids) h.updateTexture(textureID);
         for (MTEHatch h : mOutputHatches) h.updateTexture(textureID);
     }
 
@@ -160,15 +170,15 @@ public class MTESteamFluidDrill extends MTESteamMultiBase<MTESteamFluidDrill> im
                 .addElement(
                     'B',
                     ofChain(
-                        buildHatchAdder(MTESteamFluidDrill.class).adder(MTESteamMultiBase::addToMachineList)
+                        buildHatchAdder(MTESteamFluidDrill.class).adder(MTESteamMultiBlockBase::addToMachineList)
                             .hatchIds(31040, MetaTileEntityID.PRESSURE_STEAM_HATCH.ID)
                             .casingIndex(bronzeCasingIndex)
-                            .dot(1)
+                            .hint(1)
                             .shouldReject(t -> !t.mSteamInputFluids.isEmpty())
                             .build(),
                         buildHatchAdder(MTESteamFluidDrill.class).atLeast(OutputHatch)
                             .casingIndex(bronzeCasingIndex)
-                            .dot(1)
+                            .hint(1)
                             .buildAndChain(
                                 onElementPass(
                                     MTESteamFluidDrill::onCasingAdded,
@@ -244,20 +254,26 @@ public class MTESteamFluidDrill extends MTESteamMultiBase<MTESteamFluidDrill> im
     }
 
     @Override
-    public boolean checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack) {
+    public void checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack, List<StructureError> errors) {
         mCountCasing = 0;
         mSetTier = -1;
 
         if (!checkPiece(STRUCTURE_PIECE_MAIN, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET)) {
-            return false;
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            return;
         }
 
-        if (this.mOutputHatches.size() != 1 || this.mSteamInputFluids.size() != 1) return false;
+        if (this.mOutputHatches.size() != 1 || this.mSteamInputFluids.size() != 1) {
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            return;
+        }
 
-        if (mSetTier <= 0) return false;
+        if (mSetTier <= 0) {
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            return;
+        }
 
         updateHatchTexture();
-        return true;
     }
 
     private static final int HIGH_STEAM_PER_SECOND = 8_000;
@@ -279,7 +295,7 @@ public class MTESteamFluidDrill extends MTESteamMultiBase<MTESteamFluidDrill> im
         return mEfficiency / 10000F;
     }
 
-    private int calculateFinalWaterOutput() {
+    public int calculateFinalWaterOutput() {
         float ratio = getEfficiencyRatio();
         int minOutput, maxOutput;
         if (mSetTier == 1) {
@@ -313,7 +329,8 @@ public class MTESteamFluidDrill extends MTESteamMultiBase<MTESteamFluidDrill> im
     }
 
     @Override
-    public void onModeChangeByScrewdriver(ForgeDirection side, EntityPlayer aPlayer, float aX, float aY, float aZ) {
+    public void onScrewdriverRightClick(ForgeDirection side, EntityPlayer aPlayer, float aX, float aY, float aZ,
+        ItemStack aTool) {
         if (mSetTier < 2) {
             GTUtility.sendChatToPlayer(
                 aPlayer,
@@ -385,23 +402,13 @@ public class MTESteamFluidDrill extends MTESteamMultiBase<MTESteamFluidDrill> im
     }
 
     @Override
-    public ITexture[] getTexture(IGregTechTileEntity aBaseMetaTileEntity, ForgeDirection side, ForgeDirection facing,
-        int aColorIndex, boolean aActive, boolean aRedstone) {
-        if (side == facing) {
-            return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(getCasingTextureID()),
-                aActive ? getFrontOverlayActive() : getFrontOverlay() };
-        }
-        return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(getCasingTextureID()) };
+    protected IIconContainer getInactiveOverlay() {
+        return Textures.BlockIcons.OVERLAY_FRONT_WATER_PUMP;
     }
 
     @Override
-    protected ITexture getFrontOverlay() {
-        return TextureFactory.of(Textures.BlockIcons.OVERLAY_FRONT_WATER_PUMP);
-    }
-
-    @Override
-    protected ITexture getFrontOverlayActive() {
-        return TextureFactory.of(Textures.BlockIcons.OVERLAY_FRONT_WATER_PUMP_ACTIVE);
+    protected IIconContainer getActiveOverlay() {
+        return Textures.BlockIcons.OVERLAY_FRONT_WATER_PUMP_ACTIVE;
     }
 
     @Override
@@ -429,9 +436,9 @@ public class MTESteamFluidDrill extends MTESteamMultiBase<MTESteamFluidDrill> im
                 EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.shared.steam_cost")
                     + EnumChatFormatting.WHITE
                     + " "
-                    + GTUtility.formatNumbers(BASE_STEAM_PER_SECOND)
+                    + NumberFormatUtil.formatNumber(BASE_STEAM_PER_SECOND)
                     + " L/s ("
-                    + GTUtility.formatNumbers(HIGH_STEAM_PER_SECOND)
+                    + NumberFormatUtil.formatNumber(HIGH_STEAM_PER_SECOND)
                     + " L/s Brine/Lava)")
             .addInfo(
                 EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.tooltip.shared.superheated_quadruples"))
@@ -489,7 +496,7 @@ public class MTESteamFluidDrill extends MTESteamMultiBase<MTESteamFluidDrill> im
         mOutputMode = aNBT.getInteger("mOutputMode");
     }
 
-    private boolean hasSuperheatedSteamInHatch() {
+    public boolean hasSuperheatedSteamInHatch() {
         for (MTEHatchCustomFluidBase hatch : mSteamInputFluids) {
             FluidStack fs = hatch.getFluid();
             if (fs != null && fs.getFluid() != null
@@ -536,11 +543,16 @@ public class MTESteamFluidDrill extends MTESteamMultiBase<MTESteamFluidDrill> im
                 new TextWidget().setStringSupplier(
                     () -> EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.fluid_drill.output")
                         + EnumChatFormatting.LIGHT_PURPLE
-                        + GTUtility.formatNumbers(calculateFinalWaterOutput())
+                        + NumberFormatUtil.formatNumber(calculateFinalWaterOutput())
                         + " L/s"));
     }
 
-    private String getOutputModeDisplayName() {
+    @Override
+    protected gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui<?> getGui() {
+        return new com.miaokatze.gtsr.common.gui.MTESteamFluidDrillGui(this);
+    }
+
+    public String getOutputModeDisplayName() {
         switch (mOutputMode) {
             case 1:
                 return StatCollector.translateToLocal("gtsr.tooltip.fluid_drill.mode_distilled");
@@ -582,7 +594,7 @@ public class MTESteamFluidDrill extends MTESteamMultiBase<MTESteamFluidDrill> im
                 + String.format("%.1f%%", efficiencyPercent),
             EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.fluid_drill.output")
                 + EnumChatFormatting.LIGHT_PURPLE
-                + GTUtility.formatNumbers(currentOutput)
+                + NumberFormatUtil.formatNumber(currentOutput)
                 + " L/s" };
     }
 }

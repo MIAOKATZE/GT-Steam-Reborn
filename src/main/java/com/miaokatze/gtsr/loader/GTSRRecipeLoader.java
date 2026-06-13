@@ -30,7 +30,6 @@ import gregtech.api.enums.ItemList;
 import gregtech.api.enums.Materials;
 import gregtech.api.enums.OrePrefixes;
 import gregtech.api.enums.TierEU;
-import gregtech.api.util.ExternalMaterials;
 import gregtech.api.util.GTModHandler;
 import gregtech.api.util.GTOreDictUnificator;
 import gtPlusPlus.core.fluids.GTPPFluids;
@@ -122,28 +121,28 @@ public class GTSRRecipeLoader implements Runnable {
     private static void registerSiemensMartinRecipes() {
         GTValues.RA.stdBuilder()
             .itemInputs(Materials.Iron.getIngots(1), Materials.Coal.getGems(2))
-            .itemOutputs(Materials.Steel.getIngots(1), Materials.DarkAsh.getDust(1))
+            .itemOutputs(Materials.Steel.getIngots(1), Materials.Ash.getDust(1))
             .duration(1600 * SECONDS)
             .eut(0)
             .addTo(siemensMartinRecipes);
 
         GTValues.RA.stdBuilder()
             .itemInputs(Materials.Iron.getDust(1), Materials.Coal.getGems(2))
-            .itemOutputs(Materials.Steel.getIngots(1), Materials.DarkAsh.getDust(1))
+            .itemOutputs(Materials.Steel.getIngots(1), Materials.Ash.getDust(1))
             .duration(1600 * SECONDS)
             .eut(0)
             .addTo(siemensMartinRecipes);
 
         GTValues.RA.stdBuilder()
             .itemInputs(Materials.Iron.getIngots(1), Materials.Coal.getDust(2))
-            .itemOutputs(Materials.Steel.getIngots(1), Materials.DarkAsh.getDust(1))
+            .itemOutputs(Materials.Steel.getIngots(1), Materials.Ash.getDust(1))
             .duration(1600 * SECONDS)
             .eut(0)
             .addTo(siemensMartinRecipes);
 
         GTValues.RA.stdBuilder()
             .itemInputs(Materials.Iron.getDust(1), Materials.Coal.getDust(2))
-            .itemOutputs(Materials.Steel.getIngots(1), Materials.DarkAsh.getDust(1))
+            .itemOutputs(Materials.Steel.getIngots(1), Materials.Ash.getDust(1))
             .duration(1600 * SECONDS)
             .eut(0)
             .addTo(siemensMartinRecipes);
@@ -490,9 +489,9 @@ public class GTSRRecipeLoader implements Runnable {
 
         ItemStack feCoOut = get(GTSRItemList.AmmoniaCatalystFeCo, 1);
         if (!hasNull(feCoOut)) {
-            ItemStack luvPlate = WerkstoffLoader.LuVTierMaterial.get(OrePrefixes.plateDense, 32);
+            ItemStack luvPlate = GTOreDictUnificator.get(OrePrefixes.plateDense, Materials.Osmiridium, 32);
             if (luvPlate == null) {
-                warn("WerkstoffLoader.LuVTierMaterial.get(plateDense, 32) returned null!");
+                warn("Osmiridium dense plate (32) returned null!");
             }
             ItemStack[] inputs = filterNulls(
                 get(OrePrefixes.dust, Materials.Iron, 64),
@@ -902,7 +901,7 @@ public class GTSRRecipeLoader implements Runnable {
                 GTSRItemList.SteamEntangledSingularity.get(64),
                 get(OrePrefixes.circuit, Materials.UV, 16),
                 get(OrePrefixes.plateDense, Materials.Europium, 32),
-                get(OrePrefixes.plateDense, ExternalMaterials.getRhodiumPlatedPalladium(), 64));
+                get(OrePrefixes.plateDense, WerkstoffLoader.RhodiumPlatedPalladium.getGTMaterial(), 64));
             if (!hasNull(inputs)) {
                 GTValues.RA.stdBuilder()
                     .itemInputs(inputs)
@@ -926,8 +925,8 @@ public class GTSRRecipeLoader implements Runnable {
                 GTSRItemList.ReinforcedSteamCacheNode.get(1),
                 get(OrePrefixes.circuit, Materials.LuV, 4),
                 ItemList.Sensor_LuV.get(2),
-                get(OrePrefixes.screw, ExternalMaterials.getRhodiumPlatedPalladium(), 64),
-                get(OrePrefixes.plateDense, ExternalMaterials.getRhodiumPlatedPalladium(), 16));
+                get(OrePrefixes.screw, WerkstoffLoader.RhodiumPlatedPalladium.getGTMaterial(), 64),
+                get(OrePrefixes.plateDense, WerkstoffLoader.RhodiumPlatedPalladium.getGTMaterial(), 16));
             if (!hasNull(inputs)) {
                 GTValues.RA.stdBuilder()
                     .itemInputs(inputs)
@@ -974,8 +973,8 @@ public class GTSRRecipeLoader implements Runnable {
                 GTSRItemList.PressureSteamHatch.get(1),
                 ItemList.Quantum_Tank_LV.get(1),
                 ItemList.Electric_Pump_LuV.get(16),
-                get(OrePrefixes.screw, ExternalMaterials.getRhodiumPlatedPalladium(), 16),
-                get(OrePrefixes.plateDense, ExternalMaterials.getRhodiumPlatedPalladium(), 4));
+                get(OrePrefixes.screw, WerkstoffLoader.RhodiumPlatedPalladium.getGTMaterial(), 16),
+                get(OrePrefixes.plateDense, WerkstoffLoader.RhodiumPlatedPalladium.getGTMaterial(), 4));
             if (!hasNull(inputs)) {
                 GTValues.RA.stdBuilder()
                     .itemInputs(inputs)

@@ -26,7 +26,12 @@ public class FluidGridFrontend extends RecipeMapFrontend {
         NEIRecipePropertiesBuilder neiPropertiesBuilder) {
         super(uiPropertiesBuilder.logoPos(new Pos2d(80, 62)), neiPropertiesBuilder);
         this.fluidRowCount = getFluidRowCount();
-        neiProperties.recipeBackgroundSize = new Size(170, 82 + Math.max(fluidRowCount - 2, 0) * 18);
+    }
+
+    @Override
+    protected NEIRecipePropertiesBuilder modifyNEIProperties(NEIRecipePropertiesBuilder neiPropertiesBuilder) {
+        neiPropertiesBuilder.recipeBackgroundSize(new Size(170, 82 + Math.max(fluidRowCount - 2, 0) * 18));
+        return super.modifyNEIProperties(neiPropertiesBuilder);
     }
 
     @Override

@@ -94,7 +94,7 @@ public class MTESteamHubOutputHatch extends MTEHatchOutput {
     }
 
     @Override
-    public boolean acceptsFluidLock(String name) {
+    public boolean acceptsFluidLock(Fluid fluid) {
         return false;
     }
 

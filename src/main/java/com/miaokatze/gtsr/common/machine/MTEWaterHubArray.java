@@ -29,6 +29,7 @@ import net.minecraftforge.fluids.IFluidHandler;
 import org.apache.commons.lang3.tuple.Pair;
 
 import com.google.common.collect.ImmutableList;
+import com.gtnewhorizon.gtnhlib.util.numberformatting.NumberFormatUtil;
 import com.gtnewhorizon.structurelib.alignment.constructable.IConstructable;
 import com.gtnewhorizon.structurelib.alignment.constructable.ISurvivalConstructable;
 import com.gtnewhorizon.structurelib.structure.IStructureDefinition;
@@ -39,6 +40,7 @@ import com.gtnewhorizons.modularui.common.widget.FakeSyncWidget;
 import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
+import com.miaokatze.gtsr.common.gui.MTEWaterHubArrayGui;
 import com.miaokatze.gtsr.common.machine.base.MTEHubStorageUnit;
 import com.miaokatze.gtsr.common.machine.base.MTEReinforcedHubStorageUnit;
 import com.miaokatze.gtsr.common.machine.base.MTEWaterHubInputHatch;
@@ -50,14 +52,18 @@ import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Materials;
 import gregtech.api.enums.Textures;
 import gregtech.api.interfaces.IHatchElement;
+import gregtech.api.interfaces.IIconContainer;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.implementations.MTEEnhancedMultiBlockBase;
 import gregtech.api.render.TextureFactory;
+import gregtech.api.structure.error.StructureError;
+import gregtech.api.structure.error.StructureErrorRegistry;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.IGTHatchAdder;
 import gregtech.api.util.MultiblockTooltipBuilder;
+import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
 import gregtech.common.misc.GTStructureChannels;
 
 public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray>
@@ -77,7 +83,7 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
 
     private static final int CASING_INDEX = GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings1, 10);
 
-    private static Textures.BlockIcons.CustomIcon CONTROLLER_OVERLAY;
+    private static IIconContainer CONTROLLER_OVERLAY;
 
     private static final IStructureDefinition<MTEWaterHubArray> STRUCTURE_DEFINITION;
 
@@ -101,7 +107,7 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
                     buildHatchAdder(MTEWaterHubArray.class)
                         .atLeast(WaterHubStorageElement.HubUnit, WaterHubStorageElement.ReinforcedHubUnit)
                         .casingIndex(CASING_INDEX)
-                        .dot(2)
+                        .hint(2)
                         .buildAndChain(
                             onElementPass(
                                 MTEWaterHubArray::onCasingAdded,
@@ -118,11 +124,11 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
                 ofChain(
                     buildHatchAdder(MTEWaterHubArray.class).atLeast(WaterHubHatchElement.WaterOutput)
                         .casingIndex(CASING_INDEX)
-                        .dot(1)
+                        .hint(1)
                         .build(),
                     buildHatchAdder(MTEWaterHubArray.class).atLeast(WaterHubHatchElement.WaterInput)
                         .casingIndex(CASING_INDEX)
-                        .dot(1)
+                        .hint(1)
                         .build(),
                     onElementPass(
                         MTEWaterHubArray::onCasingAdded,
@@ -278,15 +284,15 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
     private final ArrayList<MTEWaterHubOutputHatch> mWaterOutputHatches = new ArrayList<>();
     private final ArrayList<BoundCacheNode> mBoundNodes = new ArrayList<>();
 
-    private int mHubUnitCount = 0;
-    private int mReinforcedHubUnitCount = 0;
+    public int mHubUnitCount = 0;
+    public int mReinforcedHubUnitCount = 0;
     private int mCasingAmount = 0;
-    private int mSetTier = -1;
+    public int mSetTier = -1;
     private int mCasingTier = -1;
     private int mPipeTier = -1;
     private int mFrameTier = -1;
-    private int mStackCount = 0;
-    private long mWaterStored = 0;
+    public int mStackCount = 0;
+    public long mWaterStored = 0;
     private String mStoredFluidType = null;
     public boolean mOverflowInput = false;
 
@@ -301,7 +307,7 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
     @Override
     @SideOnly(Side.CLIENT)
     public void registerIcons(IIconRegister aBlockIconRegister) {
-        CONTROLLER_OVERLAY = new Textures.BlockIcons.CustomIcon("gtsr:MTEWaterHubArray");
+        CONTROLLER_OVERLAY = Textures.BlockIcons.custom("gtsr:MTEWaterHubArray");
         super.registerIcons(aBlockIconRegister);
     }
 
@@ -316,7 +322,7 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
     }
 
     @Override
-    public boolean checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack) {
+    public void checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack, List<StructureError> errors) {
         for (MTEWaterHubInputHatch hatch : mWaterInputHatches) {
             hatch.mController = null;
         }
@@ -335,7 +341,10 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
         mWaterInputHatches.clear();
         mWaterOutputHatches.clear();
 
-        if (!checkPiece(STRUCTURE_PIECE_BASE, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET)) return false;
+        if (!checkPiece(STRUCTURE_PIECE_BASE, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET)) {
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            return;
+        }
 
         for (int i = 0; i < 3; i++) {
             int bOffset = 1 + i;
@@ -343,18 +352,39 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
             mStackCount++;
         }
 
-        if (mStackCount == 0) return false;
+        if (mStackCount == 0) {
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            return;
+        }
 
         // Validate all tier fields are consistent
-        if (mCasingTier <= 0 || mPipeTier <= 0 || mFrameTier <= 0) return false;
-        if (mCasingTier != mPipeTier || mCasingTier != mFrameTier) return false;
+        if (mCasingTier <= 0 || mPipeTier <= 0 || mFrameTier <= 0) {
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            return;
+        }
+        if (mCasingTier != mPipeTier || mCasingTier != mFrameTier) {
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            return;
+        }
         mSetTier = mCasingTier;
 
-        if (mSetTier == 1 && mReinforcedHubUnitCount > 0) return false;
-        if (mSetTier >= 2 && mHubUnitCount > 0) return false;
+        if (mSetTier == 1 && mReinforcedHubUnitCount > 0) {
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            return;
+        }
+        if (mSetTier >= 2 && mHubUnitCount > 0) {
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            return;
+        }
 
-        if (mSetTier == 1 && mHubUnitCount <= 0) return false;
-        if (mSetTier >= 2 && mReinforcedHubUnitCount <= 0) return false;
+        if (mSetTier == 1 && mHubUnitCount <= 0) {
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            return;
+        }
+        if (mSetTier >= 2 && mReinforcedHubUnitCount <= 0) {
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            return;
+        }
 
         int tierCasingIndex;
         if (mSetTier >= 2) {
@@ -370,8 +400,6 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
         }
 
         getBaseMetaTileEntity().issueTileUpdate();
-
-        return true;
     }
 
     private void onCasingAdded() {
@@ -953,6 +981,12 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
     }
 
     @Override
+    protected MTEMultiBlockBaseGui<?> getGui() {
+        return new MTEWaterHubArrayGui(this);
+    }
+
+    @Deprecated
+    @Override
     protected void drawTexts(DynamicPositionedColumn screenElements, SlotWidget inventorySlot) {
         super.drawTexts(screenElements, inventorySlot);
         screenElements.widget(new TextWidget().setStringSupplier(() -> {
@@ -1000,7 +1034,7 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
                     () -> EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.water_hub.water_buffer")
                         + " "
                         + EnumChatFormatting.LIGHT_PURPLE
-                        + GTUtility.formatNumbers(mWaterStored)
+                        + NumberFormatUtil.formatNumber(mWaterStored)
                         + " L"
                         + EnumChatFormatting.RESET))
             .widget(
@@ -1009,7 +1043,7 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
                         + StatCollector.translateToLocal("gtsr.gui.water_hub.total_capacity")
                         + " "
                         + EnumChatFormatting.LIGHT_PURPLE
-                        + GTUtility.formatNumbers(getTotalCapacity())
+                        + NumberFormatUtil.formatNumber(getTotalCapacity())
                         + " L"
                         + EnumChatFormatting.RESET))
             .widget(new FakeSyncWidget.IntegerSyncer(() -> mSetTier, val -> mSetTier = val))
@@ -1059,7 +1093,7 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
             EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.water_hub.water_buffer")
                 + " "
                 + EnumChatFormatting.LIGHT_PURPLE
-                + GTUtility.formatNumbers(mWaterStored)
+                + NumberFormatUtil.formatNumber(mWaterStored)
                 + " L"
                 + EnumChatFormatting.RESET);
         return info.toArray(new String[0]);

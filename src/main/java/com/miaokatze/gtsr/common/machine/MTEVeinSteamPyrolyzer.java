@@ -9,6 +9,7 @@ import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 
 import javax.annotation.Nullable;
 
@@ -18,7 +19,6 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 import net.minecraft.world.ChunkCoordIntPair;
-import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
@@ -35,6 +35,7 @@ import com.gtnewhorizons.modularui.common.widget.DynamicPositionedColumn;
 import com.gtnewhorizons.modularui.common.widget.FakeSyncWidget;
 import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
+import com.miaokatze.gtsr.common.api.enums.GTSRHatchElement;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.api.enums.MetaTileEntityID;
 import com.miaokatze.gtsr.common.util.UndergroundOilHelper;
@@ -42,22 +43,24 @@ import com.miaokatze.gtsr.common.util.UndergroundOilHelper;
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Materials;
 import gregtech.api.enums.Textures;
-import gregtech.api.interfaces.ITexture;
+import gregtech.api.interfaces.IIconContainer;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.implementations.MTEHatch;
 import gregtech.api.recipe.check.CheckRecipeResult;
 import gregtech.api.recipe.check.CheckRecipeResultRegistry;
-import gregtech.api.render.TextureFactory;
+import gregtech.api.structure.error.StructureError;
+import gregtech.api.structure.error.StructureErrorRegistry;
 import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.api.util.shutdown.ShutDownReason;
 import gregtech.common.UndergroundOil;
 import gregtech.common.blocks.BlockCasings1;
 import gregtech.common.blocks.BlockCasings2;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTEHatchCustomFluidBase;
-import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTESteamMultiBase;
+import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTESteamMultiBlockBase;
 
-public class MTEVeinSteamPyrolyzer extends MTESteamMultiBase<MTEVeinSteamPyrolyzer> implements ISurvivalConstructable {
+public class MTEVeinSteamPyrolyzer extends MTESteamMultiBlockBase<MTEVeinSteamPyrolyzer>
+    implements ISurvivalConstructable {
 
     private static final String STRUCTURE_PIECE_MAIN = "main";
     private static final int HORIZONTAL_OFF_SET = 3;
@@ -71,11 +74,11 @@ public class MTEVeinSteamPyrolyzer extends MTESteamMultiBase<MTEVeinSteamPyrolyz
     private int mChunkRange = -1;
 
     protected int mCountCasing = 0;
-    protected int mSetTier = -1;
+    public int mSetTier = -1;
 
     private boolean mApplyFluidIncrease = false;
-    private String mLockedFluidName = "";
-    private int mChipRangeBonus = 0;
+    public String mLockedFluidName = "";
+    public int mChipRangeBonus = 0;
 
     public MTEVeinSteamPyrolyzer(int aID, String aName, String aNameRegional) {
         super(aID, aName, aNameRegional);
@@ -92,7 +95,12 @@ public class MTEVeinSteamPyrolyzer extends MTESteamMultiBase<MTEVeinSteamPyrolyz
 
     @Override
     public String getMachineType() {
-        return "Vein Steam Pyrolyzer";
+        return "矿脉蒸汽热解器";
+    }
+
+    @Override
+    public boolean isHighPressure() {
+        return mSetTier >= 2;
     }
 
     @Nullable
@@ -168,15 +176,15 @@ public class MTEVeinSteamPyrolyzer extends MTESteamMultiBase<MTEVeinSteamPyrolyz
                 .addElement(
                     'B',
                     ofChain(
-                        buildHatchAdder(MTEVeinSteamPyrolyzer.class).adder(MTESteamMultiBase::addToMachineList)
+                        buildHatchAdder(MTEVeinSteamPyrolyzer.class).adder(MTESteamMultiBlockBase::addToMachineList)
                             .hatchIds(31040, MetaTileEntityID.PRESSURE_STEAM_HATCH.ID)
                             .casingIndex(bronzeCasingIndex)
-                            .dot(1)
+                            .hint(1)
                             .shouldReject(t -> !t.mSteamInputFluids.isEmpty())
                             .build(),
-                        buildHatchAdder(MTEVeinSteamPyrolyzer.class).atLeast(gregtech.api.enums.HatchElement.OutputBus)
+                        buildHatchAdder(MTEVeinSteamPyrolyzer.class).atLeast(GTSRHatchElement.SteamOutputBus)
                             .casingIndex(bronzeCasingIndex)
-                            .dot(1)
+                            .hint(1)
                             .buildAndChain(
                                 onElementPass(
                                     MTEVeinSteamPyrolyzer::onCasingAdded,
@@ -252,20 +260,26 @@ public class MTEVeinSteamPyrolyzer extends MTESteamMultiBase<MTEVeinSteamPyrolyz
     }
 
     @Override
-    public boolean checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack) {
+    public void checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack, List<StructureError> errors) {
         mCountCasing = 0;
         mSetTier = -1;
 
         if (!checkPiece(STRUCTURE_PIECE_MAIN, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET)) {
-            return false;
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            return;
         }
 
-        if (mSetTier <= 0) return false;
-        if (mSteamInputFluids.size() < 1) return false;
+        if (mSetTier <= 0) {
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            return;
+        }
+        if (mSteamInputFluids.size() < 1) {
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            return;
+        }
 
         updateHatchTexture();
         mChipRangeBonus = getChipRangeBonus();
-        return true;
     }
 
     private int getChipRangeBonus() {
@@ -374,23 +388,13 @@ public class MTEVeinSteamPyrolyzer extends MTESteamMultiBase<MTEVeinSteamPyrolyz
     }
 
     @Override
-    public ITexture[] getTexture(IGregTechTileEntity aBaseMetaTileEntity, ForgeDirection side, ForgeDirection facing,
-        int aColorIndex, boolean aActive, boolean aRedstone) {
-        if (side == facing) {
-            return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(getCasingTextureID()),
-                aActive ? getFrontOverlayActive() : getFrontOverlay() };
-        }
-        return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(getCasingTextureID()) };
+    protected IIconContainer getInactiveOverlay() {
+        return Textures.BlockIcons.OVERLAY_FRONT_ORE_DRILL;
     }
 
     @Override
-    protected ITexture getFrontOverlay() {
-        return TextureFactory.of(Textures.BlockIcons.OVERLAY_FRONT_ORE_DRILL);
-    }
-
-    @Override
-    protected ITexture getFrontOverlayActive() {
-        return TextureFactory.of(Textures.BlockIcons.OVERLAY_FRONT_ORE_DRILL_ACTIVE);
+    protected IIconContainer getActiveOverlay() {
+        return Textures.BlockIcons.OVERLAY_FRONT_ORE_DRILL_ACTIVE;
     }
 
     @Override
@@ -478,7 +482,7 @@ public class MTEVeinSteamPyrolyzer extends MTESteamMultiBase<MTEVeinSteamPyrolyz
         mSetTier = aNBT.getInteger("mSetTier");
     }
 
-    private boolean hasSuperheatedSteamInHatch() {
+    public boolean hasSuperheatedSteamInHatch() {
         for (MTEHatchCustomFluidBase hatch : mSteamInputFluids) {
             FluidStack fs = hatch.getFluid();
             if (fs != null && fs.getFluid() != null
@@ -532,6 +536,11 @@ public class MTEVeinSteamPyrolyzer extends MTESteamMultiBase<MTEVeinSteamPyrolyz
                     + EnumChatFormatting.LIGHT_PURPLE
                     + localName;
             }));
+    }
+
+    @Override
+    protected gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui<?> getGui() {
+        return new com.miaokatze.gtsr.common.gui.MTEVeinSteamPyrolyzerGui(this);
     }
 
     @Override

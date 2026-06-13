@@ -4,19 +4,19 @@ import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlock;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose;
+import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.SteamOutputBus;
 import static gregtech.api.enums.GTValues.emptyItemStackArray;
-import static gregtech.api.enums.HatchElement.OutputBus;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 
 import java.text.NumberFormat;
 import java.util.ArrayList;
+import java.util.List;
 
 import net.minecraft.client.renderer.texture.IIconRegister;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
-import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.FluidStack;
 
 import com.gtnewhorizon.structurelib.alignment.IAlignmentLimits;
@@ -40,7 +40,7 @@ import cpw.mods.fml.relauncher.SideOnly;
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Materials;
 import gregtech.api.enums.Textures;
-import gregtech.api.interfaces.ITexture;
+import gregtech.api.interfaces.IIconContainer;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.implementations.MTEHatch;
@@ -48,15 +48,16 @@ import gregtech.api.objects.overclockdescriber.OverclockDescriber;
 import gregtech.api.recipe.RecipeMap;
 import gregtech.api.recipe.check.CheckRecipeResult;
 import gregtech.api.recipe.check.CheckRecipeResultRegistry;
-import gregtech.api.render.TextureFactory;
+import gregtech.api.structure.error.StructureError;
+import gregtech.api.structure.error.StructureErrorRegistry;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.common.blocks.BlockCasings2;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.MTEHatchSteamBusOutput;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTEHatchCustomFluidBase;
-import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTESteamMultiBase;
+import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTESteamMultiBlockBase;
 
-public class MTESteamSingularityCompressor extends MTESteamMultiBase<MTESteamSingularityCompressor>
+public class MTESteamSingularityCompressor extends MTESteamMultiBlockBase<MTESteamSingularityCompressor>
     implements ISurvivalConstructable {
 
     private static final String STRUCTURE_PIECE_MAIN = "main";
@@ -79,10 +80,10 @@ public class MTESteamSingularityCompressor extends MTESteamMultiBase<MTESteamSin
     private static IStructureDefinition<MTESteamSingularityCompressor> STRUCTURE_DEFINITION = null;
 
     protected int mCasingCount = 0;
-    protected double mHeat = 0.0d;
+    public double mHeat = 0.0d;
 
-    private static Textures.BlockIcons.CustomIcon OVERLAY_OFF;
-    private static Textures.BlockIcons.CustomIcon OVERLAY_ON;
+    private static IIconContainer OVERLAY_OFF;
+    private static IIconContainer OVERLAY_ON;
 
     public MTESteamSingularityCompressor(int aID, String aName, String aNameRegional) {
         super(aID, aName, aNameRegional);
@@ -95,8 +96,8 @@ public class MTESteamSingularityCompressor extends MTESteamMultiBase<MTESteamSin
     @Override
     @SideOnly(Side.CLIENT)
     public void registerIcons(IIconRegister aBlockIconRegister) {
-        OVERLAY_OFF = new Textures.BlockIcons.CustomIcon("gtsr:MTESteamSingularityCompressor_OFF");
-        OVERLAY_ON = new Textures.BlockIcons.CustomIcon("gtsr:MTESteamSingularityCompressor_ON");
+        OVERLAY_OFF = Textures.BlockIcons.custom("gtsr:MTESteamSingularityCompressor_OFF");
+        OVERLAY_ON = Textures.BlockIcons.custom("gtsr:MTESteamSingularityCompressor_ON");
         super.registerIcons(aBlockIconRegister);
     }
 
@@ -107,16 +108,22 @@ public class MTESteamSingularityCompressor extends MTESteamMultiBase<MTESteamSin
 
     @Override
     public String getMachineType() {
-        return "Steam Singularity Compressor";
+        return "蒸汽奇点压缩机";
+    }
+
+    @Override
+    protected boolean isHighPressure() {
+        return true;
     }
 
     protected int getCasingTextureID() {
         return ((BlockCasings2) GregTechAPI.sBlockCasings2).getTextureIndex(0);
     }
 
+    @Override
     protected void updateHatchTexture() {
+        super.updateHatchTexture();
         int textureID = getCasingTextureID();
-        for (MTEHatch h : mSteamInputFluids) h.updateTexture(textureID);
         for (MTEHatch h : mOutputBusses) h.updateTexture(textureID);
     }
 
@@ -163,31 +170,34 @@ public class MTESteamSingularityCompressor extends MTESteamMultiBase<MTESteamSin
                 .addElement(
                     'B',
                     ofChain(
-                        buildHatchAdder(MTESteamSingularityCompressor.class).adder(MTESteamMultiBase::addToMachineList)
+                        buildHatchAdder(MTESteamSingularityCompressor.class)
+                            .adder(MTESteamMultiBlockBase::addToMachineList)
                             .hatchIds(31040, MetaTileEntityID.PRESSURE_STEAM_HATCH.ID)
                             .casingIndex(casingIndex)
-                            .dot(1)
+                            .hint(1)
                             .shouldReject(t -> !t.mSteamInputFluids.isEmpty())
                             .build(),
-                        buildHatchAdder(MTESteamSingularityCompressor.class).atLeast(OutputBus)
+                        buildHatchAdder(MTESteamSingularityCompressor.class).atLeast(SteamOutputBus)
                             .casingIndex(casingIndex)
-                            .dot(1)
+                            .hint(1)
                             .build(),
                         buildHatchAdder(MTESteamSingularityCompressor.class)
                             .adder(MTESteamSingularityCompressor::addSteamOutputBusToMachineList)
                             .hatchClass(MTEHatchSteamBusOutput.class)
                             .casingIndex(casingIndex)
-                            .dot(1)
+                            .hint(1)
                             .build(),
-                        buildHatchAdder(MTESteamSingularityCompressor.class).adder(MTESteamMultiBase::addToMachineList)
+                        buildHatchAdder(MTESteamSingularityCompressor.class)
+                            .adder(MTESteamMultiBlockBase::addToMachineList)
                             .hatchClass(MTESteamCoolingHatch.class)
                             .casingIndex(casingIndex)
-                            .dot(2)
+                            .hint(2)
                             .build(),
-                        buildHatchAdder(MTESteamSingularityCompressor.class).adder(MTESteamMultiBase::addToMachineList)
+                        buildHatchAdder(MTESteamSingularityCompressor.class)
+                            .adder(MTESteamMultiBlockBase::addToMachineList)
                             .hatchClass(MTEPressureSteamCoolingHatch.class)
                             .casingIndex(casingIndex)
-                            .dot(2)
+                            .hint(2)
                             .build(),
                         onElementPass(
                             MTESteamSingularityCompressor::onCasingAdded,
@@ -250,17 +260,20 @@ public class MTESteamSingularityCompressor extends MTESteamMultiBase<MTESteamSin
     }
 
     @Override
-    public boolean checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack) {
+    public void checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack, List<StructureError> errors) {
         mCasingCount = 0;
 
         if (!checkPiece(STRUCTURE_PIECE_MAIN, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET)) {
-            return false;
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            return;
         }
 
-        if (this.mSteamInputFluids.size() != 1 || this.mOutputBusses.size() != 1) return false;
+        if (this.mSteamInputFluids.size() != 1 || this.mOutputBusses.size() != 1) {
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            return;
+        }
 
         updateHatchTexture();
-        return true;
     }
 
     @Override
@@ -297,7 +310,7 @@ public class MTESteamSingularityCompressor extends MTESteamMultiBase<MTESteamSin
         mHeat += HEAT_UP_PER_RECIPE;
 
         if (mHeat >= 1.0d) {
-            addOutput(GTSRItemList.SteamEntangledSingularity.get(1));
+            addOutputPartial(GTSRItemList.SteamEntangledSingularity.get(1));
             mHeat = 0.0d;
         }
         updateSlots();
@@ -352,6 +365,7 @@ public class MTESteamSingularityCompressor extends MTESteamMultiBase<MTESteamSin
         return false;
     }
 
+    @Deprecated
     @Override
     protected void drawTexts(DynamicPositionedColumn screenElements, SlotWidget inventorySlot) {
         super.drawTexts(screenElements, inventorySlot);
@@ -394,23 +408,18 @@ public class MTESteamSingularityCompressor extends MTESteamMultiBase<MTESteamSin
     }
 
     @Override
-    public ITexture[] getTexture(IGregTechTileEntity aBaseMetaTileEntity, ForgeDirection side, ForgeDirection facing,
-        int aColorIndex, boolean aActive, boolean aRedstone) {
-        if (side == facing) {
-            return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(getCasingTextureID()),
-                aActive ? getFrontOverlayActive() : getFrontOverlay() };
-        }
-        return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(getCasingTextureID()) };
+    protected gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui<?> getGui() {
+        return new com.miaokatze.gtsr.common.gui.MTESteamSingularityCompressorGui(this);
     }
 
     @Override
-    protected ITexture getFrontOverlay() {
-        return TextureFactory.of(OVERLAY_OFF);
+    protected IIconContainer getInactiveOverlay() {
+        return OVERLAY_OFF;
     }
 
     @Override
-    protected ITexture getFrontOverlayActive() {
-        return TextureFactory.of(OVERLAY_ON);
+    protected IIconContainer getActiveOverlay() {
+        return OVERLAY_ON;
     }
 
     @Override
@@ -479,7 +488,7 @@ public class MTESteamSingularityCompressor extends MTESteamMultiBase<MTESteamSin
         mHeat = aNBT.getDouble("mHeat");
     }
 
-    private boolean hasSuperheatedSteamInHatch() {
+    public boolean hasSuperheatedSteamInHatch() {
         for (MTEHatchCustomFluidBase hatch : mSteamInputFluids) {
             FluidStack fs = hatch.getFluid();
             if (fs != null && fs.getFluid() != null

@@ -5,12 +5,13 @@ import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlocksT
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose;
+import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.SteamOutputBus;
 import static gregtech.api.enums.HatchElement.InputHatch;
-import static gregtech.api.enums.HatchElement.OutputBus;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 
 import java.text.NumberFormat;
 import java.util.ArrayList;
+import java.util.List;
 
 import javax.annotation.Nullable;
 
@@ -27,6 +28,7 @@ import net.minecraftforge.fluids.FluidStack;
 import org.apache.commons.lang3.tuple.Pair;
 
 import com.google.common.collect.ImmutableList;
+import com.gtnewhorizon.gtnhlib.util.numberformatting.NumberFormatUtil;
 import com.gtnewhorizon.structurelib.alignment.IAlignmentLimits;
 import com.gtnewhorizon.structurelib.alignment.constructable.IConstructable;
 import com.gtnewhorizon.structurelib.alignment.constructable.ISurvivalConstructable;
@@ -40,6 +42,7 @@ import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.api.enums.MetaTileEntityID;
+import com.miaokatze.gtsr.common.gui.MTELargeGeothermalSteamBoilerGui;
 import com.miaokatze.gtsr.common.machine.base.MTEPressureSteamOutputHatch;
 import com.miaokatze.gtsr.common.machine.base.MTESteamOutputHatch;
 
@@ -57,11 +60,13 @@ import gregtech.api.recipe.RecipeMap;
 import gregtech.api.recipe.check.CheckRecipeResult;
 import gregtech.api.recipe.check.CheckRecipeResultRegistry;
 import gregtech.api.render.TextureFactory;
+import gregtech.api.structure.error.StructureError;
+import gregtech.api.structure.error.StructureErrorRegistry;
 import gregtech.api.util.GTOreDictUnificator;
-import gregtech.api.util.GTUtility;
 import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.common.blocks.BlockCasings1;
 import gregtech.common.blocks.BlockCasings2;
+import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.MTEHatchSteamBusOutput;
 
 public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTELargeGeothermalSteamBoiler>
@@ -80,10 +85,10 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
         numberFormat.setMaximumFractionDigits(3);
     }
 
-    protected int mSetTier = -1;
+    public int mSetTier = -1;
     protected int mCasingCount = 0;
-    protected double mHeat = 0.0d;
-    protected int mCurrentSteamOutput = 0;
+    public double mHeat = 0.0d;
+    public int mCurrentSteamOutput = 0;
     protected int mStartUpCheck = 100;
 
     private static final double HEAT_UP_BRONZE = 0.00006d;
@@ -203,7 +208,7 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
                     ofChain(
                         buildHatchAdder(MTELargeGeothermalSteamBoiler.class).atLeast(InputHatch)
                             .casingIndex(bronzeCasingIndex)
-                            .dot(1)
+                            .hint(1)
                             .build(),
                         buildHatchAdder(MTELargeGeothermalSteamBoiler.class)
                             .adder(MTELargeGeothermalSteamBoiler::addSteamOutputToMachineList)
@@ -211,12 +216,12 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
                                 MetaTileEntityID.STEAM_OUTPUT_HATCH.ID,
                                 MetaTileEntityID.PRESSURE_STEAM_OUTPUT_HATCH.ID)
                             .casingIndex(bronzeCasingIndex)
-                            .dot(1)
+                            .hint(1)
                             .shouldReject(MTELargeGeothermalSteamBoiler::hasSteamOutputHatch)
                             .build(),
-                        buildHatchAdder(MTELargeGeothermalSteamBoiler.class).atLeast(OutputBus)
+                        buildHatchAdder(MTELargeGeothermalSteamBoiler.class).atLeast(SteamOutputBus)
                             .casingIndex(bronzeCasingIndex)
-                            .dot(1)
+                            .hint(1)
                             .buildAndChain(
                                 onElementPass(
                                     MTELargeGeothermalSteamBoiler::onCasingAdded,
@@ -234,7 +239,7 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
                             .adder(MTELargeGeothermalSteamBoiler::addSteamBusOutputToMachineList)
                             .hatchClass(MTEHatchSteamBusOutput.class)
                             .casingIndex(bronzeCasingIndex)
-                            .dot(1)
+                            .hint(1)
                             .build()))
                 .addElement(
                     'C',
@@ -345,18 +350,26 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
     }
 
     @Override
-    public boolean checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack) {
+    public void checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack, List<StructureError> errors) {
         mSetTier = -1;
         mCasingCount = 0;
         mSteamOutputHatches.clear();
         mPressureSteamOutputHatches.clear();
 
-        if (!checkPiece(STRUCTURE_PIECE_MAIN, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET)) return false;
-        if (mSetTier <= 0) return false;
-        if (!hasValidOutputHatchesForTier()) return false;
+        if (!checkPiece(STRUCTURE_PIECE_MAIN, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET)) {
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            return;
+        }
+        if (mSetTier <= 0) {
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            return;
+        }
+        if (!hasValidOutputHatchesForTier()) {
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            return;
+        }
 
         updateHatchTexture();
-        return true;
     }
 
     private boolean hasValidOutputHatchesForTier() {
@@ -526,6 +539,12 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
     }
 
     @Override
+    protected MTEMultiBlockBaseGui<?> getGui() {
+        return new MTELargeGeothermalSteamBoilerGui(this);
+    }
+
+    @Deprecated
+    @Override
     protected void drawTexts(DynamicPositionedColumn screenElements, SlotWidget inventorySlot) {
         super.drawTexts(screenElements, inventorySlot);
         screenElements
@@ -550,7 +569,7 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
                     () -> EnumChatFormatting.WHITE
                         + StatCollector.translateToLocal("gtsr.gui.geothermal_boiler.steam_output")
                         + EnumChatFormatting.AQUA
-                        + GTUtility.formatNumbers(mCurrentSteamOutput)
+                        + NumberFormatUtil.formatNumber(mCurrentSteamOutput)
                         + " L/s "
                         + EnumChatFormatting.WHITE
                         + (hasOverheatChip() ? StatCollector.translateToLocal("gtsr.gui.geothermal_boiler.superheated")

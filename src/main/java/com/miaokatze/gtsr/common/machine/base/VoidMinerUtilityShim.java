@@ -7,40 +7,18 @@ import bwcrossmod.galacticgreg.VoidMinerUtility;
 
 public class VoidMinerUtilityShim {
 
-    private static Map<Integer, VoidMinerUtility.DropMap> dropMapsById = null;
-    private static Map<Integer, VoidMinerUtility.DropMap> extraDropsById = null;
     private static Map<String, VoidMinerUtility.DropMap> dropMapsByName = null;
     private static Map<String, VoidMinerUtility.DropMap> extraDropsByName = null;
     private static boolean initialized = false;
-    private static boolean useById = false;
-    private static boolean useByName = false;
 
     private static synchronized void init() {
         if (initialized) return;
         initialized = true;
         try {
-            Field f = VoidMinerUtility.class.getDeclaredField("dropMapsByDimId");
-            @SuppressWarnings("unchecked")
-            Map<Integer, VoidMinerUtility.DropMap> map = (Map<Integer, VoidMinerUtility.DropMap>) f.get(null);
-            dropMapsById = map;
-            useById = true;
-        } catch (NoSuchFieldException | IllegalAccessException e) {
-            dropMapsById = null;
-        }
-        try {
-            Field f = VoidMinerUtility.class.getDeclaredField("extraDropsDimMap");
-            @SuppressWarnings("unchecked")
-            Map<Integer, VoidMinerUtility.DropMap> map = (Map<Integer, VoidMinerUtility.DropMap>) f.get(null);
-            extraDropsById = map;
-        } catch (NoSuchFieldException | IllegalAccessException e) {
-            extraDropsById = null;
-        }
-        try {
             Field f = VoidMinerUtility.class.getDeclaredField("dropMapsByDimName");
             @SuppressWarnings("unchecked")
             Map<String, VoidMinerUtility.DropMap> map = (Map<String, VoidMinerUtility.DropMap>) f.get(null);
             dropMapsByName = map;
-            useByName = true;
         } catch (NoSuchFieldException | IllegalAccessException e) {
             dropMapsByName = null;
         }
@@ -54,25 +32,28 @@ public class VoidMinerUtilityShim {
         }
     }
 
-    public static VoidMinerUtility.DropMap getDropMapById(int dimId) {
-        init();
-        if (useById && dropMapsById != null) {
-            return dropMapsById.getOrDefault(dimId, new VoidMinerUtility.DropMap());
+    /**
+     * Converts a dimension ID to the corresponding dimension name used by VoidMinerUtility.
+     *
+     * @param dimId the dimension ID
+     * @return the dimension name string, or null if the dimension is not recognized
+     */
+    public static String dimIdToName(int dimId) {
+        switch (dimId) {
+            case 0:
+                return "Overworld";
+            case -1:
+                return "Nether";
+            case 1:
+                return "The End";
+            default:
+                return null;
         }
-        return new VoidMinerUtility.DropMap();
-    }
-
-    public static VoidMinerUtility.DropMap getExtraDropMapById(int dimId) {
-        init();
-        if (useById && extraDropsById != null) {
-            return extraDropsById.getOrDefault(dimId, new VoidMinerUtility.DropMap());
-        }
-        return new VoidMinerUtility.DropMap();
     }
 
     public static VoidMinerUtility.DropMap getDropMap(String dimName) {
         init();
-        if (useByName && dropMapsByName != null) {
+        if (dropMapsByName != null && dimName != null) {
             return dropMapsByName.getOrDefault(dimName, new VoidMinerUtility.DropMap());
         }
         return new VoidMinerUtility.DropMap();
@@ -80,7 +61,7 @@ public class VoidMinerUtilityShim {
 
     public static VoidMinerUtility.DropMap getExtraDropMap(String dimName) {
         init();
-        if (useByName && extraDropsByName != null) {
+        if (extraDropsByName != null && dimName != null) {
             return extraDropsByName.getOrDefault(dimName, new VoidMinerUtility.DropMap());
         }
         return new VoidMinerUtility.DropMap();

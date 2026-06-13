@@ -10,7 +10,6 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import com.miaokatze.gtsr.api.IAutoInputHatch;
 
@@ -38,7 +37,7 @@ public abstract class CommonMetaTileEntityMixin {
 
     @Inject(method = "onScrewdriverRightClick", at = @At("HEAD"), cancellable = true, remap = false)
     private void gtsr$onScrewdriverRightClick(ForgeDirection side, EntityPlayer aPlayer, float aX, float aY, float aZ,
-        ItemStack aTool, CallbackInfoReturnable<Boolean> cir) {
+        ItemStack aTool, CallbackInfo ci) {
         CommonMetaTileEntity self = (CommonMetaTileEntity) (Object) this;
 
         if (self instanceof MTEHatchCustomFluidBase) {
@@ -48,7 +47,7 @@ public abstract class CommonMetaTileEntityMixin {
 
             IAutoInputHatch hatch = (IAutoInputHatch) self;
             hatch.gtsr$setAutoInput(!hatch.gtsr$isAutoInput());
-            cir.setReturnValue(true);
+            ci.cancel();
 
             GTUtility.sendChatToPlayer(
                 aPlayer,

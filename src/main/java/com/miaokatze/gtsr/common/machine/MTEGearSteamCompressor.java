@@ -31,6 +31,7 @@ import net.minecraftforge.fluids.FluidStack;
 import org.apache.commons.lang3.tuple.Pair;
 
 import com.google.common.collect.ImmutableList;
+import com.gtnewhorizon.gtnhlib.util.numberformatting.NumberFormatUtil;
 import com.gtnewhorizon.structurelib.alignment.constructable.IConstructable;
 import com.gtnewhorizon.structurelib.alignment.constructable.ISurvivalConstructable;
 import com.gtnewhorizon.structurelib.structure.IStructureDefinition;
@@ -42,6 +43,7 @@ import com.gtnewhorizons.modularui.common.widget.FakeSyncWidget;
 import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps;
+import com.miaokatze.gtsr.common.gui.MTEGearSteamCompressorGui;
 import com.miaokatze.gtsr.common.machine.base.MTEHatchPressureSteamInput;
 import com.miaokatze.gtsr.common.machine.base.MTEPressureSteamCoolingHatch;
 import com.miaokatze.gtsr.common.machine.base.MTESteamCoolingHatch;
@@ -58,9 +60,12 @@ import gregtech.api.recipe.RecipeMap;
 import gregtech.api.recipe.check.CheckRecipeResult;
 import gregtech.api.recipe.check.CheckRecipeResultRegistry;
 import gregtech.api.render.TextureFactory;
+import gregtech.api.structure.error.StructureError;
+import gregtech.api.structure.error.StructureErrorRegistry;
 import gregtech.api.util.GTModHandler;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.MultiblockTooltipBuilder;
+import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
 
 public class MTEGearSteamCompressor extends MTEEnhancedMultiBlockBase<MTEGearSteamCompressor>
     implements IConstructable, ISurvivalConstructable {
@@ -94,7 +99,7 @@ public class MTEGearSteamCompressor extends MTEEnhancedMultiBlockBase<MTEGearSte
         Pair.of(GregTechAPI.sBlockFrames, Materials.Steel.mMetaItemSubID));
 
     private int mCasingAmount = 0;
-    private int mCasingTier = -1;
+    public int mCasingTier = -1;
     private int mPipeTier = -1;
     private int mGearTier = -1;
     private int mFrameTier = -1;
@@ -104,9 +109,9 @@ public class MTEGearSteamCompressor extends MTEEnhancedMultiBlockBase<MTEGearSte
     private final List<MTESteamCoolingHatch> mSteamCoolingHatches = new ArrayList<>();
     private final List<MTEPressureSteamCoolingHatch> mPressureCoolingHatches = new ArrayList<>();
 
-    private long mSteamConsumedLastTick = 0;
-    private long mSuperheatedOutputLastTick = 0;
-    private long mWaterOutputLastTick = 0;
+    public long mSteamConsumedLastTick = 0;
+    public long mSuperheatedOutputLastTick = 0;
+    public long mWaterOutputLastTick = 0;
 
     public MTEGearSteamCompressor(int aID, String aName, String aNameRegional) {
         super(aID, aName, aNameRegional);
@@ -159,23 +164,23 @@ public class MTEGearSteamCompressor extends MTEEnhancedMultiBlockBase<MTEGearSte
                             .adder(MTEGearSteamCompressor::addPressureSteamToMachineList)
                             .hatchClass(MTEHatchPressureSteamInput.class)
                             .casingIndex(BRONZE_CASING_INDEX)
-                            .dot(1)
+                            .hint(1)
                             .build(),
                         buildHatchAdder(MTEGearSteamCompressor.class)
                             .adder(MTEGearSteamCompressor::addSteamCoolingToMachineList)
                             .hatchClass(MTESteamCoolingHatch.class)
                             .casingIndex(BRONZE_CASING_INDEX)
-                            .dot(2)
+                            .hint(2)
                             .build(),
                         buildHatchAdder(MTEGearSteamCompressor.class)
                             .adder(MTEGearSteamCompressor::addPressureCoolingToMachineList)
                             .hatchClass(MTEPressureSteamCoolingHatch.class)
                             .casingIndex(BRONZE_CASING_INDEX)
-                            .dot(2)
+                            .hint(2)
                             .build(),
                         buildHatchAdder(MTEGearSteamCompressor.class).atLeast(InputHatch, OutputHatch)
                             .casingIndex(BRONZE_CASING_INDEX)
-                            .dot(3)
+                            .hint(3)
                             .build()))
                 .addElement(
                     'C',
@@ -292,7 +297,7 @@ public class MTEGearSteamCompressor extends MTEEnhancedMultiBlockBase<MTEGearSte
     }
 
     @Override
-    public boolean checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack) {
+    public void checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack, List<StructureError> errors) {
         mCasingAmount = 0;
         mCasingTier = -1;
         mPipeTier = -1;
@@ -303,17 +308,25 @@ public class MTEGearSteamCompressor extends MTEEnhancedMultiBlockBase<MTEGearSte
         mSteamCoolingHatches.clear();
         mPressureCoolingHatches.clear();
 
-        if (!checkPiece(STRUCTURE_PIECE_MAIN, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET)) return false;
+        if (!checkPiece(STRUCTURE_PIECE_MAIN, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET)) {
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            return;
+        }
 
         int tier = getEffectiveTier();
-        if (tier <= 0) return false;
+        if (tier <= 0) {
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            return;
+        }
 
         boolean hasSteamInput = !mInputHatches.isEmpty() || hasPressureSteamHatch();
         boolean hasOutput = !mOutputHatches.isEmpty() || hasSteamCoolingHatch() || !mPressureCoolingHatches.isEmpty();
-        if (!hasSteamInput || !hasOutput) return false;
+        if (!hasSteamInput || !hasOutput) {
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            return;
+        }
 
         updateAllHatchTextures();
-        return true;
     }
 
     private boolean hasPressureSteamHatch() {
@@ -602,18 +615,24 @@ public class MTEGearSteamCompressor extends MTEEnhancedMultiBlockBase<MTEGearSte
                 + tierText,
             EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.gear_compressor.steam_in")
                 + EnumChatFormatting.RED
-                + GTUtility.formatNumbers(mSteamConsumedLastTick)
+                + NumberFormatUtil.formatNumber(mSteamConsumedLastTick)
                 + " L/s",
             EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.gear_compressor.sh_steam_out")
                 + EnumChatFormatting.AQUA
-                + GTUtility.formatNumbers(mSuperheatedOutputLastTick)
+                + NumberFormatUtil.formatNumber(mSuperheatedOutputLastTick)
                 + " L/s",
             EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.gear_compressor.water_out")
                 + EnumChatFormatting.BLUE
-                + GTUtility.formatNumbers(mWaterOutputLastTick)
+                + NumberFormatUtil.formatNumber(mWaterOutputLastTick)
                 + " L/s" };
     }
 
+    @Override
+    protected @Nonnull MTEMultiBlockBaseGui<?> getGui() {
+        return new MTEGearSteamCompressorGui(this);
+    }
+
+    @Deprecated
     @Override
     protected void drawTexts(DynamicPositionedColumn screenElements, SlotWidget inventorySlot) {
         super.drawTexts(screenElements, inventorySlot);
@@ -643,7 +662,7 @@ public class MTEGearSteamCompressor extends MTEEnhancedMultiBlockBase<MTEGearSte
                 .dynamicString(
                     () -> EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.gear_compressor.steam_in")
                         + EnumChatFormatting.RED
-                        + GTUtility.formatNumbers(mSteamConsumedLastTick)
+                        + NumberFormatUtil.formatNumber(mSteamConsumedLastTick)
                         + " L/s")
                 .setTextAlignment(Alignment.CenterLeft)
                 .setDefaultColor(COLOR_TEXT_WHITE.get())
@@ -655,7 +674,7 @@ public class MTEGearSteamCompressor extends MTEEnhancedMultiBlockBase<MTEGearSte
                     () -> EnumChatFormatting.GOLD
                         + StatCollector.translateToLocal("gtsr.gui.gear_compressor.sh_steam_out")
                         + EnumChatFormatting.AQUA
-                        + GTUtility.formatNumbers(mSuperheatedOutputLastTick)
+                        + NumberFormatUtil.formatNumber(mSuperheatedOutputLastTick)
                         + " L/s")
                 .setTextAlignment(Alignment.CenterLeft)
                 .setDefaultColor(COLOR_TEXT_WHITE.get())
@@ -666,7 +685,7 @@ public class MTEGearSteamCompressor extends MTEEnhancedMultiBlockBase<MTEGearSte
                 .dynamicString(
                     () -> EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.gear_compressor.water_out")
                         + EnumChatFormatting.BLUE
-                        + GTUtility.formatNumbers(mWaterOutputLastTick)
+                        + NumberFormatUtil.formatNumber(mWaterOutputLastTick)
                         + " L/s")
                 .setTextAlignment(Alignment.CenterLeft)
                 .setDefaultColor(COLOR_TEXT_WHITE.get())

@@ -1,1 +1,0 @@
-You might want to check out './gradlew :faq' if your build fails.

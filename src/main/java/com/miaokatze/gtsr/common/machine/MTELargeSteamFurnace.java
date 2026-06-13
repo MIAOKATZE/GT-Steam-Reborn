@@ -4,9 +4,11 @@ import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlocksT
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose;
-import static gregtech.api.enums.HatchElement.InputBus;
-import static gregtech.api.enums.HatchElement.OutputBus;
+import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.SteamInputBus;
+import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.SteamOutputBus;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
+
+import java.util.List;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -16,7 +18,6 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
-import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.FluidStack;
 
 import org.apache.commons.lang3.tuple.Pair;
@@ -36,7 +37,7 @@ import com.miaokatze.gtsr.common.api.enums.MetaTileEntityID;
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Materials;
 import gregtech.api.enums.Textures;
-import gregtech.api.interfaces.ITexture;
+import gregtech.api.interfaces.IIconContainer;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.logic.ProcessingLogic;
@@ -45,16 +46,18 @@ import gregtech.api.recipe.RecipeMap;
 import gregtech.api.recipe.RecipeMaps;
 import gregtech.api.recipe.check.CheckRecipeResult;
 import gregtech.api.recipe.check.CheckRecipeResultRegistry;
-import gregtech.api.render.TextureFactory;
+import gregtech.api.structure.error.StructureError;
+import gregtech.api.structure.error.StructureErrorRegistry;
 import gregtech.api.util.GTRecipe;
 import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.api.util.OverclockCalculator;
 import gregtech.common.blocks.BlockCasings1;
 import gregtech.common.blocks.BlockCasings2;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTEHatchCustomFluidBase;
-import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTESteamMultiBase;
+import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTESteamMultiBlockBase;
 
-public class MTELargeSteamFurnace extends MTESteamMultiBase<MTELargeSteamFurnace> implements ISurvivalConstructable {
+public class MTELargeSteamFurnace extends MTESteamMultiBlockBase<MTELargeSteamFurnace>
+    implements ISurvivalConstructable {
 
     private static final String STRUCTURE_PIECE_MAIN = "main";
     private static final int HORIZONTAL_OFF_SET = 2;
@@ -63,7 +66,7 @@ public class MTELargeSteamFurnace extends MTESteamMultiBase<MTELargeSteamFurnace
 
     private static IStructureDefinition<MTELargeSteamFurnace> STRUCTURE_DEFINITION = null;
 
-    protected int mSetTier = -1;
+    public int mSetTier = -1;
     protected int mCasingCount = 0;
 
     public MTELargeSteamFurnace(int aID, String aName, String aNameRegional) {
@@ -81,7 +84,12 @@ public class MTELargeSteamFurnace extends MTESteamMultiBase<MTELargeSteamFurnace
 
     @Override
     public String getMachineType() {
-        return "Furnace";
+        return "大型蒸汽高炉";
+    }
+
+    @Override
+    public boolean isHighPressure() {
+        return mSetTier >= 2;
     }
 
     @Nullable
@@ -148,15 +156,15 @@ public class MTELargeSteamFurnace extends MTESteamMultiBase<MTELargeSteamFurnace
                 .addElement(
                     'B',
                     ofChain(
-                        buildHatchAdder(MTELargeSteamFurnace.class).adder(MTESteamMultiBase::addToMachineList)
+                        buildHatchAdder(MTELargeSteamFurnace.class).adder(MTESteamMultiBlockBase::addToMachineList)
                             .hatchIds(31040, MetaTileEntityID.PRESSURE_STEAM_HATCH.ID)
                             .casingIndex(bronzeCasingIndex)
-                            .dot(1)
+                            .hint(1)
                             .shouldReject(t -> !t.mSteamInputFluids.isEmpty())
                             .build(),
-                        buildHatchAdder(MTELargeSteamFurnace.class).atLeast(InputBus, OutputBus)
+                        buildHatchAdder(MTELargeSteamFurnace.class).atLeast(SteamInputBus, SteamOutputBus)
                             .casingIndex(bronzeCasingIndex)
-                            .dot(1)
+                            .hint(1)
                             .buildAndChain(
                                 onElementPass(
                                     MTELargeSteamFurnace::onCasingAdded,
@@ -221,16 +229,30 @@ public class MTELargeSteamFurnace extends MTESteamMultiBase<MTELargeSteamFurnace
     }
 
     @Override
-    public boolean checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack) {
+    public void checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack, List<StructureError> errors) {
         mSetTier = -1;
         mCasingCount = 0;
-        if (!checkPiece(STRUCTURE_PIECE_MAIN, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET)) return false;
-        if (mSetTier <= 0) return false;
-        if (mSteamInputFluids.isEmpty()) return false;
-        if (mInputBusses.isEmpty()) return false;
-        if (mOutputBusses.isEmpty()) return false;
+        if (!checkPiece(STRUCTURE_PIECE_MAIN, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET)) {
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            return;
+        }
+        if (mSetTier <= 0) {
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            return;
+        }
+        if (mSteamInputFluids.isEmpty()) {
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            return;
+        }
+        if (mInputBusses.isEmpty()) {
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            return;
+        }
+        if (mOutputBusses.isEmpty()) {
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            return;
+        }
         updateHatchTexture();
-        return true;
     }
 
     @Override
@@ -279,28 +301,13 @@ public class MTELargeSteamFurnace extends MTESteamMultiBase<MTELargeSteamFurnace
     }
 
     @Override
-    protected int getCasingTextureId() {
-        return getCasingTextureID();
+    protected IIconContainer getInactiveOverlay() {
+        return Textures.BlockIcons.OVERLAY_FRONT_STEAM_FURNACE;
     }
 
     @Override
-    public ITexture[] getTexture(IGregTechTileEntity aBaseMetaTileEntity, ForgeDirection side, ForgeDirection facing,
-        int aColorIndex, boolean aActive, boolean aRedstone) {
-        if (side == facing) {
-            return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(getCasingTextureID()),
-                aActive ? getFrontOverlayActive() : getFrontOverlay() };
-        }
-        return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(getCasingTextureID()) };
-    }
-
-    @Override
-    protected ITexture getFrontOverlay() {
-        return TextureFactory.of(Textures.BlockIcons.OVERLAY_FRONT_STEAM_FURNACE);
-    }
-
-    @Override
-    protected ITexture getFrontOverlayActive() {
-        return TextureFactory.of(Textures.BlockIcons.OVERLAY_FRONT_STEAM_FURNACE_ACTIVE);
+    protected IIconContainer getActiveOverlay() {
+        return Textures.BlockIcons.OVERLAY_FRONT_STEAM_FURNACE_ACTIVE;
     }
 
     @Override
@@ -423,6 +430,11 @@ public class MTELargeSteamFurnace extends MTESteamMultiBase<MTELargeSteamFurnace
     }
 
     @Override
+    protected gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui<?> getGui() {
+        return new com.miaokatze.gtsr.common.gui.MTELargeSteamFurnaceGui(this);
+    }
+
+    @Override
     public String[] getInfoData() {
         if (!mMachine) {
             return new String[] {
@@ -447,7 +459,7 @@ public class MTELargeSteamFurnace extends MTESteamMultiBase<MTELargeSteamFurnace
                 + getMaxParallelRecipes() };
     }
 
-    protected boolean hasSuperheatedSteamInHatch() {
+    public boolean hasSuperheatedSteamInHatch() {
         for (MTEHatchCustomFluidBase hatch : mSteamInputFluids) {
             FluidStack fs = hatch.getFluid();
             if (fs != null && fs.getFluid() != null

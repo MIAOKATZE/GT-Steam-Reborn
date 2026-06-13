@@ -31,6 +31,7 @@ import net.minecraftforge.fluids.FluidStack;
 import org.apache.commons.lang3.tuple.Pair;
 
 import com.google.common.collect.ImmutableList;
+import com.gtnewhorizon.gtnhlib.util.numberformatting.NumberFormatUtil;
 import com.gtnewhorizon.structurelib.alignment.constructable.IConstructable;
 import com.gtnewhorizon.structurelib.alignment.constructable.ISurvivalConstructable;
 import com.gtnewhorizon.structurelib.structure.IStructureDefinition;
@@ -45,6 +46,7 @@ import com.gtnewhorizons.modularui.common.widget.DynamicPositionedColumn;
 import com.gtnewhorizons.modularui.common.widget.FakeSyncWidget;
 import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
+import com.miaokatze.gtsr.common.gui.MTELargeSolarOverpressureArrayGui;
 import com.miaokatze.gtsr.common.machine.base.MTEPressureSteamOutputHatch;
 import com.miaokatze.gtsr.common.machine.base.MTESteamOutputHatch;
 
@@ -55,6 +57,7 @@ import gregtech.api.enums.ItemList;
 import gregtech.api.enums.Materials;
 import gregtech.api.enums.Textures;
 import gregtech.api.gui.modularui.GTUITextures;
+import gregtech.api.interfaces.IIconContainer;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
@@ -62,11 +65,13 @@ import gregtech.api.metatileentity.implementations.MTEEnhancedMultiBlockBase;
 import gregtech.api.recipe.check.CheckRecipeResult;
 import gregtech.api.recipe.check.CheckRecipeResultRegistry;
 import gregtech.api.render.TextureFactory;
+import gregtech.api.structure.error.StructureError;
+import gregtech.api.structure.error.StructureErrorRegistry;
 import gregtech.api.util.GTModHandler;
-import gregtech.api.util.GTUtility;
 import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.common.blocks.BlockCasings1;
 import gregtech.common.blocks.BlockCasings2;
+import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
 
 public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MTELargeSolarOverpressureArray>
     implements IConstructable, ISurvivalConstructable {
@@ -85,9 +90,9 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
     }
 
     protected int mSetTier = -1;
-    protected double mHeat = 0.0d;
-    protected double mCalcification = 0.0d;
-    protected long mRunningTicks = 0L;
+    public double mHeat = 0.0d;
+    public double mCalcification = 0.0d;
+    public long mRunningTicks = 0L;
     protected boolean mIsHeating = false;
     protected boolean mIsOperating = false;
     protected int tierCasing = -1;
@@ -99,8 +104,8 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
     private static final int CALCIFICATION_FACTOR = 3;
     private static final int STEAM_PER_WATER = 160;
 
-    private static Textures.BlockIcons.CustomIcon OVERLAY_OFF;
-    private static Textures.BlockIcons.CustomIcon OVERLAY_ON;
+    private static IIconContainer OVERLAY_OFF;
+    private static IIconContainer OVERLAY_ON;
 
     public MTELargeSolarOverpressureArray(int aID, String aName, String aNameRegional) {
         super(aID, aName, aNameRegional);
@@ -113,8 +118,8 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
     @Override
     @SideOnly(Side.CLIENT)
     public void registerIcons(IIconRegister aBlockIconRegister) {
-        OVERLAY_OFF = new Textures.BlockIcons.CustomIcon("gtsr:MTELargeSolarOverpressureArray_OFF");
-        OVERLAY_ON = new Textures.BlockIcons.CustomIcon("gtsr:MTELargeSolarOverpressureArray_ON");
+        OVERLAY_OFF = Textures.BlockIcons.custom("gtsr:MTELargeSolarOverpressureArray_OFF");
+        OVERLAY_ON = Textures.BlockIcons.custom("gtsr:MTELargeSolarOverpressureArray_ON");
         super.registerIcons(aBlockIconRegister);
     }
 
@@ -250,7 +255,7 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
                     ofChain(
                         buildHatchAdder(MTELargeSolarOverpressureArray.class).atLeast(OutputHatch, InputHatch)
                             .casingIndex(bronzeCasingIndex)
-                            .dot(1)
+                            .hint(1)
                             .buildAndChain(
                                 onElementPass(
                                     t -> {},
@@ -318,7 +323,7 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
     }
 
     @Override
-    public boolean checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack) {
+    public void checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack, List<StructureError> errors) {
         mSetTier = -1;
         tierCasing = -1;
         tierGlass = -1;
@@ -326,7 +331,10 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
         tierPipe = -1;
         tierGear = -1;
 
-        if (!checkPiece(STRUCTURE_PIECE_MAIN, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET)) return false;
+        if (!checkPiece(STRUCTURE_PIECE_MAIN, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET)) {
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            return;
+        }
 
         if (tierCasing == 1 && tierGlass >= 1 && tierConductor == 1 && tierPipe == 1 && tierGear == 1) {
             mSetTier = 1;
@@ -336,11 +344,16 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
             mSetTier = 3;
         }
 
-        if (mSetTier <= 0) return false;
-        if (!hasValidOutputHatchesForTier()) return false;
+        if (mSetTier <= 0) {
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            return;
+        }
+        if (!hasValidOutputHatchesForTier()) {
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            return;
+        }
 
         updateHatchTextures();
-        return true;
     }
 
     private boolean hasValidOutputHatchesForTier() {
@@ -379,7 +392,7 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
             }
 
             if (wasHeating != mIsHeating) {
-                aBaseMetaTileEntity.issueClientUpdate();
+                aBaseMetaTileEntity.issueTextureUpdate();
             }
         }
 
@@ -570,6 +583,12 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
     }
 
     @Override
+    protected @Nonnull MTEMultiBlockBaseGui<?> getGui() {
+        return new MTELargeSolarOverpressureArrayGui(this);
+    }
+
+    @Deprecated
+    @Override
     protected void drawTexts(DynamicPositionedColumn screenElements, SlotWidget inventorySlot) {
         super.drawTexts(screenElements, inventorySlot);
         screenElements
@@ -592,7 +611,7 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
                 new TextWidget().setStringSupplier(
                     () -> EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.gui.solar_array.steam_output")
                         + EnumChatFormatting.AQUA
-                        + GTUtility.formatNumbers(mCurrentSteamOutput)
+                        + NumberFormatUtil.formatNumber(mCurrentSteamOutput)
                         + " L/s "
                         + EnumChatFormatting.WHITE
                         + (isNickel() ? StatCollector.translateToLocal("gtsr.gui.solar_array.superheated")
@@ -819,7 +838,7 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
         return (byte) ((mSetTier << 1) | (mIsHeating ? 0x01 : 0x00));
     }
 
-    protected int mCurrentSteamOutput = 0;
+    public int mCurrentSteamOutput = 0;
 
     @Override
     public String[] getInfoData() {

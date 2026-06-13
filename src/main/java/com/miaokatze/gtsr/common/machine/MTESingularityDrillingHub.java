@@ -4,11 +4,12 @@ import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlock;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose;
-import static gregtech.api.enums.HatchElement.OutputBus;
+import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.SteamOutputBus;
 import static gregtech.api.enums.HatchElement.OutputHatch;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import net.minecraft.client.renderer.texture.IIconRegister;
 import net.minecraft.entity.player.EntityPlayer;
@@ -24,6 +25,7 @@ import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
 
+import com.gtnewhorizon.gtnhlib.util.numberformatting.NumberFormatUtil;
 import com.gtnewhorizon.structurelib.alignment.IAlignmentLimits;
 import com.gtnewhorizon.structurelib.alignment.constructable.ISurvivalConstructable;
 import com.gtnewhorizon.structurelib.structure.IStructureDefinition;
@@ -45,19 +47,20 @@ import cpw.mods.fml.relauncher.SideOnly;
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Materials;
 import gregtech.api.enums.Textures;
-import gregtech.api.interfaces.ITexture;
+import gregtech.api.interfaces.IIconContainer;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.implementations.MTEHatch;
 import gregtech.api.recipe.check.CheckRecipeResult;
 import gregtech.api.recipe.check.CheckRecipeResultRegistry;
-import gregtech.api.render.TextureFactory;
+import gregtech.api.structure.error.StructureError;
+import gregtech.api.structure.error.StructureErrorRegistry;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.MultiblockTooltipBuilder;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTEHatchCustomFluidBase;
-import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTESteamMultiBase;
+import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTESteamMultiBlockBase;
 
-public class MTESingularityDrillingHub extends MTESteamMultiBase<MTESingularityDrillingHub>
+public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingularityDrillingHub>
     implements ISurvivalConstructable, IHubArray {
 
     private static final String STRUCTURE_PIECE_MAIN = "main";
@@ -90,12 +93,12 @@ public class MTESingularityDrillingHub extends MTESteamMultiBase<MTESingularityD
 
     private final ArrayList<BoundDrillNode> mBoundNodes = new ArrayList<>();
     private int mCasingCount = 0;
-    private int mBoundNodeCount = 0;
-    private int mSteamCost = 0;
-    private boolean mIsSuperheated = false;
+    public int mBoundNodeCount = 0;
+    public int mSteamCost = 0;
+    public boolean mIsSuperheated = false;
 
-    private static Textures.BlockIcons.CustomIcon OVERLAY_OFF;
-    private static Textures.BlockIcons.CustomIcon OVERLAY_ON;
+    private static IIconContainer OVERLAY_OFF;
+    private static IIconContainer OVERLAY_ON;
 
     public MTESingularityDrillingHub(int aID, String aName, String aNameRegional) {
         super(aID, aName, aNameRegional);
@@ -108,8 +111,8 @@ public class MTESingularityDrillingHub extends MTESteamMultiBase<MTESingularityD
     @Override
     @SideOnly(Side.CLIENT)
     public void registerIcons(IIconRegister aBlockIconRegister) {
-        OVERLAY_OFF = new Textures.BlockIcons.CustomIcon("gtsr:MTESingularityDrillingHub_OFF");
-        OVERLAY_ON = new Textures.BlockIcons.CustomIcon("gtsr:MTESingularityDrillingHub_ON");
+        OVERLAY_OFF = Textures.BlockIcons.custom("gtsr:MTESingularityDrillingHub_OFF");
+        OVERLAY_ON = Textures.BlockIcons.custom("gtsr:MTESingularityDrillingHub_ON");
         super.registerIcons(aBlockIconRegister);
     }
 
@@ -120,7 +123,12 @@ public class MTESingularityDrillingHub extends MTESteamMultiBase<MTESingularityD
 
     @Override
     public String getMachineType() {
-        return StatCollector.translateToLocal("gtsr.recipe.singularity_drilling_hub");
+        return "奇点钻探枢纽";
+    }
+
+    @Override
+    public boolean isHighPressure() {
+        return true;
     }
 
     protected int getCasingTextureID() {
@@ -192,32 +200,32 @@ public class MTESingularityDrillingHub extends MTESteamMultiBase<MTESingularityD
                 .addElement(
                     'B',
                     ofChain(
-                        buildHatchAdder(MTESingularityDrillingHub.class).adder(MTESteamMultiBase::addToMachineList)
+                        buildHatchAdder(MTESingularityDrillingHub.class).adder(MTESteamMultiBlockBase::addToMachineList)
                             .hatchIds(31040, MetaTileEntityID.PRESSURE_STEAM_HATCH.ID)
                             .casingIndex(casingIndex)
-                            .dot(1)
+                            .hint(1)
                             .shouldReject(t -> !t.mSteamInputFluids.isEmpty())
                             .build(),
-                        buildHatchAdder(MTESingularityDrillingHub.class).atLeast(OutputBus)
+                        buildHatchAdder(MTESingularityDrillingHub.class).atLeast(SteamOutputBus)
                             .casingIndex(casingIndex)
-                            .dot(1)
+                            .hint(1)
                             .build(),
                         buildHatchAdder(MTESingularityDrillingHub.class).atLeast(OutputHatch)
                             .casingIndex(casingIndex)
-                            .dot(1)
+                            .hint(1)
                             .buildAndChain(
                                 onElementPass(
                                     MTESingularityDrillingHub::onCasingAdded,
                                     ofBlock(GregTechAPI.sBlockCasings2, 0))),
-                        buildHatchAdder(MTESingularityDrillingHub.class).adder(MTESteamMultiBase::addToMachineList)
+                        buildHatchAdder(MTESingularityDrillingHub.class).adder(MTESteamMultiBlockBase::addToMachineList)
                             .hatchClass(MTESteamCoolingHatch.class)
                             .casingIndex(casingIndex)
-                            .dot(2)
+                            .hint(2)
                             .build(),
-                        buildHatchAdder(MTESingularityDrillingHub.class).adder(MTESteamMultiBase::addToMachineList)
+                        buildHatchAdder(MTESingularityDrillingHub.class).adder(MTESteamMultiBlockBase::addToMachineList)
                             .hatchClass(MTEPressureSteamCoolingHatch.class)
                             .casingIndex(casingIndex)
-                            .dot(2)
+                            .hint(2)
                             .build()))
                 .addElement('C', ofBlock(GregTechAPI.sBlockCasings2, 13))
                 .addElement('D', ofBlock(GregTechAPI.sBlockCasings2, 3))
@@ -256,19 +264,28 @@ public class MTESingularityDrillingHub extends MTESteamMultiBase<MTESingularityD
     }
 
     @Override
-    public boolean checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack) {
+    public void checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack, List<StructureError> errors) {
         mCasingCount = 0;
 
         if (!checkPiece(STRUCTURE_PIECE_MAIN, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET)) {
-            return false;
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            return;
         }
 
-        if (this.mSteamInputFluids.isEmpty()) return false;
-        if (this.mOutputBusses.isEmpty() && this.mSteamOutputs.isEmpty()) return false;
-        if (this.mOutputHatches.isEmpty()) return false;
+        if (this.mSteamInputFluids.isEmpty()) {
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            return;
+        }
+        if (this.mOutputBusses.isEmpty() && this.mSteamOutputs.isEmpty()) {
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            return;
+        }
+        if (this.mOutputHatches.isEmpty()) {
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            return;
+        }
 
         updateHatchTexture();
-        return true;
     }
 
     @Override
@@ -320,7 +337,7 @@ public class MTESingularityDrillingHub extends MTESteamMultiBase<MTESingularityD
     }
 
     /**
-     * Override to prevent MTESteamMultiBaseMixin's superheated steam 4x speed boost.
+     * Override to prevent MTESteamMultiBlockBaseMixin's superheated steam 4x speed boost.
      * The drilling hub requires superheated steam but does NOT get speed boost from it.
      * Steam consumption is handled entirely by checkProcessing(), so onRunningTick
      * only needs to push cooling products.
@@ -598,7 +615,7 @@ public class MTESingularityDrillingHub extends MTESteamMultiBase<MTESingularityD
 
     public void pushNodeItemOutput(ItemStack stack) {
         if (stack == null) return;
-        addOutputPartial(stack, false);
+        addOutputPartial(stack);
     }
 
     public boolean isMachineRunning() {
@@ -658,23 +675,13 @@ public class MTESingularityDrillingHub extends MTESteamMultiBase<MTESingularityD
     }
 
     @Override
-    public ITexture[] getTexture(IGregTechTileEntity aBaseMetaTileEntity, ForgeDirection side, ForgeDirection facing,
-        int aColorIndex, boolean aActive, boolean aRedstone) {
-        if (side == facing) {
-            return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(getCasingTextureID()),
-                aActive ? getFrontOverlayActive() : getFrontOverlay() };
-        }
-        return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(getCasingTextureID()) };
+    protected IIconContainer getInactiveOverlay() {
+        return OVERLAY_OFF;
     }
 
     @Override
-    protected ITexture getFrontOverlay() {
-        return TextureFactory.of(OVERLAY_OFF);
-    }
-
-    @Override
-    protected ITexture getFrontOverlayActive() {
-        return TextureFactory.of(OVERLAY_ON);
+    protected IIconContainer getActiveOverlay() {
+        return OVERLAY_ON;
     }
 
     @Override
@@ -688,7 +695,7 @@ public class MTESingularityDrillingHub extends MTESteamMultiBase<MTESingularityD
                 EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.shared.steam_cost")
                     + EnumChatFormatting.WHITE
                     + " "
-                    + GTUtility.formatNumbers(BASE_STEAM_PER_SECOND)
+                    + NumberFormatUtil.formatNumber(BASE_STEAM_PER_SECOND)
                     + " + "
                     + StatCollector.translateToLocal("gtsr.tooltip.singularity_hub.node_cost_desc"))
             .addInfo(
@@ -787,6 +794,7 @@ public class MTESingularityDrillingHub extends MTESteamMultiBase<MTESingularityD
         return false;
     }
 
+    @Deprecated
     @Override
     protected void drawTexts(DynamicPositionedColumn screenElements, SlotWidget inventorySlot) {
         super.drawTexts(screenElements, inventorySlot);
@@ -812,7 +820,7 @@ public class MTESingularityDrillingHub extends MTESteamMultiBase<MTESingularityD
                     () -> EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.shared.steam_cost")
                         + " "
                         + EnumChatFormatting.RED
-                        + GTUtility.formatNumbers(mSteamCost)
+                        + NumberFormatUtil.formatNumber(mSteamCost)
                         + " L/s"
                         + EnumChatFormatting.RESET))
             .widget(
@@ -826,6 +834,11 @@ public class MTESingularityDrillingHub extends MTESteamMultiBase<MTESingularityD
             .widget(new FakeSyncWidget.IntegerSyncer(() -> mBoundNodeCount, val -> mBoundNodeCount = val))
             .widget(new FakeSyncWidget.IntegerSyncer(() -> mSteamCost, val -> mSteamCost = val))
             .widget(new FakeSyncWidget.BooleanSyncer(() -> mIsSuperheated, val -> mIsSuperheated = val));
+    }
+
+    @Override
+    protected gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui<?> getGui() {
+        return new com.miaokatze.gtsr.common.gui.MTESingularityDrillingHubGui(this);
     }
 
     @Override
@@ -880,7 +893,7 @@ public class MTESingularityDrillingHub extends MTESteamMultiBase<MTESingularityD
             EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.shared.steam_cost")
                 + " "
                 + EnumChatFormatting.RED
-                + GTUtility.formatNumbers(totalCost)
+                + NumberFormatUtil.formatNumber(totalCost)
                 + " L/s"
                 + EnumChatFormatting.RESET);
         info.add(

@@ -4,10 +4,10 @@ import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlocksT
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose;
+import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.SteamInputBus;
+import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.SteamOutputBus;
 import static gregtech.api.enums.HatchElement.Energy;
-import static gregtech.api.enums.HatchElement.InputBus;
 import static gregtech.api.enums.HatchElement.InputHatch;
-import static gregtech.api.enums.HatchElement.OutputBus;
 import static gregtech.api.enums.HatchElement.OutputHatch;
 import static gregtech.api.enums.Textures.BlockIcons.OVERLAY_FRONT_ORE_DRILL;
 import static gregtech.api.enums.Textures.BlockIcons.OVERLAY_FRONT_ORE_DRILL_ACTIVE;
@@ -33,6 +33,7 @@ import net.minecraftforge.fluids.FluidStack;
 import org.apache.commons.lang3.tuple.Pair;
 
 import com.google.common.collect.ImmutableList;
+import com.gtnewhorizon.gtnhlib.util.numberformatting.NumberFormatUtil;
 import com.gtnewhorizon.structurelib.alignment.constructable.IConstructable;
 import com.gtnewhorizon.structurelib.alignment.constructable.ISurvivalConstructable;
 import com.gtnewhorizon.structurelib.structure.IStructureDefinition;
@@ -43,6 +44,7 @@ import com.gtnewhorizons.modularui.common.widget.DynamicPositionedColumn;
 import com.gtnewhorizons.modularui.common.widget.FakeSyncWidget;
 import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
+import com.miaokatze.gtsr.common.gui.MTEKineticProcessingArrayGui;
 import com.miaokatze.gtsr.common.machine.base.MTEHatchPressureSteamInput;
 import com.miaokatze.gtsr.common.machine.base.MTEPressureSteamCoolingHatch;
 
@@ -64,11 +66,14 @@ import gregtech.api.recipe.check.CheckRecipeResult;
 import gregtech.api.recipe.check.CheckRecipeResultRegistry;
 import gregtech.api.recipe.check.SimpleCheckRecipeResult;
 import gregtech.api.render.TextureFactory;
+import gregtech.api.structure.error.StructureError;
+import gregtech.api.structure.error.StructureErrorRegistry;
 import gregtech.api.util.GTModHandler;
 import gregtech.api.util.GTRecipe;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.api.util.OverclockCalculator;
+import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
 
 public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKineticProcessingArray>
     implements IConstructable, ISurvivalConstructable {
@@ -84,26 +89,26 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
         0.1, 0.1, 0.1, 0.1, 0.1 };
 
     private int mCasingAmount = 0;
-    private int mCasingTier = -1;
-    private int mPipeTier = -1;
-    private int mGearTier = -1;
+    public int mCasingTier = -1;
+    public int mPipeTier = -1;
+    public int mGearTier = -1;
     private int mSyncedCasingTier = -1;
 
     private ItemStack internalMachineStack = null;
     private RecipeMap<?> recipeMap = null;
     private long voltage = 0;
-    private int mMachineTier = 0;
-    private int maxParallel = 0;
+    public int mMachineTier = 0;
+    public int maxParallel = 0;
     private int mStackSize = 0;
 
     private final List<MTEHatchPressureSteamInput> mPressureSteamInputs = new ArrayList<>();
     private final List<MTEPressureSteamCoolingHatch> mPressureCoolingHatches = new ArrayList<>();
 
-    private double mSteamRate = 0;
-    private long mSteamPerAmp = 0;
-    private long mRealtimeSteamCost = 0;
-    private int mParallelCount = 0;
-    private String mMachineName = "";
+    public double mSteamRate = 0;
+    public long mSteamPerAmp = 0;
+    public long mRealtimeSteamCost = 0;
+    public int mParallelCount = 0;
+    public String mMachineName = "";
 
     public MTEKineticProcessingArray(int aID, String aName, String aNameRegional) {
         super(aID, aName, aNameRegional);
@@ -137,9 +142,9 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
                     'B',
                     ofChain(
                         buildHatchAdder(MTEKineticProcessingArray.class)
-                            .atLeast(InputBus, InputHatch, OutputBus, OutputHatch, Energy)
+                            .atLeast(SteamInputBus, InputHatch, SteamOutputBus, OutputHatch, Energy)
                             .casingIndex(SOLID_STEEL_CASING_INDEX)
-                            .dot(1)
+                            .hint(1)
                             .buildAndChain(
                                 onElementPass(
                                     MTEKineticProcessingArray::onCasingAdded,
@@ -153,13 +158,13 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
                             .adder(MTEKineticProcessingArray::addPressureSteamToMachineList)
                             .hatchClass(MTEHatchPressureSteamInput.class)
                             .casingIndex(SOLID_STEEL_CASING_INDEX)
-                            .dot(2)
+                            .hint(2)
                             .build(),
                         buildHatchAdder(MTEKineticProcessingArray.class)
                             .adder(MTEKineticProcessingArray::addPressureCoolingToMachineList)
                             .hatchClass(MTEPressureSteamCoolingHatch.class)
                             .casingIndex(SOLID_STEEL_CASING_INDEX)
-                            .dot(3)
+                            .hint(3)
                             .build()))
                 .addElement(
                     'C',
@@ -322,7 +327,7 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
     }
 
     @Override
-    public boolean checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack) {
+    public void checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack, List<StructureError> errors) {
         mCasingAmount = 0;
         mCasingTier = -1;
         mPipeTier = -1;
@@ -331,17 +336,25 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
         mPressureSteamInputs.clear();
         mPressureCoolingHatches.clear();
 
-        if (!checkPiece(STRUCTURE_PIECE_MAIN, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET)) return false;
-        if (mCasingTier <= 0 || mCasingTier > 12) return false;
+        if (!checkPiece(STRUCTURE_PIECE_MAIN, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET)) {
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            return;
+        }
+        if (mCasingTier <= 0 || mCasingTier > 12) {
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            return;
+        }
 
         boolean hasEnergy = !mEnergyHatches.isEmpty();
         boolean hasSteamInput = !mPressureSteamInputs.isEmpty();
         boolean hasInput = !mInputBusses.isEmpty() || !mInputHatches.isEmpty();
         boolean hasOutput = !mOutputBusses.isEmpty() || !mOutputHatches.isEmpty() || !mPressureCoolingHatches.isEmpty();
-        if (!hasEnergy || !hasSteamInput || !hasInput || !hasOutput) return false;
+        if (!hasEnergy || !hasSteamInput || !hasInput || !hasOutput) {
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            return;
+        }
 
         updateAllHatchTextures();
-        return true;
     }
 
     private void checkInternalMachine() {
@@ -599,6 +612,12 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
     }
 
     @Override
+    protected @Nonnull MTEMultiBlockBaseGui<?> getGui() {
+        return new MTEKineticProcessingArrayGui(this);
+    }
+
+    @Deprecated
+    @Override
     protected void drawTexts(DynamicPositionedColumn screenElements, SlotWidget inventorySlot) {
         super.drawTexts(screenElements, inventorySlot);
 
@@ -647,7 +666,7 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
                     () -> EnumChatFormatting.GOLD
                         + StatCollector.translateToLocal("gtsr.gui.kinetic_array.steam_per_amp")
                         + EnumChatFormatting.YELLOW
-                        + GTUtility.formatNumbers(mSteamPerAmp)
+                        + NumberFormatUtil.formatNumber(mSteamPerAmp)
                         + " L/t")
                 .setTextAlignment(Alignment.CenterLeft)
                 .setDefaultColor(COLOR_TEXT_WHITE.get())
@@ -658,7 +677,7 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
                 .dynamicString(
                     () -> EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.kinetic_array.hp_steam")
                         + EnumChatFormatting.RED
-                        + GTUtility.formatNumbers(mRealtimeSteamCost)
+                        + NumberFormatUtil.formatNumber(mRealtimeSteamCost)
                         + " L/t")
                 .setTextAlignment(Alignment.CenterLeft)
                 .setDefaultColor(COLOR_TEXT_WHITE.get())
@@ -864,11 +883,11 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
                 + String.format("%.2f", mSteamRate),
             EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.kinetic_array.steam_per_amp")
                 + EnumChatFormatting.YELLOW
-                + GTUtility.formatNumbers(mSteamPerAmp)
+                + NumberFormatUtil.formatNumber(mSteamPerAmp)
                 + " L/t",
             EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.kinetic_array.hp_steam")
                 + EnumChatFormatting.RED
-                + GTUtility.formatNumbers(mRealtimeSteamCost)
+                + NumberFormatUtil.formatNumber(mRealtimeSteamCost)
                 + " L/t",
             EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.kinetic_array.parallel")
                 + EnumChatFormatting.LIGHT_PURPLE

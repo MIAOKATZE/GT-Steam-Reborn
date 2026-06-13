@@ -4,14 +4,15 @@ import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlock;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose;
+import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.SteamOutputBus;
 import static gregtech.api.enums.HatchElement.InputHatch;
-import static gregtech.api.enums.HatchElement.OutputBus;
 import static gregtech.api.enums.HatchElement.OutputHatch;
 import static gregtech.api.enums.Textures.BlockIcons.OVERLAY_FRONT_LARGE_CHEMICAL_REACTOR;
 import static gregtech.api.enums.Textures.BlockIcons.OVERLAY_FRONT_LARGE_CHEMICAL_REACTOR_ACTIVE;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import javax.annotation.Nonnull;
 
@@ -24,6 +25,7 @@ import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
 
+import com.gtnewhorizon.gtnhlib.util.numberformatting.NumberFormatUtil;
 import com.gtnewhorizon.structurelib.alignment.constructable.ISurvivalConstructable;
 import com.gtnewhorizon.structurelib.structure.IStructureDefinition;
 import com.gtnewhorizon.structurelib.structure.ISurvivalBuildEnvironment;
@@ -34,6 +36,7 @@ import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
+import com.miaokatze.gtsr.common.gui.MTEAmmoniaPlantGui;
 
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Materials;
@@ -49,9 +52,12 @@ import gregtech.api.recipe.RecipeMap;
 import gregtech.api.recipe.check.CheckRecipeResult;
 import gregtech.api.recipe.check.CheckRecipeResultRegistry;
 import gregtech.api.render.TextureFactory;
+import gregtech.api.structure.error.StructureError;
+import gregtech.api.structure.error.StructureErrorRegistry;
 import gregtech.api.util.GTRecipe;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.MultiblockTooltipBuilder;
+import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
 
 public class MTEAmmoniaPlant extends MTEEnhancedMultiBlockBase<MTEAmmoniaPlant> implements ISurvivalConstructable {
 
@@ -77,12 +83,12 @@ public class MTEAmmoniaPlant extends MTEEnhancedMultiBlockBase<MTEAmmoniaPlant> 
     private static final int DEPTH_OFF_SET = 2;
     private static IStructureDefinition<MTEAmmoniaPlant> STRUCTURE_DEFINITION = null;
 
-    private int mHeatLevel = 0;
+    public int mHeatLevel = 0;
     private int mCatalystType = 0;
     private int mReactionTimeSec = 64;
-    private int mParallelCount = 64;
-    private long mRealtimeSteamCost = 0;
-    private long mRealtimeSteamOutput = 0;
+    public int mParallelCount = 64;
+    public long mRealtimeSteamCost = 0;
+    public long mRealtimeSteamOutput = 0;
 
     private int mCasingCount = 0;
     private int mStartUpCheck = 100;
@@ -142,9 +148,9 @@ public class MTEAmmoniaPlant extends MTEEnhancedMultiBlockBase<MTEAmmoniaPlant> 
                 .addElement(
                     'B',
                     ofChain(
-                        buildHatchAdder(MTEAmmoniaPlant.class).atLeast(InputHatch, OutputBus, OutputHatch)
+                        buildHatchAdder(MTEAmmoniaPlant.class).atLeast(InputHatch, SteamOutputBus, OutputHatch)
                             .casingIndex(CASING_TEXTURE_ID)
-                            .dot(1)
+                            .hint(1)
                             .buildAndChain(
                                 onElementPass(MTEAmmoniaPlant::onCasingAdded, ofBlock(GregTechAPI.sBlockCasings2, 0)))))
                 .addElement('C', onElementPass(MTEAmmoniaPlant::onCasingAdded, ofBlock(GregTechAPI.sBlockCasings2, 13)))
@@ -152,9 +158,9 @@ public class MTEAmmoniaPlant extends MTEEnhancedMultiBlockBase<MTEAmmoniaPlant> 
                 .addElement(
                     'E',
                     ofChain(
-                        buildHatchAdder(MTEAmmoniaPlant.class).atLeast(InputHatch, OutputBus, OutputHatch)
+                        buildHatchAdder(MTEAmmoniaPlant.class).atLeast(InputHatch, SteamOutputBus, OutputHatch)
                             .casingIndex(CASING_TEXTURE_ID)
-                            .dot(2)
+                            .hint(2)
                             .buildAndChain(
                                 onElementPass(MTEAmmoniaPlant::onCasingAdded, ofBlock(GregTechAPI.sBlockCasings8, 0)))))
                 .addElement('F', onElementPass(MTEAmmoniaPlant::onCasingAdded, ofBlock(GregTechAPI.sBlockCasings8, 1)))
@@ -194,15 +200,29 @@ public class MTEAmmoniaPlant extends MTEEnhancedMultiBlockBase<MTEAmmoniaPlant> 
     }
 
     @Override
-    public boolean checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack) {
+    public void checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack, List<StructureError> errors) {
         mCasingCount = 0;
-        if (!checkPiece(STRUCTURE_PIECE_MAIN, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET)) return false;
-        if (mCasingCount < 10) return false;
-        if (mInputHatches.isEmpty()) return false;
-        if (mOutputHatches.isEmpty()) return false;
-        if (mOutputBusses.isEmpty()) return false;
+        if (!checkPiece(STRUCTURE_PIECE_MAIN, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET)) {
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            return;
+        }
+        if (mCasingCount < 10) {
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            return;
+        }
+        if (mInputHatches.isEmpty()) {
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            return;
+        }
+        if (mOutputHatches.isEmpty()) {
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            return;
+        }
+        if (mOutputBusses.isEmpty()) {
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            return;
+        }
         updateCatalyst();
-        return true;
     }
 
     private void updateCatalyst() {
@@ -474,6 +494,12 @@ public class MTEAmmoniaPlant extends MTEEnhancedMultiBlockBase<MTEAmmoniaPlant> 
     }
 
     @Override
+    protected @Nonnull MTEMultiBlockBaseGui<?> getGui() {
+        return new MTEAmmoniaPlantGui(this);
+    }
+
+    @Deprecated
+    @Override
     protected void drawTexts(DynamicPositionedColumn screenElements, SlotWidget inventorySlot) {
         super.drawTexts(screenElements, inventorySlot);
         screenElements.widget(new TextWidget().setStringSupplier(() -> {
@@ -504,7 +530,7 @@ public class MTEAmmoniaPlant extends MTEEnhancedMultiBlockBase<MTEAmmoniaPlant> 
                     () -> EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.gui.ammonia_plant.steam")
                         + " "
                         + EnumChatFormatting.AQUA
-                        + GTUtility.formatNumbers(mRealtimeSteamCost)
+                        + NumberFormatUtil.formatNumber(mRealtimeSteamCost)
                         + " L/s "
                         + EnumChatFormatting.RESET))
             .widget(
@@ -512,7 +538,7 @@ public class MTEAmmoniaPlant extends MTEEnhancedMultiBlockBase<MTEAmmoniaPlant> 
                     () -> EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.gui.ammonia_plant.hp_steam")
                         + " "
                         + EnumChatFormatting.LIGHT_PURPLE
-                        + GTUtility.formatNumbers(mRealtimeSteamOutput)
+                        + NumberFormatUtil.formatNumber(mRealtimeSteamOutput)
                         + " L/s "
                         + EnumChatFormatting.RESET))
             .widget(
@@ -572,7 +598,7 @@ public class MTEAmmoniaPlant extends MTEEnhancedMultiBlockBase<MTEAmmoniaPlant> 
             EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.ammonia_plant.steam")
                 + " "
                 + EnumChatFormatting.AQUA
-                + GTUtility.formatNumbers(mRealtimeSteamCost)
+                + NumberFormatUtil.formatNumber(mRealtimeSteamCost)
                 + " L/s"
                 + EnumChatFormatting.RESET);
 
@@ -580,7 +606,7 @@ public class MTEAmmoniaPlant extends MTEEnhancedMultiBlockBase<MTEAmmoniaPlant> 
             EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.ammonia_plant.hp_steam")
                 + " "
                 + EnumChatFormatting.LIGHT_PURPLE
-                + GTUtility.formatNumbers(mRealtimeSteamOutput)
+                + NumberFormatUtil.formatNumber(mRealtimeSteamOutput)
                 + " L/s"
                 + EnumChatFormatting.RESET);
 

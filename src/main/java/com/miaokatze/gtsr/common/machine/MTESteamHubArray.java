@@ -31,6 +31,7 @@ import net.minecraftforge.fluids.IFluidHandler;
 import org.apache.commons.lang3.tuple.Pair;
 
 import com.google.common.collect.ImmutableList;
+import com.gtnewhorizon.gtnhlib.util.numberformatting.NumberFormatUtil;
 import com.gtnewhorizon.structurelib.alignment.constructable.IConstructable;
 import com.gtnewhorizon.structurelib.alignment.constructable.ISurvivalConstructable;
 import com.gtnewhorizon.structurelib.structure.IStructureDefinition;
@@ -41,6 +42,7 @@ import com.gtnewhorizons.modularui.common.widget.FakeSyncWidget;
 import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
+import com.miaokatze.gtsr.common.gui.MTESteamHubArrayGui;
 import com.miaokatze.gtsr.common.machine.base.MTEFilteredCacheNode;
 import com.miaokatze.gtsr.common.machine.base.MTEHubStorageUnit;
 import com.miaokatze.gtsr.common.machine.base.MTEOverpressureHubStorageUnit;
@@ -54,14 +56,18 @@ import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Materials;
 import gregtech.api.enums.Textures;
 import gregtech.api.interfaces.IHatchElement;
+import gregtech.api.interfaces.IIconContainer;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.implementations.MTEEnhancedMultiBlockBase;
 import gregtech.api.render.TextureFactory;
+import gregtech.api.structure.error.StructureError;
+import gregtech.api.structure.error.StructureErrorRegistry;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.IGTHatchAdder;
 import gregtech.api.util.MultiblockTooltipBuilder;
+import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
 import gregtech.common.misc.GTStructureChannels;
 
 public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray>
@@ -78,7 +84,7 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
 
     private static final int CASING_INDEX = GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings1, 10);
 
-    private static Textures.BlockIcons.CustomIcon CONTROLLER_OVERLAY;
+    private static IIconContainer CONTROLLER_OVERLAY;
 
     private static final IStructureDefinition<MTESteamHubArray> STRUCTURE_DEFINITION;
 
@@ -108,7 +114,7 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
                             SteamHubStorageElement.ReinforcedUnit,
                             SteamHubStorageElement.OverpressureUnit)
                         .casingIndex(CASING_INDEX)
-                        .dot(2)
+                        .hint(2)
                         .buildAndChain(
                             onElementPass(
                                 MTESteamHubArray::onCasingAdded,
@@ -127,7 +133,7 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
                     buildHatchAdder(MTESteamHubArray.class)
                         .atLeast(SteamHubHatchElement.SteamInput, SteamHubHatchElement.SteamOutput)
                         .casingIndex(CASING_INDEX)
-                        .dot(1)
+                        .hint(1)
                         .buildAndChain(
                             onElementPass(
                                 MTESteamHubArray::onCasingAdded,
@@ -305,17 +311,17 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
     private final ArrayList<MTESteamHubOutputHatch> mSteamOutputHatches = new ArrayList<>();
     private final ArrayList<BoundCacheNode> mBoundNodes = new ArrayList<>();
 
-    private int mPressureUnitCount = 0;
-    private int mReinforcedUnitCount = 0;
-    private int mOverpressureUnitCount = 0;
+    public int mPressureUnitCount = 0;
+    public int mReinforcedUnitCount = 0;
+    public int mOverpressureUnitCount = 0;
     private int mCasingAmount = 0;
-    private int mSetTier = -1;
+    public int mSetTier = -1;
     private int mCasingTier = -1;
     private int mPipeTier = -1;
     private int mGearTier = -1;
     private int mFrameTier = -1;
-    private int mStackCount = 0;
-    private long mSteamStored = 0;
+    public int mStackCount = 0;
+    public long mSteamStored = 0;
     private FluidStack mStoredFluidType = null;
     private long mTickCounter = 0;
     public boolean mOverflowInput = false;
@@ -331,7 +337,7 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
     @Override
     @SideOnly(Side.CLIENT)
     public void registerIcons(IIconRegister aBlockIconRegister) {
-        CONTROLLER_OVERLAY = new Textures.BlockIcons.CustomIcon("gtsr:MTESteamHubArray");
+        CONTROLLER_OVERLAY = Textures.BlockIcons.custom("gtsr:MTESteamHubArray");
         super.registerIcons(aBlockIconRegister);
     }
 
@@ -346,7 +352,7 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
     }
 
     @Override
-    public boolean checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack) {
+    public void checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack, List<StructureError> errors) {
         for (MTESteamHubInputHatch hatch : mSteamInputHatches) {
             hatch.mController = null;
         }
@@ -367,7 +373,10 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
         mSteamInputHatches.clear();
         mSteamOutputHatches.clear();
 
-        if (!checkPiece(STRUCTURE_PIECE_BASE, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET)) return false;
+        if (!checkPiece(STRUCTURE_PIECE_BASE, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET)) {
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            return;
+        }
 
         for (int i = 0; i < 3; i++) {
             int bOffset = 1 + i;
@@ -375,22 +384,49 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
             mStackCount++;
         }
 
-        if (mStackCount == 0) return false;
+        if (mStackCount == 0) {
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            return;
+        }
 
-        if (!checkPiece(STRUCTURE_PIECE_CAP, HORIZONTAL_OFF_SET, -1, DEPTH_OFF_SET)) return false;
+        if (!checkPiece(STRUCTURE_PIECE_CAP, HORIZONTAL_OFF_SET, -1, DEPTH_OFF_SET)) {
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            return;
+        }
 
         // Validate all tier fields are consistent
-        if (mCasingTier <= 0 || mPipeTier <= 0 || mGearTier <= 0 || mFrameTier <= 0) return false;
-        if (mCasingTier != mPipeTier || mCasingTier != mGearTier || mCasingTier != mFrameTier) return false;
+        if (mCasingTier <= 0 || mPipeTier <= 0 || mGearTier <= 0 || mFrameTier <= 0) {
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            return;
+        }
+        if (mCasingTier != mPipeTier || mCasingTier != mGearTier || mCasingTier != mFrameTier) {
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            return;
+        }
         mSetTier = mCasingTier;
 
-        if (mSetTier == 1 && (mReinforcedUnitCount > 0 || mOverpressureUnitCount > 0)) return false;
-        if (mSetTier == 2 && (mPressureUnitCount > 0 || mOverpressureUnitCount > 0)) return false;
-        if (mSetTier >= 3 && (mPressureUnitCount > 0 || mReinforcedUnitCount > 0)) return false;
+        if (mSetTier == 1 && (mReinforcedUnitCount > 0 || mOverpressureUnitCount > 0)) {
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            return;
+        }
+        if (mSetTier == 2 && (mPressureUnitCount > 0 || mOverpressureUnitCount > 0)) {
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            return;
+        }
+        if (mSetTier >= 3 && (mPressureUnitCount > 0 || mReinforcedUnitCount > 0)) {
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            return;
+        }
 
-        if (mSetTier >= 3 && mOverpressureUnitCount <= 0) return false;
+        if (mSetTier >= 3 && mOverpressureUnitCount <= 0) {
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            return;
+        }
 
-        if ((mPressureUnitCount + mReinforcedUnitCount + mOverpressureUnitCount) <= 0) return false;
+        if ((mPressureUnitCount + mReinforcedUnitCount + mOverpressureUnitCount) <= 0) {
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            return;
+        }
 
         int tierCasingIndex;
         if (mSetTier >= 3) {
@@ -408,8 +444,6 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
         }
 
         getBaseMetaTileEntity().issueTileUpdate();
-
-        return true;
     }
 
     private void onCasingAdded() {
@@ -1066,6 +1100,12 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
     }
 
     @Override
+    protected MTEMultiBlockBaseGui<?> getGui() {
+        return new MTESteamHubArrayGui(this);
+    }
+
+    @Deprecated
+    @Override
     protected void drawTexts(DynamicPositionedColumn screenElements, SlotWidget inventorySlot) {
         super.drawTexts(screenElements, inventorySlot);
         screenElements.widget(new TextWidget().setStringSupplier(() -> {
@@ -1127,7 +1167,7 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
                     () -> EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.steam_hub.steam_buffer")
                         + " "
                         + EnumChatFormatting.LIGHT_PURPLE
-                        + GTUtility.formatNumbers(mSteamStored)
+                        + NumberFormatUtil.formatNumber(mSteamStored)
                         + " L"
                         + EnumChatFormatting.RESET))
             .widget(
@@ -1136,7 +1176,7 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
                         + StatCollector.translateToLocal("gtsr.gui.steam_hub.total_capacity")
                         + " "
                         + EnumChatFormatting.LIGHT_PURPLE
-                        + GTUtility.formatNumbers(getTotalCapacity())
+                        + NumberFormatUtil.formatNumber(getTotalCapacity())
                         + " L"
                         + EnumChatFormatting.RESET))
             .widget(new FakeSyncWidget.IntegerSyncer(() -> mSetTier, val -> mSetTier = val))
@@ -1186,7 +1226,7 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
             EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.steam_hub.steam_buffer")
                 + " "
                 + EnumChatFormatting.LIGHT_PURPLE
-                + GTUtility.formatNumbers(mSteamStored)
+                + NumberFormatUtil.formatNumber(mSteamStored)
                 + " L"
                 + EnumChatFormatting.RESET);
         return info.toArray(new String[0]);

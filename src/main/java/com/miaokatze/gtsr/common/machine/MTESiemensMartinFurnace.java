@@ -20,6 +20,7 @@ import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
 
+import com.gtnewhorizon.gtnhlib.util.numberformatting.NumberFormatUtil;
 import com.gtnewhorizon.structurelib.alignment.IAlignmentLimits;
 import com.gtnewhorizon.structurelib.alignment.constructable.ISurvivalConstructable;
 import com.gtnewhorizon.structurelib.structure.IStructureDefinition;
@@ -30,6 +31,7 @@ import com.gtnewhorizons.modularui.common.widget.FakeSyncWidget;
 import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps;
+import com.miaokatze.gtsr.common.gui.MTESiemensMartinFurnaceGui;
 import com.miaokatze.gtsr.common.machine.base.MTEHatchPressureSteamInput;
 
 import gregtech.api.GregTechAPI;
@@ -49,11 +51,14 @@ import gregtech.api.recipe.check.CheckRecipeResult;
 import gregtech.api.recipe.check.CheckRecipeResultRegistry;
 import gregtech.api.recipe.check.SimpleCheckRecipeResult;
 import gregtech.api.render.TextureFactory;
+import gregtech.api.structure.error.StructureError;
+import gregtech.api.structure.error.StructureErrorRegistry;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.IGTHatchAdder;
 import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.api.util.shutdown.ShutDownReasonRegistry;
 import gregtech.common.blocks.BlockCasings2;
+import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
 
 public class MTESiemensMartinFurnace extends MTEEnhancedMultiBlockBase<MTESiemensMartinFurnace>
     implements ISurvivalConstructable {
@@ -77,7 +82,7 @@ public class MTESiemensMartinFurnace extends MTEEnhancedMultiBlockBase<MTESiemen
 
     private static IStructureDefinition<MTESiemensMartinFurnace> STRUCTURE_DEFINITION = null;
 
-    private double mFurnaceTemperature = 0.0d;
+    public double mFurnaceTemperature = 0.0d;
     private final List<MTEHatchPressureSteamInput> mPressureSteamInputs = new ArrayList<>();
     private int mStartUpCheck = 100;
 
@@ -266,13 +271,13 @@ public class MTESiemensMartinFurnace extends MTEEnhancedMultiBlockBase<MTESiemen
                         buildHatchAdder(MTESiemensMartinFurnace.class)
                             .atLeast(SiemensMartinInputBusElement.INSTANCE, SiemensMartinOutputBusElement.INSTANCE)
                             .casingIndex(casingIndex)
-                            .dot(1)
+                            .hint(1)
                             .build(),
                         buildHatchAdder(MTESiemensMartinFurnace.class)
                             .adder(MTESiemensMartinFurnace::addPressureSteamToMachineList)
                             .hatchClass(MTEHatchPressureSteamInput.class)
                             .casingIndex(casingIndex)
-                            .dot(1)
+                            .hint(1)
                             .buildAndChain(onElementPass(x -> {}, ofBlock(GregTechAPI.sBlockCasings2, 0)))))
                 .addElement('C', ofBlock(GregTechAPI.sBlockCasings2, 13))
                 .addElement('D', ofBlock(GregTechAPI.sBlockCasings2, 3))
@@ -305,19 +310,28 @@ public class MTESiemensMartinFurnace extends MTEEnhancedMultiBlockBase<MTESiemen
     }
 
     @Override
-    public boolean checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack) {
+    public void checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack, List<StructureError> errors) {
         mPressureSteamInputs.clear();
 
         if (!checkPiece(STRUCTURE_PIECE_MAIN, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET)) {
-            return false;
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            return;
         }
 
-        if (this.mPressureSteamInputs.isEmpty()) return false;
-        if (this.mInputBusses.isEmpty()) return false;
-        if (this.mOutputBusses.isEmpty()) return false;
+        if (this.mPressureSteamInputs.isEmpty()) {
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            return;
+        }
+        if (this.mInputBusses.isEmpty()) {
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            return;
+        }
+        if (this.mOutputBusses.isEmpty()) {
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            return;
+        }
 
         updateHatchTexture();
-        return true;
     }
 
     @Override
@@ -468,6 +482,12 @@ public class MTESiemensMartinFurnace extends MTEEnhancedMultiBlockBase<MTESiemen
     }
 
     @Override
+    protected MTEMultiBlockBaseGui<?> getGui() {
+        return new MTESiemensMartinFurnaceGui(this);
+    }
+
+    @Deprecated
+    @Override
     protected void drawTexts(DynamicPositionedColumn screenElements, SlotWidget inventorySlot) {
         super.drawTexts(screenElements, inventorySlot);
         screenElements
@@ -512,7 +532,7 @@ public class MTESiemensMartinFurnace extends MTEEnhancedMultiBlockBase<MTESiemen
                 }
                 return EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.siemens_martin.steam_cost")
                     + EnumChatFormatting.RED
-                    + GTUtility.formatNumbers(steamCostLps)
+                    + NumberFormatUtil.formatNumber(steamCostLps)
                     + " L/s"
                     + EnumChatFormatting.RESET;
             }))
@@ -633,7 +653,7 @@ public class MTESiemensMartinFurnace extends MTEEnhancedMultiBlockBase<MTESiemen
             EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.siemens_martin.steam_cost")
                 + " "
                 + EnumChatFormatting.RED
-                + GTUtility.formatNumbers(steamCostLps)
+                + NumberFormatUtil.formatNumber(steamCostLps)
                 + " L/s"
                 + EnumChatFormatting.RESET);
         info.add(
@@ -670,7 +690,7 @@ public class MTESiemensMartinFurnace extends MTEEnhancedMultiBlockBase<MTESiemen
             .addInfo(
                 EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.shared.steam_cost")
                     + EnumChatFormatting.WHITE
-                    + GTUtility.formatNumbers(SUPERHEATED_STEAM_COST * 20)
+                    + NumberFormatUtil.formatNumber(SUPERHEATED_STEAM_COST * 20)
                     + " L/s"
                     + EnumChatFormatting.GRAY
                     + " ("

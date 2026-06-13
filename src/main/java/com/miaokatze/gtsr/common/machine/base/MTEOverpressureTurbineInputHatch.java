@@ -23,16 +23,19 @@ public class MTEOverpressureTurbineInputHatch extends MTEHatchInput {
     private static final int DEFAULT_TEXTURE_INDEX = GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings8, 6);
 
     public MTEOverpressureTurbineInputHatch(int aID, String aName, String aNameRegional) {
-        super(aID, aName, aNameRegional, 1);
-        setCustomCapacity(CAPACITY);
+        super(aID, 1, aName, aNameRegional, 1, new String[0]);
         setDefaultTextureIndex();
     }
 
     public MTEOverpressureTurbineInputHatch(String aName, int aTier, String[] aDescription,
         gregtech.api.interfaces.ITexture[][][] aTextures) {
         super(aName, aTier, aDescription, aTextures);
-        setCustomCapacity(CAPACITY);
         setDefaultTextureIndex();
+    }
+
+    @Override
+    public int getCapacity() {
+        return CAPACITY;
     }
 
     private void setDefaultTextureIndex() {

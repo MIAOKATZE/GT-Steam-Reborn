@@ -4,12 +4,13 @@ import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlock;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose;
+import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.SteamInputBus;
+import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.SteamOutputBus;
 import static gregtech.api.enums.GTValues.emptyItemStackArray;
-import static gregtech.api.enums.HatchElement.InputBus;
-import static gregtech.api.enums.HatchElement.OutputBus;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import net.minecraft.item.Item;
@@ -17,9 +18,9 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
-import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.FluidStack;
 
+import com.gtnewhorizon.gtnhlib.util.numberformatting.NumberFormatUtil;
 import com.gtnewhorizon.structurelib.alignment.IAlignmentLimits;
 import com.gtnewhorizon.structurelib.alignment.constructable.ISurvivalConstructable;
 import com.gtnewhorizon.structurelib.structure.IStructureDefinition;
@@ -38,20 +39,21 @@ import cpw.mods.fml.common.Loader;
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Materials;
 import gregtech.api.enums.Textures;
-import gregtech.api.interfaces.ITexture;
+import gregtech.api.interfaces.IIconContainer;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.implementations.MTEHatch;
 import gregtech.api.recipe.check.CheckRecipeResult;
 import gregtech.api.recipe.check.CheckRecipeResultRegistry;
-import gregtech.api.render.TextureFactory;
+import gregtech.api.structure.error.StructureError;
+import gregtech.api.structure.error.StructureErrorRegistry;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.common.blocks.BlockCasings2;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTEHatchCustomFluidBase;
-import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTESteamMultiBase;
+import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTESteamMultiBlockBase;
 
-public class MTEVoidCrustSteamBorer extends MTESteamMultiBase<MTEVoidCrustSteamBorer>
+public class MTEVoidCrustSteamBorer extends MTESteamMultiBlockBase<MTEVoidCrustSteamBorer>
     implements ISurvivalConstructable {
 
     private static final String STRUCTURE_PIECE_MAIN = "main";
@@ -60,8 +62,8 @@ public class MTEVoidCrustSteamBorer extends MTESteamMultiBase<MTEVoidCrustSteamB
     private static final int DEPTH_OFF_SET = 1;
 
     protected static final int VOID_STEAM_L_EUT = 400;
-    protected static final int VOID_WORK_TIME_TICKS = 100;
-    protected static final int VOID_STEAM_PER_SECOND = VOID_STEAM_L_EUT * 20;
+    public static final int VOID_WORK_TIME_TICKS = 100;
+    public static final int VOID_STEAM_PER_SECOND = VOID_STEAM_L_EUT * 20;
 
     private static final String ITEM_DIM_DISPLAY_CLASS = "gtneioreplugin.plugin.item.ItemDimensionDisplay";
 
@@ -83,9 +85,9 @@ public class MTEVoidCrustSteamBorer extends MTESteamMultiBase<MTEVoidCrustSteamB
     private int mCountCasing = 0;
     private VoidMinerUtility.DropMap dropMap = null;
     private VoidMinerUtility.DropMap extraDropMap = null;
-    private String lastDimAbbr = "None";
-    private String mLastOreName = "";
-    private boolean dropMapValid = false;
+    public String lastDimAbbr = "None";
+    public String mLastOreName = "";
+    public boolean dropMapValid = false;
 
     public MTEVoidCrustSteamBorer(int aID, String aName, String aNameRegional) {
         super(aID, aName, aNameRegional);
@@ -120,16 +122,22 @@ public class MTEVoidCrustSteamBorer extends MTESteamMultiBase<MTEVoidCrustSteamB
 
     @Override
     public String getMachineType() {
-        return "Singularity Crust Steam Borer";
+        return "虚空地壳钻探器";
+    }
+
+    @Override
+    protected boolean isHighPressure() {
+        return true;
     }
 
     private int getCasingTextureID() {
         return ((BlockCasings2) GregTechAPI.sBlockCasings2).getTextureIndex(0);
     }
 
-    private void updateHatchTexture() {
+    @Override
+    protected void updateHatchTexture() {
+        super.updateHatchTexture();
         int textureID = getCasingTextureID();
-        for (MTEHatch h : mSteamInputFluids) h.updateTexture(textureID);
         for (MTEHatch h : mOutputBusses) h.updateTexture(textureID);
     }
 
@@ -199,15 +207,15 @@ public class MTEVoidCrustSteamBorer extends MTESteamMultiBase<MTEVoidCrustSteamB
                 .addElement(
                     'B',
                     ofChain(
-                        buildHatchAdder(MTEVoidCrustSteamBorer.class).adder(MTESteamMultiBase::addToMachineList)
+                        buildHatchAdder(MTEVoidCrustSteamBorer.class).adder(MTESteamMultiBlockBase::addToMachineList)
                             .hatchIds(31040, MetaTileEntityID.PRESSURE_STEAM_HATCH.ID)
                             .casingIndex(casingIndex)
-                            .dot(1)
+                            .hint(1)
                             .shouldReject(t -> !t.mSteamInputFluids.isEmpty())
                             .build(),
-                        buildHatchAdder(MTEVoidCrustSteamBorer.class).atLeast(InputBus, OutputBus)
+                        buildHatchAdder(MTEVoidCrustSteamBorer.class).atLeast(SteamInputBus, SteamOutputBus)
                             .casingIndex(casingIndex)
-                            .dot(1)
+                            .hint(1)
                             .buildAndChain(
                                 onElementPass(
                                     MTEVoidCrustSteamBorer::onCasingAdded,
@@ -256,17 +264,20 @@ public class MTEVoidCrustSteamBorer extends MTESteamMultiBase<MTEVoidCrustSteamB
     }
 
     @Override
-    public boolean checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack) {
+    public void checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack, List<StructureError> errors) {
         mCountCasing = 0;
 
         if (!checkPiece(STRUCTURE_PIECE_MAIN, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET)) {
-            return false;
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            return;
         }
 
-        if (this.mSteamInputFluids.size() != 1 || this.mOutputBusses.size() != 1) return false;
+        if (this.mSteamInputFluids.size() != 1 || this.mOutputBusses.size() != 1) {
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            return;
+        }
 
         updateHatchTexture();
-        return true;
     }
 
     @Override
@@ -312,8 +323,15 @@ public class MTEVoidCrustSteamBorer extends MTESteamMultiBase<MTEVoidCrustSteamB
     }
 
     private void recalculateDropMapById(int dimId) {
-        dropMap = VoidMinerUtilityShim.getDropMapById(dimId);
-        extraDropMap = VoidMinerUtilityShim.getExtraDropMapById(dimId);
+        String dimName = VoidMinerUtilityShim.dimIdToName(dimId);
+        if (dimName == null) {
+            dropMap = new VoidMinerUtility.DropMap();
+            extraDropMap = new VoidMinerUtility.DropMap();
+            dropMapValid = false;
+            return;
+        }
+        dropMap = VoidMinerUtilityShim.getDropMap(dimName);
+        extraDropMap = VoidMinerUtilityShim.getExtraDropMap(dimName);
         dropMap.isDistributionCached(extraDropMap);
         dropMapValid = (dropMap != null && dropMap.getTotalWeight() > 0);
     }
@@ -357,7 +375,7 @@ public class MTEVoidCrustSteamBorer extends MTESteamMultiBase<MTEVoidCrustSteamB
             if (oreId != null) {
                 ItemStack oreStack = oreId.getItemStack();
                 if (oreStack != null) {
-                    addOutputPartial(oreStack, false);
+                    addOutputPartial(oreStack);
                     mLastOreName = oreStack.getDisplayName();
                 }
             }
@@ -381,23 +399,13 @@ public class MTEVoidCrustSteamBorer extends MTESteamMultiBase<MTEVoidCrustSteamB
     }
 
     @Override
-    public ITexture[] getTexture(IGregTechTileEntity aBaseMetaTileEntity, ForgeDirection side, ForgeDirection facing,
-        int aColorIndex, boolean aActive, boolean aRedstone) {
-        if (side == facing) {
-            return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(getCasingTextureID()),
-                aActive ? getFrontOverlayActive() : getFrontOverlay() };
-        }
-        return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(getCasingTextureID()) };
+    protected IIconContainer getInactiveOverlay() {
+        return Textures.BlockIcons.OVERLAY_FRONT_ORE_DRILL;
     }
 
     @Override
-    protected ITexture getFrontOverlay() {
-        return TextureFactory.of(Textures.BlockIcons.OVERLAY_FRONT_ORE_DRILL);
-    }
-
-    @Override
-    protected ITexture getFrontOverlayActive() {
-        return TextureFactory.of(Textures.BlockIcons.OVERLAY_FRONT_ORE_DRILL_ACTIVE);
+    protected IIconContainer getActiveOverlay() {
+        return Textures.BlockIcons.OVERLAY_FRONT_ORE_DRILL_ACTIVE;
     }
 
     @Override
@@ -411,7 +419,7 @@ public class MTEVoidCrustSteamBorer extends MTESteamMultiBase<MTEVoidCrustSteamB
                 EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.shared.steam_cost")
                     + EnumChatFormatting.WHITE
                     + " "
-                    + GTUtility.formatNumbers(VOID_STEAM_PER_SECOND)
+                    + NumberFormatUtil.formatNumber(VOID_STEAM_PER_SECOND)
                     + " L/s")
             .addInfo(
                 EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.tooltip.shared.superheated_quadruples"))
@@ -468,6 +476,7 @@ public class MTEVoidCrustSteamBorer extends MTESteamMultiBase<MTEVoidCrustSteamB
         }
     }
 
+    @Deprecated
     @Override
     protected void drawTexts(DynamicPositionedColumn screenElements, SlotWidget inventorySlot) {
         super.drawTexts(screenElements, inventorySlot);
@@ -510,7 +519,7 @@ public class MTEVoidCrustSteamBorer extends MTESteamMultiBase<MTEVoidCrustSteamB
                 new TextWidget().setStringSupplier(
                     () -> EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.void_borer.steam_cost")
                         + EnumChatFormatting.RED
-                        + GTUtility.formatNumbers(VOID_STEAM_PER_SECOND)
+                        + NumberFormatUtil.formatNumber(VOID_STEAM_PER_SECOND)
                         + " L/s"))
             .widget(
                 new TextWidget().setStringSupplier(
@@ -519,6 +528,11 @@ public class MTEVoidCrustSteamBorer extends MTESteamMultiBase<MTEVoidCrustSteamB
                         + (VOID_WORK_TIME_TICKS / 20)
                         + "s"
                         + EnumChatFormatting.RESET));
+    }
+
+    @Override
+    protected gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui<?> getGui() {
+        return new com.miaokatze.gtsr.common.gui.MTEVoidCrustSteamBorerGui(this);
     }
 
     @Override

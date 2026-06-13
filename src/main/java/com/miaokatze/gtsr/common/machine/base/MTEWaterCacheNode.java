@@ -21,6 +21,7 @@ import net.minecraftforge.fluids.IFluidHandler;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 import gregtech.api.enums.Textures;
+import gregtech.api.interfaces.IIconContainer;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
@@ -31,7 +32,7 @@ public class MTEWaterCacheNode extends MTEFilteredCacheNode {
     private static final int CAPACITY = 128_000;
     private static final int OUTPUT_PER_TICK = 400;
 
-    private static Textures.BlockIcons.CustomIcon TOP_OVERLAY;
+    private static IIconContainer TOP_OVERLAY;
 
     public MTEWaterCacheNode(int aID, String aName, String aNameRegional) {
         super(aID, aName, aNameRegional, 3);
@@ -49,7 +50,7 @@ public class MTEWaterCacheNode extends MTEFilteredCacheNode {
     @Override
     @SideOnly(Side.CLIENT)
     public void registerIcons(IIconRegister aBlockIconRegister) {
-        TOP_OVERLAY = new Textures.BlockIcons.CustomIcon("gtsr:MTEWaterCacheNode");
+        TOP_OVERLAY = Textures.BlockIcons.custom("gtsr:MTEWaterCacheNode");
         super.registerIcons(aBlockIconRegister);
     }
 

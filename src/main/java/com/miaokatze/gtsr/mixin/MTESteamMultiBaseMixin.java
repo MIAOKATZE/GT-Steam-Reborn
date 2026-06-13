@@ -12,7 +12,6 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import com.miaokatze.gtsr.common.machine.base.MTEPressureSteamCoolingHatch;
 import com.miaokatze.gtsr.common.machine.base.MTESteamCoolingHatch;
@@ -21,26 +20,40 @@ import gregtech.api.enums.Materials;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.implementations.MTEHatch;
+import gregtech.api.metatileentity.implementations.MTEHatchInput;
+import gregtech.api.metatileentity.implementations.MTEHatchInputBus;
+import gregtech.api.metatileentity.implementations.MTEHatchOutput;
 import gregtech.api.metatileentity.implementations.MTEHatchOutputBus;
+import gregtech.api.metatileentity.implementations.MTEHatchVoidBus;
 import gregtech.api.metatileentity.implementations.MTEMultiBlockBase;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.shutdown.ShutDownReasonRegistry;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.MTEHatchSteamBusInput;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.MTEHatchSteamBusOutput;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTEHatchCustomFluidBase;
-import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTESteamMultiBase;
+import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTESteamMultiBlockBase;
 
-@Mixin(value = MTESteamMultiBase.class, remap = false)
+@Mixin(value = MTESteamMultiBlockBase.class, remap = false)
 public abstract class MTESteamMultiBaseMixin {
 
-    // Shadow fields from MTESteamMultiBase (mSteamInputFluids is NOT final in GT5U source)
+    // Shadow fields from MTESteamMultiBlockBase (mSteamInputFluids is NOT final in GT5U source)
     @Shadow
     public ArrayList<MTEHatchCustomFluidBase> mSteamInputFluids;
 
     @Shadow
-    public ArrayList<MTEHatchSteamBusOutput> mSteamOutputs;
+    public ArrayList<MTEHatchOutputBus> mSteamOutputs;
 
-    // Note: mOutputBusses is defined in MTEMultiBlockBase (grandparent class), NOT in MTESteamMultiBase.
+    @Shadow
+    public ArrayList<MTEHatchSteamBusInput> mSteamInputs;
+
+    // Inherited from MTEMultiBlockBase - accessible via @Shadow since MTESteamMultiBlockBase extends it
+    @Shadow
+    public ArrayList<MTEHatchInput> mInputHatches;
+
+    @Shadow
+    public ArrayList<MTEHatchOutput> mOutputHatches;
+
+    // Note: mOutputBusses is defined in MTEMultiBlockBase (grandparent class), NOT in MTESteamMultiBlockBase.
     // We cannot @Shadow it here because Mixin only searches the target class.
     // Instead, we access it via ((MTEMultiBlockBase) gtsr$self()).mOutputBusses
 
@@ -54,8 +67,8 @@ public abstract class MTESteamMultiBaseMixin {
     private int gtsr$accumulatedSteam = 0;
 
     @Unique
-    private MTESteamMultiBase gtsr$self() {
-        return (MTESteamMultiBase) (Object) this;
+    private MTESteamMultiBlockBase gtsr$self() {
+        return (MTESteamMultiBlockBase) (Object) this;
     }
 
     @Unique
@@ -84,7 +97,7 @@ public abstract class MTESteamMultiBaseMixin {
      */
     @Overwrite
     public boolean onRunningTick(ItemStack aStack) {
-        MTESteamMultiBase self = gtsr$self();
+        MTESteamMultiBlockBase self = gtsr$self();
         if (self.lEUt < 0) {
             long aSteamVal = ((-self.lEUt * 10000) / Math.max(1000, self.mEfficiency));
             boolean isSuperheated = gtsr$hasSuperheatedSteamInAnyHatch();
@@ -130,29 +143,41 @@ public abstract class MTESteamMultiBaseMixin {
     // region Output Bus Compatibility Fix
 
     /**
-     * @reason Overwrite addOutput(ItemStack) to also output to standard mOutputBusses.
-     *         In GT5U 5.09.51.482, MTESteamMultiBase.addOutput(ItemStack) only outputs to
-     *         mSteamOutputs and mOutputHatches, completely ignoring mOutputBusses.
-     *         This means standard OutputBus hatches (added via atLeast(OutputBus) in structure
-     *         definitions) are invisible to the output system.
-     *         This fix outputs to mSteamOutputs first (preserving original behavior), then
-     *         falls back to mOutputBusses for any remaining items.
-     *         We use MTEHatchOutputBus.storePartial() instead of the protected dumpItem()
-     *         because Mixin classes cannot access protected methods of the target hierarchy.
+     * Inject at HEAD of addOutputPartial(ItemStack) to replace the inherited implementation.
+     *
+     * In GT5U 2.9.0+, MTESteamMultiBlockBase inherits addOutputPartial from MTEMultiBlockBase,
+     * which uses ItemEjectionHelper with getOutputBusses(). MTESteamMultiBlockBase overrides
+     * getOutputBusses() to return only mSteamOutputs, ignoring mOutputBusses entirely.
+     * This means standard OutputBus hatches (added via atLeast(OutputBus) in structure
+     * definitions) are invisible to the output system.
+     *
+     * Since addOutputPartial is inherited (not declared in MTESteamMultiBlockBase), we cannot
+     * use @Overwrite. Instead, we use @Inject at HEAD with cancellation to completely replace
+     * the inherited behavior.
+     *
+     * This fix outputs to mSteamOutputs first (preserving original behavior), then
+     * falls back to mOutputBusses for any remaining items.
+     * We use MTEHatchOutputBus.storePartial() instead of the protected dumpItem()
+     * because Mixin classes cannot access protected methods of the target hierarchy.
+     *
      * @author GTSR
      */
-    @Overwrite
-    public boolean addOutput(ItemStack aStack) {
-        if (GTUtility.isStackInvalid(aStack)) return false;
+    @Inject(method = "addOutputPartial", at = @At("HEAD"), cancellable = true)
+    private void gtsr$onAddOutputPartialHead(ItemStack aStack, CallbackInfo ci) {
+        if (GTUtility.isStackInvalid(aStack)) {
+            ci.cancel();
+            return;
+        }
         aStack = GTUtility.copyOrNull(aStack);
 
         // Step 1: Try mSteamOutputs first (original behavior)
-        for (MTEHatchSteamBusOutput tHatch : GTUtility.validMTEList(mSteamOutputs)) {
+        for (MTEHatchOutputBus tHatch : GTUtility.validMTEList(mSteamOutputs)) {
             if (aStack.stackSize <= 0) break;
             tHatch.storePartial(aStack, false);
         }
         if (aStack.stackSize <= 0) {
-            return true;
+            ci.cancel();
+            return;
         }
 
         // Step 2: Try mOutputBusses (standard output buses - NEW behavior)
@@ -161,11 +186,7 @@ public abstract class MTESteamMultiBaseMixin {
             if (aStack.stackSize <= 0) break;
             tHatch.storePartial(aStack, false);
         }
-        if (aStack.stackSize <= 0) {
-            return true;
-        }
-
-        return false;
+        ci.cancel();
     }
 
     // endregion
@@ -173,80 +194,105 @@ public abstract class MTESteamMultiBaseMixin {
     // region Hatch Registration Hooks
 
     /**
-     * Inject at HEAD of addToMachineList to handle cooling hatches before the original method.
-     * Cooling hatches extend MTEHatchOutput, which is not handled by the original addToMachineList
-     * (it only handles MTEHatchCustomFluidBase, MTEHatchSteamBusInput, MTEHatchSteamBusOutput,
-     * MTEVoidBus, MTEHatchInput). By intercepting at HEAD, we handle cooling hatches ourselves
-     * and let the original method handle the rest.
+     * @reason Overwrite addToMachineList to restore GTSR's hatch registration behavior.
+     *         New GT5U 2.9.0+ addSteamInputFluidHatch only accepts hatches locked to
+     *         Materials.Steam.mGas (excluding superheated steam), and limits to 1 input
+     *         fluid hatch. It also doesn't handle MTEHatchOutput (fluid output) or
+     *         GTSR's cooling hatches. This overwrite restores the old behavior:
+     *         - All MTEHatchCustomFluidBase → mSteamInputFluids (no fluid lock check)
+     *         - MTEHatchSteamBusInput → mSteamInputs + mInputBusses (dual registration)
+     *         - MTEHatchSteamBusOutput/MTEHatchVoidBus → mSteamOutputs + mOutputBusses (dual registration)
+     *         - MTEHatchInput → mInputHatches
+     *         - MTEHatchOutput → mOutputHatches
+     *         - GTSR cooling hatches → custom lists
+     * @author GTSR
      */
-    @Inject(method = "addToMachineList", at = @At("HEAD"), cancellable = true)
-    private void gtsr$onAddToMachineListHead(IGregTechTileEntity aTileEntity, int aBaseCasingIndex,
-        CallbackInfoReturnable<Boolean> cir) {
-        if (aTileEntity == null) return;
-        IMetaTileEntity aMetaTileEntity = aTileEntity.getMetaTileEntity();
-        if (aMetaTileEntity == null) return;
-
-        // Handle MTEHatchSteamBusOutput: add to mOutputBusses IN ADDITION to mSteamOutputs.
-        // Original addToMachineList puts MTEHatchSteamBusOutput into mSteamOutputs.
-        // We also add it to mOutputBusses so that machines checking mOutputBusses.size()
-        // (like MTESteamSingularityCompressor) and addOutput() can find it there.
-        // We do NOT cancel the original method, so mSteamOutputs still gets the hatch
-        // (preserving behavior for GT5U machines that check !mSteamOutputs.isEmpty()).
-        if (aMetaTileEntity instanceof MTEHatchSteamBusOutput) {
-            MTEHatchSteamBusOutput hatch = (MTEHatchSteamBusOutput) aMetaTileEntity;
-            MTEMultiBlockBase multiBlockSelf = (MTEMultiBlockBase) (Object) this;
-            // Avoid duplicate if already in mOutputBusses (e.g., from a custom adder)
-            if (!multiBlockSelf.mOutputBusses.contains(hatch)) {
-                multiBlockSelf.mOutputBusses.add(hatch);
-            }
-            // Don't cancel - let original method also add to mSteamOutputs
-        }
-
-        // Handle MTEHatchSteamBusInput: add to mInputBusses IN ADDITION to mSteamInputs.
-        // Original addToMachineList puts MTEHatchSteamBusInput into mSteamInputs.
-        // We also add it to mInputBusses so that machines checking mInputBusses
-        // and input-related methods can find it there.
-        // We do NOT cancel the original method, so mSteamInputs still gets the hatch.
-        if (aMetaTileEntity instanceof MTEHatchSteamBusInput) {
-            MTEHatchSteamBusInput hatch = (MTEHatchSteamBusInput) aMetaTileEntity;
-            MTEMultiBlockBase multiBlockSelf = (MTEMultiBlockBase) (Object) this;
-            // Avoid duplicate if already in mInputBusses
-            if (!multiBlockSelf.mInputBusses.contains(hatch)) {
-                multiBlockSelf.mInputBusses.add(hatch);
-            }
-            // Don't cancel - let original method also add to mSteamInputs
-        }
+    @Overwrite
+    public boolean addToMachineList(final IGregTechTileEntity aTileEntity, final int aBaseCasingIndex) {
+        if (aTileEntity == null) return false;
+        final IMetaTileEntity aMetaTileEntity = aTileEntity.getMetaTileEntity();
+        if (aMetaTileEntity == null) return false;
 
         // Handle pressure cooling hatch first (more specific subclass of MTESteamCoolingHatch)
-        if (aMetaTileEntity instanceof MTEPressureSteamCoolingHatch) {
-            MTEPressureSteamCoolingHatch hatch = (MTEPressureSteamCoolingHatch) aMetaTileEntity;
-            if (hatch instanceof MTEHatch) {
-                ((MTEHatch) hatch).updateTexture(aBaseCasingIndex);
+        if (aMetaTileEntity instanceof MTEPressureSteamCoolingHatch hatch) {
+            if (hatch instanceof MTEHatch mteHatch) {
+                mteHatch.updateTexture(aBaseCasingIndex);
             }
             gtsr$mPressureCoolingHatches.add(hatch);
-            cir.setReturnValue(true);
-            return;
+            return true;
         }
 
         // Handle regular cooling hatch (exclude pressure variant already handled above)
-        if (aMetaTileEntity instanceof MTESteamCoolingHatch) {
-            MTESteamCoolingHatch hatch = (MTESteamCoolingHatch) aMetaTileEntity;
-            if (hatch instanceof MTEHatch) {
-                ((MTEHatch) hatch).updateTexture(aBaseCasingIndex);
+        if (aMetaTileEntity instanceof MTESteamCoolingHatch hatch) {
+            if (hatch instanceof MTEHatch mteHatch) {
+                mteHatch.updateTexture(aBaseCasingIndex);
             }
             gtsr$mSteamCoolingHatches.add(hatch);
-            cir.setReturnValue(true);
-            return;
+            return true;
         }
 
-        // For other hatch types (MTEHatchCustomFluidBase, MTEHatchSteamBusInput,
-        // MTEHatchSteamBusOutput, MTEVoidBus, MTEHatchInput),
-        // let the original addToMachineList handle them
+        // All MTEHatchCustomFluidBase → mSteamInputFluids (no fluid lock check, no limit)
+        // This includes MTEHatchPressureSteamInput (ic2superheatedsteam) which the new
+        // addSteamInputFluidHatch would reject because mLockedFluid != Materials.Steam.mGas
+        if (aMetaTileEntity instanceof MTEHatchCustomFluidBase fluidHatch) {
+            return gtsr$self().addToMachineListInternal(mSteamInputFluids, fluidHatch, aBaseCasingIndex);
+        }
+
+        // MTEHatchSteamBusInput → mSteamInputs + mInputBusses (dual registration)
+        if (aMetaTileEntity instanceof MTEHatchSteamBusInput steamBus) {
+            gtsr$self().resetRecipeMapForHatch(aTileEntity, gtsr$self().getRecipeMap());
+            boolean added = gtsr$self().addToMachineListInternal(mSteamInputs, steamBus, aBaseCasingIndex);
+            MTEMultiBlockBase multiBlockSelf = (MTEMultiBlockBase) (Object) this;
+            if (!multiBlockSelf.mInputBusses.contains(steamBus)) {
+                multiBlockSelf.mInputBusses.add(steamBus);
+            }
+            return added;
+        }
+
+        // MTEHatchSteamBusOutput / MTEHatchVoidBus → mSteamOutputs + mOutputBusses (dual registration)
+        if (aMetaTileEntity instanceof MTEHatchSteamBusOutput || aMetaTileEntity instanceof MTEHatchVoidBus) {
+            boolean added = gtsr$self()
+                .addToMachineListInternal(mSteamOutputs, (MTEHatchOutputBus) aMetaTileEntity, aBaseCasingIndex);
+            MTEMultiBlockBase multiBlockSelf = (MTEMultiBlockBase) (Object) this;
+            if (!multiBlockSelf.mOutputBusses.contains(aMetaTileEntity)) {
+                multiBlockSelf.mOutputBusses.add((MTEHatchOutputBus) aMetaTileEntity);
+            }
+            return added;
+        }
+
+        // MTEHatchInputBus (regular, non-steam) → mInputBusses only
+        // Must be checked after MTEHatchSteamBusInput since it extends MTEHatchInputBus
+        if (aMetaTileEntity instanceof MTEHatchInputBus inputBus) {
+            inputBus.mRecipeMap = gtsr$self().getRecipeMap();
+            MTEMultiBlockBase multiBlockSelf = (MTEMultiBlockBase) (Object) this;
+            return gtsr$self().addToMachineListInternal(multiBlockSelf.mInputBusses, inputBus, aBaseCasingIndex);
+        }
+
+        // MTEHatchOutputBus (regular, non-steam) → mOutputBusses only
+        // Must be checked after MTEHatchSteamBusOutput since it extends MTEHatchOutputBus
+        if (aMetaTileEntity instanceof MTEHatchOutputBus outputBus) {
+            MTEMultiBlockBase multiBlockSelf = (MTEMultiBlockBase) (Object) this;
+            return gtsr$self().addToMachineListInternal(multiBlockSelf.mOutputBusses, outputBus, aBaseCasingIndex);
+        }
+
+        // MTEHatchInput → mInputHatches (standard fluid input)
+        if (aMetaTileEntity instanceof MTEHatchInput inputHatch) {
+            return gtsr$self().addToMachineListInternal(mInputHatches, inputHatch, aBaseCasingIndex);
+        }
+
+        // MTEHatchOutput → mOutputHatches (standard fluid output)
+        // New GT5U 2.9.0+ addToMachineList doesn't handle MTEHatchOutput at all,
+        // causing fluid output hatches to be invisible to the machine
+        if (aMetaTileEntity instanceof MTEHatchOutput outputHatch) {
+            return gtsr$self().addToMachineListInternal(mOutputHatches, outputHatch, aBaseCasingIndex);
+        }
+
+        return false;
     }
 
     /**
      * Inject after clearHatches() to also clear cooling hatch lists.
-     * Note: MTESteamMultiBase.clearHatches() calls super.clearHatches() which clears
+     * Note: MTESteamMultiBlockBase.clearHatches() calls super.clearHatches() which clears
      * mOutputBusses and mInputBusses, so we only need to clear our custom lists here.
      */
     @Inject(method = "clearHatches", at = @At("RETURN"))
@@ -272,6 +318,9 @@ public abstract class MTESteamMultiBaseMixin {
 
     /**
      * @reason Fix superheated steam detection to work across all input hatches.
+     *         In GT5U 2.9.0+, the base getAllSteamStacks() uses getStoredFluids() which
+     *         only checks for regular steam, missing superheated steam. We override to
+     *         iterate mSteamInputFluids directly and detect both steam types.
      * @author GTSR
      */
     @Overwrite

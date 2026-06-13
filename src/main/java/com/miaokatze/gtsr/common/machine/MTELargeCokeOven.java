@@ -37,6 +37,7 @@ import com.gtnewhorizons.modularui.common.widget.FakeSyncWidget;
 import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps;
+import com.miaokatze.gtsr.common.gui.MTELargeCokeOvenGui;
 
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Textures;
@@ -52,8 +53,11 @@ import gregtech.api.metatileentity.implementations.MTEHatchOutputBus;
 import gregtech.api.recipe.RecipeMap;
 import gregtech.api.recipe.check.CheckRecipeResult;
 import gregtech.api.render.TextureFactory;
+import gregtech.api.structure.error.StructureError;
+import gregtech.api.structure.error.StructureErrorRegistry;
 import gregtech.api.util.IGTHatchAdder;
 import gregtech.api.util.MultiblockTooltipBuilder;
+import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
 
 public class MTELargeCokeOven extends MTEEnhancedMultiBlockBase<MTELargeCokeOven>
     implements IConstructable, ISurvivalConstructable {
@@ -67,10 +71,10 @@ public class MTELargeCokeOven extends MTEEnhancedMultiBlockBase<MTELargeCokeOven
     private static final int MAX_PARALLEL_T1 = 12;
     private static final int MAX_PARALLEL_T2 = 32;
 
-    private double mHeat = 0.0d;
-    private int mTier = 1;
+    public double mHeat = 0.0d;
+    public int mTier = 1;
     private int mParallel = 0;
-    private int mOriginalRecipeTime = 0;
+    public int mOriginalRecipeTime = 0;
 
     /**
      * Custom HatchElement that accepts both standard InputBus and SteamBusInput,
@@ -240,11 +244,11 @@ public class MTELargeCokeOven extends MTEEnhancedMultiBlockBase<MTELargeCokeOven
                         buildHatchAdder(MTELargeCokeOven.class)
                             .atLeast(CokeOvenInputBusElement.INSTANCE, CokeOvenOutputBusElement.INSTANCE)
                             .casingIndex(10)
-                            .dot(1)
+                            .hint(1)
                             .build(),
                         buildHatchAdder(MTELargeCokeOven.class).atLeast(OutputHatch)
                             .casingIndex(10)
-                            .dot(1)
+                            .hint(1)
                             .buildAndChain(
                                 onElementPass(
                                     MTELargeCokeOven::onCasingAdded,
@@ -392,24 +396,28 @@ public class MTELargeCokeOven extends MTEEnhancedMultiBlockBase<MTELargeCokeOven
     }
 
     @Override
-    public boolean checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack) {
-        clearHatches();
+    public void checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack, List<StructureError> errors) {
+        // Note: checkStructure() already calls clearHatches() before calling checkMachine(),
+        // so we must NOT call clearHatches() here again, otherwise checkPiece()-registered
+        // hatches will be cleared before we can count them.
         mTier = -1;
 
         if (!checkPiece(STRUCTURE_PIECE_MAIN, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET)) {
-            return false;
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            return;
         }
 
         if (mTier < 1) {
-            return false;
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            return;
         }
 
         if (mInputBusses.size() < 1 || mOutputBusses.size() < 1) {
-            return false;
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            return;
         }
 
         updateHatchTexture();
-        return true;
     }
 
     @Override
@@ -459,6 +467,12 @@ public class MTELargeCokeOven extends MTEEnhancedMultiBlockBase<MTELargeCokeOven
         aBaseMetaTileEntity.setActive(mMaxProgresstime > 0);
     }
 
+    @Override
+    protected @Nonnull MTEMultiBlockBaseGui<?> getGui() {
+        return new MTELargeCokeOvenGui(this);
+    }
+
+    @Deprecated
     @Override
     protected void drawTexts(DynamicPositionedColumn screenElements, SlotWidget inventorySlot) {
         super.drawTexts(screenElements, inventorySlot);

@@ -2,9 +2,13 @@ package com.miaokatze.gtsr.common.machine;
 
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose;
+import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.SteamInputBus;
+import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.SteamOutputBus;
 import static gregtech.api.enums.HatchElement.*;
 import static gregtech.api.enums.Textures.BlockIcons.*;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
+
+import java.util.List;
 
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumChatFormatting;
@@ -14,6 +18,7 @@ import com.gtnewhorizon.structurelib.alignment.constructable.IConstructable;
 import com.gtnewhorizon.structurelib.alignment.constructable.ISurvivalConstructable;
 import com.gtnewhorizon.structurelib.structure.IStructureDefinition;
 import com.gtnewhorizon.structurelib.structure.ISurvivalBuildEnvironment;
+import com.miaokatze.gtsr.common.gui.MTEMultiTestMachineGui;
 
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Textures;
@@ -26,8 +31,11 @@ import gregtech.api.recipe.RecipeMap;
 import gregtech.api.recipe.check.CheckRecipeResult;
 import gregtech.api.recipe.check.CheckRecipeResultRegistry;
 import gregtech.api.render.TextureFactory;
+import gregtech.api.structure.error.StructureError;
+import gregtech.api.structure.error.StructureErrorRegistry;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.MultiblockTooltipBuilder;
+import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
 
 /**
  * 测试用多方块机器 (HV)
@@ -70,11 +78,11 @@ public class MTEMultiTestMachine extends MTEEnhancedMultiBlockBase<MTEMultiTestM
             'h',
             buildHatchAdder(MTEMultiTestMachine.class)
                 // 声明该位置至少可以是以下仓室之一，或者是普通的外壳方块
-                .atLeast(InputHatch, OutputHatch, InputBus, OutputBus, Maintenance, Energy)
+                .atLeast(InputHatch, OutputHatch, SteamInputBus, SteamOutputBus, Maintenance, Energy)
                 // 指定将识别到的仓室添加到机器列表的方法引用
                 .adder(MTEMultiTestMachine::addToMachineList)
                 // 在游戏内使用软锤查看结构时，该位置的提示点编号
-                .dot(1)
+                .hint(1)
                 // 设置外壳方块的材质纹理索引（钨钢机器方块）
                 .casingIndex(GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings4, 0))
                 // 如果不是仓室，则检查是否为指定的外壳方块，并在匹配成功时触发 onCasingAdded 计数
@@ -143,15 +151,16 @@ public class MTEMultiTestMachine extends MTEEnhancedMultiBlockBase<MTEMultiTestM
      *
      * @param aBaseMetaTileEntity 机器所在的 TileEntity
      * @param aStack              玩家手持的物品（可用于动态结构调整，此处未使用）
-     * @return 结构是否完整且合法
      */
     @Override
-    public boolean checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack) {
+    public void checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack, List<StructureError> errors) {
         mCasingAmount = 0;
         // 检查结构并验证仓室 (偏移量 1, 1, 0 对应底层中心)
-        return checkPiece(STRUCTURE_PIECE_MAIN, 1, 1, 0) && mCasingAmount >= 8
+        if (!(checkPiece(STRUCTURE_PIECE_MAIN, 1, 1, 0) && mCasingAmount >= 8
             && mMaintenanceHatches.size() > 0
-            && mEnergyHatches.size() > 0;
+            && mEnergyHatches.size() > 0)) {
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+        }
     }
 
     /**
@@ -213,6 +222,11 @@ public class MTEMultiTestMachine extends MTEEnhancedMultiBlockBase<MTEMultiTestM
         }
         return new ITexture[] {
             Textures.BlockIcons.getCasingTextureForId(GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings4, 0)) };
+    }
+
+    @Override
+    protected MTEMultiBlockBaseGui<?> getGui() {
+        return new MTEMultiTestMachineGui(this);
     }
 
     @Override

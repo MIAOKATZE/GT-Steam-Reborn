@@ -16,23 +16,23 @@ import gregtech.api.render.TextureFactory;
  */
 public class TextureManager {
 
-    public static final IIconContainer TEX_TEST_EV = new Textures.BlockIcons.CustomIcon("gtsr:MTETEST_1");
-    public static final IIconContainer TEX_TEST_IV = new Textures.BlockIcons.CustomIcon("gtsr:MTETEST_2");
-    public static final IIconContainer TEX_TEST_LUV = new Textures.BlockIcons.CustomIcon("gtsr:MTETEST_3");
+    public static final IIconContainer TEX_TEST_EV = Textures.BlockIcons.custom("gtsr:MTETEST_1");
+    public static final IIconContainer TEX_TEST_IV = Textures.BlockIcons.custom("gtsr:MTETEST_2");
+    public static final IIconContainer TEX_TEST_LUV = Textures.BlockIcons.custom("gtsr:MTETEST_3");
 
     // v0.3.0 奇点节点机器自定义材质 (32x32 高分辨率)
-    public static final IIconContainer TEX_SINGULARITY_MINER_OFF = new Textures.BlockIcons.CustomIcon(
-        "gtsr:MTESingularityMinerNode_OFF");
-    public static final IIconContainer TEX_SINGULARITY_MINER_ON = new Textures.BlockIcons.CustomIcon(
-        "gtsr:MTESingularityMinerNode_ON");
-    public static final IIconContainer TEX_SINGULARITY_DRILLING_OFF = new Textures.BlockIcons.CustomIcon(
-        "gtsr:MTESingularityDrillingNode_OFF");
-    public static final IIconContainer TEX_SINGULARITY_DRILLING_ON = new Textures.BlockIcons.CustomIcon(
-        "gtsr:MTESingularityDrillingNode_ON");
+    public static final IIconContainer TEX_SINGULARITY_MINER_OFF = Textures.BlockIcons
+        .custom("gtsr:MTESingularityMinerNode_OFF");
+    public static final IIconContainer TEX_SINGULARITY_MINER_ON = Textures.BlockIcons
+        .custom("gtsr:MTESingularityMinerNode_ON");
+    public static final IIconContainer TEX_SINGULARITY_DRILLING_OFF = Textures.BlockIcons
+        .custom("gtsr:MTESingularityDrillingNode_OFF");
+    public static final IIconContainer TEX_SINGULARITY_DRILLING_ON = Textures.BlockIcons
+        .custom("gtsr:MTESingularityDrillingNode_ON");
 
     private static final Map<String, ITexture> textureCache = new HashMap<>();
 
-    public static ITexture getOrCreateTexture(String name, Textures.BlockIcons icon) {
+    public static ITexture getOrCreateTexture(String name, IIconContainer icon) {
         return textureCache.computeIfAbsent(name, k -> TextureFactory.of(icon));
     }
 

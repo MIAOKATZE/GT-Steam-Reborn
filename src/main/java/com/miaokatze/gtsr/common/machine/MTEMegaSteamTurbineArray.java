@@ -29,6 +29,7 @@ import net.minecraftforge.fluids.FluidStack;
 import org.apache.commons.lang3.tuple.Pair;
 
 import com.google.common.collect.ImmutableList;
+import com.gtnewhorizon.gtnhlib.util.numberformatting.NumberFormatUtil;
 import com.gtnewhorizon.structurelib.alignment.constructable.IConstructable;
 import com.gtnewhorizon.structurelib.alignment.constructable.ISurvivalConstructable;
 import com.gtnewhorizon.structurelib.structure.IStructureDefinition;
@@ -39,6 +40,7 @@ import com.gtnewhorizons.modularui.common.widget.DynamicPositionedColumn;
 import com.gtnewhorizons.modularui.common.widget.FakeSyncWidget;
 import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
+import com.miaokatze.gtsr.common.gui.MTEMegaSteamTurbineArrayGui;
 import com.miaokatze.gtsr.common.machine.base.MTEHatchPressureSteamInput;
 import com.miaokatze.gtsr.common.machine.base.MTEOverpressureTurbineInputHatch;
 import com.miaokatze.gtsr.common.machine.base.MTEPressureSteamCoolingHatch;
@@ -60,12 +62,15 @@ import gregtech.api.recipe.check.CheckRecipeResult;
 import gregtech.api.recipe.check.CheckRecipeResultRegistry;
 import gregtech.api.render.RenderOverlay;
 import gregtech.api.render.TextureFactory;
+import gregtech.api.structure.error.StructureError;
+import gregtech.api.structure.error.StructureErrorRegistry;
 import gregtech.api.util.GTModHandler;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.GTUtilityClient;
 import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.api.util.shutdown.ShutDownReason;
 import gregtech.api.util.shutdown.ShutDownReasonRegistry;
+import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
 import gregtech.common.misc.GTStructureChannels;
 import tectech.thing.metaTileEntity.hatch.MTEHatchDynamoMulti;
 
@@ -80,15 +85,15 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
     private static IStructureDefinition<MTEMegaSteamTurbineArray> STRUCTURE_DEFINITION;
 
     private int mCasingAmount = 0;
-    private int mStackCount = 0;
-    private int mCasingTier = -1;
-    private int mPipeTier = -1;
-    private int mGearTier = -1;
+    public int mStackCount = 0;
+    public int mCasingTier = -1;
+    public int mPipeTier = -1;
+    public int mGearTier = -1;
     private int mFrameTier = -1;
     private int excessWater = 0;
 
-    private int mTheoreticalEUt = 0;
-    private int mSteamConsumption = 0;
+    public int mTheoreticalEUt = 0;
+    public int mSteamConsumption = 0;
 
     private final List<MTEHatchPressureSteamInput> mPressureSteamInputs = new ArrayList<>();
     private final List<MTEOverpressureTurbineInputHatch> mOverpressureInputs = new ArrayList<>();
@@ -105,7 +110,7 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         super(aName);
     }
 
-    private enum SteamType {
+    public enum SteamType {
 
         NONE(0, 0, 0, ""),
         STEAM(0.5f, 0.5f, 15000, "gtsr.gui.steam_type.normal"),
@@ -115,10 +120,10 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         SC_STEAM(1.0f, 1.0f, 25000, "gtsr.gui.steam_type.supercritical"),
         DENSE_SC_STEAM(1.0f, 1000, 30000, "gtsr.gui.steam_type.dense_supercritical");
 
-        final float steamEffFactor;
-        final float euPerL;
-        final int maxEfficiency;
-        final String nameKey;
+        public final float steamEffFactor;
+        public final float euPerL;
+        public final int maxEfficiency;
+        public final String nameKey;
 
         SteamType(float steamEffFactor, float euPerL, int maxEfficiency, String nameKey) {
             this.steamEffFactor = steamEffFactor;
@@ -131,7 +136,7 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
             return this == DENSE_STEAM || this == DENSE_SH_STEAM || this == DENSE_SC_STEAM;
         }
 
-        boolean requiresHighTier() {
+        public boolean requiresHighTier() {
             return this == DENSE_STEAM || this == DENSE_SH_STEAM || this == SC_STEAM || this == DENSE_SC_STEAM;
         }
     }
@@ -139,8 +144,14 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
     private static final SteamType[] STEAM_TYPE_PRIORITY = { SteamType.DENSE_SC_STEAM, SteamType.SC_STEAM,
         SteamType.DENSE_SH_STEAM, SteamType.DENSE_STEAM, SteamType.SH_STEAM, SteamType.STEAM };
 
-    private SteamType mSteamType = SteamType.NONE;
+    public SteamType mSteamType = SteamType.NONE;
 
+    @Override
+    protected @Nonnull MTEMultiBlockBaseGui<?> getGui() {
+        return new MTEMegaSteamTurbineArrayGui(this);
+    }
+
+    @Deprecated
     @Override
     protected void drawTexts(DynamicPositionedColumn screenElements, SlotWidget inventorySlot) {
         super.drawTexts(screenElements, inventorySlot);
@@ -171,7 +182,7 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
                 .dynamicString(
                     () -> EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.turbine_array.eu_t")
                         + EnumChatFormatting.AQUA
-                        + GTUtility.formatNumbers(
+                        + NumberFormatUtil.formatNumber(
                             (long) (getVoltage() * 8
                                 * getGroupCount()
                                 * (getMaxEfficiencyLimit(mSteamType) / 10000.0)
@@ -185,7 +196,7 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
                 .dynamicString(
                     () -> EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.turbine_array.steam")
                         + EnumChatFormatting.AQUA
-                        + GTUtility.formatNumbers(calcSteamConsumption(mSteamType))
+                        + NumberFormatUtil.formatNumber(calcSteamConsumption(mSteamType))
                         + " L/t")
                 .setTextAlignment(Alignment.CenterLeft)
                 .setDefaultColor(COLOR_TEXT_WHITE.get())
@@ -250,7 +261,7 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
                 .dynamicString(
                     () -> EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.turbine_array.output")
                         + EnumChatFormatting.GREEN
-                        + GTUtility.formatNumbers(Math.abs(mEUt))
+                        + NumberFormatUtil.formatNumber(Math.abs(mEUt))
                         + " EU/t")
                 .setTextAlignment(Alignment.CenterLeft)
                 .setDefaultColor(COLOR_TEXT_WHITE.get())
@@ -332,33 +343,33 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
                             .adder(MTEMegaSteamTurbineArray::addPressureSteamToMachineList)
                             .hatchClass(MTEHatchPressureSteamInput.class)
                             .casingIndex(SOLID_STEEL_CASING_INDEX)
-                            .dot(1)
+                            .hint(1)
                             .build(),
                         buildHatchAdder(MTEMegaSteamTurbineArray.class)
                             .adder(MTEMegaSteamTurbineArray::addOverpressureInputToMachineList)
                             .hatchClass(MTEOverpressureTurbineInputHatch.class)
                             .casingIndex(SOLID_STEEL_CASING_INDEX)
-                            .dot(1)
+                            .hint(1)
                             .build(),
                         buildHatchAdder(MTEMegaSteamTurbineArray.class)
                             .adder(MTEMegaSteamTurbineArray::addSteamCoolingToMachineList)
                             .hatchClass(MTESteamCoolingHatch.class)
                             .casingIndex(SOLID_STEEL_CASING_INDEX)
-                            .dot(2)
+                            .hint(2)
                             .build(),
                         buildHatchAdder(MTEMegaSteamTurbineArray.class)
                             .adder(MTEMegaSteamTurbineArray::addPressureCoolingToMachineList)
                             .hatchClass(MTEPressureSteamCoolingHatch.class)
                             .casingIndex(SOLID_STEEL_CASING_INDEX)
-                            .dot(2)
+                            .hint(2)
                             .build(),
                         buildHatchAdder(MTEMegaSteamTurbineArray.class).atLeast(InputHatch, OutputHatch)
                             .casingIndex(SOLID_STEEL_CASING_INDEX)
-                            .dot(1)
+                            .hint(1)
                             .build(),
                         buildHatchAdder(MTEMegaSteamTurbineArray.class).atLeast(Dynamo)
                             .casingIndex(SOLID_STEEL_CASING_INDEX)
-                            .dot(1)
+                            .hint(1)
                             .build()))
                 .addElement(
                     'C',
@@ -552,7 +563,7 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
     }
 
     @Override
-    public boolean checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack) {
+    public void checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack, List<StructureError> errors) {
         mCasingAmount = 0;
         mStackCount = 0;
         mCasingTier = -1;
@@ -565,7 +576,10 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         mPressureCoolingHatches.clear();
         eDynamoMulti.clear();
 
-        if (!checkPiece(STRUCTURE_PIECE_BASE, 6, 5, 0)) return false;
+        if (!checkPiece(STRUCTURE_PIECE_BASE, 6, 5, 0)) {
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            return;
+        }
 
         for (int i = 0; i < 4; i++) {
             int bOffset = 9 + i * 4;
@@ -573,17 +587,25 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
             mStackCount++;
         }
 
-        if (mCasingTier <= 0 || mCasingTier > 12) return false;
+        if (mCasingTier <= 0 || mCasingTier > 12) {
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            return;
+        }
 
         int capB = 7 + mStackCount * 4;
-        if (!checkPiece(STRUCTURE_PIECE_CAP, 6, capB, 0)) return false;
+        if (!checkPiece(STRUCTURE_PIECE_CAP, 6, capB, 0)) {
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            return;
+        }
 
         boolean hasInput = !mInputHatches.isEmpty() || hasPressureSteamHatch();
         boolean hasOutput = !mOutputHatches.isEmpty() || hasSteamCoolingHatch() || hasPressureCoolingHatch();
-        if (!hasInput || !hasOutput || (mDynamoHatches.isEmpty() && eDynamoMulti.isEmpty())) return false;
+        if (!hasInput || !hasOutput || (mDynamoHatches.isEmpty() && eDynamoMulti.isEmpty())) {
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            return;
+        }
 
         updateAllHatchTextures();
-        return true;
     }
 
     /**
@@ -606,7 +628,7 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
      * 用于蒸汽节省和发电公式计算。
      * 组数 = mStackCount + 1（基线算1组）
      */
-    private int getGroupCount() {
+    public int getGroupCount() {
         return mStackCount + 1;
     }
 
@@ -618,7 +640,7 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
      * - 钛管+10%效率上限 = +1000，钨钢管+25%效率上限 = +2500
      * - 机器等级每提高一级(等级-1)，增加5%效率上限 = +500
      */
-    private int getMaxEfficiencyLimit(SteamType type) {
+    public int getMaxEfficiencyLimit(SteamType type) {
         int base = type.maxEfficiency;
         // 效率上限加成（加算）：每额外组+1000，高级Gear+500，钛管+1000，钨钢管+2500，机器等级每级+500
         int bonus = 1000 * mStackCount + (mGearTier > 1 ? 500 : 0)
@@ -627,7 +649,7 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         return base + bonus;
     }
 
-    private long getVoltage() {
+    public long getVoltage() {
         return GTValues.V[mCasingTier > 0 ? mCasingTier : 1];
     }
 
@@ -637,7 +659,7 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         return eff / 10000.0f;
     }
 
-    private long calcSteamConsumption(SteamType type) {
+    public long calcSteamConsumption(SteamType type) {
         if (type == SteamType.NONE) return 0;
         int groupCount = getGroupCount();
         long voltage = getVoltage();
@@ -1011,7 +1033,7 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         info.add(
             EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.turbine_array.output_power")
                 + EnumChatFormatting.GREEN
-                + GTUtility.formatNumbers(mTheoreticalEUt)
+                + NumberFormatUtil.formatNumber(mTheoreticalEUt)
                 + " EU/t");
 
         return info.toArray(new String[0]);
