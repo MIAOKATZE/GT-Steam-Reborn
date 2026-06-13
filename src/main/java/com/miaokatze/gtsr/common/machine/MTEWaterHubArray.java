@@ -735,25 +735,10 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
             return true;
         }
 
+        // Water cache node requires 0 singularity to bind
+        // (singularity_consumed flag still set for compatibility, but no actual consumption)
         if (!held.hasTagCompound() || !held.getTagCompound()
             .hasKey("gtsr.singularity_consumed")) {
-            boolean consumed = false;
-            for (int i = 0; i < aPlayer.inventory.mainInventory.length; i++) {
-                ItemStack invStack = aPlayer.inventory.mainInventory[i];
-                if (invStack != null && GTSRItemList.SteamEntangledSingularity.isStackEqual(invStack, true, true)) {
-                    invStack.stackSize--;
-                    if (invStack.stackSize <= 0) {
-                        aPlayer.inventory.mainInventory[i] = null;
-                    }
-                    aPlayer.inventoryContainer.detectAndSendChanges();
-                    consumed = true;
-                    break;
-                }
-            }
-            if (!consumed) {
-                GTUtility.sendChatToPlayer(aPlayer, StatCollector.translateToLocal("gtsr.binding.no_singularity"));
-                return true;
-            }
             if (!held.hasTagCompound()) {
                 held.setTagCompound(new NBTTagCompound());
             }

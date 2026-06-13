@@ -8,6 +8,8 @@ import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
 
+import com.gtnewhorizons.modularui.common.widget.FluidSlotWidget;
+
 import gregtech.api.enums.Materials;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
@@ -49,6 +51,11 @@ public class MTEHatchPressureSteamInput extends MTEHatchCustomFluidBase {
                     .getName());
         }
         return false;
+    }
+
+    @Override
+    protected FluidSlotWidget createFluidSlot() {
+        return super.createFluidSlot().setFilter(f -> f != null && isSteamType(f.getName()));
     }
 
     @Override

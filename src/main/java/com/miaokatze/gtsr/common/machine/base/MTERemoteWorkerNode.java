@@ -73,6 +73,18 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity implements IAdd
 
     public abstract String getNodeType();
 
+    public int getDrillTier() {
+        return 0;
+    }
+
+    /**
+     * Returns true if this node is actively working and should consume steam from the hub.
+     * Drilling nodes always consume; miner nodes only consume when actively working.
+     */
+    public boolean isActivelyWorking() {
+        return true;
+    }
+
     @Override
     public boolean isFacingValid(ForgeDirection facing) {
         return facing != ForgeDirection.UP && facing != ForgeDirection.DOWN && facing != ForgeDirection.UNKNOWN;
@@ -296,12 +308,20 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity implements IAdd
 
     @Override
     public int getProgresstime() {
-        return mIsWorking ? mWorkProgress : 0;
+        return mWorkProgress;
     }
 
     @Override
     public int maxProgresstime() {
-        return mIsWorking ? WORK_CYCLE : 0;
+        return maxProgresstimeInternal();
+    }
+
+    /**
+     * Subclasses override this to return their work cycle length.
+     * Used by both Waila progress display and internal tracking.
+     */
+    protected int maxProgresstimeInternal() {
+        return WORK_CYCLE;
     }
 
     @Override

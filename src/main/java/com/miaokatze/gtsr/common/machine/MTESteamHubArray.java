@@ -745,22 +745,40 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
 
         if (!held.hasTagCompound() || !held.getTagCompound()
             .hasKey("gtsr.singularity_consumed")) {
-            boolean consumed = false;
-            for (int i = 0; i < aPlayer.inventory.mainInventory.length; i++) {
-                ItemStack invStack = aPlayer.inventory.mainInventory[i];
-                if (invStack != null && GTSRItemList.SteamEntangledSingularity.isStackEqual(invStack, true, true)) {
-                    invStack.stackSize--;
-                    if (invStack.stackSize <= 0) {
-                        aPlayer.inventory.mainInventory[i] = null;
-                    }
-                    aPlayer.inventoryContainer.detectAndSendChanges();
-                    consumed = true;
-                    break;
-                }
+            // Singularity cost depends on node type: steam=0, reinforced_steam=1, overpressure_steam=8
+            int singularityCost = 0;
+            if ("reinforced_steam".equals(type)) {
+                singularityCost = 1;
+            } else if ("overpressure_steam".equals(type)) {
+                singularityCost = 8;
             }
-            if (!consumed) {
-                GTUtility.sendChatToPlayer(aPlayer, StatCollector.translateToLocal("gtsr.binding.no_singularity"));
-                return true;
+
+            if (singularityCost > 0) {
+                int found = 0;
+                for (ItemStack invStack : aPlayer.inventory.mainInventory) {
+                    if (invStack != null && GTSRItemList.SteamEntangledSingularity.isStackEqual(invStack, true, true)) {
+                        found += invStack.stackSize;
+                    }
+                }
+                if (found < singularityCost) {
+                    GTUtility.sendChatToPlayer(
+                        aPlayer,
+                        StatCollector.translateToLocal("gtsr.binding.no_singularity") + " (" + singularityCost + ")");
+                    return true;
+                }
+                int remaining = singularityCost;
+                for (int i = 0; i < aPlayer.inventory.mainInventory.length && remaining > 0; i++) {
+                    ItemStack invStack = aPlayer.inventory.mainInventory[i];
+                    if (invStack != null && GTSRItemList.SteamEntangledSingularity.isStackEqual(invStack, true, true)) {
+                        int toConsume = Math.min(remaining, invStack.stackSize);
+                        invStack.stackSize -= toConsume;
+                        remaining -= toConsume;
+                        if (invStack.stackSize <= 0) {
+                            aPlayer.inventory.mainInventory[i] = null;
+                        }
+                    }
+                }
+                aPlayer.inventoryContainer.detectAndSendChanges();
             }
             if (!held.hasTagCompound()) {
                 held.setTagCompound(new NBTTagCompound());

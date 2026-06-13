@@ -98,6 +98,7 @@ public class MTEGearSteamCompressor extends MTEEnhancedMultiBlockBase<MTEGearSte
     private int mPipeTier = -1;
     private int mGearTier = -1;
     private int mFrameTier = -1;
+    private int mSyncedEffectiveTier = -1;
 
     private final List<MTEHatchPressureSteamInput> mPressureSteamInputs = new ArrayList<>();
     private final List<MTESteamCoolingHatch> mSteamCoolingHatches = new ArrayList<>();
@@ -297,6 +298,7 @@ public class MTEGearSteamCompressor extends MTEEnhancedMultiBlockBase<MTEGearSte
         mPipeTier = -1;
         mGearTier = -1;
         mFrameTier = -1;
+        mSyncedEffectiveTier = -1;
         mPressureSteamInputs.clear();
         mSteamCoolingHatches.clear();
         mPressureCoolingHatches.clear();
@@ -432,9 +434,19 @@ public class MTEGearSteamCompressor extends MTEEnhancedMultiBlockBase<MTEGearSte
     }
 
     private int getCasingTextureIndex() {
-        int tier = getEffectiveTier();
+        int tier = mSyncedEffectiveTier > 0 ? mSyncedEffectiveTier : getEffectiveTier();
         if (tier == 2) return GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings2, 0);
         return BRONZE_CASING_INDEX;
+    }
+
+    @Override
+    public void onValueUpdate(byte aValue) {
+        mSyncedEffectiveTier = aValue;
+    }
+
+    @Override
+    public byte getUpdateData() {
+        return (byte) getEffectiveTier();
     }
 
     @Override
@@ -668,6 +680,7 @@ public class MTEGearSteamCompressor extends MTEEnhancedMultiBlockBase<MTEGearSte
         aNBT.setInteger("mPipeTier", mPipeTier);
         aNBT.setInteger("mGearTier", mGearTier);
         aNBT.setInteger("mFrameTier", mFrameTier);
+        aNBT.setInteger("mSyncedEffectiveTier", mSyncedEffectiveTier);
         aNBT.setLong("mSteamConsumedLastTick", mSteamConsumedLastTick);
         aNBT.setLong("mSuperheatedOutputLastTick", mSuperheatedOutputLastTick);
         aNBT.setLong("mWaterOutputLastTick", mWaterOutputLastTick);
@@ -680,6 +693,7 @@ public class MTEGearSteamCompressor extends MTEEnhancedMultiBlockBase<MTEGearSte
         mPipeTier = aNBT.getInteger("mPipeTier");
         mGearTier = aNBT.getInteger("mGearTier");
         mFrameTier = aNBT.getInteger("mFrameTier");
+        mSyncedEffectiveTier = aNBT.getInteger("mSyncedEffectiveTier");
         mSteamConsumedLastTick = aNBT.getLong("mSteamConsumedLastTick");
         mSuperheatedOutputLastTick = aNBT.getLong("mSuperheatedOutputLastTick");
         mWaterOutputLastTick = aNBT.getLong("mWaterOutputLastTick");

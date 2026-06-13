@@ -240,29 +240,29 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
                     'C',
                     ofChain(
                         onElementPass(
-                            MTELargeGeothermalSteamBoiler::onCasingAddedTier2,
-                            ofBlock(GregTechAPI.sBlockCasings2, 13)),
-                        onElementPass(
                             MTELargeGeothermalSteamBoiler::onCasingAddedTier1,
-                            ofBlock(GregTechAPI.sBlockCasings2, 12))))
+                            ofBlock(GregTechAPI.sBlockCasings2, 12)),
+                        onElementPass(
+                            MTELargeGeothermalSteamBoiler::onCasingAddedTier2,
+                            ofBlock(GregTechAPI.sBlockCasings2, 13))))
                 .addElement(
                     'D',
                     ofChain(
                         onElementPass(
-                            MTELargeGeothermalSteamBoiler::onCasingAddedTier2,
-                            ofBlock(GregTechAPI.sBlockCasings2, 3)),
-                        onElementPass(
                             MTELargeGeothermalSteamBoiler::onCasingAddedTier1,
-                            ofBlock(GregTechAPI.sBlockCasings2, 2))))
+                            ofBlock(GregTechAPI.sBlockCasings2, 2)),
+                        onElementPass(
+                            MTELargeGeothermalSteamBoiler::onCasingAddedTier2,
+                            ofBlock(GregTechAPI.sBlockCasings2, 3))))
                 .addElement(
                     'E',
                     ofChain(
                         onElementPass(
-                            MTELargeGeothermalSteamBoiler::onCasingAddedTier2,
-                            ofBlock(GregTechAPI.sBlockCasings3, 14)),
-                        onElementPass(
                             MTELargeGeothermalSteamBoiler::onCasingAddedTier1,
-                            ofBlock(GregTechAPI.sBlockCasings3, 13))))
+                            ofBlock(GregTechAPI.sBlockCasings3, 13)),
+                        onElementPass(
+                            MTELargeGeothermalSteamBoiler::onCasingAddedTier2,
+                            ofBlock(GregTechAPI.sBlockCasings3, 14))))
                 .addElement(
                     'F',
                     onElementPass(

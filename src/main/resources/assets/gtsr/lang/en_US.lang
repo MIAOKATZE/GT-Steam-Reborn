@@ -35,7 +35,7 @@ gtsr.tooltip.shared.singularity_cost=Consumes 1 Steam Entangled Singularity on f
 gtsr.tooltip.shared.hub_singularity_cost=Consumes 1 Steam Entangled Singularity when binding a node (once per node)
 gtsr.binding.no_singularity=No Steam Entangled Singularity in inventory!
 gtsr.tooltip.shared.node_bind_hint=Right-click Singularity Drilling Hub to bind
-gtsr.tooltip.shared.node_steam_cost=Each node adds 12,000 L/s steam cost to Hub, consumed on placement regardless of operation
+gtsr.tooltip.shared.node_steam_cost=Node steam cost (see individual node details)
 gtsr.tooltip.shared.work_cycle=Work Cycle: 
 gtsr.tooltip.shared.8s=8s
 gtsr.tooltip.shared.cache_node_standalone=Can be used standalone as high-speed auto-output fluid container
@@ -392,7 +392,7 @@ gtsr.tooltip.singularity_drilling_hub.0=3x3x3 hollow structure, steam-powered re
 gtsr.tooltip.singularity_drilling_hub.1=Bind Singularity Miner Nodes and Singularity Drilling Nodes for remote operation
 gtsr.tooltip.singularity_drilling_hub.2=Requires Hub Singularity Upgrade Chip for wireless control
 gtsr.tooltip.singularity_drilling_hub.3=Node work cycle: 8s (160 ticks)
-gtsr.tooltip.singularity_drilling_hub.4=Steam Consumption: 12,000 + Nx12,000 L/s
+gtsr.tooltip.singularity_drilling_hub.4=Steam Consumption: 8,000 + Node Cost L/s
 gtsr.tooltip.singularity_drilling_hub.5=Superheated Steam: 4x speed
 gtsr.tooltip.singularity_drilling_hub.ctrl=Front center of middle layer
 gtsr.tooltip.singularity_drilling_hub.casing=Bronze Plated Bricks
@@ -402,16 +402,38 @@ gtsr.tooltip.singularity_drilling_hub.output_hatch=Fluid Output Hatch
 # Singularity Miner Node
 gt.blockmachines.gtsr.singularity.miner.node.name=Singularity Miner Node
 gtsr.tooltip.miner_node.desc=Steam-driven remote mining node, auto-mines when bound to Singularity Drilling Hub
-gtsr.tooltip.miner_node.range=Mining Range: 
-gtsr.tooltip.miner_node.radius=Radius
-gtsr.tooltip.miner_node.fortune=Fortune Level: 
+gtsr.tooltip.miner_node.range=Mining Range:
+gtsr.tooltip.miner_node.range_base=Base 24x24 / Enhanced I 48x48 / Enhanced II 64x64 / Enhanced III 96x96
+gtsr.tooltip.miner_node.fortune=Fortune Level:
+gtsr.tooltip.miner_node.fortune_base=Base Normal II/Small V / I Normal III/Small V / II Normal IV/Small VI / III Normal V/Small VII
 gtsr.tooltip.miner_node.requires_pipe=Requires Mining Pipe to operate
+gtsr.tooltip.miner_node.upgrade_title=Upgrade Mechanism:
+gtsr.tooltip.miner_node.upgrade_desc=Enhanced I: Ore Drill I+16 Singularity | Enhanced II: Ore Drill II+32 Singularity | Enhanced III: Ore Drill III+64 Singularity
+gtsr.tooltip.miner_node.work_cycle_base=Base 8s / Enhanced I 5s / Enhanced II 3s / Enhanced III 1s
+gtsr.tooltip.miner_node.steam_cost_base=Base 2,000 / Enhanced I 5,000 / Enhanced II 12,000 / Enhanced III 20,000 L/s (only when working)
 
 # Singularity Drilling Node
 gt.blockmachines.gtsr.singularity.drilling.node.name=Singularity Drilling Node
 gtsr.tooltip.drilling_node.desc=Steam-driven remote drilling node, drills to bedrock and pumps underground fluids when bound to Singularity Drilling Hub
-gtsr.tooltip.drilling_node.extraction=Extraction Rate: 
-gtsr.tooltip.drilling_node.extraction_value=20x Fluid Output
+gtsr.tooltip.drilling_node.extraction=Extraction Rate:
+gtsr.tooltip.drilling_node.extraction_base=Base 10 / Enhanced I 12 / Enhanced II 15 / Enhanced III 18
+gtsr.tooltip.drilling_node.chunk_range=Work Range:
+gtsr.tooltip.drilling_node.chunk_range_base=Base 1x1 / Enhanced I 2x2 / Enhanced II 4x4 / Enhanced III 8x8 Chunks
+gtsr.tooltip.drilling_node.upgrade_title=Upgrade Mechanism:
+gtsr.tooltip.drilling_node.upgrade_desc=Enhanced I: Oil Drill II+16 Singularity | Enhanced II: Oil Drill III+32 Singularity | Enhanced III: Oil Drill IV+64 Singularity
+gtsr.tooltip.drilling_node.steam_cost=Steam Cost: Base 2,000 / Enhanced I 6,000 / Enhanced II 12,000 / Enhanced III 20,000 L/s (only when working)
+gtsr.gui.drilling_node.output_per_8s=Output/8s
+gtsr.gui.drilling_node.tier=Tier:
+gtsr.gui.drilling_node.base=Base
+gtsr.gui.drilling_node.enhanced=Enhanced
+gtsr.gui.drilling_node.already_enhanced=Enhancement already applied
+gtsr.gui.drilling_node.need_prev_tier=Need to upgrade to previous tier first
+gtsr.gui.drilling_node.applied_enhanced=Upgrade successful! Current tier: Enhanced
+gtsr.gui.drilling_node.need_singularity=Not enough Steam Entangled Singularities, need:
+gtsr.tooltip.singularity_hub.node_cost_desc=Node Cost L/s (Drill: 2,000~20,000, Miner: 2,000~20,000 when working)
+gtsr.gui.miner_node.tier=Tier:
+gtsr.gui.miner_node.base=Base
+gtsr.gui.miner_node.enhanced=Enhanced
 
 # Drilling Hub Debug
 gtsr.drilling.debug_title=Drilling Hub Binding Debug
@@ -658,6 +680,7 @@ gtsr.tooltip.siemens_martin.desc=A new era of mass steelmaking blast furnace: re
 # Singularity Drilling Hub (SDH)
 gtsr.tooltip.singularity_hub.type=Singularity Drilling Hub, SDH
 gtsr.tooltip.singularity_hub.desc=A marvel of the steam age: based on steam-entangled singularities, creations of the steam age can reach every corner of the world, extracting all needed resources.
+gtsr.tooltip.singularity_hub.superheated_required=Requires Superheated Steam (no speed boost)
 
 # Steam Fluid Drill (SFD)
 gtsr.tooltip.fluid_drill.type=Steam Fluid Drill, SFD

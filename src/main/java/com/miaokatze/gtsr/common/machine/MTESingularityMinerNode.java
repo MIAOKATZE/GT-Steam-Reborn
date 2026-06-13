@@ -20,10 +20,12 @@ import com.gtnewhorizons.modularui.api.screen.UIBuildContext;
 import com.gtnewhorizons.modularui.common.widget.FakeSyncWidget;
 import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
+import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.machine.base.MTERemoteWorkerNode;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
+import gregtech.api.enums.ItemList;
 import gregtech.api.enums.Textures;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
@@ -36,9 +38,13 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
 
     private static final Block MINING_PIPE_TIP_BLOCK = GTUtility
         .getBlockFromStack(GTModHandler.getIC2Item("miningPipeTip", 0));
-    private static final int MINING_RADIUS = 8;
-    private static final int FORTUNE = 4;
+    private static final int[] MINING_RADIUS = { 12, 24, 32, 48 }; // 24×24, 48×48, 64×64, 96×96
+    private static final int[] FORTUNE_NORMAL = { 2, 3, 4, 5 };
+    private static final int[] FORTUNE_SMALL = { 5, 5, 6, 7 };
     private static final int SMALL_ORE_META_OFFSET = 16000;
+    private static final int[] MINER_WORK_CYCLE = { 160, 100, 60, 20 }; // 8s, 5s, 3s, 1s
+    private static final int[] SINGULARITY_COST = { 0, 16, 32, 64 };
+    private static final int[] MINER_NODE_STEAM_COST = { 2_000, 5_000, 12_000, 20_000 };
 
     private static final int STATUS_OK = 0;
     private static final int STATUS_NO_PIPE = 1;
@@ -58,6 +64,7 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
     private int mStatus = STATUS_OK;
     private boolean mLastAllowedToWork = true;
     private int mCycleTimer = 0;
+    private int mMinerTier = 0; // 0=基础, 1=强化I, 2=强化II, 3=强化III
     private final ArrayList<ChunkCoordinates> mOrePositions = new ArrayList<>();
     private FakePlayer mFakePlayer;
 
@@ -80,6 +87,26 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
     }
 
     @Override
+    public int getDrillTier() {
+        return mMinerTier;
+    }
+
+    @Override
+    public boolean isActivelyWorking() {
+        return !mDisabled && mHasStarted;
+    }
+
+    @Override
+    protected int maxProgresstimeInternal() {
+        return MINER_WORK_CYCLE[mMinerTier];
+    }
+
+    @Override
+    public int getProgresstime() {
+        return mCycleTimer;
+    }
+
+    @Override
     public String[] getDescription() {
         return new String[] {
             EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.miner_node.desc") };
@@ -90,23 +117,25 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
         tooltip.add(
             EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.miner_node.range")
                 + EnumChatFormatting.GOLD
-                + "17x17"
-                + " ("
-                + StatCollector.translateToLocal("gtsr.tooltip.miner_node.radius")
-                + MINING_RADIUS
-                + ")");
+                + StatCollector.translateToLocal("gtsr.tooltip.miner_node.range_base"));
         tooltip.add(
             EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.miner_node.fortune")
                 + EnumChatFormatting.GOLD
-                + FORTUNE);
+                + StatCollector.translateToLocal("gtsr.tooltip.miner_node.fortune_base"));
         tooltip.add(
             EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.shared.work_cycle")
                 + EnumChatFormatting.GREEN
-                + StatCollector.translateToLocal("gtsr.tooltip.shared.8s"));
-        tooltip.add(EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.shared.node_steam_cost"));
+                + StatCollector.translateToLocal("gtsr.tooltip.miner_node.work_cycle_base"));
+        tooltip.add(
+            EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.miner_node.steam_cost")
+                + EnumChatFormatting.GOLD
+                + StatCollector.translateToLocal("gtsr.tooltip.miner_node.steam_cost_base"));
         tooltip.add(EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.shared.singularity_cost"));
         tooltip.add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.miner_node.requires_pipe"));
         tooltip.add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.shared.node_bind_hint"));
+        tooltip
+            .add(EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.miner_node.upgrade_title"));
+        tooltip.add(EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.tooltip.miner_node.upgrade_desc"));
         tooltip.add(
             EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.tooltip.added_by")
                 + " "
@@ -181,9 +210,21 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
                 .setDefaultColor(0xFFFFFFFF)
                 .setPos(10, 76));
 
+        builder.widget(
+            new TextWidget()
+                .setStringSupplier(
+                    () -> EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.miner_node.tier")
+                        + " "
+                        + EnumChatFormatting.GOLD
+                        + (mMinerTier == 0 ? StatCollector.translateToLocal("gtsr.gui.miner_node.base")
+                            : StatCollector.translateToLocal("gtsr.gui.miner_node.enhanced") + toRoman(mMinerTier)))
+                .setDefaultColor(0xFFFFFFFF)
+                .setPos(10, 88));
+
         builder.widget(new FakeSyncWidget.IntegerSyncer(() -> mStatus, val -> mStatus = val));
         builder.widget(new FakeSyncWidget.IntegerSyncer(() -> mTipDepth, val -> mTipDepth = val));
         builder.widget(new FakeSyncWidget.BooleanSyncer(() -> mRetractDone, val -> mRetractDone = val));
+        builder.widget(new FakeSyncWidget.IntegerSyncer(() -> mMinerTier, val -> mMinerTier = val));
     }
 
     private FakePlayer getFakePlayer(IGregTechTileEntity aBaseMetaTileEntity) {
@@ -265,8 +306,18 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
             return;
         }
 
-        int fortune = (GTUtility.isOre(block, meta) && meta >= SMALL_ORE_META_OFFSET) ? FORTUNE : 0;
+        int fortune = GTUtility.isOre(block, meta)
+            ? (meta >= SMALL_ORE_META_OFFSET ? FORTUNE_SMALL[mMinerTier] : FORTUNE_NORMAL[mMinerTier])
+            : 0;
+
+        // Enable fortune for GT ore drops:
+        // 1. Set TileEntityOres.shouldFortune=true (reflection, protected static field)
+        // 2. Set TileEntityOres.mNatural=true on the ore's TileEntity (defaults false until breakBlock)
+        boolean prevShouldFortune = setOreFortuneFlag(fortune > 0);
+        boolean prevNatural = setOreNaturalFlag(world, oreX, oreY, oreZ, true);
         ArrayList<ItemStack> drops = block.getDrops(world, oreX, oreY, oreZ, meta, fortune);
+        setOreNaturalFlag(world, oreX, oreY, oreZ, prevNatural);
+        setOreFortuneFlag(prevShouldFortune);
 
         GTUtility.eraseBlockByFakePlayer(getFakePlayer(aBaseMetaTileEntity), oreX, oreY, oreZ, false);
 
@@ -281,7 +332,7 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
         mStatus = STATUS_OK;
         mHasStarted = true;
         mIsWorking = true;
-        mWorkProgress = (mWorkProgress + 20) % WORK_CYCLE;
+        mWorkProgress = (mWorkProgress + 20) % MINER_WORK_CYCLE[mMinerTier];
     }
 
     private void fillOreList(IGregTechTileEntity aBaseMetaTileEntity) {
@@ -292,9 +343,10 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
         int z = aBaseMetaTileEntity.getZCoord();
         World world = aBaseMetaTileEntity.getWorld();
         int depthY = y + mTipDepth;
+        int radius = MINING_RADIUS[mMinerTier];
 
-        for (int dz = -MINING_RADIUS; dz <= MINING_RADIUS; dz++) {
-            for (int dx = -MINING_RADIUS; dx <= MINING_RADIUS; dx++) {
+        for (int dz = -radius; dz <= radius; dz++) {
+            for (int dx = -radius; dx <= radius; dx++) {
                 int oreX = x + dx;
                 int oreZ = z + dz;
 
@@ -358,9 +410,15 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
             }
         }
 
-        int fortune = (GTUtility.isOre(targetBlock, targetMeta) && targetMeta >= SMALL_ORE_META_OFFSET) ? FORTUNE : 0;
+        int fortune = GTUtility.isOre(targetBlock, targetMeta)
+            ? (targetMeta >= SMALL_ORE_META_OFFSET ? FORTUNE_SMALL[mMinerTier] : FORTUNE_NORMAL[mMinerTier])
+            : 0;
         if (targetBlock != null && targetBlock != Blocks.air && targetBlock != Blocks.bedrock) {
+            boolean prevShouldFortune = setOreFortuneFlag(fortune > 0);
+            boolean prevNatural = setOreNaturalFlag(world, x, targetY, z, true);
             ArrayList<ItemStack> drops = targetBlock.getDrops(world, x, targetY, z, targetMeta, fortune);
+            setOreNaturalFlag(world, x, targetY, z, prevNatural);
+            setOreFortuneFlag(prevShouldFortune);
             MTESingularityDrillingHub hub = getBoundHub();
             if (drops != null && hub != null) {
                 for (ItemStack drop : drops) {
@@ -378,7 +436,7 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
         mTipDepth--;
         mStatus = STATUS_OK;
         mIsWorking = true;
-        mWorkProgress = (mWorkProgress + 20) % WORK_CYCLE;
+        mWorkProgress = (mWorkProgress + 20) % MINER_WORK_CYCLE[mMinerTier];
         return true;
     }
 
@@ -416,7 +474,7 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
         } else if (!mDisabled) {
             mCycleTimer++;
             mWorkProgress = mCycleTimer;
-            if (mCycleTimer >= WORK_CYCLE) {
+            if (mCycleTimer >= MINER_WORK_CYCLE[mMinerTier]) {
                 mCycleTimer = 0;
                 mIsWorking = true;
                 doWork(aBaseMetaTileEntity);
@@ -524,7 +582,13 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
             + (mRetractDone ? StatCollector.translateToLocal("gtsr.node.yes")
                 : StatCollector.translateToLocal("gtsr.node.no"));
 
-        return new String[] { statusText, depthText, pipeText };
+        String tierText = EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.miner_node.tier")
+            + ": "
+            + EnumChatFormatting.GOLD
+            + (mMinerTier == 0 ? StatCollector.translateToLocal("gtsr.gui.miner_node.base")
+                : StatCollector.translateToLocal("gtsr.gui.miner_node.enhanced") + toRoman(mMinerTier));
+
+        return new String[] { statusText, depthText, pipeText, tierText };
     }
 
     private static Textures.BlockIcons.CustomIcon OVERLAY_OFF;
@@ -560,6 +624,7 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
         aNBT.setBoolean("mHasStarted", mHasStarted);
         aNBT.setInteger("mStatus", mStatus);
         aNBT.setInteger("mCycleTimer", mCycleTimer);
+        aNBT.setInteger("mMinerTier", mMinerTier);
     }
 
     @Override
@@ -584,17 +649,134 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
         if (aNBT.hasKey("mCycleTimer")) {
             mCycleTimer = aNBT.getInteger("mCycleTimer");
         }
+        if (aNBT.hasKey("mMinerTier")) {
+            mMinerTier = aNBT.getInteger("mMinerTier");
+        }
     }
 
     @Override
     public boolean onRightclick(IGregTechTileEntity aBaseMetaTileEntity, EntityPlayer aPlayer, ForgeDirection side,
         float aX, float aY, float aZ) {
-        if (!aBaseMetaTileEntity.isClientSide() && aPlayer.getHeldItem() == null && mHubX != 0) {
+        if (!aBaseMetaTileEntity.isServerSide()) return true;
+
+        ItemStack held = aPlayer.getHeldItem();
+
+        // Upgrade with Ore Drilling Plant items
+        if (held != null) {
+            int targetTier = -1;
+            if (ItemList.OreDrill1.isStackEqual(held, false, true)) {
+                targetTier = 1;
+            } else if (ItemList.OreDrill2.isStackEqual(held, false, true)) {
+                targetTier = 2;
+            } else if (ItemList.OreDrill3.isStackEqual(held, false, true)) {
+                targetTier = 3;
+            }
+
+            if (targetTier > 0) {
+                if (mMinerTier >= targetTier) {
+                    GTUtility.sendChatToPlayer(aPlayer, "已达到该等级或更高");
+                    return true;
+                }
+                if (mMinerTier != targetTier - 1) {
+                    GTUtility.sendChatToPlayer(aPlayer, "需要先升级到上一等级");
+                    return true;
+                }
+                int cost = SINGULARITY_COST[targetTier];
+                if (!consumeSingularityItems(aPlayer, cost)) {
+                    GTUtility.sendChatToPlayer(aPlayer, "蒸汽纠缠奇点不足，需要: " + cost);
+                    return true;
+                }
+                mMinerTier = targetTier;
+                held.stackSize--;
+                if (held.stackSize <= 0) aPlayer.setCurrentItemOrArmor(0, null);
+                aPlayer.inventoryContainer.detectAndSendChanges();
+                GTUtility.sendChatToPlayer(aPlayer, "升级成功！当前等级: 强化" + toRoman(targetTier));
+                return true;
+            }
+        }
+
+        // Default: show binding info
+        if (held == null && mHubX != 0) {
             GTUtility.sendChatToPlayer(
                 aPlayer,
                 StatCollector.translateToLocal(
                     "gtsr.binding.bound_to") + " Hub @ " + mHubX + ", " + mHubY + ", " + mHubZ);
         }
         return super.onRightclick(aBaseMetaTileEntity, aPlayer, side, aX, aY, aZ);
+    }
+
+    private String toRoman(int num) {
+        return switch (num) {
+            case 1 -> "I";
+            case 2 -> "II";
+            case 3 -> "III";
+            default -> String.valueOf(num);
+        };
+    }
+
+    /**
+     * Sets TileEntityOres.shouldFortune via reflection (protected static field).
+     * Returns the previous value.
+     */
+    private static boolean setOreFortuneFlag(boolean value) {
+        try {
+            var field = Class.forName("gregtech.common.blocks.TileEntityOres")
+                .getDeclaredField("shouldFortune");
+            field.setAccessible(true);
+            boolean prev = field.getBoolean(null);
+            field.setBoolean(null, value);
+            return prev;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Sets TileEntityOres.mNatural on the ore TileEntity at the given position.
+     * GT ores default mNatural=false until breakBlock is called, which prevents fortune from working.
+     * Returns the previous value.
+     */
+    private static boolean setOreNaturalFlag(World world, int x, int y, int z, boolean value) {
+        try {
+            var te = world.getTileEntity(x, y, z);
+            if (te != null && te.getClass()
+                .getName()
+                .equals("gregtech.common.blocks.TileEntityOres")) {
+                var field = te.getClass()
+                    .getDeclaredField("mNatural");
+                field.setAccessible(true);
+                boolean prev = field.getBoolean(te);
+                field.setBoolean(te, value);
+                return prev;
+            }
+        } catch (Exception e) {
+            // ignore
+        }
+        return false;
+    }
+
+    private boolean consumeSingularityItems(EntityPlayer player, int count) {
+        int found = 0;
+        for (ItemStack stack : player.inventory.mainInventory) {
+            if (stack != null && GTSRItemList.SteamEntangledSingularity.isStackEqual(stack, false, true)) {
+                found += stack.stackSize;
+            }
+        }
+        if (found < count) return false;
+
+        int remaining = count;
+        for (int i = 0; i < player.inventory.mainInventory.length && remaining > 0; i++) {
+            ItemStack stack = player.inventory.mainInventory[i];
+            if (stack != null && GTSRItemList.SteamEntangledSingularity.isStackEqual(stack, false, true)) {
+                int toConsume = Math.min(remaining, stack.stackSize);
+                stack.stackSize -= toConsume;
+                remaining -= toConsume;
+                if (stack.stackSize <= 0) {
+                    player.inventory.mainInventory[i] = null;
+                }
+            }
+        }
+        player.inventoryContainer.detectAndSendChanges();
+        return true;
     }
 }

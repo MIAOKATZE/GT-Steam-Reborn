@@ -20,10 +20,12 @@ import com.gtnewhorizons.modularui.api.screen.UIBuildContext;
 import com.gtnewhorizons.modularui.common.widget.FakeSyncWidget;
 import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
+import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.machine.base.MTERemoteWorkerNode;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
+import gregtech.api.enums.ItemList;
 import gregtech.api.enums.Textures;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
@@ -37,8 +39,10 @@ public class MTESingularityDrillingNode extends MTERemoteWorkerNode {
 
     private static final Block MINING_PIPE_TIP_BLOCK = GTUtility
         .getBlockFromStack(GTModHandler.getIC2Item("miningPipeTip", 0));
-    private static final float EXTRACTION_COEFFICIENT = 80.0f;
-    private static final int EXTRACTION_INTERVAL = 16;
+    private static final float[] EXTRACTION_COEFFICIENT = { 10.0f, 12.0f, 15.0f, 18.0f };
+    private static final int[] CHUNK_RANGE = { 1, 2, 4, 8 }; // chunks per side: 1×1, 2×2, 4×4, 8×8
+    private static final int EXTRACTION_INTERVAL = 8;
+    private static final int[] SINGULARITY_COST = { 0, 16, 32, 64 };
 
     private static final int STATUS_OK = 0;
     private static final int STATUS_NO_PIPE = 1;
@@ -64,6 +68,23 @@ public class MTESingularityDrillingNode extends MTERemoteWorkerNode {
     private int mLastExtractedAmount = 0;
     private int mDisplayRate = 0;
     private Fluid mLockedFluid = null;
+    private int mDrillTier = 0; // 0=基础, 1=强化I, 2=强化II, 3=强化III
+
+    @Override
+    public int getProgresstime() {
+        if (mAtBedrock) {
+            return mExtractionCounter;
+        }
+        return mCycleTimer;
+    }
+
+    @Override
+    protected int maxProgresstimeInternal() {
+        if (mAtBedrock) {
+            return EXTRACTION_INTERVAL;
+        }
+        return WORK_CYCLE;
+    }
 
     private FakePlayer mFakePlayer;
 
@@ -86,6 +107,20 @@ public class MTESingularityDrillingNode extends MTERemoteWorkerNode {
     }
 
     @Override
+    public int getDrillTier() {
+        return mDrillTier;
+    }
+
+    @Override
+    public boolean isActivelyWorking() {
+        return !mDisabled && mHasStarted;
+    }
+
+    private float getExtractionCoefficient() {
+        return EXTRACTION_COEFFICIENT[mDrillTier];
+    }
+
+    @Override
     public String[] getDescription() {
         return new String[] {
             EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.drilling_node.desc") };
@@ -96,14 +131,22 @@ public class MTESingularityDrillingNode extends MTERemoteWorkerNode {
         tooltip.add(
             EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.drilling_node.extraction")
                 + EnumChatFormatting.GOLD
-                + StatCollector.translateToLocal("gtsr.tooltip.drilling_node.extraction_value"));
+                + StatCollector.translateToLocal("gtsr.tooltip.drilling_node.extraction_base"));
+        tooltip.add(
+            EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.drilling_node.chunk_range")
+                + EnumChatFormatting.GOLD
+                + StatCollector.translateToLocal("gtsr.tooltip.drilling_node.chunk_range_base"));
         tooltip.add(
             EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.shared.work_cycle")
                 + EnumChatFormatting.GREEN
                 + StatCollector.translateToLocal("gtsr.tooltip.shared.8s"));
-        tooltip.add(EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.shared.node_steam_cost"));
+        tooltip.add(EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.drilling_node.steam_cost"));
         tooltip.add(EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.shared.singularity_cost"));
         tooltip.add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.shared.node_bind_hint"));
+        tooltip.add(
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.drilling_node.upgrade_title"));
+        tooltip
+            .add(EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.tooltip.drilling_node.upgrade_desc"));
         tooltip.add(
             EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.tooltip.added_by")
                 + " "
@@ -185,25 +228,43 @@ public class MTESingularityDrillingNode extends MTERemoteWorkerNode {
             if (mExtractionCounter >= EXTRACTION_INTERVAL) {
                 mExtractionCounter = 0;
 
-                int chunkX = x >> 4;
-                int chunkZ = z >> 4;
+                int baseChunkX = x >> 4;
+                int baseChunkZ = z >> 4;
+                int range = CHUNK_RANGE[mDrillTier];
 
-                FluidStack extracted = UndergroundOil.undergroundOil(world, chunkX, chunkZ, EXTRACTION_COEFFICIENT);
+                int totalExtracted = 0;
+                Fluid extractedFluid = null;
 
-                if (extracted == null || extracted.amount <= 0) {
+                for (int dx = 0; dx < range; dx++) {
+                    for (int dz = 0; dz < range; dz++) {
+                        FluidStack extracted = UndergroundOil
+                            .undergroundOil(world, baseChunkX + dx, baseChunkZ + dz, getExtractionCoefficient());
+                        if (extracted != null && extracted.amount > 0) {
+                            if (mLockedFluid == null) {
+                                mLockedFluid = extracted.getFluid();
+                            }
+                            if (extracted.getFluid() == mLockedFluid) {
+                                totalExtracted += extracted.amount;
+                                if (extractedFluid == null) {
+                                    extractedFluid = extracted.getFluid();
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (totalExtracted <= 0) {
                     mDisabled = true;
                     mStatus = STATUS_FLUID_DEPLETED;
                     return;
                 }
 
-                if (mLockedFluid == null) {
-                    mLockedFluid = extracted.getFluid();
+                mLastExtractedAmount = totalExtracted;
+                mDisplayRate = mLastExtractedAmount;
+                if (extractedFluid != null) {
+                    mLastFluidName = new FluidStack(extractedFluid, 0).getLocalizedName();
                 }
-
-                mLastExtractedAmount = extracted.amount;
-                mDisplayRate = mLastExtractedAmount / 160;
-                mLastFluidName = extracted.getLocalizedName();
-                FluidStack toPush = extracted.copy();
+                FluidStack toPush = new FluidStack(mLockedFluid, totalExtracted);
                 hub.pushNodeFluidOutput(toPush);
             }
 
@@ -359,8 +420,13 @@ public class MTESingularityDrillingNode extends MTERemoteWorkerNode {
                     + StatCollector.translateToLocal("gtsr.node.status.soft_disabled");
                 break;
             case STATUS_EXTRACTING:
-                statusText = EnumChatFormatting.GREEN + StatCollector.translateToLocal(
-                    "gtsr.node.status.extracting") + ": " + mLastFluidName + " " + mDisplayRate + " L/s";
+                statusText = EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.node.status.extracting")
+                    + ": "
+                    + mLastFluidName
+                    + " "
+                    + mDisplayRate
+                    + " "
+                    + StatCollector.translateToLocal("gtsr.gui.drilling_node.output_per_8s");
                 break;
             case STATUS_FLUID_DEPLETED:
                 statusText = EnumChatFormatting.YELLOW
@@ -427,8 +493,13 @@ public class MTESingularityDrillingNode extends MTERemoteWorkerNode {
                 case STATUS_SOFT_DISABLED:
                     return EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.node.status.soft_disabled");
                 case STATUS_EXTRACTING:
-                    return EnumChatFormatting.GREEN + StatCollector.translateToLocal(
-                        "gtsr.node.status.extracting") + ": " + mLastFluidName + " " + mDisplayRate + " L/s";
+                    return EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.node.status.extracting")
+                        + ": "
+                        + mLastFluidName
+                        + " "
+                        + mDisplayRate
+                        + " "
+                        + StatCollector.translateToLocal("gtsr.gui.drilling_node.output_per_8s");
                 case STATUS_FLUID_DEPLETED:
                     return EnumChatFormatting.YELLOW
                         + StatCollector.translateToLocal("gtsr.node.status.fluid_depleted");
@@ -455,12 +526,26 @@ public class MTESingularityDrillingNode extends MTERemoteWorkerNode {
                 .setDefaultColor(0xFFFFFFFF)
                 .setPos(10, 76));
 
+        builder
+            .widget(
+                new TextWidget()
+                    .setStringSupplier(
+                        () -> EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.drilling_node.tier")
+                            + " "
+                            + EnumChatFormatting.GOLD
+                            + (mDrillTier == 0 ? StatCollector.translateToLocal("gtsr.gui.drilling_node.base")
+                                : StatCollector.translateToLocal("gtsr.gui.drilling_node.enhanced")
+                                    + toRoman(mDrillTier)))
+                    .setDefaultColor(0xFFFFFFFF)
+                    .setPos(10, 88));
+
         builder.widget(new FakeSyncWidget.IntegerSyncer(() -> mStatus, val -> mStatus = val));
         builder.widget(new FakeSyncWidget.IntegerSyncer(() -> mTipDepth, val -> mTipDepth = val));
         builder.widget(new FakeSyncWidget.BooleanSyncer(() -> mAtBedrock, val -> mAtBedrock = val));
         builder.widget(new FakeSyncWidget.IntegerSyncer(() -> mLastExtractedAmount, val -> mLastExtractedAmount = val));
         builder.widget(new FakeSyncWidget.IntegerSyncer(() -> mDisplayRate, val -> mDisplayRate = val));
         builder.widget(new FakeSyncWidget.StringSyncer(() -> mLastFluidName, val -> mLastFluidName = val));
+        builder.widget(new FakeSyncWidget.IntegerSyncer(() -> mDrillTier, val -> mDrillTier = val));
     }
 
     @Override
@@ -479,6 +564,7 @@ public class MTESingularityDrillingNode extends MTERemoteWorkerNode {
         aNBT.setInteger("mDisplayRate", mDisplayRate);
         aNBT.setString("mLastFluidName", mLastFluidName);
         aNBT.setInteger("mLastExtractedAmount", mLastExtractedAmount);
+        aNBT.setInteger("mDrillTier", mDrillTier);
         if (mLockedFluid != null) {
             aNBT.setString("mLockedFluid", mLockedFluid.getName());
         }
@@ -522,6 +608,13 @@ public class MTESingularityDrillingNode extends MTERemoteWorkerNode {
         if (aNBT.hasKey("mLastExtractedAmount")) {
             mLastExtractedAmount = aNBT.getInteger("mLastExtractedAmount");
         }
+        if (aNBT.hasKey("mDrillTier")) {
+            mDrillTier = aNBT.getInteger("mDrillTier");
+        }
+        // Legacy: migrate old mEnhanced boolean
+        if (aNBT.hasKey("mEnhanced") && aNBT.getBoolean("mEnhanced")) {
+            mDrillTier = Math.max(mDrillTier, 1);
+        }
         if (aNBT.hasKey("mLockedFluid")) {
             mLockedFluid = net.minecraftforge.fluids.FluidRegistry.getFluid(aNBT.getString("mLockedFluid"));
         }
@@ -530,12 +623,94 @@ public class MTESingularityDrillingNode extends MTERemoteWorkerNode {
     @Override
     public boolean onRightclick(IGregTechTileEntity aBaseMetaTileEntity, EntityPlayer aPlayer, ForgeDirection side,
         float aX, float aY, float aZ) {
-        if (!aBaseMetaTileEntity.isClientSide() && aPlayer.getHeldItem() == null && mHubX != 0) {
+        if (!aBaseMetaTileEntity.isServerSide()) return true;
+
+        ItemStack held = aPlayer.getHeldItem();
+
+        // Upgrade with OilDrill controller items
+        if (held != null) {
+            int targetTier = -1;
+            if (ItemList.OilDrill2.isStackEqual(held, false, true)) {
+                targetTier = 1;
+            } else if (ItemList.OilDrill3.isStackEqual(held, false, true)) {
+                targetTier = 2;
+            } else if (ItemList.OilDrill4.isStackEqual(held, false, true)) {
+                targetTier = 3;
+            }
+
+            if (targetTier > 0) {
+                if (mDrillTier >= targetTier) {
+                    GTUtility.sendChatToPlayer(
+                        aPlayer,
+                        StatCollector.translateToLocal("gtsr.gui.drilling_node.already_enhanced"));
+                    return true;
+                }
+                if (mDrillTier != targetTier - 1) {
+                    GTUtility.sendChatToPlayer(
+                        aPlayer,
+                        StatCollector.translateToLocal("gtsr.gui.drilling_node.need_prev_tier"));
+                    return true;
+                }
+                int cost = SINGULARITY_COST[targetTier];
+                if (!consumeSingularityItems(aPlayer, cost)) {
+                    GTUtility.sendChatToPlayer(
+                        aPlayer,
+                        StatCollector.translateToLocal("gtsr.gui.drilling_node.need_singularity") + " " + cost);
+                    return true;
+                }
+                mDrillTier = targetTier;
+                held.stackSize--;
+                if (held.stackSize <= 0) aPlayer.setCurrentItemOrArmor(0, null);
+                aPlayer.inventoryContainer.detectAndSendChanges();
+                GTUtility.sendChatToPlayer(
+                    aPlayer,
+                    StatCollector.translateToLocal("gtsr.gui.drilling_node.applied_enhanced") + " "
+                        + toRoman(targetTier));
+                return true;
+            }
+        }
+
+        // Default: show binding info
+        if (held == null && mHubX != 0) {
             GTUtility.sendChatToPlayer(
                 aPlayer,
                 StatCollector.translateToLocal(
                     "gtsr.binding.bound_to") + " Hub @ " + mHubX + ", " + mHubY + ", " + mHubZ);
         }
         return super.onRightclick(aBaseMetaTileEntity, aPlayer, side, aX, aY, aZ);
+    }
+
+    private String toRoman(int num) {
+        return switch (num) {
+            case 1 -> "I";
+            case 2 -> "II";
+            case 3 -> "III";
+            default -> String.valueOf(num);
+        };
+    }
+
+    private boolean consumeSingularityItems(EntityPlayer player, int count) {
+        int found = 0;
+        for (ItemStack stack : player.inventory.mainInventory) {
+            if (stack != null && GTSRItemList.SteamEntangledSingularity.isStackEqual(stack, false, true)) {
+                found += stack.stackSize;
+            }
+        }
+        if (found < count) return false;
+
+        int remaining = count;
+        for (int i = 0; i < player.inventory.mainInventory.length && remaining > 0; i++) {
+            ItemStack stack = player.inventory.mainInventory[i];
+            if (stack != null && GTSRItemList.SteamEntangledSingularity.isStackEqual(stack, false, true)) {
+                int toConsume = Math.min(remaining, stack.stackSize);
+                stack.stackSize -= toConsume;
+                remaining -= toConsume;
+                if (stack.stackSize <= 0) {
+                    player.inventory.mainInventory[i] = null;
+                }
+            }
+        }
+        player.inventoryContainer.detectAndSendChanges();
+        return true;
     }
 }

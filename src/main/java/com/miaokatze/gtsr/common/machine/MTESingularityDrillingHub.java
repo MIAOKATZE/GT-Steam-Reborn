@@ -21,6 +21,7 @@ import net.minecraft.util.StatCollector;
 import net.minecraft.world.World;
 import net.minecraftforge.common.DimensionManager;
 import net.minecraftforge.common.util.ForgeDirection;
+import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
 
 import com.gtnewhorizon.structurelib.alignment.IAlignmentLimits;
@@ -64,8 +65,9 @@ public class MTESingularityDrillingHub extends MTESteamMultiBase<MTESingularityD
     private static final int VERTICAL_OFF_SET = 10;
     private static final int DEPTH_OFF_SET = 0;
 
-    private static final int BASE_STEAM_PER_SECOND = 12_000;
-    private static final int STEAM_PER_NODE = 12_000;
+    private static final int BASE_STEAM_PER_SECOND = 8_000;
+    private static final int[] DRILL_NODE_STEAM_COST = { 2_000, 6_000, 12_000, 20_000 };
+    private static final int[] MINER_NODE_STEAM_COST = { 2_000, 5_000, 12_000, 20_000 };
 
     private static IStructureDefinition<MTESingularityDrillingHub> STRUCTURE_DEFINITION = null;
 
@@ -271,17 +273,12 @@ public class MTESingularityDrillingHub extends MTESteamMultiBase<MTESingularityD
 
     @Override
     public CheckRecipeResult checkProcessing() {
-        int activeNodeCount = 0;
-        for (BoundDrillNode node : mBoundNodes) {
-            if (node.isActive) activeNodeCount++;
-        }
-
-        int totalCost = BASE_STEAM_PER_SECOND + activeNodeCount * STEAM_PER_NODE;
-
-        FluidStack steamStack = Materials.Steam.getGas(totalCost);
-        if (!depleteInput(steamStack)) {
+        // Must have superheated steam to run
+        if (!hasSuperheatedSteamInHatch()) {
             return CheckRecipeResultRegistry.NO_RECIPE;
         }
+
+        int totalCost = BASE_STEAM_PER_SECOND;
 
         for (BoundDrillNode node : mBoundNodes) {
             if (!node.isActive) continue;
@@ -299,8 +296,21 @@ public class MTESingularityDrillingHub extends MTESteamMultiBase<MTESingularityD
             }
 
             if (gte.getMetaTileEntity() instanceof MTERemoteWorkerNode workerNode) {
-                workerNode.doWork(gte);
+                if (!workerNode.isActivelyWorking()) continue;
+                if (node.isMiner) {
+                    int tier = Math.min(workerNode.getDrillTier(), MINER_NODE_STEAM_COST.length - 1);
+                    totalCost += MINER_NODE_STEAM_COST[tier];
+                } else {
+                    int tier = Math.min(workerNode.getDrillTier(), DRILL_NODE_STEAM_COST.length - 1);
+                    totalCost += DRILL_NODE_STEAM_COST[tier];
+                }
+                // Nodes manage their own work cycles via onPostTick; hub only consumes steam
             }
+        }
+
+        FluidStack steamStack = FluidRegistry.getFluidStack("ic2superheatedsteam", totalCost);
+        if (steamStack == null || !depleteInput(steamStack)) {
+            return CheckRecipeResultRegistry.NO_RECIPE;
         }
 
         mMaxProgresstime = 20;
@@ -309,17 +319,39 @@ public class MTESingularityDrillingHub extends MTESteamMultiBase<MTESingularityD
         return CheckRecipeResultRegistry.SUCCESSFUL;
     }
 
+    /**
+     * Override to prevent MTESteamMultiBaseMixin's superheated steam 4x speed boost.
+     * The drilling hub requires superheated steam but does NOT get speed boost from it.
+     * Steam consumption is handled entirely by checkProcessing(), so onRunningTick
+     * only needs to push cooling products.
+     */
+    @Override
+    public boolean onRunningTick(ItemStack aStack) {
+        // Steam is consumed in checkProcessing() via depleteInput().
+        // No 4x speed boost, no additional steam consumption here.
+        // Just push cooling products (handled by the mixin's gtsr$pushCoolingProducts).
+        return true;
+    }
+
     @Override
     public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
         super.onPostTick(aBaseMetaTileEntity, aTick);
         if (!aBaseMetaTileEntity.isServerSide() || !mMachine) return;
 
         mBoundNodeCount = mBoundNodes.size();
-        int activeNodeCount = 0;
+        int totalCost = BASE_STEAM_PER_SECOND;
         for (BoundDrillNode node : mBoundNodes) {
-            if (node.isActive) activeNodeCount++;
+            if (!node.isActive) continue;
+            boolean working = resolveNodeWorking(node);
+            if (!working) continue;
+            int tier = resolveNodeTier(node);
+            if (node.isMiner) {
+                totalCost += MINER_NODE_STEAM_COST[Math.min(tier, MINER_NODE_STEAM_COST.length - 1)];
+            } else {
+                totalCost += DRILL_NODE_STEAM_COST[Math.min(tier, DRILL_NODE_STEAM_COST.length - 1)];
+            }
         }
-        mSteamCost = BASE_STEAM_PER_SECOND + activeNodeCount * STEAM_PER_NODE;
+        mSteamCost = totalCost;
         mIsSuperheated = hasSuperheatedSteamInHatch();
 
         if (aTick % 20 == 0) {
@@ -514,6 +546,30 @@ public class MTESingularityDrillingHub extends MTESteamMultiBase<MTESingularityD
         return "miner";
     }
 
+    private int resolveNodeTier(BoundDrillNode node) {
+        World world = DimensionManager.getWorld(node.dimensionId);
+        if (world == null || !world.blockExists(node.x, node.y, node.z)) return 0;
+        TileEntity te = world.getTileEntity(node.x, node.y, node.z);
+        if (te instanceof IGregTechTileEntity gte) {
+            if (gte.getMetaTileEntity() instanceof MTERemoteWorkerNode workerNode) {
+                return workerNode.getDrillTier();
+            }
+        }
+        return 0;
+    }
+
+    private boolean resolveNodeWorking(BoundDrillNode node) {
+        World world = DimensionManager.getWorld(node.dimensionId);
+        if (world == null || !world.blockExists(node.x, node.y, node.z)) return false;
+        TileEntity te = world.getTileEntity(node.x, node.y, node.z);
+        if (te instanceof IGregTechTileEntity gte) {
+            if (gte.getMetaTileEntity() instanceof MTERemoteWorkerNode workerNode) {
+                return workerNode.isActivelyWorking();
+            }
+        }
+        return false;
+    }
+
     private void sendBindingDebug(EntityPlayer aPlayer) {
         GTUtility.sendChatToPlayer(aPlayer, StatCollector.translateToLocal("gtsr.drilling.debug_title"));
         if (mBoundNodes.isEmpty()) {
@@ -634,10 +690,10 @@ public class MTESingularityDrillingHub extends MTESteamMultiBase<MTESingularityD
                     + " "
                     + GTUtility.formatNumbers(BASE_STEAM_PER_SECOND)
                     + " + "
-                    + GTUtility.formatNumbers(STEAM_PER_NODE)
-                    + "×N L/s")
+                    + StatCollector.translateToLocal("gtsr.tooltip.singularity_hub.node_cost_desc"))
             .addInfo(
-                EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.tooltip.shared.superheated_quadruples"))
+                EnumChatFormatting.RED
+                    + StatCollector.translateToLocal("gtsr.tooltip.singularity_hub.superheated_required"))
             .beginStructureBlock(12, 12, 12, false)
             .addController(StatCollector.translateToLocal("gtsr.tooltip.singularity_hub.ctrl"))
             .addOtherStructurePart(
@@ -759,12 +815,13 @@ public class MTESingularityDrillingHub extends MTESteamMultiBase<MTESingularityD
                         + GTUtility.formatNumbers(mSteamCost)
                         + " L/s"
                         + EnumChatFormatting.RESET))
-            .widget(new TextWidget().setStringSupplier(() -> {
-                String steamType = mIsSuperheated ? StatCollector.translateToLocal("gtsr.gui.steam_type.superheated")
-                    : StatCollector.translateToLocal("gtsr.gui.steam_type.normal");
-                return EnumChatFormatting.YELLOW + StatCollector.translateToLocal(
-                    "gtsr.gui.steam_type") + " " + EnumChatFormatting.YELLOW + steamType + EnumChatFormatting.RESET;
-            }))
+            .widget(
+                new TextWidget().setStringSupplier(
+                    () -> EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.steam_type")
+                        + " "
+                        + EnumChatFormatting.YELLOW
+                        + StatCollector.translateToLocal("gtsr.gui.steam_type.superheated")
+                        + EnumChatFormatting.RESET))
             .widget(new FakeSyncWidget.IntegerSyncer(() -> mMaxProgresstime, val -> mMaxProgresstime = val))
             .widget(new FakeSyncWidget.IntegerSyncer(() -> mBoundNodeCount, val -> mBoundNodeCount = val))
             .widget(new FakeSyncWidget.IntegerSyncer(() -> mSteamCost, val -> mSteamCost = val))
@@ -807,7 +864,18 @@ public class MTESingularityDrillingHub extends MTESteamMultiBase<MTESingularityD
                 + EnumChatFormatting.GOLD
                 + mBoundNodes.size()
                 + EnumChatFormatting.RESET);
-        int totalCost = BASE_STEAM_PER_SECOND + activeNodeCount * STEAM_PER_NODE;
+        int totalCost = BASE_STEAM_PER_SECOND;
+        for (BoundDrillNode node : mBoundNodes) {
+            if (!node.isActive) continue;
+            boolean working = resolveNodeWorking(node);
+            if (!working) continue;
+            int tier = resolveNodeTier(node);
+            if (node.isMiner) {
+                totalCost += MINER_NODE_STEAM_COST[Math.min(tier, MINER_NODE_STEAM_COST.length - 1)];
+            } else {
+                totalCost += DRILL_NODE_STEAM_COST[Math.min(tier, DRILL_NODE_STEAM_COST.length - 1)];
+            }
+        }
         info.add(
             EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.shared.steam_cost")
                 + " "
@@ -815,12 +883,12 @@ public class MTESingularityDrillingHub extends MTESteamMultiBase<MTESingularityD
                 + GTUtility.formatNumbers(totalCost)
                 + " L/s"
                 + EnumChatFormatting.RESET);
-        String steamType = hasSuperheatedSteamInHatch()
-            ? StatCollector.translateToLocal("gtsr.gui.steam_type.superheated")
-            : StatCollector.translateToLocal("gtsr.gui.steam_type.normal");
         info.add(
-            EnumChatFormatting.YELLOW + StatCollector.translateToLocal(
-                "gtsr.gui.steam_type") + " " + EnumChatFormatting.YELLOW + steamType + EnumChatFormatting.RESET);
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.steam_type")
+                + " "
+                + EnumChatFormatting.YELLOW
+                + StatCollector.translateToLocal("gtsr.gui.steam_type.superheated")
+                + EnumChatFormatting.RESET);
         return info.toArray(new String[0]);
     }
 }
