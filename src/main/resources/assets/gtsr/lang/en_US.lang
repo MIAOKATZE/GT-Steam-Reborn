@@ -35,6 +35,7 @@ gtsr.tooltip.shared.singularity_cost=Consumes 1 Steam Entangled Singularity on f
 gtsr.tooltip.shared.hub_singularity_cost=Consumes 1 Steam Entangled Singularity when binding a node (once per node)
 gtsr.binding.no_singularity=No Steam Entangled Singularity in inventory!
 gtsr.tooltip.shared.node_bind_hint=Right-click Singularity Drilling Hub to bind
+gtsr.tooltip.shared.node_unbound=Not bound to hub
 gtsr.tooltip.shared.node_steam_cost=Node steam cost (see individual node details)
 gtsr.tooltip.shared.work_cycle=Work Cycle: 
 gtsr.tooltip.shared.8s=8s
@@ -258,10 +259,12 @@ gtsr.gui.geothermal_boiler.steam= (Steam)
 gtsr.gui.geothermal_boiler.recipe=Recipe: 1000mb Lava → 1 Obsidian + 2 Sulfur Dust
 gtsr.gui.geothermal_boiler.recipe_detail=1000mb Lava → 1 Obsidian + 2 Sulfur Dust
 gtsr.gui.geothermal_boiler.chip_tier2_warn=⚠ Overheat Chip requires Tier 2 (Steel)
+gtsr.gui.geothermal_boiler.calcification=Calcification: 
+gtsr.gui.geothermal_boiler.clear_calcification=Click to clear calcification
 
 # Geothermal Boiler Tooltip
 gtsr.tooltip.geothermal_boiler.2=Base Recipe: 1000mb Lava → 1 Obsidian + 2 Sulfur Dust (100 ticks)
-gtsr.tooltip.geothermal_boiler.input_hatch=Input Hatch (Lava)
+gtsr.tooltip.geothermal_boiler.input_hatch=Input Hatch (Lava/Water)
 gtsr.tooltip.geothermal_boiler.steam_output_hatch=Steam Output Hatch
 gtsr.tooltip.geothermal_boiler.any_casing=(Any Casing)
 gtsr.tooltip.geothermal_boiler.output_bus=Steam Output Bus
@@ -378,8 +381,8 @@ gtsr.binding.debug_no_bindings=No bound nodes
 gtsr.binding.debug_no_chip=Bound, but chip missing
 gtsr.binding.debug_node=Node: 
 gtsr.binding.debug_mode=Mode: 
-gtsr.binding.debug_output=To Hub
-gtsr.binding.debug_input=From Hub
+gtsr.binding.debug_output=From Hub
+gtsr.binding.debug_input=To Hub
 gtsr.binding.debug_invalid=Invalid
 gtsr.binding.hub_bound=Bound cache node to hub
 gtsr.binding.bound_to=Bound to
@@ -410,6 +413,7 @@ gtsr.tooltip.miner_node.requires_pipe=Requires Mining Pipe to operate
 gtsr.tooltip.miner_node.upgrade_title=Upgrade Mechanism:
 gtsr.tooltip.miner_node.upgrade_desc=Enhanced I: Ore Drill I+16 Singularity | Enhanced II: Ore Drill II+32 Singularity | Enhanced III: Ore Drill III+64 Singularity
 gtsr.tooltip.miner_node.work_cycle_base=Base 8s / Enhanced I 5s / Enhanced II 3s / Enhanced III 1s
+gtsr.tooltip.miner_node.steam_cost=Steam Cost:
 gtsr.tooltip.miner_node.steam_cost_base=Base 2,000 / Enhanced I 5,000 / Enhanced II 12,000 / Enhanced III 20,000 L/s (only when working)
 
 # Singularity Drilling Node
@@ -826,6 +830,9 @@ gtsr.tooltip.coke_oven.output_hatch=Creosote Oil
 # 7. Large Geothermal Steam Boiler - missing desc keys
 gtsr.tooltip.geothermal_boiler.desc=Transfers underground lava heat through heat exchange tubes to the water chamber, producing steam via thermal convection.
 gtsr.tooltip.geothermal_boiler.heat=Heat system: heats up while running, cools down when idle, steam output proportional to heat.
+gtsr.tooltip.geothermal_boiler.water_info=Requires water input to produce steam (1mB water = 160L steam). Distilled water prevents calcification.
+gtsr.tooltip.geothermal_boiler.calcification=Continuous operation causes calcification deposits in heat exchange tubes, gradually reducing steam output (up to 70% reduction).
+gtsr.tooltip.geothermal_boiler.calcification_d=Using distilled water as working medium can prevent calcification.
 gtsr.tooltip.geothermal_boiler.chip_info=Install Geothermal Overheat Chip in controller slot (steel tier only) to switch to superheated steam output.
 gtsr.tooltip.geothermal_boiler.byproduct=Obsidian and sulfur dust can be obtained from cooled lava during the reaction process.
 gtsr.tooltip.geothermal_boiler.recipe=Base Recipe: 1000mb Lava -> 1 Obsidian + 2 Sulfur Dust (100 ticks)
@@ -984,6 +991,7 @@ gtsr.gui.singularity_compressor.status.accumulating=Accumulating
 gtsr.gui.singularity_compressor.heat=Heat
 gtsr.gui.coke_oven.temperature=Temperature
 gtsr.gui.coke_oven.status.heating=Heating
+gtsr.gui.coke_oven.status.cooling=Cooling
 gtsr.gui.coke_oven.recipe_time=Recipe Time
 gtsr.gui.siemens_martin.status.heating=Heating
 gtsr.gui.steam_hub.total_capacity=Total Capacity

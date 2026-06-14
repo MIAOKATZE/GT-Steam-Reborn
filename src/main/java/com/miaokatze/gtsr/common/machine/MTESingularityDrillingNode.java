@@ -533,7 +533,7 @@ public class MTESingularityDrillingNode extends MTERemoteWorkerNode {
                     .setStringSupplier(
                         () -> EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.drilling_node.tier")
                             + " "
-                            + EnumChatFormatting.GOLD
+                            + EnumChatFormatting.AQUA
                             + (mDrillTier == 0 ? StatCollector.translateToLocal("gtsr.gui.drilling_node.base")
                                 : StatCollector.translateToLocal("gtsr.gui.drilling_node.enhanced")
                                     + toRoman(mDrillTier)))

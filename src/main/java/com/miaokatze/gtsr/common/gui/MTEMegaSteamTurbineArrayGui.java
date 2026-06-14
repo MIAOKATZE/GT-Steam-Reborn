@@ -59,7 +59,7 @@ public class MTEMegaSteamTurbineArrayGui extends MTEMultiBlockBaseGui<MTEEnhance
             return EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.steam_type")
                 + (steamType.requiresHighTier() ? EnumChatFormatting.LIGHT_PURPLE : EnumChatFormatting.YELLOW)
                 + StatCollector.translateToLocal(steamType.nameKey)
-                + (steamType.requiresHighTier() ? EnumChatFormatting.GRAY + " (Tier 6+)" : "");
+                + (steamType.requiresHighTier() ? EnumChatFormatting.WHITE + " (Tier 6+)" : "");
         })
             .asWidget()
             .marginBottom(2)
@@ -113,7 +113,7 @@ public class MTEMegaSteamTurbineArrayGui extends MTEMultiBlockBaseGui<MTEEnhance
                     + EnumChatFormatting.AQUA
                     + (1 + stackCount)
                     + StatCollector.translateToLocal("gtsr.gui.turbine_array.groups")
-                    + EnumChatFormatting.GRAY
+                    + EnumChatFormatting.WHITE
                     + " ("
                     + (stackCount == 0 ? StatCollector.translateToLocal("gtsr.gui.turbine_array.baseline")
                         : "+" + stackCount + StatCollector.translateToLocal("gtsr.gui.turbine_array.extra"))

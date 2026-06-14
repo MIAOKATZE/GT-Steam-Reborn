@@ -576,8 +576,7 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         mPressureCoolingHatches.clear();
         eDynamoMulti.clear();
 
-        if (!checkPiece(STRUCTURE_PIECE_BASE, 6, 5, 0)) {
-            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+        if (!checkPiece(STRUCTURE_PIECE_BASE, 6, 5, 0, errors)) {
             return;
         }
 
@@ -593,8 +592,7 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         }
 
         int capB = 7 + mStackCount * 4;
-        if (!checkPiece(STRUCTURE_PIECE_CAP, 6, capB, 0)) {
-            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+        if (!checkPiece(STRUCTURE_PIECE_CAP, 6, capB, 0, errors)) {
             return;
         }
 

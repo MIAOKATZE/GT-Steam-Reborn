@@ -2,6 +2,7 @@ package com.miaokatze.gtsr.common.machine;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 
 import net.minecraft.block.Block;
 import net.minecraft.client.renderer.texture.IIconRegister;
@@ -34,6 +35,8 @@ import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.render.TextureFactory;
 import gregtech.api.util.GTModHandler;
 import gregtech.api.util.GTUtility;
+import gregtech.common.ores.OreInfo;
+import gregtech.common.ores.OreManager;
 
 public class MTESingularityMinerNode extends MTERemoteWorkerNode {
 
@@ -216,7 +219,7 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
                 .setStringSupplier(
                     () -> EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.miner_node.tier")
                         + " "
-                        + EnumChatFormatting.GOLD
+                        + EnumChatFormatting.AQUA
                         + (mMinerTier == 0 ? StatCollector.translateToLocal("gtsr.gui.miner_node.base")
                             : StatCollector.translateToLocal("gtsr.gui.miner_node.enhanced") + toRoman(mMinerTier)))
                 .setDefaultColor(0xFFFFFFFF)
@@ -307,20 +310,28 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
             return;
         }
 
-        int fortune = GTUtility.isOre(block, meta)
-            ? (meta >= SMALL_ORE_META_OFFSET ? FORTUNE_SMALL[mMinerTier] : FORTUNE_NORMAL[mMinerTier])
-            : 0;
+        // Fortune: force isNatural=true for GT ores to bypass the adapter's fortune=0 restriction.
+        // In GTNH, world ores have isNatural=false (meta 0-7999 range) due to how
+        // TileEntityReplacementManager handles chunk loading. Since our machine mines
+        // naturally generated ores, we force isNatural=true before getting drops.
+        // Non-GT ores (vanilla/other mods) use block.getDrops() with fortune directly.
+        int fortune = meta >= SMALL_ORE_META_OFFSET ? FORTUNE_SMALL[mMinerTier] : FORTUNE_NORMAL[mMinerTier];
 
-        // Enable fortune for GT ore drops:
-        // 1. Set TileEntityOres.shouldFortune=true (reflection, protected static field)
-        // 2. Set TileEntityOres.mNatural=true on the ore's TileEntity (defaults false until breakBlock)
-        boolean prevShouldFortune = setOreFortuneFlag(fortune > 0);
-        boolean prevNatural = setOreNaturalFlag(world, oreX, oreY, oreZ, true);
-        ArrayList<ItemStack> drops = block.getDrops(world, oreX, oreY, oreZ, meta, fortune);
-        setOreNaturalFlag(world, oreX, oreY, oreZ, prevNatural);
-        setOreFortuneFlag(prevShouldFortune);
+        ArrayList<ItemStack> drops;
+        try (OreInfo<?> info = OreManager.getOreInfo(block, meta)) {
+            if (info != null) {
+                boolean origNatural = info.isNatural;
+                info.isNatural = true;
+                drops = OreManager.getAdapter(info)
+                    .getOreDrops(ThreadLocalRandom.current(), info, false, fortune);
+                info.isNatural = origNatural;
+            } else {
+                drops = block.getDrops(world, oreX, oreY, oreZ, meta, fortune);
+            }
+        }
 
-        GTUtility.eraseBlockByFakePlayer(getFakePlayer(aBaseMetaTileEntity), oreX, oreY, oreZ, false);
+        // Remove the block from the world
+        world.setBlockToAir(oreX, oreY, oreZ);
 
         if (drops != null) {
             for (ItemStack drop : drops) {
@@ -343,24 +354,43 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
         int y = aBaseMetaTileEntity.getYCoord();
         int z = aBaseMetaTileEntity.getZCoord();
         World world = aBaseMetaTileEntity.getWorld();
-        int depthY = y + mTipDepth;
         int radius = MINING_RADIUS[mMinerTier];
 
-        for (int dz = -radius; dz <= radius; dz++) {
-            for (int dx = -radius; dx <= radius; dx++) {
-                int oreX = x + dx;
-                int oreZ = z + dz;
+        // Scan all layers from the node position down to the pipe tip
+        for (int dy = mTipDepth; dy <= 0; dy++) {
+            int scanY = y + dy;
+            for (int dz = -radius; dz <= radius; dz++) {
+                for (int dx = -radius; dx <= radius; dx++) {
+                    int oreX = x + dx;
+                    int oreZ = z + dz;
 
-                Block block = world.getBlock(oreX, depthY, oreZ);
-                if (block == null || block == Blocks.air
-                    || block == Blocks.bedrock
-                    || GTUtility.getBlockHardnessAt(world, oreX, depthY, oreZ) < 0) {
-                    continue;
-                }
+                    Block block = world.getBlock(oreX, scanY, oreZ);
+                    if (block == null || block == Blocks.air
+                        || block == Blocks.bedrock
+                        || GTUtility.getBlockHardnessAt(world, oreX, scanY, oreZ) < 0) {
+                        continue;
+                    }
 
-                int meta = world.getBlockMetadata(oreX, depthY, oreZ);
-                if (GTUtility.isOre(block, meta)) {
-                    mOrePositions.add(new ChunkCoordinates(dx, mTipDepth, dz));
+                    int meta = world.getBlockMetadata(oreX, scanY, oreZ);
+
+                    // Two-tier ore detection:
+                    // 1. GTUtility.isOre() - matches GT5U's MTEMiner behavior.
+                    // Finds natural GT ores and Ore Dictionary ores (vanilla, other mods).
+                    // Returns false for non-natural GT ores (player-placed, meta < 8000).
+                    // 2. OreManager.getOreInfo() fallback - catches non-natural GT ores
+                    // that GTUtility.isOre() misses (player-placed GT ores).
+                    boolean isOreBlock = GTUtility.isOre(block, meta);
+                    if (!isOreBlock) {
+                        try (OreInfo<?> info = OreManager.getOreInfo(block, meta)) {
+                            if (info != null) {
+                                isOreBlock = true;
+                            }
+                        }
+                    }
+
+                    if (isOreBlock) {
+                        mOrePositions.add(new ChunkCoordinates(dx, dy, dz));
+                    }
                 }
             }
         }
@@ -411,15 +441,20 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
             }
         }
 
-        int fortune = GTUtility.isOre(targetBlock, targetMeta)
-            ? (targetMeta >= SMALL_ORE_META_OFFSET ? FORTUNE_SMALL[mMinerTier] : FORTUNE_NORMAL[mMinerTier])
-            : 0;
+        int fortune = targetMeta >= SMALL_ORE_META_OFFSET ? FORTUNE_SMALL[mMinerTier] : FORTUNE_NORMAL[mMinerTier];
         if (targetBlock != null && targetBlock != Blocks.air && targetBlock != Blocks.bedrock) {
-            boolean prevShouldFortune = setOreFortuneFlag(fortune > 0);
-            boolean prevNatural = setOreNaturalFlag(world, x, targetY, z, true);
-            ArrayList<ItemStack> drops = targetBlock.getDrops(world, x, targetY, z, targetMeta, fortune);
-            setOreNaturalFlag(world, x, targetY, z, prevNatural);
-            setOreFortuneFlag(prevShouldFortune);
+            ArrayList<ItemStack> drops;
+            try (OreInfo<?> info = OreManager.getOreInfo(targetBlock, targetMeta)) {
+                if (info != null) {
+                    boolean origNatural = info.isNatural;
+                    info.isNatural = true;
+                    drops = OreManager.getAdapter(info)
+                        .getOreDrops(ThreadLocalRandom.current(), info, false, fortune);
+                    info.isNatural = origNatural;
+                } else {
+                    drops = targetBlock.getDrops(world, x, targetY, z, targetMeta, fortune);
+                }
+            }
             MTESingularityDrillingHub hub = getBoundHub();
             if (drops != null && hub != null) {
                 for (ItemStack drop : drops) {
@@ -585,7 +620,7 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
 
         String tierText = EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.miner_node.tier")
             + ": "
-            + EnumChatFormatting.GOLD
+            + EnumChatFormatting.AQUA
             + (mMinerTier == 0 ? StatCollector.translateToLocal("gtsr.gui.miner_node.base")
                 : StatCollector.translateToLocal("gtsr.gui.miner_node.enhanced") + toRoman(mMinerTier));
 
@@ -716,44 +751,16 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
     }
 
     /**
-     * Sets TileEntityOres.shouldFortune via reflection (protected static field).
-     * Returns the previous value.
+     * Determines if the given block+meta is a natural ore (eligible for fortune).
+     * For GT ores, checks OreInfo.isNatural (natural ores have meta >= 8000).
+     * For non-GT ores (vanilla/other mods), falls back to GTUtility.isOre() via Ore Dictionary.
      */
-    private static boolean setOreFortuneFlag(boolean value) {
-        try {
-            var field = Class.forName("gregtech.common.blocks.TileEntityOres")
-                .getDeclaredField("shouldFortune");
-            field.setAccessible(true);
-            boolean prev = field.getBoolean(null);
-            field.setBoolean(null, value);
-            return prev;
-        } catch (Exception e) {
-            return false;
+    private boolean isNaturalOre(Block block, int meta) {
+        try (OreInfo<?> info = OreManager.getOreInfo(block, meta)) {
+            if (info != null) return info.isNatural;
         }
-    }
-
-    /**
-     * Sets TileEntityOres.mNatural on the ore TileEntity at the given position.
-     * GT ores default mNatural=false until breakBlock is called, which prevents fortune from working.
-     * Returns the previous value.
-     */
-    private static boolean setOreNaturalFlag(World world, int x, int y, int z, boolean value) {
-        try {
-            var te = world.getTileEntity(x, y, z);
-            if (te != null && te.getClass()
-                .getName()
-                .equals("gregtech.common.blocks.TileEntityOres")) {
-                var field = te.getClass()
-                    .getDeclaredField("mNatural");
-                field.setAccessible(true);
-                boolean prev = field.getBoolean(te);
-                field.setBoolean(te, value);
-                return prev;
-            }
-        } catch (Exception e) {
-            // ignore
-        }
-        return false;
+        // Non-GT ores (vanilla iron/gold/coal, other mod ores) are always "natural"
+        return GTUtility.isOre(block, meta);
     }
 
     private boolean consumeSingularityItems(EntityPlayer player, int count) {

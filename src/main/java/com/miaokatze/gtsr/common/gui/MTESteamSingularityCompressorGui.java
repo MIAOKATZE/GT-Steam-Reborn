@@ -54,7 +54,7 @@ public class MTESteamSingularityCompressorGui extends MTESteamMultiBlockBaseGui 
                     statusColor = EnumChatFormatting.YELLOW;
                 } else {
                     statusKey = "gtsr.gui.status.idle";
-                    statusColor = EnumChatFormatting.GRAY;
+                    statusColor = EnumChatFormatting.WHITE;
                 }
                 return EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.status")
                     + " "

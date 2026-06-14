@@ -96,7 +96,7 @@ public class MTESteamHubArrayGui extends MTEMultiBlockBaseGui<MTEEnhancedMultiBl
                     chipText = EnumChatFormatting.GREEN
                         + StatCollector.translateToLocal("gtsr.gui.chip.singularity_installed");
                 } else {
-                    chipText = EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.gui.chip.none");
+                    chipText = EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.gui.chip.none");
                 }
                 return EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.chip")
                     + " "
@@ -109,7 +109,7 @@ public class MTESteamHubArrayGui extends MTEMultiBlockBaseGui<MTEEnhancedMultiBl
             .child(IKey.dynamic(() -> {
                 String status = mMaxProgresstimeSync.getValue() > 0
                     ? EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.gui.status.running")
-                    : EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.gui.status.idle");
+                    : EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.gui.status.idle");
                 return EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.status")
                     + " "
                     + status

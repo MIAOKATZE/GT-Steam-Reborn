@@ -73,13 +73,13 @@ public class MTEKineticProcessingArrayGui extends MTEMultiBlockBaseGui<MTEEnhanc
             return EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.kinetic_array.tier")
                 + EnumChatFormatting.GREEN
                 + GTValues.VN[machineTier > 0 && machineTier < GTValues.VN.length ? machineTier : 0]
-                + EnumChatFormatting.GRAY
+                + EnumChatFormatting.WHITE
                 + " ("
                 + StatCollector.translateToLocal("gtsr.gui.kinetic_array.voltage_cap")
                 + " "
                 + EnumChatFormatting.YELLOW
                 + GTValues.VN[casingTier > 0 && casingTier < GTValues.VN.length ? casingTier : 0]
-                + EnumChatFormatting.GRAY
+                + EnumChatFormatting.WHITE
                 + ")";
         })
             .asWidget()
@@ -121,7 +121,7 @@ public class MTEKineticProcessingArrayGui extends MTEMultiBlockBaseGui<MTEEnhanc
                     () -> EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.kinetic_array.parallel")
                         + EnumChatFormatting.LIGHT_PURPLE
                         + mParallelCountSync.getValue()
-                        + EnumChatFormatting.GRAY
+                        + EnumChatFormatting.WHITE
                         + "/"
                         + EnumChatFormatting.YELLOW
                         + maxParallelSync.getValue())

@@ -35,6 +35,7 @@ gtsr.tooltip.shared.singularity_cost=首次绑定枢纽时消耗1个蒸汽纠缠
 gtsr.tooltip.shared.hub_singularity_cost=绑定节点时消耗1个蒸汽纠缠奇点（每个节点仅消耗一次）
 gtsr.binding.no_singularity=背包中没有蒸汽纠缠奇点！
 gtsr.tooltip.shared.node_bind_hint=右击奇点钻井枢纽绑定
+gtsr.tooltip.shared.node_unbound=未绑定枢纽
 gtsr.tooltip.shared.node_steam_cost=节点蒸汽消耗（详见各节点说明）
 gtsr.tooltip.shared.work_cycle=工作周期: 
 gtsr.tooltip.shared.8s=8秒
@@ -258,10 +259,12 @@ gtsr.gui.geothermal_boiler.steam= (蒸汽)
 gtsr.gui.geothermal_boiler.recipe=配方: 1000mb 岩浆 → 1 黑曜石 + 2 硫粉
 gtsr.gui.geothermal_boiler.recipe_detail=1000mb 岩浆 → 1 黑曜石 + 2 硫粉
 gtsr.gui.geothermal_boiler.chip_tier2_warn=⚠ 过热芯片需要等级2 (钢)
+gtsr.gui.geothermal_boiler.calcification=结垢: 
+gtsr.gui.geothermal_boiler.clear_calcification=点击清除结垢
 
 # Geothermal Boiler Tooltip
 gtsr.tooltip.geothermal_boiler.2=基础配方: 1000mb 岩浆 → 1 黑曜石 + 2 硫粉 (100 tick)
-gtsr.tooltip.geothermal_boiler.input_hatch=输入仓 (岩浆)
+gtsr.tooltip.geothermal_boiler.input_hatch=输入仓 (岩浆/水)
 gtsr.tooltip.geothermal_boiler.steam_output_hatch=蒸汽输出仓
 gtsr.tooltip.geothermal_boiler.any_casing=(任意外壳位置)
 gtsr.tooltip.geothermal_boiler.output_bus=蒸汽输出总线
@@ -378,8 +381,8 @@ gtsr.binding.debug_no_bindings=无绑定节点
 gtsr.binding.debug_no_chip=已绑定，但缺少芯片
 gtsr.binding.debug_node=节点: 
 gtsr.binding.debug_mode=模式: 
-gtsr.binding.debug_output=向枢纽输入
-gtsr.binding.debug_input=从枢纽输出
+gtsr.binding.debug_output=从枢纽输出
+gtsr.binding.debug_input=向枢纽输入
 gtsr.binding.debug_invalid=失效
 gtsr.binding.hub_bound=已绑定缓存节点到枢纽
 gtsr.binding.bound_to=已绑定到
@@ -410,6 +413,7 @@ gtsr.tooltip.miner_node.requires_pipe=需要采矿管道才能工作
 gtsr.tooltip.miner_node.upgrade_title=升级机制:
 gtsr.tooltip.miner_node.upgrade_desc=强化I: 矿石钻井场I+16奇点 | 强化II: 矿石钻井场II+32奇点 | 强化III: 矿石钻井场III+64奇点
 gtsr.tooltip.miner_node.work_cycle_base=基础8s / 强化I 5s / 强化II 3s / 强化III 1s
+gtsr.tooltip.miner_node.steam_cost=蒸汽消耗:
 gtsr.tooltip.miner_node.steam_cost_base=基础2,000 / 强化I 5,000 / 强化II 12,000 / 强化III 20,000 L/s（仅工作中消耗）
 
 # Singularity Drilling Node
@@ -871,6 +875,9 @@ gtsr.tooltip.coke_oven.output_hatch=杂酚油
 # 7. Large Geothermal Steam Boiler - missing desc keys
 gtsr.tooltip.geothermal_boiler.desc=将地下熔岩热量通过热交换管束传递至水室，利用热对流效应持续产出蒸汽。
 gtsr.tooltip.geothermal_boiler.heat=热量系统: 运行时升温，闲置时降温，蒸汽产出与热量成正比。
+gtsr.tooltip.geothermal_boiler.water_info=需要输入水来产生蒸汽（1mB水 = 160L蒸汽），蒸馏水可避免结垢。
+gtsr.tooltip.geothermal_boiler.calcification=持续运行会导致热交换管结垢沉积，逐步降低蒸汽产出效率（最高降低70%）。
+gtsr.tooltip.geothermal_boiler.calcification_d=使用蒸馏水作为工作介质可避免结垢发生。
 gtsr.tooltip.geothermal_boiler.chip_info=可在控制器槽位安装地热过热芯片（仅钢级可用），切换为过热蒸汽输出。
 gtsr.tooltip.geothermal_boiler.byproduct=机器可以从反应过程冷却的岩浆中获取黑曜石和硫粉等产物。
 gtsr.tooltip.geothermal_boiler.recipe=基础配方：1000mb岩浆 → 1黑曜石 + 2硫粉（100 tick）
@@ -1004,6 +1011,7 @@ gtsr.gui.singularity_compressor.status.accumulating=蓄热中
 gtsr.gui.singularity_compressor.heat=热量
 gtsr.gui.coke_oven.temperature=炉温
 gtsr.gui.coke_oven.status.heating=升温中
+gtsr.gui.coke_oven.status.cooling=降温中
 gtsr.gui.coke_oven.recipe_time=配方时间
 gtsr.gui.siemens_martin.status.heating=升温中
 gtsr.gui.steam_hub.total_capacity=总容量

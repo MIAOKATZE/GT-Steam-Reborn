@@ -71,11 +71,11 @@ public class MTELargeCokeOvenGui extends MTEMultiBlockBaseGui<MTEEnhancedMultiBl
                     statusKey = "gtsr.gui.status.running";
                     statusColor = EnumChatFormatting.AQUA;
                 } else if (mHeatSync.getValue() > 0) {
-                    statusKey = "gtsr.gui.coke_oven.status.heating";
-                    statusColor = EnumChatFormatting.GREEN;
+                    statusKey = "gtsr.gui.coke_oven.status.cooling";
+                    statusColor = EnumChatFormatting.BLUE;
                 } else {
                     statusKey = "gtsr.gui.status.idle";
-                    statusColor = EnumChatFormatting.GRAY;
+                    statusColor = EnumChatFormatting.WHITE;
                 }
                 return EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.status")
                     + " "
@@ -98,7 +98,7 @@ public class MTELargeCokeOvenGui extends MTEMultiBlockBaseGui<MTEEnhancedMultiBl
                         + EnumChatFormatting.RESET;
                 }
                 return EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.coke_oven.recipe_time")
-                    + EnumChatFormatting.GRAY
+                    + EnumChatFormatting.WHITE
                     + "-"
                     + EnumChatFormatting.RESET;
             })

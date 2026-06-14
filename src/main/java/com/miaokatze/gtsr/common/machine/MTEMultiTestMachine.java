@@ -156,9 +156,10 @@ public class MTEMultiTestMachine extends MTEEnhancedMultiBlockBase<MTEMultiTestM
     public void checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack, List<StructureError> errors) {
         mCasingAmount = 0;
         // 检查结构并验证仓室 (偏移量 1, 1, 0 对应底层中心)
-        if (!(checkPiece(STRUCTURE_PIECE_MAIN, 1, 1, 0) && mCasingAmount >= 8
-            && mMaintenanceHatches.size() > 0
-            && mEnergyHatches.size() > 0)) {
+        if (!checkPiece(STRUCTURE_PIECE_MAIN, 1, 1, 0, errors)) {
+            return;
+        }
+        if (mCasingAmount < 8 || mMaintenanceHatches.isEmpty() || mEnergyHatches.isEmpty()) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
         }
     }

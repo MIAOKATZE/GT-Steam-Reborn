@@ -62,6 +62,7 @@ import gregtech.api.recipe.check.CheckRecipeResultRegistry;
 import gregtech.api.render.TextureFactory;
 import gregtech.api.structure.error.StructureError;
 import gregtech.api.structure.error.StructureErrorRegistry;
+import gregtech.api.util.GTModHandler;
 import gregtech.api.util.GTOreDictUnificator;
 import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.common.blocks.BlockCasings1;
@@ -93,7 +94,7 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
 
     private static final double HEAT_UP_BRONZE = 0.00006d;
     private static final double HEAT_UP_STEEL = 0.00003d;
-    private static final double HEAT_DOWN = 0.00006d;
+    private static final double HEAT_DOWN = 0.002d;
     private static final double HEAT_UP_CHIP = 0.00001d;
 
     private static final int MAX_OUTPUT_BRONZE = 60_000;
@@ -105,6 +106,13 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
     private static final int OVERHEAT_CHIP_RECIPE_TIME = 80;
 
     private static final int LAVA_PER_RECIPE = 1000;
+
+    private static final double CALCIFICATION_DECAY_FACTOR = 2.333d;
+    private static final int STEAM_PER_WATER = 160;
+    private static final long CALCIFICATION_DELAY_TICKS = 72_000L;
+
+    public double mCalcification = 0.0d;
+    public long mRunningTicks = 0L;
 
     private final ArrayList<MTESteamOutputHatch> mSteamOutputHatches = new ArrayList<>();
     private final ArrayList<MTEPressureSteamOutputHatch> mPressureSteamOutputHatches = new ArrayList<>();
@@ -356,8 +364,7 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
         mSteamOutputHatches.clear();
         mPressureSteamOutputHatches.clear();
 
-        if (!checkPiece(STRUCTURE_PIECE_MAIN, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET)) {
-            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+        if (!checkPiece(STRUCTURE_PIECE_MAIN, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET, errors)) {
             return;
         }
         if (mSetTier <= 0) {
@@ -476,6 +483,11 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
         return (int) (BASE_RECIPE_TIME * multiplier);
     }
 
+    private long getCalcificationFullTime() {
+        // Bronze: 10 hours, Steel: 5 hours
+        return mSetTier == 1 ? 10L * 3600 * 20 : 5L * 3600 * 20;
+    }
+
     @Override
     public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
         super.onPostTick(aBaseMetaTileEntity, aTick);
@@ -492,23 +504,72 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
             if (isRunning) {
                 double rate = hasOverheatChip() ? HEAT_UP_CHIP : (mSetTier == 1 ? HEAT_UP_BRONZE : HEAT_UP_STEEL);
                 mHeat = Math.min(1.0d, mHeat + rate);
-            } else if (mStartUpCheck <= 0) {
+            } else if (mMachine || mStartUpCheck <= 0) {
+                // Cool down when structure is valid but idle, or after grace period when broken
                 mHeat = Math.max(0.0d, mHeat - HEAT_DOWN);
             }
         }
 
-        if (aTick % 20 == 0 && mHeat > 0.0d && mMaxProgresstime > 0) {
+        // Steam generation from water (independent of lava recipe)
+        if (aTick % 20 == 0 && mMachine && mHeat > 0.01d) {
             int maxOutput = mSetTier == 1 ? MAX_OUTPUT_BRONZE : MAX_OUTPUT_STEEL;
-            int steamOutput = (int) (maxOutput * mHeat);
-            mCurrentSteamOutput = steamOutput;
+            boolean producedSteam = false;
 
-            if (steamOutput > 0) {
-                boolean isSuperheated = hasOverheatChip();
-                FluidStack steam = isSuperheated ? FluidRegistry.getFluidStack("ic2superheatedsteam", steamOutput)
-                    : Materials.Steam.getGas(steamOutput);
-                distributeSteam(steam);
+            for (MTEHatch h : mInputHatches) {
+                if (h instanceof MTEHatchOutput) continue;
+                FluidStack fluid = h.getFluid();
+                if (fluid == null || fluid.amount <= 0) continue;
+
+                FluidStack waterFluid = GTModHandler.getWater(1);
+                FluidStack distilledWaterFluid = GTModHandler.getDistilledWater(1);
+                boolean isWater = fluid.isFluidEqual(waterFluid);
+                boolean isDistilledWater = fluid.isFluidEqual(distilledWaterFluid);
+
+                if (!isWater && !isDistilledWater) continue;
+
+                int maxWaterNeeded = maxOutput / STEAM_PER_WATER;
+                int consumedWater = (int) (Math.min(fluid.amount, maxWaterNeeded) * mHeat
+                    / (mCalcification * CALCIFICATION_DECAY_FACTOR + 1));
+
+                if (consumedWater <= 0) continue;
+
+                FluidStack toDeplete;
+                if (isDistilledWater) {
+                    toDeplete = GTModHandler.getDistilledWater(consumedWater);
+                } else {
+                    toDeplete = GTModHandler.getWater(consumedWater);
+                }
+
+                if (depleteInput(toDeplete)) {
+                    int steamOutput = consumedWater * STEAM_PER_WATER;
+                    mCurrentSteamOutput = steamOutput;
+                    mRunningTicks += 20;
+
+                    // Calcification logic
+                    if (!isDistilledWater && mRunningTicks > CALCIFICATION_DELAY_TICKS) {
+                        long calcificationInterval = getCalcificationFullTime() / 100;
+                        if ((mRunningTicks / 20) % calcificationInterval == 0) {
+                            mCalcification = Math.min(1.0d, mCalcification + 0.01d);
+                        }
+                    }
+
+                    // Distribute steam
+                    if (steamOutput > 0) {
+                        boolean isSuperheated = hasOverheatChip();
+                        FluidStack steam = isSuperheated
+                            ? FluidRegistry.getFluidStack("ic2superheatedsteam", steamOutput)
+                            : Materials.Steam.getGas(steamOutput);
+                        distributeSteam(steam);
+                    }
+                    producedSteam = true;
+                    break;
+                }
             }
-        } else if (mMaxProgresstime <= 0) {
+
+            if (!producedSteam) {
+                mCurrentSteamOutput = 0;
+            }
+        } else if (aTick % 20 == 0 && (!mMachine || mHeat <= 0.01d)) {
             mCurrentSteamOutput = 0;
         }
     }
@@ -567,6 +628,14 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
             .widget(
                 new TextWidget().setStringSupplier(
                     () -> EnumChatFormatting.WHITE
+                        + StatCollector.translateToLocal("gtsr.gui.geothermal_boiler.calcification")
+                        + EnumChatFormatting.RED
+                        + numberFormat.format(mCalcification * 100)
+                        + "% "
+                        + EnumChatFormatting.RESET))
+            .widget(
+                new TextWidget().setStringSupplier(
+                    () -> EnumChatFormatting.WHITE
                         + StatCollector.translateToLocal("gtsr.gui.geothermal_boiler.steam_output")
                         + EnumChatFormatting.AQUA
                         + NumberFormatUtil.formatNumber(mCurrentSteamOutput)
@@ -576,6 +645,7 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
                             : StatCollector.translateToLocal("gtsr.gui.geothermal_boiler.steam"))
                         + EnumChatFormatting.RESET))
             .widget(new FakeSyncWidget.DoubleSyncer(() -> mHeat, val -> mHeat = val))
+            .widget(new FakeSyncWidget.DoubleSyncer(() -> mCalcification, val -> mCalcification = val))
             .widget(new FakeSyncWidget.IntegerSyncer(() -> mCurrentSteamOutput, val -> mCurrentSteamOutput = val));
     }
 
@@ -585,6 +655,9 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
         tt.addMachineType(StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.type"))
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.desc"))
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.heat"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.water_info"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.calcification"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.calcification_d"))
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.chip_info"))
             .addSeparator()
             .addInfo(
@@ -732,6 +805,11 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
                 + EnumChatFormatting.LIGHT_PURPLE
                 + steamOutputType);
 
+        info.add(
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.geothermal_boiler.calcification")
+                + EnumChatFormatting.RED
+                + String.format("%.1f%%", mCalcification * 100.0d));
+
         return info.toArray(new String[0]);
     }
 
@@ -740,6 +818,8 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
         super.saveNBTData(aNBT);
         aNBT.setInteger("mSetTier", mSetTier);
         aNBT.setDouble("mHeat", mHeat);
+        aNBT.setDouble("mCalcification", mCalcification);
+        aNBT.setLong("mRunningTicks", mRunningTicks);
     }
 
     @Override
@@ -747,5 +827,7 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
         super.loadNBTData(aNBT);
         mSetTier = aNBT.getInteger("mSetTier");
         mHeat = aNBT.getDouble("mHeat");
+        mCalcification = aNBT.getDouble("mCalcification");
+        mRunningTicks = aNBT.getLong("mRunningTicks");
     }
 }

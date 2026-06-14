@@ -81,7 +81,7 @@ public class MTECrustSteamBorerGui extends MTESteamMultiBlockBaseGui {
                 String oreName = lastOreSyncer.getValue();
                 return EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.crust_borer.mining")
                     + (oreName != null && !oreName.isEmpty() ? EnumChatFormatting.GREEN + oreName
-                        : EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.gui.none"));
+                        : EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.gui.none"));
             })
                 .asWidget()
                 .marginBottom(2)

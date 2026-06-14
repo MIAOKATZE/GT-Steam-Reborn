@@ -59,7 +59,7 @@ public class MTEAmmoniaPlantGui extends MTEMultiBlockBaseGui<MTEEnhancedMultiBlo
         return super.createTerminalTextWidget(syncManager, parent).child(IKey.dynamic(() -> {
             double heatPct = mHeatLevelSync.getValue() / 100.0;
             EnumChatFormatting heatColor;
-            if (heatPct <= 0) heatColor = EnumChatFormatting.GRAY;
+            if (heatPct <= 0) heatColor = EnumChatFormatting.WHITE;
             else if (heatPct < 50) heatColor = EnumChatFormatting.RED;
             else if (heatPct < 80) heatColor = EnumChatFormatting.GOLD;
             else if (heatPct < 100) heatColor = EnumChatFormatting.GREEN;
@@ -132,7 +132,7 @@ public class MTEAmmoniaPlantGui extends MTEMultiBlockBaseGui<MTEEnhancedMultiBlo
     private EnumChatFormatting getStatusColor() {
         int heatLevel = mHeatLevelSync.getValue();
         int maxProgress = mMaxProgresstimeSync.getValue();
-        if (heatLevel <= 0) return EnumChatFormatting.GRAY;
+        if (heatLevel <= 0) return EnumChatFormatting.WHITE;
         if (heatLevel < 10000) return EnumChatFormatting.GOLD;
         if (maxProgress > 0) return EnumChatFormatting.GREEN;
         return EnumChatFormatting.YELLOW;

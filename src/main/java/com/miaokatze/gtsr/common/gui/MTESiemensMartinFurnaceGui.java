@@ -72,7 +72,7 @@ public class MTESiemensMartinFurnaceGui extends MTEMultiBlockBaseGui<MTEEnhanced
                     statusColor = EnumChatFormatting.YELLOW;
                 } else {
                     statusKey = "gtsr.gui.status.idle";
-                    statusColor = EnumChatFormatting.GRAY;
+                    statusColor = EnumChatFormatting.WHITE;
                 }
                 return EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.status")
                     + " "
@@ -125,7 +125,7 @@ public class MTESiemensMartinFurnaceGui extends MTEMultiBlockBaseGui<MTEEnhanced
                 }
                 return EnumChatFormatting.YELLOW
                     + StatCollector.translateToLocal("gtsr.gui.siemens_martin.overheat_reduction")
-                    + EnumChatFormatting.GRAY
+                    + EnumChatFormatting.WHITE
                     + "0%"
                     + EnumChatFormatting.RESET;
             })
@@ -135,7 +135,7 @@ public class MTESiemensMartinFurnaceGui extends MTEMultiBlockBaseGui<MTEEnhanced
             .child(IKey.dynamic(() -> {
                 String recipeInfo = mMaxProgresstimeSync.getValue() > 0
                     ? EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.gui.siemens_martin.recipe.active")
-                    : EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.gui.siemens_martin.recipe.none");
+                    : EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.gui.siemens_martin.recipe.none");
                 return EnumChatFormatting.YELLOW + StatCollector.translateToLocal(
                     "gtsr.gui.siemens_martin.current_recipe") + " " + recipeInfo + EnumChatFormatting.RESET;
             })

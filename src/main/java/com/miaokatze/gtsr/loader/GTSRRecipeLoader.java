@@ -1065,7 +1065,7 @@ public class GTSRRecipeLoader implements Runnable {
             GTSRItemList.SteamHubOutputHatch.get(1),
             GTModHandler.RecipeBits.BITSD,
             new Object[] { "ABA", "CDC", "ABA", 'A', "screwBronze", 'B', "pipeHugeBronze", 'C', "pipeHugeBronze", 'D',
-                GTSRItemList.SteamOutputHatch.get(1) });
+                GTSRItemList.SteamOutputHatchGeneric.get(1) });
 
         GTModHandler.addCraftingRecipe(
             GTSRItemList.WaterHubInputHatch.get(1),
@@ -1077,7 +1077,7 @@ public class GTSRRecipeLoader implements Runnable {
             GTSRItemList.WaterHubOutputHatch.get(1),
             GTModHandler.RecipeBits.BITSD,
             new Object[] { "ABA", "CDC", "ABA", 'A', "screwBronze", 'B', "plateBronze", 'C', "pipeLargeBronze", 'D',
-                GTSRItemList.SteamOutputHatch.get(1) });
+                GTSRItemList.SteamOutputHatchGeneric.get(1) });
 
         GTModHandler.addCraftingRecipe(
             GTSRItemList.HubStorageUnit.get(1),

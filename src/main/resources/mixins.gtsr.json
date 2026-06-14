@@ -13,7 +13,8 @@
     "MTERockBreakerRecipeBuilderMixin",
     "MTEHatchInputMixin",
     "MTEHatchInputBusMixin",
-    "CommonMetaTileEntityMixin"
+    "CommonMetaTileEntityMixin",
+    "SteamHatchElementOutputBusMixin"
   ],
   "client": [],
   "server": []

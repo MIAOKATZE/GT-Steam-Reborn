@@ -12,12 +12,14 @@ import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.value.sync.DoubleSyncValue;
 import com.cleanroommc.modularui.value.sync.IntSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
+import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.cleanroommc.modularui.widgets.ListWidget;
 import com.gtnewhorizon.gtnhlib.util.numberformatting.NumberFormatUtil;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.machine.MTELargeGeothermalSteamBoiler;
 
 import gregtech.api.metatileentity.implementations.MTEEnhancedMultiBlockBase;
+import gregtech.api.modularui2.GTGuiTextures;
 import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
 
 public class MTELargeGeothermalSteamBoilerGui extends MTEMultiBlockBaseGui<MTEEnhancedMultiBlockBase<?>> {
@@ -25,6 +27,7 @@ public class MTELargeGeothermalSteamBoilerGui extends MTEMultiBlockBaseGui<MTEEn
     private final MTELargeGeothermalSteamBoiler boiler;
 
     private DoubleSyncValue mHeatSync;
+    private DoubleSyncValue mCalcificationSync;
     private IntSyncValue mCurrentSteamOutputSync;
     private IntSyncValue mSetTierSync;
 
@@ -44,11 +47,13 @@ public class MTELargeGeothermalSteamBoilerGui extends MTEMultiBlockBaseGui<MTEEn
     protected void registerSyncValues(PanelSyncManager syncManager) {
         super.registerSyncValues(syncManager);
         mHeatSync = new DoubleSyncValue(() -> boiler.mHeat, val -> boiler.mHeat = val);
+        mCalcificationSync = new DoubleSyncValue(() -> boiler.mCalcification, val -> boiler.mCalcification = val);
         mCurrentSteamOutputSync = new IntSyncValue(
             () -> boiler.mCurrentSteamOutput,
             val -> boiler.mCurrentSteamOutput = val);
         mSetTierSync = new IntSyncValue(() -> boiler.mSetTier, val -> boiler.mSetTier = val);
         syncManager.syncValue("geoHeat", mHeatSync);
+        syncManager.syncValue("geoCalcification", mCalcificationSync);
         syncManager.syncValue("geoSteamOutput", mCurrentSteamOutputSync);
         syncManager.syncValue("geoSetTier", mSetTierSync);
     }
@@ -77,6 +82,17 @@ public class MTELargeGeothermalSteamBoilerGui extends MTEMultiBlockBaseGui<MTEEn
             .child(
                 IKey.dynamic(
                     () -> EnumChatFormatting.WHITE
+                        + StatCollector.translateToLocal("gtsr.gui.geothermal_boiler.calcification")
+                        + EnumChatFormatting.RED
+                        + numberFormat.format(mCalcificationSync.getValue() * 100)
+                        + "% "
+                        + EnumChatFormatting.RESET)
+                    .asWidget()
+                    .marginBottom(2)
+                    .fullWidth())
+            .child(
+                IKey.dynamic(
+                    () -> EnumChatFormatting.WHITE
                         + StatCollector.translateToLocal("gtsr.gui.geothermal_boiler.steam_output")
                         + EnumChatFormatting.AQUA
                         + NumberFormatUtil.formatNumber(mCurrentSteamOutputSync.getValue())
@@ -88,6 +104,31 @@ public class MTELargeGeothermalSteamBoilerGui extends MTEMultiBlockBaseGui<MTEEn
                     .asWidget()
                     .marginBottom(2)
                     .fullWidth());
+    }
+
+    @Override
+    public ModularPanel build(com.cleanroommc.modularui.factory.PosGuiData guiData, PanelSyncManager syncManager,
+        com.cleanroommc.modularui.screen.UISettings uiSettings) {
+        ModularPanel panel = super.build(guiData, syncManager, uiSettings);
+        panel.child(
+            new ButtonWidget<>().size(16, 16)
+                .left(174)
+                .top(91)
+                .onMousePressed(mouseButton -> {
+                    if (mouseButton == 0) {
+                        boiler.mCalcification = 0;
+                        boiler.mRunningTicks = 0;
+                    }
+                    return true;
+                })
+                .overlay(GTGuiTextures.OVERLAY_BUTTON_MACHINEMODE_WASHPLANT)
+                .background(GTGuiTextures.BUTTON_STANDARD)
+                .tooltipBuilder(
+                    t -> t.addLine(
+                        EnumChatFormatting.WHITE
+                            + StatCollector.translateToLocal("gtsr.gui.geothermal_boiler.clear_calcification")
+                            + EnumChatFormatting.RESET)));
+        return panel;
     }
 
     private boolean hasOverheatChip() {

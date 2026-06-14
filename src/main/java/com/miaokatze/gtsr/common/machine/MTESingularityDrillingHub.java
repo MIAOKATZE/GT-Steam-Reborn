@@ -96,6 +96,7 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
     public int mBoundNodeCount = 0;
     public int mSteamCost = 0;
     public boolean mIsSuperheated = false;
+    public boolean mIsActivelyRunning = false;
 
     private static IIconContainer OVERLAY_OFF;
     private static IIconContainer OVERLAY_ON;
@@ -267,8 +268,7 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
     public void checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack, List<StructureError> errors) {
         mCasingCount = 0;
 
-        if (!checkPiece(STRUCTURE_PIECE_MAIN, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET)) {
-            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+        if (!checkPiece(STRUCTURE_PIECE_MAIN, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET, errors)) {
             return;
         }
 
@@ -290,50 +290,10 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
 
     @Override
     public CheckRecipeResult checkProcessing() {
-        // Must have superheated steam to run
-        if (!hasSuperheatedSteamInHatch()) {
-            return CheckRecipeResultRegistry.NO_RECIPE;
-        }
-
-        int totalCost = BASE_STEAM_PER_SECOND;
-
-        for (BoundDrillNode node : mBoundNodes) {
-            if (!node.isActive) continue;
-
-            World world = DimensionManager.getWorld(node.dimensionId);
-            if (world == null || !world.blockExists(node.x, node.y, node.z)) {
-                node.isActive = false;
-                continue;
-            }
-
-            TileEntity te = world.getTileEntity(node.x, node.y, node.z);
-            if (!(te instanceof IGregTechTileEntity gte)) {
-                node.isActive = false;
-                continue;
-            }
-
-            if (gte.getMetaTileEntity() instanceof MTERemoteWorkerNode workerNode) {
-                if (!workerNode.isActivelyWorking()) continue;
-                if (node.isMiner) {
-                    int tier = Math.min(workerNode.getDrillTier(), MINER_NODE_STEAM_COST.length - 1);
-                    totalCost += MINER_NODE_STEAM_COST[tier];
-                } else {
-                    int tier = Math.min(workerNode.getDrillTier(), DRILL_NODE_STEAM_COST.length - 1);
-                    totalCost += DRILL_NODE_STEAM_COST[tier];
-                }
-                // Nodes manage their own work cycles via onPostTick; hub only consumes steam
-            }
-        }
-
-        FluidStack steamStack = FluidRegistry.getFluidStack("ic2superheatedsteam", totalCost);
-        if (steamStack == null || !depleteInput(steamStack)) {
-            return CheckRecipeResultRegistry.NO_RECIPE;
-        }
-
-        mMaxProgresstime = 20;
-        mEfficiencyIncrease = 10000;
-
-        return CheckRecipeResultRegistry.SUCCESSFUL;
+        // Hub doesn't use the recipe system for steam consumption.
+        // Steam consumption and active state are handled entirely in onPostTick().
+        // Returning NO_RECIPE prevents the recipe system from interfering.
+        return CheckRecipeResultRegistry.NO_RECIPE;
     }
 
     /**
@@ -352,15 +312,19 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
 
     @Override
     public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
-        super.onPostTick(aBaseMetaTileEntity, aTick);
-        if (!aBaseMetaTileEntity.isServerSide() || !mMachine) return;
+        if (!aBaseMetaTileEntity.isServerSide() || !mMachine) {
+            super.onPostTick(aBaseMetaTileEntity, aTick);
+            return;
+        }
 
         mBoundNodeCount = mBoundNodes.size();
         int totalCost = BASE_STEAM_PER_SECOND;
+        boolean hasActiveNode = false;
         for (BoundDrillNode node : mBoundNodes) {
             if (!node.isActive) continue;
             boolean working = resolveNodeWorking(node);
             if (!working) continue;
+            hasActiveNode = true;
             int tier = resolveNodeTier(node);
             if (node.isMiner) {
                 totalCost += MINER_NODE_STEAM_COST[Math.min(tier, MINER_NODE_STEAM_COST.length - 1)];
@@ -370,6 +334,27 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
         }
         mSteamCost = totalCost;
         mIsSuperheated = hasSuperheatedSteamInHatch();
+
+        // Hub is active only when it has superheated steam AND at least one node is working.
+        // This prevents steam consumption when no nodes are actively working.
+        boolean shouldBeActive = mMachine && mIsSuperheated && hasActiveNode;
+
+        // Consume steam directly in onPostTick, independent of the recipe system.
+        if (shouldBeActive && aTick % 20 == 0) {
+            FluidStack steamStack = FluidRegistry.getFluidStack("ic2superheatedsteam", totalCost);
+            if (steamStack != null && depleteInput(steamStack)) {
+                mEfficiencyIncrease = 10000;
+            }
+        }
+
+        super.onPostTick(aBaseMetaTileEntity, aTick);
+
+        // Override active state: super.onPostTick() calls setActive(mMaxProgresstime > 0),
+        // but since checkProcessing() always returns NO_RECIPE, mMaxProgresstime stays 0.
+        // We directly set the active state based on actual working condition,
+        // which triggers scheduleTexturePacket() to sync the active texture to the client.
+        aBaseMetaTileEntity.setActive(shouldBeActive);
+        mIsActivelyRunning = shouldBeActive;
 
         if (aTick % 20 == 0) {
             transferWithBoundNodes();
@@ -799,7 +784,7 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
     protected void drawTexts(DynamicPositionedColumn screenElements, SlotWidget inventorySlot) {
         super.drawTexts(screenElements, inventorySlot);
         screenElements.widget(new TextWidget().setStringSupplier(() -> {
-            String status = mMaxProgresstime > 0
+            String status = mIsActivelyRunning
                 ? EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.gui.status.running")
                 : EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.gui.status.idle");
             return EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.status")
@@ -830,10 +815,10 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
                         + EnumChatFormatting.YELLOW
                         + StatCollector.translateToLocal("gtsr.gui.steam_type.superheated")
                         + EnumChatFormatting.RESET))
-            .widget(new FakeSyncWidget.IntegerSyncer(() -> mMaxProgresstime, val -> mMaxProgresstime = val))
             .widget(new FakeSyncWidget.IntegerSyncer(() -> mBoundNodeCount, val -> mBoundNodeCount = val))
             .widget(new FakeSyncWidget.IntegerSyncer(() -> mSteamCost, val -> mSteamCost = val))
-            .widget(new FakeSyncWidget.BooleanSyncer(() -> mIsSuperheated, val -> mIsSuperheated = val));
+            .widget(new FakeSyncWidget.BooleanSyncer(() -> mIsSuperheated, val -> mIsSuperheated = val))
+            .widget(new FakeSyncWidget.BooleanSyncer(() -> mIsActivelyRunning, val -> mIsActivelyRunning = val));
     }
 
     @Override
@@ -858,7 +843,7 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
         }
         String statusKey;
         EnumChatFormatting statusColor;
-        if (mMaxProgresstime > 0) {
+        if (mIsActivelyRunning) {
             statusKey = "gtsr.gui.status.running";
             statusColor = EnumChatFormatting.AQUA;
         } else {

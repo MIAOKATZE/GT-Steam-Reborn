@@ -25,22 +25,23 @@ public class MTESingularityDrillingHubGui extends MTESteamMultiBlockBaseGui {
     protected void registerSyncValues(PanelSyncManager syncManager) {
         super.registerSyncValues(syncManager);
         com.miaokatze.gtsr.common.machine.MTESingularityDrillingHub machine = (com.miaokatze.gtsr.common.machine.MTESingularityDrillingHub) multiblock;
-        syncManager.syncValue("gtsr.maxProgress", new IntSyncValue(() -> machine.mMaxProgresstime));
         syncManager.syncValue("gtsr.boundNodeCount", new IntSyncValue(() -> machine.mBoundNodeCount));
         syncManager.syncValue("gtsr.steamCost", new IntSyncValue(() -> machine.mSteamCost));
         syncManager.syncValue("gtsr.isSuperheated", new BooleanSyncValue(() -> machine.mIsSuperheated));
+        syncManager.syncValue("gtsr.isActivelyRunning", new BooleanSyncValue(() -> machine.mIsActivelyRunning));
     }
 
     @Override
     protected ListWidget<IWidget, ?> createTerminalTextWidget(PanelSyncManager syncManager, ModularPanel parent) {
-        IntSyncValue maxProgressSyncer = syncManager.findSyncHandler("gtsr.maxProgress", IntSyncValue.class);
         IntSyncValue boundNodeCountSyncer = syncManager.findSyncHandler("gtsr.boundNodeCount", IntSyncValue.class);
         IntSyncValue steamCostSyncer = syncManager.findSyncHandler("gtsr.steamCost", IntSyncValue.class);
+        BooleanSyncValue isActivelyRunningSyncer = syncManager
+            .findSyncHandler("gtsr.isActivelyRunning", BooleanSyncValue.class);
 
         return super.createTerminalTextWidget(syncManager, parent).child(IKey.dynamic(() -> {
-            String status = maxProgressSyncer.getValue() > 0
+            String status = Boolean.TRUE.equals(isActivelyRunningSyncer.getValue())
                 ? EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.gui.status.running")
-                : EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.gui.status.idle");
+                : EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.gui.status.idle");
             return EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.status") + " " + status;
         })
             .asWidget()

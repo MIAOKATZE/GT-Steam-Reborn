@@ -9,6 +9,7 @@ import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 import net.minecraft.world.World;
 import net.minecraftforge.common.DimensionManager;
@@ -142,7 +143,10 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity implements IAdd
             int hubZ = hubTag.getInteger("z");
             String hubType = hubTag.getString("type");
             tooltip.add(
-                translateToLocal("gtsr.binding.bound_to") + " " + hubType + " @ " + hubX + ", " + hubY + ", " + hubZ);
+                EnumChatFormatting.GREEN + translateToLocal(
+                    "gtsr.binding.bound_to") + " " + hubType + " @ " + hubX + ", " + hubY + ", " + hubZ);
+        } else {
+            tooltip.add(EnumChatFormatting.YELLOW + translateToLocal("gtsr.tooltip.shared.node_unbound"));
         }
     }
 
