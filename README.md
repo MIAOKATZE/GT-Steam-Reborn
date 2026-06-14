@@ -13,7 +13,7 @@ A GregTech New Horizons expansion mod that **supplements the Steam Age and signi
 
 | GTNH | GTSR | Maintenance / 维护 |
 |------|------|:---:|
-| 2.9.0 beta-1 | 1.7.1+ | 🔜 |
+| 2.9.0 beta-1 | 1.7.1+ | ✔️ |
 | 2.8.4 | 1.6.0 | ✔️ |
 
 ---
@@ -303,7 +303,7 @@ GTSR 添加了8个自定义 RecipeMap 和大量合成配方：
 ## Tech Stack / 技术栈
 
 - Java 8 (Jabel) / Minecraft 1.7.10 / Forge 10.13.4.1614
-- SpongePowered Mixin (7 mixin classes)
+- SpongePowered Mixin (9 mixin classes)
 - ModularUI / StructureLib
 - Dependencies: GT5U, GT++, Bartworks, EFR, Railcraft, BuildCraft
 
