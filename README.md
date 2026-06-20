@@ -5,18 +5,18 @@ A GregTech New Horizons expansion mod that **supplements the Steam Age and signi
 
 一个 GregTech New Horizons 扩展模组，**补充蒸汽时代并显著拓展蒸汽用途**，提供19台多方块蒸汽机器、5个单方块节点、13种仓室以及枢纽-节点绑定系统。它填补了 GTNH 蒸汽阶段到电力阶段之间的玩法空白，让蒸汽成为一条可行且有深度的进阶路线，而非过渡阶段。
 
-> [!NOTE]
+> \[!NOTE]
 > This is an unofficial mod. Please avoid discussing this mod in official GTNH forums.
 > 这是一个非官方模组，讨论此模组时请注意场合。
 
 ## Downloads & Requirements / 下载与版本需求
 
-| GTNH | GTSR | Maintenance / 维护 |
-|------|------|:---:|
-| 2.9.0 beta-1 | 1.7.1+ | ✔️ |
-| 2.8.4 | 1.6.0 | ✔️ |
+| GTNH         | GTSR   | Maintenance / 维护 |
+| ------------ | ------ | :--------------: |
+| 2.9.0 beta-1 | 1.7.1+ |        ✔️        |
+| 2.8.4        | 1.6.0  |        ❌️        |
 
----
+***
 
 ## Core Mechanic: Mixin Enhancements / 核心机制：Mixin 增强
 
@@ -34,7 +34,6 @@ Injects into GT++'s `MTESteamMultiBase`, the base class for all steam multiblock
 - **Cooling Hatch Support**: New cooling product distribution — superheated steam → pressure cooling hatch (1:1), normal steam → cooling water (160:1 ratio)
 - **Standard Output Bus Compatibility**: Fixes GT5U's `addOutput()` ignoring standard output buses; steam output buses are now dual-registered in both steam and standard lists
 - **Dual Steam Type Consumption**: `depleteInput()` can consume from both normal and superheated steam hatches
-
 - **过热蒸汽4倍速**：任意输入仓含过热蒸汽时，消耗×4、处理时间÷4
 - **冷却仓支持**：新增冷却产物分配——过热蒸汽→耐压冷却仓(1:1)，普通蒸汽→冷却水(160:1比率)
 - **标准输出总线兼容**：修复GT5U的`addOutput()`忽略标准输出总线的问题；蒸汽输出总线现在同时注册到蒸汽列表和标准列表
@@ -45,7 +44,6 @@ Injects into GT++'s `MTESteamMultiBase`, the base class for all steam multiblock
 - **MTEHatchCustomFluidBaseMixin**: When a fluid hatch is locked to any steam type, it accepts ALL steam types (normal/superheated/dense/supercritical). Also adds screwdriver auto-input toggle (2000L/tick from front side).
 - **MTEHatchInputMixin**: Adds 4-state orthogonal toggle (input filter × auto-input) to ALL input hatches via screwdriver right-click, plus auto-input at 2000L/tick.
 - **MTEHatchInputBusMixin**: Same 4-state toggle for ALL input buses, plus auto-input (1 stack/5 seconds from front side). Shift+click preserves original sort/limit mode.
-
 - **MTEHatchCustomFluidBaseMixin**：流体仓锁定为任意蒸汽类型时，接受所有蒸汽类型（普通/过热/致密/超临界）。还添加螺丝刀自动输入开关（2000L/tick从正面抽取）。
 - **MTEHatchInputMixin**：为所有输入仓添加螺丝刀4状态正交切换（输入过滤×自动输入），自动输入2000L/tick。
 - **MTEHatchInputBusMixin**：为所有输入总线添加相同的4状态切换，自动输入1组/5秒。Shift+右键保留原版排序/限制模式。
@@ -54,17 +52,15 @@ Injects into GT++'s `MTESteamMultiBase`, the base class for all steam multiblock
 
 - **MTEHatchSteamBusInputMixin**: Enables auto-output for steam input buses (previously blocked by GT++), excluding circuit slot.
 - **MTEHatchSteamBusOutputMixin**: Enables auto-output for steam output buses (previously returned `false`).
-
 - **MTEHatchSteamBusInputMixin**：启用蒸汽输入总线的自动输出（之前被GT++阻止），排除电路槽位。
 - **MTEHatchSteamBusOutputMixin**：启用蒸汽输出总线的自动输出（之前返回`false`）。
 
 ### Recipe Fix / 配方修正
 
 - **MTERockBreakerRecipeBuilderMixin**: Makes glowstone dust non-consumable in the Rock Breaker's Netherrack recipe (circuit 6).
-
 - **MTERockBreakerRecipeBuilderMixin**：使荧石粉在岩石破碎机的地狱岩配方（电路6）中不可消耗。
 
----
+***
 
 ## Hub-Node Binding System / 枢纽-节点绑定系统
 
@@ -82,11 +78,10 @@ Hold a node item and right-click a hub controller to bind. Singularity cost vari
 
 - **Steam/Water Hub**: Every 20 ticks, transfers fluid between hub and bound nodes at configurable rates. Screwdriver on hub toggles overflow output mode. Transfer rate adjustable via chip right-click (100%→80%→60%→...→1%→0%).
 - **Drilling Hub**: Consumes steam to drive active nodes. Miner node outputs → hub Output Bus. Drilling node outputs → hub Output Hatch.
-
 - **蒸汽/水枢纽**：每20tick在枢纽与绑定节点间传输流体，速率可配置。螺丝刀切换溢流输出模式。芯片右键调整传输速率百分比。
 - **钻井枢纽**：消耗蒸汽驱动活跃节点。采矿节点产出→枢纽输出总线。钻井节点产出→枢纽输出仓。
 
----
+***
 
 ## Multiblock Machines / 多方块机器 (19)
 
@@ -108,7 +103,7 @@ Hold a node item and right-click a hub controller to bind. Singularity cost vari
 
 蓄水枢纽阵列，青铜/钢级，接受水缓存节点，仅同维度。水/蒸馏水的中央调度站，双向接口。
 
----
+***
 
 ### Singularity Drilling Hub / 奇点钻井枢纽 (1)
 
@@ -118,11 +113,11 @@ Hold a node item and right-click a hub controller to bind. Singularity cost vari
 
 奇点钻井枢纽，仅钢级，**必须使用过热蒸汽（无加速效果）**，驱动钻井和采矿节点。蒸汽消耗随活跃节点数增长。蒸汽时代的奇迹造物：基于蒸汽纠缠奇点，蒸汽时代的造物可以遍及世界每一个角落，攫取一切所需的资源。
 
-- Base steam: 2,000 L/s + node costs (2,000~20,000 L/s per node, only when working)
+- Base steam: 2,000 L/s + node costs (2,000\~20,000 L/s per node, only when working)
 - Miner node outputs → hub Output Bus; Drilling node outputs → hub Output Hatch
 - Requires Hub Singularity Chip for node binding; right-click with node to bind/unbind
 
----
+***
 
 ### Steam Processing Machines / 蒸汽加工机器 (8)
 
@@ -134,7 +129,6 @@ All inherit from `MTESteamMultiBase` (GT++), supporting normal steam and superhe
 
 - **大型蒸汽熔炉 / Large Steam Furnace (LSF)**: Bronze/Steel, 4/12 parallel. Steam-driven industrial smelting equipment with greater parallel capacity. Work speed: 200% (Bronze) / 300% (Steel); steam efficiency: 80% / 60%.
   蒸汽驱动的工业化熔炼设备，具有更大的并行数。工作速度200%(青铜)/300%(钢)；蒸汽效率80%/60%。
-
 - **空气压缩机 / Air Compressor (AC)**: Bronze/Steel, 1/4 parallel. Produces air (or nether air in Nether dimension). Far greater speed and convenience than ordinary compressors.
   产出空气（下界维度产出下界空气），远优于普通压缩机的速度和便捷度。
 
@@ -152,10 +146,8 @@ All inherit from `MTESteamMultiBase` (GT++), supporting normal steam and superhe
 
 - **蒸汽流体钻井 / Steam Fluid Drill (SFD)**: Bronze/Steel. Produces water/distilled water/brine/lava. Screwdriver switches output mode (steel only). Brine/lava modes have 10%/0.5% efficiency.
   产水/蒸馏水/盐水/岩浆。螺丝刀切换产出模式（仅钢）。盐水/岩浆模式效率10%/0.5%。
-
 - **地壳蒸汽掘进机 / Crust Steam Borer (CSB)**: Bronze/Steel. Void mining — produces ores based on dimension drop tables. Overworld and Nether only.
   虚空采矿——按维度掉落表产出矿石。仅限主世界和下界。
-
 - **奇点地壳蒸汽掘进机 / Singularity Crust Steam Borer (SCSB)**: Steel only. Cross-dimension void mining via GT NEI Ore Plugin dimension display items.
   通过GT NEI Ore Plugin维度显示物品实现跨维度虚空采矿。
 
@@ -164,7 +156,7 @@ All inherit from `MTESteamMultiBase` (GT++), supporting normal steam and superhe
 - **地脉蒸汽热解机 / Vein Steam Pyrolyzer (VSP)**: Bronze/Steel. Reverse-injects steam energy underground to increase underground fluid reserves, solving long-term save fluid depletion. Chip T1/T2/T3 expands scan range (2×2/4×4/8×8 chunks).
   以蒸汽为能源逆向注入地下，增加地下流体储量，解决长期存档中流体枯竭问题。芯片T1/T2/T3扩展扫描范围。
 
----
+***
 
 ### Enhanced Processing Machines / 强化加工机器 (8)
 
@@ -176,7 +168,6 @@ All inherit from `MTEEnhancedMultiBlockBase` (GT5U), with more advanced mechanic
 
 - **大型焦炉 / Large Coke Oven (LCO)**: Bronze/Steel, 8/16 parallel. Self-powered coke oven with temperature acceleration — recipe time decreases as heat increases (minimum 800s). Produces coke from coal.
   无需供能的自发焦炉，温度加速——配方时间随热量增加而缩短（最低800秒）。煤炭→焦炭。
-
 - **平炉 / Siemens-Martin Furnace (SMF)**: Steel only, superheated steam, 32 parallel. A new era of mass steelmaking: reforms coal via superheated steam, produces reducing gas for steelmaking with higher efficiency and zero pollution. Temperature-based recipe time reduction. Overheat mechanism: temperature can exceed 100% (max 200%), reducing recipe time by up to 50%.
   新时代的大批量炼钢高炉：通过过热蒸汽重整煤炭，基于产生的还原性气体进行炼钢，效率更高且零污染。过热机制：炉温可突破100%（最高200%），配方时间最多削减50%。
 
@@ -207,10 +198,10 @@ All inherit from `MTEEnhancedMultiBlockBase` (GT5U), with more advanced mechanic
 
 <p align="center"><img src="README/MTEAmmoniaPlant.png" width="300"><br><em>制氨工厂 / Ammonia Plant</em></p>
 
-- **制氨工厂 / Ammonia Plant (AP)**: Steel only, 64~256 parallel. Heat-based processing with 7-tier catalyst system (Nickel→Platinum→Uranium→Osmium→FeCo→Ruthenium→Quantum). Higher catalysts = more parallel + faster reaction. Superheated steam as byproduct.
+- **制氨工厂 / Ammonia Plant (AP)**: Steel only, 64\~256 parallel. Heat-based processing with 7-tier catalyst system (Nickel→Platinum→Uranium→Osmium→FeCo→Ruthenium→Quantum). Higher catalysts = more parallel + faster reaction. Superheated steam as byproduct.
   热量系统+7级催化剂（镍→铂→铀→锇→铁钴→钌→量子）。更高级催化剂=更多并行+更快反应。过热蒸汽为副产物。
 
----
+***
 
 ## Single-Block Nodes / 单方块节点 (5)
 
@@ -234,7 +225,7 @@ Nodes that perform remote operations driven by the Singularity Drilling Hub. The
 - **奇点矿机节点 / Singularity Miner Node**: Mines ores. 4-tier upgrade system using Ore Drill multiblock controllers + singularities. Higher tiers increase mining range, fortune level, and speed. Fortune applies to both normal and small ores.
 - **奇点钻井节点 / Singularity Drilling Node**: Extracts underground fluids. 4-tier upgrade system using Oil Drill multiblock controllers + singularities. Higher tiers increase extraction coefficient and work range (1×1 to 8×8 chunks). Each chunk is independently extracted and depleted.
 
----
+***
 
 ## Hatches / 仓室 (13)
 
@@ -242,13 +233,13 @@ Specialized hatches for GTSR machines with varying capacities and fluid filters:
 
 GTSR 机器专用仓室，具有不同容量和流体过滤：
 
-- **蒸汽输入/输出仓 / Steam Input/Output Hatches**: Basic 8K~128K capacity, steam only
+- **蒸汽输入/输出仓 / Steam Input/Output Hatches**: Basic 8K\~128K capacity, steam only
 - **蒸汽冷却仓 / Steam Cooling Hatch**: 64K, accumulates cooling water (160 steam : 1 water ratio)
-- **耐压蒸汽输入/输出/冷却仓 / Pressure Steam Input/Output/Cooling Hatches**: 512K~1M capacity, accepts both normal and superheated steam
+- **耐压蒸汽输入/输出/冷却仓 / Pressure Steam Input/Output/Cooling Hatches**: 512K\~1M capacity, accepts both normal and superheated steam
 - **枢纽输入/输出仓 / Hub Input/Output Hatches**: Dynamic capacity (determined by hub controller), delegates fill/drain to hub
 - **超压轮机输入仓 / Overpressure Turbine Input Hatch**: For Mega Steam Turbine Array only, accepts all steam types
 
----
+***
 
 ## Items / 物品
 
@@ -260,7 +251,7 @@ GTSR 机器专用仓室，具有不同容量和流体过滤：
 - **矿脉裂解器芯片（T1/T2/T3）/ Vein Pyrolyzer Chip (T1/T2/T3)**: For Vein Steam Pyrolyzer — expands underground fluid scan range.
 - **制氨催化剂（7种变体）/ Ammonia Catalyst (7 variants)**: For Ammonia Plant — determines parallel count and reaction time. 7-tier progression from Nickel to Quantum.
 
----
+***
 
 ## Steam Tier System / 蒸汽等级体系
 
@@ -268,21 +259,21 @@ GTSR introduces a steam progression system that makes steam type matter:
 
 GTSR 引入了蒸汽进阶体系，让蒸汽类型具有实际意义：
 
-| Steam Type | Availability | Effect |
-|-----------|-------------|--------|
-| Normal Steam | Always available | Base fuel for SteamMultiBase machines |
-| Superheated Steam | From Gear Steam Compressor / Geothermal Boiler | 4x speed for SteamMultiBase machines; required for Drilling Hub, Siemens-Martin, Kinetic Array |
-| Dense Steam | Steam Hub tier 2+ | Higher energy density in hub system |
-| Supercritical Steam | Steam Hub tier 3 + Reinforced Chip | Highest energy density, ×10 hub capacity |
+| Steam Type          | Availability                                   | Effect                                                                                         |
+| ------------------- | ---------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Normal Steam        | Always available                               | Base fuel for SteamMultiBase machines                                                          |
+| Superheated Steam   | From Gear Steam Compressor / Geothermal Boiler | 4x speed for SteamMultiBase machines; required for Drilling Hub, Siemens-Martin, Kinetic Array |
+| Dense Steam         | Steam Hub tier 2+                              | Higher energy density in hub system                                                            |
+| Supercritical Steam | Steam Hub tier 3 + Reinforced Chip             | Highest energy density, ×10 hub capacity                                                       |
 
-| 蒸汽类型 | 获取方式 | 效果 |
-|---------|---------|------|
-| 普通蒸汽 | 始终可用 | SteamMultiBase机器的基础燃料 |
-| 过热蒸汽 | 齿轮蒸汽压缩机/地热锅炉 | SteamMultiBase机器4倍速；钻井枢纽、平炉、动力加工阵列必须使用 |
-| 致密蒸汽 | 蒸汽枢纽等级2+ | 枢纽系统中更高的能量密度 |
-| 超临界蒸汽 | 蒸汽枢纽等级3+强化芯片 | 最高能量密度，枢纽容量×10 |
+| 蒸汽类型  | 获取方式         | 效果                                     |
+| ----- | ------------ | -------------------------------------- |
+| 普通蒸汽  | 始终可用         | SteamMultiBase机器的基础燃料                  |
+| 过热蒸汽  | 齿轮蒸汽压缩机/地热锅炉 | SteamMultiBase机器4倍速；钻井枢纽、平炉、动力加工阵列必须使用 |
+| 致密蒸汽  | 蒸汽枢纽等级2+     | 枢纽系统中更高的能量密度                           |
+| 超临界蒸汽 | 蒸汽枢纽等级3+强化芯片 | 最高能量密度，枢纽容量×10                         |
 
----
+***
 
 ## Recipes / 配方系统
 
@@ -293,12 +284,11 @@ GTSR 添加了8个自定义 RecipeMap 和大量合成配方：
 - **Workbench recipes**: Basic machines (Air Compressor, Atmospheric Centrifuge, etc.), cache nodes, hatches
 - **Assembler recipes**: Advanced machines (Ammonia Plant, Singularity Compressor, etc.), chips, catalysts, nodes, overpressure components
 - **Custom RecipeMaps**: Large Coke Oven, Siemens-Martin Furnace, Ammonia Plant, Air Compressor, Atmospheric Centrifuge, Steam Singularity Compressor, Geothermal Boiler (NEI display), Steam Fluid Drill (NEI display)
-
 - **工作台配方**：基础机器（空气压缩机、空气离心机等）、缓存节点、仓室
 - **组装机配方**：高级机器（制氨工厂、蒸汽奇点压缩机等）、芯片、催化剂、节点、超压组件
 - **自定义 RecipeMap**：大型焦炉、平炉、制氨工厂、空气压缩机、空气离心机、蒸汽奇点压缩机、地热锅炉（NEI显示）、蒸汽流体钻井（NEI显示）
 
----
+***
 
 ## Tech Stack / 技术栈
 
