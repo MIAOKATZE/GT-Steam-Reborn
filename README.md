@@ -183,8 +183,8 @@ All inherit from `MTEEnhancedMultiBlockBase` (GT5U), with more advanced mechanic
 
 <p align="center"><img src="README/MTELargeSolarOverpressureArray.png" width="300"><br><em>大型太阳能超压阵列 / Large Solar Overpressure Array</em></p>
 
-- **大型太阳能超压阵列 / Large Solar Overpressure Array (LSOA)**: 3-tier (Bronze/Steel/Nickel). Produces steam from solar energy. Calcification mechanic — efficiency degrades over time, wash with screwdriver. Nether tier produces superheated steam.
-  太阳能产蒸汽。钙化机制——效率随时间降低，螺丝刀清洗。镍级产出过热蒸汽。
+- **大型太阳能超压阵列 / Large Solar Overpressure Array (LSOA)**: 3-tier (Bronze/Steel/Nickel). Produces steam from solar energy. Calcification mechanic — efficiency degrades over time. Nether tier produces superheated steam.
+  太阳能产蒸汽。钙化机制——效率随时间降低。镍级产出过热蒸汽。
 
 <p align="center"><img src="README/MTEKineticProcessingArray.png" width="300"><br><em>动力加工阵列 / Kinetic Processing Array</em></p>
 
@@ -250,28 +250,6 @@ GTSR 机器专用仓室，具有不同容量和流体过滤：
 - **稀有气体分离芯片 / Rare Gas Separation Chip**: For Atmospheric Centrifuge — unlocks recipes with >2 fluid outputs (up to 8).
 - **矿脉裂解器芯片（T1/T2/T3）/ Vein Pyrolyzer Chip (T1/T2/T3)**: For Vein Steam Pyrolyzer — expands underground fluid scan range.
 - **制氨催化剂（7种变体）/ Ammonia Catalyst (7 variants)**: For Ammonia Plant — determines parallel count and reaction time. 7-tier progression from Nickel to Quantum.
-
-***
-
-## Steam Tier System / 蒸汽等级体系
-
-GTSR introduces a steam progression system that makes steam type matter:
-
-GTSR 引入了蒸汽进阶体系，让蒸汽类型具有实际意义：
-
-| Steam Type          | Availability                                   | Effect                                                                                         |
-| ------------------- | ---------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| Normal Steam        | Always available                               | Base fuel for SteamMultiBase machines                                                          |
-| Superheated Steam   | From Gear Steam Compressor / Geothermal Boiler | 4x speed for SteamMultiBase machines; required for Drilling Hub, Siemens-Martin, Kinetic Array |
-| Dense Steam         | Steam Hub tier 2+                              | Higher energy density in hub system                                                            |
-| Supercritical Steam | Steam Hub tier 3 + Reinforced Chip             | Highest energy density, ×10 hub capacity                                                       |
-
-| 蒸汽类型  | 获取方式         | 效果                                     |
-| ----- | ------------ | -------------------------------------- |
-| 普通蒸汽  | 始终可用         | SteamMultiBase机器的基础燃料                  |
-| 过热蒸汽  | 齿轮蒸汽压缩机/地热锅炉 | SteamMultiBase机器4倍速；钻井枢纽、平炉、动力加工阵列必须使用 |
-| 致密蒸汽  | 蒸汽枢纽等级2+     | 枢纽系统中更高的能量密度                           |
-| 超临界蒸汽 | 蒸汽枢纽等级3+强化芯片 | 最高能量密度，枢纽容量×10                         |
 
 ***
 
