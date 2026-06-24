@@ -123,6 +123,20 @@ public abstract class MTEHatchInputBusMixin extends MTEHatch implements IAutoInp
         gtsr$autoInput = aNBT.getBoolean("gtsr$autoInput");
     }
 
+    /**
+     * 直接注入 MTEHatchInputBus.onPostTick (TAIL)。
+     * MTEHatchInputBus 覆写了 onPostTick 且不调用 super，因此注入到父类
+     * CommonMetaTileEntity.onPostTick 的统一调度 (CommonMetaTileEntityMixin) 对本类无效，
+     * 必须在此直接注入。MTEHatchSteamBusInput 继承本类方法，同样由此修复。
+     */
+    @Inject(method = "onPostTick", at = @At("TAIL"), remap = false)
+    private void gtsr$onPostTickAutoInput(IGregTechTileEntity aBaseMetaTileEntity, long aTimer, CallbackInfo ci) {
+        if (!aBaseMetaTileEntity.isServerSide()) return;
+        if (gtsr$autoInput) {
+            gtsr$doAutoInput(aBaseMetaTileEntity, aTimer);
+        }
+    }
+
     @Override
     public boolean gtsr$isAutoInput() {
         return gtsr$autoInput;

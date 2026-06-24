@@ -749,7 +749,7 @@ public class GTSRRecipeLoader implements Runnable {
         GTModHandler.addCraftingRecipe(
             GTSRItemList.SteamHubArray.get(1),
             GTModHandler.RecipeBits.BITSD,
-            new Object[] { "ABA", "CDC", "AEB", 'A', copperPlatedBrick, 'B', "pipeHugeBronze", 'C',
+            new Object[] { "ABA", "CDC", "EBE", 'A', copperPlatedBrick, 'B', "pipeHugeBronze", 'C',
                 get(OrePrefixes.frameGt, Materials.Bronze, 1), 'D', roseGoldFrame, 'E', "plateTripleBronze" });
 
         GTModHandler.addCraftingRecipe(
