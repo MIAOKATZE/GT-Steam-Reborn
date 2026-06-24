@@ -900,8 +900,8 @@ gtsr.tooltip.solar_array.superheated_steam=过热蒸汽
 
 # 9. Large Steam Furnace - missing keys
 gtsr.tooltip.steam_furnace.desc2=蒸汽驱动的工业化熔炼设备，具有更大的并行数，可同时处理大量熔炉配方。
-gtsr.tooltip.steam_furnace.speed=工作速度: 200% (青铜级) / 300% (钢级)
-gtsr.tooltip.steam_furnace.steam_eff=等效蒸汽消耗: 80% (青铜级) / 60% (钢级)
+gtsr.tooltip.steam_furnace.speed=工作速度: 250% (青铜级) / 500% (钢级)
+gtsr.tooltip.steam_furnace.steam_eff=等效蒸汽消耗: 60% (青铜级) / 40% (钢级)
 gtsr.tooltip.steam_furnace.recipe_based=依配方而定
 
 # 10. Mega Steam Turbine Array - missing keys

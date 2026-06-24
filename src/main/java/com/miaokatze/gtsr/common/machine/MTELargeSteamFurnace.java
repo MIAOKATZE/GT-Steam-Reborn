@@ -261,7 +261,7 @@ public class MTELargeSteamFurnace extends MTESteamMultiBlockBase<MTELargeSteamFu
 
     @Override
     public int getMaxParallelRecipes() {
-        return mSetTier == 2 ? 12 : 4;
+        return mSetTier == 2 ? 48 : 24;
     }
 
     @Override
@@ -280,8 +280,8 @@ public class MTELargeSteamFurnace extends MTESteamMultiBlockBase<MTELargeSteamFu
             @Override
             @Nonnull
             protected OverclockCalculator createOverclockCalculator(@Nonnull GTRecipe recipe) {
-                double eutDiscount = mSetTier == 2 ? 0.6 : 0.8;
-                double durationModifier = mSetTier == 2 ? (1.0 / 3.0) : 0.5;
+                double eutDiscount = mSetTier == 2 ? 0.4 : 0.6;
+                double durationModifier = mSetTier == 2 ? (1.0 / 5.0) : (1.0 / 2.5);
                 return OverclockCalculator.ofNoOverclock(recipe)
                     .setEUtDiscount(eutDiscount)
                     .setDurationModifier(durationModifier);
@@ -320,13 +320,13 @@ public class MTELargeSteamFurnace extends MTESteamMultiBlockBase<MTELargeSteamFu
                 EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.shared.parallel")
                     + ": "
                     + EnumChatFormatting.GOLD
-                    + "4"
+                    + "24"
                     + EnumChatFormatting.GRAY
                     + " ("
                     + StatCollector.translateToLocal("gtsr.gui.tier.bronze")
                     + ")"
                     + EnumChatFormatting.GOLD
-                    + "/12"
+                    + "/48"
                     + EnumChatFormatting.GRAY
                     + " ("
                     + StatCollector.translateToLocal("gtsr.gui.tier.steel")
@@ -357,13 +357,13 @@ public class MTELargeSteamFurnace extends MTESteamMultiBlockBase<MTELargeSteamFu
                 EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.shared.parallel")
                     + ": "
                     + EnumChatFormatting.GOLD
-                    + "4"
+                    + "24"
                     + EnumChatFormatting.GRAY
                     + " ("
                     + StatCollector.translateToLocal("gtsr.gui.tier.bronze")
                     + ")"
                     + EnumChatFormatting.GOLD
-                    + "/12"
+                    + "/48"
                     + EnumChatFormatting.GRAY
                     + " ("
                     + StatCollector.translateToLocal("gtsr.gui.tier.steel")

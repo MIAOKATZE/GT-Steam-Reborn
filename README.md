@@ -127,8 +127,8 @@ All inherit from `MTESteamMultiBase` (GT++), supporting normal steam and superhe
 
 <p align="center"><img src="README/MTELargeSteamFurnace.png" width="300"> <img src="README/MTEAirCompressor.png" width="300"><br><em>大型蒸汽熔炉 / Large Steam Furnace (left) & 空气压缩机 / Air Compressor (right)</em></p>
 
-- **大型蒸汽熔炉 / Large Steam Furnace (LSF)**: Bronze/Steel, 4/12 parallel. Steam-driven industrial smelting equipment with greater parallel capacity. Work speed: 200% (Bronze) / 300% (Steel); steam efficiency: 80% / 60%.
-  蒸汽驱动的工业化熔炼设备，具有更大的并行数。工作速度200%(青铜)/300%(钢)；蒸汽效率80%/60%。
+- **大型蒸汽熔炉 / Large Steam Furnace (LSF)**: Bronze/Steel, 24/48 parallel. Steam-driven industrial smelting equipment with greater parallel capacity. Work speed: 250% (Bronze) / 500% (Steel); steam efficiency: 60% / 40%.
+  蒸汽驱动的工业化熔炼设备，具有更大的并行数。工作速度250%(青铜)/500%(钢)；蒸汽效率60%/40%。
 - **空气压缩机 / Air Compressor (AC)**: Bronze/Steel, 1/4 parallel. Produces air (or nether air in Nether dimension). Far greater speed and convenience than ordinary compressors.
   产出空气（下界维度产出下界空气），远优于普通压缩机的速度和便捷度。
 

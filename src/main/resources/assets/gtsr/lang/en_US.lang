@@ -855,8 +855,8 @@ gtsr.tooltip.solar_array.superheated_steam=Superheated Steam
 
 # 9. Large Steam Furnace - missing keys
 gtsr.tooltip.steam_furnace.desc2=Steam-driven industrial smelting equipment with greater parallel capacity for processing large quantities of furnace recipes simultaneously.
-gtsr.tooltip.steam_furnace.speed=Work Speed: 200% (Bronze) / 300% (Steel)
-gtsr.tooltip.steam_furnace.steam_eff=Steam Efficiency: 80% (Bronze) / 60% (Steel)
+gtsr.tooltip.steam_furnace.speed=Work Speed: 250% (Bronze) / 500% (Steel)
+gtsr.tooltip.steam_furnace.steam_eff=Steam Efficiency: 60% (Bronze) / 40% (Steel)
 gtsr.tooltip.steam_furnace.recipe_based=Recipe-dependent
 
 # 10. Mega Steam Turbine Array - missing keys

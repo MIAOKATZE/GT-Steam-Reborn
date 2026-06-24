@@ -22,7 +22,6 @@ import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.implementations.MTEHatch;
 import gregtech.api.metatileentity.implementations.MTEHatchInput;
-import gregtech.api.metatileentity.implementations.MTEHatchInputBus;
 import gregtech.api.metatileentity.implementations.MTEHatchOutput;
 import gregtech.api.metatileentity.implementations.MTEHatchOutputBus;
 import gregtech.api.metatileentity.implementations.MTEHatchVoidBus;
@@ -255,33 +254,15 @@ public abstract class MTESteamMultiBaseMixin {
             return added;
         }
 
-        // MTEHatchInputBus (regular, non-steam) → mInputBusses only
-        // Must be checked after MTEHatchSteamBusInput since it extends MTEHatchInputBus
-        if (aMetaTileEntity instanceof MTEHatchInputBus inputBus) {
-            inputBus.mRecipeMap = gtsr$self().getRecipeMap();
-            MTEMultiBlockBase multiBlockSelf = (MTEMultiBlockBase) (Object) this;
-            return gtsr$self().addToMachineListInternal(multiBlockSelf.mInputBusses, inputBus, aBaseCasingIndex);
-        }
-
-        // MTEHatchOutputBus (regular, non-steam) → mOutputBusses only
-        // Must be checked after MTEHatchSteamBusOutput since it extends MTEHatchOutputBus
-        if (aMetaTileEntity instanceof MTEHatchOutputBus outputBus) {
-            MTEMultiBlockBase multiBlockSelf = (MTEMultiBlockBase) (Object) this;
-            return gtsr$self().addToMachineListInternal(multiBlockSelf.mOutputBusses, outputBus, aBaseCasingIndex);
-        }
-
         // MTEHatchInput → mInputHatches (standard fluid input)
+        // Note: MTEHatchInputBus, MTEHatchOutputBus, MTEHatchOutput are intentionally NOT
+        // handled here — they should return false so that subsequent chain elements
+        // (e.g. atLeast(InputBus/OutputBus) or casing blocks) can process them.
+        // This matches vanilla MTESteamMultiBlockBase behavior and avoids inflating
+        // their NEI priority above casing blocks in GT++ native steam machines.
         if (aMetaTileEntity instanceof MTEHatchInput inputHatch) {
             MTEMultiBlockBase multiBlockSelf = (MTEMultiBlockBase) (Object) this;
             return gtsr$self().addToMachineListInternal(multiBlockSelf.mInputHatches, inputHatch, aBaseCasingIndex);
-        }
-
-        // MTEHatchOutput → mOutputHatches (standard fluid output)
-        // New GT5U 2.9.0+ addToMachineList doesn't handle MTEHatchOutput at all,
-        // causing fluid output hatches to be invisible to the machine
-        if (aMetaTileEntity instanceof MTEHatchOutput outputHatch) {
-            MTEMultiBlockBase multiBlockSelf = (MTEMultiBlockBase) (Object) this;
-            return gtsr$self().addToMachineListInternal(multiBlockSelf.mOutputHatches, outputHatch, aBaseCasingIndex);
         }
 
         return false;
