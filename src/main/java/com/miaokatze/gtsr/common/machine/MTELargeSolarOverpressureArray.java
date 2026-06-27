@@ -515,7 +515,7 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
                     + EnumChatFormatting.DARK_PURPLE
                     + StatCollector.translateToLocal("gtsr.tooltip.solar_array.tier_bronze")
                     + EnumChatFormatting.GOLD
-                    + " 16,000"
+                    + " 24,000"
                     + EnumChatFormatting.GRAY
                     + " L/s "
                     + StatCollector.translateToLocal("gtsr.tooltip.solar_array.base_output"))
@@ -524,7 +524,7 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
                     + EnumChatFormatting.DARK_PURPLE
                     + StatCollector.translateToLocal("gtsr.tooltip.solar_array.tier_steel")
                     + EnumChatFormatting.GOLD
-                    + " 40,000"
+                    + " 60,000"
                     + EnumChatFormatting.GRAY
                     + " L/s "
                     + StatCollector.translateToLocal("gtsr.tooltip.solar_array.base_output"))
@@ -533,7 +533,7 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
                     + EnumChatFormatting.DARK_PURPLE
                     + StatCollector.translateToLocal("gtsr.tooltip.solar_array.tier_nickel")
                     + EnumChatFormatting.GOLD
-                    + " 40,000"
+                    + " 60,000"
                     + EnumChatFormatting.GRAY
                     + " L/s "
                     + StatCollector.translateToLocal("gtsr.tooltip.solar_array.base_output")
@@ -724,10 +724,10 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
         switch (mSetTier) {
             case 3:
             case 2:
-                return 40000;
+                return 60000;
             case 1:
             default:
-                return 16000;
+                return 24000;
         }
     }
 
