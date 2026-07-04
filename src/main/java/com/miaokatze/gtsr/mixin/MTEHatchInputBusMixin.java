@@ -150,7 +150,7 @@ public abstract class MTEHatchInputBusMixin extends MTEHatch implements IAutoInp
     @Override
     public void gtsr$doAutoInput(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
         if (!aBaseMetaTileEntity.isAllowedToWork()) return;
-        if (aTick % 100 != 0) return;
+        if (aTick % 100 != 0) return; // 5秒一次（100 tick），保留
 
         MTEHatchInputBus self = (MTEHatchInputBus) (Object) this;
 
@@ -165,20 +165,32 @@ public abstract class MTEHatchInputBusMixin extends MTEHatch implements IAutoInp
         if (!(tTileEntity instanceof IInventory)) return;
 
         IInventory sourceInv = (IInventory) tTileEntity;
-        int transferred = 0;
 
-        for (int i = 0; i < sourceInv.getSizeInventory() && transferred < 64; i++) {
+        // 修复Bug1：按"格"计数，每5秒只处理1格（参考GT5U CoverConveyor.stacksPerTransfer=1）
+        final int MAX_STACKS_PER_TRANSFER = 1;
+        int stacksProcessed = 0;
+        boolean changed = false; // 标记是否实际发生转移，控制updateSlots调用
+
+        for (int i = 0; i < sourceInv.getSizeInventory() && stacksProcessed < MAX_STACKS_PER_TRANSFER; i++) {
             ItemStack stack = sourceInv.getStackInSlot(i);
             if (stack == null) continue;
 
             ItemStack moved = stack.copy();
-            moved.stackSize = Math.min(stack.stackSize, 64 - transferred);
+            stacksProcessed++; // 这一格就算处理过（参考CoverConveyor语义）
 
-            for (int j = 0; j < self.getSizeInventory(); j++) {
+            // 单趟遍历目标槽位（参考MTEHatchOutputBus.storePartial第182-204行）
+            for (int j = 0; j < self.getSizeInventory() && moved.stackSize > 0; j++) {
                 if (!self.allowPutStack(aBaseMetaTileEntity, j, front, moved)) continue;
 
                 ItemStack existing = self.getStackInSlot(j);
-                int maxStack = Math.min(moved.getMaxStackSize(), self.getInventoryStackLimit());
+
+                // 修复Bug2：异种跳过（参考MTEHatchOutputBus.storePartial第188行 areStacksEqual检查）
+                if (existing != null && !GTUtility.areStacksEqual(existing, moved)) continue;
+
+                // 修复Bug3：用existing的maxStackSize（existing!=null时与moved同种，二者相等；用existing更安全）
+                int maxStack = Math.min(
+                    self.getInventoryStackLimit(),
+                    existing != null ? existing.getMaxStackSize() : moved.getMaxStackSize());
                 int space = existing == null ? maxStack : maxStack - existing.stackSize;
                 if (space <= 0) continue;
 
@@ -188,18 +200,17 @@ public abstract class MTEHatchInputBusMixin extends MTEHatch implements IAutoInp
                     newStack.stackSize = toMove;
                     self.setInventorySlotContents(j, newStack);
                 } else {
-                    existing.stackSize += toMove;
+                    existing.stackSize += toMove; // 此时existing必与moved同种，安全
                 }
 
                 sourceInv.decrStackSize(i, toMove);
-                transferred += toMove;
                 moved.stackSize -= toMove;
-
-                if (moved.stackSize <= 0) break;
+                changed = true;
             }
         }
 
-        if (transferred > 0) {
+        // 修复Bug4：仅在实际发生转移时调用updateSlots
+        if (changed) {
             self.updateSlots();
         }
     }

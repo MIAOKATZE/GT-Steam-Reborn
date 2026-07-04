@@ -6,7 +6,6 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 import net.minecraftforge.common.util.ForgeDirection;
-import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.IFluidHandler;
 
 import org.spongepowered.asm.mixin.Mixin;
@@ -99,6 +98,8 @@ public abstract class MTEHatchInputMixin extends MTEHatch implements IAutoInputH
     @Override
     public void gtsr$doAutoInput(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
         if (!aBaseMetaTileEntity.isAllowedToWork()) return;
+        // 修复Bug1：加入tick节流，5秒一次（与物品总线节奏一致）
+        if (aTick % 100 != 0) return;
 
         MTEHatchInput self = (MTEHatchInput) (Object) this;
 
@@ -106,12 +107,9 @@ public abstract class MTEHatchInputMixin extends MTEHatch implements IAutoInputH
         IFluidHandler tTileEntity = aBaseMetaTileEntity.getITankContainerAtSide(front);
         if (tTileEntity == null) return;
 
-        FluidStack drained = tTileEntity.drain(front.getOpposite(), 100, false);
-        if (drained == null) return;
-
-        int filled = self.fill(front, drained, true);
-        if (filled > 0) {
-            tTileEntity.drain(front.getOpposite(), filled, true);
-        }
+        // 修复Bug2：采用GT5U标准两阶段模拟-实抽模式（参考GTUtility.moveFluid）
+        // 节流方案A：100tick节流 + 1000mB/次，平均200mB/s
+        final int TRANSFER_AMOUNT = 1000;
+        GTUtility.moveFluid(tTileEntity, self, front.getOpposite(), front, TRANSFER_AMOUNT, null);
     }
 }
