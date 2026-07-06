@@ -169,6 +169,45 @@ public class MTESiemensMartinFurnace extends MTEEnhancedMultiBlockBase<MTESiemen
         }
     }
 
+    /**
+     * 耐压蒸汽输入仓元素。
+     * <p>
+     * 该仓室被加入 {@link #mteBlacklist()}，使其在 NEI 结构投影的 hatchItemFilter 中不被匹配，
+     * 从而避免所有 'B' 位置都被预览为耐压蒸汽仓、覆盖原本应显示的固体钢外壳。
+     * 实际结构检测仍通过 {@link #adder()} 正常接受该仓室。
+     */
+    private enum SiemensMartinPressureSteamInputElement implements IHatchElement<MTESiemensMartinFurnace> {
+
+        INSTANCE;
+
+        private final List<Class<? extends IMetaTileEntity>> mteClasses = Collections
+            .unmodifiableList(Arrays.asList(MTEHatchPressureSteamInput.class));
+
+        @Override
+        public List<? extends Class<? extends IMetaTileEntity>> mteClasses() {
+            return mteClasses;
+        }
+
+        @Override
+        public IGTHatchAdder<? super MTESiemensMartinFurnace> adder() {
+            return MTESiemensMartinFurnace::addPressureSteamToMachineList;
+        }
+
+        @Override
+        public long count(MTESiemensMartinFurnace t) {
+            return t.mPressureSteamInputs.size();
+        }
+
+        /**
+         * 将自身加入黑名单，禁止 StructureLib 在 NEI 预览时把耐压蒸汽仓渲染到每一个 'B' 位置上。
+         * 这是 GT5U 处理同类“仓室覆盖外壳”问题的标准做法。
+         */
+        @Override
+        public List<Class<? extends IMetaTileEntity>> mteBlacklist() {
+            return Collections.singletonList(MTEHatchPressureSteamInput.class);
+        }
+    }
+
     public MTESiemensMartinFurnace(int aID, String aName, String aNameRegional) {
         super(aID, aName, aNameRegional);
     }
@@ -274,11 +313,11 @@ public class MTESiemensMartinFurnace extends MTEEnhancedMultiBlockBase<MTESiemen
                             .hint(1)
                             .build(),
                         buildHatchAdder(MTESiemensMartinFurnace.class)
-                            .adder(MTESiemensMartinFurnace::addPressureSteamToMachineList)
-                            .hatchClass(MTEHatchPressureSteamInput.class)
+                            .atLeast(SiemensMartinPressureSteamInputElement.INSTANCE)
                             .casingIndex(casingIndex)
-                            .hint(0)
-                            .buildAndChain(onElementPass(x -> {}, ofBlock(GregTechAPI.sBlockCasings2, 0)))))
+                            .hint(1)
+                            .build(),
+                        onElementPass(x -> {}, ofBlock(GregTechAPI.sBlockCasings2, 0))))
                 .addElement('C', ofBlock(GregTechAPI.sBlockCasings2, 13))
                 .addElement('D', ofBlock(GregTechAPI.sBlockCasings2, 3))
                 .addElement('E', ofBlock(GregTechAPI.sBlockCasings3, 14))
