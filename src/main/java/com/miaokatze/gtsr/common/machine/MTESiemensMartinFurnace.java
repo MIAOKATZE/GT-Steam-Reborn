@@ -68,9 +68,9 @@ public class MTESiemensMartinFurnace extends MTEEnhancedMultiBlockBase<MTESiemen
     private static final int VERTICAL_OFF_SET = 16;
     private static final int DEPTH_OFF_SET = 3;
 
-    private static final int SUPERHEATED_STEAM_COST = 1_200;
-    private static final int SUPERHEATED_STEAM_COST_OVERHEAT = 12_000;
-    private static final int SUPERHEATED_STEAM_COST_MAX = 6_000;
+    private static final int SUPERHEATED_STEAM_COST = 300;
+    private static final int SUPERHEATED_STEAM_COST_OVERHEAT = 3_000;
+    private static final int SUPERHEATED_STEAM_COST_MAX = 1_500;
     private static final double TEMPERATURE_INCREMENT = 0.00025d;
     private static final double TEMPERATURE_DECREMENT = 0.001d;
     private static final double OVERHEAT_INCREMENT = 0.0001d; // +0.01%/s above 100%
@@ -277,7 +277,7 @@ public class MTESiemensMartinFurnace extends MTEEnhancedMultiBlockBase<MTESiemen
                             .adder(MTESiemensMartinFurnace::addPressureSteamToMachineList)
                             .hatchClass(MTEHatchPressureSteamInput.class)
                             .casingIndex(casingIndex)
-                            .hint(1)
+                            .hint(0)
                             .buildAndChain(onElementPass(x -> {}, ofBlock(GregTechAPI.sBlockCasings2, 0)))))
                 .addElement('C', ofBlock(GregTechAPI.sBlockCasings2, 13))
                 .addElement('D', ofBlock(GregTechAPI.sBlockCasings2, 3))

@@ -275,7 +275,7 @@ public class MTESteamFluidDrill extends MTESteamMultiBlockBase<MTESteamFluidDril
         updateHatchTexture();
     }
 
-    private static final int HIGH_STEAM_PER_SECOND = 8_000;
+    private static final int HIGH_STEAM_PER_SECOND = 4_000;
 
     private int getSteamPerSecond() {
         return (mOutputMode == 2 || mOutputMode == 3) ? HIGH_STEAM_PER_SECOND : BASE_STEAM_PER_SECOND;

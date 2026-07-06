@@ -120,40 +120,40 @@ public class GTSRRecipeLoader implements Runnable {
 
     private static void registerSiemensMartinRecipes() {
         GTValues.RA.stdBuilder()
-            .itemInputs(Materials.Iron.getIngots(1), Materials.Coal.getGems(2))
-            .itemOutputs(Materials.Steel.getIngots(1), Materials.Ash.getDust(1))
+            .itemInputs(Materials.Iron.getIngots(2), Materials.Coal.getGems(2))
+            .itemOutputs(Materials.Steel.getIngots(2), Materials.Ash.getDust(1))
             .duration(1600 * SECONDS)
             .eut(0)
             .addTo(siemensMartinRecipes);
 
         GTValues.RA.stdBuilder()
-            .itemInputs(Materials.Iron.getDust(1), Materials.Coal.getGems(2))
-            .itemOutputs(Materials.Steel.getIngots(1), Materials.Ash.getDust(1))
+            .itemInputs(Materials.Iron.getDust(2), Materials.Coal.getGems(2))
+            .itemOutputs(Materials.Steel.getIngots(2), Materials.Ash.getDust(1))
             .duration(1600 * SECONDS)
             .eut(0)
             .addTo(siemensMartinRecipes);
 
         GTValues.RA.stdBuilder()
-            .itemInputs(Materials.Iron.getIngots(1), Materials.Coal.getDust(2))
-            .itemOutputs(Materials.Steel.getIngots(1), Materials.Ash.getDust(1))
+            .itemInputs(Materials.Iron.getIngots(2), Materials.Coal.getDust(2))
+            .itemOutputs(Materials.Steel.getIngots(2), Materials.Ash.getDust(1))
             .duration(1600 * SECONDS)
             .eut(0)
             .addTo(siemensMartinRecipes);
 
         GTValues.RA.stdBuilder()
-            .itemInputs(Materials.Iron.getDust(1), Materials.Coal.getDust(2))
-            .itemOutputs(Materials.Steel.getIngots(1), Materials.Ash.getDust(1))
+            .itemInputs(Materials.Iron.getDust(2), Materials.Coal.getDust(2))
+            .itemOutputs(Materials.Steel.getIngots(2), Materials.Ash.getDust(1))
             .duration(1600 * SECONDS)
             .eut(0)
             .addTo(siemensMartinRecipes);
 
         GTValues.RA.stdBuilder()
             .itemInputs(
-                Materials.Iron.getIngots(1),
+                Materials.Iron.getIngots(2),
                 OreDictionary.getOres("fuelCoke")
                     .get(0)
                     .copy())
-            .itemOutputs(Materials.Steel.getIngots(1), Materials.Ash.getDust(1))
+            .itemOutputs(Materials.Steel.getIngots(2), Materials.Ash.getDust(1))
             .outputChances(10000, 7000)
             .duration(1200 * SECONDS)
             .eut(0)
@@ -161,27 +161,27 @@ public class GTSRRecipeLoader implements Runnable {
 
         GTValues.RA.stdBuilder()
             .itemInputs(
-                Materials.Iron.getDust(1),
+                Materials.Iron.getDust(2),
                 OreDictionary.getOres("fuelCoke")
                     .get(0)
                     .copy())
-            .itemOutputs(Materials.Steel.getIngots(1), Materials.Ash.getDust(1))
+            .itemOutputs(Materials.Steel.getIngots(2), Materials.Ash.getDust(1))
             .outputChances(10000, 7000)
             .duration(1200 * SECONDS)
             .eut(0)
             .addTo(siemensMartinRecipes);
 
         GTValues.RA.stdBuilder()
-            .itemInputs(Materials.Iron.getIngots(1), Materials.Carbon.getDust(1))
-            .itemOutputs(Materials.Steel.getIngots(1), Materials.Ash.getDust(1))
+            .itemInputs(Materials.Iron.getIngots(2), Materials.Carbon.getDust(1))
+            .itemOutputs(Materials.Steel.getIngots(2), Materials.Ash.getDust(1))
             .outputChances(10000, 3000)
             .duration(800 * SECONDS)
             .eut(0)
             .addTo(siemensMartinRecipes);
 
         GTValues.RA.stdBuilder()
-            .itemInputs(Materials.Iron.getDust(1), Materials.Carbon.getDust(1))
-            .itemOutputs(Materials.Steel.getIngots(1), Materials.Ash.getDust(1))
+            .itemInputs(Materials.Iron.getDust(2), Materials.Carbon.getDust(1))
+            .itemOutputs(Materials.Steel.getIngots(2), Materials.Ash.getDust(1))
             .outputChances(10000, 3000)
             .duration(800 * SECONDS)
             .eut(0)

@@ -65,7 +65,7 @@ public class MTESteamSingularityCompressor extends MTESteamMultiBlockBase<MTESte
     private static final int VERTICAL_OFF_SET = 8;
     private static final int DEPTH_OFF_SET = 2;
 
-    private static final int STEAM_L_EUT = 6000;
+    private static final int STEAM_L_EUT = 4000;
     private static final double HEAT_UP_PER_RECIPE = 0.0002d;
     private static final double HEAT_DOWN_RATE = 0.001d;
     private static final int HEAT_RECIPE_TIME = 20;
@@ -431,7 +431,7 @@ public class MTESteamSingularityCompressor extends MTESteamMultiBlockBase<MTESte
             .addInfo(
                 EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.shared.steam_cost")
                     + EnumChatFormatting.WHITE
-                    + " 120,000 L/s")
+                    + " 80,000 L/s")
             .addInfo(
                 EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.tooltip.shared.superheated_quadruples"))
             .beginStructureBlock(11, 11, 11, false)

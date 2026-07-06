@@ -273,7 +273,7 @@ public class MTEAirCompressor extends MTESteamMultiBlockBase<MTEAirCompressor> i
         if (getTotalSteamStored() <= 0) {
             return CheckRecipeResultRegistry.NO_RECIPE;
         }
-        lEUt = mSetTier == 2 ? -180 : -60;
+        lEUt = mSetTier == 2 ? -60 : -20;
         mMaxProgresstime = 20;
         mEfficiencyIncrease = 10000;
         boolean isNether = getBaseMetaTileEntity().getWorld().provider.dimensionId == -1;
@@ -323,7 +323,7 @@ public class MTEAirCompressor extends MTESteamMultiBlockBase<MTEAirCompressor> i
             .addInfo(
                 EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.shared.steam_cost")
                     + EnumChatFormatting.WHITE
-                    + " 1200/3600 L/s"
+                    + " 400/1200 L/s"
                     + EnumChatFormatting.GRAY
                     + " ("
                     + StatCollector.translateToLocal("gtsr.gui.tier.bronze")

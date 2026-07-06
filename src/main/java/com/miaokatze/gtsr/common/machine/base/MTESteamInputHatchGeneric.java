@@ -12,7 +12,7 @@ import gregtech.api.metatileentity.implementations.MTEHatchInput;
 
 public class MTESteamInputHatchGeneric extends MTEHatchInput {
 
-    private static final int CAPACITY = 8_000;
+    private static final int CAPACITY = 16_000;
 
     public MTESteamInputHatchGeneric(int aID, String aName, String aNameRegional) {
         this(aID, aName, aNameRegional, 1);

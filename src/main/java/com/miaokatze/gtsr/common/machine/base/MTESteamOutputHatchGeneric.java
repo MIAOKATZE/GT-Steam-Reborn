@@ -14,9 +14,9 @@ import gregtech.api.metatileentity.implementations.MTEHatchOutput;
 
 public class MTESteamOutputHatchGeneric extends MTEHatchOutput {
 
-    private static final int CAPACITY = 8_000;
-    private static final int OUTPUT_PER_TICK = 400;
-    private static final int OUTPUT_PER_SECOND = 8_000;
+    private static final int CAPACITY = 16_000;
+    private static final int OUTPUT_PER_TICK = 800;
+    private static final int OUTPUT_PER_SECOND = 16_000;
 
     public MTESteamOutputHatchGeneric(int aID, String aName, String aNameRegional) {
         this(aID, aName, aNameRegional, 1);

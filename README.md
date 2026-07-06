@@ -233,7 +233,7 @@ Specialized hatches for GTSR machines with varying capacities and fluid filters:
 
 GTSR 机器专用仓室，具有不同容量和流体过滤：
 
-- **蒸汽输入/输出仓 / Steam Input/Output Hatches**: Basic 8K\~128K capacity, steam only
+- **蒸汽输入/输出仓 / Steam Input/Output Hatches**: Basic 16K\~128K capacity, steam only
 - **蒸汽冷却仓 / Steam Cooling Hatch**: 64K, accumulates cooling water (160 steam : 1 water ratio)
 - **耐压蒸汽输入/输出/冷却仓 / Pressure Steam Input/Output/Cooling Hatches**: 512K\~1M capacity, accepts both normal and superheated steam
 - **枢纽输入/输出仓 / Hub Input/Output Hatches**: Dynamic capacity (determined by hub controller), delegates fill/drain to hub
