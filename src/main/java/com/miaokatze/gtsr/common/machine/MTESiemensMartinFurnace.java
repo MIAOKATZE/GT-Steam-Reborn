@@ -7,8 +7,6 @@ import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
 import net.minecraft.item.ItemStack;
@@ -37,7 +35,6 @@ import com.miaokatze.gtsr.common.machine.base.MTEHatchPressureSteamInput;
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Materials;
 import gregtech.api.enums.Textures;
-import gregtech.api.interfaces.IHatchElement;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
@@ -54,7 +51,6 @@ import gregtech.api.render.TextureFactory;
 import gregtech.api.structure.error.StructureError;
 import gregtech.api.structure.error.StructureErrorRegistry;
 import gregtech.api.util.GTUtility;
-import gregtech.api.util.IGTHatchAdder;
 import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.api.util.shutdown.ShutDownReasonRegistry;
 import gregtech.common.blocks.BlockCasings2;
@@ -121,91 +117,6 @@ public class MTESiemensMartinFurnace extends MTEEnhancedMultiBlockBase<MTESiemen
             return mOutputBusses.add(hatch);
         }
         return false;
-    }
-
-    private enum SiemensMartinInputBusElement implements IHatchElement<MTESiemensMartinFurnace> {
-
-        INSTANCE;
-
-        private final List<Class<? extends IMetaTileEntity>> mteClasses = Collections
-            .unmodifiableList(Arrays.asList(MTEHatchInputBus.class));
-
-        @Override
-        public List<? extends Class<? extends IMetaTileEntity>> mteClasses() {
-            return mteClasses;
-        }
-
-        @Override
-        public IGTHatchAdder<? super MTESiemensMartinFurnace> adder() {
-            return MTESiemensMartinFurnace::addInputBusToMachineList;
-        }
-
-        @Override
-        public long count(MTESiemensMartinFurnace t) {
-            return t.mInputBusses.size();
-        }
-    }
-
-    private enum SiemensMartinOutputBusElement implements IHatchElement<MTESiemensMartinFurnace> {
-
-        INSTANCE;
-
-        private final List<Class<? extends IMetaTileEntity>> mteClasses = Collections
-            .unmodifiableList(Arrays.asList(MTEHatchOutputBus.class));
-
-        @Override
-        public List<? extends Class<? extends IMetaTileEntity>> mteClasses() {
-            return mteClasses;
-        }
-
-        @Override
-        public IGTHatchAdder<? super MTESiemensMartinFurnace> adder() {
-            return MTESiemensMartinFurnace::addOutputBusToMachineList;
-        }
-
-        @Override
-        public long count(MTESiemensMartinFurnace t) {
-            return t.mOutputBusses.size();
-        }
-    }
-
-    /**
-     * 耐压蒸汽输入仓元素。
-     * <p>
-     * 该仓室被加入 {@link #mteBlacklist()}，使其在 NEI 结构投影的 hatchItemFilter 中不被匹配，
-     * 从而避免所有 'B' 位置都被预览为耐压蒸汽仓、覆盖原本应显示的固体钢外壳。
-     * 实际结构检测仍通过 {@link #adder()} 正常接受该仓室。
-     */
-    private enum SiemensMartinPressureSteamInputElement implements IHatchElement<MTESiemensMartinFurnace> {
-
-        INSTANCE;
-
-        private final List<Class<? extends IMetaTileEntity>> mteClasses = Collections
-            .unmodifiableList(Arrays.asList(MTEHatchPressureSteamInput.class));
-
-        @Override
-        public List<? extends Class<? extends IMetaTileEntity>> mteClasses() {
-            return mteClasses;
-        }
-
-        @Override
-        public IGTHatchAdder<? super MTESiemensMartinFurnace> adder() {
-            return MTESiemensMartinFurnace::addPressureSteamToMachineList;
-        }
-
-        @Override
-        public long count(MTESiemensMartinFurnace t) {
-            return t.mPressureSteamInputs.size();
-        }
-
-        /**
-         * 将自身加入黑名单，禁止 StructureLib 在 NEI 预览时把耐压蒸汽仓渲染到每一个 'B' 位置上。
-         * 这是 GT5U 处理同类“仓室覆盖外壳”问题的标准做法。
-         */
-        @Override
-        public List<Class<? extends IMetaTileEntity>> mteBlacklist() {
-            return Collections.singletonList(MTEHatchPressureSteamInput.class);
-        }
     }
 
     public MTESiemensMartinFurnace(int aID, String aName, String aNameRegional) {
@@ -307,17 +218,29 @@ public class MTESiemensMartinFurnace extends MTEEnhancedMultiBlockBase<MTESiemen
                 .addElement(
                     'B',
                     ofChain(
+                        // 1) 外壳优先：NEI投影默认显示固体钢外壳
+                        onElementPass(x -> {}, ofBlock(GregTechAPI.sBlockCasings2, 0)),
+                        // 2) 输入总线
                         buildHatchAdder(MTESiemensMartinFurnace.class)
-                            .atLeast(SiemensMartinInputBusElement.INSTANCE, SiemensMartinOutputBusElement.INSTANCE)
+                            .adder(MTESiemensMartinFurnace::addInputBusToMachineList)
+                            .hatchClass(MTEHatchInputBus.class)
                             .casingIndex(casingIndex)
                             .hint(1)
                             .build(),
+                        // 3) 输出总线
                         buildHatchAdder(MTESiemensMartinFurnace.class)
-                            .atLeast(SiemensMartinPressureSteamInputElement.INSTANCE)
+                            .adder(MTESiemensMartinFurnace::addOutputBusToMachineList)
+                            .hatchClass(MTEHatchOutputBus.class)
                             .casingIndex(casingIndex)
                             .hint(1)
                             .build(),
-                        onElementPass(x -> {}, ofBlock(GregTechAPI.sBlockCasings2, 0))))
+                        // 4) 耐压蒸汽输入仓
+                        buildHatchAdder(MTESiemensMartinFurnace.class)
+                            .adder(MTESiemensMartinFurnace::addPressureSteamToMachineList)
+                            .hatchClass(MTEHatchPressureSteamInput.class)
+                            .casingIndex(casingIndex)
+                            .hint(1)
+                            .build()))
                 .addElement('C', ofBlock(GregTechAPI.sBlockCasings2, 13))
                 .addElement('D', ofBlock(GregTechAPI.sBlockCasings2, 3))
                 .addElement('E', ofBlock(GregTechAPI.sBlockCasings3, 14))
