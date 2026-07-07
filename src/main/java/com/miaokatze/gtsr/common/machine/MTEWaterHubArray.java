@@ -103,22 +103,22 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
                     new String[][] { { "   C   ", "  CDC  ", " CCCCC ", "DCCCCCD", " CCCCC ", "  CDC  ", "   C   " } }))
             .addElement(
                 'A',
+                // Casing is now an independent fallback element so NEI renders it correctly.
                 ofChain(
                     buildHatchAdder(MTEWaterHubArray.class)
                         .atLeast(WaterHubStorageElement.HubUnit, WaterHubStorageElement.ReinforcedHubUnit)
                         .casingIndex(CASING_INDEX)
                         .hint(2)
-                        .buildAndChain(
-                            onElementPass(
-                                MTEWaterHubArray::onCasingAdded,
-                                ofBlocksTiered(
-                                    MTEWaterHubArray::getCasingTier,
-                                    ImmutableList.of(
-                                        Pair.of(GregTechAPI.sBlockCasings1, 10),
-                                        Pair.of(GregTechAPI.sBlockCasings2, 0)),
-                                    -1,
-                                    (MTEWaterHubArray t, Integer tier) -> t.mCasingTier = tier,
-                                    (MTEWaterHubArray t) -> t.mCasingTier)))))
+                        .build(),
+                    onElementPass(
+                        MTEWaterHubArray::onCasingAdded,
+                        ofBlocksTiered(
+                            MTEWaterHubArray::getCasingTier,
+                            ImmutableList
+                                .of(Pair.of(GregTechAPI.sBlockCasings1, 10), Pair.of(GregTechAPI.sBlockCasings2, 0)),
+                            -1,
+                            (MTEWaterHubArray t, Integer tier) -> t.mCasingTier = tier,
+                            (MTEWaterHubArray t) -> t.mCasingTier))))
             .addElement(
                 'C',
                 ofChain(

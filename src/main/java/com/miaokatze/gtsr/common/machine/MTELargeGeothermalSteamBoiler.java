@@ -11,6 +11,8 @@ import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 
 import java.text.NumberFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import javax.annotation.Nullable;
@@ -41,7 +43,6 @@ import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
-import com.miaokatze.gtsr.common.api.enums.MetaTileEntityID;
 import com.miaokatze.gtsr.common.gui.MTELargeGeothermalSteamBoilerGui;
 import com.miaokatze.gtsr.common.machine.base.MTEPressureSteamOutputHatch;
 import com.miaokatze.gtsr.common.machine.base.MTESteamOutputHatch;
@@ -50,6 +51,7 @@ import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Materials;
 import gregtech.api.enums.OrePrefixes;
 import gregtech.api.enums.Textures;
+import gregtech.api.interfaces.IHatchElement;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
@@ -64,6 +66,7 @@ import gregtech.api.structure.error.StructureError;
 import gregtech.api.structure.error.StructureErrorRegistry;
 import gregtech.api.util.GTModHandler;
 import gregtech.api.util.GTOreDictUnificator;
+import gregtech.api.util.IGTHatchAdder;
 import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.common.blocks.BlockCasings1;
 import gregtech.common.blocks.BlockCasings2;
@@ -115,6 +118,50 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
 
     private final ArrayList<MTESteamOutputHatch> mSteamOutputHatches = new ArrayList<>();
     private final ArrayList<MTEPressureSteamOutputHatch> mPressureSteamOutputHatches = new ArrayList<>();
+
+    /**
+     * Local hatch element for the geothermal steam output hatches.
+     * <p>
+     * Wraps the custom adder that dispatches accepted hatches into the appropriate internal
+     * lists. {@code mteBlacklist()} excludes the hatch classes from the StructureLib NEI hatch
+     * item filter, so the preview does not render hatches on every valid casing position.
+     */
+    private enum GeothermalSteamOutputHatchElement implements IHatchElement<MTELargeGeothermalSteamBoiler> {
+
+        SteamOutput(MTELargeGeothermalSteamBoiler::addSteamOutputToMachineList, MTESteamOutputHatch.class,
+            MTEPressureSteamOutputHatch.class) {
+
+            @Override
+            public List<Class<? extends IMetaTileEntity>> mteBlacklist() {
+                return ImmutableList.of(MTESteamOutputHatch.class, MTEPressureSteamOutputHatch.class);
+            }
+        };
+
+        private final List<Class<? extends IMetaTileEntity>> mteClasses;
+        private final IGTHatchAdder<MTELargeGeothermalSteamBoiler> adder;
+
+        @SafeVarargs
+        GeothermalSteamOutputHatchElement(IGTHatchAdder<MTELargeGeothermalSteamBoiler> adder,
+            Class<? extends IMetaTileEntity>... classes) {
+            this.mteClasses = Collections.unmodifiableList(Arrays.asList(classes));
+            this.adder = adder;
+        }
+
+        @Override
+        public List<? extends Class<? extends IMetaTileEntity>> mteClasses() {
+            return mteClasses;
+        }
+
+        @Override
+        public IGTHatchAdder<? super MTELargeGeothermalSteamBoiler> adder() {
+            return adder;
+        }
+
+        @Override
+        public long count(MTELargeGeothermalSteamBoiler t) {
+            return t.mSteamOutputHatches.size() + t.mPressureSteamOutputHatches.size();
+        }
+    }
 
     public MTELargeGeothermalSteamBoiler(int aID, String aName, String aNameRegional) {
         super(aID, aName, aNameRegional);
@@ -217,11 +264,11 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
                             .casingIndex(bronzeCasingIndex)
                             .hint(1)
                             .build(),
+                        // Use atLeast(GeothermalSteamOutputHatchElement.SteamOutput) instead of hatchIds(...).
+                        // Its mteBlacklist() excludes the steam output hatch classes so NEI does not render them on
+                        // casing positions.
                         buildHatchAdder(MTELargeGeothermalSteamBoiler.class)
-                            .adder(MTELargeGeothermalSteamBoiler::addSteamOutputToMachineList)
-                            .hatchIds(
-                                MetaTileEntityID.STEAM_OUTPUT_HATCH.ID,
-                                MetaTileEntityID.PRESSURE_STEAM_OUTPUT_HATCH.ID)
+                            .atLeast(GeothermalSteamOutputHatchElement.SteamOutput)
                             .casingIndex(bronzeCasingIndex)
                             .hint(1)
                             .shouldReject(MTELargeGeothermalSteamBoiler::hasSteamOutputHatch)

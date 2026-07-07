@@ -4,6 +4,7 @@ import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlock;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose;
+import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.PressureSteamInputHatch;
 import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.SteamCoolingHatch;
 import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.SteamOutputBus;
 import static gregtech.api.enums.GTValues.emptyItemStackArray;
@@ -31,7 +32,6 @@ import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
-import com.miaokatze.gtsr.common.api.enums.MetaTileEntityID;
 
 import cpw.mods.fml.common.registry.GameRegistry;
 import cpw.mods.fml.relauncher.Side;
@@ -168,9 +168,10 @@ public class MTESteamSingularityCompressor extends MTESteamMultiBlockBase<MTESte
                 .addElement(
                     'B',
                     ofChain(
-                        buildHatchAdder(MTESteamSingularityCompressor.class)
-                            .adder(MTESteamMultiBlockBase::addToMachineList)
-                            .hatchIds(31040, MetaTileEntityID.PRESSURE_STEAM_HATCH.ID)
+                        // Use atLeast(PressureSteamInputHatch) instead of hatchIds(...). The hatch element's
+                        // mteBlacklist() excludes MTEHatchPressureSteamInput.class, preventing NEI from rendering
+                        // the pressure steam hatch at every casing position.
+                        buildHatchAdder(MTESteamSingularityCompressor.class).atLeast(PressureSteamInputHatch)
                             .casingIndex(casingIndex)
                             .hint(1)
                             .shouldReject(t -> !t.mSteamInputFluids.isEmpty())

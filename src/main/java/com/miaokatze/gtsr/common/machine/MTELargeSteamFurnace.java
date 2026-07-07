@@ -4,6 +4,7 @@ import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlocksT
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose;
+import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.PressureSteamInputHatch;
 import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.SteamInputBus;
 import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.SteamOutputBus;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
@@ -32,7 +33,6 @@ import com.gtnewhorizons.modularui.common.widget.DynamicPositionedColumn;
 import com.gtnewhorizons.modularui.common.widget.FakeSyncWidget;
 import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
-import com.miaokatze.gtsr.common.api.enums.MetaTileEntityID;
 
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Materials;
@@ -156,8 +156,9 @@ public class MTELargeSteamFurnace extends MTESteamMultiBlockBase<MTELargeSteamFu
                 .addElement(
                     'B',
                     ofChain(
-                        buildHatchAdder(MTELargeSteamFurnace.class).adder(MTESteamMultiBlockBase::addToMachineList)
-                            .hatchIds(31040, MetaTileEntityID.PRESSURE_STEAM_HATCH.ID)
+                        // Use atLeast(PressureSteamInputHatch) instead of hatchIds(...). Its mteBlacklist()
+                        // excludes MTEHatchPressureSteamInput.class so NEI does not render it on casing positions.
+                        buildHatchAdder(MTELargeSteamFurnace.class).atLeast(PressureSteamInputHatch)
                             .casingIndex(bronzeCasingIndex)
                             .hint(1)
                             .shouldReject(t -> !t.mSteamInputFluids.isEmpty())

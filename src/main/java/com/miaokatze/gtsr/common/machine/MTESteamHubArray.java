@@ -107,6 +107,7 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
                         " CCCCCCC ", "  CFCFC  ", "   CCC   " } }))
             .addElement(
                 'A',
+                // Casing is now an independent fallback element so NEI renders it correctly.
                 ofChain(
                     buildHatchAdder(MTESteamHubArray.class)
                         .atLeast(
@@ -115,37 +116,38 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
                             SteamHubStorageElement.OverpressureUnit)
                         .casingIndex(CASING_INDEX)
                         .hint(2)
-                        .buildAndChain(
-                            onElementPass(
-                                MTESteamHubArray::onCasingAdded,
-                                ofBlocksTiered(
-                                    MTESteamHubArray::getCasingTier,
-                                    ImmutableList.of(
-                                        Pair.of(GregTechAPI.sBlockCasings1, 10),
-                                        Pair.of(GregTechAPI.sBlockCasings2, 0),
-                                        Pair.of(GregTechAPI.sBlockCasings4, 0)),
-                                    -1,
-                                    (MTESteamHubArray t, Integer tier) -> t.mCasingTier = tier,
-                                    (MTESteamHubArray t) -> t.mCasingTier)))))
+                        .build(),
+                    onElementPass(
+                        MTESteamHubArray::onCasingAdded,
+                        ofBlocksTiered(
+                            MTESteamHubArray::getCasingTier,
+                            ImmutableList.of(
+                                Pair.of(GregTechAPI.sBlockCasings1, 10),
+                                Pair.of(GregTechAPI.sBlockCasings2, 0),
+                                Pair.of(GregTechAPI.sBlockCasings4, 0)),
+                            -1,
+                            (MTESteamHubArray t, Integer tier) -> t.mCasingTier = tier,
+                            (MTESteamHubArray t) -> t.mCasingTier))))
             .addElement(
                 'C',
+                // Casing is now an independent fallback element so NEI renders it correctly.
                 ofChain(
                     buildHatchAdder(MTESteamHubArray.class)
                         .atLeast(SteamHubHatchElement.SteamInput, SteamHubHatchElement.SteamOutput)
                         .casingIndex(CASING_INDEX)
                         .hint(1)
-                        .buildAndChain(
-                            onElementPass(
-                                MTESteamHubArray::onCasingAdded,
-                                ofBlocksTiered(
-                                    MTESteamHubArray::getCasingTier,
-                                    ImmutableList.of(
-                                        Pair.of(GregTechAPI.sBlockCasings1, 10),
-                                        Pair.of(GregTechAPI.sBlockCasings2, 0),
-                                        Pair.of(GregTechAPI.sBlockCasings4, 0)),
-                                    -1,
-                                    (MTESteamHubArray t, Integer tier) -> t.mCasingTier = tier,
-                                    (MTESteamHubArray t) -> t.mCasingTier)))))
+                        .build(),
+                    onElementPass(
+                        MTESteamHubArray::onCasingAdded,
+                        ofBlocksTiered(
+                            MTESteamHubArray::getCasingTier,
+                            ImmutableList.of(
+                                Pair.of(GregTechAPI.sBlockCasings1, 10),
+                                Pair.of(GregTechAPI.sBlockCasings2, 0),
+                                Pair.of(GregTechAPI.sBlockCasings4, 0)),
+                            -1,
+                            (MTESteamHubArray t, Integer tier) -> t.mCasingTier = tier,
+                            (MTESteamHubArray t) -> t.mCasingTier))))
             .addElement(
                 'D',
                 onElementPass(
