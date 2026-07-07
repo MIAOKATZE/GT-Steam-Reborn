@@ -168,6 +168,10 @@ public class MTESteamSingularityCompressor extends MTESteamMultiBlockBase<MTESte
                 .addElement(
                     'B',
                     ofChain(
+                        // casing-first: NEI 投影优先渲染外壳；真实 hatch 坐标上 casing 匹配失败后继续匹配 hatch adder。
+                        onElementPass(
+                            MTESteamSingularityCompressor::onCasingAdded,
+                            ofBlock(GregTechAPI.sBlockCasings2, 0)),
                         // Use atLeast(PressureSteamInputHatch) instead of hatchIds(...). The hatch element's
                         // mteBlacklist() excludes MTEHatchPressureSteamInput.class, preventing NEI from rendering
                         // the pressure steam hatch at every casing position.
@@ -183,10 +187,7 @@ public class MTESteamSingularityCompressor extends MTESteamMultiBlockBase<MTESte
                         buildHatchAdder(MTESteamSingularityCompressor.class).atLeast(SteamCoolingHatch)
                             .casingIndex(casingIndex)
                             .hint(2)
-                            .build(),
-                        onElementPass(
-                            MTESteamSingularityCompressor::onCasingAdded,
-                            ofBlock(GregTechAPI.sBlockCasings2, 0))))
+                            .build()))
                 .addElement(
                     'C',
                     onElementPass(

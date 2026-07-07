@@ -253,20 +253,21 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
                 .addElement(
                     'B',
                     ofChain(
+                        // casing-first: NEI 投影优先渲染外壳；真实 hatch 坐标上 casing 匹配失败后继续匹配 hatch adder。
+                        onElementPass(
+                            t -> {},
+                            ofBlocksTiered(
+                                MTELargeSolarOverpressureArray::getCasingTier,
+                                ImmutableList.of(
+                                    Pair.of(GregTechAPI.sBlockCasings1, 10),
+                                    Pair.of(GregTechAPI.sBlockCasings2, 0)),
+                                -1,
+                                (MTELargeSolarOverpressureArray t, Integer tier) -> t.tierCasing = tier,
+                                (MTELargeSolarOverpressureArray t) -> t.tierCasing)),
                         buildHatchAdder(MTELargeSolarOverpressureArray.class).atLeast(OutputHatch, InputHatch)
                             .casingIndex(bronzeCasingIndex)
                             .hint(1)
-                            .buildAndChain(
-                                onElementPass(
-                                    t -> {},
-                                    ofBlocksTiered(
-                                        MTELargeSolarOverpressureArray::getCasingTier,
-                                        ImmutableList.of(
-                                            Pair.of(GregTechAPI.sBlockCasings1, 10),
-                                            Pair.of(GregTechAPI.sBlockCasings2, 0)),
-                                        -1,
-                                        (MTELargeSolarOverpressureArray t, Integer tier) -> t.tierCasing = tier,
-                                        (MTELargeSolarOverpressureArray t) -> t.tierCasing)))))
+                            .build()))
                 .addElement(
                     'C',
                     ofBlocksTiered(

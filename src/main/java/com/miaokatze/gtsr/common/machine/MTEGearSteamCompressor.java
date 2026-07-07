@@ -223,6 +223,15 @@ public class MTEGearSteamCompressor extends MTEEnhancedMultiBlockBase<MTEGearSte
                 .addElement(
                     'B',
                     ofChain(
+                        // casing-first: NEI 投影优先渲染外壳；真实 hatch 坐标上 casing 匹配失败后继续匹配 hatch adder。
+                        onElementPass(
+                            MTEGearSteamCompressor::onCasingAdded,
+                            ofBlocksTiered(
+                                MTEGearSteamCompressor::getCasingTier,
+                                ALLOWED_CASINGS,
+                                -1,
+                                (t, tier) -> t.mCasingTier = tier,
+                                t -> t.mCasingTier)),
                         buildHatchAdder(MTEGearSteamCompressor.class)
                             .atLeast(GearSteamCompressorHatchElement.PressureSteamInput)
                             .casingIndex(BRONZE_CASING_INDEX)
@@ -236,16 +245,7 @@ public class MTEGearSteamCompressor extends MTEEnhancedMultiBlockBase<MTEGearSte
                         buildHatchAdder(MTEGearSteamCompressor.class).atLeast(InputHatch, OutputHatch)
                             .casingIndex(BRONZE_CASING_INDEX)
                             .hint(3)
-                            .build(),
-                        // casing 兜底
-                        onElementPass(
-                            MTEGearSteamCompressor::onCasingAdded,
-                            ofBlocksTiered(
-                                MTEGearSteamCompressor::getCasingTier,
-                                ALLOWED_CASINGS,
-                                -1,
-                                (t, tier) -> t.mCasingTier = tier,
-                                t -> t.mCasingTier))))
+                            .build()))
                 .addElement(
                     'C',
                     onElementPass(

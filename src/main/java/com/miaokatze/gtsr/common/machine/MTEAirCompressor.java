@@ -153,6 +153,17 @@ public class MTEAirCompressor extends MTESteamMultiBlockBase<MTEAirCompressor> i
                 .addElement(
                     'B',
                     ofChain(
+                        // casing-first: NEI 投影优先渲染外壳；真实 hatch 坐标上 casing 匹配失败后继续匹配 hatch adder。
+                        onElementPass(
+                            MTEAirCompressor::onCasingAdded,
+                            ofBlocksTiered(
+                                MTEAirCompressor::getCasingTier,
+                                ImmutableList.of(
+                                    Pair.of(GregTechAPI.sBlockCasings1, 10),
+                                    Pair.of(GregTechAPI.sBlockCasings2, 0)),
+                                -1,
+                                (MTEAirCompressor t, Integer tier) -> t.mSetTier = tier,
+                                (MTEAirCompressor t) -> t.mSetTier)),
                         // Use atLeast(PressureSteamInputHatch) instead of hatchIds(...). Its mteBlacklist()
                         // excludes MTEHatchPressureSteamInput.class so NEI does not render it on casing positions.
                         buildHatchAdder(MTEAirCompressor.class).atLeast(PressureSteamInputHatch)
@@ -163,17 +174,7 @@ public class MTEAirCompressor extends MTESteamMultiBlockBase<MTEAirCompressor> i
                         buildHatchAdder(MTEAirCompressor.class).atLeast(OutputHatch)
                             .casingIndex(bronzeCasingIndex)
                             .hint(1)
-                            .build(),
-                        onElementPass(
-                            MTEAirCompressor::onCasingAdded,
-                            ofBlocksTiered(
-                                MTEAirCompressor::getCasingTier,
-                                ImmutableList.of(
-                                    Pair.of(GregTechAPI.sBlockCasings1, 10),
-                                    Pair.of(GregTechAPI.sBlockCasings2, 0)),
-                                -1,
-                                (MTEAirCompressor t, Integer tier) -> t.mSetTier = tier,
-                                (MTEAirCompressor t) -> t.mSetTier))))
+                            .build()))
                 .addElement(
                     'C',
                     onElementPass(

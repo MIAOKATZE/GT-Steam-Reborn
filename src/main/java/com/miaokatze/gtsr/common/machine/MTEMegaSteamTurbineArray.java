@@ -416,6 +416,15 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
                 .addElement(
                     'B',
                     ofChain(
+                        // casing-first: NEI 投影优先渲染外壳；真实 hatch 坐标上 casing 匹配失败后继续匹配 hatch adder。
+                        onElementPass(
+                            MTEMegaSteamTurbineArray::onCasingAdded,
+                            ofBlocksTiered(
+                                MTEMegaSteamTurbineArray::getCasingTier,
+                                ALLOWED_CASINGS,
+                                -1,
+                                (t, tier) -> t.mCasingTier = Math.max(t.mCasingTier, tier),
+                                t -> t.mCasingTier)),
                         buildHatchAdder(MTEMegaSteamTurbineArray.class)
                             .atLeast(MegaSteamTurbineArrayHatchElement.PressureSteamInput)
                             .casingIndex(SOLID_STEEL_CASING_INDEX)
@@ -438,16 +447,7 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
                         buildHatchAdder(MTEMegaSteamTurbineArray.class).atLeast(Dynamo)
                             .casingIndex(SOLID_STEEL_CASING_INDEX)
                             .hint(1)
-                            .build(),
-                        // casing 兜底
-                        onElementPass(
-                            MTEMegaSteamTurbineArray::onCasingAdded,
-                            ofBlocksTiered(
-                                MTEMegaSteamTurbineArray::getCasingTier,
-                                ALLOWED_CASINGS,
-                                -1,
-                                (t, tier) -> t.mCasingTier = Math.max(t.mCasingTier, tier),
-                                t -> t.mCasingTier))))
+                            .build()))
                 .addElement(
                     'C',
                     onElementPass(

@@ -213,6 +213,15 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
                 .addElement(
                     'B',
                     ofChain(
+                        // casing-first: NEI 投影优先渲染外壳；真实 hatch 坐标上 casing 匹配失败后继续匹配 hatch adder。
+                        onElementPass(
+                            MTEKineticProcessingArray::onCasingAdded,
+                            ofBlocksTiered(
+                                MTEKineticProcessingArray::getCasingTier,
+                                ALLOWED_CASINGS,
+                                -1,
+                                (t, tier) -> t.mCasingTier = tier,
+                                t -> t.mCasingTier)),
                         buildHatchAdder(MTEKineticProcessingArray.class)
                             .atLeast(SteamInputBus, InputHatch, SteamOutputBus, OutputHatch, Energy)
                             .casingIndex(SOLID_STEEL_CASING_INDEX)
@@ -227,15 +236,7 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
                             .atLeast(KineticProcessingArrayHatchElement.PressureSteamCooling)
                             .casingIndex(SOLID_STEEL_CASING_INDEX)
                             .hint(3)
-                            .build(),
-                        onElementPass(
-                            MTEKineticProcessingArray::onCasingAdded,
-                            ofBlocksTiered(
-                                MTEKineticProcessingArray::getCasingTier,
-                                ALLOWED_CASINGS,
-                                -1,
-                                (t, tier) -> t.mCasingTier = tier,
-                                t -> t.mCasingTier))))
+                            .build()))
                 .addElement(
                     'C',
                     onElementPass(

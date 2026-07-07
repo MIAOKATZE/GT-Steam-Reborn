@@ -148,21 +148,23 @@ public class MTEAmmoniaPlant extends MTEEnhancedMultiBlockBase<MTEAmmoniaPlant> 
                 .addElement(
                     'B',
                     ofChain(
+                        // casing-first: NEI 投影优先渲染外壳；真实 hatch 坐标上 casing 匹配失败后继续匹配 hatch adder。
+                        onElementPass(MTEAmmoniaPlant::onCasingAdded, ofBlock(GregTechAPI.sBlockCasings2, 0)),
                         buildHatchAdder(MTEAmmoniaPlant.class).atLeast(InputHatch, SteamOutputBus, OutputHatch)
                             .casingIndex(CASING_TEXTURE_ID)
                             .hint(1)
-                            .buildAndChain(
-                                onElementPass(MTEAmmoniaPlant::onCasingAdded, ofBlock(GregTechAPI.sBlockCasings2, 0)))))
+                            .build()))
                 .addElement('C', onElementPass(MTEAmmoniaPlant::onCasingAdded, ofBlock(GregTechAPI.sBlockCasings2, 13)))
                 .addElement('D', onElementPass(MTEAmmoniaPlant::onCasingAdded, ofBlock(GregTechAPI.sBlockCasings3, 14)))
                 .addElement(
                     'E',
                     ofChain(
+                        // casing-first: NEI 投影优先渲染外壳；真实 hatch 坐标上 casing 匹配失败后继续匹配 hatch adder。
+                        onElementPass(MTEAmmoniaPlant::onCasingAdded, ofBlock(GregTechAPI.sBlockCasings8, 0)),
                         buildHatchAdder(MTEAmmoniaPlant.class).atLeast(InputHatch, SteamOutputBus, OutputHatch)
                             .casingIndex(CASING_TEXTURE_ID)
                             .hint(2)
-                            .buildAndChain(
-                                onElementPass(MTEAmmoniaPlant::onCasingAdded, ofBlock(GregTechAPI.sBlockCasings8, 0)))))
+                            .build()))
                 .addElement('F', onElementPass(MTEAmmoniaPlant::onCasingAdded, ofBlock(GregTechAPI.sBlockCasings8, 1)))
                 .addElement('G', onElementPass(MTEAmmoniaPlant::onCasingAdded, ofBlock(GregTechAPI.sBlockCasings8, 1)))
                 .addElement(

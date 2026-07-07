@@ -185,14 +185,7 @@ public class MTELargeCokeOven extends MTEEnhancedMultiBlockBase<MTELargeCokeOven
                 .addElement(
                     'B',
                     ofChain(
-                        buildHatchAdder(MTELargeCokeOven.class).atLeast(InputBus, OutputBus)
-                            .casingIndex(10)
-                            .hint(1)
-                            .build(),
-                        buildHatchAdder(MTELargeCokeOven.class).atLeast(OutputHatch)
-                            .casingIndex(10)
-                            .hint(1)
-                            .build(),
+                        // casing-first: NEI 投影优先渲染外壳；真实 hatch 坐标上 casing 匹配失败后继续匹配 hatch adder。
                         onElementPass(
                             MTELargeCokeOven::onCasingAdded,
                             ofBlocksTiered(
@@ -202,7 +195,15 @@ public class MTELargeCokeOven extends MTEEnhancedMultiBlockBase<MTELargeCokeOven
                                     Pair.of(GregTechAPI.sBlockCasings2, 0)),
                                 -1,
                                 (MTELargeCokeOven t, Integer tier) -> t.mTier = tier,
-                                (MTELargeCokeOven t) -> t.mTier))))
+                                (MTELargeCokeOven t) -> t.mTier)),
+                        buildHatchAdder(MTELargeCokeOven.class).atLeast(InputBus, OutputBus)
+                            .casingIndex(10)
+                            .hint(1)
+                            .build(),
+                        buildHatchAdder(MTELargeCokeOven.class).atLeast(OutputHatch)
+                            .casingIndex(10)
+                            .hint(1)
+                            .build()))
                 .addElement(
                     'C',
                     onElementPass(
