@@ -216,10 +216,8 @@ public class MTEVoidCrustSteamBorer extends MTESteamMultiBlockBase<MTEVoidCrustS
                         buildHatchAdder(MTEVoidCrustSteamBorer.class).atLeast(SteamInputBus, SteamOutputBus)
                             .casingIndex(casingIndex)
                             .hint(1)
-                            .buildAndChain(
-                                onElementPass(
-                                    MTEVoidCrustSteamBorer::onCasingAdded,
-                                    ofBlock(GregTechAPI.sBlockCasings2, 0)))))
+                            .build(),
+                        onElementPass(MTEVoidCrustSteamBorer::onCasingAdded, ofBlock(GregTechAPI.sBlockCasings2, 0))))
                 .addElement(
                     'C',
                     onElementPass(MTEVoidCrustSteamBorer::onCasingAdded, ofBlock(GregTechAPI.sBlockCasings2, 13)))

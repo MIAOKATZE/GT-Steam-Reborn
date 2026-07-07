@@ -185,17 +185,17 @@ public class MTEVeinSteamPyrolyzer extends MTESteamMultiBlockBase<MTEVeinSteamPy
                         buildHatchAdder(MTEVeinSteamPyrolyzer.class).atLeast(GTSRHatchElement.SteamOutputBus)
                             .casingIndex(bronzeCasingIndex)
                             .hint(1)
-                            .buildAndChain(
-                                onElementPass(
-                                    MTEVeinSteamPyrolyzer::onCasingAdded,
-                                    ofBlocksTiered(
-                                        MTEVeinSteamPyrolyzer::getCasingTier,
-                                        ImmutableList.of(
-                                            Pair.of(GregTechAPI.sBlockCasings1, 10),
-                                            Pair.of(GregTechAPI.sBlockCasings2, 0)),
-                                        -1,
-                                        (MTEVeinSteamPyrolyzer t, Integer tier) -> t.mSetTier = tier,
-                                        (MTEVeinSteamPyrolyzer t) -> t.mSetTier)))))
+                            .build(),
+                        onElementPass(
+                            MTEVeinSteamPyrolyzer::onCasingAdded,
+                            ofBlocksTiered(
+                                MTEVeinSteamPyrolyzer::getCasingTier,
+                                ImmutableList.of(
+                                    Pair.of(GregTechAPI.sBlockCasings1, 10),
+                                    Pair.of(GregTechAPI.sBlockCasings2, 0)),
+                                -1,
+                                (MTEVeinSteamPyrolyzer t, Integer tier) -> t.mSetTier = tier,
+                                (MTEVeinSteamPyrolyzer t) -> t.mSetTier))))
                 .addElement(
                     'C',
                     onElementPass(

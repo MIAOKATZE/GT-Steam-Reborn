@@ -152,14 +152,6 @@ public class MTEGearSteamCompressor extends MTEEnhancedMultiBlockBase<MTEGearSte
                 .addElement(
                     'B',
                     ofChain(
-                        onElementPass(
-                            MTEGearSteamCompressor::onCasingAdded,
-                            ofBlocksTiered(
-                                MTEGearSteamCompressor::getCasingTier,
-                                ALLOWED_CASINGS,
-                                -1,
-                                (t, tier) -> t.mCasingTier = tier,
-                                t -> t.mCasingTier)),
                         buildHatchAdder(MTEGearSteamCompressor.class)
                             .adder(MTEGearSteamCompressor::addPressureSteamToMachineList)
                             .hatchClass(MTEHatchPressureSteamInput.class)
@@ -167,21 +159,24 @@ public class MTEGearSteamCompressor extends MTEEnhancedMultiBlockBase<MTEGearSte
                             .hint(1)
                             .build(),
                         buildHatchAdder(MTEGearSteamCompressor.class)
-                            .adder(MTEGearSteamCompressor::addSteamCoolingToMachineList)
+                            .adder(MTEGearSteamCompressor::addCoolingHatchToMachineList)
                             .hatchClass(MTESteamCoolingHatch.class)
-                            .casingIndex(BRONZE_CASING_INDEX)
-                            .hint(2)
-                            .build(),
-                        buildHatchAdder(MTEGearSteamCompressor.class)
-                            .adder(MTEGearSteamCompressor::addPressureCoolingToMachineList)
-                            .hatchClass(MTEPressureSteamCoolingHatch.class)
                             .casingIndex(BRONZE_CASING_INDEX)
                             .hint(2)
                             .build(),
                         buildHatchAdder(MTEGearSteamCompressor.class).atLeast(InputHatch, OutputHatch)
                             .casingIndex(BRONZE_CASING_INDEX)
                             .hint(3)
-                            .build()))
+                            .build(),
+                        // casing 兜底
+                        onElementPass(
+                            MTEGearSteamCompressor::onCasingAdded,
+                            ofBlocksTiered(
+                                MTEGearSteamCompressor::getCasingTier,
+                                ALLOWED_CASINGS,
+                                -1,
+                                (t, tier) -> t.mCasingTier = tier,
+                                t -> t.mCasingTier))))
                 .addElement(
                     'C',
                     onElementPass(
@@ -265,24 +260,16 @@ public class MTEGearSteamCompressor extends MTEEnhancedMultiBlockBase<MTEGearSte
         return false;
     }
 
-    private boolean addSteamCoolingToMachineList(IGregTechTileEntity aTileEntity, int aBaseCasingIndex) {
-        if (aTileEntity == null) return false;
-        IMetaTileEntity mte = aTileEntity.getMetaTileEntity();
-        if (mte instanceof MTESteamCoolingHatch hatch && !(mte instanceof MTEPressureSteamCoolingHatch)) {
-            hatch.updateTexture(aBaseCasingIndex);
-            mSteamCoolingHatches.add(hatch);
-            return true;
-        }
-        return false;
-    }
-
-    private boolean addPressureCoolingToMachineList(IGregTechTileEntity aTileEntity, int aBaseCasingIndex) {
+    private boolean addCoolingHatchToMachineList(IGregTechTileEntity aTileEntity, int aBaseCasingIndex) {
         if (aTileEntity == null) return false;
         IMetaTileEntity mte = aTileEntity.getMetaTileEntity();
         if (mte instanceof MTEPressureSteamCoolingHatch hatch) {
             hatch.updateTexture(aBaseCasingIndex);
-            mPressureCoolingHatches.add(hatch);
-            return true;
+            return mPressureCoolingHatches.add(hatch);
+        }
+        if (mte instanceof MTESteamCoolingHatch hatch) {
+            hatch.updateTexture(aBaseCasingIndex);
+            return mSteamCoolingHatches.add(hatch);
         }
         return false;
     }
@@ -422,8 +409,7 @@ public class MTEGearSteamCompressor extends MTEEnhancedMultiBlockBase<MTEGearSte
         return addInputToMachineList(tTileEntity, aBaseCasingIndex)
             || addOutputToMachineList(tTileEntity, aBaseCasingIndex)
             || addPressureSteamToMachineList(tTileEntity, aBaseCasingIndex)
-            || addSteamCoolingToMachineList(tTileEntity, aBaseCasingIndex)
-            || addPressureCoolingToMachineList(tTileEntity, aBaseCasingIndex);
+            || addCoolingHatchToMachineList(tTileEntity, aBaseCasingIndex);
     }
 
     private void updateAllHatchTextures() {

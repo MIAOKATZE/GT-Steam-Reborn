@@ -38,7 +38,6 @@ import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.api.enums.MetaTileEntityID;
 import com.miaokatze.gtsr.common.machine.base.IHubArray;
-import com.miaokatze.gtsr.common.machine.base.MTEPressureSteamCoolingHatch;
 import com.miaokatze.gtsr.common.machine.base.MTERemoteWorkerNode;
 import com.miaokatze.gtsr.common.machine.base.MTESteamCoolingHatch;
 
@@ -214,20 +213,15 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
                         buildHatchAdder(MTESingularityDrillingHub.class).atLeast(OutputHatch)
                             .casingIndex(casingIndex)
                             .hint(1)
-                            .buildAndChain(
-                                onElementPass(
-                                    MTESingularityDrillingHub::onCasingAdded,
-                                    ofBlock(GregTechAPI.sBlockCasings2, 0))),
+                            .build(),
                         buildHatchAdder(MTESingularityDrillingHub.class).adder(MTESteamMultiBlockBase::addToMachineList)
                             .hatchClass(MTESteamCoolingHatch.class)
                             .casingIndex(casingIndex)
                             .hint(2)
                             .build(),
-                        buildHatchAdder(MTESingularityDrillingHub.class).adder(MTESteamMultiBlockBase::addToMachineList)
-                            .hatchClass(MTEPressureSteamCoolingHatch.class)
-                            .casingIndex(casingIndex)
-                            .hint(2)
-                            .build()))
+                        onElementPass(
+                            MTESingularityDrillingHub::onCasingAdded,
+                            ofBlock(GregTechAPI.sBlockCasings2, 0))))
                 .addElement('C', ofBlock(GregTechAPI.sBlockCasings2, 13))
                 .addElement('D', ofBlock(GregTechAPI.sBlockCasings2, 3))
                 .addElement('E', ofBlock(GregTechAPI.sBlockCasings3, 14))

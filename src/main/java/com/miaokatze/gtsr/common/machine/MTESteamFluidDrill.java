@@ -179,17 +179,17 @@ public class MTESteamFluidDrill extends MTESteamMultiBlockBase<MTESteamFluidDril
                         buildHatchAdder(MTESteamFluidDrill.class).atLeast(OutputHatch)
                             .casingIndex(bronzeCasingIndex)
                             .hint(1)
-                            .buildAndChain(
-                                onElementPass(
-                                    MTESteamFluidDrill::onCasingAdded,
-                                    ofBlocksTiered(
-                                        MTESteamFluidDrill::getCasingTier,
-                                        ImmutableList.of(
-                                            Pair.of(GregTechAPI.sBlockCasings1, 10),
-                                            Pair.of(GregTechAPI.sBlockCasings2, 0)),
-                                        -1,
-                                        (MTESteamFluidDrill t, Integer tier) -> t.mSetTier = tier,
-                                        (MTESteamFluidDrill t) -> t.mSetTier)))))
+                            .build(),
+                        onElementPass(
+                            MTESteamFluidDrill::onCasingAdded,
+                            ofBlocksTiered(
+                                MTESteamFluidDrill::getCasingTier,
+                                ImmutableList.of(
+                                    Pair.of(GregTechAPI.sBlockCasings1, 10),
+                                    Pair.of(GregTechAPI.sBlockCasings2, 0)),
+                                -1,
+                                (MTESteamFluidDrill t, Integer tier) -> t.mSetTier = tier,
+                                (MTESteamFluidDrill t) -> t.mSetTier))))
                 .addElement(
                     'C',
                     onElementPass(

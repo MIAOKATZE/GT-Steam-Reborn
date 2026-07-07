@@ -145,15 +145,7 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
                             .atLeast(SteamInputBus, InputHatch, SteamOutputBus, OutputHatch, Energy)
                             .casingIndex(SOLID_STEEL_CASING_INDEX)
                             .hint(1)
-                            .buildAndChain(
-                                onElementPass(
-                                    MTEKineticProcessingArray::onCasingAdded,
-                                    ofBlocksTiered(
-                                        MTEKineticProcessingArray::getCasingTier,
-                                        ALLOWED_CASINGS,
-                                        -1,
-                                        (t, tier) -> t.mCasingTier = tier,
-                                        t -> t.mCasingTier))),
+                            .build(),
                         buildHatchAdder(MTEKineticProcessingArray.class)
                             .adder(MTEKineticProcessingArray::addPressureSteamToMachineList)
                             .hatchClass(MTEHatchPressureSteamInput.class)
@@ -165,7 +157,15 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
                             .hatchClass(MTEPressureSteamCoolingHatch.class)
                             .casingIndex(SOLID_STEEL_CASING_INDEX)
                             .hint(3)
-                            .build()))
+                            .build(),
+                        onElementPass(
+                            MTEKineticProcessingArray::onCasingAdded,
+                            ofBlocksTiered(
+                                MTEKineticProcessingArray::getCasingTier,
+                                ALLOWED_CASINGS,
+                                -1,
+                                (t, tier) -> t.mCasingTier = tier,
+                                t -> t.mCasingTier))))
                 .addElement(
                     'C',
                     onElementPass(

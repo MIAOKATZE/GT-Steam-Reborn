@@ -162,17 +162,17 @@ public class MTEAirCompressor extends MTESteamMultiBlockBase<MTEAirCompressor> i
                         buildHatchAdder(MTEAirCompressor.class).atLeast(OutputHatch)
                             .casingIndex(bronzeCasingIndex)
                             .hint(1)
-                            .buildAndChain(
-                                onElementPass(
-                                    MTEAirCompressor::onCasingAdded,
-                                    ofBlocksTiered(
-                                        MTEAirCompressor::getCasingTier,
-                                        ImmutableList.of(
-                                            Pair.of(GregTechAPI.sBlockCasings1, 10),
-                                            Pair.of(GregTechAPI.sBlockCasings2, 0)),
-                                        -1,
-                                        (MTEAirCompressor t, Integer tier) -> t.mSetTier = tier,
-                                        (MTEAirCompressor t) -> t.mSetTier)))))
+                            .build(),
+                        onElementPass(
+                            MTEAirCompressor::onCasingAdded,
+                            ofBlocksTiered(
+                                MTEAirCompressor::getCasingTier,
+                                ImmutableList.of(
+                                    Pair.of(GregTechAPI.sBlockCasings1, 10),
+                                    Pair.of(GregTechAPI.sBlockCasings2, 0)),
+                                -1,
+                                (MTEAirCompressor t, Integer tier) -> t.mSetTier = tier,
+                                (MTEAirCompressor t) -> t.mSetTier))))
                 .addElement(
                     'C',
                     onElementPass(

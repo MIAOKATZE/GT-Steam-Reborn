@@ -217,17 +217,17 @@ public class MTECrustSteamBorer extends MTESteamMultiBlockBase<MTECrustSteamBore
                         buildHatchAdder(MTECrustSteamBorer.class).atLeast(SteamOutputBus)
                             .casingIndex(casingIndex)
                             .hint(1)
-                            .buildAndChain(
-                                onElementPass(
-                                    MTECrustSteamBorer::onCasingAdded,
-                                    ofBlocksTiered(
-                                        MTECrustSteamBorer::getCasingTier,
-                                        ImmutableList.of(
-                                            Pair.of(GregTechAPI.sBlockCasings1, 10),
-                                            Pair.of(GregTechAPI.sBlockCasings2, 0)),
-                                        -1,
-                                        (MTECrustSteamBorer t, Integer tier) -> t.mSetTier = tier,
-                                        (MTECrustSteamBorer t) -> t.mSetTier)))))
+                            .build(),
+                        onElementPass(
+                            MTECrustSteamBorer::onCasingAdded,
+                            ofBlocksTiered(
+                                MTECrustSteamBorer::getCasingTier,
+                                ImmutableList.of(
+                                    Pair.of(GregTechAPI.sBlockCasings1, 10),
+                                    Pair.of(GregTechAPI.sBlockCasings2, 0)),
+                                -1,
+                                (MTECrustSteamBorer t, Integer tier) -> t.mSetTier = tier,
+                                (MTECrustSteamBorer t) -> t.mSetTier))))
                 .addElement(
                     'C',
                     onElementPass(

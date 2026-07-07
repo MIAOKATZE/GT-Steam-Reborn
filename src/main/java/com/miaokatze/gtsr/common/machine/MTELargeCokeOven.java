@@ -5,12 +5,12 @@ import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlocksT
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose;
+import static gregtech.api.enums.HatchElement.InputBus;
+import static gregtech.api.enums.HatchElement.OutputBus;
 import static gregtech.api.enums.HatchElement.OutputHatch;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
 import javax.annotation.Nonnull;
@@ -41,7 +41,6 @@ import com.miaokatze.gtsr.common.gui.MTELargeCokeOvenGui;
 
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Textures;
-import gregtech.api.interfaces.IHatchElement;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
@@ -55,7 +54,6 @@ import gregtech.api.recipe.check.CheckRecipeResult;
 import gregtech.api.render.TextureFactory;
 import gregtech.api.structure.error.StructureError;
 import gregtech.api.structure.error.StructureErrorRegistry;
-import gregtech.api.util.IGTHatchAdder;
 import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
 
@@ -75,60 +73,6 @@ public class MTELargeCokeOven extends MTEEnhancedMultiBlockBase<MTELargeCokeOven
     public int mTier = 1;
     private int mParallel = 0;
     public int mOriginalRecipeTime = 0;
-
-    /**
-     * Custom HatchElement that accepts both standard InputBus and SteamBusInput,
-     * bypassing GT5U's blacklist that prevents SteamBusInput from being used with InputBus.
-     */
-    private enum CokeOvenInputBusElement implements IHatchElement<MTELargeCokeOven> {
-
-        INSTANCE;
-
-        private final List<Class<? extends IMetaTileEntity>> mteClasses = Collections
-            .unmodifiableList(Arrays.asList(MTEHatchInputBus.class));
-
-        @Override
-        public List<? extends Class<? extends IMetaTileEntity>> mteClasses() {
-            return mteClasses;
-        }
-
-        @Override
-        public IGTHatchAdder<? super MTELargeCokeOven> adder() {
-            return MTELargeCokeOven::addInputBusToMachineList;
-        }
-
-        @Override
-        public long count(MTELargeCokeOven t) {
-            return t.mInputBusses.size();
-        }
-    }
-
-    /**
-     * Custom HatchElement that accepts both standard OutputBus and SteamBusOutput,
-     * bypassing GT5U's blacklist that prevents SteamBusOutput from being used with OutputBus.
-     */
-    private enum CokeOvenOutputBusElement implements IHatchElement<MTELargeCokeOven> {
-
-        INSTANCE;
-
-        private final List<Class<? extends IMetaTileEntity>> mteClasses = Collections
-            .unmodifiableList(Arrays.asList(MTEHatchOutputBus.class));
-
-        @Override
-        public List<? extends Class<? extends IMetaTileEntity>> mteClasses() {
-            return mteClasses;
-        }
-
-        @Override
-        public IGTHatchAdder<? super MTELargeCokeOven> adder() {
-            return MTELargeCokeOven::addOutputBusToMachineList;
-        }
-
-        @Override
-        public long count(MTELargeCokeOven t) {
-            return t.mOutputBusses.size();
-        }
-    }
 
     public boolean addInputBusToMachineList(IGregTechTileEntity aTileEntity, int aBaseCasingIndex) {
         if (aTileEntity == null) return false;
@@ -241,25 +185,24 @@ public class MTELargeCokeOven extends MTEEnhancedMultiBlockBase<MTELargeCokeOven
                 .addElement(
                     'B',
                     ofChain(
-                        buildHatchAdder(MTELargeCokeOven.class)
-                            .atLeast(CokeOvenInputBusElement.INSTANCE, CokeOvenOutputBusElement.INSTANCE)
+                        buildHatchAdder(MTELargeCokeOven.class).atLeast(InputBus, OutputBus)
                             .casingIndex(10)
                             .hint(1)
                             .build(),
                         buildHatchAdder(MTELargeCokeOven.class).atLeast(OutputHatch)
                             .casingIndex(10)
                             .hint(1)
-                            .buildAndChain(
-                                onElementPass(
-                                    MTELargeCokeOven::onCasingAdded,
-                                    ofBlocksTiered(
-                                        MTELargeCokeOven::getCasingTier,
-                                        ImmutableList.of(
-                                            Pair.of(GregTechAPI.sBlockCasings1, 10),
-                                            Pair.of(GregTechAPI.sBlockCasings2, 0)),
-                                        -1,
-                                        (MTELargeCokeOven t, Integer tier) -> t.mTier = tier,
-                                        (MTELargeCokeOven t) -> t.mTier)))))
+                            .build(),
+                        onElementPass(
+                            MTELargeCokeOven::onCasingAdded,
+                            ofBlocksTiered(
+                                MTELargeCokeOven::getCasingTier,
+                                ImmutableList.of(
+                                    Pair.of(GregTechAPI.sBlockCasings1, 10),
+                                    Pair.of(GregTechAPI.sBlockCasings2, 0)),
+                                -1,
+                                (MTELargeCokeOven t, Integer tier) -> t.mTier = tier,
+                                (MTELargeCokeOven t) -> t.mTier))))
                 .addElement(
                     'C',
                     onElementPass(

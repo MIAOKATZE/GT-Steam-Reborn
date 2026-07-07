@@ -165,17 +165,17 @@ public class MTELargeSteamFurnace extends MTESteamMultiBlockBase<MTELargeSteamFu
                         buildHatchAdder(MTELargeSteamFurnace.class).atLeast(SteamInputBus, SteamOutputBus)
                             .casingIndex(bronzeCasingIndex)
                             .hint(1)
-                            .buildAndChain(
-                                onElementPass(
-                                    MTELargeSteamFurnace::onCasingAdded,
-                                    ofBlocksTiered(
-                                        MTELargeSteamFurnace::getCasingTier,
-                                        ImmutableList.of(
-                                            Pair.of(GregTechAPI.sBlockCasings1, 10),
-                                            Pair.of(GregTechAPI.sBlockCasings2, 0)),
-                                        -1,
-                                        (MTELargeSteamFurnace t, Integer tier) -> t.mSetTier = tier,
-                                        (MTELargeSteamFurnace t) -> t.mSetTier)))))
+                            .build(),
+                        onElementPass(
+                            MTELargeSteamFurnace::onCasingAdded,
+                            ofBlocksTiered(
+                                MTELargeSteamFurnace::getCasingTier,
+                                ImmutableList.of(
+                                    Pair.of(GregTechAPI.sBlockCasings1, 10),
+                                    Pair.of(GregTechAPI.sBlockCasings2, 0)),
+                                -1,
+                                (MTELargeSteamFurnace t, Integer tier) -> t.mSetTier = tier,
+                                (MTELargeSteamFurnace t) -> t.mSetTier))))
                 .addElement(
                     'C',
                     onElementPass(

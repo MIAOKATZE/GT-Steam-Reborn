@@ -165,17 +165,17 @@ public class MTEAtmosphericCentrifuge extends MTESteamMultiBlockBase<MTEAtmosphe
                         buildHatchAdder(MTEAtmosphericCentrifuge.class).atLeast(InputHatch, OutputHatch)
                             .casingIndex(bronzeCasingIndex)
                             .hint(1)
-                            .buildAndChain(
-                                onElementPass(
-                                    MTEAtmosphericCentrifuge::onCasingAdded,
-                                    ofBlocksTiered(
-                                        MTEAtmosphericCentrifuge::getCasingTier,
-                                        ImmutableList.of(
-                                            Pair.of(GregTechAPI.sBlockCasings1, 10),
-                                            Pair.of(GregTechAPI.sBlockCasings2, 0)),
-                                        -1,
-                                        (MTEAtmosphericCentrifuge t, Integer tier) -> t.mSetTier = tier,
-                                        (MTEAtmosphericCentrifuge t) -> t.mSetTier)))))
+                            .build(),
+                        onElementPass(
+                            MTEAtmosphericCentrifuge::onCasingAdded,
+                            ofBlocksTiered(
+                                MTEAtmosphericCentrifuge::getCasingTier,
+                                ImmutableList.of(
+                                    Pair.of(GregTechAPI.sBlockCasings1, 10),
+                                    Pair.of(GregTechAPI.sBlockCasings2, 0)),
+                                -1,
+                                (MTEAtmosphericCentrifuge t, Integer tier) -> t.mSetTier = tier,
+                                (MTEAtmosphericCentrifuge t) -> t.mSetTier))))
                 .addElement(
                     'C',
                     onElementPass(

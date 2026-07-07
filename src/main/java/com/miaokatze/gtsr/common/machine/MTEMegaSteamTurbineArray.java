@@ -331,14 +331,6 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
                 .addElement(
                     'B',
                     ofChain(
-                        onElementPass(
-                            MTEMegaSteamTurbineArray::onCasingAdded,
-                            ofBlocksTiered(
-                                MTEMegaSteamTurbineArray::getCasingTier,
-                                ALLOWED_CASINGS,
-                                -1,
-                                (t, tier) -> t.mCasingTier = Math.max(t.mCasingTier, tier),
-                                t -> t.mCasingTier)),
                         buildHatchAdder(MTEMegaSteamTurbineArray.class)
                             .adder(MTEMegaSteamTurbineArray::addPressureSteamToMachineList)
                             .hatchClass(MTEHatchPressureSteamInput.class)
@@ -352,14 +344,8 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
                             .hint(1)
                             .build(),
                         buildHatchAdder(MTEMegaSteamTurbineArray.class)
-                            .adder(MTEMegaSteamTurbineArray::addSteamCoolingToMachineList)
+                            .adder(MTEMegaSteamTurbineArray::addCoolingHatchToMachineList)
                             .hatchClass(MTESteamCoolingHatch.class)
-                            .casingIndex(SOLID_STEEL_CASING_INDEX)
-                            .hint(2)
-                            .build(),
-                        buildHatchAdder(MTEMegaSteamTurbineArray.class)
-                            .adder(MTEMegaSteamTurbineArray::addPressureCoolingToMachineList)
-                            .hatchClass(MTEPressureSteamCoolingHatch.class)
                             .casingIndex(SOLID_STEEL_CASING_INDEX)
                             .hint(2)
                             .build(),
@@ -370,7 +356,16 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
                         buildHatchAdder(MTEMegaSteamTurbineArray.class).atLeast(Dynamo)
                             .casingIndex(SOLID_STEEL_CASING_INDEX)
                             .hint(1)
-                            .build()))
+                            .build(),
+                        // casing 兜底
+                        onElementPass(
+                            MTEMegaSteamTurbineArray::onCasingAdded,
+                            ofBlocksTiered(
+                                MTEMegaSteamTurbineArray::getCasingTier,
+                                ALLOWED_CASINGS,
+                                -1,
+                                (t, tier) -> t.mCasingTier = Math.max(t.mCasingTier, tier),
+                                t -> t.mCasingTier))))
                 .addElement(
                     'C',
                     onElementPass(
@@ -540,24 +535,16 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         return !mPressureCoolingHatches.isEmpty();
     }
 
-    private boolean addSteamCoolingToMachineList(IGregTechTileEntity aTileEntity, int aBaseCasingIndex) {
-        if (aTileEntity == null) return false;
-        IMetaTileEntity mte = aTileEntity.getMetaTileEntity();
-        if (mte instanceof MTESteamCoolingHatch hatch && !(mte instanceof MTEPressureSteamCoolingHatch)) {
-            hatch.updateTexture(aBaseCasingIndex);
-            mSteamCoolingHatches.add(hatch);
-            return true;
-        }
-        return false;
-    }
-
-    private boolean addPressureCoolingToMachineList(IGregTechTileEntity aTileEntity, int aBaseCasingIndex) {
+    private boolean addCoolingHatchToMachineList(IGregTechTileEntity aTileEntity, int aBaseCasingIndex) {
         if (aTileEntity == null) return false;
         IMetaTileEntity mte = aTileEntity.getMetaTileEntity();
         if (mte instanceof MTEPressureSteamCoolingHatch hatch) {
             hatch.updateTexture(aBaseCasingIndex);
-            mPressureCoolingHatches.add(hatch);
-            return true;
+            return mPressureCoolingHatches.add(hatch);
+        }
+        if (mte instanceof MTESteamCoolingHatch hatch) {
+            hatch.updateTexture(aBaseCasingIndex);
+            return mSteamCoolingHatches.add(hatch);
         }
         return false;
     }
@@ -1070,8 +1057,7 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
     public boolean addToMachineList(IGregTechTileEntity tTileEntity, int aBaseCasingIndex) {
         return addPressureSteamToMachineList(tTileEntity, aBaseCasingIndex)
             || addOverpressureInputToMachineList(tTileEntity, aBaseCasingIndex)
-            || addSteamCoolingToMachineList(tTileEntity, aBaseCasingIndex)
-            || addPressureCoolingToMachineList(tTileEntity, aBaseCasingIndex)
+            || addCoolingHatchToMachineList(tTileEntity, aBaseCasingIndex)
             || addInputToMachineList(tTileEntity, aBaseCasingIndex)
             || addOutputToMachineList(tTileEntity, aBaseCasingIndex)
             || addDynamoToMachineList(tTileEntity, aBaseCasingIndex);

@@ -122,11 +122,8 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
             .addElement(
                 'C',
                 ofChain(
-                    buildHatchAdder(MTEWaterHubArray.class).atLeast(WaterHubHatchElement.WaterOutput)
-                        .casingIndex(CASING_INDEX)
-                        .hint(1)
-                        .build(),
-                    buildHatchAdder(MTEWaterHubArray.class).atLeast(WaterHubHatchElement.WaterInput)
+                    buildHatchAdder(MTEWaterHubArray.class)
+                        .atLeast(WaterHubHatchElement.WaterOutput, WaterHubHatchElement.WaterInput)
                         .casingIndex(CASING_INDEX)
                         .hint(1)
                         .build(),

@@ -31,7 +31,6 @@ import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.api.enums.MetaTileEntityID;
-import com.miaokatze.gtsr.common.machine.base.MTEPressureSteamCoolingHatch;
 import com.miaokatze.gtsr.common.machine.base.MTESteamCoolingHatch;
 
 import cpw.mods.fml.common.registry.GameRegistry;
@@ -190,12 +189,6 @@ public class MTESteamSingularityCompressor extends MTESteamMultiBlockBase<MTESte
                         buildHatchAdder(MTESteamSingularityCompressor.class)
                             .adder(MTESteamMultiBlockBase::addToMachineList)
                             .hatchClass(MTESteamCoolingHatch.class)
-                            .casingIndex(casingIndex)
-                            .hint(2)
-                            .build(),
-                        buildHatchAdder(MTESteamSingularityCompressor.class)
-                            .adder(MTESteamMultiBlockBase::addToMachineList)
-                            .hatchClass(MTEPressureSteamCoolingHatch.class)
                             .casingIndex(casingIndex)
                             .hint(2)
                             .build(),
