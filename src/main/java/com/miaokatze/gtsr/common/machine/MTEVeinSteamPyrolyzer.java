@@ -176,6 +176,17 @@ public class MTEVeinSteamPyrolyzer extends MTESteamMultiBlockBase<MTEVeinSteamPy
                 .addElement(
                     'B',
                     ofChain(
+                        // casing-first: NEI 投影优先渲染外壳；真实 hatch 坐标上 casing 匹配失败后继续匹配 hatch adder。
+                        onElementPass(
+                            MTEVeinSteamPyrolyzer::onCasingAdded,
+                            ofBlocksTiered(
+                                MTEVeinSteamPyrolyzer::getCasingTier,
+                                ImmutableList.of(
+                                    Pair.of(GregTechAPI.sBlockCasings1, 10),
+                                    Pair.of(GregTechAPI.sBlockCasings2, 0)),
+                                -1,
+                                (MTEVeinSteamPyrolyzer t, Integer tier) -> t.mSetTier = tier,
+                                (MTEVeinSteamPyrolyzer t) -> t.mSetTier)),
                         // Use atLeast(PressureSteamInputHatch) instead of hatchIds(...). Its mteBlacklist()
                         // excludes MTEHatchPressureSteamInput.class so NEI does not render it on casing positions.
                         buildHatchAdder(MTEVeinSteamPyrolyzer.class).atLeast(PressureSteamInputHatch)
@@ -186,17 +197,7 @@ public class MTEVeinSteamPyrolyzer extends MTESteamMultiBlockBase<MTEVeinSteamPy
                         buildHatchAdder(MTEVeinSteamPyrolyzer.class).atLeast(GTSRHatchElement.SteamOutputBus)
                             .casingIndex(bronzeCasingIndex)
                             .hint(1)
-                            .build(),
-                        onElementPass(
-                            MTEVeinSteamPyrolyzer::onCasingAdded,
-                            ofBlocksTiered(
-                                MTEVeinSteamPyrolyzer::getCasingTier,
-                                ImmutableList.of(
-                                    Pair.of(GregTechAPI.sBlockCasings1, 10),
-                                    Pair.of(GregTechAPI.sBlockCasings2, 0)),
-                                -1,
-                                (MTEVeinSteamPyrolyzer t, Integer tier) -> t.mSetTier = tier,
-                                (MTEVeinSteamPyrolyzer t) -> t.mSetTier))))
+                            .build()))
                 .addElement(
                     'C',
                     onElementPass(

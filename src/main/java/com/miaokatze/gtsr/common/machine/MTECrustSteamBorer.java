@@ -208,6 +208,17 @@ public class MTECrustSteamBorer extends MTESteamMultiBlockBase<MTECrustSteamBore
                 .addElement(
                     'B',
                     ofChain(
+                        // casing-first: NEI 投影优先渲染外壳；真实 hatch 坐标上 casing 匹配失败后继续匹配 hatch adder。
+                        onElementPass(
+                            MTECrustSteamBorer::onCasingAdded,
+                            ofBlocksTiered(
+                                MTECrustSteamBorer::getCasingTier,
+                                ImmutableList.of(
+                                    Pair.of(GregTechAPI.sBlockCasings1, 10),
+                                    Pair.of(GregTechAPI.sBlockCasings2, 0)),
+                                -1,
+                                (MTECrustSteamBorer t, Integer tier) -> t.mSetTier = tier,
+                                (MTECrustSteamBorer t) -> t.mSetTier)),
                         // Use atLeast(PressureSteamInputHatch) instead of hatchIds(...). The hatch element's
                         // mteBlacklist() excludes MTEHatchPressureSteamInput.class, preventing NEI from rendering
                         // the pressure steam hatch at every casing position.
@@ -219,17 +230,7 @@ public class MTECrustSteamBorer extends MTESteamMultiBlockBase<MTECrustSteamBore
                         buildHatchAdder(MTECrustSteamBorer.class).atLeast(SteamOutputBus)
                             .casingIndex(casingIndex)
                             .hint(1)
-                            .build(),
-                        onElementPass(
-                            MTECrustSteamBorer::onCasingAdded,
-                            ofBlocksTiered(
-                                MTECrustSteamBorer::getCasingTier,
-                                ImmutableList.of(
-                                    Pair.of(GregTechAPI.sBlockCasings1, 10),
-                                    Pair.of(GregTechAPI.sBlockCasings2, 0)),
-                                -1,
-                                (MTECrustSteamBorer t, Integer tier) -> t.mSetTier = tier,
-                                (MTECrustSteamBorer t) -> t.mSetTier))))
+                            .build()))
                 .addElement(
                     'C',
                     onElementPass(

@@ -103,13 +103,26 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
                     new String[][] { { "   C   ", "  CDC  ", " CCCCC ", "DCCCCCD", " CCCCC ", "  CDC  ", "   C   " } }))
             .addElement(
                 'A',
-                // Casing is now an independent fallback element so NEI renders it correctly.
                 ofChain(
+                    // casing-first: NEI 投影优先渲染外壳；真实 hatch 坐标上 casing 匹配失败后继续匹配 hatch adder。
+                    onElementPass(
+                        MTEWaterHubArray::onCasingAdded,
+                        ofBlocksTiered(
+                            MTEWaterHubArray::getCasingTier,
+                            ImmutableList
+                                .of(Pair.of(GregTechAPI.sBlockCasings1, 10), Pair.of(GregTechAPI.sBlockCasings2, 0)),
+                            -1,
+                            (MTEWaterHubArray t, Integer tier) -> t.mCasingTier = tier,
+                            (MTEWaterHubArray t) -> t.mCasingTier)),
                     buildHatchAdder(MTEWaterHubArray.class)
                         .atLeast(WaterHubStorageElement.HubUnit, WaterHubStorageElement.ReinforcedHubUnit)
                         .casingIndex(CASING_INDEX)
                         .hint(2)
-                        .build(),
+                        .build()))
+            .addElement(
+                'C',
+                ofChain(
+                    // casing-first: NEI 投影优先渲染外壳；真实 hatch 坐标上 casing 匹配失败后继续匹配 hatch adder。
                     onElementPass(
                         MTEWaterHubArray::onCasingAdded,
                         ofBlocksTiered(
@@ -118,24 +131,12 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
                                 .of(Pair.of(GregTechAPI.sBlockCasings1, 10), Pair.of(GregTechAPI.sBlockCasings2, 0)),
                             -1,
                             (MTEWaterHubArray t, Integer tier) -> t.mCasingTier = tier,
-                            (MTEWaterHubArray t) -> t.mCasingTier))))
-            .addElement(
-                'C',
-                ofChain(
+                            (MTEWaterHubArray t) -> t.mCasingTier)),
                     buildHatchAdder(MTEWaterHubArray.class)
                         .atLeast(WaterHubHatchElement.WaterOutput, WaterHubHatchElement.WaterInput)
                         .casingIndex(CASING_INDEX)
                         .hint(1)
-                        .build(),
-                    onElementPass(
-                        MTEWaterHubArray::onCasingAdded,
-                        ofBlocksTiered(
-                            MTEWaterHubArray::getCasingTier,
-                            ImmutableList
-                                .of(Pair.of(GregTechAPI.sBlockCasings1, 10), Pair.of(GregTechAPI.sBlockCasings2, 0)),
-                            -1,
-                            (MTEWaterHubArray t, Integer tier) -> t.mCasingTier = tier,
-                            (MTEWaterHubArray t) -> t.mCasingTier))))
+                        .build()))
             .addElement(
                 'D',
                 onElementPass(

@@ -281,24 +281,21 @@ public class MTESiemensMartinFurnace extends MTEEnhancedMultiBlockBase<MTESiemen
                 .addElement(
                     'B',
                     ofChain(
-                        // 1) 输入总线（自定义 IHatchElement，带 mteBlacklist 避免 NEI 覆盖外壳）
+                        // casing-first: NEI 投影优先渲染外壳；真实 hatch 坐标上 casing 匹配失败后继续匹配 hatch adder。
+                        ofBlock(GregTechAPI.sBlockCasings2, 0),
                         buildHatchAdder(MTESiemensMartinFurnace.class).atLeast(SiemensMartinHatchElement.InputBus)
                             .casingIndex(casingIndex)
                             .hint(1)
                             .build(),
-                        // 2) 输出总线
                         buildHatchAdder(MTESiemensMartinFurnace.class).atLeast(SiemensMartinHatchElement.OutputBus)
                             .casingIndex(casingIndex)
                             .hint(1)
                             .build(),
-                        // 3) 耐压蒸汽输入仓
                         buildHatchAdder(MTESiemensMartinFurnace.class)
                             .atLeast(SiemensMartinHatchElement.PressureSteamInput)
                             .casingIndex(casingIndex)
                             .hint(1)
-                            .build(),
-                        // 4) casing 兜底
-                        ofBlock(GregTechAPI.sBlockCasings2, 0)))
+                            .build()))
                 .addElement('C', ofBlock(GregTechAPI.sBlockCasings2, 13))
                 .addElement('D', ofBlock(GregTechAPI.sBlockCasings2, 3))
                 .addElement('E', ofBlock(GregTechAPI.sBlockCasings3, 14))

@@ -1,5 +1,6 @@
 package com.miaokatze.gtsr.common.machine;
 
+import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose;
 import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.SteamInputBus;
@@ -76,21 +77,23 @@ public class MTEMultiTestMachine extends MTEEnhancedMultiBlockBase<MTEMultiTestM
         .addShape(STRUCTURE_PIECE_MAIN, transpose(shape))
         .addElement(
             'h',
-            buildHatchAdder(MTEMultiTestMachine.class)
-                // 声明该位置至少可以是以下仓室之一，或者是普通的外壳方块
-                .atLeast(InputHatch, OutputHatch, SteamInputBus, SteamOutputBus, Maintenance, Energy)
-                // 指定将识别到的仓室添加到机器列表的方法引用
-                .adder(MTEMultiTestMachine::addToMachineList)
-                // 在游戏内使用软锤查看结构时，该位置的提示点编号
-                .hint(1)
-                // 设置外壳方块的材质纹理索引（钨钢机器方块）
-                .casingIndex(GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings4, 0))
-                // 如果不是仓室，则检查是否为指定的外壳方块，并在匹配成功时触发 onCasingAdded 计数
-                .buildAndChain(
-                    onElementPass(
-                        MTEMultiTestMachine::onCasingAdded,
-                        com.gtnewhorizon.structurelib.structure.StructureUtility
-                            .ofBlock(GregTechAPI.sBlockCasings4, 0))))
+            ofChain(
+                // casing-first: NEI 投影优先渲染外壳；真实 hatch 坐标上 casing 匹配失败后继续匹配 hatch adder。
+                onElementPass(
+                    MTEMultiTestMachine::onCasingAdded,
+                    com.gtnewhorizon.structurelib.structure.StructureUtility
+                        .ofBlock(GregTechAPI.sBlockCasings4, 0)),
+                buildHatchAdder(MTEMultiTestMachine.class)
+                    // 声明该位置至少可以是以下仓室之一，或者是普通的外壳方块
+                    .atLeast(InputHatch, OutputHatch, SteamInputBus, SteamOutputBus, Maintenance, Energy)
+                    // 指定将识别到的仓室添加到机器列表的方法引用
+                    .adder(MTEMultiTestMachine::addToMachineList)
+                    // 在游戏内使用软锤查看结构时，该位置的提示点编号
+                    .hint(1)
+                    // 设置外壳方块的材质纹理索引（钨钢机器方块）
+                    .casingIndex(GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings4, 0))
+                    // 如果不是仓室，则检查是否为指定的外壳方块，并在匹配成功时触发 onCasingAdded 计数
+                    .build()))
         .build();
 
     public MTEMultiTestMachine(int aID, String aName, String aNameRegional) {

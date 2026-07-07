@@ -260,6 +260,19 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
                 .addElement(
                     'B',
                     ofChain(
+                        // casing-first: NEI 投影优先渲染外壳；真实 hatch 坐标上 casing 匹配失败后继续匹配 hatch adder。
+                        onElementPass(
+                            MTELargeGeothermalSteamBoiler::onCasingAdded,
+                            ofBlocksTiered(
+                                MTELargeGeothermalSteamBoiler::getCasingTier,
+                                ImmutableList.of(
+                                    Pair.of(GregTechAPI.sBlockCasings1, 10),
+                                    Pair.of(GregTechAPI.sBlockCasings2, 0)),
+                                -1,
+                                (MTELargeGeothermalSteamBoiler t, Integer tier) -> {
+                                    if (tier > t.mSetTier) t.mSetTier = tier;
+                                },
+                                (MTELargeGeothermalSteamBoiler t) -> t.mSetTier)),
                         buildHatchAdder(MTELargeGeothermalSteamBoiler.class).atLeast(InputHatch)
                             .casingIndex(bronzeCasingIndex)
                             .hint(1)
@@ -276,19 +289,7 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
                         buildHatchAdder(MTELargeGeothermalSteamBoiler.class).atLeast(SteamOutputBus)
                             .casingIndex(bronzeCasingIndex)
                             .hint(1)
-                            .build(),
-                        onElementPass(
-                            MTELargeGeothermalSteamBoiler::onCasingAdded,
-                            ofBlocksTiered(
-                                MTELargeGeothermalSteamBoiler::getCasingTier,
-                                ImmutableList.of(
-                                    Pair.of(GregTechAPI.sBlockCasings1, 10),
-                                    Pair.of(GregTechAPI.sBlockCasings2, 0)),
-                                -1,
-                                (MTELargeGeothermalSteamBoiler t, Integer tier) -> {
-                                    if (tier > t.mSetTier) t.mSetTier = tier;
-                                },
-                                (MTELargeGeothermalSteamBoiler t) -> t.mSetTier))))
+                            .build()))
                 .addElement(
                     'C',
                     ofChain(

@@ -200,6 +200,10 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
                 .addElement(
                     'B',
                     ofChain(
+                        // casing-first: NEI 投影优先渲染外壳；真实 hatch 坐标上 casing 匹配失败后继续匹配 hatch adder。
+                        onElementPass(
+                            MTESingularityDrillingHub::onCasingAdded,
+                            ofBlock(GregTechAPI.sBlockCasings2, 0)),
                         // Use atLeast(PressureSteamInputHatch) instead of hatchIds(...). Its mteBlacklist()
                         // excludes MTEHatchPressureSteamInput.class so NEI does not render it on casing positions.
                         buildHatchAdder(MTESingularityDrillingHub.class).atLeast(PressureSteamInputHatch)
@@ -220,10 +224,7 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
                         buildHatchAdder(MTESingularityDrillingHub.class).atLeast(SteamCoolingHatch)
                             .casingIndex(casingIndex)
                             .hint(2)
-                            .build(),
-                        onElementPass(
-                            MTESingularityDrillingHub::onCasingAdded,
-                            ofBlock(GregTechAPI.sBlockCasings2, 0))))
+                            .build()))
                 .addElement('C', ofBlock(GregTechAPI.sBlockCasings2, 13))
                 .addElement('D', ofBlock(GregTechAPI.sBlockCasings2, 3))
                 .addElement('E', ofBlock(GregTechAPI.sBlockCasings3, 14))

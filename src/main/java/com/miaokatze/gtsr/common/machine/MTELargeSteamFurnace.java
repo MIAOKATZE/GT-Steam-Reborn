@@ -156,6 +156,17 @@ public class MTELargeSteamFurnace extends MTESteamMultiBlockBase<MTELargeSteamFu
                 .addElement(
                     'B',
                     ofChain(
+                        // casing-first: NEI 投影优先渲染外壳；真实 hatch 坐标上 casing 匹配失败后继续匹配 hatch adder。
+                        onElementPass(
+                            MTELargeSteamFurnace::onCasingAdded,
+                            ofBlocksTiered(
+                                MTELargeSteamFurnace::getCasingTier,
+                                ImmutableList.of(
+                                    Pair.of(GregTechAPI.sBlockCasings1, 10),
+                                    Pair.of(GregTechAPI.sBlockCasings2, 0)),
+                                -1,
+                                (MTELargeSteamFurnace t, Integer tier) -> t.mSetTier = tier,
+                                (MTELargeSteamFurnace t) -> t.mSetTier)),
                         // Use atLeast(PressureSteamInputHatch) instead of hatchIds(...). Its mteBlacklist()
                         // excludes MTEHatchPressureSteamInput.class so NEI does not render it on casing positions.
                         buildHatchAdder(MTELargeSteamFurnace.class).atLeast(PressureSteamInputHatch)
@@ -166,17 +177,7 @@ public class MTELargeSteamFurnace extends MTESteamMultiBlockBase<MTELargeSteamFu
                         buildHatchAdder(MTELargeSteamFurnace.class).atLeast(SteamInputBus, SteamOutputBus)
                             .casingIndex(bronzeCasingIndex)
                             .hint(1)
-                            .build(),
-                        onElementPass(
-                            MTELargeSteamFurnace::onCasingAdded,
-                            ofBlocksTiered(
-                                MTELargeSteamFurnace::getCasingTier,
-                                ImmutableList.of(
-                                    Pair.of(GregTechAPI.sBlockCasings1, 10),
-                                    Pair.of(GregTechAPI.sBlockCasings2, 0)),
-                                -1,
-                                (MTELargeSteamFurnace t, Integer tier) -> t.mSetTier = tier,
-                                (MTELargeSteamFurnace t) -> t.mSetTier))))
+                            .build()))
                 .addElement(
                     'C',
                     onElementPass(
