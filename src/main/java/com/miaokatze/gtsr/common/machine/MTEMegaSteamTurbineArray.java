@@ -51,6 +51,7 @@ import gregtech.api.GregTechAPI;
 import gregtech.api.enums.GTValues;
 import gregtech.api.enums.Materials;
 import gregtech.api.enums.Textures;
+import gregtech.api.interfaces.IHatchElement;
 import gregtech.api.interfaces.IIconContainer;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
@@ -67,6 +68,7 @@ import gregtech.api.structure.error.StructureErrorRegistry;
 import gregtech.api.util.GTModHandler;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.GTUtilityClient;
+import gregtech.api.util.IGTHatchAdder;
 import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.api.util.shutdown.ShutDownReason;
 import gregtech.api.util.shutdown.ShutDownReasonRegistry;
@@ -101,6 +103,89 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
     private final List<MTEPressureSteamCoolingHatch> mPressureCoolingHatches = new ArrayList<>();
     private final ArrayList<MTEHatchDynamoMulti> eDynamoMulti = new ArrayList<>();
     protected final List<RenderOverlay.OverlayTicket> overlayTickets = new ArrayList<>();
+
+    /**
+     * Local hatch elements for the mega steam turbine array.
+     * <p>
+     * {@code mteBlacklist()} excludes the specific hatch classes from the NEI hatch item filter,
+     * so the generic input/output/dynamo hatch placeholders are shown instead of these custom hatches.
+     */
+    private enum MegaSteamTurbineArrayHatchElement implements IHatchElement<MTEMegaSteamTurbineArray> {
+
+        PressureSteamInput("GTSR.HatchElement.PressureSteamInput",
+            MTEMegaSteamTurbineArray::addPressureSteamToMachineList, MTEHatchPressureSteamInput.class) {
+
+            @Override
+            public long count(MTEMegaSteamTurbineArray t) {
+                return t.mPressureSteamInputs.size();
+            }
+
+            @Override
+            public List<Class<? extends IMetaTileEntity>> mteBlacklist() {
+                return ImmutableList.of(MTEHatchPressureSteamInput.class);
+            }
+        },
+
+        OverpressureInput("GTSR.HatchElement.OverpressureInput",
+            MTEMegaSteamTurbineArray::addOverpressureInputToMachineList, MTEOverpressureTurbineInputHatch.class) {
+
+            @Override
+            public long count(MTEMegaSteamTurbineArray t) {
+                return t.mOverpressureInputs.size();
+            }
+
+            @Override
+            public List<Class<? extends IMetaTileEntity>> mteBlacklist() {
+                return ImmutableList.of(MTEOverpressureTurbineInputHatch.class);
+            }
+        },
+
+        CoolingHatch("GTSR.HatchElement.CoolingHatch", MTEMegaSteamTurbineArray::addCoolingHatchToMachineList,
+            MTEPressureSteamCoolingHatch.class, MTESteamCoolingHatch.class) {
+
+            @Override
+            public long count(MTEMegaSteamTurbineArray t) {
+                return t.mSteamCoolingHatches.size() + t.mPressureCoolingHatches.size();
+            }
+
+            @Override
+            public List<Class<? extends IMetaTileEntity>> mteBlacklist() {
+                return ImmutableList.of(MTEPressureSteamCoolingHatch.class, MTESteamCoolingHatch.class);
+            }
+        };
+
+        private final String translationKey;
+        private final List<Class<? extends IMetaTileEntity>> mteClasses;
+        private final IGTHatchAdder<MTEMegaSteamTurbineArray> adder;
+
+        @SafeVarargs
+        MegaSteamTurbineArrayHatchElement(String translationKey, IGTHatchAdder<MTEMegaSteamTurbineArray> adder,
+            Class<? extends IMetaTileEntity>... mteClasses) {
+            this.translationKey = translationKey;
+            this.mteClasses = ImmutableList.copyOf(mteClasses);
+            this.adder = adder;
+        }
+
+        @Override
+        public List<? extends Class<? extends IMetaTileEntity>> mteClasses() {
+            return mteClasses;
+        }
+
+        @Override
+        public IGTHatchAdder<? super MTEMegaSteamTurbineArray> adder() {
+            return adder;
+        }
+
+        @Override
+        public String getDisplayName() {
+            return GTUtility.translate(translationKey);
+        }
+
+        @Override
+        public String getDescriptionLangKey() {
+            return translationKey;
+        }
+    }
 
     public MTEMegaSteamTurbineArray(int aID, String aName, String aNameRegional) {
         super(aID, aName, aNameRegional);
@@ -332,20 +417,17 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
                     'B',
                     ofChain(
                         buildHatchAdder(MTEMegaSteamTurbineArray.class)
-                            .adder(MTEMegaSteamTurbineArray::addPressureSteamToMachineList)
-                            .hatchClass(MTEHatchPressureSteamInput.class)
+                            .atLeast(MegaSteamTurbineArrayHatchElement.PressureSteamInput)
                             .casingIndex(SOLID_STEEL_CASING_INDEX)
                             .hint(1)
                             .build(),
                         buildHatchAdder(MTEMegaSteamTurbineArray.class)
-                            .adder(MTEMegaSteamTurbineArray::addOverpressureInputToMachineList)
-                            .hatchClass(MTEOverpressureTurbineInputHatch.class)
+                            .atLeast(MegaSteamTurbineArrayHatchElement.OverpressureInput)
                             .casingIndex(SOLID_STEEL_CASING_INDEX)
                             .hint(1)
                             .build(),
                         buildHatchAdder(MTEMegaSteamTurbineArray.class)
-                            .adder(MTEMegaSteamTurbineArray::addCoolingHatchToMachineList)
-                            .hatchClass(MTESteamCoolingHatch.class)
+                            .atLeast(MegaSteamTurbineArrayHatchElement.CoolingHatch)
                             .casingIndex(SOLID_STEEL_CASING_INDEX)
                             .hint(2)
                             .build(),

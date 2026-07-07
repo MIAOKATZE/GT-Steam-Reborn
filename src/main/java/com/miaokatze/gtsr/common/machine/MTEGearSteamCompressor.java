@@ -52,6 +52,7 @@ import cpw.mods.fml.common.registry.GameRegistry;
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Materials;
 import gregtech.api.enums.Textures;
+import gregtech.api.interfaces.IHatchElement;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
@@ -64,6 +65,7 @@ import gregtech.api.structure.error.StructureError;
 import gregtech.api.structure.error.StructureErrorRegistry;
 import gregtech.api.util.GTModHandler;
 import gregtech.api.util.GTUtility;
+import gregtech.api.util.IGTHatchAdder;
 import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
 
@@ -109,6 +111,75 @@ public class MTEGearSteamCompressor extends MTEEnhancedMultiBlockBase<MTEGearSte
     private final List<MTESteamCoolingHatch> mSteamCoolingHatches = new ArrayList<>();
     private final List<MTEPressureSteamCoolingHatch> mPressureCoolingHatches = new ArrayList<>();
 
+    /**
+     * Local hatch elements for the gear steam compressor.
+     * <p>
+     * {@code mteBlacklist()} excludes the specific hatch classes from the NEI hatch item filter,
+     * so the generic input/output hatch placeholder is shown instead of these custom hatches.
+     */
+    private enum GearSteamCompressorHatchElement implements IHatchElement<MTEGearSteamCompressor> {
+
+        PressureSteamInput("GTSR.HatchElement.PressureSteamInput",
+            MTEGearSteamCompressor::addPressureSteamToMachineList, MTEHatchPressureSteamInput.class) {
+
+            @Override
+            public long count(MTEGearSteamCompressor t) {
+                return t.mPressureSteamInputs.size();
+            }
+
+            @Override
+            public List<Class<? extends IMetaTileEntity>> mteBlacklist() {
+                return ImmutableList.of(MTEHatchPressureSteamInput.class);
+            }
+        },
+
+        CoolingHatch("GTSR.HatchElement.CoolingHatch", MTEGearSteamCompressor::addCoolingHatchToMachineList,
+            MTEPressureSteamCoolingHatch.class, MTESteamCoolingHatch.class) {
+
+            @Override
+            public long count(MTEGearSteamCompressor t) {
+                return t.mSteamCoolingHatches.size() + t.mPressureCoolingHatches.size();
+            }
+
+            @Override
+            public List<Class<? extends IMetaTileEntity>> mteBlacklist() {
+                return ImmutableList.of(MTEPressureSteamCoolingHatch.class, MTESteamCoolingHatch.class);
+            }
+        };
+
+        private final String translationKey;
+        private final List<Class<? extends IMetaTileEntity>> mteClasses;
+        private final IGTHatchAdder<MTEGearSteamCompressor> adder;
+
+        @SafeVarargs
+        GearSteamCompressorHatchElement(String translationKey, IGTHatchAdder<MTEGearSteamCompressor> adder,
+            Class<? extends IMetaTileEntity>... mteClasses) {
+            this.translationKey = translationKey;
+            this.mteClasses = ImmutableList.copyOf(mteClasses);
+            this.adder = adder;
+        }
+
+        @Override
+        public List<? extends Class<? extends IMetaTileEntity>> mteClasses() {
+            return mteClasses;
+        }
+
+        @Override
+        public IGTHatchAdder<? super MTEGearSteamCompressor> adder() {
+            return adder;
+        }
+
+        @Override
+        public String getDisplayName() {
+            return GTUtility.translate(translationKey);
+        }
+
+        @Override
+        public String getDescriptionLangKey() {
+            return translationKey;
+        }
+    }
+
     public long mSteamConsumedLastTick = 0;
     public long mSuperheatedOutputLastTick = 0;
     public long mWaterOutputLastTick = 0;
@@ -153,14 +224,12 @@ public class MTEGearSteamCompressor extends MTEEnhancedMultiBlockBase<MTEGearSte
                     'B',
                     ofChain(
                         buildHatchAdder(MTEGearSteamCompressor.class)
-                            .adder(MTEGearSteamCompressor::addPressureSteamToMachineList)
-                            .hatchClass(MTEHatchPressureSteamInput.class)
+                            .atLeast(GearSteamCompressorHatchElement.PressureSteamInput)
                             .casingIndex(BRONZE_CASING_INDEX)
                             .hint(1)
                             .build(),
                         buildHatchAdder(MTEGearSteamCompressor.class)
-                            .adder(MTEGearSteamCompressor::addCoolingHatchToMachineList)
-                            .hatchClass(MTESteamCoolingHatch.class)
+                            .atLeast(GearSteamCompressorHatchElement.CoolingHatch)
                             .casingIndex(BRONZE_CASING_INDEX)
                             .hint(2)
                             .build(),

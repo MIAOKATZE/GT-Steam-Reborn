@@ -7,6 +7,8 @@ import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import net.minecraft.item.ItemStack;
@@ -18,6 +20,7 @@ import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
 
+import com.google.common.collect.ImmutableList;
 import com.gtnewhorizon.gtnhlib.util.numberformatting.NumberFormatUtil;
 import com.gtnewhorizon.structurelib.alignment.IAlignmentLimits;
 import com.gtnewhorizon.structurelib.alignment.constructable.ISurvivalConstructable;
@@ -35,6 +38,7 @@ import com.miaokatze.gtsr.common.machine.base.MTEHatchPressureSteamInput;
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Materials;
 import gregtech.api.enums.Textures;
+import gregtech.api.interfaces.IHatchElement;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
@@ -51,10 +55,13 @@ import gregtech.api.render.TextureFactory;
 import gregtech.api.structure.error.StructureError;
 import gregtech.api.structure.error.StructureErrorRegistry;
 import gregtech.api.util.GTUtility;
+import gregtech.api.util.IGTHatchAdder;
 import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.api.util.shutdown.ShutDownReasonRegistry;
 import gregtech.common.blocks.BlockCasings2;
 import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
+import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.MTEHatchSteamBusInput;
+import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.MTEHatchSteamBusOutput;
 
 public class MTESiemensMartinFurnace extends MTEEnhancedMultiBlockBase<MTESiemensMartinFurnace>
     implements ISurvivalConstructable {
@@ -117,6 +124,62 @@ public class MTESiemensMartinFurnace extends MTEEnhancedMultiBlockBase<MTESiemen
             return mOutputBusses.add(hatch);
         }
         return false;
+    }
+
+    /**
+     * Custom hatch elements for the Siemens-Martin Furnace.
+     * <p>
+     * Each element exposes the machine-specific adder while overriding {@code mteBlacklist()}
+     * so that NEI does not render the corresponding hatch over every casing position.
+     */
+    private enum SiemensMartinHatchElement implements IHatchElement<MTESiemensMartinFurnace> {
+
+        InputBus(MTESiemensMartinFurnace::addInputBusToMachineList, MTEHatchInputBus.class) {
+
+            @Override
+            public List<Class<? extends IMetaTileEntity>> mteBlacklist() {
+                return ImmutableList.of(MTEHatchSteamBusInput.class);
+            }
+        },
+        OutputBus(MTESiemensMartinFurnace::addOutputBusToMachineList, MTEHatchOutputBus.class) {
+
+            @Override
+            public List<Class<? extends IMetaTileEntity>> mteBlacklist() {
+                return ImmutableList.of(MTEHatchSteamBusOutput.class);
+            }
+        },
+        PressureSteamInput(MTESiemensMartinFurnace::addPressureSteamToMachineList, MTEHatchPressureSteamInput.class) {
+
+            @Override
+            public List<Class<? extends IMetaTileEntity>> mteBlacklist() {
+                return ImmutableList.of(MTEHatchPressureSteamInput.class);
+            }
+        };
+
+        private final List<Class<? extends IMetaTileEntity>> mteClasses;
+        private final IGTHatchAdder<MTESiemensMartinFurnace> adder;
+
+        @SafeVarargs
+        SiemensMartinHatchElement(IGTHatchAdder<MTESiemensMartinFurnace> adder,
+            Class<? extends IMetaTileEntity>... classes) {
+            this.mteClasses = Collections.unmodifiableList(Arrays.asList(classes));
+            this.adder = adder;
+        }
+
+        @Override
+        public List<? extends Class<? extends IMetaTileEntity>> mteClasses() {
+            return mteClasses;
+        }
+
+        @Override
+        public IGTHatchAdder<? super MTESiemensMartinFurnace> adder() {
+            return adder;
+        }
+
+        @Override
+        public long count(MTESiemensMartinFurnace t) {
+            return 0;
+        }
     }
 
     public MTESiemensMartinFurnace(int aID, String aName, String aNameRegional) {
@@ -218,24 +281,19 @@ public class MTESiemensMartinFurnace extends MTEEnhancedMultiBlockBase<MTESiemen
                 .addElement(
                     'B',
                     ofChain(
-                        // 1) 输入总线
-                        buildHatchAdder(MTESiemensMartinFurnace.class)
-                            .adder(MTESiemensMartinFurnace::addInputBusToMachineList)
-                            .hatchClass(MTEHatchInputBus.class)
+                        // 1) 输入总线（自定义 IHatchElement，带 mteBlacklist 避免 NEI 覆盖外壳）
+                        buildHatchAdder(MTESiemensMartinFurnace.class).atLeast(SiemensMartinHatchElement.InputBus)
                             .casingIndex(casingIndex)
                             .hint(1)
                             .build(),
                         // 2) 输出总线
-                        buildHatchAdder(MTESiemensMartinFurnace.class)
-                            .adder(MTESiemensMartinFurnace::addOutputBusToMachineList)
-                            .hatchClass(MTEHatchOutputBus.class)
+                        buildHatchAdder(MTESiemensMartinFurnace.class).atLeast(SiemensMartinHatchElement.OutputBus)
                             .casingIndex(casingIndex)
                             .hint(1)
                             .build(),
                         // 3) 耐压蒸汽输入仓
                         buildHatchAdder(MTESiemensMartinFurnace.class)
-                            .adder(MTESiemensMartinFurnace::addPressureSteamToMachineList)
-                            .hatchClass(MTEHatchPressureSteamInput.class)
+                            .atLeast(SiemensMartinHatchElement.PressureSteamInput)
                             .casingIndex(casingIndex)
                             .hint(1)
                             .build(),

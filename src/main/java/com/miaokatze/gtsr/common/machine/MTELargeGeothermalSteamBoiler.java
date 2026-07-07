@@ -68,7 +68,6 @@ import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.common.blocks.BlockCasings1;
 import gregtech.common.blocks.BlockCasings2;
 import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
-import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.MTEHatchSteamBusOutput;
 
 public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTELargeGeothermalSteamBoiler>
     implements IConstructable, ISurvivalConstructable {
@@ -231,12 +230,6 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
                             .casingIndex(bronzeCasingIndex)
                             .hint(1)
                             .build(),
-                        buildHatchAdder(MTELargeGeothermalSteamBoiler.class)
-                            .adder(MTELargeGeothermalSteamBoiler::addSteamBusOutputToMachineList)
-                            .hatchClass(MTEHatchSteamBusOutput.class)
-                            .casingIndex(bronzeCasingIndex)
-                            .hint(1)
-                            .build(),
                         onElementPass(
                             MTELargeGeothermalSteamBoiler::onCasingAdded,
                             ofBlocksTiered(
@@ -323,16 +316,6 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
         if (aMetaTileEntity instanceof MTEPressureSteamOutputHatch hatch) {
             hatch.updateTexture(aBaseCasingIndex);
             return mPressureSteamOutputHatches.add(hatch);
-        }
-        return false;
-    }
-
-    private boolean addSteamBusOutputToMachineList(IGregTechTileEntity aTileEntity, int aBaseCasingIndex) {
-        if (aTileEntity == null) return false;
-        IMetaTileEntity aMetaTileEntity = aTileEntity.getMetaTileEntity();
-        if (aMetaTileEntity instanceof MTEHatchSteamBusOutput hatch) {
-            hatch.updateTexture(aBaseCasingIndex);
-            return mOutputBusses.add(hatch);
         }
         return false;
     }

@@ -222,8 +222,20 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
 
     private enum SteamHubHatchElement implements IHatchElement<MTESteamHubArray> {
 
-        SteamInput(MTESteamHubArray::addSteamInputToMachineList, MTESteamHubInputHatch.class),
-        SteamOutput(MTESteamHubArray::addSteamOutputToMachineList, MTESteamHubOutputHatch.class);
+        SteamInput(MTESteamHubArray::addSteamInputToMachineList, MTESteamHubInputHatch.class) {
+
+            @Override
+            public List<Class<? extends IMetaTileEntity>> mteBlacklist() {
+                return ImmutableList.of(MTESteamHubInputHatch.class);
+            }
+        },
+        SteamOutput(MTESteamHubArray::addSteamOutputToMachineList, MTESteamHubOutputHatch.class) {
+
+            @Override
+            public List<Class<? extends IMetaTileEntity>> mteBlacklist() {
+                return ImmutableList.of(MTESteamHubOutputHatch.class);
+            }
+        };
 
         private final List<Class<? extends IMetaTileEntity>> mteClasses;
         private final IGTHatchAdder<MTESteamHubArray> adder;
@@ -252,9 +264,27 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
 
     private enum SteamHubStorageElement implements IHatchElement<MTESteamHubArray> {
 
-        PressureUnit(MTESteamHubArray::addPressureUnitToMachineList, MTEHubStorageUnit.class),
-        ReinforcedUnit(MTESteamHubArray::addReinforcedUnitToMachineList, MTEReinforcedHubStorageUnit.class),
-        OverpressureUnit(MTESteamHubArray::addOverpressureUnitToMachineList, MTEOverpressureHubStorageUnit.class);
+        PressureUnit(MTESteamHubArray::addPressureUnitToMachineList, MTEHubStorageUnit.class) {
+
+            @Override
+            public List<Class<? extends IMetaTileEntity>> mteBlacklist() {
+                return ImmutableList.of(MTEHubStorageUnit.class);
+            }
+        },
+        ReinforcedUnit(MTESteamHubArray::addReinforcedUnitToMachineList, MTEReinforcedHubStorageUnit.class) {
+
+            @Override
+            public List<Class<? extends IMetaTileEntity>> mteBlacklist() {
+                return ImmutableList.of(MTEReinforcedHubStorageUnit.class);
+            }
+        },
+        OverpressureUnit(MTESteamHubArray::addOverpressureUnitToMachineList, MTEOverpressureHubStorageUnit.class) {
+
+            @Override
+            public List<Class<? extends IMetaTileEntity>> mteBlacklist() {
+                return ImmutableList.of(MTEOverpressureHubStorageUnit.class);
+            }
+        };
 
         private final List<Class<? extends IMetaTileEntity>> mteClasses;
         private final IGTHatchAdder<MTESteamHubArray> adder;

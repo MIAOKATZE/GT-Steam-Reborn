@@ -54,6 +54,7 @@ import gregtech.api.enums.GTValues;
 import gregtech.api.enums.Materials;
 import gregtech.api.enums.Textures;
 import gregtech.api.interfaces.ICleanroom;
+import gregtech.api.interfaces.IHatchElement;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
@@ -71,6 +72,7 @@ import gregtech.api.structure.error.StructureErrorRegistry;
 import gregtech.api.util.GTModHandler;
 import gregtech.api.util.GTRecipe;
 import gregtech.api.util.GTUtility;
+import gregtech.api.util.IGTHatchAdder;
 import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.api.util.OverclockCalculator;
 import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
@@ -103,6 +105,76 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
 
     private final List<MTEHatchPressureSteamInput> mPressureSteamInputs = new ArrayList<>();
     private final List<MTEPressureSteamCoolingHatch> mPressureCoolingHatches = new ArrayList<>();
+
+    /**
+     * Local hatch elements for pressure steam input and cooling hatches.
+     * <p>
+     * These elements use custom adders to populate machine-specific hatch lists.
+     * {@code mteBlacklist()} excludes the specific hatch classes from the NEI hatch item filter,
+     * preventing StructureLib from rendering those hatches over every matching structure position.
+     */
+    private enum KineticProcessingArrayHatchElement implements IHatchElement<MTEKineticProcessingArray> {
+
+        PressureSteamInput("GTSR.HatchElement.PressureSteamInput",
+            MTEKineticProcessingArray::addPressureSteamToMachineList, MTEHatchPressureSteamInput.class) {
+
+            @Override
+            public long count(MTEKineticProcessingArray t) {
+                return t.mPressureSteamInputs.size();
+            }
+
+            @Override
+            public List<Class<? extends IMetaTileEntity>> mteBlacklist() {
+                return ImmutableList.of(MTEHatchPressureSteamInput.class);
+            }
+        },
+
+        PressureSteamCooling("GTSR.HatchElement.PressureSteamCooling",
+            MTEKineticProcessingArray::addPressureCoolingToMachineList, MTEPressureSteamCoolingHatch.class) {
+
+            @Override
+            public long count(MTEKineticProcessingArray t) {
+                return t.mPressureCoolingHatches.size();
+            }
+
+            @Override
+            public List<Class<? extends IMetaTileEntity>> mteBlacklist() {
+                return ImmutableList.of(MTEPressureSteamCoolingHatch.class);
+            }
+        };
+
+        private final String translationKey;
+        private final List<Class<? extends IMetaTileEntity>> mteClasses;
+        private final IGTHatchAdder<MTEKineticProcessingArray> adder;
+
+        @SafeVarargs
+        KineticProcessingArrayHatchElement(String translationKey, IGTHatchAdder<MTEKineticProcessingArray> adder,
+            Class<? extends IMetaTileEntity>... mteClasses) {
+            this.translationKey = translationKey;
+            this.mteClasses = ImmutableList.copyOf(mteClasses);
+            this.adder = adder;
+        }
+
+        @Override
+        public List<? extends Class<? extends IMetaTileEntity>> mteClasses() {
+            return mteClasses;
+        }
+
+        @Override
+        public IGTHatchAdder<? super MTEKineticProcessingArray> adder() {
+            return adder;
+        }
+
+        @Override
+        public String getDisplayName() {
+            return GTUtility.translate(translationKey);
+        }
+
+        @Override
+        public String getDescriptionLangKey() {
+            return translationKey;
+        }
+    }
 
     public double mSteamRate = 0;
     public long mSteamPerAmp = 0;
@@ -147,14 +219,12 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
                             .hint(1)
                             .build(),
                         buildHatchAdder(MTEKineticProcessingArray.class)
-                            .adder(MTEKineticProcessingArray::addPressureSteamToMachineList)
-                            .hatchClass(MTEHatchPressureSteamInput.class)
+                            .atLeast(KineticProcessingArrayHatchElement.PressureSteamInput)
                             .casingIndex(SOLID_STEEL_CASING_INDEX)
                             .hint(2)
                             .build(),
                         buildHatchAdder(MTEKineticProcessingArray.class)
-                            .adder(MTEKineticProcessingArray::addPressureCoolingToMachineList)
-                            .hatchClass(MTEPressureSteamCoolingHatch.class)
+                            .atLeast(KineticProcessingArrayHatchElement.PressureSteamCooling)
                             .casingIndex(SOLID_STEEL_CASING_INDEX)
                             .hint(3)
                             .build(),

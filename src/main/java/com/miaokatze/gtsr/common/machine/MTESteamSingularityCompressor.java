@@ -4,6 +4,7 @@ import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlock;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose;
+import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.SteamCoolingHatch;
 import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.SteamOutputBus;
 import static gregtech.api.enums.GTValues.emptyItemStackArray;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
@@ -31,7 +32,6 @@ import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.api.enums.MetaTileEntityID;
-import com.miaokatze.gtsr.common.machine.base.MTESteamCoolingHatch;
 
 import cpw.mods.fml.common.registry.GameRegistry;
 import cpw.mods.fml.relauncher.Side;
@@ -52,7 +52,6 @@ import gregtech.api.structure.error.StructureErrorRegistry;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.common.blocks.BlockCasings2;
-import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.MTEHatchSteamBusOutput;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTEHatchCustomFluidBase;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTESteamMultiBlockBase;
 
@@ -180,15 +179,7 @@ public class MTESteamSingularityCompressor extends MTESteamMultiBlockBase<MTESte
                             .casingIndex(casingIndex)
                             .hint(1)
                             .build(),
-                        buildHatchAdder(MTESteamSingularityCompressor.class)
-                            .adder(MTESteamSingularityCompressor::addSteamOutputBusToMachineList)
-                            .hatchClass(MTEHatchSteamBusOutput.class)
-                            .casingIndex(casingIndex)
-                            .hint(1)
-                            .build(),
-                        buildHatchAdder(MTESteamSingularityCompressor.class)
-                            .adder(MTESteamMultiBlockBase::addToMachineList)
-                            .hatchClass(MTESteamCoolingHatch.class)
+                        buildHatchAdder(MTESteamSingularityCompressor.class).atLeast(SteamCoolingHatch)
                             .casingIndex(casingIndex)
                             .hint(2)
                             .build(),
@@ -220,16 +211,6 @@ public class MTESteamSingularityCompressor extends MTESteamMultiBlockBase<MTESte
 
     private void onCasingAdded() {
         mCasingCount++;
-    }
-
-    private boolean addSteamOutputBusToMachineList(IGregTechTileEntity aTileEntity, int aBaseCasingIndex) {
-        if (aTileEntity == null) return false;
-        IMetaTileEntity aMetaTileEntity = aTileEntity.getMetaTileEntity();
-        if (aMetaTileEntity instanceof MTEHatchSteamBusOutput hatch) {
-            hatch.updateTexture(aBaseCasingIndex);
-            return mOutputBusses.add(hatch);
-        }
-        return false;
     }
 
     @Override

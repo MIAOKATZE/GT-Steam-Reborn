@@ -185,8 +185,20 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
 
     private enum WaterHubHatchElement implements IHatchElement<MTEWaterHubArray> {
 
-        WaterInput(MTEWaterHubArray::addWaterInputToMachineList, MTEWaterHubInputHatch.class),
-        WaterOutput(MTEWaterHubArray::addWaterOutputToMachineList, MTEWaterHubOutputHatch.class);
+        WaterInput(MTEWaterHubArray::addWaterInputToMachineList, MTEWaterHubInputHatch.class) {
+
+            @Override
+            public List<Class<? extends IMetaTileEntity>> mteBlacklist() {
+                return ImmutableList.of(MTEWaterHubInputHatch.class);
+            }
+        },
+        WaterOutput(MTEWaterHubArray::addWaterOutputToMachineList, MTEWaterHubOutputHatch.class) {
+
+            @Override
+            public List<Class<? extends IMetaTileEntity>> mteBlacklist() {
+                return ImmutableList.of(MTEWaterHubOutputHatch.class);
+            }
+        };
 
         private final List<Class<? extends IMetaTileEntity>> mteClasses;
         private final IGTHatchAdder<MTEWaterHubArray> adder;
@@ -215,8 +227,20 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
 
     private enum WaterHubStorageElement implements IHatchElement<MTEWaterHubArray> {
 
-        HubUnit(MTEWaterHubArray::addHubUnitToMachineList, MTEHubStorageUnit.class),
-        ReinforcedHubUnit(MTEWaterHubArray::addReinforcedHubUnitToMachineList, MTEReinforcedHubStorageUnit.class);
+        HubUnit(MTEWaterHubArray::addHubUnitToMachineList, MTEHubStorageUnit.class) {
+
+            @Override
+            public List<Class<? extends IMetaTileEntity>> mteBlacklist() {
+                return ImmutableList.of(MTEHubStorageUnit.class);
+            }
+        },
+        ReinforcedHubUnit(MTEWaterHubArray::addReinforcedHubUnitToMachineList, MTEReinforcedHubStorageUnit.class) {
+
+            @Override
+            public List<Class<? extends IMetaTileEntity>> mteBlacklist() {
+                return ImmutableList.of(MTEReinforcedHubStorageUnit.class);
+            }
+        };
 
         private final List<Class<? extends IMetaTileEntity>> mteClasses;
         private final IGTHatchAdder<MTEWaterHubArray> adder;
