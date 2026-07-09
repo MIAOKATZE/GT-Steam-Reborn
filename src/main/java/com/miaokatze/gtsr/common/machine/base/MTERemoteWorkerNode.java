@@ -57,6 +57,8 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity implements IAdd
     protected String mHubType = "";
     protected boolean mIsOutputMode = true;
     protected boolean mRegistered = false;
+    // 是否已绑定到枢纽（独立于 mHubDim，避免主世界 dim=0 被误判为未绑定）
+    protected boolean mBound = false;
 
     protected boolean mIsWorking = false;
     protected int mWorkProgress = 0;
@@ -117,6 +119,8 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity implements IAdd
             mHubDim = hubTag.getInteger("dim");
             mHubType = hubTag.getString("type");
             mIsOutputMode = hubTag.hasKey("output") && hubTag.getBoolean("output");
+            // 已从 NBT 读取到绑定信息，标记为已绑定
+            mBound = true;
         } else {
             mHubX = 0;
             mHubY = 0;
@@ -125,6 +129,8 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity implements IAdd
             mHubType = "";
             mIsOutputMode = true;
             mRegistered = false;
+            // 无绑定信息，标记为未绑定
+            mBound = false;
         }
         mIsWorking = aNBT.getBoolean("mIsWorking");
         mWorkProgress = aNBT.getInteger("mWorkProgress");
@@ -151,7 +157,8 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity implements IAdd
     }
 
     protected boolean isBound() {
-        return mHubX != 0 || mHubY != 0 || mHubZ != 0 || mHubDim != 0;
+        // 用 mBound 判断绑定状态，避免主世界 dim=0 被误判为未绑定
+        return mBound;
     }
 
     @Override

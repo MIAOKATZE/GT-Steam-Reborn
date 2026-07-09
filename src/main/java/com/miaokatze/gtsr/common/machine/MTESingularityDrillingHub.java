@@ -201,9 +201,7 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
                     'B',
                     ofChain(
                         // casing-first: NEI 投影优先渲染外壳；真实 hatch 坐标上 casing 匹配失败后继续匹配 hatch adder。
-                        onElementPass(
-                            MTESingularityDrillingHub::onCasingAdded,
-                            ofBlock(GregTechAPI.sBlockCasings2, 0)),
+                        onElementPass(MTESingularityDrillingHub::onCasingAdded, ofBlock(GregTechAPI.sBlockCasings2, 0)),
                         // Use atLeast(PressureSteamInputHatch) instead of hatchIds(...). Its mteBlacklist()
                         // excludes MTEHatchPressureSteamInput.class so NEI does not render it on casing positions.
                         buildHatchAdder(MTESingularityDrillingHub.class).atLeast(PressureSteamInputHatch)
@@ -664,6 +662,18 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
     @Override
     protected IIconContainer getActiveOverlay() {
         return OVERLAY_ON;
+    }
+
+    // beta-2 兼容：MTESteamMultiBlockBase 将 getActiveGlowOverlay/getInactiveGlowOverlay 改为 abstract
+    // 当前返回 null（与 beta-1 默认行为等价，无发光层），后续可补充发光纹理资源
+    @Override
+    protected IIconContainer getActiveGlowOverlay() {
+        return null;
+    }
+
+    @Override
+    protected IIconContainer getInactiveGlowOverlay() {
+        return null;
     }
 
     @Override

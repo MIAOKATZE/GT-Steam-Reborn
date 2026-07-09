@@ -81,8 +81,7 @@ public class MTEMultiTestMachine extends MTEEnhancedMultiBlockBase<MTEMultiTestM
                 // casing-first: NEI 投影优先渲染外壳；真实 hatch 坐标上 casing 匹配失败后继续匹配 hatch adder。
                 onElementPass(
                     MTEMultiTestMachine::onCasingAdded,
-                    com.gtnewhorizon.structurelib.structure.StructureUtility
-                        .ofBlock(GregTechAPI.sBlockCasings4, 0)),
+                    com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlock(GregTechAPI.sBlockCasings4, 0)),
                 buildHatchAdder(MTEMultiTestMachine.class)
                     // 声明该位置至少可以是以下仓室之一，或者是普通的外壳方块
                     .atLeast(InputHatch, OutputHatch, SteamInputBus, SteamOutputBus, Maintenance, Energy)

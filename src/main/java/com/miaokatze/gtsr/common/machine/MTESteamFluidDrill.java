@@ -412,6 +412,18 @@ public class MTESteamFluidDrill extends MTESteamMultiBlockBase<MTESteamFluidDril
         return Textures.BlockIcons.OVERLAY_FRONT_WATER_PUMP_ACTIVE;
     }
 
+    // beta-2 兼容：MTESteamMultiBlockBase 将 getActiveGlowOverlay/getInactiveGlowOverlay 改为 abstract
+    // 当前返回 null（与 beta-1 默认行为等价，无发光层），后续可补充发光纹理资源
+    @Override
+    protected IIconContainer getActiveGlowOverlay() {
+        return null;
+    }
+
+    @Override
+    protected IIconContainer getInactiveGlowOverlay() {
+        return null;
+    }
+
     @Override
     protected MultiblockTooltipBuilder createTooltip() {
         MultiblockTooltipBuilder tt = new MultiblockTooltipBuilder();

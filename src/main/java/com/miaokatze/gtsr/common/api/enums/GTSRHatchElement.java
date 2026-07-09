@@ -5,6 +5,9 @@ import java.util.Collections;
 import java.util.List;
 
 import com.google.common.collect.ImmutableList;
+import com.miaokatze.gtsr.common.machine.base.MTEHatchPressureSteamInput;
+import com.miaokatze.gtsr.common.machine.base.MTEPressureSteamCoolingHatch;
+import com.miaokatze.gtsr.common.machine.base.MTESteamCoolingHatch;
 
 import gregtech.api.interfaces.IHatchElement;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
@@ -18,10 +21,6 @@ import gregtech.api.util.IGTHatchAdder;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.MTEHatchSteamBusInput;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.MTEHatchSteamBusOutput;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTESteamMultiBlockBase;
-
-import com.miaokatze.gtsr.common.machine.base.MTEHatchPressureSteamInput;
-import com.miaokatze.gtsr.common.machine.base.MTEPressureSteamCoolingHatch;
-import com.miaokatze.gtsr.common.machine.base.MTESteamCoolingHatch;
 
 /**
  * Custom HatchElement variants without GT5U's steam bus blacklist.

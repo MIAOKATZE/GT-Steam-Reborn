@@ -40,6 +40,8 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase {
     protected boolean mIsOutputMode = true;
     protected boolean mRegistered = false;
     protected int mTransferRatePercent = 100;
+    // 是否已绑定到枢纽（独立于 mHubDim，避免主世界 dim=0 被误判为未绑定）
+    protected boolean mBound = false;
 
     private static final int[] TRANSFER_RATE_CYCLE = { 100, 80, 60, 40, 20, 10, 5, 1, 0 };
 
@@ -54,7 +56,8 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase {
             ItemStack held = aPlayer.getCurrentEquippedItem();
             if (held != null && (GTSRItemList.HubSingularityChip.isStackEqual(held, true, true)
                 || GTSRItemList.ReinforcedHubSingularityChip.isStackEqual(held, true, true))) {
-                if (mHubDim == 0) {
+                // 用 mBound 判断绑定状态，避免主世界 dim=0 被误判为未绑定
+                if (!mBound) {
                     GTUtility
                         .sendChatToPlayer(aPlayer, StatCollector.translateToLocal("gtsr.cache_node.need_bind_first"));
                     return true;
@@ -96,7 +99,8 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase {
         super.saveNBTData(aNBT);
         aNBT.setBoolean("mIsOutputMode", mIsOutputMode);
         aNBT.setInteger("mTransferRatePercent", mTransferRatePercent);
-        if (mHubDim != 0) {
+        // 用 mBound 判断绑定状态，避免主世界 dim=0 被误判为未绑定
+        if (mBound) {
             NBTTagCompound hubTag = new NBTTagCompound();
             hubTag.setInteger("x", mHubX);
             hubTag.setInteger("y", mHubY);
@@ -125,6 +129,8 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase {
             if (hubTag.hasKey("output")) {
                 mIsOutputMode = !hubTag.getBoolean("output");
             }
+            // 已从 NBT 读取到绑定信息，标记为已绑定
+            mBound = true;
         } else {
             mHubX = 0;
             mHubY = 0;
@@ -133,6 +139,8 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase {
             mHubType = "";
             mIsOutputMode = true;
             mRegistered = false;
+            // 无绑定信息，标记为未绑定
+            mBound = false;
         }
     }
 
@@ -178,7 +186,8 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase {
         super.onPostTick(aBaseMetaTileEntity, aTick);
         if (!aBaseMetaTileEntity.isServerSide()) return;
 
-        if (!mRegistered && mHubDim != 0) {
+        // 用 mBound 判断绑定状态，避免主世界 dim=0 被误判为未绑定
+        if (!mRegistered && mBound) {
             mRegistered = true;
             registerWithHub(aBaseMetaTileEntity);
         }
