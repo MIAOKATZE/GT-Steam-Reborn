@@ -398,15 +398,17 @@ public class MTESteamSingularityCompressor extends MTESteamMultiBlockBase<MTESte
     }
 
     // beta-2 兼容：MTESteamMultiBlockBase 将 getActiveGlowOverlay/getInactiveGlowOverlay 改为 abstract
-    // 当前返回 null（与 beta-1 默认行为等价，无发光层），后续可补充发光纹理资源
+    // 返回 Textures.BlockIcons.VOID（GT5U 官方"空纹理"常量，渲染器跳过 InvisibleIcon，无发光层）
+    // 不能返回 null，否则 beta-2 的 createTextureWithCasing 会导致 GTTextureBuilder.build() 抛出
+    // "iconContainer not specified!" 崩溃（创造物品栏渲染时触发）
     @Override
     protected IIconContainer getActiveGlowOverlay() {
-        return null;
+        return Textures.BlockIcons.VOID;
     }
 
     @Override
     protected IIconContainer getInactiveGlowOverlay() {
-        return null;
+        return Textures.BlockIcons.VOID;
     }
 
     @Override
