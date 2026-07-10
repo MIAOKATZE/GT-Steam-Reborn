@@ -13,7 +13,8 @@ A GregTech New Horizons expansion mod that **supplements the Steam Age and signi
 
 | GTNH         | GTSR   | Maintenance / 维护 |
 | ------------ | ------ | :--------------: |
-| 2.9.0 beta-1 | 1.7.1+ |        ✔️        |
+| 2.9.0 beta-2 | 1.7.15+ |        ✔️        |
+| 2.9.0 beta-1 | 1.7.1+ |        ❌️        |
 | 2.8.4        | 1.6.0  |        ❌️        |
 
 ***
