@@ -193,7 +193,9 @@ public class MTEAtmosphericCentrifuge extends MTESteamMultiBlockBase<MTEAtmosphe
                     'D',
                     onElementPass(
                         MTEAtmosphericCentrifuge::onCasingAdded,
-                        ofBlock(cpw.mods.fml.common.registry.GameRegistry.findBlock("IC2", "blockAlloyGlass"), 0)))
+                        // 防爆玻璃：GTNH 2.9.0 下 IC2 已移除 blockAlloyGlass，改用 GT5U 的强化玻璃（sBlockGlass1 meta 10 =
+                        // ReinforcedGlass）
+                        ofBlock(GregTechAPI.sBlockGlass1, 10)))
                 .addElement(
                     'E',
                     onElementPass(

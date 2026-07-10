@@ -228,7 +228,8 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
                 .addElement('E', ofBlock(GregTechAPI.sBlockCasings3, 14))
                 .addElement(
                     'F',
-                    ofBlock(cpw.mods.fml.common.registry.GameRegistry.findBlock("IC2", "blockAlloyGlass"), 0))
+                    // 防爆玻璃：GTNH 2.9.0 下 IC2 已移除 blockAlloyGlass，改用 GT5U 的强化玻璃（sBlockGlass1 meta 10 = ReinforcedGlass）
+                    ofBlock(GregTechAPI.sBlockGlass1, 10))
                 .addElement('G', ofBlock(GregTechAPI.sBlockFrames, Materials.Steel.mMetaItemSubID))
                 .build();
         }

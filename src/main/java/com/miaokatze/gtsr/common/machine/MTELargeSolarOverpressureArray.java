@@ -177,7 +177,8 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
     @Nullable
     public static Integer getGlassTier(Block block, int meta) {
         if (block == Blocks.glass && meta == 0) return 1;
-        if (block == cpw.mods.fml.common.registry.GameRegistry.findBlock("IC2", "blockAlloyGlass")) return 2;
+        // 防爆玻璃：GTNH 2.9.0 下 IC2 已移除 blockAlloyGlass，改用 GT5U 的强化玻璃（sBlockGlass1 meta 10 = ReinforcedGlass）
+        if (block == GregTechAPI.sBlockGlass1 && meta == 10) return 2;
         return null;
     }
 
@@ -303,7 +304,8 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
                         MTELargeSolarOverpressureArray::getGlassTier,
                         ImmutableList.of(
                             Pair.of(Blocks.glass, 0),
-                            Pair.of(cpw.mods.fml.common.registry.GameRegistry.findBlock("IC2", "blockAlloyGlass"), 0)),
+                            // 防爆玻璃：GT5U 强化玻璃 sBlockGlass1 meta 10
+                            Pair.of(GregTechAPI.sBlockGlass1, 10)),
                         -1,
                         (MTELargeSolarOverpressureArray t, Integer tier) -> t.tierGlass = Math.max(t.tierGlass, tier),
                         (MTELargeSolarOverpressureArray t) -> t.tierGlass))

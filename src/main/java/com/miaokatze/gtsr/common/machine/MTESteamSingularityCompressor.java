@@ -33,7 +33,6 @@ import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 
-import cpw.mods.fml.common.registry.GameRegistry;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 import gregtech.api.GregTechAPI;
@@ -200,7 +199,9 @@ public class MTESteamSingularityCompressor extends MTESteamMultiBlockBase<MTESte
                     'E',
                     onElementPass(
                         MTESteamSingularityCompressor::onCasingAdded,
-                        ofBlock(GameRegistry.findBlock("IC2", "blockAlloyGlass"), 0)))
+                        // 防爆玻璃：GTNH 2.9.0 下 IC2 已移除 blockAlloyGlass，改用 GT5U 的强化玻璃（sBlockGlass1 meta 10 =
+                        // ReinforcedGlass）
+                        ofBlock(GregTechAPI.sBlockGlass1, 10)))
                 .addElement(
                     'F',
                     onElementPass(
