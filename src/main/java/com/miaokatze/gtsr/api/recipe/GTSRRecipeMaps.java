@@ -126,7 +126,7 @@ public class GTSRRecipeMaps {
 
     public static final RecipeMap<RecipeMapBackend> steamFluidDrillRecipes = RecipeMapBuilder
         .of("gtsr.recipe.steam_fluid_drill")
-        .maxIO(0, 1, 1, 0)
+        .maxIO(0, 0, 0, 1)
         .minInputs(0, 0)
         .progressBar(GTUITextures.PROGRESSBAR_ARROW, ProgressBar.Direction.RIGHT)
         .neiSpecialInfoFormatter(STEAM_FLUID_DRILL_FORMATTER)

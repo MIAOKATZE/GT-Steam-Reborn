@@ -4,13 +4,11 @@ import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 import net.minecraftforge.fluids.FluidStack;
 
-import gregtech.api.enums.Materials;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.implementations.MTEHatchInput;
-import gregtech.api.util.GTUtility;
 
 /**
  * 巨型空气输入仓
@@ -41,12 +39,17 @@ public class MTEMegaAirInputHatch extends MTEHatchInput {
 
     /**
      * 仅允许输入「空气」与「下界空气」。
+     * <p>
+     * 注意：{@code Materials.Air} 未调用 {@code addFluid()}，{@code Materials.Air.getFluid(1)} 会返回 null，
+     * 因此不能用 {@code GTUtility.areFluidsEqual} 比较。这里直接按流体注册名判断，
+     * 与 {@code MTEAirCompressor} 产出空气（{@code Materials.Air.getGas}）的方式一致。
      */
     @Override
     public boolean isFluidInputAllowed(FluidStack aFluid) {
         if (aFluid == null || aFluid.getFluid() == null) return false;
-        return GTUtility.areFluidsEqual(aFluid, Materials.Air.getFluid(1))
-            || GTUtility.areFluidsEqual(aFluid, Materials.NetherAir.getFluid(1));
+        String fluidName = aFluid.getFluid()
+            .getName();
+        return "air".equals(fluidName) || "netherair".equals(fluidName);
     }
 
     @Override
