@@ -314,7 +314,8 @@ public class MTECrustSteamBorer extends MTESteamMultiBlockBase<MTECrustSteamBore
             return;
         }
 
-        if (this.mSteamInputFluids.size() != 1 || this.mOutputBusses.size() != 1) {
+        // 取消双注册后，蒸汽输出总线只在 mSteamOutputs 中，需要合并计数
+        if (this.mSteamInputFluids.size() != 1 || (this.mOutputBusses.size() + this.mSteamOutputs.size()) != 1) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
             return;
         }

@@ -1,9 +1,9 @@
 <h1 align="center">GT-Steam-Reborn</h1>
 <p align="center"><strong><em>GTNH Steam Age Expansion Mod</em></strong><br><strong><em>GTNH 蒸汽时代扩展模组</em></strong></p>
 
-A GregTech New Horizons expansion mod that **supplements the Steam Age and significantly expands steam usage**, providing 19 multiblock steam machines, 5 single-block nodes, 13 types of hatches, and a Hub-Node binding system. It fills the gameplay gap between the steam age and the electric age in GTNH, making steam a viable and deep progression path rather than a transient phase.
+A GregTech New Horizons expansion mod that **supplements the Steam Age and significantly expands steam usage**, providing 19 multiblock steam machines, 5 single-block nodes, 14 types of hatches, and a Hub-Node binding system. It fills the gameplay gap between the steam age and the electric age in GTNH, making steam a viable and deep progression path rather than a transient phase.
 
-一个 GregTech New Horizons 扩展模组，**补充蒸汽时代并显著拓展蒸汽用途**，提供19台多方块蒸汽机器、5个单方块节点、13种仓室以及枢纽-节点绑定系统。它填补了 GTNH 蒸汽阶段到电力阶段之间的玩法空白，让蒸汽成为一条可行且有深度的进阶路线，而非过渡阶段。
+一个 GregTech New Horizons 扩展模组，**补充蒸汽时代并显著拓展蒸汽用途**，提供19台多方块蒸汽机器、5个单方块节点、14种仓室以及枢纽-节点绑定系统。它填补了 GTNH 蒸汽阶段到电力阶段之间的玩法空白，让蒸汽成为一条可行且有深度的进阶路线，而非过渡阶段。
 
 > \[!NOTE]
 > This is an unofficial mod. Please avoid discussing this mod in official GTNH forums.
@@ -15,7 +15,7 @@ A GregTech New Horizons expansion mod that **supplements the Steam Age and signi
 
 | GTNH         | GTSR   | Maintenance / 维护 |
 | ------------ | ------ | :--------------: |
-| 2.9.0 beta-2 | 1.7.15+ |        ✔️        |
+| 2.9.0 beta-2 | 1.7.16+ |        ✔️        |
 | 2.9.0 beta-1 | 1.7.1+ |        ❌️        |
 | 2.8.4        | 1.6.0  |        ❌️        |
 
@@ -135,8 +135,8 @@ All inherit from `MTESteamMultiBase` (GT++), supporting normal steam and superhe
 
 <p align="center"><img src="README/MTESteamFluidDrill.png" width="200"> <img src="README/MTECrustSteamBorer.png" width="200"> <img src="README/MTEVoidCrustSteamBorer.png" width="200"><br><em>蒸汽流体钻井 / Steam Fluid Drill (left) & 地壳蒸汽掘进机 / Crust Steam Borer (center) & 奇点地壳蒸汽掘进机 / Singularity Crust Steam Borer (right)</em></p>
 
-- **蒸汽流体钻井 / Steam Fluid Drill (SFD)**: Bronze/Steel. Produces water/distilled water/brine/lava. Screwdriver switches output mode (steel only). Brine/lava modes have 10%/0.5% efficiency.
-  产水/蒸馏水/盐水/岩浆。螺丝刀切换产出模式（仅钢）。盐水/岩浆模式效率10%/0.5%。
+- **蒸汽流体钻井 / Steam Fluid Drill (SFD)**: Bronze/Steel. Produces water/distilled water/brine/lava. Screwdriver switches output mode (steel only). Distilled Water 20%, Brine 10%, Lava 0.5% (5% in Nether) efficiency.
+  产水/蒸馏水/盐水/岩浆。螺丝刀切换产出模式（仅钢）。蒸馏水20%、盐水10%、岩浆0.5%（下界5%）效率。
 - **地壳蒸汽掘进机 / Crust Steam Borer (CSB)**: Bronze/Steel. Void mining — produces ores based on dimension drop tables. Overworld and Nether only.
   虚空采矿——按维度掉落表产出矿石。仅限主世界和下界。
 - **奇点地壳蒸汽掘进机 / Singularity Crust Steam Borer (SCSB)**: Steel only. Cross-dimension void mining via GT NEI Ore Plugin dimension display items.
@@ -159,8 +159,8 @@ All inherit from `MTEEnhancedMultiBlockBase` (GT5U), with more advanced mechanic
 
 - **大型焦炉 / Large Coke Oven (LCO)**: Bronze/Steel, 8/16 parallel. Self-powered coke oven with temperature acceleration — recipe time decreases as heat increases (minimum 800s). Produces coke from coal.
   无需供能的自发焦炉，温度加速——配方时间随热量增加而缩短（最低800秒）。煤炭→焦炭。
-- **平炉 / Siemens-Martin Furnace (SMF)**: Steel only, superheated steam, 32 parallel. A new era of mass steelmaking: reforms coal via superheated steam, produces reducing gas for steelmaking with higher efficiency and zero pollution. Temperature-based recipe time reduction. Overheat mechanism: temperature can exceed 100% (max 200%), reducing recipe time by up to 50%.
-  新时代的大批量炼钢高炉：通过过热蒸汽重整煤炭，基于产生的还原性气体进行炼钢，效率更高且零污染。过热机制：炉温可突破100%（最高200%），配方时间最多削减50%。
+- **平炉 / Siemens-Martin Furnace (SMF)**: Steel only, superheated steam, 64-128 parallel (scales with furnace temperature 100%~200%). Recipe time ×0.75. Consumes 1,000 L/s air during operation (preheat phase exempt; stops if air insufficient). Overheat mechanism: temperature can exceed 100% (max 200%), reducing recipe time by up to 50% (applied after the 0.75 base factor).
+  仅钢级，过热蒸汽，64~128并行（随炉温100%~200%线性提升）。配方时间×0.75。运行时消耗1,000 L/s空气（预热阶段不消耗，空气不足时停机）。过热机制：炉温可突破100%（最高200%），配方时间最多削减50%（在0.75基础系数之后应用）。
 
 <p align="center"><img src="README/MTELargeGeothermalSteamBoiler.png" width="300"><br><em>大型地热蒸汽锅炉 / Large Geothermal Steam Boiler</em></p>
 
@@ -218,7 +218,7 @@ Nodes that perform remote operations driven by the Singularity Drilling Hub. The
 
 ***
 
-## Hatches / 仓室 (13)
+## Hatches / 仓室 (14)
 
 Specialized hatches for GTSR machines with varying capacities and fluid filters:
 
@@ -229,6 +229,8 @@ GTSR 机器专用仓室，具有不同容量和流体过滤：
 - **耐压蒸汽输入/输出/冷却仓 / Pressure Steam Input/Output/Cooling Hatches**: 512K\~1M capacity, accepts both normal and superheated steam
 - **枢纽输入/输出仓 / Hub Input/Output Hatches**: Dynamic capacity (determined by hub controller), delegates fill/drain to hub
 - **超压轮机输入仓 / Overpressure Turbine Input Hatch**: For Mega Steam Turbine Array only, accepts all steam types
+- **巨型空气输入仓 / Mega Air Input Hatch**: 100M L capacity, accepts air and nether air only. Used by Siemens-Martin Furnace (air consumption) and Atmospheric Centrifuge (large air input).
+  1亿L容量，仅接受空气与下界空气。用于平炉（空气消耗）和空气离心机（大量空气输入）。
 
 ***
 

@@ -393,6 +393,9 @@ public class MTEAtmosphericCentrifuge extends MTESteamMultiBlockBase<MTEAtmosphe
                 StatCollector.translateToLocal("gtsr.tooltip.shared.steam_input_hatch"),
                 StatCollector.translateToLocal("gtsr.tooltip.shared.any_casing"),
                 1)
+            .addStructureInfo(
+                EnumChatFormatting.LIGHT_PURPLE
+                    + StatCollector.translateToLocal("gtsr.tooltip.atmospheric_centrifuge.mega_air_hint"))
             .addStructureInfo("")
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.casing"), 23, false)
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.pipe"), 12, false)

@@ -241,6 +241,11 @@ gtsr.tooltip.steam_cooling_hatch.desc=回收工作中蒸汽冷凝的蒸馏水
 gtsr.tooltip.pressure_steam_cooling_hatch.name=耐压蒸汽冷却仓
 gtsr.tooltip.pressure_steam_cooling_hatch.desc=回收工作中过热蒸汽降温后的蒸汽
 
+# Mega Air Input Hatch
+gt.blockmachines.gtsr.mega.air.input.hatch.name=巨型空气输入仓
+gtsr.tooltip.mega_air_input_hatch.desc=用于输入大量的空气或者下界空气
+gtsr.tooltip.mega_air_input_hatch.fluid_type=空气/下界空气
+
 # Large Geothermal Steam Boiler
 gt.blockmachines.gtsr.large.geothermal.steam.boiler.name=大型地热蒸汽锅炉
 gtsr.tooltip.geothermal_boiler.0=地热多方块锅炉，将岩浆转化为蒸汽
@@ -742,9 +747,9 @@ gtsr.gui.singularity_hub.bound_nodes=绑定节点:
 # 13. Steam Fluid Drill
 gtsr.tooltip.fluid_drill.type=蒸汽流体钻机, SFD
 gtsr.tooltip.fluid_drill.desc=消耗蒸汽从地下直接抽取水、蒸馏水或盐水。
-gtsr.tooltip.fluid_drill.desc2=螺丝刀右击切换产出模式（水/蒸馏水/盐水），默认为水。蒸馏水/盐水模式产出仅为10%。
-gtsr.tooltip.fluid_drill.mode_switch=螺丝刀: 切换产出模式（水/蒸馏水/盐水），默认水（仅钢级）
-gtsr.tooltip.fluid_drill.mode_penalty=蒸馏水/盐水模式产出仅为10%，切换模式重置效率
+gtsr.tooltip.fluid_drill.desc2=螺丝刀右击切换产出模式（水/蒸馏水/盐水/岩浆），默认为水。蒸馏水模式产出为20%，盐水模式为10%，岩浆模式在下界为5%、其他维度为0.5%。
+gtsr.tooltip.fluid_drill.mode_switch=螺丝刀: 切换产出模式（水/蒸馏水/盐水/岩浆），默认水（仅钢级）
+gtsr.tooltip.fluid_drill.mode_penalty=蒸馏水模式产出20%，盐水模式10%，岩浆模式0.5%（下界5%），切换模式重置效率
 gtsr.tooltip.fluid_drill.mode_bronze_only=青铜级仅支持水模式，钢级可切换蒸馏水/盐水
 gtsr.tooltip.fluid_drill.mode_bronze_locked=青铜级仅支持水模式，升级至钢级后可切换
 gtsr.tooltip.fluid_drill.mode_water=水
@@ -754,11 +759,13 @@ gtsr.tooltip.fluid_drill.mode_lava=岩浆
 gtsr.tooltip.fluid_drill.output_mode=产出模式
 gtsr.tooltip.fluid_drill.output_rates=产出速率（水模式，最大效率）：
 gtsr.tooltip.fluid_drill.rate_water=青铜: 200~2,000 L/s | 钢: 200~8,000 L/s
-gtsr.tooltip.fluid_drill.rate_distilled_brine=蒸馏水/盐水: 水模式的10%
-gtsr.tooltip.fluid_drill.rate_lava=岩浆: 水模式的0.5%（仅钢级）
+gtsr.tooltip.fluid_drill.rate_distilled=蒸馏水: 水模式的20%
+gtsr.tooltip.fluid_drill.rate_brine=盐水: 水模式的10%
+gtsr.tooltip.fluid_drill.rate_lava=岩浆: 水模式的0.5%（下界5%，仅钢级）
 gtsr.tooltip.fluid_drill.high_steam_cost=盐水/岩浆模式消耗4,000 L/s蒸汽（而非1,000 L/s）
-gtsr.tooltip.fluid_drill.nei_efficiency_10=水模式10%效率
-gtsr.tooltip.fluid_drill.nei_efficiency_05=水模式0.5%效率
+gtsr.tooltip.fluid_drill.nei_efficiency_20=蒸馏水模式20%效率
+gtsr.tooltip.fluid_drill.nei_efficiency_10=盐水模式10%效率
+gtsr.tooltip.fluid_drill.nei_efficiency_lava=岩浆模式0.5%效率（下界5%）
 gtsr.tooltip.fluid_drill.ctrl=底层正面中央
 gtsr.tooltip.fluid_drill.output_hatch=流体产出
 gtsr.gui.fluid_drill.efficiency=效率: 
@@ -855,6 +862,7 @@ gtsr.tooltip.atmospheric_centrifuge.chip_info.2=稀有气体分离芯片
 gtsr.tooltip.atmospheric_centrifuge.chip_info.3=，解锁氦/氖/氪/氙等微量气体的深度提取。
 gtsr.tooltip.atmospheric_centrifuge.chip=稀有气体分离芯片
 gtsr.tooltip.atmospheric_centrifuge.chip_desc=放入控制器槽位，解锁稀有气体配方
+gtsr.tooltip.atmospheric_centrifuge.mega_air_hint=使用巨型空气输入仓可以输入大量的空气与下界空气
 gtsr.gui.atmospheric_centrifuge.chip=稀有气体芯片: 
 gtsr.gui.atmospheric_centrifuge.need_steel=需要钢级
 
@@ -935,6 +943,14 @@ gtsr.gui.siemens_martin.overheat_reduction=配方时间削减:
 gtsr.tooltip.siemens_martin.input_bus=铁+煤/焦炭/碳
 gtsr.tooltip.siemens_martin.output_bus=钢/灰烬
 gtsr.tooltip.siemens_martin.superheated_only=仅过热蒸汽
+gtsr.tooltip.siemens_martin.recipe_time_reduce=配方基础时间缩减：所有配方时间缩短至75%（过热削减前应用）
+gtsr.tooltip.siemens_martin.air_cost=运行配方时消耗1,000 L/s空气（输入仓需有空气）
+gtsr.tooltip.siemens_martin.air_preheat=预热阶段不消耗空气
+gtsr.tooltip.siemens_martin.air_input_hatch=空气输入仓（空气/下界空气）
+gtsr.gui.siemens_martin.air_status=空气供应: 
+gtsr.gui.siemens_martin.air_ok=充足
+gtsr.gui.siemens_martin.air_low=不足！
+gtsr.gui.siemens_martin.air_preheat_idle=预热中（无需空气）
 
 # 13. Steam Fluid Drill - missing hint
 gtsr.tooltip.fluid_drill.hint_bronze=青铜版约5分钟达满效；钢版约1小时达满效
@@ -1059,11 +1075,13 @@ gtsr.tooltip.geothermal_boiler.lava_rate_chip=芯片 冷态: 333 mB/s | 热态: 
 gtsr.tooltip.fluid_drill.mode_lava=岩浆
 gtsr.tooltip.fluid_drill.output_rates=产出速率 (水模式, 满效率):
 gtsr.tooltip.fluid_drill.rate_water=青铜: 200~2,000 L/s | 钢: 200~8,000 L/s
-gtsr.tooltip.fluid_drill.rate_distilled_brine=蒸馏水/盐水: 水模式的10% (需钢级)
-gtsr.tooltip.fluid_drill.rate_lava=岩浆: 水模式的0.5% (需钢级)
+gtsr.tooltip.fluid_drill.rate_distilled=蒸馏水: 水模式的20% (需钢级)
+gtsr.tooltip.fluid_drill.rate_brine=盐水: 水模式的10% (需钢级)
+gtsr.tooltip.fluid_drill.rate_lava=岩浆: 水模式的0.5% (下界5%, 需钢级)
 gtsr.tooltip.fluid_drill.high_steam_cost=盐水/岩浆模式蒸汽消耗: 4,000 L/s
-gtsr.tooltip.fluid_drill.nei_efficiency_10=效率: 10% (需要钢级)
-gtsr.tooltip.fluid_drill.nei_efficiency_05=效率: 0.5% (需要钢级)
+gtsr.tooltip.fluid_drill.nei_efficiency_20=效率: 20% (蒸馏水, 需要钢级)
+gtsr.tooltip.fluid_drill.nei_efficiency_10=效率: 10% (盐水, 需要钢级)
+gtsr.tooltip.fluid_drill.nei_efficiency_lava=效率: 0.5% (其他维度) / 5% (下界), 需要钢级
 
 # ===== v1.6.0 Tooltip & Translation Keys =====
 gtsr.tooltip.shared.screwdriver_overflow=螺丝刀右击：切换溢流输入

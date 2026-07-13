@@ -307,10 +307,18 @@ public class MTESteamFluidDrill extends MTESteamMultiBlockBase<MTESteamFluidDril
             maxOutput = STEEL_MAX_OUTPUT;
         }
         int output = (int) (minOutput + ratio * (maxOutput - minOutput));
-        if (mOutputMode == 1 || mOutputMode == 2) {
-            output = (int) (output * 0.1);
+        // 产出系数：蒸馏水独立20%，盐水10%，岩浆按维度判定（下界5%/其他0.5%）
+        if (mOutputMode == 1) {
+            // 蒸馏水模式：水模式的20%
+            output = (int) (output * 0.20);
+        } else if (mOutputMode == 2) {
+            // 盐水模式：水模式的10%
+            output = (int) (output * 0.10);
         } else if (mOutputMode == 3) {
-            output = (int) (output * 0.005);
+            // 岩浆模式：下界5%，其他维度0.5%
+            boolean isNether = getBaseMetaTileEntity() != null && getBaseMetaTileEntity().getWorld() != null
+                && getBaseMetaTileEntity().getWorld().provider.dimensionId == -1;
+            output = isNether ? (int) (output * 0.05) : (int) (output * 0.005);
         }
         return output;
     }
@@ -441,8 +449,8 @@ public class MTESteamFluidDrill extends MTESteamMultiBlockBase<MTESteamFluidDril
                 EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.fluid_drill.output_rates"))
             .addInfo(EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.fluid_drill.rate_water"))
             .addInfo(
-                EnumChatFormatting.GRAY
-                    + StatCollector.translateToLocal("gtsr.tooltip.fluid_drill.rate_distilled_brine"))
+                EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.fluid_drill.rate_distilled"))
+            .addInfo(EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.fluid_drill.rate_brine"))
             .addInfo(EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.fluid_drill.rate_lava"))
             .addInfo(
                 EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.fluid_drill.high_steam_cost"))

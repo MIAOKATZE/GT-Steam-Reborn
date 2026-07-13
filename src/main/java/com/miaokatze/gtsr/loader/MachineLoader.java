@@ -25,6 +25,7 @@ import com.miaokatze.gtsr.common.machine.MTEVoidCrustSteamBorer;
 import com.miaokatze.gtsr.common.machine.MTEWaterHubArray;
 import com.miaokatze.gtsr.common.machine.base.MTEHatchPressureSteamInput;
 import com.miaokatze.gtsr.common.machine.base.MTEHubStorageUnit;
+import com.miaokatze.gtsr.common.machine.base.MTEMegaAirInputHatch;
 import com.miaokatze.gtsr.common.machine.base.MTEOverpressureHubStorageUnit;
 import com.miaokatze.gtsr.common.machine.base.MTEOverpressureSteamCacheNode;
 import com.miaokatze.gtsr.common.machine.base.MTEOverpressureTurbineInputHatch;
@@ -244,6 +245,12 @@ public class MachineLoader {
                 MetaTileEntityID.PRESSURE_STEAM_COOLING_HATCH.ID,
                 "gtsr.pressure.steam.cooling.hatch",
                 "Pressure Steam Cooling Hatch"));
+        // 巨型空气输入仓：仿照 GT5U 液态空气仓，仅允许空气/下界空气
+        GTSRItemList.MegaAirInputHatch.set(
+            new MTEMegaAirInputHatch(
+                MetaTileEntityID.MEGA_AIR_INPUT_HATCH.ID,
+                "gtsr.mega.air.input.hatch",
+                "Mega Air Input Hatch"));
     }
 
     /**
@@ -298,5 +305,7 @@ public class MachineLoader {
         CreativeTabManager.addItemToTab(GTSRItemList.SteamOutputHatch.get(1));
         CreativeTabManager.addItemToTab(GTSRItemList.SteamCoolingHatch.get(1));
         CreativeTabManager.addItemToTab(GTSRItemList.PressureSteamCoolingHatch.get(1));
+        // --- 仓室 (41) ---
+        CreativeTabManager.addItemToTab(GTSRItemList.MegaAirInputHatch.get(1));
     }
 }

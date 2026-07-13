@@ -716,11 +716,12 @@ public class GTSRRecipeLoader implements Runnable {
             new Object[] { "ABA", "CDC", "CEC", 'A', copperPlatedBrick, 'B', "pipeLargeBronze", 'C', piston, 'D',
                 roseGoldFrame, 'E', "pipeHugeBronze" });
 
+        // 点2修复：RC 焦炉在 GTNH 2.9.0 已禁用，改用 GT5U 新添加的 CokeOvenController（焦炉控制器）
         GTModHandler.addCraftingRecipe(
             GTSRItemList.LargeCokeOven.get(1),
             GTModHandler.RecipeBits.BITSD,
             new Object[] { "ABA", "CDC", "ABA", 'A', copperPlatedBrick, 'B', brickBlock, 'C', efrBlastFurnace, 'D',
-                GTModHandler.getModItem("Railcraft", "machine.alpha", 1, 7) });
+                ItemList.CokeOvenController.get(1) });
 
         GTModHandler.addCraftingRecipe(
             GTSRItemList.LargeGeothermalSteamBoiler.get(1),
@@ -1055,6 +1056,20 @@ public class GTSRRecipeLoader implements Runnable {
             new Object[] { "ABA", "CDC", "ABA", 'A', "screwSteel", 'B', "plateSteel", 'C', "plateSteel", 'D',
                 GTSRItemList.SteamCoolingHatch.get(1) });
 
+        // 巨型空气输入仓：装配机配方（仿照 GT5U 液态空气仓，使用空气单元+下界空气单元替代液态空气单元）
+        ItemStack megaAirHatchOut = GTSRItemList.MegaAirInputHatch.get(1);
+        if (megaAirHatchOut != null) {
+            GTValues.RA.stdBuilder()
+                .itemInputs(ItemList.Hatch_Input_HV.get(64), Materials.Air.getCells(1), Materials.NetherAir.getCells(1))
+                .circuit(17)
+                .itemOutputs(megaAirHatchOut)
+                .duration(15 * SECONDS)
+                .eut(TierEU.RECIPE_HV)
+                .addTo(assemblerRecipes);
+        } else {
+            warn("Skipped MegaAirInputHatch assembler recipe - output is null");
+        }
+
         GTModHandler.addCraftingRecipe(
             GTSRItemList.SteamHubInputHatch.get(1),
             GTModHandler.RecipeBits.BITSD,
@@ -1147,31 +1162,31 @@ public class GTSRRecipeLoader implements Runnable {
     }
 
     private static void registerFluidDrillDisplayRecipes() {
-        // Water mode (Bronze: 200~2000 L/s, Steel: 200~8000 L/s)
+        // 水模式：青铜 200~2000 L/s，钢 200~8000 L/s
         GTValues.RA.stdBuilder()
             .fluidOutputs(Materials.Water.getFluid(2000))
-            .duration(0)
+            .duration(20)
             .eut(0)
             .addTo(steamFluidDrillRecipes);
 
-        // Distilled Water mode (10% efficiency, requires Steel tier)
+        // 蒸馏水模式：水模式的20%（需钢级）
         GTValues.RA.stdBuilder()
-            .fluidOutputs(GTModHandler.getDistilledWater(200))
-            .duration(0)
+            .fluidOutputs(GTModHandler.getDistilledWater(400))
+            .duration(20)
             .eut(0)
             .addTo(steamFluidDrillRecipes);
 
-        // Brine mode (10% efficiency, requires Steel tier)
+        // 盐水模式：水模式的10%（需钢级）
         GTValues.RA.stdBuilder()
             .fluidOutputs(Materials.SaltWater.getFluid(200))
-            .duration(0)
+            .duration(20)
             .eut(0)
             .addTo(steamFluidDrillRecipes);
 
-        // Lava mode (0.5% efficiency, requires Steel tier)
+        // 岩浆模式：其他维度0.5%，下界5%（需钢级）
         GTValues.RA.stdBuilder()
             .fluidOutputs(new FluidStack(net.minecraftforge.fluids.FluidRegistry.getFluid("lava"), 10))
-            .duration(0)
+            .duration(20)
             .eut(0)
             .addTo(steamFluidDrillRecipes);
 

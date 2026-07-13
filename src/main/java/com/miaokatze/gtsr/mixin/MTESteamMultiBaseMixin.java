@@ -175,9 +175,12 @@ public abstract class MTESteamMultiBaseMixin {
         }
 
         // Step 2: Try mOutputBusses (standard output buses - NEW behavior)
+        // 去重：跳过 MTEHatchSteamBusOutput（已在 Step 1 的 mSteamOutputs 中处理），
+        // 防止 atLeast(OutputBus) 把蒸汽输出总线也加到 mOutputBusses 导致重复输出
         MTEMultiBlockBase multiBlockSelf = (MTEMultiBlockBase) (Object) this;
         for (MTEHatchOutputBus tHatch : GTUtility.validMTEList(multiBlockSelf.mOutputBusses)) {
             if (aStack.stackSize <= 0) break;
+            if (tHatch instanceof MTEHatchSteamBusOutput) continue;
             tHatch.storePartial(aStack, false);
         }
         ci.cancel();
@@ -232,26 +235,20 @@ public abstract class MTESteamMultiBaseMixin {
             return gtsr$self().addToMachineListInternal(mSteamInputFluids, fluidHatch, aBaseCasingIndex);
         }
 
-        // MTEHatchSteamBusInput → mSteamInputs + mInputBusses (dual registration)
+        // MTEHatchSteamBusInput → mSteamInputs only
+        // 取消双注册到 mInputBusses：避免 GTNL 等模组的 getAllStoredInputs 同时遍历 mInputBusses 和 mSteamInputs 导致输入翻倍。
+        // GTSR 机器的输入物品获取通过 gtsr$onGetAllStoredInputsTail 注入补充 mSteamInputs 遍历来保证。
         if (aMetaTileEntity instanceof MTEHatchSteamBusInput steamBus) {
             gtsr$self().resetRecipeMapForHatch(aTileEntity, gtsr$self().getRecipeMap());
-            boolean added = gtsr$self().addToMachineListInternal(mSteamInputs, steamBus, aBaseCasingIndex);
-            MTEMultiBlockBase multiBlockSelf = (MTEMultiBlockBase) (Object) this;
-            if (!multiBlockSelf.mInputBusses.contains(steamBus)) {
-                multiBlockSelf.mInputBusses.add(steamBus);
-            }
-            return added;
+            return gtsr$self().addToMachineListInternal(mSteamInputs, steamBus, aBaseCasingIndex);
         }
 
-        // MTEHatchSteamBusOutput / MTEHatchVoidBus → mSteamOutputs + mOutputBusses (dual registration)
+        // MTEHatchSteamBusOutput / MTEHatchVoidBus → mSteamOutputs only
+        // 取消双注册到 mOutputBusses：避免 GTNL 等模组的 getOutputBusses/addOutput 同时遍历 mOutputBusses 和 mSteamOutputs 导致输出重复。
+        // GTSR 机器的物品输出通过 gtsr$onGetOutputBussesTail 注入补充 mOutputBusses 遍历，以及 addOutputPartial Mixin 来保证。
         if (aMetaTileEntity instanceof MTEHatchSteamBusOutput || aMetaTileEntity instanceof MTEHatchVoidBus) {
-            boolean added = gtsr$self()
+            return gtsr$self()
                 .addToMachineListInternal(mSteamOutputs, (MTEHatchOutputBus) aMetaTileEntity, aBaseCasingIndex);
-            MTEMultiBlockBase multiBlockSelf = (MTEMultiBlockBase) (Object) this;
-            if (!multiBlockSelf.mOutputBusses.contains(aMetaTileEntity)) {
-                multiBlockSelf.mOutputBusses.add((MTEHatchOutputBus) aMetaTileEntity);
-            }
-            return added;
         }
 
         // MTEHatchInput → mInputHatches (standard fluid input)
@@ -296,34 +293,15 @@ public abstract class MTESteamMultiBaseMixin {
         }
     }
 
-    /**
-     * Inject into addSteamBusInput to also add dual registration to mInputBusses.
-     *
-     * GT5U's addSteamBusInput only adds to mSteamInputs, but GTSR machines also need
-     * the hatch in mInputBusses for recipe processing to work correctly.
-     *
-     * @author GTSR
-     */
-    @Inject(method = "addSteamBusInput", at = @At("TAIL"))
-    private void gtsr$onAddSteamBusInput(IGregTechTileEntity aTileEntity, int aBaseCasingIndex,
-        CallbackInfoReturnable<Boolean> cir) {
-        if (!cir.getReturnValueZ()) return;
-
-        // Original succeeded - add dual registration to mInputBusses
-        if (aTileEntity == null) return;
-        final IMetaTileEntity aMetaTileEntity = aTileEntity.getMetaTileEntity();
-        if (aMetaTileEntity instanceof MTEHatchSteamBusInput steamBus) {
-            MTEMultiBlockBase multiBlockSelf = (MTEMultiBlockBase) (Object) this;
-            if (!multiBlockSelf.mInputBusses.contains(steamBus)) {
-                multiBlockSelf.mInputBusses.add(steamBus);
-            }
-        }
-    }
+    // gtsr$onAddSteamBusInput 已删除：取消双注册到 mInputBusses，避免 GTNL 等模组的 getAllStoredInputs 输入翻倍。
+    // 蒸汽输入总线只加到 mSteamInputs（GT5U 原生行为），GTSR 机器通过 gtsr$onGetAllStoredInputsTail 注入补充遍历。
 
     /**
-     * Inject into addSteamBusOutput to:
-     * 1. Add dual registration to mOutputBusses when original succeeds
-     * 2. Accept MTEHatchOutput (including cooling hatches) when original fails
+     * Inject into addSteamBusOutput to accept MTEHatchOutput (including cooling hatches) when original fails.
+     *
+     * 取消双注册到 mOutputBusses：避免 GTNL 等模组的 getOutputBusses/addOutput 输出重复。
+     * 蒸汽输出总线只加到 mSteamOutputs（GT5U 原生行为），GTSR 机器通过 gtsr$onGetOutputBussesTail
+     * 注入补充合并 mOutputBusses 遍历，以及 addOutputPartial Mixin 来保证物品输出。
      *
      * GT5U's addSteamBusOutput only handles MTEHatchSteamBusOutput and MTEHatchVoidBus.
      * Cooling hatches (MTESteamCoolingHatch extends MTEHatchOutput) are not recognized,
@@ -340,14 +318,8 @@ public abstract class MTESteamMultiBaseMixin {
         final IMetaTileEntity aMetaTileEntity = aTileEntity.getMetaTileEntity();
         if (aMetaTileEntity == null) return;
 
+        // 原方法成功（MTEHatchSteamBusOutput/MTEHatchVoidBus 已加到 mSteamOutputs），不再双注册到 mOutputBusses
         if (cir.getReturnValueZ()) {
-            // Original succeeded (MTEHatchSteamBusOutput/MTEHatchVoidBus) - add dual registration
-            if (aMetaTileEntity instanceof MTEHatchOutputBus outputBus) {
-                MTEMultiBlockBase multiBlockSelf = (MTEMultiBlockBase) (Object) this;
-                if (!multiBlockSelf.mOutputBusses.contains(outputBus)) {
-                    multiBlockSelf.mOutputBusses.add(outputBus);
-                }
-            }
             return;
         }
 
@@ -408,6 +380,97 @@ public abstract class MTESteamMultiBaseMixin {
     @Inject(method = "loadNBTData", at = @At("RETURN"))
     private void gtsr$onLoadNBTData(NBTTagCompound aNBT, CallbackInfo ci) {
         gtsr$accumulatedSteam = aNBT.getInteger("gtsr.accumulatedSteam");
+    }
+
+    // endregion
+
+    // region Input/Output Aggregation (取消双注册后的合并读取层)
+
+    /**
+     * 注入 getAllStoredInputs 的 RETURN，补充遍历 mSteamInputs。
+     *
+     * 取消双注册后，蒸汽输入总线（MTEHatchSteamBusInput）只在 mSteamInputs 中，不在 mInputBusses 中。
+     * GT5U 原生的 getAllStoredInputs（定义在 MTEMultiBlockBase）只遍历 mInputBusses，找不到蒸汽输入总线中的物品。
+     * 本注入在原方法执行后，补充遍历 mSteamInputs，确保 GTSR 机器能获取所有输入物品。
+     *
+     * 去重：由于取消了双注册，mInputBusses 和 mSteamInputs 没有重复对象。但为了保险（防止其他路径
+     * 把蒸汽输入总线加到 mInputBusses），仍然用 IdentityHashMap 去重。
+     *
+     * 注意：GTNL 等模组自己覆写了 getAllStoredInputs，本注入对它们无效（mixin 优先级低于子类覆写）。
+     *
+     * @author GTSR
+     */
+    @Inject(method = "getAllStoredInputs", at = @At("RETURN"))
+    private void gtsr$onGetAllStoredInputsTail(CallbackInfoReturnable<ArrayList<net.minecraft.item.ItemStack>> cir) {
+        ArrayList<net.minecraft.item.ItemStack> result = cir.getReturnValue();
+        if (result == null) {
+            result = new ArrayList<>();
+            cir.setReturnValue(result);
+        }
+
+        // 去重集合：记录 mInputBusses 中已处理的 hatch
+        java.util.Set<gregtech.api.metatileentity.implementations.MTEHatchInputBus> seen = java.util.Collections
+            .newSetFromMap(new java.util.IdentityHashMap<>());
+        MTEMultiBlockBase multiBlockSelf = (MTEMultiBlockBase) (Object) this;
+        for (gregtech.api.metatileentity.implementations.MTEHatchInputBus bus : GTUtility
+            .validMTEList(multiBlockSelf.mInputBusses)) {
+            seen.add(bus);
+        }
+
+        // 补充遍历 mSteamInputs（蒸汽输入总线）
+        for (MTEHatchSteamBusInput tHatch : GTUtility.validMTEList(mSteamInputs)) {
+            if (seen.contains(tHatch)) continue;
+            tHatch.mRecipeMap = gtsr$self().getRecipeMap();
+            IGregTechTileEntity tileEntity = tHatch.getBaseMetaTileEntity();
+            for (int i = tileEntity.getSizeInventory() - 1; i >= 0; i--) {
+                net.minecraft.item.ItemStack itemStack = tileEntity.getStackInSlot(i);
+                if (itemStack != null) {
+                    result.add(itemStack);
+                }
+            }
+        }
+    }
+
+    /**
+     * 注入 getOutputBusses 的 RETURN，补充合并 mOutputBusses。
+     *
+     * 取消双注册后，蒸汽输出总线只在 mSteamOutputs 中。GT5U 原生的 getOutputBusses（MTESteamMultiBlockBase 覆写）
+     * 只返回 mSteamOutputs，不包含 mOutputBusses 中的标准输出总线。
+     * 本注入在原方法执行后，补充合并 mOutputBusses（去重），确保所有输出总线都能被 ItemEjectionHelper 使用。
+     *
+     * 去重：用 IdentityHashMap 去重，防止同一 hatch 被加入两次。
+     * 排除未锁定的 VoidBus（与 MTEMultiBlockBase.getOutputBusses 行为一致）。
+     *
+     * 注意：GTNL 等模组自己覆写了 getOutputBusses，本注入对它们无效（mixin 优先级低于子类覆写）。
+     *
+     * @author GTSR
+     */
+    @Inject(method = "getOutputBusses", at = @At("RETURN"))
+    private void gtsr$onGetOutputBussesTail(
+        CallbackInfoReturnable<java.util.List<gregtech.api.interfaces.IOutputBus>> cir) {
+        java.util.List<gregtech.api.interfaces.IOutputBus> original = cir.getReturnValue();
+        java.util.List<gregtech.api.interfaces.IOutputBus> result = new java.util.ArrayList<>(original);
+
+        // 去重集合：记录原返回列表中已包含的 hatch
+        java.util.Set<MTEHatchOutputBus> seen = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
+        for (gregtech.api.interfaces.IOutputBus bus : original) {
+            if (bus instanceof MTEHatchOutputBus outputBus) {
+                seen.add(outputBus);
+            }
+        }
+
+        // 补充合并 mOutputBusses（去重，排除未锁定的 VoidBus）
+        MTEMultiBlockBase multiBlockSelf = (MTEMultiBlockBase) (Object) this;
+        for (MTEHatchOutputBus outputBus : GTUtility.validMTEList(multiBlockSelf.mOutputBusses)) {
+            if (outputBus instanceof MTEHatchVoidBus voidBus && !voidBus.isLocked()) {
+                continue;
+            }
+            if (seen.add(outputBus)) {
+                result.add(outputBus);
+            }
+        }
+
+        cir.setReturnValue(result);
     }
 
     // endregion

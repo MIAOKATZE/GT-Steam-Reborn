@@ -55,6 +55,8 @@ public enum MetaTileEntityID {
     STEAM_OUTPUT_HATCH(38),
     STEAM_COOLING_HATCH(39),
     PRESSURE_STEAM_COOLING_HATCH(40),
+    // 巨型空气输入仓：仅允许空气/下界空气，容量 100,000,000 L
+    MEGA_AIR_INPUT_HATCH(41),
 
     ;
 

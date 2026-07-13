@@ -105,14 +105,19 @@ public class GTSRRecipeMaps {
             if (output != null && output.getFluid() != null) {
                 String fluidName = output.getFluid()
                     .getName();
-                if ("saltwater".equals(fluidName) || "ic2distilledwater".equals(fluidName)) {
+                // 蒸馏水模式：水模式的20%（独立显示）；盐水模式：水模式的10%；岩浆模式：下界5%/其他0.5%
+                if ("ic2distilledwater".equals(fluidName)) {
+                    result.add(
+                        EnumChatFormatting.GOLD
+                            + StatCollector.translateToLocal("gtsr.tooltip.fluid_drill.nei_efficiency_20"));
+                } else if ("saltwater".equals(fluidName)) {
                     result.add(
                         EnumChatFormatting.GOLD
                             + StatCollector.translateToLocal("gtsr.tooltip.fluid_drill.nei_efficiency_10"));
                 } else if ("lava".equals(fluidName)) {
                     result.add(
                         EnumChatFormatting.GOLD
-                            + StatCollector.translateToLocal("gtsr.tooltip.fluid_drill.nei_efficiency_05"));
+                            + StatCollector.translateToLocal("gtsr.tooltip.fluid_drill.nei_efficiency_lava"));
                 }
             }
         }

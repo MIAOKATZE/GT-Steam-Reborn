@@ -6,6 +6,7 @@ import net.minecraft.util.StatCollector;
 import com.cleanroommc.modularui.api.drawable.IKey;
 import com.cleanroommc.modularui.api.widget.IWidget;
 import com.cleanroommc.modularui.screen.ModularPanel;
+import com.cleanroommc.modularui.value.sync.BooleanSyncValue;
 import com.cleanroommc.modularui.value.sync.DoubleSyncValue;
 import com.cleanroommc.modularui.value.sync.IntSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
@@ -22,14 +23,20 @@ public class MTESiemensMartinFurnaceGui extends MTEMultiBlockBaseGui<MTEEnhanced
 
     private DoubleSyncValue mFurnaceTemperatureSync;
     private IntSyncValue mMaxProgresstimeSync;
+    private BooleanSyncValue mAirSupplyOKSync;
 
-    private static final int SUPERHEATED_STEAM_COST = 1_200;
-    private static final int SUPERHEATED_STEAM_COST_OVERHEAT = 12_000;
-    private static final int SUPERHEATED_STEAM_COST_MAX = 6_000;
+    // 蒸汽消耗常量（与机器类一致，单位 L/s）
+    private static final int SUPERHEATED_STEAM_COST = 300;
+    private static final int SUPERHEATED_STEAM_COST_OVERHEAT = 3_000;
+    private static final int SUPERHEATED_STEAM_COST_MAX = 1_500;
     private static final double MAX_OVERHEAT = 2.0d;
     private static final double MAX_RECIPE_TIME_REDUCTION = 0.5d;
     private static final double RECIPE_TIME_REDUCTION_PER_PERCENT = 0.005d;
-    private static final int MAX_PARALLEL = 64;
+    // 并行：100%炉温 = 64，200%炉温 = 128
+    private static final int BASE_PARALLEL = 64;
+    private static final int MAX_PARALLEL = 128;
+    // 空气消耗
+    private static final int AIR_COST_PER_SECOND = 1_000;
 
     public MTESiemensMartinFurnaceGui(MTEEnhancedMultiBlockBase<?> multiblock) {
         super(multiblock);
@@ -43,8 +50,21 @@ public class MTESiemensMartinFurnaceGui extends MTEMultiBlockBaseGui<MTEEnhanced
             () -> furnace.mFurnaceTemperature,
             val -> furnace.mFurnaceTemperature = val);
         mMaxProgresstimeSync = new IntSyncValue(() -> furnace.mMaxProgresstime, val -> furnace.mMaxProgresstime = val);
+        mAirSupplyOKSync = new BooleanSyncValue(() -> furnace.mAirSupplyOK, val -> furnace.mAirSupplyOK = val);
         syncManager.syncValue("siemensTemperature", mFurnaceTemperatureSync);
         syncManager.syncValue("siemensMaxProgresstime", mMaxProgresstimeSync);
+        syncManager.syncValue("siemensAirSupplyOK", mAirSupplyOKSync);
+    }
+
+    /**
+     * 计算当前并行数（与机器类逻辑一致）。
+     */
+    private int getCurrentParallel() {
+        double temp = mFurnaceTemperatureSync.getValue();
+        if (temp < 1.0d) return 0;
+        if (temp <= 1.0d) return BASE_PARALLEL;
+        double tempRatio = Math.min(1.0d, (temp - 1.0d) / (MAX_OVERHEAT - 1.0d));
+        return (int) (BASE_PARALLEL + (MAX_PARALLEL - BASE_PARALLEL) * tempRatio);
     }
 
     @Override
@@ -105,13 +125,41 @@ public class MTESiemensMartinFurnaceGui extends MTEMultiBlockBaseGui<MTEEnhanced
                 .asWidget()
                 .marginBottom(2)
                 .fullWidth())
+            // 并行数：动态显示（100%炉温64，200%炉温128）
             .child(
                 IKey.dynamic(
-                    () -> EnumChatFormatting.YELLOW + StatCollector.translateToLocal(
-                        "gtsr.gui.parallel") + " " + EnumChatFormatting.GOLD + MAX_PARALLEL + EnumChatFormatting.RESET)
+                    () -> EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.parallel")
+                        + " "
+                        + EnumChatFormatting.GOLD
+                        + getCurrentParallel()
+                        + EnumChatFormatting.RESET)
                     .asWidget()
                     .marginBottom(2)
                     .fullWidth())
+            // 空气状态：运行配方时显示消耗，预热时显示空闲，不足时红色警告
+            .child(IKey.dynamic(() -> {
+                if (mMaxProgresstimeSync.getValue() > 0) {
+                    boolean airOK = mAirSupplyOKSync.getValue();
+                    String airKey = airOK ? "gtsr.gui.siemens_martin.air_ok" : "gtsr.gui.siemens_martin.air_low";
+                    EnumChatFormatting airColor = airOK ? EnumChatFormatting.GREEN : EnumChatFormatting.RED;
+                    return EnumChatFormatting.YELLOW
+                        + StatCollector.translateToLocal("gtsr.gui.siemens_martin.air_status")
+                        + airColor
+                        + StatCollector.translateToLocal(airKey)
+                        + EnumChatFormatting.GRAY
+                        + " ("
+                        + NumberFormatUtil.formatNumber(AIR_COST_PER_SECOND)
+                        + " L/s)"
+                        + EnumChatFormatting.RESET;
+                }
+                return EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.siemens_martin.air_status")
+                    + EnumChatFormatting.WHITE
+                    + StatCollector.translateToLocal("gtsr.gui.siemens_martin.air_preheat_idle")
+                    + EnumChatFormatting.RESET;
+            })
+                .asWidget()
+                .marginBottom(2)
+                .fullWidth())
             .child(IKey.dynamic(() -> {
                 if (mFurnaceTemperatureSync.getValue() > 1.0d) {
                     double overheatPercent = (mFurnaceTemperatureSync.getValue() - 1.0d) * 100.0d;

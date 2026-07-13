@@ -245,11 +245,12 @@ public class MTELargeSteamFurnace extends MTESteamMultiBlockBase<MTELargeSteamFu
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
             return;
         }
-        if (mInputBusses.isEmpty()) {
+        // 取消双注册后，蒸汽输入总线只在 mSteamInputs 中，蒸汽输出总线只在 mSteamOutputs 中
+        if (mInputBusses.isEmpty() && mSteamInputs.isEmpty()) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
             return;
         }
-        if (mOutputBusses.isEmpty()) {
+        if (mOutputBusses.isEmpty() && mSteamOutputs.isEmpty()) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
             return;
         }
