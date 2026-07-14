@@ -16,10 +16,6 @@ import gregtech.api.render.TextureFactory;
  */
 public class TextureManager {
 
-    public static final IIconContainer TEX_TEST_EV = Textures.BlockIcons.custom("gtsr:MTETEST_1");
-    public static final IIconContainer TEX_TEST_IV = Textures.BlockIcons.custom("gtsr:MTETEST_2");
-    public static final IIconContainer TEX_TEST_LUV = Textures.BlockIcons.custom("gtsr:MTETEST_3");
-
     // v0.3.0 奇点节点机器自定义材质 (32x32 高分辨率)
     public static final IIconContainer TEX_SINGULARITY_MINER_OFF = Textures.BlockIcons
         .custom("gtsr:MTESingularityMinerNode_OFF");
