@@ -45,18 +45,9 @@ public class CommonProxy {
             }
         };
 
-        try {
-            if (GregTechAPI.sAfterGTLoad == null) {
-                GTSteamReborn.LOG.warn("警告: GregTechAPI.sAfterGTLoad 为空，无法添加注册任务。");
-            } else {
-                int before = GregTechAPI.sAfterGTLoad.size();
-                GregTechAPI.sAfterGTLoad.add(registerRunnable);
-                int after = GregTechAPI.sAfterGTLoad.size();
-                GTSteamReborn.LOG.info("[1/3] 已将机器注册任务加入 GregTech 加载队列 (队列大小: " + before + " -> " + after + ")");
-            }
-        } catch (Throwable t) {
-            GTSteamReborn.LOG.error("无法将注册任务添加到 GregTech 队列", t);
-        }
+        // GregTechAPI.sAfterGTLoad 在 GT PreInit 阶段已初始化，此处不会为 null
+        GregTechAPI.sAfterGTLoad.add(registerRunnable);
+        GTSteamReborn.LOG.info("[1/3] 已将机器注册任务加入 GregTech 加载队列。");
     }
 
     /**

@@ -1,5 +1,5 @@
 {
-  "required": false,
+  "required": true,
   "minVersion": "0.8.5-GTNH",
   "package": "com.miaokatze.gtsr.mixin",
   "target": "@env(DEFAULT)",

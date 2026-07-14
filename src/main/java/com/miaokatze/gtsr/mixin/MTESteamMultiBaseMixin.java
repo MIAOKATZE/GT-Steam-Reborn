@@ -20,7 +20,6 @@ import com.miaokatze.gtsr.common.machine.base.MTESteamCoolingHatch;
 import gregtech.api.enums.Materials;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
-import gregtech.api.metatileentity.implementations.MTEHatch;
 import gregtech.api.metatileentity.implementations.MTEHatchInput;
 import gregtech.api.metatileentity.implementations.MTEHatchOutput;
 import gregtech.api.metatileentity.implementations.MTEHatchOutputBus;
@@ -211,19 +210,17 @@ public abstract class MTESteamMultiBaseMixin {
         if (aMetaTileEntity == null) return false;
 
         // Handle pressure cooling hatch first (more specific subclass of MTESteamCoolingHatch)
+        // MTEPressureSteamCoolingHatch 继承自 MTEHatch（经 MTESteamCoolingHatch → MTEHatchOutput → MTEHatch），
+        // 因此 hatch.updateTexture 可直接调用，无需冗余的 instanceof 检查（Java 21+ 会拒绝编译冗余模式匹配）。
         if (aMetaTileEntity instanceof MTEPressureSteamCoolingHatch hatch) {
-            if (hatch instanceof MTEHatch mteHatch) {
-                mteHatch.updateTexture(aBaseCasingIndex);
-            }
+            hatch.updateTexture(aBaseCasingIndex);
             gtsr$mPressureCoolingHatches.add(hatch);
             return true;
         }
 
         // Handle regular cooling hatch (exclude pressure variant already handled above)
         if (aMetaTileEntity instanceof MTESteamCoolingHatch hatch) {
-            if (hatch instanceof MTEHatch mteHatch) {
-                mteHatch.updateTexture(aBaseCasingIndex);
-            }
+            hatch.updateTexture(aBaseCasingIndex);
             gtsr$mSteamCoolingHatches.add(hatch);
             return true;
         }
@@ -325,10 +322,9 @@ public abstract class MTESteamMultiBaseMixin {
 
         // Original failed - check for MTEHatchOutput (cooling hatches, fluid output hatches)
         // Handle pressure cooling hatch first (more specific subclass)
+        // 同上，MTEPressureSteamCoolingHatch 继承自 MTEHatch，hatch.updateTexture 可直接调用。
         if (aMetaTileEntity instanceof MTEPressureSteamCoolingHatch hatch) {
-            if (hatch instanceof MTEHatch mteHatch) {
-                mteHatch.updateTexture(aBaseCasingIndex);
-            }
+            hatch.updateTexture(aBaseCasingIndex);
             gtsr$mPressureCoolingHatches.add(hatch);
             // Also add to mOutputHatches so the structure accepts it
             MTEMultiBlockBase multiBlockSelf = (MTEMultiBlockBase) (Object) this;
@@ -339,9 +335,7 @@ public abstract class MTESteamMultiBaseMixin {
 
         // Handle regular cooling hatch
         if (aMetaTileEntity instanceof MTESteamCoolingHatch hatch) {
-            if (hatch instanceof MTEHatch mteHatch) {
-                mteHatch.updateTexture(aBaseCasingIndex);
-            }
+            hatch.updateTexture(aBaseCasingIndex);
             gtsr$mSteamCoolingHatches.add(hatch);
             // Also add to mOutputHatches so the structure accepts it
             MTEMultiBlockBase multiBlockSelf = (MTEMultiBlockBase) (Object) this;
