@@ -218,7 +218,7 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
                             MTEKineticProcessingArray::onCasingAdded,
                             ofBlocksTiered(
                                 MTEKineticProcessingArray::getCasingTier,
-                                ALLOWED_CASINGS,
+                                getAllowedCasings(),
                                 -1,
                                 (t, tier) -> t.mCasingTier = tier,
                                 t -> t.mCasingTier)),
@@ -272,20 +272,32 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
         return STRUCTURE_DEFINITION;
     }
 
+    // 延迟初始化：避免在 MTE 构造时（sAfterGTPreload 遍历期间）触发 WerkstoffLoader 类加载，
+    // 否则 Werkstoff 构造函数会向正在遍历的 sAfterGTPreload 列表添加 Runnable，导致
+    // ConcurrentModificationException。WerkstoffLoader 在 bartworks preInit 中完成初始化后，
+    // getStructureDefinition() 首次调用时才安全地引用 WerkstoffLoader.BWBlockCasings。
     @SuppressWarnings({ "rawtypes", "unchecked" })
-    private static final List<Pair<Block, Integer>> ALLOWED_CASINGS = ImmutableList.of(
-        Pair.of(GregTechAPI.sBlockCasings2, 0), // Tier 1 - Steel
-        Pair.of(GregTechAPI.sBlockCasings1, 2), // Tier 2 - Stainless Steel
-        Pair.of(GregTechAPI.sBlockCasings4, 1), // Tier 3 - Titanium
-        Pair.of(GregTechAPI.sBlockCasings4, 2), // Tier 4 - Tungstensteel
-        Pair.of(GregTechAPI.sBlockCasings4, 0), // Tier 5 - Chrome
-        Pair.of(GregTechAPI.sBlockCasings8, 6), // Tier 6 - Advanced Rhodium Palladium
-        Pair.of(GregTechAPI.sBlockCasings8, 7), // Tier 7 - Advanced Iridium
-        Pair.of(GregTechAPI.sBlockCasings4, 14), // Tier 8 - Mining Osmiridium (UV)
-        Pair.of(WerkstoffLoader.BWBlockCasings, 31895), // Tier 9 - Bolted Neutronium (UHV)
-        Pair.of(GregTechAPI.sBlockReinforced, 10), // Tier 10 - Naquadah Reinforced (UEV)
-        Pair.of(WerkstoffLoader.BWBlockCasings, 32091), // Tier 11 - Bolted Naquadah Alloy (UIV)
-        Pair.of(GregTechAPI.sBlockCasings8, 10)); // Tier 12 - Radiant Naquadah Alloy (UMV)
+    private static List<Pair<Block, Integer>> ALLOWED_CASINGS = null;
+
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    private static List<Pair<Block, Integer>> getAllowedCasings() {
+        if (ALLOWED_CASINGS == null) {
+            ALLOWED_CASINGS = ImmutableList.of(
+                Pair.of(GregTechAPI.sBlockCasings2, 0), // Tier 1 - Steel
+                Pair.of(GregTechAPI.sBlockCasings1, 2), // Tier 2 - Stainless Steel
+                Pair.of(GregTechAPI.sBlockCasings4, 1), // Tier 3 - Titanium
+                Pair.of(GregTechAPI.sBlockCasings4, 2), // Tier 4 - Tungstensteel
+                Pair.of(GregTechAPI.sBlockCasings4, 0), // Tier 5 - Chrome
+                Pair.of(GregTechAPI.sBlockCasings8, 6), // Tier 6 - Advanced Rhodium Palladium
+                Pair.of(GregTechAPI.sBlockCasings8, 7), // Tier 7 - Advanced Iridium
+                Pair.of(GregTechAPI.sBlockCasings4, 14), // Tier 8 - Mining Osmiridium (UV)
+                Pair.of(WerkstoffLoader.BWBlockCasings, 31895), // Tier 9 - Bolted Neutronium (UHV)
+                Pair.of(GregTechAPI.sBlockReinforced, 10), // Tier 10 - Naquadah Reinforced (UEV)
+                Pair.of(WerkstoffLoader.BWBlockCasings, 32091), // Tier 11 - Bolted Naquadah Alloy (UIV)
+                Pair.of(GregTechAPI.sBlockCasings8, 10)); // Tier 12 - Radiant Naquadah Alloy (UMV)
+        }
+        return ALLOWED_CASINGS;
+    }
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
     private static final List<Pair<Block, Integer>> PIPE_CASINGS = ImmutableList.of(

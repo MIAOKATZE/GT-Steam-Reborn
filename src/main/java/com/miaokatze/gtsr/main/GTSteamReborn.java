@@ -22,7 +22,7 @@ import cpw.mods.fml.common.event.FMLServerStartingEvent;
     version = Tags.VERSION,
     name = "GTSteamReborn",
     acceptedMinecraftVersions = "[1.7.10]",
-    dependencies = "required-after:gregtech;")
+    dependencies = "required-before:gregtech;")
 public class GTSteamReborn {
 
     // 模组唯一标识符 (Mod ID)
