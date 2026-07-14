@@ -45,9 +45,14 @@ public class CommonProxy {
             }
         };
 
-        // GregTechAPI.sAfterGTLoad 在 GT PreInit 阶段已初始化，此处不会为 null
-        GregTechAPI.sAfterGTLoad.add(registerRunnable);
-        GTSteamReborn.LOG.info("[1/3] 已将机器注册任务加入 GregTech 加载队列。");
+        // 使用 sAfterGTPreload 队列（GT PreInit 末尾执行），而非 sAfterGTLoad（GT Init 末尾执行）。
+        // 这是 GT5U 官方推荐模式（参考 ggfab/GigaGramFab.java:65-98）：
+        // - sAfterGTPreload 执行时 sPreloadStarted=true、sPostloadStarted=false，MTE 注册构造函数阶段检查通过
+        // - GT 自身的 MTE 已在 LoaderMetaTileEntities.run()（GTMod.java:325）中注册完毕，避免 ID 冲突
+        // - 机器注册时机更早，避免错过 GT Init 阶段的 RecipeMap/NEI 处理窗口（根因 B 修复）
+        // MachineLoader.initMachines() 只做 MTE 注册（构造函数 + ItemList.set），不查询 GT 配方，符合 sAfterGTPreload 使用场景
+        GregTechAPI.sAfterGTPreload.add(registerRunnable);
+        GTSteamReborn.LOG.info("[1/3] 已将机器注册任务加入 GregTech PreInit 加载队列。");
     }
 
     /**
