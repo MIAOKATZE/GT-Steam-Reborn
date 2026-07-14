@@ -107,8 +107,37 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase {
             hubTag.setInteger("z", mHubZ);
             hubTag.setInteger("dim", mHubDim);
             hubTag.setString("type", mHubType);
+            // 与 loadNBTData 的反转读取语义对称：output 字段取反存储
+            // loadNBTData 中 mIsOutputMode = !hubTag.getBoolean("output")
+            // 故 save 时应 hubTag.setBoolean("output", !mIsOutputMode)
+            hubTag.setBoolean("output", !mIsOutputMode);
             aNBT.setTag("gtsr.hubPos", hubTag);
         }
+    }
+
+    /**
+     * 机器被破坏时，由 BaseMetaTileEntity.getDrops() 调用，用于把绑定数据写入掉落物的 NBT。
+     * 默认实现（CommonMetaTileEntity.setItemNBT）为空，必须覆写才能让破坏后的物品保留 gtsr.hubPos 等绑定信息。
+     * 必须先调用 super.setItemNBT 让 MTEDigitalTankBase 写入 mFluid/mLockFluid 等罐子数据。
+     * output 字段语义与 saveNBTData 一致（反转存储），与 loadNBTData 的反转读取对称。
+     */
+    @Override
+    public void setItemNBT(NBTTagCompound aNBT) {
+        super.setItemNBT(aNBT);
+        aNBT.setInteger("mTransferRatePercent", mTransferRatePercent);
+        if (mBound) {
+            NBTTagCompound hubTag = new NBTTagCompound();
+            hubTag.setInteger("x", mHubX);
+            hubTag.setInteger("y", mHubY);
+            hubTag.setInteger("z", mHubZ);
+            hubTag.setInteger("dim", mHubDim);
+            hubTag.setString("type", mHubType);
+            // 反转语义：与 saveNBTData 一致，与 loadNBTData 的反转读取对称
+            hubTag.setBoolean("output", !mIsOutputMode);
+            aNBT.setTag("gtsr.hubPos", hubTag);
+        }
+        // 保留奇点消耗标记，避免玩家通过破坏→重新放置来重复利用蒸汽纠缠奇点
+        aNBT.setBoolean("gtsr.singularity_consumed", true);
     }
 
     @Override

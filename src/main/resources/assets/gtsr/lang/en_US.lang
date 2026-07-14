@@ -1,23 +1,4 @@
-tile.gtsr.mtetest.name=MTETest Machine
-gtsr.tooltip.mtetest.info=Generates energy like a solar generator during daytime when sky is visible.
-
-# MTETest tier names
-gtsr.machine.test.ev=Test Machine EV
-gtsr.machine.test.iv=Test Machine IV
-gtsr.machine.test.luv=Test Machine (LuV)
-gtsr.machine.multitest.hv=Test Multiblock Machine (HV)
-
-# GregTech style keys used by CommonMetaTileEntity
-gt.blockmachines.gtsr.mtetest.ev.name=MTETest EV
-gt.blockmachines.gtsr.mtetest.iv.name=MTETest IV
-gt.blockmachines.gtsr.mtetest.luv.name=MTETest LuV
-gt.blockmachines.gtsr.multitest.hv.name=Test Multiblock Machine (HV)
-gtsr.recipe.multitest=Test Multiblock Machine
 gtsr.recipe.steam_hub_array=Steam Hub Array
-
-# Items
-item.TestCoin_GTSR.name=Test Coin
-item.TestCoin_GTSR_E.name=Electronic Test Coin
 
 # Shared Tooltip Keys
 gtsr.tooltip.shared.fluid_type=Fluid Type: 

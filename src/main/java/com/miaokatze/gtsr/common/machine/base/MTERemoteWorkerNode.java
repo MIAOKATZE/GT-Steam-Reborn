@@ -109,6 +109,29 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity implements IAdd
         aNBT.setInteger("mWorkProgress", mWorkProgress);
     }
 
+    /**
+     * 机器被破坏时，由 BaseMetaTileEntity.getDrops() 调用，用于把绑定数据写入掉落物的 NBT。
+     * 默认实现（CommonMetaTileEntity.setItemNBT）为空，必须覆写才能让破坏后的物品保留 gtsr.hubPos 等绑定信息。
+     * 字段语义与 saveNBTData 完全一致（output 无反转）。
+     */
+    @Override
+    public void setItemNBT(NBTTagCompound aNBT) {
+        super.setItemNBT(aNBT);
+        if (isBound()) {
+            NBTTagCompound hubTag = new NBTTagCompound();
+            hubTag.setInteger("x", mHubX);
+            hubTag.setInteger("y", mHubY);
+            hubTag.setInteger("z", mHubZ);
+            hubTag.setInteger("dim", mHubDim);
+            hubTag.setString("type", mHubType);
+            // 与 saveNBTData 一致：output 直接存储 mIsOutputMode，无反转
+            hubTag.setBoolean("output", mIsOutputMode);
+            aNBT.setTag("gtsr.hubPos", hubTag);
+        }
+        // 保留奇点消耗标记，避免玩家通过破坏→重新放置来重复利用蒸汽纠缠奇点
+        aNBT.setBoolean("gtsr.singularity_consumed", true);
+    }
+
     @Override
     public void loadNBTData(NBTTagCompound aNBT) {
         if (aNBT.hasKey("gtsr.hubPos")) {

@@ -1,23 +1,4 @@
-tile.gtsr.mtetest.name=测试太阳能机
-gtsr.tooltip.mtetest.info=白天且上方可见天空时产生能量，雨天降低效率。
-
-# MTETest tier names
-gtsr.machine.test.ev=测试机器 (EV)
-gtsr.machine.test.iv=测试机器 (IV)
-gtsr.machine.test.luv=测试机器 (LuV)
-gtsr.machine.multitest.hv=测试多方块机器 (HV)
-
-# GregTech style keys used by CommonMetaTileEntity
-gt.blockmachines.gtsr.mtetest.ev.name=测试太阳能机 EV
-gt.blockmachines.gtsr.mtetest.iv.name=测试太阳能机 IV
-gt.blockmachines.gtsr.mtetest.luv.name=测试太阳能机 LuV
-gt.blockmachines.gtsr.multitest.hv.name=测试多方块机器 (HV)
-gtsr.recipe.multitest=测试多方块机器
 gtsr.recipe.steam_hub_array=蒸汽枢纽阵列
-
-# Items
-item.TestCoin_GTSR.name=测试硬币
-item.TestCoin_GTSR_E.name=电子测试硬币
 
 # Shared Tooltip Keys
 gtsr.tooltip.shared.fluid_type=流体类型: 
