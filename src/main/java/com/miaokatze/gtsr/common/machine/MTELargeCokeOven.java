@@ -70,7 +70,10 @@ public class MTELargeCokeOven extends MTEEnhancedMultiBlockBase<MTELargeCokeOven
     private static final int MAX_PARALLEL_T2 = 32;
 
     public double mHeat = 0.0d;
-    public int mTier = 1;
+    // 默认值 -1 表示「未确定」，与 checkMachine() 中的重置值一致。
+    // 客户端在收到第一次 onValueUpdate 之前会保持该值，
+    // 此时 getCasingTextureID() 返回等级1（青铜）贴图，避免显示错误的等级2底材。
+    public int mTier = -1;
     private int mParallel = 0;
     public int mOriginalRecipeTime = 0;
 
@@ -550,6 +553,27 @@ public class MTELargeCokeOven extends MTEEnhancedMultiBlockBase<MTELargeCokeOven
             return ((gregtech.common.blocks.BlockCasings2) GregTechAPI.sBlockCasings2).getTextureIndex(0);
         }
         return ((gregtech.common.blocks.BlockCasings1) GregTechAPI.sBlockCasings1).getTextureIndex(10);
+    }
+
+    /**
+     * 客户端-服务端同步：把服务端的 mTier 通过单字节同步给客户端。
+     * <p>
+     * 修复问题：等级2大型焦炉退出重进存档后，控制器贴图错误地显示为等级1（青铜）底材。
+     * 原因：客户端 mTier 默认值 1，未收到服务端 mTier=2 的同步，getCasingTextureID() 走等级1分支。
+     * <p>
+     * 通过 onValueUpdate/getUpdateData 实现 GTNH 标准的"无 GUI 持续同步"，
+     * 服务端 mTier 变化时会自动推送到客户端，避免玩家必须重新触发结构检测才能恢复贴图。
+     * <p>
+     * 参考：MTELargeSteamFurnace / MTELargeGeothermalSteamBoiler 等机器的实现模式。
+     */
+    @Override
+    public void onValueUpdate(byte aValue) {
+        mTier = aValue;
+    }
+
+    @Override
+    public byte getUpdateData() {
+        return (byte) mTier;
     }
 
     protected ITexture getFrontOverlay() {

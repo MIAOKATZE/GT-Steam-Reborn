@@ -19,6 +19,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
+import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.FluidStack;
 
 import org.apache.commons.lang3.tuple.Pair;
@@ -38,6 +39,7 @@ import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Materials;
 import gregtech.api.enums.Textures;
 import gregtech.api.interfaces.IIconContainer;
+import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.logic.ProcessingLogic;
@@ -46,6 +48,7 @@ import gregtech.api.recipe.RecipeMap;
 import gregtech.api.recipe.RecipeMaps;
 import gregtech.api.recipe.check.CheckRecipeResult;
 import gregtech.api.recipe.check.CheckRecipeResultRegistry;
+import gregtech.api.render.TextureFactory;
 import gregtech.api.structure.error.StructureError;
 import gregtech.api.structure.error.StructureErrorRegistry;
 import gregtech.api.util.GTRecipe;
@@ -122,9 +125,43 @@ public class MTELargeSteamFurnace extends MTESteamMultiBlockBase<MTELargeSteamFu
         return ((BlockCasings1) GregTechAPI.sBlockCasings1).getTextureIndex(10);
     }
 
+    /**
+     * 重写 getTexture，直接使用 getCasingTextureID() 返回贴图。
+     * <p>
+     * 不依赖基类 MTESteamMultiBlockBase 的 createTextureWithCasing → getCurrentCasing() 路径，
+     * 因为该路径在某些情况下（如刚放置未形成多方块时）可能返回错误的 casing 贴图。
+     * 参考 MTESteamHubArray / MTELargeGeothermalSteamBoiler 的实现模式，
+     * 直接用 Textures.BlockIcons.getCasingTextureForId(int) 按 mSetTier 返回正确贴图。
+     * <p>
+     * 注意：mSetTier = -1（未初始化）时 getCasingTextureID() 返回青铜（等级1）贴图，
+     * 确保刚放置时控制器显示青铜底材而非钢外壳。
+     */
+    @Override
+    public ITexture[] getTexture(IGregTechTileEntity aBaseMetaTileEntity, ForgeDirection side, ForgeDirection facing,
+        int aColorIndex, boolean aActive, boolean aRedstone) {
+        if (side == facing) {
+            return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(getCasingTextureID()),
+                aActive ? TextureFactory.of(getActiveOverlay()) : TextureFactory.of(getInactiveOverlay()) };
+        }
+        return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(getCasingTextureID()) };
+    }
+
+    /**
+     * 更新所有 hatch 贴图，包括蒸汽总线列表。
+     * <p>
+     * 之前的实现遗漏了 mSteamInputs 和 mSteamOutputs（蒸汽输入/输出总线列表），
+     * 导致等级2时蒸汽输入/输出总线仍显示等级1底材（镀铜砖）。
+     * 现在补全所有 hatch 列表的贴图更新。
+     */
+    @Override
     protected void updateHatchTexture() {
         int textureID = getCasingTextureID();
+        // 蒸汽输入/输出总线（取消双注册后只在 mSteamInputs/mSteamOutputs 中）
+        for (MTEHatch h : mSteamInputs) h.updateTexture(textureID);
+        for (MTEHatch h : mSteamOutputs) h.updateTexture(textureID);
+        // 蒸汽流体输入仓
         for (MTEHatch h : mSteamInputFluids) h.updateTexture(textureID);
+        // 标准输入/输出总线（GTSRHatchElement.SteamInputBus/SteamOutputBus 接受的类型）
         for (MTEHatch h : mInputBusses) h.updateTexture(textureID);
         for (MTEHatch h : mOutputBusses) h.updateTexture(textureID);
     }

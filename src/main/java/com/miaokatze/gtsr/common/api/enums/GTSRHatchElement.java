@@ -32,17 +32,24 @@ import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTESteam
  * {@code atLeast(OutputBus)}.
  * <p>
  * This enum provides blacklist-free alternatives. For {@code MTESteamMultiBlockBase} machines,
- * the adder dispatches to {@code MTESteamMultiBlockBase::addToMachineList} (which the GTSR Mixin
- * overwrites to handle all hatch types correctly, including dual registration for steam buses).
+ * the adder dispatches to {@code addInputBusToMachineList}/{@code addOutputBusToMachineList}
+ * (standard bus registration), NOT to the mixin-overridden {@code addToMachineList}.
+ * <p>
+ * 原因：GTSR 的 MTESteamMultiBaseMixin 改造了 addToMachineList，但该覆写只处理蒸汽专用仓类型
+ * （冷却仓、蒸汽流体输入仓、蒸汽总线、MTEHatchInput），对标准 MTEHatchInputBus/MTEHatchOutputBus
+ * 返回 false，导致结构检测失败。改用父类 MTEMultiBlockBase 的 addInputBusToMachineList/
+ * addOutputBusToMachineList 可将标准总线正确注册到 mInputBusses/mOutputBusses。
+ * 蒸汽总线通过 MTESteamMultiBlockBase 原生的 addSteamBusInput/addSteamBusOutput 或 GTSR Mixin
+ * 的 addToMachineList 覆写单独处理。
+ * <p>
  * For other {@code MTEMultiBlockBase} machines, the adder falls back to the standard
  * {@code addInputBusToMachineList}/{@code addOutputBusToMachineList} methods.
  */
 public enum GTSRHatchElement implements IHatchElement<MTEMultiBlockBase> {
 
     SteamInputBus("GTSR.HatchElement.SteamInputBus", (t, te, idx) -> {
-        if (t instanceof MTESteamMultiBlockBase<?>steamBase) {
-            return steamBase.addToMachineList(te, idx);
-        }
+        // 对 MTESteamMultiBlockBase 也走 addInputBusToMachineList，而非 mixin 改造后的 addToMachineList。
+        // mixin 的 addToMachineList 不处理标准 MTEHatchInputBus，会返回 false 导致结构检测失败。
         return t.addInputBusToMachineList(te, idx);
     }, MTEHatchInputBus.class) {
 
@@ -58,9 +65,7 @@ public enum GTSRHatchElement implements IHatchElement<MTEMultiBlockBase> {
     },
 
     SteamOutputBus("GTSR.HatchElement.SteamOutputBus", (t, te, idx) -> {
-        if (t instanceof MTESteamMultiBlockBase<?>steamBase) {
-            return steamBase.addToMachineList(te, idx);
-        }
+        // 同上，对 MTESteamMultiBlockBase 走 addOutputBusToMachineList 注册到 mOutputBusses。
         return t.addOutputBusToMachineList(te, idx);
     }, MTEHatchOutputBus.class) {
 
