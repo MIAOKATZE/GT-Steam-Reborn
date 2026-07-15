@@ -392,9 +392,12 @@ public abstract class MTESteamMultiBaseMixin {
      *
      * 注意：GTNL 等模组自己覆写了 getAllStoredInputs，本注入对它们无效（mixin 优先级低于子类覆写）。
      *
+     * cancellable=true 必填：方法体内（result == null 分支）调用 cir.setReturnValue(result) 覆写返回值，
+     * 未声明 cancellable 会抛出 CancellationException: The call getAllStoredInputs is not cancellable.
+     *
      * @author GTSR
      */
-    @Inject(method = "getAllStoredInputs", at = @At("RETURN"))
+    @Inject(method = "getAllStoredInputs", at = @At("RETURN"), cancellable = true)
     private void gtsr$onGetAllStoredInputsTail(CallbackInfoReturnable<ArrayList<net.minecraft.item.ItemStack>> cir) {
         ArrayList<net.minecraft.item.ItemStack> result = cir.getReturnValue();
         if (result == null) {
@@ -437,9 +440,12 @@ public abstract class MTESteamMultiBaseMixin {
      *
      * 注意：GTNL 等模组自己覆写了 getOutputBusses，本注入对它们无效（mixin 优先级低于子类覆写）。
      *
+     * cancellable=true 必填：方法体内调用 cir.setReturnValue(result) 覆写返回值，
+     * 未声明 cancellable 会导致运行时抛出 CancellationException: The call getOutputBusses is not cancellable.
+     *
      * @author GTSR
      */
-    @Inject(method = "getOutputBusses", at = @At("RETURN"))
+    @Inject(method = "getOutputBusses", at = @At("RETURN"), cancellable = true)
     private void gtsr$onGetOutputBussesTail(
         CallbackInfoReturnable<java.util.List<gregtech.api.interfaces.IOutputBus>> cir) {
         java.util.List<gregtech.api.interfaces.IOutputBus> original = cir.getReturnValue();
