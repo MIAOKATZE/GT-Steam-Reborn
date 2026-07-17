@@ -157,8 +157,8 @@ All inherit from `MTEEnhancedMultiBlockBase` (GT5U), with more advanced mechanic
 
 <p align="center"><img src="README/MTELargeCokeOven.png" width="300"> <img src="README/MTESiemensMartinFurnace.png" width="300"><br><em>大型焦炉 / Large Coke Oven (left) & 平炉 / Siemens-Martin Furnace (right)</em></p>
 
-- **大型焦炉 / Large Coke Oven (LCO)**: Bronze/Steel, 8/16 parallel. Self-powered coke oven with temperature acceleration — recipe time decreases as heat increases (minimum 800s). Produces coke from coal.
-  无需供能的自发焦炉，温度加速——配方时间随热量增加而缩短（最低800秒）。煤炭→焦炭。
+- **大型焦炉 / Large Coke Oven (LCO)**: Bronze/Steel, 12/32 parallel. Self-powered coke oven using GT5U vanilla coke oven recipes (coal/lumps/logs/cactus/sugarcane etc.). Base processing speed: Bronze 120% / Steel 200%; heat acceleration: each 1% heat adds 1% work speed (stacked on base speed).
+  无需供能的自发焦炉，使用 GT5U 原版焦炉配方（煤炭/煤块/原木/甘蔗/仙人掌等）。基础加工速度：青铜120% / 钢200%；炉温加速：每1%炉温叠加1%工作速度（叠加在基础速度上）。
 - **平炉 / Siemens-Martin Furnace (SMF)**: Steel only, superheated steam, 64-128 parallel (scales with furnace temperature 100%~200%). Recipe time ×0.75. Consumes 1,000 L/s air during operation (preheat phase exempt; stops if air insufficient). Overheat mechanism: temperature can exceed 100% (max 200%), reducing recipe time by up to 50% (applied after the 0.75 base factor).
   仅钢级，过热蒸汽，64~128并行（随炉温100%~200%线性提升）。配方时间×0.75。运行时消耗1,000 L/s空气（预热阶段不消耗，空气不足时停机）。过热机制：炉温可突破100%（最高200%），配方时间最多削减50%（在0.75基础系数之后应用）。
 

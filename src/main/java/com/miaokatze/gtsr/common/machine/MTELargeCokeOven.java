@@ -36,7 +36,6 @@ import com.gtnewhorizons.modularui.common.widget.DynamicPositionedColumn;
 import com.gtnewhorizons.modularui.common.widget.FakeSyncWidget;
 import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
-import com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps;
 import com.miaokatze.gtsr.common.gui.MTELargeCokeOvenGui;
 
 import gregtech.api.GregTechAPI;
@@ -50,24 +49,26 @@ import gregtech.api.metatileentity.implementations.MTEHatch;
 import gregtech.api.metatileentity.implementations.MTEHatchInputBus;
 import gregtech.api.metatileentity.implementations.MTEHatchOutputBus;
 import gregtech.api.recipe.RecipeMap;
+import gregtech.api.recipe.RecipeMaps;
 import gregtech.api.recipe.check.CheckRecipeResult;
+import gregtech.api.recipe.check.CheckRecipeResultRegistry;
 import gregtech.api.render.TextureFactory;
 import gregtech.api.structure.error.StructureError;
 import gregtech.api.structure.error.StructureErrorRegistry;
+import gregtech.api.util.GTRecipe;
 import gregtech.api.util.MultiblockTooltipBuilder;
+import gregtech.api.util.OverclockCalculator;
 import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
 
 public class MTELargeCokeOven extends MTEEnhancedMultiBlockBase<MTELargeCokeOven>
     implements IConstructable, ISurvivalConstructable {
 
-    private static final double HEAT_PER_RECIPE = 0.1d;
-    private static final double HEAT_UP_PER_SECOND = 0.0001d;
-    private static final double HEAT_DOWN_PER_SECOND = 0.001d;
-    private static final int BASE_RECIPE_TIME_SECONDS = 90;
-    private static final int HEAT_SPEEDUP_PER_PERCENT = 1;
-    private static final int MIN_RECIPE_TIME_SECONDS = 10;
-    private static final int MAX_PARALLEL_T1 = 12;
-    private static final int MAX_PARALLEL_T2 = 32;
+    // 炉温升降速率（每秒变化量，1.0 = 100%）
+    private static final double HEAT_UP_PER_SECOND = 0.0001d; // 运行中：+0.01%/s
+    private static final double HEAT_DOWN_PER_SECOND = 0.001d; // 停机时：-0.1%/s
+    // 各等级并行数上限
+    private static final int MAX_PARALLEL_T1 = 12; // 青铜
+    private static final int MAX_PARALLEL_T2 = 32; // 钢
 
     public double mHeat = 0.0d;
     // 默认值 -1 表示「未确定」，与 checkMachine() 中的重置值一致。
@@ -136,7 +137,9 @@ public class MTELargeCokeOven extends MTEEnhancedMultiBlockBase<MTELargeCokeOven
 
     @Override
     public RecipeMap<?> getRecipeMap() {
-        return GTSRRecipeMaps.largeCokeOvenRecipes;
+        // 切换为 GT5U 原版焦炉配方表（同 MTECokeOven.java）
+        // 包含煤炭→焦煤、煤块→焦煤块、原木→木炭、甘蔗/仙人掌等共8个配方
+        return RecipeMaps.cokeOvenRecipes;
     }
 
     @Nullable
@@ -294,20 +297,7 @@ public class MTELargeCokeOven extends MTEEnhancedMultiBlockBase<MTELargeCokeOven
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.frame"), 14, false)
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.firebrick"), 45, false)
             .addStructureInfo(
-                EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.shared.parallel")
-                    + ": "
-                    + EnumChatFormatting.GOLD
-                    + "12"
-                    + EnumChatFormatting.GRAY
-                    + " ("
-                    + StatCollector.translateToLocal("gtsr.gui.tier.bronze")
-                    + ")"
-                    + EnumChatFormatting.GOLD
-                    + "/32"
-                    + EnumChatFormatting.GRAY
-                    + " ("
-                    + StatCollector.translateToLocal("gtsr.gui.tier.steel")
-                    + ")")
+                EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.coke_oven.parallel"))
             .addStructureHint("gtsr.tooltip.shared.no_maintenance")
             .toolTipFinisher(
                 EnumChatFormatting.AQUA + "GT"
@@ -374,7 +364,32 @@ public class MTELargeCokeOven extends MTEEnhancedMultiBlockBase<MTELargeCokeOven
 
     @Override
     protected ProcessingLogic createProcessingLogic() {
-        return new ProcessingLogic().setMaxParallelSupplier(this::getMaxParallelRecipes);
+        return new ProcessingLogic() {
+
+            @Nonnull
+            @Override
+            protected CheckRecipeResult validateRecipe(@Nonnull GTRecipe recipe) {
+                // 焦炉配方 eut=0，无需电力检查；保留校验以兼容未来非零 eut 配方
+                if (availableVoltage < recipe.mEUt) {
+                    return CheckRecipeResultRegistry.insufficientPower(recipe.mEUt);
+                }
+                return CheckRecipeResultRegistry.SUCCESSFUL;
+            }
+
+            @Override
+            @Nonnull
+            protected OverclockCalculator createOverclockCalculator(@Nonnull GTRecipe recipe) {
+                // 基础加工速度：青铜（mTier=1）120% → duration×(1/1.2)；
+                // 钢（mTier=2）200% → duration×(1/2.0)
+                double baseDurationMultiplier = (mTier == 2) ? (1.0 / 2.0) : (1.0 / 1.2);
+                // 炉温加速：每1%炉温叠加1%工作速度
+                // 工作速度 = 基础速度 × (1 + mHeat)
+                // 故 duration 乘数 = 基础速度 / (1 + mHeat)
+                double durationModifier = baseDurationMultiplier / (1.0 + mHeat);
+                return OverclockCalculator.ofNoOverclock(recipe)
+                    .setDurationModifier(durationModifier);
+            }
+        }.setMaxParallelSupplier(this::getMaxParallelRecipes);
     }
 
     @Override
@@ -382,17 +397,10 @@ public class MTELargeCokeOven extends MTEEnhancedMultiBlockBase<MTELargeCokeOven
     public CheckRecipeResult checkProcessing() {
         CheckRecipeResult result = super.checkProcessing();
         if (!result.wasSuccessful()) return result;
-
+        // OverclockCalculator 已在 createOverclockCalculator 中应用了基础倍率与炉温加速，
+        // super.checkProcessing() 返回的 mMaxProgresstime 即为最终配方时长，无需再手动重算
         mParallel = processingLogic.getCurrentParallels();
         mOriginalRecipeTime = mMaxProgresstime;
-
-        if (mHeat > 0.0d) {
-            int originalSeconds = mMaxProgresstime / 20;
-            int reducedSeconds = (int) (mHeat * 100.0d * HEAT_SPEEDUP_PER_PERCENT);
-            int actualSeconds = Math.max(MIN_RECIPE_TIME_SECONDS, originalSeconds - reducedSeconds);
-            mMaxProgresstime = actualSeconds * 20;
-        }
-
         return result;
     }
 
@@ -449,13 +457,12 @@ public class MTELargeCokeOven extends MTEEnhancedMultiBlockBase<MTELargeCokeOven
                     + EnumChatFormatting.RESET;
             }))
             .widget(new TextWidget().setStringSupplier(() -> {
-                if (mOriginalRecipeTime > 0) {
-                    int originalSeconds = mOriginalRecipeTime / 20;
-                    int reducedSeconds = (int) (mHeat * 100.0d * HEAT_SPEEDUP_PER_PERCENT);
-                    int theoreticalSeconds = Math.max(MIN_RECIPE_TIME_SECONDS, originalSeconds - reducedSeconds);
+                // 直接显示当前配方总时长（已含基础倍率与炉温加速），避免二次加速
+                if (mMaxProgresstime > 0) {
+                    int totalSeconds = mMaxProgresstime / 20;
                     return EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.coke_oven.recipe_time")
                         + EnumChatFormatting.GOLD
-                        + theoreticalSeconds
+                        + totalSeconds
                         + "s"
                         + EnumChatFormatting.RESET;
                 }

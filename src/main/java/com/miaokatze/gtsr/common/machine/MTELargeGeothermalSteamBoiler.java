@@ -58,6 +58,7 @@ import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.implementations.MTEEnhancedMultiBlockBase;
 import gregtech.api.metatileentity.implementations.MTEHatch;
 import gregtech.api.metatileentity.implementations.MTEHatchOutput;
+import gregtech.api.metatileentity.implementations.MTEHatchOutputBus;
 import gregtech.api.recipe.RecipeMap;
 import gregtech.api.recipe.check.CheckRecipeResult;
 import gregtech.api.recipe.check.CheckRecipeResultRegistry;
@@ -352,6 +353,30 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
 
     private boolean hasSteamOutputHatch() {
         return !mSteamOutputHatches.isEmpty() || !mPressureSteamOutputHatches.isEmpty();
+    }
+
+    /**
+     * 覆写父类 addOutputBusToMachineList，使其兼容蒸汽版输出总线（MTEHatchSteamBusOutput）。
+     * <p>
+     * 父类 MTEMultiBlockBase.addOutputBusToMachineList 显式拒绝 MTEHatchSteamBusOutput（返回 false），
+     * 导致大型地热蒸汽锅炉虽然结构允许 SteamOutputBus，但蒸汽输出总线无法注册到 mOutputBusses，
+     * 副产物（黑曜石、灰烬粉等）无法输出。
+     * 此处移除该拒绝逻辑，将蒸汽输出总线与标准输出总线一并加入 mOutputBusses 列表。
+     * <p>
+     * 注意：MTEHatchSteamBusOutput 是 MTEHatchOutputBus 的子类，
+     * 故 instanceof MTEHatchOutputBus 会同时匹配标准与蒸汽两种输出总线。
+     * <p>
+     * 参考：MTELargeCokeOven.addOutputBusToMachineList、MTESiemensMartinFurnace.addOutputBusToMachineList。
+     */
+    public boolean addOutputBusToMachineList(IGregTechTileEntity aTileEntity, int aBaseCasingIndex) {
+        if (aTileEntity == null) return false;
+        IMetaTileEntity aMetaTileEntity = aTileEntity.getMetaTileEntity();
+        if (aMetaTileEntity == null) return false;
+        if (aMetaTileEntity instanceof MTEHatchOutputBus hatch) {
+            hatch.updateTexture(aBaseCasingIndex);
+            return mOutputBusses.add(hatch);
+        }
+        return false;
     }
 
     private boolean addSteamOutputToMachineList(IGregTechTileEntity aTileEntity, int aBaseCasingIndex) {

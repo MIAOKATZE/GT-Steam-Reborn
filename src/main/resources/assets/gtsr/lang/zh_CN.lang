@@ -852,11 +852,11 @@ gtsr.tooltip.kinetic_array.energy=任意电力仓
 
 # 6. Large Coke Oven - missing desc keys
 gtsr.tooltip.coke_oven.desc=将原木/煤炭在高温缺氧环境下干馏，产出木炭/焦炭及杂酚油等副产物。
-gtsr.tooltip.coke_oven.desc2=炉室自发蓄热运行，无需外部能源输入；运行中炉温持续攀升，温度越高反应速度越快。
-gtsr.tooltip.coke_oven.desc3=停机后炉温缓慢冷却，反应时间随之回升。
-gtsr.tooltip.coke_oven.formula=炉温变化：+0.01%/s（运行中） | -0.006%/s（停机）
-gtsr.tooltip.coke_oven.accel=炉温加速：每1%炉温缩短10秒配方时间（基础1800秒，最快800秒）
-gtsr.tooltip.coke_oven.recipe=配方：1煤炭 → 1焦煤 + 500L杂酚油
+gtsr.tooltip.coke_oven.desc2=炉室自发蓄热运行，无需外部能源输入；运行中炉温持续攀升，温度越高反应速度越快。基础加工速度：青铜120%、钢200%。
+gtsr.tooltip.coke_oven.desc3=停机后炉温缓慢冷却，反应时间随之回升。炉温加速：每1%炉温叠加1%工作速度。
+gtsr.tooltip.coke_oven.formula=炉温变化：+0.01%/s（运行中） | -0.1%/s（停机）
+gtsr.tooltip.coke_oven.accel=加速公式：实际时长 = 配方时长 × 基础倍率 ÷ (1 + 炉温)；基础倍率：青铜1/1.2、钢1/2.0
+gtsr.tooltip.coke_oven.parallel=并行数：12（青铜）/ 32（钢）
 gtsr.tooltip.coke_oven.input_bus=原木/煤炭
 gtsr.tooltip.coke_oven.output_bus=木炭/焦炭
 gtsr.tooltip.coke_oven.output_hatch=杂酚油
