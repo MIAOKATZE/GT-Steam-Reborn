@@ -48,6 +48,7 @@ import gregtech.api.recipe.check.CheckRecipeResultRegistry;
 import gregtech.api.structure.error.StructureError;
 import gregtech.api.structure.error.StructureErrorRegistry;
 import gregtech.api.util.MultiblockTooltipBuilder;
+import gregtech.api.util.VoidProtectionHelper;
 import gregtech.common.blocks.BlockCasings1;
 import gregtech.common.blocks.BlockCasings2;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTEHatchCustomFluidBase;
@@ -280,8 +281,23 @@ public class MTEAirCompressor extends MTESteamMultiBlockBase<MTEAirCompressor> i
         mEfficiencyIncrease = 10000;
         boolean isNether = getBaseMetaTileEntity().getWorld().provider.dimensionId == -1;
         int amount = 800 * getMaxParallelRecipes();
-        mOutputFluids = new FluidStack[] {
-            isNether ? Materials.NetherAir.getFluid(amount) : Materials.Air.getGas(amount) };
+        FluidStack outputFluid = isNether ? Materials.NetherAir.getFluid(amount) : Materials.Air.getGas(amount);
+
+        // v1.7.26 修复：先预检查输出仓空间是否足够。
+        // 原实现直接设置 mOutputFluids 后由 onPostTick 的 addFluidOutputs 尝试输出，
+        // 若输出仓已满则触发 stopMachine(FLUID_OUTPUT_FAILED) 强制关机。
+        // 现改为先预检查，若空间不足则返回 FLUID_OUTPUT_FULL（GUI 显示"流体输出空间不足"），
+        // 机器保持待机状态，等输出仓有空间后继续工作，而不是强制关机。
+        // 压缩空气（Air）和下界空气（NetherAir）共用同一条输出仓，故两种产物都需要预检查。
+        VoidProtectionHelper vph = new VoidProtectionHelper().setMachine(this)
+            .setFluidOutputs(new FluidStack[] { outputFluid })
+            .setMaxParallel(1)
+            .build();
+        if (vph.isFluidFull()) {
+            return CheckRecipeResultRegistry.FLUID_OUTPUT_FULL;
+        }
+
+        mOutputFluids = new FluidStack[] { outputFluid };
         updateSlots();
         return CheckRecipeResultRegistry.SUCCESSFUL;
     }

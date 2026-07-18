@@ -504,7 +504,7 @@ gtsr.gui.siemens_martin_furnace.recipe_time=Recipe Time:
 gtsr.gui.siemens_martin_furnace.parallel=Parallel: 
 gtsr.gui.siemens_martin_furnace.temperature=Temperature
 gtsr.info.siemens_martin_furnace.name=Siemens-Martin Furnace
-GT5U.gui.text.gtsr.gui.siemens_martin.temperature_low=Temperature below 100%
+GT5U.gui.text.recipe_result.gtsr.gui.siemens_martin.temperature_low=Temperature below 100%
 
 # Kinetic Processing Array
 gt.blockmachines.gtsr.kinetic.processing.array.name=Kinetic Processing Array

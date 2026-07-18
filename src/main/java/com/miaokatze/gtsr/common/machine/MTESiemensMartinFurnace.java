@@ -457,46 +457,93 @@ public class MTESiemensMartinFurnace extends MTEEnhancedMultiBlockBase<MTESiemen
         }
     }
 
+    /**
+     * 从耐压蒸汽输入仓累计消耗过热蒸汽。
+     * v1.7.26 修复：原实现要求单个 hatch 一次满足全部 amount，当过热蒸汽分散在多个仓时
+     * 会误判为蒸汽不足，触发 stopMachine(POWER_LOSS) 导致"有充足蒸汽却断点关机"。
+     * 现改为两阶段累计消耗：先模拟遍历估算总量，再真正逐仓扣除。
+     */
     private boolean consumeSuperheatedSteam(int amount) {
+        if (amount <= 0) return true;
         Fluid superheated = FluidRegistry.getFluid("ic2superheatedsteam");
         if (superheated == null) return false;
 
+        // 阶段一：模拟遍历，累计所有 hatch 中可用 ic2superheatedsteam 总量
+        int totalAvailable = 0;
         for (MTEHatchPressureSteamInput hatch : mPressureSteamInputs) {
             FluidStack drained = hatch.drain(amount, false);
-            if (drained != null && drained.amount >= amount) {
-                Fluid fluid = drained.getFluid();
-                if (fluid != null && "ic2superheatedsteam".equals(fluid.getName())) {
-                    hatch.drain(amount, true);
-                    return true;
-                }
+            if (drained != null && drained.amount > 0
+                && drained.getFluid() != null
+                && "ic2superheatedsteam".equals(
+                    drained.getFluid()
+                        .getName())) {
+                totalAvailable += drained.amount;
             }
         }
-        return false;
+        if (totalAvailable < amount) return false;
+
+        // 阶段二：真正消耗，逐个 hatch drain 直到 amount 耗尽
+        int remaining = amount;
+        for (MTEHatchPressureSteamInput hatch : mPressureSteamInputs) {
+            if (remaining <= 0) break;
+            FluidStack drained = hatch.drain(remaining, false);
+            if (drained == null || drained.amount <= 0
+                || drained.getFluid() == null
+                || !"ic2superheatedsteam".equals(
+                    drained.getFluid()
+                        .getName()))
+                continue;
+            int take = Math.min(remaining, drained.amount);
+            hatch.drain(take, true);
+            remaining -= take;
+        }
+        return remaining <= 0;
     }
 
     /**
-     * 从流体输入仓消耗空气。
+     * 从流体输入仓累计消耗空气。
      * 仅接受 Materials.Air 对应的流体（"air"）。巨型空气输入仓（MTEMegaAirInputHatch）继承 MTEHatchInput，
      * 会被此方法遍历到。
+     * v1.7.26 修复：与 consumeSuperheatedSteam 同理，改为两阶段累计消耗，
+     * 避免空气分散在多个输入仓时误判为不足而触发 POWER_LOSS 关机。
      */
     private boolean consumeAir(int amount) {
+        if (amount <= 0) return true;
         FluidStack airSample = Materials.Air.getFluid(1);
         if (airSample == null || airSample.getFluid() == null) return false;
         String airName = airSample.getFluid()
             .getName();
 
+        // 阶段一：模拟遍历，累计所有 hatch 中可用 air 总量
+        int totalAvailable = 0;
         for (MTEHatchInput hatch : mInputHatches) {
             FluidStack drained = hatch.drain(amount, false);
-            if (drained != null && drained.amount >= amount
+            if (drained != null && drained.amount > 0
                 && drained.getFluid() != null
                 && airName.equals(
                     drained.getFluid()
                         .getName())) {
-                hatch.drain(amount, true);
-                return true;
+                totalAvailable += drained.amount;
             }
         }
-        return false;
+        if (totalAvailable < amount) return false;
+
+        // 阶段二：真正消耗，逐个 hatch drain 直到 amount 耗尽
+        int remaining = amount;
+        for (MTEHatchInput hatch : mInputHatches) {
+            if (remaining <= 0) break;
+            FluidStack drained = hatch.drain(remaining, false);
+            if (drained == null || drained.amount <= 0
+                || drained.getFluid() == null
+                || !airName.equals(
+                    drained.getFluid()
+                        .getName()))
+                continue;
+            int take = Math.min(remaining, drained.amount);
+            hatch.drain(take, true);
+            remaining -= take;
+        }
+        return remaining <= 0;
     }
 
     @Override

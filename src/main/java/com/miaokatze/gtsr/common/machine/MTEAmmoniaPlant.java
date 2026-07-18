@@ -57,6 +57,7 @@ import gregtech.api.structure.error.StructureErrorRegistry;
 import gregtech.api.util.GTRecipe;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.MultiblockTooltipBuilder;
+import gregtech.api.util.VoidProtectionHelper;
 import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
 
 public class MTEAmmoniaPlant extends MTEEnhancedMultiBlockBase<MTEAmmoniaPlant> implements ISurvivalConstructable {
@@ -321,12 +322,30 @@ public class MTEAmmoniaPlant extends MTEEnhancedMultiBlockBase<MTEAmmoniaPlant> 
         result = postCheckRecipe(result, processingLogic);
 
         if (result.wasSuccessful()) {
+            FluidStack[] outputFluids = processingLogic.getOutputFluids();
+
+            // v1.7.26 修复：MTEEnhancedMultiBlockBase.supportsVoidProtection() 默认 false，
+            // 不会自动做流体输出预检查，输出仓满时由 onPostTick 的 addFluidOutputs 失败
+            // 触发 stopMachine(FLUID_OUTPUT_FAILED) 强制关机。
+            // 现显式启用流体预检查（setMachine(this, false, true) 表示 item 不预检查、fluid 预检查），
+            // 若空间不足则返回 FLUID_OUTPUT_FULL（GUI 显示"流体输出空间不足"），
+            // 机器保持待机状态，等输出仓有空间后继续工作，而不是强制关机。
+            if (outputFluids != null && outputFluids.length > 0) {
+                VoidProtectionHelper vph = new VoidProtectionHelper().setMachine(this, false, true)
+                    .setFluidOutputs(outputFluids)
+                    .setMaxParallel(1)
+                    .build();
+                if (vph.isFluidFull()) {
+                    return CheckRecipeResultRegistry.FLUID_OUTPUT_FULL;
+                }
+            }
+
             mEfficiency = 10000;
             mEfficiencyIncrease = 10000;
             mMaxProgresstime = mReactionTimeSec * 20;
             setEnergyUsage(processingLogic);
             mOutputItems = processingLogic.getOutputItems();
-            mOutputFluids = processingLogic.getOutputFluids();
+            mOutputFluids = outputFluids;
             updateSlots();
             return CheckRecipeResultRegistry.SUCCESSFUL;
         }

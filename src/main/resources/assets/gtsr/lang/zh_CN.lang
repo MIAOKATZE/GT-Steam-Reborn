@@ -504,7 +504,7 @@ gtsr.gui.siemens_martin_furnace.recipe_time=配方时间:
 gtsr.gui.siemens_martin_furnace.parallel=并行: 
 gtsr.gui.siemens_martin_furnace.temperature=炉温
 gtsr.info.siemens_martin_furnace.name=平炉 (Siemens-Martin Furnace)
-GT5U.gui.text.gtsr.gui.siemens_martin.temperature_low=炉温未达到100%
+GT5U.gui.text.recipe_result.gtsr.gui.siemens_martin.temperature_low=炉温未达到100%
 
 # Kinetic Processing Array (动力加工阵列)
 gt.blockmachines.gtsr.kinetic.processing.array.name=动力加工阵列

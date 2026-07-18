@@ -53,6 +53,7 @@ import gregtech.api.structure.error.StructureError;
 import gregtech.api.structure.error.StructureErrorRegistry;
 import gregtech.api.util.GTRecipe;
 import gregtech.api.util.MultiblockTooltipBuilder;
+import gregtech.api.util.VoidProtectionHelper;
 import gregtech.common.blocks.BlockCasings1;
 import gregtech.common.blocks.BlockCasings2;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTEHatchCustomFluidBase;
@@ -289,7 +290,28 @@ public class MTEAtmosphericCentrifuge extends MTESteamMultiBlockBase<MTEAtmosphe
 
     @Override
     public CheckRecipeResult checkProcessing() {
-        return super.checkProcessing();
+        CheckRecipeResult result = super.checkProcessing();
+        if (!result.wasSuccessful()) return result;
+
+        // v1.7.26 修复：super.checkProcessing() 成功后预检查输出仓空间是否足够。
+        // 原实现由 onPostTick 的 addFluidOutputs 尝试输出，若输出仓已满则触发
+        // stopMachine(FLUID_OUTPUT_FAILED) 强制关机。
+        // 现改为预检查，若空间不足则清理已设置的 mOutputFluids/mMaxProgresstime，
+        // 返回 FLUID_OUTPUT_FULL（GUI 显示"流体输出空间不足"），机器保持待机状态，
+        // 等输出仓有空间后继续工作，而不是强制关机。
+        if (mOutputFluids != null && mOutputFluids.length > 0) {
+            VoidProtectionHelper vph = new VoidProtectionHelper().setMachine(this)
+                .setFluidOutputs(mOutputFluids)
+                .setMaxParallel(1)
+                .build();
+            if (vph.isFluidFull()) {
+                mOutputFluids = null;
+                mMaxProgresstime = 0;
+                return CheckRecipeResultRegistry.FLUID_OUTPUT_FULL;
+            }
+        }
+
+        return result;
     }
 
     @Override
