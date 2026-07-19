@@ -287,6 +287,15 @@ public class MTEAmmoniaPlant extends MTEEnhancedMultiBlockBase<MTEAmmoniaPlant> 
         return false;
     }
 
+    // v1.7.27 修复：override 父类默认 false，让 GUI "溢出销毁"按钮可点击。
+    // 玩家可通过 voidingMode 控制流体输出满时的行为：
+    // - VOID_NONE（不销毁）：预检查触发，机器待机，等输出仓有空间后继续
+    // - VOID_FLUID/VOID_ALL（销毁）：预检查跳过，机器持续运作，多余流体由 vanilla FluidEjectionHelper 自动销毁
+    @Override
+    public boolean supportsVoidProtection() {
+        return true;
+    }
+
     @Override
     public boolean getDefaultHasMaintenanceChecks() {
         return false;
@@ -324,14 +333,15 @@ public class MTEAmmoniaPlant extends MTEEnhancedMultiBlockBase<MTEAmmoniaPlant> 
         if (result.wasSuccessful()) {
             FluidStack[] outputFluids = processingLogic.getOutputFluids();
 
-            // v1.7.26 修复：MTEEnhancedMultiBlockBase.supportsVoidProtection() 默认 false，
-            // 不会自动做流体输出预检查，输出仓满时由 onPostTick 的 addFluidOutputs 失败
-            // 触发 stopMachine(FLUID_OUTPUT_FAILED) 强制关机。
-            // 现显式启用流体预检查（setMachine(this, false, true) 表示 item 不预检查、fluid 预检查），
-            // 若空间不足则返回 FLUID_OUTPUT_FULL（GUI 显示"流体输出空间不足"），
-            // 机器保持待机状态，等输出仓有空间后继续工作，而不是强制关机。
+            // v1.7.27 修复：改用 setMachine(this) 让 VoidProtectionHelper 调用 machine.protectsExcessFluid()
+            // 自动响应 voidingMode（由 GUI "溢出销毁"按钮控制）：
+            // - VOID_NONE（不开启销毁）：protectsExcessFluid()=true，预检查触发，
+            // 输出仓满则返回 FLUID_OUTPUT_FULL（机器待机，等空间后继续）
+            // - VOID_FLUID/VOID_ALL（开启销毁）：protectsExcessFluid()=false，预检查跳过，
+            // 机器持续运作，多余流体由 vanilla FluidEjectionHelper 自动销毁
+            // 注：v1.7.26 的强制 protectFluids=true 已废弃，因其无视 voidingMode 导致销毁按钮失效。
             if (outputFluids != null && outputFluids.length > 0) {
-                VoidProtectionHelper vph = new VoidProtectionHelper().setMachine(this, false, true)
+                VoidProtectionHelper vph = new VoidProtectionHelper().setMachine(this)
                     .setFluidOutputs(outputFluids)
                     .setMaxParallel(1)
                     .build();

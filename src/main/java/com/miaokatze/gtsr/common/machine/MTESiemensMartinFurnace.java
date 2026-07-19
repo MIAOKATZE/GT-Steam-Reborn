@@ -95,7 +95,6 @@ public class MTESiemensMartinFurnace extends MTEEnhancedMultiBlockBase<MTESiemen
 
     public double mFurnaceTemperature = 0.0d;
     private final List<MTEHatchPressureSteamInput> mPressureSteamInputs = new ArrayList<>();
-    private int mStartUpCheck = 100;
     // 空气供应状态（用于GUI提示）：true=正常，false=不足
     public boolean mAirSupplyOK = true;
 
@@ -406,12 +405,12 @@ public class MTESiemensMartinFurnace extends MTEEnhancedMultiBlockBase<MTESiemen
             }
 
             // Determine steam cost based on temperature and running state
-            int steamCost = SUPERHEATED_STEAM_COST; // default 1200 L/tick = 24000 L/s
+            int steamCost = SUPERHEATED_STEAM_COST; // default 300 L/tick = 6000 L/s
             if (mMaxProgresstime > 0) {
                 if (mFurnaceTemperature >= MAX_OVERHEAT) {
-                    steamCost = SUPERHEATED_STEAM_COST_MAX / 20; // 300 L/tick = 6000 L/s
+                    steamCost = SUPERHEATED_STEAM_COST_MAX / 20; // 75 L/tick = 1500 L/s
                 } else if (mFurnaceTemperature >= 1.0d) {
-                    steamCost = SUPERHEATED_STEAM_COST_OVERHEAT / 20; // 600 L/tick = 12000 L/s
+                    steamCost = SUPERHEATED_STEAM_COST_OVERHEAT / 20; // 150 L/tick = 3000 L/s
                 }
             }
 
@@ -509,7 +508,12 @@ public class MTESiemensMartinFurnace extends MTEEnhancedMultiBlockBase<MTESiemen
      */
     private boolean consumeAir(int amount) {
         if (amount <= 0) return true;
-        FluidStack airSample = Materials.Air.getFluid(1);
+        // v1.7.27 修复：Materials.Air 在 GT5U 中注册为 GAS（mGas 已设、mFluid 为 null），
+        // 因此 getFluid(1) 返回 null，导致 consumeAir 始终返回 false，
+        // 进而触发 stopMachine(POWER_LOSS) 让平炉运行一瞬后断电。
+        // 改用 getGas(1) 获取有效的 FluidStack（fluid name 为 "air"，小写），
+        // 与 GTSRRecipeLoader 中 Materials.Air.getGas(800) 的写法一致。
+        FluidStack airSample = Materials.Air.getGas(1);
         if (airSample == null || airSample.getFluid() == null) return false;
         String airName = airSample.getFluid()
             .getName();
