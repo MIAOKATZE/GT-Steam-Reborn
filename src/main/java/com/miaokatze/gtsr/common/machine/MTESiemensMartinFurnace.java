@@ -95,6 +95,13 @@ public class MTESiemensMartinFurnace extends MTEEnhancedMultiBlockBase<MTESiemen
 
     public double mFurnaceTemperature = 0.0d;
     private final List<MTEHatchPressureSteamInput> mPressureSteamInputs = new ArrayList<>();
+    // v1.7.28 修复：恢复字段遮蔽（v1.7.27 误删）。
+    // 子类 onPostTick 中 `if (mMachine) mStartUpCheck = 100;` 必须操作子类自己的字段，
+    // 否则会重置父类 MTEMultiBlockBase.mStartUpCheck，导致父类的 --mStartUpCheck 永远停在 99，
+    // checkStructure 永远不再被触发，runMachine 不被调用，配方无法启动；
+    // 且 mPressureSteamInputs 不被重新填充，consumeSuperheatedSteam 永远返回 false，炉温反向下降。
+    // 与 MTEAmmoniaPlant line 95、MTELargeGeothermalSteamBoiler line 96 保持一致。
+    private int mStartUpCheck = 100;
     // 空气供应状态（用于GUI提示）：true=正常，false=不足
     public boolean mAirSupplyOK = true;
 

@@ -57,7 +57,6 @@ import gregtech.api.structure.error.StructureErrorRegistry;
 import gregtech.api.util.GTRecipe;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.MultiblockTooltipBuilder;
-import gregtech.api.util.VoidProtectionHelper;
 import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
 
 public class MTEAmmoniaPlant extends MTEEnhancedMultiBlockBase<MTEAmmoniaPlant> implements ISurvivalConstructable {
@@ -333,22 +332,12 @@ public class MTEAmmoniaPlant extends MTEEnhancedMultiBlockBase<MTEAmmoniaPlant> 
         if (result.wasSuccessful()) {
             FluidStack[] outputFluids = processingLogic.getOutputFluids();
 
-            // v1.7.27 修复：改用 setMachine(this) 让 VoidProtectionHelper 调用 machine.protectsExcessFluid()
-            // 自动响应 voidingMode（由 GUI "溢出销毁"按钮控制）：
-            // - VOID_NONE（不开启销毁）：protectsExcessFluid()=true，预检查触发，
-            // 输出仓满则返回 FLUID_OUTPUT_FULL（机器待机，等空间后继续）
-            // - VOID_FLUID/VOID_ALL（开启销毁）：protectsExcessFluid()=false，预检查跳过，
-            // 机器持续运作，多余流体由 vanilla FluidEjectionHelper 自动销毁
-            // 注：v1.7.26 的强制 protectFluids=true 已废弃，因其无视 voidingMode 导致销毁按钮失效。
-            if (outputFluids != null && outputFluids.length > 0) {
-                VoidProtectionHelper vph = new VoidProtectionHelper().setMachine(this)
-                    .setFluidOutputs(outputFluids)
-                    .setMaxParallel(1)
-                    .build();
-                if (vph.isFluidFull()) {
-                    return CheckRecipeResultRegistry.FLUID_OUTPUT_FULL;
-                }
-            }
+            // v1.7.28 修复：移除手动 VoidProtectionHelper 二次检查（v1.7.27 遗留的 dead code）。
+            // vanilla ParallelHelper（doCheckRecipe 内部）已经基于 voidingMode 做了流体输出预检查：
+            // - VOID_NONE：输出仓满时返回 FLUID_OUTPUT_FULL（机器待机，等空间后继续）
+            // - VOID_FLUID/VOID_ALL：预检查跳过，机器持续运作，多余流体由 vanilla FluidEjectionHelper 自动销毁
+            // 此处重复检查会与 vanilla 判定不同步（setMaxParallel(1) 与实际并行 64 不一致），
+            // 反而把已通过的配方误判为 FLUID_OUTPUT_FULL，导致销毁按钮失效。
 
             mEfficiency = 10000;
             mEfficiencyIncrease = 10000;
@@ -360,7 +349,9 @@ public class MTEAmmoniaPlant extends MTEEnhancedMultiBlockBase<MTEAmmoniaPlant> 
             return CheckRecipeResultRegistry.SUCCESSFUL;
         }
 
-        return CheckRecipeResultRegistry.NO_RECIPE;
+        // v1.7.28 修复：保留 result 而非转成 NO_RECIPE，让 FLUID_OUTPUT_FULL 等
+        // 失败原因能正确传递给 GUI 显示（"流体输出空间不足"等）。
+        return result;
     }
 
     @Override
