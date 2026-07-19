@@ -276,9 +276,6 @@ public class MTEAirCompressor extends MTESteamMultiBlockBase<MTEAirCompressor> i
         if (getTotalSteamStored() <= 0) {
             return CheckRecipeResultRegistry.NO_RECIPE;
         }
-        lEUt = mSetTier == 2 ? -60 : -20;
-        mMaxProgresstime = 20;
-        mEfficiencyIncrease = 10000;
         boolean isNether = getBaseMetaTileEntity().getWorld().provider.dimensionId == -1;
         int amount = 800 * getMaxParallelRecipes();
         FluidStack outputFluid = isNether ? Materials.NetherAir.getFluid(amount) : Materials.Air.getGas(amount);
@@ -289,6 +286,15 @@ public class MTEAirCompressor extends MTESteamMultiBlockBase<MTEAirCompressor> i
         // 现改为先预检查，若空间不足则返回 FLUID_OUTPUT_FULL（GUI 显示"流体输出空间不足"），
         // 机器保持待机状态，等输出仓有空间后继续工作，而不是强制关机。
         // 压缩空气（Air）和下界空气（NetherAir）共用同一条输出仓，故两种产物都需要预检查。
+        //
+        // v1.7.30 修复：将 lEUt/mMaxProgresstime/mEfficiencyIncrease 的设置移到 VPH 检查通过之后。
+        // 原实现将这些字段设置在 VPH 检查之前，导致 VPH 返回 FLUID_OUTPUT_FULL 时
+        // mMaxProgresstime 仍然是 20，vanilla runMachine() 看到 mMaxProgresstime > 0
+        // 认为机器正在运行配方，但 mOutputFluids=null（VPH 失败时直接 return 未设置），
+        // 表现为"GUI 显示流体输出空间不足但机器仍然在工作"。
+        // 与 vanilla MTEMultiBlockBase.checkProcessing() 的顺序保持一致：
+        // if (!result.wasSuccessful()) return result; // 失败时直接 return，mMaxProgresstime 保持 0
+        // mMaxProgresstime = processingLogic.getDuration(); // 只有成功时才设置
         VoidProtectionHelper vph = new VoidProtectionHelper().setMachine(this)
             .setFluidOutputs(new FluidStack[] { outputFluid })
             .setMaxParallel(1)
@@ -297,6 +303,9 @@ public class MTEAirCompressor extends MTESteamMultiBlockBase<MTEAirCompressor> i
             return CheckRecipeResultRegistry.FLUID_OUTPUT_FULL;
         }
 
+        lEUt = mSetTier == 2 ? -60 : -20;
+        mMaxProgresstime = 20;
+        mEfficiencyIncrease = 10000;
         mOutputFluids = new FluidStack[] { outputFluid };
         updateSlots();
         return CheckRecipeResultRegistry.SUCCESSFUL;
