@@ -53,7 +53,6 @@ import gregtech.api.structure.error.StructureError;
 import gregtech.api.structure.error.StructureErrorRegistry;
 import gregtech.api.util.GTRecipe;
 import gregtech.api.util.MultiblockTooltipBuilder;
-import gregtech.api.util.VoidProtectionHelper;
 import gregtech.common.blocks.BlockCasings1;
 import gregtech.common.blocks.BlockCasings2;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTEHatchCustomFluidBase;
@@ -293,23 +292,16 @@ public class MTEAtmosphericCentrifuge extends MTESteamMultiBlockBase<MTEAtmosphe
         CheckRecipeResult result = super.checkProcessing();
         if (!result.wasSuccessful()) return result;
 
-        // v1.7.26 修复：super.checkProcessing() 成功后预检查输出仓空间是否足够。
-        // 原实现由 onPostTick 的 addFluidOutputs 尝试输出，若输出仓已满则触发
-        // stopMachine(FLUID_OUTPUT_FAILED) 强制关机。
-        // 现改为预检查，若空间不足则清理已设置的 mOutputFluids/mMaxProgresstime，
-        // 返回 FLUID_OUTPUT_FULL（GUI 显示"流体输出空间不足"），机器保持待机状态，
-        // 等输出仓有空间后继续工作，而不是强制关机。
-        if (mOutputFluids != null && mOutputFluids.length > 0) {
-            VoidProtectionHelper vph = new VoidProtectionHelper().setMachine(this)
-                .setFluidOutputs(mOutputFluids)
-                .setMaxParallel(1)
-                .build();
-            if (vph.isFluidFull()) {
-                mOutputFluids = null;
-                mMaxProgresstime = 0;
-                return CheckRecipeResultRegistry.FLUID_OUTPUT_FULL;
-            }
-        }
+        // v1.7.29 修复：移除手动 VoidProtectionHelper 二次检查（v1.7.26 遗留的 dead code）。
+        // 本类调用 super.checkProcessing() 且 override createProcessingLogic() + setMaxParallelSupplier，
+        // vanilla ParallelHelper（doCheckRecipe 内部）已基于 voidingMode 做了完整的流体输出预检查：
+        // - VOID_NONE：输出仓满时 super.checkProcessing() 已返回 FLUID_OUTPUT_FULL，根本到不了这里
+        // - VOID_FLUID/VOID_ALL：预检查跳过，super.checkProcessing() 返回 SUCCESSFUL，机器持续运作，
+        // 多余流体由 vanilla FluidEjectionHelper 自动销毁
+        // 此处重复检查会与 vanilla 判定不同步（setMaxParallel(1) 与实际并行 4/16 不一致），
+        // 虽然当前使用 setMachine(this) 与 vanilla 判定一致不会引发 bug，但属于冗余 dead code，
+        // 存在被未来维护者误改（如改回 setMachine(this, false, true)）而引入 bug 的风险。
+        // 与 v1.7.28 修复 MTEAmmoniaPlant 保持一致。
 
         return result;
     }
