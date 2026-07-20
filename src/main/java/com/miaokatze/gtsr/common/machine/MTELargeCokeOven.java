@@ -67,8 +67,8 @@ public class MTELargeCokeOven extends MTEEnhancedMultiBlockBase<MTELargeCokeOven
     private static final double HEAT_UP_PER_SECOND = 0.0001d; // 运行中：+0.01%/s
     private static final double HEAT_DOWN_PER_SECOND = 0.001d; // 停机时：-0.1%/s
     // 各等级并行数上限
-    private static final int MAX_PARALLEL_T1 = 12; // 青铜
-    private static final int MAX_PARALLEL_T2 = 32; // 钢
+    private static final int MAX_PARALLEL_T1 = 24; // 青铜
+    private static final int MAX_PARALLEL_T2 = 64; // 钢
 
     public double mHeat = 0.0d;
     // 默认值 -1 表示「未确定」，与 checkMachine() 中的重置值一致。
@@ -531,7 +531,7 @@ public class MTELargeCokeOven extends MTEEnhancedMultiBlockBase<MTELargeCokeOven
             EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.parallel")
                 + " "
                 + EnumChatFormatting.GOLD
-                + (mTier >= 2 ? "12/32" : "12"));
+                + (mTier >= 2 ? "24/64" : "24"));
 
         return info.toArray(new String[0]);
     }

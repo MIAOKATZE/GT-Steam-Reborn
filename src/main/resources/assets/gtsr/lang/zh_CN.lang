@@ -856,7 +856,7 @@ gtsr.tooltip.coke_oven.desc2=炉室自发蓄热运行，无需外部能源输入
 gtsr.tooltip.coke_oven.desc3=停机后炉温缓慢冷却，反应时间随之回升。炉温加速：每1%炉温叠加1%工作速度。
 gtsr.tooltip.coke_oven.formula=炉温变化：+0.01%/s（运行中） | -0.1%/s（停机）
 gtsr.tooltip.coke_oven.accel=加速公式：实际时长 = 配方时长 × 基础倍率 ÷ (1 + 炉温)；基础倍率：青铜1/1.2、钢1/2.0
-gtsr.tooltip.coke_oven.parallel=并行数：12（青铜）/ 32（钢）
+gtsr.tooltip.coke_oven.parallel=并行数：24（青铜）/ 64（钢）
 gtsr.tooltip.coke_oven.input_bus=原木/煤炭
 gtsr.tooltip.coke_oven.output_bus=木炭/焦炭
 gtsr.tooltip.coke_oven.output_hatch=杂酚油

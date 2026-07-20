@@ -55,6 +55,10 @@ dependencies {
     // GT NEI Ore Plugin is required for ItemDimensionDisplay (Void Crust Steam Borer dimension override).
     compileOnly("com.github.GTNewHorizons:GTNEIOrePlugin:1.3.3:dev") { transitive = false }
 
+    // Botania is required for Tiny Planet crafting recipe (GTSRRecipeLoader.registerTinyPlanetRecipe).
+    // Optional at runtime: if Botania is not loaded, the recipe is silently skipped.
+    compileOnly("com.github.GTNewHorizons:Botania:1.13.27-GTNH:dev") { transitive = false }
+
     // UniMixins is automatically included by the GTNH build script because usesMixins = true in gradle.properties.
     // No need to declare it manually.
 }

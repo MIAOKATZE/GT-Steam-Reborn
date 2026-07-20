@@ -811,7 +811,7 @@ gtsr.tooltip.coke_oven.desc2=Heat System: Heats up while running, cools down whe
 gtsr.tooltip.coke_oven.desc3=After shutdown, temperature slowly drops and recipe time increases accordingly. Heat speedup: Each 1% heat adds 1% working speed.
 gtsr.tooltip.coke_oven.formula=Heat change: +0.01%/s (running) | -0.1%/s (idle)
 gtsr.tooltip.coke_oven.accel=Speedup formula: Actual duration = recipe duration × base multiplier ÷ (1 + heat); base multiplier: Bronze 1/1.2, Steel 1/2.0
-gtsr.tooltip.coke_oven.parallel=Parallels: 12 (Bronze) / 32 (Steel)
+gtsr.tooltip.coke_oven.parallel=Parallels: 24 (Bronze) / 64 (Steel)
 gtsr.tooltip.coke_oven.input_bus=Logs/Coal
 gtsr.tooltip.coke_oven.output_bus=Charcoal/Coke
 gtsr.tooltip.coke_oven.output_hatch=Creosote Oil

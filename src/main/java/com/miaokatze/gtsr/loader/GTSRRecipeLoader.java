@@ -25,6 +25,7 @@ import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.main.GTSteamReborn;
 
 import bartworks.system.material.WerkstoffLoader;
+import cpw.mods.fml.common.Loader;
 import gregtech.api.enums.GTValues;
 import gregtech.api.enums.ItemList;
 import gregtech.api.enums.Materials;
@@ -95,6 +96,7 @@ public class GTSRRecipeLoader implements Runnable {
         registerChipRecipes();
         registerCatalystRecipes();
         registerCacheNodeRecipes();
+        registerTinyPlanetRecipe(); // 新增：Botania Tiny Planet 工作台配方（Botania 未加载时自动跳过）
         registerNodeRecipes();
         registerMultiblockWorkbenchRecipes();
         registerMultiblockAssemblerRecipes();
@@ -606,6 +608,64 @@ public class GTSRRecipeLoader implements Runnable {
         }
 
         log("Cache node recipes done.");
+    }
+
+    /**
+     * 注册 Botania Tiny Planet 工作台合成配方。
+     * <p>
+     * 配方形状（用户需求：LV 电路板居中，8 个蒸汽纠缠奇点绕一圈）：
+     * 
+     * <pre>
+     *   S S S
+     *   S C S
+     *   S S S
+     * </pre>
+     * 
+     * 其中：
+     * - C = LV 电路板（任意种类，通过 OrePrefixes.circuit.get(Materials.LV) 匹配 OreDict）
+     * - S = 蒸汽纠缠奇点（GTSRItemList.SteamEntangledSingularity）
+     * 产物：Botania:tinyPlanet
+     * <p>
+     * 安全处理：Botania 是 GTNH 必装模组，但出于代码健壮性仍用 Loader.isModLoaded 判断。
+     * 若 Botania 未加载、产物或材料为 null，则跳过配方注册并记录警告日志。
+     */
+    private static void registerTinyPlanetRecipe() {
+        log("Registering Tiny Planet crafting recipe...");
+
+        // 1. 运行时检测 Botania 是否加载（与 MTEVoidCrustSteamBorer.isPluginLoaded 风格一致）
+        if (!Loader.isModLoaded("Botania")) {
+            log("Botania not loaded, skipping Tiny Planet recipe.");
+            return;
+        }
+
+        // 2. 获取产物：Botania:tinyPlanet（Botania 物品注册名为小写驼峰式）
+        ItemStack tinyPlanet = GTModHandler.getModItem("Botania", "tinyPlanet", 1);
+        if (tinyPlanet == null) {
+            warn("Botania:tinyPlanet item is null, skipping Tiny Planet recipe!");
+            return;
+        }
+
+        // 3. 获取中心材料：LV 电路板（OrePrefixes.circuit + Materials.LV 匹配任意种类 LV 电路板）
+        ItemStack lvCircuit = get(OrePrefixes.circuit, Materials.LV, 1);
+        if (lvCircuit == null) {
+            warn("LV circuit is null, skipping Tiny Planet recipe!");
+            return;
+        }
+
+        // 4. 获取环绕材料：蒸汽纠缠奇点
+        ItemStack singularity = GTSRItemList.SteamEntangledSingularity.get(1);
+        if (singularity == null) {
+            warn("SteamEntangledSingularity is null, skipping Tiny Planet recipe!");
+            return;
+        }
+
+        // 5. 注册工作台配方：SSS / SCS / SSS（C 居中，S 绕一圈）
+        GTModHandler.addCraftingRecipe(
+            tinyPlanet,
+            GTModHandler.RecipeBits.BITSD,
+            new Object[] { "SSS", "SCS", "SSS", 'S', singularity, 'C', lvCircuit });
+
+        log("Tiny Planet recipe registered.");
     }
 
     private static void registerNodeRecipes() {

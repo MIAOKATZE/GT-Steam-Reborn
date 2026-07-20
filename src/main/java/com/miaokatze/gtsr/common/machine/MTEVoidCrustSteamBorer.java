@@ -33,6 +33,7 @@ import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import com.miaokatze.gtsr.common.machine.base.MTEHatchPressureSteamInput;
 import com.miaokatze.gtsr.common.machine.base.VoidMinerUtilityShim;
+import com.miaokatze.gtsr.main.GTSteamReborn;
 
 import bwcrossmod.galacticgreg.VoidMinerUtility;
 import cpw.mods.fml.common.Loader;
@@ -67,13 +68,68 @@ public class MTEVoidCrustSteamBorer extends MTESteamMultiBlockBase<MTEVoidCrustS
 
     private static final String ITEM_DIM_DISPLAY_CLASS = "gtneioreplugin.plugin.item.ItemDimensionDisplay";
 
-    private static final Map<String, Integer> ABBR_TO_DIM_ID = new HashMap<>();
+    // 维度缩写 → 维度内部名（即 VoidMinerUtility.dropMapsByDimName 的 key）。
+    // 数据来源：GTNEIOrePlugin 1.3.3 的 gtneioreplugin.util.DimensionHelper.ABBR_TO_INTERNAL 快照。
+    // 设计理由：直接 abbr → dimName 查表，避免原方案 abbr → dimId → dimName 的二次跳转，可同时修复：
+    // 1) TF(Twilight Forest) 通过 dimIdToName 拿不到 DropMap 的 bug
+    // 2) EA(EndAsteroid) 错误映射到 dim 1 导致拿到 "The End" DropMap 的 bug
+    // 3) 扩展支持的维度从原 5 个到 GTNH 全部 43 个
+    // 维护策略：GTNH 新增维度时显式扩展此表。GTSR 与 GTNEIOrePlugin 是 compileOnly 关系，
+    // 玩家可能未安装该插件，因此不能在运行时直接引用 DimensionHelper 类，必须自维护映射表。
+    private static final Map<String, String> ABBR_TO_DIM_NAME = new HashMap<>();
     static {
-        ABBR_TO_DIM_ID.put("Ow", 0);
-        ABBR_TO_DIM_ID.put("Ne", -1);
-        ABBR_TO_DIM_ID.put("ED", 1);
-        ABBR_TO_DIM_ID.put("EA", 1);
-        ABBR_TO_DIM_ID.put("TF", 7);
+        // —— 原版三个维度 ——
+        ABBR_TO_DIM_NAME.put("Ow", "Overworld");
+        ABBR_TO_DIM_NAME.put("Ne", "Nether");
+        ABBR_TO_DIM_NAME.put("ED", "The End");
+        // —— Twilight Forest（修复：原方案通过 dim 7 中转后 dimIdToName 返回 null）——
+        ABBR_TO_DIM_NAME.put("TF", "Twilight Forest");
+        // —— EndAsteroid（修复：原方案错误映射到 dim 1 导致拿到 The End 的 DropMap）——
+        ABBR_TO_DIM_NAME.put("EA", "EndAsteroid");
+        // —— ToxicEverglades（dimDarkWorld）——
+        ABBR_TO_DIM_NAME.put("Eg", "dimensionDarkWorld");
+        // —— Galacticraft Core / Planets ——
+        ABBR_TO_DIM_NAME.put("Mo", "moon");
+        ABBR_TO_DIM_NAME.put("Ma", "mars");
+        ABBR_TO_DIM_NAME.put("As", "asteroids"); // 注意：As 维度 disableVoidMining，DropMap 为空
+        // —— GalaxySpace 系列（GalacticGreg 提供 DropMap）——
+        ABBR_TO_DIM_NAME.put("De", "deimos");
+        ABBR_TO_DIM_NAME.put("Ph", "phobos");
+        ABBR_TO_DIM_NAME.put("Ca", "callisto");
+        ABBR_TO_DIM_NAME.put("Ce", "ceres");
+        ABBR_TO_DIM_NAME.put("Eu", "europa");
+        ABBR_TO_DIM_NAME.put("Ga", "ganymed");
+        ABBR_TO_DIM_NAME.put("Rb", "ross128b");
+        ABBR_TO_DIM_NAME.put("Io", "iojupiter");
+        ABBR_TO_DIM_NAME.put("Me", "mercury");
+        ABBR_TO_DIM_NAME.put("Ve", "venus");
+        ABBR_TO_DIM_NAME.put("En", "enceladus");
+        ABBR_TO_DIM_NAME.put("Mi", "miranda");
+        ABBR_TO_DIM_NAME.put("Ob", "oberon");
+        ABBR_TO_DIM_NAME.put("Ti", "titan");
+        ABBR_TO_DIM_NAME.put("Ra", "ross128ba");
+        ABBR_TO_DIM_NAME.put("Pr", "proteus");
+        ABBR_TO_DIM_NAME.put("Tr", "triton");
+        ABBR_TO_DIM_NAME.put("Ha", "haumea");
+        ABBR_TO_DIM_NAME.put("KB", "kuiperbelt"); // 注意：KB 维度 disableVoidMining，DropMap 为空
+        ABBR_TO_DIM_NAME.put("MM", "makemake");
+        ABBR_TO_DIM_NAME.put("Pl", "pluto");
+        // —— GalaxySpace 远程恒星系 ——
+        ABBR_TO_DIM_NAME.put("BC", "barnarda2");
+        ABBR_TO_DIM_NAME.put("BE", "barnarda4");
+        ABBR_TO_DIM_NAME.put("BF", "barnarda5");
+        ABBR_TO_DIM_NAME.put("CB", "centauribb");
+        ABBR_TO_DIM_NAME.put("TE", "tcetie");
+        ABBR_TO_DIM_NAME.put("VB", "vega1");
+        // —— AmunRa / GalacticraftAmunRa 系列 ——
+        ABBR_TO_DIM_NAME.put("An", "anubis");
+        ABBR_TO_DIM_NAME.put("Ho", "horus");
+        ABBR_TO_DIM_NAME.put("Mh", "maahes");
+        ABBR_TO_DIM_NAME.put("MB", "asteroidbeltmehen"); // 注意：MB 维度 disableVoidMining，DropMap 为空
+        ABBR_TO_DIM_NAME.put("Np", "neper");
+        ABBR_TO_DIM_NAME.put("Se", "seth");
+        // —— Deep Dark（Underdark）——
+        ABBR_TO_DIM_NAME.put("DD", "Underdark");
     }
 
     private static Boolean pluginLoaded = null;
@@ -305,7 +361,11 @@ public class MTEVoidCrustSteamBorer extends MTESteamMultiBlockBase<MTEVoidCrustS
                     }
                 }
             }
-        } catch (Exception ignored) {}
+        } catch (Exception e) {
+            // 改进：原代码 catch (Exception ignored) {} 静默吞掉所有异常，导致反射调用失败时无法排查。
+            // 现改为记录完整堆栈到 GTSR 日志，便于诊断维度覆盖读取失败的具体原因。
+            GTSteamReborn.LOG.error("[VoidCrustSteamBorer] 读取维度覆盖失败，使用默认值 None", e);
+        }
         return "None";
     }
 
@@ -316,25 +376,35 @@ public class MTEVoidCrustSteamBorer extends MTESteamMultiBlockBase<MTEVoidCrustS
 
         if ("None".equals(dimAbbr)) return;
 
-        Integer dimId = ABBR_TO_DIM_ID.get(dimAbbr);
-
-        if (dimId != null) {
-            recalculateDropMapById(dimId);
-        }
-    }
-
-    private void recalculateDropMapById(int dimId) {
-        String dimName = VoidMinerUtilityShim.dimIdToName(dimId);
+        // 直接通过 abbr → dimName 查表（不再经过 dimId 中转）
+        // 修复原方案的多个 bug：
+        // - TF(Twilight Forest, dim 7) 原方案通过 dimIdToName 返回 null，导致 DropMap 永远为空
+        // - EA(EndAsteroid) 原方案错误映射到 dim 1，拿到 The End 的 DropMap 而非 EndAsteroid
+        // - 38 个 GTNH 维度（如 Moon/Mars/Twilight Forest 等）原方案无 abbr → dimId 映射
+        String dimName = ABBR_TO_DIM_NAME.get(dimAbbr);
         if (dimName == null) {
+            // 未知缩写：记录日志便于诊断（原代码静默忽略，导致用户无法定位"无法识别"问题）
+            GTSteamReborn.LOG
+                .warn("[VoidCrustSteamBorer] 未知维度缩写: " + dimAbbr + "（ABBR_TO_DIM_NAME 表中无此条目，请确认 GTNEIOrePlugin 版本）");
             dropMap = new VoidMinerUtility.DropMap();
             extraDropMap = new VoidMinerUtility.DropMap();
-            dropMapValid = false;
             return;
         }
+
         dropMap = VoidMinerUtilityShim.getDropMap(dimName);
         extraDropMap = VoidMinerUtilityShim.getExtraDropMap(dimName);
+        // getDropMap/getExtraDropMap 在 VoidMinerUtilityShim 中保证不返回 null（缺失时返回空 DropMap）
         dropMap.isDistributionCached(extraDropMap);
-        dropMapValid = (dropMap != null && dropMap.getTotalWeight() > 0);
+        dropMapValid = dropMap.getTotalWeight() > 0;
+        if (!dropMapValid) {
+            // 维度存在但 DropMap 为空：可能是 Asteroid 类型维度(disableVoidMining) 或该维度无矿脉配置
+            GTSteamReborn.LOG.warn(
+                "[VoidCrustSteamBorer] 维度 " + dimName
+                    + " ("
+                    + dimAbbr
+                    + ") 的 DropMap 为空或总权重为 0，可能是 GalacticGreg 未生成该维度矿石数据"
+                    + "（Asteroid 类型维度如 As/KB/MB 默认 disableVoidMining）");
+        }
     }
 
     @Override
@@ -585,9 +655,14 @@ public class MTEVoidCrustSteamBorer extends MTESteamMultiBlockBase<MTEVoidCrustS
 
     private String getStatusText() {
         if (!mMachine) return EnumChatFormatting.RED + "Incomplete" + EnumChatFormatting.RESET;
-        if (!isPluginLoaded()) return EnumChatFormatting.RED + "Plugin Missing" + EnumChatFormatting.RESET;
+        // 改进：原 "Plugin Missing" 提示过于含糊，改为具体插件名便于用户排查
+        if (!isPluginLoaded())
+            return EnumChatFormatting.RED + "GTNEIOrePlugin Not Installed" + EnumChatFormatting.RESET;
         if ("None".equals(lastDimAbbr)) return EnumChatFormatting.RED + "No Dimension" + EnumChatFormatting.RESET;
-        if (!dropMapValid) return EnumChatFormatting.RED + "No Ores" + EnumChatFormatting.RESET;
+        // 改进：区分"未知缩写"和"已知维度但无 DropMap"两种场景
+        if (!ABBR_TO_DIM_NAME.containsKey(lastDimAbbr))
+            return EnumChatFormatting.RED + "Unknown Dim Abbr: " + lastDimAbbr + EnumChatFormatting.RESET;
+        if (!dropMapValid) return EnumChatFormatting.RED + "No Ores in " + lastDimAbbr + EnumChatFormatting.RESET;
         if (!getBaseMetaTileEntity().isAllowedToWork())
             return EnumChatFormatting.YELLOW + "Disabled" + EnumChatFormatting.RESET;
         if (getTotalSteamStored() <= 0) return EnumChatFormatting.YELLOW + "No Steam" + EnumChatFormatting.RESET;
