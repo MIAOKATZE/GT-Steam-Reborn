@@ -392,9 +392,9 @@ gtsr.tooltip.singularity_drilling_hub.output_hatch=Fluid Output Hatch
 gt.blockmachines.gtsr.singularity.miner.node.name=Singularity Miner Node
 gtsr.tooltip.miner_node.desc=Steam-driven remote mining node, auto-mines when bound to Singularity Drilling Hub
 gtsr.tooltip.miner_node.range=Mining Range:
-gtsr.tooltip.miner_node.range_base=Base 24x24 / Enhanced I 48x48 / Enhanced II 64x64 / Enhanced III 96x96
+gtsr.tooltip.miner_node.range_base=Base 28x28 / Enhanced I 48x48 / Enhanced II 64x64 / Enhanced III 96x96
 gtsr.tooltip.miner_node.fortune=Fortune Level:
-gtsr.tooltip.miner_node.fortune_base=Base Normal II/Small V / I Normal III/Small V / II Normal IV/Small VI / III Normal V/Small VII
+gtsr.tooltip.miner_node.fortune_base=Base V / Enhanced I V / Enhanced II VI / Enhanced III VII (same for normal & small ores)
 gtsr.tooltip.miner_node.requires_pipe=Requires Mining Pipe to operate
 gtsr.tooltip.miner_node.upgrade_title=Upgrade Mechanism:
 gtsr.tooltip.miner_node.upgrade_desc=Enhanced I: Ore Drill I+16 Singularity | Enhanced II: Ore Drill II+32 Singularity | Enhanced III: Ore Drill III+64 Singularity
@@ -424,12 +424,40 @@ gtsr.tooltip.singularity_hub.node_cost_desc=Node Cost L/s (Drill: 2,000~20,000, 
 gtsr.gui.miner_node.tier=Tier:
 gtsr.gui.miner_node.base=Base
 gtsr.gui.miner_node.enhanced=Enhanced
+gtsr.gui.miner_node.max_tier=Already at max tier
+gtsr.gui.miner_node.need_drill=Required Ore Drilling Plant not found in inventory
+gtsr.gui.miner_node.need_singularity=Not enough Steam Entangled Singularities, need:
+gtsr.gui.miner_node.upgrade_success=Upgrade successful! Current tier: Enhanced
+gtsr.gui.miner_node.crushed_mode=Crushed Mode
+gtsr.gui.miner_node.crushed_mode.on=ON
+gtsr.gui.miner_node.crushed_mode.off=OFF
+gtsr.gui.drilling_node.max_tier=Already at max tier
+gtsr.gui.drilling_node.need_drill=Required Oil Drilling Rig not found in inventory
+gtsr.gui.node_upgrade.tooltip.title=Upgrade Node
+gtsr.gui.node_upgrade.tooltip.next=Next Tier:
+gtsr.gui.node_upgrade.tooltip.max=Max tier reached
+gtsr.gui.node_upgrade.tooltip.drill=Required:
+gtsr.gui.node_upgrade.tooltip.singularity=Steam Entangled Singularity x
+gtsr.node.miner.crushed_mode.on=Crushed ore mode ON: normal ores output 3x crushed ore
+gtsr.node.miner.crushed_mode.off=Crushed ore mode OFF
+gtsr.tooltip.miner_node.crushed_mode_hint=Screwdriver right-click toggles crushed ore mode: normal ores output 3x crushed ore
 
 # Drilling Hub Debug
 gtsr.drilling.debug_title=Drilling Hub Binding Debug
 gtsr.drilling.node_miner=Miner Node
 gtsr.drilling.node_driller=Driller Node
 gtsr.drilling.no_pipes=Insufficient Mining Pipes
+
+# Hub Status UI (Modern UI 2, shift + empty-hand right-click)
+gtsr.hub_status.title=Hub Node Status
+gtsr.hub_status.empty=No bound nodes
+gtsr.hub_status.start=Start Working
+gtsr.hub_status.stop=Stop Working
+gtsr.hub_status.recycle=Quick Recycle: outputs pipes and node (with binding NBT) to the output bus
+gtsr.hub_status.recycle_disabled=Quick Recycle unavailable: node has not fully stopped
+gtsr.hub_status.upgrade=Upgrade Node (consumes items from inventory)
+gtsr.hub_status.recycle_fail=Recycle failed: node not found or not fully stopped
+gtsr.hub_status.status.stopped=Stopped
 
 # Node Status Messages
 gtsr.node.status.ok=Running

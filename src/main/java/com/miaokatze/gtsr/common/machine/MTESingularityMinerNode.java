@@ -1,5 +1,7 @@
 package com.miaokatze.gtsr.common.machine;
 
+import static gregtech.api.metatileentity.BaseTileEntity.TOOLTIP_DELAY;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
@@ -18,6 +20,7 @@ import net.minecraftforge.common.util.ForgeDirection;
 
 import com.gtnewhorizons.modularui.api.screen.ModularWindow;
 import com.gtnewhorizons.modularui.api.screen.UIBuildContext;
+import com.gtnewhorizons.modularui.common.widget.ButtonWidget;
 import com.gtnewhorizons.modularui.common.widget.FakeSyncWidget;
 import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
@@ -27,13 +30,17 @@ import com.miaokatze.gtsr.common.machine.base.MTERemoteWorkerNode;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 import gregtech.api.enums.ItemList;
+import gregtech.api.enums.OrePrefixes;
 import gregtech.api.enums.Textures;
+import gregtech.api.gui.modularui.GTUITextures;
 import gregtech.api.interfaces.IIconContainer;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
+import gregtech.api.objects.ItemData;
 import gregtech.api.render.TextureFactory;
 import gregtech.api.util.GTModHandler;
+import gregtech.api.util.GTOreDictUnificator;
 import gregtech.api.util.GTUtility;
 import gregtech.common.ores.OreInfo;
 import gregtech.common.ores.OreManager;
@@ -42,10 +49,9 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
 
     private static final Block MINING_PIPE_TIP_BLOCK = GTUtility
         .getBlockFromStack(GTModHandler.getIC2Item("miningPipeTip", 0));
-    private static final int[] MINING_RADIUS = { 12, 24, 32, 48 }; // 24×24, 48×48, 64×64, 96×96
-    private static final int[] FORTUNE_NORMAL = { 2, 3, 4, 5 };
-    private static final int[] FORTUNE_SMALL = { 5, 5, 6, 7 };
-    private static final int SMALL_ORE_META_OFFSET = 16000;
+    private static final int[] MINING_RADIUS = { 14, 24, 32, 48 }; // 28×28, 48×48, 64×64, 96×96
+    // 时运统一取高值：贫瘠矿与普通矿等同，不再区分
+    private static final int[] FORTUNE = { 5, 5, 6, 7 };
     private static final int[] MINER_WORK_CYCLE = { 160, 100, 60, 20 }; // 8s, 5s, 3s, 1s
     private static final int[] SINGULARITY_COST = { 0, 16, 32, 64 };
     private static final int[] MINER_NODE_STEAM_COST = { 2_000, 5_000, 12_000, 20_000 };
@@ -69,6 +75,8 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
     private boolean mLastAllowedToWork = true;
     private int mCycleTimer = 0;
     private int mMinerTier = 0; // 0=基础, 1=强化I, 2=强化II, 3=强化III
+    // 粉碎矿模式：螺丝刀右击切换，开启后普通矿物掉落物转换为 3 倍数量的粉碎矿
+    private boolean mCrushedMode = false;
     private final ArrayList<ChunkCoordinates> mOrePositions = new ArrayList<>();
     private FakePlayer mFakePlayer;
 
@@ -98,6 +106,14 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
     @Override
     public boolean isActivelyWorking() {
         return !mDisabled && mHasStarted;
+    }
+
+    @Override
+    protected int getWorkChunkRadius() {
+        // 采矿范围为以节点为中心 ±R 的正方形（R=MINING_RADIUS[tier]，14/24/32/48），
+        // 换算为 chunk 半径需向上取整 (R+15)/16：T0=1, T1=2, T2=2, T3=3，
+        // 保证工作范围跨区块边界时相邻区块也被加载
+        return (MINING_RADIUS[mMinerTier] + 15) / 16;
     }
 
     @Override
@@ -136,6 +152,8 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
                 + StatCollector.translateToLocal("gtsr.tooltip.miner_node.steam_cost_base"));
         tooltip.add(EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.shared.singularity_cost"));
         tooltip.add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.miner_node.requires_pipe"));
+        tooltip
+            .add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.miner_node.crushed_mode_hint"));
         tooltip.add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.shared.node_bind_hint"));
         tooltip
             .add(EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.miner_node.upgrade_title"));
@@ -170,6 +188,18 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
         builder.widget(new SlotWidget(inventoryHandler, 0).setPos(52, 24));
         builder.widget(new SlotWidget(inventoryHandler, 1).setPos(70, 24));
         builder.widget(new SlotWidget(inventoryHandler, 2).setPos(88, 24));
+        // 升级按钮：点击后从玩家背包消耗对应等级钻井场物品与奇点进行升级
+        builder.widget(new ButtonWidget().setOnClick((clickData, widget) -> {
+            if (clickData.mouseButton == 0 && !widget.isClient()) {
+                tryUpgrade(buildContext.getPlayer());
+            }
+        })
+            .setPlayClickSound(true)
+            .setBackground(GTUITextures.BUTTON_STANDARD, GTUITextures.OVERLAY_BUTTON_ARROW_GREEN_UP)
+            .dynamicTooltip(this::getUpgradeTooltip)
+            .setTooltipShowUpDelay(TOOLTIP_DELAY)
+            .setPos(150, 24)
+            .setSize(18, 18));
         addDisplayTexts(builder);
     }
 
@@ -225,10 +255,25 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
                 .setDefaultColor(0xFFFFFFFF)
                 .setPos(10, 88));
 
+        // 粉碎矿模式状态显示（与等级同行右侧，玩家背包区从 y=99 开始，避免重叠）
+        builder.widget(
+            new TextWidget()
+                .setStringSupplier(
+                    () -> EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.gui.miner_node.crushed_mode")
+                        + ": "
+                        + (mCrushedMode
+                            ? EnumChatFormatting.GREEN
+                                + StatCollector.translateToLocal("gtsr.gui.miner_node.crushed_mode.on")
+                            : EnumChatFormatting.GRAY
+                                + StatCollector.translateToLocal("gtsr.gui.miner_node.crushed_mode.off")))
+                .setDefaultColor(0xFFFFFFFF)
+                .setPos(90, 88));
+
         builder.widget(new FakeSyncWidget.IntegerSyncer(() -> mStatus, val -> mStatus = val));
         builder.widget(new FakeSyncWidget.IntegerSyncer(() -> mTipDepth, val -> mTipDepth = val));
         builder.widget(new FakeSyncWidget.BooleanSyncer(() -> mRetractDone, val -> mRetractDone = val));
         builder.widget(new FakeSyncWidget.IntegerSyncer(() -> mMinerTier, val -> mMinerTier = val));
+        builder.widget(new FakeSyncWidget.BooleanSyncer(() -> mCrushedMode, val -> mCrushedMode = val));
     }
 
     private FakePlayer getFakePlayer(IGregTechTileEntity aBaseMetaTileEntity) {
@@ -315,7 +360,8 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
         // TileEntityReplacementManager handles chunk loading. Since our machine mines
         // naturally generated ores, we force isNatural=true before getting drops.
         // Non-GT ores (vanilla/other mods) use block.getDrops() with fortune directly.
-        int fortune = meta >= SMALL_ORE_META_OFFSET ? FORTUNE_SMALL[mMinerTier] : FORTUNE_NORMAL[mMinerTier];
+        // 时运统一取高值（贫瘠矿与普通矿等同）
+        int fortune = FORTUNE[mMinerTier];
 
         ArrayList<ItemStack> drops;
         try (OreInfo<?> info = OreManager.getOreInfo(block, meta)) {
@@ -332,6 +378,11 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
 
         // Remove the block from the world
         world.setBlockToAir(oreX, oreY, oreZ);
+
+        // 粉碎矿模式：将矿石掉落物替换为 3 倍数量的对应粉碎矿
+        if (mCrushedMode && drops != null) {
+            applyCrushedMode(drops);
+        }
 
         if (drops != null) {
             for (ItemStack drop : drops) {
@@ -441,7 +492,8 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
             }
         }
 
-        int fortune = targetMeta >= SMALL_ORE_META_OFFSET ? FORTUNE_SMALL[mMinerTier] : FORTUNE_NORMAL[mMinerTier];
+        // 时运统一取高值（贫瘠矿与普通矿等同）
+        int fortune = FORTUNE[mMinerTier];
         if (targetBlock != null && targetBlock != Blocks.air && targetBlock != Blocks.bedrock) {
             ArrayList<ItemStack> drops;
             try (OreInfo<?> info = OreManager.getOreInfo(targetBlock, targetMeta)) {
@@ -456,6 +508,10 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
                 }
             }
             MTESingularityDrillingHub hub = getBoundHub();
+            // 粉碎矿模式：将矿石掉落物替换为 3 倍数量的对应粉碎矿
+            if (mCrushedMode && drops != null) {
+                applyCrushedMode(drops);
+            }
             if (drops != null && hub != null) {
                 for (ItemStack drop : drops) {
                     if (drop != null && drop.getItem() != null) {
@@ -476,6 +532,57 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
         return true;
     }
 
+    /**
+     * 粉碎矿模式：将掉落物中的矿石类物品替换为对应粉碎矿（crushed），数量 = 原数量 × 3。
+     * 现有代码在 getOreDrops(..., fortune) 阶段已应用时运加成，故 3 倍基准直接乘在已含时运的数量上
+     * （对应 GT5U 采矿场 "3x crushed vs normal" 的语义，时运不重复追加）。
+     * 已是粉碎/粉末/宝石等加工形态、或无对应粉碎矿（非 GT 矿字典物品）的掉落物保持不变。
+     */
+    private void applyCrushedMode(ArrayList<ItemStack> drops) {
+        for (int i = 0; i < drops.size(); i++) {
+            ItemStack drop = drops.get(i);
+            if (drop == null || drop.getItem() == null) continue;
+
+            ItemData itemData = GTOreDictUnificator.getItemData(drop);
+            if (itemData == null || itemData.mMaterial == null || itemData.mMaterial.mMaterial == null) continue;
+
+            // 已是粉碎/粉/宝石形态的掉落物不再转换（贫瘠小矿的掉落物即属此类）
+            OrePrefixes prefix = itemData.mPrefix;
+            if (prefix == OrePrefixes.crushed || prefix == OrePrefixes.crushedCentrifuged
+                || prefix == OrePrefixes.crushedPurified
+                || prefix == OrePrefixes.dustImpure
+                || prefix == OrePrefixes.dustPure
+                || prefix == OrePrefixes.dustRefined
+                || prefix == OrePrefixes.dust
+                || prefix == OrePrefixes.gem
+                || prefix == OrePrefixes.gemChipped
+                || prefix == OrePrefixes.gemExquisite
+                || prefix == OrePrefixes.gemFlawed
+                || prefix == OrePrefixes.gemFlawless) {
+                continue;
+            }
+
+            // 查找该材料对应的粉碎矿形态；查不到（无粉碎形态的宝石类材料、非 GT 矿）则保持原样
+            ItemStack crushed = GTOreDictUnificator.get(OrePrefixes.crushed, itemData.mMaterial.mMaterial, 1);
+            if (crushed == null) continue;
+
+            crushed.stackSize = drop.stackSize * 3;
+            drops.set(i, crushed);
+        }
+    }
+
+    @Override
+    public void onScrewdriverRightClick(ForgeDirection side, EntityPlayer aPlayer, float aX, float aY, float aZ,
+        ItemStack aTool) {
+        // 仅服务端切换，避免客户端重复切换导致状态不同步
+        if (!getBaseMetaTileEntity().isServerSide()) return;
+        mCrushedMode = !mCrushedMode;
+        GTUtility.sendChatToPlayer(
+            aPlayer,
+            StatCollector.translateToLocal(
+                mCrushedMode ? "gtsr.node.miner.crushed_mode.on" : "gtsr.node.miner.crushed_mode.off"));
+    }
+
     @Override
     public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
         if (!aBaseMetaTileEntity.isServerSide()) return;
@@ -483,6 +590,10 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
         if (!mRegistered && isBound()) {
             mRegistered = registerWithHub(aBaseMetaTileEntity);
         }
+
+        // 本类未调用 super.onPostTick（避免基类 setActive/mIsWorking 逻辑与本类状态机冲突），
+        // 故显式调用基类区块加载维护，按当前等级范围申请/释放工作区块
+        updateChunkLoading(aBaseMetaTileEntity);
 
         boolean currentlyAllowed = aBaseMetaTileEntity.isAllowedToWork();
         if (currentlyAllowed && !mLastAllowedToWork) {
@@ -661,6 +772,7 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
         aNBT.setInteger("mStatus", mStatus);
         aNBT.setInteger("mCycleTimer", mCycleTimer);
         aNBT.setInteger("mMinerTier", mMinerTier);
+        aNBT.setBoolean("mCrushedMode", mCrushedMode);
     }
 
     @Override
@@ -688,6 +800,9 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
         if (aNBT.hasKey("mMinerTier")) {
             mMinerTier = aNBT.getInteger("mMinerTier");
         }
+        if (aNBT.hasKey("mCrushedMode")) {
+            mCrushedMode = aNBT.getBoolean("mCrushedMode");
+        }
     }
 
     @Override
@@ -697,40 +812,6 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
 
         ItemStack held = aPlayer.getHeldItem();
 
-        // Upgrade with Ore Drilling Plant items
-        if (held != null) {
-            int targetTier = -1;
-            if (ItemList.OreDrill1.isStackEqual(held, false, true)) {
-                targetTier = 1;
-            } else if (ItemList.OreDrill2.isStackEqual(held, false, true)) {
-                targetTier = 2;
-            } else if (ItemList.OreDrill3.isStackEqual(held, false, true)) {
-                targetTier = 3;
-            }
-
-            if (targetTier > 0) {
-                if (mMinerTier >= targetTier) {
-                    GTUtility.sendChatToPlayer(aPlayer, "已达到该等级或更高");
-                    return true;
-                }
-                if (mMinerTier != targetTier - 1) {
-                    GTUtility.sendChatToPlayer(aPlayer, "需要先升级到上一等级");
-                    return true;
-                }
-                int cost = SINGULARITY_COST[targetTier];
-                if (!consumeSingularityItems(aPlayer, cost)) {
-                    GTUtility.sendChatToPlayer(aPlayer, "蒸汽纠缠奇点不足，需要: " + cost);
-                    return true;
-                }
-                mMinerTier = targetTier;
-                held.stackSize--;
-                if (held.stackSize <= 0) aPlayer.setCurrentItemOrArmor(0, null);
-                aPlayer.inventoryContainer.detectAndSendChanges();
-                GTUtility.sendChatToPlayer(aPlayer, "升级成功！当前等级: 强化" + toRoman(targetTier));
-                return true;
-            }
-        }
-
         // Default: show binding info
         if (held == null && mHubX != 0) {
             GTUtility.sendChatToPlayer(
@@ -739,6 +820,116 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
                     "gtsr.binding.bound_to") + " Hub @ " + mHubX + ", " + mHubY + ", " + mHubZ);
         }
         return super.onRightclick(aBaseMetaTileEntity, aPlayer, side, aX, aY, aZ);
+    }
+
+    /**
+     * 节点是否已完全停止：已禁止工作且采矿管道全部收回（mTipDepth==0，含从未下管）。
+     * 仅完全停止的节点允许从枢纽状态 UI 快捷回收。
+     */
+    @Override
+    public boolean isFullyRetracted() {
+        return super.isFullyRetracted() && mTipDepth == 0;
+    }
+
+    /**
+     * 尝试升级节点：从玩家背包查找并消耗对应等级的矿石钻井场物品与蒸汽纠缠奇点。
+     * 升级成功返回 true 并发送聊天提示；失败时发送原因提示并返回 false。
+     * public：枢纽状态 UI 的远程升级按钮通过基类引用多态调用。
+     */
+    @Override
+    public boolean tryUpgrade(EntityPlayer player) {
+        // 已满级
+        if (mMinerTier >= 3) {
+            GTUtility.sendChatToPlayer(player, StatCollector.translateToLocal("gtsr.gui.miner_node.max_tier"));
+            return false;
+        }
+        int targetTier = mMinerTier + 1;
+        // 从背包查找目标等级对应的矿石钻井场物品（升级需逐级进行，目标等级固定为当前+1）
+        int drillSlot = findDrillItemSlot(player, targetTier);
+        if (drillSlot < 0) {
+            GTUtility.sendChatToPlayer(player, StatCollector.translateToLocal("gtsr.gui.miner_node.need_drill"));
+            return false;
+        }
+        int cost = SINGULARITY_COST[targetTier];
+        if (!consumeSingularityItems(player, cost)) {
+            GTUtility.sendChatToPlayer(
+                player,
+                StatCollector.translateToLocal("gtsr.gui.miner_node.need_singularity") + " " + cost);
+            return false;
+        }
+        ItemStack drillStack = player.inventory.mainInventory[drillSlot];
+        drillStack.stackSize--;
+        if (drillStack.stackSize <= 0) player.inventory.mainInventory[drillSlot] = null;
+        mMinerTier = targetTier;
+        player.inventoryContainer.detectAndSendChanges();
+        GTUtility.sendChatToPlayer(
+            player,
+            StatCollector.translateToLocal("gtsr.gui.miner_node.upgrade_success") + toRoman(targetTier));
+        // 等级已变化：释放旧范围区块加载 ticket，下一 tick 按新范围重新申请
+        onTierChanged();
+        return true;
+    }
+
+    /**
+     * 在玩家背包中查找目标等级对应的矿石钻井场物品，返回槽位下标，未找到返回 -1。
+     */
+    private int findDrillItemSlot(EntityPlayer player, int targetTier) {
+        for (int i = 0; i < player.inventory.mainInventory.length; i++) {
+            ItemStack stack = player.inventory.mainInventory[i];
+            if (stack == null) continue;
+            boolean match = switch (targetTier) {
+                case 1 -> ItemList.OreDrill1.isStackEqual(stack, false, true);
+                case 2 -> ItemList.OreDrill2.isStackEqual(stack, false, true);
+                case 3 -> ItemList.OreDrill3.isStackEqual(stack, false, true);
+                default -> false;
+            };
+            if (match) return i;
+        }
+        return -1;
+    }
+
+    /**
+     * 获取目标等级对应的矿石钻井场物品（用于升级按钮 tooltip 展示）。
+     */
+    private ItemStack getDrillItemForTier(int tier) {
+        return switch (tier) {
+            case 1 -> ItemList.OreDrill1.get(1);
+            case 2 -> ItemList.OreDrill2.get(1);
+            case 3 -> ItemList.OreDrill3.get(1);
+            default -> null;
+        };
+    }
+
+    /**
+     * 升级按钮的动态 tooltip：说明下一级所需钻井场物品与奇点数量。
+     */
+    private List<String> getUpgradeTooltip() {
+        List<String> tips = new ArrayList<>();
+        tips.add(
+            EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.gui.node_upgrade.tooltip.title")
+                + EnumChatFormatting.RESET);
+        if (mMinerTier >= 3) {
+            tips.add(EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.node_upgrade.tooltip.max"));
+            return tips;
+        }
+        int next = mMinerTier + 1;
+        tips.add(
+            EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.gui.node_upgrade.tooltip.next")
+                + " "
+                + StatCollector.translateToLocal("gtsr.gui.miner_node.enhanced")
+                + toRoman(next));
+        ItemStack drillStack = getDrillItemForTier(next);
+        if (drillStack != null) {
+            tips.add(
+                EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.gui.node_upgrade.tooltip.drill")
+                    + " "
+                    + drillStack.getDisplayName());
+        }
+        tips.add(
+            EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.node_upgrade.tooltip.singularity")
+                + " "
+                + SINGULARITY_COST[next]);
+        return tips;
     }
 
     private String toRoman(int num) {

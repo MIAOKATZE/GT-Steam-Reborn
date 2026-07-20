@@ -67,6 +67,10 @@ public class CommonProxy {
         GTSteamReborn.LOG.info(
             "[2/3] 创造模式物品栏初始化完成，当前包含 " + CreativeTabManager.getItemsToAdd()
                 .size() + " 个物品。");
+
+        // 注册钻井枢纽状态界面的 MUI2 factory（双端均需注册，ClientProxy.init 会调用本方法）
+        com.cleanroommc.modularui.factory.GuiManager
+            .registerFactory(com.miaokatze.gtsr.common.gui.HubStatusGuiFactory.INSTANCE);
     }
 
     /**

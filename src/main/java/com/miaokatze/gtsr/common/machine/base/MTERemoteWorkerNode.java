@@ -2,6 +2,7 @@ package com.miaokatze.gtsr.common.machine.base;
 
 import static net.minecraft.util.StatCollector.translateToLocal;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import net.minecraft.entity.player.EntityPlayer;
@@ -11,6 +12,7 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
+import net.minecraft.world.ChunkCoordIntPair;
 import net.minecraft.world.World;
 import net.minecraftforge.common.DimensionManager;
 import net.minecraftforge.common.util.ForgeDirection;
@@ -27,6 +29,7 @@ import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.modularui.IAddUIWidgets;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
+import gregtech.api.objects.GTChunkManager;
 import gregtech.api.render.TextureFactory;
 import gregtech.api.util.GTModHandler;
 
@@ -63,6 +66,12 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity implements IAdd
     protected boolean mIsWorking = false;
     protected int mWorkProgress = 0;
     protected static final int WORK_CYCLE = 20;
+
+    // 区块加载申请标志：运行态即可，不写 NBT——世界重载后 Forge ticket 失效，
+    // 标志随 MetaTileEntity 重建自然复位为 false，首个 postTick 会重新申请
+    // （参照 GT5U MTEDrillerBase 的 mWorkChunkNeedsReload 模式）
+    protected boolean mSelfChunkRequested = false;
+    protected boolean mWorkChunksRequested = false;
 
     public MTERemoteWorkerNode(int aID, String aName, String aNameRegional, int aInvSlotCount) {
         super(aID, aName, aNameRegional, aInvSlotCount);
@@ -193,8 +202,137 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity implements IAdd
             mRegistered = registerWithHub(aBaseMetaTileEntity);
         }
 
+        updateChunkLoading(aBaseMetaTileEntity);
+
         aBaseMetaTileEntity.setActive(mIsWorking);
         mIsWorking = false;
+    }
+
+    @Override
+    public void onRemoval() {
+        // 节点被移除时释放全部区块加载 ticket，避免残留强制加载
+        releaseAllChunks();
+        super.onRemoval();
+    }
+
+    /**
+     * 区块加载维护（服务端每 tick 调用）：已绑定且允许工作时，按当前等级范围申请
+     * 自身区块与工作区块；不再允许工作时释放全部 ticket。
+     * 注意：子类若覆写 onPostTick 且不调用 super.onPostTick，需自行调用本方法。
+     */
+    protected void updateChunkLoading(IGregTechTileEntity aBaseMetaTileEntity) {
+        if (isBound() && aBaseMetaTileEntity.isAllowedToWork()) {
+            if (!mSelfChunkRequested) {
+                requestSelfChunk();
+            }
+            if (!mWorkChunksRequested) {
+                requestWorkChunks();
+            }
+        } else if (mSelfChunkRequested || mWorkChunksRequested) {
+            releaseAllChunks();
+        }
+    }
+
+    /**
+     * 申请加载节点自身所在区块。GTChunkManager 中 chunk 参数传 null 即表示自身区块
+     * （仅在 GT 配置 alwaysReloadChunkloaders 开启时实际生效，用于跨重启持久化）；
+     * 一般情况下自身区块由 requestWorkChunks 的范围覆盖，本调用作为额外保险。
+     */
+    protected void requestSelfChunk() {
+        GTChunkManager.requestChunkLoad((TileEntity) getBaseMetaTileEntity(), null);
+        mSelfChunkRequested = true;
+    }
+
+    /**
+     * 申请加载当前工作范围覆盖的全部区块，具体范围由 collectWorkChunks 钩子收集。
+     */
+    protected void requestWorkChunks() {
+        List<ChunkCoordIntPair> chunks = new ArrayList<>();
+        collectWorkChunks(chunks);
+        TileEntity te = (TileEntity) getBaseMetaTileEntity();
+        for (ChunkCoordIntPair chunk : chunks) {
+            GTChunkManager.requestChunkLoad(te, chunk);
+        }
+        mWorkChunksRequested = true;
+    }
+
+    /**
+     * 收集当前工作范围覆盖的区块坐标。默认实现：以节点所在区块为中心、
+     * getWorkChunkRadius() 为半径的正方形区域。
+     * 工作范围不符合「中心+半径」模型的子类（如钻井节点从所在区块向正方向 range×range）
+     * 应覆写本方法而非 getWorkChunkRadius()。
+     */
+    protected void collectWorkChunks(List<ChunkCoordIntPair> out) {
+        IGregTechTileEntity te = getBaseMetaTileEntity();
+        int centerChunkX = te.getXCoord() >> 4;
+        int centerChunkZ = te.getZCoord() >> 4;
+        int chunkRadius = getWorkChunkRadius();
+        for (int x = centerChunkX - chunkRadius; x <= centerChunkX + chunkRadius; x++) {
+            for (int z = centerChunkZ - chunkRadius; z <= centerChunkZ + chunkRadius; z++) {
+                out.add(new ChunkCoordIntPair(x, z));
+            }
+        }
+    }
+
+    /**
+     * 当前工作范围对应的 chunk 半径（以节点所在区块为中心）。基类默认 0（仅自身区块），
+     * 子类按各自等级对应的工作范围覆写。
+     */
+    protected int getWorkChunkRadius() {
+        return 0;
+    }
+
+    /**
+     * 释放本节点持有的全部区块加载 ticket，并复位申请标志，
+     * 使下一 tick 的 updateChunkLoading 可按需重新申请。
+     * public：枢纽快捷回收节点时需跨包调用（hub 在 machine 包，本类在 machine.base 包）。
+     */
+    public void releaseAllChunks() {
+        GTChunkManager.releaseTicket((TileEntity) getBaseMetaTileEntity());
+        mSelfChunkRequested = false;
+        mWorkChunksRequested = false;
+    }
+
+    /**
+     * 节点是否已完全停止（允许快捷回收的判定条件）。
+     * 基类默认实现：不再允许工作即视为完全停止；
+     * 有采矿管道的子类应覆写本方法，追加「管道全部收回」条件。
+     */
+    public boolean isFullyRetracted() {
+        IGregTechTileEntity base = getBaseMetaTileEntity();
+        return base == null || !base.isAllowedToWork();
+    }
+
+    /**
+     * 尝试升级节点（消耗玩家背包物品）。基类默认不支持升级，返回 false；
+     * 支持升级的子类覆写本方法实现具体升级逻辑。
+     */
+    public boolean tryUpgrade(EntityPlayer player) {
+        return false;
+    }
+
+    /**
+     * 取出节点背包中全部采矿管道（枢纽快捷回收用），取出后对应槽位清空。
+     * 返回的列表可能为空，但不会为 null。
+     */
+    public List<ItemStack> drainStoredMiningPipes() {
+        List<ItemStack> pipes = new ArrayList<>();
+        for (int i = 0; i < mInventory.length; i++) {
+            ItemStack stack = mInventory[i];
+            if (isMiningPipe(stack) && stack.stackSize > 0) {
+                pipes.add(stack.copy());
+                mInventory[i] = null;
+            }
+        }
+        return pipes;
+    }
+
+    /**
+     * 等级变化钩子（升级成功后调用）：释放旧范围 ticket 并复位标志，
+     * 下一 tick 的 updateChunkLoading 会按新范围重新申请工作区块。
+     */
+    public void onTierChanged() {
+        releaseAllChunks();
     }
 
     @Override

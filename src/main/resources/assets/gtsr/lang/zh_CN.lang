@@ -392,9 +392,9 @@ gtsr.tooltip.singularity_drilling_hub.output_hatch=流体输出仓
 gt.blockmachines.gtsr.singularity.miner.node.name=奇点矿机节点
 gtsr.tooltip.miner_node.desc=蒸汽驱动的远程采矿节点，绑定奇点钻井枢纽后自动采矿
 gtsr.tooltip.miner_node.range=采矿范围:
-gtsr.tooltip.miner_node.range_base=基础24×24 / 强化I 48×48 / 强化II 64×64 / 强化III 96×96
+gtsr.tooltip.miner_node.range_base=基础28×28 / 强化I 48×48 / 强化II 64×64 / 强化III 96×96
 gtsr.tooltip.miner_node.fortune=时运等级:
-gtsr.tooltip.miner_node.fortune_base=基础 普通II/贫V / 强化I 普III/贫V / 强化II 普IV/贫VI / 强化III 普V/贫VII
+gtsr.tooltip.miner_node.fortune_base=基础V / 强化I V / 强化II VI / 强化III VII（普通矿与贫瘠矿等同）
 gtsr.tooltip.miner_node.requires_pipe=需要采矿管道才能工作
 gtsr.tooltip.miner_node.upgrade_title=升级机制:
 gtsr.tooltip.miner_node.upgrade_desc=强化I: 矿石钻井场I+16奇点 | 强化II: 矿石钻井场II+32奇点 | 强化III: 矿石钻井场III+64奇点
@@ -424,12 +424,40 @@ gtsr.tooltip.singularity_hub.node_cost_desc=节点消耗 L/s (钻井: 2,000~20,0
 gtsr.gui.miner_node.tier=等级:
 gtsr.gui.miner_node.base=基础
 gtsr.gui.miner_node.enhanced=强化
+gtsr.gui.miner_node.max_tier=已达最高等级
+gtsr.gui.miner_node.need_drill=背包中缺少对应等级的矿石钻井场
+gtsr.gui.miner_node.need_singularity=蒸汽纠缠奇点不足，需要:
+gtsr.gui.miner_node.upgrade_success=升级成功！当前等级: 强化
+gtsr.gui.miner_node.crushed_mode=粉碎模式
+gtsr.gui.miner_node.crushed_mode.on=开
+gtsr.gui.miner_node.crushed_mode.off=关
+gtsr.gui.drilling_node.max_tier=已达最高等级
+gtsr.gui.drilling_node.need_drill=背包中缺少对应等级的油气钻井
+gtsr.gui.node_upgrade.tooltip.title=升级节点
+gtsr.gui.node_upgrade.tooltip.next=下一等级:
+gtsr.gui.node_upgrade.tooltip.max=已达最高等级
+gtsr.gui.node_upgrade.tooltip.drill=所需物品:
+gtsr.gui.node_upgrade.tooltip.singularity=蒸汽纠缠奇点 ×
+gtsr.node.miner.crushed_mode.on=粉碎矿模式已开启: 普通矿物将输出3倍粉碎矿
+gtsr.node.miner.crushed_mode.off=粉碎矿模式已关闭
+gtsr.tooltip.miner_node.crushed_mode_hint=螺丝刀右击切换粉碎矿模式: 普通矿物输出3倍粉碎矿
 
 # Drilling Hub Debug
 gtsr.drilling.debug_title=钻井枢纽绑定调试
 gtsr.drilling.node_miner=矿机节点
 gtsr.drilling.node_driller=钻井节点
 gtsr.drilling.no_pipes=采矿管道不足
+
+# 枢纽节点状态界面（Modern UI 2，空手潜行右击枢纽打开）
+gtsr.hub_status.title=枢纽节点状态
+gtsr.hub_status.empty=暂无绑定节点
+gtsr.hub_status.start=开始工作
+gtsr.hub_status.stop=停止工作
+gtsr.hub_status.recycle=快捷回收：管道与节点本体（含绑定 NBT）从输出总线推出
+gtsr.hub_status.recycle_disabled=无法快捷回收：节点尚未完全停止
+gtsr.hub_status.upgrade=升级节点（消耗背包物品）
+gtsr.hub_status.recycle_fail=回收失败：节点不存在或尚未完全停止
+gtsr.hub_status.status.stopped=已停止
 
 # Node Status Messages
 gtsr.node.status.ok=正常运行

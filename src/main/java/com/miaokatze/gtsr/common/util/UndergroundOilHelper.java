@@ -52,17 +52,7 @@ public class UndergroundOilHelper {
             getAmountMethod.setAccessible(true);
             int currentAmount = (int) getAmountMethod.invoke(chunkData);
 
-            GTMod.GT_FML_LOGGER.info(
-                "[GTSR] increaseFluidAmount: chunk [{},{}] fluid={} current={} max={} increase={}",
-                chunkX,
-                chunkZ,
-                fluid.getName(),
-                currentAmount,
-                maxAmount,
-                increase);
-
             if (currentAmount >= maxAmount) {
-                GTMod.GT_FML_LOGGER.info("[GTSR] increaseFluidAmount: already at max, skipping");
                 return 0;
             }
 
@@ -77,11 +67,6 @@ public class UndergroundOilHelper {
             changeAmountMethod.setAccessible(true);
             changeAmountMethod.invoke(chunkData, actualIncrease);
 
-            GTMod.GT_FML_LOGGER.info(
-                "[GTSR] increaseFluidAmount: SUCCESS {} + {} -> {}",
-                fluid.getName(),
-                actualIncrease,
-                currentAmount + actualIncrease);
             return actualIncrease;
         } catch (Exception e) {
             GTMod.GT_FML_LOGGER.error("[GTSR] increaseFluidAmount failed", e);
@@ -103,7 +88,6 @@ public class UndergroundOilHelper {
                 .getMethod("getAmount");
             getAmountMethod.setAccessible(true);
             int amount = (int) getAmountMethod.invoke(chunkData);
-            GTMod.GT_FML_LOGGER.info("[GTSR] getFluidAmount: chunk [{},{}] amount={}", chunkX, chunkZ, amount);
             return amount;
         } catch (Exception e) {
             GTMod.GT_FML_LOGGER.error("[GTSR] getFluidAmount failed", e);
