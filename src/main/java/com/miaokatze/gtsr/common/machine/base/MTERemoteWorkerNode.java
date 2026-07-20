@@ -20,6 +20,7 @@ import net.minecraftforge.common.util.ForgeDirection;
 import com.gtnewhorizons.modularui.api.screen.ModularWindow;
 import com.gtnewhorizons.modularui.api.screen.UIBuildContext;
 import com.gtnewhorizons.modularui.common.widget.SlotWidget;
+import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import com.miaokatze.gtsr.common.machine.MTESingularityDrillingHub;
 
 import gregtech.api.GregTechAPI;
@@ -390,7 +391,8 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity implements IAdd
 
     @Override
     public int getGUIHeight() {
-        return 182;
+        // 194 = 原 182 + 12：为节点 GUI 底部「枢纽远程管理提示」文本行腾出空间
+        return 194;
     }
 
     @Override
@@ -401,6 +403,17 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity implements IAdd
             builder.widget(new SlotWidget(inventoryHandler, i).setPos(106 + (i - 1) * 18, 24));
         }
         addDisplayTexts(builder);
+
+        // 底部固定提示：告知玩家可在枢纽端远程管理本节点（手持蒸汽纠缠奇点右击枢纽打开状态界面）
+        // 位置说明：getGUIHeight 加高到 194 后，玩家背包区下移至 y=111，显示文本区最末行（y=88）与背包区
+        // 之间留出 y≈99~108 单行空档；窗口宽 176，x=7 起可用约 162px。
+        // 文案按 0.75 缩放适配单行：中文全文案 21 字×9px×0.75≈142px，英文精简文案 35 字符×6px×0.75≈158px，均不溢出换行。
+        builder.widget(
+            new TextWidget()
+                .setStringSupplier(() -> EnumChatFormatting.GOLD + translateToLocal("gtsr.gui.node.hub_status_hint"))
+                .setDefaultColor(0xFFFFFFFF)
+                .setScale(0.75f)
+                .setPos(7, 101));
     }
 
     protected void addDisplayTexts(ModularWindow.Builder builder) {}

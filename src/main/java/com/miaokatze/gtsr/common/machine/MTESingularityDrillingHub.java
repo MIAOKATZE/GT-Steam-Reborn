@@ -389,9 +389,11 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
         float aX, float aY, float aZ) {
         ItemStack held = aPlayer.getHeldItem();
 
-        // 空手 + 潜行右击：打开专属本枢纽的节点状态管理界面（Modern UI 2），
-        // 不走芯片调试、不触发节点绑定，也不打开普通机器 GUI
-        if (held == null && aPlayer.isSneaking()) {
+        // 手持蒸汽纠缠奇点右击：打开专属本枢纽的节点状态管理界面（Modern UI 2），
+        // 不走芯片调试、不触发节点绑定，也不占用空手右键（空手右键仍打开普通机器 GUI）。
+        // 注：原「空手+潜行」方案不可行——GT BaseMetaTileEntity 在潜行时拦截右击（用于贴墙放方块），
+        // 本 MTE 的 onRightclick 根本收不到该事件，故改用持物右击方案。
+        if (held != null && GTSRItemList.SteamEntangledSingularity.isStackEqual(held, false, true)) {
             if (aBaseMetaTileEntity.isServerSide()) {
                 openHubStatusGui(aPlayer);
             }
@@ -845,6 +847,7 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
             .addStructureHint("gtsr.tooltip.shared.no_maintenance")
             .addStructureHint("gtsr.tooltip.singularity_hub.hint_node")
             .addStructureHint("gtsr.tooltip.singularity_hub.hint_chunk")
+            .addStructureHint("gtsr.tooltip.singularity_hub.hint_status")
             .addStructureHint("gtsr.tooltip.shared.hub_singularity_cost")
             .toolTipFinisher(
                 EnumChatFormatting.AQUA + "GT"

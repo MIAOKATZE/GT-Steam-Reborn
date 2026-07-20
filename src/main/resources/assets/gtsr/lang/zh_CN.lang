@@ -448,7 +448,8 @@ gtsr.drilling.node_miner=矿机节点
 gtsr.drilling.node_driller=钻井节点
 gtsr.drilling.no_pipes=采矿管道不足
 
-# 枢纽节点状态界面（Modern UI 2，空手潜行右击枢纽打开）
+# 枢纽节点状态界面（Modern UI 2，手持蒸汽纠缠奇点右击枢纽打开）
+gtsr.gui.node.hub_status_hint=手持蒸汽纠缠奇点右击枢纽，可远程管理本节点
 gtsr.hub_status.title=枢纽节点状态
 gtsr.hub_status.empty=暂无绑定节点
 gtsr.hub_status.start=开始工作
@@ -750,6 +751,7 @@ gtsr.tooltip.singularity_hub.output_bus=产物
 gtsr.tooltip.singularity_hub.output_hatch=流体产物
 gtsr.tooltip.singularity_hub.hint_node=手持奇点节点右击控制器绑定/解绑
 gtsr.tooltip.singularity_hub.hint_chunk=运行时强制加载所在区块
+gtsr.tooltip.singularity_hub.hint_status=手持蒸汽纠缠奇点右击控制器打开节点状态界面
 gtsr.tooltip.singularity_hub.superheated_required=必须使用过热蒸汽（无加速效果）
 gtsr.gui.singularity_hub.bound_nodes=绑定节点: 
 

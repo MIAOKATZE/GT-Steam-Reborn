@@ -448,7 +448,8 @@ gtsr.drilling.node_miner=Miner Node
 gtsr.drilling.node_driller=Driller Node
 gtsr.drilling.no_pipes=Insufficient Mining Pipes
 
-# Hub Status UI (Modern UI 2, shift + empty-hand right-click)
+# Hub Status UI (Modern UI 2, right-click hub holding Steam Entangled Singularity)
+gtsr.gui.node.hub_status_hint=Right-click hub holding Singularity
 gtsr.hub_status.title=Hub Node Status
 gtsr.hub_status.empty=No bound nodes
 gtsr.hub_status.start=Start Working
@@ -709,6 +710,7 @@ gtsr.tooltip.siemens_martin.desc=A new era of mass steelmaking blast furnace: re
 gtsr.tooltip.singularity_hub.type=Singularity Drilling Hub, SDH
 gtsr.tooltip.singularity_hub.desc=A marvel of the steam age: based on steam-entangled singularities, creations of the steam age can reach every corner of the world, extracting all needed resources.
 gtsr.tooltip.singularity_hub.superheated_required=Requires Superheated Steam (no speed boost)
+gtsr.tooltip.singularity_hub.hint_status=Right-click controller holding a Steam Entangled Singularity to open the node status UI
 
 # Steam Fluid Drill (SFD)
 gtsr.tooltip.fluid_drill.type=Steam Fluid Drill, SFD
