@@ -1,0 +1,111 @@
+﻿To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/9.3.1/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+Calculating task graph as configuration cache cannot be reused because file 'gradle.properties' has changed.
+
+> Configure project :
+You might want to check out './gradlew :faq' if your build fails.
+Could not check for buildscript updates: Could not resolve all artifacts for configuration 'detachedConfiguration1'.
+.\gradlew.bat : Recommend replacing '4.19.0' with '4.19' for Eclipse JDT
+At line:15 char:7834
++ ... odeMIAO\GT-Steam-Reborn; .\gradlew.bat build --no-daemon 2>&1 | Tee-O ...
++                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Recommend repla...for Eclipse JDT:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+'indentWithSpaces' is deprecated, use 'leadingTabsToSpaces' in your gradle build script instead.
+'indentWithSpaces' is deprecated, use 'leadingTabsToSpaces' in your gradle build script instead.
+
+> Task :downloadVanillaJars SKIPPED
+> Task :generateForgeSrgMappings SKIPPED
+> Task :extractDependencyATs SKIPPED
+> Task :downloadFernflower SKIPPED
+> Task :processApiResources NO-SOURCE
+> Task :processInjectedInterfacesResources NO-SOURCE
+> Task :processMcLauncherResources NO-SOURCE
+> Task :processTestResources NO-SOURCE
+> Task :compileInjectedInterfacesJava NO-SOURCE
+> Task :processInjectedTagsResources NO-SOURCE
+> Task :injectedInterfacesClasses UP-TO-DATE
+> Task :checkstyleInjectedInterfaces NO-SOURCE
+> Task :spotlessInternalRegisterDependencies UP-TO-DATE
+> Task :extractNatives2 UP-TO-DATE
+> Task :createMcLauncherFiles UP-TO-DATE
+> Task :spotlessScala UP-TO-DATE
+> Task :spotlessKotlin UP-TO-DATE
+> Task :compileMcLauncherJava UP-TO-DATE
+> Task :mcLauncherClasses UP-TO-DATE
+> Task :checkstyleMcLauncher SKIPPED
+> Task :spotlessScalaCheck UP-TO-DATE
+> Task :spotlessKotlinCheck UP-TO-DATE
+> Task :packageMcLauncher UP-TO-DATE
+> Task :spotlessMisc UP-TO-DATE
+> Task :spotlessMiscCheck UP-TO-DATE
+> Task :spotlessJava UP-TO-DATE
+> Task :spotlessJavaCheck UP-TO-DATE
+> Task :spotlessCheck UP-TO-DATE
+> Task :injectTags
+> Task :sourcesJar
+> Task :mergeVanillaSidedJars SKIPPED
+> Task :deobfuscateMergedJarToSrg SKIPPED
+> Task :decompileSrgJar SKIPPED
+> Task :cleanupDecompSrgJar SKIPPED
+> Task :patchDecompiledJar SKIPPED
+> Task :applyJST SKIPPED
+> Task :remapDecompiledJar SKIPPED
+> Task :decompressDecompiledSources UP-TO-DATE
+> Task :processPatchedMcResources UP-TO-DATE
+> Task :compilePatchedMcJava UP-TO-DATE
+> Task :patchedMcClasses UP-TO-DATE
+> Task :checkstylePatchedMc SKIPPED
+> Task :compileApiJava NO-SOURCE
+> Task :apiClasses UP-TO-DATE
+> Task :packagePatchedMc UP-TO-DATE
+> Task :processIdeVirtualMainResources SKIPPED
+> Task :checkstyleApi NO-SOURCE
+> Task :compileInjectedTagsJava
+> Task :injectedTagsClasses
+> Task :checkstyleInjectedTags SKIPPED
+
+> Task :compileJava
+Jabel: initialized
+注: SpongePowered MIXIN Annotation Processor Version=0.8.7
+注: Supported obfuscation types: ObfuscationServiceMCP supports [searge,notch]
+注: Loading searge mappings from C:\Users\60158\.gradle\caches\minecraft\net\minecraftforge\forge\1.7.10-10.13.4.1614-1.
+7.10\unpacked\srgs\mcp-srg.srg
+注: Writing refmap to D:\CodeMIAO\GT-Steam-Reborn\build\tmp\mixins\mixins.gtsr.refmap.json
+D:\CodeMIAO\GT-Steam-Reborn\src\main\java\com\miaokatze\gtsr\mixin\MTERockBreakerRecipeBuilderMixin.java:25: 警告: @Overw
+rite is missing javadoc comment
+    public MTERockBreaker.RockBreakerRecipe.Builder inputItem(ItemStack aInputItem, boolean consumed) {
+                                                    ^
+注: Writing refmap to D:\CodeMIAO\GT-Steam-Reborn\build\tmp\mixins\mixins.gtsr.refmap.json
+注: Writing searge output SRGs to D:\CodeMIAO\GT-Steam-Reborn\build\tmp\mixins\mixins.srg
+注: Writing refmap to D:\CodeMIAO\GT-Steam-Reborn\build\tmp\mixins\mixins.gtsr.refmap.json
+注: Writing refmap to D:\CodeMIAO\GT-Steam-Reborn\build\tmp\mixins\mixins.gtsr.refmap.json
+注: Writing searge output SRGs to D:\CodeMIAO\GT-Steam-Reborn\build\tmp\mixins\mixins.srg
+注: 某些输入文件使用或覆盖了已过时的 API。
+注: 有关详细信息, 请使用 -Xlint:deprecation 重新编译。
+注: 某些输入文件使用了未经检查或不安全的操作。
+注: 有关详细信息, 请使用 -Xlint:unchecked 重新编译。
+1 个警告
+
+> Task :processResources
+> Task :classes
+> Task :compileIdeVirtualMainJava SKIPPED
+> Task :compileTestJava NO-SOURCE
+> Task :testClasses UP-TO-DATE
+> Task :checkstyleTest NO-SOURCE
+> Task :test NO-SOURCE
+> Task :jar
+> Task :reobfJar
+> Task :assemble
+> Task :ideVirtualMainClasses SKIPPED
+> Task :checkstyleIdeVirtualMain SKIPPED
+> Task :checkstyleMain
+> Task :check
+> Task :build
+
+[Incubating] Problems report is available at: file:///D:/CodeMIAO/GT-Steam-Reborn/build/reports/problems/problems-report.html
+
+BUILD SUCCESSFUL in 2m 34s
+25 actionable tasks: 8 executed, 17 up-to-date
+Configuration cache entry stored.
