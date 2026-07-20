@@ -34,20 +34,22 @@
  * For more details, see https://docs.gradle.org/8.0.1/userguide/java_library_plugin.html#sec:java_library_configuration_graph
  */
 dependencies {
-    // GT5-Unofficial 2.9.0 beta-2
-    api("com.github.GTNewHorizons:GT5-Unofficial:5.09.54.20") { transitive = false }
+    // GT5-Unofficial 2.9.0 beta-1
+    api("com.github.GTNewHorizons:GT5-Unofficial:5.09.52.594") { transitive = false }
 
-    // Dependencies aligned with GT5U 2.9.0 beta-2
-    api("com.github.GTNewHorizons:Applied-Energistics-2-Unofficial:rv3-beta-997-GTNH:dev") { transitive = false }
+    // Dependencies aligned with GT5U 2.9.0 beta-1 (versions from GTNH-2.9.0-beta-1 instance mods folder)
+    api("com.github.GTNewHorizons:Applied-Energistics-2-Unofficial:rv3-beta-977-GTNH:dev") { transitive = false }
     api("com.github.GTNewHorizons:ModularUI:1.3.4:dev") { transitive = false }
-    api("com.github.GTNewHorizons:ModularUI2:2.3.79-1.7.10:dev") { transitive = false }
-    api("com.github.GTNewHorizons:GTNHLib:0.11.23:dev") { transitive = false }
+    api("com.github.GTNewHorizons:ModularUI2:2.3.73-1.7.10:dev") { transitive = false }
+    api("com.github.GTNewHorizons:GTNHLib:0.11.9:dev") { transitive = false }
 
     // StructureLib is required for multiblock machine structure definitions and building.
-    api("com.github.GTNewHorizons:StructureLib:1.4.42:dev") { transitive = false }
+    // api("com.github.GTNewHorizons:StructureLib:1.4.38:dev") { transitive = false }
+    // StructureLib 1.4.38 extracted from GTNH-2.9.0-beta-1 instance mods folder (GTNH Maven unreachable)
+    devOnlyNonPublishable(rfg.deobf(project.files("libs/structurelib-1.4.38.jar")))
 
     // NEI (Not Enough Items) is required for HandlerInfo used in RecipeMapBuilder.neiHandlerInfo()
-    compileOnlyApi("com.github.GTNewHorizons:NotEnoughItems:2.8.110-GTNH:dev") { transitive = false }
+    compileOnlyApi("com.github.GTNewHorizons:NotEnoughItems:2.8.101-GTNH:dev") { transitive = false }
 
     // IC2 API is required for implementing IElectricItem to support charging stations.
     compileOnlyApi("net.industrial-craft:industrialcraft-2:2.2.828-experimental:api") { transitive = false }
@@ -57,7 +59,9 @@ dependencies {
 
     // Botania is required for Tiny Planet crafting recipe (GTSRRecipeLoader.registerTinyPlanetRecipe).
     // Optional at runtime: if Botania is not loaded, the recipe is silently skipped.
-    compileOnly("com.github.GTNewHorizons:Botania:1.13.27-GTNH:dev") { transitive = false }
+    // compileOnly("com.github.GTNewHorizons:Botania:1.13.25-GTNH:dev") { transitive = false }
+    // Botania 1.13.25-GTNH extracted from GTNH-2.9.0-beta-1 instance mods folder (GTNH Maven unreachable)
+    devOnlyNonPublishable(rfg.deobf(project.files("libs/Botania-1.13.25-GTNH.jar")))
 
     // UniMixins is automatically included by the GTNH build script because usesMixins = true in gradle.properties.
     // No need to declare it manually.
