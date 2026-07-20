@@ -48,6 +48,7 @@ import com.miaokatze.gtsr.common.machine.base.MTEHatchPressureSteamInput;
 import com.miaokatze.gtsr.common.machine.base.MTEPressureSteamCoolingHatch;
 import com.miaokatze.gtsr.common.machine.base.MTESteamCoolingHatch;
 
+import cpw.mods.fml.common.registry.GameRegistry;
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Materials;
 import gregtech.api.enums.Textures;
@@ -269,9 +270,8 @@ public class MTEGearSteamCompressor extends MTEEnhancedMultiBlockBase<MTEGearSte
                     'E',
                     onElementPass(
                         MTEGearSteamCompressor::onCasingAdded,
-                        // 防爆玻璃：GTNH 2.9.0 下 IC2 已移除 blockAlloyGlass，改用 GT5U 的强化玻璃（sBlockGlass1 meta 10 =
-                        // ReinforcedGlass）
-                        ofBlock(GregTechAPI.sBlockGlass1, 10)))
+                        // 防爆玻璃：beta-1 环境下 IC2 仍有 blockAlloyGlass，使用 IC2 防爆玻璃
+                        ofBlock(GameRegistry.findBlock("IC2", "blockAlloyGlass"), 0)))
                 .addElement(
                     'F',
                     onElementPass(
