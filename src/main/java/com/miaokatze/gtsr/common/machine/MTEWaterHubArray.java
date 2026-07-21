@@ -18,10 +18,12 @@ import net.minecraft.client.renderer.texture.IIconRegister;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.NBTTagList;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 import net.minecraft.world.World;
+import net.minecraftforge.common.DimensionManager;
 import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.IFluidHandler;
@@ -41,8 +43,10 @@ import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.gui.MTEWaterHubArrayGui;
+import com.miaokatze.gtsr.common.machine.base.MTEFilteredCacheNode;
 import com.miaokatze.gtsr.common.machine.base.MTEHubStorageUnit;
 import com.miaokatze.gtsr.common.machine.base.MTEReinforcedHubStorageUnit;
+import com.miaokatze.gtsr.common.machine.base.MTEWaterCacheNode;
 import com.miaokatze.gtsr.common.machine.base.MTEWaterHubInputHatch;
 import com.miaokatze.gtsr.common.machine.base.MTEWaterHubOutputHatch;
 
@@ -762,6 +766,15 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
         float aX, float aY, float aZ) {
         ItemStack held = aPlayer.getHeldItem();
 
+        // 手持枢纽终端右击：打开缓存节点状态管理界面（Modern UI 2，独立 factory），
+        // 不占用空手右键（空手仍打开主 GUI），与钻井枢纽的打开方式保持一致
+        if (held != null && GTSRItemList.HubTerminal.isStackEqual(held, false, true)) {
+            if (aBaseMetaTileEntity.isServerSide()) {
+                openHubStatusGui(aPlayer);
+            }
+            return true;
+        }
+
         if (held != null && GTSRItemList.HubSingularityChip.isStackEqual(held, true, true)) {
             if (aBaseMetaTileEntity.isServerSide()) {
                 sendBindingDebug(aPlayer);
@@ -891,6 +904,91 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
     @Override
     public boolean acceptsNodeType(String type) {
         return "water".equals(type);
+    }
+
+    /**
+     * 打开缓存节点状态管理界面（Modern UI 2）。必须在服务端调用，
+     * 实际打开逻辑委托给 WaterHubStatusGuiFactory（独立 MUI2 factory，不影响主 GUI）。
+     */
+    public void openHubStatusGui(EntityPlayer player) {
+        com.miaokatze.gtsr.common.gui.WaterHubStatusGuiFactory.open(player, this);
+    }
+
+    /**
+     * 按坐标解析绑定缓存节点对应的 MTEFilteredCacheNode 实例；世界未加载、方块不存在
+     * 或目标不是缓存节点时返回 null。
+     */
+    private MTEFilteredCacheNode resolveCacheNode(int x, int y, int z, int dim) {
+        World world = DimensionManager.getWorld(dim);
+        if (world == null || !world.blockExists(x, y, z)) return null;
+        TileEntity te = world.getTileEntity(x, y, z);
+        if (te instanceof IGregTechTileEntity gte && gte.getMetaTileEntity() instanceof MTEFilteredCacheNode node) {
+            return node;
+        }
+        return null;
+    }
+
+    /**
+     * 按实际节点类判定类型字符串（不用缓存字段，水枢纽 BoundCacheNode 无 reinforced 字段）。
+     * 蓄水枢纽当前仅接受蓄水缓存节点一种类型。
+     */
+    private static String resolveCacheNodeType(MTEFilteredCacheNode node) {
+        if (node instanceof MTEWaterCacheNode) return "water";
+        return "";
+    }
+
+    /**
+     * 序列化当前绑定缓存节点列表（供状态 UI 同步显示）。
+     * 每项含：坐标/维度/类型(type)/自定义名(name)/流体注册名(fluid)/储量(stored,long)/容量(cap,long)/
+     * 速率百分比(rate)/输出模式(out)。节点无法解析时数据回退为空/0，行仍显示（标记离线）。
+     */
+    public NBTTagList getCacheNodeListTag() {
+        NBTTagList list = new NBTTagList();
+        for (BoundCacheNode node : mBoundNodes) {
+            NBTTagCompound tag = new NBTTagCompound();
+            tag.setInteger("x", node.x);
+            tag.setInteger("y", node.y);
+            tag.setInteger("z", node.z);
+            tag.setInteger("dim", node.dimensionId);
+            MTEFilteredCacheNode cacheNode = resolveCacheNode(node.x, node.y, node.z, node.dimensionId);
+            tag.setString("type", cacheNode != null ? resolveCacheNodeType(cacheNode) : "");
+            // 节点自定义名（无则为空串，客户端回退显示默认类型名）
+            tag.setString("name", cacheNode != null ? cacheNode.getCustomName() : "");
+            tag.setString("fluid", cacheNode != null ? cacheNode.getStoredFluidName() : "");
+            // stored/cap 必须 long：缓存节点容量可能超出 int 范围
+            tag.setLong("stored", cacheNode != null ? cacheNode.getStoredFluidAmount() : 0L);
+            tag.setLong("cap", cacheNode != null ? cacheNode.getFluidCapacityLong() : 0L);
+            tag.setInteger("rate", cacheNode != null ? cacheNode.getTransferRatePercent() : 0);
+            tag.setBoolean("out", cacheNode != null ? cacheNode.isOutputMode() : node.isOutputMode);
+            list.appendTag(tag);
+        }
+        return list;
+    }
+
+    /** 状态 UI 循环节点交互速率百分比（与手持芯片右击同一循环逻辑）。 */
+    public void cycleCacheNodeRateFromGui(int x, int y, int z, int dim) {
+        MTEFilteredCacheNode node = resolveCacheNode(x, y, z, dim);
+        if (node == null) return;
+        node.cycleTransferRatePercent();
+    }
+
+    /** 状态 UI 切换节点输出模式：写节点本体 + 同步枢纽侧绑定记录（IHubArray.updateCacheNodeMode）。 */
+    public void setCacheNodeModeFromGui(int x, int y, int z, int dim, boolean output) {
+        MTEFilteredCacheNode node = resolveCacheNode(x, y, z, dim);
+        if (node == null) return;
+        node.setOutputMode(output);
+        updateCacheNodeMode(x, y, z, dim, output);
+    }
+
+    /**
+     * 状态 UI 重命名节点：名字在服务端做安全裁剪（剔 §/去首尾空白/≤24 字符），
+     * 裁剪后为空表示清除自定义名（UI 回退默认类型名）。
+     * 名字变化由列表每 tick 变化检测自动同步到客户端，无需手动发包。
+     */
+    public void renameCacheNodeFromGui(int x, int y, int z, int dim, String name) {
+        MTEFilteredCacheNode node = resolveCacheNode(x, y, z, dim);
+        if (node == null) return;
+        node.setCustomName(com.miaokatze.gtsr.common.machine.base.MTERemoteWorkerNode.sanitizeCustomName(name));
     }
 
     private void sendBindingDebug(EntityPlayer aPlayer) {
@@ -1162,6 +1260,7 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
             .addStructureHint("gtsr.tooltip.water_hub.hint_tier2")
             .addStructureHint("gtsr.tooltip.shared.hub_singularity_cost")
             .addStructureHint("gtsr.tooltip.shared.overflow_input_screwdriver")
+            .addStructureHint("gtsr.tooltip.water_hub.hint_status")
             .toolTipFinisher(
                 EnumChatFormatting.AQUA + "GT"
                     + EnumChatFormatting.GREEN

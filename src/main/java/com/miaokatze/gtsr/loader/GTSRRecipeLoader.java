@@ -97,6 +97,8 @@ public class GTSRRecipeLoader implements Runnable {
         registerCatalystRecipes();
         registerCacheNodeRecipes();
         registerTinyPlanetRecipe(); // 新增：Botania Tiny Planet 工作台配方（Botania 未加载时自动跳过）
+        registerHubTerminalRecipe(); // 枢纽终端工作台配方：中心蒸汽纠缠奇点 + 8 钢板环绕
+        registerNodeNBTClearRecipes(); // 节点清 NBT 无序配方：1 节点(无视 NBT) → 1 干净节点
         registerNodeRecipes();
         registerMultiblockWorkbenchRecipes();
         registerMultiblockAssemblerRecipes();
@@ -668,9 +670,71 @@ public class GTSRRecipeLoader implements Runnable {
         log("Tiny Planet recipe registered.");
     }
 
+    /**
+     * 注册枢纽终端工作台合成配方。
+     * <p>
+     * 配方形状（中心 1 个蒸汽纠缠奇点，8 个钢板环绕一圈）：
+     *
+     * <pre>
+     *   S S S
+     *   S C S
+     *   S S S
+     * </pre>
+     *
+     * 其中：
+     * - C = 蒸汽纠缠奇点（GTSRItemList.SteamEntangledSingularity）
+     * - S = 钢板（OrePrefixes.plate + Materials.Steel，匹配矿物词典）
+     * 产物：枢纽终端（GTSRItemList.HubTerminal）
+     * <p>
+     * 安全处理：沿用本类 hasNull/warn 防御模式，任一材料为 null 时跳过注册并记录警告。
+     */
+    private static void registerHubTerminalRecipe() {
+        log("Registering Hub Terminal crafting recipe...");
+
+        ItemStack terminalOut = get(GTSRItemList.HubTerminal, 1);
+        ItemStack steelPlate = get(OrePrefixes.plate, Materials.Steel, 1);
+        ItemStack singularity = get(GTSRItemList.SteamEntangledSingularity, 1);
+
+        if (hasNull(terminalOut, steelPlate, singularity)) {
+            warn("Skipped HubTerminal recipe - output or inputs are null");
+            return;
+        }
+
+        GTModHandler.addCraftingRecipe(
+            terminalOut,
+            GTModHandler.RecipeBits.BITSD,
+            new Object[] { "SSS", "SCS", "SSS", 'S', steelPlate, 'C', singularity });
+
+        log("Hub Terminal recipe registered.");
+    }
+
+    /**
+     * 节点「洗白」无序配方：1 个节点(无视 NBT) → 1 个干净节点，帮助玩家清除节点上的 NBT 数据
+     * （绑定信息/自定义名/奇点消耗标记等）。vanilla 无序配方匹配不校验 NBT，输出为全新干净栈。
+     * 覆盖全部 6 种节点：采矿/钻井节点 + 4 种缓存节点。
+     * 注意：会同时清掉 gtsr.singularity_consumed 标记，属预期行为（允许玩家重新绑定，计划已确认）。
+     */
+    private static void registerNodeNBTClearRecipes() {
+        log("Registering node NBT-clearing shapeless recipes...");
+
+        GTSRItemList[] nodeItems = { GTSRItemList.SingularityMinerNode, GTSRItemList.SingularityDrillingNode,
+            GTSRItemList.SteamCacheNode, GTSRItemList.ReinforcedSteamCacheNode, GTSRItemList.OverpressureSteamCacheNode,
+            GTSRItemList.WaterCacheNode };
+
+        for (GTSRItemList node : nodeItems) {
+            ItemStack clean = get(node, 1);
+            if (hasNull(clean)) {
+                warn("Skipped NBT-clear recipe for " + node.name() + " - stack is null");
+                continue;
+            }
+            GTModHandler.addShapelessCraftingRecipe(clean, new Object[] { clean });
+        }
+
+        log("Node NBT-clearing recipes registered: " + nodeItems.length);
+    }
+
     private static void registerNodeRecipes() {
         log("Registering mining/drilling node recipes...");
-
         ItemStack miningPipe = GTModHandler.getIC2Item("miningPipe", 8);
         if (miningPipe == null) {
             warn("IC2 miningPipe is null! Trying alternate retrieval...");

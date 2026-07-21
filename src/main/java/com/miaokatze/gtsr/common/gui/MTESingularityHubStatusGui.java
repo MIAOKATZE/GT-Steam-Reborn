@@ -1,11 +1,14 @@
 package com.miaokatze.gtsr.common.gui;
 
+import static gregtech.api.enums.Mods.GregTech;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.network.PacketBuffer;
@@ -15,10 +18,14 @@ import net.minecraft.util.StatCollector;
 import com.cleanroommc.modularui.api.IGuiHolder;
 import com.cleanroommc.modularui.api.drawable.IKey;
 import com.cleanroommc.modularui.api.widget.IWidget;
+import com.cleanroommc.modularui.drawable.ItemDrawable;
+import com.cleanroommc.modularui.drawable.UITexture;
 import com.cleanroommc.modularui.factory.PosGuiData;
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.screen.ModularScreen;
 import com.cleanroommc.modularui.screen.UISettings;
+import com.cleanroommc.modularui.utils.Alignment;
+import com.cleanroommc.modularui.value.StringValue;
 import com.cleanroommc.modularui.value.sync.DynamicSyncHandler;
 import com.cleanroommc.modularui.value.sync.GenericListSyncHandler;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
@@ -27,9 +34,12 @@ import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.cleanroommc.modularui.widgets.DynamicSyncedWidget;
 import com.cleanroommc.modularui.widgets.ListWidget;
 import com.cleanroommc.modularui.widgets.layout.Flow;
+import com.cleanroommc.modularui.widgets.textfield.TextFieldWidget;
+import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.machine.MTESingularityDrillingHub;
 import com.miaokatze.gtsr.main.GTSteamReborn;
 
+import cpw.mods.fml.common.network.ByteBufUtils;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 import gregtech.api.modularui2.GTGuiTextures;
@@ -132,11 +142,14 @@ public class MTESingularityHubStatusGui implements IGuiHolder<PosGuiData> {
     }
 
     /**
-     * 构建单个节点行：第一行为类型/等级/状态，第二行为坐标与维度，右侧为操作按钮。
+     * 构建单个节点行：第一行为节点名/等级/状态，第二行为坐标与维度，第三行为重命名控件，
+     * 右侧为操作按钮。
      */
     private IWidget buildNodeRow(HubNodeInfo info, HubActionSyncHandler actionSync) {
         String typeName = StatCollector
             .translateToLocal(info.isMiner ? "gtsr.drilling.node_miner" : "gtsr.drilling.node_driller");
+        // 节点名：有自定义名优先显示自定义名，否则回退默认类型名
+        String nodeName = info.name.isEmpty() ? typeName : info.name;
         // 状态文本：不允许工作=已停止；允许且实际工作中=运行中；允许但空闲=待机
         String statusText;
         EnumChatFormatting statusColor;
@@ -150,7 +163,7 @@ public class MTESingularityHubStatusGui implements IGuiHolder<PosGuiData> {
             statusText = StatCollector.translateToLocal("gtsr.gui.status.idle");
             statusColor = EnumChatFormatting.YELLOW;
         }
-        String line1 = typeName + " "
+        String line1 = nodeName + " "
             + EnumChatFormatting.AQUA
             + "Mk"
             + (info.tier + 1)
@@ -192,22 +205,48 @@ public class MTESingularityHubStatusGui implements IGuiHolder<PosGuiData> {
                     IKey.lang(info.retractable ? "gtsr.hub_status.recycle" : "gtsr.hub_status.recycle_disabled")));
         recycleButton.setEnabled(info.retractable);
 
-        // 升级按钮：消耗背包物品
+        // 升级按钮：消耗背包物品（图标与节点自带UI的绿色上箭头保持一致）
         ButtonWidget<?> upgradeButton = new ButtonWidget<>().size(16)
-            .overlay(GTGuiTextures.OVERLAY_BUTTON_PLUS_LARGE)
+            .overlay(UITexture.fullImage(GregTech.ID, "gui/overlay_button/arrow_green_up"))
             .onMousePressed(mouseButton -> {
                 actionSync.sendUpgrade(info);
                 return true;
             })
             .tooltipBuilder(t -> t.addLine(IKey.lang("gtsr.hub_status.upgrade")));
 
+        // 重命名文本框：纯客户端控件（不注册 sync handler，StringValue 为本地值不会同步），
+        // 初始文本为当前自定义名；点击确认按钮时才读取文本经 hubAction 发 C2S，服务端做裁剪
+        TextFieldWidget renameField = new TextFieldWidget().width(150)
+            .height(16)
+            .setMaxLength(24)
+            .value(new StringValue(info.name))
+            .tooltipBuilder(t -> t.addLine(IKey.lang("gtsr.hub_status.rename_hint")));
+
+        // 重命名确认按钮：读取文本框内容发送到服务端
+        ButtonWidget<?> renameButton = new ButtonWidget<>().size(16)
+            .overlay(GTGuiTextures.OVERLAY_BUTTON_CHECKMARK)
+            .onMousePressed(mouseButton -> {
+                actionSync.sendRename(info, renameField.getText());
+                return true;
+            })
+            .tooltipBuilder(t -> t.addLine(IKey.lang("gtsr.hub_status.rename")));
+
+        // 节点图标：按类型静态映射对应节点物品，渲染在行首防止混淆（纯客户端映射，零网络开销）
+        ItemStack iconStack = (info.isMiner ? GTSRItemList.SingularityMinerNode : GTSRItemList.SingularityDrillingNode)
+            .get(1);
+        IWidget iconWidget = new ItemDrawable(iconStack).asWidget()
+            .size(16);
+
         return Flow.row()
             .widthRel(1f)
-            .height(28)
+            .height(44)
             .childPadding(4)
+            // 交叉轴居中：图标与按钮在 44 高的行内垂直居中
+            .crossAxisAlignment(Alignment.CrossAxis.CENTER)
+            .child(iconWidget)
             .child(
                 Flow.column()
-                    .width(220)
+                    .width(200)
                     .childPadding(1)
                     .child(
                         IKey.str(line1)
@@ -215,7 +254,13 @@ public class MTESingularityHubStatusGui implements IGuiHolder<PosGuiData> {
                     .child(
                         IKey.str(line2)
                             .asWidget()
-                            .scale(0.9f)))
+                            .scale(0.9f))
+                    .child(
+                        Flow.row()
+                            .height(16)
+                            .childPadding(2)
+                            .child(renameField)
+                            .child(renameButton)))
             .child(toggleButton)
             .child(recycleButton)
             .child(upgradeButton);
@@ -235,9 +280,11 @@ public class MTESingularityHubStatusGui implements IGuiHolder<PosGuiData> {
         public final boolean allowed;
         /** 是否完全停止（允许快捷回收） */
         public final boolean retractable;
+        /** 节点自定义名（空串表示未自定义，显示时回退默认类型名） */
+        public final String name;
 
         HubNodeInfo(int x, int y, int z, int dim, boolean isMiner, int tier, boolean working, boolean allowed,
-            boolean retractable) {
+            boolean retractable, String name) {
             this.x = x;
             this.y = y;
             this.z = z;
@@ -247,6 +294,7 @@ public class MTESingularityHubStatusGui implements IGuiHolder<PosGuiData> {
             this.working = working;
             this.allowed = allowed;
             this.retractable = retractable;
+            this.name = name;
         }
 
         public static List<HubNodeInfo> fromTagList(NBTTagList tagList) {
@@ -263,7 +311,8 @@ public class MTESingularityHubStatusGui implements IGuiHolder<PosGuiData> {
                         tag.getInteger("tier"),
                         tag.getBoolean("working"),
                         tag.getBoolean("allowed"),
-                        tag.getBoolean("retractable")));
+                        tag.getBoolean("retractable"),
+                        tag.getString("name")));
             }
             return list;
         }
@@ -278,7 +327,8 @@ public class MTESingularityHubStatusGui implements IGuiHolder<PosGuiData> {
                 buf.readInt(),
                 buf.readBoolean(),
                 buf.readBoolean(),
-                buf.readBoolean());
+                buf.readBoolean(),
+                ByteBufUtils.readUTF8String(buf));
         }
 
         public static void write(PacketBuffer buf, HubNodeInfo info) {
@@ -291,6 +341,7 @@ public class MTESingularityHubStatusGui implements IGuiHolder<PosGuiData> {
             buf.writeBoolean(info.working);
             buf.writeBoolean(info.allowed);
             buf.writeBoolean(info.retractable);
+            ByteBufUtils.writeUTF8String(buf, info.name);
         }
 
         public static boolean areEqual(HubNodeInfo a, HubNodeInfo b) {
@@ -301,7 +352,8 @@ public class MTESingularityHubStatusGui implements IGuiHolder<PosGuiData> {
                 && a.tier == b.tier
                 && a.working == b.working
                 && a.allowed == b.allowed
-                && a.retractable == b.retractable;
+                && a.retractable == b.retractable
+                && a.name.equals(b.name);
         }
     }
 
@@ -314,6 +366,7 @@ public class MTESingularityHubStatusGui implements IGuiHolder<PosGuiData> {
         private static final int ACTION_TOGGLE = 1;
         private static final int ACTION_RECYCLE = 2;
         private static final int ACTION_UPGRADE = 3;
+        private static final int ACTION_RENAME = 4;
 
         private final MTESingularityDrillingHub hub;
         private Runnable refreshListener = () -> {};
@@ -342,6 +395,14 @@ public class MTESingularityHubStatusGui implements IGuiHolder<PosGuiData> {
 
         public void sendUpgrade(HubNodeInfo info) {
             syncToServer(ACTION_UPGRADE, buf -> writePos(buf, info));
+        }
+
+        // 重命名：携带坐标 + 新名字（UTF8），服务端接收后仍会裁剪（剔 §/去空白/≤24 字符）
+        public void sendRename(HubNodeInfo info, String name) {
+            syncToServer(ACTION_RENAME, buf -> {
+                writePos(buf, info);
+                ByteBufUtils.writeUTF8String(buf, name == null ? "" : name);
+            });
         }
 
         private static void writePos(PacketBuffer buf, HubNodeInfo info) {
@@ -375,6 +436,9 @@ public class MTESingularityHubStatusGui implements IGuiHolder<PosGuiData> {
                     break;
                 case ACTION_UPGRADE:
                     hub.upgradeNodeFromGui(player, x, y, z, dim);
+                    break;
+                case ACTION_RENAME:
+                    hub.renameNodeFromGui(x, y, z, dim, ByteBufUtils.readUTF8String(buf));
                     break;
                 default:
                     return;

@@ -64,6 +64,32 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity implements IAdd
     // 是否已绑定到枢纽（独立于 mHubDim，避免主世界 dim=0 被误判为未绑定）
     protected boolean mBound = false;
 
+    // 节点自定义名：按原版物品 display.Name NBT 结构对称存储（saveNBTData/setItemNBT/loadNBTData 三处），
+    // 使铁砧改名、物品显示名、破坏保留与机器读取走同一标签，天然互通；空串表示未自定义（UI 回退默认类型名）
+    protected String mCustomName = "";
+
+    public String getCustomName() {
+        return mCustomName == null ? "" : mCustomName;
+    }
+
+    public void setCustomName(String name) {
+        this.mCustomName = name == null ? "" : name;
+    }
+
+    /**
+     * 服务端侧自定义名安全裁剪：剔除 § 颜色码、去首尾空白、截断到 24 字符以内；
+     * 裁剪后为空表示清除自定义名（回退默认名）。防恶意长名/颜色码注入。
+     */
+    public static String sanitizeCustomName(String name) {
+        if (name == null) return "";
+        String cleaned = name.replace("§", "")
+            .trim();
+        if (cleaned.length() > 24) {
+            cleaned = cleaned.substring(0, 24);
+        }
+        return cleaned;
+    }
+
     protected boolean mIsWorking = false;
     protected int mWorkProgress = 0;
     protected static final int WORK_CYCLE = 20;
@@ -117,6 +143,12 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity implements IAdd
         }
         aNBT.setBoolean("mIsWorking", mIsWorking);
         aNBT.setInteger("mWorkProgress", mWorkProgress);
+        // 自定义名：按原版物品 display.Name 结构写入（aNBT → display(compound) → Name(string)），三处对称
+        if (!getCustomName().isEmpty()) {
+            NBTTagCompound displayTag = new NBTTagCompound();
+            displayTag.setString("Name", getCustomName());
+            aNBT.setTag("display", displayTag);
+        }
     }
 
     /**
@@ -140,6 +172,13 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity implements IAdd
         }
         // 保留奇点消耗标记，避免玩家通过破坏→重新放置来重复利用蒸汽纠缠奇点
         aNBT.setBoolean("gtsr.singularity_consumed", true);
+        // 自定义名写入掉落物（原版 display.Name 结构）：物品栏直接显示自定义名，
+        // 铁砧改名走的也是同一标签，重新放置后 loadNBTData 读回，破坏保留天然成立
+        if (!getCustomName().isEmpty()) {
+            NBTTagCompound displayTag = new NBTTagCompound();
+            displayTag.setString("Name", getCustomName());
+            aNBT.setTag("display", displayTag);
+        }
     }
 
     @Override
@@ -167,6 +206,14 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity implements IAdd
         }
         mIsWorking = aNBT.getBoolean("mIsWorking");
         mWorkProgress = aNBT.getInteger("mWorkProgress");
+        // 读取自定义名（null 防御：旧节点无 display 标签时回退空串）。
+        // 物品被铁砧改名后放置，机器 NBT 经此路径自然获得该名字
+        if (aNBT.hasKey("display")) {
+            NBTTagCompound displayTag = aNBT.getCompoundTag("display");
+            mCustomName = displayTag.hasKey("Name") ? displayTag.getString("Name") : "";
+        } else {
+            mCustomName = "";
+        }
     }
 
     @Override
@@ -404,7 +451,7 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity implements IAdd
         }
         addDisplayTexts(builder);
 
-        // 底部固定提示：告知玩家可在枢纽端远程管理本节点（手持蒸汽纠缠奇点右击枢纽打开状态界面）
+        // 底部固定提示：告知玩家可在枢纽端远程管理本节点（手持枢纽终端右击枢纽打开状态界面）
         // 位置说明：getGUIHeight 加高到 194 后，玩家背包区下移至 y=111，显示文本区最末行（y=88）与背包区
         // 之间留出 y≈99~108 单行空档；窗口宽 176，x=7 起可用约 162px。
         // 文案按 0.75 缩放适配单行：中文全文案 21 字×9px×0.75≈142px，英文精简文案 35 字符×6px×0.75≈158px，均不溢出换行。

@@ -295,6 +295,9 @@ item.HubSingularityChip.name=枢纽奇点升级芯片
 # Reinforced Hub Singularity Chip
 item.ReinforcedHubSingularityChip.name=强化奇点枢纽升级芯片
 
+# 枢纽终端
+item.HubTerminal.name=枢纽终端
+
 # Overpressure Steam Cache Node
 gt.blockmachines.gtsr.overpressure.steam.cache.node.name=超压蒸汽缓存节点
 gtsr.tooltip.overpressure_steam_cache_node.fluid_type=所有蒸汽类型
@@ -448,8 +451,8 @@ gtsr.drilling.node_miner=矿机节点
 gtsr.drilling.node_driller=钻井节点
 gtsr.drilling.no_pipes=采矿管道不足
 
-# 枢纽节点状态界面（Modern UI 2，手持蒸汽纠缠奇点右击枢纽打开）
-gtsr.gui.node.hub_status_hint=手持蒸汽纠缠奇点右击枢纽，可远程管理本节点
+# 枢纽节点状态界面（Modern UI 2，手持枢纽终端右击枢纽打开）
+gtsr.gui.node.hub_status_hint=手持枢纽终端右击枢纽，可远程管理本节点
 gtsr.hub_status.title=枢纽节点状态
 gtsr.hub_status.empty=暂无绑定节点
 gtsr.hub_status.start=开始工作
@@ -459,6 +462,18 @@ gtsr.hub_status.recycle_disabled=无法快捷回收：节点尚未完全停止
 gtsr.hub_status.upgrade=升级节点（消耗背包物品）
 gtsr.hub_status.recycle_fail=回收失败：节点不存在或尚未完全停止
 gtsr.hub_status.status.stopped=已停止
+gtsr.hub_status.rename=重命名节点
+gtsr.hub_status.rename_hint=输入新节点名（留空恢复默认名）
+gtsr.cache_hub_status.title.steam=蒸汽枢纽缓存节点状态
+gtsr.cache_hub_status.title.water=蓄水枢纽缓存节点状态
+gtsr.cache_hub_status.mode_output=输出
+gtsr.cache_hub_status.mode_input=输入
+gtsr.cache_hub_status.mode_tip_output=输出模式：节点 → 枢纽（点击切换）
+gtsr.cache_hub_status.mode_tip_input=输入模式：枢纽 → 节点（点击切换）
+gtsr.cache_hub_status.rate_tip=循环调整枢纽交互速率（100 → 80 → … → 0%）
+gtsr.cache_hub_status.no_fluid=空
+gtsr.cache_hub_status.offline=[离线]
+gtsr.cache_hub_status.unknown_node=未知节点
 
 # Node Status Messages
 gtsr.node.status.ok=正常运行
@@ -751,7 +766,7 @@ gtsr.tooltip.singularity_hub.output_bus=产物
 gtsr.tooltip.singularity_hub.output_hatch=流体产物
 gtsr.tooltip.singularity_hub.hint_node=手持奇点节点右击控制器绑定/解绑
 gtsr.tooltip.singularity_hub.hint_chunk=运行时强制加载所在区块
-gtsr.tooltip.singularity_hub.hint_status=手持蒸汽纠缠奇点右击控制器打开节点状态界面
+gtsr.tooltip.singularity_hub.hint_status=手持枢纽终端右击控制器打开节点状态界面
 gtsr.tooltip.singularity_hub.superheated_required=必须使用过热蒸汽（无加速效果）
 gtsr.gui.singularity_hub.bound_nodes=绑定节点: 
 
@@ -794,6 +809,7 @@ gtsr.tooltip.steam_hub.storage=枢纽存储单元(仅1级)/强化枢纽存储单
 gtsr.tooltip.steam_hub.hint_tier1=1级:青铜外壳+青铜管道+青铜齿轮箱+青铜框架+枢纽存储单元
 gtsr.tooltip.steam_hub.hint_tier2=2级:钢外壳+钢管道+钢齿轮箱+钢框架+强化枢纽存储单元
 gtsr.tooltip.steam_hub.hint_tier3=3级:钨钢外壳+钨钢管道+钨钢框架+超压枢纽存储单元(强化芯片仅3级)
+gtsr.tooltip.steam_hub.hint_status=手持枢纽终端右击控制器，打开缓存节点状态界面
 
 # 15. Steam Singularity Compressor
 gtsr.tooltip.singularity_compressor.type=蒸汽奇点压缩机, SSC
@@ -830,6 +846,7 @@ gtsr.tooltip.water_hub.hub_output=水枢纽输出仓
 gtsr.tooltip.water_hub.storage=枢纽存储单元(仅1级)/强化枢纽存储单元(仅2级)
 gtsr.tooltip.water_hub.hint_tier1=1级:青铜外壳+青铜管道+青铜齿轮箱+青铜框架+枢纽存储单元
 gtsr.tooltip.water_hub.hint_tier2=2级:钢外壳+钢管道+钢齿轮箱+钢框架+强化枢纽存储单元
+gtsr.tooltip.water_hub.hint_status=手持枢纽终端右击控制器，打开缓存节点状态界面
 
 # 19. Gear Steam Compressor
 gtsr.tooltip.gear_compressor.type=自驱式机械蒸汽压缩机, GSC
@@ -1117,5 +1134,6 @@ gtsr.tooltip.catalyst.ammonia.feco=并行数: 256 | 时间: 16秒
 gtsr.tooltip.catalyst.ammonia.ruthenium=并行数: 256 | 时间: 8秒
 gtsr.tooltip.catalyst.ammonia.quantum=并行数: 256 | 时间: 1秒
 gtsr.tooltip.singularity.desc=蒸汽纠缠奇点，用于合成高级组件和机器
+gtsr.tooltip.hub_terminal.desc=右击枢纽，打开其终端
 gtsr.tooltip.added_by=添加模组：
 gtsr.recipe.gear_steam_compressor=齿轮蒸汽压缩机

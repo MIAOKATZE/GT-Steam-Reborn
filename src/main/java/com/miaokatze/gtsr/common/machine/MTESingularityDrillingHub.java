@@ -389,11 +389,12 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
         float aX, float aY, float aZ) {
         ItemStack held = aPlayer.getHeldItem();
 
-        // 手持蒸汽纠缠奇点右击：打开专属本枢纽的节点状态管理界面（Modern UI 2），
+        // 手持枢纽终端右击：打开专属本枢纽的节点状态管理界面（Modern UI 2），
         // 不走芯片调试、不触发节点绑定，也不占用空手右键（空手右键仍打开普通机器 GUI）。
         // 注：原「空手+潜行」方案不可行——GT BaseMetaTileEntity 在潜行时拦截右击（用于贴墙放方块），
         // 本 MTE 的 onRightclick 根本收不到该事件，故改用持物右击方案。
-        if (held != null && GTSRItemList.SteamEntangledSingularity.isStackEqual(held, false, true)) {
+        // 注2：旧方案为手持蒸汽纠缠奇点右击，现已改由枢纽终端承担（奇点回归纯合成材料）。
+        if (held != null && GTSRItemList.HubTerminal.isStackEqual(held, false, true)) {
             if (aBaseMetaTileEntity.isServerSide()) {
                 openHubStatusGui(aPlayer);
             }
@@ -657,6 +658,8 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
             }
             tag.setBoolean("allowed", allowed);
             tag.setBoolean("retractable", retractable);
+            // 节点自定义名（无则为空串，客户端回退显示默认类型名）
+            tag.setString("name", worker != null ? worker.getCustomName() : "");
             list.appendTag(tag);
         }
         return list;
@@ -688,6 +691,17 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
     public boolean upgradeNodeFromGui(EntityPlayer player, int x, int y, int z, int dim) {
         MTERemoteWorkerNode node = resolveWorkerNode(x, y, z, dim);
         return node != null && node.tryUpgrade(player);
+    }
+
+    /**
+     * 状态 UI 重命名节点：名字在服务端做安全裁剪（剔 §/去首尾空白/≤24 字符），
+     * 裁剪后为空表示清除自定义名（UI 回退默认类型名）。
+     * 名字变化由 nodeList 每 tick 变化检测自动同步到客户端，无需手动发包。
+     */
+    public void renameNodeFromGui(int x, int y, int z, int dim, String name) {
+        MTERemoteWorkerNode node = resolveWorkerNode(x, y, z, dim);
+        if (node == null) return;
+        node.setCustomName(MTERemoteWorkerNode.sanitizeCustomName(name));
     }
 
     /**

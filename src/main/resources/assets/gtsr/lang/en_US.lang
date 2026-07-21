@@ -295,6 +295,9 @@ item.HubSingularityChip.name=Hub Singularity Upgrade Chip
 # Reinforced Hub Singularity Chip
 item.ReinforcedHubSingularityChip.name=Reinforced Hub Singularity Upgrade Chip
 
+# Hub Terminal
+item.HubTerminal.name=Hub Terminal
+
 # Overpressure Steam Cache Node
 gt.blockmachines.gtsr.overpressure.steam.cache.node.name=Overpressure Steam Cache Node
 gtsr.tooltip.overpressure_steam_cache_node.fluid_type=All Steam Types
@@ -448,8 +451,8 @@ gtsr.drilling.node_miner=Miner Node
 gtsr.drilling.node_driller=Driller Node
 gtsr.drilling.no_pipes=Insufficient Mining Pipes
 
-# Hub Status UI (Modern UI 2, right-click hub holding Steam Entangled Singularity)
-gtsr.gui.node.hub_status_hint=Right-click hub holding Singularity
+# Hub Status UI (Modern UI 2, right-click hub holding a Hub Terminal)
+gtsr.gui.node.hub_status_hint=Right-click hub holding a Hub Terminal
 gtsr.hub_status.title=Hub Node Status
 gtsr.hub_status.empty=No bound nodes
 gtsr.hub_status.start=Start Working
@@ -459,6 +462,18 @@ gtsr.hub_status.recycle_disabled=Quick Recycle unavailable: node has not fully s
 gtsr.hub_status.upgrade=Upgrade Node (consumes items from inventory)
 gtsr.hub_status.recycle_fail=Recycle failed: node not found or not fully stopped
 gtsr.hub_status.status.stopped=Stopped
+gtsr.hub_status.rename=Rename Node
+gtsr.hub_status.rename_hint=Enter a new node name (leave empty to reset to default)
+gtsr.cache_hub_status.title.steam=Steam Hub Cache Node Status
+gtsr.cache_hub_status.title.water=Water Hub Cache Node Status
+gtsr.cache_hub_status.mode_output=Output
+gtsr.cache_hub_status.mode_input=Input
+gtsr.cache_hub_status.mode_tip_output=Output mode: Node -> Hub (click to switch)
+gtsr.cache_hub_status.mode_tip_input=Input mode: Hub -> Node (click to switch)
+gtsr.cache_hub_status.rate_tip=Cycle hub transfer rate (100 -> 80 -> ... -> 0%)
+gtsr.cache_hub_status.no_fluid=Empty
+gtsr.cache_hub_status.offline=[Offline]
+gtsr.cache_hub_status.unknown_node=Unknown Node
 
 # Node Status Messages
 gtsr.node.status.ok=Running
@@ -710,7 +725,7 @@ gtsr.tooltip.siemens_martin.desc=A new era of mass steelmaking blast furnace: re
 gtsr.tooltip.singularity_hub.type=Singularity Drilling Hub, SDH
 gtsr.tooltip.singularity_hub.desc=A marvel of the steam age: based on steam-entangled singularities, creations of the steam age can reach every corner of the world, extracting all needed resources.
 gtsr.tooltip.singularity_hub.superheated_required=Requires Superheated Steam (no speed boost)
-gtsr.tooltip.singularity_hub.hint_status=Right-click controller holding a Steam Entangled Singularity to open the node status UI
+gtsr.tooltip.singularity_hub.hint_status=Right-click controller holding a Hub Terminal to open the node status UI
 
 # Steam Fluid Drill (SFD)
 gtsr.tooltip.fluid_drill.type=Steam Fluid Drill, SFD
@@ -746,6 +761,7 @@ gtsr.tooltip.steam_hub.storage=Hub Storage Unit(T1 only)/Reinforced Hub Storage 
 gtsr.tooltip.steam_hub.hint_tier1=T1: Bronze Casing+Bronze Pipe+Bronze Gearbox+Bronze Frame+Hub Storage Unit
 gtsr.tooltip.steam_hub.hint_tier2=T2: Steel Casing+Steel Pipe+Steel Gearbox+Steel Frame+Reinforced Hub Storage Unit
 gtsr.tooltip.steam_hub.hint_tier3=T3: TungstenSteel Casing+TungstenSteel Pipe+TungstenSteel Frame+Overpressure Hub Storage Unit (Reinforced Chip T3 only)
+gtsr.tooltip.steam_hub.hint_status=Right-click controller holding a Hub Terminal to open the cache node status UI
 
 # Steam Singularity Compressor (SSC)
 gtsr.tooltip.singularity_compressor.type=Steam Singularity Compressor, SSC
@@ -769,6 +785,7 @@ gtsr.tooltip.water_hub.hub_output=Water Hub Output Hatch
 gtsr.tooltip.water_hub.storage=Hub Storage Unit(T1 only)/Reinforced Hub Storage Unit(T2 only)
 gtsr.tooltip.water_hub.hint_tier1=T1: Bronze Casing+Bronze Pipe+Bronze Gearbox+Bronze Frame+Hub Storage Unit
 gtsr.tooltip.water_hub.hint_tier2=T2: Steel Casing+Steel Pipe+Steel Gearbox+Steel Frame+Reinforced Hub Storage Unit
+gtsr.tooltip.water_hub.hint_status=Right-click controller holding a Hub Terminal to open the cache node status UI
 
 # Gear Steam Compressor (GSC)
 gtsr.tooltip.gear_compressor.type=Gear Steam Compressor, GSC
@@ -1077,5 +1094,6 @@ gtsr.tooltip.catalyst.ammonia.feco=Parallel: 256 | Time: 16s
 gtsr.tooltip.catalyst.ammonia.ruthenium=Parallel: 256 | Time: 8s
 gtsr.tooltip.catalyst.ammonia.quantum=Parallel: 256 | Time: 1s
 gtsr.tooltip.singularity.desc=Steam Entangled Singularity, used for crafting advanced components and machines
+gtsr.tooltip.hub_terminal.desc=Right-click a Hub to open its Terminal
 gtsr.tooltip.added_by=Added by:
 gtsr.recipe.gear_steam_compressor=Gear Steam Compressor

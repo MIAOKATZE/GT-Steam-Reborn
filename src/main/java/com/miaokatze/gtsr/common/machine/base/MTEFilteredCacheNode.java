@@ -43,6 +43,10 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase {
     // 是否已绑定到枢纽（独立于 mHubDim，避免主世界 dim=0 被误判为未绑定）
     protected boolean mBound = false;
 
+    // 节点自定义名：按原版物品 display.Name NBT 结构对称存储（saveNBTData/setItemNBT/loadNBTData 三处），
+    // 与 MTERemoteWorkerNode 同名机制一致；空串表示未自定义（UI 回退默认类型名）
+    protected String mCustomName = "";
+
     private static final int[] TRANSFER_RATE_CYCLE = { 100, 80, 60, 40, 20, 10, 5, 1, 0 };
 
     protected abstract boolean isFluidAllowed(Fluid fluid);
@@ -62,15 +66,8 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase {
                         .sendChatToPlayer(aPlayer, StatCollector.translateToLocal("gtsr.cache_node.need_bind_first"));
                     return true;
                 }
-                int currentIdx = -1;
-                for (int i = 0; i < TRANSFER_RATE_CYCLE.length; i++) {
-                    if (TRANSFER_RATE_CYCLE[i] == mTransferRatePercent) {
-                        currentIdx = i;
-                        break;
-                    }
-                }
-                int nextIdx = (currentIdx + 1) % TRANSFER_RATE_CYCLE.length;
-                mTransferRatePercent = TRANSFER_RATE_CYCLE[nextIdx];
+                // 循环逻辑抽为公共方法，供枢纽状态 UI 的「速率循环」按钮远程复用
+                cycleTransferRatePercent();
                 long actualRate = (long) getBaseHubTransferRate() * mTransferRatePercent / 100;
                 String msg = StatCollector.translateToLocal("gtsr.cache_node.transfer_rate") + " "
                     + mTransferRatePercent
@@ -88,6 +85,61 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase {
 
     public int getTransferRatePercent() {
         return mTransferRatePercent;
+    }
+
+    /**
+     * 在 TRANSFER_RATE_CYCLE 中循环到下一档速率百分比，返回新百分比。
+     * 供芯片右击与枢纽状态 UI 的「速率循环」按钮共用（行为与芯片右击一致）。
+     */
+    public int cycleTransferRatePercent() {
+        int currentIdx = -1;
+        for (int i = 0; i < TRANSFER_RATE_CYCLE.length; i++) {
+            if (TRANSFER_RATE_CYCLE[i] == mTransferRatePercent) {
+                currentIdx = i;
+                break;
+            }
+        }
+        int nextIdx = (currentIdx + 1) % TRANSFER_RATE_CYCLE.length;
+        mTransferRatePercent = TRANSFER_RATE_CYCLE[nextIdx];
+        return mTransferRatePercent;
+    }
+
+    /**
+     * 设置枢纽交互方向模式，并同步父类 MTEDigitalTankBase 的自动输出开关 mOutputFluid
+     * （输出模式下节点会向正面相邻容器自动推送流体），保持两者一致。
+     * 调用方（枢纽侧）还需同步更新自身绑定记录（IHubArray.updateCacheNodeMode）。
+     */
+    public void setOutputMode(boolean output) {
+        mIsOutputMode = output;
+        setOutputFluid(output);
+    }
+
+    public boolean isOutputMode() {
+        return mIsOutputMode;
+    }
+
+    /** 当前存储流体的注册名（FluidRegistry 名）；无流体时返回空串。UI 侧按注册名本地化显示。 */
+    public String getStoredFluidName() {
+        return mFluid != null ? mFluid.getFluid()
+            .getName() : "";
+    }
+
+    /** 当前存储量（long，强化/超压节点容量超出 int 范围）。 */
+    public long getStoredFluidAmount() {
+        return mFluid != null ? mFluid.amount : 0L;
+    }
+
+    /** 节点容量（long，强化/超压节点容量超出 int 范围）。 */
+    public long getFluidCapacityLong() {
+        return (long) getRealCapacity();
+    }
+
+    public String getCustomName() {
+        return mCustomName == null ? "" : mCustomName;
+    }
+
+    public void setCustomName(String name) {
+        this.mCustomName = name == null ? "" : name;
     }
 
     public long getEffectiveHubTransferRate() {
@@ -112,6 +164,12 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase {
             // 故 save 时应 hubTag.setBoolean("output", !mIsOutputMode)
             hubTag.setBoolean("output", !mIsOutputMode);
             aNBT.setTag("gtsr.hubPos", hubTag);
+        }
+        // 自定义名：按原版物品 display.Name 结构写入（aNBT → display(compound) → Name(string)），三处对称
+        if (!getCustomName().isEmpty()) {
+            NBTTagCompound displayTag = new NBTTagCompound();
+            displayTag.setString("Name", getCustomName());
+            aNBT.setTag("display", displayTag);
         }
     }
 
@@ -138,6 +196,12 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase {
         }
         // 保留奇点消耗标记，避免玩家通过破坏→重新放置来重复利用蒸汽纠缠奇点
         aNBT.setBoolean("gtsr.singularity_consumed", true);
+        // 自定义名写入掉落物（原版 display.Name 结构）：物品栏直接显示自定义名，且铁砧改名走同一标签
+        if (!getCustomName().isEmpty()) {
+            NBTTagCompound displayTag = new NBTTagCompound();
+            displayTag.setString("Name", getCustomName());
+            aNBT.setTag("display", displayTag);
+        }
     }
 
     @Override
@@ -170,6 +234,13 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase {
             mRegistered = false;
             // 无绑定信息，标记为未绑定
             mBound = false;
+        }
+        // 读取自定义名（null 防御：旧节点无 display 标签时回退空串）
+        if (aNBT.hasKey("display")) {
+            NBTTagCompound displayTag = aNBT.getCompoundTag("display");
+            mCustomName = displayTag.hasKey("Name") ? displayTag.getString("Name") : "";
+        } else {
+            mCustomName = "";
         }
     }
 
