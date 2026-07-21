@@ -35,6 +35,11 @@ public class MTEWaterHubStatusGui extends MTECacheHubStatusGui {
     }
 
     @Override
+    protected void setNodeAuto(int x, int y, int z, int dim, boolean auto) {
+        hub.setCacheNodeAutoFromGui(x, y, z, dim, auto);
+    }
+
+    @Override
     protected void renameNode(int x, int y, int z, int dim, String name) {
         hub.renameCacheNodeFromGui(x, y, z, dim, name);
     }

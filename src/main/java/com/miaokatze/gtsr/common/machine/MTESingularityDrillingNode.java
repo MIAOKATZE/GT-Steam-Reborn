@@ -684,6 +684,41 @@ public class MTESingularityDrillingNode extends MTERemoteWorkerNode {
     }
 
     /**
+     * 立即清除世界中已部署的钻探管道（回收条件放宽后，回收时管道可能尚未收回）。
+     * 部署结构与采矿节点一致：钻头尖在 y+mTipDepth（mTipDepth≤0），上方为管道段；
+     * 逐格比对钻头尖方块与 miningPipe 物品对应方块，命中即置空气并计 1 段，
+     * 最后 mTipDepth 归零。仅服务端执行，返回清除段数。
+     */
+    @Override
+    public int clearDeployedPipesAndReturnCount() {
+        IGregTechTileEntity base = getBaseMetaTileEntity();
+        if (base == null) return 0;
+        World world = base.getWorld();
+        if (world == null || world.isRemote) return 0;
+        if (mTipDepth >= 0) {
+            mTipDepth = 0;
+            return 0;
+        }
+
+        int x = base.getXCoord();
+        int y = base.getYCoord();
+        int z = base.getZCoord();
+        // 管道段方块与部署时同源：miningPipe 物品对应的 Block
+        Block pipeBlock = getMiningPipeItem() != null ? GTUtility.getBlockFromItem(getMiningPipeItem()) : null;
+
+        int cleared = 0;
+        for (int dy = -1; dy >= mTipDepth; dy--) {
+            Block block = world.getBlock(x, y + dy, z);
+            if (block == MINING_PIPE_TIP_BLOCK || (pipeBlock != null && block == pipeBlock)) {
+                world.setBlockToAir(x, y + dy, z);
+                cleared++;
+            }
+        }
+        mTipDepth = 0;
+        return cleared;
+    }
+
+    /**
      * 尝试升级节点：从玩家背包查找并消耗对应等级的油气钻井物品与蒸汽纠缠奇点。
      * 升级成功返回 true 并发送聊天提示；失败时发送原因提示并返回 false。
      * public：枢纽状态 UI 的远程升级按钮通过基类引用多态调用。

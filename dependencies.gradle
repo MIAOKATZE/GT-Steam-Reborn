@@ -59,6 +59,10 @@ dependencies {
     // Optional at runtime: if Botania is not loaded, the recipe is silently skipped.
     compileOnly("com.github.GTNewHorizons:Botania:1.13.27-GTNH:dev") { transitive = false }
 
+    // Waila API：节点自定义名显示在 WAILA tooltip 头部（GTSRWailaCompat/GTSRNodeWailaProvider）。
+    // 版本对齐 GT5U 2.9.0 beta-2 自身声明的 waila 依赖；运行时缺失 Waila 时 IMC 不激活，兼容层不生效。
+    compileOnly("com.github.GTNewHorizons:waila:1.19.30:dev") { transitive = false }
+
     // UniMixins is automatically included by the GTNH build script because usesMixins = true in gradle.properties.
     // No need to declare it manually.
 }

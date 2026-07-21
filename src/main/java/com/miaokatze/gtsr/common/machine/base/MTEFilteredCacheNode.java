@@ -58,8 +58,8 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase {
         float aX, float aY, float aZ) {
         if (aBaseMetaTileEntity.isServerSide()) {
             ItemStack held = aPlayer.getCurrentEquippedItem();
-            if (held != null && (GTSRItemList.HubSingularityChip.isStackEqual(held, true, true)
-                || GTSRItemList.ReinforcedHubSingularityChip.isStackEqual(held, true, true))) {
+            // 枢纽终端右击：循环传输速率（潜行右击切换输入/输出模式由 HubTerminal.onItemUseFirst 拦截处理）
+            if (held != null && GTSRItemList.HubTerminal.isStackEqual(held, false, true)) {
                 // 用 mBound 判断绑定状态，避免主世界 dim=0 被误判为未绑定
                 if (!mBound) {
                     GTUtility
@@ -105,17 +105,59 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase {
     }
 
     /**
-     * 设置枢纽交互方向模式，并同步父类 MTEDigitalTankBase 的自动输出开关 mOutputFluid
-     * （输出模式下节点会向正面相邻容器自动推送流体），保持两者一致。
+     * 设置枢纽交互方向模式（输出=节点→枢纽 / 输入=枢纽→节点）。
+     * 已与父类 MTEDigitalTankBase 的自动输出开关 mOutputFluid 解耦：
+     * 方向模式只管节点与枢纽之间的传输方向，自动输出（向正面相邻容器推送流体）
+     * 由 isAutoOutput/setAutoOutput 独立控制，两者互不影响。
      * 调用方（枢纽侧）还需同步更新自身绑定记录（IHubArray.updateCacheNodeMode）。
      */
     public void setOutputMode(boolean output) {
         mIsOutputMode = output;
-        setOutputFluid(output);
     }
 
     public boolean isOutputMode() {
         return mIsOutputMode;
+    }
+
+    /**
+     * 枢纽终端潜行右击切换输入/输出模式：翻转 mIsOutputMode，
+     * 同步绑定枢纽的注册记录（IHubArray.updateCacheNodeMode），并向玩家发送聊天反馈。
+     * 必须在服务端调用（调用方已保证）；枢纽世界未加载或方块不存在时静默跳过同步。
+     */
+    public void toggleOutputModeFromTerminal(EntityPlayer player) {
+        mIsOutputMode = !mIsOutputMode;
+        // 解析绑定的枢纽并同步方向模式（解析写法与 registerWithHub 一致）
+        World world = DimensionManager.getWorld(mHubDim);
+        if (world != null && world.blockExists(mHubX, mHubY, mHubZ)) {
+            TileEntity te = world.getTileEntity(mHubX, mHubY, mHubZ);
+            if (te instanceof IGregTechTileEntity gte && gte.getMetaTileEntity() instanceof IHubArray hub) {
+                hub.updateCacheNodeMode(
+                    getBaseMetaTileEntity().getXCoord(),
+                    getBaseMetaTileEntity().getYCoord(),
+                    getBaseMetaTileEntity().getZCoord(),
+                    getBaseMetaTileEntity().getWorld().provider.dimensionId,
+                    mIsOutputMode);
+            }
+        }
+        GTUtility.sendChatToPlayer(
+            player,
+            StatCollector.translateToLocal(
+                mIsOutputMode ? "gtsr.cache_node.mode_output_now" : "gtsr.cache_node.mode_input_now"));
+    }
+
+    /** 是否已绑定到枢纽（供 HubTerminal 等跨包调用方判断，mBound 为 protected 字段）。 */
+    public boolean isBoundToHub() {
+        return mBound;
+    }
+
+    /** 自动输出开关：true 时节点向正面相邻容器自动推送流体（父类 mOutputFluid，已持久化）。 */
+    public boolean isAutoOutput() {
+        return isOutputFluid();
+    }
+
+    /** 设置自动输出开关（与方向模式 mIsOutputMode 解耦，互不影响）。 */
+    public void setAutoOutput(boolean auto) {
+        setOutputFluid(auto);
     }
 
     /** 当前存储流体的注册名（FluidRegistry 名）；无流体时返回空串。UI 侧按注册名本地化显示。 */
@@ -140,6 +182,16 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase {
 
     public void setCustomName(String name) {
         this.mCustomName = name == null ? "" : name;
+    }
+
+    /**
+     * GUI 窗口标题：有自定义名时优先显示自定义名，否则回退父类默认本地化名。
+     * 与 MTERemoteWorkerNode.getLocalName 同理：MUI1 主窗口双端各自构建，
+     * 客户端名字依赖 description packet 同步（见本类 getDescriptionData/onDescriptionPacket）。
+     */
+    @Override
+    public String getLocalName() {
+        return getCustomName().isEmpty() ? super.getLocalName() : getCustomName();
     }
 
     public long getEffectiveHubTransferRate() {
@@ -242,6 +294,28 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase {
         } else {
             mCustomName = "";
         }
+    }
+
+    // ===== 自定义名客户端同步（description packet）=====
+    // GT5U 机制：CommonBaseMetaTileEntity.getDescriptionPacket 调 IMetaTileEntity.getDescriptionData()，
+    // 非 null 返回值作为 "mte" 标签随 S35PacketUpdateTileEntity 发出；客户端 onDataPacket 回调
+    // onDescriptionPacket()。初始区块同步与 issueTileUpdate() 触发的重发都走此链路。
+    // 注意必须始终返回非 null：返回 null 时客户端收不到回调，「清除自定义名」将无法同步到客户端。
+    @Override
+    public NBTTagCompound getDescriptionData() {
+        NBTTagCompound data = super.getDescriptionData();
+        if (data == null) data = new NBTTagCompound();
+        if (!getCustomName().isEmpty()) {
+            data.setString("gtsr.customName", getCustomName());
+        }
+        return data;
+    }
+
+    @Override
+    public void onDescriptionPacket(NBTTagCompound data) {
+        super.onDescriptionPacket(data);
+        // 无 key 表示服务端已清除自定义名，回退空串（GUI 标题恢复默认本地化名）
+        mCustomName = data.hasKey("gtsr.customName") ? data.getString("gtsr.customName") : "";
     }
 
     @Override

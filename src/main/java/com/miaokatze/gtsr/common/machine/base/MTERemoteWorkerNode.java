@@ -90,6 +90,17 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity implements IAdd
         return cleaned;
     }
 
+    /**
+     * GUI 窗口标题：有自定义名时优先显示自定义名，否则回退父类默认本地化名。
+     * 调用链：CommonBaseMetaTileEntity.createWindow → addTitleToUI → getLocalName()（TE 转发到 MTE）。
+     * 注意 MUI1 主窗口在双端各自构建，客户端显示的名字依赖 description packet 同步
+     * （见本类 getDescriptionData/onDescriptionPacket）。
+     */
+    @Override
+    public String getLocalName() {
+        return getCustomName().isEmpty() ? super.getLocalName() : getCustomName();
+    }
+
     protected boolean mIsWorking = false;
     protected int mWorkProgress = 0;
     protected static final int WORK_CYCLE = 20;
@@ -214,6 +225,28 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity implements IAdd
         } else {
             mCustomName = "";
         }
+    }
+
+    // ===== 自定义名客户端同步（description packet）=====
+    // GT5U 机制：CommonBaseMetaTileEntity.getDescriptionPacket 调 IMetaTileEntity.getDescriptionData()，
+    // 非 null 返回值作为 "mte" 标签随 S35PacketUpdateTileEntity 发出；客户端 onDataPacket 回调
+    // onDescriptionPacket()。初始区块同步与 issueTileUpdate() 触发的重发都走此链路。
+    // 注意必须始终返回非 null：返回 null 时客户端收不到回调，「清除自定义名」将无法同步到客户端。
+    @Override
+    public NBTTagCompound getDescriptionData() {
+        NBTTagCompound data = super.getDescriptionData();
+        if (data == null) data = new NBTTagCompound();
+        if (!getCustomName().isEmpty()) {
+            data.setString("gtsr.customName", getCustomName());
+        }
+        return data;
+    }
+
+    @Override
+    public void onDescriptionPacket(NBTTagCompound data) {
+        super.onDescriptionPacket(data);
+        // 无 key 表示服务端已清除自定义名，回退空串（GUI 标题恢复默认本地化名）
+        mCustomName = data.hasKey("gtsr.customName") ? data.getString("gtsr.customName") : "";
     }
 
     @Override
@@ -349,6 +382,25 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity implements IAdd
     public boolean isFullyRetracted() {
         IGregTechTileEntity base = getBaseMetaTileEntity();
         return base == null || !base.isAllowedToWork();
+    }
+
+    /**
+     * 节点当前是否允许快捷回收（枢纽状态 UI 回收按钮的判定条件，放宽自 isFullyRetracted）：
+     * 「停止（不允许工作）或待机（未在实际工作）」即可回收，不再要求管道全部收回——
+     * 未收回的管道由回收流程调用 clearDeployedPipesAndReturnCount 立即清除并折算返还。
+     */
+    public boolean isRecyclableNow() {
+        IGregTechTileEntity base = getBaseMetaTileEntity();
+        return (base == null || !base.isAllowedToWork()) || !isActivelyWorking();
+    }
+
+    /**
+     * 立即清除本节点在世界中已部署的采矿管道方块，返回清除的段数
+     * （由枢纽回收流程按段数折算为 IC2 miningPipe 物品返还玩家）。
+     * 默认实现：无世界管道的节点返回 0；有管道的子类（采矿/钻井节点）覆写本方法。
+     */
+    public int clearDeployedPipesAndReturnCount() {
+        return 0;
     }
 
     /**

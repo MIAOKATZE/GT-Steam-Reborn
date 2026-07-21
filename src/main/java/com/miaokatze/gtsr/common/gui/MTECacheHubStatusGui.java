@@ -69,6 +69,9 @@ public abstract class MTECacheHubStatusGui implements IGuiHolder<PosGuiData> {
 
     protected abstract void setNodeMode(int x, int y, int z, int dim, boolean output);
 
+    /** 切换节点自动输出开关（向正面相邻容器推送流体，与方向模式解耦的独立开关）。 */
+    protected abstract void setNodeAuto(int x, int y, int z, int dim, boolean auto);
+
     protected abstract void renameNode(int x, int y, int z, int dim, String name);
 
     // ===== 子类委托：显示差异 =====
@@ -216,6 +219,16 @@ public abstract class MTECacheHubStatusGui implements IGuiHolder<PosGuiData> {
                         info.out ? "gtsr.cache_hub_status.mode_tip_output" : "gtsr.cache_hub_status.mode_tip_input")));
         modeButton.setEnabled(!offline);
 
+        // 自动输出开关按钮：与方向模式解耦的独立开关（节点向正面相邻容器推送流体），点击切换
+        ButtonWidget<?> autoButton = new ButtonWidget<>().size(40, 16)
+            .overlay(IKey.lang(info.auto ? "gtsr.cache_hub_status.auto_on" : "gtsr.cache_hub_status.auto_off"))
+            .onMousePressed(mouseButton -> {
+                actionSync.sendSetAutoOutput(info);
+                return true;
+            })
+            .tooltipBuilder(t -> t.addLine(IKey.lang("gtsr.cache_hub_status.auto_tip")));
+        autoButton.setEnabled(!offline);
+
         // 重命名文本框：纯客户端控件（StringValue 为本地值不会同步），
         // 初始文本为当前自定义名；点击确认按钮时才读取文本经 hubAction 发 C2S，服务端做裁剪
         TextFieldWidget renameField = new TextFieldWidget().width(150)
@@ -273,7 +286,8 @@ public abstract class MTECacheHubStatusGui implements IGuiHolder<PosGuiData> {
                 Flow.column()
                     .childPadding(4)
                     .child(rateButton)
-                    .child(modeButton));
+                    .child(modeButton)
+                    .child(autoButton));
         return row;
     }
 
@@ -327,9 +341,11 @@ public abstract class MTECacheHubStatusGui implements IGuiHolder<PosGuiData> {
         public final int rate;
         /** 输出模式：true=节点→枢纽，false=枢纽→节点 */
         public final boolean out;
+        /** 自动输出开关：true=节点向正面相邻容器推送流体（与方向模式解耦） */
+        public final boolean auto;
 
         CacheNodeInfo(int x, int y, int z, int dim, String type, String name, String fluid, long stored, long cap,
-            int rate, boolean out) {
+            int rate, boolean out, boolean auto) {
             this.x = x;
             this.y = y;
             this.z = z;
@@ -341,6 +357,7 @@ public abstract class MTECacheHubStatusGui implements IGuiHolder<PosGuiData> {
             this.cap = cap;
             this.rate = rate;
             this.out = out;
+            this.auto = auto;
         }
 
         public static List<CacheNodeInfo> fromTagList(NBTTagList tagList) {
@@ -359,7 +376,8 @@ public abstract class MTECacheHubStatusGui implements IGuiHolder<PosGuiData> {
                         tag.getLong("stored"),
                         tag.getLong("cap"),
                         tag.getInteger("rate"),
-                        tag.getBoolean("out")));
+                        tag.getBoolean("out"),
+                        tag.getBoolean("auto")));
             }
             return list;
         }
@@ -376,6 +394,7 @@ public abstract class MTECacheHubStatusGui implements IGuiHolder<PosGuiData> {
                 buf.readLong(),
                 buf.readLong(),
                 buf.readInt(),
+                buf.readBoolean(),
                 buf.readBoolean());
         }
 
@@ -391,6 +410,7 @@ public abstract class MTECacheHubStatusGui implements IGuiHolder<PosGuiData> {
             buf.writeLong(info.cap);
             buf.writeInt(info.rate);
             buf.writeBoolean(info.out);
+            buf.writeBoolean(info.auto);
         }
 
         public static boolean areEqual(CacheNodeInfo a, CacheNodeInfo b) {
@@ -403,7 +423,8 @@ public abstract class MTECacheHubStatusGui implements IGuiHolder<PosGuiData> {
                 && a.stored == b.stored
                 && a.cap == b.cap
                 && a.rate == b.rate
-                && a.out == b.out;
+                && a.out == b.out
+                && a.auto == b.auto;
         }
     }
 
@@ -418,6 +439,7 @@ public abstract class MTECacheHubStatusGui implements IGuiHolder<PosGuiData> {
         private static final int ACTION_CYCLE_RATE = 1;
         private static final int ACTION_SET_MODE = 2;
         private static final int ACTION_RENAME = 3;
+        private static final int ACTION_SET_AUTO = 4;
 
         private Runnable refreshListener = () -> {};
 
@@ -440,6 +462,14 @@ public abstract class MTECacheHubStatusGui implements IGuiHolder<PosGuiData> {
             syncToServer(ACTION_SET_MODE, buf -> {
                 writePos(buf, info);
                 buf.writeBoolean(!info.out);
+            });
+        }
+
+        // 自动输出开关切换：携带目标值（当前取反），服务端校验节点存在后写入
+        public void sendSetAutoOutput(CacheNodeInfo info) {
+            syncToServer(ACTION_SET_AUTO, buf -> {
+                writePos(buf, info);
+                buf.writeBoolean(!info.auto);
             });
         }
 
@@ -475,6 +505,9 @@ public abstract class MTECacheHubStatusGui implements IGuiHolder<PosGuiData> {
                     break;
                 case ACTION_SET_MODE:
                     setNodeMode(x, y, z, dim, buf.readBoolean());
+                    break;
+                case ACTION_SET_AUTO:
+                    setNodeAuto(x, y, z, dim, buf.readBoolean());
                     break;
                 case ACTION_RENAME:
                     renameNode(x, y, z, dim, ByteBufUtils.readUTF8String(buf));

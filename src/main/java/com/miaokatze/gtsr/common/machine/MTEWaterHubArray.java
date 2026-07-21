@@ -960,6 +960,8 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
             tag.setLong("cap", cacheNode != null ? cacheNode.getFluidCapacityLong() : 0L);
             tag.setInteger("rate", cacheNode != null ? cacheNode.getTransferRatePercent() : 0);
             tag.setBoolean("out", cacheNode != null ? cacheNode.isOutputMode() : node.isOutputMode);
+            // 自动输出开关（与方向模式解耦）：节点离线时回退 false
+            tag.setBoolean("auto", cacheNode != null && cacheNode.isAutoOutput());
             list.appendTag(tag);
         }
         return list;
@@ -980,15 +982,28 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
         updateCacheNodeMode(x, y, z, dim, output);
     }
 
+    /** 状态 UI 切换节点自动输出开关：只写节点本体（与方向模式解耦，枢纽绑定记录无需同步）。 */
+    public void setCacheNodeAutoFromGui(int x, int y, int z, int dim, boolean auto) {
+        MTEFilteredCacheNode node = resolveCacheNode(x, y, z, dim);
+        if (node == null) return;
+        node.setAutoOutput(auto);
+    }
+
     /**
      * 状态 UI 重命名节点：名字在服务端做安全裁剪（剔 §/去首尾空白/≤24 字符），
      * 裁剪后为空表示清除自定义名（UI 回退默认类型名）。
-     * 名字变化由列表每 tick 变化检测自动同步到客户端，无需手动发包。
+     * 名字变化由列表每 tick 变化检测自动同步到枢纽状态 UI 客户端；
+     * 节点方块自身（GUI 标题/Waila）另经 issueTileUpdate 触发 description packet 同步。
      */
     public void renameCacheNodeFromGui(int x, int y, int z, int dim, String name) {
         MTEFilteredCacheNode node = resolveCacheNode(x, y, z, dim);
         if (node == null) return;
         node.setCustomName(com.miaokatze.gtsr.common.machine.base.MTERemoteWorkerNode.sanitizeCustomName(name));
+        // 触发节点 TE 重同步（S35 description packet），客户端 MTE 拿到新自定义名以更新 GUI 标题
+        if (node.getBaseMetaTileEntity() != null) {
+            node.getBaseMetaTileEntity()
+                .issueTileUpdate();
+        }
     }
 
     private void sendBindingDebug(EntityPlayer aPlayer) {

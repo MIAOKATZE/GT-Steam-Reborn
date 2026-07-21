@@ -54,6 +54,7 @@ import gregtech.api.recipe.check.CheckRecipeResult;
 import gregtech.api.recipe.check.CheckRecipeResultRegistry;
 import gregtech.api.structure.error.StructureError;
 import gregtech.api.structure.error.StructureErrorRegistry;
+import gregtech.api.util.GTModHandler;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.MultiblockTooltipBuilder;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTEHatchCustomFluidBase;
@@ -635,7 +636,8 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
 
     /**
      * 序列化当前绑定节点列表（供状态 UI 同步显示）。
-     * 每项含：坐标/维度/类型/tier/工作状态(working)/是否允许工作(allowed)/是否可回收(retractable)。
+     * 每项含：坐标/维度/类型/tier/工作状态(working)/是否允许工作(allowed)/
+     * 是否完全停止(retractable)/是否可回收(recyclable，停止或待机即可)。
      */
     public NBTTagList getNodeListTag() {
         NBTTagList list = new NBTTagList();
@@ -658,6 +660,8 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
             }
             tag.setBoolean("allowed", allowed);
             tag.setBoolean("retractable", retractable);
+            // 回收按钮可用状态：停止或待机即可回收；离线节点（worker 解析不到）不可回收
+            tag.setBoolean("recyclable", worker != null && worker.isRecyclableNow());
             // 节点自定义名（无则为空串，客户端回退显示默认类型名）
             tag.setString("name", worker != null ? worker.getCustomName() : "");
             list.appendTag(tag);
@@ -696,22 +700,29 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
     /**
      * 状态 UI 重命名节点：名字在服务端做安全裁剪（剔 §/去首尾空白/≤24 字符），
      * 裁剪后为空表示清除自定义名（UI 回退默认类型名）。
-     * 名字变化由 nodeList 每 tick 变化检测自动同步到客户端，无需手动发包。
+     * 名字变化由 nodeList 每 tick 变化检测自动同步到枢纽状态 UI 客户端；
+     * 节点方块自身（GUI 标题/Waila）另经 issueTileUpdate 触发 description packet 同步。
      */
     public void renameNodeFromGui(int x, int y, int z, int dim, String name) {
         MTERemoteWorkerNode node = resolveWorkerNode(x, y, z, dim);
         if (node == null) return;
         node.setCustomName(MTERemoteWorkerNode.sanitizeCustomName(name));
+        // 触发节点 TE 重同步（S35 description packet），客户端 MTE 拿到新自定义名以更新 GUI 标题
+        if (node.getBaseMetaTileEntity() != null) {
+            node.getBaseMetaTileEntity()
+                .issueTileUpdate();
+        }
     }
 
     /**
-     * 状态 UI 快捷回收节点：仅允许「完全停止（管道全部收回且未工作）」的节点。
-     * 流程：构造带 NBT 的节点本体 + 收集背包中已收回的采矿管道 → 从输出总线推出 →
+     * 状态 UI 快捷回收节点：允许「停止（不允许工作）或待机（未在实际工作）」的节点。
+     * 流程：构造带 NBT 的节点本体 + 收集背包中已收回的采矿管道 + 立即清除世界中
+     * 未收回的管道并按段数折算为 miningPipe 物品 → 从输出总线推出 →
      * 释放区块加载 → 世界中移除节点方块（不掉落，本体已手动输出）→ 注销绑定缓存。
      */
     public boolean recycleNodeFromGui(int x, int y, int z, int dim) {
         MTERemoteWorkerNode node = resolveWorkerNode(x, y, z, dim);
-        if (node == null || !node.isFullyRetracted()) return false;
+        if (node == null || !node.isRecyclableNow()) return false;
         IGregTechTileEntity base = node.getBaseMetaTileEntity();
         if (base == null) return false;
         World world = base.getWorld();
@@ -730,11 +741,20 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
         // 2. 收集节点背包中已收回的采矿管道
         List<ItemStack> pipes = node.drainStoredMiningPipes();
 
+        // 2.5. 立即清除世界中未收回的管道段，按段数折算为 miningPipe 物品一并返还
+        // （须在移除节点方块之前调用，此时节点底座与世界句柄仍有效；仅服务端实际改世界）
+        int worldPipes = node.clearDeployedPipesAndReturnCount();
+        ItemStack worldPipeStack = worldPipes > 0 ? GTModHandler.getIC2Item("miningPipe", worldPipes) : null;
+
         // 3. 从输出总线推出。addOutputPartial 不提供容量预检，放不下的部分会被销毁，
         // 因此假定总线有足够空间（与节点正常产出推送同一语义）
         pushNodeItemOutput(nodeStack);
         for (ItemStack pipe : pipes) {
             pushNodeItemOutput(pipe);
+        }
+        // getIC2Item 在 IC2 缺失时可能返回 null，判空防御
+        if (worldPipeStack != null) {
+            pushNodeItemOutput(worldPipeStack);
         }
 
         // 4. 释放该节点持有的全部区块加载 ticket，再移除世界中的节点方块并注销绑定

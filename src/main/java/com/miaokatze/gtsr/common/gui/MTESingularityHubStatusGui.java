@@ -49,7 +49,7 @@ import gregtech.api.util.GTUtility;
  * 奇点钻井枢纽「节点状态管理界面」（Modern UI 2）。
  * 打开方式：空手 + 潜行右击枢纽（服务端经 HubStatusGuiFactory 打开）。
  * 功能：查看全部绑定节点（维度+坐标、类型、等级、工作状态），
- * 远程开始/停止、快捷回收（仅完全停止的节点）、消耗背包物品升级节点。
+ * 远程开始/停止、快捷回收（停止或待机的节点即可，未收回管道即时清除折算返还）、消耗背包物品升级节点。
  *
  * 同步设计：
  * - "nodeList"：GenericListSyncHandler，服务端每 tick 检测变化并同步到客户端；
@@ -193,7 +193,8 @@ public class MTESingularityHubStatusGui implements IGuiHolder<PosGuiData> {
             })
             .tooltipBuilder(t -> t.addLine(IKey.lang(info.allowed ? "gtsr.hub_status.stop" : "gtsr.hub_status.start")));
 
-        // 快捷回收按钮：仅「完全停止」的节点可用
+        // 快捷回收按钮：常态显示；「停止或待机」的节点可用（recyclable），
+        // 不可用时变灰且按下无反应（setEnabled(false) 天然拦截点击），悬浮提示需等待停止/待机
         ButtonWidget<?> recycleButton = new ButtonWidget<>().size(16)
             .overlay(GTGuiTextures.OVERLAY_BUTTON_EXPORT)
             .onMousePressed(mouseButton -> {
@@ -202,8 +203,8 @@ public class MTESingularityHubStatusGui implements IGuiHolder<PosGuiData> {
             })
             .tooltipBuilder(
                 t -> t.addLine(
-                    IKey.lang(info.retractable ? "gtsr.hub_status.recycle" : "gtsr.hub_status.recycle_disabled")));
-        recycleButton.setEnabled(info.retractable);
+                    IKey.lang(info.recyclable ? "gtsr.hub_status.recycle" : "gtsr.hub_status.recycle_need_stop")));
+        recycleButton.setEnabled(info.recyclable);
 
         // 升级按钮：消耗背包物品（图标与节点自带UI的绿色上箭头保持一致）
         ButtonWidget<?> upgradeButton = new ButtonWidget<>().size(16)
@@ -278,13 +279,15 @@ public class MTESingularityHubStatusGui implements IGuiHolder<PosGuiData> {
         public final boolean working;
         /** 节点底座 allowedToWork 标志（开始/停止按钮的当前状态） */
         public final boolean allowed;
-        /** 是否完全停止（允许快捷回收） */
+        /** 是否完全停止（管道全部收回且未工作） */
         public final boolean retractable;
+        /** 是否可回收（停止或待机即可，回收按钮可用状态） */
+        public final boolean recyclable;
         /** 节点自定义名（空串表示未自定义，显示时回退默认类型名） */
         public final String name;
 
         HubNodeInfo(int x, int y, int z, int dim, boolean isMiner, int tier, boolean working, boolean allowed,
-            boolean retractable, String name) {
+            boolean retractable, boolean recyclable, String name) {
             this.x = x;
             this.y = y;
             this.z = z;
@@ -294,6 +297,7 @@ public class MTESingularityHubStatusGui implements IGuiHolder<PosGuiData> {
             this.working = working;
             this.allowed = allowed;
             this.retractable = retractable;
+            this.recyclable = recyclable;
             this.name = name;
         }
 
@@ -312,6 +316,7 @@ public class MTESingularityHubStatusGui implements IGuiHolder<PosGuiData> {
                         tag.getBoolean("working"),
                         tag.getBoolean("allowed"),
                         tag.getBoolean("retractable"),
+                        tag.getBoolean("recyclable"),
                         tag.getString("name")));
             }
             return list;
@@ -328,6 +333,7 @@ public class MTESingularityHubStatusGui implements IGuiHolder<PosGuiData> {
                 buf.readBoolean(),
                 buf.readBoolean(),
                 buf.readBoolean(),
+                buf.readBoolean(),
                 ByteBufUtils.readUTF8String(buf));
         }
 
@@ -341,6 +347,8 @@ public class MTESingularityHubStatusGui implements IGuiHolder<PosGuiData> {
             buf.writeBoolean(info.working);
             buf.writeBoolean(info.allowed);
             buf.writeBoolean(info.retractable);
+            // 读写顺序须严格一致：recyclable 在 retractable 之后、name 之前
+            buf.writeBoolean(info.recyclable);
             ByteBufUtils.writeUTF8String(buf, info.name);
         }
 
@@ -353,6 +361,7 @@ public class MTESingularityHubStatusGui implements IGuiHolder<PosGuiData> {
                 && a.working == b.working
                 && a.allowed == b.allowed
                 && a.retractable == b.retractable
+                && a.recyclable == b.recyclable
                 && a.name.equals(b.name);
         }
     }

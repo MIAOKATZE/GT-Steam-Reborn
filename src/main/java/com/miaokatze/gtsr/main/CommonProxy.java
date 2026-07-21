@@ -1,6 +1,7 @@
 package com.miaokatze.gtsr.main;
 
 import com.miaokatze.gtsr.Tags;
+import com.miaokatze.gtsr.common.crossmod.waila.GTSRWailaCompat;
 import com.miaokatze.gtsr.config.Config;
 import com.miaokatze.gtsr.loader.GTSRRecipeLoader;
 import com.miaokatze.gtsr.loader.ItemLoader;
@@ -76,6 +77,9 @@ public class CommonProxy {
             .registerFactory(com.miaokatze.gtsr.common.gui.SteamHubStatusGuiFactory.INSTANCE);
         com.cleanroommc.modularui.factory.GuiManager
             .registerFactory(com.miaokatze.gtsr.common.gui.WaterHubStatusGuiFactory.INSTANCE);
+
+        // Waila 跨 mod 兼容：注册节点自定义名 WAILA 头部显示（Waila 缺失时为空操作，详见 GTSRWailaCompat）
+        GTSRWailaCompat.init();
     }
 
     /**
