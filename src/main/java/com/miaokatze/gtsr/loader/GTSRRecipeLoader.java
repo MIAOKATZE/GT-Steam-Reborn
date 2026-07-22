@@ -47,6 +47,17 @@ public class GTSRRecipeLoader implements Runnable {
         GTSteamReborn.LOG.warn("[GTSR-Recipe] " + msg);
     }
 
+    // 【Bug2 加固】单个注册方法异常时记 ERROR（含方法名）后继续执行后续方法，
+    // 杜绝单点异常穿透 run() 被 CommonProxy.postInit 捕获后导致后续全部配方静默团灭。
+    private static void safeRegister(String name, Runnable r) {
+        try {
+            r.run();
+            log("Registered " + name + " recipes successfully.");
+        } catch (Exception e) {
+            GTSteamReborn.LOG.error("[GTSR-Recipe] Failed to register " + name + " recipes: " + e.getMessage());
+        }
+    }
+
     private static ItemStack get(OrePrefixes prefix, Object mat, long amount) {
         ItemStack stack = GTOreDictUnificator.get(prefix, mat, amount);
         if (stack == null) {
@@ -88,25 +99,28 @@ public class GTSRRecipeLoader implements Runnable {
 
     @Override
     public void run() {
-        registerCokeOvenRecipes();
-        registerSiemensMartinRecipes();
-        registerAmmoniaRecipes();
-        registerAirCompressorRecipes();
-        registerAtmosphericCentrifugeRecipes();
-        registerChipRecipes();
-        registerCatalystRecipes();
-        registerCacheNodeRecipes();
-        registerTinyPlanetRecipe(); // 新增：Botania Tiny Planet 工作台配方（Botania 未加载时自动跳过）
-        registerHubTerminalRecipe(); // 枢纽终端工作台配方：中心蒸汽纠缠奇点 + 8 钢板环绕
-        registerNodeNBTClearRecipes(); // 节点清 NBT 无序配方：1 节点(无视 NBT) → 1 干净节点
-        registerNodeRecipes();
-        registerMultiblockWorkbenchRecipes();
-        registerMultiblockAssemblerRecipes();
-        registerHatchRecipes();
-        registerSingularityCompressorDisplayRecipe();
-        registerGeothermalBoilerDisplayRecipes();
-        registerFluidDrillDisplayRecipes();
-        registerGearSteamCompressorDisplayRecipes();
+        // 【Bug2 加固】全部注册调用经 safeRegister 独立 try-catch，单方法失败不再拖垮其余配方
+        safeRegister("CokeOven", GTSRRecipeLoader::registerCokeOvenRecipes);
+        safeRegister("SiemensMartin", GTSRRecipeLoader::registerSiemensMartinRecipes);
+        safeRegister("Ammonia", GTSRRecipeLoader::registerAmmoniaRecipes);
+        safeRegister("AirCompressor", GTSRRecipeLoader::registerAirCompressorRecipes);
+        safeRegister("AtmosphericCentrifuge", GTSRRecipeLoader::registerAtmosphericCentrifugeRecipes);
+        safeRegister("Chip", GTSRRecipeLoader::registerChipRecipes);
+        safeRegister("Catalyst", GTSRRecipeLoader::registerCatalystRecipes);
+        safeRegister("CacheNode", GTSRRecipeLoader::registerCacheNodeRecipes);
+        safeRegister("TinyPlanet", GTSRRecipeLoader::registerTinyPlanetRecipe); // 新增：Botania Tiny Planet 工作台配方（Botania
+                                                                                // 未加载时自动跳过）
+        safeRegister("HubTerminal", GTSRRecipeLoader::registerHubTerminalRecipe); // 枢纽终端工作台配方：中心蒸汽纠缠奇点 + 8 钢板环绕
+        safeRegister("NodeNBTClear", GTSRRecipeLoader::registerNodeNBTClearRecipes); // 节点清 NBT 无序配方：1 节点(无视 NBT) → 1
+                                                                                     // 干净节点
+        safeRegister("Node", GTSRRecipeLoader::registerNodeRecipes);
+        safeRegister("MultiblockWorkbench", GTSRRecipeLoader::registerMultiblockWorkbenchRecipes);
+        safeRegister("MultiblockAssembler", GTSRRecipeLoader::registerMultiblockAssemblerRecipes);
+        safeRegister("Hatch", GTSRRecipeLoader::registerHatchRecipes);
+        safeRegister("SingularityCompressorDisplay", GTSRRecipeLoader::registerSingularityCompressorDisplayRecipe);
+        safeRegister("GeothermalBoilerDisplay", GTSRRecipeLoader::registerGeothermalBoilerDisplayRecipes);
+        safeRegister("FluidDrillDisplay", GTSRRecipeLoader::registerFluidDrillDisplayRecipes);
+        safeRegister("GearSteamCompressorDisplay", GTSRRecipeLoader::registerGearSteamCompressorDisplayRecipes);
     }
 
     private static void registerCokeOvenRecipes() {
@@ -1180,16 +1194,28 @@ public class GTSRRecipeLoader implements Runnable {
             new Object[] { "ABA", "CDC", "ABA", 'A', "screwSteel", 'B', "plateSteel", 'C', "plateSteel", 'D',
                 GTSRItemList.SteamCoolingHatch.get(1) });
 
-        // 巨型空气输入仓：装配机配方（仿照 GT5U 液态空气仓，使用空气单元+下界空气单元替代液态空气单元）
+        // 巨型空气输入仓：装配机配方（仿照 GT5U 液态空气仓，保留「空气+下界空气」主题）
+        // 【Bug2 修复】原配方以 Air/NetherAir 单元作 itemInputs，二者运行时返回 null，
+        // 导致 GTRecipeBuilder.itemInputs 抛 IllegalArgumentException 穿透 run()，
+        // 本方法后续全部配方及 run() 其后 4 个显示配方方法全部静默丢失。
+        // 改为流体输入（fluidInputs 对 null 仅静默剔除不抛异常，且此处另加 null 守卫）：
+        // 注意 Air 未 addFluid 必须用 getGas，NetherAir 仅 addFluid 必须用 getFluid（见 MTEAirCompressor.java:281）。
         ItemStack megaAirHatchOut = GTSRItemList.MegaAirInputHatch.get(1);
         if (megaAirHatchOut != null) {
-            GTValues.RA.stdBuilder()
-                .itemInputs(ItemList.Hatch_Input_HV.get(64), Materials.Air.getCells(1), Materials.NetherAir.getCells(1))
-                .circuit(17)
-                .itemOutputs(megaAirHatchOut)
-                .duration(15 * SECONDS)
-                .eut(TierEU.RECIPE_HV)
-                .addTo(assemblerRecipes);
+            FluidStack airGas = Materials.Air.getGas(1000);
+            FluidStack netherAirFluid = Materials.NetherAir.getFluid(1000);
+            if (airGas == null || netherAirFluid == null) {
+                warn("Air or NetherAir fluid is null, skipping MegaAirInputHatch recipe!");
+            } else {
+                GTValues.RA.stdBuilder()
+                    .itemInputs(ItemList.Hatch_Input_HV.get(64))
+                    .fluidInputs(airGas, netherAirFluid)
+                    .circuit(17)
+                    .itemOutputs(megaAirHatchOut)
+                    .duration(15 * SECONDS)
+                    .eut(TierEU.RECIPE_HV)
+                    .addTo(assemblerRecipes);
+            }
         } else {
             warn("Skipped MegaAirInputHatch assembler recipe - output is null");
         }

@@ -283,7 +283,10 @@ public abstract class MTECacheHubStatusGui implements IGuiHolder<PosGuiData> {
         }
         row.child(column)
             .child(
+                // 必须显式限宽 40：Flow 构造器默认 sizeRel(1,1) 会占满整行宽，
+                // 40px 按钮因默认交叉轴居中被推到面板裁剪区外（Bug1 根因）
                 Flow.column()
+                    .width(40)
                     .childPadding(4)
                     .child(rateButton)
                     .child(modeButton)
