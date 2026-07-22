@@ -1194,30 +1194,20 @@ public class GTSRRecipeLoader implements Runnable {
             new Object[] { "ABA", "CDC", "ABA", 'A', "screwSteel", 'B', "plateSteel", 'C', "plateSteel", 'D',
                 GTSRItemList.SteamCoolingHatch.get(1) });
 
-        // 巨型空气输入仓：装配机配方（仿照 GT5U 液态空气仓，保留「空气+下界空气」主题）
-        // 【Bug2 修复】原配方以 Air/NetherAir 单元作 itemInputs，二者运行时返回 null，
-        // 导致 GTRecipeBuilder.itemInputs 抛 IllegalArgumentException 穿透 run()，
-        // 本方法后续全部配方及 run() 其后 4 个显示配方方法全部静默丢失。
-        // 改为流体输入（fluidInputs 对 null 仅静默剔除不抛异常，且此处另加 null 守卫）：
-        // 注意 Air 未 addFluid 必须用 getGas，NetherAir 仅 addFluid 必须用 getFluid（见 MTEAirCompressor.java:281）。
+        // 巨型空气输入仓：装配机配方 = 64×HV输入仓 + 1×蒸汽纠缠奇点（v1.8.5 起不再用流体，
+        // 彻底规避 Air/NetherAir 流体/单元在运行时返回 null 导致注册异常的历史问题，见 v1.8.4 Bug2）
         ItemStack megaAirHatchOut = GTSRItemList.MegaAirInputHatch.get(1);
-        if (megaAirHatchOut != null) {
-            FluidStack airGas = Materials.Air.getGas(1000);
-            FluidStack netherAirFluid = Materials.NetherAir.getFluid(1000);
-            if (airGas == null || netherAirFluid == null) {
-                warn("Air or NetherAir fluid is null, skipping MegaAirInputHatch recipe!");
-            } else {
-                GTValues.RA.stdBuilder()
-                    .itemInputs(ItemList.Hatch_Input_HV.get(64))
-                    .fluidInputs(airGas, netherAirFluid)
-                    .circuit(17)
-                    .itemOutputs(megaAirHatchOut)
-                    .duration(15 * SECONDS)
-                    .eut(TierEU.RECIPE_HV)
-                    .addTo(assemblerRecipes);
-            }
+        ItemStack megaAirHatchSingularity = GTSRItemList.SteamEntangledSingularity.get(1);
+        if (megaAirHatchOut != null && megaAirHatchSingularity != null) {
+            GTValues.RA.stdBuilder()
+                .itemInputs(ItemList.Hatch_Input_HV.get(64), megaAirHatchSingularity)
+                .circuit(17)
+                .itemOutputs(megaAirHatchOut)
+                .duration(15 * SECONDS)
+                .eut(TierEU.RECIPE_HV)
+                .addTo(assemblerRecipes);
         } else {
-            warn("Skipped MegaAirInputHatch assembler recipe - output is null");
+            warn("Skipped MegaAirInputHatch assembler recipe - output or singularity is null");
         }
 
         GTModHandler.addCraftingRecipe(

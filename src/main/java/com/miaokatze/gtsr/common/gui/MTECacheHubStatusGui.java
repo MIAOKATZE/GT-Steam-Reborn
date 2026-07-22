@@ -160,7 +160,7 @@ public abstract class MTECacheHubStatusGui implements IGuiHolder<PosGuiData> {
 
     /**
      * 构建单个缓存节点行：左侧图标 + 信息列（名字/坐标维度/流体储量/重命名行），
-     * 右侧为速率循环按钮与输出模式开关按钮。
+     * 右侧为速率/模式/自动输出三个 16×16 图标按钮横排（当前状态与说明经悬浮 tooltip 展示）。
      */
     private IWidget buildNodeRow(CacheNodeInfo info, CacheHubActionSyncHandler actionSync) {
         // 节点离线：坐标对应的世界/方块无法解析（type 为空串），仅展示绑定记录，禁用操作按钮
@@ -196,19 +196,21 @@ public abstract class MTECacheHubStatusGui implements IGuiHolder<PosGuiData> {
             + formatKMG(info.cap)
             + EnumChatFormatting.RESET;
 
-        // 速率循环按钮：显示当前百分比文本，点击发 C2S 循环到下一档（与芯片右击同一逻辑）
-        ButtonWidget<?> rateButton = new ButtonWidget<>().size(40, 16)
-            .overlay(IKey.str(info.rate + "%"))
+        // 速率循环按钮：进度图标，悬浮显示当前百分比与说明，点击发 C2S 循环到下一档（与芯片右击同一逻辑）
+        ButtonWidget<?> rateButton = new ButtonWidget<>().size(16)
+            .overlay(GTGuiTextures.OVERLAY_BUTTON_PROGRESS)
             .onMousePressed(mouseButton -> {
                 actionSync.sendCycleRate(info);
                 return true;
             })
-            .tooltipBuilder(t -> t.addLine(IKey.lang("gtsr.cache_hub_status.rate_tip")));
+            .tooltipBuilder(
+                t -> t.addLine(IKey.str(info.rate + "%"))
+                    .addLine(IKey.lang("gtsr.cache_hub_status.rate_tip")));
         rateButton.setEnabled(!offline);
 
-        // 输出模式开关按钮：显示当前方向（输出=节点→枢纽 / 输入=枢纽→节点），点击切换
-        ButtonWidget<?> modeButton = new ButtonWidget<>().size(40, 16)
-            .overlay(IKey.lang(info.out ? "gtsr.cache_hub_status.mode_output" : "gtsr.cache_hub_status.mode_input"))
+        // 输出模式开关按钮：图标随状态切换（export=输出：节点→枢纽 / import=输入：枢纽→节点），点击切换
+        ButtonWidget<?> modeButton = new ButtonWidget<>().size(16)
+            .overlay(info.out ? GTGuiTextures.OVERLAY_BUTTON_EXPORT : GTGuiTextures.OVERLAY_BUTTON_IMPORT)
             .onMousePressed(mouseButton -> {
                 actionSync.sendSetMode(info);
                 return true;
@@ -219,14 +221,20 @@ public abstract class MTECacheHubStatusGui implements IGuiHolder<PosGuiData> {
                         info.out ? "gtsr.cache_hub_status.mode_tip_output" : "gtsr.cache_hub_status.mode_tip_input")));
         modeButton.setEnabled(!offline);
 
-        // 自动输出开关按钮：与方向模式解耦的独立开关（节点向正面相邻容器推送流体），点击切换
-        ButtonWidget<?> autoButton = new ButtonWidget<>().size(40, 16)
-            .overlay(IKey.lang(info.auto ? "gtsr.cache_hub_status.auto_on" : "gtsr.cache_hub_status.auto_off"))
+        // 自动输出开关按钮：与方向模式解耦的独立开关（节点向正面相邻容器推送流体），
+        // 电源图标随状态切换，悬浮显示当前开/关与说明，点击切换
+        ButtonWidget<?> autoButton = new ButtonWidget<>().size(16)
+            .overlay(
+                info.auto ? GTGuiTextures.OVERLAY_BUTTON_POWER_SWITCH_ON
+                    : GTGuiTextures.OVERLAY_BUTTON_POWER_SWITCH_OFF)
             .onMousePressed(mouseButton -> {
                 actionSync.sendSetAutoOutput(info);
                 return true;
             })
-            .tooltipBuilder(t -> t.addLine(IKey.lang("gtsr.cache_hub_status.auto_tip")));
+            .tooltipBuilder(
+                t -> t
+                    .addLine(IKey.lang(info.auto ? "gtsr.cache_hub_status.auto_on" : "gtsr.cache_hub_status.auto_off"))
+                    .addLine(IKey.lang("gtsr.cache_hub_status.auto_tip")));
         autoButton.setEnabled(!offline);
 
         // 重命名文本框：纯客户端控件（StringValue 为本地值不会同步），
@@ -283,10 +291,11 @@ public abstract class MTECacheHubStatusGui implements IGuiHolder<PosGuiData> {
         }
         row.child(column)
             .child(
-                // 必须显式限宽 40：Flow 构造器默认 sizeRel(1,1) 会占满整行宽，
-                // 40px 按钮因默认交叉轴居中被推到面板裁剪区外（Bug1 根因）
-                Flow.column()
-                    .width(40)
+                // 三个 16px 图标按钮横排，宽度由子件撑开无需限宽
+                // 历史教训（Bug1 根因）：Flow 构造器默认 sizeRel(1,1) 会占满整行宽，
+                // v1.8.4 曾因此把按钮推到面板裁剪区外——row 显式 height(16) 后宽度随子件收缩
+                Flow.row()
+                    .height(16)
                     .childPadding(4)
                     .child(rateButton)
                     .child(modeButton)
