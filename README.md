@@ -81,6 +81,7 @@ The Hub Terminal is a handheld remote management device (crafted with 1 Steam En
 **Cache Hub Status Terminal (Steam & Water hubs) / 缓存枢纽状态终端（蒸汽与蓄水枢纽通用）**:
 
 <p align="center"><img src="README/HubTerminalCacheStatus.png" width="400"><br><em>缓存枢纽状态终端 / Cache Hub Status Terminal</em></p>
+使用枢纽终端右击控制器，打开状态GUI。 / Right-click the controller on the hub terminal and open the status GUI.</p>
 
 - Per-node display: icon, custom name, coordinates + dimension, fluid type, storage/capacity (K/M/G formatted) / 每节点显示：图标、自定义名、坐标+维度、流体类型、储量/容量（K/M/G 格式化）
 - 16×16 icon buttons with hover tooltips / 16×16 图标按钮，悬浮显示说明：
@@ -93,6 +94,7 @@ The Hub Terminal is a handheld remote management device (crafted with 1 Steam En
 **Drilling Hub Status Terminal / 钻井枢纽状态终端**:
 
 <p align="center"><img src="README/HubTerminalDrillingStatus.png" width="400"><br><em>钻井枢纽状态终端 / Drilling Hub Status Terminal</em></p>
+使用枢纽终端右击控制器，打开状态GUI。 / Right-click the controller on the hub terminal and open the status GUI.</p>
 
 - Per-node display: icon, name, tier (Mk1-4), status (running/idle/stopped), coordinates / 每节点显示：图标、名字、等级(Mk1-4)、状态(运行/待机/停止)、坐标
 - Remote start/stop, quick recycle (greyed out until node stops or idles, returns mining pipes), in-GUI upgrades / 远程启停、快捷回收（需节点停止或待机，返还钻管）、UI 内升级
