@@ -225,15 +225,13 @@ public abstract class MTECacheHubStatusGui implements IGuiHolder<PosGuiData> {
         // 电源图标随状态切换，悬浮显示当前开/关与说明，点击切换
         ButtonWidget<?> autoButton = new ButtonWidget<>().size(16)
             .overlay(
-                info.auto ? GTGuiTextures.OVERLAY_BUTTON_POWER_SWITCH_ON
-                    : GTGuiTextures.OVERLAY_BUTTON_POWER_SWITCH_OFF)
+                info.auto ? GTGuiTextures.OVERLAY_BUTTON_POWER_SWITCH_ON : GTGuiTextures.OVERLAY_BUTTON_POWER_SWITCH_OFF)
             .onMousePressed(mouseButton -> {
                 actionSync.sendSetAutoOutput(info);
                 return true;
             })
             .tooltipBuilder(
-                t -> t
-                    .addLine(IKey.lang(info.auto ? "gtsr.cache_hub_status.auto_on" : "gtsr.cache_hub_status.auto_off"))
+                t -> t.addLine(IKey.lang(info.auto ? "gtsr.cache_hub_status.auto_on" : "gtsr.cache_hub_status.auto_off"))
                     .addLine(IKey.lang("gtsr.cache_hub_status.auto_tip")));
         autoButton.setEnabled(!offline);
 

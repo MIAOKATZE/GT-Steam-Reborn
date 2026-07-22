@@ -67,10 +67,36 @@ Hold a node item and right-click a hub controller to bind. Singularity cost vari
 
 ### Transfer Mechanism / 传输机制
 
-- **Steam/Water Hub**: Every 20 ticks, transfers fluid between hub and bound nodes at configurable rates. Screwdriver on hub toggles overflow output mode. Transfer rate adjustable via chip right-click (100%→80%→60%→...→1%→0%).
+- **Steam/Water Hub**: Every 20 ticks, transfers fluid between hub and bound nodes at configurable rates. Screwdriver on hub toggles overflow output mode. Transfer rate adjustable via Hub Terminal (100%→80%→60%→...→1%→0%).
 - **Drilling Hub**: Consumes steam to drive active nodes. Miner node outputs → hub Output Bus. Drilling node outputs → hub Output Hatch.
-- **蒸汽/水枢纽**：每20tick在枢纽与绑定节点间传输流体，速率可配置。螺丝刀切换溢流输出模式。芯片右键调整传输速率百分比。
+- **蒸汽/水枢纽**：每20tick在枢纽与绑定节点间传输流体，速率可配置。螺丝刀切换溢流输出模式。枢纽终端调整传输速率百分比。
 - **钻井枢纽**：消耗蒸汽驱动活跃节点。采矿节点产出→枢纽输出总线。钻井节点产出→枢纽输出仓。
+
+### Hub Terminal / 枢纽终端
+
+The Hub Terminal is a handheld remote management device (crafted with 1 Steam Entangled Singularity surrounded by 8 steel plates). Right-click any hub controller with it to open that hub's status terminal — no more running back and forth between nodes.
+
+枢纽终端是手持远程管理设备（1 蒸汽纠缠奇点 + 8 钢板环绕合成）。手持右击任意枢纽控制器即可打开对应的状态终端，告别在节点之间来回奔波。
+
+**Cache Hub Status Terminal (Steam & Water hubs) / 缓存枢纽状态终端（蒸汽与蓄水枢纽通用）**:
+
+<p align="center"><img src="README/HubTerminalCacheStatus.png" width="400"><br><em>缓存枢纽状态终端 / Cache Hub Status Terminal</em></p>
+
+- Per-node display: icon, custom name, coordinates + dimension, fluid type, storage/capacity (K/M/G formatted) / 每节点显示：图标、自定义名、坐标+维度、流体类型、储量/容量（K/M/G 格式化）
+- 16×16 icon buttons with hover tooltips / 16×16 图标按钮，悬浮显示说明：
+  - Rate cycle (progress icon, tooltip shows current %) / 速率循环（进度图标，tooltip 显示当前百分比）
+  - Mode toggle (export/import icon: node→hub / hub→node) / 模式切换（export/import 图标：节点→枢纽 / 枢纽→节点）
+  - Auto-output toggle (power icon: node → front container push) / 自动输出开关（电源图标：节点向正面容器推送）
+- In-place renaming with text field / 内嵌文本框重命名
+- Handheld shortcuts: right-click a node with the terminal to cycle rate; sneak+right-click to toggle mode / 手持快捷操作：终端右击节点循环速率；潜行右击切换模式
+
+**Drilling Hub Status Terminal / 钻井枢纽状态终端**:
+
+<p align="center"><img src="README/HubTerminalDrillingStatus.png" width="400"><br><em>钻井枢纽状态终端 / Drilling Hub Status Terminal</em></p>
+
+- Per-node display: icon, name, tier (Mk1-4), status (running/idle/stopped), coordinates / 每节点显示：图标、名字、等级(Mk1-4)、状态(运行/待机/停止)、坐标
+- Remote start/stop, quick recycle (greyed out until node stops or idles, returns mining pipes), in-GUI upgrades / 远程启停、快捷回收（需节点停止或待机，返还钻管）、UI 内升级
+- In-place renaming; custom names also show in WAILA tooltip and node GUI title / 内嵌重命名；自定义名同步显示在 WAILA 提示与节点 GUI 标题
 
 ***
 
@@ -236,6 +262,7 @@ GTSR 机器专用仓室，具有不同容量和流体过滤：
 
 ## Items / 物品
 
+- **枢纽终端 / Hub Terminal**: Handheld remote management device. Right-click a hub controller to open its status terminal (cache hub / drilling hub); right-click a node to cycle rate, sneak+right-click to toggle mode. Crafted with 1 Steam Entangled Singularity + 8 steel plates. / 手持远程管理设备。右击枢纽控制器打开对应状态终端（缓存枢纽/钻井枢纽）；右击节点循环速率，潜行右击切换模式。1 蒸汽纠缠奇点 + 8 钢板合成。
 - **蒸汽纠缠奇点 / Steam Entangled Singularity**: Core binding material. Produced by Steam Singularity Compressor (heat accumulation). Consumed when binding nodes to hubs and in various crafting recipes.
 - **枢纽奇点芯片 / Hub Singularity Chip**: Required for Steam/Water Hub node binding. Also enables hub debug mode when right-clicked.
 - **强化枢纽奇点芯片 / Reinforced Hub Singularity Chip**: For tier 3 Steam Hub only — enables dense/supercritical steam, ×10 capacity, and overpressure cache node binding.
