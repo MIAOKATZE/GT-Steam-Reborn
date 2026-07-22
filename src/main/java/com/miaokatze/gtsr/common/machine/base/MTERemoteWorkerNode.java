@@ -2,6 +2,7 @@ package com.miaokatze.gtsr.common.machine.base;
 
 import static net.minecraft.util.StatCollector.translateToLocal;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import net.minecraft.entity.player.EntityPlayer;
@@ -11,6 +12,7 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
+import net.minecraft.world.ChunkCoordIntPair;
 import net.minecraft.world.World;
 import net.minecraftforge.common.DimensionManager;
 import net.minecraftforge.common.util.ForgeDirection;
@@ -18,6 +20,7 @@ import net.minecraftforge.common.util.ForgeDirection;
 import com.gtnewhorizons.modularui.api.screen.ModularWindow;
 import com.gtnewhorizons.modularui.api.screen.UIBuildContext;
 import com.gtnewhorizons.modularui.common.widget.SlotWidget;
+import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import com.miaokatze.gtsr.common.machine.MTESingularityDrillingHub;
 
 import gregtech.api.GregTechAPI;
@@ -27,6 +30,7 @@ import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.modularui.IAddUIWidgets;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
+import gregtech.api.objects.GTChunkManager;
 import gregtech.api.render.TextureFactory;
 import gregtech.api.util.GTModHandler;
 
@@ -60,9 +64,52 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity implements IAdd
     // 是否已绑定到枢纽（独立于 mHubDim，避免主世界 dim=0 被误判为未绑定）
     protected boolean mBound = false;
 
+    // 节点自定义名：按原版物品 display.Name NBT 结构对称存储（saveNBTData/setItemNBT/loadNBTData 三处），
+    // 使铁砧改名、物品显示名、破坏保留与机器读取走同一标签，天然互通；空串表示未自定义（UI 回退默认类型名）
+    protected String mCustomName = "";
+
+    public String getCustomName() {
+        return mCustomName == null ? "" : mCustomName;
+    }
+
+    public void setCustomName(String name) {
+        this.mCustomName = name == null ? "" : name;
+    }
+
+    /**
+     * 服务端侧自定义名安全裁剪：剔除 § 颜色码、去首尾空白、截断到 24 字符以内；
+     * 裁剪后为空表示清除自定义名（回退默认名）。防恶意长名/颜色码注入。
+     */
+    public static String sanitizeCustomName(String name) {
+        if (name == null) return "";
+        String cleaned = name.replace("§", "")
+            .trim();
+        if (cleaned.length() > 24) {
+            cleaned = cleaned.substring(0, 24);
+        }
+        return cleaned;
+    }
+
+    /**
+     * GUI 窗口标题：有自定义名时优先显示自定义名，否则回退父类默认本地化名。
+     * 调用链：CommonBaseMetaTileEntity.createWindow → addTitleToUI → getLocalName()（TE 转发到 MTE）。
+     * 注意 MUI1 主窗口在双端各自构建，客户端显示的名字依赖 description packet 同步
+     * （见本类 getDescriptionData/onDescriptionPacket）。
+     */
+    @Override
+    public String getLocalName() {
+        return getCustomName().isEmpty() ? super.getLocalName() : getCustomName();
+    }
+
     protected boolean mIsWorking = false;
     protected int mWorkProgress = 0;
     protected static final int WORK_CYCLE = 20;
+
+    // 区块加载申请标志：运行态即可，不写 NBT——世界重载后 Forge ticket 失效，
+    // 标志随 MetaTileEntity 重建自然复位为 false，首个 postTick 会重新申请
+    // （参照 GT5U MTEDrillerBase 的 mWorkChunkNeedsReload 模式）
+    protected boolean mSelfChunkRequested = false;
+    protected boolean mWorkChunksRequested = false;
 
     public MTERemoteWorkerNode(int aID, String aName, String aNameRegional, int aInvSlotCount) {
         super(aID, aName, aNameRegional, aInvSlotCount);
@@ -107,6 +154,12 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity implements IAdd
         }
         aNBT.setBoolean("mIsWorking", mIsWorking);
         aNBT.setInteger("mWorkProgress", mWorkProgress);
+        // 自定义名：按原版物品 display.Name 结构写入（aNBT → display(compound) → Name(string)），三处对称
+        if (!getCustomName().isEmpty()) {
+            NBTTagCompound displayTag = new NBTTagCompound();
+            displayTag.setString("Name", getCustomName());
+            aNBT.setTag("display", displayTag);
+        }
     }
 
     /**
@@ -130,6 +183,13 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity implements IAdd
         }
         // 保留奇点消耗标记，避免玩家通过破坏→重新放置来重复利用蒸汽纠缠奇点
         aNBT.setBoolean("gtsr.singularity_consumed", true);
+        // 自定义名写入掉落物（原版 display.Name 结构）：物品栏直接显示自定义名，
+        // 铁砧改名走的也是同一标签，重新放置后 loadNBTData 读回，破坏保留天然成立
+        if (!getCustomName().isEmpty()) {
+            NBTTagCompound displayTag = new NBTTagCompound();
+            displayTag.setString("Name", getCustomName());
+            aNBT.setTag("display", displayTag);
+        }
     }
 
     @Override
@@ -157,6 +217,36 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity implements IAdd
         }
         mIsWorking = aNBT.getBoolean("mIsWorking");
         mWorkProgress = aNBT.getInteger("mWorkProgress");
+        // 读取自定义名（null 防御：旧节点无 display 标签时回退空串）。
+        // 物品被铁砧改名后放置，机器 NBT 经此路径自然获得该名字
+        if (aNBT.hasKey("display")) {
+            NBTTagCompound displayTag = aNBT.getCompoundTag("display");
+            mCustomName = displayTag.hasKey("Name") ? displayTag.getString("Name") : "";
+        } else {
+            mCustomName = "";
+        }
+    }
+
+    // ===== 自定义名客户端同步（description packet）=====
+    // GT5U 机制：CommonBaseMetaTileEntity.getDescriptionPacket 调 IMetaTileEntity.getDescriptionData()，
+    // 非 null 返回值作为 "mte" 标签随 S35PacketUpdateTileEntity 发出；客户端 onDataPacket 回调
+    // onDescriptionPacket()。初始区块同步与 issueTileUpdate() 触发的重发都走此链路。
+    // 注意必须始终返回非 null：返回 null 时客户端收不到回调，「清除自定义名」将无法同步到客户端。
+    @Override
+    public NBTTagCompound getDescriptionData() {
+        NBTTagCompound data = super.getDescriptionData();
+        if (data == null) data = new NBTTagCompound();
+        if (!getCustomName().isEmpty()) {
+            data.setString("gtsr.customName", getCustomName());
+        }
+        return data;
+    }
+
+    @Override
+    public void onDescriptionPacket(NBTTagCompound data) {
+        super.onDescriptionPacket(data);
+        // 无 key 表示服务端已清除自定义名，回退空串（GUI 标题恢复默认本地化名）
+        mCustomName = data.hasKey("gtsr.customName") ? data.getString("gtsr.customName") : "";
     }
 
     @Override
@@ -193,8 +283,156 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity implements IAdd
             mRegistered = registerWithHub(aBaseMetaTileEntity);
         }
 
+        updateChunkLoading(aBaseMetaTileEntity);
+
         aBaseMetaTileEntity.setActive(mIsWorking);
         mIsWorking = false;
+    }
+
+    @Override
+    public void onRemoval() {
+        // 节点被移除时释放全部区块加载 ticket，避免残留强制加载
+        releaseAllChunks();
+        super.onRemoval();
+    }
+
+    /**
+     * 区块加载维护（服务端每 tick 调用）：已绑定且允许工作时，按当前等级范围申请
+     * 自身区块与工作区块；不再允许工作时释放全部 ticket。
+     * 注意：子类若覆写 onPostTick 且不调用 super.onPostTick，需自行调用本方法。
+     */
+    protected void updateChunkLoading(IGregTechTileEntity aBaseMetaTileEntity) {
+        if (isBound() && aBaseMetaTileEntity.isAllowedToWork()) {
+            if (!mSelfChunkRequested) {
+                requestSelfChunk();
+            }
+            if (!mWorkChunksRequested) {
+                requestWorkChunks();
+            }
+        } else if (mSelfChunkRequested || mWorkChunksRequested) {
+            releaseAllChunks();
+        }
+    }
+
+    /**
+     * 申请加载节点自身所在区块。GTChunkManager 中 chunk 参数传 null 即表示自身区块
+     * （仅在 GT 配置 alwaysReloadChunkloaders 开启时实际生效，用于跨重启持久化）；
+     * 一般情况下自身区块由 requestWorkChunks 的范围覆盖，本调用作为额外保险。
+     */
+    protected void requestSelfChunk() {
+        GTChunkManager.requestChunkLoad((TileEntity) getBaseMetaTileEntity(), null);
+        mSelfChunkRequested = true;
+    }
+
+    /**
+     * 申请加载当前工作范围覆盖的全部区块，具体范围由 collectWorkChunks 钩子收集。
+     */
+    protected void requestWorkChunks() {
+        List<ChunkCoordIntPair> chunks = new ArrayList<>();
+        collectWorkChunks(chunks);
+        TileEntity te = (TileEntity) getBaseMetaTileEntity();
+        for (ChunkCoordIntPair chunk : chunks) {
+            GTChunkManager.requestChunkLoad(te, chunk);
+        }
+        mWorkChunksRequested = true;
+    }
+
+    /**
+     * 收集当前工作范围覆盖的区块坐标。默认实现：以节点所在区块为中心、
+     * getWorkChunkRadius() 为半径的正方形区域。
+     * 工作范围不符合「中心+半径」模型的子类（如钻井节点从所在区块向正方向 range×range）
+     * 应覆写本方法而非 getWorkChunkRadius()。
+     */
+    protected void collectWorkChunks(List<ChunkCoordIntPair> out) {
+        IGregTechTileEntity te = getBaseMetaTileEntity();
+        int centerChunkX = te.getXCoord() >> 4;
+        int centerChunkZ = te.getZCoord() >> 4;
+        int chunkRadius = getWorkChunkRadius();
+        for (int x = centerChunkX - chunkRadius; x <= centerChunkX + chunkRadius; x++) {
+            for (int z = centerChunkZ - chunkRadius; z <= centerChunkZ + chunkRadius; z++) {
+                out.add(new ChunkCoordIntPair(x, z));
+            }
+        }
+    }
+
+    /**
+     * 当前工作范围对应的 chunk 半径（以节点所在区块为中心）。基类默认 0（仅自身区块），
+     * 子类按各自等级对应的工作范围覆写。
+     */
+    protected int getWorkChunkRadius() {
+        return 0;
+    }
+
+    /**
+     * 释放本节点持有的全部区块加载 ticket，并复位申请标志，
+     * 使下一 tick 的 updateChunkLoading 可按需重新申请。
+     * public：枢纽快捷回收节点时需跨包调用（hub 在 machine 包，本类在 machine.base 包）。
+     */
+    public void releaseAllChunks() {
+        GTChunkManager.releaseTicket((TileEntity) getBaseMetaTileEntity());
+        mSelfChunkRequested = false;
+        mWorkChunksRequested = false;
+    }
+
+    /**
+     * 节点是否已完全停止（允许快捷回收的判定条件）。
+     * 基类默认实现：不再允许工作即视为完全停止；
+     * 有采矿管道的子类应覆写本方法，追加「管道全部收回」条件。
+     */
+    public boolean isFullyRetracted() {
+        IGregTechTileEntity base = getBaseMetaTileEntity();
+        return base == null || !base.isAllowedToWork();
+    }
+
+    /**
+     * 节点当前是否允许快捷回收（枢纽状态 UI 回收按钮的判定条件，放宽自 isFullyRetracted）：
+     * 「停止（不允许工作）或待机（未在实际工作）」即可回收，不再要求管道全部收回——
+     * 未收回的管道由回收流程调用 clearDeployedPipesAndReturnCount 立即清除并折算返还。
+     */
+    public boolean isRecyclableNow() {
+        IGregTechTileEntity base = getBaseMetaTileEntity();
+        return (base == null || !base.isAllowedToWork()) || !isActivelyWorking();
+    }
+
+    /**
+     * 立即清除本节点在世界中已部署的采矿管道方块，返回清除的段数
+     * （由枢纽回收流程按段数折算为 IC2 miningPipe 物品返还玩家）。
+     * 默认实现：无世界管道的节点返回 0；有管道的子类（采矿/钻井节点）覆写本方法。
+     */
+    public int clearDeployedPipesAndReturnCount() {
+        return 0;
+    }
+
+    /**
+     * 尝试升级节点（消耗玩家背包物品）。基类默认不支持升级，返回 false；
+     * 支持升级的子类覆写本方法实现具体升级逻辑。
+     */
+    public boolean tryUpgrade(EntityPlayer player) {
+        return false;
+    }
+
+    /**
+     * 取出节点背包中全部采矿管道（枢纽快捷回收用），取出后对应槽位清空。
+     * 返回的列表可能为空，但不会为 null。
+     */
+    public List<ItemStack> drainStoredMiningPipes() {
+        List<ItemStack> pipes = new ArrayList<>();
+        for (int i = 0; i < mInventory.length; i++) {
+            ItemStack stack = mInventory[i];
+            if (isMiningPipe(stack) && stack.stackSize > 0) {
+                pipes.add(stack.copy());
+                mInventory[i] = null;
+            }
+        }
+        return pipes;
+    }
+
+    /**
+     * 等级变化钩子（升级成功后调用）：释放旧范围 ticket 并复位标志，
+     * 下一 tick 的 updateChunkLoading 会按新范围重新申请工作区块。
+     */
+    public void onTierChanged() {
+        releaseAllChunks();
     }
 
     @Override
@@ -252,7 +490,8 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity implements IAdd
 
     @Override
     public int getGUIHeight() {
-        return 182;
+        // 194 = 原 182 + 12：为节点 GUI 底部「枢纽远程管理提示」文本行腾出空间
+        return 194;
     }
 
     @Override
@@ -263,6 +502,17 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity implements IAdd
             builder.widget(new SlotWidget(inventoryHandler, i).setPos(106 + (i - 1) * 18, 24));
         }
         addDisplayTexts(builder);
+
+        // 底部固定提示：告知玩家可在枢纽端远程管理本节点（手持枢纽终端右击枢纽打开状态界面）
+        // 位置说明：getGUIHeight 加高到 194 后，玩家背包区下移至 y=111，显示文本区最末行（y=88）与背包区
+        // 之间留出 y≈99~108 单行空档；窗口宽 176，x=7 起可用约 162px。
+        // 文案按 0.75 缩放适配单行：中文全文案 21 字×9px×0.75≈142px，英文精简文案 35 字符×6px×0.75≈158px，均不溢出换行。
+        builder.widget(
+            new TextWidget()
+                .setStringSupplier(() -> EnumChatFormatting.GOLD + translateToLocal("gtsr.gui.node.hub_status_hint"))
+                .setDefaultColor(0xFFFFFFFF)
+                .setScale(0.75f)
+                .setPos(7, 101));
     }
 
     protected void addDisplayTexts(ModularWindow.Builder builder) {}

@@ -295,6 +295,9 @@ item.HubSingularityChip.name=Hub Singularity Upgrade Chip
 # Reinforced Hub Singularity Chip
 item.ReinforcedHubSingularityChip.name=Reinforced Hub Singularity Upgrade Chip
 
+# Hub Terminal
+item.HubTerminal.name=Hub Terminal
+
 # Overpressure Steam Cache Node
 gt.blockmachines.gtsr.overpressure.steam.cache.node.name=Overpressure Steam Cache Node
 gtsr.tooltip.overpressure_steam_cache_node.fluid_type=All Steam Types
@@ -357,9 +360,11 @@ gtsr.binding.overpressure_no_reinforced_chip=Overpressure Cache Node requires Re
 # Cache Node Screwdriver
 gtsr.cache_node.need_bind_first=Need to bind hub node first
 gtsr.cache_node.transfer_rate=Transfer Rate:
+gtsr.cache_node.mode_output_now=Mode switched: Output (Node -> Hub)
+gtsr.cache_node.mode_input_now=Mode switched: Input (Hub -> Node)
 gtsr.tooltip.cache_node.base_transfer_rate=Base Hub Transfer Rate:
 gtsr.tooltip.cache_node.screwdriver_adjust=Right-click with Hub Singularity Chip or Reinforced Hub Singularity Chip to adjust hub transfer rate
-gtsr.tooltip.cache_node.chip_adjust=Right-click with Hub Singularity Chip or Reinforced Hub Singularity Chip to adjust hub transfer rate
+gtsr.tooltip.cache_node.chip_adjust=Right-click with Hub Terminal to cycle transfer rate; sneak-right-click to switch input/output mode
 gtsr.binding.no_cache_node=Held item is not a cache node
 gtsr.binding.wrong_type=Cache node type does not match this hub
 gtsr.binding.debug_title=Hub Binding Debug
@@ -392,9 +397,9 @@ gtsr.tooltip.singularity_drilling_hub.output_hatch=Fluid Output Hatch
 gt.blockmachines.gtsr.singularity.miner.node.name=Singularity Miner Node
 gtsr.tooltip.miner_node.desc=Steam-driven remote mining node, auto-mines when bound to Singularity Drilling Hub
 gtsr.tooltip.miner_node.range=Mining Range:
-gtsr.tooltip.miner_node.range_base=Base 24x24 / Enhanced I 48x48 / Enhanced II 64x64 / Enhanced III 96x96
+gtsr.tooltip.miner_node.range_base=Base 28x28 / Enhanced I 48x48 / Enhanced II 64x64 / Enhanced III 96x96
 gtsr.tooltip.miner_node.fortune=Fortune Level:
-gtsr.tooltip.miner_node.fortune_base=Base Normal II/Small V / I Normal III/Small V / II Normal IV/Small VI / III Normal V/Small VII
+gtsr.tooltip.miner_node.fortune_base=Base V / Enhanced I V / Enhanced II VI / Enhanced III VII (same for normal & small ores)
 gtsr.tooltip.miner_node.requires_pipe=Requires Mining Pipe to operate
 gtsr.tooltip.miner_node.upgrade_title=Upgrade Mechanism:
 gtsr.tooltip.miner_node.upgrade_desc=Enhanced I: Ore Drill I+16 Singularity | Enhanced II: Ore Drill II+32 Singularity | Enhanced III: Ore Drill III+64 Singularity
@@ -424,12 +429,55 @@ gtsr.tooltip.singularity_hub.node_cost_desc=Node Cost L/s (Drill: 2,000~20,000, 
 gtsr.gui.miner_node.tier=Tier:
 gtsr.gui.miner_node.base=Base
 gtsr.gui.miner_node.enhanced=Enhanced
+gtsr.gui.miner_node.max_tier=Already at max tier
+gtsr.gui.miner_node.need_drill=Required Ore Drilling Plant not found in inventory
+gtsr.gui.miner_node.need_singularity=Not enough Steam Entangled Singularities, need:
+gtsr.gui.miner_node.upgrade_success=Upgrade successful! Current tier: Enhanced
+gtsr.gui.miner_node.crushed_mode=Crushed Mode
+gtsr.gui.miner_node.crushed_mode.on=ON
+gtsr.gui.miner_node.crushed_mode.off=OFF
+gtsr.gui.drilling_node.max_tier=Already at max tier
+gtsr.gui.drilling_node.need_drill=Required Oil Drilling Rig not found in inventory
+gtsr.gui.node_upgrade.tooltip.title=Upgrade Node
+gtsr.gui.node_upgrade.tooltip.next=Next Tier:
+gtsr.gui.node_upgrade.tooltip.max=Max tier reached
+gtsr.gui.node_upgrade.tooltip.drill=Required:
+gtsr.gui.node_upgrade.tooltip.singularity=Steam Entangled Singularity x
+gtsr.node.miner.crushed_mode.on=Crushed ore mode ON: normal ores output 3x crushed ore
+gtsr.node.miner.crushed_mode.off=Crushed ore mode OFF
+gtsr.tooltip.miner_node.crushed_mode_hint=Screwdriver right-click toggles crushed ore mode: normal ores output 3x crushed ore
 
 # Drilling Hub Debug
 gtsr.drilling.debug_title=Drilling Hub Binding Debug
 gtsr.drilling.node_miner=Miner Node
 gtsr.drilling.node_driller=Driller Node
 gtsr.drilling.no_pipes=Insufficient Mining Pipes
+
+# Hub Status UI (Modern UI 2, right-click hub holding a Hub Terminal)
+gtsr.gui.node.hub_status_hint=Right-click hub holding a Hub Terminal
+gtsr.hub_status.title=Hub Node Status
+gtsr.hub_status.empty=No bound nodes
+gtsr.hub_status.start=Start Working
+gtsr.hub_status.stop=Stop Working
+gtsr.hub_status.recycle=Quick Recycle: outputs pipes and node (with binding NBT) to the output bus
+gtsr.hub_status.recycle_disabled=Quick Recycle unavailable: node has not fully stopped
+gtsr.hub_status.recycle_need_stop=Node must be fully stopped or in standby to recycle
+gtsr.hub_status.upgrade=Upgrade Node (consumes items from inventory)
+gtsr.hub_status.recycle_fail=Recycle failed: node not found or not fully stopped
+gtsr.hub_status.status.stopped=Stopped
+gtsr.hub_status.rename=Rename Node
+gtsr.hub_status.rename_hint=Enter a new node name (leave empty to reset to default)
+gtsr.cache_hub_status.title.steam=Steam Hub Cache Node Status
+gtsr.cache_hub_status.title.water=Water Hub Cache Node Status
+gtsr.cache_hub_status.mode_tip_output=Output mode: Node -> Hub (click to switch)
+gtsr.cache_hub_status.mode_tip_input=Input mode: Hub -> Node (click to switch)
+gtsr.cache_hub_status.rate_tip=Cycle hub transfer rate (100 -> 80 -> ... -> 0%)
+gtsr.cache_hub_status.auto_on=Auto Output:ON
+gtsr.cache_hub_status.auto_off=Auto Output:OFF
+gtsr.cache_hub_status.auto_tip=Toggle auto fluid output to the adjacent container on the front face
+gtsr.cache_hub_status.no_fluid=Empty
+gtsr.cache_hub_status.offline=[Offline]
+gtsr.cache_hub_status.unknown_node=Unknown Node
 
 # Node Status Messages
 gtsr.node.status.ok=Running
@@ -681,6 +729,7 @@ gtsr.tooltip.siemens_martin.desc=A new era of mass steelmaking blast furnace: re
 gtsr.tooltip.singularity_hub.type=Singularity Drilling Hub, SDH
 gtsr.tooltip.singularity_hub.desc=A marvel of the steam age: based on steam-entangled singularities, creations of the steam age can reach every corner of the world, extracting all needed resources.
 gtsr.tooltip.singularity_hub.superheated_required=Requires Superheated Steam (no speed boost)
+gtsr.tooltip.singularity_hub.hint_status=Right-click controller holding a Hub Terminal to open the node status UI
 
 # Steam Fluid Drill (SFD)
 gtsr.tooltip.fluid_drill.type=Steam Fluid Drill, SFD
@@ -716,6 +765,7 @@ gtsr.tooltip.steam_hub.storage=Hub Storage Unit(T1 only)/Reinforced Hub Storage 
 gtsr.tooltip.steam_hub.hint_tier1=T1: Bronze Casing+Bronze Pipe+Bronze Gearbox+Bronze Frame+Hub Storage Unit
 gtsr.tooltip.steam_hub.hint_tier2=T2: Steel Casing+Steel Pipe+Steel Gearbox+Steel Frame+Reinforced Hub Storage Unit
 gtsr.tooltip.steam_hub.hint_tier3=T3: TungstenSteel Casing+TungstenSteel Pipe+TungstenSteel Frame+Overpressure Hub Storage Unit (Reinforced Chip T3 only)
+gtsr.tooltip.steam_hub.hint_status=Right-click controller holding a Hub Terminal to open the cache node status UI
 
 # Steam Singularity Compressor (SSC)
 gtsr.tooltip.singularity_compressor.type=Steam Singularity Compressor, SSC
@@ -739,6 +789,7 @@ gtsr.tooltip.water_hub.hub_output=Water Hub Output Hatch
 gtsr.tooltip.water_hub.storage=Hub Storage Unit(T1 only)/Reinforced Hub Storage Unit(T2 only)
 gtsr.tooltip.water_hub.hint_tier1=T1: Bronze Casing+Bronze Pipe+Bronze Gearbox+Bronze Frame+Hub Storage Unit
 gtsr.tooltip.water_hub.hint_tier2=T2: Steel Casing+Steel Pipe+Steel Gearbox+Steel Frame+Reinforced Hub Storage Unit
+gtsr.tooltip.water_hub.hint_status=Right-click controller holding a Hub Terminal to open the cache node status UI
 
 # Gear Steam Compressor (GSC)
 gtsr.tooltip.gear_compressor.type=Gear Steam Compressor, GSC
@@ -1047,5 +1098,6 @@ gtsr.tooltip.catalyst.ammonia.feco=Parallel: 256 | Time: 16s
 gtsr.tooltip.catalyst.ammonia.ruthenium=Parallel: 256 | Time: 8s
 gtsr.tooltip.catalyst.ammonia.quantum=Parallel: 256 | Time: 1s
 gtsr.tooltip.singularity.desc=Steam Entangled Singularity, used for crafting advanced components and machines
+gtsr.tooltip.hub_terminal.desc=Right-click a Hub to open its Terminal; right-click a Cache Node to cycle rate, sneak-right-click to switch mode
 gtsr.tooltip.added_by=Added by:
 gtsr.recipe.gear_steam_compressor=Gear Steam Compressor

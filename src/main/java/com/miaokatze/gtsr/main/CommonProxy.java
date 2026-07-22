@@ -1,6 +1,7 @@
 package com.miaokatze.gtsr.main;
 
 import com.miaokatze.gtsr.Tags;
+import com.miaokatze.gtsr.common.crossmod.waila.GTSRWailaCompat;
 import com.miaokatze.gtsr.config.Config;
 import com.miaokatze.gtsr.loader.GTSRRecipeLoader;
 import com.miaokatze.gtsr.loader.ItemLoader;
@@ -67,6 +68,18 @@ public class CommonProxy {
         GTSteamReborn.LOG.info(
             "[2/3] 创造模式物品栏初始化完成，当前包含 " + CreativeTabManager.getItemsToAdd()
                 .size() + " 个物品。");
+
+        // 注册钻井枢纽状态界面的 MUI2 factory（双端均需注册，ClientProxy.init 会调用本方法）
+        com.cleanroommc.modularui.factory.GuiManager
+            .registerFactory(com.miaokatze.gtsr.common.gui.HubStatusGuiFactory.INSTANCE);
+        // 注册蒸汽/蓄水枢纽缓存节点状态界面的 MUI2 factory（手持枢纽终端右击打开）
+        com.cleanroommc.modularui.factory.GuiManager
+            .registerFactory(com.miaokatze.gtsr.common.gui.SteamHubStatusGuiFactory.INSTANCE);
+        com.cleanroommc.modularui.factory.GuiManager
+            .registerFactory(com.miaokatze.gtsr.common.gui.WaterHubStatusGuiFactory.INSTANCE);
+
+        // Waila 跨 mod 兼容：注册节点自定义名 WAILA 头部显示（Waila 缺失时为空操作，详见 GTSRWailaCompat）
+        GTSRWailaCompat.init();
     }
 
     /**

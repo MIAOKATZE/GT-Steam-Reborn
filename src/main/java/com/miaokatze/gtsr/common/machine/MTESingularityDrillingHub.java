@@ -54,6 +54,7 @@ import gregtech.api.recipe.check.CheckRecipeResult;
 import gregtech.api.recipe.check.CheckRecipeResultRegistry;
 import gregtech.api.structure.error.StructureError;
 import gregtech.api.structure.error.StructureErrorRegistry;
+import gregtech.api.util.GTModHandler;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.MultiblockTooltipBuilder;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTEHatchCustomFluidBase;
@@ -389,6 +390,18 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
         float aX, float aY, float aZ) {
         ItemStack held = aPlayer.getHeldItem();
 
+        // 手持枢纽终端右击：打开专属本枢纽的节点状态管理界面（Modern UI 2），
+        // 不走芯片调试、不触发节点绑定，也不占用空手右键（空手右键仍打开普通机器 GUI）。
+        // 注：原「空手+潜行」方案不可行——GT BaseMetaTileEntity 在潜行时拦截右击（用于贴墙放方块），
+        // 本 MTE 的 onRightclick 根本收不到该事件，故改用持物右击方案。
+        // 注2：旧方案为手持蒸汽纠缠奇点右击，现已改由枢纽终端承担（奇点回归纯合成材料）。
+        if (held != null && GTSRItemList.HubTerminal.isStackEqual(held, false, true)) {
+            if (aBaseMetaTileEntity.isServerSide()) {
+                openHubStatusGui(aPlayer);
+            }
+            return true;
+        }
+
         if (held != null && GTSRItemList.HubSingularityChip.isStackEqual(held, true, true)) {
             if (aBaseMetaTileEntity.isServerSide()) {
                 sendBindingDebug(aPlayer);
@@ -599,6 +612,158 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
         addOutputPartial(stack);
     }
 
+    /**
+     * 打开节点状态管理界面（Modern UI 2）。必须在服务端调用，
+     * 实际打开逻辑委托给 HubStatusGuiFactory（独立 MUI2 factory，不影响主 GUI 的 MUI2 路径）。
+     */
+    public void openHubStatusGui(EntityPlayer player) {
+        com.miaokatze.gtsr.common.gui.HubStatusGuiFactory.open(player, this);
+    }
+
+    /**
+     * 按坐标解析绑定节点对应的 MTERemoteWorkerNode 实例；世界未加载、方块不存在
+     * 或目标不是远程工作节点时返回 null。
+     */
+    private MTERemoteWorkerNode resolveWorkerNode(int x, int y, int z, int dim) {
+        World world = DimensionManager.getWorld(dim);
+        if (world == null || !world.blockExists(x, y, z)) return null;
+        TileEntity te = world.getTileEntity(x, y, z);
+        if (te instanceof IGregTechTileEntity gte && gte.getMetaTileEntity() instanceof MTERemoteWorkerNode node) {
+            return node;
+        }
+        return null;
+    }
+
+    /**
+     * 序列化当前绑定节点列表（供状态 UI 同步显示）。
+     * 每项含：坐标/维度/类型/tier/工作状态(working)/是否允许工作(allowed)/
+     * 是否完全停止(retractable)/是否可回收(recyclable，停止或待机即可)。
+     */
+    public NBTTagList getNodeListTag() {
+        NBTTagList list = new NBTTagList();
+        for (BoundDrillNode node : mBoundNodes) {
+            NBTTagCompound tag = new NBTTagCompound();
+            tag.setInteger("x", node.x);
+            tag.setInteger("y", node.y);
+            tag.setInteger("z", node.z);
+            tag.setInteger("dim", node.dimensionId);
+            tag.setBoolean("isMiner", node.isMiner);
+            tag.setInteger("tier", resolveNodeTier(node));
+            tag.setBoolean("working", resolveNodeWorking(node));
+            MTERemoteWorkerNode worker = resolveWorkerNode(node.x, node.y, node.z, node.dimensionId);
+            boolean allowed = false;
+            boolean retractable = false;
+            if (worker != null && worker.getBaseMetaTileEntity() != null) {
+                allowed = worker.getBaseMetaTileEntity()
+                    .isAllowedToWork();
+                retractable = worker.isFullyRetracted();
+            }
+            tag.setBoolean("allowed", allowed);
+            tag.setBoolean("retractable", retractable);
+            // 回收按钮可用状态：停止或待机即可回收；离线节点（worker 解析不到）不可回收
+            tag.setBoolean("recyclable", worker != null && worker.isRecyclableNow());
+            // 节点自定义名（无则为空串，客户端回退显示默认类型名）
+            tag.setString("name", worker != null ? worker.getCustomName() : "");
+            list.appendTag(tag);
+        }
+        return list;
+    }
+
+    /**
+     * 状态 UI 远程开始/停止节点：直接切换节点底座的 allowedToWork 标志，
+     * 节点 onPostTick 的边沿监听会完成软禁用/复位；同步更新绑定缓存的 isActive 标志。
+     */
+    public void setNodeActiveFromGui(int x, int y, int z, int dim, boolean active) {
+        MTERemoteWorkerNode node = resolveWorkerNode(x, y, z, dim);
+        if (node == null) return;
+        IGregTechTileEntity base = node.getBaseMetaTileEntity();
+        if (base == null) return;
+        if (active) {
+            base.enableWorking();
+        } else {
+            base.disableWorking();
+        }
+        BoundDrillNode bound = findBoundNode(x, y, z, dim);
+        if (bound != null) {
+            bound.isActive = active;
+        }
+    }
+
+    /**
+     * 状态 UI 远程升级节点（消耗玩家背包物品），返回是否升级成功。
+     */
+    public boolean upgradeNodeFromGui(EntityPlayer player, int x, int y, int z, int dim) {
+        MTERemoteWorkerNode node = resolveWorkerNode(x, y, z, dim);
+        return node != null && node.tryUpgrade(player);
+    }
+
+    /**
+     * 状态 UI 重命名节点：名字在服务端做安全裁剪（剔 §/去首尾空白/≤24 字符），
+     * 裁剪后为空表示清除自定义名（UI 回退默认类型名）。
+     * 名字变化由 nodeList 每 tick 变化检测自动同步到枢纽状态 UI 客户端；
+     * 节点方块自身（GUI 标题/Waila）另经 issueTileUpdate 触发 description packet 同步。
+     */
+    public void renameNodeFromGui(int x, int y, int z, int dim, String name) {
+        MTERemoteWorkerNode node = resolveWorkerNode(x, y, z, dim);
+        if (node == null) return;
+        node.setCustomName(MTERemoteWorkerNode.sanitizeCustomName(name));
+        // 触发节点 TE 重同步（S35 description packet），客户端 MTE 拿到新自定义名以更新 GUI 标题
+        if (node.getBaseMetaTileEntity() != null) {
+            node.getBaseMetaTileEntity()
+                .issueTileUpdate();
+        }
+    }
+
+    /**
+     * 状态 UI 快捷回收节点：允许「停止（不允许工作）或待机（未在实际工作）」的节点。
+     * 流程：构造带 NBT 的节点本体 + 收集背包中已收回的采矿管道 + 立即清除世界中
+     * 未收回的管道并按段数折算为 miningPipe 物品 → 从输出总线推出 →
+     * 释放区块加载 → 世界中移除节点方块（不掉落，本体已手动输出）→ 注销绑定缓存。
+     */
+    public boolean recycleNodeFromGui(int x, int y, int z, int dim) {
+        MTERemoteWorkerNode node = resolveWorkerNode(x, y, z, dim);
+        if (node == null || !node.isRecyclableNow()) return false;
+        IGregTechTileEntity base = node.getBaseMetaTileEntity();
+        if (base == null) return false;
+        World world = base.getWorld();
+        if (world == null) return false;
+
+        // 1. 构造节点本体物品：与 BaseMetaTileEntity.getDrops() 相同的构造方式
+        // （sBlockMachines + metaTileID），setItemNBT 会写入 gtsr.hubPos 绑定信息
+        // 与 singularity_consumed 标记，玩家重新放置后仍绑定本枢纽
+        ItemStack nodeStack = new ItemStack(GregTechAPI.sBlockMachines, 1, base.getMetaTileID());
+        NBTTagCompound itemTag = new NBTTagCompound();
+        node.setItemNBT(itemTag);
+        if (!itemTag.hasNoTags()) {
+            nodeStack.setTagCompound(itemTag);
+        }
+
+        // 2. 收集节点背包中已收回的采矿管道
+        List<ItemStack> pipes = node.drainStoredMiningPipes();
+
+        // 2.5. 立即清除世界中未收回的管道段，按段数折算为 miningPipe 物品一并返还
+        // （须在移除节点方块之前调用，此时节点底座与世界句柄仍有效；仅服务端实际改世界）
+        int worldPipes = node.clearDeployedPipesAndReturnCount();
+        ItemStack worldPipeStack = worldPipes > 0 ? GTModHandler.getIC2Item("miningPipe", worldPipes) : null;
+
+        // 3. 从输出总线推出。addOutputPartial 不提供容量预检，放不下的部分会被销毁，
+        // 因此假定总线有足够空间（与节点正常产出推送同一语义）
+        pushNodeItemOutput(nodeStack);
+        for (ItemStack pipe : pipes) {
+            pushNodeItemOutput(pipe);
+        }
+        // getIC2Item 在 IC2 缺失时可能返回 null，判空防御
+        if (worldPipeStack != null) {
+            pushNodeItemOutput(worldPipeStack);
+        }
+
+        // 4. 释放该节点持有的全部区块加载 ticket，再移除世界中的节点方块并注销绑定
+        node.releaseAllChunks();
+        world.setBlockToAir(x, y, z);
+        unregisterCacheNode(x, y, z, dim);
+        return true;
+    }
+
     public boolean isMachineRunning() {
         return mMachine && getBaseMetaTileEntity().isAllowedToWork();
     }
@@ -716,6 +881,7 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
             .addStructureHint("gtsr.tooltip.shared.no_maintenance")
             .addStructureHint("gtsr.tooltip.singularity_hub.hint_node")
             .addStructureHint("gtsr.tooltip.singularity_hub.hint_chunk")
+            .addStructureHint("gtsr.tooltip.singularity_hub.hint_status")
             .addStructureHint("gtsr.tooltip.shared.hub_singularity_cost")
             .toolTipFinisher(
                 EnumChatFormatting.AQUA + "GT"

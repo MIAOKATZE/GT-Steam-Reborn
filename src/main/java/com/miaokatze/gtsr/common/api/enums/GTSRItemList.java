@@ -77,6 +77,7 @@ public enum GTSRItemList implements IItemContainer {
     OverpressureTurbineInputHatch,
     OverpressureHubStorageUnit,
     MegaAirInputHatch,
+    HubTerminal,
 
     ;
 
