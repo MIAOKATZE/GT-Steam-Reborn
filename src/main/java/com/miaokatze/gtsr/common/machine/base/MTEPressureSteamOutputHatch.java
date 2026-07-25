@@ -74,7 +74,7 @@ public class MTEPressureSteamOutputHatch extends MTESteamOutputHatch {
         if (aFluid == null) return 0;
         if (!GTModHandler.isSteam(aFluid)
             && !"ic2superheatedsteam".equals(FluidRegistry.getFluidName(aFluid.getFluid()))) return 0;
-        return super.fill(side, aFluid, doFill);
+        return fillHatchOutput(side, aFluid, doFill);
     }
 
     @Override

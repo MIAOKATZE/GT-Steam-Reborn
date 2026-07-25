@@ -247,6 +247,7 @@ gtsr.gui.geothermal_boiler.recipe_detail=1000mb Lava → 1 Obsidian + 2 Sulfur D
 gtsr.gui.geothermal_boiler.chip_tier2_warn=⚠ Overheat Chip requires Tier 2 (Steel)
 gtsr.gui.geothermal_boiler.calcification=Calcification: 
 gtsr.gui.geothermal_boiler.clear_calcification=Click to clear calcification
+gtsr.chat.calcification_cleared=Calcification cleared
 
 # Geothermal Boiler Tooltip
 gtsr.tooltip.geothermal_boiler.2=Base Recipe: 1000mb Lava → 1 Obsidian + 2 Sulfur Dust (100 ticks)
@@ -873,6 +874,7 @@ gtsr.tooltip.geothermal_boiler.heat=Heat system: heats up while running, cools d
 gtsr.tooltip.geothermal_boiler.water_info=Requires water input to produce steam (1mB water = 160L steam). Distilled water prevents calcification.
 gtsr.tooltip.geothermal_boiler.calcification=Continuous operation causes calcification deposits in heat exchange tubes, gradually reducing steam output (up to 70% reduction).
 gtsr.tooltip.geothermal_boiler.calcification_d=Using distilled water as working medium can prevent calcification.
+gtsr.tooltip.geothermal_boiler.clear_calcification_hint=Shift-right-click the controller with empty hand to clear calcification
 gtsr.tooltip.geothermal_boiler.chip_info=Install Geothermal Overheat Chip in controller slot (steel tier only) to switch to superheated steam output.
 gtsr.tooltip.geothermal_boiler.byproduct=Obsidian and sulfur dust can be obtained from cooled lava during the reaction process.
 gtsr.tooltip.geothermal_boiler.recipe=Base Recipe: 1000mb Lava -> 1 Obsidian + 2 Sulfur Dust (100 ticks)
@@ -885,6 +887,7 @@ gtsr.tooltip.solar_array.desc=Uses solar energy to heat water medium and produce
 gtsr.tooltip.solar_array.desc2=Output efficiency is affected by sunlight intensity and weather; temperature drops at night and during bad weather, significantly reducing efficiency.
 gtsr.tooltip.solar_array.calcification=Continuous operation causes calcification deposits in heat pipes, gradually reducing conversion efficiency.
 gtsr.tooltip.solar_array.calcification_d=Using distilled water as working medium can prevent calcification.
+gtsr.tooltip.solar_array.clear_calcification_hint=Shift-right-click the controller with empty hand to clear calcification
 gtsr.tooltip.solar_array.steam_output=Steam Output
 gtsr.tooltip.solar_array.tier_bronze=Bronze
 gtsr.tooltip.solar_array.tier_steel=Steel

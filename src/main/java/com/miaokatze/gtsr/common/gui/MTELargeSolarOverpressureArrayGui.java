@@ -12,14 +12,12 @@ import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.value.sync.DoubleSyncValue;
 import com.cleanroommc.modularui.value.sync.IntSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
-import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.cleanroommc.modularui.widgets.ListWidget;
 import com.gtnewhorizon.gtnhlib.util.numberformatting.NumberFormatUtil;
 import com.miaokatze.gtsr.common.machine.MTELargeSolarOverpressureArray;
 
 import gregtech.api.enums.ItemList;
 import gregtech.api.metatileentity.implementations.MTEEnhancedMultiBlockBase;
-import gregtech.api.modularui2.GTGuiTextures;
 import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
 
 public class MTELargeSolarOverpressureArrayGui extends MTEMultiBlockBaseGui<MTEEnhancedMultiBlockBase<?>> {
@@ -110,26 +108,7 @@ public class MTELargeSolarOverpressureArrayGui extends MTEMultiBlockBaseGui<MTEE
     @Override
     public ModularPanel build(com.cleanroommc.modularui.factory.PosGuiData guiData, PanelSyncManager syncManager,
         com.cleanroommc.modularui.screen.UISettings uiSettings) {
-        ModularPanel panel = super.build(guiData, syncManager, uiSettings);
-        panel.child(
-            new ButtonWidget<>().size(16, 16)
-                .left(174)
-                .top(91)
-                .onMousePressed(mouseButton -> {
-                    if (mouseButton == 0) {
-                        solarArray.mCalcification = 0;
-                        solarArray.mRunningTicks = 0;
-                    }
-                    return true;
-                })
-                .overlay(GTGuiTextures.OVERLAY_BUTTON_MACHINEMODE_WASHPLANT)
-                .background(GTGuiTextures.BUTTON_STANDARD)
-                .tooltipBuilder(
-                    t -> t.addLine(
-                        EnumChatFormatting.WHITE
-                            + StatCollector.translateToLocal("gtsr.gui.solar_array.clear_calcification")
-                            + EnumChatFormatting.RESET)));
-        return panel;
+        return super.build(guiData, syncManager, uiSettings);
     }
 
     private float calculateSolarBooster() {

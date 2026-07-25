@@ -18,6 +18,7 @@ import java.util.List;
 import javax.annotation.Nullable;
 
 import net.minecraft.block.Block;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
@@ -41,6 +42,7 @@ import com.gtnewhorizons.modularui.common.widget.DynamicPositionedColumn;
 import com.gtnewhorizons.modularui.common.widget.FakeSyncWidget;
 import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
+import com.miaokatze.gtsr.api.IShiftRightClickDecalcifiable;
 import com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.gui.MTELargeGeothermalSteamBoilerGui;
@@ -67,6 +69,7 @@ import gregtech.api.structure.error.StructureError;
 import gregtech.api.structure.error.StructureErrorRegistry;
 import gregtech.api.util.GTModHandler;
 import gregtech.api.util.GTOreDictUnificator;
+import gregtech.api.util.GTUtility;
 import gregtech.api.util.IGTHatchAdder;
 import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.common.blocks.BlockCasings1;
@@ -74,7 +77,7 @@ import gregtech.common.blocks.BlockCasings2;
 import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
 
 public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTELargeGeothermalSteamBoiler>
-    implements IConstructable, ISurvivalConstructable {
+    implements IConstructable, ISurvivalConstructable, IShiftRightClickDecalcifiable {
 
     private static final String STRUCTURE_PIECE_MAIN = "main";
     private static final int HORIZONTAL_OFF_SET = 3;
@@ -660,6 +663,20 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
         return new MTELargeGeothermalSteamBoilerGui(this);
     }
 
+    @Override
+    public boolean onShiftRightClick(EntityPlayer aPlayer, ForgeDirection side, float aX, float aY, float aZ) {
+        if (!getBaseMetaTileEntity().isServerSide()) return true;
+        if (mCalcification > 0.0d || mRunningTicks > 0L) {
+            mCalcification = 0.0d;
+            mRunningTicks = 0L;
+            GTUtility.sendChatToPlayer(
+                aPlayer,
+                EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.chat.calcification_cleared"));
+            return true;
+        }
+        return false;
+    }
+
     @Deprecated
     @Override
     protected void drawTexts(DynamicPositionedColumn screenElements, SlotWidget inventorySlot) {
@@ -714,6 +731,7 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.water_info"))
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.calcification"))
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.calcification_d"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.clear_calcification_hint"))
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.chip_info"))
             .addSeparator()
             .addInfo(

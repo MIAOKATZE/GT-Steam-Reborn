@@ -245,8 +245,9 @@ gtsr.gui.geothermal_boiler.steam= (蒸汽)
 gtsr.gui.geothermal_boiler.recipe=配方: 1000mb 岩浆 → 1 黑曜石 + 2 硫粉
 gtsr.gui.geothermal_boiler.recipe_detail=1000mb 岩浆 → 1 黑曜石 + 2 硫粉
 gtsr.gui.geothermal_boiler.chip_tier2_warn=⚠ 过热芯片需要等级2 (钢)
-gtsr.gui.geothermal_boiler.calcification=结垢: 
+gtsr.gui.geothermal_boiler.calcification=结垢： 
 gtsr.gui.geothermal_boiler.clear_calcification=点击清除结垢
+gtsr.chat.calcification_cleared=已清除沉积
 
 # Geothermal Boiler Tooltip
 gtsr.tooltip.geothermal_boiler.2=基础配方: 1000mb 岩浆 → 1 黑曜石 + 2 硫粉 (100 tick)
@@ -918,6 +919,7 @@ gtsr.tooltip.geothermal_boiler.heat=热量系统: 运行时升温，闲置时降
 gtsr.tooltip.geothermal_boiler.water_info=需要输入水来产生蒸汽（1mB水 = 160L蒸汽），蒸馏水可避免结垢。
 gtsr.tooltip.geothermal_boiler.calcification=持续运行会导致热交换管结垢沉积，逐步降低蒸汽产出效率（最高降低70%）。
 gtsr.tooltip.geothermal_boiler.calcification_d=使用蒸馏水作为工作介质可避免结垢发生。
+gtsr.tooltip.geothermal_boiler.clear_calcification_hint=当产生水垢时，空手 Shift+右击控制器除垢
 gtsr.tooltip.geothermal_boiler.chip_info=可在控制器槽位安装地热过热芯片（仅钢级可用），切换为过热蒸汽输出。
 gtsr.tooltip.geothermal_boiler.byproduct=机器可以从反应过程冷却的岩浆中获取黑曜石和硫粉等产物。
 gtsr.tooltip.geothermal_boiler.recipe=基础配方：1000mb岩浆 → 1黑曜石 + 2硫粉（100 tick）
@@ -930,6 +932,7 @@ gtsr.tooltip.solar_array.desc=利用太阳能聚焦加热水介质，产生蒸�
 gtsr.tooltip.solar_array.desc2=输出效率受日照强度与天气影响；夜间及恶劣天气下温度降低，效率显著下降。
 gtsr.tooltip.solar_array.calcification=持续运行会导致热管钙化沉积，逐步降低转换效率。
 gtsr.tooltip.solar_array.calcification_d=使用蒸馏水作为工作介质可避免钙化发生。
+gtsr.tooltip.solar_array.clear_calcification_hint=当产生钙化时，空手 Shift+右击控制器除垢
 gtsr.tooltip.solar_array.steam_output=蒸汽输出
 gtsr.tooltip.solar_array.tier_bronze=青铜
 gtsr.tooltip.solar_array.tier_steel=钢

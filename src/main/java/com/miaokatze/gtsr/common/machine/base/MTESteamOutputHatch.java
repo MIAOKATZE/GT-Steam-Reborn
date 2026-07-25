@@ -90,6 +90,13 @@ public class MTESteamOutputHatch extends MTEHatchOutput {
         return super.fill(side, aFluid, doFill);
     }
 
+    /**
+     * 供子类绕过本类的普通蒸汽校验，直接调用父类输出仓的 fill。
+     */
+    protected int fillHatchOutput(ForgeDirection side, FluidStack aFluid, boolean doFill) {
+        return super.fill(side, aFluid, doFill);
+    }
+
     @Override
     public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
         super.onPostTick(aBaseMetaTileEntity, aTick);
