@@ -6,7 +6,6 @@ import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElement
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose;
 import static gregtech.api.enums.HatchElement.InputHatch;
 import static gregtech.api.enums.HatchElement.OutputHatch;
-import static gregtech.api.metatileentity.BaseTileEntity.TOOLTIP_DELAY;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 
 import java.text.NumberFormat;
@@ -18,6 +17,7 @@ import javax.annotation.Nullable;
 
 import net.minecraft.block.Block;
 import net.minecraft.client.renderer.texture.IIconRegister;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
@@ -37,15 +37,13 @@ import com.gtnewhorizon.structurelib.alignment.constructable.ISurvivalConstructa
 import com.gtnewhorizon.structurelib.structure.IStructureDefinition;
 import com.gtnewhorizon.structurelib.structure.ISurvivalBuildEnvironment;
 import com.gtnewhorizon.structurelib.structure.StructureDefinition;
-import com.gtnewhorizons.modularui.api.drawable.IDrawable;
-import com.gtnewhorizons.modularui.api.math.Pos2d;
 import com.gtnewhorizons.modularui.api.screen.ModularWindow;
 import com.gtnewhorizons.modularui.api.screen.UIBuildContext;
-import com.gtnewhorizons.modularui.common.widget.ButtonWidget;
 import com.gtnewhorizons.modularui.common.widget.DynamicPositionedColumn;
 import com.gtnewhorizons.modularui.common.widget.FakeSyncWidget;
 import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
+import com.miaokatze.gtsr.api.IShiftRightClickDecalcifiable;
 import com.miaokatze.gtsr.common.gui.MTELargeSolarOverpressureArrayGui;
 import com.miaokatze.gtsr.common.machine.base.MTEPressureSteamOutputHatch;
 import com.miaokatze.gtsr.common.machine.base.MTESteamOutputHatch;
@@ -56,7 +54,6 @@ import gregtech.api.GregTechAPI;
 import gregtech.api.enums.ItemList;
 import gregtech.api.enums.Materials;
 import gregtech.api.enums.Textures;
-import gregtech.api.gui.modularui.GTUITextures;
 import gregtech.api.interfaces.IIconContainer;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
@@ -68,13 +65,14 @@ import gregtech.api.render.TextureFactory;
 import gregtech.api.structure.error.StructureError;
 import gregtech.api.structure.error.StructureErrorRegistry;
 import gregtech.api.util.GTModHandler;
+import gregtech.api.util.GTUtility;
 import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.common.blocks.BlockCasings1;
 import gregtech.common.blocks.BlockCasings2;
 import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
 
 public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MTELargeSolarOverpressureArray>
-    implements IConstructable, ISurvivalConstructable {
+    implements IConstructable, ISurvivalConstructable, IShiftRightClickDecalcifiable {
 
     private static final String STRUCTURE_PIECE_MAIN = "main";
     private static final int HORIZONTAL_OFF_SET = 6;
@@ -512,6 +510,7 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
             .addSeparator()
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.solar_array.calcification"))
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.solar_array.calcification_d"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.solar_array.clear_calcification_hint"))
             .addSeparator()
             .addInfo(
                 EnumChatFormatting.BLUE + "Tier 1 "
@@ -589,6 +588,20 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
         return new MTELargeSolarOverpressureArrayGui(this);
     }
 
+    @Override
+    public boolean onShiftRightClick(EntityPlayer aPlayer, ForgeDirection side, float aX, float aY, float aZ) {
+        if (!getBaseMetaTileEntity().isServerSide()) return true;
+        if (mCalcification > 0.0d || mRunningTicks > 0L) {
+            mCalcification = 0.0d;
+            mRunningTicks = 0L;
+            GTUtility.sendChatToPlayer(
+                aPlayer,
+                EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.chat.calcification_cleared"));
+            return true;
+        }
+        return false;
+    }
+
     @Deprecated
     @Override
     protected void drawTexts(DynamicPositionedColumn screenElements, SlotWidget inventorySlot) {
@@ -635,23 +648,7 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
     @Override
     public void addUIWidgets(ModularWindow.Builder builder, UIBuildContext buildContext) {
         super.addUIWidgets(builder, buildContext);
-
-        builder.widget(new ButtonWidget().setOnClick((clickData, widget) -> {
-            if (clickData.mouseButton == 0) {
-                mCalcification = 0;
-                mRunningTicks = 0;
-            }
-        })
-            .setPlayClickSound(true)
-            .setBackground(
-                () -> new IDrawable[] { GTUITextures.BUTTON_STANDARD,
-                    GTUITextures.OVERLAY_BUTTON_MACHINEMODE_WASHPLANT })
-            .addTooltip(
-                EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.gui.solar_array.clear_calcification")
-                    + EnumChatFormatting.RESET)
-            .setTooltipShowUpDelay(TOOLTIP_DELAY)
-            .setPos(new Pos2d(174, 91))
-            .setSize(16, 16));
+        // 除垢已改为空手 Shift+右击控制器，此处不再提供 GUI 按钮。
     }
 
     private float calculateSolarBooster() {

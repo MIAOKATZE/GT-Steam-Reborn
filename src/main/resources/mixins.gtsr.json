@@ -14,7 +14,8 @@
     "MTEHatchInputMixin",
     "MTEHatchInputBusMixin",
     "CommonMetaTileEntityMixin",
-    "SteamHatchElementOutputBusMixin"
+    "SteamHatchElementOutputBusMixin",
+    "BaseMetaTileEntityMixin"
   ],
   "client": [],
   "server": []

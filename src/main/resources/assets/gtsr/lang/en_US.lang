@@ -1101,3 +1101,8 @@ gtsr.tooltip.singularity.desc=Steam Entangled Singularity, used for crafting adv
 gtsr.tooltip.hub_terminal.desc=Right-click a Hub to open its Terminal; right-click a Cache Node to cycle rate, sneak-right-click to switch mode
 gtsr.tooltip.added_by=Added by:
 gtsr.recipe.gear_steam_compressor=Gear Steam Compressor
+
+# Shift-right-click decalcification
+gtsr.chat.calcification_cleared=Calcification cleared
+gtsr.tooltip.geothermal_boiler.clear_calcification_hint=Shift-right-click the controller with empty hand to clear calcification
+gtsr.tooltip.solar_array.clear_calcification_hint=Shift-right-click the controller with empty hand to clear calcification

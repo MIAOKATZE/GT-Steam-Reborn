@@ -90,6 +90,14 @@ public class MTESteamOutputHatch extends MTEHatchOutput {
         return super.fill(side, aFluid, doFill);
     }
 
+    /**
+     * 绕过本类的蒸汽类型检查，直接向 hatch 填充流体。
+     * 供 {@link MTEPressureSteamOutputHatch} 等子类输出过热蒸汽时使用。
+     */
+    protected int fillHatchOutput(ForgeDirection side, FluidStack aFluid, boolean doFill) {
+        return super.fill(side, aFluid, doFill);
+    }
+
     @Override
     public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
         super.onPostTick(aBaseMetaTileEntity, aTick);

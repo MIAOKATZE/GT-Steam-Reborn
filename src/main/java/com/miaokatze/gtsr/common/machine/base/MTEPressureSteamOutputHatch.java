@@ -74,7 +74,9 @@ public class MTEPressureSteamOutputHatch extends MTESteamOutputHatch {
         if (aFluid == null) return 0;
         if (!GTModHandler.isSteam(aFluid)
             && !"ic2superheatedsteam".equals(FluidRegistry.getFluidName(aFluid.getFluid()))) return 0;
-        return super.fill(side, aFluid, doFill);
+        // 必须通过 fillHatchOutput 绕过父类 MTESteamOutputHatch 的蒸汽类型检查，
+        // 否则过热蒸汽会被父类 fill 拦截，导致耐压蒸汽输出仓无法接收过热蒸汽。
+        return fillHatchOutput(side, aFluid, doFill);
     }
 
     @Override

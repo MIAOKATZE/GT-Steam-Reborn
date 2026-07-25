@@ -1141,3 +1141,11 @@ gtsr.tooltip.singularity.desc=蒸汽纠缠奇点，用于合成高级组件和�
 gtsr.tooltip.hub_terminal.desc=右击枢纽打开终端；右击缓存节点调速，潜行右击切换模式
 gtsr.tooltip.added_by=添加模组：
 gtsr.recipe.gear_steam_compressor=齿轮蒸汽压缩机
+
+# Shift-right-click decalcification
+# 当产生水垢是提示
+# 大型地热蒸汽锅炉
+# 大型太阳能超压阵列
+gtsr.chat.calcification_cleared=已清除沉积
+gtsr.tooltip.geothermal_boiler.clear_calcification_hint=当产生水垢时，空手 Shift+右击控制器除垢
+gtsr.tooltip.solar_array.clear_calcification_hint=当产生钙化时，空手 Shift+右击控制器除垢
