@@ -385,13 +385,15 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
     private boolean addSteamOutputToMachineList(IGregTechTileEntity aTileEntity, int aBaseCasingIndex) {
         if (aTileEntity == null) return false;
         IMetaTileEntity aMetaTileEntity = aTileEntity.getMetaTileEntity();
+        // 必须先识别更具体的 MTEPressureSteamOutputHatch，因为它是 MTESteamOutputHatch 的子类。
+        // 否则耐压蒸汽输出仓会被错误注册到普通蒸汽输出仓列表，导致过热蒸汽无法输出。
+        if (aMetaTileEntity instanceof MTEPressureSteamOutputHatch pressureHatch) {
+            pressureHatch.updateTexture(aBaseCasingIndex);
+            return mPressureSteamOutputHatches.add(pressureHatch);
+        }
         if (aMetaTileEntity instanceof MTESteamOutputHatch hatch) {
             hatch.updateTexture(aBaseCasingIndex);
             return mSteamOutputHatches.add(hatch);
-        }
-        if (aMetaTileEntity instanceof MTEPressureSteamOutputHatch hatch) {
-            hatch.updateTexture(aBaseCasingIndex);
-            return mPressureSteamOutputHatches.add(hatch);
         }
         return false;
     }
