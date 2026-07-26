@@ -215,6 +215,15 @@ public class MTESingularityHubStatusGui implements IGuiHolder<PosGuiData> {
             })
             .tooltipBuilder(t -> t.addLine(IKey.lang("gtsr.hub_status.upgrade")));
 
+        // 传送按钮：以蒸汽纠缠奇点物品为图标，直观表达消耗
+        ButtonWidget<?> teleportButton = new ButtonWidget<>().size(16)
+            .overlay(new ItemDrawable(GTSRItemList.SteamEntangledSingularity.get(1)))
+            .onMousePressed(mouseButton -> {
+                actionSync.sendTeleport(info);
+                return true;
+            })
+            .tooltipBuilder(t -> t.addLine(IKey.lang("gtsr.hub_status.teleport")));
+
         // 重命名文本框：纯客户端控件（不注册 sync handler，StringValue 为本地值不会同步），
         // 初始文本为当前自定义名；点击确认按钮时才读取文本经 hubAction 发 C2S，服务端做裁剪
         TextFieldWidget renameField = new TextFieldWidget().width(150)
@@ -264,7 +273,8 @@ public class MTESingularityHubStatusGui implements IGuiHolder<PosGuiData> {
                             .child(renameButton)))
             .child(toggleButton)
             .child(recycleButton)
-            .child(upgradeButton);
+            .child(upgradeButton)
+            .child(teleportButton);
     }
 
     /**
@@ -376,6 +386,7 @@ public class MTESingularityHubStatusGui implements IGuiHolder<PosGuiData> {
         private static final int ACTION_RECYCLE = 2;
         private static final int ACTION_UPGRADE = 3;
         private static final int ACTION_RENAME = 4;
+        private static final int ACTION_TELEPORT = 5;
 
         private final MTESingularityDrillingHub hub;
         private Runnable refreshListener = () -> {};
@@ -414,6 +425,11 @@ public class MTESingularityHubStatusGui implements IGuiHolder<PosGuiData> {
             });
         }
 
+        // 传送：携带节点坐标到服务端，由服务端校验并执行
+        public void sendTeleport(HubNodeInfo info) {
+            syncToServer(ACTION_TELEPORT, buf -> writePos(buf, info));
+        }
+
         private static void writePos(PacketBuffer buf, HubNodeInfo info) {
             buf.writeInt(info.x);
             buf.writeInt(info.y);
@@ -448,6 +464,9 @@ public class MTESingularityHubStatusGui implements IGuiHolder<PosGuiData> {
                     break;
                 case ACTION_RENAME:
                     hub.renameNodeFromGui(x, y, z, dim, ByteBufUtils.readUTF8String(buf));
+                    break;
+                case ACTION_TELEPORT:
+                    hub.teleportPlayerToNodeFromGui(player, x, y, z, dim);
                     break;
                 default:
                     return;
