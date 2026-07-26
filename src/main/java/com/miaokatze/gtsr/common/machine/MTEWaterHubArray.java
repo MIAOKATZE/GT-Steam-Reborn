@@ -1124,6 +1124,10 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
     protected void drawTexts(DynamicPositionedColumn screenElements, SlotWidget inventorySlot) {
         super.drawTexts(screenElements, inventorySlot);
         screenElements.widget(new TextWidget().setStringSupplier(() -> {
+            return EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.hub.terminal_hint")
+                + EnumChatFormatting.RESET;
+        }));
+        screenElements.widget(new TextWidget().setStringSupplier(() -> {
             String tierText = mSetTier == 2 ? StatCollector.translateToLocal("gtsr.gui.tier.steel")
                 : StatCollector.translateToLocal("gtsr.gui.tier.bronze");
             return EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.tier")

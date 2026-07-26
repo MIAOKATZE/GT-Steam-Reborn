@@ -960,6 +960,10 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
     protected void drawTexts(DynamicPositionedColumn screenElements, SlotWidget inventorySlot) {
         super.drawTexts(screenElements, inventorySlot);
         screenElements.widget(new TextWidget().setStringSupplier(() -> {
+            return EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.hub.terminal_hint")
+                + EnumChatFormatting.RESET;
+        }));
+        screenElements.widget(new TextWidget().setStringSupplier(() -> {
             String status = mIsActivelyRunning
                 ? EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.gui.status.running")
                 : EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.gui.status.idle");

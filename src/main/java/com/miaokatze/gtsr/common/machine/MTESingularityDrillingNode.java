@@ -608,6 +608,13 @@ public class MTESingularityDrillingNode extends MTERemoteWorkerNode {
     }
 
     @Override
+    public void setItemNBT(net.minecraft.nbt.NBTTagCompound aNBT) {
+        super.setItemNBT(aNBT);
+        // 保存钻井节点升级等级到掉落物 NBT，确保挖掘后重新放置不会丢失升级
+        aNBT.setInteger("mDrillTier", mDrillTier);
+    }
+
+    @Override
     public void loadNBTData(net.minecraft.nbt.NBTTagCompound aNBT) {
         super.loadNBTData(aNBT);
         mTipDepth = aNBT.getInteger("mTipDepth");

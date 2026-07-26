@@ -1253,6 +1253,10 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
     protected void drawTexts(DynamicPositionedColumn screenElements, SlotWidget inventorySlot) {
         super.drawTexts(screenElements, inventorySlot);
         screenElements.widget(new TextWidget().setStringSupplier(() -> {
+            return EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.hub.terminal_hint")
+                + EnumChatFormatting.RESET;
+        }));
+        screenElements.widget(new TextWidget().setStringSupplier(() -> {
             String tierText;
             if (mSetTier >= 3) {
                 tierText = StatCollector.translateToLocal("gtsr.gui.tier.tungstensteel");

@@ -101,7 +101,9 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
     private static final double HEAT_UP_BRONZE = 0.00006d;
     private static final double HEAT_UP_STEEL = 0.00003d;
     private static final double HEAT_DOWN = 0.002d;
-    private static final double HEAT_UP_CHIP = 0.00001d;
+    // Controls the heat-up rate when overheat chips are installed;
+    // should be significantly higher than steel/bronze rates.
+    private static final double HEAT_UP_CHIP = 0.0001d;
 
     private static final int MAX_OUTPUT_BRONZE = 60_000;
     private static final int MAX_OUTPUT_STEEL = 150_000;

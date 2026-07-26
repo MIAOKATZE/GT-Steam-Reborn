@@ -456,6 +456,7 @@ gtsr.drilling.no_pipes=Insufficient Mining Pipes
 
 # Hub Status UI (Modern UI 2, right-click hub holding a Hub Terminal)
 gtsr.gui.node.hub_status_hint=Right-click hub holding a Hub Terminal
+gtsr.gui.hub.terminal_hint=Right-click controller with a Hub Terminal to open node management
 gtsr.hub_status.title=Hub Node Status
 gtsr.hub_status.empty=No bound nodes
 gtsr.hub_status.start=Start Working

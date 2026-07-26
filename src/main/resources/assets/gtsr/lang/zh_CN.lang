@@ -456,6 +456,7 @@ gtsr.drilling.no_pipes=采矿管道不足
 
 # 枢纽节点状态界面（Modern UI 2，手持枢纽终端右击枢纽打开）
 gtsr.gui.node.hub_status_hint=手持枢纽终端右击枢纽，可远程管理本节点
+gtsr.gui.hub.terminal_hint=手持枢纽终端右击控制器打开节点管理界面
 gtsr.hub_status.title=枢纽节点状态
 gtsr.hub_status.empty=暂无绑定节点
 gtsr.hub_status.start=开始工作
