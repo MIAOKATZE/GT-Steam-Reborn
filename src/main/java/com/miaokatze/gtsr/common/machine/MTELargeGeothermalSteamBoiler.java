@@ -96,12 +96,14 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
     protected int mCasingCount = 0;
     public double mHeat = 0.0d;
     public int mCurrentSteamOutput = 0;
-    protected int mStartUpCheck = 100;
+    protected int mStructureGraceTicks = 100;
 
     private static final double HEAT_UP_BRONZE = 0.00006d;
     private static final double HEAT_UP_STEEL = 0.00003d;
     private static final double HEAT_DOWN = 0.002d;
-    private static final double HEAT_UP_CHIP = 0.00001d;
+    // 过热芯片升温速率：0.002%/tick（设计值，慢于钢/青铜，换取超热蒸汽产出）
+    // v1.8.8 曾误改为 0.01%/tick 试图修 5% 掉热，真正根因是配方重启 1tick 空窗（v1.8.10 已修）
+    private static final double HEAT_UP_CHIP = 0.00002d;
 
     private static final int MAX_OUTPUT_BRONZE = 60_000;
     private static final int MAX_OUTPUT_STEEL = 150_000;
@@ -555,17 +557,19 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
         if (!aBaseMetaTileEntity.isServerSide()) return;
 
         if (mMachine) {
-            mStartUpCheck = 100;
-        } else if (mStartUpCheck > 0) {
-            mStartUpCheck--;
+            mStructureGraceTicks = 100;
+        } else if (mStructureGraceTicks > 0) {
+            mStructureGraceTicks--;
         }
 
         if (aTick % 20 == 0) {
-            boolean isRunning = mMaxProgresstime > 0 && mProgresstime > 0;
+            // 配方完成同 tick 会立即 checkRecipe() 重启新配方，重启 tick 存在 1 tick 的 mProgresstime==0 空窗，
+            // 机器实际连续运行，不应视为停机；岩浆耗尽时 mMaxProgresstime=0 仍会正确进入下方冷却分支
+            boolean isRunning = mMaxProgresstime > 0;
             if (isRunning) {
                 double rate = hasOverheatChip() ? HEAT_UP_CHIP : (mSetTier == 1 ? HEAT_UP_BRONZE : HEAT_UP_STEEL);
                 mHeat = Math.min(1.0d, mHeat + rate);
-            } else if (mMachine || mStartUpCheck <= 0) {
+            } else if (mMachine || mStructureGraceTicks <= 0) {
                 // Cool down when structure is valid but idle, or after grace period when broken
                 mHeat = Math.max(0.0d, mHeat - HEAT_DOWN);
             }

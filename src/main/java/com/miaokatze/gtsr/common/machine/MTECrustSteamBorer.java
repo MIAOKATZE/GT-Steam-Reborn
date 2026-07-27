@@ -358,6 +358,10 @@ public class MTECrustSteamBorer extends MTESteamMultiBlockBase<MTECrustSteamBore
         if (getTotalSteamStored() > 0) {
             lEUt = -STEAM_L_EUT;
             mMaxProgresstime = WORK_TIME_TICKS;
+            // 显式置满效率：自定义 checkProcessing 不经标准流程的 mEfficiency 初始化，
+            // 父类 onRunningTick 按 -lEUt*10000/max(1000,mEfficiency) 扣蒸汽，
+            // 效率 <=1000 时 10 倍消耗且缺汽停机归零效率形成恶性循环（同热解机 bug）
+            mEfficiency = 10000;
             mEfficiencyIncrease = 10000;
             mOutputItems = emptyItemStackArray;
             updateSlots();

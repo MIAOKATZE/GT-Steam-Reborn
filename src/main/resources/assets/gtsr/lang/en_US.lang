@@ -455,6 +455,7 @@ gtsr.drilling.no_pipes=Insufficient Mining Pipes
 
 # Hub Status UI (Modern UI 2, right-click hub holding a Hub Terminal)
 gtsr.gui.node.hub_status_hint=Right-click hub holding a Hub Terminal
+gtsr.gui.hub.terminal_hint=Right-click controller with a Hub Terminal to open node management
 gtsr.hub_status.title=Hub Node Status
 gtsr.hub_status.empty=No bound nodes
 gtsr.hub_status.start=Start Working
@@ -467,6 +468,11 @@ gtsr.hub_status.recycle_fail=Recycle failed: node not found or not fully stopped
 gtsr.hub_status.status.stopped=Stopped
 gtsr.hub_status.rename=Rename Node
 gtsr.hub_status.rename_hint=Enter a new node name (leave empty to reset to default)
+gtsr.hub_status.teleport=Teleport to node (consumes 1 Steam Entangled Singularity)
+gtsr.hub_status.teleport_no_singularity=No Steam Entangled Singularity in inventory, cannot teleport
+gtsr.hub_status.teleport_fail_node=Teleport failed: node does not exist or is invalid
+gtsr.hub_status.teleport_fail_dim=Teleport failed: target dimension cannot be loaded
+gtsr.hub_status.teleport_fail_unsafe=Teleport failed: no safe landing spot near the node
 gtsr.cache_hub_status.title.steam=Steam Hub Cache Node Status
 gtsr.cache_hub_status.title.water=Water Hub Cache Node Status
 gtsr.cache_hub_status.mode_tip_output=Output mode: Node -> Hub (click to switch)
