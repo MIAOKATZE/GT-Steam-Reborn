@@ -61,6 +61,10 @@ public class MTESingularityHubStatusGui implements IGuiHolder<PosGuiData> {
     private static final int PANEL_WIDTH = 320;
     private static final int PANEL_HEIGHT = 200;
 
+    // 列表滚动偏移保存：服务端数据变化触发整表重建时，旧列表 dispose 写回、新列表首次布局恢复，
+    // 避免服务器频繁同步把拖动中的滚动条拉回顶部（仅客户端有实际意义，服务端恒为 0）
+    private int listScrollValue;
+
     private final MTESingularityDrillingHub hub;
 
     public MTESingularityHubStatusGui(MTESingularityDrillingHub hub) {
@@ -126,7 +130,7 @@ public class MTESingularityHubStatusGui implements IGuiHolder<PosGuiData> {
         HubActionSyncHandler actionSync = pSyncManager.findSyncHandler("hubAction", HubActionSyncHandler.class);
         List<HubNodeInfo> nodes = listSync != null ? (List<HubNodeInfo>) listSync.getValue() : Collections.emptyList();
 
-        ListWidget<IWidget, ?> list = new ListWidget<>();
+        ListWidget<IWidget, ?> list = new ScrollKeepingListWidget();
         list.widthRel(1f)
             .heightRel(1f);
         if (nodes.isEmpty()) {
@@ -139,6 +143,35 @@ public class MTESingularityHubStatusGui implements IGuiHolder<PosGuiData> {
             list.child(buildNodeRow(info, actionSync));
         }
         return list;
+    }
+
+    /**
+     * 重建时保持滚动位置的节点列表（参考 GT5U MTESplitterModuleGui.WorkaroundListWidget）：
+     * dispose 时把当前滚动偏移写回 listScrollValue，首次 postResize 时恢复——
+     * scrollTo 内部 clamp 会自动钳位条目减少导致的超界偏移，无需手动处理。
+     * shouldScroll 保证仅在重建后的首次布局恢复一次，后续面板拖动等 resize 不回跳。
+     */
+    private class ScrollKeepingListWidget extends ListWidget<IWidget, ScrollKeepingListWidget> {
+
+        private boolean shouldScroll = true;
+
+        @Override
+        public void postResize() {
+            super.postResize();
+            if (shouldScroll) {
+                getScrollData().scrollTo(getScrollArea(), listScrollValue);
+                shouldScroll = false;
+            }
+        }
+
+        @Override
+        public void dispose() {
+            super.dispose();
+            // 未初始化即被丢弃时 scrollData 为 null，保留旧值即可
+            if (getScrollData() != null) {
+                listScrollValue = getScrollData().getScroll();
+            }
+        }
     }
 
     /**
@@ -271,10 +304,11 @@ public class MTESingularityHubStatusGui implements IGuiHolder<PosGuiData> {
                             .childPadding(2)
                             .child(renameField)
                             .child(renameButton)))
+            // 传送按钮置于最左（teleport→toggle→recycle→upgrade），尺寸不变、行总宽不变，缓解右侧拥挤
+            .child(teleportButton)
             .child(toggleButton)
             .child(recycleButton)
-            .child(upgradeButton)
-            .child(teleportButton);
+            .child(upgradeButton);
     }
 
     /**

@@ -366,6 +366,12 @@ public class MTEVeinSteamPyrolyzer extends MTESteamMultiBlockBase<MTEVeinSteamPy
         int workTime = mSetTier == 2 ? 3600 : 7200;
         lEUt = -steamPerTick;
         mMaxProgresstime = workTime;
+        // 必须显式置满效率：自定义 checkProcessing 不经过标准 processingLogic 流程的
+        // mEfficiency 初始化（MTEMultiBlockBase 中仅该流程在配方启动时设效率），而父类
+        // MTESteamMultiBlockBase.onRunningTick 按 -lEUt*10000/max(1000,mEfficiency) 扣蒸汽；
+        // 不设置时效率长期 <=1000 导致 10 倍蒸汽消耗（钢 40000L/s），且缺汽反复
+        // POWER_LOSS 停机将效率归零，永远完不成配方升不上效率，形成恶性循环
+        mEfficiency = 10000;
         mEfficiencyIncrease = 10000;
         mOutputItems = emptyItemStackArray;
         mApplyFluidIncrease = true;
