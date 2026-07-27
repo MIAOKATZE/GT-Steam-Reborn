@@ -289,7 +289,8 @@ public class MTESingularityHubStatusGui implements IGuiHolder<PosGuiData> {
             .child(iconWidget)
             .child(
                 Flow.column()
-                    .width(200)
+                    // 列宽 184（原 200）：让出一个按钮宽度（16px），使右侧 4 个按钮与滚动条保持间距
+                    .width(184)
                     .childPadding(1)
                     .child(
                         IKey.str(line1)

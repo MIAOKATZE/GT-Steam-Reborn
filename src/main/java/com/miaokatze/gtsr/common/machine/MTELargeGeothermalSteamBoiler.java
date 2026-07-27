@@ -101,9 +101,9 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
     private static final double HEAT_UP_BRONZE = 0.00006d;
     private static final double HEAT_UP_STEEL = 0.00003d;
     private static final double HEAT_DOWN = 0.002d;
-    // Controls the heat-up rate when overheat chips are installed;
-    // should be significantly higher than steel/bronze rates.
-    private static final double HEAT_UP_CHIP = 0.0001d;
+    // 过热芯片升温速率：0.002%/tick（设计值，慢于钢/青铜，换取超热蒸汽产出）
+    // v1.8.8 曾误改为 0.01%/tick 试图修 5% 掉热，真正根因是配方重启 1tick 空窗（v1.8.10 已修）
+    private static final double HEAT_UP_CHIP = 0.00002d;
 
     private static final int MAX_OUTPUT_BRONZE = 60_000;
     private static final int MAX_OUTPUT_STEEL = 150_000;
