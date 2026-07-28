@@ -16,6 +16,7 @@ import static gregtech.api.util.GTRecipeBuilder.SECONDS;
 import java.util.ArrayList;
 import java.util.List;
 
+import net.minecraft.init.Items;
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
@@ -1141,13 +1142,9 @@ public class GTSRRecipeLoader implements Runnable {
             tumbagaPlate = get(OrePrefixes.plate, Materials.RoseGold, 1);
         }
 
-        ItemStack bcTank = GTModHandler.getModItem("BuildCraft|Factory", "tankBlock", 1);
-        if (bcTank == null) {
-            bcTank = GTModHandler.getModItem("BuildCraft:Factory", "tankBlock", 1);
-        }
-        if (bcTank == null) {
-            warn("BuildCraft tank is null! Some hatch recipes may fail.");
-        }
+        // 蒸汽输入仓/输出仓合成表的 'D' 位置原为 BC 储罐（BuildCraft tankBlock），
+        // 现替换为 MC 铁桶（Items.bucket），降低对 BuildCraft 的硬依赖。
+        ItemStack ironBucket = new ItemStack(Items.bucket);
 
         ItemStack gtSteamHatch = GregtechItemList.Hatch_Input_Steam.get(1);
         if (gtSteamHatch == null) {
@@ -1157,12 +1154,14 @@ public class GTSRRecipeLoader implements Runnable {
         GTModHandler.addCraftingRecipe(
             GTSRItemList.SteamInputHatchGeneric.get(1),
             GTModHandler.RecipeBits.BITSD,
-            new Object[] { "ABA", "CDC", "ABA", 'A', "plateBronze", 'B', tumbagaPlate, 'C', "plateTin", 'D', bcTank });
+            new Object[] { "ABA", "CDC", "ABA", 'A', "plateBronze", 'B', tumbagaPlate, 'C', "plateTin", 'D',
+                ironBucket });
 
         GTModHandler.addCraftingRecipe(
             GTSRItemList.SteamOutputHatchGeneric.get(1),
             GTModHandler.RecipeBits.BITSD,
-            new Object[] { "ABA", "CDC", "ABA", 'A', "plateBronze", 'B', "plateTin", 'C', tumbagaPlate, 'D', bcTank });
+            new Object[] { "ABA", "CDC", "ABA", 'A', "plateBronze", 'B', "plateTin", 'C', tumbagaPlate, 'D',
+                ironBucket });
 
         GTModHandler.addCraftingRecipe(
             GTSRItemList.SteamOutputHatch.get(1),
