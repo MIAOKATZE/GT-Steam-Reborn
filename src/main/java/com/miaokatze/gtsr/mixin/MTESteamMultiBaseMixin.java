@@ -6,7 +6,6 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -64,6 +63,18 @@ public abstract class MTESteamMultiBaseMixin {
         return (MTESteamMultiBlockBase) (Object) this;
     }
 
+    /**
+     * 运行时守卫：判断当前实例是否为 GTNL（com.science.gtnl.* 包）机器。
+     * this.getClass() 返回实际运行时类（如 GTNL 子类），而非 Mixin 注入的目标类。
+     * GTNL 机器有自己的特殊机制，不应被 GTSR 逻辑覆写影响，需回退到 GT5U 原生行为。
+     */
+    @Unique
+    private boolean gtsr$isGTNLMachine() {
+        return this.getClass()
+            .getName()
+            .startsWith("com.science.gtnl.");
+    }
+
     @Unique
     private boolean gtsr$hasSuperheatedSteamInAnyHatch() {
         for (MTEHatchCustomFluidBase hatch : mSteamInputFluids) {
@@ -83,13 +94,17 @@ public abstract class MTESteamMultiBaseMixin {
     // region Steam Consumption & Cooling
 
     /**
-     * @reason Override to add cooling hatch support - pushes cooling products after steam consumption.
+     * @reason Inject at HEAD to add cooling hatch support - pushes cooling products after steam consumption.
      *         Steam consumption formula: aSteamVal = (-lEUt * 10000) / max(1000, mEfficiency)
      *         Superheated: 4x consumption rate, 4x processing speed (via mMaxProgresstime / 4)
      * @author GTSR
+     *         注：转为 @Inject(HEAD, cancellable=true) + GTNL 守卫，避免影响 GTNL 子类机器（GTNL 走原生）。
      */
-    @Overwrite
-    public boolean onRunningTick(ItemStack aStack) {
+    @Inject(method = "onRunningTick(Lnet/minecraft/item/ItemStack;)Z", at = @At("HEAD"), cancellable = true)
+    private void gtsr$onRunningTickHead(ItemStack aStack, CallbackInfoReturnable<Boolean> cir) {
+        // GTNL 守卫：GTNL 机器走 GT5U 原生行为，跳过 GTSR 逻辑
+        if (gtsr$isGTNLMachine()) return;
+
         MTESteamMultiBlockBase self = gtsr$self();
         if (self.lEUt < 0) {
             long aSteamVal = ((-self.lEUt * 10000) / Math.max(1000, self.mEfficiency));
@@ -102,11 +117,12 @@ public abstract class MTESteamMultiBaseMixin {
             }
             if (!self.tryConsumeSteam((int) aSteamVal)) {
                 self.stopMachine(ShutDownReasonRegistry.POWER_LOSS);
-                return false;
+                cir.setReturnValue(false);
+                return;
             }
             gtsr$pushCoolingProducts((int) aSteamVal, isSuperheated);
         }
-        return true;
+        cir.setReturnValue(true);
     }
 
     @Unique
@@ -157,6 +173,9 @@ public abstract class MTESteamMultiBaseMixin {
      */
     @Inject(method = "addOutputPartial", at = @At("HEAD"), cancellable = true)
     private void gtsr$onAddOutputPartialHead(ItemStack aStack, CallbackInfo ci) {
+        // GTNL 守卫：GTNL 机器走 GT5U 原生 addOutputPartial 行为（不 cancel），跳过 GTSR 双总线输出逻辑
+        if (gtsr$isGTNLMachine()) return;
+
         if (GTUtility.isStackInvalid(aStack)) {
             ci.cancel();
             return;
@@ -190,11 +209,11 @@ public abstract class MTESteamMultiBaseMixin {
     // region Hatch Registration Hooks
 
     /**
-     * @reason Overwrite addToMachineList to restore GTSR's hatch registration behavior.
+     * @reason Inject at HEAD to restore GTSR's hatch registration behavior.
      *         New GT5U 2.9.0+ addSteamInputFluidHatch only accepts hatches locked to
      *         Materials.Steam.mGas (excluding superheated steam), and limits to 1 input
      *         fluid hatch. It also doesn't handle MTEHatchOutput (fluid output) or
-     *         GTSR's cooling hatches. This overwrite restores the old behavior:
+     *         GTSR's cooling hatches. This inject restores the old behavior:
      *         - All MTEHatchCustomFluidBase → mSteamInputFluids (no fluid lock check)
      *         - MTEHatchSteamBusInput → mSteamInputs + mInputBusses (dual registration)
      *         - MTEHatchSteamBusOutput/MTEHatchVoidBus → mSteamOutputs + mOutputBusses (dual registration)
@@ -202,12 +221,27 @@ public abstract class MTESteamMultiBaseMixin {
      *         - MTEHatchOutput → mOutputHatches
      *         - GTSR cooling hatches → custom lists
      * @author GTSR
+     *         注：转为 @Inject(HEAD, cancellable=true) + GTNL 守卫，避免影响 GTNL 子类机器（GTNL 走原生）。
+     *         使用方法描述符避免与父类 MTEMultiBlockBase 的单参重载 addToMachineList(IGregTechTileEntity) 歧义。
      */
-    @Overwrite
-    public boolean addToMachineList(final IGregTechTileEntity aTileEntity, final int aBaseCasingIndex) {
-        if (aTileEntity == null) return false;
+    @Inject(
+        method = "addToMachineList(Lgregtech/api/interfaces/tileentity/IGregTechTileEntity;I)Z",
+        at = @At("HEAD"),
+        cancellable = true)
+    private void gtsr$addToMachineListHead(final IGregTechTileEntity aTileEntity, final int aBaseCasingIndex,
+        CallbackInfoReturnable<Boolean> cir) {
+        // GTNL 守卫：GTNL 机器走 GT5U 原生 addToMachineList 行为，跳过 GTSR 逻辑
+        if (gtsr$isGTNLMachine()) return;
+
+        if (aTileEntity == null) {
+            cir.setReturnValue(false);
+            return;
+        }
         final IMetaTileEntity aMetaTileEntity = aTileEntity.getMetaTileEntity();
-        if (aMetaTileEntity == null) return false;
+        if (aMetaTileEntity == null) {
+            cir.setReturnValue(false);
+            return;
+        }
 
         // Handle pressure cooling hatch first (more specific subclass of MTESteamCoolingHatch)
         // MTEPressureSteamCoolingHatch 继承自 MTEHatch（经 MTESteamCoolingHatch → MTEHatchOutput → MTEHatch），
@@ -215,21 +249,24 @@ public abstract class MTESteamMultiBaseMixin {
         if (aMetaTileEntity instanceof MTEPressureSteamCoolingHatch hatch) {
             hatch.updateTexture(aBaseCasingIndex);
             gtsr$mPressureCoolingHatches.add(hatch);
-            return true;
+            cir.setReturnValue(true);
+            return;
         }
 
         // Handle regular cooling hatch (exclude pressure variant already handled above)
         if (aMetaTileEntity instanceof MTESteamCoolingHatch hatch) {
             hatch.updateTexture(aBaseCasingIndex);
             gtsr$mSteamCoolingHatches.add(hatch);
-            return true;
+            cir.setReturnValue(true);
+            return;
         }
 
         // All MTEHatchCustomFluidBase → mSteamInputFluids (no fluid lock check, no limit)
         // This includes MTEHatchPressureSteamInput (ic2superheatedsteam) which the new
         // addSteamInputFluidHatch would reject because mLockedFluid != Materials.Steam.mGas
         if (aMetaTileEntity instanceof MTEHatchCustomFluidBase fluidHatch) {
-            return gtsr$self().addToMachineListInternal(mSteamInputFluids, fluidHatch, aBaseCasingIndex);
+            cir.setReturnValue(gtsr$self().addToMachineListInternal(mSteamInputFluids, fluidHatch, aBaseCasingIndex));
+            return;
         }
 
         // MTEHatchSteamBusInput → mSteamInputs only
@@ -237,15 +274,18 @@ public abstract class MTESteamMultiBaseMixin {
         // GTSR 机器的输入物品获取通过 gtsr$onGetAllStoredInputsTail 注入补充 mSteamInputs 遍历来保证。
         if (aMetaTileEntity instanceof MTEHatchSteamBusInput steamBus) {
             gtsr$self().resetRecipeMapForHatch(aTileEntity, gtsr$self().getRecipeMap());
-            return gtsr$self().addToMachineListInternal(mSteamInputs, steamBus, aBaseCasingIndex);
+            cir.setReturnValue(gtsr$self().addToMachineListInternal(mSteamInputs, steamBus, aBaseCasingIndex));
+            return;
         }
 
         // MTEHatchSteamBusOutput / MTEHatchVoidBus → mSteamOutputs only
         // 取消双注册到 mOutputBusses：避免 GTNL 等模组的 getOutputBusses/addOutput 同时遍历 mOutputBusses 和 mSteamOutputs 导致输出重复。
         // GTSR 机器的物品输出通过 gtsr$onGetOutputBussesTail 注入补充 mOutputBusses 遍历，以及 addOutputPartial Mixin 来保证。
         if (aMetaTileEntity instanceof MTEHatchSteamBusOutput || aMetaTileEntity instanceof MTEHatchVoidBus) {
-            return gtsr$self()
-                .addToMachineListInternal(mSteamOutputs, (MTEHatchOutputBus) aMetaTileEntity, aBaseCasingIndex);
+            cir.setReturnValue(
+                gtsr$self()
+                    .addToMachineListInternal(mSteamOutputs, (MTEHatchOutputBus) aMetaTileEntity, aBaseCasingIndex));
+            return;
         }
 
         // MTEHatchInput → mInputHatches (standard fluid input)
@@ -256,10 +296,12 @@ public abstract class MTESteamMultiBaseMixin {
         // their NEI priority above casing blocks in GT++ native steam machines.
         if (aMetaTileEntity instanceof MTEHatchInput inputHatch) {
             MTEMultiBlockBase multiBlockSelf = (MTEMultiBlockBase) (Object) this;
-            return gtsr$self().addToMachineListInternal(multiBlockSelf.mInputHatches, inputHatch, aBaseCasingIndex);
+            cir.setReturnValue(
+                gtsr$self().addToMachineListInternal(multiBlockSelf.mInputHatches, inputHatch, aBaseCasingIndex));
+            return;
         }
 
-        return false;
+        cir.setReturnValue(false);
     }
 
     // region GT5U Native Adder Compatibility
@@ -277,6 +319,9 @@ public abstract class MTESteamMultiBaseMixin {
     @Inject(method = "addSteamInputFluidHatch", at = @At("TAIL"), cancellable = true)
     private void gtsr$onAddSteamInputFluidHatch(IGregTechTileEntity aTileEntity, int aBaseCasingIndex,
         CallbackInfoReturnable<Boolean> cir) {
+        // GTNL 守卫：GTNL 机器走 GT5U 原生 addSteamInputFluidHatch 行为（不 cancel），跳过 GTSR 扩展接受逻辑
+        if (gtsr$isGTNLMachine()) return;
+
         // If original already succeeded, nothing to do
         if (cir.getReturnValueZ()) return;
 
@@ -311,6 +356,9 @@ public abstract class MTESteamMultiBaseMixin {
     @Inject(method = "addSteamBusOutput", at = @At("TAIL"), cancellable = true)
     private void gtsr$onAddSteamBusOutput(IGregTechTileEntity aTileEntity, int aBaseCasingIndex,
         CallbackInfoReturnable<Boolean> cir) {
+        // GTNL 守卫：GTNL 机器走 GT5U 原生 addSteamBusOutput 行为（不 cancel），跳过 GTSR 冷却仓室注册逻辑
+        if (gtsr$isGTNLMachine()) return;
+
         if (aTileEntity == null) return;
         final IMetaTileEntity aMetaTileEntity = aTileEntity.getMetaTileEntity();
         if (aMetaTileEntity == null) return;
@@ -361,6 +409,9 @@ public abstract class MTESteamMultiBaseMixin {
      */
     @Inject(method = "clearHatches", at = @At("RETURN"))
     private void gtsr$onClearHatches(CallbackInfo ci) {
+        // GTNL 守卫：GTNL 机器没有 GTSR 自定义列表（gtsr$mSteamCoolingHatches 等），跳过清理逻辑
+        if (gtsr$isGTNLMachine()) return;
+
         gtsr$mSteamCoolingHatches.clear();
         gtsr$mPressureCoolingHatches.clear();
         gtsr$accumulatedSteam = 0;
@@ -368,17 +419,23 @@ public abstract class MTESteamMultiBaseMixin {
 
     @Inject(method = "saveNBTData", at = @At("RETURN"))
     private void gtsr$onSaveNBTData(NBTTagCompound aNBT, CallbackInfo ci) {
+        // GTNL 守卫：GTNL 机器没有 gtsr$accumulatedSteam 字段，跳过 NBT 保存
+        if (gtsr$isGTNLMachine()) return;
+
         aNBT.setInteger("gtsr.accumulatedSteam", gtsr$accumulatedSteam);
     }
 
     @Inject(method = "loadNBTData", at = @At("RETURN"))
     private void gtsr$onLoadNBTData(NBTTagCompound aNBT, CallbackInfo ci) {
+        // GTNL 守卫：GTNL 机器没有 gtsr$accumulatedSteam 字段，跳过 NBT 加载
+        if (gtsr$isGTNLMachine()) return;
+
         gtsr$accumulatedSteam = aNBT.getInteger("gtsr.accumulatedSteam");
     }
 
     // endregion
 
-    // region Input/Output Aggregation (取消双注册后的合并读取层)
+    // region Input/Output Aggregation (取消双注册后的合并读取层，含 GTNL 守卫)
 
     /**
      * 注入 getAllStoredInputs 的 RETURN，补充遍历 mSteamInputs。
@@ -399,6 +456,10 @@ public abstract class MTESteamMultiBaseMixin {
      */
     @Inject(method = "getAllStoredInputs", at = @At("RETURN"), cancellable = true)
     private void gtsr$onGetAllStoredInputsTail(CallbackInfoReturnable<ArrayList<net.minecraft.item.ItemStack>> cir) {
+        // GTNL 守卫：GTNL 机器若覆写 getAllStoredInputs 则本注入无效；若未覆写则避免 GTSR 补充 mSteamInputs
+        // 遍历导致输入翻倍，统一跳过让 GTNL 走 GT5U 原生行为
+        if (gtsr$isGTNLMachine()) return;
+
         ArrayList<net.minecraft.item.ItemStack> result = cir.getReturnValue();
         if (result == null) {
             result = new ArrayList<>();
@@ -448,6 +509,10 @@ public abstract class MTESteamMultiBaseMixin {
     @Inject(method = "getOutputBusses", at = @At("RETURN"), cancellable = true)
     private void gtsr$onGetOutputBussesTail(
         CallbackInfoReturnable<java.util.List<gregtech.api.interfaces.IOutputBus>> cir) {
+        // GTNL 守卫：GTNL 机器若覆写 getOutputBusses 则本注入无效；若未覆写则避免 GTSR 合并 mOutputBusses
+        // 导致输出重复，统一跳过让 GTNL 走 GT5U 原生行为
+        if (gtsr$isGTNLMachine()) return;
+
         java.util.List<gregtech.api.interfaces.IOutputBus> original = cir.getReturnValue();
         java.util.List<gregtech.api.interfaces.IOutputBus> result = new java.util.ArrayList<>(original);
 
@@ -475,17 +540,22 @@ public abstract class MTESteamMultiBaseMixin {
 
     // endregion
 
-    // region Existing Overrides (unchanged logic)
+    // region Steam Stack & Deplete Input (HEAD Inject + GTNL 守卫)
 
     /**
-     * @reason Fix superheated steam detection to work across all input hatches.
+     * @reason Inject at HEAD to fix superheated steam detection to work across all input hatches.
      *         In GT5U 2.9.0+, the base getAllSteamStacks() uses getStoredFluids() which
      *         only checks for regular steam, missing superheated steam. We override to
      *         iterate mSteamInputFluids directly and detect both steam types.
      * @author GTSR
+     *         注：转为 @Inject(HEAD, cancellable=true) + GTNL 守卫，避免影响 GTNL 子类机器（GTNL 走原生）。
      */
-    @Overwrite
-    public java.util.ArrayList<net.minecraftforge.fluids.FluidStack> getAllSteamStacks() {
+    @Inject(method = "getAllSteamStacks()Ljava/util/ArrayList;", at = @At("HEAD"), cancellable = true)
+    private void gtsr$getAllSteamStacksHead(
+        CallbackInfoReturnable<java.util.ArrayList<net.minecraftforge.fluids.FluidStack>> cir) {
+        // GTNL 守卫：GTNL 机器走 GT5U 原生 getAllSteamStacks 行为，跳过 GTSR 逻辑
+        if (gtsr$isGTNLMachine()) return;
+
         java.util.ArrayList<net.minecraftforge.fluids.FluidStack> aFluids = new java.util.ArrayList<>();
         net.minecraftforge.fluids.FluidStack aSteam = Materials.Steam.getGas(1);
         net.minecraftforge.fluids.FluidStack aSuperheatedSteam = net.minecraftforge.fluids.FluidRegistry
@@ -502,17 +572,26 @@ public abstract class MTESteamMultiBaseMixin {
                 }
             }
         }
-        return aFluids;
+        cir.setReturnValue(aFluids);
     }
 
     /**
-     * @reason Support both regular steam and superheated steam input hatches.
+     * @reason Inject at HEAD to support both regular steam and superheated steam input hatches.
      *         Superheated steam is consumed at the requested amount (acts as 4x dense steam).
      * @author GTSR
+     *         注：转为 @Inject(HEAD, cancellable=true) + GTNL 守卫，避免影响 GTNL 子类机器（GTNL 走原生）。
+     *         使用方法描述符避免与 depleteInput(ItemStack) 重载歧义。
      */
-    @Overwrite
-    public boolean depleteInput(net.minecraftforge.fluids.FluidStack aLiquid) {
-        if (aLiquid == null) return false;
+    @Inject(method = "depleteInput(Lnet/minecraftforge/fluids/FluidStack;)Z", at = @At("HEAD"), cancellable = true)
+    private void gtsr$depleteInputHead(net.minecraftforge.fluids.FluidStack aLiquid,
+        CallbackInfoReturnable<Boolean> cir) {
+        // GTNL 守卫：GTNL 机器走 GT5U 原生 depleteInput(FluidStack) 行为，跳过 GTSR 逻辑
+        if (gtsr$isGTNLMachine()) return;
+
+        if (aLiquid == null) {
+            cir.setReturnValue(false);
+            return;
+        }
         boolean isSteamRequest = aLiquid.isFluidEqual(Materials.Steam.getGas(1));
         for (MTEHatchCustomFluidBase tHatch : mSteamInputFluids) {
             net.minecraftforge.fluids.FluidStack tLiquid = tHatch.getFluid();
@@ -520,7 +599,8 @@ public abstract class MTESteamMultiBaseMixin {
                 tLiquid = tHatch.drain(aLiquid.amount, false);
                 if (tLiquid != null && tLiquid.amount >= aLiquid.amount) {
                     tLiquid = tHatch.drain(aLiquid.amount, true);
-                    return tLiquid != null && tLiquid.amount >= aLiquid.amount;
+                    cir.setReturnValue(tLiquid != null && tLiquid.amount >= aLiquid.amount);
+                    return;
                 }
             }
             if (isSteamRequest && tLiquid != null
@@ -530,11 +610,12 @@ public abstract class MTESteamMultiBaseMixin {
                 tLiquid = tHatch.drain(aLiquid.amount, false);
                 if (tLiquid != null && tLiquid.amount >= aLiquid.amount) {
                     tLiquid = tHatch.drain(aLiquid.amount, true);
-                    return tLiquid != null && tLiquid.amount >= aLiquid.amount;
+                    cir.setReturnValue(tLiquid != null && tLiquid.amount >= aLiquid.amount);
+                    return;
                 }
             }
         }
-        return false;
+        cir.setReturnValue(false);
     }
 
     // endregion

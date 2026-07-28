@@ -48,6 +48,7 @@ import com.gtnewhorizons.modularui.common.widget.FakeSyncWidget;
 import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import com.miaokatze.gtsr.api.IShiftRightClickDecalcifiable;
+import com.miaokatze.gtsr.api.compat.GTVersionCompat;
 import com.miaokatze.gtsr.common.gui.MTELargeSolarOverpressureArrayGui;
 import com.miaokatze.gtsr.common.machine.base.MTEPressureSteamOutputHatch;
 import com.miaokatze.gtsr.common.machine.base.MTESteamOutputHatch;
@@ -180,8 +181,9 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
     @Nullable
     public static Integer getGlassTier(Block block, int meta) {
         if (block == Blocks.glass && meta == 0) return 1;
-        // 防爆玻璃：GTNH 2.9.0 下 IC2 已移除 blockAlloyGlass，改用 GT5U 的强化玻璃（sBlockGlass1 meta 10 = ReinforcedGlass）
-        if (block == GregTechAPI.sBlockGlass1 && meta == 10) return 2;
+        // 防爆玻璃：通过兼容层自动适配 beta-1（IC2 blockAlloyGlass）与 beta-2（GT5U sBlockGlass1 meta 10）
+        if (block == GTVersionCompat.getReinforcedGlassBlock() && meta == GTVersionCompat.getReinforcedGlassMeta())
+            return 2;
         return null;
     }
 
@@ -307,8 +309,10 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
                         MTELargeSolarOverpressureArray::getGlassTier,
                         ImmutableList.of(
                             Pair.of(Blocks.glass, 0),
-                            // 防爆玻璃：GT5U 强化玻璃 sBlockGlass1 meta 10
-                            Pair.of(GregTechAPI.sBlockGlass1, 10)),
+                            // 防爆玻璃：通过兼容层自动适配 beta-1（IC2 blockAlloyGlass）与 beta-2（GT5U sBlockGlass1 meta 10）
+                            Pair.of(
+                                GTVersionCompat.getReinforcedGlassBlock(),
+                                GTVersionCompat.getReinforcedGlassMeta())),
                         -1,
                         (MTELargeSolarOverpressureArray t, Integer tier) -> t.tierGlass = Math.max(t.tierGlass, tier),
                         (MTELargeSolarOverpressureArray t) -> t.tierGlass))

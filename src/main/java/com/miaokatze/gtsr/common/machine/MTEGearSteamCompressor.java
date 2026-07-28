@@ -42,6 +42,7 @@ import com.gtnewhorizons.modularui.common.widget.DynamicPositionedColumn;
 import com.gtnewhorizons.modularui.common.widget.FakeSyncWidget;
 import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
+import com.miaokatze.gtsr.api.compat.GTVersionCompat;
 import com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps;
 import com.miaokatze.gtsr.common.gui.MTEGearSteamCompressorGui;
 import com.miaokatze.gtsr.common.machine.base.MTEHatchPressureSteamInput;
@@ -269,9 +270,8 @@ public class MTEGearSteamCompressor extends MTEEnhancedMultiBlockBase<MTEGearSte
                     'E',
                     onElementPass(
                         MTEGearSteamCompressor::onCasingAdded,
-                        // 防爆玻璃：GTNH 2.9.0 下 IC2 已移除 blockAlloyGlass，改用 GT5U 的强化玻璃（sBlockGlass1 meta 10 =
-                        // ReinforcedGlass）
-                        ofBlock(GregTechAPI.sBlockGlass1, 10)))
+                        // 防爆玻璃：通过兼容层自动适配 beta-1（IC2 blockAlloyGlass）与 beta-2（GT5U sBlockGlass1 meta 10）
+                        ofBlock(GTVersionCompat.getReinforcedGlassBlock(), GTVersionCompat.getReinforcedGlassMeta())))
                 .addElement(
                     'F',
                     onElementPass(
