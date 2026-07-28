@@ -122,6 +122,7 @@ public class GTSRRecipeLoader implements Runnable {
         safeRegister("GeothermalBoilerDisplay", GTSRRecipeLoader::registerGeothermalBoilerDisplayRecipes);
         safeRegister("FluidDrillDisplay", GTSRRecipeLoader::registerFluidDrillDisplayRecipes);
         safeRegister("GearSteamCompressorDisplay", GTSRRecipeLoader::registerGearSteamCompressorDisplayRecipes);
+        safeRegister("ReinforcedBrickBlastFurnace", GTSRRecipeLoader::registerReinforcedBrickBlastFurnaceRecipe);
     }
 
     private static void registerCokeOvenRecipes() {
@@ -1342,5 +1343,31 @@ public class GTSRRecipeLoader implements Runnable {
             .addTo(gearSteamCompressorRecipes);
 
         log("Gear steam compressor display recipes done.");
+    }
+
+    /**
+     * 注册加固砖高炉控制器的工作台合成配方。
+     * <p>
+     * 配方：GT5U 砖高炉控制器居中，周围 8 格钢板。
+     * 若 GT5U 砖高炉控制器或钢板为 null，则跳过并记录警告。
+     */
+    private static void registerReinforcedBrickBlastFurnaceRecipe() {
+        log("Registering Reinforced Brick Blast Furnace crafting recipe...");
+
+        ItemStack brickBlastFurnace = get(ItemList.Machine_Bricked_BlastFurnace, 1);
+        ItemStack steelPlate = get(OrePrefixes.plate, Materials.Steel, 1);
+        ItemStack output = get(GTSRItemList.ReinforcedBrickBlastFurnace, 1);
+
+        if (hasNull(output, brickBlastFurnace, steelPlate)) {
+            warn("Skipped ReinforcedBrickBlastFurnace recipe - output or inputs are null");
+            return;
+        }
+
+        GTModHandler.addCraftingRecipe(
+            output,
+            GTModHandler.RecipeBits.BITSD,
+            new Object[] { "SSS", "SBS", "SSS", 'S', steelPlate, 'B', brickBlastFurnace });
+
+        log("Reinforced Brick Blast Furnace recipe registered.");
     }
 }

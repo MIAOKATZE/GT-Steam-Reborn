@@ -13,6 +13,7 @@ import com.miaokatze.gtsr.common.machine.MTELargeGeothermalSteamBoiler;
 import com.miaokatze.gtsr.common.machine.MTELargeSolarOverpressureArray;
 import com.miaokatze.gtsr.common.machine.MTELargeSteamFurnace;
 import com.miaokatze.gtsr.common.machine.MTEMegaSteamTurbineArray;
+import com.miaokatze.gtsr.common.machine.MTEReinforcedBrickBlastFurnace;
 import com.miaokatze.gtsr.common.machine.MTESiemensMartinFurnace;
 import com.miaokatze.gtsr.common.machine.MTESingularityDrillingHub;
 import com.miaokatze.gtsr.common.machine.MTESingularityDrillingNode;
@@ -200,6 +201,11 @@ public class MachineLoader {
                 MetaTileEntityID.SIEMENS_MARTIN_FURNACE.ID,
                 "gtsr.siemens.martin.furnace",
                 "Siemens-Martin Furnace"));
+        GTSRItemList.ReinforcedBrickBlastFurnace.set(
+            new MTEReinforcedBrickBlastFurnace(
+                MetaTileEntityID.REINFORCED_BRICK_BLAST_FURNACE.ID,
+                "gtsr.reinforced.brick.blast.furnace",
+                "Reinforced Brick Blast Furnace"));
         GTSRItemList.AmmoniaPlant
             .set(new MTEAmmoniaPlant(MetaTileEntityID.AMMONIA_PLANT.ID, "gtsr.ammonia.plant", "Ammonia Plant"));
         GTSRItemList.GearSteamCompressor.set(
@@ -295,6 +301,7 @@ public class MachineLoader {
         // --- 多方块机器: 非典型蒸汽机 (30-33) ---
         CreativeTabManager.addItemToTab(GTSRItemList.LargeCokeOven.get(1));
         CreativeTabManager.addItemToTab(GTSRItemList.SiemensMartinFurnace.get(1));
+        CreativeTabManager.addItemToTab(GTSRItemList.ReinforcedBrickBlastFurnace.get(1));
         CreativeTabManager.addItemToTab(GTSRItemList.AmmoniaPlant.get(1));
         CreativeTabManager.addItemToTab(GTSRItemList.GearSteamCompressor.get(1));
         // --- 仓室 (34-40) ---

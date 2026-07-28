@@ -1150,3 +1150,21 @@ gtsr.tooltip.singularity.desc=蒸汽纠缠奇点，用于合成高级组件和�
 gtsr.tooltip.hub_terminal.desc=右击枢纽打开终端；右击缓存节点调速，潜行右击切换模式
 gtsr.tooltip.added_by=添加模组：
 gtsr.recipe.gear_steam_compressor=齿轮蒸汽压缩机
+
+# 加固砖高炉
+gt.blockmachines.gtsr.reinforced.brick.blast.furnace.name=加固砖高炉
+gtsr.tooltip.reinforced_brick_blast_furnace.type=加固砖高炉
+gtsr.tooltip.reinforced_brick_blast_furnace.desc=钢制加固的砖高炉，可执行原始高炉配方。
+gtsr.tooltip.reinforced_brick_blast_furnace.desc2=炉温随工作上升、闲置下降；温度越高，并行数越多、配方越快。
+gtsr.tooltip.reinforced_brick_blast_furnace.mechanism=炉温机制：运行时+0.01%%/s，闲置时-1%%/s；最高4并行、1.5倍速度。
+gtsr.tooltip.reinforced_brick_blast_furnace.parallel_hint=每25%%炉温增加1并行（上限4）。
+gtsr.tooltip.reinforced_brick_blast_furnace.speed_hint=配方时间除以(1+0.5×炉温)，最高1.5倍速。
+gtsr.tooltip.reinforced_brick_blast_furnace.ctrl=中层正面中央
+gtsr.tooltip.reinforced_brick_blast_furnace.input_bus=输入总线
+gtsr.tooltip.reinforced_brick_blast_furnace.output_bus=输出总线
+gtsr.tooltip.reinforced_brick_blast_furnace.hatch_steam=接受普通或蒸汽板输入/输出总线
+
+gtsr.gui.reinforced_brick_blast_furnace.temperature=炉温: 
+gtsr.gui.reinforced_brick_blast_furnace.status.heating=升温中
+gtsr.gui.reinforced_brick_blast_furnace.parallel=并行: 
+gtsr.gui.reinforced_brick_blast_furnace.speed=速度: 

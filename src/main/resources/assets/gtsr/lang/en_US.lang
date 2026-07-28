@@ -1110,3 +1110,21 @@ gtsr.tooltip.singularity.desc=Steam Entangled Singularity, used for crafting adv
 gtsr.tooltip.hub_terminal.desc=Right-click a Hub to open its Terminal; right-click a Cache Node to cycle rate, sneak-right-click to switch mode
 gtsr.tooltip.added_by=Added by:
 gtsr.recipe.gear_steam_compressor=Gear Steam Compressor
+
+# Reinforced Brick Blast Furnace
+gt.blockmachines.gtsr.reinforced.brick.blast.furnace.name=Reinforced Brick Blast Furnace
+gtsr.tooltip.reinforced_brick_blast_furnace.type=Reinforced Brick Blast Furnace
+gtsr.tooltip.reinforced_brick_blast_furnace.desc=A steel-reinforced brick blast furnace that runs primitive blast furnace recipes.
+gtsr.tooltip.reinforced_brick_blast_furnace.desc2=Furnace temperature rises while working and falls when idle; higher temperature grants more parallels and faster recipes.
+gtsr.tooltip.reinforced_brick_blast_furnace.mechanism=Temperature: +0.01%%/s when running, -1%%/s when idle; up to 4 parallels and 1.5x speed.
+gtsr.tooltip.reinforced_brick_blast_furnace.parallel_hint=Each 25%% temperature grants +1 parallel (max 4).
+gtsr.tooltip.reinforced_brick_blast_furnace.speed_hint=Recipe time divided by (1 + 0.5 x temperature), up to 1.5x speed.
+gtsr.tooltip.reinforced_brick_blast_furnace.ctrl=Front center of middle layer
+gtsr.tooltip.reinforced_brick_blast_furnace.input_bus=Input Bus
+gtsr.tooltip.reinforced_brick_blast_furnace.output_bus=Output Bus
+gtsr.tooltip.reinforced_brick_blast_furnace.hatch_steam=Accepts normal or steam plate input/output buses
+
+gtsr.gui.reinforced_brick_blast_furnace.temperature=Furnace Temperature: 
+gtsr.gui.reinforced_brick_blast_furnace.status.heating=Heating
+gtsr.gui.reinforced_brick_blast_furnace.parallel=Parallels: 
+gtsr.gui.reinforced_brick_blast_furnace.speed=Speed: 
