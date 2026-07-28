@@ -76,6 +76,7 @@ import gregtech.api.util.IGTHatchAdder;
 import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.api.util.OverclockCalculator;
 import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
+import gregtech.common.tileentities.machines.IDualInputHatch;
 
 public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKineticProcessingArray>
     implements IConstructable, ISurvivalConstructable {
@@ -851,6 +852,17 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
         }
         for (var inputBus : GTUtility.validMTEList(mInputBusses)) {
             inputBus.updateTexture(textureIndex);
+        }
+        // Crafting Input Bus/Buffer/Proxy (ME) 等 DualInputHatch 仓室：GT5U 父类 addInputBusToMachineList
+        // 在结构检测时将它们重定向到 mDualInputHatches（supportsCraftingMEBuffer 默认 true），纹理被设为
+        // hatch adder 传入的 SOLID_STEEL_CASING_INDEX（钢外壳固定）。此处需用基于 tier 的 textureIndex
+        // 重刷，否则样板仓会一直显示钢外壳、不随机械外壳 tier 改变。
+        // 注意：IDualInputHatch 是接口（extends IMetaTileEntity），不满足 GTUtility.validMTEList 的
+        // <E extends MetaTileEntity> 泛型约束，故用普通遍历 + null 检查；接口已声明 updateTexture(int)。
+        for (IDualInputHatch dualHatch : mDualInputHatches) {
+            if (dualHatch != null) {
+                dualHatch.updateTexture(textureIndex);
+            }
         }
         for (var outputBus : GTUtility.validMTEList(mOutputBusses)) {
             outputBus.updateTexture(textureIndex);
