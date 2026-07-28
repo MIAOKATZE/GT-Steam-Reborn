@@ -26,6 +26,7 @@ import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.render.TextureFactory;
+import gregtech.api.util.GTUtility;
 
 public class MTEReinforcedSteamCacheNode extends MTEFilteredCacheNode {
 
@@ -118,6 +119,22 @@ public class MTEReinforcedSteamCacheNode extends MTEFilteredCacheNode {
     public int fill(ForgeDirection side, FluidStack aFluid, boolean doFill) {
         if (aFluid == null || !isSteamFluid(aFluid)) return 0;
         return super.fill(side, aFluid, doFill);
+    }
+
+    /**
+     * 拦截 GUI 输入槽中的非目标流体单元。
+     * 只有装满「蒸汽」或「过热蒸汽」的流体容器才允许放入输入槽；空容器或非流体物品走父类逻辑。
+     */
+    @Override
+    public boolean allowPutStack(IGregTechTileEntity aBaseMetaTileEntity, int aIndex, ForgeDirection side,
+        ItemStack aStack) {
+        if (aIndex == getInputSlot()) {
+            FluidStack tFluid = GTUtility.getFluidForFilledItem(aStack, true);
+            if (tFluid != null && tFluid.getFluid() != null) {
+                return isSteamFluid(tFluid);
+            }
+        }
+        return super.allowPutStack(aBaseMetaTileEntity, aIndex, side, aStack);
     }
 
     private static boolean isSteamFluid(FluidStack aFluid) {

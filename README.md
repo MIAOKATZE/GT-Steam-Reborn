@@ -99,6 +99,7 @@ The Hub Terminal is a handheld remote management device (crafted with 1 Steam En
 - Per-node display: icon, name, tier (Mk1-4), status (running/idle/stopped), coordinates / 每节点显示：图标、名字、等级(Mk1-4)、状态(运行/待机/停止)、坐标
 - Remote start/stop, quick recycle (greyed out until node stops or idles, returns mining pipes), in-GUI upgrades / 远程启停、快捷回收（需节点停止或待机，返还钻管）、UI 内升级
 - In-place renaming; custom names also show in WAILA tooltip and node GUI title / 内嵌重命名；自定义名同步显示在 WAILA 提示与节点 GUI 标题
+- **Phase teleport to node / 阶段传送至节点**: Click the teleport button next to a bound node to teleport directly above it (y+1). Supports cross-dimensional travel; consumes 1 Steam Entangled Singularity from your main inventory only after a safe landing spot is found. / 点击绑定节点旁的传送按钮，直接传送到节点正上方（y+1）。支持跨维度；仅在找到安全落点后消耗主物品栏 1 个蒸汽纠缠奇点。
 
 ***
 

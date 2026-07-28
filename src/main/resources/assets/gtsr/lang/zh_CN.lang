@@ -25,7 +25,7 @@ gtsr.tooltip.shared.cache_node_hub_transfer=可连接枢纽，跨维度传输特
 
 # Steam Cache Node
 gt.blockmachines.gtsr.steam.cache.node.name=蒸汽缓存节点
-gtsr.tooltip.steam_cache_node.fluid_type.steam=蒸汽/过热蒸汽/蒸馏水
+gtsr.tooltip.steam_cache_node.fluid_type.steam=蒸汽
 
 # Reinforced Steam Cache Node
 gt.blockmachines.gtsr.reinforced.steam.cache.node.name=加固蒸汽缓存节点

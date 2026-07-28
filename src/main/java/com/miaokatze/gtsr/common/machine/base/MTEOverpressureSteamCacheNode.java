@@ -123,6 +123,22 @@ public class MTEOverpressureSteamCacheNode extends MTEFilteredCacheNode {
         return super.fill(side, aFluid, doFill);
     }
 
+    /**
+     * 拦截 GUI 输入槽中的非目标流体单元。
+     * 只有装满任意蒸汽类型（普通/过热/致密/超临界等）的流体容器才允许放入输入槽；空容器或非流体物品走父类逻辑。
+     */
+    @Override
+    public boolean allowPutStack(IGregTechTileEntity aBaseMetaTileEntity, int aIndex, ForgeDirection side,
+        ItemStack aStack) {
+        if (aIndex == getInputSlot()) {
+            FluidStack tFluid = GTUtility.getFluidForFilledItem(aStack, true);
+            if (tFluid != null && tFluid.getFluid() != null) {
+                return isSteamFluid(tFluid);
+            }
+        }
+        return super.allowPutStack(aBaseMetaTileEntity, aIndex, side, aStack);
+    }
+
     private static boolean isSteamFluid(FluidStack aFluid) {
         if (aFluid == null) return false;
         return MTESteamHubOutputHatch.isAnySteamFluid(aFluid);

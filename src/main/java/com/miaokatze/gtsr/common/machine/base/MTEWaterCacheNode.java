@@ -26,6 +26,7 @@ import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.render.TextureFactory;
+import gregtech.api.util.GTUtility;
 
 public class MTEWaterCacheNode extends MTEFilteredCacheNode {
 
@@ -118,6 +119,22 @@ public class MTEWaterCacheNode extends MTEFilteredCacheNode {
     public int fill(ForgeDirection side, FluidStack aFluid, boolean doFill) {
         if (aFluid == null || !isWaterFluid(aFluid)) return 0;
         return super.fill(side, aFluid, doFill);
+    }
+
+    /**
+     * 拦截 GUI 输入槽中的非目标流体单元。
+     * 只有装满「水」或「蒸馏水」的流体容器才允许放入输入槽；空容器或非流体物品走父类逻辑。
+     */
+    @Override
+    public boolean allowPutStack(IGregTechTileEntity aBaseMetaTileEntity, int aIndex, ForgeDirection side,
+        ItemStack aStack) {
+        if (aIndex == getInputSlot()) {
+            FluidStack tFluid = GTUtility.getFluidForFilledItem(aStack, true);
+            if (tFluid != null && tFluid.getFluid() != null) {
+                return isWaterFluid(tFluid);
+            }
+        }
+        return super.allowPutStack(aBaseMetaTileEntity, aIndex, side, aStack);
     }
 
     private static boolean isWaterFluid(FluidStack aFluid) {

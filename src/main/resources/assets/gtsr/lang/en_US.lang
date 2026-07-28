@@ -25,7 +25,7 @@ gtsr.tooltip.shared.cache_node_hub_transfer=Can connect to Hub for cross-dimensi
 
 # Steam Cache Node
 gt.blockmachines.gtsr.steam.cache.node.name=Steam Cache Node
-gtsr.tooltip.steam_cache_node.fluid_type.steam=Steam / Superheated Steam / Distilled Water
+gtsr.tooltip.steam_cache_node.fluid_type.steam=Steam
 
 # Reinforced Steam Cache Node
 gt.blockmachines.gtsr.reinforced.steam.cache.node.name=Reinforced Steam Cache Node
