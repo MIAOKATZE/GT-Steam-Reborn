@@ -62,9 +62,9 @@ public class MTEReinforcedBrickBlastFurnace extends MTEEnhancedMultiBlockBase<MT
     private static final String STRUCTURE_PIECE_MAIN = "main";
 
     // 控制器在结构中的位置（对应转置后的坐标）。
-    // 原始层定义中 '~' 位于第 2 层（下标 1）、第 1 行（下标 0）、第 2 列（下标 1）。
+    // 原始层定义中 '~' 位于第 4 层（下标 3）、第 1 行（下标 0）、第 2 列（下标 1）。
     private static final int HORIZONTAL_OFF_SET = 1;
-    private static final int VERTICAL_OFF_SET = 1;
+    private static final int VERTICAL_OFF_SET = 3;
     private static final int DEPTH_OFF_SET = 0;
 
     // 炉温变化速率：工作时 +0.01%/秒，闲置时 -1%/秒。
@@ -192,8 +192,8 @@ public class MTEReinforcedBrickBlastFurnace extends MTEEnhancedMultiBlockBase<MT
                 .addShape(
                     STRUCTURE_PIECE_MAIN,
                     transpose(
-                        new String[][] { { "BBB", "BBB", "BBB" }, { "A~A", "AXA", "AAA" }, { "CAC", "AXA", "CAC" },
-                            { "CCC", "CXC", "CCC" }, { "CCC", "CXC", "CCC" } }))
+                        new String[][] { { "CCC", "CXC", "CCC" }, { "CCC", "CXC", "CCC" }, { "CAC", "AXA", "CAC" },
+                            { "A~A", "AXA", "AAA" }, { "BBB", "BBB", "BBB" } }))
                 .addElement('~', onElementPass(x -> {}, ofBlock(GregTechAPI.sBlockCasings2, 0)))
                 .addElement(
                     'A',
