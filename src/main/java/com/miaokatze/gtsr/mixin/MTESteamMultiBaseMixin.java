@@ -13,8 +13,11 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
+import com.miaokatze.gtsr.api.compat.ICoolingHatchHolder;
+import com.miaokatze.gtsr.api.compat.SteamCoolingSupport;
 import com.miaokatze.gtsr.common.machine.base.MTEPressureSteamCoolingHatch;
 import com.miaokatze.gtsr.common.machine.base.MTESteamCoolingHatch;
+import com.miaokatze.gtsr.config.Config;
 
 import gregtech.api.enums.Materials;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
@@ -32,7 +35,7 @@ import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTEHatch
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTESteamMultiBlockBase;
 
 @Mixin(value = MTESteamMultiBlockBase.class, remap = false)
-public abstract class MTESteamMultiBaseMixin {
+public abstract class MTESteamMultiBaseMixin implements ICoolingHatchHolder {
 
     // Shadow fields from MTESteamMultiBlockBase (mSteamInputFluids is NOT final in GT5U source)
     @Shadow
@@ -63,10 +66,40 @@ public abstract class MTESteamMultiBaseMixin {
         return (MTESteamMultiBlockBase) (Object) this;
     }
 
+    // region ICoolingHatchHolder 接口实现
+    // 暴露 @Unique private 字段供 GTNL 专用 mixin 通过接口访问
+    // （GTNL 子类 mixin 无法直接访问父类 mixin 的 @Unique private 字段）
+
+    @Override
+    @Unique
+    public ArrayList<MTESteamCoolingHatch> gtsr$getCoolingHatches() {
+        return gtsr$mSteamCoolingHatches;
+    }
+
+    @Override
+    @Unique
+    public ArrayList<MTEPressureSteamCoolingHatch> gtsr$getPressureHatches() {
+        return gtsr$mPressureCoolingHatches;
+    }
+
+    @Override
+    @Unique
+    public int gtsr$getAccumulatedSteam() {
+        return gtsr$accumulatedSteam;
+    }
+
+    @Override
+    @Unique
+    public void gtsr$setAccumulatedSteam(int value) {
+        gtsr$accumulatedSteam = value;
+    }
+
+    // endregion
+
     /**
      * 运行时守卫：判断当前实例是否为 GTNL（com.science.gtnl.* 包）机器。
      * this.getClass() 返回实际运行时类（如 GTNL 子类），而非 Mixin 注入的目标类。
-     * GTNL 机器有自己的特殊机制，不应被 GTSR 逻辑覆写影响，需回退到 GT5U 原生行为。
+     * GTNL 机器开启增强时仅对冷却舱室相关逻辑放行，其他回退到 GT5U 原生行为。
      */
     @Unique
     private boolean gtsr$isGTNLMachine() {
@@ -75,20 +108,17 @@ public abstract class MTESteamMultiBaseMixin {
             .startsWith("com.science.gtnl.");
     }
 
+    /**
+     * 判断元机器实体是否为 GTSR 冷却舱室（普通或压力）。
+     * 先判断压力舱室，因其继承自普通舱室。
+     *
+     * @param aMetaTileEntity 元机器实体
+     * @return 是冷却舱室返回 true，否则 false
+     */
     @Unique
-    private boolean gtsr$hasSuperheatedSteamInAnyHatch() {
-        for (MTEHatchCustomFluidBase hatch : mSteamInputFluids) {
-            if (hatch == null) continue;
-            var fluid = hatch.getFluid();
-            if (fluid != null && fluid.getFluid() != null
-                && "ic2superheatedsteam".equals(
-                    fluid.getFluid()
-                        .getName())
-                && fluid.amount > 0) {
-                return true;
-            }
-        }
-        return false;
+    private boolean gtsr$isCoolingHatch(IMetaTileEntity aMetaTileEntity) {
+        return aMetaTileEntity instanceof MTEPressureSteamCoolingHatch
+            || aMetaTileEntity instanceof MTESteamCoolingHatch;
     }
 
     // region Steam Consumption & Cooling
@@ -103,12 +133,13 @@ public abstract class MTESteamMultiBaseMixin {
     @Inject(method = "onRunningTick(Lnet/minecraft/item/ItemStack;)Z", at = @At("HEAD"), cancellable = true)
     private void gtsr$onRunningTickHead(ItemStack aStack, CallbackInfoReturnable<Boolean> cir) {
         // GTNL 守卫：GTNL 机器走 GT5U 原生行为，跳过 GTSR 逻辑
+        // （GTNL 覆写 onRunningTick 不调 super，本注入对 GTNL 机器不触发；守卫保留为双重保险）
         if (gtsr$isGTNLMachine()) return;
 
         MTESteamMultiBlockBase self = gtsr$self();
         if (self.lEUt < 0) {
             long aSteamVal = ((-self.lEUt * 10000) / Math.max(1000, self.mEfficiency));
-            boolean isSuperheated = gtsr$hasSuperheatedSteamInAnyHatch();
+            boolean isSuperheated = SteamCoolingSupport.hasSuperheatedSteam(self);
             if (isSuperheated) {
                 aSteamVal *= 4;
                 if (self.mProgresstime == 0) {
@@ -120,31 +151,9 @@ public abstract class MTESteamMultiBaseMixin {
                 cir.setReturnValue(false);
                 return;
             }
-            gtsr$pushCoolingProducts((int) aSteamVal, isSuperheated);
+            SteamCoolingSupport.pushCoolingProducts((ICoolingHatchHolder) this, (int) aSteamVal, isSuperheated);
         }
         cir.setReturnValue(true);
-    }
-
-    @Unique
-    private void gtsr$pushCoolingProducts(int steamConsumed, boolean isSuperheated) {
-        if (isSuperheated) {
-            for (MTEPressureSteamCoolingHatch hatch : gtsr$mPressureCoolingHatches) {
-                if (hatch != null && hatch.isValid()) {
-                    hatch.pushCoolingSteam(steamConsumed);
-                }
-            }
-        } else {
-            gtsr$accumulatedSteam += steamConsumed;
-            int waterAmount = gtsr$accumulatedSteam / 160;
-            if (waterAmount > 0) {
-                gtsr$accumulatedSteam %= 160;
-                for (MTESteamCoolingHatch hatch : gtsr$mSteamCoolingHatches) {
-                    if (hatch != null && hatch.isValid()) {
-                        hatch.pushCoolingWater(waterAmount);
-                    }
-                }
-            }
-        }
     }
 
     // endregion
@@ -230,8 +239,14 @@ public abstract class MTESteamMultiBaseMixin {
         cancellable = true)
     private void gtsr$addToMachineListHead(final IGregTechTileEntity aTileEntity, final int aBaseCasingIndex,
         CallbackInfoReturnable<Boolean> cir) {
-        // GTNL 守卫：GTNL 机器走 GT5U 原生 addToMachineList 行为，跳过 GTSR 逻辑
-        if (gtsr$isGTNLMachine()) return;
+        // GTNL 守卫：GTNL 机器仅在开启增强且为冷却舱室时走 GTSR 注册，其他情况走原生
+        // （避免输入翻倍回归：非冷却舱室走 GTNL 原生 addToMachineList）
+        if (gtsr$isGTNLMachine()) {
+            if (!Config.gtnlEnhancement) return;
+            final IMetaTileEntity metaTileEntity = (aTileEntity == null) ? null : aTileEntity.getMetaTileEntity();
+            if (!gtsr$isCoolingHatch(metaTileEntity)) return;
+            // 开启增强 + 冷却舱室：走下方 GTSR 冷却舱室注册逻辑
+        }
 
         if (aTileEntity == null) {
             cir.setReturnValue(false);
@@ -356,8 +371,14 @@ public abstract class MTESteamMultiBaseMixin {
     @Inject(method = "addSteamBusOutput", at = @At("TAIL"), cancellable = true)
     private void gtsr$onAddSteamBusOutput(IGregTechTileEntity aTileEntity, int aBaseCasingIndex,
         CallbackInfoReturnable<Boolean> cir) {
-        // GTNL 守卫：GTNL 机器走 GT5U 原生 addSteamBusOutput 行为（不 cancel），跳过 GTSR 冷却仓室注册逻辑
-        if (gtsr$isGTNLMachine()) return;
+        // GTNL 守卫：GTNL 机器仅在开启增强且为冷却舱室时走 GTSR 注册，其他情况走原生
+        if (gtsr$isGTNLMachine()) {
+            if (!Config.gtnlEnhancement) return;
+            if (cir.getReturnValueZ()) return; // 原方法已成功，不再处理
+            final IMetaTileEntity metaTileEntity = (aTileEntity == null) ? null : aTileEntity.getMetaTileEntity();
+            if (!gtsr$isCoolingHatch(metaTileEntity)) return; // 非冷却舱室：走原生
+            // 开启增强 + 原方法失败 + 冷却舱室：走下方 GTSR 冷却舱室注册逻辑
+        }
 
         if (aTileEntity == null) return;
         final IMetaTileEntity aMetaTileEntity = aTileEntity.getMetaTileEntity();
@@ -409,28 +430,21 @@ public abstract class MTESteamMultiBaseMixin {
      */
     @Inject(method = "clearHatches", at = @At("RETURN"))
     private void gtsr$onClearHatches(CallbackInfo ci) {
-        // GTNL 守卫：GTNL 机器没有 GTSR 自定义列表（gtsr$mSteamCoolingHatches 等），跳过清理逻辑
-        if (gtsr$isGTNLMachine()) return;
-
-        gtsr$mSteamCoolingHatches.clear();
-        gtsr$mPressureCoolingHatches.clear();
-        gtsr$accumulatedSteam = 0;
+        // 移除 GTNL 守卫：GTNL 机器继承父类注入的 ICoolingHatchHolder 字段，清理无副作用
+        // GTNL clearHatches 调 super，mixin 触发，让 GTNL 机器也清理冷却舱室列表
+        SteamCoolingSupport.clearHatches((ICoolingHatchHolder) this);
     }
 
     @Inject(method = "saveNBTData", at = @At("RETURN"))
     private void gtsr$onSaveNBTData(NBTTagCompound aNBT, CallbackInfo ci) {
-        // GTNL 守卫：GTNL 机器没有 gtsr$accumulatedSteam 字段，跳过 NBT 保存
-        if (gtsr$isGTNLMachine()) return;
-
-        aNBT.setInteger("gtsr.accumulatedSteam", gtsr$accumulatedSteam);
+        // 移除 GTNL 守卫：GTNL NBT 调 super，mixin 触发，让 GTNL 机器也持久化 accumulatedSteam
+        SteamCoolingSupport.saveNBT((ICoolingHatchHolder) this, aNBT);
     }
 
     @Inject(method = "loadNBTData", at = @At("RETURN"))
     private void gtsr$onLoadNBTData(NBTTagCompound aNBT, CallbackInfo ci) {
-        // GTNL 守卫：GTNL 机器没有 gtsr$accumulatedSteam 字段，跳过 NBT 加载
-        if (gtsr$isGTNLMachine()) return;
-
-        gtsr$accumulatedSteam = aNBT.getInteger("gtsr.accumulatedSteam");
+        // 移除 GTNL 守卫：GTNL NBT 调 super，mixin 触发，让 GTNL 机器也加载 accumulatedSteam
+        SteamCoolingSupport.loadNBT((ICoolingHatchHolder) this, aNBT);
     }
 
     // endregion

@@ -15,6 +15,11 @@ public class Config {
     // 此配置仅用于在基准值基础上进行微调。
     public static int metaIdOffset = 0;
 
+    // 是否为 GTNL 蒸汽机基类启用 GTSR 增强（过热蒸汽 4 倍加速 + 冷却舱室支持）。
+    // 默认关闭。开启后 GTNL 蒸汽机将获得 GTSR 的过热蒸汽 4 倍消耗 4 倍速加速机制，
+    // 并能使用 GTSR 冷却舱室。mixin 方法体运行时判断此值（远晚于配置读取），时序安全。
+    public static boolean gtnlEnhancement = false;
+
     /**
      * 同步配置文件
      * 从磁盘读取配置并更新静态变量，如果配置有变动则自动保存
@@ -31,6 +36,12 @@ public class Config {
             -5000,
             5000,
             "应用于 MTE ID 基准值的偏移量 (用于预留 ID 区间)");
+
+        gtnlEnhancement = configuration.getBoolean(
+            "gtnlEnhancement",
+            Configuration.CATEGORY_GENERAL,
+            false,
+            "是否为GTNL蒸汽机基类启用GTSR增强（过热蒸汽4倍加速+冷却舱室支持）。默认关闭。开启后GTNL蒸汽机将获得GTSR的过热蒸汽4倍消耗4倍速加速机制，并能使用GTSR冷却舱室。");
 
         if (configuration.hasChanged()) {
             configuration.save();
