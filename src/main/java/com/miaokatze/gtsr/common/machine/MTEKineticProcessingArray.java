@@ -429,7 +429,11 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
 
         boolean hasEnergy = !mEnergyHatches.isEmpty();
         boolean hasSteamInput = !mPressureSteamInputs.isEmpty();
-        boolean hasInput = !mInputBusses.isEmpty() || !mInputHatches.isEmpty();
+        // 兼容 Crafting Input Bus/Buffer/Proxy (ME) 等 DualInputHatch：GT5U 父类 addInputBusToMachineList
+        // 会将 IDualInputHatch 实例（MTEHatchCraftingInputME/Slave extends MTEHatchInputBus）自动重定向到
+        // mDualInputHatches（supportsCraftingMEBuffer() 默认 true），此处需一并计入有效输入判断，
+        // 否则玩家只放样板输入总成时 hasInput=false 导致结构检测失败。仿照 GT5U MTEEnhancedMultiBlockBase.checkHasAnyInput。
+        boolean hasInput = !mInputBusses.isEmpty() || !mInputHatches.isEmpty() || !mDualInputHatches.isEmpty();
         boolean hasOutput = !mOutputBusses.isEmpty() || !mOutputHatches.isEmpty() || !mPressureCoolingHatches.isEmpty();
         if (!hasEnergy || !hasSteamInput || !hasInput || !hasOutput) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
