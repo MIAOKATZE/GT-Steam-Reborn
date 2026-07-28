@@ -2,31 +2,42 @@ package com.miaokatze.gtsr.api.compat;
 
 import net.minecraft.block.Block;
 
+import cpw.mods.fml.common.Loader;
+import cpw.mods.fml.common.ModContainer;
 import cpw.mods.fml.common.registry.GameRegistry;
 import gregtech.api.GregTechAPI;
 
 /**
- * GT 版本兼容层：通过运行时特征探测，实现 beta-1 与 beta-2 的单代码库兼容。
+ * GT 版本兼容层：通过运行时探测 GT5U 版本号，实现 beta-1 与 beta-2 的单代码库兼容。
  *
  * <p>
  * 背景：GTSR 原本需要维护两个分支——master 用 beta-2 的 GT5U (5.09.54.20) 编译，beta-1 分支用 beta-1 的 GT5U
- * (5.09.52.594) 编译。本兼容层通过运行时探测 GTNH 版本特征，让单一代码库同时兼容两个版本，免去双分支维护负担。
+ * (5.09.52.594) 编译。本兼容层通过运行时探测 GT5U 版本号，让单一代码库同时兼容两个版本，免去双分支维护负担。
  * </p>
  *
  * <p>
  * 当前处理的差异点：
  * <ul>
  * <li><b>防爆玻璃</b>：beta-1 环境下 IC2 仍保留 {@code blockAlloyGlass}（meta 0）；
- * beta-2 移除了该方块，GT5U 改用 {@link GregTechAPI#sBlockGlass1}（meta 10 = ReinforcedGlass）替代。
- * 见 GT5U PosteaTransformers.java 第 52 行的迁移逻辑。</li>
+ * beta-2 的 GT5U 改用 {@link GregTechAPI#sBlockGlass1}（meta 10 = ReinforcedGlass）替代。
+ * 见 GT5U PosteaTransformers.java 的 {@code addSimpleReplacement("IC2:blockAlloyGlass", ...)} 迁移逻辑。</li>
  * </ul>
  * </p>
  *
  * <p>
- * 探测策略：IC2 的 {@code blockAlloyGlass} 仅在 beta-1 存在、在 beta-2 被移除，
- * 因此运行时检测 {@link GameRegistry#findBlock(String, String)} 对 {@code "IC2", "blockAlloyGlass"} 的返回值即可区分版本。
- * 该字段在 beta-1 与 beta-2 的 GT5U 中均存在于编译期（beta-1 在 GregTechAPI.java:180，beta-2 在 :185），
- * 故无需反射，直接引用即可在两个版本下编译通过。
+ * 探测策略：通过 {@link Loader#getIndexedModList()} 获取 GT5U 的版本号字符串，
+ * 比较版本号的第三段（patch 号）：
+ * <ul>
+ * <li>beta-1：GT5U 5.09.<b>52</b>.594 → 第三段 52 &lt; 54 → beta-1 模式</li>
+ * <li>beta-2：GT5U 5.09.<b>54</b>.20 → 第三段 54 ≥ 54 → beta-2 模式</li>
+ * </ul>
+ * 该方案比「检测 IC2 blockAlloyGlass 是否存在」更可靠，因为 IC2 在两个版本中可能都注册了 blockAlloyGlass，
+ * 但 GT5U 对防爆玻璃的引用方式不同。
+ * </p>
+ *
+ * <p>
+ * 编译期保证：beta-1 与 beta-2 的 GT5U 都包含差异点所引用的全部 API 符号（如 {@link GregTechAPI#sBlockGlass1}
+ * 字段在 beta-1 的 GregTechAPI.java:180、beta-2 的 :185 均存在），因此无需反射，直接引用即可双版本编译。
  * </p>
  *
  * <p>
@@ -39,7 +50,7 @@ public class GTVersionCompat {
     /**
      * 当前运行环境是否为 beta-1 模式。
      * <p>
-     * 由静态初始化块根据 IC2 {@code blockAlloyGlass} 是否存在一次性确定，运行期间不会变化。
+     * 由静态初始化块根据 GT5U 版本号一次性确定，运行期间不会变化。
      * </p>
      */
     private static final boolean IS_BETA_1;
@@ -61,16 +72,18 @@ public class GTVersionCompat {
     private static final int REINFORCED_GLASS_META;
 
     static {
-        // 探测 IC2 blockAlloyGlass 是否存在：beta-1 仍保留该方块，beta-2 已移除。
-        // 以此作为版本特征区分运行环境。
-        Block ic2Glass = GameRegistry.findBlock("IC2", "blockAlloyGlass");
-        IS_BETA_1 = (ic2Glass != null);
+        // 通过 GT5U 版本号检测运行环境
+        // beta-1: GT5U 5.09.52.594（IC2 仍有 blockAlloyGlass，GTSR 用 IC2 blockAlloyGlass meta 0）
+        // beta-2: GT5U 5.09.54.20（GT5U 改用 sBlockGlass1 meta 10 = ReinforcedGlass）
+        String gtVersion = detectGTVersion();
+        IS_BETA_1 = isBeta1Version(gtVersion);
+
         if (IS_BETA_1) {
             // beta-1 模式：使用 IC2 原生防爆玻璃 blockAlloyGlass meta 0
-            REINFORCED_GLASS_BLOCK = ic2Glass;
+            REINFORCED_GLASS_BLOCK = GameRegistry.findBlock("IC2", "blockAlloyGlass");
             REINFORCED_GLASS_META = 0;
         } else {
-            // beta-2 模式：IC2 已移除 blockAlloyGlass，GT5U 改用 sBlockGlass1 meta 10（ReinforcedGlass）
+            // beta-2 模式：GT5U 改用 sBlockGlass1 meta 10（ReinforcedGlass）
             REINFORCED_GLASS_BLOCK = GregTechAPI.sBlockGlass1;
             REINFORCED_GLASS_META = 10;
         }
@@ -81,9 +94,57 @@ public class GTVersionCompat {
     }
 
     /**
+     * 通过 Forge 的 mod 列表获取 GT5U 的版本号字符串。
+     *
+     * @return GT5U 版本号（如 "5.09.54.20"）；获取失败时返回 "unknown"
+     */
+    private static String detectGTVersion() {
+        try {
+            ModContainer gtContainer = Loader.instance()
+                .getIndexedModList()
+                .get("gregtech");
+            if (gtContainer != null) {
+                return gtContainer.getVersion();
+            }
+        } catch (Exception e) {
+            // 忽略异常，返回 unknown
+        }
+        return "unknown";
+    }
+
+    /**
+     * 判断给定版本号是否为 beta-1 版本。
+     * <p>
+     * 版本号格式：MAJOR.MINOR.PATCH.BUILD（如 5.09.52.594 或 5.09.54.20）
+     * <br>
+     * 判定逻辑：第三段（PATCH）&lt; 54 → beta-1；≥ 54 → beta-2。
+     * </p>
+     *
+     * @param version GT5U 版本号字符串
+     * @return true 表示为 beta-1 版本；false 表示为 beta-2 或解析失败（默认 beta-2）
+     */
+    private static boolean isBeta1Version(String version) {
+        if (version == null || "unknown".equals(version)) {
+            return false; // 默认 beta-2
+        }
+        try {
+            String[] parts = version.split("\\.");
+            if (parts.length >= 3) {
+                int patch = Integer.parseInt(parts[2]);
+                // beta-1: 5.09.52.594 → patch=52 < 54
+                // beta-2: 5.09.54.20 → patch=54 >= 54
+                return patch < 54;
+            }
+        } catch (NumberFormatException e) {
+            // 版本号解析失败，默认 beta-2
+        }
+        return false;
+    }
+
+    /**
      * 判断当前运行环境是否为 beta-1 模式。
      *
-     * @return true 表示当前为 beta-1（IC2 blockAlloyGlass 存在）；false 表示为 beta-2
+     * @return true 表示当前为 beta-1（GT5U 5.09.52.x）；false 表示为 beta-2（GT5U 5.09.54+）
      */
     public static boolean isBeta1() {
         return IS_BETA_1;
