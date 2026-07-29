@@ -63,6 +63,7 @@ import gregtech.api.metatileentity.implementations.MTEBasicMachineWithRecipe;
 import gregtech.api.metatileentity.implementations.MTEEnhancedMultiBlockBase;
 import gregtech.api.metatileentity.implementations.MTEHatchInput;
 import gregtech.api.recipe.RecipeMap;
+import gregtech.api.recipe.RecipeMaps;
 import gregtech.api.recipe.check.CheckRecipeResult;
 import gregtech.api.recipe.check.CheckRecipeResultRegistry;
 import gregtech.api.recipe.check.SimpleCheckRecipeResult;
@@ -77,6 +78,7 @@ import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.api.util.OverclockCalculator;
 import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
 import gregtech.common.tileentities.machines.IDualInputHatch;
+import gtPlusPlus.api.recipe.GTPPRecipeMaps;
 
 public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKineticProcessingArray>
     implements IConstructable, ISurvivalConstructable {
@@ -463,7 +465,7 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
             }
             internalMachineStack = controllerStack.copy();
             internalMachineStack.stackSize = 1;
-            recipeMap = mte.getRecipeMap();
+            recipeMap = mapToMultiblockRecipeMap(mte.getRecipeMap());
             voltage = GTValues.V[mte.mTier] * mte.mAmperage;
             mMachineTier = mte.mTier;
             mMachineName = mte.getInventoryName();
@@ -478,6 +480,27 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
 
         mStackSize = controllerStack.stackSize;
         maxParallel = (1 + 2 * mMachineTier) + mStackSize;
+    }
+
+    /**
+     * 将单方块机器的配方表映射到对应的多方块配方表。
+     * 电解机/离心机/化学反应釜分别映射到 GT++ 工业电解机、GT++ 工业离心机、GT5U 大型化学反应釜。
+     * 其他机器保持原配方表不变。
+     */
+    private static RecipeMap<?> mapToMultiblockRecipeMap(@Nullable RecipeMap<?> original) {
+        if (original == null) {
+            return null;
+        }
+        if (original == RecipeMaps.electrolyzerRecipes) {
+            return GTPPRecipeMaps.electrolyzerNonCellRecipes;
+        }
+        if (original == RecipeMaps.centrifugeRecipes) {
+            return GTPPRecipeMaps.centrifugeNonCellRecipes;
+        }
+        if (original == RecipeMaps.chemicalReactorRecipes) {
+            return RecipeMaps.multiblockChemicalReactorRecipes;
+        }
+        return original;
     }
 
     private void resetMachineInfo() {

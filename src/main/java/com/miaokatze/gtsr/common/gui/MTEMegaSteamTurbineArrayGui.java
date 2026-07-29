@@ -24,6 +24,10 @@ public class MTEMegaSteamTurbineArrayGui extends MTEMultiBlockBaseGui<MTEEnhance
     private IntSyncValue mTheoreticalEUtSync;
     private IntSyncValue mSteamConsumptionSync;
     private IntSyncValue mSteamTypeOrdinalSync;
+    private IntSyncValue mEfficiencySync;
+    private IntSyncValue mEUtSync;
+    private IntSyncValue mGearTierSync;
+    private IntSyncValue mPipeTierSync;
 
     public MTEMegaSteamTurbineArrayGui(MTEEnhancedMultiBlockBase<?> multiblock) {
         super(multiblock);
@@ -44,11 +48,20 @@ public class MTEMegaSteamTurbineArrayGui extends MTEMultiBlockBaseGui<MTEEnhance
         mSteamTypeOrdinalSync = new IntSyncValue(
             () -> turbineArray.mSteamType.ordinal(),
             val -> turbineArray.mSteamType = MTEMegaSteamTurbineArray.SteamType.values()[val]);
+        mEfficiencySync = new IntSyncValue(() -> turbineArray.mEfficiency, val -> turbineArray.mEfficiency = val);
+        mEUtSync = new IntSyncValue(() -> turbineArray.mEUt, val -> turbineArray.mEUt = val);
+        mGearTierSync = new IntSyncValue(() -> turbineArray.mGearTier, val -> turbineArray.mGearTier = val);
+        mPipeTierSync = new IntSyncValue(() -> turbineArray.mPipeTier, val -> turbineArray.mPipeTier = val);
+
         syncManager.syncValue("turbineCasingTier", mCasingTierSync);
         syncManager.syncValue("turbineStackCount", mStackCountSync);
         syncManager.syncValue("turbineTheoreticalEUt", mTheoreticalEUtSync);
         syncManager.syncValue("turbineSteamConsumption", mSteamConsumptionSync);
         syncManager.syncValue("turbineSteamTypeOrdinal", mSteamTypeOrdinalSync);
+        syncManager.syncValue("turbineEfficiency", mEfficiencySync);
+        syncManager.syncValue("turbineEUt", mEUtSync);
+        syncManager.syncValue("turbineGearTier", mGearTierSync);
+        syncManager.syncValue("turbinePipeTier", mPipeTierSync);
     }
 
     @Override
@@ -94,8 +107,8 @@ public class MTEMegaSteamTurbineArrayGui extends MTEMultiBlockBaseGui<MTEEnhance
                 .setEnabledIf(w -> multiblock.mMachine))
             .child(IKey.dynamic(() -> {
                 int stackCount = mStackCountSync.getValue();
-                int gearTier = turbineArray.mGearTier;
-                int pipeTier = turbineArray.mPipeTier;
+                int gearTier = mGearTierSync.getValue();
+                int pipeTier = mPipeTierSync.getValue();
                 return EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.turbine_array.savings")
                     + EnumChatFormatting.GREEN
                     + String.format(
@@ -126,7 +139,7 @@ public class MTEMegaSteamTurbineArrayGui extends MTEMultiBlockBaseGui<MTEEnhance
             .child(IKey.dynamic(() -> {
                 MTEMegaSteamTurbineArray.SteamType steamType = MTEMegaSteamTurbineArray.SteamType
                     .values()[mSteamTypeOrdinalSync.getValue()];
-                int efficiency = turbineArray.mEfficiency;
+                int efficiency = mEfficiencySync.getValue();
                 int maxEff = turbineArray.getMaxEfficiencyLimit(steamType);
                 return EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.turbine_array.efficiency")
                     + (efficiency >= maxEff ? EnumChatFormatting.LIGHT_PURPLE
@@ -153,7 +166,7 @@ public class MTEMegaSteamTurbineArrayGui extends MTEMultiBlockBaseGui<MTEEnhance
                 IKey.dynamic(
                     () -> EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.turbine_array.output")
                         + EnumChatFormatting.GREEN
-                        + NumberFormatUtil.formatNumber(Math.abs(turbineArray.mEUt))
+                        + NumberFormatUtil.formatNumber(Math.abs(mEUtSync.getValue()))
                         + " EU/t")
                     .asWidget()
                     .marginBottom(2)
