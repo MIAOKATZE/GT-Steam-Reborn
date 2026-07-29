@@ -363,18 +363,9 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
         // 时运统一取高值（贫瘠矿与普通矿等同）
         int fortune = FORTUNE[mMinerTier];
 
-        ArrayList<ItemStack> drops;
-        try (OreInfo<?> info = OreManager.getOreInfo(block, meta)) {
-            if (info != null) {
-                boolean origNatural = info.isNatural;
-                info.isNatural = true;
-                drops = OreManager.getAdapter(info)
-                    .getOreDrops(ThreadLocalRandom.current(), info, false, fortune);
-                info.isNatural = origNatural;
-            } else {
-                drops = block.getDrops(world, oreX, oreY, oreZ, meta, fortune);
-            }
-        }
+        // 采集矿石掉落物：粉碎矿模式下绕过 GTOreAdapter 内部 fortune=3 截断
+        // （详见 collectOreDropsWithCrushedFortune 方法注释）
+        ArrayList<ItemStack> drops = collectOreDropsWithCrushedFortune(block, meta, fortune, world, oreX, oreY, oreZ);
 
         // Remove the block from the world
         world.setBlockToAir(oreX, oreY, oreZ);
@@ -495,18 +486,16 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
         // 时运统一取高值（贫瘠矿与普通矿等同）
         int fortune = FORTUNE[mMinerTier];
         if (targetBlock != null && targetBlock != Blocks.air && targetBlock != Blocks.bedrock) {
-            ArrayList<ItemStack> drops;
-            try (OreInfo<?> info = OreManager.getOreInfo(targetBlock, targetMeta)) {
-                if (info != null) {
-                    boolean origNatural = info.isNatural;
-                    info.isNatural = true;
-                    drops = OreManager.getAdapter(info)
-                        .getOreDrops(ThreadLocalRandom.current(), info, false, fortune);
-                    info.isNatural = origNatural;
-                } else {
-                    drops = targetBlock.getDrops(world, x, targetY, z, targetMeta, fortune);
-                }
-            }
+            // 采集矿石掉落物：粉碎矿模式下绕过 GTOreAdapter 内部 fortune=3 截断
+            // （详见 collectOreDropsWithCrushedFortune 方法注释）
+            ArrayList<ItemStack> drops = collectOreDropsWithCrushedFortune(
+                targetBlock,
+                targetMeta,
+                fortune,
+                world,
+                x,
+                targetY,
+                z);
             MTESingularityDrillingHub hub = getBoundHub();
             // 粉碎矿模式：将矿石掉落物替换为 3 倍数量的对应粉碎矿
             if (mCrushedMode && drops != null) {
@@ -533,9 +522,85 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
     }
 
     /**
+     * 采集矿石掉落物，粉碎矿模式下绕过 GTOreAdapter 内部 fortune=3 截断。
+     *
+     * <p>
+     * 背景：参考库 GTOreAdapter#getBigOreDrops 在 FortuneItem 模式下会把传入 fortune>3 截断为 3
+     * （"if (fortune > 3) fortune = 3"），导致本节点 FORTUNE={5,5,6,7} 配置实际只生效到 3，
+     * 玩家在粉碎矿模式下观察到产出 "3/6/9"（即 1/2/3 个原矿 ×3），远低于时运 5 的期望值。
+     *
+     * <p>
+     * 修复策略：粉碎矿模式下分两步走，实现"先算粗矿数量再输出粉碎矿"——
+     * <ol>
+     * <li>先以 fortune=0 调用 getOreDrops 取基础原矿（普通石头 1 个，rich 石头 2 个），
+     * 不受 GTOreAdapter 内部 fortune=3 截断影响</li>
+     * <li>按 vanilla 时运公式 {@code extra = random.nextInt(fortune + 1)} 自行追加额外原矿，
+     * 使 fortune=5/5/6/7 真正生效（原矿数量范围 1..fortune+1）</li>
+     * </ol>
+     * 之后由 {@link #applyCrushedMode} 把每个原矿 ×3 转为粉碎矿。
+     *
+     * <p>
+     * 原矿模式（不开粉碎矿）保持 GTOreAdapter 默认 fortune 处理（用户已确认产出正常）。
+     *
+     * <p>
+     * 注意：与原 doWork/tryDescendPipe 内联逻辑一致——
+     * GT 矿石需 force {@code info.isNatural=true}（GTNH 世界矿石因
+     * TileEntityReplacementManager 处理 chunk loading 而被标记为 isNatural=false），
+     * 否则 adapter 会以 fortune=0 处理且返回非自然矿形态；
+     * 非 GT 矿石（vanilla/其他 mod）走 {@code block.getDrops()} 用 fortune 直接处理。
+     *
+     * @param block   矿石方块
+     * @param meta    方块 metadata
+     * @param fortune 时运等级（本节点等级对应的 FORTUNE[tier]）
+     * @param world   世界（用于非 GT 矿石的 block.getDrops fallback）
+     * @param x       方块 X 坐标（fallback 用）
+     * @param y       方块 Y 坐标
+     * @param z       方块 Z 坐标
+     * @return 掉落物列表（已含时运加成，但尚未应用粉碎矿转换）
+     */
+    private ArrayList<ItemStack> collectOreDropsWithCrushedFortune(Block block, int meta, int fortune, World world,
+        int x, int y, int z) {
+        ArrayList<ItemStack> drops;
+        try (OreInfo<?> info = OreManager.getOreInfo(block, meta)) {
+            if (info != null) {
+                boolean origNatural = info.isNatural;
+                info.isNatural = true;
+                if (mCrushedMode) {
+                    // 粉碎矿模式：先以 fortune=0 取基础原矿，绕过 GTOreAdapter fortune=3 截断；
+                    // 再按 vanilla 时运公式 extra=random.nextInt(fortune+1) 自行追加额外原矿
+                    drops = OreManager.getAdapter(info)
+                        .getOreDrops(ThreadLocalRandom.current(), info, false, 0);
+                    if (fortune > 0 && drops != null && !drops.isEmpty()) {
+                        int extra = ThreadLocalRandom.current()
+                            .nextInt(fortune + 1);
+                        ItemStack template = drops.get(0);
+                        for (int i = 0; i < extra; i++) {
+                            drops.add(template.copy());
+                        }
+                    }
+                } else {
+                    // 原矿模式：保持 GTOreAdapter 默认 fortune 处理
+                    drops = OreManager.getAdapter(info)
+                        .getOreDrops(ThreadLocalRandom.current(), info, false, fortune);
+                }
+                info.isNatural = origNatural;
+            } else {
+                drops = block.getDrops(world, x, y, z, meta, fortune);
+            }
+        }
+        return drops;
+    }
+
+    /**
      * 粉碎矿模式：将掉落物中的矿石类物品替换为对应粉碎矿（crushed），数量 = 原数量 × 3。
-     * 现有代码在 getOreDrops(..., fortune) 阶段已应用时运加成，故 3 倍基准直接乘在已含时运的数量上
+     *
+     * <p>
+     * 时运加成在 {@link #collectOreDropsWithCrushedFortune} 阶段已应用——粉碎矿模式下绕过
+     * GTOreAdapter 内部 fortune=3 截断，先用 fortune=0 取基础原矿再按 vanilla 公式追加额外原矿；
+     * 原矿模式则沿用 GTOreAdapter 默认 fortune 处理。3 倍基准乘在已含时运的原矿数量上
      * （对应 GT5U 采矿场 "3x crushed vs normal" 的语义，时运不重复追加）。
+     *
+     * <p>
      * 已是粉碎/粉末/宝石等加工形态、或无对应粉碎矿（非 GT 矿字典物品）的掉落物保持不变。
      */
     private void applyCrushedMode(ArrayList<ItemStack> drops) {
