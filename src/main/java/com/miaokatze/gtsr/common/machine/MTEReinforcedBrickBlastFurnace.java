@@ -24,6 +24,10 @@ import com.gtnewhorizon.structurelib.alignment.constructable.ISurvivalConstructa
 import com.gtnewhorizon.structurelib.structure.IStructureDefinition;
 import com.gtnewhorizon.structurelib.structure.ISurvivalBuildEnvironment;
 import com.gtnewhorizon.structurelib.structure.StructureDefinition;
+import com.gtnewhorizons.modularui.common.widget.DynamicPositionedColumn;
+import com.gtnewhorizons.modularui.common.widget.FakeSyncWidget;
+import com.gtnewhorizons.modularui.common.widget.SlotWidget;
+import com.gtnewhorizons.modularui.common.widget.TextWidget;
 
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Textures;
@@ -405,6 +409,68 @@ public class MTEReinforcedBrickBlastFurnace extends MTEEnhancedMultiBlockBase<MT
                 + EnumChatFormatting.RESET);
 
         return info.toArray(new String[0]);
+    }
+
+    /**
+     * 在 GUI 中显示炉温、运行状态、并行数与运行速度，与其他项目机器保持一致。
+     * <p>
+     * 数据来源与 {@link #getInfoData()} 相同，仅展示层不同；通过 FakeSyncWidget 保证客户端实时同步。
+     */
+    @Deprecated
+    @Override
+    protected void drawTexts(DynamicPositionedColumn screenElements, SlotWidget inventorySlot) {
+        super.drawTexts(screenElements, inventorySlot);
+        screenElements
+            // 炉温显示：黄色标签 + 红色百分比
+            .widget(
+                new TextWidget().setStringSupplier(
+                    () -> EnumChatFormatting.YELLOW
+                        + StatCollector.translateToLocal("gtsr.gui.reinforced_brick_blast_furnace.temperature")
+                        + " "
+                        + EnumChatFormatting.RED
+                        + String.format("%.1f%%", mFurnaceTemperature * 100.0d)
+                        + EnumChatFormatting.RESET))
+            // 运行状态显示：运行中(青)/升温中(黄)/待机中(灰)
+            .widget(new TextWidget().setStringSupplier(() -> {
+                String statusKey;
+                EnumChatFormatting statusColor;
+                if (mMaxProgresstime > 0) {
+                    statusKey = "gtsr.gui.status.running";
+                    statusColor = EnumChatFormatting.AQUA;
+                } else if (mFurnaceTemperature > 0.0d && mFurnaceTemperature < 1.0d) {
+                    statusKey = "gtsr.gui.reinforced_brick_blast_furnace.status.heating";
+                    statusColor = EnumChatFormatting.YELLOW;
+                } else {
+                    statusKey = "gtsr.gui.status.idle";
+                    statusColor = EnumChatFormatting.GRAY;
+                }
+                return EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.status")
+                    + " "
+                    + statusColor
+                    + StatCollector.translateToLocal(statusKey)
+                    + EnumChatFormatting.RESET;
+            }))
+            // 并行数显示：黄色标签 + 金色数字
+            .widget(
+                new TextWidget().setStringSupplier(
+                    () -> EnumChatFormatting.YELLOW
+                        + StatCollector.translateToLocal("gtsr.gui.reinforced_brick_blast_furnace.parallel")
+                        + " "
+                        + EnumChatFormatting.GOLD
+                        + getMaxParallelRecipes()
+                        + EnumChatFormatting.RESET))
+            // 运行速度显示：黄色标签 + 金色倍率（1.00x ~ 1.50x）
+            .widget(
+                new TextWidget().setStringSupplier(
+                    () -> EnumChatFormatting.YELLOW
+                        + StatCollector.translateToLocal("gtsr.gui.reinforced_brick_blast_furnace.speed")
+                        + " "
+                        + EnumChatFormatting.GOLD
+                        + String.format("%.2fx", 1.0d + 0.5d * mFurnaceTemperature)
+                        + EnumChatFormatting.RESET))
+            // 客户端同步：炉温与进度时间，确保 GUI 实时更新
+            .widget(new FakeSyncWidget.DoubleSyncer(() -> mFurnaceTemperature, val -> mFurnaceTemperature = val))
+            .widget(new FakeSyncWidget.IntegerSyncer(() -> mMaxProgresstime, val -> mMaxProgresstime = val));
     }
 
     @Override
