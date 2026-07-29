@@ -96,11 +96,13 @@ public class MTEMegaSteamTurbineArrayGui extends MTEMultiBlockBaseGui<MTEEnhance
             .child(IKey.dynamic(() -> {
                 MTEMegaSteamTurbineArray.SteamType steamType = MTEMegaSteamTurbineArray.SteamType
                     .values()[mSteamTypeOrdinalSync.getValue()];
+                int powerMult = mSingularityModeSync.getValue() != 0 ? 2 : 1;
                 return EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.turbine_array.eu_t")
                     + EnumChatFormatting.AQUA
                     + NumberFormatUtil.formatNumber(
                         (long) (turbineArray.getVoltage() * mPowerParameterSync.getValue()
                             * turbineArray.getGroupCount()
+                            * powerMult
                             * (turbineArray.getMaxEfficiencyLimit(steamType) / 10000.0)
                             * steamType.steamEffFactor))
                     + " EU/t";

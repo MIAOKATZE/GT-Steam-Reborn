@@ -282,20 +282,21 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
                     .setDefaultColor(COLOR_TEXT_WHITE.get())
                     .setEnabled(w -> mMachine));
 
-        screenElements.widget(
-            TextWidget
-                .dynamicString(
-                    () -> EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.turbine_array.eu_t")
-                        + EnumChatFormatting.AQUA
-                        + NumberFormatUtil.formatNumber(
-                            (long) (getVoltage() * mPowerParameter
-                                * getGroupCount()
-                                * (getMaxEfficiencyLimit(mSteamType) / 10000.0)
-                                * mSteamType.steamEffFactor))
-                        + " EU/t")
-                .setTextAlignment(Alignment.CenterLeft)
-                .setDefaultColor(COLOR_TEXT_WHITE.get())
-                .setEnabled(w -> mMachine));
+        screenElements.widget(TextWidget.dynamicString(() -> {
+            int powerMult = mSingularityMode ? 2 : 1;
+            return EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.turbine_array.eu_t")
+                + EnumChatFormatting.AQUA
+                + NumberFormatUtil.formatNumber(
+                    (long) (getVoltage() * mPowerParameter
+                        * getGroupCount()
+                        * powerMult
+                        * (getMaxEfficiencyLimit(mSteamType) / 10000.0)
+                        * mSteamType.steamEffFactor))
+                + " EU/t";
+        })
+            .setTextAlignment(Alignment.CenterLeft)
+            .setDefaultColor(COLOR_TEXT_WHITE.get())
+            .setEnabled(w -> mMachine));
 
         screenElements.widget(
             TextWidget
