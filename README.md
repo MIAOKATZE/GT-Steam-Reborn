@@ -198,8 +198,8 @@ All inherit from `MTEEnhancedMultiBlockBase` (GT5U), with more advanced mechanic
 
 <p align="center"><img src="README/MTEMegaSteamTurbineArray.png" width="300"><br><em>巨型蒸汽轮机机组 / Mega Steam Turbine Array</em></p>
 
-- **巨型蒸汽轮机机组 / Mega Steam Turbine Array (MSTA)**: 12-tier. Generates EU from steam. Stacking efficiency — more layers = higher efficiency cap. Supports all steam types with progression. Tier 6+ can process dense/supercritical steam.
-  蒸汽发电。堆叠效率——层数越多效率上限越高。支持所有蒸汽类型进阶。等级6+可处理致密/超临界蒸汽。
+- **巨型蒸汽轮机机组 / Mega Steam Turbine Array (MSTA)**: 12-tier. Generates EU from steam. Stacking efficiency — more layers = higher efficiency cap. Supports all steam types with progression. Tier 6+ can process dense/supercritical steam. Screwdriver right-click cycles Global Power (100%→80%→60%→40%→20%), trading output for base steam savings. Steam Entangled Singularities in input buses trigger Singularity Mode for a duration: power ×2, max efficiency +100%, steam savings +15%.
+  蒸汽发电。堆叠效率——层数越多效率上限越高。支持所有蒸汽类型进阶。等级6+可处理致密/超临界蒸汽。螺丝刀右击循环切换全局功率（100%→80%→60%→40%→20%），以输出换取基础蒸汽节省率。输入总线中的蒸汽纠缠奇点可触发奇点模式：功率×2、效率上限+100%、蒸汽节省率+15%。
 
 <p align="center"><img src="README/MTELargeSolarOverpressureArray.png" width="300"><br><em>大型太阳能超压阵列 / Large Solar Overpressure Array</em></p>
 

@@ -914,7 +914,9 @@ gtsr.gui.turbine_array.extra_stack_layers=Extra Stack Layers:
 gtsr.tooltip.turbine_array.multi_tier=Multi Tier
 gtsr.tooltip.turbine_array.each_tier=Each +1 Tier
 gtsr.gui.turbine_array.output_power=Output Power: 
-gtsr.tooltip.turbine_array.formula=EU/t = V[tier] × 8 × steamEffFactor × groups × efficiency%, casing tier limits max voltage
+gtsr.tooltip.turbine_array.formula=EU/t = V[tier] × global power parameter × steamEffFactor × groups × efficiency%, casing tier limits max voltage
+gtsr.tooltip.turbine_array.power_param=Screwdriver right-click cycles Global Power (100%%→80%%→60%%→40%%→20%%): affects base output and base steam savings
+gtsr.tooltip.turbine_array.singularity_mode=Steam Entangled Singularity in input buses triggers Singularity Mode: power ×2, max efficiency +100%%, steam savings +15%%, each lasts 600s (with 5s hidden buffer)
 gtsr.tooltip.turbine_array.input_hatch=Steam Input
 gtsr.tooltip.turbine_array.dynamo=Energy Output
 
@@ -1017,7 +1019,7 @@ gtsr.gui.kinetic_array.steam_rate=Steam Rate:
 gtsr.gui.kinetic_array.steam_per_amp=Steam/A: 
 gtsr.gui.kinetic_array.hp_steam=HP Steam: 
 gtsr.gui.kinetic_array.parallel=Parallel: 
-gtsr.gui.turbine_array.eu_t=EU/t: 
+gtsr.gui.turbine_array.eu_t=Theoretical Max Output: 
 gtsr.gui.turbine_array.hp_prefix= (HP: 
 gtsr.gui.turbine_array.steam=Steam: 
 gtsr.gui.turbine_array.savings=Savings: 
@@ -1029,6 +1031,9 @@ gtsr.gui.turbine_array.efficiency=Eff:
 gtsr.gui.turbine_array.max= MAX
 gtsr.gui.turbine_array.max_efficiency=Max Eff: 
 gtsr.gui.turbine_array.output=Output: 
+gtsr.gui.turbine_array.power_param=Global Power: 
+gtsr.gui.turbine_array.singularity_mode=Singularity Mode: 
+gtsr.gui.turbine_array.singularity_off=Off
 gtsr.gui.parallel=Parallel: 
 
 # ===== v1.1.0 Hardcoded English Fix =====

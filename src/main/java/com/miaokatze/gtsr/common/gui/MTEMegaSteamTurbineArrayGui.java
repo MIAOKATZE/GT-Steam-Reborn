@@ -28,6 +28,9 @@ public class MTEMegaSteamTurbineArrayGui extends MTEMultiBlockBaseGui<MTEEnhance
     private IntSyncValue mEUtSync;
     private IntSyncValue mGearTierSync;
     private IntSyncValue mPipeTierSync;
+    private IntSyncValue mPowerParameterSync;
+    private IntSyncValue mSingularityModeSync;
+    private IntSyncValue mSingularityModeTicksSync;
 
     public MTEMegaSteamTurbineArrayGui(MTEEnhancedMultiBlockBase<?> multiblock) {
         super(multiblock);
@@ -52,6 +55,15 @@ public class MTEMegaSteamTurbineArrayGui extends MTEMultiBlockBaseGui<MTEEnhance
         mEUtSync = new IntSyncValue(() -> turbineArray.mEUt, val -> turbineArray.mEUt = val);
         mGearTierSync = new IntSyncValue(() -> turbineArray.mGearTier, val -> turbineArray.mGearTier = val);
         mPipeTierSync = new IntSyncValue(() -> turbineArray.mPipeTier, val -> turbineArray.mPipeTier = val);
+        mPowerParameterSync = new IntSyncValue(
+            () -> turbineArray.mPowerParameter,
+            val -> turbineArray.mPowerParameter = val);
+        mSingularityModeSync = new IntSyncValue(
+            () -> turbineArray.mSingularityMode ? 1 : 0,
+            val -> turbineArray.mSingularityMode = val != 0);
+        mSingularityModeTicksSync = new IntSyncValue(
+            () -> turbineArray.mSingularityModeTicks,
+            val -> turbineArray.mSingularityModeTicks = val);
 
         syncManager.syncValue("turbineCasingTier", mCasingTierSync);
         syncManager.syncValue("turbineStackCount", mStackCountSync);
@@ -62,6 +74,9 @@ public class MTEMegaSteamTurbineArrayGui extends MTEMultiBlockBaseGui<MTEEnhance
         syncManager.syncValue("turbineEUt", mEUtSync);
         syncManager.syncValue("turbineGearTier", mGearTierSync);
         syncManager.syncValue("turbinePipeTier", mPipeTierSync);
+        syncManager.syncValue("turbinePowerParameter", mPowerParameterSync);
+        syncManager.syncValue("turbineSingularityMode", mSingularityModeSync);
+        syncManager.syncValue("turbineSingularityModeTicks", mSingularityModeTicksSync);
     }
 
     @Override
@@ -84,7 +99,7 @@ public class MTEMegaSteamTurbineArrayGui extends MTEMultiBlockBaseGui<MTEEnhance
                 return EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.turbine_array.eu_t")
                     + EnumChatFormatting.AQUA
                     + NumberFormatUtil.formatNumber(
-                        (long) (turbineArray.getVoltage() * 8
+                        (long) (turbineArray.getVoltage() * mPowerParameterSync.getValue()
                             * turbineArray.getGroupCount()
                             * (turbineArray.getMaxEfficiencyLimit(steamType) / 10000.0)
                             * steamType.steamEffFactor));
@@ -105,21 +120,15 @@ public class MTEMegaSteamTurbineArrayGui extends MTEMultiBlockBaseGui<MTEEnhance
                 .marginBottom(2)
                 .fullWidth()
                 .setEnabledIf(w -> multiblock.mMachine))
-            .child(IKey.dynamic(() -> {
-                int stackCount = mStackCountSync.getValue();
-                int gearTier = mGearTierSync.getValue();
-                int pipeTier = mPipeTierSync.getValue();
-                return EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.turbine_array.savings")
-                    + EnumChatFormatting.GREEN
-                    + String.format(
-                        "%.0f%%",
-                        (0.05 * stackCount + (gearTier > 1 ? 0.025 : 0)
-                            + (pipeTier == 2 ? 0.025 : pipeTier == 3 ? 0.075 : 0)) * 100);
-            })
-                .asWidget()
-                .marginBottom(2)
-                .fullWidth()
-                .setEnabledIf(w -> multiblock.mMachine))
+            .child(
+                IKey.dynamic(
+                    () -> EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.turbine_array.savings")
+                        + EnumChatFormatting.GREEN
+                        + String.format("%.0f%%", turbineArray.getSteamSavings() * 100))
+                    .asWidget()
+                    .marginBottom(2)
+                    .fullWidth()
+                    .setEnabledIf(w -> multiblock.mMachine))
             .child(IKey.dynamic(() -> {
                 int stackCount = mStackCountSync.getValue();
                 return EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.turbine_array.stacks")
@@ -172,6 +181,31 @@ public class MTEMegaSteamTurbineArrayGui extends MTEMultiBlockBaseGui<MTEEnhance
                     .asWidget()
                     .marginBottom(2)
                     .fullWidth()
-                    .setEnabledIf(w -> multiblock.mMachine));
+                    .setEnabledIf(w -> multiblock.mMachine))
+            .child(
+                IKey.dynamic(
+                    () -> EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.turbine_array.power_param")
+                        + EnumChatFormatting.AQUA
+                        + (mPowerParameterSync.getValue() * 10)
+                        + "%")
+                    .asWidget()
+                    .marginBottom(2)
+                    .fullWidth()
+                    .setEnabledIf(w -> multiblock.mMachine))
+            .child(IKey.dynamic(() -> {
+                if (mSingularityModeSync.getValue() == 0) {
+                    return EnumChatFormatting.GOLD
+                        + StatCollector.translateToLocal("gtsr.gui.turbine_array.singularity_mode")
+                        + EnumChatFormatting.GRAY
+                        + StatCollector.translateToLocal("gtsr.gui.turbine_array.singularity_off");
+                }
+                int seconds = mSingularityModeTicksSync.getValue() / 20;
+                return EnumChatFormatting.GOLD + StatCollector.translateToLocal(
+                    "gtsr.gui.turbine_array.singularity_mode") + EnumChatFormatting.LIGHT_PURPLE + seconds + "s";
+            })
+                .asWidget()
+                .marginBottom(2)
+                .fullWidth()
+                .setEnabledIf(w -> multiblock.mMachine));
     }
 }

@@ -17,6 +17,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import net.minecraft.block.Block;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumChatFormatting;
@@ -40,6 +41,7 @@ import com.gtnewhorizons.modularui.common.widget.DynamicPositionedColumn;
 import com.gtnewhorizons.modularui.common.widget.FakeSyncWidget;
 import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
+import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.gui.MTEMegaSteamTurbineArrayGui;
 import com.miaokatze.gtsr.common.machine.base.MTEHatchPressureSteamInput;
 import com.miaokatze.gtsr.common.machine.base.MTEOverpressureTurbineInputHatch;
@@ -59,6 +61,7 @@ import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.implementations.MTEEnhancedMultiBlockBase;
 import gregtech.api.metatileentity.implementations.MTEHatch;
 import gregtech.api.metatileentity.implementations.MTEHatchDynamo;
+import gregtech.api.metatileentity.implementations.MTEHatchInputBus;
 import gregtech.api.recipe.check.CheckRecipeResult;
 import gregtech.api.recipe.check.CheckRecipeResultRegistry;
 import gregtech.api.render.RenderOverlay;
@@ -96,6 +99,22 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
 
     public int mTheoreticalEUt = 0;
     public int mSteamConsumption = 0;
+
+    /** 全局功率参数：10/8/6/4/2，对应 100%/80%/60%/40%/20% */
+    public int mPowerParameter = 10;
+    /** 是否处于奇点模式 */
+    public boolean mSingularityMode = false;
+    /** 奇点模式剩余 tick（含 5s 隐藏冗余） */
+    public int mSingularityModeTicks = 0;
+    /** 每秒检查一次输入总线 */
+    private int mSingularityCheckCooldown = 0;
+
+    private static final int[] POWER_PARAMETERS = { 10, 8, 6, 4, 2 };
+    private static final int SINGULARITY_DURATION_TICKS = 12100; // 600s + 5s 冗余
+    private static final int SINGULARITY_RENEW_THRESHOLD_TICKS = 100; // 5s
+    private static final int SINGULARITY_EFFICIENCY_BONUS = 10000; // +100%
+    private static final float SINGULARITY_SAVINGS_BONUS = 0.15f; // +15%
+    private static final int SINGULARITY_POWER_MULTIPLIER = 2; // 功率翻倍
 
     private final List<MTEHatchPressureSteamInput> mPressureSteamInputs = new ArrayList<>();
     private final List<MTEOverpressureTurbineInputHatch> mOverpressureInputs = new ArrayList<>();
@@ -268,7 +287,7 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
                     () -> EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.turbine_array.eu_t")
                         + EnumChatFormatting.AQUA
                         + NumberFormatUtil.formatNumber(
-                            (long) (getVoltage() * 8
+                            (long) (getVoltage() * mPowerParameter
                                 * getGroupCount()
                                 * (getMaxEfficiencyLimit(mSteamType) / 10000.0)
                                 * mSteamType.steamEffFactor)))
@@ -292,10 +311,7 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
                 .dynamicString(
                     () -> EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.turbine_array.savings")
                         + EnumChatFormatting.GREEN
-                        + String.format(
-                            "%.0f%%",
-                            (0.05 * mStackCount + (mGearTier > 1 ? 0.025 : 0)
-                                + (mPipeTier == 2 ? 0.025 : mPipeTier == 3 ? 0.075 : 0)) * 100))
+                        + String.format("%.0f%%", getSteamSavings() * 100))
                 .setTextAlignment(Alignment.CenterLeft)
                 .setDefaultColor(COLOR_TEXT_WHITE.get())
                 .setEnabled(w -> mMachine));
@@ -351,6 +367,33 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
                 .setTextAlignment(Alignment.CenterLeft)
                 .setDefaultColor(COLOR_TEXT_WHITE.get())
                 .setEnabled(w -> mMachine));
+
+        screenElements.widget(
+            TextWidget
+                .dynamicString(
+                    () -> EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.turbine_array.power_param")
+                        + EnumChatFormatting.AQUA
+                        + (mPowerParameter * 10)
+                        + "%")
+                .setTextAlignment(Alignment.CenterLeft)
+                .setDefaultColor(COLOR_TEXT_WHITE.get())
+                .setEnabled(w -> mMachine));
+
+        screenElements.widget(TextWidget.dynamicString(() -> {
+            if (!mSingularityMode) {
+                return EnumChatFormatting.GOLD
+                    + StatCollector.translateToLocal("gtsr.gui.turbine_array.singularity_mode")
+                    + EnumChatFormatting.GRAY
+                    + StatCollector.translateToLocal("gtsr.gui.turbine_array.singularity_off");
+            }
+            return EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.turbine_array.singularity_mode")
+                + EnumChatFormatting.LIGHT_PURPLE
+                + (mSingularityModeTicks / 20)
+                + "s";
+        })
+            .setTextAlignment(Alignment.CenterLeft)
+            .setDefaultColor(COLOR_TEXT_WHITE.get())
+            .setEnabled(w -> mMachine));
     }
 
     @Override
@@ -718,6 +761,7 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
      * - 高级Gear额外+5%效率上限 = +500
      * - 钛管+10%效率上限 = +1000，钨钢管+25%效率上限 = +2500
      * - 机器等级每提高一级(等级-1)，增加5%效率上限 = +500
+     * - 奇点模式下额外+100% = +10000
      */
     public int getMaxEfficiencyLimit(SteamType type) {
         int base = type.maxEfficiency;
@@ -725,7 +769,29 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         int bonus = 1000 * mStackCount + (mGearTier > 1 ? 500 : 0)
             + (mPipeTier == 2 ? 1000 : mPipeTier == 3 ? 2500 : 0)
             + 500 * (mCasingTier - 1);
+        if (mSingularityMode) {
+            bonus += SINGULARITY_EFFICIENCY_BONUS;
+        }
         return base + bonus;
+    }
+
+    /**
+     * 计算蒸汽节省率。
+     * 基础节省率随功率参数变化：10→20%，8→15%，6→10%，4→5%，2→0%。
+     * 叠加 Stack/Gear/Pipe 加成，奇点模式下额外 +15%。
+     */
+    public float getSteamSavings() {
+        // 基础节省率 = 20% - (10 - power) / 2 * 5%
+        float baseSavings = 0.20f - ((10 - mPowerParameter) / 2) * 0.05f;
+        if (baseSavings < 0) baseSavings = 0;
+        // 结构加成
+        float bonus = 0.05f * mStackCount + (mGearTier > 1 ? 0.025f : 0f)
+            + (mPipeTier == 2 ? 0.025f : mPipeTier == 3 ? 0.075f : 0f);
+        // 奇点模式额外 +15%
+        if (mSingularityMode) {
+            bonus += SINGULARITY_SAVINGS_BONUS;
+        }
+        return Math.min(1.0f, baseSavings + bonus);
     }
 
     public long getVoltage() {
@@ -742,10 +808,14 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         if (type == SteamType.NONE) return 0;
         int groupCount = getGroupCount();
         long voltage = getVoltage();
-        // 蒸汽节省: 每额外组+5%，高级Gear额外+2.5%，钛管+2.5%，钨钢管+7.5%
-        float savings = 0.05f * mStackCount + (mGearTier > 1 ? 0.025f : 0f)
-            + (mPipeTier == 2 ? 0.025f : mPipeTier == 3 ? 0.075f : 0f);
-        return (long) (voltage * 8 * groupCount * Math.max(0, 1 - savings) * type.steamEffFactor / type.euPerL);
+        float savings = getSteamSavings();
+        int powerMult = mSingularityMode ? SINGULARITY_POWER_MULTIPLIER : 1;
+        return (long) (voltage * mPowerParameter
+            * groupCount
+            * powerMult
+            * Math.max(0, 1 - savings)
+            * type.steamEffFactor
+            / type.euPerL);
     }
 
     @Override
@@ -763,9 +833,8 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         int groupCount = getGroupCount();
         long voltage = getVoltage();
         float efficiency = getCustomEfficiency();
-        // 蒸汽节省: 每额外组+5%，高级Gear额外+2.5%，钛管+2.5%，钨钢管+7.5%
-        float savings = 0.05f * mStackCount + (mGearTier > 1 ? 0.025f : 0f)
-            + (mPipeTier == 2 ? 0.025f : mPipeTier == 3 ? 0.075f : 0f);
+        float savings = getSteamSavings();
+        int powerMult = mSingularityMode ? SINGULARITY_POWER_MULTIPLIER : 1;
 
         EnumSet<SteamType> availableTypes = EnumSet.noneOf(SteamType.class);
         for (FluidStack fs : tFluids) {
@@ -804,10 +873,11 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
             if (!availableTypes.contains(type)) continue;
             // 基础 EU/t: 不含当前效率，由父类 onRunningTick 统一乘 mEfficiency/10000 后输出
             // 当前理论 EU/t = baseEUt × efficiency
-            long base = (long) (voltage * 8 * groupCount * type.steamEffFactor);
+            long base = (long) (voltage * mPowerParameter * groupCount * powerMult * type.steamEffFactor);
             long eu = (long) (base * efficiency);
-            long consumption = (long) (voltage * 8
+            long consumption = (long) (voltage * mPowerParameter
                 * groupCount
+                * powerMult
                 * Math.max(0, 1 - savings)
                 * type.steamEffFactor
                 / type.euPerL);
@@ -857,6 +927,116 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         }
 
         return CheckRecipeResultRegistry.GENERATING;
+    }
+
+    /**
+     * 螺丝刀右击循环切换全局功率参数：10 → 8 → 6 → 4 → 2 → 10。
+     */
+    @Override
+    public void onScrewdriverRightClick(ForgeDirection side, EntityPlayer aPlayer, float aX, float aY, float aZ,
+        ItemStack aTool) {
+        int idx = 0;
+        for (int i = 0; i < POWER_PARAMETERS.length; i++) {
+            if (POWER_PARAMETERS[i] == mPowerParameter) {
+                idx = i;
+                break;
+            }
+        }
+        mPowerParameter = POWER_PARAMETERS[(idx + 1) % POWER_PARAMETERS.length];
+        if (aPlayer.worldObj.isRemote) return;
+        GTUtility.sendChatToPlayer(
+            aPlayer,
+            StatCollector.translateToLocal("gtsr.gui.turbine_array.power_param") + ": "
+                + EnumChatFormatting.AQUA
+                + (mPowerParameter * 10)
+                + "%");
+    }
+
+    /**
+     * 每 tick 处理奇点模式倒计时与续杯检查。
+     */
+    @Override
+    public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
+        super.onPostTick(aBaseMetaTileEntity, aTick);
+        if (aBaseMetaTileEntity.isClientSide() || !mMachine) return;
+        if (mSingularityMode && mSingularityModeTicks > 0) {
+            mSingularityModeTicks--;
+        }
+        if (++mSingularityCheckCooldown >= 20) {
+            mSingularityCheckCooldown = 0;
+            checkSingularityMode();
+        }
+    }
+
+    /**
+     * 检查并维持奇点模式。
+     * 不在奇点模式时：若输入总线有蒸汽纠缠奇点，消耗 1 颗并进入模式。
+     * 在奇点模式且剩余时间 ≤ 5s 时：尝试续杯；失败则在倒计时到 0 后退出。
+     */
+    private void checkSingularityMode() {
+        if (!mSingularityMode) {
+            if (consumeSingularityFromInputBuses(1)) {
+                mSingularityMode = true;
+                mSingularityModeTicks = SINGULARITY_DURATION_TICKS;
+            }
+        } else {
+            if (mSingularityModeTicks <= SINGULARITY_RENEW_THRESHOLD_TICKS) {
+                if (consumeSingularityFromInputBuses(1)) {
+                    // 续杯：加上新的 600s（扣除已消耗的冗余期）
+                    mSingularityModeTicks += SINGULARITY_DURATION_TICKS - SINGULARITY_RENEW_THRESHOLD_TICKS;
+                }
+            }
+            if (mSingularityModeTicks <= 0) {
+                mSingularityMode = false;
+            }
+        }
+    }
+
+    /**
+     * 从输入总线中消耗指定数量的蒸汽纠缠奇点。
+     *
+     * @return 是否成功消耗全部数量
+     */
+    private boolean consumeSingularityFromInputBuses(int amount) {
+        int remaining = amount;
+        // 先收集所有可消耗的槽位，避免部分消耗后无法回滚
+        List<Pair<MTEHatchInputBus, Integer>> candidates = new ArrayList<>();
+        for (MTEHatchInputBus bus : GTUtility.validMTEList(mInputBusses)) {
+            if (bus == null) continue;
+            for (int i = 0; i < bus.getSizeInventory(); i++) {
+                ItemStack stack = bus.getStackInSlot(i);
+                if (stack != null && GTSRItemList.SteamEntangledSingularity.isStackEqual(stack, false, true)) {
+                    candidates.add(Pair.of(bus, i));
+                    remaining -= stack.stackSize;
+                    if (remaining <= 0) break;
+                }
+            }
+            if (remaining <= 0) break;
+        }
+        if (remaining > 0) {
+            return false;
+        }
+        // 实际消耗
+        remaining = amount;
+        for (Pair<MTEHatchInputBus, Integer> candidate : candidates) {
+            MTEHatchInputBus bus = candidate.getLeft();
+            int slot = candidate.getRight();
+            ItemStack stack = bus.getStackInSlot(slot);
+            if (stack == null) continue;
+            int toConsume = Math.min(remaining, stack.stackSize);
+            stack.stackSize -= toConsume;
+            remaining -= toConsume;
+            if (stack.stackSize <= 0) {
+                bus.setInventorySlotContents(slot, null);
+            } else {
+                bus.setInventorySlotContents(slot, stack);
+            }
+            if (remaining <= 0) break;
+        }
+        for (MTEHatchInputBus bus : GTUtility.validMTEList(mInputBusses)) {
+            if (bus != null) bus.updateSlots();
+        }
+        return true;
     }
 
     public long getMaximumOutput() {
@@ -1130,6 +1310,9 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         aNBT.setInteger("mTheoreticalEUt", mTheoreticalEUt);
         aNBT.setInteger("mSteamConsumption", mSteamConsumption);
         aNBT.setInteger("mEfficiency", mEfficiency);
+        aNBT.setInteger("mPowerParameter", mPowerParameter);
+        aNBT.setBoolean("mSingularityMode", mSingularityMode);
+        aNBT.setInteger("mSingularityModeTicks", mSingularityModeTicks);
     }
 
     @Override
@@ -1140,6 +1323,9 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         mTheoreticalEUt = aNBT.getInteger("mTheoreticalEUt");
         mSteamConsumption = aNBT.getInteger("mSteamConsumption");
         mEfficiency = aNBT.getInteger("mEfficiency");
+        mPowerParameter = aNBT.hasKey("mPowerParameter") ? aNBT.getInteger("mPowerParameter") : 10;
+        mSingularityMode = aNBT.getBoolean("mSingularityMode");
+        mSingularityModeTicks = aNBT.hasKey("mSingularityModeTicks") ? aNBT.getInteger("mSingularityModeTicks") : 0;
     }
 
     @Override
@@ -1308,6 +1494,11 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
                 EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.stacking_desc"))
             .addSeparator()
             .addInfo(EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.formula"))
+            .addInfo(
+                EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.power_param"))
+            .addInfo(
+                EnumChatFormatting.LIGHT_PURPLE
+                    + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.singularity_mode"))
             .beginStructureBlock(5, 6, 5, true)
             .addController(StatCollector.translateToLocal("gtsr.tooltip.turbine_array.ctrl"))
             .addInputHatch(StatCollector.translateToLocal("gtsr.tooltip.turbine_array.input_hatch"), 1)

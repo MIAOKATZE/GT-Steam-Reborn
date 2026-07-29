@@ -959,7 +959,9 @@ gtsr.gui.turbine_array.extra_stack_layers=额外堆叠层:
 gtsr.tooltip.turbine_array.multi_tier=多 等级
 gtsr.tooltip.turbine_array.each_tier=每层+1等级
 gtsr.gui.turbine_array.output_power=输出功率: 
-gtsr.tooltip.turbine_array.formula=EU/t = V[tier] × 8 × 蒸汽效率因子 × 组数 × 效率%，外壳等级限制最高供电电压
+gtsr.tooltip.turbine_array.formula=EU/t = V[tier] × 全局功率参数 × 蒸汽效率因子 × 组数 × 效率%，外壳等级限制最高供电电压
+gtsr.tooltip.turbine_array.power_param=螺丝刀右击循环切换全局功率（100%%→80%%→60%%→40%%→20%%）：影响基础输出与基础蒸汽节省率
+gtsr.tooltip.turbine_array.singularity_mode=输入总线中的蒸汽纠缠奇点可触发奇点模式：功率×2、效率上限+100%%、蒸汽节省率+15%%，每颗提供600s（含5s隐藏冗余）
 gtsr.tooltip.turbine_array.input_hatch=蒸汽输入
 gtsr.tooltip.turbine_array.dynamo=能量输出
 
@@ -1083,7 +1085,7 @@ gtsr.gui.kinetic_array.steam_rate=蒸汽速率:
 gtsr.gui.kinetic_array.steam_per_amp=蒸汽/安培: 
 gtsr.gui.kinetic_array.hp_steam=高压蒸汽: 
 gtsr.gui.kinetic_array.parallel=并行: 
-gtsr.gui.turbine_array.eu_t=EU/t: 
+gtsr.gui.turbine_array.eu_t=理论最大输出功率: 
 gtsr.gui.turbine_array.hp_prefix= (高压: 
 gtsr.gui.turbine_array.steam=蒸汽: 
 gtsr.gui.turbine_array.savings=节省: 
@@ -1095,6 +1097,9 @@ gtsr.gui.turbine_array.efficiency=效率:
 gtsr.gui.turbine_array.max= 最大
 gtsr.gui.turbine_array.max_efficiency=最大效率: 
 gtsr.gui.turbine_array.output=输出: 
+gtsr.gui.turbine_array.power_param=全局功率: 
+gtsr.gui.turbine_array.singularity_mode=奇点模式: 
+gtsr.gui.turbine_array.singularity_off=关
 gtsr.gui.parallel=并行: 
 
 # ===== v1.5.1 Translation Keys =====
