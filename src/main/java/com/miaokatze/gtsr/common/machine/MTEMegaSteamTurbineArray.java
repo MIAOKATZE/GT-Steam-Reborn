@@ -346,7 +346,7 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
                 .dynamicString(
                     () -> EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.turbine_array.output")
                         + EnumChatFormatting.GREEN
-                        + NumberFormatUtil.formatNumber(Math.abs(mEUt))
+                        + NumberFormatUtil.formatNumber(Math.abs((long) mEUt * mEfficiency / 10000))
                         + " EU/t")
                 .setTextAlignment(Alignment.CenterLeft)
                 .setDefaultColor(COLOR_TEXT_WHITE.get())
@@ -796,14 +796,16 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         }
 
         SteamType selectedType = SteamType.NONE;
+        long baseEUt = 0;
         long generatedEUt = 0;
         long steamConsumption = 0;
 
         for (SteamType type : STEAM_TYPE_PRIORITY) {
             if (!availableTypes.contains(type)) continue;
-            // 发电公式: EU/t = V[tier] × 8 × steamEffFactor × n × efficiency
-            // n = groupCount
-            long eu = (long) (voltage * 8 * groupCount * efficiency * type.steamEffFactor);
+            // 基础 EU/t: 不含当前效率，由父类 onRunningTick 统一乘 mEfficiency/10000 后输出
+            // 当前理论 EU/t = baseEUt × efficiency
+            long base = (long) (voltage * 8 * groupCount * type.steamEffFactor);
+            long eu = (long) (base * efficiency);
             long consumption = (long) (voltage * 8
                 * groupCount
                 * Math.max(0, 1 - savings)
@@ -812,6 +814,7 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
             int totalAvailable = getTotalSteamAmount(type);
             if (totalAvailable >= consumption) {
                 selectedType = type;
+                baseEUt = base;
                 generatedEUt = eu;
                 steamConsumption = consumption;
                 break;
@@ -834,12 +837,13 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         depleteSteamByType(selectedType, (int) steamConsumption);
         outputCoolingProduct(selectedType, (int) steamConsumption);
 
-        int difference = (int) (generatedEUt - mEUt);
+        // mEUt 存储基础 EU/t，平滑插值也基于基础值
+        int difference = (int) (baseEUt - mEUt);
         int maxChange = Math.max(10, Math.abs(difference) / 100);
         if (Math.abs(difference) > maxChange) {
             mEUt += maxChange * (difference > 0 ? 1 : -1);
         } else {
-            mEUt = (int) generatedEUt;
+            mEUt = (int) baseEUt;
         }
 
         mMaxProgresstime = 1;

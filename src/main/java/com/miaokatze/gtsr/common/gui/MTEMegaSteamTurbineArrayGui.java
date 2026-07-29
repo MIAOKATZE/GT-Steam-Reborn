@@ -166,7 +166,8 @@ public class MTEMegaSteamTurbineArrayGui extends MTEMultiBlockBaseGui<MTEEnhance
                 IKey.dynamic(
                     () -> EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.turbine_array.output")
                         + EnumChatFormatting.GREEN
-                        + NumberFormatUtil.formatNumber(Math.abs(mEUtSync.getValue()))
+                        + NumberFormatUtil
+                            .formatNumber(Math.abs((long) mEUtSync.getValue() * mEfficiencySync.getValue() / 10000))
                         + " EU/t")
                     .asWidget()
                     .marginBottom(2)
