@@ -12,6 +12,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import javax.annotation.Nonnull;
+
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumChatFormatting;
@@ -28,6 +30,7 @@ import com.gtnewhorizons.modularui.common.widget.DynamicPositionedColumn;
 import com.gtnewhorizons.modularui.common.widget.FakeSyncWidget;
 import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
+import com.miaokatze.gtsr.common.gui.MTEReinforcedBrickBlastFurnaceGui;
 
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Textures;
@@ -50,6 +53,7 @@ import gregtech.api.util.GTUtility;
 import gregtech.api.util.IGTHatchAdder;
 import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.common.blocks.BlockCasings2;
+import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.MTEHatchSteamBusInput;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.MTEHatchSteamBusOutput;
 
@@ -320,6 +324,16 @@ public class MTEReinforcedBrickBlastFurnace extends MTEEnhancedMultiBlockBase<MT
     }
 
     @Override
+    public boolean shouldDisplayCheckRecipeResult() {
+        return true;
+    }
+
+    @Override
+    public boolean showRecipeTextInGUI() {
+        return true;
+    }
+
+    @Override
     public ITexture[] getTexture(IGregTechTileEntity aBaseMetaTileEntity, ForgeDirection side, ForgeDirection facing,
         int aColorIndex, boolean aActive, boolean aRedstone) {
         if (side == facing) {
@@ -409,6 +423,14 @@ public class MTEReinforcedBrickBlastFurnace extends MTEEnhancedMultiBlockBase<MT
                 + EnumChatFormatting.RESET);
 
         return info.toArray(new String[0]);
+    }
+
+    /**
+     * 返回自定义 GUI，通过 {@link MTEReinforcedBrickBlastFurnaceGui} 在终端区域显示炉温/状态/并行/速度。
+     */
+    @Override
+    protected @Nonnull MTEMultiBlockBaseGui<?> getGui() {
+        return new MTEReinforcedBrickBlastFurnaceGui(this);
     }
 
     /**

@@ -1,9 +1,9 @@
 <h1 align="center">GT-Steam-Reborn</h1>
 <p align="center"><strong><em>GTNH Steam Age Expansion Mod</em></strong><br><strong><em>GTNH 蒸汽时代扩展模组</em></strong></p>
 
-A GregTech New Horizons expansion mod that **supplements the Steam Age and significantly expands steam usage**, providing 19 multiblock steam machines, 5 single-block nodes, 14 types of hatches, and a Hub-Node binding system. It fills the gameplay gap between the steam age and the electric age in GTNH, making steam a viable and deep progression path rather than a transient phase.
+A GregTech New Horizons expansion mod that **supplements the Steam Age and significantly expands steam usage**, providing 20 multiblock steam machines, 5 single-block nodes, 14 types of hatches, and a Hub-Node binding system. It fills the gameplay gap between the steam age and the electric age in GTNH, making steam a viable and deep progression path rather than a transient phase.
 
-一个 GregTech New Horizons 扩展模组，**补充蒸汽时代并显著拓展蒸汽用途**，提供19台多方块蒸汽机器、5个单方块节点、14种仓室以及枢纽-节点绑定系统。它填补了 GTNH 蒸汽阶段到电力阶段之间的玩法空白，让蒸汽成为一条可行且有深度的进阶路线，而非过渡阶段。
+一个 GregTech New Horizons 扩展模组，**补充蒸汽时代并显著拓展蒸汽用途**，提供20台多方块蒸汽机器、5个单方块节点、14种仓室以及枢纽-节点绑定系统。它填补了 GTNH 蒸汽阶段到电力阶段之间的玩法空白，让蒸汽成为一条可行且有深度的进阶路线，而非过渡阶段。
 
 > \[!NOTE]
 > This is an unofficial mod. Please avoid discussing this mod in official GTNH forums.
@@ -103,7 +103,7 @@ The Hub Terminal is a handheld remote management device (crafted with 1 Steam En
 
 ***
 
-## Multiblock Machines / 多方块机器 (19)
+## Multiblock Machines / 多方块机器 (20)
 
 ### Storage Hub Machines / 存储枢纽机器 (2)
 
@@ -178,7 +178,7 @@ All inherit from `MTESteamMultiBase` (GT++), supporting normal steam and superhe
 
 ***
 
-### Enhanced Processing Machines / 强化加工机器 (10)
+### Enhanced Processing Machines / 强化加工机器 (11)
 
 All inherit from `MTEEnhancedMultiBlockBase` (GT5U), with more advanced mechanics.
 
@@ -220,6 +220,11 @@ All inherit from `MTEEnhancedMultiBlockBase` (GT5U), with more advanced mechanic
 
 - **制氨工厂 / Ammonia Plant (AP)**: Steel only, 64\~256 parallel. Heat-based processing with 7-tier catalyst system (Nickel→Platinum→Uranium→Osmium→FeCo→Ruthenium→Quantum). Higher catalysts = more parallel + faster reaction. Superheated steam as byproduct.
   热量系统+7级催化剂（镍→铂→铀→锇→铁钴→钌→量子）。更高级催化剂=更多并行+更快反应。过热蒸汽为副产物。
+
+<p align="center"><img src="README/MTEReinforcedBrickBlastFurnace.png" width="300"><br><em>加固砖高炉 / Reinforced Brick Blast Furnace</em></p>
+
+- **加固砖高炉 / Reinforced Brick Blast Furnace (RBBF)**: Single-tier, no steam required. Runs GT5U primitive blast furnace recipes. Furnace temperature rises while working (+0.01%/s), falls when idle (-1%/s). Higher temperature grants more parallels (1-4, each 25% = +1) and faster recipes (up to 1.5x speed). Steel-reinforced brick structure, no maintenance/air/pressure steam required.
+  单级，无需蒸汽。执行GT5U原始高炉配方。炉温运行时上升(+0.01%/s)、闲置下降(-1%/s)。温度越高并行越多(1-4，每25%+1)、配方越快(最高1.5倍速)。钢加固砖结构，无需维护/空气/耐压蒸汽。
 
 ***
 
