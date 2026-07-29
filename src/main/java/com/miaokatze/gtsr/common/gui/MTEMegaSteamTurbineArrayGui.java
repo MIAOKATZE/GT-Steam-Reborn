@@ -102,7 +102,8 @@ public class MTEMegaSteamTurbineArrayGui extends MTEMultiBlockBaseGui<MTEEnhance
                         (long) (turbineArray.getVoltage() * mPowerParameterSync.getValue()
                             * turbineArray.getGroupCount()
                             * (turbineArray.getMaxEfficiencyLimit(steamType) / 10000.0)
-                            * steamType.steamEffFactor));
+                            * steamType.steamEffFactor))
+                    + " EU/t";
             })
                 .asWidget()
                 .marginBottom(2)

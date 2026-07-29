@@ -5,6 +5,7 @@ import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose;
 import static gregtech.api.enums.HatchElement.Dynamo;
+import static gregtech.api.enums.HatchElement.InputBus;
 import static gregtech.api.enums.HatchElement.InputHatch;
 import static gregtech.api.enums.HatchElement.OutputHatch;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
@@ -290,7 +291,8 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
                             (long) (getVoltage() * mPowerParameter
                                 * getGroupCount()
                                 * (getMaxEfficiencyLimit(mSteamType) / 10000.0)
-                                * mSteamType.steamEffFactor)))
+                                * mSteamType.steamEffFactor))
+                        + " EU/t")
                 .setTextAlignment(Alignment.CenterLeft)
                 .setDefaultColor(COLOR_TEXT_WHITE.get())
                 .setEnabled(w -> mMachine));
@@ -484,6 +486,10 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
                             .hint(2)
                             .build(),
                         buildHatchAdder(MTEMegaSteamTurbineArray.class).atLeast(InputHatch, OutputHatch)
+                            .casingIndex(SOLID_STEEL_CASING_INDEX)
+                            .hint(1)
+                            .build(),
+                        buildHatchAdder(MTEMegaSteamTurbineArray.class).atLeast(InputBus)
                             .casingIndex(SOLID_STEEL_CASING_INDEX)
                             .hint(1)
                             .build(),
@@ -720,7 +726,7 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
             return;
         }
 
-        boolean hasInput = !mInputHatches.isEmpty() || hasPressureSteamHatch();
+        boolean hasInput = !mInputHatches.isEmpty() || !mInputBusses.isEmpty() || hasPressureSteamHatch();
         boolean hasOutput = !mOutputHatches.isEmpty() || hasSteamCoolingHatch() || hasPressureCoolingHatch();
         if (!hasInput || !hasOutput || (mDynamoHatches.isEmpty() && eDynamoMulti.isEmpty())) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
