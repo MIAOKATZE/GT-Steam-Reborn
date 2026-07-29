@@ -21,7 +21,8 @@ import gregtech.common.gui.modularui.singleblock.base.MTEDigitalTankBaseGui;
  * </p>
  *
  * <p>
- * 此类在替换同步器时重新施加 {@link #getFluidSlotFilter()}，
+ * 此类在替换同步器时重新施加
+ * {@link MTEFilteredCacheNode#isFluidInputAllowed(net.minecraftforge.fluids.FluidStack)}，
  * 使流体槽仅接受该节点允许的目标流体（蒸汽/过热蒸汽/水等）。
  * </p>
  */
@@ -40,7 +41,7 @@ public class MTEFilteredCacheNodeGui extends MTEDigitalTankBaseGui<MTEFilteredCa
         // 同时重新施加流体过滤，避免非目标流体通过拖动流体单元注入。
         FluidSlotSyncHandler fluidSlotSH = new FluidSlotSyncHandler(fluidTank);
         fluidSlotSH.setChangeListener(machine::setLockIfEmpty);
-        fluidSlotSH.filter(getFluidSlotFilter());
+        fluidSlotSH.filter(machine::isFluidInputAllowed);
 
         return slot.syncHandler(fluidSlotSH);
     }
