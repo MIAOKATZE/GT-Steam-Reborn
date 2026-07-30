@@ -367,6 +367,10 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
             World world = DimensionManager.getWorld(node.dimensionId);
             if (world == null) continue;
 
+            // 节点可能跨维度且其自身 ticket 尚未生效，先尝试加载 chunk 再判断有效性，
+            // 避免把只是未加载的活跃节点误判为无效并移除。
+            ensureChunkLoaded(world, node.x, node.z);
+
             TileEntity te = world.getTileEntity(node.x, node.y, node.z);
             if (!(te instanceof IGregTechTileEntity)) {
                 invalidNodes.add(node);
@@ -537,6 +541,7 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
     private String resolveNodeTypeAt(int x, int y, int z, int dim) {
         World world = DimensionManager.getWorld(dim);
         if (world == null) return "miner";
+        ensureChunkLoaded(world, x, z);
         TileEntity te = world.getTileEntity(x, y, z);
         if (te instanceof IGregTechTileEntity gte) {
             if (gte.getMetaTileEntity() instanceof MTERemoteWorkerNode node) {
@@ -548,7 +553,9 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
 
     private int resolveNodeTier(BoundDrillNode node) {
         World world = DimensionManager.getWorld(node.dimensionId);
-        if (world == null || !world.blockExists(node.x, node.y, node.z)) return 0;
+        if (world == null) return 0;
+        ensureChunkLoaded(world, node.x, node.z);
+        if (!world.blockExists(node.x, node.y, node.z)) return 0;
         TileEntity te = world.getTileEntity(node.x, node.y, node.z);
         if (te instanceof IGregTechTileEntity gte) {
             if (gte.getMetaTileEntity() instanceof MTERemoteWorkerNode workerNode) {
@@ -560,7 +567,9 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
 
     private boolean resolveNodeWorking(BoundDrillNode node) {
         World world = DimensionManager.getWorld(node.dimensionId);
-        if (world == null || !world.blockExists(node.x, node.y, node.z)) return false;
+        if (world == null) return false;
+        ensureChunkLoaded(world, node.x, node.z);
+        if (!world.blockExists(node.x, node.y, node.z)) return false;
         TileEntity te = world.getTileEntity(node.x, node.y, node.z);
         if (te instanceof IGregTechTileEntity gte) {
             if (gte.getMetaTileEntity() instanceof MTERemoteWorkerNode workerNode) {
@@ -612,15 +621,33 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
     /**
      * 按坐标解析绑定节点对应的 MTERemoteWorkerNode 实例；世界未加载、方块不存在
      * 或目标不是远程工作节点时返回 null。
+     * 若目标区块未加载，会尝试主动加载一次（节点自身应持有 Forge chunk ticket，但在 ticket
+     * 尚未生效或跨维度首次访问时仍可能处于未加载状态），以保证终端按钮等即时操作可用。
      */
     private MTERemoteWorkerNode resolveWorkerNode(int x, int y, int z, int dim) {
         World world = DimensionManager.getWorld(dim);
-        if (world == null || !world.blockExists(x, y, z)) return null;
+        if (world == null) return null;
+        ensureChunkLoaded(world, x, z);
+        if (!world.blockExists(x, y, z)) return null;
         TileEntity te = world.getTileEntity(x, y, z);
         if (te instanceof IGregTechTileEntity gte && gte.getMetaTileEntity() instanceof MTERemoteWorkerNode node) {
             return node;
         }
         return null;
+    }
+
+    /**
+     * 在访问跨维度节点前，确保其所在 chunk 已加载到内存。
+     * 仅作为节点自身 chunk ticket 的后备；成功加载后节点的 onPostTick 会自行维护 ticket。
+     */
+    private static void ensureChunkLoaded(World world, int x, int z) {
+        if (world.blockExists(x, 0, z)) return;
+        try {
+            world.getChunkProvider()
+                .loadChunk(x >> 4, z >> 4);
+        } catch (Exception e) {
+            // 加载失败（如世界生成器异常）时保持原行为：后续 blockExists 会返回 false
+        }
     }
 
     /**

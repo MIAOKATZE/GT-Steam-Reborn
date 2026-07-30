@@ -327,25 +327,36 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity implements IAdd
     /**
      * 申请加载节点自身所在区块。
      * 绑定节点始终加载自身区块，以保证枢纽终端可以跨维度解析并操控该节点。
+     * 仅在 requestChunkLoad 真正成功后才设置标志，避免申请失败（如 ticket 达到上限）后永远不再重试。
      */
     protected void requestSelfChunk() {
         IGregTechTileEntity base = getBaseMetaTileEntity();
+        if (base == null) return;
         ChunkCoordIntPair selfChunk = new ChunkCoordIntPair(base.getXCoord() >> 4, base.getZCoord() >> 4);
-        GTChunkManager.requestChunkLoad((TileEntity) base, selfChunk);
-        mSelfChunkRequested = true;
+        if (GTChunkManager.requestChunkLoad((TileEntity) base, selfChunk)) {
+            mSelfChunkRequested = true;
+        }
     }
 
     /**
      * 申请加载当前工作范围覆盖的全部区块，具体范围由 collectWorkChunks 钩子收集。
+     * 任一 chunk 申请失败都会让 mWorkChunksRequested 保持 false，以便下一 tick 重试。
      */
     protected void requestWorkChunks() {
+        IGregTechTileEntity base = getBaseMetaTileEntity();
+        if (base == null) return;
         List<ChunkCoordIntPair> chunks = new ArrayList<>();
         collectWorkChunks(chunks);
-        TileEntity te = (TileEntity) getBaseMetaTileEntity();
+        TileEntity te = (TileEntity) base;
+        boolean allLoaded = true;
         for (ChunkCoordIntPair chunk : chunks) {
-            GTChunkManager.requestChunkLoad(te, chunk);
+            if (!GTChunkManager.requestChunkLoad(te, chunk)) {
+                allLoaded = false;
+            }
         }
-        mWorkChunksRequested = true;
+        if (allLoaded) {
+            mWorkChunksRequested = true;
+        }
     }
 
     /**
@@ -353,10 +364,15 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity implements IAdd
      * 用于节点被主动停止（isAllowedToWork=false）时，仍让终端可以跨维度解析并操控该节点。
      */
     protected void releaseWorkChunks() {
+        IGregTechTileEntity base = getBaseMetaTileEntity();
+        if (base == null) {
+            mWorkChunksRequested = false;
+            return;
+        }
         List<ChunkCoordIntPair> chunks = new ArrayList<>();
         collectWorkChunks(chunks);
 
-        TileEntity te = (TileEntity) getBaseMetaTileEntity();
+        TileEntity te = (TileEntity) base;
         int selfChunkX = te.xCoord >> 4;
         int selfChunkZ = te.zCoord >> 4;
 
@@ -401,7 +417,10 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity implements IAdd
      * public：枢纽快捷回收节点时需跨包调用（hub 在 machine 包，本类在 machine.base 包）。
      */
     public void releaseAllChunks() {
-        GTChunkManager.releaseTicket((TileEntity) getBaseMetaTileEntity());
+        IGregTechTileEntity base = getBaseMetaTileEntity();
+        if (base != null) {
+            GTChunkManager.releaseTicket((TileEntity) base);
+        }
         mSelfChunkRequested = false;
         mWorkChunksRequested = false;
     }
