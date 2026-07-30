@@ -297,30 +297,41 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity implements IAdd
     }
 
     /**
-     * 区块加载维护（服务端每 tick 调用）：已绑定且允许工作时，按当前等级范围申请
-     * 自身区块与工作区块；不再允许工作时释放全部 ticket。
+     * 区块加载维护（服务端每 tick 调用）：已绑定的节点始终加载自身所在区块，
+     * 保证枢纽终端可以跨维度解析；允许工作时再额外申请工作范围区块，
+     * 停止工作时仅释放工作范围区块、保留自身区块加载。
      * 注意：子类若覆写 onPostTick 且不调用 super.onPostTick，需自行调用本方法。
      */
     protected void updateChunkLoading(IGregTechTileEntity aBaseMetaTileEntity) {
-        if (isBound() && aBaseMetaTileEntity.isAllowedToWork()) {
+        if (isBound()) {
+            // 只要节点仍绑定，就始终加载自身所在区块，保证枢纽终端可以跨维度解析
             if (!mSelfChunkRequested) {
                 requestSelfChunk();
             }
-            if (!mWorkChunksRequested) {
-                requestWorkChunks();
+
+            // 允许工作时再额外加载工作范围区块
+            if (aBaseMetaTileEntity.isAllowedToWork()) {
+                if (!mWorkChunksRequested) {
+                    requestWorkChunks();
+                }
+            } else if (mWorkChunksRequested) {
+                // 停止工作时仅释放工作范围区块，保留自身区块加载
+                releaseWorkChunks();
             }
         } else if (mSelfChunkRequested || mWorkChunksRequested) {
+            // 完全解绑或移除时释放全部 ticket
             releaseAllChunks();
         }
     }
 
     /**
-     * 申请加载节点自身所在区块。GTChunkManager 中 chunk 参数传 null 即表示自身区块
-     * （仅在 GT 配置 alwaysReloadChunkloaders 开启时实际生效，用于跨重启持久化）；
-     * 一般情况下自身区块由 requestWorkChunks 的范围覆盖，本调用作为额外保险。
+     * 申请加载节点自身所在区块。
+     * 绑定节点始终加载自身区块，以保证枢纽终端可以跨维度解析并操控该节点。
      */
     protected void requestSelfChunk() {
-        GTChunkManager.requestChunkLoad((TileEntity) getBaseMetaTileEntity(), null);
+        IGregTechTileEntity base = getBaseMetaTileEntity();
+        ChunkCoordIntPair selfChunk = new ChunkCoordIntPair(base.getXCoord() >> 4, base.getZCoord() >> 4);
+        GTChunkManager.requestChunkLoad((TileEntity) base, selfChunk);
         mSelfChunkRequested = true;
     }
 
@@ -335,6 +346,27 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity implements IAdd
             GTChunkManager.requestChunkLoad(te, chunk);
         }
         mWorkChunksRequested = true;
+    }
+
+    /**
+     * 仅释放工作范围覆盖的区块，但保留节点自身所在区块的加载。
+     * 用于节点被主动停止（isAllowedToWork=false）时，仍让终端可以跨维度解析并操控该节点。
+     */
+    protected void releaseWorkChunks() {
+        List<ChunkCoordIntPair> chunks = new ArrayList<>();
+        collectWorkChunks(chunks);
+
+        TileEntity te = (TileEntity) getBaseMetaTileEntity();
+        int selfChunkX = te.xCoord >> 4;
+        int selfChunkZ = te.zCoord >> 4;
+
+        for (ChunkCoordIntPair chunk : chunks) {
+            // 不释放自身区块，避免目标维度被卸载
+            if (chunk.chunkXPos != selfChunkX || chunk.chunkZPos != selfChunkZ) {
+                GTChunkManager.releaseChunk(te, chunk);
+            }
+        }
+        mWorkChunksRequested = false;
     }
 
     /**

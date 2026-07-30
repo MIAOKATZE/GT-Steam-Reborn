@@ -845,6 +845,8 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
         super.setItemNBT(aNBT);
         // 保存采矿节点升级等级到掉落物 NBT，确保挖掘后重新放置不会丢失升级
         aNBT.setInteger("mMinerTier", mMinerTier);
+        // 保存粉碎矿模式，确保破坏→重新放置后状态不丢失
+        aNBT.setBoolean("mCrushedMode", mCrushedMode);
     }
 
     @Override
