@@ -911,7 +911,7 @@ gtsr.tooltip.steam_furnace.recipe_based=Recipe-dependent
 # 10. Mega Steam Turbine Array - missing keys
 gtsr.gui.turbine_array.stack_layers=Stack Layers: 
 gtsr.gui.turbine_array.extra_stack_layers=Extra Stack Layers: 
-gtsr.tooltip.turbine_array.height_channel=height channel: total structure height 9-25; every additional 4 layers adds one STACK (uses the existing GT5U channel)
+gtsr.tooltip.turbine_array.height_channel=height channel: 1-4 = BASE; 5-8 = +1 STACK; 9-12 = +2 STACK; 13-16 = +3 STACK; 17+ = +4 STACK
 gtsr.tooltip.turbine_array.multi_tier=Multi Tier
 gtsr.tooltip.turbine_array.each_tier=Each +1 Tier
 gtsr.gui.turbine_array.output_power=Output Power: 

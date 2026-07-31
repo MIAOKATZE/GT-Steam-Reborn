@@ -954,7 +954,7 @@ gtsr.tooltip.steam_furnace.steam_eff=等效蒸汽消耗: 60% (青铜级) / 40% (
 gtsr.tooltip.steam_furnace.recipe_based=依配方而定
 
 # 10. Mega Steam Turbine Array - missing keys
-gtsr.tooltip.turbine_array.height_channel=height channel：结构总高度范围 9-25；每增加 4 层增加一个 STACK（复用 GT5U 现有信道）
+gtsr.tooltip.turbine_array.height_channel=height channel：1-4 = BASE；5-8 = +1 STACK；9-12 = +2 STACK；13-16 = +3 STACK；17+ = +4 STACK
 gtsr.gui.turbine_array.stack_layers=堆叠层: 
 gtsr.gui.turbine_array.extra_stack_layers=额外堆叠层: 
 gtsr.tooltip.turbine_array.multi_tier=多 等级
