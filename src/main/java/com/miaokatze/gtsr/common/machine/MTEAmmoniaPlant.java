@@ -46,6 +46,7 @@ import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.logic.ProcessingLogic;
 import gregtech.api.metatileentity.implementations.MTEEnhancedMultiBlockBase;
 import gregtech.api.metatileentity.implementations.MTEHatchInput;
+import gregtech.api.metatileentity.implementations.MTEHatchOutput;
 import gregtech.api.recipe.RecipeMap;
 import gregtech.api.recipe.check.CheckRecipeResult;
 import gregtech.api.recipe.check.CheckRecipeResultRegistry;
@@ -257,6 +258,14 @@ public class MTEAmmoniaPlant extends MTEEnhancedMultiBlockBase<MTEAmmoniaPlant> 
         }
     }
 
+    public int getCatalystType() {
+        return mCatalystType;
+    }
+
+    public void syncCatalystType(int catalystType) {
+        mCatalystType = catalystType;
+    }
+
     @Override
     protected boolean canUseControllerSlotForRecipe() {
         return false;
@@ -390,6 +399,8 @@ public class MTEAmmoniaPlant extends MTEEnhancedMultiBlockBase<MTEAmmoniaPlant> 
         super.onPostTick(aBaseMetaTileEntity, aTick);
         if (!aBaseMetaTileEntity.isServerSide()) return;
 
+        updateCatalyst();
+
         if (mMachine) {
             mStartUpCheck = 100;
         } else if (mStartUpCheck > 0) {
@@ -473,7 +484,21 @@ public class MTEAmmoniaPlant extends MTEEnhancedMultiBlockBase<MTEAmmoniaPlant> 
     private void pushSuperheatedSteam(int amount) {
         if (amount <= 0) return;
         FluidStack superheatedSteam = FluidRegistry.getFluidStack("ic2superheatedsteam", amount);
-        if (superheatedSteam != null) addOutput(superheatedSteam);
+        if (superheatedSteam == null) return;
+
+        List<MTEHatchOutput> lockedOutputHatches = new ArrayList<>();
+        for (MTEHatchOutput outputHatch : GTUtility.validMTEList(mOutputHatches)) {
+            if (outputHatch.isFluidLocked() && superheatedSteam.getFluid()
+                .equals(outputHatch.getLockedFluid())) {
+                lockedOutputHatches.add(outputHatch);
+            }
+        }
+
+        if (lockedOutputHatches.isEmpty()) {
+            addOutput(superheatedSteam);
+        } else {
+            addOutputPartial(superheatedSteam, lockedOutputHatches);
+        }
     }
 
     @Override

@@ -24,6 +24,7 @@ public class MTEAmmoniaPlantGui extends MTEMultiBlockBaseGui<MTEEnhancedMultiBlo
     private LongSyncValue mRealtimeSteamCostSync;
     private LongSyncValue mRealtimeSteamOutputSync;
     private IntSyncValue mParallelCountSync;
+    private IntSyncValue mCatalystTypeSync;
     private IntSyncValue mMaxProgresstimeSync;
 
     public MTEAmmoniaPlantGui(MTEEnhancedMultiBlockBase<?> multiblock) {
@@ -44,6 +45,7 @@ public class MTEAmmoniaPlantGui extends MTEMultiBlockBaseGui<MTEEnhancedMultiBlo
         mParallelCountSync = new IntSyncValue(
             () -> ammoniaPlant.mParallelCount,
             val -> ammoniaPlant.mParallelCount = val);
+        mCatalystTypeSync = new IntSyncValue(ammoniaPlant::getCatalystType, ammoniaPlant::syncCatalystType);
         mMaxProgresstimeSync = new IntSyncValue(
             () -> ammoniaPlant.mMaxProgresstime,
             val -> ammoniaPlant.mMaxProgresstime = val);
@@ -51,6 +53,7 @@ public class MTEAmmoniaPlantGui extends MTEMultiBlockBaseGui<MTEEnhancedMultiBlo
         syncManager.syncValue("ammoniaSteamCost", mRealtimeSteamCostSync);
         syncManager.syncValue("ammoniaSteamOutput", mRealtimeSteamOutputSync);
         syncManager.syncValue("ammoniaParallelCount", mParallelCountSync);
+        syncManager.syncValue("ammoniaCatalystType", mCatalystTypeSync);
         syncManager.syncValue("ammoniaMaxProgresstime", mMaxProgresstimeSync);
     }
 
@@ -74,6 +77,22 @@ public class MTEAmmoniaPlantGui extends MTEMultiBlockBaseGui<MTEEnhancedMultiBlo
             .asWidget()
             .marginBottom(2)
             .fullWidth())
+            .child(IKey.dynamic(() -> {
+                int catalystType = mCatalystTypeSync.getValue();
+                String catalystName = catalystType > 0
+                    ? StatCollector.translateToLocal("gtsr.gui.ammonia_plant.catalyst." + catalystType)
+                    : StatCollector.translateToLocal("gtsr.gui.not_installed");
+                EnumChatFormatting catalystColor = catalystType > 0 ? EnumChatFormatting.GREEN : EnumChatFormatting.RED;
+                return EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.gui.ammonia_plant.catalyst")
+                    + " "
+                    + catalystColor
+                    + catalystName
+                    + " "
+                    + EnumChatFormatting.RESET;
+            })
+                .asWidget()
+                .marginBottom(2)
+                .fullWidth())
             .child(
                 IKey.dynamic(
                     () -> EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.gui.ammonia_plant.status")
