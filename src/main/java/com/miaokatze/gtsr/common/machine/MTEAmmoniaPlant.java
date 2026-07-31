@@ -396,10 +396,9 @@ public class MTEAmmoniaPlant extends MTEEnhancedMultiBlockBase<MTEAmmoniaPlant> 
 
     @Override
     public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
+        if (aBaseMetaTileEntity.isServerSide()) updateCatalyst();
         super.onPostTick(aBaseMetaTileEntity, aTick);
         if (!aBaseMetaTileEntity.isServerSide()) return;
-
-        updateCatalyst();
 
         if (mMachine) {
             mStartUpCheck = 100;
@@ -487,17 +486,27 @@ public class MTEAmmoniaPlant extends MTEEnhancedMultiBlockBase<MTEAmmoniaPlant> 
         if (superheatedSteam == null) return;
 
         List<MTEHatchOutput> lockedOutputHatches = new ArrayList<>();
+        boolean hasLockedOutputHatch = false;
         for (MTEHatchOutput outputHatch : GTUtility.validMTEList(mOutputHatches)) {
-            if (outputHatch.isFluidLocked() && superheatedSteam.getFluid()
-                .equals(outputHatch.getLockedFluid())) {
-                lockedOutputHatches.add(outputHatch);
+            if (outputHatch.isFluidLocked()) {
+                hasLockedOutputHatch = true;
+                if (outputHatch.getLockedFluid() == null || superheatedSteam.getFluid()
+                    .equals(outputHatch.getLockedFluid())) {
+                    lockedOutputHatches.add(outputHatch);
+                }
             }
         }
 
-        if (lockedOutputHatches.isEmpty()) {
+        if (!hasLockedOutputHatch) {
             addOutput(superheatedSteam);
-        } else {
-            addOutputPartial(superheatedSteam, lockedOutputHatches);
+            return;
+        }
+        if (lockedOutputHatches.isEmpty()) return;
+
+        FluidStack remaining = superheatedSteam.copy();
+        for (MTEHatchOutput outputHatch : lockedOutputHatches) {
+            outputHatch.storePartial(remaining, false);
+            if (remaining.amount <= 0) return;
         }
     }
 
@@ -553,6 +562,14 @@ public class MTEAmmoniaPlant extends MTEEnhancedMultiBlockBase<MTEAmmoniaPlant> 
                 + " "
                 + EnumChatFormatting.RESET;
         }))
+            .widget(new TextWidget().setStringSupplier(() -> {
+                String catalystName = mCatalystType > 0
+                    ? EnumChatFormatting.GREEN
+                        + StatCollector.translateToLocal("gtsr.gui.ammonia_plant.catalyst." + mCatalystType)
+                    : EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.gui.not_installed");
+                return EnumChatFormatting.WHITE + StatCollector.translateToLocal(
+                    "gtsr.gui.ammonia_plant.catalyst") + " " + catalystName + " " + EnumChatFormatting.RESET;
+            }))
             .widget(
                 new TextWidget().setStringSupplier(
                     () -> EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.gui.ammonia_plant.status")
@@ -589,6 +606,7 @@ public class MTEAmmoniaPlant extends MTEEnhancedMultiBlockBase<MTEAmmoniaPlant> 
             .widget(new FakeSyncWidget.LongSyncer(() -> mRealtimeSteamCost, val -> mRealtimeSteamCost = val))
             .widget(new FakeSyncWidget.LongSyncer(() -> mRealtimeSteamOutput, val -> mRealtimeSteamOutput = val))
             .widget(new FakeSyncWidget.IntegerSyncer(() -> mParallelCount, val -> mParallelCount = val))
+            .widget(new FakeSyncWidget.IntegerSyncer(() -> mCatalystType, val -> mCatalystType = val))
             .widget(new FakeSyncWidget.IntegerSyncer(() -> mMaxProgresstime, val -> mMaxProgresstime = val));
     }
 
