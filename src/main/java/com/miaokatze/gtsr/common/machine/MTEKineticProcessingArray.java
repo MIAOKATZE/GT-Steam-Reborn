@@ -454,8 +454,13 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
             return;
         }
 
+        // recipeMap 为运行时引用不可序列化，读档后 internalMachineStack 已从 NBT 恢复但 recipeMap 为 null；
+        // 此时 internalMachineStack 与控制器槽内的机器 stack 完全一致（单台机器时连 stackSize 都相同），
+        // 若仅靠 stack 比对会判定"未变更"而永不重建 recipeMap，导致重进存档后机器罢工。
+        // 故 recipeMap 为 null 时也视为需要重新推导（自愈，最坏代价为每 tick 一次廉价重查）。
         boolean machineChanged = internalMachineStack == null
-            || !ItemStack.areItemStacksEqual(internalMachineStack, controllerStack);
+            || !ItemStack.areItemStacksEqual(internalMachineStack, controllerStack)
+            || recipeMap == null;
 
         if (machineChanged) {
             MTEBasicMachineWithRecipe mte = getMTE(controllerStack);
