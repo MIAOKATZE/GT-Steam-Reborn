@@ -720,7 +720,7 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
             mStackCount++;
         }
 
-        if (mCasingTier <= 0 || mCasingTier > 12) {
+        if (mCasingTier <= 0 || mCasingTier > 12 || mFrameTier != mCasingTier) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
             return;
         }
