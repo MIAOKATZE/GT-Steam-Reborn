@@ -43,6 +43,7 @@ import com.gtnewhorizons.modularui.common.widget.FakeSyncWidget;
 import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
+import com.miaokatze.gtsr.common.api.enums.GTSRStructureChannels;
 import com.miaokatze.gtsr.common.gui.MTEMegaSteamTurbineArrayGui;
 import com.miaokatze.gtsr.common.machine.base.MTEHatchPressureSteamInput;
 import com.miaokatze.gtsr.common.machine.base.MTEOverpressureTurbineInputHatch;
@@ -86,6 +87,10 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
     private static final String STRUCTURE_PIECE_BASE = "base";
     private static final String STRUCTURE_PIECE_STACK = "stack";
     private static final String STRUCTURE_PIECE_CAP = "cap";
+    private static final int BASE_TOTAL_HEIGHT = 9;
+    private static final int STACK_LAYER_HEIGHT = 4;
+    private static final int MAX_EXTRA_STACKS = 4;
+    private static final int MAX_STACK_GROUP_COUNT = MAX_EXTRA_STACKS + 1;
 
     private static final int SOLID_STEEL_CASING_INDEX = GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings2, 0);
     private static IStructureDefinition<MTEMegaSteamTurbineArray> STRUCTURE_DEFINITION;
@@ -1408,14 +1413,26 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
     @Override
     public void construct(ItemStack stackSize, boolean hintsOnly) {
         buildPiece(STRUCTURE_PIECE_BASE, stackSize, hintsOnly, 6, 5, 0);
-        int tTotalHeight = Math.max(9, GTStructureChannels.STRUCTURE_HEIGHT.getValueClamped(stackSize, 9, 25));
-        int extraStacks = (tTotalHeight - 9) / 4;
+        int extraStacks = getConstructExtraStackCount(stackSize);
         for (int i = 0; i < extraStacks; i++) {
-            int bOffset = 9 + i * 4;
+            int bOffset = BASE_TOTAL_HEIGHT + i * STACK_LAYER_HEIGHT;
             buildPiece(STRUCTURE_PIECE_STACK, stackSize, hintsOnly, 6, bOffset, 0);
         }
-        int capB = 7 + extraStacks * 4;
+        int capB = BASE_TOTAL_HEIGHT - 2 + extraStacks * STACK_LAYER_HEIGHT;
         buildPiece(STRUCTURE_PIECE_CAP, stackSize, hintsOnly, 6, capB, 0);
+    }
+
+    private static int getConstructExtraStackCount(ItemStack stackSize) {
+        if (GTSRStructureChannels.STACK.hasValue(stackSize)) {
+            int stackGroupCount = GTSRStructureChannels.STACK.getValue(stackSize);
+            stackGroupCount = Math.max(1, Math.min(MAX_STACK_GROUP_COUNT, stackGroupCount));
+            return stackGroupCount - 1;
+        }
+
+        int totalHeight = Math.max(
+            BASE_TOTAL_HEIGHT,
+            GTStructureChannels.STRUCTURE_HEIGHT.getValueClamped(stackSize, BASE_TOTAL_HEIGHT, 25));
+        return Math.min(MAX_EXTRA_STACKS, (totalHeight - BASE_TOTAL_HEIGHT) / STACK_LAYER_HEIGHT);
     }
 
     @Override
@@ -1423,10 +1440,9 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         if (mMachine) return -1;
         int built = survivalBuildPiece(STRUCTURE_PIECE_BASE, stackSize, 6, 5, 0, elementBudget, env, false, true);
         if (built >= 0) return built;
-        int tTotalHeight = Math.max(9, GTStructureChannels.STRUCTURE_HEIGHT.getValueClamped(stackSize, 9, 25));
-        int extraStacks = (tTotalHeight - 9) / 4;
+        int extraStacks = getConstructExtraStackCount(stackSize);
         for (int i = 0; i < extraStacks; i++) {
-            int bOffset = 9 + i * 4;
+            int bOffset = BASE_TOTAL_HEIGHT + i * STACK_LAYER_HEIGHT;
             built = survivalBuildPiece(
                 STRUCTURE_PIECE_STACK,
                 stackSize,
@@ -1439,7 +1455,7 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
                 true);
             if (built >= 0) return built;
         }
-        int capB = 7 + extraStacks * 4;
+        int capB = BASE_TOTAL_HEIGHT - 2 + extraStacks * STACK_LAYER_HEIGHT;
         return survivalBuildPiece(STRUCTURE_PIECE_CAP, stackSize, 6, capB, 0, elementBudget, env, false, true);
     }
 
@@ -1481,7 +1497,8 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         return new String[] { EnumChatFormatting.GRAY + "BASE (7 layers, L8~L2): Controller + 1 baseline stack",
             EnumChatFormatting.GRAY + "STACK (4 layers, L5~L2): Repeatable, each +4 layers",
             EnumChatFormatting.GRAY + "CAP (2 layers, L1~L0): Top cover",
-            EnumChatFormatting.GRAY + "Extra Stacks: 0 ~ 4 (9~25 total height)" };
+            EnumChatFormatting.GRAY + "Extra Stacks: 0 ~ 4 (9~25 total height)",
+            EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.stack_channel") };
     }
 
     @Override
@@ -1511,6 +1528,7 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
             .addInputHatch(StatCollector.translateToLocal("gtsr.tooltip.turbine_array.input_hatch"), 1)
             .addDynamoHatch(StatCollector.translateToLocal("gtsr.tooltip.turbine_array.dynamo"), 1)
             .addStructureInfo("")
+            .addSubChannel(GTSRStructureChannels.STACK)
             .addStructureInfo(
                 EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.multi_tier"))
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.casing"), 38, false)

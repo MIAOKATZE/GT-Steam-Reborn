@@ -1,6 +1,7 @@
 package com.miaokatze.gtsr.main;
 
 import com.miaokatze.gtsr.Tags;
+import com.miaokatze.gtsr.common.api.enums.GTSRStructureChannels;
 import com.miaokatze.gtsr.common.crossmod.waila.GTSRWailaCompat;
 import com.miaokatze.gtsr.config.Config;
 import com.miaokatze.gtsr.loader.GTSRRecipeLoader;
@@ -90,6 +91,7 @@ public class CommonProxy {
     public void postInit(FMLPostInitializationEvent event) {
         GTSteamReborn.LOG.info("[3/3] 开始注册 GTSR 配方...");
         try {
+            GTSRStructureChannels.register();
             new GTSRRecipeLoader().run();
             GTSteamReborn.LOG.info("[3/3] GTSR 配方注册完成。");
         } catch (Throwable t) {

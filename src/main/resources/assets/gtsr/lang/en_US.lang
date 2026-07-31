@@ -911,6 +911,8 @@ gtsr.tooltip.steam_furnace.recipe_based=Recipe-dependent
 # 10. Mega Steam Turbine Array - missing keys
 gtsr.gui.turbine_array.stack_layers=Stack Layers: 
 gtsr.gui.turbine_array.extra_stack_layers=Extra Stack Layers: 
+gtsr.channel.stack.description=Total STACK groups (1 = BASE only, 5 = BASE + 4 STACK)
+gtsr.tooltip.turbine_array.stack_channel=STACK channel: total groups 1-5; explicit stack overrides legacy height when present, otherwise height behavior is preserved
 gtsr.tooltip.turbine_array.multi_tier=Multi Tier
 gtsr.tooltip.turbine_array.each_tier=Each +1 Tier
 gtsr.gui.turbine_array.output_power=Output Power: 
@@ -1132,4 +1134,4 @@ gtsr.tooltip.reinforced_brick_blast_furnace.hatch_steam=Accepts normal or steam 
 gtsr.gui.reinforced_brick_blast_furnace.temperature=Furnace Temperature: 
 gtsr.gui.reinforced_brick_blast_furnace.status.heating=Heating
 gtsr.gui.reinforced_brick_blast_furnace.parallel=Parallels: 
-gtsr.gui.reinforced_brick_blast_furnace.speed=Speed: 
+gtsr.gui.reinforced_brick_blast_furnace.speed=Speed:
