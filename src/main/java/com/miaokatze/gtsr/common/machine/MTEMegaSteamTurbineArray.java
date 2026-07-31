@@ -43,7 +43,6 @@ import com.gtnewhorizons.modularui.common.widget.FakeSyncWidget;
 import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
-import com.miaokatze.gtsr.common.api.enums.GTSRStructureChannels;
 import com.miaokatze.gtsr.common.gui.MTEMegaSteamTurbineArrayGui;
 import com.miaokatze.gtsr.common.machine.base.MTEHatchPressureSteamInput;
 import com.miaokatze.gtsr.common.machine.base.MTEOverpressureTurbineInputHatch;
@@ -90,7 +89,6 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
     private static final int BASE_TOTAL_HEIGHT = 9;
     private static final int STACK_LAYER_HEIGHT = 4;
     private static final int MAX_EXTRA_STACKS = 4;
-    private static final int MAX_STACK_GROUP_COUNT = MAX_EXTRA_STACKS + 1;
 
     private static final int SOLID_STEEL_CASING_INDEX = GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings2, 0);
     private static IStructureDefinition<MTEMegaSteamTurbineArray> STRUCTURE_DEFINITION;
@@ -1423,12 +1421,6 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
     }
 
     private static int getConstructExtraStackCount(ItemStack stackSize) {
-        if (GTSRStructureChannels.STACK.hasValue(stackSize)) {
-            int stackGroupCount = GTSRStructureChannels.STACK.getValue(stackSize);
-            stackGroupCount = Math.max(1, Math.min(MAX_STACK_GROUP_COUNT, stackGroupCount));
-            return stackGroupCount - 1;
-        }
-
         int totalHeight = Math.max(
             BASE_TOTAL_HEIGHT,
             GTStructureChannels.STRUCTURE_HEIGHT.getValueClamped(stackSize, BASE_TOTAL_HEIGHT, 25));
@@ -1498,7 +1490,7 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
             EnumChatFormatting.GRAY + "STACK (4 layers, L5~L2): Repeatable, each +4 layers",
             EnumChatFormatting.GRAY + "CAP (2 layers, L1~L0): Top cover",
             EnumChatFormatting.GRAY + "Extra Stacks: 0 ~ 4 (9~25 total height)",
-            EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.stack_channel") };
+            EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.height_channel") };
     }
 
     @Override
@@ -1528,7 +1520,7 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
             .addInputHatch(StatCollector.translateToLocal("gtsr.tooltip.turbine_array.input_hatch"), 1)
             .addDynamoHatch(StatCollector.translateToLocal("gtsr.tooltip.turbine_array.dynamo"), 1)
             .addStructureInfo("")
-            .addSubChannel(GTSRStructureChannels.STACK)
+            .addSubChannel(GTStructureChannels.STRUCTURE_HEIGHT)
             .addStructureInfo(
                 EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.multi_tier"))
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.casing"), 38, false)
