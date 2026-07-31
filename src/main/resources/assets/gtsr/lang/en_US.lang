@@ -814,8 +814,13 @@ gtsr.gui.singularity_hub.bound_nodes=Bound Nodes:
 gtsr.gui.solar_array.tier_overpressure=Overpressure
 
 # GUI Keys - Ammonia Plant
-gtsr.gui.ammonia_plant.catalyst.1=Iron-based Catalyst
-gtsr.gui.ammonia_plant.catalyst.2=Ruthenium Catalyst
+gtsr.gui.ammonia_plant.catalyst.1=Nickel-based Catalyst
+gtsr.gui.ammonia_plant.catalyst.2=Platinum-based Catalyst
+gtsr.gui.ammonia_plant.catalyst.3=Uranium-based Catalyst
+gtsr.gui.ammonia_plant.catalyst.4=Osmium-based Catalyst
+gtsr.gui.ammonia_plant.catalyst.5=Iron-Cobalt Catalyst
+gtsr.gui.ammonia_plant.catalyst.6=Ruthenium-based Catalyst
+gtsr.gui.ammonia_plant.catalyst.7=Quantum Catalyst
 gtsr.gui.ammonia_plant.catalyst=Catalyst: 
 gtsr.gui.ammonia_plant.catalyst.not_installed=Not Installed
 

@@ -707,8 +707,13 @@ gtsr.tooltip.air_compressor.nether_recipe=需要在下界
 # 2. Ammonia Plant
 gtsr.tooltip.ammonia_plant.type=制氨工厂, AP
 gtsr.gui.ammonia_plant.catalyst=催化剂: 
-gtsr.gui.ammonia_plant.catalyst.1=铁基催化剂
-gtsr.gui.ammonia_plant.catalyst.2=钌基催化剂
+gtsr.gui.ammonia_plant.catalyst.1=镍基催化剂
+gtsr.gui.ammonia_plant.catalyst.2=铂基催化剂
+gtsr.gui.ammonia_plant.catalyst.3=铀基催化剂
+gtsr.gui.ammonia_plant.catalyst.4=锇基催化剂
+gtsr.gui.ammonia_plant.catalyst.5=铁钴基催化剂
+gtsr.gui.ammonia_plant.catalyst.6=钌基催化剂
+gtsr.gui.ammonia_plant.catalyst.7=量子催化剂
 gtsr.gui.ammonia_plant.catalyst.not_installed=未安装
 
 # 3. Atmospheric Centrifuge

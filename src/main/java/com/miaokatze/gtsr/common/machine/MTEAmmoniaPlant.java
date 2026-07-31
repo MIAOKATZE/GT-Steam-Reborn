@@ -21,7 +21,6 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 import net.minecraftforge.common.util.ForgeDirection;
-import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
 
@@ -47,7 +46,6 @@ import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.logic.ProcessingLogic;
 import gregtech.api.metatileentity.implementations.MTEEnhancedMultiBlockBase;
 import gregtech.api.metatileentity.implementations.MTEHatchInput;
-import gregtech.api.metatileentity.implementations.MTEHatchOutput;
 import gregtech.api.recipe.RecipeMap;
 import gregtech.api.recipe.check.CheckRecipeResult;
 import gregtech.api.recipe.check.CheckRecipeResultRegistry;
@@ -75,7 +73,7 @@ public class MTEAmmoniaPlant extends MTEEnhancedMultiBlockBase<MTEAmmoniaPlant> 
     private static final int EXTRA_STEAM_FORMULA_CONSTANT = 16000;
 
     private static final int[][] CATALYST_DATA = { { 64, 64 }, { 96, 48 }, { 128, 64 }, { 192, 24 }, { 256, 16 },
-        { 256, 8 }, { 256, 4 }, { 256, 1 } };
+        { 256, 8 }, { 256, 1 } };
 
     private static final String STRUCTURE_PIECE_MAIN = "main";
     private static final int HORIZONTAL_OFF_SET = 10;
@@ -252,9 +250,10 @@ public class MTEAmmoniaPlant extends MTEEnhancedMultiBlockBase<MTEAmmoniaPlant> 
             return;
         }
 
-        if (mCatalystType >= 0 && mCatalystType < CATALYST_DATA.length) {
-            mParallelCount = CATALYST_DATA[mCatalystType][0];
-            mReactionTimeSec = CATALYST_DATA[mCatalystType][1];
+        if (mCatalystType > 0 && mCatalystType <= CATALYST_DATA.length) {
+            int catalystDataIndex = mCatalystType - 1;
+            mParallelCount = CATALYST_DATA[catalystDataIndex][0];
+            mReactionTimeSec = CATALYST_DATA[catalystDataIndex][1];
         }
     }
 
@@ -473,17 +472,8 @@ public class MTEAmmoniaPlant extends MTEEnhancedMultiBlockBase<MTEAmmoniaPlant> 
 
     private void pushSuperheatedSteam(int amount) {
         if (amount <= 0) return;
-        Fluid superheated = FluidRegistry.getFluid("ic2superheatedsteam");
-        if (superheated == null) return;
-        int remaining = amount;
-        for (MTEHatchOutput tHatch : GTUtility.validMTEList(mOutputHatches)) {
-            int filled = tHatch.fill(new FluidStack(superheated, remaining), false);
-            if (filled > 0) {
-                tHatch.fill(new FluidStack(superheated, filled), true);
-                remaining -= filled;
-                if (remaining <= 0) return;
-            }
-        }
+        FluidStack superheatedSteam = FluidRegistry.getFluidStack("ic2superheatedsteam", amount);
+        if (superheatedSteam != null) addOutput(superheatedSteam);
     }
 
     @Override
