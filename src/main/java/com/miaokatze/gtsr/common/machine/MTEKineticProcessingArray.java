@@ -22,6 +22,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import net.minecraft.block.Block;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
@@ -44,6 +45,7 @@ import com.gtnewhorizons.modularui.common.widget.DynamicPositionedColumn;
 import com.gtnewhorizons.modularui.common.widget.FakeSyncWidget;
 import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
+import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.gui.MTEKineticProcessingArrayGui;
 import com.miaokatze.gtsr.common.machine.base.MTEHatchPressureSteamInput;
 import com.miaokatze.gtsr.common.machine.base.MTEPressureSteamCoolingHatch;
@@ -76,6 +78,7 @@ import gregtech.api.util.GTUtility;
 import gregtech.api.util.IGTHatchAdder;
 import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.api.util.OverclockCalculator;
+import gregtech.api.util.ParallelHelper;
 import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
 import gregtech.common.tileentities.machines.IDualInputHatch;
 import gtPlusPlus.api.recipe.GTPPRecipeMaps;
@@ -87,6 +90,7 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
     private static final int HORIZONTAL_OFF_SET = 3;
     private static final int VERTICAL_OFF_SET = 2;
     private static final int DEPTH_OFF_SET = 2;
+    private static final long BOOST_DURATION_TICKS = 1200L * 20L;
     private static final int SOLID_STEEL_CASING_INDEX = GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings2, 0);
     private static IStructureDefinition<MTEKineticProcessingArray> STRUCTURE_DEFINITION;
 
@@ -101,7 +105,7 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
 
     private ItemStack internalMachineStack = null;
     private RecipeMap<?> recipeMap = null;
-    private long voltage = 0;
+    private long boostModeUntil = 0;
     public int mMachineTier = 0;
     public int maxParallel = 0;
     private int mStackSize = 0;
@@ -184,6 +188,8 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
     public long mRealtimeSteamCost = 0;
     public int mParallelCount = 0;
     public String mMachineName = "";
+    public long mMaxRecipeVoltage = 0;
+    public long mBoostRemainingSeconds = 0;
 
     public MTEKineticProcessingArray(int aID, String aName, String aNameRegional) {
         super(aID, aName, aNameRegional);
@@ -432,13 +438,20 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
 
         boolean hasEnergy = !mEnergyHatches.isEmpty();
         boolean hasSteamInput = !mPressureSteamInputs.isEmpty();
+        boolean energyTierValid = true;
+        for (var energyHatch : GTUtility.validMTEList(mEnergyHatches)) {
+            if (energyHatch.getInputTier() > mCasingTier) {
+                energyTierValid = false;
+                break;
+            }
+        }
         // 兼容 Crafting Input Bus/Buffer/Proxy (ME) 等 DualInputHatch：GT5U 父类 addInputBusToMachineList
         // 会将 IDualInputHatch 实例（MTEHatchCraftingInputME/Slave extends MTEHatchInputBus）自动重定向到
         // mDualInputHatches（supportsCraftingMEBuffer() 默认 true），此处需一并计入有效输入判断，
         // 否则玩家只放样板输入总成时 hasInput=false 导致结构检测失败。仿照 GT5U MTEEnhancedMultiBlockBase.checkHasAnyInput。
         boolean hasInput = !mInputBusses.isEmpty() || !mInputHatches.isEmpty() || !mDualInputHatches.isEmpty();
         boolean hasOutput = !mOutputBusses.isEmpty() || !mOutputHatches.isEmpty() || !mPressureCoolingHatches.isEmpty();
-        if (!hasEnergy || !hasSteamInput || !hasInput || !hasOutput) {
+        if (!hasEnergy || !energyTierValid || !hasSteamInput || !hasInput || !hasOutput) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
             return;
         }
@@ -471,7 +484,6 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
             internalMachineStack = controllerStack.copy();
             internalMachineStack.stackSize = 1;
             recipeMap = mapToMultiblockRecipeMap(mte.getRecipeMap());
-            voltage = GTValues.V[mte.mTier] * mte.mAmperage;
             mMachineTier = mte.mTier;
             mMachineName = mte.getInventoryName();
 
@@ -512,7 +524,7 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
         if (internalMachineStack == null && recipeMap == null) return;
         internalMachineStack = null;
         recipeMap = null;
-        voltage = 0;
+        mMaxRecipeVoltage = 0;
         mMachineTier = 0;
         maxParallel = 0;
         mStackSize = 0;
@@ -541,10 +553,34 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
         return null;
     }
 
-    private long getEffectiveVoltage() {
-        if (mMachineTier <= mCasingTier) return voltage;
-        if (mCasingTier >= 7) return voltage;
-        return GTValues.V[mCasingTier];
+    private long getWorldTime() {
+        IGregTechTileEntity base = getBaseMetaTileEntity();
+        return base == null || base.getWorld() == null ? 0L
+            : base.getWorld()
+                .getTotalWorldTime();
+    }
+
+    private boolean isBoostModeActive() {
+        IGregTechTileEntity base = getBaseMetaTileEntity();
+        return base != null && base.getWorld() != null
+            && boostModeUntil > base.getWorld()
+                .getTotalWorldTime();
+    }
+
+    private long getBoostRemainingSeconds() {
+        if (!isBoostModeActive()) return 0L;
+        return (boostModeUntil - getWorldTime() + 19L) / 20L;
+    }
+
+    private long getMaxRecipeVoltage() {
+        if (internalMachineStack == null || mMachineTier < 0 || mMachineTier >= GTValues.V.length) return 0L;
+        int voltageTier = Math.min(mMachineTier + (isBoostModeActive() ? 1 : 0), GTValues.V.length - 1);
+        return GTValues.V[voltageTier];
+    }
+
+    private void updateBoostDisplay() {
+        mBoostRemainingSeconds = getBoostRemainingSeconds();
+        mMaxRecipeVoltage = getMaxRecipeVoltage();
     }
 
     private double getSteamConsumptionRate() {
@@ -624,6 +660,33 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
     }
 
     @Override
+    public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
+        super.onPostTick(aBaseMetaTileEntity, aTick);
+        if (aBaseMetaTileEntity.isServerSide()) {
+            updateBoostDisplay();
+        }
+    }
+
+    @Override
+    public boolean onRightclick(IGregTechTileEntity aBaseMetaTileEntity, EntityPlayer aPlayer, ForgeDirection side,
+        float aX, float aY, float aZ) {
+        ItemStack held = aPlayer.getHeldItem();
+        if (held != null && GTSRItemList.SteamEntangledSingularity.isStackEqual(held, false, true)) {
+            if (aBaseMetaTileEntity.isServerSide()) {
+                held.stackSize--;
+                if (held.stackSize <= 0) {
+                    aPlayer.inventory.mainInventory[aPlayer.inventory.currentItem] = null;
+                }
+                boostModeUntil = getWorldTime() + BOOST_DURATION_TICKS;
+                updateBoostDisplay();
+                aPlayer.inventoryContainer.detectAndSendChanges();
+            }
+            return true;
+        }
+        return super.onRightclick(aBaseMetaTileEntity, aPlayer, side, aX, aY, aZ);
+    }
+
+    @Override
     public boolean onRunningTick(ItemStack aStack) {
         if (mEUt < 0) {
             long steamPerTick = calculateSteamCostPerTick();
@@ -644,10 +707,13 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
     public CheckRecipeResult checkProcessing() {
         checkInternalMachine();
         if (internalMachineStack == null) {
+            updateBoostDisplay();
             return SimpleCheckRecipeResult.ofFailure("no_machine");
         }
 
-        long effectiveV = getEffectiveVoltage();
+        long effectiveV = getMaxRecipeVoltage();
+        mMaxRecipeVoltage = effectiveV;
+        mBoostRemainingSeconds = getBoostRemainingSeconds();
         double rate = getSteamConsumptionRate();
         long estimatedSteamPerTick = (long) (rate * effectiveV);
 
@@ -698,17 +764,26 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
             @Nonnull
             protected OverclockCalculator createOverclockCalculator(@Nonnull GTRecipe recipe) {
                 return OverclockCalculator.ofNoOverclock(recipe)
+                    .setEUt(getMaxRecipeVoltage())
+                    .setMaxTierSkips(0)
                     .setEUtDiscount(getEUtDiscount())
                     .setDurationModifier(getDurationModifier());
+            }
+
+            @Override
+            @Nonnull
+            protected ParallelHelper createParallelHelper(@Nonnull GTRecipe recipe) {
+                return super.createParallelHelper(recipe).setAvailableEUt(getMaxInputPower());
             }
         }.setMaxParallelSupplier(this::getTrueParallel);
     }
 
     @Override
     protected void setProcessingLogicPower(ProcessingLogic logic) {
-        logic.setAvailableVoltage(getEffectiveVoltage());
-        logic.setAvailableAmperage(getMaxParallelRecipes());
+        logic.setAvailableVoltage(getMaxRecipeVoltage());
+        logic.setAvailableAmperage(getMaxInputAmps());
         logic.setAmperageOC(false);
+        logic.setMaxTierSkips(0);
     }
 
     @Override
@@ -737,6 +812,9 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
         super.drawTexts(screenElements, inventorySlot);
 
         screenElements.widget(new FakeSyncWidget.IntegerSyncer(() -> mMachineTier, val -> mMachineTier = val));
+        screenElements.widget(new FakeSyncWidget.LongSyncer(() -> mMaxRecipeVoltage, val -> mMaxRecipeVoltage = val));
+        screenElements
+            .widget(new FakeSyncWidget.LongSyncer(() -> mBoostRemainingSeconds, val -> mBoostRemainingSeconds = val));
         screenElements.widget(new FakeSyncWidget.IntegerSyncer(() -> mCasingTier, val -> mCasingTier = val));
         screenElements.widget(new FakeSyncWidget.DoubleSyncer(() -> mSteamRate, val -> mSteamRate = val));
         screenElements.widget(new FakeSyncWidget.LongSyncer(() -> mSteamPerAmp, val -> mSteamPerAmp = val));
@@ -747,19 +825,30 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
 
         screenElements.widget(TextWidget.dynamicString(() -> {
             if (mMachineTier <= 0) {
-                return EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.gui.kinetic_array.no_machine");
+                return EnumChatFormatting.GOLD
+                    + StatCollector.translateToLocal("gtsr.gui.kinetic_array.max_recipe_voltage")
+                    + EnumChatFormatting.RED
+                    + "NULL";
             }
-            return EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.kinetic_array.tier")
-                + EnumChatFormatting.GREEN
-                + GTValues.VN[mMachineTier > 0 && mMachineTier < GTValues.VN.length ? mMachineTier : 0]
-                + EnumChatFormatting.GRAY
-                + " ("
-                + StatCollector.translateToLocal("gtsr.gui.kinetic_array.voltage_cap")
-                + " "
+            int voltageTier = GTUtility.getTier(mMaxRecipeVoltage);
+            return EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.kinetic_array.max_recipe_voltage")
                 + EnumChatFormatting.YELLOW
-                + GTValues.VN[mCasingTier > 0 && mCasingTier < GTValues.VN.length ? mCasingTier : 0]
-                + EnumChatFormatting.GRAY
+                + NumberFormatUtil.formatNumber(mMaxRecipeVoltage)
+                + " EU/t ("
+                + (voltageTier >= 0 && voltageTier < GTValues.VN.length ? GTValues.VN[voltageTier] : "?")
                 + ")";
+        })
+            .setTextAlignment(Alignment.CenterLeft)
+            .setDefaultColor(COLOR_TEXT_WHITE.get())
+            .setEnabled(w -> mMachine));
+
+        screenElements.widget(TextWidget.dynamicString(() -> {
+            if (mBoostRemainingSeconds > 0) {
+                return EnumChatFormatting.GOLD + StatCollector
+                    .translateToLocalFormatted("gtsr.gui.kinetic_array.boost_mode_remaining", mBoostRemainingSeconds);
+            }
+            return EnumChatFormatting.GRAY
+                + StatCollector.translateToLocal("gtsr.gui.kinetic_array.boost_mode_disabled");
         })
             .setTextAlignment(Alignment.CenterLeft)
             .setDefaultColor(COLOR_TEXT_WHITE.get())
@@ -819,7 +908,7 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
         aNBT.setInteger("mCasingTier", mCasingTier);
         aNBT.setInteger("mSyncedCasingTier", mSyncedCasingTier);
         aNBT.setInteger("mMachineTier", mMachineTier);
-        aNBT.setLong("voltage", voltage);
+        aNBT.setLong("boostModeUntil", boostModeUntil);
         aNBT.setInteger("maxParallel", maxParallel);
         aNBT.setInteger("mStackSize", mStackSize);
         aNBT.setDouble("mSteamRate", mSteamRate);
@@ -842,7 +931,7 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
         mCasingTier = aNBT.getInteger("mCasingTier");
         mSyncedCasingTier = aNBT.getInteger("mSyncedCasingTier");
         mMachineTier = aNBT.getInteger("mMachineTier");
-        voltage = aNBT.getLong("voltage");
+        boostModeUntil = aNBT.getLong("boostModeUntil");
         maxParallel = aNBT.getInteger("maxParallel");
         mStackSize = aNBT.getInteger("mStackSize");
         mSteamRate = aNBT.getDouble("mSteamRate");
@@ -999,11 +1088,20 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
                 EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.type"),
                 EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.gui.building") };
         }
+        int voltageTier = GTUtility.getTier(mMaxRecipeVoltage);
         return new String[] {
             EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.type"),
-            EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.kinetic_array.tier")
-                + EnumChatFormatting.GREEN
-                + GTValues.VN[mMachineTier > 0 && mMachineTier < GTValues.VN.length ? mMachineTier : 0],
+            EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.kinetic_array.max_recipe_voltage")
+                + EnumChatFormatting.YELLOW
+                + NumberFormatUtil.formatNumber(mMaxRecipeVoltage)
+                + " EU/t ("
+                + (voltageTier >= 0 && voltageTier < GTValues.VN.length ? GTValues.VN[voltageTier] : "?")
+                + ")",
+            mBoostRemainingSeconds > 0
+                ? EnumChatFormatting.GOLD + StatCollector
+                    .translateToLocalFormatted("gtsr.gui.kinetic_array.boost_mode_remaining", mBoostRemainingSeconds)
+                : EnumChatFormatting.GRAY
+                    + StatCollector.translateToLocal("gtsr.gui.kinetic_array.boost_mode_disabled"),
             EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.kinetic_array.steam_rate")
                 + EnumChatFormatting.AQUA
                 + String.format("%.2f", mSteamRate),

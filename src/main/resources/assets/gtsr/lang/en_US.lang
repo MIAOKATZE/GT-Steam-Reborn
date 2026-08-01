@@ -711,7 +711,7 @@ gtsr.tooltip.crust_borer.desc=Steam-driven void mining device that directly extr
 # Kinetic Processing Array (KPA)
 gtsr.tooltip.kinetic_array.type=Kinetic Processing Array, KPA
 gtsr.tooltip.kinetic_array.desc=Insert GT single-block machines into the controller GUI, powered by electricity + superheated steam, executes the machine's recipes.
-gtsr.tooltip.kinetic_array.desc2=Parallel=(1+2×machineTier)+stackSize. Casing tier limits max voltage. Base speed 200%, 40% energy discount.
+gtsr.tooltip.kinetic_array.desc2=Parallel=(1+2×machineTier)+stackSize. Energy hatch tier cannot exceed casing tier. Base speed 200%, 40% energy discount. Right-click with a Steam Entanglement Node to boost recipe voltage by one tier for 1200 seconds.
 gtsr.tooltip.kinetic_array.desc3=Steam consumption rate decreases with voltage tier: ULV=8→LV=4→MV=2→HV=1→EV=0.5→IV=0.25→LuV+=0.1 L/t.
 gtsr.tooltip.kinetic_array.ctrl=Front center
 gtsr.tooltip.kinetic_array.steam_input=Pressure Steam Input Hatch (Superheated Steam)
@@ -866,7 +866,7 @@ gtsr.gui.atmospheric_centrifuge.chip=Rare Gas Chip:
 gtsr.gui.atmospheric_centrifuge.need_steel=Requires Steel Tier
 
 # 5. Kinetic Processing Array - missing energy key
-gtsr.tooltip.kinetic_array.energy=Any Energy Hatch
+gtsr.tooltip.kinetic_array.energy=Energy Hatch (tier <= casing tier)
 
 # 6. Large Coke Oven - missing desc keys
 gtsr.tooltip.coke_oven.desc=Self-powered coke oven that converts coal into coke and creosote oil.
@@ -1018,6 +1018,9 @@ gtsr.gui.gear_compressor.tier=Tier:
 gtsr.gui.tier.none=None
 
 # ===== KPA & MSTA GUI Keys =====
+gtsr.gui.kinetic_array.max_recipe_voltage=Max Recipe Voltage:
+gtsr.gui.kinetic_array.boost_mode_disabled=Boost Mode: Right-click the Steam Entanglement Node on the controller to enable
+gtsr.gui.kinetic_array.boost_mode_remaining=Boost Mode: %s seconds remaining
 gtsr.gui.kinetic_array.tier=Tier: 
 gtsr.gui.kinetic_array.no_machine=Please insert a single-block machine
 gtsr.gui.kinetic_array.voltage_cap=Voltage Cap:

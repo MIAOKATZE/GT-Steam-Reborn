@@ -17,6 +17,7 @@ import com.miaokatze.gtsr.common.machine.MTEKineticProcessingArray;
 
 import gregtech.api.enums.GTValues;
 import gregtech.api.metatileentity.implementations.MTEEnhancedMultiBlockBase;
+import gregtech.api.util.GTUtility;
 import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
 
 public class MTEKineticProcessingArrayGui extends MTEMultiBlockBaseGui<MTEEnhancedMultiBlockBase<?>> {
@@ -24,7 +25,8 @@ public class MTEKineticProcessingArrayGui extends MTEMultiBlockBaseGui<MTEEnhanc
     private final MTEKineticProcessingArray kineticArray;
 
     private IntSyncValue mMachineTierSync;
-    private IntSyncValue mCasingTierSync;
+    private LongSyncValue mMaxRecipeVoltageSync;
+    private LongSyncValue mBoostRemainingSecondsSync;
     private DoubleSyncValue mSteamRateSync;
     private LongSyncValue mSteamPerAmpSync;
     private LongSyncValue mRealtimeSteamCostSync;
@@ -41,7 +43,12 @@ public class MTEKineticProcessingArrayGui extends MTEMultiBlockBaseGui<MTEEnhanc
     protected void registerSyncValues(PanelSyncManager syncManager) {
         super.registerSyncValues(syncManager);
         mMachineTierSync = new IntSyncValue(() -> kineticArray.mMachineTier, val -> kineticArray.mMachineTier = val);
-        mCasingTierSync = new IntSyncValue(() -> kineticArray.mCasingTier, val -> kineticArray.mCasingTier = val);
+        mMaxRecipeVoltageSync = new LongSyncValue(
+            () -> kineticArray.mMaxRecipeVoltage,
+            val -> kineticArray.mMaxRecipeVoltage = val);
+        mBoostRemainingSecondsSync = new LongSyncValue(
+            () -> kineticArray.mBoostRemainingSeconds,
+            val -> kineticArray.mBoostRemainingSeconds = val);
         mSteamRateSync = new DoubleSyncValue(() -> kineticArray.mSteamRate, val -> kineticArray.mSteamRate = val);
         mSteamPerAmpSync = new LongSyncValue(() -> kineticArray.mSteamPerAmp, val -> kineticArray.mSteamPerAmp = val);
         mRealtimeSteamCostSync = new LongSyncValue(
@@ -53,7 +60,8 @@ public class MTEKineticProcessingArrayGui extends MTEMultiBlockBaseGui<MTEEnhanc
             val -> kineticArray.mParallelCount = val);
         mMachineNameSync = new StringSyncValue(() -> kineticArray.mMachineName, val -> kineticArray.mMachineName = val);
         syncManager.syncValue("kineticMachineTier", mMachineTierSync);
-        syncManager.syncValue("kineticCasingTier", mCasingTierSync);
+        syncManager.syncValue("kineticMaxRecipeVoltage", mMaxRecipeVoltageSync);
+        syncManager.syncValue("kineticBoostRemainingSeconds", mBoostRemainingSecondsSync);
         syncManager.syncValue("kineticSteamRate", mSteamRateSync);
         syncManager.syncValue("kineticSteamPerAmp", mSteamPerAmpSync);
         syncManager.syncValue("kineticSteamCost", mRealtimeSteamCostSync);
@@ -65,20 +73,19 @@ public class MTEKineticProcessingArrayGui extends MTEMultiBlockBaseGui<MTEEnhanc
     @Override
     protected ListWidget<IWidget, ?> createTerminalTextWidget(PanelSyncManager syncManager, ModularPanel parent) {
         return super.createTerminalTextWidget(syncManager, parent).child(IKey.dynamic(() -> {
-            int machineTier = mMachineTierSync.getValue();
-            int casingTier = mCasingTierSync.getValue();
-            if (machineTier <= 0) {
-                return EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.gui.kinetic_array.no_machine");
+            long maxRecipeVoltage = mMaxRecipeVoltageSync.getValue();
+            String voltageLabel = EnumChatFormatting.GOLD
+                + StatCollector.translateToLocal("gtsr.gui.kinetic_array.max_recipe_voltage")
+                + EnumChatFormatting.WHITE;
+            if (mMachineTierSync.getValue() <= 0 || maxRecipeVoltage <= 0) {
+                return voltageLabel + " NULL";
             }
-            return EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.kinetic_array.tier")
-                + EnumChatFormatting.GREEN
-                + GTValues.VN[machineTier > 0 && machineTier < GTValues.VN.length ? machineTier : 0]
+            return voltageLabel + EnumChatFormatting.YELLOW
+                + NumberFormatUtil.formatNumber(maxRecipeVoltage)
                 + EnumChatFormatting.WHITE
                 + " ("
-                + StatCollector.translateToLocal("gtsr.gui.kinetic_array.voltage_cap")
-                + " "
-                + EnumChatFormatting.YELLOW
-                + GTValues.VN[casingTier > 0 && casingTier < GTValues.VN.length ? casingTier : 0]
+                + EnumChatFormatting.GREEN
+                + getVoltageTierName(maxRecipeVoltage)
                 + EnumChatFormatting.WHITE
                 + ")";
         })
@@ -86,6 +93,20 @@ public class MTEKineticProcessingArrayGui extends MTEMultiBlockBaseGui<MTEEnhanc
             .marginBottom(2)
             .fullWidth()
             .setEnabledIf(w -> multiblock.mMachine))
+            .child(IKey.dynamic(() -> {
+                long boostRemainingSeconds = mBoostRemainingSecondsSync.getValue();
+                if (boostRemainingSeconds <= 0) {
+                    return EnumChatFormatting.GOLD
+                        + StatCollector.translateToLocal("gtsr.gui.kinetic_array.boost_mode_disabled");
+                }
+                return EnumChatFormatting.GOLD + StatCollector.translateToLocalFormatted(
+                    "gtsr.gui.kinetic_array.boost_mode_remaining",
+                    NumberFormatUtil.formatNumber(boostRemainingSeconds));
+            })
+                .asWidget()
+                .marginBottom(2)
+                .fullWidth()
+                .setEnabledIf(w -> multiblock.mMachine))
             .child(
                 IKey.dynamic(
                     () -> EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.kinetic_array.steam_rate")
@@ -129,5 +150,10 @@ public class MTEKineticProcessingArrayGui extends MTEMultiBlockBaseGui<MTEEnhanc
                     .marginBottom(2)
                     .fullWidth()
                     .setEnabledIf(w -> multiblock.mMachine));
+    }
+
+    private static String getVoltageTierName(long voltage) {
+        int tier = GTUtility.getTierExtended(voltage);
+        return GTValues.VN[tier >= 0 && tier < GTValues.VN.length ? tier : 0];
     }
 }

@@ -729,7 +729,7 @@ gtsr.tooltip.crust_borer.output_bus=矿石产出
 # 5. Kinetic Processing Array
 gtsr.tooltip.kinetic_array.type=动力加工阵列, KPA
 gtsr.tooltip.kinetic_array.desc=在控制器GUI中放入GT单方块机器，以电力+过热蒸汽辅助运行，执行该机器对应配方。
-gtsr.tooltip.kinetic_array.desc2=并行数=(1+2×机器等级)+机器数量，外壳等级限制最高供电电压。基础运行速度200%，能耗减免40%。
+gtsr.tooltip.kinetic_array.desc2=并行数=(1+2×机器等级)+机器数量，电力仓等级不得高于外壳等级。基础运行速度200%，能耗减免40%。手持蒸汽纠缠节点右击控制器，可在1200秒内将配方电压上限提高一级。
 gtsr.tooltip.kinetic_array.desc3=蒸汽消耗率随电压等级递减：ULV=8→LV=4→MV=2→HV=1→EV=0.5→IV=0.25→LuV+=0.1 L/t。
 gtsr.tooltip.kinetic_array.ctrl=正面中央
 gtsr.tooltip.kinetic_array.steam_input=耐压蒸汽输入仓(过热蒸汽)
@@ -911,7 +911,7 @@ gtsr.gui.atmospheric_centrifuge.chip=稀有气体芯片:
 gtsr.gui.atmospheric_centrifuge.need_steel=需要钢级
 
 # 5. Kinetic Processing Array - missing energy key
-gtsr.tooltip.kinetic_array.energy=任意电力仓
+gtsr.tooltip.kinetic_array.energy=电力仓（等级不得高于外壳等级）
 
 # 6. Large Coke Oven - missing desc keys
 gtsr.tooltip.coke_oven.desc=将原木/煤炭在高温缺氧环境下干馏，产出木炭/焦炭及杂酚油等副产物。
@@ -1084,6 +1084,9 @@ gtsr.gui.water_hub.total_capacity=总容量
 gtsr.tooltip.solar_array.three_tier=青铜/钢/超压 等级
 
 # ===== KPA & MSTA GUI Keys =====
+gtsr.gui.kinetic_array.max_recipe_voltage=最大配方电压:
+gtsr.gui.kinetic_array.boost_mode_disabled=升压模式：蒸汽纠缠节点右击控制器开启
+gtsr.gui.kinetic_array.boost_mode_remaining=升压模式：剩余 %s 秒
 gtsr.gui.kinetic_array.tier=等级: 
 gtsr.gui.kinetic_array.no_machine=请放入单方块机器
 gtsr.gui.kinetic_array.voltage_cap=电压上限:
