@@ -63,6 +63,7 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity implements IAdd
     protected boolean mRegistered = false;
     // 是否已绑定到枢纽（独立于 mHubDim，避免主世界 dim=0 被误判为未绑定）
     protected boolean mBound = false;
+    protected long mNextRegistrationTick = 0L;
 
     // 节点自定义名：按原版物品 display.Name NBT 结构对称存储（saveNBTData/setItemNBT/loadNBTData 三处），
     // 使铁砧改名、物品显示名、破坏保留与机器读取走同一标签，天然互通；空串表示未自定义（UI 回退默认类型名）
@@ -104,12 +105,15 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity implements IAdd
     protected boolean mIsWorking = false;
     protected int mWorkProgress = 0;
     protected static final int WORK_CYCLE = 20;
+    private static final int CHUNK_REQUEST_RETRY_DELAY = 20;
 
     // 区块加载申请标志：运行态即可，不写 NBT——世界重载后 Forge ticket 失效，
     // 标志随 MetaTileEntity 重建自然复位为 false，首个 postTick 会重新申请
     // （参照 GT5U MTEDrillerBase 的 mWorkChunkNeedsReload 模式）
     protected boolean mSelfChunkRequested = false;
     protected boolean mWorkChunksRequested = false;
+    private int mSelfChunkRequestRetryTicks = 0;
+    private int mWorkChunkRequestRetryTicks = 0;
 
     public MTERemoteWorkerNode(int aID, String aName, String aNameRegional, int aInvSlotCount) {
         super(aID, aName, aNameRegional, aInvSlotCount);
@@ -279,8 +283,11 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity implements IAdd
         super.onPostTick(aBaseMetaTileEntity, aTick);
         if (!aBaseMetaTileEntity.isServerSide()) return;
 
-        if (!mRegistered && isBound()) {
+        if (!mRegistered && isBound() && aTick >= mNextRegistrationTick) {
             mRegistered = registerWithHub(aBaseMetaTileEntity);
+            if (!mRegistered) {
+                mNextRegistrationTick = aTick + 20;
+            }
         }
 
         updateChunkLoading(aBaseMetaTileEntity);
@@ -303,15 +310,22 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity implements IAdd
      * 注意：子类若覆写 onPostTick 且不调用 super.onPostTick，需自行调用本方法。
      */
     protected void updateChunkLoading(IGregTechTileEntity aBaseMetaTileEntity) {
+        if (mSelfChunkRequestRetryTicks > 0) {
+            mSelfChunkRequestRetryTicks--;
+        }
+        if (mWorkChunkRequestRetryTicks > 0) {
+            mWorkChunkRequestRetryTicks--;
+        }
+
         if (isBound()) {
             // 只要节点仍绑定，就始终加载自身所在区块，保证枢纽终端可以跨维度解析
-            if (!mSelfChunkRequested) {
+            if (!mSelfChunkRequested && mSelfChunkRequestRetryTicks == 0) {
                 requestSelfChunk();
             }
 
             // 允许工作时再额外加载工作范围区块
             if (aBaseMetaTileEntity.isAllowedToWork()) {
-                if (!mWorkChunksRequested) {
+                if (!mWorkChunksRequested && mWorkChunkRequestRetryTicks == 0) {
                     requestWorkChunks();
                 }
             } else if (mWorkChunksRequested) {
@@ -327,7 +341,8 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity implements IAdd
     /**
      * 申请加载节点自身所在区块。
      * 绑定节点始终加载自身区块，以保证枢纽终端可以跨维度解析并操控该节点。
-     * 仅在 requestChunkLoad 真正成功后才设置标志，避免申请失败（如 ticket 达到上限）后永远不再重试。
+     * 仅在 requestChunkLoad 真正成功后才设置标志；申请失败（如 ticket 达到上限）时设置短暂退避，
+     * 避免每 tick 重复请求，同时保留后续重试机会。
      */
     protected void requestSelfChunk() {
         IGregTechTileEntity base = getBaseMetaTileEntity();
@@ -335,12 +350,15 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity implements IAdd
         ChunkCoordIntPair selfChunk = new ChunkCoordIntPair(base.getXCoord() >> 4, base.getZCoord() >> 4);
         if (GTChunkManager.requestChunkLoad((TileEntity) base, selfChunk)) {
             mSelfChunkRequested = true;
+            mSelfChunkRequestRetryTicks = 0;
+        } else {
+            mSelfChunkRequestRetryTicks = CHUNK_REQUEST_RETRY_DELAY;
         }
     }
 
     /**
      * 申请加载当前工作范围覆盖的全部区块，具体范围由 collectWorkChunks 钩子收集。
-     * 任一 chunk 申请失败都会让 mWorkChunksRequested 保持 false，以便下一 tick 重试。
+     * 任一 chunk 申请失败都会让 mWorkChunksRequested 保持 false，并在短暂退避后重试。
      */
     protected void requestWorkChunks() {
         IGregTechTileEntity base = getBaseMetaTileEntity();
@@ -356,6 +374,9 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity implements IAdd
         }
         if (allLoaded) {
             mWorkChunksRequested = true;
+            mWorkChunkRequestRetryTicks = 0;
+        } else {
+            mWorkChunkRequestRetryTicks = CHUNK_REQUEST_RETRY_DELAY;
         }
     }
 
@@ -383,6 +404,7 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity implements IAdd
             }
         }
         mWorkChunksRequested = false;
+        mWorkChunkRequestRetryTicks = 0;
     }
 
     /**
@@ -423,6 +445,8 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity implements IAdd
         }
         mSelfChunkRequested = false;
         mWorkChunksRequested = false;
+        mSelfChunkRequestRetryTicks = 0;
+        mWorkChunkRequestRetryTicks = 0;
     }
 
     /**
@@ -499,6 +523,11 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity implements IAdd
         if (!(te instanceof IGregTechTileEntity gte)) return false;
 
         if (!(gte.getMetaTileEntity() instanceof IHubArray hub)) return false;
+
+        if (gte.getMetaTileEntity() instanceof MTESingularityDrillingHub drillingHub
+            && !drillingHub.isMachineRunning()) {
+            return false;
+        }
 
         if (!hub.acceptsNodeType(mHubType)) return false;
 

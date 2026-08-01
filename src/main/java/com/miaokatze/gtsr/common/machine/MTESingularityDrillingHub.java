@@ -15,7 +15,6 @@ import java.util.List;
 
 import net.minecraft.client.renderer.texture.IIconRegister;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
@@ -42,6 +41,7 @@ import com.miaokatze.gtsr.api.compat.GTVersionCompat;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.machine.base.IHubArray;
 import com.miaokatze.gtsr.common.machine.base.MTERemoteWorkerNode;
+import com.miaokatze.gtsr.common.util.HubTeleportUtil;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
@@ -82,6 +82,10 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
         final int dimensionId;
         final boolean isMiner;
         boolean isActive;
+        transient MTERemoteWorkerNode cachedWorker;
+        transient long lastLookupTick;
+        transient long nextLookupTick;
+        transient boolean lastLookupLoaded;
 
         BoundDrillNode(int x, int y, int z, int dim, boolean isMiner) {
             this.x = x;
@@ -298,12 +302,12 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
     /**
      * Override to prevent MTESteamMultiBlockBaseMixin's superheated steam 4x speed boost.
      * The drilling hub requires superheated steam but does NOT get speed boost from it.
-     * Steam consumption is handled entirely by checkProcessing(), so onRunningTick
+     * Steam consumption is handled entirely by onPostTick(), so onRunningTick
      * only needs to push cooling products.
      */
     @Override
     public boolean onRunningTick(ItemStack aStack) {
-        // Steam is consumed in checkProcessing() via depleteInput().
+        // Steam is consumed in onPostTick() via depleteInput().
         // No 4x speed boost, no additional steam consumption here.
         // Just push cooling products (handled by the mixin's gtsr$pushCoolingProducts).
         return true;
@@ -318,12 +322,10 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
 
         mBoundNodeCount = mBoundNodes.size();
         int totalCost = BASE_STEAM_PER_SECOND;
-        boolean hasActiveNode = false;
         for (BoundDrillNode node : mBoundNodes) {
             if (!node.isActive) continue;
             boolean working = resolveNodeWorking(node);
             if (!working) continue;
-            hasActiveNode = true;
             int tier = resolveNodeTier(node);
             if (node.isMiner) {
                 totalCost += MINER_NODE_STEAM_COST[Math.min(tier, MINER_NODE_STEAM_COST.length - 1)];
@@ -334,9 +336,9 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
         mSteamCost = totalCost;
         mIsSuperheated = hasSuperheatedSteamInHatch();
 
-        // Hub is active only when it has superheated steam AND at least one node is working.
-        // This prevents steam consumption when no nodes are actively working.
-        boolean shouldBeActive = mMachine && mIsSuperheated && hasActiveNode;
+        // The hub power switch controls the hub itself. Superheated steam maintains the hub,
+        // while working bound nodes only add their tier-dependent cost.
+        boolean shouldBeActive = mMachine && aBaseMetaTileEntity.isAllowedToWork() && mIsSuperheated;
 
         // Consume steam directly in onPostTick, independent of the recipe system.
         if (shouldBeActive && aTick % 20 == 0) {
@@ -364,21 +366,8 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
         ArrayList<BoundDrillNode> invalidNodes = new ArrayList<>();
 
         for (BoundDrillNode node : mBoundNodes) {
-            World world = DimensionManager.getWorld(node.dimensionId);
-            if (world == null) continue;
-
-            // 节点可能跨维度且其自身 ticket 尚未生效，先尝试加载 chunk 再判断有效性，
-            // 避免把只是未加载的活跃节点误判为无效并移除。
-            ensureChunkLoaded(world, node.x, node.z);
-
-            TileEntity te = world.getTileEntity(node.x, node.y, node.z);
-            if (!(te instanceof IGregTechTileEntity)) {
-                invalidNodes.add(node);
-                continue;
-            }
-
-            IGregTechTileEntity gte = (IGregTechTileEntity) te;
-            if (!(gte.getMetaTileEntity() instanceof MTERemoteWorkerNode)) {
+            MTERemoteWorkerNode worker = resolveWorkerNode(node, true);
+            if (worker == null && node.lastLookupLoaded) {
                 invalidNodes.add(node);
             }
         }
@@ -526,6 +515,7 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
     public void unregisterCacheNode(int x, int y, int z, int dim) {
         BoundDrillNode existing = findBoundNode(x, y, z, dim);
         if (existing != null) {
+            existing.cachedWorker = null;
             mBoundNodes.remove(existing);
         }
     }
@@ -552,31 +542,13 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
     }
 
     private int resolveNodeTier(BoundDrillNode node) {
-        World world = DimensionManager.getWorld(node.dimensionId);
-        if (world == null) return 0;
-        ensureChunkLoaded(world, node.x, node.z);
-        if (!world.blockExists(node.x, node.y, node.z)) return 0;
-        TileEntity te = world.getTileEntity(node.x, node.y, node.z);
-        if (te instanceof IGregTechTileEntity gte) {
-            if (gte.getMetaTileEntity() instanceof MTERemoteWorkerNode workerNode) {
-                return workerNode.getDrillTier();
-            }
-        }
-        return 0;
+        MTERemoteWorkerNode workerNode = resolveWorkerNode(node, false);
+        return workerNode == null ? 0 : workerNode.getDrillTier();
     }
 
     private boolean resolveNodeWorking(BoundDrillNode node) {
-        World world = DimensionManager.getWorld(node.dimensionId);
-        if (world == null) return false;
-        ensureChunkLoaded(world, node.x, node.z);
-        if (!world.blockExists(node.x, node.y, node.z)) return false;
-        TileEntity te = world.getTileEntity(node.x, node.y, node.z);
-        if (te instanceof IGregTechTileEntity gte) {
-            if (gte.getMetaTileEntity() instanceof MTERemoteWorkerNode workerNode) {
-                return workerNode.isActivelyWorking();
-            }
-        }
-        return false;
+        MTERemoteWorkerNode workerNode = resolveWorkerNode(node, false);
+        return workerNode != null && workerNode.isActivelyWorking();
     }
 
     private void sendBindingDebug(EntityPlayer aPlayer) {
@@ -625,14 +597,55 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
      * 尚未生效或跨维度首次访问时仍可能处于未加载状态），以保证终端按钮等即时操作可用。
      */
     private MTERemoteWorkerNode resolveWorkerNode(int x, int y, int z, int dim) {
-        World world = DimensionManager.getWorld(dim);
-        if (world == null) return null;
-        ensureChunkLoaded(world, x, z);
-        if (!world.blockExists(x, y, z)) return null;
-        TileEntity te = world.getTileEntity(x, y, z);
+        BoundDrillNode bound = findBoundNode(x, y, z, dim);
+        if (bound == null) return null;
+        bound.cachedWorker = null;
+        bound.lastLookupTick = 0;
+        bound.nextLookupTick = 0;
+        bound.lastLookupLoaded = false;
+        return resolveWorkerNode(bound, true);
+    }
+
+    /** Resolves a bound worker once per hub tick; only explicit/periodic validation may load a chunk. */
+    private MTERemoteWorkerNode resolveWorkerNode(BoundDrillNode bound, boolean loadChunk) {
+        IGregTechTileEntity base = getBaseMetaTileEntity();
+        World hubWorld = base == null ? null : base.getWorld();
+        long now = hubWorld == null ? 0L : hubWorld.getTotalWorldTime();
+        if (bound.cachedWorker != null && (bound.lastLookupTick == now || now < bound.nextLookupTick)) {
+            return bound.cachedWorker;
+        }
+        if (!loadChunk && now < bound.nextLookupTick) return null;
+
+        bound.lastLookupTick = now;
+        bound.lastLookupLoaded = false;
+        World world = DimensionManager.getWorld(bound.dimensionId);
+        if (world == null) {
+            bound.cachedWorker = null;
+            bound.nextLookupTick = now + 20;
+            return null;
+        }
+        if (!world.blockExists(bound.x, 0, bound.z)) {
+            if (!loadChunk || !HubTeleportUtil.ensureChunkLoaded(world, bound.x, bound.z)) {
+                bound.cachedWorker = null;
+                bound.nextLookupTick = now + 20;
+                return null;
+            }
+        }
+        if (!world.blockExists(bound.x, bound.y, bound.z)) {
+            bound.cachedWorker = null;
+            bound.nextLookupTick = now + 20;
+            return null;
+        }
+
+        bound.lastLookupLoaded = true;
+        TileEntity te = world.getTileEntity(bound.x, bound.y, bound.z);
         if (te instanceof IGregTechTileEntity gte && gte.getMetaTileEntity() instanceof MTERemoteWorkerNode node) {
+            bound.cachedWorker = node;
+            bound.nextLookupTick = now + 20;
             return node;
         }
+        bound.cachedWorker = null;
+        bound.nextLookupTick = now + 20;
         return null;
     }
 
@@ -666,7 +679,7 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
             tag.setBoolean("isMiner", node.isMiner);
             tag.setInteger("tier", resolveNodeTier(node));
             tag.setBoolean("working", resolveNodeWorking(node));
-            MTERemoteWorkerNode worker = resolveWorkerNode(node.x, node.y, node.z, node.dimensionId);
+            MTERemoteWorkerNode worker = resolveWorkerNode(node, false);
             boolean allowed = false;
             boolean retractable = false;
             if (worker != null && worker.getBaseMetaTileEntity() != null) {
@@ -736,65 +749,104 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
      * 每次传送消耗玩家背包 1 个蒸汽纠缠奇点，无冷却，支持跨维度。
      */
     public void teleportPlayerToNodeFromGui(EntityPlayer player, int x, int y, int z, int dim) {
-        if (!(player instanceof EntityPlayerMP playerMP)) return;
+        if (player == null) return;
+        if (!canUseStatusAction(player) || findBoundNode(x, y, z, dim) == null) {
+            GTUtility.sendChatToPlayer(player, StatCollector.translateToLocal("gtsr.hub_status.teleport_fail_node"));
+            return;
+        }
 
-        // 节点必须仍存在
+        World targetWorld = HubTeleportUtil.resolveTargetWorld(player, dim);
+        if (targetWorld == null) {
+            GTUtility.sendChatToPlayer(player, StatCollector.translateToLocal("gtsr.hub_status.teleport_fail_dim"));
+            return;
+        }
+        if (!HubTeleportUtil.ensureChunkLoaded(targetWorld, x, z)) {
+            GTUtility.sendChatToPlayer(player, StatCollector.translateToLocal("gtsr.hub_status.teleport_fail_node"));
+            return;
+        }
+
         MTERemoteWorkerNode node = resolveWorkerNode(x, y, z, dim);
         if (node == null) {
             GTUtility.sendChatToPlayer(player, StatCollector.translateToLocal("gtsr.hub_status.teleport_fail_node"));
             return;
         }
-
-        // 获取目标世界（同维度直接用玩家世界；跨维度按需初始化维度）
-        World targetWorld;
-        if (player.dimension == dim) {
-            targetWorld = player.worldObj;
-        } else {
-            if (!DimensionManager.isDimensionRegistered(dim)) {
-                GTUtility.sendChatToPlayer(player, StatCollector.translateToLocal("gtsr.hub_status.teleport_fail_dim"));
-                return;
-            }
-            targetWorld = DimensionManager.getWorld(dim);
-            if (targetWorld == null) {
-                DimensionManager.initDimension(dim);
-                targetWorld = DimensionManager.getWorld(dim);
-            }
-            if (targetWorld == null) {
-                GTUtility.sendChatToPlayer(player, StatCollector.translateToLocal("gtsr.hub_status.teleport_fail_dim"));
-                return;
-            }
-        }
-
-        // 查找安全落脚点（失败不消耗奇点）
-        int safeY = findSafeTeleportHeight(targetWorld, x, y, z);
+        int safeY = HubTeleportUtil.findSafeTeleportHeight(targetWorld, x, y, z);
         if (safeY < 0) {
             GTUtility.sendChatToPlayer(player, StatCollector.translateToLocal("gtsr.hub_status.teleport_fail_unsafe"));
             return;
         }
-
-        // 消耗蒸汽纠缠奇点
-        if (!consumeSteamEntangledSingularity(player)) {
+        if (!HubTeleportUtil.teleportPlayer(player, targetWorld, dim, x, safeY, z)) {
             GTUtility
                 .sendChatToPlayer(player, StatCollector.translateToLocal("gtsr.hub_status.teleport_no_singularity"));
-            return;
         }
+    }
 
-        // 执行传送
-        double targetX = x + 0.5D;
-        double targetY = (double) safeY;
-        double targetZ = z + 0.5D;
+    private boolean canUseStatusAction(EntityPlayer player) {
+        IGregTechTileEntity base = getBaseMetaTileEntity();
+        World world = base == null ? null : base.getWorld();
+        if (player == null || base == null || world == null || player.dimension != world.provider.dimensionId)
+            return false;
+        return base.canAccessData()
+            && player.getDistanceSq(base.getXCoord() + 0.5D, base.getYCoord() + 0.5D, base.getZCoord() + 0.5D) <= 64.0D;
+    }
 
-        if (player.dimension == dim) {
-            // 同维度：关闭 GUI 并直接设置位置
-            playerMP.closeScreen();
-            if (player.ridingEntity != null) player.mountEntity(null);
-            if (player.riddenByEntity != null) player.riddenByEntity.mountEntity(null);
-            playerMP.playerNetServerHandler
-                .setPlayerLocation(targetX, targetY, targetZ, player.rotationYaw, player.rotationPitch);
-        } else {
-            // 跨维度：使用 GT5U 统一工具，内部已处理坐骑脱离、关闭 GUI、加载区块、同步背包/状态等
-            GTUtility.moveEntityToDimensionAtCoords(playerMP, dim, targetX, targetY, targetZ);
-        }
+    private void teleportPlayerToNodeLegacy(EntityPlayer player, int x, int y, int z, int dim) {
+        teleportPlayerToNodeFromGui(player, x, y, z, dim);
+        /*
+         * if (!(player instanceof EntityPlayerMP playerMP)) return;
+         * // 节点必须仍存在
+         * MTERemoteWorkerNode node = resolveWorkerNode(x, y, z, dim);
+         * if (node == null) {
+         * GTUtility.sendChatToPlayer(player, StatCollector.translateToLocal("gtsr.hub_status.teleport_fail_node"));
+         * return;
+         * }
+         * // 获取目标世界（同维度直接用玩家世界；跨维度按需初始化维度）
+         * World targetWorld;
+         * if (player.dimension == dim) {
+         * targetWorld = player.worldObj;
+         * } else {
+         * if (!DimensionManager.isDimensionRegistered(dim)) {
+         * GTUtility.sendChatToPlayer(player, StatCollector.translateToLocal("gtsr.hub_status.teleport_fail_dim"));
+         * return;
+         * }
+         * targetWorld = DimensionManager.getWorld(dim);
+         * if (targetWorld == null) {
+         * DimensionManager.initDimension(dim);
+         * targetWorld = DimensionManager.getWorld(dim);
+         * }
+         * if (targetWorld == null) {
+         * GTUtility.sendChatToPlayer(player, StatCollector.translateToLocal("gtsr.hub_status.teleport_fail_dim"));
+         * return;
+         * }
+         * }
+         * // 查找安全落脚点（失败不消耗奇点）
+         * int safeY = findSafeTeleportHeight(targetWorld, x, y, z);
+         * if (safeY < 0) {
+         * GTUtility.sendChatToPlayer(player, StatCollector.translateToLocal("gtsr.hub_status.teleport_fail_unsafe"));
+         * return;
+         * }
+         * // 消耗蒸汽纠缠奇点
+         * if (!consumeSteamEntangledSingularity(player)) {
+         * GTUtility
+         * .sendChatToPlayer(player, StatCollector.translateToLocal("gtsr.hub_status.teleport_no_singularity"));
+         * return;
+         * }
+         * // 执行传送
+         * double targetX = x + 0.5D;
+         * double targetY = (double) safeY;
+         * double targetZ = z + 0.5D;
+         * if (player.dimension == dim) {
+         * // 同维度：关闭 GUI 并直接设置位置
+         * playerMP.closeScreen();
+         * if (player.ridingEntity != null) player.mountEntity(null);
+         * if (player.riddenByEntity != null) player.riddenByEntity.mountEntity(null);
+         * playerMP.playerNetServerHandler
+         * .setPlayerLocation(targetX, targetY, targetZ, player.rotationYaw, player.rotationPitch);
+         * } else {
+         * // 跨维度：使用 GT5U 统一工具，内部已处理坐骑脱离、关闭 GUI、加载区块、同步背包/状态等
+         * GTUtility.moveEntityToDimensionAtCoords(playerMP, dim, targetX, targetY, targetZ);
+         * }
+         */
     }
 
     /**
@@ -886,7 +938,8 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
     }
 
     public boolean isMachineRunning() {
-        return mMachine && getBaseMetaTileEntity().isAllowedToWork();
+        IGregTechTileEntity base = getBaseMetaTileEntity();
+        return mMachine && base != null && base.isAllowedToWork();
     }
 
     public void pushNodeFluidOutput(FluidStack fluid) {

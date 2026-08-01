@@ -5,7 +5,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.function.Supplier;
 
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
@@ -78,6 +80,8 @@ public abstract class MTECacheHubStatusGui implements IGuiHolder<PosGuiData> {
 
     protected abstract void renameNode(int x, int y, int z, int dim, String name);
 
+    protected abstract void teleportNode(EntityPlayer player, int x, int y, int z, int dim);
+
     // ===== 子类委托：显示差异 =====
 
     /** 面板标题 lang key。 */
@@ -110,8 +114,15 @@ public abstract class MTECacheHubStatusGui implements IGuiHolder<PosGuiData> {
         DynamicSyncHandler listDynamic = new DynamicSyncHandler()
             .widgetProvider((pSyncManager, buf) -> buildNodeListWidget(pSyncManager))
             .allowC2S();
-        actionSync.setRefreshListener(() -> listDynamic.notifyUpdate(buf -> {}));
-        nodeListSync.setChangeListener(() -> listDynamic.notifyUpdate(buf -> {}));
+        // State changes still sync through nodeList, but only structural changes rebuild the scrollable list.
+        final List<CacheNodeInfo>[] lastLayout = new List[] { null };
+        nodeListSync.setChangeListener(() -> {
+            List<CacheNodeInfo> current = (List<CacheNodeInfo>) nodeListSync.getValue();
+            if (!CacheNodeInfo.sameLayout(lastLayout[0], current)) {
+                lastLayout[0] = new ArrayList<>(current);
+                listDynamic.notifyUpdate(buf -> {});
+            }
+        });
 
         syncManager.syncValue("nodeList", nodeListSync);
         syncManager.syncValue("hubAction", actionSync);
@@ -157,7 +168,7 @@ public abstract class MTECacheHubStatusGui implements IGuiHolder<PosGuiData> {
             return list;
         }
         for (CacheNodeInfo info : nodes) {
-            list.child(buildNodeRow(info, actionSync));
+            list.child(buildNodeRow(info, actionSync, listSync));
         }
         return list;
     }
@@ -175,7 +186,7 @@ public abstract class MTECacheHubStatusGui implements IGuiHolder<PosGuiData> {
         @Override
         public void postResize() {
             super.postResize();
-            if (shouldScroll) {
+            if (shouldScroll && getScrollData() != null) {
                 getScrollData().scrollTo(getScrollArea(), listScrollValue);
                 shouldScroll = false;
             }
@@ -195,7 +206,9 @@ public abstract class MTECacheHubStatusGui implements IGuiHolder<PosGuiData> {
      * 构建单个缓存节点行：左侧图标 + 信息列（名字/坐标维度/流体储量/重命名行），
      * 右侧为速率/模式/自动输出三个 16×16 图标按钮横排（当前状态与说明经悬浮 tooltip 展示）。
      */
-    private IWidget buildNodeRow(CacheNodeInfo info, CacheHubActionSyncHandler actionSync) {
+    private IWidget buildNodeRow(CacheNodeInfo info, CacheHubActionSyncHandler actionSync,
+        GenericListSyncHandler<CacheNodeInfo> nodeListSync) {
+        Supplier<CacheNodeInfo> currentInfo = () -> findNode(nodeListSync.getValue(), info);
         // 节点离线：坐标对应的世界/方块无法解析（type 为空串），仅展示绑定记录，禁用操作按钮
         boolean offline = info.type.isEmpty();
         // 节点名：有自定义名优先显示自定义名，否则回退节点物品默认名（图标栈的显示名，客户端自动本地化）
@@ -220,38 +233,50 @@ public abstract class MTECacheHubStatusGui implements IGuiHolder<PosGuiData> {
             + info.dim
             + EnumChatFormatting.RESET;
         // 流体行：本地化流体名 + 储量/容量（K/M/G 千位递进，两位小数）
-        String line3 = EnumChatFormatting.AQUA + localizeFluid(info.fluid)
-            + EnumChatFormatting.RESET
-            + " "
-            + formatKMG(info.stored)
-            + EnumChatFormatting.GRAY
-            + " / "
-            + formatKMG(info.cap)
-            + EnumChatFormatting.RESET;
+        IKey line3 = IKey.dynamic(() -> formatFluidLine(currentInfo.get() == null ? info : currentInfo.get()));
 
         // 速率循环按钮：进度图标，悬浮显示当前百分比与说明，点击发 C2S 循环到下一档（与芯片右击同一逻辑）
         ButtonWidget<?> rateButton = new ButtonWidget<>().size(16)
             .overlay(GTGuiTextures.OVERLAY_BUTTON_PROGRESS)
             .onMousePressed(mouseButton -> {
-                actionSync.sendCycleRate(info);
+                CacheNodeInfo current = currentInfo.get();
+                if (current != null) actionSync.sendCycleRate(current);
                 return true;
             })
-            .tooltipBuilder(
-                t -> t.addLine(IKey.str(info.rate + "%"))
-                    .addLine(IKey.lang("gtsr.cache_hub_status.rate_tip")));
+            .tooltipBuilder(t -> {
+                CacheNodeInfo current = currentInfo.get();
+                t.addLine(IKey.str((current == null ? info : current).rate + "%"))
+                    .addLine(IKey.lang("gtsr.cache_hub_status.rate_tip"));
+            })
+            .onUpdateListener(button -> {
+                CacheNodeInfo current = currentInfo.get();
+                button.setEnabled(current != null && !current.type.isEmpty());
+            }, true);
         rateButton.setEnabled(!offline);
 
         // 输出模式开关按钮：图标随状态切换（export=输出：节点→枢纽 / import=输入：枢纽→节点），点击切换
         ButtonWidget<?> modeButton = new ButtonWidget<>().size(16)
             .overlay(info.out ? GTGuiTextures.OVERLAY_BUTTON_EXPORT : GTGuiTextures.OVERLAY_BUTTON_IMPORT)
             .onMousePressed(mouseButton -> {
-                actionSync.sendSetMode(info);
+                CacheNodeInfo current = currentInfo.get();
+                if (current != null) actionSync.sendSetMode(current);
                 return true;
             })
-            .tooltipBuilder(
-                t -> t.addLine(
+            .tooltipBuilder(t -> {
+                CacheNodeInfo current = currentInfo.get();
+                boolean output = (current == null ? info : current).out;
+                t.addLine(
                     IKey.lang(
-                        info.out ? "gtsr.cache_hub_status.mode_tip_output" : "gtsr.cache_hub_status.mode_tip_input")));
+                        output ? "gtsr.cache_hub_status.mode_tip_output" : "gtsr.cache_hub_status.mode_tip_input"));
+            })
+            .onUpdateListener(button -> {
+                CacheNodeInfo current = currentInfo.get();
+                if (current != null) {
+                    button.overlay(
+                        current.out ? GTGuiTextures.OVERLAY_BUTTON_EXPORT : GTGuiTextures.OVERLAY_BUTTON_IMPORT);
+                    button.setEnabled(!current.type.isEmpty());
+                }
+            }, true);
         modeButton.setEnabled(!offline);
 
         // 自动输出开关按钮：与方向模式解耦的独立开关（节点向正面相邻容器推送流体），
@@ -261,14 +286,36 @@ public abstract class MTECacheHubStatusGui implements IGuiHolder<PosGuiData> {
                 info.auto ? GTGuiTextures.OVERLAY_BUTTON_POWER_SWITCH_ON
                     : GTGuiTextures.OVERLAY_BUTTON_POWER_SWITCH_OFF)
             .onMousePressed(mouseButton -> {
-                actionSync.sendSetAutoOutput(info);
+                CacheNodeInfo current = currentInfo.get();
+                if (current != null) actionSync.sendSetAutoOutput(current);
                 return true;
             })
-            .tooltipBuilder(
-                t -> t
-                    .addLine(IKey.lang(info.auto ? "gtsr.cache_hub_status.auto_on" : "gtsr.cache_hub_status.auto_off"))
-                    .addLine(IKey.lang("gtsr.cache_hub_status.auto_tip")));
+            .tooltipBuilder(t -> {
+                CacheNodeInfo current = currentInfo.get();
+                boolean auto = (current == null ? info : current).auto;
+                t.addLine(IKey.lang(auto ? "gtsr.cache_hub_status.auto_on" : "gtsr.cache_hub_status.auto_off"))
+                    .addLine(IKey.lang("gtsr.cache_hub_status.auto_tip"));
+            })
+            .onUpdateListener(button -> {
+                CacheNodeInfo current = currentInfo.get();
+                if (current != null) {
+                    button.overlay(
+                        current.auto ? GTGuiTextures.OVERLAY_BUTTON_POWER_SWITCH_ON
+                            : GTGuiTextures.OVERLAY_BUTTON_POWER_SWITCH_OFF);
+                    button.setEnabled(!current.type.isEmpty());
+                }
+            }, true);
         autoButton.setEnabled(!offline);
+
+        ButtonWidget<?> teleportButton = new ButtonWidget<>().size(16)
+            .overlay(
+                new ItemDrawable(com.miaokatze.gtsr.common.api.enums.GTSRItemList.SteamEntangledSingularity.get(1)))
+            .onMousePressed(mouseButton -> {
+                CacheNodeInfo current = currentInfo.get();
+                if (current != null) actionSync.sendTeleport(current);
+                return true;
+            })
+            .tooltipBuilder(t -> t.addLine(IKey.lang("gtsr.hub_status.teleport")));
 
         // 重命名文本框：纯客户端控件（StringValue 为本地值不会同步），
         // 初始文本为当前自定义名；点击确认按钮时才读取文本经 hubAction 发 C2S，服务端做裁剪
@@ -290,7 +337,7 @@ public abstract class MTECacheHubStatusGui implements IGuiHolder<PosGuiData> {
         renameButton.setEnabled(!offline);
 
         Flow column = Flow.column()
-            .width(200)
+            .width(184)
             .childPadding(1)
             .child(
                 IKey.str(line1)
@@ -300,8 +347,7 @@ public abstract class MTECacheHubStatusGui implements IGuiHolder<PosGuiData> {
                     .asWidget()
                     .scale(0.9f))
             .child(
-                IKey.str(line3)
-                    .asWidget()
+                line3.asWidget()
                     .scale(0.9f))
             .child(
                 Flow.row()
@@ -324,12 +370,13 @@ public abstract class MTECacheHubStatusGui implements IGuiHolder<PosGuiData> {
         }
         row.child(column)
             .child(
-                // 三个 16px 图标按钮横排，宽度由子件撑开无需限宽
+                // 传送 + 三个 16px 图标按钮横排，宽度由子件撑开无需限宽
                 // 历史教训（Bug1 根因）：Flow 构造器默认 sizeRel(1,1) 会占满整行宽，
                 // v1.8.4 曾因此把按钮推到面板裁剪区外——row 显式 height(16) 后宽度随子件收缩
                 Flow.row()
                     .height(16)
                     .childPadding(4)
+                    .child(teleportButton)
                     .child(rateButton)
                     .child(modeButton)
                     .child(autoButton));
@@ -364,6 +411,25 @@ public abstract class MTECacheHubStatusGui implements IGuiHolder<PosGuiData> {
         } while (value >= 1000.0 && unit < units.length - 1);
         // Locale.ROOT 锁定小数点为 '.'，避免系统区域设置影响显示
         return String.format(Locale.ROOT, "%.2f%s", value, units[unit]);
+    }
+
+    private static String formatFluidLine(CacheNodeInfo info) {
+        return EnumChatFormatting.AQUA + localizeFluid(info.fluid)
+            + EnumChatFormatting.RESET
+            + " "
+            + formatKMG(info.stored)
+            + EnumChatFormatting.GRAY
+            + " / "
+            + formatKMG(info.cap)
+            + EnumChatFormatting.RESET;
+    }
+
+    private static CacheNodeInfo findNode(List<CacheNodeInfo> nodes, CacheNodeInfo key) {
+        if (nodes == null || key == null) return null;
+        for (CacheNodeInfo node : nodes) {
+            if (node.x == key.x && node.y == key.y && node.z == key.z && node.dim == key.dim) return node;
+        }
+        return null;
     }
 
     /**
@@ -471,6 +537,22 @@ public abstract class MTECacheHubStatusGui implements IGuiHolder<PosGuiData> {
                 && a.out == b.out
                 && a.auto == b.auto;
         }
+
+        public static boolean sameLayout(List<CacheNodeInfo> a, List<CacheNodeInfo> b) {
+            if (a == null || b == null || a.size() != b.size()) return false;
+            for (int i = 0; i < a.size(); i++) {
+                CacheNodeInfo left = a.get(i);
+                CacheNodeInfo right = b.get(i);
+                if (left.x != right.x || left.y != right.y
+                    || left.z != right.z
+                    || left.dim != right.dim
+                    || !left.type.equals(right.type)
+                    || !left.name.equals(right.name)) {
+                    return false;
+                }
+            }
+            return true;
+        }
     }
 
     /**
@@ -485,15 +567,10 @@ public abstract class MTECacheHubStatusGui implements IGuiHolder<PosGuiData> {
         private static final int ACTION_SET_MODE = 2;
         private static final int ACTION_RENAME = 3;
         private static final int ACTION_SET_AUTO = 4;
-
-        private Runnable refreshListener = () -> {};
+        private static final int ACTION_TELEPORT = 5;
 
         public CacheHubActionSyncHandler() {
             allowC2S();
-        }
-
-        public void setRefreshListener(Runnable refreshListener) {
-            this.refreshListener = refreshListener;
         }
 
         // ===== 客户端调用：发送动作到服务端 =====
@@ -526,6 +603,10 @@ public abstract class MTECacheHubStatusGui implements IGuiHolder<PosGuiData> {
             });
         }
 
+        public void sendTeleport(CacheNodeInfo info) {
+            syncToServer(ACTION_TELEPORT, buf -> writePos(buf, info));
+        }
+
         private static void writePos(PacketBuffer buf, CacheNodeInfo info) {
             buf.writeInt(info.x);
             buf.writeInt(info.y);
@@ -544,6 +625,7 @@ public abstract class MTECacheHubStatusGui implements IGuiHolder<PosGuiData> {
             int y = buf.readInt();
             int z = buf.readInt();
             int dim = buf.readInt();
+            EntityPlayer player = getSyncManager().getPlayer();
             switch (id) {
                 case ACTION_CYCLE_RATE:
                     cycleNodeRate(x, y, z, dim);
@@ -557,11 +639,13 @@ public abstract class MTECacheHubStatusGui implements IGuiHolder<PosGuiData> {
                 case ACTION_RENAME:
                     renameNode(x, y, z, dim, ByteBufUtils.readUTF8String(buf));
                     break;
+                case ACTION_TELEPORT:
+                    teleportNode(player, x, y, z, dim);
+                    break;
                 default:
                     return;
             }
             // 动作执行后主动刷新一次列表（nodeList 变化监听通常也会触发，这里作为即时反馈）
-            refreshListener.run();
         }
     }
 }

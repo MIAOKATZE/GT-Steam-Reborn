@@ -49,6 +49,7 @@ import com.miaokatze.gtsr.common.machine.base.MTEReinforcedHubStorageUnit;
 import com.miaokatze.gtsr.common.machine.base.MTEWaterCacheNode;
 import com.miaokatze.gtsr.common.machine.base.MTEWaterHubInputHatch;
 import com.miaokatze.gtsr.common.machine.base.MTEWaterHubOutputHatch;
+import com.miaokatze.gtsr.common.util.HubTeleportUtil;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
@@ -279,6 +280,10 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
         public int z;
         public int dimensionId;
         public boolean isOutputMode;
+        public transient IGregTechTileEntity cachedTile;
+        public transient long lastLookupTick;
+        public transient long nextLookupTick;
+        public transient boolean lastLookupLoaded;
 
         public BoundCacheNode(int x, int y, int z, int dimensionId, boolean isOutputMode) {
             this.x = x;
@@ -692,23 +697,16 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
             return;
         }
 
-        World world = aBaseMetaTileEntity.getWorld();
-        if (world == null) return;
-        int dimId = world.provider.dimensionId;
-
         ArrayList<BoundCacheNode> invalidNodes = new ArrayList<>();
 
         for (BoundCacheNode node : mBoundNodes) {
-            if (node.dimensionId != dimId) continue;
-
-            TileEntity tile = world.getTileEntity(node.x, node.y, node.z);
-            if (!(tile instanceof IGregTechTileEntity gtTile)) {
-                invalidNodes.add(node);
+            MTEFilteredCacheNode cacheNode = resolveCacheNode(node, true);
+            if (!(cacheNode instanceof MTEWaterCacheNode)) {
+                if (node.lastLookupLoaded) invalidNodes.add(node);
                 continue;
             }
-
-            IMetaTileEntity mte = gtTile.getMetaTileEntity();
-            if (!isWaterCacheNode(mte)) {
+            IGregTechTileEntity gtTile = cacheNode.getBaseMetaTileEntity();
+            if (gtTile == null) {
                 invalidNodes.add(node);
                 continue;
             }
@@ -736,12 +734,6 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
         }
 
         mBoundNodes.removeAll(invalidNodes);
-    }
-
-    private static boolean isWaterCacheNode(IMetaTileEntity mte) {
-        if (mte == null) return false;
-        return mte.getMetaName() != null && mte.getMetaName()
-            .contains("water.cache.node");
     }
 
     private boolean hasHubSingularityChip() {
@@ -889,6 +881,10 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
     public void unregisterCacheNode(int x, int y, int z, int dim) {
         BoundCacheNode existing = findBoundNode(x, y, z, dim);
         if (existing != null) {
+            existing.cachedTile = null;
+            existing.lastLookupTick = 0;
+            existing.nextLookupTick = 0;
+            existing.lastLookupLoaded = false;
             mBoundNodes.remove(existing);
         }
     }
@@ -919,12 +915,61 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
      * 或目标不是缓存节点时返回 null。
      */
     private MTEFilteredCacheNode resolveCacheNode(int x, int y, int z, int dim) {
-        World world = DimensionManager.getWorld(dim);
-        if (world == null || !world.blockExists(x, y, z)) return null;
-        TileEntity te = world.getTileEntity(x, y, z);
+        BoundCacheNode bound = findBoundNode(x, y, z, dim);
+        return bound == null ? null : resolveCacheNode(bound, false);
+    }
+
+    private MTEFilteredCacheNode resolveCacheNodeForAction(int x, int y, int z, int dim) {
+        BoundCacheNode bound = findBoundNode(x, y, z, dim);
+        if (bound == null) return null;
+        bound.cachedTile = null;
+        bound.lastLookupTick = 0;
+        bound.nextLookupTick = 0;
+        bound.lastLookupLoaded = false;
+        return resolveCacheNode(bound, true);
+    }
+
+    /** Resolves one target per hub tick and keeps unavailable remote bindings for a later retry. */
+    private MTEFilteredCacheNode resolveCacheNode(BoundCacheNode bound, boolean loadChunk) {
+        IGregTechTileEntity base = getBaseMetaTileEntity();
+        World hubWorld = base == null ? null : base.getWorld();
+        long now = hubWorld == null ? 0L : hubWorld.getTotalWorldTime();
+        if (bound.cachedTile != null && (bound.lastLookupTick == now || now < bound.nextLookupTick)) {
+            IMetaTileEntity mte = bound.cachedTile.getMetaTileEntity();
+            return mte instanceof MTEFilteredCacheNode node ? node : null;
+        }
+        if (!loadChunk && now < bound.nextLookupTick) return null;
+
+        bound.lastLookupTick = now;
+        bound.lastLookupLoaded = false;
+        World world = DimensionManager.getWorld(bound.dimensionId);
+        if (world == null) {
+            bound.cachedTile = null;
+            bound.nextLookupTick = now + BOUND_TRANSFER_INTERVAL;
+            return null;
+        }
+        if (!world.blockExists(bound.x, 0, bound.z)) {
+            if (!loadChunk || !HubTeleportUtil.ensureChunkLoaded(world, bound.x, bound.z)) {
+                bound.cachedTile = null;
+                bound.nextLookupTick = now + BOUND_TRANSFER_INTERVAL;
+                return null;
+            }
+        }
+        if (!world.blockExists(bound.x, bound.y, bound.z)) {
+            bound.cachedTile = null;
+            bound.nextLookupTick = now + BOUND_TRANSFER_INTERVAL;
+            return null;
+        }
+
+        bound.lastLookupLoaded = true;
+        TileEntity te = world.getTileEntity(bound.x, bound.y, bound.z);
         if (te instanceof IGregTechTileEntity gte && gte.getMetaTileEntity() instanceof MTEFilteredCacheNode node) {
+            bound.cachedTile = gte;
+            bound.nextLookupTick = now + BOUND_TRANSFER_INTERVAL;
             return node;
         }
+        bound.cachedTile = null;
+        bound.nextLookupTick = now + BOUND_TRANSFER_INTERVAL;
         return null;
     }
 
@@ -950,7 +995,7 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
             tag.setInteger("y", node.y);
             tag.setInteger("z", node.z);
             tag.setInteger("dim", node.dimensionId);
-            MTEFilteredCacheNode cacheNode = resolveCacheNode(node.x, node.y, node.z, node.dimensionId);
+            MTEFilteredCacheNode cacheNode = resolveCacheNode(node, false);
             tag.setString("type", cacheNode != null ? resolveCacheNodeType(cacheNode) : "");
             // 节点自定义名（无则为空串，客户端回退显示默认类型名）
             tag.setString("name", cacheNode != null ? cacheNode.getCustomName() : "");
@@ -969,14 +1014,14 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
 
     /** 状态 UI 循环节点交互速率百分比（与手持芯片右击同一循环逻辑）。 */
     public void cycleCacheNodeRateFromGui(int x, int y, int z, int dim) {
-        MTEFilteredCacheNode node = resolveCacheNode(x, y, z, dim);
+        MTEFilteredCacheNode node = resolveCacheNodeForAction(x, y, z, dim);
         if (node == null) return;
         node.cycleTransferRatePercent();
     }
 
     /** 状态 UI 切换节点输出模式：写节点本体 + 同步枢纽侧绑定记录（IHubArray.updateCacheNodeMode）。 */
     public void setCacheNodeModeFromGui(int x, int y, int z, int dim, boolean output) {
-        MTEFilteredCacheNode node = resolveCacheNode(x, y, z, dim);
+        MTEFilteredCacheNode node = resolveCacheNodeForAction(x, y, z, dim);
         if (node == null) return;
         node.setOutputMode(output);
         updateCacheNodeMode(x, y, z, dim, output);
@@ -984,7 +1029,7 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
 
     /** 状态 UI 切换节点自动输出开关：只写节点本体（与方向模式解耦，枢纽绑定记录无需同步）。 */
     public void setCacheNodeAutoFromGui(int x, int y, int z, int dim, boolean auto) {
-        MTEFilteredCacheNode node = resolveCacheNode(x, y, z, dim);
+        MTEFilteredCacheNode node = resolveCacheNodeForAction(x, y, z, dim);
         if (node == null) return;
         node.setAutoOutput(auto);
     }
@@ -996,7 +1041,7 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
      * 节点方块自身（GUI 标题/Waila）另经 issueTileUpdate 触发 description packet 同步。
      */
     public void renameCacheNodeFromGui(int x, int y, int z, int dim, String name) {
-        MTEFilteredCacheNode node = resolveCacheNode(x, y, z, dim);
+        MTEFilteredCacheNode node = resolveCacheNodeForAction(x, y, z, dim);
         if (node == null) return;
         node.setCustomName(com.miaokatze.gtsr.common.machine.base.MTERemoteWorkerNode.sanitizeCustomName(name));
         // 触发节点 TE 重同步（S35 description packet），客户端 MTE 拿到新自定义名以更新 GUI 标题
@@ -1004,6 +1049,50 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
             node.getBaseMetaTileEntity()
                 .issueTileUpdate();
         }
+    }
+
+    /** Performs the same validated, one-singularity teleport used by the drilling hub status UI. */
+    public void teleportPlayerToNodeFromGui(EntityPlayer player, int x, int y, int z, int dim) {
+        if (player == null) return;
+        if (!canUseStatusAction(player) || findBoundNode(x, y, z, dim) == null) {
+            GTUtility.sendChatToPlayer(player, StatCollector.translateToLocal("gtsr.hub_status.teleport_fail_node"));
+            return;
+        }
+
+        World targetWorld = HubTeleportUtil.resolveTargetWorld(player, dim);
+        if (targetWorld == null) {
+            GTUtility.sendChatToPlayer(player, StatCollector.translateToLocal("gtsr.hub_status.teleport_fail_dim"));
+            return;
+        }
+        if (!HubTeleportUtil.ensureChunkLoaded(targetWorld, x, z)) {
+            GTUtility.sendChatToPlayer(player, StatCollector.translateToLocal("gtsr.hub_status.teleport_fail_node"));
+            return;
+        }
+
+        MTEFilteredCacheNode node = resolveCacheNodeForAction(x, y, z, dim);
+        if (!(node instanceof MTEWaterCacheNode)) {
+            GTUtility.sendChatToPlayer(player, StatCollector.translateToLocal("gtsr.hub_status.teleport_fail_node"));
+            return;
+        }
+
+        int safeY = HubTeleportUtil.findSafeTeleportHeight(targetWorld, x, y, z);
+        if (safeY < 0) {
+            GTUtility.sendChatToPlayer(player, StatCollector.translateToLocal("gtsr.hub_status.teleport_fail_unsafe"));
+            return;
+        }
+        if (!HubTeleportUtil.teleportPlayer(player, targetWorld, dim, x, safeY, z)) {
+            GTUtility
+                .sendChatToPlayer(player, StatCollector.translateToLocal("gtsr.hub_status.teleport_no_singularity"));
+        }
+    }
+
+    private boolean canUseStatusAction(EntityPlayer player) {
+        IGregTechTileEntity base = getBaseMetaTileEntity();
+        World world = base == null ? null : base.getWorld();
+        if (player == null || base == null || world == null || player.dimension != world.provider.dimensionId)
+            return false;
+        return base.canAccessData()
+            && player.getDistanceSq(base.getXCoord() + 0.5D, base.getYCoord() + 0.5D, base.getZCoord() + 0.5D) <= 64.0D;
     }
 
     private void sendBindingDebug(EntityPlayer aPlayer) {

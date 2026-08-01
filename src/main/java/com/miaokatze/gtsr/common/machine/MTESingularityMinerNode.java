@@ -55,6 +55,7 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
     private static final int[] MINER_WORK_CYCLE = { 160, 100, 60, 20 }; // 8s, 5s, 3s, 1s
     private static final int[] SINGULARITY_COST = { 0, 16, 32, 64 };
     private static final int[] MINER_NODE_STEAM_COST = { 2_000, 5_000, 12_000, 20_000 };
+    private static final int EMPTY_SCAN_RETRY_TICKS = 100;
 
     private static final int STATUS_OK = 0;
     private static final int STATUS_NO_PIPE = 1;
@@ -74,6 +75,10 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
     private int mStatus = STATUS_OK;
     private boolean mLastAllowedToWork = true;
     private int mCycleTimer = 0;
+    private int mEmptyScanRetryTicks = 0;
+    private int mEmptyScanTier = -1;
+    private int mEmptyScanTipDepth = Integer.MIN_VALUE;
+    private int mEmptyScanStatus = Integer.MIN_VALUE;
     private int mMinerTier = 0; // 0=基础, 1=强化I, 2=强化II, 3=强化III
     // 粉碎矿模式：螺丝刀右击切换，开启后普通矿物掉落物转换为 3 倍数量的粉碎矿
     private boolean mCrushedMode = false;
@@ -290,23 +295,58 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
         return mFakePlayer;
     }
 
+    private void clearEmptyScanRetry() {
+        mEmptyScanRetryTicks = 0;
+        mEmptyScanTier = -1;
+        mEmptyScanTipDepth = Integer.MIN_VALUE;
+        mEmptyScanStatus = Integer.MIN_VALUE;
+    }
+
+    private void deferEmptyScan() {
+        mEmptyScanRetryTicks = EMPTY_SCAN_RETRY_TICKS;
+        mEmptyScanTier = mMinerTier;
+        mEmptyScanTipDepth = mTipDepth;
+        mEmptyScanStatus = mStatus;
+    }
+
+    private void updateEmptyScanRetry() {
+        if (mEmptyScanRetryTicks <= 0) return;
+
+        if (mEmptyScanTier != mMinerTier || mEmptyScanTipDepth != mTipDepth || mEmptyScanStatus != mStatus) {
+            clearEmptyScanRetry();
+        } else {
+            mEmptyScanRetryTicks--;
+        }
+    }
+
+    private void setStatus(int status) {
+        if (mStatus != status) {
+            mStatus = status;
+            clearEmptyScanRetry();
+        } else {
+            mStatus = status;
+        }
+    }
+
     @Override
     public void doWork(IGregTechTileEntity aBaseMetaTileEntity) {
         if (mDisabled) {
-            mStatus = mSoftDisabled ? STATUS_SOFT_DISABLED : STATUS_BEDROCK;
+            setStatus(mSoftDisabled ? STATUS_SOFT_DISABLED : STATUS_BEDROCK);
             return;
         }
 
         MTESingularityDrillingHub hub = getBoundHub();
         if (hub == null) {
-            mStatus = STATUS_NO_HUB;
+            setStatus(STATUS_NO_HUB);
             return;
         }
 
         if (!hub.isMachineRunning()) {
-            mStatus = STATUS_HUB_OFF;
+            setStatus(STATUS_HUB_OFF);
             return;
         }
+
+        if (mEmptyScanRetryTicks > 0) return;
 
         World world = aBaseMetaTileEntity.getWorld();
 
@@ -319,6 +359,7 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
 
             if (mOrePositions.isEmpty()) {
                 mNeedsDescend = true;
+                deferEmptyScan();
                 return;
             }
         }
@@ -328,6 +369,7 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
 
             if (mOrePositions.isEmpty()) {
                 mNeedsDescend = true;
+                deferEmptyScan();
                 return;
             }
         }
@@ -351,7 +393,7 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
 
         if (!GTUtility.eraseBlockByFakePlayer(getFakePlayer(aBaseMetaTileEntity), oreX, oreY, oreZ, true)) {
             mDisabled = true;
-            mStatus = STATUS_UNMINABLE;
+            setStatus(STATUS_UNMINABLE);
             return;
         }
 
@@ -383,7 +425,7 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
             }
         }
 
-        mStatus = STATUS_OK;
+        setStatus(STATUS_OK);
         mHasStarted = true;
         mIsWorking = true;
         mWorkProgress = (mWorkProgress + 20) % MINER_WORK_CYCLE[mMinerTier];
@@ -436,6 +478,10 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
                 }
             }
         }
+
+        if (!mOrePositions.isEmpty()) {
+            clearEmptyScanRetry();
+        }
     }
 
     private boolean tryDescendPipe(IGregTechTileEntity aBaseMetaTileEntity) {
@@ -447,14 +493,14 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
         int targetY = y + mTipDepth - 1;
         if (targetY < 0) {
             mDisabled = true;
-            mStatus = STATUS_BEDROCK;
+            setStatus(STATUS_BEDROCK);
             return false;
         }
 
         boolean isBedrock = GTUtility.getBlockHardnessAt(world, x, targetY, z) < 0;
         if (isBedrock) {
             mDisabled = true;
-            mStatus = STATUS_BEDROCK;
+            setStatus(STATUS_BEDROCK);
             return false;
         }
 
@@ -463,13 +509,13 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
 
         if (!GTUtility.eraseBlockByFakePlayer(getFakePlayer(aBaseMetaTileEntity), x, targetY, z, true)) {
             mDisabled = true;
-            mStatus = STATUS_UNMINABLE;
+            setStatus(STATUS_UNMINABLE);
             return false;
         }
 
         ItemStack consumed = consumeMiningPipeFromInputs();
         if (consumed == null) {
-            mStatus = STATUS_NO_PIPE;
+            setStatus(STATUS_NO_PIPE);
             return false;
         }
 
@@ -515,7 +561,8 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
             .setBlockByFakePlayer(getFakePlayer(aBaseMetaTileEntity), x, targetY, z, MINING_PIPE_TIP_BLOCK, 0, false);
 
         mTipDepth--;
-        mStatus = STATUS_OK;
+        clearEmptyScanRetry();
+        setStatus(STATUS_OK);
         mIsWorking = true;
         mWorkProgress = (mWorkProgress + 20) % MINER_WORK_CYCLE[mMinerTier];
         return true;
@@ -652,8 +699,13 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
     public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
         if (!aBaseMetaTileEntity.isServerSide()) return;
 
-        if (!mRegistered && isBound()) {
+        updateEmptyScanRetry();
+
+        if (!mRegistered && isBound() && aTick >= mNextRegistrationTick) {
             mRegistered = registerWithHub(aBaseMetaTileEntity);
+            if (!mRegistered) {
+                mNextRegistrationTick = aTick + 20;
+            }
         }
 
         // 本类未调用 super.onPostTick（避免基类 setActive/mIsWorking 逻辑与本类状态机冲突），
@@ -669,7 +721,7 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
             mForcedRetract = false;
             mNeedsDescend = true;
             mOrePositions.clear();
-            mStatus = STATUS_OK;
+            setStatus(STATUS_OK);
             mCycleTimer = 0;
         } else if (!currentlyAllowed && mLastAllowedToWork) {
             mSoftDisabled = true;
@@ -677,7 +729,7 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
             mHasStarted = false;
             mForcedRetract = true;
             mRetractDone = false;
-            mStatus = STATUS_SOFT_DISABLED;
+            setStatus(STATUS_SOFT_DISABLED);
         }
         mLastAllowedToWork = currentlyAllowed;
 
@@ -752,6 +804,7 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
         }
 
         mTipDepth++;
+        clearEmptyScanRetry();
     }
 
     @Override
@@ -977,6 +1030,12 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
         // 等级已变化：释放旧范围区块加载 ticket，下一 tick 按新范围重新申请
         onTierChanged();
         return true;
+    }
+
+    @Override
+    public void onTierChanged() {
+        super.onTierChanged();
+        clearEmptyScanRetry();
     }
 
     /**

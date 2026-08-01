@@ -17,6 +17,7 @@ import net.minecraftforge.fluids.Fluid;
 
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.gui.MTEFilteredCacheNodeGui;
+import com.miaokatze.gtsr.common.util.HubTeleportUtil;
 
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
@@ -48,6 +49,7 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase {
     protected boolean mIsOutputMode = true;
     protected boolean mRegistered = false;
     protected int mTransferRatePercent = 100;
+    private long mNextRegistrationTick;
     // 是否已绑定到枢纽（独立于 mHubDim，避免主世界 dim=0 被误判为未绑定）
     protected boolean mBound = false;
 
@@ -267,6 +269,9 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase {
     @Override
     public void loadNBTData(NBTTagCompound aNBT) {
         super.loadNBTData(aNBT);
+        // The hub may load after this node. Always rebuild the registration handshake on the server.
+        mRegistered = false;
+        mNextRegistrationTick = 0;
         mIsOutputMode = aNBT.hasKey("mIsOutputMode") ? aNBT.getBoolean("mIsOutputMode") : true;
         mTransferRatePercent = aNBT.hasKey("mTransferRatePercent") ? aNBT.getInteger("mTransferRatePercent") : 100;
         if (aNBT.hasKey("gtsr.hubPos")) {
@@ -369,22 +374,26 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase {
         if (!aBaseMetaTileEntity.isServerSide()) return;
 
         // 用 mBound 判断绑定状态，避免主世界 dim=0 被误判为未绑定
-        if (!mRegistered && mBound) {
-            mRegistered = true;
-            registerWithHub(aBaseMetaTileEntity);
+        if (!mRegistered && mBound && aTick >= mNextRegistrationTick) {
+            mRegistered = registerWithHub(aBaseMetaTileEntity);
+            if (!mRegistered) {
+                mNextRegistrationTick = aTick + 20;
+            }
         }
     }
 
-    private void registerWithHub(IGregTechTileEntity aBaseMetaTileEntity) {
+    private boolean registerWithHub(IGregTechTileEntity aBaseMetaTileEntity) {
         World world = DimensionManager.getWorld(mHubDim);
-        if (world == null || !world.blockExists(mHubX, mHubY, mHubZ)) return;
+        if (world == null) return false;
+        if (!HubTeleportUtil.ensureChunkLoaded(world, mHubX, mHubZ)) return false;
+        if (!world.blockExists(mHubX, mHubY, mHubZ)) return false;
 
         TileEntity te = world.getTileEntity(mHubX, mHubY, mHubZ);
-        if (!(te instanceof IGregTechTileEntity gte)) return;
+        if (!(te instanceof IGregTechTileEntity gte)) return false;
 
-        if (!(gte.getMetaTileEntity() instanceof IHubArray hub)) return;
+        if (!(gte.getMetaTileEntity() instanceof IHubArray hub)) return false;
 
-        if (!hub.acceptsNodeType(mHubType)) return;
+        if (!hub.acceptsNodeType(mHubType)) return false;
 
         hub.registerCacheNode(
             aBaseMetaTileEntity.getXCoord(),
@@ -392,6 +401,7 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase {
             aBaseMetaTileEntity.getZCoord(),
             aBaseMetaTileEntity.getWorld().provider.dimensionId,
             mIsOutputMode);
+        return true;
     }
 
 }

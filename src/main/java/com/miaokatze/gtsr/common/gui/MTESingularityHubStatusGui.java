@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Supplier;
 
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
@@ -95,8 +96,14 @@ public class MTESingularityHubStatusGui implements IGuiHolder<PosGuiData> {
         DynamicSyncHandler listDynamic = new DynamicSyncHandler()
             .widgetProvider((pSyncManager, buf) -> buildNodeListWidget(pSyncManager))
             .allowC2S();
-        actionSync.setRefreshListener(() -> listDynamic.notifyUpdate(buf -> {}));
-        nodeListSync.setChangeListener(() -> listDynamic.notifyUpdate(buf -> {}));
+        final List<HubNodeInfo>[] lastLayout = new List[] { null };
+        nodeListSync.setChangeListener(() -> {
+            List<HubNodeInfo> current = (List<HubNodeInfo>) nodeListSync.getValue();
+            if (!HubNodeInfo.sameLayout(lastLayout[0], current)) {
+                lastLayout[0] = new ArrayList<>(current);
+                listDynamic.notifyUpdate(buf -> {});
+            }
+        });
 
         syncManager.syncValue("nodeList", nodeListSync);
         syncManager.syncValue("hubAction", actionSync);
@@ -140,7 +147,7 @@ public class MTESingularityHubStatusGui implements IGuiHolder<PosGuiData> {
             return list;
         }
         for (HubNodeInfo info : nodes) {
-            list.child(buildNodeRow(info, actionSync));
+            list.child(buildNodeRow(info, actionSync, listSync));
         }
         return list;
     }
@@ -158,7 +165,7 @@ public class MTESingularityHubStatusGui implements IGuiHolder<PosGuiData> {
         @Override
         public void postResize() {
             super.postResize();
-            if (shouldScroll) {
+            if (shouldScroll && getScrollData() != null) {
                 getScrollData().scrollTo(getScrollArea(), listScrollValue);
                 shouldScroll = false;
             }
@@ -178,33 +185,10 @@ public class MTESingularityHubStatusGui implements IGuiHolder<PosGuiData> {
      * 构建单个节点行：第一行为节点名/等级/状态，第二行为坐标与维度，第三行为重命名控件，
      * 右侧为操作按钮。
      */
-    private IWidget buildNodeRow(HubNodeInfo info, HubActionSyncHandler actionSync) {
-        String typeName = StatCollector
-            .translateToLocal(info.isMiner ? "gtsr.drilling.node_miner" : "gtsr.drilling.node_driller");
-        // 节点名：有自定义名优先显示自定义名，否则回退默认类型名
-        String nodeName = info.name.isEmpty() ? typeName : info.name;
-        // 状态文本：不允许工作=已停止；允许且实际工作中=运行中；允许但空闲=待机
-        String statusText;
-        EnumChatFormatting statusColor;
-        if (!info.allowed) {
-            statusText = StatCollector.translateToLocal("gtsr.hub_status.status.stopped");
-            statusColor = EnumChatFormatting.RED;
-        } else if (info.working) {
-            statusText = StatCollector.translateToLocal("gtsr.gui.status.running");
-            statusColor = EnumChatFormatting.GREEN;
-        } else {
-            statusText = StatCollector.translateToLocal("gtsr.gui.status.idle");
-            statusColor = EnumChatFormatting.YELLOW;
-        }
-        String line1 = nodeName + " "
-            + EnumChatFormatting.AQUA
-            + "Mk"
-            + (info.tier + 1)
-            + EnumChatFormatting.RESET
-            + "  "
-            + statusColor
-            + statusText
-            + EnumChatFormatting.RESET;
+    private IWidget buildNodeRow(HubNodeInfo info, HubActionSyncHandler actionSync,
+        GenericListSyncHandler<HubNodeInfo> nodeListSync) {
+        Supplier<HubNodeInfo> currentInfo = () -> findNode(nodeListSync.getValue(), info);
+        IKey line1 = IKey.dynamic(() -> formatStatusLine(currentInfo.get() == null ? info : currentInfo.get()));
         String line2 = EnumChatFormatting.GRAY + "("
             + info.x
             + ", "
@@ -221,29 +205,50 @@ public class MTESingularityHubStatusGui implements IGuiHolder<PosGuiData> {
                 info.allowed ? GTGuiTextures.OVERLAY_BUTTON_POWER_SWITCH_OFF
                     : GTGuiTextures.OVERLAY_BUTTON_POWER_SWITCH_ON)
             .onMousePressed(mouseButton -> {
-                actionSync.sendToggle(info);
+                HubNodeInfo current = currentInfo.get();
+                if (current != null) actionSync.sendToggle(current);
                 return true;
             })
-            .tooltipBuilder(t -> t.addLine(IKey.lang(info.allowed ? "gtsr.hub_status.stop" : "gtsr.hub_status.start")));
+            .tooltipBuilder(t -> {
+                HubNodeInfo current = currentInfo.get();
+                boolean allowed = (current == null ? info : current).allowed;
+                t.addLine(IKey.lang(allowed ? "gtsr.hub_status.stop" : "gtsr.hub_status.start"));
+            })
+            .onUpdateListener(button -> {
+                HubNodeInfo current = currentInfo.get();
+                if (current != null) {
+                    button.overlay(
+                        current.allowed ? GTGuiTextures.OVERLAY_BUTTON_POWER_SWITCH_OFF
+                            : GTGuiTextures.OVERLAY_BUTTON_POWER_SWITCH_ON);
+                }
+            }, true);
 
         // 快捷回收按钮：常态显示；「停止或待机」的节点可用（recyclable），
         // 不可用时变灰且按下无反应（setEnabled(false) 天然拦截点击），悬浮提示需等待停止/待机
         ButtonWidget<?> recycleButton = new ButtonWidget<>().size(16)
             .overlay(GTGuiTextures.OVERLAY_BUTTON_EXPORT)
             .onMousePressed(mouseButton -> {
-                actionSync.sendRecycle(info);
+                HubNodeInfo current = currentInfo.get();
+                if (current != null) actionSync.sendRecycle(current);
                 return true;
             })
-            .tooltipBuilder(
-                t -> t.addLine(
-                    IKey.lang(info.recyclable ? "gtsr.hub_status.recycle" : "gtsr.hub_status.recycle_need_stop")));
+            .tooltipBuilder(t -> {
+                HubNodeInfo current = currentInfo.get();
+                boolean recyclable = (current == null ? info : current).recyclable;
+                t.addLine(IKey.lang(recyclable ? "gtsr.hub_status.recycle" : "gtsr.hub_status.recycle_need_stop"));
+            })
+            .onUpdateListener(button -> {
+                HubNodeInfo current = currentInfo.get();
+                if (current != null) button.setEnabled(current.recyclable);
+            }, true);
         recycleButton.setEnabled(info.recyclable);
 
         // 升级按钮：消耗背包物品（图标与节点自带UI的绿色上箭头保持一致）
         ButtonWidget<?> upgradeButton = new ButtonWidget<>().size(16)
             .overlay(UITexture.fullImage(GregTech.ID, "gui/overlay_button/arrow_green_up"))
             .onMousePressed(mouseButton -> {
-                actionSync.sendUpgrade(info);
+                HubNodeInfo current = currentInfo.get();
+                if (current != null) actionSync.sendUpgrade(current);
                 return true;
             })
             .tooltipBuilder(t -> t.addLine(IKey.lang("gtsr.hub_status.upgrade")));
@@ -252,7 +257,8 @@ public class MTESingularityHubStatusGui implements IGuiHolder<PosGuiData> {
         ButtonWidget<?> teleportButton = new ButtonWidget<>().size(16)
             .overlay(new ItemDrawable(GTSRItemList.SteamEntangledSingularity.get(1)))
             .onMousePressed(mouseButton -> {
-                actionSync.sendTeleport(info);
+                HubNodeInfo current = currentInfo.get();
+                if (current != null) actionSync.sendTeleport(current);
                 return true;
             })
             .tooltipBuilder(t -> t.addLine(IKey.lang("gtsr.hub_status.teleport")));
@@ -269,7 +275,8 @@ public class MTESingularityHubStatusGui implements IGuiHolder<PosGuiData> {
         ButtonWidget<?> renameButton = new ButtonWidget<>().size(16)
             .overlay(GTGuiTextures.OVERLAY_BUTTON_CHECKMARK)
             .onMousePressed(mouseButton -> {
-                actionSync.sendRename(info, renameField.getText());
+                HubNodeInfo current = currentInfo.get();
+                if (current != null) actionSync.sendRename(current, renameField.getText());
                 return true;
             })
             .tooltipBuilder(t -> t.addLine(IKey.lang("gtsr.hub_status.rename")));
@@ -292,9 +299,7 @@ public class MTESingularityHubStatusGui implements IGuiHolder<PosGuiData> {
                     // 列宽 184（原 200）：让出一个按钮宽度（16px），使右侧 4 个按钮与滚动条保持间距
                     .width(184)
                     .childPadding(1)
-                    .child(
-                        IKey.str(line1)
-                            .asWidget())
+                    .child(line1.asWidget())
                     .child(
                         IKey.str(line2)
                             .asWidget()
@@ -310,6 +315,41 @@ public class MTESingularityHubStatusGui implements IGuiHolder<PosGuiData> {
             .child(toggleButton)
             .child(recycleButton)
             .child(upgradeButton);
+    }
+
+    private static String formatStatusLine(HubNodeInfo info) {
+        String typeName = StatCollector
+            .translateToLocal(info.isMiner ? "gtsr.drilling.node_miner" : "gtsr.drilling.node_driller");
+        String nodeName = info.name.isEmpty() ? typeName : info.name;
+        String statusText;
+        EnumChatFormatting statusColor;
+        if (!info.allowed) {
+            statusText = StatCollector.translateToLocal("gtsr.hub_status.status.stopped");
+            statusColor = EnumChatFormatting.RED;
+        } else if (info.working) {
+            statusText = StatCollector.translateToLocal("gtsr.gui.status.running");
+            statusColor = EnumChatFormatting.GREEN;
+        } else {
+            statusText = StatCollector.translateToLocal("gtsr.gui.status.idle");
+            statusColor = EnumChatFormatting.YELLOW;
+        }
+        return nodeName + " "
+            + EnumChatFormatting.AQUA
+            + "Mk"
+            + (info.tier + 1)
+            + EnumChatFormatting.RESET
+            + "  "
+            + statusColor
+            + statusText
+            + EnumChatFormatting.RESET;
+    }
+
+    private static HubNodeInfo findNode(List<HubNodeInfo> nodes, HubNodeInfo key) {
+        if (nodes == null || key == null) return null;
+        for (HubNodeInfo node : nodes) {
+            if (node.x == key.x && node.y == key.y && node.z == key.z && node.dim == key.dim) return node;
+        }
+        return null;
     }
 
     /**
@@ -409,6 +449,22 @@ public class MTESingularityHubStatusGui implements IGuiHolder<PosGuiData> {
                 && a.recyclable == b.recyclable
                 && a.name.equals(b.name);
         }
+
+        public static boolean sameLayout(List<HubNodeInfo> a, List<HubNodeInfo> b) {
+            if (a == null || b == null || a.size() != b.size()) return false;
+            for (int i = 0; i < a.size(); i++) {
+                HubNodeInfo left = a.get(i);
+                HubNodeInfo right = b.get(i);
+                if (left.x != right.x || left.y != right.y
+                    || left.z != right.z
+                    || left.dim != right.dim
+                    || left.isMiner != right.isMiner
+                    || !left.name.equals(right.name)) {
+                    return false;
+                }
+            }
+            return true;
+        }
     }
 
     /**
@@ -424,15 +480,10 @@ public class MTESingularityHubStatusGui implements IGuiHolder<PosGuiData> {
         private static final int ACTION_TELEPORT = 5;
 
         private final MTESingularityDrillingHub hub;
-        private Runnable refreshListener = () -> {};
 
         public HubActionSyncHandler(MTESingularityDrillingHub hub) {
             this.hub = hub;
             allowC2S();
-        }
-
-        public void setRefreshListener(Runnable refreshListener) {
-            this.refreshListener = refreshListener;
         }
 
         // ===== 客户端调用：发送动作到服务端 =====
@@ -507,7 +558,6 @@ public class MTESingularityHubStatusGui implements IGuiHolder<PosGuiData> {
                     return;
             }
             // 动作执行后主动刷新一次列表（nodeList 变化监听通常也会触发，这里作为即时反馈）
-            refreshListener.run();
         }
     }
 }

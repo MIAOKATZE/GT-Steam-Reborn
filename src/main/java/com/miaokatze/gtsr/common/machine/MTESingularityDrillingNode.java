@@ -369,8 +369,11 @@ public class MTESingularityDrillingNode extends MTERemoteWorkerNode {
     public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
         if (!aBaseMetaTileEntity.isServerSide()) return;
 
-        if (!mRegistered && isBound()) {
+        if (!mRegistered && isBound() && aTick >= mNextRegistrationTick) {
             mRegistered = registerWithHub(aBaseMetaTileEntity);
+            if (!mRegistered) {
+                mNextRegistrationTick = aTick + 20;
+            }
         }
 
         // 本类未调用 super.onPostTick（避免基类 setActive/mIsWorking 逻辑与本类状态机冲突），

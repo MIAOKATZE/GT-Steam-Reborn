@@ -1,5 +1,6 @@
 package com.miaokatze.gtsr.common.gui;
 
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagList;
 
@@ -42,6 +43,11 @@ public class MTEWaterHubStatusGui extends MTECacheHubStatusGui {
     @Override
     protected void renameNode(int x, int y, int z, int dim, String name) {
         hub.renameCacheNodeFromGui(x, y, z, dim, name);
+    }
+
+    @Override
+    protected void teleportNode(EntityPlayer player, int x, int y, int z, int dim) {
+        hub.teleportPlayerToNodeFromGui(player, x, y, z, dim);
     }
 
     @Override
