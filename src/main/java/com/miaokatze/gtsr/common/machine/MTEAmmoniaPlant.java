@@ -333,6 +333,8 @@ public class MTEAmmoniaPlant extends MTEEnhancedMultiBlockBase<MTEAmmoniaPlant> 
 
         if (mHeatLevel < HEAT_MAX) return CheckRecipeResultRegistry.NO_RECIPE;
 
+        if (!hasMaintainInputs()) return CheckRecipeResultRegistry.NO_RECIPE;
+
         setupProcessingLogic(processingLogic);
         CheckRecipeResult result = doCheckRecipe();
         result = postCheckRecipe(result, processingLogic);
@@ -465,6 +467,22 @@ public class MTEAmmoniaPlant extends MTEEnhancedMultiBlockBase<MTEAmmoniaPlant> 
         return depleteInput(steam);
     }
 
+    private boolean hasMaintainInputs() {
+        return hasRefineryGas(MAINTAIN_GAS_PER_TICK)
+            && depleteInput(Materials.Steam.getGas(MAINTAIN_STEAM_PER_TICK), true);
+    }
+
+    private boolean hasRefineryGas(int amount) {
+        FluidStack refineryGas = Materials.Gas.getGas(amount);
+        for (MTEHatchInput tHatch : GTUtility.validMTEList(mInputHatches)) {
+            FluidStack available = tHatch.drain(amount, false);
+            if (available != null && available.isFluidEqual(refineryGas) && available.amount >= amount) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private boolean depleteRefineryGas(int amount) {
         FluidStack refineryGas = Materials.Gas.getGas(amount);
         for (MTEHatchInput tHatch : GTUtility.validMTEList(mInputHatches)) {
@@ -486,10 +504,8 @@ public class MTEAmmoniaPlant extends MTEEnhancedMultiBlockBase<MTEAmmoniaPlant> 
         if (superheatedSteam == null) return;
 
         List<MTEHatchOutput> lockedOutputHatches = new ArrayList<>();
-        boolean hasLockedOutputHatch = false;
         for (MTEHatchOutput outputHatch : GTUtility.validMTEList(mOutputHatches)) {
             if (outputHatch.isFluidLocked()) {
-                hasLockedOutputHatch = true;
                 if (outputHatch.getLockedFluid() == null || superheatedSteam.getFluid()
                     .equals(outputHatch.getLockedFluid())) {
                     lockedOutputHatches.add(outputHatch);
@@ -497,11 +513,10 @@ public class MTEAmmoniaPlant extends MTEEnhancedMultiBlockBase<MTEAmmoniaPlant> 
             }
         }
 
-        if (!hasLockedOutputHatch) {
-            addOutput(superheatedSteam);
+        if (lockedOutputHatches.isEmpty()) {
+            addOutputPartial(superheatedSteam);
             return;
         }
-        if (lockedOutputHatches.isEmpty()) return;
 
         FluidStack remaining = superheatedSteam.copy();
         for (MTEHatchOutput outputHatch : lockedOutputHatches) {
