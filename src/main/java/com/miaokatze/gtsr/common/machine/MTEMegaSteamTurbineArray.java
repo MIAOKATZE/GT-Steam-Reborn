@@ -1520,7 +1520,9 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
             .addInputHatch(StatCollector.translateToLocal("gtsr.tooltip.turbine_array.input_hatch"), 1)
             .addDynamoHatch(StatCollector.translateToLocal("gtsr.tooltip.turbine_array.dynamo"), 1)
             .addStructureInfo("")
-            .addSubChannel(GTStructureChannels.STRUCTURE_HEIGHT)
+            // beta-1 兼容：GTStructureChannels.STRUCTURE_HEIGHT 与 MultiblockTooltipBuilder.addSubChannel
+            // 均为 GT5U 5.09.54（beta-2）新增，beta-1 (5.09.52) 仅有 addSubChannelUsage 且无此通道。
+            // 此行原用于 tooltip 显示高度堆叠通道，删去不影响功能（下方 extra_stack_layers 文本已说明）。
             .addStructureInfo(
                 EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.multi_tier"))
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.casing"), 38, false)
