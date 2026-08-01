@@ -731,6 +731,7 @@ gtsr.tooltip.kinetic_array.type=动力加工阵列, KPA
 gtsr.tooltip.kinetic_array.desc=在控制器GUI中放入GT单方块机器，以电力+过热蒸汽辅助运行，执行该机器对应配方。
 gtsr.tooltip.kinetic_array.desc2=并行数=(1+2×机器等级)+机器数量，电力仓等级不得高于外壳等级。基础运行速度200%，能耗减免40%。手持蒸汽纠缠节点右击控制器，可在1200秒内将配方电压上限提高一级。
 gtsr.tooltip.kinetic_array.desc3=蒸汽消耗率随电压等级递减：ULV=8→LV=4→MV=2→HV=1→EV=0.5→IV=0.25→LuV+=0.1 L/t。
+gtsr.tooltip.kinetic_array.desc4=新增功能：手持蒸汽纠缠节点右击控制器，可临时将配方电压上限提高一级，持续1200秒；内置洁净室支持；兼容 Crafting Input Bus/Buffer/Proxy（ME）；电解、离心、化学反应配方使用多方块兼容配方表。
 gtsr.tooltip.kinetic_array.ctrl=正面中央
 gtsr.tooltip.kinetic_array.steam_input=耐压蒸汽输入仓(过热蒸汽)
 gtsr.tooltip.kinetic_array.input=输入总线

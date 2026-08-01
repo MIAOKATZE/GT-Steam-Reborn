@@ -555,7 +555,7 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
                 Pair.of(GregTechAPI.sBlockCasings8, 6), // Tier 6 - Advanced Rhodium Palladium
                 Pair.of(GregTechAPI.sBlockCasings8, 7), // Tier 7 - Advanced Iridium
                 Pair.of(GregTechAPI.sBlockCasings4, 14), // Tier 8 - Mining Osmiridium (UV)
-                Pair.of(WerkstoffLoader.BWBlockCasings, 31895), // Tier 9 - Bolted Neutronium (UHV)
+                Pair.of(GregTechAPI.sBlockReinforced, 11), // Tier 9 - Reinforced Machine Casing (UHV)
                 Pair.of(GregTechAPI.sBlockReinforced, 10), // Tier 10 - Naquadah Reinforced (UEV)
                 Pair.of(WerkstoffLoader.BWBlockCasings, 32091), // Tier 11 - Bolted Naquadah Alloy (UIV)
                 Pair.of(GregTechAPI.sBlockCasings8, 10)); // Tier 12 - Radiant Naquadah Alloy (UMV)
@@ -601,10 +601,10 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
             if (meta == 10) return 12; // Radiant Naquadah Alloy (UMV)
         }
         if (block == WerkstoffLoader.BWBlockCasings) {
-            if (meta == 31895) return 9; // Bolted Neutronium (UHV)
             if (meta == 32091) return 11; // Bolted Naquadah Alloy (UIV)
         }
         if (block == GregTechAPI.sBlockReinforced) {
+            if (meta == 11) return 9; // Reinforced Machine Casing (UHV)
             if (meta == 10) return 10; // Naquadah Reinforced (UEV)
         }
         return null;
@@ -1572,7 +1572,7 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
             case 8:
                 return GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings4, 14);
             case 9:
-                return GTUtility.getCasingTextureIndex(WerkstoffLoader.BWBlockCasings, 31895);
+                return GTUtility.getCasingTextureIndex(GregTechAPI.sBlockReinforced, 11);
             case 10:
                 return GTUtility.getCasingTextureIndex(GregTechAPI.sBlockReinforced, 10);
             case 11:

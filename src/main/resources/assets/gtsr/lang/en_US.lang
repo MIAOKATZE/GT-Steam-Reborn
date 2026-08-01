@@ -713,6 +713,7 @@ gtsr.tooltip.kinetic_array.type=Kinetic Processing Array, KPA
 gtsr.tooltip.kinetic_array.desc=Insert GT single-block machines into the controller GUI, powered by electricity + superheated steam, executes the machine's recipes.
 gtsr.tooltip.kinetic_array.desc2=Parallel=(1+2×machineTier)+stackSize. Energy hatch tier cannot exceed casing tier. Base speed 200%, 40% energy discount. Right-click with a Steam Entanglement Node to boost recipe voltage by one tier for 1200 seconds.
 gtsr.tooltip.kinetic_array.desc3=Steam consumption rate decreases with voltage tier: ULV=8→LV=4→MV=2→HV=1→EV=0.5→IV=0.25→LuV+=0.1 L/t.
+gtsr.tooltip.kinetic_array.desc4=New: right-click with a Steam Entanglement Node to temporarily raise the recipe voltage limit by one tier for 1200 seconds; built-in Cleanroom support; Crafting Input Bus/Buffer/Proxy (ME) support; Electrolyzer, Centrifuge, and Chemical Reactor recipes use multiblock-compatible recipe maps.
 gtsr.tooltip.kinetic_array.ctrl=Front center
 gtsr.tooltip.kinetic_array.steam_input=Pressure Steam Input Hatch (Superheated Steam)
 gtsr.tooltip.kinetic_array.input=Input Bus

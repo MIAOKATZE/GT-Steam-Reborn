@@ -209,7 +209,8 @@ All inherit from `MTEEnhancedMultiBlockBase` (GT5U), with more advanced mechanic
 <p align="center"><img src="README/MTEKineticProcessingArray.png" width="300"><br><em>动力加工阵列 / Kinetic Processing Array</em></p>
 
 - **动力加工阵列 / Kinetic Processing Array (KPA)**: 12-tier, superheated steam only. Dynamic recipes determined by inserted machines. Processes recipes from any single-block machine placed inside. Parallel = (1 + 2 × machineTier) + stackSize. Base speed 200% with 40% energy discount. Pipe casing upgrades speed (Stainless Steel: 250%, Titanium: 300%). Gearbox casing upgrades energy discount (Titanium: 60%).
-  仅过热蒸汽。由放入的机器决定配方。处理放入的任意单方块机器的配方。并行数=(1+2×机器等级)+机器数量。基础速度200%，能耗减免40%。管道方块升级速度（不锈钢：250%，钛：300%）。齿轮箱方块升级能耗减免（钛：60%）。
+  Right-click the controller with a Steam Entanglement Node to temporarily raise the recipe voltage limit by one tier for 1200 seconds. Includes a built-in Cleanroom, accepts Crafting Input Bus/Buffer/Proxy (ME), and maps Electrolyzer, Centrifuge, and Chemical Reactor recipes to multiblock-compatible recipe maps.
+  仅过热蒸汽。由放入的机器决定配方。处理放入的任意单方块机器的配方。并行数=(1+2×机器等级)+机器数量。基础速度200%，能耗减免40%。管道方块升级速度（不锈钢：250%，钛：300%）。齿轮箱方块升级能耗减免（钛：60%）。手持蒸汽纠缠节点右击控制器，可临时将配方电压上限提高一级，持续1200秒；内置洁净室，兼容 Crafting Input Bus/Buffer/Proxy（ME），并将电解、离心、化学反应配方映射为多方块兼容配方表。
 
 <p align="center"><img src="README/MTEGearSteamCompressor.png" width="300"><br><em>自驱式机械蒸汽压缩机 / Gear Steam Compressor</em></p>
 
