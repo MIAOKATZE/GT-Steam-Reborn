@@ -503,6 +503,7 @@ public class MTEAmmoniaPlant extends MTEEnhancedMultiBlockBase<MTEAmmoniaPlant> 
         FluidStack superheatedSteam = FluidRegistry.getFluidStack("ic2superheatedsteam", amount);
         if (superheatedSteam == null) return;
 
+        // 锁定到过热蒸汽的输出舱优先（IFluidLockableMui2 在 beta-1/2 字节一致，安全可用）
         List<MTEHatchOutput> lockedOutputHatches = new ArrayList<>();
         for (MTEHatchOutput outputHatch : GTUtility.validMTEList(mOutputHatches)) {
             if (outputHatch.isFluidLocked()) {
@@ -513,15 +514,30 @@ public class MTEAmmoniaPlant extends MTEEnhancedMultiBlockBase<MTEAmmoniaPlant> 
             }
         }
 
-        if (lockedOutputHatches.isEmpty()) {
-            addOutputPartial(superheatedSteam);
-            return;
+        int remaining = superheatedSteam.amount;
+
+        // 优先填入锁定舱。注意：必须用 fill(FluidStack, boolean) 的 simulate→实填两段式，
+        // 不能调用 MTEHatchOutput.storePartial(FluidStack, boolean) 或 addOutputPartial(FluidStack)——
+        // 这两者及 IOutputHatch 接口是 GT5U 5.09.54（beta-2）新增，在 beta-1 (5.09.52) 运行时会导致
+        // NoSuchMethodError/NoClassDefFoundError 并在崩溃报告中被 ItemBlock 二次错误掩盖。
+        for (MTEHatchOutput outputHatch : lockedOutputHatches) {
+            if (remaining <= 0) return;
+            int filled = outputHatch.fill(new FluidStack(superheatedSteam.getFluid(), remaining), false);
+            if (filled > 0) {
+                outputHatch.fill(new FluidStack(superheatedSteam.getFluid(), filled), true);
+                remaining -= filled;
+            }
         }
 
-        FluidStack remaining = superheatedSteam.copy();
-        for (MTEHatchOutput outputHatch : lockedOutputHatches) {
-            outputHatch.storePartial(remaining, false);
-            if (remaining.amount <= 0) return;
+        // 无锁定舱或锁定舱仍有余量：回退到所有输出舱顺序填充（替代 beta-2-only 的 addOutputPartial）
+        if (remaining <= 0) return;
+        for (MTEHatchOutput outputHatch : GTUtility.validMTEList(mOutputHatches)) {
+            if (remaining <= 0) return;
+            int filled = outputHatch.fill(new FluidStack(superheatedSteam.getFluid(), remaining), false);
+            if (filled > 0) {
+                outputHatch.fill(new FluidStack(superheatedSteam.getFluid(), filled), true);
+                remaining -= filled;
+            }
         }
     }
 
