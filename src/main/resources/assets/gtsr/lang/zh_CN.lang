@@ -35,7 +35,7 @@ gtsr.tooltip.reinforced_steam_cache_node.fluid_type.superheated_steam=过热蒸�
 gt.blockmachines.gtsr.steam.hub.output.hatch.name=蒸汽枢纽输出仓
 gtsr.tooltip.steam_hub_output_hatch.info=蒸汽枢纽阵列专用输出端口
 gtsr.tooltip.steam_hub_output_hatch.fluid_type=仅输出蒸汽/过热蒸汽
-gtsr.tooltip.steam_hub_output_hatch.output_rate=自动输出流量：2,000,000 L/s
+gtsr.tooltip.steam_hub_output_hatch.output_rate=自动输出流量：20,000,000 L/s
 gtsr.tooltip.steam_hub_output_hatch.no_storage=无内部缓存，直接从阵列抽取
 
 # Steam Hub Input Hatch
@@ -60,9 +60,9 @@ gtsr.tooltip.reinforced_hub_storage_unit.tier2_only=仅限等级2蒸汽枢纽阵
 # Steam Hub Array
 gt.blockmachines.gtsr.steam.hub.array.name=蒸汽枢纽阵列
 gtsr.tooltip.steam_hub_array.info=集中式蒸汽存储多方块结构，容量随等级递增
-gtsr.tooltip.steam_hub_array.structure=5×5底座 + 1~12层存储单元（等级1~12）
-gtsr.tooltip.steam_hub_array.capacity=耐压单元: 16M L/个 | 加固单元: 64M L/个
-gtsr.tooltip.steam_hub_array.output=自动输出：2,000,000 L/s（每输出仓）
+gtsr.tooltip.steam_hub_array.structure=5×5底座 + 1~30层存储单元
+gtsr.tooltip.steam_hub_array.capacity=耐压单元: 320M L/个 | 加固单元: 1,280M L/个 | 超压单元: 10,240M L/个
+gtsr.tooltip.steam_hub_array.output=自动输出：20,000,000 L/s（每输出仓）
 gtsr.tooltip.steam_hub_array.no_maintenance=无需维护仓
 gtsr.tooltip.steam_hub_array.hatch_note=输入/输出仓无内部缓存，所有流体由阵列统一存储
 gtsr.tooltip.steam_hub_array.ctrl_pos=底座层正面中央
@@ -325,9 +325,9 @@ gtsr.tooltip.overpressure_hub_storage_unit.tier3_only=仅限等级3蒸汽枢纽�
 gt.blockmachines.gtsr.water.hub.array.name=蓄水枢纽阵列
 gtsr.recipe.water_hub_array=蓄水枢纽阵列
 gtsr.tooltip.water_hub_array.info=集中式水/蒸馏水存储多方块结构
-gtsr.tooltip.water_hub_array.structure=3×3 底座 + 1~15 层存储单元
-gtsr.tooltip.water_hub_array.capacity=枢纽单元: 64,000 L/个 | 加固枢纽单元: 256,000 L/个
-gtsr.tooltip.water_hub_array.output=自动输出: 128,000 L/s（每输出仓）
+gtsr.tooltip.water_hub_array.structure=3×3 底座 + 1~30 层存储单元
+gtsr.tooltip.water_hub_array.capacity=枢纽单元: 1,280,000 L/个 | 加固枢纽单元: 5,120,000 L/个
+gtsr.tooltip.water_hub_array.output=自动输出: 1,280,000 L/s（每输出仓）
 gtsr.tooltip.water_hub_array.ctrl=底座层正面中央
 gtsr.tooltip.water_hub_array.casing=青铜镀层砖
 gtsr.tooltip.water_hub_array.input_hatch=蓄水枢纽输入仓
@@ -340,7 +340,7 @@ gtsr.tooltip.water_hub_array.stack_layers=底座上方堆叠层
 gt.blockmachines.gtsr.water.hub.output.hatch.name=蓄水枢纽输出仓
 gtsr.tooltip.water_hub_output_hatch.info=蓄水枢纽阵列专用输出端口
 gtsr.tooltip.water_hub_output_hatch.fluid_type=仅输出水/蒸馏水
-gtsr.tooltip.water_hub_output_hatch.output_rate=自动输出流量: 128,000 L/s
+gtsr.tooltip.water_hub_output_hatch.output_rate=自动输出流量: 1,280,000 L/s
 gtsr.tooltip.water_hub_output_hatch.no_storage=无内部缓存，直接从阵列抽取
 
 # Water Hub Input Hatch

@@ -31,7 +31,7 @@ import gregtech.api.util.GTUtility;
 public class MTEWaterCacheNode extends MTEFilteredCacheNode {
 
     private static final int CAPACITY = 128_000;
-    private static final int OUTPUT_PER_TICK = 400;
+    private static final int OUTPUT_PER_TICK = 800;
 
     private static IIconContainer TOP_OVERLAY;
 

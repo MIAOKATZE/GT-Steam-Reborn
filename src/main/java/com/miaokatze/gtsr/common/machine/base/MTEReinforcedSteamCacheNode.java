@@ -31,7 +31,7 @@ import gregtech.api.util.GTUtility;
 public class MTEReinforcedSteamCacheNode extends MTEFilteredCacheNode {
 
     private static final int CAPACITY = 16_000_000;
-    private static final int OUTPUT_RATE_PER_SEC = 1_000_000;
+    private static final int OUTPUT_RATE_PER_SEC = 2_000_000;
 
     private static IIconContainer TOP_OVERLAY;
 
@@ -45,7 +45,7 @@ public class MTEReinforcedSteamCacheNode extends MTEFilteredCacheNode {
 
     @Override
     protected int getBaseHubTransferRate() {
-        return 1_000_000;
+        return 2_000_000;
     }
 
     @Override

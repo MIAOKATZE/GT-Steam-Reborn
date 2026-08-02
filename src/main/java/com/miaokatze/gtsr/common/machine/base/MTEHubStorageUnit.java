@@ -19,7 +19,7 @@ public class MTEHubStorageUnit extends MTESteamStorageUnit {
         super(aID, aName, aNameRegional, PRESSURE_CAPACITY);
     }
 
-    public MTEHubStorageUnit(String aName, int capacity, String[] aDescription, ITexture[][][] aTextures) {
+    public MTEHubStorageUnit(String aName, long capacity, String[] aDescription, ITexture[][][] aTextures) {
         super(aName, capacity, aDescription, aTextures);
     }
 
@@ -49,7 +49,7 @@ public class MTEHubStorageUnit extends MTESteamStorageUnit {
                 + EnumChatFormatting.YELLOW
                 + " / "
                 + EnumChatFormatting.GOLD
-                + String.format("%,d", 64_000)
+                + String.format("%,d", 1_280_000)
                 + " "
                 + StatCollector.translateToLocal("gtsr.tooltip.shared.l")
                 + EnumChatFormatting.GRAY

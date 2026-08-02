@@ -30,8 +30,8 @@ import gregtech.api.util.GTUtility;
 public class MTEOverpressureSteamCacheNode extends MTEFilteredCacheNode {
 
     private static final int CAPACITY = 256_000_000;
-    private static final int OUTPUT_RATE_PER_SEC = 32_000_000;
-    private static final int HUB_TRANSFER_RATE = 32_000_000;
+    private static final int OUTPUT_RATE_PER_SEC = 64_000_000;
+    private static final int HUB_TRANSFER_RATE = 64_000_000;
     private static final int CASING_INDEX = GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings8, 6);
 
     private static IIconContainer TOP_OVERLAY;

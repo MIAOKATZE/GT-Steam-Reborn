@@ -52,6 +52,7 @@ import com.miaokatze.gtsr.common.machine.base.MTEReinforcedSteamCacheNode;
 import com.miaokatze.gtsr.common.machine.base.MTESteamCacheNode;
 import com.miaokatze.gtsr.common.machine.base.MTESteamHubInputHatch;
 import com.miaokatze.gtsr.common.machine.base.MTESteamHubOutputHatch;
+import com.miaokatze.gtsr.common.machine.base.MTESteamStorageUnit;
 import com.miaokatze.gtsr.common.util.HubTeleportUtil;
 
 import cpw.mods.fml.relauncher.Side;
@@ -83,7 +84,7 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
     private static final int HORIZONTAL_OFF_SET = 4;
     private static final int VERTICAL_OFF_SET = 0;
     private static final int DEPTH_OFF_SET = 1;
-    private static final int AUTO_OUTPUT_RATE = 2_000_000;
+    private static final int AUTO_OUTPUT_RATE = 20_000_000;
     private static final int TRANSFER_RATE = 1_000_000;
 
     private static final int CASING_INDEX = GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings1, 10);
@@ -417,7 +418,7 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
             return;
         }
 
-        for (int i = 0; i < 3; i++) {
+        for (int i = 0; i < 30; i++) {
             int bOffset = 1 + i;
             if (!checkPiece(STRUCTURE_PIECE_STACK, HORIZONTAL_OFF_SET, bOffset, DEPTH_OFF_SET)) break;
             mStackCount++;
@@ -614,7 +615,7 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
     public void construct(ItemStack stackSize, boolean hintsOnly) {
         buildPiece(STRUCTURE_PIECE_CAP, stackSize, hintsOnly, HORIZONTAL_OFF_SET, -1, DEPTH_OFF_SET);
         buildPiece(STRUCTURE_PIECE_BASE, stackSize, hintsOnly, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET);
-        int tTotalHeight = Math.max(3, GTStructureChannels.STRUCTURE_HEIGHT.getValueClamped(stackSize, 3, 5));
+        int tTotalHeight = Math.max(3, GTStructureChannels.STRUCTURE_HEIGHT.getValueClamped(stackSize, 3, 32));
         int stackCount = tTotalHeight - 2;
         for (int i = 0; i < stackCount; i++) {
             int bOffset = 1 + i;
@@ -647,7 +648,7 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
             false,
             true);
         if (built >= 0) return built;
-        int tTotalHeight = Math.max(3, GTStructureChannels.STRUCTURE_HEIGHT.getValueClamped(stackSize, 3, 5));
+        int tTotalHeight = Math.max(3, GTStructureChannels.STRUCTURE_HEIGHT.getValueClamped(stackSize, 3, 32));
         int stackCount = tTotalHeight - 2;
         for (int i = 0; i < stackCount; i++) {
             int bOffset = 1 + i;
@@ -669,8 +670,8 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
     @Override
     public String[] getStructureDescription(ItemStack stackSize) {
         return new String[] { EnumChatFormatting.AQUA + "Structure:", "1. CAP (1 layer): Base foundation (bottom)",
-            "2. BASE (1 layer): Controller layer", "3. STACK (1 layer): Repeatable storage unit layer (1~3)",
-            "4. Total height: 3~5 layers (9x9x3 to 9x9x5)", "5. At least 1 Input Hatch and 1 Output Hatch required" };
+            "2. BASE (1 layer): Controller layer", "3. STACK (1 layer): Repeatable storage unit layer (1~30)",
+            "4. Total height: 3~32 layers (9x9x3 to 9x9x32)", "5. At least 1 Input Hatch and 1 Output Hatch required" };
     }
 
     @Override
@@ -689,8 +690,9 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
     }
 
     public long getTotalCapacity() {
-        long base = (long) mPressureUnitCount * 16_000_000 + (long) mReinforcedUnitCount * 64_000_000
-            + (long) mOverpressureUnitCount * 512_000_000;
+        long base = (long) mPressureUnitCount * MTESteamStorageUnit.PRESSURE_CAPACITY
+            + (long) mReinforcedUnitCount * MTESteamStorageUnit.REINFORCED_CAPACITY
+            + (long) mOverpressureUnitCount * MTEOverpressureHubStorageUnit.OVERPRESSURE_CAPACITY;
         return hasReinforcedChipInstalled() ? base * 10 : base;
     }
 
@@ -1490,7 +1492,7 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
                 EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.shared.screwdriver_overflow"))
             .addInfo(
                 EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.tooltip.shared.overflow_input_desc"))
-            .beginStructureBlock(9, 5, 9, false)
+            .beginStructureBlock(9, 32, 9, false)
             .addController(StatCollector.translateToLocal("gtsr.tooltip.steam_hub.ctrl"))
             .addOtherStructurePart(
                 StatCollector.translateToLocal("gtsr.tooltip.steam_hub.hub_input"),

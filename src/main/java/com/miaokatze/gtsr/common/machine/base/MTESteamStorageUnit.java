@@ -11,17 +11,17 @@ import gregtech.api.metatileentity.implementations.MTETieredMachineBlock;
 
 public abstract class MTESteamStorageUnit extends MTETieredMachineBlock {
 
-    public static final int PRESSURE_CAPACITY = 16_000_000;
-    public static final int REINFORCED_CAPACITY = 64_000_000;
+    public static final int PRESSURE_CAPACITY = 320_000_000;
+    public static final int REINFORCED_CAPACITY = 1_280_000_000;
 
-    protected final int capacityPerUnit;
+    protected final long capacityPerUnit;
 
-    public MTESteamStorageUnit(int aID, String aName, String aNameRegional, int capacity) {
+    public MTESteamStorageUnit(int aID, String aName, String aNameRegional, long capacity) {
         super(aID, aName, aNameRegional, 0, 0, "Steam Storage Unit for Steam Hub Array");
         this.capacityPerUnit = capacity;
     }
 
-    public MTESteamStorageUnit(String aName, int capacity, String[] aDescription, ITexture[][][] aTextures) {
+    public MTESteamStorageUnit(String aName, long capacity, String[] aDescription, ITexture[][][] aTextures) {
         super(aName, 0, 0, aDescription, aTextures);
         this.capacityPerUnit = capacity;
     }
@@ -62,7 +62,7 @@ public abstract class MTESteamStorageUnit extends MTETieredMachineBlock {
         return null;
     }
 
-    public int getCapacityPerUnit() {
+    public long getCapacityPerUnit() {
         return capacityPerUnit;
     }
 }

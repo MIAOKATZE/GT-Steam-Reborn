@@ -80,9 +80,9 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
     private static final int HORIZONTAL_OFF_SET = 3;
     private static final int VERTICAL_OFF_SET = 0;
     private static final int DEPTH_OFF_SET = 0;
-    private static final int AUTO_OUTPUT_RATE = 128_000;
-    private static final int HUB_UNIT_CAPACITY = 64_000;
-    private static final int REINFORCED_HUB_UNIT_CAPACITY = 256_000;
+    private static final int AUTO_OUTPUT_RATE = 1_280_000;
+    private static final int HUB_UNIT_CAPACITY = 1_280_000;
+    private static final int REINFORCED_HUB_UNIT_CAPACITY = 5_120_000;
     private static final int BOUND_TRANSFER_RATE = 1_000_000;
     private static final int BOUND_TRANSFER_INTERVAL = 20;
 
@@ -376,7 +376,7 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
             return;
         }
 
-        for (int i = 0; i < 3; i++) {
+        for (int i = 0; i < 30; i++) {
             int bOffset = 1 + i;
             if (!checkPiece(STRUCTURE_PIECE_STACK, HORIZONTAL_OFF_SET, bOffset, DEPTH_OFF_SET)) break;
             mStackCount++;
@@ -571,7 +571,7 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
     @Override
     public void construct(ItemStack stackSize, boolean hintsOnly) {
         buildPiece(STRUCTURE_PIECE_BASE, stackSize, hintsOnly, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET);
-        int tTotalHeight = Math.max(2, GTStructureChannels.STRUCTURE_HEIGHT.getValueClamped(stackSize, 2, 4));
+        int tTotalHeight = Math.max(2, GTStructureChannels.STRUCTURE_HEIGHT.getValueClamped(stackSize, 2, 31));
         int stackCount = tTotalHeight - 1;
         for (int i = 0; i < stackCount; i++) {
             int bOffset = 1 + i;
@@ -593,7 +593,7 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
             false,
             true);
         if (built >= 0) return built;
-        int tTotalHeight = Math.max(2, GTStructureChannels.STRUCTURE_HEIGHT.getValueClamped(stackSize, 2, 4));
+        int tTotalHeight = Math.max(2, GTStructureChannels.STRUCTURE_HEIGHT.getValueClamped(stackSize, 2, 31));
         int stackCount = tTotalHeight - 1;
         for (int i = 0; i < stackCount; i++) {
             int bOffset = 1 + i;
@@ -615,8 +615,8 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
     @Override
     public String[] getStructureDescription(ItemStack stackSize) {
         return new String[] { EnumChatFormatting.AQUA + "Structure:", "1. BASE (1 layer): Controller layer (bottom)",
-            "2. STACK (1 layer): Repeatable storage unit layer (1~3, on top of BASE)",
-            "3. Total height: 2~4 layers (7x7x2 to 7x7x4)", "4. At least 1 Input Hatch and 1 Output Hatch required" };
+            "2. STACK (1 layer): Repeatable storage unit layer (1~30, on top of BASE)",
+            "3. Total height: 2~31 layers (7x7x2 to 7x7x31)", "4. At least 1 Input Hatch and 1 Output Hatch required" };
     }
 
     @Override
@@ -1336,7 +1336,7 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
                 EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.shared.screwdriver_overflow"))
             .addInfo(
                 EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.tooltip.shared.overflow_input_desc"))
-            .beginStructureBlock(7, 4, 7, false)
+            .beginStructureBlock(7, 31, 7, false)
             .addController(StatCollector.translateToLocal("gtsr.tooltip.water_hub.ctrl"))
             .addOtherStructurePart(
                 StatCollector.translateToLocal("gtsr.tooltip.water_hub.hub_input"),
