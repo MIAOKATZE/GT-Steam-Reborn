@@ -635,7 +635,9 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
     }
 
     public long getTotalCapacity() {
-        return (long) mHubUnitCount * HUB_UNIT_CAPACITY + (long) mReinforcedHubUnitCount * REINFORCED_HUB_UNIT_CAPACITY;
+        long base = (long) mHubUnitCount * HUB_UNIT_CAPACITY
+            + (long) mReinforcedHubUnitCount * REINFORCED_HUB_UNIT_CAPACITY;
+        return hasHubSingularityChip() ? base * 5 : base;
     }
 
     public long getWaterStored() {

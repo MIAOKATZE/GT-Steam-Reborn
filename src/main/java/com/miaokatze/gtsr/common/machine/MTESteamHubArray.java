@@ -693,7 +693,8 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
         long base = (long) mPressureUnitCount * MTESteamStorageUnit.PRESSURE_CAPACITY
             + (long) mReinforcedUnitCount * MTESteamStorageUnit.REINFORCED_CAPACITY
             + (long) mOverpressureUnitCount * MTEOverpressureHubStorageUnit.OVERPRESSURE_CAPACITY;
-        return hasReinforcedChipInstalled() ? base * 10 : base;
+        if (hasReinforcedChipInstalled()) return base * 20;
+        return hasHubChipInstalled() ? base * 5 : base;
     }
 
     public long getSteamStored() {
@@ -933,6 +934,11 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
         ItemStack stack = getControllerSlot();
         return stack != null && (GTSRItemList.HubSingularityChip.isStackEqual(stack, true, true)
             || GTSRItemList.ReinforcedHubSingularityChip.isStackEqual(stack, true, true));
+    }
+
+    private boolean hasHubChipInstalled() {
+        ItemStack stack = getControllerSlot();
+        return stack != null && GTSRItemList.HubSingularityChip.isStackEqual(stack, true, true);
     }
 
     private boolean hasReinforcedChipInstalled() {

@@ -109,19 +109,19 @@ The Hub Terminal is a handheld remote management device (crafted with 1 Steam En
 
 <p align="center"><img src="README/MTESteamHubArray.png" width="400"><br><em>蒸汽枢纽阵列 / Steam Hub Array</em></p>
 
-**蒸汽枢纽阵列 / Steam Hub Array (SHA)** — 3-tier (Bronze/Steel/TungstenSteel), accepts steam cache nodes, supports normal/dense/supercritical steam, capacity up to 12.8B L with overpressure storage units. Requires Hub Singularity Chip for node binding. Bidirectional transfer (input/output modes). Supports cross-dimensional transfer.
+**蒸汽枢纽阵列 / Steam Hub Array (SHA)** — 3-tier (Bronze/Steel/TungstenSteel), accepts steam cache nodes, supports normal/dense/supercritical steam, up to 30 stacked storage layers. Max capacity: 750 × 20.48B L ×20 (Reinforced Chip) ≈ 307T L. Requires Hub Singularity Chip for node binding (+×5 total capacity); Reinforced Chip multiplies total capacity ×20 instead. Bidirectional transfer (input/output modes). Supports cross-dimensional transfer. Removing the chip swallows any stored steam exceeding the reduced capacity.
 
-蒸汽枢纽阵列，3级（青铜/钢/钨钢），接受蒸汽缓存节点，支持普通/致密/超临界蒸汽，超压存储单元容量可达12.8B L。需要枢纽奇点芯片绑定节点。双向传输（输入/输出模式）。支持跨维度。
+蒸汽枢纽阵列，3级（青铜/钢/钨钢），接受蒸汽缓存节点，支持普通/致密/超临界蒸汽，最多叠加30层存储单元。最大容量：750 × 204.8亿L ×20（强化芯片）≈ 307T L。需要枢纽奇点芯片绑定节点（总容量×5）；强化芯片改为总容量×20。双向传输（输入/输出模式）。支持跨维度。中途取下芯片会吞掉超出缩减后容量的蒸汽。
 
-- Tier 1 (Bronze): Bronze casing + pipe + gearbox + frame + Hub Storage Unit (16M L/unit)
-- Tier 2 (Steel): Steel casing + pipe + gearbox + frame + Reinforced Hub Storage Unit (64M L/unit)
-- Tier 3 (TungstenSteel): TungstenSteel casing + pipe + frame + Overpressure Hub Storage Unit (512M L/unit) + Reinforced Chip enables dense/supercritical steam and ×10 capacity
+- Tier 1 (Bronze): Bronze casing + pipe + gearbox + frame + Hub Storage Unit (320M L/unit)
+- Tier 2 (Steel): Steel casing + pipe + gearbox + frame + Reinforced Hub Storage Unit (1.28B L/unit)
+- Tier 3 (TungstenSteel): TungstenSteel casing + pipe + frame + Overpressure Hub Storage Unit (20.48B L/unit) + Reinforced Chip enables dense/supercritical steam and ×20 capacity
 
 <p align="center"><img src="README/MTEWaterHubArray.png" width="400"><br><em>蓄水枢纽阵列 / Water Hub Array</em></p>
 
-**蓄水枢纽阵列 / Water Hub Array (WHA)** — Bronze/Steel tier, accepts water cache nodes, same-dimension only. Central dispatch for water/distilled water with bidirectional interface.
+**蓄水枢纽阵列 / Water Hub Array (WHA)** — Bronze/Steel tier, accepts water cache nodes, same-dimension only. Central dispatch for water/distilled water with bidirectional interface. Up to 30 stacked storage layers; Hub Singularity Chip multiplies total capacity ×5 (removing it swallows excess water).
 
-蓄水枢纽阵列，青铜/钢级，接受水缓存节点，仅同维度。水/蒸馏水的中央调度站，双向接口。
+蓄水枢纽阵列，青铜/钢级，接受水缓存节点，仅同维度。水/蒸馏水的中央调度站，双向接口。最多叠加30层存储单元；枢纽奇点芯片使总容量×5（取下会吞掉超出部分的水）。
 
 ***
 
@@ -275,8 +275,8 @@ GTSR 机器专用仓室，具有不同容量和流体过滤：
 
 - **枢纽终端 / Hub Terminal**: Handheld remote management device. Right-click a hub controller to open its status terminal (cache hub / drilling hub); right-click a node to cycle rate, sneak+right-click to toggle mode. Crafted with 1 Steam Entangled Singularity + 8 steel plates. / 手持远程管理设备。右击枢纽控制器打开对应状态终端（缓存枢纽/钻井枢纽）；右击节点循环速率，潜行右击切换模式。1 蒸汽纠缠奇点 + 8 钢板合成。
 - **蒸汽纠缠奇点 / Steam Entangled Singularity**: Core binding material. Produced by Steam Singularity Compressor (heat accumulation). Consumed when binding nodes to hubs and in various crafting recipes.
-- **枢纽奇点芯片 / Hub Singularity Chip**: Required for Steam/Water Hub node binding. Also enables hub debug mode when right-clicked.
-- **强化枢纽奇点芯片 / Reinforced Hub Singularity Chip**: For tier 3 Steam Hub only — enables dense/supercritical steam, ×10 capacity, and overpressure cache node binding.
+- **枢纽奇点芯片 / Hub Singularity Chip**: Required for Steam/Water Hub node binding, multiplies hub total capacity ×5. Also enables hub debug mode when right-clicked. Removing it from a filled hub swallows the stored fluid exceeding the reduced capacity.
+- **强化枢纽奇点芯片 / Reinforced Hub Singularity Chip**: For tier 3 Steam Hub only — enables dense/supercritical steam, ×20 capacity (replaces the ×5 Hub Chip bonus), and overpressure cache node binding.
 - **地热过热芯片 / Geothermal Overheat Chip**: For Large Geothermal Steam Boiler (steel tier) — enables superheated steam output and rare byproducts.
 - **稀有气体分离芯片 / Rare Gas Separation Chip**: For Atmospheric Centrifuge — unlocks recipes with >2 fluid outputs (up to 8).
 - **矿脉裂解器芯片（T1/T2/T3）/ Vein Pyrolyzer Chip (T1/T2/T3)**: For Vein Steam Pyrolyzer — expands underground fluid scan range.

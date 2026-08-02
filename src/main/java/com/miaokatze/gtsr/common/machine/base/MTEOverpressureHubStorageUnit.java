@@ -13,7 +13,7 @@ import gregtech.api.util.GTUtility;
 
 public class MTEOverpressureHubStorageUnit extends MTESteamStorageUnit {
 
-    public static final long OVERPRESSURE_CAPACITY = 10_240_000_000L;
+    public static final long OVERPRESSURE_CAPACITY = 20_480_000_000L;
 
     private static final int CASING_INDEX = GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings4, 0);
 
