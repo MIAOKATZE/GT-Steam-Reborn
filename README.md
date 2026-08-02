@@ -266,8 +266,8 @@ GTSR 机器专用仓室，具有不同容量和流体过滤：
 - **超压轮机输入仓 / Overpressure Turbine Input Hatch**: For Mega Steam Turbine Array only, accepts all steam types
 - **巨型空气输入仓 / Mega Air Input Hatch**: 100M L capacity, accepts air and nether air only. Used by Siemens-Martin Furnace (air consumption) and Atmospheric Centrifuge (large air input).
   1亿L容量，仅接受空气与下界空气。用于平炉（空气消耗）和空气离心机（大量空气输入）。
-- **蒸馏水仓 / Distilled Water Hatch**: 2B L capacity, modeled after GT5U Reservoir Hatch. Generates infinite distilled water (2B L per 100 ticks), which never causes calcification — the ideal working medium for the Solar Array and Geothermal Boiler.
-  20亿L容量，仿照GT5U蓄水仓（Reservoir Hatch）设计。无限生成蒸馏水（每100 tick生成20亿L），蒸馏水永不结垢——是太阳能阵列与地热锅炉的理想工作介质。
+- **蒸馏水仓 / Distilled Water Hatch**: 10M L capacity. Harnessing steam-entangled singularities, it condenses the purest water from the void — fills immediately on placement, then refills every 500 ticks. Distilled water never calcifies, making it the ideal working medium for the Solar Array and Geothermal Boiler.
+  1000万L容量。借助蒸汽纠缠奇点从虚空中凝结出最为纯净的水源——放置后立即补满，此后每500 tick补满一次。蒸馏水永不结垢，是太阳能阵列与地热锅炉的理想工作介质。
 
 ***
 

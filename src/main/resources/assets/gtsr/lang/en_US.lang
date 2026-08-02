@@ -230,8 +230,8 @@ gtsr.tooltip.mega_air_input_hatch.fluid_type=Air/Nether Air
 
 # Distilled Water Hatch
 gt.blockmachines.gtsr.distilled.water.hatch.name=Distilled Water Hatch
-gtsr.tooltip.distilled_water_hatch.desc=A distilled water generator hatch modeled after the Reservoir Hatch
-gtsr.tooltip.distilled_water_hatch.usage=Generates infinite distilled water, which never causes calcification. Can supply machines such as the Solar Array / Geothermal Boiler
+gtsr.tooltip.distilled_water_hatch.desc=Harnessing steam-entangled singularities, it condenses the purest water from the void
+gtsr.tooltip.distilled_water_hatch.usage=10,000,000 L capacity; fills immediately on placement, then refills every 500 ticks. Distilled water never causes calcification - ideal for the Solar Array and Geothermal Boiler
 
 # Large Geothermal Steam Boiler
 gt.blockmachines.gtsr.large.geothermal.steam.boiler.name=Large Geothermal Steam Boiler

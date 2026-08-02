@@ -5,6 +5,7 @@ import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 import net.minecraft.world.World;
 import net.minecraftforge.fluids.Fluid;
+import net.minecraftforge.fluids.FluidStack;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
@@ -19,16 +20,18 @@ import gregtech.api.util.GTModHandler;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.MTEHatchFluidGenerator;
 
 /**
- * 蒸馏水仓：性质几乎完全等同于 GT5U 蓄水仓（Reservoir Hatch）的流体生成仓，
- * 仅将生成流体改为蒸馏水，并使用淡蓝色调的水滴材质。蒸馏水不会引发钙化，
- * 可长期为太阳能阵列/地热锅炉等机器供给免结垢工作介质。
+ * 蒸馏水仓：借助蒸汽纠缠奇点，从虚空中凝结出最为纯净的水源（蒸馏水）。
+ * 容量 10,000,000 L；放置后立即补满一次，此后每 500 tick 补满一次。
+ * 蒸馏水不会引发钙化，可长期为太阳能阵列/地热锅炉等机器供给免结垢工作介质。
  */
 @IMetaTileEntity.SkipGenerateDescription
 public class MTEDistilledWaterHatch extends MTEHatchFluidGenerator {
 
-    private static final int GENERATED_AMOUNT = 2_000_000_000;
+    private static final int GENERATED_AMOUNT = 10_000_000;
+    private static final int REFILL_INTERVAL_TICKS = 500;
 
     private static IIconContainer OVERLAY_DISTILLED_WATER;
+    private boolean mInitialFillDone = false;
 
     public MTEDistilledWaterHatch(int aID, String aName, String aNameRegional) {
         super(aID, aName, aNameRegional, 4);
@@ -51,6 +54,18 @@ public class MTEDistilledWaterHatch extends MTEHatchFluidGenerator {
     }
 
     @Override
+    public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
+        super.onPostTick(aBaseMetaTileEntity, aTick);
+        // 放置（或重新加载）后的首个 tick 立即补满一次
+        if (!mInitialFillDone) {
+            mInitialFillDone = true;
+            if (aBaseMetaTileEntity.isServerSide()) {
+                this.fill(new FluidStack(getFluidToGenerate(), GENERATED_AMOUNT), true);
+            }
+        }
+    }
+
+    @Override
     public String[] getCustomTooltip() {
         return new String[] { StatCollector.translateToLocal("gtsr.tooltip.distilled_water_hatch.desc") };
     }
@@ -68,7 +83,7 @@ public class MTEDistilledWaterHatch extends MTEHatchFluidGenerator {
 
     @Override
     public int getMaxTickTime() {
-        return 100;
+        return REFILL_INTERVAL_TICKS;
     }
 
     @Override
@@ -100,7 +115,7 @@ public class MTEDistilledWaterHatch extends MTEHatchFluidGenerator {
             EnumChatFormatting.DARK_AQUA + StatCollector.translateToLocal("gtsr.tooltip.distilled_water_hatch.desc"),
             EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.shared.capacity")
                 + EnumChatFormatting.GOLD
-                + "2,000,000,000 "
+                + "10,000,000 "
                 + StatCollector.translateToLocal("gtsr.tooltip.shared.l"),
             EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.distilled_water_hatch.usage"),
             EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.tooltip.added_by")
