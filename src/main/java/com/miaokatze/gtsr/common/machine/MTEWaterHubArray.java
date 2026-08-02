@@ -31,7 +31,6 @@ import net.minecraftforge.fluids.IFluidHandler;
 import org.apache.commons.lang3.tuple.Pair;
 
 import com.google.common.collect.ImmutableList;
-import com.gtnewhorizon.gtnhlib.util.numberformatting.NumberFormatUtil;
 import com.gtnewhorizon.structurelib.alignment.constructable.IConstructable;
 import com.gtnewhorizon.structurelib.alignment.constructable.ISurvivalConstructable;
 import com.gtnewhorizon.structurelib.structure.IStructureDefinition;
@@ -50,6 +49,7 @@ import com.miaokatze.gtsr.common.machine.base.MTEWaterCacheNode;
 import com.miaokatze.gtsr.common.machine.base.MTEWaterHubInputHatch;
 import com.miaokatze.gtsr.common.machine.base.MTEWaterHubOutputHatch;
 import com.miaokatze.gtsr.common.util.HubTeleportUtil;
+import com.miaokatze.gtsr.common.util.UnitFormatUtil;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
@@ -1261,7 +1261,7 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
                     () -> EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.water_hub.water_buffer")
                         + " "
                         + EnumChatFormatting.LIGHT_PURPLE
-                        + NumberFormatUtil.formatNumber(mWaterStored)
+                        + UnitFormatUtil.format(mWaterStored)
                         + " L"
                         + EnumChatFormatting.RESET))
             .widget(
@@ -1270,7 +1270,7 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
                         + StatCollector.translateToLocal("gtsr.gui.water_hub.total_capacity")
                         + " "
                         + EnumChatFormatting.LIGHT_PURPLE
-                        + NumberFormatUtil.formatNumber(getTotalCapacity())
+                        + UnitFormatUtil.format(getTotalCapacity())
                         + " L"
                         + EnumChatFormatting.RESET))
             .widget(new FakeSyncWidget.IntegerSyncer(() -> mSetTier, val -> mSetTier = val))
@@ -1320,7 +1320,7 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
             EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.water_hub.water_buffer")
                 + " "
                 + EnumChatFormatting.LIGHT_PURPLE
-                + NumberFormatUtil.formatNumber(mWaterStored)
+                + UnitFormatUtil.format(mWaterStored)
                 + " L"
                 + EnumChatFormatting.RESET);
         return info.toArray(new String[0]);

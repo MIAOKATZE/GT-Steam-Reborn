@@ -31,7 +31,6 @@ import net.minecraftforge.fluids.IFluidHandler;
 import org.apache.commons.lang3.tuple.Pair;
 
 import com.google.common.collect.ImmutableList;
-import com.gtnewhorizon.gtnhlib.util.numberformatting.NumberFormatUtil;
 import com.gtnewhorizon.structurelib.alignment.constructable.IConstructable;
 import com.gtnewhorizon.structurelib.alignment.constructable.ISurvivalConstructable;
 import com.gtnewhorizon.structurelib.structure.IStructureDefinition;
@@ -54,6 +53,7 @@ import com.miaokatze.gtsr.common.machine.base.MTESteamHubInputHatch;
 import com.miaokatze.gtsr.common.machine.base.MTESteamHubOutputHatch;
 import com.miaokatze.gtsr.common.machine.base.MTESteamStorageUnit;
 import com.miaokatze.gtsr.common.util.HubTeleportUtil;
+import com.miaokatze.gtsr.common.util.UnitFormatUtil;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
@@ -1417,7 +1417,7 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
                     () -> EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.steam_hub.steam_buffer")
                         + " "
                         + EnumChatFormatting.LIGHT_PURPLE
-                        + NumberFormatUtil.formatNumber(mSteamStored)
+                        + UnitFormatUtil.format(mSteamStored)
                         + " L"
                         + EnumChatFormatting.RESET))
             .widget(
@@ -1426,7 +1426,7 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
                         + StatCollector.translateToLocal("gtsr.gui.steam_hub.total_capacity")
                         + " "
                         + EnumChatFormatting.LIGHT_PURPLE
-                        + NumberFormatUtil.formatNumber(getTotalCapacity())
+                        + UnitFormatUtil.format(getTotalCapacity())
                         + " L"
                         + EnumChatFormatting.RESET))
             .widget(new FakeSyncWidget.IntegerSyncer(() -> mSetTier, val -> mSetTier = val))
@@ -1476,7 +1476,7 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
             EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.steam_hub.steam_buffer")
                 + " "
                 + EnumChatFormatting.LIGHT_PURPLE
-                + NumberFormatUtil.formatNumber(mSteamStored)
+                + UnitFormatUtil.format(mSteamStored)
                 + " L"
                 + EnumChatFormatting.RESET);
         return info.toArray(new String[0]);

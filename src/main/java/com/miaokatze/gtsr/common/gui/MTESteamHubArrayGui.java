@@ -11,9 +11,9 @@ import com.cleanroommc.modularui.value.sync.IntSyncValue;
 import com.cleanroommc.modularui.value.sync.LongSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.widgets.ListWidget;
-import com.gtnewhorizon.gtnhlib.util.numberformatting.NumberFormatUtil;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.machine.MTESteamHubArray;
+import com.miaokatze.gtsr.common.util.UnitFormatUtil;
 
 import gregtech.api.metatileentity.implementations.MTEEnhancedMultiBlockBase;
 import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
@@ -136,7 +136,7 @@ public class MTESteamHubArrayGui extends MTEMultiBlockBaseGui<MTEEnhancedMultiBl
                     () -> EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.steam_hub.steam_buffer")
                         + " "
                         + EnumChatFormatting.LIGHT_PURPLE
-                        + NumberFormatUtil.formatNumber(mSteamStoredSync.getValue())
+                        + UnitFormatUtil.format(mSteamStoredSync.getValue())
                         + " L"
                         + EnumChatFormatting.RESET)
                     .asWidget()
@@ -148,7 +148,7 @@ public class MTESteamHubArrayGui extends MTEMultiBlockBaseGui<MTEEnhancedMultiBl
                         + StatCollector.translateToLocal("gtsr.gui.steam_hub.total_capacity")
                         + " "
                         + EnumChatFormatting.LIGHT_PURPLE
-                        + NumberFormatUtil.formatNumber(hubArray.getTotalCapacity())
+                        + UnitFormatUtil.format(hubArray.getTotalCapacity())
                         + " L"
                         + EnumChatFormatting.RESET)
                     .asWidget()

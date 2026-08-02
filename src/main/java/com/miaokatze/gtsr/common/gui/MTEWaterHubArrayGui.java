@@ -11,9 +11,9 @@ import com.cleanroommc.modularui.value.sync.IntSyncValue;
 import com.cleanroommc.modularui.value.sync.LongSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.widgets.ListWidget;
-import com.gtnewhorizon.gtnhlib.util.numberformatting.NumberFormatUtil;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.machine.MTEWaterHubArray;
+import com.miaokatze.gtsr.common.util.UnitFormatUtil;
 
 import gregtech.api.metatileentity.implementations.MTEEnhancedMultiBlockBase;
 import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
@@ -114,7 +114,7 @@ public class MTEWaterHubArrayGui extends MTEMultiBlockBaseGui<MTEEnhancedMultiBl
                     () -> EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.water_hub.water_buffer")
                         + " "
                         + EnumChatFormatting.LIGHT_PURPLE
-                        + NumberFormatUtil.formatNumber(mWaterStoredSync.getValue())
+                        + UnitFormatUtil.format(mWaterStoredSync.getValue())
                         + " L"
                         + EnumChatFormatting.RESET)
                     .asWidget()
@@ -126,7 +126,7 @@ public class MTEWaterHubArrayGui extends MTEMultiBlockBaseGui<MTEEnhancedMultiBl
                         + StatCollector.translateToLocal("gtsr.gui.water_hub.total_capacity")
                         + " "
                         + EnumChatFormatting.LIGHT_PURPLE
-                        + NumberFormatUtil.formatNumber(hubArray.getTotalCapacity())
+                        + UnitFormatUtil.format(hubArray.getTotalCapacity())
                         + " L"
                         + EnumChatFormatting.RESET)
                     .asWidget()

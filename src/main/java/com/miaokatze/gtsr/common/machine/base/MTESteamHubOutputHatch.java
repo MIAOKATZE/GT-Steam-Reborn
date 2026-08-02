@@ -10,6 +10,7 @@ import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidStack;
 
 import com.miaokatze.gtsr.common.machine.MTESteamHubArray;
+import com.miaokatze.gtsr.common.util.UnitFormatUtil;
 
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
@@ -79,11 +80,29 @@ public class MTESteamHubOutputHatch extends MTEHatchOutput {
     }
 
     @Override
-    public int getCapacity() {
+    public String[] getInfoData() {
+        long stored = mController != null && mController.isFormed() ? mController.getSteamStored() : 0L;
+        return new String[] { "gt.blockmachines." + mName + ".name",
+            EnumChatFormatting.GREEN + UnitFormatUtil.format(stored)
+                + " L"
+                + EnumChatFormatting.RESET
+                + " "
+                + EnumChatFormatting.YELLOW
+                + UnitFormatUtil.format(getCapacityLong())
+                + " L"
+                + EnumChatFormatting.RESET };
+    }
+
+    public long getCapacityLong() {
         if (mController != null && mController.isFormed()) {
-            return (int) Math.min(mController.getTotalCapacity(), Integer.MAX_VALUE);
+            return mController.getTotalCapacity();
         }
-        return 2_000_000;
+        return 2_000_000L;
+    }
+
+    @Override
+    public int getCapacity() {
+        return (int) Math.min(getCapacityLong(), Integer.MAX_VALUE);
     }
 
     @Override
