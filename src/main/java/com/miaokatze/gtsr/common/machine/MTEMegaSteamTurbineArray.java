@@ -932,6 +932,8 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
             mEfficiencyIncrease = 10;
         } else if (mEfficiency < maxEff) {
             mEfficiencyIncrease = 1;
+        } else if (mEfficiency > maxEff) {
+            mEfficiencyIncrease = -10;
         } else {
             mEfficiencyIncrease = 0;
         }

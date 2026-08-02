@@ -1253,7 +1253,7 @@ public class GTSRRecipeLoader implements Runnable {
 
     /**
      * 蒸馏水仓配方：继承 GT5U 蓄水仓（Reservoir Hatch）的装配机配方
-     * （EV 输入仓 + RemoteIO tile.machine + EV 电动泵），额外增加 1 组（64）
+     * （EV 输入仓 + RemoteIO tile.machine + EV 电动泵），额外增加 16 个
      * 蒸汽纠缠奇点；时长与电压沿用蓄水仓（5s / EV）。
      * 注意：RemoteIO 的 modid 是 "RIO"（见 GT5U Mods.REMOTE_IO）。
      */
@@ -1276,7 +1276,7 @@ public class GTSRRecipeLoader implements Runnable {
             get(ItemList.Hatch_Input_EV, 1),
             remoteIO,
             get(ItemList.Electric_Pump_EV, 1),
-            get(GTSRItemList.SteamEntangledSingularity, 64));
+            get(GTSRItemList.SteamEntangledSingularity, 16));
         if (hasNull(inputs)) {
             warn("Skipped DistilledWaterHatch recipe - inputs contain null");
             return;
