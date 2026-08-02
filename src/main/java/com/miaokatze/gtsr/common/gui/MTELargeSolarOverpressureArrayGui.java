@@ -92,17 +92,21 @@ public class MTELargeSolarOverpressureArrayGui extends MTEMultiBlockBaseGui<MTEE
                     .asWidget()
                     .marginBottom(2)
                     .fullWidth())
-            .child(
-                IKey.dynamic(
-                    () -> EnumChatFormatting.WHITE
-                        + StatCollector.translateToLocal("gtsr.gui.solar_array.solar_booster")
-                        + EnumChatFormatting.GREEN
-                        + numberFormat.format(calculateSolarBooster() * 100)
-                        + "% "
-                        + EnumChatFormatting.RESET)
-                    .asWidget()
-                    .marginBottom(2)
-                    .fullWidth());
+            .child(IKey.dynamic(() -> {
+                float booster = calculateSolarBooster();
+                String hint = booster <= 1.0f
+                    ? " " + EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.gui.solar_array.boost_hint")
+                    : "";
+                return EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.gui.solar_array.solar_booster")
+                    + EnumChatFormatting.GREEN
+                    + numberFormat.format(booster * 100)
+                    + "%"
+                    + hint
+                    + EnumChatFormatting.RESET;
+            })
+                .asWidget()
+                .marginBottom(2)
+                .fullWidth());
     }
 
     @Override
@@ -112,15 +116,16 @@ public class MTELargeSolarOverpressureArrayGui extends MTEMultiBlockBaseGui<MTEE
     }
 
     private float calculateSolarBooster() {
+        // 与机器端一致：高级太阳能锅炉每满组 64 台 +2.0x，简单太阳能锅炉每满组 64 台 +1.0x，最高 3.0x
         float booster = 1.0f;
         ItemStack stack = solarArray.getControllerSlot();
         if (stack != null) {
             if (ItemList.Machine_HP_Solar.isStackEqual(stack, false, false)) {
                 booster += 2.0f * Math.min(stack.stackSize, 64) / 64.0f;
             } else if (ItemList.Machine_Bronze_Boiler_Solar.isStackEqual(stack, false, false)) {
-                booster += 0.5f * Math.min(stack.stackSize, 64) / 64.0f;
+                booster += 1.0f * Math.min(stack.stackSize, 64) / 64.0f;
             }
         }
-        return booster;
+        return Math.min(booster, 3.0f);
     }
 }

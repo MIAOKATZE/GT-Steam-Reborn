@@ -12,6 +12,7 @@ import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -19,9 +20,11 @@ import javax.annotation.Nullable;
 import net.minecraft.block.Block;
 import net.minecraft.client.renderer.texture.IIconRegister;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 import net.minecraft.world.World;
@@ -105,7 +108,11 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
     protected int tierPipe = -1;
     protected int tierGear = -1;
 
-    private static final int CALCIFICATION_FACTOR = 3;
+    // 钙化延迟统一为 1 小时；满垢后产出降至 1%，并每 10 分钟向所有者发送提醒
+    private static final long CALCIFICATION_DELAY_TICKS = 3600L * 20;
+    private static final long CALCIFICATION_WARN_INTERVAL_TICKS = 600L * 20;
+    private long mCalcificationWarnTimer = 0L;
+
     private static final int STEAM_PER_WATER = 160;
 
     private static IIconContainer OVERLAY_OFF;
@@ -380,6 +387,8 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
             mCurrentSteamOutput = 0;
         }
 
+        tickCalcificationWarning();
+
         World world = aBaseMetaTileEntity.getWorld();
         boolean isClearWeather = !world.isRaining() && !world.isThundering()
             || aBaseMetaTileEntity.getBiome().rainfall == 0.0F;
@@ -453,7 +462,7 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
                     int baseProduction = (int) (getBaseSteamProduction() * solarBooster);
 
                     int consumedWater = (int) (Math.min(amountOfFluidInHatch, baseProduction / STEAM_PER_WATER) * mHeat
-                        / ((mCalcification * (CALCIFICATION_FACTOR - 1)) + 1));
+                        * getCalcificationOutputFactor());
 
                     if (consumedWater <= 0) continue;
 
@@ -516,6 +525,7 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
         tt.addMachineType(StatCollector.translateToLocal("gtsr.tooltip.solar_array.type"))
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.solar_array.desc"))
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.solar_array.desc2"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.solar_array.solar_booster_desc"))
             .addSeparator()
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.solar_array.calcification"))
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.solar_array.calcification_d"))
@@ -529,7 +539,11 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
                     + " 24,000"
                     + EnumChatFormatting.GRAY
                     + " L/s "
-                    + StatCollector.translateToLocal("gtsr.tooltip.solar_array.base_output"))
+                    + StatCollector.translateToLocal("gtsr.tooltip.solar_array.base_output")
+                    + EnumChatFormatting.GREEN
+                    + " ("
+                    + StatCollector.translateToLocal("gtsr.tooltip.solar_array.max_boosted_output")
+                    + ": 72,000 L/s)")
             .addInfo(
                 EnumChatFormatting.BLUE + "Tier 2 "
                     + EnumChatFormatting.DARK_PURPLE
@@ -538,7 +552,11 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
                     + " 60,000"
                     + EnumChatFormatting.GRAY
                     + " L/s "
-                    + StatCollector.translateToLocal("gtsr.tooltip.solar_array.base_output"))
+                    + StatCollector.translateToLocal("gtsr.tooltip.solar_array.base_output")
+                    + EnumChatFormatting.GREEN
+                    + " ("
+                    + StatCollector.translateToLocal("gtsr.tooltip.solar_array.max_boosted_output")
+                    + ": 180,000 L/s)")
             .addInfo(
                 EnumChatFormatting.BLUE + "Tier 3 "
                     + EnumChatFormatting.DARK_PURPLE
@@ -548,6 +566,10 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
                     + EnumChatFormatting.GRAY
                     + " L/s "
                     + StatCollector.translateToLocal("gtsr.tooltip.solar_array.base_output")
+                    + EnumChatFormatting.GREEN
+                    + " ("
+                    + StatCollector.translateToLocal("gtsr.tooltip.solar_array.max_boosted_output")
+                    + ": 180,000 L/s)"
                     + EnumChatFormatting.GREEN
                     + " ("
                     + StatCollector.translateToLocal("gtsr.tooltip.solar_array.superheated_steam")
@@ -783,28 +805,57 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
     }
 
     private long getCalcificationDelayTicks() {
-        switch (mSetTier) {
-            case 1:
-                return 12L * 3600 * 20;
-            case 2:
-                return 6L * 3600 * 20;
-            case 3:
-                return 4L * 3600 * 20;
-            default:
-                return 12L * 3600 * 20;
-        }
+        return CALCIFICATION_DELAY_TICKS;
     }
 
     private long getCalcificationFullTime() {
         switch (mSetTier) {
             case 1:
-                return 24L * 3600 * 20;
-            case 2:
                 return 12L * 3600 * 20;
+            case 2:
+                return 4L * 3600 * 20;
             case 3:
-                return 8L * 3600 * 20;
+                return 2L * 3600 * 20;
             default:
-                return 24L * 3600 * 20;
+                return 12L * 3600 * 20;
+        }
+    }
+
+    /**
+     * 结垢产出系数：未结垢时 100%，完全结垢时降至 1%（线性递减）。
+     */
+    private double getCalcificationOutputFactor() {
+        return Math.max(0.01d, 1.0d - 0.99d * mCalcification);
+    }
+
+    /**
+     * 满垢后每 10 分钟向所有者玩家发送一次聊天窗提醒。
+     */
+    private void tickCalcificationWarning() {
+        if (mCalcification >= 1.0d) {
+            if (mCalcificationWarnTimer <= 0L) {
+                mCalcificationWarnTimer = CALCIFICATION_WARN_INTERVAL_TICKS;
+                sendCalcificationWarning();
+            } else {
+                mCalcificationWarnTimer--;
+            }
+        } else {
+            mCalcificationWarnTimer = 0L;
+        }
+    }
+
+    private void sendCalcificationWarning() {
+        UUID ownerUuid = getBaseMetaTileEntity().getOwnerUuid();
+        if (ownerUuid == null) return;
+        for (Object o : MinecraftServer.getServer()
+            .getConfigurationManager().playerEntityList) {
+            if (o instanceof EntityPlayerMP player && player.getUniqueID()
+                .equals(ownerUuid)) {
+                GTUtility.sendChatToPlayer(
+                    player,
+                    EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.chat.calcification_full"));
+                return;
+            }
         }
     }
 
@@ -835,6 +886,7 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
         aNBT.setDouble("mHeat", mHeat);
         aNBT.setDouble("mCalcification", mCalcification);
         aNBT.setLong("mRunningTicks", mRunningTicks);
+        aNBT.setLong("mCalcificationWarnTimer", mCalcificationWarnTimer);
     }
 
     @Override
@@ -844,6 +896,7 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
         mHeat = aNBT.getDouble("mHeat");
         mCalcification = aNBT.getDouble("mCalcification");
         mRunningTicks = aNBT.getLong("mRunningTicks");
+        mCalcificationWarnTimer = aNBT.getLong("mCalcificationWarnTimer");
     }
 
     @Override

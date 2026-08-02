@@ -14,14 +14,17 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 
 import javax.annotation.Nullable;
 
 import net.minecraft.block.Block;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 import net.minecraftforge.common.util.ForgeDirection;
@@ -115,9 +118,11 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
 
     private static final int LAVA_PER_RECIPE = 1000;
 
-    private static final double CALCIFICATION_DECAY_FACTOR = 2.333d;
+    // 钙化延迟为 1 小时；满垢后产出降至 1%，并每 10 分钟向所有者发送提醒
     private static final int STEAM_PER_WATER = 160;
     private static final long CALCIFICATION_DELAY_TICKS = 72_000L;
+    private static final long CALCIFICATION_WARN_INTERVAL_TICKS = 600L * 20;
+    private long mCalcificationWarnTimer = 0L;
 
     public double mCalcification = 0.0d;
     public long mRunningTicks = 0L;
@@ -547,8 +552,47 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
     }
 
     private long getCalcificationFullTime() {
-        // Bronze: 10 hours, Steel: 5 hours
-        return mSetTier == 1 ? 10L * 3600 * 20 : 5L * 3600 * 20;
+        // 等级1（青铜）12 小时满垢；等级2（钢）不装芯片 4 小时、装过热芯片 2 小时满垢
+        if (mSetTier == 1) return 12L * 3600 * 20;
+        return hasOverheatChip() ? 2L * 3600 * 20 : 4L * 3600 * 20;
+    }
+
+    /**
+     * 结垢产出系数：未结垢时 100%，完全结垢时降至 1%（线性递减）。
+     */
+    private double getCalcificationOutputFactor() {
+        return Math.max(0.01d, 1.0d - 0.99d * mCalcification);
+    }
+
+    /**
+     * 满垢后每 10 分钟向所有者玩家发送一次聊天窗提醒。
+     */
+    private void tickCalcificationWarning() {
+        if (mCalcification >= 1.0d) {
+            if (mCalcificationWarnTimer <= 0L) {
+                mCalcificationWarnTimer = CALCIFICATION_WARN_INTERVAL_TICKS;
+                sendCalcificationWarning();
+            } else {
+                mCalcificationWarnTimer--;
+            }
+        } else {
+            mCalcificationWarnTimer = 0L;
+        }
+    }
+
+    private void sendCalcificationWarning() {
+        UUID ownerUuid = getBaseMetaTileEntity().getOwnerUuid();
+        if (ownerUuid == null) return;
+        for (Object o : MinecraftServer.getServer()
+            .getConfigurationManager().playerEntityList) {
+            if (o instanceof EntityPlayerMP player && player.getUniqueID()
+                .equals(ownerUuid)) {
+                GTUtility.sendChatToPlayer(
+                    player,
+                    EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.chat.calcification_full"));
+                return;
+            }
+        }
     }
 
     @Override
@@ -560,6 +604,10 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
             mStructureGraceTicks = 100;
         } else if (mStructureGraceTicks > 0) {
             mStructureGraceTicks--;
+        }
+
+        if (mMachine) {
+            tickCalcificationWarning();
         }
 
         if (aTick % 20 == 0) {
@@ -594,7 +642,7 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
 
                 int maxWaterNeeded = maxOutput / STEAM_PER_WATER;
                 int consumedWater = (int) (Math.min(fluid.amount, maxWaterNeeded) * mHeat
-                    / (mCalcification * CALCIFICATION_DECAY_FACTOR + 1));
+                    * getCalcificationOutputFactor());
 
                 if (consumedWater <= 0) continue;
 
@@ -900,6 +948,7 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
         aNBT.setDouble("mHeat", mHeat);
         aNBT.setDouble("mCalcification", mCalcification);
         aNBT.setLong("mRunningTicks", mRunningTicks);
+        aNBT.setLong("mCalcificationWarnTimer", mCalcificationWarnTimer);
     }
 
     @Override
@@ -909,5 +958,6 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
         mHeat = aNBT.getDouble("mHeat");
         mCalcification = aNBT.getDouble("mCalcification");
         mRunningTicks = aNBT.getLong("mRunningTicks");
+        mCalcificationWarnTimer = aNBT.getLong("mCalcificationWarnTimer");
     }
 }

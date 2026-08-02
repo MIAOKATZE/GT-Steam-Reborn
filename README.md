@@ -1,9 +1,9 @@
 <h1 align="center">GT-Steam-Reborn</h1>
 <p align="center"><strong><em>GTNH Steam Age Expansion Mod</em></strong><br><strong><em>GTNH 蒸汽时代扩展模组</em></strong></p>
 
-A GregTech New Horizons expansion mod that **supplements the Steam Age and significantly expands steam usage**, providing 20 multiblock steam machines, 5 single-block nodes, 14 types of hatches, and a Hub-Node binding system. It fills the gameplay gap between the steam age and the electric age in GTNH, making steam a viable and deep progression path rather than a transient phase.
+A GregTech New Horizons expansion mod that **supplements the Steam Age and significantly expands steam usage**, providing 20 multiblock steam machines, 5 single-block nodes, 15 types of hatches, and a Hub-Node binding system. It fills the gameplay gap between the steam age and the electric age in GTNH, making steam a viable and deep progression path rather than a transient phase.
 
-一个 GregTech New Horizons 扩展模组，**补充蒸汽时代并显著拓展蒸汽用途**，提供20台多方块蒸汽机器、5个单方块节点、14种仓室以及枢纽-节点绑定系统。它填补了 GTNH 蒸汽阶段到电力阶段之间的玩法空白，让蒸汽成为一条可行且有深度的进阶路线，而非过渡阶段。
+一个 GregTech New Horizons 扩展模组，**补充蒸汽时代并显著拓展蒸汽用途**，提供20台多方块蒸汽机器、5个单方块节点、15种仓室以及枢纽-节点绑定系统。它填补了 GTNH 蒸汽阶段到电力阶段之间的玩法空白，让蒸汽成为一条可行且有深度的进阶路线，而非过渡阶段。
 
 > \[!NOTE]
 > This is an unofficial mod. Please avoid discussing this mod in official GTNH forums.
@@ -193,8 +193,8 @@ All inherit from `MTEEnhancedMultiBlockBase` (GT5U), with more advanced mechanic
 
 <p align="center"><img src="README/MTELargeGeothermalSteamBoiler.png" width="300"><br><em>大型地热蒸汽锅炉 / Large Geothermal Steam Boiler</em></p>
 
-- **大型地热蒸汽锅炉 / Large Geothermal Steam Boiler (LGB)**: Bronze/Steel. Consumes lava to produce steam. Overheat chip (steel only) enables superheated steam output and rare byproduct drops (gold, rutile, scheelite).
-  消耗岩浆产蒸汽。过热芯片（仅钢）启用过热蒸汽输出和稀有副产物（金、金红石、白钨矿）。
+- **大型地热蒸汽锅炉 / Large Geothermal Steam Boiler (LGB)**: Bronze/Steel. Consumes lava to produce steam. Overheat chip (steel only) enables superheated steam output and rare byproduct drops (gold, rutile, scheelite). Calcification: normal water calcifies (1h delay; Bronze 12h to full, Steel 4h, Steel+chip 2h); at full calcification steam output drops to 1% and the owner is reminded in chat every 10 minutes; distilled water never calcifies.
+  消耗岩浆产蒸汽。过热芯片（仅钢）启用过热蒸汽输出和稀有副产物（金、金红石、白钨矿）。结垢：普通水结垢（延迟1小时；青铜12小时满垢、钢4小时、钢+芯片2小时）；满垢后蒸汽产出降至1%，并每10分钟向所有者发送聊天提醒；蒸馏水永不结垢。
 
 <p align="center"><img src="README/MTEMegaSteamTurbineArray.png" width="300"><br><em>巨型蒸汽轮机机组 / Mega Steam Turbine Array</em></p>
 
@@ -203,8 +203,8 @@ All inherit from `MTEEnhancedMultiBlockBase` (GT5U), with more advanced mechanic
 
 <p align="center"><img src="README/MTELargeSolarOverpressureArray.png" width="300"><br><em>大型太阳能超压阵列 / Large Solar Overpressure Array</em></p>
 
-- **大型太阳能超压阵列 / Large Solar Overpressure Array (LSOA)**: 3-tier (Bronze/Steel/Nickel). Produces steam from solar energy. Calcification mechanic — efficiency degrades over time. Nether tier produces superheated steam.
-  太阳能产蒸汽。钙化机制——效率随时间降低。镍级产出过热蒸汽。
+- **大型太阳能超压阵列 / Large Solar Overpressure Array (LSOA)**: 3-tier (Bronze/Steel/Nickel). Produces steam from solar energy. Calcification mechanic — efficiency degrades over time. Nether tier produces superheated steam. Solar boiler boost: place single-block solar boilers in the GUI controller slot to amplify output (Advanced Solar Boiler +2.0x per full stack of 64, Simple Solar Boiler +1.0x per full stack of 64, up to 3.0x; max boosted output: T1=72,000 L/s, T2/T3=180,000 L/s). Calcification: normal water calcifies (1h delay; T1 12h to full, T2 4h, T3 2h); at full calcification steam output drops to 1% and the owner is reminded in chat every 10 minutes; distilled water never calcifies.
+  太阳能产蒸汽。钙化机制——效率随时间降低。镍级产出过热蒸汽。太阳能锅炉增幅：在 GUI 控制器槽位放置单方块太阳能锅炉可增幅产出（高级太阳能锅炉每满组64台+2.0x，简单太阳能锅炉每满组64台+1.0x，最高3.0x；最大增幅产出：T1=72,000 L/s、T2/T3=180,000 L/s）。结垢：普通水结垢（延迟1小时；T1 12小时满垢、T2 4小时、T3 2小时）；满垢后蒸汽产出降至1%，并每10分钟向所有者发送聊天提醒；蒸馏水永不结垢。
 
 <p align="center"><img src="README/MTEKineticProcessingArray.png" width="300"><br><em>动力加工阵列 / Kinetic Processing Array</em></p>
 
@@ -253,7 +253,7 @@ Nodes that perform remote operations driven by the Singularity Drilling Hub. The
 
 ***
 
-## Hatches / 仓室 (14)
+## Hatches / 仓室 (15)
 
 Specialized hatches for GTSR machines with varying capacities and fluid filters:
 
@@ -266,6 +266,8 @@ GTSR 机器专用仓室，具有不同容量和流体过滤：
 - **超压轮机输入仓 / Overpressure Turbine Input Hatch**: For Mega Steam Turbine Array only, accepts all steam types
 - **巨型空气输入仓 / Mega Air Input Hatch**: 100M L capacity, accepts air and nether air only. Used by Siemens-Martin Furnace (air consumption) and Atmospheric Centrifuge (large air input).
   1亿L容量，仅接受空气与下界空气。用于平炉（空气消耗）和空气离心机（大量空气输入）。
+- **蒸馏水仓 / Distilled Water Hatch**: 2B L capacity, modeled after GT5U Reservoir Hatch. Generates infinite distilled water (2B L per 100 ticks), which never causes calcification — the ideal working medium for the Solar Array and Geothermal Boiler.
+  20亿L容量，仿照GT5U蓄水仓（Reservoir Hatch）设计。无限生成蒸馏水（每100 tick生成20亿L），蒸馏水永不结垢——是太阳能阵列与地热锅炉的理想工作介质。
 
 ***
 

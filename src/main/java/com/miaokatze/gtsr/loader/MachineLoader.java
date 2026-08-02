@@ -24,6 +24,7 @@ import com.miaokatze.gtsr.common.machine.MTESteamSingularityCompressor;
 import com.miaokatze.gtsr.common.machine.MTEVeinSteamPyrolyzer;
 import com.miaokatze.gtsr.common.machine.MTEVoidCrustSteamBorer;
 import com.miaokatze.gtsr.common.machine.MTEWaterHubArray;
+import com.miaokatze.gtsr.common.machine.base.MTEDistilledWaterHatch;
 import com.miaokatze.gtsr.common.machine.base.MTEHatchPressureSteamInput;
 import com.miaokatze.gtsr.common.machine.base.MTEHubStorageUnit;
 import com.miaokatze.gtsr.common.machine.base.MTEMegaAirInputHatch;
@@ -257,6 +258,12 @@ public class MachineLoader {
                 MetaTileEntityID.MEGA_AIR_INPUT_HATCH.ID,
                 "gtsr.mega.air.input.hatch",
                 "Mega Air Input Hatch"));
+        // 蒸馏水仓：仿照 GT5U 蓄水仓（Reservoir Hatch），生成蒸馏水
+        GTSRItemList.DistilledWaterHatch.set(
+            new MTEDistilledWaterHatch(
+                MetaTileEntityID.DISTILLED_WATER_HATCH.ID,
+                "gtsr.distilled.water.hatch",
+                "Distilled Water Hatch"));
     }
 
     /**
@@ -281,6 +288,8 @@ public class MachineLoader {
         CreativeTabManager.addItemToTab(GTSRItemList.OverpressureHubStorageUnit.get(1));
         // --- 多方块机器: 蒸汽生产 (15-16) ---
         CreativeTabManager.addItemToTab(GTSRItemList.LargeSolarOverpressureArray.get(1));
+        // 蒸馏水仓：创造物品栏排序在大型超压太阳能阵列后面
+        CreativeTabManager.addItemToTab(GTSRItemList.DistilledWaterHatch.get(1));
         CreativeTabManager.addItemToTab(GTSRItemList.LargeGeothermalSteamBoiler.get(1));
         // --- 多方块机器: 蒸汽产电及特殊仓室 (17-18) ---
         CreativeTabManager.addItemToTab(GTSRItemList.MegaSteamTurbineArray.get(1));

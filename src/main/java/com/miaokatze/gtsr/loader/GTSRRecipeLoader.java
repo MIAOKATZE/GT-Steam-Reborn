@@ -118,6 +118,8 @@ public class GTSRRecipeLoader implements Runnable {
         safeRegister("MultiblockWorkbench", GTSRRecipeLoader::registerMultiblockWorkbenchRecipes);
         safeRegister("MultiblockAssembler", GTSRRecipeLoader::registerMultiblockAssemblerRecipes);
         safeRegister("Hatch", GTSRRecipeLoader::registerHatchRecipes);
+        safeRegister("DistilledWaterHatch", GTSRRecipeLoader::registerDistilledWaterHatchRecipe); // 蒸馏水仓：继承蓄水仓配方 +
+                                                                                                  // 3组蒸汽纠缠奇点
         safeRegister("SingularityCompressorDisplay", GTSRRecipeLoader::registerSingularityCompressorDisplayRecipe);
         safeRegister("GeothermalBoilerDisplay", GTSRRecipeLoader::registerGeothermalBoilerDisplayRecipes);
         safeRegister("FluidDrillDisplay", GTSRRecipeLoader::registerFluidDrillDisplayRecipes);
@@ -1247,6 +1249,47 @@ public class GTSRRecipeLoader implements Runnable {
                 'D', GTSRItemList.HubStorageUnit.get(1) });
 
         log("Hatch recipes done.");
+    }
+
+    /**
+     * 蒸馏水仓配方：继承 GT5U 蓄水仓（Reservoir Hatch）的装配机配方
+     * （EV 输入仓 + RemoteIO tile.machine + EV 电动泵），额外增加 3 组（3×64）
+     * 蒸汽纠缠奇点；时长与电压沿用蓄水仓（5s / EV）。
+     */
+    private static void registerDistilledWaterHatchRecipe() {
+        log("Registering Distilled Water Hatch recipe...");
+
+        ItemStack distilledOut = get(GTSRItemList.DistilledWaterHatch, 1);
+        if (hasNull(distilledOut)) {
+            warn("Skipped DistilledWaterHatch recipe - output is null");
+            return;
+        }
+
+        ItemStack remoteIO = GTModHandler.getModItem("RemoteIO", "tile.machine", 1);
+        if (remoteIO == null) {
+            warn("RemoteIO tile.machine is null, skipping DistilledWaterHatch recipe!");
+            return;
+        }
+
+        ItemStack[] inputs = filterNulls(
+            get(ItemList.Hatch_Input_EV, 1),
+            remoteIO,
+            get(ItemList.Electric_Pump_EV, 1),
+            get(GTSRItemList.SteamEntangledSingularity, 64),
+            get(GTSRItemList.SteamEntangledSingularity, 64),
+            get(GTSRItemList.SteamEntangledSingularity, 64));
+        if (hasNull(inputs)) {
+            warn("Skipped DistilledWaterHatch recipe - inputs contain null");
+            return;
+        }
+
+        GTValues.RA.stdBuilder()
+            .itemInputs(inputs)
+            .itemOutputs(distilledOut)
+            .duration(5 * SECONDS)
+            .eut(TierEU.RECIPE_EV)
+            .addTo(assemblerRecipes);
+        log("Distilled Water Hatch recipe registered.");
     }
 
     private static void registerSingularityCompressorDisplayRecipe() {

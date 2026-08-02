@@ -203,6 +203,7 @@ gtsr.gui.solar_array.solar_booster=太阳能增幅:
 gtsr.gui.solar_array.superheated= (过热蒸汽)
 gtsr.gui.solar_array.steam= (蒸汽)
 gtsr.gui.solar_array.clear_calcification=点击清除钙化
+gtsr.gui.solar_array.boost_hint=（放置太阳能锅炉以增幅）
 
 # Solar Array Info
 gtsr.info.solar_array.name=大型太阳能超压阵列
@@ -227,6 +228,11 @@ gt.blockmachines.gtsr.mega.air.input.hatch.name=巨型空气输入仓
 gtsr.tooltip.mega_air_input_hatch.desc=用于输入大量的空气或者下界空气
 gtsr.tooltip.mega_air_input_hatch.fluid_type=空气/下界空气
 
+# Distilled Water Hatch
+gt.blockmachines.gtsr.distilled.water.hatch.name=蒸馏水仓
+gtsr.tooltip.distilled_water_hatch.desc=仿照蓄水仓（Reservoir Hatch）设计的蒸馏水生成仓
+gtsr.tooltip.distilled_water_hatch.usage=无限生成蒸馏水，蒸馏水不会引起钙化，可供给太阳能阵列/地热锅炉等机器
+
 # Large Geothermal Steam Boiler
 gt.blockmachines.gtsr.large.geothermal.steam.boiler.name=大型地热蒸汽锅炉
 gtsr.tooltip.geothermal_boiler.0=地热多方块锅炉，将岩浆转化为蒸汽
@@ -248,6 +254,7 @@ gtsr.gui.geothermal_boiler.chip_tier2_warn=⚠ 过热芯片需要等级2 (钢)
 gtsr.gui.geothermal_boiler.calcification=结垢： 
 gtsr.gui.geothermal_boiler.clear_calcification=点击清除结垢
 gtsr.chat.calcification_cleared=已清除沉积
+gtsr.chat.calcification_full=警告：机器已完全结垢，蒸汽产出降至 1%！请及时除垢。
 
 # Geothermal Boiler Tooltip
 gtsr.tooltip.geothermal_boiler.2=基础配方: 1000mb 岩浆 → 1 黑曜石 + 2 硫粉 (100 tick)
@@ -929,7 +936,7 @@ gtsr.tooltip.coke_oven.output_hatch=杂酚油
 gtsr.tooltip.geothermal_boiler.desc=将地下熔岩热量通过热交换管束传递至水室，利用热对流效应持续产出蒸汽。
 gtsr.tooltip.geothermal_boiler.heat=热量系统: 运行时升温，闲置时降温，蒸汽产出与热量成正比。
 gtsr.tooltip.geothermal_boiler.water_info=需要输入水来产生蒸汽（1mB水 = 160L蒸汽），蒸馏水可避免结垢。
-gtsr.tooltip.geothermal_boiler.calcification=持续运行会导致热交换管结垢沉积，逐步降低蒸汽产出效率（最高降低70%）。
+gtsr.tooltip.geothermal_boiler.calcification=持续运行会导致热交换管结垢沉积，逐步降低蒸汽产出效率（满垢后仅剩1%，每10分钟向所有者发送提醒）。
 gtsr.tooltip.geothermal_boiler.calcification_d=使用蒸馏水作为工作介质可避免结垢发生。
 gtsr.tooltip.geothermal_boiler.clear_calcification_hint=当产生水垢时，空手 Shift+右击控制器除垢
 gtsr.tooltip.geothermal_boiler.chip_info=可在控制器槽位安装地热过热芯片（仅钢级可用），切换为过热蒸汽输出。
@@ -942,7 +949,7 @@ gtsr.tooltip.geothermal_boiler.max_output=最大产出
 # 8. Large Solar Overpressure Array - missing desc keys
 gtsr.tooltip.solar_array.desc=利用太阳能聚焦加热水介质，产生蒸汽。
 gtsr.tooltip.solar_array.desc2=输出效率受日照强度与天气影响；夜间及恶劣天气下温度降低，效率显著下降。
-gtsr.tooltip.solar_array.calcification=持续运行会导致热管钙化沉积，逐步降低转换效率。
+gtsr.tooltip.solar_array.calcification=持续运行会导致热管钙化沉积，逐步降低蒸汽产出（满垢后仅剩1%，每10分钟向所有者发送提醒）。
 gtsr.tooltip.solar_array.calcification_d=使用蒸馏水作为工作介质可避免钙化发生。
 gtsr.tooltip.solar_array.clear_calcification_hint=当产生钙化时，空手 Shift+右击控制器除垢
 gtsr.tooltip.solar_array.steam_output=蒸汽输出
@@ -952,6 +959,8 @@ gtsr.tooltip.solar_array.tier_nickel=镍
 gtsr.tooltip.solar_array.tier_overpressure=超压
 gtsr.tooltip.solar_array.base_output=基础产出
 gtsr.tooltip.solar_array.superheated_steam=过热蒸汽
+gtsr.tooltip.solar_array.solar_booster_desc=在 GUI 控制器槽位放置单方块太阳能锅炉可增幅蒸汽产出：高级太阳能锅炉（Advanced Solar Boiler）每满组 64 台 +2.0x，简单太阳能锅炉（Simple Solar Boiler）每满组 64 台 +1.0x，最多叠加至 3.0x。
+gtsr.tooltip.solar_array.max_boosted_output=最大增幅产出
 
 # 9. Large Steam Furnace - missing keys
 gtsr.tooltip.steam_furnace.desc2=蒸汽驱动的工业化熔炼设备，具有更大的并行数，可同时处理大量熔炉配方。
