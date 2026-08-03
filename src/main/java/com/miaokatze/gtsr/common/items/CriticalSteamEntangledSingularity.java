@@ -39,6 +39,19 @@ public class CriticalSteamEntangledSingularity extends Item {
     public void addInformation(ItemStack stack, EntityPlayer player, List list, boolean adv) {
         list.add(EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.tooltip.critical_singularity.desc"));
         list.add(
+            EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.tooltip.added_by")
+                + " "
+                + EnumChatFormatting.AQUA
+                + "GT"
+                + EnumChatFormatting.GREEN
+                + "-"
+                + EnumChatFormatting.GOLD
+                + "Steam"
+                + EnumChatFormatting.RED
+                + "-"
+                + EnumChatFormatting.BLUE
+                + "Reborn");
+        list.add(
             EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.steam_entangled_singularity.danger"));
     }
 

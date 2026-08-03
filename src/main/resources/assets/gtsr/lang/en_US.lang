@@ -775,9 +775,9 @@ gtsr.tooltip.steam_hub.hint_status=Right-click controller holding a Hub Terminal
 
 # Steam Singularity Compressor (SSC)
 gtsr.tooltip.singularity_compressor.type=Steam Singularity Compressor, SSC
-gtsr.tooltip.singularity_compressor.desc=Devours the highest-grade steam in the input hatches every second (Tier 1: Steam/Superheated/Supercritical; Tier 2: also all dense variants), without any EU cost, raising heat via logarithmic equations.
+gtsr.tooltip.singularity_compressor.desc=Devours the highest-grade steam in the input hatches (Tier 1: Steam/Superheated/Supercritical; Tier 2: also all dense variants), without any EU cost, raising heat via logarithmic equations.
 gtsr.tooltip.singularity_compressor.desc2=Heat formula: Tier 1 y=0.005x/(x+200000) (cap 0.5%/s); Tier 2 y=0.002x/(x+1000) (cap 0.2%/s). Actual heat = steam coefficient x y (Steam/DenseSteam 0.5, Superheated/DenseSuperheated 1, Supercritical/DenseSupercritical 2).
-gtsr.tooltip.singularity_compressor.desc3=When multiple steam types are present, only the highest grade is recognized; if no steam is detected the next second or the machine is off, heat drops by 1% per second.
+gtsr.tooltip.singularity_compressor.desc3=When multiple steam types are present, only the highest grade is recognized; heat drops by 1% per second whenever the machine is off (including soft-hammer shutdown) or no steam is present.
 gtsr.tooltip.singularity_compressor.desc4=At 100% heat, heat resets and 1 Steam Entangled Singularity (Tier 1) or 1 Critical Steam Entangled Singularity (Tier 2) is produced.
 gtsr.tooltip.singularity_compressor.desc5=The Steam Singularity Compressor devours everything: steam cooling is disabled, and no EU is consumed.
 gtsr.tooltip.singularity_compressor.desc6=Tier 2: use a screwdriver (machine off and heat cleared) to toggle Dense Steam Compression mode - each Steam Entangled Singularity fuels 600s, compressing Steam/Superheated/Supercritical into dense steam at a 1000:1 ratio.

@@ -22,12 +22,12 @@ import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 /**
  * 蒸汽纠缠奇点掉落物爆炸逻辑。
  * <p>
- * 普通奇点：掉落 5 秒后爆炸，两倍 TNT 实体伤害（威力 8.0），不破坏方块与掉落物，
- * 无产物，爆炸后自身消失。
+ * 普通奇点：掉落 5 秒后爆炸，两倍 TNT 实体伤害（威力 8.0），不破坏方块，无产物，
+ * 爆炸后自身消失。
  * <p>
- * 临界奇点：掉落 2 秒后爆炸，50% TNT 方块破坏（威力 2.0）+ 20 倍 TNT 实体伤害
- * （威力 80.0），始终不破坏掉落物，爆炸后沿爆炸半径随机生成 0-16 个普通蒸汽纠缠
- * 奇点，爆炸后自身消失。两者等待期间均每 4 tick 散发一次传送门粒子。
+ * 临界奇点：掉落 3 秒后爆炸，50% TNT 方块破坏（威力 2.0）+ 20 倍 TNT 实体伤害
+ * （威力 80.0），爆炸后沿爆炸半径随机生成 0-16 个普通蒸汽纠缠奇点（各自带 4-10 秒
+ * 随机爆炸倒计时），爆炸后自身消失。两者等待期间均每 4 tick 散发一次传送门粒子。
  */
 public final class SingularityDropExplosion {
 
@@ -37,19 +37,25 @@ public final class SingularityDropExplosion {
     private static final float NORMAL_ENTITY_DAMAGE_SIZE = 8.0F;
     /** 普通奇点爆炸倒计时：5 秒 */
     private static final int NORMAL_DELAY_TICKS = 100;
+    /** 临界爆炸产出的普通奇点爆炸倒计时范围：4-10 秒（随机） */
+    private static final int SPAWN_DELAY_MIN_TICKS = 80;
+    private static final int SPAWN_DELAY_MAX_TICKS = 200;
 
     /** 临界奇点方块破坏威力：TNT 为 4.0，2.0 = 50% TNT 方块破坏 */
     private static final float CRITICAL_BLOCK_SIZE = 2.0F;
     /** 临界奇点实体伤害威力：80.0 = 20 倍 TNT 伤害 */
     private static final float CRITICAL_ENTITY_DAMAGE_SIZE = 80.0F;
-    /** 临界奇点爆炸倒计时：2 秒 */
-    private static final int CRITICAL_DELAY_TICKS = 40;
+    /** 临界奇点爆炸倒计时：3 秒 */
+    private static final int CRITICAL_DELAY_TICKS = 60;
 
     private SingularityDropExplosion() {}
 
     /** 普通蒸汽纠缠奇点掉落物逐 tick 更新（由 onEntityItemUpdate 委托） */
     public static void updateNormalSingularity(EntityItem entityItem) {
-        updateDroppedSingularity(entityItem, NORMAL_DELAY_TICKS, false);
+        // 临界爆炸产出的奇点带有随机 4-10 秒倒计时（NBT gtsrDropDelay），普通掉落默认 5 秒
+        NBTTagCompound tag = entityItem.getEntityData();
+        int delay = tag.getInteger("gtsrDropDelay");
+        updateDroppedSingularity(entityItem, delay > 0 ? delay : NORMAL_DELAY_TICKS, false);
     }
 
     /** 临界蒸汽纠缠奇点掉落物逐 tick 更新（由 onEntityItemUpdate 委托） */
@@ -221,7 +227,7 @@ public final class SingularityDropExplosion {
         }
     }
 
-    /** 沿爆炸半径（1-4 格）随机生成 0-16 个普通蒸汽纠缠奇点 */
+    /** 沿爆炸半径（1-4 格）随机生成 0-16 个普通蒸汽纠缠奇点（各带 4-10 秒随机爆炸倒计时） */
     private static void spawnSingularityDrops(World world, double x, double y, double z) {
         int count = world.rand.nextInt(17);
         for (int i = 0; i < count; ++i) {
@@ -233,6 +239,10 @@ public final class SingularityDropExplosion {
                 y + world.rand.nextDouble() * 2.0D,
                 z + Math.sin(angle) * dist,
                 GTSRItemList.SteamEntangledSingularity.get(1));
+            drop.getEntityData()
+                .setInteger(
+                    "gtsrDropDelay",
+                    SPAWN_DELAY_MIN_TICKS + world.rand.nextInt(SPAWN_DELAY_MAX_TICKS - SPAWN_DELAY_MIN_TICKS + 1));
             drop.motionX = (world.rand.nextFloat() - 0.5F) * 0.4D;
             drop.motionY = world.rand.nextFloat() * 0.3D;
             drop.motionZ = (world.rand.nextFloat() - 0.5F) * 0.4D;

@@ -828,9 +828,9 @@ gtsr.tooltip.steam_hub.hint_status=手持枢纽终端右击控制器，打开缓
 
 # 15. Steam Singularity Compressor
 gtsr.tooltip.singularity_compressor.type=蒸汽奇点压缩机, SSC
-gtsr.tooltip.singularity_compressor.desc=每秒吞噬输入仓中最高等级的蒸汽（等级1：蒸汽/过热/超临界；等级2：另含全部致密变体），脱离电力消耗，按对数方程提升热量。
+gtsr.tooltip.singularity_compressor.desc=吞噬输入仓中最高等级的蒸汽（等级1：蒸汽/过热/超临界；等级2：另含全部致密变体），脱离电力消耗，按对数方程提升热量。
 gtsr.tooltip.singularity_compressor.desc2=热量公式：等级1 y=0.005x/(x+200000)（上限0.5%/s）；等级2 y=0.002x/(x+1000)（上限0.2%/s）。实际热量=蒸汽系数×y（蒸汽/致密蒸汽 0.5、过热/致密过热 1、超临界/致密超临界 2）。
-gtsr.tooltip.singularity_compressor.desc3=多种蒸汽共存时只识别最高等级；下一秒没有识别到蒸汽或机器关机时，热量每秒降低 1%。
+gtsr.tooltip.singularity_compressor.desc3=多种蒸汽共存时只识别最高等级；机器关机（含软锤关闭）或没有蒸汽时，热量每秒降低 1%。
 gtsr.tooltip.singularity_compressor.desc4=热量达到 100% 时清零，产出 1 个蒸汽纠缠奇点（等级1）或 1 个临界蒸汽纠缠奇点（等级2）。
 gtsr.tooltip.singularity_compressor.desc5=蒸汽奇点压缩机会吞噬所有：已禁用蒸汽冷却机制，不消耗任何电力。
 gtsr.tooltip.singularity_compressor.desc6=等级2可用螺丝刀（关机且热量清零时）切换致密蒸汽压缩模式：每输入 1 个蒸汽纠缠奇点运行 600s，蒸汽/过热/超临界按 1000:1 压缩为对应致密蒸汽。

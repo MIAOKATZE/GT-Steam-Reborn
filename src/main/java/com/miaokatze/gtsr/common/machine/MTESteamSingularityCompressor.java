@@ -719,8 +719,8 @@ public class MTESteamSingularityCompressor extends MTEEnhancedMultiBlockBase<MTE
         if (!aBaseMetaTileEntity.isServerSide()) return;
         if (aTick % CYCLE_LENGTH != 0L) return;
 
-        if (!mMachine) {
-            // 机器关机：每秒降低 1% 热量
+        if (!mMachine || !aBaseMetaTileEntity.isAllowedToWork()) {
+            // 机器关机（结构失效或软锤/红石关闭）：每秒降低 1% 热量
             mHeat = Math.max(0.0d, mHeat - HEAT_DECAY_PER_SECOND);
             return;
         }
