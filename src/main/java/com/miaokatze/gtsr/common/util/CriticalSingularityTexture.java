@@ -50,8 +50,8 @@ public class CriticalSingularityTexture extends TextureAtlasSprite {
 
     /**
      * 27 帧动画时长表 (单位: tick)。原动画 9 帧 x frametime 5 = 45 tick,
-     * 新动画总时长 = 27 x 1 + 3 x 2 = 30 tick, 快约 50%。每组的原帧 (i % 9 == 0)
-     * 停留 2 tick, 抖动副本各 1 tick。
+     * 新动画总时长 = 9 x 3 + 18 x 1 = 45 tick, 与普通蒸汽纠缠奇点一致。
+     * 每组的原帧 (i % 9 == 0) 停留 3 tick, 抖动副本各 1 tick。
      */
     private static final int[] FRAME_TIMES = buildFrameTimes();
 
@@ -61,7 +61,7 @@ public class CriticalSingularityTexture extends TextureAtlasSprite {
     private static int[] buildFrameTimes() {
         int[] times = new int[TOTAL_FRAME_COUNT];
         for (int i = 0; i < times.length; i++) {
-            times[i] = (i % SOURCE_FRAME_COUNT == 0) ? 2 : 1;
+            times[i] = (i % SOURCE_FRAME_COUNT == 0) ? 3 : 1;
         }
         return times;
     }

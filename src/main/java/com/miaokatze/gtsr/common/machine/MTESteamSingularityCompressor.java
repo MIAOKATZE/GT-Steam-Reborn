@@ -71,11 +71,12 @@ import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.MTEHatchSteam
 /**
  * 蒸汽奇点压缩机 v2。
  * <p>
- * 脱离 GT++ 蒸汽多机基类：不再使用 lEUt 蒸汽消耗机制，改为每秒吞噬输入仓中最高等级的蒸汽
- * （仿 GT5U 通用化学燃料引擎的 20t 周期全量消耗），按对数方程提升热量。
+ * 脱离 GT++ 蒸汽多机基类：不再使用 lEUt 蒸汽消耗机制，改为每次周期检查吞噬输入仓中最高等级的蒸汽
+ * （仿 GT5U 通用化学燃料引擎：checkProcessing 每次调用即一个完整周期，成功时置 20 tick 进度，
+ * 完成后基类立即重查，形成连续循环），按对数方程提升热量。
  * <ul>
- * <li>等级 1：钢外壳 + 钢齿轮箱 + 防爆玻璃 + 钢框架，只识别 蒸汽/过热/超临界；热量 y=0.005x/(x+200000)</li>
- * <li>等级 2：强化镀铑钯外壳/齿轮箱 + LuV+ 玻璃 + 镀铑钯框架，可识别致密变体；热量 y=0.002x/(x+1000)</li>
+ * <li>等级 1：钢外壳 + 钢齿轮箱 + 钢管道 + 防爆玻璃 + 钢框架，只识别 蒸汽/过热/超临界；热量 y=0.005x/(x+200000)</li>
+ * <li>等级 2：强化镀铑钯外壳/齿轮箱/管道 + LuV+ 玻璃 + 镀铑钯框架，可识别致密变体；热量 y=0.002x/(x+1000)</li>
  * <li>热量 ≥100% 清零并产出 1 个蒸汽纠缠奇点（等级 1）/ 临界蒸汽纠缠奇点（等级 2）</li>
  * <li>等级 2 螺丝刀切换致密蒸汽压缩模式：每输入 1 个蒸汽纠缠奇点运行 600s，蒸汽按 1000:1 压缩为致密蒸汽</li>
  * </ul>
@@ -88,7 +89,7 @@ public class MTESteamSingularityCompressor extends MTEEnhancedMultiBlockBase<MTE
     private static final int VERTICAL_OFF_SET = 8;
     private static final int DEPTH_OFF_SET = 2;
 
-    /** 每秒一个消耗周期（20 tick） */
+    /** 单周期进度长度（20 tick，成功后基类立即重查形成连续循环） */
     private static final int CYCLE_LENGTH = 20;
     /** 无蒸汽或关机时每秒热量衰减 */
     private static final double HEAT_DECAY_PER_SECOND = 0.01d;
@@ -124,6 +125,7 @@ public class MTESteamSingularityCompressor extends MTEEnhancedMultiBlockBase<MTE
     public int mDenseTicks = 0;
 
     private int mCasingTierB = -1;
+    private int mCasingTierC = -1;
     private int mCasingTierD = -1;
     private int mCasingTierE = -1;
     private int mCasingTierF = -1;
@@ -176,6 +178,13 @@ public class MTESteamSingularityCompressor extends MTEEnhancedMultiBlockBase<MTE
 
     private static int getCasingTier(Block block, int meta) {
         if (block == GregTechAPI.sBlockCasings2 && meta == 0) return 1;
+        if (block == GregTechAPI.sBlockCasings8 && meta == 6) return 2;
+        return -1;
+    }
+
+    /** 'C'（管道位）等级：等级 1 钢管（sBlockCasings2:13），等级 2 强化镀铑钯外壳（sBlockCasings8:6） */
+    private static int getPipeTier(Block block, int meta) {
+        if (block == GregTechAPI.sBlockCasings2 && meta == 13) return 1;
         if (block == GregTechAPI.sBlockCasings8 && meta == 6) return 2;
         return -1;
     }
@@ -277,7 +286,12 @@ public class MTESteamSingularityCompressor extends MTEEnhancedMultiBlockBase<MTE
                             .build()))
                 .addElement(
                     'C',
-                    onElementPass(MTESteamSingularityCompressor::onPipeAdded, ofBlock(GregTechAPI.sBlockCasings2, 13)))
+                    ofBlocksTiered(
+                        MTESteamSingularityCompressor::getPipeTier,
+                        casingTiers,
+                        -1,
+                        (t, tier) -> t.mCasingTierC = tier,
+                        t -> t.mCasingTierC))
                 .addElement(
                     'D',
                     ofBlocksTiered(
@@ -314,8 +328,6 @@ public class MTESteamSingularityCompressor extends MTEEnhancedMultiBlockBase<MTE
         }
         return STRUCTURE_DEFINITION;
     }
-
-    private void onPipeAdded() {}
 
     /**
      * 压缩机本地仓室元素。
@@ -469,6 +481,7 @@ public class MTESteamSingularityCompressor extends MTEEnhancedMultiBlockBase<MTE
     @Override
     public void checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack, List<StructureError> errors) {
         mCasingTierB = -1;
+        mCasingTierC = -1;
         mCasingTierD = -1;
         mCasingTierE = -1;
         mCasingTierF = -1;
@@ -479,7 +492,10 @@ public class MTESteamSingularityCompressor extends MTEEnhancedMultiBlockBase<MTE
         }
 
         int tier = mCasingTierB;
-        if (mCasingTierD != tier || mCasingTierE != tier || mCasingTierF != tier || (tier != 1 && tier != 2)) {
+        if (mCasingTierC != tier || mCasingTierD != tier
+            || mCasingTierE != tier
+            || mCasingTierF != tier
+            || (tier != 1 && tier != 2)) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
             return;
         }
@@ -503,10 +519,10 @@ public class MTESteamSingularityCompressor extends MTEEnhancedMultiBlockBase<MTE
 
     @Override
     public CheckRecipeResult checkProcessing() {
-        // 每秒执行一次完整周期（脱体 lEUt，无 EU 需求）
-        if (getBaseMetaTileEntity().getTimer() % CYCLE_LENGTH != 0L) {
-            return CheckRecipeResultRegistry.NO_RECIPE;
-        }
+        // 每次被基类调用即执行一个完整周期（脱体 lEUt，无 EU 需求）。
+        // 注意：不能在内部按世界时间（getTimer % 20）门控——基类用 mTotalRunTime 相位
+        // 每 100 tick 检查一次配方，与世界时间相位固定错位时机器会永远点不着火。
+        // 成功时 startCycle 置 20 tick 进度，进度完成后基类会立即重查，形成连续循环。
         return mDenseMode ? processDenseCycle() : processHeatCycle();
     }
 
@@ -515,8 +531,7 @@ public class MTESteamSingularityCompressor extends MTEEnhancedMultiBlockBase<MTE
         boolean includeDense = mTier >= 2;
         int grade = findHighestGrade(includeDense);
         if (grade < 0) {
-            // 下一秒没有识别到任何蒸汽：每秒降低 1% 热量
-            mHeat = Math.max(0.0d, mHeat - HEAT_DECAY_PER_SECOND);
+            // 无蒸汽：不在这里衰减（由 onPostTick 每秒衰减 1%），直接待机
             return CheckRecipeResultRegistry.NO_RECIPE;
         }
         long x = sumGrade(grade, includeDense);
@@ -535,16 +550,15 @@ public class MTESteamSingularityCompressor extends MTEEnhancedMultiBlockBase<MTE
         return CheckRecipeResultRegistry.SUCCESSFUL;
     }
 
-    /** 致密压缩周期：消耗蒸汽纠缠奇点续航，蒸汽按 1000:1 压缩为致密蒸汽 */
+    /** 致密压缩周期：蒸汽按 1000:1 压缩为致密蒸汽（续航倒计时由 onPostTick 实时维护） */
     private CheckRecipeResult processDenseCycle() {
-        // 600s 结束瞬间自动消化 1 颗续杯，中途不断模式；无奇点则待机重试
+        // 保险：若倒计时已在 onPostTick 耗尽且来不及续杯，这里兜底消化 1 颗
         if (mDenseTicks <= 0) {
             if (!consumeSingularityFromInputBuses(1)) {
                 return CheckRecipeResultRegistry.NO_RECIPE;
             }
             mDenseTicks = SINGULARITY_DURATION_TICKS;
         }
-        mDenseTicks -= CYCLE_LENGTH;
 
         int grade = findHighestGrade(false);
         if (grade < 0) {
@@ -703,8 +717,27 @@ public class MTESteamSingularityCompressor extends MTEEnhancedMultiBlockBase<MTE
     public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
         super.onPostTick(aBaseMetaTileEntity, aTick);
         if (!aBaseMetaTileEntity.isServerSide()) return;
-        // 机器关机：每秒降低 1% 热量
-        if (!mMachine && aTick % CYCLE_LENGTH == 0L) {
+        if (aTick % CYCLE_LENGTH != 0L) return;
+
+        if (!mMachine) {
+            // 机器关机：每秒降低 1% 热量
+            mHeat = Math.max(0.0d, mHeat - HEAT_DECAY_PER_SECOND);
+            return;
+        }
+        if (mDenseMode) {
+            // 致密模式：续航倒计时实时推进（600s），归零瞬间自动消化 1 颗续杯
+            mDenseTicks -= CYCLE_LENGTH;
+            if (mDenseTicks <= 0) {
+                if (consumeSingularityFromInputBuses(1)) {
+                    mDenseTicks = SINGULARITY_DURATION_TICKS;
+                } else {
+                    mDenseTicks = 0;
+                }
+            }
+            return;
+        }
+        // 蓄热模式：开机但空闲（无进行中周期）且当前无蒸汽：每秒降低 1% 热量
+        if (mMaxProgresstime <= 0 && findHighestGrade(mTier >= 2) < 0) {
             mHeat = Math.max(0.0d, mHeat - HEAT_DECAY_PER_SECOND);
         }
     }
@@ -716,11 +749,6 @@ public class MTESteamSingularityCompressor extends MTEEnhancedMultiBlockBase<MTE
 
     @Override
     public boolean isCorrectMachinePart(ItemStack aStack) {
-        return true;
-    }
-
-    @Override
-    public boolean checkRecipe(ItemStack aStack) {
         return true;
     }
 

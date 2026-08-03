@@ -45,7 +45,7 @@ public class SteamEntangledSingularity extends Item {
 
     @Override
     public boolean onEntityItemUpdate(EntityItem entityItem) {
-        SingularityDropExplosion.updateDroppedSingularity(entityItem);
+        SingularityDropExplosion.updateNormalSingularity(entityItem);
         return false;
     }
 }

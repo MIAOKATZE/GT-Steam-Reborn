@@ -38,11 +38,13 @@ public class CriticalSteamEntangledSingularity extends Item {
     @Override
     public void addInformation(ItemStack stack, EntityPlayer player, List list, boolean adv) {
         list.add(EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.tooltip.critical_singularity.desc"));
+        list.add(
+            EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.steam_entangled_singularity.danger"));
     }
 
     @Override
     public boolean onEntityItemUpdate(EntityItem entityItem) {
-        SingularityDropExplosion.updateDroppedSingularity(entityItem);
+        SingularityDropExplosion.updateCriticalSingularity(entityItem);
         return false;
     }
 }
