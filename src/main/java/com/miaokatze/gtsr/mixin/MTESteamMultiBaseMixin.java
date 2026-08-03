@@ -504,6 +504,71 @@ public abstract class MTESteamMultiBaseMixin implements ICoolingHatchHolder {
     }
 
     /**
+     * 注入 getStoredInputsForColor 的 RETURN，补充遍历 mInputBusses（标准输入总线）。
+     *
+     * MTESteamMultiBlockBase 覆写了 getStoredInputsForColor，但只遍历 mSteamInputs（蒸汽输入总线），
+     * 完全忽略 mInputBusses。GT5U 标准配方流程 doCheckRecipe 经 getStoredInputsForColor 收集输入物品，
+     * 导致结构上允许放置的标准输入总线（GTSRHatchElement.SteamInputBus → addInputBusToMachineList）
+     * 中的物品永远不参与配方匹配（大型蒸汽熔炉早期 bug：只识别蒸汽输入总线中的物品）。
+     * 本注入与原方法结果合并，对齐 GT5U 原生 getStoredInputsForColor 语义：
+     * - 跳过 MTEHatchCraftingInputME（样板仓走 doCheckRecipe 的 mDualInputHatches 分支）
+     * - 按 Optional color 过滤总线颜色
+     * - 同步 mRecipeMap
+     * - ME 输入总线按 ItemId 去重
+     * - 防御性跳过 MTEHatchSteamBusInput（基类已遍历，防双注册重复）
+     * 消耗侧无需处理：GTRecipe.consumeInput 直接扣减本方法返回的槽位 ItemStack 引用。
+     * 对 GT++ 原生蒸汽机器无副作用（其 mInputBusses 为空）。
+     *
+     * cancellable=true 必填：result == null 分支调用 cir.setReturnValue(result) 覆写返回值。
+     *
+     * @author GTSR
+     */
+    @Inject(method = "getStoredInputsForColor", at = @At("RETURN"), cancellable = true)
+    private void gtsr$onGetStoredInputsForColorTail(java.util.Optional<java.lang.Byte> color,
+        CallbackInfoReturnable<ArrayList<net.minecraft.item.ItemStack>> cir) {
+        // GTNL 守卫：GTNL 机器走自身覆写/原生行为，避免 GTSR 补充遍历导致输入翻倍
+        if (gtsr$isGTNLMachine()) return;
+
+        ArrayList<net.minecraft.item.ItemStack> result = cir.getReturnValue();
+        if (result == null) {
+            result = new ArrayList<>();
+            cir.setReturnValue(result);
+        }
+
+        MTEMultiBlockBase multiBlockSelf = (MTEMultiBlockBase) (Object) this;
+        java.util.Map<gregtech.api.util.GTUtility.ItemId, net.minecraft.item.ItemStack> inputsFromME = new java.util.HashMap<>();
+        for (gregtech.api.metatileentity.implementations.MTEHatchInputBus tHatch : GTUtility
+            .validMTEList(multiBlockSelf.mInputBusses)) {
+            if (tHatch instanceof gregtech.common.tileentities.machines.MTEHatchCraftingInputME) {
+                continue;
+            }
+            // 防御性去重：蒸汽输入总线只由基类从 mSteamInputs 遍历，此处跳过防止其他路径双注册导致重复
+            if (tHatch instanceof MTEHatchSteamBusInput) {
+                continue;
+            }
+            byte busColor = tHatch.getColor();
+            if (color.isPresent() && busColor != -1 && busColor != color.get()) continue;
+            tHatch.mRecipeMap = gtsr$self().getRecipeMap();
+            IGregTechTileEntity tileEntity = tHatch.getBaseMetaTileEntity();
+            boolean isMEBus = tHatch instanceof gregtech.common.tileentities.machines.MTEHatchInputBusME;
+            for (int i = tileEntity.getSizeInventory() - 1; i >= 0; i--) {
+                net.minecraft.item.ItemStack itemStack = tileEntity.getStackInSlot(i);
+                if (itemStack != null) {
+                    if (isMEBus) {
+                        // 防止不同 ME 总线中的相同物品被重复识别（与 GT5U 原生行为一致）
+                        inputsFromME.put(gregtech.api.util.GTUtility.ItemId.createNoCopy(itemStack), itemStack);
+                    } else {
+                        result.add(itemStack);
+                    }
+                }
+            }
+        }
+        if (!inputsFromME.isEmpty()) {
+            result.addAll(inputsFromME.values());
+        }
+    }
+
+    /**
      * 注入 getOutputBusses 的 RETURN，补充合并 mOutputBusses。
      *
      * 取消双注册后，蒸汽输出总线只在 mSteamOutputs 中。GT5U 原生的 getOutputBusses（MTESteamMultiBlockBase 覆写）
