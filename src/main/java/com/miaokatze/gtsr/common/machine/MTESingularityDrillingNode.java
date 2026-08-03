@@ -161,8 +161,12 @@ public class MTESingularityDrillingNode extends MTERemoteWorkerNode {
             EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.shared.work_cycle")
                 + EnumChatFormatting.GREEN
                 + StatCollector.translateToLocal("gtsr.tooltip.shared.8s"));
-        tooltip.add(EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.drilling_node.steam_cost"));
+        tooltip.add(
+            EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.drilling_node.steam_cost")
+                + EnumChatFormatting.GOLD
+                + StatCollector.translateToLocal("gtsr.tooltip.drilling_node.steam_cost_base"));
         tooltip.add(EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.shared.singularity_cost"));
+        tooltip.add(EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.node.chunk_load_warn"));
         tooltip.add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.shared.node_bind_hint"));
         tooltip.add(
             EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.drilling_node.upgrade_title"));

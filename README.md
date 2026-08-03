@@ -248,8 +248,8 @@ Nodes that perform remote operations driven by the Singularity Drilling Hub. The
 
 由奇点钻井枢纽驱动执行远程作业的节点。消耗钻管向下钻探，到达基岩后提取资源。
 
-- **奇点矿机节点 / Singularity Miner Node**: Mines ores. 4-tier upgrade system using Ore Drill multiblock controllers + singularities. Higher tiers increase mining range, fortune level, and speed. Fortune applies to both normal and small ores.
-- **奇点钻井节点 / Singularity Drilling Node**: Extracts underground fluids. 4-tier upgrade system using Oil Drill multiblock controllers + singularities. Higher tiers increase extraction coefficient and work range (1×1 to 8×8 chunks). Each chunk is independently extracted and depleted.
+- **奇点采矿节点 / Singularity Miner Node**: Mines ores. 5-tier upgrade system using Ore Drill multiblock controllers + singularities. Higher tiers increase mining range, fortune level, and speed. Fortune applies to both normal and small ores. Binding to a hub enables automatic chunk loading for remote operation.
+- **奇点钻井节点 / Singularity Drilling Node**: Extracts underground fluids. 4-tier upgrade system using Oil Drill multiblock controllers + singularities. Higher tiers increase extraction coefficient and work range (1×1 to 8×8 chunks). Each chunk is independently extracted and depleted. Binding to a hub enables automatic chunk loading for remote operation.
 
 ***
 

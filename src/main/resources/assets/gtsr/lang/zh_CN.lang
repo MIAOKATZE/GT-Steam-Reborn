@@ -18,6 +18,7 @@ gtsr.binding.no_singularity=背包中没有蒸汽纠缠奇点！
 gtsr.tooltip.shared.node_bind_hint=右击奇点钻井枢纽绑定
 gtsr.tooltip.shared.node_unbound=未绑定枢纽
 gtsr.tooltip.shared.node_steam_cost=节点蒸汽消耗（详见各节点说明）
+gtsr.tooltip.node.chunk_load_warn=绑定奇点钻井枢纽后该机器将自动进行区块加载，保证远程作业稳定运行
 gtsr.tooltip.shared.work_cycle=工作周期: 
 gtsr.tooltip.shared.8s=8秒
 gtsr.tooltip.shared.cache_node_standalone=可单独作为可高速自动输出的流体容器
@@ -391,9 +392,9 @@ gtsr.gui.binding_hint=手持芯片右击控制器获取节点信息
 gt.blockmachines.gtsr.singularity.drilling.hub.name=奇点钻井枢纽
 gtsr.recipe.singularity_drilling_hub=奇点钻井枢纽
 gtsr.tooltip.singularity_drilling_hub.0=3×3×3 中空结构，蒸汽驱动的远程采矿/钻井控制中心
-gtsr.tooltip.singularity_drilling_hub.1=可绑定奇点矿机节点和奇点钻井节点进行远程作业
+gtsr.tooltip.singularity_drilling_hub.1=可绑定奇点采矿节点和奇点钻井节点进行远程作业
 gtsr.tooltip.singularity_drilling_hub.2=需要安装枢纽奇点升级芯片才能进行无线控制
-gtsr.tooltip.singularity_drilling_hub.3=节点工作周期: 8秒 (160 tick)
+gtsr.tooltip.singularity_drilling_hub.3=节点工作周期: 随等级变化（采矿 3s~1刻，钻井 8s）
 gtsr.tooltip.singularity_drilling_hub.4=蒸汽消耗: 8,000 + 节点消耗 L/s
 gtsr.tooltip.singularity_drilling_hub.5=过热蒸汽: 4x 速度
 gtsr.tooltip.singularity_drilling_hub.ctrl=中层正面中央
@@ -402,18 +403,18 @@ gtsr.tooltip.singularity_drilling_hub.input_hatch=蒸汽输入仓
 gtsr.tooltip.singularity_drilling_hub.output_hatch=流体输出仓
 
 # Singularity Miner Node
-gt.blockmachines.gtsr.singularity.miner.node.name=奇点矿机节点
+gt.blockmachines.gtsr.singularity.miner.node.name=奇点采矿节点
 gtsr.tooltip.miner_node.desc=蒸汽驱动的远程采矿节点，绑定奇点钻井枢纽后自动采矿
 gtsr.tooltip.miner_node.range=采矿范围:
-gtsr.tooltip.miner_node.range_base=基础28×28 / 强化I 48×48 / 强化II 64×64 / 强化III 96×96
+gtsr.tooltip.miner_node.range_base=基础64×64 / 强化I 96×96 / 强化II 128×128 / 强化III 192×192 / 强化IV 288×288
 gtsr.tooltip.miner_node.fortune=时运等级:
-gtsr.tooltip.miner_node.fortune_base=基础V / 强化I V / 强化II VI / 强化III VII（普通矿与贫瘠矿等同）
+gtsr.tooltip.miner_node.fortune_base=基础VI / 强化I VII / 强化II VIII / 强化III IX / 强化IV XII（普通矿与贫瘠矿等同）
 gtsr.tooltip.miner_node.requires_pipe=需要采矿管道才能工作
 gtsr.tooltip.miner_node.upgrade_title=升级机制:
-gtsr.tooltip.miner_node.upgrade_desc=强化I: 矿石钻井场I+16奇点 | 强化II: 矿石钻井场II+32奇点 | 强化III: 矿石钻井场III+64奇点
-gtsr.tooltip.miner_node.work_cycle_base=基础8s / 强化I 5s / 强化II 3s / 强化III 1s
+gtsr.tooltip.miner_node.upgrade_desc=强化I: 矿石钻井场I+16奇点 | 强化II: 矿石钻井场II+32奇点 | 强化III: 矿石钻井场III+64奇点 | 强化IV: 矿石钻井场IV+256奇点
+gtsr.tooltip.miner_node.work_cycle_base=基础3s / 强化I 1s / 强化II 12刻 / 强化III 6刻 / 强化IV 1刻
 gtsr.tooltip.miner_node.steam_cost=蒸汽消耗:
-gtsr.tooltip.miner_node.steam_cost_base=基础2,000 / 强化I 5,000 / 强化II 12,000 / 强化III 20,000 L/s（仅工作中消耗）
+gtsr.tooltip.miner_node.steam_cost_base=基础5,000 / 强化I 10,000 / 强化II 20,000 / 强化III 80,000 / 强化IV 240,000 L/s（仅工作中消耗）
 
 # Singularity Drilling Node
 gt.blockmachines.gtsr.singularity.drilling.node.name=奇点钻井节点
@@ -424,7 +425,8 @@ gtsr.tooltip.drilling_node.chunk_range=工作范围:
 gtsr.tooltip.drilling_node.chunk_range_base=基础1×1 / 强化I 2×2 / 强化II 4×4 / 强化III 8×8 区块
 gtsr.tooltip.drilling_node.upgrade_title=升级机制:
 gtsr.tooltip.drilling_node.upgrade_desc=强化I: 油气钻井II+16奇点 | 强化II: 油气钻井III+32奇点 | 强化III: 油气钻井IV+64奇点
-gtsr.tooltip.drilling_node.steam_cost=蒸汽消耗: 基础2,000 / 强化I 6,000 / 强化II 12,000 / 强化III 20,000 L/s（仅工作中消耗）
+gtsr.tooltip.drilling_node.steam_cost=蒸汽消耗:
+gtsr.tooltip.drilling_node.steam_cost_base=基础2,000 / 强化I 6,000 / 强化II 12,000 / 强化III 20,000 L/s（仅工作中消耗）
 gtsr.gui.drilling_node.output_per_8s=产出/8s
 gtsr.gui.drilling_node.tier=等级:
 gtsr.gui.drilling_node.base=基础
@@ -433,7 +435,7 @@ gtsr.gui.drilling_node.already_enhanced=强化已存在
 gtsr.gui.drilling_node.need_prev_tier=需要先升级到上一等级
 gtsr.gui.drilling_node.applied_enhanced=升级成功！当前等级: 强化
 gtsr.gui.drilling_node.need_singularity=蒸汽纠缠奇点不足，需要:
-gtsr.tooltip.singularity_hub.node_cost_desc=节点消耗 L/s (钻井: 2,000~20,000, 采矿: 2,000~20,000 仅工作中)
+gtsr.tooltip.singularity_hub.node_cost_desc=节点消耗 L/s (钻井: 2,000~20,000, 采矿: 5,000~240,000 仅工作中)
 gtsr.gui.miner_node.tier=等级:
 gtsr.gui.miner_node.base=基础
 gtsr.gui.miner_node.enhanced=强化
@@ -457,7 +459,7 @@ gtsr.tooltip.miner_node.crushed_mode_hint=螺丝刀右击切换粉碎矿模式: 
 
 # Drilling Hub Debug
 gtsr.drilling.debug_title=钻井枢纽绑定调试
-gtsr.drilling.node_miner=矿机节点
+gtsr.drilling.node_miner=采矿节点
 gtsr.drilling.node_driller=钻井节点
 gtsr.drilling.no_pipes=采矿管道不足
 

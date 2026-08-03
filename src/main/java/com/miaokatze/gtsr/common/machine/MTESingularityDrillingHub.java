@@ -74,7 +74,7 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
 
     private static final int BASE_STEAM_PER_SECOND = 8_000;
     private static final int[] DRILL_NODE_STEAM_COST = { 2_000, 6_000, 12_000, 20_000 };
-    private static final int[] MINER_NODE_STEAM_COST = { 2_000, 5_000, 12_000, 20_000 };
+    private static final int[] MINER_NODE_STEAM_COST = { 5_000, 10_000, 20_000, 80_000, 240_000 };
 
     private static IStructureDefinition<MTESingularityDrillingHub> STRUCTURE_DEFINITION = null;
 

@@ -49,12 +49,12 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
 
     private static final Block MINING_PIPE_TIP_BLOCK = GTUtility
         .getBlockFromStack(GTModHandler.getIC2Item("miningPipeTip", 0));
-    private static final int[] MINING_RADIUS = { 14, 24, 32, 48 }; // 28×28, 48×48, 64×64, 96×96
+    private static final int[] MINING_RADIUS = { 32, 48, 64, 96, 144 }; // 64×64, 96×96, 128×128, 192×192, 288×288
     // 时运统一取高值：贫瘠矿与普通矿等同，不再区分
-    private static final int[] FORTUNE = { 5, 5, 6, 7 };
-    private static final int[] MINER_WORK_CYCLE = { 160, 100, 60, 20 }; // 8s, 5s, 3s, 1s
-    private static final int[] SINGULARITY_COST = { 0, 16, 32, 64 };
-    private static final int[] MINER_NODE_STEAM_COST = { 2_000, 5_000, 12_000, 20_000 };
+    private static final int[] FORTUNE = { 6, 7, 8, 9, 12 };
+    private static final int[] MINER_WORK_CYCLE = { 60, 20, 12, 6, 1 }; // 3s, 1s, 12t, 6t, 1t
+    private static final int[] SINGULARITY_COST = { 0, 16, 32, 64, 256 };
+    private static final int[] MINER_NODE_STEAM_COST = { 5_000, 10_000, 20_000, 80_000, 240_000 };
     private static final int EMPTY_SCAN_RETRY_TICKS = 100;
 
     private static final int STATUS_OK = 0;
@@ -79,7 +79,7 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
     private int mEmptyScanTier = -1;
     private int mEmptyScanTipDepth = Integer.MIN_VALUE;
     private int mEmptyScanStatus = Integer.MIN_VALUE;
-    private int mMinerTier = 0; // 0=基础, 1=强化I, 2=强化II, 3=强化III
+    private int mMinerTier = 0; // 0=基础, 1=强化I, 2=强化II, 3=强化III, 4=强化IV
     // 粉碎矿模式：螺丝刀右击切换，开启后普通矿物掉落物转换为 3 倍数量的粉碎矿
     private boolean mCrushedMode = false;
     private final ArrayList<ChunkCoordinates> mOrePositions = new ArrayList<>();
@@ -115,8 +115,8 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
 
     @Override
     protected int getWorkChunkRadius() {
-        // 采矿范围为以节点为中心 ±R 的正方形（R=MINING_RADIUS[tier]，14/24/32/48），
-        // 换算为 chunk 半径需向上取整 (R+15)/16：T0=1, T1=2, T2=2, T3=3，
+        // 采矿范围为以节点为中心 ±R 的正方形（R=MINING_RADIUS[tier]，32/48/64/96/144），
+        // 换算为 chunk 半径需向上取整 (R+15)/16：T0=2, T1=3, T2=4, T3=6, T4=9，
         // 保证工作范围跨区块边界时相邻区块也被加载
         return (MINING_RADIUS[mMinerTier] + 15) / 16;
     }
@@ -157,6 +157,7 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
                 + StatCollector.translateToLocal("gtsr.tooltip.miner_node.steam_cost_base"));
         tooltip.add(EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.shared.singularity_cost"));
         tooltip.add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.miner_node.requires_pipe"));
+        tooltip.add(EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.node.chunk_load_warn"));
         tooltip
             .add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.miner_node.crushed_mode_hint"));
         tooltip.add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.shared.node_bind_hint"));
@@ -1001,7 +1002,7 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
     @Override
     public boolean tryUpgrade(EntityPlayer player) {
         // 已满级
-        if (mMinerTier >= 3) {
+        if (mMinerTier >= 4) {
             GTUtility.sendChatToPlayer(player, StatCollector.translateToLocal("gtsr.gui.miner_node.max_tier"));
             return false;
         }
@@ -1049,6 +1050,7 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
                 case 1 -> ItemList.OreDrill1.isStackEqual(stack, false, true);
                 case 2 -> ItemList.OreDrill2.isStackEqual(stack, false, true);
                 case 3 -> ItemList.OreDrill3.isStackEqual(stack, false, true);
+                case 4 -> ItemList.OreDrill4.isStackEqual(stack, false, true);
                 default -> false;
             };
             if (match) return i;
@@ -1064,6 +1066,7 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
             case 1 -> ItemList.OreDrill1.get(1);
             case 2 -> ItemList.OreDrill2.get(1);
             case 3 -> ItemList.OreDrill3.get(1);
+            case 4 -> ItemList.OreDrill4.get(1);
             default -> null;
         };
     }
@@ -1076,7 +1079,7 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
         tips.add(
             EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.gui.node_upgrade.tooltip.title")
                 + EnumChatFormatting.RESET);
-        if (mMinerTier >= 3) {
+        if (mMinerTier >= 4) {
             tips.add(EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.node_upgrade.tooltip.max"));
             return tips;
         }
@@ -1105,6 +1108,7 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
             case 1 -> "I";
             case 2 -> "II";
             case 3 -> "III";
+            case 4 -> "IV";
             default -> String.valueOf(num);
         };
     }
