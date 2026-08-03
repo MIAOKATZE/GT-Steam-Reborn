@@ -36,6 +36,8 @@ import com.gtnewhorizons.modularui.common.widget.DynamicPositionedColumn;
 import com.gtnewhorizons.modularui.common.widget.FakeSyncWidget;
 import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
+import com.miaokatze.gtsr.api.compat.ICoolingHatchHolder;
+import com.miaokatze.gtsr.api.compat.SteamCoolingSupport;
 
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Materials;
@@ -166,6 +168,8 @@ public class MTELargeSteamFurnace extends MTESteamMultiBlockBase<MTELargeSteamFu
         // 标准输入/输出总线（GTSRHatchElement.SteamInputBus/SteamOutputBus 接受的类型）
         for (MTEHatch h : mInputBusses) h.updateTexture(textureID);
         for (MTEHatch h : mOutputBusses) h.updateTexture(textureID);
+        // v1.9.41 修复：冷却仓纳入纹理更新（v1.9.40 新增结构元素，此前 tier2 时底材停滞青铜）
+        SteamCoolingSupport.updateHatchTextures((ICoolingHatchHolder) this, textureID);
     }
 
     @Override

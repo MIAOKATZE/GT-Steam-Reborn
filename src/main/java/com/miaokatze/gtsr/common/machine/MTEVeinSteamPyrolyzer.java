@@ -38,6 +38,8 @@ import com.gtnewhorizons.modularui.common.widget.DynamicPositionedColumn;
 import com.gtnewhorizons.modularui.common.widget.FakeSyncWidget;
 import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
+import com.miaokatze.gtsr.api.compat.ICoolingHatchHolder;
+import com.miaokatze.gtsr.api.compat.SteamCoolingSupport;
 import com.miaokatze.gtsr.common.api.enums.GTSRHatchElement;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.util.UndergroundOilHelper;
@@ -146,6 +148,8 @@ public class MTEVeinSteamPyrolyzer extends MTESteamMultiBlockBase<MTEVeinSteamPy
         int textureID = getCasingTextureID();
         for (MTEHatch h : mSteamInputFluids) h.updateTexture(textureID);
         for (MTEHatch h : mOutputBusses) h.updateTexture(textureID);
+        // v1.9.41 修复：冷却仓纳入纹理更新（v1.9.40 新增结构元素，此前 tier2 时底材停滞青铜）
+        SteamCoolingSupport.updateHatchTextures((ICoolingHatchHolder) this, textureID);
     }
 
     @Override

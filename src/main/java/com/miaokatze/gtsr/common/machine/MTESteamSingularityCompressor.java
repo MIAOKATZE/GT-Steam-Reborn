@@ -31,6 +31,8 @@ import com.gtnewhorizons.modularui.common.widget.FakeSyncWidget;
 import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import com.miaokatze.gtsr.api.compat.GTVersionCompat;
+import com.miaokatze.gtsr.api.compat.ICoolingHatchHolder;
+import com.miaokatze.gtsr.api.compat.SteamCoolingSupport;
 import com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 
@@ -123,6 +125,8 @@ public class MTESteamSingularityCompressor extends MTESteamMultiBlockBase<MTESte
         super.updateHatchTexture();
         int textureID = getCasingTextureID();
         for (MTEHatch h : mOutputBusses) h.updateTexture(textureID);
+        // v1.9.41 修复：冷却仓纳入纹理更新（结构元素含 SteamCoolingHatch，此前冷却仓底材不随结构刷新）
+        SteamCoolingSupport.updateHatchTextures((ICoolingHatchHolder) this, textureID);
     }
 
     @Override

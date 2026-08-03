@@ -257,9 +257,14 @@ public class MTESiemensMartinFurnace extends MTEEnhancedMultiBlockBase<MTESiemen
 
     protected void updateHatchTexture() {
         int textureID = getCasingTextureID();
+        // v1.9.41 修复：补 mInputHatches（空气输入仓，InputHatch 元素注册）与 mDualInputHatches（样板仓）
+        for (MTEHatch h : mInputHatches) h.updateTexture(textureID);
         for (MTEHatch h : mPressureSteamInputs) h.updateTexture(textureID);
         for (MTEHatch h : mInputBusses) h.updateTexture(textureID);
         for (MTEHatch h : mOutputBusses) h.updateTexture(textureID);
+        for (IDualInputHatch dualHatch : mDualInputHatches) {
+            dualHatch.updateTexture(textureID);
+        }
     }
 
     @Override

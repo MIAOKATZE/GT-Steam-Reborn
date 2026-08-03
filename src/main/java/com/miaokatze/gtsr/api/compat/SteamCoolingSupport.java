@@ -62,6 +62,28 @@ public final class SteamCoolingSupport {
     }
 
     /**
+     * 更新冷却仓底材纹理（v1.9.41 新增）。
+     * <p>
+     * 蒸汽机器的 {@code updateHatchTexture()} 必须调用本方法，否则冷却仓底材停留在
+     * 结构 adder 初始化的最低 tier 材质，分级机器升级后显示错误。
+     *
+     * @param holder    冷却舱室持有者
+     * @param textureID 当前机器 tier 对应的外壳贴图索引
+     */
+    public static void updateHatchTextures(ICoolingHatchHolder holder, int textureID) {
+        for (MTESteamCoolingHatch hatch : holder.gtsr$getCoolingHatches()) {
+            if (hatch != null && hatch.isValid()) {
+                hatch.updateTexture(textureID);
+            }
+        }
+        for (MTEPressureSteamCoolingHatch hatch : holder.gtsr$getPressureHatches()) {
+            if (hatch != null && hatch.isValid()) {
+                hatch.updateTexture(textureID);
+            }
+        }
+    }
+
+    /**
      * 检测蒸汽输入舱室中是否含有过热蒸汽。
      * <p>
      * 遍历 {@code mSteamInputFluids}（public 字段），检查是否存在

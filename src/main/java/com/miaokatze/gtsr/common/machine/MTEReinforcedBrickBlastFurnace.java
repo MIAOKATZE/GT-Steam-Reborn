@@ -110,6 +110,10 @@ public class MTEReinforcedBrickBlastFurnace extends MTEEnhancedMultiBlockBase<MT
         int textureID = getCasingTextureID();
         for (MTEHatch h : mInputBusses) h.updateTexture(textureID);
         for (MTEHatch h : mOutputBusses) h.updateTexture(textureID);
+        // v1.9.41 修复：补 mDualInputHatches（样板仓经自定义 adder 重定向至此）
+        for (IDualInputHatch dualHatch : mDualInputHatches) {
+            dualHatch.updateTexture(textureID);
+        }
     }
 
     /**

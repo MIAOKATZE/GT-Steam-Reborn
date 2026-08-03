@@ -149,6 +149,8 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
         for (MTEHatch h : mSteamInputFluids) h.updateTexture(textureID);
         for (MTEHatch h : mOutputBusses) h.updateTexture(textureID);
         for (MTEHatch h : mOutputHatches) h.updateTexture(textureID);
+        // v1.9.41 修复：冷却仓纳入纹理更新（结构元素含 SteamCoolingHatch，此前冷却仓底材不随结构刷新）
+        SteamCoolingSupport.updateHatchTextures((ICoolingHatchHolder) this, textureID);
     }
 
     @Override

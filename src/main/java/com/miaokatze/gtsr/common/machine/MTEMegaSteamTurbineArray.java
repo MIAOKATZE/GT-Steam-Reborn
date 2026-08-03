@@ -1406,6 +1406,14 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         for (var outputHatch : GTUtility.validMTEList(mOutputHatches)) {
             outputHatch.updateTexture(textureIndex);
         }
+        // v1.9.41 修复：补 mInputBusses（atLeast(InputBus) 元素注册）与 mDualInputHatches（样板仓），
+        // 此前 12 级分级下 tier≥2 时输入总线/样板仓底材停滞钢材质
+        for (var inputBus : GTUtility.validMTEList(mInputBusses)) {
+            inputBus.updateTexture(textureIndex);
+        }
+        for (var dualHatch : mDualInputHatches) {
+            dualHatch.updateTexture(textureIndex);
+        }
         for (var dynamoHatch : GTUtility.validMTEList(mDynamoHatches)) {
             dynamoHatch.updateTexture(textureIndex);
         }

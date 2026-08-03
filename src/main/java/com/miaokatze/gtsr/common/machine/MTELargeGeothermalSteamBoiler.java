@@ -235,7 +235,11 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
 
     protected void updateHatchTexture() {
         int textureID = getCasingTextureID();
+        // v1.9.41 修复：补充 mOutputHatches——v1.9.40 开放 OutputHatch 位后，ME 输出仓/普通输出仓
+        // 注册到 mOutputHatches，此前仅被结构 adder 的 bronzeCasingIndex 初始化，等级2 重刷遗漏
+        // 导致底材停留在青铜材质。
         for (MTEHatch h : mInputHatches) h.updateTexture(textureID);
+        for (MTEHatch h : mOutputHatches) h.updateTexture(textureID);
         for (MTEHatch h : mOutputBusses) h.updateTexture(textureID);
         for (MTEHatch h : mSteamOutputHatches) h.updateTexture(textureID);
         for (MTEHatch h : mPressureSteamOutputHatches) h.updateTexture(textureID);
