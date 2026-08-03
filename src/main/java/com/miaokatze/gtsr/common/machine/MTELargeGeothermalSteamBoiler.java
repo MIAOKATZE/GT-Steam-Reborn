@@ -7,6 +7,7 @@ import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElement
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose;
 import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.SteamOutputBus;
 import static gregtech.api.enums.HatchElement.InputHatch;
+import static gregtech.api.enums.HatchElement.OutputHatch;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 
 import java.text.NumberFormat;
@@ -62,6 +63,7 @@ import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.implementations.MTEEnhancedMultiBlockBase;
 import gregtech.api.metatileentity.implementations.MTEHatch;
+import gregtech.api.metatileentity.implementations.MTEHatchOutput;
 import gregtech.api.metatileentity.implementations.MTEHatchOutputBus;
 import gregtech.api.recipe.RecipeMap;
 import gregtech.api.recipe.check.CheckRecipeResult;
@@ -290,11 +292,17 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
                         // Use atLeast(GeothermalSteamOutputHatchElement.SteamOutput) instead of hatchIds(...).
                         // Its mteBlacklist() excludes the steam output hatch classes so NEI does not render them on
                         // casing positions.
+                        // v1.9.40 修复：移除 shouldReject 数量限制（蒸汽输出仓可放多个，分摊输出）。
                         buildHatchAdder(MTELargeGeothermalSteamBoiler.class)
                             .atLeast(GeothermalSteamOutputHatchElement.SteamOutput)
                             .casingIndex(bronzeCasingIndex)
                             .hint(1)
-                            .shouldReject(MTELargeGeothermalSteamBoiler::hasSteamOutputHatch)
+                            .build(),
+                        // v1.9.40 修复：开放普通流体输出仓（任意 MTEHatchOutput 子类，含 ME 输出仓）。
+                        // distributeSteam 优先填蒸汽输出仓，剩余量回退到此位置注册的输出仓。
+                        buildHatchAdder(MTELargeGeothermalSteamBoiler.class).atLeast(OutputHatch)
+                            .casingIndex(bronzeCasingIndex)
+                            .hint(1)
                             .build(),
                         buildHatchAdder(MTELargeGeothermalSteamBoiler.class).atLeast(SteamOutputBus)
                             .casingIndex(bronzeCasingIndex)
@@ -446,15 +454,10 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
         updateHatchTexture();
     }
 
+    // v1.9.40 修复：输出判定放宽——蒸汽输出仓、耐压蒸汽输出仓或任意普通流体输出仓（含 ME 输出仓）
+    // 任一存在即可成型；产物流体类型由各仓 canStoreFluid 自行过滤（蒸汽输出仓只收蒸汽，普通仓默认全收）。
     private boolean hasValidOutputHatchesForTier() {
-        boolean hasChip = hasOverheatChip();
-        if (mSetTier == 1 && !hasChip) {
-            return !mSteamOutputHatches.isEmpty();
-        }
-        if (mSetTier == 2 || hasChip) {
-            return !mPressureSteamOutputHatches.isEmpty() || !mSteamOutputHatches.isEmpty();
-        }
-        return !mSteamOutputHatches.isEmpty() || !mPressureSteamOutputHatches.isEmpty();
+        return !mSteamOutputHatches.isEmpty() || !mPressureSteamOutputHatches.isEmpty() || !mOutputHatches.isEmpty();
     }
 
     private boolean hasOverheatChip() {
@@ -674,28 +677,30 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
         }
     }
 
+    // v1.9.40 修复：蒸汽输出分配统一优先级——
+    // 超热蒸汽：耐压蒸汽输出仓 → 普通蒸汽输出仓 → 全部流体输出仓（含 ME 输出仓）
+    // 普通蒸汽：蒸汽输出仓 → 耐压蒸汽输出仓 → 全部流体输出仓（含 ME 输出仓）
+    // 各仓 canStoreFluid 自行过滤（蒸汽输出仓只收蒸汽，普通仓默认全收），剩余量静默丢弃（既有 voiding 设计）。
     private void distributeSteam(FluidStack steam) {
         if (steam == null) return;
 
         boolean isSuperheated = "ic2superheatedsteam".equals(FluidRegistry.getFluidName(steam.getFluid()));
 
         if (isSuperheated) {
-            for (MTEPressureSteamOutputHatch hatch : mPressureSteamOutputHatches) {
-                if (steam.amount <= 0) break;
-                int filled = hatch.fill(ForgeDirection.UNKNOWN, steam.copy(), true);
-                steam.amount -= filled;
-            }
+            fillSteamOutputHatches(steam, mPressureSteamOutputHatches);
+            fillSteamOutputHatches(steam, mSteamOutputHatches);
         } else {
-            for (MTESteamOutputHatch hatch : mSteamOutputHatches) {
-                if (steam.amount <= 0) break;
-                int filled = hatch.fill(ForgeDirection.UNKNOWN, steam.copy(), true);
-                steam.amount -= filled;
-            }
-            for (MTEPressureSteamOutputHatch hatch : mPressureSteamOutputHatches) {
-                if (steam.amount <= 0) break;
-                int filled = hatch.fill(ForgeDirection.UNKNOWN, steam.copy(), true);
-                steam.amount -= filled;
-            }
+            fillSteamOutputHatches(steam, mSteamOutputHatches);
+            fillSteamOutputHatches(steam, mPressureSteamOutputHatches);
+        }
+        fillSteamOutputHatches(steam, mOutputHatches);
+    }
+
+    private void fillSteamOutputHatches(FluidStack steam, List<? extends MTEHatchOutput> hatches) {
+        for (MTEHatchOutput hatch : hatches) {
+            if (steam.amount <= 0) break;
+            int filled = hatch.fill(ForgeDirection.UNKNOWN, steam.copy(), true);
+            steam.amount -= filled;
         }
     }
 

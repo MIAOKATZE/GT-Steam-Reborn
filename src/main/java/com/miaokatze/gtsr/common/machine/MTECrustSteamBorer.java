@@ -4,7 +4,9 @@ import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlocksT
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose;
+import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.PressureSteamCoolingHatch;
 import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.PressureSteamInputHatch;
+import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.SteamCoolingHatch;
 import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.SteamOutputBus;
 import static gregtech.api.enums.GTValues.emptyItemStackArray;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
@@ -230,6 +232,12 @@ public class MTECrustSteamBorer extends MTESteamMultiBlockBase<MTECrustSteamBore
                         buildHatchAdder(MTECrustSteamBorer.class).atLeast(SteamOutputBus)
                             .casingIndex(casingIndex)
                             .hint(1)
+                            .build(),
+                        // v1.9.40 新增：冷却仓元素（可选）。蒸汽消耗的冷却产物（普通→蒸馏水 160:1、
+                        // 过热→蒸汽 1:1）由 mixin 推入对应冷却仓，此前结构无此元素导致产物滞留/丢失。
+                        buildHatchAdder(MTECrustSteamBorer.class).atLeast(SteamCoolingHatch, PressureSteamCoolingHatch)
+                            .casingIndex(casingIndex)
+                            .hint(1)
                             .build()))
                 .addElement(
                     'C',
@@ -315,7 +323,8 @@ public class MTECrustSteamBorer extends MTESteamMultiBlockBase<MTECrustSteamBore
         }
 
         // 取消双注册后，蒸汽输出总线只在 mSteamOutputs 中，需要合并计数
-        if (this.mSteamInputFluids.size() != 1 || (this.mOutputBusses.size() + this.mSteamOutputs.size()) != 1) {
+        // v1.9.40 修复：输出数量 ==1 → >=1（蒸汽输入仓数量由结构 shouldReject 保证，此处仅要求存在）
+        if (this.mSteamInputFluids.size() < 1 || (this.mOutputBusses.size() + this.mSteamOutputs.size()) < 1) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
             return;
         }

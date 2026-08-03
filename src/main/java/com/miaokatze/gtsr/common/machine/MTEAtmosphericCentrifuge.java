@@ -5,7 +5,9 @@ import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlocksT
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose;
+import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.PressureSteamCoolingHatch;
 import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.PressureSteamInputHatch;
+import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.SteamCoolingHatch;
 import static gregtech.api.enums.HatchElement.InputHatch;
 import static gregtech.api.enums.HatchElement.OutputHatch;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
@@ -176,6 +178,13 @@ public class MTEAtmosphericCentrifuge extends MTESteamMultiBlockBase<MTEAtmosphe
                             .shouldReject(t -> !t.mSteamInputFluids.isEmpty())
                             .build(),
                         buildHatchAdder(MTEAtmosphericCentrifuge.class).atLeast(InputHatch, OutputHatch)
+                            .casingIndex(bronzeCasingIndex)
+                            .hint(1)
+                            .build(),
+                        // v1.9.40 新增：冷却仓元素（可选）。蒸汽消耗的冷却产物（普通→蒸馏水 160:1、
+                        // 过热→蒸汽 1:1）由 mixin 推入对应冷却仓，此前结构无此元素导致产物滞留/丢失。
+                        buildHatchAdder(MTEAtmosphericCentrifuge.class)
+                            .atLeast(SteamCoolingHatch, PressureSteamCoolingHatch)
                             .casingIndex(bronzeCasingIndex)
                             .hint(1)
                             .build()))

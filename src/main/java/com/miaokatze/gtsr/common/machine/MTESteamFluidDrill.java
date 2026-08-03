@@ -264,7 +264,8 @@ public class MTESteamFluidDrill extends MTESteamMultiBlockBase<MTESteamFluidDril
             return;
         }
 
-        if (this.mOutputHatches.size() != 1 || this.mSteamInputFluids.size() != 1) {
+        // v1.9.40 修复：输出仓数量 ==1 → >=1（蒸汽输入仓数量由结构 shouldReject 保证，此处仅要求存在）
+        if (this.mOutputHatches.size() < 1 || this.mSteamInputFluids.size() < 1) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
             return;
         }

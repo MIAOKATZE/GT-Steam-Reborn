@@ -36,6 +36,8 @@ import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.gui.MTEAmmoniaPlantGui;
+import com.miaokatze.gtsr.common.machine.base.MTEPressureSteamOutputHatch;
+import com.miaokatze.gtsr.common.machine.base.MTESteamOutputHatch;
 
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Materials;
@@ -516,10 +518,26 @@ public class MTEAmmoniaPlant extends MTEEnhancedMultiBlockBase<MTEAmmoniaPlant> 
             }
         }
 
-        // 无锁定舱或锁定舱仍有余量：回退到所有输出舱顺序填充（替代 beta-2-only 的 addOutputPartial）
+        // 无锁定舱或锁定舱仍有余量：蒸汽输出仓优先（耐压蒸汽输出仓收蒸汽+超热蒸汽，
+        // 普通蒸汽输出仓 only 收蒸汽会被 fill 自动过滤）→ 其余输出仓顺序填充
+        // （替代 beta-2-only 的 addOutputPartial）
         if (remaining <= 0) return;
         for (MTEHatchOutput outputHatch : GTUtility.validMTEList(mOutputHatches)) {
             if (remaining <= 0) return;
+            if (outputHatch instanceof MTEPressureSteamOutputHatch || outputHatch instanceof MTESteamOutputHatch) {
+                int filled = outputHatch.fill(new FluidStack(superheatedSteam.getFluid(), remaining), false);
+                if (filled > 0) {
+                    outputHatch.fill(new FluidStack(superheatedSteam.getFluid(), filled), true);
+                    remaining -= filled;
+                }
+            }
+        }
+        if (remaining <= 0) return;
+        for (MTEHatchOutput outputHatch : GTUtility.validMTEList(mOutputHatches)) {
+            if (remaining <= 0) return;
+            if (outputHatch instanceof MTEPressureSteamOutputHatch || outputHatch instanceof MTESteamOutputHatch) {
+                continue;
+            }
             int filled = outputHatch.fill(new FluidStack(superheatedSteam.getFluid(), remaining), false);
             if (filled > 0) {
                 outputHatch.fill(new FluidStack(superheatedSteam.getFluid(), filled), true);

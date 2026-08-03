@@ -38,6 +38,8 @@ import com.gtnewhorizons.modularui.common.widget.FakeSyncWidget;
 import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import com.miaokatze.gtsr.api.compat.GTVersionCompat;
+import com.miaokatze.gtsr.api.compat.ICoolingHatchHolder;
+import com.miaokatze.gtsr.api.compat.SteamCoolingSupport;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.machine.base.IHubArray;
 import com.miaokatze.gtsr.common.machine.base.MTERemoteWorkerNode;
@@ -344,6 +346,10 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
         if (shouldBeActive && aTick % 20 == 0) {
             FluidStack steamStack = FluidRegistry.getFluidStack("ic2superheatedsteam", totalCost);
             if (steamStack != null && depleteInput(steamStack)) {
+                // v1.9.40 修复：onRunningTick 覆写不调 super，mixin 的冷却注入不触发，
+                // 此处手动推送冷却产物（过热蒸汽 → 压力冷却仓转为普通蒸汽 1:1）。
+                // 无压力冷却仓时产物按"冷却仅输出到冷却仓"原则静默丢弃（与 mixin 行为一致）。
+                SteamCoolingSupport.pushCoolingProducts((ICoolingHatchHolder) this, totalCost, true);
                 mEfficiencyIncrease = 10000;
             }
         }

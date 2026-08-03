@@ -438,8 +438,15 @@ public class MTEGearSteamCompressor extends MTEEnhancedMultiBlockBase<MTEGearSte
         }
     }
 
+    // v1.9.40 修复：蒸馏水（冷却产物）优先推入普通蒸汽冷却仓，剩余量回退输出仓。
+    // 此前蒸馏水直接 addOutput，mSteamCoolingHatches 仅作结构计数/贴图装饰。
     private void outputDistilledWater(long amount) {
         if (amount <= 0) return;
+        for (MTESteamCoolingHatch hatch : mSteamCoolingHatches) {
+            if (amount <= 0) break;
+            int pushed = hatch.pushCoolingWater((int) Math.min(amount, Integer.MAX_VALUE));
+            amount -= pushed;
+        }
         int toOutput = (int) Math.min(amount, Integer.MAX_VALUE);
         if (toOutput > 0) {
             addOutput(GTModHandler.getDistilledWater(toOutput));

@@ -68,6 +68,7 @@ import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.implementations.MTEEnhancedMultiBlockBase;
+import gregtech.api.metatileentity.implementations.MTEHatchOutput;
 import gregtech.api.recipe.check.CheckRecipeResult;
 import gregtech.api.recipe.check.CheckRecipeResultRegistry;
 import gregtech.api.render.TextureFactory;
@@ -713,57 +714,38 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
         return Math.min(booster, 3.0f);
     }
 
+    // v1.9.40 修复：蒸汽输出分配开放——蒸汽输出仓/耐压蒸汽输出仓优先，剩余量回退到全部流体输出仓
+    // （含 ME 输出仓）。此前 instanceof 只认蒸汽输出仓类，普通/ME 输出仓放上结构成立但蒸汽静默丢失。
     private void distributeSteamToOutputHatches(int totalSteam) {
-        List<IMetaTileEntity> validHatches = new ArrayList<>();
+        FluidStack steam = Materials.Steam.getGas(totalSteam);
+        fillSteamOutputHatches(steam, MTESteamOutputHatch.class);
+        fillSteamOutputHatches(steam, MTEPressureSteamOutputHatch.class);
+        fillRemainingOutputHatches(steam);
+    }
 
+    private void distributeSuperheatedSteamToOutputHatches(int totalSuperheatedSteam) {
+        FluidStack superheatedSteam = FluidRegistry.getFluidStack("ic2superheatedsteam", totalSuperheatedSteam);
+        if (superheatedSteam == null) return;
+        // 耐压蒸汽输出仓优先（MTESteamOutputHatch.canStoreFluid 只收普通蒸汽，不收超热蒸汽）
+        fillSteamOutputHatches(superheatedSteam, MTEPressureSteamOutputHatch.class);
+        fillRemainingOutputHatches(superheatedSteam);
+    }
+
+    private void fillSteamOutputHatches(FluidStack fluid, Class<? extends MTEHatchOutput> hatchClass) {
         for (IMetaTileEntity hatch : mOutputHatches) {
-            if (hatch instanceof MTESteamOutputHatch || hatch instanceof MTEPressureSteamOutputHatch) {
-                validHatches.add(hatch);
-            }
-        }
-
-        if (validHatches.isEmpty()) return;
-        int perHatch = totalSteam / validHatches.size();
-        int remainder = totalSteam % validHatches.size();
-
-        for (int i = 0; i < validHatches.size(); i++) {
-            IMetaTileEntity hatch = validHatches.get(i);
-            int amount = perHatch + (i < remainder ? 1 : 0);
-
-            if (amount > 0) {
-                FluidStack steam = Materials.Steam.getGas(amount);
-                if (hatch instanceof MTESteamOutputHatch) {
-                    ((MTESteamOutputHatch) hatch).fill(ForgeDirection.UNKNOWN, steam, true);
-                } else if (hatch instanceof MTEPressureSteamOutputHatch) {
-                    ((MTEPressureSteamOutputHatch) hatch).fill(ForgeDirection.UNKNOWN, steam, true);
-                }
+            if (fluid.amount <= 0) break;
+            if (hatchClass.isInstance(hatch)) {
+                int filled = ((MTEHatchOutput) hatch).fill(ForgeDirection.UNKNOWN, fluid.copy(), true);
+                fluid.amount -= filled;
             }
         }
     }
 
-    private void distributeSuperheatedSteamToOutputHatches(int totalSuperheatedSteam) {
-        List<MTEPressureSteamOutputHatch> pressureHatches = new ArrayList<>();
-
+    private void fillRemainingOutputHatches(FluidStack fluid) {
         for (IMetaTileEntity hatch : mOutputHatches) {
-            if (hatch instanceof MTEPressureSteamOutputHatch) {
-                pressureHatches.add((MTEPressureSteamOutputHatch) hatch);
-            }
-        }
-
-        if (pressureHatches.isEmpty()) return;
-        int perHatch = totalSuperheatedSteam / pressureHatches.size();
-        int remainder = totalSuperheatedSteam % pressureHatches.size();
-
-        for (int i = 0; i < pressureHatches.size(); i++) {
-            MTEPressureSteamOutputHatch hatch = pressureHatches.get(i);
-            int amount = perHatch + (i < remainder ? 1 : 0);
-
-            if (amount > 0) {
-                FluidStack superheatedSteam = FluidRegistry.getFluidStack("ic2superheatedsteam", amount);
-                if (superheatedSteam != null) {
-                    hatch.fill(ForgeDirection.UNKNOWN, superheatedSteam, true);
-                }
-            }
+            if (fluid.amount <= 0) break;
+            int filled = ((MTEHatchOutput) hatch).fill(ForgeDirection.UNKNOWN, fluid.copy(), true);
+            fluid.amount -= filled;
         }
     }
 
