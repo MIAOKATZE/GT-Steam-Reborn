@@ -26,7 +26,7 @@ import cpw.mods.fml.relauncher.SideOnly;
  * 生成「临界蒸汽纠缠奇点」图标并注入物品图集。
  * <p>
  * 处理流程：逐帧灰度化 (0.299R+0.587G+0.114B) 并整体压暗 (x0.8) → 9 帧扩展为 27 帧
- * (每 3 帧一组: 原帧 + 2 个 1-2 像素随机偏移副本, 抖动效果) → 经 Forge 自定义
+ * (每 3 帧一组: 原帧 + 2 个 1 像素随机偏移副本, 轻微颤动效果) → 经 Forge 自定义
  * 纹理加载钩子 (hasCustomLoader/load) 在缝合前填入帧数据。
  * <p>
  * 注入时机: 物品图集 TextureMap.registerIcons() 阶段 (Item.registerIcons 委托调用
@@ -55,7 +55,7 @@ public class CriticalSingularityTexture extends TextureAtlasSprite {
      */
     private static final int[] FRAME_TIMES = buildFrameTimes();
 
-    /** 抖动偏移 (固定种子, 每次图集重载保持一致): [源帧][副本序号 0/1][x, y], 幅度 1-2 像素 */
+    /** 抖动偏移 (固定种子, 每次图集重载保持一致): [源帧][副本序号 0/1][x, y], 幅度 1 像素 */
     private static final int[][][] JITTER_OFFSETS = buildJitterOffsets();
 
     private static int[] buildFrameTimes() {
@@ -71,8 +71,8 @@ public class CriticalSingularityTexture extends TextureAtlasSprite {
         int[][][] offsets = new int[SOURCE_FRAME_COUNT][2][2];
         for (int i = 0; i < SOURCE_FRAME_COUNT; i++) {
             for (int j = 0; j < 2; j++) {
-                int dx = random.nextBoolean() ? 1 + random.nextInt(2) : -(1 + random.nextInt(2));
-                int dy = random.nextBoolean() ? 1 + random.nextInt(2) : -(1 + random.nextInt(2));
+                int dx = random.nextBoolean() ? 1 : -1;
+                int dy = random.nextBoolean() ? 1 : -1;
                 offsets[i][j][0] = dx;
                 offsets[i][j][1] = dy;
             }

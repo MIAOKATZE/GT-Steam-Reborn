@@ -6,10 +6,6 @@ import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlocksT
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose;
-import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.SteamInputBus;
-import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.SteamInputHatch;
-import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.SteamOutputBus;
-import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.SteamOutputHatch;
 import static gregtech.api.enums.GTValues.emptyItemStackArray;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 
@@ -29,6 +25,7 @@ import net.minecraftforge.fluids.FluidStack;
 
 import org.apache.commons.lang3.tuple.Pair;
 
+import com.google.common.collect.ImmutableList;
 import com.gtnewhorizon.structurelib.alignment.IAlignmentLimits;
 import com.gtnewhorizon.structurelib.alignment.constructable.ISurvivalConstructable;
 import com.gtnewhorizon.structurelib.structure.IStructureDefinition;
@@ -36,15 +33,19 @@ import com.gtnewhorizon.structurelib.structure.ISurvivalBuildEnvironment;
 import com.gtnewhorizon.structurelib.structure.StructureDefinition;
 import com.miaokatze.gtsr.api.compat.GTVersionCompat;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
+import com.miaokatze.gtsr.common.machine.base.MTEHatchPressureSteamInput;
 
 import bartworks.common.loaders.ItemRegistry;
+import bartworks.system.material.Werkstoff;
 import bartworks.system.material.WerkstoffLoader;
+import cpw.mods.fml.common.registry.GameRegistry;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Materials;
 import gregtech.api.enums.Textures;
 import gregtech.api.enums.VoltageIndex;
+import gregtech.api.interfaces.IHatchElement;
 import gregtech.api.interfaces.IIconContainer;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
@@ -54,6 +55,7 @@ import gregtech.api.metatileentity.implementations.MTEHatch;
 import gregtech.api.metatileentity.implementations.MTEHatchInput;
 import gregtech.api.metatileentity.implementations.MTEHatchInputBus;
 import gregtech.api.metatileentity.implementations.MTEHatchOutput;
+import gregtech.api.metatileentity.implementations.MTEHatchOutputBus;
 import gregtech.api.recipe.check.CheckRecipeResult;
 import gregtech.api.recipe.check.CheckRecipeResultRegistry;
 import gregtech.api.render.TextureFactory;
@@ -61,7 +63,10 @@ import gregtech.api.structure.error.StructureError;
 import gregtech.api.structure.error.StructureErrorRegistry;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.GlassTier;
+import gregtech.api.util.IGTHatchAdder;
 import gregtech.api.util.MultiblockTooltipBuilder;
+import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.MTEHatchSteamBusInput;
+import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.MTEHatchSteamBusOutput;
 
 /**
  * 蒸汽奇点压缩机 v2。
@@ -107,6 +112,7 @@ public class MTESteamSingularityCompressor extends MTEEnhancedMultiBlockBase<MTE
     private static IStructureDefinition<MTESteamSingularityCompressor> STRUCTURE_DEFINITION = null;
     private static IIconContainer OVERLAY_OFF;
     private static IIconContainer OVERLAY_ON;
+    private static Block TIER2_FRAME_BLOCK = null;
     private static Integer TIER2_FRAME_META = null;
 
     /** 当前结构等级（1/2，由 checkMachine 判定） */
@@ -121,6 +127,9 @@ public class MTESteamSingularityCompressor extends MTEEnhancedMultiBlockBase<MTE
     private int mCasingTierD = -1;
     private int mCasingTierE = -1;
     private int mCasingTierF = -1;
+
+    /** 耐压蒸汽输入仓（不继承 MTEHatchInput，独立列表） */
+    private final List<MTEHatchPressureSteamInput> mPressureSteamInputs = new ArrayList<>();
 
     public MTESteamSingularityCompressor(int aID, String aName, String aNameRegional) {
         super(aID, aName, aNameRegional);
@@ -143,10 +152,24 @@ public class MTESteamSingularityCompressor extends MTEEnhancedMultiBlockBase<MTE
         return new MTESteamSingularityCompressor(mName);
     }
 
+    /**
+     * 等级 2 框架方块：GT5U 的 BW 装饰框架（bw.frames，BlockDecorativeFrame），按 Werkstoff ID 索引 meta。
+     * 镀铑钯（RhodiumPlatedPalladium）的 Werkstoff ID 为 88。
+     */
+    private static Block getTier2FrameBlock() {
+        if (TIER2_FRAME_BLOCK == null) {
+            TIER2_FRAME_BLOCK = GregTechAPI.sBlockFramesBW;
+            if (TIER2_FRAME_BLOCK == null) {
+                TIER2_FRAME_BLOCK = GameRegistry.findBlock("gregtech", "bw.frames");
+            }
+        }
+        return TIER2_FRAME_BLOCK;
+    }
+
     private static int getTier2FrameMeta() {
         if (TIER2_FRAME_META == null) {
-            final Materials material = WerkstoffLoader.RhodiumPlatedPalladium.getGTMaterial();
-            TIER2_FRAME_META = material != null ? material.mMetaItemSubID : Materials.Palladium.mMetaItemSubID;
+            final Werkstoff werkstoff = WerkstoffLoader.RhodiumPlatedPalladium;
+            TIER2_FRAME_META = werkstoff != null ? (int) werkstoff.getmID() : 88;
         }
         return TIER2_FRAME_META;
     }
@@ -159,7 +182,7 @@ public class MTESteamSingularityCompressor extends MTEEnhancedMultiBlockBase<MTE
 
     private static int getFrameTier(Block block, int meta) {
         if (block == GregTechAPI.sBlockFrames && meta == Materials.Steel.mMetaItemSubID) return 1;
-        if (block == GregTechAPI.sBlockFrames && meta == getTier2FrameMeta()) return 2;
+        if (block == getTier2FrameBlock() && meta == getTier2FrameMeta()) return 2;
         return -1;
     }
 
@@ -174,6 +197,7 @@ public class MTESteamSingularityCompressor extends MTEEnhancedMultiBlockBase<MTE
         for (MTEHatch h : mOutputHatches) h.updateTexture(textureID);
         for (MTEHatch h : mInputBusses) h.updateTexture(textureID);
         for (MTEHatch h : mOutputBusses) h.updateTexture(textureID);
+        for (MTEHatch h : mPressureSteamInputs) h.updateTexture(textureID);
     }
 
     @Override
@@ -193,7 +217,7 @@ public class MTESteamSingularityCompressor extends MTEEnhancedMultiBlockBase<MTE
             casingTiers.add(Pair.of(GregTechAPI.sBlockCasings8, 6)); // 2
             final List<Pair<Block, Integer>> frameTiers = new ArrayList<>();
             frameTiers.add(Pair.of(GregTechAPI.sBlockFrames, Materials.Steel.mMetaItemSubID)); // 1
-            frameTiers.add(Pair.of(GregTechAPI.sBlockFrames, getTier2FrameMeta())); // 2
+            frameTiers.add(Pair.of(getTier2FrameBlock(), getTier2FrameMeta())); // 2
 
             STRUCTURE_DEFINITION = StructureDefinition.<MTESteamSingularityCompressor>builder()
                 .addShape(
@@ -232,19 +256,22 @@ public class MTESteamSingularityCompressor extends MTEEnhancedMultiBlockBase<MTE
                             -1,
                             (t, tier) -> t.mCasingTierB = tier,
                             t -> t.mCasingTierB),
-                        buildHatchAdder(MTESteamSingularityCompressor.class).atLeast(SteamInputHatch)
+                        buildHatchAdder(MTESteamSingularityCompressor.class).atLeast(CompressorHatchElement.SteamInput)
                             .casingIndex(casingIndex)
                             .hint(1)
                             .build(),
-                        buildHatchAdder(MTESteamSingularityCompressor.class).atLeast(SteamInputBus)
+                        buildHatchAdder(MTESteamSingularityCompressor.class)
+                            .atLeast(CompressorHatchElement.SteamInputBus)
                             .casingIndex(casingIndex)
                             .hint(1)
                             .build(),
-                        buildHatchAdder(MTESteamSingularityCompressor.class).atLeast(SteamOutputBus)
+                        buildHatchAdder(MTESteamSingularityCompressor.class)
+                            .atLeast(CompressorHatchElement.SteamOutputBus)
                             .casingIndex(casingIndex)
                             .hint(1)
                             .build(),
-                        buildHatchAdder(MTESteamSingularityCompressor.class).atLeast(SteamOutputHatch)
+                        buildHatchAdder(MTESteamSingularityCompressor.class)
+                            .atLeast(CompressorHatchElement.SteamOutputHatch)
                             .casingIndex(casingIndex)
                             .hint(2)
                             .build()))
@@ -290,6 +317,135 @@ public class MTESteamSingularityCompressor extends MTEEnhancedMultiBlockBase<MTE
 
     private void onPipeAdded() {}
 
+    /**
+     * 压缩机本地仓室元素。
+     * <p>
+     * 输入侧接受：输入仓/蒸汽仓（MTEHatchInput 及其子类，含 ME 输入仓、巨型超压蒸汽输入仓）
+     * 与耐压蒸汽仓（MTEHatchPressureSteamInput）；输出侧接受：输出总线（含 ME 输出总线）、
+     * 输出总线（蒸汽）（MTEHatchSteamBusOutput）与输出仓（含 ME 输出仓）。
+     * {@code mteBlacklist()} 排除自定义仓类在 NEI 投影中覆盖外壳占位。
+     */
+    private enum CompressorHatchElement implements IHatchElement<MTESteamSingularityCompressor> {
+
+        SteamInput("GTSR.HatchElement.SteamInput", MTESteamSingularityCompressor::addSteamInputToMachineList,
+            MTEHatchInput.class, MTEHatchPressureSteamInput.class) {
+
+            @Override
+            public long count(MTESteamSingularityCompressor t) {
+                return t.mInputHatches.size() + t.mPressureSteamInputs.size();
+            }
+
+            @Override
+            public List<Class<? extends IMetaTileEntity>> mteBlacklist() {
+                return ImmutableList.of(MTEHatchPressureSteamInput.class);
+            }
+        },
+
+        SteamInputBus("GTSR.HatchElement.SteamInputBus", MTESteamSingularityCompressor::addInputBusToMachineList,
+            MTEHatchInputBus.class) {
+
+            @Override
+            public long count(MTESteamSingularityCompressor t) {
+                return t.mInputBusses.size();
+            }
+
+            @Override
+            public List<Class<? extends IMetaTileEntity>> mteBlacklist() {
+                return ImmutableList.of(MTEHatchSteamBusInput.class);
+            }
+        },
+
+        SteamOutputBus("GTSR.HatchElement.SteamOutputBus", MTESteamSingularityCompressor::addOutputBusToMachineList,
+            MTEHatchOutputBus.class) {
+
+            @Override
+            public long count(MTESteamSingularityCompressor t) {
+                return t.mOutputBusses.size();
+            }
+
+            @Override
+            public List<Class<? extends IMetaTileEntity>> mteBlacklist() {
+                return ImmutableList.of(MTEHatchSteamBusOutput.class);
+            }
+        },
+
+        SteamOutputHatch("GTSR.HatchElement.SteamOutputHatch",
+            MTESteamSingularityCompressor::addOutputHatchToMachineList, MTEHatchOutput.class) {
+
+            @Override
+            public long count(MTESteamSingularityCompressor t) {
+                return t.mOutputHatches.size();
+            }
+        };
+
+        private final String translationKey;
+        private final List<Class<? extends IMetaTileEntity>> mteClasses;
+        private final IGTHatchAdder<MTESteamSingularityCompressor> adder;
+
+        @SafeVarargs
+        CompressorHatchElement(String translationKey, IGTHatchAdder<MTESteamSingularityCompressor> adder,
+            Class<? extends IMetaTileEntity>... mteClasses) {
+            this.translationKey = translationKey;
+            this.mteClasses = ImmutableList.copyOf(mteClasses);
+            this.adder = adder;
+        }
+
+        @Override
+        public List<? extends Class<? extends IMetaTileEntity>> mteClasses() {
+            return mteClasses;
+        }
+
+        @Override
+        public IGTHatchAdder<? super MTESteamSingularityCompressor> adder() {
+            return adder;
+        }
+
+        @Override
+        public String getDisplayName() {
+            return GTUtility.translate(translationKey);
+        }
+
+        @Override
+        public String getDescriptionLangKey() {
+            return translationKey;
+        }
+    }
+
+    /**
+     * 蒸汽输入仓 adder：接受标准输入仓（MTEHatchInput 及其子类，含 ME 仓与巨型超压蒸汽输入仓）
+     * 与耐压蒸汽仓（MTEHatchPressureSteamInput）。
+     */
+    public boolean addSteamInputToMachineList(IGregTechTileEntity aTileEntity, int aBaseCasingIndex) {
+        if (aTileEntity == null) return false;
+        IMetaTileEntity mte = aTileEntity.getMetaTileEntity();
+        if (mte == null) return false;
+        if (mte instanceof MTEHatchInput) {
+            return addInputHatchToMachineList(aTileEntity, aBaseCasingIndex);
+        }
+        if (mte instanceof MTEHatchPressureSteamInput hatch) {
+            hatch.updateTexture(aBaseCasingIndex);
+            return mPressureSteamInputs.add(hatch);
+        }
+        return false;
+    }
+
+    /**
+     * 输出总线 adder：GT5U 的 {@code addOutputBusToMachineList} 显式拒绝
+     * {@code MTEHatchSteamBusOutput}，这里放开蒸汽输出总线（它继承 MTEHatchOutputBus），
+     * 标准输出总线与 ME 输出总线照常接受。
+     */
+    public boolean addOutputBusToMachineList(IGregTechTileEntity aTileEntity, int aBaseCasingIndex) {
+        if (aTileEntity == null) return false;
+        IMetaTileEntity mte = aTileEntity.getMetaTileEntity();
+        if (mte == null) return false;
+        if (mte instanceof MTEHatchOutputBus hatch) {
+            hatch.updateTexture(aBaseCasingIndex);
+            hatch.updateCraftingIcon(getMachineCraftingIcon());
+            return mOutputBusses.add(hatch);
+        }
+        return false;
+    }
+
     @Override
     public void construct(ItemStack stackSize, boolean hintsOnly) {
         buildPiece(STRUCTURE_PIECE_MAIN, stackSize, hintsOnly, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET);
@@ -316,6 +472,7 @@ public class MTESteamSingularityCompressor extends MTEEnhancedMultiBlockBase<MTE
         mCasingTierD = -1;
         mCasingTierE = -1;
         mCasingTierF = -1;
+        mPressureSteamInputs.clear();
 
         if (!checkPiece(STRUCTURE_PIECE_MAIN, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET, errors)) {
             return;
@@ -328,7 +485,7 @@ public class MTESteamSingularityCompressor extends MTEEnhancedMultiBlockBase<MTE
         }
         mTier = tier;
 
-        if (mInputHatches.isEmpty() || mOutputBusses.isEmpty()) {
+        if ((mInputHatches.isEmpty() && mPressureSteamInputs.isEmpty()) || mOutputBusses.isEmpty()) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
             return;
         }
@@ -414,10 +571,18 @@ public class MTESteamSingularityCompressor extends MTEEnhancedMultiBlockBase<MTE
         mMaxProgresstime = CYCLE_LENGTH;
     }
 
+    /** 合并普通输入仓与耐压蒸汽仓的当前蒸汽来源列表 */
+    private List<MTEHatch> getSteamInputHatches() {
+        List<MTEHatch> all = new ArrayList<>(mInputHatches.size() + mPressureSteamInputs.size());
+        all.addAll(mInputHatches);
+        all.addAll(mPressureSteamInputs);
+        return all;
+    }
+
     /** 查找输入仓中当前最高等级的蒸汽类别；无则返回 -1 */
     private int findHighestGrade(boolean includeDense) {
         int grade = -1;
-        for (MTEHatchInput hatch : mInputHatches) {
+        for (MTEHatch hatch : getSteamInputHatches()) {
             FluidStack fs = hatch.getFluid();
             if (fs == null || fs.amount <= 0 || fs.getFluid() == null) continue;
             int g = getFluidGrade(
@@ -431,7 +596,7 @@ public class MTESteamSingularityCompressor extends MTEEnhancedMultiBlockBase<MTE
 
     private long sumGrade(int grade, boolean includeDense) {
         long x = 0;
-        for (MTEHatchInput hatch : mInputHatches) {
+        for (MTEHatch hatch : getSteamInputHatches()) {
             FluidStack fs = hatch.getFluid();
             if (fs == null || fs.getFluid() == null) continue;
             if (getFluidGrade(
@@ -445,7 +610,7 @@ public class MTESteamSingularityCompressor extends MTEEnhancedMultiBlockBase<MTE
     }
 
     private void drainGrade(int grade, boolean includeDense) {
-        for (MTEHatchInput hatch : mInputHatches) {
+        for (MTEHatch hatch : getSteamInputHatches()) {
             FluidStack fs = hatch.getFluid();
             if (fs == null || fs.getFluid() == null) continue;
             if (getFluidGrade(

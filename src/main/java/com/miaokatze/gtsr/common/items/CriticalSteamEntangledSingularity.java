@@ -3,6 +3,7 @@ package com.miaokatze.gtsr.common.items;
 import java.util.List;
 
 import net.minecraft.client.renderer.texture.IIconRegister;
+import net.minecraft.entity.item.EntityItem;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -10,6 +11,7 @@ import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 
 import com.miaokatze.gtsr.common.util.CriticalSingularityTexture;
+import com.miaokatze.gtsr.common.util.SingularityDropExplosion;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
@@ -36,5 +38,11 @@ public class CriticalSteamEntangledSingularity extends Item {
     @Override
     public void addInformation(ItemStack stack, EntityPlayer player, List list, boolean adv) {
         list.add(EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.tooltip.critical_singularity.desc"));
+    }
+
+    @Override
+    public boolean onEntityItemUpdate(EntityItem entityItem) {
+        SingularityDropExplosion.updateDroppedSingularity(entityItem);
+        return false;
     }
 }
