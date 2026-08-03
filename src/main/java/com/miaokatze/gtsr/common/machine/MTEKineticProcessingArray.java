@@ -272,7 +272,7 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
                         MTEKineticProcessingArray::onCasingAdded,
                         ofBlocksTiered(
                             MTEKineticProcessingArray::getFrameTier,
-                            FRAME_CASINGS,
+                            getFrameCasings(),
                             -1,
                             (t, tier) -> t.mCasingTier = Math.max(t.mCasingTier, tier),
                             t -> t.mCasingTier)))
@@ -318,20 +318,40 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
     private static final List<Pair<Block, Integer>> GEAR_CASINGS = ImmutableList
         .of(Pair.of(GregTechAPI.sBlockCasings2, 3), Pair.of(GregTechAPI.sBlockCasings2, 4));
 
+    // FRAME_CASINGS 与 ALLOWED_CASINGS 一样延迟初始化：等级 6 框架需要解析
+    // WerkstoffLoader.RhodiumPlatedPalladium 材质，不能在 MTE 类加载时触发 WerkstoffLoader 类加载。
     @SuppressWarnings({ "rawtypes", "unchecked" })
-    private static final List<Pair<Block, Integer>> FRAME_CASINGS = ImmutableList.of(
-        Pair.of(GregTechAPI.sBlockFrames, Materials.Steel.mMetaItemSubID), // 1
-        Pair.of(GregTechAPI.sBlockFrames, Materials.Aluminium.mMetaItemSubID), // 2
-        Pair.of(GregTechAPI.sBlockFrames, Materials.StainlessSteel.mMetaItemSubID), // 3
-        Pair.of(GregTechAPI.sBlockFrames, Materials.Titanium.mMetaItemSubID), // 4
-        Pair.of(GregTechAPI.sBlockFrames, Materials.TungstenSteel.mMetaItemSubID), // 5
-        Pair.of(GregTechAPI.sBlockFrames, Materials.Palladium.mMetaItemSubID), // 6
-        Pair.of(GregTechAPI.sBlockFrames, Materials.Iridium.mMetaItemSubID), // 7
-        Pair.of(GregTechAPI.sBlockFrames, Materials.Osmium.mMetaItemSubID), // 8 - UV
-        Pair.of(GregTechAPI.sBlockFrames, Materials.Neutronium.mMetaItemSubID), // 9 - UHV
-        Pair.of(GregTechAPI.sBlockFrames, Materials.Bedrockium.mMetaItemSubID), // 10 - UEV
-        Pair.of(GregTechAPI.sBlockFrames, Materials.BlackPlutonium.mMetaItemSubID), // 11 - UIV
-        Pair.of(GregTechAPI.sBlockFrames, 588)); // 12 - UMV (SpaceTime)
+    private static List<Pair<Block, Integer>> FRAME_CASINGS = null;
+
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    private static List<Pair<Block, Integer>> getFrameCasings() {
+        if (FRAME_CASINGS == null) {
+            FRAME_CASINGS = ImmutableList.of(
+                Pair.of(GregTechAPI.sBlockFrames, Materials.Steel.mMetaItemSubID), // 1
+                Pair.of(GregTechAPI.sBlockFrames, Materials.Aluminium.mMetaItemSubID), // 2
+                Pair.of(GregTechAPI.sBlockFrames, Materials.StainlessSteel.mMetaItemSubID), // 3
+                Pair.of(GregTechAPI.sBlockFrames, Materials.Titanium.mMetaItemSubID), // 4
+                Pair.of(GregTechAPI.sBlockFrames, Materials.TungstenSteel.mMetaItemSubID), // 5
+                Pair.of(GregTechAPI.sBlockFrames, getTier6FrameMeta()), // 6
+                Pair.of(GregTechAPI.sBlockFrames, Materials.Iridium.mMetaItemSubID), // 7
+                Pair.of(GregTechAPI.sBlockFrames, Materials.Osmium.mMetaItemSubID), // 8 - UV
+                Pair.of(GregTechAPI.sBlockFrames, Materials.Neutronium.mMetaItemSubID), // 9 - UHV
+                Pair.of(GregTechAPI.sBlockFrames, Materials.Bedrockium.mMetaItemSubID), // 10 - UEV
+                Pair.of(GregTechAPI.sBlockFrames, Materials.BlackPlutonium.mMetaItemSubID), // 11 - UIV
+                Pair.of(GregTechAPI.sBlockFrames, 588)); // 12 - UMV (SpaceTime)
+        }
+        return FRAME_CASINGS;
+    }
+
+    private static Integer TIER6_FRAME_META = null;
+
+    private static int getTier6FrameMeta() {
+        if (TIER6_FRAME_META == null) {
+            final Materials material = WerkstoffLoader.RhodiumPlatedPalladium.getGTMaterial();
+            TIER6_FRAME_META = material != null ? material.mMetaItemSubID : Materials.Palladium.mMetaItemSubID;
+        }
+        return TIER6_FRAME_META;
+    }
 
     @Nullable
     public static Integer getCasingTier(Block block, int meta) {
@@ -381,7 +401,7 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
             if (meta == Materials.StainlessSteel.mMetaItemSubID) return 3;
             if (meta == Materials.Titanium.mMetaItemSubID) return 4;
             if (meta == Materials.TungstenSteel.mMetaItemSubID) return 5;
-            if (meta == Materials.Palladium.mMetaItemSubID) return 6;
+            if (meta == getTier6FrameMeta()) return 6;
             if (meta == Materials.Iridium.mMetaItemSubID) return 7;
             if (meta == Materials.Osmium.mMetaItemSubID) return 8;
             if (meta == Materials.Neutronium.mMetaItemSubID) return 9;

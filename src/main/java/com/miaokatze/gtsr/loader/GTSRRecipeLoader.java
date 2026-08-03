@@ -8,7 +8,6 @@ import static com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps.geothermalSteamBoiler
 import static com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps.largeCokeOvenRecipes;
 import static com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps.siemensMartinRecipes;
 import static com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps.steamFluidDrillRecipes;
-import static com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps.steamSingularityCompressorRecipes;
 import static gregtech.api.recipe.RecipeMaps.assemblerRecipes;
 import static gregtech.api.util.GTRecipeBuilder.INGOTS;
 import static gregtech.api.util.GTRecipeBuilder.SECONDS;
@@ -120,7 +119,6 @@ public class GTSRRecipeLoader implements Runnable {
         safeRegister("Hatch", GTSRRecipeLoader::registerHatchRecipes);
         safeRegister("DistilledWaterHatch", GTSRRecipeLoader::registerDistilledWaterHatchRecipe); // 蒸馏水仓：继承蓄水仓配方 +
                                                                                                   // 3组蒸汽纠缠奇点
-        safeRegister("SingularityCompressorDisplay", GTSRRecipeLoader::registerSingularityCompressorDisplayRecipe);
         safeRegister("GeothermalBoilerDisplay", GTSRRecipeLoader::registerGeothermalBoilerDisplayRecipes);
         safeRegister("FluidDrillDisplay", GTSRRecipeLoader::registerFluidDrillDisplayRecipes);
         safeRegister("GearSteamCompressorDisplay", GTSRRecipeLoader::registerGearSteamCompressorDisplayRecipes);
@@ -1279,16 +1277,6 @@ public class GTSRRecipeLoader implements Runnable {
             .eut(24)
             .addTo(assemblerRecipes);
         log("Distilled Water Hatch recipe registered.");
-    }
-
-    private static void registerSingularityCompressorDisplayRecipe() {
-        GTValues.RA.stdBuilder()
-            .fluidInputs(Materials.Steam.getGas(600_000_000))
-            .itemOutputs(GTSRItemList.SteamEntangledSingularity.get(1))
-            .duration(100000)
-            .eut(0)
-            .addTo(steamSingularityCompressorRecipes);
-        log("Singularity compressor display recipe done.");
     }
 
     private static void registerGeothermalBoilerDisplayRecipes() {

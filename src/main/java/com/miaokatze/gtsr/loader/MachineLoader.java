@@ -115,7 +115,7 @@ public class MachineLoader {
             new MTEOverpressureTurbineInputHatch(
                 MetaTileEntityID.OVERPRESSURE_TURBINE_INPUT_HATCH.ID,
                 "gtsr.overpressure.turbine.input.hatch",
-                "Overpressure Turbine Input Hatch"));
+                "Mega Overpressure Steam Input Hatch"));
         GTSRItemList.HubStorageUnit.set(
             new MTEHubStorageUnit(MetaTileEntityID.HUB_STORAGE_UNIT.ID, "gtsr.hub.storage.unit", "Hub Storage Unit"));
         GTSRItemList.ReinforcedHubStorageUnit.set(

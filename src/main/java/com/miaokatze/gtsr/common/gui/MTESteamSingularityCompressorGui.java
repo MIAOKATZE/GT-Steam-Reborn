@@ -10,28 +10,33 @@ import com.cleanroommc.modularui.value.sync.DoubleSyncValue;
 import com.cleanroommc.modularui.value.sync.IntSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.widgets.ListWidget;
+import com.miaokatze.gtsr.common.machine.MTESteamSingularityCompressor;
 
-import gregtech.common.gui.modularui.multiblock.base.MTESteamMultiBlockBaseGui;
-import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTESteamMultiBlockBase;
+import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
 
-public class MTESteamSingularityCompressorGui extends MTESteamMultiBlockBaseGui {
+public class MTESteamSingularityCompressorGui extends MTEMultiBlockBaseGui<MTESteamSingularityCompressor> {
 
-    public MTESteamSingularityCompressorGui(MTESteamMultiBlockBase<?> multiblock) {
+    public MTESteamSingularityCompressorGui(MTESteamSingularityCompressor multiblock) {
         super(multiblock);
     }
 
     @Override
     protected void registerSyncValues(PanelSyncManager syncManager) {
         super.registerSyncValues(syncManager);
-        com.miaokatze.gtsr.common.machine.MTESteamSingularityCompressor machine = (com.miaokatze.gtsr.common.machine.MTESteamSingularityCompressor) multiblock;
-        syncManager.syncValue("gtsr.heat", new DoubleSyncValue(() -> machine.mHeat));
-        syncManager.syncValue("gtsr.maxProgress", new IntSyncValue(() -> machine.mMaxProgresstime));
+        syncManager.syncValue("gtsr.heat", new DoubleSyncValue(() -> multiblock.mHeat));
+        syncManager.syncValue("gtsr.maxProgress", new IntSyncValue(() -> multiblock.mMaxProgresstime));
+        syncManager.syncValue("gtsr.denseMode", new IntSyncValue(() -> multiblock.mDenseMode ? 1 : 0));
+        syncManager.syncValue("gtsr.denseTicks", new IntSyncValue(() -> multiblock.mDenseTicks));
+        syncManager.syncValue("gtsr.tier", new IntSyncValue(() -> multiblock.mTier));
     }
 
     @Override
     protected ListWidget<IWidget, ?> createTerminalTextWidget(PanelSyncManager syncManager, ModularPanel parent) {
         DoubleSyncValue heatSyncer = syncManager.findSyncHandler("gtsr.heat", DoubleSyncValue.class);
         IntSyncValue maxProgressSyncer = syncManager.findSyncHandler("gtsr.maxProgress", IntSyncValue.class);
+        IntSyncValue denseModeSyncer = syncManager.findSyncHandler("gtsr.denseMode", IntSyncValue.class);
+        IntSyncValue denseTicksSyncer = syncManager.findSyncHandler("gtsr.denseTicks", IntSyncValue.class);
+        IntSyncValue tierSyncer = syncManager.findSyncHandler("gtsr.tier", IntSyncValue.class);
 
         return super.createTerminalTextWidget(syncManager, parent)
             .child(
@@ -46,7 +51,10 @@ public class MTESteamSingularityCompressorGui extends MTESteamMultiBlockBaseGui 
             .child(IKey.dynamic(() -> {
                 String statusKey;
                 EnumChatFormatting statusColor;
-                if (maxProgressSyncer.getValue() > 0) {
+                if (denseModeSyncer.getValue() > 0) {
+                    statusKey = "gtsr.gui.singularity_compressor.status.dense";
+                    statusColor = EnumChatFormatting.LIGHT_PURPLE;
+                } else if (maxProgressSyncer.getValue() > 0) {
                     statusKey = "gtsr.gui.status.running";
                     statusColor = EnumChatFormatting.AQUA;
                 } else if (heatSyncer.getValue() > 0) {
@@ -64,15 +72,35 @@ public class MTESteamSingularityCompressorGui extends MTESteamMultiBlockBaseGui 
                 .asWidget()
                 .marginBottom(2)
                 .fullWidth())
+            .child(
+                IKey.dynamic(
+                    () -> EnumChatFormatting.YELLOW
+                        + StatCollector.translateToLocal("gtsr.gui.singularity_compressor.tier")
+                        + EnumChatFormatting.GOLD
+                        + tierSyncer.getValue()
+                        + EnumChatFormatting.RESET)
+                    .asWidget()
+                    .marginBottom(2)
+                    .fullWidth())
             .child(IKey.dynamic(() -> {
-                boolean isSuperheated = ((com.miaokatze.gtsr.common.machine.MTESteamSingularityCompressor) multiblock)
-                    .hasSuperheatedSteamInHatch();
-                String steamType = isSuperheated ? StatCollector.translateToLocal("gtsr.gui.steam_type.superheated")
-                    : StatCollector.translateToLocal("gtsr.gui.steam_type.normal");
-                return EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.steam_type")
+                String modeKey = denseModeSyncer.getValue() > 0 ? "gtsr.gui.singularity_compressor.mode.dense"
+                    : "gtsr.gui.singularity_compressor.mode.accumulate";
+                return EnumChatFormatting.YELLOW
+                    + StatCollector.translateToLocal("gtsr.gui.singularity_compressor.mode")
                     + " "
-                    + EnumChatFormatting.YELLOW
-                    + steamType;
+                    + EnumChatFormatting.GOLD
+                    + StatCollector.translateToLocal(modeKey);
+            })
+                .asWidget()
+                .marginBottom(2)
+                .fullWidth())
+            .child(IKey.dynamic(() -> {
+                if (denseModeSyncer.getValue() <= 0) return "";
+                return EnumChatFormatting.YELLOW
+                    + StatCollector.translateToLocal("gtsr.gui.singularity_compressor.dense_time")
+                    + " "
+                    + EnumChatFormatting.RED
+                    + String.format("%ds", denseTicksSyncer.getValue() / 20);
             })
                 .asWidget()
                 .marginBottom(2)

@@ -1,63 +1,81 @@
 package com.miaokatze.gtsr.common.machine;
 
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlock;
+import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlockAdder;
+import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlocksTiered;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose;
-import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.PressureSteamInputHatch;
-import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.SteamCoolingHatch;
+import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.SteamInputBus;
+import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.SteamInputHatch;
 import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.SteamOutputBus;
+import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.SteamOutputHatch;
 import static gregtech.api.enums.GTValues.emptyItemStackArray;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 
-import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.List;
 
+import net.minecraft.block.Block;
 import net.minecraft.client.renderer.texture.IIconRegister;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
+import net.minecraftforge.common.util.ForgeDirection;
+import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
+
+import org.apache.commons.lang3.tuple.Pair;
 
 import com.gtnewhorizon.structurelib.alignment.IAlignmentLimits;
 import com.gtnewhorizon.structurelib.alignment.constructable.ISurvivalConstructable;
 import com.gtnewhorizon.structurelib.structure.IStructureDefinition;
 import com.gtnewhorizon.structurelib.structure.ISurvivalBuildEnvironment;
 import com.gtnewhorizon.structurelib.structure.StructureDefinition;
-import com.gtnewhorizons.modularui.common.widget.DynamicPositionedColumn;
-import com.gtnewhorizons.modularui.common.widget.FakeSyncWidget;
-import com.gtnewhorizons.modularui.common.widget.SlotWidget;
-import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import com.miaokatze.gtsr.api.compat.GTVersionCompat;
-import com.miaokatze.gtsr.api.compat.ICoolingHatchHolder;
-import com.miaokatze.gtsr.api.compat.SteamCoolingSupport;
-import com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 
+import bartworks.common.loaders.ItemRegistry;
+import bartworks.system.material.WerkstoffLoader;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Materials;
 import gregtech.api.enums.Textures;
+import gregtech.api.enums.VoltageIndex;
 import gregtech.api.interfaces.IIconContainer;
+import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
+import gregtech.api.metatileentity.implementations.MTEEnhancedMultiBlockBase;
 import gregtech.api.metatileentity.implementations.MTEHatch;
-import gregtech.api.objects.overclockdescriber.OverclockDescriber;
-import gregtech.api.recipe.RecipeMap;
+import gregtech.api.metatileentity.implementations.MTEHatchInput;
+import gregtech.api.metatileentity.implementations.MTEHatchInputBus;
+import gregtech.api.metatileentity.implementations.MTEHatchOutput;
 import gregtech.api.recipe.check.CheckRecipeResult;
 import gregtech.api.recipe.check.CheckRecipeResultRegistry;
+import gregtech.api.render.TextureFactory;
 import gregtech.api.structure.error.StructureError;
 import gregtech.api.structure.error.StructureErrorRegistry;
 import gregtech.api.util.GTUtility;
+import gregtech.api.util.GlassTier;
 import gregtech.api.util.MultiblockTooltipBuilder;
-import gregtech.common.blocks.BlockCasings2;
-import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTEHatchCustomFluidBase;
-import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTESteamMultiBlockBase;
 
-public class MTESteamSingularityCompressor extends MTESteamMultiBlockBase<MTESteamSingularityCompressor>
+/**
+ * 蒸汽奇点压缩机 v2。
+ * <p>
+ * 脱离 GT++ 蒸汽多机基类：不再使用 lEUt 蒸汽消耗机制，改为每秒吞噬输入仓中最高等级的蒸汽
+ * （仿 GT5U 通用化学燃料引擎的 20t 周期全量消耗），按对数方程提升热量。
+ * <ul>
+ * <li>等级 1：钢外壳 + 钢齿轮箱 + 防爆玻璃 + 钢框架，只识别 蒸汽/过热/超临界；热量 y=0.005x/(x+200000)</li>
+ * <li>等级 2：强化镀铑钯外壳/齿轮箱 + LuV+ 玻璃 + 镀铑钯框架，可识别致密变体；热量 y=0.002x/(x+1000)</li>
+ * <li>热量 ≥100% 清零并产出 1 个蒸汽纠缠奇点（等级 1）/ 临界蒸汽纠缠奇点（等级 2）</li>
+ * <li>等级 2 螺丝刀切换致密蒸汽压缩模式：每输入 1 个蒸汽纠缠奇点运行 600s，蒸汽按 1000:1 压缩为致密蒸汽</li>
+ * </ul>
+ */
+public class MTESteamSingularityCompressor extends MTEEnhancedMultiBlockBase<MTESteamSingularityCompressor>
     implements ISurvivalConstructable {
 
     private static final String STRUCTURE_PIECE_MAIN = "main";
@@ -65,25 +83,44 @@ public class MTESteamSingularityCompressor extends MTESteamMultiBlockBase<MTESte
     private static final int VERTICAL_OFF_SET = 8;
     private static final int DEPTH_OFF_SET = 2;
 
-    private static final int STEAM_L_EUT = 4000;
-    private static final double HEAT_UP_PER_RECIPE = 0.0002d;
-    private static final double HEAT_DOWN_RATE = 0.001d;
-    private static final int HEAT_RECIPE_TIME = 20;
-
-    private static final NumberFormat numberFormat = NumberFormat.getNumberInstance();
-
-    static {
-        numberFormat.setMinimumFractionDigits(3);
-        numberFormat.setMaximumFractionDigits(3);
-    }
+    /** 每秒一个消耗周期（20 tick） */
+    private static final int CYCLE_LENGTH = 20;
+    /** 无蒸汽或关机时每秒热量衰减 */
+    private static final double HEAT_DECAY_PER_SECOND = 0.01d;
+    /** 蒸汽纠缠奇点续航时长：600s（无冗余，结束时无缝续杯） */
+    private static final int SINGULARITY_DURATION_TICKS = 12000;
+    /** 等级 1 基础热量上限（0.5%/s） */
+    private static final double TIER1_HEAT_MAX = 0.005d;
+    /** 等级 1 对数方程半值点 */
+    private static final long TIER1_HEAT_HALF_L = 200000L;
+    /** 等级 2 基础热量上限（0.2%/s） */
+    private static final double TIER2_HEAT_MAX = 0.002d;
+    /** 等级 2 对数方程半值点 */
+    private static final long TIER2_HEAT_HALF_L = 1000L;
+    /** 蒸汽系数：蒸汽/致密蒸汽 0.5；过热/致密过热 1；超临界/致密超临界 2 */
+    private static final double[] GRADE_COEF = { 0.5d, 1.0d, 2.0d };
+    private static final String[] DENSE_FLUID_NAMES = { "densesteam", "densesuperheatedsteam",
+        "densesupercriticalsteam" };
+    /** 致密压缩倍率：1000:1 */
+    private static final long DENSE_COMPRESSION_RATIO = 1000L;
 
     private static IStructureDefinition<MTESteamSingularityCompressor> STRUCTURE_DEFINITION = null;
-
-    protected int mCasingCount = 0;
-    public double mHeat = 0.0d;
-
     private static IIconContainer OVERLAY_OFF;
     private static IIconContainer OVERLAY_ON;
+    private static Integer TIER2_FRAME_META = null;
+
+    /** 当前结构等级（1/2，由 checkMachine 判定） */
+    public int mTier = 0;
+    public double mHeat = 0.0d;
+    /** 致密蒸汽压缩模式开关（仅等级 2，关机且热量清零时可切换） */
+    public boolean mDenseMode = false;
+    /** 致密模式剩余续航 tick（600s 计时） */
+    public int mDenseTicks = 0;
+
+    private int mCasingTierB = -1;
+    private int mCasingTierD = -1;
+    private int mCasingTierE = -1;
+    private int mCasingTierF = -1;
 
     public MTESteamSingularityCompressor(int aID, String aName, String aNameRegional) {
         super(aID, aName, aNameRegional);
@@ -106,27 +143,37 @@ public class MTESteamSingularityCompressor extends MTESteamMultiBlockBase<MTESte
         return new MTESteamSingularityCompressor(mName);
     }
 
-    @Override
-    public String getMachineType() {
-        return "蒸汽奇点压缩机";
+    private static int getTier2FrameMeta() {
+        if (TIER2_FRAME_META == null) {
+            final Materials material = WerkstoffLoader.RhodiumPlatedPalladium.getGTMaterial();
+            TIER2_FRAME_META = material != null ? material.mMetaItemSubID : Materials.Palladium.mMetaItemSubID;
+        }
+        return TIER2_FRAME_META;
     }
 
-    @Override
-    protected boolean isHighPressure() {
-        return true;
+    private static int getCasingTier(Block block, int meta) {
+        if (block == GregTechAPI.sBlockCasings2 && meta == 0) return 1;
+        if (block == GregTechAPI.sBlockCasings8 && meta == 6) return 2;
+        return -1;
     }
 
-    protected int getCasingTextureID() {
-        return ((BlockCasings2) GregTechAPI.sBlockCasings2).getTextureIndex(0);
+    private static int getFrameTier(Block block, int meta) {
+        if (block == GregTechAPI.sBlockFrames && meta == Materials.Steel.mMetaItemSubID) return 1;
+        if (block == GregTechAPI.sBlockFrames && meta == getTier2FrameMeta()) return 2;
+        return -1;
     }
 
-    @Override
-    protected void updateHatchTexture() {
-        super.updateHatchTexture();
-        int textureID = getCasingTextureID();
+    protected int getCasingTextureIndex() {
+        return mTier >= 2 ? GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings8, 6)
+            : GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings2, 0);
+    }
+
+    protected void updateHatchTextures() {
+        int textureID = getCasingTextureIndex();
+        for (MTEHatch h : mInputHatches) h.updateTexture(textureID);
+        for (MTEHatch h : mOutputHatches) h.updateTexture(textureID);
+        for (MTEHatch h : mInputBusses) h.updateTexture(textureID);
         for (MTEHatch h : mOutputBusses) h.updateTexture(textureID);
-        // v1.9.41 修复：冷却仓纳入纹理更新（结构元素含 SteamCoolingHatch，此前冷却仓底材不随结构刷新）
-        SteamCoolingSupport.updateHatchTextures((ICoolingHatchHolder) this, textureID);
     }
 
     @Override
@@ -141,6 +188,12 @@ public class MTESteamSingularityCompressor extends MTESteamMultiBlockBase<MTESte
     public IStructureDefinition<MTESteamSingularityCompressor> getStructureDefinition() {
         if (STRUCTURE_DEFINITION == null) {
             final int casingIndex = GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings2, 0);
+            final List<Pair<Block, Integer>> casingTiers = new ArrayList<>();
+            casingTiers.add(Pair.of(GregTechAPI.sBlockCasings2, 0)); // 1
+            casingTiers.add(Pair.of(GregTechAPI.sBlockCasings8, 6)); // 2
+            final List<Pair<Block, Integer>> frameTiers = new ArrayList<>();
+            frameTiers.add(Pair.of(GregTechAPI.sBlockFrames, Materials.Steel.mMetaItemSubID)); // 1
+            frameTiers.add(Pair.of(GregTechAPI.sBlockFrames, getTier2FrameMeta())); // 2
 
             STRUCTURE_DEFINITION = StructureDefinition.<MTESteamSingularityCompressor>builder()
                 .addShape(
@@ -173,52 +226,69 @@ public class MTESteamSingularityCompressor extends MTESteamMultiBlockBase<MTESte
                     'B',
                     ofChain(
                         // casing-first: NEI 投影优先渲染外壳；真实 hatch 坐标上 casing 匹配失败后继续匹配 hatch adder。
-                        onElementPass(
-                            MTESteamSingularityCompressor::onCasingAdded,
-                            ofBlock(GregTechAPI.sBlockCasings2, 0)),
-                        // Use atLeast(PressureSteamInputHatch) instead of hatchIds(...). The hatch element's
-                        // mteBlacklist() excludes MTEHatchPressureSteamInput.class, preventing NEI from rendering
-                        // the pressure steam hatch at every casing position.
-                        buildHatchAdder(MTESteamSingularityCompressor.class).atLeast(PressureSteamInputHatch)
+                        ofBlocksTiered(
+                            MTESteamSingularityCompressor::getCasingTier,
+                            casingTiers,
+                            -1,
+                            (t, tier) -> t.mCasingTierB = tier,
+                            t -> t.mCasingTierB),
+                        buildHatchAdder(MTESteamSingularityCompressor.class).atLeast(SteamInputHatch)
                             .casingIndex(casingIndex)
                             .hint(1)
-                            .shouldReject(t -> !t.mSteamInputFluids.isEmpty())
+                            .build(),
+                        buildHatchAdder(MTESteamSingularityCompressor.class).atLeast(SteamInputBus)
+                            .casingIndex(casingIndex)
+                            .hint(1)
                             .build(),
                         buildHatchAdder(MTESteamSingularityCompressor.class).atLeast(SteamOutputBus)
                             .casingIndex(casingIndex)
                             .hint(1)
                             .build(),
-                        buildHatchAdder(MTESteamSingularityCompressor.class).atLeast(SteamCoolingHatch)
+                        buildHatchAdder(MTESteamSingularityCompressor.class).atLeast(SteamOutputHatch)
                             .casingIndex(casingIndex)
                             .hint(2)
                             .build()))
                 .addElement(
                     'C',
-                    onElementPass(
-                        MTESteamSingularityCompressor::onCasingAdded,
-                        ofBlock(GregTechAPI.sBlockCasings2, 13)))
+                    onElementPass(MTESteamSingularityCompressor::onPipeAdded, ofBlock(GregTechAPI.sBlockCasings2, 13)))
                 .addElement(
                     'D',
-                    onElementPass(MTESteamSingularityCompressor::onCasingAdded, ofBlock(GregTechAPI.sBlockCasings2, 3)))
+                    ofBlocksTiered(
+                        MTESteamSingularityCompressor::getCasingTier,
+                        casingTiers,
+                        -1,
+                        (t, tier) -> t.mCasingTierD = tier,
+                        t -> t.mCasingTierD))
                 .addElement(
                     'E',
-                    onElementPass(
-                        MTESteamSingularityCompressor::onCasingAdded,
-                        // 防爆玻璃：通过兼容层自动适配 beta-1（IC2 blockAlloyGlass）与 beta-2（GT5U sBlockGlass1 meta 10）
-                        ofBlock(GTVersionCompat.getReinforcedGlassBlock(), GTVersionCompat.getReinforcedGlassMeta())))
+                    ofChain(
+                        // 等级 1：防爆玻璃（兼容 beta-1 IC2 blockAlloyGlass / beta-2 GT5U sBlockGlass1 meta 10）
+                        onElementPass(
+                            t -> t.mCasingTierE = 1,
+                            ofBlock(
+                                GTVersionCompat.getReinforcedGlassBlock(),
+                                GTVersionCompat.getReinforcedGlassMeta())),
+                        // 等级 2：任意 LuV 级玻璃（GlassTier 系统，等级 ≥ LuV）
+                        ofBlockAdder((t, block, meta) -> {
+                            Integer glassTier = GlassTier.getGlassBlockTier(block, meta);
+                            if (glassTier == null || glassTier < VoltageIndex.LuV) return false;
+                            t.mCasingTierE = 2;
+                            return true;
+                        }, ItemRegistry.bw_realglas, 3)))
                 .addElement(
                     'F',
-                    onElementPass(
-                        MTESteamSingularityCompressor::onCasingAdded,
-                        ofBlock(GregTechAPI.sBlockFrames, Materials.Steel.mMetaItemSubID)))
+                    ofBlocksTiered(
+                        MTESteamSingularityCompressor::getFrameTier,
+                        frameTiers,
+                        -1,
+                        (t, tier) -> t.mCasingTierF = tier,
+                        t -> t.mCasingTierF))
                 .build();
         }
         return STRUCTURE_DEFINITION;
     }
 
-    private void onCasingAdded() {
-        mCasingCount++;
-    }
+    private void onPipeAdded() {}
 
     @Override
     public void construct(ItemStack stackSize, boolean hintsOnly) {
@@ -242,79 +312,241 @@ public class MTESteamSingularityCompressor extends MTESteamMultiBlockBase<MTESte
 
     @Override
     public void checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack, List<StructureError> errors) {
-        mCasingCount = 0;
+        mCasingTierB = -1;
+        mCasingTierD = -1;
+        mCasingTierE = -1;
+        mCasingTierF = -1;
 
         if (!checkPiece(STRUCTURE_PIECE_MAIN, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET, errors)) {
             return;
         }
 
-        // 取消双注册后，蒸汽输出总线只在 mSteamOutputs 中，需要合并计数
-        if (this.mSteamInputFluids.size() != 1 || (this.mOutputBusses.size() + this.mSteamOutputs.size()) != 1) {
+        int tier = mCasingTierB;
+        if (mCasingTierD != tier || mCasingTierE != tier || mCasingTierF != tier || (tier != 1 && tier != 2)) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
             return;
         }
+        mTier = tier;
 
-        updateHatchTexture();
-    }
+        if (mInputHatches.isEmpty() || mOutputBusses.isEmpty()) {
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            return;
+        }
+        // 等级 2 的致密模式需要输出仓
+        if (mTier == 2 && mOutputHatches.isEmpty()) {
+            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            return;
+        }
+        if (mTier < 2) {
+            mDenseMode = false;
+        }
 
-    @Override
-    public RecipeMap<?> getRecipeMap() {
-        return GTSRRecipeMaps.steamSingularityCompressorRecipes;
-    }
-
-    @Override
-    public OverclockDescriber getOverclockDescriber() {
-        return null;
+        updateHatchTextures();
     }
 
     @Override
     public CheckRecipeResult checkProcessing() {
-        // Check if there's enough steam before starting a recipe
-        long aSteamVal = ((long) STEAM_L_EUT * 10000) / Math.max(1000, mEfficiency);
-        if (hasSuperheatedSteamInHatch()) {
-            aSteamVal *= 4;
-        }
-        if (getTotalSteamStored() < aSteamVal) {
+        // 每秒执行一次完整周期（脱体 lEUt，无 EU 需求）
+        if (getBaseMetaTileEntity().getTimer() % CYCLE_LENGTH != 0L) {
             return CheckRecipeResultRegistry.NO_RECIPE;
         }
+        return mDenseMode ? processDenseCycle() : processHeatCycle();
+    }
 
-        lEUt = -STEAM_L_EUT;
-        mMaxProgresstime = HEAT_RECIPE_TIME;
-        mEfficiency = 10000;
-        mEfficiencyIncrease = 10000;
-        mOutputItems = emptyItemStackArray;
+    /** 蓄热周期：吞噬最高等级蒸汽并提升热量 */
+    private CheckRecipeResult processHeatCycle() {
+        boolean includeDense = mTier >= 2;
+        int grade = findHighestGrade(includeDense);
+        if (grade < 0) {
+            // 下一秒没有识别到任何蒸汽：每秒降低 1% 热量
+            mHeat = Math.max(0.0d, mHeat - HEAT_DECAY_PER_SECOND);
+            return CheckRecipeResultRegistry.NO_RECIPE;
+        }
+        long x = sumGrade(grade, includeDense);
+        drainGrade(grade, includeDense);
+        double base = mTier >= 2 ? TIER2_HEAT_MAX * x / (x + TIER2_HEAT_HALF_L)
+            : TIER1_HEAT_MAX * x / (x + TIER1_HEAT_HALF_L);
+        mHeat += GRADE_COEF[grade] * base;
+
+        if (mHeat >= 1.0d) {
+            addOutputPartial(
+                mTier >= 2 ? GTSRItemList.CriticalSteamEntangledSingularity.get(1)
+                    : GTSRItemList.SteamEntangledSingularity.get(1));
+            mHeat = 0.0d;
+        }
+        startCycle();
         return CheckRecipeResultRegistry.SUCCESSFUL;
     }
 
-    @Override
-    protected void outputAfterRecipe() {
-        mHeat += HEAT_UP_PER_RECIPE;
-
-        if (mHeat >= 1.0d) {
-            addOutputPartial(GTSRItemList.SteamEntangledSingularity.get(1));
-            mHeat = 0.0d;
+    /** 致密压缩周期：消耗蒸汽纠缠奇点续航，蒸汽按 1000:1 压缩为致密蒸汽 */
+    private CheckRecipeResult processDenseCycle() {
+        // 600s 结束瞬间自动消化 1 颗续杯，中途不断模式；无奇点则待机重试
+        if (mDenseTicks <= 0) {
+            if (!consumeSingularityFromInputBuses(1)) {
+                return CheckRecipeResultRegistry.NO_RECIPE;
+            }
+            mDenseTicks = SINGULARITY_DURATION_TICKS;
         }
-        updateSlots();
+        mDenseTicks -= CYCLE_LENGTH;
+
+        int grade = findHighestGrade(false);
+        if (grade < 0) {
+            return CheckRecipeResultRegistry.NO_RECIPE;
+        }
+        long x = sumGrade(grade, false);
+        if (x < DENSE_COMPRESSION_RATIO) {
+            return CheckRecipeResultRegistry.NO_RECIPE;
+        }
+        FluidStack dense = FluidRegistry.getFluidStack(DENSE_FLUID_NAMES[grade], (int) (x / DENSE_COMPRESSION_RATIO));
+        if (dense == null || dense.amount <= 0 || !canFitOutput(dense)) {
+            return CheckRecipeResultRegistry.NO_RECIPE;
+        }
+        drainGrade(grade, false);
+        fillOutput(dense);
+        startCycle();
+        return CheckRecipeResultRegistry.SUCCESSFUL;
+    }
+
+    private void startCycle() {
+        mEfficiency = 10000;
+        mEfficiencyIncrease = 10000;
+        mOutputItems = emptyItemStackArray;
+        mMaxProgresstime = CYCLE_LENGTH;
+    }
+
+    /** 查找输入仓中当前最高等级的蒸汽类别；无则返回 -1 */
+    private int findHighestGrade(boolean includeDense) {
+        int grade = -1;
+        for (MTEHatchInput hatch : mInputHatches) {
+            FluidStack fs = hatch.getFluid();
+            if (fs == null || fs.amount <= 0 || fs.getFluid() == null) continue;
+            int g = getFluidGrade(
+                fs.getFluid()
+                    .getName(),
+                includeDense);
+            if (g > grade) grade = g;
+        }
+        return grade;
+    }
+
+    private long sumGrade(int grade, boolean includeDense) {
+        long x = 0;
+        for (MTEHatchInput hatch : mInputHatches) {
+            FluidStack fs = hatch.getFluid();
+            if (fs == null || fs.getFluid() == null) continue;
+            if (getFluidGrade(
+                fs.getFluid()
+                    .getName(),
+                includeDense) == grade) {
+                x += fs.amount;
+            }
+        }
+        return x;
+    }
+
+    private void drainGrade(int grade, boolean includeDense) {
+        for (MTEHatchInput hatch : mInputHatches) {
+            FluidStack fs = hatch.getFluid();
+            if (fs == null || fs.getFluid() == null) continue;
+            if (getFluidGrade(
+                fs.getFluid()
+                    .getName(),
+                includeDense) == grade) {
+                hatch.drain(Integer.MAX_VALUE, true);
+            }
+        }
+    }
+
+    private int getFluidGrade(String name, boolean includeDense) {
+        switch (name) {
+            case "steam":
+                return 0;
+            case "densesteam":
+                return includeDense ? 0 : -1;
+            case "ic2superheatedsteam":
+                return 1;
+            case "densesuperheatedsteam":
+                return includeDense ? 1 : -1;
+            case "supercriticalsteam":
+                return 2;
+            case "densesupercriticalsteam":
+                return includeDense ? 2 : -1;
+            default:
+                return -1;
+        }
+    }
+
+    private boolean canFitOutput(FluidStack stack) {
+        int capacity = 0;
+        for (MTEHatchOutput hatch : mOutputHatches) {
+            FluidStack existing = hatch.getFluid();
+            int used = existing != null ? existing.amount : 0;
+            capacity += hatch.getCapacity() - used;
+            if (capacity >= stack.amount) return true;
+        }
+        return false;
+    }
+
+    private void fillOutput(FluidStack stack) {
+        int remaining = stack.amount;
+        for (MTEHatchOutput hatch : mOutputHatches) {
+            if (remaining <= 0) break;
+            FluidStack toFill = stack.copy();
+            toFill.amount = remaining;
+            int filled = hatch.fill(toFill, true);
+            remaining -= filled;
+        }
+    }
+
+    private boolean consumeSingularityFromInputBuses(int amount) {
+        ItemStack singularity = GTSRItemList.SteamEntangledSingularity.get(1);
+        if (singularity == null) return false;
+        for (MTEHatchInputBus bus : mInputBusses) {
+            for (int i = 0; i < bus.getSizeInventory(); i++) {
+                ItemStack stack = bus.getStackInSlot(i);
+                if (stack != null && stack.getItem() == singularity.getItem() && stack.stackSize >= amount) {
+                    bus.decrStackSize(i, amount);
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public void onScrewdriverRightClick(ForgeDirection side, EntityPlayer aPlayer, float aX, float aY, float aZ,
+        ItemStack aTool) {
+        if (aPlayer.worldObj.isRemote) return;
+        if (mMachine) {
+            GTUtility.sendChatTrans(aPlayer, "gtsr.chat.dense_mode.require_off");
+            return;
+        }
+        if (mHeat > 0.0001d) {
+            GTUtility.sendChatTrans(aPlayer, "gtsr.chat.dense_mode.require_heat_clear");
+            return;
+        }
+        if (mTier < 2) {
+            GTUtility.sendChatTrans(aPlayer, "gtsr.chat.dense_mode.require_tier2");
+            return;
+        }
+        mDenseMode = !mDenseMode;
+        GTUtility.sendChatTrans(aPlayer, mDenseMode ? "gtsr.chat.dense_mode.on" : "gtsr.chat.dense_mode.off");
+        getBaseMetaTileEntity().markDirty();
     }
 
     @Override
     public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
         super.onPostTick(aBaseMetaTileEntity, aTick);
         if (!aBaseMetaTileEntity.isServerSide()) return;
-
-        // Heat decay: whenever the machine is not actively running, heat decreases
-        if (!mMachine || mMaxProgresstime <= 0) {
-            mHeat = Math.max(0.0d, mHeat - HEAT_DOWN_RATE);
+        // 机器关机：每秒降低 1% 热量
+        if (!mMachine && aTick % CYCLE_LENGTH == 0L) {
+            mHeat = Math.max(0.0d, mHeat - HEAT_DECAY_PER_SECOND);
         }
     }
 
     @Override
     public int getMaxParallelRecipes() {
         return 1;
-    }
-
-    public double getEuDiscountForParallelism() {
-        return 1.0d;
     }
 
     @Override
@@ -327,65 +559,14 @@ public class MTESteamSingularityCompressor extends MTESteamMultiBlockBase<MTESte
         return true;
     }
 
-    public int getOutputSlot() {
-        return 0;
-    }
-
     @Override
     public int getMaxEfficiency(ItemStack aStack) {
         return 10000;
     }
 
     @Override
-    public int getTierRecipes() {
-        return 0;
-    }
-
-    @Override
     public boolean supportsPowerPanel() {
         return false;
-    }
-
-    @Deprecated
-    @Override
-    protected void drawTexts(DynamicPositionedColumn screenElements, SlotWidget inventorySlot) {
-        super.drawTexts(screenElements, inventorySlot);
-        screenElements
-            .widget(
-                new TextWidget().setStringSupplier(
-                    () -> EnumChatFormatting.YELLOW
-                        + StatCollector.translateToLocal("gtsr.gui.singularity_compressor.heat")
-                        + EnumChatFormatting.RED
-                        + String.format("%.1f%%", mHeat * 100.0d)
-                        + EnumChatFormatting.RESET))
-            .widget(new TextWidget().setStringSupplier(() -> {
-                String statusKey;
-                EnumChatFormatting statusColor;
-                if (mMaxProgresstime > 0) {
-                    statusKey = "gtsr.gui.status.running";
-                    statusColor = EnumChatFormatting.AQUA;
-                } else if (mHeat > 0) {
-                    statusKey = "gtsr.gui.singularity_compressor.status.accumulating";
-                    statusColor = EnumChatFormatting.YELLOW;
-                } else {
-                    statusKey = "gtsr.gui.status.idle";
-                    statusColor = EnumChatFormatting.GRAY;
-                }
-                return EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.status")
-                    + " "
-                    + statusColor
-                    + StatCollector.translateToLocal(statusKey)
-                    + EnumChatFormatting.RESET;
-            }))
-            .widget(new TextWidget().setStringSupplier(() -> {
-                String steamType = hasSuperheatedSteamInHatch()
-                    ? StatCollector.translateToLocal("gtsr.gui.steam_type.superheated")
-                    : StatCollector.translateToLocal("gtsr.gui.steam_type.normal");
-                return EnumChatFormatting.YELLOW + StatCollector.translateToLocal(
-                    "gtsr.gui.steam_type") + " " + EnumChatFormatting.YELLOW + steamType + EnumChatFormatting.RESET;
-            }))
-            .widget(new FakeSyncWidget.DoubleSyncer(() -> mHeat, val -> mHeat = val))
-            .widget(new FakeSyncWidget.IntegerSyncer(() -> mMaxProgresstime, val -> mMaxProgresstime = val));
     }
 
     @Override
@@ -394,27 +575,14 @@ public class MTESteamSingularityCompressor extends MTESteamMultiBlockBase<MTESte
     }
 
     @Override
-    protected IIconContainer getInactiveOverlay() {
-        return OVERLAY_OFF;
-    }
-
-    @Override
-    protected IIconContainer getActiveOverlay() {
-        return OVERLAY_ON;
-    }
-
-    // beta-2 兼容：MTESteamMultiBlockBase 将 getActiveGlowOverlay/getInactiveGlowOverlay 改为 abstract
-    // 返回 Textures.BlockIcons.VOID（GT5U 官方"空纹理"常量，渲染器跳过 InvisibleIcon，无发光层）
-    // 不能返回 null，否则 beta-2 的 createTextureWithCasing 会导致 GTTextureBuilder.build() 抛出
-    // "iconContainer not specified!" 崩溃（创造物品栏渲染时触发）
-    @Override
-    protected IIconContainer getActiveGlowOverlay() {
-        return Textures.BlockIcons.VOID;
-    }
-
-    @Override
-    protected IIconContainer getInactiveGlowOverlay() {
-        return Textures.BlockIcons.VOID;
+    public ITexture[] getTexture(IGregTechTileEntity aBaseMetaTileEntity, ForgeDirection side, ForgeDirection facing,
+        int colorIndex, boolean aActive, boolean redstoneLevel) {
+        int casingIndex = getCasingTextureIndex();
+        if (side == facing) {
+            return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(casingIndex),
+                TextureFactory.of(aActive ? OVERLAY_ON : OVERLAY_OFF) };
+        }
+        return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(casingIndex) };
     }
 
     @Override
@@ -422,36 +590,34 @@ public class MTESteamSingularityCompressor extends MTESteamMultiBlockBase<MTESte
         MultiblockTooltipBuilder tt = new MultiblockTooltipBuilder();
         tt.addMachineType(StatCollector.translateToLocal("gtsr.tooltip.singularity_compressor.type"))
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.singularity_compressor.desc"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.singularity_compressor.desc2"))
+            .addInfo(
+                EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.singularity_compressor.desc2"))
+            .addInfo(
+                EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.tooltip.singularity_compressor.desc3"))
+            .addInfo(
+                EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.singularity_compressor.desc4"))
+            .addInfo(
+                EnumChatFormatting.DARK_PURPLE
+                    + StatCollector.translateToLocal("gtsr.tooltip.singularity_compressor.desc5"))
+            .addInfo(
+                EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.tooltip.singularity_compressor.desc6"))
             .addSeparator()
-            .addInfo(
-                EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.shared.steam_cost")
-                    + EnumChatFormatting.WHITE
-                    + " 80,000 L/s")
-            .addInfo(
-                EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.tooltip.shared.superheated_quadruples"))
             .beginStructureBlock(11, 11, 11, false)
             .addController(StatCollector.translateToLocal("gtsr.tooltip.singularity_compressor.ctrl"))
             .addOtherStructurePart(
                 StatCollector.translateToLocal("gtsr.tooltip.shared.steam_input_hatch"),
                 StatCollector.translateToLocal("gtsr.tooltip.singularity_compressor.steam_input"),
                 1)
+            .addInputBus(StatCollector.translateToLocal("gtsr.tooltip.singularity_compressor.input_bus"), 1)
             .addOutputBus(StatCollector.translateToLocal("gtsr.tooltip.singularity_compressor.output_bus"), 1)
-            .addOtherStructurePart(
-                StatCollector.translateToLocal("gtsr.tooltip.singularity_compressor.cooling"),
-                StatCollector.translateToLocal("gtsr.tooltip.shared.any_casing"),
-                2)
+            .addOutputHatch(StatCollector.translateToLocal("gtsr.tooltip.singularity_compressor.output_hatch"), 1)
             .addStructureInfo("")
             .addStructureInfo(
-                EnumChatFormatting.DARK_PURPLE + StatCollector.translateToLocal("gtsr.tooltip.shared.steel_only"))
-            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.steel_casing"), 175, false)
-            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.steel_pipe_casing"), 16, false)
-            .addCasingInfoExactly(
-                StatCollector.translateToLocal("gtsr.tooltip.shared.steel_gear_box_casing"),
-                73,
-                false)
-            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.reinforced_glass"), 252, false)
-            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.steel_frame_box"), 144, false)
+                EnumChatFormatting.DARK_PURPLE
+                    + StatCollector.translateToLocal("gtsr.tooltip.singularity_compressor.tier1_blocks"))
+            .addStructureInfo(
+                EnumChatFormatting.DARK_PURPLE
+                    + StatCollector.translateToLocal("gtsr.tooltip.singularity_compressor.tier2_blocks"))
             .addStructureHint("gtsr.tooltip.shared.no_maintenance")
             .toolTipFinisher(
                 EnumChatFormatting.AQUA + "GT"
@@ -475,26 +641,16 @@ public class MTESteamSingularityCompressor extends MTESteamMultiBlockBase<MTESte
     public void saveNBTData(NBTTagCompound aNBT) {
         super.saveNBTData(aNBT);
         aNBT.setDouble("mHeat", mHeat);
+        aNBT.setBoolean("mDenseMode", mDenseMode);
+        aNBT.setInteger("mDenseTicks", mDenseTicks);
     }
 
     @Override
     public void loadNBTData(NBTTagCompound aNBT) {
         super.loadNBTData(aNBT);
         mHeat = aNBT.getDouble("mHeat");
-    }
-
-    public boolean hasSuperheatedSteamInHatch() {
-        for (MTEHatchCustomFluidBase hatch : mSteamInputFluids) {
-            FluidStack fs = hatch.getFluid();
-            if (fs != null && fs.getFluid() != null
-                && "ic2superheatedsteam".equals(
-                    fs.getFluid()
-                        .getName())
-                && fs.amount > 0) {
-                return true;
-            }
-        }
-        return false;
+        mDenseMode = aNBT.getBoolean("mDenseMode");
+        mDenseTicks = aNBT.getInteger("mDenseTicks");
     }
 
     @Override
@@ -508,35 +664,33 @@ public class MTESteamSingularityCompressor extends MTESteamMultiBlockBase<MTESte
             return info.toArray(new String[0]);
         }
         info.add(
-            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.geothermal_boiler.heat")
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.singularity_compressor.heat")
                 + " "
                 + EnumChatFormatting.RED
                 + String.format("%.1f%%", mHeat * 100.0d)
                 + EnumChatFormatting.RESET);
-        String statusKey;
-        EnumChatFormatting statusColor;
-        if (mMaxProgresstime > 0) {
-            statusKey = "gtsr.gui.status.running";
-            statusColor = EnumChatFormatting.AQUA;
-        } else if (mHeat > 0) {
-            statusKey = "gtsr.gui.singularity_compressor.status.accumulating";
-            statusColor = EnumChatFormatting.YELLOW;
-        } else {
-            statusKey = "gtsr.gui.status.idle";
-            statusColor = EnumChatFormatting.GRAY;
-        }
         info.add(
-            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.status")
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.singularity_compressor.tier")
                 + " "
-                + statusColor
-                + StatCollector.translateToLocal(statusKey)
+                + EnumChatFormatting.GOLD
+                + mTier
                 + EnumChatFormatting.RESET);
-        String steamType = hasSuperheatedSteamInHatch()
-            ? StatCollector.translateToLocal("gtsr.gui.steam_type.superheated")
-            : StatCollector.translateToLocal("gtsr.gui.steam_type.normal");
+        String modeKey = mDenseMode ? "gtsr.gui.singularity_compressor.mode.dense"
+            : "gtsr.gui.singularity_compressor.mode.accumulate";
         info.add(
-            EnumChatFormatting.YELLOW + StatCollector.translateToLocal(
-                "gtsr.gui.steam_type") + " " + EnumChatFormatting.YELLOW + steamType + EnumChatFormatting.RESET);
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.singularity_compressor.mode")
+                + " "
+                + EnumChatFormatting.GOLD
+                + StatCollector.translateToLocal(modeKey)
+                + EnumChatFormatting.RESET);
+        if (mDenseMode) {
+            info.add(
+                EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.singularity_compressor.dense_time")
+                    + " "
+                    + EnumChatFormatting.RED
+                    + String.format("%ds", mDenseTicks / CYCLE_LENGTH)
+                    + EnumChatFormatting.RESET);
+        }
         return info.toArray(new String[0]);
     }
 }

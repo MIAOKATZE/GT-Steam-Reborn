@@ -2,6 +2,7 @@ package com.miaokatze.gtsr.loader;
 
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.items.AmmoniaCatalyst;
+import com.miaokatze.gtsr.common.items.CriticalSteamEntangledSingularity;
 import com.miaokatze.gtsr.common.items.GeothermalOverheatChip;
 import com.miaokatze.gtsr.common.items.HubSingularityChip;
 import com.miaokatze.gtsr.common.items.HubTerminal;
@@ -20,6 +21,7 @@ public class ItemLoader {
         registerRareGasSeparationChip();
         registerAmmoniaCatalysts();
         registerSteamEntangledSingularity();
+        registerCriticalSteamEntangledSingularity();
         registerHubTerminal();
     }
 
@@ -51,6 +53,11 @@ public class ItemLoader {
     private static void registerSteamEntangledSingularity() {
         GTSRItemList.SteamEntangledSingularity
             .setAndRegister(new SteamEntangledSingularity(), "SteamEntangledSingularity", true);
+    }
+
+    private static void registerCriticalSteamEntangledSingularity() {
+        GTSRItemList.CriticalSteamEntangledSingularity
+            .setAndRegister(new CriticalSteamEntangledSingularity(), "CriticalSteamEntangledSingularity", true);
     }
 
     private static void registerHubTerminal() {

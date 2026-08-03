@@ -282,21 +282,10 @@ gtsr.info.geothermal_boiler.incomplete=结构不完整
 
 # Steam Singularity Compressor
 gt.blockmachines.gtsr.steam.singularity.compressor.name=蒸汽奇点压缩机
-gtsr.recipe.steam_singularity_compressor=蒸汽奇点压缩机
-gtsr.tooltip.steam_singularity_compressor.0=3×3×3 中空结构，消耗蒸汽产出蒸汽纠缠奇点
-gtsr.tooltip.steam_singularity_compressor.1=热量系统: 运行时以 0.025%/s 升温
-gtsr.tooltip.steam_singularity_compressor.2=100% 热量时产出 1 个蒸汽纠缠奇点并重置热量
-gtsr.tooltip.steam_singularity_compressor.3=停止运行 60 秒后开始以 0.1%/s 降温
-gtsr.tooltip.steam_singularity_compressor.4=蒸汽消耗: 80,000 L/s
-gtsr.tooltip.steam_singularity_compressor.5=过热蒸汽: 4x 速度
-gtsr.tooltip.steam_singularity_compressor.ctrl=底层正面中央
-gtsr.tooltip.steam_singularity_compressor.casing=青铜镀层砖
-gtsr.tooltip.steam_singularity_compressor.input_hatch=蒸汽输入仓
-gtsr.tooltip.steam_singularity_compressor.output_bus=蒸汽输出总线
-gtsr.tooltip.steam_singularity_compressor.cooling=可选: 蒸汽冷却仓 / 耐压蒸汽冷却仓
 
 # Steam Entangled Singularity
 item.SteamEntangledSingularity.name=蒸汽纠缠奇点
+item.CriticalSteamEntangledSingularity.name=临界蒸汽纠缠奇点
 
 # Hub Singularity Chip
 item.HubSingularityChip.name=枢纽奇点升级芯片
@@ -312,10 +301,10 @@ gt.blockmachines.gtsr.overpressure.steam.cache.node.name=超压蒸汽缓存节�
 gtsr.tooltip.overpressure_steam_cache_node.fluid_type=所有蒸汽类型
 
 # Overpressure Turbine Input Hatch
-gt.blockmachines.gtsr.overpressure.turbine.input.hatch.name=超压巨型蒸汽轮机阵列输入仓
-gtsr.tooltip.overpressure_turbine_input_hatch.info=巨型蒸汽轮机阵列专用超压输入端口
+gt.blockmachines.gtsr.overpressure.turbine.input.hatch.name=巨型超压蒸汽输入仓
+gtsr.tooltip.overpressure_turbine_input_hatch.info=通过蒸汽奇点，允许纳入宏量的蒸汽
 gtsr.tooltip.overpressure_turbine_input_hatch.fluid_type=接受所有蒸汽类型
-gtsr.tooltip.overpressure_turbine_input_hatch.turbine_only=仅限巨型蒸汽轮机阵列使用
+gtsr.tooltip.overpressure_turbine_input_hatch.turbine_only=仅限巨型蒸汽轮机阵列与蒸汽奇点压缩机使用
 
 # Overpressure Hub Storage Unit
 gt.blockmachines.gtsr.overpressure.hub.storage.unit.name=超压枢纽存储单元
@@ -839,12 +828,19 @@ gtsr.tooltip.steam_hub.hint_status=手持枢纽终端右击控制器，打开缓
 
 # 15. Steam Singularity Compressor
 gtsr.tooltip.singularity_compressor.type=蒸汽奇点压缩机, SSC
-gtsr.tooltip.singularity_compressor.desc=蒸汽时代的奇迹造物：压缩巨量的蒸汽，突破空间的限制，创造出跨越维度的连接——蒸汽纠缠奇点。
-gtsr.tooltip.singularity_compressor.desc2=热量达到100%时产出奇点，需安装冷却仓回收蒸汽/水。
+gtsr.tooltip.singularity_compressor.desc=每秒吞噬输入仓中最高等级的蒸汽（等级1：蒸汽/过热/超临界；等级2：另含全部致密变体），脱离电力消耗，按对数方程提升热量。
+gtsr.tooltip.singularity_compressor.desc2=热量公式：等级1 y=0.005x/(x+200000)（上限0.5%/s）；等级2 y=0.002x/(x+1000)（上限0.2%/s）。实际热量=蒸汽系数×y（蒸汽/致密蒸汽 0.5、过热/致密过热 1、超临界/致密超临界 2）。
+gtsr.tooltip.singularity_compressor.desc3=多种蒸汽共存时只识别最高等级；下一秒没有识别到蒸汽或机器关机时，热量每秒降低 1%。
+gtsr.tooltip.singularity_compressor.desc4=热量达到 100% 时清零，产出 1 个蒸汽纠缠奇点（等级1）或 1 个临界蒸汽纠缠奇点（等级2）。
+gtsr.tooltip.singularity_compressor.desc5=蒸汽奇点压缩机会吞噬所有：已禁用蒸汽冷却机制，不消耗任何电力。
+gtsr.tooltip.singularity_compressor.desc6=等级2可用螺丝刀（关机且热量清零时）切换致密蒸汽压缩模式：每输入 1 个蒸汽纠缠奇点运行 600s，蒸汽/过热/超临界按 1000:1 压缩为对应致密蒸汽。
 gtsr.tooltip.singularity_compressor.ctrl=Layer 8 中心偏下方
-gtsr.tooltip.singularity_compressor.steam_input=过热蒸汽输入
+gtsr.tooltip.singularity_compressor.steam_input=巨型超压蒸汽输入仓
+gtsr.tooltip.singularity_compressor.input_bus=蒸汽纠缠奇点（致密模式燃料）
 gtsr.tooltip.singularity_compressor.output_bus=奇点产出
-gtsr.tooltip.singularity_compressor.cooling=蒸汽冷却仓/耐压蒸汽冷却仓
+gtsr.tooltip.singularity_compressor.output_hatch=致密蒸汽输出（等级2）
+gtsr.tooltip.singularity_compressor.tier1_blocks=等级1：固体钢外壳×175、钢管×16、钢齿轮箱×73、防爆玻璃×252、钢框架×144
+gtsr.tooltip.singularity_compressor.tier2_blocks=等级2：强化镀铑钯机械方块×248、钢管×16、LuV+级玻璃×252、镀铑钯框架×144
 
 # 16. Vein Steam Pyrolyzer
 gtsr.tooltip.vein_pyrolyzer.type=矿脉蒸汽裂解器, VSP
@@ -1085,7 +1081,18 @@ gtsr.tooltip.shared.firebricks=耐火砖
 gtsr.tooltip.shared.parallel=并行
 gtsr.gui.status.idle=待机中
 gtsr.gui.singularity_compressor.status.accumulating=蓄热中
+gtsr.gui.singularity_compressor.status.dense=致密压缩中
 gtsr.gui.singularity_compressor.heat=热量
+gtsr.gui.singularity_compressor.tier=等级
+gtsr.gui.singularity_compressor.mode=模式
+gtsr.gui.singularity_compressor.mode.accumulate=蓄热
+gtsr.gui.singularity_compressor.mode.dense=致密压缩
+gtsr.gui.singularity_compressor.dense_time=致密剩余
+gtsr.chat.dense_mode.on=已切换为致密蒸汽压缩模式
+gtsr.chat.dense_mode.off=已切换为蓄热模式
+gtsr.chat.dense_mode.require_off=需先关机（拆除或断开结构）才能切换模式
+gtsr.chat.dense_mode.require_heat_clear=需等热量清空后才能切换模式
+gtsr.chat.dense_mode.require_tier2=致密蒸汽压缩模式仅限等级2结构
 gtsr.gui.coke_oven.temperature=炉温
 gtsr.gui.coke_oven.status.heating=升温中
 gtsr.gui.coke_oven.status.cooling=降温中
@@ -1173,6 +1180,8 @@ gtsr.tooltip.catalyst.ammonia.feco=并行数: 256 | 时间: 16秒
 gtsr.tooltip.catalyst.ammonia.ruthenium=并行数: 256 | 时间: 8秒
 gtsr.tooltip.catalyst.ammonia.quantum=并行数: 256 | 时间: 1秒
 gtsr.tooltip.singularity.desc=蒸汽纠缠奇点，用于合成高级组件和机器
+gtsr.tooltip.steam_entangled_singularity.danger=掉落物会在 10 秒后剧烈爆炸！请勿丢弃。
+gtsr.tooltip.critical_singularity.desc=临界蒸汽纠缠奇点，等级2蒸汽奇点压缩机的产物，用于更高级的合成
 gtsr.tooltip.hub_terminal.desc=右击枢纽打开终端；右击缓存节点调速，潜行右击切换模式
 gtsr.tooltip.added_by=添加模组：
 gtsr.recipe.gear_steam_compressor=齿轮蒸汽压缩机

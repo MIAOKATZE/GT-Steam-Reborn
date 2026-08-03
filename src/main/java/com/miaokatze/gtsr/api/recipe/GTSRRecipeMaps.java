@@ -73,13 +73,6 @@ public class GTSRRecipeMaps {
         .frontend(FluidGridFrontend::new)
         .build();
 
-    public static final RecipeMap<RecipeMapBackend> steamSingularityCompressorRecipes = RecipeMapBuilder
-        .of("gtsr.recipe.steam_singularity_compressor")
-        .maxIO(0, 1, 1, 0)
-        .minInputs(0, 1)
-        .progressBar(GTUITextures.PROGRESSBAR_ARROW, ProgressBar.Direction.RIGHT)
-        .build();
-
     private static final INEISpecialInfoFormatter GEOTHERMAL_CHIP_FORMATTER = recipeInfo -> {
         List<String> result = new ArrayList<>(DefaultSpecialValueFormatter.INSTANCE.format(recipeInfo));
         if (recipeInfo.recipe.mOutputs != null && recipeInfo.recipe.mOutputs.length > 8) {

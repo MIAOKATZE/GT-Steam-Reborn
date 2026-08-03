@@ -282,21 +282,10 @@ gtsr.info.geothermal_boiler.incomplete=Incomplete
 
 # Steam Singularity Compressor
 gt.blockmachines.gtsr.steam.singularity.compressor.name=Steam Singularity Compressor
-gtsr.recipe.steam_singularity_compressor=Steam Singularity Compressor
-gtsr.tooltip.steam_singularity_compressor.0=3x3x3 hollow structure, consumes steam to produce Steam Entangled Singularity
-gtsr.tooltip.steam_singularity_compressor.1=Heat system: heats up at 0.025%/s while running
-gtsr.tooltip.steam_singularity_compressor.2=At 100% heat: outputs 1 Steam Entangled Singularity and resets heat
-gtsr.tooltip.steam_singularity_compressor.3=Cools down at 0.1%/s after 60s of inactivity
-gtsr.tooltip.steam_singularity_compressor.4=Steam Consumption: 80,000 L/s
-gtsr.tooltip.steam_singularity_compressor.5=Superheated Steam: 4x speed
-gtsr.tooltip.steam_singularity_compressor.ctrl=Front center of bottom layer
-gtsr.tooltip.steam_singularity_compressor.casing=Bronze Plated Bricks
-gtsr.tooltip.steam_singularity_compressor.input_hatch=Steam Input Hatch
-gtsr.tooltip.steam_singularity_compressor.output_bus=Steam Output Bus
-gtsr.tooltip.steam_singularity_compressor.cooling=Optional: Steam Cooling Hatch / Pressure Steam Cooling Hatch
 
 # Steam Entangled Singularity
 item.SteamEntangledSingularity.name=Steam Entangled Singularity
+item.CriticalSteamEntangledSingularity.name=Critical Steam Entangled Singularity
 
 # Hub Singularity Chip
 item.HubSingularityChip.name=Hub Singularity Upgrade Chip
@@ -312,10 +301,10 @@ gt.blockmachines.gtsr.overpressure.steam.cache.node.name=Overpressure Steam Cach
 gtsr.tooltip.overpressure_steam_cache_node.fluid_type=All Steam Types
 
 # Overpressure Turbine Input Hatch
-gt.blockmachines.gtsr.overpressure.turbine.input.hatch.name=Overpressure Mega Steam Turbine Array Input Hatch
-gtsr.tooltip.overpressure_turbine_input_hatch.info=Dedicated overpressure input port for Mega Steam Turbine Array
+gt.blockmachines.gtsr.overpressure.turbine.input.hatch.name=Mega Overpressure Steam Input Hatch
+gtsr.tooltip.overpressure_turbine_input_hatch.info=Through steam singularities, it accepts massive amounts of steam
 gtsr.tooltip.overpressure_turbine_input_hatch.fluid_type=Accepts all steam types
-gtsr.tooltip.overpressure_turbine_input_hatch.turbine_only=For Mega Steam Turbine Array only
+gtsr.tooltip.overpressure_turbine_input_hatch.turbine_only=Restricted to the Mega Steam Turbine Array and the Steam Singularity Compressor
 
 # Overpressure Hub Storage Unit
 gt.blockmachines.gtsr.overpressure.hub.storage.unit.name=Overpressure Hub Storage Unit
@@ -786,7 +775,19 @@ gtsr.tooltip.steam_hub.hint_status=Right-click controller holding a Hub Terminal
 
 # Steam Singularity Compressor (SSC)
 gtsr.tooltip.singularity_compressor.type=Steam Singularity Compressor, SSC
-gtsr.tooltip.singularity_compressor.desc=A marvel of the steam age: compressing massive amounts of steam, breaking through spatial limitations, creating cross-dimensional connections -- the Steam Entangled Singularity.
+gtsr.tooltip.singularity_compressor.desc=Devours the highest-grade steam in the input hatches every second (Tier 1: Steam/Superheated/Supercritical; Tier 2: also all dense variants), without any EU cost, raising heat via logarithmic equations.
+gtsr.tooltip.singularity_compressor.desc2=Heat formula: Tier 1 y=0.005x/(x+200000) (cap 0.5%/s); Tier 2 y=0.002x/(x+1000) (cap 0.2%/s). Actual heat = steam coefficient x y (Steam/DenseSteam 0.5, Superheated/DenseSuperheated 1, Supercritical/DenseSupercritical 2).
+gtsr.tooltip.singularity_compressor.desc3=When multiple steam types are present, only the highest grade is recognized; if no steam is detected the next second or the machine is off, heat drops by 1% per second.
+gtsr.tooltip.singularity_compressor.desc4=At 100% heat, heat resets and 1 Steam Entangled Singularity (Tier 1) or 1 Critical Steam Entangled Singularity (Tier 2) is produced.
+gtsr.tooltip.singularity_compressor.desc5=The Steam Singularity Compressor devours everything: steam cooling is disabled, and no EU is consumed.
+gtsr.tooltip.singularity_compressor.desc6=Tier 2: use a screwdriver (machine off and heat cleared) to toggle Dense Steam Compression mode - each Steam Entangled Singularity fuels 600s, compressing Steam/Superheated/Supercritical into dense steam at a 1000:1 ratio.
+gtsr.tooltip.singularity_compressor.ctrl=Layer 8, center, slightly below
+gtsr.tooltip.singularity_compressor.steam_input=Mega Overpressure Steam Input Hatch
+gtsr.tooltip.singularity_compressor.input_bus=Steam Entangled Singularity (dense mode fuel)
+gtsr.tooltip.singularity_compressor.output_bus=Singularity output
+gtsr.tooltip.singularity_compressor.output_hatch=Dense steam output (Tier 2)
+gtsr.tooltip.singularity_compressor.tier1_blocks=Tier 1: Solid Steel Casing x175, Steel Pipe x16, Steel Gearbox x73, Reinforced Glass x252, Steel Frame x144
+gtsr.tooltip.singularity_compressor.tier2_blocks=Tier 2: Advanced Rhodium Palladium Casing x248, Steel Pipe x16, LuV+ Glass x252, Rhodium Plated Palladium Frame x144
 
 # Vein Steam Pyrolyzer (VSP)
 gtsr.tooltip.vein_pyrolyzer.type=Vein Steam Pyrolyzer, VSP
@@ -1071,7 +1072,18 @@ gtsr.tooltip.shared.firebricks=Firebricks
 gtsr.tooltip.shared.parallel=Parallel
 gtsr.gui.status.idle=Idle
 gtsr.gui.singularity_compressor.status.accumulating=Accumulating
+gtsr.gui.singularity_compressor.status.dense=Dense Compressing
 gtsr.gui.singularity_compressor.heat=Heat
+gtsr.gui.singularity_compressor.tier=Tier
+gtsr.gui.singularity_compressor.mode=Mode
+gtsr.gui.singularity_compressor.mode.accumulate=Accumulate
+gtsr.gui.singularity_compressor.mode.dense=Dense Compression
+gtsr.gui.singularity_compressor.dense_time=Dense Remaining
+gtsr.chat.dense_mode.on=Switched to Dense Steam Compression mode
+gtsr.chat.dense_mode.off=Switched to Heat Accumulation mode
+gtsr.chat.dense_mode.require_off=Shut the machine down (break or disconnect the structure) before switching modes
+gtsr.chat.dense_mode.require_heat_clear=Wait until the heat is fully cleared before switching modes
+gtsr.chat.dense_mode.require_tier2=Dense Steam Compression mode requires a Tier 2 structure
 gtsr.gui.coke_oven.temperature=Temperature
 gtsr.gui.coke_oven.status.heating=Heating
 gtsr.gui.coke_oven.status.cooling=Cooling
@@ -1133,6 +1145,8 @@ gtsr.tooltip.catalyst.ammonia.feco=Parallel: 256 | Time: 16s
 gtsr.tooltip.catalyst.ammonia.ruthenium=Parallel: 256 | Time: 8s
 gtsr.tooltip.catalyst.ammonia.quantum=Parallel: 256 | Time: 1s
 gtsr.tooltip.singularity.desc=Steam Entangled Singularity, used for crafting advanced components and machines
+gtsr.tooltip.steam_entangled_singularity.danger=Explodes violently 10 seconds after being dropped! Do not drop it.
+gtsr.tooltip.critical_singularity.desc=Critical Steam Entangled Singularity, produced by the Tier 2 Steam Singularity Compressor, used for advanced crafting
 gtsr.tooltip.hub_terminal.desc=Right-click a Hub to open its Terminal; right-click a Cache Node to cycle rate, sneak-right-click to switch mode
 gtsr.tooltip.added_by=Added by:
 gtsr.recipe.gear_steam_compressor=Gear Steam Compressor
