@@ -54,6 +54,7 @@ import gregtech.api.util.IGTHatchAdder;
 import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.common.blocks.BlockCasings2;
 import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
+import gregtech.common.tileentities.machines.IDualInputHatch;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.MTEHatchSteamBusInput;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.MTEHatchSteamBusOutput;
 
@@ -115,10 +116,22 @@ public class MTEReinforcedBrickBlastFurnace extends MTEEnhancedMultiBlockBase<MT
      * 添加输入总线到机器列表。
      * 由于 {@link MTEHatchSteamBusInput} 继承自 {@link MTEHatchInputBus}，因此普通输入总线与蒸汽板输入总线都会被接受。
      */
+    // v1.9.39 修复：样板输入仓（MTEHatchCraftingInputME/Slave，implements IDualInputHatch）重定向到
+    // mDualInputHatches（仿 GT5U addInputBusToMachineList）。此前裸 instanceof 会把样板仓收进
+    // mInputBusses，随后被 GT5U getAllStoredInputs 对 CraftingInputME 的显式跳过逻辑忽略，
+    // 导致样板输入静默失效（结构能成型、配方永不消耗）。
     public boolean addInputBusToMachineList(IGregTechTileEntity aTileEntity, int aBaseCasingIndex) {
         if (aTileEntity == null) return false;
         IMetaTileEntity aMetaTileEntity = aTileEntity.getMetaTileEntity();
         if (aMetaTileEntity == null) return false;
+        if (aMetaTileEntity instanceof IDualInputHatch dualHatch) {
+            dualHatch.updateTexture(aBaseCasingIndex);
+            dualHatch.updateCraftingIcon(this.getMachineCraftingIcon());
+            if (!mDualInputHatches.contains(dualHatch)) {
+                mDualInputHatches.add(dualHatch);
+            }
+            return true;
+        }
         if (aMetaTileEntity instanceof MTEHatchInputBus hatch) {
             hatch.mRecipeMap = getRecipeMap();
             hatch.updateTexture(aBaseCasingIndex);
@@ -249,7 +262,8 @@ public class MTEReinforcedBrickBlastFurnace extends MTEEnhancedMultiBlockBase<MT
             return;
         }
 
-        if (mInputBusses.isEmpty()) {
+        // v1.9.39 修复：样板输入仓计入输入判定（重定向后位于 mDualInputHatches，不再计入 mInputBusses）
+        if (mInputBusses.isEmpty() && mDualInputHatches.isEmpty()) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
             return;
         }

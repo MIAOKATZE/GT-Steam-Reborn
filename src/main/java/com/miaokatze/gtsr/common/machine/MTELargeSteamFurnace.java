@@ -283,7 +283,10 @@ public class MTELargeSteamFurnace extends MTESteamMultiBlockBase<MTELargeSteamFu
             return;
         }
         // 取消双注册后，蒸汽输入总线只在 mSteamInputs 中，蒸汽输出总线只在 mSteamOutputs 中
-        if (mInputBusses.isEmpty() && mSteamInputs.isEmpty()) {
+        // v1.9.39 修复：计入 mDualInputHatches——样板输入仓（MTEHatchCraftingInputME/Slave，implements
+        // IDualInputHatch）经 addInputBusToMachineList 重定向到 mDualInputHatches，此前漏检导致
+        // 只放样板仓无法成型（仿 MTEKineticProcessingArray 的 checkMachine 既有做法）。
+        if (mInputBusses.isEmpty() && mSteamInputs.isEmpty() && mDualInputHatches.isEmpty()) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
             return;
         }

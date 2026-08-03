@@ -396,8 +396,9 @@ public class MTEGearSteamCompressor extends MTEEnhancedMultiBlockBase<MTEGearSte
     private boolean depleteSteam(long required) {
         if (required <= 0) return true;
         long remaining = required;
-        for (var hatch : GTUtility.validMTEList(mInputHatches)) {
-            FluidStack fs = hatch.getFluid();
+        // v1.9.39 修复：改用 getStoredFluids() 聚合（父类实现对 MTEHatchInputME 有特判分支）。
+        // 原实现用 hatch.getFluid() 前置过滤，ME 输入仓（本地罐恒空）恒被跳过，导致 ME 仓供汽不可用。
+        for (FluidStack fs : getStoredFluids()) {
             if (fs != null && GTModHandler.isAnySteam(fs) && fs.amount > 0) {
                 int drained = (int) Math.min(remaining, fs.amount);
                 depleteInput(new FluidStack(fs, drained));

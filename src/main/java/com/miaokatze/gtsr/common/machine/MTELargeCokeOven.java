@@ -59,6 +59,7 @@ import gregtech.api.util.GTRecipe;
 import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.api.util.OverclockCalculator;
 import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
+import gregtech.common.tileentities.machines.IDualInputHatch;
 
 public class MTELargeCokeOven extends MTEEnhancedMultiBlockBase<MTELargeCokeOven>
     implements IConstructable, ISurvivalConstructable {
@@ -78,10 +79,22 @@ public class MTELargeCokeOven extends MTEEnhancedMultiBlockBase<MTELargeCokeOven
     private int mParallel = 0;
     public int mOriginalRecipeTime = 0;
 
+    // v1.9.39 修复：样板输入仓（MTEHatchCraftingInputME/Slave，implements IDualInputHatch）重定向到
+    // mDualInputHatches（仿 GT5U addInputBusToMachineList）。此前裸 instanceof 会把样板仓收进
+    // mInputBusses，随后被 GT5U getAllStoredInputs 对 CraftingInputME 的显式跳过逻辑忽略，
+    // 导致样板输入静默失效（结构能成型、配方永不消耗）。
     public boolean addInputBusToMachineList(IGregTechTileEntity aTileEntity, int aBaseCasingIndex) {
         if (aTileEntity == null) return false;
         IMetaTileEntity aMetaTileEntity = aTileEntity.getMetaTileEntity();
         if (aMetaTileEntity == null) return false;
+        if (aMetaTileEntity instanceof IDualInputHatch dualHatch) {
+            dualHatch.updateTexture(aBaseCasingIndex);
+            dualHatch.updateCraftingIcon(this.getMachineCraftingIcon());
+            if (!mDualInputHatches.contains(dualHatch)) {
+                mDualInputHatches.add(dualHatch);
+            }
+            return true;
+        }
         if (aMetaTileEntity instanceof MTEHatchInputBus hatch) {
             hatch.mRecipeMap = getRecipeMap();
             hatch.updateTexture(aBaseCasingIndex);
@@ -348,7 +361,8 @@ public class MTELargeCokeOven extends MTEEnhancedMultiBlockBase<MTELargeCokeOven
             return;
         }
 
-        if (mInputBusses.size() < 1 || mOutputBusses.size() < 1) {
+        // v1.9.39 修复：样板输入仓计入输入判定（重定向后位于 mDualInputHatches，不再计入 mInputBusses）
+        if (mInputBusses.size() + mDualInputHatches.size() < 1 || mOutputBusses.size() < 1) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
             return;
         }

@@ -45,7 +45,6 @@ import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.logic.ProcessingLogic;
 import gregtech.api.metatileentity.implementations.MTEEnhancedMultiBlockBase;
-import gregtech.api.metatileentity.implementations.MTEHatchInput;
 import gregtech.api.metatileentity.implementations.MTEHatchOutput;
 import gregtech.api.recipe.RecipeMap;
 import gregtech.api.recipe.check.CheckRecipeResult;
@@ -472,30 +471,18 @@ public class MTEAmmoniaPlant extends MTEEnhancedMultiBlockBase<MTEAmmoniaPlant> 
             && depleteInput(Materials.Steam.getGas(MAINTAIN_STEAM_PER_TICK), true);
     }
 
+    // v1.9.39 修复：炼油气取流改用 GT5U 原生 depleteInput(FluidStack, boolean)。
+    // 原实现用 MTEHatchInput.getFluid()/2参 drain，对 ME 输入仓（MTEHatchInputME，本地罐恒空）恒返回 null，
+    // 导致预热/维持炼油气永远取不到、整机无法运转。原生 2 参 depleteInput 走 drain(UNKNOWN,...)，
+    // 兼容普通仓 / ME 输入仓 / 限制性输入仓，且支持跨仓合计。
+    // 注意不能改用 1 参 depleteInput(FluidStack)：MTESteamMultiBaseMixin 在 HEAD 接管了 1 参版本，
+    // 只遍历 mSteamInputFluids 蒸汽流体仓，普通输入仓内的炼油气不会被消耗。
     private boolean hasRefineryGas(int amount) {
-        FluidStack refineryGas = Materials.Gas.getGas(amount);
-        for (MTEHatchInput tHatch : GTUtility.validMTEList(mInputHatches)) {
-            FluidStack available = tHatch.drain(amount, false);
-            if (available != null && available.isFluidEqual(refineryGas) && available.amount >= amount) {
-                return true;
-            }
-        }
-        return false;
+        return depleteInput(Materials.Gas.getGas(amount), true);
     }
 
     private boolean depleteRefineryGas(int amount) {
-        FluidStack refineryGas = Materials.Gas.getGas(amount);
-        for (MTEHatchInput tHatch : GTUtility.validMTEList(mInputHatches)) {
-            FluidStack tLiquid = tHatch.getFluid();
-            if (tLiquid != null && tLiquid.isFluidEqual(refineryGas)) {
-                FluidStack drained = tHatch.drain(amount, false);
-                if (drained != null && drained.amount >= amount) {
-                    tHatch.drain(amount, true);
-                    return true;
-                }
-            }
-        }
-        return false;
+        return depleteInput(Materials.Gas.getGas(amount), false);
     }
 
     private void pushSuperheatedSteam(int amount) {

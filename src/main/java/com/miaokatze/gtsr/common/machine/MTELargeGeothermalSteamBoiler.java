@@ -62,7 +62,6 @@ import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.implementations.MTEEnhancedMultiBlockBase;
 import gregtech.api.metatileentity.implementations.MTEHatch;
-import gregtech.api.metatileentity.implementations.MTEHatchOutput;
 import gregtech.api.metatileentity.implementations.MTEHatchOutputBus;
 import gregtech.api.recipe.RecipeMap;
 import gregtech.api.recipe.check.CheckRecipeResult;
@@ -525,17 +524,14 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
         return CheckRecipeResultRegistry.SUCCESSFUL;
     }
 
+    // v1.9.39 修复：岩浆取流改用 GT5U 原生 depleteInput(FluidStack, boolean)。
+    // 原实现用 MTEHatch.getFluid() + 单参 drain，对 ME 输入仓（MTEHatchInputME，本地罐恒空）恒返回 null，
+    // 导致岩浆永远检测不到、锅炉无法产蒸汽。原生 2 参 depleteInput 走 drain(UNKNOWN,...)，
+    // 兼容普通仓 / ME 输入仓 / 限制性输入仓，且支持跨仓合计；流体匹配用 GTModHandler.getLava 的
+    // isFluidEqual 语义，替代硬编码流体名比较。
     private FluidStack drainLavaInput(int amount, boolean doDrain) {
-        for (MTEHatch h : mInputHatches) {
-            if (h instanceof MTEHatchOutput) continue;
-            FluidStack fluid = h.getFluid();
-            if (fluid != null && fluid.getFluid() == FluidRegistry.getFluid("lava") && fluid.amount >= amount) {
-                if (doDrain) {
-                    return h.drain(amount, true);
-                }
-                return fluid;
-            }
-        }
+        FluidStack lava = GTModHandler.getLava(amount);
+        if (depleteInput(lava, !doDrain)) return lava;
         return null;
     }
 
@@ -626,34 +622,26 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
         // Steam generation from water (independent of lava recipe)
         if (aTick % 20 == 0 && mMachine && mHeat > 0.01d) {
             int maxOutput = mSetTier == 1 ? MAX_OUTPUT_BRONZE : MAX_OUTPUT_STEEL;
+            int maxWaterNeeded = maxOutput / STEAM_PER_WATER;
+            int consumedWater = (int) (maxWaterNeeded * mHeat * getCalcificationOutputFactor());
+
+            // v1.9.39 修复：水/蒸馏水检测不再用 h.getFluid() 前置过滤（ME 输入仓本地罐恒空，恒被跳过）。
+            // 改为父类 depleteInput(FluidStack, boolean) 两段式，兼容普通仓 / ME 输入仓 / 限制性输入仓。
+            // 优先消耗蒸馏水（不钙化）；总量不足时本次不产蒸汽（与岩浆检查语义一致）。
             boolean producedSteam = false;
-
-            for (MTEHatch h : mInputHatches) {
-                if (h instanceof MTEHatchOutput) continue;
-                FluidStack fluid = h.getFluid();
-                if (fluid == null || fluid.amount <= 0) continue;
-
-                FluidStack waterFluid = GTModHandler.getWater(1);
-                FluidStack distilledWaterFluid = GTModHandler.getDistilledWater(1);
-                boolean isWater = fluid.isFluidEqual(waterFluid);
-                boolean isDistilledWater = fluid.isFluidEqual(distilledWaterFluid);
-
-                if (!isWater && !isDistilledWater) continue;
-
-                int maxWaterNeeded = maxOutput / STEAM_PER_WATER;
-                int consumedWater = (int) (Math.min(fluid.amount, maxWaterNeeded) * mHeat
-                    * getCalcificationOutputFactor());
-
-                if (consumedWater <= 0) continue;
-
-                FluidStack toDeplete;
-                if (isDistilledWater) {
-                    toDeplete = GTModHandler.getDistilledWater(consumedWater);
-                } else {
-                    toDeplete = GTModHandler.getWater(consumedWater);
+            if (consumedWater > 0) {
+                FluidStack distilledWater = GTModHandler.getDistilledWater(consumedWater);
+                FluidStack water = GTModHandler.getWater(consumedWater);
+                FluidStack toDeplete = null;
+                boolean isDistilledWater = false;
+                if (depleteInput(distilledWater, true)) {
+                    toDeplete = distilledWater;
+                    isDistilledWater = true;
+                } else if (depleteInput(water, true)) {
+                    toDeplete = water;
                 }
 
-                if (depleteInput(toDeplete)) {
+                if (toDeplete != null && depleteInput(toDeplete, false)) {
                     int steamOutput = consumedWater * STEAM_PER_WATER;
                     mCurrentSteamOutput = steamOutput;
                     mRunningTicks += 20;
@@ -675,7 +663,6 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
                         distributeSteam(steam);
                     }
                     producedSteam = true;
-                    break;
                 }
             }
 

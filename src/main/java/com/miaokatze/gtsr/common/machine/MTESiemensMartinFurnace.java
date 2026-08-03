@@ -61,6 +61,7 @@ import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.api.util.shutdown.ShutDownReasonRegistry;
 import gregtech.common.blocks.BlockCasings2;
 import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
+import gregtech.common.tileentities.machines.IDualInputHatch;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.MTEHatchSteamBusInput;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.MTEHatchSteamBusOutput;
 
@@ -135,10 +136,22 @@ public class MTESiemensMartinFurnace extends MTEEnhancedMultiBlockBase<MTESiemen
         return false;
     }
 
+    // v1.9.39 修复：样板输入仓（MTEHatchCraftingInputME/Slave，implements IDualInputHatch）重定向到
+    // mDualInputHatches（仿 GT5U addInputBusToMachineList）。此前裸 instanceof 会把样板仓收进
+    // mInputBusses，随后被 GT5U getAllStoredInputs 对 CraftingInputME 的显式跳过逻辑忽略，
+    // 导致样板输入静默失效（结构能成型、配方永不消耗）。
     public boolean addInputBusToMachineList(IGregTechTileEntity aTileEntity, int aBaseCasingIndex) {
         if (aTileEntity == null) return false;
         IMetaTileEntity aMetaTileEntity = aTileEntity.getMetaTileEntity();
         if (aMetaTileEntity == null) return false;
+        if (aMetaTileEntity instanceof IDualInputHatch dualHatch) {
+            dualHatch.updateTexture(aBaseCasingIndex);
+            dualHatch.updateCraftingIcon(this.getMachineCraftingIcon());
+            if (!mDualInputHatches.contains(dualHatch)) {
+                mDualInputHatches.add(dualHatch);
+            }
+            return true;
+        }
         if (aMetaTileEntity instanceof MTEHatchInputBus hatch) {
             hatch.mRecipeMap = getRecipeMap();
             hatch.updateTexture(aBaseCasingIndex);
@@ -381,7 +394,8 @@ public class MTESiemensMartinFurnace extends MTEEnhancedMultiBlockBase<MTESiemen
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
             return;
         }
-        if (this.mInputBusses.isEmpty()) {
+        // v1.9.39 修复：样板输入仓计入输入判定（重定向后位于 mDualInputHatches，不再计入 mInputBusses）
+        if (this.mInputBusses.isEmpty() && this.mDualInputHatches.isEmpty()) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
             return;
         }
@@ -522,39 +536,11 @@ public class MTESiemensMartinFurnace extends MTEEnhancedMultiBlockBase<MTESiemen
         // 与 GTSRRecipeLoader 中 Materials.Air.getGas(800) 的写法一致。
         FluidStack airSample = Materials.Air.getGas(1);
         if (airSample == null || airSample.getFluid() == null) return false;
-        String airName = airSample.getFluid()
-            .getName();
 
-        // 阶段一：模拟遍历，累计所有 hatch 中可用 air 总量
-        int totalAvailable = 0;
-        for (MTEHatchInput hatch : mInputHatches) {
-            FluidStack drained = hatch.drain(amount, false);
-            if (drained != null && drained.amount > 0
-                && drained.getFluid() != null
-                && airName.equals(
-                    drained.getFluid()
-                        .getName())) {
-                totalAvailable += drained.amount;
-            }
-        }
-        if (totalAvailable < amount) return false;
-
-        // 阶段二：真正消耗，逐个 hatch drain 直到 amount 耗尽
-        int remaining = amount;
-        for (MTEHatchInput hatch : mInputHatches) {
-            if (remaining <= 0) break;
-            FluidStack drained = hatch.drain(remaining, false);
-            if (drained == null || drained.amount <= 0
-                || drained.getFluid() == null
-                || !airName.equals(
-                    drained.getFluid()
-                        .getName()))
-                continue;
-            int take = Math.min(remaining, drained.amount);
-            hatch.drain(take, true);
-            remaining -= take;
-        }
-        return remaining <= 0;
+        // v1.9.39 修复：改用父类 depleteInput（内部为 drain(UNKNOWN,...) 的 simulate→实扣两段式）。
+        // 原实现用 MTEHatchInput 的 2 参 drain(int, boolean)，对 ME 输入仓（MTEHatchInputME，
+        // 本地罐恒空）恒返回 null，导致 ME 仓供空气不可用。
+        return depleteInput(Materials.Air.getGas(amount), false);
     }
 
     @Override

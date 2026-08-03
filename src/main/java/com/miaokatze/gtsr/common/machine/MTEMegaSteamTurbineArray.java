@@ -730,7 +730,13 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
             return;
         }
 
-        boolean hasInput = !mInputHatches.isEmpty() || !mInputBusses.isEmpty() || hasPressureSteamHatch();
+        // v1.9.39 修复：hasInput 计入 mDualInputHatches——样板输入仓（MTEHatchCraftingInputME/Slave，
+        // implements IDualInputHatch）经 addInputBusToMachineList 重定向到 mDualInputHatches，
+        // 此前漏检导致放了输入总线/样板仓仍提示无输入。ME 流体输入仓（MTEHatchInputME）非
+        // IDualInputHatch，正常进 mInputHatches，由 getStoredFluids 特判与 depleteInput 支持。
+        boolean hasInput = !mInputHatches.isEmpty() || !mInputBusses.isEmpty()
+            || !mDualInputHatches.isEmpty()
+            || hasPressureSteamHatch();
         boolean hasOutput = !mOutputHatches.isEmpty() || hasSteamCoolingHatch() || hasPressureCoolingHatch();
         if (!hasInput || !hasOutput || (mDynamoHatches.isEmpty() && eDynamoMulti.isEmpty())) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
@@ -932,8 +938,6 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
             mEfficiencyIncrease = 10;
         } else if (mEfficiency < maxEff) {
             mEfficiencyIncrease = 1;
-        } else if (mEfficiency > maxEff) {
-            mEfficiencyIncrease = -10;
         } else {
             mEfficiencyIncrease = 0;
         }
