@@ -78,9 +78,9 @@ import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.MTEHatchSteam
  * <li>等级 1：钢外壳 + 钢齿轮箱 + 钢管道 + 防爆玻璃 + 钢框架，只识别 蒸汽/过热/超临界；热量 y=0.005x/(x+200000)</li>
  * <li>等级 2：强化镀铑钯外壳/齿轮箱/管道 + LuV+ 玻璃 + 镀铑钯框架，可识别致密变体；热量 y=0.002x/(x+1000)</li>
  * <li>热量 ≥100% 清零并产出 1 个蒸汽纠缠奇点（等级 1）/ 临界蒸汽纠缠奇点（等级 2）</li>
- * <li>等级 2 螺丝刀循环切换三模式：蓄热 / 蒸汽压缩（1000:1 非致密→致密）/ 蒸汽解压
- * （1:1000 致密→普通）；压缩与解压每输入 1 个蒸汽纠缠奇点运行 600s，同种蒸汽浮点
- * 累计、异种顶掉；切入压缩/解压自动清空热量</li>
+ * <li>等级 2 螺丝刀循环切换三模式（仅需等级 2，运行中亦可切换）：奇点纠缠 / 蒸汽压缩
+ * （1000:1 非致密→致密）/ 蒸汽解压（1:1000 致密→普通）；压缩与解压每输入 1 个蒸汽纠缠
+ * 奇点运行 600s，同种蒸汽浮点累计、异种顶掉；切入压缩/解压自动清空热量</li>
  * </ul>
  */
 public class MTESteamSingularityCompressor extends MTEEnhancedMultiBlockBase<MTESteamSingularityCompressor>
@@ -114,7 +114,7 @@ public class MTESteamSingularityCompressor extends MTEEnhancedMultiBlockBase<MTE
     /** 压缩/解压倍率：压缩 1000:1，解压 1:1000 */
     private static final long DENSE_COMPRESSION_RATIO = 1000L;
 
-    /** 模式：蓄热 */
+    /** 模式：奇点纠缠 */
     public static final int MODE_ACCUMULATE = 0;
     /** 模式：蒸汽压缩（1000:1，非致密 → 致密） */
     public static final int MODE_COMPRESS = 1;
@@ -130,7 +130,7 @@ public class MTESteamSingularityCompressor extends MTEEnhancedMultiBlockBase<MTE
     /** 当前结构等级（1/2，由 checkMachine 判定；NBT 持久化，重载识别窗口内保持底材） */
     public int mTier = 0;
     public double mHeat = 0.0d;
-    /** 当前模式（0 蓄热 / 1 蒸汽压缩 / 2 蒸汽解压；等级 2 且关机时可切换） */
+    /** 当前模式（0 奇点纠缠 / 1 蒸汽压缩 / 2 蒸汽解压；需等级 2，运行/关机均可切换） */
     public int mMode = MODE_ACCUMULATE;
     /** 压缩/解压模式剩余续航 tick（600s 计时） */
     public int mFuelTicks = 0;
@@ -556,7 +556,7 @@ public class MTESteamSingularityCompressor extends MTEEnhancedMultiBlockBase<MTE
             return;
         }
         if (mTier < 2 && mMode != MODE_ACCUMULATE) {
-            // 等级 1 只支持蓄热：强制回退并清空浮点累计
+            // 等级 1 只支持奇点纠缠：强制回退并清空浮点累计
             mMode = MODE_ACCUMULATE;
             mAccum = 0.0d;
             mAccumGrade = -1;
@@ -580,7 +580,7 @@ public class MTESteamSingularityCompressor extends MTEEnhancedMultiBlockBase<MTE
         return processHeatCycle();
     }
 
-    /** 蓄热周期：吞噬最高等级蒸汽并提升热量 */
+    /** 奇点纠缠周期：吞噬最高等级蒸汽并提升热量 */
     private CheckRecipeResult processHeatCycle() {
         boolean includeDense = mTier >= 2;
         int grade = findHighestGrade(includeDense);
@@ -889,11 +889,12 @@ public class MTESteamSingularityCompressor extends MTEEnhancedMultiBlockBase<MTE
     public void onScrewdriverRightClick(ForgeDirection side, EntityPlayer aPlayer, float aX, float aY, float aZ,
         ItemStack aTool) {
         if (aPlayer.worldObj.isRemote) return;
-        if (mMachine || mTier < 2) {
-            GTUtility.sendChatTrans(aPlayer, "gtsr.chat.compressor_mode.require_off");
+        // 仅需等级 2 结构即可切换（v1.10.3 解除运行中限制，运行/关机均可切换）
+        if (mTier < 2) {
+            GTUtility.sendChatTrans(aPlayer, "gtsr.chat.compressor_mode.require_tier2");
             return;
         }
-        // 循环切换：蓄热 → 蒸汽压缩 → 蒸汽解压 → 蓄热
+        // 循环切换：奇点纠缠 → 蒸汽压缩 → 蒸汽解压 → 奇点纠缠
         mMode = (mMode + 1) % 3;
         mAccum = 0.0d;
         mAccumGrade = -1;
@@ -936,7 +937,7 @@ public class MTESteamSingularityCompressor extends MTEEnhancedMultiBlockBase<MTE
             }
             return;
         }
-        // 蓄热模式：开机但空闲（无进行中周期）且当前无蒸汽：每秒降低 1% 热量
+        // 奇点纠缠模式：开机但空闲（无进行中周期）且当前无蒸汽：每秒降低 1% 热量
         if (mMaxProgresstime <= 0 && findHighestGrade(mTier >= 2) < 0) {
             mHeat = Math.max(0.0d, mHeat - HEAT_DECAY_PER_SECOND);
         }
@@ -1077,11 +1078,21 @@ public class MTESteamSingularityCompressor extends MTEEnhancedMultiBlockBase<MTE
             info.add(EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.gui.building"));
             return info.toArray(new String[0]);
         }
-        info.add(
-            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.singularity_compressor.heat")
-                + EnumChatFormatting.RED
-                + String.format("%.1f%%", mHeat * 100.0d)
-                + EnumChatFormatting.RESET);
+        if (mMode == MODE_ACCUMULATE) {
+            // 奇点纠缠模式：显示热量
+            info.add(
+                EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.singularity_compressor.heat")
+                    + EnumChatFormatting.RED
+                    + String.format("%.1f%%", mHeat * 100.0d)
+                    + EnumChatFormatting.RESET);
+        } else {
+            // 压缩/解压模式：隐藏热量，改为显示奇点维持时间
+            info.add(
+                EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.singularity_compressor.fuel_time")
+                    + EnumChatFormatting.RED
+                    + String.format("%ds", mFuelTicks / CYCLE_LENGTH)
+                    + EnumChatFormatting.RESET);
+        }
         info.add(
             EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.singularity_compressor.tier")
                 + EnumChatFormatting.GOLD
@@ -1100,13 +1111,6 @@ public class MTESteamSingularityCompressor extends MTEEnhancedMultiBlockBase<MTE
                 + EnumChatFormatting.GOLD
                 + StatCollector.translateToLocal(modeKey)
                 + EnumChatFormatting.RESET);
-        if (mMode != MODE_ACCUMULATE) {
-            info.add(
-                EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.singularity_compressor.fuel_time")
-                    + EnumChatFormatting.RED
-                    + String.format("%ds", mFuelTicks / CYCLE_LENGTH)
-                    + EnumChatFormatting.RESET);
-        }
         return info.toArray(new String[0]);
     }
 }

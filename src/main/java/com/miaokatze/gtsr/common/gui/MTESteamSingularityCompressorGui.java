@@ -38,16 +38,16 @@ public class MTESteamSingularityCompressorGui extends MTEMultiBlockBaseGui<MTESt
         IntSyncValue fuelTicksSyncer = syncManager.findSyncHandler("gtsr.fuelTicks", IntSyncValue.class);
         IntSyncValue tierSyncer = syncManager.findSyncHandler("gtsr.tier", IntSyncValue.class);
 
-        return super.createTerminalTextWidget(syncManager, parent)
-            .child(
-                IKey.dynamic(
-                    () -> EnumChatFormatting.YELLOW
-                        + StatCollector.translateToLocal("gtsr.gui.singularity_compressor.heat")
-                        + EnumChatFormatting.RED
-                        + String.format("%.1f%%", heatSyncer.getValue() * 100.0d))
-                    .asWidget()
-                    .marginBottom(2)
-                    .fullWidth())
+        return super.createTerminalTextWidget(syncManager, parent).child(IKey.dynamic(() -> {
+            // 仅奇点纠缠模式显示热量；压缩/解压模式隐藏（改为显示奇点维持时间）
+            if (modeSyncer.getValue() > 0) return "";
+            return EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.singularity_compressor.heat")
+                + EnumChatFormatting.RED
+                + String.format("%.1f%%", heatSyncer.getValue() * 100.0d);
+        })
+            .asWidget()
+            .marginBottom(2)
+            .fullWidth())
             .child(IKey.dynamic(() -> {
                 String statusKey;
                 EnumChatFormatting statusColor;

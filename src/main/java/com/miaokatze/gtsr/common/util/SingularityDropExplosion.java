@@ -127,7 +127,14 @@ public final class SingularityDropExplosion {
         }
     }
 
-    /** 普通奇点爆炸：不改动任何方块；通过 S27PacketExplosion 向客户端广播 TNT 爆炸粒子动画 */
+    /**
+     * 普通奇点爆炸：不改动任何方块；通过 S27PacketExplosion 向客户端广播爆炸动画。
+     * <p>
+     * 注意：不能调用 doExplosionB（patched MC 中它会在服务端额外播放音效/粒子，
+     * 与客户端 S27 处理器重复渲染成两个爆炸），且发包前必须清空
+     * affectedBlockPositions——客户端会把列表里的方块位本地"破坏"（服务端实际
+     * 未破坏，重进即复原）。清空列表后客户端仅渲染一次大爆炸 + 音效 + 击退。
+     */
     public static void explode(World world, EntityItem source) {
         if (world.isRemote) {
             return;
@@ -139,7 +146,7 @@ public final class SingularityDropExplosion {
         Explosion exp = new Explosion(world, null, x, y, z, NORMAL_VISUAL_SIZE);
         exp.doExplosionA();
         exp.isSmoking = false;
-        exp.doExplosionB(false);
+        exp.affectedBlockPositions.clear();
         broadcastExplosion(world, exp);
         damageEntities(world, source, exp, x, y, z, NORMAL_ENTITY_DAMAGE_SIZE);
     }
@@ -160,7 +167,8 @@ public final class SingularityDropExplosion {
         Explosion visualExp = new Explosion(world, null, x, y, z, CRITICAL_VISUAL_SIZE);
         visualExp.doExplosionA();
         visualExp.isSmoking = false;
-        visualExp.doExplosionB(false);
+        // 同普通奇点：不调 doExplosionB 避免重复爆炸；清空方块列表避免客户端假破坏
+        visualExp.affectedBlockPositions.clear();
         broadcastExplosion(world, visualExp);
 
         damageEntities(world, source, visualExp, x, y, z, CRITICAL_ENTITY_DAMAGE_SIZE);
@@ -172,7 +180,9 @@ public final class SingularityDropExplosion {
      * <p>
      * GTNH patched MC 的 Explosion.doExplosionB 不再发包（v1.10.1 因此看不到爆炸动画），
      * 发包逻辑在 WorldServer.newExplosion 覆写里；这里复刻该逻辑让客户端渲染
-     * TNT 爆炸粒子动画（hugeexplosion + 逐位 explode/smoke + 音效 + 玩家击退）。
+     * 爆炸动画（largeexplode 大爆炸粒子 + 音效 + 玩家击退）。调用前必须清空
+     * affectedBlockPositions（同 patched newExplosion 的 !isSmoking 分支），
+     * 否则客户端会按列表本地破坏方块（服务端实际未破坏）。
      */
     private static void broadcastExplosion(World world, Explosion exp) {
         for (EntityPlayer player : world.playerEntities) {
