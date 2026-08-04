@@ -1,10 +1,7 @@
 package com.miaokatze.gtsr.common.machine;
 
-import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlock;
-import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlockAdder;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlocksTiered;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
-import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose;
 import static gregtech.api.enums.GTValues.emptyItemStackArray;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
@@ -206,6 +203,22 @@ public class MTESteamSingularityCompressor extends MTEEnhancedMultiBlockBase<MTE
         return null;
     }
 
+    /**
+     * 'E'（玻璃位）等级：等级 1 防爆玻璃（兼容 beta-1 IC2 blockAlloyGlass / beta-2 GT5U
+     * sBlockGlass1 meta 10）；等级 2 任意 LuV+ 玻璃（GlassTier 系统，等级 ≥ LuV）。
+     * 走 ofBlocksTiered 使 NEI 投影的玻璃 hint 与外壳同级联动（stackSize 1 → 防爆玻璃，
+     * 2 → LuV 玻璃），结构判定语义与原先 ofChain 一致。
+     */
+    @Nullable
+    private static Integer getGlassTier(Block block, int meta) {
+        if (block == GTVersionCompat.getReinforcedGlassBlock() && meta == GTVersionCompat.getReinforcedGlassMeta()) {
+            return 1;
+        }
+        Integer glassTier = GlassTier.getGlassBlockTier(block, meta);
+        if (glassTier == null || glassTier < VoltageIndex.LuV) return null;
+        return 2;
+    }
+
     protected int getCasingTextureIndex() {
         return mTier >= 2 ? GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings8, 6)
             : GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings2, 0);
@@ -247,6 +260,11 @@ public class MTESteamSingularityCompressor extends MTEEnhancedMultiBlockBase<MTE
             final List<Pair<Block, Integer>> frameTiers = new ArrayList<>();
             frameTiers.add(Pair.of(GregTechAPI.sBlockFrames, Materials.Steel.mMetaItemSubID)); // 1
             frameTiers.add(Pair.of(getTier2FrameBlock(), getTier2FrameMeta())); // 2
+            final List<Pair<Block, Integer>> glassTiers = new ArrayList<>();
+            // hint 与 B/C/D/F 同级联动：触发物品 stackSize=1 投影等级 1（防爆玻璃），=2 投影等级 2（LuV 玻璃）
+            glassTiers
+                .add(Pair.of(GTVersionCompat.getReinforcedGlassBlock(), GTVersionCompat.getReinforcedGlassMeta())); // 1
+            glassTiers.add(Pair.of(ItemRegistry.bw_realglas, 3)); // 2
 
             STRUCTURE_DEFINITION = StructureDefinition.<MTESteamSingularityCompressor>builder()
                 .addShape(
@@ -322,20 +340,12 @@ public class MTESteamSingularityCompressor extends MTEEnhancedMultiBlockBase<MTE
                         t -> t.mCasingTierD))
                 .addElement(
                     'E',
-                    ofChain(
-                        // 等级 2 优先：LuV+ 玻璃（GlassTier 系统，等级 ≥ LuV），NEI 投影据此显示 LuV 玻璃
-                        ofBlockAdder((t, block, meta) -> {
-                            Integer glassTier = GlassTier.getGlassBlockTier(block, meta);
-                            if (glassTier == null || glassTier < VoltageIndex.LuV) return false;
-                            t.mCasingTierE = 2;
-                            return true;
-                        }, ItemRegistry.bw_realglas, 3),
-                        // 等级 1：防爆玻璃（兼容 beta-1 IC2 blockAlloyGlass / beta-2 GT5U sBlockGlass1 meta 10）
-                        onElementPass(
-                            t -> t.mCasingTierE = 1,
-                            ofBlock(
-                                GTVersionCompat.getReinforcedGlassBlock(),
-                                GTVersionCompat.getReinforcedGlassMeta()))))
+                    ofBlocksTiered(
+                        MTESteamSingularityCompressor::getGlassTier,
+                        glassTiers,
+                        -1,
+                        (t, tier) -> t.mCasingTierE = tier,
+                        t -> t.mCasingTierE))
                 .addElement(
                     'F',
                     ofBlocksTiered(
@@ -779,6 +789,15 @@ public class MTESteamSingularityCompressor extends MTEEnhancedMultiBlockBase<MTE
 
     @Override
     public boolean supportsPowerPanel() {
+        return false;
+    }
+
+    /**
+     * 免维护机器：结构不含维护仓/消声仓，关闭维护检查（否则 repair status 0 会触发
+     * NO_REPAIR 关机显示「机器损坏」）。基类构造时据此调用 fixAllIssues() 置满维护位。
+     */
+    @Override
+    public boolean getDefaultHasMaintenanceChecks() {
         return false;
     }
 
