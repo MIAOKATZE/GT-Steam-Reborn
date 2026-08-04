@@ -23,11 +23,15 @@ import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
  * 蒸汽纠缠奇点掉落物爆炸逻辑。
  * <p>
  * 普通奇点：掉落 5 秒后爆炸，两倍 TNT 实体伤害（威力 8.0），不破坏方块，无产物，
- * 爆炸后自身消失。
+ * 爆炸后自身消失；等待期每 4 tick 冒一次白色云朵粒子。
  * <p>
  * 临界奇点：掉落 3 秒后爆炸，50% TNT 方块破坏（威力 2.0）+ 20 倍 TNT 实体伤害
  * （威力 80.0），爆炸后沿爆炸半径随机生成 0-16 个普通蒸汽纠缠奇点（各自带 4-10 秒
- * 随机爆炸倒计时），爆炸后自身消失。两者等待期间均每 4 tick 散发一次传送门粒子。
+ * 随机爆炸倒计时），爆炸后自身消失；等待期每 2 tick 冒两颗黑色大烟雾粒子（更多、
+ * 扩散更大），爆炸动画半径 8.0（普通 4.0 的两倍）。
+ * <p>
+ * 等待期粒子在客户端由 EntityItem.age 驱动；爆炸动画通过 vanilla Explosion 的
+ * doExplosionB 发包（PacketPlayExplosion）在客户端渲染 TNT 爆炸粒子动画与震屏。
  */
 public final class SingularityDropExplosion {
 
@@ -37,6 +41,8 @@ public final class SingularityDropExplosion {
     private static final float NORMAL_ENTITY_DAMAGE_SIZE = 8.0F;
     /** 普通奇点爆炸倒计时：5 秒 */
     private static final int NORMAL_DELAY_TICKS = 100;
+    /** 普通奇点等待期白色粒子间隔（tick） */
+    private static final int NORMAL_PARTICLE_INTERVAL = 4;
     /** 临界爆炸产出的普通奇点爆炸倒计时范围：4-10 秒（随机） */
     private static final int SPAWN_DELAY_MIN_TICKS = 80;
     private static final int SPAWN_DELAY_MAX_TICKS = 200;
@@ -45,8 +51,12 @@ public final class SingularityDropExplosion {
     private static final float CRITICAL_BLOCK_SIZE = 2.0F;
     /** 临界奇点实体伤害威力：80.0 = 20 倍 TNT 伤害 */
     private static final float CRITICAL_ENTITY_DAMAGE_SIZE = 80.0F;
+    /** 临界奇点爆炸视觉粒子半径（普通 4.0 的两倍，动画更大） */
+    private static final float CRITICAL_VISUAL_SIZE = 8.0F;
     /** 临界奇点爆炸倒计时：3 秒 */
     private static final int CRITICAL_DELAY_TICKS = 60;
+    /** 临界奇点等待期黑色粒子间隔（tick，比普通更密集） */
+    private static final int CRITICAL_PARTICLE_INTERVAL = 2;
 
     private SingularityDropExplosion() {}
 
@@ -64,7 +74,12 @@ public final class SingularityDropExplosion {
     }
 
     private static void updateDroppedSingularity(EntityItem entityItem, int delayTicks, boolean critical) {
-        if (entityItem.worldObj.isRemote) {
+        World world = entityItem.worldObj;
+        if (world.isRemote) {
+            // 客户端：只负责等待期粒子（服务端负责倒计时与爆炸），以 EntityItem.age 计时
+            if (entityItem.age % (critical ? CRITICAL_PARTICLE_INTERVAL : NORMAL_PARTICLE_INTERVAL) == 0) {
+                spawnWaitParticles(world, entityItem, critical);
+            }
             return;
         }
         NBTTagCompound tag = entityItem.getEntityData();
@@ -73,17 +88,6 @@ public final class SingularityDropExplosion {
         }
         int ticks = tag.getInteger("gtsrDropTicks") + 1;
         tag.setInteger("gtsrDropTicks", ticks);
-        World world = entityItem.worldObj;
-        if (ticks % 4 == 0) {
-            world.spawnParticle(
-                "portal",
-                entityItem.posX + (world.rand.nextFloat() - 0.5F) * 0.8D,
-                entityItem.posY + world.rand.nextFloat() * 0.5D,
-                entityItem.posZ + (world.rand.nextFloat() - 0.5F) * 0.8D,
-                (world.rand.nextFloat() - 0.5F) * 0.4D,
-                world.rand.nextFloat() * 0.2D,
-                (world.rand.nextFloat() - 0.5F) * 0.4D);
-        }
         if (ticks >= delayTicks) {
             tag.setBoolean("gtsrExploded", true);
             if (critical) {
@@ -95,7 +99,32 @@ public final class SingularityDropExplosion {
         }
     }
 
-    /** 普通奇点爆炸：只计算受影响位置用于粒子散布，不改动任何方块 */
+    /** 等待期粒子：普通奇点白色云朵粒子；临界奇点黑色大烟雾粒子（每 2 tick 两颗、扩散更大） */
+    private static void spawnWaitParticles(World world, EntityItem item, boolean critical) {
+        if (critical) {
+            for (int i = 0; i < 2; ++i) {
+                world.spawnParticle(
+                    "largesmoke",
+                    item.posX + (world.rand.nextFloat() - 0.5F) * 1.2D,
+                    item.posY + world.rand.nextFloat() * 0.8D,
+                    item.posZ + (world.rand.nextFloat() - 0.5F) * 1.2D,
+                    (world.rand.nextFloat() - 0.5F) * 0.8D,
+                    world.rand.nextFloat() * 0.4D,
+                    (world.rand.nextFloat() - 0.5F) * 0.8D);
+            }
+        } else {
+            world.spawnParticle(
+                "cloud",
+                item.posX + (world.rand.nextFloat() - 0.5F) * 0.8D,
+                item.posY + world.rand.nextFloat() * 0.5D,
+                item.posZ + (world.rand.nextFloat() - 0.5F) * 0.8D,
+                (world.rand.nextFloat() - 0.5F) * 0.4D,
+                world.rand.nextFloat() * 0.2D,
+                (world.rand.nextFloat() - 0.5F) * 0.4D);
+        }
+    }
+
+    /** 普通奇点爆炸：不改动任何方块；通过 doExplosionB 向客户端广播 TNT 爆炸粒子动画 */
     public static void explode(World world, EntityItem source) {
         if (world.isRemote) {
             return;
@@ -106,8 +135,8 @@ public final class SingularityDropExplosion {
 
         Explosion exp = new Explosion(world, null, x, y, z, NORMAL_VISUAL_SIZE);
         exp.doExplosionA();
-        spawnExplosionParticles(world, exp);
-        playExplosionSound(world, x, y, z);
+        exp.isSmoking = false;
+        exp.doExplosionB(true);
         damageEntities(world, source, exp, x, y, z, NORMAL_ENTITY_DAMAGE_SIZE);
     }
 
@@ -120,12 +149,16 @@ public final class SingularityDropExplosion {
         double y = source.posY;
         double z = source.posZ;
 
-        Explosion exp = new Explosion(world, null, x, y, z, CRITICAL_BLOCK_SIZE);
-        exp.doExplosionA();
-        destroyBlocks(world, exp);
-        spawnExplosionParticles(world, exp);
-        playExplosionSound(world, x, y, z);
-        damageEntities(world, source, exp, x, y, z, CRITICAL_ENTITY_DAMAGE_SIZE);
+        Explosion blockExp = new Explosion(world, null, x, y, z, CRITICAL_BLOCK_SIZE);
+        blockExp.doExplosionA();
+        destroyBlocks(world, blockExp);
+
+        Explosion visualExp = new Explosion(world, null, x, y, z, CRITICAL_VISUAL_SIZE);
+        visualExp.doExplosionA();
+        visualExp.isSmoking = false;
+        visualExp.doExplosionB(true);
+
+        damageEntities(world, source, visualExp, x, y, z, CRITICAL_ENTITY_DAMAGE_SIZE);
         spawnSingularityDrops(world, x, y, z);
     }
 
@@ -147,37 +180,6 @@ public final class SingularityDropExplosion {
                 world.setBlockToAir(pos.chunkPosX, pos.chunkPosY, pos.chunkPosZ);
             }
         }
-    }
-
-    private static void spawnExplosionParticles(World world, Explosion exp) {
-        world.spawnParticle("hugeexplosion", exp.explosionX, exp.explosionY, exp.explosionZ, 1.0D, 0.0D, 0.0D);
-        for (Object obj : exp.affectedBlockPositions) {
-            ChunkPosition pos = (ChunkPosition) obj;
-            double px = pos.chunkPosX + 0.5D;
-            double py = pos.chunkPosY + 0.5D;
-            double pz = pos.chunkPosZ + 0.5D;
-            double dx = px - exp.explosionX;
-            double dy = py - exp.explosionY;
-            double dz = pz - exp.explosionZ;
-            double len = MathHelper.sqrt_double(dx * dx + dy * dy + dz * dz);
-            if (len != 0.0D) {
-                dx /= len;
-                dy /= len;
-                dz /= len;
-                world.spawnParticle("explode", px, py, pz, dx, dy, dz);
-                world.spawnParticle("smoke", px, py, pz, dx, dy, dz);
-            }
-        }
-    }
-
-    private static void playExplosionSound(World world, double x, double y, double z) {
-        world.playSoundEffect(
-            x,
-            y,
-            z,
-            "random.explode",
-            4.0F,
-            (1.0F + (world.rand.nextFloat() - world.rand.nextFloat()) * 0.2F) * 0.7F);
     }
 
     /** 实体伤害（跳过掉落物与其他奇点本体）：伤害公式与 vanilla TNT 相同，威力由 size 决定 */

@@ -65,7 +65,6 @@ public class MTESteamSingularityCompressorGui extends MTEMultiBlockBaseGui<MTESt
                     statusColor = EnumChatFormatting.WHITE;
                 }
                 return EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.status")
-                    + " "
                     + statusColor
                     + StatCollector.translateToLocal(statusKey);
             })
@@ -87,7 +86,6 @@ public class MTESteamSingularityCompressorGui extends MTEMultiBlockBaseGui<MTESt
                     : "gtsr.gui.singularity_compressor.mode.accumulate";
                 return EnumChatFormatting.YELLOW
                     + StatCollector.translateToLocal("gtsr.gui.singularity_compressor.mode")
-                    + " "
                     + EnumChatFormatting.GOLD
                     + StatCollector.translateToLocal(modeKey);
             })
@@ -98,7 +96,6 @@ public class MTESteamSingularityCompressorGui extends MTEMultiBlockBaseGui<MTESt
                 if (denseModeSyncer.getValue() <= 0) return "";
                 return EnumChatFormatting.YELLOW
                     + StatCollector.translateToLocal("gtsr.gui.singularity_compressor.dense_time")
-                    + " "
                     + EnumChatFormatting.RED
                     + String.format("%ds", denseTicksSyncer.getValue() / 20);
             })

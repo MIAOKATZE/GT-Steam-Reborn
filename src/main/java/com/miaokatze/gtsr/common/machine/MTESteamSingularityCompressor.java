@@ -897,13 +897,11 @@ public class MTESteamSingularityCompressor extends MTEEnhancedMultiBlockBase<MTE
         }
         info.add(
             EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.singularity_compressor.heat")
-                + " "
                 + EnumChatFormatting.RED
                 + String.format("%.1f%%", mHeat * 100.0d)
                 + EnumChatFormatting.RESET);
         info.add(
             EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.singularity_compressor.tier")
-                + " "
                 + EnumChatFormatting.GOLD
                 + mTier
                 + EnumChatFormatting.RESET);
@@ -911,14 +909,12 @@ public class MTESteamSingularityCompressor extends MTEEnhancedMultiBlockBase<MTE
             : "gtsr.gui.singularity_compressor.mode.accumulate";
         info.add(
             EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.singularity_compressor.mode")
-                + " "
                 + EnumChatFormatting.GOLD
                 + StatCollector.translateToLocal(modeKey)
                 + EnumChatFormatting.RESET);
         if (mDenseMode) {
             info.add(
                 EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.singularity_compressor.dense_time")
-                    + " "
                     + EnumChatFormatting.RED
                     + String.format("%ds", mDenseTicks / CYCLE_LENGTH)
                     + EnumChatFormatting.RESET);
