@@ -1,7 +1,9 @@
 package com.miaokatze.gtsr.common.machine;
 
 import java.util.ArrayList;
+import java.util.List;
 
+import net.minecraft.client.renderer.texture.IIconRegister;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
@@ -14,11 +16,18 @@ import net.minecraftforge.fluids.FluidStack;
 import com.miaokatze.gtsr.common.gui.MTEDenseStateManipulatorGui;
 import com.miaokatze.gtsr.common.machine.base.MTESingularityMachineBase;
 
+import cpw.mods.fml.relauncher.Side;
+import cpw.mods.fml.relauncher.SideOnly;
 import gregtech.api.GregTechAPI;
+import gregtech.api.enums.Textures;
+import gregtech.api.interfaces.IIconContainer;
+import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.recipe.check.CheckRecipeResult;
 import gregtech.api.recipe.check.CheckRecipeResultRegistry;
+import gregtech.api.render.TextureFactory;
+import gregtech.api.structure.error.StructureError;
 import gregtech.api.util.GTUtility;
 
 /** Tier 2 dense steam compressor/decompressor. */
@@ -34,6 +43,9 @@ public class MTEDenseStateManipulator extends MTESingularityMachineBase {
     public int mFuelTicks = 0;
     private double mAccum = 0.0d;
     private int mAccumGrade = -1;
+
+    private static IIconContainer OVERLAY_OFF;
+    private static IIconContainer OVERLAY_ON;
 
     public MTEDenseStateManipulator(int aID, String aName, String aNameRegional) {
         super(aID, aName, aNameRegional);
@@ -110,7 +122,37 @@ public class MTEDenseStateManipulator extends MTESingularityMachineBase {
 
     @Override
     protected int getCasingTextureIndex() {
-        return GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings2, 0);
+        return GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings8, 6);
+    }
+
+    @Override
+    protected int getHatchCasingTextureIndex() {
+        return GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings8, 6);
+    }
+
+    @Override
+    public void checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack, List<StructureError> errors) {
+        super.checkMachine(aBaseMetaTileEntity, aStack, errors);
+        updateHatchTextures();
+    }
+
+    @Override
+    @SideOnly(Side.CLIENT)
+    public void registerIcons(IIconRegister aBlockIconRegister) {
+        OVERLAY_OFF = Textures.BlockIcons.custom("gtsr:MTESingularityDrillingHub_OFF");
+        OVERLAY_ON = Textures.BlockIcons.custom("gtsr:MTESingularityDrillingHub_ON");
+        super.registerIcons(aBlockIconRegister);
+    }
+
+    @Override
+    public ITexture[] getTexture(IGregTechTileEntity aBaseMetaTileEntity, ForgeDirection side, ForgeDirection facing,
+        int colorIndex, boolean aActive, boolean redstoneLevel) {
+        int casingIndex = getCasingTextureIndex();
+        if (side == facing) {
+            return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(casingIndex),
+                TextureFactory.of(aActive ? OVERLAY_ON : OVERLAY_OFF) };
+        }
+        return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(casingIndex) };
     }
 
     @Override

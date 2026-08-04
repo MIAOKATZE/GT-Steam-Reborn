@@ -1,14 +1,19 @@
 package com.miaokatze.gtsr.common.machine;
 
+import java.util.List;
+
 import net.minecraft.item.ItemStack;
 
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.gui.MTECriticalSingularityCompressorGui;
 import com.miaokatze.gtsr.common.machine.base.MTESingularityMachineBase;
 
+import gregtech.api.GregTechAPI;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.recipe.check.CheckRecipeResult;
+import gregtech.api.structure.error.StructureError;
+import gregtech.api.util.GTUtility;
 
 /** Tier 2 steam entanglement machine. */
 public class MTECriticalSingularityCompressor extends MTESingularityMachineBase {
@@ -39,6 +44,22 @@ public class MTECriticalSingularityCompressor extends MTESingularityMachineBase 
     @Override
     protected int getRequiredTier() {
         return 2;
+    }
+
+    @Override
+    protected int getCasingTextureIndex() {
+        return GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings8, 6);
+    }
+
+    @Override
+    protected int getHatchCasingTextureIndex() {
+        return GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings8, 6);
+    }
+
+    @Override
+    public void checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack, List<StructureError> errors) {
+        super.checkMachine(aBaseMetaTileEntity, aStack, errors);
+        updateHatchTextures();
     }
 
     @Override
