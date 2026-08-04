@@ -12,6 +12,8 @@ import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.annotation.Nullable;
+
 import net.minecraft.block.Block;
 import net.minecraft.client.renderer.texture.IIconRegister;
 import net.minecraft.entity.player.EntityPlayer;
@@ -65,6 +67,7 @@ import gregtech.api.util.GTUtility;
 import gregtech.api.util.GlassTier;
 import gregtech.api.util.IGTHatchAdder;
 import gregtech.api.util.MultiblockTooltipBuilder;
+import gregtech.common.tileentities.machines.IDualInputHatch;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.MTEHatchSteamBusInput;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.MTEHatchSteamBusOutput;
 
@@ -176,23 +179,31 @@ public class MTESteamSingularityCompressor extends MTEEnhancedMultiBlockBase<MTE
         return TIER2_FRAME_META;
     }
 
-    private static int getCasingTier(Block block, int meta) {
+    /**
+     * 注意：非匹配方块必须返回 {@code null}（不得返回 notSet=-1），否则 StructureLib 的
+     * ofBlocksTiered 会把未定级状态下的任意方块（含 hatch、空气）当作 -1 级外壳接受，
+     * 导致 hatch 被吞（不注册）或错误方块被误收，结构无法成型。
+     */
+    @Nullable
+    private static Integer getCasingTier(Block block, int meta) {
         if (block == GregTechAPI.sBlockCasings2 && meta == 0) return 1;
         if (block == GregTechAPI.sBlockCasings8 && meta == 6) return 2;
-        return -1;
+        return null;
     }
 
     /** 'C'（管道位）等级：等级 1 钢管（sBlockCasings2:13），等级 2 强化镀铑钯外壳（sBlockCasings8:6） */
-    private static int getPipeTier(Block block, int meta) {
+    @Nullable
+    private static Integer getPipeTier(Block block, int meta) {
         if (block == GregTechAPI.sBlockCasings2 && meta == 13) return 1;
         if (block == GregTechAPI.sBlockCasings8 && meta == 6) return 2;
-        return -1;
+        return null;
     }
 
-    private static int getFrameTier(Block block, int meta) {
+    @Nullable
+    private static Integer getFrameTier(Block block, int meta) {
         if (block == GregTechAPI.sBlockFrames && meta == Materials.Steel.mMetaItemSubID) return 1;
         if (block == getTier2FrameBlock() && meta == getTier2FrameMeta()) return 2;
-        return -1;
+        return null;
     }
 
     protected int getCasingTextureIndex() {
@@ -207,14 +218,23 @@ public class MTESteamSingularityCompressor extends MTEEnhancedMultiBlockBase<MTE
         for (MTEHatch h : mInputBusses) h.updateTexture(textureID);
         for (MTEHatch h : mOutputBusses) h.updateTexture(textureID);
         for (MTEHatch h : mPressureSteamInputs) h.updateTexture(textureID);
+        // v1.9.41 同款修复：ME 样板仓/输入总线注册在 mDualInputHatches，漏更会停滞钢材质
+        for (IDualInputHatch h : mDualInputHatches) h.updateTexture(textureID);
+    }
+
+    /**
+     * mTier 客户端同步：checkMachine 只在服务端执行，客户端 MTE 的 mTier 恒为 0，
+     * 等级 2 控制器底材会一直渲染钢外壳；通过 getUpdateData/onValueUpdate 同步
+     * （结构成型时 MTEEnhancedMultiBlockBase.onStructureCheckFinished 触发 issueTileUpdate）。
+     */
+    @Override
+    public void onValueUpdate(byte aValue) {
+        mTier = aValue;
     }
 
     @Override
-    public void onValueUpdate(byte aValue) {}
-
-    @Override
     public byte getUpdateData() {
-        return 0;
+        return (byte) mTier;
     }
 
     @Override
@@ -303,19 +323,19 @@ public class MTESteamSingularityCompressor extends MTEEnhancedMultiBlockBase<MTE
                 .addElement(
                     'E',
                     ofChain(
-                        // 等级 1：防爆玻璃（兼容 beta-1 IC2 blockAlloyGlass / beta-2 GT5U sBlockGlass1 meta 10）
-                        onElementPass(
-                            t -> t.mCasingTierE = 1,
-                            ofBlock(
-                                GTVersionCompat.getReinforcedGlassBlock(),
-                                GTVersionCompat.getReinforcedGlassMeta())),
-                        // 等级 2：任意 LuV 级玻璃（GlassTier 系统，等级 ≥ LuV）
+                        // 等级 2 优先：LuV+ 玻璃（GlassTier 系统，等级 ≥ LuV），NEI 投影据此显示 LuV 玻璃
                         ofBlockAdder((t, block, meta) -> {
                             Integer glassTier = GlassTier.getGlassBlockTier(block, meta);
                             if (glassTier == null || glassTier < VoltageIndex.LuV) return false;
                             t.mCasingTierE = 2;
                             return true;
-                        }, ItemRegistry.bw_realglas, 3)))
+                        }, ItemRegistry.bw_realglas, 3),
+                        // 等级 1：防爆玻璃（兼容 beta-1 IC2 blockAlloyGlass / beta-2 GT5U sBlockGlass1 meta 10）
+                        onElementPass(
+                            t -> t.mCasingTierE = 1,
+                            ofBlock(
+                                GTVersionCompat.getReinforcedGlassBlock(),
+                                GTVersionCompat.getReinforcedGlassMeta()))))
                 .addElement(
                     'F',
                     ofBlocksTiered(
