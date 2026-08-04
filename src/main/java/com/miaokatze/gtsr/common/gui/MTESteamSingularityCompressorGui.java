@@ -104,10 +104,12 @@ public class MTESteamSingularityCompressorGui extends MTEMultiBlockBaseGui<MTESt
                 .fullWidth())
             .child(IKey.dynamic(() -> {
                 if (modeSyncer.getValue() <= 0) return "";
+                String value = fuelTicksSyncer.getValue() > 0 ? String.format("%ds", fuelTicksSyncer.getValue() / 20)
+                    : StatCollector.translateToLocal("gtsr.gui.singularity_compressor.fuel_no_fuel");
                 return EnumChatFormatting.YELLOW
                     + StatCollector.translateToLocal("gtsr.gui.singularity_compressor.fuel_time")
                     + EnumChatFormatting.RED
-                    + String.format("%ds", fuelTicksSyncer.getValue() / 20);
+                    + value;
             })
                 .asWidget()
                 .marginBottom(2)

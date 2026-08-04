@@ -833,7 +833,7 @@ gtsr.tooltip.singularity_compressor.desc2=热量公式：等级1 y=0.005x/(x+200
 gtsr.tooltip.singularity_compressor.desc3=多种蒸汽共存时只识别最高等级；机器关机（含软锤关闭）或没有蒸汽时，热量每秒降低 1%。
 gtsr.tooltip.singularity_compressor.desc4=热量达到 100% 时清零，产出 1 个蒸汽纠缠奇点（等级1）或 1 个临界蒸汽纠缠奇点（等级2）。
 gtsr.tooltip.singularity_compressor.desc5=蒸汽奇点压缩机会吞噬所有：已禁用蒸汽冷却机制，不消耗任何电力。
-gtsr.tooltip.singularity_compressor.desc6=等级2可用螺丝刀循环切换三种模式（运行中亦可切换，切入压缩/解压时热量自动清零）：奇点纠缠 / 蒸汽压缩 / 蒸汽解压。压缩与解压模式每输入 1 个蒸汽纠缠奇点运行 600s。
+gtsr.tooltip.singularity_compressor.desc6=等级2可用螺丝刀循环切换三种模式（运行中亦可切换，切入压缩/解压时热量自动清零，切换模式会清零奇点维持时间）：奇点纠缠 / 蒸汽压缩 / 蒸汽解压。压缩与解压模式每输入 1 个蒸汽纠缠奇点运行 600s，维持时间即使关机也会持续消耗，无奇点时 GUI 提示放入。
 gtsr.tooltip.singularity_compressor.desc7=蒸汽压缩：蒸汽/过热/超临界按 1000:1 压缩为对应致密流体；蒸汽解压：致密蒸汽/致密过热/致密超临界按 1:1000 解压为对应普通蒸汽。两者采用浮点累计（同蒸汽冷却机制）：同种蒸汽累计、异种顶掉，例如两次 1500 压缩先输出 1 再输出 2。
 gtsr.tooltip.singularity_compressor.ctrl=Layer 8 中心偏下方
 gtsr.tooltip.singularity_compressor.steam_input=输入仓/蒸汽仓/耐压蒸汽仓/巨型超压蒸汽输入仓（兼容ME仓室）
@@ -1091,6 +1091,7 @@ gtsr.gui.singularity_compressor.mode.accumulate=奇点纠缠
 gtsr.gui.singularity_compressor.mode.compress=蒸汽压缩
 gtsr.gui.singularity_compressor.mode.decompress=蒸汽解压
 gtsr.gui.singularity_compressor.fuel_time=奇点维持时间： 
+gtsr.gui.singularity_compressor.fuel_no_fuel=请输入蒸汽纠缠奇点
 gtsr.chat.compressor_mode.on.accumulate=已切换为奇点纠缠模式
 gtsr.chat.compressor_mode.on.compress=已切换为蒸汽压缩模式
 gtsr.chat.compressor_mode.on.decompress=已切换为蒸汽解压模式

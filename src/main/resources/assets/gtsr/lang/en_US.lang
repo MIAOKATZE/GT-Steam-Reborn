@@ -780,7 +780,7 @@ gtsr.tooltip.singularity_compressor.desc2=Heat formula: Tier 1 y=0.005x/(x+20000
 gtsr.tooltip.singularity_compressor.desc3=When multiple steam types are present, only the highest grade is recognized; heat drops by 1% per second whenever the machine is off (including soft-hammer shutdown) or no steam is present.
 gtsr.tooltip.singularity_compressor.desc4=At 100% heat, heat resets and 1 Steam Entangled Singularity (Tier 1) or 1 Critical Steam Entangled Singularity (Tier 2) is produced.
 gtsr.tooltip.singularity_compressor.desc5=The Steam Singularity Compressor devours everything: steam cooling is disabled, and no EU is consumed.
-gtsr.tooltip.singularity_compressor.desc6=Tier 2: use a screwdriver to cycle between three modes at any time (entering Compression/Decompression auto-clears heat): Singularity Entanglement / Steam Compression / Steam Decompression. Both Compression and Decompression modes are fueled by 1 Steam Entangled Singularity per 600s.
+gtsr.tooltip.singularity_compressor.desc6=Tier 2: use a screwdriver to cycle between three modes at any time (entering Compression/Decompression auto-clears heat, and switching modes resets the Singularity Duration): Singularity Entanglement / Steam Compression / Steam Decompression. Both Compression and Decompression modes are fueled by 1 Steam Entangled Singularity per 600s; the duration keeps burning even when the machine is off, and the GUI prompts for a singularity when none is present.
 gtsr.tooltip.singularity_compressor.desc7=Steam Compression: Steam/Superheated/Supercritical compress into the matching dense fluid at a 1000:1 ratio; Steam Decompression: DenseSteam/DenseSuperheated/DenseSupercritical expand into the matching normal steam at a 1:1000 ratio. Both use floating-point accumulation (same mechanism as steam cooling): same-type steam accumulates and a different type resets it - e.g. two runs of 1500 compressed output 1 first, then 2.
 gtsr.tooltip.singularity_compressor.ctrl=Layer 8, center, slightly below
 gtsr.tooltip.singularity_compressor.steam_input=Input Hatch / Steam Input Hatch / Pressure Steam Hatch / Mega Overpressure Steam Input Hatch (ME hatches OK)
@@ -1082,6 +1082,7 @@ gtsr.gui.singularity_compressor.mode.accumulate=Singularity Entanglement
 gtsr.gui.singularity_compressor.mode.compress=Steam Compression
 gtsr.gui.singularity_compressor.mode.decompress=Steam Decompression
 gtsr.gui.singularity_compressor.fuel_time=Singularity Duration: 
+gtsr.gui.singularity_compressor.fuel_no_fuel=Insert a Steam Entangled Singularity
 gtsr.chat.compressor_mode.on.accumulate=Switched to Singularity Entanglement mode
 gtsr.chat.compressor_mode.on.compress=Switched to Steam Compression mode
 gtsr.chat.compressor_mode.on.decompress=Switched to Steam Decompression mode

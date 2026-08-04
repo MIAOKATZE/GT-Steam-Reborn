@@ -4,6 +4,7 @@ import java.util.ArrayList;
 
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraftforge.common.util.ForgeDirection;
 
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -651,6 +652,25 @@ public abstract class MTESteamMultiBaseMixin implements ICoolingHatchHolder {
                 }
             }
         }
+        // v1.10.4：ME 输入仓/普通输入仓（mInputHatches）蒸汽来源支持。
+        // 3 参 drain(UNKNOWN,...) 模拟对普通仓走本地罐、对 ME 输入仓走虚拟引用/网络提取。
+        MTEMultiBlockBase multiBlockSelf = (MTEMultiBlockBase) (Object) this;
+        for (MTEHatchInput hatch : GTUtility.validMTEList(multiBlockSelf.mInputHatches)) {
+            net.minecraftforge.fluids.FluidStack probe = aSteam.copy();
+            probe.amount = Integer.MAX_VALUE;
+            net.minecraftforge.fluids.FluidStack result = hatch.drain(ForgeDirection.UNKNOWN, probe, false);
+            if (result != null && result.amount > 0 && result.isFluidEqual(aSteam)) {
+                aFluids.add(result);
+            }
+            if (aSuperheatedSteam != null) {
+                net.minecraftforge.fluids.FluidStack probe2 = aSuperheatedSteam.copy();
+                probe2.amount = Integer.MAX_VALUE;
+                net.minecraftforge.fluids.FluidStack result2 = hatch.drain(ForgeDirection.UNKNOWN, probe2, false);
+                if (result2 != null && result2.amount > 0 && result2.isFluidEqual(aSuperheatedSteam)) {
+                    aFluids.add(result2);
+                }
+            }
+        }
         cir.setReturnValue(aFluids);
     }
 
@@ -692,6 +712,18 @@ public abstract class MTESteamMultiBaseMixin implements ICoolingHatchHolder {
                     cir.setReturnValue(tLiquid != null && tLiquid.amount >= aLiquid.amount);
                     return;
                 }
+            }
+        }
+        // v1.10.4：ME 输入仓/普通输入仓（mInputHatches）蒸汽来源支持。
+        // 逐仓 3 参 drain(UNKNOWN,...) 模拟→实扣（传副本：ME 输入仓实现会改写请求对象）。
+        // ME 输入仓在配方窗口内走虚拟引用、窗口外走网络提取（需仓槽配置对应流体）。
+        MTEMultiBlockBase multiBlockSelf = (MTEMultiBlockBase) (Object) this;
+        for (MTEHatchInput hatch : GTUtility.validMTEList(multiBlockSelf.mInputHatches)) {
+            net.minecraftforge.fluids.FluidStack sim = hatch.drain(ForgeDirection.UNKNOWN, aLiquid.copy(), false);
+            if (sim != null && sim.amount >= aLiquid.amount) {
+                net.minecraftforge.fluids.FluidStack real = hatch.drain(ForgeDirection.UNKNOWN, aLiquid.copy(), true);
+                cir.setReturnValue(real != null && real.amount >= aLiquid.amount);
+                return;
             }
         }
         cir.setReturnValue(false);

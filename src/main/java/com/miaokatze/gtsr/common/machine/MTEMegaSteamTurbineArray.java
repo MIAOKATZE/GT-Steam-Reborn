@@ -78,6 +78,7 @@ import gregtech.api.util.shutdown.ShutDownReason;
 import gregtech.api.util.shutdown.ShutDownReasonRegistry;
 import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
 import gregtech.common.misc.GTStructureChannels;
+import gregtech.common.tileentities.machines.IDualInputHatch;
 import tectech.thing.metaTileEntity.hatch.MTEHatchDynamoMulti;
 
 public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaSteamTurbineArray>
@@ -1000,7 +1001,11 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         }
         if (++mSingularityCheckCooldown >= 20) {
             mSingularityCheckCooldown = 0;
+            // v1.10.4：包配方窗口使 ME 输入总线的虚拟引用可读（getStackInSlot 仅窗口内有效）；
+            // 与基类 checkRecipe 的窗口嵌套安全（start/end 均幂等）
+            startRecipeProcessing();
             checkSingularityMode();
+            endRecipeProcessing();
         }
     }
 
@@ -1045,6 +1050,26 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
                 }
             }
             if (remaining <= 0) break;
+        }
+        if (remaining > 0) {
+            return false;
+        }
+        // v1.10.4：样板仓（mDualInputHatches）中的蒸汽纠缠奇点也可作为燃料。
+        // getItemInputs 引用为仓内持久数据（窗口无关），网络结算由样板仓自身完成。
+        if (remaining > 0) {
+            for (IDualInputHatch dual : mDualInputHatches) {
+                if (dual == null) continue;
+                for (ItemStack stack : dual.getAllItems()) {
+                    if (stack == null || !GTSRItemList.SteamEntangledSingularity.isStackEqual(stack, false, true)) {
+                        continue;
+                    }
+                    int toConsume = Math.min(remaining, stack.stackSize);
+                    stack.stackSize -= toConsume;
+                    remaining -= toConsume;
+                    if (remaining <= 0) break;
+                }
+                if (remaining <= 0) break;
+            }
         }
         if (remaining > 0) {
             return false;

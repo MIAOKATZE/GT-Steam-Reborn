@@ -29,6 +29,7 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 import net.minecraftforge.common.util.ForgeDirection;
+import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
 
 import org.apache.commons.lang3.tuple.Pair;
@@ -619,11 +620,17 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
     private boolean hasSufficientSuperheatedSteam(long required) {
         if (required <= 0) return true;
         long total = 0;
-        for (MTEHatchInput hatch : GTUtility.validMTEList(mInputHatches)) {
-            FluidStack fs = hatch.getFluid();
-            if (fs != null && GTModHandler.isSuperHeatedSteam(fs) && fs.amount > 0) {
-                total += fs.amount;
-                if (total >= required) return true;
+        // v1.10.4：ME 输入仓兼容——3 参 drain(UNKNOWN,...) 模拟（本地罐/网络均有效）
+        FluidStack superheatedProbe = FluidRegistry.getFluidStack("ic2superheatedsteam", 1);
+        if (superheatedProbe != null) {
+            for (MTEHatchInput hatch : GTUtility.validMTEList(mInputHatches)) {
+                FluidStack probe = superheatedProbe.copy();
+                probe.amount = Integer.MAX_VALUE;
+                FluidStack result = hatch.drain(ForgeDirection.UNKNOWN, probe, false);
+                if (result != null && result.amount > 0 && result.isFluidEqual(superheatedProbe)) {
+                    total += result.amount;
+                    if (total >= required) return true;
+                }
             }
         }
         for (MTEHatchPressureSteamInput hatch : mPressureSteamInputs) {
@@ -638,13 +645,21 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
 
     private boolean depleteSuperheatedSteam(long required) {
         long remaining = required;
-        for (MTEHatchInput hatch : GTUtility.validMTEList(mInputHatches)) {
-            FluidStack fs = hatch.getFluid();
-            if (fs != null && GTModHandler.isSuperHeatedSteam(fs) && fs.amount > 0) {
-                int drained = (int) Math.min(remaining, fs.amount);
-                depleteInput(new FluidStack(fs, drained));
-                remaining -= drained;
-                if (remaining <= 0) return true;
+        FluidStack superheatedProbe = FluidRegistry.getFluidStack("ic2superheatedsteam", 1);
+        if (superheatedProbe != null) {
+            for (MTEHatchInput hatch : GTUtility.validMTEList(mInputHatches)) {
+                if (remaining <= 0) break;
+                FluidStack probe = superheatedProbe.copy();
+                probe.amount = Integer.MAX_VALUE;
+                FluidStack sim = hatch.drain(ForgeDirection.UNKNOWN, probe, false);
+                if (sim != null && sim.amount > 0 && sim.isFluidEqual(superheatedProbe)) {
+                    FluidStack toDrain = superheatedProbe.copy();
+                    toDrain.amount = (int) Math.min(remaining, sim.amount);
+                    FluidStack real = hatch.drain(ForgeDirection.UNKNOWN, toDrain, true);
+                    if (real != null && real.amount > 0) {
+                        remaining -= real.amount;
+                    }
+                }
             }
         }
         for (MTEHatchPressureSteamInput hatch : mPressureSteamInputs) {

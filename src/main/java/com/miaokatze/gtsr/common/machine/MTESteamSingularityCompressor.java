@@ -640,11 +640,8 @@ public class MTESteamSingularityCompressor extends MTEEnhancedMultiBlockBase<MTE
         }
 
         long out = (long) Math.floor(mAccum);
-        if (out > 0) {
-            out = Math.min(out, outputFreeCapacity());
-        }
         if (out <= 0) {
-            // 累计中（不足 1 单位或输出位不足）：保持 1 秒周期继续积累
+            // 累计中（不足 1 单位）：保持 1 秒周期继续积累
             startCycle();
             return CheckRecipeResultRegistry.SUCCESSFUL;
         }
@@ -653,12 +650,14 @@ public class MTESteamSingularityCompressor extends MTEEnhancedMultiBlockBase<MTE
             mAccum = 0.0d;
             return CheckRecipeResultRegistry.NO_RECIPE;
         }
-        FluidStack dense = FluidRegistry.getFluidStack(DENSE_FLUID_NAMES[mAccumGrade], (int) out);
+        FluidStack dense = FluidRegistry
+            .getFluidStack(DENSE_FLUID_NAMES[mAccumGrade], (int) Math.min(out, Integer.MAX_VALUE));
         if (dense == null || dense.amount <= 0) {
             return CheckRecipeResultRegistry.NO_RECIPE;
         }
-        mAccum -= out;
-        fillOutput(dense);
+        // 按实际填充量扣减；输出位不足（含 ME 输出仓缓存满）时剩余积压保持，
+        // mAccum >= 1 使下周期不再吞噬新蒸汽
+        mAccum -= fillOutput(dense);
         startCycle();
         return CheckRecipeResultRegistry.SUCCESSFUL;
     }
@@ -694,9 +693,6 @@ public class MTESteamSingularityCompressor extends MTEEnhancedMultiBlockBase<MTE
         }
 
         long out = (long) Math.floor(mAccum);
-        if (out > 0) {
-            out = Math.min(out, outputFreeCapacity());
-        }
         if (out <= 0) {
             startCycle();
             return CheckRecipeResultRegistry.SUCCESSFUL;
@@ -706,12 +702,13 @@ public class MTESteamSingularityCompressor extends MTEEnhancedMultiBlockBase<MTE
             mAccum = 0.0d;
             return CheckRecipeResultRegistry.NO_RECIPE;
         }
-        FluidStack steam = FluidRegistry.getFluidStack(NORMAL_FLUID_NAMES[mAccumGrade], (int) out);
+        FluidStack steam = FluidRegistry
+            .getFluidStack(NORMAL_FLUID_NAMES[mAccumGrade], (int) Math.min(out, Integer.MAX_VALUE));
         if (steam == null || steam.amount <= 0) {
             return CheckRecipeResultRegistry.NO_RECIPE;
         }
-        mAccum -= out;
-        fillOutput(steam);
+        // 按实际填充量扣减；输出位不足（含 ME 输出仓缓存满）时剩余积压保持
+        mAccum -= fillOutput(steam);
         startCycle();
         return CheckRecipeResultRegistry.SUCCESSFUL;
     }
@@ -731,135 +728,124 @@ public class MTESteamSingularityCompressor extends MTEEnhancedMultiBlockBase<MTE
         return all;
     }
 
+    /**
+     * 某等级的探测流体请求。
+     * <p>
+     * v1.10.4 起取流统一走 IFluidHandler 的 3 参 drain(ForgeDirection.UNKNOWN, ...)：
+     * 普通输入仓/耐压仓走本地罐，ME 输入仓（MTEHatchInputME）在配方窗口内走虚拟引用、
+     * 窗口外走网络提取（需仓槽配置对应流体），一套实现全兼容，不再依赖 getFluid()。
+     *
+     * @param grade        等级 0/1/2（蒸汽/过热/超临界）
+     * @param includeDense 蓄热模式等级 2 时含致密变体
+     * @param denseOnly    仅致密变体（解压模式）
+     */
+    private FluidStack[] gradeProbeStacks(int grade, boolean includeDense, boolean denseOnly) {
+        FluidStack normal = FluidRegistry.getFluidStack(NORMAL_FLUID_NAMES[grade], 1);
+        FluidStack dense = FluidRegistry.getFluidStack(DENSE_FLUID_NAMES[grade], 1);
+        if (denseOnly) {
+            return new FluidStack[] { dense };
+        }
+        if (includeDense) {
+            return new FluidStack[] { normal, dense };
+        }
+        return new FluidStack[] { normal };
+    }
+
+    /** 探测某等级流体是否存在于任一输入仓（1L 模拟 drain，窗口内外均可用） */
+    private boolean probeGrade(int grade, boolean includeDense, boolean denseOnly) {
+        for (FluidStack request : gradeProbeStacks(grade, includeDense, denseOnly)) {
+            if (request == null) continue;
+            for (MTEHatch hatch : getSteamInputHatches()) {
+                FluidStack result = hatch.drain(ForgeDirection.UNKNOWN, request, false);
+                if (result != null && result.amount > 0) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     /** 查找输入仓中当前最高等级的蒸汽类别；无则返回 -1 */
     private int findHighestGrade(boolean includeDense) {
-        int grade = -1;
-        for (MTEHatch hatch : getSteamInputHatches()) {
-            FluidStack fs = hatch.getFluid();
-            if (fs == null || fs.amount <= 0 || fs.getFluid() == null) continue;
-            int g = getFluidGrade(
-                fs.getFluid()
-                    .getName(),
-                includeDense);
-            if (g > grade) grade = g;
+        for (int grade = 2; grade >= 0; grade--) {
+            if (probeGrade(grade, includeDense, false)) {
+                return grade;
+            }
         }
-        return grade;
+        return -1;
     }
 
     private long sumGrade(int grade, boolean includeDense) {
         long x = 0;
-        for (MTEHatch hatch : getSteamInputHatches()) {
-            FluidStack fs = hatch.getFluid();
-            if (fs == null || fs.getFluid() == null) continue;
-            if (getFluidGrade(
-                fs.getFluid()
-                    .getName(),
-                includeDense) == grade) {
-                x += fs.amount;
+        for (FluidStack request : gradeProbeStacks(grade, includeDense, false)) {
+            if (request == null) continue;
+            for (MTEHatch hatch : getSteamInputHatches()) {
+                FluidStack full = request.copy();
+                full.amount = Integer.MAX_VALUE;
+                FluidStack result = hatch.drain(ForgeDirection.UNKNOWN, full, false);
+                if (result != null && result.amount > 0) {
+                    x += result.amount;
+                }
             }
         }
         return x;
     }
 
     private void drainGrade(int grade, boolean includeDense) {
-        for (MTEHatch hatch : getSteamInputHatches()) {
-            FluidStack fs = hatch.getFluid();
-            if (fs == null || fs.getFluid() == null) continue;
-            if (getFluidGrade(
-                fs.getFluid()
-                    .getName(),
-                includeDense) == grade) {
-                hatch.drain(Integer.MAX_VALUE, true);
+        for (FluidStack request : gradeProbeStacks(grade, includeDense, false)) {
+            if (request == null) continue;
+            for (MTEHatch hatch : getSteamInputHatches()) {
+                FluidStack full = request.copy();
+                full.amount = Integer.MAX_VALUE;
+                hatch.drain(ForgeDirection.UNKNOWN, full, true);
             }
-        }
-    }
-
-    private int getFluidGrade(String name, boolean includeDense) {
-        switch (name) {
-            case "steam":
-                return 0;
-            case "densesteam":
-                return includeDense ? 0 : -1;
-            case "ic2superheatedsteam":
-                return 1;
-            case "densesuperheatedsteam":
-                return includeDense ? 1 : -1;
-            case "supercriticalsteam":
-                return 2;
-            case "densesupercriticalsteam":
-                return includeDense ? 2 : -1;
-            default:
-                return -1;
         }
     }
 
     /** 查找输入仓中当前最高等级的致密蒸汽（仅解压模式）；无则返回 -1 */
     private int findHighestDenseGrade() {
-        int grade = -1;
-        for (MTEHatch hatch : getSteamInputHatches()) {
-            FluidStack fs = hatch.getFluid();
-            if (fs == null || fs.amount <= 0 || fs.getFluid() == null) continue;
-            int g = getDenseGrade(
-                fs.getFluid()
-                    .getName());
-            if (g > grade) grade = g;
+        for (int grade = 2; grade >= 0; grade--) {
+            if (probeGrade(grade, false, true)) {
+                return grade;
+            }
         }
-        return grade;
+        return -1;
     }
 
     private long sumDenseGrade(int grade) {
         long x = 0;
-        for (MTEHatch hatch : getSteamInputHatches()) {
-            FluidStack fs = hatch.getFluid();
-            if (fs == null || fs.getFluid() == null) continue;
-            if (getDenseGrade(
-                fs.getFluid()
-                    .getName())
-                == grade) {
-                x += fs.amount;
+        for (FluidStack request : gradeProbeStacks(grade, false, true)) {
+            if (request == null) continue;
+            for (MTEHatch hatch : getSteamInputHatches()) {
+                FluidStack full = request.copy();
+                full.amount = Integer.MAX_VALUE;
+                FluidStack result = hatch.drain(ForgeDirection.UNKNOWN, full, false);
+                if (result != null && result.amount > 0) {
+                    x += result.amount;
+                }
             }
         }
         return x;
     }
 
     private void drainDenseGrade(int grade) {
-        for (MTEHatch hatch : getSteamInputHatches()) {
-            FluidStack fs = hatch.getFluid();
-            if (fs == null || fs.getFluid() == null) continue;
-            if (getDenseGrade(
-                fs.getFluid()
-                    .getName())
-                == grade) {
-                hatch.drain(Integer.MAX_VALUE, true);
+        for (FluidStack request : gradeProbeStacks(grade, false, true)) {
+            if (request == null) continue;
+            for (MTEHatch hatch : getSteamInputHatches()) {
+                FluidStack full = request.copy();
+                full.amount = Integer.MAX_VALUE;
+                hatch.drain(ForgeDirection.UNKNOWN, full, true);
             }
         }
     }
 
-    /** 致密蒸汽等级：densesteam 0；densesuperheatedsteam 1；densesupercriticalsteam 2；其余 -1 */
-    private int getDenseGrade(String name) {
-        switch (name) {
-            case "densesteam":
-                return 0;
-            case "densesuperheatedsteam":
-                return 1;
-            case "densesupercriticalsteam":
-                return 2;
-            default:
-                return -1;
-        }
-    }
-
-    /** 输出仓剩余可容纳量（跨仓合计） */
-    private int outputFreeCapacity() {
-        int free = 0;
-        for (MTEHatchOutput hatch : mOutputHatches) {
-            FluidStack existing = hatch.getFluid();
-            free += hatch.getCapacity() - (existing != null ? existing.amount : 0);
-        }
-        return free;
-    }
-
-    private void fillOutput(FluidStack stack) {
+    /**
+     * 输出流体到输出仓（含 ME 输出仓），返回实际填充量。
+     * <p>
+     * v1.10.4：不再预判容量（ME 输出仓 getCapacity() 恒 0 会误判为无空间），
+     * 直接按 2 参 fill 的实际返回值扣减累计器；输出位不足时累计保持积压。
+     */
+    private int fillOutput(FluidStack stack) {
         int remaining = stack.amount;
         for (MTEHatchOutput hatch : mOutputHatches) {
             if (remaining <= 0) break;
@@ -868,16 +854,29 @@ public class MTESteamSingularityCompressor extends MTEEnhancedMultiBlockBase<MTE
             int filled = hatch.fill(toFill, true);
             remaining -= filled;
         }
+        return stack.amount - remaining;
     }
 
     private boolean consumeSingularityFromInputBuses(int amount) {
         ItemStack singularity = GTSRItemList.SteamEntangledSingularity.get(1);
         if (singularity == null) return false;
+        // 普通/ME 输入总线：ME 输入总线需在配方窗口内（checkProcessing 由基类
+        // checkRecipe 包裹 start/endRecipeProcessing）getStackInSlot 才返回虚拟引用
         for (MTEHatchInputBus bus : mInputBusses) {
             for (int i = 0; i < bus.getSizeInventory(); i++) {
                 ItemStack stack = bus.getStackInSlot(i);
                 if (stack != null && stack.getItem() == singularity.getItem() && stack.stackSize >= amount) {
                     bus.decrStackSize(i, amount);
+                    return true;
+                }
+            }
+        }
+        // v1.10.4：样板仓（mDualInputHatches）中的蒸汽纠缠奇点也可作为燃料
+        // （消费其 getItemInputs 虚拟引用，网络结算由样板仓自身完成，同 GT5U doCheckRecipe 范式）
+        for (IDualInputHatch dual : mDualInputHatches) {
+            for (ItemStack stack : dual.getAllItems()) {
+                if (stack != null && stack.getItem() == singularity.getItem() && stack.stackSize >= amount) {
+                    stack.stackSize -= amount;
                     return true;
                 }
             }
@@ -896,6 +895,8 @@ public class MTESteamSingularityCompressor extends MTEEnhancedMultiBlockBase<MTE
         }
         // 循环切换：奇点纠缠 → 蒸汽压缩 → 蒸汽解压 → 奇点纠缠
         mMode = (mMode + 1) % 3;
+        // v1.10.4：切换模式清零奇点维持时间（连同累计器与热量一起重置）
+        mFuelTicks = 0;
         mAccum = 0.0d;
         mAccumGrade = -1;
         if (mMode != MODE_ACCUMULATE) {
@@ -920,13 +921,9 @@ public class MTESteamSingularityCompressor extends MTEEnhancedMultiBlockBase<MTE
         if (!aBaseMetaTileEntity.isServerSide()) return;
         if (aTick % CYCLE_LENGTH != 0L) return;
 
-        if (!mMachine || !aBaseMetaTileEntity.isAllowedToWork()) {
-            // 机器关机（结构失效或软锤/红石关闭）：每秒降低 1% 热量
-            mHeat = Math.max(0.0d, mHeat - HEAT_DECAY_PER_SECOND);
-            return;
-        }
         if (mMode != MODE_ACCUMULATE) {
-            // 压缩/解压模式：续航倒计时实时推进（600s），归零瞬间自动消化 1 颗续杯
+            // 压缩/解压模式：奇点维持时间持续燃烧（v1.10.4 起关机也倒数，不冻结），
+            // 归零瞬间自动消化 1 颗续杯（与机器开关无关）
             mFuelTicks -= CYCLE_LENGTH;
             if (mFuelTicks <= 0) {
                 if (consumeSingularityFromInputBuses(1)) {
@@ -935,6 +932,11 @@ public class MTESteamSingularityCompressor extends MTEEnhancedMultiBlockBase<MTE
                     mFuelTicks = 0;
                 }
             }
+            return;
+        }
+        if (!mMachine || !aBaseMetaTileEntity.isAllowedToWork()) {
+            // 机器关机（结构失效或软锤/红石关闭）：每秒降低 1% 热量
+            mHeat = Math.max(0.0d, mHeat - HEAT_DECAY_PER_SECOND);
             return;
         }
         // 奇点纠缠模式：开机但空闲（无进行中周期）且当前无蒸汽：每秒降低 1% 热量
@@ -1086,11 +1088,13 @@ public class MTESteamSingularityCompressor extends MTEEnhancedMultiBlockBase<MTE
                     + String.format("%.1f%%", mHeat * 100.0d)
                     + EnumChatFormatting.RESET);
         } else {
-            // 压缩/解压模式：隐藏热量，改为显示奇点维持时间
+            // 压缩/解压模式：隐藏热量，改为显示奇点维持时间（无奇点时提示放入）
+            String fuelValue = mFuelTicks > 0 ? String.format("%ds", mFuelTicks / CYCLE_LENGTH)
+                : StatCollector.translateToLocal("gtsr.gui.singularity_compressor.fuel_no_fuel");
             info.add(
                 EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.singularity_compressor.fuel_time")
                     + EnumChatFormatting.RED
-                    + String.format("%ds", mFuelTicks / CYCLE_LENGTH)
+                    + fuelValue
                     + EnumChatFormatting.RESET);
         }
         info.add(

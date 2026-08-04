@@ -22,6 +22,7 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 import net.minecraftforge.common.util.ForgeDirection;
+import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
 
 import org.apache.commons.lang3.tuple.Pair;
@@ -215,7 +216,7 @@ public class MTELargeSteamFurnace extends MTESteamMultiBlockBase<MTELargeSteamFu
                         buildHatchAdder(MTELargeSteamFurnace.class).atLeast(PressureSteamInputHatch)
                             .casingIndex(bronzeCasingIndex)
                             .hint(1)
-                            .shouldReject(t -> !t.mSteamInputFluids.isEmpty())
+                            .shouldReject(t -> !t.mSteamInputFluids.isEmpty() && !t.mInputHatches.isEmpty())
                             .build(),
                         buildHatchAdder(MTELargeSteamFurnace.class).atLeast(SteamInputBus, SteamOutputBus)
                             .casingIndex(bronzeCasingIndex)
@@ -291,7 +292,7 @@ public class MTELargeSteamFurnace extends MTESteamMultiBlockBase<MTELargeSteamFu
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
             return;
         }
-        if (mSteamInputFluids.isEmpty()) {
+        if (mSteamInputFluids.isEmpty() && mInputHatches.isEmpty()) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
             return;
         }
@@ -536,6 +537,16 @@ public class MTELargeSteamFurnace extends MTESteamMultiBlockBase<MTELargeSteamFu
                     fs.getFluid()
                         .getName())
                 && fs.amount > 0) {
+                return true;
+            }
+        }
+        // v1.10.4：ME 输入仓/普通输入仓（mInputHatches）超热蒸汽检测
+        FluidStack superheated = FluidRegistry.getFluidStack("ic2superheatedsteam", 1);
+        if (superheated == null) return false;
+        for (MTEHatch hatch : mInputHatches) {
+            if (hatch == null) continue;
+            FluidStack result = hatch.drain(ForgeDirection.UNKNOWN, superheated, false);
+            if (result != null && result.amount > 0) {
                 return true;
             }
         }

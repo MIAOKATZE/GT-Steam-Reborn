@@ -218,7 +218,7 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
                         buildHatchAdder(MTESingularityDrillingHub.class).atLeast(PressureSteamInputHatch)
                             .casingIndex(casingIndex)
                             .hint(1)
-                            .shouldReject(t -> !t.mSteamInputFluids.isEmpty())
+                            .shouldReject(t -> !t.mSteamInputFluids.isEmpty() && !t.mInputHatches.isEmpty())
                             .build(),
                         buildHatchAdder(MTESingularityDrillingHub.class).atLeast(SteamOutputBus)
                             .casingIndex(casingIndex)
@@ -279,7 +279,7 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
             return;
         }
 
-        if (this.mSteamInputFluids.isEmpty()) {
+        if (this.mSteamInputFluids.isEmpty() && this.mInputHatches.isEmpty()) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
             return;
         }
@@ -1131,6 +1131,16 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
                     fs.getFluid()
                         .getName())
                 && fs.amount > 0) {
+                return true;
+            }
+        }
+        // v1.10.4：ME 输入仓/普通输入仓（mInputHatches）超热蒸汽检测
+        FluidStack superheated = FluidRegistry.getFluidStack("ic2superheatedsteam", 1);
+        if (superheated == null) return false;
+        for (MTEHatch hatch : mInputHatches) {
+            if (hatch == null) continue;
+            FluidStack result = hatch.drain(ForgeDirection.UNKNOWN, superheated, false);
+            if (result != null && result.amount > 0) {
                 return true;
             }
         }

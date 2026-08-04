@@ -588,6 +588,16 @@ public class MTESiemensMartinFurnace extends MTEEnhancedMultiBlockBase<MTESiemen
                 }
             }
         }
+        // v1.10.4：样板仓（mDualInputHatches）计入输入物品判定（仅影响低炉温提示）
+        for (IDualInputHatch dual : mDualInputHatches) {
+            if (dual instanceof MTEHatchInputBus dualBus && dualBus.getBaseMetaTileEntity() != null) {
+                for (ItemStack stack : dual.getAllItems()) {
+                    if (stack != null) {
+                        return true;
+                    }
+                }
+            }
+        }
         return false;
     }
 

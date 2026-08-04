@@ -147,7 +147,7 @@ public enum GTSRHatchElement implements IHatchElement<MTEMultiBlockBase> {
             return steamBase.addToMachineList(te, idx);
         }
         return false;
-    }, MTEHatchPressureSteamInput.class) {
+    }, MTEHatchPressureSteamInput.class, MTEHatchInput.class) {
 
         @Override
         public long count(MTEMultiBlockBase t) {
@@ -156,7 +156,8 @@ public enum GTSRHatchElement implements IHatchElement<MTEMultiBlockBase> {
 
         @Override
         public List<Class<? extends IMetaTileEntity>> mteBlacklist() {
-            return ImmutableList.of(MTEHatchPressureSteamInput.class);
+            // v1.10.4：开放 MTEHatchInput（含 ME 输入仓）作为蒸汽输入来源，NEI 同步显示
+            return ImmutableList.of(MTEHatchPressureSteamInput.class, MTEHatchInput.class);
         }
     };
 

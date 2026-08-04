@@ -19,6 +19,7 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 import net.minecraftforge.common.util.ForgeDirection;
+import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
 
 import org.apache.commons.lang3.tuple.Pair;
@@ -186,7 +187,7 @@ public class MTESteamFluidDrill extends MTESteamMultiBlockBase<MTESteamFluidDril
                         buildHatchAdder(MTESteamFluidDrill.class).atLeast(PressureSteamInputHatch)
                             .casingIndex(bronzeCasingIndex)
                             .hint(1)
-                            .shouldReject(t -> !t.mSteamInputFluids.isEmpty())
+                            .shouldReject(t -> !t.mSteamInputFluids.isEmpty() && !t.mInputHatches.isEmpty())
                             .build(),
                         buildHatchAdder(MTESteamFluidDrill.class).atLeast(OutputHatch)
                             .casingIndex(bronzeCasingIndex)
@@ -265,7 +266,7 @@ public class MTESteamFluidDrill extends MTESteamMultiBlockBase<MTESteamFluidDril
         }
 
         // v1.9.40 修复：输出仓数量 ==1 → >=1（蒸汽输入仓数量由结构 shouldReject 保证，此处仅要求存在）
-        if (this.mOutputHatches.size() < 1 || this.mSteamInputFluids.size() < 1) {
+        if (this.mOutputHatches.size() < 1 || (this.mSteamInputFluids.size() < 1 && this.mInputHatches.size() < 1)) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
             return;
         }
@@ -528,6 +529,16 @@ public class MTESteamFluidDrill extends MTESteamMultiBlockBase<MTESteamFluidDril
                     fs.getFluid()
                         .getName())
                 && fs.amount > 0) {
+                return true;
+            }
+        }
+        // v1.10.4：ME 输入仓/普通输入仓（mInputHatches）超热蒸汽检测
+        FluidStack superheated = FluidRegistry.getFluidStack("ic2superheatedsteam", 1);
+        if (superheated == null) return false;
+        for (MTEHatch hatch : mInputHatches) {
+            if (hatch == null) continue;
+            FluidStack result = hatch.drain(ForgeDirection.UNKNOWN, superheated, false);
+            if (result != null && result.amount > 0) {
                 return true;
             }
         }
