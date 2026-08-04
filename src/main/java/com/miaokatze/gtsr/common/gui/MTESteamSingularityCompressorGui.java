@@ -25,8 +25,8 @@ public class MTESteamSingularityCompressorGui extends MTEMultiBlockBaseGui<MTESt
         super.registerSyncValues(syncManager);
         syncManager.syncValue("gtsr.heat", new DoubleSyncValue(() -> multiblock.mHeat));
         syncManager.syncValue("gtsr.maxProgress", new IntSyncValue(() -> multiblock.mMaxProgresstime));
-        syncManager.syncValue("gtsr.denseMode", new IntSyncValue(() -> multiblock.mDenseMode ? 1 : 0));
-        syncManager.syncValue("gtsr.denseTicks", new IntSyncValue(() -> multiblock.mDenseTicks));
+        syncManager.syncValue("gtsr.mode", new IntSyncValue(() -> multiblock.mMode));
+        syncManager.syncValue("gtsr.fuelTicks", new IntSyncValue(() -> multiblock.mFuelTicks));
         syncManager.syncValue("gtsr.tier", new IntSyncValue(() -> multiblock.mTier));
     }
 
@@ -34,8 +34,8 @@ public class MTESteamSingularityCompressorGui extends MTEMultiBlockBaseGui<MTESt
     protected ListWidget<IWidget, ?> createTerminalTextWidget(PanelSyncManager syncManager, ModularPanel parent) {
         DoubleSyncValue heatSyncer = syncManager.findSyncHandler("gtsr.heat", DoubleSyncValue.class);
         IntSyncValue maxProgressSyncer = syncManager.findSyncHandler("gtsr.maxProgress", IntSyncValue.class);
-        IntSyncValue denseModeSyncer = syncManager.findSyncHandler("gtsr.denseMode", IntSyncValue.class);
-        IntSyncValue denseTicksSyncer = syncManager.findSyncHandler("gtsr.denseTicks", IntSyncValue.class);
+        IntSyncValue modeSyncer = syncManager.findSyncHandler("gtsr.mode", IntSyncValue.class);
+        IntSyncValue fuelTicksSyncer = syncManager.findSyncHandler("gtsr.fuelTicks", IntSyncValue.class);
         IntSyncValue tierSyncer = syncManager.findSyncHandler("gtsr.tier", IntSyncValue.class);
 
         return super.createTerminalTextWidget(syncManager, parent)
@@ -51,8 +51,11 @@ public class MTESteamSingularityCompressorGui extends MTEMultiBlockBaseGui<MTESt
             .child(IKey.dynamic(() -> {
                 String statusKey;
                 EnumChatFormatting statusColor;
-                if (denseModeSyncer.getValue() > 0) {
-                    statusKey = "gtsr.gui.singularity_compressor.status.dense";
+                if (modeSyncer.getValue() == 2) {
+                    statusKey = "gtsr.gui.singularity_compressor.status.decompress";
+                    statusColor = EnumChatFormatting.LIGHT_PURPLE;
+                } else if (modeSyncer.getValue() == 1) {
+                    statusKey = "gtsr.gui.singularity_compressor.status.compress";
                     statusColor = EnumChatFormatting.LIGHT_PURPLE;
                 } else if (maxProgressSyncer.getValue() > 0) {
                     statusKey = "gtsr.gui.status.running";
@@ -82,8 +85,15 @@ public class MTESteamSingularityCompressorGui extends MTEMultiBlockBaseGui<MTESt
                     .marginBottom(2)
                     .fullWidth())
             .child(IKey.dynamic(() -> {
-                String modeKey = denseModeSyncer.getValue() > 0 ? "gtsr.gui.singularity_compressor.mode.dense"
-                    : "gtsr.gui.singularity_compressor.mode.accumulate";
+                String modeKey;
+                int mode = modeSyncer.getValue();
+                if (mode == 2) {
+                    modeKey = "gtsr.gui.singularity_compressor.mode.decompress";
+                } else if (mode == 1) {
+                    modeKey = "gtsr.gui.singularity_compressor.mode.compress";
+                } else {
+                    modeKey = "gtsr.gui.singularity_compressor.mode.accumulate";
+                }
                 return EnumChatFormatting.YELLOW
                     + StatCollector.translateToLocal("gtsr.gui.singularity_compressor.mode")
                     + EnumChatFormatting.GOLD
@@ -93,11 +103,11 @@ public class MTESteamSingularityCompressorGui extends MTEMultiBlockBaseGui<MTESt
                 .marginBottom(2)
                 .fullWidth())
             .child(IKey.dynamic(() -> {
-                if (denseModeSyncer.getValue() <= 0) return "";
+                if (modeSyncer.getValue() <= 0) return "";
                 return EnumChatFormatting.YELLOW
-                    + StatCollector.translateToLocal("gtsr.gui.singularity_compressor.dense_time")
+                    + StatCollector.translateToLocal("gtsr.gui.singularity_compressor.fuel_time")
                     + EnumChatFormatting.RED
-                    + String.format("%ds", denseTicksSyncer.getValue() / 20);
+                    + String.format("%ds", fuelTicksSyncer.getValue() / 20);
             })
                 .asWidget()
                 .marginBottom(2)

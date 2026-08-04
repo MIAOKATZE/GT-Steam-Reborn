@@ -78,7 +78,9 @@ import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.MTEHatchSteam
  * <li>等级 1：钢外壳 + 钢齿轮箱 + 钢管道 + 防爆玻璃 + 钢框架，只识别 蒸汽/过热/超临界；热量 y=0.005x/(x+200000)</li>
  * <li>等级 2：强化镀铑钯外壳/齿轮箱/管道 + LuV+ 玻璃 + 镀铑钯框架，可识别致密变体；热量 y=0.002x/(x+1000)</li>
  * <li>热量 ≥100% 清零并产出 1 个蒸汽纠缠奇点（等级 1）/ 临界蒸汽纠缠奇点（等级 2）</li>
- * <li>等级 2 螺丝刀切换致密蒸汽压缩模式：每输入 1 个蒸汽纠缠奇点运行 600s，蒸汽按 1000:1 压缩为致密蒸汽</li>
+ * <li>等级 2 螺丝刀循环切换三模式：蓄热 / 蒸汽压缩（1000:1 非致密→致密）/ 蒸汽解压
+ * （1:1000 致密→普通）；压缩与解压每输入 1 个蒸汽纠缠奇点运行 600s，同种蒸汽浮点
+ * 累计、异种顶掉；切入压缩/解压自动清空热量</li>
  * </ul>
  */
 public class MTESteamSingularityCompressor extends MTEEnhancedMultiBlockBase<MTESteamSingularityCompressor>
@@ -107,8 +109,17 @@ public class MTESteamSingularityCompressor extends MTEEnhancedMultiBlockBase<MTE
     private static final double[] GRADE_COEF = { 0.5d, 1.0d, 2.0d };
     private static final String[] DENSE_FLUID_NAMES = { "densesteam", "densesuperheatedsteam",
         "densesupercriticalsteam" };
-    /** 致密压缩倍率：1000:1 */
+    /** 解压输出流体名：与 DENSE_FLUID_NAMES 同序的普通蒸汽 */
+    private static final String[] NORMAL_FLUID_NAMES = { "steam", "ic2superheatedsteam", "supercriticalsteam" };
+    /** 压缩/解压倍率：压缩 1000:1，解压 1:1000 */
     private static final long DENSE_COMPRESSION_RATIO = 1000L;
+
+    /** 模式：蓄热 */
+    public static final int MODE_ACCUMULATE = 0;
+    /** 模式：蒸汽压缩（1000:1，非致密 → 致密） */
+    public static final int MODE_COMPRESS = 1;
+    /** 模式：蒸汽解压（1:1000，致密 → 普通） */
+    public static final int MODE_DECOMPRESS = 2;
 
     private static IStructureDefinition<MTESteamSingularityCompressor> STRUCTURE_DEFINITION = null;
     private static IIconContainer OVERLAY_OFF;
@@ -116,13 +127,17 @@ public class MTESteamSingularityCompressor extends MTEEnhancedMultiBlockBase<MTE
     private static Block TIER2_FRAME_BLOCK = null;
     private static Integer TIER2_FRAME_META = null;
 
-    /** 当前结构等级（1/2，由 checkMachine 判定） */
+    /** 当前结构等级（1/2，由 checkMachine 判定；NBT 持久化，重载识别窗口内保持底材） */
     public int mTier = 0;
     public double mHeat = 0.0d;
-    /** 致密蒸汽压缩模式开关（仅等级 2，关机且热量清零时可切换） */
-    public boolean mDenseMode = false;
-    /** 致密模式剩余续航 tick（600s 计时） */
-    public int mDenseTicks = 0;
+    /** 当前模式（0 蓄热 / 1 蒸汽压缩 / 2 蒸汽解压；等级 2 且关机时可切换） */
+    public int mMode = MODE_ACCUMULATE;
+    /** 压缩/解压模式剩余续航 tick（600s 计时） */
+    public int mFuelTicks = 0;
+    /** 浮点累计（同蒸汽冷却机制）：同种蒸汽累计、异种顶掉；压缩按 1000:1、解压按 1:1000 */
+    private double mAccum = 0.0d;
+    /** 浮点累计当前流体等级（-1 表示无） */
+    private int mAccumGrade = -1;
 
     private int mCasingTierB = -1;
     private int mCasingTierC = -1;
@@ -535,13 +550,16 @@ public class MTESteamSingularityCompressor extends MTEEnhancedMultiBlockBase<MTE
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
             return;
         }
-        // 等级 2 的致密模式需要输出仓
+        // 等级 2 的压缩/解压模式需要输出仓
         if (mTier == 2 && mOutputHatches.isEmpty()) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
             return;
         }
-        if (mTier < 2) {
-            mDenseMode = false;
+        if (mTier < 2 && mMode != MODE_ACCUMULATE) {
+            // 等级 1 只支持蓄热：强制回退并清空浮点累计
+            mMode = MODE_ACCUMULATE;
+            mAccum = 0.0d;
+            mAccumGrade = -1;
         }
 
         updateHatchTextures();
@@ -553,7 +571,13 @@ public class MTESteamSingularityCompressor extends MTEEnhancedMultiBlockBase<MTE
         // 注意：不能在内部按世界时间（getTimer % 20）门控——基类用 mTotalRunTime 相位
         // 每 100 tick 检查一次配方，与世界时间相位固定错位时机器会永远点不着火。
         // 成功时 startCycle 置 20 tick 进度，进度完成后基类会立即重查，形成连续循环。
-        return mDenseMode ? processDenseCycle() : processHeatCycle();
+        if (mMode == MODE_COMPRESS) {
+            return processCompressionCycle();
+        }
+        if (mMode == MODE_DECOMPRESS) {
+            return processDecompressionCycle();
+        }
+        return processHeatCycle();
     }
 
     /** 蓄热周期：吞噬最高等级蒸汽并提升热量 */
@@ -580,30 +604,114 @@ public class MTESteamSingularityCompressor extends MTEEnhancedMultiBlockBase<MTE
         return CheckRecipeResultRegistry.SUCCESSFUL;
     }
 
-    /** 致密压缩周期：蒸汽按 1000:1 压缩为致密蒸汽（续航倒计时由 onPostTick 实时维护） */
-    private CheckRecipeResult processDenseCycle() {
+    /**
+     * 蒸汽压缩周期：非致密蒸汽按 1000:1 压缩为对应致密流体。
+     * <p>
+     * 浮点累计（同蒸汽冷却机制）：同种蒸汽累计、异种顶掉；不足 1 单位时吞入累计，
+     * 输出取整数部分并保留余数（如两次 1500 压缩：第一次输出 1、第二次输出 2）。
+     * 输出位不足时暂停吞噬（累计器保持积压）。
+     */
+    private CheckRecipeResult processCompressionCycle() {
         // 保险：若倒计时已在 onPostTick 耗尽且来不及续杯，这里兜底消化 1 颗
-        if (mDenseTicks <= 0) {
+        if (mFuelTicks <= 0) {
             if (!consumeSingularityFromInputBuses(1)) {
                 return CheckRecipeResultRegistry.NO_RECIPE;
             }
-            mDenseTicks = SINGULARITY_DURATION_TICKS;
+            mFuelTicks = SINGULARITY_DURATION_TICKS;
         }
 
-        int grade = findHighestGrade(false);
-        if (grade < 0) {
+        // 累计器积压不足 1 单位时才吞噬新蒸汽
+        if (mAccum < 1.0d) {
+            int grade = findHighestGrade(false);
+            if (grade < 0) {
+                return CheckRecipeResultRegistry.NO_RECIPE;
+            }
+            long x = sumGrade(grade, false);
+            if (x <= 0) {
+                return CheckRecipeResultRegistry.NO_RECIPE;
+            }
+            drainGrade(grade, false);
+            if (grade != mAccumGrade) {
+                // 不同种类蒸汽顶掉上一种的浮点累计
+                mAccum = 0.0d;
+                mAccumGrade = grade;
+            }
+            mAccum += (double) x / DENSE_COMPRESSION_RATIO;
+        }
+
+        long out = (long) Math.floor(mAccum);
+        if (out > 0) {
+            out = Math.min(out, outputFreeCapacity());
+        }
+        if (out <= 0) {
+            // 累计中（不足 1 单位或输出位不足）：保持 1 秒周期继续积累
+            startCycle();
+            return CheckRecipeResultRegistry.SUCCESSFUL;
+        }
+        if (mAccumGrade < 0) {
+            // 异常保护：累计器有值但等级丢失（理论上仅损坏 NBT 可达）
+            mAccum = 0.0d;
             return CheckRecipeResultRegistry.NO_RECIPE;
         }
-        long x = sumGrade(grade, false);
-        if (x < DENSE_COMPRESSION_RATIO) {
+        FluidStack dense = FluidRegistry.getFluidStack(DENSE_FLUID_NAMES[mAccumGrade], (int) out);
+        if (dense == null || dense.amount <= 0) {
             return CheckRecipeResultRegistry.NO_RECIPE;
         }
-        FluidStack dense = FluidRegistry.getFluidStack(DENSE_FLUID_NAMES[grade], (int) (x / DENSE_COMPRESSION_RATIO));
-        if (dense == null || dense.amount <= 0 || !canFitOutput(dense)) {
-            return CheckRecipeResultRegistry.NO_RECIPE;
-        }
-        drainGrade(grade, false);
+        mAccum -= out;
         fillOutput(dense);
+        startCycle();
+        return CheckRecipeResultRegistry.SUCCESSFUL;
+    }
+
+    /**
+     * 蒸汽解压周期：致密蒸汽按 1:1000 解压为对应普通蒸汽（机制与压缩模式对称，
+     * 同种累计、异种顶掉；输出位不足时暂停吞噬）。
+     */
+    private CheckRecipeResult processDecompressionCycle() {
+        // 保险：若倒计时已在 onPostTick 耗尽且来不及续杯，这里兜底消化 1 颗
+        if (mFuelTicks <= 0) {
+            if (!consumeSingularityFromInputBuses(1)) {
+                return CheckRecipeResultRegistry.NO_RECIPE;
+            }
+            mFuelTicks = SINGULARITY_DURATION_TICKS;
+        }
+
+        if (mAccum < 1.0d) {
+            int grade = findHighestDenseGrade();
+            if (grade < 0) {
+                return CheckRecipeResultRegistry.NO_RECIPE;
+            }
+            long x = sumDenseGrade(grade);
+            if (x <= 0) {
+                return CheckRecipeResultRegistry.NO_RECIPE;
+            }
+            drainDenseGrade(grade);
+            if (grade != mAccumGrade) {
+                mAccum = 0.0d;
+                mAccumGrade = grade;
+            }
+            mAccum += (double) x * DENSE_COMPRESSION_RATIO;
+        }
+
+        long out = (long) Math.floor(mAccum);
+        if (out > 0) {
+            out = Math.min(out, outputFreeCapacity());
+        }
+        if (out <= 0) {
+            startCycle();
+            return CheckRecipeResultRegistry.SUCCESSFUL;
+        }
+        if (mAccumGrade < 0) {
+            // 异常保护：累计器有值但等级丢失（理论上仅损坏 NBT 可达）
+            mAccum = 0.0d;
+            return CheckRecipeResultRegistry.NO_RECIPE;
+        }
+        FluidStack steam = FluidRegistry.getFluidStack(NORMAL_FLUID_NAMES[mAccumGrade], (int) out);
+        if (steam == null || steam.amount <= 0) {
+            return CheckRecipeResultRegistry.NO_RECIPE;
+        }
+        mAccum -= out;
+        fillOutput(steam);
         startCycle();
         return CheckRecipeResultRegistry.SUCCESSFUL;
     }
@@ -685,15 +793,70 @@ public class MTESteamSingularityCompressor extends MTEEnhancedMultiBlockBase<MTE
         }
     }
 
-    private boolean canFitOutput(FluidStack stack) {
-        int capacity = 0;
+    /** 查找输入仓中当前最高等级的致密蒸汽（仅解压模式）；无则返回 -1 */
+    private int findHighestDenseGrade() {
+        int grade = -1;
+        for (MTEHatch hatch : getSteamInputHatches()) {
+            FluidStack fs = hatch.getFluid();
+            if (fs == null || fs.amount <= 0 || fs.getFluid() == null) continue;
+            int g = getDenseGrade(
+                fs.getFluid()
+                    .getName());
+            if (g > grade) grade = g;
+        }
+        return grade;
+    }
+
+    private long sumDenseGrade(int grade) {
+        long x = 0;
+        for (MTEHatch hatch : getSteamInputHatches()) {
+            FluidStack fs = hatch.getFluid();
+            if (fs == null || fs.getFluid() == null) continue;
+            if (getDenseGrade(
+                fs.getFluid()
+                    .getName())
+                == grade) {
+                x += fs.amount;
+            }
+        }
+        return x;
+    }
+
+    private void drainDenseGrade(int grade) {
+        for (MTEHatch hatch : getSteamInputHatches()) {
+            FluidStack fs = hatch.getFluid();
+            if (fs == null || fs.getFluid() == null) continue;
+            if (getDenseGrade(
+                fs.getFluid()
+                    .getName())
+                == grade) {
+                hatch.drain(Integer.MAX_VALUE, true);
+            }
+        }
+    }
+
+    /** 致密蒸汽等级：densesteam 0；densesuperheatedsteam 1；densesupercriticalsteam 2；其余 -1 */
+    private int getDenseGrade(String name) {
+        switch (name) {
+            case "densesteam":
+                return 0;
+            case "densesuperheatedsteam":
+                return 1;
+            case "densesupercriticalsteam":
+                return 2;
+            default:
+                return -1;
+        }
+    }
+
+    /** 输出仓剩余可容纳量（跨仓合计） */
+    private int outputFreeCapacity() {
+        int free = 0;
         for (MTEHatchOutput hatch : mOutputHatches) {
             FluidStack existing = hatch.getFluid();
-            int used = existing != null ? existing.amount : 0;
-            capacity += hatch.getCapacity() - used;
-            if (capacity >= stack.amount) return true;
+            free += hatch.getCapacity() - (existing != null ? existing.amount : 0);
         }
-        return false;
+        return free;
     }
 
     private void fillOutput(FluidStack stack) {
@@ -726,20 +889,27 @@ public class MTESteamSingularityCompressor extends MTEEnhancedMultiBlockBase<MTE
     public void onScrewdriverRightClick(ForgeDirection side, EntityPlayer aPlayer, float aX, float aY, float aZ,
         ItemStack aTool) {
         if (aPlayer.worldObj.isRemote) return;
-        if (mMachine) {
-            GTUtility.sendChatTrans(aPlayer, "gtsr.chat.dense_mode.require_off");
+        if (mMachine || mTier < 2) {
+            GTUtility.sendChatTrans(aPlayer, "gtsr.chat.compressor_mode.require_off");
             return;
         }
-        if (mHeat > 0.0001d) {
-            GTUtility.sendChatTrans(aPlayer, "gtsr.chat.dense_mode.require_heat_clear");
-            return;
+        // 循环切换：蓄热 → 蒸汽压缩 → 蒸汽解压 → 蓄热
+        mMode = (mMode + 1) % 3;
+        mAccum = 0.0d;
+        mAccumGrade = -1;
+        if (mMode != MODE_ACCUMULATE) {
+            // 切入压缩/解压：热量自动清空
+            mHeat = 0.0d;
         }
-        if (mTier < 2) {
-            GTUtility.sendChatTrans(aPlayer, "gtsr.chat.dense_mode.require_tier2");
-            return;
+        String key;
+        if (mMode == MODE_COMPRESS) {
+            key = "gtsr.chat.compressor_mode.on.compress";
+        } else if (mMode == MODE_DECOMPRESS) {
+            key = "gtsr.chat.compressor_mode.on.decompress";
+        } else {
+            key = "gtsr.chat.compressor_mode.on.accumulate";
         }
-        mDenseMode = !mDenseMode;
-        GTUtility.sendChatTrans(aPlayer, mDenseMode ? "gtsr.chat.dense_mode.on" : "gtsr.chat.dense_mode.off");
+        GTUtility.sendChatTrans(aPlayer, key);
         getBaseMetaTileEntity().markDirty();
     }
 
@@ -754,14 +924,14 @@ public class MTESteamSingularityCompressor extends MTEEnhancedMultiBlockBase<MTE
             mHeat = Math.max(0.0d, mHeat - HEAT_DECAY_PER_SECOND);
             return;
         }
-        if (mDenseMode) {
-            // 致密模式：续航倒计时实时推进（600s），归零瞬间自动消化 1 颗续杯
-            mDenseTicks -= CYCLE_LENGTH;
-            if (mDenseTicks <= 0) {
+        if (mMode != MODE_ACCUMULATE) {
+            // 压缩/解压模式：续航倒计时实时推进（600s），归零瞬间自动消化 1 颗续杯
+            mFuelTicks -= CYCLE_LENGTH;
+            if (mFuelTicks <= 0) {
                 if (consumeSingularityFromInputBuses(1)) {
-                    mDenseTicks = SINGULARITY_DURATION_TICKS;
+                    mFuelTicks = SINGULARITY_DURATION_TICKS;
                 } else {
-                    mDenseTicks = 0;
+                    mFuelTicks = 0;
                 }
             }
             return;
@@ -833,6 +1003,9 @@ public class MTESteamSingularityCompressor extends MTEEnhancedMultiBlockBase<MTE
                     + StatCollector.translateToLocal("gtsr.tooltip.singularity_compressor.desc5"))
             .addInfo(
                 EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.tooltip.singularity_compressor.desc6"))
+            .addInfo(
+                EnumChatFormatting.LIGHT_PURPLE
+                    + StatCollector.translateToLocal("gtsr.tooltip.singularity_compressor.desc7"))
             .addSeparator()
             .beginStructureBlock(11, 11, 11, false)
             .addController(StatCollector.translateToLocal("gtsr.tooltip.singularity_compressor.ctrl"))
@@ -872,17 +1045,26 @@ public class MTESteamSingularityCompressor extends MTEEnhancedMultiBlockBase<MTE
     @Override
     public void saveNBTData(NBTTagCompound aNBT) {
         super.saveNBTData(aNBT);
+        // mTier 持久化：区块重载后 5 秒结构识别窗口内保持等级 2 底材（不回落钢材质）
+        aNBT.setInteger("mTier", mTier);
+        aNBT.setInteger("mMode", mMode);
+        aNBT.setInteger("mFuelTicks", mFuelTicks);
+        aNBT.setDouble("mAccum", mAccum);
+        aNBT.setInteger("mAccumGrade", mAccumGrade);
         aNBT.setDouble("mHeat", mHeat);
-        aNBT.setBoolean("mDenseMode", mDenseMode);
-        aNBT.setInteger("mDenseTicks", mDenseTicks);
     }
 
     @Override
     public void loadNBTData(NBTTagCompound aNBT) {
         super.loadNBTData(aNBT);
+        mTier = aNBT.getInteger("mTier");
+        // v1.10.2 旧存档迁移：mDenseMode 布尔 → mMode 蒸汽压缩；mDenseTicks → mFuelTicks
+        mMode = aNBT.hasKey("mMode") ? aNBT.getInteger("mMode")
+            : (aNBT.getBoolean("mDenseMode") ? MODE_COMPRESS : MODE_ACCUMULATE);
+        mFuelTicks = aNBT.hasKey("mFuelTicks") ? aNBT.getInteger("mFuelTicks") : aNBT.getInteger("mDenseTicks");
+        mAccum = aNBT.getDouble("mAccum");
+        mAccumGrade = aNBT.getInteger("mAccumGrade");
         mHeat = aNBT.getDouble("mHeat");
-        mDenseMode = aNBT.getBoolean("mDenseMode");
-        mDenseTicks = aNBT.getInteger("mDenseTicks");
     }
 
     @Override
@@ -905,18 +1087,24 @@ public class MTESteamSingularityCompressor extends MTEEnhancedMultiBlockBase<MTE
                 + EnumChatFormatting.GOLD
                 + mTier
                 + EnumChatFormatting.RESET);
-        String modeKey = mDenseMode ? "gtsr.gui.singularity_compressor.mode.dense"
-            : "gtsr.gui.singularity_compressor.mode.accumulate";
+        String modeKey;
+        if (mMode == MODE_COMPRESS) {
+            modeKey = "gtsr.gui.singularity_compressor.mode.compress";
+        } else if (mMode == MODE_DECOMPRESS) {
+            modeKey = "gtsr.gui.singularity_compressor.mode.decompress";
+        } else {
+            modeKey = "gtsr.gui.singularity_compressor.mode.accumulate";
+        }
         info.add(
             EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.singularity_compressor.mode")
                 + EnumChatFormatting.GOLD
                 + StatCollector.translateToLocal(modeKey)
                 + EnumChatFormatting.RESET);
-        if (mDenseMode) {
+        if (mMode != MODE_ACCUMULATE) {
             info.add(
-                EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.singularity_compressor.dense_time")
+                EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.singularity_compressor.fuel_time")
                     + EnumChatFormatting.RED
-                    + String.format("%ds", mDenseTicks / CYCLE_LENGTH)
+                    + String.format("%ds", mFuelTicks / CYCLE_LENGTH)
                     + EnumChatFormatting.RESET);
         }
         return info.toArray(new String[0]);

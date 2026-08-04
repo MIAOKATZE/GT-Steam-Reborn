@@ -8,7 +8,10 @@ import net.minecraft.enchantment.EnchantmentProtection;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.item.EntityItem;
+import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.network.play.server.S27PacketExplosion;
 import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.DamageSource;
 import net.minecraft.util.MathHelper;
@@ -30,8 +33,8 @@ import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
  * 随机爆炸倒计时），爆炸后自身消失；等待期每 2 tick 冒两颗黑色大烟雾粒子（更多、
  * 扩散更大），爆炸动画半径 8.0（普通 4.0 的两倍）。
  * <p>
- * 等待期粒子在客户端由 EntityItem.age 驱动；爆炸动画通过 vanilla Explosion 的
- * doExplosionB 发包（PacketPlayExplosion）在客户端渲染 TNT 爆炸粒子动画与震屏。
+ * 等待期粒子在客户端由 EntityItem.age 驱动；爆炸动画通过复刻 patched
+ * WorldServer.newExplosion 的 S27PacketExplosion 广播在客户端渲染 TNT 爆炸粒子动画。
  */
 public final class SingularityDropExplosion {
 
@@ -124,7 +127,7 @@ public final class SingularityDropExplosion {
         }
     }
 
-    /** 普通奇点爆炸：不改动任何方块；通过 doExplosionB 向客户端广播 TNT 爆炸粒子动画 */
+    /** 普通奇点爆炸：不改动任何方块；通过 S27PacketExplosion 向客户端广播 TNT 爆炸粒子动画 */
     public static void explode(World world, EntityItem source) {
         if (world.isRemote) {
             return;
@@ -136,7 +139,8 @@ public final class SingularityDropExplosion {
         Explosion exp = new Explosion(world, null, x, y, z, NORMAL_VISUAL_SIZE);
         exp.doExplosionA();
         exp.isSmoking = false;
-        exp.doExplosionB(true);
+        exp.doExplosionB(false);
+        broadcastExplosion(world, exp);
         damageEntities(world, source, exp, x, y, z, NORMAL_ENTITY_DAMAGE_SIZE);
     }
 
@@ -156,10 +160,34 @@ public final class SingularityDropExplosion {
         Explosion visualExp = new Explosion(world, null, x, y, z, CRITICAL_VISUAL_SIZE);
         visualExp.doExplosionA();
         visualExp.isSmoking = false;
-        visualExp.doExplosionB(true);
+        visualExp.doExplosionB(false);
+        broadcastExplosion(world, visualExp);
 
         damageEntities(world, source, visualExp, x, y, z, CRITICAL_ENTITY_DAMAGE_SIZE);
         spawnSingularityDrops(world, x, y, z);
+    }
+
+    /**
+     * 向 64 格内玩家广播 S27PacketExplosion。
+     * <p>
+     * GTNH patched MC 的 Explosion.doExplosionB 不再发包（v1.10.1 因此看不到爆炸动画），
+     * 发包逻辑在 WorldServer.newExplosion 覆写里；这里复刻该逻辑让客户端渲染
+     * TNT 爆炸粒子动画（hugeexplosion + 逐位 explode/smoke + 音效 + 玩家击退）。
+     */
+    private static void broadcastExplosion(World world, Explosion exp) {
+        for (EntityPlayer player : world.playerEntities) {
+            if (player.getDistanceSq(exp.explosionX, exp.explosionY, exp.explosionZ) < 4096.0D) {
+                ((EntityPlayerMP) player).playerNetServerHandler.sendPacket(
+                    new S27PacketExplosion(
+                        exp.explosionX,
+                        exp.explosionY,
+                        exp.explosionZ,
+                        exp.explosionSize,
+                        exp.affectedBlockPositions,
+                        exp.func_77277_b()
+                            .get(player)));
+            }
+        }
     }
 
     private static void destroyBlocks(World world, Explosion exp) {
