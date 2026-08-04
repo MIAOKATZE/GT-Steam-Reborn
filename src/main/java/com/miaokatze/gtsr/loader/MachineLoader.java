@@ -5,7 +5,9 @@ import com.miaokatze.gtsr.common.api.enums.MetaTileEntityID;
 import com.miaokatze.gtsr.common.machine.MTEAirCompressor;
 import com.miaokatze.gtsr.common.machine.MTEAmmoniaPlant;
 import com.miaokatze.gtsr.common.machine.MTEAtmosphericCentrifuge;
+import com.miaokatze.gtsr.common.machine.MTECriticalSingularityCompressor;
 import com.miaokatze.gtsr.common.machine.MTECrustSteamBorer;
+import com.miaokatze.gtsr.common.machine.MTEDenseStateManipulator;
 import com.miaokatze.gtsr.common.machine.MTEGearSteamCompressor;
 import com.miaokatze.gtsr.common.machine.MTEKineticProcessingArray;
 import com.miaokatze.gtsr.common.machine.MTELargeCokeOven;
@@ -85,6 +87,16 @@ public class MachineLoader {
                 MetaTileEntityID.STEAM_SINGULARITY_COMPRESSOR.ID,
                 "gtsr.steam.singularity.compressor",
                 "Steam Singularity Compressor"));
+        GTSRItemList.CriticalSingularityCompressor.set(
+            new MTECriticalSingularityCompressor(
+                MetaTileEntityID.CRITICAL_SINGULARITY_COMPRESSOR.ID,
+                "gtsr.critical.singularity.compressor",
+                "Critical Singularity Compressor"));
+        GTSRItemList.DenseStateManipulator.set(
+            new MTEDenseStateManipulator(
+                MetaTileEntityID.DENSE_STATE_MANIPULATOR.ID,
+                "gtsr.dense.state.manipulator",
+                "Dense State Manipulator"));
 
         // --- 多方块机器: 存储枢纽及其仓室和模块 ---
         GTSRItemList.SteamHubArray
@@ -323,5 +335,8 @@ public class MachineLoader {
         CreativeTabManager.addItemToTab(GTSRItemList.PressureSteamCoolingHatch.get(1));
         // --- 仓室 (41) ---
         CreativeTabManager.addItemToTab(GTSRItemList.MegaAirInputHatch.get(1));
+        // --- 新增奇点机器 (43-44) ---
+        CreativeTabManager.addItemToTab(GTSRItemList.CriticalSingularityCompressor.get(1));
+        CreativeTabManager.addItemToTab(GTSRItemList.DenseStateManipulator.get(1));
     }
 }

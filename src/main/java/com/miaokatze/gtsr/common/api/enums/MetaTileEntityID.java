@@ -60,6 +60,8 @@ public enum MetaTileEntityID {
     MEGA_AIR_INPUT_HATCH(41),
     // 蒸馏水仓：蓄水仓同性质，生成蒸馏水，容量 2,000,000,000 L
     DISTILLED_WATER_HATCH(42),
+    CRITICAL_SINGULARITY_COMPRESSOR(43),
+    DENSE_STATE_MANIPULATOR(44),
 
     ;
 

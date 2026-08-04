@@ -978,6 +978,36 @@ public class GTSRRecipeLoader implements Runnable {
 
         GTValues.RA.stdBuilder()
             .itemInputs(
+                GTSRItemList.SteamEntangledSingularity.get(1),
+                get(OrePrefixes.frameGt, Materials.Steel, 8),
+                get(OrePrefixes.plateTriple, Materials.Steel, 16),
+                get(OrePrefixes.circuit, Materials.LV, 4),
+                ItemList.Electric_Piston_LV.get(12),
+                get(OrePrefixes.pipeHuge, Materials.Steel, 4),
+                get(OrePrefixes.plate, Materials.Obsidian, 32))
+            .itemOutputs(GTSRItemList.CriticalSingularityCompressor.get(1))
+            .fluidInputs(Materials.SolderingAlloy.getMolten(2304))
+            .duration(60 * SECONDS)
+            .eut(TierEU.RECIPE_LV)
+            .addTo(assemblerRecipes);
+
+        GTValues.RA.stdBuilder()
+            .itemInputs(
+                GTSRItemList.CriticalSteamEntangledSingularity.get(1),
+                get(OrePrefixes.frameGt, Materials.Steel, 8),
+                get(OrePrefixes.plateTriple, Materials.Steel, 16),
+                get(OrePrefixes.circuit, Materials.LV, 4),
+                ItemList.Electric_Piston_LV.get(12),
+                get(OrePrefixes.pipeHuge, Materials.Steel, 4),
+                get(OrePrefixes.plate, Materials.Obsidian, 32))
+            .itemOutputs(GTSRItemList.DenseStateManipulator.get(1))
+            .fluidInputs(Materials.SolderingAlloy.getMolten(2304))
+            .duration(60 * SECONDS)
+            .eut(TierEU.RECIPE_LV)
+            .addTo(assemblerRecipes);
+
+        GTValues.RA.stdBuilder()
+            .itemInputs(
                 GTSRItemList.SteamEntangledSingularity.get(24),
                 get(OrePrefixes.frameGt, Materials.Steel, 12),
                 get(OrePrefixes.plateTriple, Materials.Steel, 24),

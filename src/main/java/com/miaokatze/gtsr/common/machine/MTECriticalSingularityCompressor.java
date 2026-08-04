@@ -1,55 +1,64 @@
 package com.miaokatze.gtsr.common.machine;
 
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
 
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
-import com.miaokatze.gtsr.common.gui.MTESteamSingularityCompressorGui;
+import com.miaokatze.gtsr.common.gui.MTECriticalSingularityCompressorGui;
 import com.miaokatze.gtsr.common.machine.base.MTESingularityMachineBase;
 
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.recipe.check.CheckRecipeResult;
 
-/** Tier 1 steam entanglement machine. */
-public class MTESteamSingularityCompressor extends MTESingularityMachineBase {
+/** Tier 2 steam entanglement machine. */
+public class MTECriticalSingularityCompressor extends MTESingularityMachineBase {
 
-    public MTESteamSingularityCompressor(int aID, String aName, String aNameRegional) {
+    public MTECriticalSingularityCompressor(int aID, String aName, String aNameRegional) {
         super(aID, aName, aNameRegional);
     }
 
-    public MTESteamSingularityCompressor(String aName) {
+    public MTECriticalSingularityCompressor(String aName) {
         super(aName);
     }
 
     @Override
+    protected String getTooltipKeyPrefix() {
+        return "gtsr.tooltip.critical_singularity_compressor.";
+    }
+
+    @Override
+    public String getGuiKeyPrefix() {
+        return "gtsr.gui.critical_singularity_compressor.";
+    }
+
+    @Override
     public IMetaTileEntity newMetaEntity(IGregTechTileEntity aTileEntity) {
-        return new MTESteamSingularityCompressor(mName);
+        return new MTECriticalSingularityCompressor(mName);
     }
 
     @Override
     protected int getRequiredTier() {
-        return 1;
+        return 2;
     }
 
     @Override
     protected double getHeatMax() {
-        return 0.005d;
+        return 0.002d;
     }
 
     @Override
     protected long getHeatHalfPoint() {
-        return 200000L;
+        return 1000L;
     }
 
     @Override
     protected boolean includeDenseSteam() {
-        return false;
+        return true;
     }
 
     @Override
     protected ItemStack getAggregationOutput() {
-        return GTSRItemList.SteamEntangledSingularity.get(1);
+        return GTSRItemList.CriticalSteamEntangledSingularity.get(1);
     }
 
     @Override
@@ -58,14 +67,7 @@ public class MTESteamSingularityCompressor extends MTESingularityMachineBase {
     }
 
     @Override
-    public void loadNBTData(NBTTagCompound aNBT) {
-        super.loadNBTData(aNBT);
-        // Old mode keys are intentionally ignored; this machine is permanently tier 1 aggregation.
-        mTier = 1;
-    }
-
-    @Override
     protected gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui<?> getGui() {
-        return new MTESteamSingularityCompressorGui(this);
+        return new MTECriticalSingularityCompressorGui(this);
     }
 }

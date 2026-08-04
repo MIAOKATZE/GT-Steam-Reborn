@@ -283,6 +283,56 @@ gtsr.info.geothermal_boiler.incomplete=结构不完整
 # Steam Singularity Compressor
 gt.blockmachines.gtsr.steam.singularity.compressor.name=蒸汽奇点压缩机
 
+# Critical Singularity Compressor
+gt.blockmachines.gtsr.critical.singularity.compressor.name=临界奇点压缩机
+gtsr.tooltip.critical_singularity_compressor.type=临界奇点压缩机, CSC
+gtsr.tooltip.critical_singularity_compressor.desc=专用于产出临界蒸汽纠缠奇点的等级2蒸汽奇点压缩机。
+gtsr.tooltip.critical_singularity_compressor.desc2=接收普通、过热、超临界及其致密蒸汽，并按蒸汽等级累积热量。
+gtsr.tooltip.critical_singularity_compressor.desc3=多种蒸汽共存时仅处理最高等级；机器停止或没有蒸汽时热量会下降。
+gtsr.tooltip.critical_singularity_compressor.desc4=热量达到100%时清零，并产出1个临界蒸汽纠缠奇点。
+gtsr.tooltip.critical_singularity_compressor.ctrl=第8层中心偏下方
+gtsr.tooltip.critical_singularity_compressor.desc5=不消耗电力，禁用蒸汽冷却机制。
+gtsr.tooltip.critical_singularity_compressor.steam_input=输入仓、蒸汽仓、耐压蒸汽仓或巨型超压蒸汽输入仓
+gtsr.tooltip.critical_singularity_compressor.input_bus=蒸汽输入总线
+gtsr.tooltip.critical_singularity_compressor.output_bus=输出总线（临界蒸汽纠缠奇点）
+gtsr.tooltip.critical_singularity_compressor.output_hatch=输出仓
+gtsr.tooltip.critical_singularity_compressor.tier1_blocks=等级1结构预留：本机器要求等级2
+gtsr.tooltip.critical_singularity_compressor.tier2_blocks=等级2：强化镀铑钯机械方块×264、LuV+级玻璃×252、镀铑钯框架×144
+gtsr.gui.critical_singularity_compressor.status=状态:
+gtsr.gui.critical_singularity_compressor.status.building=构建中
+gtsr.gui.critical_singularity_compressor.status.running=运行中
+gtsr.gui.critical_singularity_compressor.status.accumulating=奇点纠缠中
+gtsr.gui.critical_singularity_compressor.status.idle=待机中
+gtsr.gui.critical_singularity_compressor.heat=热量:
+gtsr.gui.critical_singularity_compressor.tier=等级:
+
+# Dense State Manipulator
+gt.blockmachines.gtsr.dense.state.manipulator.name=致密态操控机
+gtsr.tooltip.dense_state_manipulator.type=致密态操控机, DSM
+gtsr.tooltip.dense_state_manipulator.desc=在普通蒸汽与致密蒸汽之间进行压缩或解压的等级2蒸汽机器。
+gtsr.tooltip.dense_state_manipulator.desc2=按1000:1压缩普通蒸汽，或按1:1000将致密蒸汽解压为普通蒸汽。
+gtsr.tooltip.dense_state_manipulator.desc3=支持蒸汽、过热蒸汽、超临界蒸汽及其对应的致密流体。
+gtsr.tooltip.dense_state_manipulator.desc4=运行期间消耗蒸汽纠缠奇点维持机器工作，并累计不足一个单位的输出。
+gtsr.tooltip.dense_state_manipulator.desc5=使用螺丝刀在压缩和解压模式之间切换。
+gtsr.tooltip.dense_state_manipulator.ctrl=第8层中心偏下方
+gtsr.tooltip.dense_state_manipulator.steam_input=输入仓、蒸汽仓或耐压蒸汽仓
+gtsr.tooltip.dense_state_manipulator.input_bus=蒸汽纠缠奇点燃料输入总线
+gtsr.tooltip.dense_state_manipulator.output_bus=蒸汽或致密蒸汽输出总线
+gtsr.tooltip.dense_state_manipulator.output_hatch=蒸汽或致密蒸汽输出仓
+gtsr.tooltip.dense_state_manipulator.tier1_blocks=等级1结构预留：本机器要求等级2
+gtsr.tooltip.dense_state_manipulator.tier2_blocks=等级2：强化镀铑钯机械方块×264、LuV+级玻璃×252、镀铑钯框架×144
+gtsr.gui.dense_state_manipulator.status=状态:
+gtsr.gui.dense_state_manipulator.status.building=构建中
+gtsr.gui.dense_state_manipulator.status.running=运行中
+gtsr.gui.dense_state_manipulator.status.idle=待机中
+gtsr.gui.dense_state_manipulator.status.compress=蒸汽压缩中
+gtsr.gui.dense_state_manipulator.status.decompress=蒸汽解压中
+gtsr.gui.dense_state_manipulator.mode=模式:
+gtsr.gui.dense_state_manipulator.mode.compress=蒸汽压缩
+gtsr.gui.dense_state_manipulator.mode.decompress=蒸汽解压
+gtsr.gui.dense_state_manipulator.fuel_time=奇点维持时间:
+gtsr.gui.dense_state_manipulator.fuel_no_fuel=请输入蒸汽纠缠奇点
+
 # Steam Entangled Singularity
 item.SteamEntangledSingularity.name=蒸汽纠缠奇点
 item.CriticalSteamEntangledSingularity.name=临界蒸汽纠缠奇点
@@ -828,13 +878,13 @@ gtsr.tooltip.steam_hub.hint_status=手持枢纽终端右击控制器，打开缓
 
 # 15. Steam Singularity Compressor
 gtsr.tooltip.singularity_compressor.type=蒸汽奇点压缩机, SSC
-gtsr.tooltip.singularity_compressor.desc=吞噬输入仓中最高等级的蒸汽（等级1：蒸汽/过热/超临界；等级2：另含全部致密变体），脱离电力消耗，按对数方程提升热量。
-gtsr.tooltip.singularity_compressor.desc2=热量公式：等级1 y=0.005x/(x+200000)（上限0.5%/s）；等级2 y=0.002x/(x+1000)（上限0.2%/s）。实际热量=蒸汽系数×y（蒸汽/致密蒸汽 0.5、过热/致密过热 1、超临界/致密超临界 2）。
-gtsr.tooltip.singularity_compressor.desc3=多种蒸汽共存时只识别最高等级；机器关机（含软锤关闭）或没有蒸汽时，热量每秒降低 1%。
-gtsr.tooltip.singularity_compressor.desc4=热量达到 100% 时清零，产出 1 个蒸汽纠缠奇点（等级1）或 1 个临界蒸汽纠缠奇点（等级2）。
+gtsr.tooltip.singularity_compressor.desc=吞噬输入仓中最高等级的普通蒸汽（蒸汽/过热/超临界），脱离电力消耗，按对数方程提升热量。
+gtsr.tooltip.singularity_compressor.desc2=热量公式：y=0.005x/(x+200000)，上限0.5%/s；实际热量=蒸汽系数×y（蒸汽0.5、过热1、超临界2）。
+gtsr.tooltip.singularity_compressor.desc3=多种蒸汽共存时只识别最高等级；机器关机（含软锤关闭）或没有蒸汽时，热量每秒降低1%。
+gtsr.tooltip.singularity_compressor.desc4=热量达到100%时清零，产出1个蒸汽纠缠奇点。
 gtsr.tooltip.singularity_compressor.desc5=蒸汽奇点压缩机会吞噬所有：已禁用蒸汽冷却机制，不消耗任何电力。
-gtsr.tooltip.singularity_compressor.desc6=等级2可用螺丝刀循环切换三种模式（运行中亦可切换，切入压缩/解压时热量自动清零，切换模式会清零奇点维持时间）：奇点纠缠 / 蒸汽压缩 / 蒸汽解压。压缩与解压模式每输入 1 个蒸汽纠缠奇点运行 600s，维持时间即使关机也会持续消耗，无奇点时 GUI 提示放入。
-gtsr.tooltip.singularity_compressor.desc7=蒸汽压缩：蒸汽/过热/超临界按 1000:1 压缩为对应致密流体；蒸汽解压：致密蒸汽/致密过热/致密超临界按 1:1000 解压为对应普通蒸汽。两者采用浮点累计（同蒸汽冷却机制）：同种蒸汽累计、异种顶掉，例如两次 1500 压缩先输出 1 再输出 2。
+gtsr.tooltip.singularity_compressor.desc6=本机器仅支持奇点纠缠模式，不包含蒸汽压缩和蒸汽解压功能。
+gtsr.tooltip.singularity_compressor.desc7=
 gtsr.tooltip.singularity_compressor.ctrl=Layer 8 中心偏下方
 gtsr.tooltip.singularity_compressor.steam_input=输入仓/蒸汽仓/耐压蒸汽仓/巨型超压蒸汽输入仓（兼容ME仓室）
 gtsr.tooltip.singularity_compressor.input_bus=蒸汽纠缠奇点（致密模式燃料），兼容ME仓室

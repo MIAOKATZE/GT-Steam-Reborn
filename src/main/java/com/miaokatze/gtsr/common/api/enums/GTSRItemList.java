@@ -46,6 +46,8 @@ public enum GTSRItemList implements IItemContainer {
     SteamCoolingHatch,
     PressureSteamCoolingHatch,
     SteamSingularityCompressor,
+    CriticalSingularityCompressor,
+    DenseStateManipulator,
     WaterHubArray,
     WaterHubOutputHatch,
     WaterHubInputHatch,
