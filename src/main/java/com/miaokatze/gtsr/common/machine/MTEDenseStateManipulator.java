@@ -247,7 +247,7 @@ public class MTEDenseStateManipulator extends MTESingularityMachineBase {
         if (request == null) return 0;
         for (gregtech.api.metatileentity.implementations.MTEHatch hatch : getSteamInputHatches()) {
             FluidStack full = request.copy();
-            full.amount = MAX_DRAIN_PER_CYCLE;
+            full.amount = Integer.MAX_VALUE;
             FluidStack result = hatch.drain(ForgeDirection.UNKNOWN, full, false);
             if (result != null && result.amount > 0) amount += result.amount;
         }
@@ -258,14 +258,12 @@ public class MTEDenseStateManipulator extends MTESingularityMachineBase {
         FluidStack request = FluidRegistry.getFluidStack(DENSE_FLUID_NAMES[grade], 1);
         if (request == null) return;
         for (gregtech.api.metatileentity.implementations.MTEHatch hatch : getSteamInputHatches()) {
-            // 按需量实扣：先探测本仓实际可得量（cap 到 MAX_DRAIN_PER_CYCLE），再按探测结果实扣。
-            // 修复：原实现以 MAX_VALUE 实扣，对 ME 输入仓会一次拉取整个网络该流体库存。
+            // v1.10.6→v1.10.7 回归：恢复 MAX_VALUE 探测与实扣（与 grade 族一致，见 MTESingularityMachineBase.drainGrade）。
             FluidStack full = request.copy();
-            full.amount = MAX_DRAIN_PER_CYCLE;
+            full.amount = Integer.MAX_VALUE;
             FluidStack available = hatch.drain(ForgeDirection.UNKNOWN, full, false);
             if (available != null && available.amount > 0) {
                 FluidStack toDrain = available.copy();
-                toDrain.amount = Math.min(available.amount, MAX_DRAIN_PER_CYCLE);
                 hatch.drain(ForgeDirection.UNKNOWN, toDrain, true);
             }
         }
