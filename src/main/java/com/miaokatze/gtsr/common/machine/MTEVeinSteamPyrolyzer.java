@@ -450,15 +450,13 @@ public class MTEVeinSteamPyrolyzer extends MTESteamMultiBlockBase<MTEVeinSteamPy
                     + EnumChatFormatting.RESET)
             .addInfo(
                 EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.tooltip.shared.superheated_quadruples"))
-            .beginStructureBlock(5, 7, 5, false)
+            .beginStructureBlock(7, 7, 7, false)
             .addController(StatCollector.translateToLocal("gtsr.tooltip.vein_pyrolyzer.ctrl"))
             .addOtherStructurePart(
                 StatCollector.translateToLocal("gtsr.tooltip.shared.steam_input_hatch"),
                 StatCollector.translateToLocal("gtsr.tooltip.shared.any_casing"),
                 1)
-            .addInputBus(StatCollector.translateToLocal("gtsr.tooltip.vein_pyrolyzer.input_bus"), 1)
             .addOutputBus(StatCollector.translateToLocal("gtsr.tooltip.vein_pyrolyzer.output_bus"), 1)
-            .addOutputHatch(StatCollector.translateToLocal("gtsr.tooltip.vein_pyrolyzer.output_hatch"), 1)
             .addStructureInfo("")
             .addStructureInfo(
                 EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.gui.tier.bronze")

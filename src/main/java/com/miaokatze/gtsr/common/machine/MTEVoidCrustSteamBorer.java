@@ -524,7 +524,7 @@ public class MTEVoidCrustSteamBorer extends MTESteamMultiBlockBase<MTEVoidCrustS
                     + " L/s")
             .addInfo(
                 EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.tooltip.shared.superheated_quadruples"))
-            .beginStructureBlock(5, 6, 5, false)
+            .beginStructureBlock(9, 9, 12, false)
             .addController(StatCollector.translateToLocal("gtsr.tooltip.void_borer.ctrl"))
             .addOtherStructurePart(
                 StatCollector.translateToLocal("gtsr.tooltip.shared.steam_input_hatch"),

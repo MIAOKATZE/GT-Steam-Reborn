@@ -76,7 +76,6 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
 
     private static final String STRUCTURE_PIECE_BASE = "base";
     private static final String STRUCTURE_PIECE_STACK = "stack";
-    private static final String STRUCTURE_PIECE_CAP = "cap";
     private static final int HORIZONTAL_OFF_SET = 3;
     private static final int VERTICAL_OFF_SET = 0;
     private static final int DEPTH_OFF_SET = 0;
@@ -102,10 +101,6 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
                 STRUCTURE_PIECE_STACK,
                 transpose(
                     new String[][] { { "       ", "  DCD  ", " DAAAD ", "ECAAACE", " DAAAD ", "  DCD  ", "   E   " } }))
-            .addShape(
-                STRUCTURE_PIECE_CAP,
-                transpose(
-                    new String[][] { { "   C   ", "  CDC  ", " CCCCC ", "DCCCCCD", " CCCCC ", "  CDC  ", "   C   " } }))
             .addElement(
                 'A',
                 ofChain(

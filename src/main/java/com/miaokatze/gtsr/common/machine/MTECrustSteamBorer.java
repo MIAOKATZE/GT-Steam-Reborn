@@ -54,6 +54,7 @@ import gregtech.api.structure.error.StructureErrorRegistry;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.common.blocks.BlockCasings1;
+import gregtech.common.blocks.BlockCasings2;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTEHatchCustomFluidBase;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTESteamMultiBlockBase;
 
@@ -138,6 +139,9 @@ public class MTECrustSteamBorer extends MTESteamMultiBlockBase<MTECrustSteamBore
     }
 
     protected int getCasingTextureID() {
+        if (mSetTier >= 2) {
+            return ((BlockCasings2) GregTechAPI.sBlockCasings2).getTextureIndex(0);
+        }
         return ((BlockCasings1) GregTechAPI.sBlockCasings1).getTextureIndex(10);
     }
 

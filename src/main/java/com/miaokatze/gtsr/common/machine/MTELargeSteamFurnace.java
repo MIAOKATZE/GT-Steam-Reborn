@@ -405,7 +405,7 @@ public class MTELargeSteamFurnace extends MTESteamMultiBlockBase<MTELargeSteamFu
                     + EnumChatFormatting.WHITE
                     + " "
                     + StatCollector.translateToLocal("gtsr.tooltip.steam_furnace.recipe_based"))
-            .beginStructureBlock(3, 3, 5, false)
+            .beginStructureBlock(5, 5, 5, false)
             .addController(StatCollector.translateToLocal("gtsr.tooltip.steam_furnace.ctrl"))
             .addInputBus(StatCollector.translateToLocal("gtsr.tooltip.steam_furnace.input_bus"), 1)
             .addOutputBus(StatCollector.translateToLocal("gtsr.tooltip.steam_furnace.output_bus"), 1)

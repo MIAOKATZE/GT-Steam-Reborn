@@ -47,6 +47,7 @@ import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.logic.ProcessingLogic;
 import gregtech.api.metatileentity.implementations.MTEEnhancedMultiBlockBase;
+import gregtech.api.metatileentity.implementations.MTEHatch;
 import gregtech.api.metatileentity.implementations.MTEHatchOutput;
 import gregtech.api.recipe.RecipeMap;
 import gregtech.api.recipe.check.CheckRecipeResult;
@@ -58,6 +59,7 @@ import gregtech.api.util.GTRecipe;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
+import gregtech.common.tileentities.machines.IDualInputHatch;
 
 public class MTEAmmoniaPlant extends MTEEnhancedMultiBlockBase<MTEAmmoniaPlant> implements ISurvivalConstructable {
 
@@ -224,6 +226,17 @@ public class MTEAmmoniaPlant extends MTEEnhancedMultiBlockBase<MTEAmmoniaPlant> 
             return;
         }
         updateCatalyst();
+        updateAllHatchTextures();
+    }
+
+    protected void updateAllHatchTextures() {
+        int textureID = CASING_TEXTURE_ID;
+        for (MTEHatch h : mInputHatches) h.updateTexture(textureID);
+        for (MTEHatch h : mOutputHatches) h.updateTexture(textureID);
+        for (MTEHatch h : mOutputBusses) h.updateTexture(textureID);
+        for (IDualInputHatch dualHatch : mDualInputHatches) {
+            if (dualHatch != null) dualHatch.updateTexture(textureID);
+        }
     }
 
     private void updateCatalyst() {
