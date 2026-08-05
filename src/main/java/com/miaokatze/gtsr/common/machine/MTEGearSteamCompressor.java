@@ -42,6 +42,7 @@ import com.gtnewhorizons.modularui.common.widget.DynamicPositionedColumn;
 import com.gtnewhorizons.modularui.common.widget.FakeSyncWidget;
 import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
+import com.miaokatze.gtsr.api.compat.GTSRHatchFluidAccess;
 import com.miaokatze.gtsr.api.compat.GTVersionCompat;
 import com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps;
 import com.miaokatze.gtsr.common.gui.MTEGearSteamCompressorGui;
@@ -397,15 +398,15 @@ public class MTEGearSteamCompressor extends MTEEnhancedMultiBlockBase<MTEGearSte
     private boolean depleteSteam(long required) {
         if (required <= 0) return true;
         long remaining = required;
-        // v1.9.39 修复：改用 getStoredFluids() 聚合（父类实现对 MTEHatchInputME 有特判分支）。
-        // 原实现用 hatch.getFluid() 前置过滤，ME 输入仓（本地罐恒空）恒被跳过，导致 ME 仓供汽不可用。
+        // v1.10.8：mInputHatches 段改用 GTSRHatchFluidAccess.depleteFluidAcross 跨仓按需取流。
+        // 原实现用 getStoredFluids() 聚合（对 MTEHatchInputME 按流体类型去重——同流体跨多
+        // ME 仓只算最后一只，导致多 ME 仓供汽时欠计/误报 NO_FUEL）。
         for (FluidStack fs : getStoredFluids()) {
-            if (fs != null && GTModHandler.isAnySteam(fs) && fs.amount > 0) {
-                int drained = (int) Math.min(remaining, fs.amount);
-                depleteInput(new FluidStack(fs, drained));
-                remaining -= drained;
-                if (remaining <= 0) return true;
-            }
+            if (fs == null || !GTModHandler.isAnySteam(fs) || fs.amount <= 0 || remaining <= 0) continue;
+            int toDrain = (int) Math.min(remaining, fs.amount);
+            int drained = GTSRHatchFluidAccess.depleteFluidAcross(mInputHatches, new FluidStack(fs, toDrain));
+            remaining -= drained;
+            if (remaining <= 0) return true;
         }
         for (MTEHatchPressureSteamInput hatch : mPressureSteamInputs) {
             FluidStack fs = hatch.getFluid();

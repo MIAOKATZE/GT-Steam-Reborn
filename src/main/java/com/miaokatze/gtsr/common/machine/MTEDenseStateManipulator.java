@@ -163,22 +163,29 @@ public class MTEDenseStateManipulator extends MTESingularityMachineBase {
     }
 
     private CheckRecipeResult processCompressionCycle() {
-        if (mFuelTicks <= 0) {
-            if (!consumeSingularityFromInputBuses(1)) return CheckRecipeResultRegistry.NO_RECIPE;
-            mFuelTicks = SINGULARITY_DURATION_TICKS;
-        }
-
         if (mAccum < 1.0d) {
             int grade = findHighestGrade(false);
             if (grade < 0) return CheckRecipeResultRegistry.NO_RECIPE;
             long amount = sumGrade(grade, false);
             if (amount <= 0) return CheckRecipeResultRegistry.NO_RECIPE;
-            drainGrade(grade, false);
-            if (grade != mAccumGrade) {
-                mAccum = 0.0d;
-                mAccumGrade = grade;
+            // v1.10.8：确认有流体可吞噬后才扣燃料（原实现先扣燃料后验流体，
+            // 无流体时燃料已扣、mFuelTicks=12000 空转 10 分钟）。
+            if (mFuelTicks <= 0) {
+                if (!consumeSingularityFromInputBuses(1)) return CheckRecipeResultRegistry.NO_RECIPE;
+                mFuelTicks = SINGULARITY_DURATION_TICKS;
             }
+            drainGrade(grade, false);
+            // v1.10.8：等级切换保留已累积量（按原等级比例折算续算），
+            // 原实现 mAccum=0 使混合等级输入永久零产出、流体与燃料纯消耗。
+            if (mAccumGrade >= 0 && grade != mAccumGrade) {
+                mAccum = mAccum * getGradeRatio(grade) / getGradeRatio(mAccumGrade);
+            }
+            mAccumGrade = grade;
             mAccum += (double) amount / DENSE_COMPRESSION_RATIO;
+        } else if (mFuelTicks <= 0) {
+            // 输出阶段燃料耗尽：尝试续杯（不吞流体时也需维持模式）
+            if (!consumeSingularityFromInputBuses(1)) return CheckRecipeResultRegistry.NO_RECIPE;
+            mFuelTicks = SINGULARITY_DURATION_TICKS;
         }
 
         long output = (long) Math.floor(mAccum);
@@ -199,22 +206,27 @@ public class MTEDenseStateManipulator extends MTESingularityMachineBase {
     }
 
     private CheckRecipeResult processDecompressionCycle() {
-        if (mFuelTicks <= 0) {
-            if (!consumeSingularityFromInputBuses(1)) return CheckRecipeResultRegistry.NO_RECIPE;
-            mFuelTicks = SINGULARITY_DURATION_TICKS;
-        }
-
         if (mAccum < 1.0d) {
             int grade = findHighestDenseGrade();
             if (grade < 0) return CheckRecipeResultRegistry.NO_RECIPE;
             long amount = sumDenseGrade(grade);
             if (amount <= 0) return CheckRecipeResultRegistry.NO_RECIPE;
-            drainDenseGrade(grade);
-            if (grade != mAccumGrade) {
-                mAccum = 0.0d;
-                mAccumGrade = grade;
+            // v1.10.8：确认有流体可吞噬后才扣燃料（同 compression）
+            if (mFuelTicks <= 0) {
+                if (!consumeSingularityFromInputBuses(1)) return CheckRecipeResultRegistry.NO_RECIPE;
+                mFuelTicks = SINGULARITY_DURATION_TICKS;
             }
+            drainDenseGrade(grade);
+            // v1.10.8：等级切换保留已累积量（同 compression 折算续算）
+            if (mAccumGrade >= 0 && grade != mAccumGrade) {
+                mAccum = mAccum * getGradeRatio(grade) / getGradeRatio(mAccumGrade);
+            }
+            mAccumGrade = grade;
             mAccum += (double) amount * DENSE_COMPRESSION_RATIO;
+        } else if (mFuelTicks <= 0) {
+            // 输出阶段燃料耗尽：尝试续杯
+            if (!consumeSingularityFromInputBuses(1)) return CheckRecipeResultRegistry.NO_RECIPE;
+            mFuelTicks = SINGULARITY_DURATION_TICKS;
         }
 
         long output = (long) Math.floor(mAccum);
@@ -232,6 +244,11 @@ public class MTEDenseStateManipulator extends MTESingularityMachineBase {
         mAccum -= fillOutput(steam);
         startCycle();
         return CheckRecipeResultRegistry.SUCCESSFUL;
+    }
+
+    /** 等级能量折算基准（与 GRADE_COEF 一致：grade0=0.5、grade1=1.0、grade2=2.0）。 */
+    private double getGradeRatio(int grade) {
+        return GRADE_COEF[grade];
     }
 
     private int findHighestDenseGrade() {
@@ -296,6 +313,9 @@ public class MTEDenseStateManipulator extends MTESingularityMachineBase {
     public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
         super.onPostTick(aBaseMetaTileEntity, aTick);
         if (!aBaseMetaTileEntity.isServerSide() || aTick % CYCLE_LENGTH != 0L) return;
+        // v1.10.8 修复：仅成型且允许工作时才扣减燃料并续杯。
+        // 原实现无条件扣减——关机/红石禁用/结构破坏时仍每 10 分钟吞 1 个奇点。
+        if (!mMachine || !aBaseMetaTileEntity.isAllowedToWork()) return;
         mFuelTicks -= CYCLE_LENGTH;
         if (mFuelTicks <= 0) {
             mFuelTicks = consumeSingularityFromInputBuses(1) ? SINGULARITY_DURATION_TICKS : 0;

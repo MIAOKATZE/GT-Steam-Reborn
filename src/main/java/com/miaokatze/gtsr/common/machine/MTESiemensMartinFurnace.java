@@ -191,7 +191,10 @@ public class MTESiemensMartinFurnace extends MTEEnhancedMultiBlockBase<MTESiemen
 
             @Override
             public List<Class<? extends IMetaTileEntity>> mteBlacklist() {
-                return ImmutableList.of(MTEHatchInput.class);
+                // v1.10.8：移除自黑——原黑名单按精确类名过滤会隐藏普通输入仓本身
+                // （子类如 MTEHatchInputME/MTEMegaAirInputHatch 仍显示，行为不一致）；
+                // 该位接受 MTEHatchInput 及其全部子类（含 ME 输入仓），NEI 应如实显示。
+                return ImmutableList.of();
             }
         },
         OutputBus(MTESiemensMartinFurnace::addOutputBusToMachineList, MTEHatchOutputBus.class) {
@@ -205,7 +208,9 @@ public class MTESiemensMartinFurnace extends MTEEnhancedMultiBlockBase<MTESiemen
 
             @Override
             public List<Class<? extends IMetaTileEntity>> mteBlacklist() {
-                return ImmutableList.of(MTEHatchPressureSteamInput.class);
+                // v1.10.8：移除自黑——原黑名单使耐压蒸汽仓在 NEI 预览完全不可见（无子类可替代显示），
+                // 玩家无法按 NEI 构建。
+                return ImmutableList.of();
             }
         };
 
@@ -516,8 +521,14 @@ public class MTESiemensMartinFurnace extends MTEEnhancedMultiBlockBase<MTESiemen
         }
         if (totalAvailable < amount) return false;
 
-        // 阶段二：真正消耗，逐个 hatch drain 直到 amount 耗尽
+        // v1.10.8：实扣顺序调整——ME 仓先扣（易变源，网络量可能被其他机器抽走）、压力仓殿后（本地罐稳定），
+        // 降低 TOCTOU 下"压力仓已扣但 ME 不足"的整 tick 蒸汽浪费。
         int remaining = amount;
+        for (MTEHatch hatch : GTUtility.validMTEList(mInputHatches)) {
+            if (remaining <= 0) break;
+            int drained = GTSRHatchFluidAccess.drainFluidExact(hatch, new FluidStack(superheated, remaining));
+            remaining -= drained;
+        }
         for (MTEHatchPressureSteamInput hatch : mPressureSteamInputs) {
             if (remaining <= 0) break;
             FluidStack drained = hatch.drain(remaining, false);
@@ -531,15 +542,47 @@ public class MTESiemensMartinFurnace extends MTEEnhancedMultiBlockBase<MTESiemen
             hatch.drain(take, true);
             remaining -= take;
         }
-        // v1.10.6：ME 输入仓/普通输入仓（mInputHatches）超热蒸汽实扣（按需量）
-        if (remaining > 0) {
-            for (MTEHatch hatch : GTUtility.validMTEList(mInputHatches)) {
-                if (remaining <= 0) break;
-                int drained = GTSRHatchFluidAccess.drainFluidExact(hatch, new FluidStack(superheated, remaining));
-                remaining -= drained;
+        return remaining <= 0;
+    }
+
+    /**
+     * v1.10.8：仅探测超热蒸汽可用性（不消耗），供 checkProcessing 放行配方前预检。
+     */
+    private boolean hasEnoughSuperheatedSteam(int amount) {
+        if (amount <= 0) return true;
+        Fluid superheated = FluidRegistry.getFluid("ic2superheatedsteam");
+        if (superheated == null) return false;
+        FluidStack want = new FluidStack(superheated, amount);
+        int totalAvailable = 0;
+        for (MTEHatchPressureSteamInput hatch : mPressureSteamInputs) {
+            FluidStack drained = hatch.drain(amount, false);
+            if (drained != null && drained.amount > 0
+                && drained.getFluid() != null
+                && "ic2superheatedsteam".equals(
+                    drained.getFluid()
+                        .getName())) {
+                totalAvailable += drained.amount;
+                if (totalAvailable >= amount) return true;
             }
         }
-        return remaining <= 0;
+        for (MTEHatch hatch : GTUtility.validMTEList(mInputHatches)) {
+            FluidStack sim = GTSRHatchFluidAccess.probeFluidAmount(hatch, want);
+            if (sim != null) {
+                totalAvailable += sim.amount;
+                if (totalAvailable >= amount) return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * v1.10.8：仅探测空气可用性（不消耗），供 checkProcessing 放行配方前预检。
+     */
+    private boolean hasEnoughAir(int amount) {
+        if (amount <= 0) return true;
+        FluidStack airSample = Materials.Air.getGas(1);
+        if (airSample == null || airSample.getFluid() == null) return false;
+        return depleteInput(Materials.Air.getGas(amount), true);
     }
 
     /**
@@ -577,6 +620,19 @@ public class MTESiemensMartinFurnace extends MTEEnhancedMultiBlockBase<MTESiemen
                 return SimpleCheckRecipeResult.ofFailure("gtsr.gui.siemens_martin.temperature_low");
             }
             return CheckRecipeResultRegistry.NO_RECIPE;
+        }
+
+        // v1.10.8：放行配方前先探测燃料可用性（蒸汽按当前温度成本、空气按运行成本）。
+        // 原实现配方输入在父类窗口内先消耗、蒸汽/空气在 onPostTick 稍后检查，
+        // 不足时 POWER_LOSS 且已消耗输入批次不退款——燃料不稳定时反复白丢整批输入。
+        int probeSteamCost = SUPERHEATED_STEAM_COST;
+        if (mFurnaceTemperature >= MAX_OVERHEAT) {
+            probeSteamCost = SUPERHEATED_STEAM_COST_MAX / 20;
+        } else if (mFurnaceTemperature >= 1.0d) {
+            probeSteamCost = SUPERHEATED_STEAM_COST_OVERHEAT / 20;
+        }
+        if (!hasEnoughSuperheatedSteam(probeSteamCost) || !hasEnoughAir(AIR_COST_PER_TICK)) {
+            return CheckRecipeResultRegistry.NO_FUEL_FOUND;
         }
 
         CheckRecipeResult result = super.checkProcessing();

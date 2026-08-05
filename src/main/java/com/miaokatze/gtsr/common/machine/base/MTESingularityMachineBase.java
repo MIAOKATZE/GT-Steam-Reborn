@@ -510,11 +510,32 @@ public abstract class MTESingularityMachineBase extends MTEEnhancedMultiBlockBas
         double base = getHeatMax() * amount / (amount + getHeatHalfPoint());
         mHeat += GRADE_COEF[grade] * base;
         if (mHeat >= 1.0d) {
-            addOutputPartial(getAggregationOutput());
-            mHeat = 0.0d;
+            // v1.10.8：输出前探测输出总线余量——原实现直接 addOutputPartial，
+            // 总线满时溢出即 VOID（奇点消失且 mHeat 清零）。
+            if (canOutputSingularity()) {
+                addOutputPartial(getAggregationOutput());
+                mHeat = 0.0d;
+            }
         }
         startCycle();
         return CheckRecipeResultRegistry.SUCCESSFUL;
+    }
+
+    /**
+     * 探测输出总线是否有空槽或可堆叠同物品槽（防止奇点输出溢出 VOID）。
+     */
+    protected final boolean canOutputSingularity() {
+        ItemStack output = getAggregationOutput();
+        if (output == null) return false;
+        for (MTEHatchOutputBus bus : mOutputBusses) {
+            if (bus == null) continue;
+            for (int i = 0; i < bus.getSizeInventory(); i++) {
+                ItemStack stack = bus.getStackInSlot(i);
+                if (stack == null) return true;
+                if (stack.isItemEqual(output) && stack.stackSize < stack.getMaxStackSize()) return true;
+            }
+        }
+        return false;
     }
 
     protected final void startCycle() {
@@ -551,7 +572,10 @@ public abstract class MTESingularityMachineBase extends MTEEnhancedMultiBlockBas
     }
 
     protected final int findHighestGrade(boolean includeDense) {
-        for (int grade = 2; grade >= 0; grade--) {
+        // v1.10.8：tier 门控——1 级机（getRequiredTier()==1）只吞噬 grade0（普通蒸汽），
+        // 原实现无门控，1 级机可吃 grade2 超临界蒸汽（速率 4 倍于设计，且快于 2 级机致密路径）。
+        int maxGrade = getRequiredTier() >= 2 ? 2 : 0;
+        for (int grade = maxGrade; grade >= 0; grade--) {
             if (probeGrade(grade, includeDense, false)) return grade;
         }
         return -1;
@@ -613,14 +637,9 @@ public abstract class MTESingularityMachineBase extends MTEEnhancedMultiBlockBas
                 }
             }
         }
-        for (IDualInputHatch dual : mDualInputHatches) {
-            for (ItemStack stack : dual.getAllItems()) {
-                if (stack != null && stack.getItem() == singularity.getItem() && stack.stackSize >= amount) {
-                    stack.stackSize -= amount;
-                    return true;
-                }
-            }
-        }
+        // v1.10.8 修复：移除 mDualInputHatches.getAllItems() 活引用直接扣减——
+        // 对 CraftingInputME 改写模式内嵌物品栈会损坏模式数据/存档复活（复制燃料），
+        // 对返回副本的实现则扣减静默失效（免费燃料）。奇点燃料仅走输入总线（decrStackSize 安全语义）。
         return false;
     }
 

@@ -156,4 +156,17 @@ public final class GTSRHatchFluidAccess {
         }
         return want.amount - remaining;
     }
+
+    /**
+     * v1.10.8：统一刷新样板仓（mDualInputHatches）底材纹理（10 处同构循环抽取）。
+     *
+     * @param duals     样板仓列表
+     * @param textureID 当前机器 tier 对应的外壳贴图索引
+     */
+    public static void updateDualHatchTextures(List<? extends IDualInputHatch> duals, int textureID) {
+        if (duals == null) return;
+        for (IDualInputHatch dual : duals) {
+            if (dual != null) dual.updateTexture(textureID);
+        }
+    }
 }

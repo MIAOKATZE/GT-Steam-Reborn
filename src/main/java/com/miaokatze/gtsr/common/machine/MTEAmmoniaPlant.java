@@ -370,11 +370,8 @@ public class MTEAmmoniaPlant extends MTEEnhancedMultiBlockBase<MTEAmmoniaPlant> 
         if (!getBaseMetaTileEntity().isServerSide()) return true;
 
         if (mHeatLevel >= HEAT_MAX && mMaxProgresstime > 0) {
-            if (!depleteRefineryGas(MAINTAIN_GAS_PER_TICK)) {
-                stopMachine();
-                return false;
-            }
-            if (!consumeSteam(MAINTAIN_STEAM_PER_TICK)) {
+            // v1.10.8：原子消耗（先模拟后实扣，蒸汽不足不再损失炼油气）
+            if (!consumeFuelAndSteam(MAINTAIN_GAS_PER_TICK, MAINTAIN_STEAM_PER_TICK)) {
                 stopMachine();
                 return false;
             }
@@ -421,7 +418,7 @@ public class MTEAmmoniaPlant extends MTEEnhancedMultiBlockBase<MTEAmmoniaPlant> 
                 boolean consumed = false;
 
                 if (mHeatLevel < HEAT_MAX) {
-                    if (depleteRefineryGas(PREHEAT_GAS_PER_TICK) && consumeSteam(PREHEAT_STEAM_PER_TICK)) {
+                    if (consumeFuelAndSteam(PREHEAT_GAS_PER_TICK, PREHEAT_STEAM_PER_TICK)) {
                         pushSuperheatedSteam(PREHEAT_STEAM_PER_TICK);
                         if (isSecondTick) {
                             mHeatLevel = Math.min(HEAT_MAX, mHeatLevel + HEAT_INCREASE_PER_SEC);
@@ -431,7 +428,7 @@ public class MTEAmmoniaPlant extends MTEEnhancedMultiBlockBase<MTEAmmoniaPlant> 
                         consumed = true;
                     }
                 } else {
-                    if (depleteRefineryGas(MAINTAIN_GAS_PER_TICK) && consumeSteam(MAINTAIN_STEAM_PER_TICK)) {
+                    if (consumeFuelAndSteam(MAINTAIN_GAS_PER_TICK, MAINTAIN_STEAM_PER_TICK)) {
                         pushSuperheatedSteam(MAINTAIN_STEAM_PER_TICK);
                         mRealtimeSteamCost = MAINTAIN_STEAM_PER_SEC;
                         mRealtimeSteamOutput = MAINTAIN_STEAM_PER_SEC;
@@ -468,6 +465,19 @@ public class MTEAmmoniaPlant extends MTEEnhancedMultiBlockBase<MTEAmmoniaPlant> 
         return depleteInput(steam);
     }
 
+    /**
+     * v1.10.8：原子消耗炼油气+蒸汽——先模拟两者均满足，再统一实扣。
+     * 原实现（onRunningTick/onPostTick 各处）先实扣炼油气再查蒸汽，
+     * 蒸汽不足时炼油气每 tick 净损失且持续重复。
+     */
+    private boolean consumeFuelAndSteam(int gasAmount, int steamAmount) {
+        if (gasAmount > 0 && !hasRefineryGas(gasAmount)) return false;
+        if (steamAmount > 0 && !depleteInput(Materials.Steam.getGas(steamAmount), true)) return false;
+        if (gasAmount > 0) depleteRefineryGas(gasAmount);
+        if (steamAmount > 0) consumeSteam(steamAmount);
+        return true;
+    }
+
     private boolean hasMaintainInputs() {
         return hasRefineryGas(MAINTAIN_GAS_PER_TICK)
             && depleteInput(Materials.Steam.getGas(MAINTAIN_STEAM_PER_TICK), true);
@@ -477,8 +487,8 @@ public class MTEAmmoniaPlant extends MTEEnhancedMultiBlockBase<MTEAmmoniaPlant> 
     // 原实现用 MTEHatchInput.getFluid()/2参 drain，对 ME 输入仓（MTEHatchInputME，本地罐恒空）恒返回 null，
     // 导致预热/维持炼油气永远取不到、整机无法运转。原生 2 参 depleteInput 走 drain(UNKNOWN,...)，
     // 兼容普通仓 / ME 输入仓 / 限制性输入仓，且支持跨仓合计。
-    // 注意不能改用 1 参 depleteInput(FluidStack)：MTESteamMultiBaseMixin 在 HEAD 接管了 1 参版本，
-    // 只遍历 mSteamInputFluids 蒸汽流体仓，普通输入仓内的炼油气不会被消耗。
+    // 注（v1.10.8 修正注释）：本类继承 MTEEnhancedMultiBlockBase，1 参 depleteInput 即 GT5U 原生
+    // （= 2 参 false 语义）；MTESteamMultiBaseMixin 仅注入 GT++ MTESteamMultiBlockBase，对本类不生效。
     private boolean hasRefineryGas(int amount) {
         return depleteInput(Materials.Gas.getGas(amount), true);
     }
@@ -533,9 +543,16 @@ public class MTEAmmoniaPlant extends MTEEnhancedMultiBlockBase<MTEAmmoniaPlant> 
             }
         }
         if (remaining <= 0) return;
+        // v1.10.8：回退段跳过"锁定其他流体"的通用输出仓——该仓同时是配方氨输出的目标仓，
+        // HP 蒸汽先占位会引发 VOID_NONE 下假性 FLUID_OUTPUT_FULL（机停）或 VOID_FLUID 下氨被销毁。
+        // 锁定语义明确（玩家指定用途），未锁定仓可自由填充。
         for (MTEHatchOutput outputHatch : GTUtility.validMTEList(mOutputHatches)) {
             if (remaining <= 0) return;
             if (outputHatch instanceof MTEPressureSteamOutputHatch || outputHatch instanceof MTESteamOutputHatch) {
+                continue;
+            }
+            if (outputHatch.isFluidLocked() && (outputHatch.getLockedFluid() == null || !superheatedSteam.getFluid()
+                .equals(outputHatch.getLockedFluid()))) {
                 continue;
             }
             int filled = outputHatch.fill(new FluidStack(superheatedSteam.getFluid(), remaining), false);

@@ -176,7 +176,11 @@ public class MTEAtmosphericCentrifuge extends MTESteamMultiBlockBase<MTEAtmosphe
                                     Pair.of(GregTechAPI.sBlockCasings1, 10),
                                     Pair.of(GregTechAPI.sBlockCasings2, 0)),
                                 -1,
-                                (MTEAtmosphericCentrifuge t, Integer tier) -> t.mSetTier = tier,
+                                // v1.10.8：B 元素改 max 语义（原绝对赋值——混合等级非法结构下
+                                // 最后一个被遍历的 B 决定等级，钢框架+单个青铜外壳会静默降级/升级）
+                                (MTEAtmosphericCentrifuge t, Integer tier) -> {
+                                    if (tier > t.mSetTier) t.mSetTier = tier;
+                                },
                                 (MTEAtmosphericCentrifuge t) -> t.mSetTier)),
                         // Use atLeast(PressureSteamInputHatch) instead of hatchIds(...). Its mteBlacklist()
                         // excludes MTEHatchPressureSteamInput.class so NEI does not render it on casing positions.
@@ -336,14 +340,17 @@ public class MTEAtmosphericCentrifuge extends MTESteamMultiBlockBase<MTEAtmosphe
             @Override
             protected CheckRecipeResult validateRecipe(@Nonnull GTRecipe recipe) {
                 boolean hasChip = hasRareGasChip() && mSetTier >= 2;
+                // v1.10.8：mFluidOutputs 判空（GT5U ParallelHelper/SingleRecipeCheck 均判空，
+                // 无流体输出配方加入后原实现直接 NPE）
+                int fluidOutputCount = recipe.mFluidOutputs == null ? 0 : recipe.mFluidOutputs.length;
                 if (hasChip) {
                     // With chip (steel tier only): only allow rare gas recipes (>3 fluid outputs)
-                    if (recipe.mFluidOutputs.length <= 3) {
+                    if (fluidOutputCount <= 3) {
                         return CheckRecipeResultRegistry.NO_RECIPE;
                     }
                 } else {
                     // Without chip (or bronze with chip): only allow normal recipes (<=3 fluid outputs)
-                    if (recipe.mFluidOutputs.length > 3) {
+                    if (fluidOutputCount > 3) {
                         return CheckRecipeResultRegistry.NO_RECIPE;
                     }
                 }
@@ -407,7 +414,9 @@ public class MTEAtmosphericCentrifuge extends MTESteamMultiBlockBase<MTEAtmosphe
             .addInfo(
                 EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.shared.steam_cost")
                     + EnumChatFormatting.WHITE
-                    + " 500/5000 L/s"
+                    // v1.10.8：按实际并行消耗标注（青铜 4 并行 × -25 lEUt = 2000L/s；
+                    // 钢级 16 并行 × -250 lEUt = 80000L/s。原 500/5000 只描述并行=1，误导）
+                    + " 2000/80000 L/s"
                     + EnumChatFormatting.GRAY
                     + " ("
                     + StatCollector.translateToLocal("gtsr.gui.tier.base")

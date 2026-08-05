@@ -42,6 +42,7 @@ import com.gtnewhorizons.modularui.common.widget.DynamicPositionedColumn;
 import com.gtnewhorizons.modularui.common.widget.FakeSyncWidget;
 import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
+import com.miaokatze.gtsr.api.compat.GTSRHatchFluidAccess;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.gui.MTEMegaSteamTurbineArrayGui;
 import com.miaokatze.gtsr.common.machine.base.MTEHatchPressureSteamInput;
@@ -937,24 +938,31 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
             return CheckRecipeResultRegistry.NO_FUEL_FOUND;
         }
 
-        this.mTheoreticalEUt = (int) generatedEUt;
-        this.mSteamConsumption = (int) steamConsumption;
+        // v1.10.8：饱和钳制到 int 范围——tier 11+（UIV/UMV）baseEUt 可达 13B+，
+        // 原 (int) 强转溢出为负导致父类 onRunningTick 走耗电分支/输出异常。
+        this.mTheoreticalEUt = (int) Math.min(Integer.MAX_VALUE, generatedEUt);
+        this.mSteamConsumption = (int) Math.min(Integer.MAX_VALUE, steamConsumption);
         this.mSteamType = selectedType;
 
-        depleteSteamByType(selectedType, (int) steamConsumption);
-        outputCoolingProduct(selectedType, (int) steamConsumption);
+        depleteSteamByType(selectedType, mSteamConsumption);
+        outputCoolingProduct(selectedType, mSteamConsumption);
 
-        // mEUt 存储基础 EU/t，平滑插值也基于基础值
-        int difference = (int) (baseEUt - mEUt);
+        // mEUt 存储基础 EU/t，平滑插值也基于基础值（钳制防溢出）
+        long baseClamped = Math.min(Integer.MAX_VALUE, baseEUt);
+        int difference = (int) (baseClamped - mEUt);
         int maxChange = Math.max(10, Math.abs(difference) / 100);
         if (Math.abs(difference) > maxChange) {
             mEUt += maxChange * (difference > 0 ? 1 : -1);
         } else {
-            mEUt = (int) baseEUt;
+            mEUt = (int) baseClamped;
         }
 
         mMaxProgresstime = 1;
         int maxEff = getMaxEfficiencyLimit(selectedType);
+        // v1.10.8：换低限蒸汽类型时钳制回落（防止高限类型残留效率超限运行）
+        if (mEfficiency > maxEff) {
+            mEfficiency = maxEff;
+        }
         if (mEfficiency < 10000) {
             mEfficiencyIncrease = 10;
         } else if (mEfficiency < maxEff) {
@@ -1181,12 +1189,13 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
 
     private boolean depleteSteamByType(SteamType type, int amount) {
         int remaining = amount;
+        // v1.10.8：mInputHatches 段改用 GTSRHatchFluidAccess.depleteFluidAcross 跨仓按需取流
+        // （原 getStoredFluids 聚合对 ME 仓按流体去重，多 ME 仓供汽欠计）
         for (FluidStack fs : getStoredFluids()) {
             if (classifyFluid(fs) == type) {
                 int canDrain = Math.min(fs.amount, remaining);
                 if (canDrain > 0) {
-                    depleteInput(new FluidStack(fs, canDrain));
-                    remaining -= canDrain;
+                    remaining -= GTSRHatchFluidAccess.depleteFluidAcross(mInputHatches, new FluidStack(fs, canDrain));
                 }
                 if (remaining <= 0) return true;
             }
@@ -1527,7 +1536,10 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
 
     @Override
     public int getMaxEfficiency(ItemStack aStack) {
-        return 30000;
+        // v1.10.8 修复：动态返回当前蒸汽类型的效率上限（原硬编码 30000 使父类
+        // MTEMultiBlockBase:782-787 的 Math.min 把任何 SteamType 的效率永久截断在 300%，
+        // 与 getMaxEfficiencyLimit（可 >30000，含奇点加成）双上限错位）。
+        return mSteamType != SteamType.NONE ? getMaxEfficiencyLimit(mSteamType) : 10000;
     }
 
     public int getTierRecipes() {
