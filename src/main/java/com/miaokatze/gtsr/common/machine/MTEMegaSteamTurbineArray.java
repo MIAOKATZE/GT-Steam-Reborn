@@ -1379,6 +1379,9 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         aNBT.setInteger("mPowerParameter", mPowerParameter);
         aNBT.setBoolean("mSingularityMode", mSingularityMode);
         aNBT.setInteger("mSingularityModeTicks", mSingularityModeTicks);
+        // v1.10.9：持久化蒸汽类型——修复重进存档后 mSteamType 为 NONE 导致
+        // getMaxEfficiency 返回 10000、父类钳制把存档效率砍到 100% 的 bug。
+        aNBT.setInteger("mSteamType", mSteamType.ordinal());
     }
 
     @Override
@@ -1392,6 +1395,10 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         mPowerParameter = aNBT.hasKey("mPowerParameter") ? aNBT.getInteger("mPowerParameter") : 10;
         mSingularityMode = aNBT.getBoolean("mSingularityMode");
         mSingularityModeTicks = aNBT.hasKey("mSingularityModeTicks") ? aNBT.getInteger("mSingularityModeTicks") : 0;
+        // v1.10.9：恢复蒸汽类型（旧档无键 → NONE，由 getMaxEfficiency 的 NONE 兜底处理）
+        mSteamType = aNBT.hasKey("mSteamType")
+            ? SteamType.values()[Math.max(0, Math.min(aNBT.getInteger("mSteamType"), SteamType.values().length - 1))]
+            : SteamType.NONE;
     }
 
     @Override
@@ -1539,7 +1546,10 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         // v1.10.8 修复：动态返回当前蒸汽类型的效率上限（原硬编码 30000 使父类
         // MTEMultiBlockBase:782-787 的 Math.min 把任何 SteamType 的效率永久截断在 300%，
         // 与 getMaxEfficiencyLimit（可 >30000，含奇点加成）双上限错位）。
-        return mSteamType != SteamType.NONE ? getMaxEfficiencyLimit(mSteamType) : 10000;
+        // v1.10.9 修复：NONE 时返回不产生钳制的值（Integer.MAX_VALUE）——旧存档无 mSteamType
+        // 键加载后为 NONE，若返回 10000 会把存档的 >100% 效率在首个运行 tick 被父类钳制到 100%。
+        // 钳制表达式 min(mEfficiency+inc, getMaxEfficiency() - 0) 对 MAX_VALUE 安全（取左值）。
+        return mSteamType != SteamType.NONE ? getMaxEfficiencyLimit(mSteamType) : Integer.MAX_VALUE;
     }
 
     public int getTierRecipes() {
