@@ -22,9 +22,6 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
-import net.minecraftforge.common.util.ForgeDirection;
-import net.minecraftforge.fluids.FluidRegistry;
-import net.minecraftforge.fluids.FluidStack;
 
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -62,6 +59,7 @@ import gregtech.api.util.GTRecipe;
 import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.common.blocks.BlockCasings1;
 import gregtech.common.blocks.BlockCasings2;
+import gregtech.common.tileentities.machines.IDualInputHatch;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTEHatchCustomFluidBase;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTESteamMultiBlockBase;
 
@@ -134,6 +132,10 @@ public class MTEAtmosphericCentrifuge extends MTESteamMultiBlockBase<MTEAtmosphe
         for (MTEHatch h : mSteamInputFluids) h.updateTexture(textureID);
         for (MTEHatch h : mInputHatches) h.updateTexture(textureID);
         for (MTEHatch h : mOutputHatches) h.updateTexture(textureID);
+        // v1.10.6：样板仓（mDualInputHatches）纹理更新（InputHatch 元素可接受样板仓）
+        for (IDualInputHatch dual : mDualInputHatches) {
+            if (dual != null) dual.updateTexture(textureID);
+        }
         // v1.9.41 修复：冷却仓纳入纹理更新（v1.9.40 新增结构元素，此前 tier2 时底材停滞青铜）
         SteamCoolingSupport.updateHatchTextures((ICoolingHatchHolder) this, textureID);
     }
@@ -488,27 +490,8 @@ public class MTEAtmosphericCentrifuge extends MTESteamMultiBlockBase<MTEAtmosphe
     }
 
     public boolean hasSuperheatedSteamInHatch() {
-        for (MTEHatchCustomFluidBase hatch : mSteamInputFluids) {
-            FluidStack fs = hatch.getFluid();
-            if (fs != null && fs.getFluid() != null
-                && "ic2superheatedsteam".equals(
-                    fs.getFluid()
-                        .getName())
-                && fs.amount > 0) {
-                return true;
-            }
-        }
-        // v1.10.4：ME 输入仓/普通输入仓（mInputHatches）超热蒸汽检测
-        FluidStack superheated = FluidRegistry.getFluidStack("ic2superheatedsteam", 1);
-        if (superheated == null) return false;
-        for (MTEHatch hatch : mInputHatches) {
-            if (hatch == null) continue;
-            FluidStack result = hatch.drain(ForgeDirection.UNKNOWN, superheated, false);
-            if (result != null && result.amount > 0) {
-                return true;
-            }
-        }
-        return false;
+        // v1.10.6：统一走 SteamCoolingSupport（mSteamInputFluids 本地罐 + mInputHatches 3参 drain 探测）
+        return SteamCoolingSupport.hasSuperheatedSteam(this);
     }
 
     @Override

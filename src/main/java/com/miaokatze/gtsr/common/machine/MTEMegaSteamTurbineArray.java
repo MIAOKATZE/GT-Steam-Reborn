@@ -1051,9 +1051,8 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
             }
             if (remaining <= 0) break;
         }
-        if (remaining > 0) {
-            return false;
-        }
+        // v1.10.6 修复：删除此处提前 return false（v1.10.4 引入，使下方 mDualInputHatches
+        // 样板仓奇点燃料分支成为不可达死代码）。输入总线不足时继续尝试样板仓。
         // v1.10.4：样板仓（mDualInputHatches）中的蒸汽纠缠奇点也可作为燃料。
         // getItemInputs 引用为仓内持久数据（窗口无关），网络结算由样板仓自身完成。
         if (remaining > 0) {

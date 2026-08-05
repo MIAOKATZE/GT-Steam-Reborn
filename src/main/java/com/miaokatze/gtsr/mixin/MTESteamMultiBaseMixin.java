@@ -1,10 +1,12 @@
 package com.miaokatze.gtsr.mixin;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraftforge.common.util.ForgeDirection;
+import net.minecraftforge.fluids.Fluid;
 
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -14,6 +16,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
+import com.miaokatze.gtsr.api.compat.GTSRHatchFluidAccess;
 import com.miaokatze.gtsr.api.compat.ICoolingHatchHolder;
 import com.miaokatze.gtsr.api.compat.SteamCoolingSupport;
 import com.miaokatze.gtsr.common.machine.base.MTEPressureSteamCoolingHatch;
@@ -24,12 +27,15 @@ import gregtech.api.enums.Materials;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.implementations.MTEHatchInput;
+import gregtech.api.metatileentity.implementations.MTEHatchInputDebug;
+import gregtech.api.metatileentity.implementations.MTEHatchMultiInput;
 import gregtech.api.metatileentity.implementations.MTEHatchOutput;
 import gregtech.api.metatileentity.implementations.MTEHatchOutputBus;
 import gregtech.api.metatileentity.implementations.MTEHatchVoidBus;
 import gregtech.api.metatileentity.implementations.MTEMultiBlockBase;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.shutdown.ShutDownReasonRegistry;
+import gregtech.common.tileentities.machines.MTEHatchInputME;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.MTEHatchSteamBusInput;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.MTEHatchSteamBusOutput;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTEHatchCustomFluidBase;
@@ -620,6 +626,83 @@ public abstract class MTESteamMultiBaseMixin implements ICoolingHatchHolder {
 
     // endregion
 
+    // region Recipe Fluid Collection (ME Hatch Visibility)
+
+    /**
+     * @reason Inject at HEAD to restore ME input hatch visibility in recipe fluid collection.
+     *         GT5U native getStoredFluidsForColor has a special branch for MTEHatchInputME
+     *         (via meHatch.getStoredFluids(), deduplicated by fluid type), but GT++'s
+     *         MTESteamMultiBlockBase override replaces it with getFillableStack() (local tank),
+     *         which is always null for ME hatches. This makes all MTESteamMultiBlockBase machines
+     *         unable to see ME input hatch fluids during recipe collection.
+     *         This override mirrors the GT5U native implementation while preserving the
+     *         mSteamInputFluids (GT++ custom fluid hatches) iteration.
+     * @author GTSR
+     *         注：转为 @Inject(HEAD, cancellable=true) + GTNL 守卫，避免影响 GTNL 子类机器（GTNL 走原生）。
+     *         使用方法描述符区分 getStoredInputsForColor(ItemStack) 相关重载。
+     */
+    @Inject(
+        method = "getStoredFluidsForColor(Ljava/util/Optional;)Ljava/util/ArrayList;",
+        at = @At("HEAD"),
+        cancellable = true)
+    private void gtsr$getStoredFluidsForColorHead(java.util.Optional<java.lang.Byte> color,
+        CallbackInfoReturnable<java.util.ArrayList<net.minecraftforge.fluids.FluidStack>> cir) {
+        // GTNL 守卫：GTNL 机器走 GT5U 原生行为，跳过 GTSR 逻辑
+        if (gtsr$isGTNLMachine()) return;
+
+        ArrayList<net.minecraftforge.fluids.FluidStack> rList = new ArrayList<>();
+        // GT++ 原语义：mSteamInputFluids（自定义流体仓，本地罐）
+        for (MTEHatchCustomFluidBase tHatch : GTUtility.validMTEList(mSteamInputFluids)) {
+            byte hatchColor = tHatch.getBaseMetaTileEntity()
+                .getColorization();
+            if (color.isPresent() && hatchColor != -1 && hatchColor != color.get()) continue;
+            if (tHatch.getFillableStack() != null) {
+                rList.add(tHatch.getFillableStack());
+            }
+        }
+        // 对齐 GT5U 原生 mInputHatches 语义（MTEMultiBlockBase:1852-1892）：
+        // MTEHatchInputME → getStoredFluids() 特判并按流体类型去重；其余 → getFillableStack()
+        Map<Fluid, net.minecraftforge.fluids.FluidStack> inputsFromME = new HashMap<>();
+        MTEMultiBlockBase multiBlockSelf = (MTEMultiBlockBase) (Object) this;
+        for (MTEHatchInput tHatch : GTUtility.validMTEList(multiBlockSelf.mInputHatches)) {
+            byte hatchColor = tHatch.getColor();
+            if (color.isPresent() && hatchColor != -1 && hatchColor != color.get()) continue;
+            if (tHatch instanceof MTEHatchMultiInput multiInputHatch) {
+                for (net.minecraftforge.fluids.FluidStack tFluid : multiInputHatch.getStoredFluid()) {
+                    if (tFluid != null) {
+                        rList.add(tFluid);
+                    }
+                }
+            } else if (tHatch instanceof MTEHatchInputME meHatch) {
+                for (net.minecraftforge.fluids.FluidStack fluidStack : meHatch.getStoredFluids()) {
+                    if (fluidStack != null) {
+                        // 防止不同 ME 仓中的相同流体被重复识别（与 GT5U 原生行为一致）
+                        inputsFromME.put(fluidStack.getFluid(), fluidStack);
+                    }
+                }
+            } else if (tHatch instanceof MTEHatchInputDebug debugHatch) {
+                for (net.minecraftforge.fluids.FluidStack fluid : debugHatch.getFluidList()) {
+                    if (fluid != null) {
+                        net.minecraftforge.fluids.FluidStack stack = fluid.copy();
+                        stack.amount = Integer.MAX_VALUE;
+                        rList.add(stack);
+                    }
+                }
+            } else {
+                net.minecraftforge.fluids.FluidStack fillableStack = tHatch.getFillableStack();
+                if (fillableStack != null) {
+                    rList.add(fillableStack);
+                }
+            }
+        }
+        if (!inputsFromME.isEmpty()) {
+            rList.addAll(inputsFromME.values());
+        }
+        cir.setReturnValue(rList);
+    }
+
+    // endregion
+
     // region Steam Stack & Deplete Input (HEAD Inject + GTNL 守卫)
 
     /**
@@ -654,18 +737,19 @@ public abstract class MTESteamMultiBaseMixin implements ICoolingHatchHolder {
         }
         // v1.10.4：ME 输入仓/普通输入仓（mInputHatches）蒸汽来源支持。
         // 3 参 drain(UNKNOWN,...) 模拟对普通仓走本地罐、对 ME 输入仓走虚拟引用/网络提取。
+        // v1.10.6：统一走 GTSRHatchFluidAccess，探测量 cap 到 1M（原 MAX_VALUE 会把 ME 网络
+        // 全量上报为"仓内蒸汽"，仅用于判空/显示）。
         MTEMultiBlockBase multiBlockSelf = (MTEMultiBlockBase) (Object) this;
+        int probeAmount = 1_000_000;
         for (MTEHatchInput hatch : GTUtility.validMTEList(multiBlockSelf.mInputHatches)) {
-            net.minecraftforge.fluids.FluidStack probe = aSteam.copy();
-            probe.amount = Integer.MAX_VALUE;
-            net.minecraftforge.fluids.FluidStack result = hatch.drain(ForgeDirection.UNKNOWN, probe, false);
+            net.minecraftforge.fluids.FluidStack result = GTSRHatchFluidAccess
+                .probeFluidAmount(hatch, aSteam.getFluid(), probeAmount);
             if (result != null && result.amount > 0 && result.isFluidEqual(aSteam)) {
                 aFluids.add(result);
             }
             if (aSuperheatedSteam != null) {
-                net.minecraftforge.fluids.FluidStack probe2 = aSuperheatedSteam.copy();
-                probe2.amount = Integer.MAX_VALUE;
-                net.minecraftforge.fluids.FluidStack result2 = hatch.drain(ForgeDirection.UNKNOWN, probe2, false);
+                net.minecraftforge.fluids.FluidStack result2 = GTSRHatchFluidAccess
+                    .probeFluidAmount(hatch, aSuperheatedSteam.getFluid(), probeAmount);
                 if (result2 != null && result2.amount > 0 && result2.isFluidEqual(aSuperheatedSteam)) {
                     aFluids.add(result2);
                 }
@@ -717,13 +801,29 @@ public abstract class MTESteamMultiBaseMixin implements ICoolingHatchHolder {
         // v1.10.4：ME 输入仓/普通输入仓（mInputHatches）蒸汽来源支持。
         // 逐仓 3 参 drain(UNKNOWN,...) 模拟→实扣（传副本：ME 输入仓实现会改写请求对象）。
         // ME 输入仓在配方窗口内走虚拟引用、窗口外走网络提取（需仓槽配置对应流体）。
+        // v1.10.6：统一走 GTSRHatchFluidAccess（先探测完整性，满足才实扣——与旧语义一致，
+        // 不足时不部分扣减）。蒸汽请求时补超热直接扣减分支（与本地罐路径语义对齐，
+        // 支持纯 ME 超热供汽：仓槽仅配置 ic2superheatedsteam 时普通蒸汽探测会失败）。
         MTEMultiBlockBase multiBlockSelf = (MTEMultiBlockBase) (Object) this;
+        net.minecraftforge.fluids.FluidStack aSuperheatedSteam = null;
+        if (isSteamRequest) {
+            aSuperheatedSteam = net.minecraftforge.fluids.FluidRegistry.getFluidStack("ic2superheatedsteam", 1);
+        }
         for (MTEHatchInput hatch : GTUtility.validMTEList(multiBlockSelf.mInputHatches)) {
-            net.minecraftforge.fluids.FluidStack sim = hatch.drain(ForgeDirection.UNKNOWN, aLiquid.copy(), false);
+            net.minecraftforge.fluids.FluidStack sim = GTSRHatchFluidAccess.probeFluidAmount(hatch, aLiquid);
             if (sim != null && sim.amount >= aLiquid.amount) {
-                net.minecraftforge.fluids.FluidStack real = hatch.drain(ForgeDirection.UNKNOWN, aLiquid.copy(), true);
-                cir.setReturnValue(real != null && real.amount >= aLiquid.amount);
+                int drained = GTSRHatchFluidAccess.drainFluidExact(hatch, aLiquid);
+                cir.setReturnValue(drained >= aLiquid.amount);
                 return;
+            }
+            if (aSuperheatedSteam != null) {
+                net.minecraftforge.fluids.FluidStack simSuper = GTSRHatchFluidAccess
+                    .probeFluidAmount(hatch, aSuperheatedSteam);
+                if (simSuper != null && simSuper.amount >= aLiquid.amount) {
+                    int drained = GTSRHatchFluidAccess.drainFluidExact(hatch, aSuperheatedSteam);
+                    cir.setReturnValue(drained >= aLiquid.amount);
+                    return;
+                }
             }
         }
         cir.setReturnValue(false);

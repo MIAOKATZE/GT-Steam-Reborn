@@ -1,7 +1,6 @@
 package com.miaokatze.gtsr.api.compat;
 
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
 
@@ -110,11 +109,12 @@ public final class SteamCoolingSupport {
             }
         }
         // v1.10.4：ME 输入仓/普通输入仓（mInputHatches）超热蒸汽检测（3 参 drain 模拟，兼容 ME 输入仓）
+        // v1.10.6：统一走 GTSRHatchFluidAccess（按需量探测）
         FluidStack superheated = FluidRegistry.getFluidStack("ic2superheatedsteam", 1);
         if (superheated == null) return false;
         for (MTEHatch hatch : self.mInputHatches) {
             if (hatch == null) continue;
-            FluidStack result = hatch.drain(ForgeDirection.UNKNOWN, superheated, false);
+            FluidStack result = GTSRHatchFluidAccess.probeFluidAmount(hatch, superheated.getFluid(), 1);
             if (result != null && result.amount > 0) {
                 return true;
             }

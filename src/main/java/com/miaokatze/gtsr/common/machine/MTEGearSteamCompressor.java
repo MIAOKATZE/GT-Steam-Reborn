@@ -68,6 +68,7 @@ import gregtech.api.util.GTUtility;
 import gregtech.api.util.IGTHatchAdder;
 import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
+import gregtech.common.tileentities.machines.IDualInputHatch;
 
 public class MTEGearSteamCompressor extends MTEEnhancedMultiBlockBase<MTEGearSteamCompressor>
     implements IConstructable, ISurvivalConstructable {
@@ -506,6 +507,10 @@ public class MTEGearSteamCompressor extends MTEEnhancedMultiBlockBase<MTEGearSte
         }
         for (var outputHatch : GTUtility.validMTEList(mOutputHatches)) {
             outputHatch.updateTexture(textureIndex);
+        }
+        // v1.10.6：样板仓（mDualInputHatches）纹理更新（InputHatch 元素可接受样板仓）
+        for (IDualInputHatch dual : mDualInputHatches) {
+            if (dual != null) dual.updateTexture(textureIndex);
         }
     }
 

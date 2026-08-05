@@ -46,6 +46,7 @@ import com.gtnewhorizons.modularui.common.widget.DynamicPositionedColumn;
 import com.gtnewhorizons.modularui.common.widget.FakeSyncWidget;
 import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
+import com.miaokatze.gtsr.api.compat.GTSRHatchFluidAccess;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.gui.MTEKineticProcessingArrayGui;
 import com.miaokatze.gtsr.common.machine.base.MTEHatchPressureSteamInput;
@@ -621,12 +622,12 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
         if (required <= 0) return true;
         long total = 0;
         // v1.10.4：ME 输入仓兼容——3 参 drain(UNKNOWN,...) 模拟（本地罐/网络均有效）
+        // v1.10.6：统一走 GTSRHatchFluidAccess 探测（按需量）
         FluidStack superheatedProbe = FluidRegistry.getFluidStack("ic2superheatedsteam", 1);
         if (superheatedProbe != null) {
             for (MTEHatchInput hatch : GTUtility.validMTEList(mInputHatches)) {
-                FluidStack probe = superheatedProbe.copy();
-                probe.amount = Integer.MAX_VALUE;
-                FluidStack result = hatch.drain(ForgeDirection.UNKNOWN, probe, false);
+                FluidStack result = GTSRHatchFluidAccess
+                    .probeFluidAmount(hatch, superheatedProbe.getFluid(), (int) Math.max(1, required));
                 if (result != null && result.amount > 0 && result.isFluidEqual(superheatedProbe)) {
                     total += result.amount;
                     if (total >= required) return true;
@@ -649,16 +650,12 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
         if (superheatedProbe != null) {
             for (MTEHatchInput hatch : GTUtility.validMTEList(mInputHatches)) {
                 if (remaining <= 0) break;
-                FluidStack probe = superheatedProbe.copy();
-                probe.amount = Integer.MAX_VALUE;
-                FluidStack sim = hatch.drain(ForgeDirection.UNKNOWN, probe, false);
-                if (sim != null && sim.amount > 0 && sim.isFluidEqual(superheatedProbe)) {
-                    FluidStack toDrain = superheatedProbe.copy();
-                    toDrain.amount = (int) Math.min(remaining, sim.amount);
-                    FluidStack real = hatch.drain(ForgeDirection.UNKNOWN, toDrain, true);
-                    if (real != null && real.amount > 0) {
-                        remaining -= real.amount;
-                    }
+                // v1.10.6：统一走 GTSRHatchFluidAccess 按需量取流（模拟→实扣）
+                int drained = GTSRHatchFluidAccess.drainFluidExact(
+                    hatch,
+                    new FluidStack(superheatedProbe.getFluid(), (int) Math.min(remaining, Integer.MAX_VALUE)));
+                if (drained > 0) {
+                    remaining -= drained;
                 }
             }
         }

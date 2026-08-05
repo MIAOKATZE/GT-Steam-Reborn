@@ -31,6 +31,7 @@ import com.gtnewhorizons.modularui.common.widget.DynamicPositionedColumn;
 import com.gtnewhorizons.modularui.common.widget.FakeSyncWidget;
 import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
+import com.miaokatze.gtsr.api.compat.GTSRHatchFluidAccess;
 import com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps;
 import com.miaokatze.gtsr.common.gui.MTESiemensMartinFurnaceGui;
 import com.miaokatze.gtsr.common.machine.base.MTEHatchPressureSteamInput;
@@ -483,15 +484,18 @@ public class MTESiemensMartinFurnace extends MTEEnhancedMultiBlockBase<MTESiemen
     }
 
     /**
-     * 从耐压蒸汽输入仓累计消耗过热蒸汽。
+     * 从耐压蒸汽输入仓/流体输入仓累计消耗过热蒸汽。
      * v1.7.26 修复：原实现要求单个 hatch 一次满足全部 amount，当过热蒸汽分散在多个仓时
      * 会误判为蒸汽不足，触发 stopMachine(POWER_LOSS) 导致"有充足蒸汽却断点关机"。
      * 现改为两阶段累计消耗：先模拟遍历估算总量，再真正逐仓扣除。
+     * v1.10.6 修复：ME 输入仓（mInputHatches，本地罐恒空）补充进探测与实扣路径，
+     * 统一走 GTSRHatchFluidAccess（3 参 drain 模拟→实扣）。
      */
     private boolean consumeSuperheatedSteam(int amount) {
         if (amount <= 0) return true;
         Fluid superheated = FluidRegistry.getFluid("ic2superheatedsteam");
         if (superheated == null) return false;
+        FluidStack want = new FluidStack(superheated, amount);
 
         // 阶段一：模拟遍历，累计所有 hatch 中可用 ic2superheatedsteam 总量
         int totalAvailable = 0;
@@ -504,6 +508,11 @@ public class MTESiemensMartinFurnace extends MTEEnhancedMultiBlockBase<MTESiemen
                         .getName())) {
                 totalAvailable += drained.amount;
             }
+        }
+        // v1.10.6：ME 输入仓/普通输入仓（mInputHatches）超热蒸汽探测
+        for (MTEHatch hatch : GTUtility.validMTEList(mInputHatches)) {
+            FluidStack sim = GTSRHatchFluidAccess.probeFluidAmount(hatch, want);
+            if (sim != null) totalAvailable += sim.amount;
         }
         if (totalAvailable < amount) return false;
 
@@ -521,6 +530,14 @@ public class MTESiemensMartinFurnace extends MTEEnhancedMultiBlockBase<MTESiemen
             int take = Math.min(remaining, drained.amount);
             hatch.drain(take, true);
             remaining -= take;
+        }
+        // v1.10.6：ME 输入仓/普通输入仓（mInputHatches）超热蒸汽实扣（按需量）
+        if (remaining > 0) {
+            for (MTEHatch hatch : GTUtility.validMTEList(mInputHatches)) {
+                if (remaining <= 0) break;
+                int drained = GTSRHatchFluidAccess.drainFluidExact(hatch, new FluidStack(superheated, remaining));
+                remaining -= drained;
+            }
         }
         return remaining <= 0;
     }

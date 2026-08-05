@@ -61,7 +61,6 @@ import gregtech.api.structure.error.StructureErrorRegistry;
 import gregtech.api.util.GTModHandler;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.MultiblockTooltipBuilder;
-import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTEHatchCustomFluidBase;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTESteamMultiBlockBase;
 
 public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingularityDrillingHub>
@@ -1124,27 +1123,8 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
     }
 
     private boolean hasSuperheatedSteamInHatch() {
-        for (MTEHatchCustomFluidBase hatch : mSteamInputFluids) {
-            FluidStack fs = hatch.getFluid();
-            if (fs != null && fs.getFluid() != null
-                && "ic2superheatedsteam".equals(
-                    fs.getFluid()
-                        .getName())
-                && fs.amount > 0) {
-                return true;
-            }
-        }
-        // v1.10.4：ME 输入仓/普通输入仓（mInputHatches）超热蒸汽检测
-        FluidStack superheated = FluidRegistry.getFluidStack("ic2superheatedsteam", 1);
-        if (superheated == null) return false;
-        for (MTEHatch hatch : mInputHatches) {
-            if (hatch == null) continue;
-            FluidStack result = hatch.drain(ForgeDirection.UNKNOWN, superheated, false);
-            if (result != null && result.amount > 0) {
-                return true;
-            }
-        }
-        return false;
+        // v1.10.6：统一走 SteamCoolingSupport（mSteamInputFluids 本地罐 + mInputHatches 3参 drain 探测）
+        return SteamCoolingSupport.hasSuperheatedSteam(this);
     }
 
     @Deprecated

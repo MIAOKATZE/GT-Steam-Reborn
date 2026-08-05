@@ -22,8 +22,6 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 import net.minecraftforge.common.util.ForgeDirection;
-import net.minecraftforge.fluids.FluidRegistry;
-import net.minecraftforge.fluids.FluidStack;
 
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -61,7 +59,6 @@ import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.api.util.OverclockCalculator;
 import gregtech.common.blocks.BlockCasings1;
 import gregtech.common.blocks.BlockCasings2;
-import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTEHatchCustomFluidBase;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTESteamMultiBlockBase;
 
 public class MTELargeSteamFurnace extends MTESteamMultiBlockBase<MTELargeSteamFurnace>
@@ -530,26 +527,7 @@ public class MTELargeSteamFurnace extends MTESteamMultiBlockBase<MTELargeSteamFu
     }
 
     public boolean hasSuperheatedSteamInHatch() {
-        for (MTEHatchCustomFluidBase hatch : mSteamInputFluids) {
-            FluidStack fs = hatch.getFluid();
-            if (fs != null && fs.getFluid() != null
-                && "ic2superheatedsteam".equals(
-                    fs.getFluid()
-                        .getName())
-                && fs.amount > 0) {
-                return true;
-            }
-        }
-        // v1.10.4：ME 输入仓/普通输入仓（mInputHatches）超热蒸汽检测
-        FluidStack superheated = FluidRegistry.getFluidStack("ic2superheatedsteam", 1);
-        if (superheated == null) return false;
-        for (MTEHatch hatch : mInputHatches) {
-            if (hatch == null) continue;
-            FluidStack result = hatch.drain(ForgeDirection.UNKNOWN, superheated, false);
-            if (result != null && result.amount > 0) {
-                return true;
-            }
-        }
-        return false;
+        // v1.10.6：统一走 SteamCoolingSupport（mSteamInputFluids 本地罐 + mInputHatches 3参 drain 探测）
+        return SteamCoolingSupport.hasSuperheatedSteam(this);
     }
 }

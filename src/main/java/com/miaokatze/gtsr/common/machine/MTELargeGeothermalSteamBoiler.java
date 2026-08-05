@@ -47,6 +47,7 @@ import com.gtnewhorizons.modularui.common.widget.FakeSyncWidget;
 import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import com.miaokatze.gtsr.api.IShiftRightClickDecalcifiable;
+import com.miaokatze.gtsr.api.compat.GTSRHatchFluidAccess;
 import com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.gui.MTELargeGeothermalSteamBoilerGui;
@@ -79,6 +80,7 @@ import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.common.blocks.BlockCasings1;
 import gregtech.common.blocks.BlockCasings2;
 import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
+import gregtech.common.tileentities.machines.IDualInputHatch;
 
 public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTELargeGeothermalSteamBoiler>
     implements IConstructable, ISurvivalConstructable, IShiftRightClickDecalcifiable {
@@ -243,6 +245,10 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
         for (MTEHatch h : mOutputBusses) h.updateTexture(textureID);
         for (MTEHatch h : mSteamOutputHatches) h.updateTexture(textureID);
         for (MTEHatch h : mPressureSteamOutputHatches) h.updateTexture(textureID);
+        // v1.10.6：样板仓（mDualInputHatches）纹理更新（InputHatch 元素可接受样板仓）
+        for (IDualInputHatch dual : mDualInputHatches) {
+            if (dual != null) dual.updateTexture(textureID);
+        }
     }
 
     @Override
@@ -538,7 +544,11 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
     // isFluidEqual 语义，替代硬编码流体名比较。
     private FluidStack drainLavaInput(int amount, boolean doDrain) {
         FluidStack lava = GTModHandler.getLava(amount);
+        // v1.10.6：样板仓（mDualInputHatches）岩浆供流兜底（引用扣减，样板仓自结算）
         if (depleteInput(lava, !doDrain)) return lava;
+        if (doDrain && GTSRHatchFluidAccess.depleteFluidFromDuals(mDualInputHatches, lava) >= lava.amount) {
+            return lava;
+        }
         return null;
     }
 
@@ -648,7 +658,8 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
                     toDeplete = water;
                 }
 
-                if (toDeplete != null && depleteInput(toDeplete, false)) {
+                if (toDeplete != null && (depleteInput(toDeplete, false)
+                    || GTSRHatchFluidAccess.depleteFluidFromDuals(mDualInputHatches, toDeplete) >= toDeplete.amount)) {
                     int steamOutput = consumedWater * STEAM_PER_WATER;
                     mCurrentSteamOutput = steamOutput;
                     mRunningTicks += 20;

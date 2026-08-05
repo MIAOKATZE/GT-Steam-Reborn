@@ -81,6 +81,8 @@ public abstract class MTESingularityMachineBase extends MTEEnhancedMultiBlockBas
     protected static final String[] DENSE_FLUID_NAMES = { "densesteam", "densesuperheatedsteam",
         "densesupercriticalsteam" };
     protected static final String[] NORMAL_FLUID_NAMES = { "steam", "ic2superheatedsteam", "supercriticalsteam" };
+    /** 单周期单仓最大取流/探测量。覆盖压力蒸汽输入仓 512K 容量，避免 ME 网络全量提取。 */
+    protected static final int MAX_DRAIN_PER_CYCLE = 1_000_000;
 
     private static IStructureDefinition<MTESingularityMachineBase> STRUCTURE_DEFINITION;
     private static IIconContainer OVERLAY_OFF;
@@ -563,7 +565,7 @@ public abstract class MTESingularityMachineBase extends MTEEnhancedMultiBlockBas
             if (request == null) continue;
             for (MTEHatch hatch : getSteamInputHatches()) {
                 FluidStack full = request.copy();
-                full.amount = Integer.MAX_VALUE;
+                full.amount = MAX_DRAIN_PER_CYCLE;
                 FluidStack result = hatch.drain(ForgeDirection.UNKNOWN, full, false);
                 if (result != null && result.amount > 0) amount += result.amount;
             }
@@ -575,9 +577,17 @@ public abstract class MTESingularityMachineBase extends MTEEnhancedMultiBlockBas
         for (FluidStack request : gradeProbeStacks(grade, includeDense, false)) {
             if (request == null) continue;
             for (MTEHatch hatch : getSteamInputHatches()) {
+                // 按需量实扣：先探测本仓实际可得量（cap 到 MAX_DRAIN_PER_CYCLE），再按探测结果实扣。
+                // 修复：原实现以 MAX_VALUE 实扣，对 ME 输入仓（MTEHatchInputME/RestrictedInputHatchME）
+                // 会一次拉取整个网络该流体库存（restrict 在 drain 路径完全绕过）。
                 FluidStack full = request.copy();
-                full.amount = Integer.MAX_VALUE;
-                hatch.drain(ForgeDirection.UNKNOWN, full, true);
+                full.amount = MAX_DRAIN_PER_CYCLE;
+                FluidStack available = hatch.drain(ForgeDirection.UNKNOWN, full, false);
+                if (available != null && available.amount > 0) {
+                    FluidStack toDrain = available.copy();
+                    toDrain.amount = Math.min(available.amount, MAX_DRAIN_PER_CYCLE);
+                    hatch.drain(ForgeDirection.UNKNOWN, toDrain, true);
+                }
             }
         }
     }

@@ -51,6 +51,7 @@ import com.gtnewhorizons.modularui.common.widget.FakeSyncWidget;
 import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import com.miaokatze.gtsr.api.IShiftRightClickDecalcifiable;
+import com.miaokatze.gtsr.api.compat.GTSRHatchFluidAccess;
 import com.miaokatze.gtsr.api.compat.GTVersionCompat;
 import com.miaokatze.gtsr.common.gui.MTELargeSolarOverpressureArrayGui;
 import com.miaokatze.gtsr.common.machine.base.MTEPressureSteamOutputHatch;
@@ -80,6 +81,7 @@ import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.common.blocks.BlockCasings1;
 import gregtech.common.blocks.BlockCasings2;
 import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
+import gregtech.common.tileentities.machines.IDualInputHatch;
 
 public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MTELargeSolarOverpressureArray>
     implements IConstructable, ISurvivalConstructable, IShiftRightClickDecalcifiable {
@@ -239,6 +241,10 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
                     h.updateTexture(textureID);
                 }
             }
+        }
+        // v1.10.6：样板仓（mDualInputHatches）纹理更新（InputHatch 元素可接受样板仓）
+        for (IDualInputHatch dual : mDualInputHatches) {
+            if (dual != null) dual.updateTexture(textureID);
         }
     }
 
@@ -435,6 +441,16 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
         }
 
         ArrayList<FluidStack> storedFluids = super.getStoredFluids();
+        // v1.10.6：样板仓（mDualInputHatches）流体并入探测（getAllFluids 持久引用，
+        // 扣减后由样板仓自结算；与奇点燃料 getAllItems 引用扣减同构）。
+        for (IDualInputHatch dual : mDualInputHatches) {
+            if (dual == null) continue;
+            for (FluidStack fs : dual.getAllFluids()) {
+                if (fs != null && fs.amount > 0) {
+                    storedFluids.add(fs);
+                }
+            }
+        }
 
         boolean hasWaterInSystem = false;
         for (FluidStack hatchFluid : storedFluids) {
@@ -474,7 +490,9 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
                         liquidToDeplete = GTModHandler.getWater(consumedWater);
                     }
 
-                    if (super.depleteInput(liquidToDeplete)) {
+                    if (super.depleteInput(liquidToDeplete)
+                        || GTSRHatchFluidAccess.depleteFluidFromDuals(mDualInputHatches, liquidToDeplete)
+                            >= liquidToDeplete.amount) {
                         int steamAmount = consumedWater * STEAM_PER_WATER;
                         mRunningTicks += 20;
                         mCurrentSteamOutput = steamAmount;
