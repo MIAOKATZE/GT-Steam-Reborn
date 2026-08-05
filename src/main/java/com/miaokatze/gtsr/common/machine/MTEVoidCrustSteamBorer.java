@@ -194,8 +194,7 @@ public class MTEVoidCrustSteamBorer extends MTESteamMultiBlockBase<MTEVoidCrustS
         return ((BlockCasings2) GregTechAPI.sBlockCasings2).getTextureIndex(0);
     }
 
-    @Override
-    protected void updateHatchTexture() {
+    protected void updateAllHatchTextures() {
         super.updateHatchTexture();
         int textureID = getCasingTextureID();
         // v1.9.41 修复：补 mInputBusses（SteamInputBus 元素注册，super 默认不含）
@@ -232,8 +231,6 @@ public class MTEVoidCrustSteamBorer extends MTESteamMultiBlockBase<MTEVoidCrustS
     @Override
     public IStructureDefinition<MTEVoidCrustSteamBorer> getStructureDefinition() {
         if (STRUCTURE_DEFINITION == null) {
-            final int casingIndex = GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings2, 0);
-
             STRUCTURE_DEFINITION = StructureDefinition.<MTEVoidCrustSteamBorer>builder()
                 .addShape(
                     STRUCTURE_PIECE_MAIN,
@@ -272,19 +269,19 @@ public class MTEVoidCrustSteamBorer extends MTESteamMultiBlockBase<MTEVoidCrustS
                         // mteBlacklist() excludes MTEHatchPressureSteamInput.class, preventing NEI from rendering
                         // the pressure steam hatch at every casing position.
                         buildHatchAdder(MTEVoidCrustSteamBorer.class).atLeast(PressureSteamInputHatch)
-                            .casingIndex(casingIndex)
+                            .casingIndex(getCasingTextureID())
                             .hint(1)
                             .shouldReject(t -> !t.mSteamInputFluids.isEmpty() && !t.mInputHatches.isEmpty())
                             .build(),
                         buildHatchAdder(MTEVoidCrustSteamBorer.class).atLeast(SteamInputBus, SteamOutputBus)
-                            .casingIndex(casingIndex)
+                            .casingIndex(getCasingTextureID())
                             .hint(1)
                             .build(),
                         // v1.9.40 新增：冷却仓元素（可选）。蒸汽消耗的冷却产物（普通→蒸馏水 160:1、
                         // 过热→蒸汽 1:1）由 mixin 推入对应冷却仓，此前结构无此元素导致产物滞留/丢失。
                         buildHatchAdder(MTEVoidCrustSteamBorer.class)
                             .atLeast(SteamCoolingHatch, PressureSteamCoolingHatch)
-                            .casingIndex(casingIndex)
+                            .casingIndex(getCasingTextureID())
                             .hint(1)
                             .build()))
                 .addElement(
@@ -346,7 +343,7 @@ public class MTEVoidCrustSteamBorer extends MTESteamMultiBlockBase<MTEVoidCrustS
             return;
         }
 
-        updateHatchTexture();
+        updateAllHatchTextures();
     }
 
     @Override

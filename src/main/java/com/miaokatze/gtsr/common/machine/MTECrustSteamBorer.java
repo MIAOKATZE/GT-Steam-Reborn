@@ -55,6 +55,7 @@ import gregtech.api.util.GTUtility;
 import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.common.blocks.BlockCasings1;
 import gregtech.common.blocks.BlockCasings2;
+import gregtech.common.tileentities.machines.IDualInputHatch;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTEHatchCustomFluidBase;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTESteamMultiBlockBase;
 
@@ -145,11 +146,20 @@ public class MTECrustSteamBorer extends MTESteamMultiBlockBase<MTECrustSteamBore
         return ((BlockCasings1) GregTechAPI.sBlockCasings1).getTextureIndex(10);
     }
 
-    protected void updateHatchTexture() {
+    protected void updateAllHatchTextures() {
         int textureID = getCasingTextureID();
+        for (MTEHatch h : mSteamInputs) h.updateTexture(textureID);
+        for (MTEHatch h : mSteamOutputs) h.updateTexture(textureID);
         for (MTEHatch h : mSteamInputFluids) h.updateTexture(textureID);
+        for (MTEHatch h : mInputHatches) h.updateTexture(textureID);
+        for (MTEHatch h : mOutputHatches) h.updateTexture(textureID);
+        for (MTEHatch h : mInputBusses) h.updateTexture(textureID);
         for (MTEHatch h : mOutputBusses) h.updateTexture(textureID);
-        // v1.9.41 修复：冷却仓纳入纹理更新（v1.9.40 新增结构元素，此前 tier2 时底材停滞青铜）
+        if (mDualInputHatches != null) {
+            for (IDualInputHatch dualHatch : mDualInputHatches) {
+                if (dualHatch != null) dualHatch.updateTexture(textureID);
+            }
+        }
         SteamCoolingSupport.updateHatchTextures((ICoolingHatchHolder) this, textureID);
     }
 
@@ -176,8 +186,6 @@ public class MTECrustSteamBorer extends MTESteamMultiBlockBase<MTECrustSteamBore
     @Override
     public IStructureDefinition<MTECrustSteamBorer> getStructureDefinition() {
         if (STRUCTURE_DEFINITION == null) {
-            final int casingIndex = GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings1, 10);
-
             STRUCTURE_DEFINITION = StructureDefinition.<MTECrustSteamBorer>builder()
                 .addShape(
                     STRUCTURE_PIECE_MAIN,
@@ -223,18 +231,18 @@ public class MTECrustSteamBorer extends MTESteamMultiBlockBase<MTECrustSteamBore
                         // mteBlacklist() excludes MTEHatchPressureSteamInput.class, preventing NEI from rendering
                         // the pressure steam hatch at every casing position.
                         buildHatchAdder(MTECrustSteamBorer.class).atLeast(PressureSteamInputHatch)
-                            .casingIndex(casingIndex)
+                            .casingIndex(getCasingTextureID())
                             .hint(1)
                             .shouldReject(t -> !t.mSteamInputFluids.isEmpty() && !t.mInputHatches.isEmpty())
                             .build(),
                         buildHatchAdder(MTECrustSteamBorer.class).atLeast(SteamOutputBus)
-                            .casingIndex(casingIndex)
+                            .casingIndex(getCasingTextureID())
                             .hint(1)
                             .build(),
                         // v1.9.40 新增：冷却仓元素（可选）。蒸汽消耗的冷却产物（普通→蒸馏水 160:1、
                         // 过热→蒸汽 1:1）由 mixin 推入对应冷却仓，此前结构无此元素导致产物滞留/丢失。
                         buildHatchAdder(MTECrustSteamBorer.class).atLeast(SteamCoolingHatch, PressureSteamCoolingHatch)
-                            .casingIndex(casingIndex)
+                            .casingIndex(getCasingTextureID())
                             .hint(1)
                             .build()))
                 .addElement(
@@ -328,7 +336,7 @@ public class MTECrustSteamBorer extends MTESteamMultiBlockBase<MTECrustSteamBore
             return;
         }
 
-        updateHatchTexture();
+        updateAllHatchTextures();
     }
 
     @Override

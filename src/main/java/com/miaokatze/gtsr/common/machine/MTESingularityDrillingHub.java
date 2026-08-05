@@ -61,6 +61,7 @@ import gregtech.api.structure.error.StructureErrorRegistry;
 import gregtech.api.util.GTModHandler;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.MultiblockTooltipBuilder;
+import gregtech.common.tileentities.machines.IDualInputHatch;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTESteamMultiBlockBase;
 
 public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingularityDrillingHub>
@@ -143,12 +144,20 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
         return GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings2, 0);
     }
 
-    protected void updateHatchTexture() {
+    protected void updateAllHatchTextures() {
         int textureID = getCasingTextureID();
+        for (MTEHatch h : mSteamInputs) h.updateTexture(textureID);
+        for (MTEHatch h : mSteamOutputs) h.updateTexture(textureID);
         for (MTEHatch h : mSteamInputFluids) h.updateTexture(textureID);
-        for (MTEHatch h : mOutputBusses) h.updateTexture(textureID);
+        for (MTEHatch h : mInputHatches) h.updateTexture(textureID);
         for (MTEHatch h : mOutputHatches) h.updateTexture(textureID);
-        // v1.9.41 修复：冷却仓纳入纹理更新（结构元素含 SteamCoolingHatch，此前冷却仓底材不随结构刷新）
+        for (MTEHatch h : mInputBusses) h.updateTexture(textureID);
+        for (MTEHatch h : mOutputBusses) h.updateTexture(textureID);
+        if (mDualInputHatches != null) {
+            for (IDualInputHatch dualHatch : mDualInputHatches) {
+                if (dualHatch != null) dualHatch.updateTexture(textureID);
+            }
+        }
         SteamCoolingSupport.updateHatchTextures((ICoolingHatchHolder) this, textureID);
     }
 
@@ -291,7 +300,7 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
             return;
         }
 
-        updateHatchTexture();
+        updateAllHatchTextures();
     }
 
     @Override

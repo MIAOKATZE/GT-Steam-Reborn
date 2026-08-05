@@ -135,8 +135,7 @@ public class MTESteamFluidDrill extends MTESteamMultiBlockBase<MTESteamFluidDril
         return ((BlockCasings1) GregTechAPI.sBlockCasings1).getTextureIndex(10);
     }
 
-    @Override
-    protected void updateHatchTexture() {
+    protected void updateAllHatchTextures() {
         super.updateHatchTexture();
         int textureID = getCasingTextureID();
         for (MTEHatch h : mOutputHatches) h.updateTexture(textureID);
@@ -155,8 +154,6 @@ public class MTESteamFluidDrill extends MTESteamMultiBlockBase<MTESteamFluidDril
     @Override
     public IStructureDefinition<MTESteamFluidDrill> getStructureDefinition() {
         if (STRUCTURE_DEFINITION == null) {
-            final int bronzeCasingIndex = ((BlockCasings1) GregTechAPI.sBlockCasings1).getTextureIndex(10);
-
             STRUCTURE_DEFINITION = StructureDefinition.<MTESteamFluidDrill>builder()
                 .addShape(
                     STRUCTURE_PIECE_MAIN,
@@ -184,12 +181,12 @@ public class MTESteamFluidDrill extends MTESteamMultiBlockBase<MTESteamFluidDril
                         // Use atLeast(PressureSteamInputHatch) instead of hatchIds(...). Its mteBlacklist()
                         // excludes MTEHatchPressureSteamInput.class so NEI does not render it on casing positions.
                         buildHatchAdder(MTESteamFluidDrill.class).atLeast(PressureSteamInputHatch)
-                            .casingIndex(bronzeCasingIndex)
+                            .casingIndex(getCasingTextureID())
                             .hint(1)
                             .shouldReject(t -> !t.mSteamInputFluids.isEmpty() && !t.mInputHatches.isEmpty())
                             .build(),
                         buildHatchAdder(MTESteamFluidDrill.class).atLeast(OutputHatch)
-                            .casingIndex(bronzeCasingIndex)
+                            .casingIndex(getCasingTextureID())
                             .hint(1)
                             .build()))
                 .addElement(
@@ -275,7 +272,7 @@ public class MTESteamFluidDrill extends MTESteamMultiBlockBase<MTESteamFluidDril
             return;
         }
 
-        updateHatchTexture();
+        updateAllHatchTextures();
     }
 
     private static final int HIGH_STEAM_PER_SECOND = 4_000;

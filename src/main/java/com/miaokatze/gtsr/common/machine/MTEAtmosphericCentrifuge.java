@@ -127,16 +127,20 @@ public class MTEAtmosphericCentrifuge extends MTESteamMultiBlockBase<MTEAtmosphe
         return ((BlockCasings1) GregTechAPI.sBlockCasings1).getTextureIndex(10);
     }
 
-    protected void updateHatchTexture() {
+    protected void updateAllHatchTextures() {
         int textureID = getCasingTextureID();
+        for (MTEHatch h : mSteamInputs) h.updateTexture(textureID);
+        for (MTEHatch h : mSteamOutputs) h.updateTexture(textureID);
         for (MTEHatch h : mSteamInputFluids) h.updateTexture(textureID);
         for (MTEHatch h : mInputHatches) h.updateTexture(textureID);
         for (MTEHatch h : mOutputHatches) h.updateTexture(textureID);
-        // v1.10.6：样板仓（mDualInputHatches）纹理更新（InputHatch 元素可接受样板仓）
-        for (IDualInputHatch dual : mDualInputHatches) {
-            if (dual != null) dual.updateTexture(textureID);
+        for (MTEHatch h : mInputBusses) h.updateTexture(textureID);
+        for (MTEHatch h : mOutputBusses) h.updateTexture(textureID);
+        if (mDualInputHatches != null) {
+            for (IDualInputHatch dualHatch : mDualInputHatches) {
+                if (dualHatch != null) dualHatch.updateTexture(textureID);
+            }
         }
-        // v1.9.41 修复：冷却仓纳入纹理更新（v1.9.40 新增结构元素，此前 tier2 时底材停滞青铜）
         SteamCoolingSupport.updateHatchTextures((ICoolingHatchHolder) this, textureID);
     }
 
@@ -153,8 +157,6 @@ public class MTEAtmosphericCentrifuge extends MTESteamMultiBlockBase<MTEAtmosphe
     @Override
     public IStructureDefinition<MTEAtmosphericCentrifuge> getStructureDefinition() {
         if (STRUCTURE_DEFINITION == null) {
-            final int bronzeCasingIndex = ((BlockCasings1) GregTechAPI.sBlockCasings1).getTextureIndex(10);
-
             STRUCTURE_DEFINITION = StructureDefinition.<MTEAtmosphericCentrifuge>builder()
                 .addShape(
                     STRUCTURE_PIECE_MAIN,
@@ -185,19 +187,19 @@ public class MTEAtmosphericCentrifuge extends MTESteamMultiBlockBase<MTEAtmosphe
                         // Use atLeast(PressureSteamInputHatch) instead of hatchIds(...). Its mteBlacklist()
                         // excludes MTEHatchPressureSteamInput.class so NEI does not render it on casing positions.
                         buildHatchAdder(MTEAtmosphericCentrifuge.class).atLeast(PressureSteamInputHatch)
-                            .casingIndex(bronzeCasingIndex)
+                            .casingIndex(getCasingTextureID())
                             .hint(1)
                             .shouldReject(t -> !t.mSteamInputFluids.isEmpty() && !t.mInputHatches.isEmpty())
                             .build(),
                         buildHatchAdder(MTEAtmosphericCentrifuge.class).atLeast(InputHatch, OutputHatch)
-                            .casingIndex(bronzeCasingIndex)
+                            .casingIndex(getCasingTextureID())
                             .hint(1)
                             .build(),
                         // v1.9.40 新增：冷却仓元素（可选）。蒸汽消耗的冷却产物（普通→蒸馏水 160:1、
                         // 过热→蒸汽 1:1）由 mixin 推入对应冷却仓，此前结构无此元素导致产物滞留/丢失。
                         buildHatchAdder(MTEAtmosphericCentrifuge.class)
                             .atLeast(SteamCoolingHatch, PressureSteamCoolingHatch)
-                            .casingIndex(bronzeCasingIndex)
+                            .casingIndex(getCasingTextureID())
                             .hint(1)
                             .build()))
                 .addElement(
@@ -285,7 +287,7 @@ public class MTEAtmosphericCentrifuge extends MTESteamMultiBlockBase<MTEAtmosphe
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
             return;
         }
-        updateHatchTexture();
+        updateAllHatchTextures();
     }
 
     @Override
