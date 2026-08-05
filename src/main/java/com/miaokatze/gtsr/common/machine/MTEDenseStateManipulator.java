@@ -133,7 +133,7 @@ public class MTEDenseStateManipulator extends MTESingularityMachineBase {
     @Override
     public void checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack, List<StructureError> errors) {
         super.checkMachine(aBaseMetaTileEntity, aStack, errors);
-        updateHatchTextures();
+        updateAllHatchTextures();
     }
 
     @Override

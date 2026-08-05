@@ -225,7 +225,7 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
         return ((BlockCasings1) GregTechAPI.sBlockCasings1).getTextureIndex(10);
     }
 
-    protected void updateHatchTextures() {
+    protected void updateAllHatchTextures() {
         if (mSetTier <= 0) return;
         int textureID = getCasingTextureID();
 
@@ -336,7 +336,6 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
                         MTELargeSolarOverpressureArray::getFrameTier,
                         ImmutableList.of(
                             Pair.of(GregTechAPI.sBlockFrames, Materials.Bronze.mMetaItemSubID),
-                            Pair.of(GregTechAPI.sBlockFrames, Materials.Steel.mMetaItemSubID),
                             Pair.of(GregTechAPI.sBlockFrames, Materials.Steel.mMetaItemSubID)),
                         -1,
                         (MTELargeSolarOverpressureArray t, Integer tier) -> t.tierCasing = Math.max(t.tierCasing, tier),
@@ -380,7 +379,7 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
             return;
         }
 
-        updateHatchTextures();
+        updateAllHatchTextures();
     }
 
     private boolean hasValidOutputHatchesForTier() {

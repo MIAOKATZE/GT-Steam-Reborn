@@ -34,7 +34,6 @@ import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import com.miaokatze.gtsr.api.compat.ICoolingHatchHolder;
 import com.miaokatze.gtsr.api.compat.SteamCoolingSupport;
-import com.miaokatze.gtsr.common.machine.base.MTEHatchPressureSteamInput;
 import com.miaokatze.gtsr.common.machine.base.VoidMinerUtilityShim;
 import com.miaokatze.gtsr.main.GTSteamReborn;
 
@@ -55,7 +54,6 @@ import gregtech.api.util.GTUtility;
 import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.common.blocks.BlockCasings2;
 import gregtech.common.tileentities.machines.IDualInputHatch;
-import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTEHatchCustomFluidBase;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTESteamMultiBlockBase;
 
 public class MTEVoidCrustSteamBorer extends MTESteamMultiBlockBase<MTEVoidCrustSteamBorer>
@@ -214,13 +212,6 @@ public class MTEVoidCrustSteamBorer extends MTESteamMultiBlockBase<MTEVoidCrustS
     @Override
     public byte getUpdateData() {
         return 0;
-    }
-
-    private boolean hasPressureSteamHatch() {
-        for (MTEHatchCustomFluidBase hatch : mSteamInputFluids) {
-            if (hatch instanceof MTEHatchPressureSteamInput) return true;
-        }
-        return false;
     }
 
     private boolean hasSuperheatedSteamInHatch() {

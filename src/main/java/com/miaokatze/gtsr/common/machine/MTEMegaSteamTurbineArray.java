@@ -43,6 +43,7 @@ import com.gtnewhorizons.modularui.common.widget.FakeSyncWidget;
 import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import com.miaokatze.gtsr.api.compat.GTSRHatchFluidAccess;
+import com.miaokatze.gtsr.api.util.CasingTierTextureHelper;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.gui.MTEMegaSteamTurbineArrayGui;
 import com.miaokatze.gtsr.common.machine.base.MTEHatchPressureSteamInput;
@@ -93,7 +94,7 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
     private static final int MAX_EXTRA_STACKS = 4;
 
     private static final int SOLID_STEEL_CASING_INDEX = GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings2, 0);
-    private static IStructureDefinition<MTEMegaSteamTurbineArray> STRUCTURE_DEFINITION;
+    private static IStructureDefinition<MTEMegaSteamTurbineArray> STRUCTURE_DEFINITION = null;
 
     private int mCasingAmount = 0;
     public int mStackCount = 0;
@@ -1468,8 +1469,12 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         for (var inputBus : GTUtility.validMTEList(mInputBusses)) {
             inputBus.updateTexture(textureIndex);
         }
-        for (var dualHatch : mDualInputHatches) {
-            dualHatch.updateTexture(textureIndex);
+        if (mDualInputHatches != null) {
+            for (var dualHatch : mDualInputHatches) {
+                if (dualHatch != null) {
+                    dualHatch.updateTexture(textureIndex);
+                }
+            }
         }
         for (var dynamoHatch : GTUtility.validMTEList(mDynamoHatches)) {
             dynamoHatch.updateTexture(textureIndex);
@@ -1631,34 +1636,17 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
     }
 
     private int getCasingTextureIndex() {
-        switch (mCasingTier) {
-            case 1:
-                return GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings2, 0);
-            case 2:
-                return GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings1, 2);
-            case 3:
-                return GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings4, 1);
-            case 4:
-                return GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings4, 2);
-            case 5:
-                return GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings4, 0);
-            case 6:
-                return GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings8, 6);
-            case 7:
-                return GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings8, 7);
-            case 8:
-                return GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings4, 14);
-            case 9:
-                return GTUtility.getCasingTextureIndex(GregTechAPI.sBlockReinforced, 11);
-            case 10:
-                return GTUtility.getCasingTextureIndex(GregTechAPI.sBlockReinforced, 10);
-            case 11:
-                return GTUtility.getCasingTextureIndex(WerkstoffLoader.BWBlockCasings, 32091);
-            case 12:
-                return GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings8, 10);
-            default:
-                return SOLID_STEEL_CASING_INDEX;
-        }
+        return CasingTierTextureHelper.getTextureIndex(mCasingTier, SOLID_STEEL_CASING_INDEX);
+    }
+
+    @Override
+    public void onValueUpdate(byte aValue) {
+        mCasingTier = aValue;
+    }
+
+    @Override
+    public byte getUpdateData() {
+        return (byte) mCasingTier;
     }
 
     @Override

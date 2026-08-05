@@ -36,7 +36,6 @@ import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import com.miaokatze.gtsr.api.compat.ICoolingHatchHolder;
 import com.miaokatze.gtsr.api.compat.SteamCoolingSupport;
-import com.miaokatze.gtsr.common.machine.base.MTEHatchPressureSteamInput;
 import com.miaokatze.gtsr.common.machine.base.VoidMinerUtilityShim;
 
 import bwcrossmod.galacticgreg.VoidMinerUtility;
@@ -56,7 +55,6 @@ import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.common.blocks.BlockCasings1;
 import gregtech.common.blocks.BlockCasings2;
 import gregtech.common.tileentities.machines.IDualInputHatch;
-import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTEHatchCustomFluidBase;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTESteamMultiBlockBase;
 
 public class MTECrustSteamBorer extends MTESteamMultiBlockBase<MTECrustSteamBorer> implements ISurvivalConstructable {
@@ -169,13 +167,6 @@ public class MTECrustSteamBorer extends MTESteamMultiBlockBase<MTECrustSteamBore
     @Override
     public byte getUpdateData() {
         return 0;
-    }
-
-    protected boolean hasPressureSteamHatch() {
-        for (MTEHatchCustomFluidBase hatch : mSteamInputFluids) {
-            if (hatch instanceof MTEHatchPressureSteamInput) return true;
-        }
-        return false;
     }
 
     protected boolean hasSuperheatedSteamInHatch() {

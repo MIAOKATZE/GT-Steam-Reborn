@@ -47,6 +47,7 @@ import com.gtnewhorizons.modularui.common.widget.FakeSyncWidget;
 import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import com.miaokatze.gtsr.api.compat.GTSRHatchFluidAccess;
+import com.miaokatze.gtsr.api.util.CasingTierTextureHelper;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.gui.MTEKineticProcessingArrayGui;
 import com.miaokatze.gtsr.common.machine.base.MTEHatchPressureSteamInput;
@@ -1023,34 +1024,7 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
 
     private int getCasingTextureIndex() {
         int tier = mSyncedCasingTier > 0 ? mSyncedCasingTier : mCasingTier;
-        switch (tier) {
-            case 1:
-                return GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings2, 0);
-            case 2:
-                return GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings1, 2);
-            case 3:
-                return GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings4, 1);
-            case 4:
-                return GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings4, 2);
-            case 5:
-                return GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings4, 0);
-            case 6:
-                return GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings8, 6);
-            case 7:
-                return GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings8, 7);
-            case 8:
-                return GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings4, 14);
-            case 9:
-                return GTUtility.getCasingTextureIndex(GregTechAPI.sBlockReinforced, 11);
-            case 10:
-                return GTUtility.getCasingTextureIndex(GregTechAPI.sBlockReinforced, 10);
-            case 11:
-                return GTUtility.getCasingTextureIndex(WerkstoffLoader.BWBlockCasings, 32091);
-            case 12:
-                return GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings8, 10);
-            default:
-                return SOLID_STEEL_CASING_INDEX;
-        }
+        return CasingTierTextureHelper.getTextureIndex(tier, SOLID_STEEL_CASING_INDEX);
     }
 
     @Override

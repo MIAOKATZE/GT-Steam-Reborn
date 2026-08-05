@@ -79,7 +79,7 @@ public class MTEGearSteamCompressor extends MTEEnhancedMultiBlockBase<MTEGearSte
     private static final int VERTICAL_OFF_SET = 3;
     private static final int DEPTH_OFF_SET = 1;
     private static final int BRONZE_CASING_INDEX = GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings1, 10);
-    private static IStructureDefinition<MTEGearSteamCompressor> STRUCTURE_DEFINITION;
+    private static IStructureDefinition<MTEGearSteamCompressor> STRUCTURE_DEFINITION = null;
 
     private static final long[] STEAM_CONSUMPTION_PER_SEC = { 0, 6400, 25600 };
     private static final long[] SUPERHEATED_OUTPUT_PER_SEC = { 0, 1600, 6400 };
@@ -377,7 +377,7 @@ public class MTEGearSteamCompressor extends MTEEnhancedMultiBlockBase<MTEGearSte
             return;
         }
 
-        boolean hasSteamInput = !mInputHatches.isEmpty() || hasPressureSteamHatch();
+        boolean hasSteamInput = !mInputHatches.isEmpty() || hasPressureSteamHatch() || !mDualInputHatches.isEmpty();
         boolean hasOutput = !mOutputHatches.isEmpty() || hasSteamCoolingHatch() || !mPressureCoolingHatches.isEmpty();
         if (!hasSteamInput || !hasOutput) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);

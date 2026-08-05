@@ -210,14 +210,18 @@ public abstract class MTESingularityMachineBase extends MTEEnhancedMultiBlockBas
             : GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings2, 0);
     }
 
-    protected void updateHatchTextures() {
+    protected void updateAllHatchTextures() {
         int textureID = getHatchCasingTextureIndex();
         for (MTEHatch h : mInputHatches) h.updateTexture(textureID);
         for (MTEHatch h : mOutputHatches) h.updateTexture(textureID);
         for (MTEHatch h : mInputBusses) h.updateTexture(textureID);
         for (MTEHatch h : mOutputBusses) h.updateTexture(textureID);
         for (MTEHatch h : mPressureSteamInputs) h.updateTexture(textureID);
-        for (IDualInputHatch h : mDualInputHatches) h.updateTexture(textureID);
+        if (mDualInputHatches != null) {
+            for (IDualInputHatch h : mDualInputHatches) {
+                if (h != null) h.updateTexture(textureID);
+            }
+        }
     }
 
     @Override
@@ -487,7 +491,8 @@ public abstract class MTESingularityMachineBase extends MTEEnhancedMultiBlockBas
         }
         mTier = tier;
 
-        if ((mInputHatches.isEmpty() && mPressureSteamInputs.isEmpty()) || mOutputBusses.isEmpty()) {
+        if ((mInputHatches.isEmpty() && mPressureSteamInputs.isEmpty() && mDualInputHatches.isEmpty())
+            || mOutputBusses.isEmpty()) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
             return;
         }
@@ -499,7 +504,7 @@ public abstract class MTESingularityMachineBase extends MTEEnhancedMultiBlockBas
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
             return;
         }
-        updateHatchTextures();
+        updateAllHatchTextures();
     }
 
     protected final CheckRecipeResult processAggregationCycle() {

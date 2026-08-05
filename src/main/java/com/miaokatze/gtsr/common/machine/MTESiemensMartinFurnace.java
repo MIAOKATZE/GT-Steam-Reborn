@@ -268,8 +268,10 @@ public class MTESiemensMartinFurnace extends MTEEnhancedMultiBlockBase<MTESiemen
         for (MTEHatch h : mPressureSteamInputs) h.updateTexture(textureID);
         for (MTEHatch h : mInputBusses) h.updateTexture(textureID);
         for (MTEHatch h : mOutputBusses) h.updateTexture(textureID);
-        for (IDualInputHatch dualHatch : mDualInputHatches) {
-            dualHatch.updateTexture(textureID);
+        if (mDualInputHatches != null) {
+            for (IDualInputHatch dualHatch : mDualInputHatches) {
+                if (dualHatch != null) dualHatch.updateTexture(textureID);
+            }
         }
     }
 

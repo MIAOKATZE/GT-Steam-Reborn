@@ -206,7 +206,7 @@ public class MTELargeCokeOven extends MTEEnhancedMultiBlockBase<MTELargeCokeOven
                     ofChain(
                         // casing-first: NEI 投影优先渲染外壳；真实 hatch 坐标上 casing 匹配失败后继续匹配 hatch adder。
                         onElementPass(
-                            MTELargeCokeOven::onCasingAdded,
+                            t -> {},
                             ofBlocksTiered(
                                 MTELargeCokeOven::getCasingTier,
                                 ImmutableList.of(
@@ -216,17 +216,17 @@ public class MTELargeCokeOven extends MTEEnhancedMultiBlockBase<MTELargeCokeOven
                                 (MTELargeCokeOven t, Integer tier) -> t.mTier = tier,
                                 (MTELargeCokeOven t) -> t.mTier)),
                         buildHatchAdder(MTELargeCokeOven.class).atLeast(InputBus, OutputBus)
-                            .casingIndex(10)
+                            .casingIndex(getCasingTextureID())
                             .hint(1)
                             .build(),
                         buildHatchAdder(MTELargeCokeOven.class).atLeast(OutputHatch)
-                            .casingIndex(10)
+                            .casingIndex(getCasingTextureID())
                             .hint(1)
                             .build()))
                 .addElement(
                     'C',
                     onElementPass(
-                        MTELargeCokeOven::onCasingAdded,
+                        t -> {},
                         ofBlocksTiered(
                             MTELargeCokeOven::getPipeTier,
                             ImmutableList
@@ -237,7 +237,7 @@ public class MTELargeCokeOven extends MTEEnhancedMultiBlockBase<MTELargeCokeOven
                 .addElement(
                     'D',
                     onElementPass(
-                        MTELargeCokeOven::onCasingAdded,
+                        t -> {},
                         ofBlocksTiered(
                             MTELargeCokeOven::getGearTier,
                             ImmutableList
@@ -248,7 +248,7 @@ public class MTELargeCokeOven extends MTEEnhancedMultiBlockBase<MTELargeCokeOven
                 .addElement(
                     'E',
                     onElementPass(
-                        MTELargeCokeOven::onCasingAdded,
+                        t -> {},
                         ofBlocksTiered(
                             MTELargeCokeOven::getFireboxTier,
                             ImmutableList
@@ -256,13 +256,11 @@ public class MTELargeCokeOven extends MTEEnhancedMultiBlockBase<MTELargeCokeOven
                             -1,
                             (MTELargeCokeOven t, Integer tier) -> { if (tier > t.mTier) t.mTier = tier; },
                             (MTELargeCokeOven t) -> t.mTier)))
-                .addElement(
-                    'F',
-                    onElementPass(MTELargeCokeOven::onCasingAdded, ofBlock(GregTechAPI.sBlockCasings4, 15)))
+                .addElement('F', onElementPass(t -> {}, ofBlock(GregTechAPI.sBlockCasings4, 15)))
                 .addElement(
                     'G',
                     onElementPass(
-                        MTELargeCokeOven::onCasingAdded,
+                        t -> {},
                         ofBlocksTiered(
                             MTELargeCokeOven::getFrameTier,
                             ImmutableList.of(
@@ -276,8 +274,6 @@ public class MTELargeCokeOven extends MTEEnhancedMultiBlockBase<MTELargeCokeOven
         return STRUCTURE_DEFINITION;
     }
 
-    private void onCasingAdded() {}
-
     private void updateHatchTexture() {
         int textureID = getCasingTextureID();
         for (MTEHatch h : mInputBusses) h.updateTexture(textureID);
@@ -285,8 +281,10 @@ public class MTELargeCokeOven extends MTEEnhancedMultiBlockBase<MTELargeCokeOven
         for (MTEHatch h : mOutputHatches) h.updateTexture(textureID);
         // v1.9.41 修复：补 mDualInputHatches（样板仓经自定义 adder 重定向至此），
         // 此前 tier2 时样板仓底材停滞青铜
-        for (IDualInputHatch dualHatch : mDualInputHatches) {
-            dualHatch.updateTexture(textureID);
+        if (mDualInputHatches != null) {
+            for (IDualInputHatch dualHatch : mDualInputHatches) {
+                if (dualHatch != null) dualHatch.updateTexture(textureID);
+            }
         }
     }
 
