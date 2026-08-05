@@ -577,10 +577,9 @@ public abstract class MTESingularityMachineBase extends MTEEnhancedMultiBlockBas
     }
 
     protected final int findHighestGrade(boolean includeDense) {
-        // v1.10.8：tier 门控——1 级机（getRequiredTier()==1）只吞噬 grade0（普通蒸汽），
-        // 原实现无门控，1 级机可吃 grade2 超临界蒸汽（速率 4 倍于设计，且快于 2 级机致密路径）。
-        int maxGrade = getRequiredTier() >= 2 ? 2 : 0;
-        for (int grade = maxGrade; grade >= 0; grade--) {
+        // v1.10.5 拆分后 1 级机（蒸汽奇点压缩机）设计上识别全部普通等级（蒸汽/过热/超临界），
+        // 致密变体由 includeDense 参数控制；全等级识别与 tooltip 描述一致。
+        for (int grade = 2; grade >= 0; grade--) {
             if (probeGrade(grade, includeDense, false)) return grade;
         }
         return -1;
