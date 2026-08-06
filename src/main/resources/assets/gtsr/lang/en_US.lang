@@ -835,6 +835,17 @@ gtsr.tooltip.singularity_compressor.ctrl=Layer 8, center, slightly below
 gtsr.tooltip.singularity_compressor.steam_input=Input Hatch / Steam Input Hatch / Pressure Steam Hatch / Mega Overpressure Steam Input Hatch (ME hatches OK)
 gtsr.tooltip.singularity_compressor.output_bus=Output Bus / Steam Output Bus - singularity output, ME buses OK
 gtsr.tooltip.singularity_compressor.tier1_blocks=Tier 1: Solid Steel Casing x175, Steel Pipe x16, Steel Gearbox x73, Reinforced Glass x252, Steel Frame x144
+gtsr.tooltip.old.singularity_compressor.type=Steam Singularity Compressor, SSC
+gtsr.tooltip.old.singularity_compressor.desc=Consumes 80,000 L/s of steam, heat increases by 0.02% per second
+gtsr.tooltip.old.singularity_compressor.desc2=Consumes 320,000 L/s of superheated steam, heat increases by 0.08% per second (superheated preferred)
+gtsr.tooltip.old.singularity_compressor.desc3=When multiple steam types are present, only the highest grade is recognized; heat drops by 1% per second whenever the machine is off (including soft-hammer shutdown) or no steam is present.
+gtsr.tooltip.old.singularity_compressor.desc4=At 100% heat, heat resets and one Steam Entangled Singularity is produced.
+gtsr.tooltip.old.singularity_compressor.desc5=The Steam Singularity Compressor devours everything: steam cooling is disabled, and no EU is consumed.
+gtsr.tooltip.old.singularity_compressor.new_mechanism=The new Steam Singularity Compressor uses a new consumption mechanism with a higher singularity aggregation rate limit.
+gtsr.tooltip.old.singularity_compressor.ctrl=Layer 8, center, slightly below
+gtsr.tooltip.old.singularity_compressor.steam_input=Input Hatch / Steam Input Hatch / Pressure Steam Hatch / Mega Overpressure Steam Input Hatch (ME hatches OK)
+gtsr.tooltip.old.singularity_compressor.output_bus=Output Bus / Steam Output Bus - singularity output, ME buses OK
+gtsr.tooltip.old.singularity_compressor.tier1_blocks=Tier 1: Solid Steel Casing x175, Steel Pipe x16, Steel Gearbox x73, Reinforced Glass x252, Steel Frame x144
 
 # Vein Steam Pyrolyzer (VSP)
 gtsr.tooltip.vein_pyrolyzer.type=Vein Steam Pyrolyzer, VSP
@@ -1215,6 +1226,6 @@ gtsr.gui.reinforced_brick_blast_furnace.speed=Speed:
 
 # Legacy / Migration
 gtsr.tooltip.old.remove_soon=This machine will be removed in the next major version. Replace it with the new structure.
-gt.blockmachines.gtsr.old.large.solar.overpressure.array.name=[OLD] Large Solar Overpressure Array
-gt.blockmachines.gtsr.old.steam.singularity.compressor.name=[OLD] Steam Singularity Compressor
-gt.blockmachines.gtsr.old.singularity.crust.steam.borer.name=[OLD] Singularity Crust Steam Borer
+gt.blockmachines.gtsr.large.solar.overpressure.array.old.name=[OLD] Large Solar Overpressure Array
+gt.blockmachines.gtsr.steam.singularity.compressor.old.name=[OLD] Steam Singularity Compressor
+gt.blockmachines.gtsr.singularity.crust.steam.borer.old.name=[OLD] Singularity Crust Steam Borer

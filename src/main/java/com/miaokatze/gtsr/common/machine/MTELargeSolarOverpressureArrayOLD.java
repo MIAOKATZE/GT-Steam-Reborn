@@ -130,19 +130,15 @@ public class MTELargeSolarOverpressureArrayOLD extends MTEEnhancedMultiBlockBase
     @Override
     @SideOnly(Side.CLIENT)
     public void registerIcons(IIconRegister aBlockIconRegister) {
-        OVERLAY_OFF = Textures.BlockIcons.custom("gtsr:MTELargeSolarOverpressureArrayOLD_OFF");
-        OVERLAY_ON = Textures.BlockIcons.custom("gtsr:MTELargeSolarOverpressureArrayOLD_ON");
+        // 与新版共享非 OLD 名贴图（资源文件只有非 OLD 名 PNG；GTCustomBlockIconContainer 按名字缓存、同名注册幂等，无冲突）
+        OVERLAY_OFF = Textures.BlockIcons.custom("gtsr:MTELargeSolarOverpressureArray_OFF");
+        OVERLAY_ON = Textures.BlockIcons.custom("gtsr:MTELargeSolarOverpressureArray_ON");
         super.registerIcons(aBlockIconRegister);
     }
 
     @Override
     public IMetaTileEntity newMetaEntity(IGregTechTileEntity aTileEntity) {
         return new MTELargeSolarOverpressureArrayOLD(mName);
-    }
-
-    @Override
-    public String getLocalNameKey() {
-        return "gt.blockmachines.gtsr.old.large.solar.overpressure.array.name";
     }
 
     @Override

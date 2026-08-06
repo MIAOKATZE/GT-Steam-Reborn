@@ -1,6 +1,7 @@
 package com.miaokatze.gtsr.main;
 
 import com.miaokatze.gtsr.Tags;
+import com.miaokatze.gtsr.common.crossmod.postea.PosteaCompat;
 import com.miaokatze.gtsr.common.crossmod.waila.GTSRWailaCompat;
 import com.miaokatze.gtsr.config.Config;
 import com.miaokatze.gtsr.loader.GTSRRecipeLoader;
@@ -92,6 +93,8 @@ public class CommonProxy {
         try {
             new GTSRRecipeLoader().run();
             GTSteamReborn.LOG.info("[3/3] GTSR 配方注册完成。");
+            // Postea 旧 ID 机器物品 → 新 ID 映射（V2 meta 迁移；GT5U 的 PosteaTransformers 在 postload 已注册，此处晚于其执行）
+            PosteaCompat.init();
         } catch (Throwable t) {
             GTSteamReborn.LOG.error("[3/3] GTSR 配方注册过程中发生错误", t);
         }

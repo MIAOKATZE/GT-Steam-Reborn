@@ -87,4 +87,29 @@ public enum MetaTileEntityID {
     /** 结构重置三机：旧 ID 注册 [OLD] 机器而非占位转换器（旧存档不转换，留一个大版本缓冲）。 */
     public static final Set<MetaTileEntityID> STRUCTURE_RESET = EnumSet
         .of(SINGULARITY_CRUST_STEAM_BORER, LARGE_SOLAR_OVERPRESSURE_ARRAY, STEAM_SINGULARITY_COMPRESSOR);
+
+    /**
+     * 旧 ID → 新 ID 物品映射表（临时机制：供 Postea ItemStackReplacementManager 与后续迁移逻辑使用；
+     * 下一大版本移除旧 ID 注册后，本表与 PosteaCompat 一并删除）。
+     * index = 旧绝对ID - BASE_OLD，值 = 新绝对ID；0 表示无映射。结构重置三机（STRUCTURE_RESET）不映射。
+     */
+    public static final int[] LEGACY_TO_NEW_MAP = new int[51];
+
+    static {
+        for (MetaTileEntityID id : values()) {
+            if (STRUCTURE_RESET.contains(id)) continue;
+            int idx = id.OLD_ID - BASE_OLD;
+            if (idx >= 0 && idx < LEGACY_TO_NEW_MAP.length) {
+                LEGACY_TO_NEW_MAP[idx] = id.ID;
+            }
+        }
+    }
+
+    /** 查询旧绝对 ID 对应的新绝对 ID；无映射返回 -1。 */
+    public static int getMappedId(int oldId) {
+        int idx = oldId - BASE_OLD;
+        if (idx < 0 || idx >= LEGACY_TO_NEW_MAP.length) return -1;
+        int id = LEGACY_TO_NEW_MAP[idx];
+        return id == 0 ? -1 : id;
+    }
 }

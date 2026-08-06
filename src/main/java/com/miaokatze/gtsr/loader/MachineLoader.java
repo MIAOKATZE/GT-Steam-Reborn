@@ -123,7 +123,7 @@ public class MachineLoader {
                 "Steam Singularity Compressor"));
         new MTESteamSingularityCompressorOLD(
             MetaTileEntityID.STEAM_SINGULARITY_COMPRESSOR.OLD_ID,
-            "gtsr.steam.singularity.compressor",
+            "gtsr.steam.singularity.compressor.old",
             "Steam Singularity Compressor");
         GTSRItemList.CriticalSingularityCompressor.set(
             new MTECriticalSingularityCompressor(
@@ -237,7 +237,7 @@ public class MachineLoader {
                 "Large Solar Overpressure Array"));
         new MTELargeSolarOverpressureArrayOLD(
             MetaTileEntityID.LARGE_SOLAR_OVERPRESSURE_ARRAY.OLD_ID,
-            "gtsr.large.solar.overpressure.array",
+            "gtsr.large.solar.overpressure.array.old",
             "Large Solar Overpressure Array");
         GTSRItemList.LargeGeothermalSteamBoiler.set(
             new MTELargeGeothermalSteamBoiler(
@@ -290,7 +290,7 @@ public class MachineLoader {
                 "Singularity Crust Steam Borer"));
         new MTEVoidCrustSteamBorerOLD(
             MetaTileEntityID.SINGULARITY_CRUST_STEAM_BORER.OLD_ID,
-            "gtsr.singularity.crust.steam.borer",
+            "gtsr.singularity.crust.steam.borer.old",
             "Singularity Crust Steam Borer");
         GTSRItemList.VeinSteamPyrolyzer.set(
             new MTEVeinSteamPyrolyzer(

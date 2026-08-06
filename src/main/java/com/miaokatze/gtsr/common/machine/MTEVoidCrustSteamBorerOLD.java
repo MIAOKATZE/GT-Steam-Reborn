@@ -179,11 +179,6 @@ public class MTEVoidCrustSteamBorerOLD extends MTESteamMultiBlockBase<MTEVoidCru
     }
 
     @Override
-    public String getLocalNameKey() {
-        return "gt.blockmachines.gtsr.old.singularity.crust.steam.borer.name";
-    }
-
-    @Override
     public String getMachineType() {
         return "虚空地壳钻探器";
     }

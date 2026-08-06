@@ -15,6 +15,8 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
+import net.minecraftforge.fluids.FluidRegistry;
+import net.minecraftforge.fluids.FluidStack;
 
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -22,6 +24,7 @@ import com.gtnewhorizon.structurelib.alignment.constructable.ISurvivalConstructa
 import com.gtnewhorizon.structurelib.structure.IStructureDefinition;
 import com.gtnewhorizon.structurelib.structure.ISurvivalBuildEnvironment;
 import com.gtnewhorizon.structurelib.structure.StructureDefinition;
+import com.miaokatze.gtsr.api.compat.GTSRHatchFluidAccess;
 import com.miaokatze.gtsr.api.compat.GTVersionCompat;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.machine.base.MTESingularityMachineBase;
@@ -31,6 +34,7 @@ import gregtech.api.enums.Materials;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.recipe.check.CheckRecipeResult;
+import gregtech.api.recipe.check.CheckRecipeResultRegistry;
 import gregtech.api.structure.error.StructureError;
 import gregtech.api.structure.error.StructureErrorRegistry;
 import gregtech.api.util.GTUtility;
@@ -66,8 +70,8 @@ public class MTESteamSingularityCompressorOLD extends MTESingularityMachineBase 
     }
 
     @Override
-    public String getLocalNameKey() {
-        return "gt.blockmachines.gtsr.old.steam.singularity.compressor.name";
+    protected String getTooltipKeyPrefix() {
+        return "gtsr.tooltip.old.singularity_compressor.";
     }
 
     @Override
@@ -284,6 +288,7 @@ public class MTESteamSingularityCompressorOLD extends MTESingularityMachineBase 
         String keyPrefix = getTooltipKeyPrefix();
         MultiblockTooltipBuilder tt = new MultiblockTooltipBuilder();
         tt.addInfo(EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.old.remove_soon"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.old.singularity_compressor.new_mechanism"))
             .addMachineType(StatCollector.translateToLocal(keyPrefix + "type"))
             .addInfo(StatCollector.translateToLocal(keyPrefix + "desc"))
             .addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal(keyPrefix + "desc2"))
@@ -317,7 +322,32 @@ public class MTESteamSingularityCompressorOLD extends MTESingularityMachineBase 
 
     @Override
     public CheckRecipeResult checkProcessing() {
-        return processAggregationCycle();
+        // 老版线性机制：无配方周期，处理全部在 onPostTick 完成（每秒线性增长），
+        // 参照 MTESingularityDrillingHub.checkProcessing 的 NO_RECIPE 写法。
+        return CheckRecipeResultRegistry.NO_RECIPE;
+    }
+
+    @Override
+    public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
+        super.onPostTick(aBaseMetaTileEntity, aTick);
+        if (!aBaseMetaTileEntity.isServerSide() || aTick % 20 != 0
+            || !mMachine
+            || !aBaseMetaTileEntity.isAllowedToWork()) return;
+        FluidStack hot = FluidRegistry.getFluidStack("ic2superheatedsteam", 320000);
+        if (hot != null && GTSRHatchFluidAccess.depleteFluidAcross(getSteamInputHatches(), hot) >= 320000) {
+            mHeat += 0.0008d; // 过热：320,000 L/s → +0.08%/s（老版线性）
+        } else {
+            FluidStack normal = Materials.Steam.getGas(80000);
+            if (GTSRHatchFluidAccess.depleteFluidAcross(getSteamInputHatches(), normal) >= 80000) {
+                mHeat += 0.0002d; // 普通：80,000 L/s → +0.02%/s（老版线性）
+            }
+        }
+        if (mHeat >= 1.0d) {
+            if (canOutputSingularity()) {
+                addOutputPartial(getAggregationOutput());
+                mHeat = 0.0d;
+            }
+        }
     }
 
     @Override
