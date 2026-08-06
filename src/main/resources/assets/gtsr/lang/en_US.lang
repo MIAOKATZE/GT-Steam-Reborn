@@ -332,6 +332,7 @@ gtsr.gui.dense_state_manipulator.mode.compress=Steam Compression
 gtsr.gui.dense_state_manipulator.mode.decompress=Steam Decompression
 gtsr.gui.dense_state_manipulator.fuel_time=Singularity Duration:
 gtsr.gui.dense_state_manipulator.fuel_no_fuel=Insert a Steam Entangled Singularity
+gtsr.gui.dense_state_manipulator.tier=Tier:
 
 # Steam Entangled Singularity
 item.SteamEntangledSingularity.name=Steam Entangled Singularity
@@ -830,15 +831,10 @@ gtsr.tooltip.singularity_compressor.desc2=Heat formula: y=0.005x/(x+200000), cap
 gtsr.tooltip.singularity_compressor.desc3=When multiple steam types are present, only the highest grade is recognized; heat drops by 1% per second whenever the machine is off (including soft-hammer shutdown) or no steam is present.
 gtsr.tooltip.singularity_compressor.desc4=At 100% heat, heat resets and one Steam Entangled Singularity is produced.
 gtsr.tooltip.singularity_compressor.desc5=The Steam Singularity Compressor devours everything: steam cooling is disabled, and no EU is consumed.
-gtsr.tooltip.singularity_compressor.desc6=This machine only supports Singularity Entanglement; steam compression and decompression are not included.
-gtsr.tooltip.singularity_compressor.desc7=
 gtsr.tooltip.singularity_compressor.ctrl=Layer 8, center, slightly below
 gtsr.tooltip.singularity_compressor.steam_input=Input Hatch / Steam Input Hatch / Pressure Steam Hatch / Mega Overpressure Steam Input Hatch (ME hatches OK)
-gtsr.tooltip.singularity_compressor.input_bus=Steam Entangled Singularity (dense mode fuel), ME buses OK
 gtsr.tooltip.singularity_compressor.output_bus=Output Bus / Steam Output Bus - singularity output, ME buses OK
-gtsr.tooltip.singularity_compressor.output_hatch=Dense steam output (Tier 2)
 gtsr.tooltip.singularity_compressor.tier1_blocks=Tier 1: Solid Steel Casing x175, Steel Pipe x16, Steel Gearbox x73, Reinforced Glass x252, Steel Frame x144
-gtsr.tooltip.singularity_compressor.tier2_blocks=Tier 2: Advanced Rhodium Palladium Casing x264, LuV+ Glass x252, Rhodium Plated Palladium Frame x144
 
 # Vein Steam Pyrolyzer (VSP)
 gtsr.tooltip.vein_pyrolyzer.type=Vein Steam Pyrolyzer, VSP

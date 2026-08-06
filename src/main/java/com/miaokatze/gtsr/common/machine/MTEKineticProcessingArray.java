@@ -53,7 +53,9 @@ import com.miaokatze.gtsr.common.gui.MTEKineticProcessingArrayGui;
 import com.miaokatze.gtsr.common.machine.base.MTEHatchPressureSteamInput;
 import com.miaokatze.gtsr.common.machine.base.MTEPressureSteamCoolingHatch;
 
+import bartworks.system.material.Werkstoff;
 import bartworks.system.material.WerkstoffLoader;
+import cpw.mods.fml.common.registry.GameRegistry;
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.GTValues;
 import gregtech.api.enums.Materials;
@@ -322,7 +324,8 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
         .of(Pair.of(GregTechAPI.sBlockCasings2, 3), Pair.of(GregTechAPI.sBlockCasings2, 4));
 
     // FRAME_CASINGS 与 ALLOWED_CASINGS 一样延迟初始化：等级 6 框架需要解析
-    // WerkstoffLoader.RhodiumPlatedPalladium 材质，不能在 MTE 类加载时触发 WerkstoffLoader 类加载。
+    // WerkstoffLoader.RhodiumPlatedPalladium 材质并使用 BW 框架方块 bw.frames，
+    // 不能在 MTE 类加载时触发 WerkstoffLoader 类加载。
     @SuppressWarnings({ "rawtypes", "unchecked" })
     private static List<Pair<Block, Integer>> FRAME_CASINGS = null;
 
@@ -335,7 +338,7 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
                 Pair.of(GregTechAPI.sBlockFrames, Materials.StainlessSteel.mMetaItemSubID), // 3
                 Pair.of(GregTechAPI.sBlockFrames, Materials.Titanium.mMetaItemSubID), // 4
                 Pair.of(GregTechAPI.sBlockFrames, Materials.TungstenSteel.mMetaItemSubID), // 5
-                Pair.of(GregTechAPI.sBlockFrames, getTier6FrameMeta()), // 6
+                Pair.of(getTier6FrameBlock(), getTier6FrameMeta()), // 6
                 Pair.of(GregTechAPI.sBlockFrames, Materials.Iridium.mMetaItemSubID), // 7
                 Pair.of(GregTechAPI.sBlockFrames, Materials.Osmium.mMetaItemSubID), // 8 - UV
                 Pair.of(GregTechAPI.sBlockFrames, Materials.Neutronium.mMetaItemSubID), // 9 - UHV
@@ -346,12 +349,21 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
         return FRAME_CASINGS;
     }
 
-    private static Integer TIER6_FRAME_META = null;
+    private static Block TIER6_FRAME_BLOCK;
+    private static Integer TIER6_FRAME_META;
+
+    private static Block getTier6FrameBlock() {
+        if (TIER6_FRAME_BLOCK == null) {
+            TIER6_FRAME_BLOCK = GregTechAPI.sBlockFramesBW;
+            if (TIER6_FRAME_BLOCK == null) TIER6_FRAME_BLOCK = GameRegistry.findBlock("gregtech", "bw.frames");
+        }
+        return TIER6_FRAME_BLOCK;
+    }
 
     private static int getTier6FrameMeta() {
         if (TIER6_FRAME_META == null) {
-            final Materials material = WerkstoffLoader.RhodiumPlatedPalladium.getGTMaterial();
-            TIER6_FRAME_META = material != null ? material.mMetaItemSubID : Materials.Palladium.mMetaItemSubID;
+            Werkstoff werkstoff = WerkstoffLoader.RhodiumPlatedPalladium;
+            TIER6_FRAME_META = werkstoff != null ? (int) werkstoff.getmID() : 88;
         }
         return TIER6_FRAME_META;
     }
@@ -404,7 +416,7 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
             if (meta == Materials.StainlessSteel.mMetaItemSubID) return 3;
             if (meta == Materials.Titanium.mMetaItemSubID) return 4;
             if (meta == Materials.TungstenSteel.mMetaItemSubID) return 5;
-            if (meta == getTier6FrameMeta()) return 6;
+            if (block == getTier6FrameBlock() && meta == getTier6FrameMeta()) return 6;
             if (meta == Materials.Iridium.mMetaItemSubID) return 7;
             if (meta == Materials.Osmium.mMetaItemSubID) return 8;
             if (meta == Materials.Neutronium.mMetaItemSubID) return 9;
