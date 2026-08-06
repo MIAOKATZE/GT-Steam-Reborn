@@ -416,7 +416,6 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
             if (meta == Materials.StainlessSteel.mMetaItemSubID) return 3;
             if (meta == Materials.Titanium.mMetaItemSubID) return 4;
             if (meta == Materials.TungstenSteel.mMetaItemSubID) return 5;
-            if (block == getTier6FrameBlock() && meta == getTier6FrameMeta()) return 6;
             if (meta == Materials.Iridium.mMetaItemSubID) return 7;
             if (meta == Materials.Osmium.mMetaItemSubID) return 8;
             if (meta == Materials.Neutronium.mMetaItemSubID) return 9;
@@ -424,6 +423,7 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
             if (meta == Materials.BlackPlutonium.mMetaItemSubID) return 11;
             if (meta == 588) return 12; // SpaceTime
         }
+        if (block == getTier6FrameBlock() && meta == getTier6FrameMeta()) return 6;
         return null;
     }
 
