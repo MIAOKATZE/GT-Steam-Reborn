@@ -1264,3 +1264,8 @@ gtsr.tooltip.old.remove_soon=该机器将于下一个大版本移除，请替换
 gt.blockmachines.gtsr.large.solar.overpressure.array.old.name=[OLD] 大型太阳能超压阵列
 gt.blockmachines.gtsr.steam.singularity.compressor.old.name=[OLD] 蒸汽奇点压缩机
 gt.blockmachines.gtsr.singularity.crust.steam.borer.old.name=[OLD] 奇点地壳蒸汽掘进机
+
+# Runaway Singularity
+tile.RunawaySingularity.name=失控奇点
+gtsr.tooltip.singularity.debug=调试用奇点：无 NBT 参数，按调试数据运行
+death.attack.gtsrSingularity=%1$s 被失控奇点吞噬了

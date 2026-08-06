@@ -1,9 +1,11 @@
 package com.miaokatze.gtsr.main;
 
 import com.miaokatze.gtsr.Tags;
+import com.miaokatze.gtsr.common.commands.GTSRCommand;
 import com.miaokatze.gtsr.common.crossmod.postea.PosteaCompat;
 import com.miaokatze.gtsr.common.crossmod.waila.GTSRWailaCompat;
 import com.miaokatze.gtsr.config.Config;
+import com.miaokatze.gtsr.loader.BlockLoader;
 import com.miaokatze.gtsr.loader.GTSRRecipeLoader;
 import com.miaokatze.gtsr.loader.ItemLoader;
 import com.miaokatze.gtsr.loader.MachineLoader;
@@ -35,6 +37,13 @@ public class CommonProxy {
             GTSteamReborn.LOG.info("[0/3] 物品注册完成。");
         } catch (Throwable t) {
             GTSteamReborn.LOG.error("[0/3] 物品注册过程中发生严重错误，请检查日志", t);
+        }
+
+        try {
+            BlockLoader.initBlocks();
+            GTSteamReborn.LOG.info("[0/3] 方块注册完成。");
+        } catch (Throwable t) {
+            GTSteamReborn.LOG.error("[0/3] 方块注册过程中发生严重错误，请检查日志", t);
         }
 
         Runnable registerRunnable = () -> {
@@ -104,8 +113,9 @@ public class CommonProxy {
      * 服务器启动阶段
      * 用于注册服务器端命令。
      */
-    @SuppressWarnings({ "unused" })
-    public void serverStarting(FMLServerStartingEvent event) {}
+    public void serverStarting(FMLServerStartingEvent event) {
+        event.registerServerCommand(new GTSRCommand());
+    }
 
     /**
      * 模组加载完成阶段

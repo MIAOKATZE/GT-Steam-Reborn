@@ -1229,3 +1229,8 @@ gtsr.tooltip.old.remove_soon=This machine will be removed in the next major vers
 gt.blockmachines.gtsr.large.solar.overpressure.array.old.name=[OLD] Large Solar Overpressure Array
 gt.blockmachines.gtsr.steam.singularity.compressor.old.name=[OLD] Steam Singularity Compressor
 gt.blockmachines.gtsr.singularity.crust.steam.borer.old.name=[OLD] Singularity Crust Steam Borer
+
+# Runaway Singularity
+tile.RunawaySingularity.name=Runaway Singularity
+gtsr.tooltip.singularity.debug=Debug singularity: no NBT params, runs with debug data
+death.attack.gtsrSingularity=%1$s was consumed by a runaway singularity

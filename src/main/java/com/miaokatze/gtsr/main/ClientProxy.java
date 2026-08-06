@@ -1,5 +1,9 @@
 package com.miaokatze.gtsr.main;
 
+import net.minecraftforge.common.MinecraftForge;
+
+import com.miaokatze.gtsr.common.tick.SingularityClientFXHandler;
+
 import cpw.mods.fml.common.event.FMLInitializationEvent;
 
 /**
@@ -17,6 +21,8 @@ public class ClientProxy extends CommonProxy {
     public void init(FMLInitializationEvent event) {
         // 调用父类的 init 方法，确保通用逻辑正常执行
         super.init(event);
+
+        MinecraftForge.EVENT_BUS.register(new SingularityClientFXHandler());
 
         GTSteamReborn.LOG.info("[2/3] 客户端初始化完成");
     }

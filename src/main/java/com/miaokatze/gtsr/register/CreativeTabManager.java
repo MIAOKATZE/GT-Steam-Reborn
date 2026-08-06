@@ -71,6 +71,16 @@ public class CreativeTabManager {
         }
     }
 
+    public static void addItemToTabFirst(ItemStack itemStack) {
+        if (itemStack != null) {
+            if (!itemsToAdd.isEmpty() && itemsToAdd.get(0)
+                .isItemEqual(itemStack)) {
+                return;
+            }
+            itemsToAdd.add(0, itemStack);
+        }
+    }
+
     public static void initCreativeTab() {
         GTSteamReborn.LOG.info("正在初始化创造模式物品栏，当前包含 " + itemsToAdd.size() + " 个物品");
     }
