@@ -1247,3 +1247,9 @@ gtsr.gui.reinforced_brick_blast_furnace.temperature=炉温:
 gtsr.gui.reinforced_brick_blast_furnace.status.heating=升温中
 gtsr.gui.reinforced_brick_blast_furnace.parallel=并行: 
 gtsr.gui.reinforced_brick_blast_furnace.speed=速度: 
+
+# Legacy / Migration
+gtsr.tooltip.old.remove_soon=该机器将于下一个大版本移除，请替换为新结构
+gt.blockmachines.gtsr.old.large.solar.overpressure.array.name=[OLD] 大型太阳能超压阵列
+gt.blockmachines.gtsr.old.steam.singularity.compressor.name=[OLD] 蒸汽奇点压缩机
+gt.blockmachines.gtsr.old.singularity.crust.steam.borer.name=[OLD] 奇点地壳蒸汽掘进机

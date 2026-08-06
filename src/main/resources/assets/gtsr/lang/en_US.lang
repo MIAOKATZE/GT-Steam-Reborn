@@ -1212,3 +1212,9 @@ gtsr.gui.reinforced_brick_blast_furnace.temperature=Furnace Temperature:
 gtsr.gui.reinforced_brick_blast_furnace.status.heating=Heating
 gtsr.gui.reinforced_brick_blast_furnace.parallel=Parallels: 
 gtsr.gui.reinforced_brick_blast_furnace.speed=Speed:
+
+# Legacy / Migration
+gtsr.tooltip.old.remove_soon=This machine will be removed in the next major version. Replace it with the new structure.
+gt.blockmachines.gtsr.old.large.solar.overpressure.array.name=[OLD] Large Solar Overpressure Array
+gt.blockmachines.gtsr.old.steam.singularity.compressor.name=[OLD] Steam Singularity Compressor
+gt.blockmachines.gtsr.old.singularity.crust.steam.borer.name=[OLD] Singularity Crust Steam Borer

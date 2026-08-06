@@ -22,10 +22,12 @@ import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.oredict.OreDictionary;
 
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
+import com.miaokatze.gtsr.common.api.enums.MetaTileEntityID;
 import com.miaokatze.gtsr.main.GTSteamReborn;
 
 import bartworks.system.material.WerkstoffLoader;
 import cpw.mods.fml.common.Loader;
+import gregtech.api.GregTechAPI;
 import gregtech.api.enums.GTValues;
 import gregtech.api.enums.ItemList;
 import gregtech.api.enums.Materials;
@@ -123,6 +125,7 @@ public class GTSRRecipeLoader implements Runnable {
         safeRegister("FluidDrillDisplay", GTSRRecipeLoader::registerFluidDrillDisplayRecipes);
         safeRegister("GearSteamCompressorDisplay", GTSRRecipeLoader::registerGearSteamCompressorDisplayRecipes);
         safeRegister("ReinforcedBrickBlastFurnace", GTSRRecipeLoader::registerReinforcedBrickBlastFurnaceRecipe);
+        safeRegister("LegacyConversion", GTSRRecipeLoader::registerLegacyConversionRecipes);
     }
 
     private static void registerCokeOvenRecipes() {
@@ -1419,5 +1422,18 @@ public class GTSRRecipeLoader implements Runnable {
             new Object[] { "SSS", "SBS", "SSS", 'S', steelPlate, 'B', brickBlastFurnace });
 
         log("Reinforced Brick Blast Furnace recipe registered.");
+    }
+
+    // 【Meta 迁移】旧控制器 → 新控制器 工作台无序转换配方（45 条全量，单向旧→新，含三台重置机与临界/致密态）
+    private static void registerLegacyConversionRecipes() {
+        log("Registering old -> new controller conversion recipes...");
+
+        for (MetaTileEntityID id : MetaTileEntityID.values()) {
+            GTModHandler.addShapelessCraftingRecipe(
+                new ItemStack(GregTechAPI.sBlockMachines, 1, id.ID),
+                new Object[] { new ItemStack(GregTechAPI.sBlockMachines, 1, id.OLD_ID) });
+        }
+
+        log("Old -> new conversion recipes registered: " + MetaTileEntityID.values().length);
     }
 }

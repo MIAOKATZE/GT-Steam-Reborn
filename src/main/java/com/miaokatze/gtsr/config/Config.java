@@ -11,8 +11,7 @@ import net.minecraftforge.common.config.Configuration;
 public class Config {
 
     // GregTech 元机器实体 (MTE) ID 分配的偏移量。
-    // 注意：基准值 (BASE) 已在 MetaTileEntityID.java 中硬编码为 14600，以便按类型分段管理 ID。
-    // 此配置仅用于在基准值基础上进行微调。
+    // 注意：旧段 BASE=14620（OLD 锚点）与新段 BASE=14700 由 MetaTileEntityID.java 统一管理；metaIdOffset 同时作用于两段。
     public static int metaIdOffset = 0;
 
     // 是否为 GTNL 蒸汽机基类启用 GTSR 增强（过热蒸汽 4 倍加速 + 冷却舱室支持）。
