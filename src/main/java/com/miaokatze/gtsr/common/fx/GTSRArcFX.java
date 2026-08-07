@@ -361,6 +361,7 @@ public class GTSRArcFX extends GTSRFXParticle {
         }
         if (renderentity != null
             && renderentity.getDistanceSq(this.posX, this.posY, this.posZ) <= (double) visibleDistance) {
+            tess.draw(); // 刷新外层批次，本粒子自管批次（TC4 FXLightningBolt 兼容模式）
             GL11.glPushMatrix();
             GL11.glDepthMask(false);
             GL11.glEnable(GL11.GL_BLEND);
@@ -480,6 +481,7 @@ public class GTSRArcFX extends GTSRFXParticle {
             GL11.glDisable(GL11.GL_BLEND);
             GL11.glDepthMask(true);
             GL11.glPopMatrix();
+            tess.startDrawingQuads(); // 恢复外层批次
         }
     }
 
