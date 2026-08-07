@@ -11,7 +11,9 @@ import com.miaokatze.gtsr.common.blocks.TileRunawaySingularity;
 
 /**
  * /gtsr 指令：在命令发送者位置生成失控奇点。
- * 用法：/gtsr singularity <range> <speed> <damage> <duration|NA> <eventId>
+ * 用法：/gtsr singularity <range> <speed/20tick> <damage/20tick> <durationTicks|NA> <eventId>
+ * speed=每20tick吸收方块数，damage=每20tick伤害值，durationTicks=tick 数；duration 为 NA 表示无限。
+ * 调试默认：10 1 1 600 0（范围 10、每20tick吸1块、每20tick 1点伤害、600 tick=30秒、事件 0）。
  * 需要 OP 权限等级 4。
  */
 public class GTSRCommand extends CommandBase {
@@ -23,7 +25,7 @@ public class GTSRCommand extends CommandBase {
 
     @Override
     public String getCommandUsage(ICommandSender sender) {
-        return "/gtsr singularity <range> <speed> <damage> <duration|NA> <eventId>";
+        return "/gtsr singularity <range> <speed/20tick> <damage/20tick> <durationTicks|NA> <eventId>";
     }
 
     @Override

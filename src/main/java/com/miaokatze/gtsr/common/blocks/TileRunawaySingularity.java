@@ -1,4 +1,5 @@
 package com.miaokatze.gtsr.common.blocks;
+// ==== [DEBUG] 奇点调试日志（用户实机检验后删除） ====
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -10,31 +11,34 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.item.EntityItem;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.init.Blocks;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.network.play.server.S12PacketEntityVelocity;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.DamageSource;
 import net.minecraft.world.World;
 
 import com.miaokatze.gtsr.loader.BlockLoader;
+import com.miaokatze.gtsr.main.GTSteamReborn;
 
 /**
  * 失控奇点方块实体
  * S2：服务端吸收/牵引/衰减逻辑已实现。
+ * 时间语义：duration 单位=tick（600=30 秒），speed 单位=方块/20tick，damage 单位=伤害/20tick。
  */
 public class TileRunawaySingularity extends TileEntity {
 
     private static final int SCAN_INTERVAL = 4; // 吸收扫描间隔 tick
-    private static final int SCAN_CAP = 16; // 单次扫描吸收上限
-    private static final int DAMAGE_INTERVAL = 20; // 实体伤害间隔 tick（每秒一次）
+    private static final int DAMAGE_INTERVAL = 20; // 实体伤害间隔 tick（speed/damage 均按每 20 tick 计量）
     private static final DamageSource SINGULARITY_DAMAGE = new DamageSource("gtsrSingularity").setDamageBypassesArmor()
         .setDamageIsAbsolute();
 
     private double range = 10.0D;
     private double speed = 1.0D;
     private double damage = 1.0D;
-    private int duration = 30; // 秒，-1=无限
+    private int duration = 600; // tick，600 = 30 秒，-1=无限
     private int attributeId = 0;
     private int elapsedTicks = 0; // 服务端与客户端各自递增
 
@@ -138,6 +142,23 @@ public class TileRunawaySingularity extends TileEntity {
     public static void spawnSingularity(World world, int x, int y, int z, double range, double speed, double damage,
         int duration, int attributeId) {
         world.setBlock(x, y, z, BlockLoader.blockRunawaySingularity);
+        // DEBUG-SINGULARITY:
+        GTSteamReborn.LOG.info(
+            "[Singularity] spawned at " + x
+                + ","
+                + y
+                + ","
+                + z
+                + " range="
+                + range
+                + " speed="
+                + speed
+                + " damage="
+                + damage
+                + " duration="
+                + duration
+                + " attribute="
+                + attributeId);
         TileEntity te = world.getTileEntity(x, y, z);
         if (te instanceof TileRunawaySingularity) {
             ((TileRunawaySingularity) te).setParams(range, speed, damage, duration, attributeId);
@@ -158,10 +179,29 @@ public class TileRunawaySingularity extends TileEntity {
         }
         if (!isInfinite() && elapsedTicks >= duration) {
             worldObj.setBlockToAir(xCoord, yCoord, zCoord); // 时间耗尽，奇点销毁，事件结束
+            // DEBUG-SINGULARITY:
+            GTSteamReborn.LOG.info("[Singularity] singularity destroyed at " + xCoord + "," + yCoord + "," + zCoord);
             return;
         }
         double factor = getActiveFactor();
         double effRange = range * factor;
+        if (worldObj.getWorldTime() % 100 == 0) {
+            // DEBUG-SINGULARITY:
+            GTSteamReborn.LOG.info(
+                "[Singularity] tick=" + elapsedTicks
+                    + "/"
+                    + duration
+                    + " factor="
+                    + factor
+                    + " range="
+                    + effRange
+                    + " speed="
+                    + speed
+                    + " damage="
+                    + damage
+                    + " attribute="
+                    + attributeId);
+        }
         absorbScan(effRange, factor);
         absorbRays(effRange, factor);
         handleEntities(effRange, factor);
@@ -218,6 +258,8 @@ public class TileRunawaySingularity extends TileEntity {
                 return da2 - db2;
             }
         });
+        int cap = Math.max(1, (int) Math.round(speed * SCAN_INTERVAL / 20.0D)); // speed=每20tick方块数；speed=1 →
+                                                                                // 每4tick期望0.2块
         int count = 0;
         for (int[] t : targets) {
             double dx = t[0] - xCoord;
@@ -230,44 +272,56 @@ public class TileRunawaySingularity extends TileEntity {
             if (worldObj.rand.nextDouble() < p) {
                 worldObj.setBlockToAir(t[0], t[1], t[2]);
                 count++;
-                if (count >= SCAN_CAP) {
+                if (count >= cap) {
                     break;
                 }
             }
         }
+        if (count > 0) {
+            // DEBUG-SINGULARITY:
+            GTSteamReborn.LOG
+                .info("[Singularity] scan candidates=" + targets.size() + " absorbed=" + count + " cap=" + cap);
+        }
     }
 
     /**
-     * 辅吸收机制：随机射线（仿 Thaumcraft 饕餮节点）
+     * 辅吸收机制：概率节流单条随机射线（仿 Thaumcraft 饕餮节点）。
+     * speed=1 时平均每 20 tick 发 0.25 条，作为吸收主机制的少量补充。
      */
     private void absorbRays(double effRange, double factor) {
-        int n = Math.max(1, Math.min(8, (int) Math.round(speed * factor * 0.25D)));
+        if (worldObj.rand.nextDouble() >= speed * factor * 0.25D / 20.0D) {
+            return;
+        }
         double cx = xCoord + 0.5D;
         double cy = yCoord + 0.5D;
         double cz = zCoord + 0.5D;
-        for (int i = 0; i < n; i++) {
-            double yaw = worldObj.rand.nextDouble() * 2.0D * Math.PI - Math.PI;
-            double pitch = worldObj.rand.nextDouble() * Math.PI - Math.PI / 2.0D;
-            double dirX = Math.cos(pitch) * Math.cos(yaw);
-            double dirY = Math.sin(pitch);
-            double dirZ = Math.cos(pitch) * Math.sin(yaw);
-            for (double t = 0.0D; t <= effRange; t += 0.75D) {
-                int bx = (int) Math.floor(cx + dirX * t);
-                int by = (int) Math.floor(cy + dirY * t);
-                int bz = (int) Math.floor(cz + dirZ * t);
-                Block block = worldObj.getBlock(bx, by, bz);
-                if (block.isAir(worldObj, bx, by, bz) || block == Blocks.air) {
-                    continue;
-                }
-                if (block == BlockLoader.blockRunawaySingularity) {
-                    continue;
-                }
-                if (block.getBlockHardness(worldObj, bx, by, bz) < 0.0F) {
-                    continue; // 不可吸收方块，继续沿射线步进
-                }
-                worldObj.setBlockToAir(bx, by, bz);
-                break; // 每条射线至多吸收 1 块
+        int absorbed = 0;
+        double yaw = worldObj.rand.nextDouble() * 2.0D * Math.PI - Math.PI;
+        double pitch = worldObj.rand.nextDouble() * Math.PI - Math.PI / 2.0D;
+        double dirX = Math.cos(pitch) * Math.cos(yaw);
+        double dirY = Math.sin(pitch);
+        double dirZ = Math.cos(pitch) * Math.sin(yaw);
+        for (double t = 0.0D; t <= effRange; t += 0.75D) {
+            int bx = (int) Math.floor(cx + dirX * t);
+            int by = (int) Math.floor(cy + dirY * t);
+            int bz = (int) Math.floor(cz + dirZ * t);
+            Block block = worldObj.getBlock(bx, by, bz);
+            if (block.isAir(worldObj, bx, by, bz) || block == Blocks.air) {
+                continue;
             }
+            if (block == BlockLoader.blockRunawaySingularity) {
+                continue;
+            }
+            if (block.getBlockHardness(worldObj, bx, by, bz) < 0.0F) {
+                continue; // 不可吸收方块，继续沿射线步进
+            }
+            worldObj.setBlockToAir(bx, by, bz);
+            absorbed++;
+            break; // 单条射线至多吸收 1 块
+        }
+        if (absorbed > 0) {
+            // DEBUG-SINGULARITY:
+            GTSteamReborn.LOG.info("[Singularity] rays absorbed=" + absorbed);
         }
     }
 
@@ -281,41 +335,66 @@ public class TileRunawaySingularity extends TileEntity {
         AxisAlignedBB box = AxisAlignedBB
             .getBoundingBox(cx - effRange, cy - effRange, cz - effRange, cx + effRange, cy + effRange, cz + effRange);
         List<Entity> list = worldObj.getEntitiesWithinAABB(Entity.class, box);
-        if (list.isEmpty()) {
-            return;
-        }
+        int inRange = 0;
+        int players = 0;
+        int itemsVanish = 0;
+        int living = 0;
         for (Entity entity : list) {
-            double dx = entity.posX - cx;
-            double dy = entity.posY - cy;
-            double dz = entity.posZ - cz;
+            double dx = cx - entity.posX;
+            double dy = cy - entity.posY;
+            double dz = cz - entity.posZ;
             double d2 = dx * dx + dy * dy + dz * dz;
             double d = Math.sqrt(d2);
             if (d > effRange) {
                 continue; // 球过滤
             }
+            inRange++;
             if (entity instanceof EntityPlayer && ((EntityPlayer) entity).capabilities.isCreativeMode) {
                 continue; // 创造玩家完全豁免
             }
             double pull = 1.0D - d / effRange;
             double force = pull * pull * factor;
-            if (d > 0.0D) {
+            if (d > 0.0D && !(entity instanceof EntityPlayer)) {
                 entity.addVelocity(dx / d * force * 0.15D, dy / d * force * 0.25D, dz / d * force * 0.15D);
             }
             if (entity instanceof EntityItem && d < 1.5D) {
                 entity.setDead();
+                itemsVanish++;
                 continue;
             }
-            if (entity instanceof EntityLivingBase && worldObj.getWorldTime() % DAMAGE_INTERVAL == 0) {
-                entity.attackEntityFrom(SINGULARITY_DAMAGE, (float) (damage * factor));
+            if (entity instanceof EntityLivingBase) {
+                living++;
+                // 伤害按每 20 tick 一次结算，damage=每20tick伤害值（speed=1 → 每秒 1 点）
+                if (worldObj.getWorldTime() % DAMAGE_INTERVAL == 0) {
+                    entity.attackEntityFrom(SINGULARITY_DAMAGE, (float) (damage * factor));
+                }
             }
             if (entity instanceof EntityPlayer) {
                 EntityPlayer p = (EntityPlayer) entity;
+                players++;
                 if (p.capabilities.allowFlying) {
                     p.capabilities.allowFlying = false;
                     p.capabilities.isFlying = false;
                     p.sendPlayerAbilities();
                 }
+                if (d > 0.0D) {
+                    p.motionX += dx / d * force * 0.15D;
+                    p.motionY += dy / d * force * 0.25D;
+                    p.motionZ += dz / d * force * 0.15D;
+                }
+                ((EntityPlayerMP) p).playerNetServerHandler.sendPacket(new S12PacketEntityVelocity(p));
             }
+        }
+        if (worldObj.getWorldTime() % 100 == 0) {
+            // DEBUG-SINGULARITY:
+            GTSteamReborn.LOG.info(
+                "[Singularity] entities in range=" + inRange
+                    + " pullingPlayers="
+                    + players
+                    + " itemsVanish="
+                    + itemsVanish
+                    + " living="
+                    + living);
         }
     }
 
