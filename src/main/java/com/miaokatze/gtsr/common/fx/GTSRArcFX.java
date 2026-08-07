@@ -41,6 +41,7 @@ public class GTSRArcFX extends GTSRFXParticle {
     private int numsplits;
     private boolean finalized;
     private float width = 0.03F;
+    private float darkScale = 1.0F; // 暗化系数（供消散变黑），1.0 为不暗化
 
     private GTSRArcFX(World world, double x1, double y1, double z1, double x2, double y2, double z2, long seed,
         float width, int type, int duration, float multi, int speed) {
@@ -78,6 +79,10 @@ public class GTSRArcFX extends GTSRFXParticle {
         GTSRFXEngine.instance()
             .addEffect(fx);
         return fx;
+    }
+
+    public void setDarkScale(float darkScale) {
+        this.darkScale = darkScale;
     }
 
     private void fractal(int splits, float amount, float splitchance, float splitlength, float splitangle) {
@@ -252,10 +257,22 @@ public class GTSRArcFX extends GTSRFXParticle {
                 if (sinn == 0.0F || Float.isNaN(sinn)) {
                     sinn = 1.0F;
                 }
-                GTSRFXVec diff1 = GTSRFXVec.crossProduct(playervec, rendersegment.prevdiff)
-                    .multiply(width / sinp);
-                GTSRFXVec diff2 = GTSRFXVec.crossProduct(playervec, rendersegment.nextdiff)
-                    .multiply(width / sinn);
+                // 宽度方向单位化：叉积归一后乘 width/sinp，任意视角下电弧宽度恒定（修复俯仰角接近 ±90° 时
+                // playery 爆炸导致的全屏巨块）；叉积退化为零（视向量与段方向平行）时取任意垂直向量兜底
+                GTSRFXVec cross1 = GTSRFXVec.crossProduct(playervec, rendersegment.prevdiff);
+                if (cross1.lengthPow2() < 1.0E-6F) {
+                    cross1 = GTSRFXVec.getPerpendicular(rendersegment.prevdiff);
+                } else {
+                    cross1.normalize();
+                }
+                GTSRFXVec diff1 = cross1.multiply(width / sinp);
+                GTSRFXVec cross2 = GTSRFXVec.crossProduct(playervec, rendersegment.nextdiff);
+                if (cross2.lengthPow2() < 1.0E-6F) {
+                    cross2 = GTSRFXVec.getPerpendicular(rendersegment.nextdiff);
+                } else {
+                    cross2.normalize();
+                }
+                GTSRFXVec diff2 = cross2.multiply(width / sinn);
                 GTSRFXVec startvec = rendersegment.startpoint.point;
                 GTSRFXVec endvec = rendersegment.endpoint.point;
                 float rx1 = (float) ((double) startvec.x - (double) interpPosX);
@@ -428,12 +445,18 @@ public class GTSRArcFX extends GTSRFXParticle {
                     GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
                     break;
                 default:
-                    this.particleRed = 0.8F;
-                    this.particleGreen = 0.0F;
-                    this.particleBlue = 0.8F;
+                    // 灰白微青：白 -> 淡青 渐变（与 pass 1 default 同式）
+                    float t = Math.min(1.0F, Math.max(0.0F, (float) this.particleAge / (float) this.particleMaxAge));
+                    this.particleRed = 0.95F - 0.2F * t;
+                    this.particleGreen = 0.97F - 0.12F * t;
+                    this.particleBlue = 1.0F;
                     GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE);
                     break;
             }
+            // 暗化系数（供消散变黑）：作用于第一趟（外发光）渲染
+            this.particleRed *= this.darkScale;
+            this.particleGreen *= this.darkScale;
+            this.particleBlue *= this.darkScale;
             Minecraft.getMinecraft().renderEngine.bindTexture(GLOW_TEXTURE);
             tess.startDrawingQuads();
             tess.setBrightness(0x00F000F0);
@@ -487,6 +510,10 @@ public class GTSRArcFX extends GTSRFXParticle {
                     GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE);
                     break;
             }
+            // 暗化系数：作用于第二趟（核心）渲染
+            this.particleRed *= this.darkScale;
+            this.particleGreen *= this.darkScale;
+            this.particleBlue *= this.darkScale;
             Minecraft.getMinecraft().renderEngine.bindTexture(GLOW_SMALL_TEXTURE);
             tess.startDrawingQuads();
             tess.setBrightness(0x00F000F0);

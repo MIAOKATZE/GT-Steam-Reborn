@@ -25,9 +25,6 @@ public class GTSRFXNet {
 
     private static final SimpleNetworkWrapper NETWORK = NetworkRegistry.INSTANCE.newSimpleChannel("gtsr_fx");
 
-    /** 客户端吸收粒子触发计数（调试日志用，每 400 tick 窗口清零） */
-    public static long absorbCount;
-
     public static void init() {
         NETWORK.registerMessage(AbsorbMessageHandler.class, AbsorbMessage.class, 0, Side.CLIENT);
     }
@@ -101,7 +98,6 @@ public class GTSRFXNet {
         @Override
         @SideOnly(Side.CLIENT)
         public IMessage onMessage(AbsorbMessage msg, MessageContext ctx) {
-            GTSRFXNet.absorbCount++;
             // Netty 线程执行：粒子生成必须调度回客户端主线程（1.7.10 无 addScheduledTask，用 func_152344_a）
             Minecraft.getMinecraft()
                 .func_152344_a(() -> {

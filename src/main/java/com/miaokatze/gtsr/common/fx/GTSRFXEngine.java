@@ -157,19 +157,10 @@ public class GTSRFXEngine {
         GL11.glPopMatrix();
     }
 
-    public boolean hasGlowNear(double x, double y, double z, double maxDist) {
-        for (GTSRGlowFX glow : this.glows) {
-            double dx = glow.getX() - x, dy = glow.getY() - y, dz = glow.getZ() - z;
-            if (dx * dx + dy * dy + dz * dz <= maxDist * maxDist) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     public static void spawnArc(World world, double sx, double sy, double sz, double ex, double ey, double ez,
-        float width, int type, int duration, float multi, int speed) {
-        GTSRArcFX.add(world, sx, sy, sz, ex, ey, ez, System.nanoTime(), width, type, duration, multi, speed);
+        float width, int type, int duration, float multi, int speed, float darkScale) {
+        GTSRArcFX.add(world, sx, sy, sz, ex, ey, ez, System.nanoTime(), width, type, duration, multi, speed)
+            .setDarkScale(darkScale);
     }
 
     public static void spawnParticle(GTSRFXParticle particle) {

@@ -9,7 +9,7 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * 世界辉光特效：多层同心 additive billboard 圆，呼吸 + 寿命渐出。
+ * 世界辉光特效：多层同心 additive billboard 圆，极微弱波动 + 寿命渐出。
  * 参考 Thaumcraft 4.2.3.5 TileNodeRenderer 辉光 quad 与 RenderSpecialItem 三角锥 glow，自包含实现。
  */
 @SideOnly(Side.CLIENT)
@@ -19,7 +19,7 @@ public class GTSRGlowFX {
     private final double x;
     private final double y;
     private final double z;
-    private final float radius;
+    private float radius;
     private final float colorR;
     private final float colorG;
     private final float colorB;
@@ -28,6 +28,8 @@ public class GTSRGlowFX {
     private final int maxAge;
     private int age;
     private boolean dead;
+    private float darkScale = 1.0F;
+    private float shrinkPerTick = 0.0F;
 
     public GTSRGlowFX(World world, double x, double y, double z, float radius, float colorR, float colorG, float colorB,
         int durationTicks) {
@@ -44,14 +46,30 @@ public class GTSRGlowFX {
         this.maxAge = Math.max(1, durationTicks);
     }
 
-    public static void spawn(World world, double x, double y, double z, float radius, float colorR, float colorG,
+    public static GTSRGlowFX spawn(World world, double x, double y, double z, float radius, float colorR, float colorG,
         float colorB, int durationTicks) {
+        GTSRGlowFX glow = new GTSRGlowFX(world, x, y, z, radius, colorR, colorG, colorB, durationTicks);
         GTSRFXEngine.instance()
-            .addGlow(new GTSRGlowFX(world, x, y, z, radius, colorR, colorG, colorB, durationTicks));
+            .addGlow(glow);
+        return glow;
+    }
+
+    /** 每 tick 更新半径与暗化系数（消散时随 activeFactor 收缩、变暗） */
+    public void updateParams(float radius, float darkScale) {
+        this.radius = radius;
+        this.darkScale = darkScale;
+    }
+
+    /** 设置每 tick 半径收缩量（>0 时开启收缩，用于消散过渡辉光） */
+    public void setShrinkPerTick(float shrinkPerTick) {
+        this.shrinkPerTick = shrinkPerTick;
     }
 
     public void onUpdate() {
         this.age++;
+        if (this.shrinkPerTick > 0.0F) {
+            this.radius = Math.max(0.0F, this.radius - this.shrinkPerTick);
+        }
         if (this.age >= this.maxAge) {
             this.dead = true;
         }
@@ -61,12 +79,16 @@ public class GTSRGlowFX {
         return this.dead;
     }
 
+    public void setDead() {
+        this.dead = true;
+    }
+
     public void render(Tessellator tess, float partialTicks) {
-        // 呼吸：世界时间正弦，随寿命渐出
-        float breathe = 0.88F
-            + 0.12F * (float) Math.sin((double) this.world.getWorldTime() * 0.1D + (double) this.phase);
+        // 极微弱波动（呼吸去除）：世界时间正弦，随寿命渐出
+        float breathe = 0.97F
+            + 0.03F * (float) Math.sin((double) this.world.getWorldTime() * 0.1D + (double) this.phase);
         float fade = Math.max(0.0F, 1.0F - (float) this.age / (float) this.maxAge);
-        float alpha = this.baseAlpha * breathe * fade;
+        float alpha = this.baseAlpha * breathe * fade * this.darkScale;
         float arX = ActiveRenderInfo.rotationX;
         float arZ = ActiveRenderInfo.rotationZ;
         float arYZ = ActiveRenderInfo.rotationYZ;

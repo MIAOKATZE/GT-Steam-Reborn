@@ -24,6 +24,9 @@ public class GTSRSingularityFX extends GTSRFXParticle {
     private double angle;
     private float alpha = 1.0F;
     private float orbitSpeed;
+    private double initRSq;
+    private float shrinkFactor = 0.98F;
+    private float darkScale = 1.0F;
 
     public GTSRSingularityFX(World world, double cx, double cy, double cz, double spawnR) {
         this(world, cx, cy, cz, spawnR, 0);
@@ -36,39 +39,23 @@ public class GTSRSingularityFX extends GTSRFXParticle {
         this.centerY = cy;
         this.centerZ = cz;
         this.particleGravity = 0.0F;
-        if (mode == 0) {
-            // 吸积盘：中心平面内随机轨道
-            double r = spawnR * (0.45D + 0.55D * this.rand.nextDouble());
-            double theta = this.rand.nextDouble() * 2.0D * Math.PI;
-            this.posX = cx + Math.cos(theta) * r;
-            this.posZ = cz + Math.sin(theta) * r;
-            this.posY = cy + (this.rand.nextDouble() - 0.5D) * 0.4D;
-            this.radius = r;
-            this.angle = theta;
-            this.orbitSpeed = (float) ((0.06D + this.rand.nextDouble() * 0.09D)
-                * (this.rand.nextBoolean() ? 1.0D : -1.0D));
-            this.particleScale = 0.12F + this.rand.nextFloat() * 0.1F;
-            this.particleMaxAge = 50 + this.rand.nextInt(40);
-        } else {
-            // 外扩：中心随机球面喷出
-            double dirX = this.rand.nextDouble() * 2.0D - 1.0D;
-            double dirY = (this.rand.nextDouble() * 2.0D - 1.0D) * 0.5D;
-            double dirZ = this.rand.nextDouble() * 2.0D - 1.0D;
-            double dirLen = Math.sqrt(dirX * dirX + dirY * dirY + dirZ * dirZ);
-            if (dirLen < 1.0E-4D) {
-                dirLen = 1.0E-4D;
-            }
-            double speed = 0.15D + this.rand.nextDouble() * 0.2D;
-            this.motionX = dirX / dirLen * speed;
-            this.motionY = dirY / dirLen * speed;
-            this.motionZ = dirZ / dirLen * speed;
-            this.particleScale = 0.12F + this.rand.nextFloat() * 0.1F;
-            this.particleMaxAge = 30 + this.rand.nextInt(20);
-        }
+        // 吸积盘：中心平面内随机轨道
+        double r = spawnR * (0.45D + 0.55D * this.rand.nextDouble());
+        double theta = this.rand.nextDouble() * 2.0D * Math.PI;
+        this.posX = cx + Math.cos(theta) * r;
+        this.posZ = cz + Math.sin(theta) * r;
+        this.posY = cy + (this.rand.nextDouble() - 0.5D) * 0.4D;
+        this.radius = r;
+        this.angle = theta;
+        this.orbitSpeed = (float) ((0.06D + this.rand.nextDouble() * 0.09D) * (this.rand.nextBoolean() ? 1.0D : -1.0D));
+        this.initRSq = r * r;
+        this.shrinkFactor = 0.98F + (this.rand.nextFloat() * 2.0F - 1.0F) * 0.003F;
+        this.particleScale = 0.12F + this.rand.nextFloat() * 0.1F;
+        this.particleMaxAge = 50 + this.rand.nextInt(40);
         this.prevPosX = this.posX;
         this.prevPosY = this.posY;
         this.prevPosZ = this.posZ;
-        this.setRBGColorF(0.95F, 0.97F, 1.0F);
+        this.setRBGColorF(1.0F, 1.0F, 1.0F);
     }
 
     /**
@@ -98,19 +85,20 @@ public class GTSRSingularityFX extends GTSRFXParticle {
         this.prevPosX = this.posX;
         this.prevPosY = this.posY;
         this.prevPosZ = this.posZ;
-        this.setRBGColorF(0.95F, 0.97F, 1.0F);
+        this.setRBGColorF(1.0F, 1.0F, 1.0F);
     }
 
-    public static void spawnDisk(World world, double cx, double cy, double cz, double range) {
+    /**
+     * 设置消散变黑系数（1.0 为纯白，小于 1.0 时粒子整体变暗）。
+     */
+    public void setDarkScale(float darkScale) {
+        this.darkScale = darkScale;
+    }
+
+    public static void spawnDisk(World world, double cx, double cy, double cz, double range, float darkScale) {
         GTSRSingularityFX fx = new GTSRSingularityFX(world, cx, cy, cz, range, 0);
+        fx.setDarkScale(darkScale);
         Minecraft.getMinecraft().effectRenderer.addEffect(fx);
-    }
-
-    public static void spawnBurst(World world, double cx, double cy, double cz) {
-        for (int i = 0; i < 12; i++) {
-            GTSRSingularityFX fx = new GTSRSingularityFX(world, cx, cy, cz, 0.0D, 1);
-            Minecraft.getMinecraft().effectRenderer.addEffect(fx);
-        }
     }
 
     public static void spawnAbsorb(World world, double fx, double fy, double fz, double tx, double ty, double tz) {
@@ -127,13 +115,17 @@ public class GTSRSingularityFX extends GTSRFXParticle {
         this.prevPosY = this.posY;
         this.prevPosZ = this.posZ;
         if (this.mode == 0) {
-            this.angle += this.orbitSpeed;
-            this.radius *= 0.992F;
+            // 轨道角速度随半径收缩加速（角动量守恒近似 ω∝1/r²），增量封顶防止 r→0 时爆炸
+            float angInc = this.orbitSpeed * (float) (this.initRSq / (this.radius * this.radius));
+            float maxInc = Math.abs(this.orbitSpeed) * 6.0F;
+            this.angle += Math.max(-maxInc, Math.min(maxInc, angInc));
+            this.radius *= this.shrinkFactor;
             this.posX = this.centerX + Math.cos(this.angle) * this.radius;
             this.posZ = this.centerZ + Math.sin(this.angle) * this.radius;
             this.posY = this.centerY + Math.sin((double) this.particleAge * 0.1D) * 0.15D;
-            if (this.radius < 0.5D) {
-                this.alpha -= 0.06F;
+            // 明显收敛到中心附近或寿命后期开始渐隐消失
+            if (this.radius < 1.0D || (double) this.particleAge > (double) this.particleMaxAge * 0.7D) {
+                this.alpha -= 0.08F;
                 if (this.alpha <= 0.0F) {
                     this.setDead();
                     return;
@@ -144,10 +136,10 @@ public class GTSRSingularityFX extends GTSRFXParticle {
             this.posZ += this.motionZ;
             this.posY += this.motionY + Math.sin((double) this.particleAge * 0.2D) * 0.01D;
         }
-        float t = Math.min(1.0F, (float) this.particleAge / 60.0F);
-        this.particleRed = 0.95F - 0.2F * t;
-        this.particleGreen = 0.97F - 0.12F * t;
-        this.particleBlue = 1.0F;
+        // 纯白 × darkScale，不随时间变色
+        this.particleRed = 1.0F * this.darkScale;
+        this.particleGreen = 1.0F * this.darkScale;
+        this.particleBlue = 1.0F * this.darkScale;
         this.particleAge++;
         if (this.particleAge >= this.particleMaxAge) {
             this.setDead();
