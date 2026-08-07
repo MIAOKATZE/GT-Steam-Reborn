@@ -58,6 +58,9 @@ public class GTSRFXVec {
 
     public GTSRFXVec normalize() {
         float length = this.length();
+        if (length < 1.0E-6F) {
+            return this;
+        }
         this.x /= length;
         this.y /= length;
         this.z /= length;
@@ -88,13 +91,17 @@ public class GTSRFXVec {
     }
 
     public static float anglePreNorm(GTSRFXVec vec1, GTSRFXVec vec2) {
-        return (float) Math.acos((double) dotProduct(vec1, vec2));
+        float dot = Math.max(-1.0F, Math.min(1.0F, dotProduct(vec1, vec2)));
+        return (float) Math.acos((double) dot);
     }
 
     /**
      * 绕任意轴旋转（角度制），Rodrigues 公式，等价 WRVector3.rotate 的矩阵实现。
      */
     public GTSRFXVec rotate(float angle, GTSRFXVec axis) {
+        if (axis.isZero()) {
+            return this;
+        }
         double rad = Math.toRadians((double) angle);
         double c = Math.cos(rad);
         double s = Math.sin(rad);

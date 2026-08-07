@@ -19,6 +19,7 @@ import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.DamageSource;
 import net.minecraft.world.World;
 
+import com.miaokatze.gtsr.common.network.GTSRFXNet;
 import com.miaokatze.gtsr.loader.BlockLoader;
 
 /**
@@ -165,7 +166,6 @@ public class TileRunawaySingularity extends TileEntity {
         double factor = getActiveFactor();
         double effRange = range * factor;
         absorbScan(effRange, factor);
-        absorbRays(effRange, factor);
         handleEntities(effRange, factor);
     }
 
@@ -233,6 +233,7 @@ public class TileRunawaySingularity extends TileEntity {
             double p = Math.min(1.0D, speed * factor * f * jitter * SCAN_INTERVAL / 20.0D);
             if (worldObj.rand.nextDouble() < p) {
                 worldObj.setBlockToAir(t[0], t[1], t[2]);
+                GTSRFXNet.sendAbsorb(worldObj, t[0], t[1], t[2], xCoord, yCoord, zCoord);
                 count++;
                 if (count >= cap) {
                     break;

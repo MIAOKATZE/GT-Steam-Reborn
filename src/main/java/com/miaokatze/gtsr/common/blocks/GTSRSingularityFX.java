@@ -1,5 +1,6 @@
 package com.miaokatze.gtsr.common.blocks;
 
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.world.World;
 
@@ -9,83 +10,115 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * 吸积环轨道粒子（自包含，参考 TC4 FXWisp 螺旋）
+ * 奇点粒子：吸积/消散/向心粒子（extends EntityFX，vanilla 传统粒子管道，不依赖引擎渲染）。
+ * 继承 GTSRFXParticle 以兼容既有引擎入口调用；静态入口走 Minecraft.effectRenderer。自包含实现。
  */
 @SideOnly(Side.CLIENT)
 public class GTSRSingularityFX extends GTSRFXParticle {
 
+    private int mode;
     private final double centerX;
     private final double centerY;
     private final double centerZ;
-    private final double axisX;
-    private final double axisY;
-    private final double axisZ;
-    private final double basisX;
-    private final double basisY;
-    private final double basisZ;
-    private final double crossX;
-    private final double crossY;
-    private final double crossZ;
-    private final double orbitSpeed;
-    private final double shrink;
-    private final double wispPhase;
     private double radius;
     private double angle;
     private float alpha = 1.0F;
-    private boolean dissipating;
+    private float orbitSpeed;
 
     public GTSRSingularityFX(World world, double cx, double cy, double cz, double spawnR) {
+        this(world, cx, cy, cz, spawnR, 0);
+    }
+
+    public GTSRSingularityFX(World world, double cx, double cy, double cz, double spawnR, int mode) {
         super(world, cx, cy, cz);
+        this.mode = mode;
         this.centerX = cx;
         this.centerY = cy;
         this.centerZ = cz;
-
-        // 球壳内随机出生点
-        double r = Math.max(spawnR, 0.001D) * (0.4D + 0.6D * this.rand.nextDouble());
-        double theta = this.rand.nextDouble() * 2.0D * Math.PI;
-        double phi = Math.acos(2.0D * this.rand.nextDouble() - 1.0D);
-        this.posX = cx + Math.sin(phi) * Math.cos(theta) * r;
-        this.posY = cy + Math.sin(phi) * Math.sin(theta) * r;
-        this.posZ = cz + Math.cos(phi) * r;
+        this.particleGravity = 0.0F;
+        if (mode == 0) {
+            // 吸积盘：中心平面内随机轨道
+            double r = spawnR * (0.45D + 0.55D * this.rand.nextDouble());
+            double theta = this.rand.nextDouble() * 2.0D * Math.PI;
+            this.posX = cx + Math.cos(theta) * r;
+            this.posZ = cz + Math.sin(theta) * r;
+            this.posY = cy + (this.rand.nextDouble() - 0.5D) * 0.4D;
+            this.radius = r;
+            this.angle = theta;
+            this.orbitSpeed = (float) ((0.06D + this.rand.nextDouble() * 0.09D)
+                * (this.rand.nextBoolean() ? 1.0D : -1.0D));
+            this.particleScale = 0.12F + this.rand.nextFloat() * 0.1F;
+            this.particleMaxAge = 50 + this.rand.nextInt(40);
+        } else {
+            // 外扩：中心随机球面喷出
+            double dirX = this.rand.nextDouble() * 2.0D - 1.0D;
+            double dirY = (this.rand.nextDouble() * 2.0D - 1.0D) * 0.5D;
+            double dirZ = this.rand.nextDouble() * 2.0D - 1.0D;
+            double dirLen = Math.sqrt(dirX * dirX + dirY * dirY + dirZ * dirZ);
+            if (dirLen < 1.0E-4D) {
+                dirLen = 1.0E-4D;
+            }
+            double speed = 0.15D + this.rand.nextDouble() * 0.2D;
+            this.motionX = dirX / dirLen * speed;
+            this.motionY = dirY / dirLen * speed;
+            this.motionZ = dirZ / dirLen * speed;
+            this.particleScale = 0.12F + this.rand.nextFloat() * 0.1F;
+            this.particleMaxAge = 30 + this.rand.nextInt(20);
+        }
         this.prevPosX = this.posX;
         this.prevPosY = this.posY;
         this.prevPosZ = this.posZ;
+        this.setRBGColorF(0.95F, 0.97F, 1.0F);
+    }
 
-        // 随机倾斜轨道平面：法线轴 + 平面内正交基
-        double aTheta = this.rand.nextDouble() * 2.0D * Math.PI;
-        double aPhi = Math.acos(2.0D * this.rand.nextDouble() - 1.0D);
-        this.axisX = Math.sin(aPhi) * Math.cos(aTheta);
-        this.axisY = Math.sin(aPhi) * Math.sin(aTheta);
-        this.axisZ = Math.cos(aPhi);
-        double rx, ry, rz;
-        if (Math.abs(this.axisX) > 0.9D) {
-            rx = 0.0D;
-            ry = 1.0D;
-            rz = 0.0D;
-        } else {
-            rx = 1.0D;
-            ry = 0.0D;
-            rz = 0.0D;
+    /**
+     * 向心粒子：出生点 -> 目标点（吸积）。
+     */
+    private GTSRSingularityFX(World world, double fromX, double fromY, double fromZ, double toX, double toY, double toZ,
+        int mode) {
+        super(world, fromX, fromY, fromZ);
+        this.mode = mode;
+        this.centerX = toX;
+        this.centerY = toY;
+        this.centerZ = toZ;
+        this.particleGravity = 0.0F;
+        double dx = toX - fromX;
+        double dy = toY - fromY;
+        double dz = toZ - fromZ;
+        double len = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        if (len < 1.0E-4D) {
+            len = 1.0E-4D;
         }
-        double bX = this.axisY * rz - this.axisZ * ry;
-        double bY = this.axisZ * rx - this.axisX * rz;
-        double bZ = this.axisX * ry - this.axisY * rx;
-        double bLen = Math.sqrt(bX * bX + bY * bY + bZ * bZ);
-        this.basisX = bX / bLen;
-        this.basisY = bY / bLen;
-        this.basisZ = bZ / bLen;
-        this.crossX = this.axisY * this.basisZ - this.axisZ * this.basisY;
-        this.crossY = this.axisZ * this.basisX - this.axisX * this.basisZ;
-        this.crossZ = this.axisX * this.basisY - this.axisY * this.basisX;
+        double speed = 0.12D + this.rand.nextDouble() * 0.08D;
+        this.motionX = dx / len * speed;
+        this.motionY = dy / len * speed;
+        this.motionZ = dz / len * speed;
+        this.particleScale = 0.12F + this.rand.nextFloat() * 0.1F;
+        this.particleMaxAge = 25 + this.rand.nextInt(15);
+        this.prevPosX = this.posX;
+        this.prevPosY = this.posY;
+        this.prevPosZ = this.posZ;
+        this.setRBGColorF(0.95F, 0.97F, 1.0F);
+    }
 
-        this.radius = r;
-        this.angle = this.rand.nextDouble() * 2.0D * Math.PI;
-        this.orbitSpeed = (0.05D + this.rand.nextDouble() * 0.07D) * (this.rand.nextBoolean() ? 1.0D : -1.0D);
-        this.shrink = 0.985D + this.rand.nextDouble() * 0.010D;
-        this.wispPhase = this.rand.nextDouble() * 2.0D * Math.PI;
-        this.particleScale = 0.1F + this.rand.nextFloat() * 0.1F;
-        this.particleMaxAge = 40 + this.rand.nextInt(40);
-        this.setRBGColorF(1.0F, 1.0F, 1.0F);
+    public static void spawnDisk(World world, double cx, double cy, double cz, double range) {
+        GTSRSingularityFX fx = new GTSRSingularityFX(world, cx, cy, cz, range, 0);
+        Minecraft.getMinecraft().effectRenderer.addEffect(fx);
+    }
+
+    public static void spawnBurst(World world, double cx, double cy, double cz) {
+        for (int i = 0; i < 12; i++) {
+            GTSRSingularityFX fx = new GTSRSingularityFX(world, cx, cy, cz, 0.0D, 1);
+            Minecraft.getMinecraft().effectRenderer.addEffect(fx);
+        }
+    }
+
+    public static void spawnAbsorb(World world, double fx, double fy, double fz, double tx, double ty, double tz) {
+        int count = 1 + world.rand.nextInt(3);
+        for (int i = 0; i < count; i++) {
+            GTSRSingularityFX particle = new GTSRSingularityFX(world, fx, fy, fz, tx, ty, tz, 2);
+            Minecraft.getMinecraft().effectRenderer.addEffect(particle);
+        }
     }
 
     @Override
@@ -93,30 +126,28 @@ public class GTSRSingularityFX extends GTSRFXParticle {
         this.prevPosX = this.posX;
         this.prevPosY = this.posY;
         this.prevPosZ = this.posZ;
-        this.angle += this.orbitSpeed;
-        this.radius *= this.shrink;
-        double cosA = Math.cos(this.angle);
-        double sinA = Math.sin(this.angle);
-        double wisp = Math.sin((double) this.particleAge * 0.15D + this.wispPhase) * 0.12D * this.radius;
-        this.posX = this.centerX + this.radius * (cosA * this.basisX + sinA * this.crossX) + wisp * this.axisX;
-        this.posY = this.centerY + this.radius * (cosA * this.basisY + sinA * this.crossY) + wisp * this.axisY;
-        this.posZ = this.centerZ + this.radius * (cosA * this.basisZ + sinA * this.crossZ) + wisp * this.axisZ;
-
-        if (this.radius < 0.6D) {
-            this.dissipating = true;
-        }
-        if (this.dissipating) {
-            this.alpha -= 0.06F;
-            this.particleAlpha = Math.max(0.0F, this.alpha);
-            if (this.alpha <= 0.0F) {
-                this.setDead();
-                return;
+        if (this.mode == 0) {
+            this.angle += this.orbitSpeed;
+            this.radius *= 0.992F;
+            this.posX = this.centerX + Math.cos(this.angle) * this.radius;
+            this.posZ = this.centerZ + Math.sin(this.angle) * this.radius;
+            this.posY = this.centerY + Math.sin((double) this.particleAge * 0.1D) * 0.15D;
+            if (this.radius < 0.5D) {
+                this.alpha -= 0.06F;
+                if (this.alpha <= 0.0F) {
+                    this.setDead();
+                    return;
+                }
             }
+        } else {
+            this.posX += this.motionX;
+            this.posZ += this.motionZ;
+            this.posY += this.motionY + Math.sin((double) this.particleAge * 0.2D) * 0.01D;
         }
-
-        float t = Math.min(1.0F, this.particleAge / 60.0F);
-        this.setRBGColorF(1.0F, 1.0F - t, 1.0F);
-
+        float t = Math.min(1.0F, (float) this.particleAge / 60.0F);
+        this.particleRed = 0.95F - 0.2F * t;
+        this.particleGreen = 0.97F - 0.12F * t;
+        this.particleBlue = 1.0F;
         this.particleAge++;
         if (this.particleAge >= this.particleMaxAge) {
             this.setDead();
@@ -124,7 +155,45 @@ public class GTSRSingularityFX extends GTSRFXParticle {
     }
 
     @Override
+    public int getFXLayer() {
+        return 0;
+    }
+
+    @Override
     public void renderParticle(Tessellator tess, float p, float rx, float rz, float ry, float rxz, float ryz) {
-        this.renderGlowTextureQuad(tess, p, rx, rz, ry, rxz, ryz);
+        int part = 16 + (int) (this.particleAge / 6.0F) % 4;
+        float u0 = (float) (part % 16) / 16.0F;
+        float u1 = u0 + 0.0624375F;
+        float v0 = (float) (part / 16) / 16.0F;
+        float v1 = v0 + 0.0624375F;
+        float x = (float) (this.prevPosX + (this.posX - this.prevPosX) * (double) p - (double) interpPosX);
+        float y = (float) (this.prevPosY + (this.posY - this.prevPosY) * (double) p - (double) interpPosY);
+        float z = (float) (this.prevPosZ + (this.posZ - this.prevPosZ) * (double) p - (double) interpPosZ);
+        float s = this.particleScale;
+        tess.setColorRGBA_F(this.particleRed, this.particleGreen, this.particleBlue, this.alpha);
+        tess.addVertexWithUV(
+            (double) (x - rx * s - ry * s),
+            (double) (y - rxz * s),
+            (double) (z - rz * s - ryz * s),
+            (double) u0,
+            (double) v1);
+        tess.addVertexWithUV(
+            (double) (x - rx * s + ry * s),
+            (double) (y + rxz * s),
+            (double) (z - rz * s + ryz * s),
+            (double) u1,
+            (double) v1);
+        tess.addVertexWithUV(
+            (double) (x + rx * s + ry * s),
+            (double) (y + rxz * s),
+            (double) (z + rz * s + ryz * s),
+            (double) u1,
+            (double) v0);
+        tess.addVertexWithUV(
+            (double) (x + rx * s - ry * s),
+            (double) (y - rxz * s),
+            (double) (z + rz * s - ryz * s),
+            (double) u0,
+            (double) v0);
     }
 }

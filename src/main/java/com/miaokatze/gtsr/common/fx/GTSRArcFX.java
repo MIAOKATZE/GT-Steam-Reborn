@@ -217,9 +217,10 @@ public class GTSRArcFX extends GTSRFXParticle {
 
     private void renderBolt(Tessellator tessellator, float partialframe, float cosyaw, float cospitch, float sinyaw,
         float cossinpitch, int pass, float mainalpha) {
+        float playery = cosyaw == 0.0F ? -cossinpitch / 1.0E-4F : -cossinpitch / cosyaw;
         GTSRFXVec playervec = new GTSRFXVec(
             (double) (sinyaw * -cospitch),
-            (double) (-cossinpitch / cosyaw),
+            (double) playery,
             (double) (cosyaw * cospitch));
         float boltage = this.particleAge >= 0 ? (float) this.particleAge / (float) this.particleMaxAge : 0.0F;
         if (pass == 0) {
@@ -227,9 +228,14 @@ public class GTSRArcFX extends GTSRFXParticle {
         } else {
             mainalpha = 1.0F - boltage * 0.5F;
         }
-        int renderlength = (int) (((float) this.particleAge + partialframe + (float) ((int) (this.length * 3.0F)))
-            / (float) ((int) (this.length * 3.0F))
-            * (float) this.numsegments0);
+        int renderlength;
+        if ((int) (this.length * 3.0F) == 0) {
+            renderlength = this.numsegments0;
+        } else {
+            renderlength = (int) (((float) this.particleAge + partialframe + (float) ((int) (this.length * 3.0F)))
+                / (float) ((int) (this.length * 3.0F))
+                * (float) this.numsegments0);
+        }
         Iterator<Segment> iterator = this.segments.iterator();
         while (iterator.hasNext()) {
             Segment rendersegment = iterator.next();
@@ -238,10 +244,18 @@ public class GTSRArcFX extends GTSRFXParticle {
                     * (getRelativeViewVector(rendersegment.startpoint.point).length() / 5.0F + 1.0F)
                     * (1.0F + rendersegment.light)
                     * 0.5F;
+                float sinp = rendersegment.sinprev;
+                if (sinp == 0.0F || Float.isNaN(sinp)) {
+                    sinp = 1.0F;
+                }
+                float sinn = rendersegment.sinnext;
+                if (sinn == 0.0F || Float.isNaN(sinn)) {
+                    sinn = 1.0F;
+                }
                 GTSRFXVec diff1 = GTSRFXVec.crossProduct(playervec, rendersegment.prevdiff)
-                    .multiply(width / rendersegment.sinprev);
+                    .multiply(width / sinp);
                 GTSRFXVec diff2 = GTSRFXVec.crossProduct(playervec, rendersegment.nextdiff)
-                    .multiply(width / rendersegment.sinnext);
+                    .multiply(width / sinn);
                 GTSRFXVec startvec = rendersegment.startpoint.point;
                 GTSRFXVec endvec = rendersegment.endpoint.point;
                 float rx1 = (float) ((double) startvec.x - (double) interpPosX);
@@ -465,10 +479,10 @@ public class GTSRArcFX extends GTSRFXParticle {
                     GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
                     break;
                 default:
-                    // 品红：白 -> 品红 渐变
-                    float t = Math.min(1.0F, (float) this.particleAge / (float) this.particleMaxAge);
-                    this.particleRed = 1.0F;
-                    this.particleGreen = 1.0F - t;
+                    // 灰白微青：白 -> 淡青 渐变
+                    float t = Math.min(1.0F, Math.max(0.0F, (float) this.particleAge / (float) this.particleMaxAge));
+                    this.particleRed = 0.95F - 0.2F * t;
+                    this.particleGreen = 0.97F - 0.12F * t;
                     this.particleBlue = 1.0F;
                     GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE);
                     break;

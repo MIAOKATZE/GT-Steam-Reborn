@@ -63,7 +63,8 @@ public class GTSRGlowFX {
 
     public void render(Tessellator tess, float partialTicks) {
         // 呼吸：世界时间正弦，随寿命渐出
-        float breathe = 0.7F + 0.3F * (float) Math.sin((double) this.world.getWorldTime() * 0.1D + (double) this.phase);
+        float breathe = 0.88F
+            + 0.12F * (float) Math.sin((double) this.world.getWorldTime() * 0.1D + (double) this.phase);
         float fade = Math.max(0.0F, 1.0F - (float) this.age / (float) this.maxAge);
         float alpha = this.baseAlpha * breathe * fade;
         float arX = ActiveRenderInfo.rotationX;

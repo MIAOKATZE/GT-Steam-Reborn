@@ -4,6 +4,7 @@ import com.miaokatze.gtsr.Tags;
 import com.miaokatze.gtsr.common.commands.GTSRCommand;
 import com.miaokatze.gtsr.common.crossmod.postea.PosteaCompat;
 import com.miaokatze.gtsr.common.crossmod.waila.GTSRWailaCompat;
+import com.miaokatze.gtsr.common.network.GTSRFXNet;
 import com.miaokatze.gtsr.config.Config;
 import com.miaokatze.gtsr.loader.BlockLoader;
 import com.miaokatze.gtsr.loader.GTSRRecipeLoader;
@@ -29,6 +30,7 @@ public class CommonProxy {
      */
     public void preInit(FMLPreInitializationEvent event) {
         Config.synchronizeConfiguration(event.getSuggestedConfigurationFile());
+        GTSRFXNet.init();
 
         GTSteamReborn.LOG.info("GTSteamReborn 开始初始化 (版本: " + Tags.VERSION + ")");
 
