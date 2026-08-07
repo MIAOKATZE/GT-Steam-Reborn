@@ -144,6 +144,10 @@ public class GTSRFXEngine {
             GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE);
             Minecraft.getMinecraft().renderEngine.bindTexture(GTSRFXParticle.GLOW_TEXTURE);
             for (GTSRGlowFX glow : this.glows) {
+                // 距离裁剪：超过 64 格（4096 平方）不渲染，对齐电弧/光束可见性
+                if (entity.getDistanceSq(glow.getX(), glow.getY(), glow.getZ()) > 4096.0D) {
+                    continue;
+                }
                 tessellator.startDrawingQuads();
                 tessellator.setBrightness(0x00F000F0);
                 glow.render(tessellator, frame);

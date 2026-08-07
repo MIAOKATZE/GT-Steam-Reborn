@@ -250,11 +250,11 @@ public class GTSRArcFX extends GTSRFXParticle {
                     * (1.0F + rendersegment.light)
                     * 0.5F;
                 float sinp = rendersegment.sinprev;
-                if (sinp == 0.0F || Float.isNaN(sinp)) {
+                if (sinp <= 1.0E-3F || Float.isNaN(sinp)) {
                     sinp = 1.0F;
                 }
                 float sinn = rendersegment.sinnext;
-                if (sinn == 0.0F || Float.isNaN(sinn)) {
+                if (sinn <= 1.0E-3F || Float.isNaN(sinn)) {
                     sinn = 1.0F;
                 }
                 // 宽度方向单位化：叉积归一后乘 width/sinp，任意视角下电弧宽度恒定（修复俯仰角接近 ±90° 时
@@ -386,9 +386,9 @@ public class GTSRArcFX extends GTSRFXParticle {
     public void renderParticle(Tessellator tess, float partialframe, float cosyaw, float cospitch, float sinyaw,
         float sinsinpitch, float cossinpitch) {
         EntityClientPlayerMP renderentity = Minecraft.getMinecraft().thePlayer;
-        int visibleDistance = 100;
+        int visibleDistance = 10000; // getDistanceSq 是距离平方：10000 = 100 格
         if (!Minecraft.getMinecraft().gameSettings.fancyGraphics) {
-            visibleDistance = 50;
+            visibleDistance = 2500; // 2500 = 50 格
         }
         if (renderentity != null
             && renderentity.getDistanceSq(this.posX, this.posY, this.posZ) <= (double) visibleDistance) {

@@ -27,6 +27,10 @@ public class GTSRSingularityFX extends GTSRFXParticle {
     private double initRSq;
     private float shrinkFactor = 0.98F;
     private float darkScale = 1.0F;
+    private boolean arrived; // mode 2 吸收粒子：到达中心后吸附坠入
+    private double spawnR; // mode 0 吸积盘出生半径（消散钳制基准）
+    private int durationTicks; // mode 0 消散感知：奇点持续 tick 数（-1 表示永不消散）
+    private int spawnElapsed; // mode 0 消散感知：粒子出生时已流逝的 tick 数
 
     public GTSRSingularityFX(World world, double cx, double cy, double cz, double spawnR) {
         this(world, cx, cy, cz, spawnR, 0);
@@ -46,12 +50,13 @@ public class GTSRSingularityFX extends GTSRFXParticle {
         this.posZ = cz + Math.sin(theta) * r;
         this.posY = cy + (this.rand.nextDouble() - 0.5D) * 0.4D;
         this.radius = r;
+        this.spawnR = r;
         this.angle = theta;
         this.orbitSpeed = (float) ((0.06D + this.rand.nextDouble() * 0.09D) * (this.rand.nextBoolean() ? 1.0D : -1.0D));
         this.initRSq = r * r;
-        this.shrinkFactor = 0.98F + (this.rand.nextFloat() * 2.0F - 1.0F) * 0.003F;
+        this.shrinkFactor = 0.988F + (this.rand.nextFloat() * 2.0F - 1.0F) * 0.0015F;
         this.particleScale = 0.12F + this.rand.nextFloat() * 0.1F;
-        this.particleMaxAge = 50 + this.rand.nextInt(40);
+        this.particleMaxAge = 150 + this.rand.nextInt(70);
         this.prevPosX = this.posX;
         this.prevPosY = this.posY;
         this.prevPosZ = this.posZ;
@@ -95,9 +100,12 @@ public class GTSRSingularityFX extends GTSRFXParticle {
         this.darkScale = darkScale;
     }
 
-    public static void spawnDisk(World world, double cx, double cy, double cz, double range, float darkScale) {
-        GTSRSingularityFX fx = new GTSRSingularityFX(world, cx, cy, cz, range, 0);
+    public static void spawnDisk(World world, double cx, double cy, double cz, double spawnR, float darkScale,
+        int durationTicks, int spawnElapsed) {
+        GTSRSingularityFX fx = new GTSRSingularityFX(world, cx, cy, cz, spawnR, 0);
         fx.setDarkScale(darkScale);
+        fx.durationTicks = durationTicks;
+        fx.spawnElapsed = spawnElapsed;
         Minecraft.getMinecraft().effectRenderer.addEffect(fx);
     }
 
@@ -115,26 +123,67 @@ public class GTSRSingularityFX extends GTSRFXParticle {
         this.prevPosY = this.posY;
         this.prevPosZ = this.posZ;
         if (this.mode == 0) {
-            // 轨道角速度随半径收缩加速（角动量守恒近似 ω∝1/r²），增量封顶防止 r→0 时爆炸
-            float angInc = this.orbitSpeed * (float) (this.initRSq / (this.radius * this.radius));
-            float maxInc = Math.abs(this.orbitSpeed) * 6.0F;
+            // 当前奇点衰减系数 af（与 TileRunawaySingularity.getActiveFactor 同公式，不引用 TE）：
+            // 持续期前 80% 保持 1.0，之后线性衰减到 0
+            double elapsed = (double) (this.spawnElapsed + this.particleAge);
+            double af;
+            if (this.durationTicks == -1) {
+                af = 1.0D;
+            } else if (elapsed >= (double) this.durationTicks) {
+                af = 0.0D;
+            } else if (elapsed < (double) this.durationTicks * 0.8D) {
+                af = 1.0D;
+            } else {
+                af = Math.max(
+                    0.0D,
+                    Math.min(1.0D, ((double) this.durationTicks - elapsed) / ((double) this.durationTicks * 0.2D)));
+            }
+            // 轨道角速度随半径收缩加速（角动量守恒近似 ω∝1/r^1.2），增量封顶防止 r→0 时爆炸
+            float angInc = this.orbitSpeed
+                * (float) Math.pow((double) (this.initRSq / (this.radius * this.radius)), 0.6D);
+            float maxInc = Math.abs(this.orbitSpeed) * 2.5F;
             this.angle += Math.max(-maxInc, Math.min(maxInc, angInc));
-            this.radius *= this.shrinkFactor;
+            // 收缩的同时受消散系数钳制：奇点消散时盘面随 effRange 一起收拢
+            this.radius = Math.min(this.radius * this.shrinkFactor, this.spawnR * af * 0.9D);
             this.posX = this.centerX + Math.cos(this.angle) * this.radius;
             this.posZ = this.centerZ + Math.sin(this.angle) * this.radius;
             this.posY = this.centerY + Math.sin((double) this.particleAge * 0.1D) * 0.15D;
-            // 明显收敛到中心附近或寿命后期开始渐隐消失
-            if (this.radius < 1.0D || (double) this.particleAge > (double) this.particleMaxAge * 0.7D) {
-                this.alpha -= 0.08F;
+            // 明显收敛到中心附近或寿命后期开始渐隐消失（消散加速叠加，af=0 时每 tick 衰减 0.17 快速收尾）
+            if (this.radius < 0.8D || (double) this.particleAge > (double) this.particleMaxAge * 0.9D) {
+                this.alpha -= 0.05F + (float) ((1.0D - af) * 0.12D);
                 if (this.alpha <= 0.0F) {
                     this.setDead();
                     return;
                 }
             }
         } else {
-            this.posX += this.motionX;
-            this.posZ += this.motionZ;
-            this.posY += this.motionY + Math.sin((double) this.particleAge * 0.2D) * 0.01D;
+            if (!this.arrived) {
+                double dx = this.centerX - this.posX;
+                double dy = this.centerY - this.posY;
+                double dz = this.centerZ - this.posZ;
+                double dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+                if (dist <= 0.12D) { // 到达中心：吸附并坠入
+                    this.arrived = true;
+                    this.posX = this.centerX;
+                    this.posY = this.centerY;
+                    this.posZ = this.centerZ;
+                    this.motionX = 0.0D;
+                    this.motionY = 0.0D;
+                    this.motionZ = 0.0D;
+                }
+            }
+            if (this.arrived) {
+                this.particleScale *= 0.7F;
+                this.alpha -= 0.25F;
+                if (this.alpha <= 0.0F) {
+                    this.setDead();
+                    return;
+                }
+            } else {
+                this.posX += this.motionX;
+                this.posZ += this.motionZ;
+                this.posY += this.motionY + Math.sin((double) this.particleAge * 0.2D) * 0.01D;
+            }
         }
         // 纯白 × darkScale，不随时间变色
         this.particleRed = 1.0F * this.darkScale;
@@ -153,7 +202,9 @@ public class GTSRSingularityFX extends GTSRFXParticle {
 
     @Override
     public void renderParticle(Tessellator tess, float p, float rx, float rz, float ry, float rxz, float ryz) {
-        int part = 16 + (int) (this.particleAge / 6.0F) % 4;
+        // 白色火花帧族（帧 0 最小、帧 7 最大）：随 age 由小渐大，clamp 防止越界
+        int part = (int) ((float) this.particleAge / (float) this.particleMaxAge * 7.0F);
+        part = Math.max(0, Math.min(7, part));
         float u0 = (float) (part % 16) / 16.0F;
         float u1 = u0 + 0.0624375F;
         float v0 = (float) (part / 16) / 16.0F;

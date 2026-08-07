@@ -71,14 +71,16 @@ public class SingularityClientFXHandler {
             current.add(t);
             this.lastSeen.put(t, (t.xCoord & 0xFFFF) << 16 | (t.zCoord & 0xFFFF));
             double af = t.getActiveFactor();
-            float darkScale = 0.15F + 0.85F * (float) af;
+            float darkScale = 0.05F + 0.95F * (float) af;
             double effRange = t.getRange() * af;
             double cx = t.xCoord + 0.5D;
             double cy = t.yCoord + 0.5D;
             double cz = t.zCoord + 0.5D;
-            // 吸积盘（vanilla 传统管道）：概率生成，随活性系数变暗
-            if (world.rand.nextFloat() < 0.55F + 0.15F * (float) Math.min(1.0D, effRange / 32.0D)) {
-                GTSRSingularityFX.spawnDisk(world, cx, cy, cz, effRange, darkScale);
+            // 吸积盘（vanilla 传统管道）：概率生成 × 活性系数（af→0 概率趋零，消散时不再中心冒泡），随活性系数变暗
+            double diskP = (0.55D + 0.15D * Math.min(1.0D, effRange / 32.0D)) * af;
+            if (world.rand.nextFloat() < diskP) {
+                GTSRSingularityFX
+                    .spawnDisk(world, cx, cy, cz, effRange, darkScale, t.getDuration(), t.getElapsedTicks());
             }
             // 电弧：外向（中心→边缘），随活性系数变暗
             Integer cached = this.arcCooldowns.get(t);
@@ -93,9 +95,9 @@ public class SingularityClientFXHandler {
                 cooldown = 5 + world.rand.nextInt(4); // 5~8 tick
             }
             this.arcCooldowns.put(t, Integer.valueOf(cooldown - 1));
-            // 光束：每奇点 1 片探照灯竖光片，长度 = 光效半径 × 150%，随活性系数收缩变暗
+            // 光束：每奇点 1 片探照灯竖光片，长度 = 光效半径 × 200%，随活性系数收缩变暗
             float glowRadius = Math.min(4.0F, 1.0F + (float) effRange * 0.09F);
-            float beamLen = glowRadius * (float) af * 1.5F;
+            float beamLen = glowRadius * (float) af * 2.0F;
             GTSRBeamFX beam = this.beams.get(t);
             if (beam == null || beam.isDead) {
                 beam = GTSRBeamFX.add(world, cx, cy, cz, beamLen, 0.5F);

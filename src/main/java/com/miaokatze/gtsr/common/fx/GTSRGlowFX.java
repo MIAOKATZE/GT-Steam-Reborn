@@ -24,12 +24,15 @@ public class GTSRGlowFX {
     private final float colorG;
     private final float colorB;
     private final float baseAlpha;
-    private final float phase;
     private final int maxAge;
     private int age;
     private boolean dead;
     private float darkScale = 1.0F;
     private float shrinkPerTick = 0.0F;
+    /** 颤动（慢速随机波动）：当前强度与目标强度，每 30~59 tick 换一次目标 */
+    private float breathe = 1.0F;
+    private float breatheTarget = 1.0F;
+    private int breatheChangeIn;
 
     public GTSRGlowFX(World world, double x, double y, double z, float radius, float colorR, float colorG, float colorB,
         int durationTicks) {
@@ -42,7 +45,6 @@ public class GTSRGlowFX {
         this.colorG = colorG;
         this.colorB = colorB;
         this.baseAlpha = 0.9F;
-        this.phase = world.rand.nextFloat() * (float) Math.PI * 2.0F;
         this.maxAge = Math.max(1, durationTicks);
     }
 
@@ -70,6 +72,13 @@ public class GTSRGlowFX {
         if (this.shrinkPerTick > 0.0F) {
             this.radius = Math.max(0.0F, this.radius - this.shrinkPerTick);
         }
+        // 颤动：每 30~59 tick 换目标（0.9~1.1，强弱差别 20%），每 tick 向目标逼近 8% → 慢速、烈度低
+        this.breatheChangeIn--;
+        if (this.breatheChangeIn <= 0) {
+            this.breatheChangeIn = 30 + this.world.rand.nextInt(30);
+            this.breatheTarget = 0.9F + this.world.rand.nextFloat() * 0.2F;
+        }
+        this.breathe += (this.breatheTarget - this.breathe) * 0.08F;
         if (this.age >= this.maxAge) {
             this.dead = true;
         }
@@ -84,11 +93,15 @@ public class GTSRGlowFX {
     }
 
     public void render(Tessellator tess, float partialTicks) {
-        // 极微弱波动（呼吸去除）：世界时间正弦，随寿命渐出
-        float breathe = 0.97F
-            + 0.03F * (float) Math.sin((double) this.world.getWorldTime() * 0.1D + (double) this.phase);
+        // 颤动强度字段（onUpdate 缓慢随机波动），随寿命渐出
         float fade = Math.max(0.0F, 1.0F - (float) this.age / (float) this.maxAge);
-        float alpha = this.baseAlpha * breathe * fade * this.darkScale;
+        // 近场衰减：贴脸（<3 格）时淡出，避免 additive 辉光近距全屏泛白
+        float dist = 100.0F;
+        if (net.minecraft.client.Minecraft.getMinecraft().thePlayer != null) {
+            dist = (float) net.minecraft.client.Minecraft.getMinecraft().thePlayer.getDistance(this.x, this.y, this.z);
+        }
+        float nearFade = Math.min(1.0F, dist / 3.0F);
+        float alpha = this.baseAlpha * this.breathe * fade * this.darkScale * nearFade;
         float arX = ActiveRenderInfo.rotationX;
         float arZ = ActiveRenderInfo.rotationZ;
         float arYZ = ActiveRenderInfo.rotationYZ;
