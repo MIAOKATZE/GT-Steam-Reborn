@@ -30,6 +30,9 @@ public class GTSRSingularityFX extends GTSRFXParticle {
     private double initRSq;
     private float shrinkFactor = 0.98F;
     private float darkScale = 1.0F;
+    private float colorR = 1.0F;
+    private float colorG = 1.0F;
+    private float colorB = 1.0F;
     private boolean arrived; // mode 2 吸收粒子：到达中心后吸附坠入
     private double spawnR; // mode 0 吸积盘出生半径（消散钳制基准）
     private int durationTicks; // mode 0 消散感知：奇点持续 tick 数（-1 表示永不消散）
@@ -63,7 +66,7 @@ public class GTSRSingularityFX extends GTSRFXParticle {
         this.prevPosX = this.posX;
         this.prevPosY = this.posY;
         this.prevPosZ = this.posZ;
-        this.setRBGColorF(1.0F, 1.0F, 1.0F);
+        this.setRBGColorF(1.0F * this.colorR, 1.0F * this.colorG, 1.0F * this.colorB);
         GTSRSingularityFX.activeCount++;
     }
 
@@ -94,7 +97,7 @@ public class GTSRSingularityFX extends GTSRFXParticle {
         this.prevPosX = this.posX;
         this.prevPosY = this.posY;
         this.prevPosZ = this.posZ;
-        this.setRBGColorF(1.0F, 1.0F, 1.0F);
+        this.setRBGColorF(1.0F * this.colorR, 1.0F * this.colorG, 1.0F * this.colorB);
         GTSRSingularityFX.activeCount++;
     }
 
@@ -119,18 +122,25 @@ public class GTSRSingularityFX extends GTSRFXParticle {
     }
 
     public static void spawnDisk(World world, double cx, double cy, double cz, double spawnR, float darkScale,
-        int durationTicks, int spawnElapsed) {
+        int durationTicks, int spawnElapsed, float colorR, float colorG, float colorB) {
         GTSRSingularityFX fx = new GTSRSingularityFX(world, cx, cy, cz, spawnR, 0);
         fx.setDarkScale(darkScale);
+        fx.colorR = colorR;
+        fx.colorG = colorG;
+        fx.colorB = colorB;
         fx.durationTicks = durationTicks;
         fx.spawnElapsed = spawnElapsed;
         Minecraft.getMinecraft().effectRenderer.addEffect(fx);
     }
 
-    public static void spawnAbsorb(World world, double fx, double fy, double fz, double tx, double ty, double tz) {
+    public static void spawnAbsorb(World world, double fx, double fy, double fz, double tx, double ty, double tz,
+        float colorR, float colorG, float colorB) {
         int count = 1 + world.rand.nextInt(3);
         for (int i = 0; i < count; i++) {
             GTSRSingularityFX particle = new GTSRSingularityFX(world, fx, fy, fz, tx, ty, tz, 2);
+            particle.colorR = colorR;
+            particle.colorG = colorG;
+            particle.colorB = colorB;
             Minecraft.getMinecraft().effectRenderer.addEffect(particle);
         }
     }
@@ -216,10 +226,10 @@ public class GTSRSingularityFX extends GTSRFXParticle {
                 this.posY += this.motionY + Math.sin((double) this.particleAge * 0.2D) * 0.01D;
             }
         }
-        // 纯白 × darkScale，不随时间变色
-        this.particleRed = 1.0F * this.darkScale;
-        this.particleGreen = 1.0F * this.darkScale;
-        this.particleBlue = 1.0F * this.darkScale;
+        // 纯白 × 颜色 × darkScale，不随时间变色
+        this.particleRed = this.colorR * this.darkScale;
+        this.particleGreen = this.colorG * this.darkScale;
+        this.particleBlue = this.colorB * this.darkScale;
         this.particleAge++;
         if (this.particleAge >= this.particleMaxAge) {
             this.setDead();

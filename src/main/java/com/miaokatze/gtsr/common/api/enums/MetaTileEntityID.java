@@ -43,7 +43,7 @@ public enum MetaTileEntityID {
     // --- 多方块机器: 临界段 (相对 200-249) ---
     CRITICAL_SINGULARITY_COMPRESSOR(200, 43),
     DENSE_STATE_MANIPULATOR(201, 44),
-    STEAM_SINGULARITY_COMPRESSOR(202, 5),
+    STEAM_SINGULARITY_ENTANGLER(202, 5),
 
     // --- 仓室段 (相对 250-350) ---
     STEAM_INPUT_HATCH_GENERIC(250, 34),
@@ -86,7 +86,7 @@ public enum MetaTileEntityID {
 
     /** 结构重置三机：旧 ID 注册 [OLD] 机器而非占位转换器（旧存档不转换，留一个大版本缓冲）。 */
     public static final Set<MetaTileEntityID> STRUCTURE_RESET = EnumSet
-        .of(SINGULARITY_CRUST_STEAM_BORER, LARGE_SOLAR_OVERPRESSURE_ARRAY, STEAM_SINGULARITY_COMPRESSOR);
+        .of(SINGULARITY_CRUST_STEAM_BORER, LARGE_SOLAR_OVERPRESSURE_ARRAY, STEAM_SINGULARITY_ENTANGLER);
 
     /**
      * 旧 ID → 新 ID 物品映射表（临时机制：供 Postea ItemStackReplacementManager 与后续迁移逻辑使用；

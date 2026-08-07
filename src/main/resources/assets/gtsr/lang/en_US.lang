@@ -280,8 +280,8 @@ gtsr.info.geothermal_boiler.status=Status:
 gtsr.info.geothermal_boiler.running=Running
 gtsr.info.geothermal_boiler.incomplete=Incomplete
 
-# Steam Singularity Compressor
-gt.blockmachines.gtsr.steam.singularity.compressor.name=Steam Singularity Compressor
+# Steam Singularity Entangler
+gt.blockmachines.gtsr.steam.singularity.entangler.name=Steam Singularity Entangler
 
 # Critical Singularity Compressor
 gt.blockmachines.gtsr.critical.singularity.compressor.name=Critical Singularity Compressor
@@ -355,7 +355,7 @@ gtsr.tooltip.overpressure_steam_cache_node.fluid_type=All Steam Types
 gt.blockmachines.gtsr.overpressure.turbine.input.hatch.name=Mega Overpressure Steam Input Hatch
 gtsr.tooltip.overpressure_turbine_input_hatch.info=Through steam singularities, it accepts massive amounts of steam
 gtsr.tooltip.overpressure_turbine_input_hatch.fluid_type=Accepts all steam types
-gtsr.tooltip.overpressure_turbine_input_hatch.turbine_only=Restricted to the Mega Steam Turbine Array and the Steam Singularity Compressor
+gtsr.tooltip.overpressure_turbine_input_hatch.turbine_only=Restricted to the Mega Steam Turbine Array and the Steam Singularity Entangler
 
 # Overpressure Hub Storage Unit
 gt.blockmachines.gtsr.overpressure.hub.storage.unit.name=Overpressure Hub Storage Unit
@@ -824,24 +824,25 @@ gtsr.tooltip.steam_hub.hint_tier2=T2: Steel Casing+Steel Pipe+Steel Gearbox+Stee
 gtsr.tooltip.steam_hub.hint_tier3=T3: TungstenSteel Casing+TungstenSteel Pipe+TungstenSteel Frame+Overpressure Hub Storage Unit (Reinforced Chip T3 only)
 gtsr.tooltip.steam_hub.hint_status=Right-click controller holding a Hub Terminal to open the cache node status UI
 
-# Steam Singularity Compressor (SSC)
-gtsr.tooltip.singularity_compressor.type=Steam Singularity Compressor, SSC
-gtsr.tooltip.singularity_compressor.desc=Devours the highest-grade normal steam in the input hatches (Steam/Superheated/Supercritical), without any EU cost, raising heat via a logarithmic equation.
-gtsr.tooltip.singularity_compressor.desc2=Heat formula: y=0.005x/(x+200000), capped at 0.5%/s; actual heat equals the steam coefficient x y (Steam 0.5, Superheated 1, Supercritical 2).
-gtsr.tooltip.singularity_compressor.desc3=When multiple steam types are present, only the highest grade is recognized; heat drops by 1% per second whenever the machine is off (including soft-hammer shutdown) or no steam is present.
-gtsr.tooltip.singularity_compressor.desc4=At 100% heat, heat resets and one Steam Entangled Singularity is produced.
-gtsr.tooltip.singularity_compressor.desc5=The Steam Singularity Compressor devours everything: steam cooling is disabled, and no EU is consumed.
-gtsr.tooltip.singularity_compressor.ctrl=Layer 8, center, slightly below
-gtsr.tooltip.singularity_compressor.steam_input=Input Hatch / Steam Input Hatch / Pressure Steam Hatch / Mega Overpressure Steam Input Hatch (ME hatches OK)
-gtsr.tooltip.singularity_compressor.output_bus=Output Bus / Steam Output Bus - singularity output, ME buses OK
-gtsr.tooltip.singularity_compressor.tier1_blocks=Tier 1: Solid Steel Casing x175, Steel Pipe x16, Steel Gearbox x73, Reinforced Glass x252, Steel Frame x144
+# Steam Singularity Entangler (SSE)
+gtsr.tooltip.entangler.type=Steam Singularity Entangler, SSE
+gtsr.tooltip.entangler.desc=Devours the highest-grade normal steam in the input hatches (Steam/Superheated/Supercritical), without any EU cost, raising heat via a logarithmic equation.
+gtsr.tooltip.entangler.desc2=Heat formula: y=0.005x/(x+200000), capped at 0.5%/s; actual heat equals the steam coefficient x y (Steam 0.5, Superheated 1, Supercritical 2).
+gtsr.tooltip.entangler.desc3=When multiple steam types are present, only the highest grade is recognized; heat drops by 1% per second whenever the machine is off (including soft-hammer shutdown) or no steam is present.
+gtsr.tooltip.entangler.desc4=At 100% heat, heat resets and one Steam Entangled Singularity is produced.
+gtsr.tooltip.entangler.desc5=The Steam Singularity Entangler devours everything: steam cooling is disabled, and no EU is consumed.
+gtsr.tooltip.entangler.desc6=While running, a white entanglement singularity animation appears at the structure core (purely visual: does not attract, destroy or absorb any blocks or entities); disappears when turned off, idling, or when the structure is broken.
+gtsr.tooltip.entangler.ctrl=Layer 19, front-left
+gtsr.tooltip.entangler.steam_input=Input Hatch / Steam Input Hatch / Pressure Steam Hatch / Mega Overpressure Steam Input Hatch (ME hatches OK)
+gtsr.tooltip.entangler.output_bus=Output Bus / Steam Output Bus - singularity output, ME buses OK
+gtsr.tooltip.entangler.tier1_blocks=Tier 1: Solid Steel Machine Casing x1908, Steel Frame x411, Reinforced Glass x423
 gtsr.tooltip.old.singularity_compressor.type=Steam Singularity Compressor, SSC
 gtsr.tooltip.old.singularity_compressor.desc=Consumes 80,000 L/s of steam, heat increases by 0.02% per second
 gtsr.tooltip.old.singularity_compressor.desc2=Consumes 320,000 L/s of superheated steam, heat increases by 0.08% per second (superheated preferred)
 gtsr.tooltip.old.singularity_compressor.desc3=When multiple steam types are present, only the highest grade is recognized; heat drops by 1% per second whenever the machine is off (including soft-hammer shutdown) or no steam is present.
 gtsr.tooltip.old.singularity_compressor.desc4=At 100% heat, heat resets and one Steam Entangled Singularity is produced.
 gtsr.tooltip.old.singularity_compressor.desc5=The Steam Singularity Compressor devours everything: steam cooling is disabled, and no EU is consumed.
-gtsr.tooltip.old.singularity_compressor.new_mechanism=The new Steam Singularity Compressor uses a new consumption mechanism with a higher singularity aggregation rate limit.
+gtsr.tooltip.old.singularity_compressor.new_mechanism=The new Steam Singularity Entangler uses a new consumption mechanism with a higher singularity aggregation rate limit.
 gtsr.tooltip.old.singularity_compressor.ctrl=Layer 8, center, slightly below
 gtsr.tooltip.old.singularity_compressor.steam_input=Input Hatch / Steam Input Hatch / Pressure Steam Hatch / Mega Overpressure Steam Input Hatch (ME hatches OK)
 gtsr.tooltip.old.singularity_compressor.output_bus=Output Bus / Steam Output Bus - singularity output, ME buses OK
@@ -1129,12 +1130,12 @@ gtsr.tooltip.shared.steel_frame_box=Steel Frame Box
 gtsr.tooltip.shared.firebricks=Firebricks
 gtsr.tooltip.shared.parallel=Parallel
 gtsr.gui.status.idle=Idle
-gtsr.gui.singularity_compressor.status=Status: 
-gtsr.gui.singularity_compressor.status.running=Running
-gtsr.gui.singularity_compressor.status.accumulating=Entangling
-gtsr.gui.singularity_compressor.status.idle=Idle
-gtsr.gui.singularity_compressor.heat=Heat: 
-gtsr.gui.singularity_compressor.tier=Tier: 
+gtsr.gui.entangler.status=Status: 
+gtsr.gui.entangler.status.running=Running
+gtsr.gui.entangler.status.accumulating=Entangling
+gtsr.gui.entangler.status.idle=Idle
+gtsr.gui.entangler.heat=Heat: 
+gtsr.gui.entangler.tier=Tier: 
 gtsr.chat.compressor_mode.on.accumulate=Switched to Singularity Entanglement mode
 gtsr.chat.compressor_mode.on.compress=Switched to Steam Compression mode
 gtsr.chat.compressor_mode.on.decompress=Switched to Steam Decompression mode

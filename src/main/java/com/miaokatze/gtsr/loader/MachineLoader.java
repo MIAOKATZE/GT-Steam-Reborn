@@ -23,8 +23,8 @@ import com.miaokatze.gtsr.common.machine.MTESingularityDrillingNode;
 import com.miaokatze.gtsr.common.machine.MTESingularityMinerNode;
 import com.miaokatze.gtsr.common.machine.MTESteamFluidDrill;
 import com.miaokatze.gtsr.common.machine.MTESteamHubArray;
-import com.miaokatze.gtsr.common.machine.MTESteamSingularityCompressor;
 import com.miaokatze.gtsr.common.machine.MTESteamSingularityCompressorOLD;
+import com.miaokatze.gtsr.common.machine.MTESteamSingularityEntangler;
 import com.miaokatze.gtsr.common.machine.MTEVeinSteamPyrolyzer;
 import com.miaokatze.gtsr.common.machine.MTEVoidCrustSteamBorer;
 import com.miaokatze.gtsr.common.machine.MTEVoidCrustSteamBorerOLD;
@@ -116,13 +116,13 @@ public class MachineLoader {
             "gtsr.legacy.converter.singularity_drilling_node",
             "[OLD] Singularity Drilling Node",
             MetaTileEntityID.SINGULARITY_DRILLING_NODE.ID);
-        GTSRItemList.SteamSingularityCompressor.set(
-            new MTESteamSingularityCompressor(
-                MetaTileEntityID.STEAM_SINGULARITY_COMPRESSOR.ID,
-                "gtsr.steam.singularity.compressor",
-                "Steam Singularity Compressor"));
+        GTSRItemList.SteamSingularityEntangler.set(
+            new MTESteamSingularityEntangler(
+                MetaTileEntityID.STEAM_SINGULARITY_ENTANGLER.ID,
+                "gtsr.steam.singularity.entangler",
+                "Steam Singularity Entangler"));
         new MTESteamSingularityCompressorOLD(
-            MetaTileEntityID.STEAM_SINGULARITY_COMPRESSOR.OLD_ID,
+            MetaTileEntityID.STEAM_SINGULARITY_ENTANGLER.OLD_ID,
             "gtsr.steam.singularity.compressor.old",
             "Steam Singularity Compressor");
         GTSRItemList.CriticalSingularityCompressor.set(
@@ -503,7 +503,7 @@ public class MachineLoader {
         CreativeTabManager.addItemToTab(GTSRItemList.ReinforcedSteamCacheNode.get(1));
         CreativeTabManager.addItemToTab(GTSRItemList.OverpressureSteamCacheNode.get(1));
         CreativeTabManager.addItemToTab(GTSRItemList.WaterCacheNode.get(1));
-        CreativeTabManager.addItemToTab(GTSRItemList.SteamSingularityCompressor.get(1));
+        CreativeTabManager.addItemToTab(GTSRItemList.SteamSingularityEntangler.get(1));
         // --- 多方块机器: 枢纽及仓室模块 (6-14) ---
         CreativeTabManager.addItemToTab(GTSRItemList.SteamHubArray.get(1));
         CreativeTabManager.addItemToTab(GTSRItemList.WaterHubArray.get(1));

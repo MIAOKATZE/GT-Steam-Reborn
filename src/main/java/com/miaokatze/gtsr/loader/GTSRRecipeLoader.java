@@ -973,7 +973,7 @@ public class GTSRRecipeLoader implements Runnable {
                 ItemList.Electric_Piston_LV.get(12),
                 get(OrePrefixes.pipeHuge, Materials.Steel, 4),
                 get(OrePrefixes.plate, Materials.Obsidian, 32))
-            .itemOutputs(GTSRItemList.SteamSingularityCompressor.get(1))
+            .itemOutputs(GTSRItemList.SteamSingularityEntangler.get(1))
             .fluidInputs(Materials.SolderingAlloy.getMolten(2304))
             .duration(60 * SECONDS)
             .eut(TierEU.RECIPE_LV)

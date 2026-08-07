@@ -42,6 +42,9 @@ public class GTSRArcFX extends GTSRFXParticle {
     private boolean finalized;
     private float width = 0.03F;
     private float darkScale = 1.0F; // 暗化系数（供消散变黑），1.0 为不暗化
+    private float colorR = 1.0F;
+    private float colorG = 1.0F;
+    private float colorB = 1.0F;
 
     private GTSRArcFX(World world, double x1, double y1, double z1, double x2, double y2, double z2, long seed,
         float width, int type, int duration, float multi, int speed) {
@@ -83,6 +86,13 @@ public class GTSRArcFX extends GTSRFXParticle {
 
     public void setDarkScale(float darkScale) {
         this.darkScale = darkScale;
+    }
+
+    /** 乘法着色系数（1.0 = 恒等） */
+    public void setColor(float colorR, float colorG, float colorB) {
+        this.colorR = colorR;
+        this.colorG = colorG;
+        this.colorB = colorB;
     }
 
     private void fractal(int splits, float amount, float splitchance, float splitlength, float splitangle) {
@@ -482,9 +492,9 @@ public class GTSRArcFX extends GTSRFXParticle {
                     break;
             }
             // 暗化系数（供消散变黑）：作用于第一趟（外发光）渲染
-            this.particleRed *= this.darkScale;
-            this.particleGreen *= this.darkScale;
-            this.particleBlue *= this.darkScale;
+            this.particleRed *= this.darkScale * this.colorR;
+            this.particleGreen *= this.darkScale * this.colorG;
+            this.particleBlue *= this.darkScale * this.colorB;
             Minecraft.getMinecraft().renderEngine.bindTexture(GLOW_TEXTURE);
             tess.startDrawingQuads();
             tess.setBrightness(0x00F000F0);
@@ -539,9 +549,9 @@ public class GTSRArcFX extends GTSRFXParticle {
                     break;
             }
             // 暗化系数：作用于第二趟（核心）渲染
-            this.particleRed *= this.darkScale;
-            this.particleGreen *= this.darkScale;
-            this.particleBlue *= this.darkScale;
+            this.particleRed *= this.darkScale * this.colorR;
+            this.particleGreen *= this.darkScale * this.colorG;
+            this.particleBlue *= this.darkScale * this.colorB;
             Minecraft.getMinecraft().renderEngine.bindTexture(GLOW_SMALL_TEXTURE);
             tess.startDrawingQuads();
             tess.setBrightness(0x00F000F0);

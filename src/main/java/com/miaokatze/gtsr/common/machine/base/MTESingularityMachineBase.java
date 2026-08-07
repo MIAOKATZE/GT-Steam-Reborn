@@ -5,11 +5,14 @@ import static gregtech.api.enums.GTValues.emptyItemStackArray;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.annotation.Nullable;
+
 import net.minecraft.client.renderer.texture.IIconRegister;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
+import net.minecraft.world.World;
 import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
@@ -17,7 +20,9 @@ import net.minecraftforge.fluids.FluidStack;
 import com.google.common.collect.ImmutableList;
 import com.gtnewhorizon.structurelib.alignment.IAlignmentLimits;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
+import com.miaokatze.gtsr.common.blocks.TileRunawaySingularity;
 import com.miaokatze.gtsr.common.gui.MTESingularityMachineGui;
+import com.miaokatze.gtsr.loader.BlockLoader;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
@@ -62,6 +67,10 @@ public abstract class MTESingularityMachineBase extends MTEEnhancedMultiBlockBas
 
     protected final List<MTEHatchPressureSteamInput> mPressureSteamInputs = new ArrayList<>();
 
+    /** 纠缠奇点停止工作后的移除延迟（tick，5 秒），减轻结构检测性能压力 */
+    protected static final int ENTANGLEMENT_REMOVE_DELAY = 100;
+    private int mEntanglementRemoveTicks = 0;
+
     protected MTESingularityMachineBase(int aID, String aName, String aNameRegional) {
         super(aID, aName, aNameRegional);
     }
@@ -81,11 +90,11 @@ public abstract class MTESingularityMachineBase extends MTEEnhancedMultiBlockBas
     protected abstract ItemStack getAggregationOutput();
 
     protected String getTooltipKeyPrefix() {
-        return "gtsr.tooltip.singularity_compressor.";
+        return "gtsr.tooltip.entangler.";
     }
 
     public String getGuiKeyPrefix() {
-        return "gtsr.gui.singularity_compressor.";
+        return "gtsr.gui.entangler.";
     }
 
     protected boolean requiresOutputHatch() {
@@ -111,8 +120,8 @@ public abstract class MTESingularityMachineBase extends MTEEnhancedMultiBlockBas
     @Override
     @SideOnly(Side.CLIENT)
     public void registerIcons(IIconRegister aBlockIconRegister) {
-        OVERLAY_OFF = Textures.BlockIcons.custom("gtsr:MTESteamSingularityCompressor_OFF");
-        OVERLAY_ON = Textures.BlockIcons.custom("gtsr:MTESteamSingularityCompressor_ON");
+        OVERLAY_OFF = Textures.BlockIcons.custom("gtsr:MTESteamSingularityEntangler_OFF");
+        OVERLAY_ON = Textures.BlockIcons.custom("gtsr:MTESteamSingularityEntangler_ON");
         super.registerIcons(aBlockIconRegister);
     }
 
@@ -328,7 +337,7 @@ public abstract class MTESingularityMachineBase extends MTEEnhancedMultiBlockBas
     }
 
     protected final int findHighestGrade(boolean includeDense) {
-        // v1.10.5 拆分后 1 级机（蒸汽奇点压缩机）设计上识别全部普通等级（蒸汽/过热/超临界），
+        // v1.10.5 拆分后 1 级机（蒸汽奇点纠缠装置）设计上识别全部普通等级（蒸汽/过热/超临界），
         // 致密变体由 includeDense 参数控制；全等级识别与 tooltip 描述一致。
         for (int grade = 2; grade >= 0; grade--) {
             if (probeGrade(grade, includeDense, false)) return grade;
@@ -405,13 +414,73 @@ public abstract class MTESingularityMachineBase extends MTEEnhancedMultiBlockBas
     @Override
     public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
         super.onPostTick(aBaseMetaTileEntity, aTick);
-        if (!aBaseMetaTileEntity.isServerSide() || aTick % CYCLE_LENGTH != 0L || !shouldDecayHeat()) return;
+        if (!aBaseMetaTileEntity.isServerSide() || aTick % CYCLE_LENGTH != 0L) return;
+        updateEntanglementSingularity(aBaseMetaTileEntity);
+        if (!shouldDecayHeat()) return;
         if (!mMachine || !aBaseMetaTileEntity.isAllowedToWork()) {
             mHeat = Math.max(0.0d, mHeat - HEAT_DECAY_PER_SECOND);
             return;
         }
         if (mMaxProgresstime <= 0 && findHighestGrade(includeDenseSteam()) < 0) {
             mHeat = Math.max(0.0d, mHeat - HEAT_DECAY_PER_SECOND);
+        }
+    }
+
+    private void updateEntanglementSingularity(IGregTechTileEntity aBaseMetaTileEntity) {
+        EntanglementSpec spec = getEntanglementSpec();
+        if (spec == null) return;
+        // 启动豁免：控制器重载后结构判定延迟期间（GT mStartUpCheck≈5 秒），奇点判定同步豁免
+        if (getmStartUpCheck() >= 0) return;
+        boolean working = mMachine && mMaxProgresstime > 0 && aBaseMetaTileEntity.isAllowedToWork();
+        int x = aBaseMetaTileEntity.getXCoord() + spec.dx;
+        int y = aBaseMetaTileEntity.getYCoord() + spec.dy;
+        int z = aBaseMetaTileEntity.getZCoord() + spec.dz;
+        World world = aBaseMetaTileEntity.getWorld();
+        if (working) {
+            mEntanglementRemoveTicks = ENTANGLEMENT_REMOVE_DELAY;
+            // 惰性生成：仅当定位点为空气才放置（不覆盖已有奇点 NBT，无比持久化）
+            if (world.getBlock(x, y, z)
+                .isAir(world, x, y, z)) {
+                TileRunawaySingularity.spawnSingularity(
+                    world,
+                    x,
+                    y,
+                    z,
+                    spec.range,
+                    spec.speed,
+                    spec.damage,
+                    spec.duration,
+                    spec.attributeId,
+                    spec.color);
+            }
+        } else if (mEntanglementRemoveTicks > 0) {
+            mEntanglementRemoveTicks--;
+        } else if (world.getBlock(x, y, z) == BlockLoader.blockRunawaySingularity) {
+            // 惰性移除：仅当定位点恰为失控奇点方块才清除（关闭/挂机/结构破坏后延迟消失）
+            world.setBlockToAir(x, y, z);
+        }
+    }
+
+    @Override
+    public void onRemoval() {
+        super.onRemoval();
+        IGregTechTileEntity base = getBaseMetaTileEntity();
+        if (base == null || !base.isServerSide()) return;
+        EntanglementSpec spec = getEntanglementSpec();
+        if (spec == null) return;
+        // 仅当控制器方块已被移除（被拆）才清理奇点；区块卸载时方块仍在，保持奇点持久化
+        if (!base.getWorld()
+            .getBlock(base.getXCoord(), base.getYCoord(), base.getZCoord())
+            .isAir(base.getWorld(), base.getXCoord(), base.getYCoord(), base.getZCoord())) {
+            return;
+        }
+        int x = base.getXCoord() + spec.dx;
+        int y = base.getYCoord() + spec.dy;
+        int z = base.getZCoord() + spec.dz;
+        if (base.getWorld()
+            .getBlock(x, y, z) == BlockLoader.blockRunawaySingularity) {
+            base.getWorld()
+                .setBlockToAir(x, y, z);
         }
     }
 
@@ -511,5 +580,37 @@ public abstract class MTESingularityMachineBase extends MTEEnhancedMultiBlockBas
                 + mTier
                 + EnumChatFormatting.RESET);
         return info.toArray(new String[0]);
+    }
+
+    /** 纠缠奇点生成规格（D 定位块世界偏移 + NBT 参数）；null=本机不管理纠缠奇点 */
+    public static class EntanglementSpec {
+
+        public final int dx;
+        public final int dy;
+        public final int dz;
+        public final double range;
+        public final double speed;
+        public final double damage;
+        public final int duration;
+        public final int attributeId;
+        public final String color;
+
+        public EntanglementSpec(int dx, int dy, int dz, double range, double speed, double damage, int duration,
+            int attributeId, String color) {
+            this.dx = dx;
+            this.dy = dy;
+            this.dz = dz;
+            this.range = range;
+            this.speed = speed;
+            this.damage = damage;
+            this.duration = duration;
+            this.attributeId = attributeId;
+            this.color = color;
+        }
+    }
+
+    @Nullable
+    protected EntanglementSpec getEntanglementSpec() {
+        return null;
     }
 }

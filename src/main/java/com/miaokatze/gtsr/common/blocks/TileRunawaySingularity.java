@@ -3,7 +3,9 @@ package com.miaokatze.gtsr.common.blocks;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import net.minecraft.block.Block;
 import net.minecraft.entity.Entity;
@@ -26,6 +28,8 @@ import com.miaokatze.gtsr.loader.BlockLoader;
  * 失控奇点方块实体
  * S2：服务端吸收/牵引/衰减逻辑已实现。
  * 时间语义：duration 单位=tick（600=30 秒），speed 单位=方块/20tick，damage 单位=伤害/20tick。
+ * 颜色：color 为 16 原版染料色之一（默认 white），仅影响视觉表现。
+ * 特殊状态：attributeId=-1 表示 special=null，纯动画，不吸引/不破坏/不吸收任何方块与实体。
  */
 public class TileRunawaySingularity extends TileEntity {
 
@@ -34,11 +38,55 @@ public class TileRunawaySingularity extends TileEntity {
     private static final DamageSource SINGULARITY_DAMAGE = new DamageSource("gtsrSingularity").setDamageBypassesArmor()
         .setDamageIsAbsolute();
 
+    /**
+     * 16 原版染料色 → RGB（0~1），大小写不敏感；未知色回退 white
+     */
+    private static final Map<String, float[]> COLOR_RGB = buildColorRgb();
+
+    private static Map<String, float[]> buildColorRgb() {
+        Map<String, float[]> map = new HashMap<String, float[]>();
+        map.put("white", new float[] { 1.0F, 1.0F, 1.0F });
+        map.put("orange", new float[] { 0.847F, 0.498F, 0.2F });
+        map.put("magenta", new float[] { 0.698F, 0.298F, 0.847F });
+        map.put("light_blue", new float[] { 0.4F, 0.6F, 0.847F });
+        map.put("yellow", new float[] { 0.898F, 0.898F, 0.2F });
+        map.put("lime", new float[] { 0.498F, 0.8F, 0.098F });
+        map.put("pink", new float[] { 0.949F, 0.498F, 0.647F });
+        map.put("gray", new float[] { 0.298F, 0.298F, 0.298F });
+        map.put("silver", new float[] { 0.6F, 0.6F, 0.6F });
+        map.put("cyan", new float[] { 0.298F, 0.498F, 0.6F });
+        map.put("purple", new float[] { 0.498F, 0.247F, 0.698F });
+        map.put("blue", new float[] { 0.2F, 0.298F, 0.698F });
+        map.put("brown", new float[] { 0.4F, 0.298F, 0.2F });
+        map.put("green", new float[] { 0.4F, 0.498F, 0.2F });
+        map.put("red", new float[] { 0.6F, 0.2F, 0.2F });
+        map.put("black", new float[] { 0.098F, 0.098F, 0.098F });
+        return map;
+    }
+
+    /**
+     * 是否为合法的 16 原版染料色（大小写不敏感）
+     */
+    public static boolean isValidColor(String name) {
+        return name != null && COLOR_RGB.containsKey(name.toLowerCase());
+    }
+
+    /**
+     * 颜色名规范化：未知或 null → "white"，已知 → 原样返回
+     */
+    public static String normalizeColor(String name) {
+        if (isValidColor(name)) {
+            return name;
+        }
+        return "white";
+    }
+
     private double range = 10.0D;
     private double speed = 1.0D;
     private double damage = 1.0D;
     private int duration = 600; // tick，600 = 30 秒，-1=无限
     private int attributeId = 0;
+    private String color = "white"; // 16 原版染料色之一，默认 white，仅影响视觉表现
     private int elapsedTicks = 0; // 服务端与客户端各自递增
 
     @Override
@@ -60,6 +108,9 @@ public class TileRunawaySingularity extends TileEntity {
         if (data.hasKey("attribute")) {
             this.attributeId = data.getInteger("attribute");
         }
+        if (data.hasKey("color")) {
+            this.color = data.getString("color");
+        }
         this.elapsedTicks = data.getInteger("elapsed"); // 无键保持 0
     }
 
@@ -72,6 +123,7 @@ public class TileRunawaySingularity extends TileEntity {
         data.setDouble("damage", this.damage);
         data.setInteger("duration", this.duration);
         data.setInteger("attribute", this.attributeId);
+        data.setString("color", this.color);
         data.setInteger("elapsed", this.elapsedTicks);
         tag.setTag("gtsrSingularity", data);
     }
@@ -96,6 +148,24 @@ public class TileRunawaySingularity extends TileEntity {
         return attributeId;
     }
 
+    public String getColor() {
+        return color;
+    }
+
+    /**
+     * 当前颜色 RGB（0~1），返回副本；未知名回退 white 的 RGB
+     */
+    public float[] getColorRGB() {
+        float[] rgb = COLOR_RGB.get(normalizeColor(color).toLowerCase());
+        return new float[] { rgb[0], rgb[1], rgb[2] };
+    }
+
+    /** 当前颜色打包为 0xRRGGBB（网络传输用） */
+    public int getPackedColor() {
+        float[] rgb = getColorRGB();
+        return ((int) (rgb[0] * 255.0F) << 16) | ((int) (rgb[1] * 255.0F) << 8) | (int) (rgb[2] * 255.0F);
+    }
+
     public boolean isInfinite() {
         return duration == -1;
     }
@@ -104,16 +174,17 @@ public class TileRunawaySingularity extends TileEntity {
         return elapsedTicks;
     }
 
-    public void setParams(double range, double speed, double damage, int duration, int attributeId) {
+    public void setParams(double range, double speed, double damage, int duration, int attributeId, String color) {
         this.range = Math.max(0.5D, Math.min(128.0D, range));
-        this.speed = Math.max(0.01D, Math.min(100.0D, speed));
+        this.speed = Math.max(0.0D, Math.min(100.0D, speed));
         this.damage = Math.max(0.0D, Math.min(1000.0D, damage));
-        this.attributeId = Math.max(0, Math.min(999, attributeId));
+        this.attributeId = attributeId == -1 ? -1 : Math.max(0, Math.min(999, attributeId));
         if (duration == -1) {
             this.duration = -1;
         } else {
             this.duration = Math.max(1, Math.min(360000, duration));
         }
+        this.color = normalizeColor(color);
         if (worldObj != null) {
             worldObj.markTileEntityChunkModified(xCoord, yCoord, zCoord, this);
         }
@@ -139,11 +210,11 @@ public class TileRunawaySingularity extends TileEntity {
      * 静态生成助手（供后续多方块爆炸调用）
      */
     public static void spawnSingularity(World world, int x, int y, int z, double range, double speed, double damage,
-        int duration, int attributeId) {
+        int duration, int attributeId, String color) {
         world.setBlock(x, y, z, BlockLoader.blockRunawaySingularity);
         TileEntity te = world.getTileEntity(x, y, z);
         if (te instanceof TileRunawaySingularity) {
-            ((TileRunawaySingularity) te).setParams(range, speed, damage, duration, attributeId);
+            ((TileRunawaySingularity) te).setParams(range, speed, damage, duration, attributeId, color);
             te.markDirty();
         }
     }
@@ -162,6 +233,9 @@ public class TileRunawaySingularity extends TileEntity {
         if (!isInfinite() && elapsedTicks >= duration) {
             worldObj.setBlockToAir(xCoord, yCoord, zCoord); // 时间耗尽，奇点销毁，事件结束
             return;
+        }
+        if (attributeId == -1) {
+            return; // 特殊状态 null：纯动画，不吸引/不破坏/不吸收任何方块与实体
         }
         double factor = getActiveFactor();
         double effRange = range * factor;
@@ -233,7 +307,7 @@ public class TileRunawaySingularity extends TileEntity {
             double p = Math.min(1.0D, speed * factor * f * jitter * SCAN_INTERVAL / 20.0D);
             if (worldObj.rand.nextDouble() < p) {
                 worldObj.setBlockToAir(t[0], t[1], t[2]);
-                GTSRFXNet.sendAbsorb(worldObj, t[0], t[1], t[2], xCoord, yCoord, zCoord);
+                GTSRFXNet.sendAbsorb(worldObj, t[0], t[1], t[2], xCoord, yCoord, zCoord, getPackedColor());
                 count++;
                 if (count >= cap) {
                     break;

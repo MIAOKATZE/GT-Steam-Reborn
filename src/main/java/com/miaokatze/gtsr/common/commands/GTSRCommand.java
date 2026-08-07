@@ -11,9 +11,11 @@ import com.miaokatze.gtsr.common.blocks.TileRunawaySingularity;
 
 /**
  * /gtsr 指令：在命令发送者位置生成失控奇点。
- * 用法：/gtsr singularity <range> <speed/20tick> <damage/20tick> <durationTicks|NA> <eventId>
+ * 用法：/gtsr singularity <range> <speed/20tick> <damage/20tick> <durationTicks|NA> <special|null> [color]
  * speed=每20tick吸收方块数，damage=每20tick伤害值，durationTicks=tick 数；duration 为 NA 表示无限。
- * 调试默认：10 1 1 600 0（范围 10、每20tick吸1块、每20tick 1点伤害、600 tick=30秒、事件 0）。
+ * special=特殊状态（0-999），null=纯动画（不吸引/不破坏/不吸收任何方块与实体）。
+ * color=16 原版染料色之一，省略默认 white。
+ * 调试默认：10 1 1 600 0 white（范围 10、每20tick吸1块、每20tick 1点伤害、600 tick=30秒、事件 0、白色）。
  * 需要 OP 权限等级 4。
  */
 public class GTSRCommand extends CommandBase {
@@ -25,7 +27,7 @@ public class GTSRCommand extends CommandBase {
 
     @Override
     public String getCommandUsage(ICommandSender sender) {
-        return "/gtsr singularity <range> <speed/20tick> <damage/20tick> <durationTicks|NA> <eventId>";
+        return "/gtsr singularity <range> <speed/20tick> <damage/20tick> <durationTicks|NA> <special|null> [color]";
     }
 
     @Override
@@ -35,15 +37,20 @@ public class GTSRCommand extends CommandBase {
 
     @Override
     public void processCommand(ICommandSender sender, String[] args) {
-        if (args.length != 6 || !args[0].equalsIgnoreCase("singularity")) {
+        if (args.length < 6 || args.length > 7 || !args[0].equalsIgnoreCase("singularity")) {
             throw new WrongUsageException(getCommandUsage(sender));
         }
 
         double range = parseClampedDouble(args[1], 0.5D, 128.0D);
-        double speed = parseClampedDouble(args[2], 0.01D, 100.0D);
+        double speed = parseClampedDouble(args[2], 0.0D, 100.0D);
         double damage = parseClampedDouble(args[3], 0.0D, 1000.0D);
         int duration = parseDuration(args[4]);
-        int eventId = parseClampedInt(args[5], 0, 999);
+        int special = parseSpecial(args[5]);
+        String color = args.length >= 7 ? args[6] : "white";
+        if (!TileRunawaySingularity.isValidColor(color)) {
+            // 非法颜色走数值错误通道（也可换 WrongUsageException，语义等价）
+            throw new NumberInvalidException("commands.generic.num.invalid", color);
+        }
 
         EntityPlayerMP player = getCommandSenderAsPlayer(sender);
         if (player.worldObj.isRemote) {
@@ -59,7 +66,8 @@ public class GTSRCommand extends CommandBase {
             speed,
             damage,
             duration,
-            eventId);
+            special,
+            color);
 
         sender.addChatMessage(
             new ChatComponentText(
@@ -70,8 +78,10 @@ public class GTSRCommand extends CommandBase {
                     + damage
                     + ", duration "
                     + (duration == -1 ? "NA" : duration)
-                    + ", event "
-                    + eventId));
+                    + ", special "
+                    + (special == -1 ? "null" : special)
+                    + ", color "
+                    + color));
     }
 
     @Override
@@ -80,7 +90,27 @@ public class GTSRCommand extends CommandBase {
             return getListOfStringsMatchingLastWord(args, "singularity");
         }
         if (args.length == 5) {
-            return getListOfStringsMatchingLastWord(args, "NA", "0");
+            return getListOfStringsMatchingLastWord(args, "NA", "0", "null");
+        }
+        if (args.length == 6) {
+            return getListOfStringsMatchingLastWord(
+                args,
+                "white",
+                "orange",
+                "magenta",
+                "light_blue",
+                "yellow",
+                "lime",
+                "pink",
+                "gray",
+                "silver",
+                "cyan",
+                "purple",
+                "blue",
+                "brown",
+                "green",
+                "red",
+                "black");
         }
         return null;
     }
@@ -116,5 +146,15 @@ public class GTSRCommand extends CommandBase {
             return -1;
         }
         return parseClampedInt(arg, 1, 360000);
+    }
+
+    /**
+     * 第 5 参：特殊状态；null → -1（纯动画，不吸引/不破坏/不吸收任何方块与实体），否则 0-999 整数
+     */
+    private int parseSpecial(String arg) {
+        if (arg.equalsIgnoreCase("null")) {
+            return -1;
+        }
+        return parseClampedInt(arg, 0, 999);
     }
 }

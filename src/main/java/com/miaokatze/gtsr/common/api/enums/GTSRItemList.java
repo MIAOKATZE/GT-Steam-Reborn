@@ -45,7 +45,7 @@ public enum GTSRItemList implements IItemContainer {
     GeothermalOverheatChip,
     SteamCoolingHatch,
     PressureSteamCoolingHatch,
-    SteamSingularityCompressor,
+    SteamSingularityEntangler,
     CriticalSingularityCompressor,
     DenseStateManipulator,
     WaterHubArray,

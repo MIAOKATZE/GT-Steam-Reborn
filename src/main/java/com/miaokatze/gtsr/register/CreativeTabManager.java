@@ -26,16 +26,16 @@ public class CreativeTabManager {
          */
         @Override
         public Item getTabIconItem() {
-            if (com.miaokatze.gtsr.common.api.enums.GTSRItemList.SteamSingularityCompressor.hasBeenSet()) {
-                return com.miaokatze.gtsr.common.api.enums.GTSRItemList.SteamSingularityCompressor.getItem();
+            if (com.miaokatze.gtsr.common.api.enums.GTSRItemList.SteamSingularityEntangler.hasBeenSet()) {
+                return com.miaokatze.gtsr.common.api.enums.GTSRItemList.SteamSingularityEntangler.getItem();
             }
             return net.minecraft.init.Items.diamond;
         }
 
         @Override
         public net.minecraft.item.ItemStack getIconItemStack() {
-            if (com.miaokatze.gtsr.common.api.enums.GTSRItemList.SteamSingularityCompressor.hasBeenSet()) {
-                return com.miaokatze.gtsr.common.api.enums.GTSRItemList.SteamSingularityCompressor.get(1);
+            if (com.miaokatze.gtsr.common.api.enums.GTSRItemList.SteamSingularityEntangler.hasBeenSet()) {
+                return com.miaokatze.gtsr.common.api.enums.GTSRItemList.SteamSingularityEntangler.get(1);
             }
             return new net.minecraft.item.ItemStack(net.minecraft.init.Items.diamond);
         }

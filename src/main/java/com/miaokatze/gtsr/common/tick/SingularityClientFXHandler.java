@@ -71,6 +71,7 @@ public class SingularityClientFXHandler {
                 continue;
             }
             current.add(t);
+            float[] rgb = t.getColorRGB();
             this.lastSeen.put(t, (t.xCoord & 0xFFFF) << 16 | (t.zCoord & 0xFFFF));
             double af = t.getActiveFactor();
             float darkScale = 0.05F + 0.95F * (float) af;
@@ -81,8 +82,18 @@ public class SingularityClientFXHandler {
             // 吸积盘（vanilla 传统管道）：概率生成 × 活性系数（af→0 概率趋零，消散时不再中心冒泡），随活性系数变暗
             double diskP = (0.55D + 0.15D * Math.min(1.0D, effRange / 32.0D)) * af;
             if (world.rand.nextFloat() < diskP) {
-                GTSRSingularityFX
-                    .spawnDisk(world, cx, cy, cz, effRange, darkScale, t.getDuration(), t.getElapsedTicks());
+                GTSRSingularityFX.spawnDisk(
+                    world,
+                    cx,
+                    cy,
+                    cz,
+                    effRange,
+                    darkScale,
+                    t.getDuration(),
+                    t.getElapsedTicks(),
+                    rgb[0],
+                    rgb[1],
+                    rgb[2]);
             }
             // 电弧：外向（中心→边缘），频率中位数 + 大幅波动；一次可多条（1~3 条、方向均匀间隔）
             Integer cached = this.arcCooldowns.get(t);
@@ -97,7 +108,23 @@ public class SingularityClientFXHandler {
                     double ex = cx + Math.cos(pitch) * Math.cos(yaw) * effRange;
                     double ey = cy + Math.sin(pitch) * effRange + (world.rand.nextDouble() - 0.5D) * effRange * 0.4D;
                     double ez = cz + Math.cos(pitch) * Math.sin(yaw) * effRange;
-                    GTSRFXEngine.spawnArc(world, cx, cy, cz, ex, ey, ez, 0.08F, 7, 10, 0.5F, 8, darkScale); // 起点=中心，终点=边缘（外向）
+                    GTSRFXEngine.spawnArc(
+                        world,
+                        cx,
+                        cy,
+                        cz,
+                        ex,
+                        ey,
+                        ez,
+                        0.08F,
+                        7,
+                        10,
+                        0.5F,
+                        8,
+                        darkScale,
+                        rgb[0],
+                        rgb[1],
+                        rgb[2]); // 起点=中心，终点=边缘（外向）
                 }
                 cooldown = 4 + world.rand.nextInt(12); // 4~15 tick
             }
@@ -118,7 +145,20 @@ public class SingularityClientFXHandler {
             if (!beamOk) {
                 beamGroup = new GTSRBeamFX[2];
                 for (int i = 0; i < 2; i++) {
-                    beamGroup[i] = GTSRBeamFX.add(world, cx, cy, cz, beamLen, 0.5F);
+                    beamGroup[i] = GTSRBeamFX.add(
+                        world,
+                        cx,
+                        cy,
+                        cz,
+                        beamLen,
+                        0.5F,
+                        0.02618F,
+                        0.55F,
+                        0.85F * rgb[0],
+                        0.92F * rgb[1],
+                        1.0F * rgb[2],
+                        1.0F,
+                        10000);
                 }
                 this.beams.put(t, beamGroup);
             }
@@ -129,7 +169,7 @@ public class SingularityClientFXHandler {
             float glowR = glowRadius * (float) af;
             GTSRGlowFX glow = this.glows.get(t);
             if (glow == null || glow.isDead()) {
-                glow = GTSRGlowFX.spawn(world, cx, cy, cz, glowR, 0.85F, 0.9F, 1.0F, 10000);
+                glow = GTSRGlowFX.spawn(world, cx, cy, cz, glowR, 0.85F * rgb[0], 0.9F * rgb[1], 1.0F * rgb[2], 10000);
                 this.glows.put(t, glow);
             }
             glow.updateParams(glowR, darkScale);

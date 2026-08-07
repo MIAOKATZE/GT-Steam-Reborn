@@ -30,11 +30,11 @@ public class GTSRFXNet {
     }
 
     /** 服务端：吸收方块处生成向心粒子（S2C 广播 64 格内玩家） */
-    public static void sendAbsorb(World world, int fx, int fy, int fz, int tx, int ty, int tz) {
+    public static void sendAbsorb(World world, int fx, int fy, int fz, int tx, int ty, int tz, int color) {
         if (world.isRemote) {
             return;
         }
-        AbsorbMessage msg = new AbsorbMessage(fx, fy, fz, tx, ty, tz);
+        AbsorbMessage msg = new AbsorbMessage(fx, fy, fz, tx, ty, tz, color);
         double maxDistSq = 64.0 * 64.0;
         for (Object o : MinecraftServer.getServer()
             .getConfigurationManager().playerEntityList) {
@@ -58,16 +58,18 @@ public class GTSRFXNet {
         private int tx;
         private int ty;
         private int tz;
+        private int color;
 
         public AbsorbMessage() {}
 
-        public AbsorbMessage(int fx, int fy, int fz, int tx, int ty, int tz) {
+        public AbsorbMessage(int fx, int fy, int fz, int tx, int ty, int tz, int color) {
             this.fx = fx;
             this.fy = fy;
             this.fz = fz;
             this.tx = tx;
             this.ty = ty;
             this.tz = tz;
+            this.color = color;
         }
 
         @Override
@@ -79,6 +81,7 @@ public class GTSRFXNet {
             this.tx = pb.readInt();
             this.ty = pb.readInt();
             this.tz = pb.readInt();
+            this.color = pb.readInt();
         }
 
         @Override
@@ -90,6 +93,7 @@ public class GTSRFXNet {
             pb.writeInt(this.tx);
             pb.writeInt(this.ty);
             pb.writeInt(this.tz);
+            pb.writeInt(this.color);
         }
     }
 
@@ -103,6 +107,9 @@ public class GTSRFXNet {
                 .func_152344_a(() -> {
                     World w = Minecraft.getMinecraft().theWorld;
                     if (w != null) {
+                        float r = (float) ((msg.color >> 16) & 0xFF) / 255.0F;
+                        float g = (float) ((msg.color >> 8) & 0xFF) / 255.0F;
+                        float b = (float) (msg.color & 0xFF) / 255.0F;
                         GTSRSingularityFX.spawnAbsorb(
                             w,
                             msg.fx + 0.5,
@@ -110,7 +117,10 @@ public class GTSRFXNet {
                             msg.fz + 0.5,
                             msg.tx + 0.5,
                             msg.ty + 0.5,
-                            msg.tz + 0.5);
+                            msg.tz + 0.5,
+                            r,
+                            g,
+                            b);
                     }
                 });
             return null;
