@@ -1,5 +1,8 @@
 package com.miaokatze.gtsr.main;
 
+import net.minecraftforge.common.MinecraftForge;
+
+import com.miaokatze.gtsr.common.fx.GTSRFXEngine;
 import com.miaokatze.gtsr.common.tick.SingularityClientFXHandler;
 
 import cpw.mods.fml.common.FMLCommonHandler;
@@ -24,6 +27,11 @@ public class ClientProxy extends CommonProxy {
         FMLCommonHandler.instance()
             .bus()
             .register(new SingularityClientFXHandler());
+
+        MinecraftForge.EVENT_BUS.register(GTSRFXEngine.instance());
+        FMLCommonHandler.instance()
+            .bus()
+            .register(GTSRFXEngine.instance());
 
         GTSteamReborn.LOG.info("[2/3] 客户端初始化完成");
     }

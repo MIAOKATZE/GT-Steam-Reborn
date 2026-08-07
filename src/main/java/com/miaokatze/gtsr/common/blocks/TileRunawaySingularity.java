@@ -1,5 +1,4 @@
 package com.miaokatze.gtsr.common.blocks;
-// ==== [DEBUG] 奇点调试日志（用户实机检验后删除） ====
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -21,7 +20,6 @@ import net.minecraft.util.DamageSource;
 import net.minecraft.world.World;
 
 import com.miaokatze.gtsr.loader.BlockLoader;
-import com.miaokatze.gtsr.main.GTSteamReborn;
 
 /**
  * 失控奇点方块实体
@@ -142,23 +140,6 @@ public class TileRunawaySingularity extends TileEntity {
     public static void spawnSingularity(World world, int x, int y, int z, double range, double speed, double damage,
         int duration, int attributeId) {
         world.setBlock(x, y, z, BlockLoader.blockRunawaySingularity);
-        // DEBUG-SINGULARITY:
-        GTSteamReborn.LOG.info(
-            "[Singularity] spawned at " + x
-                + ","
-                + y
-                + ","
-                + z
-                + " range="
-                + range
-                + " speed="
-                + speed
-                + " damage="
-                + damage
-                + " duration="
-                + duration
-                + " attribute="
-                + attributeId);
         TileEntity te = world.getTileEntity(x, y, z);
         if (te instanceof TileRunawaySingularity) {
             ((TileRunawaySingularity) te).setParams(range, speed, damage, duration, attributeId);
@@ -179,29 +160,10 @@ public class TileRunawaySingularity extends TileEntity {
         }
         if (!isInfinite() && elapsedTicks >= duration) {
             worldObj.setBlockToAir(xCoord, yCoord, zCoord); // 时间耗尽，奇点销毁，事件结束
-            // DEBUG-SINGULARITY:
-            GTSteamReborn.LOG.info("[Singularity] singularity destroyed at " + xCoord + "," + yCoord + "," + zCoord);
             return;
         }
         double factor = getActiveFactor();
         double effRange = range * factor;
-        if (worldObj.getWorldTime() % 100 == 0) {
-            // DEBUG-SINGULARITY:
-            GTSteamReborn.LOG.info(
-                "[Singularity] tick=" + elapsedTicks
-                    + "/"
-                    + duration
-                    + " factor="
-                    + factor
-                    + " range="
-                    + effRange
-                    + " speed="
-                    + speed
-                    + " damage="
-                    + damage
-                    + " attribute="
-                    + attributeId);
-        }
         absorbScan(effRange, factor);
         absorbRays(effRange, factor);
         handleEntities(effRange, factor);
@@ -277,11 +239,6 @@ public class TileRunawaySingularity extends TileEntity {
                 }
             }
         }
-        if (count > 0) {
-            // DEBUG-SINGULARITY:
-            GTSteamReborn.LOG
-                .info("[Singularity] scan candidates=" + targets.size() + " absorbed=" + count + " cap=" + cap);
-        }
     }
 
     /**
@@ -318,10 +275,6 @@ public class TileRunawaySingularity extends TileEntity {
             worldObj.setBlockToAir(bx, by, bz);
             absorbed++;
             break; // 单条射线至多吸收 1 块
-        }
-        if (absorbed > 0) {
-            // DEBUG-SINGULARITY:
-            GTSteamReborn.LOG.info("[Singularity] rays absorbed=" + absorbed);
         }
     }
 
@@ -384,17 +337,6 @@ public class TileRunawaySingularity extends TileEntity {
                 }
                 ((EntityPlayerMP) p).playerNetServerHandler.sendPacket(new S12PacketEntityVelocity(p));
             }
-        }
-        if (worldObj.getWorldTime() % 100 == 0) {
-            // DEBUG-SINGULARITY:
-            GTSteamReborn.LOG.info(
-                "[Singularity] entities in range=" + inRange
-                    + " pullingPlayers="
-                    + players
-                    + " itemsVanish="
-                    + itemsVanish
-                    + " living="
-                    + living);
         }
     }
 

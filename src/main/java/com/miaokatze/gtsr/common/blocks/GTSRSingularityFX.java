@@ -1,105 +1,119 @@
 package com.miaokatze.gtsr.common.blocks;
 
-import net.minecraft.client.particle.EntityFX;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.world.World;
 
-import org.lwjgl.opengl.GL11;
+import com.miaokatze.gtsr.common.fx.GTSRFXParticle;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * 奇点客户端粒子：聚拢 -> 环绕 -> 消散 三阶段光效
+ * 吸积环轨道粒子（自包含，参考 TC4 FXWisp 螺旋）
  */
 @SideOnly(Side.CLIENT)
-public class GTSRSingularityFX extends EntityFX {
+public class GTSRSingularityFX extends GTSRFXParticle {
 
-    private int phase;
-    private double targetX, targetY, targetZ;
+    private final double centerX;
+    private final double centerY;
+    private final double centerZ;
+    private final double axisX;
+    private final double axisY;
+    private final double axisZ;
+    private final double basisX;
+    private final double basisY;
+    private final double basisZ;
+    private final double crossX;
+    private final double crossY;
+    private final double crossZ;
+    private final double orbitSpeed;
+    private final double shrink;
+    private final double wispPhase;
+    private double radius;
+    private double angle;
     private float alpha = 1.0F;
-    private double orbitRadius;
-    private double orbitAngle;
-    private double orbitSpeed;
-    private int orbitTicks;
-    private final double centerX, centerY, centerZ;
+    private boolean dissipating;
 
-    public GTSRSingularityFX(World world, double cx, double cy, double cz, double range) {
+    public GTSRSingularityFX(World world, double cx, double cy, double cz, double spawnR) {
         super(world, cx, cy, cz);
         this.centerX = cx;
         this.centerY = cy;
         this.centerZ = cz;
 
-        // 拒绝采样：球内随机出生点
-        double r = Math.max(range, 0.001D);
-        double x = 0, y = 0, z = 0;
-        for (int i = 0; i < 16; i++) {
-            x = cx + (this.rand.nextDouble() * 2.0D - 1.0D) * r;
-            y = cy + (this.rand.nextDouble() * 2.0D - 1.0D) * r;
-            z = cz + (this.rand.nextDouble() * 2.0D - 1.0D) * r;
-            double dx = x - cx, dy = y - cy, dz = z - cz;
-            if (dx * dx + dy * dy + dz * dz <= r * r) {
-                break;
-            }
-        }
-        this.posX = x;
-        this.posY = y;
-        this.posZ = z;
-        this.prevPosX = x;
-        this.prevPosY = y;
-        this.prevPosZ = z;
+        // 球壳内随机出生点
+        double r = Math.max(spawnR, 0.001D) * (0.4D + 0.6D * this.rand.nextDouble());
+        double theta = this.rand.nextDouble() * 2.0D * Math.PI;
+        double phi = Math.acos(2.0D * this.rand.nextDouble() - 1.0D);
+        this.posX = cx + Math.sin(phi) * Math.cos(theta) * r;
+        this.posY = cy + Math.sin(phi) * Math.sin(theta) * r;
+        this.posZ = cz + Math.cos(phi) * r;
+        this.prevPosX = this.posX;
+        this.prevPosY = this.posY;
+        this.prevPosZ = this.posZ;
 
-        this.phase = 0;
-        this.motionX = (cx - this.posX) * 0.06D;
-        this.motionY = (cy - this.posY) * 0.06D;
-        this.motionZ = (cz - this.posZ) * 0.06D;
-        this.particleGravity = 0.0F;
-        this.particleScale = 0.15F + this.rand.nextFloat() * 0.15F;
-        this.particleMaxAge = 60 + this.rand.nextInt(40);
+        // 随机倾斜轨道平面：法线轴 + 平面内正交基
+        double aTheta = this.rand.nextDouble() * 2.0D * Math.PI;
+        double aPhi = Math.acos(2.0D * this.rand.nextDouble() - 1.0D);
+        this.axisX = Math.sin(aPhi) * Math.cos(aTheta);
+        this.axisY = Math.sin(aPhi) * Math.sin(aTheta);
+        this.axisZ = Math.cos(aPhi);
+        double rx, ry, rz;
+        if (Math.abs(this.axisX) > 0.9D) {
+            rx = 0.0D;
+            ry = 1.0D;
+            rz = 0.0D;
+        } else {
+            rx = 1.0D;
+            ry = 0.0D;
+            rz = 0.0D;
+        }
+        double bX = this.axisY * rz - this.axisZ * ry;
+        double bY = this.axisZ * rx - this.axisX * rz;
+        double bZ = this.axisX * ry - this.axisY * rx;
+        double bLen = Math.sqrt(bX * bX + bY * bY + bZ * bZ);
+        this.basisX = bX / bLen;
+        this.basisY = bY / bLen;
+        this.basisZ = bZ / bLen;
+        this.crossX = this.axisY * this.basisZ - this.axisZ * this.basisY;
+        this.crossY = this.axisZ * this.basisX - this.axisX * this.basisZ;
+        this.crossZ = this.axisX * this.basisY - this.axisY * this.basisX;
+
+        this.radius = r;
+        this.angle = this.rand.nextDouble() * 2.0D * Math.PI;
+        this.orbitSpeed = (0.05D + this.rand.nextDouble() * 0.07D) * (this.rand.nextBoolean() ? 1.0D : -1.0D);
+        this.shrink = 0.985D + this.rand.nextDouble() * 0.010D;
+        this.wispPhase = this.rand.nextDouble() * 2.0D * Math.PI;
+        this.particleScale = 0.1F + this.rand.nextFloat() * 0.1F;
+        this.particleMaxAge = 40 + this.rand.nextInt(40);
         this.setRBGColorF(1.0F, 1.0F, 1.0F);
     }
 
     @Override
     public void onUpdate() {
-        if (this.phase == 0) {
-            // 聚拢：按方向直接设定速度，比例收敛
-            double dx = this.centerX - this.posX;
-            double dy = this.centerY - this.posY;
-            double dz = this.centerZ - this.posZ;
-            this.motionX = dx * 0.12D;
-            this.motionY = dy * 0.12D;
-            this.motionZ = dz * 0.12D;
-            this.posX += this.motionX;
-            this.posY += this.motionY;
-            this.posZ += this.motionZ;
+        this.prevPosX = this.posX;
+        this.prevPosY = this.posY;
+        this.prevPosZ = this.posZ;
+        this.angle += this.orbitSpeed;
+        this.radius *= this.shrink;
+        double cosA = Math.cos(this.angle);
+        double sinA = Math.sin(this.angle);
+        double wisp = Math.sin((double) this.particleAge * 0.15D + this.wispPhase) * 0.12D * this.radius;
+        this.posX = this.centerX + this.radius * (cosA * this.basisX + sinA * this.crossX) + wisp * this.axisX;
+        this.posY = this.centerY + this.radius * (cosA * this.basisY + sinA * this.crossY) + wisp * this.axisY;
+        this.posZ = this.centerZ + this.radius * (cosA * this.basisZ + sinA * this.crossZ) + wisp * this.axisZ;
 
-            double dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
-            if (dist < 1.2D) {
-                this.phase = 1;
-                this.orbitRadius = dist;
-                this.orbitAngle = Math.atan2(dz, dx);
-                this.orbitSpeed = (0.15D + this.rand.nextDouble() * 0.25D) * (this.rand.nextBoolean() ? 1.0D : -1.0D);
-            }
-        } else if (this.phase == 1) {
-            // 环绕：水平圆 + 轻微 y 摆动，半径缓慢收缩
-            this.orbitTicks++;
-            this.orbitAngle += this.orbitSpeed;
-            this.orbitRadius *= 0.995D;
-            this.posX = this.centerX + Math.cos(this.orbitAngle) * this.orbitRadius;
-            this.posZ = this.centerZ + Math.sin(this.orbitAngle) * this.orbitRadius;
-            this.posY = this.centerY + Math.sin(this.orbitTicks * 0.1D) * 0.3D * this.orbitRadius;
-            if (this.orbitTicks >= 30) {
-                this.phase = 2;
-            }
-        } else {
-            // 消散：透明度递减
-            this.alpha -= 0.05F;
+        if (this.radius < 0.6D) {
+            this.dissipating = true;
+        }
+        if (this.dissipating) {
+            this.alpha -= 0.06F;
+            this.particleAlpha = Math.max(0.0F, this.alpha);
             if (this.alpha <= 0.0F) {
                 this.setDead();
+                return;
             }
         }
 
-        // 颜色渐变：白 -> 品红
         float t = Math.min(1.0F, this.particleAge / 60.0F);
         this.setRBGColorF(1.0F, 1.0F - t, 1.0F);
 
@@ -111,27 +125,6 @@ public class GTSRSingularityFX extends EntityFX {
 
     @Override
     public void renderParticle(Tessellator tess, float p, float rx, float rz, float ry, float rxz, float ryz) {
-        float x = (float) (this.prevPosX + (this.posX - this.prevPosX) * p - interpPosX);
-        float y = (float) (this.prevPosY + (this.posY - this.prevPosY) * p - interpPosY);
-        float z = (float) (this.prevPosZ + (this.posZ - this.prevPosZ) * p - interpPosZ);
-        float s = this.particleScale * (0.6F + 0.6F * Math.min(1.0F, this.particleAge / 10.0F));
-
-        GL11.glDisable(GL11.GL_TEXTURE_2D);
-        GL11.glDepthMask(false);
-        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE);
-        tess.setBrightness(0x00F000F0); // 全亮光效，不受环境光照影响
-        tess.setColorRGBA_F(this.particleRed, this.particleGreen, this.particleBlue, this.alpha);
-        tess.addVertexWithUV(x - rx * s - ry * s, y - rxz * s, z - rz * s - ryz * s, 0, 1);
-        tess.addVertexWithUV(x - rx * s + ry * s, y + rxz * s, z - rz * s + ryz * s, 1, 1);
-        tess.addVertexWithUV(x + rx * s + ry * s, y + rxz * s, z + rz * s + ryz * s, 1, 0);
-        tess.addVertexWithUV(x + rx * s - ry * s, y - rxz * s, z + rz * s - ryz * s, 0, 0);
-        GL11.glEnable(GL11.GL_TEXTURE_2D);
-        GL11.glDepthMask(true);
-        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-    }
-
-    @Override
-    public int getFXLayer() {
-        return 0;
+        this.renderGlowTextureQuad(tess, p, rx, rz, ry, rxz, ryz);
     }
 }
