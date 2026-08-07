@@ -27,8 +27,8 @@ import cpw.mods.fml.relauncher.SideOnly;
 public class SingularityClientFXHandler {
 
     private final Map<TileRunawaySingularity, Integer> arcCooldowns = new HashMap<TileRunawaySingularity, Integer>();
-    /** 每奇点 1 束探照灯式竖光片，实例防重复生成 */
-    private final Map<TileRunawaySingularity, GTSRBeamFX> beams = new HashMap<TileRunawaySingularity, GTSRBeamFX>();
+    /** 每奇点 2 片锥形光片（数组，独立随机方位与旋转轴），实例防重复生成 */
+    private final Map<TileRunawaySingularity, GTSRBeamFX[]> beams = new HashMap<TileRunawaySingularity, GTSRBeamFX[]>();
     /** 每奇点 1 个常驻辉光，实例防重复生成 */
     private final Map<TileRunawaySingularity, GTSRGlowFX> glows = new HashMap<TileRunawaySingularity, GTSRGlowFX>();
     /** 上一帧见过的奇点 TE → 坐标 hash（消散检测；TE 引用失效时触发一次消散） */
@@ -46,8 +46,10 @@ public class SingularityClientFXHandler {
         }
         if (world != this.lastWorld) {
             // 切换维度/世界：清空旧世界状态，避免跨世界误触发消散与残留特效
-            for (GTSRBeamFX beam : this.beams.values()) {
-                beam.setDead();
+            for (GTSRBeamFX[] beamGroup : this.beams.values()) {
+                for (GTSRBeamFX beam : beamGroup) {
+                    beam.setDead();
+                }
             }
             this.beams.clear();
             for (GTSRGlowFX glow : this.glows.values()) {
@@ -82,35 +84,55 @@ public class SingularityClientFXHandler {
                 GTSRSingularityFX
                     .spawnDisk(world, cx, cy, cz, effRange, darkScale, t.getDuration(), t.getElapsedTicks());
             }
-            // 电弧：外向（中心→边缘），随活性系数变暗
+            // 电弧：外向（中心→边缘），频率中位数 + 大幅波动；一次可多条（1~3 条、方向均匀间隔）
             Integer cached = this.arcCooldowns.get(t);
-            int cooldown = cached == null ? 3 + world.rand.nextInt(3) : cached.intValue();
+            int cooldown = cached == null ? 3 + world.rand.nextInt(12) : cached.intValue();
             if (cooldown <= 0) {
-                double yaw = world.rand.nextDouble() * 2.0D * Math.PI;
-                double pitch = (world.rand.nextDouble() - 0.5D) * Math.PI * 0.8D;
-                double ex = cx + Math.cos(pitch) * Math.cos(yaw) * effRange;
-                double ey = cy + Math.sin(pitch) * effRange + (world.rand.nextDouble() - 0.5D) * effRange * 0.4D;
-                double ez = cz + Math.cos(pitch) * Math.sin(yaw) * effRange;
-                GTSRFXEngine.spawnArc(world, cx, cy, cz, ex, ey, ez, 0.08F, 7, 10, 0.5F, 8, darkScale); // 起点=中心，终点=边缘（外向）
-                cooldown = 5 + world.rand.nextInt(4); // 5~8 tick
+                int count = 1 + world.rand.nextInt(3); // 1~3 条
+                double baseYaw = world.rand.nextDouble() * 2.0D * Math.PI;
+                for (int i = 0; i < count; i++) {
+                    double yaw = baseYaw + (double) i * 2.0D * Math.PI / (double) count
+                        + (world.rand.nextDouble() - 0.5D) * 0.4D;
+                    double pitch = (world.rand.nextDouble() - 0.5D) * Math.PI * 0.8D;
+                    double ex = cx + Math.cos(pitch) * Math.cos(yaw) * effRange;
+                    double ey = cy + Math.sin(pitch) * effRange + (world.rand.nextDouble() - 0.5D) * effRange * 0.4D;
+                    double ez = cz + Math.cos(pitch) * Math.sin(yaw) * effRange;
+                    GTSRFXEngine.spawnArc(world, cx, cy, cz, ex, ey, ez, 0.08F, 7, 10, 0.5F, 8, darkScale); // 起点=中心，终点=边缘（外向）
+                }
+                cooldown = 4 + world.rand.nextInt(12); // 4~15 tick
             }
             this.arcCooldowns.put(t, Integer.valueOf(cooldown - 1));
-            // 光束：每奇点 1 片探照灯竖光片，长度 = 光效半径 × 200%，随活性系数收缩变暗
+            // 光束：每奇点 2 片锥形光片（独立随机初始方位与旋转轴），长度 = 光效半径 × 200%，随活性系数收缩变暗
             float glowRadius = Math.min(4.0F, 1.0F + (float) effRange * 0.09F);
             float beamLen = glowRadius * (float) af * 2.0F;
-            GTSRBeamFX beam = this.beams.get(t);
-            if (beam == null || beam.isDead) {
-                beam = GTSRBeamFX.add(world, cx, cy, cz, beamLen, 0.5F);
-                this.beams.put(t, beam);
+            GTSRBeamFX[] beamGroup = this.beams.get(t);
+            boolean beamOk = beamGroup != null;
+            if (beamOk) {
+                for (GTSRBeamFX b : beamGroup) {
+                    if (b == null || b.isDead) {
+                        beamOk = false;
+                        break;
+                    }
+                }
             }
-            beam.updateParams(beamLen, darkScale);
-            // 辉光：灰白微青常驻，半径与暗度随活性系数
+            if (!beamOk) {
+                beamGroup = new GTSRBeamFX[2];
+                for (int i = 0; i < 2; i++) {
+                    beamGroup[i] = GTSRBeamFX.add(world, cx, cy, cz, beamLen, 0.5F);
+                }
+                this.beams.put(t, beamGroup);
+            }
+            for (GTSRBeamFX b : beamGroup) {
+                b.updateParams(beamLen, darkScale);
+            }
+            // 辉光：TC4 节点式多层光晕常驻，半径 = 光效半径 × 100%，随活性系数收缩变暗
+            float glowR = glowRadius * (float) af;
             GTSRGlowFX glow = this.glows.get(t);
             if (glow == null || glow.isDead()) {
-                glow = GTSRGlowFX.spawn(world, cx, cy, cz, glowRadius, 0.85F, 0.9F, 1.0F, 10000);
+                glow = GTSRGlowFX.spawn(world, cx, cy, cz, glowR, 0.85F, 0.9F, 1.0F, 10000);
                 this.glows.put(t, glow);
             }
-            glow.updateParams(glowRadius * (float) af, darkScale);
+            glow.updateParams(glowR, darkScale);
         }
         // 消散检测：上帧活跃但本帧消失的奇点 → 特效随衰减系数收缩、变暗直至消失（无亮闪爆发）
         for (TileRunawaySingularity gone : prev) {
@@ -119,9 +141,11 @@ public class SingularityClientFXHandler {
             }
             this.lastSeen.remove(gone);
             this.arcCooldowns.remove(gone);
-            GTSRBeamFX goneBeam = this.beams.remove(gone);
-            if (goneBeam != null) {
-                goneBeam.setDead();
+            GTSRBeamFX[] goneBeams = this.beams.remove(gone);
+            if (goneBeams != null) {
+                for (GTSRBeamFX b : goneBeams) {
+                    b.setDead();
+                }
             }
             GTSRGlowFX goneGlow = this.glows.remove(gone);
             if (goneGlow != null) {
@@ -134,13 +158,22 @@ public class SingularityClientFXHandler {
             GTSRGlowFX fade = GTSRGlowFX.spawn(world, tx, ty, tz, 1.0F, 0.1F, 0.1F, 0.12F, 10);
             fade.setShrinkPerTick(0.1F);
         }
-        // 清理：dead 光束 / 辉光条目
-        Iterator<Map.Entry<TileRunawaySingularity, GTSRBeamFX>> beamIt = this.beams.entrySet()
+        // 清理：dead 光束（任一片死亡整组重建）/ 辉光条目
+        Iterator<Map.Entry<TileRunawaySingularity, GTSRBeamFX[]>> beamIt = this.beams.entrySet()
             .iterator();
         while (beamIt.hasNext()) {
-            GTSRBeamFX beam = beamIt.next()
+            GTSRBeamFX[] beamGroup = beamIt.next()
                 .getValue();
-            if (beam == null || beam.isDead) {
+            boolean anyDead = false;
+            if (beamGroup != null) {
+                for (GTSRBeamFX b : beamGroup) {
+                    if (b == null || b.isDead) {
+                        anyDead = true;
+                        break;
+                    }
+                }
+            }
+            if (anyDead) {
                 beamIt.remove();
             }
         }

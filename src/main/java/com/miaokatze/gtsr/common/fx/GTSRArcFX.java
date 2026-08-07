@@ -220,6 +220,33 @@ public class GTSRArcFX extends GTSRFXParticle {
             (double) ((float) renderentity.posZ - pos.z));
     }
 
+    @Override
+    public boolean sanityCheck() {
+        // 分形电弧几何自检：长度/宽度有限且在合理范围，任一顶点 NaN/Infinity 或与起点距离超限（>300 格）
+        // 即判定异常，引擎跳过渲染——防止巨大/NaN 顶点在 GPU 上渲染成白色巨块
+        if (!Float.isFinite(this.length) || this.length < 0.0F || this.length > 500.0F || !Float.isFinite(this.width)) {
+            return false;
+        }
+        for (Segment s : this.segments) {
+            GTSRFXVec startP = s.startpoint.point;
+            GTSRFXVec endP = s.endpoint.point;
+            if (!isFiniteVec(startP) || !isFiniteVec(endP)) {
+                return false;
+            }
+            float dx = startP.x - this.start.x;
+            float dy = startP.y - this.start.y;
+            float dz = startP.z - this.start.z;
+            if (dx * dx + dy * dy + dz * dz > 300.0F * 300.0F) {
+                return false;
+            }
+        }
+        return super.sanityCheck();
+    }
+
+    private static boolean isFiniteVec(GTSRFXVec v) {
+        return Float.isFinite(v.x) && Float.isFinite(v.y) && Float.isFinite(v.z);
+    }
+
     private void renderBolt(Tessellator tessellator, float partialframe, float cosyaw, float cospitch, float sinyaw,
         float cossinpitch, int pass, float mainalpha) {
         float playery = cosyaw == 0.0F ? -cossinpitch / 1.0E-4F : -cossinpitch / cosyaw;
@@ -396,6 +423,7 @@ public class GTSRArcFX extends GTSRFXParticle {
             GL11.glPushMatrix();
             GL11.glDepthMask(false);
             GL11.glEnable(GL11.GL_BLEND);
+            GL11.glDisable(GL11.GL_CULL_FACE); // 电弧段 quad 的 winding 随视角变化，禁背面剔除防段缺失
             this.particleRed = 1.0F;
             this.particleGreen = 1.0F;
             this.particleBlue = 1.0F;
@@ -521,6 +549,7 @@ public class GTSRArcFX extends GTSRFXParticle {
             tess.draw();
             GL11.glDisable(GL11.GL_BLEND);
             GL11.glDepthMask(true);
+            GL11.glEnable(GL11.GL_CULL_FACE); // 恢复世界渲染的背面剔除状态
             GL11.glPopMatrix();
             tess.startDrawingQuads(); // 恢复外层批次
         }

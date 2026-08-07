@@ -23,6 +23,10 @@ public abstract class GTSRFXParticle extends EntityFX {
     public static final ResourceLocation GLOW_SMALL_TEXTURE = new ResourceLocation(
         "gtsr",
         "textures/misc/glow_small.png");
+    /** 辉光专用柔和圆纹理（64×64，边缘 alpha 严格 0，quad 无方形轮廓） */
+    public static final ResourceLocation GLOW_SOFT_TEXTURE = new ResourceLocation(
+        "gtsr",
+        "textures/misc/glow_soft.png");
 
     public GTSRFXParticle(World world, double x, double y, double z) {
         super(world, x, y, z);
@@ -33,6 +37,17 @@ public abstract class GTSRFXParticle extends EntityFX {
     @Override
     public int getFXLayer() {
         return 2;
+    }
+
+    /**
+     * 渲染前几何自检：返回 false 表示参数异常（NaN/Infinity/越界），引擎将跳过该粒子渲染并记录日志。
+     * 子类覆写以检查自身几何；默认检查颜色与透明度分量有限性。
+     */
+    public boolean sanityCheck() {
+        return Float.isFinite(this.particleRed) && Float.isFinite(this.particleGreen)
+            && Float.isFinite(this.particleBlue)
+            && Float.isFinite(this.particleAlpha)
+            && Float.isFinite(this.particleScale);
     }
 
     /**

@@ -16,6 +16,9 @@ import cpw.mods.fml.relauncher.SideOnly;
 @SideOnly(Side.CLIENT)
 public class GTSRSingularityFX extends GTSRFXParticle {
 
+    /** 活跃粒子计数（诊断日志用：吸积盘走 vanilla 管道，不在引擎统计内） */
+    private static int activeCount;
+
     private int mode;
     private final double centerX;
     private final double centerY;
@@ -61,6 +64,7 @@ public class GTSRSingularityFX extends GTSRFXParticle {
         this.prevPosY = this.posY;
         this.prevPosZ = this.posZ;
         this.setRBGColorF(1.0F, 1.0F, 1.0F);
+        GTSRSingularityFX.activeCount++;
     }
 
     /**
@@ -91,6 +95,7 @@ public class GTSRSingularityFX extends GTSRFXParticle {
         this.prevPosY = this.posY;
         this.prevPosZ = this.posZ;
         this.setRBGColorF(1.0F, 1.0F, 1.0F);
+        GTSRSingularityFX.activeCount++;
     }
 
     /**
@@ -98,6 +103,19 @@ public class GTSRSingularityFX extends GTSRFXParticle {
      */
     public void setDarkScale(float darkScale) {
         this.darkScale = darkScale;
+    }
+
+    /** 当前活跃粒子数（诊断日志用） */
+    public static int getActiveCount() {
+        return GTSRSingularityFX.activeCount;
+    }
+
+    @Override
+    public void setDead() {
+        if (!this.isDead) {
+            GTSRSingularityFX.activeCount--;
+        }
+        super.setDead();
     }
 
     public static void spawnDisk(World world, double cx, double cy, double cz, double spawnR, float darkScale,
@@ -143,18 +161,31 @@ public class GTSRSingularityFX extends GTSRFXParticle {
                 * (float) Math.pow((double) (this.initRSq / (this.radius * this.radius)), 0.6D);
             float maxInc = Math.abs(this.orbitSpeed) * 2.5F;
             this.angle += Math.max(-maxInc, Math.min(maxInc, angInc));
+            // 收缩：外圈慢速（迟滞感），内圈加速（坠入感，且防粒子在中心堆积成白色亮团）
+            float shrink = this.shrinkFactor;
+            if (this.radius < 2.0D) {
+                shrink = 0.97F;
+            }
+            if (this.radius < 1.0D) {
+                shrink = 0.94F;
+            }
             // 收缩的同时受消散系数钳制：奇点消散时盘面随 effRange 一起收拢
-            this.radius = Math.min(this.radius * this.shrinkFactor, this.spawnR * af * 0.9D);
+            this.radius = Math.min(this.radius * shrink, this.spawnR * af * 0.9D);
             this.posX = this.centerX + Math.cos(this.angle) * this.radius;
             this.posZ = this.centerZ + Math.sin(this.angle) * this.radius;
             this.posY = this.centerY + Math.sin((double) this.particleAge * 0.1D) * 0.15D;
-            // 明显收敛到中心附近或寿命后期开始渐隐消失（消散加速叠加，af=0 时每 tick 衰减 0.17 快速收尾）
-            if (this.radius < 0.8D || (double) this.particleAge > (double) this.particleMaxAge * 0.9D) {
-                this.alpha -= 0.05F + (float) ((1.0D - af) * 0.12D);
+            // 内圈快速湮灭（radius<1.2 开始）+ 寿命后期渐隐（消散加速叠加，af=0 时每 tick 衰减 0.27 快速收尾）
+            if (this.radius < 1.2D || (double) this.particleAge > (double) this.particleMaxAge * 0.9D) {
+                this.alpha -= 0.15F + (float) ((1.0D - af) * 0.12D);
                 if (this.alpha <= 0.0F) {
                     this.setDead();
                     return;
                 }
+            }
+            // 中心湮灭兜底：半径收缩到极小直接消失（防极端堆积成白色亮团）
+            if (this.radius < 0.4D) {
+                this.setDead();
+                return;
             }
         } else {
             if (!this.arrived) {
@@ -202,9 +233,9 @@ public class GTSRSingularityFX extends GTSRFXParticle {
 
     @Override
     public void renderParticle(Tessellator tess, float p, float rx, float rz, float ry, float rxz, float ryz) {
-        // 白色火花帧族（帧 0 最小、帧 7 最大）：随 age 由小渐大，clamp 防止越界
+        // 白色渐变圆帧族（帧 0-5：中心实边缘透明；帧 6-7 是实心白色方块，不可用）：随 age 由小渐大
         int part = (int) ((float) this.particleAge / (float) this.particleMaxAge * 7.0F);
-        part = Math.max(0, Math.min(7, part));
+        part = Math.max(0, Math.min(5, part));
         float u0 = (float) (part % 16) / 16.0F;
         float u1 = u0 + 0.0624375F;
         float v0 = (float) (part / 16) / 16.0F;
@@ -214,28 +245,29 @@ public class GTSRSingularityFX extends GTSRFXParticle {
         float z = (float) (this.prevPosZ + (this.posZ - this.prevPosZ) * (double) p - (double) interpPosZ);
         float s = this.particleScale;
         tess.setColorRGBA_F(this.particleRed, this.particleGreen, this.particleBlue, this.alpha);
+        // vanilla EntityFX.renderParticle 正确 billboard 公式（参数 rx=rotX, rz=rotXZ, ry=rotZ, rxz=rotYZ, ryz=rotXY）
         tess.addVertexWithUV(
-            (double) (x - rx * s - ry * s),
-            (double) (y - rxz * s),
-            (double) (z - rz * s - ryz * s),
+            (double) (x - rx * s - rxz * s),
+            (double) (y - rz * s),
+            (double) (z - ry * s - ryz * s),
             (double) u0,
             (double) v1);
         tess.addVertexWithUV(
-            (double) (x - rx * s + ry * s),
-            (double) (y + rxz * s),
-            (double) (z - rz * s + ryz * s),
+            (double) (x - rx * s + rxz * s),
+            (double) (y + rz * s),
+            (double) (z - ry * s + ryz * s),
             (double) u1,
             (double) v1);
         tess.addVertexWithUV(
-            (double) (x + rx * s + ry * s),
-            (double) (y + rxz * s),
-            (double) (z + rz * s + ryz * s),
+            (double) (x + rx * s + rxz * s),
+            (double) (y + rz * s),
+            (double) (z + ry * s + ryz * s),
             (double) u1,
             (double) v0);
         tess.addVertexWithUV(
-            (double) (x + rx * s - ry * s),
-            (double) (y - rxz * s),
-            (double) (z + rz * s - ryz * s),
+            (double) (x + rx * s - rxz * s),
+            (double) (y - rz * s),
+            (double) (z + ry * s - ryz * s),
             (double) u0,
             (double) v0);
     }

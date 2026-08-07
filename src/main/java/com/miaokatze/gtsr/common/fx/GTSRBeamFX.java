@@ -117,6 +117,30 @@ public class GTSRBeamFX extends GTSRFXParticle {
         this.darkScale = darkScale;
     }
 
+    /** 当前长度（供引擎渲染摘要日志） */
+    public float getLength() {
+        return this.length;
+    }
+
+    /** 当前暗化系数（供引擎渲染摘要日志） */
+    public float getDarkScale() {
+        return this.darkScale;
+    }
+
+    @Override
+    public boolean sanityCheck() {
+        // 光片几何自检：长度/暗化系数/旋转轴有限且在合理范围（长度上限 100 格）
+        return Float.isFinite(this.length) && this.length >= 0.0F
+            && this.length <= 100.0F
+            && Float.isFinite(this.darkScale)
+            && this.darkScale >= 0.0F
+            && this.darkScale <= 2.0F
+            && Float.isFinite(this.tiltX)
+            && Float.isFinite(this.tiltY)
+            && Float.isFinite(this.tiltZ)
+            && super.sanityCheck();
+    }
+
     @Override
     public void onUpdate() {
         this.particleAge++;
@@ -169,7 +193,7 @@ public class GTSRBeamFX extends GTSRFXParticle {
             this.tiltZ);
         // 近场衰减：玩家距光片中心 3 格内 alpha 线性淡出，防止 additive 白板贴脸填满全屏
         float dist = (float) renderentity.getDistance(this.centerX, this.centerY, this.centerZ);
-        this.nearFade = Math.min(1.0F, dist / 3.0F);
+        this.nearFade = Math.min(1.0F, dist / 6.0F);
         float halfHeight = Math.min(3.0F, this.length * 0.5F);
         this.renderSheet(tess, this.width, 1.0F, halfHeight); // 核心光片
         this.renderSheet(tess, this.width * 2.4F, 0.25F, halfHeight); // 丁达尔副片
@@ -181,18 +205,23 @@ public class GTSRBeamFX extends GTSRFXParticle {
     }
 
     /**
-     * 画一片光片：XZ 平面内 x 从 0 到 length、y 从 -h/2 到 +h/2 的 quad（z=0），
-     * 用 sheetWidth 作为片厚在 z 方向对称偏移成两面，构成有厚度的光片（片宽 = sheetWidth）。
+     * 画一片锥形光片：XZ 平面内 x 从 0 到 length、y 从 -h/2 到 +h/2 的 quad（z=0），
+     * 用 sheetWidth 作为根部片厚在 z 方向对称偏移成两面；厚度沿长度线性收窄（末端 20%），呈光锥状。
      * 沿长度分 4 段逐段 alpha 递减。
      */
     private void renderSheet(Tessellator tess, float sheetWidth, float alphaScale, float halfHeight) {
         tess.startDrawingQuads();
         tess.setBrightness(0x00F000F0);
         float segLen = this.length / (float) SEG_COUNT;
-        float halfThick = sheetWidth * 0.5F;
+        float halfThick0 = sheetWidth * 0.5F;
         for (int i = 0; i < SEG_COUNT; i++) {
             float x0 = (float) i * segLen;
             float x1 = x0 + segLen;
+            // 锥形收窄系数：根部 1.0 → 末端 0.2（用段索引避免 length=0 除零）
+            float t0 = 1.0F - 0.8F * ((float) i / (float) SEG_COUNT);
+            float t1 = 1.0F - 0.8F * ((float) (i + 1) / (float) SEG_COUNT);
+            float h0 = halfThick0 * t0;
+            float h1 = halfThick0 * t1;
             float a = SEG_ALPHA[i] * alphaScale * this.darkScale * this.nearFade;
             if (a <= 0.0F) {
                 continue;
@@ -201,16 +230,16 @@ public class GTSRBeamFX extends GTSRFXParticle {
             // 取纹理右半（u 0.5→1.0）：纹理中心最亮贴中心端，向末端单调变淡
             float u0 = 0.5F + (float) i / (float) SEG_COUNT;
             float u1 = 0.5F + (float) (i + 1) / (float) SEG_COUNT;
-            // z = -halfThick 面
-            tess.addVertexWithUV((double) x0, (double) (-halfHeight), (double) (-halfThick), (double) u0, 1.0D);
-            tess.addVertexWithUV((double) x1, (double) (-halfHeight), (double) (-halfThick), (double) u1, 1.0D);
-            tess.addVertexWithUV((double) x1, (double) halfHeight, (double) (-halfThick), (double) u1, 0.0D);
-            tess.addVertexWithUV((double) x0, (double) halfHeight, (double) (-halfThick), (double) u0, 0.0D);
-            // z = +halfThick 面
-            tess.addVertexWithUV((double) x0, (double) (-halfHeight), (double) halfThick, (double) u0, 1.0D);
-            tess.addVertexWithUV((double) x1, (double) (-halfHeight), (double) halfThick, (double) u1, 1.0D);
-            tess.addVertexWithUV((double) x1, (double) halfHeight, (double) halfThick, (double) u1, 0.0D);
-            tess.addVertexWithUV((double) x0, (double) halfHeight, (double) halfThick, (double) u0, 0.0D);
+            // z = -h 面（x0 端厚 h0、x1 端厚 h1）
+            tess.addVertexWithUV((double) x0, (double) (-halfHeight), (double) (-h0), (double) u0, 1.0D);
+            tess.addVertexWithUV((double) x1, (double) (-halfHeight), (double) (-h1), (double) u1, 1.0D);
+            tess.addVertexWithUV((double) x1, (double) halfHeight, (double) (-h1), (double) u1, 0.0D);
+            tess.addVertexWithUV((double) x0, (double) halfHeight, (double) (-h0), (double) u0, 0.0D);
+            // z = +h 面
+            tess.addVertexWithUV((double) x0, (double) (-halfHeight), (double) h0, (double) u0, 1.0D);
+            tess.addVertexWithUV((double) x1, (double) (-halfHeight), (double) h1, (double) u1, 1.0D);
+            tess.addVertexWithUV((double) x1, (double) halfHeight, (double) h1, (double) u1, 0.0D);
+            tess.addVertexWithUV((double) x0, (double) halfHeight, (double) h0, (double) u0, 0.0D);
         }
         tess.draw();
     }

@@ -44,7 +44,7 @@ public class GTSRGlowFX {
         this.colorR = colorR;
         this.colorG = colorG;
         this.colorB = colorB;
-        this.baseAlpha = 0.9F;
+        this.baseAlpha = 0.55F; // TC4 节点式多层光晕强度（0.9 过曝成白块、0.32 太淡）
         this.maxAge = Math.max(1, durationTicks);
     }
 
@@ -65,6 +65,25 @@ public class GTSRGlowFX {
     /** 设置每 tick 半径收缩量（>0 时开启收缩，用于消散过渡辉光） */
     public void setShrinkPerTick(float shrinkPerTick) {
         this.shrinkPerTick = shrinkPerTick;
+    }
+
+    /** 渲染前几何自检：半径/暗化系数有限且在合理范围（半径上限 100 格） */
+    public boolean sanityCheck() {
+        return Float.isFinite(this.radius) && this.radius >= 0.0F
+            && this.radius <= 100.0F
+            && Float.isFinite(this.darkScale)
+            && this.darkScale >= 0.0F
+            && this.darkScale <= 2.0F;
+    }
+
+    /** 当前半径（供引擎渲染摘要日志） */
+    public float getRadius() {
+        return this.radius;
+    }
+
+    /** 当前暗化系数（供引擎渲染摘要日志） */
+    public float getDarkScale() {
+        return this.darkScale;
     }
 
     public void onUpdate() {
@@ -102,11 +121,12 @@ public class GTSRGlowFX {
         }
         float nearFade = Math.min(1.0F, dist / 3.0F);
         float alpha = this.baseAlpha * this.breathe * fade * this.darkScale * nearFade;
+        // vanilla EntityFX.renderParticle 正确 billboard 公式（参数 rotationX/rotationXZ/rotationZ/rotationYZ/rotationXY）
         float arX = ActiveRenderInfo.rotationX;
+        float arXZ = ActiveRenderInfo.rotationXZ;
         float arZ = ActiveRenderInfo.rotationZ;
         float arYZ = ActiveRenderInfo.rotationYZ;
         float arXY = ActiveRenderInfo.rotationXY;
-        float arXZ = ActiveRenderInfo.rotationXZ;
         float ix = (float) (this.x - (double) EntityFX.interpPosX);
         float iy = (float) (this.y - (double) EntityFX.interpPosY);
         float iz = (float) (this.z - (double) EntityFX.interpPosZ);
