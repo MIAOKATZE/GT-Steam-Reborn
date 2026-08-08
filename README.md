@@ -162,14 +162,15 @@ All inherit from `MTESteamMultiBase` (GT++), supporting normal steam and superhe
 - **蒸汽奇点压缩机 / Steam Singularity Compressor (SSC)**: 2-tier heat-based machine. Devours the highest-grade steam in the input hatches (Tier 1: Steam/Superheated/Supercritical; Tier 2: also dense variants) without any EU cost, raising heat via logarithmic equations. At 100% heat it produces 1 Steam Entangled Singularity (Tier 1) or 1 Critical Steam Entangled Singularity (Tier 2). Tier 2 screwdriver cycles three modes (switchable at any time, even while running): Singularity Entanglement / Steam Compression (1000:1 steam → dense) / Steam Decompression (1:1000 dense → steam); entering Compression/Decompression auto-clears heat and the GUI shows Singularity Duration instead of heat, each singularity fuels 600s (duration keeps burning even when off; switching modes resets it; GUI prompts for a singularity when none is present), same-type steam accumulates fractionally (different type resets it). Heat decays 1%/s whenever the machine is off (including soft-hammer shutdown) or starved. ME compatible (v1.10.4): ME input/output hatches and ME/crafting input buses for the singularity fuel. A marvel of the steam age: compressing massive amounts of steam, breaking through spatial limitations, creating cross-dimensional connections. No parallel.
   双等级热量机制：吞噬输入仓中最高等级的蒸汽（等级1：蒸汽/过热/超临界；等级2：另含全部致密变体），无电力消耗，按对数方程提升热量；热量达到 100% 时产出 1 个蒸汽纠缠奇点（等级1）或 1 个临界蒸汽纠缠奇点（等级2）。等级2 螺丝刀循环切换三模式（运行中亦可切换）：奇点纠缠 / 蒸汽压缩（1000:1 蒸汽→致密）/ 蒸汽解压（1:1000 致密→蒸汽）；切入压缩/解压自动清空热量（GUI 热量栏改为显示奇点维持时间），每颗奇点续航 600s（维持时间即使关机也持续消耗，切换模式清零，无奇点时 GUI 提示放入），同种蒸汽浮点累计、异种顶掉。机器关机（含软锤关闭）或无蒸汽时热量每秒 -1%。ME 兼容（v1.10.4）：支持 ME 输入/输出仓与 ME 输入总线/样板仓供应奇点燃料。蒸汽时代的奇迹造物：压缩巨量的蒸汽，突破空间的限制，创造出跨越维度的连接。无并行。
 
-<p align="center"><img src="README/MTESteamFluidDrill.png" width="200"> <img src="README/MTECrustSteamBorer.png" width="200"> <img src="README/MTEVoidCrustSteamBorer.png" width="200"><br><em>蒸汽流体钻井 / Steam Fluid Drill (left) & 地壳蒸汽掘进机 / Crust Steam Borer (center) & 奇点地壳蒸汽掘进机 / Singularity Crust Steam Borer (right)</em></p>
+<p align="center"><img src="README/MTESteamFluidDrill.png" width="200"> <img src="README/MTECrustSteamBorer.png" width="200"> <img src="README/MTEVoidCrustSteamBorer.png" width="200"><br><em>蒸汽流体钻井 / Steam Fluid Drill (left) & 地壳蒸汽掘进机 / Crust Steam Borer (center) & 地壳物质聚合器 / Crust Matter Aggregator (right)</em></p>
+（图片待更新）
 
 - **蒸汽流体钻井 / Steam Fluid Drill (SFD)**: Bronze/Steel. Produces water/distilled water/brine/lava. Screwdriver switches output mode (steel only). Distilled Water 20%, Brine 10%, Lava 0.5% (5% in Nether) efficiency.
   产水/蒸馏水/盐水/岩浆。螺丝刀切换产出模式（仅钢）。蒸馏水20%、盐水10%、岩浆0.5%（下界5%）效率。
 - **地壳蒸汽掘进机 / Crust Steam Borer (CSB)**: Bronze/Steel. Void mining — produces ores based on dimension drop tables. Overworld and Nether only.
   虚空采矿——按维度掉落表产出矿石。仅限主世界和下界。
-- **奇点地壳蒸汽掘进机 / Singularity Crust Steam Borer (SCSB)**: Steel only. Cross-dimension void mining via GT NEI Ore Plugin dimension display items.
-  通过GT NEI Ore Plugin维度显示物品实现跨维度虚空采矿。
+- **地壳物质聚合器 / Crust Matter Aggregator (CMA)**: Steel only. Cross-dimension void mining via GT NEI Ore Plugin dimension display items (optional — defaults to the current dimension). Three steam grades at 24,000 L/s (Steam/Superheated/Supercritical, Dense fluids 1/100 demand), heat mechanic, and a 200-second singularity mode.
+  仅钢级。通过GT NEI Ore Plugin维度显示物品实现跨维度虚空采矿（物品非必需——无物品时默认当前维度）。三档蒸汽各24,000 L/s（蒸汽/过热/超临界，致密流体需求1/100）；热量机制（0.05%/0.1%/0.5%每秒）；以及200秒奇点模式。输出总线必填，其余仓室可选。
 
 <p align="center"><img src="README/MTEVeinSteamPyrolyzer.png" width="300"><br><em>地脉蒸汽热解机 / Vein Steam Pyrolyzer</em></p>
 
