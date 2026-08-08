@@ -330,12 +330,14 @@ gt.blockmachines.gtsr.steam.singularity.entangler.name=蒸汽奇点纠缠装置
 # Critical Singularity Compressor
 gt.blockmachines.gtsr.critical.singularity.compressor.name=临界纠缠奇点稳定装置
 gtsr.tooltip.critical_singularity_compressor.type=临界纠缠奇点稳定装置, CESS
-gtsr.tooltip.critical_singularity_compressor.desc=超越蒸汽纠缠奇点，将磅礴的物质与能量约束在临界纠缠奇点内，这也许能彻底撕破维度的界限...... 专用于产出临界蒸汽纠缠奇点的等级2蒸汽奇点装置。
-gtsr.tooltip.critical_singularity_compressor.desc2=接收普通、过热、超临界及其致密蒸汽，并按饱和函数累积热量：y=0.002x/(x+1000)，上限0.2%/s；实际热量=蒸汽系数×y（蒸汽0.5、过热1、超临界2）。
+gtsr.tooltip.critical_singularity_compressor.desc=超越蒸汽纠缠奇点，将磅礴的物质与能量约束在临界纠缠奇点内，这也许能彻底撕破维度的界限......
+gtsr.tooltip.critical_singularity_compressor.desc7=专用于产出临界蒸汽纠缠奇点的装置。
+gtsr.tooltip.critical_singularity_compressor.desc2=接收普通、过热、超临界及其致密蒸汽，并按饱和函数累积热量：y=0.002x/(x+1000)，上限0.2%/s
+gtsr.tooltip.critical_singularity_compressor.desc8=实际热量=蒸汽系数×y（蒸汽0.5、过热1、超临界2）
 gtsr.tooltip.critical_singularity_compressor.desc3=多种蒸汽共存时仅处理最高等级；机器停止或没有蒸汽时热量会下降。
 gtsr.tooltip.critical_singularity_compressor.desc4=热量达到100%时清零，并产出1个临界蒸汽纠缠奇点。
 gtsr.tooltip.critical_singularity_compressor.ctrl=Layer 10 中心偏前
-gtsr.tooltip.critical_singularity_compressor.desc5=不消耗电力，禁用蒸汽冷却机制。
+gtsr.tooltip.critical_singularity_compressor.desc5=会吞噬输入仓所有的蒸汽，并禁用蒸汽冷却机制。
 gtsr.tooltip.critical_singularity_compressor.desc6=运行期间将在结构核心生成一个灰色纠缠奇点动画（纯视觉效果，不吸引、不破坏、不吸收任何方块或实体）；关闭、挂机或结构被破坏后消失。
 gtsr.tooltip.critical_singularity_compressor.steam_input=输入仓、蒸汽仓、耐压蒸汽仓或巨型超压蒸汽输入仓
 gtsr.tooltip.critical_singularity_compressor.input_bus=蒸汽输入总线
@@ -359,6 +361,7 @@ gtsr.tooltip.dense_state_manipulator.desc3=支持蒸汽、过热蒸汽、超临�
 gtsr.tooltip.dense_state_manipulator.desc4=运行期间消耗蒸汽纠缠奇点维持机器工作，并累计不足一个单位的输出。
 gtsr.tooltip.dense_state_manipulator.desc5=使用螺丝刀在压缩和解压模式之间切换。
 gtsr.tooltip.dense_state_manipulator.desc6=运行期间，左右两个失控奇点定位位（左白、右灰）持续生成失控奇点动画（纯视觉效果）；停止工作或结构失效后立即消失。
+gtsr.tooltip.dense_state_manipulator.desc7=会吞噬输入仓所有的蒸汽。
 gtsr.tooltip.dense_state_manipulator.ctrl=Layer 8 中心偏前
 gtsr.tooltip.dense_state_manipulator.steam_input=输入仓、蒸汽仓或耐压蒸汽仓
 gtsr.tooltip.dense_state_manipulator.input_bus=蒸汽纠缠奇点燃料输入总线
@@ -926,7 +929,7 @@ gtsr.tooltip.entangler.desc=吞噬输入仓中最高等级的普通蒸汽（蒸�
 gtsr.tooltip.entangler.desc2=热量公式：y=0.005x/(x+200000)，上限0.5%/s；实际热量=蒸汽系数×y（蒸汽0.5、过热1、超临界2）。
 gtsr.tooltip.entangler.desc3=多种蒸汽共存时只识别最高等级；机器关机（含软锤关闭）或没有蒸汽时，热量每秒降低1%。
 gtsr.tooltip.entangler.desc4=热量达到100%时清零，产出1个蒸汽纠缠奇点。
-gtsr.tooltip.entangler.desc5=蒸汽奇点纠缠装置会吞噬所有：已禁用蒸汽冷却机制，不消耗任何电力。
+gtsr.tooltip.entangler.desc5=会吞噬输入仓所有的蒸汽，并禁用蒸汽冷却机制。
 gtsr.tooltip.entangler.desc6=运行期间将在结构核心处生成一个白色纠缠奇点动画（纯视觉效果，不吸引、不破坏、不吸收任何方块或实体）；关闭、挂机或结构被破坏后消失。
 gtsr.tooltip.entangler.ctrl=Layer 19 前侧偏左
 gtsr.tooltip.entangler.steam_input=输入仓/蒸汽仓/耐压蒸汽仓/巨型超压蒸汽输入仓（兼容ME仓室）
@@ -1066,6 +1069,8 @@ gtsr.tooltip.solar_array.old_tier_nickel=镍
 gtsr.tooltip.solar_array.tier_overpressure=超压
 gtsr.tooltip.solar_array.base_output=基础产出
 gtsr.tooltip.solar_array.superheated_steam=过热蒸汽
+gtsr.tooltip.solar_array.booster_label=在 GUI 控制器槽位放置单方块太阳能锅炉可增幅蒸汽产出：
+gtsr.tooltip.solar_array.booster_content=放入简易/高级太阳能锅炉，最大增幅300%蒸汽产出
 gtsr.tooltip.solar_array.solar_booster_desc=在 GUI 控制器槽位放置单方块太阳能锅炉可增幅蒸汽产出：高级太阳能锅炉（Advanced Solar Boiler）每满组 64 台 +2.0x，简单太阳能锅炉（Simple Solar Boiler）每满组 64 台 +1.0x，最多叠加至 3.0x。
 gtsr.tooltip.solar_array.max_boosted_output=最大增幅产出
 

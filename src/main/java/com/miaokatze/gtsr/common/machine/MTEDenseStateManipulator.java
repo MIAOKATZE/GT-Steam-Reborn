@@ -414,6 +414,7 @@ public class MTEDenseStateManipulator extends MTESingularityMachineBase implemen
     protected MultiblockTooltipBuilder createTooltip() {
         String keyPrefix = getTooltipKeyPrefix();
         MultiblockTooltipBuilder tt = super.createTooltip();
+        tt.addInfo(EnumChatFormatting.LIGHT_PURPLE + StatCollector.translateToLocal(keyPrefix + "desc7"));
         tt.addSeparator()
             .beginStructureBlock(21, 30, 11, false)
             .addController(StatCollector.translateToLocal(keyPrefix + "ctrl"))

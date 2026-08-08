@@ -330,12 +330,14 @@ gt.blockmachines.gtsr.steam.singularity.entangler.name=Steam Singularity Entangl
 # Critical Singularity Compressor
 gt.blockmachines.gtsr.critical.singularity.compressor.name=Critical Entangled Singularity Stabilizer
 gtsr.tooltip.critical_singularity_compressor.type=Critical Entangled Singularity Stabilizer, CESS
-gtsr.tooltip.critical_singularity_compressor.desc=Goes beyond the Steam Entangled Singularity, binding vast matter and energy within a critical entangled singularity... this might tear the boundaries of dimensions apart. Tier 2 steam singularity device dedicated to producing Critical Steam Entangled Singularities.
-gtsr.tooltip.critical_singularity_compressor.desc2=Accepts normal, superheated, supercritical, and their dense steam variants, accumulating heat via a saturation function: y=0.002x/(x+1000), capped at 0.2%/s; actual heat equals the steam coefficient x y (Steam 0.5, Superheated 1, Supercritical 2).
+gtsr.tooltip.critical_singularity_compressor.desc=Goes beyond the Steam Entangled Singularity, binding vast matter and energy within a critical entangled singularity... this might tear the boundaries of dimensions apart.
+gtsr.tooltip.critical_singularity_compressor.desc7=Dedicated to producing Critical Steam Entangled Singularities.
+gtsr.tooltip.critical_singularity_compressor.desc2=Accepts normal, superheated, supercritical, and their dense steam variants, accumulating heat via a saturation function: y=0.002x/(x+1000), capped at 0.2%/s
+gtsr.tooltip.critical_singularity_compressor.desc8=Actual heat equals the steam coefficient x y (Steam 0.5, Superheated 1, Supercritical 2)
 gtsr.tooltip.critical_singularity_compressor.desc3=When multiple steam types are present, only the highest grade is processed; heat decays while stopped or without steam.
 gtsr.tooltip.critical_singularity_compressor.desc4=At 100% heat, heat resets and one Critical Steam Entangled Singularity is produced.
 gtsr.tooltip.critical_singularity_compressor.ctrl=Layer 10, center, slightly forward
-gtsr.tooltip.critical_singularity_compressor.desc5=Consumes no EU and disables steam cooling.
+gtsr.tooltip.critical_singularity_compressor.desc5=Devours all steam from the input hatches and disables the steam cooling mechanism.
 gtsr.tooltip.critical_singularity_compressor.desc6=While running, a gray entanglement singularity animation forms at the structure core (purely visual: does not attract, destroy or absorb any blocks or entities); disappears when turned off, idling, or when the structure is broken.
 gtsr.tooltip.critical_singularity_compressor.steam_input=Input Hatch, Steam Input Hatch, Pressure Steam Hatch, or Mega Overpressure Steam Input Hatch
 gtsr.tooltip.critical_singularity_compressor.input_bus=Steam Input Bus
@@ -359,6 +361,7 @@ gtsr.tooltip.dense_state_manipulator.desc3=Supports steam, superheated steam, su
 gtsr.tooltip.dense_state_manipulator.desc4=Consumes Steam Entangled Singularities during operation and accumulates fractional output.
 gtsr.tooltip.dense_state_manipulator.desc5=Use a screwdriver to switch between compression and decompression modes.
 gtsr.tooltip.dense_state_manipulator.desc6=While running, two runaway singularity locators (left white, right gray) sustain the singularity animation (purely visual); they vanish instantly when the machine stops or the structure breaks.
+gtsr.tooltip.dense_state_manipulator.desc7=Devours all steam from the input hatches.
 gtsr.tooltip.dense_state_manipulator.ctrl=Layer 8, center, slightly forward
 gtsr.tooltip.dense_state_manipulator.steam_input=Input Hatch, Steam Input Hatch, or Pressure Steam Hatch
 gtsr.tooltip.dense_state_manipulator.input_bus=Steam Entangled Singularity Fuel Input Bus
@@ -873,7 +876,7 @@ gtsr.tooltip.entangler.desc=Devours the highest-grade normal steam in the input 
 gtsr.tooltip.entangler.desc2=Heat formula: y=0.005x/(x+200000), capped at 0.5%/s; actual heat equals the steam coefficient x y (Steam 0.5, Superheated 1, Supercritical 2).
 gtsr.tooltip.entangler.desc3=When multiple steam types are present, only the highest grade is recognized; heat drops by 1% per second whenever the machine is off (including soft-hammer shutdown) or no steam is present.
 gtsr.tooltip.entangler.desc4=At 100% heat, heat resets and one Steam Entangled Singularity is produced.
-gtsr.tooltip.entangler.desc5=The Steam Singularity Entangler devours everything: steam cooling is disabled, and no EU is consumed.
+gtsr.tooltip.entangler.desc5=Devours all steam from the input hatches and disables the steam cooling mechanism.
 gtsr.tooltip.entangler.desc6=While running, a white entanglement singularity animation appears at the structure core (purely visual: does not attract, destroy or absorb any blocks or entities); disappears when turned off, idling, or when the structure is broken.
 gtsr.tooltip.entangler.ctrl=Layer 19, front-left
 gtsr.tooltip.entangler.steam_input=Input Hatch / Steam Input Hatch / Pressure Steam Hatch / Mega Overpressure Steam Input Hatch (ME hatches OK)
@@ -1026,6 +1029,8 @@ gtsr.tooltip.solar_array.old_tier_nickel=Nickel
 gtsr.tooltip.solar_array.tier_overpressure=Overpressure
 gtsr.tooltip.solar_array.base_output=base output
 gtsr.tooltip.solar_array.superheated_steam=Superheated Steam
+gtsr.tooltip.solar_array.booster_label=Place single-block solar boilers in the GUI controller slot to boost steam output:
+gtsr.tooltip.solar_array.booster_content=Place Simple/Advanced Solar Boilers, up to 300% steam output boost
 gtsr.tooltip.solar_array.solar_booster_desc=Place single-block solar boilers in the GUI controller slot to boost steam output: Advanced Solar Boiler +2.0x per full stack of 64, Simple Solar Boiler +1.0x per full stack of 64, up to 3.0x total.
 gtsr.tooltip.solar_array.max_boosted_output=max boosted output
 

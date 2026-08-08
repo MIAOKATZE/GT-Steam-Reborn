@@ -106,6 +106,12 @@ public class MTESteamSingularityCompressorOLD extends MTESingularityMachineBase 
     }
 
     @Nullable
+    private static Integer getGearboxCasingTier(Block block, int meta) {
+        if (block == GregTechAPI.sBlockCasings2 && meta == 3) return 1;
+        return null;
+    }
+
+    @Nullable
     private static Integer getPipeTier(Block block, int meta) {
         if (block == GregTechAPI.sBlockCasings2 && meta == 13) return 1;
         return null;
@@ -129,6 +135,8 @@ public class MTESteamSingularityCompressorOLD extends MTESingularityMachineBase 
         int casingIndex = GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings2, 0);
         List<Pair<Block, Integer>> casingTiers = new ArrayList<>();
         casingTiers.add(Pair.of(GregTechAPI.sBlockCasings2, 0));
+        List<Pair<Block, Integer>> gearboxTiers = new ArrayList<>();
+        gearboxTiers.add(Pair.of(GregTechAPI.sBlockCasings2, 3));
         List<Pair<Block, Integer>> pipeTiers = new ArrayList<>();
         pipeTiers.add(Pair.of(GregTechAPI.sBlockCasings2, 13));
         List<Pair<Block, Integer>> frameTiers = new ArrayList<>();
@@ -202,8 +210,8 @@ public class MTESteamSingularityCompressorOLD extends MTESingularityMachineBase 
             .addElement(
                 'D',
                 ofBlocksTiered(
-                    MTESteamSingularityCompressorOLD::getCasingTier,
-                    casingTiers,
+                    MTESteamSingularityCompressorOLD::getGearboxCasingTier,
+                    gearboxTiers,
                     -1,
                     (t, tier) -> t.mCasingTierD = tier,
                     t -> t.mCasingTierD))

@@ -766,7 +766,9 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
         tt.addMachineType(StatCollector.translateToLocal("gtsr.tooltip.solar_array.type"))
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.solar_array.desc"))
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.solar_array.desc2"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.solar_array.solar_booster_desc"))
+            .addInfo(EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.tooltip.solar_array.booster_label"))
+            .addInfo(
+                EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.tooltip.solar_array.booster_content"))
             .addSeparator()
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.solar_array.calcification"))
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.solar_array.calcification_d"))

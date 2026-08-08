@@ -464,8 +464,16 @@ public class MTECriticalSingularityCompressor extends MTESingularityMachineBase 
     @Override
     protected MultiblockTooltipBuilder createTooltip() {
         String keyPrefix = getTooltipKeyPrefix();
-        MultiblockTooltipBuilder tt = super.createTooltip();
-        tt.addSeparator()
+        MultiblockTooltipBuilder tt = new MultiblockTooltipBuilder();
+        tt.addMachineType(StatCollector.translateToLocal(keyPrefix + "type"))
+            .addInfo(EnumChatFormatting.LIGHT_PURPLE + StatCollector.translateToLocal(keyPrefix + "desc"))
+            .addInfo(StatCollector.translateToLocal(keyPrefix + "desc7"))
+            .addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal(keyPrefix + "desc2"))
+            .addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal(keyPrefix + "desc8"))
+            .addInfo(EnumChatFormatting.GREEN + StatCollector.translateToLocal(keyPrefix + "desc3"))
+            .addInfo(EnumChatFormatting.RED + StatCollector.translateToLocal(keyPrefix + "desc4"))
+            .addInfo(EnumChatFormatting.DARK_PURPLE + StatCollector.translateToLocal(keyPrefix + "desc5"))
+            .addSeparator()
             .beginStructureBlock(27, 27, 21, false)
             .addController(StatCollector.translateToLocal(keyPrefix + "ctrl"))
             .addOtherStructurePart(
