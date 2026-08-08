@@ -390,14 +390,13 @@ public class MTEDenseStateManipulator extends MTESingularityMachineBase implemen
     @Override
     protected List<EntanglementSpec> getEntanglementSpecs() {
         // 两个失控奇点定位位：F1 形状偏移 (0,-3,9)、F2 (14,-3,9)，经 ExtendedFacing 换算世界偏移（与 checkPiece 同源映射）。
-        // 左白（range 14，fxRadius 15，nullplus 无粒子）/右灰（range 8，fxRadius 8，nullplus）双失控节点动画。
+        // 左白（range 14，fxRadius 3）/右灰（range 8，fxRadius 2）双失控节点动画（nullplus 无电弧，吸积盘 3+辉光）。
         Vec3Impl left = getExtendedFacing().getWorldOffset(new Vec3Impl(0, -3, 9));
         Vec3Impl right = getExtendedFacing().getWorldOffset(new Vec3Impl(14, -3, 9));
         List<EntanglementSpec> list = new ArrayList<>();
+        list.add(new EntanglementSpec(left.get0(), left.get1(), left.get2(), 14.0D, 0.0D, 0.0D, -1, -3, "white", 3.0D));
         list.add(
-            new EntanglementSpec(left.get0(), left.get1(), left.get2(), 14.0D, 0.0D, 0.0D, -1, -3, "white", 15.0D));
-        list.add(
-            new EntanglementSpec(right.get0(), right.get1(), right.get2(), 8.0D, 0.0D, 0.0D, -1, -3, "gray", 8.0D)); // attributeId=-3=ATTRIBUTE_NULL_PLUS（null
+            new EntanglementSpec(right.get0(), right.get1(), right.get2(), 8.0D, 0.0D, 0.0D, -1, -3, "gray", 2.0D)); // attributeId=-3=ATTRIBUTE_NULL_PLUS（null
                                                                                                                      // 基础上无电弧无粒子，光片/辉光保留）
         return list;
     }

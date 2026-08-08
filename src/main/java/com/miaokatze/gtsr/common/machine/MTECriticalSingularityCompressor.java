@@ -450,7 +450,7 @@ public class MTECriticalSingularityCompressor extends MTESingularityMachineBase 
         // I 定位块：形状偏移 (a+0, b+0, c+11)（I 字符在 slice10 行13 列13，控制器在 slice10 行2 列13），
         // 经 ExtendedFacing 换算世界偏移（与 checkPiece 同源映射）
         Vec3Impl off = getExtendedFacing().getWorldOffset(new Vec3Impl(0, 0, 11));
-        return new EntanglementSpec(off.get0(), off.get1(), off.get2(), 9.0D, 0.0D, 0.0D, -1, -1, "gray", 25.0D);
+        return new EntanglementSpec(off.get0(), off.get1(), off.get2(), 9.0D, 0.0D, 0.0D, -1, -1, "gray", 5.0D);
     }
 
     @Override

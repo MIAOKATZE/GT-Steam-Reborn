@@ -54,7 +54,7 @@ public class GTSRCommand extends CommandBase {
             // 非法颜色走数值错误通道（也可换 WrongUsageException，语义等价）
             throw new NumberInvalidException("commands.generic.num.invalid", color);
         }
-        double fxRadius = args.length >= 8 ? parseClampedDouble(args[7], 0.5D, 128.0D) : 10.0D;
+        double fxRadius = args.length >= 8 ? parseClampedDouble(args[7], 0.5D, 128.0D) : 2.0D;
 
         EntityPlayerMP player = getCommandSenderAsPlayer(sender);
         if (player.worldObj.isRemote) {

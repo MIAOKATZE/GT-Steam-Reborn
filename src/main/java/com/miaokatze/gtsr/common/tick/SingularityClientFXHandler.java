@@ -76,7 +76,8 @@ public class SingularityClientFXHandler {
             double af = t.getActiveFactor();
             float darkScale = 0.05F + 0.95F * (float) af;
             double effRange = t.getRange() * af;
-            double fxR = t.getFxRadius() * af; // 光效半径随活性系数收缩
+            // 光效基准（辉光半径基数）：fxRadius 默认 10 → 辉光 2 格；光片 = 1.5×辉光；吸积盘 = 6+辉光
+            double glowBase = t.getFxRadius() * 0.2D;
             double cx = t.xCoord + 0.5D;
             double cy = t.yCoord + 0.5D;
             double cz = t.zCoord + 0.5D;
@@ -90,11 +91,13 @@ public class SingularityClientFXHandler {
                 continue;
             }
             // 吸积盘（vanilla 传统管道）：概率生成 × 活性系数（af→0 概率趋零，消散时不再中心冒泡），随活性系数变暗。
-            // 概率公式基于 effRange（吸收范围）不变；生成半径取光效半径 fxR。
-            // nullplus（attributeId=-3）：跳过吸积盘（无粒子），光片/辉光保留
+            // 概率公式基于 effRange（吸收范围）不变；生成半径 = 6 + 当前辉光（fxRadius 默认 10 → 8 格）；
+            // nullplus（attributeId=-3）吸积盘更收敛：3 + 当前辉光（仅取消电弧，粒子/光片/辉光保留）
             double diskP = (0.55D + 0.15D * Math.min(1.0D, effRange / 32.0D)) * af;
-            if (t.getAttributeId() != TileRunawaySingularity.ATTRIBUTE_NULL_PLUS && world.rand.nextFloat() < diskP) {
-                GTSRSingularityFX.spawnDisk(world, cx, cy, cz, fxR, darkScale, t.getDuration(), t.getElapsedTicks());
+            double diskR = (t.getAttributeId() == TileRunawaySingularity.ATTRIBUTE_NULL_PLUS ? 3.0D : 6.0D)
+                + glowBase * af;
+            if (world.rand.nextFloat() < diskP) {
+                GTSRSingularityFX.spawnDisk(world, cx, cy, cz, diskR, darkScale, t.getDuration(), t.getElapsedTicks());
             }
             // 电弧：外向（中心→边缘），频率中位数 + 大幅波动；一次可多条（1~3 条、方向均匀间隔）。
             // onlypull（-2）与 nullplus（-3）：无吸收行为，跳过电弧；光片/辉光保留（onlypull 仍表现牵引动画，nullplus 为纯静置）
@@ -119,10 +122,10 @@ public class SingularityClientFXHandler {
                 }
                 this.arcCooldowns.put(t, Integer.valueOf(cooldown - 1));
             }
-            // 光束：每奇点 2 片锥形光片（独立随机初始方位与旋转轴），长度 = 光效半径 × af × 200%，随活性系数收缩变暗。
-            // 基准半径取光效半径本身（不含 af），af 收缩在 beamLen/glowR 公式中应用一次，避免二次收缩
-            float glowRadius = (float) t.getFxRadius();
-            float beamLen = glowRadius * (float) af * 2.0F;
+            // 光束：每奇点 2 片锥形光片（独立随机初始方位与旋转轴），长度 = 1.5 × 辉光，随活性系数收缩变暗。
+            // 辉光基准 glowBase = fxRadius × 0.2（默认 10 → 2 格）；光片 = 1.5×glowBase；af 在长度/半径公式中应用一次
+            float glowRadius = (float) glowBase;
+            float beamLen = glowRadius * (float) af * 1.5F;
             GTSRBeamFX[] beamGroup = this.beams.get(t);
             boolean beamOk = beamGroup != null;
             if (beamOk) {
@@ -158,7 +161,7 @@ public class SingularityClientFXHandler {
                 // 颜色实时同步：客户端 TE 颜色初始可能为默认 white（NBT 同步延迟），每 tick 用最新颜色更新
                 b.updateColor(rgb[0], rgb[1], rgb[2]);
             }
-            // 辉光：TC4 节点式多层光晕常驻，半径 = 光效半径 × 100%，随活性系数收缩变暗
+            // 辉光：TC4 节点式多层光晕常驻，半径 = 光效半径 × 20%（默认 10 → 2 格），随活性系数收缩变暗
             float glowR = glowRadius * (float) af;
             GTSRGlowFX glow = this.glows.get(t);
             if (glow == null || glow.isDead()) {
