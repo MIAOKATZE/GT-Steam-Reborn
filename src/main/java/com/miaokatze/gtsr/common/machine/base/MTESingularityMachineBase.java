@@ -68,11 +68,6 @@ public abstract class MTESingularityMachineBase extends MTEEnhancedMultiBlockBas
 
     protected final List<MTEHatchPressureSteamInput> mPressureSteamInputs = new ArrayList<>();
 
-    /** 纠缠奇点停止工作后的移除延迟（tick，100 tick=5 秒），减轻结构检测性能压力 */
-    protected static final int ENTANGLEMENT_REMOVE_DELAY = 100;
-    /** 纠缠奇点移除截止的世界时间：working 时顺延，停止后 100 tick 到点移除 */
-    private long mEntanglementRemoveAt = 0;
-
     protected MTESingularityMachineBase(int aID, String aName, String aNameRegional) {
         super(aID, aName, aNameRegional);
     }
@@ -433,13 +428,14 @@ public abstract class MTESingularityMachineBase extends MTEEnhancedMultiBlockBas
         if (spec == null) return;
         // 启动豁免：控制器重载后结构判定延迟期间（GT mStartUpCheck≈5 秒），奇点判定同步豁免
         if (getmStartUpCheck() >= 0) return;
-        boolean working = mMachine && mMaxProgresstime > 0 && aBaseMetaTileEntity.isAllowedToWork();
+        // working：结构有效 + 允许工作 + 周期进行中或蒸汽尚存（平滑周期间隙，避免奇点闪烁）
+        boolean working = mMachine && aBaseMetaTileEntity.isAllowedToWork()
+            && (mMaxProgresstime > 0 || findHighestGrade(includeDenseSteam()) >= 0);
         int x = aBaseMetaTileEntity.getXCoord() + spec.dx;
         int y = aBaseMetaTileEntity.getYCoord() + spec.dy;
         int z = aBaseMetaTileEntity.getZCoord() + spec.dz;
         World world = aBaseMetaTileEntity.getWorld();
         if (working) {
-            mEntanglementRemoveAt = world.getWorldTime() + ENTANGLEMENT_REMOVE_DELAY;
             Block block = world.getBlock(x, y, z);
             // 惰性生成：仅当定位点为空气才放置（不覆盖已有奇点 NBT，无比持久化）
             if (block.isAir(world, x, y, z)) {
@@ -467,11 +463,9 @@ public abstract class MTESingularityMachineBase extends MTEEnhancedMultiBlockBas
                     t.markDirty();
                 }
             }
-        } else if (world.getWorldTime() >= mEntanglementRemoveAt) {
-            // 惰性移除：仅当定位点恰为失控奇点方块才清除（关闭/挂机/结构破坏后延迟 100 tick 消失）
-            if (world.getBlock(x, y, z) == BlockLoader.blockRunawaySingularity) {
-                world.setBlockToAir(x, y, z);
-            }
+        } else if (world.getBlock(x, y, z) == BlockLoader.blockRunawaySingularity) {
+            // 立即惰性移除：关闭/挂机/结构破坏后下一次检查即消失（重载豁免见上方 getmStartUpCheck 门）
+            world.setBlockToAir(x, y, z);
         }
     }
 

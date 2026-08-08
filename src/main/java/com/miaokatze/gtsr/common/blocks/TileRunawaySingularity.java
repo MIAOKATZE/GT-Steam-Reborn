@@ -15,7 +15,10 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.init.Blocks;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.network.NetworkManager;
+import net.minecraft.network.Packet;
 import net.minecraft.network.play.server.S12PacketEntityVelocity;
+import net.minecraft.network.play.server.S35PacketUpdateTileEntity;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.DamageSource;
@@ -129,6 +132,21 @@ public class TileRunawaySingularity extends TileEntity {
         tag.setTag("gtsrSingularity", data);
     }
 
+    /**
+     * NBT 同步到客户端：客户端 TE 默认 duration=600，不同步会导致动画按 30 秒消散（节点本体仍在原位）。
+     */
+    @Override
+    public Packet getDescriptionPacket() {
+        NBTTagCompound tag = new NBTTagCompound();
+        writeToNBT(tag);
+        return new S35PacketUpdateTileEntity(xCoord, yCoord, zCoord, 1, tag);
+    }
+
+    @Override
+    public void onDataPacket(NetworkManager net, S35PacketUpdateTileEntity pkt) {
+        readFromNBT(pkt.func_148857_g());
+    }
+
     public double getRange() {
         return range;
     }
@@ -182,6 +200,7 @@ public class TileRunawaySingularity extends TileEntity {
         this.color = normalizeColor(color);
         if (worldObj != null) {
             worldObj.markTileEntityChunkModified(xCoord, yCoord, zCoord, this);
+            worldObj.markBlockForUpdate(xCoord, yCoord, zCoord); // 触发 getDescriptionPacket，同步 NBT 到客户端
         }
     }
 
