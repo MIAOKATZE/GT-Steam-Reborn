@@ -91,6 +91,7 @@ public class TileRunawaySingularity extends TileEntity {
     public static final int ATTRIBUTE_NULL = -1; // 特殊状态 null：纯动画，不吸引/不破坏/不吸收任何方块与实体
     public static final int ATTRIBUTE_ONLY_PULL = -2; // 特殊状态 onlypull：只牵引不吸收（不吸收方块、不处理掉落物、牵引力度减半、伤害照常）
     public static final int ATTRIBUTE_NULL_PLUS = -3; // 特殊状态 nullplus：null 基础上无电弧无粒子（吸积盘/电弧跳过），光片/辉光保留
+    public static final int ATTRIBUTE_NATURE = -4; // 特殊状态 nature：自然生成专用——不吸引/伤害实体，只牵引破坏掉落物+吸收方块，硬度4空手可挖，挖后爆炸
 
     private double range = 10.0D;
     private double speed = 0.0D;
@@ -209,16 +210,17 @@ public class TileRunawaySingularity extends TileEntity {
         this.speed = Math.max(0.0D, Math.min(100.0D, speed));
         this.damage = Math.max(0.0D, Math.min(1000.0D, damage));
         this.attributeId = attributeId == ATTRIBUTE_NULL || attributeId == ATTRIBUTE_ONLY_PULL
-            || attributeId == ATTRIBUTE_NULL_PLUS ? attributeId : Math.max(0, Math.min(999, attributeId)); // 仅放行三个特殊值（-1
-                                                                                                           // null 纯动画 /
-                                                                                                           // -2
-                                                                                                           // onlypull
-                                                                                                           // 只牵引不吸收 /
-                                                                                                           // -3
-                                                                                                           // nullplus
-                                                                                                           // null
-                                                                                                           // 基础上无电弧无粒子），其余
-                                                                                                           // 0-999 钳制
+            || attributeId == ATTRIBUTE_NULL_PLUS
+            || attributeId == ATTRIBUTE_NATURE ? attributeId : Math.max(0, Math.min(999, attributeId)); // 仅放行四个特殊值（-1
+                                                                                                        // null 纯动画 / -2
+                                                                                                        // onlypull
+                                                                                                        // 只牵引不吸收 /
+                                                                                                        // -3 nullplus
+                                                                                                        // null
+                                                                                                        // 基础上无电弧无粒子 /
+                                                                                                        // -4 nature
+                                                                                                        // 自然生成专用），其余
+                                                                                                        // 0-999 钳制
         this.fxRadius = Math.max(0.5D, Math.min(128.0D, fxRadius));
         if (duration == -1) {
             this.duration = -1;
@@ -280,12 +282,13 @@ public class TileRunawaySingularity extends TileEntity {
             return; // 特殊状态 null/nullplus：纯动画，不吸引/不破坏/不吸收任何方块与实体
         }
         boolean onlyPull = attributeId == ATTRIBUTE_ONLY_PULL;
+        boolean nature = attributeId == ATTRIBUTE_NATURE;
         double factor = getActiveFactor();
         double effRange = range * factor;
         if (!onlyPull) {
-            absorbScan(effRange, factor); // onlypull：跳过吸收扫描（absorbScan 只扫方块，不含实体）
+            absorbScan(effRange, factor); // onlypull：跳过吸收扫描（absorbScan 只扫方块，不含实体）；nature 照常吸收方块
         }
-        handleEntities(effRange, factor, onlyPull);
+        handleEntities(effRange, factor, onlyPull, nature);
     }
 
     /**
@@ -402,8 +405,9 @@ public class TileRunawaySingularity extends TileEntity {
      * 实体牵引/伤害/掉落物/飞行取消
      * onlyPull=true（attributeId=-2）：掉落物完全不处理（不牵引、不销毁）；
      * 其他实体（含玩家）牵引力度减半；伤害与玩家飞行处理照常。
+     * nature=true（attributeId=-4）：只处理 EntityItem（牵引 + d<1.5 销毁），跳过所有活体/玩家牵引、伤害、禁飞。
      */
-    private void handleEntities(double effRange, double factor, boolean onlyPull) {
+    private void handleEntities(double effRange, double factor, boolean onlyPull, boolean nature) {
         double cx = xCoord + 0.5D;
         double cy = yCoord + 0.5D;
         double cz = zCoord + 0.5D;
@@ -429,6 +433,9 @@ public class TileRunawaySingularity extends TileEntity {
             }
             if (onlyPull && entity instanceof EntityItem) {
                 continue; // onlypull：掉落物完全不处理（既不牵引也不执行近距销毁 setDead）
+            }
+            if (nature && !(entity instanceof EntityItem)) {
+                continue; // nature：只处理掉落物，跳过所有活体/玩家（不牵引、不伤害、不禁飞）
             }
             double pull = 1.0D - d / effRange;
             double force = pull * pull * factor;

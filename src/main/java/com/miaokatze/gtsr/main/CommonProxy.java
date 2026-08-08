@@ -4,7 +4,9 @@ import com.miaokatze.gtsr.Tags;
 import com.miaokatze.gtsr.common.commands.GTSRCommand;
 import com.miaokatze.gtsr.common.crossmod.postea.PosteaCompat;
 import com.miaokatze.gtsr.common.crossmod.waila.GTSRWailaCompat;
+import com.miaokatze.gtsr.common.loot.LootInjectionRunawaySingularity;
 import com.miaokatze.gtsr.common.network.GTSRFXNet;
+import com.miaokatze.gtsr.common.world.WorldGenRunawaySingularity;
 import com.miaokatze.gtsr.config.Config;
 import com.miaokatze.gtsr.loader.BlockLoader;
 import com.miaokatze.gtsr.loader.GTSRRecipeLoader;
@@ -16,6 +18,7 @@ import cpw.mods.fml.common.event.FMLInitializationEvent;
 import cpw.mods.fml.common.event.FMLPostInitializationEvent;
 import cpw.mods.fml.common.event.FMLPreInitializationEvent;
 import cpw.mods.fml.common.event.FMLServerStartingEvent;
+import cpw.mods.fml.common.registry.GameRegistry;
 import gregtech.api.GregTechAPI;
 
 /**
@@ -90,6 +93,9 @@ public class CommonProxy {
         com.cleanroommc.modularui.factory.GuiManager
             .registerFactory(com.miaokatze.gtsr.common.gui.WaterHubStatusGuiFactory.INSTANCE);
 
+        // 注册自然生成：失控奇点 nature 词条（主世界+下界，平均 24×24 区块 1 个）
+        GameRegistry.registerWorldGenerator(new WorldGenRunawaySingularity(), 0);
+
         // Waila 跨 mod 兼容：注册节点自定义名 WAILA 头部显示（Waila 缺失时为空操作，详见 GTSRWailaCompat）
         GTSRWailaCompat.init();
     }
@@ -106,6 +112,8 @@ public class CommonProxy {
             GTSteamReborn.LOG.info("[3/3] GTSR 配方注册完成。");
             // Postea 旧 ID 机器物品 → 新 ID 映射（V2 meta 迁移；GT5U 的 PosteaTransformers 在 postload 已注册，此处晚于其执行）
             PosteaCompat.init();
+            // 注入蒸汽纠缠奇点到村庄/地牢/矿井/要塞箱子战利品（~2% 抽取概率，每次 1 个）
+            LootInjectionRunawaySingularity.init();
         } catch (Throwable t) {
             GTSteamReborn.LOG.error("[3/3] GTSR 配方注册过程中发生错误", t);
         }

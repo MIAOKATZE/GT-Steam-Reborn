@@ -61,6 +61,14 @@ public final class SingularityDropExplosion {
     /** 临界奇点等待期黑色粒子间隔（tick，比普通更密集） */
     private static final int CRITICAL_PARTICLE_INTERVAL = 2;
 
+    /** nature 奇点挖掘爆炸视觉半径（TNT 强度=4.0） */
+    private static final float NATURE_VISUAL_SIZE = 4.0F;
+    /** nature 奇点击退作用范围 */
+    private static final float NATURE_KNOCKBACK_SIZE = 4.0F;
+    /** nature 爆炸产出的蒸汽纠缠奇点倒计时范围：10-20 秒（随机） */
+    private static final int NATURE_SPAWN_DELAY_MIN_TICKS = 200;
+    private static final int NATURE_SPAWN_DELAY_MAX_TICKS = 400;
+
     private SingularityDropExplosion() {}
 
     /** 普通蒸汽纠缠奇点掉落物逐 tick 更新（由 onEntityItemUpdate 委托） */
@@ -283,6 +291,92 @@ public final class SingularityDropExplosion {
                 .setInteger(
                     "gtsrDropDelay",
                     SPAWN_DELAY_MIN_TICKS + world.rand.nextInt(SPAWN_DELAY_MAX_TICKS - SPAWN_DELAY_MIN_TICKS + 1));
+            drop.motionX = (world.rand.nextFloat() - 0.5F) * 0.4D;
+            drop.motionY = world.rand.nextFloat() * 0.3D;
+            drop.motionZ = (world.rand.nextFloat() - 0.5F) * 0.4D;
+            world.spawnEntityInWorld(drop);
+        }
+    }
+
+    /**
+     * nature 奇点挖掘爆炸：TNT 强度（4.0）视觉动画，不破坏方块，不伤害实体 HP，只击退实体，
+     * 产 0-1 个蒸汽纠缠奇点（各带 10-20 秒/200-400 tick 倒计时）。由 BlockRunawaySingularity.removedByPlayer 触发。
+     */
+    public static void explodeNature(World world, double x, double y, double z) {
+        if (world.isRemote) {
+            return;
+        }
+        Explosion exp = new Explosion(world, null, x, y, z, NATURE_VISUAL_SIZE);
+        exp.doExplosionA();
+        exp.isSmoking = false;
+        exp.affectedBlockPositions.clear(); // 不破坏方块（同普通奇点：清空列表避免客户端假破坏）
+        broadcastExplosion(world, exp);
+        knockbackEntities(world, exp, x, y, z, NATURE_KNOCKBACK_SIZE); // 只击退不伤 HP
+        spawnNatureSingularityDrops(world, x, y, z);
+    }
+
+    /**
+     * nature 爆炸击退实体（不造成 HP 伤害），跳过掉落物。
+     * 复刻 damageEntities 的 AABB 选取 + 距离/密度计算 + motion 叠加，但删除 attackEntityFrom。
+     */
+    private static void knockbackEntities(World world, Explosion exp, double x, double y, double z, float size) {
+        float range = size * 2.0F;
+        List<Entity> entities = world.getEntitiesWithinAABB(
+            Entity.class,
+            AxisAlignedBB.getBoundingBox(
+                x - range - 1.0D,
+                y - range - 1.0D,
+                z - range - 1.0D,
+                x + range + 1.0D,
+                y + range + 1.0D,
+                z + range + 1.0D));
+        Vec3 center = Vec3.createVectorHelper(x, y, z);
+        for (Entity entity : entities) {
+            if (entity instanceof EntityItem) {
+                continue; // 跳过掉落物（source 在 nature 场景是 null，无需判 source）
+            }
+            double d9 = entity.getDistance(x, y, z) / (double) range;
+            if (d9 > 1.0D) {
+                continue;
+            }
+            double dx = entity.posX - x;
+            double dy = entity.posY + (double) entity.getEyeHeight() - y;
+            double dz = entity.posZ - z;
+            double len = MathHelper.sqrt_double(dx * dx + dy * dy + dz * dz);
+            if (len == 0.0D) {
+                continue;
+            }
+            dx /= len;
+            dy /= len;
+            dz /= len;
+            double d12 = (1.0D - d9) * world.getBlockDensity(center, entity.boundingBox);
+            double knockback = d12;
+            if (entity instanceof EntityLivingBase) {
+                knockback = EnchantmentProtection.func_92092_a(entity, d12);
+            }
+            entity.motionX += dx * knockback;
+            entity.motionY += dy * knockback;
+            entity.motionZ += dz * knockback;
+        }
+    }
+
+    /** nature 爆炸产出 0-1 个蒸汽纠缠奇点，各带 10-20 秒（200-400 tick）随机爆炸倒计时 */
+    private static void spawnNatureSingularityDrops(World world, double x, double y, double z) {
+        int count = world.rand.nextInt(2); // 0 或 1
+        for (int i = 0; i < count; ++i) {
+            double angle = world.rand.nextDouble() * Math.PI * 2.0D;
+            double dist = 1.0D + world.rand.nextDouble() * 3.0D;
+            EntityItem drop = new EntityItem(
+                world,
+                x + Math.cos(angle) * dist,
+                y + world.rand.nextDouble() * 2.0D,
+                z + Math.sin(angle) * dist,
+                GTSRItemList.SteamEntangledSingularity.get(1));
+            drop.getEntityData()
+                .setInteger(
+                    "gtsrDropDelay",
+                    NATURE_SPAWN_DELAY_MIN_TICKS
+                        + world.rand.nextInt(NATURE_SPAWN_DELAY_MAX_TICKS - NATURE_SPAWN_DELAY_MIN_TICKS + 1));
             drop.motionX = (world.rand.nextFloat() - 0.5F) * 0.4D;
             drop.motionY = world.rand.nextFloat() * 0.3D;
             drop.motionZ = (world.rand.nextFloat() - 0.5F) * 0.4D;

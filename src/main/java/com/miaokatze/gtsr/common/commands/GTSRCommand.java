@@ -99,7 +99,7 @@ public class GTSRCommand extends CommandBase {
             return getListOfStringsMatchingLastWord(args, "singularity");
         }
         if (args.length == 5) {
-            return getListOfStringsMatchingLastWord(args, "NA", "0", "null", "onlypull", "nullplus");
+            return getListOfStringsMatchingLastWord(args, "NA", "0", "null", "onlypull", "nullplus", "nature");
         }
         if (args.length == 6) {
             return getListOfStringsMatchingLastWord(
@@ -171,6 +171,9 @@ public class GTSRCommand extends CommandBase {
         }
         if (arg.equalsIgnoreCase("nullplus")) {
             return TileRunawaySingularity.ATTRIBUTE_NULL_PLUS;
+        }
+        if (arg.equalsIgnoreCase("nature")) {
+            return TileRunawaySingularity.ATTRIBUTE_NATURE;
         }
         return parseClampedInt(arg, 0, 999);
     }
