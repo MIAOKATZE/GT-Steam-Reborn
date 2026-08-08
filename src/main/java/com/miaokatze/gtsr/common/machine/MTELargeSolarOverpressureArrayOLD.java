@@ -558,7 +558,7 @@ public class MTELargeSolarOverpressureArrayOLD extends MTEEnhancedMultiBlockBase
             .addInfo(
                 EnumChatFormatting.BLUE + "Tier 1 "
                     + EnumChatFormatting.DARK_PURPLE
-                    + StatCollector.translateToLocal("gtsr.tooltip.solar_array.tier_bronze")
+                    + StatCollector.translateToLocal("gtsr.tooltip.solar_array.old_tier_bronze")
                     + EnumChatFormatting.GOLD
                     + " 24,000"
                     + EnumChatFormatting.GRAY
@@ -571,7 +571,7 @@ public class MTELargeSolarOverpressureArrayOLD extends MTEEnhancedMultiBlockBase
             .addInfo(
                 EnumChatFormatting.BLUE + "Tier 2 "
                     + EnumChatFormatting.DARK_PURPLE
-                    + StatCollector.translateToLocal("gtsr.tooltip.solar_array.tier_steel")
+                    + StatCollector.translateToLocal("gtsr.tooltip.solar_array.old_tier_steel")
                     + EnumChatFormatting.GOLD
                     + " 60,000"
                     + EnumChatFormatting.GRAY
@@ -584,7 +584,7 @@ public class MTELargeSolarOverpressureArrayOLD extends MTEEnhancedMultiBlockBase
             .addInfo(
                 EnumChatFormatting.BLUE + "Tier 3 "
                     + EnumChatFormatting.DARK_PURPLE
-                    + StatCollector.translateToLocal("gtsr.tooltip.solar_array.tier_nickel")
+                    + StatCollector.translateToLocal("gtsr.tooltip.solar_array.old_tier_nickel")
                     + EnumChatFormatting.GOLD
                     + " 60,000"
                     + EnumChatFormatting.GRAY
@@ -928,8 +928,8 @@ public class MTELargeSolarOverpressureArrayOLD extends MTEEnhancedMultiBlockBase
         }
 
         String tierText = isNickel() ? StatCollector.translateToLocal("gtsr.tooltip.solar_array.tier_overpressure")
-            : isSteel() ? StatCollector.translateToLocal("gtsr.tooltip.solar_array.tier_steel")
-                : StatCollector.translateToLocal("gtsr.tooltip.solar_array.tier_bronze");
+            : isSteel() ? StatCollector.translateToLocal("gtsr.tooltip.solar_array.old_tier_steel")
+                : StatCollector.translateToLocal("gtsr.tooltip.solar_array.old_tier_bronze");
         info.add(
             EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.tier")
                 + EnumChatFormatting.GOLD

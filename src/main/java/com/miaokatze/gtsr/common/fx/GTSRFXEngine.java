@@ -131,6 +131,10 @@ public class GTSRFXEngine {
         GL11.glDepthMask(false);
         GL11.glEnable(GL11.GL_BLEND);
         GL11.glAlphaFunc(GL11.GL_GREATER, 0.003921569F);
+        // 穿透染色玻璃/水等半透明面：Angelica 渲染器让染色玻璃（translucent pass）整面写入深度，
+        // 本引擎在 RenderWorldLastEvent 渲染时深度测试开启会被其遮挡；关闭深度测试后特效可透过一切
+        // 半透明方块（配合既有距离裁剪 64/100 格，不透明墙外仍不可见）
+        GL11.glDisable(GL11.GL_DEPTH_TEST);
         // 纹理线性过滤：消除 32×32/16×16 低分辨率特效纹理放大后的硬像素边缘（"白色像素块"观感）
         // 纹理过滤参数是每个纹理对象独立存储的，需在绑定后设置；每帧幂等设置开销极小
         GL11.glEnable(GL11.GL_TEXTURE_2D);
@@ -292,6 +296,7 @@ public class GTSRFXEngine {
         }
         GL11.glDisable(GL11.GL_BLEND);
         GL11.glDepthMask(true);
+        GL11.glEnable(GL11.GL_DEPTH_TEST);
         GL11.glAlphaFunc(GL11.GL_GREATER, 0.1F);
         GL11.glPopMatrix();
     }

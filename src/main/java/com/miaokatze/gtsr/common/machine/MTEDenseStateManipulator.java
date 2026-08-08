@@ -219,6 +219,12 @@ public class MTEDenseStateManipulator extends MTESingularityMachineBase implemen
     }
 
     @Override
+    protected boolean shouldRenderEntanglementSingularity(IGregTechTileEntity aBaseMetaTileEntity) {
+        // 奇点模式：结构成型即渲染失控奇点（停止工作/软锤关闭也渲染，结构破坏才消失）
+        return mMachine;
+    }
+
+    @Override
     public boolean isDenseStateManipulator() {
         return true;
     }
@@ -366,8 +372,7 @@ public class MTEDenseStateManipulator extends MTESingularityMachineBase implemen
 
         if (!checkPiece(STRUCTURE_PIECE_MAIN, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET, errors)) return;
 
-        if ((mInputHatches.isEmpty() && mPressureSteamInputs.isEmpty() && mDualInputHatches.isEmpty())
-            || mOutputBusses.isEmpty()) {
+        if (mInputHatches.isEmpty() && mPressureSteamInputs.isEmpty() && mDualInputHatches.isEmpty()) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
             return;
         }
@@ -385,11 +390,11 @@ public class MTEDenseStateManipulator extends MTESingularityMachineBase implemen
     @Override
     protected List<EntanglementSpec> getEntanglementSpecs() {
         // 两个失控奇点定位位：F1 形状偏移 (0,-3,9)、F2 (14,-3,9)，经 ExtendedFacing 换算世界偏移（与 checkPiece 同源映射）。
-        // 左白（range 10）/右灰（range 3）双失控节点动画。
+        // 左白（range 8）/右灰（range 3）双失控节点动画。
         Vec3Impl left = getExtendedFacing().getWorldOffset(new Vec3Impl(0, -3, 9));
         Vec3Impl right = getExtendedFacing().getWorldOffset(new Vec3Impl(14, -3, 9));
         List<EntanglementSpec> list = new ArrayList<>();
-        list.add(new EntanglementSpec(left.get0(), left.get1(), left.get2(), 10.0D, 0.0D, 0.0D, -1, -1, "white"));
+        list.add(new EntanglementSpec(left.get0(), left.get1(), left.get2(), 8.0D, 0.0D, 0.0D, -1, -1, "white"));
         list.add(new EntanglementSpec(right.get0(), right.get1(), right.get2(), 3.0D, 0.0D, 0.0D, -1, -1, "gray"));
         return list;
     }
@@ -408,7 +413,6 @@ public class MTEDenseStateManipulator extends MTESingularityMachineBase implemen
         if (requiresInputBus()) {
             tt.addInputBus(StatCollector.translateToLocal(keyPrefix + "input_bus"), 1);
         }
-        tt.addOutputBus(StatCollector.translateToLocal(keyPrefix + "output_bus"), 1);
         if (requiresOutputHatch()) {
             tt.addOutputHatch(StatCollector.translateToLocal(keyPrefix + "output_hatch"), 1);
         }

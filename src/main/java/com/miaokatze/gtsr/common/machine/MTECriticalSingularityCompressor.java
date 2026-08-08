@@ -111,6 +111,17 @@ public class MTECriticalSingularityCompressor extends MTESingularityMachineBase 
         return GTSRItemList.CriticalSteamEntangledSingularity.get(1);
     }
 
+    @Override
+    protected boolean requiresInputBus() {
+        return true;
+    }
+
+    @Override
+    protected boolean shouldRenderEntanglementSingularity(IGregTechTileEntity aBaseMetaTileEntity) {
+        // 奇点模式：结构成型即渲染失控奇点（停止工作/软锤关闭也渲染，结构破坏才消失）
+        return mMachine;
+    }
+
     private static Block getTier2FrameBlock() {
         if (TIER2_FRAME_BLOCK == null) {
             TIER2_FRAME_BLOCK = GregTechAPI.sBlockFramesBW;

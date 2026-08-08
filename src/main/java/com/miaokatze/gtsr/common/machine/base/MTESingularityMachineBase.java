@@ -424,14 +424,23 @@ public abstract class MTESingularityMachineBase extends MTEEnhancedMultiBlockBas
         }
     }
 
+    /**
+     * 失控奇点渲染条件：默认机器工作（结构有效+允许工作+周期进行中或蒸汽尚存）才生成/保留奇点；
+     * "奇点模式"机器（致密态蒸汽操控装置/临界纠缠奇点稳定装置）覆盖为结构成型即渲染（停止工作也渲染）。
+     */
+    protected boolean shouldRenderEntanglementSingularity(IGregTechTileEntity aBaseMetaTileEntity) {
+        return mMachine && aBaseMetaTileEntity.isAllowedToWork()
+            && (mMaxProgresstime > 0 || findHighestGrade(includeDenseSteam()) >= 0);
+    }
+
     private void updateEntanglementSingularity(IGregTechTileEntity aBaseMetaTileEntity) {
         List<EntanglementSpec> specs = getEntanglementSpecs();
         if (specs.isEmpty()) return;
         // 启动豁免：控制器重载后结构判定延迟期间（GT mStartUpCheck≈5 秒），奇点判定同步豁免
         if (getmStartUpCheck() >= 0) return;
-        // working：结构有效 + 允许工作 + 周期进行中或蒸汽尚存（平滑周期间隙，避免奇点闪烁）
-        boolean working = mMachine && aBaseMetaTileEntity.isAllowedToWork()
-            && (mMaxProgresstime > 0 || findHighestGrade(includeDenseSteam()) >= 0);
+        // working：奇点渲染条件（默认结构有效+允许工作+周期进行中或蒸汽尚存，平滑周期间隙避免闪烁；
+        // 奇点模式机器结构成型即渲染，见 shouldRenderEntanglementSingularity）
+        boolean working = shouldRenderEntanglementSingularity(aBaseMetaTileEntity);
         World world = aBaseMetaTileEntity.getWorld();
         for (EntanglementSpec spec : specs) {
             int x = aBaseMetaTileEntity.getXCoord() + spec.dx;

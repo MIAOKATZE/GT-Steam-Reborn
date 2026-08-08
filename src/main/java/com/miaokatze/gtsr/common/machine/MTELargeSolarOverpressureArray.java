@@ -542,8 +542,23 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
         mSunRatio = (double) visible / offsets.size();
     }
 
-    /** 客户端：每 tick 在随机一个 F 泥土位生成上升白色云朵粒子（仿砖高炉 vertical motion 0.3） */
+    /**
+     * 客户端：每 tick 按热量 mHeat 生成上升白色云朵粒子（仿砖高炉 vertical motion 0.3）。
+     * 粒子期望数 = mHeat / 0.5：mHeat=50% → 1 个/tick（现状基准），100% → 2 个/tick，25% → 平均 0.5 个/tick
+     * （小数部分用概率平滑）。
+     */
     private void spawnCloudParticle() {
+        if (mHeat <= 0.0d) return;
+        double expected = mHeat / 0.5d;
+        int n = (int) expected;
+        if (getBaseMetaTileEntity().getWorld().rand.nextDouble() < expected - n) n++;
+        for (int i = 0; i < n; i++) {
+            spawnOneParticle();
+        }
+    }
+
+    /** 在随机一个 F 泥土位生成单个上升白色云朵粒子 */
+    private void spawnOneParticle() {
         List<int[]> offsets = getParticleOffsets();
         if (offsets.isEmpty()) return;
         IGregTechTileEntity base = getBaseMetaTileEntity();
@@ -564,12 +579,18 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
     public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
         super.onPostTick(aBaseMetaTileEntity, aTick);
         if (aBaseMetaTileEntity.isClientSide()) {
-            if (mMachine && aBaseMetaTileEntity.isAllowedToWork()) {
+            // 有热量即渲染气体粒子动画（数量 ∝ mHeat，见 spawnCloudParticle）
+            if (mHeat > 0.0d) {
                 spawnCloudParticle();
             }
             return;
         }
-        if (!mMachine || mSetTier <= 0) return;
+        if (!mMachine || mSetTier <= 0) {
+            // 结构失效时热量仍按衰减速度降至 0，保证客户端经 updateData 同步后停止粒子渲染
+            mHeat -= getHeatDecreaseSpeed();
+            if (mHeat < 0) mHeat = 0;
+            return;
+        }
 
         if (!aBaseMetaTileEntity.isAllowedToWork()) {
             mIsOperating = false;
@@ -1114,7 +1135,9 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
         boolean oldHeating = mIsHeating;
         int oldTier = mSetTier;
         mIsHeating = (aValue & 0x01) != 0;
-        mSetTier = (aValue >> 1) & 0x0F;
+        // mSetTier 1~3 占 2 bit（bit1-2）；GT 事件通道会剥掉 bit7，故 mHeat 用 bit3-6 共 4 bit，精度 1/15≈6.7%
+        mSetTier = (aValue >> 1) & 0x03;
+        mHeat = ((aValue >> 3) & 0x0F) / 15.0d;
         if (oldHeating != mIsHeating || oldTier != mSetTier) {
             getBaseMetaTileEntity().issueTextureUpdate();
         }
@@ -1122,7 +1145,10 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
 
     @Override
     public byte getUpdateData() {
-        return (byte) ((mSetTier << 1) | (mIsHeating ? 0x01 : 0x00));
+        int heatQuantized = (int) Math.round(mHeat * 15.0);
+        if (heatQuantized < 0) heatQuantized = 0;
+        if (heatQuantized > 15) heatQuantized = 15;
+        return (byte) ((heatQuantized << 3) | (mSetTier << 1) | (mIsHeating ? 0x01 : 0x00));
     }
 
     public int mCurrentSteamOutput = 0;

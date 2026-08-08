@@ -1424,16 +1424,20 @@ public class GTSRRecipeLoader implements Runnable {
         log("Reinforced Brick Blast Furnace recipe registered.");
     }
 
-    // 【Meta 迁移】旧控制器 → 新控制器 工作台无序转换配方（45 条全量，单向旧→新，含三台重置机与临界/致密态）
+    // 【Meta 迁移】旧控制器 → 新控制器 工作台无序转换配方（仅三台更改了结构的 [OLD] 机器：
+    // 超压太阳能锅炉阵列 / 蒸汽奇点压缩机 / 奇点地壳钻探机；其余 OLD 机器采用 MTELegacyConverter
+    // 映射（放置即自动转换），无需转换配方）
     private static void registerLegacyConversionRecipes() {
         log("Registering old -> new controller conversion recipes...");
 
-        for (MetaTileEntityID id : MetaTileEntityID.values()) {
+        MetaTileEntityID[] structuralChanged = { MetaTileEntityID.LARGE_SOLAR_OVERPRESSURE_ARRAY,
+            MetaTileEntityID.STEAM_SINGULARITY_ENTANGLER, MetaTileEntityID.SINGULARITY_CRUST_STEAM_BORER, };
+        for (MetaTileEntityID id : structuralChanged) {
             GTModHandler.addShapelessCraftingRecipe(
                 new ItemStack(GregTechAPI.sBlockMachines, 1, id.ID),
                 new Object[] { new ItemStack(GregTechAPI.sBlockMachines, 1, id.OLD_ID) });
         }
 
-        log("Old -> new conversion recipes registered: " + MetaTileEntityID.values().length);
+        log("Old -> new conversion recipes registered: " + structuralChanged.length);
     }
 }
