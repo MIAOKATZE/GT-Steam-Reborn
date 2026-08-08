@@ -47,9 +47,9 @@ public class GTSRBeamFX extends GTSRFXParticle {
     private float darkScale = 1.0F;
     /** 近场衰减系数：玩家贴近光片中心时线性淡出（renderParticle 每帧更新） */
     private float nearFade = 1.0F;
-    private final float colorR;
-    private final float colorG;
-    private final float colorB;
+    private float colorR;
+    private float colorG;
+    private float colorB;
     private final float alphaScale;
     private final int maxAge;
 
@@ -115,6 +115,13 @@ public class GTSRBeamFX extends GTSRFXParticle {
     public void updateParams(float length, float darkScale) {
         this.length = length;
         this.darkScale = darkScale;
+    }
+
+    /** 颜色实时同步（奇点 NBT 同步到达/变化后立即生效，不再固定创建时颜色） */
+    public void updateColor(float colorR, float colorG, float colorB) {
+        this.colorR = colorR;
+        this.colorG = colorG;
+        this.colorB = colorB;
     }
 
     /** 当前长度（供引擎渲染摘要日志） */

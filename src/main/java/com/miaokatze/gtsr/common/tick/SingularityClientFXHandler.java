@@ -79,6 +79,15 @@ public class SingularityClientFXHandler {
             double cx = t.xCoord + 0.5D;
             double cy = t.yCoord + 0.5D;
             double cz = t.zCoord + 0.5D;
+            // 距离裁剪（对齐原渲染侧 64/100 格裁剪；粒子管道无渲染侧裁剪，改在生成侧限制）：
+            // 玩家超过 100 格不维护该奇点 FX（仅记录 lastSeen，防消散误判）
+            float playerDist = 10000.0F;
+            if (Minecraft.getMinecraft().thePlayer != null) {
+                playerDist = (float) Minecraft.getMinecraft().thePlayer.getDistance(cx, cy, cz);
+            }
+            if (playerDist > 100.0F) {
+                continue;
+            }
             // 吸积盘（vanilla 传统管道）：概率生成 × 活性系数（af→0 概率趋零，消散时不再中心冒泡），随活性系数变暗
             double diskP = (0.55D + 0.15D * Math.min(1.0D, effRange / 32.0D)) * af;
             if (world.rand.nextFloat() < diskP) {
@@ -138,6 +147,8 @@ public class SingularityClientFXHandler {
             }
             for (GTSRBeamFX b : beamGroup) {
                 b.updateParams(beamLen, darkScale);
+                // 颜色实时同步：客户端 TE 颜色初始可能为默认 white（NBT 同步延迟），每 tick 用最新颜色更新
+                b.updateColor(rgb[0], rgb[1], rgb[2]);
             }
             // 辉光：TC4 节点式多层光晕常驻，半径 = 光效半径 × 100%，随活性系数收缩变暗
             float glowR = glowRadius * (float) af;
@@ -147,6 +158,8 @@ public class SingularityClientFXHandler {
                 this.glows.put(t, glow);
             }
             glow.updateParams(glowR, darkScale);
+            // 颜色实时同步（同光束：NBT 同步延迟期间初始为 white，到达后立即生效）
+            glow.updateColor(rgb[0], rgb[1], rgb[2]);
         }
         // 消散检测：上帧活跃但本帧消失的奇点 → 特效随衰减系数收缩、变暗直至消失（无亮闪爆发）
         for (TileRunawaySingularity gone : prev) {

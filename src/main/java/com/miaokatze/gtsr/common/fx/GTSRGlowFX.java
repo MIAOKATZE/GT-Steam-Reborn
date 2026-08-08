@@ -1,9 +1,12 @@
 package com.miaokatze.gtsr.common.fx;
 
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.particle.EntityFX;
 import net.minecraft.client.renderer.ActiveRenderInfo;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.world.World;
+
+import org.lwjgl.opengl.GL11;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
@@ -11,22 +14,23 @@ import cpw.mods.fml.relauncher.SideOnly;
 /**
  * 世界辉光特效：多层同心 additive billboard 圆，极微弱波动 + 寿命渐出。
  * 参考 Thaumcraft 4.2.3.5 TileNodeRenderer 辉光 quad 与 RenderSpecialItem 三角锥 glow，自包含实现。
+ * 走 vanilla 粒子管道（EffectRenderer）：渲染时机 = 方块 pass 0 后、pass 1 前，深度测试开启——
+ * 普通方块遮挡、染色玻璃/水等半透明面不遮挡（与吸积盘粒子同层级）。
  */
 @SideOnly(Side.CLIENT)
-public class GTSRGlowFX {
+public class GTSRGlowFX extends EntityFX {
 
     private final World world;
     private final double x;
     private final double y;
     private final double z;
     private float radius;
-    private final float colorR;
-    private final float colorG;
-    private final float colorB;
+    private float colorR;
+    private float colorG;
+    private float colorB;
     private final float baseAlpha;
     private final int maxAge;
     private int age;
-    private boolean dead;
     private float darkScale = 1.0F;
     private float shrinkPerTick = 0.0F;
     /** 颤动（慢速随机波动）：当前强度与目标强度，每 30~59 tick 换一次目标 */
@@ -36,6 +40,7 @@ public class GTSRGlowFX {
 
     public GTSRGlowFX(World world, double x, double y, double z, float radius, float colorR, float colorG, float colorB,
         int durationTicks) {
+        super(world, x, y, z, 0.0D, 0.0D, 0.0D);
         this.world = world;
         this.x = x;
         this.y = y;
@@ -46,13 +51,13 @@ public class GTSRGlowFX {
         this.colorB = colorB;
         this.baseAlpha = 0.55F; // TC4 节点式多层光晕强度（0.9 过曝成白块、0.32 太淡）
         this.maxAge = Math.max(1, durationTicks);
+        this.particleMaxAge = this.maxAge; // 粒子管道按 EntityFX 生命周期管理
     }
 
     public static GTSRGlowFX spawn(World world, double x, double y, double z, float radius, float colorR, float colorG,
         float colorB, int durationTicks) {
         GTSRGlowFX glow = new GTSRGlowFX(world, x, y, z, radius, colorR, colorG, colorB, durationTicks);
-        GTSRFXEngine.instance()
-            .addGlow(glow);
+        Minecraft.getMinecraft().effectRenderer.addEffect(glow);
         return glow;
     }
 
@@ -60,6 +65,13 @@ public class GTSRGlowFX {
     public void updateParams(float radius, float darkScale) {
         this.radius = radius;
         this.darkScale = darkScale;
+    }
+
+    /** 颜色实时同步（奇点 NBT 同步到达/变化后立即生效，不再固定创建时颜色） */
+    public void updateColor(float colorR, float colorG, float colorB) {
+        this.colorR = colorR;
+        this.colorG = colorG;
+        this.colorB = colorB;
     }
 
     /** 设置每 tick 半径收缩量（>0 时开启收缩，用于消散过渡辉光） */
@@ -76,16 +88,17 @@ public class GTSRGlowFX {
             && this.darkScale <= 2.0F;
     }
 
-    /** 当前半径（供引擎渲染摘要日志） */
+    /** 当前半径（供调试） */
     public float getRadius() {
         return this.radius;
     }
 
-    /** 当前暗化系数（供引擎渲染摘要日志） */
+    /** 当前暗化系数（供调试） */
     public float getDarkScale() {
         return this.darkScale;
     }
 
+    @Override
     public void onUpdate() {
         this.age++;
         if (this.shrinkPerTick > 0.0F) {
@@ -99,28 +112,37 @@ public class GTSRGlowFX {
         }
         this.breathe += (this.breatheTarget - this.breathe) * 0.08F;
         if (this.age >= this.maxAge) {
-            this.dead = true;
+            this.setDead(); // 同步 EntityFX.isDead，粒子管道据此移除
         }
     }
 
     public boolean isDead() {
-        return this.dead;
+        return super.isDead;
     }
 
-    public void setDead() {
-        this.dead = true;
-    }
-
-    public void render(Tessellator tess, float partialTicks) {
+    @Override
+    public void renderParticle(Tessellator tess, float p, float rx, float rz, float ry, float rxz, float ryz) {
+        // 距离裁剪：超过 64 格（4096 平方）不渲染（对齐电弧/光束可见性；粒子管道无渲染侧裁剪）
+        if (Minecraft.getMinecraft().thePlayer != null
+            && Minecraft.getMinecraft().thePlayer.getDistanceSq(this.x, this.y, this.z) > 4096.0D) {
+            return;
+        }
+        if (!sanityCheck()) {
+            return;
+        }
         // 颤动强度字段（onUpdate 缓慢随机波动），随寿命渐出
         float fade = Math.max(0.0F, 1.0F - (float) this.age / (float) this.maxAge);
         // 近场衰减：贴脸（<3 格）时淡出，避免 additive 辉光近距全屏泛白
         float dist = 100.0F;
-        if (net.minecraft.client.Minecraft.getMinecraft().thePlayer != null) {
-            dist = (float) net.minecraft.client.Minecraft.getMinecraft().thePlayer.getDistance(this.x, this.y, this.z);
+        if (Minecraft.getMinecraft().thePlayer != null) {
+            dist = (float) Minecraft.getMinecraft().thePlayer.getDistance(this.x, this.y, this.z);
         }
         float nearFade = Math.min(1.0F, dist / 3.0F);
         float alpha = this.baseAlpha * this.breathe * fade * this.darkScale * nearFade;
+        // 粒子管道下自管 GL 状态：柔和圆纹理 + additive 混合 + 不写深度
+        Minecraft.getMinecraft().renderEngine.bindTexture(GTSRFXParticle.GLOW_SOFT_TEXTURE);
+        GL11.glDepthMask(false);
+        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE);
         // vanilla EntityFX.renderParticle 正确 billboard 公式（参数 rotationX/rotationXZ/rotationZ/rotationYZ/rotationXY）
         float arX = ActiveRenderInfo.rotationX;
         float arXZ = ActiveRenderInfo.rotationXZ;
@@ -162,6 +184,8 @@ public class GTSRGlowFX {
                 0.0D,
                 0.0D);
         }
+        GL11.glDepthMask(true);
+        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
     }
 
     public double getX() {
