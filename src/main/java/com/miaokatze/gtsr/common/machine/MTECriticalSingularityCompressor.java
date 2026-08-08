@@ -22,6 +22,7 @@ import com.gtnewhorizon.structurelib.structure.IStructureElementCheckOnly;
 import com.gtnewhorizon.structurelib.structure.ISurvivalBuildEnvironment;
 import com.gtnewhorizon.structurelib.structure.StructureDefinition;
 import com.gtnewhorizon.structurelib.util.Vec3Impl;
+import com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.gui.MTECriticalSingularityCompressorGui;
 import com.miaokatze.gtsr.common.machine.base.MTESingularityMachineBase;
@@ -34,6 +35,7 @@ import cpw.mods.fml.common.registry.GameRegistry;
 import gregtech.api.GregTechAPI;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
+import gregtech.api.recipe.RecipeMap;
 import gregtech.api.recipe.check.CheckRecipeResult;
 import gregtech.api.structure.error.StructureError;
 import gregtech.api.structure.error.StructureErrorRegistry;
@@ -104,6 +106,12 @@ public class MTECriticalSingularityCompressor extends MTESingularityMachineBase 
     @Override
     protected boolean includeDenseSteam() {
         return true;
+    }
+
+    // NEI 展示用伪合成表：实际处理逻辑在 checkProcessing()，本 map 仅用于 NEI 显示。
+    @Override
+    public RecipeMap<?> getRecipeMap() {
+        return GTSRRecipeMaps.criticalSingularityCompressorRecipes;
     }
 
     @Override

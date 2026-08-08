@@ -3,11 +3,14 @@ package com.miaokatze.gtsr.loader;
 import static com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps.airCompressorRecipes;
 import static com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps.ammoniaPlantRecipes;
 import static com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps.atmosphericCentrifugeRecipes;
+import static com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps.criticalSingularityCompressorRecipes;
+import static com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps.denseStateManipulatorRecipes;
 import static com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps.gearSteamCompressorRecipes;
 import static com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps.geothermalSteamBoilerRecipes;
 import static com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps.largeCokeOvenRecipes;
 import static com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps.siemensMartinRecipes;
 import static com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps.steamFluidDrillRecipes;
+import static com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps.steamSingularityEntanglerRecipes;
 import static gregtech.api.recipe.RecipeMaps.assemblerRecipes;
 import static gregtech.api.util.GTRecipeBuilder.INGOTS;
 import static gregtech.api.util.GTRecipeBuilder.SECONDS;
@@ -27,6 +30,7 @@ import com.miaokatze.gtsr.main.GTSteamReborn;
 
 import bartworks.system.material.WerkstoffLoader;
 import cpw.mods.fml.common.Loader;
+import cpw.mods.fml.common.registry.GameRegistry;
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.GTValues;
 import gregtech.api.enums.ItemList;
@@ -125,6 +129,13 @@ public class GTSRRecipeLoader implements Runnable {
         safeRegister("GeothermalBoilerDisplay", GTSRRecipeLoader::registerGeothermalBoilerDisplayRecipes);
         safeRegister("FluidDrillDisplay", GTSRRecipeLoader::registerFluidDrillDisplayRecipes);
         safeRegister("GearSteamCompressorDisplay", GTSRRecipeLoader::registerGearSteamCompressorDisplayRecipes);
+        safeRegister(
+            "SteamSingularityEntanglerDisplay",
+            GTSRRecipeLoader::registerSteamSingularityEntanglerDisplayRecipes);
+        safeRegister(
+            "CriticalSingularityCompressorDisplay",
+            GTSRRecipeLoader::registerCriticalSingularityCompressorDisplayRecipes);
+        safeRegister("DenseStateManipulatorDisplay", GTSRRecipeLoader::registerDenseStateManipulatorDisplayRecipes);
         safeRegister("ReinforcedBrickBlastFurnace", GTSRRecipeLoader::registerReinforcedBrickBlastFurnaceRecipe);
         safeRegister("LegacyConversion", GTSRRecipeLoader::registerLegacyConversionRecipes);
     }
@@ -981,35 +992,61 @@ public class GTSRRecipeLoader implements Runnable {
             .eut(TierEU.RECIPE_LV)
             .addTo(assemblerRecipes);
 
-        GTValues.RA.stdBuilder()
-            .itemInputs(
-                GTSRItemList.SteamEntangledSingularity.get(1),
-                get(OrePrefixes.frameGt, Materials.Steel, 8),
-                get(OrePrefixes.plateTriple, Materials.Steel, 16),
-                get(OrePrefixes.circuit, Materials.LV, 4),
-                ItemList.Electric_Piston_LV.get(12),
-                get(OrePrefixes.pipeHuge, Materials.Steel, 4),
-                get(OrePrefixes.plate, Materials.Obsidian, 32))
-            .itemOutputs(GTSRItemList.CriticalSingularityCompressor.get(1))
-            .fluidInputs(Materials.SolderingAlloy.getMolten(2304))
-            .duration(60 * SECONDS)
-            .eut(TierEU.RECIPE_LV)
-            .addTo(assemblerRecipes);
+        // --- 临界蒸汽纠缠奇点稳定装置 (GTUDK 配方：替换原 LV 配方，IV 级) ---
+        ItemStack cscOut = get(GTSRItemList.CriticalSingularityCompressor, 1);
+        if (!hasNull(cscOut)) {
+            ItemStack[] cscInputs = filterNulls(
+                new ItemStack(GameRegistry.findItem("gregtech", "gt.blockcasings8"), 64, 6),
+                new ItemStack(GameRegistry.findItem("gregtech", "bw.frames"), 64, 88),
+                new ItemStack(GameRegistry.findItem("gregtech", "gt.blockframes"), 32, 70),
+                get(OrePrefixes.circuit, Materials.UV, 16),
+                new ItemStack(GameRegistry.findItem("gregtech", "gt.blockcasings4"), 32, 7),
+                new ItemStack(GameRegistry.findItem("gregtech", "gt.blockcasings4"), 32, 6),
+                GTSRItemList.SteamEntangledSingularity.get(64),
+                GTSRItemList.SteamEntangledSingularity.get(64),
+                GTSRItemList.SteamEntangledSingularity.get(64));
+            if (!hasNull(cscInputs)) {
+                GTValues.RA.stdBuilder()
+                    .itemInputs(cscInputs)
+                    .itemOutputs(cscOut)
+                    .fluidInputs(FluidRegistry.getFluidStack("molten.indalloy140", 32000))
+                    .duration(4800)
+                    .eut(32768)
+                    .addTo(assemblerRecipes);
+            } else {
+                warn("Skipped CriticalSingularityCompressor recipe - inputs contain null");
+            }
+        } else {
+            warn("Skipped CriticalSingularityCompressor recipe - output is null");
+        }
 
-        GTValues.RA.stdBuilder()
-            .itemInputs(
-                GTSRItemList.CriticalSteamEntangledSingularity.get(1),
-                get(OrePrefixes.frameGt, Materials.Steel, 8),
-                get(OrePrefixes.plateTriple, Materials.Steel, 16),
-                get(OrePrefixes.circuit, Materials.LV, 4),
-                ItemList.Electric_Piston_LV.get(12),
-                get(OrePrefixes.pipeHuge, Materials.Steel, 4),
-                get(OrePrefixes.plate, Materials.Obsidian, 32))
-            .itemOutputs(GTSRItemList.DenseStateManipulator.get(1))
-            .fluidInputs(Materials.SolderingAlloy.getMolten(2304))
-            .duration(60 * SECONDS)
-            .eut(TierEU.RECIPE_LV)
-            .addTo(assemblerRecipes);
+        // --- 致密态操纵装置 (GTUDK 配方：替换原 LV 配方，IV 级) ---
+        ItemStack dsmOut = get(GTSRItemList.DenseStateManipulator, 1);
+        if (!hasNull(dsmOut)) {
+            ItemStack[] dsmInputs = filterNulls(
+                new ItemStack(GameRegistry.findItem("gregtech", "gt.blockcasings8"), 64, 6),
+                new ItemStack(GameRegistry.findItem("gregtech", "bw.frames"), 64, 88),
+                new ItemStack(GameRegistry.findItem("bartworks", "BW_TieredGlass"), 64, 3),
+                get(OrePrefixes.circuit, Materials.UV, 16),
+                new ItemStack(GameRegistry.findItem("gregtech", "gt.blockcasings4"), 64, 7),
+                new ItemStack(GameRegistry.findItem("gregtech", "gt.metaitem.01"), 16, 32645),
+                GTSRItemList.SteamEntangledSingularity.get(64),
+                GTSRItemList.SteamEntangledSingularity.get(64),
+                GTSRItemList.SteamEntangledSingularity.get(64));
+            if (!hasNull(dsmInputs)) {
+                GTValues.RA.stdBuilder()
+                    .itemInputs(dsmInputs)
+                    .itemOutputs(dsmOut)
+                    .fluidInputs(FluidRegistry.getFluidStack("molten.indalloy140", 32000))
+                    .duration(4800)
+                    .eut(32768)
+                    .addTo(assemblerRecipes);
+            } else {
+                warn("Skipped DenseStateManipulator recipe - inputs contain null");
+            }
+        } else {
+            warn("Skipped DenseStateManipulator recipe - output is null");
+        }
 
         GTValues.RA.stdBuilder()
             .itemInputs(
@@ -1398,6 +1435,87 @@ public class GTSRRecipeLoader implements Runnable {
             .addTo(gearSteamCompressorRecipes);
 
         log("Gear steam compressor display recipes done.");
+    }
+
+    // 蒸汽奇点纠缠装置展示配方：3 条（蒸汽/过热蒸汽/超临界蒸汽 → 蒸汽纠缠奇点）。
+    // 仅用于 NEI 展示，实际产出由机器 checkProcessing() 计算；流体不写量。
+    private static void registerSteamSingularityEntanglerDisplayRecipes() {
+        ItemStack output = GTSRItemList.SteamEntangledSingularity.get(1);
+        if (output == null) {
+            warn("Skipped SteamSingularityEntangler display recipes - output is null");
+            return;
+        }
+        for (String fluidName : new String[] { "steam", "ic2superheatedsteam", "supercriticalsteam" }) {
+            FluidStack input = FluidRegistry.getFluidStack(fluidName, 1);
+            if (input == null) {
+                warn("Skipped SSE display recipe for fluid " + fluidName + " - fluid missing");
+                continue;
+            }
+            GTValues.RA.stdBuilder()
+                .fluidInputs(input)
+                .itemOutputs(output)
+                .duration(20)
+                .eut(0)
+                .addTo(steamSingularityEntanglerRecipes);
+        }
+        log("Steam singularity entangler display recipes done.");
+    }
+
+    // 临界纠缠奇点稳定装置展示配方：3 条（致密态蒸汽/过热/超临界 → 临界蒸汽纠缠奇点）。
+    private static void registerCriticalSingularityCompressorDisplayRecipes() {
+        ItemStack output = GTSRItemList.CriticalSteamEntangledSingularity.get(1);
+        if (output == null) {
+            warn("Skipped CriticalSingularityCompressor display recipes - output is null");
+            return;
+        }
+        for (String fluidName : new String[] { "densesteam", "densesuperheatedsteam", "densesupercriticalsteam" }) {
+            FluidStack input = FluidRegistry.getFluidStack(fluidName, 1);
+            if (input == null) {
+                warn("Skipped CSC display recipe for fluid " + fluidName + " - fluid missing");
+                continue;
+            }
+            GTValues.RA.stdBuilder()
+                .fluidInputs(input)
+                .itemOutputs(output)
+                .duration(20)
+                .eut(0)
+                .addTo(criticalSingularityCompressorRecipes);
+        }
+        log("Critical singularity compressor display recipes done.");
+    }
+
+    // 致密态操纵装置展示配方：6 条（3 压缩 + 3 解压）。
+    // 压缩：1000L 普通蒸汽 → 1L 致密态蒸汽；解压：1L 致密态蒸汽 → 1000L 普通蒸汽。
+    private static void registerDenseStateManipulatorDisplayRecipes() {
+        String[] normal = { "steam", "ic2superheatedsteam", "supercriticalsteam" };
+        String[] dense = { "densesteam", "densesuperheatedsteam", "densesupercriticalsteam" };
+        for (int i = 0; i < normal.length; i++) {
+            FluidStack normalIn = FluidRegistry.getFluidStack(normal[i], 1000);
+            FluidStack denseOut = FluidRegistry.getFluidStack(dense[i], 1);
+            if (normalIn != null && denseOut != null) {
+                GTValues.RA.stdBuilder()
+                    .fluidInputs(normalIn)
+                    .fluidOutputs(denseOut)
+                    .duration(20)
+                    .eut(0)
+                    .addTo(denseStateManipulatorRecipes);
+            } else {
+                warn("Skipped DSM compress display recipe for grade " + i);
+            }
+            FluidStack denseIn = FluidRegistry.getFluidStack(dense[i], 1);
+            FluidStack normalOut = FluidRegistry.getFluidStack(normal[i], 1000);
+            if (denseIn != null && normalOut != null) {
+                GTValues.RA.stdBuilder()
+                    .fluidInputs(denseIn)
+                    .fluidOutputs(normalOut)
+                    .duration(20)
+                    .eut(0)
+                    .addTo(denseStateManipulatorRecipes);
+            } else {
+                warn("Skipped DSM decompress display recipe for grade " + i);
+            }
+        }
+        log("Dense state manipulator display recipes done.");
     }
 
     /**

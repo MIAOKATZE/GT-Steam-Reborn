@@ -230,6 +230,12 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
         return "gtsr.gui.crust_matter_agg.";
     }
 
+    // 地壳物质聚合器无等级概念，GUI 终端隐藏等级行。
+    @Override
+    public boolean isHideTierInGui() {
+        return true;
+    }
+
     @Override
     public IMetaTileEntity newMetaEntity(IGregTechTileEntity aTileEntity) {
         return new MTECrustMatterAggregator(mName);

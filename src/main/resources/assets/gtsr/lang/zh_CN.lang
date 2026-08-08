@@ -1285,11 +1285,24 @@ gtsr.tooltip.catalyst.ammonia.osmium=并行数: 192 | 时间: 24秒
 gtsr.tooltip.catalyst.ammonia.feco=并行数: 256 | 时间: 16秒
 gtsr.tooltip.catalyst.ammonia.ruthenium=并行数: 256 | 时间: 8秒
 gtsr.tooltip.catalyst.ammonia.quantum=并行数: 256 | 时间: 1秒
-gtsr.tooltip.singularity.desc=蒸汽纠缠奇点，用于合成高级组件和机器
+gtsr.tooltip.singularity.desc=蒸汽纠缠奇点，用于高级的合成与增幅。
 gtsr.tooltip.steam_entangled_singularity.danger=掉落物会爆炸！请勿丢弃。
-gtsr.tooltip.critical_singularity.desc=临界蒸汽纠缠奇点，等级2蒸汽奇点压缩机的产物，用于更高级的合成
+gtsr.tooltip.critical_singularity.desc=临界蒸汽纠缠奇点，用于更高级的合成与增幅。
 gtsr.tooltip.hub_terminal.desc=右击枢纽打开终端；右击缓存节点调速，潜行右击切换模式
 gtsr.tooltip.added_by=添加模组：
+
+# NEI 伪合成表（展示用）：奇点装置类别标题 + 描述行
+gtsr.recipe.steam_singularity_entangler=蒸汽奇点纠缠装置
+gtsr.recipe.critical_singularity_compressor=临界纠缠奇点稳定装置
+gtsr.recipe.dense_state_manipulator=致密态操纵装置
+gtsr.tooltip.singularity_entangler.nei_use=使用蒸汽奇点纠缠装置获取。
+gtsr.tooltip.critical_compressor.nei_use=使用临界纠缠奇点稳定装置获取。
+
+# 奇点 tooltip 扩展行（插在第一行后）
+gtsr.tooltip.singularity.craft=通过蒸汽奇点纠缠装置合成。
+gtsr.tooltip.singularity.source=还可以打碎天然失控节点或从箱子内获得。
+gtsr.tooltip.critical_singularity.craft=通过临界纠缠奇点稳定装置合成。
+gtsr.tooltip.critical_singularity.legend=传说其能够彻底撕开维度的限制......
 gtsr.recipe.gear_steam_compressor=齿轮蒸汽压缩机
 
 # 加固砖高炉

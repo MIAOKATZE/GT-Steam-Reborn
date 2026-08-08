@@ -29,7 +29,6 @@ public class MTECrustMatterAggregatorGui extends MTESingularityMachineGui<MTECru
         super.registerSyncValues(syncManager);
         syncManager.syncValue("gtsr.dimLabel", new StringSyncValue(multiblock::getDimensionDisplayName));
         syncManager.syncValue("gtsr.dropMapValid", new BooleanSyncValue(() -> multiblock.dropMapValid));
-        syncManager.syncValue("gtsr.lastOre", new StringSyncValue(() -> multiblock.mLastOreName));
     }
 
     @Override
@@ -40,7 +39,6 @@ public class MTECrustMatterAggregatorGui extends MTESingularityMachineGui<MTECru
         IntSyncValue fuelSyncer = syncManager.findSyncHandler("gtsr.fuelTicks", IntSyncValue.class);
         StringSyncValue dimSyncer = syncManager.findSyncHandler("gtsr.dimLabel", StringSyncValue.class);
         BooleanSyncValue validSyncer = syncManager.findSyncHandler("gtsr.dropMapValid", BooleanSyncValue.class);
-        StringSyncValue oreSyncer = syncManager.findSyncHandler("gtsr.lastOre", StringSyncValue.class);
 
         return widget.child(IKey.dynamic(() -> {
             int mode = modeSyncer.getValue();
@@ -76,16 +74,6 @@ public class MTECrustMatterAggregatorGui extends MTESingularityMachineGui<MTECru
                 }
                 return EnumChatFormatting.YELLOW + StatCollector.translateToLocal(keyPrefix + "dimension")
                     + dimPart
-                    + EnumChatFormatting.RESET;
-            })
-                .asWidget()
-                .marginBottom(2)
-                .fullWidth())
-            .child(IKey.dynamic(() -> {
-                String oreName = oreSyncer.getValue();
-                return EnumChatFormatting.YELLOW + StatCollector.translateToLocal(keyPrefix + "mining")
-                    + (oreName != null && !oreName.isEmpty() ? EnumChatFormatting.GREEN + oreName
-                        : EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.gui.none"))
                     + EnumChatFormatting.RESET;
             })
                 .asWidget()

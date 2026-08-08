@@ -38,6 +38,10 @@ public class CriticalSteamEntangledSingularity extends Item {
     @Override
     public void addInformation(ItemStack stack, EntityPlayer player, List list, boolean adv) {
         list.add(EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.tooltip.critical_singularity.desc"));
+        list.add(EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.critical_singularity.craft"));
+        list.add(
+            EnumChatFormatting.LIGHT_PURPLE
+                + StatCollector.translateToLocal("gtsr.tooltip.critical_singularity.legend"));
         list.add(
             EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.tooltip.added_by")
                 + " "

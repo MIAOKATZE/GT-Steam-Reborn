@@ -27,6 +27,7 @@ import com.gtnewhorizon.structurelib.structure.IStructureElementCheckOnly;
 import com.gtnewhorizon.structurelib.structure.ISurvivalBuildEnvironment;
 import com.gtnewhorizon.structurelib.structure.StructureDefinition;
 import com.gtnewhorizon.structurelib.util.Vec3Impl;
+import com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps;
 import com.miaokatze.gtsr.common.gui.MTEDenseStateManipulatorGui;
 import com.miaokatze.gtsr.common.machine.base.MTESingularityMachineBase;
 import com.miaokatze.gtsr.loader.BlockLoader;
@@ -43,6 +44,7 @@ import gregtech.api.interfaces.IIconContainer;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
+import gregtech.api.recipe.RecipeMap;
 import gregtech.api.recipe.check.CheckRecipeResult;
 import gregtech.api.recipe.check.CheckRecipeResultRegistry;
 import gregtech.api.render.TextureFactory;
@@ -201,6 +203,12 @@ public class MTEDenseStateManipulator extends MTESingularityMachineBase implemen
     @Override
     protected boolean includeDenseSteam() {
         return false;
+    }
+
+    // NEI 展示用伪合成表：实际处理逻辑在 checkProcessing()，本 map 仅用于 NEI 显示。
+    @Override
+    public RecipeMap<?> getRecipeMap() {
+        return GTSRRecipeMaps.denseStateManipulatorRecipes;
     }
 
     @Override

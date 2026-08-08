@@ -27,6 +27,7 @@ import com.gtnewhorizon.structurelib.structure.ISurvivalBuildEnvironment;
 import com.gtnewhorizon.structurelib.structure.StructureDefinition;
 import com.gtnewhorizon.structurelib.util.Vec3Impl;
 import com.miaokatze.gtsr.api.compat.GTVersionCompat;
+import com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.gui.MTESteamSingularityEntanglerGui;
 import com.miaokatze.gtsr.common.machine.base.MTESingularityMachineBase;
@@ -36,6 +37,7 @@ import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Materials;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
+import gregtech.api.recipe.RecipeMap;
 import gregtech.api.recipe.check.CheckRecipeResult;
 import gregtech.api.structure.error.StructureError;
 import gregtech.api.structure.error.StructureErrorRegistry;
@@ -88,6 +90,12 @@ public class MTESteamSingularityEntangler extends MTESingularityMachineBase impl
     @Override
     protected boolean includeDenseSteam() {
         return false;
+    }
+
+    // NEI 展示用伪合成表：实际处理逻辑在 checkProcessing()，本 map 仅用于 NEI 显示。
+    @Override
+    public RecipeMap<?> getRecipeMap() {
+        return GTSRRecipeMaps.steamSingularityEntanglerRecipes;
     }
 
     @Override

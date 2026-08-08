@@ -125,6 +125,46 @@ public class GTSRRecipeMaps {
         .neiSpecialInfoFormatter(STEAM_FLUID_DRILL_FORMATTER)
         .build();
 
+    // 蒸汽奇点纠缠装置（展示用伪合成表：1 流体入槽 → 1 奇点出槽；描述说明获取方式）
+    private static final INEISpecialInfoFormatter STEAM_SINGULARITY_ENTANGLER_FORMATTER = recipeInfo -> {
+        List<String> result = new ArrayList<>();
+        result.add(
+            EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.singularity_entangler.nei_use"));
+        return result;
+    };
+
+    public static final RecipeMap<RecipeMapBackend> steamSingularityEntanglerRecipes = RecipeMapBuilder
+        .of("gtsr.recipe.steam_singularity_entangler")
+        .maxIO(0, 1, 1, 0)
+        .minInputs(0, 0)
+        .progressBar(GTUITextures.PROGRESSBAR_ARROW, ProgressBar.Direction.RIGHT)
+        .neiSpecialInfoFormatter(STEAM_SINGULARITY_ENTANGLER_FORMATTER)
+        .build();
+
+    // 临界纠缠奇点稳定装置（展示用伪合成表：1 致密态流体入槽 → 1 临界奇点出槽）
+    private static final INEISpecialInfoFormatter CRITICAL_SINGULARITY_COMPRESSOR_FORMATTER = recipeInfo -> {
+        List<String> result = new ArrayList<>();
+        result
+            .add(EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.critical_compressor.nei_use"));
+        return result;
+    };
+
+    public static final RecipeMap<RecipeMapBackend> criticalSingularityCompressorRecipes = RecipeMapBuilder
+        .of("gtsr.recipe.critical_singularity_compressor")
+        .maxIO(0, 1, 1, 0)
+        .minInputs(0, 0)
+        .progressBar(GTUITextures.PROGRESSBAR_ARROW, ProgressBar.Direction.RIGHT)
+        .neiSpecialInfoFormatter(CRITICAL_SINGULARITY_COMPRESSOR_FORMATTER)
+        .build();
+
+    // 致密态操纵装置（展示用伪合成表：1 流体入槽 → 1 流体出槽；压缩/解压共用）
+    public static final RecipeMap<RecipeMapBackend> denseStateManipulatorRecipes = RecipeMapBuilder
+        .of("gtsr.recipe.dense_state_manipulator")
+        .maxIO(0, 0, 1, 1)
+        .minInputs(0, 0)
+        .progressBar(GTUITextures.PROGRESSBAR_ARROW, ProgressBar.Direction.RIGHT)
+        .build();
+
     public static final RecipeMap<RecipeMapBackend> gearSteamCompressorRecipes = RecipeMapBuilder
         .of("gtsr.recipe.gear_steam_compressor")
         .maxIO(0, 0, 1, 2)

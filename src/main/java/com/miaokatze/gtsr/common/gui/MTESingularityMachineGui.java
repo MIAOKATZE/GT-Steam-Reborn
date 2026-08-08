@@ -73,12 +73,14 @@ public class MTESingularityMachineGui<T extends MTESingularityMachineBase> exten
                 .asWidget()
                 .marginBottom(2)
                 .fullWidth())
-            .child(
-                IKey.dynamic(
-                    () -> EnumChatFormatting.YELLOW + StatCollector.translateToLocal(keyPrefix + "tier")
-                        + EnumChatFormatting.GOLD
-                        + tierSyncer.getValue()
-                        + EnumChatFormatting.RESET)
+            .childIf(
+                !multiblock.isHideTierInGui(),
+                () -> IKey
+                    .dynamic(
+                        () -> EnumChatFormatting.YELLOW + StatCollector.translateToLocal(keyPrefix + "tier")
+                            + EnumChatFormatting.GOLD
+                            + tierSyncer.getValue()
+                            + EnumChatFormatting.RESET)
                     .asWidget()
                     .marginBottom(2)
                     .fullWidth())

@@ -1,9 +1,9 @@
 <h1 align="center">GT-Steam-Reborn</h1>
 <p align="center"><strong><em>GTNH Steam Age Expansion Mod</em></strong><br><strong><em>GTNH 蒸汽时代扩展模组</em></strong></p>
 
-A GregTech New Horizons expansion mod that **supplements the Steam Age and significantly expands steam usage**, providing 20 multiblock steam machines, 5 single-block nodes, 15 types of hatches, and a Hub-Node binding system. It fills the gameplay gap between the steam age and the electric age in GTNH, making steam a viable and deep progression path rather than a transient phase.
+A GregTech New Horizons expansion mod that **supplements the Steam Age and significantly expands steam usage**, providing 20 multiblock steam machines, 6 single-block nodes, 15 types of hatches, and a Hub-Node binding system. It fills the gameplay gap between the steam age and the electric age in GTNH, making steam a viable and deep progression path rather than a transient phase.
 
-一个 GregTech New Horizons 扩展模组，**补充蒸汽时代并显著拓展蒸汽用途**，提供20台多方块蒸汽机器、5个单方块节点、15种仓室以及枢纽-节点绑定系统。它填补了 GTNH 蒸汽阶段到电力阶段之间的玩法空白，让蒸汽成为一条可行且有深度的进阶路线，而非过渡阶段。
+一个 GregTech New Horizons 扩展模组，**补充蒸汽时代并显著拓展蒸汽用途**，提供20台多方块蒸汽机器、6个单方块节点、15种仓室以及枢纽-节点绑定系统。它填补了 GTNH 蒸汽阶段到电力阶段之间的玩法空白，让蒸汽成为一条可行且有深度的进阶路线，而非过渡阶段。
 
 > \[!NOTE]
 > This is an unofficial mod. Please avoid discussing this mod in official GTNH forums.
@@ -179,7 +179,7 @@ All inherit from `MTESteamMultiBase` (GT++), supporting normal steam and superhe
 
 ***
 
-### Enhanced Processing Machines / 强化加工机器 (11)
+### Enhanced Processing Machines / 强化加工机器 (9)
 
 All inherit from `MTEEnhancedMultiBlockBase` (GT5U), with more advanced mechanics.
 
@@ -230,7 +230,7 @@ All inherit from `MTEEnhancedMultiBlockBase` (GT5U), with more advanced mechanic
 
 ***
 
-## Single-Block Nodes / 单方块节点 (5)
+## Single-Block Nodes / 单方块节点 (6)
 
 ### Cache Nodes / 缓存节点 (4)
 

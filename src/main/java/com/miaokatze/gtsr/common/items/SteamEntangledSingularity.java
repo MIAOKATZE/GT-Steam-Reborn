@@ -26,6 +26,8 @@ public class SteamEntangledSingularity extends Item {
     @Override
     public void addInformation(ItemStack stack, EntityPlayer player, List list, boolean adv) {
         list.add(EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.tooltip.singularity.desc"));
+        list.add(EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.singularity.craft"));
+        list.add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.singularity.source"));
         list.add(
             EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.tooltip.added_by")
                 + " "

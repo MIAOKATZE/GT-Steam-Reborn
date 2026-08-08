@@ -1250,11 +1250,24 @@ gtsr.tooltip.catalyst.ammonia.osmium=Parallel: 192 | Time: 24s
 gtsr.tooltip.catalyst.ammonia.feco=Parallel: 256 | Time: 16s
 gtsr.tooltip.catalyst.ammonia.ruthenium=Parallel: 256 | Time: 8s
 gtsr.tooltip.catalyst.ammonia.quantum=Parallel: 256 | Time: 1s
-gtsr.tooltip.singularity.desc=Steam Entangled Singularity, used for crafting advanced components and machines
+gtsr.tooltip.singularity.desc=Steam Entangled Singularity, used for advanced crafting and amplification.
 gtsr.tooltip.steam_entangled_singularity.danger=Explodes when dropped! Do not drop it.
-gtsr.tooltip.critical_singularity.desc=Critical Steam Entangled Singularity, produced by the Tier 2 Steam Singularity Compressor, used for advanced crafting
+gtsr.tooltip.critical_singularity.desc=Critical Steam Entangled Singularity, used for more advanced crafting and amplification.
 gtsr.tooltip.hub_terminal.desc=Right-click a Hub to open its Terminal; right-click a Cache Node to cycle rate, sneak-right-click to switch mode
 gtsr.tooltip.added_by=Added by:
+
+# NEI pseudo-recipes (display only): singularity device category titles + description lines
+gtsr.recipe.steam_singularity_entangler=Steam Singularity Entangler
+gtsr.recipe.critical_singularity_compressor=Critical Singularity Stabilizer
+gtsr.recipe.dense_state_manipulator=Dense State Manipulator
+gtsr.tooltip.singularity_entangler.nei_use=Obtained via the Steam Singularity Entangler.
+gtsr.tooltip.critical_compressor.nei_use=Obtained via the Critical Singularity Stabilizer.
+
+# Singularity tooltip extended lines (inserted after the first line)
+gtsr.tooltip.singularity.craft=Synthesized via the Steam Singularity Entangler.
+gtsr.tooltip.singularity.source=Can also be obtained by shattering natural runaway nodes or from chests.
+gtsr.tooltip.critical_singularity.craft=Synthesized via the Critical Singularity Stabilizer.
+gtsr.tooltip.critical_singularity.legend=Legend says it can tear apart the very limits of dimensions...
 gtsr.recipe.gear_steam_compressor=Gear Steam Compressor
 
 # Reinforced Brick Blast Furnace

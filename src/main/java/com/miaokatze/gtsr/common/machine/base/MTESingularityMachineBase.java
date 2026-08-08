@@ -115,6 +115,11 @@ public abstract class MTESingularityMachineBase extends MTEEnhancedMultiBlockBas
         return 0;
     }
 
+    // 是否在 GUI 终端隐藏等级行（地壳物质聚合器无等级概念，默认显示）。
+    public boolean isHideTierInGui() {
+        return false;
+    }
+
     @Override
     @SideOnly(Side.CLIENT)
     public void registerIcons(IIconRegister aBlockIconRegister) {
