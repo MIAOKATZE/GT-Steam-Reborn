@@ -114,6 +114,42 @@ gtsr.tooltip.crust_steam_borer.cooling_hatch=Optional: Steam Cooling Hatch (reco
 gtsr.tooltip.crust_steam_borer.bronze_frame=Bronze Frame Box
 gtsr.tooltip.crust_steam_borer.bronze_casing=Bronze Plated Bricks
 
+# Crust Matter Aggregator (v1.10.33 full rename replacing Singularity Crust Steam Borer)
+gt.blockmachines.gtsr.crust.matter.aggregator.name=Crust Matter Aggregator
+gtsr.tooltip.crust_matter_agg.type=Crust Matter Aggregator, CMA
+gtsr.tooltip.crust_matter_agg.desc=With the power of steam-entangled singularities, it gathers matter directly from the crust!
+gtsr.tooltip.crust_matter_agg.desc2=Configure a GT NEI Ore Plugin to connect to other dimensions!
+gtsr.tooltip.crust_matter_agg.desc3=Heat: +0.05%/0.1%/0.5% per second with Steam/Superheated/Supercritical (cap 100%); feeding the matching Dense fluid doubles the gain
+gtsr.tooltip.crust_matter_agg.desc4=Output: 10 x Heat x Steam Coef (0.5/1/2) x Singularity Coef (none 0.5 / entangled 2 / critical 5), fractions accumulate
+gtsr.tooltip.crust_matter_agg.desc5=Singularity Mode: put a Steam-Entangled or Critical Steam-Entangled Singularity in an input bus, 200 seconds each; the runaway singularity animation always shows during the mode
+gtsr.tooltip.crust_matter_agg.desc6=Structure: 26x26x8, Solid Steel Casing / Steel Gearbox Casing / Steel Pipe Casing / Steel Frame / Explosion-Proof Glass
+gtsr.tooltip.crust_matter_agg.desc7=Dirt positions (54) and Grass positions (36) are particle vents; the Cobblestone position (1) is the runaway singularity node
+gtsr.tooltip.crust_matter_agg.ctrl=Controller at the center
+gtsr.tooltip.crust_matter_agg.steam_input=Fluid input hatch (Steam/Superheated/Supercritical or their Dense variants)
+gtsr.tooltip.crust_matter_agg.input_bus=Item input bus (singularity fuel, optional)
+gtsr.tooltip.crust_matter_agg.output_bus=Output bus (ores)
+gtsr.tooltip.crust_matter_agg.steam_cost_normal=normal
+gtsr.tooltip.crust_matter_agg.steam_cost_dense=dense
+gtsr.tooltip.crust_matter_agg.hint_dimension=Put a GT NEI Ore Plugin dimension display in the controller slot to pick a dimension; empty defaults to the current dimension
+gtsr.gui.crust_matter_agg.heat=Heat: 
+gtsr.gui.crust_matter_agg.mode=Singularity Mode: 
+gtsr.gui.crust_matter_agg.mode.off=None
+gtsr.gui.crust_matter_agg.mode.steam=Entangled
+gtsr.gui.crust_matter_agg.mode.critical=Critical
+gtsr.gui.crust_matter_agg.fuel_time=Time left: 
+gtsr.gui.crust_matter_agg.fuel_no_fuel=No fuel
+gtsr.gui.crust_matter_agg.dimension=Dimension: 
+gtsr.gui.crust_matter_agg.no_dimension=No Dimension
+gtsr.gui.crust_matter_agg.no_ores=No Ore Data
+gtsr.gui.crust_matter_agg.no_steam=No Steam
+gtsr.gui.crust_matter_agg.mining=Mining: 
+gtsr.gui.crust_matter_agg.steam_cost=Steam Cost: 
+gtsr.gui.crust_matter_agg.steam_cost_normal=normal
+gtsr.gui.crust_matter_agg.steam_cost_dense=dense
+GT5U.gui.text.recipe_result.gtsr.gui.crust_matter_agg.no_dimension=No Dimension
+GT5U.gui.text.recipe_result.gtsr.gui.crust_matter_agg.no_ores=No Ore Data
+GT5U.gui.text.recipe_result.gtsr.gui.crust_matter_agg.no_steam=No Steam
+
 # Singularity Crust Steam Borer
 gt.blockmachines.gtsr.singularity.crust.steam.borer.name=Singularity Crust Steam Borer
 gtsr.tooltip.singularity_crust_steam_borer.info=Steam-powered cross-dimension singularity miner

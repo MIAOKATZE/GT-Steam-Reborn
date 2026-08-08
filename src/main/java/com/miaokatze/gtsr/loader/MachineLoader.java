@@ -6,6 +6,7 @@ import com.miaokatze.gtsr.common.machine.MTEAirCompressor;
 import com.miaokatze.gtsr.common.machine.MTEAmmoniaPlant;
 import com.miaokatze.gtsr.common.machine.MTEAtmosphericCentrifuge;
 import com.miaokatze.gtsr.common.machine.MTECriticalSingularityCompressor;
+import com.miaokatze.gtsr.common.machine.MTECrustMatterAggregator;
 import com.miaokatze.gtsr.common.machine.MTECrustSteamBorer;
 import com.miaokatze.gtsr.common.machine.MTEDenseStateManipulator;
 import com.miaokatze.gtsr.common.machine.MTEGearSteamCompressor;
@@ -26,7 +27,6 @@ import com.miaokatze.gtsr.common.machine.MTESteamHubArray;
 import com.miaokatze.gtsr.common.machine.MTESteamSingularityCompressorOLD;
 import com.miaokatze.gtsr.common.machine.MTESteamSingularityEntangler;
 import com.miaokatze.gtsr.common.machine.MTEVeinSteamPyrolyzer;
-import com.miaokatze.gtsr.common.machine.MTEVoidCrustSteamBorer;
 import com.miaokatze.gtsr.common.machine.MTEVoidCrustSteamBorerOLD;
 import com.miaokatze.gtsr.common.machine.MTEWaterHubArray;
 import com.miaokatze.gtsr.common.machine.base.MTEDistilledWaterHatch;
@@ -283,11 +283,11 @@ public class MachineLoader {
             "gtsr.legacy.converter.crust_steam_borer",
             "[OLD] Crust Steam Borer",
             MetaTileEntityID.CRUST_STEAM_BORER.ID);
-        GTSRItemList.SingularityCrustSteamBorer.set(
-            new MTEVoidCrustSteamBorer(
+        GTSRItemList.CrustMatterAggregator.set(
+            new MTECrustMatterAggregator(
                 MetaTileEntityID.SINGULARITY_CRUST_STEAM_BORER.ID,
-                "gtsr.singularity.crust.steam.borer",
-                "Singularity Crust Steam Borer"));
+                "gtsr.crust.matter.aggregator",
+                "Crust Matter Aggregator"));
         new MTEVoidCrustSteamBorerOLD(
             MetaTileEntityID.SINGULARITY_CRUST_STEAM_BORER.OLD_ID,
             "gtsr.singularity.crust.steam.borer.old",
@@ -525,7 +525,7 @@ public class MachineLoader {
         // --- 多方块机器: 工作机器 (19-26) ---
         CreativeTabManager.addItemToTab(GTSRItemList.SteamFluidDrill.get(1));
         CreativeTabManager.addItemToTab(GTSRItemList.CrustSteamBorer.get(1));
-        CreativeTabManager.addItemToTab(GTSRItemList.SingularityCrustSteamBorer.get(1));
+        CreativeTabManager.addItemToTab(GTSRItemList.CrustMatterAggregator.get(1));
         CreativeTabManager.addItemToTab(GTSRItemList.VeinSteamPyrolyzer.get(1));
         CreativeTabManager.addItemToTab(GTSRItemList.LargeSteamFurnace.get(1));
         CreativeTabManager.addItemToTab(GTSRItemList.AirCompressor.get(1));

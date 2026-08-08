@@ -110,8 +110,9 @@ public class GTSRRecipeLoader implements Runnable {
         safeRegister("Chip", GTSRRecipeLoader::registerChipRecipes);
         safeRegister("Catalyst", GTSRRecipeLoader::registerCatalystRecipes);
         safeRegister("CacheNode", GTSRRecipeLoader::registerCacheNodeRecipes);
-        safeRegister("TinyPlanet", GTSRRecipeLoader::registerTinyPlanetRecipe); // 新增：Botania Tiny Planet 工作台配方（Botania
-                                                                                // 未加载时自动跳过）
+        safeRegister("TinyPlanetBlock", GTSRRecipeLoader::registerTinyPlanetRecipe); // 新增：Botania Tiny Planet
+                                                                                     // Block（魔力环绕器）工作台配方
+                                                                                     // （Botania 未加载时自动跳过）
         safeRegister("HubTerminal", GTSRRecipeLoader::registerHubTerminalRecipe); // 枢纽终端工作台配方：中心蒸汽纠缠奇点 + 8 钢板环绕
         safeRegister("NodeNBTClear", GTSRRecipeLoader::registerNodeNBTClearRecipes); // 节点清 NBT 无序配方：1 节点(无视 NBT) → 1
                                                                                      // 干净节点
@@ -645,7 +646,8 @@ public class GTSRRecipeLoader implements Runnable {
      * 其中：
      * - C = LV 电路板（任意种类，通过 OrePrefixes.circuit.get(Materials.LV) 匹配 OreDict）
      * - S = 蒸汽纠缠奇点（GTSRItemList.SteamEntangledSingularity）
-     * 产物：Botania:tinyPlanet
+     * 产物：Botania:tinyPlanetBlock（魔力环绕器）。原版配方为行星项链（tinyPlanet）+ 8 石头 = 魔力环绕器；
+     * 本配方直接产出方块，方便检索。
      * <p>
      * 安全处理：Botania 是 GTNH 必装模组，但出于代码健壮性仍用 Loader.isModLoaded 判断。
      * 若 Botania 未加载、产物或材料为 null，则跳过配方注册并记录警告日志。
@@ -659,10 +661,10 @@ public class GTSRRecipeLoader implements Runnable {
             return;
         }
 
-        // 2. 获取产物：Botania:tinyPlanet（Botania 物品注册名为小写驼峰式）
-        ItemStack tinyPlanet = GTModHandler.getModItem("Botania", "tinyPlanet", 1);
-        if (tinyPlanet == null) {
-            warn("Botania:tinyPlanet item is null, skipping Tiny Planet recipe!");
+        // 2. 获取产物：Botania:tinyPlanetBlock（魔力环绕器方块，注册名为小写驼峰式；原版配方为行星项链 tinyPlanet + 8 石头 = 魔力环绕器）
+        ItemStack tinyPlanetBlock = GTModHandler.getModItem("Botania", "tinyPlanetBlock", 1);
+        if (tinyPlanetBlock == null) {
+            warn("Botania:tinyPlanetBlock item is null, skipping Tiny Planet recipe!");
             return;
         }
 
@@ -682,7 +684,7 @@ public class GTSRRecipeLoader implements Runnable {
 
         // 5. 注册工作台配方：SSS / SCS / SSS（C 居中，S 绕一圈）
         GTModHandler.addCraftingRecipe(
-            tinyPlanet,
+            tinyPlanetBlock,
             GTModHandler.RecipeBits.BITSD,
             new Object[] { "SSS", "SCS", "SSS", 'S', singularity, 'C', lvCircuit });
 
@@ -1043,7 +1045,7 @@ public class GTSRRecipeLoader implements Runnable {
             warn("Skipped KineticProcessingArray recipe - output is null");
         }
 
-        ItemStack voidBorerOut = get(GTSRItemList.SingularityCrustSteamBorer, 1);
+        ItemStack voidBorerOut = get(GTSRItemList.CrustMatterAggregator, 1);
         if (!hasNull(voidBorerOut)) {
             ItemStack[] inputs = filterNulls(
                 GTSRItemList.SteamEntangledSingularity.get(8),
@@ -1060,7 +1062,7 @@ public class GTSRRecipeLoader implements Runnable {
                 .eut(TierEU.RECIPE_LV)
                 .addTo(assemblerRecipes);
         } else {
-            warn("Skipped SingularityCrustSteamBorer recipe - output is null");
+            warn("Skipped CrustMatterAggregator recipe - output is null");
         }
 
         // --- 强化奇点枢纽升级芯片 ---

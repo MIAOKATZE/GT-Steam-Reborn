@@ -94,24 +94,28 @@ public class SingularityClientFXHandler {
                 GTSRSingularityFX
                     .spawnDisk(world, cx, cy, cz, effRange, darkScale, t.getDuration(), t.getElapsedTicks());
             }
-            // 电弧：外向（中心→边缘），频率中位数 + 大幅波动；一次可多条（1~3 条、方向均匀间隔）
-            Integer cached = this.arcCooldowns.get(t);
-            int cooldown = cached == null ? 3 + world.rand.nextInt(12) : cached.intValue();
-            if (cooldown <= 0) {
-                int count = 1 + world.rand.nextInt(3); // 1~3 条
-                double baseYaw = world.rand.nextDouble() * 2.0D * Math.PI;
-                for (int i = 0; i < count; i++) {
-                    double yaw = baseYaw + (double) i * 2.0D * Math.PI / (double) count
-                        + (world.rand.nextDouble() - 0.5D) * 0.4D;
-                    double pitch = (world.rand.nextDouble() - 0.5D) * Math.PI * 0.8D;
-                    double ex = cx + Math.cos(pitch) * Math.cos(yaw) * effRange;
-                    double ey = cy + Math.sin(pitch) * effRange + (world.rand.nextDouble() - 0.5D) * effRange * 0.4D;
-                    double ez = cz + Math.cos(pitch) * Math.sin(yaw) * effRange;
-                    GTSRFXEngine.spawnArc(world, cx, cy, cz, ex, ey, ez, 0.08F, 7, 10, 0.5F, 8, darkScale); // 起点=中心，终点=边缘（外向）
+            // 电弧：外向（中心→边缘），频率中位数 + 大幅波动；一次可多条（1~3 条、方向均匀间隔）。
+            // onlypull（attributeId=-2）：无吸收行为，跳过电弧；吸积盘/光片/辉光保留（仍表现牵引动画）
+            if (t.getAttributeId() != TileRunawaySingularity.ATTRIBUTE_ONLY_PULL) {
+                Integer cached = this.arcCooldowns.get(t);
+                int cooldown = cached == null ? 3 + world.rand.nextInt(12) : cached.intValue();
+                if (cooldown <= 0) {
+                    int count = 1 + world.rand.nextInt(3); // 1~3 条
+                    double baseYaw = world.rand.nextDouble() * 2.0D * Math.PI;
+                    for (int i = 0; i < count; i++) {
+                        double yaw = baseYaw + (double) i * 2.0D * Math.PI / (double) count
+                            + (world.rand.nextDouble() - 0.5D) * 0.4D;
+                        double pitch = (world.rand.nextDouble() - 0.5D) * Math.PI * 0.8D;
+                        double ex = cx + Math.cos(pitch) * Math.cos(yaw) * effRange;
+                        double ey = cy + Math.sin(pitch) * effRange
+                            + (world.rand.nextDouble() - 0.5D) * effRange * 0.4D;
+                        double ez = cz + Math.cos(pitch) * Math.sin(yaw) * effRange;
+                        GTSRFXEngine.spawnArc(world, cx, cy, cz, ex, ey, ez, 0.08F, 7, 10, 0.5F, 8, darkScale); // 起点=中心，终点=边缘（外向）
+                    }
+                    cooldown = 4 + world.rand.nextInt(12); // 4~15 tick
                 }
-                cooldown = 4 + world.rand.nextInt(12); // 4~15 tick
+                this.arcCooldowns.put(t, Integer.valueOf(cooldown - 1));
             }
-            this.arcCooldowns.put(t, Integer.valueOf(cooldown - 1));
             // 光束：每奇点 2 片锥形光片（独立随机初始方位与旋转轴），长度 = 光效半径 × 200%，随活性系数收缩变暗
             float glowRadius = Math.min(4.0F, 1.0F + (float) effRange * 0.09F);
             float beamLen = glowRadius * (float) af * 2.0F;

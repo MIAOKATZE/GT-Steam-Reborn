@@ -32,7 +32,8 @@ import com.miaokatze.gtsr.loader.BlockLoader;
  * S2：服务端吸收/牵引/衰减逻辑已实现。
  * 时间语义：duration 单位=tick（600=30 秒），speed 单位=方块/20tick，damage 单位=伤害/20tick。
  * 颜色：color 为 16 原版染料色之一（默认 white），仅影响视觉表现（主体光效与光片）。
- * 特殊状态：attributeId=-1 表示 special=null，纯动画，不吸引/不破坏/不吸收任何方块与实体。
+ * 特殊状态：attributeId=-1 表示 special=null，纯动画，不吸引/不破坏/不吸收任何方块与实体；
+ * attributeId=-2 表示 special=onlypull，只牵引不吸收（不吸收方块、不处理掉落物、牵引力度减半、伤害照常）。
  * 无 NBT 默认参数：(10 0 0 600 null white)——NBT 丢失时回退为惰性有限时长奇点，绝不摧毁周边机器。
  */
 public class TileRunawaySingularity extends TileEntity {
@@ -85,11 +86,14 @@ public class TileRunawaySingularity extends TileEntity {
         return "white";
     }
 
+    public static final int ATTRIBUTE_NULL = -1; // 特殊状态 null：纯动画，不吸引/不破坏/不吸收任何方块与实体
+    public static final int ATTRIBUTE_ONLY_PULL = -2; // 特殊状态 onlypull：只牵引不吸收（不吸收方块、不处理掉落物、牵引力度减半、伤害照常）
+
     private double range = 10.0D;
     private double speed = 0.0D;
     private double damage = 0.0D;
     private int duration = 600; // tick，600 = 30 秒，-1=无限
-    private int attributeId = -1; // -1=特殊状态 null（纯动画）；无 NBT 默认即惰性奇点
+    private int attributeId = -1; // -1=ATTRIBUTE_NULL（纯动画）；-2=ATTRIBUTE_ONLY_PULL（只牵引不吸收）；无 NBT 默认即惰性奇点
     private String color = "white"; // 16 原版染料色之一，默认 white，仅影响视觉表现
     private int elapsedTicks = 0; // 服务端与客户端各自递增
 
@@ -191,7 +195,8 @@ public class TileRunawaySingularity extends TileEntity {
         this.range = Math.max(0.5D, Math.min(128.0D, range));
         this.speed = Math.max(0.0D, Math.min(100.0D, speed));
         this.damage = Math.max(0.0D, Math.min(1000.0D, damage));
-        this.attributeId = attributeId == -1 ? -1 : Math.max(0, Math.min(999, attributeId));
+        this.attributeId = attributeId == ATTRIBUTE_NULL || attributeId == ATTRIBUTE_ONLY_PULL ? attributeId
+            : Math.max(0, Math.min(999, attributeId)); // 仅放行两个特殊值（-1 null 纯动画 / -2 onlypull 只牵引不吸收），其余 0-999 钳制
         if (duration == -1) {
             this.duration = -1;
         } else {
@@ -248,13 +253,16 @@ public class TileRunawaySingularity extends TileEntity {
             worldObj.setBlockToAir(xCoord, yCoord, zCoord); // 时间耗尽，奇点销毁，事件结束
             return;
         }
-        if (attributeId == -1) {
+        if (attributeId == ATTRIBUTE_NULL) {
             return; // 特殊状态 null：纯动画，不吸引/不破坏/不吸收任何方块与实体
         }
+        boolean onlyPull = attributeId == ATTRIBUTE_ONLY_PULL;
         double factor = getActiveFactor();
         double effRange = range * factor;
-        absorbScan(effRange, factor);
-        handleEntities(effRange, factor);
+        if (!onlyPull) {
+            absorbScan(effRange, factor); // onlypull：跳过吸收扫描（absorbScan 只扫方块，不含实体）
+        }
+        handleEntities(effRange, factor, onlyPull);
     }
 
     /**
@@ -369,8 +377,10 @@ public class TileRunawaySingularity extends TileEntity {
 
     /**
      * 实体牵引/伤害/掉落物/飞行取消
+     * onlyPull=true（attributeId=-2）：掉落物完全不处理（不牵引、不销毁）；
+     * 其他实体（含玩家）牵引力度减半；伤害与玩家飞行处理照常。
      */
-    private void handleEntities(double effRange, double factor) {
+    private void handleEntities(double effRange, double factor, boolean onlyPull) {
         double cx = xCoord + 0.5D;
         double cy = yCoord + 0.5D;
         double cz = zCoord + 0.5D;
@@ -394,8 +404,14 @@ public class TileRunawaySingularity extends TileEntity {
             if (entity instanceof EntityPlayer && ((EntityPlayer) entity).capabilities.isCreativeMode) {
                 continue; // 创造玩家完全豁免
             }
+            if (onlyPull && entity instanceof EntityItem) {
+                continue; // onlypull：掉落物完全不处理（既不牵引也不执行近距销毁 setDead）
+            }
             double pull = 1.0D - d / effRange;
             double force = pull * pull * factor;
+            if (onlyPull) {
+                force *= 0.5D; // onlypull：牵引力度减半（伤害与玩家飞行处理照常）
+            }
             if (d > 0.0D && !(entity instanceof EntityPlayer)) {
                 entity.addVelocity(dx / d * force * 0.15D, dy / d * force * 0.25D, dz / d * force * 0.15D);
             }

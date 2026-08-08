@@ -11,9 +11,10 @@ import com.miaokatze.gtsr.common.blocks.TileRunawaySingularity;
 
 /**
  * /gtsr 指令：在命令发送者位置生成失控奇点。
- * 用法：/gtsr singularity <range> <speed/20tick> <damage/20tick> <durationTicks|NA> <special|null> [color]
+ * 用法：/gtsr singularity <range> <speed/20tick> <damage/20tick> <durationTicks|NA> <special|null|onlypull> [color]
  * speed=每20tick吸收方块数，damage=每20tick伤害值，durationTicks=tick 数；duration 为 NA 表示无限。
- * special=特殊状态（0-999），null=纯动画（不吸引/不破坏/不吸收任何方块与实体）。
+ * special=特殊状态（0-999），null=纯动画（不吸引/不破坏/不吸收任何方块与实体），
+ * onlypull=只牵引不吸收（不吸收方块、不处理掉落物、牵引力度减半、伤害照常）。
  * color=16 原版染料色之一，省略默认 white。
  * 调试默认：10 1 1 600 0 white（范围 10、每20tick吸1块、每20tick 1点伤害、600 tick=30秒、事件 0、白色）。
  * 需要 OP 权限等级 4。
@@ -27,7 +28,7 @@ public class GTSRCommand extends CommandBase {
 
     @Override
     public String getCommandUsage(ICommandSender sender) {
-        return "/gtsr singularity <range> <speed/20tick> <damage/20tick> <durationTicks|NA> <special|null> [color]";
+        return "/gtsr singularity <range> <speed/20tick> <damage/20tick> <durationTicks|NA> <special|null|onlypull> [color]";
     }
 
     @Override
@@ -79,7 +80,8 @@ public class GTSRCommand extends CommandBase {
                     + ", duration "
                     + (duration == -1 ? "NA" : duration)
                     + ", special "
-                    + (special == -1 ? "null" : special)
+                    + (special == TileRunawaySingularity.ATTRIBUTE_NULL ? "null"
+                        : special == TileRunawaySingularity.ATTRIBUTE_ONLY_PULL ? "onlypull" : special)
                     + ", color "
                     + color));
     }
@@ -90,7 +92,7 @@ public class GTSRCommand extends CommandBase {
             return getListOfStringsMatchingLastWord(args, "singularity");
         }
         if (args.length == 5) {
-            return getListOfStringsMatchingLastWord(args, "NA", "0", "null");
+            return getListOfStringsMatchingLastWord(args, "NA", "0", "null", "onlypull");
         }
         if (args.length == 6) {
             return getListOfStringsMatchingLastWord(
@@ -149,11 +151,15 @@ public class GTSRCommand extends CommandBase {
     }
 
     /**
-     * 第 5 参：特殊状态；null → -1（纯动画，不吸引/不破坏/不吸收任何方块与实体），否则 0-999 整数
+     * 第 5 参：特殊状态；null → -1（纯动画，不吸引/不破坏/不吸收任何方块与实体），
+     * onlypull → -2（只牵引不吸收：不吸收方块、不处理掉落物、牵引力度减半、伤害照常），否则 0-999 整数
      */
     private int parseSpecial(String arg) {
         if (arg.equalsIgnoreCase("null")) {
-            return -1;
+            return TileRunawaySingularity.ATTRIBUTE_NULL;
+        }
+        if (arg.equalsIgnoreCase("onlypull")) {
+            return TileRunawaySingularity.ATTRIBUTE_ONLY_PULL;
         }
         return parseClampedInt(arg, 0, 999);
     }
