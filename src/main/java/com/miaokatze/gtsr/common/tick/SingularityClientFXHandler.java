@@ -96,8 +96,19 @@ public class SingularityClientFXHandler {
             double diskP = (0.55D + 0.15D * Math.min(1.0D, effRange / 32.0D)) * af;
             double diskR = (t.getAttributeId() == TileRunawaySingularity.ATTRIBUTE_NULL_PLUS ? 3.0D : 6.0D)
                 + glowBase * af;
+            // 粒子大小随辉光半径放大：fxRadius=30 时达上限 3 倍（线性，30 以上封顶）
+            float particleScale = (float) (1.0D + Math.min(t.getFxRadius(), 30.0D) / 30.0D * 2.0D);
             if (world.rand.nextFloat() < diskP) {
-                GTSRSingularityFX.spawnDisk(world, cx, cy, cz, diskR, darkScale, t.getDuration(), t.getElapsedTicks());
+                GTSRSingularityFX.spawnDisk(
+                    world,
+                    cx,
+                    cy,
+                    cz,
+                    diskR,
+                    darkScale,
+                    t.getDuration(),
+                    t.getElapsedTicks(),
+                    particleScale);
             }
             // 电弧：外向（中心→边缘），频率中位数 + 大幅波动；一次可多条（1~3 条、方向均匀间隔）。
             // onlypull（-2）与 nullplus（-3）：无吸收行为，跳过电弧；光片/辉光保留（onlypull 仍表现牵引动画，nullplus 为纯静置）

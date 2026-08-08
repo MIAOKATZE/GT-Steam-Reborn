@@ -119,8 +119,10 @@ public class GTSRSingularityFX extends GTSRFXParticle {
     }
 
     public static void spawnDisk(World world, double cx, double cy, double cz, double spawnR, float darkScale,
-        int durationTicks, int spawnElapsed) {
+        int durationTicks, int spawnElapsed, float scaleFactor) {
         GTSRSingularityFX fx = new GTSRSingularityFX(world, cx, cy, cz, spawnR, 0);
+        // 粒子大小随辉光半径放大（fxRadius=30 时达上限 3 倍；scaleFactor 由 handler 计算）
+        fx.particleScale *= scaleFactor;
         fx.setDarkScale(darkScale);
         fx.durationTicks = durationTicks;
         fx.spawnElapsed = spawnElapsed;

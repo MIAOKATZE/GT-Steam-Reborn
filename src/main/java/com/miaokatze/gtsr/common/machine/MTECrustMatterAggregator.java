@@ -80,7 +80,7 @@ import gregtech.common.tileentities.machines.IDualInputInventory;
  * SINGULARITY_DURATION_TICKS=4000（200 秒）；每 20 tick 检查：无模式时优先消耗临界蒸汽纠缠奇点
  * 进入模式 2，其次蒸汽纠缠奇点进入模式 1；模式中倒计时耗尽时按当前模式对应物品无缝续杯，失败退出。
  * 失控奇点节点（单 F 位，color "black"，attributeId -2=onlypull）参数随模式变化：
- * 模式 0 (6,0,1, fx2) / 模式 1 (8,0,2, fx2.5) / 模式 2 (12,0,4, fx3)（range, speed, damage, fxRadius）。
+ * 模式 0 (6,0,1, fx10) / 模式 1 (8,0,2, fx15) / 模式 2 (12,0,4, fx20)（range, speed, damage, fxRadius）。
  *
  * 粒子（客户端，太阳能锅炉同款）：G 位（泥土位，54 个）机器工作即每 tick 1 个白色 cloud 粒子；
  * H 位（草方块位，36 个）按 mHeat/0.5 期望数概率补 1（热量驱动）。工作标志与热量经
@@ -897,17 +897,17 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
             case 2:
                 range = 12.0d;
                 damage = 4.0d;
-                fxRadius = 3.0d;
+                fxRadius = 20.0d;
                 break;
             case 1:
                 range = 8.0d;
                 damage = 2.0d;
-                fxRadius = 2.5d;
+                fxRadius = 15.0d;
                 break;
             default:
                 range = 6.0d;
                 damage = 1.0d;
-                fxRadius = 2.0d;
+                fxRadius = 10.0d;
                 break;
         }
         return Collections.singletonList(

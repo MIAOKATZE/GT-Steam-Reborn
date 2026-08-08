@@ -14,7 +14,7 @@ import cpw.mods.fml.common.IWorldGenerator;
 /**
  * 失控奇点自然生成（nature 词条）
  * 仅主世界(0)与下界(-1)生效；平均每 24×24=576 个区块生成 1 个。
- * 生成参数固定为 nature 特殊状态：range 8-16 / speed 1-3 / damage 0 / duration -1(无限) / color white / fxRadius 2.5。
+ * 生成参数固定为 nature 特殊状态：range 8-16 / speed 1-3 / damage 0 / duration -1(无限) / color white / fxRadius 10-25。
  * 位置：地表(或水面)方块上方 2-6 格的空气中。
  */
 public class WorldGenRunawaySingularity implements IWorldGenerator {
@@ -51,7 +51,7 @@ public class WorldGenRunawaySingularity implements IWorldGenerator {
         if (!world.isAirBlock(blockX, y, blockZ)) {
             return;
         }
-        // NBT 参数：range 8-16 / speed 1-3 / damage 0 / duration -1(无限) / nature(-4) / white / fxRadius 2.5
+        // NBT 参数：range 8-16 / speed 1-3 / damage 0 / duration -1(无限) / nature(-4) / white / fxRadius 10-25
         double range = 8.0D + random.nextInt(9); // 8-16
         double speed = 1.0D + random.nextInt(3); // 1-3
         TileRunawaySingularity.spawnSingularity(
@@ -65,7 +65,7 @@ public class WorldGenRunawaySingularity implements IWorldGenerator {
             -1,
             TileRunawaySingularity.ATTRIBUTE_NATURE,
             "white",
-            2.5D);
+            10.0D + random.nextInt(16));
     }
 
     /**
