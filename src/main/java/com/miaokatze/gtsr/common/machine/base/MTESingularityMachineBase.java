@@ -3,6 +3,7 @@ package com.miaokatze.gtsr.common.machine.base;
 import static gregtech.api.enums.GTValues.emptyItemStackArray;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import javax.annotation.Nullable;
@@ -424,48 +425,50 @@ public abstract class MTESingularityMachineBase extends MTEEnhancedMultiBlockBas
     }
 
     private void updateEntanglementSingularity(IGregTechTileEntity aBaseMetaTileEntity) {
-        EntanglementSpec spec = getEntanglementSpec();
-        if (spec == null) return;
+        List<EntanglementSpec> specs = getEntanglementSpecs();
+        if (specs.isEmpty()) return;
         // 启动豁免：控制器重载后结构判定延迟期间（GT mStartUpCheck≈5 秒），奇点判定同步豁免
         if (getmStartUpCheck() >= 0) return;
         // working：结构有效 + 允许工作 + 周期进行中或蒸汽尚存（平滑周期间隙，避免奇点闪烁）
         boolean working = mMachine && aBaseMetaTileEntity.isAllowedToWork()
             && (mMaxProgresstime > 0 || findHighestGrade(includeDenseSteam()) >= 0);
-        int x = aBaseMetaTileEntity.getXCoord() + spec.dx;
-        int y = aBaseMetaTileEntity.getYCoord() + spec.dy;
-        int z = aBaseMetaTileEntity.getZCoord() + spec.dz;
         World world = aBaseMetaTileEntity.getWorld();
-        if (working) {
-            Block block = world.getBlock(x, y, z);
-            // 惰性生成：仅当定位点为空气才放置（不覆盖已有奇点 NBT，无比持久化）
-            if (block.isAir(world, x, y, z)) {
-                TileRunawaySingularity.spawnSingularity(
-                    world,
-                    x,
-                    y,
-                    z,
-                    spec.range,
-                    spec.speed,
-                    spec.damage,
-                    spec.duration,
-                    spec.attributeId,
-                    spec.color);
-            } else if (block == BlockLoader.blockRunawaySingularity) {
-                // 参数修复（自愈）：与规格不符（如 NBT 丢失回退默认 600 tick）时重新应用，
-                // 防止 30 秒自毁或异常行为；elapsedTicks 不受影响
-                if (world.getTileEntity(x, y, z) instanceof TileRunawaySingularity t
-                    && (t.getRange() != spec.range || t.getSpeed() != spec.speed
-                        || t.getDamage() != spec.damage
-                        || t.getDuration() != spec.duration
-                        || t.getAttributeId() != spec.attributeId
-                        || !spec.color.equals(t.getColor()))) {
-                    t.setParams(spec.range, spec.speed, spec.damage, spec.duration, spec.attributeId, spec.color);
-                    t.markDirty();
+        for (EntanglementSpec spec : specs) {
+            int x = aBaseMetaTileEntity.getXCoord() + spec.dx;
+            int y = aBaseMetaTileEntity.getYCoord() + spec.dy;
+            int z = aBaseMetaTileEntity.getZCoord() + spec.dz;
+            if (working) {
+                Block block = world.getBlock(x, y, z);
+                // 惰性生成：仅当定位点为空气才放置（不覆盖已有奇点 NBT，无比持久化）
+                if (block.isAir(world, x, y, z)) {
+                    TileRunawaySingularity.spawnSingularity(
+                        world,
+                        x,
+                        y,
+                        z,
+                        spec.range,
+                        spec.speed,
+                        spec.damage,
+                        spec.duration,
+                        spec.attributeId,
+                        spec.color);
+                } else if (block == BlockLoader.blockRunawaySingularity) {
+                    // 参数修复（自愈）：与规格不符（如 NBT 丢失回退默认 600 tick）时重新应用，
+                    // 防止 30 秒自毁或异常行为；elapsedTicks 不受影响
+                    if (world.getTileEntity(x, y, z) instanceof TileRunawaySingularity t
+                        && (t.getRange() != spec.range || t.getSpeed() != spec.speed
+                            || t.getDamage() != spec.damage
+                            || t.getDuration() != spec.duration
+                            || t.getAttributeId() != spec.attributeId
+                            || !spec.color.equals(t.getColor()))) {
+                        t.setParams(spec.range, spec.speed, spec.damage, spec.duration, spec.attributeId, spec.color);
+                        t.markDirty();
+                    }
                 }
+            } else if (world.getBlock(x, y, z) == BlockLoader.blockRunawaySingularity) {
+                // 立即惰性移除：关闭/挂机/结构破坏后下一次检查即消失（重载豁免见上方 getmStartUpCheck 门）
+                world.setBlockToAir(x, y, z);
             }
-        } else if (world.getBlock(x, y, z) == BlockLoader.blockRunawaySingularity) {
-            // 立即惰性移除：关闭/挂机/结构破坏后下一次检查即消失（重载豁免见上方 getmStartUpCheck 门）
-            world.setBlockToAir(x, y, z);
         }
     }
 
@@ -474,21 +477,21 @@ public abstract class MTESingularityMachineBase extends MTEEnhancedMultiBlockBas
         super.onRemoval();
         IGregTechTileEntity base = getBaseMetaTileEntity();
         if (base == null || !base.isServerSide()) return;
-        EntanglementSpec spec = getEntanglementSpec();
-        if (spec == null) return;
         // 仅当控制器方块已被移除（被拆）才清理奇点；区块卸载时方块仍在，保持奇点持久化
         if (!base.getWorld()
             .getBlock(base.getXCoord(), base.getYCoord(), base.getZCoord())
             .isAir(base.getWorld(), base.getXCoord(), base.getYCoord(), base.getZCoord())) {
             return;
         }
-        int x = base.getXCoord() + spec.dx;
-        int y = base.getYCoord() + spec.dy;
-        int z = base.getZCoord() + spec.dz;
-        if (base.getWorld()
-            .getBlock(x, y, z) == BlockLoader.blockRunawaySingularity) {
-            base.getWorld()
-                .setBlockToAir(x, y, z);
+        for (EntanglementSpec spec : getEntanglementSpecs()) {
+            int x = base.getXCoord() + spec.dx;
+            int y = base.getYCoord() + spec.dy;
+            int z = base.getZCoord() + spec.dz;
+            if (base.getWorld()
+                .getBlock(x, y, z) == BlockLoader.blockRunawaySingularity) {
+                base.getWorld()
+                    .setBlockToAir(x, y, z);
+            }
         }
     }
 
@@ -620,5 +623,14 @@ public abstract class MTESingularityMachineBase extends MTEEnhancedMultiBlockBas
     @Nullable
     protected EntanglementSpec getEntanglementSpec() {
         return null;
+    }
+
+    /**
+     * 纠缠奇点生成规格列表（多节点机器可覆盖返回多元素）；默认转发单例。
+     */
+    protected List<EntanglementSpec> getEntanglementSpecs() {
+        EntanglementSpec spec = getEntanglementSpec();
+        if (spec == null) return Collections.emptyList();
+        return Collections.singletonList(spec);
     }
 }

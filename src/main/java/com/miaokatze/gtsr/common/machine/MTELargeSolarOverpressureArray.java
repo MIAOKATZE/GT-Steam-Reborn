@@ -1,5 +1,6 @@
 package com.miaokatze.gtsr.common.machine;
 
+import static com.gtnewhorizon.structurelib.structure.StructureUtility.isAir;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlocksTiered;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
@@ -8,6 +9,7 @@ import static gregtech.api.enums.HatchElement.InputHatch;
 import static gregtech.api.enums.HatchElement.OutputHatch;
 import static gregtech.api.metatileentity.BaseTileEntity.TOOLTIP_DELAY;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
+import static gregtech.api.util.GTStructureUtility.ofAnyWater;
 
 import java.text.NumberFormat;
 import java.util.ArrayList;
@@ -41,6 +43,7 @@ import com.gtnewhorizon.structurelib.alignment.constructable.ISurvivalConstructa
 import com.gtnewhorizon.structurelib.structure.IStructureDefinition;
 import com.gtnewhorizon.structurelib.structure.ISurvivalBuildEnvironment;
 import com.gtnewhorizon.structurelib.structure.StructureDefinition;
+import com.gtnewhorizon.structurelib.util.Vec3Impl;
 import com.gtnewhorizons.modularui.api.drawable.IDrawable;
 import com.gtnewhorizons.modularui.api.math.Pos2d;
 import com.gtnewhorizons.modularui.api.screen.ModularWindow;
@@ -76,6 +79,7 @@ import gregtech.api.render.TextureFactory;
 import gregtech.api.structure.error.StructureError;
 import gregtech.api.structure.error.StructureErrorRegistry;
 import gregtech.api.util.GTModHandler;
+import gregtech.api.util.GTStructureUtility;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.common.blocks.BlockCasings1;
@@ -87,9 +91,88 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
     implements IConstructable, ISurvivalConstructable, IShiftRightClickDecalcifiable {
 
     private static final String STRUCTURE_PIECE_MAIN = "main";
-    private static final int HORIZONTAL_OFF_SET = 6;
-    private static final int VERTICAL_OFF_SET = 0;
-    private static final int DEPTH_OFF_SET = 0;
+    private static final int HORIZONTAL_OFF_SET = 3;
+    private static final int VERTICAL_OFF_SET = 4;
+    private static final int DEPTH_OFF_SET = 1;
+
+    // GTUDK 导出结构：27 列 × 7 层 × 30 行；'~' 控制器在 (列 3, 层 4, 行 1)；
+    // b=slice（层，顶→底）、c=row（深度线，前面第一）、a=char（列，自左向右）
+    private static final String[][] SHAPE_MAIN = {
+        { "                           ", "  AAA                      ", " A---A                     ",
+            " A---A                     ", " A---A                     ", "  AAA                      ",
+            "                           ", "                           ", "                           ",
+            "                           ", "                           ", "                           ",
+            "                           ", "                           ", "                           ",
+            "                           ", "                           ", "                           ",
+            "                           ", "                           ", "                           ",
+            "                           ", "                           ", "                           ",
+            "                           ", "                           ", "                           ",
+            "                           ", "                           ", "                           " },
+        { "                           ", "  AAA                      ", " A---A                     ",
+            " A---A                     ", " A---A                     ", "  AAA                      ",
+            "                           ", "                           ", "                           ",
+            "                           ", "                           ", "                           ",
+            "                           ", "                           ", "                           ",
+            "                           ", "                           ", "                           ",
+            "                           ", "                           ", "                           ",
+            "                           ", "                           ", "                           ",
+            "                           ", "                           ", "                           ",
+            "                           ", "                           ", "                           " },
+        { "                           ", " DAAAAAAAA           AAAAA ", " AFFFA                    A",
+            " AFFFA                    A", " AFFFA                    A", " AAAA                   AA ",
+            " A                         ", " A                      AA ", " A                        A",
+            " A                        A", "                          A", "                        AA ",
+            "                           ", "                        AA ", "                          A",
+            "                          A", "                          A", "                        AA ",
+            "                           ", "                        AA ", "                          A",
+            "                          A", "                          A", "                        AA ",
+            " A                         ", " A                      AA ", " A                        A",
+            " A                        A", " A                        A", "  AAAAA              AAAAA " },
+        { "                           ", " DAAAAAAAAAAAAAAAAAAAAAAAAD", " ACCCAGGGGGGGGGGGGGGGGGGGGA",
+            " ACCCCGGGGGGGGGGGGGGGGGGGGA", " ACCCAGGGGGGGGGGGGGGGGGGGGA", " AAAAAAAAAAAAAAAAAAAAAAAAAD",
+            " AGGGAD    D    D    D     ", " AGGGAAAAAAAAAAAAAAAAAAAAAD", " AGGGGGGGGGGGGGGGGGGGGGGGGA",
+            " AGGGGGGGGGGGGGGGGGGGGGGGGA", " AGGGGGGGGGGGGGGGGGGGGGGGGA", " AGGGAAAAAAAAAAAAAAAAAAAAAD",
+            " AGGGAD    D    D    D     ", " AGGGAAAAAAAAAAAAAAAAAAAAAD", " AGGGGGGGGGGGGGGGGGGGGGGGGA",
+            " AGGGGGGGGGGGGGGGGGGGGGGGGA", " AGGGGGGGGGGGGGGGGGGGGGGGGA", " AGGGAAAAAAAAAAAAAAAAAAAAAD",
+            " AGGGAD    D    D    D     ", " AGGGAAAAAAAAAAAAAAAAAAAAAD", " AGGGGGGGGGGGGGGGGGGGGGGGGA",
+            " AGGGGGGGGGGGGGGGGGGGGGGGGA", " AGGGGGGGGGGGGGGGGGGGGGGGGA", " AGGGAAAAAAAAAAAAAAAAAAAAAD",
+            " AGGGAD    D    D    D     ", " AGGGAAAAAAAAAAAAAAAAAAAAAD", " AGGGGGGGGGGGGGGGGGGGGGGGGA",
+            " AGGGGGGGGGGGGGGGGGGGGGGGGA", " AGGGGGGGGGGGGGGGGGGGGGGGGA", " DAAAAAAAAAAAAAAAAAAAAAAAAD" },
+        { "                           ", " DA~AAAAAAAAAAAAAAAAAAAAAAD", " ACCCAHHHHHHHHHHHHHHHHHHHHA",
+            " ACCCCEEEEEEEEEEEEEEEEEEEEA", " ACCCAHHHHHHHHHHHHHHHHHHHHA", " AACAAAAAAAAAAAAAAAAAAAAAAD",
+            " AHEHAD    D    D    D     ", " AHEHAAAAAAAAAAAAAAAAAAAAAD", " AHEHHHHHHHHHHHHHHHHHHHHHHA",
+            " AHEEEEEEEEEEEEEEEEEEEEEEEA", " AHEHHHHHHHHHHHHHHHHHHHHHHA", " AHEHAAAAAAAAAAAAAAAAAAAAAD",
+            " AHEHAD    D    D    D     ", " AHEHAAAAAAAAAAAAAAAAAAAAAD", " AHEHHHHHHHHHHHHHHHHHHHHHHA",
+            " AHEEEEEEEEEEEEEEEEEEEEEEEA", " AHEHHHHHHHHHHHHHHHHHHHHHHA", " AHEHAAAAAAAAAAAAAAAAAAAAAD",
+            " AHEHAD    D    D    D     ", " AHEHAAAAAAAAAAAAAAAAAAAAAD", " AHEHHHHHHHHHHHHHHHHHHHHHHA",
+            " AHEEEEEEEEEEEEEEEEEEEEEEEA", " AHEHHHHHHHHHHHHHHHHHHHHHHA", " AHEHAAAAAAAAAAAAAAAAAAAAAD",
+            " AHEHAD    D    D    D     ", " AHEHAAAAAAAAAAAAAAAAAAAAAD", " AHEHHHHHHHHHHHHHHHHHHHHHHA",
+            " AHEEEEEEEEEEEEEEEEEEEEEEEA", " AHHHHHHHHHHHHHHHHHHHHHHHHA", " DAAAAAAAAAAAAAAAAAAAAAAAAD" },
+        { "                           ", " DAAABBBBBBBBBBBBBBBBBBBBBD", " ACCCACCCCCCCCCCCCCCCCCCCCB",
+            " ACCCCHHHHHHHHHHHHHHHHHHHHB", " ACCCACCCCCCCCCCCCCCCCCCCCB", " AACABBBBBBBBBBBBBBBBBBBBBD",
+            " BCHCBD    D    D    D     ", " BCHCBBBBBBBBBBBBBBBBBBBBBD", " BCHCCCCCCCCCCCCCCCCCCCCCCB",
+            " BCHHHHHHHHHHHHHHHHHHHHHHHB", " BCHCCCCCCCCCCCCCCCCCCCCCCB", " BCHCBBBBBBBBBBBBBBBBBBBBBD",
+            " BCHCBD    D    D    D     ", " BCHCBBBBBBBBBBBBBBBBBBBBBD", " BCHCCCCCCCCCCCCCCCCCCCCCCB",
+            " BCHH HHHHHHHHHHHHHHHHHHHHB", " BCHCCCCCCCCCCCCCCCCCCCCCCB", " BCHCBBBBBBBBBBBBBBBBBBBBBD",
+            " BCHCBD    D    D    D     ", " BCHCBBBBBBBBBBBBBBBBBBBBBD", " BCHCHCCCCCCCCCCCCCCCCCCCCB",
+            " BCHH HHHHHHHHHHHHHHHHHHHHB", " BCHCHCCCCCCCCCCCCCCCCCCCCB", " BCHCBBBBBBBBBBBBBBBBBBBBBD",
+            " BCHCBD    D    D    D     ", " BCHCBBBBBBBBBBBBBBBBBBBBBD", " BCHCCCCCCCCCCCCCCCCCCCCCCB",
+            " BCHHHHHHHHHHHHHHHHHHHHHHHB", " BCCCCCCCCCCCCCCCCCCCCCCCCB", " DBBBBBBBBBBBBBBBBBBBBBBBBD" },
+        { " AAAA                      ", "ADAAAAAAAAAAAAAAAAAAAAAAAAD", "AAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "AAAAAAAAAAAAAAAAAAAAAAAAAAA", "AAAAAAAAAAAAAAAAAAAAAAAAAAA", " AAAAAAAAAAAAAAAAAAAAAAAAAD",
+            " AAAAAD    D    D    D     ", " AAAAAAAAAAAAAAAAAAAAAAAAAD", " AAAAAAAAAAAAAAAAAAAAAAAAAA",
+            " AAAAAAAAAAAAAAAAAAAAAAAAAA", " AAAAAAAAAAAAAAAAAAAAAAAAAA", " AAAAAAAAAAAAAAAAAAAAAAAAAD",
+            " AAAAAD    D    D    D     ", " AAAAAAAAAAAAAAAAAAAAAAAAAD", " AAAAAAAAAAAAAAAAAAAAAAAAAA",
+            " AAAAAAAAAAAAAAAAAAAAAAAAAA", " AAAAAAAAAAAAAAAAAAAAAAAAAA", " AAAAAAAAAAAAAAAAAAAAAAAAAD",
+            " AAAAAD    D    D    D     ", " AAAAAAAAAAAAAAAAAAAAAAAAAD", " AAAAAAAAAAAAAAAAAAAAAAAAAA",
+            " AAAAAAAAAAAAAAAAAAAAAAAAAA", " AAAAAAAAAAAAAAAAAAAAAAAAAA", " AAAAAAAAAAAAAAAAAAAAAAAAAD",
+            " AAAAAD    D    D    D     ", " AAAAAAAAAAAAAAAAAAAAAAAAAD", " AAAAAAAAAAAAAAAAAAAAAAAAAA",
+            " AAAAAAAAAAAAAAAAAAAAAAAAAA", " AAAAAAAAAAAAAAAAAAAAAAAAAA", " DAAAAAAAAAAAAAAAAAAAAAAAAD" } };
+
+    // 顶面方块形状偏移缓存（静态惰性初始化，运行时扫描 SHAPE_MAIN 计算，勿硬编码数量）
+    private static List<int[]> mTopSurfaceOffsets = null;
+    // F 泥土粒子位形状偏移缓存（9 个）
+    private static List<int[]> mParticleOffsets = null;
 
     private static IStructureDefinition<MTELargeSolarOverpressureArray> STRUCTURE_DEFINITION = null;
     private static final NumberFormat numberFormat = NumberFormat.getNumberInstance();
@@ -107,9 +190,14 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
     protected boolean mIsOperating = false;
     protected int tierCasing = -1;
     protected int tierGlass = -1;
-    protected int tierConductor = -1;
+    protected int tierMetal = -1;
     protected int tierPipe = -1;
     protected int tierGear = -1;
+    protected int tierFrame = -1;
+
+    // 太阳可见比例（0~1）：顶面被遮挡时加热与产出按比例下降
+    public double mSunRatio = 1.0d;
+    private boolean needsWaterFill = false;
 
     // 钙化延迟统一为 1 小时；满垢后产出降至 1%，并每 10 分钟向所有者发送提醒
     private static final long CALCIFICATION_DELAY_TICKS = 3600L * 20;
@@ -181,10 +269,10 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
     }
 
     @Nullable
-    public static Integer getConductorTier(Block block, int meta) {
-        if (block == GregTechAPI.sBlockMetal6 && meta == 10) return 1;
-        if (block == Blocks.gold_block && meta == 0) return 2;
-        if (block == GregTechAPI.sBlockMetal5 && meta == 4) return 3;
+    public static Integer getMetalTier(Block block, int meta) {
+        if (block == Blocks.gold_block && meta == 0) return 1;
+        if (block == GregTechAPI.sBlockMetal5 && meta == 4) return 2;
+        if (block == GregTechAPI.sBlockMetal6 && meta == 10) return 3;
         return null;
     }
 
@@ -254,24 +342,9 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
             final int bronzeCasingIndex = ((BlockCasings1) GregTechAPI.sBlockCasings1).getTextureIndex(10);
 
             STRUCTURE_DEFINITION = StructureDefinition.<MTELargeSolarOverpressureArray>builder()
-                .addShape(
-                    STRUCTURE_PIECE_MAIN,
-                    transpose(
-                        new String[][] {
-                            { " GBBBB~BBBBG ", "GBFFFFFFFFFBG", "BFFFFFFFFFFFB", "BFFFFFFFFFFFB", "BFFFFFFFFFFFB",
-                                "BFFFFFFFFFFFB", "BFFFFFFFFFFFB", "BFFFFFFFFFFFB", "BFFFFFFFFFFFB", "BFFFFFFFFFFFB",
-                                "BFFFFFFFFFFFB", "GBFFFFFFFFFBG", " GBBBBBBBBB  " },
-                            { " GCCCCCCCCCG ", "GD         DG", "C           C", "C           C", "C           C",
-                                "C           C", "C           C", "C           C", "C           C", "C           C",
-                                "C           C", "GD         DG", " GCCCCCCCCCG " },
-                            { " GBBBBBBBBBG ", "GDEEEEEEEEEDG", "BEEEEEEEEEEEB", "BEEEEEEEEEEEB", "BEEEEEEEEEEEB",
-                                "BEEEEEEEEEEEB", "BEEEEEEEEEEEB", "BEEEEEEEEEEEB", "BEEEEEEEEEEEB", "BEEEEEEEEEEEB",
-                                "BEEEEEEEEEEEB", "GDEEEEEEEEEDG", " GBBBBBBBBBG " },
-                            { " GBBBBBBBBBG ", "GDBBBBCBBBBDG", "BBCBBBCBBBCBB", "BBBCBBCBBCBBB", "BBBBCBCBCBBBB",
-                                "BBBBBCCCBBBBB", "BCCCCCCCCCCCB", "BBBBBCCCBBBBB", "BBBBCBCBCBBBB", "BBBCBBCBBCBBB",
-                                "BBCBBBCBBBCBB", "GDBBBBCBBBBDG", " GBBBBBBBBBG " } }))
+                .addShape(STRUCTURE_PIECE_MAIN, transpose(SHAPE_MAIN))
                 .addElement(
-                    'B',
+                    'A',
                     ofChain(
                         // casing-first: NEI 投影优先渲染外壳；真实 hatch 坐标上 casing 匹配失败后继续匹配 hatch adder。
                         onElementPass(
@@ -289,6 +362,15 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
                             .hint(1)
                             .build()))
                 .addElement(
+                    'B',
+                    ofBlocksTiered(
+                        MTELargeSolarOverpressureArray::getGearTier,
+                        ImmutableList
+                            .of(Pair.of(GregTechAPI.sBlockCasings2, 2), Pair.of(GregTechAPI.sBlockCasings2, 3)),
+                        -1,
+                        (MTELargeSolarOverpressureArray t, Integer tier) -> t.tierGear = tier,
+                        (MTELargeSolarOverpressureArray t) -> t.tierGear))
+                .addElement(
                     'C',
                     ofBlocksTiered(
                         MTELargeSolarOverpressureArray::getPipeTier,
@@ -300,25 +382,22 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
                 .addElement(
                     'D',
                     ofBlocksTiered(
-                        MTELargeSolarOverpressureArray::getGearTier,
-                        ImmutableList
-                            .of(Pair.of(GregTechAPI.sBlockCasings2, 2), Pair.of(GregTechAPI.sBlockCasings2, 3)),
+                        MTELargeSolarOverpressureArray::getFrameTier,
+                        ImmutableList.of(
+                            Pair.of(GregTechAPI.sBlockFrames, Materials.Bronze.mMetaItemSubID),
+                            Pair.of(GregTechAPI.sBlockFrames, Materials.Steel.mMetaItemSubID)),
                         -1,
-                        (MTELargeSolarOverpressureArray t, Integer tier) -> t.tierGear = tier,
-                        (MTELargeSolarOverpressureArray t) -> t.tierGear))
+                        (MTELargeSolarOverpressureArray t, Integer tier) -> t.tierFrame = tier,
+                        (MTELargeSolarOverpressureArray t) -> t.tierFrame))
                 .addElement(
                     'E',
-                    ofBlocksTiered(
-                        MTELargeSolarOverpressureArray::getConductorTier,
-                        ImmutableList.of(
-                            Pair.of(GregTechAPI.sBlockMetal6, 10),
-                            Pair.of(Blocks.gold_block, 0),
-                            Pair.of(GregTechAPI.sBlockMetal5, 4)),
-                        -1,
-                        (MTELargeSolarOverpressureArray t, Integer tier) -> t.tierConductor = tier,
-                        (MTELargeSolarOverpressureArray t) -> t.tierConductor))
+                    ofChain(
+                        // 水位：圆石位可被水替代（洗矿机同款机制），否则接受空气（注水前）
+                        ofAnyWater(false),
+                        isAir()))
+                .addElement('F', isAir())
                 .addElement(
-                    'F',
+                    'G',
                     ofBlocksTiered(
                         MTELargeSolarOverpressureArray::getGlassTier,
                         ImmutableList.of(
@@ -331,15 +410,17 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
                         (MTELargeSolarOverpressureArray t, Integer tier) -> t.tierGlass = Math.max(t.tierGlass, tier),
                         (MTELargeSolarOverpressureArray t) -> t.tierGlass))
                 .addElement(
-                    'G',
+                    'H',
                     ofBlocksTiered(
-                        MTELargeSolarOverpressureArray::getFrameTier,
+                        MTELargeSolarOverpressureArray::getMetalTier,
                         ImmutableList.of(
-                            Pair.of(GregTechAPI.sBlockFrames, Materials.Bronze.mMetaItemSubID),
-                            Pair.of(GregTechAPI.sBlockFrames, Materials.Steel.mMetaItemSubID)),
+                            Pair.of(Blocks.gold_block, 0),
+                            Pair.of(GregTechAPI.sBlockMetal5, 4),
+                            Pair.of(GregTechAPI.sBlockMetal6, 10)),
                         -1,
-                        (MTELargeSolarOverpressureArray t, Integer tier) -> t.tierCasing = Math.max(t.tierCasing, tier),
-                        (MTELargeSolarOverpressureArray t) -> t.tierCasing))
+                        (MTELargeSolarOverpressureArray t, Integer tier) -> t.tierMetal = tier,
+                        (MTELargeSolarOverpressureArray t) -> t.tierMetal))
+                .addElement('-', isAir())
                 .build();
         }
         return STRUCTURE_DEFINITION;
@@ -350,21 +431,31 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
         mSetTier = -1;
         tierCasing = -1;
         tierGlass = -1;
-        tierConductor = -1;
+        tierMetal = -1;
         tierPipe = -1;
         tierGear = -1;
+        tierFrame = -1;
+        needsWaterFill = false;
 
         if (!checkPiece(STRUCTURE_PIECE_MAIN, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET, errors)) {
             return;
         }
 
-        if (tierCasing == 1 && tierGlass >= 1 && tierConductor == 1 && tierPipe == 1 && tierGear == 1) {
+        if (tierCasing == 1 && tierGear == 1 && tierPipe == 1 && tierFrame == 1 && tierGlass >= 1 && tierMetal == 1) {
             mSetTier = 1;
-        } else if (tierCasing == 2 && tierGlass >= 1 && tierConductor == 2 && tierPipe >= 2 && tierGear >= 2) {
-            mSetTier = 2;
-        } else if (tierCasing == 2 && tierGlass >= 1 && tierConductor == 3 && tierPipe >= 2 && tierGear >= 2) {
-            mSetTier = 3;
-        }
+        } else if (tierCasing == 2 && tierGear == 2
+            && tierPipe == 2
+            && tierFrame == 2
+            && tierGlass >= 1
+            && tierMetal == 2) {
+                mSetTier = 2;
+            } else if (tierCasing == 2 && tierGear == 2
+                && tierPipe == 2
+                && tierFrame == 2
+                && tierGlass >= 1
+                && tierMetal == 3) {
+                    mSetTier = 3;
+                }
 
         if (mSetTier <= 0) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
@@ -380,16 +471,104 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
         }
 
         updateAllHatchTextures();
+        needsWaterFill = true;
+        calculateSunRatio();
     }
 
     private boolean hasValidOutputHatchesForTier() {
         return !mOutputHatches.isEmpty();
     }
 
+    // 顶面方块形状偏移列表：对每个 (列 a, 行 c) 取 slice 索引最小（最高）的非空格/非'-'/非'~' 字符位置，
+    // 记录形状差 (a-3, b-4, c-1)（相对控制器），惰性缓存（共 694 个顶面位置，勿硬编码）。
+    private static List<int[]> getTopSurfaceOffsets() {
+        if (mTopSurfaceOffsets == null) {
+            List<int[]> offsets = new ArrayList<>();
+            for (int c = 0; c < SHAPE_MAIN[0].length; c++) {
+                for (int a = 0; a < SHAPE_MAIN[0][c].length(); a++) {
+                    for (int b = 0; b < SHAPE_MAIN.length; b++) {
+                        char ch = SHAPE_MAIN[b][c].charAt(a);
+                        if (ch == ' ' || ch == '-' || ch == '~') continue;
+                        offsets.add(new int[] { a - HORIZONTAL_OFF_SET, b - VERTICAL_OFF_SET, c - DEPTH_OFF_SET });
+                        break;
+                    }
+                }
+            }
+            mTopSurfaceOffsets = offsets;
+        }
+        return mTopSurfaceOffsets;
+    }
+
+    // F 泥土粒子位形状偏移（9 个）：(列 2-4, 层 2, 行 2-4) - (3, 4, 1)
+    private static List<int[]> getParticleOffsets() {
+        if (mParticleOffsets == null) {
+            List<int[]> offsets = new ArrayList<>();
+            for (int b = 0; b < SHAPE_MAIN.length; b++) {
+                for (int c = 0; c < SHAPE_MAIN[b].length; c++) {
+                    for (int a = 0; a < SHAPE_MAIN[b][c].length(); a++) {
+                        if (SHAPE_MAIN[b][c].charAt(a) == 'F') {
+                            offsets.add(new int[] { a - HORIZONTAL_OFF_SET, b - VERTICAL_OFF_SET, c - DEPTH_OFF_SET });
+                        }
+                    }
+                }
+            }
+            mParticleOffsets = offsets;
+        }
+        return mParticleOffsets;
+    }
+
+    /**
+     * 太阳可见比例：顶面各位置经 ExtendedFacing 换算世界偏移并叠加控制器坐标，
+     * 用 canBlockSeeTheSky(wy + 1) 判定可见性（y+1 防止顶面方块自身遮挡；1.7.10 heightMap O(1) 查询）。
+     */
+    private void calculateSunRatio() {
+        List<int[]> offsets = getTopSurfaceOffsets();
+        if (offsets.isEmpty()) {
+            mSunRatio = 1.0d;
+            return;
+        }
+        IGregTechTileEntity base = getBaseMetaTileEntity();
+        World world = base.getWorld();
+        int cx = base.getXCoord();
+        int cy = base.getYCoord();
+        int cz = base.getZCoord();
+        int visible = 0;
+        for (int[] off : offsets) {
+            Vec3Impl worldOff = getExtendedFacing().getWorldOffset(new Vec3Impl(off[0], off[1], off[2]));
+            if (world.canBlockSeeTheSky(cx + worldOff.get0(), cy + worldOff.get1() + 1, cz + worldOff.get2())) {
+                visible++;
+            }
+        }
+        mSunRatio = (double) visible / offsets.size();
+    }
+
+    /** 客户端：每 tick 在随机一个 F 泥土位生成上升白色云朵粒子（仿砖高炉 vertical motion 0.3） */
+    private void spawnCloudParticle() {
+        List<int[]> offsets = getParticleOffsets();
+        if (offsets.isEmpty()) return;
+        IGregTechTileEntity base = getBaseMetaTileEntity();
+        World world = base.getWorld();
+        int[] off = offsets.get(world.rand.nextInt(offsets.size()));
+        Vec3Impl worldOff = getExtendedFacing().getWorldOffset(new Vec3Impl(off[0], off[1], off[2]));
+        world.spawnParticle(
+            "cloud",
+            base.getXCoord() + worldOff.get0() + 0.5D + (world.rand.nextDouble() - 0.5D) * 0.8D,
+            base.getYCoord() + worldOff.get1() + 0.5D,
+            base.getZCoord() + worldOff.get2() + 0.5D + (world.rand.nextDouble() - 0.5D) * 0.8D,
+            0.0D,
+            0.3D,
+            0.0D);
+    }
+
     @Override
     public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
         super.onPostTick(aBaseMetaTileEntity, aTick);
-        if (!aBaseMetaTileEntity.isServerSide()) return;
+        if (aBaseMetaTileEntity.isClientSide()) {
+            if (mMachine && aBaseMetaTileEntity.isAllowedToWork()) {
+                spawnCloudParticle();
+            }
+            return;
+        }
         if (!mMachine || mSetTier <= 0) return;
 
         if (!aBaseMetaTileEntity.isAllowedToWork()) {
@@ -402,15 +581,33 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
         World world = aBaseMetaTileEntity.getWorld();
         boolean isClearWeather = !world.isRaining() && !world.isThundering()
             || aBaseMetaTileEntity.getBiome().rainfall == 0.0F;
-        boolean isSeeSky = aBaseMetaTileEntity.getSkyAtSide(ForgeDirection.UP);
         boolean isDay = world.isDaytime();
 
+        if (aTick % 200 == 0) {
+            calculateSunRatio();
+        }
+
+        if (needsWaterFill && aTick % 20 == 0) {
+            // 注水轴序：fillStructureWithWater 假定结构布局为 [深度][层][列]（洗矿机手写布局），
+            // 本结构 GTUDK 布局为 [层][行][列]，须传 transpose 后的形状（数组=行/深度、串=层/垂直）。
+            if (GTStructureUtility.fillStructureWithWater(
+                aBaseMetaTileEntity,
+                getExtendedFacing(),
+                transpose(SHAPE_MAIN),
+                HORIZONTAL_OFF_SET,
+                VERTICAL_OFF_SET,
+                DEPTH_OFF_SET,
+                'E')) {
+                needsWaterFill = false;
+            }
+        }
+
         if (aTick % 20 == 0) {
-            boolean canHeat = isClearWeather && isSeeSky && isDay;
+            boolean canHeat = isClearWeather && isDay && mSunRatio > 0;
             boolean wasHeating = mIsHeating;
 
             if (canHeat && aBaseMetaTileEntity.isAllowedToWork()) {
-                mHeat += getHeatIncreaseSpeed();
+                mHeat += getHeatIncreaseSpeed() * mSunRatio;
                 if (mHeat > 1.0d) mHeat = 1.0d;
                 mIsHeating = true;
             } else {
@@ -482,7 +679,8 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
                     int baseProduction = (int) (getBaseSteamProduction() * solarBooster);
 
                     int consumedWater = (int) (Math.min(amountOfFluidInHatch, baseProduction / STEAM_PER_WATER) * mHeat
-                        * getCalcificationOutputFactor());
+                        * getCalcificationOutputFactor()
+                        * mSunRatio);
 
                     if (consumedWater <= 0) continue;
 
@@ -558,45 +756,45 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
                     + EnumChatFormatting.DARK_PURPLE
                     + StatCollector.translateToLocal("gtsr.tooltip.solar_array.tier_bronze")
                     + EnumChatFormatting.GOLD
-                    + " 24,000"
+                    + " 48,000"
                     + EnumChatFormatting.GRAY
                     + " L/s "
                     + StatCollector.translateToLocal("gtsr.tooltip.solar_array.base_output")
                     + EnumChatFormatting.GREEN
                     + " ("
                     + StatCollector.translateToLocal("gtsr.tooltip.solar_array.max_boosted_output")
-                    + ": 72,000 L/s)")
+                    + ": 144,000 L/s)")
             .addInfo(
                 EnumChatFormatting.BLUE + "Tier 2 "
                     + EnumChatFormatting.DARK_PURPLE
                     + StatCollector.translateToLocal("gtsr.tooltip.solar_array.tier_steel")
                     + EnumChatFormatting.GOLD
-                    + " 60,000"
+                    + " 120,000"
                     + EnumChatFormatting.GRAY
                     + " L/s "
                     + StatCollector.translateToLocal("gtsr.tooltip.solar_array.base_output")
                     + EnumChatFormatting.GREEN
                     + " ("
                     + StatCollector.translateToLocal("gtsr.tooltip.solar_array.max_boosted_output")
-                    + ": 180,000 L/s)")
+                    + ": 360,000 L/s)")
             .addInfo(
                 EnumChatFormatting.BLUE + "Tier 3 "
                     + EnumChatFormatting.DARK_PURPLE
                     + StatCollector.translateToLocal("gtsr.tooltip.solar_array.tier_nickel")
                     + EnumChatFormatting.GOLD
-                    + " 60,000"
+                    + " 120,000"
                     + EnumChatFormatting.GRAY
                     + " L/s "
                     + StatCollector.translateToLocal("gtsr.tooltip.solar_array.base_output")
                     + EnumChatFormatting.GREEN
                     + " ("
                     + StatCollector.translateToLocal("gtsr.tooltip.solar_array.max_boosted_output")
-                    + ": 180,000 L/s)"
+                    + ": 360,000 L/s)"
                     + EnumChatFormatting.GREEN
                     + " ("
                     + StatCollector.translateToLocal("gtsr.tooltip.solar_array.superheated_steam")
                     + ")")
-            .beginStructureBlock(13, 4, 13, false)
+            .beginStructureBlock(30, 27, 7, false)
             .addController(StatCollector.translateToLocal("gtsr.tooltip.solar_array.ctrl"))
             .addInputHatch(StatCollector.translateToLocal("gtsr.tooltip.solar_array.input_hatch"), 1)
             .addOtherStructurePart(
@@ -606,12 +804,19 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
             .addStructureInfo("")
             .addStructureInfo(
                 EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.solar_array.three_tier"))
-            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.solar_array.casing"), 191, false)
-            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.pipe"), 73, false)
-            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.gear_box"), 12, false)
-            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.solar_array.conductor"), 117, false)
-            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.solar_array.glass"), 117, false)
-            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.frame"), 31, false)
+            .addStructureInfo(StatCollector.translateToLocal("gtsr.tooltip.solar_array.desc3"))
+            .addStructureInfo(StatCollector.translateToLocal("gtsr.tooltip.solar_array.desc4"))
+            .addStructureInfo(StatCollector.translateToLocal("gtsr.tooltip.solar_array.desc5"))
+            .addStructureInfo(StatCollector.translateToLocal("gtsr.tooltip.solar_array.desc6"))
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.solar_array.casing"), 1306, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.pipe"), 281, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.gear_box"), 255, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.solar_array.metal"), 381, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.solar_array.glass"), 381, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.frame"), 113, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.solar_array.water_block"), 130, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.solar_array.particle_block"), 9, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.solar_array.air_block"), 18, false)
             .addStructureHint("gtsr.tooltip.shared.no_maintenance")
             .toolTipFinisher(
                 EnumChatFormatting.AQUA + "GT"
@@ -774,23 +979,23 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
         switch (mSetTier) {
             case 3:
             case 2:
-                return 60000;
+                return 120000;
             case 1:
             default:
-                return 24000;
+                return 48000;
         }
     }
 
     private double getHeatIncreaseSpeed() {
         switch (mSetTier) {
             case 1:
-                return 0.00015d;
+                return 0.0006d;
             case 2:
-                return 0.00012d;
+                return 0.00048d;
             case 3:
-                return 0.00005d;
+                return 0.0002d;
             default:
-                return 0.00015d;
+                return 0.0006d;
         }
     }
 
@@ -890,6 +1095,7 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
         aNBT.setDouble("mCalcification", mCalcification);
         aNBT.setLong("mRunningTicks", mRunningTicks);
         aNBT.setLong("mCalcificationWarnTimer", mCalcificationWarnTimer);
+        aNBT.setDouble("mSunRatio", mSunRatio);
     }
 
     @Override
@@ -900,6 +1106,7 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
         mCalcification = aNBT.getDouble("mCalcification");
         mRunningTicks = aNBT.getLong("mRunningTicks");
         mCalcificationWarnTimer = aNBT.getLong("mCalcificationWarnTimer");
+        mSunRatio = aNBT.getDouble("mSunRatio");
     }
 
     @Override

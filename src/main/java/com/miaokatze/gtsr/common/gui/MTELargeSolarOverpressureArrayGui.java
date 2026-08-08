@@ -26,6 +26,7 @@ public class MTELargeSolarOverpressureArrayGui extends MTEMultiBlockBaseGui<MTEE
 
     private DoubleSyncValue mHeatSync;
     private DoubleSyncValue mCalcificationSync;
+    private DoubleSyncValue mSunRatioSync;
     private IntSyncValue mCurrentSteamOutputSync;
 
     private static final NumberFormat numberFormat = NumberFormat.getNumberInstance();
@@ -50,9 +51,11 @@ public class MTELargeSolarOverpressureArrayGui extends MTEMultiBlockBaseGui<MTEE
         mCurrentSteamOutputSync = new IntSyncValue(
             () -> solarArray.mCurrentSteamOutput,
             val -> solarArray.mCurrentSteamOutput = val);
+        mSunRatioSync = new DoubleSyncValue(() -> solarArray.mSunRatio, val -> solarArray.mSunRatio = val);
         syncManager.syncValue("solarHeat", mHeatSync);
         syncManager.syncValue("solarCalcification", mCalcificationSync);
         syncManager.syncValue("solarSteamOutput", mCurrentSteamOutputSync);
+        syncManager.syncValue("solarSunRatio", mSunRatioSync);
     }
 
     @Override
@@ -63,6 +66,16 @@ public class MTELargeSolarOverpressureArrayGui extends MTEMultiBlockBaseGui<MTEE
                     () -> EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.gui.solar_array.heat")
                         + EnumChatFormatting.GOLD
                         + numberFormat.format(mHeatSync.getValue() * 100)
+                        + "% "
+                        + EnumChatFormatting.RESET)
+                    .asWidget()
+                    .marginBottom(2)
+                    .fullWidth())
+            .child(
+                IKey.dynamic(
+                    () -> EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.gui.solar_array.sun_ratio")
+                        + EnumChatFormatting.AQUA
+                        + numberFormat.format(mSunRatioSync.getValue() * 100)
                         + "% "
                         + EnumChatFormatting.RESET)
                     .asWidget()

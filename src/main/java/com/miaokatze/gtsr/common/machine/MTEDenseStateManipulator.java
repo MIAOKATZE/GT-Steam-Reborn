@@ -1,14 +1,13 @@
 package com.miaokatze.gtsr.common.machine;
 
-import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlocksTiered;
+import static com.gtnewhorizon.structurelib.structure.StructureUtility.isAir;
+import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlock;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 
 import java.util.ArrayList;
 import java.util.List;
-
-import javax.annotation.Nullable;
 
 import net.minecraft.block.Block;
 import net.minecraft.client.renderer.texture.IIconRegister;
@@ -21,14 +20,14 @@ import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
 
-import org.apache.commons.lang3.tuple.Pair;
-
 import com.gtnewhorizon.structurelib.alignment.constructable.ISurvivalConstructable;
 import com.gtnewhorizon.structurelib.structure.IStructureDefinition;
 import com.gtnewhorizon.structurelib.structure.ISurvivalBuildEnvironment;
 import com.gtnewhorizon.structurelib.structure.StructureDefinition;
+import com.gtnewhorizon.structurelib.util.Vec3Impl;
 import com.miaokatze.gtsr.common.gui.MTEDenseStateManipulatorGui;
 import com.miaokatze.gtsr.common.machine.base.MTESingularityMachineBase;
+import com.miaokatze.gtsr.loader.BlockLoader;
 
 import bartworks.common.loaders.ItemRegistry;
 import bartworks.system.material.Werkstoff;
@@ -38,7 +37,6 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Textures;
-import gregtech.api.enums.VoltageIndex;
 import gregtech.api.interfaces.IIconContainer;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
@@ -49,16 +47,15 @@ import gregtech.api.render.TextureFactory;
 import gregtech.api.structure.error.StructureError;
 import gregtech.api.structure.error.StructureErrorRegistry;
 import gregtech.api.util.GTUtility;
-import gregtech.api.util.GlassTier;
 import gregtech.api.util.MultiblockTooltipBuilder;
 
-/** Tier 2 dense steam compressor/decompressor. */
+/** Tier 2 dense steam compressor/decompressor（致密态蒸汽操控装置，就地升级自致密态操控机）。 */
 public class MTEDenseStateManipulator extends MTESingularityMachineBase implements ISurvivalConstructable {
 
     private static final String STRUCTURE_PIECE_MAIN = "main";
-    private static final int HORIZONTAL_OFF_SET = 5;
+    private static final int HORIZONTAL_OFF_SET = 10;
     private static final int VERTICAL_OFF_SET = 8;
-    private static final int DEPTH_OFF_SET = 2;
+    private static final int DEPTH_OFF_SET = 1;
 
     private static final int SINGULARITY_DURATION_TICKS = 12000;
     private static final long DENSE_COMPRESSION_RATIO = 1000L;
@@ -66,6 +63,7 @@ public class MTEDenseStateManipulator extends MTESingularityMachineBase implemen
     private static IStructureDefinition<MTEDenseStateManipulator> STRUCTURE_DEFINITION;
     private static Block TIER2_FRAME_BLOCK;
     private static Integer TIER2_FRAME_META;
+    private static Block TIER2_GLASS_BLOCK;
 
     public static final int MODE_COMPRESS = 0;
     public static final int MODE_DECOMPRESS = 1;
@@ -75,14 +73,90 @@ public class MTEDenseStateManipulator extends MTESingularityMachineBase implemen
     private double mAccum = 0.0d;
     private int mAccumGrade = -1;
 
-    private int mCasingTierB = -1;
-    private int mCasingTierC = -1;
-    private int mCasingTierD = -1;
-    private int mCasingTierE = -1;
-    private int mCasingTierF = -1;
-
     private static IIconContainer OVERLAY_OFF;
     private static IIconContainer OVERLAY_ON;
+
+    // Shape: GTUDK export — Y slices (top -> bottom); each row = depth line (front face first);
+    // each char = horizontal axis (left -> right, seen from the machine front).
+    // Controller '~' at (col 10, layer 8, row 1); runaway singularity 'F' at (10,5,10) and (24,5,10).
+    private static final String[][] SHAPE_MAIN = {
+        { "        EEEEE                 ", "      EEEEEEEEE               ", "    EEEEEEEEEEEEE             ",
+            "   EEEEEEEEEEEEEEE            ", "  EEEEEEEEEEEEEEEEE           ", "  EEEEEEEEEEEEEEEEE   EEEEE   ",
+            " EEEEEEEEEEEEEEEEEEE EEEEEEE  ", " EEEEEEEEEEEEEEEEEEEEEEEEEEEE ", "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEE",
+            "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEE", "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEE", "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEE",
+            "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEE", " EEEEEEEEEEEEEEEEEEEEEEEEEEEE ", " EEEEEEEEEEEEEEEEEEE EEEEEEE  ",
+            "  EEEEEEEEEEEEEEEEE   EEEEE   ", "  EEEEEEEEEEEEEEEEE           ", "   EEEEEEEEEEEEEEE            ",
+            "    EEEEEEEEEEEEE             ", "      EEEEEEEEE               ", "        EEEEE                 " },
+        { "                              ", "        EEEEE                 ", "      EEDDDDDEE               ",
+            "    EEDD-----DDEE             ", "   EDD-----------E            ", "   ED------------E            ",
+            "  ED--------------E   EEEEE   ", "  ED---B-----B----E  EDDDDDE  ", " ED----------------EE------DE ",
+            " ED--------------------B-B-DE ", " ED------------------------DE ", " ED----------------DD--B-B-DE ",
+            " ED---------------DEED-----DE ", "  ED---B-----B---DE  EDDDDDE  ", "  ED-------------DE   EEEEE   ",
+            "   ED-----------DE            ", "   EDD---------DDE            ", "    EEDD-----DDEE             ",
+            "      EEDDDDDEE               ", "        EEEEE                 ", "                              " },
+        { "                              ", "        AAAAA                 ", "      AA-----AA               ",
+            "    AA---------AA             ", "   A-------------A            ", "   A-------------A            ",
+            "  A---------------A   AAAAA   ", "  A----B-----B----A  A-----A  ", " A-----------------AA-------A ",
+            " A---------------------B-B--A ", " A--------------------------A ", " A---------------------B-B--A ",
+            " A-----------------AA-------A ", "  A----B-----B----A  A-----A  ", "  A---------------A   AAAAA   ",
+            "   A-------------A            ", "   A-------------A            ", "    AA---------AA             ",
+            "      AA-----AA               ", "        AAAAA                 ", "                              " },
+        { "                              ", "        AAAAA                 ", "      AA-----AA               ",
+            "    AA---------AA             ", "   A-------------A            ", "   A-------------A            ",
+            "  A---------------A   AAAAA   ", "  A----CCCCCCC----A  A-----A  ", " A-----C-----C-----AA-------A ",
+            " A-----C-----C---------CCC--A ", " A-----C-----C---------C-C--A ", " A-----C-----C---------CCC--A ",
+            " A-----C-----C-----AA-------A ", "  A----CCCCCCC----A  A-----A  ", "  A---------------A   AAAAA   ",
+            "   A-------------A            ", "   A-------------A            ", "    AA---------AA             ",
+            "      AA-----AA               ", "        AAAAA                 ", "                              " },
+        { "                              ", "        AAAAA                 ", "      AA-----AA               ",
+            "    AA---------AA             ", "   A-------------A            ", "   A-------------A            ",
+            "  A---------------A   AAAAA   ", "  A---------------A  A-----A  ", " A-----------------AA-------A ",
+            " A--------------------------A ", " A--------------------------A ", " A--------------------------A ",
+            " A-----------------AA-------A ", "  A---------------A  A-----A  ", "  A---------------A   AAAAA   ",
+            "   A-------------A            ", "   A-------------A            ", "    AA---------AA             ",
+            "      AA-----AA               ", "        AAAAA                 ", "                              " },
+        { "                              ", "        AAAAA                 ", "      AA-----AA               ",
+            "    AA---------AA             ", "   A-------------A            ", "   A-------------A            ",
+            "  A---------------A   AAAAA   ", "  A---------------A  A-----A  ", " A-----------------AA-------A ",
+            " A--------------------------A ", " A--------F-------------F---A ", " A--------------------------A ",
+            " A-----------------AA-------A ", "  A---------------A  A-----A  ", "  A---------------A   AAAAA   ",
+            "   A-------------A            ", "   A-------------A            ", "    AA---------AA             ",
+            "      AA-----AA               ", "        AAAAA                 ", "                              " },
+        { "                              ", "        AAAAA                 ", "      AA-----AA               ",
+            "    AA---------AA             ", "   A-------------A            ", "   A-------------A            ",
+            "  A---------------A   AAAAA   ", "  A---------------A  A-----A  ", " A-----------------AA-------A ",
+            " A--------------------------A ", " A--------------------------A ", " A--------------------------A ",
+            " A-----------------AA-------A ", "  A---------------A  A-----A  ", "  A---------------A   AAAAA   ",
+            "   A-------------A            ", "   A-------------A            ", "    AA---------AA             ",
+            "      AA-----AA               ", "        AAAAA                 ", "                              " },
+        { "                              ", "        AEEEA                 ", "      AA-----AA               ",
+            "    AA---------AA             ", "   A-------------A            ", "   A-------------A            ",
+            "  A---------------A   AAAAA   ", "  A----CCCCCCC----A  A-----A  ", " A-----C-----C-----AA-------A ",
+            " A-----C-----C---------CCC--A ", " A-----C-----C---------C-C--A ", " A-----C-----C---------CCC--A ",
+            " A-----C-----C-----AA-------A ", "  A----CCCCCCC----A  A-----A  ", "  A---------------A   AAAAA   ",
+            "   A-------------A            ", "   A-------------A            ", "    AA---------AA             ",
+            "      AA-----AA               ", "        AAAAA                 ", "                              " },
+        { "                              ", "        EE~EE                 ", "      AA-----AA               ",
+            "    AA---------AA             ", "   A-------------A            ", "   A-------------A            ",
+            "  A---------------A   AAAAA   ", "  A----B-----B----A  A-----A  ", " A-----------------AA-------A ",
+            " A---------------------B-B--A ", " A--------------------------A ", " A---------------------B-B--A ",
+            " A-----------------AA-------A ", "  A----B-----B----A  A-----A  ", "  A---------------A   AAAAA   ",
+            "   A-------------A            ", "   A-------------A            ", "    AA---------AA             ",
+            "      AA-----AA               ", "        AAAAA                 ", "                              " },
+        { "                              ", "        EEEEE                 ", "      EEDDDDDEE               ",
+            "    EEDD-----DDEE             ", "   EDD---------DDE            ", "   ED-----------DE            ",
+            "  ED-------------DE   EEEEE   ", "  ED---B-----B---DE  EDDDDDE  ", " ED---------------DEED-----DE ",
+            " ED----------------DD--B-B-DE ", " ED----------------DD------DE ", " ED----------------DD--B-B-DE ",
+            " ED---------------DEED-----DE ", "  ED---B-----B---DE  EDDDDDE  ", "  ED-------------DE   EEEEE   ",
+            "   ED-----------DE            ", "   EDD---------DDE            ", "    EEDD-----DDEE             ",
+            "      EEDDDDDEE               ", "        EEEEE                 ", "                              " },
+        { "        EEEEE                 ", "       EEEEEEEE               ", "    EEEEEEEEEEEEE             ",
+            "   EEEEEEEEEEEEEEE            ", "  EEEEEEEEEEEEEEEEE           ", "  EEEEEEEEEEEEEEEEE   EEEEE   ",
+            " EEEEEEEEEEEEEEEEEEE EEEEEEE  ", " EEEEEEEEEEEEEEEEEEEEEEEEEEEE ", "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEE",
+            "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEE", "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEE", "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEE",
+            "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEE", " EEEEEEEEEEEEEEEEEEEEEEEEEEEE ", " EEEEEEEEEEEEEEEEEEE EEEEEEE  ",
+            "  EEEEEEEEEEEEEEEEE   EEEEE   ", "  EEEEEEEEEEEEEEEEE           ", "   EEEEEEEEEEEEEEE            ",
+            "    EEEEEEEEEEEEE             ", "      EEEEEEEEE               ", "        EEEEE                 " } };
 
     public MTEDenseStateManipulator(int aID, String aName, String aNameRegional) {
         super(aID, aName, aNameRegional);
@@ -202,78 +276,26 @@ public class MTEDenseStateManipulator extends MTESingularityMachineBase implemen
         return TIER2_FRAME_META;
     }
 
-    @Nullable
-    private static Integer getCasingTier(Block block, int meta) {
-        if (block == GregTechAPI.sBlockCasings8 && meta == 6) return 2;
-        return null;
-    }
-
-    @Nullable
-    private static Integer getPipeTier(Block block, int meta) {
-        if (block == GregTechAPI.sBlockCasings8 && meta == 6) return 2;
-        return null;
-    }
-
-    @Nullable
-    private static Integer getFrameTier(Block block, int meta) {
-        if (block == getTier2FrameBlock() && meta == getTier2FrameMeta()) return 2;
-        return null;
-    }
-
-    @Nullable
-    private static Integer getGlassTier(Block block, int meta) {
-        Integer glassTier = GlassTier.getGlassBlockTier(block, meta);
-        if (glassTier == null || glassTier < VoltageIndex.LuV) return null;
-        return 2;
+    private static Block getTier2GlassBlock() {
+        if (TIER2_GLASS_BLOCK == null) {
+            TIER2_GLASS_BLOCK = GameRegistry.findBlock("bartworks", "BW_TieredGlass");
+            if (TIER2_GLASS_BLOCK == null) TIER2_GLASS_BLOCK = ItemRegistry.bw_realglas;
+        }
+        return TIER2_GLASS_BLOCK;
     }
 
     private static IStructureDefinition<MTEDenseStateManipulator> createStructureDefinition() {
         int casingIndex = GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings8, 6);
-        List<Pair<Block, Integer>> casingTiers = new ArrayList<>();
-        casingTiers.add(Pair.of(GregTechAPI.sBlockCasings8, 6));
-        List<Pair<Block, Integer>> pipeTiers = new ArrayList<>();
-        pipeTiers.add(Pair.of(GregTechAPI.sBlockCasings8, 6));
-        List<Pair<Block, Integer>> frameTiers = new ArrayList<>();
-        frameTiers.add(Pair.of(getTier2FrameBlock(), getTier2FrameMeta()));
-        List<Pair<Block, Integer>> glassTiers = new ArrayList<>();
-        glassTiers.add(Pair.of(ItemRegistry.bw_realglas, 3));
-
         return StructureDefinition.<MTEDenseStateManipulator>builder()
-            .addShape(
-                STRUCTURE_PIECE_MAIN,
-                transpose(
-                    new String[][] {
-                        { " DBBBBBBBD ", "DB  EBE  BD", "B DEBDBED B", "B EEEEEEE B", "BEBEEEEEBEB", "BBDEEEEEDBB",
-                            "BEBEEEEEBEB", "B EEEEEEE B", "B DEBDBED B", "DB   B   BD", " DBBBBBBBD " },
-                        { " F       F ", "FD  EBE  DF", "  BEFBFEB  ", "  E     E  ", " EF     FE ", " BB     BB ",
-                            " EF     FE ", "  E     E  ", "  BEFBFEB  ", "FD  EBE  DF", " F       F " },
-                        { " F       F ", "FD  E E  DF", "  BEFBFEB  ", "  EB B BE  ", " EF     FE ", "  BB   BB  ",
-                            " EF     FE ", "  EB B BE  ", "  BEFBFEB  ", "FD  E E  DF", " F       F " },
-                        { " F       F ", "F   E E   F", "  CEFEFEC  ", "  ED D DE  ", " EF     FE ", "  ED   DE  ",
-                            " EF     FE ", "  ED D DE  ", "  CEFEFEC  ", "F   E E  DF", " F       F " },
-                        { " F       F ", "F   E E   F", "  CEFEFEC  ", "  EB B BE  ", " EF BBB FE ", "  EBB BBE  ",
-                            " EF BBB FE ", "  EB B BE  ", "  CEFEFEC  ", "F   E E   F", " F       F " },
-                        { " F       F ", "F   E E   F", "   EFEFE   ", "  E     E  ", " EF EEE FE ", "  E E E E  ",
-                            " EF EEE FE ", "  E     E  ", "   EFEFE   ", "F   E E   F", " F       F " },
-                        { " F       F ", "F   E E   F", "  CEFEFEC  ", "  EB B BE  ", " EF BBB FE ", "  EBB BBE  ",
-                            " EF BBB FE ", "  EB B BE  ", "  CEFEFEC  ", "F   E E   F", " F       F " },
-                        { " F       F ", "F   E E   F", "  CEFEFEC  ", "  ED D DE  ", " EF     FE ", "  ED   DE  ",
-                            " EF     FE ", "  ED D DE  ", "  CEFEFEC  ", "F   E E   F", " F       F " },
-                        { " F       F ", "FD  E E  DF", "  BEF~FEB  ", "  EB B BE  ", " EF     FE ", "  BB   BB  ",
-                            " EF     FE ", "  EB B BE  ", "  BEFBFEB  ", "FD  E E  DF", " F       F " },
-                        { " F       F ", "FD  EBE  DF", "  BEFBFEB  ", "  ED D DE  ", " EF     FE ", " BBD   DBB ",
-                            " EF     FE ", "  ED D DE  ", "  BEFBFEB  ", "FD  EBE  DF", " F       F " },
-                        { " DBBBBBBBD ", "DB  EBE  BD", "B DEBDBED B", "B EEEEEEE B", "BEBEEEEEBEB", "BBDEEEEEDBB",
-                            "BEBEEEEEBEB", "B EEEEEEE B", "B DEBDBED B", "DB  EBE  BD", " DBBBBBBBD " } }))
+            .addShape(STRUCTURE_PIECE_MAIN, transpose(SHAPE_MAIN))
+            .addElement('A', ofBlock(getTier2GlassBlock(), 3))
+            .addElement('B', ofBlock(getTier2FrameBlock(), getTier2FrameMeta()))
+            .addElement('C', ofBlock(GameRegistry.findBlock("gregtech", "gt.blockcasings"), 15))
+            .addElement('D', ofBlock(GameRegistry.findBlock("gregtech", "gt.blockcasings4"), 7))
             .addElement(
-                'B',
+                'E',
                 ofChain(
-                    ofBlocksTiered(
-                        MTEDenseStateManipulator::getCasingTier,
-                        casingTiers,
-                        -1,
-                        (t, tier) -> t.mCasingTierB = tier,
-                        t -> t.mCasingTierB),
+                    ofBlock(GregTechAPI.sBlockCasings8, 6),
                     buildHatchAdder(MTEDenseStateManipulator.class).atLeast(SingularityHatchElement.SteamInput)
                         .casingIndex(casingIndex)
                         .hint(1)
@@ -290,38 +312,8 @@ public class MTEDenseStateManipulator extends MTESingularityMachineBase implemen
                         .casingIndex(casingIndex)
                         .hint(2)
                         .build()))
-            .addElement(
-                'C',
-                ofBlocksTiered(
-                    MTEDenseStateManipulator::getPipeTier,
-                    pipeTiers,
-                    -1,
-                    (t, tier) -> t.mCasingTierC = tier,
-                    t -> t.mCasingTierC))
-            .addElement(
-                'D',
-                ofBlocksTiered(
-                    MTEDenseStateManipulator::getCasingTier,
-                    casingTiers,
-                    -1,
-                    (t, tier) -> t.mCasingTierD = tier,
-                    t -> t.mCasingTierD))
-            .addElement(
-                'E',
-                ofBlocksTiered(
-                    MTEDenseStateManipulator::getGlassTier,
-                    glassTiers,
-                    -1,
-                    (t, tier) -> t.mCasingTierE = tier,
-                    t -> t.mCasingTierE))
-            .addElement(
-                'F',
-                ofBlocksTiered(
-                    MTEDenseStateManipulator::getFrameTier,
-                    frameTiers,
-                    -1,
-                    (t, tier) -> t.mCasingTierF = tier,
-                    t -> t.mCasingTierF))
+            .addElement('F', ofChain(ofBlock(BlockLoader.blockRunawaySingularity, 0), isAir()))
+            .addElement('-', isAir())
             .build();
     }
 
@@ -354,25 +346,10 @@ public class MTEDenseStateManipulator extends MTESingularityMachineBase implemen
 
     @Override
     public void checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack, List<StructureError> errors) {
-        mCasingTierB = -1;
-        mCasingTierC = -1;
-        mCasingTierD = -1;
-        mCasingTierE = -1;
-        mCasingTierF = -1;
         mPressureSteamInputs.clear();
         mTier = getRequiredTier();
 
         if (!checkPiece(STRUCTURE_PIECE_MAIN, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET, errors)) return;
-
-        int tier = mCasingTierB;
-        if (mCasingTierC != tier || mCasingTierD != tier
-            || mCasingTierE != tier
-            || mCasingTierF != tier
-            || tier != getRequiredTier()) {
-            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
-            return;
-        }
-        mTier = tier;
 
         if ((mInputHatches.isEmpty() && mPressureSteamInputs.isEmpty() && mDualInputHatches.isEmpty())
             || mOutputBusses.isEmpty()) {
@@ -391,11 +368,23 @@ public class MTEDenseStateManipulator extends MTESingularityMachineBase implemen
     }
 
     @Override
+    protected List<EntanglementSpec> getEntanglementSpecs() {
+        // 两个失控奇点定位位：F1 形状偏移 (0,-3,9)、F2 (14,-3,9)，经 ExtendedFacing 换算世界偏移（与 checkPiece 同源映射）。
+        // 左白（range 10）/右灰（range 3）双失控节点动画。
+        Vec3Impl left = getExtendedFacing().getWorldOffset(new Vec3Impl(0, -3, 9));
+        Vec3Impl right = getExtendedFacing().getWorldOffset(new Vec3Impl(14, -3, 9));
+        List<EntanglementSpec> list = new ArrayList<>();
+        list.add(new EntanglementSpec(left.get0(), left.get1(), left.get2(), 10.0D, 0.0D, 0.0D, -1, -1, "white"));
+        list.add(new EntanglementSpec(right.get0(), right.get1(), right.get2(), 3.0D, 0.0D, 0.0D, -1, -1, "gray"));
+        return list;
+    }
+
+    @Override
     protected MultiblockTooltipBuilder createTooltip() {
         String keyPrefix = getTooltipKeyPrefix();
         MultiblockTooltipBuilder tt = super.createTooltip();
         tt.addSeparator()
-            .beginStructureBlock(11, 11, 11, false)
+            .beginStructureBlock(21, 30, 11, false)
             .addController(StatCollector.translateToLocal(keyPrefix + "ctrl"))
             .addOtherStructurePart(
                 StatCollector.translateToLocal("gtsr.tooltip.shared.steam_input_hatch"),
@@ -409,10 +398,9 @@ public class MTEDenseStateManipulator extends MTESingularityMachineBase implemen
             tt.addOutputHatch(StatCollector.translateToLocal(keyPrefix + "output_hatch"), 1);
         }
         tt.addStructureInfo("")
+            .addStructureInfo(EnumChatFormatting.DARK_GRAY + StatCollector.translateToLocal(keyPrefix + "desc6"))
             .addStructureInfo(
                 EnumChatFormatting.DARK_PURPLE + StatCollector.translateToLocal(keyPrefix + "tier1_blocks"))
-            .addStructureInfo(
-                EnumChatFormatting.DARK_PURPLE + StatCollector.translateToLocal(keyPrefix + "tier2_blocks"))
             .addStructureHint("gtsr.tooltip.shared.no_maintenance")
             .toolTipFinisher(
                 EnumChatFormatting.AQUA + "GT"

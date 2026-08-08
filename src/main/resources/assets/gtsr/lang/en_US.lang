@@ -191,6 +191,11 @@ gtsr.tooltip.solar_array.ctrl=Front top center
 gtsr.tooltip.solar_array.casing=Casing
 gtsr.tooltip.solar_array.glass=Glass (HV/EV)
 gtsr.tooltip.solar_array.glass_pos=Top layer
+gtsr.tooltip.solar_array.metal=Metal Block (Au/Ni/Ag)
+gtsr.tooltip.solar_array.water_block=Cobblestone (Water Level)
+gtsr.tooltip.solar_array.particle_block=Dirt (Particle Vents)
+gtsr.tooltip.solar_array.air_block=Air
+# [OLD] kept: conductor/conductor_pos used only by [OLD] structure
 gtsr.tooltip.solar_array.conductor=Conductor Block (Ag/Au/Ni)
 gtsr.tooltip.solar_array.conductor_pos=Layer 2
 gtsr.tooltip.solar_array.output_hatch=Steam Output Hatch or Pressure Steam Output Hatch
@@ -205,6 +210,7 @@ gtsr.gui.solar_array.superheated= (Superheated Steam)
 gtsr.gui.solar_array.steam= (Steam)
 gtsr.gui.solar_array.clear_calcification=Click to clear calcification
 gtsr.gui.solar_array.boost_hint=(Place solar boilers to boost)
+gtsr.gui.solar_array.sun_ratio=Sun Visibility: 
 
 # Solar Array Info
 gtsr.info.solar_array.name=Large Solar Overpressure Array
@@ -284,20 +290,20 @@ gtsr.info.geothermal_boiler.incomplete=Incomplete
 gt.blockmachines.gtsr.steam.singularity.entangler.name=Steam Singularity Entangler
 
 # Critical Singularity Compressor
-gt.blockmachines.gtsr.critical.singularity.compressor.name=Critical Singularity Compressor
-gtsr.tooltip.critical_singularity_compressor.type=Critical Singularity Compressor, CSC
-gtsr.tooltip.critical_singularity_compressor.desc=Tier 2 Steam Singularity Compressor dedicated to producing Critical Steam Entangled Singularities.
-gtsr.tooltip.critical_singularity_compressor.desc2=Accepts normal, superheated, supercritical, and their dense steam variants, accumulating heat by steam grade.
+gt.blockmachines.gtsr.critical.singularity.compressor.name=Critical Entangled Singularity Stabilizer
+gtsr.tooltip.critical_singularity_compressor.type=Critical Entangled Singularity Stabilizer, CESS
+gtsr.tooltip.critical_singularity_compressor.desc=Goes beyond the Steam Entangled Singularity, binding vast matter and energy within a critical entangled singularity... this might tear the boundaries of dimensions apart. Tier 2 steam singularity device dedicated to producing Critical Steam Entangled Singularities.
+gtsr.tooltip.critical_singularity_compressor.desc2=Accepts normal, superheated, supercritical, and their dense steam variants, accumulating heat via a saturation function: y=0.002x/(x+1000), capped at 0.2%/s; actual heat equals the steam coefficient x y (Steam 0.5, Superheated 1, Supercritical 2).
 gtsr.tooltip.critical_singularity_compressor.desc3=When multiple steam types are present, only the highest grade is processed; heat decays while stopped or without steam.
 gtsr.tooltip.critical_singularity_compressor.desc4=At 100% heat, heat resets and one Critical Steam Entangled Singularity is produced.
-gtsr.tooltip.critical_singularity_compressor.ctrl=Layer 8, center, slightly below
+gtsr.tooltip.critical_singularity_compressor.ctrl=Layer 10, center, slightly forward
 gtsr.tooltip.critical_singularity_compressor.desc5=Consumes no EU and disables steam cooling.
+gtsr.tooltip.critical_singularity_compressor.desc6=While running, a gray entanglement singularity animation forms at the structure core (purely visual: does not attract, destroy or absorb any blocks or entities); disappears when turned off, idling, or when the structure is broken.
 gtsr.tooltip.critical_singularity_compressor.steam_input=Input Hatch, Steam Input Hatch, Pressure Steam Hatch, or Mega Overpressure Steam Input Hatch
 gtsr.tooltip.critical_singularity_compressor.input_bus=Steam Input Bus
 gtsr.tooltip.critical_singularity_compressor.output_bus=Output Bus (Critical Steam Entangled Singularity)
 gtsr.tooltip.critical_singularity_compressor.output_hatch=Output Hatch
-gtsr.tooltip.critical_singularity_compressor.tier1_blocks=Tier 1 structure reserved: this machine requires Tier 2
-gtsr.tooltip.critical_singularity_compressor.tier2_blocks=Tier 2: Advanced Rhodium Plated Palladium Casing x264, LuV+ Glass x252, Rhodium Plated Palladium Frame x144
+gtsr.tooltip.critical_singularity_compressor.tier1_blocks=Materials: Advanced Rhodium Plated Palladium Machine Casing x1325, Fusion Coil Block x494, Fusion Machine Casing MK II x322, ZPM Machine Casing x212, Superconductor Coil Casing x112, Europium Frame x80, Rhodium Plated Palladium Frame x64, BW Tiered Glass III x117
 gtsr.gui.critical_singularity_compressor.status=Status:
 gtsr.gui.critical_singularity_compressor.status.building=Building
 gtsr.gui.critical_singularity_compressor.status.running=Running
@@ -307,20 +313,20 @@ gtsr.gui.critical_singularity_compressor.heat=Heat:
 gtsr.gui.critical_singularity_compressor.tier=Tier:
 
 # Dense State Manipulator
-gt.blockmachines.gtsr.dense.state.manipulator.name=Dense State Manipulator
-gtsr.tooltip.dense_state_manipulator.type=Dense State Manipulator, DSM
+gt.blockmachines.gtsr.dense.state.manipulator.name=Dense State Steam Manipulator
+gtsr.tooltip.dense_state_manipulator.type=Dense State Steam Manipulator, DSM
 gtsr.tooltip.dense_state_manipulator.desc=Tier 2 steam machine that compresses or decompresses normal and dense steam.
 gtsr.tooltip.dense_state_manipulator.desc2=Compresses normal steam at 1000:1, or decompresses dense steam at 1:1000.
 gtsr.tooltip.dense_state_manipulator.desc3=Supports steam, superheated steam, supercritical steam, and their matching dense fluids.
 gtsr.tooltip.dense_state_manipulator.desc4=Consumes Steam Entangled Singularities during operation and accumulates fractional output.
 gtsr.tooltip.dense_state_manipulator.desc5=Use a screwdriver to switch between compression and decompression modes.
-gtsr.tooltip.dense_state_manipulator.ctrl=Layer 8, center, slightly below
+gtsr.tooltip.dense_state_manipulator.desc6=While running, two runaway singularity locators (left white, right gray) sustain the singularity animation (purely visual); they vanish instantly when the machine stops or the structure breaks.
+gtsr.tooltip.dense_state_manipulator.ctrl=Layer 8, center, slightly forward
 gtsr.tooltip.dense_state_manipulator.steam_input=Input Hatch, Steam Input Hatch, or Pressure Steam Hatch
 gtsr.tooltip.dense_state_manipulator.input_bus=Steam Entangled Singularity Fuel Input Bus
 gtsr.tooltip.dense_state_manipulator.output_bus=Steam or Dense Steam Output Bus
 gtsr.tooltip.dense_state_manipulator.output_hatch=Steam or Dense Steam Output Hatch
-gtsr.tooltip.dense_state_manipulator.tier1_blocks=Tier 1 structure reserved: this machine requires Tier 2
-gtsr.tooltip.dense_state_manipulator.tier2_blocks=Tier 2: Advanced Rhodium Plated Palladium Casing x264, LuV+ Glass x252, Rhodium Plated Palladium Frame x144
+gtsr.tooltip.dense_state_manipulator.tier1_blocks=Materials: Advanced Rhodium Plated Palladium Machine Casing x986, BW Tiered Glass III x482, Superconductor Coil Casing x64, Fusion Machine Casing MK II x125, Rhodium Plated Palladium Frame x32
 gtsr.gui.dense_state_manipulator.status=Status:
 gtsr.gui.dense_state_manipulator.status.building=Building
 gtsr.gui.dense_state_manipulator.status.running=Running
@@ -826,7 +832,7 @@ gtsr.tooltip.steam_hub.hint_status=Right-click controller holding a Hub Terminal
 
 # Steam Singularity Entangler (SSE)
 gtsr.tooltip.entangler.type=Steam Singularity Entangler, SSE
-gtsr.tooltip.entangler.desc=Devours the highest-grade normal steam in the input hatches (Steam/Superheated/Supercritical), without any EU cost, raising heat via a logarithmic equation.
+gtsr.tooltip.entangler.desc=Devours the highest-grade normal steam in the input hatches (Steam/Superheated/Supercritical), without any EU cost, raising heat via a saturation function.
 gtsr.tooltip.entangler.desc2=Heat formula: y=0.005x/(x+200000), capped at 0.5%/s; actual heat equals the steam coefficient x y (Steam 0.5, Superheated 1, Supercritical 2).
 gtsr.tooltip.entangler.desc3=When multiple steam types are present, only the highest grade is recognized; heat drops by 1% per second whenever the machine is off (including soft-hammer shutdown) or no steam is present.
 gtsr.tooltip.entangler.desc4=At 100% heat, heat resets and one Steam Entangled Singularity is produced.
@@ -969,10 +975,14 @@ gtsr.tooltip.solar_array.desc2=Output efficiency is affected by sunlight intensi
 gtsr.tooltip.solar_array.calcification=Continuous operation causes calcification deposits in heat pipes, gradually reducing steam output (only 1% remains when fully calcified; the owner is reminded every 10 minutes).
 gtsr.tooltip.solar_array.calcification_d=Using distilled water as working medium can prevent calcification.
 gtsr.tooltip.solar_array.clear_calcification_hint=Shift-right-click the controller with empty hand to clear calcification
+gtsr.tooltip.solar_array.desc3=Sun visibility of the top surface (refreshed every 10 s): blocked top blocks proportionally reduce heating speed and steam output; heating stops at 0%.
+gtsr.tooltip.solar_array.desc4=Dirt (F) blocks are white rising particle vents (9 total): they emit rising white particles while the machine runs.
+gtsr.tooltip.solar_array.desc5=Cobblestone (E) is the water level: filled with water source blocks automatically after assembly (130 total, same mechanic as the Ore Washing Plant).
+gtsr.tooltip.solar_array.desc6=Metal blocks (H) have three tiers: Gold (Tier 1) / Nickel (Tier 2) / Silver (Tier 3).
 gtsr.tooltip.solar_array.steam_output=Steam Output
-gtsr.tooltip.solar_array.tier_bronze=Bronze
-gtsr.tooltip.solar_array.tier_steel=Steel
-gtsr.tooltip.solar_array.tier_nickel=Nickel
+gtsr.tooltip.solar_array.tier_bronze=Gold/Bronze
+gtsr.tooltip.solar_array.tier_steel=Nickel/Steel
+gtsr.tooltip.solar_array.tier_nickel=Silver/Steel
 gtsr.tooltip.solar_array.tier_overpressure=Overpressure
 gtsr.tooltip.solar_array.base_output=base output
 gtsr.tooltip.solar_array.superheated_steam=Superheated Steam
