@@ -4,6 +4,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.particle.EntityFX;
 import net.minecraft.client.renderer.ActiveRenderInfo;
 import net.minecraft.client.renderer.Tessellator;
+import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.World;
 
 import org.lwjgl.opengl.GL11;
@@ -19,6 +20,9 @@ import cpw.mods.fml.relauncher.SideOnly;
  */
 @SideOnly(Side.CLIENT)
 public class GTSRGlowFX extends EntityFX {
+
+    /** layer 0 层纹理（vanilla EffectRenderer 层首绑定）：自管批次结束后恢复用 */
+    private static final ResourceLocation PARTICLES_TEXTURE = new ResourceLocation("textures/particle/particles.png");
 
     private final World world;
     private final double x;
@@ -139,10 +143,15 @@ public class GTSRGlowFX extends EntityFX {
         }
         float nearFade = Math.min(1.0F, dist / 3.0F);
         float alpha = this.baseAlpha * this.breathe * fade * this.darkScale * nearFade;
-        // 粒子管道下自管 GL 状态：柔和圆纹理 + additive 混合 + 不写深度
+        // 完全自管批次：先冲刷共享批次，独立 draw；结束后完整恢复 layer 0 层状态。
+        // 粒子管道每层粒子共享一个批次、层末一次 draw，绘制时状态 = 层内最后一次设置的状态——
+        // 若不恢复纹理/混合，glow_soft 会污染同层吸积盘与 vanilla 粒子的批次（"光效外圈透明效果被引用到其他效果"）。
+        tess.draw();
         Minecraft.getMinecraft().renderEngine.bindTexture(GTSRFXParticle.GLOW_SOFT_TEXTURE);
         GL11.glDepthMask(false);
         GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE);
+        tess.startDrawingQuads();
+        tess.setBrightness(0x00F000F0);
         // vanilla EntityFX.renderParticle 正确 billboard 公式（参数 rotationX/rotationXZ/rotationZ/rotationYZ/rotationXY）
         float arX = ActiveRenderInfo.rotationX;
         float arXZ = ActiveRenderInfo.rotationXZ;
@@ -184,8 +193,13 @@ public class GTSRGlowFX extends EntityFX {
                 0.0D,
                 0.0D);
         }
+        tess.draw();
+        // 恢复 layer 0 层状态（层纹理 particles.png、normal 混合、GL_BLEND 保持开启），并恢复外层批次
+        Minecraft.getMinecraft().renderEngine.bindTexture(PARTICLES_TEXTURE);
         GL11.glDepthMask(true);
         GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+        GL11.glEnable(GL11.GL_BLEND);
+        tess.startDrawingQuads();
     }
 
     public double getX() {

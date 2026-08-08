@@ -3,6 +3,7 @@ package com.miaokatze.gtsr.common.fx;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityClientPlayerMP;
 import net.minecraft.client.renderer.Tessellator;
+import net.minecraft.client.renderer.texture.TextureMap;
 import net.minecraft.world.World;
 
 import org.lwjgl.opengl.GL11;
@@ -204,9 +205,13 @@ public class GTSRBeamFX extends GTSRFXParticle {
         float halfHeight = Math.min(3.0F, this.length * 0.5F);
         this.renderSheet(tess, this.width, 1.0F, halfHeight); // 核心光片
         this.renderSheet(tess, this.width * 2.4F, 0.25F, halfHeight); // 丁达尔副片
-        GL11.glDisable(GL11.GL_BLEND);
+        // 完整恢复 layer 2 层状态：重开混合 + normal 混合 + 重绑 items 层纹理，
+        // 防止 additive/blendFunc/纹理残留污染同层后续粒子（vanilla item 粒子等）的共享批次
+        GL11.glEnable(GL11.GL_BLEND);
+        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
         GL11.glDepthMask(true);
         GL11.glEnable(GL11.GL_CULL_FACE);
+        Minecraft.getMinecraft().renderEngine.bindTexture(TextureMap.locationItemsTexture);
         GL11.glPopMatrix();
         tess.startDrawingQuads(); // 恢复外层批次
     }

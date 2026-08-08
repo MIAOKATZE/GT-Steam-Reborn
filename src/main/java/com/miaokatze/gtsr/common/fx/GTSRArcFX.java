@@ -10,6 +10,7 @@ import java.util.Random;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityClientPlayerMP;
 import net.minecraft.client.renderer.Tessellator;
+import net.minecraft.client.renderer.texture.TextureMap;
 import net.minecraft.world.World;
 
 import org.lwjgl.opengl.GL11;
@@ -547,9 +548,13 @@ public class GTSRArcFX extends GTSRFXParticle {
             tess.setBrightness(0x00F000F0);
             this.renderBolt(tess, partialframe, cosyaw, cospitch, sinyaw, cossinpitch, 1, ma);
             tess.draw();
-            GL11.glDisable(GL11.GL_BLEND);
+            // 完整恢复 layer 2 层状态：重开混合 + normal 混合 + 重绑 items 层纹理，
+            // 防止 additive/blendFunc/纹理残留污染同层后续粒子（vanilla item 粒子等）的共享批次
+            GL11.glEnable(GL11.GL_BLEND);
+            GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
             GL11.glDepthMask(true);
             GL11.glEnable(GL11.GL_CULL_FACE); // 恢复世界渲染的背面剔除状态
+            Minecraft.getMinecraft().renderEngine.bindTexture(TextureMap.locationItemsTexture);
             GL11.glPopMatrix();
             tess.startDrawingQuads(); // 恢复外层批次
         }
