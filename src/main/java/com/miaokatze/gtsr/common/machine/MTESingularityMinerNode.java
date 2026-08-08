@@ -51,8 +51,8 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
         .getBlockFromStack(GTModHandler.getIC2Item("miningPipeTip", 0));
     private static final int[] MINING_RADIUS = { 32, 48, 64, 96, 144 }; // 64×64, 96×96, 128×128, 192×192, 288×288
     // 时运统一取高值：贫瘠矿与普通矿等同，不再区分
-    private static final int[] FORTUNE = { 6, 7, 8, 9, 12 };
-    private static final int[] MINER_WORK_CYCLE = { 60, 20, 12, 6, 1 }; // 3s, 1s, 12t, 6t, 1t
+    private static final int[] FORTUNE = { 6, 7, 8, 9, 10 };
+    private static final int[] MINER_WORK_CYCLE = { 80, 60, 40, 20, 10 }; // 4s, 3s, 2s, 1s, 10t
     private static final int[] SINGULARITY_COST = { 0, 16, 32, 64, 256 };
     private static final int[] MINER_NODE_STEAM_COST = { 5_000, 10_000, 20_000, 80_000, 240_000 };
     private static final int EMPTY_SCAN_RETRY_TICKS = 100;

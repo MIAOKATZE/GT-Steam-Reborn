@@ -1130,26 +1130,43 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
 
     @Override
     public boolean addEnergyOutputMultipleDynamos(long aEU, boolean aAllowMixedVoltageDynamos) {
-        // Try standard dynamos first
-        if (!mDynamoHatches.isEmpty()) {
-            if (super.addEnergyOutputMultipleDynamos(aEU, aAllowMixedVoltageDynamos)) {
-                return true;
-            }
+        long totalOutput = 0;
+        for (MTEHatchDynamo aDynamo : GTUtility.validMTEList(mDynamoHatches)) {
+            totalOutput += aDynamo.maxAmperesOut() * aDynamo.maxEUOutput();
         }
-        // Try exotic (multi-amp) dynamos
-        if (!eDynamoMulti.isEmpty()) {
-            for (MTEHatchDynamoMulti tHatch : GTUtility.validMTEList(eDynamoMulti)) {
-                if (tHatch.maxEUOutput() * tHatch.maxAmperesOut() >= aEU) {
-                    tHatch.setEUVar(
-                        Math.min(
-                            tHatch.maxEUStore(),
-                            tHatch.getBaseMetaTileEntity()
-                                .getStoredEU() + aEU));
-                    return true;
-                }
-            }
+        for (MTEHatchDynamoMulti aDynamo : GTUtility.validMTEList(eDynamoMulti)) {
+            totalOutput += aDynamo.maxAmperesOut() * aDynamo.maxEUOutput();
         }
-        return false;
+        if (totalOutput < aEU) {
+            // 输出仓总吞吐不足 -> 与原版 GT5U 一致直接爆炸
+            explodeMultiblock();
+            return false;
+        }
+        long injected = 0;
+        for (MTEHatchDynamo aDynamo : GTUtility.validMTEList(mDynamoHatches)) {
+            injected = injectEnergyIntoDynamo(aEU, injected, aDynamo);
+        }
+        for (MTEHatchDynamoMulti aDynamo : GTUtility.validMTEList(eDynamoMulti)) {
+            injected = injectEnergyIntoDynamo(aEU, injected, aDynamo);
+        }
+        return injected > 0;
+    }
+
+    private long injectEnergyIntoDynamo(long aEU, long injected, MTEHatchDynamo aDynamo) {
+        long leftToInject = aEU - injected;
+        long aVoltage = aDynamo.maxEUOutput();
+        long aAmpsToInject = leftToInject / aVoltage;
+        long aRemainder = leftToInject - (aAmpsToInject * aVoltage);
+        long ampsOnCurrentHatch = Math.min(aDynamo.maxAmperesOut(), aAmpsToInject);
+        aDynamo.getBaseMetaTileEntity()
+            .increaseStoredEnergyUnits(aVoltage * ampsOnCurrentHatch, false);
+        injected += aVoltage * ampsOnCurrentHatch;
+        if (aRemainder > 0 && ampsOnCurrentHatch < aDynamo.maxAmperesOut()) {
+            aDynamo.getBaseMetaTileEntity()
+                .increaseStoredEnergyUnits(aRemainder, false);
+            injected += aRemainder;
+        }
+        return injected;
     }
 
     private SteamType classifyFluid(FluidStack fs) {
