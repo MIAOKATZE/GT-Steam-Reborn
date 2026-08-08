@@ -7,6 +7,7 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
+import net.minecraft.block.Block;
 import net.minecraft.client.renderer.texture.IIconRegister;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
@@ -67,9 +68,10 @@ public abstract class MTESingularityMachineBase extends MTEEnhancedMultiBlockBas
 
     protected final List<MTEHatchPressureSteamInput> mPressureSteamInputs = new ArrayList<>();
 
-    /** 纠缠奇点停止工作后的移除延迟（tick，5 秒），减轻结构检测性能压力 */
+    /** 纠缠奇点停止工作后的移除延迟（tick，100 tick=5 秒），减轻结构检测性能压力 */
     protected static final int ENTANGLEMENT_REMOVE_DELAY = 100;
-    private int mEntanglementRemoveTicks = 0;
+    /** 纠缠奇点移除截止的世界时间：working 时顺延，停止后 100 tick 到点移除 */
+    private long mEntanglementRemoveAt = 0;
 
     protected MTESingularityMachineBase(int aID, String aName, String aNameRegional) {
         super(aID, aName, aNameRegional);
@@ -437,10 +439,10 @@ public abstract class MTESingularityMachineBase extends MTEEnhancedMultiBlockBas
         int z = aBaseMetaTileEntity.getZCoord() + spec.dz;
         World world = aBaseMetaTileEntity.getWorld();
         if (working) {
-            mEntanglementRemoveTicks = ENTANGLEMENT_REMOVE_DELAY;
+            mEntanglementRemoveAt = world.getWorldTime() + ENTANGLEMENT_REMOVE_DELAY;
+            Block block = world.getBlock(x, y, z);
             // 惰性生成：仅当定位点为空气才放置（不覆盖已有奇点 NBT，无比持久化）
-            if (world.getBlock(x, y, z)
-                .isAir(world, x, y, z)) {
+            if (block.isAir(world, x, y, z)) {
                 TileRunawaySingularity.spawnSingularity(
                     world,
                     x,
@@ -452,12 +454,24 @@ public abstract class MTESingularityMachineBase extends MTEEnhancedMultiBlockBas
                     spec.duration,
                     spec.attributeId,
                     spec.color);
+            } else if (block == BlockLoader.blockRunawaySingularity) {
+                // 参数修复（自愈）：与规格不符（如 NBT 丢失回退默认 600 tick）时重新应用，
+                // 防止 30 秒自毁或异常行为；elapsedTicks 不受影响
+                if (world.getTileEntity(x, y, z) instanceof TileRunawaySingularity t
+                    && (t.getRange() != spec.range || t.getSpeed() != spec.speed
+                        || t.getDamage() != spec.damage
+                        || t.getDuration() != spec.duration
+                        || t.getAttributeId() != spec.attributeId
+                        || !spec.color.equals(t.getColor()))) {
+                    t.setParams(spec.range, spec.speed, spec.damage, spec.duration, spec.attributeId, spec.color);
+                    t.markDirty();
+                }
             }
-        } else if (mEntanglementRemoveTicks > 0) {
-            mEntanglementRemoveTicks--;
-        } else if (world.getBlock(x, y, z) == BlockLoader.blockRunawaySingularity) {
-            // 惰性移除：仅当定位点恰为失控奇点方块才清除（关闭/挂机/结构破坏后延迟消失）
-            world.setBlockToAir(x, y, z);
+        } else if (world.getWorldTime() >= mEntanglementRemoveAt) {
+            // 惰性移除：仅当定位点恰为失控奇点方块才清除（关闭/挂机/结构破坏后延迟 100 tick 消失）
+            if (world.getBlock(x, y, z) == BlockLoader.blockRunawaySingularity) {
+                world.setBlockToAir(x, y, z);
+            }
         }
     }
 

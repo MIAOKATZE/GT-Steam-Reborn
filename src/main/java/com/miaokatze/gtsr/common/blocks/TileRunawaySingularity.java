@@ -28,8 +28,9 @@ import com.miaokatze.gtsr.loader.BlockLoader;
  * 失控奇点方块实体
  * S2：服务端吸收/牵引/衰减逻辑已实现。
  * 时间语义：duration 单位=tick（600=30 秒），speed 单位=方块/20tick，damage 单位=伤害/20tick。
- * 颜色：color 为 16 原版染料色之一（默认 white），仅影响视觉表现。
+ * 颜色：color 为 16 原版染料色之一（默认 white），仅影响视觉表现（主体光效与光片）。
  * 特殊状态：attributeId=-1 表示 special=null，纯动画，不吸引/不破坏/不吸收任何方块与实体。
+ * 无 NBT 默认参数：(10 0 0 600 null white)——NBT 丢失时回退为惰性有限时长奇点，绝不摧毁周边机器。
  */
 public class TileRunawaySingularity extends TileEntity {
 
@@ -82,10 +83,10 @@ public class TileRunawaySingularity extends TileEntity {
     }
 
     private double range = 10.0D;
-    private double speed = 1.0D;
-    private double damage = 1.0D;
+    private double speed = 0.0D;
+    private double damage = 0.0D;
     private int duration = 600; // tick，600 = 30 秒，-1=无限
-    private int attributeId = 0;
+    private int attributeId = -1; // -1=特殊状态 null（纯动画）；无 NBT 默认即惰性奇点
     private String color = "white"; // 16 原版染料色之一，默认 white，仅影响视觉表现
     private int elapsedTicks = 0; // 服务端与客户端各自递增
 
@@ -158,12 +159,6 @@ public class TileRunawaySingularity extends TileEntity {
     public float[] getColorRGB() {
         float[] rgb = COLOR_RGB.get(normalizeColor(color).toLowerCase());
         return new float[] { rgb[0], rgb[1], rgb[2] };
-    }
-
-    /** 当前颜色打包为 0xRRGGBB（网络传输用） */
-    public int getPackedColor() {
-        float[] rgb = getColorRGB();
-        return ((int) (rgb[0] * 255.0F) << 16) | ((int) (rgb[1] * 255.0F) << 8) | (int) (rgb[2] * 255.0F);
     }
 
     public boolean isInfinite() {
@@ -307,7 +302,7 @@ public class TileRunawaySingularity extends TileEntity {
             double p = Math.min(1.0D, speed * factor * f * jitter * SCAN_INTERVAL / 20.0D);
             if (worldObj.rand.nextDouble() < p) {
                 worldObj.setBlockToAir(t[0], t[1], t[2]);
-                GTSRFXNet.sendAbsorb(worldObj, t[0], t[1], t[2], xCoord, yCoord, zCoord, getPackedColor());
+                GTSRFXNet.sendAbsorb(worldObj, t[0], t[1], t[2], xCoord, yCoord, zCoord);
                 count++;
                 if (count >= cap) {
                     break;

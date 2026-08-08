@@ -297,12 +297,10 @@ public class GTSRFXEngine {
     }
 
     public static void spawnArc(World world, double sx, double sy, double sz, double ex, double ey, double ez,
-        float width, int type, int duration, float multi, int speed, float darkScale, float colorR, float colorG,
-        float colorB) {
+        float width, int type, int duration, float multi, int speed, float darkScale) {
         GTSRArcFX arc = GTSRArcFX
             .add(world, sx, sy, sz, ex, ey, ez, System.nanoTime(), width, type, duration, multi, speed);
         arc.setDarkScale(darkScale);
-        arc.setColor(colorR, colorG, colorB);
     }
 
     public static void spawnParticle(GTSRFXParticle particle) {
