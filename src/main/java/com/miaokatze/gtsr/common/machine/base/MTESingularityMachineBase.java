@@ -460,7 +460,8 @@ public abstract class MTESingularityMachineBase extends MTEEnhancedMultiBlockBas
                         spec.damage,
                         spec.duration,
                         spec.attributeId,
-                        spec.color);
+                        spec.color,
+                        spec.fxRadius);
                 } else if (block == BlockLoader.blockRunawaySingularity) {
                     // 参数修复（自愈）：与规格不符（如 NBT 丢失回退默认 600 tick）时重新应用，
                     // 防止 30 秒自毁或异常行为；elapsedTicks 不受影响
@@ -469,8 +470,16 @@ public abstract class MTESingularityMachineBase extends MTEEnhancedMultiBlockBas
                             || t.getDamage() != spec.damage
                             || t.getDuration() != spec.duration
                             || t.getAttributeId() != spec.attributeId
-                            || !spec.color.equals(t.getColor()))) {
-                        t.setParams(spec.range, spec.speed, spec.damage, spec.duration, spec.attributeId, spec.color);
+                            || !spec.color.equals(t.getColor())
+                            || t.getFxRadius() != spec.fxRadius)) {
+                        t.setParams(
+                            spec.range,
+                            spec.speed,
+                            spec.damage,
+                            spec.duration,
+                            spec.attributeId,
+                            spec.color,
+                            spec.fxRadius);
                         t.markDirty();
                     }
                 }
@@ -614,9 +623,10 @@ public abstract class MTESingularityMachineBase extends MTEEnhancedMultiBlockBas
         public final int duration;
         public final int attributeId;
         public final String color;
+        public final double fxRadius;
 
         public EntanglementSpec(int dx, int dy, int dz, double range, double speed, double damage, int duration,
-            int attributeId, String color) {
+            int attributeId, String color, double fxRadius) {
             this.dx = dx;
             this.dy = dy;
             this.dz = dz;
@@ -626,6 +636,7 @@ public abstract class MTESingularityMachineBase extends MTEEnhancedMultiBlockBas
             this.duration = duration;
             this.attributeId = attributeId;
             this.color = color;
+            this.fxRadius = fxRadius;
         }
     }
 

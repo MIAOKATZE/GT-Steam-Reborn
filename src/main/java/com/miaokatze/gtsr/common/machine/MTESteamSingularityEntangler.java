@@ -538,7 +538,7 @@ public class MTESteamSingularityEntangler extends MTESingularityMachineBase impl
     protected EntanglementSpec getEntanglementSpec() {
         // D 定位块：形状偏移 (a+15, b-8, c+10)，经 ExtendedFacing 换算世界偏移（与 checkPiece 同源映射）
         Vec3Impl off = getExtendedFacing().getWorldOffset(new Vec3Impl(15, -8, 10));
-        return new EntanglementSpec(off.get0(), off.get1(), off.get2(), 10.0D, 0.0D, 0.0D, -1, -1, "white");
+        return new EntanglementSpec(off.get0(), off.get1(), off.get2(), 9.0D, 0.0D, 0.0D, -1, -1, "white", 25.0D);
     }
 
     @Override

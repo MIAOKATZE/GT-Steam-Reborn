@@ -11,13 +11,12 @@ import com.cleanroommc.modularui.value.sync.IntSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.value.sync.StringSyncValue;
 import com.cleanroommc.modularui.widgets.ListWidget;
-import com.gtnewhorizon.gtnhlib.util.numberformatting.NumberFormatUtil;
 import com.miaokatze.gtsr.common.machine.MTECrustMatterAggregator;
 
 /**
  * 地壳物质聚合器 GUI：基类 MTESingularityMachineGui 已覆盖热量/档位状态/等级行与
  * gtsr.mode/gtsr.fuelTicks 同步（getModeForGui/getFuelTicksForGui），本类补充：
- * 奇点模式行（含剩余秒数）、维度行（覆盖/默认维度 + 无维度/无矿石状态）、当前挖掘矿名、蒸汽消耗行。
+ * 奇点模式行（含剩余秒数）、维度行（覆盖/默认维度 + 无维度/无矿石状态）、当前挖掘矿名。
  */
 public class MTECrustMatterAggregatorGui extends MTESingularityMachineGui<MTECrustMatterAggregator> {
 
@@ -91,22 +90,6 @@ public class MTECrustMatterAggregatorGui extends MTESingularityMachineGui<MTECru
             })
                 .asWidget()
                 .marginBottom(2)
-                .fullWidth())
-            .child(
-                IKey.dynamic(
-                    () -> EnumChatFormatting.YELLOW + StatCollector.translateToLocal(keyPrefix + "steam_cost")
-                        + EnumChatFormatting.RED
-                        + NumberFormatUtil.formatNumber(MTECrustMatterAggregator.NORMAL_STEAM_PER_SECOND)
-                        + " L/s ("
-                        + StatCollector.translateToLocal(keyPrefix + "steam_cost_normal")
-                        + ") / "
-                        + NumberFormatUtil.formatNumber(MTECrustMatterAggregator.DENSE_STEAM_PER_SECOND)
-                        + " L/s ("
-                        + StatCollector.translateToLocal(keyPrefix + "steam_cost_dense")
-                        + ")"
-                        + EnumChatFormatting.RESET)
-                    .asWidget()
-                    .marginBottom(2)
-                    .fullWidth());
+                .fullWidth());
     }
 }

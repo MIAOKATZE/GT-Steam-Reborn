@@ -47,6 +47,8 @@ import cpw.mods.fml.common.Loader;
 import cpw.mods.fml.common.registry.GameRegistry;
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Materials;
+import gregtech.api.enums.Textures;
+import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.implementations.MTEHatch;
@@ -54,6 +56,7 @@ import gregtech.api.metatileentity.implementations.MTEHatchInputBus;
 import gregtech.api.recipe.check.CheckRecipeResult;
 import gregtech.api.recipe.check.CheckRecipeResultRegistry;
 import gregtech.api.recipe.check.SimpleCheckRecipeResult;
+import gregtech.api.render.TextureFactory;
 import gregtech.api.structure.error.StructureError;
 import gregtech.api.structure.error.StructureErrorRegistry;
 import gregtech.api.util.GTUtility;
@@ -77,7 +80,7 @@ import gregtech.common.tileentities.machines.IDualInputInventory;
  * SINGULARITY_DURATION_TICKS=4000（200 秒）；每 20 tick 检查：无模式时优先消耗临界蒸汽纠缠奇点
  * 进入模式 2，其次蒸汽纠缠奇点进入模式 1；模式中倒计时耗尽时按当前模式对应物品无缝续杯，失败退出。
  * 失控奇点节点（单 F 位，color "black"，attributeId -2=onlypull）参数随模式变化：
- * 模式 0 (6,0,1) / 模式 1 (8,0,2) / 模式 2 (12,0,4)（range, speed, damage）。
+ * 模式 0 (6,0,1, fx10) / 模式 1 (8,0,2, fx12) / 模式 2 (12,0,4, fx16)（range, speed, damage, fxRadius）。
  *
  * 粒子（客户端，太阳能锅炉同款）：G 位（泥土位，54 个）机器工作即每 tick 1 个白色 cloud 粒子；
  * H 位（草方块位，36 个）按 mHeat/0.5 期望数概率补 1（热量驱动）。工作标志与热量经
@@ -400,13 +403,13 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
 
         return StructureDefinition.<MTECrustMatterAggregator>builder()
             .addShape(STRUCTURE_PIECE_MAIN, transpose(SHAPE_MAIN))
-            .addElement('A', ofBlock(GameRegistry.findBlock("gregtech", "gt.blockcasings2"), 0))
+            // A = 仓室位（固体钢机械外壳）：casing-first，NEI 投影优先渲染外壳；
+            // 真实 hatch 坐标上 casing 匹配失败后继续匹配 hatch adder（流体输入/耐压蒸汽/输入总线可选，输出总线必填）
             .addElement(
-                'B',
+                'A',
                 ofChain(
-                    // casing-first: NEI 投影优先渲染外壳；真实 hatch 坐标上 casing 匹配失败后继续匹配 hatch adder。
-                    ofBlock(GameRegistry.findBlock("gregtech", "gt.blockcasings2"), 3),
-                    // 流体输入仓（MTEHatchInput 含 ME 输入仓 + 耐压蒸汽输入仓；shouldReject 防重复）
+                    ofBlock(GameRegistry.findBlock("gregtech", "gt.blockcasings2"), 0),
+                    // 流体输入仓（MTEHatchInput 含 ME 输入仓 + 耐压蒸汽输入仓；shouldReject 防重复），可选
                     buildHatchAdder(MTECrustMatterAggregator.class).atLeast(SingularityHatchElement.SteamInput)
                         .casingIndex(casingIndex)
                         .hint(1)
@@ -417,11 +420,13 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
                         .casingIndex(casingIndex)
                         .hint(1)
                         .build(),
-                    // 输出总线 = 矿石输出
+                    // 输出总线 = 矿石输出（必填）
                     buildHatchAdder(MTECrustMatterAggregator.class).atLeast(SingularityHatchElement.SteamOutputBus)
                         .casingIndex(casingIndex)
                         .hint(1)
                         .build()))
+            // B = 纯钢齿轮箱外壳
+            .addElement('B', ofBlock(GameRegistry.findBlock("gregtech", "gt.blockcasings2"), 3))
             .addElement('C', ofBlock(GameRegistry.findBlock("gregtech", "gt.blockcasings2"), 13))
             .addElement('D', ofBlock(GregTechAPI.sBlockFrames, Materials.Steel.mMetaItemSubID))
             .addElement('E', ofBlock(GameRegistry.findBlock("gregtech", "gt.blockglass1"), 10))
@@ -468,16 +473,27 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
 
         if (!checkPiece(STRUCTURE_PIECE_MAIN, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET, errors)) return;
 
-        // 结构要求：流体输入 ≥1（超临界/致密态流体必需）、输出总线 ≥1；物品输入总线（奇点燃料）可选
-        if (mInputHatches.isEmpty() && mPressureSteamInputs.isEmpty() && mDualInputHatches.isEmpty()) {
-            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
-            return;
-        }
+        // 结构要求：输出总线 ≥1 必填；流体输入仓/耐压蒸汽仓/物品输入总线（奇点燃料）全部可选
         if (mOutputBusses.isEmpty()) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
             return;
         }
         updateAllHatchTextures();
+    }
+
+    @Override
+    public ITexture[] getTexture(IGregTechTileEntity aBaseMetaTileEntity, ForgeDirection side, ForgeDirection facing,
+        int colorIndex, boolean aActive, boolean redstoneLevel) {
+        // 控制器沿用旧 SCSB/CSB 系列材质：正面 固体钢外壳 + 采矿钻头叠层（OVERLAY_FRONT_ORE_DRILL），
+        // 其余面仅外壳；不继承基类 Entangler 面板。叠层为 GT5U 内置常量，无需 registerIcons。
+        int casingIndex = GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings2, 0);
+        if (side == facing) {
+            return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(casingIndex),
+                TextureFactory.of(
+                    aActive ? Textures.BlockIcons.OVERLAY_FRONT_ORE_DRILL_ACTIVE
+                        : Textures.BlockIcons.OVERLAY_FRONT_ORE_DRILL) };
+        }
+        return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(casingIndex) };
     }
 
     // —— 结构特殊位形状偏移缓存（(列, 层, 行) - 控制器 (2,2,2)）——
@@ -876,18 +892,22 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
         Vec3Impl worldOff = getExtendedFacing().getWorldOffset(new Vec3Impl(off[0], off[1], off[2]));
         double range;
         double damage;
+        double fxRadius;
         switch (mSingularityMode) {
             case 2:
                 range = 12.0d;
                 damage = 4.0d;
+                fxRadius = 16.0d;
                 break;
             case 1:
                 range = 8.0d;
                 damage = 2.0d;
+                fxRadius = 12.0d;
                 break;
             default:
                 range = 6.0d;
                 damage = 1.0d;
+                fxRadius = 10.0d;
                 break;
         }
         return Collections.singletonList(
@@ -900,7 +920,8 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
                 damage,
                 -1,
                 -2,
-                "black"));
+                "black",
+                fxRadius));
     }
 
     // —— 粒子（客户端，太阳能锅炉同款）——

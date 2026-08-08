@@ -33,8 +33,10 @@ import com.miaokatze.gtsr.loader.BlockLoader;
  * 时间语义：duration 单位=tick（600=30 秒），speed 单位=方块/20tick，damage 单位=伤害/20tick。
  * 颜色：color 为 16 原版染料色之一（默认 white），仅影响视觉表现（主体光效与光片）。
  * 特殊状态：attributeId=-1 表示 special=null，纯动画，不吸引/不破坏/不吸收任何方块与实体；
- * attributeId=-2 表示 special=onlypull，只牵引不吸收（不吸收方块、不处理掉落物、牵引力度减半、伤害照常）。
- * 无 NBT 默认参数：(10 0 0 600 null white)——NBT 丢失时回退为惰性有限时长奇点，绝不摧毁周边机器。
+ * attributeId=-2 表示 special=onlypull，只牵引不吸收（不吸收方块、不处理掉落物、牵引力度减半、伤害照常）；
+ * attributeId=-3 表示 special=nullplus，null 基础上无电弧无粒子（吸积盘/电弧跳过），光片/辉光保留。
+ * 光效半径：fxRadius（默认 10，钳制 [0.5,128]）仅影响视觉（光片/辉光），与吸收/牵引半径 range 独立。
+ * 无 NBT 默认参数：(10 0 0 600 null white 10)——NBT 丢失时回退为惰性有限时长奇点，绝不摧毁周边机器。
  */
 public class TileRunawaySingularity extends TileEntity {
 
@@ -88,6 +90,7 @@ public class TileRunawaySingularity extends TileEntity {
 
     public static final int ATTRIBUTE_NULL = -1; // 特殊状态 null：纯动画，不吸引/不破坏/不吸收任何方块与实体
     public static final int ATTRIBUTE_ONLY_PULL = -2; // 特殊状态 onlypull：只牵引不吸收（不吸收方块、不处理掉落物、牵引力度减半、伤害照常）
+    public static final int ATTRIBUTE_NULL_PLUS = -3; // 特殊状态 nullplus：null 基础上无电弧无粒子（吸积盘/电弧跳过），光片/辉光保留
 
     private double range = 10.0D;
     private double speed = 0.0D;
@@ -95,6 +98,7 @@ public class TileRunawaySingularity extends TileEntity {
     private int duration = 600; // tick，600 = 30 秒，-1=无限
     private int attributeId = -1; // -1=ATTRIBUTE_NULL（纯动画）；-2=ATTRIBUTE_ONLY_PULL（只牵引不吸收）；无 NBT 默认即惰性奇点
     private String color = "white"; // 16 原版染料色之一，默认 white，仅影响视觉表现
+    private double fxRadius = 10.0D; // 光效半径，NBT 缺省默认 10；仅影响视觉（光片/辉光），与 range 独立
     private int elapsedTicks = 0; // 服务端与客户端各自递增
 
     @Override
@@ -119,6 +123,9 @@ public class TileRunawaySingularity extends TileEntity {
         if (data.hasKey("color")) {
             this.color = data.getString("color");
         }
+        if (data.hasKey("fxRadius")) {
+            this.fxRadius = data.getDouble("fxRadius"); // 缺省保持 10
+        }
         this.elapsedTicks = data.getInteger("elapsed"); // 无键保持 0
     }
 
@@ -132,6 +139,7 @@ public class TileRunawaySingularity extends TileEntity {
         data.setInteger("duration", this.duration);
         data.setInteger("attribute", this.attributeId);
         data.setString("color", this.color);
+        data.setDouble("fxRadius", this.fxRadius);
         data.setInteger("elapsed", this.elapsedTicks);
         tag.setTag("gtsrSingularity", data);
     }
@@ -175,6 +183,10 @@ public class TileRunawaySingularity extends TileEntity {
         return color;
     }
 
+    public double getFxRadius() {
+        return fxRadius;
+    }
+
     /**
      * 当前颜色 RGB（0~1），返回副本；未知名回退 white 的 RGB
      */
@@ -191,12 +203,23 @@ public class TileRunawaySingularity extends TileEntity {
         return elapsedTicks;
     }
 
-    public void setParams(double range, double speed, double damage, int duration, int attributeId, String color) {
+    public void setParams(double range, double speed, double damage, int duration, int attributeId, String color,
+        double fxRadius) {
         this.range = Math.max(0.5D, Math.min(128.0D, range));
         this.speed = Math.max(0.0D, Math.min(100.0D, speed));
         this.damage = Math.max(0.0D, Math.min(1000.0D, damage));
-        this.attributeId = attributeId == ATTRIBUTE_NULL || attributeId == ATTRIBUTE_ONLY_PULL ? attributeId
-            : Math.max(0, Math.min(999, attributeId)); // 仅放行两个特殊值（-1 null 纯动画 / -2 onlypull 只牵引不吸收），其余 0-999 钳制
+        this.attributeId = attributeId == ATTRIBUTE_NULL || attributeId == ATTRIBUTE_ONLY_PULL
+            || attributeId == ATTRIBUTE_NULL_PLUS ? attributeId : Math.max(0, Math.min(999, attributeId)); // 仅放行三个特殊值（-1
+                                                                                                           // null 纯动画 /
+                                                                                                           // -2
+                                                                                                           // onlypull
+                                                                                                           // 只牵引不吸收 /
+                                                                                                           // -3
+                                                                                                           // nullplus
+                                                                                                           // null
+                                                                                                           // 基础上无电弧无粒子），其余
+                                                                                                           // 0-999 钳制
+        this.fxRadius = Math.max(0.5D, Math.min(128.0D, fxRadius));
         if (duration == -1) {
             this.duration = -1;
         } else {
@@ -229,11 +252,11 @@ public class TileRunawaySingularity extends TileEntity {
      * 静态生成助手（供后续多方块爆炸调用）
      */
     public static void spawnSingularity(World world, int x, int y, int z, double range, double speed, double damage,
-        int duration, int attributeId, String color) {
+        int duration, int attributeId, String color, double fxRadius) {
         world.setBlock(x, y, z, BlockLoader.blockRunawaySingularity);
         TileEntity te = world.getTileEntity(x, y, z);
         if (te instanceof TileRunawaySingularity) {
-            ((TileRunawaySingularity) te).setParams(range, speed, damage, duration, attributeId, color);
+            ((TileRunawaySingularity) te).setParams(range, speed, damage, duration, attributeId, color, fxRadius);
             te.markDirty();
         }
     }
@@ -253,8 +276,8 @@ public class TileRunawaySingularity extends TileEntity {
             worldObj.setBlockToAir(xCoord, yCoord, zCoord); // 时间耗尽，奇点销毁，事件结束
             return;
         }
-        if (attributeId == ATTRIBUTE_NULL) {
-            return; // 特殊状态 null：纯动画，不吸引/不破坏/不吸收任何方块与实体
+        if (attributeId == ATTRIBUTE_NULL || attributeId == ATTRIBUTE_NULL_PLUS) {
+            return; // 特殊状态 null/nullplus：纯动画，不吸引/不破坏/不吸收任何方块与实体
         }
         boolean onlyPull = attributeId == ATTRIBUTE_ONLY_PULL;
         double factor = getActiveFactor();

@@ -12,10 +12,12 @@ import com.miaokatze.gtsr.common.blocks.TileRunawaySingularity;
 /**
  * /gtsr 指令：在命令发送者位置生成失控奇点。
  * 用法：/gtsr singularity <range> <speed/20tick> <damage/20tick> <durationTicks|NA> <special|null|onlypull> [color]
+ * [fxRadius]
  * speed=每20tick吸收方块数，damage=每20tick伤害值，durationTicks=tick 数；duration 为 NA 表示无限。
  * special=特殊状态（0-999），null=纯动画（不吸引/不破坏/不吸收任何方块与实体），
- * onlypull=只牵引不吸收（不吸收方块、不处理掉落物、牵引力度减半、伤害照常）。
- * color=16 原版染料色之一，省略默认 white。
+ * onlypull=只牵引不吸收（不吸收方块、不处理掉落物、牵引力度减半、伤害照常），
+ * nullplus=null 基础上无电弧无粒子（吸积盘/电弧跳过），光片/辉光保留。
+ * color=16 原版染料色之一，省略默认 white；fxRadius=光效半径 [0.5,128]，省略默认 10。
  * 调试默认：10 1 1 600 0 white（范围 10、每20tick吸1块、每20tick 1点伤害、600 tick=30秒、事件 0、白色）。
  * 需要 OP 权限等级 4。
  */
@@ -28,7 +30,7 @@ public class GTSRCommand extends CommandBase {
 
     @Override
     public String getCommandUsage(ICommandSender sender) {
-        return "/gtsr singularity <range> <speed/20tick> <damage/20tick> <durationTicks|NA> <special|null|onlypull> [color]";
+        return "/gtsr singularity <range> <speed/20tick> <damage/20tick> <durationTicks|NA> <special|null|onlypull> [color] [fxRadius]";
     }
 
     @Override
@@ -38,7 +40,7 @@ public class GTSRCommand extends CommandBase {
 
     @Override
     public void processCommand(ICommandSender sender, String[] args) {
-        if (args.length < 6 || args.length > 7 || !args[0].equalsIgnoreCase("singularity")) {
+        if (args.length < 6 || args.length > 8 || !args[0].equalsIgnoreCase("singularity")) {
             throw new WrongUsageException(getCommandUsage(sender));
         }
 
@@ -52,6 +54,7 @@ public class GTSRCommand extends CommandBase {
             // 非法颜色走数值错误通道（也可换 WrongUsageException，语义等价）
             throw new NumberInvalidException("commands.generic.num.invalid", color);
         }
+        double fxRadius = args.length >= 8 ? parseClampedDouble(args[7], 0.5D, 128.0D) : 10.0D;
 
         EntityPlayerMP player = getCommandSenderAsPlayer(sender);
         if (player.worldObj.isRemote) {
@@ -68,7 +71,8 @@ public class GTSRCommand extends CommandBase {
             damage,
             duration,
             special,
-            color);
+            color,
+            fxRadius);
 
         sender.addChatMessage(
             new ChatComponentText(
@@ -81,9 +85,12 @@ public class GTSRCommand extends CommandBase {
                     + (duration == -1 ? "NA" : duration)
                     + ", special "
                     + (special == TileRunawaySingularity.ATTRIBUTE_NULL ? "null"
-                        : special == TileRunawaySingularity.ATTRIBUTE_ONLY_PULL ? "onlypull" : special)
+                        : special == TileRunawaySingularity.ATTRIBUTE_ONLY_PULL ? "onlypull"
+                            : special == TileRunawaySingularity.ATTRIBUTE_NULL_PLUS ? "nullplus" : special)
                     + ", color "
-                    + color));
+                    + color
+                    + ", fxRadius "
+                    + fxRadius));
     }
 
     @Override
@@ -92,7 +99,7 @@ public class GTSRCommand extends CommandBase {
             return getListOfStringsMatchingLastWord(args, "singularity");
         }
         if (args.length == 5) {
-            return getListOfStringsMatchingLastWord(args, "NA", "0", "null", "onlypull");
+            return getListOfStringsMatchingLastWord(args, "NA", "0", "null", "onlypull", "nullplus");
         }
         if (args.length == 6) {
             return getListOfStringsMatchingLastWord(
@@ -152,7 +159,8 @@ public class GTSRCommand extends CommandBase {
 
     /**
      * 第 5 参：特殊状态；null → -1（纯动画，不吸引/不破坏/不吸收任何方块与实体），
-     * onlypull → -2（只牵引不吸收：不吸收方块、不处理掉落物、牵引力度减半、伤害照常），否则 0-999 整数
+     * onlypull → -2（只牵引不吸收：不吸收方块、不处理掉落物、牵引力度减半、伤害照常），
+     * nullplus → -3（null 基础上无电弧无粒子，光片/辉光保留），否则 0-999 整数
      */
     private int parseSpecial(String arg) {
         if (arg.equalsIgnoreCase("null")) {
@@ -160,6 +168,9 @@ public class GTSRCommand extends CommandBase {
         }
         if (arg.equalsIgnoreCase("onlypull")) {
             return TileRunawaySingularity.ATTRIBUTE_ONLY_PULL;
+        }
+        if (arg.equalsIgnoreCase("nullplus")) {
+            return TileRunawaySingularity.ATTRIBUTE_NULL_PLUS;
         }
         return parseClampedInt(arg, 0, 999);
     }
