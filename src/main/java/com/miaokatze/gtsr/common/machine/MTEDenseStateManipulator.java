@@ -16,12 +16,14 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
+import net.minecraft.world.World;
 import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
 
 import com.gtnewhorizon.structurelib.alignment.constructable.ISurvivalConstructable;
 import com.gtnewhorizon.structurelib.structure.IStructureDefinition;
+import com.gtnewhorizon.structurelib.structure.IStructureElementCheckOnly;
 import com.gtnewhorizon.structurelib.structure.ISurvivalBuildEnvironment;
 import com.gtnewhorizon.structurelib.structure.StructureDefinition;
 import com.gtnewhorizon.structurelib.util.Vec3Impl;
@@ -286,6 +288,19 @@ public class MTEDenseStateManipulator extends MTESingularityMachineBase implemen
 
     private static IStructureDefinition<MTEDenseStateManipulator> createStructureDefinition() {
         int casingIndex = GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings8, 6);
+        // 失控节点定位位（导出为泥土）：接受失控奇点方块或空气（砖高炉式容错：运行期间此处生成奇点，结构判定仍有效）。
+        // noPlacement()：构建/全息投影不放置奇点方块——该位保持空气，奇点仅由机器运行时惰性生成
+        IStructureElementCheckOnly<MTEDenseStateManipulator> singularityLocator = new IStructureElementCheckOnly<MTEDenseStateManipulator>() {
+
+            @Override
+            public boolean check(MTEDenseStateManipulator t, World world, int x, int y, int z) {
+                // 结构判定：接受失控奇点方块或空气（砖高炉式容错：运行期间此处生成奇点，结构判定仍有效）；
+                // CheckOnly 不放置：构建/全息投影保持空气，奇点仅由机器运行时惰性生成
+                Block block = world.getBlock(x, y, z);
+                return block == BlockLoader.blockRunawaySingularity || block.isAir(world, x, y, z);
+            }
+        };
+
         return StructureDefinition.<MTEDenseStateManipulator>builder()
             .addShape(STRUCTURE_PIECE_MAIN, transpose(SHAPE_MAIN))
             .addElement('A', ofBlock(getTier2GlassBlock(), 3))
@@ -312,7 +327,7 @@ public class MTEDenseStateManipulator extends MTESingularityMachineBase implemen
                         .casingIndex(casingIndex)
                         .hint(2)
                         .build()))
-            .addElement('F', ofChain(ofBlock(BlockLoader.blockRunawaySingularity, 0), isAir()))
+            .addElement('F', singularityLocator)
             .addElement('-', isAir())
             .build();
     }

@@ -14,9 +14,11 @@ import net.minecraft.block.Block;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
+import net.minecraft.world.World;
 
 import com.gtnewhorizon.structurelib.alignment.constructable.ISurvivalConstructable;
 import com.gtnewhorizon.structurelib.structure.IStructureDefinition;
+import com.gtnewhorizon.structurelib.structure.IStructureElementCheckOnly;
 import com.gtnewhorizon.structurelib.structure.ISurvivalBuildEnvironment;
 import com.gtnewhorizon.structurelib.structure.StructureDefinition;
 import com.gtnewhorizon.structurelib.util.Vec3Impl;
@@ -329,6 +331,19 @@ public class MTECriticalSingularityCompressor extends MTESingularityMachineBase 
 
     private static IStructureDefinition<MTECriticalSingularityCompressor> createStructureDefinition() {
         int casingIndex = GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings8, 6);
+        // 失控节点定位位（导出为泥土）：接受失控奇点方块或空气（砖高炉式容错：运行期间此处生成奇点，结构判定仍有效）。
+        // noPlacement()：构建/全息投影不放置奇点方块——该位保持空气，奇点仅由机器运行时惰性生成
+        IStructureElementCheckOnly<MTECriticalSingularityCompressor> singularityLocator = new IStructureElementCheckOnly<MTECriticalSingularityCompressor>() {
+
+            @Override
+            public boolean check(MTECriticalSingularityCompressor t, World world, int x, int y, int z) {
+                // 结构判定：接受失控奇点方块或空气（砖高炉式容错：运行期间此处生成奇点，结构判定仍有效）；
+                // CheckOnly 不放置：构建/全息投影保持空气，奇点仅由机器运行时惰性生成
+                Block block = world.getBlock(x, y, z);
+                return block == BlockLoader.blockRunawaySingularity || block.isAir(world, x, y, z);
+            }
+        };
+
         return StructureDefinition.<MTECriticalSingularityCompressor>builder()
             .addShape(STRUCTURE_PIECE_MAIN, transpose(SHAPE_MAIN))
             // ' ' = skip — handled by StructureLib addShape, no addElement needed
@@ -364,12 +379,7 @@ public class MTECriticalSingularityCompressor extends MTESingularityMachineBase 
                         .hint(2)
                         .build()))
             .addElement('H', ofBlock(GameRegistry.findBlock("gregtech", "gt.blockframes"), 70))
-            .addElement(
-                'I',
-                ofChain(
-                    // 失控节点定位位：接受失控奇点方块或空气（砖高炉式容错：运行期间此处生成奇点，结构判定仍有效）
-                    ofBlock(BlockLoader.blockRunawaySingularity, 0),
-                    isAir()))
+            .addElement('I', singularityLocator)
             .build();
     }
 

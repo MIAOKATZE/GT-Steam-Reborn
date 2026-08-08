@@ -1,7 +1,6 @@
 package com.miaokatze.gtsr.common.machine;
 
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.isAir;
-import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlock;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlocksTiered;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose;
@@ -17,11 +16,13 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
+import net.minecraft.world.World;
 
 import org.apache.commons.lang3.tuple.Pair;
 
 import com.gtnewhorizon.structurelib.alignment.constructable.ISurvivalConstructable;
 import com.gtnewhorizon.structurelib.structure.IStructureDefinition;
+import com.gtnewhorizon.structurelib.structure.IStructureElementCheckOnly;
 import com.gtnewhorizon.structurelib.structure.ISurvivalBuildEnvironment;
 import com.gtnewhorizon.structurelib.structure.StructureDefinition;
 import com.gtnewhorizon.structurelib.util.Vec3Impl;
@@ -130,6 +131,18 @@ public class MTESteamSingularityEntangler extends MTESingularityMachineBase impl
         frameTiers.add(Pair.of(GregTechAPI.sBlockFrames, Materials.Steel.mMetaItemSubID));
         List<Pair<Block, Integer>> glassTiers = new ArrayList<>();
         glassTiers.add(Pair.of(GTVersionCompat.getReinforcedGlassBlock(), GTVersionCompat.getReinforcedGlassMeta()));
+        // 特殊定位块（导出为泥土）：接受失控奇点方块或空气（砖高炉式容错：机器运行期间此处生成奇点，结构判定仍有效）。
+        // noPlacement()：构建/全息投影不放置奇点方块——该位保持空气，奇点仅由机器运行时惰性生成
+        IStructureElementCheckOnly<MTESteamSingularityEntangler> singularityLocator = new IStructureElementCheckOnly<MTESteamSingularityEntangler>() {
+
+            @Override
+            public boolean check(MTESteamSingularityEntangler t, World world, int x, int y, int z) {
+                // 结构判定：接受失控奇点方块或空气（砖高炉式容错：运行期间此处生成奇点，结构判定仍有效）；
+                // CheckOnly 不放置：构建/全息投影保持空气，奇点仅由机器运行时惰性生成
+                Block block = world.getBlock(x, y, z);
+                return block == BlockLoader.blockRunawaySingularity || block.isAir(world, x, y, z);
+            }
+        };
 
         return StructureDefinition.<MTESteamSingularityEntangler>builder()
             .addShape(
@@ -462,12 +475,7 @@ public class MTESteamSingularityEntangler extends MTESingularityMachineBase impl
                     -1,
                     (t, tier) -> t.mCasingTierD = tier,
                     t -> t.mCasingTierD))
-            .addElement(
-                'E',
-                ofChain(
-                    // 特殊定位块（导出为泥土）：接受失控奇点方块或空气（砖高炉式容错：机器运行期间此处生成奇点，结构判定仍有效）
-                    ofBlock(BlockLoader.blockRunawaySingularity, 0),
-                    isAir()))
+            .addElement('E', singularityLocator)
             .addElement('-', isAir())
             .build();
     }
