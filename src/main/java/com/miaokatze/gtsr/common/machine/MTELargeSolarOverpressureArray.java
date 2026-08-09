@@ -1150,7 +1150,7 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
         int heatQuantized = (int) Math.round(mHeat * 15.0);
         if (heatQuantized < 0) heatQuantized = 0;
         if (heatQuantized > 15) heatQuantized = 15;
-        return (byte) ((heatQuantized << 3) | (mSetTier << 1) | (mIsHeating ? 0x01 : 0x00));
+        return (byte) ((heatQuantized << 3) | ((mSetTier <= 0 ? 0 : mSetTier) << 1) | (mIsHeating ? 0x01 : 0x00));
     }
 
     public int mCurrentSteamOutput = 0;

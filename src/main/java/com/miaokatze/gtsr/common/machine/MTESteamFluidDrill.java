@@ -154,6 +154,8 @@ public class MTESteamFluidDrill extends MTESteamMultiBlockBase<MTESteamFluidDril
     @Override
     public IStructureDefinition<MTESteamFluidDrill> getStructureDefinition() {
         if (STRUCTURE_DEFINITION == null) {
+            final int bronzeCasingIndex = ((BlockCasings1) GregTechAPI.sBlockCasings1).getTextureIndex(10);
+
             STRUCTURE_DEFINITION = StructureDefinition.<MTESteamFluidDrill>builder()
                 .addShape(
                     STRUCTURE_PIECE_MAIN,
@@ -181,12 +183,12 @@ public class MTESteamFluidDrill extends MTESteamMultiBlockBase<MTESteamFluidDril
                         // Use atLeast(PressureSteamInputHatch) instead of hatchIds(...). Its mteBlacklist()
                         // excludes MTEHatchPressureSteamInput.class so NEI does not render it on casing positions.
                         buildHatchAdder(MTESteamFluidDrill.class).atLeast(PressureSteamInputHatch)
-                            .casingIndex(getCasingTextureID())
+                            .casingIndex(bronzeCasingIndex)
                             .hint(1)
                             .shouldReject(t -> !t.mSteamInputFluids.isEmpty() && !t.mInputHatches.isEmpty())
                             .build(),
                         buildHatchAdder(MTESteamFluidDrill.class).atLeast(OutputHatch)
-                            .casingIndex(getCasingTextureID())
+                            .casingIndex(bronzeCasingIndex)
                             .hint(1)
                             .build()))
                 .addElement(
@@ -258,17 +260,20 @@ public class MTESteamFluidDrill extends MTESteamMultiBlockBase<MTESteamFluidDril
         mSetTier = -1;
 
         if (!checkPiece(STRUCTURE_PIECE_MAIN, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET, errors)) {
+            mSetTier = -1;
             return;
         }
 
         // v1.9.40 修复：输出仓数量 ==1 → >=1（蒸汽输入仓数量由结构 shouldReject 保证，此处仅要求存在）
         if (this.mOutputHatches.size() < 1 || (this.mSteamInputFluids.size() < 1 && this.mInputHatches.size() < 1)) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            mSetTier = -1;
             return;
         }
 
         if (mSetTier <= 0) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            mSetTier = -1;
             return;
         }
 

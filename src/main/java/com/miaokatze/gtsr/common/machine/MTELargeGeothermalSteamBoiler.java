@@ -1,5 +1,6 @@
 package com.miaokatze.gtsr.common.machine;
 
+import static com.gtnewhorizon.structurelib.structure.StructureUtility.isAir;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlock;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlocksTiered;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
@@ -9,6 +10,7 @@ import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.SteamOutputBu
 import static gregtech.api.enums.HatchElement.InputHatch;
 import static gregtech.api.enums.HatchElement.OutputHatch;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
+import static gregtech.api.util.GTStructureUtility.ofAnyWater;
 
 import java.text.NumberFormat;
 import java.util.ArrayList;
@@ -28,6 +30,7 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
+import net.minecraft.world.World;
 import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
@@ -42,6 +45,7 @@ import com.gtnewhorizon.structurelib.alignment.constructable.ISurvivalConstructa
 import com.gtnewhorizon.structurelib.structure.IStructureDefinition;
 import com.gtnewhorizon.structurelib.structure.ISurvivalBuildEnvironment;
 import com.gtnewhorizon.structurelib.structure.StructureDefinition;
+import com.gtnewhorizon.structurelib.util.Vec3Impl;
 import com.gtnewhorizons.modularui.common.widget.DynamicPositionedColumn;
 import com.gtnewhorizons.modularui.common.widget.FakeSyncWidget;
 import com.gtnewhorizons.modularui.common.widget.SlotWidget;
@@ -74,6 +78,7 @@ import gregtech.api.structure.error.StructureError;
 import gregtech.api.structure.error.StructureErrorRegistry;
 import gregtech.api.util.GTModHandler;
 import gregtech.api.util.GTOreDictUnificator;
+import gregtech.api.util.GTStructureUtility;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.IGTHatchAdder;
 import gregtech.api.util.MultiblockTooltipBuilder;
@@ -90,7 +95,22 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
     private static final int VERTICAL_OFF_SET = 6;
     private static final int DEPTH_OFF_SET = 1;
 
+    // GTUDK 导出结构（plan/大型地热锅炉等级2.java）：8 层 × 7 行 × 7 列；'~' 控制器在 (列 3, 层 6, 行 1)；
+    // b=slice（层，顶→底）、c=row（深度线，前面第一）、a=char（列，自左向右）；
+    // 字母语义：A=外壳+仓口、B=齿轮箱、C=管道、D=燃烧室、E=框架、F=泥土位（注水）、G=草方块位（粒子）、'-'=空气
+    private static final String[][] SHAPE_MAIN = {
+        { "       ", " EAAAE ", " AGGGA ", " AGGGA ", " AGGGA ", " EAAAE ", "       " },
+        { "       ", " EAAAE ", " AEEEA ", " AEEEA ", " AEEEA ", " EAAAE ", "       " },
+        { "       ", " EAAAE ", " A---A ", " A---A ", " A---A ", " EAAAE ", "       " },
+        { "       ", " EAAAE ", " A---A ", " A---A ", " A---A ", " EAAAE ", "       " },
+        { "       ", " ECCCE ", " C---C ", " C---C ", " C---C ", " ECCCE ", "       " },
+        { " E   E ", "EBAAABE", " AFFFA ", " AFFFA ", " AFFFA ", "EBAAABE", " E   E " },
+        { " E   E ", "EBA~ABE", " AFFFA ", " AFFFA ", " AFFFA ", "EBAAABE", " E   E " },
+        { " E   E ", "EBDDDBE", " DDDDD ", " DDDDD ", " DDDDD ", "EBDDDBE", " E   E " } };
+
     private static IStructureDefinition<MTELargeGeothermalSteamBoiler> STRUCTURE_DEFINITION = null;
+    // G 草方块位粒子形状偏移缓存（9 个，惰性扫描 SHAPE_MAIN，勿硬编码）
+    private static List<int[]> mParticleOffsets = null;
     private static final NumberFormat numberFormat = NumberFormat.getNumberInstance();
 
     static {
@@ -99,6 +119,7 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
     }
 
     public int mSetTier = -1;
+    protected boolean needsWaterFill = false;
     protected int mCasingCount = 0;
     public double mHeat = 0.0d;
     public int mCurrentSteamOutput = 0;
@@ -253,12 +274,21 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
 
     @Override
     public void onValueUpdate(byte aValue) {
-        mSetTier = aValue;
+        // 打包编码（太阳能阵列同款）：GT 事件通道会剥掉 bit7，故 mHeat 用 bit3-6 共 4 bit（精度 1/15≈6.7%），
+        // mSetTier 1~2 占 bit1-2（0 表示未定级，避免 -1 补码坑），bit0 为运行标志
+        int encodedTier = (aValue >> 1) & 0x03;
+        mSetTier = encodedTier == 0 ? -1 : encodedTier;
+        mHeat = ((aValue >> 3) & 0x0F) / 15.0d;
     }
 
     @Override
     public byte getUpdateData() {
-        return (byte) mSetTier;
+        int heatQuantized = (int) Math.round(mHeat * 15.0);
+        if (heatQuantized < 0) heatQuantized = 0;
+        if (heatQuantized > 15) heatQuantized = 15;
+        int encodedTier = mSetTier <= 0 ? 0 : mSetTier;
+        boolean running = mMaxProgresstime > 0 || mHeat > 0.01d;
+        return (byte) ((heatQuantized << 3) | (encodedTier << 1) | (running ? 0x01 : 0x00));
     }
 
     @Override
@@ -267,20 +297,9 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
             final int bronzeCasingIndex = ((BlockCasings1) GregTechAPI.sBlockCasings1).getTextureIndex(10);
 
             STRUCTURE_DEFINITION = StructureDefinition.<MTELargeGeothermalSteamBoiler>builder()
-                .addShape(
-                    STRUCTURE_PIECE_MAIN,
-                    transpose(
-                        new String[][] {
-                            { "       ", " FBBBF ", " B   B ", " B   B ", " B   B ", " FBBBF ", "       " },
-                            { "       ", " FBBBF ", " BFFFB ", " BFFFB ", " BFFFB ", " FBBBF ", "       " },
-                            { "       ", " FBBBF ", " B   B ", " B   B ", " B   B ", " FBBBF ", "       " },
-                            { "       ", " FBBBF ", " B   B ", " B   B ", " B   B ", " FBBBF ", "       " },
-                            { "       ", " FCCCF ", " C   C ", " C   C ", " C   C ", " FCCCF ", "       " },
-                            { " F   F ", "FDBBBDF", " B   B ", " B   B ", " B   B ", "FDBBBDF", " F   F " },
-                            { " F   F ", "FDB~BDF", " B   B ", " B   B ", " B   B ", "FDBBBDF", " F   F " },
-                            { " F   F ", "FDEEEDF", " EEEEE ", " EEEEE ", " EEEEE ", "FDEEEDF", " F   F " } }))
+                .addShape(STRUCTURE_PIECE_MAIN, transpose(SHAPE_MAIN))
                 .addElement(
-                    'B',
+                    'A',
                     ofChain(
                         // casing-first: NEI 投影优先渲染外壳；真实 hatch 坐标上 casing 匹配失败后继续匹配 hatch adder。
                         onElementPass(
@@ -319,6 +338,15 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
                             .hint(1)
                             .build()))
                 .addElement(
+                    'B',
+                    ofChain(
+                        onElementPass(
+                            MTELargeGeothermalSteamBoiler::onCasingAddedTier1,
+                            ofBlock(GregTechAPI.sBlockCasings2, 2)),
+                        onElementPass(
+                            MTELargeGeothermalSteamBoiler::onCasingAddedTier2,
+                            ofBlock(GregTechAPI.sBlockCasings2, 3))))
+                .addElement(
                     'C',
                     ofChain(
                         onElementPass(
@@ -332,21 +360,12 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
                     ofChain(
                         onElementPass(
                             MTELargeGeothermalSteamBoiler::onCasingAddedTier1,
-                            ofBlock(GregTechAPI.sBlockCasings2, 2)),
-                        onElementPass(
-                            MTELargeGeothermalSteamBoiler::onCasingAddedTier2,
-                            ofBlock(GregTechAPI.sBlockCasings2, 3))))
-                .addElement(
-                    'E',
-                    ofChain(
-                        onElementPass(
-                            MTELargeGeothermalSteamBoiler::onCasingAddedTier1,
                             ofBlock(GregTechAPI.sBlockCasings3, 13)),
                         onElementPass(
                             MTELargeGeothermalSteamBoiler::onCasingAddedTier2,
                             ofBlock(GregTechAPI.sBlockCasings3, 14))))
                 .addElement(
-                    'F',
+                    'E',
                     onElementPass(
                         MTELargeGeothermalSteamBoiler::onCasingAdded,
                         ofBlocksTiered(
@@ -359,6 +378,14 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
                                 if (tier > t.mSetTier) t.mSetTier = tier;
                             },
                             (MTELargeGeothermalSteamBoiler t) -> t.mSetTier)))
+                .addElement(
+                    'F',
+                    ofChain(
+                        // 水位：泥土位可被水替代（洗矿机同款机制），否则接受空气（注水前）
+                        ofAnyWater(false),
+                        isAir()))
+                .addElement('G', isAir())
+                .addElement('-', isAir())
                 .build();
         }
         return STRUCTURE_DEFINITION;
@@ -450,22 +477,28 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
         mPressureSteamOutputHatches.clear();
 
         if (!checkPiece(STRUCTURE_PIECE_MAIN, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET, errors)) {
+            // checkPiece 扫描可能已把 mSetTier 置 2，失败时必须重置
+            mSetTier = -1;
             return;
         }
         if (mSetTier <= 0) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            mSetTier = -1;
             return;
         }
         if (!hasValidOutputHatchesForTier()) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            mSetTier = -1;
             return;
         }
         if (mInputHatches.isEmpty() && mDualInputHatches.isEmpty()) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            mSetTier = -1;
             return;
         }
 
         updateHatchTexture();
+        needsWaterFill = true;
     }
 
     // v1.9.40 修复：输出判定放宽——蒸汽输出仓、耐压蒸汽输出仓或任意普通流体输出仓（含 ME 输出仓）
@@ -612,10 +645,65 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
         }
     }
 
+    // G 草方块位粒子形状偏移（9 个）：(列 2-4, 层 0, 行 2-4) - (3, 6, 1)
+    private static List<int[]> getParticleOffsets() {
+        if (mParticleOffsets == null) {
+            List<int[]> offsets = new ArrayList<>();
+            for (int b = 0; b < SHAPE_MAIN.length; b++) {
+                for (int c = 0; c < SHAPE_MAIN[b].length; c++) {
+                    for (int a = 0; a < SHAPE_MAIN[b][c].length(); a++) {
+                        if (SHAPE_MAIN[b][c].charAt(a) == 'G') {
+                            offsets.add(new int[] { a - HORIZONTAL_OFF_SET, b - VERTICAL_OFF_SET, c - DEPTH_OFF_SET });
+                        }
+                    }
+                }
+            }
+            mParticleOffsets = offsets;
+        }
+        return mParticleOffsets;
+    }
+
+    /**
+     * 客户端：每 tick 按热量 mHeat 生成上升白色云朵粒子（仿砖高炉 vertical motion 0.3）。
+     * 粒子期望数 = mHeat / 0.5：mHeat=50% → 1 个/tick（现状基准），100% → 2 个/tick，25% → 平均 0.5 个/tick
+     * （小数部分用概率平滑）。
+     */
+    private void spawnCloudParticle() {
+        if (mHeat <= 0.0d) return;
+        double expected = mHeat / 0.5d;
+        int n = (int) expected;
+        if (getBaseMetaTileEntity().getWorld().rand.nextDouble() < expected - n) n++;
+        for (int i = 0; i < n; i++) {
+            spawnOneParticle();
+        }
+    }
+
+    /** 在随机一个 G 草方块位生成单个上升白色云朵粒子 */
+    private void spawnOneParticle() {
+        List<int[]> offsets = getParticleOffsets();
+        if (offsets.isEmpty()) return;
+        IGregTechTileEntity base = getBaseMetaTileEntity();
+        World world = base.getWorld();
+        int[] off = offsets.get(world.rand.nextInt(offsets.size()));
+        Vec3Impl worldOff = getExtendedFacing().getWorldOffset(new Vec3Impl(off[0], off[1], off[2]));
+        world.spawnParticle(
+            "cloud",
+            base.getXCoord() + worldOff.get0() + 0.5D + (world.rand.nextDouble() - 0.5D) * 0.8D,
+            base.getYCoord() + worldOff.get1() + 0.5D,
+            base.getZCoord() + worldOff.get2() + 0.5D + (world.rand.nextDouble() - 0.5D) * 0.8D,
+            0.0D,
+            0.3D,
+            0.0D);
+    }
+
     @Override
     public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
         super.onPostTick(aBaseMetaTileEntity, aTick);
-        if (!aBaseMetaTileEntity.isServerSide()) return;
+        if (aBaseMetaTileEntity.isClientSide()) {
+            // 有热量即渲染气体粒子动画（数量 ∝ mHeat，见 spawnCloudParticle）
+            if (mHeat > 0.0d) spawnCloudParticle();
+            return;
+        }
 
         if (mMachine) {
             mStructureGraceTicks = 100;
@@ -625,6 +713,21 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
 
         if (mMachine) {
             tickCalcificationWarning();
+        }
+
+        if (needsWaterFill && aTick % 20 == 0) {
+            // 注水轴序：fillStructureWithWater 假定结构布局为 [深度][层][列]（洗矿机手写布局），
+            // 本结构 GTUDK 布局为 [层][行][列]，须传 transpose 后的形状（数组=行/深度、串=层/垂直）。
+            if (GTStructureUtility.fillStructureWithWater(
+                aBaseMetaTileEntity,
+                getExtendedFacing(),
+                transpose(SHAPE_MAIN),
+                HORIZONTAL_OFF_SET,
+                VERTICAL_OFF_SET,
+                DEPTH_OFF_SET,
+                'F')) {
+                needsWaterFill = false;
+            }
         }
 
         if (aTick % 20 == 0) {

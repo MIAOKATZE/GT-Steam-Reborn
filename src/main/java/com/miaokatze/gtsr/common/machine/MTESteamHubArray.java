@@ -415,6 +415,7 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
         mSteamOutputHatches.clear();
 
         if (!checkPiece(STRUCTURE_PIECE_BASE, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET, errors)) {
+            getBaseMetaTileEntity().issueTileUpdate();
             return;
         }
 
@@ -426,44 +427,53 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
 
         if (mStackCount == 0) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            getBaseMetaTileEntity().issueTileUpdate();
             return;
         }
 
         if (!checkPiece(STRUCTURE_PIECE_CAP, HORIZONTAL_OFF_SET, -1, DEPTH_OFF_SET, errors)) {
+            getBaseMetaTileEntity().issueTileUpdate();
             return;
         }
 
         // Validate all tier fields are consistent
         if (mCasingTier <= 0 || mPipeTier <= 0 || mGearTier <= 0 || mFrameTier <= 0) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            getBaseMetaTileEntity().issueTileUpdate();
             return;
         }
         if (mCasingTier != mPipeTier || mCasingTier != mGearTier || mCasingTier != mFrameTier) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            getBaseMetaTileEntity().issueTileUpdate();
             return;
         }
         mSetTier = mCasingTier;
 
         if (mSetTier == 1 && (mReinforcedUnitCount > 0 || mOverpressureUnitCount > 0)) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            getBaseMetaTileEntity().issueTileUpdate();
             return;
         }
         if (mSetTier == 2 && (mPressureUnitCount > 0 || mOverpressureUnitCount > 0)) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            getBaseMetaTileEntity().issueTileUpdate();
             return;
         }
         if (mSetTier >= 3 && (mPressureUnitCount > 0 || mReinforcedUnitCount > 0)) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            getBaseMetaTileEntity().issueTileUpdate();
             return;
         }
 
         if (mSetTier >= 3 && mOverpressureUnitCount <= 0) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            getBaseMetaTileEntity().issueTileUpdate();
             return;
         }
 
         if ((mPressureUnitCount + mReinforcedUnitCount + mOverpressureUnitCount) <= 0) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            getBaseMetaTileEntity().issueTileUpdate();
             return;
         }
 

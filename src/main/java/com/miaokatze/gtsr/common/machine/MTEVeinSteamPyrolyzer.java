@@ -174,6 +174,8 @@ public class MTEVeinSteamPyrolyzer extends MTESteamMultiBlockBase<MTEVeinSteamPy
     @Override
     public IStructureDefinition<MTEVeinSteamPyrolyzer> getStructureDefinition() {
         if (STRUCTURE_DEFINITION == null) {
+            final int bronzeCasingIndex = ((BlockCasings1) GregTechAPI.sBlockCasings1).getTextureIndex(10);
+
             STRUCTURE_DEFINITION = StructureDefinition.<MTEVeinSteamPyrolyzer>builder()
                 .addShape(
                     STRUCTURE_PIECE_MAIN,
@@ -203,19 +205,19 @@ public class MTEVeinSteamPyrolyzer extends MTESteamMultiBlockBase<MTEVeinSteamPy
                         // Use atLeast(PressureSteamInputHatch) instead of hatchIds(...). Its mteBlacklist()
                         // excludes MTEHatchPressureSteamInput.class so NEI does not render it on casing positions.
                         buildHatchAdder(MTEVeinSteamPyrolyzer.class).atLeast(PressureSteamInputHatch)
-                            .casingIndex(getCasingTextureID())
+                            .casingIndex(bronzeCasingIndex)
                             .hint(1)
                             .shouldReject(t -> !t.mSteamInputFluids.isEmpty() && !t.mInputHatches.isEmpty())
                             .build(),
                         buildHatchAdder(MTEVeinSteamPyrolyzer.class).atLeast(GTSRHatchElement.SteamOutputBus)
-                            .casingIndex(getCasingTextureID())
+                            .casingIndex(bronzeCasingIndex)
                             .hint(1)
                             .build(),
                         // v1.9.40 新增：冷却仓元素（可选）。蒸汽消耗的冷却产物（普通→蒸馏水 160:1、
                         // 过热→蒸汽 1:1）由 mixin 推入对应冷却仓，此前结构无此元素导致产物滞留/丢失。
                         buildHatchAdder(MTEVeinSteamPyrolyzer.class)
                             .atLeast(SteamCoolingHatch, PressureSteamCoolingHatch)
-                            .casingIndex(getCasingTextureID())
+                            .casingIndex(bronzeCasingIndex)
                             .hint(1)
                             .build()))
                 .addElement(
@@ -287,15 +289,18 @@ public class MTEVeinSteamPyrolyzer extends MTESteamMultiBlockBase<MTEVeinSteamPy
         mSetTier = -1;
 
         if (!checkPiece(STRUCTURE_PIECE_MAIN, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET, errors)) {
+            mSetTier = -1;
             return;
         }
 
         if (mSetTier <= 0) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            mSetTier = -1;
             return;
         }
         if (mSteamInputFluids.size() < 1 && mInputHatches.size() < 1) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            mSetTier = -1;
             return;
         }
 

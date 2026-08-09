@@ -368,6 +368,7 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
         mWaterOutputHatches.clear();
 
         if (!checkPiece(STRUCTURE_PIECE_BASE, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET, errors)) {
+            getBaseMetaTileEntity().issueTileUpdate();
             return;
         }
 
@@ -379,35 +380,42 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
 
         if (mStackCount == 0) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            getBaseMetaTileEntity().issueTileUpdate();
             return;
         }
 
         // Validate all tier fields are consistent
         if (mCasingTier <= 0 || mPipeTier <= 0 || mFrameTier <= 0) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            getBaseMetaTileEntity().issueTileUpdate();
             return;
         }
         if (mCasingTier != mPipeTier || mCasingTier != mFrameTier) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            getBaseMetaTileEntity().issueTileUpdate();
             return;
         }
         mSetTier = mCasingTier;
 
         if (mSetTier == 1 && mReinforcedHubUnitCount > 0) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            getBaseMetaTileEntity().issueTileUpdate();
             return;
         }
         if (mSetTier >= 2 && mHubUnitCount > 0) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            getBaseMetaTileEntity().issueTileUpdate();
             return;
         }
 
         if (mSetTier == 1 && mHubUnitCount <= 0) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            getBaseMetaTileEntity().issueTileUpdate();
             return;
         }
         if (mSetTier >= 2 && mReinforcedHubUnitCount <= 0) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            getBaseMetaTileEntity().issueTileUpdate();
             return;
         }
 

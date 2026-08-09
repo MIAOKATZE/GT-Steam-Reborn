@@ -187,6 +187,8 @@ public class MTELargeSteamFurnace extends MTESteamMultiBlockBase<MTELargeSteamFu
     @Override
     public IStructureDefinition<MTELargeSteamFurnace> getStructureDefinition() {
         if (STRUCTURE_DEFINITION == null) {
+            final int bronzeCasingIndex = ((BlockCasings1) GregTechAPI.sBlockCasings1).getTextureIndex(10);
+
             STRUCTURE_DEFINITION = StructureDefinition.<MTELargeSteamFurnace>builder()
                 .addShape(
                     STRUCTURE_PIECE_MAIN,
@@ -213,19 +215,19 @@ public class MTELargeSteamFurnace extends MTESteamMultiBlockBase<MTELargeSteamFu
                         // Use atLeast(PressureSteamInputHatch) instead of hatchIds(...). Its mteBlacklist()
                         // excludes MTEHatchPressureSteamInput.class so NEI does not render it on casing positions.
                         buildHatchAdder(MTELargeSteamFurnace.class).atLeast(PressureSteamInputHatch)
-                            .casingIndex(getCasingTextureID())
+                            .casingIndex(bronzeCasingIndex)
                             .hint(1)
                             .shouldReject(t -> !t.mSteamInputFluids.isEmpty() && !t.mInputHatches.isEmpty())
                             .build(),
                         buildHatchAdder(MTELargeSteamFurnace.class).atLeast(SteamInputBus, SteamOutputBus)
-                            .casingIndex(getCasingTextureID())
+                            .casingIndex(bronzeCasingIndex)
                             .hint(1)
                             .build(),
                         // v1.9.40 新增：冷却仓元素（可选）。蒸汽消耗的冷却产物（普通→蒸馏水 160:1、
                         // 过热→蒸汽 1:1）由 mixin 推入对应冷却仓，此前结构无此元素导致产物滞留/丢失。
                         buildHatchAdder(MTELargeSteamFurnace.class)
                             .atLeast(SteamCoolingHatch, PressureSteamCoolingHatch)
-                            .casingIndex(getCasingTextureID())
+                            .casingIndex(bronzeCasingIndex)
                             .hint(1)
                             .build()))
                 .addElement(
@@ -285,14 +287,17 @@ public class MTELargeSteamFurnace extends MTESteamMultiBlockBase<MTELargeSteamFu
         mSetTier = -1;
         mCasingCount = 0;
         if (!checkPiece(STRUCTURE_PIECE_MAIN, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET, errors)) {
+            mSetTier = -1;
             return;
         }
         if (mSetTier <= 0) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            mSetTier = -1;
             return;
         }
         if (mSteamInputFluids.isEmpty() && mInputHatches.isEmpty()) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            mSetTier = -1;
             return;
         }
         // 取消双注册后，蒸汽输入总线只在 mSteamInputs 中，蒸汽输出总线只在 mSteamOutputs 中
@@ -301,10 +306,12 @@ public class MTELargeSteamFurnace extends MTESteamMultiBlockBase<MTELargeSteamFu
         // 只放样板仓无法成型（仿 MTEKineticProcessingArray 的 checkMachine 既有做法）。
         if (mInputBusses.isEmpty() && mSteamInputs.isEmpty() && mDualInputHatches.isEmpty()) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            mSetTier = -1;
             return;
         }
         if (mOutputBusses.isEmpty() && mSteamOutputs.isEmpty()) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            mSetTier = -1;
             return;
         }
         updateAllHatchTextures();

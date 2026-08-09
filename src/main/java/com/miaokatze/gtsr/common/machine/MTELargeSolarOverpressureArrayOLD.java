@@ -912,7 +912,9 @@ public class MTELargeSolarOverpressureArrayOLD extends MTEEnhancedMultiBlockBase
 
     @Override
     public byte getUpdateData() {
-        return (byte) ((mSetTier << 1) | (mIsHeating ? 0x01 : 0x00));
+        // v1.10.42 修复：mSetTier=-1 补码编码坑（(byte)(-1<<1)=0xFF，客户端解码为 15 误显示钢底材），
+        // 未成型/无效统一编码 0（客户端解码 0 → 青铜）
+        return (byte) (((mSetTier <= 0 ? 0 : mSetTier) << 1) | (mIsHeating ? 0x01 : 0x00));
     }
 
     public int mCurrentSteamOutput = 0;
