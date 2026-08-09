@@ -1,6 +1,5 @@
 package com.miaokatze.gtsr.common.network;
 
-import net.minecraft.client.Minecraft;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.network.PacketBuffer;
 import net.minecraft.server.MinecraftServer;
@@ -98,21 +97,10 @@ public class GTSRFXNet {
         @Override
         @SideOnly(Side.CLIENT)
         public IMessage onMessage(AbsorbMessage msg, MessageContext ctx) {
-            // Netty 线程执行：粒子生成必须调度回客户端主线程（1.7.10 无 addScheduledTask，用 func_152344_a）
-            Minecraft.getMinecraft()
-                .func_152344_a(() -> {
-                    World w = Minecraft.getMinecraft().theWorld;
-                    if (w != null) {
-                        GTSRSingularityFX.spawnAbsorb(
-                            w,
-                            msg.fx + 0.5,
-                            msg.fy + 0.5,
-                            msg.fz + 0.5,
-                            msg.tx + 0.5,
-                            msg.ty + 0.5,
-                            msg.tz + 0.5);
-                    }
-                });
+            // Netty 线程执行：调度回客户端主线程生成粒子（实现见 GTSRSingularityFX.spawnAbsorbScheduled，
+            // 该类级 @SideOnly 辅助类服务端永不加载；本 handler 不得出现 lambda/客户端类引用，
+            // 否则合成方法会在服务端类链接时解析 Minecraft/WorldClient 导致 SideTransformer 崩溃）
+            GTSRSingularityFX.spawnAbsorbScheduled(msg.fx, msg.fy, msg.fz, msg.tx, msg.ty, msg.tz);
             return null;
         }
     }

@@ -137,6 +137,21 @@ public class GTSRSingularityFX extends GTSRFXParticle {
         }
     }
 
+    /**
+     * 向心粒子 S2C 调度入口：网络 handler（Netty 线程）调用，调度回客户端主线程后在吸收点生成粒子。
+     * 本类为类级 @SideOnly(Side.CLIENT)，服务端永不加载；handler 只保留 common 调用，
+     * 避免 Minecraft/WorldClient 引用泄漏进服务端类加载链（1.7.10 SideTransformer 会在链接时抛异常）。
+     */
+    public static void spawnAbsorbScheduled(int fx, int fy, int fz, int tx, int ty, int tz) {
+        Minecraft.getMinecraft()
+            .func_152344_a(() -> {
+                World w = Minecraft.getMinecraft().theWorld;
+                if (w != null) {
+                    spawnAbsorb(w, fx + 0.5, fy + 0.5, fz + 0.5, tx + 0.5, ty + 0.5, tz + 0.5);
+                }
+            });
+    }
+
     @Override
     public void onUpdate() {
         this.prevPosX = this.posX;
