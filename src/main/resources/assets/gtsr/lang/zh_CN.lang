@@ -140,6 +140,8 @@ gtsr.gui.crust_matter_agg.fuel_time=剩余时间:
 gtsr.gui.crust_matter_agg.fuel_no_fuel=无燃料
 gtsr.gui.crust_matter_agg.dimension=维度: 
 gtsr.gui.crust_matter_agg.no_dimension=无维度
+gtsr.gui.crust_matter_agg.steam_cost=蒸汽消耗: 
+gtsr.gui.crust_matter_agg.steam_cost.mult=（倍率 ×%s）
 gtsr.gui.crust_matter_agg.no_ores=无矿石数据
 gtsr.gui.crust_matter_agg.no_steam=无蒸汽
 gtsr.gui.crust_matter_agg.mining=当前挖掘: 
@@ -175,8 +177,14 @@ gtsr.aggregator_config.category.filtered=已过滤
 gtsr.aggregator_config.category.tip=点击切换展示种类：全部 → 未过滤 → 已过滤
 gtsr.aggregator_config.filter=过滤
 gtsr.aggregator_config.unfilter=取消过滤
-gtsr.aggregator_config.filtered_hint=已过滤：该矿石将不再被产出（真不出）
+gtsr.aggregator_config.filtered_hint=已过滤：该矿石已解放权重，不再参与抽取
 gtsr.aggregator_config.empty=无矿石数据（请先在维度槽放入维度显示物品）
+gtsr.aggregator_config.refresh=刷新
+gtsr.aggregator_config.refresh.tip=手动刷新矿池（放入/移除维度物品后点击生效）
+gtsr.aggregator_config.col.name=矿石
+gtsr.aggregator_config.col.weight=权重
+gtsr.aggregator_config.col.dim=维度
+gtsr.aggregator_config.col.action=操作
 
 # Singularity Crust Steam Borer
 gt.blockmachines.gtsr.singularity.crust.steam.borer.name=奇点地壳蒸汽掘进机

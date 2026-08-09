@@ -7,10 +7,12 @@ import com.cleanroommc.modularui.api.drawable.IKey;
 import com.cleanroommc.modularui.api.widget.IWidget;
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.value.sync.BooleanSyncValue;
+import com.cleanroommc.modularui.value.sync.DoubleSyncValue;
 import com.cleanroommc.modularui.value.sync.IntSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.value.sync.StringSyncValue;
 import com.cleanroommc.modularui.widgets.ListWidget;
+import com.gtnewhorizon.gtnhlib.util.numberformatting.NumberFormatUtil;
 import com.miaokatze.gtsr.common.machine.MTECrustMatterAggregator;
 
 /**
@@ -29,6 +31,8 @@ public class MTECrustMatterAggregatorGui extends MTESingularityMachineGui<MTECru
         super.registerSyncValues(syncManager);
         syncManager.syncValue("gtsr.dimLabel", new StringSyncValue(multiblock::getDimensionDisplayName));
         syncManager.syncValue("gtsr.dropMapValid", new BooleanSyncValue(() -> multiblock.dropMapValid));
+        // 蒸汽消耗倍率（矿石模式/时运/维度槽/过滤加成，S2C 驱动蒸汽消耗词条）
+        syncManager.syncValue("gtsr.steamMult", new DoubleSyncValue(() -> multiblock.getSteamMultiplier()));
     }
 
     @Override
@@ -39,6 +43,7 @@ public class MTECrustMatterAggregatorGui extends MTESingularityMachineGui<MTECru
         IntSyncValue fuelSyncer = syncManager.findSyncHandler("gtsr.fuelTicks", IntSyncValue.class);
         StringSyncValue dimSyncer = syncManager.findSyncHandler("gtsr.dimLabel", StringSyncValue.class);
         BooleanSyncValue validSyncer = syncManager.findSyncHandler("gtsr.dropMapValid", BooleanSyncValue.class);
+        DoubleSyncValue steamMultSyncer = syncManager.findSyncHandler("gtsr.steamMult", DoubleSyncValue.class);
 
         return widget.child(IKey.dynamic(() -> {
             int mode = modeSyncer.getValue();
@@ -74,6 +79,23 @@ public class MTECrustMatterAggregatorGui extends MTESingularityMachineGui<MTECru
                 }
                 return EnumChatFormatting.YELLOW + StatCollector.translateToLocal(keyPrefix + "dimension")
                     + dimPart
+                    + EnumChatFormatting.RESET;
+            })
+                .asWidget()
+                .marginBottom(2)
+                .fullWidth())
+            .child(IKey.dynamic(() -> {
+                // 蒸汽消耗词条：普通档基准 24000 L/s × 当前倍率（矿石模式/时运/维度槽/过滤加成）
+                double mult = steamMultSyncer.getValue();
+                long perSecond = Math.round(MTECrustMatterAggregator.NORMAL_STEAM_PER_SECOND * mult);
+                return EnumChatFormatting.YELLOW + StatCollector.translateToLocal(keyPrefix + "steam_cost")
+                    + EnumChatFormatting.WHITE
+                    + NumberFormatUtil.formatNumber(perSecond)
+                    + " L/s "
+                    + EnumChatFormatting.GRAY
+                    + String.format(
+                        StatCollector.translateToLocal(keyPrefix + "steam_cost.mult"),
+                        String.format("%.2f", mult))
                     + EnumChatFormatting.RESET;
             })
                 .asWidget()

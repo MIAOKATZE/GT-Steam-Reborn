@@ -39,7 +39,6 @@ import gregtech.api.enums.OrePrefixes;
 import gregtech.api.enums.TierEU;
 import gregtech.api.util.GTModHandler;
 import gregtech.api.util.GTOreDictUnificator;
-import gregtech.api.util.GTUtility;
 import gtPlusPlus.core.fluids.GTPPFluids;
 import gtPlusPlus.core.material.MaterialsAlloy;
 import gtPlusPlus.xmod.gregtech.api.enums.GregtechItemList;
@@ -1127,16 +1126,12 @@ public class GTSRRecipeLoader implements Runnable {
             warn("Skipped ReinforcedHubSingularityChip recipe - output is null");
         }
 
-        // --- 蒸汽轮机循环超限芯片（GTUDK 模板：编程电路24 + 7 项物料，IV 级 12000t/131072EU/t）---
+        // --- 蒸汽轮机循环超限芯片（GTUDK 模板：7 项物料，IV 级 12000t/131072EU/t）---
         ItemStack turbineChipOut = get(GTSRItemList.SteamTurbineCycleOverlimitChip, 1);
         if (!hasNull(turbineChipOut)) {
             // 注意：不用 filterNulls —— 任一物料缺失（如 GoodGenerator 未安装）应整体跳过，而不是降配注册
-            ItemStack[] inputs = { GTUtility.getIntegratedCircuit(24), get(OrePrefixes.circuit, Materials.UV, 64), // 模板
-                                                                                                                   // gt.metaitem.01:22070（UV
-                                                                                                                   // 电路）→
-                                                                                                                   // 任意
-                                                                                                                   // UV
-                                                                                                                   // 电路（OreDict）
+            ItemStack[] inputs = { get(OrePrefixes.circuit, Materials.UV, 64), // 模板 gt.metaitem.01:22070（UV
+                                                                               // 电路）→ 任意 UV 电路（OreDict）
                 new ItemStack(GameRegistry.findItem("GoodGenerator", "compactFusionCoil"), 32, 2),
                 GTSRItemList.CriticalSteamEntangledSingularity.get(64),
                 new ItemStack(GameRegistry.findItem("gregtech", "gt.metaitem.03"), 64, 32091),

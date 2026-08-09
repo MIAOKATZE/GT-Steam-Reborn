@@ -140,6 +140,8 @@ gtsr.gui.crust_matter_agg.fuel_time=Time left:
 gtsr.gui.crust_matter_agg.fuel_no_fuel=No fuel
 gtsr.gui.crust_matter_agg.dimension=Dimension: 
 gtsr.gui.crust_matter_agg.no_dimension=No Dimension
+gtsr.gui.crust_matter_agg.steam_cost=Steam Cost: 
+gtsr.gui.crust_matter_agg.steam_cost.mult=(multiplier ×%s)
 gtsr.gui.crust_matter_agg.no_ores=No Ore Data
 gtsr.gui.crust_matter_agg.no_steam=No Steam
 gtsr.gui.crust_matter_agg.mining=Mining: 
@@ -175,8 +177,14 @@ gtsr.aggregator_config.category.filtered=Filtered
 gtsr.aggregator_config.category.tip=Click to cycle view: All -> Unfiltered -> Filtered
 gtsr.aggregator_config.filter=Filter
 gtsr.aggregator_config.unfilter=Unfilter
-gtsr.aggregator_config.filtered_hint=Filtered: this ore will no longer be produced
+gtsr.aggregator_config.filtered_hint=Filtered: this ore's weight is freed; no longer drawn
 gtsr.aggregator_config.empty=No ore data (put dimension display items in the slots above)
+gtsr.aggregator_config.refresh=Refresh
+gtsr.aggregator_config.refresh.tip=Manually refresh the ore pool (click after adding/removing dimension items)
+gtsr.aggregator_config.col.name=Ore
+gtsr.aggregator_config.col.weight=Weight
+gtsr.aggregator_config.col.dim=Dims
+gtsr.aggregator_config.col.action=Action
 
 # Singularity Crust Steam Borer
 gt.blockmachines.gtsr.singularity.crust.steam.borer.name=Singularity Crust Steam Borer

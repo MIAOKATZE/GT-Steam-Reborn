@@ -60,7 +60,7 @@ import gregtech.api.util.GTUtility;
  * - 左侧 12 槽一列：槽 1 = 控制器槽（mInventory[1]，与主 GUI 同一数据源），槽 2-12 = 终端插件槽，
  * 栈上限 1、槽过滤仅接受维度显示物品；
  * - 右侧矿石浏览器：搜索（按下按钮才应用，按矿石本地化显示名匹配，天然兼容中文）、
- * 种类切换（全部/未过滤/已过滤）、逐矿过滤开关（"真不出"语义，C2S 切换）。
+ * 种类切换（全部/未过滤/已过滤）、逐矿过滤开关（"已解放权重"语义，C2S 切换）。
  *
  * 同步设计：
  * - "gtsr.cfg.oreList"：GenericListSyncHandler，服务端每 tick 检测变化并同步到客户端；
@@ -73,13 +73,32 @@ import gregtech.api.util.GTUtility;
  */
 public class MTECrustMatterAggregatorConfigGui implements IGuiHolder<PosGuiData> {
 
-    private static final int PANEL_WIDTH = 360;
-    private static final int PANEL_HEIGHT = 356;
-    // 右侧矿石浏览器独立框
-    private static final int BROWSER_X = 40;
-    private static final int BROWSER_Y = 54;
-    private static final int BROWSER_W = 312;
-    private static final int BROWSER_H = 216;
+    // 面板 420×350：GUI 缩放 2x 下 840×700，720p 窗口内完整显示（含底部玩家背包，不被窗口底边截断）
+    private static final int PANEL_WIDTH = 420;
+    private static final int PANEL_HEIGHT = 350;
+    // 左列（维度槽）：标题 + 12 槽 + 刷新按钮，全部绝对定位
+    private static final int LEFT_X = 8;
+    private static final int SLOT_TITLE_Y = 44;
+    private static final int SLOT_COL_Y = 58;
+    // 12 槽每格 18px 紧排 → 58-274；刷新按钮置于槽列下方
+    private static final int REFRESH_Y = 278;
+    // 右侧矿石浏览器区（绝对坐标，全部直接挂面板，避免嵌套容器定位歧义）
+    private static final int BROWSER_X = 124;
+    private static final int BROWSER_Y = 44;
+    private static final int BROWSER_W = 288;
+    private static final int BROWSER_H = 222;
+    private static final int SEARCH_Y = 48;
+    private static final int HEADER_Y = 66;
+    private static final int LIST_X = BROWSER_X + 4;
+    private static final int LIST_Y = 84;
+    private static final int LIST_W = BROWSER_W - 8;
+    private static final int LIST_H = 176;
+    // 表格列宽（标签栏与列表行共用，保证逐列对齐）
+    private static final int COL_ICON = 16;
+    private static final int COL_NAME = 100;
+    private static final int COL_WEIGHT = 44;
+    private static final int COL_DIM = 56;
+    private static final int COL_ACTION = 44;
     // 插件槽数量（槽 2-12）
     private static final int PLUGIN_SLOT_COUNT = 11;
     private static final String[] ORE_MODE_NAMES = { "raw", "crushed", "purified" };
@@ -143,8 +162,8 @@ public class MTECrustMatterAggregatorConfigGui implements IGuiHolder<PosGuiData>
         syncManager.syncValue("gtsr.cfg.steamMult", steamMultSync);
         syncManager.syncValue("gtsr.cfg.aggregatorAction", actionSync);
 
-        DynamicSyncedWidget<?> listArea = new DynamicSyncedWidget<>().pos(4, 24)
-            .size(BROWSER_W - 8, BROWSER_H - 28)
+        DynamicSyncedWidget<?> listArea = new DynamicSyncedWidget<>().pos(LIST_X, LIST_Y)
+            .size(LIST_W, LIST_H)
             .syncHandler(listDynamic);
 
         ModularPanel panel = ModularPanel.defaultPanel("aggregator_config", PANEL_WIDTH, PANEL_HEIGHT)
@@ -155,16 +174,25 @@ public class MTECrustMatterAggregatorConfigGui implements IGuiHolder<PosGuiData>
                     .asWidget()
                     .pos(8, 6))
             .child(buildConfigRow(oreModeSync, fortuneSync, maxFortuneSync, steamMultSync, actionSync))
+            // 左列：维度槽标题 + 12 槽 + 刷新按钮（全部绝对定位，槽列固定最左）
             .child(
                 IKey.lang("gtsr.aggregator_config.slots_title")
                     .asWidget()
-                    .pos(8, 42))
+                    .pos(LEFT_X, SLOT_TITLE_Y))
             .child(buildSlotColumn())
+            .child(buildRefreshButton(actionSync))
+            // 右侧矿池栏：标题 + 背景框 + 搜索行 + 表格标签栏 + 矿石列表（全部面板直接绝对定位，
+            // 不嵌套容器子元素，避免 MUI2 嵌套定位歧义导致的错位/重叠）
             .child(
                 IKey.lang("gtsr.aggregator_config.browser_title")
                     .asWidget()
-                    .pos(BROWSER_X, 42))
-            .child(buildBrowserFrame(listDynamic, listArea))
+                    .pos(BROWSER_X, SLOT_TITLE_Y))
+            .child(buildBrowserBackground())
+            .child(buildSearchField())
+            .child(buildSearchButton(listDynamic))
+            .child(buildCategoryButton(listDynamic))
+            .child(buildTableHeader())
+            .child(listArea)
             // 玩家背包（与枢纽状态面板的关键区别：本界面是物品操作界面，需要背包）
             .child(SlotGroupWidget.playerInventory(true));
 
@@ -259,7 +287,7 @@ public class MTECrustMatterAggregatorConfigGui implements IGuiHolder<PosGuiData>
             + " L/s";
     }
 
-    // —— 左侧 12 槽一列 ——
+    // —— 左侧 12 槽一列 + 刷新按钮 ——
 
     private IWidget buildSlotColumn() {
         // 槽 1：控制器槽（mInventory[1]，与主 GUI 同一数据源 inventoryHandler，栈上限 1）
@@ -273,12 +301,25 @@ public class MTECrustMatterAggregatorConfigGui implements IGuiHolder<PosGuiData>
         // 槽 2-12：终端插件槽（容量 11、栈上限 1、仅接受维度显示物品）
         IItemHandler pluginHandler = new InvWrapper(aggregator.getPluginSlotInventory());
         Flow column = Flow.column()
-            .pos(8, 54)
+            .pos(LEFT_X, SLOT_COL_Y)
+            .childPadding(0)
             .child(buildPluginSlot(controllerSlot, true));
         for (int i = 0; i < PLUGIN_SLOT_COUNT; i++) {
             column.child(buildPluginSlot(new ModularSlot(pluginHandler, i), false));
         }
         return column;
+    }
+
+    /** 刷新按钮：Ore Plugin 放入/移除槽后矿池不会立刻重建，点击手动刷新（C2S 服务端立即重建矿池）。 */
+    private IWidget buildRefreshButton(AggregatorActionSyncHandler actionSync) {
+        return new ButtonWidget<>().pos(LEFT_X, REFRESH_Y)
+            .size(48, 16)
+            .overlay(IKey.lang("gtsr.aggregator_config.refresh"))
+            .onMousePressed(mouseButton -> {
+                actionSync.sendRefreshPool();
+                return true;
+            })
+            .tooltipBuilder(t -> t.addLine(IKey.lang("gtsr.aggregator_config.refresh.tip")));
     }
 
     private ItemSlot buildPluginSlot(ModularSlot slot, boolean isControllerSlot) {
@@ -293,17 +334,28 @@ public class MTECrustMatterAggregatorConfigGui implements IGuiHolder<PosGuiData>
         return itemSlot;
     }
 
-    // —— 右侧矿石浏览器 ——
+    // —— 右侧矿石浏览器（背景框 / 搜索行 / 表格标签栏；全部面板直接绝对定位）——
 
-    private IWidget buildBrowserFrame(DynamicSyncHandler listDynamic, DynamicSyncedWidget listArea) {
-        // 搜索输入框：本地文本（不同步），按下搜索按钮才应用
-        TextFieldWidget searchField = new TextFieldWidget().size(150, 16)
+    /** 浏览器背景框：仅装饰（DISPLAY 纹理），不含子元素，避免嵌套定位歧义。 */
+    private IWidget buildBrowserBackground() {
+        return new ParentWidget<>().pos(BROWSER_X, BROWSER_Y)
+            .size(BROWSER_W, BROWSER_H)
+            .background(GuiTextures.DISPLAY);
+    }
+
+    /** 搜索输入框：本地文本（不同步），按下搜索按钮才应用。 */
+    private IWidget buildSearchField() {
+        return new TextFieldWidget().pos(BROWSER_X + 4, SEARCH_Y)
+            .size(150, 16)
             .setMaxLength(32)
             .value(searchValue)
             .tooltipBuilder(t -> t.addLine(IKey.lang("gtsr.aggregator_config.search_hint")));
+    }
 
-        // 搜索按钮：按下才应用搜索（对矿石本地化显示名匹配，天然兼容中文）
-        ButtonWidget<?> searchButton = new ButtonWidget<>().size(48, 16)
+    /** 搜索按钮：按下才应用搜索（对矿石本地化显示名匹配，天然兼容中文），位于按钮组左侧。 */
+    private IWidget buildSearchButton(DynamicSyncHandler listDynamic) {
+        return new ButtonWidget<>().pos(BROWSER_X + BROWSER_W - 4 - 76 - 4 - 48, SEARCH_Y)
+            .size(48, 16)
             .overlay(IKey.lang("gtsr.aggregator_config.search"))
             .onMousePressed(mouseButton -> {
                 searchText = searchValue.getStringValue()
@@ -312,9 +364,12 @@ public class MTECrustMatterAggregatorConfigGui implements IGuiHolder<PosGuiData>
                 return true;
             })
             .tooltipBuilder(t -> t.addLine(IKey.lang("gtsr.aggregator_config.search_hint")));
+    }
 
-        // 展示种类切换按钮：全部 → 未过滤 → 已过滤 → 循环
-        ButtonWidget<?> categoryButton = new ButtonWidget<>().size(76, 16)
+    /** 展示种类切换按钮：全部 → 未过滤 → 已过滤 → 循环（贴浏览器框右缘）。 */
+    private IWidget buildCategoryButton(DynamicSyncHandler listDynamic) {
+        return new ButtonWidget<>().pos(BROWSER_X + BROWSER_W - 4 - 76, SEARCH_Y)
+            .size(76, 16)
             .overlay(IKey.dynamic(() -> StatCollector.translateToLocal(categoryLangKey(categoryMode))))
             .onMousePressed(mouseButton -> {
                 categoryMode = (categoryMode + 1) % 3;
@@ -322,19 +377,32 @@ public class MTECrustMatterAggregatorConfigGui implements IGuiHolder<PosGuiData>
                 return true;
             })
             .tooltipBuilder(t -> t.addLine(IKey.lang("gtsr.aggregator_config.category.tip")));
+    }
 
-        return new ParentWidget<>().pos(BROWSER_X, BROWSER_Y)
-            .size(BROWSER_W, BROWSER_H)
-            .background(GuiTextures.DISPLAY)
-            .child(
-                Flow.row()
-                    .pos(4, 4)
-                    .height(16)
-                    .childPadding(4)
-                    .child(searchField)
-                    .child(searchButton)
-                    .child(categoryButton))
-            .child(listArea);
+    /** 表格标签栏：与列表行同列宽（图标/名称/权重/维度/操作），表格式对齐。 */
+    private IWidget buildTableHeader() {
+        Flow row = Flow.row()
+            .pos(BROWSER_X + 4, HEADER_Y)
+            .height(14)
+            .childPadding(4);
+        // 图标列无标题（空文本占位对齐）
+        row.child(
+            IKey.str("")
+                .asWidget()
+                .width(COL_ICON));
+        row.child(headerLabel("gtsr.aggregator_config.col.name", COL_NAME));
+        row.child(headerLabel("gtsr.aggregator_config.col.weight", COL_WEIGHT));
+        row.child(headerLabel("gtsr.aggregator_config.col.dim", COL_DIM));
+        row.child(headerLabel("gtsr.aggregator_config.col.action", COL_ACTION));
+        return row;
+    }
+
+    /** 标签栏单元格：灰色小字，固定列宽。 */
+    private static IWidget headerLabel(String key, int width) {
+        return IKey.str(EnumChatFormatting.GRAY + StatCollector.translateToLocal(key))
+            .asWidget()
+            .width(width)
+            .scale(0.8f);
     }
 
     /**
@@ -406,19 +474,18 @@ public class MTECrustMatterAggregatorConfigGui implements IGuiHolder<PosGuiData>
         }
     }
 
-    /** 构建单个矿石行：图标 + 本地化名 + 权重 + 出现维度 + 过滤开关按钮。 */
+    /** 构建单个矿石行：图标 + 本地化名 + 权重 + 出现维度 + 过滤开关按钮，列宽与标签栏逐列对齐。 */
     private IWidget buildOreRow(OreEntryInfo info, AggregatorActionSyncHandler actionSync) {
         // 矿石图标（16px）+ 本地化显示名（客户端 ItemStack.getDisplayName()，兼容中文）
         IWidget icon = new ItemDrawable(info.ore).asWidget()
             .size(16);
         IKey name = IKey.str(info.ore.getDisplayName());
-        // 权重：整数或一位小数
+        // 权重：整数或一位小数；出现维度缩写（如 "Ow+Ne"）
         String weightText = formatWeight(info.weight);
-        // 出现维度缩写（如 "Ow+Ne"）
         String dimText = String.join("+", info.dimAbbrs);
 
         // 过滤开关按钮：按下 C2S 切换；已过滤行按钮文字/样式区分并带提示
-        ButtonWidget<?> filterButton = new ButtonWidget<>().size(44, 16)
+        ButtonWidget<?> filterButton = new ButtonWidget<>().size(COL_ACTION, 16)
             .overlay(
                 IKey.dynamic(
                     () -> StatCollector.translateToLocal(
@@ -436,6 +503,7 @@ public class MTECrustMatterAggregatorConfigGui implements IGuiHolder<PosGuiData>
                 }
             });
 
+        // 行布局：列宽与 buildTableHeader 标签栏一致（16/100/44/56/44），等距排列，按钮靠最右
         return Flow.row()
             .widthRel(1f)
             .height(18)
@@ -444,14 +512,17 @@ public class MTECrustMatterAggregatorConfigGui implements IGuiHolder<PosGuiData>
             .child(icon)
             .child(
                 name.asWidget()
+                    .width(COL_NAME)
                     .scale(0.9f))
             .child(
                 IKey.str(weightText)
                     .asWidget()
+                    .width(COL_WEIGHT)
                     .scale(0.9f))
             .child(
                 IKey.str(dimText)
                     .asWidget()
+                    .width(COL_DIM)
                     .scale(0.9f))
             .child(filterButton);
     }
@@ -527,6 +598,7 @@ public class MTECrustMatterAggregatorConfigGui implements IGuiHolder<PosGuiData>
         private static final int ACTION_CYCLE_ORE_MODE = 1;
         private static final int ACTION_CYCLE_FORTUNE = 2;
         private static final int ACTION_TOGGLE_FILTER = 3;
+        private static final int ACTION_REFRESH_POOL = 4;
 
         private final MTECrustMatterAggregator aggregator;
 
@@ -552,6 +624,11 @@ public class MTECrustMatterAggregatorConfigGui implements IGuiHolder<PosGuiData>
                 ByteBufUtils.writeUTF8String(buf, uid == null ? "" : (uid.modId + ":" + uid.name));
                 buf.writeInt(info.ore.getItemDamage());
             });
+        }
+
+        /** 手动刷新矿池：服务端立即重建（forceRefreshPool），列表数据变化自动推送。 */
+        public void sendRefreshPool() {
+            syncToServer(ACTION_REFRESH_POOL, buf -> {});
         }
 
         // ===== 服务端执行 =====
@@ -581,6 +658,9 @@ public class MTECrustMatterAggregatorConfigGui implements IGuiHolder<PosGuiData>
                     aggregator.setOreFiltered(oreId, !aggregator.isOreFiltered(oreId));
                     break;
                 }
+                case ACTION_REFRESH_POOL:
+                    aggregator.forceRefreshPool();
+                    break;
                 default:
                     return;
             }

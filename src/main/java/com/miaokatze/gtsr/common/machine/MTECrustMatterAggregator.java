@@ -220,7 +220,7 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
     public int mFortuneLevel = 0;
     // 终端插件槽（UI 槽 2-12；槽 1 = mInventory[1]，同一数据源）
     private final ItemStack[] mPluginSlots = new ItemStack[11];
-    // 被过滤（"真不出"）的矿石
+    // 被过滤（"已解放权重"）的矿石
     private final Set<GTUtility.ItemId> mFilteredOres = new HashSet<>();
     // 多维度矿池（无插件槽时含默认当前维度）
     private final List<PoolDim> mPool = new ArrayList<>();
@@ -672,6 +672,23 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
         mPoolDirty = true;
     }
 
+    /**
+     * 手动刷新矿池（终端 UI「刷新」按钮 C2S 调用）：立即重建并持久化，不等 checkProcessing 轮询，
+     * 使「放入/移除维度物品」立即反映到矿石浏览器与抽取池。
+     */
+    public void forceRefreshPool() {
+        markPoolDirty();
+        rebuildPool();
+        if (getBaseMetaTileEntity() != null) getBaseMetaTileEntity().markDirty();
+    }
+
+    /** 控制器槽（mInventory[1]，终端槽 1 与主 GUI 控制器槽同一数据源）栈上限 1：点击/shift-click 全路径生效。 */
+    @Override
+    public int getSlotLimit(int slot) {
+        if (slot == 1) return 1;
+        return super.getSlotLimit(slot);
+    }
+
     /** 12 槽维度集合与当前池是否一致（含无槽模式下当前维度变化检测）。 */
     private boolean isPoolCurrent() {
         List<String> current = collectDimensionAbbrs();
@@ -712,7 +729,7 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
         return !mPool.isEmpty();
     }
 
-    // —— 过滤与加权抽取（"真不出"语义：被过滤矿石完全从抽取分布中剔除）——
+    // —— 过滤与加权抽取（"已解放权重"语义：被过滤矿石完全从抽取分布中剔除）——
 
     public boolean isOreFiltered(GTUtility.ItemId id) {
         return id != null && mFilteredOres.contains(id);
