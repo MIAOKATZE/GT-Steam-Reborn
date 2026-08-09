@@ -93,7 +93,7 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
     private static final String STRUCTURE_PIECE_CAP = "cap";
     private static final int BASE_TOTAL_HEIGHT = 9;
     private static final int STACK_LAYER_HEIGHT = 4;
-    private static final int MAX_EXTRA_STACKS = 4;
+    public static final int MAX_EXTRA_STACKS = 4;
 
     private static final int SOLID_STEEL_CASING_INDEX = GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings2, 0);
     private static IStructureDefinition<MTEMegaSteamTurbineArray> STRUCTURE_DEFINITION = null;
@@ -111,18 +111,55 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
 
     /** 全局功率参数：10/8/6/4/2，对应 100%/80%/60%/40%/20% */
     public int mPowerParameter = 10;
-    /** 是否处于奇点模式 */
-    public boolean mSingularityMode = false;
+    /**
+     * 奇点模式等级：0=无，1=蒸汽纠缠奇点模式，2=临界奇点模式。
+     * 临界模式（消耗临界蒸汽纠缠奇点）效果：功率×5、效率上限+200%、蒸汽节省+20%。
+     */
+    public int mSingularityMode = 0;
     /** 奇点模式剩余 tick */
     public int mSingularityModeTicks = 0;
     /** 每秒检查一次输入总线 */
     private int mSingularityCheckCooldown = 0;
 
     private static final int[] POWER_PARAMETERS = { 10, 8, 6, 4, 2 };
-    private static final int SINGULARITY_DURATION_TICKS = 12000; // 600s
+    /** 奇点模式持续时间（蒸汽纠缠/临界两模式共用）：200s */
+    private static final int SINGULARITY_DURATION_TICKS = 4000; // 200s
+    /** 蒸汽纠缠奇点模式：效率上限 +100% */
     private static final int SINGULARITY_EFFICIENCY_BONUS = 10000; // +100%
+    /** 蒸汽纠缠奇点模式：蒸汽节省 +15% */
     private static final float SINGULARITY_SAVINGS_BONUS = 0.15f; // +15%
+    /** 蒸汽纠缠奇点模式：功率翻倍 */
     private static final int SINGULARITY_POWER_MULTIPLIER = 2; // 功率翻倍
+    /** 临界奇点模式：功率×5 */
+    private static final int CRITICAL_POWER_MULTIPLIER = 5; // 功率×5
+    /** 临界奇点模式：效率上限 +200% */
+    private static final int CRITICAL_EFFICIENCY_BONUS = 20000; // +200%
+    /** 临界奇点模式：蒸汽节省 +20% */
+    private static final float CRITICAL_SAVINGS_BONUS = 0.20f; // +20%
+
+    /**
+     * 奇点模式功率倍率：mode 2=×5、mode 1=×2、mode 0=×1。
+     * 临界模式功率×5，蒸汽纠缠模式功率翻倍，普通模式无加成。
+     */
+    private int getSingularityPowerMult() {
+        return mSingularityMode == 2 ? CRITICAL_POWER_MULTIPLIER
+            : mSingularityMode == 1 ? SINGULARITY_POWER_MULTIPLIER : 1;
+    }
+
+    /**
+     * 奇点模式效率上限加成：mode 2=+200%、mode 1=+100%、mode 0=无。
+     */
+    private int getSingularityEfficiencyBonus() {
+        return mSingularityMode == 2 ? CRITICAL_EFFICIENCY_BONUS
+            : mSingularityMode == 1 ? SINGULARITY_EFFICIENCY_BONUS : 0;
+    }
+
+    /**
+     * 奇点模式蒸汽节省加成：mode 2=+20%、mode 1=+15%、mode 0=无。
+     */
+    private float getSingularitySavingsBonus() {
+        return mSingularityMode == 2 ? CRITICAL_SAVINGS_BONUS : mSingularityMode == 1 ? SINGULARITY_SAVINGS_BONUS : 0f;
+    }
 
     private final List<MTEHatchPressureSteamInput> mPressureSteamInputs = new ArrayList<>();
     private final List<MTEOverpressureTurbineInputHatch> mOverpressureInputs = new ArrayList<>();
@@ -290,7 +327,7 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
                     .setEnabled(w -> mMachine));
 
         screenElements.widget(TextWidget.dynamicString(() -> {
-            int powerMult = mSingularityMode ? 2 : 1;
+            int powerMult = getSingularityPowerMult();
             return EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.turbine_array.eu_t")
                 + EnumChatFormatting.AQUA
                 + NumberFormatUtil.formatNumber(
@@ -298,7 +335,7 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
                         * getGroupCount()
                         * powerMult
                         * (getMaxEfficiencyLimit(mSteamType) / 10000.0)
-                        * mSteamType.steamEffFactor))
+                        * getEffectiveSteamEffFactor(mSteamType)))
                 + " EU/t";
         })
             .setTextAlignment(Alignment.CenterLeft)
@@ -390,16 +427,39 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
                 .setEnabled(w -> mMachine));
 
         screenElements.widget(TextWidget.dynamicString(() -> {
-            if (!mSingularityMode) {
+            if (mSingularityMode == 0) {
                 return EnumChatFormatting.GOLD
                     + StatCollector.translateToLocal("gtsr.gui.turbine_array.singularity_mode")
                     + EnumChatFormatting.GRAY
                     + StatCollector.translateToLocal("gtsr.gui.turbine_array.singularity_off");
             }
-            return EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.turbine_array.singularity_mode")
+            // 临界模式（2）与蒸汽纠缠模式（1）共用倒计时显示，前缀文案区分
+            String prefixKey = mSingularityMode == 2 ? "gtsr.gui.turbine_array.singularity_critical"
+                : "gtsr.gui.turbine_array.singularity_mode";
+            return EnumChatFormatting.GOLD + StatCollector.translateToLocal(prefixKey)
                 + EnumChatFormatting.LIGHT_PURPLE
                 + (mSingularityModeTicks / 20)
                 + "s";
+        })
+            .setTextAlignment(Alignment.CenterLeft)
+            .setDefaultColor(COLOR_TEXT_WHITE.get())
+            .setEnabled(w -> mMachine));
+
+        // 循环超限芯片状态：未安装 / 已安装但叠加层不足 / 已激活（控制器槽物品客户端可读，mStackCount 经 IntegerSyncer 同步）
+        screenElements.widget(TextWidget.dynamicString(() -> {
+            if (!hasCycleOverlimitChip()) {
+                return EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.turbine_array.chip_state")
+                    + EnumChatFormatting.GRAY
+                    + StatCollector.translateToLocal("gtsr.gui.turbine_array.chip_missing");
+            }
+            if (!isCycleOverlimitActive()) {
+                return EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.turbine_array.chip_state")
+                    + EnumChatFormatting.YELLOW
+                    + StatCollector.translateToLocal("gtsr.gui.turbine_array.chip_needs_stacks");
+            }
+            return EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.turbine_array.chip_state")
+                + EnumChatFormatting.GREEN
+                + StatCollector.translateToLocal("gtsr.gui.turbine_array.chip_active");
         })
             .setTextAlignment(Alignment.CenterLeft)
             .setDefaultColor(COLOR_TEXT_WHITE.get())
@@ -812,7 +872,7 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
      * - 高级Gear额外+5%效率上限 = +500
      * - 钛管+10%效率上限 = +1000，钨钢管+25%效率上限 = +2500
      * - 机器等级每提高一级(等级-1)，增加5%效率上限 = +500
-     * - 奇点模式下额外+100% = +10000
+     * - 奇点模式：蒸汽纠缠+100% = +10000，临界+200% = +20000
      */
     public int getMaxEfficiencyLimit(SteamType type) {
         int base = type.maxEfficiency;
@@ -820,16 +880,15 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         int bonus = 1000 * mStackCount + (mGearTier > 1 ? 500 : 0)
             + (mPipeTier == 2 ? 1000 : mPipeTier == 3 ? 2500 : 0)
             + 500 * (mCasingTier - 1);
-        if (mSingularityMode) {
-            bonus += SINGULARITY_EFFICIENCY_BONUS;
-        }
+        // 奇点模式效率上限加成：蒸汽纠缠+100%、临界+200%（三态 helper 统一取用）
+        bonus += getSingularityEfficiencyBonus();
         return base + bonus;
     }
 
     /**
      * 计算蒸汽节省率。
      * 基础节省率随功率参数变化：10→20%，8→15%，6→10%，4→5%，2→0%。
-     * 叠加 Stack/Gear/Pipe 加成，奇点模式下额外 +15%。
+     * 叠加 Stack/Gear/Pipe 加成，奇点模式下：蒸汽纠缠额外 +15%、临界额外 +20%。
      */
     public float getSteamSavings() {
         // 基础节省率 = 20% - (10 - power) / 2 * 5%
@@ -838,10 +897,8 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         // 结构加成
         float bonus = 0.05f * mStackCount + (mGearTier > 1 ? 0.025f : 0f)
             + (mPipeTier == 2 ? 0.025f : mPipeTier == 3 ? 0.075f : 0f);
-        // 奇点模式额外 +15%
-        if (mSingularityMode) {
-            bonus += SINGULARITY_SAVINGS_BONUS;
-        }
+        // 奇点模式蒸汽节省加成：蒸汽纠缠+15%、临界+20%（三态 helper 统一取用）
+        bonus += getSingularitySavingsBonus();
         return Math.min(1.0f, baseSavings + bonus);
     }
 
@@ -855,17 +912,54 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         return eff / 10000.0f;
     }
 
+    /**
+     * 是否安装了蒸汽轮机循环超限芯片（读控制器槽）。
+     */
+    private boolean hasCycleOverlimitChip() {
+        ItemStack stack = getControllerSlot();
+        return stack != null && GTSRItemList.SteamTurbineCycleOverlimitChip.isStackEqual(stack, true, true);
+    }
+
+    /**
+     * 循环超限是否激活：芯片已安装且叠加层数达到上限（MAX_EXTRA_STACKS）。
+     */
+    public boolean isCycleOverlimitActive() {
+        return hasCycleOverlimitChip() && mStackCount >= MAX_EXTRA_STACKS;
+    }
+
+    /**
+     * 循环超限芯片：蒸汽效率因子按蒸汽家族内叠加，致密族只叠加致密族（致密蒸汽冷却产物本就是蒸馏水）。
+     * 未激活（芯片未装或叠加层不足）或 NONE 时返回类型自身因子。
+     * 因子值以 SteamType.steamEffFactor 字段为单一事实来源，不在此硬编码。
+     */
+    public float getEffectiveSteamEffFactor(SteamType type) {
+        if (!isCycleOverlimitActive() || type == SteamType.NONE) {
+            return type.steamEffFactor;
+        }
+        return switch (type) {
+            case STEAM -> SteamType.STEAM.steamEffFactor;
+            case SH_STEAM -> SteamType.SH_STEAM.steamEffFactor + SteamType.STEAM.steamEffFactor;
+            case SC_STEAM -> SteamType.SC_STEAM.steamEffFactor + SteamType.SH_STEAM.steamEffFactor
+                + SteamType.STEAM.steamEffFactor;
+            case DENSE_STEAM -> SteamType.DENSE_STEAM.steamEffFactor;
+            case DENSE_SH_STEAM -> SteamType.DENSE_SH_STEAM.steamEffFactor + SteamType.DENSE_STEAM.steamEffFactor;
+            case DENSE_SC_STEAM -> SteamType.DENSE_SC_STEAM.steamEffFactor + SteamType.DENSE_SH_STEAM.steamEffFactor
+                + SteamType.DENSE_STEAM.steamEffFactor;
+            default -> type.steamEffFactor;
+        };
+    }
+
     public long calcSteamConsumption(SteamType type) {
         if (type == SteamType.NONE) return 0;
         int groupCount = getGroupCount();
         long voltage = getVoltage();
         float savings = getSteamSavings();
-        int powerMult = mSingularityMode ? SINGULARITY_POWER_MULTIPLIER : 1;
+        int powerMult = getSingularityPowerMult();
         return (long) (voltage * mPowerParameter
             * groupCount
             * powerMult
             * Math.max(0, 1 - savings)
-            * type.steamEffFactor
+            * getEffectiveSteamEffFactor(type)
             / type.euPerL);
     }
 
@@ -885,7 +979,7 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         long voltage = getVoltage();
         float efficiency = getCustomEfficiency();
         float savings = getSteamSavings();
-        int powerMult = mSingularityMode ? SINGULARITY_POWER_MULTIPLIER : 1;
+        int powerMult = getSingularityPowerMult();
 
         EnumSet<SteamType> availableTypes = EnumSet.noneOf(SteamType.class);
         for (FluidStack fs : tFluids) {
@@ -924,13 +1018,13 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
             if (!availableTypes.contains(type)) continue;
             // 基础 EU/t: 不含当前效率，由父类 onRunningTick 统一乘 mEfficiency/10000 后输出
             // 当前理论 EU/t = baseEUt × efficiency
-            long base = (long) (voltage * mPowerParameter * groupCount * powerMult * type.steamEffFactor);
+            long base = (long) (voltage * mPowerParameter * groupCount * powerMult * getEffectiveSteamEffFactor(type));
             long eu = (long) (base * efficiency);
             long consumption = (long) (voltage * mPowerParameter
                 * groupCount
                 * powerMult
                 * Math.max(0, 1 - savings)
-                * type.steamEffFactor
+                * getEffectiveSteamEffFactor(type)
                 / type.euPerL);
             int totalAvailable = getTotalSteamAmount(type);
             if (totalAvailable >= consumption) {
@@ -1017,7 +1111,7 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
     public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
         super.onPostTick(aBaseMetaTileEntity, aTick);
         if (aBaseMetaTileEntity.isClientSide() || !mMachine) return;
-        if (mSingularityMode && mSingularityModeTicks > 0) {
+        if (mSingularityMode > 0 && mSingularityModeTicks > 0) {
             mSingularityModeTicks--;
         }
         if (++mSingularityCheckCooldown >= 20) {
@@ -1031,32 +1125,42 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
     }
 
     /**
-     * 检查并维持奇点模式。
-     * 不在奇点模式时：若输入总线有蒸汽纠缠奇点，消耗 1 颗并进入模式。
-     * 在奇点模式且倒计时耗尽时：立即尝试消耗下一颗无缝续杯；成功则续满，失败才退出模式。
+     * 检查并维持奇点模式（三态：0=无/1=蒸汽纠缠/2=临界）。
+     * 不在模式时：优先消耗 1 个临界蒸汽纠缠奇点进入模式 2，其次 1 个蒸汽纠缠奇点进入模式 1。
+     * 模式中倒计时耗尽时：按当前模式对应物品无缝续杯；成功续满，失败才退出模式。
      */
     private void checkSingularityMode() {
-        if (!mSingularityMode) {
-            if (consumeSingularityFromInputBuses(1)) {
-                mSingularityMode = true;
+        if (mSingularityMode == 0) {
+            // 临界奇点优先
+            if (consumeSingularityFromInputBuses(1, GTSRItemList.CriticalSteamEntangledSingularity)) {
+                mSingularityMode = 2;
                 mSingularityModeTicks = SINGULARITY_DURATION_TICKS;
+                getBaseMetaTileEntity().markDirty();
+            } else if (consumeSingularityFromInputBuses(1, GTSRItemList.SteamEntangledSingularity)) {
+                mSingularityMode = 1;
+                mSingularityModeTicks = SINGULARITY_DURATION_TICKS;
+                getBaseMetaTileEntity().markDirty();
             }
         } else if (mSingularityModeTicks <= 0) {
-            // 600s 结束瞬间：优先续杯，模式全程不断
-            if (consumeSingularityFromInputBuses(1)) {
+            // 200s 结束瞬间：按当前模式对应燃料续杯，模式全程不断
+            GTSRItemList fuel = mSingularityMode == 2 ? GTSRItemList.CriticalSteamEntangledSingularity
+                : GTSRItemList.SteamEntangledSingularity;
+            if (consumeSingularityFromInputBuses(1, fuel)) {
                 mSingularityModeTicks = SINGULARITY_DURATION_TICKS;
+                getBaseMetaTileEntity().markDirty();
             } else {
-                mSingularityMode = false;
+                mSingularityMode = 0;
+                getBaseMetaTileEntity().markDirty();
             }
         }
     }
 
     /**
-     * 从输入总线中消耗指定数量的蒸汽纠缠奇点。
+     * 从输入总线与样板仓中消耗指定类型、指定数量的奇点燃料。
      *
      * @return 是否成功消耗全部数量
      */
-    private boolean consumeSingularityFromInputBuses(int amount) {
+    private boolean consumeSingularityFromInputBuses(int amount, GTSRItemList singularity) {
         int remaining = amount;
         // 先收集所有可消耗的槽位，避免部分消耗后无法回滚
         List<Pair<MTEHatchInputBus, Integer>> candidates = new ArrayList<>();
@@ -1064,7 +1168,7 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
             if (bus == null) continue;
             for (int i = 0; i < bus.getSizeInventory(); i++) {
                 ItemStack stack = bus.getStackInSlot(i);
-                if (stack != null && GTSRItemList.SteamEntangledSingularity.isStackEqual(stack, false, true)) {
+                if (stack != null && singularity.isStackEqual(stack, false, true)) {
                     candidates.add(Pair.of(bus, i));
                     remaining -= stack.stackSize;
                     if (remaining <= 0) break;
@@ -1080,7 +1184,7 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
             for (IDualInputHatch dual : mDualInputHatches) {
                 if (dual == null) continue;
                 for (ItemStack stack : dual.getAllItems()) {
-                    if (stack == null || !GTSRItemList.SteamEntangledSingularity.isStackEqual(stack, false, true)) {
+                    if (stack == null || !singularity.isStackEqual(stack, false, true)) {
                         continue;
                     }
                     int toConsume = Math.min(remaining, stack.stackSize);
@@ -1256,6 +1360,8 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
     }
 
     private void outputCoolingProduct(SteamType type, int consumedAmount) {
+        // 循环超限芯片：过热/超临界蒸汽不再输出冷却蒸汽或次级蒸汽，全部冷凝为蒸馏水（蒸汽循环回收）
+        boolean overlimit = isCycleOverlimitActive();
         if (consumedAmount <= 0) return;
         switch (type) {
             case STEAM: {
@@ -1270,22 +1376,44 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
                 break;
             }
             case SH_STEAM: {
-                outputCoolingSteam(consumedAmount);
+                // 循环超限：过热蒸汽直接冷凝为蒸馏水（原输出冷却蒸汽）
+                if (overlimit) {
+                    outputCoolingWater(condenseSteam(consumedAmount));
+                } else {
+                    outputCoolingSteam(consumedAmount);
+                }
                 break;
             }
             case DENSE_SH_STEAM: {
-                FluidStack denseSteam = Materials.DenseSteam.getGas(consumedAmount);
-                if (denseSteam != null) addOutput(denseSteam);
+                // 循环超限：致密过热蒸汽按 1L:1000L 换算后冷凝为蒸馏水（原输出 DenseSteam）
+                if (overlimit) {
+                    int equivalentSteam = consumedAmount * 1000;
+                    outputCoolingWater(condenseSteam(equivalentSteam));
+                } else {
+                    FluidStack denseSteam = Materials.DenseSteam.getGas(consumedAmount);
+                    if (denseSteam != null) addOutput(denseSteam);
+                }
                 break;
             }
             case SC_STEAM: {
-                FluidStack shSteam = FluidRegistry.getFluidStack("ic2superheatedsteam", consumedAmount);
-                if (shSteam != null) addOutput(shSteam);
+                // 循环超限：超临界蒸汽直接冷凝为蒸馏水（原输出 ic2superheatedsteam）
+                if (overlimit) {
+                    outputCoolingWater(condenseSteam(consumedAmount));
+                } else {
+                    FluidStack shSteam = FluidRegistry.getFluidStack("ic2superheatedsteam", consumedAmount);
+                    if (shSteam != null) addOutput(shSteam);
+                }
                 break;
             }
             case DENSE_SC_STEAM: {
-                FluidStack denseSHSteam = Materials.DenseSuperheatedSteam.getGas(consumedAmount);
-                if (denseSHSteam != null) addOutput(denseSHSteam);
+                // 循环超限：致密超临界蒸汽按 1L:1000L 换算后冷凝为蒸馏水（原输出 DenseSuperheatedSteam）
+                if (overlimit) {
+                    int equivalentSteam = consumedAmount * 1000;
+                    outputCoolingWater(condenseSteam(equivalentSteam));
+                } else {
+                    FluidStack denseSHSteam = Materials.DenseSuperheatedSteam.getGas(consumedAmount);
+                    if (denseSHSteam != null) addOutput(denseSHSteam);
+                }
                 break;
             }
             default:
@@ -1407,7 +1535,8 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         aNBT.setInteger("mSteamConsumption", mSteamConsumption);
         aNBT.setInteger("mEfficiency", mEfficiency);
         aNBT.setInteger("mPowerParameter", mPowerParameter);
-        aNBT.setBoolean("mSingularityMode", mSingularityMode);
+        // v1.10.39 后：奇点模式升级为三态（0/1/2），存档键改为整数 mSingularityModeLevel
+        aNBT.setInteger("mSingularityModeLevel", mSingularityMode);
         aNBT.setInteger("mSingularityModeTicks", mSingularityModeTicks);
         // v1.10.9：持久化蒸汽类型——修复重进存档后 mSteamType 为 NONE 导致
         // getMaxEfficiency 返回 10000、父类钳制把存档效率砍到 100% 的 bug。
@@ -1423,7 +1552,16 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         mSteamConsumption = aNBT.getInteger("mSteamConsumption");
         mEfficiency = aNBT.getInteger("mEfficiency");
         mPowerParameter = aNBT.hasKey("mPowerParameter") ? aNBT.getInteger("mPowerParameter") : 10;
-        mSingularityMode = aNBT.getBoolean("mSingularityMode");
+        // v1.10.39 及以前为 boolean 键 mSingularityMode（true=普通蒸汽纠缠奇点模式），
+        // 新档为整数键 mSingularityModeLevel（0/1/2）；旧档迁移为 mode 1，并钳制到合法范围
+        if (aNBT.hasKey("mSingularityModeLevel")) {
+            mSingularityMode = Math.max(0, Math.min(aNBT.getInteger("mSingularityModeLevel"), 2));
+        } else if (aNBT.hasKey("mSingularityMode")) {
+            // v1.10.39 及以前：boolean 存档，true=普通奇点模式
+            mSingularityMode = aNBT.getBoolean("mSingularityMode") ? 1 : 0;
+        } else {
+            mSingularityMode = 0;
+        }
         mSingularityModeTicks = aNBT.hasKey("mSingularityModeTicks") ? aNBT.getInteger("mSingularityModeTicks") : 0;
         // v1.10.9：恢复蒸汽类型（旧档无键 → NONE，由 getMaxEfficiency 的 NONE 兜底处理）
         mSteamType = aNBT.hasKey("mSteamType")
@@ -1626,6 +1764,9 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
             .addInfo(
                 EnumChatFormatting.LIGHT_PURPLE
                     + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.singularity_mode"))
+            .addInfo(
+                EnumChatFormatting.GOLD
+                    + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.cycle_overlimit_chip"))
             .beginVariableStructureBlock(5, 5, 13, 13, 9, 25, true)
             .addController(StatCollector.translateToLocal("gtsr.tooltip.turbine_array.ctrl"))
             .addInputHatch(StatCollector.translateToLocal("gtsr.tooltip.turbine_array.input_hatch"), 1)

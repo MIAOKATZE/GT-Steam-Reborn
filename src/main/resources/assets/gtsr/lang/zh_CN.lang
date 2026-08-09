@@ -390,6 +390,9 @@ item.HubSingularityChip.name=枢纽奇点升级芯片
 # Reinforced Hub Singularity Chip
 item.ReinforcedHubSingularityChip.name=强化奇点枢纽升级芯片
 
+# Steam Turbine Cycle Overlimit Chip
+item.SteamTurbineCycleOverlimitChip.name=蒸汽轮机循环超限芯片
+
 # 枢纽终端
 item.HubTerminal.name=枢纽终端
 
@@ -1089,7 +1092,8 @@ gtsr.tooltip.turbine_array.each_tier=每层+1等级
 gtsr.gui.turbine_array.output_power=输出功率: 
 gtsr.tooltip.turbine_array.formula=EU/t = V[tier] × 全局功率参数 × 蒸汽效率因子 × 组数 × 效率%，外壳等级限制最高供电电压
 gtsr.tooltip.turbine_array.power_param=螺丝刀右击循环切换全局功率（100%%→80%%→60%%→40%%→20%%）：影响基础输出与基础蒸汽节省率
-gtsr.tooltip.turbine_array.singularity_mode=输入总线中的蒸汽纠缠奇点可触发奇点模式：功率×2、效率上限+100%%、蒸汽节省率+15%%，每颗提供600s（含5s隐藏冗余）
+gtsr.tooltip.turbine_array.singularity_mode=输入总线中的蒸汽纠缠奇点触发奇点模式：功率×2、效率上限+100%%、蒸汽节省率+15%%；临界蒸汽纠缠奇点触发临界奇点模式：功率×5、效率上限+200%%、蒸汽节省率+20%%；每颗提供200s（临界优先消耗）
+gtsr.tooltip.turbine_array.cycle_overlimit_chip=循环超限芯片（放入控制器槽）：完成全部4组额外叠加层后，过热/超临界/致密过热/致密超临界蒸汽的冷却产物直接变为蒸馏水，且蒸汽效率因子按蒸汽家族内叠加（致密族只叠致密族）
 gtsr.tooltip.turbine_array.input_hatch=蒸汽输入
 gtsr.tooltip.turbine_array.dynamo=能量输出
 
@@ -1238,7 +1242,12 @@ gtsr.gui.turbine_array.max_efficiency=最大效率:
 gtsr.gui.turbine_array.output=输出: 
 gtsr.gui.turbine_array.power_param=全局功率: 
 gtsr.gui.turbine_array.singularity_mode=奇点模式: 
+gtsr.gui.turbine_array.singularity_critical=临界奇点模式: 
 gtsr.gui.turbine_array.singularity_off=关
+gtsr.gui.turbine_array.chip_state=循环超限芯片: 
+gtsr.gui.turbine_array.chip_missing=未安装
+gtsr.gui.turbine_array.chip_needs_stacks=已安装，需完成全部4组额外叠加层
+gtsr.gui.turbine_array.chip_active=已激活
 gtsr.gui.parallel=并行: 
 
 # ===== v1.5.1 Translation Keys =====
@@ -1281,6 +1290,7 @@ gtsr.tooltip.chip.geothermal_overheat=装载至大型地热蒸汽锅炉，提升
 gtsr.tooltip.chip.hub_singularity=装载至蒸汽/蓄水枢纽阵列，解锁等级2功能，总容量×5
 gtsr.tooltip.chip.rare_gas=装载至大气离心机，解锁稀有气体分离配方
 gtsr.tooltip.chip.reinforced_hub_singularity=装载至蒸汽枢纽阵列，解锁等级3功能，总容量×20
+gtsr.tooltip.chip.steam_turbine_cycle_overlimit=装载至巨型蒸汽轮机阵列控制器槽；完成全部4组额外叠加层后生效：过热/超临界（含致密）蒸汽冷却直接产蒸馏水，蒸汽效率因子按蒸汽家族内叠加
 gtsr.tooltip.chip.vein_pyrolyzer=装载至地脉热解机，提升地下流体富集范围
 gtsr.tooltip.catalyst.ammonia=装载至制氨工厂，提升并行数和反应速度
 gtsr.tooltip.catalyst.ammonia.nickel=并行数: 64 | 时间: 64秒

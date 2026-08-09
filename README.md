@@ -199,8 +199,8 @@ All inherit from `MTEEnhancedMultiBlockBase` (GT5U), with more advanced mechanic
 
 <p align="center"><img src="README/MTEMegaSteamTurbineArray.png" width="300"><br><em>巨型蒸汽轮机机组 / Mega Steam Turbine Array</em></p>
 
-- **巨型蒸汽轮机机组 / Mega Steam Turbine Array (MSTA)**: 12-tier. Generates EU from steam. Stacking efficiency — more layers = higher efficiency cap. Supports all steam types with progression. Tier 6+ can process dense/supercritical steam. Screwdriver right-click cycles Global Power (100%→80%→60%→40%→20%), trading output for base steam savings. Steam Entangled Singularities in input buses trigger Singularity Mode for a duration: power ×2, max efficiency +100%, steam savings +15%.
-  蒸汽发电。堆叠效率——层数越多效率上限越高。支持所有蒸汽类型进阶。等级6+可处理致密/超临界蒸汽。螺丝刀右击循环切换全局功率（100%→80%→60%→40%→20%），以输出换取基础蒸汽节省率。输入总线中的蒸汽纠缠奇点可触发奇点模式：功率×2、效率上限+100%、蒸汽节省率+15%。
+- **巨型蒸汽轮机机组 / Mega Steam Turbine Array (MSTA)**: 12-tier. Generates EU from steam. Stacking efficiency — more layers = higher efficiency cap. Supports all steam types with progression. Tier 6+ can process dense/supercritical steam. Screwdriver right-click cycles Global Power (100%→80%→60%→40%→20%), trading output for base steam savings. Steam Entangled Singularities in input buses trigger Singularity Mode for a duration: power ×2, max efficiency +100%, steam savings +15%; Critical Steam Entangled Singularities trigger Critical Singularity Mode: power ×5, max efficiency +200%, steam savings +20%; each singularity lasts 200s (critical consumed first). The Cycle Overlimit Chip (controller slot, requires all 4 extra stack groups) turns superheated/supercritical (incl. dense) steam cooling into distilled water and stacks steam efficiency factors within their steam family.
+  蒸汽发电。堆叠效率——层数越多效率上限越高。支持所有蒸汽类型进阶。等级6+可处理致密/超临界蒸汽。螺丝刀右击循环切换全局功率（100%→80%→60%→40%→20%），以输出换取基础蒸汽节省率。输入总线中的蒸汽纠缠奇点可触发奇点模式：功率×2、效率上限+100%、蒸汽节省率+15%；临界蒸汽纠缠奇点触发临界奇点模式：功率×5、效率上限+200%、蒸汽节省率+20%；每颗奇点提供200s（临界优先消耗）。循环超限芯片（放入控制器槽，需完成全部4组额外叠加层）使过热/超临界（含致密）蒸汽冷却直接产蒸馏水，蒸汽效率因子按蒸汽家族内叠加。
 
 <p align="center"><img src="README/MTELargeSolarOverpressureArray.png" width="300"><br><em>大型太阳能超压阵列 / Large Solar Overpressure Array</em></p>
 
@@ -278,6 +278,7 @@ GTSR 机器专用仓室，具有不同容量和流体过滤：
 - **蒸汽纠缠奇点 / Steam Entangled Singularity**: Core binding material. Produced by Steam Singularity Compressor (heat accumulation). Consumed when binding nodes to hubs and in various crafting recipes.
 - **枢纽奇点芯片 / Hub Singularity Chip**: Required for Steam/Water Hub node binding, multiplies hub total capacity ×5. Also enables hub debug mode when right-clicked. Removing it from a filled hub swallows the stored fluid exceeding the reduced capacity.
 - **强化枢纽奇点芯片 / Reinforced Hub Singularity Chip**: For tier 3 Steam Hub only — enables dense/supercritical steam, ×20 capacity (replaces the ×5 Hub Chip bonus), and overpressure cache node binding.
+- **蒸汽轮机循环超限芯片 / Steam Turbine Cycle Overlimit Chip**: For Mega Steam Turbine Array controller slot — requires all 4 extra stack groups to activate: superheated/supercritical (incl. dense) steam cooling becomes distilled water, and steam efficiency factors stack within their steam family (e.g. supercritical = 超临界+过热+蒸汽 = 2.5×). / 装入巨型蒸汽轮机阵列控制器槽，需完成全部4组额外叠加层：过热/超临界（含致密）蒸汽冷却直接产蒸馏水，蒸汽效率因子按蒸汽家族内叠加（如超临界=超临界+过热+蒸汽=2.5倍）。
 - **地热过热芯片 / Geothermal Overheat Chip**: For Large Geothermal Steam Boiler (steel tier) — enables superheated steam output and rare byproducts.
 - **稀有气体分离芯片 / Rare Gas Separation Chip**: For Atmospheric Centrifuge — unlocks recipes with >2 fluid outputs (up to 8).
 - **矿脉裂解器芯片（T1/T2/T3）/ Vein Pyrolyzer Chip (T1/T2/T3)**: For Vein Steam Pyrolyzer — expands underground fluid scan range.

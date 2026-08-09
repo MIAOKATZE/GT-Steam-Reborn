@@ -1,5 +1,6 @@
 package com.miaokatze.gtsr.common.gui;
 
+import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 
@@ -10,6 +11,7 @@ import com.cleanroommc.modularui.value.sync.IntSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.widgets.ListWidget;
 import com.gtnewhorizon.gtnhlib.util.numberformatting.NumberFormatUtil;
+import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.machine.MTEMegaSteamTurbineArray;
 
 import gregtech.api.metatileentity.implementations.MTEEnhancedMultiBlockBase;
@@ -59,8 +61,8 @@ public class MTEMegaSteamTurbineArrayGui extends MTEMultiBlockBaseGui<MTEEnhance
             () -> turbineArray.mPowerParameter,
             val -> turbineArray.mPowerParameter = val);
         mSingularityModeSync = new IntSyncValue(
-            () -> turbineArray.mSingularityMode ? 1 : 0,
-            val -> turbineArray.mSingularityMode = val != 0);
+            () -> turbineArray.mSingularityMode,
+            val -> turbineArray.mSingularityMode = val);
         mSingularityModeTicksSync = new IntSyncValue(
             () -> turbineArray.mSingularityModeTicks,
             val -> turbineArray.mSingularityModeTicks = val);
@@ -96,7 +98,8 @@ public class MTEMegaSteamTurbineArrayGui extends MTEMultiBlockBaseGui<MTEEnhance
             .child(IKey.dynamic(() -> {
                 MTEMegaSteamTurbineArray.SteamType steamType = MTEMegaSteamTurbineArray.SteamType
                     .values()[mSteamTypeOrdinalSync.getValue()];
-                int powerMult = mSingularityModeSync.getValue() != 0 ? 2 : 1;
+                // 客户端按同步的奇点模式等级换算功率倍率：2→×5、1→×2、0→×1
+                int powerMult = mSingularityModeSync.getValue() == 2 ? 5 : mSingularityModeSync.getValue() == 1 ? 2 : 1;
                 return EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.turbine_array.eu_t")
                     + EnumChatFormatting.AQUA
                     + NumberFormatUtil.formatNumber(
@@ -104,7 +107,7 @@ public class MTEMegaSteamTurbineArrayGui extends MTEMultiBlockBaseGui<MTEEnhance
                             * turbineArray.getGroupCount()
                             * powerMult
                             * (turbineArray.getMaxEfficiencyLimit(steamType) / 10000.0)
-                            * steamType.steamEffFactor))
+                            * turbineArray.getEffectiveSteamEffFactor(steamType)))
                     + " EU/t";
             })
                 .asWidget()
@@ -202,9 +205,38 @@ public class MTEMegaSteamTurbineArrayGui extends MTEMultiBlockBaseGui<MTEEnhance
                         + EnumChatFormatting.GRAY
                         + StatCollector.translateToLocal("gtsr.gui.turbine_array.singularity_off");
                 }
+                // 临界模式（2）与蒸汽纠缠模式（1）共用倒计时显示，前缀文案区分
+                String prefixKey = mSingularityModeSync.getValue() == 2 ? "gtsr.gui.turbine_array.singularity_critical"
+                    : "gtsr.gui.turbine_array.singularity_mode";
                 int seconds = mSingularityModeTicksSync.getValue() / 20;
-                return EnumChatFormatting.GOLD + StatCollector.translateToLocal(
-                    "gtsr.gui.turbine_array.singularity_mode") + EnumChatFormatting.LIGHT_PURPLE + seconds + "s";
+                return EnumChatFormatting.GOLD + StatCollector.translateToLocal(prefixKey)
+                    + EnumChatFormatting.LIGHT_PURPLE
+                    + seconds
+                    + "s";
+            })
+                .asWidget()
+                .marginBottom(2)
+                .fullWidth()
+                .setEnabledIf(w -> multiblock.mMachine))
+            // 循环超限芯片状态：未安装 / 已安装但叠加层不足 / 已激活
+            // （控制器槽物品客户端可读，叠加层数经 mStackCountSync 同步）
+            .child(IKey.dynamic(() -> {
+                ItemStack chip = turbineArray.getControllerSlot();
+                boolean hasChip = chip != null
+                    && GTSRItemList.SteamTurbineCycleOverlimitChip.isStackEqual(chip, true, true);
+                if (!hasChip) {
+                    return EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.turbine_array.chip_state")
+                        + EnumChatFormatting.GRAY
+                        + StatCollector.translateToLocal("gtsr.gui.turbine_array.chip_missing");
+                }
+                if (mStackCountSync.getValue() < MTEMegaSteamTurbineArray.MAX_EXTRA_STACKS) {
+                    return EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.turbine_array.chip_state")
+                        + EnumChatFormatting.YELLOW
+                        + StatCollector.translateToLocal("gtsr.gui.turbine_array.chip_needs_stacks");
+                }
+                return EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.turbine_array.chip_state")
+                    + EnumChatFormatting.GREEN
+                    + StatCollector.translateToLocal("gtsr.gui.turbine_array.chip_active");
             })
                 .asWidget()
                 .marginBottom(2)

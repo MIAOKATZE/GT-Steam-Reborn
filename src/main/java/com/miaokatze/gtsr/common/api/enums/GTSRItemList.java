@@ -77,6 +77,7 @@ public enum GTSRItemList implements IItemContainer {
     GearSteamCompressor,
     ReinforcedBrickBlastFurnace,
     ReinforcedHubSingularityChip,
+    SteamTurbineCycleOverlimitChip,
     OverpressureSteamCacheNode,
     OverpressureTurbineInputHatch,
     OverpressureHubStorageUnit,

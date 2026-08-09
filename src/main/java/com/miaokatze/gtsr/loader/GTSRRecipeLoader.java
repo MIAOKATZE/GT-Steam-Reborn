@@ -1130,6 +1130,29 @@ public class GTSRRecipeLoader implements Runnable {
             warn("Skipped ReinforcedHubSingularityChip recipe - output is null");
         }
 
+        // --- 蒸汽轮机循环超限芯片 ---
+        ItemStack turbineChipOut = get(GTSRItemList.SteamTurbineCycleOverlimitChip, 1);
+        if (!hasNull(turbineChipOut)) {
+            ItemStack[] inputs = filterNulls(
+                GTSRItemList.ReinforcedHubSingularityChip.get(1),
+                GTSRItemList.CriticalSteamEntangledSingularity.get(4),
+                get(OrePrefixes.circuit, Materials.UV, 8),
+                get(OrePrefixes.plateDense, Materials.Europium, 16));
+            if (!hasNull(inputs)) {
+                GTValues.RA.stdBuilder()
+                    .itemInputs(inputs)
+                    .itemOutputs(turbineChipOut)
+                    .fluidInputs(Materials.Radon.getGas(64000))
+                    .duration(480 * SECONDS)
+                    .eut(TierEU.RECIPE_UV)
+                    .addTo(assemblerRecipes);
+            } else {
+                warn("Skipped SteamTurbineCycleOverlimitChip recipe - inputs contain null");
+            }
+        } else {
+            warn("Skipped SteamTurbineCycleOverlimitChip recipe - output is null");
+        }
+
         // --- 超压蒸汽缓存节点 ---
         ItemStack overpressureCacheOut = get(GTSRItemList.OverpressureSteamCacheNode, 1);
         if (!hasNull(overpressureCacheOut)) {

@@ -390,6 +390,9 @@ item.HubSingularityChip.name=Hub Singularity Upgrade Chip
 # Reinforced Hub Singularity Chip
 item.ReinforcedHubSingularityChip.name=Reinforced Hub Singularity Upgrade Chip
 
+# Steam Turbine Cycle Overlimit Chip
+item.SteamTurbineCycleOverlimitChip.name=Steam Turbine Cycle Overlimit Chip
+
 # Hub Terminal
 item.HubTerminal.name=Hub Terminal
 
@@ -1049,7 +1052,8 @@ gtsr.tooltip.turbine_array.each_tier=Each +1 Tier
 gtsr.gui.turbine_array.output_power=Output Power: 
 gtsr.tooltip.turbine_array.formula=EU/t = V[tier] × global power parameter × steamEffFactor × groups × efficiency%, casing tier limits max voltage
 gtsr.tooltip.turbine_array.power_param=Screwdriver right-click cycles Global Power (100%%→80%%→60%%→40%%→20%%): affects base output and base steam savings
-gtsr.tooltip.turbine_array.singularity_mode=Steam Entangled Singularity in input buses triggers Singularity Mode: power ×2, max efficiency +100%%, steam savings +15%%, each lasts 600s (with 5s hidden buffer)
+gtsr.tooltip.turbine_array.singularity_mode=Steam Entangled Singularity in input buses triggers Singularity Mode: power ×2, max efficiency +100%%, steam savings +15%%; Critical Steam Entangled Singularity triggers Critical Singularity Mode: power ×5, max efficiency +200%%, steam savings +20%%; each lasts 200s (critical consumed first)
+gtsr.tooltip.turbine_array.cycle_overlimit_chip=Cycle Overlimit Chip (controller slot): with all 4 extra stack groups, superheated/supercritical/dense superheated/dense supercritical steam cooling becomes distilled water, and steam efficiency factors stack within their steam family (dense stacks with dense only)
 gtsr.tooltip.turbine_array.input_hatch=Steam Input
 gtsr.tooltip.turbine_array.dynamo=Energy Output
 
@@ -1169,7 +1173,12 @@ gtsr.gui.turbine_array.max_efficiency=Max Eff:
 gtsr.gui.turbine_array.output=Output: 
 gtsr.gui.turbine_array.power_param=Global Power: 
 gtsr.gui.turbine_array.singularity_mode=Singularity Mode: 
+gtsr.gui.turbine_array.singularity_critical=Critical Singularity Mode: 
 gtsr.gui.turbine_array.singularity_off=Off
+gtsr.gui.turbine_array.chip_state=Cycle Overlimit Chip: 
+gtsr.gui.turbine_array.chip_missing=Not Installed
+gtsr.gui.turbine_array.chip_needs_stacks=Installed, requires all 4 extra stack groups
+gtsr.gui.turbine_array.chip_active=Active
 gtsr.gui.parallel=Parallel: 
 
 # ===== v1.1.0 Hardcoded English Fix =====
@@ -1246,6 +1255,7 @@ gtsr.tooltip.chip.geothermal_overheat=Install in Large Geothermal Steam Boiler t
 gtsr.tooltip.chip.hub_singularity=Install in Steam/Water Hub Array to unlock Tier 2, x5 total capacity
 gtsr.tooltip.chip.rare_gas=Install in Atmospheric Centrifuge to unlock rare gas separation recipes
 gtsr.tooltip.chip.reinforced_hub_singularity=Install in Steam Hub Array to unlock Tier 3, x20 total capacity
+gtsr.tooltip.chip.steam_turbine_cycle_overlimit=Install in Mega Steam Turbine Array controller slot; activates with all 4 extra stack groups: superheated/supercritical (incl. dense) steam cooling becomes distilled water, steam efficiency factors stack within their steam family
 gtsr.tooltip.chip.vein_pyrolyzer=Install in Vein Pyrolyzer to increase underground fluid enrichment range
 gtsr.tooltip.catalyst.ammonia=Install in Ammonia Plant to boost parallel and reaction speed
 gtsr.tooltip.catalyst.ammonia.nickel=Parallel: 64 | Time: 64s
