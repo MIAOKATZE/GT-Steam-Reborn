@@ -39,6 +39,7 @@ import gregtech.api.enums.OrePrefixes;
 import gregtech.api.enums.TierEU;
 import gregtech.api.util.GTModHandler;
 import gregtech.api.util.GTOreDictUnificator;
+import gregtech.api.util.GTUtility;
 import gtPlusPlus.core.fluids.GTPPFluids;
 import gtPlusPlus.core.material.MaterialsAlloy;
 import gtPlusPlus.xmod.gregtech.api.enums.GregtechItemList;
@@ -410,20 +411,16 @@ public class GTSRRecipeLoader implements Runnable {
         }
 
         if (!hasNull(hubOut)) {
-            ItemStack[] inputs = filterNulls(
-                get(GTSRItemList.SteamEntangledSingularity, 8),
-                get(OrePrefixes.plate, Materials.Steel, 32),
-                get(OrePrefixes.circuit, Materials.LV, 8),
-                get(OrePrefixes.screw, Materials.Steel, 64),
-                get(ItemList.Sensor_LV, 8),
-                get(ItemList.Emitter_LV, 8));
-            GTValues.RA.stdBuilder()
-                .itemInputs(inputs)
-                .itemOutputs(hubOut)
-                .fluidInputs(Materials.SolderingAlloy.getMolten(4 * INGOTS))
-                .duration(30 * SECONDS)
-                .eut(TierEU.RECIPE_LV)
-                .addTo(assemblerRecipes);
+            ItemStack hubBoard = new ItemStack(GameRegistry.findItem("gregtech", "gt.metaitem.01"), 1, 19305);
+            ItemStack hubCircuit = get(OrePrefixes.circuit, Materials.LV, 2); // 任意 LV 电路（OreDict，模板 dreamcraft
+                                                                              // CircuitLV 的替代）
+            ItemStack hubSingularity = GTSRItemList.SteamEntangledSingularity.get(1);
+            if (!hasNull(hubBoard, hubCircuit, hubSingularity)) {
+                GameRegistry
+                    .addShapedRecipe(hubOut, "AAA", "BCB", "AAA", 'A', hubBoard, 'B', hubCircuit, 'C', hubSingularity);
+            } else {
+                warn("Skipped HubSingularityChip crafting recipe - inputs contain null");
+            }
         } else {
             warn("Skipped HubSingularityChip recipe - output is null");
         }
@@ -1130,21 +1127,30 @@ public class GTSRRecipeLoader implements Runnable {
             warn("Skipped ReinforcedHubSingularityChip recipe - output is null");
         }
 
-        // --- 蒸汽轮机循环超限芯片 ---
+        // --- 蒸汽轮机循环超限芯片（GTUDK 模板：编程电路24 + 7 项物料，IV 级 12000t/131072EU/t）---
         ItemStack turbineChipOut = get(GTSRItemList.SteamTurbineCycleOverlimitChip, 1);
         if (!hasNull(turbineChipOut)) {
-            ItemStack[] inputs = filterNulls(
-                GTSRItemList.ReinforcedHubSingularityChip.get(1),
-                GTSRItemList.CriticalSteamEntangledSingularity.get(4),
-                get(OrePrefixes.circuit, Materials.UV, 8),
-                get(OrePrefixes.plateDense, Materials.Europium, 16));
+            // 注意：不用 filterNulls —— 任一物料缺失（如 GoodGenerator 未安装）应整体跳过，而不是降配注册
+            ItemStack[] inputs = { GTUtility.getIntegratedCircuit(24), get(OrePrefixes.circuit, Materials.UV, 64), // 模板
+                                                                                                                   // gt.metaitem.01:22070（UV
+                                                                                                                   // 电路）→
+                                                                                                                   // 任意
+                                                                                                                   // UV
+                                                                                                                   // 电路（OreDict）
+                new ItemStack(GameRegistry.findItem("GoodGenerator", "compactFusionCoil"), 32, 2),
+                GTSRItemList.CriticalSteamEntangledSingularity.get(64),
+                new ItemStack(GameRegistry.findItem("gregtech", "gt.metaitem.03"), 64, 32091),
+                new ItemStack(GameRegistry.findItem("gregtech", "gt.metaitem.01"), 32, 32677), // 力场发生器 VIII（GT5U lang
+                                                                                               // 已确认）
+                new ItemStack(GameRegistry.findItem("gregtech", "gt.metaitem.01"), 64, 32616) }; // 电动泵 ZPM（GT5U lang
+                                                                                                 // 已确认）
             if (!hasNull(inputs)) {
                 GTValues.RA.stdBuilder()
                     .itemInputs(inputs)
                     .itemOutputs(turbineChipOut)
-                    .fluidInputs(Materials.Radon.getGas(64000))
-                    .duration(480 * SECONDS)
-                    .eut(TierEU.RECIPE_UV)
+                    .fluidInputs(FluidRegistry.getFluidStack("oganesson", 1000))
+                    .duration(12000)
+                    .eut(131072)
                     .addTo(assemblerRecipes);
             } else {
                 warn("Skipped SteamTurbineCycleOverlimitChip recipe - inputs contain null");

@@ -92,6 +92,9 @@ public class CommonProxy {
             .registerFactory(com.miaokatze.gtsr.common.gui.SteamHubStatusGuiFactory.INSTANCE);
         com.cleanroommc.modularui.factory.GuiManager
             .registerFactory(com.miaokatze.gtsr.common.gui.WaterHubStatusGuiFactory.INSTANCE);
+        // 注册地壳物质聚合器终端配置界面的 MUI2 factory（手持枢纽终端右击打开）
+        com.cleanroommc.modularui.factory.GuiManager
+            .registerFactory(com.miaokatze.gtsr.common.gui.AggregatorConfigGuiFactory.INSTANCE);
 
         // 注册自然生成：失控奇点 nature 词条（主世界+下界，平均 24×24 区块 1 个）
         GameRegistry.registerWorldGenerator(new WorldGenRunawaySingularity(), 0);

@@ -152,6 +152,32 @@ GT5U.gui.text.recipe_result.gtsr.gui.crust_matter_agg.no_dimension=No Dimension
 GT5U.gui.text.recipe_result.gtsr.gui.crust_matter_agg.no_ores=No Ore Data
 GT5U.gui.text.recipe_result.gtsr.gui.crust_matter_agg.no_steam=No Steam
 
+# Terminal Configuration (Modern UI 2)
+gtsr.aggregator_config.title=Terminal Configuration
+gtsr.aggregator_config.slots_title=Dimension Slots
+gtsr.aggregator_config.slot1_hint=Controller slot (same data source as the main GUI). Put a dimension display item here to pick a dimension; empty defaults to the current dimension
+gtsr.aggregator_config.browser_title=Ore Browser
+gtsr.aggregator_config.ore_mode.raw=Raw Ore
+gtsr.aggregator_config.ore_mode.crushed=Crushed Ore
+gtsr.aggregator_config.ore_mode.purified=Purified Ore
+gtsr.aggregator_config.ore_mode.tip=Click to cycle ore mode (Raw -> Crushed -> Purified); higher modes add extra steam cost
+gtsr.aggregator_config.fortune_level=Fortune Lv %d
+gtsr.aggregator_config.fortune.tip=Click to cycle fortune level; affects crushed output count and steam cost
+gtsr.aggregator_config.fortune.gate=Lv3-4 requires Entangled Singularity mode, Lv5-6 requires Critical mode
+gtsr.aggregator_config.steam_cost=Steam cost: 
+gtsr.aggregator_config.steam_cost.tip=Base 24000 L/s (normal steam, 1200 L/tick)
+gtsr.aggregator_config.steam_cost.detail=Multiplier breakdown (mode/fortune x slots/filter): 
+gtsr.aggregator_config.search=Search
+gtsr.aggregator_config.search_hint=Enter an ore name fragment, then press Search (matches the localized display name)
+gtsr.aggregator_config.category.all=All
+gtsr.aggregator_config.category.unfiltered=Unfiltered
+gtsr.aggregator_config.category.filtered=Filtered
+gtsr.aggregator_config.category.tip=Click to cycle view: All -> Unfiltered -> Filtered
+gtsr.aggregator_config.filter=Filter
+gtsr.aggregator_config.unfilter=Unfilter
+gtsr.aggregator_config.filtered_hint=Filtered: this ore will no longer be produced
+gtsr.aggregator_config.empty=No ore data (put dimension display items in the slots above)
+
 # Singularity Crust Steam Borer
 gt.blockmachines.gtsr.singularity.crust.steam.borer.name=Singularity Crust Steam Borer
 gtsr.tooltip.singularity_crust_steam_borer.info=Steam-powered cross-dimension singularity miner
@@ -394,7 +420,7 @@ item.ReinforcedHubSingularityChip.name=Reinforced Hub Singularity Upgrade Chip
 item.SteamTurbineCycleOverlimitChip.name=Steam Turbine Cycle Overlimit Chip
 
 # Hub Terminal
-item.HubTerminal.name=Hub Terminal
+item.HubTerminal.name=Machine Terminal
 
 # Overpressure Steam Cache Node
 gt.blockmachines.gtsr.overpressure.steam.cache.node.name=Overpressure Steam Cache Node
@@ -1255,7 +1281,9 @@ gtsr.tooltip.chip.geothermal_overheat=Install in Large Geothermal Steam Boiler t
 gtsr.tooltip.chip.hub_singularity=Install in Steam/Water Hub Array to unlock Tier 2, x5 total capacity
 gtsr.tooltip.chip.rare_gas=Install in Atmospheric Centrifuge to unlock rare gas separation recipes
 gtsr.tooltip.chip.reinforced_hub_singularity=Install in Steam Hub Array to unlock Tier 3, x20 total capacity
-gtsr.tooltip.chip.steam_turbine_cycle_overlimit=Install in Mega Steam Turbine Array controller slot; activates with all 4 extra stack groups: superheated/supercritical (incl. dense) steam cooling becomes distilled water, steam efficiency factors stack within their steam family
+gtsr.tooltip.chip.steam_turbine_cycle_overlimit.1=Install in Mega Steam Turbine Array controller slot;
+gtsr.tooltip.chip.steam_turbine_cycle_overlimit.2=activates with all 4 extra stack groups: superheated/supercritical (incl. dense) steam cooling becomes distilled water,
+gtsr.tooltip.chip.steam_turbine_cycle_overlimit.3=steam efficiency factors stack within their steam family
 gtsr.tooltip.chip.vein_pyrolyzer=Install in Vein Pyrolyzer to increase underground fluid enrichment range
 gtsr.tooltip.catalyst.ammonia=Install in Ammonia Plant to boost parallel and reaction speed
 gtsr.tooltip.catalyst.ammonia.nickel=Parallel: 64 | Time: 64s
@@ -1268,7 +1296,12 @@ gtsr.tooltip.catalyst.ammonia.quantum=Parallel: 256 | Time: 1s
 gtsr.tooltip.singularity.desc=Steam Entangled Singularity, used for advanced crafting and amplification.
 gtsr.tooltip.steam_entangled_singularity.danger=Explodes when dropped! Do not drop it.
 gtsr.tooltip.critical_singularity.desc=Critical Steam Entangled Singularity, used for more advanced crafting and amplification.
-gtsr.tooltip.hub_terminal.desc=Right-click a Hub to open its Terminal; right-click a Cache Node to cycle rate, sneak-right-click to switch mode
+gtsr.tooltip.hub_terminal.desc.1=Used to open the UI of some GTSR multiblock machines.
+gtsr.tooltip.hub_terminal.desc.2=Supported multiblock machines:
+gtsr.tooltip.hub_terminal.desc.3=Steam Hub Array
+gtsr.tooltip.hub_terminal.desc.4=Water Hub Array
+gtsr.tooltip.hub_terminal.desc.5=Singularity Drilling Hub
+gtsr.tooltip.hub_terminal.desc.6=Crust Matter Aggregator
 gtsr.tooltip.added_by=Added by:
 
 # NEI pseudo-recipes (display only): singularity device category titles + description lines

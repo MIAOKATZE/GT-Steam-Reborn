@@ -10,14 +10,21 @@ import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
 
 import net.minecraft.block.Block;
+import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.inventory.IInventory;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.NBTTagList;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 import net.minecraft.world.World;
@@ -36,6 +43,7 @@ import com.gtnewhorizon.structurelib.structure.StructureDefinition;
 import com.gtnewhorizon.structurelib.util.Vec3Impl;
 import com.miaokatze.gtsr.api.compat.GTSRHatchFluidAccess;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
+import com.miaokatze.gtsr.common.gui.AggregatorConfigGuiFactory;
 import com.miaokatze.gtsr.common.gui.MTECrustMatterAggregatorGui;
 import com.miaokatze.gtsr.common.machine.base.MTESingularityMachineBase;
 import com.miaokatze.gtsr.common.machine.base.VoidMinerUtilityShim;
@@ -47,18 +55,23 @@ import cpw.mods.fml.common.Loader;
 import cpw.mods.fml.common.registry.GameRegistry;
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Materials;
+import gregtech.api.enums.OrePrefixes;
 import gregtech.api.enums.Textures;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.implementations.MTEHatch;
 import gregtech.api.metatileentity.implementations.MTEHatchInputBus;
+import gregtech.api.objects.ItemData;
+import gregtech.api.recipe.RecipeMaps;
 import gregtech.api.recipe.check.CheckRecipeResult;
 import gregtech.api.recipe.check.CheckRecipeResultRegistry;
 import gregtech.api.recipe.check.SimpleCheckRecipeResult;
 import gregtech.api.render.TextureFactory;
 import gregtech.api.structure.error.StructureError;
 import gregtech.api.structure.error.StructureErrorRegistry;
+import gregtech.api.util.GTOreDictUnificator;
+import gregtech.api.util.GTRecipe;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.common.tileentities.machines.IDualInputHatch;
@@ -111,6 +124,12 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
     private static final double[] SINGULARITY_OUTPUT_COEF = { 0.5d, 2.0d, 5.0d };
     // 单次产出基数：10 * mHeat * GRADE_COEF[grade] * singCoef
     private static final double ORES_PER_HEAT_UNIT = 10.0d;
+    // 矿石模式蒸汽加成（0 原矿 / 1 粗矿 / 2 粉碎矿）
+    public static final double[] ORE_MODE_STEAM_BONUS = { 0.0d, 0.2d, 0.5d };
+    // 时运等级 0-6 蒸汽加成
+    public static final double[] FORTUNE_STEAM_BONUS = { 0.0d, 0.5d, 1.0d, 1.2d, 1.5d, 1.8d, 2.0d };
+    // 每个额外维度物品槽的蒸汽加成
+    public static final double SLOT_STEAM_PER_EXTRA = 0.2d;
 
     private static final String ITEM_DIM_DISPLAY_CLASS = "gtneioreplugin.plugin.item.ItemDimensionDisplay";
 
@@ -189,14 +208,28 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
     private static List<int[]> mParticleOffsetsG = null;
     private static List<int[]> mParticleOffsetsH = null;
 
-    // —— 维度 / 虚空采矿 ——
+    // —— 维度 / 虚空采矿（多维度矿池）——
     public String lastDimAbbr = "None";
     public String mLastOreName = "";
     public boolean dropMapValid = false;
     public int mCurrentDimId = 0;
     protected boolean mDefaultDimSupported = false;
-    private VoidMinerUtility.DropMap dropMap = null;
-    private VoidMinerUtility.DropMap extraDropMap = null;
+    // 矿石模式：0=原矿 / 1=粗矿 / 2=粉碎矿
+    public int mOreMode = 0;
+    // 时运等级 0-6（上限随奇点模式 2/4/6）
+    public int mFortuneLevel = 0;
+    // 终端插件槽（UI 槽 2-12；槽 1 = mInventory[1]，同一数据源）
+    private final ItemStack[] mPluginSlots = new ItemStack[11];
+    // 被过滤（"真不出"）的矿石
+    private final Set<GTUtility.ItemId> mFilteredOres = new HashSet<>();
+    // 多维度矿池（无插件槽时含默认当前维度）
+    private final List<PoolDim> mPool = new ArrayList<>();
+    // 矿池重建标记（槽位适配器写入时置位，checkProcessing 轮询消费）
+    private boolean mPoolDirty = false;
+    // 原生粉碎倍率缓存（池重建时失效）
+    private final Map<GTUtility.ItemId, Integer> mNativeCrushedFactorCache = new HashMap<>();
+    // 插件槽 IInventory 适配器（惰性创建）
+    private IInventory mPluginSlotInventory = null;
 
     // —— 蒸汽档位（checkProcessing 时缓存，供周期内每 tick 扣减与完成时产出）——
     private int mActiveGrade = -1;
@@ -537,101 +570,353 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
         return mParticleOffsetsH;
     }
 
-    // —— 维度 / 虚空采矿（沿用旧 SCSB 的 VoidMinerUtilityShim/dropMap 与维度解析；任务 4：无插件物品时默认当前维度）——
+    // —— 维度 / 虚空采矿（多维度矿池：槽 1 = mInventory[1]，槽 2-12 = mPluginSlots；无槽回退默认当前维度）——
 
     @Override
     public void onFirstTick(IGregTechTileEntity aBaseMetaTileEntity) {
         super.onFirstTick(aBaseMetaTileEntity);
         mCurrentDimId = aBaseMetaTileEntity.getWorld().provider.dimensionId;
-        if (isPluginLoaded()) {
-            String dimAbbr = readDimensionOverride();
-            if (!"None".equals(dimAbbr)) {
-                lastDimAbbr = dimAbbr;
-                recalculateDropMap(dimAbbr);
-                return;
-            }
-        }
-        calculateDefaultDropMap();
+        rebuildPool();
     }
 
-    /** 反射读取 mInventory[1] 中的 GT NEI Ore Plugin 维度显示物品（无物品返回 "None"）。 */
-    private String readDimensionOverride() {
-        if (!isPluginLoaded()) return "None";
+    /** 判定物品是否为 GT NEI Ore Plugin 的维度显示物品（判空安全）。 */
+    public static boolean isDimensionDisplayItem(ItemStack stack) {
+        if (stack == null) return false;
+        if (!isPluginLoaded()) return false;
+        Item item = stack.getItem();
+        return item != null && itemDimDisplayClass != null && itemDimDisplayClass.isInstance(item);
+    }
+
+    /** 反射读取单个维度显示物品的维度缩写（非维度物品或读取失败返回 null）。 */
+    private String readDimensionAbbrFromStack(ItemStack stack) {
+        if (!isDimensionDisplayItem(stack)) return null;
         try {
-            ItemStack slotStack = mInventory[1];
-            if (slotStack != null) {
-                Item slotItem = slotStack.getItem();
-                if (slotItem != null) {
-                    if (itemDimDisplayClass != null && itemDimDisplayClass.isInstance(slotItem)) {
-                        Object result = getDimensionMethod.invoke(null, slotStack);
-                        if (result instanceof String) return (String) result;
-                    }
-                }
-            }
+            Object result = getDimensionMethod.invoke(null, stack);
+            if (result instanceof String) return (String) result;
         } catch (Exception e) {
-            GTSteamReborn.LOG.error("[CrustMatterAggregator] 读取维度覆盖失败，使用默认值 None", e);
+            GTSteamReborn.LOG.warn("[CrustMatterAggregator] 读取维度物品失败", e);
         }
-        return "None";
+        return null;
     }
 
-    /** 默认当前维度（mInventory[1] 无插件物品时）：dimId → dimName → DropMap。 */
-    private void calculateDefaultDropMap() {
-        dropMap = null;
-        extraDropMap = null;
-        dropMapValid = false;
-        String dimName = VoidMinerUtilityShim.dimIdToName(mCurrentDimId);
+    /** 12 个维度槽（槽 1 = 控制器槽 mInventory[1]，槽 2-12 = 插件槽）。 */
+    private List<ItemStack> getDimensionStacks() {
+        List<ItemStack> stacks = new ArrayList<>();
+        stacks.add(mInventory[1]);
+        Collections.addAll(stacks, mPluginSlots);
+        return stacks;
+    }
+
+    /** 收集当前 12 槽中去重后的维度缩写列表（保持槽位顺序）。 */
+    private List<String> collectDimensionAbbrs() {
+        List<String> abbrs = new ArrayList<>();
+        for (ItemStack stack : getDimensionStacks()) {
+            String abbr = readDimensionAbbrFromStack(stack);
+            if (abbr == null || "None".equals(abbr) || abbrs.contains(abbr)) continue;
+            abbrs.add(abbr);
+        }
+        return abbrs;
+    }
+
+    /** 构建单个维度池条目：查表取 DropMap 并缓存分布（extra 合并入 internalMap）。 */
+    private PoolDim createPoolDim(String dimAbbr, String dimName) {
         if (dimName == null) {
+            return new PoolDim(dimAbbr, null, new VoidMinerUtility.DropMap(), new VoidMinerUtility.DropMap());
+        }
+        VoidMinerUtility.DropMap dropMap = VoidMinerUtilityShim.getDropMap(dimName);
+        VoidMinerUtility.DropMap extraDropMap = VoidMinerUtilityShim.getExtraDropMap(dimName);
+        dropMap.isDistributionCached(extraDropMap);
+        return new PoolDim(dimAbbr, dimName, dropMap, extraDropMap);
+    }
+
+    /** 重建多维度矿池（无插件槽回退默认当前维度）；同时使原生粉碎倍率缓存失效。 */
+    private void rebuildPool() {
+        mPoolDirty = false;
+        mNativeCrushedFactorCache.clear();
+        mPool.clear();
+        List<String> abbrs = collectDimensionAbbrs();
+        if (abbrs.isEmpty()) {
+            lastDimAbbr = "None";
             mDefaultDimSupported = false;
-            return;
+            String dimName = VoidMinerUtilityShim.dimIdToName(mCurrentDimId);
+            if (dimName != null) {
+                mDefaultDimSupported = true;
+                mPool.add(createPoolDim("None", dimName));
+            }
+        } else {
+            mDefaultDimSupported = false;
+            StringBuilder summary = new StringBuilder();
+            for (String abbr : abbrs) {
+                if (summary.length() > 0) summary.append("+");
+                summary.append(abbr);
+                String dimName = ABBR_TO_DIM_NAME.get(abbr);
+                if (dimName == null) {
+                    GTSteamReborn.LOG.warn(
+                        "[CrustMatterAggregator] 未知维度缩写: " + abbr + "（ABBR_TO_DIM_NAME 表中无此条目，请确认 GTNEIOrePlugin 版本）");
+                    mPool.add(createPoolDim(abbr, null));
+                    continue;
+                }
+                mPool.add(createPoolDim(abbr, dimName));
+            }
+            lastDimAbbr = summary.toString();
         }
-        mDefaultDimSupported = true;
-        dropMap = VoidMinerUtilityShim.getDropMap(dimName);
-        extraDropMap = VoidMinerUtilityShim.getExtraDropMap(dimName);
-        dropMap.isDistributionCached(extraDropMap);
-        dropMapValid = dropMap.getTotalWeight() > 0;
+        float totalWeight = 0.0f;
+        for (PoolDim pd : mPool) {
+            totalWeight += pd.dropMap.getTotalWeight();
+        }
+        dropMapValid = totalWeight > 0;
     }
 
-    /** 插件维度覆盖（abbr → dimName 查表）。 */
-    private void recalculateDropMap(String dimAbbr) {
-        dropMap = null;
-        extraDropMap = null;
-        dropMapValid = false;
+    /** 槽位内容变化时由插件槽适配器调用：下次 checkProcessing 重建矿池。 */
+    public void markPoolDirty() {
+        mPoolDirty = true;
+    }
 
-        if ("None".equals(dimAbbr)) return;
-
-        String dimName = ABBR_TO_DIM_NAME.get(dimAbbr);
-        if (dimName == null) {
-            GTSteamReborn.LOG
-                .warn("[CrustMatterAggregator] 未知维度缩写: " + dimAbbr + "（ABBR_TO_DIM_NAME 表中无此条目，请确认 GTNEIOrePlugin 版本）");
-            dropMap = new VoidMinerUtility.DropMap();
-            extraDropMap = new VoidMinerUtility.DropMap();
-            return;
+    /** 12 槽维度集合与当前池是否一致（含无槽模式下当前维度变化检测）。 */
+    private boolean isPoolCurrent() {
+        List<String> current = collectDimensionAbbrs();
+        if (current.isEmpty()) {
+            if (getBaseMetaTileEntity().getWorld().provider.dimensionId != mCurrentDimId) return false;
+            if (mPool.isEmpty()) return !mDefaultDimSupported;
+            return mPool.size() == 1 && "None".equals(mPool.get(0).dimAbbr);
         }
+        if (mPool.size() != current.size()) return false;
+        for (PoolDim pd : mPool) {
+            if (!current.contains(pd.dimAbbr)) return false;
+        }
+        return true;
+    }
 
-        dropMap = VoidMinerUtilityShim.getDropMap(dimName);
-        extraDropMap = VoidMinerUtilityShim.getExtraDropMap(dimName);
-        dropMap.isDistributionCached(extraDropMap);
-        dropMapValid = dropMap.getTotalWeight() > 0;
-        if (!dropMapValid) {
-            GTSteamReborn.LOG.warn(
-                "[CrustMatterAggregator] 维度 " + dimName
-                    + " ("
-                    + dimAbbr
-                    + ") 的 DropMap 为空或总权重为 0，可能是 GalacticGreg 未生成该维度矿石数据"
-                    + "（Asteroid 类型维度如 As/KB/MB 默认 disableVoidMining）");
+    /** 槽位轮询：池过期（槽位变化/默认维度传送）或标记脏时重建。 */
+    private void rebuildPoolIfNeeded() {
+        if (mPoolDirty || !isPoolCurrent()) {
+            rebuildPool();
         }
     }
 
-    /** GUI 维度显示名：覆盖模式显示缩写，默认模式显示维度名。 */
+    /** GUI 维度显示名：多槽显示缩写摘要（如 "Ow+Ne"），无槽时显示默认维度名。 */
     public String getDimensionDisplayName() {
-        if (!"None".equals(lastDimAbbr)) return lastDimAbbr;
-        String dimName = VoidMinerUtilityShim.dimIdToName(mCurrentDimId);
-        return dimName != null ? dimName : ("Dim " + mCurrentDimId);
+        if (mPool.isEmpty()) {
+            String dimName = VoidMinerUtilityShim.dimIdToName(mCurrentDimId);
+            return dimName != null ? dimName : ("Dim " + mCurrentDimId);
+        }
+        StringBuilder sb = new StringBuilder();
+        for (PoolDim pd : mPool) {
+            if (sb.length() > 0) sb.append("+");
+            sb.append("None".equals(pd.dimAbbr) ? pd.dimName : pd.dimAbbr);
+        }
+        return sb.toString();
     }
 
     private boolean hasUsableDimension() {
-        if (!"None".equals(lastDimAbbr)) return ABBR_TO_DIM_NAME.containsKey(lastDimAbbr);
-        return mDefaultDimSupported;
+        return !mPool.isEmpty();
+    }
+
+    // —— 过滤与加权抽取（"真不出"语义：被过滤矿石完全从抽取分布中剔除）——
+
+    public boolean isOreFiltered(GTUtility.ItemId id) {
+        return id != null && mFilteredOres.contains(id);
+    }
+
+    public void setOreFiltered(GTUtility.ItemId id, boolean filtered) {
+        if (id == null) return;
+        if (filtered) {
+            mFilteredOres.add(id);
+        } else {
+            mFilteredOres.remove(id);
+        }
+        if (getBaseMetaTileEntity() != null) getBaseMetaTileEntity().markDirty();
+    }
+
+    /** 被过滤矿石跨维权重和（蒸汽倍率加成用）。 */
+    public float getFilteredWeightSum() {
+        float sum = 0.0f;
+        for (PoolDim pd : mPool) {
+            for (Map.Entry<GTUtility.ItemId, Float> entry : pd.dropMap.getInternalMap()
+                .entrySet()) {
+                if (mFilteredOres.contains(entry.getKey())) sum += entry.getValue();
+            }
+        }
+        return sum;
+    }
+
+    /** 过滤加权抽取：跨池各维 internalMap（已含 extra 合并）按权重累加后线性游走，跳过被过滤矿石。 */
+    private GTUtility.ItemId extractNextOre() {
+        double total = 0.0d;
+        for (PoolDim pd : mPool) {
+            for (Map.Entry<GTUtility.ItemId, Float> entry : pd.dropMap.getInternalMap()
+                .entrySet()) {
+                if (mFilteredOres.contains(entry.getKey())) continue;
+                total += entry.getValue();
+            }
+        }
+        if (total <= 0.0d) return null;
+        double r = ThreadLocalRandom.current()
+            .nextDouble() * total;
+        for (PoolDim pd : mPool) {
+            for (Map.Entry<GTUtility.ItemId, Float> entry : pd.dropMap.getInternalMap()
+                .entrySet()) {
+                if (mFilteredOres.contains(entry.getKey())) continue;
+                r -= entry.getValue();
+                if (r < 0.0d) return entry.getKey();
+            }
+        }
+        return null; // 浮点误差兜底
+    }
+
+    /** 矿池单维度条目：维度缩写/内部名 + 主 DropMap（extra 已合并）。 */
+    private static class PoolDim {
+
+        final String dimAbbr;
+        final String dimName;
+        final VoidMinerUtility.DropMap dropMap;
+        final VoidMinerUtility.DropMap extraDropMap;
+
+        PoolDim(String dimAbbr, String dimName, VoidMinerUtility.DropMap dropMap,
+            VoidMinerUtility.DropMap extraDropMap) {
+            this.dimAbbr = dimAbbr;
+            this.dimName = dimName;
+            this.dropMap = dropMap;
+            this.extraDropMap = extraDropMap;
+        }
+    }
+
+    // —— 浏览器数据（后续终端 UI 切片用）——
+
+    /** 矿石浏览器条目：矿石、跨维权重和、所在维度缩写列表、是否被过滤。 */
+    public static class OreEntryInfo {
+
+        public final ItemStack ore;
+        public float weight;
+        public final List<String> dimAbbrs;
+        public final boolean filtered;
+
+        public OreEntryInfo(ItemStack ore, float weight, List<String> dimAbbrs, boolean filtered) {
+            this.ore = ore;
+            this.weight = weight;
+            this.dimAbbrs = dimAbbrs;
+            this.filtered = filtered;
+        }
+    }
+
+    /** 矿石浏览器数据（服务端调用）：按 GTUtility.ItemId 跨维合并权重与维度缩写；无池返回空列表。 */
+    public List<OreEntryInfo> getOreEntries() {
+        List<OreEntryInfo> entries = new ArrayList<>();
+        if (mPool.isEmpty()) return entries;
+        Map<GTUtility.ItemId, OreEntryInfo> byId = new LinkedHashMap<>();
+        for (PoolDim pd : mPool) {
+            for (Map.Entry<GTUtility.ItemId, Float> entry : pd.dropMap.getInternalMap()
+                .entrySet()) {
+                OreEntryInfo info = byId.get(entry.getKey());
+                if (info == null) {
+                    info = new OreEntryInfo(
+                        entry.getKey()
+                            .getItemStack(),
+                        entry.getValue(),
+                        new ArrayList<>(),
+                        mFilteredOres.contains(entry.getKey()));
+                    byId.put(entry.getKey(), info);
+                } else {
+                    info.weight += entry.getValue();
+                }
+                info.dimAbbrs.add(pd.dimAbbr);
+            }
+        }
+        entries.addAll(byId.values());
+        return entries;
+    }
+
+    // —— 插件槽位适配器 ——
+
+    /** 终端插件槽（容量 11、栈上限 1、仅接受维度显示物品）的轻量 IInventory 适配器。 */
+    public IInventory getPluginSlotInventory() {
+        if (mPluginSlotInventory == null) mPluginSlotInventory = new PluginSlotInventory();
+        return mPluginSlotInventory;
+    }
+
+    private class PluginSlotInventory implements IInventory {
+
+        @Override
+        public int getSizeInventory() {
+            return mPluginSlots.length;
+        }
+
+        @Override
+        public ItemStack getStackInSlot(int slot) {
+            if (slot < 0 || slot >= mPluginSlots.length) return null;
+            return mPluginSlots[slot];
+        }
+
+        @Override
+        public ItemStack decrStackSize(int slot, int amount) {
+            ItemStack stack = getStackInSlot(slot);
+            if (stack == null) return null;
+            ItemStack result;
+            if (stack.stackSize <= amount) {
+                result = stack;
+                mPluginSlots[slot] = null;
+            } else {
+                result = stack.splitStack(amount);
+            }
+            onPluginSlotChanged();
+            return result;
+        }
+
+        @Override
+        public ItemStack getStackInSlotOnClosing(int slot) {
+            return getStackInSlot(slot);
+        }
+
+        @Override
+        public void setInventorySlotContents(int slot, ItemStack stack) {
+            if (slot < 0 || slot >= mPluginSlots.length) return;
+            // 仅接受维度显示物品，其余物品直接拒绝
+            if (stack != null && !isDimensionDisplayItem(stack)) return;
+            mPluginSlots[slot] = stack;
+            onPluginSlotChanged();
+        }
+
+        @Override
+        public String getInventoryName() {
+            return "gtsr.crust_matter_agg.pluginSlots";
+        }
+
+        @Override
+        public boolean hasCustomInventoryName() {
+            return true;
+        }
+
+        @Override
+        public int getInventoryStackLimit() {
+            return 1;
+        }
+
+        @Override
+        public void markDirty() {
+            onPluginSlotChanged();
+        }
+
+        @Override
+        public boolean isUseableByPlayer(EntityPlayer player) {
+            return true;
+        }
+
+        @Override
+        public void openInventory() {}
+
+        @Override
+        public void closeInventory() {}
+
+        @Override
+        public boolean isItemValidForSlot(int slot, ItemStack stack) {
+            return isDimensionDisplayItem(stack);
+        }
+
+        /** 槽位内容变化：标记矿池重建并持久化。 */
+        private void onPluginSlotChanged() {
+            markPoolDirty();
+            MTECrustMatterAggregator.this.markDirty();
+        }
     }
 
     // —— 蒸汽档位探测（致密优先：densesupercritical > densesuperheated > densesteam；否则普通 超临界 > 过热 > 蒸汽）——
@@ -650,28 +935,7 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
 
     @Override
     public CheckRecipeResult checkProcessing() {
-        if (isPluginLoaded()) {
-            String dimAbbr = readDimensionOverride();
-            if ("None".equals(dimAbbr)) {
-                // 插件物品被移除：回到默认当前维度
-                if (!"None".equals(lastDimAbbr)) {
-                    lastDimAbbr = "None";
-                    calculateDefaultDropMap();
-                }
-            } else if (!dimAbbr.equals(lastDimAbbr)) {
-                lastDimAbbr = dimAbbr;
-                recalculateDropMap(dimAbbr);
-            }
-        } else if (!"None".equals(lastDimAbbr)) {
-            lastDimAbbr = "None";
-            calculateDefaultDropMap();
-        }
-        // 默认维度模式：传送后当前维度变化时重算
-        int dimId = getBaseMetaTileEntity().getWorld().provider.dimensionId;
-        if ("None".equals(lastDimAbbr) && dimId != mCurrentDimId) {
-            mCurrentDimId = dimId;
-            calculateDefaultDropMap();
-        }
+        rebuildPoolIfNeeded();
 
         if (!hasUsableDimension()) {
             return SimpleCheckRecipeResult.ofFailure("gtsr.gui.crust_matter_agg.no_dimension");
@@ -698,31 +962,118 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
 
     @Override
     protected void outputAfterRecipe() {
-        if (dropMap == null || dropMap.getTotalWeight() <= 0 || mActiveGrade < 0) {
+        if (mPool.isEmpty() || !dropMapValid || mActiveGrade < 0) {
             updateSlots();
             return;
         }
-        // 产出 = 10 * mHeat * GRADE_COEF[grade] * singCoef，实数累积，整数部分输出
+        // 产出 = 10 * mHeat * GRADE_COEF[grade] * singCoef，实数累积，整数部分经过滤加权抽取输出
         mOreAccumulator += ORES_PER_HEAT_UNIT * mHeat
             * GRADE_COEF[mActiveGrade]
             * SINGULARITY_OUTPUT_COEF[mSingularityMode];
         int out = (int) Math.floor(mOreAccumulator);
         for (int i = 0; i < out; i++) {
-            GTUtility.ItemId oreId = dropMap.nextOre();
+            GTUtility.ItemId oreId = extractNextOre();
             if (oreId == null) break;
             ItemStack oreStack = oreId.getItemStack();
             if (oreStack == null) break;
-            addOutputPartial(oreStack);
+            outputOre(oreStack);
             mLastOreName = oreStack.getDisplayName();
             mOreAccumulator -= 1.0d;
         }
         updateSlots();
     }
 
+    // —— 产出形态转换（粗矿 / 粉碎矿模式）——
+
+    /** 按当前矿石模式输出单个原矿：模式 0 原样输出；模式 1/2 转 crushed（无 crushed 形态保持原矿）。 */
+    private void outputOre(ItemStack rawOre) {
+        if (mOreMode == 0) {
+            addOutputPartial(rawOre);
+            return;
+        }
+        int nativeFactor = getNativeCrushedFactor(rawOre);
+        int modeMultiplier = mOreMode == 2 ? 3 : 1;
+        int count = nativeFactor * modeMultiplier * (1 + mFortuneLevel);
+        Materials material = getOreMaterial(rawOre);
+        ItemStack crushed = material == null ? null : GTOreDictUnificator.get(OrePrefixes.crushed, material, count);
+        if (crushed == null) {
+            addOutputPartial(rawOre);
+        } else {
+            addOutputPartial(crushed);
+        }
+    }
+
+    /** 取物品的 GT 材料（非 GT 物品返回 null）。 */
+    private Materials getOreMaterial(ItemStack stack) {
+        ItemData data = GTOreDictUnificator.getItemData(stack);
+        if (data == null || data.mMaterial == null || data.mMaterial.mMaterial == null) return null;
+        return data.mMaterial.mMaterial;
+    }
+
+    /** 原生粉碎倍率兜底小表：macerator 配方查询不可行时按材料名取实际值（GT5U ProcessingOre：macerator 输出 = 2×mOreMultiplier）。 */
+    private static final Map<String, Integer> NATIVE_CRUSHED_FACTOR_FALLBACK = new HashMap<>();
+    static {
+        NATIVE_CRUSHED_FACTOR_FALLBACK.put("Redstone", 10);
+        NATIVE_CRUSHED_FACTOR_FALLBACK.put("Cryolite", 8);
+    }
+
+    /**
+     * 原矿原生粉碎倍率（带缓存，池重建时失效）：默认 2；优先查 RecipeMaps.maceratorRecipes 对该矿的配方输出中
+     * crushed/crushedPurified/crushedCentrifuged/dust 类产物数量，与 2 取 max；查询不可行时回退默认 2，
+     * 并对红石/冰晶石按兜底小表取值。
+     */
+    private int getNativeCrushedFactor(ItemStack rawOre) {
+        GTUtility.ItemId id = GTUtility.ItemId.create(rawOre);
+        Integer cached = mNativeCrushedFactorCache.get(id);
+        if (cached != null) return cached;
+        int factor = 2;
+        boolean queried = false;
+        try {
+            GTRecipe recipe = RecipeMaps.maceratorRecipes.findRecipeQuery()
+                .items(rawOre)
+                .find();
+            queried = true;
+            if (recipe != null && recipe.mOutputs != null) {
+                int crushedSum = 0;
+                for (ItemStack out : recipe.mOutputs) {
+                    if (out == null || out.getItem() == null) continue;
+                    ItemData data = GTOreDictUnificator.getItemData(out);
+                    if (data == null || data.mPrefix == null) continue;
+                    OrePrefixes prefix = data.mPrefix;
+                    if (prefix == OrePrefixes.crushed || prefix == OrePrefixes.crushedPurified
+                        || prefix == OrePrefixes.crushedCentrifuged
+                        || prefix == OrePrefixes.dust
+                        || prefix == OrePrefixes.dustImpure
+                        || prefix == OrePrefixes.dustPure
+                        || prefix == OrePrefixes.dustRefined
+                        || prefix == OrePrefixes.dustSmall
+                        || prefix == OrePrefixes.dustTiny) {
+                        crushedSum += out.stackSize;
+                    }
+                }
+                if (crushedSum > 0) factor = Math.max(2, crushedSum);
+            }
+        } catch (Throwable t) {
+            queried = false;
+            GTSteamReborn.LOG.warn("[CrustMatterAggregator] macerator 配方查询失败，回退默认粉碎倍率", t);
+        }
+        if (!queried) {
+            Materials material = getOreMaterial(rawOre);
+            if (material != null) {
+                Integer fallback = NATIVE_CRUSHED_FACTOR_FALLBACK.get(material.mName);
+                if (fallback != null) factor = Math.max(2, fallback);
+            }
+        }
+        mNativeCrushedFactorCache.put(id, factor);
+        return factor;
+    }
+
     /** 周期内每 tick 从输入仓扣减当前档位蒸汽；不足返回 false（周期停止）。 */
     private boolean depleteSteamForTick() {
         if (mActiveGrade < 0) return false;
-        int remaining = mActiveDense ? DENSE_STEAM_PER_TICK : NORMAL_STEAM_PER_TICK;
+        int basePerTick = mActiveDense ? DENSE_STEAM_PER_TICK : NORMAL_STEAM_PER_TICK;
+        // 蒸汽倍率：矿石模式/时运/额外维度槽/被过滤矿石权重加成（向上取整）
+        int remaining = (int) Math.ceil(basePerTick * getSteamMultiplier());
         // 基类 gradeProbeStacks 为 private，此处自行构造当前档位流体请求（致密档只扣致密流体，普通档只扣普通流体）
         FluidStack request = FluidRegistry
             .getFluidStack((mActiveDense ? DENSE_FLUID_NAMES : NORMAL_FLUID_NAMES)[mActiveGrade], 1);
@@ -746,6 +1097,55 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
             remaining -= GTSRHatchFluidAccess.depleteFluidFromDuals(mDualInputHatches, dualReq);
         }
         return remaining <= 0;
+    }
+
+    // —— 矿石模式 / 时运（终端 UI 调用，服务端执行）——
+
+    /** 循环矿石模式 0(原矿)→1(粗矿)→2(粉碎矿)→0；切回原矿模式时清零时运。 */
+    public void cycleOreMode() {
+        mOreMode = (mOreMode + 1) % 3;
+        if (mOreMode == 0) mFortuneLevel = 0;
+        if (getBaseMetaTileEntity() != null) getBaseMetaTileEntity().markDirty();
+    }
+
+    /** 循环时运等级：(当前+1)%7 后钳位到奇点模式上限；原矿模式直接回 0。 */
+    public void cycleFortuneLevel() {
+        if (mOreMode == 0) {
+            mFortuneLevel = 0;
+        } else {
+            // 在 0..当前允许上限内循环（直接 %7 再钳位会在上限<6 时卡死在上限无法降级）
+            mFortuneLevel = (mFortuneLevel + 1) % (getMaxAllowedFortuneLevel() + 1);
+        }
+        if (getBaseMetaTileEntity() != null) getBaseMetaTileEntity().markDirty();
+    }
+
+    /** 当前奇点模式允许的时运上限：模式 0/1/2 → 2/4/6。 */
+    public int getMaxAllowedFortuneLevel() {
+        switch (mSingularityMode) {
+            case 2:
+                return 6;
+            case 1:
+                return 4;
+            default:
+                return 2;
+        }
+    }
+
+    // —— 蒸汽倍率 ——
+
+    /**
+     * 蒸汽消耗倍率 = (1+矿石模式加成+时运加成) × (1+0.2×(维度物品槽数-1)) × (1+被过滤矿石权重和/100)。
+     * depleteSteamForTick 按 basePerTick × 该倍率向上取整扣减。
+     */
+    public double getSteamMultiplier() {
+        double modeBonus = ORE_MODE_STEAM_BONUS[Math.min(Math.max(mOreMode, 0), 2)];
+        double fortuneBonus = FORTUNE_STEAM_BONUS[Math.min(Math.max(mFortuneLevel, 0), 6)];
+        int slotCount = 0;
+        for (ItemStack stack : getDimensionStacks()) {
+            if (isDimensionDisplayItem(stack)) slotCount++;
+        }
+        return (1.0d + modeBonus + fortuneBonus) * (1.0d + SLOT_STEAM_PER_EXTRA * Math.max(0, slotCount - 1))
+            * (1.0d + getFilteredWeightSum() / 100.0d);
     }
 
     @Override
@@ -815,6 +1215,8 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
                 getBaseMetaTileEntity().markDirty();
             } else {
                 mSingularityMode = 0;
+                // 奇点模式回落后时运上限降为 2，超限时钳位
+                if (mFortuneLevel > 2) mFortuneLevel = 2;
                 getBaseMetaTileEntity().markDirty();
             }
         }
@@ -994,6 +1396,27 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
         aNBT.setString("mLastOreName", mLastOreName);
         aNBT.setBoolean("dropMapValid", dropMapValid);
         aNBT.setInteger("mCurrentDimId", mCurrentDimId);
+        aNBT.setInteger("mOreMode", mOreMode);
+        aNBT.setInteger("mFortuneLevel", mFortuneLevel);
+        // 插件槽（槽 2-12；槽 1 = mInventory[1] 由基类 Inventory 列表保存）
+        NBTTagList pluginSlots = new NBTTagList();
+        for (ItemStack stack : mPluginSlots) {
+            NBTTagCompound slotTag = new NBTTagCompound();
+            if (stack != null) stack.writeToNBT(slotTag);
+            pluginSlots.appendTag(slotTag);
+        }
+        aNBT.setTag("mPluginSlots", pluginSlots);
+        // 被过滤矿石（item 注册名 + meta）
+        NBTTagList filteredList = new NBTTagList();
+        for (GTUtility.ItemId id : mFilteredOres) {
+            GameRegistry.UniqueIdentifier uid = GameRegistry.findUniqueIdentifierFor(id.item());
+            if (uid == null) continue;
+            NBTTagCompound tag = new NBTTagCompound();
+            tag.setString("item", uid.modId + ":" + uid.name);
+            tag.setShort("meta", (short) id.metaData());
+            filteredList.appendTag(tag);
+        }
+        aNBT.setTag("mFilteredOres", filteredList);
     }
 
     @Override
@@ -1006,11 +1429,33 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
         mLastOreName = aNBT.getString("mLastOreName");
         dropMapValid = aNBT.getBoolean("dropMapValid");
         mCurrentDimId = aNBT.getInteger("mCurrentDimId");
-        if ("None".equals(lastDimAbbr)) {
-            calculateDefaultDropMap();
-        } else if (isPluginLoaded()) {
-            recalculateDropMap(lastDimAbbr);
+        mOreMode = aNBT.getInteger("mOreMode");
+        mFortuneLevel = aNBT.getInteger("mFortuneLevel");
+        if (mOreMode < 0 || mOreMode > 2) mOreMode = 0;
+        if (mFortuneLevel < 0) mFortuneLevel = 0;
+        mFortuneLevel = Math.min(mFortuneLevel, getMaxAllowedFortuneLevel());
+        NBTTagList pluginSlots = aNBT.getTagList("mPluginSlots", 10);
+        for (int i = 0; i < pluginSlots.tagCount() && i < mPluginSlots.length; i++) {
+            mPluginSlots[i] = ItemStack.loadItemStackFromNBT(pluginSlots.getCompoundTagAt(i));
         }
+        NBTTagList filteredList = aNBT.getTagList("mFilteredOres", 10);
+        mFilteredOres.clear();
+        for (int i = 0; i < filteredList.tagCount(); i++) {
+            NBTTagCompound tag = filteredList.getCompoundTagAt(i);
+            Item item = findItemByName(tag.getString("item"));
+            if (item == null) continue;
+            mFilteredOres.add(GTUtility.ItemId.createNoCopy(item, tag.getShort("meta"), null));
+        }
+        // 槽位与 mCurrentDimId 均已就绪（基类 Inventory 先于 loadNBTData 载入），重建矿池
+        rebuildPool();
+    }
+
+    /** 按 "modid:name" 解析物品注册名（无法解析返回 null）。 */
+    private static Item findItemByName(String itemName) {
+        if (itemName == null || itemName.isEmpty()) return null;
+        String[] parts = itemName.split(":", 2);
+        if (parts.length != 2) return null;
+        return GameRegistry.findItem(parts[0], parts[1]);
     }
 
     // —— tooltip / GUI / 信息数据 ——
@@ -1067,6 +1512,29 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
     @Override
     protected gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui<?> getGui() {
         return new MTECrustMatterAggregatorGui(this);
+    }
+
+    /**
+     * 手持枢纽终端右击：打开终端配置界面（Modern UI 2），不占用空手右键（空手右键仍打开普通机器 GUI）。
+     * 注：原「空手+潜行」方案不可行——GT BaseMetaTileEntity 在潜行时拦截右击（用于贴墙放方块），
+     * 本 MTE 的 onRightclick 根本收不到该事件，故沿用枢纽的同款持物右击方案。
+     */
+    @Override
+    public boolean onRightclick(IGregTechTileEntity aBaseMetaTileEntity, EntityPlayer aPlayer, ForgeDirection side,
+        float aX, float aY, float aZ) {
+        ItemStack held = aPlayer.getHeldItem();
+        if (held != null && GTSRItemList.HubTerminal.isStackEqual(held, false, true)) {
+            if (aBaseMetaTileEntity.isServerSide()) {
+                openConfigGui(aPlayer);
+            }
+            return true;
+        }
+        return super.onRightclick(aBaseMetaTileEntity, aPlayer, side, aX, aY, aZ);
+    }
+
+    /** 服务端调用：为玩家打开终端配置界面。 */
+    public void openConfigGui(EntityPlayer player) {
+        AggregatorConfigGuiFactory.open(player, this);
     }
 
     @Override

@@ -24,7 +24,9 @@ public class SteamTurbineCycleOverlimitChip extends Item {
     public void addInformation(ItemStack stack, EntityPlayer player, List list, boolean adv) {
         list.add(
             EnumChatFormatting.GOLD
-                + StatCollector.translateToLocal("gtsr.tooltip.chip.steam_turbine_cycle_overlimit"));
+                + StatCollector.translateToLocal("gtsr.tooltip.chip.steam_turbine_cycle_overlimit.1")
+                + StatCollector.translateToLocal("gtsr.tooltip.chip.steam_turbine_cycle_overlimit.2")
+                + StatCollector.translateToLocal("gtsr.tooltip.chip.steam_turbine_cycle_overlimit.3"));
         list.add(
             EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.tooltip.added_by")
                 + " "

@@ -152,6 +152,32 @@ GT5U.gui.text.recipe_result.gtsr.gui.crust_matter_agg.no_dimension=无维度
 GT5U.gui.text.recipe_result.gtsr.gui.crust_matter_agg.no_ores=无矿石数据
 GT5U.gui.text.recipe_result.gtsr.gui.crust_matter_agg.no_steam=无蒸汽
 
+# 终端配置界面（Modern UI 2）
+gtsr.aggregator_config.title=终端配置
+gtsr.aggregator_config.slots_title=维度槽
+gtsr.aggregator_config.slot1_hint=控制器槽（与主界面同一数据源），放入维度显示物品选择维度；留空默认当前维度
+gtsr.aggregator_config.browser_title=矿石浏览器
+gtsr.aggregator_config.ore_mode.raw=原矿
+gtsr.aggregator_config.ore_mode.crushed=粗矿
+gtsr.aggregator_config.ore_mode.purified=粉碎矿
+gtsr.aggregator_config.ore_mode.tip=点击循环矿石模式（原矿→粗矿→粉碎矿），模式越高蒸汽加成越大
+gtsr.aggregator_config.fortune_level=时运 Lv %d
+gtsr.aggregator_config.fortune.tip=点击循环时运等级，影响粉碎产出数量与蒸汽加成
+gtsr.aggregator_config.fortune.gate=Lv3-4 需要蒸汽纠缠奇点模式，Lv5-6 需要临界奇点模式
+gtsr.aggregator_config.steam_cost=蒸汽消耗: 
+gtsr.aggregator_config.steam_cost.tip=基础 24000 L/s（普通档 1200 L/tick）
+gtsr.aggregator_config.steam_cost.detail=倍率明细（模式/时运 × 槽位/过滤）: 
+gtsr.aggregator_config.search=搜索
+gtsr.aggregator_config.search_hint=输入矿石名称片段后点击搜索应用（匹配本地化显示名）
+gtsr.aggregator_config.category.all=全部
+gtsr.aggregator_config.category.unfiltered=未过滤
+gtsr.aggregator_config.category.filtered=已过滤
+gtsr.aggregator_config.category.tip=点击切换展示种类：全部 → 未过滤 → 已过滤
+gtsr.aggregator_config.filter=过滤
+gtsr.aggregator_config.unfilter=取消过滤
+gtsr.aggregator_config.filtered_hint=已过滤：该矿石将不再被产出（真不出）
+gtsr.aggregator_config.empty=无矿石数据（请先在维度槽放入维度显示物品）
+
 # Singularity Crust Steam Borer
 gt.blockmachines.gtsr.singularity.crust.steam.borer.name=奇点地壳蒸汽掘进机
 gtsr.tooltip.singularity_crust_steam_borer.info=蒸汽驱动的跨维度虚空采矿机
@@ -394,7 +420,7 @@ item.ReinforcedHubSingularityChip.name=强化奇点枢纽升级芯片
 item.SteamTurbineCycleOverlimitChip.name=蒸汽轮机循环超限芯片
 
 # 枢纽终端
-item.HubTerminal.name=枢纽终端
+item.HubTerminal.name=机器终端
 
 # Overpressure Steam Cache Node
 gt.blockmachines.gtsr.overpressure.steam.cache.node.name=超压蒸汽缓存节点
@@ -1290,7 +1316,9 @@ gtsr.tooltip.chip.geothermal_overheat=装载至大型地热蒸汽锅炉，提升
 gtsr.tooltip.chip.hub_singularity=装载至蒸汽/蓄水枢纽阵列，解锁等级2功能，总容量×5
 gtsr.tooltip.chip.rare_gas=装载至大气离心机，解锁稀有气体分离配方
 gtsr.tooltip.chip.reinforced_hub_singularity=装载至蒸汽枢纽阵列，解锁等级3功能，总容量×20
-gtsr.tooltip.chip.steam_turbine_cycle_overlimit=装载至巨型蒸汽轮机阵列控制器槽；完成全部4组额外叠加层后生效：过热/超临界（含致密）蒸汽冷却直接产蒸馏水，蒸汽效率因子按蒸汽家族内叠加
+gtsr.tooltip.chip.steam_turbine_cycle_overlimit.1=装载至巨型蒸汽轮机阵列控制器槽；
+gtsr.tooltip.chip.steam_turbine_cycle_overlimit.2=完成全部4组额外叠加层后生效：过热/超临界（含致密）蒸汽冷却直接产蒸馏水，
+gtsr.tooltip.chip.steam_turbine_cycle_overlimit.3=蒸汽效率因子按蒸汽家族内叠加
 gtsr.tooltip.chip.vein_pyrolyzer=装载至地脉热解机，提升地下流体富集范围
 gtsr.tooltip.catalyst.ammonia=装载至制氨工厂，提升并行数和反应速度
 gtsr.tooltip.catalyst.ammonia.nickel=并行数: 64 | 时间: 64秒
@@ -1303,7 +1331,12 @@ gtsr.tooltip.catalyst.ammonia.quantum=并行数: 256 | 时间: 1秒
 gtsr.tooltip.singularity.desc=蒸汽纠缠奇点，用于高级的合成与增幅。
 gtsr.tooltip.steam_entangled_singularity.danger=掉落物会爆炸！请勿丢弃。
 gtsr.tooltip.critical_singularity.desc=临界蒸汽纠缠奇点，用于更高级的合成与增幅。
-gtsr.tooltip.hub_terminal.desc=右击枢纽打开终端；右击缓存节点调速，潜行右击切换模式
+gtsr.tooltip.hub_terminal.desc.1=用于打开GTSR部分富多方块机器的UI。
+gtsr.tooltip.hub_terminal.desc.2=支持的多方块机器有：
+gtsr.tooltip.hub_terminal.desc.3=蒸汽枢纽阵列
+gtsr.tooltip.hub_terminal.desc.4=蓄水枢纽阵列
+gtsr.tooltip.hub_terminal.desc.5=奇点钻井枢纽
+gtsr.tooltip.hub_terminal.desc.6=地壳物质聚合器
 gtsr.tooltip.added_by=添加模组：
 
 # NEI 伪合成表（展示用）：奇点装置类别标题 + 描述行
