@@ -172,10 +172,10 @@ gtsr.aggregator_config.browser_title=矿石浏览器
 gtsr.aggregator_config.ore_mode.raw=原矿
 gtsr.aggregator_config.ore_mode.crushed=粗矿
 gtsr.aggregator_config.ore_mode.purified=粉碎矿
-gtsr.aggregator_config.ore_mode.tip=点击循环矿石模式（原矿→粗矿→粉碎矿），模式越高蒸汽加成越大
+gtsr.aggregator_config.ore_mode.tip=点击循环矿石模式（原矿→粗矿→粉碎矿）：原矿+0%、粗矿+20%、粉碎矿+100% 蒸汽消耗
 gtsr.aggregator_config.fortune_level=时运 %s +%d%%
-gtsr.aggregator_config.fortune.tip=点击循环时运等级，影响粉碎产出数量与蒸汽加成
-gtsr.aggregator_config.fortune.gate=Lv3-4 需要蒸汽纠缠奇点模式，Lv5-6 需要临界奇点模式
+gtsr.aggregator_config.fortune.tip=点击循环时运等级（默认III，奇数档至XV）：粗矿/粉碎矿产出数量 ×(1+时运)，蒸汽每档+50%（默认档免费，XV 最高+300%）
+gtsr.aggregator_config.fortune.gate=时运 IX-XI 需要蒸汽纠缠奇点模式，时运 XIII-XV 需要临界奇点模式
 gtsr.aggregator_config.steam_cost=蒸汽消耗: 
 gtsr.aggregator_config.steam_cost.tip=基础 24000 L/s（普通档 1200 L/tick）
 gtsr.aggregator_config.steam_cost.detail=倍率明细（模式/时运 × 槽位/过滤）: 
@@ -314,7 +314,7 @@ gtsr.tooltip.solar_array.input_hatch=输入仓 (水)
 gtsr.gui.solar_array.heat=热量: 
 gtsr.gui.solar_array.calcification=钙化: 
 gtsr.gui.solar_array.steam_output=蒸汽产出: 
-gtsr.gui.solar_array.solar_booster=太阳能增幅: 
+gtsr.gui.solar_array.solar_booster=额外增幅: 
 gtsr.gui.solar_array.superheated= (过热蒸汽)
 gtsr.gui.solar_array.steam= (蒸汽)
 gtsr.gui.solar_array.clear_calcification=点击清除钙化
@@ -370,11 +370,11 @@ gtsr.gui.geothermal_boiler.chip_tier2_warn=⚠ 过热芯片需要等级2 (钢)
 gtsr.gui.geothermal_boiler.calcification=结垢： 
 gtsr.gui.geothermal_boiler.clear_calcification=点击清除结垢
 gtsr.chat.calcification_cleared=已清除沉积
-gtsr.chat.calcification_full=警告：机器已完全结垢，蒸汽产出降至 1%！请及时除垢。
+gtsr.chat.calcification_full=警告：机器已完全结垢，蒸汽产出降至 1％！请及时除垢。
 gtsr.chat.no_water=水供应中断，机器已停止工作，请重新开启（软锤右击或打开GUI点电源开关）
-gtsr.chat.overpressure.on=超压模式已开启：热量上限提升至 200%
+gtsr.chat.overpressure.on=超压模式已开启：热量上限提升至 200％
 gtsr.chat.overpressure.off=超压模式已关闭
-gtsr.chat.overpressure.need_heat=需要 100% 热量才能开启超压模式
+gtsr.chat.overpressure.need_heat=需要 100％ 热量才能开启超压模式
 
 # Geothermal Boiler Tooltip
 gtsr.tooltip.geothermal_boiler.2=基础配方: 1000mb 岩浆 → 1 黑曜石 + 2 硫粉 (100 tick)
@@ -1150,8 +1150,8 @@ gtsr.tooltip.solar_array.tier_overpressure=超压
 gtsr.tooltip.solar_array.base_output=基础产出
 gtsr.tooltip.solar_array.superheated_steam=过热蒸汽
 gtsr.tooltip.solar_array.booster_label=在 GUI 控制器槽位放置单方块太阳能锅炉可增幅蒸汽产出：
-gtsr.tooltip.solar_array.booster_content=放入简易/高级太阳能锅炉，最大增幅300%蒸汽产出
-gtsr.tooltip.solar_array.solar_booster_desc=在 GUI 控制器槽位放置单方块太阳能锅炉可增幅蒸汽产出：高级太阳能锅炉（Advanced Solar Boiler）每满组 64 台 +2.0x，简单太阳能锅炉（Simple Solar Boiler）每满组 64 台 +1.0x，最多叠加至 3.0x。
+gtsr.tooltip.solar_array.booster_content=放入简易/高级太阳能锅炉（太阳能额外增幅最高+200%），叠加超压模式额外增幅（热量超出100%部分，最高+100%），总产出最高 ×4.0（额外+300%）
+gtsr.tooltip.solar_array.solar_booster_desc=在 GUI 控制器槽位放置单方块太阳能锅炉可增幅蒸汽产出：高级太阳能锅炉（Advanced Solar Boiler）每满组 64 台 +2.0x，简单太阳能锅炉（Simple Solar Boiler）每满组 64 台 +1.0x，太阳能额外增幅最多 +200%；超压模式（200% 热量）额外增幅 +100%；总倍率 = 1 + 太阳能额外 + 超压额外，最高 ×4.0。
 gtsr.tooltip.solar_array.max_boosted_output=最大增幅产出
 
 # 9. Large Steam Furnace - missing keys

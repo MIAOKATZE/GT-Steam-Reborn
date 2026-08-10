@@ -638,7 +638,11 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
             boolean canHeat = isClearWeather && isDay && mSunRatio > 0;
             boolean wasHeating = mIsHeating;
 
-            if (canHeat && aBaseMetaTileEntity.isAllowedToWork()) {
+            // 加载豁免期（GT5U mStartUpCheck 100 tick 内未检结构，"启动中....."阶段）：冻结热量，
+            // 避免退出重进后结构检测延迟期间异常降温（与地热 mStructureGraceTicks/焦炉 mMachine 门控同语义）
+            if (mStartUpCheck > 0) {
+                mIsHeating = false;
+            } else if (canHeat && aBaseMetaTileEntity.isAllowedToWork()) {
                 // 超压模式升温速率 ×0.2
                 mHeat += getHeatIncreaseSpeed() * mSunRatio * (mOverpressure ? 0.2d : 1.0d);
                 if (mHeat > (mOverpressure ? 2.0d : 1.0d)) mHeat = mOverpressure ? 2.0d : 1.0d;
@@ -713,9 +717,13 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
 
                 if (amountOfFluidInHatch > 0 && mHeat > 0.01d) {
                     float solarBooster = calculateSolarBooster();
-                    int baseProduction = (int) (getBaseSteamProduction() * solarBooster);
+                    int baseProduction = getBaseSteamProduction();
+                    // 加算口径（v1.10.51）：总倍率 = 1 + 太阳能额外增幅(solar-1) + 超压额外增幅(heat-1)
+                    // = solar + heat - 1；热量 200% 只贡献 +100% 额外增幅，叠加太阳能锅炉后最大 ×4.0（额外 +300%）
+                    double outputFactor = solarBooster + mHeat - 1.0d;
 
-                    int consumedWater = (int) (Math.min(amountOfFluidInHatch, baseProduction / STEAM_PER_WATER) * mHeat
+                    int consumedWater = (int) (Math.min(amountOfFluidInHatch, baseProduction / STEAM_PER_WATER)
+                        * outputFactor
                         * getCalcificationOutputFactor()
                         * mSunRatio);
 
@@ -831,7 +839,7 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
                     + EnumChatFormatting.GREEN
                     + " ("
                     + StatCollector.translateToLocal("gtsr.tooltip.solar_array.max_boosted_output")
-                    + ": 360,000 L/s)")
+                    + ": 480,000 L/s)")
             .addInfo(
                 EnumChatFormatting.BLUE + "Tier 2 "
                     + EnumChatFormatting.DARK_PURPLE
@@ -844,7 +852,7 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
                     + EnumChatFormatting.GREEN
                     + " ("
                     + StatCollector.translateToLocal("gtsr.tooltip.solar_array.max_boosted_output")
-                    + ": 540,000 L/s)")
+                    + ": 720,000 L/s)")
             .addInfo(
                 EnumChatFormatting.BLUE + "Tier 3 "
                     + EnumChatFormatting.DARK_PURPLE
@@ -857,7 +865,7 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
                     + EnumChatFormatting.GREEN
                     + " ("
                     + StatCollector.translateToLocal("gtsr.tooltip.solar_array.max_boosted_output")
-                    + ": 720,000 L/s)"
+                    + ": 960,000 L/s)"
                     + EnumChatFormatting.GREEN
                     + " ("
                     + StatCollector.translateToLocal("gtsr.tooltip.solar_array.superheated_steam")

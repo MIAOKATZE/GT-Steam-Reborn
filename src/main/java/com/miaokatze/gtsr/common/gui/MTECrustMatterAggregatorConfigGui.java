@@ -346,10 +346,11 @@ public class MTECrustMatterAggregatorConfigGui implements IGuiHolder<PosGuiData>
                 t.addLine(IKey.lang("gtsr.aggregator_config.fortune.gate"));
             })
             .onUpdateListener(button -> {
-                // 仅粗矿/粉碎矿模式可按下；时运循环在 0..上限内回绕（服务端 cycleFortuneLevel 钳位），
-                // 故已达上限时仍可按下（按下会回到 0），不能禁用
+                // 仅粗矿/粉碎矿模式可按下；档位值已达奇点模式允许上限（7/11/15）时禁用——更高档位
+                // 需先提升奇点模式（服务端 cycleFortuneLevel 在 7 档位内循环回绕，奇点模式回落后钳位到上限）
                 boolean rawMode = oreModeSync.getIntValue() == 0;
-                button.setEnabled(!rawMode);
+                boolean atMax = fortuneSync.getIntValue() >= maxFortuneSync.getIntValue();
+                button.setEnabled(!rawMode && !atMax);
             }, true);
 
         // 蒸汽消耗动态文本：基准按致密态（致密 240 L/s / 普通 24000 L/s）× 同步的蒸汽倍率，tooltip 显示倍率明细
@@ -369,7 +370,7 @@ public class MTECrustMatterAggregatorConfigGui implements IGuiHolder<PosGuiData>
                     // 定向模式：固定 +200%（×3.00）× 定向倍率（定向倍率 = UU 倍率 ÷ 模式/时运加成反推）
                     double modeFortune = 1.0d
                         + MTECrustMatterAggregator.ORE_MODE_STEAM_BONUS[Math.min(Math.max(mode, 0), 2)]
-                        + MTECrustMatterAggregator.FORTUNE_STEAM_BONUS[Math.min(Math.max(fortune, 0), 6)];
+                        + MTECrustMatterAggregator.FORTUNE_STEAM_BONUS[Math.min(Math.max((fortune - 3) / 2, 0), 6)];
                     if (directionalSync.getValue()) {
                         double dirFactor = uuMultSync.getDoubleValue() / modeFortune;
                         return EnumChatFormatting.GRAY
@@ -404,15 +405,15 @@ public class MTECrustMatterAggregatorConfigGui implements IGuiHolder<PosGuiData>
         return name + " +" + bonus + "%";
     }
 
-    /** 时运按钮文案：罗马数字 + 蒸汽消耗%（键值含 %s 与 %d 占位，如「时运 I +50%」）。 */
+    /** 时运按钮文案：罗马数字 + 蒸汽消耗%（键值含 %s 与 %d 占位，如「时运 III +0%」）；level 为档位值（3-15 奇数）。 */
     private static String formatFortuneLabel(int level) {
-        int l = Math.min(Math.max(level, 0), 6);
-        String roman = l == 0 ? "0" : ROMAN_NUMERALS[l - 1];
-        int bonus = (int) Math.round(MTECrustMatterAggregator.FORTUNE_STEAM_BONUS[l] * 100.0d);
+        int idx = Math.min(Math.max((level - 3) / 2, 0), 6);
+        String roman = ROMAN_NUMERALS[idx];
+        int bonus = (int) Math.round(MTECrustMatterAggregator.FORTUNE_STEAM_BONUS[idx] * 100.0d);
         return String.format(StatCollector.translateToLocal("gtsr.aggregator_config.fortune_level"), roman, bonus);
     }
 
-    private static final String[] ROMAN_NUMERALS = { "I", "II", "III", "IV", "V", "VI" };
+    private static final String[] ROMAN_NUMERALS = { "III", "V", "VII", "IX", "XI", "XIII", "XV" };
 
     /**
      * 蒸汽消耗主文本（两行）：第一行 = 基准（致密档 240 L/s / 普通档 24000 L/s）× 同步倍率（整体加粗，

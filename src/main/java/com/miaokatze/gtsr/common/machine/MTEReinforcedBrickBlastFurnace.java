@@ -293,7 +293,9 @@ public class MTEReinforcedBrickBlastFurnace extends MTEEnhancedMultiBlockBase<MT
             } else {
                 mFurnaceTemperature = Math.max(0.0d, mFurnaceTemperature - TEMPERATURE_DECREMENT);
             }
-        } else {
+        } else if (mStartUpCheck <= 0) {
+            // 加载豁免期（GT5U mStartUpCheck 100 tick 内未检结构，"启动中....."阶段）冻结炉温，
+            // 避免退出重进后结构检测延迟期间异常降温
             mFurnaceTemperature = Math.max(0.0d, mFurnaceTemperature - TEMPERATURE_DECREMENT);
         }
     }

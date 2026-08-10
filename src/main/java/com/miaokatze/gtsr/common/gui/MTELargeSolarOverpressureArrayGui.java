@@ -107,12 +107,22 @@ public class MTELargeSolarOverpressureArrayGui extends MTEMultiBlockBaseGui<MTEE
                     .fullWidth())
             .child(IKey.dynamic(() -> {
                 float booster = calculateSolarBooster();
+                double overpressureExtra = Math.max(0.0d, mHeatSync.getValue() - 1.0d);
+                // 额外增幅口径（v1.10.51）：两段式 = 太阳能额外(booster-1) + 超压额外(heat-1)，
+                // 不显示基础 100%；无锅炉时保留灰字提示、无超压时超压段显示 +0%
                 String hint = booster <= 1.0f
                     ? " " + EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.gui.solar_array.boost_hint")
                     : "";
                 return EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.gui.solar_array.solar_booster")
                     + EnumChatFormatting.GREEN
-                    + numberFormat.format(booster * 100)
+                    + "+"
+                    + numberFormat.format((booster - 1.0f) * 100)
+                    + "%"
+                    + EnumChatFormatting.WHITE
+                    + " + "
+                    + EnumChatFormatting.LIGHT_PURPLE
+                    + "+"
+                    + numberFormat.format(overpressureExtra * 100)
                     + "%"
                     + hint
                     + EnumChatFormatting.RESET;

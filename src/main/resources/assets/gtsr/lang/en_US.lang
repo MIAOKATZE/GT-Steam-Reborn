@@ -172,10 +172,10 @@ gtsr.aggregator_config.browser_title=Ore Browser
 gtsr.aggregator_config.ore_mode.raw=Raw Ore
 gtsr.aggregator_config.ore_mode.crushed=Crushed Ore
 gtsr.aggregator_config.ore_mode.purified=Purified Ore
-gtsr.aggregator_config.ore_mode.tip=Click to cycle ore mode (Raw -> Crushed -> Purified); higher modes add extra steam cost
+gtsr.aggregator_config.ore_mode.tip=Click to cycle ore mode (Raw -> Crushed -> Purified): Raw +0% / Crushed +20% / Purified +100% steam cost
 gtsr.aggregator_config.fortune_level=Fortune %s +%d%%
-gtsr.aggregator_config.fortune.tip=Click to cycle fortune level; affects crushed output count and steam cost
-gtsr.aggregator_config.fortune.gate=Lv3-4 requires Entangled Singularity mode, Lv5-6 requires Critical mode
+gtsr.aggregator_config.fortune.tip=Click to cycle fortune level (default III, odd tiers up to XV): Crushed/Purified output ×(1+fortune), steam +50% per tier (default free, XV max +300%)
+gtsr.aggregator_config.fortune.gate=Fortune IX-XI requires Entangled Singularity mode, Fortune XIII-XV requires Critical mode
 gtsr.aggregator_config.steam_cost=Steam cost: 
 gtsr.aggregator_config.steam_cost.tip=Base 24000 L/s (normal steam, 1200 L/tick)
 gtsr.aggregator_config.steam_cost.detail=Multiplier breakdown (mode/fortune x slots/filter): 
@@ -314,7 +314,7 @@ gtsr.tooltip.solar_array.input_hatch=Water Input Hatch
 gtsr.gui.solar_array.heat=Heat: 
 gtsr.gui.solar_array.calcification=Calcification: 
 gtsr.gui.solar_array.steam_output=Steam Output: 
-gtsr.gui.solar_array.solar_booster=Solar Booster: 
+gtsr.gui.solar_array.solar_booster=Extra Boost: 
 gtsr.gui.solar_array.superheated= (Superheated Steam)
 gtsr.gui.solar_array.steam= (Steam)
 gtsr.gui.solar_array.clear_calcification=Click to clear calcification
@@ -370,11 +370,11 @@ gtsr.gui.geothermal_boiler.chip_tier2_warn=⚠ Overheat Chip requires Tier 2 (St
 gtsr.gui.geothermal_boiler.calcification=Calcification: 
 gtsr.gui.geothermal_boiler.clear_calcification=Click to clear calcification
 gtsr.chat.calcification_cleared=Calcification cleared
-gtsr.chat.calcification_full=Warning: the machine is fully calcified, steam output reduced to 1%! Decalcify it soon.
+gtsr.chat.calcification_full=Warning: the machine is fully calcified, steam output reduced to 1％! Decalcify it soon.
 gtsr.chat.no_water=Water supply interrupted, the machine has stopped. Please restart it (soft hammer right-click or toggle the power switch in the GUI).
-gtsr.chat.overpressure.on=Overpressure mode enabled: heat cap raised to 200%
+gtsr.chat.overpressure.on=Overpressure mode enabled: heat cap raised to 200％
 gtsr.chat.overpressure.off=Overpressure mode disabled
-gtsr.chat.overpressure.need_heat=100% heat is required to enable Overpressure mode
+gtsr.chat.overpressure.need_heat=100％ heat is required to enable Overpressure mode
 
 # Geothermal Boiler Tooltip
 gtsr.tooltip.geothermal_boiler.2=Base Recipe: 1000mb Lava → 1 Obsidian + 2 Sulfur Dust (100 ticks)
@@ -1110,8 +1110,8 @@ gtsr.tooltip.solar_array.tier_overpressure=Overpressure
 gtsr.tooltip.solar_array.base_output=base output
 gtsr.tooltip.solar_array.superheated_steam=Superheated Steam
 gtsr.tooltip.solar_array.booster_label=Place single-block solar boilers in the GUI controller slot to boost steam output:
-gtsr.tooltip.solar_array.booster_content=Place Simple/Advanced Solar Boilers, up to 300% steam output boost
-gtsr.tooltip.solar_array.solar_booster_desc=Place single-block solar boilers in the GUI controller slot to boost steam output: Advanced Solar Boiler +2.0x per full stack of 64, Simple Solar Boiler +1.0x per full stack of 64, up to 3.0x total.
+gtsr.tooltip.solar_array.booster_content=Place Simple/Advanced Solar Boilers (solar extra boost up to +200%), stacked with the Overpressure extra boost (heat above 100%, up to +100%): total output up to x4.0 (+300% extra)
+gtsr.tooltip.solar_array.solar_booster_desc=Place single-block solar boilers in the GUI controller slot to boost steam output: Advanced Solar Boiler +2.0x per full stack of 64, Simple Solar Boiler +1.0x per full stack of 64, solar extra boost up to +200%; Overpressure mode (200% heat) adds +100%; total multiplier = 1 + solar extra + overpressure extra, up to x4.0.
 gtsr.tooltip.solar_array.max_boosted_output=max boosted output
 
 # 9. Large Steam Furnace - missing keys

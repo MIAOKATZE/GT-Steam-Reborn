@@ -22,6 +22,7 @@ import net.minecraft.block.Block;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.inventory.IInventory;
 import net.minecraft.item.Item;
+import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
@@ -74,6 +75,9 @@ import gregtech.api.structure.error.StructureErrorRegistry;
 import gregtech.api.util.GTOreDictUnificator;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.MultiblockTooltipBuilder;
+import gregtech.common.GTMockWorld;
+import gregtech.common.ores.OreInfo;
+import gregtech.common.ores.OreManager;
 import gregtech.common.tileentities.machines.IDualInputHatch;
 import gregtech.common.tileentities.machines.IDualInputInventory;
 
@@ -90,8 +94,9 @@ import gregtech.common.tileentities.machines.IDualInputInventory;
  * shouldDecayHeat=false 覆写保留无害（基类不再对其做增益/衰减）。
  *
  * 奇点模式（巨型蒸汽轮机式，非右键式）：mSingularityMode 0/1/2（无/蒸汽纠缠/临界），
- * SINGULARITY_DURATION_TICKS=4000（200 秒）；每 20 tick 检查：无模式时优先消耗临界蒸汽纠缠奇点
- * 进入模式 2，其次蒸汽纠缠奇点进入模式 1；模式中倒计时耗尽时按当前模式对应物品无缝续杯，失败退出。
+ * SINGULARITY_DURATION_TICKS=4000（200 秒）；每 20 tick 检查（**仅开机消耗，v1.10.51**）：
+ * 无模式时优先消耗临界蒸汽纠缠奇点进入模式 2，其次蒸汽纠缠奇点进入模式 1；
+ * 模式中倒计时耗尽时按当前模式对应物品无缝续杯，失败退出；关机/停机期间倒计时照走但不消耗。
  * 失控奇点节点（单 F 位，color "black"，attributeId -2=onlypull）参数随模式变化：
  * 模式 0 (6,0,1, fx10) / 模式 1 (8,0,2, fx15) / 模式 2 (12,0,4, fx20)（range, speed, damage, fxRadius）。
  *
@@ -127,9 +132,11 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
     // 单次产出基数：10 * GRADE_COEF[grade] * singCoef（热量恒满）
     private static final double ORES_PER_HEAT_UNIT = 10.0d;
     // 矿石模式蒸汽加成（0 原矿 / 1 粗矿 / 2 粉碎矿）
-    public static final double[] ORE_MODE_STEAM_BONUS = { 0.0d, 0.2d, 0.5d };
-    // 时运等级 0-6 蒸汽加成
-    public static final double[] FORTUNE_STEAM_BONUS = { 0.0d, 0.5d, 1.0d, 1.2d, 1.5d, 1.8d, 2.0d };
+    public static final double[] ORE_MODE_STEAM_BONUS = { 0.0d, 0.2d, 1.0d };
+    // 时运档位集合（奇数 3-15 = III/V/VII/IX/XI/XIII/XV），索引=(档位值-3)/2
+    public static final int[] FORTUNE_LEVELS = { 3, 5, 7, 9, 11, 13, 15 };
+    // 时运档位蒸汽加成（按档位索引：III=+0% … XV=+300%）
+    public static final double[] FORTUNE_STEAM_BONUS = { 0.0d, 0.5d, 1.0d, 1.5d, 2.0d, 2.5d, 3.0d };
     // 每个额外维度物品槽的蒸汽加成
     public static final double SLOT_STEAM_PER_EXTRA = 0.2d;
 
@@ -218,8 +225,8 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
     protected boolean mDefaultDimSupported = false;
     // 矿石模式：0=原矿 / 1=粗矿 / 2=粉碎矿
     public int mOreMode = 0;
-    // 时运等级 0-6（上限随奇点模式 2/4/6）
-    public int mFortuneLevel = 0;
+    // 时运档位值 3-15 奇数，索引=(v-3)/2（III/V/VII 恒可用、IX/XI 需奇点模式、XIII/XV 需临界模式）
+    public int mFortuneLevel = 3;
     // 终端插件槽（UI 槽 2-25；槽 1 = mInventory[1]，同一数据源）
     private final ItemStack[] mPluginSlots = new ItemStack[24];
     // 被过滤（"已解放权重"）的矿石
@@ -832,7 +839,7 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
     /** UU 倍率 = (1 + 矿石模式加成 + 时运加成) × 定向倍率。 */
     public double getUUMultiplier() {
         return (1.0d + ORE_MODE_STEAM_BONUS[Math.min(Math.max(mOreMode, 0), 2)]
-            + FORTUNE_STEAM_BONUS[Math.min(Math.max(mFortuneLevel, 0), 6)]) * getDirectionalFactor();
+            + FORTUNE_STEAM_BONUS[getFortuneIndex(mFortuneLevel)]) * getDirectionalFactor();
     }
 
     /** UU 消耗速率（L/s）：UU 基础 1 L/s × UU 倍率。 */
@@ -842,7 +849,7 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
 
     /**
      * 切换定向模式（服务端入口，幂等）：进入时清空过滤与定向集合；立即按新模式重建矿池（定向只留槽 1）；
-     * 强制停机并清空奇点模式；时运钳位到奇点模式 0 的上限 2。
+     * 强制停机并清空奇点模式；时运钳位到奇点模式 0 的上限 7（III）。
      */
     public void toggleDirectionalMode(EntityPlayer aPlayer) {
         mDirectionalMode = !mDirectionalMode;
@@ -855,7 +862,7 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
         mProgresstime = 0;
         mSingularityMode = 0;
         mSingularityModeTicks = 0;
-        if (mFortuneLevel > 2) mFortuneLevel = 2;
+        if (mFortuneLevel > 7) mFortuneLevel = 7;
         if (getBaseMetaTileEntity() != null) getBaseMetaTileEntity().markDirty();
         if (aPlayer != null) {
             aPlayer.addChatMessage(
@@ -1135,24 +1142,70 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
     // —— 产出形态转换（粗矿 / 粉碎矿模式）——
 
     /**
-     * 按当前矿石模式输出单个原矿：模式 0 原样输出 ×1（不吃时运）；模式 1 输出 GT ore 形态
-     * ×2×(1+时运)；模式 2 输出 crushed 形态 ×6×(1+时运)；目标形态不存在（材料非 GT 或无该前缀）
-     * 时回退原样输出 ×1。
+     * 按当前矿石模式输出单个原矿：模式 0 原样输出 ×1（不吃时运）；模式 1 按挖掘掉落输出
+     * （GT 矿经 OreManager 取 fortune=0 基础掉落，非 GT 矿经 GTMockWorld 挖掘掉落，数量 = 1+时运档位值）；
+     * 模式 2 输出 crushed 形态 ×3×(1+时运)；目标形态不存在或掉落解析失败时回退原样输出 ×1。
      */
     private void outputOre(ItemStack rawOre) {
         if (mOreMode == 0) {
             addOutputPartial(rawOre);
             return;
         }
-        Materials material = getOreMaterial(rawOre);
-        OrePrefixes prefix = mOreMode == 2 ? OrePrefixes.crushed : OrePrefixes.ore;
-        int count = mOreMode == 2 ? 6 * (1 + mFortuneLevel) : 2 * (1 + mFortuneLevel);
-        ItemStack converted = material == null ? null : GTOreDictUnificator.get(prefix, material, count);
-        if (converted == null) {
-            addOutputPartial(rawOre);
-        } else {
-            addOutputPartial(converted);
+        if (mOreMode == 2) {
+            Materials material = getOreMaterial(rawOre);
+            ItemStack converted = material == null ? null
+                : GTOreDictUnificator.get(OrePrefixes.crushed, material, 3 * (1 + mFortuneLevel));
+            if (converted == null) {
+                addOutputPartial(rawOre);
+            } else {
+                addOutputPartial(converted);
+            }
+            return;
         }
+        // 模式 1 粗矿 = 挖掘掉落：GT5U 5.09.54 无 ore 前缀物品注册于 unificator（GTOreDictUnificator.get 返回 null），
+        // 故仿采矿节点 collectOreDropsWithCrushedFortune 直接按方块取挖掘掉落
+        try {
+            Item item = rawOre.getItem();
+            if (item instanceof ItemBlock) {
+                Block block = ((ItemBlock) item).field_150939_a;
+                int meta = rawOre.getItemDamage();
+                try (OreInfo<?> info = OreManager.getOreInfo(block, meta)) {
+                    if (info != null) {
+                        // GT 矿：force isNatural=true（GTNH 世界矿石 isNatural=false 会导致 adapter
+                        // 以非自然形态/fortune=0 处理），取 fortune=0 基础掉落再按档位定数量
+                        boolean origNatural = info.isNatural;
+                        info.isNatural = true;
+                        List<ItemStack> drops;
+                        try {
+                            drops = OreManager.getAdapter(info)
+                                .getOreDrops(ThreadLocalRandom.current(), info, false, 0);
+                        } finally {
+                            info.isNatural = origNatural;
+                        }
+                        if (drops != null && !drops.isEmpty() && outputMinedDrop(drops.get(0))) return;
+                    } else {
+                        // 非 GT 矿（vanilla/其他 mod）：GTMockWorld 挖掘掉落（UnificationOreAdapter :194-199 同款用法）
+                        GTMockWorld mockWorld = new GTMockWorld();
+                        mockWorld.clear();
+                        mockWorld.setBlock(0, 0, 0, block, meta, 0);
+                        List<ItemStack> drops = block.getDrops(mockWorld, 0, 0, 0, meta, 0);
+                        if (drops != null && !drops.isEmpty() && outputMinedDrop(drops.get(0))) return;
+                    }
+                }
+            }
+        } catch (Throwable t) {
+            GTSteamReborn.LOG.warn("[CrustMatterAggregator] 粗矿掉落解析失败，回退原矿输出", t);
+        }
+        addOutputPartial(rawOre);
+    }
+
+    /** 按当前时运档位输出单个挖掘掉落（数量 = 1+档位值）；null/空物品返回 false（由调用方回退原样输出）。 */
+    private boolean outputMinedDrop(ItemStack drop) {
+        if (drop == null || drop.getItem() == null) return false;
+        ItemStack out = drop.copy();
+        out.stackSize = 1 + mFortuneLevel;
+        addOutputPartial(out);
+        return true;
     }
 
     /** 取物品的 GT 材料（非 GT 物品返回 null）。 */
@@ -1253,34 +1306,39 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
 
     // —— 矿石模式 / 时运（终端 UI 调用，服务端执行）——
 
-    /** 循环矿石模式 0(原矿)→1(粗矿)→2(粉碎矿)→0；切回原矿模式时清零时运。 */
+    /** 循环矿石模式 0(原矿)→1(粗矿)→2(粉碎矿)→0；切回原矿模式时清时运回默认 III。 */
     public void cycleOreMode() {
         mOreMode = (mOreMode + 1) % 3;
-        if (mOreMode == 0) mFortuneLevel = 0;
+        if (mOreMode == 0) mFortuneLevel = 3;
         if (getBaseMetaTileEntity() != null) getBaseMetaTileEntity().markDirty();
     }
 
-    /** 循环时运等级：(当前+1)%7 后钳位到奇点模式上限；原矿模式直接回 0。 */
+    /** 循环时运档位：在当前 7 档位集合内循环（III→V→…→XV→III）；原矿模式直接回默认 III。 */
     public void cycleFortuneLevel() {
         if (mOreMode == 0) {
-            mFortuneLevel = 0;
+            mFortuneLevel = 3;
         } else {
-            // 在 0..当前允许上限内循环（直接 %7 再钳位会在上限<6 时卡死在上限无法降级）
-            mFortuneLevel = (mFortuneLevel + 1) % (getMaxAllowedFortuneLevel() + 1);
+            int idx = getFortuneIndex(mFortuneLevel);
+            mFortuneLevel = FORTUNE_LEVELS[(idx + 1) % 7];
         }
         if (getBaseMetaTileEntity() != null) getBaseMetaTileEntity().markDirty();
     }
 
-    /** 当前奇点模式允许的时运上限：模式 0/1/2 → 2/4/6。 */
+    /** 当前奇点模式允许的时运上限：模式 0/1/2 → 7/11/15（III/V/VII 恒可用、IX/XI 需奇点模式、XIII/XV 需临界模式）。 */
     public int getMaxAllowedFortuneLevel() {
         switch (mSingularityMode) {
             case 2:
-                return 6;
+                return 15;
             case 1:
-                return 4;
+                return 11;
             default:
-                return 2;
+                return 7;
         }
+    }
+
+    /** 时运档位值 → 档位索引（档位值 3-15 奇数，索引=(v-3)/2；越界钳位到 0..6）。 */
+    private static int getFortuneIndex(int level) {
+        return Math.min(Math.max((level - 3) / 2, 0), 6);
     }
 
     // —— 蒸汽倍率 ——
@@ -1292,7 +1350,7 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
      */
     public double getSteamMultiplier() {
         double modeBonus = ORE_MODE_STEAM_BONUS[Math.min(Math.max(mOreMode, 0), 2)];
-        double fortuneBonus = FORTUNE_STEAM_BONUS[Math.min(Math.max(mFortuneLevel, 0), 6)];
+        double fortuneBonus = FORTUNE_STEAM_BONUS[getFortuneIndex(mFortuneLevel)];
         if (mDirectionalMode) return (1.0d + modeBonus + fortuneBonus) * 3.0d * getDirectionalFactor();
         int slotCount = 0;
         for (ItemStack stack : getDimensionStacks()) {
@@ -1339,10 +1397,14 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
 
     /**
      * 检查并维持奇点模式。
-     * 不在模式时：优先消耗 1 个临界蒸汽纠缠奇点进入模式 2，其次 1 个蒸汽纠缠奇点进入模式 1。
-     * 模式中倒计时耗尽时：立即按当前模式对应物品无缝续杯；成功续满，失败才退出模式。
+     * 仅开机（isAllowedToWork 且 mMaxProgresstime>0，即机器实际工作中）才消耗奇点：
+     * 不在模式时优先消耗 1 个临界蒸汽纠缠奇点进入模式 2，其次 1 个蒸汽纠缠奇点进入模式 1；
+     * 模式中倒计时耗尽时按当前模式对应物品无缝续杯，成功续满，失败才退出模式。
+     * 关机/停机期间倒计时照常递减（onPostTick），但不消耗奇点——倒计时到 0 直接退出模式，等待下次开机重新消耗进入。
      */
     private void checkSingularityMode() {
+        // 开机门控（v1.10.51）：关机/停机不自动消耗奇点（含进入模式与续杯）
+        if (!getBaseMetaTileEntity().isAllowedToWork() || mMaxProgresstime <= 0) return;
         if (mSingularityMode == 0) {
             if (consumeSingularityFromInputBuses(1, GTSRItemList.CriticalSteamEntangledSingularity)) {
                 mSingularityMode = 2;
@@ -1361,8 +1423,8 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
                 getBaseMetaTileEntity().markDirty();
             } else {
                 mSingularityMode = 0;
-                // 奇点模式回落后时运上限降为 2，超限时钳位
-                if (mFortuneLevel > 2) mFortuneLevel = 2;
+                // 奇点模式回落后时运上限降为 7（III），超限时钳位
+                if (mFortuneLevel > 7) mFortuneLevel = 7;
                 getBaseMetaTileEntity().markDirty();
             }
         }
@@ -1582,8 +1644,8 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
         mOreMode = aNBT.getInteger("mOreMode");
         mFortuneLevel = aNBT.getInteger("mFortuneLevel");
         if (mOreMode < 0 || mOreMode > 2) mOreMode = 0;
-        if (mFortuneLevel < 0) mFortuneLevel = 0;
-        mFortuneLevel = Math.min(mFortuneLevel, getMaxAllowedFortuneLevel());
+        // 时运档位校验：仅接受 FORTUNE_LEVELS 集合内的档位值（3-15 奇数），非法值回默认 III
+        if (mFortuneLevel < 3 || mFortuneLevel > 15 || mFortuneLevel % 2 == 0) mFortuneLevel = 3;
         NBTTagList pluginSlots = aNBT.getTagList("mPluginSlots", 10);
         for (int i = 0; i < pluginSlots.tagCount() && i < mPluginSlots.length; i++) {
             mPluginSlots[i] = ItemStack.loadItemStackFromNBT(pluginSlots.getCompoundTagAt(i));
