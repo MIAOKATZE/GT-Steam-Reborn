@@ -18,7 +18,8 @@ import com.miaokatze.gtsr.common.machine.MTECrustMatterAggregator;
 /**
  * 地壳物质聚合器 GUI：基类 MTESingularityMachineGui 已覆盖热量/档位状态/等级行与
  * gtsr.mode/gtsr.fuelTicks 同步（getModeForGui/getFuelTicksForGui），本类补充：
- * 奇点模式行（含剩余秒数）、维度行（覆盖/默认维度 + 无维度/无矿石状态）、当前挖掘矿名。
+ * 奇点模式行（含剩余秒数）、维度行（覆盖/默认维度 + 无维度/无矿石状态）、当前挖掘矿名、
+ * 定向模式 UU 消耗行（紫色粗体，含倍率；定向关闭时灰色占位）。
  */
 public class MTECrustMatterAggregatorGui extends MTESingularityMachineGui<MTECrustMatterAggregator> {
 
@@ -33,6 +34,9 @@ public class MTECrustMatterAggregatorGui extends MTESingularityMachineGui<MTECru
         syncManager.syncValue("gtsr.dropMapValid", new BooleanSyncValue(() -> multiblock.dropMapValid));
         // 蒸汽消耗倍率（矿石模式/时运/维度槽/过滤加成，S2C 驱动蒸汽消耗词条）
         syncManager.syncValue("gtsr.steamMult", new DoubleSyncValue(() -> multiblock.getSteamMultiplier()));
+        // 定向模式开关与 UU 倍率（S2C 驱动 UU 物质消耗词条）
+        syncManager.syncValue("gtsr.directionalMode", new BooleanSyncValue(() -> multiblock.getDirectionalMode()));
+        syncManager.syncValue("gtsr.uuMult", new DoubleSyncValue(() -> multiblock.getUUMultiplier()));
     }
 
     @Override
@@ -44,6 +48,8 @@ public class MTECrustMatterAggregatorGui extends MTESingularityMachineGui<MTECru
         StringSyncValue dimSyncer = syncManager.findSyncHandler("gtsr.dimLabel", StringSyncValue.class);
         BooleanSyncValue validSyncer = syncManager.findSyncHandler("gtsr.dropMapValid", BooleanSyncValue.class);
         DoubleSyncValue steamMultSyncer = syncManager.findSyncHandler("gtsr.steamMult", DoubleSyncValue.class);
+        BooleanSyncValue directionalSync = syncManager.findSyncHandler("gtsr.directionalMode", BooleanSyncValue.class);
+        DoubleSyncValue uuMultSyncer = syncManager.findSyncHandler("gtsr.uuMult", DoubleSyncValue.class);
 
         return widget.child(IKey.dynamic(() -> {
             int mode = modeSyncer.getValue();
@@ -96,6 +102,29 @@ public class MTECrustMatterAggregatorGui extends MTESingularityMachineGui<MTECru
                     + String.format(
                         StatCollector.translateToLocal(keyPrefix + "steam_cost.mult"),
                         String.format("%.2f", mult))
+                    + EnumChatFormatting.RESET;
+            })
+                .asWidget()
+                .marginBottom(2)
+                .fullWidth())
+            .child(IKey.dynamic(() -> {
+                // 定向模式 UU 物质消耗词条：定向开启时显示速率与倍率（紫色粗体），关闭时显示灰色占位。
+                // 速率 = 1 L/s × 倍率，与倍率数值恒等（UU 基础 1L/s），直接用同步值避免客户端字段陈旧。
+                if (directionalSync.getValue()) {
+                    double mult = uuMultSyncer.getValue();
+                    return EnumChatFormatting.YELLOW + StatCollector.translateToLocal(keyPrefix + "uu_cost")
+                        + EnumChatFormatting.LIGHT_PURPLE
+                        + EnumChatFormatting.BOLD
+                        + NumberFormatUtil.formatNumber(Math.round(mult))
+                        + " L/s "
+                        + String.format(
+                            StatCollector.translateToLocal(keyPrefix + "uu_cost.mult"),
+                            String.format("%.2f", mult))
+                        + EnumChatFormatting.RESET;
+                }
+                return EnumChatFormatting.YELLOW + StatCollector.translateToLocal(keyPrefix + "uu_cost")
+                    + EnumChatFormatting.GRAY
+                    + StatCollector.translateToLocal(keyPrefix + "uu_cost.off")
                     + EnumChatFormatting.RESET;
             })
                 .asWidget()

@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.network.PacketBuffer;
@@ -24,6 +25,7 @@ import com.cleanroommc.modularui.utils.Alignment;
 import com.cleanroommc.modularui.utils.item.IItemHandler;
 import com.cleanroommc.modularui.utils.item.InvWrapper;
 import com.cleanroommc.modularui.value.StringValue;
+import com.cleanroommc.modularui.value.sync.BooleanSyncValue;
 import com.cleanroommc.modularui.value.sync.DoubleSyncValue;
 import com.cleanroommc.modularui.value.sync.GenericListSyncHandler;
 import com.cleanroommc.modularui.value.sync.IntSyncValue;
@@ -54,16 +56,21 @@ import gregtech.api.util.GTUtility;
  * 打开方式：手持枢纽终端右击聚合器（服务端经 AggregatorConfigGuiFactory 打开）。
  * 功能：
  * - 第一行配置：矿石模式循环（原矿/粗矿/粉碎矿，含蒸汽加成显示）、时运等级循环（奇点模式门控）、
- * 当前蒸汽消耗（基础 24000 L/s × 同步倍率，tooltip 显示倍率明细）；
- * - 左侧 12 槽一列：槽 1 = 控制器槽（mInventory[1]，与主 GUI 同一数据源），槽 2-12 = 终端插件槽，
- * 栈上限 1、槽过滤仅接受维度显示物品；
+ * 当前蒸汽消耗（基础 24000 L/s × 同步倍率，加粗显示，tooltip 显示倍率明细；定向模式下明细含定向倍率）；
+ * - 左侧 25 槽 5×5 网格：槽 1 = 控制器槽（mInventory[1]，与主 GUI 同一数据源），槽 2-25 = 终端插件槽，
+ * 栈上限 1、槽过滤仅接受维度显示物品；网格右侧为刷新按钮（Ore Plugin 放入/移除后手动重建矿池）；
+ * - 定向模式区：切换按钮（C2S 切换，服务端进入时清空过滤与定向、重建矿池、强制停机并清空奇点模式）、
+ * UU 物质消耗行（定向开：1 L/s × 倍率，紫色加粗；定向关：—，灰色）、4 行模式提示；
+ * 定向模式下插件槽只出不进（canPut(false)），行按钮切换「定向」而非「过滤」；
  * - 右侧矿石浏览器：搜索（按下按钮才应用，按矿石本地化显示名匹配，天然兼容中文）、
- * 种类切换（全部/未过滤/已过滤）、逐矿过滤开关（"已解放权重"语义，C2S 切换）。
+ * 种类切换（全部/未过滤/已过滤）、逐矿过滤/定向切换（"已解放权重"语义，C2S 切换）。
  *
  * 同步设计：
  * - "gtsr.cfg.oreList"：GenericListSyncHandler，服务端每 tick 检测变化并同步到客户端；
  * - "gtsr.cfg.oreMode"/"gtsr.cfg.fortune"/"gtsr.cfg.maxFortune"/"gtsr.cfg.steamMult"：
  * IntSyncValue/DoubleSyncValue，仅 S2C；
+ * - "gtsr.cfg.directionalMode"/"gtsr.cfg.uuMult"：BooleanSyncValue/DoubleSyncValue，仅 S2C
+ * （定向开关与 UU 倍率；定向开关变化驱动插件槽进出限制重算）；
  * - "gtsr.cfg.aggregatorAction"：单个面板级 C2S 动作处理器，按钮点击发往服务端执行；
  * - 矿石列表为「常驻 ListWidget 实例 + 手动刷新行」（refreshOreList）：过滤/搜索/排序切换仅重建
  * 行内容，滚动位置随列表实例持续，不会把滚动条拉回顶部（弃 DynamicSyncedWidget 全量重建方案）。
@@ -73,14 +80,20 @@ public class MTECrustMatterAggregatorConfigGui implements IGuiHolder<PosGuiData>
     // 面板 420×350：GUI 缩放 3x 下 1260×1050，1080p 窗口内完整显示（含底部玩家背包，不被窗口底边截断）
     private static final int PANEL_WIDTH = 420;
     private static final int PANEL_HEIGHT = 350;
-    // 左列（维度槽）：标题 + 12 槽 + 刷新按钮，全部绝对定位。
+    // 左列（维度槽）：标题 + 25 槽 5×5 网格 + 刷新按钮 + 定向模式区，全部绝对定位。
     // 注意：槽列不用 Flow 容器（实机验证 Flow 作为面板 child 时 pos 失效被居中），
-    // 12 个 ItemSlot 各自作为面板直接 child 显式 pos 定位。
+    // 25 个 ItemSlot 各自作为面板直接 child 显式 pos 定位。
     private static final int LEFT_X = 8;
     private static final int SLOT_TITLE_Y = 44;
     private static final int SLOT_COL_Y = 56;
-    private static final int SLOT_SIZE = 16; // 槽格 16px：12×16=192 → 56-248，避免侵入底部玩家背包
-    private static final int REFRESH_Y = 250;
+    private static final int SLOT_SIZE = 16; // 槽格 16px；网格宽 5×17-1 = 84px（x 8-92），5 行 → y 56-140
+    private static final int SLOT_GRID_COLS = 5;
+    private static final int SLOT_GAP = 1; // 槽格间距
+    private static final int REFRESH_X = LEFT_X + SLOT_GRID_COLS * (SLOT_SIZE + SLOT_GAP) + 2; // 95，槽区右侧
+    private static final int REFRESH_Y = SLOT_COL_Y + 2 * (SLOT_SIZE + SLOT_GAP); // 90，槽区垂直居中
+    private static final int DIRECTIONAL_Y = 140; // 定向模式切换按钮行
+    private static final int UU_LINE_Y = 162; // UU 物质消耗行
+    private static final int HINT_Y = 184; // 定向模式提示信息起始行
     // 右侧矿石浏览器区（绝对坐标，全部直接挂面板，避免嵌套容器定位歧义）
     private static final int BROWSER_X = 124;
     private static final int BROWSER_Y = 58; // 标题行（44-58）下方，不遮挡「矿石浏览器」标题
@@ -105,8 +118,8 @@ public class MTECrustMatterAggregatorConfigGui implements IGuiHolder<PosGuiData>
     private static final int SEARCH_BTN_W = 44;
     private static final int SEARCH_BTN_X = BROWSER_X + BROWSER_W - 4 - CATEGORY_BTN_W - 4 - SEARCH_BTN_W;
     private static final int CATEGORY_BTN_X = BROWSER_X + BROWSER_W - 4 - CATEGORY_BTN_W;
-    // 插件槽数量（槽 2-12）
-    private static final int PLUGIN_SLOT_COUNT = 11;
+    // 插件槽数量（槽 2-25）
+    private static final int PLUGIN_SLOT_COUNT = 24;
     private static final String[] ORE_MODE_NAMES = { "raw", "crushed", "purified" };
 
     // 列表滚动偏移保存：服务端数据变化触发整表重建时，旧列表 dispose 写回、新列表首次布局恢复，
@@ -122,6 +135,8 @@ public class MTECrustMatterAggregatorConfigGui implements IGuiHolder<PosGuiData>
     private GenericListSyncHandler<OreEntryInfo> oreListSync;
     private AggregatorActionSyncHandler actionSync;
     private ListWidget<IWidget, ?> oreListWidget;
+    // 定向模式同步值（S2C）：行按钮定向化、插件槽进出限制、蒸汽明细切换均依赖它
+    private BooleanSyncValue directionalSync;
 
     private final MTECrustMatterAggregator aggregator;
 
@@ -150,6 +165,10 @@ public class MTECrustMatterAggregatorConfigGui implements IGuiHolder<PosGuiData>
         IntSyncValue fortuneSync = new IntSyncValue(() -> aggregator.mFortuneLevel);
         IntSyncValue maxFortuneSync = new IntSyncValue(aggregator::getMaxAllowedFortuneLevel);
         DoubleSyncValue steamMultSync = new DoubleSyncValue(aggregator::getSteamMultiplier);
+        // 定向模式同步（S2C）：开关 + UU 倍率（定向关闭时 UU 倍率为 0）
+        BooleanSyncValue directionalSync = new BooleanSyncValue(() -> aggregator.getDirectionalMode());
+        DoubleSyncValue uuMultSync = new DoubleSyncValue(aggregator::getUUMultiplier);
+        this.directionalSync = directionalSync;
         // 按钮动作同步（C2S）：所有行按钮共用同一个处理器
         this.actionSync = new AggregatorActionSyncHandler(aggregator);
         this.oreListSync = oreListSync;
@@ -161,6 +180,8 @@ public class MTECrustMatterAggregatorConfigGui implements IGuiHolder<PosGuiData>
         syncManager.syncValue("gtsr.cfg.fortune", fortuneSync);
         syncManager.syncValue("gtsr.cfg.maxFortune", maxFortuneSync);
         syncManager.syncValue("gtsr.cfg.steamMult", steamMultSync);
+        syncManager.syncValue("gtsr.cfg.directionalMode", directionalSync);
+        syncManager.syncValue("gtsr.cfg.uuMult", uuMultSync);
         syncManager.syncValue("gtsr.cfg.aggregatorAction", this.actionSync);
 
         // 矿石列表：常驻 ListWidget 实例（滚动位置随实例持续；行内容更新不重置滚动条）
@@ -176,8 +197,16 @@ public class MTECrustMatterAggregatorConfigGui implements IGuiHolder<PosGuiData>
                 IKey.lang("gtsr.aggregator_config.title")
                     .asWidget()
                     .pos(8, 6))
-            .child(buildConfigRow(oreModeSync, fortuneSync, maxFortuneSync, steamMultSync, this.actionSync))
-            // 左列：维度槽标题 + 12 槽 + 刷新按钮（全部绝对定位，槽列固定最左）
+            .child(
+                buildConfigRow(
+                    oreModeSync,
+                    fortuneSync,
+                    maxFortuneSync,
+                    steamMultSync,
+                    directionalSync,
+                    uuMultSync,
+                    this.actionSync))
+            // 左列：维度槽标题 + 25 槽 5×5 + 刷新按钮（全部绝对定位，槽列固定最左）
             .child(
                 IKey.lang("gtsr.aggregator_config.slots_title")
                     .asWidget()
@@ -197,7 +226,7 @@ public class MTECrustMatterAggregatorConfigGui implements IGuiHolder<PosGuiData>
             // 玩家背包（与枢纽状态面板的关键区别：本界面是物品操作界面，需要背包）
             .child(SlotGroupWidget.playerInventory(true));
 
-        // 12 个维度槽逐个作为面板直接 child 显式定位（不用 Flow 容器——实机验证 Flow 作为面板
+        // 25 个槽逐个作为面板直接 child 显式定位（不用 Flow 容器——实机验证 Flow 作为面板
         // child 时 pos 失效被居中布局，导致槽列卡在面板正中间）
         ModularSlot controllerSlot = new ModularSlot(aggregator.inventoryHandler, aggregator.getControllerSlotIndex()) {
 
@@ -208,11 +237,53 @@ public class MTECrustMatterAggregatorConfigGui implements IGuiHolder<PosGuiData>
         };
         panel.child(buildPluginSlot(controllerSlot, true, 0));
         IItemHandler pluginHandler = new InvWrapper(aggregator.getPluginSlotInventory());
+        // 插件槽引用留存：定向模式下只出不进（ModularSlot.canPut(false)），由 directionalSync 变化监听驱动
+        List<ModularSlot> pluginSlots = new ArrayList<>(PLUGIN_SLOT_COUNT);
         for (int i = 0; i < PLUGIN_SLOT_COUNT; i++) {
-            panel.child(buildPluginSlot(new ModularSlot(pluginHandler, i), false, i + 1));
+            ModularSlot pluginSlot = new ModularSlot(pluginHandler, i);
+            pluginSlots.add(pluginSlot);
+            panel.child(buildPluginSlot(pluginSlot, false, i + 1));
         }
+        // 定向模式只出不进：插件槽在定向模式下只可拿走不可放入（服务端同样拒绝放入，此处为客户端交互限制；
+        // controllerSlot 槽 1 不受限）。同步值首包到达即触发监听，配合下方立即应用保证状态正确。
+        directionalSync.setChangeListener(() -> {
+            boolean directional = directionalSync.getValue();
+            for (ModularSlot s : pluginSlots) {
+                s.canPut(!directional);
+            }
+        });
+        directionalSync.getChangeListener()
+            .run();
         // 刷新按钮：Ore Plugin 放入/移除槽后矿池不会立刻重建，点击手动刷新（C2S 服务端立即重建矿池）
         panel.child(buildRefreshButton(actionSync));
+        // 定向模式切换按钮：C2S 切换；服务端进入时清空过滤/定向、重建矿池、强制停机并清空奇点模式
+        panel.child(buildDirectionalButton(directionalSync, actionSync));
+        // UU 物质消耗行：定向开 → 1 L/s × 倍率（紫色加粗）；定向关 → —（灰色）
+        panel.child(
+            IKey.dynamic(() -> formatUUCostLine(uuMultSync.getDoubleValue(), directionalSync.getValue()))
+                .asWidget()
+                .pos(LEFT_X, UU_LINE_Y));
+        // 定向模式提示信息（4 行，自 HINT_Y 起每行 12px，白/灰交替）
+        panel.child(
+            IKey.str(
+                EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.aggregator_config.directional.hint1"))
+                .asWidget()
+                .pos(LEFT_X, HINT_Y));
+        panel.child(
+            IKey.str(
+                EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.aggregator_config.directional.hint2"))
+                .asWidget()
+                .pos(LEFT_X, HINT_Y + 12));
+        panel.child(
+            IKey.str(
+                EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.aggregator_config.directional.hint3"))
+                .asWidget()
+                .pos(LEFT_X, HINT_Y + 24));
+        panel.child(
+            IKey.str(
+                EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.aggregator_config.directional.hint4"))
+                .asWidget()
+                .pos(LEFT_X, HINT_Y + 36));
 
         // 初始刷新（sync handler 尚未初始化时数据为空，首次同步到达后 changeListener 再刷新）
         refreshOreList();
@@ -222,7 +293,8 @@ public class MTECrustMatterAggregatorConfigGui implements IGuiHolder<PosGuiData>
     // —— 第一行配置按钮 / 文本 ——
 
     private IWidget buildConfigRow(IntSyncValue oreModeSync, IntSyncValue fortuneSync, IntSyncValue maxFortuneSync,
-        DoubleSyncValue steamMultSync, AggregatorActionSyncHandler actionSync) {
+        DoubleSyncValue steamMultSync, BooleanSyncValue directionalSync, DoubleSyncValue uuMultSync,
+        AggregatorActionSyncHandler actionSync) {
         // 矿石模式循环按钮：显示当前模式名 + 蒸汽加成（如「粉碎矿 +50%」），点击 C2S 循环
         ButtonWidget<?> oreModeButton = new ButtonWidget<>().size(104, 18)
             .overlay(IKey.dynamic(() -> formatOreModeLabel(oreModeSync.getIntValue())))
@@ -262,10 +334,19 @@ public class MTECrustMatterAggregatorConfigGui implements IGuiHolder<PosGuiData>
                 t.addLine(IKey.dynamic(() -> {
                     int mode = oreModeSync.getIntValue();
                     int fortune = fortuneSync.getIntValue();
-                    // 明细 =（1+矿石模式加成+时运加成）×（维度槽/过滤加成）；后者由总倍率反推
+                    // 明细 =（1+矿石模式加成+时运加成）×（维度槽/过滤加成）；后者由总倍率反推。
+                    // 定向模式：固定 +100%（×2.00）× 定向倍率（定向倍率 = UU 倍率 ÷ 模式/时运加成反推）
                     double modeFortune = 1.0d
                         + MTECrustMatterAggregator.ORE_MODE_STEAM_BONUS[Math.min(Math.max(mode, 0), 2)]
                         + MTECrustMatterAggregator.FORTUNE_STEAM_BONUS[Math.min(Math.max(fortune, 0), 6)];
+                    if (directionalSync.getValue()) {
+                        double dirFactor = uuMultSync.getDoubleValue() / modeFortune;
+                        return EnumChatFormatting.GRAY
+                            + StatCollector.translateToLocal("gtsr.aggregator_config.steam_cost.detail_dir")
+                            + String.format("%.2f", modeFortune)
+                            + " × 2.00 × "
+                            + String.format("%.2f", dirFactor);
+                    }
                     double env = steamMultSync.getDoubleValue() / modeFortune;
                     return EnumChatFormatting.GRAY
                         + StatCollector.translateToLocal("gtsr.aggregator_config.steam_cost.detail")
@@ -297,20 +378,44 @@ public class MTECrustMatterAggregatorConfigGui implements IGuiHolder<PosGuiData>
         return String.format(StatCollector.translateToLocal("gtsr.aggregator_config.fortune_level"), level);
     }
 
-    /** 蒸汽消耗主文本：基础 24000 L/s × 同步倍率。 */
+    /** 蒸汽消耗主文本：基础 24000 L/s × 同步倍率（整体加粗，金色粗体附倍率后缀）。 */
     private static String formatSteamCostLine(double steamMult) {
         long perSecond = Math.round(MTECrustMatterAggregator.NORMAL_STEAM_PER_SECOND * steamMult);
-        return StatCollector.translateToLocal("gtsr.aggregator_config.steam_cost") + " "
+        return EnumChatFormatting.BOLD + StatCollector.translateToLocal("gtsr.aggregator_config.steam_cost")
+            + " "
             + NumberFormatUtil.formatNumber(perSecond)
-            + " L/s";
+            + " L/s "
+            + EnumChatFormatting.GOLD.toString()
+            + EnumChatFormatting.BOLD
+            + String.format(
+                StatCollector.translateToLocal("gtsr.aggregator_config.steam_cost.mult"),
+                String.format("%.2f", steamMult));
     }
 
-    // —— 左侧 12 槽一列 + 刷新按钮 ——
+    /**
+     * UU 物质消耗行：定向开 → 1 L/s × 倍率（紫色加粗，uu_cost 为前缀键 + uu_cost.mult 倍率后缀）；
+     * 定向关 → 灰字 "—"（uu_cost.off）。注：uu_cost 键值无 %s 占位，只能拼接（与主 GUI 一致）。
+     */
+    private static String formatUUCostLine(double mult, boolean directional) {
+        if (!directional) {
+            return EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.aggregator_config.uu_cost")
+                + StatCollector.translateToLocal("gtsr.aggregator_config.uu_cost.off");
+        }
+        String ratePart = NumberFormatUtil.formatNumber(Math.round(mult)) + " L/s"
+            + String.format(
+                StatCollector.translateToLocal("gtsr.aggregator_config.uu_cost.mult"),
+                String.format("%.2f", mult));
+        return EnumChatFormatting.LIGHT_PURPLE.toString() + EnumChatFormatting.BOLD
+            + StatCollector.translateToLocal("gtsr.aggregator_config.uu_cost")
+            + ratePart;
+    }
+
+    // —— 左侧 25 槽 5×5 网格 + 刷新按钮 + 定向模式区 ——
 
     /** 刷新按钮：Ore Plugin 放入/移除槽后矿池不会立刻重建，点击手动刷新（C2S 服务端立即重建矿池）。 */
     private IWidget buildRefreshButton(AggregatorActionSyncHandler actionSync) {
-        return new ButtonWidget<>().pos(LEFT_X, REFRESH_Y)
-            .size(48, 16)
+        return new ButtonWidget<>().pos(REFRESH_X, REFRESH_Y)
+            .size(26, 16)
             .overlay(IKey.lang("gtsr.aggregator_config.refresh"))
             .onMousePressed(mouseButton -> {
                 actionSync.sendRefreshPool();
@@ -319,16 +424,35 @@ public class MTECrustMatterAggregatorConfigGui implements IGuiHolder<PosGuiData>
             .tooltipBuilder(t -> t.addLine(IKey.lang("gtsr.aggregator_config.refresh.tip")));
     }
 
+    /** 定向模式切换按钮：C2S 切换；文案随定向开关动态切换（on/off）。 */
+    private IWidget buildDirectionalButton(BooleanSyncValue directionalSync, AggregatorActionSyncHandler actionSync) {
+        return new ButtonWidget<>().pos(LEFT_X, DIRECTIONAL_Y)
+            .size(90, 18)
+            .overlay(
+                IKey.dynamic(
+                    () -> StatCollector.translateToLocal(
+                        directionalSync.getValue() ? "gtsr.aggregator_config.directional.on"
+                            : "gtsr.aggregator_config.directional.off")))
+            .onMousePressed(mouseButton -> {
+                actionSync.sendToggleDirectional();
+                return true;
+            })
+            .tooltipBuilder(t -> t.addLine(IKey.lang("gtsr.aggregator_config.directional.tip")));
+    }
+
     /**
      * 单个维度槽（面板直接 child 显式定位，不用 Flow 容器——实机验证 Flow 作为面板 child 时
-     * pos 失效被居中布局）。槽格 16px 等距竖排：y = SLOT_COL_Y + index × SLOT_SIZE。
+     * pos 失效被居中布局）。5×5 网格：x = LEFT_X + (index % 5) × 17，y = SLOT_COL_Y + (index / 5) × 17；
+     * index 0 = 控制器槽（左上角），1-24 = 插件槽。
      */
     private ItemSlot buildPluginSlot(ModularSlot slot, boolean isControllerSlot, int index) {
         // 槽过滤：仅接受维度显示物品（ModularSlot.filter 在 GUI 插入时校验，服务端适配器兜底拒绝）
         slot.filter(MTECrustMatterAggregator::isDimensionDisplayItem)
             .singletonSlotGroup();
         ItemSlot itemSlot = new ItemSlot().slot(slot)
-            .pos(LEFT_X, SLOT_COL_Y + index * SLOT_SIZE)
+            .pos(
+                LEFT_X + (index % SLOT_GRID_COLS) * (SLOT_SIZE + SLOT_GAP),
+                SLOT_COL_Y + (index / SLOT_GRID_COLS) * (SLOT_SIZE + SLOT_GAP))
             .size(SLOT_SIZE);
         if (isControllerSlot) {
             // 槽 1 空槽提示：说明其为控制器槽（与主 GUI 同一数据源），可放维度显示物品
@@ -455,7 +579,7 @@ public class MTECrustMatterAggregatorConfigGui implements IGuiHolder<PosGuiData>
         }
     }
 
-    /** 构建单个矿石行：图标 + 本地化名 + 权重 + 出现维度 + 过滤开关按钮，列宽与标签栏逐列对齐。 */
+    /** 构建单个矿石行：图标 + 本地化名 + 权重 + 出现维度 + 过滤/定向开关按钮，列宽与标签栏逐列对齐。 */
     private IWidget buildOreRow(OreEntryInfo info) {
         // 矿石图标（16px）+ 本地化显示名（客户端 ItemStack.getDisplayName()，兼容中文）
         IWidget icon = new ItemDrawable(info.ore).asWidget()
@@ -465,18 +589,29 @@ public class MTECrustMatterAggregatorConfigGui implements IGuiHolder<PosGuiData>
         String weightText = EnumChatFormatting.GOLD.toString() + EnumChatFormatting.BOLD + formatWeight(info.weight);
         String dimText = EnumChatFormatting.GOLD.toString() + EnumChatFormatting.BOLD + String.join("+", info.dimAbbrs);
 
-        // 过滤开关按钮：按下 C2S 切换；已过滤行按钮文字/样式区分并带提示
+        // 过滤/定向开关按钮：定向模式下切换「定向」（aimed，服务端矿池只产出定向矿石），
+        // 否则切换「过滤」（filtered）；按下 C2S 切换
         ButtonWidget<?> filterButton = new ButtonWidget<>().size(COL_ACTION, 16)
             .overlay(
                 IKey.dynamic(
-                    () -> StatCollector.translateToLocal(
-                        info.filtered ? "gtsr.aggregator_config.unfilter" : "gtsr.aggregator_config.filter")))
+                    () -> directionalSync.getValue()
+                        ? StatCollector.translateToLocal(
+                            info.aimed ? "gtsr.aggregator_config.directional_ore.off"
+                                : "gtsr.aggregator_config.directional_ore")
+                        : StatCollector.translateToLocal(
+                            info.filtered ? "gtsr.aggregator_config.unfilter" : "gtsr.aggregator_config.filter")))
             .onMousePressed(mouseButton -> {
-                actionSync.sendToggleFilter(info);
+                if (directionalSync.getValue()) {
+                    actionSync.sendToggleDirectionalOre(info);
+                } else {
+                    actionSync.sendToggleFilter(info);
+                }
                 return true;
             })
             .tooltipBuilder(t -> {
-                if (info.filtered) {
+                if (directionalSync.getValue()) {
+                    t.addLine(IKey.lang("gtsr.aggregator_config.directional_ore_hint"));
+                } else if (info.filtered) {
                     t.addLine(IKey.lang("gtsr.aggregator_config.unfilter"));
                     t.addLine(IKey.lang("gtsr.aggregator_config.filtered_hint"));
                 } else {
@@ -539,11 +674,12 @@ public class MTECrustMatterAggregatorConfigGui implements IGuiHolder<PosGuiData>
             dimAbbrs.add(ByteBufUtils.readUTF8String(buf));
         }
         boolean filtered = buf.readBoolean();
-        return new OreEntryInfo(ore, weight, dimAbbrs, filtered);
+        boolean aimed = buf.readBoolean();
+        return new OreEntryInfo(ore, weight, dimAbbrs, filtered, aimed);
     }
 
     private static void writeOreInfo(PacketBuffer buf, OreEntryInfo info) {
-        // 读写顺序须严格一致：物品 → weight(float) → 维度数量 → 各维度缩写(UTF8) → filtered
+        // 读写顺序须严格一致：物品 → weight(float) → 维度数量 → 各维度缩写(UTF8) → filtered → aimed
         ByteBufUtils.writeItemStack(buf, info.ore);
         buf.writeFloat(info.weight);
         buf.writeInt(info.dimAbbrs.size());
@@ -551,6 +687,7 @@ public class MTECrustMatterAggregatorConfigGui implements IGuiHolder<PosGuiData>
             ByteBufUtils.writeUTF8String(buf, abbr);
         }
         buf.writeBoolean(info.filtered);
+        buf.writeBoolean(info.aimed);
     }
 
     private static boolean oreInfoEqual(OreEntryInfo a, OreEntryInfo b) {
@@ -558,6 +695,7 @@ public class MTECrustMatterAggregatorConfigGui implements IGuiHolder<PosGuiData>
         if (a == null || b == null) return false;
         if (a.weight != b.weight) return false;
         if (a.filtered != b.filtered) return false;
+        if (a.aimed != b.aimed) return false;
         if (!a.dimAbbrs.equals(b.dimAbbrs)) return false;
         if (a.ore == null || b.ore == null) return a.ore == b.ore;
         // 同一矿石（物品 + meta + NBT）视为相等
@@ -575,6 +713,8 @@ public class MTECrustMatterAggregatorConfigGui implements IGuiHolder<PosGuiData>
         private static final int ACTION_CYCLE_FORTUNE = 2;
         private static final int ACTION_TOGGLE_FILTER = 3;
         private static final int ACTION_REFRESH_POOL = 4;
+        private static final int ACTION_TOGGLE_DIRECTIONAL = 5;
+        private static final int ACTION_TOGGLE_DIRECTIONAL_ORE = 6;
 
         private final MTECrustMatterAggregator aggregator;
 
@@ -607,6 +747,20 @@ public class MTECrustMatterAggregatorConfigGui implements IGuiHolder<PosGuiData>
             syncToServer(ACTION_REFRESH_POOL, buf -> {});
         }
 
+        /** 切换定向模式（无 payload；服务端取机器附近玩家做 chat 反馈）。 */
+        public void sendToggleDirectional() {
+            syncToServer(ACTION_TOGGLE_DIRECTIONAL, buf -> {});
+        }
+
+        /** 携带矿石注册名（"modid:name"）+ meta 到服务端，定向模式下切换该矿石的定向瞄准状态。 */
+        public void sendToggleDirectionalOre(OreEntryInfo info) {
+            syncToServer(ACTION_TOGGLE_DIRECTIONAL_ORE, buf -> {
+                GameRegistry.UniqueIdentifier uid = GameRegistry.findUniqueIdentifierFor(info.ore.getItem());
+                ByteBufUtils.writeUTF8String(buf, uid == null ? "" : (uid.modId + ":" + uid.name));
+                buf.writeInt(info.ore.getItemDamage());
+            });
+        }
+
         // ===== 服务端执行 =====
 
         @Override
@@ -637,6 +791,36 @@ public class MTECrustMatterAggregatorConfigGui implements IGuiHolder<PosGuiData>
                 case ACTION_REFRESH_POOL:
                     aggregator.forceRefreshPool();
                     break;
+                case ACTION_TOGGLE_DIRECTIONAL: {
+                    // 服务端取机器附近玩家用于 chat 反馈；机器 toggleDirectionalMode 未对玩家判空，
+                    // 故仅在找到玩家时调用（玩家右击机器打开本界面，正常必在 16 格内）
+                    EntityPlayer p = aggregator.getBaseMetaTileEntity() != null ? aggregator.getBaseMetaTileEntity()
+                        .getWorld()
+                        .getClosestPlayer(
+                            aggregator.getBaseMetaTileEntity()
+                                .getXCoord(),
+                            aggregator.getBaseMetaTileEntity()
+                                .getYCoord(),
+                            aggregator.getBaseMetaTileEntity()
+                                .getZCoord(),
+                            16.0d)
+                        : null;
+                    if (p != null) aggregator.toggleDirectionalMode(p);
+                    break;
+                }
+                case ACTION_TOGGLE_DIRECTIONAL_ORE: {
+                    // 读写顺序须严格一致：先 UTF8 注册名后 int meta（见 sendToggleDirectionalOre）
+                    String name = ByteBufUtils.readUTF8String(buf);
+                    int meta = buf.readInt();
+                    if (name == null || name.isEmpty()) return;
+                    String[] parts = name.split(":", 2);
+                    if (parts.length != 2) return;
+                    Item item = GameRegistry.findItem(parts[0], parts[1]);
+                    if (item == null) return;
+                    GTUtility.ItemId oreId = GTUtility.ItemId.createNoCopy(item, meta, null);
+                    aggregator.setOreAimed(oreId, !aggregator.isOreAimed(oreId));
+                    break;
+                }
                 default:
                     return;
             }

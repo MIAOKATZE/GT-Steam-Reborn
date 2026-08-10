@@ -170,7 +170,7 @@ All inherit from `MTESteamMultiBase` (GT++), supporting normal steam and superhe
 - **地壳蒸汽掘进机 / Crust Steam Borer (CSB)**: Bronze/Steel. Void mining — produces ores based on dimension drop tables. Overworld and Nether only.
   虚空采矿——按维度掉落表产出矿石。仅限主世界和下界。
 - **地壳物质聚合器 / Crust Matter Aggregator (CMA)**: Steel only. Cross-dimension void mining via GT NEI Ore Plugin dimension display items (optional — defaults to the current dimension). Three steam grades at 24,000 L/s (Steam/Superheated/Supercritical, Dense fluids 1/100 demand), heat mechanic, and a 200-second singularity mode.
-  仅钢级。通过GT NEI Ore Plugin维度显示物品实现跨维度虚空采矿（物品非必需——无物品时默认当前维度）。三档蒸汽各24,000 L/s（蒸汽/过热/超临界，致密流体需求1/100）；热量机制（0.05%/0.1%/0.5%每秒）；以及200秒奇点模式。输出总线必填，其余仓室可选。
+  仅钢级。通过GT NEI Ore Plugin维度显示物品实现跨维度虚空采矿（物品非必需——无物品时默认当前维度）。三档蒸汽各24,000 L/s（蒸汽/过热/超临界，致密流体需求1/100）；热量机制（0.05%/0.1%/0.5%每秒）；以及200秒奇点模式。输出总线必填，其余仓室可选。定向模式：螺丝刀右击控制器或终端配置界面切换；切换时自动刷新矿池、强制停机并清空奇点模式。定向模式下仅第1格维度插件生效，其余24个维度槽只可取出；矿石浏览器的行按钮变为「定向/取消定向」逐矿多选（进入时清空过滤与定向选择）。只产出被定向的矿石；蒸汽倍率 = (1+矿石模式+时运) × 2（固定+100%，取代维度槽增幅）×（1000%÷定向权重和），选得越多消耗越低。额外消耗UU物质（输入仓uumatter流体）：1L/s ×（1+模式+时运）×（1000%÷定向权重和），不足时停机等待。定向模式下失控奇点节点颜色变为紫色（三种奇点状态均如此）。
 
 <p align="center"><img src="README/MTEVeinSteamPyrolyzer.png" width="300"><br><em>地脉蒸汽热解机 / Vein Steam Pyrolyzer</em></p>
 
