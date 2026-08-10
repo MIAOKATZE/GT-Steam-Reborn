@@ -81,13 +81,14 @@ import gregtech.api.util.GTUtility;
  */
 public class MTECrustMatterAggregatorConfigGui implements IGuiHolder<PosGuiData> {
 
-    // 面板 490×350：GUI 缩放 3x 下 1470×1050，1080p 窗口内完整显示（含底部玩家背包，不被窗口底边截断）
-    private static final int PANEL_WIDTH = 490;
+    // 面板 470×350：GUI 缩放 3x 下 1410×1050，1080p 窗口内完整显示（含底部玩家背包，不被窗口底边截断）；
+    // v1.10.52 收拢中间留白 20px（槽位右移 10、浏览器左移 10），面板同步收窄 20
+    private static final int PANEL_WIDTH = 470;
     private static final int PANEL_HEIGHT = 350;
     // 左列（维度槽）：标题 + 25 槽 5×5 网格 + 刷新按钮 + 维度说明 + 定向模式区，全部绝对定位。
     // 注意：槽列不用 Flow 容器（实机验证 Flow 作为面板 child 时 pos 失效被居中），
     // 25 个 ItemSlot 各自作为面板直接 child 显式 pos 定位。
-    private static final int LEFT_X = 8;
+    private static final int LEFT_X = 18;
     private static final int SLOT_TITLE_Y = 44;
     private static final int SLOT_COL_Y = 56;
     private static final int SLOT_SIZE = 16; // 槽格 16px；网格宽 5×17-1 = 84px（x 8-92），5 行 → y 56-140
@@ -101,13 +102,13 @@ public class MTECrustMatterAggregatorConfigGui implements IGuiHolder<PosGuiData>
     private static final int DIM_TEXT_Y = 144; // 维度消耗说明文本（槽格底 140 之下，黑字）
     private static final int DIRECTIONAL_Y = 162; // 定向模式切换按钮行（维度说明之下）
     private static final int HINT_Y = 184; // 当前模式提示信息（TextWidget 自动折行，不侵入浏览器区）
-    private static final int HINT_W = 177; // 左列可用宽度（x 8-190 浏览器框左缘）
+    private static final int HINT_W = 157; // 左列可用宽度（x 18-180 浏览器框左缘）
     private static final int HINT_H = 84; // 定向 7 行 × 10px 行高 + 余量（背包顶 269 之上）
-    // 右侧矿石浏览器区（绝对坐标，全部直接挂面板，避免嵌套容器定位歧义）；右移 40 让位左列文本，
-    // 加宽 20（272→292）使列表宽 284 容纳行内容 276（修复行内操作按钮被滚动条遮挡）
-    private static final int BROWSER_X = 190;
+    // 右侧矿石浏览器区（绝对坐标，全部直接挂面板，避免嵌套容器定位歧义）；
+    // v1.10.52 左移 10（190→180）收拢中间留白，宽 290（右缘 470 对齐面板）
+    private static final int BROWSER_X = 180;
     private static final int BROWSER_Y = 58; // 标题行（44-58）下方，不遮挡「矿石浏览器」标题
-    private static final int BROWSER_W = 292;
+    private static final int BROWSER_W = 290;
     private static final int BROWSER_H = 208;
     private static final int WEIGHT_INCREASE_X = BROWSER_X + 54; // 浏览器标题（5 个 CJK 字符 ≈ 30px）右侧 +3 字
     private static final int SEARCH_Y = 62;

@@ -816,14 +816,14 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
 
     /**
      * 消耗增加% 展示值（终端 UI「浏览器标题右侧」+X%）：定向模式 = 2500% ÷ 定向权重和；
-     * 筛选模式 = 被过滤矿石权重和（即消耗增加百分比，倍率项 1+权重和/100）。
+     * 筛选模式 = 权重和 + 5×k×(k-1)/2（v1.10.52 递增公式，倍率项 1+消耗增加/100）。
      */
     public double getWeightIncreasePercent() {
         if (mDirectionalMode) {
             float sum = getDirectionalWeightSum();
             return sum <= 0.0f ? 0.0d : 2500.0d / sum;
         }
-        return getFilteredWeightSum();
+        return getFilterCostIncrease();
     }
 
     /** 维度槽消耗增加% 展示值（终端 UI「刷新按钮右侧」+X%）：定向模式 = 固定 200%；筛选模式 = 20% × 额外维度槽数。 */
@@ -1344,7 +1344,16 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
     // —— 蒸汽倍率 ——
 
     /**
-     * 蒸汽消耗倍率 = (1+矿石模式加成+时运加成) × (1+0.2×(维度物品槽数-1)) × (1+被过滤矿石权重和/100)。
+     * 筛选模式消耗增加%（v1.10.52）：= 被过滤矿石权重和 + 5×k×(k-1)/2
+     * （k = 被过滤矿数；第 n 个被过滤矿的递增项 = 5×(n-1)，即第 1 个 +0、第 2 个 +5、第 3 个 +10 ……）。
+     */
+    public double getFilterCostIncrease() {
+        int k = mFilteredOres.size();
+        return getFilteredWeightSum() + 5.0d * k * (k - 1) / 2.0d;
+    }
+
+    /**
+     * 蒸汽消耗倍率 = (1+矿石模式加成+时运加成) × (1+0.2×(维度物品槽数-1)) × (1+筛选消耗增加/100)。
      * 定向模式：固定 +200% 取代维度槽增幅与过滤项，再乘定向倍率（UU 加速后蒸汽同步放大）。
      * depleteSteamForTick 按 basePerTick × 该倍率向上取整扣减。
      */
@@ -1357,7 +1366,7 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
             if (isDimensionDisplayItem(stack)) slotCount++;
         }
         return (1.0d + modeBonus + fortuneBonus) * (1.0d + SLOT_STEAM_PER_EXTRA * Math.max(0, slotCount - 1))
-            * (1.0d + getFilteredWeightSum() / 100.0d);
+            * (1.0d + getFilterCostIncrease() / 100.0d);
     }
 
     @Override

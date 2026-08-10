@@ -213,7 +213,7 @@ gtsr.aggregator_config.uu_formula=Cost=1×(mode+fortune)×directional cost
 gtsr.aggregator_config.mode_hint.filtered.1=Current mode: filter
 gtsr.aggregator_config.mode_hint.filtered.2=The more ores you filter and the heavier they are
 gtsr.aggregator_config.mode_hint.filtered.3=the more steam is consumed
-gtsr.aggregator_config.mode_hint.filtered.4=Cost increase%=filtered total weight%
+gtsr.aggregator_config.mode_hint.filtered.4=Cost increase%=filtered total weight%+5%×k(k-1)/2 (k=filter count, +5% per extra filter)
 gtsr.aggregator_config.mode_hint.directional.1=Current mode: directional
 gtsr.aggregator_config.mode_hint.directional.2=The fewer ores you aim at and the lower their weight
 gtsr.aggregator_config.mode_hint.directional.3=the more steam is consumed

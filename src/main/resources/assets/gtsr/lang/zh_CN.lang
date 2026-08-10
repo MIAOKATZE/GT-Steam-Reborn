@@ -213,7 +213,7 @@ gtsr.aggregator_config.uu_formula=消耗量=1×（矿物模式+时运）消耗×
 gtsr.aggregator_config.mode_hint.filtered.1=当前模式：筛选
 gtsr.aggregator_config.mode_hint.filtered.2=剔除矿物越多且权重越大
 gtsr.aggregator_config.mode_hint.filtered.3=则消耗蒸汽越多
-gtsr.aggregator_config.mode_hint.filtered.4=消耗增加%=筛选总权重%
+gtsr.aggregator_config.mode_hint.filtered.4=消耗增加%=筛选总权重%+5%×k(k-1)/2（k=筛选数，逐项+5%递增）
 gtsr.aggregator_config.mode_hint.directional.1=当前模式：定向
 gtsr.aggregator_config.mode_hint.directional.2=定向矿物越少且权重越低
 gtsr.aggregator_config.mode_hint.directional.3=则消耗蒸汽越多
