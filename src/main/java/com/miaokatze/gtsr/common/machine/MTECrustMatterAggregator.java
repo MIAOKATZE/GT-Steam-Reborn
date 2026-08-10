@@ -986,8 +986,10 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
         @Override
         public void setInventorySlotContents(int slot, ItemStack stack) {
             if (slot < 0 || slot >= mPluginSlots.length) return;
-            // 定向模式只出不进（服务端兜底拒绝放入）
-            if (mDirectionalMode) return;
+            // 定向模式只出不进：仅拒绝非 null 放入；置空（取走）必须放行——
+            // MUI2 取走路径为 splitStack 原地减 0 后 putStack(null) 落回本方法，若整体拒绝会残留
+            // 0 尺寸幽灵 stack，槽位仍可重复取 → 刷物品。放入另有 isItemValidForSlot + ModularSlot.filter 双拒。
+            if (mDirectionalMode && stack != null) return;
             // 仅接受维度显示物品，其余物品直接拒绝
             if (stack != null && !isDimensionDisplayItem(stack)) return;
             mPluginSlots[slot] = stack;

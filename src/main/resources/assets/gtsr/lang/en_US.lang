@@ -205,10 +205,8 @@ gtsr.aggregator_config.uu_cost.mult=(mult ×%s)
 gtsr.aggregator_config.uu_cost.off=—
 gtsr.aggregator_config.steam_cost.mult=(mult ×%s)
 gtsr.aggregator_config.steam_cost.detail_dir=Mult detail (mode/fortune × fixed +100% × directional): 
-gtsr.aggregator_config.directional.hint1=Directional mode: only aimed ores are produced; only the 1st dimension slot is active (other slots are extract-only)
-gtsr.aggregator_config.directional.hint2=Steam mult=(1+mode+fortune)×2×(1000%÷aimed weight sum): more aims = lower cost
-gtsr.aggregator_config.directional.hint3=Extra UU Matter: 1L/s × (1+mode+fortune) × (1000%÷aimed weight sum)
-gtsr.aggregator_config.directional.hint4=Toggling directional mode refreshes the pool, force-stops and clears singularity mode
+gtsr.aggregator_config.mode_hint.filtered=Current mode: normal filtering — filtered ores no longer participate in extraction (weight freed)\nSteam mult=(1+mode+fortune)×(1+0.2×extra slots)×(1+filtered weight sum/100)\nUse in-row Filter/Unfilter to toggle single ores; filtered weight sum adds to steam cost\nRefresh button: rebuild pool after inserting/removing dimension items
+gtsr.aggregator_config.mode_hint.directional=Current mode: directional — only aimed ores are produced\nOnly the 1st dimension slot works; other slots are extract-only\nSteam mult=(1+mode+fortune)×2×(1000%÷aimed weight sum)\nUU cost=1L/s×(1+mode+fortune)×(1000%÷aimed weight sum)\nUse in-row Aim/Un-aim (multi-select); more aims = lower cost\nToggling refreshes the pool, force-stops and clears singularity mode
 gtsr.aggregator_config.directional.chat.on=Directional mode enabled
 gtsr.aggregator_config.directional.chat.off=Directional mode disabled
 

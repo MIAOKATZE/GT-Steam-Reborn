@@ -205,10 +205,8 @@ gtsr.aggregator_config.uu_cost.mult=（倍率 ×%s）
 gtsr.aggregator_config.uu_cost.off=—
 gtsr.aggregator_config.steam_cost.mult=（倍率 ×%s）
 gtsr.aggregator_config.steam_cost.detail_dir=倍率明细（模式/时运 × 固定+100% × 定向）: 
-gtsr.aggregator_config.directional.hint1=定向模式：只产出被「定向」的矿石，且仅识别第 1 格维度插件（其余维度槽只可取出）
-gtsr.aggregator_config.directional.hint2=蒸汽倍率=(1+模式+时运)×2×（1000%÷定向权重和）：选得越多消耗越低
-gtsr.aggregator_config.directional.hint3=额外消耗 UU 物质：1L/s ×（1+模式+时运）×（1000%÷定向权重和）
-gtsr.aggregator_config.directional.hint4=切换定向模式会刷新矿池、强制停机并清空奇点模式
+gtsr.aggregator_config.mode_hint.filtered=当前模式：常规过滤——被过滤矿石不再参与抽取（已解放权重）\n蒸汽倍率=(1+模式+时运)×(1+0.2×额外槽)×(1+过滤权重和/100)\n行内「过滤/取消过滤」切换单矿，被过滤矿跨维权重和计入蒸汽加成\n刷新按钮：放入/移除维度物品后点击重建矿池
+gtsr.aggregator_config.mode_hint.directional=当前模式：定向——只产出被「定向」的矿石\n仅第 1 格维度插件生效，其余槽位只可取出\n蒸汽倍率=(1+模式+时运)×2×(1000%÷定向权重和)\nUU消耗=1L/s×(1+模式+时运)×(1000%÷定向权重和)\n行内「定向/取消定向」多选，选得越多消耗越低\n切换会刷新矿池、强制停机并清空奇点模式
 gtsr.aggregator_config.directional.chat.on=定向模式已开启
 gtsr.aggregator_config.directional.chat.off=定向模式已关闭
 

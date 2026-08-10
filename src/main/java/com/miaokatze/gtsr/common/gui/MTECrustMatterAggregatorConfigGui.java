@@ -35,6 +35,7 @@ import com.cleanroommc.modularui.widget.ParentWidget;
 import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.cleanroommc.modularui.widgets.ListWidget;
 import com.cleanroommc.modularui.widgets.SlotGroupWidget;
+import com.cleanroommc.modularui.widgets.TextWidget;
 import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.cleanroommc.modularui.widgets.slot.ItemSlot;
 import com.cleanroommc.modularui.widgets.slot.ModularSlot;
@@ -89,11 +90,15 @@ public class MTECrustMatterAggregatorConfigGui implements IGuiHolder<PosGuiData>
     private static final int SLOT_SIZE = 16; // 槽格 16px；网格宽 5×17-1 = 84px（x 8-92），5 行 → y 56-140
     private static final int SLOT_GRID_COLS = 5;
     private static final int SLOT_GAP = 1; // 槽格间距
-    private static final int REFRESH_X = LEFT_X + SLOT_GRID_COLS * (SLOT_SIZE + SLOT_GAP) + 2; // 95，槽区右侧
-    private static final int REFRESH_Y = SLOT_COL_Y + 2 * (SLOT_SIZE + SLOT_GAP); // 90，槽区垂直居中
-    private static final int DIRECTIONAL_Y = 140; // 定向模式切换按钮行
-    private static final int UU_LINE_Y = 162; // UU 物质消耗行
-    private static final int HINT_Y = 184; // 定向模式提示信息起始行
+    // 刷新按钮：「维度槽」标题文字（3 个 CJK 字符 ≈ 18px）右侧，与标题同一水平线（不放槽格右侧）；
+    // y 43-55 位于标题行且不侵入下方槽格（56 起）
+    private static final int REFRESH_X = LEFT_X + 32;
+    private static final int REFRESH_Y = SLOT_TITLE_Y - 1;
+    private static final int DIRECTIONAL_Y = 148; // 定向模式切换按钮行（网格底边 140 之下留 8px，避免压格）
+    private static final int UU_LINE_Y = 172; // UU 物质消耗行
+    private static final int HINT_Y = 194; // 当前模式提示信息（TextWidget 自动折行，不侵入浏览器区 x<124）
+    private static final int HINT_W = 116; // 左列可用宽度（x 8-124 浏览器框左缘）
+    private static final int HINT_H = 70; // 约 7 行 × 9px 行高 + 余量（背包顶 269 之上）
     // 右侧矿石浏览器区（绝对坐标，全部直接挂面板，避免嵌套容器定位歧义）
     private static final int BROWSER_X = 124;
     private static final int BROWSER_Y = 58; // 标题行（44-58）下方，不遮挡「矿石浏览器」标题
@@ -237,19 +242,30 @@ public class MTECrustMatterAggregatorConfigGui implements IGuiHolder<PosGuiData>
         };
         panel.child(buildPluginSlot(controllerSlot, true, 0));
         IItemHandler pluginHandler = new InvWrapper(aggregator.getPluginSlotInventory());
-        // 插件槽引用留存：定向模式下只出不进（ModularSlot.canPut(false)），由 directionalSync 变化监听驱动
+        // 插件槽引用留存：定向模式下只出不进（ModularSlot.canPut(false)）+ 灰化锁定视觉
+        // （ItemSlot.backgroundOverlay(SLOT_ITEM_DARK)），由 directionalSync 变化监听驱动
         List<ModularSlot> pluginSlots = new ArrayList<>(PLUGIN_SLOT_COUNT);
+        List<ItemSlot> pluginItemSlots = new ArrayList<>(PLUGIN_SLOT_COUNT);
         for (int i = 0; i < PLUGIN_SLOT_COUNT; i++) {
             ModularSlot pluginSlot = new ModularSlot(pluginHandler, i);
             pluginSlots.add(pluginSlot);
-            panel.child(buildPluginSlot(pluginSlot, false, i + 1));
+            ItemSlot itemSlot = buildPluginSlot(pluginSlot, false, i + 1);
+            pluginItemSlots.add(itemSlot);
+            panel.child(itemSlot);
         }
-        // 定向模式只出不进：插件槽在定向模式下只可拿走不可放入（服务端同样拒绝放入，此处为客户端交互限制；
-        // controllerSlot 槽 1 不受限）。同步值首包到达即触发监听，配合下方立即应用保证状态正确。
+        // 定向模式只出不进 + 灰化：插件槽在定向模式下只可拿走不可放入（服务端同样拒绝放入，此处为客户端
+        // 交互限制与视觉反馈；controllerSlot 槽 1 不受限）。同步值首包到达即触发监听，配合下方立即应用保证状态正确。
         directionalSync.setChangeListener(() -> {
             boolean directional = directionalSync.getValue();
             for (ModularSlot s : pluginSlots) {
                 s.canPut(!directional);
+            }
+            for (ItemSlot s : pluginItemSlots) {
+                if (directional) {
+                    s.backgroundOverlay(GTGuiTextures.SLOT_ITEM_DARK);
+                } else {
+                    s.backgroundOverlay();
+                }
             }
         });
         directionalSync.getChangeListener()
@@ -258,32 +274,16 @@ public class MTECrustMatterAggregatorConfigGui implements IGuiHolder<PosGuiData>
         panel.child(buildRefreshButton(actionSync));
         // 定向模式切换按钮：C2S 切换；服务端进入时清空过滤/定向、重建矿池、强制停机并清空奇点模式
         panel.child(buildDirectionalButton(directionalSync, actionSync));
-        // UU 物质消耗行：定向开 → 1 L/s × 倍率（紫色加粗）；定向关 → —（灰色）
+        // UU 物质消耗行：定向开 → 1 L/s × 倍率（紫色加粗）；定向关 → —（白色）
         panel.child(
             IKey.dynamic(() -> formatUUCostLine(uuMultSync.getDoubleValue(), directionalSync.getValue()))
                 .asWidget()
                 .pos(LEFT_X, UU_LINE_Y));
-        // 定向模式提示信息（4 行，自 HINT_Y 起每行 12px，白/灰交替）
+        // 当前模式提示信息：TextWidget 按宽度自动折行（不侵入浏览器区）；内容随定向开关切换
+        // （定向关 = 常规过滤模式介绍 / 定向开 = 定向模式介绍），白/金/紫三色轮换、无灰色字体
         panel.child(
-            IKey.str(
-                EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.aggregator_config.directional.hint1"))
-                .asWidget()
-                .pos(LEFT_X, HINT_Y));
-        panel.child(
-            IKey.str(
-                EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.aggregator_config.directional.hint2"))
-                .asWidget()
-                .pos(LEFT_X, HINT_Y + 12));
-        panel.child(
-            IKey.str(
-                EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.aggregator_config.directional.hint3"))
-                .asWidget()
-                .pos(LEFT_X, HINT_Y + 24));
-        panel.child(
-            IKey.str(
-                EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.aggregator_config.directional.hint4"))
-                .asWidget()
-                .pos(LEFT_X, HINT_Y + 36));
+            new TextWidget<>(IKey.dynamic(() -> buildModeHintText(directionalSync.getValue()))).pos(LEFT_X, HINT_Y)
+                .size(HINT_W, HINT_H));
 
         // 初始刷新（sync handler 尚未初始化时数据为空，首次同步到达后 changeListener 再刷新）
         refreshOreList();
@@ -394,11 +394,11 @@ public class MTECrustMatterAggregatorConfigGui implements IGuiHolder<PosGuiData>
 
     /**
      * UU 物质消耗行：定向开 → 1 L/s × 倍率（紫色加粗，uu_cost 为前缀键 + uu_cost.mult 倍率后缀）；
-     * 定向关 → 灰字 "—"（uu_cost.off）。注：uu_cost 键值无 %s 占位，只能拼接（与主 GUI 一致）。
+     * 定向关 → 白字 "—"（uu_cost.off）。注：uu_cost 键值无 %s 占位，只能拼接（与主 GUI 一致）。
      */
     private static String formatUUCostLine(double mult, boolean directional) {
         if (!directional) {
-            return EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.aggregator_config.uu_cost")
+            return EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.aggregator_config.uu_cost")
                 + StatCollector.translateToLocal("gtsr.aggregator_config.uu_cost.off");
         }
         String ratePart = NumberFormatUtil.formatNumber(Math.round(mult)) + " L/s"
@@ -410,12 +410,35 @@ public class MTECrustMatterAggregatorConfigGui implements IGuiHolder<PosGuiData>
             + ratePart;
     }
 
+    /**
+     * 当前模式提示信息：定向关 = 常规过滤模式介绍（已解放权重语义/蒸汽倍率/操作提示）；
+     * 定向开 = 定向模式介绍（只产定向矿/蒸汽与 UU 公式/多选/切换副作用）。
+     * 键值为 \n 分隔的多行文本，此处按行轮换 WHITE/GOLD/LIGHT_PURPLE 着色（无灰色字体），
+     * 由 TextWidget 按宽度自动折行（不侵入右侧矿石浏览器区）。
+     */
+    private static String buildModeHintText(boolean directional) {
+        String key = directional ? "gtsr.aggregator_config.mode_hint.directional"
+            : "gtsr.aggregator_config.mode_hint.filtered";
+        String raw = StatCollector.translateToLocal(key);
+        if (raw.isEmpty() || raw.equals(key)) return raw;
+        EnumChatFormatting[] colors = { EnumChatFormatting.WHITE, EnumChatFormatting.GOLD,
+            EnumChatFormatting.LIGHT_PURPLE };
+        String[] lines = raw.split("\n");
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < lines.length; i++) {
+            if (i > 0) sb.append("\n");
+            sb.append(colors[i % colors.length])
+                .append(lines[i]);
+        }
+        return sb.toString();
+    }
+
     // —— 左侧 25 槽 5×5 网格 + 刷新按钮 + 定向模式区 ——
 
     /** 刷新按钮：Ore Plugin 放入/移除槽后矿池不会立刻重建，点击手动刷新（C2S 服务端立即重建矿池）。 */
     private IWidget buildRefreshButton(AggregatorActionSyncHandler actionSync) {
         return new ButtonWidget<>().pos(REFRESH_X, REFRESH_Y)
-            .size(26, 16)
+            .size(26, 12)
             .overlay(IKey.lang("gtsr.aggregator_config.refresh"))
             .onMousePressed(mouseButton -> {
                 actionSync.sendRefreshPool();
