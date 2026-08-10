@@ -1,6 +1,5 @@
 package com.miaokatze.gtsr.api.util;
 
-import bartworks.system.material.WerkstoffLoader;
 import gregtech.api.GregTechAPI;
 import gregtech.api.util.GTUtility;
 
@@ -33,7 +32,7 @@ public final class CasingTierTextureHelper {
             case 10:
                 return GTUtility.getCasingTextureIndex(GregTechAPI.sBlockReinforced, 10);
             case 11:
-                return GTUtility.getCasingTextureIndex(WerkstoffLoader.BWBlockCasings, 32091);
+                return GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings8, 3);
             case 12:
                 return GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings8, 10);
             default:

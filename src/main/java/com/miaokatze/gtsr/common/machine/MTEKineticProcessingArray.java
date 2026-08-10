@@ -307,7 +307,7 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
                 Pair.of(GregTechAPI.sBlockCasings4, 14), // Tier 8 - Mining Osmiridium (UV)
                 Pair.of(GregTechAPI.sBlockReinforced, 11), // Tier 9 - Reinforced Machine Casing (UHV)
                 Pair.of(GregTechAPI.sBlockReinforced, 10), // Tier 10 - Naquadah Reinforced (UEV)
-                Pair.of(WerkstoffLoader.BWBlockCasings, 32091), // Tier 11 - Bolted Naquadah Alloy (UIV)
+                Pair.of(GregTechAPI.sBlockCasings8, 3), // Tier 11 - Mining Black Plutonium (UIV)
                 Pair.of(GregTechAPI.sBlockCasings8, 10)); // Tier 12 - Radiant Naquadah Alloy (UMV)
         }
         return ALLOWED_CASINGS;
@@ -343,7 +343,7 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
                 Pair.of(GregTechAPI.sBlockFrames, Materials.Osmium.mMetaItemSubID), // 8 - UV
                 Pair.of(GregTechAPI.sBlockFrames, Materials.Neutronium.mMetaItemSubID), // 9 - UHV
                 Pair.of(GregTechAPI.sBlockFrames, Materials.Bedrockium.mMetaItemSubID), // 10 - UEV
-                Pair.of(GregTechAPI.sBlockFrames, Materials.BlackPlutonium.mMetaItemSubID), // 11 - UIV
+                Pair.of(GregTechAPI.sBlockFrames, 397), // 11 - Infinity (UIV)
                 Pair.of(GregTechAPI.sBlockFrames, 588)); // 12 - UMV (SpaceTime)
         }
         return FRAME_CASINGS;
@@ -379,12 +379,10 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
             if (meta == 14) return 8;
         }
         if (block == GregTechAPI.sBlockCasings8) {
+            if (meta == 3) return 11; // Mining Black Plutonium (UIV)
             if (meta == 6) return 6;
             if (meta == 7) return 7;
             if (meta == 10) return 12; // Radiant Naquadah Alloy (UMV)
-        }
-        if (block == WerkstoffLoader.BWBlockCasings) {
-            if (meta == 32091) return 11; // Bolted Naquadah Alloy (UIV)
         }
         if (block == GregTechAPI.sBlockReinforced) {
             if (meta == 11) return 9; // Reinforced Machine Casing (UHV)
@@ -420,7 +418,7 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
             if (meta == Materials.Osmium.mMetaItemSubID) return 8;
             if (meta == Materials.Neutronium.mMetaItemSubID) return 9;
             if (meta == Materials.Bedrockium.mMetaItemSubID) return 10;
-            if (meta == Materials.BlackPlutonium.mMetaItemSubID) return 11;
+            if (meta == 397) return 11; // Infinity (UIV)
             if (meta == 588) return 12; // SpaceTime
         }
         if (block == getTier6FrameBlock() && meta == getTier6FrameMeta()) return 6;
