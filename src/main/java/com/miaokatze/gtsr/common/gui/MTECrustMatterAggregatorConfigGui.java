@@ -81,10 +81,10 @@ import gregtech.api.util.GTUtility;
  */
 public class MTECrustMatterAggregatorConfigGui implements IGuiHolder<PosGuiData> {
 
-    // 面板 470×350：GUI 缩放 3x 下 1410×1050，1080p 窗口内完整显示（含底部玩家背包，不被窗口底边截断）
-    private static final int PANEL_WIDTH = 470;
+    // 面板 490×350：GUI 缩放 3x 下 1470×1050，1080p 窗口内完整显示（含底部玩家背包，不被窗口底边截断）
+    private static final int PANEL_WIDTH = 490;
     private static final int PANEL_HEIGHT = 350;
-    // 左列（维度槽）：标题 + 25 槽 5×5 网格 + 刷新按钮 + 定向模式区，全部绝对定位。
+    // 左列（维度槽）：标题 + 25 槽 5×5 网格 + 刷新按钮 + 维度说明 + 定向模式区，全部绝对定位。
     // 注意：槽列不用 Flow 容器（实机验证 Flow 作为面板 child 时 pos 失效被居中），
     // 25 个 ItemSlot 各自作为面板直接 child 显式 pos 定位。
     private static final int LEFT_X = 8;
@@ -98,16 +98,18 @@ public class MTECrustMatterAggregatorConfigGui implements IGuiHolder<PosGuiData>
     private static final int REFRESH_X = LEFT_X + 32;
     private static final int REFRESH_Y = SLOT_TITLE_Y - 1;
     private static final int DIM_INCREASE_X = REFRESH_X + 26 + 4; // 刷新按钮右侧
-    private static final int DIRECTIONAL_Y = 156; // 定向模式切换按钮行（网格底边 140 之下留 16px）
-    private static final int HINT_Y = 178; // 当前模式提示信息（TextWidget 自动折行，不侵入浏览器区）
-    private static final int HINT_W = 142; // 左列可用宽度（x 8-150 浏览器框左缘）
+    private static final int DIM_TEXT_Y = 144; // 维度消耗说明文本（槽格底 140 之下，黑字）
+    private static final int DIRECTIONAL_Y = 162; // 定向模式切换按钮行（维度说明之下）
+    private static final int HINT_Y = 184; // 当前模式提示信息（TextWidget 自动折行，不侵入浏览器区）
+    private static final int HINT_W = 177; // 左列可用宽度（x 8-190 浏览器框左缘）
     private static final int HINT_H = 84; // 定向 7 行 × 10px 行高 + 余量（背包顶 269 之上）
-    // 右侧矿石浏览器区（绝对坐标，全部直接挂面板，避免嵌套容器定位歧义）；浏览器收窄 16px 让位左列提示区
-    private static final int BROWSER_X = 150;
+    // 右侧矿石浏览器区（绝对坐标，全部直接挂面板，避免嵌套容器定位歧义）；右移 40 让位左列文本，
+    // 加宽 20（272→292）使列表宽 284 容纳行内容 276（修复行内操作按钮被滚动条遮挡）
+    private static final int BROWSER_X = 190;
     private static final int BROWSER_Y = 58; // 标题行（44-58）下方，不遮挡「矿石浏览器」标题
-    private static final int BROWSER_W = 272;
+    private static final int BROWSER_W = 292;
     private static final int BROWSER_H = 208;
-    private static final int WEIGHT_INCREASE_X = BROWSER_X + 36; // 浏览器标题（5 个 CJK 字符 ≈ 30px）右侧
+    private static final int WEIGHT_INCREASE_X = BROWSER_X + 54; // 浏览器标题（5 个 CJK 字符 ≈ 30px）右侧 +3 字
     private static final int SEARCH_Y = 62;
     private static final int HEADER_Y = 82;
     private static final int LIST_X = BROWSER_X + 4;
@@ -291,6 +293,14 @@ public class MTECrustMatterAggregatorConfigGui implements IGuiHolder<PosGuiData>
             IKey.dynamic(() -> formatIncreaseValue(dimIncreaseSync.getDoubleValue()))
                 .asWidget()
                 .pos(DIM_INCREASE_X, SLOT_TITLE_Y));
+        // 维度消耗说明文本（槽格下方，黑字）：筛选 = 20%蒸汽消耗增加/维度；定向 = 200%蒸汽消耗增加
+        panel.child(
+            IKey.dynamic(
+                () -> EnumChatFormatting.BLACK + StatCollector.translateToLocal(
+                    directionalSync.getValue() ? "gtsr.aggregator_config.dim_text.directional"
+                        : "gtsr.aggregator_config.dim_text.filtered"))
+                .asWidget()
+                .pos(LEFT_X, DIM_TEXT_Y));
         // 定向模式切换按钮：C2S 切换；服务端进入时清空过滤/定向、重建矿池、强制停机并清空奇点模式
         panel.child(buildDirectionalButton(directionalSync, actionSync));
         // 当前模式提示信息：TextWidget 按宽度自动折行（不侵入浏览器区）；内容随定向开关切换
@@ -428,25 +438,25 @@ public class MTECrustMatterAggregatorConfigGui implements IGuiHolder<PosGuiData>
     }
 
     /**
-     * 当前模式提示信息（精简版）：第一行蓝色「当前模式：定向/筛选」，随后黑色公式正文
-     * （筛选：剔除矿物越多且权重越大→则消耗蒸汽越多→消耗增加%=筛选总权重%；
-     * 定向：定向矿物越少且权重越低→则消耗蒸汽越多→消耗增加%=2500%/定向总权重），
+     * 当前模式提示信息（精简版）：首行蓝色「当前模式：定向/筛选」，随后黑色公式正文；
      * 定向模式最底部追加紫色 UU 物质消耗（前缀 + 实际速率含倍率）+ 黑色消耗量公式。
-     * 键值为 \n 分隔的多行文本，此处逐行着蓝/黑色；UU 三行由代码拼接（动态速率），
-     * 由 TextWidget 按宽度自动折行（不侵入右侧矿石浏览器区）。
+     * 分行采用逐行独立 lang 键（mode_hint.<模式>.1~N，不用键内 \n 换行），此处按序号读取并拼接；
+     * UU 三行由代码拼接（动态速率）。由 TextWidget 按宽度自动折行（不侵入右侧矿石浏览器区）。
      */
     private static String buildModeHintText(boolean directional, double uuMult) {
-        String key = directional ? "gtsr.aggregator_config.mode_hint.directional"
+        String base = directional ? "gtsr.aggregator_config.mode_hint.directional"
             : "gtsr.aggregator_config.mode_hint.filtered";
-        String raw = StatCollector.translateToLocal(key);
-        if (raw.isEmpty() || raw.equals(key)) return raw;
         StringBuilder sb = new StringBuilder();
-        String[] lines = raw.split("\n");
-        for (int i = 0; i < lines.length; i++) {
-            if (i > 0) sb.append("\n");
-            // 第一行蓝色模式标题，其余行黑色正文
-            sb.append(i == 0 ? EnumChatFormatting.BLUE : EnumChatFormatting.BLACK)
-                .append(lines[i]);
+        boolean first = true;
+        for (int i = 1;; i++) {
+            String key = base + "." + i;
+            String line = StatCollector.translateToLocal(key);
+            if (line.isEmpty() || line.equals(key)) break;
+            if (!first) sb.append("\n");
+            // 首行蓝色模式标题，其余行黑色正文
+            sb.append(first ? EnumChatFormatting.BLUE : EnumChatFormatting.BLACK)
+                .append(line);
+            first = false;
         }
         if (directional) {
             // UU 消耗块（紫色）：前缀 + 实际速率（含倍率）+ 黑色消耗量公式
