@@ -43,6 +43,7 @@ import com.gtnewhorizon.structurelib.structure.ISurvivalBuildEnvironment;
 import com.gtnewhorizon.structurelib.structure.StructureDefinition;
 import com.gtnewhorizon.structurelib.util.Vec3Impl;
 import com.miaokatze.gtsr.api.compat.GTSRHatchFluidAccess;
+import com.miaokatze.gtsr.api.compat.GTVersionCompat;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.gui.AggregatorConfigGuiFactory;
 import com.miaokatze.gtsr.common.gui.MTECrustMatterAggregatorGui;
@@ -480,7 +481,10 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
             .addElement('B', ofBlock(GameRegistry.findBlock("gregtech", "gt.blockcasings2"), 3))
             .addElement('C', ofBlock(GameRegistry.findBlock("gregtech", "gt.blockcasings2"), 13))
             .addElement('D', ofBlock(GregTechAPI.sBlockFrames, Materials.Steel.mMetaItemSubID))
-            .addElement('E', ofBlock(GameRegistry.findBlock("gregtech", "gt.blockglass1"), 10))
+            // E = 防爆玻璃（beta-1: IC2 blockAlloyGlass/meta0；beta-2: gt.blockglass1/meta10，经 GTVersionCompat 适配）
+            .addElement(
+                'E',
+                ofBlock(GTVersionCompat.getReinforcedGlassBlock(), GTVersionCompat.getReinforcedGlassMeta()))
             // F = 失控奇点定位位（CheckOnly：接受奇点方块或空气，构建/投影不放置）
             .addElement('F', singularityLocator)
             // G/H = 纯空气位（粒子喷口，导出为泥土/草方块但结构上按空气处理）
