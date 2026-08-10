@@ -82,6 +82,7 @@ import gregtech.api.util.GTStructureUtility;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.IGTHatchAdder;
 import gregtech.api.util.MultiblockTooltipBuilder;
+import gregtech.api.util.shutdown.ShutDownReasonRegistry;
 import gregtech.common.blocks.BlockCasings1;
 import gregtech.common.blocks.BlockCasings2;
 import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
@@ -125,12 +126,13 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
     public int mCurrentSteamOutput = 0;
     protected int mStructureGraceTicks = 100;
 
-    private static final double HEAT_UP_BRONZE = 0.00006d;
-    private static final double HEAT_UP_STEEL = 0.00003d;
+    // 升温速率整体 ×2（青铜 0.012%/tick、钢 0.006%/tick）；超压模式下再 ×0.2
+    private static final double HEAT_UP_BRONZE = 0.00012d;
+    private static final double HEAT_UP_STEEL = 0.00006d;
     private static final double HEAT_DOWN = 0.002d;
-    // 过热芯片升温速率：0.002%/tick（设计值，慢于钢/青铜，换取超热蒸汽产出）
+    // 过热芯片升温速率：0.004%/tick（设计值，慢于钢/青铜，换取超热蒸汽产出）
     // v1.8.8 曾误改为 0.01%/tick 试图修 5% 掉热，真正根因是配方重启 1tick 空窗（v1.8.10 已修）
-    private static final double HEAT_UP_CHIP = 0.00002d;
+    private static final double HEAT_UP_CHIP = 0.00004d;
 
     private static final int MAX_OUTPUT_BRONZE = 60_000;
     private static final int MAX_OUTPUT_STEEL = 150_000;
@@ -150,6 +152,13 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
 
     public double mCalcification = 0.0d;
     public long mRunningTicks = 0L;
+
+    // 超压模式：热量可越过 1.0 升至 2.0，产出/钙化加速；螺丝刀切换，热量跌破 1.0 自动退出
+    public boolean mOverpressure = false;
+    // 缺水停机标志：水/蒸馏水耗尽时置 true 阻止蒸汽产出（含停机冷却期），玩家重新开机（GUI 电源开关/软锤）时清除
+    private boolean mWaterStop = false;
+    // 缺水提示已发送（NBT 持久）：每次停机周期只提示一次，重新开机时清除
+    private boolean mNoWaterNotified = false;
 
     private final ArrayList<MTESteamOutputHatch> mSteamOutputHatches = new ArrayList<>();
     private final ArrayList<MTEPressureSteamOutputHatch> mPressureSteamOutputHatches = new ArrayList<>();
@@ -275,15 +284,16 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
     @Override
     public void onValueUpdate(byte aValue) {
         // 打包编码（太阳能阵列同款）：GT 事件通道会剥掉 bit7，故 mHeat 用 bit3-6 共 4 bit（精度 1/15≈6.7%），
-        // mSetTier 1~2 占 bit1-2（0 表示未定级，避免 -1 补码坑），bit0 为运行标志
+        // 编码范围 0~2.0（超压模式热量上限）；mSetTier 1~2 占 bit1-2（0 表示未定级，避免 -1 补码坑），bit0 为运行标志
         int encodedTier = (aValue >> 1) & 0x03;
         mSetTier = encodedTier == 0 ? -1 : encodedTier;
-        mHeat = ((aValue >> 3) & 0x0F) / 15.0d;
+        mHeat = ((aValue >> 3) & 0x0F) / 15.0d * 2.0d;
     }
 
     @Override
     public byte getUpdateData() {
-        int heatQuantized = (int) Math.round(mHeat * 15.0);
+        // 热量 0~2.0（超压模式）量化到 4bit 0~15
+        int heatQuantized = (int) Math.round(mHeat / 2.0d * 15.0);
         if (heatQuantized < 0) heatQuantized = 0;
         if (heatQuantized > 15) heatQuantized = 15;
         int encodedTier = mSetTier <= 0 ? 0 : mSetTier;
@@ -645,6 +655,20 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
         }
     }
 
+    /** 向机器所有者发送一次翻译键聊天（超压自动退出、缺水停机提示共用）。 */
+    private void sendChatToOwner(String key) {
+        UUID ownerUuid = getBaseMetaTileEntity().getOwnerUuid();
+        if (ownerUuid == null) return;
+        for (Object o : MinecraftServer.getServer()
+            .getConfigurationManager().playerEntityList) {
+            if (o instanceof EntityPlayerMP player && player.getUniqueID()
+                .equals(ownerUuid)) {
+                GTUtility.sendChatTrans(player, key);
+                return;
+            }
+        }
+    }
+
     // G 草方块位粒子形状偏移（9 个）：(列 2-4, 层 0, 行 2-4) - (3, 6, 1)
     private static List<int[]> getParticleOffsets() {
         if (mParticleOffsets == null) {
@@ -731,20 +755,29 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
         }
 
         if (aTick % 20 == 0) {
+            // 超压自动退出：热量跌破 1.0（停机冷却等）时自动关闭超压模式并提示一次
+            if (mOverpressure && mHeat < 1.0d) {
+                mOverpressure = false;
+                sendChatToOwner("gtsr.chat.overpressure.off");
+            }
             // 配方完成同 tick 会立即 checkRecipe() 重启新配方，重启 tick 存在 1 tick 的 mProgresstime==0 空窗，
             // 机器实际连续运行，不应视为停机；岩浆耗尽时 mMaxProgresstime=0 仍会正确进入下方冷却分支
             boolean isRunning = mMaxProgresstime > 0;
             if (isRunning) {
                 double rate = hasOverheatChip() ? HEAT_UP_CHIP : (mSetTier == 1 ? HEAT_UP_BRONZE : HEAT_UP_STEEL);
-                mHeat = Math.min(1.0d, mHeat + rate);
+                if (mOverpressure) rate *= 0.2d;
+                // 超压模式下热量上限放开到 2.0（普通模式仍钳 1.0）
+                mHeat = Math.min(mOverpressure ? 2.0d : 1.0d, mHeat + rate);
             } else if (mMachine || mStructureGraceTicks <= 0) {
                 // Cool down when structure is valid but idle, or after grace period when broken
-                mHeat = Math.max(0.0d, mHeat - HEAT_DOWN);
+                // 超压模式下散热加倍
+                mHeat = Math.max(0.0d, mHeat - (mOverpressure ? HEAT_DOWN * 2.0d : HEAT_DOWN));
             }
         }
 
         // Steam generation from water (independent of lava recipe)
-        if (aTick % 20 == 0 && mMachine && mHeat > 0.01d) {
+        // 缺水停机（mWaterStop）期间不产蒸汽：即使结构有效、热量仍高，也要等玩家重新开机
+        if (aTick % 20 == 0 && mMachine && !mWaterStop && mHeat > 0.01d) {
             int maxOutput = mSetTier == 1 ? MAX_OUTPUT_BRONZE : MAX_OUTPUT_STEEL;
             int maxWaterNeeded = maxOutput / STEAM_PER_WATER;
             int consumedWater = (int) (maxWaterNeeded * mHeat * getCalcificationOutputFactor());
@@ -772,10 +805,12 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
                     mRunningTicks += 20;
 
                     // Calcification logic
-                    if (!isDistilledWater && mRunningTicks > CALCIFICATION_DELAY_TICKS) {
+                    // 超压且用普通水：跳过 1 小时延迟门槛（立刻开始结垢）、每次增量 ×20（0.01→0.2，
+                    // 满垢时间 = 原满垢 1/20）；interval 周期调制保留，避免逐秒高速结垢；蒸馏水豁免保持
+                    if (!isDistilledWater && (mOverpressure || mRunningTicks > CALCIFICATION_DELAY_TICKS)) {
                         long calcificationInterval = getCalcificationFullTime() / 100;
                         if ((mRunningTicks / 20) % calcificationInterval == 0) {
-                            mCalcification = Math.min(1.0d, mCalcification + 0.01d);
+                            mCalcification = Math.min(1.0d, mCalcification + (mOverpressure ? 0.2d : 0.01d));
                         }
                     }
 
@@ -791,10 +826,22 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
                 }
             }
 
+            // 缺水断电：本次确实尝试消耗水（consumedWater > 0）但水/蒸馏水（含样板仓兜底）全部不足。
+            // stopMachine 复位 mMaxProgresstime（断电即降温）并 disableWorking（mWorks=false，结构 mMachine 不变），
+            // 玩家通过 GUI 电源开关 / 软锤重新开机（onEnableWorking 清除 mWaterStop 与 mNoWaterNotified）。
+            if (!producedSteam && consumedWater > 0) {
+                mWaterStop = true;
+                if (!mNoWaterNotified) {
+                    mNoWaterNotified = true;
+                    sendChatToOwner("gtsr.chat.no_water");
+                }
+                stopMachine(ShutDownReasonRegistry.NONE);
+            }
+
             if (!producedSteam) {
                 mCurrentSteamOutput = 0;
             }
-        } else if (aTick % 20 == 0 && (!mMachine || mHeat <= 0.01d)) {
+        } else if (aTick % 20 == 0 && (!mMachine || mWaterStop || mHeat <= 0.01d)) {
             mCurrentSteamOutput = 0;
         }
     }
@@ -843,6 +890,33 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
             return true;
         }
         return false;
+    }
+
+    // 螺丝刀切换超压模式（覆写父类单配方锁定开关，本机不使用配方锁定）：
+    // 开 → 关；关且热量 ≥100% → 开；关且热量不足 → 提示先升温
+    @Override
+    public void onScrewdriverRightClick(ForgeDirection side, EntityPlayer aPlayer, float aX, float aY, float aZ,
+        ItemStack aTool) {
+        if (aPlayer.worldObj.isRemote) return;
+        if (mOverpressure) {
+            mOverpressure = false;
+            GTUtility.sendChatTrans(aPlayer, "gtsr.chat.overpressure.off");
+        } else if (mHeat >= 1.0d) {
+            mOverpressure = true;
+            GTUtility.sendChatTrans(aPlayer, "gtsr.chat.overpressure.on");
+        } else {
+            GTUtility.sendChatTrans(aPlayer, "gtsr.chat.overpressure.need_heat");
+        }
+        getBaseMetaTileEntity().markDirty();
+    }
+
+    // GT5U 原生重新开机入口（GUI 电源开关 / 软锤 / 工作控制 cover）：
+    // 清除缺水停机标志与提示状态，让蒸汽产出与配方恢复
+    @Override
+    public void onEnableWorking() {
+        super.onEnableWorking();
+        mWaterStop = false;
+        mNoWaterNotified = false;
     }
 
     @Deprecated
@@ -968,6 +1042,8 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
                     + ": "
                     + StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.chip_desc"))
             .addStructureHint("gtsr.tooltip.shared.no_maintenance")
+            .addInfo(EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.overpressure.enable"))
+            .addInfo(EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.overpressure.effects"))
             .toolTipFinisher(
                 EnumChatFormatting.AQUA + "GT"
                     + EnumChatFormatting.GREEN
@@ -1063,6 +1139,9 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
         aNBT.setDouble("mCalcification", mCalcification);
         aNBT.setLong("mRunningTicks", mRunningTicks);
         aNBT.setLong("mCalcificationWarnTimer", mCalcificationWarnTimer);
+        aNBT.setBoolean("mOverpressure", mOverpressure);
+        aNBT.setBoolean("mWaterStop", mWaterStop);
+        aNBT.setBoolean("mNoWaterNotified", mNoWaterNotified);
     }
 
     @Override
@@ -1073,5 +1152,9 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
         mCalcification = aNBT.getDouble("mCalcification");
         mRunningTicks = aNBT.getLong("mRunningTicks");
         mCalcificationWarnTimer = aNBT.getLong("mCalcificationWarnTimer");
+        // 旧档缺省 false
+        mOverpressure = aNBT.getBoolean("mOverpressure");
+        mWaterStop = aNBT.getBoolean("mWaterStop");
+        mNoWaterNotified = aNBT.getBoolean("mNoWaterNotified");
     }
 }

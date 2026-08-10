@@ -30,6 +30,14 @@ public class MTESingularityMachineGui<T extends MTESingularityMachineBase> exten
         syncManager.syncValue("gtsr.tier", new IntSyncValue(() -> multiblock.mTier));
     }
 
+    /**
+     * 热量机制是否在 GUI 终端展示（热量行 + 「热量累积中」状态行）。
+     * 默认致密态操控机不显示；地壳物质聚合器已删除热量机制，覆写为 false。
+     */
+    protected boolean isHeatGuiShown() {
+        return !multiblock.isDenseStateManipulator();
+    }
+
     @Override
     protected ListWidget<IWidget, ?> createTerminalTextWidget(PanelSyncManager syncManager, ModularPanel parent) {
         String keyPrefix = multiblock.getGuiKeyPrefix();
@@ -41,7 +49,7 @@ public class MTESingularityMachineGui<T extends MTESingularityMachineBase> exten
 
         return super.createTerminalTextWidget(syncManager, parent)
             .childIf(
-                !multiblock.isDenseStateManipulator(),
+                isHeatGuiShown(),
                 () -> IKey
                     .dynamic(
                         () -> EnumChatFormatting.YELLOW + StatCollector.translateToLocal(keyPrefix + "heat")
@@ -59,7 +67,7 @@ public class MTESingularityMachineGui<T extends MTESingularityMachineBase> exten
                 } else if (maxProgressSyncer.getValue() > 0) {
                     statusKey = "status.running";
                     statusColor = EnumChatFormatting.AQUA;
-                } else if (heatSyncer.getValue() > 0) {
+                } else if (isHeatGuiShown() && heatSyncer.getValue() > 0) {
                     statusKey = "status.accumulating";
                     statusColor = EnumChatFormatting.YELLOW;
                 } else {

@@ -65,7 +65,6 @@ import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.implementations.MTEHatch;
 import gregtech.api.metatileentity.implementations.MTEHatchInputBus;
 import gregtech.api.objects.ItemData;
-import gregtech.api.recipe.RecipeMaps;
 import gregtech.api.recipe.check.CheckRecipeResult;
 import gregtech.api.recipe.check.CheckRecipeResultRegistry;
 import gregtech.api.recipe.check.SimpleCheckRecipeResult;
@@ -73,7 +72,6 @@ import gregtech.api.render.TextureFactory;
 import gregtech.api.structure.error.StructureError;
 import gregtech.api.structure.error.StructureErrorRegistry;
 import gregtech.api.util.GTOreDictUnificator;
-import gregtech.api.util.GTRecipe;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.common.tileentities.machines.IDualInputHatch;
@@ -85,11 +83,11 @@ import gregtech.common.tileentities.machines.IDualInputInventory;
  * 脱离 GT++ 蒸汽基类自管蒸汽档位（脱离 MTESteamMultiBlockBase）：
  * - 档位 0=蒸汽 / 1=过热 / 2=超临界；致密流体（densesteam 族）整体优先于普通流体；
  * - 普通档消耗 1200 L/tick（24000 L/s）、周期 400 tick（20 秒）；致密档 12 L/tick（240 L/s）、周期 100 tick（5 秒）；
- * - 产出 = 10 * mHeat * GRADE_COEF[grade] * 奇点模式系数，实数累积（NBT 持久化），整数部分经
- * VoidMinerUtility DropMap 虚空采矿输出矿石。
+ * - 产出 = 10 * GRADE_COEF[grade] * 奇点模式系数（热量机制已删除，按恒满处理），实数累积（NBT 持久化），
+ * 整数部分经 VoidMinerUtility DropMap 虚空采矿输出矿石。
  *
- * 热量自管（shouldDecayHeat=false）：每 20 tick 工作且有蒸汽时按档位增益
- * （{0.0005, 0.001, 0.005} × 致密 2 倍，cap 1.0），否则快速衰减 5%/20tick。
+ * 热量机制已删除：产出恒满、粒子 H 位恒满浓度、字节通道热量位恒 63；基类热量字段与
+ * shouldDecayHeat=false 覆写保留无害（基类不再对其做增益/衰减）。
  *
  * 奇点模式（巨型蒸汽轮机式，非右键式）：mSingularityMode 0/1/2（无/蒸汽纠缠/临界），
  * SINGULARITY_DURATION_TICKS=4000（200 秒）；每 20 tick 检查：无模式时优先消耗临界蒸汽纠缠奇点
@@ -103,8 +101,8 @@ import gregtech.common.tileentities.machines.IDualInputInventory;
  * 蒸汽倍率固定 +100% 取代维度槽增幅与过滤项；定向模式下失控奇点节点颜色变紫。
  *
  * 粒子（客户端，太阳能锅炉同款）：G 位（泥土位，54 个）机器工作即每 tick 1 个白色 cloud 粒子；
- * H 位（草方块位，36 个）按 mHeat/0.5 期望数概率补 1（热量驱动）。工作标志与热量经
- * getUpdateData/onValueUpdate 字节通道同步（bit0=工作，bit1-6=热量 6bit）。
+ * H 位（草方块位，36 个）机器工作即每 tick 2 个（恒满浓度，热量机制已删除）。工作标志经
+ * getUpdateData/onValueUpdate 字节通道同步（bit0=工作，bit1-6 恒 63）。
  */
 public class MTECrustMatterAggregator extends MTESingularityMachineBase implements ISurvivalConstructable {
 
@@ -122,14 +120,11 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
     // 周期：普通 400 tick（20 秒）/ 致密 100 tick（5 秒）
     public static final int NORMAL_CYCLE_TICKS = 400;
     public static final int DENSE_CYCLE_TICKS = 100;
-    // 热量增益（每 20 tick）：{蒸汽, 过热, 超临界}；致密 ×2；否则衰减 5%/20tick
-    private static final double[] HEAT_GAIN_PER_20T = { 0.0005d, 0.001d, 0.005d };
-    private static final double HEAT_DECAY_PER_20T = 0.05d;
     // 奇点模式持续 200 秒
     private static final int SINGULARITY_DURATION_TICKS = 4000;
     // 产出系数（奇点模式 0/1/2 → 0.5/2/5）
     private static final double[] SINGULARITY_OUTPUT_COEF = { 0.5d, 2.0d, 5.0d };
-    // 单次产出基数：10 * mHeat * GRADE_COEF[grade] * singCoef
+    // 单次产出基数：10 * GRADE_COEF[grade] * singCoef（热量恒满）
     private static final double ORES_PER_HEAT_UNIT = 10.0d;
     // 矿石模式蒸汽加成（0 原矿 / 1 粗矿 / 2 粉碎矿）
     public static final double[] ORE_MODE_STEAM_BONUS = { 0.0d, 0.2d, 0.5d };
@@ -239,8 +234,6 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
     private final List<PoolDim> mPool = new ArrayList<>();
     // 矿池重建标记（槽位适配器写入时置位，checkProcessing 轮询消费）
     private boolean mPoolDirty = false;
-    // 原生粉碎倍率缓存（池重建时失效）
-    private final Map<GTUtility.ItemId, Integer> mNativeCrushedFactorCache = new HashMap<>();
     // 插件槽 IInventory 适配器（惰性创建）
     private IInventory mPluginSlotInventory = null;
 
@@ -647,10 +640,9 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
         return new PoolDim(dimAbbr, dimName, dropMap, extraDropMap);
     }
 
-    /** 重建多维度矿池（无插件槽回退默认当前维度）；同时使原生粉碎倍率缓存失效。 */
+    /** 重建多维度矿池（无插件槽回退默认当前维度）。 */
     private void rebuildPool() {
         mPoolDirty = false;
-        mNativeCrushedFactorCache.clear();
         mPool.clear();
         List<String> abbrs = collectDimensionAbbrs();
         if (abbrs.isEmpty()) {
@@ -1079,6 +1071,11 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
         return -1;
     }
 
+    /** 当前档位是否致密流体（服务端；checkProcessing 时缓存，供 GUI 蒸汽基准按致密/普通切换）。 */
+    public boolean getActiveDense() {
+        return mActiveDense;
+    }
+
     // —— 主流程 ——
 
     @Override
@@ -1093,6 +1090,9 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
         }
         if (mDirectionalMode && getDirectionalWeightSum() <= 0.0f) {
             return SimpleCheckRecipeResult.ofFailure("gtsr.gui.crust_matter_agg.no_direction");
+        }
+        if (mDirectionalMode && getUUMatterTotal() <= 0) {
+            return SimpleCheckRecipeResult.ofFailure("gtsr.gui.crust_matter_agg.no_uumatter");
         }
 
         int grade = findGrade();
@@ -1117,10 +1117,8 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
             updateSlots();
             return;
         }
-        // 产出 = 10 * mHeat * GRADE_COEF[grade] * singCoef，实数累积，整数部分经过滤加权抽取输出
-        mOreAccumulator += ORES_PER_HEAT_UNIT * mHeat
-            * GRADE_COEF[mActiveGrade]
-            * SINGULARITY_OUTPUT_COEF[mSingularityMode];
+        // 产出 = 10 * GRADE_COEF[grade] * singCoef（热量机制已删除，恒满），实数累积，整数部分经过滤加权抽取输出
+        mOreAccumulator += ORES_PER_HEAT_UNIT * GRADE_COEF[mActiveGrade] * SINGULARITY_OUTPUT_COEF[mSingularityMode];
         int out = (int) Math.floor(mOreAccumulator);
         for (int i = 0; i < out; i++) {
             GTUtility.ItemId oreId = extractNextOre();
@@ -1136,21 +1134,24 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
 
     // —— 产出形态转换（粗矿 / 粉碎矿模式）——
 
-    /** 按当前矿石模式输出单个原矿：模式 0 原样输出；模式 1/2 转 crushed（无 crushed 形态保持原矿）。 */
+    /**
+     * 按当前矿石模式输出单个原矿：模式 0 原样输出 ×1（不吃时运）；模式 1 输出 GT ore 形态
+     * ×2×(1+时运)；模式 2 输出 crushed 形态 ×6×(1+时运)；目标形态不存在（材料非 GT 或无该前缀）
+     * 时回退原样输出 ×1。
+     */
     private void outputOre(ItemStack rawOre) {
         if (mOreMode == 0) {
             addOutputPartial(rawOre);
             return;
         }
-        int nativeFactor = getNativeCrushedFactor(rawOre);
-        int modeMultiplier = mOreMode == 2 ? 3 : 1;
-        int count = nativeFactor * modeMultiplier * (1 + mFortuneLevel);
         Materials material = getOreMaterial(rawOre);
-        ItemStack crushed = material == null ? null : GTOreDictUnificator.get(OrePrefixes.crushed, material, count);
-        if (crushed == null) {
+        OrePrefixes prefix = mOreMode == 2 ? OrePrefixes.crushed : OrePrefixes.ore;
+        int count = mOreMode == 2 ? 6 * (1 + mFortuneLevel) : 2 * (1 + mFortuneLevel);
+        ItemStack converted = material == null ? null : GTOreDictUnificator.get(prefix, material, count);
+        if (converted == null) {
             addOutputPartial(rawOre);
         } else {
-            addOutputPartial(crushed);
+            addOutputPartial(converted);
         }
     }
 
@@ -1159,64 +1160,6 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
         ItemData data = GTOreDictUnificator.getItemData(stack);
         if (data == null || data.mMaterial == null || data.mMaterial.mMaterial == null) return null;
         return data.mMaterial.mMaterial;
-    }
-
-    /** 原生粉碎倍率兜底小表：macerator 配方查询不可行时按材料名取实际值（GT5U ProcessingOre：macerator 输出 = 2×mOreMultiplier）。 */
-    private static final Map<String, Integer> NATIVE_CRUSHED_FACTOR_FALLBACK = new HashMap<>();
-    static {
-        NATIVE_CRUSHED_FACTOR_FALLBACK.put("Redstone", 10);
-        NATIVE_CRUSHED_FACTOR_FALLBACK.put("Cryolite", 8);
-    }
-
-    /**
-     * 原矿原生粉碎倍率（带缓存，池重建时失效）：默认 2；优先查 RecipeMaps.maceratorRecipes 对该矿的配方输出中
-     * crushed/crushedPurified/crushedCentrifuged/dust 类产物数量，与 2 取 max；查询不可行时回退默认 2，
-     * 并对红石/冰晶石按兜底小表取值。
-     */
-    private int getNativeCrushedFactor(ItemStack rawOre) {
-        GTUtility.ItemId id = GTUtility.ItemId.create(rawOre);
-        Integer cached = mNativeCrushedFactorCache.get(id);
-        if (cached != null) return cached;
-        int factor = 2;
-        boolean queried = false;
-        try {
-            GTRecipe recipe = RecipeMaps.maceratorRecipes.findRecipeQuery()
-                .items(rawOre)
-                .find();
-            queried = true;
-            if (recipe != null && recipe.mOutputs != null) {
-                int crushedSum = 0;
-                for (ItemStack out : recipe.mOutputs) {
-                    if (out == null || out.getItem() == null) continue;
-                    ItemData data = GTOreDictUnificator.getItemData(out);
-                    if (data == null || data.mPrefix == null) continue;
-                    OrePrefixes prefix = data.mPrefix;
-                    if (prefix == OrePrefixes.crushed || prefix == OrePrefixes.crushedPurified
-                        || prefix == OrePrefixes.crushedCentrifuged
-                        || prefix == OrePrefixes.dust
-                        || prefix == OrePrefixes.dustImpure
-                        || prefix == OrePrefixes.dustPure
-                        || prefix == OrePrefixes.dustRefined
-                        || prefix == OrePrefixes.dustSmall
-                        || prefix == OrePrefixes.dustTiny) {
-                        crushedSum += out.stackSize;
-                    }
-                }
-                if (crushedSum > 0) factor = Math.max(2, crushedSum);
-            }
-        } catch (Throwable t) {
-            queried = false;
-            GTSteamReborn.LOG.warn("[CrustMatterAggregator] macerator 配方查询失败，回退默认粉碎倍率", t);
-        }
-        if (!queried) {
-            Materials material = getOreMaterial(rawOre);
-            if (material != null) {
-                Integer fallback = NATIVE_CRUSHED_FACTOR_FALLBACK.get(material.mName);
-                if (fallback != null) factor = Math.max(2, fallback);
-            }
-        }
-        mNativeCrushedFactorCache.put(id, factor);
-        return factor;
     }
 
     /** 周期内每 tick 从输入仓扣减当前档位蒸汽；不足返回 false（周期停止）。 */
@@ -1282,6 +1225,30 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
         // 已成功扣减部分从累积中扣除，未扣足部分保留待下次运行（仅记录真实欠账）
         mUuAccumulator -= (toDrain - remaining);
         return remaining <= 0;
+    }
+
+    /**
+     * 定向模式 UU 物质总存量（输入仓 + 样板仓，只读探测，仿 depleteUUMatterForTick 取流路径）。
+     * 存量 ≤ 0 时 checkProcessing 拒绝启动并显示 no_uumatter 键。
+     */
+    private int getUUMatterTotal() {
+        FluidStack request = FluidRegistry.getFluidStack("uumatter", 1);
+        if (request == null) return 0;
+        int total = 0;
+        for (MTEHatch hatch : getSteamInputHatches()) {
+            FluidStack full = request.copy();
+            full.amount = Integer.MAX_VALUE;
+            FluidStack available = hatch.drain(ForgeDirection.UNKNOWN, full, false);
+            if (available != null && available.amount > 0) total += available.amount;
+        }
+        // 样板仓（ME 输入仓）getAllFluids 为仓内持久引用（窗口无关），只读求和
+        for (IDualInputHatch dual : mDualInputHatches) {
+            if (dual == null) continue;
+            for (FluidStack fs : dual.getAllFluids()) {
+                if (fs != null && fs.amount > 0 && fs.isFluidEqual(request)) total += fs.amount;
+            }
+        }
+        return total;
     }
 
     // —— 矿石模式 / 时运（终端 UI 调用，服务端执行）——
@@ -1364,21 +1331,6 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
                 && !depleteUUMatterForTick()) {
                 mMaxProgresstime = 0;
                 mProgresstime = 0;
-            }
-        }
-        // 热量：每 20 tick；有蒸汽供给（结构有效+允许工作+探测到蒸汽档位）时按档位增益，否则快速衰减。
-        // 不用 mMaxProgresstime>0 判定：周期完成与 20tick 检查点撞车时（致密态周期仅 100 tick，1/5 概率）会误判停机扣 5% 热量
-        if (aTick % 20 == 0) {
-            if (mMachine && aBaseMetaTileEntity.isAllowedToWork()) {
-                int grade = findGrade();
-                if (grade >= 0) {
-                    boolean dense = probeGrade(grade, true, true);
-                    mHeat = Math.min(1.0d, mHeat + HEAT_GAIN_PER_20T[grade] * (dense ? 2.0d : 1.0d));
-                } else {
-                    mHeat = Math.max(0.0d, mHeat - HEAT_DECAY_PER_20T);
-                }
-            } else {
-                mHeat = Math.max(0.0d, mHeat - HEAT_DECAY_PER_20T);
             }
         }
     }
@@ -1528,17 +1480,12 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
 
     // —— 粒子（客户端，太阳能锅炉同款）——
 
-    /** G 位固定 1 个/tick（工作即喷）；H 位按 mHeat/0.5 期望数概率补 1（热量驱动）。 */
+    /** G 位固定 1 个/tick（工作即喷）；H 位工作即 2 个/tick（恒满浓度，热量机制已删除）。 */
     private void spawnParticles(IGregTechTileEntity aBaseMetaTileEntity) {
         World world = aBaseMetaTileEntity.getWorld();
         if (mWorkingForFX) {
             spawnOneParticle(world, aBaseMetaTileEntity, getParticleOffsetsG());
-        }
-        if (mHeat > 0.0d) {
-            double expected = mHeat / 0.5d;
-            int n = (int) expected;
-            if (world.rand.nextDouble() < expected - n) n++;
-            for (int i = 0; i < n; i++) {
+            for (int i = 0; i < 2; i++) {
                 spawnOneParticle(world, aBaseMetaTileEntity, getParticleOffsetsH());
             }
         }
@@ -1559,12 +1506,11 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
             0.0D);
     }
 
-    // —— 字节通道：bit0=工作（粒子 G 位开关），bit1-6=热量 6bit（1/63 精度）——
+    // —— 字节通道：bit0=工作（粒子 G/H 位开关），bit1-6 恒 63（热量机制已删除）——
 
     @Override
     public void onValueUpdate(byte aValue) {
         mWorkingForFX = (aValue & 0x01) != 0;
-        mHeat = ((aValue >> 1) & 0x3F) / 63.0d;
     }
 
     @Override
@@ -1572,10 +1518,8 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
         boolean working = mMachine && mMaxProgresstime > 0
             && getBaseMetaTileEntity() != null
             && getBaseMetaTileEntity().isAllowedToWork();
-        int heatQuantized = (int) Math.round(mHeat * 63.0);
-        if (heatQuantized < 0) heatQuantized = 0;
-        if (heatQuantized > 63) heatQuantized = 63;
-        return (byte) ((heatQuantized << 1) | (working ? 0x01 : 0x00));
+        // 热量机制已删除：bit1-6 恒置满（63）
+        return (byte) ((63 << 1) | (working ? 0x01 : 0x00));
     }
 
     // —— NBT ——
@@ -1775,11 +1719,6 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
             info.add(EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.gui.building"));
             return info.toArray(new String[0]);
         }
-        info.add(
-            EnumChatFormatting.YELLOW + StatCollector.translateToLocal(guiKeyPrefix + "heat")
-                + EnumChatFormatting.RED
-                + String.format("%.1f%%", mHeat * 100.0d)
-                + EnumChatFormatting.RESET);
         String modeKey = mSingularityMode == 2 ? guiKeyPrefix + "mode.critical"
             : mSingularityMode == 1 ? guiKeyPrefix + "mode.steam" : guiKeyPrefix + "mode.off";
         info.add(

@@ -16,15 +16,23 @@ import com.gtnewhorizon.gtnhlib.util.numberformatting.NumberFormatUtil;
 import com.miaokatze.gtsr.common.machine.MTECrustMatterAggregator;
 
 /**
- * 地壳物质聚合器 GUI：基类 MTESingularityMachineGui 已覆盖热量/档位状态/等级行与
+ * 地壳物质聚合器 GUI：基类 MTESingularityMachineGui 已覆盖档位状态/等级行与
  * gtsr.mode/gtsr.fuelTicks 同步（getModeForGui/getFuelTicksForGui），本类补充：
  * 奇点模式行（含剩余秒数）、维度行（覆盖/默认维度 + 无维度/无矿石状态）、当前挖掘矿名、
  * 定向模式 UU 消耗行（紫色粗体，含倍率；定向关闭时灰色占位）。
+ * 热量机制已删除：覆写 isHeatGuiShown()=false 隐藏基类热量行与「热量累积中」状态（基类 GUI 为 4 机共享，
+ * 蒸汽奇点压缩机/临界压缩机/致密态操控机不受影响）。
  */
 public class MTECrustMatterAggregatorGui extends MTESingularityMachineGui<MTECrustMatterAggregator> {
 
     public MTECrustMatterAggregatorGui(MTECrustMatterAggregator multiblock) {
         super(multiblock);
+    }
+
+    /** 聚合器已删除热量机制：热量行与「热量累积中」状态一律不显示。 */
+    @Override
+    protected boolean isHeatGuiShown() {
+        return false;
     }
 
     @Override
@@ -34,6 +42,8 @@ public class MTECrustMatterAggregatorGui extends MTESingularityMachineGui<MTECru
         syncManager.syncValue("gtsr.dropMapValid", new BooleanSyncValue(() -> multiblock.dropMapValid));
         // 蒸汽消耗倍率（矿石模式/时运/维度槽/过滤加成，S2C 驱动蒸汽消耗词条）
         syncManager.syncValue("gtsr.steamMult", new DoubleSyncValue(() -> multiblock.getSteamMultiplier()));
+        // 当前档位致密态（S2C 驱动蒸汽消耗词条基准：致密 240 L/s / 普通 24000 L/s）
+        syncManager.syncValue("gtsr.denseState", new BooleanSyncValue(() -> multiblock.getActiveDense()));
         // 定向模式开关与 UU 倍率（S2C 驱动 UU 物质消耗词条）
         syncManager.syncValue("gtsr.directionalMode", new BooleanSyncValue(() -> multiblock.getDirectionalMode()));
         syncManager.syncValue("gtsr.uuMult", new DoubleSyncValue(() -> multiblock.getUUMultiplier()));
@@ -48,6 +58,7 @@ public class MTECrustMatterAggregatorGui extends MTESingularityMachineGui<MTECru
         StringSyncValue dimSyncer = syncManager.findSyncHandler("gtsr.dimLabel", StringSyncValue.class);
         BooleanSyncValue validSyncer = syncManager.findSyncHandler("gtsr.dropMapValid", BooleanSyncValue.class);
         DoubleSyncValue steamMultSyncer = syncManager.findSyncHandler("gtsr.steamMult", DoubleSyncValue.class);
+        BooleanSyncValue denseSync = syncManager.findSyncHandler("gtsr.denseState", BooleanSyncValue.class);
         BooleanSyncValue directionalSync = syncManager.findSyncHandler("gtsr.directionalMode", BooleanSyncValue.class);
         DoubleSyncValue uuMultSyncer = syncManager.findSyncHandler("gtsr.uuMult", DoubleSyncValue.class);
 
@@ -91,9 +102,11 @@ public class MTECrustMatterAggregatorGui extends MTESingularityMachineGui<MTECru
                 .marginBottom(2)
                 .fullWidth())
             .child(IKey.dynamic(() -> {
-                // 蒸汽消耗词条：普通档基准 24000 L/s × 当前倍率（矿石模式/时运/维度槽/过滤加成）
+                // 蒸汽消耗词条：基准按当前致密态（致密 240 L/s / 普通 24000 L/s）× 当前倍率（矿石模式/时运/维度槽/过滤加成）
                 double mult = steamMultSyncer.getValue();
-                long perSecond = Math.round(MTECrustMatterAggregator.NORMAL_STEAM_PER_SECOND * mult);
+                long basePerSecond = denseSync.getValue() ? MTECrustMatterAggregator.DENSE_STEAM_PER_SECOND
+                    : MTECrustMatterAggregator.NORMAL_STEAM_PER_SECOND;
+                long perSecond = Math.round(basePerSecond * mult);
                 return EnumChatFormatting.YELLOW + StatCollector.translateToLocal(keyPrefix + "steam_cost")
                     + EnumChatFormatting.WHITE
                     + NumberFormatUtil.formatNumber(perSecond)

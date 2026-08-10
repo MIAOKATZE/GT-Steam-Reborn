@@ -186,6 +186,10 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
     public double mHeat = 0.0d;
     public double mCalcification = 0.0d;
     public long mRunningTicks = 0L;
+    // 超压模式：mHeat 上限放开至 200%（升温速率 ×0.2、降温速率 ×2），产出随 mHeat 线性至 200%
+    public boolean mOverpressure = false;
+    // 缺水断电提示已发送标志：恢复开机（onEnableWorking）时清除，保证 gtsr.chat.no_water 只发一次
+    private boolean mNoWaterNotified = false;
     protected boolean mIsHeating = false;
     protected boolean mIsOperating = false;
     protected int tierCasing = -1;
@@ -624,15 +628,24 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
         }
 
         if (aTick % 20 == 0) {
+            // 超压模式热量跌破 100% 时自动退出（关闭后 mOverpressure 已为 false，提示仅触发一次）
+            if (mOverpressure && mHeat < 1.0d) {
+                mOverpressure = false;
+                getBaseMetaTileEntity().markDirty();
+                sendChatToOwner("gtsr.chat.overpressure.off");
+            }
+
             boolean canHeat = isClearWeather && isDay && mSunRatio > 0;
             boolean wasHeating = mIsHeating;
 
             if (canHeat && aBaseMetaTileEntity.isAllowedToWork()) {
-                mHeat += getHeatIncreaseSpeed() * mSunRatio;
-                if (mHeat > 1.0d) mHeat = 1.0d;
+                // 超压模式升温速率 ×0.2
+                mHeat += getHeatIncreaseSpeed() * mSunRatio * (mOverpressure ? 0.2d : 1.0d);
+                if (mHeat > (mOverpressure ? 2.0d : 1.0d)) mHeat = mOverpressure ? 2.0d : 1.0d;
                 mIsHeating = true;
             } else {
-                mHeat -= getHeatDecreaseSpeed();
+                // 超压模式降温速率 ×2
+                mHeat -= getHeatDecreaseSpeed() * (mOverpressure ? 2.0d : 1.0d);
                 if (mHeat < 0) mHeat = 0;
                 mIsHeating = false;
             }
@@ -688,10 +701,13 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
                 long calcificationDelayTicks = getCalcificationDelayTicks();
                 long calcificationInterval = getCalcificationFullTime() / 100;
 
-                if (mRunningTicks > calcificationDelayTicks && (mRunningTicks / 20) % calcificationInterval == 0
+                // 超压 + 普通水：跳过 mRunningTicks 延迟门槛（立刻开始结垢）、增量 ×20（0.01→0.2，
+                // 满垢时间 = 原满垢 1/20）；interval 周期调制保留，避免夜间/失败路径逐 tick 高速结垢；蒸馏水豁免保持
+                if (mRunningTicks > (mOverpressure ? 0L : calcificationDelayTicks)
+                    && (mRunningTicks / 20) % calcificationInterval == 0
                     && hasWater
                     && !hasDistilledWater) {
-                    mCalcification += 0.01d;
+                    mCalcification += mOverpressure ? 0.2d : 0.01d;
                     if (mCalcification > 1.0d) mCalcification = 1.0d;
                 }
 
@@ -732,16 +748,45 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
                         mIsOperating = true;
 
                         return CheckRecipeResultRegistry.SUCCESSFUL;
+                    } else {
+                        // 水消耗失败：断电停机 + 一次性提示，须手动重启（软锤/打开 GUI 点电源开关）
+                        stopForMissingWater();
+                        return CheckRecipeResultRegistry.NO_RECIPE;
                     }
                 }
             }
         }
 
+        // 系统内无水：断电停机，防止水恢复后自动复活（冷机 mHeat<=0.01 / 太阳被挡等未消耗场景不断电）
         if (!hasWaterInSystem) {
-            mIsOperating = false;
-            mCurrentSteamOutput = 0;
+            stopForMissingWater();
         }
         return CheckRecipeResultRegistry.NO_RECIPE;
+    }
+
+    /** 缺水断电：停机 + 一次性 gtsr.chat.no_water（mNoWaterNotified 防重复，恢复开机时清除） */
+    private void stopForMissingWater() {
+        mIsOperating = false;
+        mCurrentSteamOutput = 0;
+        if (!mNoWaterNotified) {
+            mNoWaterNotified = true;
+            sendChatToOwner("gtsr.chat.no_water");
+        }
+        getBaseMetaTileEntity().disableWorking();
+    }
+
+    /** 向在线所有者发送一条翻译键聊天消息（离线不发送，与 sendCalcificationWarning 同模式） */
+    private void sendChatToOwner(String key) {
+        UUID ownerUuid = getBaseMetaTileEntity().getOwnerUuid();
+        if (ownerUuid == null) return;
+        for (Object o : MinecraftServer.getServer()
+            .getConfigurationManager().playerEntityList) {
+            if (o instanceof EntityPlayerMP player && player.getUniqueID()
+                .equals(ownerUuid)) {
+                GTUtility.sendChatTrans(player, key);
+                return;
+            }
+        }
     }
 
     private void outputSteam() {
@@ -779,19 +824,6 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
                     + EnumChatFormatting.DARK_PURPLE
                     + StatCollector.translateToLocal("gtsr.tooltip.solar_array.tier_bronze")
                     + EnumChatFormatting.GOLD
-                    + " 48,000"
-                    + EnumChatFormatting.GRAY
-                    + " L/s "
-                    + StatCollector.translateToLocal("gtsr.tooltip.solar_array.base_output")
-                    + EnumChatFormatting.GREEN
-                    + " ("
-                    + StatCollector.translateToLocal("gtsr.tooltip.solar_array.max_boosted_output")
-                    + ": 144,000 L/s)")
-            .addInfo(
-                EnumChatFormatting.BLUE + "Tier 2 "
-                    + EnumChatFormatting.DARK_PURPLE
-                    + StatCollector.translateToLocal("gtsr.tooltip.solar_array.tier_steel")
-                    + EnumChatFormatting.GOLD
                     + " 120,000"
                     + EnumChatFormatting.GRAY
                     + " L/s "
@@ -801,18 +833,31 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
                     + StatCollector.translateToLocal("gtsr.tooltip.solar_array.max_boosted_output")
                     + ": 360,000 L/s)")
             .addInfo(
-                EnumChatFormatting.BLUE + "Tier 3 "
+                EnumChatFormatting.BLUE + "Tier 2 "
                     + EnumChatFormatting.DARK_PURPLE
-                    + StatCollector.translateToLocal("gtsr.tooltip.solar_array.tier_nickel")
+                    + StatCollector.translateToLocal("gtsr.tooltip.solar_array.tier_steel")
                     + EnumChatFormatting.GOLD
-                    + " 120,000"
+                    + " 180,000"
                     + EnumChatFormatting.GRAY
                     + " L/s "
                     + StatCollector.translateToLocal("gtsr.tooltip.solar_array.base_output")
                     + EnumChatFormatting.GREEN
                     + " ("
                     + StatCollector.translateToLocal("gtsr.tooltip.solar_array.max_boosted_output")
-                    + ": 360,000 L/s)"
+                    + ": 540,000 L/s)")
+            .addInfo(
+                EnumChatFormatting.BLUE + "Tier 3 "
+                    + EnumChatFormatting.DARK_PURPLE
+                    + StatCollector.translateToLocal("gtsr.tooltip.solar_array.tier_nickel")
+                    + EnumChatFormatting.GOLD
+                    + " 240,000"
+                    + EnumChatFormatting.GRAY
+                    + " L/s "
+                    + StatCollector.translateToLocal("gtsr.tooltip.solar_array.base_output")
+                    + EnumChatFormatting.GREEN
+                    + " ("
+                    + StatCollector.translateToLocal("gtsr.tooltip.solar_array.max_boosted_output")
+                    + ": 720,000 L/s)"
                     + EnumChatFormatting.GREEN
                     + " ("
                     + StatCollector.translateToLocal("gtsr.tooltip.solar_array.superheated_steam")
@@ -841,6 +886,9 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.solar_array.particle_block"), 9, false)
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.solar_array.air_block"), 18, false)
             .addStructureHint("gtsr.tooltip.shared.no_maintenance")
+            .addSeparator()
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.overpressure.enable"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.overpressure.effects"))
             .toolTipFinisher(
                 EnumChatFormatting.AQUA + "GT"
                     + EnumChatFormatting.GREEN
@@ -881,6 +929,30 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
             return true;
         }
         return false;
+    }
+
+    @Override
+    public void onScrewdriverRightClick(ForgeDirection side, EntityPlayer aPlayer, float aX, float aY, float aZ,
+        ItemStack aTool) {
+        if (aPlayer.worldObj.isRemote) return;
+        if (mOverpressure) {
+            mOverpressure = false;
+            getBaseMetaTileEntity().markDirty();
+            GTUtility.sendChatTrans(aPlayer, "gtsr.chat.overpressure.off");
+        } else if (mHeat >= 1.0d) {
+            mOverpressure = true;
+            getBaseMetaTileEntity().markDirty();
+            GTUtility.sendChatTrans(aPlayer, "gtsr.chat.overpressure.on");
+        } else {
+            GTUtility.sendChatTrans(aPlayer, "gtsr.chat.overpressure.need_heat");
+        }
+    }
+
+    @Override
+    public void onEnableWorking() {
+        super.onEnableWorking();
+        // 恢复开机（软锤/打开 GUI 点电源开关）时清除缺水提示标志，下次缺水重新提示
+        mNoWaterNotified = false;
     }
 
     @Deprecated
@@ -1001,11 +1073,12 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
     private int getBaseSteamProduction() {
         switch (mSetTier) {
             case 3:
+                return 240000;
             case 2:
-                return 120000;
+                return 180000;
             case 1:
             default:
-                return 48000;
+                return 120000;
         }
     }
 
@@ -1119,6 +1192,8 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
         aNBT.setLong("mRunningTicks", mRunningTicks);
         aNBT.setLong("mCalcificationWarnTimer", mCalcificationWarnTimer);
         aNBT.setDouble("mSunRatio", mSunRatio);
+        aNBT.setBoolean("mOverpressure", mOverpressure);
+        aNBT.setBoolean("mNoWaterNotified", mNoWaterNotified);
     }
 
     @Override
@@ -1130,6 +1205,8 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
         mRunningTicks = aNBT.getLong("mRunningTicks");
         mCalcificationWarnTimer = aNBT.getLong("mCalcificationWarnTimer");
         mSunRatio = aNBT.getDouble("mSunRatio");
+        mOverpressure = aNBT.getBoolean("mOverpressure");
+        mNoWaterNotified = aNBT.getBoolean("mNoWaterNotified");
     }
 
     @Override
@@ -1137,9 +1214,10 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
         boolean oldHeating = mIsHeating;
         int oldTier = mSetTier;
         mIsHeating = (aValue & 0x01) != 0;
-        // mSetTier 1~3 占 2 bit（bit1-2）；GT 事件通道会剥掉 bit7，故 mHeat 用 bit3-6 共 4 bit，精度 1/15≈6.7%
+        // mSetTier 1~3 占 2 bit（bit1-2）；GT 事件通道会剥掉 bit7，故 mHeat 用 bit3-6 共 4 bit，
+        // 编码 0~2.0（超压模式热量上限 200%），精度 2/15≈13.3%
         mSetTier = (aValue >> 1) & 0x03;
-        mHeat = ((aValue >> 3) & 0x0F) / 15.0d;
+        mHeat = ((aValue >> 3) & 0x0F) / 15.0d * 2.0d;
         if (oldHeating != mIsHeating || oldTier != mSetTier) {
             getBaseMetaTileEntity().issueTextureUpdate();
         }
@@ -1147,7 +1225,8 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
 
     @Override
     public byte getUpdateData() {
-        int heatQuantized = (int) Math.round(mHeat * 15.0);
+        // 4 bit 编码 0~2.0（超压模式 mHeat 可达 2.0），位布局不变
+        int heatQuantized = (int) Math.round(mHeat / 2.0d * 15.0);
         if (heatQuantized < 0) heatQuantized = 0;
         if (heatQuantized > 15) heatQuantized = 15;
         return (byte) ((heatQuantized << 3) | ((mSetTier <= 0 ? 0 : mSetTier) << 1) | (mIsHeating ? 0x01 : 0x00));

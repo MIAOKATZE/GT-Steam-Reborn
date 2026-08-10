@@ -57,7 +57,7 @@ import gregtech.api.util.GTUtility;
  * 打开方式：手持枢纽终端右击聚合器（服务端经 AggregatorConfigGuiFactory 打开）。
  * 功能：
  * - 第一行配置：矿石模式循环（原矿/粗矿/粉碎矿，含蒸汽加成显示）、时运等级循环（奇点模式门控，
- * 罗马数字 + 蒸汽消耗%）、当前蒸汽消耗（基础 24000 L/s × 同步倍率，加粗显示，其下黑色消耗量公式行，
+ * 罗马数字 + 蒸汽消耗%）、当前蒸汽消耗（基准按致密态 240/24000 L/s × 同步倍率，加粗显示，其下黑色消耗量公式行，
  * tooltip 显示倍率明细；定向模式下明细含定向倍率）；
  * - 左侧 25 槽 5×5 网格：槽 1 = 控制器槽（mInventory[1]，与主 GUI 同一数据源），槽 2-25 = 终端插件槽，
  * 栈上限 1、槽过滤仅接受维度显示物品；标题行右侧为刷新按钮 + 维度消耗增加% 实际值（+X% 粗体）；
@@ -70,8 +70,8 @@ import gregtech.api.util.GTUtility;
  *
  * 同步设计：
  * - "gtsr.cfg.oreList"：GenericListSyncHandler，服务端每 tick 检测变化并同步到客户端；
- * - "gtsr.cfg.oreMode"/"gtsr.cfg.fortune"/"gtsr.cfg.maxFortune"/"gtsr.cfg.steamMult"：
- * IntSyncValue/DoubleSyncValue，仅 S2C；
+ * - "gtsr.cfg.oreMode"/"gtsr.cfg.fortune"/"gtsr.cfg.maxFortune"/"gtsr.cfg.steamMult"/"gtsr.cfg.denseState"：
+ * IntSyncValue/DoubleSyncValue/BooleanSyncValue，仅 S2C（denseState 驱动蒸汽消耗基准 240/24000 L/s）；
  * - "gtsr.cfg.directionalMode"/"gtsr.cfg.uuMult"/"gtsr.cfg.weightIncrease"/"gtsr.cfg.dimIncrease"：
  * BooleanSyncValue/DoubleSyncValue，仅 S2C（定向开关与 UU 倍率、消耗增加% 实际值；
  * 定向开关变化驱动插件槽进出限制重算与灰化）；
@@ -176,6 +176,8 @@ public class MTECrustMatterAggregatorConfigGui implements IGuiHolder<PosGuiData>
         IntSyncValue fortuneSync = new IntSyncValue(() -> aggregator.mFortuneLevel);
         IntSyncValue maxFortuneSync = new IntSyncValue(aggregator::getMaxAllowedFortuneLevel);
         DoubleSyncValue steamMultSync = new DoubleSyncValue(aggregator::getSteamMultiplier);
+        // 当前档位致密态（S2C 驱动蒸汽消耗基准：致密 240 L/s / 普通 24000 L/s）
+        BooleanSyncValue denseSync = new BooleanSyncValue(aggregator::getActiveDense);
         // 定向模式同步（S2C）：开关 + UU 倍率（定向关闭时 UU 倍率为 0）
         BooleanSyncValue directionalSync = new BooleanSyncValue(() -> aggregator.getDirectionalMode());
         DoubleSyncValue uuMultSync = new DoubleSyncValue(aggregator::getUUMultiplier);
@@ -194,6 +196,7 @@ public class MTECrustMatterAggregatorConfigGui implements IGuiHolder<PosGuiData>
         syncManager.syncValue("gtsr.cfg.fortune", fortuneSync);
         syncManager.syncValue("gtsr.cfg.maxFortune", maxFortuneSync);
         syncManager.syncValue("gtsr.cfg.steamMult", steamMultSync);
+        syncManager.syncValue("gtsr.cfg.denseState", denseSync);
         syncManager.syncValue("gtsr.cfg.directionalMode", directionalSync);
         syncManager.syncValue("gtsr.cfg.uuMult", uuMultSync);
         syncManager.syncValue("gtsr.cfg.weightIncrease", weightIncreaseSync);
@@ -219,6 +222,7 @@ public class MTECrustMatterAggregatorConfigGui implements IGuiHolder<PosGuiData>
                     fortuneSync,
                     maxFortuneSync,
                     steamMultSync,
+                    denseSync,
                     directionalSync,
                     uuMultSync,
                     this.actionSync))
@@ -319,8 +323,8 @@ public class MTECrustMatterAggregatorConfigGui implements IGuiHolder<PosGuiData>
     // —— 第一行配置按钮 / 文本 ——
 
     private IWidget buildConfigRow(IntSyncValue oreModeSync, IntSyncValue fortuneSync, IntSyncValue maxFortuneSync,
-        DoubleSyncValue steamMultSync, BooleanSyncValue directionalSync, DoubleSyncValue uuMultSync,
-        AggregatorActionSyncHandler actionSync) {
+        DoubleSyncValue steamMultSync, BooleanSyncValue denseSync, BooleanSyncValue directionalSync,
+        DoubleSyncValue uuMultSync, AggregatorActionSyncHandler actionSync) {
         // 矿石模式循环按钮：显示当前模式名 + 蒸汽加成（如「粉碎矿 +50%」），点击 C2S 循环
         ButtonWidget<?> oreModeButton = new ButtonWidget<>().size(104, 18)
             .overlay(IKey.dynamic(() -> formatOreModeLabel(oreModeSync.getIntValue())))
@@ -348,8 +352,9 @@ public class MTECrustMatterAggregatorConfigGui implements IGuiHolder<PosGuiData>
                 button.setEnabled(!rawMode);
             }, true);
 
-        // 蒸汽消耗动态文本：基础 24000 L/s（普通档 1200 L/tick）× 同步的蒸汽倍率，tooltip 显示倍率明细
-        IWidget steamCostText = IKey.dynamic(() -> formatSteamCostLine(steamMultSync.getDoubleValue()))
+        // 蒸汽消耗动态文本：基准按致密态（致密 240 L/s / 普通 24000 L/s）× 同步的蒸汽倍率，tooltip 显示倍率明细
+        IWidget steamCostText = IKey
+            .dynamic(() -> formatSteamCostLine(steamMultSync.getDoubleValue(), denseSync.getValue()))
             .asWidget()
             .scale(0.9f)
             .tooltipBuilder(t -> {
@@ -410,11 +415,13 @@ public class MTECrustMatterAggregatorConfigGui implements IGuiHolder<PosGuiData>
     private static final String[] ROMAN_NUMERALS = { "I", "II", "III", "IV", "V", "VI" };
 
     /**
-     * 蒸汽消耗主文本（两行）：第一行 = 基础 24000 L/s × 同步倍率（整体加粗，金色粗体附倍率后缀）；
-     * 第二行 = 黑色消耗量公式（键 gtsr.aggregator_config.steam_formula）。
+     * 蒸汽消耗主文本（两行）：第一行 = 基准（致密档 240 L/s / 普通档 24000 L/s）× 同步倍率（整体加粗，
+     * 金色粗体附倍率后缀）；第二行 = 黑色消耗量公式（键 gtsr.aggregator_config.steam_formula）。
      */
-    private static String formatSteamCostLine(double steamMult) {
-        long perSecond = Math.round(MTECrustMatterAggregator.NORMAL_STEAM_PER_SECOND * steamMult);
+    private static String formatSteamCostLine(double steamMult, boolean dense) {
+        long basePerSecond = dense ? MTECrustMatterAggregator.DENSE_STEAM_PER_SECOND
+            : MTECrustMatterAggregator.NORMAL_STEAM_PER_SECOND;
+        long perSecond = Math.round(basePerSecond * steamMult);
         return EnumChatFormatting.BOLD + StatCollector.translateToLocal("gtsr.aggregator_config.steam_cost")
             + " "
             + NumberFormatUtil.formatNumber(perSecond)
