@@ -805,10 +805,32 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
         return sum;
     }
 
-    /** 定向倍率 = 1000% ÷ 定向权重和（权重和为 0 返回 0，表示不可运行）。 */
+    /** 定向倍率 = 2500% ÷ 定向权重和（权重和为 0 返回 0，表示不可运行）。 */
     public double getDirectionalFactor() {
         float sum = getDirectionalWeightSum();
-        return sum <= 0.0f ? 0.0d : 10.0d / sum;
+        return sum <= 0.0f ? 0.0d : 25.0d / sum;
+    }
+
+    /**
+     * 消耗增加% 展示值（终端 UI「浏览器标题右侧」+X%）：定向模式 = 2500% ÷ 定向权重和；
+     * 筛选模式 = 被过滤矿石权重和（即消耗增加百分比，倍率项 1+权重和/100）。
+     */
+    public double getWeightIncreasePercent() {
+        if (mDirectionalMode) {
+            float sum = getDirectionalWeightSum();
+            return sum <= 0.0f ? 0.0d : 2500.0d / sum;
+        }
+        return getFilteredWeightSum();
+    }
+
+    /** 维度槽消耗增加% 展示值（终端 UI「刷新按钮右侧」+X%）：定向模式 = 固定 200%；筛选模式 = 20% × 额外维度槽数。 */
+    public double getDimensionIncreasePercent() {
+        if (mDirectionalMode) return 200.0d;
+        int slotCount = 0;
+        for (ItemStack stack : getDimensionStacks()) {
+            if (isDimensionDisplayItem(stack)) slotCount++;
+        }
+        return 20.0d * Math.max(0, slotCount - 1);
     }
 
     /** UU 倍率 = (1 + 矿石模式加成 + 时运加成) × 定向倍率。 */
@@ -1294,13 +1316,13 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
 
     /**
      * 蒸汽消耗倍率 = (1+矿石模式加成+时运加成) × (1+0.2×(维度物品槽数-1)) × (1+被过滤矿石权重和/100)。
-     * 定向模式：固定 +100% 取代维度槽增幅与过滤项，再乘定向倍率（UU 加速后蒸汽同步放大）。
+     * 定向模式：固定 +200% 取代维度槽增幅与过滤项，再乘定向倍率（UU 加速后蒸汽同步放大）。
      * depleteSteamForTick 按 basePerTick × 该倍率向上取整扣减。
      */
     public double getSteamMultiplier() {
         double modeBonus = ORE_MODE_STEAM_BONUS[Math.min(Math.max(mOreMode, 0), 2)];
         double fortuneBonus = FORTUNE_STEAM_BONUS[Math.min(Math.max(mFortuneLevel, 0), 6)];
-        if (mDirectionalMode) return (1.0d + modeBonus + fortuneBonus) * 2.0d * getDirectionalFactor();
+        if (mDirectionalMode) return (1.0d + modeBonus + fortuneBonus) * 3.0d * getDirectionalFactor();
         int slotCount = 0;
         for (ItemStack stack : getDimensionStacks()) {
             if (isDimensionDisplayItem(stack)) slotCount++;

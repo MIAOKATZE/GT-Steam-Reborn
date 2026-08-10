@@ -170,7 +170,7 @@ gtsr.aggregator_config.ore_mode.raw=Raw Ore
 gtsr.aggregator_config.ore_mode.crushed=Crushed Ore
 gtsr.aggregator_config.ore_mode.purified=Purified Ore
 gtsr.aggregator_config.ore_mode.tip=Click to cycle ore mode (Raw -> Crushed -> Purified); higher modes add extra steam cost
-gtsr.aggregator_config.fortune_level=Fortune Lv %d
+gtsr.aggregator_config.fortune_level=Fortune %s +%d%%
 gtsr.aggregator_config.fortune.tip=Click to cycle fortune level; affects crushed output count and steam cost
 gtsr.aggregator_config.fortune.gate=Lv3-4 requires Entangled Singularity mode, Lv5-6 requires Critical mode
 gtsr.aggregator_config.steam_cost=Steam cost: 
@@ -204,9 +204,11 @@ gtsr.aggregator_config.uu_cost=UU Matter Cost:
 gtsr.aggregator_config.uu_cost.mult=(mult ×%s)
 gtsr.aggregator_config.uu_cost.off=—
 gtsr.aggregator_config.steam_cost.mult=(mult ×%s)
-gtsr.aggregator_config.steam_cost.detail_dir=Mult detail (mode/fortune × fixed +100% × directional): 
-gtsr.aggregator_config.mode_hint.filtered=Current mode: normal filtering — filtered ores no longer participate in extraction (weight freed)\nSteam mult=(1+mode+fortune)×(1+0.2×extra slots)×(1+filtered weight sum/100)\nUse in-row Filter/Unfilter to toggle single ores; filtered weight sum adds to steam cost\nRefresh button: rebuild pool after inserting/removing dimension items
-gtsr.aggregator_config.mode_hint.directional=Current mode: directional — only aimed ores are produced\nOnly the 1st dimension slot works; other slots are extract-only\nSteam mult=(1+mode+fortune)×2×(1000%÷aimed weight sum)\nUU cost=1L/s×(1+mode+fortune)×(1000%÷aimed weight sum)\nUse in-row Aim/Un-aim (multi-select); more aims = lower cost\nToggling refreshes the pool, force-stops and clears singularity mode
+gtsr.aggregator_config.steam_cost.detail_dir=Mult detail (mode/fortune × fixed +200% × directional): 
+gtsr.aggregator_config.steam_formula=Cost=base×(mode+fortune)×dimension×directional/filter cost
+gtsr.aggregator_config.uu_formula=Cost=1×(mode+fortune)×directional cost
+gtsr.aggregator_config.mode_hint.filtered=Current mode: filter\nThe more ores you filter and the heavier they are\nthe more steam is consumed\nCost increase%=filtered total weight%
+gtsr.aggregator_config.mode_hint.directional=Current mode: directional\nThe fewer ores you aim at and the lower their weight\nthe more steam is consumed\nCost increase%=2500%/aimed total weight
 gtsr.aggregator_config.directional.chat.on=Directional mode enabled
 gtsr.aggregator_config.directional.chat.off=Directional mode disabled
 

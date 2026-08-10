@@ -56,30 +56,33 @@ import gregtech.api.util.GTUtility;
  * 地壳物质聚合器「终端配置界面」（Modern UI 2）。
  * 打开方式：手持枢纽终端右击聚合器（服务端经 AggregatorConfigGuiFactory 打开）。
  * 功能：
- * - 第一行配置：矿石模式循环（原矿/粗矿/粉碎矿，含蒸汽加成显示）、时运等级循环（奇点模式门控）、
- * 当前蒸汽消耗（基础 24000 L/s × 同步倍率，加粗显示，tooltip 显示倍率明细；定向模式下明细含定向倍率）；
+ * - 第一行配置：矿石模式循环（原矿/粗矿/粉碎矿，含蒸汽加成显示）、时运等级循环（奇点模式门控，
+ * 罗马数字 + 蒸汽消耗%）、当前蒸汽消耗（基础 24000 L/s × 同步倍率，加粗显示，其下黑色消耗量公式行，
+ * tooltip 显示倍率明细；定向模式下明细含定向倍率）；
  * - 左侧 25 槽 5×5 网格：槽 1 = 控制器槽（mInventory[1]，与主 GUI 同一数据源），槽 2-25 = 终端插件槽，
- * 栈上限 1、槽过滤仅接受维度显示物品；网格右侧为刷新按钮（Ore Plugin 放入/移除后手动重建矿池）；
+ * 栈上限 1、槽过滤仅接受维度显示物品；标题行右侧为刷新按钮 + 维度消耗增加% 实际值（+X% 粗体）；
  * - 定向模式区：切换按钮（C2S 切换，服务端进入时清空过滤与定向、重建矿池、强制停机并清空奇点模式）、
- * UU 物质消耗行（定向开：1 L/s × 倍率，紫色加粗；定向关：—，灰色）、4 行模式提示；
- * 定向模式下插件槽只出不进（canPut(false)），行按钮切换「定向」而非「过滤」；
- * - 右侧矿石浏览器：搜索（按下按钮才应用，按矿石本地化显示名匹配，天然兼容中文）、
- * 种类切换（全部/未过滤/已过滤）、逐矿过滤/定向切换（"已解放权重"语义，C2S 切换）。
+ * 精简提示块（蓝「当前模式：定向/筛选」标题 + 黑色公式正文；定向模式底部紫色 UU 物质消耗 + 黑色消耗量公式）；
+ * 定向模式下插件槽只出不进（canPut(false)）且灰化，行按钮切换「定向」而非「过滤」；
+ * - 右侧矿石浏览器（收窄 16px 让位左列）：搜索（按下按钮才应用，按矿石本地化显示名匹配，天然兼容中文）、
+ * 种类切换（全部/未过滤/已过滤）、逐矿过滤/定向切换（"已解放权重"语义，C2S 切换）；标题右侧为
+ * 权重消耗增加% 实际值（+X% 粗体）。
  *
  * 同步设计：
  * - "gtsr.cfg.oreList"：GenericListSyncHandler，服务端每 tick 检测变化并同步到客户端；
  * - "gtsr.cfg.oreMode"/"gtsr.cfg.fortune"/"gtsr.cfg.maxFortune"/"gtsr.cfg.steamMult"：
  * IntSyncValue/DoubleSyncValue，仅 S2C；
- * - "gtsr.cfg.directionalMode"/"gtsr.cfg.uuMult"：BooleanSyncValue/DoubleSyncValue，仅 S2C
- * （定向开关与 UU 倍率；定向开关变化驱动插件槽进出限制重算）；
+ * - "gtsr.cfg.directionalMode"/"gtsr.cfg.uuMult"/"gtsr.cfg.weightIncrease"/"gtsr.cfg.dimIncrease"：
+ * BooleanSyncValue/DoubleSyncValue，仅 S2C（定向开关与 UU 倍率、消耗增加% 实际值；
+ * 定向开关变化驱动插件槽进出限制重算与灰化）；
  * - "gtsr.cfg.aggregatorAction"：单个面板级 C2S 动作处理器，按钮点击发往服务端执行；
  * - 矿石列表为「常驻 ListWidget 实例 + 手动刷新行」（refreshOreList）：过滤/搜索/排序切换仅重建
  * 行内容，滚动位置随列表实例持续，不会把滚动条拉回顶部（弃 DynamicSyncedWidget 全量重建方案）。
  */
 public class MTECrustMatterAggregatorConfigGui implements IGuiHolder<PosGuiData> {
 
-    // 面板 420×350：GUI 缩放 3x 下 1260×1050，1080p 窗口内完整显示（含底部玩家背包，不被窗口底边截断）
-    private static final int PANEL_WIDTH = 420;
+    // 面板 470×350：GUI 缩放 3x 下 1410×1050，1080p 窗口内完整显示（含底部玩家背包，不被窗口底边截断）
+    private static final int PANEL_WIDTH = 470;
     private static final int PANEL_HEIGHT = 350;
     // 左列（维度槽）：标题 + 25 槽 5×5 网格 + 刷新按钮 + 定向模式区，全部绝对定位。
     // 注意：槽列不用 Flow 容器（实机验证 Flow 作为面板 child 时 pos 失效被居中），
@@ -91,19 +94,20 @@ public class MTECrustMatterAggregatorConfigGui implements IGuiHolder<PosGuiData>
     private static final int SLOT_GRID_COLS = 5;
     private static final int SLOT_GAP = 1; // 槽格间距
     // 刷新按钮：「维度槽」标题文字（3 个 CJK 字符 ≈ 18px）右侧，与标题同一水平线（不放槽格右侧）；
-    // y 43-55 位于标题行且不侵入下方槽格（56 起）
+    // y 43-55 位于标题行且不侵入下方槽格（56 起）；右侧紧接维度消耗增加% 实际值（+X% 粗体）
     private static final int REFRESH_X = LEFT_X + 32;
     private static final int REFRESH_Y = SLOT_TITLE_Y - 1;
-    private static final int DIRECTIONAL_Y = 148; // 定向模式切换按钮行（网格底边 140 之下留 8px，避免压格）
-    private static final int UU_LINE_Y = 172; // UU 物质消耗行
-    private static final int HINT_Y = 194; // 当前模式提示信息（TextWidget 自动折行，不侵入浏览器区 x<124）
-    private static final int HINT_W = 116; // 左列可用宽度（x 8-124 浏览器框左缘）
-    private static final int HINT_H = 70; // 约 7 行 × 9px 行高 + 余量（背包顶 269 之上）
-    // 右侧矿石浏览器区（绝对坐标，全部直接挂面板，避免嵌套容器定位歧义）
-    private static final int BROWSER_X = 124;
+    private static final int DIM_INCREASE_X = REFRESH_X + 26 + 4; // 刷新按钮右侧
+    private static final int DIRECTIONAL_Y = 156; // 定向模式切换按钮行（网格底边 140 之下留 16px）
+    private static final int HINT_Y = 178; // 当前模式提示信息（TextWidget 自动折行，不侵入浏览器区）
+    private static final int HINT_W = 142; // 左列可用宽度（x 8-150 浏览器框左缘）
+    private static final int HINT_H = 84; // 定向 7 行 × 10px 行高 + 余量（背包顶 269 之上）
+    // 右侧矿石浏览器区（绝对坐标，全部直接挂面板，避免嵌套容器定位歧义）；浏览器收窄 16px 让位左列提示区
+    private static final int BROWSER_X = 150;
     private static final int BROWSER_Y = 58; // 标题行（44-58）下方，不遮挡「矿石浏览器」标题
-    private static final int BROWSER_W = 288;
+    private static final int BROWSER_W = 272;
     private static final int BROWSER_H = 208;
+    private static final int WEIGHT_INCREASE_X = BROWSER_X + 36; // 浏览器标题（5 个 CJK 字符 ≈ 30px）右侧
     private static final int SEARCH_Y = 62;
     private static final int HEADER_Y = 82;
     private static final int LIST_X = BROWSER_X + 4;
@@ -173,6 +177,9 @@ public class MTECrustMatterAggregatorConfigGui implements IGuiHolder<PosGuiData>
         // 定向模式同步（S2C）：开关 + UU 倍率（定向关闭时 UU 倍率为 0）
         BooleanSyncValue directionalSync = new BooleanSyncValue(() -> aggregator.getDirectionalMode());
         DoubleSyncValue uuMultSync = new DoubleSyncValue(aggregator::getUUMultiplier);
+        // 消耗增加% 实际值（S2C）：权重项（浏览器标题右侧 +X%）与维度项（刷新按钮右侧 +X%）
+        DoubleSyncValue weightIncreaseSync = new DoubleSyncValue(aggregator::getWeightIncreasePercent);
+        DoubleSyncValue dimIncreaseSync = new DoubleSyncValue(aggregator::getDimensionIncreasePercent);
         this.directionalSync = directionalSync;
         // 按钮动作同步（C2S）：所有行按钮共用同一个处理器
         this.actionSync = new AggregatorActionSyncHandler(aggregator);
@@ -187,6 +194,8 @@ public class MTECrustMatterAggregatorConfigGui implements IGuiHolder<PosGuiData>
         syncManager.syncValue("gtsr.cfg.steamMult", steamMultSync);
         syncManager.syncValue("gtsr.cfg.directionalMode", directionalSync);
         syncManager.syncValue("gtsr.cfg.uuMult", uuMultSync);
+        syncManager.syncValue("gtsr.cfg.weightIncrease", weightIncreaseSync);
+        syncManager.syncValue("gtsr.cfg.dimIncrease", dimIncreaseSync);
         syncManager.syncValue("gtsr.cfg.aggregatorAction", this.actionSync);
 
         // 矿石列表：常驻 ListWidget 实例（滚动位置随实例持续；行内容更新不重置滚动条）
@@ -222,6 +231,11 @@ public class MTECrustMatterAggregatorConfigGui implements IGuiHolder<PosGuiData>
                 IKey.lang("gtsr.aggregator_config.browser_title")
                     .asWidget()
                     .pos(BROWSER_X, SLOT_TITLE_Y))
+            // 权重消耗增加% 实际值（浏览器标题右侧，粗体）：筛选 = 被过滤矿石权重和；定向 = 2500%÷定向权重和
+            .child(
+                IKey.dynamic(() -> formatIncreaseValue(weightIncreaseSync.getDoubleValue()))
+                    .asWidget()
+                    .pos(WEIGHT_INCREASE_X, SLOT_TITLE_Y))
             .child(buildBrowserBackground())
             .child(buildSearchField())
             .child(buildSearchButton())
@@ -272,18 +286,20 @@ public class MTECrustMatterAggregatorConfigGui implements IGuiHolder<PosGuiData>
             .run();
         // 刷新按钮：Ore Plugin 放入/移除槽后矿池不会立刻重建，点击手动刷新（C2S 服务端立即重建矿池）
         panel.child(buildRefreshButton(actionSync));
+        // 维度消耗增加% 实际值（刷新按钮右侧，粗体）：筛选 = 20%×额外维度槽数；定向 = 固定 200%
+        panel.child(
+            IKey.dynamic(() -> formatIncreaseValue(dimIncreaseSync.getDoubleValue()))
+                .asWidget()
+                .pos(DIM_INCREASE_X, SLOT_TITLE_Y));
         // 定向模式切换按钮：C2S 切换；服务端进入时清空过滤/定向、重建矿池、强制停机并清空奇点模式
         panel.child(buildDirectionalButton(directionalSync, actionSync));
-        // UU 物质消耗行：定向开 → 1 L/s × 倍率（紫色加粗）；定向关 → —（白色）
-        panel.child(
-            IKey.dynamic(() -> formatUUCostLine(uuMultSync.getDoubleValue(), directionalSync.getValue()))
-                .asWidget()
-                .pos(LEFT_X, UU_LINE_Y));
         // 当前模式提示信息：TextWidget 按宽度自动折行（不侵入浏览器区）；内容随定向开关切换
-        // （定向关 = 常规过滤模式介绍 / 定向开 = 定向模式介绍），白/金/紫三色轮换、无灰色字体
+        // （定向关 = 筛选模式介绍 / 定向开 = 定向模式介绍），蓝标题 + 黑正文 + 定向块底部紫 UU 消耗
         panel.child(
-            new TextWidget<>(IKey.dynamic(() -> buildModeHintText(directionalSync.getValue()))).pos(LEFT_X, HINT_Y)
-                .size(HINT_W, HINT_H));
+            new TextWidget<>(
+                IKey.dynamic(() -> buildModeHintText(directionalSync.getValue(), uuMultSync.getDoubleValue())))
+                    .pos(LEFT_X, HINT_Y)
+                    .size(HINT_W, HINT_H));
 
         // 初始刷新（sync handler 尚未初始化时数据为空，首次同步到达后 changeListener 再刷新）
         refreshOreList();
@@ -335,7 +351,7 @@ public class MTECrustMatterAggregatorConfigGui implements IGuiHolder<PosGuiData>
                     int mode = oreModeSync.getIntValue();
                     int fortune = fortuneSync.getIntValue();
                     // 明细 =（1+矿石模式加成+时运加成）×（维度槽/过滤加成）；后者由总倍率反推。
-                    // 定向模式：固定 +100%（×2.00）× 定向倍率（定向倍率 = UU 倍率 ÷ 模式/时运加成反推）
+                    // 定向模式：固定 +200%（×3.00）× 定向倍率（定向倍率 = UU 倍率 ÷ 模式/时运加成反推）
                     double modeFortune = 1.0d
                         + MTECrustMatterAggregator.ORE_MODE_STEAM_BONUS[Math.min(Math.max(mode, 0), 2)]
                         + MTECrustMatterAggregator.FORTUNE_STEAM_BONUS[Math.min(Math.max(fortune, 0), 6)];
@@ -344,7 +360,7 @@ public class MTECrustMatterAggregatorConfigGui implements IGuiHolder<PosGuiData>
                         return EnumChatFormatting.GRAY
                             + StatCollector.translateToLocal("gtsr.aggregator_config.steam_cost.detail_dir")
                             + String.format("%.2f", modeFortune)
-                            + " × 2.00 × "
+                            + " × 3.00 × "
                             + String.format("%.2f", dirFactor);
                     }
                     double env = steamMultSync.getDoubleValue() / modeFortune;
@@ -373,12 +389,20 @@ public class MTECrustMatterAggregatorConfigGui implements IGuiHolder<PosGuiData>
         return name + " +" + bonus + "%";
     }
 
-    /** 时运按钮文案：「时运 Lv n」（键值含 %d 占位符）。 */
+    /** 时运按钮文案：罗马数字 + 蒸汽消耗%（键值含 %s 与 %d 占位，如「时运 I +50%」）。 */
     private static String formatFortuneLabel(int level) {
-        return String.format(StatCollector.translateToLocal("gtsr.aggregator_config.fortune_level"), level);
+        int l = Math.min(Math.max(level, 0), 6);
+        String roman = l == 0 ? "0" : ROMAN_NUMERALS[l - 1];
+        int bonus = (int) Math.round(MTECrustMatterAggregator.FORTUNE_STEAM_BONUS[l] * 100.0d);
+        return String.format(StatCollector.translateToLocal("gtsr.aggregator_config.fortune_level"), roman, bonus);
     }
 
-    /** 蒸汽消耗主文本：基础 24000 L/s × 同步倍率（整体加粗，金色粗体附倍率后缀）。 */
+    private static final String[] ROMAN_NUMERALS = { "I", "II", "III", "IV", "V", "VI" };
+
+    /**
+     * 蒸汽消耗主文本（两行）：第一行 = 基础 24000 L/s × 同步倍率（整体加粗，金色粗体附倍率后缀）；
+     * 第二行 = 黑色消耗量公式（键 gtsr.aggregator_config.steam_formula）。
+     */
     private static String formatSteamCostLine(double steamMult) {
         long perSecond = Math.round(MTECrustMatterAggregator.NORMAL_STEAM_PER_SECOND * steamMult);
         return EnumChatFormatting.BOLD + StatCollector.translateToLocal("gtsr.aggregator_config.steam_cost")
@@ -389,46 +413,56 @@ public class MTECrustMatterAggregatorConfigGui implements IGuiHolder<PosGuiData>
             + EnumChatFormatting.BOLD
             + String.format(
                 StatCollector.translateToLocal("gtsr.aggregator_config.steam_cost.mult"),
-                String.format("%.2f", steamMult));
+                String.format("%.2f", steamMult))
+            + "\n"
+            + EnumChatFormatting.BLACK
+            + StatCollector.translateToLocal("gtsr.aggregator_config.steam_formula");
+    }
+
+    /** 消耗增加% 实际值（粗体 "+X%"；筛选/定向按模式由服务端算好）：用于浏览器标题右侧与刷新按钮右侧。 */
+    private static String formatIncreaseValue(double percent) {
+        return EnumChatFormatting.BLACK.toString() + EnumChatFormatting.BOLD
+            + "+"
+            + String.format("%.0f", percent)
+            + "%";
     }
 
     /**
-     * UU 物质消耗行：定向开 → 1 L/s × 倍率（紫色加粗，uu_cost 为前缀键 + uu_cost.mult 倍率后缀）；
-     * 定向关 → 白字 "—"（uu_cost.off）。注：uu_cost 键值无 %s 占位，只能拼接（与主 GUI 一致）。
-     */
-    private static String formatUUCostLine(double mult, boolean directional) {
-        if (!directional) {
-            return EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.aggregator_config.uu_cost")
-                + StatCollector.translateToLocal("gtsr.aggregator_config.uu_cost.off");
-        }
-        String ratePart = NumberFormatUtil.formatNumber(Math.round(mult)) + " L/s"
-            + String.format(
-                StatCollector.translateToLocal("gtsr.aggregator_config.uu_cost.mult"),
-                String.format("%.2f", mult));
-        return EnumChatFormatting.LIGHT_PURPLE.toString() + EnumChatFormatting.BOLD
-            + StatCollector.translateToLocal("gtsr.aggregator_config.uu_cost")
-            + ratePart;
-    }
-
-    /**
-     * 当前模式提示信息：定向关 = 常规过滤模式介绍（已解放权重语义/蒸汽倍率/操作提示）；
-     * 定向开 = 定向模式介绍（只产定向矿/蒸汽与 UU 公式/多选/切换副作用）。
-     * 键值为 \n 分隔的多行文本，此处按行轮换 WHITE/GOLD/LIGHT_PURPLE 着色（无灰色字体），
+     * 当前模式提示信息（精简版）：第一行蓝色「当前模式：定向/筛选」，随后黑色公式正文
+     * （筛选：剔除矿物越多且权重越大→则消耗蒸汽越多→消耗增加%=筛选总权重%；
+     * 定向：定向矿物越少且权重越低→则消耗蒸汽越多→消耗增加%=2500%/定向总权重），
+     * 定向模式最底部追加紫色 UU 物质消耗（前缀 + 实际速率含倍率）+ 黑色消耗量公式。
+     * 键值为 \n 分隔的多行文本，此处逐行着蓝/黑色；UU 三行由代码拼接（动态速率），
      * 由 TextWidget 按宽度自动折行（不侵入右侧矿石浏览器区）。
      */
-    private static String buildModeHintText(boolean directional) {
+    private static String buildModeHintText(boolean directional, double uuMult) {
         String key = directional ? "gtsr.aggregator_config.mode_hint.directional"
             : "gtsr.aggregator_config.mode_hint.filtered";
         String raw = StatCollector.translateToLocal(key);
         if (raw.isEmpty() || raw.equals(key)) return raw;
-        EnumChatFormatting[] colors = { EnumChatFormatting.WHITE, EnumChatFormatting.GOLD,
-            EnumChatFormatting.LIGHT_PURPLE };
-        String[] lines = raw.split("\n");
         StringBuilder sb = new StringBuilder();
+        String[] lines = raw.split("\n");
         for (int i = 0; i < lines.length; i++) {
             if (i > 0) sb.append("\n");
-            sb.append(colors[i % colors.length])
+            // 第一行蓝色模式标题，其余行黑色正文
+            sb.append(i == 0 ? EnumChatFormatting.BLUE : EnumChatFormatting.BLACK)
                 .append(lines[i]);
+        }
+        if (directional) {
+            // UU 消耗块（紫色）：前缀 + 实际速率（含倍率）+ 黑色消耗量公式
+            String ratePart = NumberFormatUtil.formatNumber(Math.round(uuMult)) + " L/s"
+                + String.format(
+                    StatCollector.translateToLocal("gtsr.aggregator_config.uu_cost.mult"),
+                    String.format("%.2f", uuMult));
+            sb.append("\n")
+                .append(EnumChatFormatting.LIGHT_PURPLE)
+                .append(StatCollector.translateToLocal("gtsr.aggregator_config.uu_cost"))
+                .append("\n")
+                .append(EnumChatFormatting.LIGHT_PURPLE)
+                .append(ratePart)
+                .append("\n")
+                .append(EnumChatFormatting.BLACK)
+                .append(StatCollector.translateToLocal("gtsr.aggregator_config.uu_formula"));
         }
         return sb.toString();
     }
