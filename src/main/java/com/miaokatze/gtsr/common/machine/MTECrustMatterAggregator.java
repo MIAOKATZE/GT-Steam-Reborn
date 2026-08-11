@@ -1105,12 +1105,8 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
     public CheckRecipeResult checkProcessing() {
         rebuildPoolIfNeeded();
 
-        // 时运钳位（运行前）：超过奇点模式上限（无奇点7/奇点11/临界15）的档位自动降档，
-        // 终端按钮恒可轮切全 7 档，超限档位由此兜底
-        if (mFortuneLevel > getMaxAllowedFortuneLevel()) {
-            mFortuneLevel = getMaxAllowedFortuneLevel();
-            if (getBaseMetaTileEntity() != null) getBaseMetaTileEntity().markDirty();
-        }
+        // 时运钳位已迁移至 onPostTick 每 tick 即时降档（v1.10.56：checkProcessing 仅周期开始时调用，
+        // 运行中不触发——超限档位在 onPostTick 收敛，此处无需重复）
 
         if (!hasUsableDimension()) {
             return SimpleCheckRecipeResult.ofFailure("gtsr.gui.crust_matter_agg.no_dimension");
@@ -1443,6 +1439,13 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
         if (aBaseMetaTileEntity.isClientSide()) {
             spawnParticles(aBaseMetaTileEntity);
             return;
+        }
+        // 时运钳位（即时，v1.10.56）：超过奇点模式上限（无奇点7/奇点11/临界15）的档位每 tick 自动降档——
+        // checkProcessing 仅周期开始时调用（运行中不触发），奇点模式到期/降级也由此立即兜底；
+        // 终端按钮恒可轮切全 7 档，超限档位在这里收敛到上限（仅在变化时 markDirty）
+        if (mFortuneLevel > getMaxAllowedFortuneLevel()) {
+            mFortuneLevel = getMaxAllowedFortuneLevel();
+            aBaseMetaTileEntity.markDirty();
         }
         if (mMachine) {
             // 奇点模式：每 tick 倒计时，每 20 tick 检查进入/无缝续杯
