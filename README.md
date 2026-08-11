@@ -21,107 +21,21 @@ A GregTech New Horizons expansion mod that **supplements the Steam Age and signi
 
 ***
 
-## Core Mechanic: Mixin Enhancements / 核心机制：Mixin 增强
-
-GTSR injects 11 Mixin classes into GT5U and GT++ to fundamentally enhance the steam machine experience. These are critical to the mod's functionality:
-
-GTSR 向 GT5U 和 GT++ 注入了 11 个 Mixin 类，从根本上增强了蒸汽机器体验。这些是模组功能的关键：
-
-### MTESteamMultiBaseMixin — Steam Multiblock Core Enhancement / 蒸汽多方块核心增强
-
-- **Superheated Steam 4x Speed / 过热蒸汽4倍速**: When any input hatch contains superheated steam, consumption ×4 and processing time ÷4 / 任意输入仓含过热蒸汽时，消耗×4、处理时间÷4
-- **Cooling Hatch Support / 冷却仓支持**: Superheated steam → pressure cooling hatch (1:1), normal steam → cooling water (160:1) / 过热蒸汽→耐压冷却仓(1:1)，普通蒸汽→冷却水(160:1)
-- **Standard Output Bus Compatibility / 标准输出总线兼容**: Fixes GT5U's `addOutputPartial()` ignoring standard output buses / 修复GT5U的`addOutputPartial()`忽略标准输出总线的问题
-- **Dual Steam Type Consumption / 双蒸汽类型消耗**: `depleteInput()` can consume from both normal and superheated steam hatches / 可同时从普通蒸汽和过热蒸汽仓消耗
-
-### Fluid Hatch Compatibility / 流体仓兼容
-
-- **MTEHatchCustomFluidBaseMixin**: Steam-locked fluid hatch matches 3 steam types only (normal/superheated/IC2 superheated — dense and supercritical are NOT included); screwdriver auto-input toggle (1000 mB per 100 ticks ≈ 200 L/s). / 蒸汽锁定仓仅匹配 3 种蒸汽（普通/过热/IC2过热，不含致密与超临界）；螺丝刀自动输入开关（1000 mB/100 tick ≈ 200 L/s）。
-- **MTEHatchInputMixin / MTEHatchInputBusMixin**: 4-state orthogonal toggle (input filter × auto-input) for ALL input hatches/buses via screwdriver right-click. Hatch: 1000 mB/100 ticks (≈200 L/s); Bus: 1 stack/100 ticks (≈1 stack/5 seconds). Shift+click preserves original mode. / 螺丝刀4状态正交切换（输入过滤×自动输入）。仓：1000 mB/100 tick（≈200 L/s）；总线：1组/100 tick（≈1组/5秒）。Shift+右键保留原模式。
-
-### Steam Bus Behavior / 蒸汽总线行为
-
-- **MTEHatchSteamBusInputMixin / MTEHatchSteamBusOutputMixin**: Steam input buses allow pipe pull from the front container (allowPullStack); steam output buses auto-push to the front container (pushOutputInventory) — both previously blocked by GT++. / 蒸汽输入总线允许正面管道**抽取**（allowPullStack），蒸汽输出总线自动向正面容器**推出**（pushOutputInventory）——两者此前均被GT++阻止。
-
-### Recipe Fix / 配方修正
-
-- **MTERockBreakerRecipeBuilderMixin**: All glowstone dust inputs in Rock Breaker recipes are non-consumable (consumed = false) — no circuit-6 gate. / 岩石破碎机配方中所有荧石粉输入一律不可消耗（consumed=false），无电路6判断。
-
-### Other Mixins / 其他 Mixin
-
-- **SteamHatchElementOutputBusMixin / CommonMetaTileEntityMixin**: HatchElement extension and unified auto-input scheduling. / HatchElement 扩展与统一自动输入调度。
-- **BaseMetaTileEntityMixin**: Empty-hand sneak right-click on GTSR steam machines triggers descaling (IShiftRightClickDecalcifiable), canceling the default behavior. / 对 GTSR 蒸汽机器空手潜行右击执行除垢（IShiftRightClickDecalcifiable）并取消默认行为。
-- **gtnl/SteamMultiMachineBaseGTNLMixin**: Soft GTNL compatibility — `@Pseudo` + runtime class detection; applies GTSR's full enhancement to GTNL steam machines only when `Config.gtnlEnhancement` is enabled (silent by default). / GTNL 软兼容——`@Pseudo` + 运行时类探测；仅在 `Config.gtnlEnhancement` 开启时对 GTNL 蒸汽机应用 GTSR 完整增强（默认静默）。
-
-***
-
-## Hub-Node Binding System / 枢纽-节点绑定系统
-
-The Hub-Node system is GTSR's core innovation, enabling cross-chunk and cross-dimensional fluid transfer and remote operations.
-
-枢纽-节点系统是 GTSR 的核心创新，实现跨区块甚至跨维度的流体传输和远程作业。
-
-### Binding Mechanism / 绑定机制
-
-Hold a node item and right-click a hub controller to bind. Singularity cost varies by node type (steam/water: 0, reinforced steam: 1, overpressure steam: 8, miner/driller: 1). Steam/Water hubs support 3-state cycle: output mode → input mode → unbind. Drilling hub supports 2-state: bind → unbind. Nodes auto-register with their hub on first tick.
-
-手持节点物品右键枢纽控制器绑定。奇点消耗因节点类型而异（蒸汽/水：0，强化蒸汽：1，超压蒸汽：8，采矿/钻井：1）。蒸汽/水枢纽支持3状态循环：输出模式→输入模式→解绑。钻井枢纽支持2状态：绑定→解绑。节点在首次tick时自动向枢纽注册。
-
-> 📷 图片待配：节点绑定枢纽的操作示意图或流程截图
-
-### Transfer Mechanism / 传输机制
-
-- **Steam/Water Hub**: Every 20 ticks, transfers fluid between hub and bound nodes at configurable rates. Screwdriver on hub toggles overflow output mode. Transfer rate adjustable via Hub Terminal (100%→80%→60%→...→1%→0%).
-- **Drilling Hub**: Consumes steam to drive active nodes. Miner node outputs → hub Output Bus. Drilling node outputs → hub Output Hatch.
-- **蒸汽/水枢纽**：每20tick在枢纽与绑定节点间传输流体，速率可配置。螺丝刀切换溢流输出模式。枢纽终端调整传输速率百分比。
-- **钻井枢纽**：消耗蒸汽驱动活跃节点。采矿节点产出→枢纽输出总线。钻井节点产出→枢纽输出仓。
-
-### Hub Terminal / 枢纽终端
-
-The Hub Terminal is a handheld remote management device (crafted with 1 Steam Entangled Singularity surrounded by 8 steel plates). Right-click any hub controller with it to open that hub's status terminal — no more running back and forth between nodes.
-
-枢纽终端是手持远程管理设备（1 蒸汽纠缠奇点 + 8 钢板环绕合成）。手持右击任意枢纽控制器即可打开对应的状态终端，告别在节点之间来回奔波。
-
-**Cache Hub Status Terminal (Steam & Water hubs) / 缓存枢纽状态终端（蒸汽与蓄水枢纽通用）**:
-
-<p align="center"><img src="README/HubTerminalCacheStatus.png" width="400"><br><em>缓存枢纽状态终端 / Cache Hub Status Terminal</em></p>
-使用枢纽终端右击控制器，打开状态GUI。 / Right-click the controller on the hub terminal and open the status GUI.
-
-- Per-node display: icon, custom name, coordinates + dimension, fluid type, storage/capacity (K/M/G formatted) / 每节点显示：图标、自定义名、坐标+维度、流体类型、储量/容量（K/M/G 格式化）
-- 16×16 icon buttons with hover tooltips / 16×16 图标按钮，悬浮显示说明：
-  - Rate cycle (progress icon, tooltip shows current %) / 速率循环（进度图标，tooltip 显示当前百分比）
-  - Mode toggle (export/import icon: node→hub / hub→node) / 模式切换（export/import 图标：节点→枢纽 / 枢纽→节点）
-  - Auto-output toggle (power icon: node → front container push) / 自动输出开关（电源图标：节点向正面容器推送）
-- In-place renaming with text field / 内嵌文本框重命名
-- Handheld shortcuts: right-click a node with the terminal to cycle rate; sneak+right-click to toggle mode / 手持快捷操作：终端右击节点循环速率；潜行右击切换模式
-
-**Drilling Hub Status Terminal / 钻井枢纽状态终端**:
-
-<p align="center"><img src="README/HubTerminalDrillingStatus.png" width="400"><br><em>钻井枢纽状态终端 / Drilling Hub Status Terminal</em></p>
-使用枢纽终端右击控制器，打开状态GUI。 / Right-click the controller on the hub terminal and open the status GUI.
-
-- Per-node display: icon, name, tier (Mk1-4), status (running/idle/stopped), coordinates / 每节点显示：图标、名字、等级(Mk1-4)、状态(运行/待机/停止)、坐标
-- Remote start/stop, quick recycle (greyed out until node stops or idles, returns mining pipes), in-GUI upgrades / 远程启停、快捷回收（需节点停止或待机，返还钻管）、UI 内升级
-- In-place renaming; custom names also show in WAILA tooltip and node GUI title / 内嵌重命名；自定义名同步显示在 WAILA 提示与节点 GUI 标题
-- **Phase teleport to node / 阶段传送至节点**: Click the teleport button next to a bound node to teleport directly above it (y+1). Supports cross-dimensional travel; consumes 1 Steam Entangled Singularity from your main inventory only after a safe landing spot is found. / 点击绑定节点旁的传送按钮，直接传送到节点正上方（y+1）。支持跨维度；仅在找到安全落点后消耗主物品栏 1 个蒸汽纠缠奇点。
-
-***
-
 ## Multiblock Machines / 多方块机器 (22)
 
 ### Storage Hub Machines / 存储枢纽机器 (2)
 
-<p align="center"><img src="README/MTESteamHubArray-T1.png" width="200" alt="蒸汽枢纽阵列 / Steam Hub Array"> <img src="README/MTESteamHubArray-T2.png" width="200" alt="蒸汽枢纽阵列 / Steam Hub Array"> <img src="README/MTESteamHubArray-T3.png" width="200" alt="蒸汽枢纽阵列 / Steam Hub Array"><br><em>蒸汽枢纽阵列 / Steam Hub Array（青铜/钢/钨钢）</em></p>
+<p align="center"><img src="README/MTESteamHubArray-T1.png" width="240" alt="蒸汽枢纽阵列 / Steam Hub Array"> <img src="README/MTESteamHubArray-T2.png" width="240" alt="蒸汽枢纽阵列 / Steam Hub Array"> <img src="README/MTESteamHubArray-T3.png" width="240" alt="蒸汽枢纽阵列 / Steam Hub Array"><br><em>蒸汽枢纽阵列 / Steam Hub Array（青铜/钢/钨钢）</em></p>
 
-**蒸汽枢纽阵列 / Steam Hub Array (SHA)** — 3-tier (Bronze/Steel/TungstenSteel), accepts steam cache nodes, supports normal/dense/supercritical steam, up to 30 stacked storage layers. Max capacity: 750 × 20.48B L ×20 (Reinforced Chip) ≈ 307T L. Requires Hub Singularity Chip for node binding (+×5 total capacity); Reinforced Chip multiplies total capacity ×20 instead. Bidirectional transfer (input/output modes). Supports cross-dimensional transfer. Removing the chip swallows any stored steam exceeding the reduced capacity.
+**蒸汽枢纽阵列 / Steam Hub Array (SHA)** — 3-tier (Bronze/Steel/TungstenSteel) steam storage hub. Accepts steam cache nodes; up to 30 stacked storage layers (320M / 1.28B / 20.48B L per unit); Hub Singularity Chip enables node binding (×5 total capacity), Reinforced Chip (tier 3) enables dense/supercritical steam and ×20 capacity. Bidirectional, cross-dimensional transfer.
 
-蒸汽枢纽阵列，3级（青铜/钢/钨钢），接受蒸汽缓存节点，支持普通/致密/超临界蒸汽，最多叠加30层存储单元。最大容量：750 × 204.8亿L ×20（强化芯片）≈ 307T L。需要枢纽奇点芯片绑定节点（总容量×5）；强化芯片改为总容量×20。双向传输（输入/输出模式）。支持跨维度。中途取下芯片会吞掉超出缩减后容量的蒸汽。
+蒸汽枢纽阵列，3级（青铜/钢/钨钢）蒸汽存储枢纽。接受蒸汽缓存节点；最多 30 层存储单元（320M / 1.28B / 20.48B L/单元）；枢纽奇点芯片解锁节点绑定（总容量×5），强化芯片（等级3）解锁致密/超临界蒸汽（容量×20）。双向、跨维度传输。
 
 - Tier 1 (Bronze): Bronze casing + pipe + gearbox + frame + Hub Storage Unit (320M L/unit)
 - Tier 2 (Steel): Steel casing + pipe + gearbox + frame + Reinforced Hub Storage Unit (1.28B L/unit)
 - Tier 3 (TungstenSteel): TungstenSteel casing + pipe + frame + Overpressure Hub Storage Unit (20.48B L/unit) + Reinforced Chip enables dense/supercritical steam and ×20 capacity
 
-<p align="center"><img src="README/MTEWaterHubArray-T1.png" width="220" alt="蓄水枢纽阵列 / Water Hub Array"> <img src="README/MTEWaterHubArray-T2.png" width="220" alt="蓄水枢纽阵列 / Water Hub Array"><br><em>蓄水枢纽阵列 / Water Hub Array（青铜/钢）</em></p>
+<p align="center"><img src="README/MTEWaterHubArray-T1.png" width="260" alt="蓄水枢纽阵列 / Water Hub Array"> <img src="README/MTEWaterHubArray-T2.png" width="260" alt="蓄水枢纽阵列 / Water Hub Array"><br><em>蓄水枢纽阵列 / Water Hub Array（青铜/钢）</em></p>
 
 **蓄水枢纽阵列 / Water Hub Array (WHA)** — Bronze/Steel tier, accepts water cache nodes, same-dimension only. Central dispatch for water/distilled water with bidirectional interface. Up to 30 stacked storage layers; Hub Singularity Chip multiplies total capacity ×5 (removing it swallows excess water).
 
@@ -131,7 +45,7 @@ The Hub Terminal is a handheld remote management device (crafted with 1 Steam En
 
 ### Singularity Drilling Hub / 奇点钻井枢纽 (1)
 
-<p align="center"><img src="README/MTESingularityDrillingHub.png" width="300" alt="奇点钻井枢纽 / Singularity Drilling Hub"><br><em>奇点钻井枢纽 / Singularity Drilling Hub</em></p>
+<p align="center"><img src="README/MTESingularityDrillingHub.png" width="360" alt="奇点钻井枢纽 / Singularity Drilling Hub"><br><em>奇点钻井枢纽 / Singularity Drilling Hub</em></p>
 
 **奇点钻井枢纽 / Singularity Drilling Hub (SDH)** — Steel only, **requires superheated steam (no speed bonus)**, drives drilling and miner nodes. Steam consumption scales with active node count. A marvel of the steam age: based on steam-entangled singularities, creations of the steam age can reach every corner of the world, extracting all needed resources.
 
@@ -149,34 +63,36 @@ All inherit from `MTESteamMultiBase` (GT++), supporting normal steam and superhe
 
 均继承自 `MTESteamMultiBase`（GT++），支持普通蒸汽和过热蒸汽4倍速。
 
-<p align="center"><img src="README/MTELargeSteamFurnace-T1.png" width="220" alt="大型蒸汽熔炉 / Large Steam Furnace"> <img src="README/MTELargeSteamFurnace-T2.png" width="220" alt="大型蒸汽熔炉 / Large Steam Furnace"><br><em>大型蒸汽熔炉 / Large Steam Furnace（青铜/钢）</em></p>
+<p align="center"><img src="README/MTELargeSteamFurnace-T1.png" width="260" alt="大型蒸汽熔炉 / Large Steam Furnace"> <img src="README/MTELargeSteamFurnace-T2.png" width="260" alt="大型蒸汽熔炉 / Large Steam Furnace"><br><em>大型蒸汽熔炉 / Large Steam Furnace（青铜/钢）</em></p>
 
-<p align="center"><img src="README/MTEAirCompressor-T1.png" width="220" alt="空气压缩机 / Air Compressor"> <img src="README/MTEAirCompressor-T2.png" width="220" alt="空气压缩机 / Air Compressor"><br><em>空气压缩机 / Air Compressor（青铜/钢）</em></p>
+<p align="center"><img src="README/MTEAirCompressor-T1.png" width="260" alt="空气压缩机 / Air Compressor"> <img src="README/MTEAirCompressor-T2.png" width="260" alt="空气压缩机 / Air Compressor"><br><em>空气压缩机 / Air Compressor（青铜/钢）</em></p>
 
 - **大型蒸汽熔炉 / Large Steam Furnace (LSF)**: Bronze/Steel, 24/48 parallel. Steam-driven industrial smelting equipment with greater parallel capacity. Work speed: 250% (Bronze) / 500% (Steel); steam efficiency: 60% / 40%.
   蒸汽驱动的工业化熔炼设备，具有更大的并行数。工作速度250%(青铜)/500%(钢)；蒸汽效率60%/40%。
 - **空气压缩机 / Air Compressor (AC)**: Bronze/Steel, 1/4 parallel. Produces air (or nether air in Nether dimension). Far greater speed and convenience than ordinary compressors.
   产出空气（下界维度产出下界空气），远优于普通压缩机的速度和便捷度。
 
-<p align="center"><img src="README/MTEAtmosphericCentrifuge-T1.png" width="220" alt="空气离心机 / Atmospheric Centrifuge"> <img src="README/MTEAtmosphericCentrifuge-T2.png" width="220" alt="空气离心机 / Atmospheric Centrifuge"><br><em>空气离心机 / Atmospheric Centrifuge（青铜/钢）</em></p>
+<p align="center"><img src="README/MTEAtmosphericCentrifuge-T1.png" width="260" alt="空气离心机 / Atmospheric Centrifuge"> <img src="README/MTEAtmosphericCentrifuge-T2.png" width="260" alt="空气离心机 / Atmospheric Centrifuge"><br><em>空气离心机 / Atmospheric Centrifuge（青铜/钢）</em></p>
 
 - **空气离心机 / Atmospheric Centrifuge (ATC)**: Bronze/Steel, 4/16 parallel. Chip system — basic recipe filters 2 outputs, rare gas chip unlocks up to 8 outputs. Bronze tier cannot install chips.
   芯片系统——基础配方过滤2个输出，稀有气体芯片解锁最多8个输出。青铜级不能安装芯片。
 
-<p align="center"><img src="README/MTESteamFluidDrill-T1.png" width="220" alt="蒸汽流体钻井 / Steam Fluid Drill"> <img src="README/MTESteamFluidDrill-T2.png" width="220" alt="蒸汽流体钻井 / Steam Fluid Drill"> <img src="README/MTECrustSteamBorer.png" width="280" alt="地壳蒸汽掘进机 / Crust Steam Borer"><br><em>蒸汽流体钻井 / Steam Fluid Drill（青铜/钢） & 地壳蒸汽掘进机 / Crust Steam Borer</em></p>
+<p align="center"><img src="README/MTESteamFluidDrill-T1.png" width="260" alt="蒸汽流体钻井 / Steam Fluid Drill"> <img src="README/MTESteamFluidDrill-T2.png" width="260" alt="蒸汽流体钻井 / Steam Fluid Drill"><br><em>蒸汽流体钻井 / Steam Fluid Drill（青铜/钢）</em></p>
 
-<p align="center"><img src="README/MTECrustMatterAggregator.png" width="340" alt="地壳物质聚合器 / Crust Matter Aggregator"><br><em>地壳物质聚合器 / Crust Matter Aggregator</em></p>
+<p align="center"><img src="README/MTECrustSteamBorer.png" width="340" alt="地壳蒸汽掘进机 / Crust Steam Borer"><br><em>地壳蒸汽掘进机 / Crust Steam Borer</em></p>
+
+<p align="center"><img src="README/MTECrustMatterAggregator.png" width="440" alt="地壳物质聚合器 / Crust Matter Aggregator"><br><em>地壳物质聚合器 / Crust Matter Aggregator</em></p>
 
 - **蒸汽流体钻井 / Steam Fluid Drill (SFD)**: Bronze/Steel. Produces water/distilled water/brine/lava. Screwdriver switches output mode (steel only). Distilled Water 20%, Brine 10%, Lava 0.5% (5% in Nether) efficiency.
   产水/蒸馏水/盐水/岩浆。螺丝刀切换产出模式（仅钢）。蒸馏水20%、盐水10%、岩浆0.5%（下界5%）效率。
 - **地壳蒸汽掘进机 / Crust Steam Borer (CSB)**: Bronze/Steel. Void mining — produces ores based on dimension drop tables. Overworld and Nether only.
   虚空采矿——按维度掉落表产出矿石。仅限主世界和下界。
-- **地壳物质聚合器 / Crust Matter Aggregator (CMA)**: Steel only. Cross-dimension void mining via GT NEI Ore Plugin dimension display items (optional — defaults to the current dimension). Three steam grades at 24,000 L/s (Steam/Superheated/Supercritical, Dense fluids 1/100 demand), ore modes (Raw ore ×1, no fortune / Crude = mined drop, GT ore base 1~2 + vanilla-fortune random extra, steam +100% / Crushed = crude count × actual maceration count ×1.5, normal ores ×3, redstone and other special ores use their real counts, steam +200%), fortune tiers III~XV (default III; output rolls a vanilla-fortune extra count rather than a flat +1/tier, steam +50% per tier up to +300%; IX-XI gated behind Entangled Singularity mode and XIII-XV behind Critical mode — over-limit tiers auto-clamp to the cap before running, the terminal button always cycles), filter-mode cost increase = filtered total weight% + 5%×k(k-1)/2 (k=filter count, +5% per extra filter), and a 200-second singularity mode. Directional mode (screwdriver right-click or terminal UI): only aimed ores are produced; steam multiplier (1+ore mode+fortune) × (3.0 + 20%/extra dimension slot) (fixed +200% +20%/extra dimension slot) × (1 + 2500%÷sum of the 3 lowest aimed weights, accumulating all when fewer than 3); UU-Matter cost (uumatter from input hatches) = (1+mode+fortune) × (1 + 2500%÷sum of the 3 lowest aimed weights) L/s without the fixed +200%, so aiming more low-weight ores lowers the cost — the machine refuses to start without it. Filter and aim configs persist independently (saved with the machine's NBT, not reset on mode switch); the terminal adds a "Clear Config" button (clears the current mode's config table). ME input hatch steam pull is compatible with beta-1/beta-2 (the beta-1 GT5U drain-simulation probe defect is worked around at the probe layer). Since v1.10.50, the CMA belongs to the MTESingularityMachineBase (Enhanced) system.
-  仅钢级。通过GT NEI Ore Plugin维度显示物品实现跨维度虚空采矿（物品非必需——无物品时默认当前维度）。三档蒸汽各24,000 L/s（蒸汽/过热/超临界，致密流体需求1/100，消耗随致密/普通档变化）；无热量机制（产出恒定满额）；以及200秒奇点模式。矿石模式（终端配置界面循环）：原矿×1（不吃时运）/ 粗矿 = 挖掘掉落（GT 矿基础 1~2 个 + 原版时运公式随机额外；蒸汽 +100%）/ 粉碎矿 = 粗矿数量 × 研磨配方实际粉碎数量 × 1.5（普通矿 ×3、红石等特殊矿按实际数量；蒸汽 +200%）。时运体系：III~XV 共 7 档（默认 III），产出按原版时运公式掷取额外数量（非平铺 +1/档）；蒸汽每档+50%（XV 最高+300%）；门控 IX-XI 需奇点、XIII-XV 需临界，运行前超限档位自动钳位；终端按钮恒可轮切。筛选模式消耗增加% = 筛选总权重% + 5%×k(k-1)/2（k=筛选数，逐项+5%递增）。输出总线必填，其余仓室可选。定向模式：螺丝刀右击控制器或终端配置界面切换；切换时自动刷新矿池、强制停机并清空奇点模式。维度槽全部生效（v1.10.55 起定向模式不限制维度，槽位可正常放入/取出）；矿石浏览器的行按钮变为「定向/取消定向」逐矿多选（进入时清空过滤与定向选择）。只产出被定向的矿石；蒸汽倍率 = (1+矿石模式+时运) × (3.0 + 20%/额外维度槽)（固定+200%+20%/额外维度槽）×（1 + 2500%÷最低3个定向权重之和，不足3个累加全部），选低权重矿石越多消耗越低。额外消耗UU物质（输入仓uumatter流体）：(1+模式+时运) ×（1 + 2500%÷最低3个定向权重之和）L/s（无 +200% 固定），无UU物质时机器无法启动。定向模式下失控奇点节点颜色变为紫色（三种奇点状态均如此）。过滤与定向配置独立持久化（随机器 NBT 保存，切换模式不重置）；终端新增「清除配置」按钮（清除当前模式配置表）。ME 输入仓蒸汽拉取已兼容 beta-1/beta-2（beta-1 的 GT5U drain 模拟探测缺陷已在探测层规避）。自 v1.10.50 起归属 MTESingularityMachineBase（Enhanced）体系。
+- **地壳物质聚合器 / Crust Matter Aggregator (CMA)**: Steel only. Cross-dimension void mining via GT NEI Ore Plugin dimension display items (optional — defaults to the current dimension). Three steam grades at 24,000 L/s (dense fluids 1/100 demand); ore modes (Raw/Crushed/Purified), fortune tiers III~XV with singularity/critical gating, filter & directional modes with steam/UU-Matter cost scaling, and a 200-second singularity mode — all configured via the terminal UI. Full mechanics on the [Wiki](https://github.com/MIAOKATZE/GT-Steam-Reborn/wiki).
+  仅钢级，跨维度虚空采矿（GT NEI Ore Plugin 维度显示物品，非必需——缺省当前维度）。三档蒸汽各 24,000 L/s（致密流体 1/100）；矿石模式（原矿/粗矿/粉碎矿）、时运 III~XV（奇点/临界门控）、筛选与定向模式（蒸汽/UU 消耗倍率）、200 秒奇点模式——全部经终端配置界面操作。完整机制见 [Wiki](https://github.com/MIAOKATZE/GT-Steam-Reborn/wiki)。
 
-<p align="center"><img src="README/MTECrustMatterAggregatorUI.png" width="320" alt="地壳物质聚合器终端配置界面 / Crust Matter Aggregator Terminal UI"><br><em>地壳物质聚合器终端配置界面 / Crust Matter Aggregator Terminal UI</em></p>
+<p align="center"><img src="README/MTECrustMatterAggregatorUI.png" width="420" alt="地壳物质聚合器终端配置界面 / Crust Matter Aggregator Terminal UI"><br><em>地壳物质聚合器终端配置界面 / Crust Matter Aggregator Terminal UI</em></p>
 
-<p align="center"><img src="README/MTEVeinSteamPyrolyzer-T1.png" width="220" alt="地脉蒸汽热解机 / Vein Steam Pyrolyzer"> <img src="README/MTEVeinSteamPyrolyzer-T2.png" width="220" alt="地脉蒸汽热解机 / Vein Steam Pyrolyzer"><br><em>地脉蒸汽热解机 / Vein Steam Pyrolyzer（青铜/钢）</em></p>
+<p align="center"><img src="README/MTEVeinSteamPyrolyzer-T1.png" width="260" alt="地脉蒸汽热解机 / Vein Steam Pyrolyzer"> <img src="README/MTEVeinSteamPyrolyzer-T2.png" width="260" alt="地脉蒸汽热解机 / Vein Steam Pyrolyzer"><br><em>地脉蒸汽热解机 / Vein Steam Pyrolyzer（青铜/钢）</em></p>
 
 - **地脉蒸汽热解机 / Vein Steam Pyrolyzer (VSP)**: Bronze/Steel. Reverse-injects steam energy underground to increase underground fluid reserves, solving long-term save fluid depletion. Chip T1/T2/T3 expands scan range (2×2/4×4/8×8 chunks).
   以蒸汽为能源逆向注入地下，增加地下流体储量，解决长期存档中流体枯竭问题。芯片T1/T2/T3扩展扫描范围。
@@ -189,45 +105,46 @@ All inherit from `MTEEnhancedMultiBlockBase` (GT5U), with more advanced mechanic
 
 均继承自 `MTEEnhancedMultiBlockBase`（GT5U），具有更高级的机制。
 
-<p align="center"><img src="README/MTELargeCokeOven-T1.png" width="220" alt="大型焦炉 / Large Coke Oven"> <img src="README/MTELargeCokeOven-T2.png" width="220" alt="大型焦炉 / Large Coke Oven"> <img src="README/MTESiemensMartinFurnace.png" width="300" alt="平炉 / Siemens-Martin Furnace"><br><em>大型焦炉 / Large Coke Oven（青铜/钢） & 平炉 / Siemens-Martin Furnace</em></p>
+<p align="center"><img src="README/MTELargeCokeOven-T1.png" width="240" alt="大型焦炉 / Large Coke Oven"> <img src="README/MTELargeCokeOven-T2.png" width="240" alt="大型焦炉 / Large Coke Oven"><br><em>大型焦炉 / Large Coke Oven（青铜/钢）</em></p>
+
+<p align="center"><img src="README/MTESiemensMartinFurnace.png" width="360" alt="平炉 / Siemens-Martin Furnace"><br><em>平炉 / Siemens-Martin Furnace</em></p>
 
 - **大型焦炉 / Large Coke Oven (LCO)**: Bronze/Steel, 24/64 parallel. Self-powered coke oven using GT5U vanilla coke oven recipes (coal/lumps/logs/cactus/sugarcane etc.). Base processing speed: Bronze 120% / Steel 200%; heat acceleration: each 1% heat adds 1% work speed (stacked on base speed).
   无需供能的自发焦炉，使用 GT5U 原版焦炉配方（煤炭/煤块/原木/甘蔗/仙人掌等）。基础加工速度：青铜120% / 钢200%；炉温加速：每1%炉温叠加1%工作速度（叠加在基础速度上）。
 - **平炉 / Siemens-Martin Furnace (SMF)**: Steel only, superheated steam, 64-128 parallel (scales with furnace temperature 100%~200%). Recipe time ×0.75. Consumes 1,000 L/s air during operation (preheat phase exempt; stops if air insufficient). Overheat mechanism: temperature can exceed 100% (max 200%), reducing recipe time by up to 50% (applied after the 0.75 base factor).
   仅钢级，过热蒸汽，64~128并行（随炉温100%~200%线性提升）。配方时间×0.75。运行时消耗1,000 L/s空气（预热阶段不消耗，空气不足时停机）。过热机制：炉温可突破100%（最高200%），配方时间最多削减50%（在0.75基础系数之后应用）。
 
-<p align="center"><img src="README/MTELargeGeothermalSteamBoiler-T1.png" width="220" alt="大型地热蒸汽锅炉 / Large Geothermal Steam Boiler"> <img src="README/MTELargeGeothermalSteamBoiler-T2.png" width="220" alt="大型地热蒸汽锅炉 / Large Geothermal Steam Boiler"><br><em>大型地热蒸汽锅炉 / Large Geothermal Steam Boiler（青铜/钢）</em></p>
+<p align="center"><img src="README/MTELargeGeothermalSteamBoiler-T1.png" width="260" alt="大型地热蒸汽锅炉 / Large Geothermal Steam Boiler"> <img src="README/MTELargeGeothermalSteamBoiler-T2.png" width="260" alt="大型地热蒸汽锅炉 / Large Geothermal Steam Boiler"><br><em>大型地热蒸汽锅炉 / Large Geothermal Steam Boiler（青铜/钢）</em></p>
 
-- **大型地热蒸汽锅炉 / Large Geothermal Steam Boiler (LGB)**: Bronze/Steel. Consumes lava to produce steam. Overheat chip (steel only) enables superheated steam output and rare byproduct drops (gold, rutile, scheelite). Calcification: normal water calcifies (1h delay; Bronze 12h to full, Steel 4h, Steel+chip 2h); at full calcification steam output drops to 1% and the owner is reminded in chat every 10 minutes; distilled water never calcifies. Overpressure mode (screwdriver right-click, requires 100% heat): heat cap raised to 200% with linearly growing steam output; heating ×0.2, cooling ×2, calcification starts immediately at ×20 speed (distilled water exempt); auto-disables when heat drops below 100%. Stops automatically when water/distilled water runs out and must be restarted manually (soft hammer right-click or GUI power switch), with a one-time chat notice.
-  消耗岩浆产蒸汽。过热芯片（仅钢）启用过热蒸汽输出和稀有副产物（金、金红石、白钨矿）。结垢：普通水结垢（延迟1小时；青铜12小时满垢、钢4小时、钢+芯片2小时）；满垢后蒸汽产出降至1%，并每10分钟向所有者发送聊天提醒；蒸馏水永不结垢。超压模式（螺丝刀右击开启，需100%热量）：热量上限200%，蒸汽产出线性增长；升温×0.2、降温×2、钙化立即进行且速度×20（蒸馏水豁免）；热量跌破100%自动关闭。缺水/蒸馏水耗尽自动停机，需手动重启（软锤右击或打开GUI点电源开关），并发送一次聊天提醒。
+- **大型地热蒸汽锅炉 / Large Geothermal Steam Boiler (LGB)**: Bronze/Steel. Consumes lava to produce steam; overheat chip (steel only) enables superheated output and rare byproducts. Calcification: normal water calcifies (distilled water never does); at full calcification output drops to 1%. Overpressure mode (screwdriver right-click, requires 100% heat) raises the heat cap to 200% with linearly growing output; auto-stops when water runs out (manual restart required).
+  消耗岩浆产蒸汽；过热芯片（仅钢）启用过热蒸汽输出与稀有副产物。结垢：普通水结垢（蒸馏水永不）；满垢后产出降至 1%。超压模式（螺丝刀开启，需 100% 热量）热量上限提至 200%、产出线性增长；缺水自动停机（需手动重启）。
 
-<p align="center"><img src="README/MTEMegaSteamTurbineArray-T1.png" width="200" alt="巨型蒸汽轮机机组 / Mega Steam Turbine Array（等级 1/3/6）"> <img src="README/MTEMegaSteamTurbineArray-T3.png" width="200" alt="巨型蒸汽轮机机组 / Mega Steam Turbine Array（等级 1/3/6）"> <img src="README/MTEMegaSteamTurbineArray-T6.png" width="200" alt="巨型蒸汽轮机机组 / Mega Steam Turbine Array（等级 1/3/6）"><br><em>巨型蒸汽轮机机组 / Mega Steam Turbine Array（等级 1/3/6）</em></p>
+<p align="center"><img src="README/MTEMegaSteamTurbineArray-T1.png" width="240" alt="巨型蒸汽轮机机组 / Mega Steam Turbine Array（等级 1/3/6）"> <img src="README/MTEMegaSteamTurbineArray-T3.png" width="240" alt="巨型蒸汽轮机机组 / Mega Steam Turbine Array（等级 1/3/6）"> <img src="README/MTEMegaSteamTurbineArray-T6.png" width="240" alt="巨型蒸汽轮机机组 / Mega Steam Turbine Array（等级 1/3/6）"><br><em>巨型蒸汽轮机机组 / Mega Steam Turbine Array（等级 1/3/6）</em></p>
 
-- **巨型蒸汽轮机机组 / Mega Steam Turbine Array (MSTA)**: 12-tier. Generates EU from steam. Stacking efficiency — more layers = higher efficiency cap. Supports all steam types with progression. Tier 6+ can process dense/supercritical steam. Screwdriver right-click cycles Global Power (100%→80%→60%→40%→20%), trading output for base steam savings. Steam Entangled Singularities in input buses trigger Singularity Mode for a duration: power ×2, max efficiency +100%, steam savings +15%; Critical Steam Entangled Singularities trigger Critical Singularity Mode: power ×5, max efficiency +200%, steam savings +20%; each singularity lasts 200s (critical consumed first). The Cycle Overlimit Chip (controller slot, requires all 4 extra stack groups) turns superheated/supercritical (incl. dense) steam cooling into distilled water and stacks steam efficiency factors within their steam family.
-  蒸汽发电。堆叠效率——层数越多效率上限越高。支持所有蒸汽类型进阶。等级6+可处理致密/超临界蒸汽。螺丝刀右击循环切换全局功率（100%→80%→60%→40%→20%），以输出换取基础蒸汽节省率。输入总线中的蒸汽纠缠奇点可触发奇点模式：功率×2、效率上限+100%、蒸汽节省率+15%；临界蒸汽纠缠奇点触发临界奇点模式：功率×5、效率上限+200%、蒸汽节省率+20%；每颗奇点提供200s（临界优先消耗）。循环超限芯片（放入控制器槽，需完成全部4组额外叠加层）使过热/超临界（含致密）蒸汽冷却直接产蒸馏水，蒸汽效率因子按蒸汽家族内叠加。
+- **巨型蒸汽轮机机组 / Mega Steam Turbine Array (MSTA)**: 12-tier EU generator. Stacking efficiency — more layers = higher efficiency cap; supports all steam types (tier 6+ processes dense/supercritical). Screwdriver cycles Global Power (100%→80%→60%→40%→20%), trading output for base steam savings. Singularity modes: Entangled ×2 power / Critical ×5 power (plus efficiency & savings bonuses), 200s per singularity. Cycle Overlimit Chip (controller slot, requires all 4 extra stack groups) turns hot-steam cooling into distilled water and stacks steam efficiency within their family.
+  12级蒸汽发电机组。堆叠效率——层数越多效率上限越高；支持全蒸汽类型（等级6+可处理致密/超临界）。螺丝刀轮切全局功率（100%→80%→60%→40%→20%），以输出换基础蒸汽节省。奇点模式：纠缠 ×2 功率 / 临界 ×5 功率（含效率与节省加成），每颗 200s。循环超限芯片（控制器槽，需 4 组额外叠加层）使热蒸汽冷却直接产蒸馏水、效率因子按蒸汽家族叠加。
 
-<p align="center"><img src="README/MTELargeSolarOverpressureArray-T1.png" width="200" alt="大型太阳能超压阵列 / Large Solar Overpressure Array"> <img src="README/MTELargeSolarOverpressureArray-T2.png" width="200" alt="大型太阳能超压阵列 / Large Solar Overpressure Array"> <img src="README/MTELargeSolarOverpressureArray-T3.png" width="200" alt="大型太阳能超压阵列 / Large Solar Overpressure Array"><br><em>大型太阳能超压阵列 / Large Solar Overpressure Array（青铜/钢/镍）</em></p>
+<p align="center"><img src="README/MTELargeSolarOverpressureArray-T1.png" width="240" alt="大型太阳能超压阵列 / Large Solar Overpressure Array"> <img src="README/MTELargeSolarOverpressureArray-T2.png" width="240" alt="大型太阳能超压阵列 / Large Solar Overpressure Array"> <img src="README/MTELargeSolarOverpressureArray-T3.png" width="240" alt="大型太阳能超压阵列 / Large Solar Overpressure Array"><br><em>大型太阳能超压阵列 / Large Solar Overpressure Array（青铜/钢/镍）</em></p>
 
-- **大型太阳能超压阵列 / Large Solar Overpressure Array (LSOA)**: 3-tier (Bronze/Steel/Nickel). Produces steam from solar energy. Calcification mechanic — efficiency degrades over time. Nether tier produces superheated steam. Solar boiler boost (extra-boost wording): place single-block solar boilers in the GUI controller slot (Advanced Solar Boiler +2.0x per full stack of 64, Simple Solar Boiler +1.0x per full stack of 64; solar extra boost up to +200%); Overpressure mode adds an extra boost equal to heat above 100% (up to +100% at 200% heat); total multiplier = 1 + solar extra + overpressure extra, up to x4.0 (max boosted output: T1=480,000 L/s, T2=720,000 L/s, T3=960,000 L/s). Calcification: normal water calcifies (1h delay; T1 12h to full, T2 4h, T3 2h); at full calcification steam output drops to 1% and the owner is reminded in chat every 10 minutes; distilled water never calcifies. Overpressure mode (screwdriver right-click, requires 100% heat): heat cap raised to 200% with linearly growing steam output; heating ×0.2, cooling ×2, calcification starts immediately at ×20 speed (distilled water exempt); auto-disables when heat drops below 100%. Stops automatically when water/distilled water runs out and must be restarted manually (soft hammer right-click or GUI power switch), with a one-time chat notice.
-  太阳能产蒸汽（基础产出 T1=120,000 / T2=180,000 / T3=240,000 L/s）。钙化机制——效率随时间降低。镍级产出过热蒸汽。太阳能锅炉增幅（额外增幅口径）：在 GUI 控制器槽位放置单方块太阳能锅炉（高级太阳能锅炉每满组64台+2.0x，简单太阳能锅炉每满组64台+1.0x，太阳能额外增幅最高+200%）；超压模式额外增幅 = 热量超出100%部分（200%热量时+100%）；总倍率 = 1 + 太阳能额外 + 超压额外，最高 ×4.0（最大增幅产出：T1=480,000 L/s、T2=720,000 L/s、T3=960,000 L/s）。结垢：普通水结垢（延迟1小时；T1 12小时满垢、T2 4小时、T3 2小时）；满垢后蒸汽产出降至1%，并每10分钟向所有者发送聊天提醒；蒸馏水永不结垢。超压模式（螺丝刀右击开启，需100%热量）：热量上限200%，蒸汽产出线性增长；升温×0.2、降温×2、钙化立即进行且速度×20（蒸馏水豁免）；热量跌破100%自动关闭。缺水/蒸馏水耗尽自动停机，需手动重启（软锤右击或打开GUI点电源开关），并发送一次聊天提醒。
+- **大型太阳能超压阵列 / Large Solar Overpressure Array (LSOA)**: 3-tier (Bronze/Steel/Nickel). Produces steam from solar energy (base output T1=120K / T2=180K / T3=240K L/s; Nickel tier outputs superheated steam). Solar boiler boost (+2.0x per 64 Advanced, +1.0x per 64 Simple) plus overpressure extra boost — total multiplier up to ×4.0 (max boosted 480K/720K/960K L/s). Calcification and overpressure rules are the same as the Geothermal Boiler (above); auto-stops when water runs out.
+  3级（青铜/钢/镍），太阳能产蒸汽（基础产出 T1=120,000 / T2=180,000 / T3=240,000 L/s；镍级产出过热蒸汽）。太阳能锅炉增幅（高级每满组64台+2.0x、简单+1.0x）加超压额外增幅——总倍率最高 ×4.0（最大增幅产出 480K/720K/960K L/s）。结垢与超压规则同地热锅炉（见上）；缺水自动停机。
 
-<p align="center"><img src="README/MTEKineticProcessingArray-T1.png" width="220" alt="动力加工阵列 / Kinetic Processing Array（等级 1/5）"> <img src="README/MTEKineticProcessingArray-T5.png" width="220" alt="动力加工阵列 / Kinetic Processing Array（等级 1/5）"><br><em>动力加工阵列 / Kinetic Processing Array（等级 1/5）</em></p>
+<p align="center"><img src="README/MTEKineticProcessingArray-T1.png" width="260" alt="动力加工阵列 / Kinetic Processing Array（等级 1/5）"> <img src="README/MTEKineticProcessingArray-T5.png" width="260" alt="动力加工阵列 / Kinetic Processing Array（等级 1/5）"><br><em>动力加工阵列 / Kinetic Processing Array（等级 1/5）</em></p>
 
-- **动力加工阵列 / Kinetic Processing Array (KPA)**: 12-tier, superheated steam only. Dynamic recipes determined by inserted machines. Processes recipes from any single-block machine placed inside. Parallel = (1 + 2 × machineTier) + stackSize. Base speed 200% with 40% energy discount. Pipe casing upgrades speed (Stainless Steel: 250%, Titanium: 300%). Gearbox casing upgrades energy discount (Titanium: 60%).
-  Right-click the controller with a Steam Entanglement Node to temporarily raise the recipe voltage limit by one tier for 1200 seconds. Includes a built-in Cleanroom, accepts Crafting Input Bus/Buffer/Proxy (ME), and maps Electrolyzer, Centrifuge, and Chemical Reactor recipes to multiblock-compatible recipe maps.
-  仅过热蒸汽。由放入的机器决定配方。处理放入的任意单方块机器的配方。并行数=(1+2×机器等级)+机器数量。基础速度200%，能耗减免40%。管道方块升级速度（不锈钢：250%，钛：300%）。齿轮箱方块升级能耗减免（钛：60%）。手持蒸汽纠缠节点右击控制器，可临时将配方电压上限提高一级，持续1200秒；内置洁净室，兼容 Crafting Input Bus/Buffer/Proxy（ME），并将电解、离心、化学反应配方映射为多方块兼容配方表。
+- **动力加工阵列 / Kinetic Processing Array (KPA)**: 12-tier, superheated steam only. Runs recipes of any single-block machine placed inside; parallel = (1 + 2 × machineTier) + stackSize; base speed 200% with 40% energy discount; pipe/gearbox casings upgrade speed and energy discount. Right-click the controller with a Steam Entanglement Node temporarily raises the recipe voltage cap by one tier for 1200s. Built-in Cleanroom, ME crafting bus support, and Electrolyzer/Centrifuge/Chemical Reactor recipe mapping.
+  仅过热蒸汽，12级。处理放入的任意单方块机器配方；并行数=(1+2×机器等级)+机器数量；基础速度200%、能耗减免40%；管道/齿轮箱方块升级速度与能耗减免。手持蒸汽纠缠节点右击控制器，临时将配方电压上限提高一级，持续1200秒。内置洁净室、ME 合成总线兼容，并映射电解/离心/化学反应配方。
 
-<p align="center"><img src="README/MTEGearSteamCompressor-T1.png" width="220" alt="自驱式机械蒸汽压缩机 / Gear Steam Compressor"> <img src="README/MTEGearSteamCompressor-T2.png" width="220" alt="自驱式机械蒸汽压缩机 / Gear Steam Compressor"><br><em>自驱式机械蒸汽压缩机 / Gear Steam Compressor（青铜/钢）</em></p>
+<p align="center"><img src="README/MTEGearSteamCompressor-T1.png" width="260" alt="自驱式机械蒸汽压缩机 / Gear Steam Compressor"> <img src="README/MTEGearSteamCompressor-T2.png" width="260" alt="自驱式机械蒸汽压缩机 / Gear Steam Compressor"><br><em>自驱式机械蒸汽压缩机 / Gear Steam Compressor（青铜/钢）</em></p>
 
 - **自驱式机械蒸汽压缩机 / Gear Steam Compressor (GSC)**: Bronze/Steel. Converts normal steam → superheated steam + distilled water. Fixed 4:1 compression ratio. Essential for producing superheated steam without electric boilers.
   普通蒸汽→过热蒸汽+蒸馏水。固定4:1压缩比。无需电力锅炉即可产出过热蒸汽的关键机器。
 
-<p align="center"><img src="README/MTEAmmoniaPlant.png" width="300" alt="制氨工厂 / Ammonia Plant"><br><em>制氨工厂 / Ammonia Plant</em></p>
+<p align="center"><img src="README/MTEAmmoniaPlant.png" width="360" alt="制氨工厂 / Ammonia Plant"><br><em>制氨工厂 / Ammonia Plant</em></p>
 
 - **制氨工厂 / Ammonia Plant (AP)**: Steel only, 64\~256 parallel. Heat-based processing with 7-tier catalyst system (Nickel→Platinum→Uranium→Osmium→FeCo→Ruthenium→Quantum). Higher catalysts = more parallel + faster reaction. Superheated steam as byproduct.
   热量系统+7级催化剂（镍→铂→铀→锇→铁钴→钌→量子）。更高级催化剂=更多并行+更快反应。过热蒸汽为副产物。
 
-<p align="center"><img src="README/MTEReinforcedBrickBlastFurnace.png" width="220" alt="加固砖高炉 / Reinforced Brick Blast Furnace"><br><em>加固砖高炉 / Reinforced Brick Blast Furnace</em></p>
+<p align="center"><img src="README/MTEReinforcedBrickBlastFurnace.png" width="260" alt="加固砖高炉 / Reinforced Brick Blast Furnace"><br><em>加固砖高炉 / Reinforced Brick Blast Furnace</em></p>
 
 - **加固砖高炉 / Reinforced Brick Blast Furnace (RBBF)**: Single-tier, no steam required. Runs GT5U primitive blast furnace recipes. Furnace temperature rises while working (+0.01%/s), falls when idle (-1%/s). Higher temperature grants more parallels (1-4, each 25% = +1) and faster recipes (up to 1.5x speed). Steel-reinforced brick structure, no maintenance/air/pressure steam required.
   单级，无需蒸汽。执行GT5U原始高炉配方。炉温运行时上升(+0.01%/s)、闲置下降(-1%/s)。温度越高并行越多(1-4，每25%+1)、配方越快(最高1.5倍速)。钢加固砖结构，无需维护/空气/耐压蒸汽。
@@ -236,26 +153,24 @@ All inherit from `MTEEnhancedMultiBlockBase` (GT5U), with more advanced mechanic
 
 ### Singularity Machines / 奇点机器 (3)
 
-All inherit from `MTESingularityMachineBase` (Enhanced system), successors to the deprecated Steam Singularity Compressor. Without any EU cost, they devour high-grade steam to produce entangled singularities.
+All inherit from `MTESingularityMachineBase` (Enhanced system). Without any EU cost, they devour high-grade steam to produce entangled singularities.
 
-三者均继承自 `MTESingularityMachineBase`（Enhanced 体系），是已废弃的蒸汽奇点压缩机的继任者。无电力消耗，吞噬高等级蒸汽以产出纠缠奇点。
+三者均继承自 `MTESingularityMachineBase`（Enhanced 体系）。无电力消耗，吞噬高等级蒸汽以产出纠缠奇点。
 
-- **蒸汽奇点纠缠装置 / Steam Singularity Entangler (SSE)**: The former SSC tier-1 function as a standalone machine — devours the highest-grade steam in the input hatches (normal/superheated/supercritical, dense variants excluded), accumulating heat via a saturation function (y = 0.005x/(x + 200000), capped at 0.5%/s; steam grade coefficients 0.5/1/2); at 100% heat it produces 1 Steam Entangled Singularity. No parallel.
-  原 SSC 等级1功能独立成机——吞噬输入仓中最高等级的蒸汽（普通/过热/超临界，不含致密变体），按饱和函数累积热量（y=0.005x/(x+200000)，上限0.5%/s；蒸汽/过热/超临界系数0.5/1/2）；热量达到100%时产出 1 个蒸汽纠缠奇点。无并行。
+- **蒸汽奇点纠缠装置 / Steam Singularity Entangler (SSE)**: Devours the highest-grade steam in the input hatches (normal/superheated/supercritical, dense excluded), accumulating heat via a saturation function; at 100% heat it produces 1 Steam Entangled Singularity. No parallel.
+  吞噬输入仓中最高等级蒸汽（普通/过热/超临界，不含致密），按饱和函数累积热量；热量 100% 时产出 1 个蒸汽纠缠奇点。无并行。
 
-<p align="center"><img src="README/MTESteamSingularityEntangler.png" width="340" alt="蒸汽奇点纠缠装置 / Steam Singularity Entangler"><br><em>蒸汽奇点纠缠装置 / Steam Singularity Entangler</em></p>
+<p align="center"><img src="README/MTESteamSingularityEntangler.png" width="420" alt="蒸汽奇点纠缠装置 / Steam Singularity Entangler"><br><em>蒸汽奇点纠缠装置 / Steam Singularity Entangler</em></p>
 
-- **临界纠缠奇点稳定装置 / Critical Entangled Singularity Stabilizer (CSC)**: The former SSC tier-2 function — accepts normal/superheated/supercritical and their dense variants, accumulating heat via a saturation function (y = 0.002x/(x + 1000), capped at 0.2%/s); when multiple steam types are present, only the highest grade is processed; at 100% heat it produces 1 Critical Steam Entangled Singularity. Devours all steam from the input hatches and disables the steam cooling mechanism. Requires an input bus. While running, a gray entanglement singularity animation forms at the structure core (purely visual).
-  原 SSC 等级2功能——接收普通/过热/超临界及其致密蒸汽，按饱和函数累积热量（y=0.002x/(x+1000)，上限0.2%/s）；多种蒸汽共存时仅处理最高等级；热量达到100%时产出 1 个临界蒸汽纠缠奇点。会吞噬输入仓中所有蒸汽并禁用蒸汽冷却机制。需要输入总线。运行期间结构核心生成灰色纠缠奇点动画（纯视觉效果）。
+- **临界纠缠奇点稳定装置 / Critical Entangled Singularity Stabilizer (CSC)**: Accepts normal/superheated/supercritical and their dense variants, accumulating heat via a saturation function; at 100% heat it produces 1 Critical Steam Entangled Singularity. Devours all steam from the input hatches and disables steam cooling. Requires an input bus; a gray entanglement animation forms at the structure core while running (visual only).
+  接收普通/过热/超临界及其致密蒸汽，按饱和函数累积热量；热量 100% 时产出 1 个临界蒸汽纠缠奇点。会吞噬输入仓全部蒸汽并禁用蒸汽冷却机制。需要输入总线；运行期间结构核心生成灰色纠缠奇点动画（纯视觉）。
 
-<p align="center"><img src="README/MTECriticalSingularityCompressor.png" width="340" alt="临界纠缠奇点稳定装置 / Critical Entangled Singularity Stabilizer"><br><em>临界纠缠奇点稳定装置 / Critical Entangled Singularity Stabilizer</em></p>
+<p align="center"><img src="README/MTECriticalSingularityCompressor.png" width="420" alt="临界纠缠奇点稳定装置 / Critical Entangled Singularity Stabilizer"><br><em>临界纠缠奇点稳定装置 / Critical Entangled Singularity Stabilizer</em></p>
 
-- **致密态蒸汽操控装置 / Dense State Manipulator (DSM)**: The former SSC compression/decompression function — dual mode cycled by screwdriver: Steam Compression (1000:1 steam → dense) / Steam Decompression (1:1000 dense → steam); each singularity in the input buses fuels 600 seconds (12,000 ticks). Requires an input bus and an output hatch. No heat mechanic.
-  原 SSC 压缩/解压功能——螺丝刀循环切换双模式：蒸汽压缩（1000:1 蒸汽→致密）/ 蒸汽解压（1:1000 致密→蒸汽）；输入总线中每颗奇点燃料续航 600s（12,000 tick）。需要输入总线与输出仓。无热量机制。
+- **致密态蒸汽操控装置 / Dense State Manipulator (DSM)**: Dual mode cycled by screwdriver: Steam Compression (1000:1 steam → dense) / Steam Decompression (1:1000 dense → steam); each singularity in the input buses fuels 600 seconds. Requires an input bus and an output hatch; no heat mechanic.
+  螺丝刀循环切换双模式：蒸汽压缩（1000:1 蒸汽→致密）/ 蒸汽解压（1:1000 致密→蒸汽）；输入总线中每颗奇点燃料续航 600s。需要输入总线与输出仓；无热量机制。
 
-<p align="center"><img src="README/MTEDenseStateManipulator.png" width="340" alt="致密态蒸汽操控装置 / Dense State Manipulator"><br><em>致密态蒸汽操控装置 / Dense State Manipulator</em></p>
-
-> **废弃 / Deprecated**: 旧版「蒸汽奇点压缩机 / Steam Singularity Compressor (SSC)」已退役，其功能拆分至以上三台机器；旧机器仅以旧 ID 注册（MTESteamSingularityCompressorOLD），用于兼容存量存档。
+<p align="center"><img src="README/MTEDenseStateManipulator.png" width="420" alt="致密态蒸汽操控装置 / Dense State Manipulator"><br><em>致密态蒸汽操控装置 / Dense State Manipulator</em></p>
 
 ***
 
@@ -263,7 +178,7 @@ All inherit from `MTESingularityMachineBase` (Enhanced system), successors to th
 
 ### Cache Nodes / 缓存节点 (4)
 
-<p align="center"><img src="README/MTECacheNodes.png" width="300" alt="缓存节点 / Cache Nodes"><br><em>缓存节点 / Cache Nodes</em></p>
+<p align="center"><img src="README/MTECacheNodes.png" width="360" alt="缓存节点 / Cache Nodes"><br><em>缓存节点 / Cache Nodes</em></p>
 
 Digital tank-based nodes that bind to hubs for cross-chunk/dimensional fluid transfer. Support fluid lock, auto-output, void excess, and chip-adjustable hub transfer rate.
 
@@ -276,21 +191,21 @@ Digital tank-based nodes that bind to hubs for cross-chunk/dimensional fluid tra
 
 ### Remote Worker Nodes / 远程工作节点 (2)
 
-<p align="center"><img src="README/MTERemoteWorkerNodes.png" width="300" alt="远程工作节点 / Remote Worker Nodes"><br><em>远程工作节点 / Remote Worker Nodes</em></p>
+<p align="center"><img src="README/MTERemoteWorkerNodes.png" width="360" alt="远程工作节点 / Remote Worker Nodes"><br><em>远程工作节点 / Remote Worker Nodes</em></p>
 
 Nodes that perform remote operations driven by the Singularity Drilling Hub. They consume mining pipes to drill downward, then extract resources at bedrock level.
 
 由奇点钻井枢纽驱动执行远程作业的节点。消耗钻管向下钻探，到达基岩后提取资源。
 
-- **奇点采矿节点 / Singularity Miner Node**: Mines ores. 5-tier upgrade system using Ore Drill multiblock controllers + singularities. Higher tiers increase mining range, fortune level, and speed. Crushed ore mode (screwdriver right-click): ores output crushed at their actual maceration count ×1.5 (no longer a fixed 3x; redstone and other special ores output more). Fortune FORTUNE {6,7,8,9,10} (base/enhanced I-IV) applies in full in both raw and crushed modes, bypassing GT5U's fortune>3 truncation. Binding to a hub enables automatic chunk loading for remote operation.
-  采矿节点：5级升级体系（矿石钻机多方块控制器+奇点），等级提升采矿范围、时运等级与速度。粉碎矿模式（螺丝刀右击切换）：矿物按各矿石研磨配方实际粉碎数量×1.5输出粉碎矿（不再是固定3倍；红石等特殊矿数量更高）。时运 FORTUNE {6,7,8,9,10}（基础/强化I-IV）在原矿/粉碎两模式均全额生效（绕过GT5U时运>3截断）。绑定枢纽后自动加载区块以进行远程作业。
+- **奇点采矿节点 / Singularity Miner Node**: Mines ores. 5-tier upgrade system (Ore Drill controllers + singularities) boosting range, fortune and speed. Crushed-ore mode (screwdriver) outputs at the actual maceration count ×1.5; fortune {6,7,8,9,10} bypasses GT5U's fortune>3 truncation. Binding to a hub enables chunk loading.
+  采矿节点：5级升级体系（矿石钻机多方块控制器+奇点）提升采矿范围、时运与速度。粉碎矿模式（螺丝刀）按研磨配方实际数量×1.5 输出；时运 6~10 绕过 GT5U 时运>3 截断。绑定枢纽自动加载区块。
 - **奇点钻井节点 / Singularity Drilling Node**: Extracts underground fluids. 4-tier upgrade system using Oil Drill multiblock controllers + singularities. Higher tiers increase extraction coefficient and work range (1×1 to 8×8 chunks). Each chunk is independently extracted and depleted. Binding to a hub enables automatic chunk loading for remote operation.
 
 ***
 
 ## Hatches / 仓室 (14 类仓室 + 3 种存储单元)
 
-<p align="center"><img src="README/MTEAllHatches.png" width="320" alt="全部仓室 / All Hatches"><br><em>全部仓室 / All Hatches</em></p>
+<p align="center"><img src="README/MTEAllHatches.png" width="380" alt="全部仓室 / All Hatches"><br><em>全部仓室 / All Hatches</em></p>
 
 Specialized hatches for GTSR machines with varying capacities and fluid filters:
 
@@ -341,6 +256,84 @@ GTSR 添加了11个自定义 RecipeMap 和大量合成配方：
 - **工作台配方**：基础机器（空气压缩机、空气离心机等）、缓存节点、仓室
 - **组装机配方**：高级机器（制氨工厂、蒸汽奇点纠缠装置等）、芯片、催化剂、节点、超压组件
 - **自定义 RecipeMap**：大型焦炉、平炉、制氨工厂、空气压缩机、空气离心机、蒸汽奇点纠缠装置（NEI显示）、地热锅炉（NEI显示）、蒸汽流体钻井（NEI显示）、临界纠缠奇点稳定装置（NEI显示）、致密态蒸汽操控装置（NEI显示）、自驱式机械蒸汽压缩机（NEI显示）
+
+***
+
+## Hub-Node Binding System / 枢纽-节点绑定系统
+
+The Hub-Node system is GTSR's core innovation, enabling cross-chunk and cross-dimensional fluid transfer and remote operations.
+
+枢纽-节点系统是 GTSR 的核心创新，实现跨区块甚至跨维度的流体传输和远程作业。
+
+### Binding Mechanism / 绑定机制
+
+Hold a node item and right-click a hub controller to bind. Singularity cost varies by node type (steam/water: 0, reinforced steam: 1, overpressure steam: 8, miner/driller: 1). Steam/Water hubs support 3-state cycle: output mode → input mode → unbind. Drilling hub supports 2-state: bind → unbind. Nodes auto-register with their hub on first tick.
+
+手持节点物品右键枢纽控制器绑定。奇点消耗因节点类型而异（蒸汽/水：0，强化蒸汽：1，超压蒸汽：8，采矿/钻井：1）。蒸汽/水枢纽支持3状态循环：输出模式→输入模式→解绑。钻井枢纽支持2状态：绑定→解绑。节点在首次tick时自动向枢纽注册。
+
+> 📷 图片待配：节点绑定枢纽的操作示意图或流程截图
+
+### Transfer Mechanism / 传输机制
+
+- **Steam/Water Hub**: Every 20 ticks, transfers fluid between hub and bound nodes at configurable rates. Screwdriver on hub toggles overflow output mode. Transfer rate adjustable via Hub Terminal (100%→80%→60%→...→1%→0%).
+- **Drilling Hub**: Consumes steam to drive active nodes. Miner node outputs → hub Output Bus. Drilling node outputs → hub Output Hatch.
+- **蒸汽/水枢纽**：每20tick在枢纽与绑定节点间传输流体，速率可配置。螺丝刀切换溢流输出模式。枢纽终端调整传输速率百分比。
+- **钻井枢纽**：消耗蒸汽驱动活跃节点。采矿节点产出→枢纽输出总线。钻井节点产出→枢纽输出仓。
+
+### Hub Terminal / 枢纽终端
+
+The Hub Terminal is a handheld remote management device (crafted with 1 Steam Entangled Singularity surrounded by 8 steel plates). Right-click any hub controller with it to open that hub's status terminal — no more running back and forth between nodes.
+
+枢纽终端是手持远程管理设备（1 蒸汽纠缠奇点 + 8 钢板环绕合成）。手持右击任意枢纽控制器即可打开对应的状态终端，告别在节点之间来回奔波。
+
+**Cache Hub Status Terminal (Steam & Water hubs) / 缓存枢纽状态终端（蒸汽与蓄水枢纽通用）**:
+
+<p align="center"><img src="README/HubTerminalCacheStatus.png" width="400"><br><em>缓存枢纽状态终端 / Cache Hub Status Terminal</em></p>
+使用枢纽终端右击控制器，打开状态GUI。 / Right-click the controller on the hub terminal and open the status GUI.
+
+- Per-node display (icon, custom name, coords + dimension, fluid type, storage/capacity) with 16×16 hover-tooltip buttons: rate cycle / mode toggle (node↔hub) / auto-output; in-place renaming; handheld shortcuts: right-click node to cycle rate, sneak+right-click to toggle mode / 每节点显示（图标、自定义名、坐标+维度、流体类型、储量/容量），16×16 悬浮说明按钮：速率循环 / 模式切换（节点↔枢纽）/ 自动输出；内嵌重命名；手持快捷操作：右击节点循环速率、潜行右击切换模式
+
+**Drilling Hub Status Terminal / 钻井枢纽状态终端**:
+
+<p align="center"><img src="README/HubTerminalDrillingStatus.png" width="400"><br><em>钻井枢纽状态终端 / Drilling Hub Status Terminal</em></p>
+使用枢纽终端右击控制器，打开状态GUI。 / Right-click the controller on the hub terminal and open the status GUI.
+
+- Per-node display (icon, name, tier Mk1-4, status, coords); remote start/stop, quick recycle (needs node stopped/idle, returns mining pipes), in-GUI upgrades, in-place renaming (syncs to WAILA and node GUI) / 每节点显示（图标、名字、等级 Mk1-4、状态、坐标）；远程启停、快捷回收（需节点停止/待机，返还钻管）、UI 内升级、内嵌重命名（同步至 WAILA 与节点 GUI）
+- **Phase teleport / 阶段传送**: teleport directly above a bound node (y+1), cross-dimensional; consumes 1 Steam Entangled Singularity from your main inventory only after a safe landing spot is found / 传送到绑定节点正上方（y+1），支持跨维度；仅在找到安全落点后消耗主物品栏 1 个蒸汽纠缠奇点
+
+***
+
+## Core Mechanic: Mixin Enhancements / 核心机制：Mixin 增强
+
+GTSR injects 11 Mixin classes into GT5U and GT++ to fundamentally enhance the steam machine experience. These are critical to the mod's functionality:
+
+GTSR 向 GT5U 和 GT++ 注入了 11 个 Mixin 类，从根本上增强了蒸汽机器体验。这些是模组功能的关键：
+
+### MTESteamMultiBaseMixin — Steam Multiblock Core Enhancement / 蒸汽多方块核心增强
+
+- **Superheated Steam 4x Speed / 过热蒸汽4倍速**: When any input hatch contains superheated steam, consumption ×4 and processing time ÷4 / 任意输入仓含过热蒸汽时，消耗×4、处理时间÷4
+- **Cooling Hatch Support / 冷却仓支持**: Superheated steam → pressure cooling hatch (1:1), normal steam → cooling water (160:1) / 过热蒸汽→耐压冷却仓(1:1)，普通蒸汽→冷却水(160:1)
+- **Standard Output Bus Compatibility / 标准输出总线兼容**: Fixes GT5U's `addOutputPartial()` ignoring standard output buses / 修复GT5U的`addOutputPartial()`忽略标准输出总线的问题
+- **Dual Steam Type Consumption / 双蒸汽类型消耗**: `depleteInput()` can consume from both normal and superheated steam hatches / 可同时从普通蒸汽和过热蒸汽仓消耗
+
+### Fluid Hatch Compatibility / 流体仓兼容
+
+- **MTEHatchCustomFluidBaseMixin**: Steam-locked fluid hatch matches 3 steam types only (normal/superheated/IC2 superheated — dense and supercritical are NOT included); screwdriver auto-input toggle (1000 mB per 100 ticks ≈ 200 L/s). / 蒸汽锁定仓仅匹配 3 种蒸汽（普通/过热/IC2过热，不含致密与超临界）；螺丝刀自动输入开关（1000 mB/100 tick ≈ 200 L/s）。
+- **MTEHatchInputMixin / MTEHatchInputBusMixin**: 4-state orthogonal toggle (input filter × auto-input) for ALL input hatches/buses via screwdriver right-click. Hatch: 1000 mB/100 ticks (≈200 L/s); Bus: 1 stack/100 ticks (≈1 stack/5 seconds). Shift+click preserves original mode. / 螺丝刀4状态正交切换（输入过滤×自动输入）。仓：1000 mB/100 tick（≈200 L/s）；总线：1组/100 tick（≈1组/5秒）。Shift+右键保留原模式。
+
+### Steam Bus Behavior / 蒸汽总线行为
+
+- **MTEHatchSteamBusInputMixin / MTEHatchSteamBusOutputMixin**: Steam input buses allow pipe pull from the front container (allowPullStack); steam output buses auto-push to the front container (pushOutputInventory) — both previously blocked by GT++. / 蒸汽输入总线允许正面管道**抽取**（allowPullStack），蒸汽输出总线自动向正面容器**推出**（pushOutputInventory）——两者此前均被GT++阻止。
+
+### Recipe Fix / 配方修正
+
+- **MTERockBreakerRecipeBuilderMixin**: All glowstone dust inputs in Rock Breaker recipes are non-consumable (consumed = false) — no circuit-6 gate. / 岩石破碎机配方中所有荧石粉输入一律不可消耗（consumed=false），无电路6判断。
+
+### Other Mixins / 其他 Mixin
+
+- **SteamHatchElementOutputBusMixin / CommonMetaTileEntityMixin**: HatchElement extension and unified auto-input scheduling. / HatchElement 扩展与统一自动输入调度。
+- **BaseMetaTileEntityMixin**: Empty-hand sneak right-click on GTSR steam machines triggers descaling (IShiftRightClickDecalcifiable), canceling the default behavior. / 对 GTSR 蒸汽机器空手潜行右击执行除垢（IShiftRightClickDecalcifiable）并取消默认行为。
+- **gtnl/SteamMultiMachineBaseGTNLMixin**: Soft GTNL compatibility — `@Pseudo` + runtime class detection; applies GTSR's full enhancement to GTNL steam machines only when `Config.gtnlEnhancement` is enabled (silent by default). / GTNL 软兼容——`@Pseudo` + 运行时类探测；仅在 `Config.gtnlEnhancement` 开启时对 GTNL 蒸汽机应用 GTSR 完整增强（默认静默）。
 
 ***
 
