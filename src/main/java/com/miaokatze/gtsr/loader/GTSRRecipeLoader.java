@@ -12,6 +12,7 @@ import static com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps.siemensMartinRecipes;
 import static com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps.steamFluidDrillRecipes;
 import static com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps.steamSingularityEntanglerRecipes;
 import static gregtech.api.recipe.RecipeMaps.assemblerRecipes;
+import static gregtech.api.recipe.RecipeMaps.implosionRecipes;
 import static gregtech.api.util.GTRecipeBuilder.INGOTS;
 import static gregtech.api.util.GTRecipeBuilder.SECONDS;
 
@@ -135,6 +136,7 @@ public class GTSRRecipeLoader implements Runnable {
         safeRegister(
             "CriticalSingularityCompressorDisplay",
             GTSRRecipeLoader::registerCriticalSingularityCompressorDisplayRecipes);
+        safeRegister("Implosion", GTSRRecipeLoader::registerImplosionRecipes); // 聚爆压缩机：2 临界奇点 → 8 普通奇点
         safeRegister("DenseStateManipulatorDisplay", GTSRRecipeLoader::registerDenseStateManipulatorDisplayRecipes);
         safeRegister("ReinforcedBrickBlastFurnace", GTSRRecipeLoader::registerReinforcedBrickBlastFurnaceRecipe);
         safeRegister("LegacyConversion", GTSRRecipeLoader::registerLegacyConversionRecipes);
@@ -1506,6 +1508,20 @@ public class GTSRRecipeLoader implements Runnable {
                 .addTo(criticalSingularityCompressorRecipes);
         }
         log("Critical singularity compressor display recipes done.");
+    }
+
+    // 聚爆压缩机配方：2 临界蒸汽纠缠奇点 → 8 普通蒸汽纠缠奇点（duration 20、eut 30，不需要爆炸物）。
+    // 使用 2 个 itemInput 使 GT5U implosionRecipes 的 recipeEmitter 走"原样注册"路径，不派生 ITNT/炸药变体；
+    // 若只放 1 个输入会强制派生爆炸物变体，且 validateOutputCount 会拒绝 5 个以上的输出。
+    private static void registerImplosionRecipes() {
+        GTValues.RA.stdBuilder()
+            .itemInputs(
+                GTSRItemList.CriticalSteamEntangledSingularity.get(1),
+                GTSRItemList.CriticalSteamEntangledSingularity.get(1))
+            .itemOutputs(GTSRItemList.SteamEntangledSingularity.get(8))
+            .duration(20)
+            .eut(30)
+            .addTo(implosionRecipes);
     }
 
     // 致密态操纵装置展示配方：6 条（3 压缩 + 3 解压）。

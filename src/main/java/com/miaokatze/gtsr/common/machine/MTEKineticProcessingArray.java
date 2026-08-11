@@ -66,6 +66,7 @@ import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.logic.ProcessingLogic;
+import gregtech.api.metatileentity.implementations.MTEBasicMachine;
 import gregtech.api.metatileentity.implementations.MTEBasicMachineWithRecipe;
 import gregtech.api.metatileentity.implementations.MTEEnhancedMultiBlockBase;
 import gregtech.api.metatileentity.implementations.MTEHatchInput;
@@ -86,6 +87,9 @@ import gregtech.api.util.OverclockCalculator;
 import gregtech.api.util.ParallelHelper;
 import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
 import gregtech.common.tileentities.machines.IDualInputHatch;
+import gregtech.common.tileentities.machines.basic.MTEBoxinator;
+import gregtech.common.tileentities.machines.basic.MTEPotionBrewer;
+import gregtech.common.tileentities.machines.basic.MTERockBreaker;
 import gtPlusPlus.api.recipe.GTPPRecipeMaps;
 
 public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKineticProcessingArray>
@@ -509,7 +513,7 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
             || recipeMap == null;
 
         if (machineChanged) {
-            MTEBasicMachineWithRecipe mte = getMTE(controllerStack);
+            MTEBasicMachine mte = getMTE(controllerStack);
             if (mte == null) {
                 resetMachineInfo();
                 return;
@@ -534,8 +538,9 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
 
     /**
      * 将单方块机器的配方表映射到对应的多方块配方表。
-     * 电解机/离心机/化学反应釜分别映射到 GT++ 工业电解机、GT++ 工业离心机、GT5U 大型化学反应釜。
-     * 其他机器保持原配方表不变。
+     * 电解机/离心机/化学反应釜/搅拌机/碎石机分别映射到 GT++ 工业电解机、GT++ 工业离心机、
+     * GT5U 大型化学反应釜、GT++ 大型搅拌机、GT++ 工业碎石机（与 GT5U 官方多方块实现同表驱动）。
+     * 其他机器（如打包机、酿造机）保持原配方表不变（官方多方块同表）。
      */
     private static RecipeMap<?> mapToMultiblockRecipeMap(@Nullable RecipeMap<?> original) {
         if (original == null) {
@@ -549,6 +554,12 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
         }
         if (original == RecipeMaps.chemicalReactorRecipes) {
             return RecipeMaps.multiblockChemicalReactorRecipes;
+        }
+        if (original == RecipeMaps.mixerRecipes) {
+            return GTPPRecipeMaps.mixerNonCellRecipes;
+        }
+        if (original == RecipeMaps.rockBreakerFakeRecipes) {
+            return GTPPRecipeMaps.multiblockRockBreakerRecipes;
         }
         return original;
     }
@@ -576,13 +587,21 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
     }
 
     @Nullable
-    private static MTEBasicMachineWithRecipe getMTE(ItemStack itemStack) {
+    private static MTEBasicMachine getMTE(ItemStack itemStack) {
         if (itemStack == null || itemStack.stackSize < 1) return null;
         if (itemStack.getItem() != Item.getItemFromBlock(GregTechAPI.sBlockMachines)) return null;
         int meta = itemStack.getItemDamage();
         if (meta < 0 || meta >= GregTechAPI.MAXIMUM_METATILE_IDS) return null;
         IMetaTileEntity mte = GregTechAPI.METATILEENTITIES[meta];
-        if (mte instanceof MTEBasicMachineWithRecipe) return (MTEBasicMachineWithRecipe) mte;
+        // 放宽白名单：除 MTEBasicMachineWithRecipe 外，接受打包机/酿造机/碎石机。
+        // 三者是 MTEBasicMachine 直系子类，getRecipeMap 返回有数据的数据表，KPA 的
+        // ProcessingLogic 可直接驱动（打包机/酿造机与官方多方块同表，碎石机经
+        // mapToMultiblockRecipeMap 映射到工业碎石机表）。
+        if (mte instanceof MTEBasicMachineWithRecipe || mte instanceof MTEBoxinator
+            || mte instanceof MTEPotionBrewer
+            || mte instanceof MTERockBreaker) {
+            return (MTEBasicMachine) mte;
+        }
         return null;
     }
 

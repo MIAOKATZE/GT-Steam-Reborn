@@ -11,7 +11,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -34,8 +33,6 @@ import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.FluidTankInfo;
-
-import org.apache.commons.lang3.tuple.Pair;
 
 import com.gtnewhorizon.gtnhlib.util.numberformatting.NumberFormatUtil;
 import com.gtnewhorizon.structurelib.alignment.constructable.ISurvivalConstructable;
@@ -65,7 +62,6 @@ import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.implementations.MTEHatch;
-import gregtech.api.metatileentity.implementations.MTEHatchInputBus;
 import gregtech.api.objects.ItemData;
 import gregtech.api.recipe.check.CheckRecipeResult;
 import gregtech.api.recipe.check.CheckRecipeResultRegistry;
@@ -79,8 +75,6 @@ import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.common.GTMockWorld;
 import gregtech.common.ores.OreInfo;
 import gregtech.common.ores.OreManager;
-import gregtech.common.tileentities.machines.IDualInputHatch;
-import gregtech.common.tileentities.machines.IDualInputInventory;
 
 /**
  * 地壳物质聚合器（Crust Matter Aggregator）——奇点地壳蒸汽掘进机（MTEVoidCrustSteamBorer）的全量改名替代。
@@ -126,8 +120,6 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
     // 周期：普通 400 tick（20 秒）/ 致密 100 tick（5 秒）
     public static final int NORMAL_CYCLE_TICKS = 400;
     public static final int DENSE_CYCLE_TICKS = 100;
-    // 奇点模式持续 200 秒
-    private static final int SINGULARITY_DURATION_TICKS = 4000;
     // 产出系数（奇点模式 0/1/2 → 0.5/2/5）
     private static final double[] SINGULARITY_OUTPUT_COEF = { 0.5d, 2.0d, 5.0d };
     // 单次产出基数：10 * GRADE_COEF[grade] * singCoef（热量恒满）
@@ -251,11 +243,6 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
     // 产出实数累积（NBT 持久化）
     private double mOreAccumulator = 0.0d;
 
-    // —— 奇点模式（巨型蒸汽轮机式）——
-    public int mSingularityMode = 0;
-    public int mSingularityModeTicks = 0;
-    private int mSingularityCheckCooldown = 0;
-
     // —— 客户端粒子状态（getUpdateData/onValueUpdate 字节通道同步）——
     private boolean mWorkingForFX = false;
 
@@ -326,16 +313,6 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
     @Override
     protected boolean shouldDecayHeat() {
         return false;
-    }
-
-    @Override
-    public int getModeForGui() {
-        return mSingularityMode;
-    }
-
-    @Override
-    public int getFuelTicksForGui() {
-        return mSingularityModeTicks;
     }
 
     @Override
@@ -1448,16 +1425,7 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
             aBaseMetaTileEntity.markDirty();
         }
         if (mMachine) {
-            // 奇点模式：每 tick 倒计时，每 20 tick 检查进入/无缝续杯
-            if (mSingularityModeTicks > 0) mSingularityModeTicks--;
-            if (++mSingularityCheckCooldown >= 20) {
-                mSingularityCheckCooldown = 0;
-                // 包配方窗口使 ME 输入总线的虚拟引用可读（getStackInSlot 仅窗口内有效）；
-                // 与基类 checkRecipe 的窗口嵌套安全（start/end 均幂等）
-                startRecipeProcessing();
-                checkSingularityMode();
-                endRecipeProcessing();
-            }
+            // 奇点模式倒计时与每 20 tick 检查（进入/无缝续杯）已统一由父类 MTESingularityModeMachineBase.onPostTick 处理
             // 周期内每 tick 蒸汽扣减；不足则停（周期结束，由 checkProcessing 重判）
             if (aBaseMetaTileEntity.isAllowedToWork() && mMaxProgresstime > 0 && !depleteSteamForTick()) {
                 mMaxProgresstime = 0;
@@ -1473,109 +1441,12 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
         }
     }
 
-    // —— 奇点模式（巨型蒸汽轮机式，非右键式）——
+    // —— 奇点模式（巨型蒸汽轮机式，非右键式；进入/续杯/退出主流程已统一由父类 MTESingularityModeMachineBase 处理）——
 
-    /**
-     * 检查并维持奇点模式。
-     * 仅开机（isAllowedToWork 且 mMaxProgresstime>0，即机器实际工作中）才消耗奇点：
-     * 不在模式时优先消耗 1 个临界蒸汽纠缠奇点进入模式 2，其次 1 个蒸汽纠缠奇点进入模式 1；
-     * 模式中倒计时耗尽时按当前模式对应物品无缝续杯，成功续满，失败才退出模式。
-     * 关机/停机期间倒计时照常递减（onPostTick），但不消耗奇点——倒计时到 0 直接退出模式，等待下次开机重新消耗进入。
-     */
-    private void checkSingularityMode() {
-        // 开机门控（v1.10.51）：关机/停机不自动消耗奇点（含进入模式与续杯）
-        if (!getBaseMetaTileEntity().isAllowedToWork() || mMaxProgresstime <= 0) return;
-        if (mSingularityMode == 0) {
-            if (consumeSingularityFromInputBuses(1, GTSRItemList.CriticalSteamEntangledSingularity)) {
-                mSingularityMode = 2;
-                mSingularityModeTicks = SINGULARITY_DURATION_TICKS;
-                getBaseMetaTileEntity().markDirty();
-            } else if (consumeSingularityFromInputBuses(1, GTSRItemList.SteamEntangledSingularity)) {
-                mSingularityMode = 1;
-                mSingularityModeTicks = SINGULARITY_DURATION_TICKS;
-                getBaseMetaTileEntity().markDirty();
-            }
-        } else if (mSingularityModeTicks <= 0) {
-            GTSRItemList fuel = mSingularityMode == 2 ? GTSRItemList.CriticalSteamEntangledSingularity
-                : GTSRItemList.SteamEntangledSingularity;
-            if (consumeSingularityFromInputBuses(1, fuel)) {
-                mSingularityModeTicks = SINGULARITY_DURATION_TICKS;
-                getBaseMetaTileEntity().markDirty();
-            } else {
-                mSingularityMode = 0;
-                // 奇点模式回落后时运上限降为 7（III），超限时钳位
-                if (mFortuneLevel > 7) mFortuneLevel = 7;
-                getBaseMetaTileEntity().markDirty();
-            }
-        }
-    }
-
-    /**
-     * 从输入总线与样板仓中消耗指定数量的奇点燃料（巨型蒸汽轮机式）。
-     * 先收集候选防部分消耗；样板仓 getItemInputs 引用为仓内持久数据（窗口无关），网络结算由样板仓自身完成。
-     *
-     * @return 是否成功消耗全部数量
-     */
-    private boolean consumeSingularityFromInputBuses(int amount, GTSRItemList singularity) {
-        int remaining = amount;
-        // 先收集所有可消耗的槽位，避免部分消耗后无法回滚
-        List<Pair<MTEHatchInputBus, Integer>> candidates = new ArrayList<>();
-        for (MTEHatchInputBus bus : GTUtility.validMTEList(mInputBusses)) {
-            if (bus == null) continue;
-            for (int i = 0; i < bus.getSizeInventory(); i++) {
-                ItemStack stack = bus.getStackInSlot(i);
-                if (stack != null && singularity.isStackEqual(stack, false, true)) {
-                    candidates.add(Pair.of(bus, i));
-                    remaining -= stack.stackSize;
-                    if (remaining <= 0) break;
-                }
-            }
-            if (remaining <= 0) break;
-        }
-        if (remaining > 0) {
-            for (IDualInputHatch dual : mDualInputHatches) {
-                if (dual == null) continue;
-                Iterator<? extends IDualInputInventory> it = dual.inventories();
-                while (it.hasNext()) {
-                    ItemStack[] items = it.next()
-                        .getItemInputs();
-                    if (items == null) continue;
-                    for (ItemStack stack : items) {
-                        if (stack == null || !singularity.isStackEqual(stack, false, true)) continue;
-                        int toConsume = Math.min(remaining, stack.stackSize);
-                        stack.stackSize -= toConsume;
-                        remaining -= toConsume;
-                        if (remaining <= 0) break;
-                    }
-                    if (remaining <= 0) break;
-                }
-                if (remaining <= 0) break;
-            }
-        }
-        if (remaining > 0) {
-            return false;
-        }
-        // 实际消耗
-        remaining = amount;
-        for (Pair<MTEHatchInputBus, Integer> candidate : candidates) {
-            MTEHatchInputBus bus = candidate.getLeft();
-            int slot = candidate.getRight();
-            ItemStack stack = bus.getStackInSlot(slot);
-            if (stack == null) continue;
-            int toConsume = Math.min(remaining, stack.stackSize);
-            stack.stackSize -= toConsume;
-            remaining -= toConsume;
-            if (stack.stackSize <= 0) {
-                bus.setInventorySlotContents(slot, null);
-            } else {
-                bus.setInventorySlotContents(slot, stack);
-            }
-            if (remaining <= 0) break;
-        }
-        for (MTEHatchInputBus bus : GTUtility.validMTEList(mInputBusses)) {
-            if (bus != null) bus.updateSlots();
-        }
-        return true;
+    /** 奇点模式到期/回落后回调：时运上限降为 7（III），超限时钳位（原 checkSingularityMode 退出分支逻辑）。 */
+    @Override
+    protected void onSingularityModeExpired() {
+        if (mFortuneLevel > 7) mFortuneLevel = 7;
     }
 
     // —— 失控奇点节点（动态：单 F 位，参数随模式变化）——
@@ -1669,8 +1540,6 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
     @Override
     public void saveNBTData(NBTTagCompound aNBT) {
         super.saveNBTData(aNBT);
-        aNBT.setInteger("mSingularityMode", mSingularityMode);
-        aNBT.setInteger("mSingularityModeTicks", mSingularityModeTicks);
         aNBT.setDouble("oreAccumulator", mOreAccumulator);
         aNBT.setString("lastDimAbbr", lastDimAbbr);
         aNBT.setString("mLastOreName", mLastOreName);
@@ -1696,8 +1565,6 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
     @Override
     public void loadNBTData(NBTTagCompound aNBT) {
         super.loadNBTData(aNBT);
-        mSingularityMode = aNBT.getInteger("mSingularityMode");
-        mSingularityModeTicks = aNBT.getInteger("mSingularityModeTicks");
         mOreAccumulator = aNBT.getDouble("oreAccumulator");
         lastDimAbbr = aNBT.getString("lastDimAbbr");
         mLastOreName = aNBT.getString("mLastOreName");

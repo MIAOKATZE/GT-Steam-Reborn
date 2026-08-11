@@ -106,7 +106,6 @@ gtsr.gui.crust_matter_agg.no_steam=无蒸汽
 gtsr.gui.crust_matter_agg.mining=当前挖掘: 
 gtsr.gui.crust_matter_agg.status=状态: 
 gtsr.gui.crust_matter_agg.status.running=运行中
-gtsr.gui.crust_matter_agg.status.accumulating=热量累积中
 gtsr.gui.crust_matter_agg.status.idle=空闲
 gtsr.gui.crust_matter_agg.tier=等级: 
 gtsr.gui.crust_matter_agg.directional=定向模式: 
@@ -299,7 +298,7 @@ gt.blockmachines.gtsr.critical.singularity.compressor.name=临界纠缠奇点稳
 gtsr.tooltip.critical_singularity_compressor.type=临界纠缠奇点稳定装置, CESS
 gtsr.tooltip.critical_singularity_compressor.desc=超越蒸汽纠缠奇点，将磅礴的物质与能量约束在临界纠缠奇点内，这也许能彻底撕破维度的界限......
 gtsr.tooltip.critical_singularity_compressor.desc7=专用于产出临界蒸汽纠缠奇点的装置。
-gtsr.tooltip.critical_singularity_compressor.desc2=接收普通、过热、超临界及其致密蒸汽，并按饱和函数累积热量：y=0.002x/(x+1000)，上限0.2%/s
+gtsr.tooltip.critical_singularity_compressor.desc2=仅接收致密态三种蒸汽（致密蒸汽、致密过热蒸汽、致密超临界蒸汽），并按饱和函数累积热量：y=0.005x/(x+5000)，上限0.5%/周期
 gtsr.tooltip.critical_singularity_compressor.desc8=实际热量=蒸汽系数×y（蒸汽0.5、过热1、超临界2）
 gtsr.tooltip.critical_singularity_compressor.desc3=多种蒸汽共存时仅处理最高等级；机器停止或没有蒸汽时热量会下降。
 gtsr.tooltip.critical_singularity_compressor.desc4=热量达到100%时清零，并产出1个临界蒸汽纠缠奇点。
@@ -314,10 +313,8 @@ gtsr.tooltip.critical_singularity_compressor.tier1_blocks=结构材料：强化�
 gtsr.gui.critical_singularity_compressor.status=状态:
 gtsr.gui.critical_singularity_compressor.status.building=构建中
 gtsr.gui.critical_singularity_compressor.status.running=运行中
-gtsr.gui.critical_singularity_compressor.status.accumulating=奇点纠缠中
 gtsr.gui.critical_singularity_compressor.status.idle=待机中
 gtsr.gui.critical_singularity_compressor.heat=热量:
-gtsr.gui.critical_singularity_compressor.tier=等级:
 
 # Dense State Manipulator
 gt.blockmachines.gtsr.dense.state.manipulator.name=致密态蒸汽操控装置
@@ -325,13 +322,13 @@ gtsr.tooltip.dense_state_manipulator.type=致密态蒸汽操控装置, DSM
 gtsr.tooltip.dense_state_manipulator.desc=在普通蒸汽与致密蒸汽之间进行压缩或解压的等级2蒸汽机器。
 gtsr.tooltip.dense_state_manipulator.desc2=按1000:1压缩普通蒸汽，或按1:1000将致密蒸汽解压为普通蒸汽。
 gtsr.tooltip.dense_state_manipulator.desc3=支持蒸汽、过热蒸汽、超临界蒸汽及其对应的致密流体。
-gtsr.tooltip.dense_state_manipulator.desc4=运行期间消耗蒸汽纠缠奇点维持机器工作，并累计不足一个单位的输出。
+gtsr.tooltip.dense_state_manipulator.desc4=以两种奇点模式运行：普通（蒸汽纠缠奇点，输出损失20%）或临界（临界蒸汽纠缠奇点，无损失），每颗持续200s；关机时倒计时继续，但仅在工作中消耗奇点；不足1单位的输出跨周期累计。
 gtsr.tooltip.dense_state_manipulator.desc5=使用螺丝刀在压缩和解压模式之间切换。
-gtsr.tooltip.dense_state_manipulator.desc6=运行期间，左右两个失控奇点定位位（左白、右灰）持续生成失控奇点动画（纯视觉效果）；停止工作或结构失效后立即消失。
+gtsr.tooltip.dense_state_manipulator.desc6=运行期间，左右两个失控奇点定位位（左白、右灰）持续生成失控奇点动画（纯视觉效果）；关机后奇点模式持续期间动画豁免保留，模式耗尽或结构失效后消失。
 gtsr.tooltip.dense_state_manipulator.desc7=会吞噬输入仓所有的蒸汽。
 gtsr.tooltip.dense_state_manipulator.ctrl=Layer 8 中心偏前
 gtsr.tooltip.dense_state_manipulator.steam_input=输入仓、蒸汽仓或耐压蒸汽仓
-gtsr.tooltip.dense_state_manipulator.input_bus=蒸汽纠缠奇点燃料输入总线
+gtsr.tooltip.dense_state_manipulator.input_bus=奇点输入总线
 gtsr.tooltip.dense_state_manipulator.output_hatch=蒸汽或致密蒸汽输出仓
 gtsr.tooltip.dense_state_manipulator.tier1_blocks=结构材料：高级镀铑钯机械方块×986、巴特沃克3级玻璃×482、超导线圈外壳×64、熔融机械方块MK II×125、镀铑钯框架×32
 gtsr.gui.dense_state_manipulator.status=状态:
@@ -343,9 +340,10 @@ gtsr.gui.dense_state_manipulator.status.decompress=蒸汽解压中
 gtsr.gui.dense_state_manipulator.mode=模式:
 gtsr.gui.dense_state_manipulator.mode.compress=蒸汽压缩
 gtsr.gui.dense_state_manipulator.mode.decompress=蒸汽解压
-gtsr.gui.dense_state_manipulator.fuel_time=奇点维持时间:
-gtsr.gui.dense_state_manipulator.fuel_no_fuel=请输入蒸汽纠缠奇点
-gtsr.gui.dense_state_manipulator.tier=等级:
+gtsr.gui.dense_state_manipulator.singularity_mode=奇点模式: 
+gtsr.gui.dense_state_manipulator.singularity_off=关
+gtsr.gui.dense_state_manipulator.singularity_steam=普通
+gtsr.gui.dense_state_manipulator.singularity_critical=临界
 
 # Steam Entangled Singularity
 item.SteamEntangledSingularity.name=蒸汽纠缠奇点
@@ -1041,10 +1039,8 @@ gtsr.tooltip.shared.parallel=并行
 gtsr.gui.status.idle=待机中
 gtsr.gui.entangler.status=状态：
 gtsr.gui.entangler.status.running=运行中
-gtsr.gui.entangler.status.accumulating=奇点纠缠中
 gtsr.gui.entangler.status.idle=待机中
 gtsr.gui.entangler.heat=热量： 
-gtsr.gui.entangler.tier=等级： 
 gtsr.chat.compressor_mode.on.compress=已切换为蒸汽压缩模式
 gtsr.chat.compressor_mode.on.decompress=已切换为蒸汽解压模式
 gtsr.chat.compressor_mode.require_tier2=切换模式需等级2结构

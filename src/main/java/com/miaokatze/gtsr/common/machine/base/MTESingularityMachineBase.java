@@ -37,7 +37,6 @@ import gregtech.api.interfaces.IIconContainer;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
-import gregtech.api.metatileentity.implementations.MTEEnhancedMultiBlockBase;
 import gregtech.api.metatileentity.implementations.MTEHatch;
 import gregtech.api.metatileentity.implementations.MTEHatchInput;
 import gregtech.api.metatileentity.implementations.MTEHatchInputBus;
@@ -54,7 +53,7 @@ import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.MTEHatchSteam
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.MTEHatchSteamBusOutput;
 
 /** Shared processing logic and steam plumbing for the singularity machines. */
-public abstract class MTESingularityMachineBase extends MTEEnhancedMultiBlockBase<MTESingularityMachineBase> {
+public abstract class MTESingularityMachineBase extends MTESingularityModeMachineBase<MTESingularityMachineBase> {
 
     protected static final int CYCLE_LENGTH = 20;
     protected static final double HEAT_DECAY_PER_SECOND = 0.01d;
@@ -87,6 +86,11 @@ public abstract class MTESingularityMachineBase extends MTEEnhancedMultiBlockBas
 
     protected abstract boolean includeDenseSteam();
 
+    /** 致密态专属蒸汽探测：默认 false（普通+致密都探测）；临界纠缠奇点稳定装置覆写为 true（仅致密态变体）。 */
+    protected boolean isDenseSteamOnly() {
+        return false;
+    }
+
     protected abstract ItemStack getAggregationOutput();
 
     protected String getTooltipKeyPrefix() {
@@ -110,11 +114,11 @@ public abstract class MTESingularityMachineBase extends MTEEnhancedMultiBlockBas
     }
 
     public int getModeForGui() {
-        return -1;
+        return getSingularityModeForGui();
     }
 
     public int getFuelTicksForGui() {
-        return 0;
+        return getSingularityTicksForGui();
     }
 
     // 是否在 GUI 终端隐藏等级行（地壳物质聚合器无等级概念，默认显示）。
@@ -344,14 +348,14 @@ public abstract class MTESingularityMachineBase extends MTEEnhancedMultiBlockBas
         // v1.10.5 拆分后 1 级机（蒸汽奇点纠缠装置）设计上识别全部普通等级（蒸汽/过热/超临界），
         // 致密变体由 includeDense 参数控制；全等级识别与 tooltip 描述一致。
         for (int grade = 2; grade >= 0; grade--) {
-            if (probeGrade(grade, includeDense, false)) return grade;
+            if (probeGrade(grade, includeDense, isDenseSteamOnly())) return grade;
         }
         return -1;
     }
 
     protected final long sumGrade(int grade, boolean includeDense) {
         long amount = 0;
-        for (FluidStack request : gradeProbeStacks(grade, includeDense, false)) {
+        for (FluidStack request : gradeProbeStacks(grade, includeDense, isDenseSteamOnly())) {
             if (request == null) continue;
             for (MTEHatch hatch : getSteamInputHatches()) {
                 FluidTankInfo[] tanks = hatch.getTankInfo(ForgeDirection.UNKNOWN);
@@ -366,7 +370,7 @@ public abstract class MTESingularityMachineBase extends MTEEnhancedMultiBlockBas
     }
 
     protected final void drainGrade(int grade, boolean includeDense) {
-        for (FluidStack request : gradeProbeStacks(grade, includeDense, false)) {
+        for (FluidStack request : gradeProbeStacks(grade, includeDense, isDenseSteamOnly())) {
             if (request == null) continue;
             for (MTEHatch hatch : getSteamInputHatches()) {
                 // v1.10.55：直接 MAX_VALUE 实扣（"输入仓有多少消耗多少"设计语义）；
@@ -429,7 +433,8 @@ public abstract class MTESingularityMachineBase extends MTEEnhancedMultiBlockBas
 
     /**
      * 失控奇点渲染条件：默认机器工作（结构有效+允许工作+周期进行中或蒸汽尚存）才生成/保留奇点；
-     * "奇点模式"机器（致密态蒸汽操控装置/临界纠缠奇点稳定装置）覆盖为结构成型即渲染（停止工作也渲染）。
+     * 临界纠缠奇点稳定装置覆写为结构成型且允许工作；致密态蒸汽操控装置覆写为结构成型且
+     * （允许工作或奇点模式进行中）。
      */
     protected boolean shouldRenderEntanglementSingularity(IGregTechTileEntity aBaseMetaTileEntity) {
         return mMachine && aBaseMetaTileEntity.isAllowedToWork()
@@ -442,7 +447,7 @@ public abstract class MTESingularityMachineBase extends MTEEnhancedMultiBlockBas
         // 启动豁免：控制器重载后结构判定延迟期间（GT mStartUpCheck≈5 秒），奇点判定同步豁免
         if (getmStartUpCheck() >= 0) return;
         // working：奇点渲染条件（默认结构有效+允许工作+周期进行中或蒸汽尚存，平滑周期间隙避免闪烁；
-        // 奇点模式机器结构成型即渲染，见 shouldRenderEntanglementSingularity）
+        // 各机器覆写条件见 shouldRenderEntanglementSingularity）
         boolean working = shouldRenderEntanglementSingularity(aBaseMetaTileEntity);
         World world = aBaseMetaTileEntity.getWorld();
         for (EntanglementSpec spec : specs) {
@@ -605,11 +610,6 @@ public abstract class MTESingularityMachineBase extends MTEEnhancedMultiBlockBas
             EnumChatFormatting.YELLOW + StatCollector.translateToLocal(guiKeyPrefix + "heat")
                 + EnumChatFormatting.RED
                 + String.format("%.1f%%", mHeat * 100.0d)
-                + EnumChatFormatting.RESET);
-        info.add(
-            EnumChatFormatting.YELLOW + StatCollector.translateToLocal(guiKeyPrefix + "tier")
-                + EnumChatFormatting.GOLD
-                + mTier
                 + EnumChatFormatting.RESET);
         return info.toArray(new String[0]);
     }

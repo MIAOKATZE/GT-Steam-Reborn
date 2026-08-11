@@ -92,6 +92,12 @@ public class MTESteamSingularityEntangler extends MTESingularityMachineBase impl
         return false;
     }
 
+    // v1.10.59 单级机器不显示等级
+    @Override
+    public boolean isHideTierInGui() {
+        return true;
+    }
+
     // NEI 展示用伪合成表：实际处理逻辑在 checkProcessing()，本 map 仅用于 NEI 显示。
     @Override
     public RecipeMap<?> getRecipeMap() {

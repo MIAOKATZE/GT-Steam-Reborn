@@ -95,16 +95,28 @@ public class MTECriticalSingularityCompressor extends MTESingularityMachineBase 
 
     @Override
     protected double getHeatMax() {
-        return 0.002d;
+        return 0.005d;
     }
 
     @Override
     protected long getHeatHalfPoint() {
-        return 1000L;
+        return 5000L;
     }
 
     @Override
     protected boolean includeDenseSteam() {
+        return false;
+    }
+
+    // v1.10.59 仅接受致密态变体
+    @Override
+    protected boolean isDenseSteamOnly() {
+        return true;
+    }
+
+    // v1.10.59 单级机器不显示等级
+    @Override
+    public boolean isHideTierInGui() {
         return true;
     }
 
@@ -126,8 +138,8 @@ public class MTECriticalSingularityCompressor extends MTESingularityMachineBase 
 
     @Override
     protected boolean shouldRenderEntanglementSingularity(IGregTechTileEntity aBaseMetaTileEntity) {
-        // 奇点模式：结构成型即渲染失控奇点（停止工作/软锤关闭也渲染，结构破坏才消失）
-        return mMachine;
+        // v1.10.59 关机即消失（结构成型且允许工作才渲染）
+        return mMachine && aBaseMetaTileEntity.isAllowedToWork();
     }
 
     private static Block getTier2FrameBlock() {

@@ -20,6 +20,7 @@ import javax.annotation.Nullable;
 import net.minecraft.block.Block;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTTagByte;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
@@ -49,6 +50,7 @@ import com.miaokatze.gtsr.common.gui.MTEMegaSteamTurbineArrayGui;
 import com.miaokatze.gtsr.common.machine.base.MTEHatchPressureSteamInput;
 import com.miaokatze.gtsr.common.machine.base.MTEOverpressureTurbineInputHatch;
 import com.miaokatze.gtsr.common.machine.base.MTEPressureSteamCoolingHatch;
+import com.miaokatze.gtsr.common.machine.base.MTESingularityModeMachineBase;
 import com.miaokatze.gtsr.common.machine.base.MTESteamCoolingHatch;
 
 import bartworks.system.material.Werkstoff;
@@ -63,10 +65,8 @@ import gregtech.api.interfaces.IIconContainer;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
-import gregtech.api.metatileentity.implementations.MTEEnhancedMultiBlockBase;
 import gregtech.api.metatileentity.implementations.MTEHatch;
 import gregtech.api.metatileentity.implementations.MTEHatchDynamo;
-import gregtech.api.metatileentity.implementations.MTEHatchInputBus;
 import gregtech.api.recipe.check.CheckRecipeResult;
 import gregtech.api.recipe.check.CheckRecipeResultRegistry;
 import gregtech.api.render.RenderOverlay;
@@ -82,10 +82,9 @@ import gregtech.api.util.shutdown.ShutDownReason;
 import gregtech.api.util.shutdown.ShutDownReasonRegistry;
 import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
 import gregtech.common.misc.GTStructureChannels;
-import gregtech.common.tileentities.machines.IDualInputHatch;
 import tectech.thing.metaTileEntity.hatch.MTEHatchDynamoMulti;
 
-public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaSteamTurbineArray>
+public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEMegaSteamTurbineArray>
     implements IConstructable, ISurvivalConstructable {
 
     private static final String STRUCTURE_PIECE_BASE = "base";
@@ -111,19 +110,9 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
 
     /** 全局功率参数：10/8/6/4/2，对应 100%/80%/60%/40%/20% */
     public int mPowerParameter = 10;
-    /**
-     * 奇点模式等级：0=无，1=蒸汽纠缠奇点模式，2=临界奇点模式。
-     * 临界模式（消耗临界蒸汽纠缠奇点）效果：功率×5、效率上限+200%、蒸汽节省+20%。
-     */
-    public int mSingularityMode = 0;
-    /** 奇点模式剩余 tick */
-    public int mSingularityModeTicks = 0;
-    /** 每秒检查一次输入总线 */
-    private int mSingularityCheckCooldown = 0;
-
+    // 奇点模式字段（mSingularityMode/mSingularityModeTicks）与持续时间常量
+    // SINGULARITY_DURATION_TICKS 由父类 MTESingularityModeMachineBase 提供
     private static final int[] POWER_PARAMETERS = { 10, 8, 6, 4, 2 };
-    /** 奇点模式持续时间（蒸汽纠缠/临界两模式共用）：200s */
-    private static final int SINGULARITY_DURATION_TICKS = 4000; // 200s
     /** 蒸汽纠缠奇点模式：效率上限 +100% */
     private static final int SINGULARITY_EFFICIENCY_BONUS = 10000; // +100%
     /** 蒸汽纠缠奇点模式：蒸汽节省 +15% */
@@ -1103,120 +1092,12 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
     }
 
     /**
-     * 每 tick 处理奇点模式倒计时与续杯检查。
+     * 奇点模式倒计时与续杯检查已上移父类统一处理，此处仅转发 super。
      */
     @Override
     public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
         super.onPostTick(aBaseMetaTileEntity, aTick);
-        if (aBaseMetaTileEntity.isClientSide() || !mMachine) return;
-        if (mSingularityMode > 0 && mSingularityModeTicks > 0) {
-            mSingularityModeTicks--;
-        }
-        if (++mSingularityCheckCooldown >= 20) {
-            mSingularityCheckCooldown = 0;
-            // v1.10.4：包配方窗口使 ME 输入总线的虚拟引用可读（getStackInSlot 仅窗口内有效）；
-            // 与基类 checkRecipe 的窗口嵌套安全（start/end 均幂等）
-            startRecipeProcessing();
-            checkSingularityMode();
-            endRecipeProcessing();
-        }
-    }
-
-    /**
-     * 检查并维持奇点模式（三态：0=无/1=蒸汽纠缠/2=临界）。
-     * 不在模式时：优先消耗 1 个临界蒸汽纠缠奇点进入模式 2，其次 1 个蒸汽纠缠奇点进入模式 1。
-     * 模式中倒计时耗尽时：按当前模式对应物品无缝续杯；成功续满，失败才退出模式。
-     */
-    private void checkSingularityMode() {
-        if (mSingularityMode == 0) {
-            // 临界奇点优先
-            if (consumeSingularityFromInputBuses(1, GTSRItemList.CriticalSteamEntangledSingularity)) {
-                mSingularityMode = 2;
-                mSingularityModeTicks = SINGULARITY_DURATION_TICKS;
-                getBaseMetaTileEntity().markDirty();
-            } else if (consumeSingularityFromInputBuses(1, GTSRItemList.SteamEntangledSingularity)) {
-                mSingularityMode = 1;
-                mSingularityModeTicks = SINGULARITY_DURATION_TICKS;
-                getBaseMetaTileEntity().markDirty();
-            }
-        } else if (mSingularityModeTicks <= 0) {
-            // 200s 结束瞬间：按当前模式对应燃料续杯，模式全程不断
-            GTSRItemList fuel = mSingularityMode == 2 ? GTSRItemList.CriticalSteamEntangledSingularity
-                : GTSRItemList.SteamEntangledSingularity;
-            if (consumeSingularityFromInputBuses(1, fuel)) {
-                mSingularityModeTicks = SINGULARITY_DURATION_TICKS;
-                getBaseMetaTileEntity().markDirty();
-            } else {
-                mSingularityMode = 0;
-                getBaseMetaTileEntity().markDirty();
-            }
-        }
-    }
-
-    /**
-     * 从输入总线与样板仓中消耗指定类型、指定数量的奇点燃料。
-     *
-     * @return 是否成功消耗全部数量
-     */
-    private boolean consumeSingularityFromInputBuses(int amount, GTSRItemList singularity) {
-        int remaining = amount;
-        // 先收集所有可消耗的槽位，避免部分消耗后无法回滚
-        List<Pair<MTEHatchInputBus, Integer>> candidates = new ArrayList<>();
-        for (MTEHatchInputBus bus : GTUtility.validMTEList(mInputBusses)) {
-            if (bus == null) continue;
-            for (int i = 0; i < bus.getSizeInventory(); i++) {
-                ItemStack stack = bus.getStackInSlot(i);
-                if (stack != null && singularity.isStackEqual(stack, false, true)) {
-                    candidates.add(Pair.of(bus, i));
-                    remaining -= stack.stackSize;
-                    if (remaining <= 0) break;
-                }
-            }
-            if (remaining <= 0) break;
-        }
-        // v1.10.6 修复：删除此处提前 return false（v1.10.4 引入，使下方 mDualInputHatches
-        // 样板仓奇点燃料分支成为不可达死代码）。输入总线不足时继续尝试样板仓。
-        // v1.10.4：样板仓（mDualInputHatches）中的蒸汽纠缠奇点也可作为燃料。
-        // getItemInputs 引用为仓内持久数据（窗口无关），网络结算由样板仓自身完成。
-        if (remaining > 0) {
-            for (IDualInputHatch dual : mDualInputHatches) {
-                if (dual == null) continue;
-                for (ItemStack stack : dual.getAllItems()) {
-                    if (stack == null || !singularity.isStackEqual(stack, false, true)) {
-                        continue;
-                    }
-                    int toConsume = Math.min(remaining, stack.stackSize);
-                    stack.stackSize -= toConsume;
-                    remaining -= toConsume;
-                    if (remaining <= 0) break;
-                }
-                if (remaining <= 0) break;
-            }
-        }
-        if (remaining > 0) {
-            return false;
-        }
-        // 实际消耗
-        remaining = amount;
-        for (Pair<MTEHatchInputBus, Integer> candidate : candidates) {
-            MTEHatchInputBus bus = candidate.getLeft();
-            int slot = candidate.getRight();
-            ItemStack stack = bus.getStackInSlot(slot);
-            if (stack == null) continue;
-            int toConsume = Math.min(remaining, stack.stackSize);
-            stack.stackSize -= toConsume;
-            remaining -= toConsume;
-            if (stack.stackSize <= 0) {
-                bus.setInventorySlotContents(slot, null);
-            } else {
-                bus.setInventorySlotContents(slot, stack);
-            }
-            if (remaining <= 0) break;
-        }
-        for (MTEHatchInputBus bus : GTUtility.validMTEList(mInputBusses)) {
-            if (bus != null) bus.updateSlots();
-        }
-        return true;
+        // 奇点模式计时/消耗已由 MTESingularityModeMachineBase.onPostTick 统一处理
     }
 
     public long getMaximumOutput() {
@@ -1533,9 +1414,7 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         aNBT.setInteger("mSteamConsumption", mSteamConsumption);
         aNBT.setInteger("mEfficiency", mEfficiency);
         aNBT.setInteger("mPowerParameter", mPowerParameter);
-        // v1.10.39 后：奇点模式升级为三态（0/1/2），存档键改为整数 mSingularityModeLevel
-        aNBT.setInteger("mSingularityModeLevel", mSingularityMode);
-        aNBT.setInteger("mSingularityModeTicks", mSingularityModeTicks);
+        // 奇点模式字段（mSingularityMode/mSingularityModeTicks）由父类 saveNBTData 持久化
         // v1.10.9：持久化蒸汽类型——修复重进存档后 mSteamType 为 NONE 导致
         // getMaxEfficiency 返回 10000、父类钳制把存档效率砍到 100% 的 bug。
         aNBT.setInteger("mSteamType", mSteamType.ordinal());
@@ -1550,17 +1429,12 @@ public class MTEMegaSteamTurbineArray extends MTEEnhancedMultiBlockBase<MTEMegaS
         mSteamConsumption = aNBT.getInteger("mSteamConsumption");
         mEfficiency = aNBT.getInteger("mEfficiency");
         mPowerParameter = aNBT.hasKey("mPowerParameter") ? aNBT.getInteger("mPowerParameter") : 10;
-        // v1.10.39 及以前为 boolean 键 mSingularityMode（true=普通蒸汽纠缠奇点模式），
-        // 新档为整数键 mSingularityModeLevel（0/1/2）；旧档迁移为 mode 1，并钳制到合法范围
-        if (aNBT.hasKey("mSingularityModeLevel")) {
-            mSingularityMode = Math.max(0, Math.min(aNBT.getInteger("mSingularityModeLevel"), 2));
-        } else if (aNBT.hasKey("mSingularityMode")) {
-            // v1.10.39 及以前：boolean 存档，true=普通奇点模式
+        // 整数键 mSingularityMode（0/1/2）与旧整数键 mSingularityModeLevel（无 mSingularityMode 键时）
+        // 由父类 loadNBTData 兼容读取；此处仅迁移 v1.10.39 及以前的 boolean 键 mSingularityMode
+        // 存档（true=普通蒸汽纠缠奇点模式 → mode 1）。以键类型 NBTTagByte 区分新旧档，避免覆盖 int 档。
+        if (aNBT.getTag("mSingularityMode") instanceof NBTTagByte) {
             mSingularityMode = aNBT.getBoolean("mSingularityMode") ? 1 : 0;
-        } else {
-            mSingularityMode = 0;
         }
-        mSingularityModeTicks = aNBT.hasKey("mSingularityModeTicks") ? aNBT.getInteger("mSingularityModeTicks") : 0;
         // v1.10.9：恢复蒸汽类型（旧档无键 → NONE，由 getMaxEfficiency 的 NONE 兜底处理）
         mSteamType = aNBT.hasKey("mSteamType")
             ? SteamType.values()[Math.max(0, Math.min(aNBT.getInteger("mSteamType"), SteamType.values().length - 1))]

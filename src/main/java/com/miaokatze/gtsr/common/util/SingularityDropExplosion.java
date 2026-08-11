@@ -29,7 +29,7 @@ import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
  * 爆炸后自身消失；等待期每 4 tick 冒一次白色云朵粒子。
  * <p>
  * 临界奇点：掉落 3 秒后爆炸，50% TNT 方块破坏（威力 2.0）+ 20 倍 TNT 实体伤害
- * （威力 80.0），爆炸后沿爆炸半径随机生成 0-16 个普通蒸汽纠缠奇点（各自带 4-10 秒
+ * （威力 80.0），爆炸后沿爆炸半径随机生成 4-12 个普通蒸汽纠缠奇点（各自带 4-10 秒
  * 随机爆炸倒计时），爆炸后自身消失；等待期每 2 tick 冒两颗黑色大烟雾粒子（更多、
  * 扩散更大），爆炸动画半径 8.0（普通 4.0 的两倍）。
  * <p>
@@ -159,7 +159,7 @@ public final class SingularityDropExplosion {
         damageEntities(world, source, exp, x, y, z, NORMAL_ENTITY_DAMAGE_SIZE);
     }
 
-    /** 临界奇点爆炸：50% TNT 方块破坏 + 20 倍 TNT 实体伤害 + 0-16 个普通奇点产物 */
+    /** 临界奇点爆炸：50% TNT 方块破坏 + 20 倍 TNT 实体伤害 + 4-12 个普通奇点产物 */
     public static void explodeCritical(World world, EntityItem source) {
         if (world.isRemote) {
             return;
@@ -275,9 +275,9 @@ public final class SingularityDropExplosion {
         }
     }
 
-    /** 沿爆炸半径（1-4 格）随机生成 0-16 个普通蒸汽纠缠奇点（各带 4-10 秒随机爆炸倒计时） */
+    /** 沿爆炸半径（1-4 格）随机生成 4-12 个普通蒸汽纠缠奇点（各带 4-10 秒随机爆炸倒计时） */
     private static void spawnSingularityDrops(World world, double x, double y, double z) {
-        int count = world.rand.nextInt(17);
+        int count = 4 + world.rand.nextInt(9); // 4-12 个
         for (int i = 0; i < count; ++i) {
             double angle = world.rand.nextDouble() * Math.PI * 2.0D;
             double dist = 1.0D + world.rand.nextDouble() * 3.0D;

@@ -61,7 +61,6 @@ public class MTEDenseStateManipulator extends MTESingularityMachineBase implemen
     private static final int VERTICAL_OFF_SET = 8;
     private static final int DEPTH_OFF_SET = 1;
 
-    private static final int SINGULARITY_DURATION_TICKS = 12000;
     private static final long DENSE_COMPRESSION_RATIO = 1000L;
 
     private static IStructureDefinition<MTEDenseStateManipulator> STRUCTURE_DEFINITION;
@@ -73,7 +72,6 @@ public class MTEDenseStateManipulator extends MTESingularityMachineBase implemen
     public static final int MODE_DECOMPRESS = 1;
 
     public int mMode = MODE_COMPRESS;
-    public int mFuelTicks = 0;
     private double mAccum = 0.0d;
     private int mAccumGrade = -1;
 
@@ -228,8 +226,8 @@ public class MTEDenseStateManipulator extends MTESingularityMachineBase implemen
 
     @Override
     protected boolean shouldRenderEntanglementSingularity(IGregTechTileEntity aBaseMetaTileEntity) {
-        // 奇点模式：结构成型即渲染失控奇点（停止工作/软锤关闭也渲染，结构破坏才消失）
-        return mMachine;
+        // v1.10.59：关机奇点消失；奇点模式倒计时未耗尽（模式持续中）时豁免，模式退出或结构破坏才消失
+        return mMachine && (aBaseMetaTileEntity.isAllowedToWork() || mSingularityMode > 0);
     }
 
     @Override
@@ -243,8 +241,9 @@ public class MTEDenseStateManipulator extends MTESingularityMachineBase implemen
     }
 
     @Override
-    public int getFuelTicksForGui() {
-        return mFuelTicks;
+    public boolean isHideTierInGui() {
+        // v1.10.59：单级机器不显示等级
+        return true;
     }
 
     @Override
@@ -453,17 +452,36 @@ public class MTEDenseStateManipulator extends MTESingularityMachineBase implemen
         return processCompressionCycle();
     }
 
+    /**
+     * 尝试进入奇点模式：临界奇点优先（与 CMA/MSTA 一致），失败再试普通奇点；
+     * v1.10.8 教训——调用前必须确认有流体可吞噬（本方法只消耗奇点，不验证流体）。
+     */
+    private boolean enterSingularityModeIfPossible() {
+        if (consumeSingularityFromInputBuses(1, getSingularityItemForMode(2))) {
+            mSingularityMode = 2;
+            mSingularityModeTicks = getSingularityDurationTicks();
+            getBaseMetaTileEntity().markDirty();
+            return true;
+        }
+        if (consumeSingularityFromInputBuses(1, getSingularityItemForMode(1))) {
+            mSingularityMode = 1;
+            mSingularityModeTicks = getSingularityDurationTicks();
+            getBaseMetaTileEntity().markDirty();
+            return true;
+        }
+        return false;
+    }
+
     private CheckRecipeResult processCompressionCycle() {
         if (mAccum < 1.0d) {
             int grade = findHighestGrade(false);
             if (grade < 0) return CheckRecipeResultRegistry.NO_RECIPE;
             long amount = sumGrade(grade, false);
             if (amount <= 0) return CheckRecipeResultRegistry.NO_RECIPE;
-            // v1.10.8：确认有流体可吞噬后才扣燃料（原实现先扣燃料后验流体，
+            // v1.10.8：确认有流体可吞噬后才消耗奇点进入模式（原实现先扣燃料后验流体，
             // 无流体时燃料已扣、mFuelTicks=12000 空转 10 分钟）。
-            if (mFuelTicks <= 0) {
-                if (!consumeSingularityFromInputBuses(1)) return CheckRecipeResultRegistry.NO_RECIPE;
-                mFuelTicks = SINGULARITY_DURATION_TICKS;
+            if (mSingularityMode == 0) {
+                if (!enterSingularityModeIfPossible()) return CheckRecipeResultRegistry.NO_RECIPE;
             }
             drainGrade(grade, false);
             // v1.10.8：等级切换保留已累积量（按原等级比例折算续算），
@@ -472,11 +490,10 @@ public class MTEDenseStateManipulator extends MTESingularityMachineBase implemen
                 mAccum = mAccum * getGradeRatio(grade) / getGradeRatio(mAccumGrade);
             }
             mAccumGrade = grade;
-            mAccum += (double) amount / DENSE_COMPRESSION_RATIO;
-        } else if (mFuelTicks <= 0) {
-            // 输出阶段燃料耗尽：尝试续杯（不吞流体时也需维持模式）
-            if (!consumeSingularityFromInputBuses(1)) return CheckRecipeResultRegistry.NO_RECIPE;
-            mFuelTicks = SINGULARITY_DURATION_TICKS;
+            mAccum += (double) amount / DENSE_COMPRESSION_RATIO * getSingularityOutputCoefficient();
+        } else if (mSingularityMode == 0) {
+            // 输出阶段模式耗尽：工作上下文内重新进入（输出未达 1 单位、无流体可吞时也需维持模式）
+            if (!enterSingularityModeIfPossible()) return CheckRecipeResultRegistry.NO_RECIPE;
         }
 
         long output = (long) Math.floor(mAccum);
@@ -502,10 +519,9 @@ public class MTEDenseStateManipulator extends MTESingularityMachineBase implemen
             if (grade < 0) return CheckRecipeResultRegistry.NO_RECIPE;
             long amount = sumDenseGrade(grade);
             if (amount <= 0) return CheckRecipeResultRegistry.NO_RECIPE;
-            // v1.10.8：确认有流体可吞噬后才扣燃料（同 compression）
-            if (mFuelTicks <= 0) {
-                if (!consumeSingularityFromInputBuses(1)) return CheckRecipeResultRegistry.NO_RECIPE;
-                mFuelTicks = SINGULARITY_DURATION_TICKS;
+            // v1.10.8：确认有流体可吞噬后才消耗奇点进入模式（同 compression）
+            if (mSingularityMode == 0) {
+                if (!enterSingularityModeIfPossible()) return CheckRecipeResultRegistry.NO_RECIPE;
             }
             drainDenseGrade(grade);
             // v1.10.8：等级切换保留已累积量（同 compression 折算续算）
@@ -513,11 +529,10 @@ public class MTEDenseStateManipulator extends MTESingularityMachineBase implemen
                 mAccum = mAccum * getGradeRatio(grade) / getGradeRatio(mAccumGrade);
             }
             mAccumGrade = grade;
-            mAccum += (double) amount * DENSE_COMPRESSION_RATIO;
-        } else if (mFuelTicks <= 0) {
-            // 输出阶段燃料耗尽：尝试续杯
-            if (!consumeSingularityFromInputBuses(1)) return CheckRecipeResultRegistry.NO_RECIPE;
-            mFuelTicks = SINGULARITY_DURATION_TICKS;
+            mAccum += (double) amount * DENSE_COMPRESSION_RATIO * getSingularityOutputCoefficient();
+        } else if (mSingularityMode == 0) {
+            // 输出阶段模式耗尽：工作上下文内重新进入
+            if (!enterSingularityModeIfPossible()) return CheckRecipeResultRegistry.NO_RECIPE;
         }
 
         long output = (long) Math.floor(mAccum);
@@ -535,6 +550,11 @@ public class MTEDenseStateManipulator extends MTESingularityMachineBase implemen
         mAccum -= fillOutput(steam);
         startCycle();
         return CheckRecipeResultRegistry.SUCCESSFUL;
+    }
+
+    /** v1.10.59：普通奇点模式 -20% 输出损失（压缩与解压均生效），临界奇点模式无损。 */
+    private double getSingularityOutputCoefficient() {
+        return mSingularityMode == 1 ? 0.8d : 1.0d;
     }
 
     /** 等级能量折算基准（与 GRADE_COEF 一致：grade0=0.5、grade1=1.0、grade2=2.0）。 */
@@ -591,7 +611,9 @@ public class MTEDenseStateManipulator extends MTESingularityMachineBase implemen
             return;
         }
         mMode = mMode == MODE_COMPRESS ? MODE_DECOMPRESS : MODE_COMPRESS;
-        mFuelTicks = 0;
+        // 切换压缩/解压重置奇点模式与累积量
+        mSingularityMode = 0;
+        mSingularityModeTicks = 0;
         mAccum = 0.0d;
         mAccumGrade = -1;
         String key = mMode == MODE_COMPRESS ? "gtsr.chat.compressor_mode.on.compress"
@@ -603,21 +625,13 @@ public class MTEDenseStateManipulator extends MTESingularityMachineBase implemen
     @Override
     public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
         super.onPostTick(aBaseMetaTileEntity, aTick);
-        if (!aBaseMetaTileEntity.isServerSide() || aTick % CYCLE_LENGTH != 0L) return;
-        // v1.10.8 修复：仅成型且允许工作时才扣减燃料并续杯。
-        // 原实现无条件扣减——关机/红石禁用/结构破坏时仍每 10 分钟吞 1 个奇点。
-        if (!mMachine || !aBaseMetaTileEntity.isAllowedToWork()) return;
-        mFuelTicks -= CYCLE_LENGTH;
-        if (mFuelTicks <= 0) {
-            mFuelTicks = consumeSingularityFromInputBuses(1) ? SINGULARITY_DURATION_TICKS : 0;
-        }
+        // 奇点倒计时/消耗已由 MTESingularityModeMachineBase.onPostTick 统一处理——关机仅计时、工作才消耗
     }
 
     @Override
     public void saveNBTData(NBTTagCompound aNBT) {
         super.saveNBTData(aNBT);
         aNBT.setInteger("mMode", mMode);
-        aNBT.setInteger("mFuelTicks", mFuelTicks);
         aNBT.setDouble("mAccum", mAccum);
         aNBT.setInteger("mAccumGrade", mAccumGrade);
     }
@@ -626,7 +640,11 @@ public class MTEDenseStateManipulator extends MTESingularityMachineBase implemen
     public void loadNBTData(NBTTagCompound aNBT) {
         super.loadNBTData(aNBT);
         mMode = aNBT.getInteger("mMode") == MODE_DECOMPRESS ? MODE_DECOMPRESS : MODE_COMPRESS;
-        mFuelTicks = aNBT.getInteger("mFuelTicks");
+        // v1.10.59 旧档迁移：600s 单类型燃料 → 普通奇点模式（剩余 tick 直接继承）
+        if (aNBT.hasKey("mFuelTicks") && aNBT.getInteger("mFuelTicks") > 0) {
+            mSingularityMode = 1;
+            mSingularityModeTicks = aNBT.getInteger("mFuelTicks");
+        }
         mAccum = aNBT.getDouble("mAccum");
         mAccumGrade = aNBT.getInteger("mAccumGrade");
     }
@@ -643,17 +661,16 @@ public class MTEDenseStateManipulator extends MTESingularityMachineBase implemen
             info.add(EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.gui.building"));
             return info.toArray(new String[0]);
         }
-        String fuelValue = mFuelTicks > 0 ? String.format("%ds", mFuelTicks / CYCLE_LENGTH)
-            : StatCollector.translateToLocal(guiKeyPrefix + "fuel_no_fuel");
+        // v1.10.59：燃料行 → 奇点模式行（与 GUI 终端一致）；单级机器不再显示 tier 行
+        String singularityValue = mSingularityMode == 0
+            ? StatCollector.translateToLocal(guiKeyPrefix + "singularity_off")
+            : (mSingularityMode == 2 ? StatCollector.translateToLocal(guiKeyPrefix + "singularity_critical")
+                : StatCollector.translateToLocal(guiKeyPrefix + "singularity_steam"))
+                + String.format(" %ds", mSingularityModeTicks / 20);
         info.add(
-            EnumChatFormatting.YELLOW + StatCollector.translateToLocal(guiKeyPrefix + "fuel_time")
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal(guiKeyPrefix + "singularity_mode")
                 + EnumChatFormatting.RED
-                + fuelValue
-                + EnumChatFormatting.RESET);
-        info.add(
-            EnumChatFormatting.YELLOW + StatCollector.translateToLocal(guiKeyPrefix + "tier")
-                + EnumChatFormatting.GOLD
-                + mTier
+                + singularityValue
                 + EnumChatFormatting.RESET);
         return info.toArray(new String[0]);
     }

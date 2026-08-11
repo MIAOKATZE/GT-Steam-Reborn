@@ -44,7 +44,6 @@ public class MTESingularityMachineGui<T extends MTESingularityMachineBase> exten
         DoubleSyncValue heatSyncer = syncManager.findSyncHandler("gtsr.heat", DoubleSyncValue.class);
         IntSyncValue maxProgressSyncer = syncManager.findSyncHandler("gtsr.maxProgress", IntSyncValue.class);
         IntSyncValue modeSyncer = syncManager.findSyncHandler("gtsr.mode", IntSyncValue.class);
-        IntSyncValue fuelTicksSyncer = syncManager.findSyncHandler("gtsr.fuelTicks", IntSyncValue.class);
         IntSyncValue tierSyncer = syncManager.findSyncHandler("gtsr.tier", IntSyncValue.class);
 
         return super.createTerminalTextWidget(syncManager, parent)
@@ -62,14 +61,17 @@ public class MTESingularityMachineGui<T extends MTESingularityMachineBase> exten
                 String statusKey;
                 EnumChatFormatting statusColor;
                 if (multiblock.isDenseStateManipulator()) {
-                    statusKey = modeSyncer.getValue() == 1 ? "status.decompress" : "status.compress";
-                    statusColor = EnumChatFormatting.LIGHT_PURPLE;
+                    // DSM：工作中按压缩/解压模式显示，否则待机中
+                    if (maxProgressSyncer.getValue() > 0) {
+                        statusKey = modeSyncer.getValue() == 1 ? "status.decompress" : "status.compress";
+                        statusColor = EnumChatFormatting.LIGHT_PURPLE;
+                    } else {
+                        statusKey = "status.idle";
+                        statusColor = EnumChatFormatting.WHITE;
+                    }
                 } else if (maxProgressSyncer.getValue() > 0) {
                     statusKey = "status.running";
                     statusColor = EnumChatFormatting.AQUA;
-                } else if (isHeatGuiShown() && heatSyncer.getValue() > 0) {
-                    statusKey = "status.accumulating";
-                    statusColor = EnumChatFormatting.YELLOW;
                 } else {
                     statusKey = "status.idle";
                     statusColor = EnumChatFormatting.WHITE;
@@ -102,9 +104,14 @@ public class MTESingularityMachineGui<T extends MTESingularityMachineBase> exten
                 .marginBottom(2)
                 .fullWidth())
             .childIf(multiblock.isDenseStateManipulator(), () -> IKey.dynamic(() -> {
-                String value = fuelTicksSyncer.getValue() > 0 ? String.format("%ds", fuelTicksSyncer.getValue() / 20)
-                    : StatCollector.translateToLocal(keyPrefix + "fuel_no_fuel");
-                return EnumChatFormatting.YELLOW + StatCollector.translateToLocal(keyPrefix + "fuel_time")
+                // v1.10.59：燃料行 → 奇点模式行（关/普通/临界 + 剩余秒数）
+                int mode = multiblock.getSingularityModeForGui();
+                int ticks = multiblock.getSingularityTicksForGui();
+                String value = mode == 0 ? StatCollector.translateToLocal(keyPrefix + "singularity_off")
+                    : (mode == 2 ? StatCollector.translateToLocal(keyPrefix + "singularity_critical")
+                        : StatCollector.translateToLocal(keyPrefix + "singularity_steam"))
+                        + String.format(" %ds", ticks / 20);
+                return EnumChatFormatting.YELLOW + StatCollector.translateToLocal(keyPrefix + "singularity_mode")
                     + EnumChatFormatting.RED
                     + value;
             })
