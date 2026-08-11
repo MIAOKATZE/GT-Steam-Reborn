@@ -17,7 +17,6 @@ gtsr.tooltip.shared.hub_singularity_cost=Consumes 1 Steam Entangled Singularity 
 gtsr.binding.no_singularity=No Steam Entangled Singularity in inventory!
 gtsr.tooltip.shared.node_bind_hint=Right-click Singularity Drilling Hub to bind
 gtsr.tooltip.shared.node_unbound=Not bound to hub
-gtsr.tooltip.shared.node_steam_cost=Node steam cost (see individual node details)
 gtsr.tooltip.node.chunk_load_warn=Binding to the Singularity Drilling Hub enables automatic chunk loading on this machine for stable remote operation
 gtsr.tooltip.shared.work_cycle=Work Cycle: 
 gtsr.tooltip.shared.8s=8s
@@ -49,7 +48,6 @@ gtsr.tooltip.steam_hub_input_hatch.no_storage=No internal buffer - fluid goes di
 gt.blockmachines.gtsr.hub.storage.unit.name=Hub Storage Unit
 gtsr.tooltip.hub_storage_unit.info=Structural component for Hub Array
 gtsr.tooltip.hub_storage_unit.dual_hub=Usable in both Steam Hub Array and Water Hub Array
-gtsr.tooltip.hub_storage_unit.steam_hub=Steam Hub
 gtsr.tooltip.hub_storage_unit.water_hub=Water Hub
 gtsr.tooltip.hub_storage_unit.tier1_only=Tier 1 Steam Hub Array only
 
@@ -60,59 +58,18 @@ gtsr.tooltip.reinforced_hub_storage_unit.tier2_only=Tier 2 Steam Hub Array only
 
 # Steam Hub Array
 gt.blockmachines.gtsr.steam.hub.array.name=Steam Hub Array
-gtsr.tooltip.steam_hub_array.info=Centralized steam storage multiblock with tiered capacity
-gtsr.tooltip.steam_hub_array.structure=5x5 base + 1-30 storage layers
-gtsr.tooltip.steam_hub_array.capacity=Pressure: 320M L/unit | Reinforced: 1,280M L/unit | Overpressure: 20,480M L/unit
-gtsr.tooltip.steam_hub_array.output=Auto-output: 20,000,000 L/s per output hatch
-gtsr.tooltip.steam_hub_array.no_maintenance=No maintenance hatch required
-gtsr.tooltip.steam_hub_array.hatch_note=Hatches have no internal buffer - all fluid held by the array
-gtsr.tooltip.steam_hub_array.ctrl_pos=Front center of base layer
-gtsr.tooltip.steam_hub_array.casing=Bronze Plated Bricks
-gtsr.tooltip.steam_hub_array.input_hatch=Steam Hub Input Hatch
-gtsr.tooltip.steam_hub_array.output_hatch=Steam Hub Output Hatch
-gtsr.tooltip.steam_hub_array.storage_unit=Pressure/Reinforced Steam Storage Unit
-gtsr.tooltip.steam_hub_array.base_layer=Any base layer position
-gtsr.tooltip.steam_hub_array.stack_layers=Stack layers above base
 
 # Steam Fluid Drill
 gt.blockmachines.gtsr.steam.fluid.drill.name=Steam Fluid Drill
 gtsr.recipe.steam_fluid_drill=Steam Fluid Drill
-gtsr.tooltip.steam_fluid_drill.info=Steam-powered fluid drill, extracts water from underground veins
-gtsr.tooltip.steam_fluid_drill.bronze=Bronze: Produces Water, reaches max in 5 min (200->2000 L/s)
-gtsr.tooltip.steam_fluid_drill.steel=Steel: Produces Distilled Water, reaches max in 1 hr (10->1000 L/s)
-gtsr.tooltip.steam_fluid_drill.output=Max Output:
-gtsr.tooltip.steam_fluid_drill.steam_cost=Steam Consumption:
-gtsr.tooltip.steam_fluid_drill.any_casing=Any casing position
-gtsr.tooltip.steam_fluid_drill.steam_hatch=Steam Input Hatch
-gtsr.tooltip.steam_fluid_drill.pressure_hatch=Use Pressure Steam Hatch
-gtsr.tooltip.steam_fluid_drill.bronze_casing=Bronze Plated Bricks
-gtsr.tooltip.steam_fluid_drill.bronze_pipe=Bronze Pipe Casing
-gtsr.tooltip.steam_fluid_drill.bronze_gear=Bronze Gearbox Casing
-gtsr.tooltip.steam_fluid_drill.bronze_frame=Bronze Frame Box
-gtsr.tooltip.steam_fluid_drill.steel_casing=Solid Steel Machine Casing
-gtsr.tooltip.steam_fluid_drill.steel_pipe=Steel Pipe Casing
-gtsr.tooltip.steam_fluid_drill.steel_gear=Steel Gearbox Casing
-gtsr.tooltip.steam_fluid_drill.steel_frame=Steel Frame Box
 gtsr.efficiency=Efficiency
 gtsr.current_output=Current Output
 
 # Pressure Steam Hatch
 gt.blockmachines.gtsr.pressure.steam.hatch.name=Pressure Steam Hatch
-gtsr.tooltip.pressure_steam_hatch.info=Reinforced steam input hatch that accepts Steam, IC2 Steam and Superheated Steam
-gtsr.tooltip.pressure_steam_hatch.boost=Machine speed x2 when supplied with Superheated Steam
 
 # Crust Steam Borer
 gt.blockmachines.gtsr.crust.steam.borer.name=Crust Steam Borer
-gtsr.tooltip.crust_steam_borer.info=Steam-powered void miner, extracts ores from the Overworld crust
-gtsr.tooltip.crust_steam_borer.bronze=Bronze: 2000L/s steam, 1 ore per 25s
-gtsr.tooltip.crust_steam_borer.steam_cost=Steam Consumption:
-gtsr.tooltip.crust_steam_borer.pressure_hatch=Pressure Steam Hatch + Superheated Steam: Speed x2
-gtsr.tooltip.crust_steam_borer.dim_limit=Overworld and Nether only
-gtsr.tooltip.crust_steam_borer.any_casing=Any casing position
-gtsr.tooltip.crust_steam_borer.steam_or_pressure_hatch=Steam Input Hatch or Pressure Steam Input Hatch (one only)
-gtsr.tooltip.crust_steam_borer.cooling_hatch=Optional: Steam Cooling Hatch (recovers Water) or Pressure Steam Cooling Hatch (recovers Steam)
-gtsr.tooltip.crust_steam_borer.bronze_frame=Bronze Frame Box
-gtsr.tooltip.crust_steam_borer.bronze_casing=Bronze Plated Bricks
 
 # Crust Matter Aggregator (v1.10.33 full rename replacing Singularity Crust Steam Borer)
 gt.blockmachines.gtsr.crust.matter.aggregator.name=Crust Matter Aggregator
@@ -228,37 +185,9 @@ gtsr.aggregator_config.clear_config.chat=Current mode config cleared
 
 # Singularity Crust Steam Borer
 gt.blockmachines.gtsr.singularity.crust.steam.borer.name=Singularity Crust Steam Borer
-gtsr.tooltip.singularity_crust_steam_borer.info=Steam-powered cross-dimension singularity miner
-gtsr.tooltip.singularity_crust_steam_borer.steel=Steel: 8000L/s steam, 1 ore per 5s
-gtsr.tooltip.singularity_crust_steam_borer.steam_cost=Steam Consumption:
-gtsr.tooltip.singularity_crust_steam_borer.pressure_hatch=Pressure Steam Hatch + Superheated Steam: Speed x2
-gtsr.tooltip.singularity_crust_steam_borer.dimension=Place Dimension Display in controller slot to select dimension
-gtsr.tooltip.singularity_crust_steam_borer.requires_plugin=Requires GT NEI Ore Plugin to function
-gtsr.tooltip.singularity_crust_steam_borer.any_casing=Any casing position
-gtsr.tooltip.singularity_crust_steam_borer.steam_or_pressure_hatch=Steam Input Hatch or Pressure Steam Hatch (one only)
-gtsr.tooltip.singularity_crust_steam_borer.steel_frame=Steel Frame Box
-gtsr.tooltip.singularity_crust_steam_borer.steel_casing=Solid Steel Machine Casing
 
 # Vein Steam Pyrolyzer
 gt.blockmachines.gtsr.vein.steam.pyrolyzer.name=Vein Steam Pyrolyzer
-gtsr.tooltip.vein_steam_pyrolyzer.0=Steam-age oil field regeneration device
-gtsr.tooltip.vein_steam_pyrolyzer.1=Injects steam heat to increase underground fluid reserves
-gtsr.tooltip.vein_steam_pyrolyzer.2=Work range: 1x1 base + chip expansion
-gtsr.tooltip.vein_steam_pyrolyzer.5=Superheated Steam: 4x speed, 4x consumption
-gtsr.tooltip.vein_steam_pyrolyzer.6=Chip: T1(+1 range) / T2(+3 range) / T3(+7 range)
-gtsr.tooltip.vein_steam_pyrolyzer.7=Fluid lock: Only boosts the host chunk's fluid field
-gtsr.tooltip.vein_steam_pyrolyzer.12=Hatches: Pressure Steam Hatch, Output Bus
-gtsr.tooltip.vein_steam_pyrolyzer.pressure_hatch=Use Pressure Steam Hatch
-gtsr.tooltip.vein_steam_pyrolyzer.any_casing=Any casing position
-gtsr.tooltip.vein_steam_pyrolyzer.bronze_casing=Bronze Plated Bricks
-gtsr.tooltip.vein_steam_pyrolyzer.bronze_firebox=Bronze Firebox Casing
-gtsr.tooltip.vein_steam_pyrolyzer.bronze_gear=Bronze Gearbox Casing
-gtsr.tooltip.vein_steam_pyrolyzer.bronze_frame=Bronze Frame Box
-gtsr.tooltip.vein_steam_pyrolyzer.steel_casing=Solid Steel Machine Casing
-gtsr.tooltip.vein_steam_pyrolyzer.steel_firebox=Steel Firebox Casing
-gtsr.tooltip.vein_steam_pyrolyzer.steel_gear=Steel Gearbox Casing
-gtsr.tooltip.vein_steam_pyrolyzer.steel_frame=Steel Frame Box
-gtsr.tooltip.vein_steam_pyrolyzer.18=Requires 1 Pressure Steam Input Hatch and 1 Output Bus
 
 # Pyrolyzer Chips
 item.VeinPyrolyzerChip_T1.name=Vein Pyrolyzer Chip T1
@@ -267,9 +196,6 @@ item.VeinPyrolyzerChip_T3.name=Vein Pyrolyzer Chip T3
 
 # Large Steam Furnace
 gt.blockmachines.gtsr.large.steam.furnace.name=Large Steam Furnace
-gtsr.tooltip.large_steam_furnace.0=Superheated Steam: 4x speed, 4x consumption
-gtsr.tooltip.large_steam_furnace.ctrl=Front center of bottom layer
-gtsr.tooltip.large_steam_furnace.hatches=Steam Hatch x1, Steam Input Bus x1+, Steam Output Bus x1+
 
 # Steam Output Hatch
 gt.blockmachines.gtsr.steam.output.hatch.name=Steam Output Hatch
@@ -292,25 +218,17 @@ gtsr.tooltip.pressure_steam_input_hatch.name=Pressure Steam Hatch
 
 # Large Solar Overpressure Array
 gt.blockmachines.gtsr.large.solar.overpressure.array.name=Large Solar Overpressure Array
-gtsr.tooltip.large_solar_overpressure_array.name=Large Solar Overpressure Array
 
 # Solar Array Tooltip
-gtsr.tooltip.solar_array.0=Produces Steam using Solar Energy
-gtsr.tooltip.solar_array.1=Output: 
-gtsr.tooltip.solar_array.2=Has Heat and Calcification mechanics
-gtsr.tooltip.solar_array.3=Calcification reduces efficiency, can be cleared via GUI button
 gtsr.tooltip.solar_array.ctrl=Front top center
 gtsr.tooltip.solar_array.casing=Casing
 gtsr.tooltip.solar_array.glass=Glass (HV/EV)
-gtsr.tooltip.solar_array.glass_pos=Top layer
 gtsr.tooltip.solar_array.metal=Metal Block (Au/Ni/Ag)
 gtsr.tooltip.solar_array.water_block=Cobblestone (Water Level)
 gtsr.tooltip.solar_array.particle_block=Dirt (Particle Vents)
 gtsr.tooltip.solar_array.air_block=Air
 # [OLD] kept: conductor/conductor_pos used only by [OLD] structure
 gtsr.tooltip.solar_array.conductor=Conductor Block (Ag/Au/Ni)
-gtsr.tooltip.solar_array.conductor_pos=Layer 2
-gtsr.tooltip.solar_array.output_hatch=Steam Output Hatch or Pressure Steam Output Hatch
 gtsr.tooltip.solar_array.input_hatch=Water Input Hatch
 
 # Solar Array GUI
@@ -325,14 +243,6 @@ gtsr.gui.solar_array.boost_hint=(Place solar boilers to boost)
 gtsr.gui.solar_array.sun_ratio=Sun Visibility: 
 
 # Solar Array Info
-gtsr.info.solar_array.name=Large Solar Overpressure Array
-gtsr.info.solar_array.tier=Tier: 
-gtsr.info.solar_array.tier_bronze=Bronze (Tier 1)
-gtsr.info.solar_array.tier_steel=Steel (Tier 2)
-gtsr.info.solar_array.tier_nickel=Nickel (Tier 3)
-gtsr.info.solar_array.status=Status: 
-gtsr.info.solar_array.running=Running
-gtsr.info.solar_array.stopped=Stopped
 
 # Steam Cooling Hatch
 gt.blockmachines.gtsr.steam.cooling.hatch.name=Steam Cooling Hatch
@@ -354,10 +264,7 @@ gtsr.tooltip.distilled_water_hatch.usage=10,000,000 L capacity; fills immediatel
 
 # Large Geothermal Steam Boiler
 gt.blockmachines.gtsr.large.geothermal.steam.boiler.name=Large Geothermal Steam Boiler
-gtsr.tooltip.geothermal_boiler.0=Geothermal multiblock boiler that converts lava into steam
-gtsr.tooltip.geothermal_boiler.1=Heat system: heats up while running, cools down when idle, steam output proportional to heat
 gtsr.tooltip.geothermal_boiler.ctrl=Front center of middle layer
-gtsr.tooltip.geothermal_boiler.chip=Place Overheat Chip in controller slot to output superheated steam
 
 # Geothermal Overheat Chip
 item.GeothermalOverheatChip.name=Geothermal Overheat Chip
@@ -367,11 +274,8 @@ gtsr.gui.geothermal_boiler.heat=Heat:
 gtsr.gui.geothermal_boiler.steam_output=Steam Output: 
 gtsr.gui.geothermal_boiler.superheated= (Superheated)
 gtsr.gui.geothermal_boiler.steam= (Steam)
-gtsr.gui.geothermal_boiler.recipe=Recipe: 1000mb Lava → 1 Obsidian + 2 Sulfur Dust
-gtsr.gui.geothermal_boiler.recipe_detail=1000mb Lava → 1 Obsidian + 2 Sulfur Dust
 gtsr.gui.geothermal_boiler.chip_tier2_warn=⚠ Overheat Chip requires Tier 2 (Steel)
 gtsr.gui.geothermal_boiler.calcification=Calcification: 
-gtsr.gui.geothermal_boiler.clear_calcification=Click to clear calcification
 gtsr.chat.calcification_cleared=Calcification cleared
 gtsr.chat.calcification_full=Warning: the machine is fully calcified, steam output reduced to 1％! Decalcify it soon.
 gtsr.chat.no_water=Water supply interrupted, the machine has stopped. Please restart it (soft hammer right-click or toggle the power switch in the GUI).
@@ -380,27 +284,12 @@ gtsr.chat.overpressure.off=Overpressure mode disabled
 gtsr.chat.overpressure.need_heat=100％ heat is required to enable Overpressure mode
 
 # Geothermal Boiler Tooltip
-gtsr.tooltip.geothermal_boiler.2=Base Recipe: 1000mb Lava → 1 Obsidian + 2 Sulfur Dust (100 ticks)
 gtsr.tooltip.geothermal_boiler.input_hatch=Input Hatch (Lava/Water)
-gtsr.tooltip.geothermal_boiler.steam_output_hatch=Steam Output Hatch
-gtsr.tooltip.geothermal_boiler.any_casing=(Any Casing)
 gtsr.tooltip.geothermal_boiler.output_bus=Steam Output Bus
 gtsr.tooltip.geothermal_boiler.chip=Overheat Chip: Place in controller slot to output superheated steam
-gtsr.tooltip.geothermal_boiler.tier_bronze=Tier 1 - Bronze:
-gtsr.tooltip.geothermal_boiler.casing_bronze=Bronze Plated Bricks
-gtsr.tooltip.geothermal_boiler.max_steam=Max Steam Output
-gtsr.tooltip.geothermal_boiler.tier_steel=Tier 2 - Steel:
-gtsr.tooltip.geothermal_boiler.casing_steel=Solid Steel Machine Casing
-gtsr.tooltip.geothermal_boiler.chip_tier2=Overheat Chip requires Tier 2 (Steel)
 
 # Geothermal Boiler Info
-gtsr.info.geothermal_boiler.name=Large Geothermal Steam Boiler
-gtsr.info.geothermal_boiler.tier=Tier: 
-gtsr.info.geothermal_boiler.tier_bronze=Bronze (Tier 1)
-gtsr.info.geothermal_boiler.tier_steel=Steel (Tier 2)
-gtsr.info.geothermal_boiler.status=Status: 
 gtsr.info.geothermal_boiler.running=Running
-gtsr.info.geothermal_boiler.incomplete=Incomplete
 
 # Steam Singularity Entangler
 gt.blockmachines.gtsr.steam.singularity.entangler.name=Steam Singularity Entangler
@@ -492,17 +381,6 @@ gtsr.tooltip.overpressure_hub_storage_unit.tier3_only=For Tier 3 Steam Hub Array
 # Water Hub Array
 gt.blockmachines.gtsr.water.hub.array.name=Water Hub Array
 gtsr.recipe.water_hub_array=Water Hub Array
-gtsr.tooltip.water_hub_array.info=Centralized water/distilled water storage multiblock
-gtsr.tooltip.water_hub_array.structure=3x3 base + 1-30 storage layers
-gtsr.tooltip.water_hub_array.capacity=Hub Unit: 1,280,000 L/unit | Reinforced Hub Unit: 5,120,000 L/unit
-gtsr.tooltip.water_hub_array.output=Auto-output: 1,280,000 L/s per output hatch
-gtsr.tooltip.water_hub_array.ctrl=Front center of base layer
-gtsr.tooltip.water_hub_array.casing=Bronze Plated Bricks
-gtsr.tooltip.water_hub_array.input_hatch=Water Hub Input Hatch
-gtsr.tooltip.water_hub_array.output_hatch=Water Hub Output Hatch
-gtsr.tooltip.water_hub_array.storage_unit=Hub/Reinforced Hub Storage Unit
-gtsr.tooltip.water_hub_array.base_layer=Any base layer position
-gtsr.tooltip.water_hub_array.stack_layers=Stack layers above base
 
 # Water Hub Output Hatch
 gt.blockmachines.gtsr.water.hub.output.hatch.name=Water Hub Output Hatch
@@ -527,7 +405,6 @@ gtsr.binding.bound_input=Switched
 gtsr.binding.mode_output= -> Hub Output
 gtsr.binding.mode_input= -> Hub Input
 gtsr.binding.bound=Bound 
-gtsr.binding.not_bound=Not bound to any hub
 gtsr.binding.cleared=Unbound
 gtsr.binding.binding= 
 gtsr.binding.no_chip=Chip required: Hub Singularity Upgrade
@@ -539,10 +416,7 @@ gtsr.cache_node.transfer_rate=Transfer Rate:
 gtsr.cache_node.mode_output_now=Mode switched: Output (Node -> Hub)
 gtsr.cache_node.mode_input_now=Mode switched: Input (Hub -> Node)
 gtsr.tooltip.cache_node.base_transfer_rate=Base Hub Transfer Rate:
-gtsr.tooltip.cache_node.screwdriver_adjust=Right-click with Hub Singularity Chip or Reinforced Hub Singularity Chip to adjust hub transfer rate
 gtsr.tooltip.cache_node.chip_adjust=Right-click with Hub Terminal to cycle transfer rate; sneak-right-click to switch input/output mode
-gtsr.binding.no_cache_node=Held item is not a cache node
-gtsr.binding.wrong_type=Cache node type does not match this hub
 gtsr.binding.debug_title=Hub Binding Debug
 gtsr.binding.debug_no_bindings=No bound nodes
 gtsr.binding.debug_no_chip=Bound, but chip missing
@@ -551,23 +425,11 @@ gtsr.binding.debug_mode=Mode:
 gtsr.binding.debug_output=From Hub
 gtsr.binding.debug_input=To Hub
 gtsr.binding.debug_invalid=Invalid
-gtsr.binding.hub_bound=Bound cache node to hub
 gtsr.binding.bound_to=Bound to
-gtsr.gui.binding_hint=Hold chip and right-click controller for node info
 
 # Singularity Drilling Hub
 gt.blockmachines.gtsr.singularity.drilling.hub.name=Singularity Drilling Hub
 gtsr.recipe.singularity_drilling_hub=Singularity Drilling Hub
-gtsr.tooltip.singularity_drilling_hub.0=3x3x3 hollow structure, steam-powered remote mining/drilling control center
-gtsr.tooltip.singularity_drilling_hub.1=Bind Singularity Miner Nodes and Singularity Drilling Nodes for remote operation
-gtsr.tooltip.singularity_drilling_hub.2=Requires Hub Singularity Upgrade Chip for wireless control
-gtsr.tooltip.singularity_drilling_hub.3=Node work cycle: varies by tier (Miner 4s~10t, Driller 8s)
-gtsr.tooltip.singularity_drilling_hub.4=Steam Consumption: 8,000 + Node Cost L/s
-gtsr.tooltip.singularity_drilling_hub.5=Superheated Steam: 4x speed
-gtsr.tooltip.singularity_drilling_hub.ctrl=Front center of middle layer
-gtsr.tooltip.singularity_drilling_hub.casing=Bronze Plated Bricks
-gtsr.tooltip.singularity_drilling_hub.input_hatch=Steam Input Hatch
-gtsr.tooltip.singularity_drilling_hub.output_hatch=Fluid Output Hatch
 
 # Singularity Miner Node
 gt.blockmachines.gtsr.singularity.miner.node.name=Singularity Miner Node
@@ -598,8 +460,6 @@ gtsr.gui.drilling_node.output_per_8s=Output/8s
 gtsr.gui.drilling_node.tier=Tier:
 gtsr.gui.drilling_node.base=Base
 gtsr.gui.drilling_node.enhanced=Enhanced
-gtsr.gui.drilling_node.already_enhanced=Enhancement already applied
-gtsr.gui.drilling_node.need_prev_tier=Need to upgrade to previous tier first
 gtsr.gui.drilling_node.applied_enhanced=Upgrade successful! Current tier: Enhanced
 gtsr.gui.drilling_node.need_singularity=Not enough Steam Entangled Singularities, need:
 gtsr.tooltip.singularity_hub.node_cost_desc=Node Cost L/s (Drill: 2,000~20,000, Miner: 5,000~240,000 when working)
@@ -628,7 +488,6 @@ gtsr.tooltip.miner_node.crushed_mode_hint=Screwdriver right-click toggles crushe
 gtsr.drilling.debug_title=Drilling Hub Binding Debug
 gtsr.drilling.node_miner=Miner Node
 gtsr.drilling.node_driller=Driller Node
-gtsr.drilling.no_pipes=Insufficient Mining Pipes
 
 # Hub Status UI (Modern UI 2, right-click hub holding a Hub Terminal)
 gtsr.gui.node.hub_status_hint=Right-click hub holding a Hub Terminal
@@ -638,7 +497,6 @@ gtsr.hub_status.empty=No bound nodes
 gtsr.hub_status.start=Start Working
 gtsr.hub_status.stop=Stop Working
 gtsr.hub_status.recycle=Quick Recycle: outputs pipes and node (with binding NBT) to the output bus
-gtsr.hub_status.recycle_disabled=Quick Recycle unavailable: node has not fully stopped
 gtsr.hub_status.recycle_need_stop=Node must be fully stopped or in standby to recycle
 gtsr.hub_status.upgrade=Upgrade Node (consumes items from inventory)
 gtsr.hub_status.recycle_fail=Recycle failed: node not found or not fully stopped
@@ -682,84 +540,31 @@ gtsr.node.no=No
 # Large Coke Oven
 gt.blockmachines.gtsr.large.coke.oven.name=Large Coke Oven
 gtsr.recipe.large_coke_oven=Large Coke Oven
-gtsr.tooltip.large_coke_oven.0=Self-powered coke oven that converts coal into coke and creosote oil
-gtsr.tooltip.large_coke_oven.1=Heat System: Heats up while running (+0.01%/s), cools down when idle (-0.1%/s)
-gtsr.tooltip.large_coke_oven.2=Heat Speedup: Each 1%% heat reduces recipe time by 10s (Base 1800s, Min 800s)
-gtsr.tooltip.large_coke_oven.3=Recipe: 1 Coal -> 1 Coke + 500L Creosote Oil
-gtsr.tooltip.large_coke_oven.ctrl=Front center of middle layer
-gtsr.tooltip.large_coke_oven.casing_t1=Tier 1 - Bronze Plated Bricks (4 Parallel)
-gtsr.tooltip.large_coke_oven.casing_t2=Tier 2 - Solid Steel Casing (16 Parallel)
-gtsr.tooltip.large_coke_oven.input_bus=Input Bus
-gtsr.tooltip.large_coke_oven.output_bus=Output Bus
-gtsr.tooltip.large_coke_oven.output_hatch=Output Hatch
 
 # Large Coke Oven GUI/Info
 gtsr.gui.coke_oven.temperature=Temperature: 
 gtsr.gui.coke_oven.recipe_time=Recipe Time: 
-gtsr.gui.coke_oven.parallel=Parallel: 
-gtsr.info.coke_oven.name=Large Coke Oven
-gtsr.info.coke_oven.tier=Tier: 
-gtsr.info.coke_oven.tier1=Bronze Plated Bricks (4 Parallel)
-gtsr.info.coke_oven.tier2=Solid Steel (16 Parallel)
 
 # Siemens-Martin Furnace
 gt.blockmachines.gtsr.siemens.martin.furnace.name=Siemens-Martin Furnace
 gtsr.recipe.siemens_martin_furnace=Siemens-Martin Furnace
-gtsr.tooltip.siemens_martin_furnace.0=Steelmaking multiblock that uses superheated steam to convert iron and carbon into steel
-gtsr.tooltip.siemens_martin_furnace.1=Consumes 6,000 L/s superheated steam, raising furnace temperature (+0.5%/s)
-gtsr.tooltip.siemens_martin_furnace.2=Recipes can only run at 100%% temperature; steam loss during recipe terminates it
-gtsr.tooltip.siemens_martin_furnace.3=Recipe 1: 1 Iron + 2 Coal/Dust -> 1 Steel + 1 Dark Ash (1600s)
-gtsr.tooltip.siemens_martin_furnace.4=Recipe 2: 1 Iron + 1 Coke -> 1 Steel + 70% Ash (1200s)
-gtsr.tooltip.siemens_martin_furnace.5=Recipe 3: 1 Iron + 1 Carbon Dust -> 1 Steel + 30% Ash (800s)
 
 # Mega Steam Turbine Array
 gt.blockmachines.gtsr.mega.steam.turbine.array.name=Mega Steam Turbine Array
 gtsr.recipe.mega_steam_turbine_array=Mega Steam Turbine
-gtsr.tooltip.mega_steam_turbine.info=Giant multiblock turbine that converts steam to EU, power scales with stack layers
-gtsr.tooltip.mega_steam_turbine.info2=Supports normal steam (0.5x efficiency) and superheated steam (4x efficiency)
-gtsr.tooltip.mega_steam_turbine.info3=Superheated steam mode outputs Steam; normal steam mode outputs Distilled Water
-gtsr.tooltip.mega_steam_turbine.controller=Base Layer 2, Front Center
-gtsr.tooltip.mega_steam_turbine.input=Steam / Superheated Steam
-gtsr.tooltip.mega_steam_turbine.dynamo=Any Dynamo Hatch
-gtsr.tooltip.mega_steam_turbine.output=Distilled Water / Steam
-gtsr.tooltip.siemens_martin_furnace.ctrl=Front center of middle layer
-gtsr.tooltip.siemens_martin_furnace.casing=Solid Steel Machine Casing
-gtsr.tooltip.siemens_martin_furnace.pressure_hatch=Required: At least 1 Pressure Steam Input Hatch
-gtsr.tooltip.siemens_martin_furnace.input_bus=Input Bus
-gtsr.tooltip.siemens_martin_furnace.output_bus=Output Bus
 
 # Siemens-Martin Furnace GUI/Info
-gtsr.gui.siemens_martin_furnace.temperature=Temperature: 
-gtsr.gui.siemens_martin_furnace.steam_cost=Steam Cost: 
-gtsr.gui.siemens_martin_furnace.recipe_time=Recipe Time: 
-gtsr.gui.siemens_martin_furnace.parallel=Parallel: 
-gtsr.gui.siemens_martin_furnace.temperature=Temperature
-gtsr.info.siemens_martin_furnace.name=Siemens-Martin Furnace
 GT5U.gui.text.recipe_result.gtsr.gui.siemens_martin.temperature_low=Temperature below 100%
 
 # Kinetic Processing Array
 gt.blockmachines.gtsr.kinetic.processing.array.name=Kinetic Processing Array
 gtsr.recipe.kinetic_processing_array=Kinetic Processing Array
-gtsr.tooltip.kinetic_processing_array.info=Place GT singleblock machines in controller, runs with EU + superheated steam
-gtsr.tooltip.kinetic_processing_array.info2=Parallel=(1+2*tier)+stackSize, casing tier limits max voltage
-gtsr.tooltip.kinetic_processing_array.controller=Front Center
-gtsr.tooltip.kinetic_processing_array.energy=Any Energy Hatch
-gtsr.tooltip.kinetic_processing_array.steam_input=Pressure Steam Input (Superheated Steam)
-gtsr.tooltip.kinetic_processing_array.input=Input Bus
-gtsr.tooltip.kinetic_processing_array.output=Output Bus
-gtsr.tooltip.kinetic_processing_array.output_hatch=Output Hatch / Pressure Steam Cooling Hatch
 
 # Mega Steam Turbine Array - Cooling Hatch
-gtsr.tooltip.mega_steam_turbine.cooling_hatch=Steam Cooling Hatch (replaces Output Hatch)
-gtsr.tooltip.mega_steam_turbine.pressure_cooling_hatch=Pressure Steam Cooling Hatch (replaces Output Hatch)
 
 # Ammonia Plant
 gt.blockmachines.gtsr.ammonia.plant.name=Ammonia Plant
 gtsr.tooltip.ammonia_plant.type=Ammonia Plant, AP
-gtsr.tooltip.ammonia_plant.info=Pure steam-driven chemical machine, synthesizes ammonia from refinery gas and nitrogen
-gtsr.tooltip.ammonia_plant.info2=Consumes steam + refinery gas during preheat, can execute recipes when fully heated
-gtsr.tooltip.ammonia_plant.controller=Front Center
-gtsr.tooltip.ammonia_plant.input_bus=Input Bus (Refinery Gas, Nitrogen)
 gtsr.tooltip.ammonia_plant.input_hatch=Input Hatch (Steam/Refinery Gas/Nitrogen)
 gtsr.tooltip.ammonia_plant.output_bus=Output Bus (Ammonia)
 gtsr.tooltip.ammonia_plant.output_hatch=Output Hatch (Superheated Steam)
@@ -774,9 +579,9 @@ item.AmmoniaCatalystRuthenium.name=Ruthenium Catalyst
 item.AmmoniaCatalystQuantum.name=Quantum Catalyst
 
 # Ammonia Plant GUI
-gtsr.gui.ammonia_plant.name=Ammonia Plant
 gtsr.gui.ammonia_plant.heat=Heat: 
 gtsr.gui.ammonia_plant.status=Status: 
+gtsr.gui.ammonia_plant.status.preheating=Preheating
 gtsr.gui.ammonia_plant.steam=Steam Cost: 
 gtsr.gui.ammonia_plant.hp_steam=HP Steam Output: 
 gtsr.gui.ammonia_plant.parallel=Parallel: 
@@ -787,39 +592,22 @@ gtsr.gui.ammonia_plant.running=Running
 gtsr.recipe.ammonia_plant=Ammonia Plant
 
 gt.blockmachines.gtsr.air_compressor.name=Air Compressor
-gtsr.tooltip.air_compressor.0=Steam-driven air compression equipment, continuously produces compressed air
-gtsr.tooltip.air_compressor.1=Supports regular steam, pressure steam, and superheated steam (4x speed)
 gtsr.tooltip.air_compressor.ctrl=Front Center
 gtsr.tooltip.air_compressor.input_hatch=Input Hatch (Steam)
 gtsr.tooltip.air_compressor.output_hatch=Output Hatch (Air)
 gtsr.recipe.air_compressor=Air Compressor
-gtsr.info.air_compressor.tier=Tier: 
-gtsr.info.air_compressor.steam_type=Steam Type: 
-gtsr.info.air_compressor.parallel=Parallel: 
 
 gt.blockmachines.gtsr.atmospheric_centrifuge.name=Atmospheric Centrifuge
-gtsr.tooltip.atmospheric_centrifuge.0=Steam-driven air separation equipment, decomposes air into various gases
-gtsr.tooltip.atmospheric_centrifuge.1=T2 tier can use Rare Gas Separation Chip to unlock rare gas recipes
-gtsr.tooltip.atmospheric_centrifuge.2=Supports regular steam, pressure steam, and superheated steam (4x speed)
 gtsr.tooltip.atmospheric_centrifuge.ctrl=Front Center
 gtsr.tooltip.atmospheric_centrifuge.input_hatch=Input Hatch (Air/Steam)
 gtsr.tooltip.atmospheric_centrifuge.output_hatch=Output Hatch (Various Gases)
 gtsr.recipe.atmospheric_centrifuge=Atmospheric Centrifuge
-gtsr.info.atmospheric_centrifuge.tier=Tier: 
-gtsr.info.atmospheric_centrifuge.steam_type=Steam Type: 
-gtsr.info.atmospheric_centrifuge.parallel=Parallel: 
-gtsr.info.atmospheric_centrifuge.chip=Chip: 
 
 item.RareGasSeparationChip.name=Rare Gas Separation Chip
 
 # Gear Steam Compressor
 gt.blockmachines.gtsr.gear.steam.compressor.name=Gear Steam Compressor
 gtsr.recipe.gear_steam_compressor=Gear Steam Compressor
-gtsr.tooltip.gear_steam_compressor.info=Self-driven mechanical steam compressor, converts steam into superheated steam and distilled water
-gtsr.tooltip.gear_steam_compressor.controller=Front center of layer 3
-gtsr.tooltip.gear_steam_compressor.steam_input=Steam Input Hatch / Pressure Steam Input Hatch
-gtsr.tooltip.gear_steam_compressor.output=Output Hatch (Superheated Steam / Distilled Water)
-gtsr.tooltip.gear_steam_compressor.cooling_hatch=Steam Cooling Hatch / Pressure Steam Cooling Hatch
 
 # Shared Tooltip Keys
 gtsr.tooltip.shared.steam_cost=Steam Consumption: 
@@ -832,7 +620,6 @@ gtsr.tooltip.shared.frame=Frame Box
 gtsr.tooltip.shared.no_maintenance=No maintenance hatch required
 gtsr.tooltip.overpressure.enable=Screwdriver right-click to enable Overpressure mode, heat can reach up to 200%.
 gtsr.tooltip.overpressure.effects=In Overpressure mode, heating is greatly reduced, cooling is faster, and calcification is greatly accelerated.
-gtsr.tooltip.shared.cooling_hatch=Optional: Steam Cooling Hatch (recovers distilled water from condensed steam) or Pressure Steam Cooling Hatch (recovers steam from cooled superheated steam)
 gtsr.tooltip.shared.overflow_output=Overflow Output
 gtsr.tooltip.shared.overflow_input=Overflow Input
 gtsr.tooltip.shared.on=ON
@@ -843,7 +630,6 @@ gtsr.hatch.input_filter=Input Filter:
 gtsr.hatch.auto_input=Auto Input:
 gtsr.hatch.sort_mode=Sort Mode:
 gtsr.hatch.limit_mode=Limit Mode:
-gtsr.tooltip.shared.overflow_output_screwdriver=Screwdriver: Toggle Overflow Output (only outputs when >90% full)
 gtsr.tooltip.shared.overflow_output_desc=Overflow Output: Only outputs fluid when hub storage exceeds 90%
 gtsr.tooltip.shared.overflow_input_screwdriver=Screwdriver: Toggle Overflow Input (accepts input when full, excess destroyed)
 gtsr.tooltip.shared.overflow_input_desc=Overflow Input: Accepts input even when full, excess fluid is destroyed
@@ -885,6 +671,8 @@ gtsr.tooltip.atmospheric_centrifuge.desc=Steam-driven gas centrifuge that can se
 # Crust Steam Borer (CSB)
 gtsr.tooltip.crust_borer.type=Crust Steam Borer, CSB
 gtsr.tooltip.crust_borer.desc=Steam-driven void mining device that directly extracts void minerals from the Overworld and Nether.
+gtsr.tooltip.crust_borer.ctrl=Front center, middle layer
+gtsr.tooltip.crust_borer.output_bus=Ore Output
 
 # Kinetic Processing Array (KPA)
 gtsr.tooltip.kinetic_array.type=Kinetic Processing Array, KPA
@@ -902,18 +690,42 @@ gtsr.tooltip.kinetic_array.hint_gear=Gearbox Casing: Titanium=60% energy discoun
 
 # Large Coke Oven (LCO)
 gtsr.tooltip.coke_oven.type=Large Coke Oven, LCO
+gtsr.tooltip.coke_oven.ctrl=Front center
+
+# Large Geothermal Steam Boiler (LGB)
+gtsr.tooltip.geothermal_boiler.type=Large Geothermal Steam Boiler, LGB
+
+# Large Solar Overpressure Array (LSOA)
+gtsr.tooltip.solar_array.type=Large Solar Overpressure Array, LSOA
 
 # Large Steam Furnace (LSF)
 gtsr.tooltip.steam_furnace.type=Large Steam Furnace, LSF
 gtsr.tooltip.steam_furnace.desc=Steam-driven industrial smelting equipment with greater parallel capacity for processing large quantities of furnace recipes simultaneously.
+gtsr.tooltip.steam_furnace.ctrl=Front center, bottom layer
+gtsr.tooltip.steam_furnace.input_bus=Materials to Smelt
+gtsr.tooltip.steam_furnace.output_bus=Smelted Products
 
 # Siemens-Martin Furnace (SMF)
 gtsr.tooltip.siemens_martin.type=Siemens-Martin Furnace, SMF
 gtsr.tooltip.siemens_martin.desc=A new era of mass steelmaking blast furnace: reforms coal via superheated steam, produces reducing gas for steelmaking with higher efficiency and zero pollution!
 
+# Mega Steam Turbine Array (MSTA)
+gtsr.tooltip.turbine_array.type=Mega Steam Turbine Array, MSTA
+gtsr.tooltip.turbine_array.desc=A massive multiblock turbine assembly that converts the kinetic energy of steam into electrical (EU) output.
+gtsr.tooltip.turbine_array.desc2=Steam engine structures can be stacked vertically for higher output performance.
+gtsr.tooltip.turbine_array.desc3=The more stack layers, the higher the machine's power output.
+gtsr.tooltip.turbine_array.desc4=Tier 6+ can process Dense/Supercritical steam with higher efficiency
+gtsr.tooltip.turbine_array.ctrl=Front center of the CAP layer
+
 # Singularity Drilling Hub (SDH)
 gtsr.tooltip.singularity_hub.type=Singularity Drilling Hub, SDH
 gtsr.tooltip.singularity_hub.desc=A marvel of the steam age: based on steam-entangled singularities, creations of the steam age can reach every corner of the world, extracting all needed resources.
+gtsr.tooltip.singularity_hub.desc2=Hold a Singularity Node and right-click the controller to bind/unbind; steam consumption increases with the number of bound nodes.
+gtsr.tooltip.singularity_hub.ctrl=Layer 10, left tower side
+gtsr.tooltip.singularity_hub.steam_input=Steam Input
+gtsr.tooltip.singularity_hub.output_bus=Products
+gtsr.tooltip.singularity_hub.hint_node=Hold a Singularity Node and right-click the controller to bind/unbind
+gtsr.tooltip.singularity_hub.hint_chunk=Force-loads its chunk while running
 gtsr.tooltip.singularity_hub.superheated_required=Requires Superheated Steam (no speed boost)
 gtsr.tooltip.singularity_hub.hint_status=Right-click controller holding a Hub Terminal to open the node status UI
 
@@ -928,17 +740,9 @@ gtsr.tooltip.fluid_drill.mode_bronze_locked=Bronze tier only supports Water mode
 gtsr.tooltip.fluid_drill.mode_water=Water
 gtsr.tooltip.fluid_drill.mode_distilled=Distilled Water
 gtsr.tooltip.fluid_drill.mode_brine=Brine
-gtsr.tooltip.fluid_drill.mode_lava=Lava
 gtsr.tooltip.fluid_drill.output_mode=Output Mode
-gtsr.tooltip.fluid_drill.output_rates=Output Rates (Water mode, max efficiency):
-gtsr.tooltip.fluid_drill.rate_water=Bronze: 200~2,000 L/s | Steel: 200~8,000 L/s
-gtsr.tooltip.fluid_drill.rate_distilled=Distilled Water: 20% of Water rate
-gtsr.tooltip.fluid_drill.rate_brine=Brine: 10% of Water rate
-gtsr.tooltip.fluid_drill.rate_lava=Lava: 0.5% of Water rate (Nether 5%, Steel only)
-gtsr.tooltip.fluid_drill.high_steam_cost=Brine/Lava modes consume 4,000 L/s steam (instead of 1,000 L/s)
-gtsr.tooltip.fluid_drill.nei_efficiency_20=20% efficiency (Distilled Water)
-gtsr.tooltip.fluid_drill.nei_efficiency_10=10% efficiency (Brine)
-gtsr.tooltip.fluid_drill.nei_efficiency_lava=0.5% efficiency (5% in Nether)
+gtsr.tooltip.fluid_drill.ctrl=Front center, bottom layer
+gtsr.tooltip.fluid_drill.output_hatch=Fluid Output
 
 # Steam Hub Array (SHA)
 gtsr.tooltip.steam_hub.type=Steam Hub Array, SHA
@@ -980,10 +784,14 @@ gtsr.tooltip.old.singularity_compressor.tier1_blocks=Tier 1: Solid Steel Casing 
 # Vein Steam Pyrolyzer (VSP)
 gtsr.tooltip.vein_pyrolyzer.type=Vein Steam Pyrolyzer, VSP
 gtsr.tooltip.vein_pyrolyzer.desc=Reverse-injects steam energy underground to increase underground fluid reserves (oil, water, natural gas, etc.), solving long-term save fluid depletion.
+gtsr.tooltip.vein_pyrolyzer.desc2=Supports Pyrolyzer Chips to extend the working range
+gtsr.tooltip.vein_pyrolyzer.ctrl=Layer 5, center
+gtsr.tooltip.vein_pyrolyzer.output_bus=Products
 
 # Void Crust Steam Borer (SCSB)
 gtsr.tooltip.void_borer.type=Void Crust Steam Borer, SCSB
 gtsr.tooltip.void_borer.desc=Cross-dimensional void mining enabled by GT NEI Ore Plugin, extracting special cross-dimensional minerals.
+gtsr.tooltip.void_borer.ctrl=Layer 10, center
 
 # Water Hub Array (WHA)
 gtsr.tooltip.water_hub.type=Water Hub Array, WHA
@@ -999,7 +807,6 @@ gtsr.tooltip.water_hub.hint_status=Right-click controller holding a Hub Terminal
 
 # Gear Steam Compressor (GSC)
 gtsr.tooltip.gear_compressor.type=Gear Steam Compressor, GSC
-gtsr.tooltip.gear_compressor.info=Mechanically compresses normal steam into superheated steam while condensing distilled water as byproduct.
 
 # GUI Keys - Fluid Drill
 gtsr.gui.fluid_drill.efficiency=Efficiency: 
@@ -1010,7 +817,6 @@ gtsr.gui.fluid_drill.output_mode=Output Mode:
 gtsr.gui.singularity_hub.bound_nodes=Bound Nodes: 
 
 # GUI Keys - Solar Array
-gtsr.gui.solar_array.tier_overpressure=Overpressure
 
 # GUI Keys - Ammonia Plant
 gtsr.gui.ammonia_plant.catalyst.1=Nickel-based Catalyst
@@ -1051,8 +857,6 @@ gtsr.tooltip.ammonia_plant.catalyst_detail.1=Catalysts scale parallel (
 gtsr.tooltip.ammonia_plant.catalyst_detail.2=) and reduce reaction time (
 gtsr.tooltip.ammonia_plant.catalyst_detail.3=)
 gtsr.tooltip.ammonia_plant.ctrl=Front center
-gtsr.tooltip.ammonia_plant.output_bus=Ammonia
-gtsr.tooltip.ammonia_plant.output_hatch=Superheated Steam
 
 # 3. Atmospheric Centrifuge - missing chip keys
 gtsr.tooltip.atmospheric_centrifuge.chip_info.1=Steel tier can install 
@@ -1086,8 +890,6 @@ gtsr.tooltip.geothermal_boiler.calcification=Continuous operation causes calcifi
 gtsr.tooltip.geothermal_boiler.calcification_d=Using distilled water as working medium can prevent calcification.
 gtsr.tooltip.geothermal_boiler.clear_calcification_hint=Shift-right-click the controller with empty hand to clear calcification
 gtsr.tooltip.geothermal_boiler.chip_info=Install Geothermal Overheat Chip in controller slot (steel tier only) to switch to superheated steam output.
-gtsr.tooltip.geothermal_boiler.byproduct=Obsidian and sulfur dust can be obtained from cooled lava during the reaction process.
-gtsr.tooltip.geothermal_boiler.recipe=Base Recipe: 1000mb Lava -> 1 Obsidian + 2 Sulfur Dust (100 ticks)
 gtsr.tooltip.geothermal_boiler.steam_output=Steam Output
 gtsr.tooltip.geothermal_boiler.chip_desc=Place in controller slot to switch to superheated steam output (requires steel tier)
 gtsr.tooltip.geothermal_boiler.max_output=max output
@@ -1118,7 +920,6 @@ gtsr.tooltip.solar_array.solar_booster_desc=Place single-block solar boilers in 
 gtsr.tooltip.solar_array.max_boosted_output=max boosted output
 
 # 9. Large Steam Furnace - missing keys
-gtsr.tooltip.steam_furnace.desc2=Steam-driven industrial smelting equipment with greater parallel capacity for processing large quantities of furnace recipes simultaneously.
 gtsr.tooltip.steam_furnace.speed=Work Speed: 250% (Bronze) / 500% (Steel)
 gtsr.tooltip.steam_furnace.steam_eff=Steam Efficiency: 60% (Bronze) / 40% (Steel)
 gtsr.tooltip.steam_furnace.recipe_based=Recipe-dependent
@@ -1143,7 +944,6 @@ gtsr.gui.siemens_martin.recipe.active=Running
 gtsr.gui.siemens_martin.recipe.none=None
 gtsr.gui.siemens_martin.current_recipe=Current Recipe: 
 gtsr.tooltip.siemens_martin.desc2=Furnace temperature must reach 100% to process recipes; steam interruption causes temperature drop and terminates current recipe.
-gtsr.tooltip.siemens_martin.recipe=Fixed Recipes: Iron+Coal->Steel | Iron+Coke->Ash | Iron+Carbon->Steel
 gtsr.tooltip.siemens_martin.steam_only=Superheated Steam only
 gtsr.tooltip.siemens_martin.ctrl=Layer 16 Side
 gtsr.tooltip.siemens_martin.steam_input=Superheated Steam Input
@@ -1232,15 +1032,11 @@ gtsr.gui.tier.none=None
 gtsr.gui.kinetic_array.max_recipe_voltage=Max Recipe Voltage:
 gtsr.gui.kinetic_array.boost_mode_disabled=Boost Mode: Right-click the Steam Entanglement Node on the controller to enable
 gtsr.gui.kinetic_array.boost_mode_remaining=Boost Mode: %s seconds remaining
-gtsr.gui.kinetic_array.tier=Tier: 
-gtsr.gui.kinetic_array.no_machine=Please insert a single-block machine
-gtsr.gui.kinetic_array.voltage_cap=Voltage Cap:
 gtsr.gui.kinetic_array.steam_rate=Steam Rate: 
 gtsr.gui.kinetic_array.steam_per_amp=Steam/A: 
 gtsr.gui.kinetic_array.hp_steam=HP Steam: 
 gtsr.gui.kinetic_array.parallel=Parallel: 
 gtsr.gui.turbine_array.eu_t=Theoretical Max Output: 
-gtsr.gui.turbine_array.hp_prefix= (HP: 
 gtsr.gui.turbine_array.steam=Steam: 
 gtsr.gui.turbine_array.savings=Savings: 
 gtsr.gui.turbine_array.stacks=Stacks: 
@@ -1280,17 +1076,12 @@ gtsr.gui.entangler.status.accumulating=Entangling
 gtsr.gui.entangler.status.idle=Idle
 gtsr.gui.entangler.heat=Heat: 
 gtsr.gui.entangler.tier=Tier: 
-gtsr.chat.compressor_mode.on.accumulate=Switched to Singularity Entanglement mode
 gtsr.chat.compressor_mode.on.compress=Switched to Steam Compression mode
 gtsr.chat.compressor_mode.on.decompress=Switched to Steam Decompression mode
 gtsr.chat.compressor_mode.require_tier2=Tier 2 structure required to switch modes
-gtsr.gui.coke_oven.temperature=Temperature
 gtsr.gui.coke_oven.status.heating=Heating
 gtsr.gui.coke_oven.status.cooling=Cooling
-gtsr.gui.coke_oven.recipe_time=Recipe Time
 gtsr.gui.siemens_martin.status.heating=Heating
-gtsr.gui.steam_hub.total_capacity=Total Capacity
-gtsr.gui.water_hub.total_capacity=Total Capacity
 gtsr.tooltip.solar_array.three_tier=Bronze/Steel/Overpressure Tier
 
 # ===== v1.5.1 Translation Keys =====
@@ -1324,8 +1115,6 @@ gtsr.tooltip.fluid_drill.nei_efficiency_lava=Efficiency: 0.5% (5% in Nether, Req
 gtsr.tooltip.shared.screwdriver_overflow=Screwdriver Right-Click: Toggle Overflow Input
 gtsr.tooltip.shared.screwdriver_rightclick_overflow=Screwdriver Right-Click: Toggle Overflow Output
 gtsr.tooltip.hub_storage_unit.steam_water_hub=Steam/Water Hub
-gtsr.tooltip.hub_storage_unit.water_hub=Water Hub
-gtsr.tooltip.turbine_array.tier6_desc=Tier 6+ can process supercritical steam and other advanced steam types with improved efficiency
 gtsr.tooltip.turbine_array.hint_pipe=Pipe block: Titanium +10% max eff +2.5% steam savings; Tungstensteel +25% max eff +7.5% steam savings
 gtsr.tooltip.turbine_array.hint_gear=Gear box block: Titanium +2.5% steam savings +5% max eff
 gtsr.tooltip.turbine_array.tier_system=12-tier voltage system: LV→MV→HV→EV→IV→LuV→ZPM→UV→UHV→UEV→UIV→UMV
@@ -1370,7 +1159,6 @@ gtsr.tooltip.singularity.craft=Synthesized via the Steam Singularity Entangler.
 gtsr.tooltip.singularity.source=Can also be obtained by shattering natural runaway nodes or from chests.
 gtsr.tooltip.critical_singularity.craft=Synthesized via the Critical Singularity Stabilizer.
 gtsr.tooltip.critical_singularity.legend=Legend says it can tear apart the very limits of dimensions...
-gtsr.recipe.gear_steam_compressor=Gear Steam Compressor
 
 # Reinforced Brick Blast Furnace
 gt.blockmachines.gtsr.reinforced.brick.blast.furnace.name=Reinforced Brick Blast Furnace
@@ -1398,5 +1186,4 @@ gt.blockmachines.gtsr.singularity.crust.steam.borer.old.name=[OLD] Singularity C
 
 # Runaway Singularity
 tile.RunawaySingularity.name=Runaway Singularity
-gtsr.tooltip.singularity.debug=Debug singularity: no NBT params, runs with debug data
 death.attack.gtsrSingularity=%1$s was consumed by a runaway singularity
