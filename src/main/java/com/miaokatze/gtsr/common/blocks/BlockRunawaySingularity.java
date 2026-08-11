@@ -100,6 +100,9 @@ public class BlockRunawaySingularity extends BlockContainer {
     @Override
     @SideOnly(Side.CLIENT)
     public void registerBlockIcons(IIconRegister reg) {
-        this.blockIcon = reg.registerIcon("gregtech:iconsets/TRANSPARENT");
+        // 原使用 gregtech:iconsets/TRANSPARENT，但 GT5U jar 不随包发布该文件（解析到
+        // assets/gregtech/textures/blocks/iconsets/TRANSPARENT.png），无材质包时方块显示紫黑缺失图案；
+        // 改用原版 1.7.10 自带的全透明方块贴图（16x16 alpha 全 0），零外部依赖，材质包覆盖同名文件亦全透明。
+        this.blockIcon = reg.registerIcon("minecraft:redstone_dust_cross_overlay");
     }
 }
