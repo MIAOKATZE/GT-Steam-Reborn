@@ -5,6 +5,7 @@ import java.util.List;
 import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidStack;
+import net.minecraftforge.fluids.FluidTankInfo;
 
 import gregtech.api.metatileentity.implementations.MTEHatch;
 import gregtech.api.util.GTUtility;
@@ -15,14 +16,20 @@ import gregtech.common.tileentities.machines.IDualInputHatch;
  * <p>
  * 全项目多方块机器的流体取流/探测统一走本类方法，铁律：
  * <ul>
- * <li>一律使用 3 参 {@code drain(ForgeDirection.UNKNOWN, FluidStack, boolean)}（兼容普通仓/ME 输入仓/样板仓）</li>
- * <li>实扣量 = 需求与探测可得量的较小值，禁止传 {@code Integer.MAX_VALUE} 实扣（ME 网络全量提取）</li>
+ * <li>探测一律走 {@code getTankInfo(ForgeDirection.UNKNOWN)}——双版本均安全模拟：ME 输入仓
+ * （MTEHatchInputME）内部以 extractItems(SIMULATE) 返回网络可得量，普通仓返回标准存量；
+ * 不可用 3 参 drain(false) 模拟：beta-1 的 MTEHatchInputME.drain 忽略 doDrain，模拟调用也会
+ * 真实提取 ME 网络流体（beta-2 已补 SIMULATE 分支，但需双版本兼容）</li>
+ * <li>实扣仍用 3 参 {@code drain(ForgeDirection.UNKNOWN, FluidStack, true)}（实扣在双版本语义一致，
+ * 兼容普通仓/ME 输入仓/样板仓）</li>
+ * <li>实扣量 = 需求与可得量的较小值，禁止传 {@code Integer.MAX_VALUE} 实扣（ME 网络全量提取；
+ * 唯一例外：奇点机 drainGrade 的"输入仓有多少消耗多少"设计语义，见 MTESingularityMachineBase）</li>
  * <li>探测/实扣一律传副本（ME 输入仓实现会改写请求对象）</li>
  * </ul>
  * 设计依据：ME 输入仓（MTEHatchInputME）本地罐恒空，2 参 drain 恒 null，仅 3 参 UNKNOWN drain
  * 在配方窗口内走 slot.extracted 虚拟引用、窗口外走网络提取；ProgrammableHatches 限制仓的
- * restrict 仅在窗口内 slot 扣减路径生效，窗口外 drain 实扣完全绕过——因此所有调用应尽量
- * 保持"按需量 + 模拟→实扣"模式，使限制仓的配置在窗口内自然生效。
+ * restrict 仅在窗口内 slot 扣减路径生效，窗口外 drain 实扣完全绕过——因此实扣前先以
+ * getTankInfo 探测可得量，使限制仓的配置在窗口内自然生效。
  */
 public final class GTSRHatchFluidAccess {
 
@@ -41,12 +48,14 @@ public final class GTSRHatchFluidAccess {
      */
     public static FluidStack probeFluidAmount(MTEHatch hatch, Fluid fluid, int amount) {
         if (hatch == null || fluid == null || amount <= 0) return null;
-        FluidStack probe = new FluidStack(fluid, amount);
-        FluidStack result = hatch.drain(ForgeDirection.UNKNOWN, probe, false);
-        if (result == null || result.amount <= 0) return null;
-        FluidStack copy = result.copy();
-        copy.amount = Math.min(copy.amount, amount);
-        return copy;
+        FluidTankInfo[] tanks = hatch.getTankInfo(ForgeDirection.UNKNOWN);
+        if (tanks == null) return null;
+        long available = 0;
+        for (FluidTankInfo tank : tanks) {
+            if (tank != null && tank.fluid != null && tank.fluid.getFluid() == fluid) available += tank.fluid.amount;
+        }
+        if (available <= 0) return null;
+        return new FluidStack(fluid, (int) Math.min(available, amount));
     }
 
     /**
@@ -58,11 +67,15 @@ public final class GTSRHatchFluidAccess {
      */
     public static FluidStack probeFluidAmount(MTEHatch hatch, FluidStack want) {
         if (hatch == null || want == null || want.amount <= 0) return null;
-        FluidStack probe = want.copy();
-        FluidStack result = hatch.drain(ForgeDirection.UNKNOWN, probe, false);
-        if (result == null || result.amount <= 0) return null;
-        FluidStack copy = result.copy();
-        copy.amount = Math.min(copy.amount, want.amount);
+        FluidTankInfo[] tanks = hatch.getTankInfo(ForgeDirection.UNKNOWN);
+        if (tanks == null) return null;
+        long available = 0;
+        for (FluidTankInfo tank : tanks) {
+            if (tank != null && tank.fluid != null && tank.fluid.isFluidEqual(want)) available += tank.fluid.amount;
+        }
+        if (available <= 0) return null;
+        FluidStack copy = want.copy();
+        copy.amount = (int) Math.min(available, want.amount);
         return copy;
     }
 

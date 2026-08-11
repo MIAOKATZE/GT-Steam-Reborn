@@ -33,6 +33,7 @@ import net.minecraft.world.World;
 import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
+import net.minecraftforge.fluids.FluidTankInfo;
 
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -43,7 +44,6 @@ import com.gtnewhorizon.structurelib.structure.IStructureElementCheckOnly;
 import com.gtnewhorizon.structurelib.structure.ISurvivalBuildEnvironment;
 import com.gtnewhorizon.structurelib.structure.StructureDefinition;
 import com.gtnewhorizon.structurelib.util.Vec3Impl;
-import com.miaokatze.gtsr.api.compat.GTSRHatchFluidAccess;
 import com.miaokatze.gtsr.api.compat.GTVersionCompat;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.gui.AggregatorConfigGuiFactory;
@@ -101,10 +101,10 @@ import gregtech.common.tileentities.machines.IDualInputInventory;
  * 失控奇点节点（单 F 位，color "black"，attributeId -2=onlypull）参数随模式变化：
  * 模式 0 (6,0,1, fx10) / 模式 1 (8,0,2, fx15) / 模式 2 (12,0,4, fx20)（range, speed, damage, fxRadius）。
  *
- * 定向模式（螺丝刀切换，服务端）：矿池只认槽 1（控制器槽），插件槽（槽 2-25）禁用放入；
+ * 定向模式（螺丝刀切换，服务端）：矿池包含全部 25 槽（v1.10.55 起不再限制维度），插件槽可正常放入；
  * 定向矿石集合内的矿石被瞄准，抽取时跳过非定向矿石；每 tick 消耗 UU 物质
  * （率 = (1+矿石模式/时运加成) × 定向倍率 L/s，定向倍率 = 1 + 2500% ÷ 最低 3 个定向权重之和，权重和为 0 不可运行）；
- * 蒸汽倍率固定 +200% 取代维度槽增幅与过滤项；定向模式下失控奇点节点颜色变紫。
+ * 蒸汽倍率固定 +200% + 20%/额外维度槽 × 定向倍率；定向模式下失控奇点节点颜色变紫。
  *
  * 粒子（客户端，太阳能锅炉同款）：G 位（泥土位，54 个）机器工作即每 tick 1 个白色 cloud 粒子；
  * H 位（草方块位，36 个）机器工作即每 tick 2 个（恒满浓度，热量机制已删除）。工作标志经
@@ -616,7 +616,7 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
         return null;
     }
 
-    /** 25 个维度槽（槽 1 = 控制器槽 mInventory[1]，槽 2-25 = 插件槽；定向模式仅槽 1 生效，见 collectDimensionAbbrs）。 */
+    /** 25 个维度槽（槽 1 = 控制器槽 mInventory[1]，槽 2-25 = 插件槽；v1.10.55 起定向模式不再限制维度，全部槽参与）。 */
     private List<ItemStack> getDimensionStacks() {
         List<ItemStack> stacks = new ArrayList<>();
         stacks.add(mInventory[1]);
@@ -624,12 +624,10 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
         return stacks;
     }
 
-    /** 收集当前 25 槽中去重后的维度缩写列表（保持槽位顺序）；定向模式只收集槽 1（控制器槽），插件槽忽略。 */
+    /** 收集当前 25 槽中去重后的维度缩写列表（保持槽位顺序）；v1.10.55 起定向模式不再限制维度（全部槽参与）。 */
     private List<String> collectDimensionAbbrs() {
         List<String> abbrs = new ArrayList<>();
-        // 定向模式只认槽 1：重建矿池时插件槽内容不参与
-        List<ItemStack> stacks = mDirectionalMode ? Collections.singletonList(mInventory[1]) : getDimensionStacks();
-        for (ItemStack stack : stacks) {
+        for (ItemStack stack : getDimensionStacks()) {
             String abbr = readDimensionAbbrFromStack(stack);
             if (abbr == null || "None".equals(abbr) || abbrs.contains(abbr)) continue;
             abbrs.add(abbr);
@@ -775,7 +773,7 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
         return sum;
     }
 
-    // —— 定向模式（定向抽取：仅槽 1 维度矿池 + 定向矿石集合，UU 物质驱动）——
+    // —— 定向模式（定向抽取：全部维度槽矿池 + 定向矿石集合，UU 物质驱动；v1.10.55 不再限制维度）——
 
     public boolean getDirectionalMode() {
         return mDirectionalMode;
@@ -832,25 +830,25 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
     }
 
     /**
-     * 消耗增加% 展示值（终端 UI「浏览器标题右侧」+X%）：定向模式 = 100% + 2500% ÷ 最低 3 个定向权重之和；
+     * 消耗增加% 展示值（终端 UI「浏览器标题右侧」+X%）：定向模式 = 2500% ÷ 最低 3 个定向权重之和（v1.10.55 去掉 100% 基线）；
      * 筛选模式 = 权重和 + 5×k×(k-1)/2（v1.10.52 递增公式，倍率项 1+消耗增加/100）。
      */
     public double getWeightIncreasePercent() {
         if (mDirectionalMode) {
             double sum = getDirectionalLowestWeightSum();
-            return sum <= 0.0d ? 0.0d : 100.0d + 2500.0d / sum;
+            return sum <= 0.0d ? 0.0d : 2500.0d / sum;
         }
         return getFilterCostIncrease();
     }
 
-    /** 维度槽消耗增加% 展示值（终端 UI「刷新按钮右侧」+X%）：定向模式 = 固定 200%；筛选模式 = 20% × 额外维度槽数。 */
+    /** 维度槽消耗增加% 展示值（终端 UI「刷新按钮右侧」+X%）：定向模式 = 200% + 20%×额外维度槽数（v1.10.55 解除维度限制后按全部槽计数）；筛选模式 = 20% × 额外维度槽数。 */
     public double getDimensionIncreasePercent() {
-        if (mDirectionalMode) return 200.0d;
         int slotCount = 0;
         for (ItemStack stack : getDimensionStacks()) {
             if (isDimensionDisplayItem(stack)) slotCount++;
         }
-        return 20.0d * Math.max(0, slotCount - 1);
+        int extra = Math.max(0, slotCount - 1);
+        return mDirectionalMode ? 200.0d + 20.0d * extra : 20.0d * extra;
     }
 
     /** UU 倍率 = (1 + 矿石模式加成 + 时运加成) × 定向倍率。 */
@@ -865,15 +863,11 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
     }
 
     /**
-     * 切换定向模式（服务端入口，幂等）：进入时清空过滤与定向集合；立即按新模式重建矿池（定向只留槽 1）；
+     * 切换定向模式（服务端入口，幂等）：v1.10.55 切换模式不再重置过滤/定向配置（独立持久化），仅强制刷新矿池；
      * 强制停机并清空奇点模式；时运即时钳位到奇点模式 0 的上限 7（III），与 checkProcessing 运行前钳位双保险。
      */
     public void toggleDirectionalMode(EntityPlayer aPlayer) {
         mDirectionalMode = !mDirectionalMode;
-        if (mDirectionalMode) {
-            mFilteredOres.clear();
-            mDirectionalOres.clear();
-        }
         forceRefreshPool();
         mMaxProgresstime = 0;
         mProgresstime = 0;
@@ -888,6 +882,16 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
                     mDirectionalMode ? "gtsr.aggregator_config.directional.chat.on"
                         : "gtsr.aggregator_config.directional.chat.off"));
         }
+    }
+
+    /** 清除当前模式配置表（终端「清除配置」按钮 C2S）：过滤模式清过滤表、定向模式清定向表；另一张表保留（两表独立持久化）。 */
+    public void clearCurrentModeConfig() {
+        if (mDirectionalMode) {
+            mDirectionalOres.clear();
+        } else {
+            mFilteredOres.clear();
+        }
+        if (getBaseMetaTileEntity() != null) getBaseMetaTileEntity().markDirty();
     }
 
     /** 过滤加权抽取：跨池各维 internalMap（已含 extra 合并）按权重累加后线性游走，跳过被过滤矿石；定向模式另跳过非定向矿石。 */
@@ -987,7 +991,7 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
 
     // —— 插件槽位适配器 ——
 
-    /** 终端插件槽（容量 24、栈上限 1、仅接受维度显示物品；定向模式只出不进）的轻量 IInventory 适配器。 */
+    /** 终端插件槽（容量 24、栈上限 1、仅接受维度显示物品）的轻量 IInventory 适配器。 */
     public IInventory getPluginSlotInventory() {
         if (mPluginSlotInventory == null) mPluginSlotInventory = new PluginSlotInventory();
         return mPluginSlotInventory;
@@ -1029,10 +1033,6 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
         @Override
         public void setInventorySlotContents(int slot, ItemStack stack) {
             if (slot < 0 || slot >= mPluginSlots.length) return;
-            // 定向模式只出不进：仅拒绝非 null 放入；置空（取走）必须放行——
-            // MUI2 取走路径为 splitStack 原地减 0 后 putStack(null) 落回本方法，若整体拒绝会残留
-            // 0 尺寸幽灵 stack，槽位仍可重复取 → 刷物品。放入另有 isItemValidForSlot + ModularSlot.filter 双拒。
-            if (mDirectionalMode && stack != null) return;
             // 仅接受维度显示物品，其余物品直接拒绝
             if (stack != null && !isDimensionDisplayItem(stack)) return;
             mPluginSlots[slot] = stack;
@@ -1072,8 +1072,6 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
 
         @Override
         public boolean isItemValidForSlot(int slot, ItemStack stack) {
-            // 定向模式只出不进
-            if (mDirectionalMode) return false;
             return isDimensionDisplayItem(stack);
         }
 
@@ -1277,7 +1275,7 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
     private boolean depleteSteamForTick() {
         if (mActiveGrade < 0) return false;
         int basePerTick = mActiveDense ? DENSE_STEAM_PER_TICK : NORMAL_STEAM_PER_TICK;
-        // 蒸汽倍率：矿石模式/时运/额外维度槽/被过滤矿石权重加成（向上取整）
+        // 蒸汽倍率：矿石模式/时运/维度槽/筛选（定向含固定+200%与定向倍率）加成（向上取整）
         int remaining = (int) Math.ceil(basePerTick * getSteamMultiplier());
         // 基类 gradeProbeStacks 为 private，此处自行构造当前档位流体请求（致密档只扣致密流体，普通档只扣普通流体）
         FluidStack request = FluidRegistry
@@ -1285,78 +1283,82 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
         if (request == null) return false;
         for (MTEHatch hatch : getSteamInputHatches()) {
             if (remaining <= 0) break;
-            FluidStack full = request.copy();
-            full.amount = Integer.MAX_VALUE;
-            FluidStack available = hatch.drain(ForgeDirection.UNKNOWN, full, false);
-            if (available == null || available.amount <= 0) continue;
-            int toDrain = Math.min(remaining, available.amount);
+            // v1.10.55：探测走 getTankInfo（beta-1 MTEHatchInputME.drain 忽略 doDrain，模拟即真实提取——getTankInfo 双版本安全）
+            int available = 0;
+            FluidTankInfo[] tanks = hatch.getTankInfo(ForgeDirection.UNKNOWN);
+            if (tanks != null) {
+                for (FluidTankInfo tank : tanks) {
+                    if (tank != null && tank.fluid != null && tank.fluid.isFluidEqual(request))
+                        available += tank.fluid.amount;
+                }
+            }
+            if (available <= 0) continue;
+            int toDrain = Math.min(remaining, available);
             FluidStack drainReq = request.copy();
             drainReq.amount = toDrain;
-            hatch.drain(ForgeDirection.UNKNOWN, drainReq, true);
-            remaining -= toDrain;
+            FluidStack drained = hatch.drain(ForgeDirection.UNKNOWN, drainReq, true);
+            remaining -= drained == null ? 0 : drained.amount;
         }
-        // 主仓不足时继续扣样板仓（ME 输入仓；太阳能锅炉同款路径）
-        if (remaining > 0) {
-            FluidStack dualReq = request.copy();
-            dualReq.amount = remaining;
-            remaining -= GTSRHatchFluidAccess.depleteFluidFromDuals(mDualInputHatches, dualReq);
-        }
+        // v1.10.55：删除样板仓（dual）扣减路径——普通 ME 输入仓经主仓循环 3 参 drain 实扣已足够；
+        // CraftingInputME 窗口外 getAllFluids 返回 pattern 副本，扣减静默失效（免费流体 bug，v1.10.8 物品版同型）
         return remaining <= 0;
     }
 
     /**
      * 定向模式周期内每 tick 扣减 UU 物质（率 = getUURatePerSecond()/20 L/tick，实数累积取整扣减，
-     * 主流体输入仓 + 样板仓双路，仿 depleteSteamForTick）；扣不足返回 false（周期停止）。
+     * 主流体输入仓扣减，仿 depleteSteamForTick）；扣不足返回 false（周期停止）。
      */
     private boolean depleteUUMatterForTick() {
         mUuAccumulator += getUURatePerSecond() / 20.0d;
         int toDrain = (int) Math.floor(mUuAccumulator);
         if (toDrain <= 0) return true;
-        FluidStack request = FluidRegistry.getFluidStack("uumatter", 1);
+        FluidStack request = getUUMatterRequest(1);
         if (request == null) return false;
         int remaining = toDrain;
         for (MTEHatch hatch : getSteamInputHatches()) {
             if (remaining <= 0) break;
-            FluidStack full = request.copy();
-            full.amount = Integer.MAX_VALUE;
-            FluidStack available = hatch.drain(ForgeDirection.UNKNOWN, full, false);
-            if (available == null || available.amount <= 0) continue;
-            int toTake = Math.min(remaining, available.amount);
+            // v1.10.55：探测走 getTankInfo（beta-1 MTEHatchInputME.drain 忽略 doDrain，模拟即真实提取——getTankInfo 双版本安全）
+            int available = 0;
+            FluidTankInfo[] tanks = hatch.getTankInfo(ForgeDirection.UNKNOWN);
+            if (tanks != null) {
+                for (FluidTankInfo tank : tanks) {
+                    if (tank != null && tank.fluid != null && tank.fluid.isFluidEqual(request))
+                        available += tank.fluid.amount;
+                }
+            }
+            if (available <= 0) continue;
+            int toTake = Math.min(remaining, available);
             FluidStack drainReq = request.copy();
             drainReq.amount = toTake;
-            hatch.drain(ForgeDirection.UNKNOWN, drainReq, true);
-            remaining -= toTake;
-        }
-        // 主仓不足时继续扣样板仓（ME 输入仓；太阳能锅炉同款路径）
-        if (remaining > 0) {
-            FluidStack dualReq = request.copy();
-            dualReq.amount = remaining;
-            remaining -= GTSRHatchFluidAccess.depleteFluidFromDuals(mDualInputHatches, dualReq);
+            FluidStack drained = hatch.drain(ForgeDirection.UNKNOWN, drainReq, true);
+            remaining -= drained == null ? 0 : drained.amount;
         }
         // 已成功扣减部分从累积中扣除，未扣足部分保留待下次运行（仅记录真实欠账）
         mUuAccumulator -= (toDrain - remaining);
         return remaining <= 0;
     }
 
+    /** UU 物质流体请求（v1.10.55 双名兼容：GTNH 注册名 ic2uumatter 优先，回退旧名 uumatter）。 */
+    private static FluidStack getUUMatterRequest(int amount) {
+        FluidStack req = FluidRegistry.getFluidStack("ic2uumatter", amount);
+        return req != null ? req : FluidRegistry.getFluidStack("uumatter", amount);
+    }
+
     /**
-     * 定向模式 UU 物质总存量（输入仓 + 样板仓，只读探测，仿 depleteUUMatterForTick 取流路径）。
+     * 定向模式 UU 物质总存量（输入仓 getTankInfo 只读求和，v1.10.55 不再读样板仓）。
      * 存量 ≤ 0 时 checkProcessing 拒绝启动并显示 no_uumatter 键。
      */
     private int getUUMatterTotal() {
-        FluidStack request = FluidRegistry.getFluidStack("uumatter", 1);
+        FluidStack request = getUUMatterRequest(1);
         if (request == null) return 0;
         int total = 0;
         for (MTEHatch hatch : getSteamInputHatches()) {
-            FluidStack full = request.copy();
-            full.amount = Integer.MAX_VALUE;
-            FluidStack available = hatch.drain(ForgeDirection.UNKNOWN, full, false);
-            if (available != null && available.amount > 0) total += available.amount;
-        }
-        // 样板仓（ME 输入仓）getAllFluids 为仓内持久引用（窗口无关），只读求和
-        for (IDualInputHatch dual : mDualInputHatches) {
-            if (dual == null) continue;
-            for (FluidStack fs : dual.getAllFluids()) {
-                if (fs != null && fs.amount > 0 && fs.isFluidEqual(request)) total += fs.amount;
+            FluidTankInfo[] tanks = hatch.getTankInfo(ForgeDirection.UNKNOWN);
+            if (tanks == null) continue;
+            for (FluidTankInfo tank : tanks) {
+                if (tank != null && tank.fluid != null && tank.fluid.amount > 0 && tank.fluid.isFluidEqual(request)) {
+                    total += tank.fluid.amount;
+                }
             }
         }
         return total;
@@ -1412,13 +1414,21 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
 
     /**
      * 蒸汽消耗倍率 = (1+矿石模式加成+时运加成) × (1+0.2×(维度物品槽数-1)) × (1+筛选消耗增加/100)。
-     * 定向模式：固定 +200% 取代维度槽增幅与过滤项，再乘定向倍率（UU 加速后蒸汽同步放大）。
+     * 定向模式：固定 +200% + 20%/额外维度槽 × 定向倍率（v1.10.55 解除维度限制后按全部槽计数；UU 不吃维度项）。
      * depleteSteamForTick 按 basePerTick × 该倍率向上取整扣减。
      */
     public double getSteamMultiplier() {
         double modeBonus = ORE_MODE_STEAM_BONUS[Math.min(Math.max(mOreMode, 0), 2)];
         double fortuneBonus = FORTUNE_STEAM_BONUS[getFortuneIndex(mFortuneLevel)];
-        if (mDirectionalMode) return (1.0d + modeBonus + fortuneBonus) * 3.0d * getDirectionalFactor();
+        if (mDirectionalMode) {
+            int slotCount = 0;
+            for (ItemStack stack : getDimensionStacks()) {
+                if (isDimensionDisplayItem(stack)) slotCount++;
+            }
+            // 维度加成 = 固定 +200% + 20%/额外维度槽（v1.10.55 解除维度限制后按全部槽计数；UU 不吃维度项）
+            return (1.0d + modeBonus + fortuneBonus) * (3.0d + SLOT_STEAM_PER_EXTRA * Math.max(0, slotCount - 1))
+                * getDirectionalFactor();
+        }
         int slotCount = 0;
         for (ItemStack stack : getDimensionStacks()) {
             if (isDimensionDisplayItem(stack)) slotCount++;
@@ -1673,29 +1683,11 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
             pluginSlots.appendTag(slotTag);
         }
         aNBT.setTag("mPluginSlots", pluginSlots);
-        // 被过滤矿石（item 注册名 + meta）
-        NBTTagList filteredList = new NBTTagList();
-        for (GTUtility.ItemId id : mFilteredOres) {
-            GameRegistry.UniqueIdentifier uid = GameRegistry.findUniqueIdentifierFor(id.item());
-            if (uid == null) continue;
-            NBTTagCompound tag = new NBTTagCompound();
-            tag.setString("item", uid.modId + ":" + uid.name);
-            tag.setShort("meta", (short) id.metaData());
-            filteredList.appendTag(tag);
-        }
-        aNBT.setTag("mFilteredOres", filteredList);
+        // v1.10.55：过滤/定向配置独立持久化（两个表，ItemId → ItemStack NBT 中转重建）
+        aNBT.setTag("mFilteredOres", writeOreIdList(mFilteredOres));
         // 定向模式（开关 + 定向矿石集合）
         aNBT.setBoolean("mDirectionalMode", mDirectionalMode);
-        NBTTagList directionalList = new NBTTagList();
-        for (GTUtility.ItemId id : mDirectionalOres) {
-            GameRegistry.UniqueIdentifier uid = GameRegistry.findUniqueIdentifierFor(id.item());
-            if (uid == null) continue;
-            NBTTagCompound tag = new NBTTagCompound();
-            tag.setString("item", uid.modId + ":" + uid.name);
-            tag.setShort("meta", (short) id.metaData());
-            directionalList.appendTag(tag);
-        }
-        aNBT.setTag("mDirectionalOres", directionalList);
+        aNBT.setTag("mDirectionalOres", writeOreIdList(mDirectionalOres));
     }
 
     @Override
@@ -1717,29 +1709,44 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
         for (int i = 0; i < pluginSlots.tagCount() && i < mPluginSlots.length; i++) {
             mPluginSlots[i] = ItemStack.loadItemStackFromNBT(pluginSlots.getCompoundTagAt(i));
         }
-        NBTTagList filteredList = aNBT.getTagList("mFilteredOres", 10);
-        mFilteredOres.clear();
-        for (int i = 0; i < filteredList.tagCount(); i++) {
-            NBTTagCompound tag = filteredList.getCompoundTagAt(i);
-            Item item = findItemByName(tag.getString("item"));
-            if (item == null) continue;
-            mFilteredOres.add(GTUtility.ItemId.createNoCopy(item, tag.getShort("meta"), null));
-        }
-        // 定向模式必须先于 rebuildPool() 读入（重建矿池依赖定向模式状态：定向只认槽 1）
+        readOreIdList(aNBT.getTagList("mFilteredOres", 10), mFilteredOres);
+        // 定向模式开关与定向矿石集合
         mDirectionalMode = aNBT.getBoolean("mDirectionalMode");
-        NBTTagList directionalList = aNBT.getTagList("mDirectionalOres", 10);
-        mDirectionalOres.clear();
-        for (int i = 0; i < directionalList.tagCount(); i++) {
-            NBTTagCompound tag = directionalList.getCompoundTagAt(i);
-            Item item = findItemByName(tag.getString("item"));
-            if (item == null) continue;
-            mDirectionalOres.add(GTUtility.ItemId.createNoCopy(item, tag.getShort("meta"), null));
-        }
+        readOreIdList(aNBT.getTagList("mDirectionalOres", 10), mDirectionalOres);
         // 槽位与 mCurrentDimId 均已就绪（基类 Inventory 先于 loadNBTData 载入），重建矿池
         rebuildPool();
     }
 
-    /** 按 "modid:name" 解析物品注册名（无法解析返回 null）。 */
+    /** 矿石 ID 集合 → NBT 列表（ItemStack 中转，ItemId 无 readFromNBT 工厂）。 */
+    private static NBTTagList writeOreIdList(Set<GTUtility.ItemId> ores) {
+        NBTTagList list = new NBTTagList();
+        for (GTUtility.ItemId id : ores) {
+            if (id == null) continue;
+            ItemStack stack = id.getItemStack(1);
+            if (stack != null) list.appendTag(stack.writeToNBT(new NBTTagCompound()));
+        }
+        return list;
+    }
+
+    /** NBT 列表 → 矿石 ID 集合（先清空目标集再填充；旧档无键时 getTagList 返回空列表，安全）。 */
+    private static void readOreIdList(NBTTagList list, Set<GTUtility.ItemId> target) {
+        target.clear();
+        for (int i = 0; i < list.tagCount(); i++) {
+            NBTTagCompound tag = list.getCompoundTagAt(i);
+            ItemStack stack = ItemStack.loadItemStackFromNBT(tag);
+            if (stack != null) {
+                // 新格式（v1.10.55，ItemStack 中转，保留 NBT）
+                GTUtility.ItemId id = GTUtility.ItemId.create(stack);
+                if (id != null) target.add(id);
+                continue;
+            }
+            // 旧格式回退（v1.10.54 及更早存档：注册名 "modid:name" + meta，无 NBT）
+            Item item = findItemByName(tag.getString("item"));
+            if (item != null) target.add(GTUtility.ItemId.createNoCopy(item, tag.getShort("meta"), null));
+        }
+    }
+
+    /** 按 "modid:name" 解析物品注册名（无法解析返回 null；旧格式 NBT 回退用）。 */
     private static Item findItemByName(String itemName) {
         if (itemName == null || itemName.isEmpty()) return null;
         String[] parts = itemName.split(":", 2);

@@ -124,8 +124,8 @@ gtsr.tooltip.crust_matter_agg.desc4=产出公式：10×蒸汽系数（0.5/1/2）
 gtsr.tooltip.crust_matter_agg.desc5=奇点模式：输入总线放入蒸汽纠缠奇点或临界蒸汽纠缠奇点，各持续200秒，期间失控奇点动画必定出现
 gtsr.tooltip.crust_matter_agg.desc6=结构：26×26×8，固体钢外壳/钢齿轮箱外壳/钢管外壳/钢框架/防爆玻璃
 gtsr.tooltip.crust_matter_agg.desc7=泥土位（54）与草方块位（36）为粒子喷口，圆石位（1）为失控奇点节点
-gtsr.tooltip.crust_matter_agg.desc8=定向模式（螺丝刀右击控制器或在终端配置界面切换）：只产出被「定向」的矿石，蒸汽+200%（固定取代维度槽增幅）并按 100%+2500%÷最低3个定向权重之和 结算（不足3个累加全部），额外消耗 UU 物质
-gtsr.tooltip.crust_matter_agg.desc9=定向模式下仅第 1 格维度插件生效，其余维度槽只可取出；切换时自动刷新矿池、强制停机并清空奇点模式
+gtsr.tooltip.crust_matter_agg.desc8=定向模式（螺丝刀右击控制器或在终端配置界面切换）：只产出被「定向」的矿石，蒸汽+200%（固定取代维度槽增幅）并按 2500%÷最低3个定向权重之和 结算（不足3个累加全部），额外消耗 UU 物质
+gtsr.tooltip.crust_matter_agg.desc9=切换时自动刷新矿池、强制停机并清空奇点模式；过滤与定向配置独立持久化并随机器保存，切换模式不重置
 gtsr.tooltip.crust_matter_agg.ctrl=控制器位于中心
 gtsr.tooltip.crust_matter_agg.steam_input=流体输入仓（蒸汽/过热蒸汽/超临界蒸汽或其致密态）
 gtsr.tooltip.crust_matter_agg.input_bus=物品输入总线（奇点燃料，可选）
@@ -217,11 +217,14 @@ gtsr.aggregator_config.mode_hint.filtered.4=消耗增加%=筛选总权重%+5%×k
 gtsr.aggregator_config.mode_hint.directional.1=当前模式：定向
 gtsr.aggregator_config.mode_hint.directional.2=定向矿物越少且权重越低
 gtsr.aggregator_config.mode_hint.directional.3=则消耗蒸汽越多
-gtsr.aggregator_config.mode_hint.directional.4=消耗增加%=100%+2500%/最低3个定向权重之和（不足3个累加全部）
+gtsr.aggregator_config.mode_hint.directional.4=消耗增加%=2500%/最低3个定向权重之和（不足3个累加全部）
 gtsr.aggregator_config.dim_text.filtered=20%蒸汽消耗增加/维度
-gtsr.aggregator_config.dim_text.directional=200%蒸汽消耗增加
+gtsr.aggregator_config.dim_text.directional=200%+20%/额外维度槽蒸汽消耗增加
+gtsr.aggregator_config.clear_config=清除配置
+gtsr.aggregator_config.clear_config.tip=清除当前模式的过滤/定向配置表（过滤模式清过滤、定向模式清定向），另一张表保留；配置随机器持久化保存
 gtsr.aggregator_config.directional.chat.on=定向模式已开启
 gtsr.aggregator_config.directional.chat.off=定向模式已关闭
+gtsr.aggregator_config.clear_config.chat=已清除当前模式配置
 
 # Singularity Crust Steam Borer
 gt.blockmachines.gtsr.singularity.crust.steam.borer.name=奇点地壳蒸汽掘进机

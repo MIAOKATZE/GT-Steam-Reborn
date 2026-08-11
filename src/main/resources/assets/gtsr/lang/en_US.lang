@@ -124,8 +124,8 @@ gtsr.tooltip.crust_matter_agg.desc4=Output: 10 x Steam Coef (0.5/1/2) x Singular
 gtsr.tooltip.crust_matter_agg.desc5=Singularity Mode: put a Steam-Entangled or Critical Steam-Entangled Singularity in an input bus, 200 seconds each; the runaway singularity animation always shows during the mode
 gtsr.tooltip.crust_matter_agg.desc6=Structure: 26x26x8, Solid Steel Casing / Steel Gearbox Casing / Steel Pipe Casing / Steel Frame / Explosion-Proof Glass
 gtsr.tooltip.crust_matter_agg.desc7=Dirt positions (54) and Grass positions (36) are particle vents; the Cobblestone position (1) is the runaway singularity node
-gtsr.tooltip.crust_matter_agg.desc8=Directional mode (toggle via screwdriver right-click or terminal UI): only aimed ores are produced; steam +200% (fixed, replaces dimension-slot bonus) and settled as 100%+2500%÷sum of the 3 lowest aimed weights (accumulate all when fewer than 3); additionally consumes UU Matter
-gtsr.tooltip.crust_matter_agg.desc9=In directional mode only the 1st dimension slot works; other slots are extract-only; toggling refreshes the pool, force-stops and clears singularity mode
+gtsr.tooltip.crust_matter_agg.desc8=Directional mode (toggle via screwdriver right-click or terminal UI): only aimed ores are produced; steam +200% (fixed, replaces dimension-slot bonus) and settled as 2500%÷sum of the 3 lowest aimed weights (accumulate all when fewer than 3); additionally consumes UU Matter
+gtsr.tooltip.crust_matter_agg.desc9=Toggling refreshes the pool, force-stops and clears singularity mode; filter and aim configs persist independently with the machine and are not reset on mode switch
 gtsr.tooltip.crust_matter_agg.ctrl=Controller at the center
 gtsr.tooltip.crust_matter_agg.steam_input=Fluid input hatch (Steam/Superheated/Supercritical or their Dense variants)
 gtsr.tooltip.crust_matter_agg.input_bus=Item input bus (singularity fuel, optional)
@@ -217,11 +217,14 @@ gtsr.aggregator_config.mode_hint.filtered.4=Cost increase%=filtered total weight
 gtsr.aggregator_config.mode_hint.directional.1=Current mode: directional
 gtsr.aggregator_config.mode_hint.directional.2=The fewer ores you aim at and the lower their weight
 gtsr.aggregator_config.mode_hint.directional.3=the more steam is consumed
-gtsr.aggregator_config.mode_hint.directional.4=Cost increase%=100%+2500%/sum of 3 lowest aimed weights (accumulate all if fewer than 3)
+gtsr.aggregator_config.mode_hint.directional.4=Cost increase%=2500%/sum of 3 lowest aimed weights (accumulate all if fewer than 3)
 gtsr.aggregator_config.dim_text.filtered=20% steam cost increase/dimension
-gtsr.aggregator_config.dim_text.directional=200% steam cost increase
+gtsr.aggregator_config.dim_text.directional=200%+20%/extra dimension slot steam cost increase
+gtsr.aggregator_config.clear_config=Clear Config
+gtsr.aggregator_config.clear_config.tip=Clears the current mode's filter/aim config table (filter mode clears filters, directional mode clears aims); the other table is kept; configs persist with the machine
 gtsr.aggregator_config.directional.chat.on=Directional mode enabled
 gtsr.aggregator_config.directional.chat.off=Directional mode disabled
+gtsr.aggregator_config.clear_config.chat=Current mode config cleared
 
 # Singularity Crust Steam Borer
 gt.blockmachines.gtsr.singularity.crust.steam.borer.name=Singularity Crust Steam Borer

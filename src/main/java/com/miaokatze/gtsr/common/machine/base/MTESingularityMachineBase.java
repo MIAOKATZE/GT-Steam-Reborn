@@ -18,9 +18,11 @@ import net.minecraft.world.World;
 import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
+import net.minecraftforge.fluids.FluidTankInfo;
 
 import com.google.common.collect.ImmutableList;
 import com.gtnewhorizon.structurelib.alignment.IAlignmentLimits;
+import com.miaokatze.gtsr.api.compat.GTSRHatchFluidAccess;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.blocks.TileRunawaySingularity;
 import com.miaokatze.gtsr.common.gui.MTESingularityMachineGui;
@@ -332,8 +334,7 @@ public abstract class MTESingularityMachineBase extends MTEEnhancedMultiBlockBas
         for (FluidStack request : gradeProbeStacks(grade, includeDense, denseOnly)) {
             if (request == null) continue;
             for (MTEHatch hatch : getSteamInputHatches()) {
-                FluidStack result = hatch.drain(ForgeDirection.UNKNOWN, request, false);
-                if (result != null && result.amount > 0) return true;
+                if (GTSRHatchFluidAccess.hasFluid(hatch, request.getFluid(), 1)) return true;
             }
         }
         return false;
@@ -353,10 +354,12 @@ public abstract class MTESingularityMachineBase extends MTEEnhancedMultiBlockBas
         for (FluidStack request : gradeProbeStacks(grade, includeDense, false)) {
             if (request == null) continue;
             for (MTEHatch hatch : getSteamInputHatches()) {
-                FluidStack full = request.copy();
-                full.amount = Integer.MAX_VALUE;
-                FluidStack result = hatch.drain(ForgeDirection.UNKNOWN, full, false);
-                if (result != null && result.amount > 0) amount += result.amount;
+                FluidTankInfo[] tanks = hatch.getTankInfo(ForgeDirection.UNKNOWN);
+                if (tanks == null) continue;
+                for (FluidTankInfo tank : tanks) {
+                    if (tank != null && tank.fluid != null && tank.fluid.isFluidEqual(request))
+                        amount += tank.fluid.amount;
+                }
             }
         }
         return amount;
@@ -366,17 +369,12 @@ public abstract class MTESingularityMachineBase extends MTEEnhancedMultiBlockBas
         for (FluidStack request : gradeProbeStacks(grade, includeDense, false)) {
             if (request == null) continue;
             for (MTEHatch hatch : getSteamInputHatches()) {
-                // v1.10.6→v1.10.7 回归：恢复 MAX_VALUE 探测与实扣（"输入仓有多少消耗多少"设计语义）。
-                // 限制存储输入仓（ME）的 restrict 经窗口内 4 参 drain 的 min(slot.extracted.amount, amount)
-                // 自然生效（MTEHatchInputME:389），机器侧不再设 1M cap；
-                // 限制仓 restrict 在当前 ProgrammableHatches 版本失效时视作普通 ME 仓对待。
+                // v1.10.55：直接 MAX_VALUE 实扣（"输入仓有多少消耗多少"设计语义）；
+                // 原"模拟探测+实扣"两段在 beta-1 的 MTEHatchInputME.drain 忽略 doDrain 时会先模拟全扣再实扣 0，
+                // 直接实扣双版本等效（beta-1/beta-2 的实扣路径一致）
                 FluidStack full = request.copy();
                 full.amount = Integer.MAX_VALUE;
-                FluidStack available = hatch.drain(ForgeDirection.UNKNOWN, full, false);
-                if (available != null && available.amount > 0) {
-                    FluidStack toDrain = available.copy();
-                    hatch.drain(ForgeDirection.UNKNOWN, toDrain, true);
-                }
+                hatch.drain(ForgeDirection.UNKNOWN, full, true);
             }
         }
     }

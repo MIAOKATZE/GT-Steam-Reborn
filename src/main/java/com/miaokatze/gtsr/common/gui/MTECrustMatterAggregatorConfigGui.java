@@ -61,9 +61,9 @@ import gregtech.api.util.GTUtility;
  * tooltip 显示倍率明细；定向模式下明细含定向倍率）；
  * - 左侧 25 槽 5×5 网格：槽 1 = 控制器槽（mInventory[1]，与主 GUI 同一数据源），槽 2-25 = 终端插件槽，
  * 栈上限 1、槽过滤仅接受维度显示物品；标题行右侧为刷新按钮 + 维度消耗增加% 实际值（+X% 粗体）；
- * - 定向模式区：切换按钮（C2S 切换，服务端进入时清空过滤与定向、重建矿池、强制停机并清空奇点模式）、
+ * - 定向模式区：切换按钮（C2S 切换，服务端强制刷新矿池、停机并清空奇点模式；v1.10.55 起不再重置过滤/定向配置）、
  * 精简提示块（蓝「当前模式：定向/筛选」标题 + 黑色公式正文；定向模式底部紫色 UU 物质消耗 + 黑色消耗量公式）；
- * 定向模式下插件槽只出不进（canPut(false)）且灰化，行按钮切换「定向」而非「过滤」；
+ * v1.10.55 起定向模式插件槽可正常交互（维度不限制），行按钮切换「定向」而非「过滤」；
  * - 右侧矿石浏览器（收窄 16px 让位左列）：搜索（按下按钮才应用，按矿石本地化显示名匹配，天然兼容中文）、
  * 种类切换（全部/未过滤/已过滤）、逐矿过滤/定向切换（"已解放权重"语义，C2S 切换）；标题右侧为
  * 权重消耗增加% 实际值（+X% 粗体）。
@@ -74,7 +74,7 @@ import gregtech.api.util.GTUtility;
  * IntSyncValue/DoubleSyncValue/BooleanSyncValue，仅 S2C（denseState 驱动蒸汽消耗基准 240/24000 L/s）；
  * - "gtsr.cfg.directionalMode"/"gtsr.cfg.uuMult"/"gtsr.cfg.weightIncrease"/"gtsr.cfg.dimIncrease"：
  * BooleanSyncValue/DoubleSyncValue，仅 S2C（定向开关与 UU 倍率、消耗增加% 实际值；
- * 定向开关变化驱动插件槽进出限制重算与灰化）；
+ * 定向开关变化驱动行按钮定向化与蒸汽明细切换）；
  * - "gtsr.cfg.aggregatorAction"：单个面板级 C2S 动作处理器，按钮点击发往服务端执行；
  * - 矿石列表为「常驻 ListWidget 实例 + 手动刷新行」（refreshOreList）：过滤/搜索/排序切换仅重建
  * 行内容，滚动位置随列表实例持续，不会把滚动条拉回顶部（弃 DynamicSyncedWidget 全量重建方案）。
@@ -123,13 +123,22 @@ public class MTECrustMatterAggregatorConfigGui implements IGuiHolder<PosGuiData>
     private static final int COL_WEIGHT = 44;
     private static final int COL_DIM = 56;
     private static final int COL_ACTION = 44;
-    // 搜索行控件位置（搜索框靠左，搜索/种类按钮组靠最右）
+    // 搜索行控件位置（搜索框靠左，搜索/种类/清除配置按钮组靠最右）
     private static final int SEARCH_FIELD_X = BROWSER_X + 4;
     private static final int SEARCH_FIELD_W = 124;
-    private static final int CATEGORY_BTN_W = 88;
+    private static final int CATEGORY_BTN_W = 44; // v1.10.55：与搜索按钮等宽（原 88）
     private static final int SEARCH_BTN_W = 44;
-    private static final int SEARCH_BTN_X = BROWSER_X + BROWSER_W - 4 - CATEGORY_BTN_W - 4 - SEARCH_BTN_W;
-    private static final int CATEGORY_BTN_X = BROWSER_X + BROWSER_W - 4 - CATEGORY_BTN_W;
+    private static final int CLEAR_BTN_W = 44; // 清除配置按钮（与搜索等宽）
+    // 搜索行三按钮右对齐：搜索 | 全部 | 清除配置
+    private static final int SEARCH_BTN_X = BROWSER_X + BROWSER_W
+        - 4
+        - CLEAR_BTN_W
+        - 4
+        - CATEGORY_BTN_W
+        - 4
+        - SEARCH_BTN_W;
+    private static final int CATEGORY_BTN_X = BROWSER_X + BROWSER_W - 4 - CLEAR_BTN_W - 4 - CATEGORY_BTN_W;
+    private static final int CLEAR_BTN_X = BROWSER_X + BROWSER_W - 4 - CLEAR_BTN_W;
     // 插件槽数量（槽 2-25）
     private static final int PLUGIN_SLOT_COUNT = 24;
     private static final String[] ORE_MODE_NAMES = { "raw", "crushed", "purified" };
@@ -147,7 +156,7 @@ public class MTECrustMatterAggregatorConfigGui implements IGuiHolder<PosGuiData>
     private GenericListSyncHandler<OreEntryInfo> oreListSync;
     private AggregatorActionSyncHandler actionSync;
     private ListWidget<IWidget, ?> oreListWidget;
-    // 定向模式同步值（S2C）：行按钮定向化、插件槽进出限制、蒸汽明细切换均依赖它
+    // 定向模式同步值（S2C）：行按钮定向化、蒸汽明细切换均依赖它
     private BooleanSyncValue directionalSync;
 
     private final MTECrustMatterAggregator aggregator;
@@ -223,6 +232,7 @@ public class MTECrustMatterAggregatorConfigGui implements IGuiHolder<PosGuiData>
                     denseSync,
                     directionalSync,
                     uuMultSync,
+                    dimIncreaseSync,
                     this.actionSync))
             // 左列：维度槽标题 + 25 槽 5×5 + 刷新按钮（全部绝对定位，槽列固定最左）
             .child(
@@ -235,7 +245,7 @@ public class MTECrustMatterAggregatorConfigGui implements IGuiHolder<PosGuiData>
                 IKey.lang("gtsr.aggregator_config.browser_title")
                     .asWidget()
                     .pos(BROWSER_X, SLOT_TITLE_Y))
-            // 权重消耗增加% 实际值（浏览器标题右侧，粗体）：筛选 = 被过滤矿石权重和；定向 = 100%+2500%÷最低3个定向权重之和
+            // 权重消耗增加% 实际值（浏览器标题右侧，粗体）：筛选 = 被过滤矿石权重和；定向 = 2500%÷最低3个定向权重之和
             .child(
                 IKey.dynamic(() -> formatIncreaseValue(weightIncreaseSync.getDoubleValue()))
                     .asWidget()
@@ -244,6 +254,7 @@ public class MTECrustMatterAggregatorConfigGui implements IGuiHolder<PosGuiData>
             .child(buildSearchField())
             .child(buildSearchButton())
             .child(buildCategoryButton())
+            .child(buildClearConfigButton(this.actionSync))
             .child(buildTableHeader())
             .child(oreListWidget)
             // 玩家背包（与枢纽状态面板的关键区别：本界面是物品操作界面，需要背包）
@@ -260,34 +271,11 @@ public class MTECrustMatterAggregatorConfigGui implements IGuiHolder<PosGuiData>
         };
         panel.child(buildPluginSlot(controllerSlot, true, 0));
         IItemHandler pluginHandler = new InvWrapper(aggregator.getPluginSlotInventory());
-        // 插件槽引用留存：定向模式下只出不进（ModularSlot.canPut(false)）+ 灰化锁定视觉
-        // （ItemSlot.backgroundOverlay(SLOT_ITEM_DARK)），由 directionalSync 变化监听驱动
-        List<ModularSlot> pluginSlots = new ArrayList<>(PLUGIN_SLOT_COUNT);
-        List<ItemSlot> pluginItemSlots = new ArrayList<>(PLUGIN_SLOT_COUNT);
+        // 插件槽：v1.10.55 起定向模式插件槽可正常交互（维度不限制）
         for (int i = 0; i < PLUGIN_SLOT_COUNT; i++) {
             ModularSlot pluginSlot = new ModularSlot(pluginHandler, i);
-            pluginSlots.add(pluginSlot);
-            ItemSlot itemSlot = buildPluginSlot(pluginSlot, false, i + 1);
-            pluginItemSlots.add(itemSlot);
-            panel.child(itemSlot);
+            panel.child(buildPluginSlot(pluginSlot, false, i + 1));
         }
-        // 定向模式只出不进 + 灰化：插件槽在定向模式下只可拿走不可放入（服务端同样拒绝放入，此处为客户端
-        // 交互限制与视觉反馈；controllerSlot 槽 1 不受限）。同步值首包到达即触发监听，配合下方立即应用保证状态正确。
-        directionalSync.setChangeListener(() -> {
-            boolean directional = directionalSync.getValue();
-            for (ModularSlot s : pluginSlots) {
-                s.canPut(!directional);
-            }
-            for (ItemSlot s : pluginItemSlots) {
-                if (directional) {
-                    s.backgroundOverlay(GTGuiTextures.SLOT_ITEM_DARK);
-                } else {
-                    s.backgroundOverlay();
-                }
-            }
-        });
-        directionalSync.getChangeListener()
-            .run();
         // 刷新按钮：Ore Plugin 放入/移除槽后矿池不会立刻重建，点击手动刷新（C2S 服务端立即重建矿池）
         panel.child(buildRefreshButton(actionSync));
         // 维度消耗增加% 实际值（刷新按钮右侧，粗体）：筛选 = 20%×额外维度槽数；定向 = 固定 200%
@@ -322,7 +310,7 @@ public class MTECrustMatterAggregatorConfigGui implements IGuiHolder<PosGuiData>
 
     private IWidget buildConfigRow(IntSyncValue oreModeSync, IntSyncValue fortuneSync, DoubleSyncValue steamMultSync,
         BooleanSyncValue denseSync, BooleanSyncValue directionalSync, DoubleSyncValue uuMultSync,
-        AggregatorActionSyncHandler actionSync) {
+        DoubleSyncValue dimIncreaseSync, AggregatorActionSyncHandler actionSync) {
         // 矿石模式循环按钮：显示当前模式名 + 蒸汽加成（如「粉碎矿 +50%」），点击 C2S 循环
         ButtonWidget<?> oreModeButton = new ButtonWidget<>().size(104, 18)
             .overlay(IKey.dynamic(() -> formatOreModeLabel(oreModeSync.getIntValue())))
@@ -365,16 +353,21 @@ public class MTECrustMatterAggregatorConfigGui implements IGuiHolder<PosGuiData>
                     int mode = oreModeSync.getIntValue();
                     int fortune = fortuneSync.getIntValue();
                     // 明细 =（1+矿石模式加成+时运加成）×（维度槽/过滤加成）；后者由总倍率反推。
-                    // 定向模式：固定 +200%（×3.00）× 定向倍率（定向倍率 = UU 倍率 ÷ 模式/时运加成反推）
+                    // 定向模式：维度项（1+dimIncrease/100，随额外维度槽数动态）× 定向倍率
+                    // （定向倍率 = UU 倍率 ÷ 模式/时运加成反推）
                     double modeFortune = 1.0d
                         + MTECrustMatterAggregator.ORE_MODE_STEAM_BONUS[Math.min(Math.max(mode, 0), 2)]
                         + MTECrustMatterAggregator.FORTUNE_STEAM_BONUS[Math.min(Math.max((fortune - 3) / 2, 0), 6)];
                     if (directionalSync.getValue()) {
                         double dirFactor = uuMultSync.getDoubleValue() / modeFortune;
+                        // v1.10.55：定向维度项 = 1 + (200% + 20%/额外维度槽)/100，随槽数动态
+                        double dimFactor = 1.0d + dimIncreaseSync.getDoubleValue() / 100.0d;
                         return EnumChatFormatting.GRAY
                             + StatCollector.translateToLocal("gtsr.aggregator_config.steam_cost.detail_dir")
                             + String.format("%.2f", modeFortune)
-                            + " × 3.00 × "
+                            + " × "
+                            + String.format("%.2f", dimFactor)
+                            + " × "
                             + String.format("%.2f", dirFactor);
                     }
                     double env = steamMultSync.getDoubleValue() / modeFortune;
@@ -580,6 +573,18 @@ public class MTECrustMatterAggregatorConfigGui implements IGuiHolder<PosGuiData>
                 return true;
             })
             .tooltipBuilder(t -> t.addLine(IKey.lang("gtsr.aggregator_config.category.tip")));
+    }
+
+    /** 清除配置按钮：C2S 清除当前模式配置表（过滤模式清过滤表、定向模式清定向表），另一张表保留。 */
+    private IWidget buildClearConfigButton(AggregatorActionSyncHandler actionSync) {
+        return new ButtonWidget<>().pos(CLEAR_BTN_X, SEARCH_Y)
+            .size(CLEAR_BTN_W, 16)
+            .overlay(IKey.lang("gtsr.aggregator_config.clear_config"))
+            .onMousePressed(mouseButton -> {
+                actionSync.sendClearConfig();
+                return true;
+            })
+            .tooltipBuilder(t -> t.addLine(IKey.lang("gtsr.aggregator_config.clear_config.tip")));
     }
 
     /** 表格标签栏：与列表行同列宽（图标/名称/权重/维度/操作），表格式对齐。 */
@@ -788,6 +793,7 @@ public class MTECrustMatterAggregatorConfigGui implements IGuiHolder<PosGuiData>
         private static final int ACTION_REFRESH_POOL = 4;
         private static final int ACTION_TOGGLE_DIRECTIONAL = 5;
         private static final int ACTION_TOGGLE_DIRECTIONAL_ORE = 6;
+        private static final int ACTION_CLEAR_CONFIG = 7;
 
         private final MTECrustMatterAggregator aggregator;
 
@@ -834,6 +840,11 @@ public class MTECrustMatterAggregatorConfigGui implements IGuiHolder<PosGuiData>
             });
         }
 
+        /** 清除当前模式配置表（C2S；服务端 clearCurrentModeConfig 清过滤或定向表）。 */
+        public void sendClearConfig() {
+            syncToServer(ACTION_CLEAR_CONFIG, buf -> {});
+        }
+
         // ===== 服务端执行 =====
 
         @Override
@@ -863,6 +874,9 @@ public class MTECrustMatterAggregatorConfigGui implements IGuiHolder<PosGuiData>
                 }
                 case ACTION_REFRESH_POOL:
                     aggregator.forceRefreshPool();
+                    break;
+                case ACTION_CLEAR_CONFIG:
+                    aggregator.clearCurrentModeConfig();
                     break;
                 case ACTION_TOGGLE_DIRECTIONAL: {
                     // 服务端取机器附近玩家用于 chat 反馈；机器 toggleDirectionalMode 未对玩家判空，
