@@ -15,30 +15,16 @@ import com.miaokatze.gtsr.common.items.VeinPyrolyzerChip;
 public class ItemLoader {
 
     public static void initItems() {
-        // —— 奇点 ——
-        registerSteamEntangledSingularity();
-        registerCriticalSteamEntangledSingularity();
-        // —— 芯片 ——
         registerPyrolyzerChips();
         registerGeothermalOverheatChip();
         registerHubSingularityChip();
         registerReinforcedHubSingularityChip();
         registerSteamTurbineCycleOverlimitChip();
         registerRareGasSeparationChip();
-        // —— 催化剂 ——
         registerAmmoniaCatalysts();
-        // —— 终端 ——
+        registerSteamEntangledSingularity();
+        registerCriticalSteamEntangledSingularity();
         registerHubTerminal();
-    }
-
-    private static void registerSteamEntangledSingularity() {
-        GTSRItemList.SteamEntangledSingularity
-            .setAndRegister(new SteamEntangledSingularity(), "SteamEntangledSingularity", true);
-    }
-
-    private static void registerCriticalSteamEntangledSingularity() {
-        GTSRItemList.CriticalSteamEntangledSingularity
-            .setAndRegister(new CriticalSteamEntangledSingularity(), "CriticalSteamEntangledSingularity", true);
     }
 
     private static void registerPyrolyzerChips() {
@@ -71,8 +57,18 @@ public class ItemLoader {
             .setAndRegister(new SteamTurbineCycleOverlimitChip(), "SteamTurbineCycleOverlimitChip", true);
     }
 
-    private static void registerRareGasSeparationChip() {
-        GTSRItemList.RareGasSeparationChip.setAndRegister(new RareGasSeparationChip(), "RareGasSeparationChip", true);
+    private static void registerSteamEntangledSingularity() {
+        GTSRItemList.SteamEntangledSingularity
+            .setAndRegister(new SteamEntangledSingularity(), "SteamEntangledSingularity", true);
+    }
+
+    private static void registerCriticalSteamEntangledSingularity() {
+        GTSRItemList.CriticalSteamEntangledSingularity
+            .setAndRegister(new CriticalSteamEntangledSingularity(), "CriticalSteamEntangledSingularity", true);
+    }
+
+    private static void registerHubTerminal() {
+        GTSRItemList.HubTerminal.setAndRegister(new HubTerminal(), "HubTerminal", true);
     }
 
     private static void registerAmmoniaCatalysts() {
@@ -98,7 +94,7 @@ public class ItemLoader {
             .setAndRegister(new AmmoniaCatalyst("AmmoniaCatalystQuantum"), "AmmoniaCatalystQuantum", true);
     }
 
-    private static void registerHubTerminal() {
-        GTSRItemList.HubTerminal.setAndRegister(new HubTerminal(), "HubTerminal", true);
+    private static void registerRareGasSeparationChip() {
+        GTSRItemList.RareGasSeparationChip.setAndRegister(new RareGasSeparationChip(), "RareGasSeparationChip", true);
     }
 }
