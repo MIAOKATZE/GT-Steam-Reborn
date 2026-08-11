@@ -124,7 +124,7 @@ gtsr.tooltip.crust_matter_agg.desc4=产出公式：10×蒸汽系数（0.5/1/2）
 gtsr.tooltip.crust_matter_agg.desc5=奇点模式：输入总线放入蒸汽纠缠奇点或临界蒸汽纠缠奇点，各持续200秒，期间失控奇点动画必定出现
 gtsr.tooltip.crust_matter_agg.desc6=结构：26×26×8，固体钢外壳/钢齿轮箱外壳/钢管外壳/钢框架/防爆玻璃
 gtsr.tooltip.crust_matter_agg.desc7=泥土位（54）与草方块位（36）为粒子喷口，圆石位（1）为失控奇点节点
-gtsr.tooltip.crust_matter_agg.desc8=定向模式（螺丝刀右击控制器或在终端配置界面切换）：只产出被「定向」的矿石，蒸汽+200%（固定取代维度槽增幅）并按 2500%÷定向权重和 结算，额外消耗 UU 物质
+gtsr.tooltip.crust_matter_agg.desc8=定向模式（螺丝刀右击控制器或在终端配置界面切换）：只产出被「定向」的矿石，蒸汽+200%（固定取代维度槽增幅）并按 100%+2500%÷最低3个定向权重之和 结算（不足3个累加全部），额外消耗 UU 物质
 gtsr.tooltip.crust_matter_agg.desc9=定向模式下仅第 1 格维度插件生效，其余维度槽只可取出；切换时自动刷新矿池、强制停机并清空奇点模式
 gtsr.tooltip.crust_matter_agg.ctrl=控制器位于中心
 gtsr.tooltip.crust_matter_agg.steam_input=流体输入仓（蒸汽/过热蒸汽/超临界蒸汽或其致密态）
@@ -172,10 +172,10 @@ gtsr.aggregator_config.browser_title=矿石浏览器
 gtsr.aggregator_config.ore_mode.raw=原矿
 gtsr.aggregator_config.ore_mode.crushed=粗矿
 gtsr.aggregator_config.ore_mode.purified=粉碎矿
-gtsr.aggregator_config.ore_mode.tip=点击循环矿石模式（原矿→粗矿→粉碎矿）：原矿+0%、粗矿+20%、粉碎矿+100% 蒸汽消耗
+gtsr.aggregator_config.ore_mode.tip=点击循环矿石模式（原矿→粗矿→粉碎矿）：原矿+0％、粗矿+100％、粉碎矿+200％ 蒸汽消耗
 gtsr.aggregator_config.fortune_level=时运 %s +%d%%
-gtsr.aggregator_config.fortune.tip=点击循环时运等级（默认III，奇数档至XV）：粗矿/粉碎矿产出数量 ×(1+时运)，蒸汽每档+50%（默认档免费，XV 最高+300%）
-gtsr.aggregator_config.fortune.gate=时运 IX-XI 需要蒸汽纠缠奇点模式，时运 XIII-XV 需要临界奇点模式
+gtsr.aggregator_config.fortune.tip=点击循环时运等级（默认III，奇数档至XV）：粗矿/粉碎矿产出按原版时运公式掷取（基础+随机额外，档位越高额外越多），蒸汽每档+50％（默认档免费，XV 最高+300％）
+gtsr.aggregator_config.fortune.gate=时运 IX-XI 需要蒸汽纠缠奇点模式，时运 XIII-XV 需要临界奇点模式；运行前超限档位自动降档到上限
 gtsr.aggregator_config.steam_cost=蒸汽消耗: 
 gtsr.aggregator_config.steam_cost.tip=基础 24000 L/s（普通档 1200 L/tick）
 gtsr.aggregator_config.steam_cost.detail=倍率明细（模式/时运 × 槽位/过滤）: 
@@ -217,7 +217,7 @@ gtsr.aggregator_config.mode_hint.filtered.4=消耗增加%=筛选总权重%+5%×k
 gtsr.aggregator_config.mode_hint.directional.1=当前模式：定向
 gtsr.aggregator_config.mode_hint.directional.2=定向矿物越少且权重越低
 gtsr.aggregator_config.mode_hint.directional.3=则消耗蒸汽越多
-gtsr.aggregator_config.mode_hint.directional.4=消耗增加%=2500%/定向总权重
+gtsr.aggregator_config.mode_hint.directional.4=消耗增加%=100%+2500%/最低3个定向权重之和（不足3个累加全部）
 gtsr.aggregator_config.dim_text.filtered=20%蒸汽消耗增加/维度
 gtsr.aggregator_config.dim_text.directional=200%蒸汽消耗增加
 gtsr.aggregator_config.directional.chat.on=定向模式已开启
@@ -572,7 +572,7 @@ gtsr.tooltip.miner_node.desc=蒸汽驱动的远程采矿节点，绑定奇点钻
 gtsr.tooltip.miner_node.range=采矿范围:
 gtsr.tooltip.miner_node.range_base=基础64×64 / 强化I 96×96 / 强化II 128×128 / 强化III 192×192 / 强化IV 288×288
 gtsr.tooltip.miner_node.fortune=时运等级:
-gtsr.tooltip.miner_node.fortune_base=基础VI / 强化I VII / 强化II VIII / 强化III IX / 强化IV X（普通矿与贫瘠矿等同）
+gtsr.tooltip.miner_node.fortune_base=基础VI / 强化I VII / 强化II VIII / 强化III IX / 强化IV X（普通矿与贫瘠矿等同，两模式均全额生效）
 gtsr.tooltip.miner_node.requires_pipe=需要采矿管道才能工作
 gtsr.tooltip.miner_node.upgrade_title=升级机制:
 gtsr.tooltip.miner_node.upgrade_desc=强化I: 矿石钻井场I+16奇点 | 强化II: 矿石钻井场II+32奇点 | 强化III: 矿石钻井场III+64奇点 | 强化IV: 矿石钻井场IV+256奇点
@@ -617,9 +617,9 @@ gtsr.gui.node_upgrade.tooltip.next=下一等级:
 gtsr.gui.node_upgrade.tooltip.max=已达最高等级
 gtsr.gui.node_upgrade.tooltip.drill=所需物品:
 gtsr.gui.node_upgrade.tooltip.singularity=蒸汽纠缠奇点 ×
-gtsr.node.miner.crushed_mode.on=粉碎矿模式已开启: 普通矿物将输出3倍粉碎矿
+gtsr.node.miner.crushed_mode.on=粉碎矿模式已开启: 矿物将按研磨配方实际粉碎数量×1.5输出粉碎矿
 gtsr.node.miner.crushed_mode.off=粉碎矿模式已关闭
-gtsr.tooltip.miner_node.crushed_mode_hint=螺丝刀右击切换粉碎矿模式: 普通矿物输出3倍粉碎矿
+gtsr.tooltip.miner_node.crushed_mode_hint=螺丝刀右击切换粉碎矿模式: 矿物按研磨配方实际粉碎数量×1.5输出粉碎矿
 
 # Drilling Hub Debug
 gtsr.drilling.debug_title=钻井枢纽绑定调试

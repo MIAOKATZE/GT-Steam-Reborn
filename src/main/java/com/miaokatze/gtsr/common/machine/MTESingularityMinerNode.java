@@ -26,6 +26,7 @@ import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.machine.base.MTERemoteWorkerNode;
+import com.miaokatze.gtsr.common.util.OreCrushedUtil;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
@@ -406,14 +407,14 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
         // 时运统一取高值（贫瘠矿与普通矿等同）
         int fortune = FORTUNE[mMinerTier];
 
-        // 采集矿石掉落物：粉碎矿模式下绕过 GTOreAdapter 内部 fortune=3 截断
-        // （详见 collectOreDropsWithCrushedFortune 方法注释）
-        ArrayList<ItemStack> drops = collectOreDropsWithCrushedFortune(block, meta, fortune, world, oreX, oreY, oreZ);
+        // 采集矿石掉落物：两模式统一绕过 GTOreAdapter 内部 fortune=3 截断
+        // （详见 collectOreDropsWithVanillaFortune 方法注释）
+        ArrayList<ItemStack> drops = collectOreDropsWithVanillaFortune(block, meta, fortune, world, oreX, oreY, oreZ);
 
         // Remove the block from the world
         world.setBlockToAir(oreX, oreY, oreZ);
 
-        // 粉碎矿模式：将矿石掉落物替换为 3 倍数量的对应粉碎矿
+        // 粉碎矿模式：将矿石掉落物替换为对应粉碎矿（数量 = 原数量 × 配方主产物数 × 1.5）
         if (mCrushedMode && drops != null) {
             applyCrushedMode(drops);
         }
@@ -533,9 +534,9 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
         // 时运统一取高值（贫瘠矿与普通矿等同）
         int fortune = FORTUNE[mMinerTier];
         if (targetBlock != null && targetBlock != Blocks.air && targetBlock != Blocks.bedrock) {
-            // 采集矿石掉落物：粉碎矿模式下绕过 GTOreAdapter 内部 fortune=3 截断
-            // （详见 collectOreDropsWithCrushedFortune 方法注释）
-            ArrayList<ItemStack> drops = collectOreDropsWithCrushedFortune(
+            // 采集矿石掉落物：两模式统一绕过 GTOreAdapter 内部 fortune=3 截断
+            // （详见 collectOreDropsWithVanillaFortune 方法注释）
+            ArrayList<ItemStack> drops = collectOreDropsWithVanillaFortune(
                 targetBlock,
                 targetMeta,
                 fortune,
@@ -544,7 +545,7 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
                 targetY,
                 z);
             MTESingularityDrillingHub hub = getBoundHub();
-            // 粉碎矿模式：将矿石掉落物替换为 3 倍数量的对应粉碎矿
+            // 粉碎矿模式：将矿石掉落物替换为对应粉碎矿（数量 = 原数量 × 配方主产物数 × 1.5）
             if (mCrushedMode && drops != null) {
                 applyCrushedMode(drops);
             }
@@ -570,32 +571,23 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
     }
 
     /**
-     * 采集矿石掉落物，粉碎矿模式下绕过 GTOreAdapter 内部 fortune=3 截断。
+     * 采集矿石掉落物，两模式统一绕过 GTOreAdapter 内部 fortune>3 截断。
      *
      * <p>
      * 背景：参考库 GTOreAdapter#getBigOreDrops 在 FortuneItem 模式下会把传入 fortune>3 截断为 3
-     * （"if (fortune > 3) fortune = 3"），导致本节点 FORTUNE={5,5,6,7} 配置实际只生效到 3，
-     * 玩家在粉碎矿模式下观察到产出 "3/6/9"（即 1/2/3 个原矿 ×3），远低于时运 5 的期望值。
+     * （"if (fortune > 3) fortune = 3"），导致本节点 FORTUNE={6,7,8,9,10} 在原矿模式下实际只生效到 3。
      *
      * <p>
-     * 修复策略：粉碎矿模式下分两步走，实现"先算粗矿数量再输出粉碎矿"——
-     * <ol>
-     * <li>先以 fortune=0 调用 getOreDrops 取基础原矿（普通石头 1 个，rich 石头 2 个），
-     * 不受 GTOreAdapter 内部 fortune=3 截断影响</li>
-     * <li>按 vanilla 时运公式 {@code extra = random.nextInt(fortune + 1)} 自行追加额外原矿，
-     * 使 fortune=5/5/6/7 真正生效（原矿数量范围 1..fortune+1）</li>
-     * </ol>
-     * 之后由 {@link #applyCrushedMode} 把每个原矿 ×3 转为粉碎矿。
+     * 策略（v1.10.54 起原矿/粉碎两模式统一）：先以 fortune=0 调用 getOreDrops 取基础原矿
+     * （普通石头 1 个，rich 石头 2 个），不受 GTOreAdapter 内部 fortune=3 截断影响；
+     * 再按原版时运公式 {@code extra = max(0, nextInt(fortune + 2) - 1)} 自行追加额外原矿，
+     * 使 fortune=6/7/8/9/10 真正生效（原矿数量范围 base..base+fortune）。
      *
      * <p>
-     * 原矿模式（不开粉碎矿）保持 GTOreAdapter 默认 fortune 处理（用户已确认产出正常）。
-     *
-     * <p>
-     * 注意：与原 doWork/tryDescendPipe 内联逻辑一致——
-     * GT 矿石需 force {@code info.isNatural=true}（GTNH 世界矿石因
+     * 注意：GT 矿石需 force {@code info.isNatural=true}（GTNH 世界矿石因
      * TileEntityReplacementManager 处理 chunk loading 而被标记为 isNatural=false），
      * 否则 adapter 会以 fortune=0 处理且返回非自然矿形态；
-     * 非 GT 矿石（vanilla/其他 mod）走 {@code block.getDrops()} 用 fortune 直接处理。
+     * 非 GT 矿石（vanilla/其他 mod）走 {@code block.getDrops()} 用 fortune 直接处理（原版公式原生支持任意档位）。
      *
      * @param block   矿石方块
      * @param meta    方块 metadata
@@ -606,30 +598,26 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
      * @param z       方块 Z 坐标
      * @return 掉落物列表（已含时运加成，但尚未应用粉碎矿转换）
      */
-    private ArrayList<ItemStack> collectOreDropsWithCrushedFortune(Block block, int meta, int fortune, World world,
+    private ArrayList<ItemStack> collectOreDropsWithVanillaFortune(Block block, int meta, int fortune, World world,
         int x, int y, int z) {
         ArrayList<ItemStack> drops;
         try (OreInfo<?> info = OreManager.getOreInfo(block, meta)) {
             if (info != null) {
                 boolean origNatural = info.isNatural;
                 info.isNatural = true;
-                if (mCrushedMode) {
-                    // 粉碎矿模式：先以 fortune=0 取基础原矿，绕过 GTOreAdapter fortune=3 截断；
-                    // 再按 vanilla 时运公式 extra=random.nextInt(fortune+1) 自行追加额外原矿
-                    drops = OreManager.getAdapter(info)
-                        .getOreDrops(ThreadLocalRandom.current(), info, false, 0);
-                    if (fortune > 0 && drops != null && !drops.isEmpty()) {
-                        int extra = ThreadLocalRandom.current()
-                            .nextInt(fortune + 1);
-                        ItemStack template = drops.get(0);
-                        for (int i = 0; i < extra; i++) {
-                            drops.add(template.copy());
-                        }
+                // 统一以 fortune=0 取基础原矿，绕过 GTOreAdapter fortune=3 截断；
+                // 再按原版时运公式 extra=max(0,nextInt(fortune+2)-1) 自行追加额外原矿
+                drops = OreManager.getAdapter(info)
+                    .getOreDrops(ThreadLocalRandom.current(), info, false, 0);
+                if (fortune > 0 && drops != null && !drops.isEmpty()) {
+                    int extra = Math.max(
+                        0,
+                        ThreadLocalRandom.current()
+                            .nextInt(fortune + 2) - 1);
+                    ItemStack template = drops.get(0);
+                    for (int i = 0; i < extra; i++) {
+                        drops.add(template.copy());
                     }
-                } else {
-                    // 原矿模式：保持 GTOreAdapter 默认 fortune 处理
-                    drops = OreManager.getAdapter(info)
-                        .getOreDrops(ThreadLocalRandom.current(), info, false, fortune);
                 }
                 info.isNatural = origNatural;
             } else {
@@ -640,13 +628,12 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
     }
 
     /**
-     * 粉碎矿模式：将掉落物中的矿石类物品替换为对应粉碎矿（crushed），数量 = 原数量 × 3。
+     * 粉碎矿模式：将掉落物中的矿石类物品替换为对应粉碎矿（crushed），数量 = 原数量 × 实际粉碎数量 × 1.5。
      *
      * <p>
-     * 时运加成在 {@link #collectOreDropsWithCrushedFortune} 阶段已应用——粉碎矿模式下绕过
-     * GTOreAdapter 内部 fortune=3 截断，先用 fortune=0 取基础原矿再按 vanilla 公式追加额外原矿；
-     * 原矿模式则沿用 GTOreAdapter 默认 fortune 处理。3 倍基准乘在已含时运的原矿数量上
-     * （对应 GT5U 采矿场 "3x crushed vs normal" 的语义，时运不重复追加）。
+     * 实际粉碎数量（v1.10.54）取该矿石的研磨机配方主产物数量（普通矿 2、红石 10、冰晶石 8 等特殊矿
+     * 按配方自动正确），即 {@code 数量 × C × 1.5}；无配方回退 crushed × 3（C=2 时 ×1.5 = 3，与旧行为一致）。
+     * 时运加成在 {@link #collectOreDropsWithVanillaFortune} 阶段已应用。
      *
      * <p>
      * 已是粉碎/粉末/宝石等加工形态、或无对应粉碎矿（非 GT 矿字典物品）的掉落物保持不变。
@@ -660,27 +647,20 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
             if (itemData == null || itemData.mMaterial == null || itemData.mMaterial.mMaterial == null) continue;
 
             // 已是粉碎/粉/宝石形态的掉落物不再转换（贫瘠小矿的掉落物即属此类）
-            OrePrefixes prefix = itemData.mPrefix;
-            if (prefix == OrePrefixes.crushed || prefix == OrePrefixes.crushedCentrifuged
-                || prefix == OrePrefixes.crushedPurified
-                || prefix == OrePrefixes.dustImpure
-                || prefix == OrePrefixes.dustPure
-                || prefix == OrePrefixes.dustRefined
-                || prefix == OrePrefixes.dust
-                || prefix == OrePrefixes.gem
-                || prefix == OrePrefixes.gemChipped
-                || prefix == OrePrefixes.gemExquisite
-                || prefix == OrePrefixes.gemFlawed
-                || prefix == OrePrefixes.gemFlawless) {
-                continue;
+            if (OreCrushedUtil.isProcessedForm(itemData.mPrefix)) continue;
+
+            // 优先取研磨机配方主产物数量（红石/冰晶石等特殊矿自动得到实际数量）；无配方回退 crushed×2（×1.5=3）
+            ItemStack product = OreCrushedUtil.getCrushedProduct(drop);
+            int perCrude = 2;
+            if (product == null) {
+                product = GTOreDictUnificator.get(OrePrefixes.crushed, itemData.mMaterial.mMaterial, 1);
+            } else {
+                perCrude = product.stackSize;
             }
+            if (product == null) continue;
 
-            // 查找该材料对应的粉碎矿形态；查不到（无粉碎形态的宝石类材料、非 GT 矿）则保持原样
-            ItemStack crushed = GTOreDictUnificator.get(OrePrefixes.crushed, itemData.mMaterial.mMaterial, 1);
-            if (crushed == null) continue;
-
-            crushed.stackSize = drop.stackSize * 3;
-            drops.set(i, crushed);
+            product.stackSize = (int) Math.round(drop.stackSize * perCrude * 1.5d);
+            drops.set(i, product);
         }
     }
 

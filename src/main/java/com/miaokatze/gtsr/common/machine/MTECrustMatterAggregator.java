@@ -50,6 +50,7 @@ import com.miaokatze.gtsr.common.gui.AggregatorConfigGuiFactory;
 import com.miaokatze.gtsr.common.gui.MTECrustMatterAggregatorGui;
 import com.miaokatze.gtsr.common.machine.base.MTESingularityMachineBase;
 import com.miaokatze.gtsr.common.machine.base.VoidMinerUtilityShim;
+import com.miaokatze.gtsr.common.util.OreCrushedUtil;
 import com.miaokatze.gtsr.loader.BlockLoader;
 import com.miaokatze.gtsr.main.GTSteamReborn;
 
@@ -102,8 +103,8 @@ import gregtech.common.tileentities.machines.IDualInputInventory;
  *
  * 定向模式（螺丝刀切换，服务端）：矿池只认槽 1（控制器槽），插件槽（槽 2-25）禁用放入；
  * 定向矿石集合内的矿石被瞄准，抽取时跳过非定向矿石；每 tick 消耗 UU 物质
- * （率 = (1+矿石模式/时运加成) × 10/定向权重和 L/s，权重和为 0 不可运行）；
- * 蒸汽倍率固定 +100% 取代维度槽增幅与过滤项；定向模式下失控奇点节点颜色变紫。
+ * （率 = (1+矿石模式/时运加成) × 定向倍率 L/s，定向倍率 = 1 + 2500% ÷ 最低 3 个定向权重之和，权重和为 0 不可运行）；
+ * 蒸汽倍率固定 +200% 取代维度槽增幅与过滤项；定向模式下失控奇点节点颜色变紫。
  *
  * 粒子（客户端，太阳能锅炉同款）：G 位（泥土位，54 个）机器工作即每 tick 1 个白色 cloud 粒子；
  * H 位（草方块位，36 个）机器工作即每 tick 2 个（恒满浓度，热量机制已删除）。工作标志经
@@ -131,8 +132,8 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
     private static final double[] SINGULARITY_OUTPUT_COEF = { 0.5d, 2.0d, 5.0d };
     // 单次产出基数：10 * GRADE_COEF[grade] * singCoef（热量恒满）
     private static final double ORES_PER_HEAT_UNIT = 10.0d;
-    // 矿石模式蒸汽加成（0 原矿 / 1 粗矿 / 2 粉碎矿）
-    public static final double[] ORE_MODE_STEAM_BONUS = { 0.0d, 0.2d, 1.0d };
+    // 矿石模式蒸汽加成（v1.10.54：0 原矿 +0% / 1 粗矿 +100% / 2 粉碎矿 +200%）
+    public static final double[] ORE_MODE_STEAM_BONUS = { 0.0d, 1.0d, 2.0d };
     // 时运档位集合（奇数 3-15 = III/V/VII/IX/XI/XIII/XV），索引=(档位值-3)/2
     public static final int[] FORTUNE_LEVELS = { 3, 5, 7, 9, 11, 13, 15 };
     // 时运档位蒸汽加成（按档位索引：III=+0% … XV=+300%）
@@ -796,7 +797,7 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
         if (getBaseMetaTileEntity() != null) getBaseMetaTileEntity().markDirty();
     }
 
-    /** 当前矿池内被定向矿石的权重和（UU 倍率与可运行性判定用）。 */
+    /** 当前矿池内被定向矿石的权重和（定向模式可运行性判定用）。 */
     public float getDirectionalWeightSum() {
         float sum = 0.0f;
         for (PoolDim pd : mPool) {
@@ -808,20 +809,36 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
         return sum;
     }
 
-    /** 定向倍率 = 2500% ÷ 定向权重和（权重和为 0 返回 0，表示不可运行）。 */
+    /** 定向内容最低 3 个权重之和（跨池逐 (矿,维) 条目收集后取最小 3 个，不足 3 个累加全部；无定向返回 0）。 */
+    private double getDirectionalLowestWeightSum() {
+        List<Float> weights = new ArrayList<>();
+        for (PoolDim pd : mPool) {
+            for (Map.Entry<GTUtility.ItemId, Float> entry : pd.dropMap.getInternalMap()
+                .entrySet()) {
+                if (mDirectionalOres.contains(entry.getKey())) weights.add(entry.getValue());
+            }
+        }
+        if (weights.isEmpty()) return 0.0d;
+        Collections.sort(weights);
+        double sum = 0.0d;
+        for (int i = 0; i < Math.min(3, weights.size()); i++) sum += weights.get(i);
+        return sum;
+    }
+
+    /** 定向倍率 = 1 + 2500% ÷ 最低 3 个定向权重之和（权重和为 0 返回 0，表示不可运行）。 */
     public double getDirectionalFactor() {
-        float sum = getDirectionalWeightSum();
-        return sum <= 0.0f ? 0.0d : 25.0d / sum;
+        double sum = getDirectionalLowestWeightSum();
+        return sum <= 0.0d ? 0.0d : 1.0d + 25.0d / sum;
     }
 
     /**
-     * 消耗增加% 展示值（终端 UI「浏览器标题右侧」+X%）：定向模式 = 2500% ÷ 定向权重和；
+     * 消耗增加% 展示值（终端 UI「浏览器标题右侧」+X%）：定向模式 = 100% + 2500% ÷ 最低 3 个定向权重之和；
      * 筛选模式 = 权重和 + 5×k×(k-1)/2（v1.10.52 递增公式，倍率项 1+消耗增加/100）。
      */
     public double getWeightIncreasePercent() {
         if (mDirectionalMode) {
-            float sum = getDirectionalWeightSum();
-            return sum <= 0.0f ? 0.0d : 2500.0d / sum;
+            double sum = getDirectionalLowestWeightSum();
+            return sum <= 0.0d ? 0.0d : 100.0d + 2500.0d / sum;
         }
         return getFilterCostIncrease();
     }
@@ -849,7 +866,7 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
 
     /**
      * 切换定向模式（服务端入口，幂等）：进入时清空过滤与定向集合；立即按新模式重建矿池（定向只留槽 1）；
-     * 强制停机并清空奇点模式；时运钳位到奇点模式 0 的上限 7（III）。
+     * 强制停机并清空奇点模式；时运即时钳位到奇点模式 0 的上限 7（III），与 checkProcessing 运行前钳位双保险。
      */
     public void toggleDirectionalMode(EntityPlayer aPlayer) {
         mDirectionalMode = !mDirectionalMode;
@@ -862,6 +879,7 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
         mProgresstime = 0;
         mSingularityMode = 0;
         mSingularityModeTicks = 0;
+        // 与 checkProcessing 运行前钳位双保险（此处按奇点模式 0 上限即时钳位）
         if (mFortuneLevel > 7) mFortuneLevel = 7;
         if (getBaseMetaTileEntity() != null) getBaseMetaTileEntity().markDirty();
         if (aPlayer != null) {
@@ -1089,6 +1107,13 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
     public CheckRecipeResult checkProcessing() {
         rebuildPoolIfNeeded();
 
+        // 时运钳位（运行前）：超过奇点模式上限（无奇点7/奇点11/临界15）的档位自动降档，
+        // 终端按钮恒可轮切全 7 档，超限档位由此兜底
+        if (mFortuneLevel > getMaxAllowedFortuneLevel()) {
+            mFortuneLevel = getMaxAllowedFortuneLevel();
+            if (getBaseMetaTileEntity() != null) getBaseMetaTileEntity().markDirty();
+        }
+
         if (!hasUsableDimension()) {
             return SimpleCheckRecipeResult.ofFailure("gtsr.gui.crust_matter_agg.no_dimension");
         }
@@ -1141,29 +1166,23 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
 
     // —— 产出形态转换（粗矿 / 粉碎矿模式）——
 
+    /** 挖掘掉落结果：模板物品 + 总数（含原版时运额外份数）。 */
+    private static class MinedDrop {
+
+        final ItemStack template;
+        final int count;
+
+        MinedDrop(ItemStack template, int count) {
+            this.template = template;
+            this.count = count;
+        }
+    }
+
     /**
-     * 按当前矿石模式输出单个原矿：模式 0 原样输出 ×1（不吃时运）；模式 1 按挖掘掉落输出
-     * （GT 矿经 OreManager 取 fortune=0 基础掉落，非 GT 矿经 GTMockWorld 挖掘掉落，数量 = 1+时运档位值）；
-     * 模式 2 输出 crushed 形态 ×3×(1+时运)；目标形态不存在或掉落解析失败时回退原样输出 ×1。
+     * 按挖掘掉落取粗矿：GT 矿 adapter fortune=0 基础（普通 1/rich 2）+ 原版时运公式额外份数；非 GT 矿 block.getDrops(fortune) 直通。解析失败返回
+     * null（调用方回退原样输出）。
      */
-    private void outputOre(ItemStack rawOre) {
-        if (mOreMode == 0) {
-            addOutputPartial(rawOre);
-            return;
-        }
-        if (mOreMode == 2) {
-            Materials material = getOreMaterial(rawOre);
-            ItemStack converted = material == null ? null
-                : GTOreDictUnificator.get(OrePrefixes.crushed, material, 3 * (1 + mFortuneLevel));
-            if (converted == null) {
-                addOutputPartial(rawOre);
-            } else {
-                addOutputPartial(converted);
-            }
-            return;
-        }
-        // 模式 1 粗矿 = 挖掘掉落：GT5U 5.09.54 无 ore 前缀物品注册于 unificator（GTOreDictUnificator.get 返回 null），
-        // 故仿采矿节点 collectOreDropsWithCrushedFortune 直接按方块取挖掘掉落
+    private MinedDrop mineCrudeDrops(ItemStack rawOre) {
         try {
             Item item = rawOre.getItem();
             if (item instanceof ItemBlock) {
@@ -1171,8 +1190,8 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
                 int meta = rawOre.getItemDamage();
                 try (OreInfo<?> info = OreManager.getOreInfo(block, meta)) {
                     if (info != null) {
-                        // GT 矿：force isNatural=true（GTNH 世界矿石 isNatural=false 会导致 adapter
-                        // 以非自然形态/fortune=0 处理），取 fortune=0 基础掉落再按档位定数量
+                        // GT 矿：force isNatural=true（GTNH 世界矿石 isNatural=false 会导致 adapter 以非自然形态处理），
+                        // fortune=0 取基础掉落（普通 1 个 / rich 2 个），绕过 GTOreAdapter 内部 fortune>3 截断
                         boolean origNatural = info.isNatural;
                         info.isNatural = true;
                         List<ItemStack> drops;
@@ -1182,30 +1201,69 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
                         } finally {
                             info.isNatural = origNatural;
                         }
-                        if (drops != null && !drops.isEmpty() && outputMinedDrop(drops.get(0))) return;
-                    } else {
-                        // 非 GT 矿（vanilla/其他 mod）：GTMockWorld 挖掘掉落（UnificationOreAdapter :194-199 同款用法）
-                        GTMockWorld mockWorld = new GTMockWorld();
-                        mockWorld.clear();
-                        mockWorld.setBlock(0, 0, 0, block, meta, 0);
-                        List<ItemStack> drops = block.getDrops(mockWorld, 0, 0, 0, meta, 0);
-                        if (drops != null && !drops.isEmpty() && outputMinedDrop(drops.get(0))) return;
+                        if (drops == null || drops.isEmpty()) return null;
+                        // 原版时运公式：额外 = max(0, nextInt(档位+2)-1)
+                        int extra = Math.max(
+                            0,
+                            ThreadLocalRandom.current()
+                                .nextInt(mFortuneLevel + 2) - 1);
+                        return new MinedDrop(drops.get(0), drops.size() + extra);
                     }
+                    // 非 GT 矿（vanilla/其他 mod）：GTMockWorld 挖掘掉落，fortune 直通原版公式
+                    GTMockWorld mockWorld = new GTMockWorld();
+                    mockWorld.clear();
+                    mockWorld.setBlock(0, 0, 0, block, meta, 0);
+                    List<ItemStack> drops = block.getDrops(mockWorld, 0, 0, 0, meta, mFortuneLevel);
+                    if (drops == null || drops.isEmpty()) return null;
+                    return new MinedDrop(drops.get(0), drops.get(0).stackSize);
                 }
             }
         } catch (Throwable t) {
             GTSteamReborn.LOG.warn("[CrustMatterAggregator] 粗矿掉落解析失败，回退原矿输出", t);
         }
-        addOutputPartial(rawOre);
+        return null;
     }
 
-    /** 按当前时运档位输出单个挖掘掉落（数量 = 1+档位值）；null/空物品返回 false（由调用方回退原样输出）。 */
-    private boolean outputMinedDrop(ItemStack drop) {
-        if (drop == null || drop.getItem() == null) return false;
-        ItemStack out = drop.copy();
-        out.stackSize = 1 + mFortuneLevel;
-        addOutputPartial(out);
-        return true;
+    /**
+     * 按当前矿石模式输出单个原矿（dropMap 物品为矿石方块）：
+     * 模式 0 原样输出 ×1（不吃时运）；
+     * 模式 1 按挖掘掉落输出粗矿（GT 矿基础 1/2 个 + 原版时运公式额外份数，非 GT 矿 block.getDrops(fortune) 直通）；
+     * 模式 2 按该粗矿的研磨机配方主产物数量 ×1.5 输出粉碎矿（红石/冰晶石等特殊矿自动得到实际数量，
+     * 如红石 ×10→×15、普通矿 ×2→×3）；已是加工形态不转换；无配方回退 crushed×2（=×3 现状）；目标形态不存在回退原样输出 ×1。
+     */
+    private void outputOre(ItemStack rawOre) {
+        if (mOreMode == 0) {
+            addOutputPartial(rawOre);
+            return;
+        }
+        MinedDrop mined = mineCrudeDrops(rawOre);
+        if (mined == null) {
+            addOutputPartial(rawOre);
+            return;
+        }
+        if (mOreMode == 1) {
+            addOutputPartial(GTUtility.copyAmount(mined.count, mined.template));
+            return;
+        }
+        // 模式 2：已是加工形态的掉落不再转换（镜像采矿节点 skip 语义）
+        if (OreCrushedUtil.isProcessedForm(mined.template)) {
+            addOutputPartial(GTUtility.copyAmount(mined.count, mined.template));
+            return;
+        }
+        ItemStack product = OreCrushedUtil.getCrushedProduct(mined.template);
+        int perCrude = 2; // 无配方回退默认 2（×1.5 = 3，保持 v1.10.5x 现状）
+        if (product == null) {
+            Materials material = getOreMaterial(mined.template);
+            product = material == null ? null : GTOreDictUnificator.get(OrePrefixes.crushed, material, 1);
+        } else {
+            perCrude = product.stackSize;
+        }
+        if (product == null) {
+            addOutputPartial(rawOre);
+            return;
+        }
+        product.stackSize = (int) Math.round(mined.count * perCrude * 1.5d);
+        addOutputPartial(product);
     }
 
     /** 取物品的 GT 材料（非 GT 物品返回 null）。 */
@@ -1324,7 +1382,7 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
         if (getBaseMetaTileEntity() != null) getBaseMetaTileEntity().markDirty();
     }
 
-    /** 当前奇点模式允许的时运上限：模式 0/1/2 → 7/11/15（III/V/VII 恒可用、IX/XI 需奇点模式、XIII/XV 需临界模式）。 */
+    /** 当前奇点模式允许的时运上限：模式 0/1/2 → 7/11/15（III/V/VII 恒可用、IX/XI 需奇点模式、XIII/XV 需临界模式）；超限档位由 checkProcessing 运行前钳位兜底。 */
     public int getMaxAllowedFortuneLevel() {
         switch (mSingularityMode) {
             case 2:

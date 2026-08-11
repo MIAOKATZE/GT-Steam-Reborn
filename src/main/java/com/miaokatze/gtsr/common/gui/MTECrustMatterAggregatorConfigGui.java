@@ -70,7 +70,7 @@ import gregtech.api.util.GTUtility;
  *
  * 同步设计：
  * - "gtsr.cfg.oreList"：GenericListSyncHandler，服务端每 tick 检测变化并同步到客户端；
- * - "gtsr.cfg.oreMode"/"gtsr.cfg.fortune"/"gtsr.cfg.maxFortune"/"gtsr.cfg.steamMult"/"gtsr.cfg.denseState"：
+ * - "gtsr.cfg.oreMode"/"gtsr.cfg.fortune"/"gtsr.cfg.steamMult"/"gtsr.cfg.denseState"：
  * IntSyncValue/DoubleSyncValue/BooleanSyncValue，仅 S2C（denseState 驱动蒸汽消耗基准 240/24000 L/s）；
  * - "gtsr.cfg.directionalMode"/"gtsr.cfg.uuMult"/"gtsr.cfg.weightIncrease"/"gtsr.cfg.dimIncrease"：
  * BooleanSyncValue/DoubleSyncValue，仅 S2C（定向开关与 UU 倍率、消耗增加% 实际值；
@@ -81,29 +81,29 @@ import gregtech.api.util.GTUtility;
  */
 public class MTECrustMatterAggregatorConfigGui implements IGuiHolder<PosGuiData> {
 
-    // 面板 470×350：GUI 缩放 3x 下 1410×1050，1080p 窗口内完整显示（含底部玩家背包，不被窗口底边截断）；
+    // 面板 475×350：GUI 缩放 3x 下 1425×1050，1080p 窗口内完整显示（含底部玩家背包，不被窗口底边截断）；
     // v1.10.52 收拢中间留白 20px（槽位右移 10、浏览器左移 10），面板同步收窄 20
-    private static final int PANEL_WIDTH = 470;
+    private static final int PANEL_WIDTH = 475;
     private static final int PANEL_HEIGHT = 350;
     // 左列（维度槽）：标题 + 25 槽 5×5 网格 + 刷新按钮 + 维度说明 + 定向模式区，全部绝对定位。
     // 注意：槽列不用 Flow 容器（实机验证 Flow 作为面板 child 时 pos 失效被居中），
     // 25 个 ItemSlot 各自作为面板直接 child 显式 pos 定位。
     private static final int LEFT_X = 18;
-    private static final int SLOT_TITLE_Y = 44;
-    private static final int SLOT_COL_Y = 56;
-    private static final int SLOT_SIZE = 16; // 槽格 16px；网格宽 5×17-1 = 84px（x 8-92），5 行 → y 56-140
+    private static final int SLOT_TITLE_Y = 45;
+    private static final int SLOT_COL_Y = 57;
+    private static final int SLOT_SIZE = 16; // 槽格 16px；网格宽 5×17-1 = 84px（x 8-92），5 行 → y 57-141
     private static final int SLOT_GRID_COLS = 5;
     private static final int SLOT_GAP = 1; // 槽格间距
     // 刷新按钮：「维度槽」标题文字（3 个 CJK 字符 ≈ 18px）右侧，与标题同一水平线（不放槽格右侧）；
-    // y 43-55 位于标题行且不侵入下方槽格（56 起）；右侧紧接维度消耗增加% 实际值（+X% 粗体）
+    // y 44-56 位于标题行且不侵入下方槽格（57 起）；右侧紧接维度消耗增加% 实际值（+X% 粗体）
     private static final int REFRESH_X = LEFT_X + 32;
     private static final int REFRESH_Y = SLOT_TITLE_Y - 1;
     private static final int DIM_INCREASE_X = REFRESH_X + 26 + 4; // 刷新按钮右侧
-    private static final int DIM_TEXT_Y = 144; // 维度消耗说明文本（槽格底 140 之下，黑字）
-    private static final int DIRECTIONAL_Y = 162; // 定向模式切换按钮行（维度说明之下）
-    private static final int HINT_Y = 184; // 当前模式提示信息（TextWidget 自动折行，不侵入浏览器区）
+    private static final int DIM_TEXT_Y = 145; // 维度消耗说明文本（槽格底 141 之下，黑字）
+    private static final int DIRECTIONAL_Y = 163; // 定向模式切换按钮行（维度说明之下）
+    private static final int HINT_Y = 185; // 当前模式提示信息（TextWidget 自动折行，不侵入浏览器区）
     private static final int HINT_W = 157; // 左列可用宽度（x 18-180 浏览器框左缘）
-    private static final int HINT_H = 84; // 定向 7 行 × 10px 行高 + 余量（背包顶 269 之上）
+    private static final int HINT_H = 83; // 定向 7 行 × 10px 行高 + 余量（背包顶 269 之上）
     // 右侧矿石浏览器区（绝对坐标，全部直接挂面板，避免嵌套容器定位歧义）；
     // v1.10.52 左移 10（190→180）收拢中间留白，宽 290（右缘 470 对齐面板）
     private static final int BROWSER_X = 180;
@@ -175,7 +175,6 @@ public class MTECrustMatterAggregatorConfigGui implements IGuiHolder<PosGuiData>
         // 配置值同步（S2C）
         IntSyncValue oreModeSync = new IntSyncValue(() -> aggregator.mOreMode);
         IntSyncValue fortuneSync = new IntSyncValue(() -> aggregator.mFortuneLevel);
-        IntSyncValue maxFortuneSync = new IntSyncValue(aggregator::getMaxAllowedFortuneLevel);
         DoubleSyncValue steamMultSync = new DoubleSyncValue(aggregator::getSteamMultiplier);
         // 当前档位致密态（S2C 驱动蒸汽消耗基准：致密 240 L/s / 普通 24000 L/s）
         BooleanSyncValue denseSync = new BooleanSyncValue(aggregator::getActiveDense);
@@ -195,7 +194,6 @@ public class MTECrustMatterAggregatorConfigGui implements IGuiHolder<PosGuiData>
         syncManager.syncValue("gtsr.cfg.oreList", oreListSync);
         syncManager.syncValue("gtsr.cfg.oreMode", oreModeSync);
         syncManager.syncValue("gtsr.cfg.fortune", fortuneSync);
-        syncManager.syncValue("gtsr.cfg.maxFortune", maxFortuneSync);
         syncManager.syncValue("gtsr.cfg.steamMult", steamMultSync);
         syncManager.syncValue("gtsr.cfg.denseState", denseSync);
         syncManager.syncValue("gtsr.cfg.directionalMode", directionalSync);
@@ -221,7 +219,6 @@ public class MTECrustMatterAggregatorConfigGui implements IGuiHolder<PosGuiData>
                 buildConfigRow(
                     oreModeSync,
                     fortuneSync,
-                    maxFortuneSync,
                     steamMultSync,
                     denseSync,
                     directionalSync,
@@ -238,7 +235,7 @@ public class MTECrustMatterAggregatorConfigGui implements IGuiHolder<PosGuiData>
                 IKey.lang("gtsr.aggregator_config.browser_title")
                     .asWidget()
                     .pos(BROWSER_X, SLOT_TITLE_Y))
-            // 权重消耗增加% 实际值（浏览器标题右侧，粗体）：筛选 = 被过滤矿石权重和；定向 = 2500%÷定向权重和
+            // 权重消耗增加% 实际值（浏览器标题右侧，粗体）：筛选 = 被过滤矿石权重和；定向 = 100%+2500%÷最低3个定向权重之和
             .child(
                 IKey.dynamic(() -> formatIncreaseValue(weightIncreaseSync.getDoubleValue()))
                     .asWidget()
@@ -323,9 +320,9 @@ public class MTECrustMatterAggregatorConfigGui implements IGuiHolder<PosGuiData>
 
     // —— 第一行配置按钮 / 文本 ——
 
-    private IWidget buildConfigRow(IntSyncValue oreModeSync, IntSyncValue fortuneSync, IntSyncValue maxFortuneSync,
-        DoubleSyncValue steamMultSync, BooleanSyncValue denseSync, BooleanSyncValue directionalSync,
-        DoubleSyncValue uuMultSync, AggregatorActionSyncHandler actionSync) {
+    private IWidget buildConfigRow(IntSyncValue oreModeSync, IntSyncValue fortuneSync, DoubleSyncValue steamMultSync,
+        BooleanSyncValue denseSync, BooleanSyncValue directionalSync, DoubleSyncValue uuMultSync,
+        AggregatorActionSyncHandler actionSync) {
         // 矿石模式循环按钮：显示当前模式名 + 蒸汽加成（如「粉碎矿 +50%」），点击 C2S 循环
         ButtonWidget<?> oreModeButton = new ButtonWidget<>().size(104, 18)
             .overlay(IKey.dynamic(() -> formatOreModeLabel(oreModeSync.getIntValue())))
@@ -335,7 +332,8 @@ public class MTECrustMatterAggregatorConfigGui implements IGuiHolder<PosGuiData>
             })
             .tooltipBuilder(t -> t.addLine(IKey.lang("gtsr.aggregator_config.ore_mode.tip")));
 
-        // 时运循环按钮：原矿模式或已达上限时禁用（上限 = 同步的 maxAllowedFortune），点击 C2S 循环
+        // 时运循环按钮：仅原矿模式禁用，点击 C2S 循环（超限档位由服务端 checkProcessing 运行前自动钳位：
+        // 无奇点→7 / 奇点→11 / 临界→15，按钮恒可全 7 档轮切回到默认 III）
         ButtonWidget<?> fortuneButton = new ButtonWidget<>().size(104, 18)
             .overlay(IKey.dynamic(() -> formatFortuneLabel(fortuneSync.getIntValue())))
             .onMousePressed(mouseButton -> {
@@ -347,11 +345,10 @@ public class MTECrustMatterAggregatorConfigGui implements IGuiHolder<PosGuiData>
                 t.addLine(IKey.lang("gtsr.aggregator_config.fortune.gate"));
             })
             .onUpdateListener(button -> {
-                // 仅粗矿/粉碎矿模式可按下；档位值已达奇点模式允许上限（7/11/15）时禁用——更高档位
-                // 需先提升奇点模式（服务端 cycleFortuneLevel 在 7 档位内循环回绕，奇点模式回落后钳位到上限）
+                // 仅原矿模式禁用；超限档位由服务端 checkProcessing 运行前自动钳位（无奇点→7/奇点→11/临界→15），
+                // 按钮恒可全 7 档轮切回到默认 III
                 boolean rawMode = oreModeSync.getIntValue() == 0;
-                boolean atMax = fortuneSync.getIntValue() >= maxFortuneSync.getIntValue();
-                button.setEnabled(!rawMode && !atMax);
+                button.setEnabled(!rawMode);
             }, true);
 
         // 蒸汽消耗动态文本：基准按致密态（致密 240 L/s / 普通 24000 L/s）× 同步的蒸汽倍率，tooltip 显示倍率明细
