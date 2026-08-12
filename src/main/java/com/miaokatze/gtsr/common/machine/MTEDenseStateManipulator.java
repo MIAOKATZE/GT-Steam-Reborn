@@ -419,7 +419,7 @@ public class MTEDenseStateManipulator extends MTESingularityMachineBase implemen
             .beginStructureBlock(21, 30, 11, false)
             .addController(StatCollector.translateToLocal(keyPrefix + "ctrl"))
             .addOtherStructurePart(
-                StatCollector.translateToLocal("gtsr.tooltip.shared.steam_input_hatch"),
+                StatCollector.translateToLocal("gtsr.tooltip.dense_state_manipulator.steam_input_hatch"),
                 StatCollector.translateToLocal(keyPrefix + "steam_input"),
                 1);
         if (requiresInputBus()) {
@@ -429,20 +429,25 @@ public class MTEDenseStateManipulator extends MTESingularityMachineBase implemen
             tt.addOutputHatch(StatCollector.translateToLocal(keyPrefix + "output_hatch"), 1);
         }
         tt.addStructureInfo("")
-            .addStructureInfo(EnumChatFormatting.DARK_GRAY + StatCollector.translateToLocal(keyPrefix + "desc6"))
             .addStructureInfo(
-                EnumChatFormatting.DARK_PURPLE + StatCollector.translateToLocal(keyPrefix + "tier1_blocks"))
+                EnumChatFormatting.DARK_GRAY
+                    + StatCollector.translateToLocal("gtsr.tooltip.dense_state_manipulator.desc6"))
+            .addStructureInfo(
+                EnumChatFormatting.DARK_GRAY
+                    + StatCollector.translateToLocal("gtsr.tooltip.dense_state_manipulator.desc6_2"))
+            .addStructureInfo(
+                EnumChatFormatting.DARK_GRAY
+                    + StatCollector.translateToLocal("gtsr.tooltip.dense_state_manipulator.desc6_3"))
+            .addStructureInfo(
+                EnumChatFormatting.DARK_PURPLE
+                    + StatCollector.translateToLocal("gtsr.tooltip.dense_state_manipulator.tier1_blocks"))
+            .addStructureInfo(
+                EnumChatFormatting.DARK_PURPLE
+                    + StatCollector.translateToLocal("gtsr.tooltip.dense_state_manipulator.tier1_blocks_2"))
             .addStructureHint("gtsr.tooltip.shared.no_maintenance")
             .toolTipFinisher(
-                EnumChatFormatting.AQUA + "GT"
-                    + EnumChatFormatting.GREEN
-                    + "-"
-                    + EnumChatFormatting.GOLD
-                    + "Steam"
-                    + EnumChatFormatting.RED
-                    + "-"
-                    + EnumChatFormatting.BLUE
-                    + "Reborn");
+                EnumChatFormatting.DARK_AQUA + StatCollector.translateToLocal("gtsr.tooltip.added_by")
+                    + "GT-Steam-Reborn");
         return tt;
     }
 

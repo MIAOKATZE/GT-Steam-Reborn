@@ -49,19 +49,21 @@ A GregTech New Horizons expansion mod that **supplements the Steam Age and signi
 | 节点绑定 Node Binding | 枢纽奇点芯片解锁，总容量×5 Hub Singularity Chip enables node binding, ×5 total capacity |
 | 强化芯片 Reinforced Chip | 3级（钨钢）解锁致密/超临界蒸汽，容量×20 Tier 3 unlocks dense/supercritical steam, ×20 capacity |
 | 传输 Transfer | 双向、跨维度 Bidirectional, cross-dimensional |
+| 自动输出 Auto Output | 20,000,000 L/次/仓口·每 tick 20,000,000 L per hatch per tick |
 
 <p align="center"><img src="README/MTEWaterHubArray-T1.png" width="260" alt="蓄水枢纽阵列 / Water Hub Array"> <img src="README/MTEWaterHubArray-T2.png" width="260" alt="蓄水枢纽阵列 / Water Hub Array"><br><em>蓄水枢纽阵列 / Water Hub Array（青铜/钢）</em></p>
 
 **蓄水枢纽阵列 / Water Hub Array (WHA)**
 
-青铜/钢级，水/蒸馏水的中央调度站。接受水缓存节点（仅同维度），双向接口。
-Bronze/Steel tier, central dispatch for water/distilled water. Accepts water cache nodes (same-dimension only) with a bidirectional interface.
+青铜/钢级，水/蒸馏水的中央调度站。接受水缓存节点（支持跨维度传输），双向接口。
+Bronze/Steel tier, central dispatch for water/distilled water. Accepts water cache nodes (cross-dimensional) with a bidirectional interface.
 
 | 参数 Parameter | 数值 Value |
 |----------|-------|
 | 材质 Material | 青铜 / 钢 Bronze / Steel |
 | 最大层数 Max Layers | 30 |
-| 维度 Dimension | 仅同维度 Same-dimension only |
+| 单元容量 Unit Capacity | 1.28M / 5.12M L |
+| 维度 Dimension | 跨维度 Cross-dimensional |
 
 **额外功能 / Additional Features**
 
@@ -84,13 +86,13 @@ Steel only, requires superheated steam (no speed bonus). Drives drilling and min
 |----------|-------|
 | 材质 Material | 钢 Steel |
 | 蒸汽类型 Steam Type | 过热蒸汽（无加速）Superheated steam (no speed bonus) |
-| 基础消耗 Base Consumption | 2,000 L/s + 节点消耗 node cost |
+| 基础消耗 Base Consumption | 8,000 L/s + 节点消耗 node cost |
 
 **额外功能 / Additional Features**
 
 | 功能 Feature | 说明 Description |
 |---|---|
-| 节点消耗 Node Cost | 2,000\~20,000 L/s 每节点（仅工作中）2,000\~20,000 L/s per node (only when working) |
+| 节点消耗 Node Cost | 5,000\~240,000 L/s 每节点（仅工作中；采矿 5 级：5,000 / 10,000 / 20,000 / 80,000 / 240,000）5,000\~240,000 L/s per node (only when working; miner 5 tiers: 5,000 / 10,000 / 20,000 / 80,000 / 240,000) |
 | 产出路由 Output Routing | 采矿节点→输出总线；钻井节点→输出仓 Miner node → Output Bus; Drilling node → Output Hatch |
 | 绑定 Binding | 需枢纽奇点芯片；手持节点右击绑定/解绑 Requires Hub Singularity Chip; right-click with node to bind/unbind |
 
@@ -176,15 +178,15 @@ Produces air (or nether air in the Nether dimension) with far greater speed and 
 
 **空气离心机 / Atmospheric Centrifuge (ATC)**
 
-芯片系统：基础配方过滤2个输出，稀有气体芯片解锁最多8个输出；青铜级不能安装芯片。
-Chip system: basic recipe filters 2 outputs, rare gas chip unlocks up to 8 outputs; Bronze tier cannot install chips.
+芯片系统：基础配方过滤≤3个输出，稀有气体芯片解锁最多9个输出；青铜级不能安装芯片。
+Chip system: basic recipes filter ≤3 outputs, rare gas chip unlocks up to 9 outputs; Bronze tier cannot install chips.
 
 | 参数 Parameter | 数值 Value |
 |----------|-------|
 | 材质 Material | 青铜 / 钢 Bronze / Steel |
 | 并行 Parallel | 4 / 16 |
-| 基础输出 Base Outputs | 2 |
-| 芯片解锁输出 Chip Outputs | 最多 8（稀有气体芯片）Up to 8 (Rare Gas Chip) |
+| 基础输出 Base Outputs | ≤3 |
+| 芯片解锁输出 Chip Outputs | 最多 9（稀有气体芯片）Up to 9 (Rare Gas Chip) |
 | 芯片安装 Chip Slot | 青铜级不可用 Not available on Bronze |
 
 <p align="center"><img src="README/MTESteamFluidDrill-T1.png" width="260" alt="蒸汽流体钻井 / Steam Fluid Drill"> <img src="README/MTESteamFluidDrill-T2.png" width="260" alt="蒸汽流体钻井 / Steam Fluid Drill"><br><em>蒸汽流体钻井 / Steam Fluid Drill（青铜/钢）</em></p>
@@ -225,7 +227,7 @@ Steel only, cross-dimension void mining (configured via the terminal UI).
 | 参数 Parameter | 数值 Value |
 |----------|-------|
 | 材质 Material | 钢 Steel |
-| 蒸汽档位 Steam Grades | 3 档，各 24,000 L/s（致密流体 1/100）3 grades, 24,000 L/s each (dense fluids 1/100) |
+| 蒸汽档位 Steam Grades | 3 档，三档均 24,000 L/s（消耗不分档，系数仅作用于产出；致密流体 1/100）3 grades, all at 24,000 L/s (consumption not graded; coefficient only affects output; dense fluids 1/100) |
 | 矿石模式 Ore Modes | 原矿 / 粗矿 / 粉碎矿 Raw / Crushed / Purified |
 | 时运 Fortune | III\~XV（奇点/临界门控）III\~XV (singularity/critical gating) |
 
@@ -336,16 +338,16 @@ Consumes lava to produce steam; features calcification and overpressure mechanic
 | 奇点模式 Singularity Modes | 纠缠 ×2 功率 / 临界 ×5 功率（含效率与节省加成），每颗 200s Entangled ×2 power / Critical ×5 power (plus efficiency & savings bonuses), 200s per singularity |
 | 循环超限芯片 Cycle Overlimit Chip | 控制器槽，需 4 组额外叠加层；热蒸汽冷却直接产蒸馏水，效率因子按蒸汽家族叠加 Controller slot, requires all 4 extra stack groups; turns hot-steam cooling into distilled water, stacks steam efficiency within their family |
 
-<p align="center"><img src="README/MTELargeSolarOverpressureArray-T1.png" width="240" alt="大型太阳能超压阵列 / Large Solar Overpressure Array"> <img src="README/MTELargeSolarOverpressureArray-T2.png" width="240" alt="大型太阳能超压阵列 / Large Solar Overpressure Array"> <img src="README/MTELargeSolarOverpressureArray-T3.png" width="240" alt="大型太阳能超压阵列 / Large Solar Overpressure Array"><br><em>大型太阳能超压阵列 / Large Solar Overpressure Array（青铜/钢/镍）</em></p>
+<p align="center"><img src="README/MTELargeSolarOverpressureArray-T1.png" width="240" alt="大型太阳能超压阵列 / Large Solar Overpressure Array"> <img src="README/MTELargeSolarOverpressureArray-T2.png" width="240" alt="大型太阳能超压阵列 / Large Solar Overpressure Array"> <img src="README/MTELargeSolarOverpressureArray-T3.png" width="240" alt="大型太阳能超压阵列 / Large Solar Overpressure Array"><br><em>大型太阳能超压阵列 / Large Solar Overpressure Array（青铜/钢/银）</em></p>
 
 **大型太阳能超压阵列 / Large Solar Overpressure Array (LSOA)**
 
-3级（青铜/钢/镍）太阳能产蒸汽阵列；镍级产出过热蒸汽。
-3-tier (Bronze/Steel/Nickel) solar-powered steam array; Nickel tier outputs superheated steam.
+3级（青铜/钢/银）太阳能产蒸汽阵列；银级产出过热蒸汽。
+3-tier (Bronze/Steel/Silver) solar-powered steam array; Silver tier outputs superheated steam.
 
 | 参数 Parameter | 数值 Value |
 |----------|-------|
-| 等级 Tier | 青铜 / 钢 / 镍 Bronze / Steel / Nickel |
+| 等级 Tier | 青铜 / 钢 / 银 Bronze / Steel / Silver |
 | 基础产出 Base Output | T1=120K / T2=180K / T3=240K L/s |
 | 最高倍率 Max Multiplier | ×4.0（最大增幅产出 480K/720K/960K L/s）×4.0 (max boosted 480K/720K/960K L/s) |
 
@@ -447,12 +449,12 @@ Devours the highest-grade steam in the input hatches (normal/superheated/supercr
 
 **临界纠缠奇点稳定装置 / Critical Entangled Singularity Stabilizer (CSC)**
 
-接收普通/过热/超临界及其致密蒸汽，按饱和函数累积热量；热量达 100% 时产出 1 个临界蒸汽纠缠奇点；会吞噬输入仓全部蒸汽并禁用蒸汽冷却。
-Accepts normal/superheated/supercritical and their dense variants, accumulating heat via a saturation function; at 100% heat it produces 1 Critical Steam Entangled Singularity. Devours all steam from the input hatches and disables steam cooling.
+仅接收致密态变体（致密蒸汽 / 致密过热 / 致密超临界），按饱和函数累积热量；热量达 100% 时产出 1 个临界蒸汽纠缠奇点；会吞噬输入仓全部蒸汽并禁用蒸汽冷却。
+Accepts only dense variants (dense steam / dense superheated / dense supercritical), accumulating heat via a saturation function; at 100% heat it produces 1 Critical Steam Entangled Singularity. Devours all steam from the input hatches and disables steam cooling.
 
 | 参数 Parameter | 数值 Value |
 |----------|-------|
-| 蒸汽输入 Steam Input | 普通 / 过热 / 超临界 及致密变体 Normal / Superheated / Supercritical + dense variants |
+| 蒸汽输入 Steam Input | 仅致密态：致密蒸汽 / 致密过热 / 致密超临界 Dense only: dense steam / dense superheated / dense supercritical |
 | 产出 Output | 1 临界蒸汽纠缠奇点（热量 100%）1 Critical Steam Entangled Singularity (at 100% heat) |
 
 **额外功能 / Additional Features**
@@ -466,13 +468,13 @@ Accepts normal/superheated/supercritical and their dense variants, accumulating 
 
 **致密态蒸汽操控装置 / Dense State Manipulator (DSM)**
 
-螺丝刀循环切换双模式：蒸汽压缩 / 蒸汽解压；输入总线中每颗奇点燃料续航 600s。
-Dual mode cycled by screwdriver: Steam Compression / Steam Decompression; each singularity in the input buses fuels 600 seconds.
+螺丝刀循环切换双模式：蒸汽压缩 / 蒸汽解压；输入总线中每颗奇点燃料续航 200s（普通奇点输出损失 20%，临界奇点无损）。
+Dual mode cycled by screwdriver: Steam Compression / Steam Decompression; each singularity in the input buses fuels 200 seconds (Normal: 20% output loss; Critical: no loss).
 
 | 参数 Parameter | 数值 Value |
 |----------|-------|
 | 模式 Modes | 蒸汽压缩（1000:1 蒸汽→致密）/ 蒸汽解压（1:1000 致密→蒸汽）Steam Compression (1000:1) / Steam Decompression (1:1000) |
-| 燃料续航 Fuel | 每颗奇点 600s 600s per singularity |
+| 燃料续航 Fuel | 每颗奇点 200s；普通（蒸汽纠缠奇点）输出损失 20%，临界（临界蒸汽纠缠奇点）无损 200s per singularity; Normal (Steam Entangled Singularity) 20% output loss, Critical (Critical Steam Entangled Singularity) no loss |
 | 需求 Requires | 输入总线 + 输出仓；无热量机制 Input bus + output hatch; no heat mechanic |
 
 <p align="center"><img src="README/MTEDenseStateManipulator.png" width="450" alt="致密态蒸汽操控装置 / Dense State Manipulator"><br><em>致密态蒸汽操控装置 / Dense State Manipulator</em></p>
@@ -709,7 +711,7 @@ Hub/Reinforced/Overpressure Hub Storage Units for stacking layers in hub arrays.
 - **强化枢纽奇点芯片 / Reinforced Hub Singularity Chip**: For tier 3 Steam Hub only — enables dense/supercritical steam, ×20 capacity (replaces the ×5 Hub Chip bonus), and overpressure cache node binding.
 - **蒸汽轮机循环超限芯片 / Steam Turbine Cycle Overlimit Chip**: For Mega Steam Turbine Array controller slot — requires all 4 extra stack groups to activate: superheated/supercritical (incl. dense) steam cooling becomes distilled water, and steam efficiency factors stack within their steam family (e.g. supercritical = 超临界+过热+蒸汽 = 2.5×). / 装入巨型蒸汽轮机阵列控制器槽，需完成全部4组额外叠加层：过热/超临界（含致密）蒸汽冷却直接产蒸馏水，蒸汽效率因子按蒸汽家族内叠加（如超临界=超临界+过热+蒸汽=2.5倍）。
 - **地热过热芯片 / Geothermal Overheat Chip**: For Large Geothermal Steam Boiler (steel tier) — enables superheated steam output and rare byproducts.
-- **稀有气体分离芯片 / Rare Gas Separation Chip**: For Atmospheric Centrifuge — unlocks recipes with >2 fluid outputs (up to 8).
+- **稀有气体分离芯片 / Rare Gas Separation Chip**: For Atmospheric Centrifuge — unlocks recipes with >3 fluid outputs (up to 9).
 - **矿脉裂解器芯片（T1/T2/T3）/ Vein Pyrolyzer Chip (T1/T2/T3)**: For Vein Steam Pyrolyzer — expands underground fluid scan range.
 - **制氨催化剂（7种变体）/ Ammonia Catalyst (7 variants)**: For Ammonia Plant — determines parallel count and reaction time. 7-tier progression from Nickel to Quantum.
 

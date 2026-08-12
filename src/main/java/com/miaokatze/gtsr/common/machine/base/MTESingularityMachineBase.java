@@ -547,13 +547,31 @@ public abstract class MTESingularityMachineBase extends MTESingularityModeMachin
     protected MultiblockTooltipBuilder createTooltip() {
         String keyPrefix = getTooltipKeyPrefix();
         MultiblockTooltipBuilder tt = new MultiblockTooltipBuilder();
-        tt.addMachineType(StatCollector.translateToLocal(keyPrefix + "type"))
-            .addInfo(StatCollector.translateToLocal(keyPrefix + "desc"))
-            .addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal(keyPrefix + "desc2"))
-            .addInfo(EnumChatFormatting.GREEN + StatCollector.translateToLocal(keyPrefix + "desc3"))
-            .addInfo(EnumChatFormatting.RED + StatCollector.translateToLocal(keyPrefix + "desc4"))
-            .addInfo(EnumChatFormatting.DARK_PURPLE + StatCollector.translateToLocal(keyPrefix + "desc5"));
+        tt.addMachineType(StatCollector.translateToLocal(keyPrefix + "type"));
+        tt.addInfo(StatCollector.translateToLocal(keyPrefix + "desc"));
+        addSplitTooltipLines(tt, keyPrefix, "desc");
+        tt.addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal(keyPrefix + "desc2"));
+        addSplitTooltipLines(tt, keyPrefix, "desc2");
+        tt.addInfo(EnumChatFormatting.GREEN + StatCollector.translateToLocal(keyPrefix + "desc3"));
+        addSplitTooltipLines(tt, keyPrefix, "desc3");
+        tt.addInfo(EnumChatFormatting.RED + StatCollector.translateToLocal(keyPrefix + "desc4"));
+        addSplitTooltipLines(tt, keyPrefix, "desc4");
+        tt.addInfo(EnumChatFormatting.DARK_PURPLE + StatCollector.translateToLocal(keyPrefix + "desc5"));
+        addSplitTooltipLines(tt, keyPrefix, "desc5");
         return tt;
+    }
+
+    /**
+     * 在 descN 主行后追加可选拆行（descN_2/descN_3，AQUA 色）。
+     * 拆行键在语言文件中不存在时不输出任何内容，与未配置拆行时的旧行为完全一致。
+     */
+    private void addSplitTooltipLines(MultiblockTooltipBuilder tt, String keyPrefix, String descKey) {
+        for (int i = 2; i <= 3; i++) {
+            String splitKey = keyPrefix + descKey + "_" + i;
+            if (StatCollector.canTranslate(splitKey)) {
+                tt.addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal(splitKey));
+            }
+        }
     }
 
     @Override

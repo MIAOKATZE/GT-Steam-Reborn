@@ -454,6 +454,8 @@ public class MTESteamFluidDrill extends MTESteamMultiBlockBase<MTESteamFluidDril
         tt.addMachineType(StatCollector.translateToLocal("gtsr.tooltip.fluid_drill.type"))
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.fluid_drill.desc"))
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.fluid_drill.desc2"))
+            .addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.fluid_drill.desc2_2"))
+            .addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.fluid_drill.desc2_3"))
             .addInfo(EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.fluid_drill.mode_switch"))
             .addInfo(EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.tooltip.fluid_drill.mode_penalty"))
             .addInfo(
@@ -461,11 +463,11 @@ public class MTESteamFluidDrill extends MTESteamMultiBlockBase<MTESteamFluidDril
             .addSeparator()
             .addInfo(
                 EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.fluid_drill.output_rates"))
-            .addInfo(EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.fluid_drill.rate_water"))
+            .addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.fluid_drill.rate_water"))
             .addInfo(
-                EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.fluid_drill.rate_distilled"))
-            .addInfo(EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.fluid_drill.rate_brine"))
-            .addInfo(EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.fluid_drill.rate_lava"))
+                EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.fluid_drill.rate_distilled"))
+            .addInfo(EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.tooltip.fluid_drill.rate_brine"))
+            .addInfo(EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.fluid_drill.rate_lava"))
             .addInfo(
                 EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.fluid_drill.high_steam_cost"))
             .addSeparator()
@@ -482,7 +484,7 @@ public class MTESteamFluidDrill extends MTESteamMultiBlockBase<MTESteamFluidDril
             .beginStructureBlock(5, 6, 5, false)
             .addController(StatCollector.translateToLocal("gtsr.tooltip.fluid_drill.ctrl"))
             .addOtherStructurePart(
-                StatCollector.translateToLocal("gtsr.tooltip.shared.steam_input_hatch"),
+                StatCollector.translateToLocal("gtsr.tooltip.fluid_drill.steam_input"),
                 StatCollector.translateToLocal("gtsr.tooltip.shared.any_casing"),
                 1)
             .addOutputHatch(StatCollector.translateToLocal("gtsr.tooltip.fluid_drill.output_hatch"), 1)
@@ -496,21 +498,14 @@ public class MTESteamFluidDrill extends MTESteamMultiBlockBase<MTESteamFluidDril
                     + EnumChatFormatting.DARK_PURPLE
                     + "Tier")
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.casing"), 11, false)
-            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.pipe"), 4, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.pipe"), 3, false)
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.gear_box"), 4, false)
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.frame"), 10, false)
             .addStructureHint("gtsr.tooltip.shared.no_maintenance")
             .addStructureHint("gtsr.tooltip.fluid_drill.hint_bronze")
             .toolTipFinisher(
-                EnumChatFormatting.AQUA + "GT"
-                    + EnumChatFormatting.GREEN
-                    + "-"
-                    + EnumChatFormatting.GOLD
-                    + "Steam"
-                    + EnumChatFormatting.RED
-                    + "-"
-                    + EnumChatFormatting.BLUE
-                    + "Reborn");
+                EnumChatFormatting.DARK_AQUA + StatCollector.translateToLocal("gtsr.tooltip.added_by")
+                    + "GT-Steam-Reborn");
         return tt;
     }
 

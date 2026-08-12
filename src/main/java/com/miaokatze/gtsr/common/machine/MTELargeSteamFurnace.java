@@ -391,6 +391,7 @@ public class MTELargeSteamFurnace extends MTESteamMultiBlockBase<MTELargeSteamFu
         MultiblockTooltipBuilder tt = new MultiblockTooltipBuilder();
         tt.addMachineType(StatCollector.translateToLocal("gtsr.tooltip.steam_furnace.type"))
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.steam_furnace.desc"))
+            .addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.steam_furnace.desc_2"))
             .addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.steam_furnace.speed"))
             .addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.steam_furnace.steam_eff"))
             .addInfo(
@@ -419,43 +420,20 @@ public class MTELargeSteamFurnace extends MTESteamMultiBlockBase<MTELargeSteamFu
             .addInputBus(StatCollector.translateToLocal("gtsr.tooltip.steam_furnace.input_bus"), 1)
             .addOutputBus(StatCollector.translateToLocal("gtsr.tooltip.steam_furnace.output_bus"), 1)
             .addOtherStructurePart(
-                StatCollector.translateToLocal("gtsr.tooltip.shared.steam_input_hatch"),
-                StatCollector.translateToLocal("gtsr.tooltip.shared.steam_or_pressure"),
+                StatCollector.translateToLocal("gtsr.tooltip.steam_furnace.steam_input"),
+                StatCollector.translateToLocal("gtsr.tooltip.shared.any_casing"),
                 1)
             .addStructureInfo("")
             .addStructureInfo(
                 EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.shared.bronze_steel_tier"))
-            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.casing"), 19, false)
-            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.firebox"), 3, false)
-            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.pipe"), 6, false)
-            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.gear_box"), 1, false)
-            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.frame"), 6, false)
-            .addStructureInfo(
-                EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.shared.parallel")
-                    + ": "
-                    + EnumChatFormatting.GOLD
-                    + "24"
-                    + EnumChatFormatting.GRAY
-                    + " ("
-                    + StatCollector.translateToLocal("gtsr.gui.tier.bronze")
-                    + ")"
-                    + EnumChatFormatting.GOLD
-                    + "/48"
-                    + EnumChatFormatting.GRAY
-                    + " ("
-                    + StatCollector.translateToLocal("gtsr.gui.tier.steel")
-                    + ")")
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.casing"), 41, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.firebox"), 27, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.frame"), 20, false)
+            .addStructureHint("gtsr.tooltip.steam_furnace.optional_cooling")
             .addStructureHint("gtsr.tooltip.shared.no_maintenance")
             .toolTipFinisher(
-                EnumChatFormatting.AQUA + "GT"
-                    + EnumChatFormatting.GREEN
-                    + "-"
-                    + EnumChatFormatting.GOLD
-                    + "Steam"
-                    + EnumChatFormatting.RED
-                    + "-"
-                    + EnumChatFormatting.BLUE
-                    + "Reborn");
+                EnumChatFormatting.DARK_AQUA + StatCollector.translateToLocal("gtsr.tooltip.added_by")
+                    + "GT-Steam-Reborn");
         return tt;
     }
 

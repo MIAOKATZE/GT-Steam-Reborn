@@ -423,6 +423,8 @@ public class MTEAtmosphericCentrifuge extends MTESteamMultiBlockBase<MTEAtmosphe
         tt.addMachineType(StatCollector.translateToLocal("gtsr.tooltip.atmospheric_centrifuge.type"))
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.atmospheric_centrifuge.desc"))
             .addInfo(
+                EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.atmospheric_centrifuge.desc_2"))
+            .addInfo(
                 EnumChatFormatting.GRAY
                     + StatCollector.translateToLocal("gtsr.tooltip.atmospheric_centrifuge.chip_info.1")
                     + EnumChatFormatting.YELLOW
@@ -449,17 +451,17 @@ public class MTEAtmosphericCentrifuge extends MTESteamMultiBlockBase<MTEAtmosphe
             .addInputHatch(StatCollector.translateToLocal("gtsr.tooltip.atmospheric_centrifuge.input_hatch"), 1)
             .addOutputHatch(StatCollector.translateToLocal("gtsr.tooltip.atmospheric_centrifuge.output_hatch"), 1)
             .addOtherStructurePart(
-                StatCollector.translateToLocal("gtsr.tooltip.shared.steam_input_hatch"),
+                StatCollector.translateToLocal("gtsr.tooltip.atmospheric_centrifuge.steam_input"),
                 StatCollector.translateToLocal("gtsr.tooltip.shared.any_casing"),
                 1)
             .addStructureInfo(
                 EnumChatFormatting.LIGHT_PURPLE
                     + StatCollector.translateToLocal("gtsr.tooltip.atmospheric_centrifuge.mega_air_hint"))
             .addStructureInfo("")
-            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.casing"), 23, false)
-            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.pipe"), 12, false)
-            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.gear_box"), 6, false)
-            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.frame"), 16, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.casing"), 89, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.gear_box"), 10, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.frame"), 32, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.reinforced_glass"), 16, false)
             .addStructureInfo(
                 EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.shared.parallel")
                     + ": "
@@ -480,16 +482,10 @@ public class MTEAtmosphericCentrifuge extends MTESteamMultiBlockBase<MTEAtmosphe
                 StatCollector.translateToLocal("gtsr.tooltip.atmospheric_centrifuge.chip"),
                 StatCollector.translateToLocal("gtsr.tooltip.atmospheric_centrifuge.chip_desc"))
             .addStructureHint("gtsr.tooltip.shared.no_maintenance")
+            .addStructureHint("gtsr.tooltip.atmospheric_centrifuge.optional_cooling")
             .toolTipFinisher(
-                EnumChatFormatting.AQUA + "GT"
-                    + EnumChatFormatting.GREEN
-                    + "-"
-                    + EnumChatFormatting.GOLD
-                    + "Steam"
-                    + EnumChatFormatting.RED
-                    + "-"
-                    + EnumChatFormatting.BLUE
-                    + "Reborn");
+                EnumChatFormatting.DARK_AQUA + StatCollector.translateToLocal("gtsr.tooltip.added_by")
+                    + "GT-Steam-Reborn");
         return tt;
     }
 

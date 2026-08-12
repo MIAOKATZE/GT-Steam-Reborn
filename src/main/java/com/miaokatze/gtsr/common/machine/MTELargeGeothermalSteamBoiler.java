@@ -989,12 +989,23 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
         MultiblockTooltipBuilder tt = new MultiblockTooltipBuilder();
         tt.addMachineType(StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.type"))
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.desc"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.heat"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.water_info"))
+            .addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.desc_2"))
+            .addInfo(EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.heat"))
+            .addInfo(
+                EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.water_info"))
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.calcification"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.calcification_d"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.clear_calcification_hint"))
+            .addInfo(
+                EnumChatFormatting.AQUA
+                    + StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.calcification_2"))
+            .addInfo(
+                EnumChatFormatting.GREEN
+                    + StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.calcification_d"))
+            .addInfo(
+                EnumChatFormatting.AQUA
+                    + StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.clear_calcification_hint"))
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.chip_info"))
+            .addInfo(
+                EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.chip_info_2"))
             .addSeparator()
             .addInfo(
                 EnumChatFormatting.BLUE + "Tier 1 "
@@ -1024,14 +1035,14 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
                 EnumChatFormatting.GRAY
                     + StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.products_line2"))
             .addInfo(
-                EnumChatFormatting.DARK_AQUA
+                EnumChatFormatting.GOLD
                     + StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.chip_products"))
             .addInfo(
                 EnumChatFormatting.GRAY
                     + StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.chip_products_line"))
             .addSeparator()
             .addInfo(
-                EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.lava_rate"))
+                EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.lava_rate"))
             .addInfo(
                 EnumChatFormatting.GRAY
                     + StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.lava_rate_bronze"))
@@ -1052,28 +1063,23 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
             .addStructureInfo("")
             .addStructureInfo(
                 EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.shared.bronze_steel_tier"))
-            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.casing"), 71, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.casing"), 70, false)
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.firebox"), 21, false)
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.pipe"), 12, false)
-            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.gear_box"), 12, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.gear_box"), 8, false)
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.frame"), 53, false)
             .addStructureInfo(
                 EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.chip")
                     + ": "
                     + StatCollector.translateToLocal("gtsr.tooltip.geothermal_boiler.chip_desc"))
             .addStructureHint("gtsr.tooltip.shared.no_maintenance")
-            .addInfo(EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.overpressure.enable"))
-            .addInfo(EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.overpressure.effects"))
+            .addInfo(
+                EnumChatFormatting.LIGHT_PURPLE + StatCollector.translateToLocal("gtsr.tooltip.overpressure.enable"))
+            .addInfo(
+                EnumChatFormatting.LIGHT_PURPLE + StatCollector.translateToLocal("gtsr.tooltip.overpressure.effects"))
             .toolTipFinisher(
-                EnumChatFormatting.AQUA + "GT"
-                    + EnumChatFormatting.GREEN
-                    + "-"
-                    + EnumChatFormatting.GOLD
-                    + "Steam"
-                    + EnumChatFormatting.RED
-                    + "-"
-                    + EnumChatFormatting.BLUE
-                    + "Reborn");
+                EnumChatFormatting.DARK_AQUA + StatCollector.translateToLocal("gtsr.tooltip.added_by")
+                    + "GT-Steam-Reborn");
         return tt;
     }
 

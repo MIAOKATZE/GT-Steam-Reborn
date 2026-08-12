@@ -459,7 +459,7 @@ public class MTEVeinSteamPyrolyzer extends MTESteamMultiBlockBase<MTEVeinSteamPy
         MultiblockTooltipBuilder tt = new MultiblockTooltipBuilder();
         tt.addMachineType(StatCollector.translateToLocal("gtsr.tooltip.vein_pyrolyzer.type"))
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.vein_pyrolyzer.desc"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.vein_pyrolyzer.desc2"))
+            .addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.vein_pyrolyzer.desc_2"))
             .addSeparator()
             .addInfo(
                 EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.shared.steam_cost")
@@ -477,10 +477,9 @@ public class MTEVeinSteamPyrolyzer extends MTESteamMultiBlockBase<MTEVeinSteamPy
             .beginStructureBlock(7, 7, 7, false)
             .addController(StatCollector.translateToLocal("gtsr.tooltip.vein_pyrolyzer.ctrl"))
             .addOtherStructurePart(
-                StatCollector.translateToLocal("gtsr.tooltip.shared.steam_input_hatch"),
+                StatCollector.translateToLocal("gtsr.tooltip.vein_pyrolyzer.steam_input"),
                 StatCollector.translateToLocal("gtsr.tooltip.shared.any_casing"),
                 1)
-            .addOutputBus(StatCollector.translateToLocal("gtsr.tooltip.vein_pyrolyzer.output_bus"), 1)
             .addStructureInfo("")
             .addStructureInfo(
                 EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.gui.tier.bronze")
@@ -491,22 +490,15 @@ public class MTEVeinSteamPyrolyzer extends MTESteamMultiBlockBase<MTEVeinSteamPy
                     + " "
                     + EnumChatFormatting.DARK_PURPLE
                     + StatCollector.translateToLocal("gtsr.gui.tier"))
-            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.casing"), 14, false)
-            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.pipe"), 4, false)
-            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.gear_box"), 4, false)
-            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.frame"), 18, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.casing"), 8, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.gear_box"), 3, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.frame"), 10, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.firebox"), 33, false)
             .addStructureHint("gtsr.tooltip.shared.no_maintenance")
             .addStructureHint("gtsr.tooltip.vein_pyrolyzer.hint_bronze")
             .toolTipFinisher(
-                EnumChatFormatting.AQUA + "GT"
-                    + EnumChatFormatting.GREEN
-                    + "-"
-                    + EnumChatFormatting.GOLD
-                    + "Steam"
-                    + EnumChatFormatting.RED
-                    + "-"
-                    + EnumChatFormatting.BLUE
-                    + "Reborn");
+                EnumChatFormatting.DARK_AQUA + StatCollector.translateToLocal("gtsr.tooltip.added_by")
+                    + "GT-Steam-Reborn");
         return tt;
     }
 

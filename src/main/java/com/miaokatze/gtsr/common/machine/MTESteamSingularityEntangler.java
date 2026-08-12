@@ -563,25 +563,21 @@ public class MTESteamSingularityEntangler extends MTESingularityMachineBase impl
             .beginStructureBlock(24, 30, 23, false)
             .addController(StatCollector.translateToLocal(keyPrefix + "ctrl"))
             .addOtherStructurePart(
-                StatCollector.translateToLocal("gtsr.tooltip.shared.steam_input_hatch"),
+                StatCollector.translateToLocal("gtsr.tooltip.entangler.steam_input_hatch"),
                 StatCollector.translateToLocal(keyPrefix + "steam_input"),
                 1)
             .addOutputBus(StatCollector.translateToLocal(keyPrefix + "output_bus"), 1)
             .addStructureInfo("")
-            .addStructureInfo(EnumChatFormatting.DARK_GRAY + StatCollector.translateToLocal(keyPrefix + "desc6"))
+            .addStructureInfo(
+                EnumChatFormatting.DARK_GRAY + StatCollector.translateToLocal("gtsr.tooltip.entangler.desc6"))
+            .addStructureInfo(
+                EnumChatFormatting.DARK_GRAY + StatCollector.translateToLocal("gtsr.tooltip.entangler.desc6_2"))
             .addStructureInfo(
                 EnumChatFormatting.DARK_PURPLE + StatCollector.translateToLocal(keyPrefix + "tier1_blocks"))
             .addStructureHint("gtsr.tooltip.shared.no_maintenance")
             .toolTipFinisher(
-                EnumChatFormatting.AQUA + "GT"
-                    + EnumChatFormatting.GREEN
-                    + "-"
-                    + EnumChatFormatting.GOLD
-                    + "Steam"
-                    + EnumChatFormatting.RED
-                    + "-"
-                    + EnumChatFormatting.BLUE
-                    + "Reborn");
+                EnumChatFormatting.DARK_AQUA + StatCollector.translateToLocal("gtsr.tooltip.added_by")
+                    + "GT-Steam-Reborn");
         return tt;
     }
 

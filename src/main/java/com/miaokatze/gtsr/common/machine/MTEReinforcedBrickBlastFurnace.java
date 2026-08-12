@@ -542,20 +542,13 @@ public class MTEReinforcedBrickBlastFurnace extends MTEEnhancedMultiBlockBase<MT
             .addInputBus(StatCollector.translateToLocal("gtsr.tooltip.reinforced_brick_blast_furnace.input_bus"), 1)
             .addOutputBus(StatCollector.translateToLocal("gtsr.tooltip.reinforced_brick_blast_furnace.output_bus"), 1)
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.steel_firebox_casing"), 9, false)
-            .addCasingInfoRange(StatCollector.translateToLocal("gtsr.tooltip.shared.steel_casing"), 9, 9, false)
-            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.firebricks"), 24, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.steel_casing"), 11, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.firebricks"), 20, false)
             .addStructureHint("gtsr.tooltip.shared.no_maintenance")
             .addStructureHint("gtsr.tooltip.reinforced_brick_blast_furnace.hatch_steam")
             .toolTipFinisher(
-                EnumChatFormatting.AQUA + "GT"
-                    + EnumChatFormatting.GREEN
-                    + "-"
-                    + EnumChatFormatting.GOLD
-                    + "Steam"
-                    + EnumChatFormatting.RED
-                    + "-"
-                    + EnumChatFormatting.BLUE
-                    + "Reborn");
+                EnumChatFormatting.DARK_AQUA + StatCollector.translateToLocal("gtsr.tooltip.added_by")
+                    + "GT-Steam-Reborn");
         return tt;
     }
 }

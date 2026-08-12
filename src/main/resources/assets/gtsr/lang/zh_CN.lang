@@ -77,16 +77,16 @@ gtsr.tooltip.crust_matter_agg.type=地壳物质聚合器, CMA
 gtsr.tooltip.crust_matter_agg.desc=借助蒸汽纠缠奇点的力量，可以直接汇聚地壳中的物质！
 gtsr.tooltip.crust_matter_agg.desc2=通过配置GT NEI Ore Plugin可以连接到其他维度！
 gtsr.tooltip.crust_matter_agg.desc3=无热量机制：启动后产出恒定满额，不再受热量累积影响
-gtsr.tooltip.crust_matter_agg.desc4=产出公式：10×蒸汽系数（0.5/1/2）×奇点系数（无0.5/纠缠2/临界5），小数累积
-gtsr.tooltip.crust_matter_agg.desc5=奇点模式：输入总线放入蒸汽纠缠奇点或临界蒸汽纠缠奇点，各持续200秒，期间失控奇点动画必定出现
+gtsr.tooltip.crust_matter_agg.desc4=产出公式：10×蒸汽系数（0.5/1/2）×奇点系数（无0.5/纠缠2/临界5），
+gtsr.tooltip.crust_matter_agg.desc5=奇点模式：输入总线放入蒸汽纠缠奇点或临界蒸汽纠缠奇点，各持续200秒，
 gtsr.tooltip.crust_matter_agg.desc6=结构：26×26×8，固体钢外壳/钢齿轮箱外壳/钢管外壳/钢框架/防爆玻璃
 gtsr.tooltip.crust_matter_agg.desc7=泥土位（54）与草方块位（36）为粒子喷口，圆石位（1）为失控奇点节点
-gtsr.tooltip.crust_matter_agg.desc8=定向模式（螺丝刀右击控制器或在终端配置界面切换）：只产出被「定向」的矿石，蒸汽+200%+20%/额外维度槽（维度槽全部生效）并按 2500%÷最低3个定向权重之和 结算（不足3个累加全部），额外消耗 UU 物质
-gtsr.tooltip.crust_matter_agg.desc9=切换时自动刷新矿池、强制停机并清空奇点模式；过滤与定向配置独立持久化并随机器保存，切换模式不重置
+gtsr.tooltip.crust_matter_agg.desc8=定向模式（螺丝刀右击控制器或在终端配置界面切换）：只产出被「定向」的矿石，
+gtsr.tooltip.crust_matter_agg.desc9=切换时自动刷新矿池、强制停机并清空奇点模式；
 gtsr.tooltip.crust_matter_agg.ctrl=控制器位于中心
 gtsr.tooltip.crust_matter_agg.steam_input=流体输入仓（蒸汽/过热蒸汽/超临界蒸汽或其致密态）
-gtsr.tooltip.crust_matter_agg.input_bus=物品输入总线（奇点燃料，可选）
-gtsr.tooltip.crust_matter_agg.output_bus=输出总线（矿石）
+gtsr.tooltip.crust_matter_agg.input_bus=输入总线
+gtsr.tooltip.crust_matter_agg.output_bus=输出总线
 gtsr.tooltip.crust_matter_agg.steam_cost_normal=普通档
 gtsr.tooltip.crust_matter_agg.steam_cost_dense=致密档
 gtsr.tooltip.crust_matter_agg.hint_dimension=维度槽（25 格）放入 GT NEI Ore Plugin 维度显示物品选择目标维度；留空则默认当前维度
@@ -228,7 +228,7 @@ gtsr.tooltip.solar_array.particle_block=泥土（粒子喷口）
 gtsr.tooltip.solar_array.air_block=空气
 # [OLD] 保留：conductor/conductor_pos 仅 [OLD] 结构使用
 gtsr.tooltip.solar_array.conductor=导体方块 (银/金/镍)
-gtsr.tooltip.solar_array.input_hatch=输入仓 (水)
+gtsr.tooltip.solar_array.input_hatch=输入仓
 
 # Solar Array GUI
 gtsr.gui.solar_array.heat=热量: 
@@ -283,8 +283,8 @@ gtsr.chat.overpressure.off=超压模式已关闭
 gtsr.chat.overpressure.need_heat=需要 100％ 热量才能开启超压模式
 
 # Geothermal Boiler Tooltip
-gtsr.tooltip.geothermal_boiler.input_hatch=输入仓 (岩浆/水)
-gtsr.tooltip.geothermal_boiler.output_bus=蒸汽输出总线
+gtsr.tooltip.geothermal_boiler.input_hatch=输入仓
+gtsr.tooltip.geothermal_boiler.output_bus=输出总线
 gtsr.tooltip.geothermal_boiler.chip=过热芯片: 放入控制器槽位，切换为过热蒸汽输出
 
 # Geothermal Boiler Info
@@ -295,19 +295,19 @@ gt.blockmachines.gtsr.steam.singularity.entangler.name=蒸汽奇点纠缠装置
 
 # Critical Singularity Compressor
 gt.blockmachines.gtsr.critical.singularity.compressor.name=临界纠缠奇点稳定装置
-gtsr.tooltip.critical_singularity_compressor.type=临界纠缠奇点稳定装置, CESS
-gtsr.tooltip.critical_singularity_compressor.desc=超越蒸汽纠缠奇点，将磅礴的物质与能量约束在临界纠缠奇点内，这也许能彻底撕破维度的界限......
+gtsr.tooltip.critical_singularity_compressor.type=临界纠缠奇点稳定装置, CSC
+gtsr.tooltip.critical_singularity_compressor.desc=超越蒸汽纠缠奇点，将磅礴的物质与能量约束在临界纠缠奇点内，
 gtsr.tooltip.critical_singularity_compressor.desc7=专用于产出临界蒸汽纠缠奇点的装置。
-gtsr.tooltip.critical_singularity_compressor.desc2=仅接收致密态三种蒸汽（致密蒸汽、致密过热蒸汽、致密超临界蒸汽），并按饱和函数累积热量：y=0.005x/(x+5000)，上限0.5%/周期
+gtsr.tooltip.critical_singularity_compressor.desc2=仅接收致密态三种蒸汽（致密蒸汽、致密过热蒸汽、致密超临界蒸汽），并按饱和函数累积热量：
 gtsr.tooltip.critical_singularity_compressor.desc8=实际热量=蒸汽系数×y（蒸汽0.5、过热1、超临界2）
-gtsr.tooltip.critical_singularity_compressor.desc3=多种蒸汽共存时仅处理最高等级；机器停止或没有蒸汽时热量会下降。
+gtsr.tooltip.critical_singularity_compressor.desc3=多种蒸汽共存时仅处理最高等级；
 gtsr.tooltip.critical_singularity_compressor.desc4=热量达到100%时清零，并产出1个临界蒸汽纠缠奇点。
 gtsr.tooltip.critical_singularity_compressor.ctrl=Layer 10 中心偏前
 gtsr.tooltip.critical_singularity_compressor.desc5=会吞噬输入仓所有的蒸汽，并禁用蒸汽冷却机制。
 gtsr.tooltip.critical_singularity_compressor.desc6=运行期间将在结构核心生成一个灰色纠缠奇点动画（纯视觉效果，不吸引、不破坏、不吸收任何方块或实体）；关闭、挂机或结构被破坏后消失。
 gtsr.tooltip.critical_singularity_compressor.steam_input=输入仓、蒸汽仓、耐压蒸汽仓或巨型超压蒸汽输入仓
-gtsr.tooltip.critical_singularity_compressor.input_bus=蒸汽输入总线
-gtsr.tooltip.critical_singularity_compressor.output_bus=输出总线（临界蒸汽纠缠奇点）
+gtsr.tooltip.critical_singularity_compressor.input_bus=输入总线
+gtsr.tooltip.critical_singularity_compressor.output_bus=输出总线
 gtsr.tooltip.critical_singularity_compressor.output_hatch=输出仓
 gtsr.tooltip.critical_singularity_compressor.tier1_blocks=结构材料：强化镀铑钯机械方块×1325、熔融线圈方块×494、熔融机械方块MK II×322、ZPM机械方块×212、超导线圈外壳×112、铕框架×80、镀铑钯框架×64、巴特沃克3级玻璃×117
 gtsr.gui.critical_singularity_compressor.status=状态:
@@ -322,15 +322,15 @@ gtsr.tooltip.dense_state_manipulator.type=致密态蒸汽操控装置, DSM
 gtsr.tooltip.dense_state_manipulator.desc=在普通蒸汽与致密蒸汽之间进行压缩或解压的等级2蒸汽机器。
 gtsr.tooltip.dense_state_manipulator.desc2=按1000:1压缩普通蒸汽，或按1:1000将致密蒸汽解压为普通蒸汽。
 gtsr.tooltip.dense_state_manipulator.desc3=支持蒸汽、过热蒸汽、超临界蒸汽及其对应的致密流体。
-gtsr.tooltip.dense_state_manipulator.desc4=以两种奇点模式运行：普通（蒸汽纠缠奇点，输出损失20%）或临界（临界蒸汽纠缠奇点，无损失），每颗持续200s；关机时倒计时继续，但仅在工作中消耗奇点；不足1单位的输出跨周期累计。
+gtsr.tooltip.dense_state_manipulator.desc4=以两种奇点模式运行：普通（蒸汽纠缠奇点，输出损失20%）或临界（临界蒸汽纠缠奇点，无损失），每颗持续200s；
 gtsr.tooltip.dense_state_manipulator.desc5=使用螺丝刀在压缩和解压模式之间切换。
-gtsr.tooltip.dense_state_manipulator.desc6=运行期间，左右两个失控奇点定位位（左白、右灰）持续生成失控奇点动画（纯视觉效果）；关机后奇点模式持续期间动画豁免保留，模式耗尽或结构失效后消失。
+gtsr.tooltip.dense_state_manipulator.desc6=运行期间，左右两个失控奇点定位位（左白、右灰）持续生成失控奇点动画（纯视觉效果）；
 gtsr.tooltip.dense_state_manipulator.desc7=会吞噬输入仓所有的蒸汽。
 gtsr.tooltip.dense_state_manipulator.ctrl=Layer 8 中心偏前
 gtsr.tooltip.dense_state_manipulator.steam_input=输入仓、蒸汽仓或耐压蒸汽仓
-gtsr.tooltip.dense_state_manipulator.input_bus=奇点输入总线
-gtsr.tooltip.dense_state_manipulator.output_hatch=蒸汽或致密蒸汽输出仓
-gtsr.tooltip.dense_state_manipulator.tier1_blocks=结构材料：高级镀铑钯机械方块×986、巴特沃克3级玻璃×482、超导线圈外壳×64、熔融机械方块MK II×125、镀铑钯框架×32
+gtsr.tooltip.dense_state_manipulator.input_bus=输入总线
+gtsr.tooltip.dense_state_manipulator.output_hatch=输出仓
+gtsr.tooltip.dense_state_manipulator.tier1_blocks=结构材料：高级镀铑钯机械方块×986、超导线圈外壳×64、
 gtsr.gui.dense_state_manipulator.status=状态:
 gtsr.gui.dense_state_manipulator.status.building=构建中
 gtsr.gui.dense_state_manipulator.status.running=运行中
@@ -562,9 +562,9 @@ gtsr.recipe.kinetic_processing_array=动力加工阵列
 
 # Ammonia Plant
 gt.blockmachines.gtsr.ammonia.plant.name=制氨工厂
-gtsr.tooltip.ammonia_plant.input_hatch=输入仓(蒸汽/炼油气/氮气)
-gtsr.tooltip.ammonia_plant.output_bus=输出总线(氨)
-gtsr.tooltip.ammonia_plant.output_hatch=输出仓(过热蒸汽)
+gtsr.tooltip.ammonia_plant.input_hatch=输入仓
+gtsr.tooltip.ammonia_plant.output_bus=输出总线
+gtsr.tooltip.ammonia_plant.output_hatch=输出仓
 
 # Ammonia Catalyst (氨催化剂)
 item.AmmoniaCatalystNickel.name=镍基催化剂
@@ -596,8 +596,8 @@ gtsr.recipe.air_compressor=空气压缩机
 
 gt.blockmachines.gtsr.atmospheric_centrifuge.name=空气离心机
 gtsr.tooltip.atmospheric_centrifuge.ctrl=正面中央
-gtsr.tooltip.atmospheric_centrifuge.input_hatch=输入仓(空气/蒸汽)
-gtsr.tooltip.atmospheric_centrifuge.output_hatch=输出仓(多种气体)
+gtsr.tooltip.atmospheric_centrifuge.input_hatch=输入仓
+gtsr.tooltip.atmospheric_centrifuge.output_hatch=输出仓
 gtsr.recipe.atmospheric_centrifuge=空气离心机
 
 item.RareGasSeparationChip.name=稀有气体分离芯片
@@ -661,7 +661,7 @@ gtsr.gui.not_installed=未安装
 
 # 1. Air Compressor
 gtsr.tooltip.air_compressor.type=空气压缩机, AC
-gtsr.tooltip.air_compressor.desc=蒸汽驱动的空气压缩机，可以直接从外部获取空气，转化为压缩空气流体，其工作速度与便捷度远优于普通压缩机。下界维度自动产出下界空气。
+gtsr.tooltip.air_compressor.desc=蒸汽驱动的空气压缩机，可以直接从外部获取空气，转化为压缩空气流体，
 gtsr.tooltip.air_compressor.nether=维度限制: 下界维度可以产出下界空气
 gtsr.tooltip.air_compressor.nether_recipe=需要在下界
 
@@ -679,22 +679,22 @@ gtsr.gui.ammonia_plant.catalyst.not_installed=未安装
 
 # 3. Atmospheric Centrifuge
 gtsr.tooltip.atmospheric_centrifuge.type=空气离心机, ATC
-gtsr.tooltip.atmospheric_centrifuge.desc=利用蒸汽驱动的气体离心机，可以将高压空气流体离心为氧气与氮气。
+gtsr.tooltip.atmospheric_centrifuge.desc=利用蒸汽驱动的气体离心机，
 
 # 4. Crust Steam Borer
-gtsr.tooltip.crust_borer.type=地壳蒸汽钻探机, CSB
-gtsr.tooltip.crust_borer.desc=蒸汽驱动的虚空采矿钻探装置，直接从主世界和下界中获取虚空矿物。
+gtsr.tooltip.crust_borer.type=地壳蒸汽掘进机, CSB
+gtsr.tooltip.crust_borer.desc=蒸汽驱动的虚空采矿钻探装置，
 gtsr.tooltip.crust_borer.ctrl=正面中央中层
-gtsr.tooltip.crust_borer.output_bus=矿石产出
+gtsr.tooltip.crust_borer.output_bus=输出总线
 
 # 5. Kinetic Processing Array
 gtsr.tooltip.kinetic_array.type=动力加工阵列, KPA
 gtsr.tooltip.kinetic_array.desc=在控制器GUI中放入GT单方块机器，以电力+过热蒸汽辅助运行，执行该机器对应配方。
-gtsr.tooltip.kinetic_array.desc2=并行数=(1+2×机器等级)+机器数量，电力仓等级不得高于外壳等级。基础运行速度200%，能耗减免40%。手持蒸汽纠缠节点右击控制器，可在1200秒内将配方电压上限提高一级。
-gtsr.tooltip.kinetic_array.desc3=蒸汽消耗率随电压等级递减：ULV=8→LV=4→MV=2→HV=1→EV=0.5→IV=0.25→LuV+=0.1 L/t。
+gtsr.tooltip.kinetic_array.desc2=并行数=(1+2×机器等级)+机器数量，电力仓等级不得高于外壳等级。
+gtsr.tooltip.kinetic_array.desc3=蒸汽消耗率随电压等级递减：
 gtsr.tooltip.kinetic_array.desc4=新增功能：手持蒸汽纠缠节点右击控制器，可临时将配方电压上限提高一级，持续1200秒；内置洁净室支持；兼容 Crafting Input Bus/Buffer/Proxy（ME）；电解、离心、化学反应配方使用多方块兼容配方表。
 gtsr.tooltip.kinetic_array.ctrl=正面中央
-gtsr.tooltip.kinetic_array.steam_input=耐压蒸汽输入仓(过热蒸汽)
+gtsr.tooltip.kinetic_array.steam_input=蒸汽仓/耐压蒸汽仓/输入仓
 gtsr.tooltip.kinetic_array.input=输入总线
 gtsr.tooltip.kinetic_array.output=输出总线
 gtsr.tooltip.kinetic_array.output_hatch=输出仓/耐压蒸汽冷却仓
@@ -709,11 +709,11 @@ gtsr.tooltip.coke_oven.ctrl=正面中央
 gtsr.tooltip.geothermal_boiler.type=大型地热蒸汽锅炉, LGB
 
 # 8. Large Solar Overpressure Array
-gtsr.tooltip.solar_array.type=太阳能过压阵列, LSOA
+gtsr.tooltip.solar_array.type=大型太阳能超压阵列, LSOA
 
 # 9. Large Steam Furnace
 gtsr.tooltip.steam_furnace.type=大型蒸汽熔炉, LSF
-gtsr.tooltip.steam_furnace.desc=蒸汽驱动的工业化熔炼设备，具有更大的并行数，可同时处理大量熔炉配方。
+gtsr.tooltip.steam_furnace.desc=蒸汽驱动的工业化熔炼设备，具有更大的并行数，
 gtsr.tooltip.steam_furnace.ctrl=底部正面中央
 gtsr.tooltip.steam_furnace.input_bus=待熔炼物料
 gtsr.tooltip.steam_furnace.output_bus=熔炼产物
@@ -730,12 +730,12 @@ gtsr.tooltip.turbine_array.hint_gear=齿轮箱机械方块: 钛制蒸汽额外�
 
 # 11. Siemens-Martin Furnace
 gtsr.tooltip.siemens_martin.type=平炉, SMF
-gtsr.tooltip.siemens_martin.desc=新时代的大批量炼钢高炉：通过过热蒸汽重整煤炭，基于产生的还原性气体进行炼钢，具有更高的效率，且没有污染！
+gtsr.tooltip.siemens_martin.desc=新时代的大批量炼钢高炉：
 
 # 12. Singularity Drilling Hub
 gtsr.tooltip.singularity_hub.type=奇点钻井枢纽, SDH
-gtsr.tooltip.singularity_hub.desc=蒸汽时代的奇迹造物：基于蒸汽纠缠奇点，蒸汽时代的造物可以遍及世界每一个角落，攫取一切所需的资源。
-gtsr.tooltip.singularity_hub.desc2=手持奇点节点右击控制器进行绑定/解绑，蒸汽消耗随绑定节点数递增。
+gtsr.tooltip.singularity_hub.desc=蒸汽时代的奇迹造物：基于蒸汽纠缠奇点，蒸汽时代的造物可以遍及世界每一个角落，
+gtsr.tooltip.singularity_hub.desc2=手持奇点节点右击控制器进行绑定/解绑，
 gtsr.tooltip.singularity_hub.ctrl=Layer 10 左塔侧面
 gtsr.tooltip.singularity_hub.steam_input=蒸汽输入
 gtsr.tooltip.singularity_hub.output_bus=产物
@@ -749,7 +749,7 @@ gtsr.gui.singularity_hub.bound_nodes=绑定节点:
 # 13. Steam Fluid Drill
 gtsr.tooltip.fluid_drill.type=蒸汽流体钻机, SFD
 gtsr.tooltip.fluid_drill.desc=消耗蒸汽从地下直接抽取水、蒸馏水或盐水。
-gtsr.tooltip.fluid_drill.desc2=螺丝刀右击切换产出模式（水/蒸馏水/盐水/岩浆），默认为水。蒸馏水模式产出为20%，盐水模式为10%，岩浆模式在下界为5%、其他维度为0.5%。
+gtsr.tooltip.fluid_drill.desc2=螺丝刀右击切换产出模式（水/蒸馏水/盐水/岩浆），默认为水。
 gtsr.tooltip.fluid_drill.mode_switch=螺丝刀: 切换产出模式（水/蒸馏水/盐水/岩浆），默认水（仅钢级）
 gtsr.tooltip.fluid_drill.mode_penalty=蒸馏水模式产出20%，盐水模式10%，岩浆模式0.5%（下界5%），切换模式重置效率
 gtsr.tooltip.fluid_drill.mode_bronze_only=青铜级仅支持水模式，钢级可切换蒸馏水/盐水
@@ -759,7 +759,7 @@ gtsr.tooltip.fluid_drill.mode_distilled=蒸馏水
 gtsr.tooltip.fluid_drill.mode_brine=盐水
 gtsr.tooltip.fluid_drill.output_mode=产出模式
 gtsr.tooltip.fluid_drill.ctrl=底层正面中央
-gtsr.tooltip.fluid_drill.output_hatch=流体产出
+gtsr.tooltip.fluid_drill.output_hatch=输出仓
 gtsr.gui.fluid_drill.efficiency=效率: 
 gtsr.gui.fluid_drill.output=产出: 
 gtsr.gui.fluid_drill.output_mode=产出模式: 
@@ -767,7 +767,7 @@ gtsr.gui.fluid_drill.output_mode=产出模式:
 # 14. Steam Hub Array
 gtsr.tooltip.steam_hub.type=蒸汽枢纽阵列, SHA
 gtsr.tooltip.steam_hub.desc=蒸汽网络的中央调度站，提供双向蒸汽接口，内嵌存储缓冲。
-gtsr.tooltip.steam_hub.desc2=通过枢纽输入/输出仓口接收和分发蒸汽；手持蒸汽缓存节点右击绑定实现远程蒸汽传输。
+gtsr.tooltip.steam_hub.desc2=通过枢纽输入/输出仓口接收和分发蒸汽；
 gtsr.tooltip.steam_hub.ctrl=中层正面中央偏右
 gtsr.tooltip.steam_hub.hub_input=枢纽蒸汽输入仓
 gtsr.tooltip.steam_hub.hub_output=枢纽蒸汽输出仓
@@ -779,15 +779,15 @@ gtsr.tooltip.steam_hub.hint_status=手持枢纽终端右击控制器，打开缓
 
 # 15. Steam Singularity Entangler
 gtsr.tooltip.entangler.type=蒸汽奇点纠缠装置, SSE
-gtsr.tooltip.entangler.desc=吞噬输入仓中最高等级的普通蒸汽（蒸汽/过热/超临界），脱离电力消耗，按饱和函数提升热量。
-gtsr.tooltip.entangler.desc2=热量公式：y=0.005x/(x+200000)，上限0.5%/s；实际热量=蒸汽系数×y（蒸汽0.5、过热1、超临界2）。
-gtsr.tooltip.entangler.desc3=多种蒸汽共存时只识别最高等级；机器关机（含软锤关闭）或没有蒸汽时，热量每秒降低1%。
+gtsr.tooltip.entangler.desc=吞噬输入仓中最高等级的普通蒸汽（蒸汽/过热/超临界），
+gtsr.tooltip.entangler.desc2=热量公式：y=0.005x/(x+200000)，上限0.5%/s；
+gtsr.tooltip.entangler.desc3=多种蒸汽共存时只识别最高等级；
 gtsr.tooltip.entangler.desc4=热量达到100%时清零，产出1个蒸汽纠缠奇点。
 gtsr.tooltip.entangler.desc5=会吞噬输入仓所有的蒸汽，并禁用蒸汽冷却机制。
-gtsr.tooltip.entangler.desc6=运行期间将在结构核心处生成一个白色纠缠奇点动画（纯视觉效果，不吸引、不破坏、不吸收任何方块或实体）；关闭、挂机或结构被破坏后消失。
+gtsr.tooltip.entangler.desc6=运行期间将在结构核心处生成一个白色纠缠奇点动画（纯视觉效果，不吸引、不破坏、不吸收任何方块或实体）；
 gtsr.tooltip.entangler.ctrl=Layer 19 前侧偏左
 gtsr.tooltip.entangler.steam_input=输入仓/蒸汽仓/耐压蒸汽仓/巨型超压蒸汽输入仓（兼容ME仓室）
-gtsr.tooltip.entangler.output_bus=输出总线/输出总线（蒸汽），奇点产出，兼容ME仓室
+gtsr.tooltip.entangler.output_bus=输出总线
 gtsr.tooltip.entangler.tier1_blocks=等级1：固体钢外壳×1340、钢管×568、钢框架×411、防爆玻璃×423
 gtsr.tooltip.old.singularity_compressor.type=蒸汽奇点压缩机, SSC
 gtsr.tooltip.old.singularity_compressor.desc=消耗 80,000 L/s 蒸汽，热量每秒增长 0.02%
@@ -802,8 +802,8 @@ gtsr.tooltip.old.singularity_compressor.output_bus=输出总线/输出总线（�
 gtsr.tooltip.old.singularity_compressor.tier1_blocks=等级1：固体钢外壳×175、钢管×16、钢齿轮箱×73、防爆玻璃×252、钢框架×144
 
 # 16. Vein Steam Pyrolyzer
-gtsr.tooltip.vein_pyrolyzer.type=矿脉蒸汽裂解器, VSP
-gtsr.tooltip.vein_pyrolyzer.desc=以蒸汽为能源逆向注入地下，增加地下流体储量（原油、水、天然气等），解决长期存档中流体枯竭问题。
+gtsr.tooltip.vein_pyrolyzer.type=地脉蒸汽热解机, VSP
+gtsr.tooltip.vein_pyrolyzer.desc=以蒸汽为能源逆向注入地下，增加地下流体储量（原油、水、天然气等），
 gtsr.tooltip.vein_pyrolyzer.desc2=支持裂解器芯片扩展工作范围
 gtsr.tooltip.vein_pyrolyzer.ctrl=Layer 5 中心
 gtsr.tooltip.vein_pyrolyzer.output_bus=产物
@@ -816,13 +816,13 @@ gtsr.tooltip.void_borer.ctrl=Layer 10 中心
 # 18. Water Hub Array
 gtsr.tooltip.water_hub.type=水枢纽阵列, WHA
 gtsr.tooltip.water_hub.desc=水系统的中央调度站，提供双向水接口（水/蒸馏水），内嵌存储缓冲。
-gtsr.tooltip.water_hub.desc2=通过水枢纽输入/输出仓口接收和分发水资源；手持水缓存节点右击绑定实现远程水传输。
+gtsr.tooltip.water_hub.desc2=通过水枢纽输入/输出仓口接收和分发水资源；
 gtsr.tooltip.water_hub.ctrl=底层正面中央偏左
 gtsr.tooltip.water_hub.hub_input=水枢纽输入仓
 gtsr.tooltip.water_hub.hub_output=水枢纽输出仓
 gtsr.tooltip.water_hub.storage=枢纽存储单元(仅1级)/强化枢纽存储单元(仅2级)
-gtsr.tooltip.water_hub.hint_tier1=1级:青铜外壳+青铜管道+青铜齿轮箱+青铜框架+枢纽存储单元
-gtsr.tooltip.water_hub.hint_tier2=2级:钢外壳+钢管道+钢齿轮箱+钢框架+强化枢纽存储单元
+gtsr.tooltip.water_hub.hint_tier1=1级:青铜外壳+青铜管道+青铜框架+枢纽存储单元
+gtsr.tooltip.water_hub.hint_tier2=2级:钢外壳+钢管道+钢框架+强化枢纽存储单元
 gtsr.tooltip.water_hub.hint_status=手持枢纽终端右击控制器，打开缓存节点状态界面
 
 # 19. Gear Steam Compressor
@@ -842,8 +842,8 @@ gtsr.tooltip.ammonia_plant.desc.2=重整炼油气
 gtsr.tooltip.ammonia_plant.desc.3=获得氢气，与氮气在
 gtsr.tooltip.ammonia_plant.desc.4=高温催化剂床
 gtsr.tooltip.ammonia_plant.desc.5=上合成氨。该反应为
-gtsr.tooltip.ammonia_plant.desc.6=强放热过程
-gtsr.tooltip.ammonia_plant.desc.7=，蒸汽作为导热介质带走多余热量，同时产生过热蒸汽作为副产物。
+gtsr.tooltip.ammonia_plant.desc.6=
+gtsr.tooltip.ammonia_plant.desc.7=
 gtsr.tooltip.ammonia_plant.preheat.1=反应室需蒸汽持续供热将催化床温度提升至
 gtsr.tooltip.ammonia_plant.preheat.2=工作温度
 gtsr.tooltip.ammonia_plant.preheat.3=，温度不足时配方无法执行。
@@ -851,7 +851,7 @@ gtsr.tooltip.ammonia_plant.heat_cost.1=预热:
 gtsr.tooltip.ammonia_plant.heat_cost.2=维持: 
 gtsr.tooltip.ammonia_plant.steam_unit=蒸汽
 gtsr.tooltip.ammonia_plant.refinery_gas=炼油气
-gtsr.tooltip.ammonia_plant.catalyst=催化剂系统: 在控制器槽位放入催化剂 (8种)，不同催化剂影响并行数与反应速度。
+gtsr.tooltip.ammonia_plant.catalyst=催化剂系统: 在控制器槽位放入催化剂 (8种)，
 gtsr.tooltip.ammonia_plant.catalyst_detail.1=催化剂提升并行数 (
 gtsr.tooltip.ammonia_plant.catalyst_detail.2=) 并缩短反应时间 (
 gtsr.tooltip.ammonia_plant.catalyst_detail.3=)
@@ -868,42 +868,42 @@ gtsr.gui.atmospheric_centrifuge.chip=稀有气体芯片:
 gtsr.gui.atmospheric_centrifuge.need_steel=需要钢级
 
 # 5. Kinetic Processing Array - missing energy key
-gtsr.tooltip.kinetic_array.energy=电力仓（等级不得高于外壳等级）
+gtsr.tooltip.kinetic_array.energy=能源仓
 
 # 6. Large Coke Oven - missing desc keys
-gtsr.tooltip.coke_oven.desc=将原木/煤炭在高温缺氧环境下干馏，产出木炭/焦炭及杂酚油等副产物。
+gtsr.tooltip.coke_oven.desc=将原木/煤炭在高温缺氧环境下干馏，
 gtsr.tooltip.coke_oven.desc2=炉室自发蓄热运行，无需外部能源输入；运行中炉温持续攀升，温度越高反应速度越快。基础加工速度：青铜120%、钢200%。
 gtsr.tooltip.coke_oven.desc3=停机后炉温缓慢冷却，反应时间随之回升。炉温加速：每1%炉温叠加1%工作速度。
 gtsr.tooltip.coke_oven.formula=炉温变化：+0.01%/s（运行中） | -0.1%/s（停机）
 gtsr.tooltip.coke_oven.accel=加速公式：实际时长 = 配方时长 × 基础倍率 ÷ (1 + 炉温)；基础倍率：青铜1/1.2、钢1/2.0
 gtsr.tooltip.coke_oven.parallel=并行数：24（青铜）/ 64（钢）
-gtsr.tooltip.coke_oven.input_bus=原木/煤炭
-gtsr.tooltip.coke_oven.output_bus=木炭/焦炭
-gtsr.tooltip.coke_oven.output_hatch=杂酚油
+gtsr.tooltip.coke_oven.input_bus=输入总线
+gtsr.tooltip.coke_oven.output_bus=输出总线
+gtsr.tooltip.coke_oven.output_hatch=输出仓
 
 # 7. Large Geothermal Steam Boiler - missing desc keys
-gtsr.tooltip.geothermal_boiler.desc=将地下熔岩热量通过热交换管束传递至水室，利用热对流效应持续产出蒸汽。
+gtsr.tooltip.geothermal_boiler.desc=将地下熔岩热量通过热交换管束传递至水室，
 gtsr.tooltip.geothermal_boiler.heat=热量系统: 运行时升温，闲置时降温，蒸汽产出与热量成正比。
 gtsr.tooltip.geothermal_boiler.water_info=需要输入水来产生蒸汽（1mB水 = 160L蒸汽），蒸馏水可避免结垢。
-gtsr.tooltip.geothermal_boiler.calcification=持续运行会导致热交换管结垢沉积，逐步降低蒸汽产出效率（满垢后仅剩1%，每10分钟向所有者发送提醒）。
+gtsr.tooltip.geothermal_boiler.calcification=持续运行会导致热交换管结垢沉积，逐步降低蒸汽产出效率，
 gtsr.tooltip.geothermal_boiler.calcification_d=使用蒸馏水作为工作介质可避免结垢发生。
 gtsr.tooltip.geothermal_boiler.clear_calcification_hint=当产生水垢时，空手 Shift+右击控制器除垢
-gtsr.tooltip.geothermal_boiler.chip_info=可在控制器槽位安装地热过热芯片（仅钢级可用），切换为过热蒸汽输出。
+gtsr.tooltip.geothermal_boiler.chip_info=可在控制器槽位安装地热过热芯片（仅钢级可用），
 gtsr.tooltip.geothermal_boiler.steam_output=蒸汽输出
 gtsr.tooltip.geothermal_boiler.chip_desc=放入控制器槽位，切换为过热蒸汽输出（需钢级）
 gtsr.tooltip.geothermal_boiler.max_output=最大产出
 
 # 8. Large Solar Overpressure Array - missing desc keys
 gtsr.tooltip.solar_array.desc=利用太阳能聚焦加热水介质，产生蒸汽。
-gtsr.tooltip.solar_array.desc2=输出效率受日照强度与天气影响；夜间及恶劣天气下温度降低，效率显著下降。
-gtsr.tooltip.solar_array.calcification=持续运行会导致热管钙化沉积，逐步降低蒸汽产出（满垢后仅剩1%，每10分钟向所有者发送提醒）。
+gtsr.tooltip.solar_array.desc2=输出效率受日照强度与天气影响；
+gtsr.tooltip.solar_array.calcification=持续运行会导致热管钙化沉积，逐步降低蒸汽产出，
 gtsr.tooltip.solar_array.calcification_d=使用蒸馏水作为工作介质可避免钙化发生。
 gtsr.tooltip.solar_array.clear_calcification_hint=当产生钙化时，空手 Shift+右击控制器除垢
 gtsr.tooltip.solar_array.desc3=顶面太阳可见比例（每10秒刷新）：被遮挡的顶面方块按比例降低加热速度与蒸汽产出，比例为0%时停止加热。
 gtsr.tooltip.solar_array.desc4=泥土（F）为白色上升粒子喷口，共9个：机器运行时喷出上升白色粒子。
 gtsr.tooltip.solar_array.desc5=圆石（E）为水位层：结构完成后自动注入水源方块（共130个，洗矿机同款机制）。
 gtsr.tooltip.solar_array.desc6=金属块（H）三档：金块（Tier 1）/ 镍块（Tier 2）/ 银块（Tier 3）。
-gtsr.tooltip.solar_array.steam_output=蒸汽输出
+gtsr.tooltip.solar_array.steam_output=输出仓/蒸汽输出仓
 gtsr.tooltip.solar_array.tier_bronze=金/青铜
 gtsr.tooltip.solar_array.tier_steel=镍/钢
 gtsr.tooltip.solar_array.tier_nickel=银/钢
@@ -914,7 +914,7 @@ gtsr.tooltip.solar_array.tier_overpressure=超压
 gtsr.tooltip.solar_array.base_output=基础产出
 gtsr.tooltip.solar_array.superheated_steam=过热蒸汽
 gtsr.tooltip.solar_array.booster_label=在 GUI 控制器槽位放置单方块太阳能锅炉可增幅蒸汽产出：
-gtsr.tooltip.solar_array.booster_content=放入简易/高级太阳能锅炉（太阳能额外增幅最高+200%），叠加超压模式额外增幅（热量超出100%部分，最高+100%），总产出最高 ×4.0（额外+300%）
+gtsr.tooltip.solar_array.booster_content=放入简易/高级太阳能锅炉（太阳能额外增幅最高+200%），
 gtsr.tooltip.solar_array.solar_booster_desc=在 GUI 控制器槽位放置单方块太阳能锅炉可增幅蒸汽产出：高级太阳能锅炉（Advanced Solar Boiler）每满组 64 台 +2.0x，简单太阳能锅炉（Simple Solar Boiler）每满组 64 台 +1.0x，太阳能额外增幅最多 +200%；超压模式（200% 热量）额外增幅 +100%；总倍率 = 1 + 太阳能额外 + 超压额外，最高 ×4.0。
 gtsr.tooltip.solar_array.max_boosted_output=最大增幅产出
 
@@ -930,10 +930,10 @@ gtsr.gui.turbine_array.extra_stack_layers=额外堆叠层:
 gtsr.tooltip.turbine_array.multi_tier=多 等级
 gtsr.tooltip.turbine_array.each_tier=每层+1等级
 gtsr.gui.turbine_array.output_power=输出功率: 
-gtsr.tooltip.turbine_array.formula=EU/t = V[tier] × 全局功率参数 × 蒸汽效率因子 × 组数 × 效率%，外壳等级限制最高供电电压
-gtsr.tooltip.turbine_array.power_param=螺丝刀右击循环切换全局功率（100%%→80%%→60%%→40%%→20%%）：影响基础输出与基础蒸汽节省率
-gtsr.tooltip.turbine_array.singularity_mode=输入总线中的蒸汽纠缠奇点触发奇点模式：功率×2、效率上限+100%%、蒸汽节省率+15%%；临界蒸汽纠缠奇点触发临界奇点模式：功率×5、效率上限+200%%、蒸汽节省率+20%%；每颗提供200s（临界优先消耗）
-gtsr.tooltip.turbine_array.cycle_overlimit_chip=循环超限芯片（放入控制器槽）：完成全部4组额外叠加层后，过热/超临界/致密过热/致密超临界蒸汽的冷却产物直接变为蒸馏水，且蒸汽效率因子按蒸汽家族内叠加（致密族只叠致密族）
+gtsr.tooltip.turbine_array.formula=EU/t = V[tier] × 全局功率参数 × 蒸汽效率因子 × 组数 × 效率%，
+gtsr.tooltip.turbine_array.power_param=螺丝刀右击循环切换全局功率
+gtsr.tooltip.turbine_array.singularity_mode=输入总线中的蒸汽纠缠奇点触发奇点模式：功率×2、效率上限+100%、蒸汽节省率+15%；
+gtsr.tooltip.turbine_array.cycle_overlimit_chip=循环超限芯片（放入控制器槽）：完成全部4组额外叠加层后，
 gtsr.tooltip.turbine_array.input_hatch=蒸汽输入
 gtsr.tooltip.turbine_array.dynamo=能量输出
 
@@ -954,8 +954,8 @@ gtsr.tooltip.siemens_martin.overheat_steam=过热蒸汽消耗降低：炉温100%
 gtsr.tooltip.siemens_martin.overheat_recipe=配方时间削减：100%以上每1%额外炉温降低0.5%配方时间，最大削减50%
 gtsr.gui.siemens_martin.steam_cost=蒸汽消耗: 
 gtsr.gui.siemens_martin.overheat_reduction=配方时间削减: 
-gtsr.tooltip.siemens_martin.input_bus=铁+煤/焦炭/碳
-gtsr.tooltip.siemens_martin.output_bus=钢/灰烬
+gtsr.tooltip.siemens_martin.input_bus=输入总线
+gtsr.tooltip.siemens_martin.output_bus=输出总线
 gtsr.tooltip.siemens_martin.superheated_only=仅过热蒸汽
 gtsr.tooltip.siemens_martin.recipe_time_reduce=配方基础时间缩减：所有配方时间缩短至75%（过热削减前应用）
 gtsr.tooltip.siemens_martin.air_cost=运行配方时消耗1,000 L/s空气（输入仓需有空气）
@@ -1015,9 +1015,9 @@ gtsr.tooltip.gear_compressor.steel_steam_in=蒸汽消耗:
 gtsr.tooltip.gear_compressor.steel_sh_out=过热蒸汽输出: 
 gtsr.tooltip.gear_compressor.steel_water_out=蒸馏水输出: 
 gtsr.tooltip.gear_compressor.ctrl=侧面中央
-gtsr.tooltip.gear_compressor.steam_input=蒸汽输入
-gtsr.tooltip.gear_compressor.cooling_hatch=过热蒸汽输出
-gtsr.tooltip.gear_compressor.output_hatch=蒸馏水输出
+gtsr.tooltip.gear_compressor.steam_input=蒸汽仓/耐压蒸汽仓/输入仓
+gtsr.tooltip.gear_compressor.cooling_hatch=蒸汽冷却仓/耐压蒸汽冷却仓
+gtsr.tooltip.gear_compressor.output_hatch=输出仓
 gtsr.gui.gear_compressor.steam_in=蒸汽输入: 
 gtsr.gui.gear_compressor.sh_steam_out=过热蒸汽输出: 
 gtsr.gui.gear_compressor.water_out=蒸馏水输出:
@@ -1047,7 +1047,7 @@ gtsr.chat.compressor_mode.require_tier2=切换模式需等级2结构
 gtsr.gui.coke_oven.status.heating=升温中
 gtsr.gui.coke_oven.status.cooling=降温中
 gtsr.gui.siemens_martin.status.heating=升温中
-gtsr.tooltip.solar_array.three_tier=青铜/钢/超压 等级
+gtsr.tooltip.solar_array.three_tier=青铜/钢/银 等级
 
 # ===== KPA & MSTA GUI Keys =====
 gtsr.gui.kinetic_array.max_recipe_voltage=最大配方电压:
@@ -1111,7 +1111,7 @@ gtsr.tooltip.shared.screwdriver_rightclick_overflow=螺丝刀右击：切换溢�
 gtsr.tooltip.hub_storage_unit.steam_water_hub=蒸汽/蓄水枢纽
 gtsr.tooltip.turbine_array.tier_system=12级电压体系：LV→MV→HV→EV→IV→LuV→ZPM→UV→UHV→UEV→UIV→UMV
 gtsr.tooltip.turbine_array.steam_progression=蒸汽类型：普通→过热→致密→致密过热→超临界→致密超临界
-gtsr.tooltip.turbine_array.stacking_desc=每组4层Stack，最多4组额外Stack；每额外组+5%蒸汽节省+10%效率上限；机器等级每提升1级+5%效率上限
+gtsr.tooltip.turbine_array.stacking_desc=每组4层Stack，最多4组额外Stack；
 gtsr.tooltip.chip.geothermal_overheat=装载至大型地热蒸汽锅炉，提升蒸汽产出并增加副产物
 gtsr.tooltip.chip.hub_singularity=装载至蒸汽/蓄水枢纽阵列，解锁等级2功能，总容量×5
 gtsr.tooltip.chip.rare_gas=装载至大气离心机，解锁稀有气体分离配方
@@ -1179,3 +1179,92 @@ gt.blockmachines.gtsr.singularity.crust.steam.borer.old.name=[OLD] 奇点地壳�
 # Runaway Singularity
 tile.RunawaySingularity.name=失控奇点
 death.attack.gtsrSingularity=%1$s 被失控奇点吞噬了
+# ===== v1.10.61 new/split keys (per plan/review/lang修改清单.md) =====
+gtsr.tooltip.steam_hub.desc2_2=手持蒸汽缓存节点右击绑定实现远程蒸汽传输。
+gtsr.tooltip.steam_hub.chip_1=枢纽奇点升级芯片：解锁(加固)缓存节点绑定；
+gtsr.tooltip.steam_hub.chip_2=强化奇点枢纽升级芯片：解锁超压缓存节点绑定；
+gtsr.tooltip.steam_hub.height=高度 3~32 层（BASE+1~30 组 STACK+CAP），每层 25 个存储单元位，方块计数为单层，通过全息图 height 信道控制 STACK 层数
+gtsr.tooltip.water_hub.desc2_2=手持水缓存节点右击绑定实现远程水传输。
+gtsr.tooltip.water_hub.chip_1=枢纽奇点升级芯片：解锁水缓存节点绑定；
+gtsr.tooltip.water_hub.counts=基础层：仓口位×25、管道×8、框架×3；堆叠层（每层）：存储单元×9、仓口位×4、管道×8、框架×3
+gtsr.tooltip.water_hub.height=总高 2~31 层（BASE+1~30 STACK），每层 9 个存储单元位，通过全息图 height 信道控制 STACK 层数
+gtsr.tooltip.singularity_hub.desc_2=攫取一切所需的资源。
+gtsr.tooltip.singularity_hub.desc2_2=蒸汽消耗随绑定节点数递增。
+gtsr.tooltip.singularity_hub.steam_input_hatch=耐压蒸汽仓/输入仓
+gtsr.tooltip.singularity_hub.optional_cooling=可选: 蒸汽冷却仓
+gtsr.tooltip.steam_furnace.desc_2=可同时处理大量熔炉配方。
+gtsr.tooltip.steam_furnace.steam_input=蒸汽仓/耐压蒸汽仓
+gtsr.tooltip.steam_furnace.optional_cooling=可选: 蒸汽冷却仓
+gtsr.tooltip.air_compressor.desc_2=其工作速度与便捷度远优于普通压缩机。
+gtsr.tooltip.air_compressor.desc_3=下界维度自动产出下界空气。
+gtsr.tooltip.air_compressor.steam_input=蒸汽仓/耐压蒸汽仓/输入仓
+gtsr.tooltip.air_compressor.optional_cooling=可选: 蒸汽冷却仓
+gtsr.tooltip.atmospheric_centrifuge.desc_2=可以将高压空气流体离心为氧气与氮气。
+gtsr.tooltip.atmospheric_centrifuge.steam_input=蒸汽仓/耐压蒸汽仓/输入仓
+gtsr.tooltip.atmospheric_centrifuge.optional_cooling=可选: 蒸汽冷却仓
+gtsr.tooltip.fluid_drill.desc2_2=蒸馏水模式产出为20%，盐水模式为10%，
+gtsr.tooltip.fluid_drill.desc2_3=岩浆模式在下界为5%、其他维度为0.5%。
+gtsr.tooltip.fluid_drill.steam_input=蒸汽仓/耐压蒸汽仓/输入仓
+
+gtsr.tooltip.crust_borer.desc_2=直接从主世界和下界中获取虚空矿物。
+gtsr.tooltip.crust_borer.steam_input=蒸汽仓/耐压蒸汽仓/输入仓
+gtsr.tooltip.crust_matter_agg.desc4_2=小数累积
+gtsr.tooltip.crust_matter_agg.desc5_2=期间失控奇点动画必定出现
+gtsr.tooltip.crust_matter_agg.desc8_2=蒸汽+200%+20%/额外维度槽（维度槽全部生效）并按 2500%÷最低3个定向权重之和 结算（不足3个累加全部），
+gtsr.tooltip.crust_matter_agg.desc8_3=额外消耗 UU 物质
+gtsr.tooltip.crust_matter_agg.desc9_2=过滤与定向配置独立持久化并随机器保存，切换模式不重置
+gtsr.tooltip.crust_matter_agg.steam_input_hatch=蒸汽仓/耐压蒸汽仓/输入仓
+gtsr.tooltip.vein_pyrolyzer.desc_2=解决长期存档中流体枯竭问题。
+gtsr.tooltip.vein_pyrolyzer.steam_input=蒸汽仓/耐压蒸汽仓/输入仓
+gtsr.tooltip.coke_oven.desc_2=产出木炭/焦炭及杂酚油等副产物。
+gtsr.tooltip.siemens_martin.desc_2=通过过热蒸汽重整煤炭，基于产生的还原性气体进行炼钢，
+gtsr.tooltip.siemens_martin.desc_3=具有更高的效率，且没有污染！
+gtsr.tooltip.siemens_martin.steam_input_hatch=耐压蒸汽仓/输入仓
+
+gtsr.tooltip.geothermal_boiler.desc_2=利用热对流效应持续产出蒸汽。
+gtsr.tooltip.geothermal_boiler.calcification_2=（满垢后仅剩1%，每10分钟向所有者发送提醒）。
+gtsr.tooltip.geothermal_boiler.chip_info_2=切换为过热蒸汽输出。
+gtsr.tooltip.turbine_array.stacking_desc_2=每额外组+5%蒸汽节省+10%效率上限；
+gtsr.tooltip.turbine_array.stacking_desc_3=机器等级每提升1级+5%效率上限
+gtsr.tooltip.turbine_array.formula_2=外壳等级限制最高供电电压
+gtsr.tooltip.turbine_array.power_param_2=（100%→80%→60%→40%→20%）：
+gtsr.tooltip.turbine_array.power_param_3=影响基础输出与基础蒸汽节省率
+gtsr.tooltip.turbine_array.singularity_mode_2=临界蒸汽纠缠奇点触发临界奇点模式：功率×5、效率上限+200%、蒸汽节省率+20%；
+gtsr.tooltip.turbine_array.singularity_mode_3=每颗提供200s（临界优先消耗）
+gtsr.tooltip.turbine_array.cycle_overlimit_chip_2=过热/超临界/致密过热/致密超临界蒸汽的冷却产物直接变为蒸馏水，
+gtsr.tooltip.turbine_array.cycle_overlimit_chip_3=且蒸汽效率因子按蒸汽家族内叠加（致密族只叠致密族）
+gtsr.tooltip.turbine_array.hatches_1=蒸汽仓/耐压蒸汽仓/输入仓/巨型超压蒸汽输入仓
+gtsr.tooltip.turbine_array.hatches_2=动力仓
+gtsr.tooltip.turbine_array.hatches_3=输入总线（可选）
+gtsr.tooltip.turbine_array.hatches_4=输出仓/蒸汽冷却仓
+
+gtsr.tooltip.solar_array.desc2_2=夜间及恶劣天气下温度降低，效率显著下降。
+gtsr.tooltip.solar_array.booster_content_2=叠加超压模式额外增幅（热量超出100%部分，最高+100%），
+gtsr.tooltip.solar_array.booster_content_3=总产出最高 ×4.0（额外+300%）
+gtsr.tooltip.solar_array.calcification_2=（满垢后仅剩1%，每10分钟向所有者发送提醒）。
+gtsr.tooltip.kinetic_array.desc2_2=基础运行速度200%，能耗减免40%。
+gtsr.tooltip.kinetic_array.desc2_3=手持蒸汽纠缠节点右击控制器，可在1200秒内将配方电压上限提高一级。
+gtsr.tooltip.kinetic_array.desc3_2=ULV=8→LV=4→MV=2→HV=1→EV=0.5→IV=0.25→LuV+=0.1 L/t。
+gtsr.tooltip.kinetic_array.tier_system=12级外壳 (LV→UMV)
+gtsr.tooltip.kinetic_array.parallel_formula=并行: (1+2×机器等级)+机器数量
+gtsr.tooltip.ammonia_plant.desc_line_2=强放热过程，蒸汽作为导热介质带走多余热量，
+gtsr.tooltip.ammonia_plant.desc_line_3=同时产生过热蒸汽作为副产物。
+gtsr.tooltip.ammonia_plant.preheat_line_2=温度不足时配方无法执行。
+gtsr.tooltip.ammonia_plant.catalyst_line_2=不同催化剂影响并行数与反应速度。
+gtsr.tooltip.ammonia_plant.advanced_casing=高级外壳
+
+gtsr.tooltip.entangler.desc_2=脱离电力消耗，按饱和函数提升热量。
+gtsr.tooltip.entangler.desc2_2=实际热量=蒸汽系数×y（蒸汽0.5、过热1、超临界2）。
+gtsr.tooltip.entangler.desc3_2=机器关机（含软锤关闭）或没有蒸汽时，热量每秒降低1%。
+gtsr.tooltip.entangler.desc6_2=关闭、挂机或结构被破坏后消失。
+gtsr.tooltip.entangler.steam_input_hatch=蒸汽仓/耐压蒸汽仓/输入仓/巨型超压蒸汽输入仓
+gtsr.tooltip.critical_singularity_compressor.desc_2=这也许能彻底撕破维度的界限......
+gtsr.tooltip.critical_singularity_compressor.desc2_2=y=0.005x/(x+5000)，上限0.5%/周期
+gtsr.tooltip.critical_singularity_compressor.desc3_2=机器停止或没有蒸汽时热量会下降。
+gtsr.tooltip.critical_singularity_compressor.steam_input_hatch=蒸汽仓/耐压蒸汽仓/输入仓/巨型超压蒸汽输入仓
+gtsr.tooltip.dense_state_manipulator.desc4_2=关机时倒计时继续，但仅在工作中消耗奇点；
+gtsr.tooltip.dense_state_manipulator.desc4_3=不足1单位的输出跨周期累计。
+gtsr.tooltip.dense_state_manipulator.desc6_2=关机后奇点模式持续期间动画豁免保留，
+gtsr.tooltip.dense_state_manipulator.desc6_3=模式耗尽或结构失效后消失。
+gtsr.tooltip.dense_state_manipulator.tier1_blocks_2=熔融机械方块MK II×125、镀铑钯框架×32
+gtsr.tooltip.dense_state_manipulator.steam_input_hatch=蒸汽仓/耐压蒸汽仓/输入仓

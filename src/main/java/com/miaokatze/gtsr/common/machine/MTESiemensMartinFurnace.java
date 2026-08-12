@@ -403,7 +403,9 @@ public class MTESiemensMartinFurnace extends MTEEnhancedMultiBlockBase<MTESiemen
             return;
         }
 
-        if (this.mPressureSteamInputs.isEmpty()) {
+        // A2：放宽蒸汽来源判定——耐压蒸汽仓、普通输入仓（含 ME 输入仓，经 GTSRHatchFluidAccess 供给超热蒸汽）
+        // 任一存在即可；样板仓计入输入判定（与下方 mInputBusses 检查一致）。消耗路径已同时覆盖两类仓。
+        if (this.mPressureSteamInputs.isEmpty() && this.mInputHatches.isEmpty() && this.mDualInputHatches.isEmpty()) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
             return;
         }
@@ -965,6 +967,8 @@ public class MTESiemensMartinFurnace extends MTEEnhancedMultiBlockBase<MTESiemen
         MultiblockTooltipBuilder tt = new MultiblockTooltipBuilder();
         tt.addMachineType(StatCollector.translateToLocal("gtsr.tooltip.siemens_martin.type"))
             .addInfo(EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.tooltip.siemens_martin.desc"))
+            .addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.siemens_martin.desc_2"))
+            .addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.siemens_martin.desc_3"))
             .addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.siemens_martin.desc2"))
             .addSeparator()
             .addInfo(
@@ -994,11 +998,10 @@ public class MTESiemensMartinFurnace extends MTEEnhancedMultiBlockBase<MTESiemen
             .beginStructureBlock(12, 19, 14, false)
             .addController(StatCollector.translateToLocal("gtsr.tooltip.siemens_martin.ctrl"))
             .addOtherStructurePart(
-                StatCollector.translateToLocal("gtsr.tooltip.shared.steam_input_hatch"),
+                StatCollector.translateToLocal("gtsr.tooltip.siemens_martin.steam_input_hatch"),
                 StatCollector.translateToLocal("gtsr.tooltip.siemens_martin.steam_input"),
                 1)
             .addInputBus(StatCollector.translateToLocal("gtsr.tooltip.siemens_martin.input_bus"), 1)
-            .addInputHatch(StatCollector.translateToLocal("gtsr.tooltip.siemens_martin.air_input_hatch"), 1)
             .addOutputBus(StatCollector.translateToLocal("gtsr.tooltip.siemens_martin.output_bus"), 1)
             .addStructureInfo("")
             .addStructureInfo(
@@ -1026,15 +1029,8 @@ public class MTESiemensMartinFurnace extends MTEEnhancedMultiBlockBase<MTESiemen
             .addStructureHint("gtsr.tooltip.siemens_martin.hint_interrupt")
             .addStructureHint("gtsr.tooltip.siemens_martin.steam_note")
             .toolTipFinisher(
-                EnumChatFormatting.AQUA + "GT"
-                    + EnumChatFormatting.GREEN
-                    + "-"
-                    + EnumChatFormatting.GOLD
-                    + "Steam"
-                    + EnumChatFormatting.RED
-                    + "-"
-                    + EnumChatFormatting.BLUE
-                    + "Reborn");
+                EnumChatFormatting.DARK_AQUA + StatCollector.translateToLocal("gtsr.tooltip.added_by")
+                    + "GT-Steam-Reborn");
         return tt;
     }
 }

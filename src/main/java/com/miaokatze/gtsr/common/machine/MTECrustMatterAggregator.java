@@ -1664,9 +1664,22 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
             .addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal(keyPrefix + "desc2"))
             .addInfo(EnumChatFormatting.GREEN + StatCollector.translateToLocal(keyPrefix + "desc3"))
             .addInfo(EnumChatFormatting.RED + StatCollector.translateToLocal(keyPrefix + "desc4"))
+            .addInfo(EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.crust_matter_agg.desc4_2"))
             .addInfo(EnumChatFormatting.DARK_PURPLE + StatCollector.translateToLocal(keyPrefix + "desc5"))
+            .addInfo(
+                EnumChatFormatting.DARK_PURPLE
+                    + StatCollector.translateToLocal("gtsr.tooltip.crust_matter_agg.desc5_2"))
             .addInfo(EnumChatFormatting.LIGHT_PURPLE + StatCollector.translateToLocal(keyPrefix + "desc8"))
+            .addInfo(
+                EnumChatFormatting.LIGHT_PURPLE
+                    + StatCollector.translateToLocal("gtsr.tooltip.crust_matter_agg.desc8_2"))
+            .addInfo(
+                EnumChatFormatting.LIGHT_PURPLE
+                    + StatCollector.translateToLocal("gtsr.tooltip.crust_matter_agg.desc8_3"))
             .addInfo(EnumChatFormatting.LIGHT_PURPLE + StatCollector.translateToLocal(keyPrefix + "desc9"))
+            .addInfo(
+                EnumChatFormatting.LIGHT_PURPLE
+                    + StatCollector.translateToLocal("gtsr.tooltip.crust_matter_agg.desc9_2"))
             .addSeparator()
             .addInfo(
                 EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.shared.steam_cost")
@@ -1683,7 +1696,7 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
             .beginStructureBlock(26, 26, 8, false)
             .addController(StatCollector.translateToLocal(keyPrefix + "ctrl"))
             .addOtherStructurePart(
-                StatCollector.translateToLocal("gtsr.tooltip.shared.steam_input_hatch"),
+                StatCollector.translateToLocal("gtsr.tooltip.crust_matter_agg.steam_input_hatch"),
                 StatCollector.translateToLocal(keyPrefix + "steam_input"),
                 1)
             .addInputBus(StatCollector.translateToLocal(keyPrefix + "input_bus"), 1)
@@ -1694,15 +1707,8 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
             .addStructureHint("gtsr.tooltip.shared.no_maintenance")
             .addStructureHint(keyPrefix + "hint_dimension")
             .toolTipFinisher(
-                EnumChatFormatting.AQUA + "GT"
-                    + EnumChatFormatting.GREEN
-                    + "-"
-                    + EnumChatFormatting.GOLD
-                    + "Steam"
-                    + EnumChatFormatting.RED
-                    + "-"
-                    + EnumChatFormatting.BLUE
-                    + "Reborn");
+                EnumChatFormatting.DARK_AQUA + StatCollector.translateToLocal("gtsr.tooltip.added_by")
+                    + "GT-Steam-Reborn");
         return tt;
     }
 

@@ -801,13 +801,22 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
         tt.addMachineType(StatCollector.translateToLocal("gtsr.tooltip.solar_array.type"))
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.solar_array.desc"))
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.solar_array.desc2"))
+            .addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.solar_array.desc2_2"))
             .addInfo(EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.tooltip.solar_array.booster_label"))
             .addInfo(
                 EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.tooltip.solar_array.booster_content"))
+            .addInfo(
+                EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.solar_array.booster_content_2"))
+            .addInfo(
+                EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.solar_array.booster_content_3"))
             .addSeparator()
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.solar_array.calcification"))
+            .addInfo(
+                EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.solar_array.calcification_2"))
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.solar_array.calcification_d"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.solar_array.clear_calcification_hint"))
+            .addInfo(
+                EnumChatFormatting.AQUA
+                    + StatCollector.translateToLocal("gtsr.tooltip.solar_array.clear_calcification_hint"))
             .addSeparator()
             .addInfo(
                 EnumChatFormatting.BLUE + "Tier 1 "
@@ -880,15 +889,8 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.overpressure.enable"))
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.overpressure.effects"))
             .toolTipFinisher(
-                EnumChatFormatting.AQUA + "GT"
-                    + EnumChatFormatting.GREEN
-                    + "-"
-                    + EnumChatFormatting.GOLD
-                    + "Steam"
-                    + EnumChatFormatting.RED
-                    + "-"
-                    + EnumChatFormatting.BLUE
-                    + "Reborn");
+                EnumChatFormatting.DARK_AQUA + StatCollector.translateToLocal("gtsr.tooltip.added_by")
+                    + "GT-Steam-Reborn");
         return tt;
     }
 

@@ -440,6 +440,7 @@ public class MTECrustSteamBorer extends MTESteamMultiBlockBase<MTECrustSteamBore
         MultiblockTooltipBuilder tt = new MultiblockTooltipBuilder();
         tt.addMachineType(StatCollector.translateToLocal("gtsr.tooltip.crust_borer.type"))
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.crust_borer.desc"))
+            .addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.crust_borer.desc_2"))
             .addSeparator()
             .addInfo(
                 EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.shared.steam_cost")
@@ -451,12 +452,12 @@ public class MTECrustSteamBorer extends MTESteamMultiBlockBase<MTECrustSteamBore
             .addController(StatCollector.translateToLocal("gtsr.tooltip.crust_borer.ctrl"))
             .addOutputBus(StatCollector.translateToLocal("gtsr.tooltip.crust_borer.output_bus"), 1)
             .addOtherStructurePart(
-                StatCollector.translateToLocal("gtsr.tooltip.shared.steam_input_hatch"),
-                StatCollector.translateToLocal("gtsr.tooltip.shared.steam_or_pressure"),
+                StatCollector.translateToLocal("gtsr.tooltip.crust_borer.steam_input"),
+                StatCollector.translateToLocal("gtsr.tooltip.shared.any_casing"),
                 1)
             .addStructureInfo("")
-            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.casing"), 20, false)
-            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.frame"), 42, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.casing"), 48, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.frame"), 43, false)
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.gear_box"), 8, false)
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.pipe"), 11, false)
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.firebox"), 4, false)
@@ -468,15 +469,8 @@ public class MTECrustSteamBorer extends MTESteamMultiBlockBase<MTECrustSteamBore
             .addStructureHint("gtsr.tooltip.shared.no_maintenance")
             .addStructureHint("gtsr.tooltip.shared.optional_cooling")
             .toolTipFinisher(
-                EnumChatFormatting.AQUA + "GT"
-                    + EnumChatFormatting.GREEN
-                    + "-"
-                    + EnumChatFormatting.GOLD
-                    + "Steam"
-                    + EnumChatFormatting.RED
-                    + "-"
-                    + EnumChatFormatting.BLUE
-                    + "Reborn");
+                EnumChatFormatting.DARK_AQUA + StatCollector.translateToLocal("gtsr.tooltip.added_by")
+                    + "GT-Steam-Reborn");
         return tt;
     }
 

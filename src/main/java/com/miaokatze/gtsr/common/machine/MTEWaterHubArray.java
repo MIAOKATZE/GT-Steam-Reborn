@@ -1353,6 +1353,8 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
         tt.addMachineType(StatCollector.translateToLocal("gtsr.tooltip.water_hub.type"))
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.water_hub.desc"))
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.water_hub.desc2"))
+            .addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.water_hub.desc2_2"))
+            .addInfo(EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.water_hub.chip_1"))
             .addInfo(
                 EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.shared.screwdriver_overflow"))
             .addInfo(
@@ -1380,10 +1382,8 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
                     + "Steel "
                     + EnumChatFormatting.DARK_PURPLE
                     + "Tier")
-            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.casing"), 70, false)
-            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.pipe"), 7, false)
-            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.gear_box"), 4, false)
-            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.frame"), 24, false)
+            .addStructureInfo(StatCollector.translateToLocal("gtsr.tooltip.water_hub.counts"))
+            .addStructureHint("gtsr.tooltip.water_hub.height")
             .addStructureHint("gtsr.tooltip.shared.no_maintenance")
             .addStructureHint("gtsr.tooltip.water_hub.hint_tier1")
             .addStructureHint("gtsr.tooltip.water_hub.hint_tier2")
@@ -1391,15 +1391,8 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
             .addStructureHint("gtsr.tooltip.shared.overflow_input_screwdriver")
             .addStructureHint("gtsr.tooltip.water_hub.hint_status")
             .toolTipFinisher(
-                EnumChatFormatting.AQUA + "GT"
-                    + EnumChatFormatting.GREEN
-                    + "-"
-                    + EnumChatFormatting.GOLD
-                    + "Steam"
-                    + EnumChatFormatting.RED
-                    + "-"
-                    + EnumChatFormatting.BLUE
-                    + "Reborn");
+                EnumChatFormatting.DARK_AQUA + StatCollector.translateToLocal("gtsr.tooltip.added_by")
+                    + "GT-Steam-Reborn");
         return tt;
     }
 }

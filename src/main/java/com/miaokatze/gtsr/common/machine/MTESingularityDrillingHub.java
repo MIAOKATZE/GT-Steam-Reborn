@@ -1167,7 +1167,9 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
         MultiblockTooltipBuilder tt = new MultiblockTooltipBuilder();
         tt.addMachineType(StatCollector.translateToLocal("gtsr.tooltip.singularity_hub.type"))
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.singularity_hub.desc"))
+            .addInfo(EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.tooltip.singularity_hub.desc_2"))
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.singularity_hub.desc2"))
+            .addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.singularity_hub.desc2_2"))
             .addSeparator()
             .addInfo(
                 EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.shared.steam_cost")
@@ -1182,7 +1184,7 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
             .beginStructureBlock(12, 12, 12, false)
             .addController(StatCollector.translateToLocal("gtsr.tooltip.singularity_hub.ctrl"))
             .addOtherStructurePart(
-                StatCollector.translateToLocal("gtsr.tooltip.shared.steam_input_hatch"),
+                StatCollector.translateToLocal("gtsr.tooltip.singularity_hub.steam_input_hatch"),
                 StatCollector.translateToLocal("gtsr.tooltip.singularity_hub.steam_input"),
                 1)
             .addOutputBus(StatCollector.translateToLocal("gtsr.tooltip.singularity_hub.output_bus"), 1)
@@ -1201,16 +1203,10 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
             .addStructureHint("gtsr.tooltip.singularity_hub.hint_chunk")
             .addStructureHint("gtsr.tooltip.singularity_hub.hint_status")
             .addStructureHint("gtsr.tooltip.shared.hub_singularity_cost")
+            .addStructureHint("gtsr.tooltip.singularity_hub.optional_cooling")
             .toolTipFinisher(
-                EnumChatFormatting.AQUA + "GT"
-                    + EnumChatFormatting.GREEN
-                    + "-"
-                    + EnumChatFormatting.GOLD
-                    + "Steam"
-                    + EnumChatFormatting.RED
-                    + "-"
-                    + EnumChatFormatting.BLUE
-                    + "Reborn");
+                EnumChatFormatting.DARK_AQUA + StatCollector.translateToLocal("gtsr.tooltip.added_by")
+                    + "GT-Steam-Reborn");
         return tt;
     }
 

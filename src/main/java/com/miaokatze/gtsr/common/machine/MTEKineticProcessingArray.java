@@ -1184,9 +1184,11 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
         tt.addMachineType(StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.type"))
             .addInfo(EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.desc"))
             .addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.desc2"))
+            .addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.desc2_2"))
+            .addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.desc2_3"))
             .addInfo(
                 EnumChatFormatting.LIGHT_PURPLE + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.desc3"))
-            .addInfo(EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.desc4"))
+            .addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.desc3_2"))
             .addSeparator()
             .beginStructureBlock(7, 5, 7, true)
             .addController(StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.ctrl"))
@@ -1196,25 +1198,21 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
             .addOutputBus(StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.output"), 1)
             .addOutputHatch(StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.output_hatch"), 1)
             .addStructureInfo("")
-            .addStructureInfo(EnumChatFormatting.YELLOW + "7-Tier Casing" + EnumChatFormatting.GRAY + " (LV\u2192ZPM)")
+            .addStructureInfo(
+                EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.tier_system"))
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.casing"), 93, false)
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.gear_box"), 15, false)
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.pipe"), 8, false)
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.frame"), 12, false)
-            .addStructureInfo(EnumChatFormatting.YELLOW + "Parallel: (1+2\u00d7Tier)+Machine Count")
+            .addStructureInfo(
+                EnumChatFormatting.YELLOW
+                    + StatCollector.translateToLocal("gtsr.tooltip.kinetic_array.parallel_formula"))
             .addStructureHint("gtsr.tooltip.shared.no_maintenance")
             .addStructureHint("gtsr.tooltip.kinetic_array.hint_pipe")
             .addStructureHint("gtsr.tooltip.kinetic_array.hint_gear")
             .toolTipFinisher(
-                EnumChatFormatting.AQUA + "GT"
-                    + EnumChatFormatting.GREEN
-                    + "-"
-                    + EnumChatFormatting.GOLD
-                    + "Steam"
-                    + EnumChatFormatting.RED
-                    + "-"
-                    + EnumChatFormatting.BLUE
-                    + "Reborn");
+                EnumChatFormatting.DARK_AQUA + StatCollector.translateToLocal("gtsr.tooltip.added_by")
+                    + "GT-Steam-Reborn");
         return tt;
     }
 

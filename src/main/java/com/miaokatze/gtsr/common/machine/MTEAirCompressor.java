@@ -395,6 +395,8 @@ public class MTEAirCompressor extends MTESteamMultiBlockBase<MTEAirCompressor> i
         MultiblockTooltipBuilder tt = new MultiblockTooltipBuilder();
         tt.addMachineType(StatCollector.translateToLocal("gtsr.tooltip.air_compressor.type"))
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.air_compressor.desc"))
+            .addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.air_compressor.desc_2"))
+            .addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.air_compressor.desc_3"))
             .addSeparator()
             .addInfo(
                 EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.shared.steam_cost")
@@ -412,10 +414,9 @@ public class MTEAirCompressor extends MTESteamMultiBlockBase<MTEAirCompressor> i
                 EnumChatFormatting.LIGHT_PURPLE + StatCollector.translateToLocal("gtsr.tooltip.air_compressor.nether"))
             .beginStructureBlock(5, 4, 3, false)
             .addController(StatCollector.translateToLocal("gtsr.tooltip.air_compressor.ctrl"))
-            .addInputHatch(StatCollector.translateToLocal("gtsr.tooltip.air_compressor.input_hatch"), 1)
             .addOutputHatch(StatCollector.translateToLocal("gtsr.tooltip.air_compressor.output_hatch"), 1)
             .addOtherStructurePart(
-                StatCollector.translateToLocal("gtsr.tooltip.shared.steam_input_hatch"),
+                StatCollector.translateToLocal("gtsr.tooltip.air_compressor.steam_input"),
                 StatCollector.translateToLocal("gtsr.tooltip.shared.any_casing"),
                 1)
             .addStructureInfo("")
@@ -439,16 +440,10 @@ public class MTEAirCompressor extends MTESteamMultiBlockBase<MTEAirCompressor> i
                     + StatCollector.translateToLocal("gtsr.gui.tier.steel")
                     + ")")
             .addStructureHint("gtsr.tooltip.shared.no_maintenance")
+            .addStructureHint("gtsr.tooltip.air_compressor.optional_cooling")
             .toolTipFinisher(
-                EnumChatFormatting.AQUA + "GT"
-                    + EnumChatFormatting.GREEN
-                    + "-"
-                    + EnumChatFormatting.GOLD
-                    + "Steam"
-                    + EnumChatFormatting.RED
-                    + "-"
-                    + EnumChatFormatting.BLUE
-                    + "Reborn");
+                EnumChatFormatting.DARK_AQUA + StatCollector.translateToLocal("gtsr.tooltip.added_by")
+                    + "GT-Steam-Reborn");
         return tt;
     }
 

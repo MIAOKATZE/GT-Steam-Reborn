@@ -1638,30 +1638,61 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
                     + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.steam_progression"))
             .addInfo(
                 EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.stacking_desc"))
+            .addInfo(
+                EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.stacking_desc_2"))
+            .addInfo(
+                EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.stacking_desc_3"))
             .addSeparator()
             .addInfo(EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.formula"))
+            .addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.formula_2"))
             .addInfo(
                 EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.power_param"))
+            .addInfo(
+                EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.power_param_2"))
+            .addInfo(
+                EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.power_param_3"))
             .addInfo(
                 EnumChatFormatting.LIGHT_PURPLE
                     + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.singularity_mode"))
             .addInfo(
+                EnumChatFormatting.AQUA
+                    + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.singularity_mode_2"))
+            .addInfo(
+                EnumChatFormatting.AQUA
+                    + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.singularity_mode_3"))
+            .addInfo(
                 EnumChatFormatting.GOLD
                     + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.cycle_overlimit_chip"))
+            .addInfo(
+                EnumChatFormatting.AQUA
+                    + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.cycle_overlimit_chip_2"))
+            .addInfo(
+                EnumChatFormatting.AQUA
+                    + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.cycle_overlimit_chip_3"))
             .beginVariableStructureBlock(5, 5, 13, 13, 9, 25, true)
             .addController(StatCollector.translateToLocal("gtsr.tooltip.turbine_array.ctrl"))
-            .addInputHatch(StatCollector.translateToLocal("gtsr.tooltip.turbine_array.input_hatch"), 1)
-            .addDynamoHatch(StatCollector.translateToLocal("gtsr.tooltip.turbine_array.dynamo"), 1)
             .addStructureInfo("")
             // beta-1 兼容：GTStructureChannels.STRUCTURE_HEIGHT 与 MultiblockTooltipBuilder.addSubChannel
             // 均为 GT5U 5.09.54（beta-2）新增，beta-1 (5.09.52) 仅有 addSubChannelUsage 且无此通道。
             // 此行原用于 tooltip 显示高度堆叠通道，删去不影响功能（下方 extra_stack_layers 文本已说明）。
             .addStructureInfo(
                 EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.multi_tier"))
-            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.casing"), 38, false)
-            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.gear_box"), 8, false)
-            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.pipe"), 8, false)
-            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.frame"), 12, false)
+            .addOtherStructurePart(
+                StatCollector.translateToLocal("gtsr.tooltip.turbine_array.hatches_1"),
+                StatCollector.translateToLocal("gtsr.tooltip.shared.any_casing"),
+                1)
+            .addOtherStructurePart(
+                StatCollector.translateToLocal("gtsr.tooltip.turbine_array.hatches_2"),
+                StatCollector.translateToLocal("gtsr.tooltip.shared.any_casing"),
+                1)
+            .addOtherStructurePart(
+                StatCollector.translateToLocal("gtsr.tooltip.turbine_array.hatches_3"),
+                StatCollector.translateToLocal("gtsr.tooltip.shared.any_casing"),
+                1)
+            .addOtherStructurePart(
+                StatCollector.translateToLocal("gtsr.tooltip.turbine_array.hatches_4"),
+                StatCollector.translateToLocal("gtsr.tooltip.shared.any_casing"),
+                1)
             .addStructureInfo(
                 EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.turbine_array.extra_stack_layers")
                     + EnumChatFormatting.GOLD
@@ -1674,15 +1705,8 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
             .addStructureHint("gtsr.tooltip.turbine_array.hint_gear")
             .addStructureHint("gtsr.tooltip.shared.no_maintenance")
             .toolTipFinisher(
-                EnumChatFormatting.AQUA + "GT"
-                    + EnumChatFormatting.GREEN
-                    + "-"
-                    + EnumChatFormatting.GOLD
-                    + "Steam"
-                    + EnumChatFormatting.RED
-                    + "-"
-                    + EnumChatFormatting.BLUE
-                    + "Reborn");
+                EnumChatFormatting.DARK_AQUA + StatCollector.translateToLocal("gtsr.tooltip.added_by")
+                    + "GT-Steam-Reborn");
         return tt;
     }
 

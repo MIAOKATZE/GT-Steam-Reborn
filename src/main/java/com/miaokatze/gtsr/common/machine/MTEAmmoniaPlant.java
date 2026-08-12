@@ -811,6 +811,8 @@ public class MTEAmmoniaPlant extends MTEEnhancedMultiBlockBase<MTEAmmoniaPlant> 
                     + StatCollector.translateToLocal("gtsr.tooltip.ammonia_plant.desc.6")
                     + EnumChatFormatting.GRAY
                     + StatCollector.translateToLocal("gtsr.tooltip.ammonia_plant.desc.7"))
+            .addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.ammonia_plant.desc_line_2"))
+            .addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.ammonia_plant.desc_line_3"))
             .addSeparator()
             .addInfo(
                 EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.ammonia_plant.preheat.1")
@@ -819,16 +821,16 @@ public class MTEAmmoniaPlant extends MTEEnhancedMultiBlockBase<MTEAmmoniaPlant> 
                     + EnumChatFormatting.GRAY
                     + StatCollector.translateToLocal("gtsr.tooltip.ammonia_plant.preheat.3"))
             .addInfo(
+                EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.ammonia_plant.preheat_line_2"))
+            .addInfo(
                 EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.ammonia_plant.heat_cost.1")
                     + EnumChatFormatting.WHITE
                     + "8,000 L/s "
                     + StatCollector.translateToLocal("gtsr.tooltip.ammonia_plant.steam_unit")
                     + " + 200 L/s "
-                    + StatCollector.translateToLocal("gtsr.tooltip.ammonia_plant.refinery_gas")
-                    + EnumChatFormatting.GRAY
-                    + " | "
-                    + EnumChatFormatting.RED
-                    + StatCollector.translateToLocal("gtsr.tooltip.ammonia_plant.heat_cost.2")
+                    + StatCollector.translateToLocal("gtsr.tooltip.ammonia_plant.refinery_gas"))
+            .addInfo(
+                EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.ammonia_plant.heat_cost.2")
                     + EnumChatFormatting.WHITE
                     + "12,000 L/s "
                     + StatCollector.translateToLocal("gtsr.tooltip.ammonia_plant.steam_unit")
@@ -836,6 +838,8 @@ public class MTEAmmoniaPlant extends MTEEnhancedMultiBlockBase<MTEAmmoniaPlant> 
                     + StatCollector.translateToLocal("gtsr.tooltip.ammonia_plant.refinery_gas"))
             .addSeparator()
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.ammonia_plant.catalyst"))
+            .addInfo(
+                EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.ammonia_plant.catalyst_line_2"))
             .addInfo(
                 EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.ammonia_plant.catalyst_detail.1")
                     + EnumChatFormatting.GOLD
@@ -852,18 +856,18 @@ public class MTEAmmoniaPlant extends MTEEnhancedMultiBlockBase<MTEAmmoniaPlant> 
             .addOutputBus(StatCollector.translateToLocal("gtsr.tooltip.ammonia_plant.output_bus"), 1)
             .addOutputHatch(StatCollector.translateToLocal("gtsr.tooltip.ammonia_plant.output_hatch"), 1)
             .addStructureInfo("")
-            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.casing"), 26, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.steel_casing"), 116, false)
+            .addCasingInfoExactly(
+                StatCollector.translateToLocal("gtsr.tooltip.ammonia_plant.advanced_casing"),
+                272,
+                false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.pipe"), 50, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.firebox"), 21, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.frame"), 52, false)
             .addStructureHint("gtsr.tooltip.shared.no_maintenance")
             .toolTipFinisher(
-                EnumChatFormatting.AQUA + "GT"
-                    + EnumChatFormatting.GREEN
-                    + "-"
-                    + EnumChatFormatting.GOLD
-                    + "Steam"
-                    + EnumChatFormatting.RED
-                    + "-"
-                    + EnumChatFormatting.BLUE
-                    + "Reborn");
+                EnumChatFormatting.DARK_AQUA + StatCollector.translateToLocal("gtsr.tooltip.added_by")
+                    + "GT-Steam-Reborn");
         return tt;
     }
 
