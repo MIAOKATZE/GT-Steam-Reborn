@@ -34,12 +34,28 @@ public interface ICoolingHatchHolder {
      *
      * @return 累积蒸汽量
      */
-    int gtsr$getAccumulatedSteam();
+    // v1.10.61：int → long，避免大容量机器累积溢出
+    long gtsr$getAccumulatedSteam();
 
     /**
      * 设置累积的普通蒸汽量。
      *
      * @param value 新的累积蒸汽量
      */
-    void gtsr$setAccumulatedSteam(int value);
+    void gtsr$setAccumulatedSteam(long value);
+
+    /**
+     * 获取待推送的过热蒸汽量（压力冷却仓满时暂存，U7 顺序填充）。
+     *
+     * @return 待推送过热蒸汽量
+     */
+    // v1.10.61：新增
+    long gtsr$getPendingSuperheatedSteam();
+
+    /**
+     * 设置待推送的过热蒸汽量。
+     *
+     * @param value 新的待推送过热蒸汽量
+     */
+    void gtsr$setPendingSuperheatedSteam(long value);
 }

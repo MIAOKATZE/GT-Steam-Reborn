@@ -42,23 +42,32 @@ public final class SteamCoolingSupport {
      */
     public static void pushCoolingProducts(ICoolingHatchHolder holder, int steamConsumed, boolean isSuperheated) {
         if (isSuperheated) {
-            // 过热蒸汽 → 推送至压力冷却舱室（转为普通蒸汽存储）
+            // v1.10.61：过热蒸汽 → 先推送 pending 累积量再推本次新量（合并总量后逐仓顺序填充，
+            // pushCoolingSteam 返回实际放入量，未放入部分退回 pending；不再每仓全额，消除 N 倍放大）
+            long remaining = holder.gtsr$getPendingSuperheatedSteam() + steamConsumed;
             for (MTEPressureSteamCoolingHatch hatch : holder.gtsr$getPressureHatches()) {
+                if (remaining <= 0) break;
                 if (hatch != null && hatch.isValid()) {
-                    hatch.pushCoolingSteam(steamConsumed);
+                    remaining -= hatch.pushCoolingSteam((int) Math.min(remaining, Integer.MAX_VALUE));
                 }
             }
+            holder.gtsr$setPendingSuperheatedSteam(remaining);
         } else {
-            // 普通蒸汽 → 累积，每 160L 转 1L 水推送至普通冷却舱室
+            // 普通蒸汽 → 累积，每 160L 转 1L 水跨仓顺序推送至普通冷却舱室
             holder.gtsr$setAccumulatedSteam(holder.gtsr$getAccumulatedSteam() + steamConsumed);
-            int waterAmount = holder.gtsr$getAccumulatedSteam() / STEAM_PER_WATER;
+            long acc = holder.gtsr$getAccumulatedSteam();
+            long waterAmount = acc / STEAM_PER_WATER;
             if (waterAmount > 0) {
-                holder.gtsr$setAccumulatedSteam(holder.gtsr$getAccumulatedSteam() % STEAM_PER_WATER);
+                // v1.10.61：跨仓顺序填充（逐仓 pushCoolingWater 累减 remaining），
+                // 未放入部分按 remaining × STEAM_PER_WATER 退回累积器（保持余数语义）
+                long remaining = waterAmount;
                 for (MTESteamCoolingHatch hatch : holder.gtsr$getCoolingHatches()) {
+                    if (remaining <= 0) break;
                     if (hatch != null && hatch.isValid()) {
-                        hatch.pushCoolingWater(waterAmount);
+                        remaining -= hatch.pushCoolingWater((int) Math.min(remaining, Integer.MAX_VALUE));
                     }
                 }
+                holder.gtsr$setAccumulatedSteam(remaining * STEAM_PER_WATER + acc % STEAM_PER_WATER);
             }
         }
     }
@@ -134,7 +143,7 @@ public final class SteamCoolingSupport {
             .clear();
         holder.gtsr$getPressureHatches()
             .clear();
-        holder.gtsr$setAccumulatedSteam(0);
+        // v1.10.61：重载不清零累积器——删除 accumulatedSteam 清零，避免结构重建时蒸汽累积丢失
     }
 
     /**
@@ -144,7 +153,8 @@ public final class SteamCoolingSupport {
      * @param aNBT   NBT 标签
      */
     public static void saveNBT(ICoolingHatchHolder holder, NBTTagCompound aNBT) {
-        aNBT.setInteger("gtsr.accumulatedSteam", holder.gtsr$getAccumulatedSteam());
+        // v1.10.61：int → long（setLong；getLong 兼容旧版 int 存档）
+        aNBT.setLong("gtsr.accumulatedSteam", holder.gtsr$getAccumulatedSteam());
     }
 
     /**
@@ -154,6 +164,7 @@ public final class SteamCoolingSupport {
      * @param aNBT   NBT 标签
      */
     public static void loadNBT(ICoolingHatchHolder holder, NBTTagCompound aNBT) {
-        holder.gtsr$setAccumulatedSteam(aNBT.getInteger("gtsr.accumulatedSteam"));
+        // v1.10.61：int → long（getLong 兼容旧版 int 存档）
+        holder.gtsr$setAccumulatedSteam(aNBT.getLong("gtsr.accumulatedSteam"));
     }
 }

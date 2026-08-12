@@ -718,7 +718,9 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
 
             if (node.isOutputMode) {
                 if (mWaterStored <= 0 || mStoredFluidType == null) continue;
-                int toTransfer = (int) Math.min(BOUND_TRANSFER_RATE, mWaterStored);
+                // v1.10.61：改用节点实际速率（交互速率百分比），镜像蒸汽枢纽结构
+                int nodeRate = getNodeTransferRate(gtTile);
+                int toTransfer = (int) Math.min(nodeRate, mWaterStored);
                 FluidStack toExport = FluidStack.loadFluidStackFromNBT(createFluidTag(mStoredFluidType, toTransfer));
                 int filled = gtTile.fill(ForgeDirection.UNKNOWN, toExport, true);
                 if (filled > 0) {
@@ -728,7 +730,9 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
                     }
                 }
             } else {
-                FluidStack drained = gtTile.drain(ForgeDirection.UNKNOWN, BOUND_TRANSFER_RATE, false);
+                // v1.10.61：改用节点实际速率（交互速率百分比），镜像蒸汽枢纽结构
+                int nodeRate = getNodeTransferRate(gtTile);
+                FluidStack drained = gtTile.drain(ForgeDirection.UNKNOWN, nodeRate, false);
                 if (drained != null && isWaterFluid(drained)) {
                     int accepted = receiveWater(drained, true);
                     if (accepted > 0) {
@@ -739,6 +743,18 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
         }
 
         mBoundNodes.removeAll(invalidNodes);
+    }
+
+    /**
+     * v1.10.61：按节点交互速率百分比计算实际传输速率（镜像蒸汽枢纽 getNodeTransferRate；
+     * 水节点基础交互速率 = OUTPUT_PER_TICK × 20，getEffectiveHubTransferRate 应用 mTransferRatePercent）。
+     */
+    private int getNodeTransferRate(IGregTechTileEntity gte) {
+        IMetaTileEntity mte = gte.getMetaTileEntity();
+        if (mte instanceof MTEFilteredCacheNode cacheNode) {
+            return (int) Math.min(cacheNode.getEffectiveHubTransferRate(), Integer.MAX_VALUE);
+        }
+        return BOUND_TRANSFER_RATE;
     }
 
     private boolean hasHubSingularityChip() {

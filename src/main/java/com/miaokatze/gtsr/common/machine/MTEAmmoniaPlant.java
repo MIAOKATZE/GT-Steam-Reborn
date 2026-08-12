@@ -92,6 +92,9 @@ public class MTEAmmoniaPlant extends MTEEnhancedMultiBlockBase<MTEAmmoniaPlant> 
     public int mParallelCount = 64;
     public long mRealtimeSteamCost = 0;
     public long mRealtimeSteamOutput = 0;
+    // v1.10.61：超热蒸汽待推送余量（voidingMode.protectFluid=true 限流：输出仓放不下时在此累积，
+    // 空间足后由 onRunningTick/onPostTick 的每 tick 推送自动补推；不持久化）
+    private long gtsr$pendingSuperheatedSteam = 0L;
 
     private int mCasingCount = 0;
     private int mStartUpCheck = 100;
@@ -518,10 +521,30 @@ public class MTEAmmoniaPlant extends MTEEnhancedMultiBlockBase<MTEAmmoniaPlant> 
         return GTSRHatchFluidAccess.depleteFluidAcross(mInputHatches, Materials.Gas.getGas(amount)) >= amount;
     }
 
+    /**
+     * v1.10.61：推送超热蒸汽（限流修复）——先补推 gtsr$pendingSuperheatedSteam 待推送余量再推新量；
+     * voidingMode.protectFluid=true（限流）时未放入输出仓的剩余量累计入 pending，输出空间足后由
+     * onRunningTick/onPostTick 的每 tick 调用自然补推（机器不停机）；false（允许销毁）保持原语义丢弃。
+     */
     private void pushSuperheatedSteam(int amount) {
         if (amount <= 0) return;
         FluidStack superheatedSteam = FluidRegistry.getFluidStack("ic2superheatedsteam", amount);
         if (superheatedSteam == null) return;
+        // 合并一趟推送：pending 与新量同为超热蒸汽，先补旧余量再推新量（净效果与分两次推送等价）
+        long total = gtsr$pendingSuperheatedSteam + amount;
+        gtsr$pendingSuperheatedSteam = 0;
+        int remaining = fillSuperheatedSteam(superheatedSteam, (int) Math.min(total, Integer.MAX_VALUE));
+        if (voidingMode.protectFluid && remaining > 0) {
+            gtsr$pendingSuperheatedSteam = remaining;
+        }
+    }
+
+    /**
+     * 两段式 fill 实推超热蒸汽到输出舱（锁定舱优先 → 蒸汽输出仓 → 通用仓），返回未放入的剩余量
+     * （v1.10.61 从原 pushSuperheatedSteam 抽出，返回值供限流累积）。
+     */
+    private int fillSuperheatedSteam(FluidStack superheatedSteam, int amount) {
+        int remaining = amount;
 
         // 锁定到过热蒸汽的输出舱优先（IFluidLockableMui2 在 beta-1/2 字节一致，安全可用）
         List<MTEHatchOutput> lockedOutputHatches = new ArrayList<>();
@@ -534,14 +557,12 @@ public class MTEAmmoniaPlant extends MTEEnhancedMultiBlockBase<MTEAmmoniaPlant> 
             }
         }
 
-        int remaining = superheatedSteam.amount;
-
         // 优先填入锁定舱。注意：必须用 fill(FluidStack, boolean) 的 simulate→实填两段式，
         // 不能调用 MTEHatchOutput.storePartial(FluidStack, boolean) 或 addOutputPartial(FluidStack)——
         // 这两者及 IOutputHatch 接口是 GT5U 5.09.54（beta-2）新增，在 beta-1 (5.09.52) 运行时会导致
         // NoSuchMethodError/NoClassDefFoundError 并在崩溃报告中被 ItemBlock 二次错误掩盖。
         for (MTEHatchOutput outputHatch : lockedOutputHatches) {
-            if (remaining <= 0) return;
+            if (remaining <= 0) break;
             int filled = outputHatch.fill(new FluidStack(superheatedSteam.getFluid(), remaining), false);
             if (filled > 0) {
                 outputHatch.fill(new FluidStack(superheatedSteam.getFluid(), filled), true);
@@ -552,9 +573,8 @@ public class MTEAmmoniaPlant extends MTEEnhancedMultiBlockBase<MTEAmmoniaPlant> 
         // 无锁定舱或锁定舱仍有余量：蒸汽输出仓优先（耐压蒸汽输出仓收蒸汽+超热蒸汽，
         // 普通蒸汽输出仓 only 收蒸汽会被 fill 自动过滤）→ 其余输出仓顺序填充
         // （替代 beta-2-only 的 addOutputPartial）
-        if (remaining <= 0) return;
         for (MTEHatchOutput outputHatch : GTUtility.validMTEList(mOutputHatches)) {
-            if (remaining <= 0) return;
+            if (remaining <= 0) break;
             if (outputHatch instanceof MTEPressureSteamOutputHatch || outputHatch instanceof MTESteamOutputHatch) {
                 int filled = outputHatch.fill(new FluidStack(superheatedSteam.getFluid(), remaining), false);
                 if (filled > 0) {
@@ -563,12 +583,11 @@ public class MTEAmmoniaPlant extends MTEEnhancedMultiBlockBase<MTEAmmoniaPlant> 
                 }
             }
         }
-        if (remaining <= 0) return;
         // v1.10.8：回退段跳过"锁定其他流体"的通用输出仓——该仓同时是配方氨输出的目标仓，
         // HP 蒸汽先占位会引发 VOID_NONE 下假性 FLUID_OUTPUT_FULL（机停）或 VOID_FLUID 下氨被销毁。
         // 锁定语义明确（玩家指定用途），未锁定仓可自由填充。
         for (MTEHatchOutput outputHatch : GTUtility.validMTEList(mOutputHatches)) {
-            if (remaining <= 0) return;
+            if (remaining <= 0) break;
             if (outputHatch instanceof MTEPressureSteamOutputHatch || outputHatch instanceof MTESteamOutputHatch) {
                 continue;
             }
@@ -582,6 +601,7 @@ public class MTEAmmoniaPlant extends MTEEnhancedMultiBlockBase<MTEAmmoniaPlant> 
                 remaining -= filled;
             }
         }
+        return remaining;
     }
 
     @Override

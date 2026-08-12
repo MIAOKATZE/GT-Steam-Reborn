@@ -23,7 +23,6 @@ import net.minecraftforge.fluids.FluidTankInfo;
 import com.google.common.collect.ImmutableList;
 import com.gtnewhorizon.structurelib.alignment.IAlignmentLimits;
 import com.miaokatze.gtsr.api.compat.GTSRHatchFluidAccess;
-import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.blocks.TileRunawaySingularity;
 import com.miaokatze.gtsr.common.gui.MTESingularityMachineGui;
 import com.miaokatze.gtsr.loader.BlockLoader;
@@ -392,24 +391,6 @@ public abstract class MTESingularityMachineBase extends MTESingularityModeMachin
             remaining -= hatch.fill(toFill, true);
         }
         return stack.amount - remaining;
-    }
-
-    protected final boolean consumeSingularityFromInputBuses(int amount) {
-        ItemStack singularity = GTSRItemList.SteamEntangledSingularity.get(1);
-        if (singularity == null) return false;
-        for (MTEHatchInputBus bus : mInputBusses) {
-            for (int i = 0; i < bus.getSizeInventory(); i++) {
-                ItemStack stack = bus.getStackInSlot(i);
-                if (stack != null && stack.getItem() == singularity.getItem() && stack.stackSize >= amount) {
-                    bus.decrStackSize(i, amount);
-                    return true;
-                }
-            }
-        }
-        // v1.10.8 修复：移除 mDualInputHatches.getAllItems() 活引用直接扣减——
-        // 对 CraftingInputME 改写模式内嵌物品栈会损坏模式数据/存档复活（复制燃料），
-        // 对返回副本的实现则扣减静默失效（免费燃料）。奇点燃料仅走输入总线（decrStackSize 安全语义）。
-        return false;
     }
 
     protected boolean shouldDecayHeat() {

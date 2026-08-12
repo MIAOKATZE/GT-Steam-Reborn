@@ -1,7 +1,6 @@
 package com.miaokatze.gtsr.common.machine.base;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
 import net.minecraft.item.ItemStack;
@@ -15,8 +14,6 @@ import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.implementations.MTEEnhancedMultiBlockBase;
 import gregtech.api.metatileentity.implementations.MTEHatchInputBus;
 import gregtech.api.util.GTUtility;
-import gregtech.common.tileentities.machines.IDualInputHatch;
-import gregtech.common.tileentities.machines.IDualInputInventory;
 
 /** 统一奇点模式基类：mSingularityMode 0=关/1=普通(Steam)/2=临界(Critical)；工作才消耗（canConsumeSingularity 门控）、关机仅计时；默认 200s。 */
 public abstract class MTESingularityModeMachineBase<T extends MTESingularityModeMachineBase<T>>
@@ -102,6 +99,7 @@ public abstract class MTESingularityModeMachineBase<T extends MTESingularityMode
         if (++mSingularityCheckCooldown >= 20) {
             mSingularityCheckCooldown = 0;
             // 包配方窗口使 ME 输入总线的虚拟引用可读（getStackInSlot 仅窗口内有效）；
+            // v1.10.61：dual 样板仓消耗分支已删除，窗口包装仅服务于输入总线奇点消耗，仍须保留；
             // 与基类 checkRecipe 的窗口嵌套安全（start/end 均幂等）
             startRecipeProcessing();
             checkSingularityMode();
@@ -110,9 +108,8 @@ public abstract class MTESingularityModeMachineBase<T extends MTESingularityMode
     }
 
     /**
-     * 奇点消耗（amount 个指定奇点物品）：输入总线 mInputBusses 候选收集 + decrStackSize 实扣优先；
-     * 不足时从 mDualInputHatches（IDualInputHatch，非空时）以副本方式扣减——inventories()/getItemInputs()
-     * 引用为仓内持久数据（窗口无关），网络结算由样板仓自身完成。
+     * 奇点消耗（amount 个指定奇点物品）：输入总线 mInputBusses 候选收集 + decrStackSize 实扣。
+     * v1.10.61：移除 mDualInputHatches（样板仓）分支——奇点燃料仅走输入总线；
      * 遵循 v1.10.8 教训：绝不用 getAllItems() 对 CraftingInputME 的内嵌物品栈做活引用直改
      * （会损坏样板数据/存档复活=复制燃料），对返回副本的实现则扣减静默失效（免费燃料）。
      *
@@ -134,27 +131,6 @@ public abstract class MTESingularityModeMachineBase<T extends MTESingularityMode
                 }
             }
             if (remaining <= 0) break;
-        }
-        // 输入总线不足时尝试样板仓（mDualInputHatches，非空时）
-        if (remaining > 0) {
-            for (IDualInputHatch dual : mDualInputHatches) {
-                if (dual == null) continue;
-                Iterator<? extends IDualInputInventory> it = dual.inventories();
-                while (it.hasNext()) {
-                    ItemStack[] items = it.next()
-                        .getItemInputs();
-                    if (items == null) continue;
-                    for (ItemStack stack : items) {
-                        if (stack == null || !GTUtility.areUnificationsEqual(stack, singularity, true)) continue;
-                        int toConsume = Math.min(remaining, stack.stackSize);
-                        stack.stackSize -= toConsume;
-                        remaining -= toConsume;
-                        if (remaining <= 0) break;
-                    }
-                    if (remaining <= 0) break;
-                }
-                if (remaining <= 0) break;
-            }
         }
         if (remaining > 0) {
             return false;

@@ -66,7 +66,10 @@ public abstract class MTESteamMultiBaseMixin implements ICoolingHatchHolder {
     private final ArrayList<MTEPressureSteamCoolingHatch> gtsr$mPressureCoolingHatches = new ArrayList<>();
 
     @Unique
-    private int gtsr$accumulatedSteam = 0;
+    private long gtsr$accumulatedSteam = 0; // v1.10.61：int → long，避免大容量累积溢出
+
+    @Unique
+    private long gtsr$pendingSuperheatedSteam = 0; // v1.10.61：新增，超热蒸汽顺序填充后未放入部分暂存
 
     @Unique
     private MTESteamMultiBlockBase gtsr$self() {
@@ -91,14 +94,26 @@ public abstract class MTESteamMultiBaseMixin implements ICoolingHatchHolder {
 
     @Override
     @Unique
-    public int gtsr$getAccumulatedSteam() {
+    public long gtsr$getAccumulatedSteam() {
         return gtsr$accumulatedSteam;
     }
 
     @Override
     @Unique
-    public void gtsr$setAccumulatedSteam(int value) {
+    public void gtsr$setAccumulatedSteam(long value) {
         gtsr$accumulatedSteam = value;
+    }
+
+    @Override
+    @Unique
+    public long gtsr$getPendingSuperheatedSteam() {
+        return gtsr$pendingSuperheatedSteam;
+    }
+
+    @Override
+    @Unique
+    public void gtsr$setPendingSuperheatedSteam(long value) {
+        gtsr$pendingSuperheatedSteam = value;
     }
 
     // endregion
@@ -214,7 +229,9 @@ public abstract class MTESteamMultiBaseMixin implements ICoolingHatchHolder {
         MTEMultiBlockBase multiBlockSelf = (MTEMultiBlockBase) (Object) this;
         for (MTEHatchOutputBus tHatch : GTUtility.validMTEList(multiBlockSelf.mOutputBusses)) {
             if (aStack.stackSize <= 0) break;
-            if (tHatch instanceof MTEHatchSteamBusOutput) continue;
+            // v1.10.61：仅当已由 mSteamOutputs 处理时跳过；仅经 mOutputBusses 注册的
+            // 蒸汽输出总线照常输出（修复产物被跳过销毁）
+            if (tHatch instanceof MTEHatchSteamBusOutput && mSteamOutputs.contains(tHatch)) continue;
             tHatch.storePartial(aStack, false);
         }
         ci.cancel();
@@ -549,8 +566,9 @@ public abstract class MTESteamMultiBaseMixin implements ICoolingHatchHolder {
             if (tHatch instanceof gregtech.common.tileentities.machines.MTEHatchCraftingInputME) {
                 continue;
             }
-            // 防御性去重：蒸汽输入总线只由基类从 mSteamInputs 遍历，此处跳过防止其他路径双注册导致重复
-            if (tHatch instanceof MTEHatchSteamBusInput) {
+            // 防御性去重：仅当蒸汽输入总线已被基类 mSteamInputs 路径处理时跳过；
+            // v1.10.61：经 GTSRHatchElement 注册进 mInputBusses 的照常纳入（修复物品对配方不可见）
+            if (tHatch instanceof MTEHatchSteamBusInput && mSteamInputs.contains(tHatch)) {
                 continue;
             }
             byte busColor = tHatch.getColor();

@@ -10,6 +10,7 @@ import net.minecraftforge.fluids.FluidTankInfo;
 import gregtech.api.metatileentity.implementations.MTEHatch;
 import gregtech.api.util.GTUtility;
 import gregtech.common.tileentities.machines.IDualInputHatch;
+import gregtech.common.tileentities.machines.MTEHatchInputME;
 
 /**
  * 统一仓室流体访问层（v1.10.6）。
@@ -50,9 +51,16 @@ public final class GTSRHatchFluidAccess {
         if (hatch == null || fluid == null || amount <= 0) return null;
         FluidTankInfo[] tanks = hatch.getTankInfo(ForgeDirection.UNKNOWN);
         if (tanks == null) return null;
+        // v1.10.61：ME 输入仓 getTankInfo 每槽独立查询网络全量，同流体多槽=重复上报；取 max 而非求和
+        boolean isMEHatch = hatch instanceof MTEHatchInputME;
         long available = 0;
         for (FluidTankInfo tank : tanks) {
-            if (tank != null && tank.fluid != null && tank.fluid.getFluid() == fluid) available += tank.fluid.amount;
+            if (tank == null || tank.fluid == null || tank.fluid.getFluid() != fluid) continue;
+            if (isMEHatch) {
+                available = Math.max(available, tank.fluid.amount);
+            } else {
+                available += tank.fluid.amount;
+            }
         }
         if (available <= 0) return null;
         return new FluidStack(fluid, (int) Math.min(available, amount));
@@ -69,9 +77,16 @@ public final class GTSRHatchFluidAccess {
         if (hatch == null || want == null || want.amount <= 0) return null;
         FluidTankInfo[] tanks = hatch.getTankInfo(ForgeDirection.UNKNOWN);
         if (tanks == null) return null;
+        // v1.10.61：ME 输入仓 getTankInfo 每槽独立查询网络全量，同流体多槽=重复上报；取 max 而非求和
+        boolean isMEHatch = hatch instanceof MTEHatchInputME;
         long available = 0;
         for (FluidTankInfo tank : tanks) {
-            if (tank != null && tank.fluid != null && tank.fluid.isFluidEqual(want)) available += tank.fluid.amount;
+            if (tank == null || tank.fluid == null || !tank.fluid.isFluidEqual(want)) continue;
+            if (isMEHatch) {
+                available = Math.max(available, tank.fluid.amount);
+            } else {
+                available += tank.fluid.amount;
+            }
         }
         if (available <= 0) return null;
         FluidStack copy = want.copy();

@@ -62,6 +62,7 @@ import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.implementations.MTEHatch;
+import gregtech.api.metatileentity.implementations.MTEHatchOutputBus;
 import gregtech.api.objects.ItemData;
 import gregtech.api.recipe.check.CheckRecipeResult;
 import gregtech.api.recipe.check.CheckRecipeResultRegistry;
@@ -1128,7 +1129,9 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
             if (oreId == null) break;
             ItemStack oreStack = oreId.getItemStack();
             if (oreStack == null) break;
-            outputOre(oreStack);
+            // v1.10.61：voidingMode.protectItem=true 限流——矿石放不下时本周期停止抽取、accumulator 不扣，
+            // 该矿石保留在累积状态，输出空间足后由下个周期继续输出（不再销毁矿石）
+            if (!outputOre(oreStack)) break;
             mLastOreName = oreStack.getDisplayName();
             mOreAccumulator -= 1.0d;
         }
@@ -1201,40 +1204,66 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
      * 模式 1 按挖掘掉落输出粗矿（GT 矿基础 1/2 个 + 原版时运公式额外份数，非 GT 矿 block.getDrops(fortune) 直通）；
      * 模式 2 按该粗矿的研磨机配方主产物数量 ×1.5 输出粉碎矿（红石/冰晶石等特殊矿自动得到实际数量，
      * 如红石 ×10→×15、普通矿 ×2→×3）；已是加工形态不转换；无配方回退 crushed×2（=×3 现状）；目标形态不存在回退原样输出 ×1。
+     *
+     * @return v1.10.61：该矿石是否已实际放入输出总线（protectItem=false 销毁模式恒 true；
+     *         protectItem=true 限流模式整组放不下返回 false，调用方不扣 mOreAccumulator）
      */
-    private void outputOre(ItemStack rawOre) {
+    private boolean outputOre(ItemStack rawOre) {
+        ItemStack out;
         if (mOreMode == 0) {
-            addOutputPartial(rawOre);
-            return;
-        }
-        MinedDrop mined = mineCrudeDrops(rawOre);
-        if (mined == null) {
-            addOutputPartial(rawOre);
-            return;
-        }
-        if (mOreMode == 1) {
-            addOutputPartial(GTUtility.copyAmount(mined.count, mined.template));
-            return;
-        }
-        // 模式 2：已是加工形态的掉落不再转换（镜像采矿节点 skip 语义）
-        if (OreCrushedUtil.isProcessedForm(mined.template)) {
-            addOutputPartial(GTUtility.copyAmount(mined.count, mined.template));
-            return;
-        }
-        ItemStack product = OreCrushedUtil.getCrushedProduct(mined.template);
-        int perCrude = 2; // 无配方回退默认 2（×1.5 = 3，保持 v1.10.5x 现状）
-        if (product == null) {
-            Materials material = getOreMaterial(mined.template);
-            product = material == null ? null : GTOreDictUnificator.get(OrePrefixes.crushed, material, 1);
+            out = rawOre;
         } else {
-            perCrude = product.stackSize;
+            MinedDrop mined = mineCrudeDrops(rawOre);
+            if (mined == null) {
+                out = rawOre;
+            } else if (mOreMode == 1) {
+                out = GTUtility.copyAmount(mined.count, mined.template);
+            } else {
+                // 模式 2：已是加工形态的掉落不再转换（镜像采矿节点 skip 语义）
+                if (OreCrushedUtil.isProcessedForm(mined.template)) {
+                    out = GTUtility.copyAmount(mined.count, mined.template);
+                } else {
+                    ItemStack product = OreCrushedUtil.getCrushedProduct(mined.template);
+                    int perCrude = 2; // 无配方回退默认 2（×1.5 = 3，保持 v1.10.5x 现状）
+                    if (product == null) {
+                        Materials material = getOreMaterial(mined.template);
+                        product = material == null ? null : GTOreDictUnificator.get(OrePrefixes.crushed, material, 1);
+                    } else {
+                        perCrude = product.stackSize;
+                    }
+                    if (product == null) {
+                        out = rawOre;
+                    } else {
+                        product.stackSize = (int) Math.round(mined.count * perCrude * 1.5d);
+                        out = product;
+                    }
+                }
+            }
         }
-        if (product == null) {
-            addOutputPartial(rawOre);
-            return;
+        // v1.10.61：voidingMode.protectItem=true（限流）试放——整组放得下才放入，放不下不放入不扣累积；
+        // false（允许销毁）保持原 addOutputPartial 语义（放多少算多少，放不下即销毁）
+        if (!voidingMode.protectItem) {
+            addOutputPartial(out);
+            return true;
         }
-        product.stackSize = (int) Math.round(mined.count * perCrude * 1.5d);
-        addOutputPartial(product);
+        return tryOutputOre(out);
+    }
+
+    /**
+     * v1.10.61：试放单组矿石到输出总线（voidingMode.protectItem=true 限流）：
+     * 依次对每个输出总线做 storePartial 模拟探测（storePartial 模拟模式同样会扣减入参 stackSize，
+     * 故用副本探测），整组放得下才实放并返回 true；所有总线都放不下时整组不放入、返回 false——
+     * 矿石保留在 mOreAccumulator 累积状态，下次周期继续尝试，不销毁。
+     */
+    private boolean tryOutputOre(ItemStack ore) {
+        if (GTUtility.isStackInvalid(ore)) return false;
+        for (MTEHatchOutputBus bus : GTUtility.validMTEList(mOutputBusses)) {
+            if (bus.storePartial(GTUtility.copyOrNull(ore), true)) {
+                bus.storePartial(ore, false);
+                return true;
+            }
+        }
+        return false;
     }
 
     /** 取物品的 GT 材料（非 GT 物品返回 null）。 */

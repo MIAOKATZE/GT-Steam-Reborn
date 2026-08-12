@@ -14,7 +14,9 @@ import static gregtech.api.enums.Textures.BlockIcons.OVERLAY_FRONT_ORE_DRILL_GLO
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -25,6 +27,7 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 import net.minecraftforge.common.util.ForgeDirection;
+import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
 
@@ -397,6 +400,9 @@ public class MTEGearSteamCompressor extends MTEEnhancedMultiBlockBase<MTEGearSte
 
     private boolean depleteSteam(long required) {
         if (required <= 0) return true;
+        // v1.10.61：先探测后实扣——原实现在门控后直接扣减，不足时窗口内已真实消耗的蒸汽
+        // 由 endRecipeProcessing 结算，导致每 idle tick 损失 ≤1280L 蒸汽。
+        if (!hasEnoughSteam(required)) return false;
         long remaining = required;
         // v1.10.8：mInputHatches 段改用 GTSRHatchFluidAccess.depleteFluidAcross 跨仓按需取流。
         // 原实现用 getStoredFluids() 聚合（对 MTEHatchInputME 按流体类型去重——同流体跨多
@@ -418,6 +424,32 @@ public class MTEGearSteamCompressor extends MTEEnhancedMultiBlockBase<MTEGearSte
             }
         }
         return remaining <= 0;
+    }
+
+    /**
+     * v1.10.61：跨仓探测蒸汽可得量（仅模拟，不消耗）。输入仓段经
+     * GTSRHatchFluidAccess.probeFluidAmountAcross 逐仓 getTankInfo 探测（同流体跨多仓/ME
+     * 网络正确合计，按流体去重防 getStoredFluids 对普通仓逐仓出条目造成双计）；压力蒸汽
+     * 输入仓为本地罐直接读存量。合计 ≥ required 才算充足，供 depleteSteam 先探测后实扣。
+     */
+    private boolean hasEnoughSteam(long required) {
+        long available = 0;
+        Set<Fluid> probedFluids = new HashSet<>();
+        for (FluidStack fs : getStoredFluids()) {
+            if (fs == null || !GTModHandler.isAnySteam(fs) || fs.amount <= 0) continue;
+            if (!probedFluids.add(fs.getFluid())) continue;
+            available += GTSRHatchFluidAccess
+                .probeFluidAmountAcross(mInputHatches, new FluidStack(fs, (int) Math.min(required, Integer.MAX_VALUE)));
+            if (available >= required) return true;
+        }
+        for (MTEHatchPressureSteamInput hatch : mPressureSteamInputs) {
+            FluidStack fs = hatch.getFluid();
+            if (fs != null && GTModHandler.isAnySteam(fs) && fs.amount > 0) {
+                available += fs.amount;
+                if (available >= required) return true;
+            }
+        }
+        return false;
     }
 
     private void outputSuperheatedSteam(long amount) {

@@ -1013,7 +1013,9 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
                 * Math.max(0, 1 - savings)
                 * getEffectiveSteamEffFactor(type)
                 / type.euPerL);
-            int totalAvailable = getTotalSteamAmount(type);
+            // v1.10.61：门控 long 化——UIV/UMV 级（V[11]=33.6M、V[12]=134M）+ 3 组/临界模式时
+            // 蒸汽消耗 > int max，int 求和溢出为负导致永久假 NO_FUEL（见 getTotalSteamAmount）
+            long totalAvailable = getTotalSteamAmount(type);
             if (totalAvailable >= consumption) {
                 selectedType = type;
                 baseEUt = base;
@@ -1184,8 +1186,10 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
         return fs.getFluid() == Materials.DenseSupercriticalSteam.mGas;
     }
 
-    private int getTotalSteamAmount(SteamType type) {
-        int total = 0;
+    // v1.10.61：求和 long 化——跨仓同型蒸汽累加可超 int max（2.147B L）溢出为负，
+    // 与 checkProcessing 门控（consumption 为 long）配套，避免永久假 NO_FUEL。
+    private long getTotalSteamAmount(SteamType type) {
+        long total = 0;
         for (FluidStack fs : getStoredFluids()) {
             if (classifyFluid(fs) == type) total += fs.amount;
         }
@@ -1249,7 +1253,8 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
                 break;
             }
             case DENSE_STEAM: {
-                int equivalentSteam = consumedAmount * 1000;
+                // v1.10.61：致密族换算 long 化——consumedAmount×1000 在消耗 >2.147M L/t 时 int 溢出
+                long equivalentSteam = (long) consumedAmount * 1000;
                 int waterOutput = condenseSteam(equivalentSteam);
                 outputCoolingWater(waterOutput);
                 break;
@@ -1266,7 +1271,8 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
             case DENSE_SH_STEAM: {
                 // 循环超限：致密过热蒸汽按 1L:1000L 换算后冷凝为蒸馏水（原输出 DenseSteam）
                 if (overlimit) {
-                    int equivalentSteam = consumedAmount * 1000;
+                    // v1.10.61：致密族换算 long 化——consumedAmount×1000 可超 int max（见 condenseSteam）
+                    long equivalentSteam = (long) consumedAmount * 1000;
                     outputCoolingWater(condenseSteam(equivalentSteam));
                 } else {
                     FluidStack denseSteam = Materials.DenseSteam.getGas(consumedAmount);
@@ -1287,7 +1293,8 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
             case DENSE_SC_STEAM: {
                 // 循环超限：致密超临界蒸汽按 1L:1000L 换算后冷凝为蒸馏水（原输出 DenseSuperheatedSteam）
                 if (overlimit) {
-                    int equivalentSteam = consumedAmount * 1000;
+                    // v1.10.61：致密族换算 long 化——consumedAmount×1000 可超 int max（见 condenseSteam）
+                    long equivalentSteam = (long) consumedAmount * 1000;
                     outputCoolingWater(condenseSteam(equivalentSteam));
                 } else {
                     FluidStack denseSHSteam = Materials.DenseSuperheatedSteam.getGas(consumedAmount);
@@ -1300,11 +1307,13 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
         }
     }
 
-    private int condenseSteam(int steam) {
-        excessWater += steam;
-        int water = excessWater / GTValues.STEAM_PER_WATER;
-        excessWater %= GTValues.STEAM_PER_WATER;
-        return water;
+    // v1.10.61：condenseSteam long 化——致密族 equivalentSteam（consumedAmount×1000）可超 int max；
+    // excessWater 保持 int 字段（每次取模后 <160 不溢出），返回水量 clamp 回 int 防御。
+    private int condenseSteam(long steam) {
+        long total = excessWater + steam;
+        excessWater = (int) (total % GTValues.STEAM_PER_WATER);
+        long water = total / GTValues.STEAM_PER_WATER;
+        return (int) Math.min(Integer.MAX_VALUE, water);
     }
 
     private void outputCoolingWater(int waterAmount) {

@@ -11,6 +11,8 @@ import net.minecraft.client.renderer.texture.IIconRegister;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.NBTTagList;
 import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
@@ -83,6 +85,9 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
     private int mMinerTier = 0; // 0=基础, 1=强化I, 2=强化II, 3=强化III, 4=强化IV
     // 粉碎矿模式：螺丝刀右击切换，开启后普通矿物掉落物转换为 3 倍数量的粉碎矿
     private boolean mCrushedMode = false;
+    // v1.10.61：voidingMode 保护模式下枢纽输出总线放不下的掉落余量（矿石已从世界移除，不得丢失；
+    // 下个工作周期先推 pending；持久化防止节点卸载时掉落物丢失）
+    private final ArrayList<ItemStack> mPendingItems = new ArrayList<>();
     private final ArrayList<ChunkCoordinates> mOrePositions = new ArrayList<>();
     private FakePlayer mFakePlayer;
 
@@ -348,6 +353,22 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
             return;
         }
 
+        // v1.10.61：先推 pending（上周期枢纽输出总线放不下的掉落余量）；未清空则本周期不再采矿
+        // （限流等待：节点激活/蒸汽消耗语义不变，矿石保留在世界中）
+        for (int i = mPendingItems.size() - 1; i >= 0; i--) {
+            ItemStack pending = mPendingItems.get(i);
+            int left = hub.tryStoreNodeItemOutput(pending);
+            if (left <= 0) {
+                mPendingItems.remove(i);
+            } else {
+                pending.stackSize = left;
+            }
+        }
+        if (!mPendingItems.isEmpty()) {
+            setStatus(STATUS_OK);
+            return;
+        }
+
         if (mEmptyScanRetryTicks > 0) return;
 
         World world = aBaseMetaTileEntity.getWorld();
@@ -422,7 +443,7 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
         if (drops != null) {
             for (ItemStack drop : drops) {
                 if (drop != null && drop.getItem() != null) {
-                    hub.pushNodeItemOutput(drop);
+                    gtsr$pushDropToHub(hub, drop);
                 }
             }
         }
@@ -431,6 +452,23 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
         mHasStarted = true;
         mIsWorking = true;
         mWorkProgress = (mWorkProgress + 20) % MINER_WORK_CYCLE[mMinerTier];
+    }
+
+    /**
+     * v1.10.61：掉落物推送分流——voidingMode.protectItem 为 true 时限流（试放+余量存节点 pending，
+     * 下周期重试）；false 时保持现状（hub.pushNodeItemOutput → addOutputPartial 满则销毁）。
+     */
+    private void gtsr$pushDropToHub(MTESingularityDrillingHub hub, ItemStack drop) {
+        if (hub.protectsExcessItem()) {
+            int left = hub.tryStoreNodeItemOutput(drop);
+            if (left > 0) {
+                ItemStack remainder = drop.copy();
+                remainder.stackSize = left;
+                mPendingItems.add(remainder);
+            }
+        } else {
+            hub.pushNodeItemOutput(drop);
+        }
     }
 
     private void fillOreList(IGregTechTileEntity aBaseMetaTileEntity) {
@@ -552,7 +590,7 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
             if (drops != null && hub != null) {
                 for (ItemStack drop : drops) {
                     if (drop != null && drop.getItem() != null) {
-                        hub.pushNodeItemOutput(drop);
+                        gtsr$pushDropToHub(hub, drop);
                     }
                 }
             }
@@ -872,6 +910,16 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
         aNBT.setInteger("mCycleTimer", mCycleTimer);
         aNBT.setInteger("mMinerTier", mMinerTier);
         aNBT.setBoolean("mCrushedMode", mCrushedMode);
+        // v1.10.61：pending 掉落余量持久化（矿石已从世界移除，重载后不得丢失）
+        if (!mPendingItems.isEmpty()) {
+            NBTTagList pendingList = new NBTTagList();
+            for (ItemStack stack : mPendingItems) {
+                if (stack != null) {
+                    pendingList.appendTag(stack.writeToNBT(new NBTTagCompound()));
+                }
+            }
+            aNBT.setTag("mPendingItems", pendingList);
+        }
     }
 
     @Override
@@ -910,6 +958,17 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
         }
         if (aNBT.hasKey("mCrushedMode")) {
             mCrushedMode = aNBT.getBoolean("mCrushedMode");
+        }
+        // v1.10.61：pending 掉落余量恢复（loadItemStackFromNBT 对无效数据返回 null）
+        mPendingItems.clear();
+        if (aNBT.hasKey("mPendingItems")) {
+            NBTTagList pendingList = aNBT.getTagList("mPendingItems", 10);
+            for (int i = 0; i < pendingList.tagCount(); i++) {
+                ItemStack stack = ItemStack.loadItemStackFromNBT(pendingList.getCompoundTagAt(i));
+                if (stack != null) {
+                    mPendingItems.add(stack);
+                }
+            }
         }
     }
 

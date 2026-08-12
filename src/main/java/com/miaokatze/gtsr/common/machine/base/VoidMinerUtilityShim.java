@@ -34,6 +34,8 @@ public class VoidMinerUtilityShim {
 
     /**
      * Converts a dimension ID to the corresponding dimension name used by VoidMinerUtility.
+     * v1.10.61：扩展 GTNH 常见维度（维度名以 MTECrustMatterAggregator.ABBR_TO_DIM_NAME 表为准）；
+     * 其余 GTNH 维度（星系行星等无固定 dimId）经 GTNEIOrePlugin 维度物品的 abbr → dimName 映射访问。
      *
      * @param dimId the dimension ID
      * @return the dimension name string, or null if the dimension is not recognized
@@ -46,6 +48,10 @@ public class VoidMinerUtilityShim {
                 return "Nether";
             case 1:
                 return "The End";
+            case 7:
+                return "Twilight Forest";
+            case -7:
+                return "Underdark";
             default:
                 return null;
         }

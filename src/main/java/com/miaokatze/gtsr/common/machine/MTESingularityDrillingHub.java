@@ -54,6 +54,7 @@ import gregtech.api.interfaces.IIconContainer;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.implementations.MTEHatch;
+import gregtech.api.metatileentity.implementations.MTEHatchOutputBus;
 import gregtech.api.recipe.check.CheckRecipeResult;
 import gregtech.api.recipe.check.CheckRecipeResultRegistry;
 import gregtech.api.structure.error.StructureError;
@@ -62,6 +63,7 @@ import gregtech.api.util.GTModHandler;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.common.tileentities.machines.IDualInputHatch;
+import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.MTEHatchSteamBusOutput;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTESteamMultiBlockBase;
 
 public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingularityDrillingHub>
@@ -105,6 +107,12 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
     public int mSteamCost = 0;
     public boolean mIsSuperheated = false;
     public boolean mIsActivelyRunning = false;
+
+    // v1.10.61：voidingMode 保护模式下的输出余量缓冲（机器内部暂存，onPostTick 每 tick 重试推送直至清空）
+    private ArrayList<ItemStack> gtsr$pendingItemOutputs = null;
+    private FluidStack gtsr$pendingFluidOutput = null;
+    // v1.10.61：F 修复——蒸汽不足标记（depleteInput 失败时置位，仅修正显示状态，不停机）
+    private boolean mSteamInsufficient = false;
 
     private static IIconContainer OVERLAY_OFF;
     private static IIconContainer OVERLAY_ON;
@@ -361,8 +369,17 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
                 // 无压力冷却仓时产物按"冷却仅输出到冷却仓"原则静默丢弃（与 mixin 行为一致）。
                 SteamCoolingSupport.pushCoolingProducts((ICoolingHatchHolder) this, totalCost, true);
                 mEfficiencyIncrease = 10000;
+                mSteamInsufficient = false;
+            } else {
+                // v1.10.61（F 修复）：蒸汽不足时仅修正显示状态而非停机——与聚合器 no_steam 空转设计一致
+                // （结构允许无蒸汽空转、节点照常工作，产出走 voidingMode 保护缓冲），
+                // 故不调 stopMachine(POWER_LOSS)，仅让机器显示待机直到蒸汽重新满足消耗量。
+                mSteamInsufficient = true;
             }
         }
+
+        // v1.10.61：每 tick 尝试清空 voidingMode 保护余量（先物品后流体；成功推入才移除）
+        gtsr$drainPendingOutputs();
 
         super.onPostTick(aBaseMetaTileEntity, aTick);
 
@@ -370,8 +387,8 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
         // but since checkProcessing() always returns NO_RECIPE, mMaxProgresstime stays 0.
         // We directly set the active state based on actual working condition,
         // which triggers scheduleTexturePacket() to sync the active texture to the client.
-        aBaseMetaTileEntity.setActive(shouldBeActive);
-        mIsActivelyRunning = shouldBeActive;
+        aBaseMetaTileEntity.setActive(shouldBeActive && !mSteamInsufficient);
+        mIsActivelyRunning = shouldBeActive && !mSteamInsufficient;
 
         if (aTick % 20 == 0) {
             transferWithBoundNodes();
@@ -595,7 +612,90 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
 
     public void pushNodeItemOutput(ItemStack stack) {
         if (stack == null) return;
-        addOutputPartial(stack);
+        // v1.10.61：voidingMode 分流——保护时限流（试放+余量入 pending，每 tick 重试推送），
+        // 销毁时保持现状（addOutputPartial 满则销毁）
+        if (protectsExcessItem()) {
+            gtsr$storeItemWithPending(stack);
+        } else {
+            addOutputPartial(stack);
+        }
+    }
+
+    /**
+     * v1.10.61：全 hub 共用的物品预检/试放 helper（voidingMode 保护时限流）。
+     * 先以 simulate 模式计算可放量（storePartial 的 simulate 语义会从副本中扣减可放入数量），
+     * 再按该数量实放；不修改入参 stack，返回未放入的余量（调用方决定余量去向）。
+     * 总线顺序与 mixin addOutputPartial 一致：mSteamOutputs 优先，其次 mOutputBusses
+     * （跳过 MTEHatchSteamBusOutput 去重——蒸汽输出总线已在 mSteamOutputs 处理）。
+     */
+    public int tryStoreNodeItemOutput(ItemStack stack) {
+        if (stack == null || stack.stackSize <= 0) return 0;
+        ItemStack probe = stack.copy();
+        gtsr$storeItemIntoBusses(probe, true);
+        int fits = stack.stackSize - probe.stackSize;
+        if (fits <= 0) return stack.stackSize;
+        ItemStack toPlace = stack.copy();
+        toPlace.stackSize = fits;
+        gtsr$storeItemIntoBusses(toPlace, false);
+        return stack.stackSize - fits;
+    }
+
+    private void gtsr$storeItemIntoBusses(ItemStack stack, boolean simulate) {
+        for (MTEHatchOutputBus bus : GTUtility.validMTEList(mSteamOutputs)) {
+            if (stack.stackSize <= 0) break;
+            bus.storePartial(stack, simulate);
+        }
+        for (MTEHatchOutputBus bus : GTUtility.validMTEList(mOutputBusses)) {
+            if (stack.stackSize <= 0) break;
+            if (bus instanceof MTEHatchSteamBusOutput) continue;
+            bus.storePartial(stack, simulate);
+        }
+    }
+
+    /** v1.10.61：试放后余量入 pendingItemOutputs（拆卸路径与保护模式共用，余量永不销毁） */
+    private void gtsr$storeItemWithPending(ItemStack stack) {
+        if (stack == null || stack.stackSize <= 0) return;
+        int left = tryStoreNodeItemOutput(stack);
+        if (left > 0) {
+            gtsr$addToPendingItems(stack, left);
+        }
+    }
+
+    private void gtsr$addToPendingItems(ItemStack stack, int amount) {
+        if (gtsr$pendingItemOutputs == null) {
+            gtsr$pendingItemOutputs = new ArrayList<>();
+        }
+        ItemStack remainder = stack.copy();
+        remainder.stackSize = amount;
+        for (ItemStack pending : gtsr$pendingItemOutputs) {
+            if (pending.isItemEqual(remainder) && ItemStack.areItemStackTagsEqual(pending, remainder)
+                && pending.stackSize + amount <= pending.getMaxStackSize()) {
+                pending.stackSize += amount;
+                return;
+            }
+        }
+        gtsr$pendingItemOutputs.add(remainder);
+    }
+
+    /** v1.10.61：每 tick 重试推送 pending 余量（先物品后流体；成功推入才移除） */
+    private void gtsr$drainPendingOutputs() {
+        if (gtsr$pendingItemOutputs != null) {
+            for (int i = gtsr$pendingItemOutputs.size() - 1; i >= 0; i--) {
+                ItemStack pending = gtsr$pendingItemOutputs.get(i);
+                int left = tryStoreNodeItemOutput(pending);
+                if (left <= 0) {
+                    gtsr$pendingItemOutputs.remove(i);
+                } else {
+                    pending.stackSize = left;
+                }
+            }
+        }
+        if (gtsr$pendingFluidOutput != null && gtsr$pendingFluidOutput.amount > 0) {
+            gtsr$fillOutputHatches(gtsr$pendingFluidOutput);
+            if (gtsr$pendingFluidOutput.amount <= 0) {
+                gtsr$pendingFluidOutput = null;
+            }
+        }
     }
 
     /**
@@ -935,15 +1035,15 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
         int worldPipes = node.clearDeployedPipesAndReturnCount();
         ItemStack worldPipeStack = worldPipes > 0 ? GTModHandler.getIC2Item("miningPipe", worldPipes) : null;
 
-        // 3. 从输出总线推出。addOutputPartial 不提供容量预检，放不下的部分会被销毁，
-        // 因此假定总线有足够空间（与节点正常产出推送同一语义）
-        pushNodeItemOutput(nodeStack);
+        // 3. 从输出总线推出（v1.10.61）：不再假定总线有足够空间——改走"试放+余量入 pendingItemOutputs"，
+        // 放不下的部分由 onPostTick 每 tick 重试推送直至清空（节点本体/管道永不销毁）
+        gtsr$storeItemWithPending(nodeStack);
         for (ItemStack pipe : pipes) {
-            pushNodeItemOutput(pipe);
+            gtsr$storeItemWithPending(pipe);
         }
         // getIC2Item 在 IC2 缺失时可能返回 null，判空防御
         if (worldPipeStack != null) {
-            pushNodeItemOutput(worldPipeStack);
+            gtsr$storeItemWithPending(worldPipeStack);
         }
 
         // 4. 释放该节点持有的全部区块加载 ticket，再移除世界中的节点方块并注销绑定
@@ -958,17 +1058,45 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
         return mMachine && base != null && base.isAllowedToWork();
     }
 
-    public void pushNodeFluidOutput(FluidStack fluid) {
-        if (fluid == null || fluid.amount <= 0) return;
+    /**
+     * v1.10.61：voidingMode 分流——保护时限流（余量存入 gtsr$pendingFluidOutput，onPostTick 每 tick
+     * 重试推送），销毁时保持现状（剩余丢弃）。返回未放入的余量（fluid.amount 同步缩减），
+     * 供钻井节点按保护模式决定是否镜像到节点 pending。
+     */
+    public int pushNodeFluidOutput(FluidStack fluid) {
+        if (fluid == null || fluid.amount <= 0) return 0;
+        int left = gtsr$fillOutputHatches(fluid);
+        if (left > 0 && protectsExcessFluid()) {
+            gtsr$addToPendingFluid(fluid);
+        }
+        return left;
+    }
+
+    /** v1.10.61：全 hub 共用的流体试放 helper：逐输出仓 fill 实放，返回未放入余量（fluid.amount 同步缩减） */
+    private int gtsr$fillOutputHatches(FluidStack fluid) {
+        if (fluid == null || fluid.amount <= 0) return 0;
         for (MTEHatch hatch : mOutputHatches) {
             if (fluid.amount <= 0) break;
             int tAmount = hatch.fill(fluid, false);
             if (tAmount >= fluid.amount) {
                 hatch.fill(fluid, true);
+                fluid.amount = 0;
                 break;
             } else if (tAmount > 0) {
                 fluid.amount -= hatch.fill(fluid, true);
             }
+        }
+        return fluid.amount;
+    }
+
+    private void gtsr$addToPendingFluid(FluidStack fluid) {
+        if (gtsr$pendingFluidOutput == null) {
+            gtsr$pendingFluidOutput = fluid.copy();
+        } else if (gtsr$pendingFluidOutput.isFluidEqual(fluid)) {
+            gtsr$pendingFluidOutput.amount += fluid.amount;
+        } else {
+            // 钻井节点锁定单一流体，跨流体冲突实际不可达；保守起见保留新流体
+            gtsr$pendingFluidOutput = fluid.copy();
         }
     }
 

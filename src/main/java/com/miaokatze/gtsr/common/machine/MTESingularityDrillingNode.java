@@ -10,6 +10,7 @@ import net.minecraft.client.renderer.texture.IIconRegister;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 import net.minecraft.world.ChunkCoordIntPair;
@@ -76,6 +77,9 @@ public class MTESingularityDrillingNode extends MTERemoteWorkerNode {
     private int mDisplayRate = 0;
     private Fluid mLockedFluid = null;
     private int mDrillTier = 0; // 0=基础, 1=强化I, 2=强化II, 3=强化III
+    // v1.10.61：voidingMode 保护模式下枢纽输出仓放不下的流体余量（世界油量已扣，不得丢弃；
+    // 下个提取周期先推 pending；持久化防止节点卸载时油量丢失）
+    private FluidStack mPendingFluid = null;
 
     @Override
     public int getProgresstime() {
@@ -229,6 +233,15 @@ public class MTESingularityDrillingNode extends MTERemoteWorkerNode {
             return;
         }
 
+        // v1.10.61：先推 pending（上周期枢纽输出仓放不下的余量，世界油量已扣；每 20 tick 重试推送）
+        if (mPendingFluid != null) {
+            hub.pushNodeFluidOutput(mPendingFluid);
+            // 销毁模式或已清空：镜像清空；保护模式仍有余量：保持 pending 作为限流门控
+            if (!hub.protectsExcessFluid() || mPendingFluid.amount <= 0) {
+                mPendingFluid = null;
+            }
+        }
+
         int x = aBaseMetaTileEntity.getXCoord();
         int y = aBaseMetaTileEntity.getYCoord();
         int z = aBaseMetaTileEntity.getZCoord();
@@ -252,6 +265,13 @@ public class MTESingularityDrillingNode extends MTERemoteWorkerNode {
 
             if (mExtractionCounter >= EXTRACTION_INTERVAL) {
                 mExtractionCounter = 0;
+
+                if (mPendingFluid != null) {
+                    // 枢纽输出仓仍满：限流等待（节点激活/蒸汽消耗语义不变），本周期不再从世界提取，
+                    // 世界油量保留，待空间释放后由下周期先推 pending 再继续提取
+                    mIsWorking = true;
+                    return;
+                }
 
                 int baseChunkX = x >> 4;
                 int baseChunkZ = z >> 4;
@@ -291,6 +311,10 @@ public class MTESingularityDrillingNode extends MTERemoteWorkerNode {
                 }
                 FluidStack toPush = new FluidStack(mLockedFluid, totalExtracted);
                 hub.pushNodeFluidOutput(toPush);
+                // v1.10.61：保护模式下余量（世界油量已扣）存入节点 pending，下个周期先推
+                if (hub.protectsExcessFluid() && toPush.amount > 0) {
+                    mPendingFluid = toPush;
+                }
             }
 
             mIsWorking = true;
@@ -612,6 +636,10 @@ public class MTESingularityDrillingNode extends MTERemoteWorkerNode {
         if (mLockedFluid != null) {
             aNBT.setString("mLockedFluid", mLockedFluid.getName());
         }
+        // v1.10.61：pending 流体余量持久化（世界油量已扣，重载后不得丢失）
+        if (mPendingFluid != null && mPendingFluid.amount > 0) {
+            aNBT.setTag("mPendingFluid", mPendingFluid.writeToNBT(new NBTTagCompound()));
+        }
     }
 
     @Override
@@ -668,6 +696,10 @@ public class MTESingularityDrillingNode extends MTERemoteWorkerNode {
         }
         if (aNBT.hasKey("mLockedFluid")) {
             mLockedFluid = net.minecraftforge.fluids.FluidRegistry.getFluid(aNBT.getString("mLockedFluid"));
+        }
+        // v1.10.61：pending 流体余量恢复（loadFluidStackFromNBT 对无效数据返回 null）
+        if (aNBT.hasKey("mPendingFluid")) {
+            mPendingFluid = FluidStack.loadFluidStackFromNBT(aNBT.getCompoundTag("mPendingFluid"));
         }
     }
 
