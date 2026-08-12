@@ -41,6 +41,7 @@ import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Materials;
 import gregtech.api.enums.Textures;
 import gregtech.api.interfaces.IIconContainer;
+import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.implementations.MTEHatch;
@@ -125,6 +126,16 @@ public class MTEAirCompressor extends MTESteamMultiBlockBase<MTEAirCompressor> i
             return ((BlockCasings2) GregTechAPI.sBlockCasings2).getTextureIndex(0);
         }
         return ((BlockCasings1) GregTechAPI.sBlockCasings1).getTextureIndex(10);
+    }
+
+    /**
+     * v1.10.62：覆写 GT5U ICasingTextureProvider 钩子（GT5U SolarFactory 同款），控制器贴图按
+     * getCasingTextureID()（== 2 判定）推导——修复未成型时字节同步回绕值 127 被基类
+     * isHighPressure() >= 2 误判为钢外壳（刚放置即显示等级2底材）的问题。
+     */
+    @Override
+    public ITexture getCasingTexture() {
+        return Textures.BlockIcons.getCasingTextureForId(getCasingTextureID());
     }
 
     protected void updateAllHatchTextures() {

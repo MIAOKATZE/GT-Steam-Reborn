@@ -1,7 +1,6 @@
 package com.miaokatze.gtsr.common.machine;
 
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.isAir;
-import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlock;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlocksTiered;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
@@ -258,6 +257,29 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
         return null;
     }
 
+    // v1.10.62：齿轮箱/管道/火箱 tier 提取器——配合 ofBlocksTiered 强制同元素同 tier（等级2 全钢，
+    // 修复原 ofChain 双分支 + max setter 使青铜混入钢结构也能成型的问题）
+    @Nullable
+    public static Integer getGearTier(Block block, int meta) {
+        if (block == GregTechAPI.sBlockCasings2 && meta == 2) return 1;
+        if (block == GregTechAPI.sBlockCasings2 && meta == 3) return 2;
+        return null;
+    }
+
+    @Nullable
+    public static Integer getPipeTier(Block block, int meta) {
+        if (block == GregTechAPI.sBlockCasings2 && meta == 12) return 1;
+        if (block == GregTechAPI.sBlockCasings2 && meta == 13) return 2;
+        return null;
+    }
+
+    @Nullable
+    public static Integer getFireboxTier(Block block, int meta) {
+        if (block == GregTechAPI.sBlockCasings3 && meta == 13) return 1;
+        if (block == GregTechAPI.sBlockCasings3 && meta == 14) return 2;
+        return null;
+    }
+
     protected int getCasingTextureID() {
         if (mSetTier == 2) {
             return ((BlockCasings2) GregTechAPI.sBlockCasings2).getTextureIndex(0);
@@ -349,31 +371,45 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
                             .build()))
                 .addElement(
                     'B',
-                    ofChain(
-                        onElementPass(
-                            MTELargeGeothermalSteamBoiler::onCasingAddedTier1,
-                            ofBlock(GregTechAPI.sBlockCasings2, 2)),
-                        onElementPass(
-                            MTELargeGeothermalSteamBoiler::onCasingAddedTier2,
-                            ofBlock(GregTechAPI.sBlockCasings2, 3))))
+                    // v1.10.62：ofChain 双分支 → ofBlocksTiered（与 A/E 同构，共享 mSetTier getter/setter）：
+                    // StructureLib 语义保证同元素同 tier，青铜混入钢结构即拒（等级2 全钢）
+                    onElementPass(
+                        MTELargeGeothermalSteamBoiler::onCasingAdded,
+                        ofBlocksTiered(
+                            MTELargeGeothermalSteamBoiler::getGearTier,
+                            ImmutableList
+                                .of(Pair.of(GregTechAPI.sBlockCasings2, 2), Pair.of(GregTechAPI.sBlockCasings2, 3)),
+                            -1,
+                            (MTELargeGeothermalSteamBoiler t, Integer tier) -> {
+                                if (tier > t.mSetTier) t.mSetTier = tier;
+                            },
+                            (MTELargeGeothermalSteamBoiler t) -> t.mSetTier)))
                 .addElement(
                     'C',
-                    ofChain(
-                        onElementPass(
-                            MTELargeGeothermalSteamBoiler::onCasingAddedTier1,
-                            ofBlock(GregTechAPI.sBlockCasings2, 12)),
-                        onElementPass(
-                            MTELargeGeothermalSteamBoiler::onCasingAddedTier2,
-                            ofBlock(GregTechAPI.sBlockCasings2, 13))))
+                    onElementPass(
+                        MTELargeGeothermalSteamBoiler::onCasingAdded,
+                        ofBlocksTiered(
+                            MTELargeGeothermalSteamBoiler::getPipeTier,
+                            ImmutableList
+                                .of(Pair.of(GregTechAPI.sBlockCasings2, 12), Pair.of(GregTechAPI.sBlockCasings2, 13)),
+                            -1,
+                            (MTELargeGeothermalSteamBoiler t, Integer tier) -> {
+                                if (tier > t.mSetTier) t.mSetTier = tier;
+                            },
+                            (MTELargeGeothermalSteamBoiler t) -> t.mSetTier)))
                 .addElement(
                     'D',
-                    ofChain(
-                        onElementPass(
-                            MTELargeGeothermalSteamBoiler::onCasingAddedTier1,
-                            ofBlock(GregTechAPI.sBlockCasings3, 13)),
-                        onElementPass(
-                            MTELargeGeothermalSteamBoiler::onCasingAddedTier2,
-                            ofBlock(GregTechAPI.sBlockCasings3, 14))))
+                    onElementPass(
+                        MTELargeGeothermalSteamBoiler::onCasingAdded,
+                        ofBlocksTiered(
+                            MTELargeGeothermalSteamBoiler::getFireboxTier,
+                            ImmutableList
+                                .of(Pair.of(GregTechAPI.sBlockCasings3, 13), Pair.of(GregTechAPI.sBlockCasings3, 14)),
+                            -1,
+                            (MTELargeGeothermalSteamBoiler t, Integer tier) -> {
+                                if (tier > t.mSetTier) t.mSetTier = tier;
+                            },
+                            (MTELargeGeothermalSteamBoiler t) -> t.mSetTier)))
                 .addElement(
                     'E',
                     onElementPass(
@@ -403,16 +439,6 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
 
     private void onCasingAdded() {
         mCasingCount++;
-    }
-
-    private void onCasingAddedTier1() {
-        mCasingCount++;
-        mSetTier = Math.max(mSetTier, 1);
-    }
-
-    private void onCasingAddedTier2() {
-        mCasingCount++;
-        mSetTier = Math.max(mSetTier, 2);
     }
 
     private boolean hasSteamOutputHatch() {

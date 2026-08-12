@@ -579,7 +579,9 @@ public class MTELargeCokeOven extends MTEEnhancedMultiBlockBase<MTELargeCokeOven
     }
 
     protected int getCasingTextureID() {
-        if (mTier >= 2) {
+        // v1.10.62：== 2 而非 >= 2——GT5U 字节同步通道 & 0x7F 掩码使未成型值 -1（0xFF）在客户端
+        // 回绕为 127，>= 2 误判为钢外壳（刚放置即显示等级2底材）；== 2 仅真实等级2命中钢贴图
+        if (mTier == 2) {
             return ((gregtech.common.blocks.BlockCasings2) GregTechAPI.sBlockCasings2).getTextureIndex(0);
         }
         return ((gregtech.common.blocks.BlockCasings1) GregTechAPI.sBlockCasings1).getTextureIndex(10);
