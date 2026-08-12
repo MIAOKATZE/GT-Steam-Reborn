@@ -817,10 +817,15 @@ public abstract class MTESteamMultiBaseMixin implements ICoolingHatchHolder {
                 return;
             }
             if (aSuperheatedSteam != null) {
+                // v1.10.60：修复超热兜底分支死代码——探测/实扣必须按需求量（原 amount=1 探测后
+                // 与 aLiquid.amount 比较恒 false，纯 ME 超热供汽永不生效；语义与本地罐路径对齐）。
+                net.minecraftforge.fluids.FluidStack superRequest = new net.minecraftforge.fluids.FluidStack(
+                    aSuperheatedSteam.getFluid(),
+                    aLiquid.amount);
                 net.minecraftforge.fluids.FluidStack simSuper = GTSRHatchFluidAccess
-                    .probeFluidAmount(hatch, aSuperheatedSteam);
+                    .probeFluidAmount(hatch, superRequest);
                 if (simSuper != null && simSuper.amount >= aLiquid.amount) {
-                    int drained = GTSRHatchFluidAccess.drainFluidExact(hatch, aSuperheatedSteam);
+                    int drained = GTSRHatchFluidAccess.drainFluidExact(hatch, superRequest);
                     cir.setReturnValue(drained >= aLiquid.amount);
                     return;
                 }
