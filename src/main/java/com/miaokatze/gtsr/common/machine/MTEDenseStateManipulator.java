@@ -20,6 +20,7 @@ import net.minecraft.world.World;
 import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
+import net.minecraftforge.fluids.FluidTankInfo;
 
 import com.gtnewhorizon.structurelib.alignment.constructable.ISurvivalConstructable;
 import com.gtnewhorizon.structurelib.structure.IStructureDefinition;
@@ -574,10 +575,11 @@ public class MTEDenseStateManipulator extends MTESingularityMachineBase implemen
         FluidStack request = FluidRegistry.getFluidStack(DENSE_FLUID_NAMES[grade], 1);
         if (request == null) return 0;
         for (gregtech.api.metatileentity.implementations.MTEHatch hatch : getSteamInputHatches()) {
-            FluidStack full = request.copy();
-            full.amount = Integer.MAX_VALUE;
-            FluidStack result = hatch.drain(ForgeDirection.UNKNOWN, full, false);
-            if (result != null && result.amount > 0) amount += result.amount;
+            FluidTankInfo[] tanks = hatch.getTankInfo(ForgeDirection.UNKNOWN);
+            if (tanks == null) continue;
+            for (FluidTankInfo tank : tanks) {
+                if (tank != null && tank.fluid != null && tank.fluid.isFluidEqual(request)) amount += tank.fluid.amount;
+            }
         }
         return amount;
     }
@@ -586,14 +588,12 @@ public class MTEDenseStateManipulator extends MTESingularityMachineBase implemen
         FluidStack request = FluidRegistry.getFluidStack(DENSE_FLUID_NAMES[grade], 1);
         if (request == null) return;
         for (gregtech.api.metatileentity.implementations.MTEHatch hatch : getSteamInputHatches()) {
-            // v1.10.6→v1.10.7 回归：恢复 MAX_VALUE 探测与实扣（与 grade 族一致，见 MTESingularityMachineBase.drainGrade）。
+            // v1.10.60：对齐 v1.10.55 grade 族——直接 MAX_VALUE 实扣（原"模拟探测+实扣"两段
+            // 依赖配方窗口位置，beta-1 窗口外模拟即真提取会双扣；直接实扣双版本等效，
+            // "输入仓有多少消耗多少"设计语义不变）。
             FluidStack full = request.copy();
             full.amount = Integer.MAX_VALUE;
-            FluidStack available = hatch.drain(ForgeDirection.UNKNOWN, full, false);
-            if (available != null && available.amount > 0) {
-                FluidStack toDrain = available.copy();
-                hatch.drain(ForgeDirection.UNKNOWN, toDrain, true);
-            }
+            hatch.drain(ForgeDirection.UNKNOWN, full, true);
         }
     }
 

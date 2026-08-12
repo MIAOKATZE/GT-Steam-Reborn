@@ -584,7 +584,8 @@ public class MTESiemensMartinFurnace extends MTEEnhancedMultiBlockBase<MTESiemen
         if (amount <= 0) return true;
         FluidStack airSample = Materials.Air.getGas(1);
         if (airSample == null || airSample.getFluid() == null) return false;
-        return depleteInput(Materials.Air.getGas(amount), true);
+        // v1.10.60：窗口外 depleteInput 在 beta-1 + ME 仓会双扣，探测改访问层（getTankInfo 跨仓合计）
+        return GTSRHatchFluidAccess.hasEnoughAcross(mInputHatches, Materials.Air.getGas(amount));
     }
 
     /**
@@ -607,7 +608,8 @@ public class MTESiemensMartinFurnace extends MTEEnhancedMultiBlockBase<MTESiemen
         // v1.9.39 修复：改用父类 depleteInput（内部为 drain(UNKNOWN,...) 的 simulate→实扣两段式）。
         // 原实现用 MTEHatchInput 的 2 参 drain(int, boolean)，对 ME 输入仓（MTEHatchInputME，
         // 本地罐恒空）恒返回 null，导致 ME 仓供空气不可用。
-        return depleteInput(Materials.Air.getGas(amount), false);
+        // v1.10.60：窗口外 depleteInput 在 beta-1 + ME 仓会双扣，实扣改访问层跨仓取流
+        return GTSRHatchFluidAccess.depleteFluidAcross(mInputHatches, Materials.Air.getGas(amount)) >= amount;
     }
 
     @Override

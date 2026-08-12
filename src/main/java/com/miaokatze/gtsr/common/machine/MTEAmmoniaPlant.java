@@ -33,6 +33,7 @@ import com.gtnewhorizons.modularui.common.widget.DynamicPositionedColumn;
 import com.gtnewhorizons.modularui.common.widget.FakeSyncWidget;
 import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
+import com.miaokatze.gtsr.api.compat.GTSRHatchFluidAccess;
 import com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.gui.MTEAmmoniaPlantGui;
@@ -475,7 +476,8 @@ public class MTEAmmoniaPlant extends MTEEnhancedMultiBlockBase<MTEAmmoniaPlant> 
 
     private boolean consumeSteam(int amount) {
         FluidStack steam = Materials.Steam.getGas(amount);
-        return depleteInput(steam);
+        // v1.10.60：窗口外 depleteInput 在 beta-1 + ME 仓会双扣，实扣改访问层跨仓取流
+        return GTSRHatchFluidAccess.depleteFluidAcross(mInputHatches, steam) >= amount;
     }
 
     /**
@@ -485,7 +487,11 @@ public class MTEAmmoniaPlant extends MTEEnhancedMultiBlockBase<MTEAmmoniaPlant> 
      */
     private boolean consumeFuelAndSteam(int gasAmount, int steamAmount) {
         if (gasAmount > 0 && !hasRefineryGas(gasAmount)) return false;
-        if (steamAmount > 0 && !depleteInput(Materials.Steam.getGas(steamAmount), true)) return false;
+        // v1.10.60：窗口外 depleteInput 在 beta-1 + ME 仓会双扣，探测改访问层（getTankInfo 跨仓合计）
+        if (steamAmount > 0
+            && !GTSRHatchFluidAccess.hasEnoughAcross(mInputHatches, Materials.Steam.getGas(steamAmount))) {
+            return false;
+        }
         if (gasAmount > 0) depleteRefineryGas(gasAmount);
         if (steamAmount > 0) consumeSteam(steamAmount);
         return true;
@@ -503,11 +509,13 @@ public class MTEAmmoniaPlant extends MTEEnhancedMultiBlockBase<MTEAmmoniaPlant> 
     // 注（v1.10.8 修正注释）：本类继承 MTEEnhancedMultiBlockBase，1 参 depleteInput 即 GT5U 原生
     // （= 2 参 false 语义）；MTESteamMultiBaseMixin 仅注入 GT++ MTESteamMultiBlockBase，对本类不生效。
     private boolean hasRefineryGas(int amount) {
-        return depleteInput(Materials.Gas.getGas(amount), true);
+        // v1.10.60：窗口外 depleteInput 在 beta-1 + ME 仓会双扣，探测改访问层（getTankInfo 跨仓合计）
+        return GTSRHatchFluidAccess.hasEnoughAcross(mInputHatches, Materials.Gas.getGas(amount));
     }
 
     private boolean depleteRefineryGas(int amount) {
-        return depleteInput(Materials.Gas.getGas(amount), false);
+        // v1.10.60：窗口外 depleteInput 在 beta-1 + ME 仓会双扣，实扣改访问层跨仓取流
+        return GTSRHatchFluidAccess.depleteFluidAcross(mInputHatches, Materials.Gas.getGas(amount)) >= amount;
     }
 
     private void pushSuperheatedSteam(int amount) {

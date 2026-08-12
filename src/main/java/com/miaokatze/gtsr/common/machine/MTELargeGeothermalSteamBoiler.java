@@ -782,24 +782,18 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
             int maxWaterNeeded = maxOutput / STEAM_PER_WATER;
             int consumedWater = (int) (maxWaterNeeded * mHeat * getCalcificationOutputFactor());
 
-            // v1.9.39 修复：水/蒸馏水检测不再用 h.getFluid() 前置过滤（ME 输入仓本地罐恒空，恒被跳过）。
-            // 改为父类 depleteInput(FluidStack, boolean) 两段式，兼容普通仓 / ME 输入仓 / 限制性输入仓。
+            // v1.10.60：水消耗改访问层（getTankInfo 探测+跨仓实扣），删窗口外 dual 兜底（免费流体），beta-1 安全
             // 优先消耗蒸馏水（不钙化）；总量不足时本次不产蒸汽（与岩浆检查语义一致）。
             boolean producedSteam = false;
             if (consumedWater > 0) {
                 FluidStack distilledWater = GTModHandler.getDistilledWater(consumedWater);
                 FluidStack water = GTModHandler.getWater(consumedWater);
-                FluidStack toDeplete = null;
-                boolean isDistilledWater = false;
-                if (depleteInput(distilledWater, true)) {
-                    toDeplete = distilledWater;
-                    isDistilledWater = true;
-                } else if (depleteInput(water, true)) {
-                    toDeplete = water;
-                }
-
-                if (toDeplete != null && (depleteInput(toDeplete, false)
-                    || GTSRHatchFluidAccess.depleteFluidFromDuals(mDualInputHatches, toDeplete) >= toDeplete.amount)) {
+                boolean hasDistilled = GTSRHatchFluidAccess.hasEnoughAcross(mInputHatches, distilledWater);
+                boolean hasWater = GTSRHatchFluidAccess.hasEnoughAcross(mInputHatches, water);
+                FluidStack toDeplete = hasDistilled ? distilledWater : (hasWater ? water : null);
+                boolean isDistilledWater = hasDistilled;
+                if (toDeplete != null
+                    && GTSRHatchFluidAccess.depleteFluidAcross(mInputHatches, toDeplete) >= toDeplete.amount) {
                     int steamOutput = consumedWater * STEAM_PER_WATER;
                     mCurrentSteamOutput = steamOutput;
                     mRunningTicks += 20;

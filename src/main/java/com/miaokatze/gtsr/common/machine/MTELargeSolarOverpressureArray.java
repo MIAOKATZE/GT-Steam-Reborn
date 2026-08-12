@@ -678,89 +678,71 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
             return CheckRecipeResultRegistry.NO_RECIPE;
         }
 
-        ArrayList<FluidStack> storedFluids = super.getStoredFluids();
-        // v1.10.6：样板仓（mDualInputHatches）流体并入探测（getAllFluids 持久引用，
-        // 扣减后由样板仓自结算；与奇点燃料 getAllItems 引用扣减同构）。
-        for (IDualInputHatch dual : mDualInputHatches) {
-            if (dual == null) continue;
-            for (FluidStack fs : dual.getAllFluids()) {
-                if (fs != null && fs.amount > 0) {
-                    storedFluids.add(fs);
-                }
+        // v1.10.60：水消耗路径重构——探测改 GTSRHatchFluidAccess.probeFluidAmountAcross（getTankInfo 安全模拟：
+        // ME 输入仓窗口外每槽报真实可得量、普通仓报存量），实扣改 depleteFluidAcross（双版本 2 参 drain 语义一致，
+        // 无 beta-1 首遍模拟即真提取的双扣问题）；删除样板仓 dual 合并探测与 depleteFluidFromDuals 兜底
+        // （窗口外静默失效=免费流体）。蒸馏水优先：存在蒸馏水时优先消耗（与地热锅炉一致，避免钙化）。
+        float solarBooster = calculateSolarBooster();
+        int baseProduction = getBaseSteamProduction();
+        int maxNeed = baseProduction / STEAM_PER_WATER;
+        FluidStack distilledWant = GTModHandler.getDistilledWater(maxNeed);
+        FluidStack waterWant = GTModHandler.getWater(maxNeed);
+        boolean hasDistilledWater = GTSRHatchFluidAccess.probeFluidAmountAcross(mInputHatches, distilledWant) > 0;
+        boolean hasWater = GTSRHatchFluidAccess.probeFluidAmountAcross(mInputHatches, waterWant) > 0;
+        boolean hasWaterInSystem = hasDistilledWater || hasWater;
+
+        if (hasWaterInSystem && mHeat > 0.01d) {
+            long available = hasDistilledWater
+                ? GTSRHatchFluidAccess.probeFluidAmountAcross(mInputHatches, distilledWant)
+                : GTSRHatchFluidAccess.probeFluidAmountAcross(mInputHatches, waterWant);
+
+            long calcificationDelayTicks = getCalcificationDelayTicks();
+            long calcificationInterval = getCalcificationFullTime() / 100;
+
+            // 超压 + 普通水：跳过 mRunningTicks 延迟门槛（立刻开始结垢）、增量 ×20（0.01→0.2，
+            // 满垢时间 = 原满垢 1/20）；interval 周期调制保留，避免夜间/失败路径逐 tick 高速结垢；蒸馏水豁免保持
+            if (mRunningTicks > (mOverpressure ? 0L : calcificationDelayTicks)
+                && (mRunningTicks / 20) % calcificationInterval == 0
+                && hasWater
+                && !hasDistilledWater) {
+                mCalcification += mOverpressure ? 0.2d : 0.01d;
+                if (mCalcification > 1.0d) mCalcification = 1.0d;
             }
-        }
 
-        boolean hasWaterInSystem = false;
-        for (FluidStack hatchFluid : storedFluids) {
-            FluidStack waterFluid = GTModHandler.getWater(1);
-            FluidStack distilledWaterFluid = GTModHandler.getDistilledWater(1);
+            // 加算口径（v1.10.51）：总倍率 = 1 + 太阳能额外增幅(solar-1) + 超压额外增幅(heat-1)
+            // = solar + heat - 1；热量 200% 只贡献 +100% 额外增幅，叠加太阳能锅炉后最大 ×4.0（额外 +300%）
+            double outputFactor = solarBooster + mHeat - 1.0d;
 
-            boolean hasWater = hatchFluid.isFluidEqual(waterFluid);
-            boolean hasDistilledWater = hatchFluid.isFluidEqual(distilledWaterFluid);
+            int consumedWater = (int) (Math.min(available, maxNeed) * outputFactor
+                * getCalcificationOutputFactor()
+                * mSunRatio);
 
-            if (hasWater || hasDistilledWater) {
-                hasWaterInSystem = true;
-                int amountOfFluidInHatch = hatchFluid.amount;
+            if (consumedWater > 0) {
+                FluidStack liquidToDeplete = hasDistilledWater ? GTModHandler.getDistilledWater(consumedWater)
+                    : GTModHandler.getWater(consumedWater);
 
-                long calcificationDelayTicks = getCalcificationDelayTicks();
-                long calcificationInterval = getCalcificationFullTime() / 100;
+                if (GTSRHatchFluidAccess.depleteFluidAcross(mInputHatches, liquidToDeplete) >= consumedWater) {
+                    int steamAmount = consumedWater * STEAM_PER_WATER;
+                    mRunningTicks += 20;
+                    mCurrentSteamOutput = steamAmount;
 
-                // 超压 + 普通水：跳过 mRunningTicks 延迟门槛（立刻开始结垢）、增量 ×20（0.01→0.2，
-                // 满垢时间 = 原满垢 1/20）；interval 周期调制保留，避免夜间/失败路径逐 tick 高速结垢；蒸馏水豁免保持
-                if (mRunningTicks > (mOverpressure ? 0L : calcificationDelayTicks)
-                    && (mRunningTicks / 20) % calcificationInterval == 0
-                    && hasWater
-                    && !hasDistilledWater) {
-                    mCalcification += mOverpressure ? 0.2d : 0.01d;
-                    if (mCalcification > 1.0d) mCalcification = 1.0d;
-                }
-
-                if (amountOfFluidInHatch > 0 && mHeat > 0.01d) {
-                    float solarBooster = calculateSolarBooster();
-                    int baseProduction = getBaseSteamProduction();
-                    // 加算口径（v1.10.51）：总倍率 = 1 + 太阳能额外增幅(solar-1) + 超压额外增幅(heat-1)
-                    // = solar + heat - 1；热量 200% 只贡献 +100% 额外增幅，叠加太阳能锅炉后最大 ×4.0（额外 +300%）
-                    double outputFactor = solarBooster + mHeat - 1.0d;
-
-                    int consumedWater = (int) (Math.min(amountOfFluidInHatch, baseProduction / STEAM_PER_WATER)
-                        * outputFactor
-                        * getCalcificationOutputFactor()
-                        * mSunRatio);
-
-                    if (consumedWater <= 0) continue;
-
-                    FluidStack liquidToDeplete;
-                    if (hasDistilledWater) {
-                        liquidToDeplete = GTModHandler.getDistilledWater(consumedWater);
+                    FluidStack outputSteam;
+                    if (isNickel()) {
+                        outputSteam = FluidRegistry.getFluidStack("ic2superheatedsteam", steamAmount);
                     } else {
-                        liquidToDeplete = GTModHandler.getWater(consumedWater);
+                        outputSteam = Materials.Steam.getGas(steamAmount);
                     }
 
-                    if (super.depleteInput(liquidToDeplete)
-                        || GTSRHatchFluidAccess.depleteFluidFromDuals(mDualInputHatches, liquidToDeplete)
-                            >= liquidToDeplete.amount) {
-                        int steamAmount = consumedWater * STEAM_PER_WATER;
-                        mRunningTicks += 20;
-                        mCurrentSteamOutput = steamAmount;
+                    super.mOutputFluids = new FluidStack[] { outputSteam };
+                    super.mMaxProgresstime = 20;
+                    super.mEfficiency = getMaxEfficiency(null);
+                    mIsOperating = true;
 
-                        FluidStack outputSteam;
-                        if (isNickel()) {
-                            outputSteam = FluidRegistry.getFluidStack("ic2superheatedsteam", steamAmount);
-                        } else {
-                            outputSteam = Materials.Steam.getGas(steamAmount);
-                        }
-
-                        super.mOutputFluids = new FluidStack[] { outputSteam };
-                        super.mMaxProgresstime = 20;
-                        super.mEfficiency = getMaxEfficiency(null);
-                        mIsOperating = true;
-
-                        return CheckRecipeResultRegistry.SUCCESSFUL;
-                    } else {
-                        // 水消耗失败：断电停机 + 一次性提示，须手动重启（软锤/打开 GUI 点电源开关）
-                        stopForMissingWater();
-                        return CheckRecipeResultRegistry.NO_RECIPE;
-                    }
+                    return CheckRecipeResultRegistry.SUCCESSFUL;
+                } else {
+                    // 水消耗失败：断电停机 + 一次性提示，须手动重启（软锤/打开 GUI 点电源开关）
+                    stopForMissingWater();
+                    return CheckRecipeResultRegistry.NO_RECIPE;
                 }
             }
         }

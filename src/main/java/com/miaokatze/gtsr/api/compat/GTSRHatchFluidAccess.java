@@ -145,6 +145,24 @@ public final class GTSRHatchFluidAccess {
     }
 
     /**
+     * 跨仓求和探测可得量（模拟，不消耗）：逐仓 probeFluidAmount 累加，cap 到需求总量。
+     *
+     * @param hatches 仓室列表（可含 null，内部过滤）
+     * @param want    需求（amount 为探测上限）
+     * @return 各仓可得量之和（≤ want.amount），0 表示无
+     */
+    public static long probeFluidAmountAcross(List<? extends MTEHatch> hatches, FluidStack want) {
+        if (hatches == null || want == null || want.amount <= 0) return 0;
+        long available = 0;
+        for (MTEHatch hatch : GTUtility.validMTEList(hatches)) {
+            FluidStack sim = probeFluidAmount(hatch, want);
+            if (sim != null) available += sim.amount;
+            if (available >= want.amount) break;
+        }
+        return available;
+    }
+
+    /**
      * 从样板仓（mDualInputHatches）按需扣减流体（引用扣减）。
      * <p>
      * 样板仓流体消费语义：getAllFluids 返回 pattern 库存的持久引用，直接扣减引用后
