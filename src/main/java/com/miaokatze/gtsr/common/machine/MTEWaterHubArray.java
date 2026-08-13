@@ -48,6 +48,7 @@ import com.miaokatze.gtsr.common.machine.base.MTEReinforcedHubStorageUnit;
 import com.miaokatze.gtsr.common.machine.base.MTEWaterCacheNode;
 import com.miaokatze.gtsr.common.machine.base.MTEWaterHubInputHatch;
 import com.miaokatze.gtsr.common.machine.base.MTEWaterHubOutputHatch;
+import com.miaokatze.gtsr.common.util.GTSRUtils;
 import com.miaokatze.gtsr.common.util.HubTeleportUtil;
 import com.miaokatze.gtsr.common.util.UnitFormatUtil;
 
@@ -79,7 +80,8 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
     private static final int HORIZONTAL_OFF_SET = 3;
     private static final int VERTICAL_OFF_SET = 0;
     private static final int DEPTH_OFF_SET = 0;
-    private static final int AUTO_OUTPUT_RATE = 1_280_000;
+    /** 自动输出速率：每 tick 64,000 L = 1,280,000 L/s */
+    private static final int AUTO_OUTPUT_RATE = 64_000;
     private static final int HUB_UNIT_CAPACITY = 1_280_000;
     private static final int REINFORCED_HUB_UNIT_CAPACITY = 5_120_000;
     private static final int BOUND_TRANSFER_RATE = 1_000_000;
@@ -1390,9 +1392,7 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
             .addStructureHint("gtsr.tooltip.shared.hub_singularity_cost")
             .addStructureHint("gtsr.tooltip.shared.overflow_input_screwdriver")
             .addStructureHint("gtsr.tooltip.water_hub.hint_status")
-            .toolTipFinisher(
-                EnumChatFormatting.DARK_AQUA + StatCollector.translateToLocal("gtsr.tooltip.added_by")
-                    + "GT-Steam-Reborn");
+            .toolTipFinisher(GTSRUtils.getAddedByLine());
         return tt;
     }
 }

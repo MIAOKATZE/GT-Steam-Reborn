@@ -11,7 +11,7 @@ gtsr.tooltip.shared.steam_only=仅蒸汽
 gtsr.tooltip.shared.steam_and_superheated=蒸汽/过热蒸汽
 gtsr.tooltip.shared.no_external_input=禁止外部输入
 gtsr.tooltip.shared.steam_machine_only=仅限蒸汽多方块机器使用
-gtsr.tooltip.shared.bind_hint=右击装配枢纽奇点芯片的枢纽绑定
+gtsr.tooltip.shared.bind_hint=右击装有枢纽奇点芯片的枢纽进行绑定
 gtsr.tooltip.shared.singularity_cost=首次绑定枢纽时消耗1个蒸汽纠缠奇点（仅消耗一次）
 gtsr.tooltip.shared.hub_singularity_cost=绑定节点时消耗1个蒸汽纠缠奇点（每个节点仅消耗一次）
 gtsr.binding.no_singularity=背包中没有蒸汽纠缠奇点！
@@ -19,7 +19,6 @@ gtsr.tooltip.shared.node_bind_hint=右击奇点钻井枢纽绑定
 gtsr.tooltip.shared.node_unbound=未绑定枢纽
 gtsr.tooltip.node.chunk_load_warn=绑定奇点钻井枢纽后该机器将自动进行区块加载，保证远程作业稳定运行
 gtsr.tooltip.shared.work_cycle=工作周期: 
-gtsr.tooltip.shared.8s=8秒
 gtsr.tooltip.shared.cache_node_standalone=可单独作为可高速自动输出的流体容器
 gtsr.tooltip.shared.cache_node_hub_transfer=可连接枢纽，跨维度传输特定流体
 
@@ -29,7 +28,7 @@ gtsr.tooltip.steam_cache_node.fluid_type.steam=蒸汽
 
 # Reinforced Steam Cache Node
 gt.blockmachines.gtsr.reinforced.steam.cache.node.name=加固蒸汽缓存节点
-gtsr.tooltip.reinforced_steam_cache_node.fluid_type.superheated_steam=过热蒸汽
+gtsr.tooltip.reinforced_steam_cache_node.fluid_type.superheated_steam=蒸汽/过热蒸汽
 
 # Steam Hub Output Hatch
 gt.blockmachines.gtsr.steam.hub.output.hatch.name=蒸汽枢纽输出仓
@@ -259,7 +258,8 @@ gtsr.tooltip.mega_air_input_hatch.fluid_type=空气/下界空气
 # Distilled Water Hatch
 gt.blockmachines.gtsr.distilled.water.hatch.name=蒸馏水仓
 gtsr.tooltip.distilled_water_hatch.desc=借助蒸汽纠缠奇点，从虚空中凝结出最为纯净的水源
-gtsr.tooltip.distilled_water_hatch.usage=容量 10,000,000 L；放置后立即补满，此后每 500 tick 补满一次。蒸馏水不会引起钙化，可供给太阳能阵列/地热锅炉等机器
+gtsr.tooltip.distilled_water_hatch.usage.1=放置后立即补满，此后每 500 tick 补满一次。
+gtsr.tooltip.distilled_water_hatch.usage.2=蒸馏水不会引起钙化，可供给太阳能阵列/地热锅炉等机器
 
 # Large Geothermal Steam Boiler
 gt.blockmachines.gtsr.large.geothermal.steam.boiler.name=大型地热蒸汽锅炉
@@ -364,10 +364,12 @@ item.HubTerminal.name=机器终端
 # Overpressure Steam Cache Node
 gt.blockmachines.gtsr.overpressure.steam.cache.node.name=超压蒸汽缓存节点
 gtsr.tooltip.overpressure_steam_cache_node.fluid_type=所有蒸汽类型
+gtsr.tooltip.overpressure_steam_cache_node.singularity_cost=首次绑定枢纽时消耗8个蒸汽纠缠奇点（仅消耗一次）
+gtsr.tooltip.overpressure_steam_cache_node.bind_requirement=需等级3蒸汽枢纽阵列和强化奇点枢纽升级芯片
 
 # Overpressure Turbine Input Hatch
 gt.blockmachines.gtsr.overpressure.turbine.input.hatch.name=巨型超压蒸汽输入仓
-gtsr.tooltip.overpressure_turbine_input_hatch.info=通过蒸汽奇点，允许纳入宏量的蒸汽
+gtsr.tooltip.overpressure_turbine_input_hatch.info=通过蒸汽奇点，允许纳入巨量的蒸汽
 gtsr.tooltip.overpressure_turbine_input_hatch.fluid_type=接受所有蒸汽类型
 gtsr.tooltip.overpressure_turbine_input_hatch.turbine_only=仅限巨型蒸汽轮机阵列与蒸汽奇点纠缠装置使用
 
@@ -432,28 +434,13 @@ gtsr.recipe.singularity_drilling_hub=奇点钻井枢纽
 # Singularity Miner Node
 gt.blockmachines.gtsr.singularity.miner.node.name=奇点采矿节点
 gtsr.tooltip.miner_node.desc=蒸汽驱动的远程采矿节点，绑定奇点钻井枢纽后自动采矿
-gtsr.tooltip.miner_node.range=采矿范围:
-gtsr.tooltip.miner_node.range_base=基础64×64 / 强化I 96×96 / 强化II 128×128 / 强化III 192×192 / 强化IV 288×288
-gtsr.tooltip.miner_node.fortune=时运等级:
-gtsr.tooltip.miner_node.fortune_base=基础VI / 强化I VII / 强化II VIII / 强化III IX / 强化IV X（普通矿与贫瘠矿等同，两模式均全额生效）
 gtsr.tooltip.miner_node.requires_pipe=需要采矿管道才能工作
 gtsr.tooltip.miner_node.upgrade_title=升级机制:
-gtsr.tooltip.miner_node.upgrade_desc=强化I: 矿石钻井场I+16奇点 | 强化II: 矿石钻井场II+32奇点 | 强化III: 矿石钻井场III+64奇点 | 强化IV: 矿石钻井场IV+256奇点
-gtsr.tooltip.miner_node.work_cycle_base=基础4s / 强化I 3s / 强化II 2s / 强化III 1s / 强化IV 10刻
-gtsr.tooltip.miner_node.steam_cost=蒸汽消耗:
-gtsr.tooltip.miner_node.steam_cost_base=基础5,000 / 强化I 10,000 / 强化II 20,000 / 强化III 80,000 / 强化IV 240,000 L/s（仅工作中消耗）
 
 # Singularity Drilling Node
 gt.blockmachines.gtsr.singularity.drilling.node.name=奇点钻井节点
 gtsr.tooltip.drilling_node.desc=蒸汽驱动的远程钻井节点，绑定奇点钻井枢纽后自动钻井至基岩并泵送地下流体
-gtsr.tooltip.drilling_node.extraction=提取系数:
-gtsr.tooltip.drilling_node.extraction_base=基础10 / 强化I 12 / 强化II 15 / 强化III 18
-gtsr.tooltip.drilling_node.chunk_range=工作范围:
-gtsr.tooltip.drilling_node.chunk_range_base=基础1×1 / 强化I 2×2 / 强化II 4×4 / 强化III 8×8 区块
 gtsr.tooltip.drilling_node.upgrade_title=升级机制:
-gtsr.tooltip.drilling_node.upgrade_desc=强化I: 油气钻井II+16奇点 | 强化II: 油气钻井III+32奇点 | 强化III: 油气钻井IV+64奇点
-gtsr.tooltip.drilling_node.steam_cost=蒸汽消耗:
-gtsr.tooltip.drilling_node.steam_cost_base=基础2,000 / 强化I 6,000 / 强化II 12,000 / 强化III 20,000 L/s（仅工作中消耗）
 gtsr.gui.drilling_node.output_per_8s=产出/8s
 gtsr.gui.drilling_node.tier=等级:
 gtsr.gui.drilling_node.base=基础
@@ -481,6 +468,39 @@ gtsr.gui.node_upgrade.tooltip.singularity=蒸汽纠缠奇点 ×
 gtsr.node.miner.crushed_mode.on=粉碎矿模式已开启: 矿物将按研磨配方实际粉碎数量×1.5输出粉碎矿
 gtsr.node.miner.crushed_mode.off=粉碎矿模式已关闭
 gtsr.tooltip.miner_node.crushed_mode_hint=螺丝刀右击切换粉碎矿模式: 矿物按研磨配方实际粉碎数量×1.5输出粉碎矿
+
+# Miner Node Parameter Table
+gtsr.tooltip.miner_node.table_title=采矿参数（蒸汽消耗仅工作中）
+gtsr.tooltip.miner_node.table_header=等级 | 范围 | 时运 | 周期 | 蒸汽消耗
+gtsr.tooltip.miner_node.row_0_level=基础
+gtsr.tooltip.miner_node.row_0_params=64×64 | VI | 4秒 | 5,000 L/s
+gtsr.tooltip.miner_node.row_1_level=强化I
+gtsr.tooltip.miner_node.row_1_params=96×96 | VII | 3秒 | 10,000 L/s
+gtsr.tooltip.miner_node.row_2_level=强化II
+gtsr.tooltip.miner_node.row_2_params=128×128 | VIII | 2秒 | 20,000 L/s
+gtsr.tooltip.miner_node.row_3_level=强化III
+gtsr.tooltip.miner_node.row_3_params=192×192 | IX | 1秒 | 80,000 L/s
+gtsr.tooltip.miner_node.row_4_level=强化IV
+gtsr.tooltip.miner_node.row_4_params=288×288 | X | 10刻 | 240,000 L/s
+gtsr.tooltip.miner_node.upgrade_1=强化I: 矿石钻井场I + 16奇点
+gtsr.tooltip.miner_node.upgrade_2=强化II: 矿石钻井场II + 32奇点
+gtsr.tooltip.miner_node.upgrade_3=强化III: 矿石钻井场III + 64奇点
+gtsr.tooltip.miner_node.upgrade_4=强化IV: 矿石钻井场IV + 256奇点
+
+# Drilling Node Parameter Table
+gtsr.tooltip.drilling_node.table_title=钻井参数（蒸汽消耗仅工作中）
+gtsr.tooltip.drilling_node.table_header=等级 | 提取系数 | 范围 | 周期 | 蒸汽消耗
+gtsr.tooltip.drilling_node.row_0_level=基础
+gtsr.tooltip.drilling_node.row_0_params=10 | 1×1区块 | 8秒 | 2,000 L/s
+gtsr.tooltip.drilling_node.row_1_level=强化I
+gtsr.tooltip.drilling_node.row_1_params=12 | 2×2区块 | 8秒 | 6,000 L/s
+gtsr.tooltip.drilling_node.row_2_level=强化II
+gtsr.tooltip.drilling_node.row_2_params=15 | 4×4区块 | 8秒 | 12,000 L/s
+gtsr.tooltip.drilling_node.row_3_level=强化III
+gtsr.tooltip.drilling_node.row_3_params=18 | 8×8区块 | 8秒 | 20,000 L/s
+gtsr.tooltip.drilling_node.upgrade_1=强化I: 油气钻井II + 16奇点
+gtsr.tooltip.drilling_node.upgrade_2=强化II: 油气钻井III + 32奇点
+gtsr.tooltip.drilling_node.upgrade_3=强化III: 油气钻井IV + 64奇点
 
 # Drilling Hub Debug
 gtsr.drilling.debug_title=钻井枢纽绑定调试
@@ -568,12 +588,12 @@ gtsr.tooltip.ammonia_plant.output_hatch=输出仓
 
 # Ammonia Catalyst (氨催化剂)
 item.AmmoniaCatalystNickel.name=镍基催化剂
-item.AmmoniaCatalystPlatinum.name=铂催化剂
-item.AmmoniaCatalystUranium.name=铀催化剂
-item.AmmoniaCatalystOsmium.name=锇催化剂
-item.AmmoniaCatalystFeCo.name=铁钴改型催化剂
-item.AmmoniaCatalystRuthenium.name=钌催化剂
-item.AmmoniaCatalystQuantum.name=量子催化剂
+item.AmmoniaCatalystPlatinum.name=铂基催化剂
+item.AmmoniaCatalystUranium.name=铀基催化剂
+item.AmmoniaCatalystOsmium.name=锇基催化剂
+item.AmmoniaCatalystFeCo.name=铁钴基催化剂
+item.AmmoniaCatalystRuthenium.name=钌基催化剂
+item.AmmoniaCatalystQuantum.name=量子基催化剂
 
 # Ammonia Plant GUI
 gtsr.gui.ammonia_plant.heat=热量: 
@@ -594,11 +614,11 @@ gtsr.tooltip.air_compressor.input_hatch=输入仓(蒸汽)
 gtsr.tooltip.air_compressor.output_hatch=输出仓(空气)
 gtsr.recipe.air_compressor=空气压缩机
 
-gt.blockmachines.gtsr.atmospheric_centrifuge.name=空气离心机
+gt.blockmachines.gtsr.atmospheric_centrifuge.name=大气离心机
 gtsr.tooltip.atmospheric_centrifuge.ctrl=正面中央
 gtsr.tooltip.atmospheric_centrifuge.input_hatch=输入仓
 gtsr.tooltip.atmospheric_centrifuge.output_hatch=输出仓
-gtsr.recipe.atmospheric_centrifuge=空气离心机
+gtsr.recipe.atmospheric_centrifuge=大气离心机
 
 item.RareGasSeparationChip.name=稀有气体分离芯片
 
@@ -678,7 +698,7 @@ gtsr.gui.ammonia_plant.catalyst.7=量子催化剂
 gtsr.gui.ammonia_plant.catalyst.not_installed=未安装
 
 # 3. Atmospheric Centrifuge
-gtsr.tooltip.atmospheric_centrifuge.type=空气离心机, ATC
+gtsr.tooltip.atmospheric_centrifuge.type=大气离心机, ATC
 gtsr.tooltip.atmospheric_centrifuge.desc=利用蒸汽驱动的气体离心机，
 
 # 4. Crust Steam Borer
@@ -1108,18 +1128,21 @@ gtsr.tooltip.fluid_drill.nei_efficiency_lava=效率: 0.5% (其他维度) / 5% (�
 # ===== v1.6.0 Tooltip & Translation Keys =====
 gtsr.tooltip.shared.screwdriver_overflow=螺丝刀右击：切换溢流输入
 gtsr.tooltip.shared.screwdriver_rightclick_overflow=螺丝刀右击：切换溢流输出
-gtsr.tooltip.hub_storage_unit.steam_water_hub=蒸汽/蓄水枢纽
+gtsr.tooltip.hub_storage_unit.steam_water_hub=蒸汽枢纽
 gtsr.tooltip.turbine_array.tier_system=12级电压体系：LV→MV→HV→EV→IV→LuV→ZPM→UV→UHV→UEV→UIV→UMV
 gtsr.tooltip.turbine_array.steam_progression=蒸汽类型：普通→过热→致密→致密过热→超临界→致密超临界
 gtsr.tooltip.turbine_array.stacking_desc=每组4层Stack，最多4组额外Stack；
-gtsr.tooltip.chip.geothermal_overheat=装载至大型地热蒸汽锅炉，提升蒸汽产出并增加副产物
-gtsr.tooltip.chip.hub_singularity=装载至蒸汽/蓄水枢纽阵列，解锁等级2功能，总容量×5
-gtsr.tooltip.chip.rare_gas=装载至大气离心机，解锁稀有气体分离配方
-gtsr.tooltip.chip.reinforced_hub_singularity=装载至蒸汽枢纽阵列，解锁等级3功能，总容量×20
+gtsr.tooltip.chip.geothermal_overheat=装载至大型地热蒸汽锅炉（仅钢级），提升蒸汽产出并增加副产物
+gtsr.tooltip.chip.hub_singularity=装载至蒸汽/蓄水枢纽阵列，解锁节点绑定，总容量×5
+gtsr.tooltip.chip.rare_gas=装载至大气离心机（仅钢级），解锁稀有气体分离配方
+gtsr.tooltip.chip.reinforced_hub_singularity.1=装载至蒸汽枢纽阵列，需等级3结构：
+gtsr.tooltip.chip.reinforced_hub_singularity.2=解锁致密/超临界蒸汽与超压节点绑定
+gtsr.tooltip.chip.reinforced_hub_singularity.3=总容量×20
 gtsr.tooltip.chip.steam_turbine_cycle_overlimit.1=装载至巨型蒸汽轮机阵列控制器槽；
 gtsr.tooltip.chip.steam_turbine_cycle_overlimit.2=完成全部4组额外叠加层后生效：过热/超临界（含致密）蒸汽冷却直接产蒸馏水，
 gtsr.tooltip.chip.steam_turbine_cycle_overlimit.3=蒸汽效率因子按蒸汽家族内叠加
-gtsr.tooltip.chip.vein_pyrolyzer=装载至地脉热解机，提升地下流体富集范围
+gtsr.tooltip.chip.vein_pyrolyzer.1=装载至地脉蒸汽热解机
+gtsr.tooltip.chip.vein_pyrolyzer.2=提升地下流体富集范围（基础 1×1，T1 +1 / T2 +3 / T3 +7）
 gtsr.tooltip.catalyst.ammonia=装载至制氨工厂，提升并行数和反应速度
 gtsr.tooltip.catalyst.ammonia.nickel=并行数: 64 | 时间: 64秒
 gtsr.tooltip.catalyst.ammonia.platinum=并行数: 96 | 时间: 48秒
@@ -1131,7 +1154,7 @@ gtsr.tooltip.catalyst.ammonia.quantum=并行数: 256 | 时间: 1秒
 gtsr.tooltip.singularity.desc=蒸汽纠缠奇点，用于高级的合成与增幅。
 gtsr.tooltip.steam_entangled_singularity.danger=掉落物会爆炸！请勿丢弃。
 gtsr.tooltip.critical_singularity.desc=临界蒸汽纠缠奇点，用于更高级的合成与增幅。
-gtsr.tooltip.hub_terminal.desc.1=用于打开GTSR部分富多方块机器的UI。
+gtsr.tooltip.hub_terminal.desc.1=用于打开 GTSR 部分多方块机器的 UI。
 gtsr.tooltip.hub_terminal.desc.2=支持的多方块机器有：
 gtsr.tooltip.hub_terminal.desc.3=蒸汽枢纽阵列
 gtsr.tooltip.hub_terminal.desc.4=蓄水枢纽阵列

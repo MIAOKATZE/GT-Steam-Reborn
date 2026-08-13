@@ -5,6 +5,8 @@ import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 import net.minecraftforge.common.util.ForgeDirection;
 
+import com.miaokatze.gtsr.common.util.GTSRUtils;
+
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
@@ -66,17 +68,6 @@ public class MTESteamInputHatchGeneric extends MTEHatchInput {
                 + EnumChatFormatting.YELLOW
                 + StatCollector.translateToLocal("gtsr.tooltip.shared.any_fluid"),
             EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.shared.steam_machine_only"),
-            EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.tooltip.added_by")
-                + " "
-                + EnumChatFormatting.AQUA
-                + "GT"
-                + EnumChatFormatting.GREEN
-                + "-"
-                + EnumChatFormatting.GOLD
-                + "Steam"
-                + EnumChatFormatting.RED
-                + "-"
-                + EnumChatFormatting.BLUE
-                + "Reborn" };
+            GTSRUtils.getAddedByLine() };
     }
 }

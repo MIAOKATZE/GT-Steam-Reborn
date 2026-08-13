@@ -18,6 +18,8 @@ import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.IFluidHandler;
 
+import com.miaokatze.gtsr.common.util.GTSRUtils;
+
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 import gregtech.api.enums.Textures;
@@ -30,8 +32,8 @@ import gregtech.api.util.GTUtility;
 
 public class MTEReinforcedSteamCacheNode extends MTEFilteredCacheNode {
 
-    private static final int CAPACITY = 16_000_000;
-    private static final int OUTPUT_RATE_PER_SEC = 2_000_000;
+    private static final int CAPACITY = 64_000_000;
+    private static final int OUTPUT_RATE_PER_SEC = 8_000_000;
 
     private static IIconContainer TOP_OVERLAY;
 
@@ -45,7 +47,7 @@ public class MTEReinforcedSteamCacheNode extends MTEFilteredCacheNode {
 
     @Override
     protected int getBaseHubTransferRate() {
-        return 2_000_000;
+        return 8_000_000;
     }
 
     @Override
@@ -203,25 +205,12 @@ public class MTEReinforcedSteamCacheNode extends MTEFilteredCacheNode {
                 + String.format("%,d", getRealCapacity())
                 + " "
                 + StatCollector.translateToLocal("gtsr.tooltip.shared.l"));
-        tooltip.add(
-            EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.shared.singularity_cost") + " 1");
+        tooltip.add(EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.shared.singularity_cost"));
         tooltip
             .add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.shared.cache_node_standalone"));
         tooltip.add(
             EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.shared.cache_node_hub_transfer"));
         tooltip.add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.shared.bind_hint"));
-        tooltip.add(
-            EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.tooltip.added_by")
-                + " "
-                + EnumChatFormatting.AQUA
-                + "GT"
-                + EnumChatFormatting.GREEN
-                + "-"
-                + EnumChatFormatting.GOLD
-                + "Steam"
-                + EnumChatFormatting.RED
-                + "-"
-                + EnumChatFormatting.BLUE
-                + "Reborn");
+        tooltip.add(GTSRUtils.getAddedByLine());
     }
 }

@@ -36,6 +36,7 @@ import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import com.miaokatze.gtsr.api.compat.ICoolingHatchHolder;
 import com.miaokatze.gtsr.api.compat.SteamCoolingSupport;
 import com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps;
+import com.miaokatze.gtsr.common.util.GTSRUtils;
 
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Materials;
@@ -441,9 +442,7 @@ public class MTEAirCompressor extends MTESteamMultiBlockBase<MTEAirCompressor> i
                     + ")")
             .addStructureHint("gtsr.tooltip.shared.no_maintenance")
             .addStructureHint("gtsr.tooltip.air_compressor.optional_cooling")
-            .toolTipFinisher(
-                EnumChatFormatting.DARK_AQUA + StatCollector.translateToLocal("gtsr.tooltip.added_by")
-                    + "GT-Steam-Reborn");
+            .toolTipFinisher(GTSRUtils.getAddedByLine());
         return tt;
     }
 

@@ -4,6 +4,8 @@ import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 import net.minecraftforge.fluids.FluidStack;
 
+import com.miaokatze.gtsr.common.util.GTSRUtils;
+
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
@@ -68,17 +70,6 @@ public class MTEMegaAirInputHatch extends MTEHatchInput {
             EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.shared.fluid_type")
                 + EnumChatFormatting.YELLOW
                 + StatCollector.translateToLocal("gtsr.tooltip.mega_air_input_hatch.fluid_type"),
-            EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.tooltip.added_by")
-                + " "
-                + EnumChatFormatting.AQUA
-                + "GT"
-                + EnumChatFormatting.GREEN
-                + "-"
-                + EnumChatFormatting.GOLD
-                + "Steam"
-                + EnumChatFormatting.RED
-                + "-"
-                + EnumChatFormatting.BLUE
-                + "Reborn" };
+            GTSRUtils.getAddedByLine() };
     }
 }

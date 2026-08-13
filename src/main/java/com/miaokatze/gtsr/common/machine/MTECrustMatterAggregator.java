@@ -47,6 +47,7 @@ import com.miaokatze.gtsr.common.gui.AggregatorConfigGuiFactory;
 import com.miaokatze.gtsr.common.gui.MTECrustMatterAggregatorGui;
 import com.miaokatze.gtsr.common.machine.base.MTESingularityMachineBase;
 import com.miaokatze.gtsr.common.machine.base.VoidMinerUtilityShim;
+import com.miaokatze.gtsr.common.util.GTSRUtils;
 import com.miaokatze.gtsr.common.util.OreCrushedUtil;
 import com.miaokatze.gtsr.loader.BlockLoader;
 import com.miaokatze.gtsr.main.GTSteamReborn;
@@ -1706,9 +1707,7 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
             .addStructureInfo(EnumChatFormatting.DARK_PURPLE + StatCollector.translateToLocal(keyPrefix + "desc7"))
             .addStructureHint("gtsr.tooltip.shared.no_maintenance")
             .addStructureHint(keyPrefix + "hint_dimension")
-            .toolTipFinisher(
-                EnumChatFormatting.DARK_AQUA + StatCollector.translateToLocal("gtsr.tooltip.added_by")
-                    + "GT-Steam-Reborn");
+            .toolTipFinisher(GTSRUtils.getAddedByLine());
         return tt;
     }
 

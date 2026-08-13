@@ -18,6 +18,8 @@ import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.IFluidHandler;
 
+import com.miaokatze.gtsr.common.util.GTSRUtils;
+
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 import gregtech.api.enums.Textures;
@@ -204,18 +206,6 @@ public class MTESteamCacheNode extends MTEFilteredCacheNode {
         tooltip.add(
             EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.shared.cache_node_hub_transfer"));
         tooltip.add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.shared.bind_hint"));
-        tooltip.add(
-            EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.tooltip.added_by")
-                + " "
-                + EnumChatFormatting.AQUA
-                + "GT"
-                + EnumChatFormatting.GREEN
-                + "-"
-                + EnumChatFormatting.GOLD
-                + "Steam"
-                + EnumChatFormatting.RED
-                + "-"
-                + EnumChatFormatting.BLUE
-                + "Reborn");
+        tooltip.add(GTSRUtils.getAddedByLine());
     }
 }

@@ -11,6 +11,7 @@ import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 
 import com.miaokatze.gtsr.common.util.CriticalSingularityTexture;
+import com.miaokatze.gtsr.common.util.GTSRUtils;
 import com.miaokatze.gtsr.common.util.SingularityDropExplosion;
 
 import cpw.mods.fml.relauncher.Side;
@@ -42,19 +43,7 @@ public class CriticalSteamEntangledSingularity extends Item {
         list.add(
             EnumChatFormatting.LIGHT_PURPLE
                 + StatCollector.translateToLocal("gtsr.tooltip.critical_singularity.legend"));
-        list.add(
-            EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.tooltip.added_by")
-                + " "
-                + EnumChatFormatting.AQUA
-                + "GT"
-                + EnumChatFormatting.GREEN
-                + "-"
-                + EnumChatFormatting.GOLD
-                + "Steam"
-                + EnumChatFormatting.RED
-                + "-"
-                + EnumChatFormatting.BLUE
-                + "Reborn");
+        list.add(GTSRUtils.getAddedByLine());
         list.add(
             EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.steam_entangled_singularity.danger"));
     }

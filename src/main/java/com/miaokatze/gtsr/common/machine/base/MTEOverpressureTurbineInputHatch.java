@@ -7,6 +7,8 @@ import net.minecraft.util.StatCollector;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidStack;
 
+import com.miaokatze.gtsr.common.util.GTSRUtils;
+
 import gregtech.api.GregTechAPI;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
@@ -108,17 +110,6 @@ public class MTEOverpressureTurbineInputHatch extends MTEHatchInput {
                 + StatCollector.translateToLocal("gtsr.tooltip.shared.l"),
             EnumChatFormatting.GRAY
                 + StatCollector.translateToLocal("gtsr.tooltip.overpressure_turbine_input_hatch.turbine_only"),
-            EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.tooltip.added_by")
-                + " "
-                + EnumChatFormatting.AQUA
-                + "GT"
-                + EnumChatFormatting.GREEN
-                + "-"
-                + EnumChatFormatting.GOLD
-                + "Steam"
-                + EnumChatFormatting.RED
-                + "-"
-                + EnumChatFormatting.BLUE
-                + "Reborn" };
+            GTSRUtils.getAddedByLine() };
     }
 }

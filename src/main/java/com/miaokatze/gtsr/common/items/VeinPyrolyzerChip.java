@@ -8,6 +8,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 
+import com.miaokatze.gtsr.common.util.GTSRUtils;
 import com.miaokatze.gtsr.register.CreativeTabManager;
 
 import cpw.mods.fml.relauncher.Side;
@@ -33,23 +34,8 @@ public class VeinPyrolyzerChip extends Item {
     @Override
     @SideOnly(Side.CLIENT)
     public void addInformation(ItemStack stack, EntityPlayer player, List list, boolean adv) {
-        list.add(
-            EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.tooltip.chip.vein_pyrolyzer")
-                + EnumChatFormatting.AQUA
-                + " +"
-                + rangeBonus);
-        list.add(
-            EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.tooltip.added_by")
-                + " "
-                + EnumChatFormatting.AQUA
-                + "GT"
-                + EnumChatFormatting.GREEN
-                + "-"
-                + EnumChatFormatting.GOLD
-                + "Steam"
-                + EnumChatFormatting.RED
-                + "-"
-                + EnumChatFormatting.BLUE
-                + "Reborn");
+        list.add(EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.tooltip.chip.vein_pyrolyzer.1"));
+        list.add(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.chip.vein_pyrolyzer.2"));
+        list.add(GTSRUtils.getAddedByLine());
     }
 }

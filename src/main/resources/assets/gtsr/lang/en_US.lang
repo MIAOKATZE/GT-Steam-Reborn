@@ -11,7 +11,7 @@ gtsr.tooltip.shared.steam_only=Steam Only
 gtsr.tooltip.shared.steam_and_superheated=Steam / Superheated Steam
 gtsr.tooltip.shared.no_external_input=No External Input Allowed
 gtsr.tooltip.shared.steam_machine_only=For Steam Multiblock Machines Only
-gtsr.tooltip.shared.bind_hint=Right-click a Hub with Singularity Chip installed to bind
+gtsr.tooltip.shared.bind_hint=Right-click a hub with a Hub Singularity Chip installed to bind
 gtsr.tooltip.shared.singularity_cost=Consumes 1 Steam Entangled Singularity on first hub binding (once only)
 gtsr.tooltip.shared.hub_singularity_cost=Consumes 1 Steam Entangled Singularity when binding a node (once per node)
 gtsr.binding.no_singularity=No Steam Entangled Singularity in inventory!
@@ -19,7 +19,6 @@ gtsr.tooltip.shared.node_bind_hint=Right-click Singularity Drilling Hub to bind
 gtsr.tooltip.shared.node_unbound=Not bound to hub
 gtsr.tooltip.node.chunk_load_warn=Binding to the Singularity Drilling Hub enables automatic chunk loading on this machine for stable remote operation
 gtsr.tooltip.shared.work_cycle=Work Cycle: 
-gtsr.tooltip.shared.8s=8s
 gtsr.tooltip.shared.cache_node_standalone=Can be used standalone as high-speed auto-output fluid container
 gtsr.tooltip.shared.cache_node_hub_transfer=Can connect to Hub for cross-dimensional fluid transfer
 
@@ -29,7 +28,7 @@ gtsr.tooltip.steam_cache_node.fluid_type.steam=Steam
 
 # Reinforced Steam Cache Node
 gt.blockmachines.gtsr.reinforced.steam.cache.node.name=Reinforced Steam Cache Node
-gtsr.tooltip.reinforced_steam_cache_node.fluid_type.superheated_steam=Superheated Steam
+gtsr.tooltip.reinforced_steam_cache_node.fluid_type.superheated_steam=Steam / Superheated Steam
 
 # Steam Hub Output Hatch
 gt.blockmachines.gtsr.steam.hub.output.hatch.name=Steam Hub Output Hatch
@@ -259,7 +258,8 @@ gtsr.tooltip.mega_air_input_hatch.fluid_type=Air/Nether Air
 # Distilled Water Hatch
 gt.blockmachines.gtsr.distilled.water.hatch.name=Distilled Water Hatch
 gtsr.tooltip.distilled_water_hatch.desc=Harnessing steam-entangled singularities, it condenses the purest water from the void
-gtsr.tooltip.distilled_water_hatch.usage=10,000,000 L capacity; fills immediately on placement, then refills every 500 ticks. Distilled water never causes calcification - ideal for the Solar Array and Geothermal Boiler
+gtsr.tooltip.distilled_water_hatch.usage.1=Fills instantly on placement, then refills every 500 ticks.
+gtsr.tooltip.distilled_water_hatch.usage.2=Distilled water does not cause scaling; can supply solar arrays, geothermal boilers, etc.
 
 # Large Geothermal Steam Boiler
 gt.blockmachines.gtsr.large.geothermal.steam.boiler.name=Large Geothermal Steam Boiler
@@ -364,10 +364,12 @@ item.HubTerminal.name=Machine Terminal
 # Overpressure Steam Cache Node
 gt.blockmachines.gtsr.overpressure.steam.cache.node.name=Overpressure Steam Cache Node
 gtsr.tooltip.overpressure_steam_cache_node.fluid_type=All Steam Types
+gtsr.tooltip.overpressure_steam_cache_node.singularity_cost=Consumes 8 Steam Entangled Singularities on first hub binding (once only)
+gtsr.tooltip.overpressure_steam_cache_node.bind_requirement=Requires a tier 3 Steam Hub Array and a Reinforced Hub Singularity Chip
 
 # Overpressure Turbine Input Hatch
 gt.blockmachines.gtsr.overpressure.turbine.input.hatch.name=Mega Overpressure Steam Input Hatch
-gtsr.tooltip.overpressure_turbine_input_hatch.info=Through steam singularities, it accepts massive amounts of steam
+gtsr.tooltip.overpressure_turbine_input_hatch.info=Through steam singularities, it accepts vast amounts of steam
 gtsr.tooltip.overpressure_turbine_input_hatch.fluid_type=Accepts all steam types
 gtsr.tooltip.overpressure_turbine_input_hatch.turbine_only=Restricted to the Mega Steam Turbine Array and the Steam Singularity Entangler
 
@@ -432,28 +434,13 @@ gtsr.recipe.singularity_drilling_hub=Singularity Drilling Hub
 # Singularity Miner Node
 gt.blockmachines.gtsr.singularity.miner.node.name=Singularity Miner Node
 gtsr.tooltip.miner_node.desc=Steam-driven remote mining node, auto-mines when bound to Singularity Drilling Hub
-gtsr.tooltip.miner_node.range=Mining Range:
-gtsr.tooltip.miner_node.range_base=Base 64x64 / Enhanced I 96x96 / Enhanced II 128x128 / Enhanced III 192x192 / Enhanced IV 288x288
-gtsr.tooltip.miner_node.fortune=Fortune Level:
-gtsr.tooltip.miner_node.fortune_base=Base VI / Enhanced I VII / Enhanced II VIII / Enhanced III IX / Enhanced IV X (same for normal & small ores, full effect in both raw & crushed modes)
 gtsr.tooltip.miner_node.requires_pipe=Requires Mining Pipe to operate
 gtsr.tooltip.miner_node.upgrade_title=Upgrade Mechanism:
-gtsr.tooltip.miner_node.upgrade_desc=Enhanced I: Ore Drill I+16 Singularity | Enhanced II: Ore Drill II+32 Singularity | Enhanced III: Ore Drill III+64 Singularity | Enhanced IV: Ore Drill IV+256 Singularity
-gtsr.tooltip.miner_node.work_cycle_base=Base 4s / Enhanced I 3s / Enhanced II 2s / Enhanced III 1s / Enhanced IV 10t
-gtsr.tooltip.miner_node.steam_cost=Steam Cost:
-gtsr.tooltip.miner_node.steam_cost_base=Base 5,000 / Enhanced I 10,000 / Enhanced II 20,000 / Enhanced III 80,000 / Enhanced IV 240,000 L/s (only when working)
 
 # Singularity Drilling Node
 gt.blockmachines.gtsr.singularity.drilling.node.name=Singularity Drilling Node
 gtsr.tooltip.drilling_node.desc=Steam-driven remote drilling node, drills to bedrock and pumps underground fluids when bound to Singularity Drilling Hub
-gtsr.tooltip.drilling_node.extraction=Extraction Rate:
-gtsr.tooltip.drilling_node.extraction_base=Base 10 / Enhanced I 12 / Enhanced II 15 / Enhanced III 18
-gtsr.tooltip.drilling_node.chunk_range=Work Range:
-gtsr.tooltip.drilling_node.chunk_range_base=Base 1x1 / Enhanced I 2x2 / Enhanced II 4x4 / Enhanced III 8x8 Chunks
 gtsr.tooltip.drilling_node.upgrade_title=Upgrade Mechanism:
-gtsr.tooltip.drilling_node.upgrade_desc=Enhanced I: Oil Drill II+16 Singularity | Enhanced II: Oil Drill III+32 Singularity | Enhanced III: Oil Drill IV+64 Singularity
-gtsr.tooltip.drilling_node.steam_cost=Steam Cost:
-gtsr.tooltip.drilling_node.steam_cost_base=Base 2,000 / Enhanced I 6,000 / Enhanced II 12,000 / Enhanced III 20,000 L/s (only when working)
 gtsr.gui.drilling_node.output_per_8s=Output/8s
 gtsr.gui.drilling_node.tier=Tier:
 gtsr.gui.drilling_node.base=Base
@@ -481,6 +468,39 @@ gtsr.gui.node_upgrade.tooltip.singularity=Steam Entangled Singularity x
 gtsr.node.miner.crushed_mode.on=Crushed ore mode ON: ores output crushed at their actual maceration count x1.5
 gtsr.node.miner.crushed_mode.off=Crushed ore mode OFF
 gtsr.tooltip.miner_node.crushed_mode_hint=Screwdriver right-click toggles crushed ore mode: ores output crushed at their actual maceration count x1.5
+
+# Miner Node Parameter Table
+gtsr.tooltip.miner_node.table_title=Mining parameters (steam consumed only while working)
+gtsr.tooltip.miner_node.table_header=Tier | Range | Fortune | Cycle | Steam cost
+gtsr.tooltip.miner_node.row_0_level=Base
+gtsr.tooltip.miner_node.row_0_params=64×64 | VI | 4s | 5,000 L/s
+gtsr.tooltip.miner_node.row_1_level=Enhanced I
+gtsr.tooltip.miner_node.row_1_params=96×96 | VII | 3s | 10,000 L/s
+gtsr.tooltip.miner_node.row_2_level=Enhanced II
+gtsr.tooltip.miner_node.row_2_params=128×128 | VIII | 2s | 20,000 L/s
+gtsr.tooltip.miner_node.row_3_level=Enhanced III
+gtsr.tooltip.miner_node.row_3_params=192×192 | IX | 1s | 80,000 L/s
+gtsr.tooltip.miner_node.row_4_level=Enhanced IV
+gtsr.tooltip.miner_node.row_4_params=288×288 | X | 10t | 240,000 L/s
+gtsr.tooltip.miner_node.upgrade_1=Reinforced I: Ore Drill I + 16 Singularities
+gtsr.tooltip.miner_node.upgrade_2=Reinforced II: Ore Drill II + 32 Singularities
+gtsr.tooltip.miner_node.upgrade_3=Reinforced III: Ore Drill III + 64 Singularities
+gtsr.tooltip.miner_node.upgrade_4=Reinforced IV: Ore Drill IV + 256 Singularities
+
+# Drilling Node Parameter Table
+gtsr.tooltip.drilling_node.table_title=Drilling parameters (steam consumed only while working)
+gtsr.tooltip.drilling_node.table_header=Tier | Extraction | Range | Cycle | Steam cost
+gtsr.tooltip.drilling_node.row_0_level=Base
+gtsr.tooltip.drilling_node.row_0_params=10 | 1×1 chunks | 8s | 2,000 L/s
+gtsr.tooltip.drilling_node.row_1_level=Enhanced I
+gtsr.tooltip.drilling_node.row_1_params=12 | 2×2 chunks | 8s | 6,000 L/s
+gtsr.tooltip.drilling_node.row_2_level=Enhanced II
+gtsr.tooltip.drilling_node.row_2_params=15 | 4×4 chunks | 8s | 12,000 L/s
+gtsr.tooltip.drilling_node.row_3_level=Enhanced III
+gtsr.tooltip.drilling_node.row_3_params=18 | 8×8 chunks | 8s | 20,000 L/s
+gtsr.tooltip.drilling_node.upgrade_1=Enhanced I: Oil Drill II + 16 Singularities
+gtsr.tooltip.drilling_node.upgrade_2=Enhanced II: Oil Drill III + 32 Singularities
+gtsr.tooltip.drilling_node.upgrade_3=Enhanced III: Oil Drill IV + 64 Singularities
 
 # Drilling Hub Debug
 gtsr.drilling.debug_title=Drilling Hub Binding Debug
@@ -569,12 +589,12 @@ gtsr.tooltip.ammonia_plant.output_hatch=Output Hatch
 
 # Ammonia Catalysts
 item.AmmoniaCatalystNickel.name=Nickel-Based Catalyst
-item.AmmoniaCatalystPlatinum.name=Platinum Catalyst
-item.AmmoniaCatalystUranium.name=Uranium Catalyst
-item.AmmoniaCatalystOsmium.name=Osmium Catalyst
-item.AmmoniaCatalystFeCo.name=Iron-Cobalt Modified Catalyst
-item.AmmoniaCatalystRuthenium.name=Ruthenium Catalyst
-item.AmmoniaCatalystQuantum.name=Quantum Catalyst
+item.AmmoniaCatalystPlatinum.name=Platinum-Based Catalyst
+item.AmmoniaCatalystUranium.name=Uranium-Based Catalyst
+item.AmmoniaCatalystOsmium.name=Osmium-Based Catalyst
+item.AmmoniaCatalystFeCo.name=Iron-Cobalt-Based Catalyst
+item.AmmoniaCatalystRuthenium.name=Ruthenium-Based Catalyst
+item.AmmoniaCatalystQuantum.name=Quantum-Based Catalyst
 
 # Ammonia Plant GUI
 gtsr.gui.ammonia_plant.heat=Heat: 
@@ -1110,20 +1130,23 @@ gtsr.tooltip.fluid_drill.nei_efficiency_lava=Efficiency: 0.5% (5% in Nether, Req
 # ===== v1.6.0 Tooltip & Translation Keys =====
 gtsr.tooltip.shared.screwdriver_overflow=Screwdriver Right-Click: Toggle Overflow Input
 gtsr.tooltip.shared.screwdriver_rightclick_overflow=Screwdriver Right-Click: Toggle Overflow Output
-gtsr.tooltip.hub_storage_unit.steam_water_hub=Steam/Water Hub
+gtsr.tooltip.hub_storage_unit.steam_water_hub=Steam Hub
 gtsr.tooltip.turbine_array.hint_pipe=Pipe block: Titanium +10% max eff +2.5% steam savings; Tungstensteel +25% max eff +7.5% steam savings
 gtsr.tooltip.turbine_array.hint_gear=Gear box block: Titanium +2.5% steam savings +5% max eff
 gtsr.tooltip.turbine_array.tier_system=12-tier voltage system: LV→MV→HV→EV→IV→LuV→ZPM→UV→UHV→UEV→UIV→UMV
 gtsr.tooltip.turbine_array.steam_progression=Steam types: Normal→Superheated→Dense→Dense Superheated→Supercritical→Dense Supercritical
 gtsr.tooltip.turbine_array.stacking_desc=4 layers per STACK, up to 4 extra STACKs;
-gtsr.tooltip.chip.geothermal_overheat=Install in Large Geothermal Steam Boiler to boost steam output and add byproducts
-gtsr.tooltip.chip.hub_singularity=Install in Steam/Water Hub Array to unlock Tier 2, x5 total capacity
-gtsr.tooltip.chip.rare_gas=Install in Atmospheric Centrifuge to unlock rare gas separation recipes
-gtsr.tooltip.chip.reinforced_hub_singularity=Install in Steam Hub Array to unlock Tier 3, x20 total capacity
+gtsr.tooltip.chip.geothermal_overheat=Install in Large Geothermal Steam Boiler (Steel tier only) to boost steam output and add byproducts
+gtsr.tooltip.chip.hub_singularity=Install in Steam/Water Hub Array to unlock node binding, x5 total capacity
+gtsr.tooltip.chip.rare_gas=Install in Atmospheric Centrifuge (Steel tier only) to unlock rare gas separation recipes
+gtsr.tooltip.chip.reinforced_hub_singularity.1=Install in a Steam Hub Array, requires tier 3 structure:
+gtsr.tooltip.chip.reinforced_hub_singularity.2=Enables dense/supercritical steam and overpressure cache node binding
+gtsr.tooltip.chip.reinforced_hub_singularity.3=Total capacity ×20
 gtsr.tooltip.chip.steam_turbine_cycle_overlimit.1=Install in Mega Steam Turbine Array controller slot;
 gtsr.tooltip.chip.steam_turbine_cycle_overlimit.2=activates with all 4 extra stack groups: superheated/supercritical (incl. dense) steam cooling becomes distilled water,
 gtsr.tooltip.chip.steam_turbine_cycle_overlimit.3=steam efficiency factors stack within their steam family
-gtsr.tooltip.chip.vein_pyrolyzer=Install in Vein Pyrolyzer to increase underground fluid enrichment range
+gtsr.tooltip.chip.vein_pyrolyzer.1=Install in the Vein Steam Pyrolyzer
+gtsr.tooltip.chip.vein_pyrolyzer.2=Expands underground fluid enrichment range (base 1×1; T1 +1 / T2 +3 / T3 +7)
 gtsr.tooltip.catalyst.ammonia=Install in Ammonia Plant to boost parallel and reaction speed
 gtsr.tooltip.catalyst.ammonia.nickel=Parallel: 64 | Time: 64s
 gtsr.tooltip.catalyst.ammonia.platinum=Parallel: 96 | Time: 48s
@@ -1135,7 +1158,7 @@ gtsr.tooltip.catalyst.ammonia.quantum=Parallel: 256 | Time: 1s
 gtsr.tooltip.singularity.desc=Steam Entangled Singularity, used for advanced crafting and amplification.
 gtsr.tooltip.steam_entangled_singularity.danger=Explodes when dropped! Do not drop it.
 gtsr.tooltip.critical_singularity.desc=Critical Steam Entangled Singularity, used for more advanced crafting and amplification.
-gtsr.tooltip.hub_terminal.desc.1=Used to open the UI of some GTSR multiblock machines.
+gtsr.tooltip.hub_terminal.desc.1=Used to open the UI of certain GTSR multiblock machines.
 gtsr.tooltip.hub_terminal.desc.2=Supported multiblock machines:
 gtsr.tooltip.hub_terminal.desc.3=Steam Hub Array
 gtsr.tooltip.hub_terminal.desc.4=Water Hub Array

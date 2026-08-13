@@ -52,6 +52,7 @@ import com.miaokatze.gtsr.common.machine.base.MTESteamCacheNode;
 import com.miaokatze.gtsr.common.machine.base.MTESteamHubInputHatch;
 import com.miaokatze.gtsr.common.machine.base.MTESteamHubOutputHatch;
 import com.miaokatze.gtsr.common.machine.base.MTESteamStorageUnit;
+import com.miaokatze.gtsr.common.util.GTSRUtils;
 import com.miaokatze.gtsr.common.util.HubTeleportUtil;
 import com.miaokatze.gtsr.common.util.UnitFormatUtil;
 
@@ -84,7 +85,8 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
     private static final int HORIZONTAL_OFF_SET = 4;
     private static final int VERTICAL_OFF_SET = 0;
     private static final int DEPTH_OFF_SET = 1;
-    private static final int AUTO_OUTPUT_RATE = 20_000_000;
+    /** 自动输出速率：每 tick 1,000,000 L = 20,000,000 L/s */
+    private static final int AUTO_OUTPUT_RATE = 1_000_000;
     private static final int TRANSFER_RATE = 1_000_000;
 
     private static final int CASING_INDEX = GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings1, 10);
@@ -1550,9 +1552,7 @@ public class MTESteamHubArray extends MTEEnhancedMultiBlockBase<MTESteamHubArray
             .addStructureHint("gtsr.tooltip.shared.hub_singularity_cost")
             .addStructureHint("gtsr.tooltip.shared.overflow_input_screwdriver")
             .addStructureHint("gtsr.tooltip.steam_hub.hint_status")
-            .toolTipFinisher(
-                EnumChatFormatting.DARK_AQUA + StatCollector.translateToLocal("gtsr.tooltip.added_by")
-                    + "GT-Steam-Reborn");
+            .toolTipFinisher(GTSRUtils.getAddedByLine());
         return tt;
     }
 }

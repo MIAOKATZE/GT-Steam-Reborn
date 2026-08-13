@@ -11,6 +11,7 @@ import net.minecraft.util.StatCollector;
 import net.minecraft.world.World;
 
 import com.miaokatze.gtsr.common.machine.base.MTEFilteredCacheNode;
+import com.miaokatze.gtsr.common.util.GTSRUtils;
 import com.miaokatze.gtsr.register.CreativeTabManager;
 
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
@@ -61,18 +62,6 @@ public class HubTerminal extends Item {
         list.add(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.hub_terminal.desc.4"));
         list.add(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.hub_terminal.desc.5"));
         list.add(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.hub_terminal.desc.6"));
-        list.add(
-            EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.tooltip.added_by")
-                + " "
-                + EnumChatFormatting.AQUA
-                + "GT"
-                + EnumChatFormatting.GREEN
-                + "-"
-                + EnumChatFormatting.GOLD
-                + "Steam"
-                + EnumChatFormatting.RED
-                + "-"
-                + EnumChatFormatting.BLUE
-                + "Reborn");
+        list.add(GTSRUtils.getAddedByLine());
     }
 }

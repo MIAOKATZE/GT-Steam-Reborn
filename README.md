@@ -49,7 +49,7 @@ A GregTech New Horizons expansion mod that **supplements the Steam Age and signi
 | 节点绑定 Node Binding | 枢纽奇点芯片解锁，总容量×5 Hub Singularity Chip enables node binding, ×5 total capacity |
 | 强化芯片 Reinforced Chip | 3级（钨钢）解锁致密/超临界蒸汽，容量×20 Tier 3 unlocks dense/supercritical steam, ×20 capacity |
 | 传输 Transfer | 双向、跨维度 Bidirectional, cross-dimensional |
-| 自动输出 Auto Output | 20,000,000 L/次/仓口·每 tick 20,000,000 L per hatch per tick |
+| 自动输出 Auto Output | 20,000,000 L/s（每 tick 1,000,000 L）20,000,000 L/s (1,000,000 L per tick) |
 
 <p align="center"><img src="README/MTEWaterHubArray-T1.png" width="260" alt="蓄水枢纽阵列 / Water Hub Array"> <img src="README/MTEWaterHubArray-T2.png" width="260" alt="蓄水枢纽阵列 / Water Hub Array"><br><em>蓄水枢纽阵列 / Water Hub Array（青铜/钢）</em></p>
 
@@ -174,9 +174,9 @@ Produces air (or nether air in the Nether dimension) with far greater speed and 
 | 材质 Material | 青铜 / 钢 Bronze / Steel |
 | 并行 Parallel | 1 / 4 |
 
-<p align="center"><img src="README/MTEAtmosphericCentrifuge-T1.png" width="260" alt="空气离心机 / Atmospheric Centrifuge"> <img src="README/MTEAtmosphericCentrifuge-T2.png" width="260" alt="空气离心机 / Atmospheric Centrifuge"><br><em>空气离心机 / Atmospheric Centrifuge（青铜/钢）</em></p>
+<p align="center"><img src="README/MTEAtmosphericCentrifuge-T1.png" width="260" alt="大气离心机 / Atmospheric Centrifuge"> <img src="README/MTEAtmosphericCentrifuge-T2.png" width="260" alt="大气离心机 / Atmospheric Centrifuge"><br><em>大气离心机 / Atmospheric Centrifuge（青铜/钢）</em></p>
 
-**空气离心机 / Atmospheric Centrifuge (ATC)**
+**大气离心机 / Atmospheric Centrifuge (ATC)**
 
 芯片系统：基础配方过滤≤3个输出，稀有气体芯片解锁最多9个输出；青铜级不能安装芯片。
 Chip system: basic recipes filter ≤3 outputs, rare gas chip unlocks up to 9 outputs; Bronze tier cannot install chips.
@@ -403,7 +403,7 @@ Steel only; heat-based processing with a 7-tier catalyst system (higher catalyst
 |----------|-------|
 | 材质 Material | 钢 Steel |
 | 并行 Parallel | 64\~256 |
-| 催化剂 Catalysts | 7 级：镍→铂→铀→锇→铁钴→钌→量子 7-tier: Nickel→Platinum→Uranium→Osmium→FeCo→Ruthenium→Quantum |
+| 催化剂 Catalysts | 7 级：镍基→铂基→铀基→锇基→铁钴基→钌基→量子 7-tier: Nickel→Platinum→Uranium→Osmium→FeCo→Ruthenium→Quantum |
 
 <p align="center"><img src="README/MTEReinforcedBrickBlastFurnace.png" width="260" alt="加固砖高炉 / Reinforced Brick Blast Furnace"><br><em>加固砖高炉 / Reinforced Brick Blast Furnace</em></p>
 
@@ -535,9 +535,9 @@ Accepts water + distilled water. Binds to the Water Hub.
 
 <p align="center"><img src="README/MTERemoteWorkerNodes.png" width="320" alt="远程工作节点 / Remote Worker Nodes"><br><em>远程工作节点 / Remote Worker Nodes</em></p>
 
-Nodes that perform remote operations driven by the Singularity Drilling Hub. They consume mining pipes to drill downward, then extract resources at bedrock level.
+Nodes that perform remote operations driven by the Singularity Drilling Hub. They consume mining pipes to drill downward, scanning and mining layer by layer as they descend.
 
-由奇点钻井枢纽驱动执行远程作业的节点。消耗钻管向下钻探，到达基岩后提取资源。
+由奇点钻井枢纽驱动执行远程作业的节点。消耗钻管向下钻探，下降过程中逐层扫描并开采。
 
 **奇点采矿节点 / Singularity Miner Node**
 
@@ -593,7 +593,7 @@ Basic steam input/output hatches for GTSR machines.
 | 参数 Parameter | 数值 Value |
 |----------|-------|
 | 容量 Capacity | 16K\~128K |
-| 过滤 Filter | 仅蒸汽 Steam only |
+| 过滤 Filter | 任意流体 Any fluid |
 
 **蒸汽输出仓 / Steam Output Hatch**
 
@@ -655,24 +655,24 @@ Dynamic capacity (determined by hub controller); delegates fill/drain to the Wat
 
 **巨型超压蒸汽输入仓 / Mega Overpressure Steam Input Hatch**
 
-专用于巨型蒸汽轮机机组，接受全部蒸汽类型。
-For Mega Steam Turbine Array only; accepts all steam types.
+专用于巨型蒸汽轮机机组，蒸汽奇点纠缠装置等（SSE/CSC/DSM 亦可安装）；接受全部蒸汽类型。
+For Mega Steam Turbine Array; also installable on SSE/CSC/DSM (Steam Singularity Entangler / Critical Entangled Singularity Stabilizer / Dense State Manipulator); accepts all steam types.
 
 | 参数 Parameter | 数值 Value |
 |----------|-------|
-| 适用机器 Used By | 巨型蒸汽轮机机组 Mega Steam Turbine Array |
+| 适用机器 Used By | 巨型蒸汽轮机机组及 SSE/CSC/DSM Mega Steam Turbine Array, also SSE/CSC/DSM |
 | 过滤 Filter | 全部蒸汽类型 All steam types |
 
 **巨型空气输入仓 / Mega Air Input Hatch**
 
-1亿L容量，仅接受空气与下界空气；用于平炉（空气消耗）与空气离心机（大量空气输入）。
+1亿L容量，仅接受空气与下界空气；用于平炉（空气消耗）与大气离心机（大量空气输入）。
 100M L capacity; accepts air and nether air only. Used by Siemens-Martin Furnace (air consumption) and Atmospheric Centrifuge (large air input).
 
 | 参数 Parameter | 数值 Value |
 |----------|-------|
 | 容量 Capacity | 100M L |
 | 过滤 Filter | 仅空气 / 下界空气 Air / nether air only |
-| 适用机器 Used By | 平炉、空气离心机 Siemens-Martin Furnace, Atmospheric Centrifuge |
+| 适用机器 Used By | 平炉、大气离心机 Siemens-Martin Furnace, Atmospheric Centrifuge |
 
 **蒸馏水仓 / Distilled Water Hatch**
 
@@ -698,7 +698,7 @@ Hub/Reinforced/Overpressure Hub Storage Units for stacking layers in hub arrays.
 | 参数 Parameter | 数值 Value |
 |----------|-------|
 | 类型 Types | 枢纽 / 加固枢纽 / 超压枢纽 Hub / Reinforced / Overpressure |
-| 单元容量 Unit Capacity | 320M / 1.28B / 20.48B L |
+| 单元容量 Unit Capacity | 320M / 1.28B / 20.48B L（蒸汽枢纽）/ 1.28M / 5.12M L（蓄水枢纽）320M / 1.28B / 20.48B L (Steam Hub) / 1.28M / 5.12M L (Water Hub) |
 
 ***
 
@@ -706,7 +706,7 @@ Hub/Reinforced/Overpressure Hub Storage Units for stacking layers in hub arrays.
 
 - **枢纽终端 / Hub Terminal**: Handheld remote management device. Right-click a hub controller to open its status terminal (cache hub / drilling hub); right-click a node to cycle rate, sneak+right-click to toggle mode. Crafted with 1 Steam Entangled Singularity + 8 steel plates. / 手持远程管理设备。右击枢纽控制器打开对应状态终端（缓存枢纽/钻井枢纽）；右击节点循环速率，潜行右击切换模式。1 蒸汽纠缠奇点 + 8 钢板合成。
 - **蒸汽纠缠奇点 / Steam Entangled Singularity**: Core binding material. Produced by the Steam Singularity Entangler (heat accumulation). Consumed when binding nodes to hubs and in various crafting recipes.
-- **临界蒸汽纠缠奇点 / Critical Steam Entangled Singularity**: Produced by the Critical Entangled Singularity Stabilizer (CSC). Used for more advanced crafting and amplification; legend says it can tear apart the very limits of dimensions... DANGEROUS — it explodes when dropped, never discard it! / 由临界纠缠奇点稳定装置（CSC）产出。用于更高级的合成与增幅；传说其能够彻底撕开维度的限制……危险品——掉落物会爆炸，请勿丢弃！
+- **临界蒸汽纠缠奇点 / Critical Steam Entangled Singularity**: Produced by the Critical Entangled Singularity Stabilizer (CSC). Used for more advanced crafting and amplification; legend says it can tear apart the very limits of dimensions... DANGEROUS — it explodes when dropped, never discard it! The drop explosion guarantees that normal singularities will appear. / 由临界纠缠奇点稳定装置（CSC）产出。用于更高级的合成与增幅；传说其能够彻底撕开维度的限制……危险品——掉落物会爆炸，请勿丢弃！掉落爆炸保证会出现普通奇点。
 - **枢纽奇点芯片 / Hub Singularity Chip**: Required for Steam/Water Hub node binding, multiplies hub total capacity ×5. Also enables hub debug mode when right-clicked. Removing it from a filled hub swallows the stored fluid exceeding the reduced capacity.
 - **强化枢纽奇点芯片 / Reinforced Hub Singularity Chip**: For tier 3 Steam Hub only — enables dense/supercritical steam, ×20 capacity (replaces the ×5 Hub Chip bonus), and overpressure cache node binding.
 - **蒸汽轮机循环超限芯片 / Steam Turbine Cycle Overlimit Chip**: For Mega Steam Turbine Array controller slot — requires all 4 extra stack groups to activate: superheated/supercritical (incl. dense) steam cooling becomes distilled water, and steam efficiency factors stack within their steam family (e.g. supercritical = 超临界+过热+蒸汽 = 2.5×). / 装入巨型蒸汽轮机阵列控制器槽，需完成全部4组额外叠加层：过热/超临界（含致密）蒸汽冷却直接产蒸馏水，蒸汽效率因子按蒸汽家族内叠加（如超临界=超临界+过热+蒸汽=2.5倍）。
@@ -728,9 +728,9 @@ GTSR 添加了11个自定义 RecipeMap 和大量合成配方：
 - **Workbench recipes**: Basic machines (Air Compressor, Atmospheric Centrifuge, etc.), cache nodes, hatches
 - **Assembler recipes**: Advanced machines (Ammonia Plant, Singularity Entangler, etc.), chips, catalysts, nodes, overpressure components
 - **Custom RecipeMaps**: Large Coke Oven, Siemens-Martin Furnace, Ammonia Plant, Air Compressor, Atmospheric Centrifuge, Steam Singularity Entangler (NEI display), Geothermal Boiler (NEI display), Steam Fluid Drill (NEI display), Critical Singularity Compressor (NEI display), Dense State Manipulator (NEI display), Gear Steam Compressor (NEI display)
-- **工作台配方**：基础机器（空气压缩机、空气离心机等）、缓存节点、仓室
+- **工作台配方**：基础机器（空气压缩机、大气离心机等）、缓存节点、仓室
 - **组装机配方**：高级机器（制氨工厂、蒸汽奇点纠缠装置等）、芯片、催化剂、节点、超压组件
-- **自定义 RecipeMap**：大型焦炉、平炉、制氨工厂、空气压缩机、空气离心机、蒸汽奇点纠缠装置（NEI显示）、地热锅炉（NEI显示）、蒸汽流体钻井（NEI显示）、临界纠缠奇点稳定装置（NEI显示）、致密态蒸汽操控装置（NEI显示）、自驱式机械蒸汽压缩机（NEI显示）
+- **自定义 RecipeMap**：大型焦炉、平炉、制氨工厂、空气压缩机、大气离心机、蒸汽奇点纠缠装置（NEI显示）、地热锅炉（NEI显示）、蒸汽流体钻井（NEI显示）、临界纠缠奇点稳定装置（NEI显示）、致密态蒸汽操控装置（NEI显示）、自驱式机械蒸汽压缩机（NEI显示）
 
 ***
 

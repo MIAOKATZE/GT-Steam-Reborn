@@ -15,6 +15,8 @@ import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.IFluidHandler;
 
+import com.miaokatze.gtsr.common.util.GTSRUtils;
+
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 import gregtech.api.GregTechAPI;
@@ -202,24 +204,16 @@ public class MTEOverpressureSteamCacheNode extends MTEFilteredCacheNode {
                 + " "
                 + StatCollector.translateToLocal("gtsr.tooltip.shared.l"));
         tooltip.add(
-            EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.shared.singularity_cost") + " 8");
+            EnumChatFormatting.RED
+                + StatCollector.translateToLocal("gtsr.tooltip.overpressure_steam_cache_node.singularity_cost"));
+        tooltip.add(
+            EnumChatFormatting.GRAY
+                + StatCollector.translateToLocal("gtsr.tooltip.overpressure_steam_cache_node.bind_requirement"));
         tooltip
             .add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.shared.cache_node_standalone"));
         tooltip.add(
             EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.shared.cache_node_hub_transfer"));
         tooltip.add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.shared.bind_hint"));
-        tooltip.add(
-            EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.tooltip.added_by")
-                + " "
-                + EnumChatFormatting.AQUA
-                + "GT"
-                + EnumChatFormatting.GREEN
-                + "-"
-                + EnumChatFormatting.GOLD
-                + "Steam"
-                + EnumChatFormatting.RED
-                + "-"
-                + EnumChatFormatting.BLUE
-                + "Reborn");
+        tooltip.add(GTSRUtils.getAddedByLine());
     }
 }

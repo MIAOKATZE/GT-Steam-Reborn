@@ -8,6 +8,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 
+import com.miaokatze.gtsr.common.util.GTSRUtils;
 import com.miaokatze.gtsr.register.CreativeTabManager;
 
 public class RareGasSeparationChip extends Item {
@@ -23,18 +24,6 @@ public class RareGasSeparationChip extends Item {
     @Override
     public void addInformation(ItemStack stack, EntityPlayer player, List list, boolean adv) {
         list.add(EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.tooltip.chip.rare_gas"));
-        list.add(
-            EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.tooltip.added_by")
-                + " "
-                + EnumChatFormatting.AQUA
-                + "GT"
-                + EnumChatFormatting.GREEN
-                + "-"
-                + EnumChatFormatting.GOLD
-                + "Steam"
-                + EnumChatFormatting.RED
-                + "-"
-                + EnumChatFormatting.BLUE
-                + "Reborn");
+        list.add(GTSRUtils.getAddedByLine());
     }
 }

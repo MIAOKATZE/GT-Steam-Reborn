@@ -31,6 +31,7 @@ import com.gtnewhorizon.structurelib.util.Vec3Impl;
 import com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps;
 import com.miaokatze.gtsr.common.gui.MTEDenseStateManipulatorGui;
 import com.miaokatze.gtsr.common.machine.base.MTESingularityMachineBase;
+import com.miaokatze.gtsr.common.util.GTSRUtils;
 import com.miaokatze.gtsr.loader.BlockLoader;
 
 import bartworks.common.loaders.ItemRegistry;
@@ -445,9 +446,7 @@ public class MTEDenseStateManipulator extends MTESingularityMachineBase implemen
                 EnumChatFormatting.DARK_PURPLE
                     + StatCollector.translateToLocal("gtsr.tooltip.dense_state_manipulator.tier1_blocks_2"))
             .addStructureHint("gtsr.tooltip.shared.no_maintenance")
-            .toolTipFinisher(
-                EnumChatFormatting.DARK_AQUA + StatCollector.translateToLocal("gtsr.tooltip.added_by")
-                    + "GT-Steam-Reborn");
+            .toolTipFinisher(GTSRUtils.getAddedByLine());
         return tt;
     }
 

@@ -8,6 +8,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 
+import com.miaokatze.gtsr.common.util.GTSRUtils;
 import com.miaokatze.gtsr.register.CreativeTabManager;
 
 public class SteamTurbineCycleOverlimitChip extends Item {
@@ -27,18 +28,6 @@ public class SteamTurbineCycleOverlimitChip extends Item {
                 + StatCollector.translateToLocal("gtsr.tooltip.chip.steam_turbine_cycle_overlimit.1")
                 + StatCollector.translateToLocal("gtsr.tooltip.chip.steam_turbine_cycle_overlimit.2")
                 + StatCollector.translateToLocal("gtsr.tooltip.chip.steam_turbine_cycle_overlimit.3"));
-        list.add(
-            EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.tooltip.added_by")
-                + " "
-                + EnumChatFormatting.AQUA
-                + "GT"
-                + EnumChatFormatting.GREEN
-                + "-"
-                + EnumChatFormatting.GOLD
-                + "Steam"
-                + EnumChatFormatting.RED
-                + "-"
-                + EnumChatFormatting.BLUE
-                + "Reborn");
+        list.add(GTSRUtils.getAddedByLine());
     }
 }

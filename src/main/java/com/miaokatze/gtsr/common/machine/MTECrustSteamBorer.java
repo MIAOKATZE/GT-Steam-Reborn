@@ -37,6 +37,7 @@ import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import com.miaokatze.gtsr.api.compat.ICoolingHatchHolder;
 import com.miaokatze.gtsr.api.compat.SteamCoolingSupport;
 import com.miaokatze.gtsr.common.machine.base.VoidMinerUtilityShim;
+import com.miaokatze.gtsr.common.util.GTSRUtils;
 
 import bwcrossmod.galacticgreg.VoidMinerUtility;
 import gregtech.api.GregTechAPI;
@@ -468,9 +469,7 @@ public class MTECrustSteamBorer extends MTESteamMultiBlockBase<MTECrustSteamBore
                     + "1")
             .addStructureHint("gtsr.tooltip.shared.no_maintenance")
             .addStructureHint("gtsr.tooltip.shared.optional_cooling")
-            .toolTipFinisher(
-                EnumChatFormatting.DARK_AQUA + StatCollector.translateToLocal("gtsr.tooltip.added_by")
-                    + "GT-Steam-Reborn");
+            .toolTipFinisher(GTSRUtils.getAddedByLine());
         return tt;
     }
 

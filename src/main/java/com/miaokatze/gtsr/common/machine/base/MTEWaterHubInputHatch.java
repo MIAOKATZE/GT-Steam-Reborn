@@ -6,6 +6,7 @@ import net.minecraft.util.StatCollector;
 import net.minecraftforge.fluids.FluidStack;
 
 import com.miaokatze.gtsr.common.machine.MTEWaterHubArray;
+import com.miaokatze.gtsr.common.util.GTSRUtils;
 import com.miaokatze.gtsr.common.util.UnitFormatUtil;
 
 import gregtech.api.interfaces.ITexture;
@@ -94,17 +95,6 @@ public class MTEWaterHubInputHatch extends MTEHatchInput {
             EnumChatFormatting.DARK_AQUA + StatCollector.translateToLocal("gtsr.tooltip.water_hub_input_hatch.info"),
             EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.water_hub_input_hatch.fluid_type"),
             EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.water_hub_input_hatch.no_storage"),
-            EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.tooltip.added_by")
-                + " "
-                + EnumChatFormatting.AQUA
-                + "GT"
-                + EnumChatFormatting.GREEN
-                + "-"
-                + EnumChatFormatting.GOLD
-                + "Steam"
-                + EnumChatFormatting.RED
-                + "-"
-                + EnumChatFormatting.BLUE
-                + "Reborn" };
+            GTSRUtils.getAddedByLine() };
     }
 }

@@ -28,6 +28,7 @@ import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.machine.base.MTERemoteWorkerNode;
+import com.miaokatze.gtsr.common.util.GTSRUtils;
 import com.miaokatze.gtsr.common.util.OreCrushedUtil;
 
 import cpw.mods.fml.relauncher.Side;
@@ -145,44 +146,47 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
 
     @Override
     public void addAdditionalTooltipInformation(ItemStack stack, List<String> tooltip) {
+        super.addAdditionalTooltipInformation(stack, tooltip);
+        tooltip.add(EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.miner_node.table_title"));
+        tooltip.add(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.miner_node.table_header"));
         tooltip.add(
-            EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.miner_node.range")
-                + EnumChatFormatting.GOLD
-                + StatCollector.translateToLocal("gtsr.tooltip.miner_node.range_base"));
-        tooltip.add(
-            EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.miner_node.fortune")
-                + EnumChatFormatting.GOLD
-                + StatCollector.translateToLocal("gtsr.tooltip.miner_node.fortune_base"));
-        tooltip.add(
-            EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.shared.work_cycle")
+            EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.tooltip.miner_node.row_0_level")
+                + " | "
                 + EnumChatFormatting.GREEN
-                + StatCollector.translateToLocal("gtsr.tooltip.miner_node.work_cycle_base"));
+                + StatCollector.translateToLocal("gtsr.tooltip.miner_node.row_0_params"));
         tooltip.add(
-            EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.miner_node.steam_cost")
-                + EnumChatFormatting.GOLD
-                + StatCollector.translateToLocal("gtsr.tooltip.miner_node.steam_cost_base"));
+            EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.tooltip.miner_node.row_1_level")
+                + " | "
+                + EnumChatFormatting.GREEN
+                + StatCollector.translateToLocal("gtsr.tooltip.miner_node.row_1_params"));
+        tooltip.add(
+            EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.tooltip.miner_node.row_2_level")
+                + " | "
+                + EnumChatFormatting.GREEN
+                + StatCollector.translateToLocal("gtsr.tooltip.miner_node.row_2_params"));
+        tooltip.add(
+            EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.tooltip.miner_node.row_3_level")
+                + " | "
+                + EnumChatFormatting.GREEN
+                + StatCollector.translateToLocal("gtsr.tooltip.miner_node.row_3_params"));
+        tooltip.add(
+            EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.tooltip.miner_node.row_4_level")
+                + " | "
+                + EnumChatFormatting.GREEN
+                + StatCollector.translateToLocal("gtsr.tooltip.miner_node.row_4_params"));
+        tooltip
+            .add(EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.miner_node.upgrade_title"));
+        tooltip.add(EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.tooltip.miner_node.upgrade_1"));
+        tooltip.add(EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.tooltip.miner_node.upgrade_2"));
+        tooltip.add(EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.tooltip.miner_node.upgrade_3"));
+        tooltip.add(EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.tooltip.miner_node.upgrade_4"));
         tooltip.add(EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.shared.singularity_cost"));
         tooltip.add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.miner_node.requires_pipe"));
         tooltip.add(EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.node.chunk_load_warn"));
         tooltip
             .add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.miner_node.crushed_mode_hint"));
         tooltip.add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.shared.node_bind_hint"));
-        tooltip
-            .add(EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.miner_node.upgrade_title"));
-        tooltip.add(EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.tooltip.miner_node.upgrade_desc"));
-        tooltip.add(
-            EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.tooltip.added_by")
-                + " "
-                + EnumChatFormatting.AQUA
-                + "GT"
-                + EnumChatFormatting.GREEN
-                + "-"
-                + EnumChatFormatting.GOLD
-                + "Steam"
-                + EnumChatFormatting.RED
-                + "-"
-                + EnumChatFormatting.BLUE
-                + "Reborn");
+        tooltip.add(GTSRUtils.getAddedByLine());
     }
 
     @Override

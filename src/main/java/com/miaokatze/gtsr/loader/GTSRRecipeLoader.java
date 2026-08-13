@@ -1136,7 +1136,6 @@ public class GTSRRecipeLoader implements Runnable {
                                                                                // 电路）→ 任意 UV 电路（OreDict）
                 new ItemStack(GameRegistry.findItem("GoodGenerator", "compactFusionCoil"), 32, 2),
                 GTSRItemList.CriticalSteamEntangledSingularity.get(64),
-                new ItemStack(GameRegistry.findItem("gregtech", "gt.metaitem.03"), 64, 32091),
                 new ItemStack(GameRegistry.findItem("gregtech", "gt.metaitem.01"), 32, 32677), // 力场发生器 VIII（GT5U lang
                                                                                                // 已确认）
                 new ItemStack(GameRegistry.findItem("gregtech", "gt.metaitem.01"), 64, 32616) }; // 电动泵 ZPM（GT5U lang

@@ -9,6 +9,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 
+import com.miaokatze.gtsr.common.util.GTSRUtils;
 import com.miaokatze.gtsr.common.util.SingularityDropExplosion;
 
 import gregtech.api.GregTechAPI;
@@ -28,19 +29,7 @@ public class SteamEntangledSingularity extends Item {
         list.add(EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.tooltip.singularity.desc"));
         list.add(EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.singularity.craft"));
         list.add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.singularity.source"));
-        list.add(
-            EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.tooltip.added_by")
-                + " "
-                + EnumChatFormatting.AQUA
-                + "GT"
-                + EnumChatFormatting.GREEN
-                + "-"
-                + EnumChatFormatting.GOLD
-                + "Steam"
-                + EnumChatFormatting.RED
-                + "-"
-                + EnumChatFormatting.BLUE
-                + "Reborn");
+        list.add(GTSRUtils.getAddedByLine());
         list.add(
             EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.steam_entangled_singularity.danger"));
     }

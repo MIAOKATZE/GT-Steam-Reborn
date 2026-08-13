@@ -7,6 +7,8 @@ import net.minecraft.world.World;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidStack;
 
+import com.miaokatze.gtsr.common.util.GTSRUtils;
+
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 import gregtech.api.enums.Textures;
@@ -117,18 +119,8 @@ public class MTEDistilledWaterHatch extends MTEHatchFluidGenerator {
                 + EnumChatFormatting.GOLD
                 + "10,000,000 "
                 + StatCollector.translateToLocal("gtsr.tooltip.shared.l"),
-            EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.distilled_water_hatch.usage"),
-            EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.tooltip.added_by")
-                + " "
-                + EnumChatFormatting.AQUA
-                + "GT"
-                + EnumChatFormatting.GREEN
-                + "-"
-                + EnumChatFormatting.GOLD
-                + "Steam"
-                + EnumChatFormatting.RED
-                + "-"
-                + EnumChatFormatting.BLUE
-                + "Reborn" };
+            EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.distilled_water_hatch.usage.1"),
+            EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.distilled_water_hatch.usage.2"),
+            GTSRUtils.getAddedByLine() };
     }
 }
