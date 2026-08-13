@@ -906,7 +906,8 @@ public class MTELargeSolarOverpressureArray extends MTEGTSRMultiBlockBase<MTELar
             .addSeparator()
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.overpressure.enable"))
             .addInfo(StatCollector.translateToLocal("gtsr.tooltip.overpressure.effects"))
-            .toolTipFinisher(GTSRUtils.getAddedByLine());
+            .addInfo(GTSRUtils.getAddedByLine())
+            .toolTipFinisher();
         return tt;
     }
 

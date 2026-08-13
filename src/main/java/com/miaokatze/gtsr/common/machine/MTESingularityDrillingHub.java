@@ -1228,7 +1228,8 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
             .addStructureHint("gtsr.tooltip.singularity_hub.hint_status")
             .addStructureHint("gtsr.tooltip.shared.hub_singularity_cost")
             .addStructureHint("gtsr.tooltip.singularity_hub.optional_cooling")
-            .toolTipFinisher(GTSRUtils.getAddedByLine());
+            .addInfo(GTSRUtils.getAddedByLine())
+            .toolTipFinisher();
         return tt;
     }
 

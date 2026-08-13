@@ -1765,7 +1765,8 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
             .addStructureHint("gtsr.tooltip.turbine_array.hint_pipe")
             .addStructureHint("gtsr.tooltip.turbine_array.hint_gear")
             .addStructureHint("gtsr.tooltip.shared.no_maintenance")
-            .toolTipFinisher(GTSRUtils.getAddedByLine());
+            .addInfo(GTSRUtils.getAddedByLine())
+            .toolTipFinisher();
         return tt;
     }
 

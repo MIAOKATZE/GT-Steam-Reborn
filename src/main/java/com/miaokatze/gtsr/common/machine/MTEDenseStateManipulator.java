@@ -446,7 +446,8 @@ public class MTEDenseStateManipulator extends MTESingularityMachineBase implemen
                 EnumChatFormatting.DARK_PURPLE
                     + StatCollector.translateToLocal("gtsr.tooltip.dense_state_manipulator.tier1_blocks_2"))
             .addStructureHint("gtsr.tooltip.shared.no_maintenance")
-            .toolTipFinisher(GTSRUtils.getAddedByLine());
+            .addInfo(GTSRUtils.getAddedByLine())
+            .toolTipFinisher();
         return tt;
     }
 
