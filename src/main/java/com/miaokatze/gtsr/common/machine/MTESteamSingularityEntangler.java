@@ -62,10 +62,17 @@ public class MTESteamSingularityEntangler extends MTESingularityMachineBase impl
 
     public MTESteamSingularityEntangler(int aID, String aName, String aNameRegional) {
         super(aID, aName, aNameRegional);
+        registerProgressEntries();
     }
 
     public MTESteamSingularityEntangler(String aName) {
         super(aName);
+        registerProgressEntries();
+    }
+
+    /** 注册终端数值词条（顺序 = GUI 显示顺序；热量 mHeat 口径 0-1，显示 ×100） */
+    private void registerProgressEntries() {
+        registerEntry("temperature", "gtsr.gui.entangler.heat", "%.1f%%", EnumChatFormatting.RED, () -> mHeat * 100.0d);
     }
 
     @Override

@@ -65,6 +65,9 @@ public enum MetaTileEntityID {
     HUB_STORAGE_UNIT(264, 12),
     REINFORCED_HUB_STORAGE_UNIT(265, 13),
     OVERPRESSURE_HUB_STORAGE_UNIT(266, 14),
+    // 红石仓：任意多方块机器通用红石信号输出仓（新 ID，无旧机器转换需求；OLD_ID 用 45——
+    // 43/44 已被临界奇点压缩机/稠态操纵器占用，避免覆盖 LEGACY_TO_NEW_MAP）
+    REDSTONE_HATCH(267, 45),
 
     ;
 

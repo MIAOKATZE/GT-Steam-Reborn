@@ -69,40 +69,31 @@ public class MTESiemensMartinFurnaceGui extends MTEMultiBlockBaseGui<MTEEnhanced
 
     @Override
     protected ListWidget<IWidget, ?> createTerminalTextWidget(PanelSyncManager syncManager, ModularPanel parent) {
-        return super.createTerminalTextWidget(syncManager, parent)
-            .child(
-                IKey.dynamic(
-                    () -> EnumChatFormatting.YELLOW
-                        + StatCollector.translateToLocal("gtsr.gui.siemens_martin.temperature")
-                        + (mFurnaceTemperatureSync.getValue() > 1.0d ? EnumChatFormatting.LIGHT_PURPLE
-                            : EnumChatFormatting.RED)
-                        + String.format("%.1f%%", mFurnaceTemperatureSync.getValue() * 100.0d)
-                        + EnumChatFormatting.RESET)
-                    .asWidget()
-                    .marginBottom(2)
-                    .fullWidth())
-            .child(IKey.dynamic(() -> {
-                String statusKey;
-                EnumChatFormatting statusColor;
-                if (mMaxProgresstimeSync.getValue() > 0) {
-                    statusKey = "gtsr.gui.status.running";
-                    statusColor = EnumChatFormatting.AQUA;
-                } else if (mFurnaceTemperatureSync.getValue() > 0 && mFurnaceTemperatureSync.getValue() < 1.0d) {
-                    statusKey = "gtsr.gui.siemens_martin.status.heating";
-                    statusColor = EnumChatFormatting.YELLOW;
-                } else {
-                    statusKey = "gtsr.gui.status.idle";
-                    statusColor = EnumChatFormatting.WHITE;
-                }
-                return EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.status")
-                    + " "
-                    + statusColor
-                    + StatCollector.translateToLocal(statusKey)
-                    + EnumChatFormatting.RESET;
-            })
-                .asWidget()
-                .marginBottom(2)
-                .fullWidth())
+        // 炉温数值行已迁移至 GTSRProgressBar 词条系统；状态/蒸汽消耗/并行/空气/过热缩减/配方为文本行保留
+        ListWidget<IWidget, ?> list = super.createTerminalTextWidget(syncManager, parent);
+        GTSRProgressBarGuiHelper.appendEntryRows(list, syncManager, furnace);
+        list.child(IKey.dynamic(() -> {
+            String statusKey;
+            EnumChatFormatting statusColor;
+            if (mMaxProgresstimeSync.getValue() > 0) {
+                statusKey = "gtsr.gui.status.running";
+                statusColor = EnumChatFormatting.AQUA;
+            } else if (mFurnaceTemperatureSync.getValue() > 0 && mFurnaceTemperatureSync.getValue() < 1.0d) {
+                statusKey = "gtsr.gui.siemens_martin.status.heating";
+                statusColor = EnumChatFormatting.YELLOW;
+            } else {
+                statusKey = "gtsr.gui.status.idle";
+                statusColor = EnumChatFormatting.WHITE;
+            }
+            return EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.status")
+                + " "
+                + statusColor
+                + StatCollector.translateToLocal(statusKey)
+                + EnumChatFormatting.RESET;
+        })
+            .asWidget()
+            .marginBottom(2)
+            .fullWidth())
             .child(IKey.dynamic(() -> {
                 int steamCostLps;
                 if (mMaxProgresstimeSync.getValue() > 0) {
@@ -190,5 +181,6 @@ public class MTESiemensMartinFurnaceGui extends MTEMultiBlockBaseGui<MTEEnhanced
                 .asWidget()
                 .marginBottom(2)
                 .fullWidth());
+        return list;
     }
 }

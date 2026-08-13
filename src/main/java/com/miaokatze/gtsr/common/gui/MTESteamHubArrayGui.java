@@ -13,7 +13,6 @@ import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.widgets.ListWidget;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.machine.MTESteamHubArray;
-import com.miaokatze.gtsr.common.util.UnitFormatUtil;
 
 import gregtech.api.metatileentity.implementations.MTEEnhancedMultiBlockBase;
 import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
@@ -64,7 +63,9 @@ public class MTESteamHubArrayGui extends MTEMultiBlockBaseGui<MTEEnhancedMultiBl
 
     @Override
     protected ListWidget<IWidget, ?> createTerminalTextWidget(PanelSyncManager syncManager, ModularPanel parent) {
-        return super.createTerminalTextWidget(syncManager, parent).child(IKey.dynamic(() -> {
+        // 存储单元/蒸汽缓冲/总容量数值行已迁移至 GTSRProgressBar 词条系统；等级/芯片/状态为文本行保留
+        ListWidget<IWidget, ?> list = super.createTerminalTextWidget(syncManager, parent);
+        list.child(IKey.dynamic(() -> {
             String tierText;
             if (mSetTierSync.getValue() >= 3) {
                 tierText = StatCollector.translateToLocal("gtsr.gui.tier.tungstensteel");
@@ -117,42 +118,8 @@ public class MTESteamHubArrayGui extends MTEMultiBlockBaseGui<MTEEnhancedMultiBl
             })
                 .asWidget()
                 .marginBottom(2)
-                .fullWidth())
-            .child(
-                IKey.dynamic(
-                    () -> EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.steam_hub.storage_units")
-                        + " "
-                        + EnumChatFormatting.GOLD
-                        + (mPressureUnitCountSync.getValue() + mReinforcedUnitCountSync.getValue()
-                            + mOverpressureUnitCountSync.getValue())
-                        + "/"
-                        + (25 * mStackCountSync.getValue())
-                        + EnumChatFormatting.RESET)
-                    .asWidget()
-                    .marginBottom(2)
-                    .fullWidth())
-            .child(
-                IKey.dynamic(
-                    () -> EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.steam_hub.steam_buffer")
-                        + " "
-                        + EnumChatFormatting.LIGHT_PURPLE
-                        + UnitFormatUtil.format(mSteamStoredSync.getValue())
-                        + " L"
-                        + EnumChatFormatting.RESET)
-                    .asWidget()
-                    .marginBottom(2)
-                    .fullWidth())
-            .child(
-                IKey.dynamic(
-                    () -> EnumChatFormatting.YELLOW
-                        + StatCollector.translateToLocal("gtsr.gui.steam_hub.total_capacity")
-                        + " "
-                        + EnumChatFormatting.LIGHT_PURPLE
-                        + UnitFormatUtil.format(hubArray.getTotalCapacity())
-                        + " L"
-                        + EnumChatFormatting.RESET)
-                    .asWidget()
-                    .marginBottom(2)
-                    .fullWidth());
+                .fullWidth());
+        GTSRProgressBarGuiHelper.appendEntryRows(list, syncManager, hubArray);
+        return list;
     }
 }

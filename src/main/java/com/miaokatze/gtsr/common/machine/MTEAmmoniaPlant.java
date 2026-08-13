@@ -37,6 +37,7 @@ import com.miaokatze.gtsr.api.compat.GTSRHatchFluidAccess;
 import com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.gui.MTEAmmoniaPlantGui;
+import com.miaokatze.gtsr.common.machine.base.MTEGTSRMultiBlockBase;
 import com.miaokatze.gtsr.common.machine.base.MTEPressureSteamOutputHatch;
 import com.miaokatze.gtsr.common.machine.base.MTESteamOutputHatch;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
@@ -48,7 +49,6 @@ import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.logic.ProcessingLogic;
-import gregtech.api.metatileentity.implementations.MTEEnhancedMultiBlockBase;
 import gregtech.api.metatileentity.implementations.MTEHatch;
 import gregtech.api.metatileentity.implementations.MTEHatchOutput;
 import gregtech.api.recipe.RecipeMap;
@@ -63,7 +63,7 @@ import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
 import gregtech.common.tileentities.machines.IDualInputHatch;
 
-public class MTEAmmoniaPlant extends MTEEnhancedMultiBlockBase<MTEAmmoniaPlant> implements ISurvivalConstructable {
+public class MTEAmmoniaPlant extends MTEGTSRMultiBlockBase<MTEAmmoniaPlant> implements ISurvivalConstructable {
 
     private static final int HEAT_MAX = 10000;
     private static final int HEAT_INCREASE_PER_SEC = 10;
@@ -104,10 +104,44 @@ public class MTEAmmoniaPlant extends MTEEnhancedMultiBlockBase<MTEAmmoniaPlant> 
 
     public MTEAmmoniaPlant(int aID, String aName, String aNameRegional) {
         super(aID, aName, aNameRegional);
+        registerProgressEntries();
     }
 
     public MTEAmmoniaPlant(String aName) {
         super(aName);
+        registerProgressEntries();
+    }
+
+    // GTSR 进度词条：注册顺序 = GUI 终端显示顺序（热量/蒸汽消耗/高压蒸汽/并行；催化剂与状态为文本行保留在 GUI）
+    private void registerProgressEntries() {
+        // 热量（mHeatLevel 0-100）：值颜色随热度分级（与 GUI 原逻辑一致，formatter 内按值取色）
+        registerEntryCustom(
+            "temperature",
+            "gtsr.gui.ammonia_plant.heat",
+            EnumChatFormatting.WHITE,
+            () -> mHeatLevel,
+            v -> (v <= 0 ? EnumChatFormatting.WHITE
+                : v < 50 ? EnumChatFormatting.RED
+                    : v < 80 ? EnumChatFormatting.GOLD : v < 100 ? EnumChatFormatting.GREEN : EnumChatFormatting.YELLOW)
+                + String.format("%.1f%%", v));
+        registerEntry(
+            "steam_input",
+            "gtsr.gui.ammonia_plant.steam",
+            "%,.0f L/s",
+            EnumChatFormatting.AQUA,
+            () -> mRealtimeSteamCost);
+        registerEntry(
+            "hp_steam",
+            "gtsr.gui.ammonia_plant.hp_steam",
+            "%,.0f L/s",
+            EnumChatFormatting.LIGHT_PURPLE,
+            () -> mRealtimeSteamOutput);
+        registerEntry(
+            "parallel",
+            "gtsr.gui.ammonia_plant.parallel",
+            "%.0f",
+            EnumChatFormatting.GOLD,
+            () -> mParallelCount);
     }
 
     @Override

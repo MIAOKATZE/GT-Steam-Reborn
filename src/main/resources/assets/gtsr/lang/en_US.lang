@@ -275,12 +275,13 @@ gtsr.gui.geothermal_boiler.superheated= (Superheated)
 gtsr.gui.geothermal_boiler.steam= (Steam)
 gtsr.gui.geothermal_boiler.chip_tier2_warn=⚠ Overheat Chip requires Tier 2 (Steel)
 gtsr.gui.geothermal_boiler.calcification=Calcification: 
-gtsr.chat.calcification_cleared=Calcification cleared
-gtsr.chat.calcification_full=Warning: the machine is fully calcified, steam output reduced to 1％! Decalcify it soon.
+gtsr.chat.calcification_cleared=§aCalcification cleared
+gtsr.chat.calcification_full=§cWarning: the machine is fully calcified, steam output reduced to 1％! Decalcify it soon.
 gtsr.chat.no_water=Water supply interrupted, the machine has stopped. Please restart it (soft hammer right-click or toggle the power switch in the GUI).
 gtsr.chat.overpressure.on=Overpressure mode enabled: heat cap raised to 200％
 gtsr.chat.overpressure.off=Overpressure mode disabled
 gtsr.chat.overpressure.need_heat=100％ heat is required to enable Overpressure mode
+gtsr.event.broadcast=The %5$s at %1$s %2$s %3$s %4$s has %7$s due to %6$s
 
 # Geothermal Boiler Tooltip
 gtsr.tooltip.geothermal_boiler.input_hatch=Input Hatch
@@ -1293,3 +1294,17 @@ gtsr.tooltip.dense_state_manipulator.desc6_2=exempt while singularity mode persi
 gtsr.tooltip.dense_state_manipulator.desc6_3=disappearing when the mode runs out or the structure fails.
 gtsr.tooltip.dense_state_manipulator.tier1_blocks_2=Molten Machine Casing MK II×125, Rhodium-Plated Palladium Frame×32
 gtsr.tooltip.dense_state_manipulator.steam_input_hatch=Steam Hatch / Pressure Steam Hatch / Input Hatch
+
+# ================= Redstone Hatch (MTEGTSRRedstoneHatch) =================
+gtsr.gui.redstone_hatch.threshold=Threshold
+gtsr.gui.redstone_hatch.invert=Inverted
+gtsr.gui.redstone_hatch.interval=Update Interval (tick)
+gtsr.gui.redstone_hatch.current=Current
+gtsr.gui.redstone_hatch.entry.efficiency=Efficiency
+gtsr.gui.redstone_hatch.entry.power_output=Power Output
+gtsr.gui.redstone_hatch.entry.power_consumption=Power Consumption
+gtsr.gui.redstone_hatch.entry.working=Working State
+gtsr.tooltip.redstone_hatch.desc=Can be installed on any multiblock machine
+gtsr.tooltip.redstone_hatch.output=Outputs a redstone signal based on the selected entry value
+gtsr.tooltip.redstone_hatch.gui=Right-click to open the GUI and change settings
+gt.blockmachines.gtsr.redstone_hatch.name=Redstone Hatch

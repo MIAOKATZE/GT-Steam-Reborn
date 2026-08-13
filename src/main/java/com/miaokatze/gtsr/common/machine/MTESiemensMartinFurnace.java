@@ -34,6 +34,7 @@ import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import com.miaokatze.gtsr.api.compat.GTSRHatchFluidAccess;
 import com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps;
 import com.miaokatze.gtsr.common.gui.MTESiemensMartinFurnaceGui;
+import com.miaokatze.gtsr.common.machine.base.MTEGTSRMultiBlockBase;
 import com.miaokatze.gtsr.common.machine.base.MTEHatchPressureSteamInput;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
 
@@ -45,7 +46,6 @@ import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.logic.ProcessingLogic;
-import gregtech.api.metatileentity.implementations.MTEEnhancedMultiBlockBase;
 import gregtech.api.metatileentity.implementations.MTEHatch;
 import gregtech.api.metatileentity.implementations.MTEHatchInput;
 import gregtech.api.metatileentity.implementations.MTEHatchInputBus;
@@ -67,7 +67,7 @@ import gregtech.common.tileentities.machines.IDualInputHatch;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.MTEHatchSteamBusInput;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.MTEHatchSteamBusOutput;
 
-public class MTESiemensMartinFurnace extends MTEEnhancedMultiBlockBase<MTESiemensMartinFurnace>
+public class MTESiemensMartinFurnace extends MTEGTSRMultiBlockBase<MTESiemensMartinFurnace>
     implements ISurvivalConstructable {
 
     private static final String STRUCTURE_PIECE_MAIN = "main";
@@ -243,10 +243,23 @@ public class MTESiemensMartinFurnace extends MTEEnhancedMultiBlockBase<MTESiemen
 
     public MTESiemensMartinFurnace(int aID, String aName, String aNameRegional) {
         super(aID, aName, aNameRegional);
+        registerProgressEntries();
     }
 
     public MTESiemensMartinFurnace(String aName) {
         super(aName);
+        registerProgressEntries();
+    }
+
+    // GTSR 进度词条：注册顺序 = GUI 终端显示顺序（炉温；状态/蒸汽消耗/并行/空气/过热缩减/配方为文本行保留在 GUI）
+    private void registerProgressEntries() {
+        // 炉温：>100% 时粉紫、否则红色（与 GUI 原逻辑一致，formatter 内按值取色）
+        registerEntryCustom(
+            "temperature",
+            "gtsr.gui.siemens_martin.temperature",
+            EnumChatFormatting.RED,
+            () -> mFurnaceTemperature * 100.0d,
+            v -> (v > 100.0d ? EnumChatFormatting.LIGHT_PURPLE : EnumChatFormatting.RED) + String.format("%.1f%%", v));
     }
 
     @Override

@@ -243,10 +243,70 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
 
     public MTEMegaSteamTurbineArray(int aID, String aName, String aNameRegional) {
         super(aID, aName, aNameRegional);
+        registerProgressEntries();
     }
 
     public MTEMegaSteamTurbineArray(String aName) {
         super(aName);
+        registerProgressEntries();
+    }
+
+    /**
+     * 注册终端数值词条（顺序 = GUI 显示顺序；文本行由 GUI 保留）。
+     * 效率行颜色/「(Max)」后缀随值变化，颜色内嵌于 formatter（词条颜色 RESET 不干扰）。
+     */
+    private void registerProgressEntries() {
+        registerEntryCustom(
+            "power_output",
+            "gtsr.gui.turbine_array.eu_t",
+            EnumChatFormatting.AQUA,
+            () -> (long) (getVoltage() * mPowerParameter
+                * getGroupCount()
+                * getSingularityPowerMult()
+                * (getMaxEfficiencyLimit(mSteamType) / 10000.0)
+                * getEffectiveSteamEffFactor(mSteamType)),
+            value -> NumberFormatUtil.formatNumber((long) value) + " EU/t");
+        registerEntryCustom(
+            "steam_output",
+            "gtsr.gui.turbine_array.steam",
+            EnumChatFormatting.AQUA,
+            () -> calcSteamConsumption(mSteamType),
+            value -> NumberFormatUtil.formatNumber((long) value) + " L/t");
+        registerEntry(
+            "steam_savings",
+            "gtsr.gui.turbine_array.savings",
+            "%.0f%%",
+            EnumChatFormatting.GREEN,
+            () -> getSteamSavings() * 100);
+        registerEntryCustom(
+            "efficiency",
+            "gtsr.gui.turbine_array.efficiency",
+            EnumChatFormatting.RESET,
+            () -> mEfficiency / 100.0d,
+            value -> (mEfficiency >= getMaxEfficiencyLimit(mSteamType) ? EnumChatFormatting.LIGHT_PURPLE
+                : mEfficiency >= 10000 ? EnumChatFormatting.GREEN : EnumChatFormatting.YELLOW)
+                + String.format("%.1f%%", value)
+                + (mEfficiency >= getMaxEfficiencyLimit(mSteamType)
+                    ? StatCollector.translateToLocal("gtsr.gui.turbine_array.max")
+                    : ""));
+        registerEntry(
+            "max_efficiency",
+            "gtsr.gui.turbine_array.max_efficiency",
+            "%.1f%%",
+            EnumChatFormatting.LIGHT_PURPLE,
+            () -> getMaxEfficiencyLimit(mSteamType) / 100.0d);
+        registerEntryCustom(
+            "base_output",
+            "gtsr.gui.turbine_array.output",
+            EnumChatFormatting.GREEN,
+            () -> Math.abs((long) mEUt * mEfficiency / 10000),
+            value -> NumberFormatUtil.formatNumber((long) value) + " EU/t");
+        registerEntry(
+            "power_parameter",
+            "gtsr.gui.turbine_array.power_param",
+            "%.0f%%",
+            EnumChatFormatting.AQUA,
+            () -> mPowerParameter * 10);
     }
 
     public enum SteamType {

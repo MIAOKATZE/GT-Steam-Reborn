@@ -16,17 +16,14 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.UUID;
 
 import javax.annotation.Nullable;
 
 import net.minecraft.block.Block;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 import net.minecraft.world.World;
@@ -53,7 +50,9 @@ import com.miaokatze.gtsr.api.IShiftRightClickDecalcifiable;
 import com.miaokatze.gtsr.api.compat.GTSRHatchFluidAccess;
 import com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
+import com.miaokatze.gtsr.common.event.GTSRMachineEvent;
 import com.miaokatze.gtsr.common.gui.MTELargeGeothermalSteamBoilerGui;
+import com.miaokatze.gtsr.common.machine.base.MTEGTSRMultiBlockBase;
 import com.miaokatze.gtsr.common.machine.base.MTEPressureSteamOutputHatch;
 import com.miaokatze.gtsr.common.machine.base.MTESteamOutputHatch;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
@@ -66,7 +65,6 @@ import gregtech.api.interfaces.IHatchElement;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
-import gregtech.api.metatileentity.implementations.MTEEnhancedMultiBlockBase;
 import gregtech.api.metatileentity.implementations.MTEHatch;
 import gregtech.api.metatileentity.implementations.MTEHatchOutput;
 import gregtech.api.metatileentity.implementations.MTEHatchOutputBus;
@@ -79,7 +77,6 @@ import gregtech.api.structure.error.StructureErrorRegistry;
 import gregtech.api.util.GTModHandler;
 import gregtech.api.util.GTOreDictUnificator;
 import gregtech.api.util.GTStructureUtility;
-import gregtech.api.util.GTUtility;
 import gregtech.api.util.IGTHatchAdder;
 import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.api.util.shutdown.ShutDownReasonRegistry;
@@ -88,7 +85,7 @@ import gregtech.common.blocks.BlockCasings2;
 import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
 import gregtech.common.tileentities.machines.IDualInputHatch;
 
-public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTELargeGeothermalSteamBoiler>
+public class MTELargeGeothermalSteamBoiler extends MTEGTSRMultiBlockBase<MTELargeGeothermalSteamBoiler>
     implements IConstructable, ISurvivalConstructable, IShiftRightClickDecalcifiable {
 
     private static final String STRUCTURE_PIECE_MAIN = "main";
@@ -209,10 +206,38 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
 
     public MTELargeGeothermalSteamBoiler(int aID, String aName, String aNameRegional) {
         super(aID, aName, aNameRegional);
+        registerProgressEntries();
     }
 
     public MTELargeGeothermalSteamBoiler(String aName) {
         super(aName);
+        registerProgressEntries();
+    }
+
+    // GTSR 进度词条：注册顺序 = GUI 终端显示顺序（热量/结垢/蒸汽输出，芯片警告行为文本行保留在 GUI）
+    private void registerProgressEntries() {
+        registerEntry(
+            "temperature",
+            "gtsr.gui.geothermal_boiler.heat",
+            "%.3f%%",
+            EnumChatFormatting.GOLD,
+            () -> mHeat * 100.0d);
+        registerEntry(
+            "calcification",
+            "gtsr.gui.geothermal_boiler.calcification",
+            "%.3f%%",
+            EnumChatFormatting.RED,
+            () -> mCalcification * 100.0d);
+        // 蒸汽输出行末尾 (蒸汽)/(超热蒸汽) 后缀：formatter 内读机器字段判定
+        registerEntryCustom(
+            "steam_output",
+            "gtsr.gui.geothermal_boiler.steam_output",
+            EnumChatFormatting.AQUA,
+            () -> mCurrentSteamOutput,
+            v -> NumberFormatUtil.formatNumber((long) v) + " L/s "
+                + EnumChatFormatting.WHITE
+                + (hasOverheatChip() ? StatCollector.translateToLocal("gtsr.gui.geothermal_boiler.superheated")
+                    : StatCollector.translateToLocal("gtsr.gui.geothermal_boiler.steam")));
     }
 
     @Override
@@ -658,41 +683,12 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
         if (mCalcification >= 1.0d) {
             if (mCalcificationWarnTimer <= 0L) {
                 mCalcificationWarnTimer = CALCIFICATION_WARN_INTERVAL_TICKS;
-                sendCalcificationWarning();
+                GTSRMachineEvent.sendToOwner(getBaseMetaTileEntity().getOwnerUuid(), "gtsr.chat.calcification_full");
             } else {
                 mCalcificationWarnTimer--;
             }
         } else {
             mCalcificationWarnTimer = 0L;
-        }
-    }
-
-    private void sendCalcificationWarning() {
-        UUID ownerUuid = getBaseMetaTileEntity().getOwnerUuid();
-        if (ownerUuid == null) return;
-        for (Object o : MinecraftServer.getServer()
-            .getConfigurationManager().playerEntityList) {
-            if (o instanceof EntityPlayerMP player && player.getUniqueID()
-                .equals(ownerUuid)) {
-                GTUtility.sendChatToPlayer(
-                    player,
-                    EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.chat.calcification_full"));
-                return;
-            }
-        }
-    }
-
-    /** 向机器所有者发送一次翻译键聊天（超压自动退出、缺水停机提示共用）。 */
-    private void sendChatToOwner(String key) {
-        UUID ownerUuid = getBaseMetaTileEntity().getOwnerUuid();
-        if (ownerUuid == null) return;
-        for (Object o : MinecraftServer.getServer()
-            .getConfigurationManager().playerEntityList) {
-            if (o instanceof EntityPlayerMP player && player.getUniqueID()
-                .equals(ownerUuid)) {
-                GTUtility.sendChatTrans(player, key);
-                return;
-            }
         }
     }
 
@@ -785,7 +781,7 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
             // 超压自动退出：热量跌破 1.0（停机冷却等）时自动关闭超压模式并提示一次
             if (mOverpressure && mHeat < 1.0d) {
                 mOverpressure = false;
-                sendChatToOwner("gtsr.chat.overpressure.off");
+                GTSRMachineEvent.sendToOwner(getBaseMetaTileEntity().getOwnerUuid(), "gtsr.chat.overpressure.off");
             }
             // 配方完成同 tick 会立即 checkRecipe() 重启新配方，重启 tick 存在 1 tick 的 mProgresstime==0 空窗，
             // 机器实际连续运行，不应视为停机；岩浆耗尽时 mMaxProgresstime=0 仍会正确进入下方冷却分支
@@ -854,7 +850,7 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
                 mWaterStop = true;
                 if (!mNoWaterNotified) {
                     mNoWaterNotified = true;
-                    sendChatToOwner("gtsr.chat.no_water");
+                    GTSRMachineEvent.sendToOwner(getBaseMetaTileEntity().getOwnerUuid(), "gtsr.chat.no_water");
                 }
                 stopMachine(ShutDownReasonRegistry.NONE);
             }
@@ -905,9 +901,7 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
         if (mCalcification > 0.0d || mRunningTicks > 0L) {
             mCalcification = 0.0d;
             mRunningTicks = 0L;
-            GTUtility.sendChatToPlayer(
-                aPlayer,
-                EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.chat.calcification_cleared"));
+            GTSRMachineEvent.sendToPlayer(aPlayer, "gtsr.chat.calcification_cleared");
             return true;
         }
         return false;
@@ -921,12 +915,12 @@ public class MTELargeGeothermalSteamBoiler extends MTEEnhancedMultiBlockBase<MTE
         if (aPlayer.worldObj.isRemote) return;
         if (mOverpressure) {
             mOverpressure = false;
-            GTUtility.sendChatTrans(aPlayer, "gtsr.chat.overpressure.off");
+            GTSRMachineEvent.sendToPlayer(aPlayer, "gtsr.chat.overpressure.off");
         } else if (mHeat >= 1.0d) {
             mOverpressure = true;
-            GTUtility.sendChatTrans(aPlayer, "gtsr.chat.overpressure.on");
+            GTSRMachineEvent.sendToPlayer(aPlayer, "gtsr.chat.overpressure.on");
         } else {
-            GTUtility.sendChatTrans(aPlayer, "gtsr.chat.overpressure.need_heat");
+            GTSRMachineEvent.sendToPlayer(aPlayer, "gtsr.chat.overpressure.need_heat");
         }
         getBaseMetaTileEntity().markDirty();
     }

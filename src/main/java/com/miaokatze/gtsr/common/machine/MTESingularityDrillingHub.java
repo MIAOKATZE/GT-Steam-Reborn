@@ -41,6 +41,8 @@ import com.miaokatze.gtsr.api.compat.GTVersionCompat;
 import com.miaokatze.gtsr.api.compat.ICoolingHatchHolder;
 import com.miaokatze.gtsr.api.compat.SteamCoolingSupport;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
+import com.miaokatze.gtsr.common.api.progress.GTSRProgressBar;
+import com.miaokatze.gtsr.common.api.progress.GTSRProgressEntry;
 import com.miaokatze.gtsr.common.machine.base.IHubArray;
 import com.miaokatze.gtsr.common.machine.base.MTERemoteWorkerNode;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
@@ -124,6 +126,27 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
 
     public MTESingularityDrillingHub(String aName) {
         super(aName);
+    }
+
+    /**
+     * GTSR 进度词条收集钩子（mixin 惰性触发一次）：注册顺序 = GUI 终端显示顺序（绑定节点 → 蒸汽消耗）。
+     * 不加 @Override：编译期 GT++ jar 无此方法，运行时由 mixin 注入后多态生效。
+     */
+    protected void gtsr$collectProgressEntries(GTSRProgressBar bar) {
+        bar.registerEntry(
+            GTSRProgressEntry.of(
+                "bound_nodes",
+                "gtsr.gui.singularity_hub.bound_nodes",
+                "%.0f",
+                EnumChatFormatting.GOLD,
+                () -> mBoundNodeCount));
+        bar.registerEntry(
+            GTSRProgressEntry.of(
+                "steam_input",
+                "gtsr.tooltip.shared.steam_cost",
+                "%,.0f L/s",
+                EnumChatFormatting.RED,
+                () -> mSteamCost));
     }
 
     @Override

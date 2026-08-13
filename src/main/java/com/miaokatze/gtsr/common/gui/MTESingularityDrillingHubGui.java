@@ -7,10 +7,9 @@ import com.cleanroommc.modularui.api.drawable.IKey;
 import com.cleanroommc.modularui.api.widget.IWidget;
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.value.sync.BooleanSyncValue;
-import com.cleanroommc.modularui.value.sync.IntSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.widgets.ListWidget;
-import com.gtnewhorizon.gtnhlib.util.numberformatting.NumberFormatUtil;
+import com.miaokatze.gtsr.common.api.progress.IGTSRProgressProvider;
 
 import gregtech.common.gui.modularui.multiblock.base.MTESteamMultiBlockBaseGui;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTESteamMultiBlockBase;
@@ -25,20 +24,17 @@ public class MTESingularityDrillingHubGui extends MTESteamMultiBlockBaseGui {
     protected void registerSyncValues(PanelSyncManager syncManager) {
         super.registerSyncValues(syncManager);
         com.miaokatze.gtsr.common.machine.MTESingularityDrillingHub machine = (com.miaokatze.gtsr.common.machine.MTESingularityDrillingHub) multiblock;
-        syncManager.syncValue("gtsr.boundNodeCount", new IntSyncValue(() -> machine.mBoundNodeCount));
-        syncManager.syncValue("gtsr.steamCost", new IntSyncValue(() -> machine.mSteamCost));
         syncManager.syncValue("gtsr.isSuperheated", new BooleanSyncValue(() -> machine.mIsSuperheated));
         syncManager.syncValue("gtsr.isActivelyRunning", new BooleanSyncValue(() -> machine.mIsActivelyRunning));
     }
 
     @Override
     protected ListWidget<IWidget, ?> createTerminalTextWidget(PanelSyncManager syncManager, ModularPanel parent) {
-        IntSyncValue boundNodeCountSyncer = syncManager.findSyncHandler("gtsr.boundNodeCount", IntSyncValue.class);
-        IntSyncValue steamCostSyncer = syncManager.findSyncHandler("gtsr.steamCost", IntSyncValue.class);
         BooleanSyncValue isActivelyRunningSyncer = syncManager
             .findSyncHandler("gtsr.isActivelyRunning", BooleanSyncValue.class);
 
-        return super.createTerminalTextWidget(syncManager, parent).child(IKey.dynamic(() -> {
+        ListWidget<IWidget, ?> list = super.createTerminalTextWidget(syncManager, parent);
+        list.child(IKey.dynamic(() -> {
             String status = Boolean.TRUE.equals(isActivelyRunningSyncer.getValue())
                 ? EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.gui.status.running")
                 : EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.gui.status.idle");
@@ -46,35 +42,17 @@ public class MTESingularityDrillingHubGui extends MTESteamMultiBlockBaseGui {
         })
             .asWidget()
             .marginBottom(2)
-            .fullWidth())
-            .child(
-                IKey.dynamic(
-                    () -> EnumChatFormatting.YELLOW
-                        + StatCollector.translateToLocal("gtsr.gui.singularity_hub.bound_nodes")
-                        + " "
-                        + EnumChatFormatting.GOLD
-                        + boundNodeCountSyncer.getValue())
-                    .asWidget()
-                    .marginBottom(2)
-                    .fullWidth())
-            .child(
-                IKey.dynamic(
-                    () -> EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.shared.steam_cost")
-                        + " "
-                        + EnumChatFormatting.RED
-                        + NumberFormatUtil.formatNumber(steamCostSyncer.getValue())
-                        + " L/s")
-                    .asWidget()
-                    .marginBottom(2)
-                    .fullWidth())
-            .child(
-                IKey.dynamic(
-                    () -> EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.steam_type")
-                        + " "
-                        + EnumChatFormatting.YELLOW
-                        + StatCollector.translateToLocal("gtsr.gui.steam_type.superheated"))
-                    .asWidget()
-                    .marginBottom(2)
-                    .fullWidth());
+            .fullWidth());
+        GTSRProgressBarGuiHelper.appendEntryRows(list, syncManager, (IGTSRProgressProvider) multiblock);
+        list.child(
+            IKey.dynamic(
+                () -> EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.steam_type")
+                    + " "
+                    + EnumChatFormatting.YELLOW
+                    + StatCollector.translateToLocal("gtsr.gui.steam_type.superheated"))
+                .asWidget()
+                .marginBottom(2)
+                .fullWidth());
+        return list;
     }
 }

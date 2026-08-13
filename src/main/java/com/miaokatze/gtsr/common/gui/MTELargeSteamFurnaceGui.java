@@ -9,6 +9,7 @@ import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.value.sync.IntSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.widgets.ListWidget;
+import com.miaokatze.gtsr.common.api.progress.IGTSRProgressProvider;
 
 import gregtech.common.gui.modularui.multiblock.base.MTESteamMultiBlockBaseGui;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTESteamMultiBlockBase;
@@ -31,7 +32,8 @@ public class MTELargeSteamFurnaceGui extends MTESteamMultiBlockBaseGui {
     protected ListWidget<IWidget, ?> createTerminalTextWidget(PanelSyncManager syncManager, ModularPanel parent) {
         IntSyncValue tierSyncer = syncManager.findSyncHandler("gtsr.tier", IntSyncValue.class);
 
-        return super.createTerminalTextWidget(syncManager, parent).child(IKey.dynamic(() -> {
+        ListWidget<IWidget, ?> list = super.createTerminalTextWidget(syncManager, parent);
+        list.child(IKey.dynamic(() -> {
             String tierText = tierSyncer.getValue() == 2 ? StatCollector.translateToLocal("gtsr.gui.tier.steel")
                 : StatCollector.translateToLocal("gtsr.gui.tier.bronze");
             return EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.tier")
@@ -51,14 +53,8 @@ public class MTELargeSteamFurnaceGui extends MTESteamMultiBlockBaseGui {
             })
                 .asWidget()
                 .marginBottom(2)
-                .fullWidth())
-            .child(
-                IKey.dynamic(
-                    () -> EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.parallel")
-                        + EnumChatFormatting.GOLD
-                        + ((com.miaokatze.gtsr.common.machine.MTELargeSteamFurnace) multiblock).getMaxParallelRecipes())
-                    .asWidget()
-                    .marginBottom(2)
-                    .fullWidth());
+                .fullWidth());
+        GTSRProgressBarGuiHelper.appendEntryRows(list, syncManager, (IGTSRProgressProvider) multiblock);
+        return list;
     }
 }

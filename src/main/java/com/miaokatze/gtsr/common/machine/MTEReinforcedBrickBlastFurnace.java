@@ -31,6 +31,7 @@ import com.gtnewhorizons.modularui.common.widget.FakeSyncWidget;
 import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import com.miaokatze.gtsr.common.gui.MTEReinforcedBrickBlastFurnaceGui;
+import com.miaokatze.gtsr.common.machine.base.MTEGTSRMultiBlockBase;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
 
 import gregtech.api.GregTechAPI;
@@ -40,7 +41,6 @@ import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.logic.ProcessingLogic;
-import gregtech.api.metatileentity.implementations.MTEEnhancedMultiBlockBase;
 import gregtech.api.metatileentity.implementations.MTEHatch;
 import gregtech.api.metatileentity.implementations.MTEHatchInputBus;
 import gregtech.api.metatileentity.implementations.MTEHatchOutputBus;
@@ -66,7 +66,7 @@ import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.MTEHatchSteam
  * 内置炉温机制：运行时炉温缓慢上升，闲置时炉温下降；炉温越高，并行数与配方速度越高。
  * 不需要维护仓、消声仓、空气输入或耐压蒸汽输入。
  */
-public class MTEReinforcedBrickBlastFurnace extends MTEEnhancedMultiBlockBase<MTEReinforcedBrickBlastFurnace>
+public class MTEReinforcedBrickBlastFurnace extends MTEGTSRMultiBlockBase<MTEReinforcedBrickBlastFurnace>
     implements ISurvivalConstructable {
 
     private static final String STRUCTURE_PIECE_MAIN = "main";
@@ -88,10 +88,22 @@ public class MTEReinforcedBrickBlastFurnace extends MTEEnhancedMultiBlockBase<MT
 
     public MTEReinforcedBrickBlastFurnace(int aID, String aName, String aNameRegional) {
         super(aID, aName, aNameRegional);
+        registerProgressEntries();
     }
 
     public MTEReinforcedBrickBlastFurnace(String aName) {
         super(aName);
+        registerProgressEntries();
+    }
+
+    // GTSR 进度词条：注册顺序 = GUI 终端显示顺序（炉温；状态/并行/速度为文本行保留在 GUI）
+    private void registerProgressEntries() {
+        registerEntry(
+            "temperature",
+            "gtsr.gui.reinforced_brick_blast_furnace.temperature",
+            "%.1f%%",
+            EnumChatFormatting.RED,
+            () -> mFurnaceTemperature * 100.0d);
     }
 
     @Override

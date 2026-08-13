@@ -49,6 +49,7 @@ import com.miaokatze.gtsr.api.compat.GTSRHatchFluidAccess;
 import com.miaokatze.gtsr.api.compat.GTVersionCompat;
 import com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps;
 import com.miaokatze.gtsr.common.gui.MTEGearSteamCompressorGui;
+import com.miaokatze.gtsr.common.machine.base.MTEGTSRMultiBlockBase;
 import com.miaokatze.gtsr.common.machine.base.MTEHatchPressureSteamInput;
 import com.miaokatze.gtsr.common.machine.base.MTEPressureSteamCoolingHatch;
 import com.miaokatze.gtsr.common.machine.base.MTESteamCoolingHatch;
@@ -61,7 +62,6 @@ import gregtech.api.interfaces.IHatchElement;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
-import gregtech.api.metatileentity.implementations.MTEEnhancedMultiBlockBase;
 import gregtech.api.recipe.RecipeMap;
 import gregtech.api.recipe.check.CheckRecipeResult;
 import gregtech.api.recipe.check.CheckRecipeResultRegistry;
@@ -75,7 +75,7 @@ import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
 import gregtech.common.tileentities.machines.IDualInputHatch;
 
-public class MTEGearSteamCompressor extends MTEEnhancedMultiBlockBase<MTEGearSteamCompressor>
+public class MTEGearSteamCompressor extends MTEGTSRMultiBlockBase<MTEGearSteamCompressor>
     implements IConstructable, ISurvivalConstructable {
 
     private static final String STRUCTURE_PIECE_MAIN = "main";
@@ -192,10 +192,34 @@ public class MTEGearSteamCompressor extends MTEEnhancedMultiBlockBase<MTEGearSte
 
     public MTEGearSteamCompressor(int aID, String aName, String aNameRegional) {
         super(aID, aName, aNameRegional);
+        registerProgressEntries();
     }
 
     public MTEGearSteamCompressor(String aName) {
         super(aName);
+        registerProgressEntries();
+    }
+
+    // GTSR 进度词条：注册顺序 = GUI 终端显示顺序（蒸汽输入/超热蒸汽输出/水输出；等级为文本行保留在 GUI）
+    private void registerProgressEntries() {
+        registerEntry(
+            "steam_input",
+            "gtsr.gui.gear_compressor.steam_in",
+            "%,.0f L/s",
+            EnumChatFormatting.RED,
+            () -> mSteamConsumedLastTick);
+        registerEntry(
+            "steam_output",
+            "gtsr.gui.gear_compressor.sh_steam_out",
+            "%,.0f L/s",
+            EnumChatFormatting.AQUA,
+            () -> mSuperheatedOutputLastTick);
+        registerEntry(
+            "water_output",
+            "gtsr.gui.gear_compressor.water_out",
+            "%,.0f L/s",
+            EnumChatFormatting.BLUE,
+            () -> mWaterOutputLastTick);
     }
 
     @Override

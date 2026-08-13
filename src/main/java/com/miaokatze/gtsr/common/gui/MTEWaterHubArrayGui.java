@@ -13,7 +13,6 @@ import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.widgets.ListWidget;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.machine.MTEWaterHubArray;
-import com.miaokatze.gtsr.common.util.UnitFormatUtil;
 
 import gregtech.api.metatileentity.implementations.MTEEnhancedMultiBlockBase;
 import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
@@ -57,7 +56,9 @@ public class MTEWaterHubArrayGui extends MTEMultiBlockBaseGui<MTEEnhancedMultiBl
 
     @Override
     protected ListWidget<IWidget, ?> createTerminalTextWidget(PanelSyncManager syncManager, ModularPanel parent) {
-        return super.createTerminalTextWidget(syncManager, parent).child(IKey.dynamic(() -> {
+        // 存储单元/水缓冲/总容量数值行已迁移至 GTSRProgressBar 词条系统；等级/芯片/状态为文本行保留
+        ListWidget<IWidget, ?> list = super.createTerminalTextWidget(syncManager, parent);
+        list.child(IKey.dynamic(() -> {
             String tierText = mSetTierSync.getValue() == 2 ? StatCollector.translateToLocal("gtsr.gui.tier.steel")
                 : StatCollector.translateToLocal("gtsr.gui.tier.bronze");
             return EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.tier")
@@ -96,41 +97,8 @@ public class MTEWaterHubArrayGui extends MTEMultiBlockBaseGui<MTEEnhancedMultiBl
             })
                 .asWidget()
                 .marginBottom(2)
-                .fullWidth())
-            .child(
-                IKey.dynamic(
-                    () -> EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.water_hub.storage_units")
-                        + " "
-                        + EnumChatFormatting.GOLD
-                        + (mHubUnitCountSync.getValue() + mReinforcedHubUnitCountSync.getValue())
-                        + "/"
-                        + (9 * mStackCountSync.getValue())
-                        + EnumChatFormatting.RESET)
-                    .asWidget()
-                    .marginBottom(2)
-                    .fullWidth())
-            .child(
-                IKey.dynamic(
-                    () -> EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.water_hub.water_buffer")
-                        + " "
-                        + EnumChatFormatting.LIGHT_PURPLE
-                        + UnitFormatUtil.format(mWaterStoredSync.getValue())
-                        + " L"
-                        + EnumChatFormatting.RESET)
-                    .asWidget()
-                    .marginBottom(2)
-                    .fullWidth())
-            .child(
-                IKey.dynamic(
-                    () -> EnumChatFormatting.YELLOW
-                        + StatCollector.translateToLocal("gtsr.gui.water_hub.total_capacity")
-                        + " "
-                        + EnumChatFormatting.LIGHT_PURPLE
-                        + UnitFormatUtil.format(hubArray.getTotalCapacity())
-                        + " L"
-                        + EnumChatFormatting.RESET)
-                    .asWidget()
-                    .marginBottom(2)
-                    .fullWidth());
+                .fullWidth());
+        GTSRProgressBarGuiHelper.appendEntryRows(list, syncManager, hubArray);
+        return list;
     }
 }

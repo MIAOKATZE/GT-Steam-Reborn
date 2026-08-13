@@ -2,13 +2,19 @@ package com.miaokatze.gtsr.common.machine.base;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.DoubleFunction;
+import java.util.function.DoubleSupplier;
 
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.util.EnumChatFormatting;
 
 import org.apache.commons.lang3.tuple.Pair;
 
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
+import com.miaokatze.gtsr.common.api.progress.GTSRProgressBar;
+import com.miaokatze.gtsr.common.api.progress.GTSRProgressEntry;
+import com.miaokatze.gtsr.common.api.progress.IGTSRProgressProvider;
 
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.implementations.MTEEnhancedMultiBlockBase;
@@ -17,12 +23,14 @@ import gregtech.api.util.GTUtility;
 
 /** 统一奇点模式基类：mSingularityMode 0=关/1=普通(Steam)/2=临界(Critical)；工作才消耗（canConsumeSingularity 门控）、关机仅计时；默认 200s。 */
 public abstract class MTESingularityModeMachineBase<T extends MTESingularityModeMachineBase<T>>
-    extends MTEEnhancedMultiBlockBase<T> {
+    extends MTEEnhancedMultiBlockBase<T> implements IGTSRProgressProvider {
 
     public static final int SINGULARITY_DURATION_TICKS = 4000; // 200s 默认
     public int mSingularityMode = 0; // 0=关 1=普通 2=临界
     public int mSingularityModeTicks = 0;
     protected int mSingularityCheckCooldown = 0;
+    /** GTSR 进度显示基础设施：子类机器构造时用 registerEntry(...) 注册词条，GUI 终端统一渲染 */
+    protected final GTSRProgressBar progressBar = new GTSRProgressBar();
 
     protected MTESingularityModeMachineBase(int aID, String aName, String aNameRegional) {
         super(aID, aName, aNameRegional);
@@ -179,4 +187,46 @@ public abstract class MTESingularityModeMachineBase<T extends MTESingularityMode
         }
         mSingularityModeTicks = aNBT.getInteger("mSingularityModeTicks");
     }
+
+    // region GTSR 进度显示基础设施（IGTSRProgressProvider）
+    // 词条注册/查询全部委托 progressBar；子类机器在构造时调用 registerEntry(...) 注册显示口径
+
+    @Override
+    public List<GTSRProgressEntry> getProgressEntries() {
+        return progressBar.getProgressEntries();
+    }
+
+    @Override
+    public boolean hasEntry(String internalKey) {
+        return progressBar.hasEntry(internalKey);
+    }
+
+    @Override
+    public double getEntryValue(String internalKey) {
+        return progressBar.getEntryValue(internalKey);
+    }
+
+    @Override
+    public String getDisplayKey(String internalKey) {
+        return progressBar.getDisplayKey(internalKey);
+    }
+
+    /** 注册词条（直接实例）；同 internalKey 重复注册后者覆盖 */
+    protected final void registerEntry(GTSRProgressEntry entry) {
+        progressBar.registerEntry(entry);
+    }
+
+    /** 注册词条（默认格式化）：format 为 String.format(Locale.ENGLISH, format, value) 模板 */
+    protected final void registerEntry(String internalKey, String displayKey, String format, EnumChatFormatting color,
+        DoubleSupplier valueSupplier) {
+        registerEntry(GTSRProgressEntry.of(internalKey, displayKey, format, color, valueSupplier));
+    }
+
+    /** 注册词条（自定义格式化，如带条件后缀） */
+    protected final void registerEntryCustom(String internalKey, String displayKey, EnumChatFormatting color,
+        DoubleSupplier valueSupplier, DoubleFunction<String> formatter) {
+        registerEntry(GTSRProgressEntry.ofCustom(internalKey, displayKey, color, valueSupplier, formatter));
+    }
+
+    // endregion
 }

@@ -54,38 +54,31 @@ public class MTELargeCokeOvenGui extends MTEMultiBlockBaseGui<MTEEnhancedMultiBl
 
     @Override
     protected ListWidget<IWidget, ?> createTerminalTextWidget(PanelSyncManager syncManager, ModularPanel parent) {
-        return super.createTerminalTextWidget(syncManager, parent)
-            .child(
-                IKey.dynamic(
-                    () -> EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.coke_oven.temperature")
-                        + EnumChatFormatting.RED
-                        + String.format("%.1f%%", mHeatSync.getValue() * 100.0d)
-                        + EnumChatFormatting.RESET)
-                    .asWidget()
-                    .marginBottom(2)
-                    .fullWidth())
-            .child(IKey.dynamic(() -> {
-                String statusKey;
-                EnumChatFormatting statusColor;
-                if (mMaxProgresstimeSync.getValue() > 0) {
-                    statusKey = "gtsr.gui.status.running";
-                    statusColor = EnumChatFormatting.AQUA;
-                } else if (mHeatSync.getValue() > 0) {
-                    statusKey = "gtsr.gui.coke_oven.status.cooling";
-                    statusColor = EnumChatFormatting.BLUE;
-                } else {
-                    statusKey = "gtsr.gui.status.idle";
-                    statusColor = EnumChatFormatting.WHITE;
-                }
-                return EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.status")
-                    + " "
-                    + statusColor
-                    + StatCollector.translateToLocal(statusKey)
-                    + EnumChatFormatting.RESET;
-            })
-                .asWidget()
-                .marginBottom(2)
-                .fullWidth())
+        // 炉温数值行已迁移至 GTSRProgressBar 词条系统；状态/配方时长/并行为文本行保留
+        ListWidget<IWidget, ?> list = super.createTerminalTextWidget(syncManager, parent);
+        GTSRProgressBarGuiHelper.appendEntryRows(list, syncManager, cokeOven);
+        list.child(IKey.dynamic(() -> {
+            String statusKey;
+            EnumChatFormatting statusColor;
+            if (mMaxProgresstimeSync.getValue() > 0) {
+                statusKey = "gtsr.gui.status.running";
+                statusColor = EnumChatFormatting.AQUA;
+            } else if (mHeatSync.getValue() > 0) {
+                statusKey = "gtsr.gui.coke_oven.status.cooling";
+                statusColor = EnumChatFormatting.BLUE;
+            } else {
+                statusKey = "gtsr.gui.status.idle";
+                statusColor = EnumChatFormatting.WHITE;
+            }
+            return EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.status")
+                + " "
+                + statusColor
+                + StatCollector.translateToLocal(statusKey)
+                + EnumChatFormatting.RESET;
+        })
+            .asWidget()
+            .marginBottom(2)
+            .fullWidth())
             .child(IKey.dynamic(() -> {
                 if (mOriginalRecipeTimeSync.getValue() > 0) {
                     int originalSeconds = mOriginalRecipeTimeSync.getValue() / 20;
@@ -115,5 +108,6 @@ public class MTELargeCokeOvenGui extends MTEMultiBlockBaseGui<MTEEnhancedMultiBl
                     .asWidget()
                     .marginBottom(2)
                     .fullWidth());
+        return list;
     }
 }

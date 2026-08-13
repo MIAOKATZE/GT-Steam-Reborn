@@ -13,7 +13,6 @@ import com.cleanroommc.modularui.value.sync.DoubleSyncValue;
 import com.cleanroommc.modularui.value.sync.IntSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.widgets.ListWidget;
-import com.gtnewhorizon.gtnhlib.util.numberformatting.NumberFormatUtil;
 import com.miaokatze.gtsr.common.machine.MTELargeSolarOverpressureArray;
 
 import gregtech.api.enums.ItemList;
@@ -60,76 +59,35 @@ public class MTELargeSolarOverpressureArrayGui extends MTEMultiBlockBaseGui<MTEE
 
     @Override
     protected ListWidget<IWidget, ?> createTerminalTextWidget(PanelSyncManager syncManager, ModularPanel parent) {
-        return super.createTerminalTextWidget(syncManager, parent)
-            .child(
-                IKey.dynamic(
-                    () -> EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.gui.solar_array.heat")
-                        + EnumChatFormatting.GOLD
-                        + numberFormat.format(mHeatSync.getValue() * 100)
-                        + "% "
-                        + EnumChatFormatting.RESET)
-                    .asWidget()
-                    .marginBottom(2)
-                    .fullWidth())
-            .child(
-                IKey.dynamic(
-                    () -> EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.gui.solar_array.sun_ratio")
-                        + EnumChatFormatting.AQUA
-                        + numberFormat.format(mSunRatioSync.getValue() * 100)
-                        + "% "
-                        + EnumChatFormatting.RESET)
-                    .asWidget()
-                    .marginBottom(2)
-                    .fullWidth())
-            .child(
-                IKey.dynamic(
-                    () -> EnumChatFormatting.WHITE
-                        + StatCollector.translateToLocal("gtsr.gui.solar_array.calcification")
-                        + EnumChatFormatting.RED
-                        + numberFormat.format(mCalcificationSync.getValue() * 100)
-                        + "% "
-                        + EnumChatFormatting.RESET)
-                    .asWidget()
-                    .marginBottom(2)
-                    .fullWidth())
-            .child(
-                IKey.dynamic(
-                    () -> EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.gui.solar_array.steam_output")
-                        + EnumChatFormatting.AQUA
-                        + NumberFormatUtil.formatNumber(mCurrentSteamOutputSync.getValue())
-                        + " L/s "
-                        + EnumChatFormatting.WHITE
-                        + (solarArray.isNickel() ? StatCollector.translateToLocal("gtsr.gui.solar_array.superheated")
-                            : StatCollector.translateToLocal("gtsr.gui.solar_array.steam"))
-                        + EnumChatFormatting.RESET)
-                    .asWidget()
-                    .marginBottom(2)
-                    .fullWidth())
-            .child(IKey.dynamic(() -> {
-                float booster = calculateSolarBooster();
-                double overpressureExtra = Math.max(0.0d, mHeatSync.getValue() - 1.0d);
-                // 额外增幅口径（v1.10.51）：两段式 = 太阳能额外(booster-1) + 超压额外(heat-1)，
-                // 不显示基础 100%；无锅炉时保留灰字提示、无超压时超压段显示 +0%
-                String hint = booster <= 1.0f
-                    ? " " + EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.gui.solar_array.boost_hint")
-                    : "";
-                return EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.gui.solar_array.solar_booster")
-                    + EnumChatFormatting.GREEN
-                    + "+"
-                    + numberFormat.format((booster - 1.0f) * 100)
-                    + "%"
-                    + EnumChatFormatting.WHITE
-                    + " + "
-                    + EnumChatFormatting.LIGHT_PURPLE
-                    + "+"
-                    + numberFormat.format(overpressureExtra * 100)
-                    + "%"
-                    + hint
-                    + EnumChatFormatting.RESET;
-            })
-                .asWidget()
-                .marginBottom(2)
-                .fullWidth());
+        // 热量/阳光比例/结垢/蒸汽输出数值行已迁移至 GTSRProgressBar 词条系统；太阳能增幅行为文本行保留
+        ListWidget<IWidget, ?> list = super.createTerminalTextWidget(syncManager, parent);
+        GTSRProgressBarGuiHelper.appendEntryRows(list, syncManager, solarArray);
+        list.child(IKey.dynamic(() -> {
+            float booster = calculateSolarBooster();
+            double overpressureExtra = Math.max(0.0d, mHeatSync.getValue() - 1.0d);
+            // 额外增幅口径（v1.10.51）：两段式 = 太阳能额外(booster-1) + 超压额外(heat-1)，
+            // 不显示基础 100%；无锅炉时保留灰字提示、无超压时超压段显示 +0%
+            String hint = booster <= 1.0f
+                ? " " + EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.gui.solar_array.boost_hint")
+                : "";
+            return EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.gui.solar_array.solar_booster")
+                + EnumChatFormatting.GREEN
+                + "+"
+                + numberFormat.format((booster - 1.0f) * 100)
+                + "%"
+                + EnumChatFormatting.WHITE
+                + " + "
+                + EnumChatFormatting.LIGHT_PURPLE
+                + "+"
+                + numberFormat.format(overpressureExtra * 100)
+                + "%"
+                + hint
+                + EnumChatFormatting.RESET;
+        })
+            .asWidget()
+            .marginBottom(2)
+            .fullWidth());
+        return list;
     }
 
     @Override

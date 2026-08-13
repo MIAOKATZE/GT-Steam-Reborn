@@ -14,7 +14,6 @@ import static gregtech.api.util.GTStructureUtility.ofAnyWater;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -22,11 +21,9 @@ import javax.annotation.Nullable;
 import net.minecraft.block.Block;
 import net.minecraft.client.renderer.texture.IIconRegister;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 import net.minecraft.world.World;
@@ -56,7 +53,9 @@ import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import com.miaokatze.gtsr.api.IShiftRightClickDecalcifiable;
 import com.miaokatze.gtsr.api.compat.GTSRHatchFluidAccess;
 import com.miaokatze.gtsr.api.compat.GTVersionCompat;
+import com.miaokatze.gtsr.common.event.GTSRMachineEvent;
 import com.miaokatze.gtsr.common.gui.MTELargeSolarOverpressureArrayGui;
+import com.miaokatze.gtsr.common.machine.base.MTEGTSRMultiBlockBase;
 import com.miaokatze.gtsr.common.machine.base.MTEPressureSteamOutputHatch;
 import com.miaokatze.gtsr.common.machine.base.MTESteamOutputHatch;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
@@ -72,7 +71,6 @@ import gregtech.api.interfaces.IIconContainer;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
-import gregtech.api.metatileentity.implementations.MTEEnhancedMultiBlockBase;
 import gregtech.api.metatileentity.implementations.MTEHatchOutput;
 import gregtech.api.recipe.check.CheckRecipeResult;
 import gregtech.api.recipe.check.CheckRecipeResultRegistry;
@@ -81,14 +79,13 @@ import gregtech.api.structure.error.StructureError;
 import gregtech.api.structure.error.StructureErrorRegistry;
 import gregtech.api.util.GTModHandler;
 import gregtech.api.util.GTStructureUtility;
-import gregtech.api.util.GTUtility;
 import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.common.blocks.BlockCasings1;
 import gregtech.common.blocks.BlockCasings2;
 import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
 import gregtech.common.tileentities.machines.IDualInputHatch;
 
-public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MTELargeSolarOverpressureArray>
+public class MTELargeSolarOverpressureArray extends MTEGTSRMultiBlockBase<MTELargeSolarOverpressureArray>
     implements IConstructable, ISurvivalConstructable, IShiftRightClickDecalcifiable {
 
     private static final String STRUCTURE_PIECE_MAIN = "main";
@@ -216,10 +213,44 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
 
     public MTELargeSolarOverpressureArray(int aID, String aName, String aNameRegional) {
         super(aID, aName, aNameRegional);
+        registerProgressEntries();
     }
 
     public MTELargeSolarOverpressureArray(String aName) {
         super(aName);
+        registerProgressEntries();
+    }
+
+    // GTSR 进度词条：注册顺序 = GUI 终端显示顺序（热量/阳光比例/结垢/蒸汽输出；太阳能增幅行为文本行保留在 GUI）
+    private void registerProgressEntries() {
+        registerEntry(
+            "temperature",
+            "gtsr.gui.solar_array.heat",
+            "%.3f%%",
+            EnumChatFormatting.GOLD,
+            () -> mHeat * 100.0d);
+        registerEntry(
+            "sun_ratio",
+            "gtsr.gui.solar_array.sun_ratio",
+            "%.3f%%",
+            EnumChatFormatting.AQUA,
+            () -> mSunRatio * 100.0d);
+        registerEntry(
+            "calcification",
+            "gtsr.gui.solar_array.calcification",
+            "%.3f%%",
+            EnumChatFormatting.RED,
+            () -> mCalcification * 100.0d);
+        // 蒸汽输出行末尾 (蒸汽)/(超热蒸汽) 后缀：formatter 内读机器字段判定
+        registerEntryCustom(
+            "steam_output",
+            "gtsr.gui.solar_array.steam_output",
+            EnumChatFormatting.AQUA,
+            () -> mCurrentSteamOutput,
+            v -> NumberFormatUtil.formatNumber((long) v) + " L/s "
+                + EnumChatFormatting.WHITE
+                + (isNickel() ? StatCollector.translateToLocal("gtsr.gui.solar_array.superheated")
+                    : StatCollector.translateToLocal("gtsr.gui.solar_array.steam")));
     }
 
     @Override
@@ -633,7 +664,7 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
             if (mOverpressure && mHeat < 1.0d) {
                 mOverpressure = false;
                 getBaseMetaTileEntity().markDirty();
-                sendChatToOwner("gtsr.chat.overpressure.off");
+                GTSRMachineEvent.sendToOwner(getBaseMetaTileEntity().getOwnerUuid(), "gtsr.chat.overpressure.off");
             }
 
             boolean canHeat = isClearWeather && isDay && mSunRatio > 0;
@@ -761,23 +792,9 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
         mCurrentSteamOutput = 0;
         if (!mNoWaterNotified) {
             mNoWaterNotified = true;
-            sendChatToOwner("gtsr.chat.no_water");
+            GTSRMachineEvent.sendToOwner(getBaseMetaTileEntity().getOwnerUuid(), "gtsr.chat.no_water");
         }
         getBaseMetaTileEntity().disableWorking();
-    }
-
-    /** 向在线所有者发送一条翻译键聊天消息（离线不发送，与 sendCalcificationWarning 同模式） */
-    private void sendChatToOwner(String key) {
-        UUID ownerUuid = getBaseMetaTileEntity().getOwnerUuid();
-        if (ownerUuid == null) return;
-        for (Object o : MinecraftServer.getServer()
-            .getConfigurationManager().playerEntityList) {
-            if (o instanceof EntityPlayerMP player && player.getUniqueID()
-                .equals(ownerUuid)) {
-                GTUtility.sendChatTrans(player, key);
-                return;
-            }
-        }
     }
 
     private void outputSteam() {
@@ -914,9 +931,7 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
         if (mCalcification > 0.0d || mRunningTicks > 0L) {
             mCalcification = 0.0d;
             mRunningTicks = 0L;
-            GTUtility.sendChatToPlayer(
-                aPlayer,
-                EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.chat.calcification_cleared"));
+            GTSRMachineEvent.sendToPlayer(aPlayer, "gtsr.chat.calcification_cleared");
             return true;
         }
         return false;
@@ -929,13 +944,13 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
         if (mOverpressure) {
             mOverpressure = false;
             getBaseMetaTileEntity().markDirty();
-            GTUtility.sendChatTrans(aPlayer, "gtsr.chat.overpressure.off");
+            GTSRMachineEvent.sendToPlayer(aPlayer, "gtsr.chat.overpressure.off");
         } else if (mHeat >= 1.0d) {
             mOverpressure = true;
             getBaseMetaTileEntity().markDirty();
-            GTUtility.sendChatTrans(aPlayer, "gtsr.chat.overpressure.on");
+            GTSRMachineEvent.sendToPlayer(aPlayer, "gtsr.chat.overpressure.on");
         } else {
-            GTUtility.sendChatTrans(aPlayer, "gtsr.chat.overpressure.need_heat");
+            GTSRMachineEvent.sendToPlayer(aPlayer, "gtsr.chat.overpressure.need_heat");
         }
     }
 
@@ -1130,27 +1145,12 @@ public class MTELargeSolarOverpressureArray extends MTEEnhancedMultiBlockBase<MT
         if (mCalcification >= 1.0d) {
             if (mCalcificationWarnTimer <= 0L) {
                 mCalcificationWarnTimer = CALCIFICATION_WARN_INTERVAL_TICKS;
-                sendCalcificationWarning();
+                GTSRMachineEvent.sendToOwner(getBaseMetaTileEntity().getOwnerUuid(), "gtsr.chat.calcification_full");
             } else {
                 mCalcificationWarnTimer--;
             }
         } else {
             mCalcificationWarnTimer = 0L;
-        }
-    }
-
-    private void sendCalcificationWarning() {
-        UUID ownerUuid = getBaseMetaTileEntity().getOwnerUuid();
-        if (ownerUuid == null) return;
-        for (Object o : MinecraftServer.getServer()
-            .getConfigurationManager().playerEntityList) {
-            if (o instanceof EntityPlayerMP player && player.getUniqueID()
-                .equals(ownerUuid)) {
-                GTUtility.sendChatToPlayer(
-                    player,
-                    EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.chat.calcification_full"));
-                return;
-            }
         }
     }
 

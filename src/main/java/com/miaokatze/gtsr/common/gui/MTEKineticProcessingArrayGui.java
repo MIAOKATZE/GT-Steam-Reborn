@@ -72,7 +72,9 @@ public class MTEKineticProcessingArrayGui extends MTEMultiBlockBaseGui<MTEEnhanc
 
     @Override
     protected ListWidget<IWidget, ?> createTerminalTextWidget(PanelSyncManager syncManager, ModularPanel parent) {
-        return super.createTerminalTextWidget(syncManager, parent).child(IKey.dynamic(() -> {
+        // 蒸汽速率/每安培/高压蒸汽/并行数值行已迁移至 GTSRProgressBar 词条系统；电压与增幅模式为文本行保留
+        ListWidget<IWidget, ?> list = super.createTerminalTextWidget(syncManager, parent);
+        list.child(IKey.dynamic(() -> {
             long maxRecipeVoltage = mMaxRecipeVoltageSync.getValue();
             String voltageLabel = EnumChatFormatting.GOLD
                 + StatCollector.translateToLocal("gtsr.gui.kinetic_array.max_recipe_voltage")
@@ -106,50 +108,9 @@ public class MTEKineticProcessingArrayGui extends MTEMultiBlockBaseGui<MTEEnhanc
                 .asWidget()
                 .marginBottom(2)
                 .fullWidth()
-                .setEnabledIf(w -> multiblock.mMachine))
-            .child(
-                IKey.dynamic(
-                    () -> EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.kinetic_array.steam_rate")
-                        + EnumChatFormatting.AQUA
-                        + String.format("%.2f", mSteamRateSync.getValue()))
-                    .asWidget()
-                    .marginBottom(2)
-                    .fullWidth()
-                    .setEnabledIf(w -> multiblock.mMachine))
-            .child(
-                IKey.dynamic(
-                    () -> EnumChatFormatting.GOLD
-                        + StatCollector.translateToLocal("gtsr.gui.kinetic_array.steam_per_amp")
-                        + EnumChatFormatting.YELLOW
-                        + NumberFormatUtil.formatNumber(mSteamPerAmpSync.getValue())
-                        + " L/t")
-                    .asWidget()
-                    .marginBottom(2)
-                    .fullWidth()
-                    .setEnabledIf(w -> multiblock.mMachine))
-            .child(
-                IKey.dynamic(
-                    () -> EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.kinetic_array.hp_steam")
-                        + EnumChatFormatting.RED
-                        + NumberFormatUtil.formatNumber(mRealtimeSteamCostSync.getValue())
-                        + " L/t")
-                    .asWidget()
-                    .marginBottom(2)
-                    .fullWidth()
-                    .setEnabledIf(w -> multiblock.mMachine))
-            .child(
-                IKey.dynamic(
-                    () -> EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.kinetic_array.parallel")
-                        + EnumChatFormatting.LIGHT_PURPLE
-                        + mParallelCountSync.getValue()
-                        + EnumChatFormatting.WHITE
-                        + "/"
-                        + EnumChatFormatting.YELLOW
-                        + maxParallelSync.getValue())
-                    .asWidget()
-                    .marginBottom(2)
-                    .fullWidth()
-                    .setEnabledIf(w -> multiblock.mMachine));
+                .setEnabledIf(w -> multiblock.mMachine));
+        GTSRProgressBarGuiHelper.appendEntryRows(list, syncManager, kineticArray);
+        return list;
     }
 
     private static String getVoltageTierName(long voltage) {

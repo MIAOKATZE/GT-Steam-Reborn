@@ -15,6 +15,7 @@
     "MTEHatchInputBusMixin",
     "CommonMetaTileEntityMixin",
     "SteamHatchElementOutputBusMixin",
+    "StructureCheckerMixin",
     "BaseMetaTileEntityMixin",
     "gtnl/SteamMultiMachineBaseGTNLMixin"
   ],

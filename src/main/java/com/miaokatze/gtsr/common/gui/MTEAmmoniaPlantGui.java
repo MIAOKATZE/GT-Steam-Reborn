@@ -10,7 +10,6 @@ import com.cleanroommc.modularui.value.sync.IntSyncValue;
 import com.cleanroommc.modularui.value.sync.LongSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.widgets.ListWidget;
-import com.gtnewhorizon.gtnhlib.util.numberformatting.NumberFormatUtil;
 import com.miaokatze.gtsr.common.machine.MTEAmmoniaPlant;
 
 import gregtech.api.metatileentity.implementations.MTEEnhancedMultiBlockBase;
@@ -59,40 +58,25 @@ public class MTEAmmoniaPlantGui extends MTEMultiBlockBaseGui<MTEEnhancedMultiBlo
 
     @Override
     protected ListWidget<IWidget, ?> createTerminalTextWidget(PanelSyncManager syncManager, ModularPanel parent) {
-        return super.createTerminalTextWidget(syncManager, parent).child(IKey.dynamic(() -> {
-            double heatPct = mHeatLevelSync.getValue() / 100.0;
-            EnumChatFormatting heatColor;
-            if (heatPct <= 0) heatColor = EnumChatFormatting.WHITE;
-            else if (heatPct < 50) heatColor = EnumChatFormatting.RED;
-            else if (heatPct < 80) heatColor = EnumChatFormatting.GOLD;
-            else if (heatPct < 100) heatColor = EnumChatFormatting.GREEN;
-            else heatColor = EnumChatFormatting.YELLOW;
-            return EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.gui.ammonia_plant.heat")
+        // 热量/蒸汽消耗/高压蒸汽/并行数值行已迁移至 GTSRProgressBar 词条系统；催化剂与状态为文本行保留
+        ListWidget<IWidget, ?> list = super.createTerminalTextWidget(syncManager, parent);
+        GTSRProgressBarGuiHelper.appendEntryRows(list, syncManager, ammoniaPlant);
+        list.child(IKey.dynamic(() -> {
+            int catalystType = mCatalystTypeSync.getValue();
+            String catalystName = catalystType > 0
+                ? StatCollector.translateToLocal("gtsr.gui.ammonia_plant.catalyst." + catalystType)
+                : StatCollector.translateToLocal("gtsr.gui.not_installed");
+            EnumChatFormatting catalystColor = catalystType > 0 ? EnumChatFormatting.GREEN : EnumChatFormatting.RED;
+            return EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.gui.ammonia_plant.catalyst")
                 + " "
-                + heatColor
-                + String.format("%.1f%%", heatPct)
+                + catalystColor
+                + catalystName
                 + " "
                 + EnumChatFormatting.RESET;
         })
             .asWidget()
             .marginBottom(2)
             .fullWidth())
-            .child(IKey.dynamic(() -> {
-                int catalystType = mCatalystTypeSync.getValue();
-                String catalystName = catalystType > 0
-                    ? StatCollector.translateToLocal("gtsr.gui.ammonia_plant.catalyst." + catalystType)
-                    : StatCollector.translateToLocal("gtsr.gui.not_installed");
-                EnumChatFormatting catalystColor = catalystType > 0 ? EnumChatFormatting.GREEN : EnumChatFormatting.RED;
-                return EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.gui.ammonia_plant.catalyst")
-                    + " "
-                    + catalystColor
-                    + catalystName
-                    + " "
-                    + EnumChatFormatting.RESET;
-            })
-                .asWidget()
-                .marginBottom(2)
-                .fullWidth())
             .child(
                 IKey.dynamic(
                     () -> EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.gui.ammonia_plant.status")
@@ -103,40 +87,8 @@ public class MTEAmmoniaPlantGui extends MTEMultiBlockBaseGui<MTEEnhancedMultiBlo
                         + EnumChatFormatting.RESET)
                     .asWidget()
                     .marginBottom(2)
-                    .fullWidth())
-            .child(
-                IKey.dynamic(
-                    () -> EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.gui.ammonia_plant.steam")
-                        + " "
-                        + EnumChatFormatting.AQUA
-                        + NumberFormatUtil.formatNumber(mRealtimeSteamCostSync.getValue())
-                        + " L/s "
-                        + EnumChatFormatting.RESET)
-                    .asWidget()
-                    .marginBottom(2)
-                    .fullWidth())
-            .child(
-                IKey.dynamic(
-                    () -> EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.gui.ammonia_plant.hp_steam")
-                        + " "
-                        + EnumChatFormatting.LIGHT_PURPLE
-                        + NumberFormatUtil.formatNumber(mRealtimeSteamOutputSync.getValue())
-                        + " L/s "
-                        + EnumChatFormatting.RESET)
-                    .asWidget()
-                    .marginBottom(2)
-                    .fullWidth())
-            .child(
-                IKey.dynamic(
-                    () -> EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.gui.ammonia_plant.parallel")
-                        + " "
-                        + EnumChatFormatting.GOLD
-                        + mParallelCountSync.getValue()
-                        + " "
-                        + EnumChatFormatting.RESET)
-                    .asWidget()
-                    .marginBottom(2)
                     .fullWidth());
+        return list;
     }
 
     private String getStatusText() {

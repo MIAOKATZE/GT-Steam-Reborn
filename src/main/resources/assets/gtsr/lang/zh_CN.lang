@@ -275,12 +275,13 @@ gtsr.gui.geothermal_boiler.superheated= (过热蒸汽)
 gtsr.gui.geothermal_boiler.steam= (蒸汽)
 gtsr.gui.geothermal_boiler.chip_tier2_warn=⚠ 过热芯片需要等级2 (钢)
 gtsr.gui.geothermal_boiler.calcification=结垢： 
-gtsr.chat.calcification_cleared=已清除沉积
-gtsr.chat.calcification_full=警告：机器已完全结垢，蒸汽产出降至 1％！请及时除垢。
+gtsr.chat.calcification_cleared=§a已清除沉积
+gtsr.chat.calcification_full=§c警告：机器已完全结垢，蒸汽产出降至 1％！请及时除垢。
 gtsr.chat.no_water=水供应中断，机器已停止工作，请重新开启（软锤右击或打开GUI点电源开关）
 gtsr.chat.overpressure.on=超压模式已开启：热量上限提升至 200％
 gtsr.chat.overpressure.off=超压模式已关闭
 gtsr.chat.overpressure.need_heat=需要 100％ 热量才能开启超压模式
+gtsr.event.broadcast=坐标位于 %1$s %2$s %3$s %4$s 的 %5$s，因 %6$s 而 %7$s
 
 # Geothermal Boiler Tooltip
 gtsr.tooltip.geothermal_boiler.input_hatch=输入仓
@@ -1289,3 +1290,16 @@ gtsr.tooltip.dense_state_manipulator.desc6_2=关机后奇点模式持续期间�
 gtsr.tooltip.dense_state_manipulator.desc6_3=模式耗尽或结构失效后消失。
 gtsr.tooltip.dense_state_manipulator.tier1_blocks_2=熔融机械方块MK II×125、镀铑钯框架×32
 gtsr.tooltip.dense_state_manipulator.steam_input_hatch=蒸汽仓/耐压蒸汽仓/输入仓
+
+gtsr.gui.redstone_hatch.threshold=阈值
+gtsr.gui.redstone_hatch.invert=反向
+gtsr.gui.redstone_hatch.interval=更新频率（tick）
+gtsr.gui.redstone_hatch.current=当前值
+gtsr.gui.redstone_hatch.entry.efficiency=机器效率
+gtsr.gui.redstone_hatch.entry.power_output=输出功率
+gtsr.gui.redstone_hatch.entry.power_consumption=消耗功率
+gtsr.gui.redstone_hatch.entry.working=工作状态
+gtsr.tooltip.redstone_hatch.desc=可安装在任意多方块机器上
+gtsr.tooltip.redstone_hatch.output=按所选词条值输出红石信号
+gtsr.tooltip.redstone_hatch.gui=右键打开 GUI 设置阈值与更新频率
+gt.blockmachines.gtsr.redstone_hatch.name=红石仓

@@ -9,6 +9,7 @@ import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.value.sync.IntSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.widgets.ListWidget;
+import com.miaokatze.gtsr.common.api.progress.IGTSRProgressProvider;
 
 import gregtech.common.gui.modularui.multiblock.base.MTESteamMultiBlockBaseGui;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTESteamMultiBlockBase;
@@ -31,7 +32,8 @@ public class MTEAtmosphericCentrifugeGui extends MTESteamMultiBlockBaseGui {
     protected ListWidget<IWidget, ?> createTerminalTextWidget(PanelSyncManager syncManager, ModularPanel parent) {
         IntSyncValue tierSyncer = syncManager.findSyncHandler("gtsr.tier", IntSyncValue.class);
 
-        return super.createTerminalTextWidget(syncManager, parent).child(IKey.dynamic(() -> {
+        ListWidget<IWidget, ?> list = super.createTerminalTextWidget(syncManager, parent);
+        list.child(IKey.dynamic(() -> {
             String tierText = tierSyncer.getValue() == 2 ? StatCollector.translateToLocal("gtsr.gui.tier.steel")
                 : StatCollector.translateToLocal("gtsr.gui.tier.bronze");
             return EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.tier")
@@ -51,33 +53,25 @@ public class MTEAtmosphericCentrifugeGui extends MTESteamMultiBlockBaseGui {
             })
                 .asWidget()
                 .marginBottom(2)
-                .fullWidth())
-            .child(
-                IKey.dynamic(
-                    () -> EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.parallel")
-                        + EnumChatFormatting.GOLD
-                        + ((com.miaokatze.gtsr.common.machine.MTEAtmosphericCentrifuge) multiblock)
-                            .getMaxParallelRecipes())
-                    .asWidget()
-                    .marginBottom(2)
-                    .fullWidth())
-            .child(IKey.dynamic(() -> {
-                com.miaokatze.gtsr.common.machine.MTEAtmosphericCentrifuge machine = (com.miaokatze.gtsr.common.machine.MTEAtmosphericCentrifuge) multiblock;
-                boolean hasChip = machine.hasRareGasChip();
-                int tier = tierSyncer.getValue();
-                if (hasChip && tier < 2) {
-                    return EnumChatFormatting.YELLOW
-                        + StatCollector.translateToLocal("gtsr.gui.atmospheric_centrifuge.chip")
-                        + EnumChatFormatting.RED
-                        + StatCollector.translateToLocal("gtsr.gui.atmospheric_centrifuge.need_steel");
-                }
+                .fullWidth());
+        GTSRProgressBarGuiHelper.appendEntryRows(list, syncManager, (IGTSRProgressProvider) multiblock);
+        list.child(IKey.dynamic(() -> {
+            com.miaokatze.gtsr.common.machine.MTEAtmosphericCentrifuge machine = (com.miaokatze.gtsr.common.machine.MTEAtmosphericCentrifuge) multiblock;
+            boolean hasChip = machine.hasRareGasChip();
+            int tier = tierSyncer.getValue();
+            if (hasChip && tier < 2) {
                 return EnumChatFormatting.YELLOW
                     + StatCollector.translateToLocal("gtsr.gui.atmospheric_centrifuge.chip")
-                    + (hasChip ? EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.gui.installed")
-                        : EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.gui.not_installed"));
-            })
-                .asWidget()
-                .marginBottom(2)
-                .fullWidth());
+                    + EnumChatFormatting.RED
+                    + StatCollector.translateToLocal("gtsr.gui.atmospheric_centrifuge.need_steel");
+            }
+            return EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.atmospheric_centrifuge.chip")
+                + (hasChip ? EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.gui.installed")
+                    : EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.gui.not_installed"));
+        })
+            .asWidget()
+            .marginBottom(2)
+            .fullWidth());
+        return list;
     }
 }

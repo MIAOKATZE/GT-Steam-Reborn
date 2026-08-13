@@ -50,6 +50,7 @@ import com.miaokatze.gtsr.api.compat.GTSRHatchFluidAccess;
 import com.miaokatze.gtsr.api.util.CasingTierTextureHelper;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.gui.MTEKineticProcessingArrayGui;
+import com.miaokatze.gtsr.common.machine.base.MTEGTSRMultiBlockBase;
 import com.miaokatze.gtsr.common.machine.base.MTEHatchPressureSteamInput;
 import com.miaokatze.gtsr.common.machine.base.MTEPressureSteamCoolingHatch;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
@@ -69,7 +70,6 @@ import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.logic.ProcessingLogic;
 import gregtech.api.metatileentity.implementations.MTEBasicMachine;
 import gregtech.api.metatileentity.implementations.MTEBasicMachineWithRecipe;
-import gregtech.api.metatileentity.implementations.MTEEnhancedMultiBlockBase;
 import gregtech.api.metatileentity.implementations.MTEHatchInput;
 import gregtech.api.recipe.RecipeMap;
 import gregtech.api.recipe.RecipeMaps;
@@ -93,7 +93,7 @@ import gregtech.common.tileentities.machines.basic.MTEPotionBrewer;
 import gregtech.common.tileentities.machines.basic.MTERockBreaker;
 import gtPlusPlus.api.recipe.GTPPRecipeMaps;
 
-public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKineticProcessingArray>
+public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticProcessingArray>
     implements IConstructable, ISurvivalConstructable {
 
     private static final String STRUCTURE_PIECE_MAIN = "main";
@@ -204,11 +204,45 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
     public MTEKineticProcessingArray(int aID, String aName, String aNameRegional) {
         super(aID, aName, aNameRegional);
         cleanroomReference.setCleanroom(KineticCleanroom.INSTANCE);
+        registerProgressEntries();
     }
 
     public MTEKineticProcessingArray(String aName) {
         super(aName);
         cleanroomReference.setCleanroom(KineticCleanroom.INSTANCE);
+        registerProgressEntries();
+    }
+
+    // GTSR 进度词条：注册顺序 = GUI 终端显示顺序（蒸汽速率/每安培/高压蒸汽/并行；电压与增幅模式为文本行保留在 GUI）
+    private void registerProgressEntries() {
+        registerEntry(
+            "steam_rate",
+            "gtsr.gui.kinetic_array.steam_rate",
+            "%.2f",
+            EnumChatFormatting.AQUA,
+            () -> mSteamRate);
+        registerEntry(
+            "steam_per_amp",
+            "gtsr.gui.kinetic_array.steam_per_amp",
+            "%,.0f L/t",
+            EnumChatFormatting.YELLOW,
+            () -> mSteamPerAmp);
+        registerEntry(
+            "hp_steam",
+            "gtsr.gui.kinetic_array.hp_steam",
+            "%,.0f L/t",
+            EnumChatFormatting.RED,
+            () -> mRealtimeSteamCost);
+        // 并行：显示 "当前/上限"，formatter 内读机器字段拼上限
+        registerEntryCustom(
+            "parallel",
+            "gtsr.gui.kinetic_array.parallel",
+            EnumChatFormatting.LIGHT_PURPLE,
+            () -> mParallelCount,
+            v -> NumberFormatUtil.formatNumber((long) v) + EnumChatFormatting.WHITE
+                + "/"
+                + EnumChatFormatting.YELLOW
+                + NumberFormatUtil.formatNumber(maxParallel));
     }
 
     @Override

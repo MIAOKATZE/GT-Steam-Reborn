@@ -10,7 +10,6 @@ import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.value.sync.IntSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.widgets.ListWidget;
-import com.gtnewhorizon.gtnhlib.util.numberformatting.NumberFormatUtil;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.machine.MTEMegaSteamTurbineArray;
 
@@ -26,11 +25,8 @@ public class MTEMegaSteamTurbineArrayGui extends MTEMultiBlockBaseGui<MTEEnhance
     private IntSyncValue mTheoreticalEUtSync;
     private IntSyncValue mSteamConsumptionSync;
     private IntSyncValue mSteamTypeOrdinalSync;
-    private IntSyncValue mEfficiencySync;
-    private IntSyncValue mEUtSync;
     private IntSyncValue mGearTierSync;
     private IntSyncValue mPipeTierSync;
-    private IntSyncValue mPowerParameterSync;
     private IntSyncValue mSingularityModeSync;
     private IntSyncValue mSingularityModeTicksSync;
 
@@ -53,13 +49,8 @@ public class MTEMegaSteamTurbineArrayGui extends MTEMultiBlockBaseGui<MTEEnhance
         mSteamTypeOrdinalSync = new IntSyncValue(
             () -> turbineArray.mSteamType.ordinal(),
             val -> turbineArray.mSteamType = MTEMegaSteamTurbineArray.SteamType.values()[val]);
-        mEfficiencySync = new IntSyncValue(() -> turbineArray.mEfficiency, val -> turbineArray.mEfficiency = val);
-        mEUtSync = new IntSyncValue(() -> turbineArray.mEUt, val -> turbineArray.mEUt = val);
         mGearTierSync = new IntSyncValue(() -> turbineArray.mGearTier, val -> turbineArray.mGearTier = val);
         mPipeTierSync = new IntSyncValue(() -> turbineArray.mPipeTier, val -> turbineArray.mPipeTier = val);
-        mPowerParameterSync = new IntSyncValue(
-            () -> turbineArray.mPowerParameter,
-            val -> turbineArray.mPowerParameter = val);
         mSingularityModeSync = new IntSyncValue(
             () -> turbineArray.mSingularityMode,
             val -> turbineArray.mSingularityMode = val);
@@ -72,18 +63,17 @@ public class MTEMegaSteamTurbineArrayGui extends MTEMultiBlockBaseGui<MTEEnhance
         syncManager.syncValue("turbineTheoreticalEUt", mTheoreticalEUtSync);
         syncManager.syncValue("turbineSteamConsumption", mSteamConsumptionSync);
         syncManager.syncValue("turbineSteamTypeOrdinal", mSteamTypeOrdinalSync);
-        syncManager.syncValue("turbineEfficiency", mEfficiencySync);
-        syncManager.syncValue("turbineEUt", mEUtSync);
         syncManager.syncValue("turbineGearTier", mGearTierSync);
         syncManager.syncValue("turbinePipeTier", mPipeTierSync);
-        syncManager.syncValue("turbinePowerParameter", mPowerParameterSync);
         syncManager.syncValue("turbineSingularityMode", mSingularityModeSync);
         syncManager.syncValue("turbineSingularityModeTicks", mSingularityModeTicksSync);
     }
 
     @Override
     protected ListWidget<IWidget, ?> createTerminalTextWidget(PanelSyncManager syncManager, ModularPanel parent) {
-        return super.createTerminalTextWidget(syncManager, parent).child(IKey.dynamic(() -> {
+        ListWidget<IWidget, ?> widget = super.createTerminalTextWidget(syncManager, parent);
+        // 文本行：蒸汽类型（数值词条由机器注册，appendEntryRows 在其后统一渲染）
+        widget.child(IKey.dynamic(() -> {
             MTEMegaSteamTurbineArray.SteamType steamType = MTEMegaSteamTurbineArray.SteamType
                 .values()[mSteamTypeOrdinalSync.getValue()];
             return EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.steam_type")
@@ -94,110 +84,24 @@ public class MTEMegaSteamTurbineArrayGui extends MTEMultiBlockBaseGui<MTEEnhance
             .asWidget()
             .marginBottom(2)
             .fullWidth()
+            .setEnabledIf(w -> multiblock.mMachine));
+        GTSRProgressBarGuiHelper.appendEntryRows(widget, syncManager, turbineArray);
+        return widget.child(IKey.dynamic(() -> {
+            int stackCount = mStackCountSync.getValue();
+            return EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.turbine_array.stacks")
+                + EnumChatFormatting.AQUA
+                + (1 + stackCount)
+                + StatCollector.translateToLocal("gtsr.gui.turbine_array.groups")
+                + EnumChatFormatting.WHITE
+                + " ("
+                + (stackCount == 0 ? StatCollector.translateToLocal("gtsr.gui.turbine_array.baseline")
+                    : "+" + stackCount + StatCollector.translateToLocal("gtsr.gui.turbine_array.extra"))
+                + ")";
+        })
+            .asWidget()
+            .marginBottom(2)
+            .fullWidth()
             .setEnabledIf(w -> multiblock.mMachine))
-            .child(IKey.dynamic(() -> {
-                MTEMegaSteamTurbineArray.SteamType steamType = MTEMegaSteamTurbineArray.SteamType
-                    .values()[mSteamTypeOrdinalSync.getValue()];
-                // 客户端按同步的奇点模式等级换算功率倍率：2→×5、1→×2、0→×1
-                int powerMult = mSingularityModeSync.getValue() == 2 ? 5 : mSingularityModeSync.getValue() == 1 ? 2 : 1;
-                return EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.turbine_array.eu_t")
-                    + EnumChatFormatting.AQUA
-                    + NumberFormatUtil.formatNumber(
-                        (long) (turbineArray.getVoltage() * mPowerParameterSync.getValue()
-                            * turbineArray.getGroupCount()
-                            * powerMult
-                            * (turbineArray.getMaxEfficiencyLimit(steamType) / 10000.0)
-                            * turbineArray.getEffectiveSteamEffFactor(steamType)))
-                    + " EU/t";
-            })
-                .asWidget()
-                .marginBottom(2)
-                .fullWidth()
-                .setEnabledIf(w -> multiblock.mMachine))
-            .child(IKey.dynamic(() -> {
-                MTEMegaSteamTurbineArray.SteamType steamType = MTEMegaSteamTurbineArray.SteamType
-                    .values()[mSteamTypeOrdinalSync.getValue()];
-                return EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.turbine_array.steam")
-                    + EnumChatFormatting.AQUA
-                    + NumberFormatUtil.formatNumber(turbineArray.calcSteamConsumption(steamType))
-                    + " L/t";
-            })
-                .asWidget()
-                .marginBottom(2)
-                .fullWidth()
-                .setEnabledIf(w -> multiblock.mMachine))
-            .child(
-                IKey.dynamic(
-                    () -> EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.turbine_array.savings")
-                        + EnumChatFormatting.GREEN
-                        + String.format("%.0f%%", turbineArray.getSteamSavings() * 100))
-                    .asWidget()
-                    .marginBottom(2)
-                    .fullWidth()
-                    .setEnabledIf(w -> multiblock.mMachine))
-            .child(IKey.dynamic(() -> {
-                int stackCount = mStackCountSync.getValue();
-                return EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.turbine_array.stacks")
-                    + EnumChatFormatting.AQUA
-                    + (1 + stackCount)
-                    + StatCollector.translateToLocal("gtsr.gui.turbine_array.groups")
-                    + EnumChatFormatting.WHITE
-                    + " ("
-                    + (stackCount == 0 ? StatCollector.translateToLocal("gtsr.gui.turbine_array.baseline")
-                        : "+" + stackCount + StatCollector.translateToLocal("gtsr.gui.turbine_array.extra"))
-                    + ")";
-            })
-                .asWidget()
-                .marginBottom(2)
-                .fullWidth()
-                .setEnabledIf(w -> multiblock.mMachine))
-            .child(IKey.dynamic(() -> {
-                MTEMegaSteamTurbineArray.SteamType steamType = MTEMegaSteamTurbineArray.SteamType
-                    .values()[mSteamTypeOrdinalSync.getValue()];
-                int efficiency = mEfficiencySync.getValue();
-                int maxEff = turbineArray.getMaxEfficiencyLimit(steamType);
-                return EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.turbine_array.efficiency")
-                    + (efficiency >= maxEff ? EnumChatFormatting.LIGHT_PURPLE
-                        : efficiency >= 10000 ? EnumChatFormatting.GREEN : EnumChatFormatting.YELLOW)
-                    + String.format("%.1f%%", efficiency / 100.0)
-                    + (efficiency >= maxEff ? StatCollector.translateToLocal("gtsr.gui.turbine_array.max") : "");
-            })
-                .asWidget()
-                .marginBottom(2)
-                .fullWidth()
-                .setEnabledIf(w -> multiblock.mMachine))
-            .child(IKey.dynamic(() -> {
-                MTEMegaSteamTurbineArray.SteamType steamType = MTEMegaSteamTurbineArray.SteamType
-                    .values()[mSteamTypeOrdinalSync.getValue()];
-                return EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.turbine_array.max_efficiency")
-                    + EnumChatFormatting.LIGHT_PURPLE
-                    + String.format("%.1f%%", turbineArray.getMaxEfficiencyLimit(steamType) / 100.0);
-            })
-                .asWidget()
-                .marginBottom(2)
-                .fullWidth()
-                .setEnabledIf(w -> multiblock.mMachine))
-            .child(
-                IKey.dynamic(
-                    () -> EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.turbine_array.output")
-                        + EnumChatFormatting.GREEN
-                        + NumberFormatUtil
-                            .formatNumber(Math.abs((long) mEUtSync.getValue() * mEfficiencySync.getValue() / 10000))
-                        + " EU/t")
-                    .asWidget()
-                    .marginBottom(2)
-                    .fullWidth()
-                    .setEnabledIf(w -> multiblock.mMachine))
-            .child(
-                IKey.dynamic(
-                    () -> EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.turbine_array.power_param")
-                        + EnumChatFormatting.AQUA
-                        + (mPowerParameterSync.getValue() * 10)
-                        + "%")
-                    .asWidget()
-                    .marginBottom(2)
-                    .fullWidth()
-                    .setEnabledIf(w -> multiblock.mMachine))
             .child(IKey.dynamic(() -> {
                 if (mSingularityModeSync.getValue() == 0) {
                     return EnumChatFormatting.GOLD

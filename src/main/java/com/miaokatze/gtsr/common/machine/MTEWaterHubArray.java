@@ -43,6 +43,7 @@ import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.gui.MTEWaterHubArrayGui;
 import com.miaokatze.gtsr.common.machine.base.MTEFilteredCacheNode;
+import com.miaokatze.gtsr.common.machine.base.MTEGTSRMultiBlockBase;
 import com.miaokatze.gtsr.common.machine.base.MTEHubStorageUnit;
 import com.miaokatze.gtsr.common.machine.base.MTEReinforcedHubStorageUnit;
 import com.miaokatze.gtsr.common.machine.base.MTEWaterCacheNode;
@@ -62,7 +63,6 @@ import gregtech.api.interfaces.IIconContainer;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
-import gregtech.api.metatileentity.implementations.MTEEnhancedMultiBlockBase;
 import gregtech.api.render.TextureFactory;
 import gregtech.api.structure.error.StructureError;
 import gregtech.api.structure.error.StructureErrorRegistry;
@@ -72,7 +72,7 @@ import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
 import gregtech.common.misc.GTStructureChannels;
 
-public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray>
+public class MTEWaterHubArray extends MTEGTSRMultiBlockBase<MTEWaterHubArray>
     implements IConstructable, ISurvivalConstructable, com.miaokatze.gtsr.common.machine.base.IHubArray {
 
     private static final String STRUCTURE_PIECE_BASE = "base";
@@ -326,10 +326,35 @@ public class MTEWaterHubArray extends MTEEnhancedMultiBlockBase<MTEWaterHubArray
 
     public MTEWaterHubArray(int aID, String aName, String aNameRegional) {
         super(aID, aName, aNameRegional);
+        registerProgressEntries();
     }
 
     public MTEWaterHubArray(String aName) {
         super(aName);
+        registerProgressEntries();
+    }
+
+    // GTSR 进度词条：注册顺序 = GUI 终端显示顺序（存储单元/水缓冲/总容量；等级/芯片/状态为文本行保留在 GUI）
+    private void registerProgressEntries() {
+        // 存储单元：显示 "已装/上限(9×堆叠)"，formatter 内读机器字段拼上限
+        registerEntryCustom(
+            "storage_units",
+            "gtsr.gui.water_hub.storage_units",
+            EnumChatFormatting.GOLD,
+            () -> mHubUnitCount + mReinforcedHubUnitCount,
+            v -> (long) v + "/" + (9 * mStackCount));
+        registerEntryCustom(
+            "water_buffer",
+            "gtsr.gui.water_hub.water_buffer",
+            EnumChatFormatting.LIGHT_PURPLE,
+            () -> mWaterStored,
+            v -> UnitFormatUtil.format((long) v) + " L");
+        registerEntryCustom(
+            "total_capacity",
+            "gtsr.gui.water_hub.total_capacity",
+            EnumChatFormatting.LIGHT_PURPLE,
+            () -> getTotalCapacity(),
+            v -> UnitFormatUtil.format((long) v) + " L");
     }
 
     @Override

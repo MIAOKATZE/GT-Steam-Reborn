@@ -37,6 +37,7 @@ import com.gtnewhorizons.modularui.common.widget.FakeSyncWidget;
 import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import com.miaokatze.gtsr.common.gui.MTELargeCokeOvenGui;
+import com.miaokatze.gtsr.common.machine.base.MTEGTSRMultiBlockBase;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
 
 import gregtech.api.GregTechAPI;
@@ -45,7 +46,6 @@ import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.logic.ProcessingLogic;
-import gregtech.api.metatileentity.implementations.MTEEnhancedMultiBlockBase;
 import gregtech.api.metatileentity.implementations.MTEHatch;
 import gregtech.api.metatileentity.implementations.MTEHatchInputBus;
 import gregtech.api.metatileentity.implementations.MTEHatchOutputBus;
@@ -63,7 +63,7 @@ import gregtech.common.blocks.BlockCasings1;
 import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
 import gregtech.common.tileentities.machines.IDualInputHatch;
 
-public class MTELargeCokeOven extends MTEEnhancedMultiBlockBase<MTELargeCokeOven>
+public class MTELargeCokeOven extends MTEGTSRMultiBlockBase<MTELargeCokeOven>
     implements IConstructable, ISurvivalConstructable {
 
     // 炉温升降速率（每秒变化量，1.0 = 100%）
@@ -124,10 +124,22 @@ public class MTELargeCokeOven extends MTEEnhancedMultiBlockBase<MTELargeCokeOven
 
     public MTELargeCokeOven(int aID, String aName, String aNameRegional) {
         super(aID, aName, aNameRegional);
+        registerProgressEntries();
     }
 
     public MTELargeCokeOven(String aName) {
         super(aName);
+        registerProgressEntries();
+    }
+
+    // GTSR 进度词条：注册顺序 = GUI 终端显示顺序（炉温；状态/配方时长/并行为文本行保留在 GUI）
+    private void registerProgressEntries() {
+        registerEntry(
+            "temperature",
+            "gtsr.gui.coke_oven.temperature",
+            "%.1f%%",
+            EnumChatFormatting.RED,
+            () -> mHeat * 100.0d);
     }
 
     @Override

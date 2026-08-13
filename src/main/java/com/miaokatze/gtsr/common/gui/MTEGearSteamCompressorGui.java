@@ -10,7 +10,6 @@ import com.cleanroommc.modularui.value.sync.IntSyncValue;
 import com.cleanroommc.modularui.value.sync.LongSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.widgets.ListWidget;
-import com.gtnewhorizon.gtnhlib.util.numberformatting.NumberFormatUtil;
 import com.miaokatze.gtsr.common.machine.MTEGearSteamCompressor;
 
 import gregtech.api.metatileentity.implementations.MTEEnhancedMultiBlockBase;
@@ -51,48 +50,20 @@ public class MTEGearSteamCompressorGui extends MTEMultiBlockBaseGui<MTEEnhancedM
 
     @Override
     protected ListWidget<IWidget, ?> createTerminalTextWidget(PanelSyncManager syncManager, ModularPanel parent) {
-        return super.createTerminalTextWidget(syncManager, parent)
-            .child(
-                IKey.dynamic(
-                    () -> EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.gear_compressor.tier")
-                        + EnumChatFormatting.GREEN
-                        + (mCasingTierSync.getValue() == 2 ? StatCollector.translateToLocal("gtsr.gui.tier.steel")
-                            : mCasingTierSync.getValue() == 1 ? StatCollector.translateToLocal("gtsr.gui.tier.bronze")
-                                : StatCollector.translateToLocal("gtsr.gui.tier.none")))
-                    .asWidget()
-                    .marginBottom(2)
-                    .fullWidth()
-                    .setEnabledIf(w -> multiblock.mMachine))
-            .child(
-                IKey.dynamic(
-                    () -> EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.gear_compressor.steam_in")
-                        + EnumChatFormatting.RED
-                        + NumberFormatUtil.formatNumber(mSteamConsumedLastTickSync.getValue())
-                        + " L/s")
-                    .asWidget()
-                    .marginBottom(2)
-                    .fullWidth()
-                    .setEnabledIf(w -> multiblock.mMachine))
-            .child(
-                IKey.dynamic(
-                    () -> EnumChatFormatting.GOLD
-                        + StatCollector.translateToLocal("gtsr.gui.gear_compressor.sh_steam_out")
-                        + EnumChatFormatting.AQUA
-                        + NumberFormatUtil.formatNumber(mSuperheatedOutputLastTickSync.getValue())
-                        + " L/s")
-                    .asWidget()
-                    .marginBottom(2)
-                    .fullWidth()
-                    .setEnabledIf(w -> multiblock.mMachine))
-            .child(
-                IKey.dynamic(
-                    () -> EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.gear_compressor.water_out")
-                        + EnumChatFormatting.BLUE
-                        + NumberFormatUtil.formatNumber(mWaterOutputLastTickSync.getValue())
-                        + " L/s")
-                    .asWidget()
-                    .marginBottom(2)
-                    .fullWidth()
-                    .setEnabledIf(w -> multiblock.mMachine));
+        // 蒸汽输入/超热蒸汽输出/水输出数值行已迁移至 GTSRProgressBar 词条系统；等级为文本行保留
+        ListWidget<IWidget, ?> list = super.createTerminalTextWidget(syncManager, parent);
+        list.child(
+            IKey.dynamic(
+                () -> EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.gear_compressor.tier")
+                    + EnumChatFormatting.GREEN
+                    + (mCasingTierSync.getValue() == 2 ? StatCollector.translateToLocal("gtsr.gui.tier.steel")
+                        : mCasingTierSync.getValue() == 1 ? StatCollector.translateToLocal("gtsr.gui.tier.bronze")
+                            : StatCollector.translateToLocal("gtsr.gui.tier.none")))
+                .asWidget()
+                .marginBottom(2)
+                .fullWidth()
+                .setEnabledIf(w -> multiblock.mMachine));
+        GTSRProgressBarGuiHelper.appendEntryRows(list, syncManager, compressor);
+        return list;
     }
 }

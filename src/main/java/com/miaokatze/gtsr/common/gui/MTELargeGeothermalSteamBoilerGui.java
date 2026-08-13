@@ -1,7 +1,5 @@
 package com.miaokatze.gtsr.common.gui;
 
-import java.text.NumberFormat;
-
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
@@ -13,7 +11,6 @@ import com.cleanroommc.modularui.value.sync.DoubleSyncValue;
 import com.cleanroommc.modularui.value.sync.IntSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.widgets.ListWidget;
-import com.gtnewhorizon.gtnhlib.util.numberformatting.NumberFormatUtil;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.machine.MTELargeGeothermalSteamBoiler;
 
@@ -28,13 +25,6 @@ public class MTELargeGeothermalSteamBoilerGui extends MTEMultiBlockBaseGui<MTEEn
     private DoubleSyncValue mCalcificationSync;
     private IntSyncValue mCurrentSteamOutputSync;
     private IntSyncValue mSetTierSync;
-
-    private static final NumberFormat numberFormat = NumberFormat.getNumberInstance();
-
-    static {
-        numberFormat.setMinimumFractionDigits(3);
-        numberFormat.setMaximumFractionDigits(3);
-    }
 
     public MTELargeGeothermalSteamBoilerGui(MTEEnhancedMultiBlockBase<?> multiblock) {
         super(multiblock);
@@ -58,7 +48,9 @@ public class MTELargeGeothermalSteamBoilerGui extends MTEMultiBlockBaseGui<MTEEn
 
     @Override
     protected ListWidget<IWidget, ?> createTerminalTextWidget(PanelSyncManager syncManager, ModularPanel parent) {
-        return super.createTerminalTextWidget(syncManager, parent).child(IKey.dynamic(() -> {
+        ListWidget<IWidget, ?> list = super.createTerminalTextWidget(syncManager, parent);
+        // 文本行：芯片等级警告（热量/结垢/蒸汽输出数值行已迁移至 GTSRProgressBar 词条系统）
+        list.child(IKey.dynamic(() -> {
             boolean hasInvalidChip = hasInvalidChip();
             return hasInvalidChip
                 ? EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.gui.geothermal_boiler.chip_tier2_warn")
@@ -66,42 +58,9 @@ public class MTELargeGeothermalSteamBoilerGui extends MTEMultiBlockBaseGui<MTEEn
         })
             .asWidget()
             .marginBottom(2)
-            .fullWidth())
-            .child(
-                IKey.dynamic(
-                    () -> EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.gui.geothermal_boiler.heat")
-                        + EnumChatFormatting.GOLD
-                        + numberFormat.format(mHeatSync.getValue() * 100)
-                        + "% "
-                        + EnumChatFormatting.RESET)
-                    .asWidget()
-                    .marginBottom(2)
-                    .fullWidth())
-            .child(
-                IKey.dynamic(
-                    () -> EnumChatFormatting.WHITE
-                        + StatCollector.translateToLocal("gtsr.gui.geothermal_boiler.calcification")
-                        + EnumChatFormatting.RED
-                        + numberFormat.format(mCalcificationSync.getValue() * 100)
-                        + "% "
-                        + EnumChatFormatting.RESET)
-                    .asWidget()
-                    .marginBottom(2)
-                    .fullWidth())
-            .child(
-                IKey.dynamic(
-                    () -> EnumChatFormatting.WHITE
-                        + StatCollector.translateToLocal("gtsr.gui.geothermal_boiler.steam_output")
-                        + EnumChatFormatting.AQUA
-                        + NumberFormatUtil.formatNumber(mCurrentSteamOutputSync.getValue())
-                        + " L/s "
-                        + EnumChatFormatting.WHITE
-                        + (hasOverheatChip() ? StatCollector.translateToLocal("gtsr.gui.geothermal_boiler.superheated")
-                            : StatCollector.translateToLocal("gtsr.gui.geothermal_boiler.steam"))
-                        + EnumChatFormatting.RESET)
-                    .asWidget()
-                    .marginBottom(2)
-                    .fullWidth());
+            .fullWidth());
+        GTSRProgressBarGuiHelper.appendEntryRows(list, syncManager, boiler);
+        return list;
     }
 
     @Override

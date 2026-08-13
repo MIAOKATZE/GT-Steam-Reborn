@@ -2,6 +2,7 @@ package com.miaokatze.gtsr.mixin;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import net.minecraft.item.ItemStack;
@@ -19,6 +20,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import com.miaokatze.gtsr.api.compat.GTSRHatchFluidAccess;
 import com.miaokatze.gtsr.api.compat.ICoolingHatchHolder;
 import com.miaokatze.gtsr.api.compat.SteamCoolingSupport;
+import com.miaokatze.gtsr.common.api.progress.GTSRProgressBar;
+import com.miaokatze.gtsr.common.api.progress.GTSRProgressEntry;
+import com.miaokatze.gtsr.common.api.progress.IGTSRProgressProvider;
 import com.miaokatze.gtsr.common.machine.base.MTEPressureSteamCoolingHatch;
 import com.miaokatze.gtsr.common.machine.base.MTESteamCoolingHatch;
 import com.miaokatze.gtsr.config.Config;
@@ -42,7 +46,7 @@ import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTEHatch
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTESteamMultiBlockBase;
 
 @Mixin(value = MTESteamMultiBlockBase.class, remap = false)
-public abstract class MTESteamMultiBaseMixin implements ICoolingHatchHolder {
+public abstract class MTESteamMultiBaseMixin implements ICoolingHatchHolder, IGTSRProgressProvider {
 
     // Shadow fields from MTESteamMultiBlockBase (mSteamInputFluids is NOT final in GT5U source)
     @Shadow
@@ -70,6 +74,9 @@ public abstract class MTESteamMultiBaseMixin implements ICoolingHatchHolder {
 
     @Unique
     private long gtsr$pendingSuperheatedSteam = 0; // v1.10.61：新增，超热蒸汽顺序填充后未放入部分暂存
+
+    @Unique
+    private final GTSRProgressBar gtsr$progressBar = new GTSRProgressBar(); // GTSR 进度显示基础设施（机器子类构造时 registerEntry）
 
     @Unique
     private MTESteamMultiBlockBase gtsr$self() {
@@ -115,6 +122,48 @@ public abstract class MTESteamMultiBaseMixin implements ICoolingHatchHolder {
     public void gtsr$setPendingSuperheatedSteam(long value) {
         gtsr$pendingSuperheatedSteam = value;
     }
+
+    // endregion
+
+    // region IGTSRProgressProvider 接口实现（GTSR 进度显示基础设施）
+    // 词条注册/查询全部委托 gtsr$progressBar。词条收集走惰性钩子 gtsr$collectProgressEntries：
+    // mixin 注入的普通方法对 javac 不可见（GT++ jar 未修改），机器子类无法直接调用注入的
+    // registerEntry——改为覆写钩子方法（运行时多态），钩子内调用真实容器类 GTSRProgressBar 的方法。
+
+    @Override
+    @Unique
+    public List<GTSRProgressEntry> getProgressEntries() {
+        if (!gtsr$entriesCollected) {
+            gtsr$collectProgressEntries(gtsr$progressBar);
+            gtsr$entriesCollected = true;
+        }
+        return gtsr$progressBar.getProgressEntries();
+    }
+
+    @Override
+    @Unique
+    public boolean hasEntry(String internalKey) {
+        return gtsr$progressBar.hasEntry(internalKey);
+    }
+
+    @Override
+    @Unique
+    public double getEntryValue(String internalKey) {
+        return gtsr$progressBar.getEntryValue(internalKey);
+    }
+
+    @Override
+    @Unique
+    public String getDisplayKey(String internalKey) {
+        return gtsr$progressBar.getDisplayKey(internalKey);
+    }
+
+    /** 词条收集钩子（空实现）：蒸汽机器子类覆写本方法并调 bar.registerEntry(...) 注册显示口径；首次 getProgressEntries 时触发一次 */
+    @Unique
+    protected void gtsr$collectProgressEntries(GTSRProgressBar bar) {}
+
+    @Unique
+    private boolean gtsr$entriesCollected = false;
 
     // endregion
 

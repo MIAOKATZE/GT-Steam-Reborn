@@ -58,10 +58,22 @@ public class MTECriticalSingularityCompressor extends MTESingularityMachineBase 
 
     public MTECriticalSingularityCompressor(int aID, String aName, String aNameRegional) {
         super(aID, aName, aNameRegional);
+        registerProgressEntries();
     }
 
     public MTECriticalSingularityCompressor(String aName) {
         super(aName);
+        registerProgressEntries();
+    }
+
+    /** 注册终端数值词条（顺序 = GUI 显示顺序；热量 mHeat 口径 0-1，显示 ×100） */
+    private void registerProgressEntries() {
+        registerEntry(
+            "temperature",
+            "gtsr.gui.critical_singularity_compressor.heat",
+            "%.1f%%",
+            EnumChatFormatting.RED,
+            () -> mHeat * 100.0d);
     }
 
     @Override

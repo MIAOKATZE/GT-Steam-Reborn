@@ -48,42 +48,32 @@ public class MTEReinforcedBrickBlastFurnaceGui extends MTEMultiBlockBaseGui<MTEE
 
     @Override
     protected ListWidget<IWidget, ?> createTerminalTextWidget(PanelSyncManager syncManager, ModularPanel parent) {
-        return super.createTerminalTextWidget(syncManager, parent)
-            // 炉温显示：黄色标签 + 红色百分比
-            .child(
-                IKey.dynamic(
-                    () -> EnumChatFormatting.YELLOW
-                        + StatCollector.translateToLocal("gtsr.gui.reinforced_brick_blast_furnace.temperature")
-                        + " "
-                        + EnumChatFormatting.RED
-                        + String.format("%.1f%%", mFurnaceTemperatureSync.getValue() * 100.0d)
-                        + EnumChatFormatting.RESET)
-                    .asWidget()
-                    .marginBottom(2)
-                    .fullWidth())
-            // 运行状态显示：运行中(青)/升温中(黄)/待机中(灰)
-            .child(IKey.dynamic(() -> {
-                String statusKey;
-                EnumChatFormatting statusColor;
-                if (mMaxProgresstimeSync.getValue() > 0) {
-                    statusKey = "gtsr.gui.status.running";
-                    statusColor = EnumChatFormatting.AQUA;
-                } else if (mFurnaceTemperatureSync.getValue() > 0.0d && mFurnaceTemperatureSync.getValue() < 1.0d) {
-                    statusKey = "gtsr.gui.reinforced_brick_blast_furnace.status.heating";
-                    statusColor = EnumChatFormatting.YELLOW;
-                } else {
-                    statusKey = "gtsr.gui.status.idle";
-                    statusColor = EnumChatFormatting.GRAY;
-                }
-                return EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.status")
-                    + " "
-                    + statusColor
-                    + StatCollector.translateToLocal(statusKey)
-                    + EnumChatFormatting.RESET;
-            })
-                .asWidget()
-                .marginBottom(2)
-                .fullWidth())
+        // 炉温数值行已迁移至 GTSRProgressBar 词条系统；状态/并行/速度为文本行保留
+        ListWidget<IWidget, ?> list = super.createTerminalTextWidget(syncManager, parent);
+        GTSRProgressBarGuiHelper.appendEntryRows(list, syncManager, furnace);
+        // 运行状态显示：运行中(青)/升温中(黄)/待机中(灰)
+        list.child(IKey.dynamic(() -> {
+            String statusKey;
+            EnumChatFormatting statusColor;
+            if (mMaxProgresstimeSync.getValue() > 0) {
+                statusKey = "gtsr.gui.status.running";
+                statusColor = EnumChatFormatting.AQUA;
+            } else if (mFurnaceTemperatureSync.getValue() > 0.0d && mFurnaceTemperatureSync.getValue() < 1.0d) {
+                statusKey = "gtsr.gui.reinforced_brick_blast_furnace.status.heating";
+                statusColor = EnumChatFormatting.YELLOW;
+            } else {
+                statusKey = "gtsr.gui.status.idle";
+                statusColor = EnumChatFormatting.GRAY;
+            }
+            return EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.status")
+                + " "
+                + statusColor
+                + StatCollector.translateToLocal(statusKey)
+                + EnumChatFormatting.RESET;
+        })
+            .asWidget()
+            .marginBottom(2)
+            .fullWidth())
             // 并行数显示：黄色标签 + 金色数字
             .child(
                 IKey.dynamic(
@@ -108,5 +98,6 @@ public class MTEReinforcedBrickBlastFurnaceGui extends MTEMultiBlockBaseGui<MTEE
                     .asWidget()
                     .marginBottom(2)
                     .fullWidth());
+        return list;
     }
 }

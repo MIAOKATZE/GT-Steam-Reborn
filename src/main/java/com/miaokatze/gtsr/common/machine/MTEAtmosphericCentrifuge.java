@@ -40,6 +40,8 @@ import com.miaokatze.gtsr.api.compat.ICoolingHatchHolder;
 import com.miaokatze.gtsr.api.compat.SteamCoolingSupport;
 import com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
+import com.miaokatze.gtsr.common.api.progress.GTSRProgressBar;
+import com.miaokatze.gtsr.common.api.progress.GTSRProgressEntry;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
 
 import gregtech.api.GregTechAPI;
@@ -82,6 +84,16 @@ public class MTEAtmosphericCentrifuge extends MTESteamMultiBlockBase<MTEAtmosphe
 
     public MTEAtmosphericCentrifuge(String aName) {
         super(aName);
+    }
+
+    /**
+     * GTSR 进度词条收集钩子（mixin 惰性触发一次）：注册顺序 = GUI 终端显示顺序（并行数）。
+     * 不加 @Override：编译期 GT++ jar 无此方法，运行时由 mixin 注入后多态生效。
+     */
+    protected void gtsr$collectProgressEntries(GTSRProgressBar bar) {
+        bar.registerEntry(
+            GTSRProgressEntry
+                .of("parallel", "gtsr.gui.parallel", "%.0f", EnumChatFormatting.GOLD, () -> getMaxParallelRecipes()));
     }
 
     @Override

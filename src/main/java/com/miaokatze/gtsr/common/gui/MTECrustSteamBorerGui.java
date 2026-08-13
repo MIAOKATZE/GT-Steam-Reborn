@@ -11,7 +11,7 @@ import com.cleanroommc.modularui.value.sync.IntSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.value.sync.StringSyncValue;
 import com.cleanroommc.modularui.widgets.ListWidget;
-import com.gtnewhorizon.gtnhlib.util.numberformatting.NumberFormatUtil;
+import com.miaokatze.gtsr.common.api.progress.IGTSRProgressProvider;
 
 import gregtech.common.gui.modularui.multiblock.base.MTESteamMultiBlockBaseGui;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTESteamMultiBlockBase;
@@ -41,7 +41,8 @@ public class MTECrustSteamBorerGui extends MTESteamMultiBlockBaseGui {
         IntSyncValue dimIdSyncer = syncManager.findSyncHandler("gtsr.dimId", IntSyncValue.class);
         StringSyncValue lastOreSyncer = syncManager.findSyncHandler("gtsr.lastOre", StringSyncValue.class);
 
-        return super.createTerminalTextWidget(syncManager, parent).child(IKey.dynamic(() -> {
+        ListWidget<IWidget, ?> list = super.createTerminalTextWidget(syncManager, parent);
+        list.child(IKey.dynamic(() -> {
             int tier = tierSyncer.getValue();
             String tierText = tier == 2 ? StatCollector.translateToLocal("gtsr.gui.tier.steel")
                 : tier == 1 ? StatCollector.translateToLocal("gtsr.gui.tier.bronze") : "None";
@@ -85,25 +86,8 @@ public class MTECrustSteamBorerGui extends MTESteamMultiBlockBaseGui {
             })
                 .asWidget()
                 .marginBottom(2)
-                .fullWidth())
-            .child(
-                IKey.dynamic(
-                    () -> EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.crust_borer.steam_cost")
-                        + EnumChatFormatting.RED
-                        + NumberFormatUtil
-                            .formatNumber(com.miaokatze.gtsr.common.machine.MTECrustSteamBorer.STEAM_PER_SECOND)
-                        + " L/s")
-                    .asWidget()
-                    .marginBottom(2)
-                    .fullWidth())
-            .child(
-                IKey.dynamic(
-                    () -> EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.crust_borer.work_cycle")
-                        + EnumChatFormatting.YELLOW
-                        + (com.miaokatze.gtsr.common.machine.MTECrustSteamBorer.WORK_TIME_TICKS / 20)
-                        + "s")
-                    .asWidget()
-                    .marginBottom(2)
-                    .fullWidth());
+                .fullWidth());
+        GTSRProgressBarGuiHelper.appendEntryRows(list, syncManager, (IGTSRProgressProvider) multiblock);
+        return list;
     }
 }

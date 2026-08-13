@@ -25,7 +25,6 @@ import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
-import net.minecraft.util.ChatComponentTranslation;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 import net.minecraft.world.World;
@@ -43,6 +42,7 @@ import com.gtnewhorizon.structurelib.structure.StructureDefinition;
 import com.gtnewhorizon.structurelib.util.Vec3Impl;
 import com.miaokatze.gtsr.api.compat.GTVersionCompat;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
+import com.miaokatze.gtsr.common.event.GTSRMachineEvent;
 import com.miaokatze.gtsr.common.gui.AggregatorConfigGuiFactory;
 import com.miaokatze.gtsr.common.gui.MTECrustMatterAggregatorGui;
 import com.miaokatze.gtsr.common.machine.base.MTESingularityMachineBase;
@@ -856,10 +856,10 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
         if (mFortuneLevel > 7) mFortuneLevel = 7;
         if (getBaseMetaTileEntity() != null) getBaseMetaTileEntity().markDirty();
         if (aPlayer != null) {
-            aPlayer.addChatMessage(
-                new ChatComponentTranslation(
-                    mDirectionalMode ? "gtsr.aggregator_config.directional.chat.on"
-                        : "gtsr.aggregator_config.directional.chat.off"));
+            GTSRMachineEvent.sendToPlayer(
+                aPlayer,
+                mDirectionalMode ? "gtsr.aggregator_config.directional.chat.on"
+                    : "gtsr.aggregator_config.directional.chat.off");
         }
     }
 

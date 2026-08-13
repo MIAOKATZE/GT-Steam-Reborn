@@ -36,6 +36,8 @@ import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import com.miaokatze.gtsr.api.compat.ICoolingHatchHolder;
 import com.miaokatze.gtsr.api.compat.SteamCoolingSupport;
+import com.miaokatze.gtsr.common.api.progress.GTSRProgressBar;
+import com.miaokatze.gtsr.common.api.progress.GTSRProgressEntry;
 import com.miaokatze.gtsr.common.machine.base.VoidMinerUtilityShim;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
 
@@ -86,6 +88,27 @@ public class MTECrustSteamBorer extends MTESteamMultiBlockBase<MTECrustSteamBore
 
     public MTECrustSteamBorer(String aName) {
         super(aName);
+    }
+
+    /**
+     * GTSR 进度词条收集钩子（mixin 惰性触发一次）：注册顺序 = GUI 终端显示顺序（蒸汽消耗 → 工作周期）。
+     * 不加 @Override：编译期 GT++ jar 无此方法，运行时由 mixin 注入后多态生效。
+     */
+    protected void gtsr$collectProgressEntries(GTSRProgressBar bar) {
+        bar.registerEntry(
+            GTSRProgressEntry.of(
+                "steam_input",
+                "gtsr.gui.crust_borer.steam_cost",
+                "%,.0f L/s",
+                EnumChatFormatting.RED,
+                () -> STEAM_PER_SECOND));
+        bar.registerEntry(
+            GTSRProgressEntry.of(
+                "work_cycle",
+                "gtsr.gui.crust_borer.work_cycle",
+                "%.0fs",
+                EnumChatFormatting.YELLOW,
+                () -> WORK_TIME_TICKS / 20.0));
     }
 
     @Override

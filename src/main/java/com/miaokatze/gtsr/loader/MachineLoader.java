@@ -30,6 +30,7 @@ import com.miaokatze.gtsr.common.machine.MTEVeinSteamPyrolyzer;
 import com.miaokatze.gtsr.common.machine.MTEVoidCrustSteamBorerOLD;
 import com.miaokatze.gtsr.common.machine.MTEWaterHubArray;
 import com.miaokatze.gtsr.common.machine.base.MTEDistilledWaterHatch;
+import com.miaokatze.gtsr.common.machine.base.MTEGTSRRedstoneHatch;
 import com.miaokatze.gtsr.common.machine.base.MTEHatchPressureSteamInput;
 import com.miaokatze.gtsr.common.machine.base.MTEHubStorageUnit;
 import com.miaokatze.gtsr.common.machine.base.MTELegacyConverter;
@@ -492,6 +493,9 @@ public class MachineLoader {
             "gtsr.legacy.converter.distilled_water_hatch",
             "[OLD] Distilled Water Hatch",
             MetaTileEntityID.DISTILLED_WATER_HATCH.ID);
+        // 红石仓：任意多方块机器通用红石信号输出仓（267 为新 ID，无旧 ID 转换需求，不加 LegacyConverter）
+        GTSRItemList.RedstoneHatch
+            .set(new MTEGTSRRedstoneHatch(MetaTileEntityID.REDSTONE_HATCH.ID, "gtsr.redstone_hatch", "Redstone Hatch"));
     }
 
     /**
@@ -551,6 +555,8 @@ public class MachineLoader {
         CreativeTabManager.addItemToTab(GTSRItemList.PressureSteamCoolingHatch.get(1));
         // --- 仓室 (41) ---
         CreativeTabManager.addItemToTab(GTSRItemList.MegaAirInputHatch.get(1));
+        // 红石仓：任意多方块机器通用红石信号输出仓
+        CreativeTabManager.addItemToTab(GTSRItemList.RedstoneHatch.get(1));
         // --- 新增奇点机器 (43-44) ---
         CreativeTabManager.addItemToTab(GTSRItemList.CriticalSingularityCompressor.get(1));
         CreativeTabManager.addItemToTab(GTSRItemList.DenseStateManipulator.get(1));
