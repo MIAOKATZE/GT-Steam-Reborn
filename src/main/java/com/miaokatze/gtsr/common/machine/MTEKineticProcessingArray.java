@@ -679,16 +679,9 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
         long remaining = required;
         FluidStack superheatedProbe = FluidRegistry.getFluidStack("ic2superheatedsteam", 1);
         if (superheatedProbe != null) {
-            for (MTEHatchInput hatch : GTUtility.validMTEList(mInputHatches)) {
-                if (remaining <= 0) break;
-                // v1.10.6：统一走 GTSRHatchFluidAccess 按需量取流（模拟→实扣）
-                int drained = GTSRHatchFluidAccess.drainFluidExact(
-                    hatch,
-                    new FluidStack(superheatedProbe.getFluid(), (int) Math.min(remaining, Integer.MAX_VALUE)));
-                if (drained > 0) {
-                    remaining -= drained;
-                }
-            }
+            remaining -= GTSRHatchFluidAccess.depleteFluidAcross(
+                mInputHatches,
+                new FluidStack(superheatedProbe.getFluid(), (int) Math.min(remaining, Integer.MAX_VALUE)));
         }
         for (MTEHatchPressureSteamInput hatch : mPressureSteamInputs) {
             FluidStack fs = hatch.getFluid();
@@ -778,12 +771,6 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
         mMaxRecipeVoltage = effectiveV;
         mBoostRemainingSeconds = getBoostRemainingSeconds();
         double rate = getSteamConsumptionRate();
-        long estimatedSteamPerTick = (long) (rate * effectiveV);
-
-        if (!hasSufficientSuperheatedSteam(estimatedSteamPerTick)) {
-            return SimpleCheckRecipeResult.ofFailure("insufficient_steam");
-        }
-
         mSteamRate = rate;
         mSteamPerAmp = (long) (rate * effectiveV);
         mParallelCount = maxParallel;
@@ -820,6 +807,13 @@ public class MTEKineticProcessingArray extends MTEEnhancedMultiBlockBase<MTEKine
             @Nonnull
             @Override
             protected CheckRecipeResult validateRecipe(@Nonnull GTRecipe recipe) {
+                double rate = getSteamConsumptionRate();
+                long estimatedParallel = Math
+                    .min(getMaxParallelRecipes(), Math.max(1, getMaxInputPower() / Math.max(1, recipe.mEUt)));
+                long neededSteam = (long) (rate * recipe.mEUt * estimatedParallel * getEUtDiscount());
+                if (neededSteam > 0 && !hasSufficientSuperheatedSteam(neededSteam)) {
+                    return SimpleCheckRecipeResult.ofFailure("insufficient_steam");
+                }
                 return CheckRecipeResultRegistry.SUCCESSFUL;
             }
 

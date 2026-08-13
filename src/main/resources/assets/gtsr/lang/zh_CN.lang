@@ -576,7 +576,6 @@ GT5U.gui.text.recipe_result.gtsr.gui.siemens_martin.temperature_low=炉温未达
 
 # Kinetic Processing Array (动力加工阵列)
 gt.blockmachines.gtsr.kinetic.processing.array.name=动力加工阵列
-gtsr.recipe.kinetic_processing_array=动力加工阵列
 
 # Mega Steam Turbine Array - Cooling Hatch (巨型蒸汽轮机机组-冷却仓)
 
@@ -712,7 +711,6 @@ gtsr.tooltip.kinetic_array.type=动力加工阵列, KPA
 gtsr.tooltip.kinetic_array.desc=在控制器GUI中放入GT单方块机器，以电力+过热蒸汽辅助运行，执行该机器对应配方。
 gtsr.tooltip.kinetic_array.desc2=并行数=(1+2×机器等级)+机器数量，电力仓等级不得高于外壳等级。
 gtsr.tooltip.kinetic_array.desc3=蒸汽消耗率随电压等级递减：
-gtsr.tooltip.kinetic_array.desc4=新增功能：手持蒸汽纠缠节点右击控制器，可临时将配方电压上限提高一级，持续1200秒；内置洁净室支持；兼容 Crafting Input Bus/Buffer/Proxy（ME）；电解、离心、化学反应配方使用多方块兼容配方表。
 gtsr.tooltip.kinetic_array.ctrl=正面中央
 gtsr.tooltip.kinetic_array.steam_input=蒸汽仓/耐压蒸汽仓/输入仓
 gtsr.tooltip.kinetic_array.input=输入总线

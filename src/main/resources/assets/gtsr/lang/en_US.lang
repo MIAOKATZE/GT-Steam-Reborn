@@ -576,7 +576,6 @@ GT5U.gui.text.recipe_result.gtsr.gui.siemens_martin.temperature_low=Temperature 
 
 # Kinetic Processing Array
 gt.blockmachines.gtsr.kinetic.processing.array.name=Kinetic Processing Array
-gtsr.recipe.kinetic_processing_array=Kinetic Processing Array
 
 # Mega Steam Turbine Array - Cooling Hatch
 
@@ -697,7 +696,6 @@ gtsr.tooltip.kinetic_array.type=Kinetic Processing Array, KPA
 gtsr.tooltip.kinetic_array.desc=Insert GT single-block machines into the controller GUI, powered by electricity + superheated steam, executes the machine's recipes.
 gtsr.tooltip.kinetic_array.desc2=Parallel = (1 + 2×machineTier) + machine count; energy hatch tier must not exceed casing tier.
 gtsr.tooltip.kinetic_array.desc3=Steam consumption rate decreases with voltage tier:
-gtsr.tooltip.kinetic_array.desc4=New: right-click with a Steam Entanglement Node to temporarily raise the recipe voltage limit by one tier for 1200 seconds; built-in Cleanroom support; Crafting Input Bus/Buffer/Proxy (ME) support; Electrolyzer, Centrifuge, and Chemical Reactor recipes use multiblock-compatible recipe maps.
 gtsr.tooltip.kinetic_array.ctrl=Front center
 gtsr.tooltip.kinetic_array.steam_input=Steam Hatch / Pressure Steam Hatch / Input Hatch
 gtsr.tooltip.kinetic_array.input=Input Bus
