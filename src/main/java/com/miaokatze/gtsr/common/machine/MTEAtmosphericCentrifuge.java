@@ -496,7 +496,8 @@ public class MTEAtmosphericCentrifuge extends MTESteamMultiBlockBase<MTEAtmosphe
                 StatCollector.translateToLocal("gtsr.tooltip.atmospheric_centrifuge.chip_desc"))
             .addStructureHint("gtsr.tooltip.shared.no_maintenance")
             .addStructureHint("gtsr.tooltip.atmospheric_centrifuge.optional_cooling")
-            .toolTipFinisher(GTSRUtils.getAddedByLine());
+            .addInfo(GTSRUtils.getAddedByLine())
+            .toolTipFinisher();
         return tt;
     }
 

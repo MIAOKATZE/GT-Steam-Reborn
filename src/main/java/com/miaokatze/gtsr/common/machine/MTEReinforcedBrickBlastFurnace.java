@@ -559,7 +559,8 @@ public class MTEReinforcedBrickBlastFurnace extends MTEGTSRMultiBlockBase<MTERei
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.firebricks"), 20, false)
             .addStructureHint("gtsr.tooltip.shared.no_maintenance")
             .addStructureHint("gtsr.tooltip.reinforced_brick_blast_furnace.hatch_steam")
-            .toolTipFinisher(GTSRUtils.getAddedByLine());
+            .addInfo(GTSRUtils.getAddedByLine())
+            .toolTipFinisher();
         return tt;
     }
 }

@@ -444,7 +444,8 @@ public class MTELargeSteamFurnace extends MTESteamMultiBlockBase<MTELargeSteamFu
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.frame"), 20, false)
             .addStructureHint("gtsr.tooltip.steam_furnace.optional_cooling")
             .addStructureHint("gtsr.tooltip.shared.no_maintenance")
-            .toolTipFinisher(GTSRUtils.getAddedByLine());
+            .addInfo(GTSRUtils.getAddedByLine())
+            .toolTipFinisher();
         return tt;
     }
 

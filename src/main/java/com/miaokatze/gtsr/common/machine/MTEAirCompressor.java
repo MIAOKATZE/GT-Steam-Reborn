@@ -454,7 +454,8 @@ public class MTEAirCompressor extends MTESteamMultiBlockBase<MTEAirCompressor> i
                     + ")")
             .addStructureHint("gtsr.tooltip.shared.no_maintenance")
             .addStructureHint("gtsr.tooltip.air_compressor.optional_cooling")
-            .toolTipFinisher(GTSRUtils.getAddedByLine());
+            .addInfo(GTSRUtils.getAddedByLine())
+            .toolTipFinisher();
         return tt;
     }
 

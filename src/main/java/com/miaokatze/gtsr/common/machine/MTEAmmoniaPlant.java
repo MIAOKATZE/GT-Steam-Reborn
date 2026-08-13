@@ -900,7 +900,8 @@ public class MTEAmmoniaPlant extends MTEGTSRMultiBlockBase<MTEAmmoniaPlant> impl
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.firebox"), 21, false)
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.frame"), 52, false)
             .addStructureHint("gtsr.tooltip.shared.no_maintenance")
-            .toolTipFinisher(GTSRUtils.getAddedByLine());
+            .addInfo(GTSRUtils.getAddedByLine())
+            .toolTipFinisher();
         return tt;
     }
 

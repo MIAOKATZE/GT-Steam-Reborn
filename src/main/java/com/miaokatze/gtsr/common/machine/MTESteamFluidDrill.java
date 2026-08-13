@@ -527,7 +527,8 @@ public class MTESteamFluidDrill extends MTESteamMultiBlockBase<MTESteamFluidDril
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.frame"), 10, false)
             .addStructureHint("gtsr.tooltip.shared.no_maintenance")
             .addStructureHint("gtsr.tooltip.fluid_drill.hint_bronze")
-            .toolTipFinisher(GTSRUtils.getAddedByLine());
+            .addInfo(GTSRUtils.getAddedByLine())
+            .toolTipFinisher();
         return tt;
     }
 

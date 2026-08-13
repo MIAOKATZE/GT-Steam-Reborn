@@ -1707,7 +1707,8 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
             .addStructureInfo(EnumChatFormatting.DARK_PURPLE + StatCollector.translateToLocal(keyPrefix + "desc7"))
             .addStructureHint("gtsr.tooltip.shared.no_maintenance")
             .addStructureHint(keyPrefix + "hint_dimension")
-            .toolTipFinisher(GTSRUtils.getAddedByLine());
+            .addInfo(GTSRUtils.getAddedByLine())
+            .toolTipFinisher();
         return tt;
     }
 

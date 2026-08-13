@@ -1577,7 +1577,8 @@ public class MTESteamHubArray extends MTEGTSRMultiBlockBase<MTESteamHubArray>
             .addStructureHint("gtsr.tooltip.shared.hub_singularity_cost")
             .addStructureHint("gtsr.tooltip.shared.overflow_input_screwdriver")
             .addStructureHint("gtsr.tooltip.steam_hub.hint_status")
-            .toolTipFinisher(GTSRUtils.getAddedByLine());
+            .addInfo(GTSRUtils.getAddedByLine())
+            .toolTipFinisher();
         return tt;
     }
 }

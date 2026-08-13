@@ -492,7 +492,8 @@ public class MTECrustSteamBorer extends MTESteamMultiBlockBase<MTECrustSteamBore
                     + "1")
             .addStructureHint("gtsr.tooltip.shared.no_maintenance")
             .addStructureHint("gtsr.tooltip.shared.optional_cooling")
-            .toolTipFinisher(GTSRUtils.getAddedByLine());
+            .addInfo(GTSRUtils.getAddedByLine())
+            .toolTipFinisher();
         return tt;
     }
 

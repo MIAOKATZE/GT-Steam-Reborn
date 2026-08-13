@@ -712,7 +712,8 @@ public class MTEGearSteamCompressor extends MTEGTSRMultiBlockBase<MTEGearSteamCo
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.frame"), 12, false)
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.reinforced_glass"), 10, false)
             .addStructureHint("gtsr.tooltip.shared.no_maintenance")
-            .toolTipFinisher(GTSRUtils.getAddedByLine());
+            .addInfo(GTSRUtils.getAddedByLine())
+            .toolTipFinisher();
         return tt;
     }
 

@@ -514,7 +514,8 @@ public class MTECriticalSingularityCompressor extends MTESingularityMachineBase 
             .addStructureInfo(
                 EnumChatFormatting.DARK_PURPLE + StatCollector.translateToLocal(keyPrefix + "tier1_blocks"))
             .addStructureHint("gtsr.tooltip.shared.no_maintenance")
-            .toolTipFinisher(GTSRUtils.getAddedByLine());
+            .addInfo(GTSRUtils.getAddedByLine())
+            .toolTipFinisher();
         return tt;
     }
 

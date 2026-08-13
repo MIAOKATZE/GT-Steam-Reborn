@@ -1417,7 +1417,8 @@ public class MTEWaterHubArray extends MTEGTSRMultiBlockBase<MTEWaterHubArray>
             .addStructureHint("gtsr.tooltip.shared.hub_singularity_cost")
             .addStructureHint("gtsr.tooltip.shared.overflow_input_screwdriver")
             .addStructureHint("gtsr.tooltip.water_hub.hint_status")
-            .toolTipFinisher(GTSRUtils.getAddedByLine());
+            .addInfo(GTSRUtils.getAddedByLine())
+            .toolTipFinisher();
         return tt;
     }
 }

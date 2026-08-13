@@ -1239,7 +1239,8 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
             .addStructureHint("gtsr.tooltip.shared.no_maintenance")
             .addStructureHint("gtsr.tooltip.kinetic_array.hint_pipe")
             .addStructureHint("gtsr.tooltip.kinetic_array.hint_gear")
-            .toolTipFinisher(GTSRUtils.getAddedByLine());
+            .addInfo(GTSRUtils.getAddedByLine())
+            .toolTipFinisher();
         return tt;
     }
 
