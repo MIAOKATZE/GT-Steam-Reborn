@@ -731,21 +731,24 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
 
     private void outputCoolingSteam(long steamAmount) {
         if (steamAmount <= 0) return;
-        boolean pushedToCoolingHatch = false;
+        // 无耐压蒸汽冷却仓：冷凝蒸汽回退到常规输出仓（原行为）。
+        if (mPressureCoolingHatches.isEmpty()) {
+            int toOutput = (int) Math.min(steamAmount, Integer.MAX_VALUE);
+            if (toOutput > 0) {
+                addOutput(Materials.Steam.getGas(toOutput));
+            }
+            return;
+        }
+        // 有耐压蒸汽冷却仓：冷凝蒸汽全量进冷却仓，不再回退 addOutput。
+        // 剩余丢弃仅为兜底——正常流程由 validateRecipe 冷却仓余量预检
+        // （gtsr.gui.kinetic_array.cooling_full）保证不出现，此处仅防御推入与预检之间的仓状态变化。
         for (MTEPressureSteamCoolingHatch hatch : mPressureCoolingHatches) {
             int toPush = (int) Math.min(steamAmount, Integer.MAX_VALUE);
             int pushed = hatch.pushCoolingSteam(toPush);
             if (pushed > 0) {
                 steamAmount -= pushed;
-                pushedToCoolingHatch = true;
             }
             if (steamAmount <= 0) return;
-        }
-        if (!pushedToCoolingHatch || steamAmount > 0) {
-            int toOutput = (int) Math.min(steamAmount, Integer.MAX_VALUE);
-            if (toOutput > 0) {
-                addOutput(Materials.Steam.getGas(toOutput));
-            }
         }
     }
 
@@ -847,6 +850,19 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
                 long neededSteam = (long) (rate * recipe.mEUt * estimatedParallel * getEUtDiscount());
                 if (neededSteam > 0 && !hasSufficientSuperheatedSteam(neededSteam)) {
                     return SimpleCheckRecipeResult.ofFailure("insufficient_steam");
+                }
+                // 冷却仓余量预检：有耐压蒸汽冷却仓时冷凝蒸汽全量进仓，余量不足则待机等空间。
+                // 输入蒸汽不足优先（已在上方返回），输出空间不足其次。
+                if (neededSteam > 0 && !mPressureCoolingHatches.isEmpty()) {
+                    long coolingCapacity = 0;
+                    for (MTEPressureSteamCoolingHatch hatch : GTUtility.validMTEList(mPressureCoolingHatches)) {
+                        FluidStack fluid = hatch.getFluid();
+                        coolingCapacity += hatch.getCapacity() - (fluid != null ? fluid.amount : 0);
+                        if (coolingCapacity >= neededSteam) break;
+                    }
+                    if (coolingCapacity < neededSteam) {
+                        return SimpleCheckRecipeResult.ofFailure("gtsr.gui.kinetic_array.cooling_full");
+                    }
                 }
                 return CheckRecipeResultRegistry.SUCCESSFUL;
             }
@@ -1108,6 +1124,13 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
     @Override
     public boolean getDefaultHasMaintenanceChecks() {
         return false;
+    }
+
+    // 覆写父类默认 false，启用 GUI "溢出销毁"按钮。VOID_NONE（默认，不销毁）：
+    // 输出放不下时机器待机等待空间，不销毁产物；其余销毁模式由标准输出逻辑处理。
+    @Override
+    public boolean supportsVoidProtection() {
+        return true;
     }
 
     @Override

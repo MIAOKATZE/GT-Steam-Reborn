@@ -1076,6 +1076,7 @@ gtsr.gui.kinetic_array.steam_rate=蒸汽速率:
 gtsr.gui.kinetic_array.steam_per_amp=蒸汽/安培: 
 gtsr.gui.kinetic_array.hp_steam=高压蒸汽: 
 gtsr.gui.kinetic_array.parallel=并行: 
+GT5U.gui.text.recipe_result.gtsr.gui.kinetic_array.cooling_full=耐压蒸汽冷却仓空间不足（冷凝蒸汽无处存放）
 gtsr.gui.turbine_array.eu_t=理论最大输出功率: 
 gtsr.gui.turbine_array.steam=蒸汽: 
 gtsr.gui.turbine_array.savings=节省: 

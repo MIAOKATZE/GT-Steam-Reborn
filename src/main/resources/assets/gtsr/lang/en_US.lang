@@ -1053,6 +1053,7 @@ gtsr.gui.kinetic_array.steam_rate=Steam Rate:
 gtsr.gui.kinetic_array.steam_per_amp=Steam/A: 
 gtsr.gui.kinetic_array.hp_steam=HP Steam: 
 gtsr.gui.kinetic_array.parallel=Parallel: 
+GT5U.gui.text.recipe_result.gtsr.gui.kinetic_array.cooling_full=Not enough space in pressure steam cooling hatches for condensate
 gtsr.gui.turbine_array.eu_t=Theoretical Max Output: 
 gtsr.gui.turbine_array.steam=Steam: 
 gtsr.gui.turbine_array.savings=Savings: 
