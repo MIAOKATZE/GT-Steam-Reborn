@@ -6,7 +6,7 @@ import net.minecraftforge.common.config.Configuration;
 
 /**
  * 模组配置管理类
- * 负责读取和保存模组的配置文件 (config/gtsr.cfg)
+ * 负责读取和保存模组的配置文件 (config/gtsr/gtsr.cfg)
  */
 public class Config {
 
@@ -18,6 +18,12 @@ public class Config {
     // 默认关闭。开启后 GTNL 蒸汽机将获得 GTSR 的过热蒸汽 4 倍消耗 4 倍速加速机制，
     // 并能使用 GTSR 冷却舱室。mixin 方法体运行时判断此值（远晚于配置读取），时序安全。
     public static boolean gtnlEnhancement = false;
+
+    // 自然生成奇点频率（区块×区块，平均 N×N 区块生成 1 个，默认 48 = 每 chunk 1/2304）。
+    public static int singularitySpawnFrequency = 48;
+
+    // 自然生成的奇点是否具有破坏方块的能力（默认开；关闭后自然奇点不吸收/破坏方块）。
+    public static boolean singularityDestroyBlocks = true;
 
     /**
      * 同步配置文件
@@ -41,6 +47,20 @@ public class Config {
             Configuration.CATEGORY_GENERAL,
             false,
             "是否为GTNL蒸汽机基类启用GTSR增强（过热蒸汽4倍加速+冷却舱室支持）。默认关闭。开启后GTNL蒸汽机将获得GTSR的过热蒸汽4倍消耗4倍速加速机制，并能使用GTSR冷却舱室。");
+
+        singularitySpawnFrequency = configuration.getInt(
+            "singularitySpawnFrequency",
+            Configuration.CATEGORY_GENERAL,
+            singularitySpawnFrequency,
+            1,
+            10000,
+            "自然生成奇点频率（区块×区块，平均 N×N 区块生成 1 个，默认 48 = 每 chunk 1/2304）");
+
+        singularityDestroyBlocks = configuration.getBoolean(
+            "singularityDestroyBlocks",
+            Configuration.CATEGORY_GENERAL,
+            singularityDestroyBlocks,
+            "自然生成的奇点是否具有破坏方块的能力（默认开；关闭后自然奇点不吸收/破坏方块）");
 
         if (configuration.hasChanged()) {
             configuration.save();

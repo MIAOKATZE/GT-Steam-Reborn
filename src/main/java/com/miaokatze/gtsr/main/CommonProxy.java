@@ -1,5 +1,9 @@
 package com.miaokatze.gtsr.main;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+
 import com.miaokatze.gtsr.Tags;
 import com.miaokatze.gtsr.common.commands.GTSRCommand;
 import com.miaokatze.gtsr.common.crossmod.postea.PosteaCompat;
@@ -32,7 +36,18 @@ public class CommonProxy {
      * 在此阶段读取配置文件，并将机器注册任务添加到 GregTech 的处理队列中。
      */
     public void preInit(FMLPreInitializationEvent event) {
-        Config.synchronizeConfiguration(event.getSuggestedConfigurationFile());
+        // 配置文件迁移到 config/gtsr/gtsr.cfg：新路径不存在且旧路径 (config/gtsr.cfg) 存在时复制一次（标准复制，不覆盖已存在目标），旧文件保留原位
+        File newConfigFile = new File(event.getModConfigurationDirectory(), "gtsr/gtsr.cfg");
+        File oldConfigFile = event.getSuggestedConfigurationFile();
+        if (!newConfigFile.exists() && oldConfigFile.exists()) {
+            new File(event.getModConfigurationDirectory(), "gtsr").mkdirs();
+            try {
+                Files.copy(oldConfigFile.toPath(), newConfigFile.toPath());
+            } catch (IOException e) {
+                GTSteamReborn.LOG.warn("旧配置文件 (config/gtsr.cfg) 迁移到新路径 (config/gtsr/gtsr.cfg) 失败，将使用默认配置重新生成: ", e);
+            }
+        }
+        Config.synchronizeConfiguration(newConfigFile);
         GTSRFXNet.init();
 
         GTSteamReborn.LOG.info("GTSteamReborn 开始初始化 (版本: " + Tags.VERSION + ")");
@@ -96,7 +111,7 @@ public class CommonProxy {
         com.cleanroommc.modularui.factory.GuiManager
             .registerFactory(com.miaokatze.gtsr.common.gui.AggregatorConfigGuiFactory.INSTANCE);
 
-        // 注册自然生成：失控奇点 nature 词条（主世界+下界，平均 24×24 区块 1 个）
+        // 注册自然生成：失控奇点 nature 词条（主世界+下界，频率见配置 singularitySpawnFrequency）
         GameRegistry.registerWorldGenerator(new WorldGenRunawaySingularity(), 0);
 
         // Waila 跨 mod 兼容：注册节点自定义名 WAILA 头部显示（Waila 缺失时为空操作，详见 GTSRWailaCompat）

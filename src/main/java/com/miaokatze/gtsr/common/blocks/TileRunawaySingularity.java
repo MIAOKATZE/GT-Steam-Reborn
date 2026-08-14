@@ -100,6 +100,7 @@ public class TileRunawaySingularity extends TileEntity {
     private int attributeId = -1; // -1=ATTRIBUTE_NULL（纯动画）；-2=ATTRIBUTE_ONLY_PULL（只牵引不吸收）；无 NBT 默认即惰性奇点
     private String color = "white"; // 16 原版染料色之一，默认 white，仅影响视觉表现
     private double fxRadius = 10.0D; // 光效半径，NBT 缺省默认 10；仅影响视觉（光片/辉光），与 range 独立
+    private boolean destroyBlocks = true; // 自然生成奇点是否吸收破坏方块（absorbScan 方块吸收），NBT 缺省默认 true（向后兼容）；仅服务端逻辑字段
     private int elapsedTicks = 0; // 服务端与客户端各自递增
 
     @Override
@@ -127,6 +128,9 @@ public class TileRunawaySingularity extends TileEntity {
         if (data.hasKey("fxRadius")) {
             this.fxRadius = data.getDouble("fxRadius"); // 缺省保持 10
         }
+        if (data.hasKey("destroyBlocks")) {
+            this.destroyBlocks = data.getBoolean("destroyBlocks"); // 缺省保持 true（旧 NBT 无键 → 向后兼容）
+        }
         this.elapsedTicks = data.getInteger("elapsed"); // 无键保持 0
     }
 
@@ -141,6 +145,7 @@ public class TileRunawaySingularity extends TileEntity {
         data.setInteger("attribute", this.attributeId);
         data.setString("color", this.color);
         data.setDouble("fxRadius", this.fxRadius);
+        data.setBoolean("destroyBlocks", this.destroyBlocks);
         data.setInteger("elapsed", this.elapsedTicks);
         tag.setTag("gtsrSingularity", data);
     }
@@ -186,6 +191,10 @@ public class TileRunawaySingularity extends TileEntity {
 
     public double getFxRadius() {
         return fxRadius;
+    }
+
+    public void setDestroyBlocks(boolean destroyBlocks) {
+        this.destroyBlocks = destroyBlocks; // 服务端逻辑字段，不需 markBlockForUpdate（不参与客户端渲染同步）
     }
 
     /**
@@ -251,14 +260,24 @@ public class TileRunawaySingularity extends TileEntity {
     }
 
     /**
-     * 静态生成助手（供后续多方块爆炸调用）
+     * 静态生成助手（11 参版本，供命令/机器调用）：委托 12 参版本，destroyBlocks 缺省 true（向后兼容）
      */
     public static void spawnSingularity(World world, int x, int y, int z, double range, double speed, double damage,
         int duration, int attributeId, String color, double fxRadius) {
+        spawnSingularity(world, x, y, z, range, speed, damage, duration, attributeId, color, fxRadius, true);
+    }
+
+    /**
+     * 静态生成助手（12 参版本）：destroyBlocks=false 时自然生成奇点不吸收破坏方块（absorbScan 跳过），实体/掉落物处理照常
+     */
+    public static void spawnSingularity(World world, int x, int y, int z, double range, double speed, double damage,
+        int duration, int attributeId, String color, double fxRadius, boolean destroyBlocks) {
         world.setBlock(x, y, z, BlockLoader.blockRunawaySingularity);
         TileEntity te = world.getTileEntity(x, y, z);
         if (te instanceof TileRunawaySingularity) {
-            ((TileRunawaySingularity) te).setParams(range, speed, damage, duration, attributeId, color, fxRadius);
+            TileRunawaySingularity teSingularity = (TileRunawaySingularity) te;
+            teSingularity.setParams(range, speed, damage, duration, attributeId, color, fxRadius);
+            teSingularity.setDestroyBlocks(destroyBlocks);
             te.markDirty();
         }
     }
@@ -285,8 +304,9 @@ public class TileRunawaySingularity extends TileEntity {
         boolean nature = attributeId == ATTRIBUTE_NATURE;
         double factor = getActiveFactor();
         double effRange = range * factor;
-        if (!onlyPull) {
-            absorbScan(effRange, factor); // onlypull：跳过吸收扫描（absorbScan 只扫方块，不含实体）；nature 照常吸收方块
+        if (!onlyPull && (!nature || destroyBlocks)) {
+            absorbScan(effRange, factor); // onlypull：跳过吸收扫描（absorbScan 只扫方块，不含实体）；nature 且 destroyBlocks=false
+                                          // 同样跳过方块吸收，其余 nature 行为（掉落物牵引/销毁）handleEntities 照常
         }
         handleEntities(effRange, factor, onlyPull, nature);
     }
