@@ -1299,6 +1299,7 @@ gtsr.gui.redstone_hatch.entry.efficiency=机器效率
 gtsr.gui.redstone_hatch.entry.power_output=输出功率
 gtsr.gui.redstone_hatch.entry.power_consumption=消耗功率
 gtsr.gui.redstone_hatch.entry.working=工作状态
+gtsr.gui.redstone_hatch.limit=红石仓最多 4 个（发现 %s 个）
 gtsr.tooltip.redstone_hatch.desc=可安装在任意多方块机器上
 gtsr.tooltip.redstone_hatch.output=按所选词条值输出红石信号
 gtsr.tooltip.redstone_hatch.gui=右键打开 GUI 设置阈值与更新频率

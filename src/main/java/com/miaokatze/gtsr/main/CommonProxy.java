@@ -10,6 +10,7 @@ import com.miaokatze.gtsr.common.crossmod.postea.PosteaCompat;
 import com.miaokatze.gtsr.common.crossmod.waila.GTSRWailaCompat;
 import com.miaokatze.gtsr.common.loot.LootInjectionRunawaySingularity;
 import com.miaokatze.gtsr.common.network.GTSRFXNet;
+import com.miaokatze.gtsr.common.structure.GTSRRedstoneHatchLimitError;
 import com.miaokatze.gtsr.common.world.WorldGenRunawaySingularity;
 import com.miaokatze.gtsr.config.Config;
 import com.miaokatze.gtsr.loader.BlockLoader;
@@ -24,6 +25,7 @@ import cpw.mods.fml.common.event.FMLPreInitializationEvent;
 import cpw.mods.fml.common.event.FMLServerStartingEvent;
 import cpw.mods.fml.common.registry.GameRegistry;
 import gregtech.api.GregTechAPI;
+import gregtech.api.structure.error.StructureErrorRegistry;
 
 /**
  * 通用代理类
@@ -74,6 +76,8 @@ public class CommonProxy {
             } catch (Throwable t) {
                 GTSteamReborn.LOG.error("[1/3] 机器注册过程中发生严重错误，请检查日志", t);
             }
+            // 红石仓数量超限结构错误原型注册（客户端按 id 反序列化分发需要 registry 有原型）
+            StructureErrorRegistry.register(new GTSRRedstoneHatchLimitError());
         };
 
         // 使用 sAfterGTPreload 队列（GT PreInit 末尾执行），而非 sAfterGTLoad（GT Init 末尾执行）。

@@ -1304,6 +1304,7 @@ gtsr.gui.redstone_hatch.entry.efficiency=Efficiency
 gtsr.gui.redstone_hatch.entry.power_output=Power Output
 gtsr.gui.redstone_hatch.entry.power_consumption=Power Consumption
 gtsr.gui.redstone_hatch.entry.working=Working State
+gtsr.gui.redstone_hatch.limit=At most 4 Redstone Hatches (found %s)
 gtsr.tooltip.redstone_hatch.desc=Can be installed on any multiblock machine
 gtsr.tooltip.redstone_hatch.output=Outputs a redstone signal based on the selected entry value
 gtsr.tooltip.redstone_hatch.gui=Right-click to open the GUI and change settings

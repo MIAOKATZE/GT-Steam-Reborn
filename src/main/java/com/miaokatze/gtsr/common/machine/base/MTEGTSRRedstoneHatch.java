@@ -1,9 +1,13 @@
 package com.miaokatze.gtsr.common.machine.base;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
@@ -21,6 +25,7 @@ import com.miaokatze.gtsr.common.api.progress.IGTSRProgressProvider;
 import com.miaokatze.gtsr.common.gui.MTEGTSRRedstoneHatchGui;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
 
+import gregtech.GTMod;
 import gregtech.api.enums.Textures;
 import gregtech.api.interfaces.IIconContainer;
 import gregtech.api.interfaces.ITexture;
@@ -57,6 +62,9 @@ public class MTEGTSRRedstoneHatch extends MTEHatch {
     private static final IIconContainer TEXTURE_FONT = Textures.BlockIcons.OVERLAY_HATCH_PH_SENSOR;
     private static final IIconContainer TEXTURE_FONT_GLOW = Textures.BlockIcons.OVERLAY_HATCH_PH_SENSOR_GLOW;
 
+    /** 控制器类 → getCasingTextureID() 反射句柄缓存（方法缺失记为 empty，避免每次结构校验重复反射查找） */
+    private static final ConcurrentHashMap<Class<?>, Optional<Method>> CASING_TEXTURE_ID_METHODS = new ConcurrentHashMap<>();
+
     // NBT 持久化字段
     private String entryKey = "";
     private double threshold = 0;
@@ -69,7 +77,7 @@ public class MTEGTSRRedstoneHatch extends MTEHatch {
     private long nextUpdateTick = 0;
 
     public MTEGTSRRedstoneHatch(int aID, String aName, String aNameRegional) {
-        super(aID, aName, aNameRegional, 4, 0, "GTSR Redstone Hatch.");
+        super(aID, aName, aNameRegional, 1, 0, "GTSR Redstone Hatch.");
     }
 
     public MTEGTSRRedstoneHatch(String aName, int aTier, String[] aDescription, ITexture[][][] aTextures) {
@@ -241,6 +249,37 @@ public class MTEGTSRRedstoneHatch extends MTEHatch {
 
     public void setController(IMetaTileEntity mte) {
         this.controllerMeta = mte;
+        syncControllerTexture();
+    }
+
+    /**
+     * 底材跟随主控制器：GTSR 控制器带 getCasingTextureID()（protected/private 声明，惯例直接喂
+     * updateTexture，编码匹配）时同步底材；GT5U 原生控制器无此方法则静默保持默认底材（tier=LV）。
+     * 控制器为 null 时不动底材。反射句柄按控制器类缓存，沿类层级查找声明处。
+     */
+    private void syncControllerTexture() {
+        if (controllerMeta == null) return;
+        Optional<Method> getter = CASING_TEXTURE_ID_METHODS.computeIfAbsent(controllerMeta.getClass(), cls -> {
+            for (Class<?> c = cls; c != null && c != Object.class; c = c.getSuperclass()) {
+                try {
+                    Method m = c.getDeclaredMethod("getCasingTextureID");
+                    m.setAccessible(true);
+                    return Optional.of(m);
+                } catch (NoSuchMethodException ignored) {
+                    // 本类未声明：沿父类链继续查找
+                }
+            }
+            // GT5U 原生控制器（及其公共基类）均无此方法：静默保持默认底材，不推送
+            return Optional.empty();
+        });
+        if (!getter.isPresent()) return;
+        try {
+            updateTexture(
+                (int) getter.get()
+                    .invoke(controllerMeta));
+        } catch (IllegalAccessException | InvocationTargetException e) {
+            GTMod.GT_FML_LOGGER.warn("[GTSR] Redstone Hatch failed to sync controller casing texture", e);
+        }
     }
 
     public IMetaTileEntity getController() {

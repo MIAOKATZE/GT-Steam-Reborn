@@ -44,6 +44,16 @@ public class MTEGTSRRedstoneHatchGui extends MTEHatchBaseGui<MTEGTSRRedstoneHatc
         super(machine);
     }
 
+    /**
+     * 加宽基础面板（176→230，约 +30%）：行 1「词条下拉 + 阈值输入框 + 阈值标签」内在宽度
+     * zh≈180 / en≈212，默认 176 面板可用宽仅约 162，阈值输入框与标签会被面板右缘盖住；
+     * 加宽后可用宽约 216，两语系均可容纳（行 1 各元素宽度预算见 createEntryRow）。
+     */
+    @Override
+    protected int getBasePanelWidth() {
+        return 230;
+    }
+
     @Override
     protected ParentWidget<?> createContentSection(ModularPanel panel, PanelSyncManager syncManager) {
         Flow col = Flow.column()
@@ -128,10 +138,12 @@ public class MTEGTSRRedstoneHatchGui extends MTEHatchBaseGui<MTEGTSRRedstoneHatc
     // 行布局
     // ============================================================
 
-    /** 行 1：词条下拉 + 阈值输入框 + 阈值标签 */
+    /** 行 1：词条下拉 + 阈值输入框 + 阈值标签（宽度受 en 标签约束，预算见 getBasePanelWidth） */
     private Flow createEntryRow(PanelSyncManager syncManager) {
         // 客户端构建时缓存未同步 → 回退标准键；服务端构建时即真实机器词条
-        DropdownWidget<String, ?> dropdown = new DropdownWidget<>("gtsrRedstoneMenu", String.class).size(100, 16)
+        // 行宽预算（可用 216）：下拉 90 + 间距 2 + 输入框 68 + 间距 2 + 阈值标签（zh≈18 / en≈50）
+        // → 行 1 总宽 zh≈180 / en≈212，均 ≤ 216；下拉/输入框较原始 100/77 收窄以为 en 标签腾位
+        DropdownWidget<String, ?> dropdown = new DropdownWidget<>("gtsrRedstoneMenu", String.class).size(90, 16)
             .value(new StringSyncValue(machine::getEntryKey, machine::setEntryKey).allowC2S())
             .options(getAvailableKeys())
             .optionToWidget(this::optionToWidget);
@@ -140,7 +152,7 @@ public class MTEGTSRRedstoneHatchGui extends MTEHatchBaseGui<MTEGTSRRedstoneHatc
             .child(dropdown)
             .child(
                 new TextFieldWidget().numbersDouble()
-                    .size(77, 12)
+                    .size(68, 12)
                     .value(new DoubleSyncValue(machine::getThreshold, machine::setThreshold).allowC2S()))
             .child(
                 IKey.lang("gtsr.gui.redstone_hatch.threshold")
