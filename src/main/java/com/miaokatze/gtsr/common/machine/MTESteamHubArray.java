@@ -864,56 +864,12 @@ public class MTESteamHubArray extends MTEGTSRMultiBlockBase<MTESteamHubArray>
             return true;
         }
 
-        if (!held.hasTagCompound() || !held.getTagCompound()
-            .hasKey("gtsr.singularity_consumed")) {
-            // Singularity cost depends on node type: steam=0, reinforced_steam=1, overpressure_steam=8
-            int singularityCost = 0;
-            if ("reinforced_steam".equals(type)) {
-                singularityCost = 1;
-            } else if ("overpressure_steam".equals(type)) {
-                singularityCost = 8;
-            }
-
-            if (singularityCost > 0) {
-                int found = 0;
-                for (ItemStack invStack : aPlayer.inventory.mainInventory) {
-                    if (invStack != null && GTSRItemList.SteamEntangledSingularity.isStackEqual(invStack, true, true)) {
-                        found += invStack.stackSize;
-                    }
-                }
-                if (found < singularityCost) {
-                    GTUtility.sendChatToPlayer(
-                        aPlayer,
-                        StatCollector.translateToLocal("gtsr.binding.no_singularity") + " (" + singularityCost + ")");
-                    return true;
-                }
-                int remaining = singularityCost;
-                for (int i = 0; i < aPlayer.inventory.mainInventory.length && remaining > 0; i++) {
-                    ItemStack invStack = aPlayer.inventory.mainInventory[i];
-                    if (invStack != null && GTSRItemList.SteamEntangledSingularity.isStackEqual(invStack, true, true)) {
-                        int toConsume = Math.min(remaining, invStack.stackSize);
-                        invStack.stackSize -= toConsume;
-                        remaining -= toConsume;
-                        if (invStack.stackSize <= 0) {
-                            aPlayer.inventory.mainInventory[i] = null;
-                        }
-                    }
-                }
-                aPlayer.inventoryContainer.detectAndSendChanges();
-            }
-            if (!held.hasTagCompound()) {
-                held.setTagCompound(new NBTTagCompound());
-            }
-            held.getTagCompound()
-                .setBoolean("gtsr.singularity_consumed", true);
-        }
-
         int myX = aBaseMetaTileEntity.getXCoord();
         int myY = aBaseMetaTileEntity.getYCoord();
         int myZ = aBaseMetaTileEntity.getZCoord();
         int myDim = aBaseMetaTileEntity.getWorld().provider.dimensionId;
-        String nodeName = held.getDisplayName();
 
+        // 已绑定本枢纽的堆叠：无论普通/shift，优先走现有 output 翻转/解绑交互（完全保留现状逻辑）
         if (held.hasTagCompound() && held.getTagCompound()
             .hasKey("gtsr.hubPos")) {
             NBTTagCompound existing = held.getTagCompound()
@@ -930,24 +886,66 @@ public class MTESteamHubArray extends MTEGTSRMultiBlockBase<MTESteamHubArray>
                     existing.setBoolean("output", true);
                     GTUtility.sendChatToPlayer(
                         aPlayer,
-                        StatCollector.translateToLocal("gtsr.binding.bound_input") + nodeName
+                        StatCollector.translateToLocal("gtsr.binding.bound_input") + held.getDisplayName()
                             + StatCollector.translateToLocal("gtsr.binding.mode_input"));
                 } else {
                     held.getTagCompound()
                         .removeTag("gtsr.hubPos");
                     GTUtility.sendChatToPlayer(
                         aPlayer,
-                        StatCollector.translateToLocal("gtsr.binding.cleared") + nodeName
+                        StatCollector.translateToLocal("gtsr.binding.cleared") + held.getDisplayName()
                             + StatCollector.translateToLocal("gtsr.binding.binding"));
                 }
                 return true;
             }
         }
 
-        if (!held.hasTagCompound()) {
-            held.setTagCompound(new NBTTagCompound());
+        // shift 右击：整个手持堆叠全部绑定（奇点消耗 = 单次成本 × 堆叠数量）；
+        // 普通右击：拆出 1 个绑定（奇点按类型成本消耗一次），绑定物回背包，手持剩余保持未绑定
+        if (aPlayer.isSneaking()) {
+            bindWholeHeld(aPlayer, held, type, isReinforced, myX, myY, myZ, myDim);
+        } else {
+            bindOneFromHeld(aPlayer, held, type, isReinforced, myX, myY, myZ, myDim);
+        }
+        return true;
+    }
+
+    /**
+     * 普通右击：从手持堆叠拆出 1 个缓存节点绑定到本枢纽（无 singularity_consumed 标记则按类型成本
+     * 消耗一次奇点：steam=0 仅打标记；reinforced_steam=1；overpressure_steam=8），
+     * 写 hubPos NBT 后放回玩家背包（背包无空位则落地），手持剩余 N-1 个保持未绑定。
+     * 绑定他处的堆叠仅覆盖拆出的这 1 个。
+     */
+    private void bindOneFromHeld(EntityPlayer aPlayer, ItemStack held, String type, boolean isReinforced, int myX,
+        int myY, int myZ, int myDim) {
+        // 先按手持标记状态决定是否消耗：无标记则按类型成本消耗一次（不足则报错不执行，保持手持原状）
+        if (!held.hasTagCompound() || !held.getTagCompound()
+            .hasKey("gtsr.singularity_consumed")) {
+            int singularityCost = getSingularityCost(type);
+            if (singularityCost > 0 && !consumeSteamEntangledSingularities(aPlayer, singularityCost)) {
+                GTUtility.sendChatToPlayer(
+                    aPlayer,
+                    StatCollector.translateToLocal("gtsr.binding.no_singularity") + " (" + singularityCost + ")");
+                return;
+            }
         }
 
+        // 拆 1 个（copy + 减量，≤0 则清手持槽）
+        ItemStack bound = held.copy();
+        bound.stackSize = 1;
+        held.stackSize--;
+        if (held.stackSize <= 0) {
+            aPlayer.inventory.mainInventory[aPlayer.inventory.currentItem] = null;
+        }
+
+        // 打标记（拆出物继承原 NBT，无标记则补；标记/消耗只作用于拆出物）
+        if (!bound.hasTagCompound()) {
+            bound.setTagCompound(new NBTTagCompound());
+        }
+        bound.getTagCompound()
+            .setBoolean("gtsr.singularity_consumed", true);
+
+        // 写 hubPos（覆盖绑定他处的旧 hubPos）
         NBTTagCompound hubTag = new NBTTagCompound();
         hubTag.setInteger("x", myX);
         hubTag.setInteger("y", myY);
@@ -956,14 +954,97 @@ public class MTESteamHubArray extends MTEGTSRMultiBlockBase<MTESteamHubArray>
         hubTag.setString("type", type);
         hubTag.setBoolean("output", false);
         hubTag.setBoolean("reinforced", isReinforced);
+        bound.getTagCompound()
+            .setTag("gtsr.hubPos", hubTag);
 
+        GTUtility.addItemToPlayerInventory(aPlayer, bound);
+        aPlayer.inventoryContainer.detectAndSendChanges();
+        GTUtility.sendChatToPlayer(
+            aPlayer,
+            StatCollector.translateToLocal("gtsr.binding.bound_output") + bound.getDisplayName()
+                + StatCollector.translateToLocal("gtsr.binding.mode_output"));
+    }
+
+    /**
+     * shift 右击：整个手持堆叠全部绑定到本枢纽，奇点消耗 = 单次成本 × 堆叠数量
+     * （背包总量不足则报错不执行；steam=0 仅打标记）。绑定他处的堆叠覆盖整堆。
+     */
+    private void bindWholeHeld(EntityPlayer aPlayer, ItemStack held, String type, boolean isReinforced, int myX,
+        int myY, int myZ, int myDim) {
+        // 无标记则按"单次成本 × 堆叠数量"消耗奇点并给整堆打标记
+        if (!held.hasTagCompound() || !held.getTagCompound()
+            .hasKey("gtsr.singularity_consumed")) {
+            int singularityCost = getSingularityCost(type) * held.stackSize;
+            if (singularityCost > 0 && !consumeSteamEntangledSingularities(aPlayer, singularityCost)) {
+                GTUtility.sendChatToPlayer(
+                    aPlayer,
+                    StatCollector.translateToLocal("gtsr.binding.no_singularity") + " (" + singularityCost + ")");
+                return;
+            }
+            if (!held.hasTagCompound()) {
+                held.setTagCompound(new NBTTagCompound());
+            }
+            held.getTagCompound()
+                .setBoolean("gtsr.singularity_consumed", true);
+        }
+
+        // 整堆写 hubPos（覆盖绑定他处的旧 hubPos）
+        if (!held.hasTagCompound()) {
+            held.setTagCompound(new NBTTagCompound());
+        }
+        NBTTagCompound hubTag = new NBTTagCompound();
+        hubTag.setInteger("x", myX);
+        hubTag.setInteger("y", myY);
+        hubTag.setInteger("z", myZ);
+        hubTag.setInteger("dim", myDim);
+        hubTag.setString("type", type);
+        hubTag.setBoolean("output", false);
+        hubTag.setBoolean("reinforced", isReinforced);
         held.getTagCompound()
             .setTag("gtsr.hubPos", hubTag);
 
+        aPlayer.inventoryContainer.detectAndSendChanges();
         GTUtility.sendChatToPlayer(
             aPlayer,
-            StatCollector.translateToLocal("gtsr.binding.bound_output") + nodeName
+            StatCollector.translateToLocal("gtsr.binding.bound_output") + held.getDisplayName()
                 + StatCollector.translateToLocal("gtsr.binding.mode_output"));
+    }
+
+    /**
+     * 绑定奇点成本表：steam=0、reinforced_steam=1、overpressure_steam=8。
+     */
+    private static int getSingularityCost(String type) {
+        if ("reinforced_steam".equals(type)) return 1;
+        if ("overpressure_steam".equals(type)) return 8;
+        return 0;
+    }
+
+    /**
+     * 从玩家主物品栏消耗指定数量个蒸汽纠缠奇点（背包总量不足时不消耗并返回 false）。
+     * 
+     * @return 是否成功消耗
+     */
+    private static boolean consumeSteamEntangledSingularities(EntityPlayer player, int amount) {
+        int found = 0;
+        for (ItemStack invStack : player.inventory.mainInventory) {
+            if (invStack != null && GTSRItemList.SteamEntangledSingularity.isStackEqual(invStack, true, true)) {
+                found += invStack.stackSize;
+            }
+        }
+        if (found < amount) return false;
+        int remaining = amount;
+        for (int i = 0; i < player.inventory.mainInventory.length && remaining > 0; i++) {
+            ItemStack invStack = player.inventory.mainInventory[i];
+            if (invStack != null && GTSRItemList.SteamEntangledSingularity.isStackEqual(invStack, true, true)) {
+                int toConsume = Math.min(remaining, invStack.stackSize);
+                invStack.stackSize -= toConsume;
+                remaining -= toConsume;
+                if (invStack.stackSize <= 0) {
+                    player.inventory.mainInventory[i] = null;
+                }
+            }
+        }
+        player.inventoryContainer.detectAndSendChanges();
         return true;
     }
 

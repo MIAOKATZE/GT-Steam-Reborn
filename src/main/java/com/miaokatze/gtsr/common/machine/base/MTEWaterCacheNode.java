@@ -209,6 +209,7 @@ public class MTEWaterCacheNode extends MTEFilteredCacheNode {
         tooltip.add(
             EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.shared.cache_node_hub_transfer"));
         tooltip.add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.shared.bind_hint"));
+        tooltip.add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.shared.bind_all_hint"));
         tooltip.add(GTSRUtils.getAddedByLine());
     }
 }

@@ -480,25 +480,12 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
 
         if (!aBaseMetaTileEntity.isServerSide()) return true;
 
-        if (!held.hasTagCompound() || !held.getTagCompound()
-            .hasKey("gtsr.singularity_consumed")) {
-            if (!consumeSteamEntangledSingularity(aPlayer)) {
-                GTUtility.sendChatToPlayer(aPlayer, StatCollector.translateToLocal("gtsr.binding.no_singularity"));
-                return true;
-            }
-            if (!held.hasTagCompound()) {
-                held.setTagCompound(new NBTTagCompound());
-            }
-            held.getTagCompound()
-                .setBoolean("gtsr.singularity_consumed", true);
-        }
-
         int myX = aBaseMetaTileEntity.getXCoord();
         int myY = aBaseMetaTileEntity.getYCoord();
         int myZ = aBaseMetaTileEntity.getZCoord();
         int myDim = aBaseMetaTileEntity.getWorld().provider.dimensionId;
-        String nodeName = held.getDisplayName();
 
+        // 已绑定本枢纽的堆叠：无论普通/shift，优先走现有解绑交互（完全保留现状逻辑）
         if (held.hasTagCompound() && held.getTagCompound()
             .hasKey("gtsr.hubPos")) {
             NBTTagCompound existing = held.getTagCompound()
@@ -513,16 +500,54 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
                     .removeTag("gtsr.hubPos");
                 GTUtility.sendChatToPlayer(
                     aPlayer,
-                    StatCollector.translateToLocal("gtsr.binding.cleared") + nodeName
+                    StatCollector.translateToLocal("gtsr.binding.cleared") + held.getDisplayName()
                         + StatCollector.translateToLocal("gtsr.binding.binding"));
                 return true;
             }
         }
 
-        if (!held.hasTagCompound()) {
-            held.setTagCompound(new NBTTagCompound());
+        // shift 右击：整个手持堆叠全部绑定（奇点消耗 = 单次成本 × 堆叠数量）；
+        // 普通右击：拆出 1 个绑定（奇点按现有成本消耗一次），绑定物回背包，手持剩余保持未绑定
+        if (aPlayer.isSneaking()) {
+            bindWholeHeld(aPlayer, held, type, isMiner, myX, myY, myZ, myDim);
+        } else {
+            bindOneFromHeld(aPlayer, held, type, isMiner, myX, myY, myZ, myDim);
+        }
+        return true;
+    }
+
+    /**
+     * 普通右击：从手持堆叠拆出 1 个绑定到本枢纽（无 singularity_consumed 标记则消耗 1 个蒸汽纠缠奇点
+     * 并打标记，仅作用于拆出物），写 hubPos NBT 后放回玩家背包（背包无空位则落地），
+     * 手持剩余 N-1 个保持未绑定。绑定他处的堆叠仅覆盖拆出的这 1 个。
+     */
+    private void bindOneFromHeld(EntityPlayer aPlayer, ItemStack held, String type, boolean isMiner, int myX, int myY,
+        int myZ, int myDim) {
+        // 先按手持标记状态决定是否消耗：无标记则消耗 1 个奇点（不足则报错不执行，保持手持原状）
+        if (!held.hasTagCompound() || !held.getTagCompound()
+            .hasKey("gtsr.singularity_consumed")) {
+            if (!consumeSteamEntangledSingularity(aPlayer)) {
+                GTUtility.sendChatToPlayer(aPlayer, StatCollector.translateToLocal("gtsr.binding.no_singularity"));
+                return;
+            }
         }
 
+        // 拆 1 个（copy + 减量，≤0 则清手持槽）
+        ItemStack bound = held.copy();
+        bound.stackSize = 1;
+        held.stackSize--;
+        if (held.stackSize <= 0) {
+            aPlayer.inventory.mainInventory[aPlayer.inventory.currentItem] = null;
+        }
+
+        // 打标记（拆出物继承原 NBT，无标记则补；标记/消耗只作用于拆出物）
+        if (!bound.hasTagCompound()) {
+            bound.setTagCompound(new NBTTagCompound());
+        }
+        bound.getTagCompound()
+            .setBoolean("gtsr.singularity_consumed", true);
+
+        // 写 hubPos（覆盖绑定他处的旧 hubPos）
         NBTTagCompound hubTag = new NBTTagCompound();
         hubTag.setInteger("x", myX);
         hubTag.setInteger("y", myY);
@@ -531,12 +556,55 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
         hubTag.setString("type", type);
         hubTag.setBoolean("output", true);
         hubTag.setBoolean("miner", isMiner);
+        bound.getTagCompound()
+            .setTag("gtsr.hubPos", hubTag);
 
+        GTUtility.addItemToPlayerInventory(aPlayer, bound);
+        aPlayer.inventoryContainer.detectAndSendChanges();
+        GTUtility
+            .sendChatToPlayer(aPlayer, StatCollector.translateToLocal("gtsr.binding.bound") + bound.getDisplayName());
+    }
+
+    /**
+     * shift 右击：整个手持堆叠全部绑定到本枢纽，奇点消耗 = 单次成本 × 堆叠数量
+     * （背包总量不足则报错不执行）。绑定他处的堆叠覆盖整堆。
+     */
+    private void bindWholeHeld(EntityPlayer aPlayer, ItemStack held, String type, boolean isMiner, int myX, int myY,
+        int myZ, int myDim) {
+        // 无标记则按堆叠数量消耗奇点并给整堆打标记
+        if (!held.hasTagCompound() || !held.getTagCompound()
+            .hasKey("gtsr.singularity_consumed")) {
+            if (!consumeSteamEntangledSingularities(aPlayer, held.stackSize)) {
+                GTUtility.sendChatToPlayer(
+                    aPlayer,
+                    StatCollector.translateToLocal("gtsr.binding.no_singularity") + " (" + held.stackSize + ")");
+                return;
+            }
+            if (!held.hasTagCompound()) {
+                held.setTagCompound(new NBTTagCompound());
+            }
+            held.getTagCompound()
+                .setBoolean("gtsr.singularity_consumed", true);
+        }
+
+        // 整堆写 hubPos（覆盖绑定他处的旧 hubPos）
+        if (!held.hasTagCompound()) {
+            held.setTagCompound(new NBTTagCompound());
+        }
+        NBTTagCompound hubTag = new NBTTagCompound();
+        hubTag.setInteger("x", myX);
+        hubTag.setInteger("y", myY);
+        hubTag.setInteger("z", myZ);
+        hubTag.setInteger("dim", myDim);
+        hubTag.setString("type", type);
+        hubTag.setBoolean("output", true);
+        hubTag.setBoolean("miner", isMiner);
         held.getTagCompound()
             .setTag("gtsr.hubPos", hubTag);
 
-        GTUtility.sendChatToPlayer(aPlayer, StatCollector.translateToLocal("gtsr.binding.bound") + nodeName);
-        return true;
+        aPlayer.inventoryContainer.detectAndSendChanges();
+        GTUtility
+            .sendChatToPlayer(aPlayer, StatCollector.translateToLocal("gtsr.binding.bound") + held.getDisplayName());
     }
 
     private BoundDrillNode findBoundNode(int x, int y, int z, int dim) {
@@ -1008,23 +1076,37 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
     }
 
     /**
-     * 从玩家主物品栏消耗 1 个蒸汽纠缠奇点。
+     * 从玩家主物品栏消耗指定数量个蒸汽纠缠奇点（背包总量不足时不消耗并返回 false）。
      * 
      * @return 是否成功消耗
      */
-    private static boolean consumeSteamEntangledSingularity(EntityPlayer player) {
-        for (int i = 0; i < player.inventory.mainInventory.length; i++) {
+    private static boolean consumeSteamEntangledSingularities(EntityPlayer player, int amount) {
+        int found = 0;
+        for (ItemStack invStack : player.inventory.mainInventory) {
+            if (invStack != null && GTSRItemList.SteamEntangledSingularity.isStackEqual(invStack, true, true)) {
+                found += invStack.stackSize;
+            }
+        }
+        if (found < amount) return false;
+        int remaining = amount;
+        for (int i = 0; i < player.inventory.mainInventory.length && remaining > 0; i++) {
             ItemStack invStack = player.inventory.mainInventory[i];
             if (invStack != null && GTSRItemList.SteamEntangledSingularity.isStackEqual(invStack, true, true)) {
-                invStack.stackSize--;
+                int toConsume = Math.min(remaining, invStack.stackSize);
+                invStack.stackSize -= toConsume;
+                remaining -= toConsume;
                 if (invStack.stackSize <= 0) {
                     player.inventory.mainInventory[i] = null;
                 }
-                player.inventoryContainer.detectAndSendChanges();
-                return true;
             }
         }
-        return false;
+        player.inventoryContainer.detectAndSendChanges();
+        return true;
+    }
+
+    /** 从玩家主物品栏消耗 1 个蒸汽纠缠奇点。 */
+    private static boolean consumeSteamEntangledSingularity(EntityPlayer player) {
+        return consumeSteamEntangledSingularities(player, 1);
     }
 
     /**

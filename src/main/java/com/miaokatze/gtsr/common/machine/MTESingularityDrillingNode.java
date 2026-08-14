@@ -187,6 +187,7 @@ public class MTESingularityDrillingNode extends MTERemoteWorkerNode {
         tooltip.add(EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.shared.singularity_cost"));
         tooltip.add(EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.node.chunk_load_warn"));
         tooltip.add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.shared.node_bind_hint"));
+        tooltip.add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.shared.bind_all_hint"));
         tooltip.add(GTSRUtils.getAddedByLine());
     }
 

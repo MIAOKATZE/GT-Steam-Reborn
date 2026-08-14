@@ -837,23 +837,12 @@ public class MTEWaterHubArray extends MTEGTSRMultiBlockBase<MTEWaterHubArray>
             return true;
         }
 
-        // Water cache node requires 0 singularity to bind
-        // (singularity_consumed flag still set for compatibility, but no actual consumption)
-        if (!held.hasTagCompound() || !held.getTagCompound()
-            .hasKey("gtsr.singularity_consumed")) {
-            if (!held.hasTagCompound()) {
-                held.setTagCompound(new NBTTagCompound());
-            }
-            held.getTagCompound()
-                .setBoolean("gtsr.singularity_consumed", true);
-        }
-
         int myX = aBaseMetaTileEntity.getXCoord();
         int myY = aBaseMetaTileEntity.getYCoord();
         int myZ = aBaseMetaTileEntity.getZCoord();
         int myDim = aBaseMetaTileEntity.getWorld().provider.dimensionId;
-        String nodeName = held.getDisplayName();
 
+        // 已绑定本枢纽的堆叠：无论普通/shift，优先走现有 output 翻转/解绑交互（完全保留现状逻辑）
         if (held.hasTagCompound() && held.getTagCompound()
             .hasKey("gtsr.hubPos")) {
             NBTTagCompound existing = held.getTagCompound()
@@ -870,24 +859,54 @@ public class MTEWaterHubArray extends MTEGTSRMultiBlockBase<MTEWaterHubArray>
                     existing.setBoolean("output", true);
                     GTUtility.sendChatToPlayer(
                         aPlayer,
-                        StatCollector.translateToLocal("gtsr.binding.bound_input") + nodeName
+                        StatCollector.translateToLocal("gtsr.binding.bound_input") + held.getDisplayName()
                             + StatCollector.translateToLocal("gtsr.binding.mode_input"));
                 } else {
                     held.getTagCompound()
                         .removeTag("gtsr.hubPos");
                     GTUtility.sendChatToPlayer(
                         aPlayer,
-                        StatCollector.translateToLocal("gtsr.binding.cleared") + nodeName
+                        StatCollector.translateToLocal("gtsr.binding.cleared") + held.getDisplayName()
                             + StatCollector.translateToLocal("gtsr.binding.binding"));
                 }
                 return true;
             }
         }
 
-        if (!held.hasTagCompound()) {
-            held.setTagCompound(new NBTTagCompound());
+        // shift 右击：整个手持堆叠全部绑定（0 奇点成本，仅打标记）；
+        // 普通右击：拆出 1 个绑定（0 奇点成本，仅打标记），绑定物回背包，手持剩余保持未绑定
+        if (aPlayer.isSneaking()) {
+            bindWholeHeld(aPlayer, held, myX, myY, myZ, myDim);
+        } else {
+            bindOneFromHeld(aPlayer, held, myX, myY, myZ, myDim);
+        }
+        return true;
+    }
+
+    /**
+     * 普通右击：从手持堆叠拆出 1 个蓄水缓存节点绑定到本枢纽（0 奇点成本，仅打标记），
+     * 写 hubPos NBT 后放回玩家背包（背包无空位则落地），手持剩余 N-1 个保持未绑定。
+     * 绑定他处的堆叠仅覆盖拆出的这 1 个。
+     */
+    private void bindOneFromHeld(EntityPlayer aPlayer, ItemStack held, int myX, int myY, int myZ, int myDim) {
+        // Water cache node requires 0 singularity to bind
+        // (singularity_consumed flag still set for compatibility, but no actual consumption)
+        // 拆 1 个（copy + 减量，≤0 则清手持槽）
+        ItemStack bound = held.copy();
+        bound.stackSize = 1;
+        held.stackSize--;
+        if (held.stackSize <= 0) {
+            aPlayer.inventory.mainInventory[aPlayer.inventory.currentItem] = null;
         }
 
+        // 打标记（拆出物继承原 NBT，无标记则补；标记只作用于拆出物）
+        if (!bound.hasTagCompound()) {
+            bound.setTagCompound(new NBTTagCompound());
+        }
+        bound.getTagCompound()
+            .setBoolean("gtsr.singularity_consumed", true);
+
+        // 写 hubPos（覆盖绑定他处的旧 hubPos）
         NBTTagCompound hubTag = new NBTTagCompound();
         hubTag.setInteger("x", myX);
         hubTag.setInteger("y", myY);
@@ -895,15 +914,45 @@ public class MTEWaterHubArray extends MTEGTSRMultiBlockBase<MTEWaterHubArray>
         hubTag.setInteger("dim", myDim);
         hubTag.setString("type", "water");
         hubTag.setBoolean("output", false);
+        bound.getTagCompound()
+            .setTag("gtsr.hubPos", hubTag);
 
+        GTUtility.addItemToPlayerInventory(aPlayer, bound);
+        aPlayer.inventoryContainer.detectAndSendChanges();
+        GTUtility.sendChatToPlayer(
+            aPlayer,
+            StatCollector.translateToLocal("gtsr.binding.bound_output") + bound.getDisplayName()
+                + StatCollector.translateToLocal("gtsr.binding.mode_output"));
+    }
+
+    /**
+     * shift 右击：整个手持堆叠全部绑定到本枢纽（0 奇点成本，仅打标记）。绑定他处的堆叠覆盖整堆。
+     */
+    private void bindWholeHeld(EntityPlayer aPlayer, ItemStack held, int myX, int myY, int myZ, int myDim) {
+        // Water cache node requires 0 singularity to bind
+        // (singularity_consumed flag still set for compatibility, but no actual consumption)
+        if (!held.hasTagCompound()) {
+            held.setTagCompound(new NBTTagCompound());
+        }
+        held.getTagCompound()
+            .setBoolean("gtsr.singularity_consumed", true);
+
+        // 整堆写 hubPos（覆盖绑定他处的旧 hubPos）
+        NBTTagCompound hubTag = new NBTTagCompound();
+        hubTag.setInteger("x", myX);
+        hubTag.setInteger("y", myY);
+        hubTag.setInteger("z", myZ);
+        hubTag.setInteger("dim", myDim);
+        hubTag.setString("type", "water");
+        hubTag.setBoolean("output", false);
         held.getTagCompound()
             .setTag("gtsr.hubPos", hubTag);
 
+        aPlayer.inventoryContainer.detectAndSendChanges();
         GTUtility.sendChatToPlayer(
             aPlayer,
-            StatCollector.translateToLocal("gtsr.binding.bound_output") + nodeName
+            StatCollector.translateToLocal("gtsr.binding.bound_output") + held.getDisplayName()
                 + StatCollector.translateToLocal("gtsr.binding.mode_output"));
-        return true;
     }
 
     private BoundCacheNode findBoundNode(int x, int y, int z, int dimId) {

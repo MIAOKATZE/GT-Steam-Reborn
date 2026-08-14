@@ -186,6 +186,7 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
         tooltip
             .add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.miner_node.crushed_mode_hint"));
         tooltip.add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.shared.node_bind_hint"));
+        tooltip.add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.shared.bind_all_hint"));
         tooltip.add(GTSRUtils.getAddedByLine());
     }
 

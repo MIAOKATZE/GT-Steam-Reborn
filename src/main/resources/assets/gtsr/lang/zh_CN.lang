@@ -16,6 +16,7 @@ gtsr.tooltip.shared.singularity_cost=首次绑定枢纽时消耗1个蒸汽纠缠
 gtsr.tooltip.shared.hub_singularity_cost=绑定节点时消耗1个蒸汽纠缠奇点（每个节点仅消耗一次）
 gtsr.binding.no_singularity=背包中没有蒸汽纠缠奇点！
 gtsr.tooltip.shared.node_bind_hint=右击奇点钻井枢纽绑定
+gtsr.tooltip.shared.bind_all_hint=shift 右击绑定手持全部
 gtsr.tooltip.shared.node_unbound=未绑定枢纽
 gtsr.tooltip.node.chunk_load_warn=绑定奇点钻井枢纽后该机器将自动进行区块加载，保证远程作业稳定运行
 gtsr.tooltip.shared.work_cycle=工作周期: 

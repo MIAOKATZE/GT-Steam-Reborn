@@ -16,6 +16,7 @@ gtsr.tooltip.shared.singularity_cost=Consumes 1 Steam Entangled Singularity on f
 gtsr.tooltip.shared.hub_singularity_cost=Consumes 1 Steam Entangled Singularity when binding a node (once per node)
 gtsr.binding.no_singularity=No Steam Entangled Singularity in inventory!
 gtsr.tooltip.shared.node_bind_hint=Right-click Singularity Drilling Hub to bind
+gtsr.tooltip.shared.bind_all_hint=Shift-right-click to bind entire held stack
 gtsr.tooltip.shared.node_unbound=Not bound to hub
 gtsr.tooltip.node.chunk_load_warn=Binding to the Singularity Drilling Hub enables automatic chunk loading on this machine for stable remote operation
 gtsr.tooltip.shared.work_cycle=Work Cycle: 
