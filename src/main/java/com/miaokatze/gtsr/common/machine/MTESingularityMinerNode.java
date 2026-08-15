@@ -68,6 +68,7 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
     private static final int STATUS_BEDROCK = 4;
     private static final int STATUS_SOFT_DISABLED = 5;
     private static final int STATUS_UNMINABLE = 6;
+    private static final int STATUS_OUTPUT_BLOCKED = 7;
 
     private int mTipDepth = 0;
     private boolean mDisabled = false;
@@ -238,6 +239,8 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
                     return EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.node.status.soft_disabled");
                 case STATUS_UNMINABLE:
                     return EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.node.status.unminable");
+                case STATUS_OUTPUT_BLOCKED:
+                    return EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.node.status.output_blocked");
                 default:
                     return EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.node.status.unknown");
             }
@@ -360,6 +363,7 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
 
         // v1.10.61：先推 pending（上周期枢纽输出总线放不下的掉落余量）；未清空则本周期不再采矿
         // （限流等待：节点激活/蒸汽消耗语义不变，矿石保留在世界中）
+        // v1.10.73：状态诚实化——pending 推不掉时明确显示输出阻塞，不再伪装为正常运行
         for (int i = mPendingItems.size() - 1; i >= 0; i--) {
             ItemStack pending = mPendingItems.get(i);
             int left = hub.tryStoreNodeItemOutput(pending);
@@ -370,7 +374,7 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
             }
         }
         if (!mPendingItems.isEmpty()) {
-            setStatus(STATUS_OK);
+            setStatus(STATUS_OUTPUT_BLOCKED);
             return;
         }
 
@@ -437,13 +441,27 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
         // （详见 collectOreDropsWithVanillaFortune 方法注释）
         ArrayList<ItemStack> drops = collectOreDropsWithVanillaFortune(block, meta, fortune, world, oreX, oreY, oreZ);
 
-        // Remove the block from the world
-        world.setBlockToAir(oreX, oreY, oreZ);
-
         // 粉碎矿模式：将矿石掉落物替换为对应粉碎矿（数量 = 原数量 × 配方主产物数 × 1.5）
         if (mCrushedMode && drops != null) {
             applyCrushedMode(drops);
         }
+
+        // v1.10.73：探测先行——输出空间不足则不挖（矿石保留在世界中），明确显示输出阻塞；
+        // 每周期重试同一位置（mOrePositions 放回队首），输出清空后自动恢复
+        if (drops != null && !drops.isEmpty() && hub.protectsExcessItem()) {
+            for (ItemStack drop : drops) {
+                if (drop == null) continue;
+                int capacity = hub.probeNodeItemOutputCapacity(drop);
+                if (capacity < drop.stackSize) {
+                    mOrePositions.add(0, orePos);
+                    setStatus(STATUS_OUTPUT_BLOCKED);
+                    return;
+                }
+            }
+        }
+
+        // Remove the block from the world
+        world.setBlockToAir(oreX, oreY, oreZ);
 
         if (drops != null) {
             for (ItemStack drop : drops) {
@@ -607,7 +625,9 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
 
         mTipDepth--;
         clearEmptyScanRetry();
+        // v1.10.73：下管成功即视为已启动（对齐 DrillingNode），枢纽端按 mHasStarted 识别工作状态
         setStatus(STATUS_OK);
+        mHasStarted = true;
         mIsWorking = true;
         mWorkProgress = (mWorkProgress + 20) % MINER_WORK_CYCLE[mMinerTier];
         return true;
@@ -745,7 +765,8 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
             mForcedRetract = false;
             mNeedsDescend = true;
             mOrePositions.clear();
-            setStatus(STATUS_OK);
+            // v1.10.73：打开时保留 pending 不丢矿，但显示诚实——pending 非空即输出阻塞
+            setStatus(mPendingItems.isEmpty() ? STATUS_OK : STATUS_OUTPUT_BLOCKED);
             mCycleTimer = 0;
         } else if (!currentlyAllowed && mLastAllowedToWork) {
             mSoftDisabled = true;
@@ -856,6 +877,9 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
                 break;
             case STATUS_UNMINABLE:
                 statusText = EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.node.status.unminable");
+                break;
+            case STATUS_OUTPUT_BLOCKED:
+                statusText = EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.node.status.output_blocked");
                 break;
             default:
                 statusText = EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.node.status.unknown");

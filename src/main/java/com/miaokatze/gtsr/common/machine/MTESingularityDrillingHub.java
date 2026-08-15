@@ -714,6 +714,17 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
     }
 
     /**
+     * v1.10.73：simulate 探测可放入数量（不实放）——采矿节点挖矿前预检输出空间。
+     * 语义与 tryStoreNodeItemOutput 的探测段完全一致（storePartial simulate 扣减入参副本）。
+     */
+    public int probeNodeItemOutputCapacity(ItemStack stack) {
+        if (stack == null || stack.stackSize <= 0) return 0;
+        ItemStack probe = stack.copy();
+        gtsr$storeItemIntoBusses(probe, true);
+        return stack.stackSize - probe.stackSize;
+    }
+
+    /**
      * v1.10.61：全 hub 共用的物品预检/试放 helper（voidingMode 保护时限流）。
      * 先以 simulate 模式计算可放量（storePartial 的 simulate 语义会从副本中扣减可放入数量），
      * 再按该数量实放；不修改入参 stack，返回未放入的余量（调用方决定余量去向）。
@@ -722,9 +733,7 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
      */
     public int tryStoreNodeItemOutput(ItemStack stack) {
         if (stack == null || stack.stackSize <= 0) return 0;
-        ItemStack probe = stack.copy();
-        gtsr$storeItemIntoBusses(probe, true);
-        int fits = stack.stackSize - probe.stackSize;
+        int fits = probeNodeItemOutputCapacity(stack);
         if (fits <= 0) return stack.stackSize;
         ItemStack toPlace = stack.copy();
         toPlace.stackSize = fits;
