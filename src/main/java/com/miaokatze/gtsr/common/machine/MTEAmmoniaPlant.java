@@ -114,12 +114,13 @@ public class MTEAmmoniaPlant extends MTEGTSRMultiBlockBase<MTEAmmoniaPlant> impl
 
     // GTSR 进度词条：注册顺序 = GUI 终端显示顺序（热量/蒸汽消耗/高压蒸汽/并行；催化剂与状态为文本行保留在 GUI）
     private void registerProgressEntries() {
-        // 热量（mHeatLevel 0-100）：值颜色随热度分级（与 GUI 原逻辑一致，formatter 内按值取色）
+        // 热量（mHeatLevel 0-10000，词条值归一为 0-100 百分比口径，与全库其他机器/红石仓阈值一致；
+        // 值颜色随热度分级，formatter 内按 0-100 值取色）
         registerEntryCustom(
             "temperature",
             "gtsr.gui.ammonia_plant.heat",
             EnumChatFormatting.WHITE,
-            () -> mHeatLevel,
+            () -> mHeatLevel / 100.0,
             v -> (v <= 0 ? EnumChatFormatting.WHITE
                 : v < 50 ? EnumChatFormatting.RED
                     : v < 80 ? EnumChatFormatting.GOLD : v < 100 ? EnumChatFormatting.GREEN : EnumChatFormatting.YELLOW)
