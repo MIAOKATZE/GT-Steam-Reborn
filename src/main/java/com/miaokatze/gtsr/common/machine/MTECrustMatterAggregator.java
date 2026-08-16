@@ -47,6 +47,7 @@ import com.miaokatze.gtsr.common.gui.AggregatorConfigGuiFactory;
 import com.miaokatze.gtsr.common.gui.MTECrustMatterAggregatorGui;
 import com.miaokatze.gtsr.common.machine.base.MTESingularityMachineBase;
 import com.miaokatze.gtsr.common.machine.base.VoidMinerUtilityShim;
+import com.miaokatze.gtsr.common.util.GTSROutputBusCompat;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
 import com.miaokatze.gtsr.common.util.OreCrushedUtil;
 import com.miaokatze.gtsr.loader.BlockLoader;
@@ -1255,12 +1256,13 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
      * 依次对每个输出总线做 storePartial 模拟探测（storePartial 模拟模式同样会扣减入参 stackSize，
      * 故用副本探测），整组放得下才实放并返回 true；所有总线都放不下时整组不放入、返回 false——
      * 矿石保留在 mOreAccumulator 累积状态，下次周期继续尝试，不销毁。
+     * v1.10.74：探测与实放走 GTSROutputBusCompat——ME 输出总线 cache 满时过滤放行视为可放（探测与实放一致）。
      */
     private boolean tryOutputOre(ItemStack ore) {
         if (GTUtility.isStackInvalid(ore)) return false;
         for (MTEHatchOutputBus bus : GTUtility.validMTEList(mOutputBusses)) {
-            if (bus.storePartial(GTUtility.copyOrNull(ore), true)) {
-                bus.storePartial(ore, false);
+            if (GTSROutputBusCompat.storePartial(bus, GTUtility.copyOrNull(ore), true)) {
+                GTSROutputBusCompat.storePartial(bus, ore, false);
                 return true;
             }
         }

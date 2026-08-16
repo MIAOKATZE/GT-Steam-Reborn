@@ -45,6 +45,7 @@ import com.miaokatze.gtsr.common.api.progress.GTSRProgressBar;
 import com.miaokatze.gtsr.common.api.progress.GTSRProgressEntry;
 import com.miaokatze.gtsr.common.machine.base.IHubArray;
 import com.miaokatze.gtsr.common.machine.base.MTERemoteWorkerNode;
+import com.miaokatze.gtsr.common.util.GTSROutputBusCompat;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
 import com.miaokatze.gtsr.common.util.HubTeleportUtil;
 
@@ -741,15 +742,19 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
         return stack.stackSize - fits;
     }
 
+    /**
+     * v1.10.74：storePartial 走 GTSROutputBusCompat——ME 输出总线 simulate 探测受 cache 空间门控，
+     * 过滤放行时兼容层视为全部可放（探测与实放一致），普通/压缩总线直通原语义。
+     */
     private void gtsr$storeItemIntoBusses(ItemStack stack, boolean simulate) {
         for (MTEHatchOutputBus bus : GTUtility.validMTEList(mSteamOutputs)) {
             if (stack.stackSize <= 0) break;
-            bus.storePartial(stack, simulate);
+            GTSROutputBusCompat.storePartial(bus, stack, simulate);
         }
         for (MTEHatchOutputBus bus : GTUtility.validMTEList(mOutputBusses)) {
             if (stack.stackSize <= 0) break;
             if (bus instanceof MTEHatchSteamBusOutput) continue;
-            bus.storePartial(stack, simulate);
+            GTSROutputBusCompat.storePartial(bus, stack, simulate);
         }
     }
 
