@@ -73,6 +73,12 @@ public class MTEVeinSteamPyrolyzer extends MTESteamMultiBlockBase<MTEVeinSteamPy
     private static final int VERTICAL_OFF_SET = 5;
     private static final int DEPTH_OFF_SET = 1;
 
+    // 储量上限与保险阈值口径：每抽 L 数（玩家探测可见值）= GT5U 内部 amount ÷ UndergroundOil.DIVIDER(5000)。
+    // 自然生成油田每抽最高 350，上限 500/2000 不影响自然储量；>10000 只可能是无上限时期的 bug 遗留
+    private static final int CAP_PER_OP_BRONZE = 500;
+    private static final int CAP_PER_OP_STEEL = 2000;
+    private static final int BUG_THRESHOLD_PER_OP = 10000;
+
     private static IStructureDefinition<MTEVeinSteamPyrolyzer> STRUCTURE_DEFINITION = null;
 
     private Fluid mLockedFluid = null;
@@ -382,15 +388,23 @@ public class MTEVeinSteamPyrolyzer extends MTESteamMultiBlockBase<MTEVeinSteamPy
         if (mApplyFluidIncrease) {
             mApplyFluidIncrease = false;
             int increasePerOp = mSetTier == 2 ? 25000 : 10000;
+            int capInternal = (mSetTier == 2 ? CAP_PER_OP_STEEL : CAP_PER_OP_BRONZE) * UndergroundOil.DIVIDER;
+            int bugThreshold = BUG_THRESHOLD_PER_OP * UndergroundOil.DIVIDER;
             int totalIncreased = 0;
             for (Iterator<ChunkCoordIntPair> it = mVeinChunks.iterator(); it.hasNext();) {
                 ChunkCoordIntPair chunk = it.next();
+                UndergroundOilHelper.capFluidAmountIfBug(
+                    baseTE.getWorld(),
+                    chunk.chunkXPos,
+                    chunk.chunkZPos,
+                    capInternal,
+                    bugThreshold);
                 int actual = UndergroundOilHelper.increaseFluidAmount(
                     baseTE.getWorld(),
                     chunk.chunkXPos,
                     chunk.chunkZPos,
                     increasePerOp,
-                    Integer.MAX_VALUE);
+                    capInternal);
                 totalIncreased += actual;
             }
             if (totalIncreased <= 0) {

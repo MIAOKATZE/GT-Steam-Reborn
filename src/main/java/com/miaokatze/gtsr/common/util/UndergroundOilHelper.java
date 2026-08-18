@@ -74,6 +74,39 @@ public class UndergroundOilHelper {
         }
     }
 
+    /**
+     * 储量保险：区块内部储量超过 bugThreshold 时强制收回 capAmount（v1.10.77 起 VSP 增量有等级上限，
+     * 此方法负责修正无上限时期涨出的异常区块）。正常路径不产生任何日志。
+     *
+     * @return 是否实际发生了修正
+     */
+    public static boolean capFluidAmountIfBug(World w, int chunkX, int chunkZ, int capAmount, int bugThreshold) {
+        try {
+            Object storage = getStorage();
+            if (storage == null) return false;
+
+            Method getMethod = storage.getClass()
+                .getMethod("get", World.class, int.class, int.class);
+            Object chunkData = getMethod.invoke(storage, w, chunkX, chunkZ);
+            if (chunkData == null) return false;
+
+            Method getAmountMethod = chunkData.getClass()
+                .getMethod("getAmount");
+            getAmountMethod.setAccessible(true);
+            int currentAmount = (int) getAmountMethod.invoke(chunkData);
+            if (currentAmount <= bugThreshold) return false;
+
+            Method setAmountMethod = chunkData.getClass()
+                .getMethod("setAmount", int.class);
+            setAmountMethod.setAccessible(true);
+            setAmountMethod.invoke(chunkData, capAmount);
+            return true;
+        } catch (Exception e) {
+            GTMod.GT_FML_LOGGER.error("[GTSR] capFluidAmountIfBug failed", e);
+            return false;
+        }
+    }
+
     public static int getFluidAmount(World w, int chunkX, int chunkZ) {
         try {
             Object storage = getStorage();
