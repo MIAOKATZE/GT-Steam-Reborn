@@ -1,5 +1,6 @@
 package com.miaokatze.gtsr.mixin;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import net.minecraft.block.Block;
@@ -18,6 +19,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import com.gtnewhorizon.structurelib.structure.AutoPlaceEnvironment;
 import com.gtnewhorizon.structurelib.structure.IStructureElement;
 import com.gtnewhorizon.structurelib.structure.IStructureElement.BlocksToPlace;
+import com.miaokatze.gtsr.common.api.compat.IGTSRHatchCasingProvider;
 import com.miaokatze.gtsr.common.machine.base.MTEGTSRRedstoneHatch;
 import com.miaokatze.gtsr.common.structure.GTSRRedstoneHatchLimitError;
 
@@ -58,6 +60,10 @@ public abstract class StructureCheckerMixin {
     @Unique
     private int gtsr$redstoneHatchCount;
 
+    /** 本轮已绑定的红石仓；任一结构位置失败时统一解除绑定。 */
+    @Unique
+    private final List<MTEGTSRRedstoneHatch> gtsr$boundRedstoneHatches = new ArrayList<>();
+
     @Inject(method = "visit", at = @At("HEAD"), cancellable = true)
     private void gtsr$onVisit(IStructureElement element, World world, int x, int y, int z, int a, int b, int c,
         CallbackInfoReturnable<Boolean> cir) {
@@ -69,6 +75,7 @@ public abstract class StructureCheckerMixin {
                     // 超出上限：本位置校验失败。原方法体被跳过，需手动置失败标志，
                     // 并补写结构错误（超限位置 + 世界高亮、超限文案）供控制器 GUI 呈现。
                     this.success = false;
+                    gtsr$invalidateBoundHatches();
                     if (errors != null) {
                         errors.add(new PositionedStructureError(x, y, z));
                         errors.add(new GTSRRedstoneHatchLimitError(gtsr$redstoneHatchCount));
@@ -76,8 +83,11 @@ public abstract class StructureCheckerMixin {
                     cir.setReturnValue(false);
                     return;
                 }
-                ((MTEGTSRRedstoneHatch) mte).setController((IMetaTileEntity) instance);
-                applyStructureTexture(element, world, x, y, z, (MTEGTSRRedstoneHatch) mte);
+                MTEGTSRRedstoneHatch hatch = (MTEGTSRRedstoneHatch) mte;
+                hatch.setController((IMetaTileEntity) instance);
+                gtsr$boundRedstoneHatches.add(hatch);
+                // 解析结果显式返回；解析失败不否决结构，确保红石仓仍可替换任意结构位。
+                applyStructureTexture(element, world, x, y, z, hatch);
                 cir.setReturnValue(true);
             }
         }
@@ -86,28 +96,44 @@ public abstract class StructureCheckerMixin {
     /**
      * 结构施加底材：红石仓替换机器结构的一格外壳位，其位置的结构期望方块（通常为机器外壳）即该
      * 机器对仓室施加的底材来源——与 GT5U 输入仓由结构 adder 施加 casingIndex 的机制同源。经
-     * IStructureElement.getBlocksToPlace 提取期望方块，再求 GTUtility.getCasingTextureIndex 并推送；
-     * ofBlocksTiered 等动态元素返回当前等级方块，多等级机器成型后随结构重校验自动跟随。
-     * 期望方块非 GT casing（玻璃/内部方块等）或提取失败时保持当前底材。
+     * IStructureElement.getBlocksToPlace 提取自动放置候选，再求 GTUtility.getCasingTextureIndex 并推送；
+     * 固定方块元素可直接解析，多候选、分级或 adder 元素可能不提供唯一 casing，解析失败时保持当前底材。
      */
     @Unique
-    private void applyStructureTexture(IStructureElement element, World world, int x, int y, int z,
+    private boolean applyStructureTexture(IStructureElement element, World world, int x, int y, int z,
         MTEGTSRRedstoneHatch hatch) {
+        if (instance instanceof IGTSRHatchCasingProvider) {
+            int casingIndex = ((IGTSRHatchCasingProvider) instance).getGTSRHatchCasingTextureIndex();
+            if (casingIndex != Textures.BlockIcons.ERROR_TEXTURE_INDEX && casingIndex > 0) {
+                hatch.applyStructureTexture(casingIndex);
+                return true;
+            }
+        }
         try {
             BlocksToPlace blocks = element
                 .getBlocksToPlace(instance, world, x, y, z, null, AutoPlaceEnvironment.fromLegacy(null, null, null));
-            if (blocks == null || blocks.getStacks() == null) return;
+            if (blocks == null || blocks.getStacks() == null) return false;
             for (ItemStack stack : blocks.getStacks()) {
                 if (stack == null || stack.getItem() == null) continue;
                 int idx = GTUtility
                     .getCasingTextureIndex(Block.getBlockFromItem(stack.getItem()), stack.getItemDamage());
                 if (idx != Textures.BlockIcons.ERROR_TEXTURE_INDEX) {
                     hatch.applyStructureTexture(idx);
-                    return;
+                    return true;
                 }
             }
         } catch (Exception ignored) {
-            // 结构元素不支持提取期望方块（如 hatch adder 匿名元素）：保持当前底材
+            // 结构元素不支持提取期望方块（如 hatch adder 匿名元素）：由返回值显式报告失败。
         }
+        return false;
+    }
+
+    /** 结构校验失败时解除本轮已经建立的红石仓绑定，避免失败结构继续输出信号。 */
+    @Unique
+    private void gtsr$invalidateBoundHatches() {
+        for (MTEGTSRRedstoneHatch hatch : gtsr$boundRedstoneHatches) {
+            hatch.setController(null);
+        }
+        gtsr$boundRedstoneHatches.clear();
     }
 }

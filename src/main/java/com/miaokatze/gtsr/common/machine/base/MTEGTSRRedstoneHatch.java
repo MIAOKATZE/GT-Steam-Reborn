@@ -245,8 +245,7 @@ public class MTEGTSRRedstoneHatch extends MTEHatch {
 
     /**
      * 结构施加底材：由 StructureCheckerMixin 在结构校验访问本仓时调用，索引取自本仓位置的结构
-     * 期望方块（红石仓替换机器结构的一格外壳位，该期望方块通常为机器外壳）——与 GT5U 输入仓由
-     * 结构 adder 施加 casingIndex 的机制同源。updateTexture 内部相同索引早退，重复调用廉价。
+     * 期望方块。解析失败时由调用方决定回退策略，不在仓室内部猜测控制器材质。
      */
     public void applyStructureTexture(int casingIndex) {
         updateTexture(casingIndex);

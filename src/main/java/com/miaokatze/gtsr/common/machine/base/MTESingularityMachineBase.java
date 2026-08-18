@@ -23,6 +23,7 @@ import net.minecraftforge.fluids.FluidTankInfo;
 import com.google.common.collect.ImmutableList;
 import com.gtnewhorizon.structurelib.alignment.IAlignmentLimits;
 import com.miaokatze.gtsr.api.compat.GTSRHatchFluidAccess;
+import com.miaokatze.gtsr.common.api.compat.IGTSRHatchCasingProvider;
 import com.miaokatze.gtsr.common.blocks.TileRunawaySingularity;
 import com.miaokatze.gtsr.common.gui.MTESingularityMachineGui;
 import com.miaokatze.gtsr.loader.BlockLoader;
@@ -52,7 +53,8 @@ import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.MTEHatchSteam
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.MTEHatchSteamBusOutput;
 
 /** Shared processing logic and steam plumbing for the singularity machines. */
-public abstract class MTESingularityMachineBase extends MTESingularityModeMachineBase<MTESingularityMachineBase> {
+public abstract class MTESingularityMachineBase extends MTESingularityModeMachineBase<MTESingularityMachineBase>
+    implements IGTSRHatchCasingProvider {
 
     protected static final int CYCLE_LENGTH = 20;
     protected static final double HEAT_DECAY_PER_SECOND = 0.01d;
@@ -139,6 +141,11 @@ public abstract class MTESingularityMachineBase extends MTESingularityModeMachin
 
     protected int getHatchCasingTextureIndex() {
         return GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings2, 0);
+    }
+
+    @Override
+    public int getGTSRHatchCasingTextureIndex() {
+        return getHatchCasingTextureIndex();
     }
 
     protected void updateAllHatchTextures() {
