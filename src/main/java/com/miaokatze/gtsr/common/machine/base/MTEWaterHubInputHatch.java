@@ -80,7 +80,7 @@ public class MTEWaterHubInputHatch extends MTEHatchInput {
 
     @Override
     public boolean isFluidInputAllowed(FluidStack aFluid) {
-        if (aFluid == null) return false;
+        // S5 放宽：接受任意流体（异种拒收由枢纽 mStoredFluidType 单一类型锁负责）
         return MTEWaterHubOutputHatch.isWaterFluid(aFluid);
     }
 

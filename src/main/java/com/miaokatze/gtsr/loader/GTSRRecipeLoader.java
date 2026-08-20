@@ -638,6 +638,23 @@ public class GTSRRecipeLoader implements Runnable {
             }
         }
 
+        // 耐压通用流体缓存节点：下位节点（通用流体缓存节点）升级式，镜像耐压蒸汽缓存节点
+        ItemStack reinforcedWaterResult = GTSRItemList.ReinforcedWaterCacheNode.get(1);
+        if (reinforcedWaterResult == null) {
+            warn("ReinforcedWaterCacheNode item is null, skipping recipe!");
+        } else {
+            ItemStack waterCacheInput = GTSRItemList.WaterCacheNode.get(1);
+            if (waterCacheInput == null) {
+                warn("WaterCacheNode input is null, skipping ReinforcedWaterCacheNode recipe!");
+            } else {
+                GTModHandler.addCraftingRecipe(
+                    reinforcedWaterResult,
+                    GTModHandler.RecipeBits.BITSD,
+                    new Object[] { "MPM", "PTP", "MPM", 'M', "plateTripleSteel", 'P', "pipeLargeSteel", 'T',
+                        waterCacheInput });
+            }
+        }
+
         log("Cache node recipes done.");
     }
 
@@ -741,7 +758,7 @@ public class GTSRRecipeLoader implements Runnable {
     /**
      * 节点「洗白」无序配方：1 个节点(无视 NBT) → 1 个干净节点，帮助玩家清除节点上的 NBT 数据
      * （绑定信息/自定义名/奇点消耗标记等）。vanilla 无序配方匹配不校验 NBT，输出为全新干净栈。
-     * 覆盖全部 6 种节点：采矿/钻井节点 + 4 种缓存节点。
+     * 覆盖全部 12 种节点：采矿/钻井节点 + 6 种缓存节点 + 4 种奇点仓。
      * 注意：会同时清掉 gtsr.singularity_consumed 标记，属预期行为（允许玩家重新绑定，计划已确认）。
      */
     private static void registerNodeNBTClearRecipes() {
@@ -749,7 +766,9 @@ public class GTSRRecipeLoader implements Runnable {
 
         GTSRItemList[] nodeItems = { GTSRItemList.SingularityMinerNode, GTSRItemList.SingularityDrillingNode,
             GTSRItemList.SteamCacheNode, GTSRItemList.ReinforcedSteamCacheNode, GTSRItemList.OverpressureSteamCacheNode,
-            GTSRItemList.WaterCacheNode };
+            GTSRItemList.WaterCacheNode, GTSRItemList.ReinforcedWaterCacheNode, GTSRItemList.OverpressureWaterCacheNode,
+            GTSRItemList.SingularitySteamCompartment, GTSRItemList.SingularitySteamOutputCompartment,
+            GTSRItemList.SingularityFluidInputCompartment, GTSRItemList.SingularityFluidOutputCompartment };
 
         for (GTSRItemList node : nodeItems) {
             ItemStack clean = get(node, 1);
@@ -1179,6 +1198,30 @@ public class GTSRRecipeLoader implements Runnable {
             warn("Skipped OverpressureSteamCacheNode recipe - output is null");
         }
 
+        // --- 超压通用流体缓存节点（镜像超压蒸汽缓存节点：下位节点升级式组装机配方） ---
+        ItemStack overpressureWaterCacheOut = get(GTSRItemList.OverpressureWaterCacheNode, 1);
+        if (!hasNull(overpressureWaterCacheOut)) {
+            ItemStack[] inputs = filterNulls(
+                GTSRItemList.SteamEntangledSingularity.get(32),
+                GTSRItemList.ReinforcedWaterCacheNode.get(1),
+                get(OrePrefixes.circuit, Materials.LuV, 4),
+                ItemList.Sensor_LuV.get(2),
+                get(OrePrefixes.screw, WerkstoffLoader.RhodiumPlatedPalladium.getGTMaterial(), 64),
+                get(OrePrefixes.plateDense, WerkstoffLoader.RhodiumPlatedPalladium.getGTMaterial(), 16));
+            if (!hasNull(inputs)) {
+                GTValues.RA.stdBuilder()
+                    .itemInputs(inputs)
+                    .itemOutputs(overpressureWaterCacheOut)
+                    .duration(90 * SECONDS)
+                    .eut(TierEU.RECIPE_LuV)
+                    .addTo(assemblerRecipes);
+            } else {
+                warn("Skipped OverpressureWaterCacheNode recipe - inputs contain null");
+            }
+        } else {
+            warn("Skipped OverpressureWaterCacheNode recipe - output is null");
+        }
+
         // --- 超压枢纽存储单元 ---
         ItemStack overpressureHubOut = get(GTSRItemList.OverpressureHubStorageUnit, 1);
         if (!hasNull(overpressureHubOut)) {
@@ -1342,6 +1385,33 @@ public class GTSRRecipeLoader implements Runnable {
             GTModHandler.RecipeBits.BITSD,
             new Object[] { "ABA", "CDC", "ABA", 'A', "screwSteel", 'B', "plateTripleSteel", 'C', "plateTripleBronze",
                 'D', GTSRItemList.HubStorageUnit.get(1) });
+
+        // 奇点仓四件套（参照仓室升级链模板 "ABA","CDC","ABA"：A=材质螺丝、B/C=板材/管材、D=奇点核心件/下位物）：
+        // 蒸汽两仓=钢系+蒸汽纠缠奇点（输出仓为接收仓升级式，D=下位物，避免同形配方冲突）；
+        // 流体两仓=青铜系（对齐蓄水枢纽输入/输出仓材料口径）+蒸汽纠缠奇点（输出仓同为下位物升级式）
+        GTModHandler.addCraftingRecipe(
+            GTSRItemList.SingularitySteamCompartment.get(1),
+            GTModHandler.RecipeBits.BITSD,
+            new Object[] { "ABA", "CDC", "ABA", 'A', "screwSteel", 'B', "plateSteel", 'C', "plateSteel", 'D',
+                GTSRItemList.SteamEntangledSingularity.get(1) });
+
+        GTModHandler.addCraftingRecipe(
+            GTSRItemList.SingularitySteamOutputCompartment.get(1),
+            GTModHandler.RecipeBits.BITSD,
+            new Object[] { "ABA", "CDC", "ABA", 'A', "screwSteel", 'B', "plateSteel", 'C', "plateSteel", 'D',
+                GTSRItemList.SingularitySteamCompartment.get(1) });
+
+        GTModHandler.addCraftingRecipe(
+            GTSRItemList.SingularityFluidInputCompartment.get(1),
+            GTModHandler.RecipeBits.BITSD,
+            new Object[] { "ABA", "CDC", "ABA", 'A', "screwBronze", 'B', "plateBronze", 'C', "pipeLargeBronze", 'D',
+                GTSRItemList.SteamEntangledSingularity.get(1) });
+
+        GTModHandler.addCraftingRecipe(
+            GTSRItemList.SingularityFluidOutputCompartment.get(1),
+            GTModHandler.RecipeBits.BITSD,
+            new Object[] { "ABA", "CDC", "ABA", 'A', "screwBronze", 'B', "plateBronze", 'C', "pipeLargeBronze", 'D',
+                GTSRItemList.SingularityFluidInputCompartment.get(1) });
 
         log("Hatch recipes done.");
     }

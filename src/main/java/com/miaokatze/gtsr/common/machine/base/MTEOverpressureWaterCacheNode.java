@@ -1,9 +1,6 @@
 package com.miaokatze.gtsr.common.machine.base;
 
 import static com.gtnewhorizon.gtnhlib.util.numberformatting.NumberFormatUtil.formatNumber;
-import static gregtech.api.enums.Textures.BlockIcons.MACHINE_STEEL_BOTTOM;
-import static gregtech.api.enums.Textures.BlockIcons.MACHINE_STEEL_SIDE;
-import static gregtech.api.enums.Textures.BlockIcons.MACHINE_STEEL_TOP;
 import static gregtech.api.enums.Textures.BlockIcons.OVERLAY_PIPE;
 
 import java.util.List;
@@ -20,33 +17,42 @@ import net.minecraftforge.fluids.IFluidHandler;
 
 import com.miaokatze.gtsr.common.util.GTSRUtils;
 
+import gregtech.api.GregTechAPI;
+import gregtech.api.enums.Textures;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.render.TextureFactory;
 import gregtech.api.util.GTUtility;
 
-public class MTEReinforcedSteamCacheNode extends MTEFilteredCacheNode {
+/**
+ * 超压通用流体缓存节点：容量 32,000,000 L，基础交互速率 2,000,000 L/s（速率档位机制同基类）。
+ * 机制/结构镜像 MTEOverpressureSteamCacheNode；接受任意流体（S5 通用流体口径）。
+ * 绑定奇点消耗 = 0（对齐蓄水枢纽阵列通用流体节点家族现状）；绑定需等级3蓄水枢纽阵列 + 强化奇点芯片（WHA 侧门控）。
+ */
+public class MTEOverpressureWaterCacheNode extends MTEFilteredCacheNode {
 
-    private static final int CAPACITY = 64_000_000;
-    private static final int OUTPUT_RATE_PER_SEC = 8_000_000;
+    private static final int CAPACITY = 32_000_000;
+    private static final int OUTPUT_RATE_PER_SEC = 2_000_000;
+    private static final int HUB_TRANSFER_RATE = 2_000_000;
+    private static final int CASING_INDEX = GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings8, 6);
 
-    public MTEReinforcedSteamCacheNode(int aID, String aName, String aNameRegional) {
-        super(aID, aName, aNameRegional, 3);
+    public MTEOverpressureWaterCacheNode(int aID, String aName, String aNameRegional) {
+        super(aID, aName, aNameRegional, 4);
     }
 
-    public MTEReinforcedSteamCacheNode(String aName, int aTier, String[] aDescription, ITexture[][][] aTextures) {
+    public MTEOverpressureWaterCacheNode(String aName, int aTier, String[] aDescription, ITexture[][][] aTextures) {
         super(aName, aTier, aDescription, aTextures);
     }
 
     @Override
     protected int getBaseHubTransferRate() {
-        return 8_000_000;
+        return HUB_TRANSFER_RATE;
     }
 
     @Override
     public MetaTileEntity newMetaEntity(IGregTechTileEntity aTileEntity) {
-        return new MTEReinforcedSteamCacheNode(mName, mTier, mDescriptionArray, mTextures);
+        return new MTEOverpressureWaterCacheNode(mName, mTier, mDescriptionArray, mTextures);
     }
 
     /**
@@ -62,27 +68,28 @@ public class MTEReinforcedSteamCacheNode extends MTEFilteredCacheNode {
     public ITexture[] getTexture(IGregTechTileEntity baseMetaTileEntity, ForgeDirection sideDirection,
         ForgeDirection facingDirection, int colorIndex, boolean active, boolean redstoneLevel) {
         if (sideDirection == ForgeDirection.UP) {
-            // 顶面三层：基材 + 流体窗（罐内蒸汽/枢纽默认）+ 绑定状态框架层（见 MTEFilteredCacheNode）
-            return getTopFaceTextures(TextureFactory.of(MACHINE_STEEL_TOP));
+            // 顶面三层：基材（Casings8:6，与超压蒸汽节点同款） + 流体窗 + 绑定状态框架层
+            return getTopFaceTextures(Textures.BlockIcons.getCasingTextureForId(CASING_INDEX));
         } else if (sideDirection == ForgeDirection.DOWN) {
-            return new ITexture[] { TextureFactory.of(MACHINE_STEEL_BOTTOM) };
+            return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(CASING_INDEX) };
         } else if (sideDirection == facingDirection) {
-            return new ITexture[] { TextureFactory.of(MACHINE_STEEL_SIDE), TextureFactory.of(OVERLAY_PIPE) };
+            return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(CASING_INDEX),
+                TextureFactory.of(OVERLAY_PIPE) };
         } else {
-            return new ITexture[] { TextureFactory.of(MACHINE_STEEL_SIDE) };
+            return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(CASING_INDEX) };
         }
     }
 
     @Override
     protected boolean isFluidAllowed(Fluid fluid) {
-        if (fluid == null) return false;
-        String name = fluid.getName();
-        return "steam".equals(name) || "ic2superheatedsteam".equals(name);
+        // 通用流体口径：任意流体（罐内单一流体锁由父类罐机制保证）
+        return fluid != null;
     }
 
     @Override
     protected Fluid getFamilyDefaultWindowFluid() {
-        return FluidRegistry.getFluid("steam");
+        // 通用流体族绑定蓄水枢纽阵列：空罐默认窗=水（与蓄水枢纽阵列系奇点仓口径一致）
+        return FluidRegistry.WATER;
     }
 
     @Override
@@ -105,24 +112,23 @@ public class MTEReinforcedSteamCacheNode extends MTEFilteredCacheNode {
 
     @Override
     public boolean isFluidInputAllowed(FluidStack aFluid) {
-        return isSteamFluid(aFluid);
+        return isAnyFluid(aFluid);
     }
 
     @Override
     public int fill(FluidStack aFluid, boolean doFill) {
-        if (aFluid == null || !isSteamFluid(aFluid)) return 0;
+        if (aFluid == null || !isAnyFluid(aFluid)) return 0;
         return super.fill(aFluid, doFill);
     }
 
     @Override
     public int fill(ForgeDirection side, FluidStack aFluid, boolean doFill) {
-        if (aFluid == null || !isSteamFluid(aFluid)) return 0;
+        if (aFluid == null || !isAnyFluid(aFluid)) return 0;
         return super.fill(side, aFluid, doFill);
     }
 
     /**
-     * 拦截 GUI 输入槽中的非目标流体单元。
-     * 只有装满「蒸汽」或「过热蒸汽」的流体容器才允许放入输入槽；空容器或非流体物品走父类逻辑。
+     * 拦截 GUI 输入槽中的空容器：任意流体容器都允许放入；空容器或非流体物品走父类逻辑。
      */
     @Override
     public boolean allowPutStack(IGregTechTileEntity aBaseMetaTileEntity, int aIndex, ForgeDirection side,
@@ -130,18 +136,14 @@ public class MTEReinforcedSteamCacheNode extends MTEFilteredCacheNode {
         if (aIndex == getInputSlot()) {
             FluidStack tFluid = GTUtility.getFluidForFilledItem(aStack, true);
             if (tFluid != null && tFluid.getFluid() != null) {
-                return isSteamFluid(tFluid);
+                return true;
             }
         }
         return super.allowPutStack(aBaseMetaTileEntity, aIndex, side, aStack);
     }
 
-    private static boolean isSteamFluid(FluidStack aFluid) {
-        if (aFluid == null) return false;
-        Fluid fluid = aFluid.getFluid();
-        if (fluid == null) return false;
-        String name = fluid.getName();
-        return "steam".equals(name) || "ic2superheatedsteam".equals(name);
+    private static boolean isAnyFluid(FluidStack aFluid) {
+        return aFluid != null && aFluid.getFluid() != null;
     }
 
     @Override
@@ -188,8 +190,7 @@ public class MTEReinforcedSteamCacheNode extends MTEFilteredCacheNode {
         tooltip.add(
             EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.shared.fluid_type")
                 + EnumChatFormatting.YELLOW
-                + StatCollector
-                    .translateToLocal("gtsr.tooltip.reinforced_steam_cache_node.fluid_type.superheated_steam"));
+                + StatCollector.translateToLocal("gtsr.tooltip.overpressure_water_cache_node.fluid_type"));
         tooltip.add(
             EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.shared.output_rate")
                 + EnumChatFormatting.GREEN
@@ -202,7 +203,11 @@ public class MTEReinforcedSteamCacheNode extends MTEFilteredCacheNode {
                 + String.format("%,d", getRealCapacity())
                 + " "
                 + StatCollector.translateToLocal("gtsr.tooltip.shared.l"));
-        tooltip.add(EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.shared.singularity_cost"));
+        tooltip.add(
+            EnumChatFormatting.RED
+                + StatCollector.translateToLocal("gtsr.tooltip.overpressure_water_cache_node.bind_requirement"));
+        tooltip
+            .add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.water_cache_node.bind_target"));
         tooltip
             .add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.shared.cache_node_standalone"));
         tooltip.add(

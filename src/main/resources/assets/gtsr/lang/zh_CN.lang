@@ -17,6 +17,7 @@ gtsr.tooltip.shared.hub_singularity_cost=绑定节点时消耗1个蒸汽纠缠�
 gtsr.binding.no_singularity=背包中没有蒸汽纠缠奇点！
 gtsr.tooltip.shared.node_bind_hint=右击奇点钻井枢纽绑定
 gtsr.tooltip.shared.bind_all_hint=shift 右击绑定手持全部
+gtsr.tooltip.shared.bind_kept_on_drop=破坏掉落保留枢纽绑定
 gtsr.tooltip.shared.node_unbound=未绑定枢纽
 gtsr.tooltip.node.chunk_load_warn=绑定奇点钻井枢纽后该机器将自动进行区块加载，保证远程作业稳定运行
 gtsr.tooltip.shared.work_cycle=工作周期: 
@@ -48,7 +49,7 @@ gtsr.tooltip.steam_hub_input_hatch.no_storage=无内部缓存，流体直接进�
 gt.blockmachines.gtsr.hub.storage.unit.name=枢纽存储单元
 gtsr.tooltip.hub_storage_unit.info=枢纽阵列的结构组件
 gtsr.tooltip.hub_storage_unit.dual_hub=可用于蒸汽枢纽阵列和蓄水枢纽阵列
-gtsr.tooltip.hub_storage_unit.water_hub=蓄水枢纽
+gtsr.tooltip.hub_storage_unit.water_hub=蓄水枢纽阵列
 gtsr.tooltip.hub_storage_unit.tier1_only=仅限等级1蒸汽枢纽阵列使用
 
 # Reinforced Hub Storage Unit
@@ -377,8 +378,9 @@ gtsr.tooltip.overpressure_turbine_input_hatch.turbine_only=仅限巨型蒸汽轮
 
 # Overpressure Hub Storage Unit
 gt.blockmachines.gtsr.overpressure.hub.storage.unit.name=超压枢纽存储单元
-gtsr.tooltip.overpressure_hub_storage_unit.info=蒸汽枢纽阵列等级3专用存储单元
-gtsr.tooltip.overpressure_hub_storage_unit.tier3_only=仅限等级3蒸汽枢纽阵列使用
+gtsr.tooltip.overpressure_hub_storage_unit.info=枢纽阵列等级3专用存储单元（蒸汽/蓄水枢纽阵列通用）
+gtsr.tooltip.overpressure_hub_storage_unit.tier3_only=仅限等级3蒸汽枢纽阵列/蓄水枢纽阵列使用
+gtsr.tooltip.overpressure_hub_storage_unit.dual_hub_note=蒸汽枢纽阵列 20.48G/格，蓄水枢纽阵列 20.48M/格；等级3（超压）双枢纽通用
 
 # Water Hub Array
 gt.blockmachines.gtsr.water.hub.array.name=蓄水枢纽阵列
@@ -387,19 +389,44 @@ gtsr.recipe.water_hub_array=蓄水枢纽阵列
 # Water Hub Output Hatch
 gt.blockmachines.gtsr.water.hub.output.hatch.name=蓄水枢纽输出仓
 gtsr.tooltip.water_hub_output_hatch.info=蓄水枢纽阵列专用输出端口
-gtsr.tooltip.water_hub_output_hatch.fluid_type=仅输出水/蒸馏水
+gtsr.tooltip.water_hub_output_hatch.fluid_type=仅输出枢纽内存储的流体（任意流体，同一枢纽同时仅存一种）
 gtsr.tooltip.water_hub_output_hatch.output_rate=自动输出流量: 1,280,000 L/s
 gtsr.tooltip.water_hub_output_hatch.no_storage=无内部缓存，直接从阵列抽取
 
 # Water Hub Input Hatch
 gt.blockmachines.gtsr.water.hub.input.hatch.name=蓄水枢纽输入仓
 gtsr.tooltip.water_hub_input_hatch.info=蓄水枢纽阵列专用输入端口
-gtsr.tooltip.water_hub_input_hatch.fluid_type=仅接受水/蒸馏水
+gtsr.tooltip.water_hub_input_hatch.fluid_type=接受任意流体（同一枢纽同时仅存一种）
 gtsr.tooltip.water_hub_input_hatch.no_storage=无内部缓存，流体直接进入阵列
 
-# Water Cache Node
-gt.blockmachines.gtsr.water.cache.node.name=水缓存节点
-gtsr.tooltip.water_cache_node.fluid_type.water=水/蒸馏水
+# Universal Fluid Cache Node
+gt.blockmachines.gtsr.water.cache.node.name=通用流体缓存节点
+gtsr.tooltip.water_cache_node.fluid_type.water=任意流体
+gtsr.tooltip.water_cache_node.bind_target=绑定目标: 蓄水枢纽阵列（绑定不消耗奇点）
+
+# Reinforced / Overpressure Universal Fluid Cache Node
+gt.blockmachines.gtsr.reinforced.water.cache.node.name=耐压通用流体缓存节点
+gt.blockmachines.gtsr.overpressure.water.cache.node.name=超压通用流体缓存节点
+gtsr.tooltip.reinforced_water_cache_node.fluid_type=任意流体
+gtsr.tooltip.overpressure_water_cache_node.fluid_type=任意流体
+gtsr.tooltip.overpressure_water_cache_node.bind_requirement=需等级3蓄水枢纽阵列和强化奇点枢纽升级芯片
+
+# Singularity Compartments（奇点仓四件套：模式锁定）
+gt.blockmachines.gtsr.singularity.steam.compartment.name=奇点通用蒸汽仓
+gt.blockmachines.gtsr.singularity.steam.output.compartment.name=奇点通用蒸汽输出仓
+gt.blockmachines.gtsr.singularity.fluid.input.compartment.name=奇点输入仓
+gt.blockmachines.gtsr.singularity.fluid.output.compartment.name=奇点输出仓
+gtsr.tooltip.singularity_compartment.mode=交互方向: 
+gtsr.tooltip.singularity_compartment.direction_receive=从枢纽接受（接收仓）
+gtsr.tooltip.singularity_compartment.direction_send=输出到枢纽（发送仓）
+gtsr.tooltip.singularity_compartment.mode_locked=该仓模式固定，终端/界面/右键均无法切换
+gtsr.tooltip.singularity_compartment.fluid_steam=蒸汽全家族（蒸汽/过热/超临界/致密系）
+gtsr.tooltip.singularity_compartment.fluid_any=任意流体
+gtsr.tooltip.singularity_compartment.bind_cost_one=绑定消耗: 1×蒸汽纠缠奇点
+gtsr.tooltip.singularity_compartment.bind_cost_free=绑定消耗: 无
+gtsr.tooltip.singularity_compartment.bind_target_steam=绑定目标: 蒸汽枢纽阵列
+gtsr.tooltip.singularity_compartment.bind_target_fluid=绑定目标: 蓄水枢纽阵列
+gtsr.cache_node.mode_locked=该仓模式固定，无法切换
 
 # Hub Array Binding
 gtsr.binding.bound_output=已绑定 
@@ -415,10 +442,11 @@ gtsr.binding.overpressure_no_reinforced_chip=超压蒸汽缓存节点需要枢�
 # Cache Node Screwdriver
 gtsr.cache_node.need_bind_first=需要先绑定枢纽节点
 gtsr.cache_node.transfer_rate=交互速率:
+gtsr.cache_node.capacity_limit=容量上限:
 gtsr.cache_node.mode_output_now=模式已切换：输出（节点→枢纽）
 gtsr.cache_node.mode_input_now=模式已切换：输入（枢纽→节点）
 gtsr.tooltip.cache_node.base_transfer_rate=基础枢纽交互速率:
-gtsr.tooltip.cache_node.chip_adjust=手持枢纽终端右击循环传输速率，潜行右击切换输入/输出模式
+gtsr.tooltip.cache_node.chip_adjust=手持枢纽终端右击循环传输速率（仅缓存节点），持终端潜行右击切换输入/输出模式，空手潜行右击循环容量上限
 gtsr.binding.debug_title=枢纽绑定调试
 gtsr.binding.debug_no_bindings=无绑定节点
 gtsr.binding.debug_no_chip=已绑定，但缺少芯片
@@ -529,10 +557,11 @@ gtsr.hub_status.teleport_fail_node=传送失败：节点不存在或已失效
 gtsr.hub_status.teleport_fail_dim=传送失败：目标维度无法加载
 gtsr.hub_status.teleport_fail_unsafe=传送失败：节点附近没有安全的落脚点
 gtsr.cache_hub_status.title.steam=蒸汽枢纽缓存节点状态
-gtsr.cache_hub_status.title.water=蓄水枢纽缓存节点状态
+gtsr.cache_hub_status.title.water=蓄水枢纽阵列缓存节点状态
 gtsr.cache_hub_status.mode_tip_output=输出模式：节点 → 枢纽（点击切换）
 gtsr.cache_hub_status.mode_tip_input=输入模式：枢纽 → 节点（点击切换）
 gtsr.cache_hub_status.rate_tip=循环调整枢纽交互速率（100 → 80 → … → 0%）
+gtsr.cache_hub_status.cap_tip=循环调整容量上限（100 → 80 → … → 5%；空手潜行右击等效）
 gtsr.cache_hub_status.auto_on=自动输出:开
 gtsr.cache_hub_status.auto_off=自动输出:关
 gtsr.cache_hub_status.auto_tip=切换节点向正面相邻容器的自动流体输出
@@ -835,15 +864,16 @@ gtsr.tooltip.void_borer.desc=通过安装GT NEI Ore Plugin，实现跨维度执�
 gtsr.tooltip.void_borer.ctrl=Layer 10 中心
 
 # 18. Water Hub Array
-gtsr.tooltip.water_hub.type=水枢纽阵列, WHA
-gtsr.tooltip.water_hub.desc=水系统的中央调度站，提供双向水接口（水/蒸馏水），内嵌存储缓冲。
-gtsr.tooltip.water_hub.desc2=通过水枢纽输入/输出仓口接收和分发水资源；
+gtsr.tooltip.water_hub.type=蓄水枢纽阵列, WHA
+gtsr.tooltip.water_hub.desc=通用流体的中央调度站，不限流体种类（同一枢纽同时仅存一种），内嵌存储缓冲。
+gtsr.tooltip.water_hub.desc2=通过蓄水枢纽输入/输出仓口接收和分发任意流体；
 gtsr.tooltip.water_hub.ctrl=底层正面中央偏左
 gtsr.tooltip.water_hub.hub_input=水枢纽输入仓
 gtsr.tooltip.water_hub.hub_output=水枢纽输出仓
-gtsr.tooltip.water_hub.storage=枢纽存储单元(仅1级)/强化枢纽存储单元(仅2级)
+gtsr.tooltip.water_hub.storage=枢纽存储单元(仅1级)/强化枢纽存储单元(仅2级)/超压枢纽存储单元(仅3级)
 gtsr.tooltip.water_hub.hint_tier1=1级:青铜外壳+青铜管道+青铜框架+枢纽存储单元
 gtsr.tooltip.water_hub.hint_tier2=2级:钢外壳+钢管道+钢框架+强化枢纽存储单元
+gtsr.tooltip.water_hub.hint_tier3=3级:钨钢外壳+钨钢管道+钨钢框架+超压枢纽存储单元(强化芯片仅3级)
 gtsr.tooltip.water_hub.hint_status=手持枢纽终端右击控制器，打开缓存节点状态界面
 
 # 19. Gear Steam Compressor
@@ -1205,12 +1235,13 @@ gt.blockmachines.gtsr.singularity.crust.steam.borer.old.name=[OLD] 奇点地壳�
 tile.RunawaySingularity.name=失控奇点
 death.attack.gtsrSingularity=%1$s 被失控奇点吞噬了
 # ===== v1.10.61 new/split keys (per plan/review/lang修改清单.md) =====
-gtsr.tooltip.steam_hub.desc2_2=手持蒸汽缓存节点右击绑定实现远程蒸汽传输。
-gtsr.tooltip.steam_hub.chip_1=枢纽奇点升级芯片：解锁(加固)缓存节点绑定；
+gtsr.tooltip.steam_hub.desc2_2=手持蒸汽缓存节点或奇点蒸汽仓/输出仓右击绑定，实现远程蒸汽传输。
+gtsr.tooltip.steam_hub.chip_1=枢纽奇点升级芯片：解锁(强化)缓存节点绑定；
 gtsr.tooltip.steam_hub.chip_2=强化奇点枢纽升级芯片：解锁超压缓存节点绑定；
 gtsr.tooltip.steam_hub.height=高度 3~32 层（BASE+1~30 组 STACK+CAP），每层 25 个存储单元位，方块计数为单层，通过全息图 height 信道控制 STACK 层数
-gtsr.tooltip.water_hub.desc2_2=手持水缓存节点右击绑定实现远程水传输。
-gtsr.tooltip.water_hub.chip_1=枢纽奇点升级芯片：解锁水缓存节点绑定；
+gtsr.tooltip.water_hub.desc2_2=手持通用流体缓存节点或奇点输入/输出仓右击绑定，实现远程流体传输。
+gtsr.tooltip.water_hub.chip_1=枢纽奇点升级芯片：解锁(耐压)通用流体缓存节点绑定，总容量×5；
+gtsr.tooltip.water_hub.chip_2=强化奇点枢纽升级芯片：解锁超压通用流体缓存节点绑定（仅等级3），总容量×20；
 gtsr.tooltip.water_hub.counts=基础层：仓口位×25、管道×8、框架×3；堆叠层（每层）：存储单元×9、仓口位×4、管道×8、框架×3
 gtsr.tooltip.water_hub.height=总高 2~31 层（BASE+1~30 STACK），每层 9 个存储单元位，通过全息图 height 信道控制 STACK 层数
 gtsr.tooltip.singularity_hub.desc_2=攫取一切所需的资源。

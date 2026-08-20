@@ -5,23 +5,20 @@ import static gregtech.api.enums.Textures.BlockIcons.OVERLAY_PIPE;
 
 import java.util.List;
 
-import net.minecraft.client.renderer.texture.IIconRegister;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.Fluid;
+import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.IFluidHandler;
 
 import com.miaokatze.gtsr.common.util.GTSRUtils;
 
-import cpw.mods.fml.relauncher.Side;
-import cpw.mods.fml.relauncher.SideOnly;
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Textures;
-import gregtech.api.interfaces.IIconContainer;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
@@ -35,8 +32,6 @@ public class MTEOverpressureSteamCacheNode extends MTEFilteredCacheNode {
     private static final int OUTPUT_RATE_PER_SEC = 64_000_000;
     private static final int HUB_TRANSFER_RATE = 64_000_000;
     private static final int CASING_INDEX = GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings8, 6);
-
-    private static IIconContainer TOP_OVERLAY;
 
     public MTEOverpressureSteamCacheNode(int aID, String aName, String aNameRegional) {
         super(aID, aName, aNameRegional, 4);
@@ -52,19 +47,16 @@ public class MTEOverpressureSteamCacheNode extends MTEFilteredCacheNode {
     }
 
     @Override
-    @SideOnly(Side.CLIENT)
-    public void registerIcons(IIconRegister aBlockIconRegister) {
-        TOP_OVERLAY = Textures.BlockIcons.custom("gtsr:SteamCacheNode");
-        super.registerIcons(aBlockIconRegister);
-    }
-
-    @Override
     public MetaTileEntity newMetaEntity(IGregTechTileEntity aTileEntity) {
         return new MTEOverpressureSteamCacheNode(mName, mTier, mDescriptionArray, mTextures);
     }
 
+    /**
+     * S4 容量基量：硬编码终值改覆写本方法，档位乘法统一在基类 getRealCapacity()
+     * （getFluidCapacityLong 读同一算式，tooltip/getInfoData 容量读数自动跟随档位）。
+     */
     @Override
-    public int getRealCapacity() {
+    public int getBaseRealCapacity() {
         return CAPACITY;
     }
 
@@ -72,8 +64,8 @@ public class MTEOverpressureSteamCacheNode extends MTEFilteredCacheNode {
     public ITexture[] getTexture(IGregTechTileEntity baseMetaTileEntity, ForgeDirection sideDirection,
         ForgeDirection facingDirection, int colorIndex, boolean active, boolean redstoneLevel) {
         if (sideDirection == ForgeDirection.UP) {
-            return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(CASING_INDEX),
-                TextureFactory.of(TOP_OVERLAY) };
+            // 顶面三层：基材 + 流体窗（罐内蒸汽/枢纽默认）+ 绑定状态框架层（见 MTEFilteredCacheNode）
+            return getTopFaceTextures(Textures.BlockIcons.getCasingTextureForId(CASING_INDEX));
         } else if (sideDirection == ForgeDirection.DOWN) {
             return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(CASING_INDEX) };
         } else if (sideDirection == facingDirection) {
@@ -88,6 +80,11 @@ public class MTEOverpressureSteamCacheNode extends MTEFilteredCacheNode {
     protected boolean isFluidAllowed(Fluid fluid) {
         return MTESteamHubOutputHatch.isAnySteamFluidType(fluid) || GTModHandler.isAnySteam(new FluidStack(fluid, 1))
             || GTModHandler.isSuperHeatedSteam(new FluidStack(fluid, 1));
+    }
+
+    @Override
+    protected Fluid getFamilyDefaultWindowFluid() {
+        return FluidRegistry.getFluid("steam");
     }
 
     @Override

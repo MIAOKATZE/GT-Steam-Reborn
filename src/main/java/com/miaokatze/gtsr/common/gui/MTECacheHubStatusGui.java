@@ -45,7 +45,7 @@ import cpw.mods.fml.relauncher.SideOnly;
 import gregtech.api.modularui2.GTGuiTextures;
 
 /**
- * 蒸汽/蓄水枢纽「缓存节点状态管理界面」（Modern UI 2）的公共基类。
+ * 蒸汽/蓄水枢纽阵列「缓存节点状态管理界面」（Modern UI 2）的公共基类。
  * 打开方式：手持枢纽终端右击枢纽控制器（服务端经对应 factory 打开）。
  * 功能：查看全部绑定缓存节点（图标、名字、坐标+维度、流体类型、储量/容量），
  * 远程循环传输速率、切换节点输出模式（节点→枢纽 / 枢纽→节点）、重命名节点。
@@ -56,7 +56,7 @@ import gregtech.api.modularui2.GTGuiTextures;
  * - "hubAction"：单个面板级 C2S 动作处理器，按钮点击携带节点坐标发往服务端执行；
  * - listDynamic：DynamicSyncHandler，列表数据变化时重建节点列表控件（自带滚动条）。
  *
- * 子类只需委托枢纽实例方法 + 提供标题 key 与节点图标映射（蒸汽 3 种 / 蓄水 1 种）。
+ * 子类只需委托枢纽实例方法 + 提供标题 key 与节点图标映射（蒸汽 3 种 / 通用流体 3 种）。
  */
 public abstract class MTECacheHubStatusGui implements IGuiHolder<PosGuiData> {
 
@@ -72,6 +72,9 @@ public abstract class MTECacheHubStatusGui implements IGuiHolder<PosGuiData> {
     protected abstract NBTTagList getCacheNodeListTag();
 
     protected abstract void cycleNodeRate(int x, int y, int z, int dim);
+
+    /** S4：循环节点容量上限档（缓存节点与接收仓生效；发送仓 no-op）。 */
+    protected abstract void cycleNodeCap(int x, int y, int z, int dim);
 
     protected abstract void setNodeMode(int x, int y, int z, int dim, boolean output);
 
@@ -254,6 +257,26 @@ public abstract class MTECacheHubStatusGui implements IGuiHolder<PosGuiData> {
             }, true);
         rateButton.setEnabled(!offline);
 
+        // 容量档循环按钮（S4）：罐图标，悬浮显示当前百分比与说明，点击发 C2S 循环到下一档
+        // （与空手 Shift+右击同一逻辑）；发送类仓（type 以 _out 结尾）与离线节点禁用
+        ButtonWidget<?> capButton = new ButtonWidget<>().size(16)
+            .overlay(GTGuiTextures.OVERLAY_BUTTON_TANK_VOID_EXCESS)
+            .onMousePressed(mouseButton -> {
+                CacheNodeInfo current = currentInfo.get();
+                if (current != null) actionSync.sendCycleCap(current);
+                return true;
+            })
+            .tooltipBuilder(t -> {
+                CacheNodeInfo current = currentInfo.get();
+                t.addLine(IKey.str((current == null ? info : current).capPct + "%"))
+                    .addLine(IKey.lang("gtsr.cache_hub_status.cap_tip"));
+            })
+            .onUpdateListener(button -> {
+                CacheNodeInfo current = currentInfo.get();
+                button.setEnabled(current != null && !current.type.isEmpty() && supportsCapTier(current.type));
+            }, true);
+        capButton.setEnabled(!offline && supportsCapTier(info.type));
+
         // 输出模式开关按钮：图标随状态切换（export=输出：节点→枢纽 / import=输入：枢纽→节点），点击切换
         ButtonWidget<?> modeButton = new ButtonWidget<>().size(16)
             .overlay(info.out ? GTGuiTextures.OVERLAY_BUTTON_EXPORT : GTGuiTextures.OVERLAY_BUTTON_IMPORT)
@@ -378,9 +401,19 @@ public abstract class MTECacheHubStatusGui implements IGuiHolder<PosGuiData> {
                     .childPadding(4)
                     .child(teleportButton)
                     .child(rateButton)
+                    .child(capButton)
                     .child(modeButton)
                     .child(autoButton));
         return row;
+    }
+
+    /**
+     * 容量档是否适用于该类型串（S4）：缓存节点与接收类仓（singularity_steam/singularity_fluid_in）
+     * 适用；发送类仓（singularity_steam_out/singularity_fluid_out）罐只出不进、容量上限无意义，
+     * 按钮禁用（与服务端 supportsCapacityTier 判定一致；空 type 为离线行，外层已另行禁用）。
+     */
+    private static boolean supportsCapTier(String type) {
+        return type != null && !type.endsWith("_out");
     }
 
     /**
@@ -450,13 +483,15 @@ public abstract class MTECacheHubStatusGui implements IGuiHolder<PosGuiData> {
         public final long cap;
         /** 传输速率百分比（100→80→…→0 循环档位） */
         public final int rate;
+        /** 容量上限百分比（S4：100→80→…→5 循环档位；发送类仓恒 100 不适用） */
+        public final int capPct;
         /** 输出模式：true=节点→枢纽，false=枢纽→节点 */
         public final boolean out;
         /** 自动输出开关：true=节点向正面相邻容器推送流体（与方向模式解耦） */
         public final boolean auto;
 
         CacheNodeInfo(int x, int y, int z, int dim, String type, String name, String fluid, long stored, long cap,
-            int rate, boolean out, boolean auto) {
+            int rate, int capPct, boolean out, boolean auto) {
             this.x = x;
             this.y = y;
             this.z = z;
@@ -467,6 +502,7 @@ public abstract class MTECacheHubStatusGui implements IGuiHolder<PosGuiData> {
             this.stored = stored;
             this.cap = cap;
             this.rate = rate;
+            this.capPct = capPct;
             this.out = out;
             this.auto = auto;
         }
@@ -487,6 +523,7 @@ public abstract class MTECacheHubStatusGui implements IGuiHolder<PosGuiData> {
                         tag.getLong("stored"),
                         tag.getLong("cap"),
                         tag.getInteger("rate"),
+                        tag.getInteger("capPct"),
                         tag.getBoolean("out"),
                         tag.getBoolean("auto")));
             }
@@ -505,6 +542,7 @@ public abstract class MTECacheHubStatusGui implements IGuiHolder<PosGuiData> {
                 buf.readLong(),
                 buf.readLong(),
                 buf.readInt(),
+                buf.readInt(),
                 buf.readBoolean(),
                 buf.readBoolean());
         }
@@ -520,6 +558,7 @@ public abstract class MTECacheHubStatusGui implements IGuiHolder<PosGuiData> {
             buf.writeLong(info.stored);
             buf.writeLong(info.cap);
             buf.writeInt(info.rate);
+            buf.writeInt(info.capPct);
             buf.writeBoolean(info.out);
             buf.writeBoolean(info.auto);
         }
@@ -534,6 +573,7 @@ public abstract class MTECacheHubStatusGui implements IGuiHolder<PosGuiData> {
                 && a.stored == b.stored
                 && a.cap == b.cap
                 && a.rate == b.rate
+                && a.capPct == b.capPct
                 && a.out == b.out
                 && a.auto == b.auto;
         }
@@ -568,6 +608,7 @@ public abstract class MTECacheHubStatusGui implements IGuiHolder<PosGuiData> {
         private static final int ACTION_RENAME = 3;
         private static final int ACTION_SET_AUTO = 4;
         private static final int ACTION_TELEPORT = 5;
+        private static final int ACTION_CYCLE_CAP = 6;
 
         public CacheHubActionSyncHandler() {
             allowC2S();
@@ -577,6 +618,11 @@ public abstract class MTECacheHubStatusGui implements IGuiHolder<PosGuiData> {
 
         public void sendCycleRate(CacheNodeInfo info) {
             syncToServer(ACTION_CYCLE_RATE, buf -> writePos(buf, info));
+        }
+
+        // 容量档循环（S4）：服务端经 hub.cycleCacheNodeCapFromGui 分发（发送类仓 no-op）
+        public void sendCycleCap(CacheNodeInfo info) {
+            syncToServer(ACTION_CYCLE_CAP, buf -> writePos(buf, info));
         }
 
         // 模式切换：携带目标值（当前取反），服务端校验节点存在后写入
@@ -629,6 +675,9 @@ public abstract class MTECacheHubStatusGui implements IGuiHolder<PosGuiData> {
             switch (id) {
                 case ACTION_CYCLE_RATE:
                     cycleNodeRate(x, y, z, dim);
+                    break;
+                case ACTION_CYCLE_CAP:
+                    cycleNodeCap(x, y, z, dim);
                     break;
                 case ACTION_SET_MODE:
                     setNodeMode(x, y, z, dim, buf.readBoolean());

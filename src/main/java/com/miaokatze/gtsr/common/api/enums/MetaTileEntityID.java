@@ -14,6 +14,17 @@ public enum MetaTileEntityID {
     WATER_CACHE_NODE(3, 4),
     SINGULARITY_MINER_NODE(4, 28),
     SINGULARITY_DRILLING_NODE(5, 29),
+    // 耐压/超压通用流体缓存节点：全新机器，OLD_ID 仅占用未用旧槽位避免覆盖 LEGACY_TO_NEW_MAP，
+    // 无旧存档机器，不注册 LegacyConverter（同 REDSTONE_HATCH 模式）
+    REINFORCED_WATER_CACHE_NODE(6, 46),
+    OVERPRESSURE_WATER_CACHE_NODE(7, 47),
+    // 奇点仓四件套（模式锁定的枢纽缓存仓）：全新机器，无旧存档机器，不注册 LegacyConverter。
+    // 旧段 0-50 已无 4 连空位，OLD_ID 取段外 51-54：LEGACY_TO_NEW_MAP 静态块按 idx<51 越界跳过，
+    // 不写入映射、不注册旧 ID，零副作用（比挤占 0/48/49 部分空位更不污染旧映射）
+    SINGULARITY_STEAM_COMPARTMENT(8, 51),
+    SINGULARITY_STEAM_OUTPUT_COMPARTMENT(9, 52),
+    SINGULARITY_FLUID_INPUT_COMPARTMENT(10, 53),
+    SINGULARITY_FLUID_OUTPUT_COMPARTMENT(11, 54),
 
     // --- 多方块机器: 枢纽段 (相对 50-99) ---
     STEAM_HUB_ARRAY(50, 6),

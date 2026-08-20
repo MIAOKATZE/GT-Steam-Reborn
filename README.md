@@ -1,9 +1,9 @@
 <h1 align="center">GT-Steam-Reborn</h1>
 <p align="center"><strong><em>GTNH Steam Age Expansion Mod</em></strong><br><strong><em>GTNH 蒸汽时代扩展模组</em></strong></p>
 
-A GregTech New Horizons expansion mod that **supplements the Steam Age and significantly expands steam usage**, providing 22 multiblock steam machines, 6 single-block nodes, 14 types of hatches plus 3 hub storage units, and a Hub-Node binding system. It fills the gameplay gap between the steam age and the electric age in GTNH, making steam a viable and deep progression path rather than a transient phase.
+A GregTech New Horizons expansion mod that **supplements the Steam Age and significantly expands steam usage**, providing 22 multiblock steam machines, 8 single-block nodes, 15 types of hatches plus 4 singularity compartments and 3 hub storage units, and a Hub-Node binding system. It fills the gameplay gap between the steam age and the electric age in GTNH, making steam a viable and deep progression path rather than a transient phase.
 
-一个 GregTech New Horizons 扩展模组，**补充蒸汽时代并显著拓展蒸汽用途**，提供22台多方块蒸汽机器、6个单方块节点、14类仓室与3种存储单元以及枢纽-节点绑定系统。它填补了 GTNH 蒸汽阶段到电力阶段之间的玩法空白，让蒸汽成为一条可行且有深度的进阶路线，而非过渡阶段。
+一个 GregTech New Horizons 扩展模组，**补充蒸汽时代并显著拓展蒸汽用途**，提供22台多方块蒸汽机器、8个单方块节点、15类仓室与4个奇点仓、3种存储单元以及枢纽-节点绑定系统。它填补了 GTNH 蒸汽阶段到电力阶段之间的玩法空白，让蒸汽成为一条可行且有深度的进阶路线，而非过渡阶段。
 
 > [!NOTE]
 > This is an unofficial mod. Please avoid discussing this mod in official GTNH forums.
@@ -46,8 +46,8 @@ A GregTech New Horizons expansion mod that **supplements the Steam Age and signi
 
 | 功能 Feature | 说明 Description |
 |---|---|
-| 节点绑定 Node Binding | 枢纽奇点芯片解锁，总容量×5 Hub Singularity Chip enables node binding, ×5 total capacity |
-| 强化芯片 Reinforced Chip | 3级（钨钢）解锁致密/超临界蒸汽，容量×20 Tier 3 unlocks dense/supercritical steam, ×20 capacity |
+| 节点绑定 Node Binding | 枢纽奇点芯片解锁，总容量×5；绑定蒸汽缓存节点/奇点蒸汽仓与输出仓（奇点仓每仓消耗 1 奇点、模式锁定）Hub Singularity Chip enables node binding, ×5 total capacity; binds steam cache nodes and singularity steam (output) compartments (1 singularity each, mode-locked) |
+| 强化芯片 Reinforced Chip | 3级（钨钢）解锁致密/超临界蒸汽，容量×20（优先于×5），并解锁超压缓存节点绑定 Tier 3 unlocks dense/supercritical steam, ×20 capacity (takes priority over ×5), and overpressure node binding |
 | 传输 Transfer | 双向、跨维度 Bidirectional, cross-dimensional |
 | 自动输出 Auto Output | 20,000,000 L/s（每 tick 1,000,000 L）20,000,000 L/s (1,000,000 L per tick) |
 
@@ -55,21 +55,22 @@ A GregTech New Horizons expansion mod that **supplements the Steam Age and signi
 
 **蓄水枢纽阵列 / Water Hub Array (WHA)**
 
-青铜/钢级，水/蒸馏水的中央调度站。接受水缓存节点（支持跨维度传输），双向接口。
-Bronze/Steel tier, central dispatch for water/distilled water. Accepts water cache nodes (cross-dimensional) with a bidirectional interface.
+3级（青铜/钢/钨钢）通用流体存储枢纽，不限流体种类（同一枢纽同时仅存一种流体）。接受通用流体缓存节点与奇点输入/输出仓（支持跨维度传输），双向接口。
+3-tier (Bronze/Steel/TungstenSteel) universal fluid storage hub — any fluid type allowed (one fluid per hub at a time). Accepts universal fluid cache nodes and singularity fluid input/output compartments (cross-dimensional) with a bidirectional interface.
 
 | 参数 Parameter | 数值 Value |
 |----------|-------|
-| 材质 Material | 青铜 / 钢 Bronze / Steel |
+| 材质 Material | 青铜 / 钢 / 钨钢 Bronze / Steel / TungstenSteel |
 | 最大层数 Max Layers | 30 |
-| 单元容量 Unit Capacity | 1.28M / 5.12M L |
+| 单元容量 Unit Capacity | 1.28M / 5.12M / 20.48M L |
 | 维度 Dimension | 跨维度 Cross-dimensional |
 
 **额外功能 / Additional Features**
 
 | 功能 Feature | 说明 Description |
 |---|---|
-| 容量倍率 Capacity Multiplier | 枢纽奇点芯片使总容量×5（取下会吞掉超出部分的水）Hub Singularity Chip ×5 total capacity (removing it swallows excess water) |
+| 容量倍率 Capacity Multiplier | 枢纽奇点芯片使总容量×5（取下会吞掉超出部分的流体）；等级3强化芯片×20（优先于×5）Hub Singularity Chip ×5 total capacity (removing it swallows excess fluid); Reinforced Chip ×20 on tier 3 (takes priority over ×5) |
+| 节点绑定 Node Binding | 枢纽奇点芯片解锁（耐压）通用流体缓存节点绑定（不消耗奇点）；强化芯片解锁超压节点绑定；奇点输入/输出仓亦可绑定（模式锁定）Hub Singularity Chip unlocks (reinforced) universal fluid node binding (no singularity cost); Reinforced Chip unlocks overpressure nodes; singularity fluid compartments bind too (mode-locked) |
 
 ***
 
@@ -106,17 +107,17 @@ The Hub-Node system is GTSR's core innovation, enabling cross-chunk and cross-di
 
 #### Binding Mechanism / 绑定机制
 
-Hold a node item and right-click a hub controller to bind. Singularity cost varies by node type (steam/water: 0, reinforced steam: 1, overpressure steam: 8, miner/driller: 1). Steam/Water hubs support 3-state cycle: output mode → input mode → unbind. Drilling hub supports 2-state: bind → unbind. Nodes auto-register with their hub on first tick.
+Hold a node item and right-click a hub controller to bind. Singularity cost varies by node type (steam nodes: 0/1/8 by tier; universal fluid nodes: all 0; singularity steam (output) compartments: 1 each; miner/driller: 1). Steam/Water hubs support 3-state cycle: output mode → input mode → unbind. Singularity compartments are mode-locked: when already bound, right-click only unbinds (no mode flip), and the terminal/GUI cannot switch their direction either. Nodes auto-register with their hub on first tick. Breaking a bound node drops it with the binding retained.
 
-手持节点物品右键枢纽控制器绑定。奇点消耗因节点类型而异（蒸汽/水：0，强化蒸汽：1，超压蒸汽：8，采矿/钻井：1）。蒸汽/水枢纽支持3状态循环：输出模式→输入模式→解绑。钻井枢纽支持2状态：绑定→解绑。节点在首次tick时自动向枢纽注册。
+手持节点物品右键枢纽控制器绑定。奇点消耗因节点类型而异（蒸汽节点按等级 0/1/8；通用流体节点全家 0；奇点蒸汽仓/输出仓各 1；采矿/钻井 1）。蒸汽枢纽阵列/蓄水枢纽阵列支持3状态循环：输出模式→输入模式→解绑。奇点仓模式锁定：已绑定时右键仅解绑（无模式翻转），终端/界面也无法切换其方向。节点在首次tick时自动向枢纽注册。破坏已绑定节点，掉落物保留绑定。
 
 > 📷 图片待配：节点绑定枢纽的操作示意图或流程截图
 
 #### Transfer Mechanism / 传输机制
 
-- **Steam/Water Hub**: Every 20 ticks, transfers fluid between hub and bound nodes at configurable rates. Screwdriver on hub toggles overflow output mode. Transfer rate adjustable via Hub Terminal (100%→80%→60%→...→1%→0%).
+- **Steam/Water Hub**: Every 20 ticks, transfers fluid between hub and bound nodes at each node's rate. Screwdriver on hub toggles overflow output mode. Rate tiers (cache nodes only; singularity compartments use fixed constant rates): Hub Terminal right-click cycles 100%→80%→60%→...→1%→0%. Capacity limit tiers (cache nodes + the two receiving compartments): empty-hand Shift+right-click or the GUI button cycles 100%→80%→60%→40%→20%→10%→5%.
 - **Drilling Hub**: Consumes steam to drive active nodes. Miner node outputs → hub Output Bus. Drilling node outputs → hub Output Hatch.
-- **蒸汽/水枢纽**：每20tick在枢纽与绑定节点间传输流体，速率可配置。螺丝刀切换溢流输出模式。枢纽终端调整传输速率百分比。
+- **蒸汽枢纽阵列/蓄水枢纽阵列**：每20tick在枢纽与绑定节点间传输流体。螺丝刀切换溢流输出模式。速率档仅缓存节点（枢纽终端右击循环 100%→80%→…→1%→0%，奇点仓为固定常量速率）；容量上限档（缓存节点+两个接收类奇点仓）见下方缓存节点一节。
 - **钻井枢纽**：消耗蒸汽驱动活跃节点。采矿节点产出→枢纽输出总线。钻井节点产出→枢纽输出仓。
 
 #### Hub Terminal / 枢纽终端
@@ -125,12 +126,12 @@ The Hub Terminal is a handheld remote management device (crafted with 1 Steam En
 
 枢纽终端是手持远程管理设备（1 蒸汽纠缠奇点 + 8 钢板环绕合成）。手持右击任意枢纽控制器即可打开对应的状态终端，告别在节点之间来回奔波。
 
-**Cache Hub Status Terminal (Steam & Water hubs) / 缓存枢纽状态终端（蒸汽与蓄水枢纽通用）**:
+**Cache Hub Status Terminal (Steam & Water hubs) / 缓存枢纽状态终端（蒸汽与蓄水枢纽阵列通用）**:
 
 <p align="center"><img src="README/HubTerminalCacheStatus.png" width="400"><br><em>缓存枢纽状态终端 / Cache Hub Status Terminal</em></p>
 使用枢纽终端右击控制器，打开状态GUI。 / Right-click the controller on the hub terminal and open the status GUI.
 
-- Per-node display (icon, custom name, coords + dimension, fluid type, storage/capacity) with 16×16 hover-tooltip buttons: rate cycle / mode toggle (node↔hub) / auto-output; in-place renaming; handheld shortcuts: right-click node to cycle rate, sneak+right-click to toggle mode / 每节点显示（图标、自定义名、坐标+维度、流体类型、储量/容量），16×16 悬浮说明按钮：速率循环 / 模式切换（节点↔枢纽）/ 自动输出；内嵌重命名；手持快捷操作：右击节点循环速率、潜行右击切换模式
+- Per-node display (icon, custom name, coords + dimension, fluid type, storage/capacity) with 16×16 hover-tooltip buttons: rate cycle (cache nodes) / capacity cycle / mode toggle (node↔hub) / auto-output; in-place renaming; handheld shortcuts: right-click node to cycle rate, sneak+right-click to toggle mode, empty-hand sneak+right-click to cycle capacity limit (singularity compartments are mode-locked — the mode button and shortcut are rejected; send-type compartments have no capacity tier) / 每节点显示（图标、自定义名、坐标+维度、流体类型、储量/容量），16×16 悬浮说明按钮：速率循环（仅缓存节点）/ 容量循环 / 模式切换（节点↔枢纽）/ 自动输出；内嵌重命名；手持快捷操作：右击节点循环速率、潜行右击切换模式、空手潜行右击循环容量上限（奇点仓方向锁定，模式按钮与快捷操作均被拒绝；发送类仓无容量档）
 
 **Drilling Hub Status Terminal / 钻井枢纽状态终端**:
 
@@ -481,15 +482,36 @@ Dual mode cycled by screwdriver: Steam Compression / Steam Decompression; each s
 
 ***
 
-## Single-Block Nodes / 单方块节点 (6)
+## Single-Block Nodes / 单方块节点 (8)
 
-### Cache Nodes / 缓存节点 (4)
+### Cache Nodes / 缓存节点 (6)
 
 <p align="center"><img src="README/MTECacheNodes.png" width="360" alt="缓存节点 / Cache Nodes"><br><em>缓存节点 / Cache Nodes</em></p>
 
-Digital tank-based nodes that bind to hubs for cross-chunk/dimensional fluid transfer. Support fluid lock, auto-output, void excess, and chip-adjustable hub transfer rate.
+Digital tank-based nodes that bind to hubs for cross-chunk/dimensional fluid transfer. Support fluid lock, auto-output, void excess, terminal-adjustable hub transfer rate (cache nodes only) and a 7-step capacity limit tier (see below).
 
-基于数字储罐的节点，绑定枢纽实现跨区块/维度流体传输。支持流体锁定、自动输出、溢出虚空和芯片调整枢纽交互速率。
+基于数字储罐的节点，绑定枢纽实现跨区块/维度流体传输。支持流体锁定、自动输出、溢出虚空、枢纽终端调整交互速率（仅缓存节点）与容量上限档（见下）。
+
+| 节点 Node | 接受流体 Accepted Fluid | 容量 Capacity | 输出速率 Output Rate | 枢纽交互速率 Hub Rate | 绑定奇点消耗 Binding Cost |
+|---|---|---|---|---|---|
+| 蒸汽缓存节点 Steam Cache Node | 普通蒸汽 Normal steam | 16M L | 2,000,000 L/s | 2,000,000 L/s | 0 |
+| 强化蒸汽缓存节点 Reinforced Steam Cache Node | 普通 + 过热蒸汽 Normal + superheated | 64M L | 8,000,000 L/s | 8,000,000 L/s | 1 |
+| 超压蒸汽缓存节点 Overpressure Steam Cache Node | 全部蒸汽类型 All steam types | 256M L | 64,000,000 L/s | 64,000,000 L/s | 8（需强化芯片）8 (Reinforced Chip) |
+| 通用流体缓存节点 Universal Fluid Cache Node | 任意流体 Any fluid | 2M L | 64,000 L/s | 64,000 L/s | 0 |
+| 耐压通用流体缓存节点 Reinforced Universal Fluid Cache Node | 任意流体 Any fluid | 8M L | 256,000 L/s | 256,000 L/s | 0 |
+| 超压通用流体缓存节点 Overpressure Universal Fluid Cache Node | 任意流体 Any fluid | 32M L | 2,000,000 L/s | 2,000,000 L/s | 0（需强化芯片）0 (Reinforced Chip) |
+
+**容量上限档 / Capacity Limit Tier**
+
+缓存节点与两个接收类奇点仓（奇点通用蒸汽仓、奇点输入仓）支持容量上限档 {100, 80, 60, 40, 20, 10, 5}%：空手 Shift+右击本地循环，或在枢纽终端状态界面点击容量按钮远程循环；档位随 NBT 持久化，降档后超出部分温和保留在罐内（拒绝新入、不销毁）。发送类仓罐只出不进，无容量档。
+
+Cache nodes and the two receiving compartments (Singularity Steam Compartment, Singularity Fluid Input Compartment) support a capacity limit tier of {100, 80, 60, 40, 20, 10, 5}%: cycle locally with an empty-hand Shift+right-click, or remotely via the capacity button in the terminal status UI; the tier persists in NBT, and fluid above a lowered limit is kept softly in the tank (new input rejected, nothing destroyed). Send-type compartments have no capacity tier (output-only tank).
+
+**节点外观 / Node Appearance**
+
+缓存节点顶面为三层渲染：基材 + 流体窗 + 状态框（未绑定时为基材 + 灰色框架）。奇点仓正面为三层（基材 + 流体窗 + 语义固定框架），顶面为基材 + 框架。流体窗实时显示罐内流体（与 NEI 图标同源外观，罐空时按绑定枢纽类型显示默认流体）；状态框颜色语义：红橙=从枢纽接受、紫蓝=向枢纽输送、灰=未绑定/控制器。物品栏图标经 IItemRenderer 同步区分绑定态与内容流体，世界内外观在状态变化时由服务端发包即时切换。
+
+Cache nodes render a 3-layer top face: base texture + fluid window + status frame (unbound = base + gray frame). Singularity compartments render a 3-layer front face (base + fluid window + semantically fixed frame) and a 2-layer top face (base + frame). The fluid window shows the stored fluid in real time (same appearance source as the NEI icon; falls back to the hub's default fluid when empty); status frame colors: red-orange = receiving from hub, purple-blue = sending to hub, gray = unbound/controller. Inventory icons are kept in sync via IItemRenderer (binding state + stored fluid), and the in-world look switches immediately via a server packet on state change.
 
 **蒸汽缓存节点 / Steam Cache Node**
 
@@ -521,15 +543,35 @@ Accepts ALL steam types. Highest capacity and output rate. Binds to the Steam Hu
 | 接受流体 Accepted Fluid | 全部蒸汽类型 All steam types |
 | 绑定枢纽 Binds To | 蒸汽枢纽（需 3 级强化芯片）Steam Hub (requires Reinforced Chip on tier 3 hub) |
 
-**水缓存节点 / Water Cache Node**
+**通用流体缓存节点 / Universal Fluid Cache Node**
 
-接受水 + 蒸馏水，绑定蓄水枢纽。
-Accepts water + distilled water. Binds to the Water Hub.
+接受任意流体，绑定蓄水枢纽阵列，绑定不消耗奇点（该家族早期为水限定形态，随枢纽通用流体化更名）。
+Accepts any fluid (the family was water-only in early versions and was renamed when the hub became fluid-agnostic). Binds to the Water Hub Array; binding costs no singularity.
 
 | 参数 Parameter | 数值 Value |
 |----------|-------|
-| 接受流体 Accepted Fluid | 水 + 蒸馏水 Water + distilled water |
-| 绑定枢纽 Binds To | 蓄水枢纽 Water Hub |
+| 接受流体 Accepted Fluid | 任意流体 Any fluid |
+| 绑定枢纽 Binds To | 蓄水枢纽阵列 Water Hub Array |
+
+**耐压通用流体缓存节点 / Reinforced Universal Fluid Cache Node**
+
+接受任意流体，容量与速率提升，绑定蓄水枢纽阵列（不消耗奇点）。
+Accepts any fluid with higher capacity and rate. Binds to the Water Hub Array (no singularity cost).
+
+| 参数 Parameter | 数值 Value |
+|----------|-------|
+| 接受流体 Accepted Fluid | 任意流体 Any fluid |
+| 绑定枢纽 Binds To | 蓄水枢纽阵列 Water Hub Array |
+
+**超压通用流体缓存节点 / Overpressure Universal Fluid Cache Node**
+
+接受任意流体，容量 32M L、速率 2,000,000 L/s；绑定蓄水枢纽阵列需枢纽 3 级 + 强化奇点枢纽升级芯片（不消耗奇点）。
+Accepts any fluid, 32M L capacity at 2,000,000 L/s; binding requires a tier 3 Water Hub Array with the Reinforced Hub Singularity Chip (no singularity cost).
+
+| 参数 Parameter | 数值 Value |
+|----------|-------|
+| 接受流体 Accepted Fluid | 任意流体 Any fluid |
+| 绑定枢纽 Binds To | 蓄水枢纽阵列（需 3 级 + 强化芯片）Water Hub Array (tier 3 + Reinforced Chip) |
 
 ### Remote Worker Nodes / 远程工作节点 (2)
 
@@ -577,7 +619,7 @@ Nodes that perform remote operations driven by the Singularity Drilling Hub. The
 
 ***
 
-## Hatches / 仓室 (14 类仓室 + 3 种存储单元)
+## Hatches / 仓室 (15 类仓室 + 4 奇点仓 + 3 种存储单元)
 
 <p align="center"><img src="README/MTEAllHatches.png" width="380" alt="全部仓室 / All Hatches"><br><em>全部仓室 / All Hatches</em></p>
 
@@ -645,13 +687,13 @@ Dynamic capacity (determined by hub controller); delegates fill/drain to the Ste
 
 **蓄水枢纽输入/输出仓 / Water Hub Input/Output Hatches**
 
-容量由枢纽控制器决定，填充/抽取委托给蓄水枢纽。
-Dynamic capacity (determined by hub controller); delegates fill/drain to the Water Hub.
+容量由枢纽控制器决定，填充/抽取委托给蓄水枢纽阵列（不限流体种类，同一枢纽同时仅存一种）。
+Dynamic capacity (determined by hub controller); delegates fill/drain to the Water Hub (any fluid; one fluid type per hub at a time).
 
 | 参数 Parameter | 数值 Value |
-|----------|-------|
+|---|---|
 | 容量 Capacity | 动态（枢纽控制器决定）Dynamic (hub controller) |
-| 委托 Delegates To | 蓄水枢纽 Water Hub |
+| 委托 Delegates To | 蓄水枢纽阵列 Water Hub Array |
 
 **巨型超压蒸汽输入仓 / Mega Overpressure Steam Input Hatch**
 
@@ -690,6 +732,33 @@ Harnessing steam-entangled singularities, it condenses the purest water from the
 |---|---|
 | 用途 Role | 蒸馏水永不结垢，是太阳能阵列与地热锅炉的理想介质 Distilled water never calcifies; ideal for Solar Array & Geothermal Boiler |
 
+**红石仓 / Redstone Hatch**
+
+可安装在任意多方块机器上，按所选机器词条值（效率/输出/消耗/工作状态等）输出红石信号；右键打开 GUI 设置阈值、反向与更新频率。
+Installable on any multiblock machine; outputs a redstone signal based on a selected machine data entry (efficiency/output/consumption/working etc.). Right-click to open the GUI for threshold, invert and update interval.
+
+| 参数 Parameter | 数值 Value |
+|----------|-------|
+| 适用机器 Used By | 任意多方块机器 Any multiblock machine |
+| 输出 Output | 按词条阈值输出红石信号 Redstone signal by entry threshold |
+
+**奇点仓四件套 / Singularity Compartments (4)**
+
+模式锁定的枢纽缓存仓（仓室基类：分别继承耐压蒸汽仓/耐压蒸汽输出仓/枢纽输入仓/枢纽输出仓近亲，可加入对应枢纽多方块结构）：奇点通用蒸汽仓与奇点通用蒸汽输出仓绑蒸汽枢纽阵列（每仓消耗 1 蒸汽纠缠奇点、蒸汽全家族兼容）；奇点输入仓与奇点输出仓绑蓄水枢纽阵列（0 消耗、任意流体）。仓=从枢纽接受（接收），输出仓=向枢纽输送（发送），方向恒定锁定：终端/界面/右键均无法切换，已绑定时右键仅解绑。仓无 GUI、无速率档（枢纽交互为固定常量速率）；管道无法向仓注入流体（canTankBeFilled/acceptsFluid 阻断，仅枢纽链路交互）；两个接收仓支持容量上限档（空手 Shift+右击或终端 GUI 按钮，见缓存节点一节）。破坏掉落保留绑定。
+
+Mode-locked hub cache compartments (hatch-based: each extends its pressure-steam/hub hatch counterpart and can join the corresponding hub multiblock structure): the Singularity Steam Compartment and Singularity Steam Output Compartment bind to the Steam Hub Array (1 Steam Entangled Singularity each; full steam family); the Singularity Fluid Input/Output Compartments bind to the Water Hub Array (0 cost, any fluid). Compartment = receive from hub, Output Compartment = send to hub — the direction is permanently locked: terminal/GUI/right-click cannot switch it, and right-clicking a bound compartment only unbinds. Compartments have no GUI and no rate tier (fixed constant hub rate); pipes cannot inject into them (canTankBeFilled/acceptsFluid blocked — hub link only); the two receiving compartments support the capacity limit tier (empty-hand Shift+right-click or the terminal GUI button, see Cache Nodes). Breaking drops retain the binding.
+
+| 仓 Compartment | 绑定枢纽 Bound Hub | 容量 Capacity | 交互速率 Hub Rate | 流体范围 Fluid Range | 方向（锁定）Direction (locked) | 消耗 Cost |
+|---|---|---|---|---|---|---|
+| 奇点通用蒸汽仓 Singularity Steam Compartment | 蒸汽枢纽 Steam Hub | 8M L | 8,000,000 L/s | 蒸汽全家族 Full steam family | 从枢纽接受 Receive | 1 奇点 1 singularity |
+| 奇点通用蒸汽输出仓 Singularity Steam Output Compartment | 蒸汽枢纽 Steam Hub | 8M L | 8,000,000 L/s | 蒸汽全家族 Full steam family | 向枢纽输送 Send | 1 奇点 1 singularity |
+| 奇点输入仓 Singularity Fluid Input Compartment | 蓄水枢纽阵列 Water Hub Array | 256K L | 256,000 L/s | 任意流体 Any fluid | 从枢纽接受 Receive | 0 |
+| 奇点输出仓 Singularity Fluid Output Compartment | 蓄水枢纽阵列 Water Hub Array | 256K L | 256,000 L/s | 任意流体 Any fluid | 向枢纽输送 Send | 0 |
+
+正面/顶面使用语义固定框架（接收/发送），正面另带流体窗（罐内流体优先，罐空按枢纽类型显示默认流体）。
+
+Front/top faces use the semantically fixed frame (receive/send); the front face also carries a fluid window (stored fluid first, hub-type default when empty).
+
 **枢纽存储单元（3种）/ Hub Storage Units (3)**
 
 用于枢纽阵列层叠的存储单元，分枢纽 / 加固枢纽 / 超压枢纽三种。
@@ -698,17 +767,17 @@ Hub/Reinforced/Overpressure Hub Storage Units for stacking layers in hub arrays.
 | 参数 Parameter | 数值 Value |
 |----------|-------|
 | 类型 Types | 枢纽 / 加固枢纽 / 超压枢纽 Hub / Reinforced / Overpressure |
-| 单元容量 Unit Capacity | 320M / 1.28B / 20.48B L（蒸汽枢纽）/ 1.28M / 5.12M L（蓄水枢纽）320M / 1.28B / 20.48B L (Steam Hub) / 1.28M / 5.12M L (Water Hub) |
+| 单元容量 Unit Capacity | 320M / 1.28B / 20.48B L（蒸汽枢纽阵列）/ 1.28M / 5.12M / 20.48M L（蓄水枢纽阵列）320M / 1.28B / 20.48B L (Steam Hub Array) / 1.28M / 5.12M / 20.48M L (Water Hub Array) |
 
 ***
 
 ## Items / 物品
 
-- **枢纽终端 / Hub Terminal**: Handheld remote management device. Right-click a hub controller to open its status terminal (cache hub / drilling hub); right-click a node to cycle rate, sneak+right-click to toggle mode. Crafted with 1 Steam Entangled Singularity + 8 steel plates. / 手持远程管理设备。右击枢纽控制器打开对应状态终端（缓存枢纽/钻井枢纽）；右击节点循环速率，潜行右击切换模式。1 蒸汽纠缠奇点 + 8 钢板合成。
+- **枢纽终端 / Hub Terminal**: Handheld remote management device. Right-click a hub controller to open its status terminal (cache hub / drilling hub); right-click a node to cycle rate (cache nodes), sneak+right-click to toggle mode, empty-hand sneak+right-click to cycle the capacity limit tier. Crafted with 1 Steam Entangled Singularity + 8 steel plates. / 手持远程管理设备。右击枢纽控制器打开对应状态终端（缓存枢纽/钻井枢纽）；右击节点循环速率（仅缓存节点）、潜行右击切换模式、空手潜行右击循环容量上限档。1 蒸汽纠缠奇点 + 8 钢板合成。
 - **蒸汽纠缠奇点 / Steam Entangled Singularity**: Core binding material. Produced by the Steam Singularity Entangler (heat accumulation). Consumed when binding nodes to hubs and in various crafting recipes.
 - **临界蒸汽纠缠奇点 / Critical Steam Entangled Singularity**: Produced by the Critical Entangled Singularity Stabilizer (CSC). Used for more advanced crafting and amplification; legend says it can tear apart the very limits of dimensions... DANGEROUS — it explodes when dropped, never discard it! The drop explosion guarantees that normal singularities will appear. / 由临界纠缠奇点稳定装置（CSC）产出。用于更高级的合成与增幅；传说其能够彻底撕开维度的限制……危险品——掉落物会爆炸，请勿丢弃！掉落爆炸保证会出现普通奇点。
 - **枢纽奇点芯片 / Hub Singularity Chip**: Required for Steam/Water Hub node binding, multiplies hub total capacity ×5. Also enables hub debug mode when right-clicked. Removing it from a filled hub swallows the stored fluid exceeding the reduced capacity.
-- **强化枢纽奇点芯片 / Reinforced Hub Singularity Chip**: For tier 3 Steam Hub only — enables dense/supercritical steam, ×20 capacity (replaces the ×5 Hub Chip bonus), and overpressure cache node binding.
+- **强化枢纽奇点芯片 / Reinforced Hub Singularity Chip**: For tier 3 (TungstenSteel) Steam/Water hubs — on the Steam Hub it enables dense/supercritical steam; on both hubs it grants ×20 capacity (takes priority over the ×5 Hub Chip bonus) and unlocks overpressure cache node binding; right-click a hub with it to list bound cache nodes. / 等级3（钨钢）蒸汽/蓄水枢纽阵列通用——蒸汽枢纽阵列解锁致密/超临界蒸汽；双枢纽容量×20（优先于普通芯片×5）并解锁超压缓存节点绑定；手持右击枢纽可列出已绑定缓存节点。
 - **蒸汽轮机循环超限芯片 / Steam Turbine Cycle Overlimit Chip**: For Mega Steam Turbine Array controller slot — requires all 4 extra stack groups to activate: superheated/supercritical (incl. dense) steam cooling becomes distilled water, and steam efficiency factors stack within their steam family (e.g. supercritical = 超临界+过热+蒸汽 = 2.5×). / 装入巨型蒸汽轮机阵列控制器槽，需完成全部4组额外叠加层：过热/超临界（含致密）蒸汽冷却直接产蒸馏水，蒸汽效率因子按蒸汽家族内叠加（如超临界=超临界+过热+蒸汽=2.5倍）。
 - **地热过热芯片 / Geothermal Overheat Chip**: For Large Geothermal Steam Boiler (steel tier) — enables superheated steam output and rare byproducts.
 - **稀有气体分离芯片 / Rare Gas Separation Chip**: For Atmospheric Centrifuge — unlocks recipes with >3 fluid outputs (up to 9).

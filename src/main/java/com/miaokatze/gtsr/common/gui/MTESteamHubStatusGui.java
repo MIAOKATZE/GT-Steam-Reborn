@@ -31,6 +31,11 @@ public class MTESteamHubStatusGui extends MTECacheHubStatusGui {
     }
 
     @Override
+    protected void cycleNodeCap(int x, int y, int z, int dim) {
+        hub.cycleCacheNodeCapFromGui(x, y, z, dim);
+    }
+
+    @Override
     protected void setNodeMode(int x, int y, int z, int dim, boolean output) {
         hub.setCacheNodeModeFromGui(x, y, z, dim, output);
     }
@@ -62,6 +67,8 @@ public class MTESteamHubStatusGui extends MTECacheHubStatusGui {
             case "steam" -> GTSRItemList.SteamCacheNode.get(1);
             case "reinforced_steam" -> GTSRItemList.ReinforcedSteamCacheNode.get(1);
             case "overpressure_steam" -> GTSRItemList.OverpressureSteamCacheNode.get(1);
+            case "singularity_steam" -> GTSRItemList.SingularitySteamCompartment.get(1);
+            case "singularity_steam_out" -> GTSRItemList.SingularitySteamOutputCompartment.get(1);
             default -> null;
         };
     }

@@ -8,22 +8,18 @@ import static gregtech.api.enums.Textures.BlockIcons.OVERLAY_PIPE;
 
 import java.util.List;
 
-import net.minecraft.client.renderer.texture.IIconRegister;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.Fluid;
+import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.IFluidHandler;
 
 import com.miaokatze.gtsr.common.util.GTSRUtils;
 
-import cpw.mods.fml.relauncher.Side;
-import cpw.mods.fml.relauncher.SideOnly;
-import gregtech.api.enums.Textures;
-import gregtech.api.interfaces.IIconContainer;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
@@ -32,10 +28,8 @@ import gregtech.api.util.GTUtility;
 
 public class MTEWaterCacheNode extends MTEFilteredCacheNode {
 
-    private static final int CAPACITY = 512_000;
+    private static final int CAPACITY = 2_000_000;
     private static final int OUTPUT_PER_TICK = 3_200;
-
-    private static IIconContainer TOP_OVERLAY;
 
     public MTEWaterCacheNode(int aID, String aName, String aNameRegional) {
         super(aID, aName, aNameRegional, 3);
@@ -51,19 +45,16 @@ public class MTEWaterCacheNode extends MTEFilteredCacheNode {
     }
 
     @Override
-    @SideOnly(Side.CLIENT)
-    public void registerIcons(IIconRegister aBlockIconRegister) {
-        TOP_OVERLAY = Textures.BlockIcons.custom("gtsr:MTEWaterCacheNode");
-        super.registerIcons(aBlockIconRegister);
-    }
-
-    @Override
     public MetaTileEntity newMetaEntity(IGregTechTileEntity aTileEntity) {
         return new MTEWaterCacheNode(mName, mTier, mDescriptionArray, mTextures);
     }
 
+    /**
+     * S4 容量基量：硬编码终值改覆写本方法，档位乘法统一在基类 getRealCapacity()
+     * （getFluidCapacityLong 读同一算式，tooltip/getInfoData 容量读数自动跟随档位）。
+     */
     @Override
-    public int getRealCapacity() {
+    public int getBaseRealCapacity() {
         return CAPACITY;
     }
 
@@ -71,7 +62,8 @@ public class MTEWaterCacheNode extends MTEFilteredCacheNode {
     public ITexture[] getTexture(IGregTechTileEntity baseMetaTileEntity, ForgeDirection sideDirection,
         ForgeDirection facingDirection, int colorIndex, boolean active, boolean redstoneLevel) {
         if (sideDirection == ForgeDirection.UP) {
-            return new ITexture[] { TextureFactory.of(MACHINE_BRONZE_TOP), TextureFactory.of(TOP_OVERLAY) };
+            // 顶面三层：基材 + 流体窗（罐内流体/枢纽默认）+ 绑定状态框架层（见 MTEFilteredCacheNode）
+            return getTopFaceTextures(TextureFactory.of(MACHINE_BRONZE_TOP));
         } else if (sideDirection == ForgeDirection.DOWN) {
             return new ITexture[] { TextureFactory.of(MACHINE_BRONZE_BOTTOM) };
         } else if (sideDirection == facingDirection) {
@@ -83,9 +75,14 @@ public class MTEWaterCacheNode extends MTEFilteredCacheNode {
 
     @Override
     protected boolean isFluidAllowed(Fluid fluid) {
-        if (fluid == null) return false;
-        String name = fluid.getName();
-        return "water".equals(name) || "ic2distilledwater".equals(name);
+        // S5 放宽：通用流体缓存节点接受任意流体（罐内单一流体锁由父类罐机制保证）
+        return fluid != null;
+    }
+
+    @Override
+    protected Fluid getFamilyDefaultWindowFluid() {
+        // 通用流体族绑定蓄水枢纽阵列：空罐默认窗=水（与蓄水枢纽阵列系奇点仓口径一致）
+        return FluidRegistry.WATER;
     }
 
     @Override
@@ -124,8 +121,8 @@ public class MTEWaterCacheNode extends MTEFilteredCacheNode {
     }
 
     /**
-     * 拦截 GUI 输入槽中的非目标流体单元。
-     * 只有装满「水」或「蒸馏水」的流体容器才允许放入输入槽；空容器或非流体物品走父类逻辑。
+     * 拦截 GUI 输入槽中的空容器。
+     * S5 放宽：任意流体容器（装有任何流体）都允许放入输入槽；空容器或非流体物品走父类逻辑。
      */
     @Override
     public boolean allowPutStack(IGregTechTileEntity aBaseMetaTileEntity, int aIndex, ForgeDirection side,
@@ -133,18 +130,15 @@ public class MTEWaterCacheNode extends MTEFilteredCacheNode {
         if (aIndex == getInputSlot()) {
             FluidStack tFluid = GTUtility.getFluidForFilledItem(aStack, true);
             if (tFluid != null && tFluid.getFluid() != null) {
-                return isWaterFluid(tFluid);
+                return true;
             }
         }
         return super.allowPutStack(aBaseMetaTileEntity, aIndex, side, aStack);
     }
 
+    /** S5 放宽：任意非空 FluidStack 均可（保留方法名避免破坏本类内调用点）。 */
     private static boolean isWaterFluid(FluidStack aFluid) {
-        if (aFluid == null) return false;
-        Fluid fluid = aFluid.getFluid();
-        if (fluid == null) return false;
-        String name = fluid.getName();
-        return "water".equals(name) || "ic2distilledwater".equals(name);
+        return aFluid != null && aFluid.getFluid() != null;
     }
 
     @Override
@@ -204,6 +198,8 @@ public class MTEWaterCacheNode extends MTEFilteredCacheNode {
                 + String.format("%,d", getRealCapacity())
                 + " "
                 + StatCollector.translateToLocal("gtsr.tooltip.shared.l"));
+        tooltip
+            .add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.water_cache_node.bind_target"));
         tooltip
             .add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.shared.cache_node_standalone"));
         tooltip.add(

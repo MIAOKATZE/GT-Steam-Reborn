@@ -4,6 +4,7 @@ import static net.minecraft.util.StatCollector.translateToLocal;
 
 import java.util.List;
 
+import net.minecraft.client.renderer.texture.IIconRegister;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
@@ -14,17 +15,28 @@ import net.minecraft.world.World;
 import net.minecraftforge.common.DimensionManager;
 import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.Fluid;
+import net.minecraftforge.fluids.FluidRegistry;
+import net.minecraftforge.fluids.FluidStack;
 
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.gui.MTEFilteredCacheNodeGui;
+import com.miaokatze.gtsr.common.util.GTSRFluidWindowTexture;
 import com.miaokatze.gtsr.common.util.HubTeleportUtil;
+import com.miaokatze.gtsr.register.TextureManager;
 
+import cpw.mods.fml.relauncher.Side;
+import cpw.mods.fml.relauncher.SideOnly;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
+import gregtech.api.render.TextureFactory;
 import gregtech.api.util.GTUtility;
 import gregtech.common.tileentities.storage.MTEDigitalTankBase;
 
-public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase {
+/**
+ * 量子缸族缓存节点基类。S1 起实现 {@link IHubCacheNode} 共同接口：四个奇点仓已脱离本继承链
+ * （改继承各自仓室近亲并实现该接口），两枢纽与 HubTerminal 的节点链路统一面向 IHubCacheNode。
+ */
+public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase implements IHubCacheNode {
 
     public MTEFilteredCacheNode(int aID, String aName, String aNameRegional, int aTier) {
         super(aID, aName, aNameRegional, aTier);
@@ -57,7 +69,21 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase {
     // 与 MTERemoteWorkerNode 同名机制一致；空串表示未自定义（UI 回退默认类型名）
     protected String mCustomName = "";
 
+    // 顶面流体窗+枢纽框架层的客户端渲染状态副本（description packet 同步，见下方同步段）：
+    // 服务端真值 mBound/mIsOutputMode/mHubType/罐内流体不经普通同步到达客户端，getTexture 只读本组字段；
+    // 默认值=未绑定外观（未收到包前可接受）。mIsOutputMode=true 表示从枢纽接受（接收模式，枢纽→节点）
+    protected boolean mClientBound = false;
+    protected boolean mClientOutputMode = true;
+    protected String mClientHubType = "";
+    protected String mClientFluidName = "";
+
+    /** 渲染状态同步去重 key（bound|out|fluid 拼接），服务端 onPostTick 维护，变化才 issueTileUpdate。 */
+    private String mLastSyncKey = null;
+
     private static final int[] TRANSFER_RATE_CYCLE = { 100, 80, 60, 40, 20, 10, 5, 1, 0 };
+
+    /** S4 容量上限档：100 → 80 → 60 → 40 → 20 → 10 → 5 → 回 100（值域单源见 IHubCacheNode）。 */
+    protected int mCapacityLimitPercent = 100;
 
     protected abstract boolean isFluidAllowed(Fluid fluid);
 
@@ -114,6 +140,56 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase {
         return mTransferRatePercent;
     }
 
+    // ===== S4 容量上限档（NBT 键 mCapacityLimitPercent，与 mTransferRatePercent 对称）=====
+
+    @Override
+    public boolean supportsCapacityTier() {
+        return true;
+    }
+
+    @Override
+    public int getCapacityLimitPercent() {
+        return mCapacityLimitPercent;
+    }
+
+    /**
+     * 在 CAPACITY_LIMIT_CYCLE 中循环到下一档容量百分比，返回新百分比（仿 cycleTransferRatePercent
+     * 越界自愈：当前值不在值域时归位首档 100）。
+     * 供空手 Shift+右击（HubTerminal 事件拦截）与枢纽状态 UI 的「容量循环」按钮共用。
+     */
+    @Override
+    public int cycleCapacityLimitPercent() {
+        int[] cycle = IHubCacheNode.CAPACITY_LIMIT_CYCLE;
+        int currentIdx = -1;
+        for (int i = 0; i < cycle.length; i++) {
+            if (cycle[i] == mCapacityLimitPercent) {
+                currentIdx = i;
+                break;
+            }
+        }
+        int nextIdx = (currentIdx + 1) % cycle.length;
+        mCapacityLimitPercent = cycle[nextIdx];
+        return mCapacityLimitPercent;
+    }
+
+    /**
+     * 容量基量（档位乘法前）：默认 MTEDigitalTankBase 的 tier 算式（commonSizeCompute(mTier)），
+     * 六个节点子类各自覆写返回硬编码 CAPACITY 常量。乘法统一在本类 {@link #getRealCapacity()}。
+     */
+    public int getBaseRealCapacity() {
+        return super.getRealCapacity();
+    }
+
+    /**
+     * 生效容量 = 基量 × 容量档百分比 / 100（long 中间量防溢出；超 int 上限钳 Integer.MAX_VALUE）。
+     * 父类 getCapacity/getInfo/getTankInfo 与 fill 空间计算实时读本方法，降档即时生效。
+     */
+    @Override
+    public int getRealCapacity() {
+        long capped = (long) getBaseRealCapacity() * mCapacityLimitPercent / 100;
+        return capped > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) capped;
+    }
+
     /**
      * 设置枢纽交互方向模式（输出=节点→枢纽 / 输入=枢纽→节点）。
      * 已与父类 MTEDigitalTankBase 的自动输出开关 mOutputFluid 解耦：
@@ -127,6 +203,15 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase {
 
     public boolean isOutputMode() {
         return mIsOutputMode;
+    }
+
+    /**
+     * 方向模式是否锁定（语义恒定节点覆写为 true，如奇点仓四件套）。
+     * 锁定后 setOutputMode/toggleOutputModeFromTerminal 拒改、loadNBTData 强制归位，
+     * 枢纽侧据此拒改 GUI 模式按钮与右键翻转分支。默认 false（普通节点可自由切换）。
+     */
+    public boolean isOutputModeLocked() {
+        return false;
     }
 
     /**
@@ -152,7 +237,7 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase {
         GTUtility.sendChatToPlayer(
             player,
             StatCollector.translateToLocal(
-                mIsOutputMode ? "gtsr.cache_node.mode_output_now" : "gtsr.cache_node.mode_input_now"));
+                mIsOutputMode ? "gtsr.cache_node.mode_input_now" : "gtsr.cache_node.mode_output_now"));
     }
 
     /** 是否已绑定到枢纽（供 HubTerminal 等跨包调用方判断，mBound 为 protected 字段）。 */
@@ -181,9 +266,21 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase {
         return mFluid != null ? mFluid.amount : 0L;
     }
 
-    /** 节点容量（long，强化/超压节点容量超出 int 范围）。 */
+    /** 节点容量（long，强化/超压节点容量超出 int 范围）：基量×容量档的精确乘后值（不经 int 钳位）。 */
     public long getFluidCapacityLong() {
-        return (long) getRealCapacity();
+        return (long) getBaseRealCapacity() * mCapacityLimitPercent / 100;
+    }
+
+    /**
+     * 温和保留防御（S4）：降档后罐内存量可能超过当前容量上限（负 space），父类
+     * MTEDigitalTankBase.fill 的 Math.min 会把负 space 入账（销毁超额）——此处在负/零 space 时
+     * 拒绝新入，超额部分保留罐内不销毁。所有 fill 路径（含方向参数版）最终汇入本两参版。
+     */
+    @Override
+    public int fill(FluidStack aFluid, boolean doFill) {
+        FluidStack fillable = getFillableStack();
+        if (fillable != null && (long) getRealCapacity() - fillable.amount <= 0) return 0;
+        return super.fill(aFluid, doFill);
     }
 
     public String getCustomName() {
@@ -208,11 +305,77 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase {
         return (long) getBaseHubTransferRate() * mTransferRatePercent / 100;
     }
 
+    // ===== 顶面流体窗 + 枢纽框架层（客户端渲染）=====
+    // 框架层 ITexture（HUB_FRAME_* 为 customAlpha pass1 图标容器）静态缓存一份，getTexture 复用勿每调用 new；
+    // registerIcons（仅客户端）时构造，服务端类加载不触碰渲染类
+    private static ITexture FRAME_RECEIVE_LAYER;
+    private static ITexture FRAME_SEND_LAYER;
+    private static ITexture FRAME_UNBOUND_LAYER;
+
+    @Override
+    @SideOnly(Side.CLIENT)
+    public void registerIcons(IIconRegister aBlockIconRegister) {
+        if (FRAME_UNBOUND_LAYER == null) {
+            FRAME_RECEIVE_LAYER = TextureFactory.of(TextureManager.HUB_FRAME_RECEIVE);
+            FRAME_SEND_LAYER = TextureFactory.of(TextureManager.HUB_FRAME_SEND);
+            FRAME_UNBOUND_LAYER = TextureFactory.of(TextureManager.HUB_FRAME_UNBOUND);
+        }
+        super.registerIcons(aBlockIconRegister);
+    }
+
+    /**
+     * 顶面流体窗内容（纯客户端副本路径，S2 起与 MTESingularityCompartmentBase#getClientWindowFluid 同构）：
+     * 罐内流体优先，罐空走 {@link #getDefaultWindowFluid()} 兜底。与奇点仓成功链的根因差异：
+     * 旧版空罐兜底只有 hubType contains 字符串解析一层，解析不出即返回 null（窗层自跳过）——
+     * 绑定后空罐的窗口流体没有任何非空保证（hubType 实为节点自身类型串，缺 type 键的旧档/异常路径
+     * 得空串，静默无窗）。未绑定仍返回 null（灰框无窗语义拍板不动）。
+     */
+    protected Fluid getClientWindowFluid() {
+        if (!mClientBound) return null;
+        Fluid fluid = mClientFluidName.isEmpty() ? null : FluidRegistry.getFluid(mClientFluidName);
+        return fluid != null ? fluid : getDefaultWindowFluid();
+    }
+
+    /**
+     * 罐空兜底（三段式，S2 对齐奇点仓 getDefaultWindowFluid 成功先例）：
+     * ① 类型串解析：含 steam→蒸汽、含 water→水（六节点现值类型串全命中）；
+     * ② 家族默认：子类静态常量（{@link #getFamilyDefaultWindowFluid}），类型串缺失/未知时兜住。
+     * 保证「绑定后空罐必显示默认流体窗」（未绑定路径不进入本方法，上游已门控）。
+     */
+    protected Fluid getDefaultWindowFluid() {
+        if (mClientHubType != null) {
+            if (mClientHubType.contains("steam")) return FluidRegistry.getFluid("steam");
+            if (mClientHubType.contains("water")) return FluidRegistry.WATER;
+        }
+        return getFamilyDefaultWindowFluid();
+    }
+
+    /**
+     * 节点家族默认窗流体（罐空且类型串解析不出的终层兜底）。
+     * 家族无法从 isFluidAllowed 推导（通用流体节点已放宽为恒真），必须子类静态给出：
+     * 蒸汽三节点→蒸汽、通用流体三节点→水（与蓄水枢纽阵列系奇点仓的默认流体口径一致）。
+     */
+    protected abstract Fluid getFamilyDefaultWindowFluid();
+
+    /**
+     * 顶面三层纹理：未绑定→[基材, 未绑框架]（灰框无窗语义拍板不动）；绑定→
+     * [基材, 流体窗, 接收/发送框架]（接收模式=从枢纽接受→RECEIVE，输出模式→SEND）。
+     * 绑定分支的窗流体经三段兜底（罐内→类型串→家族默认）恒非空（steam 注册缺失等极端情况才自跳过）。
+     */
+    protected ITexture[] getTopFaceTextures(ITexture baseTexture) {
+        if (!mClientBound) {
+            return new ITexture[] { baseTexture, FRAME_UNBOUND_LAYER };
+        }
+        return new ITexture[] { baseTexture, GTSRFluidWindowTexture.getOrCreate(getClientWindowFluid()),
+            mClientOutputMode ? FRAME_RECEIVE_LAYER : FRAME_SEND_LAYER };
+    }
+
     @Override
     public void saveNBTData(NBTTagCompound aNBT) {
         super.saveNBTData(aNBT);
         aNBT.setBoolean("mIsOutputMode", mIsOutputMode);
         aNBT.setInteger("mTransferRatePercent", mTransferRatePercent);
+        aNBT.setInteger("mCapacityLimitPercent", mCapacityLimitPercent);
         // 用 mBound 判断绑定状态，避免主世界 dim=0 被误判为未绑定
         if (mBound) {
             NBTTagCompound hubTag = new NBTTagCompound();
@@ -245,6 +408,7 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase {
     public void setItemNBT(NBTTagCompound aNBT) {
         super.setItemNBT(aNBT);
         aNBT.setInteger("mTransferRatePercent", mTransferRatePercent);
+        aNBT.setInteger("mCapacityLimitPercent", mCapacityLimitPercent);
         if (mBound) {
             NBTTagCompound hubTag = new NBTTagCompound();
             hubTag.setInteger("x", mHubX);
@@ -274,6 +438,8 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase {
         mNextRegistrationTick = 0;
         mIsOutputMode = aNBT.hasKey("mIsOutputMode") ? aNBT.getBoolean("mIsOutputMode") : true;
         mTransferRatePercent = aNBT.hasKey("mTransferRatePercent") ? aNBT.getInteger("mTransferRatePercent") : 100;
+        // 旧档无容量档键时回退默认 100（存档兼容）
+        mCapacityLimitPercent = aNBT.hasKey("mCapacityLimitPercent") ? aNBT.getInteger("mCapacityLimitPercent") : 100;
         if (aNBT.hasKey("gtsr.hubPos")) {
             NBTTagCompound hubTag = aNBT.getCompoundTag("gtsr.hubPos");
             mHubX = hubTag.getInteger("x");
@@ -281,8 +447,8 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase {
             mHubZ = hubTag.getInteger("z");
             mHubDim = hubTag.getInteger("dim");
             mHubType = hubTag.getString("type");
-            // 物品NBT中 output=false 表示输出模式(节点→枢纽), output=true 表示输入模式(枢纽→节点)
-            // mIsOutputMode=true 表示输出模式(节点→枢纽), mIsOutputMode=false 表示输入模式(枢纽→节点)
+            // 物品NBT中 output=false 表示从枢纽输出（枢纽→节点），output=true 表示向枢纽输入（节点→枢纽）
+            // mIsOutputMode=true 表示接收模式（枢纽→节点），mIsOutputMode=false 表示发送模式（节点→枢纽）
             // 语义一致：output字段的值取反即为mIsOutputMode的值
             if (hubTag.hasKey("output")) {
                 mIsOutputMode = !hubTag.getBoolean("output");
@@ -321,6 +487,11 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase {
         if (!getCustomName().isEmpty()) {
             data.setString("gtsr.customName", getCustomName());
         }
+        // 渲染状态（顶面流体窗+框架层）：绑定/方向模式/枢纽类型/罐内流体名（空串=罐空）
+        data.setBoolean("gtsr.bound", mBound);
+        data.setBoolean("gtsr.out", mIsOutputMode);
+        data.setString("gtsr.hubType", mHubType == null ? "" : mHubType);
+        data.setString("gtsr.fluid", getStoredFluidName());
         return data;
     }
 
@@ -329,6 +500,11 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase {
         super.onDescriptionPacket(data);
         // 无 key 表示服务端已清除自定义名，回退空串（GUI 标题恢复默认本地化名）
         mCustomName = data.hasKey("gtsr.customName") ? data.getString("gtsr.customName") : "";
+        // 渲染状态副本回读落地（getTexture 只读这组字段）
+        mClientBound = data.getBoolean("gtsr.bound");
+        mClientOutputMode = data.getBoolean("gtsr.out");
+        mClientHubType = data.getString("gtsr.hubType");
+        mClientFluidName = data.getString("gtsr.fluid");
     }
 
     @Override
@@ -341,6 +517,7 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase {
                 + " "
                 + StatCollector.translateToLocal("gtsr.tooltip.shared.l_s"));
         tooltip.add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.cache_node.chip_adjust"));
+        tooltip.add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.shared.bind_kept_on_drop"));
         if (stack != null && stack.hasTagCompound()
             && stack.getTagCompound()
                 .hasKey("gtsr.hubPos")) {
@@ -379,6 +556,14 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase {
             if (!mRegistered) {
                 mNextRegistrationTick = aTick + 20;
             }
+        }
+
+        // 渲染状态同步：绑定/方向模式/流体类型任一变化才发 description packet（覆盖绑定/解绑/模式切换/
+        // 流体类型变化/清空全部路径）；节点每 20t 传输只变量不触发，正常稳态零发包
+        String syncKey = mBound + "|" + mIsOutputMode + "|" + getStoredFluidName();
+        if (!syncKey.equals(mLastSyncKey)) {
+            mLastSyncKey = syncKey;
+            aBaseMetaTileEntity.issueTileUpdate();
         }
     }
 

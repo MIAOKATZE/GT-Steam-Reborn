@@ -21,7 +21,11 @@ import com.miaokatze.gtsr.common.machine.MTEReinforcedBrickBlastFurnace;
 import com.miaokatze.gtsr.common.machine.MTESiemensMartinFurnace;
 import com.miaokatze.gtsr.common.machine.MTESingularityDrillingHub;
 import com.miaokatze.gtsr.common.machine.MTESingularityDrillingNode;
+import com.miaokatze.gtsr.common.machine.MTESingularityFluidInputCompartment;
+import com.miaokatze.gtsr.common.machine.MTESingularityFluidOutputCompartment;
 import com.miaokatze.gtsr.common.machine.MTESingularityMinerNode;
+import com.miaokatze.gtsr.common.machine.MTESingularitySteamCompartment;
+import com.miaokatze.gtsr.common.machine.MTESingularitySteamOutputCompartment;
 import com.miaokatze.gtsr.common.machine.MTESteamFluidDrill;
 import com.miaokatze.gtsr.common.machine.MTESteamHubArray;
 import com.miaokatze.gtsr.common.machine.MTESteamSingularityCompressorOLD;
@@ -38,10 +42,12 @@ import com.miaokatze.gtsr.common.machine.base.MTEMegaAirInputHatch;
 import com.miaokatze.gtsr.common.machine.base.MTEOverpressureHubStorageUnit;
 import com.miaokatze.gtsr.common.machine.base.MTEOverpressureSteamCacheNode;
 import com.miaokatze.gtsr.common.machine.base.MTEOverpressureTurbineInputHatch;
+import com.miaokatze.gtsr.common.machine.base.MTEOverpressureWaterCacheNode;
 import com.miaokatze.gtsr.common.machine.base.MTEPressureSteamCoolingHatch;
 import com.miaokatze.gtsr.common.machine.base.MTEPressureSteamOutputHatch;
 import com.miaokatze.gtsr.common.machine.base.MTEReinforcedHubStorageUnit;
 import com.miaokatze.gtsr.common.machine.base.MTEReinforcedSteamCacheNode;
+import com.miaokatze.gtsr.common.machine.base.MTEReinforcedWaterCacheNode;
 import com.miaokatze.gtsr.common.machine.base.MTESteamCacheNode;
 import com.miaokatze.gtsr.common.machine.base.MTESteamCoolingHatch;
 import com.miaokatze.gtsr.common.machine.base.MTESteamHubInputHatch;
@@ -91,12 +97,48 @@ public class MachineLoader {
             "[OLD] Overpressure Hub Storage Unit",
             MetaTileEntityID.OVERPRESSURE_HUB_STORAGE_UNIT.ID);
         GTSRItemList.WaterCacheNode.set(
-            new MTEWaterCacheNode(MetaTileEntityID.WATER_CACHE_NODE.ID, "gtsr.water.cache.node", "Water Cache Node"));
+            new MTEWaterCacheNode(
+                MetaTileEntityID.WATER_CACHE_NODE.ID,
+                "gtsr.water.cache.node",
+                "Universal Fluid Cache Node"));
         new MTELegacyConverter(
             MetaTileEntityID.WATER_CACHE_NODE.OLD_ID,
             "gtsr.legacy.converter.water_cache_node",
             "[OLD] Water Cache Node",
             MetaTileEntityID.WATER_CACHE_NODE.ID);
+        // 耐压/超压通用流体缓存节点：全新 ID，无旧存档机器，不加 LegacyConverter（同红石仓模式）
+        GTSRItemList.ReinforcedWaterCacheNode.set(
+            new MTEReinforcedWaterCacheNode(
+                MetaTileEntityID.REINFORCED_WATER_CACHE_NODE.ID,
+                "gtsr.reinforced.water.cache.node",
+                "Reinforced Universal Fluid Cache Node"));
+        GTSRItemList.OverpressureWaterCacheNode.set(
+            new MTEOverpressureWaterCacheNode(
+                MetaTileEntityID.OVERPRESSURE_WATER_CACHE_NODE.ID,
+                "gtsr.overpressure.water.cache.node",
+                "Overpressure Universal Fluid Cache Node"));
+        // 奇点仓四件套（模式锁定）：蒸汽两仓绑蒸汽枢纽阵列、流体两仓绑蓄水枢纽阵列；
+        // 全新 ID（单方块段 8-11，OLD_ID 段外不落 LEGACY_TO_NEW_MAP），无旧存档机器，不加 LegacyConverter
+        GTSRItemList.SingularitySteamCompartment.set(
+            new MTESingularitySteamCompartment(
+                MetaTileEntityID.SINGULARITY_STEAM_COMPARTMENT.ID,
+                "gtsr.singularity.steam.compartment",
+                "Singularity Steam Compartment"));
+        GTSRItemList.SingularitySteamOutputCompartment.set(
+            new MTESingularitySteamOutputCompartment(
+                MetaTileEntityID.SINGULARITY_STEAM_OUTPUT_COMPARTMENT.ID,
+                "gtsr.singularity.steam.output.compartment",
+                "Singularity Steam Output Compartment"));
+        GTSRItemList.SingularityFluidInputCompartment.set(
+            new MTESingularityFluidInputCompartment(
+                MetaTileEntityID.SINGULARITY_FLUID_INPUT_COMPARTMENT.ID,
+                "gtsr.singularity.fluid.input.compartment",
+                "Singularity Fluid Input Compartment"));
+        GTSRItemList.SingularityFluidOutputCompartment.set(
+            new MTESingularityFluidOutputCompartment(
+                MetaTileEntityID.SINGULARITY_FLUID_OUTPUT_COMPARTMENT.ID,
+                "gtsr.singularity.fluid.output.compartment",
+                "Singularity Fluid Output Compartment"));
         GTSRItemList.SingularityMinerNode.set(
             new MTESingularityMinerNode(
                 MetaTileEntityID.SINGULARITY_MINER_NODE.ID,
@@ -507,6 +549,13 @@ public class MachineLoader {
         CreativeTabManager.addItemToTab(GTSRItemList.ReinforcedSteamCacheNode.get(1));
         CreativeTabManager.addItemToTab(GTSRItemList.OverpressureSteamCacheNode.get(1));
         CreativeTabManager.addItemToTab(GTSRItemList.WaterCacheNode.get(1));
+        CreativeTabManager.addItemToTab(GTSRItemList.ReinforcedWaterCacheNode.get(1));
+        CreativeTabManager.addItemToTab(GTSRItemList.OverpressureWaterCacheNode.get(1));
+        // 奇点仓四件套：紧随缓存节点组（单方块段）
+        CreativeTabManager.addItemToTab(GTSRItemList.SingularitySteamCompartment.get(1));
+        CreativeTabManager.addItemToTab(GTSRItemList.SingularitySteamOutputCompartment.get(1));
+        CreativeTabManager.addItemToTab(GTSRItemList.SingularityFluidInputCompartment.get(1));
+        CreativeTabManager.addItemToTab(GTSRItemList.SingularityFluidOutputCompartment.get(1));
         CreativeTabManager.addItemToTab(GTSRItemList.SteamSingularityEntangler.get(1));
         // --- 多方块机器: 枢纽及仓室模块 (6-14) ---
         CreativeTabManager.addItemToTab(GTSRItemList.SteamHubArray.get(1));

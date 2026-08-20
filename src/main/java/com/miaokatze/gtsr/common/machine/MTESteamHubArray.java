@@ -25,6 +25,8 @@ import net.minecraft.util.StatCollector;
 import net.minecraft.world.World;
 import net.minecraftforge.common.DimensionManager;
 import net.minecraftforge.common.util.ForgeDirection;
+import net.minecraftforge.fluids.Fluid;
+import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.IFluidHandler;
 
@@ -42,7 +44,7 @@ import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.gui.MTESteamHubArrayGui;
-import com.miaokatze.gtsr.common.machine.base.MTEFilteredCacheNode;
+import com.miaokatze.gtsr.common.machine.base.IHubCacheNode;
 import com.miaokatze.gtsr.common.machine.base.MTEGTSRMultiBlockBase;
 import com.miaokatze.gtsr.common.machine.base.MTEHubStorageUnit;
 import com.miaokatze.gtsr.common.machine.base.MTEOverpressureHubStorageUnit;
@@ -53,9 +55,11 @@ import com.miaokatze.gtsr.common.machine.base.MTESteamCacheNode;
 import com.miaokatze.gtsr.common.machine.base.MTESteamHubInputHatch;
 import com.miaokatze.gtsr.common.machine.base.MTESteamHubOutputHatch;
 import com.miaokatze.gtsr.common.machine.base.MTESteamStorageUnit;
+import com.miaokatze.gtsr.common.util.GTSRFluidWindowTexture;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
 import com.miaokatze.gtsr.common.util.HubTeleportUtil;
 import com.miaokatze.gtsr.common.util.UnitFormatUtil;
+import com.miaokatze.gtsr.register.TextureManager;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
@@ -63,10 +67,10 @@ import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Materials;
 import gregtech.api.enums.Textures;
 import gregtech.api.interfaces.IHatchElement;
-import gregtech.api.interfaces.IIconContainer;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
+import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.render.TextureFactory;
 import gregtech.api.structure.error.StructureError;
 import gregtech.api.structure.error.StructureErrorRegistry;
@@ -91,7 +95,9 @@ public class MTESteamHubArray extends MTEGTSRMultiBlockBase<MTESteamHubArray>
 
     private static final int CASING_INDEX = GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings1, 10);
 
-    private static IIconContainer CONTROLLER_OVERLAY;
+    // 正面枢纽框架层（customAlpha pass1 图标，extFacing 对齐多方块旋转）：registerIcons（仅客户端）时
+    // 构造并静态缓存，getTexture 复用勿每调用 new，服务端类加载不触碰渲染类
+    private static ITexture FRAME_UNBOUND_FACING;
 
     private static final IStructureDefinition<MTESteamHubArray> STRUCTURE_DEFINITION;
 
@@ -150,8 +156,13 @@ public class MTESteamHubArray extends MTEGTSRMultiBlockBase<MTESteamHubArray>
                             -1,
                             (MTESteamHubArray t, Integer tier) -> t.mCasingTier = tier,
                             (MTESteamHubArray t) -> t.mCasingTier)),
-                    buildHatchAdder(MTESteamHubArray.class)
-                        .atLeast(SteamHubHatchElement.SteamInput, SteamHubHatchElement.SteamOutput)
+                    buildHatchAdder(MTESteamHubArray.class).atLeast(
+                        // S1：奇点仓两枚举在前——更具体的 adder 先认领，防止后续泛化 adder 的
+                        // instanceof 误收（枚举间 adder 按声明顺序短路）
+                        SteamHubHatchElement.SingularitySteamCompartment,
+                        SteamHubHatchElement.SingularitySteamOutputCompartment,
+                        SteamHubHatchElement.SteamInput,
+                        SteamHubHatchElement.SteamOutput)
                         .casingIndex(CASING_INDEX)
                         .hint(1)
                         .build()))
@@ -231,6 +242,23 @@ public class MTESteamHubArray extends MTEGTSRMultiBlockBase<MTESteamHubArray>
 
     private enum SteamHubHatchElement implements IHatchElement<MTESteamHubArray> {
 
+        // S1：奇点仓两枚举（结构接纳，问题 2）；声明顺序 = atLeast adder 认领顺序（具体在前）
+        SingularitySteamCompartment(MTESteamHubArray::addSingularitySteamCompartmentToMachineList,
+            MTESingularitySteamCompartment.class) {
+
+            @Override
+            public List<Class<? extends IMetaTileEntity>> mteBlacklist() {
+                return ImmutableList.of(MTESingularitySteamCompartment.class);
+            }
+        },
+        SingularitySteamOutputCompartment(MTESteamHubArray::addSingularitySteamOutputCompartmentToMachineList,
+            MTESingularitySteamOutputCompartment.class) {
+
+            @Override
+            public List<Class<? extends IMetaTileEntity>> mteBlacklist() {
+                return ImmutableList.of(MTESingularitySteamOutputCompartment.class);
+            }
+        },
         SteamInput(MTESteamHubArray::addSteamInputToMachineList, MTESteamHubInputHatch.class) {
 
             @Override
@@ -267,7 +295,10 @@ public class MTESteamHubArray extends MTEGTSRMultiBlockBase<MTESteamHubArray>
 
         @Override
         public long count(MTESteamHubArray t) {
-            return this == SteamInput ? t.mSteamInputHatches.size() : t.mSteamOutputHatches.size();
+            if (this == SteamInput) return t.mSteamInputHatches.size();
+            if (this == SteamOutput) return t.mSteamOutputHatches.size();
+            if (this == SingularitySteamCompartment) return t.mSingularitySteamCompartmentCount;
+            return t.mSingularitySteamOutputCompartmentCount;
         }
     }
 
@@ -354,6 +385,10 @@ public class MTESteamHubArray extends MTEGTSRMultiBlockBase<MTESteamHubArray>
     private final ArrayList<MTESteamHubOutputHatch> mSteamOutputHatches = new ArrayList<>();
     private final ArrayList<BoundCacheNode> mBoundNodes = new ArrayList<>();
 
+    // S1：奇点仓结构接纳计数（仅结构组成提示用，不注入 mController、不参与传输——传输走终端绑定链）
+    private int mSingularitySteamCompartmentCount = 0;
+    private int mSingularitySteamOutputCompartmentCount = 0;
+
     public int mPressureUnitCount = 0;
     public int mReinforcedUnitCount = 0;
     public int mOverpressureUnitCount = 0;
@@ -366,6 +401,10 @@ public class MTESteamHubArray extends MTEGTSRMultiBlockBase<MTESteamHubArray>
     public int mStackCount = 0;
     public long mSteamStored = 0;
     private FluidStack mStoredFluidType = null;
+    // 存储流体名的客户端副本（description packet 同步）：正面流体窗取流体用，空串=无（回退默认蒸汽）
+    private String mClientFluidName = "";
+    /** 渲染状态同步去重 key（存储流体名），服务端 onPostTick 维护，变化才 issueTileUpdate。 */
+    private String mLastSyncKey = null;
     private long mTickCounter = 0;
     public boolean mOverflowInput = false;
 
@@ -405,7 +444,12 @@ public class MTESteamHubArray extends MTEGTSRMultiBlockBase<MTESteamHubArray>
     @Override
     @SideOnly(Side.CLIENT)
     public void registerIcons(IIconRegister aBlockIconRegister) {
-        CONTROLLER_OVERLAY = Textures.BlockIcons.custom("gtsr:MTESteamHubArray");
+        if (FRAME_UNBOUND_FACING == null) {
+            FRAME_UNBOUND_FACING = TextureFactory.builder()
+                .addIcon(TextureManager.HUB_FRAME_UNBOUND)
+                .extFacing()
+                .build();
+        }
         super.registerIcons(aBlockIconRegister);
     }
 
@@ -440,6 +484,8 @@ public class MTESteamHubArray extends MTEGTSRMultiBlockBase<MTESteamHubArray>
         mStackCount = 0;
         mSteamInputHatches.clear();
         mSteamOutputHatches.clear();
+        mSingularitySteamCompartmentCount = 0;
+        mSingularitySteamOutputCompartmentCount = 0;
 
         if (!checkPiece(STRUCTURE_PIECE_BASE, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET, errors)) {
             getBaseMetaTileEntity().issueTileUpdate();
@@ -544,6 +590,31 @@ public class MTESteamHubArray extends MTEGTSRMultiBlockBase<MTESteamHubArray>
             hatch.updateTexture(aBaseCasingIndex);
             hatch.mController = this;
             return mSteamOutputHatches.add(hatch);
+        }
+        return false;
+    }
+
+    // S1：奇点仓结构接纳（问题 2）——只计数与换装外壳材质，不注入 mController、不加入输入/输出运转列表
+    // （仓与枢纽的流体交互走终端绑定链 transferWithBoundNodes，与结构成员资格无关）
+    public boolean addSingularitySteamCompartmentToMachineList(IGregTechTileEntity aTileEntity, int aBaseCasingIndex) {
+        if (aTileEntity == null) return false;
+        IMetaTileEntity aMetaTileEntity = aTileEntity.getMetaTileEntity();
+        if (aMetaTileEntity instanceof MTESingularitySteamCompartment hatch) {
+            hatch.updateTexture(aBaseCasingIndex);
+            mSingularitySteamCompartmentCount++;
+            return true;
+        }
+        return false;
+    }
+
+    public boolean addSingularitySteamOutputCompartmentToMachineList(IGregTechTileEntity aTileEntity,
+        int aBaseCasingIndex) {
+        if (aTileEntity == null) return false;
+        IMetaTileEntity aMetaTileEntity = aTileEntity.getMetaTileEntity();
+        if (aMetaTileEntity instanceof MTESingularitySteamOutputCompartment hatch) {
+            hatch.updateTexture(aBaseCasingIndex);
+            mSingularitySteamOutputCompartmentCount++;
+            return true;
         }
         return false;
     }
@@ -758,6 +829,14 @@ public class MTESteamHubArray extends MTEGTSRMultiBlockBase<MTESteamHubArray>
 
         autoOutputSteam();
 
+        // 存储流体名变化才发 description packet（首流锁定与抽干清空自然覆盖，量变化不发包，稳态零流量）
+        String syncKey = mStoredFluidType != null ? mStoredFluidType.getFluid()
+            .getName() : "";
+        if (!syncKey.equals(mLastSyncKey)) {
+            mLastSyncKey = syncKey;
+            aBaseMetaTileEntity.issueTileUpdate();
+        }
+
         mTickCounter++;
         if (mTickCounter % 20 == 0) {
             transferWithBoundNodes();
@@ -766,7 +845,8 @@ public class MTESteamHubArray extends MTEGTSRMultiBlockBase<MTESteamHubArray>
 
     private int getNodeTransferRate(IGregTechTileEntity gte) {
         IMetaTileEntity mte = gte.getMetaTileEntity();
-        if (mte instanceof MTEFilteredCacheNode cacheNode) {
+        // S1 类型拓宽：缓存节点=速率百分比实算；奇点仓=固定常量（getEffectiveHubTransferRate 默认实现）
+        if (mte instanceof IHubCacheNode cacheNode) {
             return (int) Math.min(cacheNode.getEffectiveHubTransferRate(), Integer.MAX_VALUE);
         }
         return TRANSFER_RATE;
@@ -844,6 +924,10 @@ public class MTESteamHubArray extends MTEGTSRMultiBlockBase<MTESteamHubArray>
             isReinforced = true;
         } else if (GTSRItemList.OverpressureSteamCacheNode.isStackEqual(held, false, true)) {
             type = "overpressure_steam";
+        } else if (GTSRItemList.SingularitySteamCompartment.isStackEqual(held, false, true)) {
+            type = "singularity_steam";
+        } else if (GTSRItemList.SingularitySteamOutputCompartment.isStackEqual(held, false, true)) {
+            type = "singularity_steam_out";
         }
 
         if (type == null) {
@@ -880,6 +964,16 @@ public class MTESteamHubArray extends MTEGTSRMultiBlockBase<MTESteamHubArray>
             int boundDim = existing.getInteger("dim");
 
             if (boundX == myX && boundY == myY && boundZ == myZ && boundDim == myDim) {
+                // 奇点仓模式锁定：不提供 output 翻转，右击只解绑（沿用现解绑文案）
+                if (isModeLockedType(type)) {
+                    held.getTagCompound()
+                        .removeTag("gtsr.hubPos");
+                    GTUtility.sendChatToPlayer(
+                        aPlayer,
+                        StatCollector.translateToLocal("gtsr.binding.cleared") + held.getDisplayName()
+                            + StatCollector.translateToLocal("gtsr.binding.binding"));
+                    return true;
+                }
                 boolean isOutput = existing.hasKey("output") && existing.getBoolean("output");
 
                 if (!isOutput) {
@@ -952,7 +1046,7 @@ public class MTESteamHubArray extends MTEGTSRMultiBlockBase<MTESteamHubArray>
         hubTag.setInteger("z", myZ);
         hubTag.setInteger("dim", myDim);
         hubTag.setString("type", type);
-        hubTag.setBoolean("output", false);
+        hubTag.setBoolean("output", getLockedItemOutput(type));
         hubTag.setBoolean("reinforced", isReinforced);
         bound.getTagCompound()
             .setTag("gtsr.hubPos", hubTag);
@@ -998,7 +1092,7 @@ public class MTESteamHubArray extends MTEGTSRMultiBlockBase<MTESteamHubArray>
         hubTag.setInteger("z", myZ);
         hubTag.setInteger("dim", myDim);
         hubTag.setString("type", type);
-        hubTag.setBoolean("output", false);
+        hubTag.setBoolean("output", getLockedItemOutput(type));
         hubTag.setBoolean("reinforced", isReinforced);
         held.getTagCompound()
             .setTag("gtsr.hubPos", hubTag);
@@ -1011,12 +1105,27 @@ public class MTESteamHubArray extends MTEGTSRMultiBlockBase<MTESteamHubArray>
     }
 
     /**
-     * 绑定奇点成本表：steam=0、reinforced_steam=1、overpressure_steam=8。
+     * 绑定奇点成本表：steam=0、reinforced_steam=1、overpressure_steam=8、
+     * 奇点蒸汽仓/奇点蒸汽输出仓=1。
      */
     private static int getSingularityCost(String type) {
         if ("reinforced_steam".equals(type)) return 1;
         if ("overpressure_steam".equals(type)) return 8;
+        if ("singularity_steam".equals(type) || "singularity_steam_out".equals(type)) return 1;
         return 0;
+    }
+
+    /** 奇点仓类型（模式锁定，右键已绑定分支只解绑不翻转）。 */
+    private static boolean isModeLockedType(String type) {
+        return "singularity_steam".equals(type) || "singularity_steam_out".equals(type);
+    }
+
+    /**
+     * 锁定类型绑定时的 item output 恒定值（反转语义：false=枢纽→节点/接收仓，true=节点→枢纽/发送仓；
+     * 与 loadNBTData 强制归位值互补）。非锁定类型保持 false（现状）。
+     */
+    private static boolean getLockedItemOutput(String type) {
+        return "singularity_steam_out".equals(type);
     }
 
     /**
@@ -1103,7 +1212,10 @@ public class MTESteamHubArray extends MTEGTSRMultiBlockBase<MTESteamHubArray>
 
     @Override
     public boolean acceptsNodeType(String type) {
-        return "steam".equals(type) || "reinforced_steam".equals(type) || "overpressure_steam".equals(type);
+        return "steam".equals(type) || "reinforced_steam".equals(type)
+            || "overpressure_steam".equals(type)
+            || "singularity_steam".equals(type)
+            || "singularity_steam_out".equals(type);
     }
 
     /**
@@ -1115,15 +1227,15 @@ public class MTESteamHubArray extends MTEGTSRMultiBlockBase<MTESteamHubArray>
     }
 
     /**
-     * 按坐标解析绑定缓存节点对应的 MTEFilteredCacheNode 实例；世界未加载、方块不存在
-     * 或目标不是缓存节点时返回 null。
+     * 按坐标解析绑定缓存节点对应的 IHubCacheNode 实例（S1 拓宽：缓存节点与四个奇点仓）；
+     * 世界未加载、方块不存在或目标不是缓存节点/奇点仓时返回 null。
      */
-    private MTEFilteredCacheNode resolveCacheNode(int x, int y, int z, int dim) {
+    private IHubCacheNode resolveCacheNode(int x, int y, int z, int dim) {
         BoundCacheNode bound = findBoundNode(x, y, z, dim);
         return bound == null ? null : resolveCacheNode(bound, false);
     }
 
-    private MTEFilteredCacheNode resolveCacheNodeForAction(int x, int y, int z, int dim) {
+    private IHubCacheNode resolveCacheNodeForAction(int x, int y, int z, int dim) {
         BoundCacheNode bound = findBoundNode(x, y, z, dim);
         if (bound == null) return null;
         bound.invalidateCache();
@@ -1134,13 +1246,13 @@ public class MTESteamHubArray extends MTEGTSRMultiBlockBase<MTESteamHubArray>
      * Resolves a bound node at most once per world tick. UI polling never loads chunks; explicit transfer/action
      * operations may load the target chunk. A temporarily unavailable world/chunk is not treated as an invalid node.
      */
-    private MTEFilteredCacheNode resolveCacheNode(BoundCacheNode bound, boolean loadChunk) {
+    private IHubCacheNode resolveCacheNode(BoundCacheNode bound, boolean loadChunk) {
         IGregTechTileEntity base = getBaseMetaTileEntity();
         World hubWorld = base == null ? null : base.getWorld();
         long now = hubWorld == null ? 0L : hubWorld.getTotalWorldTime();
         if (bound.cachedTile != null && (bound.lastLookupTick == now || now < bound.nextLookupTick)) {
             IMetaTileEntity mte = bound.cachedTile.getMetaTileEntity();
-            return mte instanceof MTEFilteredCacheNode node ? node : null;
+            return mte instanceof IHubCacheNode node ? node : null;
         }
         if (!loadChunk && now < bound.nextLookupTick) return null;
 
@@ -1167,7 +1279,7 @@ public class MTESteamHubArray extends MTEGTSRMultiBlockBase<MTESteamHubArray>
 
         bound.lastLookupLoaded = true;
         TileEntity te = world.getTileEntity(bound.x, bound.y, bound.z);
-        if (te instanceof IGregTechTileEntity gte && gte.getMetaTileEntity() instanceof MTEFilteredCacheNode node) {
+        if (te instanceof IGregTechTileEntity gte && gte.getMetaTileEntity() instanceof IHubCacheNode node) {
             bound.cachedTile = gte;
             bound.nextLookupTick = now + 20;
             return node;
@@ -1179,12 +1291,14 @@ public class MTESteamHubArray extends MTEGTSRMultiBlockBase<MTESteamHubArray>
 
     /**
      * 按实际节点类判定类型字符串（不用缓存字段，避免 BoundCacheNode 无 reinforced 字段时误判）。
-     * 三个节点类均直接继承 MTEFilteredCacheNode、互不继承，instanceof 顺序无关。
+     * 各节点类与四仓互不继承、共同实现 IHubCacheNode（S1 起），instanceof 顺序无关。
      */
-    private static String resolveCacheNodeType(MTEFilteredCacheNode node) {
+    private static String resolveCacheNodeType(IHubCacheNode node) {
         if (node instanceof MTEOverpressureSteamCacheNode) return "overpressure_steam";
         if (node instanceof MTEReinforcedSteamCacheNode) return "reinforced_steam";
         if (node instanceof MTESteamCacheNode) return "steam";
+        if (node instanceof MTESingularitySteamOutputCompartment) return "singularity_steam_out";
+        if (node instanceof MTESingularitySteamCompartment) return "singularity_steam";
         return "";
     }
 
@@ -1201,41 +1315,53 @@ public class MTESteamHubArray extends MTEGTSRMultiBlockBase<MTESteamHubArray>
             tag.setInteger("y", node.y);
             tag.setInteger("z", node.z);
             tag.setInteger("dim", node.dimensionId);
-            MTEFilteredCacheNode cacheNode = resolveCacheNode(node, false);
+            IHubCacheNode cacheNode = resolveCacheNode(node, false);
             tag.setString("type", cacheNode != null ? resolveCacheNodeType(cacheNode) : "");
-            // 节点自定义名（无则为空串，客户端回退显示默认类型名）
+            // 节点自定义名（无则为空串，客户端回退显示默认类型名；奇点仓恒空串）
             tag.setString("name", cacheNode != null ? cacheNode.getCustomName() : "");
             tag.setString("fluid", cacheNode != null ? cacheNode.getStoredFluidName() : "");
             // stored/cap 必须 long：强化/超压节点容量超出 int 范围
             tag.setLong("stored", cacheNode != null ? cacheNode.getStoredFluidAmount() : 0L);
             tag.setLong("cap", cacheNode != null ? cacheNode.getFluidCapacityLong() : 0L);
+            // 速率百分比（奇点仓无速率档恒 100；GUI 侧 S4 再对仓隐藏/改容量按钮）
             tag.setInteger("rate", cacheNode != null ? cacheNode.getTransferRatePercent() : 0);
+            // 容量档百分比（S4：缓存节点与接收仓生效；发送仓恒 100，GUI 容量按钮对其禁用）
+            tag.setInteger("capPct", cacheNode != null ? cacheNode.getCapacityLimitPercent() : 100);
             tag.setBoolean("out", cacheNode != null ? cacheNode.isOutputMode() : node.isOutputMode);
-            // 自动输出开关（与方向模式解耦）：节点离线时回退 false
+            // 自动输出开关（与方向模式解耦）：节点离线时回退 false（奇点仓恒 false）
             tag.setBoolean("auto", cacheNode != null && cacheNode.isAutoOutput());
             list.appendTag(tag);
         }
         return list;
     }
 
-    /** 状态 UI 循环节点交互速率百分比（与手持芯片右击同一循环逻辑）。 */
+    /** 状态 UI 循环节点交互速率百分比（与手持芯片右击同一循环逻辑；奇点仓为 no-op）。 */
     public void cycleCacheNodeRateFromGui(int x, int y, int z, int dim) {
-        MTEFilteredCacheNode node = resolveCacheNodeForAction(x, y, z, dim);
+        IHubCacheNode node = resolveCacheNodeForAction(x, y, z, dim);
         if (node == null) return;
         node.cycleTransferRatePercent();
     }
 
+    /** 状态 UI 循环节点容量上限百分比（S4：缓存节点与接收仓；发送仓为 no-op，与空手 Shift 右击同逻辑）。 */
+    public void cycleCacheNodeCapFromGui(int x, int y, int z, int dim) {
+        IHubCacheNode node = resolveCacheNodeForAction(x, y, z, dim);
+        if (node == null) return;
+        node.cycleCapacityLimitPercent();
+    }
+
     /** 状态 UI 切换节点输出模式：写节点本体 + 同步枢纽侧绑定记录（IHubArray.updateCacheNodeMode）。 */
     public void setCacheNodeModeFromGui(int x, int y, int z, int dim, boolean output) {
-        MTEFilteredCacheNode node = resolveCacheNodeForAction(x, y, z, dim);
+        IHubCacheNode node = resolveCacheNodeForAction(x, y, z, dim);
         if (node == null) return;
+        // 模式锁定节点（奇点仓）：服务端整体拒改（节点与枢纽侧记录都不动，避免传输方向错位）
+        if (node.isOutputModeLocked()) return;
         node.setOutputMode(output);
         updateCacheNodeMode(x, y, z, dim, output);
     }
 
     /** 状态 UI 切换节点自动输出开关：只写节点本体（与方向模式解耦，枢纽绑定记录无需同步）。 */
     public void setCacheNodeAutoFromGui(int x, int y, int z, int dim, boolean auto) {
-        MTEFilteredCacheNode node = resolveCacheNodeForAction(x, y, z, dim);
+        IHubCacheNode node = resolveCacheNodeForAction(x, y, z, dim);
         if (node == null) return;
         node.setAutoOutput(auto);
     }
@@ -1247,12 +1373,12 @@ public class MTESteamHubArray extends MTEGTSRMultiBlockBase<MTESteamHubArray>
      * 节点方块自身（GUI 标题/Waila）另经 issueTileUpdate 触发 description packet 同步。
      */
     public void renameCacheNodeFromGui(int x, int y, int z, int dim, String name) {
-        MTEFilteredCacheNode node = resolveCacheNodeForAction(x, y, z, dim);
+        IHubCacheNode node = resolveCacheNodeForAction(x, y, z, dim);
         if (node == null) return;
         node.setCustomName(com.miaokatze.gtsr.common.machine.base.MTERemoteWorkerNode.sanitizeCustomName(name));
         // 触发节点 TE 重同步（S35 description packet），客户端 MTE 拿到新自定义名以更新 GUI 标题
-        if (node.getBaseMetaTileEntity() != null) {
-            node.getBaseMetaTileEntity()
+        if (node instanceof MetaTileEntity mte && mte.getBaseMetaTileEntity() != null) {
+            mte.getBaseMetaTileEntity()
                 .issueTileUpdate();
         }
     }
@@ -1275,7 +1401,7 @@ public class MTESteamHubArray extends MTEGTSRMultiBlockBase<MTESteamHubArray>
             return;
         }
 
-        MTEFilteredCacheNode node = resolveCacheNodeForAction(x, y, z, dim);
+        IHubCacheNode node = resolveCacheNodeForAction(x, y, z, dim);
         if (node == null || !acceptsNodeType(resolveCacheNodeType(node))) {
             GTUtility.sendChatToPlayer(player, StatCollector.translateToLocal("gtsr.hub_status.teleport_fail_node"));
             return;
@@ -1336,7 +1462,7 @@ public class MTESteamHubArray extends MTEGTSRMultiBlockBase<MTESteamHubArray>
         ArrayList<BoundCacheNode> invalidNodes = new ArrayList<>();
 
         for (BoundCacheNode node : mBoundNodes) {
-            MTEFilteredCacheNode cacheNode = resolveCacheNode(node, true);
+            IHubCacheNode cacheNode = resolveCacheNode(node, true);
             if (cacheNode == null) {
                 if (node.lastLookupLoaded) invalidNodes.add(node);
                 continue;
@@ -1440,6 +1566,11 @@ public class MTESteamHubArray extends MTEGTSRMultiBlockBase<MTESteamHubArray>
         NBTTagCompound data = super.getDescriptionData();
         if (data == null) data = new NBTTagCompound();
         data.setInteger("mSetTier", mSetTier);
+        // 正面流体窗渲染状态：存储流体名（空串=无，客户端回退默认蒸汽）
+        data.setString(
+            "gtsr.hubFluid",
+            mStoredFluidType != null ? mStoredFluidType.getFluid()
+                .getName() : "");
         return data;
     }
 
@@ -1447,6 +1578,7 @@ public class MTESteamHubArray extends MTEGTSRMultiBlockBase<MTESteamHubArray>
     public void onDescriptionPacket(NBTTagCompound data) {
         super.onDescriptionPacket(data);
         mSetTier = data.getInteger("mSetTier");
+        mClientFluidName = data.getString("gtsr.hubFluid");
     }
 
     @Override
@@ -1461,10 +1593,11 @@ public class MTESteamHubArray extends MTEGTSRMultiBlockBase<MTESteamHubArray>
             casingTextureId = CASING_INDEX;
         }
         if (side == facing) {
-            return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(casingTextureId), TextureFactory.builder()
-                .addIcon(CONTROLLER_OVERLAY)
-                .extFacing()
-                .build() };
+            // 正面三层：tier 基材 + 流体窗（存储流体，空回退蒸汽；整面平铺窗直接透出框架开孔，无需旋转）+ 枢纽框架层
+            Fluid fluid = FluidRegistry.getFluid(mClientFluidName);
+            if (fluid == null) fluid = FluidRegistry.getFluid("steam");
+            return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(casingTextureId),
+                GTSRFluidWindowTexture.getOrCreateFullFace(fluid), FRAME_UNBOUND_FACING };
         }
         return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(casingTextureId) };
     }

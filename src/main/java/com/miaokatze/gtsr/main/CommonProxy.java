@@ -106,7 +106,7 @@ public class CommonProxy {
         // 注册钻井枢纽状态界面的 MUI2 factory（双端均需注册，ClientProxy.init 会调用本方法）
         com.cleanroommc.modularui.factory.GuiManager
             .registerFactory(com.miaokatze.gtsr.common.gui.HubStatusGuiFactory.INSTANCE);
-        // 注册蒸汽/蓄水枢纽缓存节点状态界面的 MUI2 factory（手持枢纽终端右击打开）
+        // 注册蒸汽/蓄水枢纽阵列缓存节点状态界面的 MUI2 factory（手持枢纽终端右击打开）
         com.cleanroommc.modularui.factory.GuiManager
             .registerFactory(com.miaokatze.gtsr.common.gui.SteamHubStatusGuiFactory.INSTANCE);
         com.cleanroommc.modularui.factory.GuiManager

@@ -17,6 +17,7 @@ gtsr.tooltip.shared.hub_singularity_cost=Consumes 1 Steam Entangled Singularity 
 gtsr.binding.no_singularity=No Steam Entangled Singularity in inventory!
 gtsr.tooltip.shared.node_bind_hint=Right-click Singularity Drilling Hub to bind
 gtsr.tooltip.shared.bind_all_hint=Shift-right-click to bind entire held stack
+gtsr.tooltip.shared.bind_kept_on_drop=Breaking drop retains the hub binding
 gtsr.tooltip.shared.node_unbound=Not bound to hub
 gtsr.tooltip.node.chunk_load_warn=Binding to the Singularity Drilling Hub enables automatic chunk loading on this machine for stable remote operation
 gtsr.tooltip.shared.work_cycle=Work Cycle: 
@@ -48,7 +49,7 @@ gtsr.tooltip.steam_hub_input_hatch.no_storage=No internal buffer - fluid goes di
 gt.blockmachines.gtsr.hub.storage.unit.name=Hub Storage Unit
 gtsr.tooltip.hub_storage_unit.info=Structural component for Hub Array
 gtsr.tooltip.hub_storage_unit.dual_hub=Usable in both Steam Hub Array and Water Hub Array
-gtsr.tooltip.hub_storage_unit.water_hub=Water Hub
+gtsr.tooltip.hub_storage_unit.water_hub=Water Hub Array
 gtsr.tooltip.hub_storage_unit.tier1_only=Tier 1 Steam Hub Array only
 
 # Reinforced Hub Storage Unit
@@ -377,8 +378,9 @@ gtsr.tooltip.overpressure_turbine_input_hatch.turbine_only=Restricted to the Meg
 
 # Overpressure Hub Storage Unit
 gt.blockmachines.gtsr.overpressure.hub.storage.unit.name=Overpressure Hub Storage Unit
-gtsr.tooltip.overpressure_hub_storage_unit.info=Dedicated storage unit for Tier 3 Steam Hub Array
-gtsr.tooltip.overpressure_hub_storage_unit.tier3_only=For Tier 3 Steam Hub Array only
+gtsr.tooltip.overpressure_hub_storage_unit.info=Dedicated storage unit for Tier 3 hub arrays (Steam/Water)
+gtsr.tooltip.overpressure_hub_storage_unit.tier3_only=For Tier 3 Steam Hub Array / Water Hub Array only
+gtsr.tooltip.overpressure_hub_storage_unit.dual_hub_note=20.48G per cell in Steam Hub, 20.48M per cell in Water Hub; usable in both Tier 3 (Overpressure) hubs
 
 # Water Hub Array
 gt.blockmachines.gtsr.water.hub.array.name=Water Hub Array
@@ -387,19 +389,44 @@ gtsr.recipe.water_hub_array=Water Hub Array
 # Water Hub Output Hatch
 gt.blockmachines.gtsr.water.hub.output.hatch.name=Water Hub Output Hatch
 gtsr.tooltip.water_hub_output_hatch.info=Dedicated output port for Water Hub Array
-gtsr.tooltip.water_hub_output_hatch.fluid_type=Outputs water/distilled water only
+gtsr.tooltip.water_hub_output_hatch.fluid_type=Outputs the stored fluid only (any fluid; one fluid type per hub at a time)
 gtsr.tooltip.water_hub_output_hatch.output_rate=Auto-output rate: 1,280,000 L/s
 gtsr.tooltip.water_hub_output_hatch.no_storage=No internal buffer - draws directly from the array
 
 # Water Hub Input Hatch
 gt.blockmachines.gtsr.water.hub.input.hatch.name=Water Hub Input Hatch
 gtsr.tooltip.water_hub_input_hatch.info=Dedicated input port for Water Hub Array
-gtsr.tooltip.water_hub_input_hatch.fluid_type=Accepts water/distilled water only
+gtsr.tooltip.water_hub_input_hatch.fluid_type=Accepts any fluid (one fluid type per hub at a time)
 gtsr.tooltip.water_hub_input_hatch.no_storage=No internal buffer - fluid goes directly into the array
 
-# Water Cache Node
-gt.blockmachines.gtsr.water.cache.node.name=Water Cache Node
-gtsr.tooltip.water_cache_node.fluid_type.water=Water/Distilled Water
+# Universal Fluid Cache Node
+gt.blockmachines.gtsr.water.cache.node.name=Universal Fluid Cache Node
+gtsr.tooltip.water_cache_node.fluid_type.water=Any Fluid
+gtsr.tooltip.water_cache_node.bind_target=Binding target: Water Hub Array (binding costs no singularity)
+
+# Reinforced / Overpressure Universal Fluid Cache Node
+gt.blockmachines.gtsr.reinforced.water.cache.node.name=Reinforced Universal Fluid Cache Node
+gt.blockmachines.gtsr.overpressure.water.cache.node.name=Overpressure Universal Fluid Cache Node
+gtsr.tooltip.reinforced_water_cache_node.fluid_type=Any Fluid
+gtsr.tooltip.overpressure_water_cache_node.fluid_type=Any Fluid
+gtsr.tooltip.overpressure_water_cache_node.bind_requirement=Requires a tier 3 Water Hub Array and a Reinforced Hub Singularity Chip
+
+# Singularity Compartments (mode-locked hub cache compartments)
+gt.blockmachines.gtsr.singularity.steam.compartment.name=Singularity Steam Compartment
+gt.blockmachines.gtsr.singularity.steam.output.compartment.name=Singularity Steam Output Compartment
+gt.blockmachines.gtsr.singularity.fluid.input.compartment.name=Singularity Fluid Input Compartment
+gt.blockmachines.gtsr.singularity.fluid.output.compartment.name=Singularity Fluid Output Compartment
+gtsr.tooltip.singularity_compartment.mode=Transfer Direction: 
+gtsr.tooltip.singularity_compartment.direction_receive=Receive from hub (receiver)
+gtsr.tooltip.singularity_compartment.direction_send=Send to hub (sender)
+gtsr.tooltip.singularity_compartment.mode_locked=Mode is fixed - terminal/GUI/right-click cannot switch it
+gtsr.tooltip.singularity_compartment.fluid_steam=Full steam family (steam/superheated/supercritical/dense)
+gtsr.tooltip.singularity_compartment.fluid_any=Any Fluid
+gtsr.tooltip.singularity_compartment.bind_cost_one=Binding cost: 1x Steam Entangled Singularity
+gtsr.tooltip.singularity_compartment.bind_cost_free=Binding cost: none
+gtsr.tooltip.singularity_compartment.bind_target_steam=Binding target: Steam Hub Array
+gtsr.tooltip.singularity_compartment.bind_target_fluid=Binding target: Water Hub Array
+gtsr.cache_node.mode_locked=This compartment's mode is fixed and cannot be switched
 
 # Hub Array Binding
 gtsr.binding.bound_output=Bound 
@@ -415,10 +442,11 @@ gtsr.binding.overpressure_no_reinforced_chip=Overpressure Cache Node requires Re
 # Cache Node Screwdriver
 gtsr.cache_node.need_bind_first=Need to bind hub node first
 gtsr.cache_node.transfer_rate=Transfer Rate:
+gtsr.cache_node.capacity_limit=Capacity Limit:
 gtsr.cache_node.mode_output_now=Mode switched: Output (Node -> Hub)
 gtsr.cache_node.mode_input_now=Mode switched: Input (Hub -> Node)
 gtsr.tooltip.cache_node.base_transfer_rate=Base Hub Transfer Rate:
-gtsr.tooltip.cache_node.chip_adjust=Right-click with Hub Terminal to cycle transfer rate; sneak-right-click to switch input/output mode
+gtsr.tooltip.cache_node.chip_adjust=Hub Terminal right-click: cycle transfer rate (cache nodes only); sneak-right-click with the terminal: toggle input/output mode; empty-hand sneak-right-click: cycle capacity limit
 gtsr.binding.debug_title=Hub Binding Debug
 gtsr.binding.debug_no_bindings=No bound nodes
 gtsr.binding.debug_no_chip=Bound, but chip missing
@@ -533,6 +561,7 @@ gtsr.cache_hub_status.title.water=Water Hub Cache Node Status
 gtsr.cache_hub_status.mode_tip_output=Output mode: Node -> Hub (click to switch)
 gtsr.cache_hub_status.mode_tip_input=Input mode: Hub -> Node (click to switch)
 gtsr.cache_hub_status.rate_tip=Cycle hub transfer rate (100 -> 80 -> ... -> 0%)
+gtsr.cache_hub_status.cap_tip=Cycle capacity limit (100 -> 80 -> ... -> 5%; same as empty-hand sneak-right-click)
 gtsr.cache_hub_status.auto_on=Auto Output:ON
 gtsr.cache_hub_status.auto_off=Auto Output:OFF
 gtsr.cache_hub_status.auto_tip=Toggle auto fluid output to the adjacent container on the front face
@@ -814,14 +843,15 @@ gtsr.tooltip.void_borer.ctrl=Layer 10, center
 
 # Water Hub Array (WHA)
 gtsr.tooltip.water_hub.type=Water Hub Array, WHA
-gtsr.tooltip.water_hub.desc=Central dispatch station for water systems, providing bidirectional water interface (water/distilled water) with embedded storage buffer.
-gtsr.tooltip.water_hub.desc2=Distributes water via hub input/output hatches;
+gtsr.tooltip.water_hub.desc=Central dispatch station for universal fluids - any fluid type allowed (one fluid per hub at a time) with embedded storage buffer.
+gtsr.tooltip.water_hub.desc2=Receives and dispatches any fluid via hub input/output hatches;
 gtsr.tooltip.water_hub.ctrl=Middle layer front center-right
 gtsr.tooltip.water_hub.hub_input=Water Hub Input Hatch
 gtsr.tooltip.water_hub.hub_output=Water Hub Output Hatch
-gtsr.tooltip.water_hub.storage=Hub Storage Unit(T1 only)/Reinforced Hub Storage Unit(T2 only)
+gtsr.tooltip.water_hub.storage=Hub Storage Unit(T1 only)/Reinforced Hub Storage Unit(T2 only)/Overpressure Hub Storage Unit(T3 only)
 gtsr.tooltip.water_hub.hint_tier1=Tier 1: Bronze casing + Bronze pipe + Bronze frame + Hub Storage Unit
 gtsr.tooltip.water_hub.hint_tier2=Tier 2: Steel casing + Steel pipe + Steel frame + Reinforced Hub Storage Unit
+gtsr.tooltip.water_hub.hint_tier3=Tier 3: TungstenSteel casing + TungstenSteel pipe + TungstenSteel frame + Overpressure Hub Storage Unit (Reinforced Chip T3 only)
 gtsr.tooltip.water_hub.hint_status=Right-click controller holding a Hub Terminal to open the cache node status UI
 
 # Gear Steam Compressor (GSC)
@@ -1209,12 +1239,13 @@ gt.blockmachines.gtsr.singularity.crust.steam.borer.old.name=[OLD] Singularity C
 tile.RunawaySingularity.name=Runaway Singularity
 death.attack.gtsrSingularity=%1$s was consumed by a runaway singularity
 # ===== v1.10.61 new/split keys (per plan/review/lang修改清单.md) =====
-gtsr.tooltip.steam_hub.desc2_2=Hold a Steam Cache Node and right-click to bind for remote steam transfer.
+gtsr.tooltip.steam_hub.desc2_2=Hold a Steam Cache Node or a Singularity Steam (Output) Compartment and right-click to bind for remote steam transfer.
 gtsr.tooltip.steam_hub.chip_1=Hub Singularity Chip: unlocks (reinforced) cache node binding;
 gtsr.tooltip.steam_hub.chip_2=Reinforced Hub Singularity Chip: unlocks overpressure cache node binding;
 gtsr.tooltip.steam_hub.height=Height 3~32 layers (BASE + 1~30 STACK + CAP), 25 storage units per layer; block counts are per layer; STACK layers controlled via hologram height channel
-gtsr.tooltip.water_hub.desc2_2=Hold a Water Cache Node and right-click to bind for remote water transfer.
-gtsr.tooltip.water_hub.chip_1=Hub Singularity Chip: unlocks water cache node binding;
+gtsr.tooltip.water_hub.desc2_2=Hold a Universal Fluid Cache Node or a Singularity Fluid Input/Output Compartment and right-click to bind for remote fluid transfer.
+gtsr.tooltip.water_hub.chip_1=Hub Singularity Chip: unlocks (reinforced) universal fluid cache node binding, total capacity ×5;
+gtsr.tooltip.water_hub.chip_2=Reinforced Hub Singularity Chip: unlocks overpressure universal fluid cache node binding (tier 3 only), total capacity ×20;
 gtsr.tooltip.water_hub.counts=Base layer: 25 hatch slots, 8 pipes, 3 frames; stack layers (each): 9 storage units, 4 hatch slots, 8 pipes, 3 frames
 gtsr.tooltip.water_hub.height=Total height 2~31 layers (BASE + 1~30 STACK), 9 storage units per layer; STACK layers controlled via hologram height channel
 gtsr.tooltip.singularity_hub.desc_2=to extract every resource needed.

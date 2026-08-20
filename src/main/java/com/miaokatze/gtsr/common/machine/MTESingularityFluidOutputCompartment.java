@@ -1,0 +1,254 @@
+package com.miaokatze.gtsr.common.machine;
+
+import java.util.List;
+
+import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTTagCompound;
+import net.minecraftforge.common.util.ForgeDirection;
+import net.minecraftforge.fluids.Fluid;
+import net.minecraftforge.fluids.FluidRegistry;
+import net.minecraftforge.fluids.FluidStack;
+
+import com.miaokatze.gtsr.common.machine.base.MTEWaterHubOutputHatch;
+import com.miaokatze.gtsr.register.TextureManager;
+
+import gregtech.api.interfaces.IIconContainer;
+import gregtech.api.interfaces.ITexture;
+import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
+import gregtech.api.metatileentity.MetaTileEntity;
+
+/**
+ * 奇点输出仓（发送仓）：模式锁定 mIsOutputMode=false（仓→枢纽，输出到枢纽），
+ * 绑定蓄水枢纽阵列（类型串 singularity_fluid_out，0 奇点消耗），
+ * 容量 256,000 L、枢纽交互速率 256,000 L/s（固定常量，无速率档）、任意流体。
+ * S1 起改继承近亲 MTEWaterHubOutputHatch（原 extends MTEFilteredCacheNode 量子缸链），
+ * 绑定数据与终端链路经 MTESingularityCompartmentBase（接口+组合）保留。
+ */
+public class MTESingularityFluidOutputCompartment extends MTEWaterHubOutputHatch
+    implements MTESingularityCompartmentBase {
+
+    /** S1 数值口径（D1+D3）：容量 256,000 L。 */
+    private static final int CAPACITY = 256_000;
+
+    /** 枢纽交互速率 256,000 L/s（固定常量，仓无速率档）。 */
+    private static final int HUB_TRANSFER_RATE = 256_000;
+
+    private final MTESingularityCompartmentBase.HubCompartmentState mHubState = new MTESingularityCompartmentBase.HubCompartmentState();
+
+    public MTESingularityFluidOutputCompartment(int aID, String aName, String aNameRegional) {
+        super(aID, aName, aNameRegional);
+        // 近亲构造已置 mMode=3（纯蒸汽输出模式），本仓不响应螺丝刀切档（见 onScrewdriverRightClick 覆写）
+    }
+
+    public MTESingularityFluidOutputCompartment(String aName, int aTier, String[] aDescription,
+        ITexture[][][] aTextures) {
+        super(aName, aTier, aDescription, aTextures);
+    }
+
+    @Override
+    public MetaTileEntity newMetaEntity(IGregTechTileEntity aTileEntity) {
+        return new MTESingularityFluidOutputCompartment(mName, mTier, mDescriptionArray, mTextures);
+    }
+
+    // ===== MTESingularityCompartmentBase 语义实现 =====
+
+    @Override
+    public MTESingularityCompartmentBase.HubCompartmentState getHubState() {
+        return mHubState;
+    }
+
+    /** 发送仓：锁定 mIsOutputMode=false（transferWithBoundNodes 的 else 分支=枢纽从本仓抽取存入枢纽）。 */
+    @Override
+    public boolean getLockedOutputMode() {
+        return false;
+    }
+
+    @Override
+    public int getBaseHubTransferRate() {
+        return HUB_TRANSFER_RATE;
+    }
+
+    @Override
+    public IIconContainer getFrameIconContainer() {
+        return TextureManager.HUB_FRAME_SEND;
+    }
+
+    @Override
+    public Fluid getDefaultWindowFluid() {
+        return FluidRegistry.WATER;
+    }
+
+    @Override
+    public String getFluidRangeTooltipKey() {
+        return "gtsr.tooltip.singularity_compartment.fluid_any";
+    }
+
+    @Override
+    public String getBindTargetTooltipKey() {
+        return "gtsr.tooltip.singularity_compartment.bind_target_fluid";
+    }
+
+    @Override
+    public int getBindingSingularityCost() {
+        return 0;
+    }
+
+    @Override
+    public boolean isFluidAllowed(Fluid fluid) {
+        return fluid != null;
+    }
+
+    @Override
+    public FluidStack getStoredFluidStackLocal() {
+        return mFluid;
+    }
+
+    // ===== 容量/模式/外部输入阻断（固定终值，屏蔽近亲 mController 视图）=====
+
+    @Override
+    public int getCapacity() {
+        return CAPACITY;
+    }
+
+    @Override
+    public long getCapacityLong() {
+        return CAPACITY;
+    }
+
+    @Override
+    public boolean canTankBeFilled() {
+        return false;
+    }
+
+    /** 外部输入一律拒绝（镜像蒸汽输出仓族 "No External Input Allowed" 口径；近亲链无此覆写点，此处新声明）。 */
+    public boolean acceptsFluid(FluidStack aFluid) {
+        return false;
+    }
+
+    /** mMode 恒为 3：不响应螺丝刀切档（近亲此键切换 mOverflowOutput，仓无溢流输出语义）。 */
+    @Override
+    public void onScrewdriverRightClick(ForgeDirection side, EntityPlayer aPlayer, float aX, float aY, float aZ,
+        ItemStack aTool) {}
+
+    // ===== 本地罐语义：屏蔽近亲对 mController 的转发 =====
+
+    /** 仓仅本地罐：屏蔽近亲在枢纽结构内对 mController 存量的窗口读取。 */
+    @Override
+    public FluidStack getFluid() {
+        return getStoredFluidStackLocal();
+    }
+
+    /**
+     * 自管抽取（枢纽 drain(ForgeDirection.UNKNOWN) 路径）：屏蔽近亲 MTEWaterHubOutputHatch.drain 的
+     * mOverflowOutput 门与 mController.extractWater 转发——发送仓只被枢纽从本地罐抽取。
+     */
+    @Override
+    public FluidStack drain(int maxDrain, boolean doDrain) {
+        FluidStack stored = mFluid;
+        if (stored == null || stored.amount <= 0) return null;
+        int used = Math.min(maxDrain, stored.amount);
+        FluidStack drained = stored.copy();
+        drained.amount = used;
+        if (doDrain) {
+            stored.amount -= used;
+            if (stored.amount <= 0) {
+                mFluid = null;
+            }
+            getBaseMetaTileEntity().markDirty();
+        }
+        return drained;
+    }
+
+    // ===== 仅枢纽交互：方向参数版 fill/drain 只放行 UNKNOWN =====
+
+    @Override
+    public int fill(ForgeDirection side, FluidStack aFluid, boolean doFill) {
+        return side == ForgeDirection.UNKNOWN ? fill(aFluid, doFill) : 0;
+    }
+
+    @Override
+    public FluidStack drain(ForgeDirection side, int maxDrain, boolean doDrain) {
+        return side == ForgeDirection.UNKNOWN ? drain(maxDrain, doDrain) : null;
+    }
+
+    @Override
+    public FluidStack drain(ForgeDirection side, FluidStack fluidStack, boolean doDrain) {
+        if (side != ForgeDirection.UNKNOWN || fluidStack == null) return null;
+        FluidStack stored = getStoredFluidStackLocal();
+        return stored != null && stored.isFluidEqual(fluidStack) ? drain(fluidStack.amount, doDrain) : null;
+    }
+
+    // ===== 无 GUI =====
+
+    @Override
+    public boolean onRightclick(IGregTechTileEntity aBaseMetaTileEntity, EntityPlayer aPlayer) {
+        return true;
+    }
+
+    // ===== NBT 三处 =====
+
+    @Override
+    public void saveNBTData(NBTTagCompound aNBT) {
+        super.saveNBTData(aNBT);
+        saveCompartmentNBT(aNBT);
+    }
+
+    @Override
+    public void loadNBTData(NBTTagCompound aNBT) {
+        super.loadNBTData(aNBT);
+        loadCompartmentNBT(aNBT);
+    }
+
+    @Override
+    public void setItemNBT(NBTTagCompound aNBT) {
+        // 手写三键，不调 super（近亲 hatch 族 setItemNBT 默认为空；罐内流体不保留）
+        writeCompartmentItemNBT(aNBT);
+    }
+
+    // ===== 终端登记与渲染同步 =====
+
+    /**
+     * 近亲链的 MTEHatchOutput.onPostTick 全量推送经 GTUtility.moveFluid 抽取（drain(正面方向)），
+     * 已被方向参数版 drain 的 UNKNOWN 门阻断为 no-op，此处照常 super + 枢纽登记/渲染同步。
+     */
+    @Override
+    public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
+        super.onPostTick(aBaseMetaTileEntity, aTick);
+        onCompartmentHubTick(aBaseMetaTileEntity, aTick);
+    }
+
+    @Override
+    public NBTTagCompound getDescriptionData() {
+        NBTTagCompound data = super.getDescriptionData();
+        if (data == null) data = new NBTTagCompound();
+        return writeCompartmentDescriptionData(data);
+    }
+
+    @Override
+    public void onDescriptionPacket(NBTTagCompound data) {
+        super.onDescriptionPacket(data);
+        readCompartmentDescriptionData(data);
+    }
+
+    // ===== 正面流体窗 + 语义固定框架 =====
+
+    @Override
+    public ITexture[] getTexture(IGregTechTileEntity aBaseMetaTileEntity, ForgeDirection sideDirection,
+        ForgeDirection facingDirection, int colorIndex, boolean active, boolean redstoneLevel) {
+        ITexture[] kinTextures = super.getTexture(
+            aBaseMetaTileEntity,
+            sideDirection,
+            facingDirection,
+            colorIndex,
+            active,
+            redstoneLevel);
+        return buildCompartmentTextures(kinTextures, sideDirection, facingDirection);
+    }
+
+    @Override
+    public void addAdditionalTooltipInformation(ItemStack stack, List<String> tooltip) {
+        super.addAdditionalTooltipInformation(stack, tooltip);
+        addCompartmentTooltip(tooltip);
+    }
+}

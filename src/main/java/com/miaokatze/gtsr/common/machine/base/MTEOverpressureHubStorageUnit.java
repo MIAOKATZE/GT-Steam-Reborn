@@ -45,7 +45,23 @@ public class MTEOverpressureHubStorageUnit extends MTESteamStorageUnit {
                 + EnumChatFormatting.GOLD
                 + String.format("%,d", OVERPRESSURE_CAPACITY)
                 + " "
-                + StatCollector.translateToLocal("gtsr.tooltip.shared.l"),
+                + StatCollector.translateToLocal("gtsr.tooltip.shared.l")
+                + EnumChatFormatting.GRAY
+                + " ("
+                + StatCollector.translateToLocal("gtsr.tooltip.hub_storage_unit.steam_water_hub")
+                + ")"
+                + EnumChatFormatting.YELLOW
+                + " / "
+                + EnumChatFormatting.GOLD
+                + String.format("%,d", 20_480_000)
+                + " "
+                + StatCollector.translateToLocal("gtsr.tooltip.shared.l")
+                + EnumChatFormatting.GRAY
+                + " ("
+                + StatCollector.translateToLocal("gtsr.tooltip.hub_storage_unit.water_hub")
+                + ")",
+            EnumChatFormatting.GRAY
+                + StatCollector.translateToLocal("gtsr.tooltip.overpressure_hub_storage_unit.dual_hub_note"),
             EnumChatFormatting.GRAY
                 + StatCollector.translateToLocal("gtsr.tooltip.overpressure_hub_storage_unit.tier3_only"),
             GTSRUtils.getAddedByLine() };

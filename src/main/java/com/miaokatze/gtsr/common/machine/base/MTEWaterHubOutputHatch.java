@@ -108,7 +108,7 @@ public class MTEWaterHubOutputHatch extends MTEHatchOutput {
     @Override
     public boolean canStoreFluid(FluidStack fluidStack) {
         if (fluidStack == null) return false;
-        if (!isWaterFluid(fluidStack)) return false;
+        // S5 放宽：任意流体（异种拒收由枢纽 mStoredFluidType 单一类型锁负责）
         return super.canStoreFluid(fluidStack);
     }
 
@@ -117,12 +117,11 @@ public class MTEWaterHubOutputHatch extends MTEHatchOutput {
         return false;
     }
 
+    /**
+     * 通用流体判定（S5 放宽）：任意非空 FluidStack 均可；方法名保留避免破坏既有调用点。
+     */
     public static boolean isWaterFluid(FluidStack aFluid) {
-        if (aFluid == null) return false;
-        if (aFluid.getFluid() == null) return false;
-        String fluidName = aFluid.getFluid()
-            .getName();
-        return "water".equals(fluidName) || "ic2distilledwater".equals(fluidName);
+        return aFluid != null && aFluid.getFluid() != null;
     }
 
     @Override

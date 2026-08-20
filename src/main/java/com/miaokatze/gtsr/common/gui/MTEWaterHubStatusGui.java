@@ -8,9 +8,9 @@ import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.machine.MTEWaterHubArray;
 
 /**
- * 蓄水枢纽「缓存节点状态管理界面」。
+ * 蓄水枢纽阵列「缓存节点状态管理界面」。
  * 全部同步/行构建逻辑在基类 MTECacheHubStatusGui，本类仅委托枢纽实例方法
- * 并提供蓄水缓存节点的图标静态映射（蓄水枢纽当前仅接受 water 一种类型）。
+ * 并提供三种通用流体缓存节点的图标静态映射（纯客户端类型串 → 物品，零网络开销）。
  */
 public class MTEWaterHubStatusGui extends MTECacheHubStatusGui {
 
@@ -28,6 +28,11 @@ public class MTEWaterHubStatusGui extends MTECacheHubStatusGui {
     @Override
     protected void cycleNodeRate(int x, int y, int z, int dim) {
         hub.cycleCacheNodeRateFromGui(x, y, z, dim);
+    }
+
+    @Override
+    protected void cycleNodeCap(int x, int y, int z, int dim) {
+        hub.cycleCacheNodeCapFromGui(x, y, z, dim);
     }
 
     @Override
@@ -58,6 +63,13 @@ public class MTEWaterHubStatusGui extends MTECacheHubStatusGui {
     /** 类型串由枢纽侧 instanceof 实际节点类生成（见 MTEWaterHubArray.resolveCacheNodeType）。 */
     @Override
     protected ItemStack getNodeIcon(String type) {
-        return "water".equals(type) ? GTSRItemList.WaterCacheNode.get(1) : null;
+        return switch (type) {
+            case "water" -> GTSRItemList.WaterCacheNode.get(1);
+            case "reinforced_water" -> GTSRItemList.ReinforcedWaterCacheNode.get(1);
+            case "overpressure_water" -> GTSRItemList.OverpressureWaterCacheNode.get(1);
+            case "singularity_fluid_in" -> GTSRItemList.SingularityFluidInputCompartment.get(1);
+            case "singularity_fluid_out" -> GTSRItemList.SingularityFluidOutputCompartment.get(1);
+            default -> null;
+        };
     }
 }

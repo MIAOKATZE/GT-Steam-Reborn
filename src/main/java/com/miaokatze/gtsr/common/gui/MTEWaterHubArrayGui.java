@@ -26,6 +26,7 @@ public class MTEWaterHubArrayGui extends MTEMultiBlockBaseGui<MTEEnhancedMultiBl
     private IntSyncValue mStackCountSync;
     private IntSyncValue mHubUnitCountSync;
     private IntSyncValue mReinforcedHubUnitCountSync;
+    private IntSyncValue mOverpressureHubUnitCountSync;
     private LongSyncValue mWaterStoredSync;
 
     public MTEWaterHubArrayGui(MTEEnhancedMultiBlockBase<?> multiblock) {
@@ -45,12 +46,16 @@ public class MTEWaterHubArrayGui extends MTEMultiBlockBaseGui<MTEEnhancedMultiBl
         mReinforcedHubUnitCountSync = new IntSyncValue(
             () -> hubArray.mReinforcedHubUnitCount,
             val -> hubArray.mReinforcedHubUnitCount = val);
+        mOverpressureHubUnitCountSync = new IntSyncValue(
+            () -> hubArray.mOverpressureHubUnitCount,
+            val -> hubArray.mOverpressureHubUnitCount = val);
         mWaterStoredSync = new LongSyncValue(() -> hubArray.mWaterStored, val -> hubArray.mWaterStored = val);
         syncManager.syncValue("hubSetTier", mSetTierSync);
         syncManager.syncValue("hubMaxProgresstime", mMaxProgresstimeSync);
         syncManager.syncValue("hubStackCount", mStackCountSync);
         syncManager.syncValue("hubHubUnitCount", mHubUnitCountSync);
         syncManager.syncValue("hubReinforcedHubUnitCount", mReinforcedHubUnitCountSync);
+        syncManager.syncValue("hubOverpressureHubUnitCount", mOverpressureHubUnitCountSync);
         syncManager.syncValue("hubWaterStored", mWaterStoredSync);
     }
 
@@ -59,8 +64,14 @@ public class MTEWaterHubArrayGui extends MTEMultiBlockBaseGui<MTEEnhancedMultiBl
         // 存储单元/水缓冲/总容量数值行已迁移至 GTSRProgressBar 词条系统；等级/芯片/状态为文本行保留
         ListWidget<IWidget, ?> list = super.createTerminalTextWidget(syncManager, parent);
         list.child(IKey.dynamic(() -> {
-            String tierText = mSetTierSync.getValue() == 2 ? StatCollector.translateToLocal("gtsr.gui.tier.steel")
-                : StatCollector.translateToLocal("gtsr.gui.tier.bronze");
+            String tierText;
+            if (mSetTierSync.getValue() >= 3) {
+                tierText = StatCollector.translateToLocal("gtsr.gui.tier.tungstensteel");
+            } else if (mSetTierSync.getValue() == 2) {
+                tierText = StatCollector.translateToLocal("gtsr.gui.tier.steel");
+            } else {
+                tierText = StatCollector.translateToLocal("gtsr.gui.tier.bronze");
+            }
             return EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.tier")
                 + EnumChatFormatting.GOLD
                 + tierText
@@ -72,7 +83,15 @@ public class MTEWaterHubArrayGui extends MTEMultiBlockBaseGui<MTEEnhancedMultiBl
             .child(IKey.dynamic(() -> {
                 ItemStack chip = hubArray.getControllerSlot();
                 String chipText;
-                if (chip != null && GTSRItemList.HubSingularityChip.isStackEqual(chip, true, true)) {
+                if (chip != null && GTSRItemList.ReinforcedHubSingularityChip.isStackEqual(chip, true, true)) {
+                    if (mSetTierSync.getValue() >= 3) {
+                        chipText = EnumChatFormatting.GREEN
+                            + StatCollector.translateToLocal("gtsr.gui.chip.reinforced_installed");
+                    } else {
+                        chipText = EnumChatFormatting.RED
+                            + StatCollector.translateToLocal("gtsr.gui.chip.need_higher_tier");
+                    }
+                } else if (chip != null && GTSRItemList.HubSingularityChip.isStackEqual(chip, true, true)) {
                     chipText = EnumChatFormatting.GREEN
                         + StatCollector.translateToLocal("gtsr.gui.chip.singularity_installed");
                 } else {
