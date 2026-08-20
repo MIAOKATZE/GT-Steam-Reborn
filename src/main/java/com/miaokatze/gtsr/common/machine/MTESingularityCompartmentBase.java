@@ -3,6 +3,7 @@ package com.miaokatze.gtsr.common.machine;
 import java.util.List;
 
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumChatFormatting;
@@ -14,6 +15,7 @@ import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
 
+import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.machine.base.IHubArray;
 import com.miaokatze.gtsr.common.machine.base.IHubCacheNode;
 import com.miaokatze.gtsr.common.machine.base.MTESteamHubOutputHatch;
@@ -100,6 +102,26 @@ public interface MTESingularityCompartmentBase extends IHubCacheNode {
      * true=接收仓（枢纽→仓），false=发送仓（仓→枢纽），与 transferWithBoundNodes 分支方向一致。
      */
     boolean getLockedOutputMode();
+
+    static boolean handleHubTerminalRateClick(IGregTechTileEntity gte, IHubCacheNode node, EntityPlayer aPlayer) {
+        if (!gte.isServerSide()) return false;
+        ItemStack held = aPlayer.getCurrentEquippedItem();
+        if (held == null || !GTSRItemList.HubTerminal.isStackEqual(held, false, true)) return false;
+        if (!node.isBoundToHub()) {
+            GTUtility.sendChatToPlayer(aPlayer, StatCollector.translateToLocal("gtsr.cache_node.need_bind_first"));
+            return true;
+        }
+        int percent = node.cycleTransferRatePercent();
+        String msg = StatCollector.translateToLocal("gtsr.cache_node.transfer_rate") + " "
+            + percent
+            + "% ("
+            + String.format("%,d", node.getEffectiveHubTransferRate())
+            + " "
+            + StatCollector.translateToLocal("gtsr.tooltip.shared.l_s")
+            + ")";
+        GTUtility.sendChatToPlayer(aPlayer, msg);
+        return true;
+    }
 
     /** 基础枢纽交互速率 L/s（蒸汽两仓 8,000,000、流体两仓 256,000，速率档在 effective getter 生效）。 */
     int getBaseHubTransferRate();

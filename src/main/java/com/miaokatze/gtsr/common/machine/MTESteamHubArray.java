@@ -1598,11 +1598,11 @@ public class MTESteamHubArray extends MTEGTSRMultiBlockBase<MTESteamHubArray>
             casingTextureId = CASING_INDEX;
         }
         if (side == facing) {
-            // 正面三层：tier 基材 + 流体窗（存储流体，空回退蒸汽；整面平铺窗直接透出框架开孔，无需旋转）+ 枢纽框架层
+            // 正面三层：tier 基材 + 内缩流体窗（存储流体，空回退蒸汽；窗收在框架环内，与节点/仓同变体）+ 枢纽框架层
             Fluid fluid = FluidRegistry.getFluid(mClientFluidName);
             if (fluid == null) fluid = FluidRegistry.getFluid("steam");
             return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(casingTextureId),
-                GTSRFluidWindowTexture.getOrCreateFullFace(fluid), FRAME_UNBOUND_FACING };
+                GTSRFluidWindowTexture.getOrCreate(fluid), FRAME_UNBOUND_FACING };
         }
         return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(casingTextureId) };
     }

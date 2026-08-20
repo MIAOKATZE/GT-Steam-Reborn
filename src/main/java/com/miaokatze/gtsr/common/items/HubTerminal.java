@@ -21,9 +21,9 @@ import gregtech.api.util.GTUtility;
 /**
  * 枢纽终端：手持右击任意枢纽控制器（奇点钻井/蒸汽枢纽阵列/蓄水枢纽阵列），打开对应的枢纽终端状态管理界面。
  * 取代旧的「手持蒸汽纠缠奇点右击打开状态UI」交互，奇点回归纯合成材料定位。
- * 另可右击缓存节点循环传输速率（走节点 onRightclick），潜行右击缓存节点切换输入/输出模式
- * （由本类 onItemUseFirst 优先拦截处理）。
- * 
+ * 缓存节点客户端由 onItemUseFirst 消费事件；服务端权威状态处理由 onItemUse 执行，潜行右击循环容量档，
+ * 非潜行右击作为速率兜底（正常非潜行由机器侧 onRightclick 处理速率）。
+ *
  */
 public class HubTerminal extends Item {
 
@@ -36,17 +36,26 @@ public class HubTerminal extends Item {
     }
 
     /**
-     * 持终端潜行右击缓存节点/接收仓：循环容量档（先于方块 onBlockActivated 触发）。
-     * 输出仓不支持容量档，仅发送不可调提示；普通右击不拦截，走目标自身逻辑。
+     * 客户端消费缓存节点终端事件；服务端权威逻辑在 onItemUse（潜行容量、非潜行兜底速率），
+     * 正常非潜行速率由机器侧 onRightclick 处理。
      */
     @Override
     public boolean onItemUseFirst(ItemStack stack, EntityPlayer player, World world, int x, int y, int z, int side,
         float hitX, float hitY, float hitZ) {
         TileEntity te = world.getTileEntity(x, y, z);
-        if (!(te instanceof IGregTechTileEntity gte) || !(gte.getMetaTileEntity() instanceof IHubCacheNode node))
+        if (!(te instanceof IGregTechTileEntity gte) || !(gte.getMetaTileEntity() instanceof IHubCacheNode))
             return false;
-        // 客户端仅消费事件，所有状态改变与反馈均由服务端权威执行。
-        if (world.isRemote) return true;
+        return world.isRemote;
+    }
+
+    /** 服务端权威处理缓存节点终端状态：潜行循环容量档，非潜行作为速率兜底。 */
+    @Override
+    public boolean onItemUse(ItemStack stack, EntityPlayer player, World world, int x, int y, int z, int side,
+        float hitX, float hitY, float hitZ) {
+        if (world.isRemote) return false;
+        TileEntity te = world.getTileEntity(x, y, z);
+        if (!(te instanceof IGregTechTileEntity gte) || !(gte.getMetaTileEntity() instanceof IHubCacheNode node))
+            return super.onItemUse(stack, player, world, x, y, z, side, hitX, hitY, hitZ);
         if (!node.isBoundToHub()) {
             GTUtility.sendChatToPlayer(player, StatCollector.translateToLocal("gtsr.cache_node.need_bind_first"));
             return true;

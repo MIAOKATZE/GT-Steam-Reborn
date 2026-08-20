@@ -8,7 +8,7 @@ import net.minecraft.entity.player.EntityPlayer;
  * <p>
  * 两枢纽（MTESteamHubArray/MTEWaterHubArray）的绑定解析（resolveCacheNode 族）/状态列表
  * （getCacheNodeListTag）/GUI 远程操作（cycleCacheNodeRateFromGui 等）/周期传输
- * （transferWithBoundNodes/getNodeTransferRate）与 HubTerminal.onItemUseFirst 终端交互一律面向本接口，
+ * （transferWithBoundNodes/getNodeTransferRate）与 HubTerminal.onItemUse 终端交互一律面向本接口，
  * 方法行为语义与拓宽前保持一致。
  * <p>
  * 速率档口径：缓存节点与奇点仓均为基础速率×百分比。

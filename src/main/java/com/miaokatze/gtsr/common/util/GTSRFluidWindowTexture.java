@@ -21,8 +21,9 @@ import gregtech.api.render.ISBRContext;
  * 边框、20 像素窗），整图缩放进窗（{@link WindowIcon} 重映射）；缓存节点顶面与奇点仓正面使用。
  * 两种变体均固定 alpha pass（pass 1）绘制以保留半透明混合。
  * 机制沿用 GTRenderedTexture 的 RenderBlocks 边界内缩技巧：仅内缩变体改动面内四周边界，
- * 平面方向字段保持层循环传入值（每层 nextUp 外推 1ulp）不动，结束后恢复全部六字段；
- * 整面变体不动任何边界。
+ * 平面方向字段保持层循环传入值（每层 nextUp 外推 1ulp）不动，内缩变体平面字段沿外法向
+ * +0.001 显式偏移（层循环 1ulp 外推 float 化丢失的确定性深度分离，tectech RenderDoubleSidedGlass 先例），
+ * 结束后恢复全部六字段；整面变体不动任何边界。
  */
 public final class GTSRFluidWindowTexture implements ITexture {
 
@@ -30,6 +31,7 @@ public final class GTSRFluidWindowTexture implements ITexture {
     private static final float WINDOW_MIN = 6.0F / 32.0F;
     /** 窗口上界：26/32，窗边长 20/32 = 0.625，对边向中心对称内缩。 */
     private static final float WINDOW_MAX = 26.0F / 32.0F;
+    private static final double WINDOW_PLANE_OFFSET = 0.001D;
 
     /** 流体属半透明覆材：固定 pass 1（alpha pass）绘制，混合才生效；等价 customAlpha 图标容器。 */
     private static final IntPredicate ALPHA_PASS_ONLY = pass -> pass == 1;
@@ -117,7 +119,7 @@ public final class GTSRFluidWindowTexture implements ITexture {
 
     /**
      * 六面共用的窗口绘制：pass 门控 → startDrawingQuads+reset → 保存六边界字段 →
-     * 内缩变体仅内缩面内四边（平面字段不动）+ 整图缩放重映射；整面变体不动任何边界、原图直绘 →
+     * 内缩变体仅内缩面内四边并沿外法向偏移平面字段 +0.001 + 整图缩放重映射；整面变体不动任何边界、原图直绘 →
      * 面光照/AO 一致的 setupColor → renderFace*(Blocks.air) → 恢复。
      */
     private void renderWindow(ISBRContext ctx, ForgeDirection side) {
@@ -153,26 +155,47 @@ public final class GTSRFluidWindowTexture implements ITexture {
             return;
         }
         switch (side) {
-            // X 面（东/西）：平面字段为 renderMaxX/renderMinX，面内 Y/Z 内缩
-            case EAST, WEST -> {
+            case EAST -> {
                 rb.renderMinY = WINDOW_MIN;
                 rb.renderMaxY = WINDOW_MAX;
                 rb.renderMinZ = WINDOW_MIN;
                 rb.renderMaxZ = WINDOW_MAX;
+                rb.renderMaxX = oldMaxX + WINDOW_PLANE_OFFSET;
             }
-            // Y 面（上/下）：平面字段为 renderMaxY/renderMinY，面内 X/Z 内缩
-            case UP, DOWN -> {
+            case WEST -> {
+                rb.renderMinY = WINDOW_MIN;
+                rb.renderMaxY = WINDOW_MAX;
+                rb.renderMinZ = WINDOW_MIN;
+                rb.renderMaxZ = WINDOW_MAX;
+                rb.renderMinX = oldMinX - WINDOW_PLANE_OFFSET;
+            }
+            case UP -> {
                 rb.renderMinX = WINDOW_MIN;
                 rb.renderMaxX = WINDOW_MAX;
                 rb.renderMinZ = WINDOW_MIN;
                 rb.renderMaxZ = WINDOW_MAX;
+                rb.renderMaxY = oldMaxY + WINDOW_PLANE_OFFSET;
             }
-            // Z 面（南/北）：平面字段为 renderMaxZ/renderMinZ，面内 X/Y 内缩
-            case SOUTH, NORTH -> {
+            case DOWN -> {
+                rb.renderMinX = WINDOW_MIN;
+                rb.renderMaxX = WINDOW_MAX;
+                rb.renderMinZ = WINDOW_MIN;
+                rb.renderMaxZ = WINDOW_MAX;
+                rb.renderMinY = oldMinY - WINDOW_PLANE_OFFSET;
+            }
+            case SOUTH -> {
                 rb.renderMinX = WINDOW_MIN;
                 rb.renderMaxX = WINDOW_MAX;
                 rb.renderMinY = WINDOW_MIN;
                 rb.renderMaxY = WINDOW_MAX;
+                rb.renderMaxZ = oldMaxZ + WINDOW_PLANE_OFFSET;
+            }
+            case NORTH -> {
+                rb.renderMinX = WINDOW_MIN;
+                rb.renderMaxX = WINDOW_MAX;
+                rb.renderMinY = WINDOW_MIN;
+                rb.renderMaxY = WINDOW_MAX;
+                rb.renderMinZ = oldMinZ - WINDOW_PLANE_OFFSET;
             }
             default -> {}
         }

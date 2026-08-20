@@ -95,7 +95,7 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase implements
         float aX, float aY, float aZ) {
         if (aBaseMetaTileEntity.isServerSide()) {
             ItemStack held = aPlayer.getCurrentEquippedItem();
-            // 枢纽终端右击：循环传输速率（潜行右击切换输入/输出模式由 HubTerminal.onItemUseFirst 拦截处理）
+            // 枢纽终端右击：循环传输速率（Shift 右击容量档由 HubTerminal.onItemUse 服务端权威处理）
             if (held != null && GTSRItemList.HubTerminal.isStackEqual(held, false, true)) {
                 // 用 mBound 判断绑定状态，避免主世界 dim=0 被误判为未绑定
                 if (!mBound) {

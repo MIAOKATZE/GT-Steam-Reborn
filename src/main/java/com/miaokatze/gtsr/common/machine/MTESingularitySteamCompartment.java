@@ -147,8 +147,8 @@ public class MTESingularitySteamCompartment extends MTEHatchPressureSteamInput
 
     @Override
     public boolean onRightclick(IGregTechTileEntity aBaseMetaTileEntity, EntityPlayer aPlayer) {
-        // 仅拦截非潜行右击开 GUI（近亲链）；空手 Shift+右击的容量档循环走 HubTerminal 空手潜行事件
-        // （S4 核实：BaseMetaTileEntity.onRightclick 六参在潜行时不分发到 mte 层，覆写内不可达）
+        // 持终端右击=速率循环（本分支）；Shift+右击容量=HubTerminal.onItemUse 潜行路径
+        if (MTESingularityCompartmentBase.handleHubTerminalRateClick(aBaseMetaTileEntity, this, aPlayer)) return true;
         return true;
     }
 
