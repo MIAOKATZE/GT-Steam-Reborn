@@ -29,6 +29,7 @@ import gregtech.api.interfaces.IIconContainer;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
+import gregtech.api.metatileentity.implementations.MTEHatch;
 import gregtech.api.util.GTModHandler;
 import gregtech.api.util.GTUtility;
 
@@ -413,16 +414,14 @@ public interface MTESingularityCompartmentBase extends IHubCacheNode {
 
     /**
      * 服务端每 tick 的枢纽登记与渲染同步（四仓 onPostTick 调用，内部自判服务端）。
-     * 登记失败 20t 重试；绑定/流体类型变化才发 description packet（稳态零发包）。
+     * 登记失败 20t 重试、成功 600t 周期复查（hub 重建后绑定自动恢复）；绑定/流体类型变化才发 description packet（稳态零发包）。
      */
     default void onCompartmentHubTick(IGregTechTileEntity baseTE, long tick) {
         if (!baseTE.isServerSide()) return;
         HubCompartmentState s = getHubState();
-        if (!s.registered && s.bound && tick >= s.nextRegistrationTick) {
+        if (s.bound && tick >= s.nextRegistrationTick) {
             s.registered = registerCompartmentWithHub(baseTE);
-            if (!s.registered) {
-                s.nextRegistrationTick = tick + 20;
-            }
+            s.nextRegistrationTick = tick + (s.registered ? 600 : 20);
         }
         String syncKey = s.bound + "|" + getStoredFluidName();
         if (!syncKey.equals(s.lastSyncKey)) {
@@ -476,10 +475,12 @@ public interface MTESingularityCompartmentBase extends IHubCacheNode {
      * 仓面纹理组装（四仓 getTexture 覆写传入近亲基类材质后调用）：
      * 顶面 [近亲基材, 框架]（无流体窗，俯视即可区分收/发仓）；正面三层
      * [近亲基材, 流体窗（罐内流体/枢纽类型默认，未绑定也使用默认流体）, 语义固定框架]；其余面近亲基类材质原样。
+     * 底材结构成型时跟随结构，未成型回退 LV。
      */
     default ITexture[] buildCompartmentTextures(ITexture[] kinTextures, ForgeDirection side, ForgeDirection facing,
         int colorIndex) {
-        ITexture baseTexture = Textures.BlockIcons.MACHINE_CASINGS[1][colorIndex + 1];
+        ITexture baseTexture = ((MTEHatch) this).getCasingTexture();
+        if (baseTexture == null) baseTexture = Textures.BlockIcons.MACHINE_CASINGS[1][colorIndex + 1];
         if (side == ForgeDirection.UP) {
             return new ITexture[] { baseTexture };
         }

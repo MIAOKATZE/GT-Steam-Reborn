@@ -574,12 +574,10 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase implements
         super.onPostTick(aBaseMetaTileEntity, aTick);
         if (!aBaseMetaTileEntity.isServerSide()) return;
 
-        // 用 mBound 判断绑定状态，避免主世界 dim=0 被误判为未绑定
-        if (!mRegistered && mBound && aTick >= mNextRegistrationTick) {
+        // 用 mBound 判断绑定状态，避免主世界 dim=0 被误判为未绑定；成功登记每 600t 周期复查
+        if (mBound && aTick >= mNextRegistrationTick) {
             mRegistered = registerWithHub(aBaseMetaTileEntity);
-            if (!mRegistered) {
-                mNextRegistrationTick = aTick + 20;
-            }
+            mNextRegistrationTick = aTick + (mRegistered ? 600 : 20);
         }
 
         // 渲染状态同步：绑定/方向模式/流体类型任一变化才发 description packet（覆盖绑定/解绑/模式切换/

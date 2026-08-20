@@ -1456,10 +1456,7 @@ public class MTESteamHubArray extends MTEGTSRMultiBlockBase<MTESteamHubArray>
     }
 
     private void transferWithBoundNodes() {
-        if (!hasChipInstalled()) {
-            return;
-        }
-
+        boolean chipInstalled = hasChipInstalled();
         ArrayList<BoundCacheNode> invalidNodes = new ArrayList<>();
 
         for (BoundCacheNode node : mBoundNodes) {
@@ -1472,6 +1469,7 @@ public class MTESteamHubArray extends MTEGTSRMultiBlockBase<MTESteamHubArray>
                 invalidNodes.add(node);
                 continue;
             }
+            if (!chipInstalled) continue;
             IGregTechTileEntity gte = node.cachedTile;
 
             if (node.isOutputMode) {

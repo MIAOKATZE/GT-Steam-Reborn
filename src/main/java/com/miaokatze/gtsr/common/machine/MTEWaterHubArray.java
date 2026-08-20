@@ -866,10 +866,7 @@ public class MTEWaterHubArray extends MTEGTSRMultiBlockBase<MTEWaterHubArray>
     }
 
     private void transferWithBoundNodes(IGregTechTileEntity aBaseMetaTileEntity) {
-        if (!hasChipInstalled()) {
-            return;
-        }
-
+        boolean chipInstalled = hasChipInstalled();
         ArrayList<BoundCacheNode> invalidNodes = new ArrayList<>();
 
         for (BoundCacheNode node : mBoundNodes) {
@@ -883,6 +880,7 @@ public class MTEWaterHubArray extends MTEGTSRMultiBlockBase<MTEWaterHubArray>
                 invalidNodes.add(node);
                 continue;
             }
+            if (!chipInstalled) continue;
             IGregTechTileEntity gtTile = node.cachedTile;
 
             if (node.isOutputMode) {
