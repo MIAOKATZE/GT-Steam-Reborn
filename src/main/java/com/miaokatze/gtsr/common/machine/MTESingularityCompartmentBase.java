@@ -302,10 +302,18 @@ public interface MTESingularityCompartmentBase extends IHubCacheNode {
         s.registered = false;
         s.nextRegistrationTick = 0;
         // S4 容量档读回（旧档/发送仓无键时保持默认 100，存档兼容）
+        s.capacityLimitPercent = 100;
         if (supportsCapacityTier() && aNBT.hasKey("mCapacityLimitPercent")) {
-            s.capacityLimitPercent = aNBT.getInteger("mCapacityLimitPercent");
+            int capacity = aNBT.getInteger("mCapacityLimitPercent");
+            for (int value : IHubCacheNode.CAPACITY_LIMIT_CYCLE) {
+                if (value == capacity) {
+                    s.capacityLimitPercent = capacity;
+                    break;
+                }
+            }
         }
         // 速率档读回；旧档无键或非法值（不在档位表内）回退默认 100。
+        s.transferRatePercent = 100;
         if (aNBT.hasKey("mTransferRatePercent")) {
             int rate = aNBT.getInteger("mTransferRatePercent");
             for (int r : IHubCacheNode.TRANSFER_RATE_CYCLE) {
@@ -434,11 +442,10 @@ public interface MTESingularityCompartmentBase extends IHubCacheNode {
 
     /**
      * 流体窗内容：罐内流体优先，罐空回退枢纽类型默认（奇点流体仓的枢纽类型串
-     * singularity_fluid_in/out 不含 "water"，需子类默认流体兜底）；未绑定返回 null（窗层自跳过）。
+     * singularity_fluid_in/out 不含 "water"，需子类默认流体兜底）；未绑定也回退到枢纽类型默认流体，保证窗口始终有稳定默认材质。
      */
     default Fluid getClientWindowFluid() {
         HubCompartmentState s = getHubState();
-        if (!s.clientBound) return null;
         Fluid fluid = s.clientFluidName.isEmpty() ? null : FluidRegistry.getFluid(s.clientFluidName);
         return fluid != null ? fluid : getDefaultWindowFluid();
     }
@@ -446,7 +453,7 @@ public interface MTESingularityCompartmentBase extends IHubCacheNode {
     /**
      * 仓面纹理组装（四仓 getTexture 覆写传入近亲基类材质后调用）：
      * 顶面 [近亲基材, 框架]（无流体窗，俯视即可区分收/发仓）；正面三层
-     * [近亲基材, 流体窗（罐内流体/枢纽类型默认，未绑定自跳过）, 语义固定框架]；其余面近亲基类材质原样。
+     * [近亲基材, 流体窗（罐内流体/枢纽类型默认，未绑定也使用默认流体）, 语义固定框架]；其余面近亲基类材质原样。
      */
     default ITexture[] buildCompartmentTextures(ITexture[] kinTextures, ForgeDirection side, ForgeDirection facing,
         int colorIndex) {

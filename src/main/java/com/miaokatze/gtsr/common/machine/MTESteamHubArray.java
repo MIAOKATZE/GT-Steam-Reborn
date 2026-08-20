@@ -1602,7 +1602,7 @@ public class MTESteamHubArray extends MTEGTSRMultiBlockBase<MTESteamHubArray>
             Fluid fluid = FluidRegistry.getFluid(mClientFluidName);
             if (fluid == null) fluid = FluidRegistry.getFluid("steam");
             return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(casingTextureId),
-                GTSRFluidWindowTexture.getOrCreate(fluid), FRAME_UNBOUND_FACING };
+                GTSRFluidWindowTexture.getOrCreateFullFace(fluid), FRAME_UNBOUND_FACING };
         }
         return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(casingTextureId) };
     }

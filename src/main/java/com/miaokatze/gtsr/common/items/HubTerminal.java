@@ -14,6 +14,7 @@ import com.miaokatze.gtsr.common.machine.base.IHubCacheNode;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
 import com.miaokatze.gtsr.register.CreativeTabManager;
 
+import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.util.GTUtility;
 
@@ -41,29 +42,45 @@ public class HubTerminal extends Item {
     @Override
     public boolean onItemUseFirst(ItemStack stack, EntityPlayer player, World world, int x, int y, int z, int side,
         float hitX, float hitY, float hitZ) {
-        if (!player.isSneaking()) return false;
         TileEntity te = world.getTileEntity(x, y, z);
         if (!(te instanceof IGregTechTileEntity gte) || !(gte.getMetaTileEntity() instanceof IHubCacheNode node))
             return false;
-        // 客户端仅消费事件，防止 vanilla 行为；实际切换在服务端执行
+        // 客户端仅消费事件，所有状态改变与反馈均由服务端权威执行。
         if (world.isRemote) return true;
         if (!node.isBoundToHub()) {
             GTUtility.sendChatToPlayer(player, StatCollector.translateToLocal("gtsr.cache_node.need_bind_first"));
             return true;
         }
-        if (!node.supportsCapacityTier()) {
-            GTUtility.sendChatToPlayer(player, StatCollector.translateToLocal("gtsr.cache_node.capacity_locked"));
-            return true;
+        IMetaTileEntity meta = gte.getMetaTileEntity();
+        if (player.isSneaking()) {
+            if (!node.supportsCapacityTier()) {
+                GTUtility.sendChatToPlayer(player, StatCollector.translateToLocal("gtsr.cache_node.capacity_locked"));
+                return true;
+            }
+            int percent = node.cycleCapacityLimitPercent();
+            GTUtility.sendChatToPlayer(
+                player,
+                StatCollector.translateToLocal("gtsr.cache_node.capacity_limit") + " "
+                    + percent
+                    + "% ("
+                    + String.format("%,d", node.getFluidCapacityLong())
+                    + " "
+                    + StatCollector.translateToLocal("gtsr.tooltip.shared.l")
+                    + ")");
+        } else {
+            int percent = node.cycleTransferRatePercent();
+            GTUtility.sendChatToPlayer(
+                player,
+                StatCollector.translateToLocal("gtsr.cache_node.transfer_rate") + " "
+                    + percent
+                    + "% ("
+                    + String.format("%,d", node.getEffectiveHubTransferRate())
+                    + " "
+                    + StatCollector.translateToLocal("gtsr.tooltip.shared.l_s")
+                    + ")");
         }
-        int percent = node.cycleCapacityLimitPercent();
-        String msg = StatCollector.translateToLocal("gtsr.cache_node.capacity_limit") + " "
-            + percent
-            + "% ("
-            + String.format("%,d", node.getFluidCapacityLong())
-            + " "
-            + StatCollector.translateToLocal("gtsr.tooltip.shared.l")
-            + ")";
-        GTUtility.sendChatToPlayer(player, msg);
+        if (meta != null && meta.getBaseMetaTileEntity() != null) meta.getBaseMetaTileEntity()
+            .issueTileUpdate();
         return true;
     }
 

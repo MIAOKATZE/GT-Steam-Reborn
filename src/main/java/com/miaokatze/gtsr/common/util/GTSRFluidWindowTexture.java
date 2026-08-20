@@ -39,15 +39,24 @@ public final class GTSRFluidWindowTexture implements ITexture {
      * 缓存会被多线程同时访问，故用 ConcurrentHashMap。
      */
     private static final Map<Fluid, GTSRFluidWindowTexture> CACHE = new ConcurrentHashMap<>();
+    /** 独立的整面纹理缓存，避免与内缩窗口实例/语义混用。 */
+    private static final Map<Fluid, GTSRFluidWindowTexture> FULL_FACE_CACHE = new ConcurrentHashMap<>();
 
     /** null 流体的共享空实例：无图标 → isValidTexture=false，各面直接跳过（两变体共用，从不绘制）。 */
-    private static final GTSRFluidWindowTexture NULL_WINDOW = new GTSRFluidWindowTexture(null);
+    private static final GTSRFluidWindowTexture NULL_WINDOW = new GTSRFluidWindowTexture(null, false);
+    private static final GTSRFluidWindowTexture NULL_FULL_FACE = new GTSRFluidWindowTexture(null, true);
 
     private final Fluid fluid;
+    private final boolean fullFace;
     private volatile GTSRFluidAppearance.Appearance appearance;
 
     private GTSRFluidWindowTexture(Fluid fluid) {
+        this(fluid, false);
+    }
+
+    private GTSRFluidWindowTexture(Fluid fluid, boolean fullFace) {
         this.fluid = fluid;
+        this.fullFace = fullFace;
         this.appearance = GTSRFluidAppearance.resolve(fluid);
     }
 
@@ -59,6 +68,15 @@ public final class GTSRFluidWindowTexture implements ITexture {
             // 图标未注册时（启动早期/材质未就绪）构造的实例：下次取用重试解析，注册后自愈
             texture.appearance = GTSRFluidAppearance.resolve(fluid);
         }
+        return texture;
+    }
+
+    /** 取（或创建）流体的整面纹理；与内缩窗口使用独立缓存。 */
+    public static GTSRFluidWindowTexture getOrCreateFullFace(Fluid fluid) {
+        if (fluid == null) return NULL_FULL_FACE;
+        final GTSRFluidWindowTexture texture = FULL_FACE_CACHE
+            .computeIfAbsent(fluid, f -> new GTSRFluidWindowTexture(f, true));
+        if (texture.appearance.icon == null) texture.appearance = GTSRFluidAppearance.resolve(fluid);
         return texture;
     }
 
@@ -113,6 +131,27 @@ public final class GTSRFluidWindowTexture implements ITexture {
         final double oldMinX = rb.renderMinX, oldMaxX = rb.renderMaxX;
         final double oldMinY = rb.renderMinY, oldMaxY = rb.renderMaxY;
         final double oldMinZ = rb.renderMinZ, oldMaxZ = rb.renderMaxZ;
+        if (fullFace) {
+            rb.renderMinX = oldMinX;
+            rb.renderMaxX = oldMaxX;
+            rb.renderMinY = oldMinY;
+            rb.renderMaxY = oldMaxY;
+            rb.renderMinZ = oldMinZ;
+            rb.renderMaxZ = oldMaxZ;
+            ctx.setupColor(side, appearance.tint);
+            final int x = ctx.getX(), y = ctx.getY(), z = ctx.getZ();
+            switch (side) {
+                case EAST -> rb.renderFaceXPos(Blocks.air, x, y, z, icon);
+                case WEST -> rb.renderFaceXNeg(Blocks.air, x, y, z, icon);
+                case UP -> rb.renderFaceYPos(Blocks.air, x, y, z, icon);
+                case DOWN -> rb.renderFaceYNeg(Blocks.air, x, y, z, icon);
+                case SOUTH -> rb.renderFaceZPos(Blocks.air, x, y, z, icon);
+                case NORTH -> rb.renderFaceZNeg(Blocks.air, x, y, z, icon);
+                default -> {}
+            }
+            draw(rb);
+            return;
+        }
         switch (side) {
             // X 面（东/西）：平面字段为 renderMaxX/renderMinX，面内 Y/Z 内缩
             case EAST, WEST -> {

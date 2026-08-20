@@ -1534,7 +1534,7 @@ public class MTEWaterHubArray extends MTEGTSRMultiBlockBase<MTEWaterHubArray>
             Fluid fluid = FluidRegistry.getFluid(mClientFluidName);
             if (fluid == null) fluid = FluidRegistry.WATER;
             return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(casingTextureId),
-                GTSRFluidWindowTexture.getOrCreate(fluid), FRAME_UNBOUND_FACING };
+                GTSRFluidWindowTexture.getOrCreateFullFace(fluid), FRAME_UNBOUND_FACING };
         }
         return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(casingTextureId) };
     }

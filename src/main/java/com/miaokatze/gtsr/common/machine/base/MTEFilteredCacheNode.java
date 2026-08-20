@@ -449,8 +449,17 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase implements
                 }
             }
         }
-        // 旧档无容量档键时回退默认 100（存档兼容）
-        mCapacityLimitPercent = aNBT.hasKey("mCapacityLimitPercent") ? aNBT.getInteger("mCapacityLimitPercent") : 100;
+        // 旧档无容量档键或非法值时回退默认 100，避免容量计算越界。
+        mCapacityLimitPercent = 100;
+        if (aNBT.hasKey("mCapacityLimitPercent")) {
+            int capacity = aNBT.getInteger("mCapacityLimitPercent");
+            for (int value : IHubCacheNode.CAPACITY_LIMIT_CYCLE) {
+                if (value == capacity) {
+                    mCapacityLimitPercent = capacity;
+                    break;
+                }
+            }
+        }
         if (aNBT.hasKey("gtsr.hubPos")) {
             NBTTagCompound hubTag = aNBT.getCompoundTag("gtsr.hubPos");
             mHubX = hubTag.getInteger("x");

@@ -161,7 +161,7 @@ public class MTESteamCacheNode extends MTEFilteredCacheNode {
                     + EnumChatFormatting.RESET
                     + " "
                     + EnumChatFormatting.YELLOW
-                    + formatNumber(CAPACITY)
+                    + formatNumber(getRealCapacity())
                     + " L"
                     + EnumChatFormatting.RESET };
         }
@@ -174,7 +174,7 @@ public class MTESteamCacheNode extends MTEFilteredCacheNode {
                 + EnumChatFormatting.RESET
                 + " "
                 + EnumChatFormatting.YELLOW
-                + formatNumber(CAPACITY)
+                + formatNumber(getRealCapacity())
                 + " L"
                 + EnumChatFormatting.RESET };
     }

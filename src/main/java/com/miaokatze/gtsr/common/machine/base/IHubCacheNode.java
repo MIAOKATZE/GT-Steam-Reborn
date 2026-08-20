@@ -21,13 +21,13 @@ import net.minecraft.entity.player.EntityPlayer;
 public interface IHubCacheNode {
 
     /**
-     * 容量档循环值域（100 → 80 → 60 → 40 → 20 → 10 → 5 → 回 100）。
+     * 容量档循环值域（100 → 80 → 60 → 40 → 20 → 10 → 5 → 2 → 1 → 回 100）。
      * 约定只读：实现方不得改写数组元素。
      */
-    int[] CAPACITY_LIMIT_CYCLE = { 100, 80, 60, 40, 20, 10, 5 };
+    int[] CAPACITY_LIMIT_CYCLE = { 100, 80, 60, 40, 20, 10, 5, 2, 1 };
 
-    /** 传输速率档位（100 → 80 → 60 → 40 → 20 → 10 → 5 → 1 → 0）。 */
-    int[] TRANSFER_RATE_CYCLE = { 100, 80, 60, 40, 20, 10, 5, 1, 0 };
+    /** 传输速率档位（100 → 80 → 60 → 40 → 20 → 10 → 5 → 2 → 1 → 0）。 */
+    int[] TRANSFER_RATE_CYCLE = { 100, 80, 60, 40, 20, 10, 5, 2, 1, 0 };
 
     // ===== 方向模式（奇点仓恒定锁定，见 isOutputModeLocked）=====
 
