@@ -516,6 +516,10 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase implements
         mClientOutputMode = data.getBoolean("gtsr.out");
         mClientHubType = data.getString("gtsr.hubType");
         mClientFluidName = data.getString("gtsr.fluid");
+        IGregTechTileEntity base = getBaseMetaTileEntity();
+        if (base != null) {
+            base.issueTextureUpdate();
+        }
     }
 
     @Override

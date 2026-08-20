@@ -1512,6 +1512,10 @@ public class MTEWaterHubArray extends MTEGTSRMultiBlockBase<MTEWaterHubArray>
         super.onDescriptionPacket(data);
         mSetTier = data.getInteger("mSetTier");
         mClientFluidName = data.getString("gtsr.hubFluid");
+        IGregTechTileEntity base = getBaseMetaTileEntity();
+        if (base != null) {
+            base.issueTextureUpdate();
+        }
     }
 
     @Override

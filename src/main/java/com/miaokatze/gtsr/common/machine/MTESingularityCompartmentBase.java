@@ -25,6 +25,7 @@ import com.miaokatze.gtsr.register.TextureManager;
 import gregtech.api.enums.Textures;
 import gregtech.api.interfaces.IIconContainer;
 import gregtech.api.interfaces.ITexture;
+import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.util.GTModHandler;
 import gregtech.api.util.GTUtility;
@@ -372,6 +373,10 @@ public interface MTESingularityCompartmentBase extends IHubCacheNode {
         HubCompartmentState s = getHubState();
         s.clientBound = data.getBoolean("gtsr.bound");
         s.clientFluidName = data.getString("gtsr.fluid");
+        IGregTechTileEntity base = ((IMetaTileEntity) this).getBaseMetaTileEntity();
+        if (base != null) {
+            base.issueTextureUpdate();
+        }
     }
 
     // ===== 终端登记（源 MTEFilteredCacheNode#registerWithHub 整段迁移）=====
