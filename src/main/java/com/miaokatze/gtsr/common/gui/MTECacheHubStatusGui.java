@@ -124,6 +124,8 @@ public abstract class MTECacheHubStatusGui implements IGuiHolder<PosGuiData> {
             if (!CacheNodeInfo.sameLayout(lastLayout[0], current)) {
                 lastLayout[0] = new ArrayList<>(current);
                 listDynamic.notifyUpdate(buf -> {});
+            } else {
+                listDynamic.notifyUpdate(buf -> {});
             }
         });
 
@@ -297,10 +299,10 @@ public abstract class MTECacheHubStatusGui implements IGuiHolder<PosGuiData> {
                 if (current != null) {
                     button.overlay(
                         current.out ? GTGuiTextures.OVERLAY_BUTTON_EXPORT : GTGuiTextures.OVERLAY_BUTTON_IMPORT);
-                    button.setEnabled(!current.type.isEmpty());
+                    button.setEnabled(!current.type.isEmpty() && !current.modeLocked);
                 }
             }, true);
-        modeButton.setEnabled(!offline);
+        modeButton.setEnabled(!offline && !info.modeLocked);
 
         // 自动输出开关按钮：与方向模式解耦的独立开关（节点向正面相邻容器推送流体），
         // 电源图标随状态切换，悬浮显示当前开/关与说明，点击切换
@@ -489,9 +491,11 @@ public abstract class MTECacheHubStatusGui implements IGuiHolder<PosGuiData> {
         public final boolean out;
         /** 自动输出开关：true=节点向正面相邻容器推送流体（与方向模式解耦） */
         public final boolean auto;
+        /** 输出模式锁定（奇点仓）；锁定时 GUI 模式按钮禁用。 */
+        public final boolean modeLocked;
 
         CacheNodeInfo(int x, int y, int z, int dim, String type, String name, String fluid, long stored, long cap,
-            int rate, int capPct, boolean out, boolean auto) {
+            int rate, int capPct, boolean out, boolean auto, boolean modeLocked) {
             this.x = x;
             this.y = y;
             this.z = z;
@@ -505,6 +509,7 @@ public abstract class MTECacheHubStatusGui implements IGuiHolder<PosGuiData> {
             this.capPct = capPct;
             this.out = out;
             this.auto = auto;
+            this.modeLocked = modeLocked;
         }
 
         public static List<CacheNodeInfo> fromTagList(NBTTagList tagList) {
@@ -525,7 +530,8 @@ public abstract class MTECacheHubStatusGui implements IGuiHolder<PosGuiData> {
                         tag.getInteger("rate"),
                         tag.getInteger("capPct"),
                         tag.getBoolean("out"),
-                        tag.getBoolean("auto")));
+                        tag.getBoolean("auto"),
+                        tag.getBoolean("modeLocked")));
             }
             return list;
         }
@@ -544,6 +550,7 @@ public abstract class MTECacheHubStatusGui implements IGuiHolder<PosGuiData> {
                 buf.readInt(),
                 buf.readInt(),
                 buf.readBoolean(),
+                buf.readBoolean(),
                 buf.readBoolean());
         }
 
@@ -561,6 +568,7 @@ public abstract class MTECacheHubStatusGui implements IGuiHolder<PosGuiData> {
             buf.writeInt(info.capPct);
             buf.writeBoolean(info.out);
             buf.writeBoolean(info.auto);
+            buf.writeBoolean(info.modeLocked);
         }
 
         public static boolean areEqual(CacheNodeInfo a, CacheNodeInfo b) {
@@ -575,7 +583,8 @@ public abstract class MTECacheHubStatusGui implements IGuiHolder<PosGuiData> {
                 && a.rate == b.rate
                 && a.capPct == b.capPct
                 && a.out == b.out
-                && a.auto == b.auto;
+                && a.auto == b.auto
+                && a.modeLocked == b.modeLocked;
         }
 
         public static boolean sameLayout(List<CacheNodeInfo> a, List<CacheNodeInfo> b) {

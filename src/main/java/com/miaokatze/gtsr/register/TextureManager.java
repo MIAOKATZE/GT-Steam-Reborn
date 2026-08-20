@@ -26,7 +26,7 @@ public class TextureManager {
     public static final IIconContainer TEX_SINGULARITY_DRILLING_ON = Textures.BlockIcons
         .custom("gtsr:MTESingularityDrillingNode_ON");
 
-    // v0.4.x 枢纽框架覆盖层材质 (pass1 alpha 渲染, 32x320 动画条)
+    // v0.4.x 枢纽框架覆盖层材质 (pass1 alpha 渲染, 32x352 动画条)
     public static final IIconContainer HUB_FRAME_RECEIVE = Textures.BlockIcons.customAlpha("gtsr:hub_frame_receive");
     public static final IIconContainer HUB_FRAME_SEND = Textures.BlockIcons.customAlpha("gtsr:hub_frame_send");
     public static final IIconContainer HUB_FRAME_UNBOUND = Textures.BlockIcons.customAlpha("gtsr:hub_frame_unbound");

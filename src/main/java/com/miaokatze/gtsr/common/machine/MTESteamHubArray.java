@@ -1330,6 +1330,7 @@ public class MTESteamHubArray extends MTEGTSRMultiBlockBase<MTESteamHubArray>
             tag.setBoolean("out", cacheNode != null ? cacheNode.isOutputMode() : node.isOutputMode);
             // 自动输出开关（与方向模式解耦）：节点离线时回退 false（奇点仓恒 false）
             tag.setBoolean("auto", cacheNode != null && cacheNode.isAutoOutput());
+            tag.setBoolean("modeLocked", cacheNode != null && cacheNode.isOutputModeLocked());
             list.appendTag(tag);
         }
         return list;
@@ -1597,7 +1598,7 @@ public class MTESteamHubArray extends MTEGTSRMultiBlockBase<MTESteamHubArray>
             Fluid fluid = FluidRegistry.getFluid(mClientFluidName);
             if (fluid == null) fluid = FluidRegistry.getFluid("steam");
             return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(casingTextureId),
-                GTSRFluidWindowTexture.getOrCreateFullFace(fluid), FRAME_UNBOUND_FACING };
+                GTSRFluidWindowTexture.getOrCreate(fluid), FRAME_UNBOUND_FACING };
         }
         return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(casingTextureId) };
     }

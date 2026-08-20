@@ -209,7 +209,7 @@ public class MTESingularitySteamOutputCompartment extends MTEPressureSteamOutput
             colorIndex,
             active,
             redstoneLevel);
-        return buildCompartmentTextures(kinTextures, sideDirection, facingDirection);
+        return buildCompartmentTextures(kinTextures, sideDirection, facingDirection, colorIndex);
     }
 
     @Override

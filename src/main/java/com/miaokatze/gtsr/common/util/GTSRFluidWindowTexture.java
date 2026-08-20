@@ -19,8 +19,6 @@ import gregtech.api.render.ISBRContext;
  * {@link GTSRFluidAppearance}）画进窗内。两种变体：
  * 内缩窗（{@link #getOrCreate}）——面中央 20×20 窗（纹理坐标系 6/32..26/32，即每边 6 像素
  * 边框、20 像素窗），整图缩放进窗（{@link WindowIcon} 重映射）；缓存节点顶面与奇点仓正面使用。
- * 整面窗（{@link #getOrCreateFullFace}，D2-C）——直接平铺整面 16×16，不内缩不重映射；
- * 两 hub 控制器正面使用，框架 PNG 开孔透出。
  * 两种变体均固定 alpha pass（pass 1）绘制以保留半透明混合。
  * 机制沿用 GTRenderedTexture 的 RenderBlocks 边界内缩技巧：仅内缩变体改动面内四周边界，
  * 平面方向字段保持层循环传入值（每层 nextUp 外推 1ulp）不动，结束后恢复全部六字段；
@@ -42,24 +40,14 @@ public final class GTSRFluidWindowTexture implements ITexture {
      */
     private static final Map<Fluid, GTSRFluidWindowTexture> CACHE = new ConcurrentHashMap<>();
 
-    /** 整面变体实例缓存（fluid → 整面窗口纹理），与内缩缓存同理。 */
-    private static final Map<Fluid, GTSRFluidWindowTexture> FULL_FACE_CACHE = new ConcurrentHashMap<>();
-
     /** null 流体的共享空实例：无图标 → isValidTexture=false，各面直接跳过（两变体共用，从不绘制）。 */
     private static final GTSRFluidWindowTexture NULL_WINDOW = new GTSRFluidWindowTexture(null);
 
     private final Fluid fluid;
-    /** true=整面变体：不内缩、不重映射，直接平铺 16×16。 */
-    private final boolean fullFace;
     private volatile GTSRFluidAppearance.Appearance appearance;
 
     private GTSRFluidWindowTexture(Fluid fluid) {
-        this(fluid, false);
-    }
-
-    private GTSRFluidWindowTexture(Fluid fluid, boolean fullFace) {
         this.fluid = fluid;
-        this.fullFace = fullFace;
         this.appearance = GTSRFluidAppearance.resolve(fluid);
     }
 
@@ -69,25 +57,6 @@ public final class GTSRFluidWindowTexture implements ITexture {
         final GTSRFluidWindowTexture texture = CACHE.computeIfAbsent(fluid, GTSRFluidWindowTexture::new);
         if (texture.appearance.icon == null) {
             // 图标未注册时（启动早期/材质未就绪）构造的实例：下次取用重试解析，注册后自愈
-            texture.appearance = GTSRFluidAppearance.resolve(fluid);
-        }
-        return texture;
-    }
-
-    /**
-     * 取（或创建）流体的整面窗口纹理（D2-C 控制器正面方案）：不内缩不重映射，直接平铺整面
-     * 16×16，由上层框架 PNG 开孔透出；null 流体返回不可绘制的共享空实例。
-     *
-     * <p>
-     * 备查（本轮未实装）：整面窗若实测仍闪烁（T6 判据③），备用修法两案——(a) 窗层自管 alpha
-     * （禁 alpha-test、开 blend、画完恢复，批次状态污染范式见 MIAO_Wiki mods/gtsr/animation.md §3.3）；
-     * (b) 窗层 z 加 ε 抬升。启用任一案需另行走切片，不在本变体内顺手实装。
-     */
-    public static GTSRFluidWindowTexture getOrCreateFullFace(Fluid fluid) {
-        if (fluid == null) return NULL_WINDOW;
-        final GTSRFluidWindowTexture texture = FULL_FACE_CACHE
-            .computeIfAbsent(fluid, f -> new GTSRFluidWindowTexture(f, true));
-        if (texture.appearance.icon == null) {
             texture.appearance = GTSRFluidAppearance.resolve(fluid);
         }
         return texture;
@@ -144,8 +113,7 @@ public final class GTSRFluidWindowTexture implements ITexture {
         final double oldMinX = rb.renderMinX, oldMaxX = rb.renderMaxX;
         final double oldMinY = rb.renderMinY, oldMaxY = rb.renderMaxY;
         final double oldMinZ = rb.renderMinZ, oldMaxZ = rb.renderMaxZ;
-        // 整面变体：不动任何边界（保持层循环传入的整面 0..1），fluid 图标 16×16 直接平铺
-        if (!fullFace) switch (side) {
+        switch (side) {
             // X 面（东/西）：平面字段为 renderMaxX/renderMinX，面内 Y/Z 内缩
             case EAST, WEST -> {
                 rb.renderMinY = WINDOW_MIN;
@@ -170,8 +138,7 @@ public final class GTSRFluidWindowTexture implements ITexture {
             default -> {}
         }
         ctx.setupColor(side, appearance.tint);
-        // 内缩变体包一层 WindowIcon 做"整图缩放进窗"重映射；整面变体直接用原图
-        final IIcon windowed = fullFace ? icon : new WindowIcon(icon);
+        final IIcon windowed = new WindowIcon(icon);
         final int x = ctx.getX(), y = ctx.getY(), z = ctx.getZ();
         switch (side) {
             case EAST -> rb.renderFaceXPos(Blocks.air, x, y, z, windowed);
@@ -192,9 +159,8 @@ public final class GTSRFluidWindowTexture implements ITexture {
     }
 
     /**
-     * "整图缩放进窗"图标包装：vanilla renderFace* 按面内边界线性插值 UV（单纯内缩=只显示
-     * 中心裁剪），这里把窗口区间 [WINDOW_MIN*16, WINDOW_MAX*16]=[3,13] 线性重映射回整图
-     * [0,16]，使流体贴图整幅压进 20×20 窗。六面的面内边界同一对称内缩，单一映射即可通用。
+     * 窗口图标恒等裁剪：窗口面素坐标 [3,13] 直接对应父图标 UV [3/16,13/16]，
+     * 不缩放、不偏移，保持流体图标中心 10×10 texel 的 1:1 显示。
      */
     private static final class WindowIcon implements IIcon {
 
@@ -202,10 +168,6 @@ public final class GTSRFluidWindowTexture implements ITexture {
 
         WindowIcon(IIcon parent) {
             this.parent = parent;
-        }
-
-        private static double remap(double face) {
-            return (face - WINDOW_MIN * 16.0D) / (WINDOW_MAX - WINDOW_MIN);
         }
 
         @Override
@@ -230,7 +192,7 @@ public final class GTSRFluidWindowTexture implements ITexture {
 
         @Override
         public float getInterpolatedU(double face) {
-            return parent.getInterpolatedU(remap(face));
+            return parent.getInterpolatedU(face);
         }
 
         @Override
@@ -245,7 +207,7 @@ public final class GTSRFluidWindowTexture implements ITexture {
 
         @Override
         public float getInterpolatedV(double face) {
-            return parent.getInterpolatedV(remap(face));
+            return parent.getInterpolatedV(face);
         }
 
         @Override

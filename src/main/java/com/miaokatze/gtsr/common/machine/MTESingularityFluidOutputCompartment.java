@@ -243,7 +243,7 @@ public class MTESingularityFluidOutputCompartment extends MTEWaterHubOutputHatch
             colorIndex,
             active,
             redstoneLevel);
-        return buildCompartmentTextures(kinTextures, sideDirection, facingDirection);
+        return buildCompartmentTextures(kinTextures, sideDirection, facingDirection, colorIndex);
     }
 
     @Override

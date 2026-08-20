@@ -80,7 +80,8 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase implements
     /** 渲染状态同步去重 key（bound|out|fluid 拼接），服务端 onPostTick 维护，变化才 issueTileUpdate。 */
     private String mLastSyncKey = null;
 
-    private static final int[] TRANSFER_RATE_CYCLE = { 100, 80, 60, 40, 20, 10, 5, 1, 0 };
+    /** 传输速率档位单源于 IHubCacheNode，缓存节点与奇点仓共用。 */
+    private static final int[] TRANSFER_RATE_CYCLE = IHubCacheNode.TRANSFER_RATE_CYCLE;
 
     /** S4 容量上限档：100 → 80 → 60 → 40 → 20 → 10 → 5 → 回 100（值域单源见 IHubCacheNode）。 */
     protected int mCapacityLimitPercent = 100;
@@ -328,10 +329,9 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase implements
      * 罐内流体优先，罐空走 {@link #getDefaultWindowFluid()} 兜底。与奇点仓成功链的根因差异：
      * 旧版空罐兜底只有 hubType contains 字符串解析一层，解析不出即返回 null（窗层自跳过）——
      * 绑定后空罐的窗口流体没有任何非空保证（hubType 实为节点自身类型串，缺 type 键的旧档/异常路径
-     * 得空串，静默无窗）。未绑定仍返回 null（灰框无窗语义拍板不动）。
+     * 得空串，静默无窗）。未绑定也使用家族默认流体。
      */
     protected Fluid getClientWindowFluid() {
-        if (!mClientBound) return null;
         Fluid fluid = mClientFluidName.isEmpty() ? null : FluidRegistry.getFluid(mClientFluidName);
         return fluid != null ? fluid : getDefaultWindowFluid();
     }
@@ -340,7 +340,7 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase implements
      * 罐空兜底（三段式，S2 对齐奇点仓 getDefaultWindowFluid 成功先例）：
      * ① 类型串解析：含 steam→蒸汽、含 water→水（六节点现值类型串全命中）；
      * ② 家族默认：子类静态常量（{@link #getFamilyDefaultWindowFluid}），类型串缺失/未知时兜住。
-     * 保证「绑定后空罐必显示默认流体窗」（未绑定路径不进入本方法，上游已门控）。
+     * 保证绑定或未绑定时空罐均显示家族默认流体窗。
      */
     protected Fluid getDefaultWindowFluid() {
         if (mClientHubType != null) {
@@ -358,13 +358,14 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase implements
     protected abstract Fluid getFamilyDefaultWindowFluid();
 
     /**
-     * 顶面三层纹理：未绑定→[基材, 未绑框架]（灰框无窗语义拍板不动）；绑定→
+     * 顶面三层纹理：未绑定→[基材, 家族默认窗, 未绑框架]；绑定→
      * [基材, 流体窗, 接收/发送框架]（接收模式=从枢纽接受→RECEIVE，输出模式→SEND）。
      * 绑定分支的窗流体经三段兜底（罐内→类型串→家族默认）恒非空（steam 注册缺失等极端情况才自跳过）。
      */
     protected ITexture[] getTopFaceTextures(ITexture baseTexture) {
         if (!mClientBound) {
-            return new ITexture[] { baseTexture, FRAME_UNBOUND_LAYER };
+            return new ITexture[] { baseTexture, GTSRFluidWindowTexture.getOrCreate(getClientWindowFluid()),
+                FRAME_UNBOUND_LAYER };
         }
         return new ITexture[] { baseTexture, GTSRFluidWindowTexture.getOrCreate(getClientWindowFluid()),
             mClientOutputMode ? FRAME_RECEIVE_LAYER : FRAME_SEND_LAYER };
@@ -437,7 +438,17 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase implements
         mRegistered = false;
         mNextRegistrationTick = 0;
         mIsOutputMode = aNBT.hasKey("mIsOutputMode") ? aNBT.getBoolean("mIsOutputMode") : true;
-        mTransferRatePercent = aNBT.hasKey("mTransferRatePercent") ? aNBT.getInteger("mTransferRatePercent") : 100;
+        // 速率档读回；旧档无键或非法值（不在档位表内）回退默认 100
+        mTransferRatePercent = 100;
+        if (aNBT.hasKey("mTransferRatePercent")) {
+            int rate = aNBT.getInteger("mTransferRatePercent");
+            for (int r : TRANSFER_RATE_CYCLE) {
+                if (r == rate) {
+                    mTransferRatePercent = rate;
+                    break;
+                }
+            }
+        }
         // 旧档无容量档键时回退默认 100（存档兼容）
         mCapacityLimitPercent = aNBT.hasKey("mCapacityLimitPercent") ? aNBT.getInteger("mCapacityLimitPercent") : 100;
         if (aNBT.hasKey("gtsr.hubPos")) {

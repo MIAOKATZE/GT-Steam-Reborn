@@ -1,8 +1,5 @@
 package com.miaokatze.gtsr.common.machine;
 
-import static gregtech.api.enums.Textures.BlockIcons.MACHINE_STEEL_SIDE;
-import static gregtech.api.enums.Textures.BlockIcons.MACHINE_STEEL_TOP;
-
 import java.util.List;
 
 import net.minecraft.entity.player.EntityPlayer;
@@ -25,10 +22,10 @@ import com.miaokatze.gtsr.common.util.GTSRUtils;
 import com.miaokatze.gtsr.common.util.HubTeleportUtil;
 import com.miaokatze.gtsr.register.TextureManager;
 
+import gregtech.api.enums.Textures;
 import gregtech.api.interfaces.IIconContainer;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
-import gregtech.api.render.TextureFactory;
 import gregtech.api.util.GTModHandler;
 import gregtech.api.util.GTUtility;
 
@@ -83,6 +80,9 @@ public interface MTESingularityCompartmentBase extends IHubCacheNode {
         /** S4 容量上限档百分比（默认 100=基量；仅接收仓生效，发送仓不参与容量档）。 */
         public int capacityLimitPercent = 100;
 
+        /** 枢纽传输速率档百分比（默认 100；四仓均支持九档）。 */
+        public int transferRatePercent = 100;
+
         // 客户端渲染副本（description packet 同步）：默认值=未绑定外观（收到包前可接受）
         public boolean clientBound = false;
 
@@ -100,7 +100,7 @@ public interface MTESingularityCompartmentBase extends IHubCacheNode {
      */
     boolean getLockedOutputMode();
 
-    /** 基础枢纽交互速率 L/s（仓=固定常量，无速率档：蒸汽两仓 8,000,000、流体两仓 256,000）。 */
+    /** 基础枢纽交互速率 L/s（蒸汽两仓 8,000,000、流体两仓 256,000，速率档在 effective getter 生效）。 */
     int getBaseHubTransferRate();
 
     /** 正面/顶面语义固定框架图标：接收仓 HUB_FRAME_RECEIVE，发送仓 HUB_FRAME_SEND。 */
@@ -194,22 +194,32 @@ public interface MTESingularityCompartmentBase extends IHubCacheNode {
         return getCapacity();
     }
 
-    /** 仓无速率档：枢纽状态 UI 列表 rate 字段恒 100。 */
+    /** 当前枢纽传输速率档百分比（默认 100，兼容旧存档）。 */
     @Override
     default int getTransferRatePercent() {
-        return 100;
+        return getHubState().transferRatePercent;
     }
 
-    /** 仓无速率档：循环为 no-op（持终端右击仓=解绑交互，GUI 速率按钮对仓无效果）。 */
+    /** 在共享九档速率值域中循环，越界值自愈归位首档 100。 */
     @Override
     default int cycleTransferRatePercent() {
-        return getTransferRatePercent();
+        int[] cycle = IHubCacheNode.TRANSFER_RATE_CYCLE;
+        HubCompartmentState s = getHubState();
+        int currentIdx = -1;
+        for (int i = 0; i < cycle.length; i++) {
+            if (cycle[i] == s.transferRatePercent) {
+                currentIdx = i;
+                break;
+            }
+        }
+        s.transferRatePercent = cycle[(currentIdx + 1) % cycle.length];
+        return s.transferRatePercent;
     }
 
-    /** 仓=固定常量速率（hub getNodeTransferRate 经本方法读仓侧常量）。 */
+    /** 仓固定基准速率按档位生效，使用 long 中间量防溢出。 */
     @Override
     default long getEffectiveHubTransferRate() {
-        return getBaseHubTransferRate();
+        return (long) getBaseHubTransferRate() * getTransferRatePercent() / 100;
     }
 
     // ===== 容量上限档（S4，仅接收仓；发送仓罐只出不进、容量上限无意义）=====
@@ -267,6 +277,7 @@ public interface MTESingularityCompartmentBase extends IHubCacheNode {
         aNBT.setBoolean("gtsr.modeLocked", true);
         // S4 容量档（仅接收仓持久化；键名与缓存节点 mCapacityLimitPercent 对称）
         if (supportsCapacityTier()) aNBT.setInteger("mCapacityLimitPercent", s.capacityLimitPercent);
+        aNBT.setInteger("mTransferRatePercent", s.transferRatePercent);
         if (s.bound) {
             NBTTagCompound hubTag = new NBTTagCompound();
             hubTag.setInteger("x", s.hubX);
@@ -292,6 +303,16 @@ public interface MTESingularityCompartmentBase extends IHubCacheNode {
         // S4 容量档读回（旧档/发送仓无键时保持默认 100，存档兼容）
         if (supportsCapacityTier() && aNBT.hasKey("mCapacityLimitPercent")) {
             s.capacityLimitPercent = aNBT.getInteger("mCapacityLimitPercent");
+        }
+        // 速率档读回；旧档无键或非法值（不在档位表内）回退默认 100。
+        if (aNBT.hasKey("mTransferRatePercent")) {
+            int rate = aNBT.getInteger("mTransferRatePercent");
+            for (int r : IHubCacheNode.TRANSFER_RATE_CYCLE) {
+                if (r == rate) {
+                    s.transferRatePercent = rate;
+                    break;
+                }
+            }
         }
         if (aNBT.hasKey("gtsr.hubPos")) {
             NBTTagCompound hubTag = aNBT.getCompoundTag("gtsr.hubPos");
@@ -331,6 +352,7 @@ public interface MTESingularityCompartmentBase extends IHubCacheNode {
         aNBT.setBoolean("gtsr.modeLocked", true);
         // S4 容量档随掉落物保留（仅接收仓）
         if (supportsCapacityTier()) aNBT.setInteger("mCapacityLimitPercent", getHubState().capacityLimitPercent);
+        aNBT.setInteger("mTransferRatePercent", getHubState().transferRatePercent);
         // 保留奇点消耗标记，避免玩家通过破坏→重新放置来重复利用蒸汽纠缠奇点
         aNBT.setBoolean("gtsr.singularity_consumed", true);
     }
@@ -421,21 +443,20 @@ public interface MTESingularityCompartmentBase extends IHubCacheNode {
      * 顶面 [近亲基材, 框架]（无流体窗，俯视即可区分收/发仓）；正面三层
      * [近亲基材, 流体窗（罐内流体/枢纽类型默认，未绑定自跳过）, 语义固定框架]；其余面近亲基类材质原样。
      */
-    default ITexture[] buildCompartmentTextures(ITexture[] kinTextures, ForgeDirection side, ForgeDirection facing) {
+    default ITexture[] buildCompartmentTextures(ITexture[] kinTextures, ForgeDirection side, ForgeDirection facing,
+        int colorIndex) {
+        ITexture baseTexture = Textures.BlockIcons.MACHINE_CASINGS[1][colorIndex + 1];
         if (side == ForgeDirection.UP) {
-            return new ITexture[] { firstKinTexture(kinTextures, TextureFactory.of(MACHINE_STEEL_TOP)),
-                getFixedFrameLayer() };
+            return new ITexture[] { baseTexture };
         }
         if (side == facing) {
-            return new ITexture[] { firstKinTexture(kinTextures, TextureFactory.of(MACHINE_STEEL_SIDE)),
-                GTSRFluidWindowTexture.getOrCreate(getClientWindowFluid()), getFixedFrameLayer() };
+            return new ITexture[] { baseTexture, GTSRFluidWindowTexture.getOrCreate(getClientWindowFluid()),
+                getFixedFrameLayer() };
         }
-        return kinTextures;
-    }
-
-    /** 近亲基材层（取近亲材质首层，空/异常回退钢机壳）。 */
-    static ITexture firstKinTexture(ITexture[] kinTextures, ITexture fallback) {
-        return kinTextures != null && kinTextures.length > 0 && kinTextures[0] != null ? kinTextures[0] : fallback;
+        if (kinTextures == null || kinTextures.length == 0) return new ITexture[] { baseTexture };
+        ITexture[] textures = kinTextures.clone();
+        textures[0] = baseTexture;
+        return textures;
     }
 
     // ===== tooltip（原 MTESingularityCompartmentBase#addAdditionalTooltipInformation 迁移）=====

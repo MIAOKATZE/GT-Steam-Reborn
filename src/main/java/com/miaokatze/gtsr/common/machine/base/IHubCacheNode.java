@@ -11,8 +11,7 @@ import net.minecraft.entity.player.EntityPlayer;
  * （transferWithBoundNodes/getNodeTransferRate）与 HubTerminal.onItemUseFirst 终端交互一律面向本接口，
  * 方法行为语义与拓宽前保持一致。
  * <p>
- * 速率档口径：缓存节点=基础速率×百分比；奇点仓=固定常量（{@link #getTransferRatePercent} 恒 100，
- * {@link #cycleTransferRatePercent} 为 no-op）。
+ * 速率档口径：缓存节点与奇点仓均为基础速率×百分比。
  * <p>
  * 容量档口径（S4）：缓存节点与接收类奇点仓支持容量上限档位（{@link #CAPACITY_LIMIT_CYCLE} 循环，
  * NBT 键 mCapacityLimitPercent 与既有 mTransferRatePercent 对称）；发送类奇点仓罐只出不进、
@@ -26,6 +25,9 @@ public interface IHubCacheNode {
      * 约定只读：实现方不得改写数组元素。
      */
     int[] CAPACITY_LIMIT_CYCLE = { 100, 80, 60, 40, 20, 10, 5 };
+
+    /** 传输速率档位（100 → 80 → 60 → 40 → 20 → 10 → 5 → 1 → 0）。 */
+    int[] TRANSFER_RATE_CYCLE = { 100, 80, 60, 40, 20, 10, 5, 1, 0 };
 
     // ===== 方向模式（奇点仓恒定锁定，见 isOutputModeLocked）=====
 
@@ -68,10 +70,10 @@ public interface IHubCacheNode {
     /** 容量（long）。 */
     long getFluidCapacityLong();
 
-    /** 交互速率百分比（奇点仓无速率档，恒 100）。 */
+    /** 交互速率百分比。 */
     int getTransferRatePercent();
 
-    /** 循环到下一档速率百分比并返回新值（奇点仓 no-op 恒 100）。 */
+    /** 循环到下一档速率百分比并返回新值。 */
     int cycleTransferRatePercent();
 
     /** 实际枢纽交互速率 L/s（节点=基础×百分比；奇点仓=固定常量）。 */

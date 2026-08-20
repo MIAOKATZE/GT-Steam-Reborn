@@ -1,17 +1,13 @@
 package com.miaokatze.gtsr.main;
 
-import net.minecraft.item.Item;
-import net.minecraftforge.client.MinecraftForgeClient;
 import net.minecraftforge.common.MinecraftForge;
 
-import com.miaokatze.gtsr.client.render.GTSRHubItemRenderer;
 import com.miaokatze.gtsr.common.fx.GTSRFXEngine;
 import com.miaokatze.gtsr.common.tick.SingularityClientFXHandler;
 
 import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.common.event.FMLInitializationEvent;
 import cpw.mods.fml.common.event.FMLPostInitializationEvent;
-import gregtech.api.GregTechAPI;
 
 /**
  * 客户端代理类
@@ -41,19 +37,12 @@ public class ClientProxy extends CommonProxy {
         GTSteamReborn.LOG.info("[2/3] 客户端初始化完成");
     }
 
-    /**
-     * 后初始化阶段 (PostInit)
-     * 晚于全部 mod（含 GT5U）的 Init 执行：GT5U 在其 Init（GTClient.onInitialization）注册自有物品渲染器，
-     * 但从未给 ItemMachines 注册过渲染器，此处唯一注册点无覆盖冲突；缓存节点/奇点仓以外的机器物品
-     * 由 GTSRHubItemRenderer.handleRenderType 恒 false 委托回 vanilla 原路径，零差异。
-     */
+    /** 后初始化阶段 (PostInit)。 */
     @Override
     public void postInit(FMLPostInitializationEvent event) {
         super.postInit(event);
 
-        MinecraftForgeClient
-            .registerItemRenderer(Item.getItemFromBlock(GregTechAPI.sBlockMachines), new GTSRHubItemRenderer());
-        GTSteamReborn.LOG.info("[3/3] 缓存节点/奇点仓物品平贴图渲染器注册完成。");
+        GTSteamReborn.LOG.info("[3/3] 客户端后初始化完成。");
     }
 
 }

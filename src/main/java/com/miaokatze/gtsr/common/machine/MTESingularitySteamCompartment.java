@@ -206,7 +206,7 @@ public class MTESingularitySteamCompartment extends MTEHatchPressureSteamInput
             colorIndex,
             active,
             redstoneLevel);
-        return buildCompartmentTextures(kinTextures, sideDirection, facingDirection);
+        return buildCompartmentTextures(kinTextures, sideDirection, facingDirection, colorIndex);
     }
 
     @Override
