@@ -28,9 +28,9 @@ public final class CasingTierTextureHelper {
             case 8:
                 return GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings4, 14);
             case 9:
-                return GTUtility.getCasingTextureIndex(GregTechAPI.sBlockReinforced, 11);
+                return GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings1, 9);
             case 10:
-                return GTUtility.getCasingTextureIndex(GregTechAPI.sBlockReinforced, 10);
+                return GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasingsNH, 10);
             case 11:
                 return GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings8, 3);
             case 12:

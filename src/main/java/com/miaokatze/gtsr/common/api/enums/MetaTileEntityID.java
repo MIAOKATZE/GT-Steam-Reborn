@@ -7,24 +7,21 @@ import com.miaokatze.gtsr.config.Config;
 
 public enum MetaTileEntityID {
 
-    // --- 单方块机器段 (相对 0-49) ---
-    STEAM_CACHE_NODE(0, 1),
-    REINFORCED_STEAM_CACHE_NODE(1, 2),
-    OVERPRESSURE_STEAM_CACHE_NODE(2, 3),
-    WATER_CACHE_NODE(3, 4),
+    // --- 单方块机器段（相对 0-49；0-3 腾挪后仅保留已发布旧 ID 兼容映射） ---
+    STEAM_CACHE_NODE(6, 1, 0),
+    REINFORCED_STEAM_CACHE_NODE(7, 2, 1),
+    OVERPRESSURE_STEAM_CACHE_NODE(8, 3, 2),
+    WATER_CACHE_NODE(9, 4, 3),
+    // 0-3 预留；矿工/钻井节点位置保持不动
     SINGULARITY_MINER_NODE(4, 28),
     SINGULARITY_DRILLING_NODE(5, 29),
-    // 耐压/超压通用流体缓存节点：全新机器，OLD_ID 仅占用未用旧槽位避免覆盖 LEGACY_TO_NEW_MAP，
-    // 无旧存档机器，不注册 LegacyConverter（同 REDSTONE_HATCH 模式）
-    REINFORCED_WATER_CACHE_NODE(6, 46),
-    OVERPRESSURE_WATER_CACHE_NODE(7, 47),
-    // 奇点仓四件套（模式锁定的枢纽缓存仓）：全新机器，无旧存档机器，不注册 LegacyConverter。
-    // 旧段 0-50 已无 4 连空位，OLD_ID 取段外 51-54：LEGACY_TO_NEW_MAP 静态块按 idx<51 越界跳过，
-    // 不写入映射、不注册旧 ID，零副作用（比挤占 0/48/49 部分空位更不污染旧映射）
-    SINGULARITY_STEAM_COMPARTMENT(8, 51),
-    SINGULARITY_STEAM_OUTPUT_COMPARTMENT(9, 52),
-    SINGULARITY_FLUID_INPUT_COMPARTMENT(10, 53),
-    SINGULARITY_FLUID_OUTPUT_COMPARTMENT(11, 54),
+    REINFORCED_WATER_CACHE_NODE(10, 46),
+    OVERPRESSURE_WATER_CACHE_NODE(11, 47),
+    // 12-15 预留；奇点仓四件套使用新位置
+    SINGULARITY_STEAM_COMPARTMENT(16, 51),
+    SINGULARITY_STEAM_OUTPUT_COMPARTMENT(17, 52),
+    SINGULARITY_FLUID_INPUT_COMPARTMENT(18, 53),
+    SINGULARITY_FLUID_OUTPUT_COMPARTMENT(19, 54),
 
     // --- 多方块机器: 枢纽段 (相对 50-99) ---
     STEAM_HUB_ARRAY(50, 6),
@@ -84,6 +81,7 @@ public enum MetaTileEntityID {
 
     public final int ID;
     public final int OLD_ID;
+    public final int PUBLISHED_OLD_ID;
 
     private static final int BASE_OLD = 14620;
     private static final int BASE = 14700;
@@ -94,8 +92,13 @@ public enum MetaTileEntityID {
      * 旧段相对 ID 仅用于旧 ID 占位注册（BASE_OLD = 14620 为迁移锚点），两者共享 Config.metaIdOffset。
      */
     MetaTileEntityID(int relative, int oldRelative) {
+        this(relative, oldRelative, -1);
+    }
+
+    MetaTileEntityID(int relative, int oldRelative, int publishedOldRelative) {
         this.ID = BASE + Config.metaIdOffset + relative;
         this.OLD_ID = BASE_OLD + Config.metaIdOffset + oldRelative;
+        this.PUBLISHED_OLD_ID = publishedOldRelative < 0 ? -1 : BASE + Config.metaIdOffset + publishedOldRelative;
     }
 
     /** 结构重置三机：旧 ID 注册 [OLD] 机器而非占位转换器（旧存档不转换，留一个大版本缓冲）。 */
@@ -108,6 +111,7 @@ public enum MetaTileEntityID {
      * index = 旧绝对ID - BASE_OLD，值 = 新绝对ID；0 表示无映射。结构重置三机（STRUCTURE_RESET）不映射。
      */
     public static final int[] LEGACY_TO_NEW_MAP = new int[51];
+    public static final int[] PUBLISHED_REMAP = new int[4];
 
     static {
         for (MetaTileEntityID id : values()) {
@@ -116,11 +120,22 @@ public enum MetaTileEntityID {
             if (idx >= 0 && idx < LEGACY_TO_NEW_MAP.length) {
                 LEGACY_TO_NEW_MAP[idx] = id.ID;
             }
+            if (id.PUBLISHED_OLD_ID >= 0) {
+                int publishedIdx = id.PUBLISHED_OLD_ID - BASE;
+                if (publishedIdx >= 0 && publishedIdx < PUBLISHED_REMAP.length) {
+                    PUBLISHED_REMAP[publishedIdx] = id.ID;
+                }
+            }
         }
     }
 
-    /** 查询旧绝对 ID 对应的新绝对 ID；无映射返回 -1。 */
+    /** 查询旧绝对 ID（含已发布段及迁移段）对应的新绝对 ID；无映射返回 -1。 */
     public static int getMappedId(int oldId) {
+        int publishedIdx = oldId - BASE;
+        if (publishedIdx >= 0 && publishedIdx < PUBLISHED_REMAP.length) {
+            int publishedId = PUBLISHED_REMAP[publishedIdx];
+            if (publishedId != 0) return publishedId;
+        }
         int idx = oldId - BASE_OLD;
         if (idx < 0 || idx >= LEGACY_TO_NEW_MAP.length) return -1;
         int id = LEGACY_TO_NEW_MAP[idx];

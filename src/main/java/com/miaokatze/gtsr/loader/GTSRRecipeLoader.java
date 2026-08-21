@@ -613,8 +613,9 @@ public class GTSRRecipeLoader implements Runnable {
                 GTModHandler.addCraftingRecipe(
                     reinforcedResult,
                     GTModHandler.RecipeBits.BITSD,
-                    new Object[] { "MPM", "PTP", "MPM", 'M', "plateTripleSteel", 'P', "pipeLargeSteel", 'T',
-                        steamCacheInput });
+                    new Object[] { "ABA", "CDC", "ABA", 'A', get(OrePrefixes.plateTriple, Materials.Steel, 1), 'B',
+                        GTSRItemList.SteamEntangledSingularity.get(1), 'C',
+                        get(OrePrefixes.pipeHuge, Materials.Steel, 1), 'D', steamCacheInput });
             }
         }
 
@@ -650,8 +651,9 @@ public class GTSRRecipeLoader implements Runnable {
                 GTModHandler.addCraftingRecipe(
                     reinforcedWaterResult,
                     GTModHandler.RecipeBits.BITSD,
-                    new Object[] { "MPM", "PTP", "MPM", 'M', "plateTripleSteel", 'P', "pipeLargeSteel", 'T',
-                        waterCacheInput });
+                    new Object[] { "ABA", "CDC", "ABA", 'A', get(OrePrefixes.plateTriple, Materials.Steel, 1), 'B',
+                        GTSRItemList.SteamEntangledSingularity.get(1), 'C',
+                        get(OrePrefixes.pipeHuge, Materials.Steel, 1), 'D', waterCacheInput });
             }
         }
 
@@ -1178,7 +1180,7 @@ public class GTSRRecipeLoader implements Runnable {
         ItemStack overpressureCacheOut = get(GTSRItemList.OverpressureSteamCacheNode, 1);
         if (!hasNull(overpressureCacheOut)) {
             ItemStack[] inputs = filterNulls(
-                GTSRItemList.SteamEntangledSingularity.get(32),
+                GTSRItemList.CriticalSteamEntangledSingularity.get(16),
                 GTSRItemList.ReinforcedSteamCacheNode.get(1),
                 get(OrePrefixes.circuit, Materials.LuV, 4),
                 ItemList.Sensor_LuV.get(2),
@@ -1187,6 +1189,7 @@ public class GTSRRecipeLoader implements Runnable {
             if (!hasNull(inputs)) {
                 GTValues.RA.stdBuilder()
                     .itemInputs(inputs)
+                    .circuit(1)
                     .itemOutputs(overpressureCacheOut)
                     .duration(90 * SECONDS)
                     .eut(TierEU.RECIPE_LuV)
@@ -1202,7 +1205,7 @@ public class GTSRRecipeLoader implements Runnable {
         ItemStack overpressureWaterCacheOut = get(GTSRItemList.OverpressureWaterCacheNode, 1);
         if (!hasNull(overpressureWaterCacheOut)) {
             ItemStack[] inputs = filterNulls(
-                GTSRItemList.SteamEntangledSingularity.get(32),
+                GTSRItemList.CriticalSteamEntangledSingularity.get(16),
                 GTSRItemList.ReinforcedWaterCacheNode.get(1),
                 get(OrePrefixes.circuit, Materials.LuV, 4),
                 ItemList.Sensor_LuV.get(2),
@@ -1211,6 +1214,7 @@ public class GTSRRecipeLoader implements Runnable {
             if (!hasNull(inputs)) {
                 GTValues.RA.stdBuilder()
                     .itemInputs(inputs)
+                    .circuit(1)
                     .itemOutputs(overpressureWaterCacheOut)
                     .duration(90 * SECONDS)
                     .eut(TierEU.RECIPE_LuV)
@@ -1221,6 +1225,70 @@ public class GTSRRecipeLoader implements Runnable {
         } else {
             warn("Skipped OverpressureWaterCacheNode recipe - output is null");
         }
+
+        // --- 奇点仓四件套（GTUDK 组装机配方） ---
+        ItemStack[] singularityInputs = filterNulls(
+            GTSRItemList.ReinforcedWaterCacheNode.get(1),
+            GTSRItemList.SteamEntangledSingularity.get(24),
+            ItemList.Sensor_LV.get(12),
+            get(OrePrefixes.circuit, Materials.LV, 24),
+            get(OrePrefixes.plate, Materials.PulsatingIron, 48));
+        ItemStack singularitySteamCompartment = get(GTSRItemList.SingularityFluidInputCompartment, 1);
+        if (!hasNull(singularityInputs) && !hasNull(singularitySteamCompartment)) GTValues.RA.stdBuilder()
+            .itemInputs(singularityInputs)
+            .circuit(1)
+            .itemOutputs(singularitySteamCompartment)
+            .fluidInputs(Materials.SolderingAlloy.getMolten(1144))
+            .duration(3200)
+            .eut(TierEU.RECIPE_LV)
+            .addTo(assemblerRecipes);
+        ItemStack[] singularitySteamOutputInputs = filterNulls(
+            GTSRItemList.ReinforcedWaterCacheNode.get(1),
+            GTSRItemList.SteamEntangledSingularity.get(24),
+            ItemList.Emitter_LV.get(12),
+            get(OrePrefixes.circuit, Materials.LV, 24),
+            get(OrePrefixes.plate, Materials.PulsatingIron, 48));
+        ItemStack singularitySteamOutputCompartment = get(GTSRItemList.SingularityFluidOutputCompartment, 1);
+        if (!hasNull(singularitySteamOutputInputs) && !hasNull(singularitySteamOutputCompartment))
+            GTValues.RA.stdBuilder()
+                .itemInputs(singularitySteamOutputInputs)
+                .circuit(2)
+                .itemOutputs(singularitySteamOutputCompartment)
+                .fluidInputs(Materials.SolderingAlloy.getMolten(1144))
+                .duration(3200)
+                .eut(TierEU.RECIPE_LV)
+                .addTo(assemblerRecipes);
+        ItemStack[] singularityFluidInputs = filterNulls(
+            GTSRItemList.ReinforcedSteamCacheNode.get(1),
+            GTSRItemList.SteamEntangledSingularity.get(16),
+            ItemList.Sensor_LV.get(8),
+            get(OrePrefixes.circuit, Materials.LV, 16),
+            get(OrePrefixes.plateTriple, Materials.Steel, 32));
+        ItemStack singularityFluidInputCompartment = get(GTSRItemList.SingularitySteamCompartment, 1);
+        if (!hasNull(singularityFluidInputs) && !hasNull(singularityFluidInputCompartment)) GTValues.RA.stdBuilder()
+            .itemInputs(singularityFluidInputs)
+            .circuit(1)
+            .itemOutputs(singularityFluidInputCompartment)
+            .fluidInputs(Materials.SolderingAlloy.getMolten(1144))
+            .duration(3200)
+            .eut(TierEU.RECIPE_LV)
+            .addTo(assemblerRecipes);
+        ItemStack[] singularityFluidOutputInputs = filterNulls(
+            GTSRItemList.ReinforcedSteamCacheNode.get(1),
+            GTSRItemList.SteamEntangledSingularity.get(16),
+            ItemList.Emitter_LV.get(8),
+            get(OrePrefixes.circuit, Materials.LV, 16),
+            get(OrePrefixes.plateTriple, Materials.Steel, 32));
+        ItemStack singularityFluidOutputCompartment = get(GTSRItemList.SingularitySteamOutputCompartment, 1);
+        if (!hasNull(singularityFluidOutputInputs) && !hasNull(singularityFluidOutputCompartment))
+            GTValues.RA.stdBuilder()
+                .itemInputs(singularityFluidOutputInputs)
+                .circuit(2)
+                .itemOutputs(singularityFluidOutputCompartment)
+                .fluidInputs(Materials.SolderingAlloy.getMolten(1144))
+                .duration(3200)
+                .eut(TierEU.RECIPE_LV)
+                .addTo(assemblerRecipes);
 
         // --- 超压枢纽存储单元 ---
         ItemStack overpressureHubOut = get(GTSRItemList.OverpressureHubStorageUnit, 1);
@@ -1385,33 +1453,6 @@ public class GTSRRecipeLoader implements Runnable {
             GTModHandler.RecipeBits.BITSD,
             new Object[] { "ABA", "CDC", "ABA", 'A', "screwSteel", 'B', "plateTripleSteel", 'C', "plateTripleBronze",
                 'D', GTSRItemList.HubStorageUnit.get(1) });
-
-        // 奇点仓四件套（参照仓室升级链模板 "ABA","CDC","ABA"：A=材质螺丝、B/C=板材/管材、D=奇点核心件/下位物）：
-        // 蒸汽两仓=钢系+蒸汽纠缠奇点（输出仓为接收仓升级式，D=下位物，避免同形配方冲突）；
-        // 流体两仓=青铜系（对齐蓄水枢纽输入/输出仓材料口径）+蒸汽纠缠奇点（输出仓同为下位物升级式）
-        GTModHandler.addCraftingRecipe(
-            GTSRItemList.SingularitySteamCompartment.get(1),
-            GTModHandler.RecipeBits.BITSD,
-            new Object[] { "ABA", "CDC", "ABA", 'A', "screwSteel", 'B', "plateSteel", 'C', "plateSteel", 'D',
-                GTSRItemList.SteamEntangledSingularity.get(1) });
-
-        GTModHandler.addCraftingRecipe(
-            GTSRItemList.SingularitySteamOutputCompartment.get(1),
-            GTModHandler.RecipeBits.BITSD,
-            new Object[] { "ABA", "CDC", "ABA", 'A', "screwSteel", 'B', "plateSteel", 'C', "plateSteel", 'D',
-                GTSRItemList.SingularitySteamCompartment.get(1) });
-
-        GTModHandler.addCraftingRecipe(
-            GTSRItemList.SingularityFluidInputCompartment.get(1),
-            GTModHandler.RecipeBits.BITSD,
-            new Object[] { "ABA", "CDC", "ABA", 'A', "screwBronze", 'B', "plateBronze", 'C', "pipeLargeBronze", 'D',
-                GTSRItemList.SteamEntangledSingularity.get(1) });
-
-        GTModHandler.addCraftingRecipe(
-            GTSRItemList.SingularityFluidOutputCompartment.get(1),
-            GTModHandler.RecipeBits.BITSD,
-            new Object[] { "ABA", "CDC", "ABA", 'A', "screwBronze", 'B', "plateBronze", 'C', "pipeLargeBronze", 'D',
-                GTSRItemList.SingularityFluidInputCompartment.get(1) });
 
         log("Hatch recipes done.");
     }

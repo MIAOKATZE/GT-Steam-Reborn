@@ -669,8 +669,8 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
                 Pair.of(GregTechAPI.sBlockCasings8, 6), // Tier 6 - Advanced Rhodium Palladium
                 Pair.of(GregTechAPI.sBlockCasings8, 7), // Tier 7 - Advanced Iridium
                 Pair.of(GregTechAPI.sBlockCasings4, 14), // Tier 8 - Mining Osmiridium (UV)
-                Pair.of(GregTechAPI.sBlockReinforced, 11), // Tier 9 - Reinforced Machine Casing (UHV)
-                Pair.of(GregTechAPI.sBlockReinforced, 10), // Tier 10 - Naquadah Reinforced (UEV)
+                Pair.of(GregTechAPI.sBlockCasings1, 9), // Tier 9 - UHV Machine Casing
+                Pair.of(GregTechAPI.sBlockCasingsNH, 10), // Tier 10 - UEV Machine Casing
                 Pair.of(GregTechAPI.sBlockCasings8, 3), // Tier 11 - Mining Black Plutonium (UIV)
                 Pair.of(GregTechAPI.sBlockCasings8, 10)); // Tier 12 - Radiant Naquadah Alloy (UMV)
         }
@@ -746,10 +746,8 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
             if (meta == 7) return 7;
             if (meta == 10) return 12; // Radiant Naquadah Alloy (UMV)
         }
-        if (block == GregTechAPI.sBlockReinforced) {
-            if (meta == 11) return 9; // Reinforced Machine Casing (UHV)
-            if (meta == 10) return 10; // Naquadah Reinforced (UEV)
-        }
+        if (block == GregTechAPI.sBlockCasings1 && meta == 9) return 9;
+        if (block == GregTechAPI.sBlockCasingsNH && meta == 10) return 10;
         return null;
     }
 

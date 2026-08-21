@@ -76,6 +76,11 @@ public class MachineLoader {
             "gtsr.legacy.converter.steam_cache_node",
             "[OLD] Steam Cache Node",
             MetaTileEntityID.STEAM_CACHE_NODE.ID);
+        new MTELegacyConverter(
+            MetaTileEntityID.STEAM_CACHE_NODE.PUBLISHED_OLD_ID,
+            "gtsr.legacy.converter.v3_steam_cache_node",
+            "[OLD] Steam Cache Node",
+            MetaTileEntityID.STEAM_CACHE_NODE.ID);
         GTSRItemList.ReinforcedSteamCacheNode.set(
             new MTEReinforcedSteamCacheNode(
                 MetaTileEntityID.REINFORCED_STEAM_CACHE_NODE.ID,
@@ -84,6 +89,11 @@ public class MachineLoader {
         new MTELegacyConverter(
             MetaTileEntityID.REINFORCED_STEAM_CACHE_NODE.OLD_ID,
             "gtsr.legacy.converter.reinforced_steam_cache_node",
+            "[OLD] Reinforced Steam Cache Node",
+            MetaTileEntityID.REINFORCED_STEAM_CACHE_NODE.ID);
+        new MTELegacyConverter(
+            MetaTileEntityID.REINFORCED_STEAM_CACHE_NODE.PUBLISHED_OLD_ID,
+            "gtsr.legacy.converter.v3_reinforced_steam_cache_node",
             "[OLD] Reinforced Steam Cache Node",
             MetaTileEntityID.REINFORCED_STEAM_CACHE_NODE.ID);
         GTSRItemList.OverpressureHubStorageUnit.set(
@@ -105,6 +115,11 @@ public class MachineLoader {
             MetaTileEntityID.WATER_CACHE_NODE.OLD_ID,
             "gtsr.legacy.converter.water_cache_node",
             "[OLD] Water Cache Node",
+            MetaTileEntityID.WATER_CACHE_NODE.ID);
+        new MTELegacyConverter(
+            MetaTileEntityID.WATER_CACHE_NODE.PUBLISHED_OLD_ID,
+            "gtsr.legacy.converter.v3_water_cache_node",
+            "[OLD] Universal Fluid Cache Node",
             MetaTileEntityID.WATER_CACHE_NODE.ID);
         // 耐压/超压通用流体缓存节点：全新 ID，无旧存档机器，不加 LegacyConverter（同红石仓模式）
         GTSRItemList.ReinforcedWaterCacheNode.set(
@@ -269,6 +284,11 @@ public class MachineLoader {
         new MTELegacyConverter(
             MetaTileEntityID.OVERPRESSURE_STEAM_CACHE_NODE.OLD_ID,
             "gtsr.legacy.converter.overpressure_steam_cache_node",
+            "[OLD] Overpressure Steam Cache Node",
+            MetaTileEntityID.OVERPRESSURE_STEAM_CACHE_NODE.ID);
+        new MTELegacyConverter(
+            MetaTileEntityID.OVERPRESSURE_STEAM_CACHE_NODE.PUBLISHED_OLD_ID,
+            "gtsr.legacy.converter.v3_overpressure_steam_cache_node",
             "[OLD] Overpressure Steam Cache Node",
             MetaTileEntityID.OVERPRESSURE_STEAM_CACHE_NODE.ID);
 
