@@ -107,17 +107,17 @@ The Hub-Node system is GTSR's core innovation, enabling cross-chunk and cross-di
 
 #### Binding Mechanism / 绑定机制
 
-Hold a node item and right-click a hub controller to bind. Singularity cost varies by node type (steam nodes: 0/1/8 by tier; universal fluid nodes: all 0; singularity steam (output) compartments: 1 each; miner/driller: 1). Steam/Water hubs support 3-state cycle: output mode → input mode → unbind. Singularity compartments are mode-locked: when already bound, right-click only unbinds (no mode flip), and the terminal/GUI cannot switch their direction either. Nodes auto-register with their hub on first tick. Breaking a bound node drops it with the binding retained.
+Hold a node item and right-click a hub controller to bind. Singularity cost varies by node type (steam nodes: 0/1/8 by tier; universal fluid nodes: all 0; singularity steam (output) compartments: 1 each; miner/driller: 1). Steam/Water hubs support 3-state cycle: output mode → input mode → unbind. Singularity compartments are mode-locked: when already bound, right-click only unbinds (no mode flip), and the terminal/GUI cannot switch their direction either. Bound nodes re-register with their hub idempotently every 600 ticks (30 s; retried 20 ticks after failure), so if a hub is demolished and rebuilt in place, bindings recover automatically within 30 seconds; hubs without a chip still prune dangling binding records (only fluid transfer requires a chip). Breaking a bound node drops it with the binding retained.
 
-手持节点物品右键枢纽控制器绑定。奇点消耗因节点类型而异（蒸汽节点按等级 0/1/8；通用流体节点全家 0；奇点蒸汽仓/输出仓各 1；采矿/钻井 1）。蒸汽枢纽阵列/蓄水枢纽阵列支持3状态循环：输出模式→输入模式→解绑。奇点仓模式锁定：已绑定时右键仅解绑（无模式翻转），终端/界面也无法切换其方向。节点在首次tick时自动向枢纽注册。破坏已绑定节点，掉落物保留绑定。
+手持节点物品右键枢纽控制器绑定。奇点消耗因节点类型而异（蒸汽节点按等级 0/1/8；通用流体节点全家 0；奇点蒸汽仓/输出仓各 1；采矿/钻井 1）。蒸汽枢纽阵列/蓄水枢纽阵列支持3状态循环：输出模式→输入模式→解绑。奇点仓模式锁定：已绑定时右键仅解绑（无模式翻转），终端/界面也无法切换其方向。绑定成功后节点每 600 tick（30 秒）幂等重登记（失败 20 tick 重试），拆除枢纽后原位重建最迟 30 秒自动恢复绑定；未装芯片的枢纽也会清理悬空绑定记录（仅流体传输需要芯片）。破坏已绑定节点，掉落物保留绑定。
 
 > 📷 图片待配：节点绑定枢纽的操作示意图或流程截图
 
 #### Transfer Mechanism / 传输机制
 
-- **Steam/Water Hub**: Every 20 ticks, transfers fluid between hub and bound nodes at each node's rate. Screwdriver on hub toggles overflow output mode. Rate tiers (cache nodes only; singularity compartments use fixed constant rates): Hub Terminal right-click cycles 100%→80%→60%→...→1%→0%. Capacity limit tiers (cache nodes + the two receiving compartments): empty-hand Shift+right-click or the GUI button cycles 100%→80%→60%→40%→20%→10%→5%.
+- **Steam/Water Hub**: Every 20 ticks, transfers fluid between hub and bound nodes at each node's effective rate. Screwdriver on hub toggles overflow output mode. Rate tiers (all six cache nodes + all four singularity compartments; compartment effective rate = fixed base × tier — steam compartments base 8,000,000 L/s, fluid compartments 256,000 L/s): right-click (non-sneaking) with the Hub Terminal cycles 100%→80%→60%→40%→20%→10%→5%→2%→1%→0%. Capacity limit tiers (six cache nodes + the two receiving compartments): sneak+right-click with the Hub Terminal or the GUI button cycles 100%→80%→60%→40%→20%→10%→5%→2%→1%.
 - **Drilling Hub**: Consumes steam to drive active nodes. Miner node outputs → hub Output Bus. Drilling node outputs → hub Output Hatch.
-- **蒸汽枢纽阵列/蓄水枢纽阵列**：每20tick在枢纽与绑定节点间传输流体。螺丝刀切换溢流输出模式。速率档仅缓存节点（枢纽终端右击循环 100%→80%→…→1%→0%，奇点仓为固定常量速率）；容量上限档（缓存节点+两个接收类奇点仓）见下方缓存节点一节。
+- **蒸汽枢纽阵列/蓄水枢纽阵列**：每20tick在枢纽与绑定节点间按有效速率传输流体。螺丝刀切换溢流输出模式。速率档适用于六缓存节点+四个奇点仓（奇点仓有效速率=固定基准×档位：蒸汽两仓基准 8,000,000 L/s、流体两仓 256,000 L/s；枢纽终端右击循环 100%→80%→60%→40%→20%→10%→5%→2%→1%→0%）；容量上限档（六缓存节点+两个接收类奇点仓）由终端潜行右击或 GUI 按钮循环 100%→80%→60%→40%→20%→10%→5%→2%→1%（见下方缓存节点一节）。
 - **钻井枢纽**：消耗蒸汽驱动活跃节点。采矿节点产出→枢纽输出总线。钻井节点产出→枢纽输出仓。
 
 #### Hub Terminal / 枢纽终端
@@ -131,7 +131,7 @@ The Hub Terminal is a handheld remote management device (crafted with 1 Steam En
 <p align="center"><img src="README/HubTerminalCacheStatus.png" width="400"><br><em>缓存枢纽状态终端 / Cache Hub Status Terminal</em></p>
 使用枢纽终端右击控制器，打开状态GUI。 / Right-click the controller on the hub terminal and open the status GUI.
 
-- Per-node display (icon, custom name, coords + dimension, fluid type, storage/capacity) with 16×16 hover-tooltip buttons: rate cycle (cache nodes) / capacity cycle / mode toggle (node↔hub) / auto-output; in-place renaming; handheld shortcuts: right-click node to cycle rate, sneak+right-click to toggle mode, empty-hand sneak+right-click to cycle capacity limit (singularity compartments are mode-locked — the mode button and shortcut are rejected; send-type compartments have no capacity tier) / 每节点显示（图标、自定义名、坐标+维度、流体类型、储量/容量），16×16 悬浮说明按钮：速率循环（仅缓存节点）/ 容量循环 / 模式切换（节点↔枢纽）/ 自动输出；内嵌重命名；手持快捷操作：右击节点循环速率、潜行右击切换模式、空手潜行右击循环容量上限（奇点仓方向锁定，模式按钮与快捷操作均被拒绝；发送类仓无容量档）
+- Per-node display (icon, custom name, coords + dimension, fluid type, storage/capacity) with 16×16 hover-tooltip buttons: rate cycle (six cache nodes + four singularity compartments) / capacity cycle / mode toggle (node↔hub) / auto-output / teleport above the node (consumes 1 Steam Entangled Singularity from your main inventory only after a safe landing spot is confirmed); in-place renaming; handheld shortcuts: right-click (non-sneaking) a node/compartment with the terminal to cycle its rate tier, sneak+right-click to cycle the capacity limit tier (send-type compartments show a locked hint) — direction modes can only be switched via this UI's mode button or by right-clicking the hub while holding the node (singularity compartments are mode-locked and reject both; send-type compartments have no capacity tier) / 每节点显示（图标、自定义名、坐标+维度、流体类型、储量/容量），16×16 悬浮说明按钮：速率循环（六缓存节点+四奇点仓）/ 容量循环 / 模式切换（节点↔枢纽）/ 自动输出 / 传送至节点正上方（确认安全落点后才从主物品栏消耗 1 个蒸汽纠缠奇点）；内嵌重命名；手持快捷操作：终端右击（非潜行）节点/仓循环传输速率档、终端潜行右击循环容量上限档（发送类仓提示容量锁定）——方向模式仅能经本界面模式按钮或持节点右击枢纽切换（奇点仓方向锁定，两者均被拒绝；发送类仓无容量档）
 
 **Drilling Hub Status Terminal / 钻井枢纽状态终端**:
 
@@ -488,9 +488,9 @@ Dual mode cycled by screwdriver: Steam Compression / Steam Decompression; each s
 
 <p align="center"><img src="README/MTECacheNodes.png" width="360" alt="缓存节点 / Cache Nodes"><br><em>缓存节点 / Cache Nodes</em></p>
 
-Digital tank-based nodes that bind to hubs for cross-chunk/dimensional fluid transfer. Support fluid lock, auto-output, void excess, terminal-adjustable hub transfer rate (cache nodes only) and a 7-step capacity limit tier (see below).
+Digital tank-based nodes that bind to hubs for cross-chunk/dimensional fluid transfer. Support fluid lock, auto-output, void excess, terminal-adjustable hub transfer rate (six cache nodes + four singularity compartments) and a 9-step capacity limit tier (see below).
 
-基于数字储罐的节点，绑定枢纽实现跨区块/维度流体传输。支持流体锁定、自动输出、溢出虚空、枢纽终端调整交互速率（仅缓存节点）与容量上限档（见下）。
+基于数字储罐的节点，绑定枢纽实现跨区块/维度流体传输。支持流体锁定、自动输出、溢出虚空、枢纽终端调整交互速率（六缓存节点+四奇点仓）与容量上限档（见下）。
 
 | 节点 Node | 接受流体 Accepted Fluid | 容量 Capacity | 输出速率 Output Rate | 枢纽交互速率 Hub Rate | 绑定奇点消耗 Binding Cost |
 |---|---|---|---|---|---|
@@ -503,15 +503,15 @@ Digital tank-based nodes that bind to hubs for cross-chunk/dimensional fluid tra
 
 **容量上限档 / Capacity Limit Tier**
 
-缓存节点与两个接收类奇点仓（奇点通用蒸汽仓、奇点输入仓）支持容量上限档 {100, 80, 60, 40, 20, 10, 5}%：空手 Shift+右击本地循环，或在枢纽终端状态界面点击容量按钮远程循环；档位随 NBT 持久化，降档后超出部分温和保留在罐内（拒绝新入、不销毁）。发送类仓罐只出不进，无容量档。
+缓存节点与两个接收类奇点仓（奇点通用蒸汽仓、奇点输入仓）支持容量上限档 {100, 80, 60, 40, 20, 10, 5, 2, 1}%：终端潜行右击本地循环，或在枢纽终端状态界面点击容量按钮远程循环；档位随 NBT 持久化，降档后超出部分温和保留在罐内（拒绝新入、不销毁）。发送类仓罐只出不进，无容量档。
 
-Cache nodes and the two receiving compartments (Singularity Steam Compartment, Singularity Fluid Input Compartment) support a capacity limit tier of {100, 80, 60, 40, 20, 10, 5}%: cycle locally with an empty-hand Shift+right-click, or remotely via the capacity button in the terminal status UI; the tier persists in NBT, and fluid above a lowered limit is kept softly in the tank (new input rejected, nothing destroyed). Send-type compartments have no capacity tier (output-only tank).
+Cache nodes and the two receiving compartments (Singularity Steam Compartment, Singularity Fluid Input Compartment) support a capacity limit tier of {100, 80, 60, 40, 20, 10, 5, 2, 1}%: cycle locally with a terminal sneak+right-click, or remotely via the capacity button in the terminal status UI; the tier persists in NBT, and fluid above a lowered limit is kept softly in the tank (new input rejected, nothing destroyed). Send-type compartments have no capacity tier (output-only tank).
 
 **节点外观 / Node Appearance**
 
-缓存节点顶面为三层渲染：基材 + 流体窗 + 状态框（未绑定时为基材 + 灰色框架）。奇点仓正面为三层（基材 + 流体窗 + 语义固定框架），顶面为基材 + 框架。流体窗实时显示罐内流体（与 NEI 图标同源外观，罐空时按绑定枢纽类型显示默认流体）；状态框颜色语义：红橙=从枢纽接受、紫蓝=向枢纽输送、灰=未绑定/控制器。物品栏图标经 IItemRenderer 同步区分绑定态与内容流体，世界内外观在状态变化时由服务端发包即时切换。
+缓存节点顶面为三层渲染：基材 + 流体窗 + 状态框，未绑定时也显示家族默认流体窗（状态框为灰色框架）。基材随结构成型档位（青铜顶/钢顶/超压机壳），状态框颜色语义：红橙=从枢纽接受、紫蓝=向枢纽输送、灰=未绑定/控制器，边框为 11 帧中心透明动画材质。奇点仓正面为三层（底材 + 流体窗 + 语义固定框架：接收恒红橙/发送恒紫蓝）、顶面仅底材单层；底材跟随所在枢纽结构机壳（未成型时回退 LV 机壳）。两枢纽控制器正面为 [等级基材 + 内缩流体窗 + 专用框架] 三层（罐空回退默认流体：蒸汽阵列→蒸汽、蓄水阵列→水）。流体窗实时显示罐内流体（与 NEI 图标同源外观）；世界内外观在状态变化时由服务端发包即时切换；物品形态为 GT 原生 3D 渲染。
 
-Cache nodes render a 3-layer top face: base texture + fluid window + status frame (unbound = base + gray frame). Singularity compartments render a 3-layer front face (base + fluid window + semantically fixed frame) and a 2-layer top face (base + frame). The fluid window shows the stored fluid in real time (same appearance source as the NEI icon; falls back to the hub's default fluid when empty); status frame colors: red-orange = receiving from hub, purple-blue = sending to hub, gray = unbound/controller. Inventory icons are kept in sync via IItemRenderer (binding state + stored fluid), and the in-world look switches immediately via a server packet on state change.
+Cache nodes render a 3-layer top face: base texture + fluid window + status frame, and the family-default fluid window is shown even when unbound (status frame gray). The base texture follows the formed structure tier (bronze/steel top, overpressure casing); status frame colors: red-orange = receiving from hub, purple-blue = sending to hub, gray = unbound/controller — the frame is an 11-frame animated texture with a transparent center. Singularity compartments render a 3-layer front face (base + fluid window + semantically fixed frame: receive always red-orange / send always purple-blue) and a single-layer top face (base only); their base texture follows the casing of the hub structure (falling back to the LV casing when unformed). Both hub controllers render a 3-layer front face [tier base + inset fluid window + dedicated frame] (empty tank falls back to the default fluid: Steam Hub → steam, Water Hub → water). The fluid window shows the stored fluid in real time (same appearance source as the NEI icon); the in-world look switches immediately via a server packet on state change; item form uses GT's native 3D rendering.
 
 **蒸汽缓存节点 / Steam Cache Node**
 
@@ -744,20 +744,22 @@ Installable on any multiblock machine; outputs a redstone signal based on a sele
 
 **奇点仓四件套 / Singularity Compartments (4)**
 
-模式锁定的枢纽缓存仓（仓室基类：分别继承耐压蒸汽仓/耐压蒸汽输出仓/枢纽输入仓/枢纽输出仓近亲，可加入对应枢纽多方块结构）：奇点通用蒸汽仓与奇点通用蒸汽输出仓绑蒸汽枢纽阵列（每仓消耗 1 蒸汽纠缠奇点、蒸汽全家族兼容）；奇点输入仓与奇点输出仓绑蓄水枢纽阵列（0 消耗、任意流体）。仓=从枢纽接受（接收），输出仓=向枢纽输送（发送），方向恒定锁定：终端/界面/右键均无法切换，已绑定时右键仅解绑。仓无 GUI、无速率档（枢纽交互为固定常量速率）；管道无法向仓注入流体（canTankBeFilled/acceptsFluid 阻断，仅枢纽链路交互）；两个接收仓支持容量上限档（空手 Shift+右击或终端 GUI 按钮，见缓存节点一节）。破坏掉落保留绑定。
+模式锁定的枢纽缓存仓（仓室基类：分别继承耐压蒸汽仓/耐压蒸汽输出仓/枢纽输入仓/枢纽输出仓近亲，可加入对应枢纽多方块结构）：奇点通用蒸汽仓与奇点通用蒸汽输出仓绑蒸汽枢纽阵列（每仓消耗 1 蒸汽纠缠奇点、蒸汽全家族兼容）；奇点输入仓与奇点输出仓绑蓄水枢纽阵列（0 消耗、任意流体）。仓=从枢纽接受（接收），输出仓=向枢纽输送（发送），方向恒定锁定：终端/界面/右键均无法切换，已绑定时右键仅解绑。仓无 GUI；管道无法向仓注入流体（canTankBeFilled/acceptsFluid 阻断，仅枢纽链路交互）；枢纽交互有效速率=固定基准×传输速率档（终端右击循环，见传输机制一节）；两个接收仓支持容量上限档（终端潜行右击或终端 GUI 按钮，见缓存节点一节）。破坏掉落保留绑定。
 
-Mode-locked hub cache compartments (hatch-based: each extends its pressure-steam/hub hatch counterpart and can join the corresponding hub multiblock structure): the Singularity Steam Compartment and Singularity Steam Output Compartment bind to the Steam Hub Array (1 Steam Entangled Singularity each; full steam family); the Singularity Fluid Input/Output Compartments bind to the Water Hub Array (0 cost, any fluid). Compartment = receive from hub, Output Compartment = send to hub — the direction is permanently locked: terminal/GUI/right-click cannot switch it, and right-clicking a bound compartment only unbinds. Compartments have no GUI and no rate tier (fixed constant hub rate); pipes cannot inject into them (canTankBeFilled/acceptsFluid blocked — hub link only); the two receiving compartments support the capacity limit tier (empty-hand Shift+right-click or the terminal GUI button, see Cache Nodes). Breaking drops retain the binding.
+Mode-locked hub cache compartments (hatch-based: each extends its pressure-steam/hub hatch counterpart and can join the corresponding hub multiblock structure): the Singularity Steam Compartment and Singularity Steam Output Compartment bind to the Steam Hub Array (1 Steam Entangled Singularity each; full steam family); the Singularity Fluid Input/Output Compartments bind to the Water Hub Array (0 cost, any fluid). Compartment = receive from hub, Output Compartment = send to hub — the direction is permanently locked: terminal/GUI/right-click cannot switch it, and right-clicking a bound compartment only unbinds. Compartments have no GUI; pipes cannot inject into them (canTankBeFilled/acceptsFluid blocked — hub link only); their effective hub interaction rate = fixed base × transfer rate tier (cycled by a terminal right-click, see Transfer Mechanism); the two receiving compartments support the capacity limit tier (terminal sneak+right-click or the terminal GUI button, see Cache Nodes). Breaking drops retain the binding.
 
-| 仓 Compartment | 绑定枢纽 Bound Hub | 容量 Capacity | 交互速率 Hub Rate | 流体范围 Fluid Range | 方向（锁定）Direction (locked) | 消耗 Cost |
+| 仓 Compartment | 绑定枢纽 Bound Hub | 容量 Capacity | 基准交互速率 Base Hub Rate | 流体范围 Fluid Range | 方向（锁定）Direction (locked) | 消耗 Cost |
 |---|---|---|---|---|---|---|
 | 奇点通用蒸汽仓 Singularity Steam Compartment | 蒸汽枢纽 Steam Hub | 8M L | 8,000,000 L/s | 蒸汽全家族 Full steam family | 从枢纽接受 Receive | 1 奇点 1 singularity |
 | 奇点通用蒸汽输出仓 Singularity Steam Output Compartment | 蒸汽枢纽 Steam Hub | 8M L | 8,000,000 L/s | 蒸汽全家族 Full steam family | 向枢纽输送 Send | 1 奇点 1 singularity |
 | 奇点输入仓 Singularity Fluid Input Compartment | 蓄水枢纽阵列 Water Hub Array | 256K L | 256,000 L/s | 任意流体 Any fluid | 从枢纽接受 Receive | 0 |
 | 奇点输出仓 Singularity Fluid Output Compartment | 蓄水枢纽阵列 Water Hub Array | 256K L | 256,000 L/s | 任意流体 Any fluid | 向枢纽输送 Send | 0 |
 
-正面/顶面使用语义固定框架（接收/发送），正面另带流体窗（罐内流体优先，罐空按枢纽类型显示默认流体）。
+> 📷 图片待配：奇点仓四件套合图
 
-Front/top faces use the semantically fixed frame (receive/send); the front face also carries a fluid window (stored fluid first, hub-type default when empty).
+正面为 [底材, 流体窗, 语义固定框架（接收/发送）] 三层，顶面仅底材单层；底材跟随所在枢纽结构机壳，未成型时回退 LV 机壳。正面流体窗实时显示罐内流体，罐空回退该仓默认流体（蒸汽仓→蒸汽、流体仓→水）。
+
+The front face renders [base, fluid window, semantically fixed frame (receive/send)] in 3 layers, and the top face is a single base layer only; the base texture follows the casing of the hub structure (LV casing fallback when unformed). The front fluid window shows the stored fluid in real time, falling back to the compartment's default fluid when empty (steam pair → steam, fluid pair → water).
 
 **枢纽存储单元（3种）/ Hub Storage Units (3)**
 
@@ -773,7 +775,7 @@ Hub/Reinforced/Overpressure Hub Storage Units for stacking layers in hub arrays.
 
 ## Items / 物品
 
-- **枢纽终端 / Hub Terminal**: Handheld remote management device. Right-click a hub controller to open its status terminal (cache hub / drilling hub); right-click a node to cycle rate (cache nodes), sneak+right-click to toggle mode, empty-hand sneak+right-click to cycle the capacity limit tier. Crafted with 1 Steam Entangled Singularity + 8 steel plates. / 手持远程管理设备。右击枢纽控制器打开对应状态终端（缓存枢纽/钻井枢纽）；右击节点循环速率（仅缓存节点）、潜行右击切换模式、空手潜行右击循环容量上限档。1 蒸汽纠缠奇点 + 8 钢板合成。
+- **枢纽终端 / Hub Terminal**: Handheld remote management device. Right-click a hub controller to open its status terminal (cache hub / drilling hub); right-click (non-sneaking) a node/compartment to cycle its rate tier (six cache nodes + four singularity compartments), sneak+right-click to cycle the capacity limit tier (send-type compartments show a locked hint). Crafted with 1 Steam Entangled Singularity + 8 steel plates. / 手持远程管理设备。右击枢纽控制器打开对应状态终端（缓存枢纽/钻井枢纽）；终端右击（非潜行）节点/仓循环传输速率档（六缓存节点+四奇点仓）、终端潜行右击循环容量上限档（发送类仓提示容量锁定）。1 蒸汽纠缠奇点 + 8 钢板合成。
 - **蒸汽纠缠奇点 / Steam Entangled Singularity**: Core binding material. Produced by the Steam Singularity Entangler (heat accumulation). Consumed when binding nodes to hubs and in various crafting recipes.
 - **临界蒸汽纠缠奇点 / Critical Steam Entangled Singularity**: Produced by the Critical Entangled Singularity Stabilizer (CSC). Used for more advanced crafting and amplification; legend says it can tear apart the very limits of dimensions... DANGEROUS — it explodes when dropped, never discard it! The drop explosion guarantees that normal singularities will appear. / 由临界纠缠奇点稳定装置（CSC）产出。用于更高级的合成与增幅；传说其能够彻底撕开维度的限制……危险品——掉落物会爆炸，请勿丢弃！掉落爆炸保证会出现普通奇点。
 - **枢纽奇点芯片 / Hub Singularity Chip**: Required for Steam/Water Hub node binding, multiplies hub total capacity ×5. Also enables hub debug mode when right-clicked. Removing it from a filled hub swallows the stored fluid exceeding the reduced capacity.

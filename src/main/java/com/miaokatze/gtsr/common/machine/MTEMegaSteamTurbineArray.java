@@ -108,6 +108,8 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
 
     public int mTheoreticalEUt = 0;
     public int mSteamConsumption = 0;
+    /** 全精度基础 EU/t：tier 10+ 临界+芯片下基数超 int max，int mEUt 饱和会把 ×5 增幅压成约 2×；不持久化，首 tick 重算 */
+    public long mFullBaseEUt = 0;
 
     /** 全局功率参数：10/8/6/4/2，对应 100%/80%/60%/40%/20% */
     public int mPowerParameter = 10;
@@ -299,7 +301,7 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
             "base_output",
             "gtsr.gui.turbine_array.output",
             EnumChatFormatting.GREEN,
-            () -> Math.abs((long) mEUt * mEfficiency / 10000),
+            () -> Math.abs(mFullBaseEUt * mEfficiency / 10000),
             value -> NumberFormatUtil.formatNumber((long) value) + " EU/t");
         registerEntry(
             "power_parameter",
@@ -459,7 +461,7 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
                 .dynamicString(
                     () -> EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.turbine_array.output")
                         + EnumChatFormatting.GREEN
-                        + NumberFormatUtil.formatNumber(Math.abs((long) mEUt * mEfficiency / 10000))
+                        + NumberFormatUtil.formatNumber(Math.abs(mFullBaseEUt * mEfficiency / 10000))
                         + " EU/t")
                 .setTextAlignment(Alignment.CenterLeft)
                 .setDefaultColor(COLOR_TEXT_WHITE.get())
@@ -949,7 +951,10 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
     }
 
     public long getVoltage() {
-        return GTValues.V[mCasingTier > 0 ? mCasingTier : 1];
+        // 客户端 GUI 构建期（DoubleSyncValue 构造即求值词条）可能带着未同步/越界的 mCasingTier
+        // （GT5U 自定义数据通道仅 7 位 &0x7F，见 onValueUpdate/getUpdateData），索引硬钳制防 AIOOBE
+        int tier = Math.min(mCasingTier > 0 ? mCasingTier : 1, GTValues.V.length - 1);
+        return GTValues.V[tier];
     }
 
     private float getCustomEfficiency() {
@@ -1022,6 +1027,7 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
         ArrayList<FluidStack> tFluids = getStoredFluids();
         if (tFluids.isEmpty() && mPressureSteamInputs.isEmpty() && mOverpressureInputs.isEmpty()) {
             mEUt = 0;
+            mFullBaseEUt = 0;
             mTheoreticalEUt = 0;
             mSteamConsumption = 0;
             mSteamType = SteamType.NONE;
@@ -1070,7 +1076,7 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
 
         for (SteamType type : STEAM_TYPE_PRIORITY) {
             if (!availableTypes.contains(type)) continue;
-            // 基础 EU/t: 不含当前效率，由父类 onRunningTick 统一乘 mEfficiency/10000 后输出
+            // 基础 EU/t: 不含当前效率，由 onRunningTick 覆写（mFullBaseEUt long 路径）统一乘 mEfficiency/10000 后输出
             // 当前理论 EU/t = baseEUt × efficiency
             long base = (long) (voltage * mPowerParameter * groupCount * powerMult * getEffectiveSteamEffFactor(type));
             long eu = (long) (base * efficiency);
@@ -1094,6 +1100,7 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
 
         if (selectedType == SteamType.NONE) {
             mEUt = 0;
+            mFullBaseEUt = 0;
             mTheoreticalEUt = 0;
             mSteamConsumption = 0;
             mSteamType = SteamType.NONE;
@@ -1110,15 +1117,16 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
         depleteSteamByType(selectedType, mSteamConsumption);
         outputCoolingProduct(selectedType, mSteamConsumption);
 
-        // mEUt 存储基础 EU/t，平滑插值也基于基础值（钳制防溢出）
-        long baseClamped = Math.min(Integer.MAX_VALUE, baseEUt);
-        int difference = (int) (baseClamped - mEUt);
-        int maxChange = Math.max(10, Math.abs(difference) / 100);
+        // mFullBaseEUt 存储全精度基础 EU/t，平滑插值在 long 域进行（公式不变：每 tick 1% 或 10）；
+        // int mEUt 保留钳制派生值仅供父类内部使用，实际输出走 onRunningTick 覆写的 long 路径
+        long difference = baseEUt - mFullBaseEUt;
+        long maxChange = Math.max(10, Math.abs(difference) / 100);
         if (Math.abs(difference) > maxChange) {
-            mEUt += maxChange * (difference > 0 ? 1 : -1);
+            mFullBaseEUt += maxChange * (difference > 0 ? 1 : -1);
         } else {
-            mEUt = (int) baseClamped;
+            mFullBaseEUt = baseEUt;
         }
+        mEUt = (int) Math.min(Integer.MAX_VALUE, mFullBaseEUt);
 
         mMaxProgresstime = 1;
         int maxEff = getMaxEfficiencyLimit(selectedType);
@@ -1167,6 +1175,19 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
     public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
         super.onPostTick(aBaseMetaTileEntity, aTick);
         // 奇点模式计时/消耗已由 MTESingularityModeMachineBase.onPostTick 统一处理
+    }
+
+    /**
+     * 全精度输出：父类 onRunningTick 以 int mEUt 输出（tier 10+ 被钳到 2^31-1，临界 ×5 增幅饱和成约 2×），
+     * 改用 mFullBaseEUt（long）输出；路由与既有规则不变（dynamo 吞吐不足即爆炸）。
+     */
+    @Override
+    public boolean onRunningTick(ItemStack aStack) {
+        if (mFullBaseEUt > 0) {
+            addEnergyOutput(mFullBaseEUt * mEfficiency / 10000);
+            return true;
+        }
+        return super.onRunningTick(aStack);
     }
 
     public long getMaximumOutput() {
@@ -1475,7 +1496,7 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
         info.add(
             EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.turbine_array.output_power")
                 + EnumChatFormatting.GREEN
-                + NumberFormatUtil.formatNumber(mTheoreticalEUt)
+                + NumberFormatUtil.formatNumber(mFullBaseEUt * mEfficiency / 10000)
                 + " EU/t");
 
         return info.toArray(new String[0]);
@@ -1488,6 +1509,9 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
         aNBT.setInteger("mCasingTier", mCasingTier);
         aNBT.setInteger("mTheoreticalEUt", mTheoreticalEUt);
         aNBT.setInteger("mSteamConsumption", mSteamConsumption);
+        // v1.10.86：持久化全精度基数——父类持久化 mEUt（钳制值），若 mFullBaseEUt 缺失，
+        // 重载后首个运行 tick 经 super 满额输出一次，随后 checkProcessing 从 0 平滑爬坡（大基数 ~46s 蒸汽照耗）
+        aNBT.setLong("mFullBaseEUt", mFullBaseEUt);
         aNBT.setInteger("mEfficiency", mEfficiency);
         aNBT.setInteger("mPowerParameter", mPowerParameter);
         // 奇点模式字段（mSingularityMode/mSingularityModeTicks）由父类 saveNBTData 持久化
@@ -1503,6 +1527,7 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
         mCasingTier = aNBT.getInteger("mCasingTier");
         mTheoreticalEUt = aNBT.getInteger("mTheoreticalEUt");
         mSteamConsumption = aNBT.getInteger("mSteamConsumption");
+        mFullBaseEUt = aNBT.getLong("mFullBaseEUt");
         mEfficiency = aNBT.getInteger("mEfficiency");
         mPowerParameter = aNBT.hasKey("mPowerParameter") ? aNBT.getInteger("mPowerParameter") : 10;
         // 整数键 mSingularityMode（0/1/2）与旧整数键 mSingularityModeLevel（无 mSingularityMode 键时）
@@ -1782,12 +1807,14 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
 
     @Override
     public void onValueUpdate(byte aValue) {
-        mCasingTier = aValue;
+        // 通道仅 7 位（&0x7F）：0=未成形（归一回 -1 保持语义），1..12=等级
+        mCasingTier = aValue > 0 ? aValue : -1;
     }
 
     @Override
     public byte getUpdateData() {
-        return (byte) mCasingTier;
+        // 未成形 -1 经 7 位通道会被掩成 127 反噬客户端（getVoltage 越界）：必须钳非负
+        return (byte) Math.max(0, mCasingTier);
     }
 
     @Override
