@@ -19,11 +19,14 @@ import javax.annotation.Nullable;
 
 import net.minecraft.block.Block;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagByte;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
+import net.minecraft.world.World;
 import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidRegistry;
@@ -1188,6 +1191,20 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
             return true;
         }
         return super.onRunningTick(aStack);
+    }
+
+    /**
+     * Waila「当前发电」修正：父类 getWailaNBTData 用 int mEUt（钳制值）写 energyUsage
+     * （MTEMultiBlockBase.java:2709-2710），tier 10+ 临界+芯片下被钳在 2^31-1×eff；
+     * 以全精度基数覆写该标签——仅显示口径，不影响实际输出路径。
+     */
+    @Override
+    public void getWailaNBTData(EntityPlayerMP player, TileEntity tile, NBTTagCompound tag, World world, int x, int y,
+        int z) {
+        super.getWailaNBTData(player, tile, tag, world, x, y, z);
+        if (mFullBaseEUt > 0 && getBaseMetaTileEntity() != null && getBaseMetaTileEntity().isActive()) {
+            tag.setLong("energyUsage", -(mFullBaseEUt * mEfficiency / 10000));
+        }
     }
 
     public long getMaximumOutput() {
