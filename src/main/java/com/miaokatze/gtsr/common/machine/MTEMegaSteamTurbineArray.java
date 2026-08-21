@@ -974,7 +974,7 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
     }
 
     /**
-     * 循环超限芯片：蒸汽效率因子按蒸汽家族内叠加，致密族只叠加致密族（致密蒸汽冷却产物本就是蒸馏水）。
+     * 循环超限芯片：仅提升输出侧蒸汽转换倍率，蒸汽家族内叠加，致密族只叠加致密族。
      * 未激活（芯片未装或叠加层不足）或 NONE 时返回类型自身因子。
      * 因子值以 SteamType.steamEffFactor 字段为单一事实来源，不在此硬编码。
      */
@@ -995,6 +995,14 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
         };
     }
 
+    /**
+     * 输出倍率配套的等效 EU/L。将芯片倍率同时应用到分母，使同一蒸汽类型的消耗保持不变。
+     */
+    private float getEffectiveSteamEuPerL(SteamType type) {
+        if (type == SteamType.NONE || type.steamEffFactor <= 0.0f) return type.euPerL;
+        return type.euPerL * getEffectiveSteamEffFactor(type) / type.steamEffFactor;
+    }
+
     public long calcSteamConsumption(SteamType type) {
         if (type == SteamType.NONE) return 0;
         int groupCount = getGroupCount();
@@ -1006,7 +1014,7 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
             * powerMult
             * Math.max(0, 1 - savings)
             * getEffectiveSteamEffFactor(type)
-            / type.euPerL);
+            / getEffectiveSteamEuPerL(type));
     }
 
     @Override
@@ -1071,7 +1079,7 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
                 * powerMult
                 * Math.max(0, 1 - savings)
                 * getEffectiveSteamEffFactor(type)
-                / type.euPerL);
+                / getEffectiveSteamEuPerL(type));
             // v1.10.61：门控 long 化——UIV/UMV 级（V[11]=33.6M、V[12]=134M）+ 3 组/临界模式时
             // 蒸汽消耗 > int max，int 求和溢出为负导致永久假 NO_FUEL（见 getTotalSteamAmount）
             long totalAvailable = getTotalSteamAmount(type);
