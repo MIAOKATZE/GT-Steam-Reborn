@@ -37,6 +37,7 @@ import com.cleanroommc.modularui.widgets.DynamicSyncedWidget;
 import com.cleanroommc.modularui.widgets.ListWidget;
 import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.cleanroommc.modularui.widgets.textfield.TextFieldWidget;
+import com.miaokatze.gtsr.common.gui.widget.ScrollKeepingListWidget;
 import com.miaokatze.gtsr.main.GTSteamReborn;
 
 import cpw.mods.fml.common.network.ByteBufUtils;
@@ -163,7 +164,9 @@ public abstract class MTECacheHubStatusGui implements IGuiHolder<PosGuiData> {
         List<CacheNodeInfo> nodes = listSync != null ? (List<CacheNodeInfo>) listSync.getValue()
             : Collections.emptyList();
 
-        ListWidget<IWidget, ?> list = new ScrollKeepingListWidget();
+        ListWidget<IWidget, ?> list = new ScrollKeepingListWidget(
+            () -> listScrollValue,
+            value -> listScrollValue = value);
         list.widthRel(1f)
             .heightRel(1f);
         if (nodes.isEmpty()) {
@@ -176,35 +179,6 @@ public abstract class MTECacheHubStatusGui implements IGuiHolder<PosGuiData> {
             list.child(buildNodeRow(info, actionSync, listSync));
         }
         return list;
-    }
-
-    /**
-     * 重建时保持滚动位置的节点列表（参考 GT5U MTESplitterModuleGui.WorkaroundListWidget）：
-     * dispose 时把当前滚动偏移写回 listScrollValue，首次 postResize 时恢复——
-     * scrollTo 内部 clamp 会自动钳位条目减少导致的超界偏移，无需手动处理。
-     * shouldScroll 保证仅在重建后的首次布局恢复一次，后续面板拖动等 resize 不回跳。
-     */
-    private class ScrollKeepingListWidget extends ListWidget<IWidget, ScrollKeepingListWidget> {
-
-        private boolean shouldScroll = true;
-
-        @Override
-        public void postResize() {
-            super.postResize();
-            if (shouldScroll && getScrollData() != null) {
-                getScrollData().scrollTo(getScrollArea(), listScrollValue);
-                shouldScroll = false;
-            }
-        }
-
-        @Override
-        public void dispose() {
-            super.dispose();
-            // 未初始化即被丢弃时 scrollData 为 null，保留旧值即可
-            if (getScrollData() != null) {
-                listScrollValue = getScrollData().getScroll();
-            }
-        }
     }
 
     /**
