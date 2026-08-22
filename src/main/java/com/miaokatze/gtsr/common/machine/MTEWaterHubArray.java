@@ -333,16 +333,11 @@ public class MTEWaterHubArray extends MTEHubArrayBase<MTEWaterHubArray>
     public int mReinforcedHubUnitCount = 0;
     public int mOverpressureHubUnitCount = 0;
     private int mCasingAmount = 0;
-    private int mCasingTier = -1;
-    private int mPipeTier = -1;
-    private int mFrameTier = -1;
     public int mStackCount = 0;
     public long mWaterStored = 0;
     private String mStoredFluidType = null;
     // 存储流体名的客户端副本（description packet 同步）：正面流体窗取流体用，空串=无（回退默认水）
     private String mClientFluidName = "";
-    /** 渲染状态同步去重 key（存储流体名），服务端 onPostTick 维护，变化才 issueTileUpdate。 */
-    private String mLastSyncKey = null;
 
     public MTEWaterHubArray(int aID, String aName, String aNameRegional) {
         super(aID, aName, aNameRegional);
@@ -726,6 +721,7 @@ public class MTEWaterHubArray extends MTEHubArrayBase<MTEWaterHubArray>
         return false;
     }
 
+    @Override
     public long getTotalCapacity() {
         long base = (long) mHubUnitCount * HUB_UNIT_CAPACITY
             + (long) mReinforcedHubUnitCount * REINFORCED_HUB_UNIT_CAPACITY
@@ -751,31 +747,31 @@ public class MTEWaterHubArray extends MTEHubArrayBase<MTEWaterHubArray>
         return mOverpressureHubUnitCount;
     }
 
+    // A04-H3 族差异钩子（服务 tick 骨架见 MTEHubArrayBase.onPostTick：容量钳制→自动输出→同步去重→周期分派）
     @Override
-    public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
-        super.onPostTick(aBaseMetaTileEntity, aTick);
-        if (!aBaseMetaTileEntity.isServerSide() || !mMachine) return;
+    protected long getStoredFluidAmount() {
+        return mWaterStored;
+    }
 
-        long totalCapacity = getTotalCapacity();
-        if (mWaterStored > totalCapacity) {
-            mWaterStored = totalCapacity;
-        }
+    @Override
+    protected void setStoredFluidAmount(long amount) {
+        mWaterStored = amount;
+    }
 
-        autoOutputWater();
+    @Override
+    protected String storedFluidNameForSync() {
+        return mStoredFluidType != null ? mStoredFluidType : "";
+    }
 
-        // 存储流体名变化才发 description packet（首流锁定与抽干清空自然覆盖，量变化不发包，稳态零流量）
-        String syncKey = mStoredFluidType != null ? mStoredFluidType : "";
-        if (!syncKey.equals(mLastSyncKey)) {
-            mLastSyncKey = syncKey;
-            aBaseMetaTileEntity.issueTileUpdate();
-        }
-
+    @Override
+    protected void onBoundTransferTick(long aTick) {
         if (aTick % BOUND_TRANSFER_INTERVAL == 0) {
-            transferWithBoundNodes(aBaseMetaTileEntity);
+            transferWithBoundNodes();
         }
     }
 
-    private void autoOutputWater() {
+    @Override
+    protected void autoOutputStored() {
         if (mWaterStored <= 0 || mStoredFluidType == null) return;
         long capacity = getTotalCapacity();
         for (MTEWaterHubOutputHatch hatch : mWaterOutputHatches) {
@@ -800,52 +796,33 @@ public class MTEWaterHubArray extends MTEHubArrayBase<MTEWaterHubArray>
         }
     }
 
-    private void transferWithBoundNodes(IGregTechTileEntity aBaseMetaTileEntity) {
-        boolean chipInstalled = hasChipInstalled();
-        ArrayList<BoundCacheNode> invalidNodes = new ArrayList<>();
-
-        for (BoundCacheNode node : mBoundNodes) {
-            // 节点类型过滤对齐蒸汽枢纽模式：resolveCacheNodeType+acceptsNodeType，而非硬 instanceof
-            IHubCacheNode cacheNode = resolveCacheNode(node, true);
-            if (cacheNode == null) {
-                if (node.lastLookupLoaded) invalidNodes.add(node);
-                continue;
-            }
-            if (!acceptsNodeType(resolveNodeType(cacheNode)) || node.cachedTile == null) {
-                invalidNodes.add(node);
-                continue;
-            }
-            if (!chipInstalled) continue;
-            IGregTechTileEntity gtTile = node.cachedTile;
-
-            if (node.isOutputMode) {
-                if (mWaterStored <= 0 || mStoredFluidType == null) continue;
-                // v1.10.61：改用节点实际速率（交互速率百分比），镜像蒸汽枢纽结构
-                int nodeRate = getNodeTransferRate(gtTile);
-                int toTransfer = (int) Math.min(nodeRate, mWaterStored);
-                FluidStack toExport = FluidStack.loadFluidStackFromNBT(createFluidTag(mStoredFluidType, toTransfer));
-                int filled = gtTile.fill(ForgeDirection.UNKNOWN, toExport, true);
-                if (filled > 0) {
-                    mWaterStored -= filled;
-                    if (mWaterStored <= 0) {
-                        mStoredFluidType = null;
-                    }
+    /**
+     * 单节点传输（Water String 锁 + createFluidTag）：output 分支直扣 mWaterStored 后 fill 实放，
+     * input 分支 drain→receiveWater（异种拒收由 receiveWater 的单一类型锁负责）。
+     * v1.10.61：按节点实际速率（交互速率百分比）传输，镜像蒸汽枢纽结构。
+     */
+    @Override
+    protected void transferOneNode(BoundCacheNode node, IGregTechTileEntity gtTile, int nodeRate) {
+        if (node.isOutputMode) {
+            if (mWaterStored <= 0 || mStoredFluidType == null) return;
+            int toTransfer = (int) Math.min(nodeRate, mWaterStored);
+            FluidStack toExport = FluidStack.loadFluidStackFromNBT(createFluidTag(mStoredFluidType, toTransfer));
+            int filled = gtTile.fill(ForgeDirection.UNKNOWN, toExport, true);
+            if (filled > 0) {
+                mWaterStored -= filled;
+                if (mWaterStored <= 0) {
+                    mStoredFluidType = null;
                 }
-            } else {
-                // v1.10.61：改用节点实际速率（交互速率百分比），镜像蒸汽枢纽结构；
-                // 异种拒收由 receiveWater 的 mStoredFluidType 单一类型锁负责
-                int nodeRate = getNodeTransferRate(gtTile);
-                FluidStack drained = gtTile.drain(ForgeDirection.UNKNOWN, nodeRate, false);
-                if (drained != null && drained.amount > 0) {
-                    int accepted = receiveWater(drained, true);
-                    if (accepted > 0) {
-                        gtTile.drain(ForgeDirection.UNKNOWN, accepted, true);
-                    }
+            }
+        } else {
+            FluidStack drained = gtTile.drain(ForgeDirection.UNKNOWN, nodeRate, false);
+            if (drained != null && drained.amount > 0) {
+                int accepted = receiveWater(drained, true);
+                if (accepted > 0) {
+                    gtTile.drain(ForgeDirection.UNKNOWN, accepted, true);
                 }
             }
         }
-
-        mBoundNodes.removeAll(invalidNodes);
     }
 
     // 蓄水枢纽族绑定差异钩子（绑定流主体见 MTEHubArrayBase.onRightclick / bindOne / bindWhole 模板；
@@ -932,24 +909,22 @@ public class MTEWaterHubArray extends MTEHubArrayBase<MTEWaterHubArray>
         aNBT.setInteger("mHubUnitCount", mHubUnitCount);
         aNBT.setInteger("mReinforcedHubUnitCount", mReinforcedHubUnitCount);
         aNBT.setInteger("mOverpressureHubUnitCount", mOverpressureHubUnitCount);
-        aNBT.setInteger("mSetTier", mSetTier);
-        aNBT.setInteger("mCasingTier", mCasingTier);
-        aNBT.setInteger("mPipeTier", mPipeTier);
-        aNBT.setInteger("mFrameTier", mFrameTier);
-        aNBT.setBoolean("mOverflowInput", mOverflowInput);
         if (mStoredFluidType != null) {
             aNBT.setString("mStoredFluidType", mStoredFluidType);
         }
-        if (!mBoundNodes.isEmpty()) {
-            NBTTagCompound boundListTag = new NBTTagCompound();
-            boundListTag.setInteger("count", mBoundNodes.size());
-            for (int i = 0; i < mBoundNodes.size(); i++) {
-                NBTTagCompound nodeTag = new NBTTagCompound();
-                writeBoundNodeToNBT(mBoundNodes.get(i), nodeTag);
-                boundListTag.setTag("node" + i, nodeTag);
-            }
-            aNBT.setTag("mBoundNodes", boundListTag);
+    }
+
+    /** 绑定列表 Water 格式：count+nodeN（键名/结构为存档契约，与 Steam 侧 NBTTagList 格式并存）。 */
+    @Override
+    protected void saveBoundNodes(NBTTagCompound aNBT) {
+        NBTTagCompound boundListTag = new NBTTagCompound();
+        boundListTag.setInteger("count", mBoundNodes.size());
+        for (int i = 0; i < mBoundNodes.size(); i++) {
+            NBTTagCompound nodeTag = new NBTTagCompound();
+            writeBoundNodeToNBT(mBoundNodes.get(i), nodeTag);
+            boundListTag.setTag("node" + i, nodeTag);
         }
+        aNBT.setTag("mBoundNodes", boundListTag);
     }
 
     @Override
@@ -959,22 +934,18 @@ public class MTEWaterHubArray extends MTEHubArrayBase<MTEWaterHubArray>
         mHubUnitCount = aNBT.getInteger("mHubUnitCount");
         mReinforcedHubUnitCount = aNBT.getInteger("mReinforcedHubUnitCount");
         mOverpressureHubUnitCount = aNBT.getInteger("mOverpressureHubUnitCount");
-        mSetTier = aNBT.getInteger("mSetTier");
-        mCasingTier = aNBT.getInteger("mCasingTier");
-        mPipeTier = aNBT.getInteger("mPipeTier");
-        mFrameTier = aNBT.getInteger("mFrameTier");
-        mOverflowInput = aNBT.getBoolean("mOverflowInput");
         if (aNBT.hasKey("mStoredFluidType")) {
             mStoredFluidType = aNBT.getString("mStoredFluidType");
         }
-        mBoundNodes.clear();
-        if (aNBT.hasKey("mBoundNodes")) {
-            NBTTagCompound boundListTag = aNBT.getCompoundTag("mBoundNodes");
-            int count = boundListTag.getInteger("count");
-            for (int i = 0; i < count; i++) {
-                NBTTagCompound nodeTag = boundListTag.getCompoundTag("node" + i);
-                mBoundNodes.add(readBoundNodeFromNBT(nodeTag));
-            }
+    }
+
+    @Override
+    protected void loadBoundNodes(NBTTagCompound aNBT) {
+        NBTTagCompound boundListTag = aNBT.getCompoundTag("mBoundNodes");
+        int count = boundListTag.getInteger("count");
+        for (int i = 0; i < count; i++) {
+            NBTTagCompound nodeTag = boundListTag.getCompoundTag("node" + i);
+            mBoundNodes.add(readBoundNodeFromNBT(nodeTag));
         }
     }
 

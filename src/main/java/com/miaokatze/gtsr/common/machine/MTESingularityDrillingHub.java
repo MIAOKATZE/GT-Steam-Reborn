@@ -544,14 +544,8 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
         bound.getTagCompound()
             .setBoolean("gtsr.singularity_consumed", true);
 
-        // 写 hubPos（覆盖绑定他处的旧 hubPos）
-        NBTTagCompound hubTag = new NBTTagCompound();
-        hubTag.setInteger("x", myX);
-        hubTag.setInteger("y", myY);
-        hubTag.setInteger("z", myZ);
-        hubTag.setInteger("dim", myDim);
-        hubTag.setString("type", type);
-        hubTag.setBoolean("output", true);
+        // 写 hubPos（覆盖绑定他处的旧 hubPos；机器侧 output 恒 true 直存，miner 差异键补写）
+        NBTTagCompound hubTag = HubBindingUtil.createHubPosTag(myX, myY, myZ, myDim, type, true);
         hubTag.setBoolean("miner", isMiner);
         bound.getTagCompound()
             .setTag("gtsr.hubPos", hubTag);
@@ -584,17 +578,8 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
                 .setBoolean("gtsr.singularity_consumed", true);
         }
 
-        // 整堆写 hubPos（覆盖绑定他处的旧 hubPos）
-        if (!held.hasTagCompound()) {
-            held.setTagCompound(new NBTTagCompound());
-        }
-        NBTTagCompound hubTag = new NBTTagCompound();
-        hubTag.setInteger("x", myX);
-        hubTag.setInteger("y", myY);
-        hubTag.setInteger("z", myZ);
-        hubTag.setInteger("dim", myDim);
-        hubTag.setString("type", type);
-        hubTag.setBoolean("output", true);
+        // 整堆写 hubPos（覆盖绑定他处的旧 hubPos；机器侧 output 恒 true 直存，miner 差异键补写）
+        NBTTagCompound hubTag = HubBindingUtil.createHubPosTag(myX, myY, myZ, myDim, type, true);
         hubTag.setBoolean("miner", isMiner);
         held.getTagCompound()
             .setTag("gtsr.hubPos", hubTag);

@@ -82,6 +82,11 @@ public abstract class MTEHubArrayBase<T extends MTEHubArrayBase<T>> extends MTEG
     protected final ArrayList<BoundCacheNode> mBoundNodes = new ArrayList<>();
     public boolean mOverflowInput = false;
     public int mSetTier = -1;
+    protected int mCasingTier = -1;
+    protected int mPipeTier = -1;
+    protected int mFrameTier = -1;
+    /** 渲染状态同步去重 key（存储流体名），服务端 onPostTick 维护，变化才 issueTileUpdate。 */
+    protected String mLastSyncKey = null;
 
     protected MTEHubArrayBase(int aID, String aName, String aNameRegional) {
         super(aID, aName, aNameRegional);
@@ -93,6 +98,9 @@ public abstract class MTEHubArrayBase<T extends MTEHubArrayBase<T>> extends MTEG
 
     /** 按实际节点类判定本族类型字符串（类型串族不同，两侧各持一份 instanceof 表）。 */
     protected abstract String resolveNodeType(IHubCacheNode node);
+
+    /** 总容量公式（单元计数与芯片倍率族差异：字段留子类，读数经本钩子单点化）。 */
+    public abstract long getTotalCapacity();
 
     public boolean isFormed() {
         return mMachine;
@@ -401,6 +409,120 @@ public abstract class MTEHubArrayBase<T extends MTEHubArrayBase<T>> extends MTEG
 
     // endregion
 
+    // region 周期服务 tick / 跨节点传输 / 存档 NBT 骨架（A04-H3）
+
+    /**
+     * 服务端成形后每 tick 骨架：容量钳制 → 自动输出 → 存储流体名同步去重 → 周期传输分派。
+     * 族差异经钩子保留（储量表量/自动输出/同步流体名/传输触发节奏——Steam 用持久化 mTickCounter
+     * 计数、Water 用世界 aTick 取模，触发语义两侧原样保留）。
+     */
+    @Override
+    public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
+        super.onPostTick(aBaseMetaTileEntity, aTick);
+        if (!aBaseMetaTileEntity.isServerSide() || !mMachine) return;
+
+        long totalCapacity = getTotalCapacity();
+        if (getStoredFluidAmount() > totalCapacity) {
+            setStoredFluidAmount(totalCapacity);
+        }
+
+        autoOutputStored();
+
+        // 存储流体名变化才发 description packet（首流锁定与抽干清空自然覆盖，量变化不发包，稳态零流量）
+        String syncKey = storedFluidNameForSync();
+        if (!syncKey.equals(mLastSyncKey)) {
+            mLastSyncKey = syncKey;
+            aBaseMetaTileEntity.issueTileUpdate();
+        }
+
+        onBoundTransferTick(aTick);
+    }
+
+    /** 当前存储量（族字段 mSteamStored/mWaterStored 留子类）。 */
+    protected abstract long getStoredFluidAmount();
+
+    /** 写当前存储量（容量钳制用）。 */
+    protected abstract void setStoredFluidAmount(long amount);
+
+    /** 自动输出族差异钩子（溢流输出 hatch 循环；水侧 toExport 经 createFluidTag）。 */
+    protected abstract void autoOutputStored();
+
+    /** 存储流体名同步 key（空串=无存储；蒸汽侧取 FluidStack 名、水侧取 String 名）。 */
+    protected abstract String storedFluidNameForSync();
+
+    /** 周期传输触发族差异钩子（Steam：mTickCounter 计数取模；Water：世界 aTick 取模）。 */
+    protected abstract void onBoundTransferTick(long aTick);
+
+    /**
+     * 跨维度绑定传输模板：逐绑定节点解析（行为触发可加载目标区块）→ 类型过滤 → 无效节点清理 →
+     * 芯片门控后按方向调用族传输钩子。流体锁表示差异（Steam FluidStack 锁 / Water String 锁）
+     * 全部收敛在 transferOneNode 钩子内。
+     */
+    protected void transferWithBoundNodes() {
+        boolean chipInstalled = hasChipInstalled();
+        ArrayList<BoundCacheNode> invalidNodes = new ArrayList<>();
+
+        for (BoundCacheNode node : mBoundNodes) {
+            // 节点类型过滤对齐 resolveNodeType+acceptsNodeType，而非硬 instanceof
+            IHubCacheNode cacheNode = resolveCacheNode(node, true);
+            if (cacheNode == null) {
+                if (node.lastLookupLoaded) invalidNodes.add(node);
+                continue;
+            }
+            if (!acceptsNodeType(resolveNodeType(cacheNode)) || node.cachedTile == null) {
+                invalidNodes.add(node);
+                continue;
+            }
+            if (!chipInstalled) continue;
+            transferOneNode(node, node.cachedTile, getNodeTransferRate(node.cachedTile));
+        }
+
+        mBoundNodes.removeAll(invalidNodes);
+    }
+
+    /** 单节点传输钩子：output 分支枢纽→节点（extract 族），input 分支节点→枢纽（receive 族）。 */
+    protected abstract void transferOneNode(BoundCacheNode node, IGregTechTileEntity gte, int nodeRate);
+
+    /**
+     * 存档骨架：公共 tier/溢流开关字段与绑定列表键名两侧一致（mSetTier/mCasingTier/mPipeTier/
+     * mFrameTier/mOverflowInput/mBoundNodes），族字段（储量/单元计数/存储流体）留子类写入；
+     * 绑定列表两侧格式不同（Steam NBTTagList 逐项 / Water count+nodeN），经钩子保留。
+     */
+    @Override
+    public void saveNBTData(NBTTagCompound aNBT) {
+        super.saveNBTData(aNBT);
+        aNBT.setInteger("mSetTier", mSetTier);
+        aNBT.setInteger("mCasingTier", mCasingTier);
+        aNBT.setInteger("mPipeTier", mPipeTier);
+        aNBT.setInteger("mFrameTier", mFrameTier);
+        aNBT.setBoolean("mOverflowInput", mOverflowInput);
+        if (!mBoundNodes.isEmpty()) {
+            saveBoundNodes(aNBT);
+        }
+    }
+
+    /** 绑定列表序列化钩子（mBoundNodes 键名固定，内部格式两侧保留）。 */
+    protected abstract void saveBoundNodes(NBTTagCompound aNBT);
+
+    @Override
+    public void loadNBTData(NBTTagCompound aNBT) {
+        super.loadNBTData(aNBT);
+        mSetTier = aNBT.getInteger("mSetTier");
+        mCasingTier = aNBT.getInteger("mCasingTier");
+        mPipeTier = aNBT.getInteger("mPipeTier");
+        mFrameTier = aNBT.getInteger("mFrameTier");
+        mOverflowInput = aNBT.getBoolean("mOverflowInput");
+        mBoundNodes.clear();
+        if (aNBT.hasKey("mBoundNodes")) {
+            loadBoundNodes(aNBT);
+        }
+    }
+
+    /** 绑定列表反序列化钩子（旧档两种格式各自回归）。 */
+    protected abstract void loadBoundNodes(NBTTagCompound aNBT);
+
+    // endregion
+
     // region 绑定流（onRightclick 模板 + bindOne/bindWhole + 成本钩子，吸收 O2-11 双枢纽绑定流）
 
     /** 手持物类型识别表（本族缓存节点 + 奇点仓物品；无法识别返回 null 走默认右键）。 */
@@ -586,14 +708,8 @@ public abstract class MTEHubArrayBase<T extends MTEHubArrayBase<T>> extends MTEG
         bound.getTagCompound()
             .setBoolean("gtsr.singularity_consumed", true);
 
-        // 写 hubPos（覆盖绑定他处的旧 hubPos）
-        NBTTagCompound hubTag = new NBTTagCompound();
-        hubTag.setInteger("x", myX);
-        hubTag.setInteger("y", myY);
-        hubTag.setInteger("z", myZ);
-        hubTag.setInteger("dim", myDim);
-        hubTag.setString("type", type);
-        hubTag.setBoolean("output", getLockedItemOutput(type));
+        // 写 hubPos（覆盖绑定他处的旧 hubPos；机器侧 output 按语义直存，族差异字段经钩子补写）
+        NBTTagCompound hubTag = HubBindingUtil.createHubPosTag(myX, myY, myZ, myDim, type, getLockedItemOutput(type));
         writeBindExtras(hubTag, isReinforced);
         bound.getTagCompound()
             .setTag("gtsr.hubPos", hubTag);
@@ -629,17 +745,8 @@ public abstract class MTEHubArrayBase<T extends MTEHubArrayBase<T>> extends MTEG
                 .setBoolean("gtsr.singularity_consumed", true);
         }
 
-        // 整堆写 hubPos（覆盖绑定他处的旧 hubPos）
-        if (!held.hasTagCompound()) {
-            held.setTagCompound(new NBTTagCompound());
-        }
-        NBTTagCompound hubTag = new NBTTagCompound();
-        hubTag.setInteger("x", myX);
-        hubTag.setInteger("y", myY);
-        hubTag.setInteger("z", myZ);
-        hubTag.setInteger("dim", myDim);
-        hubTag.setString("type", type);
-        hubTag.setBoolean("output", getLockedItemOutput(type));
+        // 整堆写 hubPos（覆盖绑定他处的旧 hubPos；机器侧 output 按语义直存，族差异字段经钩子补写）
+        NBTTagCompound hubTag = HubBindingUtil.createHubPosTag(myX, myY, myZ, myDim, type, getLockedItemOutput(type));
         writeBindExtras(hubTag, isReinforced);
         held.getTagCompound()
             .setTag("gtsr.hubPos", hubTag);

@@ -22,6 +22,7 @@ import com.gtnewhorizons.modularui.api.screen.UIBuildContext;
 import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import com.miaokatze.gtsr.common.machine.MTESingularityDrillingHub;
+import com.miaokatze.gtsr.common.util.HubBindingUtil;
 
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.HarvestTool;
@@ -147,14 +148,9 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity implements IAdd
     @Override
     public void saveNBTData(NBTTagCompound aNBT) {
         if (isBound()) {
-            NBTTagCompound hubTag = new NBTTagCompound();
-            hubTag.setInteger("x", mHubX);
-            hubTag.setInteger("y", mHubY);
-            hubTag.setInteger("z", mHubZ);
-            hubTag.setInteger("dim", mHubDim);
-            hubTag.setString("type", mHubType);
-            hubTag.setBoolean("output", mIsOutputMode);
-            aNBT.setTag("gtsr.hubPos", hubTag);
+            aNBT.setTag(
+                "gtsr.hubPos",
+                HubBindingUtil.createHubPosTag(mHubX, mHubY, mHubZ, mHubDim, mHubType, mIsOutputMode));
         }
         aNBT.setBoolean("mIsWorking", mIsWorking);
         aNBT.setInteger("mWorkProgress", mWorkProgress);
@@ -175,15 +171,10 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity implements IAdd
     public void setItemNBT(NBTTagCompound aNBT) {
         super.setItemNBT(aNBT);
         if (isBound()) {
-            NBTTagCompound hubTag = new NBTTagCompound();
-            hubTag.setInteger("x", mHubX);
-            hubTag.setInteger("y", mHubY);
-            hubTag.setInteger("z", mHubZ);
-            hubTag.setInteger("dim", mHubDim);
-            hubTag.setString("type", mHubType);
             // 与 saveNBTData 一致：output 直接存储 mIsOutputMode，无反转
-            hubTag.setBoolean("output", mIsOutputMode);
-            aNBT.setTag("gtsr.hubPos", hubTag);
+            aNBT.setTag(
+                "gtsr.hubPos",
+                HubBindingUtil.createHubPosTag(mHubX, mHubY, mHubZ, mHubDim, mHubType, mIsOutputMode));
         }
         // 保留奇点消耗标记，避免玩家通过破坏→重新放置来重复利用蒸汽纠缠奇点
         aNBT.setBoolean("gtsr.singularity_consumed", true);

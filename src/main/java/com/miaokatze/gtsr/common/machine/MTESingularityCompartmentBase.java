@@ -22,6 +22,7 @@ import com.miaokatze.gtsr.common.machine.base.IHubCacheNode;
 import com.miaokatze.gtsr.common.machine.base.MTESteamHubOutputHatch;
 import com.miaokatze.gtsr.common.util.GTSRFluidWindowTexture;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
+import com.miaokatze.gtsr.common.util.HubBindingUtil;
 import com.miaokatze.gtsr.common.util.HubTeleportUtil;
 import com.miaokatze.gtsr.register.TextureManager;
 
@@ -303,15 +304,10 @@ public interface MTESingularityCompartmentBase extends IHubCacheNode {
         if (supportsCapacityTier()) aNBT.setInteger("mCapacityLimitPercent", s.capacityLimitPercent);
         aNBT.setInteger("mTransferRatePercent", s.transferRatePercent);
         if (s.bound) {
-            NBTTagCompound hubTag = new NBTTagCompound();
-            hubTag.setInteger("x", s.hubX);
-            hubTag.setInteger("y", s.hubY);
-            hubTag.setInteger("z", s.hubZ);
-            hubTag.setInteger("dim", s.hubDim);
-            hubTag.setString("type", s.hubType);
             // 反转语义：与 setItemNBT 一致，与读取侧的反转解读对称
-            hubTag.setBoolean("output", !isOutputMode());
-            aNBT.setTag("gtsr.hubPos", hubTag);
+            aNBT.setTag(
+                "gtsr.hubPos",
+                HubBindingUtil.createHubPosTag(s.hubX, s.hubY, s.hubZ, s.hubDim, s.hubType, !isOutputMode()));
         }
     }
 
@@ -371,15 +367,10 @@ public interface MTESingularityCompartmentBase extends IHubCacheNode {
     default void writeCompartmentItemNBT(NBTTagCompound aNBT) {
         HubCompartmentState s = getHubState();
         if (s.bound) {
-            NBTTagCompound hubTag = new NBTTagCompound();
-            hubTag.setInteger("x", s.hubX);
-            hubTag.setInteger("y", s.hubY);
-            hubTag.setInteger("z", s.hubZ);
-            hubTag.setInteger("dim", s.hubDim);
-            hubTag.setString("type", s.hubType);
             // 反转语义：与 saveNBTData 一致
-            hubTag.setBoolean("output", !isOutputMode());
-            aNBT.setTag("gtsr.hubPos", hubTag);
+            aNBT.setTag(
+                "gtsr.hubPos",
+                HubBindingUtil.createHubPosTag(s.hubX, s.hubY, s.hubZ, s.hubDim, s.hubType, !isOutputMode()));
         }
         aNBT.setBoolean("gtsr.modeLocked", true);
         // S4 容量档随掉落物保留（仅接收仓）

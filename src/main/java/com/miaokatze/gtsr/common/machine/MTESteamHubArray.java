@@ -358,17 +358,12 @@ public class MTESteamHubArray extends MTEHubArrayBase<MTESteamHubArray>
     public int mReinforcedUnitCount = 0;
     public int mOverpressureUnitCount = 0;
     private int mCasingAmount = 0;
-    private int mCasingTier = -1;
-    private int mPipeTier = -1;
     private int mGearTier = -1;
-    private int mFrameTier = -1;
     public int mStackCount = 0;
     public long mSteamStored = 0;
     private FluidStack mStoredFluidType = null;
     // 存储流体名的客户端副本（description packet 同步）：正面流体窗取流体用，空串=无（回退默认蒸汽）
     private String mClientFluidName = "";
-    /** 渲染状态同步去重 key（存储流体名），服务端 onPostTick 维护，变化才 issueTileUpdate。 */
-    private String mLastSyncKey = null;
     private long mTickCounter = 0;
 
     public MTESteamHubArray(int aID, String aName, String aNameRegional) {
@@ -748,6 +743,7 @@ public class MTESteamHubArray extends MTEHubArrayBase<MTESteamHubArray>
         return false;
     }
 
+    @Override
     public long getTotalCapacity() {
         long base = (long) mPressureUnitCount * MTESteamStorageUnit.PRESSURE_CAPACITY
             + (long) mReinforcedUnitCount * MTESteamStorageUnit.REINFORCED_CAPACITY
@@ -768,33 +764,33 @@ public class MTESteamHubArray extends MTEHubArrayBase<MTESteamHubArray>
         return mReinforcedUnitCount;
     }
 
+    // A04-H3 族差异钩子（服务 tick 骨架见 MTEHubArrayBase.onPostTick：容量钳制→自动输出→同步去重→周期分派）
     @Override
-    public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
-        super.onPostTick(aBaseMetaTileEntity, aTick);
-        if (!aBaseMetaTileEntity.isServerSide() || !mMachine) return;
+    protected long getStoredFluidAmount() {
+        return mSteamStored;
+    }
 
-        long totalCapacity = getTotalCapacity();
-        if (mSteamStored > totalCapacity) {
-            mSteamStored = totalCapacity;
-        }
+    @Override
+    protected void setStoredFluidAmount(long amount) {
+        mSteamStored = amount;
+    }
 
-        autoOutputSteam();
-
-        // 存储流体名变化才发 description packet（首流锁定与抽干清空自然覆盖，量变化不发包，稳态零流量）
-        String syncKey = mStoredFluidType != null ? mStoredFluidType.getFluid()
+    @Override
+    protected String storedFluidNameForSync() {
+        return mStoredFluidType != null ? mStoredFluidType.getFluid()
             .getName() : "";
-        if (!syncKey.equals(mLastSyncKey)) {
-            mLastSyncKey = syncKey;
-            aBaseMetaTileEntity.issueTileUpdate();
-        }
+    }
 
+    @Override
+    protected void onBoundTransferTick(long aTick) {
         mTickCounter++;
         if (mTickCounter % 20 == 0) {
             transferWithBoundNodes();
         }
     }
 
-    private void autoOutputSteam() {
+    @Override
+    protected void autoOutputStored() {
         if (mSteamStored <= 0 || mStoredFluidType == null) return;
         long capacity = getTotalCapacity();
         for (MTESteamHubOutputHatch hatch : mSteamOutputHatches) {
@@ -892,41 +888,22 @@ public class MTESteamHubArray extends MTEHubArrayBase<MTESteamHubArray>
         return "";
     }
 
-    private void transferWithBoundNodes() {
-        boolean chipInstalled = hasChipInstalled();
-        ArrayList<BoundCacheNode> invalidNodes = new ArrayList<>();
-
-        for (BoundCacheNode node : mBoundNodes) {
-            IHubCacheNode cacheNode = resolveCacheNode(node, true);
-            if (cacheNode == null) {
-                if (node.lastLookupLoaded) invalidNodes.add(node);
-                continue;
+    /** 单节点传输（Steam FluidStack 锁）：output 分支 extractSteam→fill 实扣，input 分支 drain→receiveSteam。 */
+    @Override
+    protected void transferOneNode(BoundCacheNode node, IGregTechTileEntity gte, int nodeRate) {
+        if (node.isOutputMode) {
+            FluidStack toSend = extractSteam(nodeRate, false);
+            if (toSend != null && toSend.amount > 0) {
+                int filled = gte.fill(ForgeDirection.UNKNOWN, toSend, true);
+                if (filled > 0) extractSteam(filled, true);
             }
-            if (!acceptsNodeType(resolveNodeType(cacheNode)) || node.cachedTile == null) {
-                invalidNodes.add(node);
-                continue;
-            }
-            if (!chipInstalled) continue;
-            IGregTechTileEntity gte = node.cachedTile;
-
-            if (node.isOutputMode) {
-                int nodeRate = getNodeTransferRate(gte);
-                FluidStack toSend = extractSteam(nodeRate, false);
-                if (toSend != null && toSend.amount > 0) {
-                    int filled = gte.fill(ForgeDirection.UNKNOWN, toSend, true);
-                    if (filled > 0) extractSteam(filled, true);
-                }
-            } else {
-                int nodeRate = getNodeTransferRate(gte);
-                FluidStack drained = gte.drain(ForgeDirection.UNKNOWN, nodeRate, false);
-                if (drained != null && drained.amount > 0) {
-                    int received = receiveSteam(drained, true);
-                    if (received > 0) gte.drain(ForgeDirection.UNKNOWN, received, true);
-                }
+        } else {
+            FluidStack drained = gte.drain(ForgeDirection.UNKNOWN, nodeRate, false);
+            if (drained != null && drained.amount > 0) {
+                int received = receiveSteam(drained, true);
+                if (received > 0) gte.drain(ForgeDirection.UNKNOWN, received, true);
             }
         }
-
-        mBoundNodes.removeAll(invalidNodes);
     }
 
     @Override
@@ -936,32 +913,30 @@ public class MTESteamHubArray extends MTEHubArrayBase<MTESteamHubArray>
         aNBT.setInteger("mPressureUnitCount", mPressureUnitCount);
         aNBT.setInteger("mReinforcedUnitCount", mReinforcedUnitCount);
         aNBT.setInteger("mOverpressureUnitCount", mOverpressureUnitCount);
-        aNBT.setInteger("mSetTier", mSetTier);
-        aNBT.setInteger("mCasingTier", mCasingTier);
-        aNBT.setInteger("mPipeTier", mPipeTier);
         aNBT.setInteger("mGearTier", mGearTier);
-        aNBT.setInteger("mFrameTier", mFrameTier);
         aNBT.setLong("mTickCounter", mTickCounter);
-        aNBT.setBoolean("mOverflowInput", mOverflowInput);
         if (mStoredFluidType != null) {
             NBTTagCompound fluidTag = new NBTTagCompound();
             mStoredFluidType.writeToNBT(fluidTag);
             aNBT.setTag("mStoredFluidType", fluidTag);
         }
-        if (!mBoundNodes.isEmpty()) {
-            NBTTagList boundList = new NBTTagList();
-            for (BoundCacheNode node : mBoundNodes) {
-                NBTTagCompound nodeTag = new NBTTagCompound();
-                nodeTag.setInteger("x", node.x);
-                nodeTag.setInteger("y", node.y);
-                nodeTag.setInteger("z", node.z);
-                nodeTag.setInteger("dim", node.dimensionId);
-                nodeTag.setBoolean("reinforced", node.isReinforced);
-                nodeTag.setBoolean("outputMode", node.isOutputMode);
-                boundList.appendTag(nodeTag);
-            }
-            aNBT.setTag("mBoundNodes", boundList);
+    }
+
+    /** 绑定列表 Steam 格式：NBTTagList 逐项（x/y/z/dim/reinforced/outputMode，键名存档契约不动）。 */
+    @Override
+    protected void saveBoundNodes(NBTTagCompound aNBT) {
+        NBTTagList boundList = new NBTTagList();
+        for (BoundCacheNode node : mBoundNodes) {
+            NBTTagCompound nodeTag = new NBTTagCompound();
+            nodeTag.setInteger("x", node.x);
+            nodeTag.setInteger("y", node.y);
+            nodeTag.setInteger("z", node.z);
+            nodeTag.setInteger("dim", node.dimensionId);
+            nodeTag.setBoolean("reinforced", node.isReinforced);
+            nodeTag.setBoolean("outputMode", node.isOutputMode);
+            boundList.appendTag(nodeTag);
         }
+        aNBT.setTag("mBoundNodes", boundList);
     }
 
     @Override
@@ -971,29 +946,25 @@ public class MTESteamHubArray extends MTEHubArrayBase<MTESteamHubArray>
         mPressureUnitCount = aNBT.getInteger("mPressureUnitCount");
         mReinforcedUnitCount = aNBT.getInteger("mReinforcedUnitCount");
         mOverpressureUnitCount = aNBT.getInteger("mOverpressureUnitCount");
-        mSetTier = aNBT.getInteger("mSetTier");
-        mCasingTier = aNBT.getInteger("mCasingTier");
-        mPipeTier = aNBT.getInteger("mPipeTier");
         mGearTier = aNBT.getInteger("mGearTier");
-        mFrameTier = aNBT.getInteger("mFrameTier");
         mTickCounter = aNBT.getLong("mTickCounter");
-        mOverflowInput = aNBT.getBoolean("mOverflowInput");
         if (aNBT.hasKey("mStoredFluidType")) {
             mStoredFluidType = FluidStack.loadFluidStackFromNBT(aNBT.getCompoundTag("mStoredFluidType"));
         }
-        mBoundNodes.clear();
-        if (aNBT.hasKey("mBoundNodes")) {
-            NBTTagList boundList = aNBT.getTagList("mBoundNodes", 10);
-            for (int i = 0; i < boundList.tagCount(); i++) {
-                NBTTagCompound nodeTag = boundList.getCompoundTagAt(i);
-                int x = nodeTag.getInteger("x");
-                int y = nodeTag.getInteger("y");
-                int z = nodeTag.getInteger("z");
-                int dim = nodeTag.getInteger("dim");
-                boolean reinforced = nodeTag.getBoolean("reinforced");
-                boolean outputMode = nodeTag.getBoolean("outputMode");
-                mBoundNodes.add(new BoundCacheNode(x, y, z, dim, reinforced, outputMode));
-            }
+    }
+
+    @Override
+    protected void loadBoundNodes(NBTTagCompound aNBT) {
+        NBTTagList boundList = aNBT.getTagList("mBoundNodes", 10);
+        for (int i = 0; i < boundList.tagCount(); i++) {
+            NBTTagCompound nodeTag = boundList.getCompoundTagAt(i);
+            int x = nodeTag.getInteger("x");
+            int y = nodeTag.getInteger("y");
+            int z = nodeTag.getInteger("z");
+            int dim = nodeTag.getInteger("dim");
+            boolean reinforced = nodeTag.getBoolean("reinforced");
+            boolean outputMode = nodeTag.getBoolean("outputMode");
+            mBoundNodes.add(new BoundCacheNode(x, y, z, dim, reinforced, outputMode));
         }
     }
 

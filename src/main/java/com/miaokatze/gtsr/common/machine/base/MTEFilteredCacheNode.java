@@ -25,6 +25,7 @@ import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.gui.MTEFilteredCacheNodeGui;
 import com.miaokatze.gtsr.common.util.GTSRFluidWindowTexture;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
+import com.miaokatze.gtsr.common.util.HubBindingUtil;
 import com.miaokatze.gtsr.common.util.HubTeleportUtil;
 import com.miaokatze.gtsr.register.TextureManager;
 
@@ -465,17 +466,11 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase implements
         aNBT.setInteger("mCapacityLimitPercent", mCapacityLimitPercent);
         // 用 mBound 判断绑定状态，避免主世界 dim=0 被误判为未绑定
         if (mBound) {
-            NBTTagCompound hubTag = new NBTTagCompound();
-            hubTag.setInteger("x", mHubX);
-            hubTag.setInteger("y", mHubY);
-            hubTag.setInteger("z", mHubZ);
-            hubTag.setInteger("dim", mHubDim);
-            hubTag.setString("type", mHubType);
             // 与 loadNBTData 的反转读取语义对称：output 字段取反存储
             // loadNBTData 中 mIsOutputMode = !hubTag.getBoolean("output")
-            // 故 save 时应 hubTag.setBoolean("output", !mIsOutputMode)
-            hubTag.setBoolean("output", !mIsOutputMode);
-            aNBT.setTag("gtsr.hubPos", hubTag);
+            aNBT.setTag(
+                "gtsr.hubPos",
+                HubBindingUtil.createHubPosTag(mHubX, mHubY, mHubZ, mHubDim, mHubType, !mIsOutputMode));
         }
         // 自定义名：按原版物品 display.Name 结构写入（aNBT → display(compound) → Name(string)），三处对称
         if (!getCustomName().isEmpty()) {
@@ -497,15 +492,10 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase implements
         aNBT.setInteger("mTransferRatePercent", mTransferRatePercent);
         aNBT.setInteger("mCapacityLimitPercent", mCapacityLimitPercent);
         if (mBound) {
-            NBTTagCompound hubTag = new NBTTagCompound();
-            hubTag.setInteger("x", mHubX);
-            hubTag.setInteger("y", mHubY);
-            hubTag.setInteger("z", mHubZ);
-            hubTag.setInteger("dim", mHubDim);
-            hubTag.setString("type", mHubType);
             // 反转语义：与 saveNBTData 一致，与 loadNBTData 的反转读取对称
-            hubTag.setBoolean("output", !mIsOutputMode);
-            aNBT.setTag("gtsr.hubPos", hubTag);
+            aNBT.setTag(
+                "gtsr.hubPos",
+                HubBindingUtil.createHubPosTag(mHubX, mHubY, mHubZ, mHubDim, mHubType, !mIsOutputMode));
         }
         // 保留奇点消耗标记，避免玩家通过破坏→重新放置来重复利用蒸汽纠缠奇点
         aNBT.setBoolean("gtsr.singularity_consumed", true);
