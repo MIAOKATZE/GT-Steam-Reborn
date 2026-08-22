@@ -1,6 +1,7 @@
 package com.miaokatze.gtsr.common.machine.base;
 
 import static com.gtnewhorizon.gtnhlib.util.numberformatting.NumberFormatUtil.formatNumber;
+import static gregtech.api.enums.Textures.BlockIcons.OVERLAY_PIPE;
 import static net.minecraft.util.StatCollector.translateToLocal;
 
 import java.util.List;
@@ -288,16 +289,57 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase implements
         return (long) getBaseRealCapacity() * mCapacityLimitPercent / 100;
     }
 
+    // ===== 流体门控四件套模板（SR-A05：原六变体 isFluidInputAllowed/fill×2/allowPutStack +
+    // private static isXxxFluid 六份 ~240 行上提；门控判定与各变体逐字等价——蒸汽族单名/双名
+    // 与 GTModHandler 蒸汽族判定均归结为 isFluidAllowed(Fluid) 同一谓词，通用流体族恒真）=====
     /**
-     * 温和保留防御（S4）：降档后罐内存量可能超过当前容量上限（负 space），父类
-     * MTEDigitalTankBase.fill 的 Math.min 会把负 space 入账（销毁超额）——此处在负/零 space 时
-     * 拒绝新入，超额部分保留罐内不销毁。所有 fill 路径（含方向参数版）最终汇入本两参版。
+     * FluidStack 级门控钩子（默认 = 非空栈 + 变体 {@link #isFluidAllowed(Fluid)} 谓词）。
+     * 六变体现值均与此默认等价（S5 通用流体放宽后水族三变体为恒真），无变体需要覆写；
+     * 保留 protected 供未来确实需要 FluidStack 级特判（按 NBT/量区分）时覆写。
+     */
+    protected boolean isFluidStackAllowed(FluidStack aFluid) {
+        return aFluid != null && aFluid.getFluid() != null && isFluidAllowed(aFluid.getFluid());
+    }
+
+    @Override
+    public final boolean isFluidInputAllowed(FluidStack aFluid) {
+        return isFluidStackAllowed(aFluid);
+    }
+
+    /**
+     * 门控 + 温和保留两段合一（原变体 filter 段 + 本类 S4 负/零 space 拒新入防御）：
+     * 先拒非目标流体；再在降档后罐内存量超过容量上限（负 space，父类 MTEDigitalTankBase.fill
+     * 的 Math.min 会把负 space 入账销毁超额）时拒绝新入、超额保留罐内不销毁；最后走父类入账。
+     * 所有 fill 路径（含方向参数版与父类内部路径）最终汇入本方法（门控幂等，无行为差异）。
      */
     @Override
-    public int fill(FluidStack aFluid, boolean doFill) {
+    public final int fill(FluidStack aFluid, boolean doFill) {
+        if (!isFluidStackAllowed(aFluid)) return 0;
         FluidStack fillable = getFillableStack();
         if (fillable != null && (long) getRealCapacity() - fillable.amount <= 0) return 0;
         return super.fill(aFluid, doFill);
+    }
+
+    @Override
+    public final int fill(ForgeDirection side, FluidStack aFluid, boolean doFill) {
+        if (!isFluidStackAllowed(aFluid)) return 0;
+        return super.fill(side, aFluid, doFill);
+    }
+
+    /**
+     * 拦截 GUI 输入槽中的非目标流体单元（GTUtility.getFluidForFilledItem 中转）：
+     * 装有流体的容器按 {@link #isFluidStackAllowed} 判定，空容器或非流体物品走父类逻辑。
+     */
+    @Override
+    public final boolean allowPutStack(IGregTechTileEntity aBaseMetaTileEntity, int aIndex, ForgeDirection side,
+        ItemStack aStack) {
+        if (aIndex == getInputSlot()) {
+            FluidStack tFluid = GTUtility.getFluidForFilledItem(aStack, true);
+            if (tFluid != null && tFluid.getFluid() != null) {
+                return isFluidStackAllowed(tFluid);
+            }
+        }
+        return super.allowPutStack(aBaseMetaTileEntity, aIndex, side, aStack);
     }
 
     public String getCustomName() {
@@ -386,6 +428,34 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase implements
         return new ITexture[] { baseTexture, GTSRFluidWindowTexture.getOrCreate(getClientWindowFluid()),
             mClientOutputMode ? FRAME_RECEIVE_LAYER : FRAME_SEND_LAYER };
     }
+
+    /**
+     * 六面材质模板（SR-A05：原六变体 getTexture 六份 ~12 行上提）：顶面走三层流体窗模板
+     * {@link #getTopFaceTextures}（基材 + 流体窗 + 绑定框架层），底/侧面材质由变体三钩子提供
+     * （青铜/钢机器外壳或超压 Casings8:6），正面额外叠加 OVERLAY_PIPE。
+     */
+    @Override
+    public final ITexture[] getTexture(IGregTechTileEntity baseMetaTileEntity, ForgeDirection sideDirection,
+        ForgeDirection facingDirection, int colorIndex, boolean active, boolean redstoneLevel) {
+        if (sideDirection == ForgeDirection.UP) {
+            return getTopFaceTextures(getTopTexture());
+        } else if (sideDirection == ForgeDirection.DOWN) {
+            return new ITexture[] { getBottomTexture() };
+        } else if (sideDirection == facingDirection) {
+            return new ITexture[] { getSideTexture(), TextureFactory.of(OVERLAY_PIPE) };
+        } else {
+            return new ITexture[] { getSideTexture() };
+        }
+    }
+
+    /** 变体材质钩子（SR-A05）：顶面基材（青铜/钢机器顶纹或超压外壳）。 */
+    protected abstract ITexture getTopTexture();
+
+    /** 变体材质钩子（SR-A05）：底面基材。 */
+    protected abstract ITexture getBottomTexture();
+
+    /** 变体材质钩子（SR-A05）：侧面基材（正面分支再叠加 OVERLAY_PIPE）。 */
+    protected abstract ITexture getSideTexture();
 
     @Override
     public void saveNBTData(NBTTagCompound aNBT) {

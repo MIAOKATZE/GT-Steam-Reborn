@@ -3,20 +3,14 @@ package com.miaokatze.gtsr.common.machine.base;
 import static gregtech.api.enums.Textures.BlockIcons.MACHINE_BRONZE_BOTTOM;
 import static gregtech.api.enums.Textures.BlockIcons.MACHINE_BRONZE_SIDE;
 import static gregtech.api.enums.Textures.BlockIcons.MACHINE_BRONZE_TOP;
-import static gregtech.api.enums.Textures.BlockIcons.OVERLAY_PIPE;
 
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.item.ItemStack;
-import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidRegistry;
-import net.minecraftforge.fluids.FluidStack;
 
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.render.TextureFactory;
-import gregtech.api.util.GTUtility;
 
 public class MTESteamCacheNode extends MTEFilteredCacheNode {
 
@@ -52,18 +46,18 @@ public class MTESteamCacheNode extends MTEFilteredCacheNode {
     }
 
     @Override
-    public ITexture[] getTexture(IGregTechTileEntity baseMetaTileEntity, ForgeDirection sideDirection,
-        ForgeDirection facingDirection, int colorIndex, boolean active, boolean redstoneLevel) {
-        if (sideDirection == ForgeDirection.UP) {
-            // 顶面三层：基材 + 流体窗（罐内蒸汽/枢纽默认）+ 绑定状态框架层（见 MTEFilteredCacheNode）
-            return getTopFaceTextures(TextureFactory.of(MACHINE_BRONZE_TOP));
-        } else if (sideDirection == ForgeDirection.DOWN) {
-            return new ITexture[] { TextureFactory.of(MACHINE_BRONZE_BOTTOM) };
-        } else if (sideDirection == facingDirection) {
-            return new ITexture[] { TextureFactory.of(MACHINE_BRONZE_SIDE), TextureFactory.of(OVERLAY_PIPE) };
-        } else {
-            return new ITexture[] { TextureFactory.of(MACHINE_BRONZE_SIDE) };
-        }
+    protected ITexture getTopTexture() {
+        return TextureFactory.of(MACHINE_BRONZE_TOP);
+    }
+
+    @Override
+    protected ITexture getBottomTexture() {
+        return TextureFactory.of(MACHINE_BRONZE_BOTTOM);
+    }
+
+    @Override
+    protected ITexture getSideTexture() {
+        return TextureFactory.of(MACHINE_BRONZE_SIDE);
     }
 
     @Override
@@ -81,49 +75,4 @@ public class MTESteamCacheNode extends MTEFilteredCacheNode {
         return "gtsr.tooltip.steam_cache_node.fluid_type.steam";
     }
 
-    @Override
-    public boolean isFluidInputAllowed(FluidStack aFluid) {
-        return isSteamFluid(aFluid);
-    }
-
-    @Override
-    public int fill(FluidStack aFluid, boolean doFill) {
-        if (aFluid == null || !isSteamFluid(aFluid)) return 0;
-        return super.fill(aFluid, doFill);
-    }
-
-    @Override
-    public int fill(ForgeDirection side, FluidStack aFluid, boolean doFill) {
-        if (aFluid == null || !isSteamFluid(aFluid)) return 0;
-        return super.fill(side, aFluid, doFill);
-    }
-
-    /**
-     * 拦截 GUI 输入槽中的非目标流体单元。
-     * 只有装满「蒸汽」的流体容器才允许放入输入槽；空容器或非流体物品走父类逻辑。
-     */
-    @Override
-    public boolean allowPutStack(IGregTechTileEntity aBaseMetaTileEntity, int aIndex, ForgeDirection side,
-        ItemStack aStack) {
-        if (aIndex == getInputSlot()) {
-            FluidStack tFluid = GTUtility.getFluidForFilledItem(aStack, true);
-            if (tFluid != null && tFluid.getFluid() != null) {
-                return isSteamFluid(tFluid);
-            }
-        }
-        return super.allowPutStack(aBaseMetaTileEntity, aIndex, side, aStack);
-    }
-
-    private static boolean isSteamFluid(FluidStack aFluid) {
-        if (aFluid == null) return false;
-        Fluid fluid = aFluid.getFluid();
-        if (fluid == null) return false;
-        return "steam".equals(fluid.getName());
-    }
-
-    @Override
-    public boolean onRightclick(IGregTechTileEntity aBaseMetaTileEntity, EntityPlayer aPlayer, ForgeDirection side,
-        float aX, float aY, float aZ) {
-        return super.onRightclick(aBaseMetaTileEntity, aPlayer, side, aX, aY, aZ);
-    }
 }
