@@ -1,6 +1,5 @@
 package com.miaokatze.gtsr.common.machine.base;
 
-import static com.gtnewhorizon.gtnhlib.util.numberformatting.NumberFormatUtil.formatNumber;
 import static gregtech.api.enums.Textures.BlockIcons.MACHINE_BRONZE_BOTTOM;
 import static gregtech.api.enums.Textures.BlockIcons.MACHINE_BRONZE_SIDE;
 import static gregtech.api.enums.Textures.BlockIcons.MACHINE_BRONZE_TOP;
@@ -8,8 +7,6 @@ import static gregtech.api.enums.Textures.BlockIcons.OVERLAY_PIPE;
 
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.EnumChatFormatting;
-import net.minecraft.util.StatCollector;
 import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidRegistry;
@@ -128,37 +125,5 @@ public class MTESteamCacheNode extends MTEFilteredCacheNode {
     public boolean onRightclick(IGregTechTileEntity aBaseMetaTileEntity, EntityPlayer aPlayer, ForgeDirection side,
         float aX, float aY, float aZ) {
         return super.onRightclick(aBaseMetaTileEntity, aPlayer, side, aX, aY, aZ);
-    }
-
-    @Override
-    public String[] getInfoData() {
-        String nameKey = "gt.blockmachines." + mName + ".name";
-        if (mFluid == null) {
-            return new String[] {
-                EnumChatFormatting.BLUE + StatCollector.translateToLocal(nameKey) + EnumChatFormatting.RESET,
-                StatCollector.translateToLocal("GT5U.infodata.digital_tank.stored_fluid"),
-                EnumChatFormatting.GOLD
-                    + StatCollector.translateToLocal("GT5U.infodata.digital_tank.stored_fluid.empty")
-                    + EnumChatFormatting.RESET,
-                EnumChatFormatting.GREEN + "0 L"
-                    + EnumChatFormatting.RESET
-                    + " "
-                    + EnumChatFormatting.YELLOW
-                    + formatNumber(getRealCapacity())
-                    + " L"
-                    + EnumChatFormatting.RESET };
-        }
-        return new String[] {
-            EnumChatFormatting.BLUE + StatCollector.translateToLocal(nameKey) + EnumChatFormatting.RESET,
-            StatCollector.translateToLocal("GT5U.infodata.digital_tank.stored_fluid"),
-            EnumChatFormatting.GOLD + mFluid.getLocalizedName() + EnumChatFormatting.RESET,
-            EnumChatFormatting.GREEN + formatNumber(mFluid.amount)
-                + " L"
-                + EnumChatFormatting.RESET
-                + " "
-                + EnumChatFormatting.YELLOW
-                + formatNumber(getRealCapacity())
-                + " L"
-                + EnumChatFormatting.RESET };
     }
 }

@@ -1,5 +1,6 @@
 package com.miaokatze.gtsr.common.machine.base;
 
+import static com.gtnewhorizon.gtnhlib.util.numberformatting.NumberFormatUtil.formatNumber;
 import static net.minecraft.util.StatCollector.translateToLocal;
 
 import java.util.List;
@@ -666,6 +667,44 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase implements
             aBaseMetaTileEntity.getWorld().provider.dimensionId,
             mIsOutputMode);
         return true;
+    }
+
+    /**
+     * 机器信息面板模板（SR-O2-10：原六变体 getInfoData 六份近似实现 6→1 上提 final 模板，
+     * 方法体与变体实现逐字一致）。容量读数统一走 {@link #getRealCapacity()} 跟随容量档——
+     * 水族旧口径（读 CAPACITY 常量）已由 SR-B2-01 修复，上提后单源，同类漂移不可再发生
+     * （O2-09 由本项吸收闭环）。
+     */
+    @Override
+    public final String[] getInfoData() {
+        String nameKey = "gt.blockmachines." + mName + ".name";
+        if (mFluid == null) {
+            return new String[] {
+                EnumChatFormatting.BLUE + StatCollector.translateToLocal(nameKey) + EnumChatFormatting.RESET,
+                StatCollector.translateToLocal("GT5U.infodata.digital_tank.stored_fluid"),
+                EnumChatFormatting.GOLD
+                    + StatCollector.translateToLocal("GT5U.infodata.digital_tank.stored_fluid.empty")
+                    + EnumChatFormatting.RESET,
+                EnumChatFormatting.GREEN + "0 L"
+                    + EnumChatFormatting.RESET
+                    + " "
+                    + EnumChatFormatting.YELLOW
+                    + formatNumber(getRealCapacity())
+                    + " L"
+                    + EnumChatFormatting.RESET };
+        }
+        return new String[] {
+            EnumChatFormatting.BLUE + StatCollector.translateToLocal(nameKey) + EnumChatFormatting.RESET,
+            StatCollector.translateToLocal("GT5U.infodata.digital_tank.stored_fluid"),
+            EnumChatFormatting.GOLD + mFluid.getLocalizedName() + EnumChatFormatting.RESET,
+            EnumChatFormatting.GREEN + formatNumber(mFluid.amount)
+                + " L"
+                + EnumChatFormatting.RESET
+                + " "
+                + EnumChatFormatting.YELLOW
+                + formatNumber(getRealCapacity())
+                + " L"
+                + EnumChatFormatting.RESET };
     }
 
 }
