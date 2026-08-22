@@ -15,7 +15,6 @@ import java.util.List;
 import javax.annotation.Nullable;
 
 import net.minecraft.block.Block;
-import net.minecraft.client.renderer.texture.IIconRegister;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
@@ -38,8 +37,6 @@ import com.gtnewhorizon.structurelib.structure.ISurvivalBuildEnvironment;
 import com.gtnewhorizon.structurelib.structure.StructureDefinition;
 import com.gtnewhorizons.modularui.common.widget.DynamicPositionedColumn;
 import com.gtnewhorizons.modularui.common.widget.FakeSyncWidget;
-import com.gtnewhorizons.modularui.common.widget.SlotWidget;
-import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.gui.MTESteamHubArrayGui;
 import com.miaokatze.gtsr.common.machine.base.IHubCacheNode;
@@ -53,23 +50,14 @@ import com.miaokatze.gtsr.common.machine.base.MTESteamCacheNode;
 import com.miaokatze.gtsr.common.machine.base.MTESteamHubInputHatch;
 import com.miaokatze.gtsr.common.machine.base.MTESteamHubOutputHatch;
 import com.miaokatze.gtsr.common.machine.base.MTESteamStorageUnit;
-import com.miaokatze.gtsr.common.util.GTSRFluidWindowTexture;
-import com.miaokatze.gtsr.common.util.GTSRUtils;
 import com.miaokatze.gtsr.common.util.UnitFormatUtil;
-import com.miaokatze.gtsr.register.TextureManager;
 
-import cpw.mods.fml.relauncher.Side;
-import cpw.mods.fml.relauncher.SideOnly;
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Materials;
-import gregtech.api.enums.Textures;
 import gregtech.api.interfaces.IHatchElement;
-import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
-import gregtech.api.render.TextureFactory;
 import gregtech.api.structure.error.StructureError;
-import gregtech.api.util.GTUtility;
 import gregtech.api.util.IGTHatchAdder;
 import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
@@ -78,20 +66,12 @@ import gregtech.common.misc.GTStructureChannels;
 public class MTESteamHubArray extends MTEHubArrayBase<MTESteamHubArray>
     implements IConstructable, ISurvivalConstructable {
 
-    private static final String STRUCTURE_PIECE_BASE = "base";
-    private static final String STRUCTURE_PIECE_STACK = "stack";
-    private static final String STRUCTURE_PIECE_CAP = "cap";
+    // 结构探偏移（construct/survivalConstruct 与基类 checkMachine 探高模板共用）
     private static final int HORIZONTAL_OFF_SET = 4;
     private static final int VERTICAL_OFF_SET = 0;
     private static final int DEPTH_OFF_SET = 1;
     /** 自动输出速率：每 tick 1,000,000 L = 20,000,000 L/s */
     private static final int AUTO_OUTPUT_RATE = 1_000_000;
-
-    private static final int CASING_INDEX = GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings1, 10);
-
-    // 正面枢纽框架层（customAlpha pass1 图标，extFacing 对齐多方块旋转）：registerIcons（仅客户端）时
-    // 构造并静态缓存，getTexture 复用勿每调用 new，服务端类加载不触碰渲染类
-    private static ITexture FRAME_UNBOUND_FACING;
 
     private static final IStructureDefinition<MTESteamHubArray> STRUCTURE_DEFINITION;
 
@@ -359,11 +339,8 @@ public class MTESteamHubArray extends MTEHubArrayBase<MTESteamHubArray>
     public int mOverpressureUnitCount = 0;
     private int mCasingAmount = 0;
     private int mGearTier = -1;
-    public int mStackCount = 0;
     public long mSteamStored = 0;
     private FluidStack mStoredFluidType = null;
-    // 存储流体名的客户端副本（description packet 同步）：正面流体窗取流体用，空串=无（回退默认蒸汽）
-    private String mClientFluidName = "";
     private long mTickCounter = 0;
 
     public MTESteamHubArray(int aID, String aName, String aNameRegional) {
@@ -400,18 +377,6 @@ public class MTESteamHubArray extends MTEHubArrayBase<MTESteamHubArray>
     }
 
     @Override
-    @SideOnly(Side.CLIENT)
-    public void registerIcons(IIconRegister aBlockIconRegister) {
-        if (FRAME_UNBOUND_FACING == null) {
-            FRAME_UNBOUND_FACING = TextureFactory.builder()
-                .addIcon(TextureManager.HUB_FRAME_UNBOUND)
-                .extFacing()
-                .build();
-        }
-        super.registerIcons(aBlockIconRegister);
-    }
-
-    @Override
     public IMetaTileEntity newMetaEntity(IGregTechTileEntity aTileEntity) {
         return new MTESteamHubArray(mName);
     }
@@ -421,101 +386,85 @@ public class MTESteamHubArray extends MTEHubArrayBase<MTESteamHubArray>
         return STRUCTURE_DEFINITION;
     }
 
+    // A04-H4 结构校验钩子（checkMachine 骨架见 MTEHubArrayBase：reset→BASE→探高→CAP→tier 一致→
+    // 三段互斥→贴图→issueTileUpdate；失败分支复位动作时序由模板逐字保留）
+
     @Override
-    public void checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack, List<StructureError> errors) {
+    protected int horizontalOffset() {
+        return HORIZONTAL_OFF_SET;
+    }
+
+    @Override
+    protected int verticalOffset() {
+        return VERTICAL_OFF_SET;
+    }
+
+    @Override
+    protected int depthOffset() {
+        return DEPTH_OFF_SET;
+    }
+
+    @Override
+    protected void detachHatchControllers() {
         for (MTESteamHubInputHatch hatch : mSteamInputHatches) {
             hatch.mController = null;
         }
         for (MTESteamHubOutputHatch hatch : mSteamOutputHatches) {
             hatch.mController = null;
         }
+    }
 
+    @Override
+    protected void resetFamilyStructureState() {
         mPressureUnitCount = 0;
         mReinforcedUnitCount = 0;
         mOverpressureUnitCount = 0;
         mCasingAmount = 0;
-        mSetTier = -1;
-        mCasingTier = -1;
-        mPipeTier = -1;
         mGearTier = -1;
-        mFrameTier = -1;
-        mStackCount = 0;
         mSteamInputHatches.clear();
         mSteamOutputHatches.clear();
         mSingularitySteamCompartmentCount = 0;
         mSingularitySteamOutputCompartmentCount = 0;
+    }
 
-        if (!checkPiece(STRUCTURE_PIECE_BASE, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET, errors)) {
-            getBaseMetaTileEntity().issueTileUpdate();
-            return;
-        }
+    @Override
+    protected boolean checkCapPiece(List<StructureError> errors) {
+        return checkPiece(STRUCTURE_PIECE_CAP, HORIZONTAL_OFF_SET, -1, DEPTH_OFF_SET, errors);
+    }
 
-        for (int i = 0; i < 30; i++) {
-            int bOffset = 1 + i;
-            if (!checkPiece(STRUCTURE_PIECE_STACK, HORIZONTAL_OFF_SET, bOffset, DEPTH_OFF_SET)) break;
-            mStackCount++;
-        }
+    @Override
+    protected boolean areTiersComplete() {
+        return mCasingTier > 0 && mPipeTier > 0 && mGearTier > 0 && mFrameTier > 0;
+    }
 
-        if (!require(mStackCount > 0, errors)) {
-            getBaseMetaTileEntity().issueTileUpdate();
-            return;
-        }
+    @Override
+    protected boolean areTiersConsistent() {
+        return mCasingTier == mPipeTier && mCasingTier == mGearTier && mCasingTier == mFrameTier;
+    }
 
-        if (!checkPiece(STRUCTURE_PIECE_CAP, HORIZONTAL_OFF_SET, -1, DEPTH_OFF_SET, errors)) {
-            getBaseMetaTileEntity().issueTileUpdate();
-            return;
-        }
-
-        // Validate all tier fields are consistent
-        if (!require(mCasingTier > 0 && mPipeTier > 0 && mGearTier > 0 && mFrameTier > 0, errors)) {
-            getBaseMetaTileEntity().issueTileUpdate();
-            return;
-        }
-        if (!require(mCasingTier == mPipeTier && mCasingTier == mGearTier && mCasingTier == mFrameTier, errors)) {
-            getBaseMetaTileEntity().issueTileUpdate();
-            return;
-        }
-        mSetTier = mCasingTier;
-
+    @Override
+    protected boolean checkUnitRules(List<StructureError> errors) {
         if (!require(mSetTier != 1 || (mReinforcedUnitCount <= 0 && mOverpressureUnitCount <= 0), errors)) {
-            getBaseMetaTileEntity().issueTileUpdate();
-            return;
+            return false;
         }
         if (!require(mSetTier != 2 || (mPressureUnitCount <= 0 && mOverpressureUnitCount <= 0), errors)) {
-            getBaseMetaTileEntity().issueTileUpdate();
-            return;
+            return false;
         }
         if (!require(mSetTier < 3 || (mPressureUnitCount <= 0 && mReinforcedUnitCount <= 0), errors)) {
-            getBaseMetaTileEntity().issueTileUpdate();
-            return;
+            return false;
         }
+        if (!require(mSetTier < 3 || mOverpressureUnitCount > 0, errors)) return false;
+        return require((mPressureUnitCount + mReinforcedUnitCount + mOverpressureUnitCount) > 0, errors);
+    }
 
-        if (!require(mSetTier < 3 || mOverpressureUnitCount > 0, errors)) {
-            getBaseMetaTileEntity().issueTileUpdate();
-            return;
-        }
-
-        if (!require((mPressureUnitCount + mReinforcedUnitCount + mOverpressureUnitCount) > 0, errors)) {
-            getBaseMetaTileEntity().issueTileUpdate();
-            return;
-        }
-
-        int tierCasingIndex;
-        if (mSetTier >= 3) {
-            tierCasingIndex = GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings4, 0);
-        } else if (mSetTier == 2) {
-            tierCasingIndex = GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings2, 0);
-        } else {
-            tierCasingIndex = CASING_INDEX;
-        }
+    @Override
+    protected void updateHatchTextures(int tierCasingIndex) {
         for (MTESteamHubInputHatch hatch : mSteamInputHatches) {
             hatch.updateTexture(tierCasingIndex);
         }
         for (MTESteamHubOutputHatch hatch : mSteamOutputHatches) {
             hatch.updateTexture(tierCasingIndex);
         }
-
-        getBaseMetaTileEntity().issueTileUpdate();
     }
 
     private void onCasingAdded() {
@@ -968,138 +917,55 @@ public class MTESteamHubArray extends MTEHubArrayBase<MTESteamHubArray>
         }
     }
 
+    // A04-H4 展示层钩子（描述同步/正面贴图/GUI 文本/Waila/tooltip 模板见 MTEHubArrayBase 展示层 region）
+
     @Override
-    public NBTTagCompound getDescriptionData() {
-        NBTTagCompound data = super.getDescriptionData();
-        if (data == null) data = new NBTTagCompound();
-        data.setInteger("mSetTier", mSetTier);
-        // 正面流体窗渲染状态：存储流体名（空串=无，客户端回退默认蒸汽）
-        data.setString(
-            "gtsr.hubFluid",
-            mStoredFluidType != null ? mStoredFluidType.getFluid()
-                .getName() : "");
-        return data;
+    protected String guiLangPrefix() {
+        return "steam_hub";
     }
 
     @Override
-    public void onDescriptionPacket(NBTTagCompound data) {
-        super.onDescriptionPacket(data);
-        mSetTier = data.getInteger("mSetTier");
-        mClientFluidName = data.getString("gtsr.hubFluid");
-        IGregTechTileEntity base = getBaseMetaTileEntity();
-        if (base != null) {
-            base.issueTextureUpdate();
-        }
+    protected int unitsPerStack() {
+        return 25;
     }
 
     @Override
-    public ITexture[] getTexture(IGregTechTileEntity aBaseMetaTileEntity, ForgeDirection side, ForgeDirection facing,
-        int colorIndex, boolean active, boolean redstoneLevel) {
-        int casingTextureId;
-        if (mSetTier >= 3) {
-            casingTextureId = GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings4, 0);
-        } else if (mSetTier == 2) {
-            casingTextureId = GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings2, 0);
-        } else {
-            casingTextureId = CASING_INDEX;
-        }
-        if (side == facing) {
-            // 正面三层：tier 基材 + 内缩流体窗（存储流体，空回退蒸汽；窗收在框架环内，与节点/仓同变体）+ 枢纽框架层
-            Fluid fluid = FluidRegistry.getFluid(mClientFluidName);
-            if (fluid == null) fluid = FluidRegistry.getFluid("steam");
-            return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(casingTextureId),
-                GTSRFluidWindowTexture.getOrCreate(fluid), FRAME_UNBOUND_FACING };
-        }
-        return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(casingTextureId) };
+    protected int getTotalUnitCount() {
+        return mPressureUnitCount + mReinforcedUnitCount + mOverpressureUnitCount;
     }
 
     @Override
-    protected MTEMultiBlockBaseGui<?> getGui() {
-        return new MTESteamHubArrayGui(this);
+    protected String bufferLangKey() {
+        return "gtsr.gui.steam_hub.steam_buffer";
     }
 
-    @Deprecated
     @Override
-    protected void drawTexts(DynamicPositionedColumn screenElements, SlotWidget inventorySlot) {
-        super.drawTexts(screenElements, inventorySlot);
-        screenElements.widget(new TextWidget().setStringSupplier(() -> {
-            return EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.hub.terminal_hint")
-                + EnumChatFormatting.RESET;
-        }));
-        screenElements.widget(new TextWidget().setStringSupplier(() -> {
-            String tierText;
-            if (mSetTier >= 3) {
-                tierText = StatCollector.translateToLocal("gtsr.gui.tier.tungstensteel");
-            } else if (mSetTier == 2) {
-                tierText = StatCollector.translateToLocal("gtsr.gui.tier.steel");
-            } else {
-                tierText = StatCollector.translateToLocal("gtsr.gui.tier.bronze");
-            }
-            return EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.tier")
-                + EnumChatFormatting.GOLD
-                + tierText
-                + EnumChatFormatting.RESET;
-        }))
-            .widget(new TextWidget().setStringSupplier(() -> {
-                ItemStack chip = getControllerSlot();
-                String chipText;
-                if (chip != null && GTSRItemList.ReinforcedHubSingularityChip.isStackEqual(chip, true, true)) {
-                    if (mSetTier >= 3) {
-                        chipText = EnumChatFormatting.GREEN
-                            + StatCollector.translateToLocal("gtsr.gui.chip.reinforced_installed");
-                    } else {
-                        chipText = EnumChatFormatting.RED
-                            + StatCollector.translateToLocal("gtsr.gui.chip.need_higher_tier");
-                    }
-                } else if (chip != null && GTSRItemList.HubSingularityChip.isStackEqual(chip, true, true)) {
-                    chipText = EnumChatFormatting.GREEN
-                        + StatCollector.translateToLocal("gtsr.gui.chip.singularity_installed");
-                } else {
-                    chipText = EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.gui.chip.none");
-                }
-                return EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.chip")
-                    + " "
-                    + chipText
-                    + EnumChatFormatting.RESET;
-            }))
-            .widget(new TextWidget().setStringSupplier(() -> {
-                String status = mMaxProgresstime > 0
-                    ? EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.gui.status.running")
-                    : EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.gui.status.idle");
-                return EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.status")
-                    + " "
-                    + status
-                    + EnumChatFormatting.RESET;
-            }))
-            .widget(
-                new TextWidget().setStringSupplier(
-                    () -> EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.steam_hub.storage_units")
-                        + " "
-                        + EnumChatFormatting.GOLD
-                        + (mPressureUnitCount + mReinforcedUnitCount + mOverpressureUnitCount)
-                        + "/"
-                        + (25 * mStackCount)
-                        + EnumChatFormatting.RESET))
-            .widget(
-                new TextWidget().setStringSupplier(
-                    () -> EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.steam_hub.steam_buffer")
-                        + " "
-                        + EnumChatFormatting.LIGHT_PURPLE
-                        + UnitFormatUtil.format(mSteamStored)
-                        + " L"
-                        + EnumChatFormatting.RESET))
-            .widget(
-                new TextWidget().setStringSupplier(
-                    () -> EnumChatFormatting.YELLOW
-                        + StatCollector.translateToLocal("gtsr.gui.steam_hub.total_capacity")
-                        + " "
-                        + EnumChatFormatting.LIGHT_PURPLE
-                        + UnitFormatUtil.format(getTotalCapacity())
-                        + " L"
-                        + EnumChatFormatting.RESET))
-            .widget(new FakeSyncWidget.IntegerSyncer(() -> mSetTier, val -> mSetTier = val))
-            .widget(new FakeSyncWidget.IntegerSyncer(() -> mMaxProgresstime, val -> mMaxProgresstime = val))
-            .widget(new FakeSyncWidget.IntegerSyncer(() -> mStackCount, val -> mStackCount = val))
+    protected Fluid familyFallbackFluid() {
+        return FluidRegistry.getFluid("steam");
+    }
+
+    /** 历史行为保留：Waila 等级行仅两档（tier≥3 显示 bronze 文案，与 GUI/drawTexts 三档不一致为现状）。 */
+    @Override
+    protected String tierDisplayText() {
+        return StatCollector.translateToLocal(mSetTier == 2 ? "gtsr.gui.tier.steel" : "gtsr.gui.tier.bronze");
+    }
+
+    @Override
+    protected int[] tooltipStructureDims() {
+        return new int[] { 9, 32, 9 };
+    }
+
+    @Override
+    protected void addFamilyStructureInfo(MultiblockTooltipBuilder tt) {
+        tt.addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.casing"), 70, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.pipe"), 7, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.gear_box"), 4, false)
+            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.frame"), 24, false);
+    }
+
+    @Override
+    protected void addFamilySyncers(DynamicPositionedColumn screenElements) {
+        screenElements
             .widget(new FakeSyncWidget.IntegerSyncer(() -> mPressureUnitCount, val -> mPressureUnitCount = val))
             .widget(new FakeSyncWidget.IntegerSyncer(() -> mReinforcedUnitCount, val -> mReinforcedUnitCount = val))
             .widget(new FakeSyncWidget.IntegerSyncer(() -> mOverpressureUnitCount, val -> mOverpressureUnitCount = val))
@@ -1107,103 +973,7 @@ public class MTESteamHubArray extends MTEHubArrayBase<MTESteamHubArray>
     }
 
     @Override
-    public String[] getInfoData() {
-        ArrayList<String> info = new ArrayList<>();
-        info.add(
-            EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.steam_hub.type")
-                + EnumChatFormatting.RESET);
-        if (!mMachine) {
-            info.add(EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.gui.building"));
-            return info.toArray(new String[0]);
-        }
-        String tierText = mSetTier == 2 ? StatCollector.translateToLocal("gtsr.gui.tier.steel")
-            : StatCollector.translateToLocal("gtsr.gui.tier.bronze");
-        info.add(
-            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.tier")
-                + EnumChatFormatting.GOLD
-                + tierText
-                + EnumChatFormatting.RESET);
-        String statusKey = mMaxProgresstime > 0 ? "gtsr.gui.status.running" : "gtsr.gui.status.idle";
-        EnumChatFormatting statusColor = mMaxProgresstime > 0 ? EnumChatFormatting.AQUA : EnumChatFormatting.GRAY;
-        info.add(
-            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.status")
-                + " "
-                + statusColor
-                + StatCollector.translateToLocal(statusKey)
-                + EnumChatFormatting.RESET);
-        int totalUnits = mPressureUnitCount + mReinforcedUnitCount + mOverpressureUnitCount;
-        info.add(
-            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.steam_hub.storage_units")
-                + " "
-                + EnumChatFormatting.GOLD
-                + totalUnits
-                + "/"
-                + (25 * mStackCount)
-                + EnumChatFormatting.RESET);
-        info.add(
-            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.steam_hub.steam_buffer")
-                + " "
-                + EnumChatFormatting.LIGHT_PURPLE
-                + UnitFormatUtil.format(mSteamStored)
-                + " L"
-                + EnumChatFormatting.RESET);
-        return info.toArray(new String[0]);
-    }
-
-    @Override
-    protected MultiblockTooltipBuilder createTooltip() {
-        final MultiblockTooltipBuilder tt = new MultiblockTooltipBuilder();
-        tt.addMachineType(StatCollector.translateToLocal("gtsr.tooltip.steam_hub.type"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.steam_hub.desc"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.steam_hub.desc2"))
-            .addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.steam_hub.desc2_2"))
-            .addInfo(EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.steam_hub.chip_1"))
-            .addInfo(EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.steam_hub.chip_2"))
-            .addInfo(
-                EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.shared.screwdriver_overflow"))
-            .addInfo(
-                EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.tooltip.shared.overflow_input_desc"))
-            .beginStructureBlock(9, 32, 9, false)
-            .addController(StatCollector.translateToLocal("gtsr.tooltip.steam_hub.ctrl"))
-            .addOtherStructurePart(
-                StatCollector.translateToLocal("gtsr.tooltip.steam_hub.hub_input"),
-                StatCollector.translateToLocal("gtsr.tooltip.shared.any_casing"),
-                1)
-            .addOtherStructurePart(
-                StatCollector.translateToLocal("gtsr.tooltip.steam_hub.hub_output"),
-                StatCollector.translateToLocal("gtsr.tooltip.shared.any_casing"),
-                1)
-            .addOtherStructurePart(
-                StatCollector.translateToLocal("gtsr.tooltip.steam_hub.storage"),
-                StatCollector.translateToLocal("gtsr.tooltip.steam_hub.storage"),
-                2)
-            .addStructureInfo("")
-            .addStructureInfo(
-                EnumChatFormatting.BLUE + "Bronze"
-                    + EnumChatFormatting.DARK_PURPLE
-                    + "/"
-                    + EnumChatFormatting.BLUE
-                    + "Steel"
-                    + EnumChatFormatting.DARK_PURPLE
-                    + "/"
-                    + EnumChatFormatting.BLUE
-                    + "TungstenSteel "
-                    + EnumChatFormatting.DARK_PURPLE
-                    + "Tier")
-            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.casing"), 70, false)
-            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.pipe"), 7, false)
-            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.gear_box"), 4, false)
-            .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.frame"), 24, false)
-            .addStructureHint("gtsr.tooltip.steam_hub.height")
-            .addStructureHint("gtsr.tooltip.shared.no_maintenance")
-            .addStructureHint("gtsr.tooltip.steam_hub.hint_tier1")
-            .addStructureHint("gtsr.tooltip.steam_hub.hint_tier2")
-            .addStructureHint("gtsr.tooltip.steam_hub.hint_tier3")
-            .addStructureHint("gtsr.tooltip.shared.hub_singularity_cost")
-            .addStructureHint("gtsr.tooltip.shared.overflow_input_screwdriver")
-            .addStructureHint("gtsr.tooltip.steam_hub.hint_status")
-            .addInfo(GTSRUtils.getAddedByLine())
-            .toolTipFinisher();
-        return tt;
+    protected MTEMultiBlockBaseGui<?> getGui() {
+        return new MTESteamHubArrayGui(this);
     }
 }

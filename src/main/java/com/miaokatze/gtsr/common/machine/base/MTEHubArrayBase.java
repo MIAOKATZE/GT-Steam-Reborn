@@ -1,7 +1,11 @@
 package com.miaokatze.gtsr.common.machine.base;
 
-import java.util.ArrayList;
+import static com.miaokatze.gtsr.common.structure.GTSRStructureChecks.require;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import net.minecraft.client.renderer.texture.IIconRegister;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
@@ -12,17 +16,35 @@ import net.minecraft.util.StatCollector;
 import net.minecraft.world.World;
 import net.minecraftforge.common.DimensionManager;
 import net.minecraftforge.common.util.ForgeDirection;
+import net.minecraftforge.fluids.Fluid;
+import net.minecraftforge.fluids.FluidRegistry;
 
 import org.apache.commons.lang3.tuple.Pair;
 
+import com.gtnewhorizons.modularui.common.widget.DynamicPositionedColumn;
+import com.gtnewhorizons.modularui.common.widget.FakeSyncWidget;
+import com.gtnewhorizons.modularui.common.widget.SlotWidget;
+import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
+import com.miaokatze.gtsr.common.util.GTSRFluidWindowTexture;
+import com.miaokatze.gtsr.common.util.GTSRUtils;
 import com.miaokatze.gtsr.common.util.HubBindingUtil;
 import com.miaokatze.gtsr.common.util.HubTeleportUtil;
+import com.miaokatze.gtsr.common.util.UnitFormatUtil;
+import com.miaokatze.gtsr.register.TextureManager;
 
+import cpw.mods.fml.relauncher.Side;
+import cpw.mods.fml.relauncher.SideOnly;
+import gregtech.api.GregTechAPI;
+import gregtech.api.enums.Textures;
+import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
+import gregtech.api.render.TextureFactory;
+import gregtech.api.structure.error.StructureError;
 import gregtech.api.util.GTUtility;
+import gregtech.api.util.MultiblockTooltipBuilder;
 
 /**
  * 双枢纽（蒸汽/蓄水）钩子基类（O2-02/A04-H1）：上提两侧逐字镜像的无状态段——绑定缓存节点的
@@ -41,6 +63,18 @@ public abstract class MTEHubArrayBase<T extends MTEHubArrayBase<T>> extends MTEG
 
     /** 非缓存节点（奇点仓等）的固定交互速率上限（L/tick）：两侧原独立常量现值同为 1,000,000，统一单源。 */
     protected static final int DEFAULT_NODE_TRANSFER_RATE = 1_000_000;
+
+    /** 结构件名（字面值两侧一致，单源上提；结构定义本体仍留子类）。 */
+    protected static final String STRUCTURE_PIECE_BASE = "base";
+    protected static final String STRUCTURE_PIECE_STACK = "stack";
+    protected static final String STRUCTURE_PIECE_CAP = "cap";
+
+    /** 基材外壳纹理索引（sBlockCasings1:10）：结构注册与贴图回退共用。 */
+    protected static final int CASING_INDEX = GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings1, 10);
+
+    // 正面枢纽框架层（customAlpha pass1 图标，extFacing 对齐多方块旋转）：registerIcons（仅客户端）时
+    // 构造并静态缓存，getTexture 复用勿每调用 new，服务端类加载不触碰渲染类
+    protected static ITexture FRAME_UNBOUND_FACING;
 
     /**
      * 绑定缓存节点记录（坐标 + 解析缓存）。
@@ -82,11 +116,14 @@ public abstract class MTEHubArrayBase<T extends MTEHubArrayBase<T>> extends MTEG
     protected final ArrayList<BoundCacheNode> mBoundNodes = new ArrayList<>();
     public boolean mOverflowInput = false;
     public int mSetTier = -1;
+    public int mStackCount = 0;
     protected int mCasingTier = -1;
     protected int mPipeTier = -1;
     protected int mFrameTier = -1;
     /** 渲染状态同步去重 key（存储流体名），服务端 onPostTick 维护，变化才 issueTileUpdate。 */
     protected String mLastSyncKey = null;
+    // 存储流体名的客户端副本（description packet 同步）：正面流体窗取流体用，空串=无（回退默认流体）
+    protected String mClientFluidName = "";
 
     protected MTEHubArrayBase(int aID, String aName, String aNameRegional) {
         super(aID, aName, aNameRegional);
@@ -756,6 +793,379 @@ public abstract class MTEHubArrayBase<T extends MTEHubArrayBase<T>> extends MTEG
             aPlayer,
             StatCollector.translateToLocal("gtsr.binding.bound_output") + held.getDisplayName()
                 + StatCollector.translateToLocal("gtsr.binding.mode_output"));
+    }
+
+    // endregion
+
+    // region 展示层与结构校验模板（A04-H4：registerIcons/getTexture/描述同步/drawTexts/getInfoData/
+    // createTooltip + checkMachine 骨架；族差异经钩子参数化，网络 tag 键与 lang 键逐字保留）
+
+    /** 族 lang 前缀（"steam_hub"/"water_hub"）：GUI 词条、tooltip 与 Waila 键组合用。 */
+    protected abstract String guiLangPrefix();
+
+    /** 单层存储单元容量倍数（25/9）：GUI 存储上限读数用。 */
+    protected abstract int unitsPerStack();
+
+    /** 三档存储单元计数之和（族字段读数钩子）。 */
+    protected abstract int getTotalUnitCount();
+
+    /** 存储缓冲词条键（steam_buffer/water_buffer，非前缀可推导故单列钩子）。 */
+    protected abstract String bufferLangKey();
+
+    /** 正面流体窗回退流体（steam/WATER）：客户端无存储时渲染用。 */
+    protected abstract Fluid familyFallbackFluid();
+
+    @Override
+    @SideOnly(Side.CLIENT)
+    public void registerIcons(IIconRegister aBlockIconRegister) {
+        if (FRAME_UNBOUND_FACING == null) {
+            FRAME_UNBOUND_FACING = TextureFactory.builder()
+                .addIcon(TextureManager.HUB_FRAME_UNBOUND)
+                .extFacing()
+                .build();
+        }
+        super.registerIcons(aBlockIconRegister);
+    }
+
+    @Override
+    public NBTTagCompound getDescriptionData() {
+        NBTTagCompound data = super.getDescriptionData();
+        if (data == null) data = new NBTTagCompound();
+        data.setInteger("mSetTier", mSetTier);
+        // 正面流体窗渲染状态：存储流体名（空串=无，客户端回退族默认流体）；写值与 storedFluidNameForSync 同源
+        data.setString("gtsr.hubFluid", storedFluidNameForSync());
+        return data;
+    }
+
+    @Override
+    public void onDescriptionPacket(NBTTagCompound data) {
+        super.onDescriptionPacket(data);
+        mSetTier = data.getInteger("mSetTier");
+        mClientFluidName = data.getString("gtsr.hubFluid");
+        IGregTechTileEntity base = getBaseMetaTileEntity();
+        if (base != null) {
+            base.issueTextureUpdate();
+        }
+    }
+
+    /** 当前等级对应的外壳纹理索引（≥3 钨钢机壳 / 2 钢机壳 / 其余青铜基材），checkMachine 与 getTexture 共用。 */
+    protected int tierCasingTextureIndex() {
+        if (mSetTier >= 3) return GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings4, 0);
+        if (mSetTier == 2) return GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings2, 0);
+        return CASING_INDEX;
+    }
+
+    @Override
+    public ITexture[] getTexture(IGregTechTileEntity aBaseMetaTileEntity, ForgeDirection side, ForgeDirection facing,
+        int colorIndex, boolean active, boolean redstoneLevel) {
+        int casingTextureId = tierCasingTextureIndex();
+        if (side == facing) {
+            // 正面三层：tier 基材 + 内缩流体窗（存储流体，空回退族默认流体）+ 枢纽框架层
+            Fluid fluid = FluidRegistry.getFluid(mClientFluidName);
+            if (fluid == null) fluid = familyFallbackFluid();
+            return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(casingTextureId),
+                GTSRFluidWindowTexture.getOrCreate(fluid), FRAME_UNBOUND_FACING };
+        }
+        return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(casingTextureId) };
+    }
+
+    /**
+     * Waila 等级行文本。历史差异按零行为迁移保留：蓄水侧三档全显示；蒸汽侧原实现仅两档
+     * （tier≥3 显示 bronze 文案）——基类默认三档，蒸汽子类覆写维持现状，如需统一另立条目处置。
+     */
+    protected String tierDisplayText() {
+        if (mSetTier >= 3) return StatCollector.translateToLocal("gtsr.gui.tier.tungstensteel");
+        if (mSetTier == 2) return StatCollector.translateToLocal("gtsr.gui.tier.steel");
+        return StatCollector.translateToLocal("gtsr.gui.tier.bronze");
+    }
+
+    /** 族同步器追加钩子（三档单元计数 IntegerSyncer ×3 + 存储量 LongSyncer），顺序=两侧现状顺序。 */
+    protected abstract void addFamilySyncers(DynamicPositionedColumn screenElements);
+
+    @Deprecated
+    @Override
+    protected void drawTexts(DynamicPositionedColumn screenElements, SlotWidget inventorySlot) {
+        super.drawTexts(screenElements, inventorySlot);
+        screenElements.widget(new TextWidget().setStringSupplier(() -> {
+            return EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.hub.terminal_hint")
+                + EnumChatFormatting.RESET;
+        }));
+        screenElements.widget(new TextWidget().setStringSupplier(() -> {
+            String tierText;
+            if (mSetTier >= 3) {
+                tierText = StatCollector.translateToLocal("gtsr.gui.tier.tungstensteel");
+            } else if (mSetTier == 2) {
+                tierText = StatCollector.translateToLocal("gtsr.gui.tier.steel");
+            } else {
+                tierText = StatCollector.translateToLocal("gtsr.gui.tier.bronze");
+            }
+            return EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.tier")
+                + EnumChatFormatting.GOLD
+                + tierText
+                + EnumChatFormatting.RESET;
+        }))
+            .widget(new TextWidget().setStringSupplier(() -> {
+                ItemStack chip = getControllerSlot();
+                String chipText;
+                if (chip != null && GTSRItemList.ReinforcedHubSingularityChip.isStackEqual(chip, true, true)) {
+                    if (mSetTier >= 3) {
+                        chipText = EnumChatFormatting.GREEN
+                            + StatCollector.translateToLocal("gtsr.gui.chip.reinforced_installed");
+                    } else {
+                        chipText = EnumChatFormatting.RED
+                            + StatCollector.translateToLocal("gtsr.gui.chip.need_higher_tier");
+                    }
+                } else if (chip != null && GTSRItemList.HubSingularityChip.isStackEqual(chip, true, true)) {
+                    chipText = EnumChatFormatting.GREEN
+                        + StatCollector.translateToLocal("gtsr.gui.chip.singularity_installed");
+                } else {
+                    chipText = EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.gui.chip.none");
+                }
+                return EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.chip")
+                    + " "
+                    + chipText
+                    + EnumChatFormatting.RESET;
+            }))
+            .widget(new TextWidget().setStringSupplier(() -> {
+                String status = mMaxProgresstime > 0
+                    ? EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.gui.status.running")
+                    : EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.gui.status.idle");
+                return EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.status")
+                    + " "
+                    + status
+                    + EnumChatFormatting.RESET;
+            }))
+            .widget(
+                new TextWidget().setStringSupplier(
+                    () -> EnumChatFormatting.YELLOW
+                        + StatCollector.translateToLocal("gtsr.gui." + guiLangPrefix() + ".storage_units")
+                        + " "
+                        + EnumChatFormatting.GOLD
+                        + getTotalUnitCount()
+                        + "/"
+                        + (unitsPerStack() * mStackCount)
+                        + EnumChatFormatting.RESET))
+            .widget(
+                new TextWidget().setStringSupplier(
+                    () -> EnumChatFormatting.YELLOW + StatCollector.translateToLocal(bufferLangKey())
+                        + " "
+                        + EnumChatFormatting.LIGHT_PURPLE
+                        + UnitFormatUtil.format(getStoredFluidAmount())
+                        + " L"
+                        + EnumChatFormatting.RESET))
+            .widget(
+                new TextWidget().setStringSupplier(
+                    () -> EnumChatFormatting.YELLOW
+                        + StatCollector.translateToLocal("gtsr.gui." + guiLangPrefix() + ".total_capacity")
+                        + " "
+                        + EnumChatFormatting.LIGHT_PURPLE
+                        + UnitFormatUtil.format(getTotalCapacity())
+                        + " L"
+                        + EnumChatFormatting.RESET))
+            .widget(new FakeSyncWidget.IntegerSyncer(() -> mSetTier, val -> mSetTier = val))
+            .widget(new FakeSyncWidget.IntegerSyncer(() -> mMaxProgresstime, val -> mMaxProgresstime = val))
+            .widget(new FakeSyncWidget.IntegerSyncer(() -> mStackCount, val -> mStackCount = val));
+        addFamilySyncers(screenElements);
+    }
+
+    @Override
+    public String[] getInfoData() {
+        ArrayList<String> info = new ArrayList<>();
+        info.add(
+            EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip." + guiLangPrefix() + ".type")
+                + EnumChatFormatting.RESET);
+        if (!mMachine) {
+            info.add(EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.gui.building"));
+            return info.toArray(new String[0]);
+        }
+        info.add(
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.tier")
+                + EnumChatFormatting.GOLD
+                + tierDisplayText()
+                + EnumChatFormatting.RESET);
+        String statusKey = mMaxProgresstime > 0 ? "gtsr.gui.status.running" : "gtsr.gui.status.idle";
+        EnumChatFormatting statusColor = mMaxProgresstime > 0 ? EnumChatFormatting.AQUA : EnumChatFormatting.GRAY;
+        info.add(
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.status")
+                + " "
+                + statusColor
+                + StatCollector.translateToLocal(statusKey)
+                + EnumChatFormatting.RESET);
+        info.add(
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui." + guiLangPrefix() + ".storage_units")
+                + " "
+                + EnumChatFormatting.GOLD
+                + getTotalUnitCount()
+                + "/"
+                + (unitsPerStack() * mStackCount)
+                + EnumChatFormatting.RESET);
+        info.add(
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal(bufferLangKey())
+                + " "
+                + EnumChatFormatting.LIGHT_PURPLE
+                + UnitFormatUtil.format(getStoredFluidAmount())
+                + " L"
+                + EnumChatFormatting.RESET);
+        return info.toArray(new String[0]);
+    }
+
+    /** tooltip 结构块尺寸（beginStructureBlock 宽/高/深）：蒸汽 9×32×9、蓄水 7×31×7。 */
+    protected abstract int[] tooltipStructureDims();
+
+    /** tooltip 族专属结构信息段：蒸汽侧 4 行 casingExactly、蓄水侧 counts 行（历史差异保留）。 */
+    protected abstract void addFamilyStructureInfo(MultiblockTooltipBuilder tt);
+
+    @Override
+    protected MultiblockTooltipBuilder createTooltip() {
+        String prefix = "gtsr.tooltip." + guiLangPrefix();
+        int[] dims = tooltipStructureDims();
+        final MultiblockTooltipBuilder tt = new MultiblockTooltipBuilder();
+        tt.addMachineType(StatCollector.translateToLocal(prefix + ".type"))
+            .addInfo(StatCollector.translateToLocal(prefix + ".desc"))
+            .addInfo(StatCollector.translateToLocal(prefix + ".desc2"))
+            .addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal(prefix + ".desc2_2"))
+            .addInfo(EnumChatFormatting.GRAY + StatCollector.translateToLocal(prefix + ".chip_1"))
+            .addInfo(EnumChatFormatting.GRAY + StatCollector.translateToLocal(prefix + ".chip_2"))
+            .addInfo(
+                EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.shared.screwdriver_overflow"))
+            .addInfo(
+                EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.tooltip.shared.overflow_input_desc"))
+            .beginStructureBlock(dims[0], dims[1], dims[2], false)
+            .addController(StatCollector.translateToLocal(prefix + ".ctrl"))
+            .addOtherStructurePart(
+                StatCollector.translateToLocal(prefix + ".hub_input"),
+                StatCollector.translateToLocal("gtsr.tooltip.shared.any_casing"),
+                1)
+            .addOtherStructurePart(
+                StatCollector.translateToLocal(prefix + ".hub_output"),
+                StatCollector.translateToLocal("gtsr.tooltip.shared.any_casing"),
+                1)
+            .addOtherStructurePart(
+                StatCollector.translateToLocal(prefix + ".storage"),
+                StatCollector.translateToLocal(prefix + ".storage"),
+                2)
+            .addStructureInfo("")
+            .addStructureInfo(
+                EnumChatFormatting.BLUE + "Bronze"
+                    + EnumChatFormatting.DARK_PURPLE
+                    + "/"
+                    + EnumChatFormatting.BLUE
+                    + "Steel"
+                    + EnumChatFormatting.DARK_PURPLE
+                    + "/"
+                    + EnumChatFormatting.BLUE
+                    + "TungstenSteel "
+                    + EnumChatFormatting.DARK_PURPLE
+                    + "Tier");
+        addFamilyStructureInfo(tt);
+        tt.addStructureHint(prefix + ".height")
+            .addStructureHint("gtsr.tooltip.shared.no_maintenance")
+            .addStructureHint(prefix + ".hint_tier1")
+            .addStructureHint(prefix + ".hint_tier2")
+            .addStructureHint(prefix + ".hint_tier3")
+            .addStructureHint("gtsr.tooltip.shared.hub_singularity_cost")
+            .addStructureHint("gtsr.tooltip.shared.overflow_input_screwdriver")
+            .addStructureHint(prefix + ".hint_status")
+            .addInfo(GTSRUtils.getAddedByLine())
+            .toolTipFinisher();
+        return tt;
+    }
+
+    // 结构探偏移钩子（探高模板参数化）：蒸汽 4/0/1、蓄水 3/0/0。
+    protected abstract int horizontalOffset();
+
+    protected abstract int verticalOffset();
+
+    protected abstract int depthOffset();
+
+    /** 校验前置：把当前挂接的族 hatch 控制器引用置空（重建期间 hatch 回退独立运行）。 */
+    protected abstract void detachHatchControllers();
+
+    /** 族结构状态复位（计数/族 tier/列表清空）；公共 tier 与堆叠字段由模板先复位。 */
+    protected abstract void resetFamilyStructureState();
+
+    /** CAP 件校验钩子：蒸汽侧校验顶盖件（垂直偏移 -1），蓄水侧无 CAP（默认通过）。 */
+    protected boolean checkCapPiece(List<StructureError> errors) {
+        return true;
+    }
+
+    /** 全部族 tier 字段已探得（>0）：蒸汽含 Gear 四轴、蓄水三轴。 */
+    protected abstract boolean areTiersComplete();
+
+    /** 族 tier 字段互等：轴数两侧不同（蒸汽含 GearTier），差异显式化于各自覆写。 */
+    protected abstract boolean areTiersConsistent();
+
+    /**
+     * 三段互斥与单元存在性门（条件逐字保留；任一 require 失败返 false，
+     * 由模板统一收束 issueTileUpdate——失败恰一次更新后返回，跳过换装与末次更新）。
+     */
+    protected abstract boolean checkUnitRules(List<StructureError> errors);
+
+    /** 结构成形后给族 hatch 换装当前 tier 外壳。 */
+    protected abstract void updateHatchTextures(int tierCasingIndex);
+
+    private void resetCommonStructureState() {
+        mSetTier = -1;
+        mCasingTier = -1;
+        mPipeTier = -1;
+        mFrameTier = -1;
+        mStackCount = 0;
+    }
+
+    private void probeStackLayers() {
+        for (int i = 0; i < 30; i++) {
+            int bOffset = 1 + i;
+            if (!checkPiece(STRUCTURE_PIECE_STACK, horizontalOffset(), bOffset, depthOffset())) break;
+            mStackCount++;
+        }
+    }
+
+    /**
+     * checkMachine 骨架（reset→BASE→探高→CAP→tier 一致→三段互斥→贴图→issueTileUpdate）：
+     * 失败分支的复位动作时序逐字保留；piece 序列与 tier 字段集差异经钩子参数化
+     * （蒸汽有 CAP+Gear，蓄水无——O2-A04 施工图 4.1 迁移表末行落地）。
+     */
+    @Override
+    public void checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack, List<StructureError> errors) {
+        detachHatchControllers();
+        resetCommonStructureState();
+        resetFamilyStructureState();
+
+        if (!checkPiece(STRUCTURE_PIECE_BASE, horizontalOffset(), verticalOffset(), depthOffset(), errors)) {
+            getBaseMetaTileEntity().issueTileUpdate();
+            return;
+        }
+
+        probeStackLayers();
+
+        if (!require(mStackCount > 0, errors)) {
+            getBaseMetaTileEntity().issueTileUpdate();
+            return;
+        }
+
+        if (!checkCapPiece(errors)) {
+            getBaseMetaTileEntity().issueTileUpdate();
+            return;
+        }
+
+        if (!require(areTiersComplete(), errors)) {
+            getBaseMetaTileEntity().issueTileUpdate();
+            return;
+        }
+        if (!require(areTiersConsistent(), errors)) {
+            getBaseMetaTileEntity().issueTileUpdate();
+            return;
+        }
+        mSetTier = mCasingTier;
+
+        if (!checkUnitRules(errors)) {
+            getBaseMetaTileEntity().issueTileUpdate();
+            return;
+        }
+
+        updateHatchTextures(tierCasingTextureIndex());
+
+        getBaseMetaTileEntity().issueTileUpdate();
     }
 
     // endregion

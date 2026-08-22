@@ -15,7 +15,6 @@ import java.util.List;
 import javax.annotation.Nullable;
 
 import net.minecraft.block.Block;
-import net.minecraft.client.renderer.texture.IIconRegister;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
@@ -37,8 +36,6 @@ import com.gtnewhorizon.structurelib.structure.ISurvivalBuildEnvironment;
 import com.gtnewhorizon.structurelib.structure.StructureDefinition;
 import com.gtnewhorizons.modularui.common.widget.DynamicPositionedColumn;
 import com.gtnewhorizons.modularui.common.widget.FakeSyncWidget;
-import com.gtnewhorizons.modularui.common.widget.SlotWidget;
-import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.gui.MTEWaterHubArrayGui;
 import com.miaokatze.gtsr.common.machine.base.IHubCacheNode;
@@ -51,23 +48,14 @@ import com.miaokatze.gtsr.common.machine.base.MTEReinforcedWaterCacheNode;
 import com.miaokatze.gtsr.common.machine.base.MTEWaterCacheNode;
 import com.miaokatze.gtsr.common.machine.base.MTEWaterHubInputHatch;
 import com.miaokatze.gtsr.common.machine.base.MTEWaterHubOutputHatch;
-import com.miaokatze.gtsr.common.util.GTSRFluidWindowTexture;
-import com.miaokatze.gtsr.common.util.GTSRUtils;
 import com.miaokatze.gtsr.common.util.UnitFormatUtil;
-import com.miaokatze.gtsr.register.TextureManager;
 
-import cpw.mods.fml.relauncher.Side;
-import cpw.mods.fml.relauncher.SideOnly;
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Materials;
-import gregtech.api.enums.Textures;
 import gregtech.api.interfaces.IHatchElement;
-import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
-import gregtech.api.render.TextureFactory;
 import gregtech.api.structure.error.StructureError;
-import gregtech.api.util.GTUtility;
 import gregtech.api.util.IGTHatchAdder;
 import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
@@ -76,8 +64,7 @@ import gregtech.common.misc.GTStructureChannels;
 public class MTEWaterHubArray extends MTEHubArrayBase<MTEWaterHubArray>
     implements IConstructable, ISurvivalConstructable {
 
-    private static final String STRUCTURE_PIECE_BASE = "base";
-    private static final String STRUCTURE_PIECE_STACK = "stack";
+    // 结构探偏移（construct/survivalConstruct 与基类 checkMachine 探高模板共用）
     private static final int HORIZONTAL_OFF_SET = 3;
     private static final int VERTICAL_OFF_SET = 0;
     private static final int DEPTH_OFF_SET = 0;
@@ -87,12 +74,6 @@ public class MTEWaterHubArray extends MTEHubArrayBase<MTEWaterHubArray>
     private static final int REINFORCED_HUB_UNIT_CAPACITY = 5_120_000;
     private static final int OVERPRESSURE_HUB_UNIT_CAPACITY = 20_480_000;
     private static final int BOUND_TRANSFER_INTERVAL = 20;
-
-    private static final int CASING_INDEX = GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings1, 10);
-
-    // 正面枢纽框架层（customAlpha pass1 图标，extFacing 对齐多方块旋转）：registerIcons（仅客户端）时
-    // 构造并静态缓存，getTexture 复用勿每调用 new，服务端类加载不触碰渲染类
-    private static ITexture FRAME_UNBOUND_FACING;
 
     private static final IStructureDefinition<MTEWaterHubArray> STRUCTURE_DEFINITION;
 
@@ -333,11 +314,8 @@ public class MTEWaterHubArray extends MTEHubArrayBase<MTEWaterHubArray>
     public int mReinforcedHubUnitCount = 0;
     public int mOverpressureHubUnitCount = 0;
     private int mCasingAmount = 0;
-    public int mStackCount = 0;
     public long mWaterStored = 0;
     private String mStoredFluidType = null;
-    // 存储流体名的客户端副本（description packet 同步）：正面流体窗取流体用，空串=无（回退默认水）
-    private String mClientFluidName = "";
 
     public MTEWaterHubArray(int aID, String aName, String aNameRegional) {
         super(aID, aName, aNameRegional);
@@ -373,18 +351,6 @@ public class MTEWaterHubArray extends MTEHubArrayBase<MTEWaterHubArray>
     }
 
     @Override
-    @SideOnly(Side.CLIENT)
-    public void registerIcons(IIconRegister aBlockIconRegister) {
-        if (FRAME_UNBOUND_FACING == null) {
-            FRAME_UNBOUND_FACING = TextureFactory.builder()
-                .addIcon(TextureManager.HUB_FRAME_UNBOUND)
-                .extFacing()
-                .build();
-        }
-        super.registerIcons(aBlockIconRegister);
-    }
-
-    @Override
     public IMetaTileEntity newMetaEntity(IGregTechTileEntity aTileEntity) {
         return new MTEWaterHubArray(mName);
     }
@@ -394,100 +360,82 @@ public class MTEWaterHubArray extends MTEHubArrayBase<MTEWaterHubArray>
         return STRUCTURE_DEFINITION;
     }
 
+    // A04-H4 结构校验钩子（checkMachine 骨架见 MTEHubArrayBase：reset→BASE→探高→tier 一致→
+    // 三段互斥→贴图→issueTileUpdate；蓄水无 CAP 件，checkCapPiece 走基类默认通过）
+
     @Override
-    public void checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack, List<StructureError> errors) {
+    protected int horizontalOffset() {
+        return HORIZONTAL_OFF_SET;
+    }
+
+    @Override
+    protected int verticalOffset() {
+        return VERTICAL_OFF_SET;
+    }
+
+    @Override
+    protected int depthOffset() {
+        return DEPTH_OFF_SET;
+    }
+
+    @Override
+    protected void detachHatchControllers() {
         for (MTEWaterHubInputHatch hatch : mWaterInputHatches) {
             hatch.mController = null;
         }
         for (MTEWaterHubOutputHatch hatch : mWaterOutputHatches) {
             hatch.mController = null;
         }
+    }
 
+    @Override
+    protected void resetFamilyStructureState() {
         mHubUnitCount = 0;
         mReinforcedHubUnitCount = 0;
         mOverpressureHubUnitCount = 0;
         mCasingAmount = 0;
-        mSetTier = -1;
-        mCasingTier = -1;
-        mPipeTier = -1;
-        mFrameTier = -1;
-        mStackCount = 0;
         mWaterInputHatches.clear();
         mWaterOutputHatches.clear();
         mSingularityFluidInputCompartmentCount = 0;
         mSingularityFluidOutputCompartmentCount = 0;
+    }
 
-        if (!checkPiece(STRUCTURE_PIECE_BASE, HORIZONTAL_OFF_SET, VERTICAL_OFF_SET, DEPTH_OFF_SET, errors)) {
-            getBaseMetaTileEntity().issueTileUpdate();
-            return;
-        }
+    @Override
+    protected boolean areTiersComplete() {
+        return mCasingTier > 0 && mPipeTier > 0 && mFrameTier > 0;
+    }
 
-        for (int i = 0; i < 30; i++) {
-            int bOffset = 1 + i;
-            if (!checkPiece(STRUCTURE_PIECE_STACK, HORIZONTAL_OFF_SET, bOffset, DEPTH_OFF_SET)) break;
-            mStackCount++;
-        }
+    @Override
+    protected boolean areTiersConsistent() {
+        return mCasingTier == mPipeTier && mCasingTier == mFrameTier;
+    }
 
-        if (!require(mStackCount > 0, errors)) {
-            getBaseMetaTileEntity().issueTileUpdate();
-            return;
-        }
-
-        // Validate all tier fields are consistent
-        if (!require(mCasingTier > 0 && mPipeTier > 0 && mFrameTier > 0, errors)) {
-            getBaseMetaTileEntity().issueTileUpdate();
-            return;
-        }
-        if (!require(mCasingTier == mPipeTier && mCasingTier == mFrameTier, errors)) {
-            getBaseMetaTileEntity().issueTileUpdate();
-            return;
-        }
-        mSetTier = mCasingTier;
-
-        // 三段互斥（镜像蒸汽枢纽）：tier1 禁耐压/超压单元且需普通单元>0；
-        // tier2 禁普通/超压单元且需耐压单元>0；tier≥3 禁普通/耐压单元且需超压单元>0
+    // 三段互斥（镜像蒸汽枢纽）：tier1 禁耐压/超压单元且需普通单元>0；
+    // tier2 禁普通/超压单元且需耐压单元>0；tier≥3 禁普通/耐压单元且需超压单元>0
+    @Override
+    protected boolean checkUnitRules(List<StructureError> errors) {
         if (!require(mSetTier != 1 || (mReinforcedHubUnitCount <= 0 && mOverpressureHubUnitCount <= 0), errors)) {
-            getBaseMetaTileEntity().issueTileUpdate();
-            return;
+            return false;
         }
         if (!require(mSetTier != 2 || (mHubUnitCount <= 0 && mOverpressureHubUnitCount <= 0), errors)) {
-            getBaseMetaTileEntity().issueTileUpdate();
-            return;
+            return false;
         }
         if (!require(mSetTier < 3 || (mHubUnitCount <= 0 && mReinforcedHubUnitCount <= 0), errors)) {
-            getBaseMetaTileEntity().issueTileUpdate();
-            return;
+            return false;
         }
+        if (!require(mSetTier != 1 || mHubUnitCount > 0, errors)) return false;
+        if (!require(mSetTier != 2 || mReinforcedHubUnitCount > 0, errors)) return false;
+        return require(mSetTier < 3 || mOverpressureHubUnitCount > 0, errors);
+    }
 
-        if (!require(mSetTier != 1 || mHubUnitCount > 0, errors)) {
-            getBaseMetaTileEntity().issueTileUpdate();
-            return;
-        }
-        if (!require(mSetTier != 2 || mReinforcedHubUnitCount > 0, errors)) {
-            getBaseMetaTileEntity().issueTileUpdate();
-            return;
-        }
-        if (!require(mSetTier < 3 || mOverpressureHubUnitCount > 0, errors)) {
-            getBaseMetaTileEntity().issueTileUpdate();
-            return;
-        }
-
-        int tierCasingIndex;
-        if (mSetTier >= 3) {
-            tierCasingIndex = GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings4, 0);
-        } else if (mSetTier == 2) {
-            tierCasingIndex = GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings2, 0);
-        } else {
-            tierCasingIndex = CASING_INDEX;
-        }
+    @Override
+    protected void updateHatchTextures(int tierCasingIndex) {
         for (MTEWaterHubInputHatch hatch : mWaterInputHatches) {
             hatch.updateTexture(tierCasingIndex);
         }
         for (MTEWaterHubOutputHatch hatch : mWaterOutputHatches) {
             hatch.updateTexture(tierCasingIndex);
         }
-
-        getBaseMetaTileEntity().issueTileUpdate();
     }
 
     private void onCasingAdded() {
@@ -949,136 +897,46 @@ public class MTEWaterHubArray extends MTEHubArrayBase<MTEWaterHubArray>
         }
     }
 
+    // A04-H4 展示层钩子（描述同步/正面贴图/GUI 文本/Waila/tooltip 模板见 MTEHubArrayBase 展示层 region）
+
     @Override
-    public NBTTagCompound getDescriptionData() {
-        NBTTagCompound data = super.getDescriptionData();
-        if (data == null) data = new NBTTagCompound();
-        data.setInteger("mSetTier", mSetTier);
-        // 正面流体窗渲染状态：存储流体名（空串=无，客户端回退默认水）
-        data.setString("gtsr.hubFluid", mStoredFluidType != null ? mStoredFluidType : "");
-        return data;
+    protected String guiLangPrefix() {
+        return "water_hub";
     }
 
     @Override
-    public void onDescriptionPacket(NBTTagCompound data) {
-        super.onDescriptionPacket(data);
-        mSetTier = data.getInteger("mSetTier");
-        mClientFluidName = data.getString("gtsr.hubFluid");
-        IGregTechTileEntity base = getBaseMetaTileEntity();
-        if (base != null) {
-            base.issueTextureUpdate();
-        }
+    protected int unitsPerStack() {
+        return 9;
     }
 
     @Override
-    public ITexture[] getTexture(IGregTechTileEntity aBaseMetaTileEntity, ForgeDirection side, ForgeDirection facing,
-        int colorIndex, boolean active, boolean redstoneLevel) {
-        int casingTextureId;
-        if (mSetTier >= 3) {
-            casingTextureId = GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings4, 0);
-        } else if (mSetTier == 2) {
-            casingTextureId = GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings2, 0);
-        } else {
-            casingTextureId = CASING_INDEX;
-        }
-        if (side == facing) {
-            // 正面三层：tier 基材 + 内缩流体窗（存储流体，空回退水；窗收在框架环内，与节点/仓同变体）+ 枢纽框架层
-            Fluid fluid = FluidRegistry.getFluid(mClientFluidName);
-            if (fluid == null) fluid = FluidRegistry.WATER;
-            return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(casingTextureId),
-                GTSRFluidWindowTexture.getOrCreate(fluid), FRAME_UNBOUND_FACING };
-        }
-        return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(casingTextureId) };
+    protected int getTotalUnitCount() {
+        return mHubUnitCount + mReinforcedHubUnitCount + mOverpressureHubUnitCount;
     }
 
     @Override
-    protected MTEMultiBlockBaseGui<?> getGui() {
-        return new MTEWaterHubArrayGui(this);
+    protected String bufferLangKey() {
+        return "gtsr.gui.water_hub.water_buffer";
     }
 
-    @Deprecated
     @Override
-    protected void drawTexts(DynamicPositionedColumn screenElements, SlotWidget inventorySlot) {
-        super.drawTexts(screenElements, inventorySlot);
-        screenElements.widget(new TextWidget().setStringSupplier(() -> {
-            return EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.hub.terminal_hint")
-                + EnumChatFormatting.RESET;
-        }));
-        screenElements.widget(new TextWidget().setStringSupplier(() -> {
-            String tierText;
-            if (mSetTier >= 3) {
-                tierText = StatCollector.translateToLocal("gtsr.gui.tier.tungstensteel");
-            } else if (mSetTier == 2) {
-                tierText = StatCollector.translateToLocal("gtsr.gui.tier.steel");
-            } else {
-                tierText = StatCollector.translateToLocal("gtsr.gui.tier.bronze");
-            }
-            return EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.tier")
-                + EnumChatFormatting.GOLD
-                + tierText
-                + EnumChatFormatting.RESET;
-        }))
-            .widget(new TextWidget().setStringSupplier(() -> {
-                ItemStack chip = getControllerSlot();
-                String chipText;
-                if (chip != null && GTSRItemList.ReinforcedHubSingularityChip.isStackEqual(chip, true, true)) {
-                    if (mSetTier >= 3) {
-                        chipText = EnumChatFormatting.GREEN
-                            + StatCollector.translateToLocal("gtsr.gui.chip.reinforced_installed");
-                    } else {
-                        chipText = EnumChatFormatting.RED
-                            + StatCollector.translateToLocal("gtsr.gui.chip.need_higher_tier");
-                    }
-                } else if (chip != null && GTSRItemList.HubSingularityChip.isStackEqual(chip, true, true)) {
-                    chipText = EnumChatFormatting.GREEN
-                        + StatCollector.translateToLocal("gtsr.gui.chip.singularity_installed");
-                } else {
-                    chipText = EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.gui.chip.none");
-                }
-                return EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.chip")
-                    + " "
-                    + chipText
-                    + EnumChatFormatting.RESET;
-            }))
-            .widget(new TextWidget().setStringSupplier(() -> {
-                String status = mMaxProgresstime > 0
-                    ? EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.gui.status.running")
-                    : EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.gui.status.idle");
-                return EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.status")
-                    + " "
-                    + status
-                    + EnumChatFormatting.RESET;
-            }))
-            .widget(
-                new TextWidget().setStringSupplier(
-                    () -> EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.water_hub.storage_units")
-                        + " "
-                        + EnumChatFormatting.GOLD
-                        + (mHubUnitCount + mReinforcedHubUnitCount + mOverpressureHubUnitCount)
-                        + "/"
-                        + (9 * mStackCount)
-                        + EnumChatFormatting.RESET))
-            .widget(
-                new TextWidget().setStringSupplier(
-                    () -> EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.water_hub.water_buffer")
-                        + " "
-                        + EnumChatFormatting.LIGHT_PURPLE
-                        + UnitFormatUtil.format(mWaterStored)
-                        + " L"
-                        + EnumChatFormatting.RESET))
-            .widget(
-                new TextWidget().setStringSupplier(
-                    () -> EnumChatFormatting.YELLOW
-                        + StatCollector.translateToLocal("gtsr.gui.water_hub.total_capacity")
-                        + " "
-                        + EnumChatFormatting.LIGHT_PURPLE
-                        + UnitFormatUtil.format(getTotalCapacity())
-                        + " L"
-                        + EnumChatFormatting.RESET))
-            .widget(new FakeSyncWidget.IntegerSyncer(() -> mSetTier, val -> mSetTier = val))
-            .widget(new FakeSyncWidget.IntegerSyncer(() -> mMaxProgresstime, val -> mMaxProgresstime = val))
-            .widget(new FakeSyncWidget.IntegerSyncer(() -> mStackCount, val -> mStackCount = val))
-            .widget(new FakeSyncWidget.IntegerSyncer(() -> mHubUnitCount, val -> mHubUnitCount = val))
+    protected Fluid familyFallbackFluid() {
+        return FluidRegistry.WATER;
+    }
+
+    @Override
+    protected int[] tooltipStructureDims() {
+        return new int[] { 7, 31, 7 };
+    }
+
+    @Override
+    protected void addFamilyStructureInfo(MultiblockTooltipBuilder tt) {
+        tt.addStructureInfo(StatCollector.translateToLocal("gtsr.tooltip.water_hub.counts"));
+    }
+
+    @Override
+    protected void addFamilySyncers(DynamicPositionedColumn screenElements) {
+        screenElements.widget(new FakeSyncWidget.IntegerSyncer(() -> mHubUnitCount, val -> mHubUnitCount = val))
             .widget(
                 new FakeSyncWidget.IntegerSyncer(() -> mReinforcedHubUnitCount, val -> mReinforcedHubUnitCount = val))
             .widget(
@@ -1089,106 +947,7 @@ public class MTEWaterHubArray extends MTEHubArrayBase<MTEWaterHubArray>
     }
 
     @Override
-    public String[] getInfoData() {
-        ArrayList<String> info = new ArrayList<>();
-        info.add(
-            EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.water_hub.type")
-                + EnumChatFormatting.RESET);
-        if (!mMachine) {
-            info.add(EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.gui.building"));
-            return info.toArray(new String[0]);
-        }
-        String tierText;
-        if (mSetTier >= 3) {
-            tierText = StatCollector.translateToLocal("gtsr.gui.tier.tungstensteel");
-        } else if (mSetTier == 2) {
-            tierText = StatCollector.translateToLocal("gtsr.gui.tier.steel");
-        } else {
-            tierText = StatCollector.translateToLocal("gtsr.gui.tier.bronze");
-        }
-        info.add(
-            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.tier")
-                + EnumChatFormatting.GOLD
-                + tierText
-                + EnumChatFormatting.RESET);
-        String statusKey = mMaxProgresstime > 0 ? "gtsr.gui.status.running" : "gtsr.gui.status.idle";
-        EnumChatFormatting statusColor = mMaxProgresstime > 0 ? EnumChatFormatting.AQUA : EnumChatFormatting.GRAY;
-        info.add(
-            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.status")
-                + " "
-                + statusColor
-                + StatCollector.translateToLocal(statusKey)
-                + EnumChatFormatting.RESET);
-        int totalUnits = mHubUnitCount + mReinforcedHubUnitCount + mOverpressureHubUnitCount;
-        info.add(
-            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.water_hub.storage_units")
-                + " "
-                + EnumChatFormatting.GOLD
-                + totalUnits
-                + "/"
-                + (9 * mStackCount)
-                + EnumChatFormatting.RESET);
-        info.add(
-            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.water_hub.water_buffer")
-                + " "
-                + EnumChatFormatting.LIGHT_PURPLE
-                + UnitFormatUtil.format(mWaterStored)
-                + " L"
-                + EnumChatFormatting.RESET);
-        return info.toArray(new String[0]);
-    }
-
-    @Override
-    protected MultiblockTooltipBuilder createTooltip() {
-        final MultiblockTooltipBuilder tt = new MultiblockTooltipBuilder();
-        tt.addMachineType(StatCollector.translateToLocal("gtsr.tooltip.water_hub.type"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.water_hub.desc"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.water_hub.desc2"))
-            .addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.water_hub.desc2_2"))
-            .addInfo(EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.water_hub.chip_1"))
-            .addInfo(EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.water_hub.chip_2"))
-            .addInfo(
-                EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.shared.screwdriver_overflow"))
-            .addInfo(
-                EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.tooltip.shared.overflow_input_desc"))
-            .beginStructureBlock(7, 31, 7, false)
-            .addController(StatCollector.translateToLocal("gtsr.tooltip.water_hub.ctrl"))
-            .addOtherStructurePart(
-                StatCollector.translateToLocal("gtsr.tooltip.water_hub.hub_input"),
-                StatCollector.translateToLocal("gtsr.tooltip.shared.any_casing"),
-                1)
-            .addOtherStructurePart(
-                StatCollector.translateToLocal("gtsr.tooltip.water_hub.hub_output"),
-                StatCollector.translateToLocal("gtsr.tooltip.shared.any_casing"),
-                1)
-            .addOtherStructurePart(
-                StatCollector.translateToLocal("gtsr.tooltip.water_hub.storage"),
-                StatCollector.translateToLocal("gtsr.tooltip.water_hub.storage"),
-                2)
-            .addStructureInfo("")
-            .addStructureInfo(
-                EnumChatFormatting.BLUE + "Bronze"
-                    + EnumChatFormatting.DARK_PURPLE
-                    + "/"
-                    + EnumChatFormatting.BLUE
-                    + "Steel"
-                    + EnumChatFormatting.DARK_PURPLE
-                    + "/"
-                    + EnumChatFormatting.BLUE
-                    + "TungstenSteel "
-                    + EnumChatFormatting.DARK_PURPLE
-                    + "Tier")
-            .addStructureInfo(StatCollector.translateToLocal("gtsr.tooltip.water_hub.counts"))
-            .addStructureHint("gtsr.tooltip.water_hub.height")
-            .addStructureHint("gtsr.tooltip.shared.no_maintenance")
-            .addStructureHint("gtsr.tooltip.water_hub.hint_tier1")
-            .addStructureHint("gtsr.tooltip.water_hub.hint_tier2")
-            .addStructureHint("gtsr.tooltip.water_hub.hint_tier3")
-            .addStructureHint("gtsr.tooltip.shared.hub_singularity_cost")
-            .addStructureHint("gtsr.tooltip.shared.overflow_input_screwdriver")
-            .addStructureHint("gtsr.tooltip.water_hub.hint_status")
-            .addInfo(GTSRUtils.getAddedByLine())
-            .toolTipFinisher();
-        return tt;
+    protected MTEMultiBlockBaseGui<?> getGui() {
+        return new MTEWaterHubArrayGui(this);
     }
 }
