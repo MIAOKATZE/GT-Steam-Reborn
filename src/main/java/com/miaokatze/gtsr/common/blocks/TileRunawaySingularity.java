@@ -312,8 +312,10 @@ public class TileRunawaySingularity extends TileEntity {
     }
 
     /**
-     * 主吸收机制：球形扫描 + 距离排序 + 概率吸收
-     * 扫描半径上限 48：超大范围时外层区域由射线机制覆盖，避免每 4 tick 全量立方体遍历造成卡顿。
+     * 主吸收机制（唯一方块吸收路径）：球形扫描 + 距离排序 + 概率吸收。
+     * 扫描半径钳 48：>48 格的方块不吸收（性能上限，避免每 4 tick 全量立方体遍历卡顿）；
+     * 仅实体路径（handleEntities）使用全范围 effRange。原注记「外层区域由射线机制覆盖」
+     * 所指的 absorbRays 为死代码（全库零调用，B2-05 删除），该说法不成立。
      */
     private void absorbScan(double effRange, double factor) {
         if (worldObj.getWorldTime() % SCAN_INTERVAL != 0) {
@@ -381,43 +383,6 @@ public class TileRunawaySingularity extends TileEntity {
                     break;
                 }
             }
-        }
-    }
-
-    /**
-     * 辅吸收机制：概率节流单条随机射线（仿 Thaumcraft 饕餮节点）。
-     * speed=1 时平均每 20 tick 发 0.25 条，作为吸收主机制的少量补充。
-     */
-    private void absorbRays(double effRange, double factor) {
-        if (worldObj.rand.nextDouble() >= speed * factor * 0.25D / 20.0D) {
-            return;
-        }
-        double cx = xCoord + 0.5D;
-        double cy = yCoord + 0.5D;
-        double cz = zCoord + 0.5D;
-        int absorbed = 0;
-        double yaw = worldObj.rand.nextDouble() * 2.0D * Math.PI - Math.PI;
-        double pitch = worldObj.rand.nextDouble() * Math.PI - Math.PI / 2.0D;
-        double dirX = Math.cos(pitch) * Math.cos(yaw);
-        double dirY = Math.sin(pitch);
-        double dirZ = Math.cos(pitch) * Math.sin(yaw);
-        for (double t = 0.0D; t <= effRange; t += 0.75D) {
-            int bx = (int) Math.floor(cx + dirX * t);
-            int by = (int) Math.floor(cy + dirY * t);
-            int bz = (int) Math.floor(cz + dirZ * t);
-            Block block = worldObj.getBlock(bx, by, bz);
-            if (block.isAir(worldObj, bx, by, bz) || block == Blocks.air) {
-                continue;
-            }
-            if (block == BlockLoader.blockRunawaySingularity) {
-                continue;
-            }
-            if (block.getBlockHardness(worldObj, bx, by, bz) < 0.0F) {
-                continue; // 不可吸收方块，继续沿射线步进
-            }
-            worldObj.setBlockToAir(bx, by, bz);
-            absorbed++;
-            break; // 单条射线至多吸收 1 块
         }
     }
 
