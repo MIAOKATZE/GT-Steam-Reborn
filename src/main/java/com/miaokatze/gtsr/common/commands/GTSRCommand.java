@@ -23,6 +23,19 @@ import com.miaokatze.gtsr.common.blocks.TileRunawaySingularity;
  */
 public class GTSRCommand extends CommandBase {
 
+    /** 第 7 参合法色名（与 TileRunawaySingularity 16 原版染料色表、Tab 补全同源）。 */
+    private static final String[] VALID_COLORS = { "white", "orange", "magenta", "light_blue", "yellow", "lime", "pink",
+        "gray", "silver", "cyan", "purple", "blue", "brown", "green", "red", "black" };
+
+    private static String joinValidColors() {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < VALID_COLORS.length; i++) {
+            if (i > 0) sb.append(", ");
+            sb.append(VALID_COLORS[i]);
+        }
+        return sb.toString();
+    }
+
     @Override
     public String getCommandName() {
         return "gtsr";
@@ -51,8 +64,9 @@ public class GTSRCommand extends CommandBase {
         int special = parseSpecial(args[5]);
         String color = args.length >= 7 ? args[6] : "white";
         if (!TileRunawaySingularity.isValidColor(color)) {
-            // 非法颜色走数值错误通道（也可换 WrongUsageException，语义等价）
-            throw new NumberInvalidException("commands.generic.num.invalid", color);
+            // SR-BUG-01：非法颜色改走用法错误通道（原数值错误通道会误报「不是有效数字」），
+            // 错误提示直接列出 16 个合法色名（与 TileRunawaySingularity 色表、Tab 补全同源）
+            throw new WrongUsageException(getCommandUsage(sender) + "  [color] must be one of: " + joinValidColors());
         }
         double fxRadius = args.length >= 8 ? parseClampedDouble(args[7], 0.5D, 128.0D) : 10.0D;
 
@@ -102,24 +116,8 @@ public class GTSRCommand extends CommandBase {
             return getListOfStringsMatchingLastWord(args, "NA", "0", "null", "onlypull", "nullplus", "nature");
         }
         if (args.length == 6) {
-            return getListOfStringsMatchingLastWord(
-                args,
-                "white",
-                "orange",
-                "magenta",
-                "light_blue",
-                "yellow",
-                "lime",
-                "pink",
-                "gray",
-                "silver",
-                "cyan",
-                "purple",
-                "blue",
-                "brown",
-                "green",
-                "red",
-                "black");
+            // 色名表与非法颜色报错同源（VALID_COLORS）
+            return getListOfStringsMatchingLastWord(args, VALID_COLORS);
         }
         return null;
     }
