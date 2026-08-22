@@ -107,13 +107,13 @@ public final class NodeAndHubRecipes {
      * 注册 Botania Tiny Planet 工作台合成配方。
      * <p>
      * 配方形状（用户需求：LV 电路板居中，8 个蒸汽纠缠奇点绕一圈）：
-     * 
+     *
      * <pre>
      *   S S S
      *   S C S
      *   S S S
      * </pre>
-     * 
+     *
      * 其中：
      * - C = LV 电路板（任意种类，通过 OrePrefixes.circuit.get(Materials.LV) 匹配 OreDict）
      * - S = 蒸汽纠缠奇点（GTSRItemList.SteamEntangledSingularity）
