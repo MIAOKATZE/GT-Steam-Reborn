@@ -1,5 +1,6 @@
 package com.miaokatze.gtsr.loader;
 
+import com.miaokatze.gtsr.common.api.enums.GTSRHatchElement;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.api.enums.MetaTileEntityID;
 import com.miaokatze.gtsr.common.machine.MTEAirCompressor;
@@ -63,6 +64,12 @@ import com.miaokatze.gtsr.register.CreativeTabManager;
 public class MachineLoader {
 
     public static void initMachines() {
+        // O2-B03①：先灌入 api 层 GTSRHatchElement 的 machine 具体仓类（晚绑定注册表），
+        // 须早于任何机器注册/结构检测/NEI 仓类查询
+        GTSRHatchElement.registerMachineHatchClasses(
+            MTESteamCoolingHatch.class,
+            MTEPressureSteamCoolingHatch.class,
+            MTEHatchPressureSteamInput.class);
         registerAllMachines();
         addItemsToCreativeTab();
     }
