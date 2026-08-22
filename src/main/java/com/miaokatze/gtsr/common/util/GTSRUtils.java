@@ -26,4 +26,19 @@ public final class GTSRUtils {
             + EnumChatFormatting.BLUE
             + "Reborn";
     }
+
+    /**
+     * 枢纽仓 hatch 读数行（Waila）：GREEN 存量 + " L" + RESET 空格 YELLOW 容量 + " L" + RESET。
+     * 四份枢纽 I/O hatch getInfoData 双行块单源（O2-16）。
+     */
+    public static String formatHubTankLine(long aStored, long aCapacity) {
+        return EnumChatFormatting.GREEN + UnitFormatUtil.format(aStored)
+            + " L"
+            + EnumChatFormatting.RESET
+            + " "
+            + EnumChatFormatting.YELLOW
+            + UnitFormatUtil.format(aCapacity)
+            + " L"
+            + EnumChatFormatting.RESET;
+    }
 }

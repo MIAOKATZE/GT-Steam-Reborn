@@ -6,7 +6,6 @@ import net.minecraft.util.StatCollector;
 import net.minecraftforge.fluids.FluidStack;
 
 import com.miaokatze.gtsr.common.util.GTSRUtils;
-import com.miaokatze.gtsr.common.util.UnitFormatUtil;
 
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
@@ -55,14 +54,7 @@ public class MTESteamHubInputHatch extends MTEHatchInput {
     public String[] getInfoData() {
         long stored = mController != null && mController.isFormed() ? mController.getStoredFluidAmount() : 0L;
         return new String[] { "gt.blockmachines." + mName + ".name",
-            EnumChatFormatting.GREEN + UnitFormatUtil.format(stored)
-                + " L"
-                + EnumChatFormatting.RESET
-                + " "
-                + EnumChatFormatting.YELLOW
-                + UnitFormatUtil.format(getCapacityLong())
-                + " L"
-                + EnumChatFormatting.RESET };
+            GTSRUtils.formatHubTankLine(stored, getCapacityLong()) };
     }
 
     public long getCapacityLong() {
