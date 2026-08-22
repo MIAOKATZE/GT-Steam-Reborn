@@ -4,6 +4,7 @@ import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlocksT
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose;
+import static com.miaokatze.gtsr.common.structure.GTSRStructureChecks.require;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 
 import java.util.ArrayList;
@@ -73,7 +74,6 @@ import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.render.TextureFactory;
 import gregtech.api.structure.error.StructureError;
-import gregtech.api.structure.error.StructureErrorRegistry;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.IGTHatchAdder;
 import gregtech.api.util.MultiblockTooltipBuilder;
@@ -498,8 +498,7 @@ public class MTESteamHubArray extends MTEGTSRMultiBlockBase<MTESteamHubArray>
             mStackCount++;
         }
 
-        if (mStackCount == 0) {
-            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+        if (!require(mStackCount > 0, errors)) {
             getBaseMetaTileEntity().issueTileUpdate();
             return;
         }
@@ -510,42 +509,35 @@ public class MTESteamHubArray extends MTEGTSRMultiBlockBase<MTESteamHubArray>
         }
 
         // Validate all tier fields are consistent
-        if (mCasingTier <= 0 || mPipeTier <= 0 || mGearTier <= 0 || mFrameTier <= 0) {
-            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+        if (!require(mCasingTier > 0 && mPipeTier > 0 && mGearTier > 0 && mFrameTier > 0, errors)) {
             getBaseMetaTileEntity().issueTileUpdate();
             return;
         }
-        if (mCasingTier != mPipeTier || mCasingTier != mGearTier || mCasingTier != mFrameTier) {
-            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+        if (!require(mCasingTier == mPipeTier && mCasingTier == mGearTier && mCasingTier == mFrameTier, errors)) {
             getBaseMetaTileEntity().issueTileUpdate();
             return;
         }
         mSetTier = mCasingTier;
 
-        if (mSetTier == 1 && (mReinforcedUnitCount > 0 || mOverpressureUnitCount > 0)) {
-            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+        if (!require(mSetTier != 1 || (mReinforcedUnitCount <= 0 && mOverpressureUnitCount <= 0), errors)) {
             getBaseMetaTileEntity().issueTileUpdate();
             return;
         }
-        if (mSetTier == 2 && (mPressureUnitCount > 0 || mOverpressureUnitCount > 0)) {
-            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+        if (!require(mSetTier != 2 || (mPressureUnitCount <= 0 && mOverpressureUnitCount <= 0), errors)) {
             getBaseMetaTileEntity().issueTileUpdate();
             return;
         }
-        if (mSetTier >= 3 && (mPressureUnitCount > 0 || mReinforcedUnitCount > 0)) {
-            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
-            getBaseMetaTileEntity().issueTileUpdate();
-            return;
-        }
-
-        if (mSetTier >= 3 && mOverpressureUnitCount <= 0) {
-            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+        if (!require(mSetTier < 3 || (mPressureUnitCount <= 0 && mReinforcedUnitCount <= 0), errors)) {
             getBaseMetaTileEntity().issueTileUpdate();
             return;
         }
 
-        if ((mPressureUnitCount + mReinforcedUnitCount + mOverpressureUnitCount) <= 0) {
-            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+        if (!require(mSetTier < 3 || mOverpressureUnitCount > 0, errors)) {
+            getBaseMetaTileEntity().issueTileUpdate();
+            return;
+        }
+
+        if (!require((mPressureUnitCount + mReinforcedUnitCount + mOverpressureUnitCount) > 0, errors)) {
             getBaseMetaTileEntity().issueTileUpdate();
             return;
         }
