@@ -19,12 +19,8 @@ import net.minecraft.client.renderer.texture.IIconRegister;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.nbt.NBTTagList;
-import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
-import net.minecraft.world.World;
-import net.minecraftforge.common.DimensionManager;
 import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidRegistry;
@@ -46,7 +42,7 @@ import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.gui.MTEWaterHubArrayGui;
 import com.miaokatze.gtsr.common.machine.base.IHubCacheNode;
-import com.miaokatze.gtsr.common.machine.base.MTEGTSRMultiBlockBase;
+import com.miaokatze.gtsr.common.machine.base.MTEHubArrayBase;
 import com.miaokatze.gtsr.common.machine.base.MTEHubStorageUnit;
 import com.miaokatze.gtsr.common.machine.base.MTEOverpressureHubStorageUnit;
 import com.miaokatze.gtsr.common.machine.base.MTEOverpressureWaterCacheNode;
@@ -57,7 +53,6 @@ import com.miaokatze.gtsr.common.machine.base.MTEWaterHubInputHatch;
 import com.miaokatze.gtsr.common.machine.base.MTEWaterHubOutputHatch;
 import com.miaokatze.gtsr.common.util.GTSRFluidWindowTexture;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
-import com.miaokatze.gtsr.common.util.HubTeleportUtil;
 import com.miaokatze.gtsr.common.util.UnitFormatUtil;
 import com.miaokatze.gtsr.register.TextureManager;
 
@@ -70,7 +65,6 @@ import gregtech.api.interfaces.IHatchElement;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
-import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.render.TextureFactory;
 import gregtech.api.structure.error.StructureError;
 import gregtech.api.util.GTUtility;
@@ -79,8 +73,8 @@ import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
 import gregtech.common.misc.GTStructureChannels;
 
-public class MTEWaterHubArray extends MTEGTSRMultiBlockBase<MTEWaterHubArray>
-    implements IConstructable, ISurvivalConstructable, com.miaokatze.gtsr.common.machine.base.IHubArray {
+public class MTEWaterHubArray extends MTEHubArrayBase<MTEWaterHubArray>
+    implements IConstructable, ISurvivalConstructable {
 
     private static final String STRUCTURE_PIECE_BASE = "base";
     private static final String STRUCTURE_PIECE_STACK = "stack";
@@ -92,7 +86,6 @@ public class MTEWaterHubArray extends MTEGTSRMultiBlockBase<MTEWaterHubArray>
     private static final int HUB_UNIT_CAPACITY = 1_280_000;
     private static final int REINFORCED_HUB_UNIT_CAPACITY = 5_120_000;
     private static final int OVERPRESSURE_HUB_UNIT_CAPACITY = 20_480_000;
-    private static final int BOUND_TRANSFER_RATE = 1_000_000;
     private static final int BOUND_TRANSFER_INTERVAL = 20;
 
     private static final int CASING_INDEX = GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings1, 10);
@@ -329,47 +322,8 @@ public class MTEWaterHubArray extends MTEGTSRMultiBlockBase<MTEWaterHubArray>
         }
     }
 
-    public static class BoundCacheNode {
-
-        public int x;
-        public int y;
-        public int z;
-        public int dimensionId;
-        public boolean isOutputMode;
-        public transient IGregTechTileEntity cachedTile;
-        public transient long lastLookupTick;
-        public transient long nextLookupTick;
-        public transient boolean lastLookupLoaded;
-
-        public BoundCacheNode(int x, int y, int z, int dimensionId, boolean isOutputMode) {
-            this.x = x;
-            this.y = y;
-            this.z = z;
-            this.dimensionId = dimensionId;
-            this.isOutputMode = isOutputMode;
-        }
-
-        public void writeToNBT(NBTTagCompound tag) {
-            tag.setInteger("x", x);
-            tag.setInteger("y", y);
-            tag.setInteger("z", z);
-            tag.setInteger("dim", dimensionId);
-            tag.setBoolean("out", isOutputMode);
-        }
-
-        public static BoundCacheNode readFromNBT(NBTTagCompound tag) {
-            return new BoundCacheNode(
-                tag.getInteger("x"),
-                tag.getInteger("y"),
-                tag.getInteger("z"),
-                tag.getInteger("dim"),
-                tag.getBoolean("out"));
-        }
-    }
-
     private final ArrayList<MTEWaterHubInputHatch> mWaterInputHatches = new ArrayList<>();
     private final ArrayList<MTEWaterHubOutputHatch> mWaterOutputHatches = new ArrayList<>();
-    private final ArrayList<BoundCacheNode> mBoundNodes = new ArrayList<>();
 
     // S1：奇点仓结构接纳计数（仅结构组成提示用，不注入 mController、不参与传输——传输走终端绑定链）
     private int mSingularityFluidInputCompartmentCount = 0;
@@ -379,7 +333,6 @@ public class MTEWaterHubArray extends MTEGTSRMultiBlockBase<MTEWaterHubArray>
     public int mReinforcedHubUnitCount = 0;
     public int mOverpressureHubUnitCount = 0;
     private int mCasingAmount = 0;
-    public int mSetTier = -1;
     private int mCasingTier = -1;
     private int mPipeTier = -1;
     private int mFrameTier = -1;
@@ -390,7 +343,6 @@ public class MTEWaterHubArray extends MTEGTSRMultiBlockBase<MTEWaterHubArray>
     private String mClientFluidName = "";
     /** 渲染状态同步去重 key（存储流体名），服务端 onPostTick 维护，变化才 issueTileUpdate。 */
     private String mLastSyncKey = null;
-    public boolean mOverflowInput = false;
 
     public MTEWaterHubArray(int aID, String aName, String aNameRegional) {
         super(aID, aName, aNameRegional);
@@ -625,20 +577,12 @@ public class MTEWaterHubArray extends MTEGTSRMultiBlockBase<MTEWaterHubArray>
         return false;
     }
 
-    public boolean isFormed() {
-        return mMachine;
-    }
-
     /**
      * 通用流体判定（S5 放宽）：蓄水枢纽阵列接受任意注册流体；单一类型锁由 mStoredFluidType 保证
-     * （首流锁定类型、异种拒收、抽干解锁），方法名保留避免破坏既有调用点。
+     * （首流锁定类型、异种拒收、抽干解锁）。外部调用点走 {@link MTEWaterHubOutputHatch#isWaterFluid}。
      */
-    public static boolean isWaterFluid(FluidStack aFluid) {
+    private static boolean isWaterFluid(FluidStack aFluid) {
         return aFluid != null && aFluid.getFluid() != null;
-    }
-
-    public static boolean isWaterFluidName(String fluidName) {
-        return fluidName != null && !fluidName.isEmpty();
     }
 
     @Override
@@ -788,7 +732,7 @@ public class MTEWaterHubArray extends MTEGTSRMultiBlockBase<MTEWaterHubArray>
             + (long) mOverpressureHubUnitCount * OVERPRESSURE_HUB_UNIT_CAPACITY;
         // 强化芯片 ×20 优先，普通奇点芯片 ×5 兜底（镜像蒸汽枢纽 getTotalCapacity 结构与优先级）
         if (hasReinforcedChipInstalled()) return base * 20;
-        return hasHubSingularityChip() ? base * 5 : base;
+        return hasHubChipInstalled() ? base * 5 : base;
     }
 
     public long getWaterStored() {
@@ -867,7 +811,7 @@ public class MTEWaterHubArray extends MTEGTSRMultiBlockBase<MTEWaterHubArray>
                 if (node.lastLookupLoaded) invalidNodes.add(node);
                 continue;
             }
-            if (!acceptsNodeType(resolveCacheNodeType(cacheNode)) || node.cachedTile == null) {
+            if (!acceptsNodeType(resolveNodeType(cacheNode)) || node.cachedTile == null) {
                 invalidNodes.add(node);
                 continue;
             }
@@ -902,50 +846,6 @@ public class MTEWaterHubArray extends MTEGTSRMultiBlockBase<MTEWaterHubArray>
         }
 
         mBoundNodes.removeAll(invalidNodes);
-    }
-
-    /**
-     * v1.10.61：按节点交互速率百分比计算实际传输速率（镜像蒸汽枢纽 getNodeTransferRate；
-     * 水节点基础交互速率 = OUTPUT_PER_TICK × 20，getEffectiveHubTransferRate 应用 mTransferRatePercent）。
-     * S1 类型拓宽：缓存节点=速率百分比实算；奇点仓=固定常量（getEffectiveHubTransferRate 默认实现）。
-     */
-    private int getNodeTransferRate(IGregTechTileEntity gte) {
-        IMetaTileEntity mte = gte.getMetaTileEntity();
-        if (mte instanceof IHubCacheNode cacheNode) {
-            return (int) Math.min(cacheNode.getEffectiveHubTransferRate(), Integer.MAX_VALUE);
-        }
-        return BOUND_TRANSFER_RATE;
-    }
-
-    private boolean hasHubSingularityChip() {
-        ItemStack stack = getControllerSlot();
-        return stack != null && GTSRItemList.HubSingularityChip.isStackEqual(stack, true, true);
-    }
-
-    /** 普通或强化奇点芯片任一在位（绑定/传输门控，镜像蒸汽枢纽 hasChipInstalled）。 */
-    private boolean hasChipInstalled() {
-        ItemStack stack = getControllerSlot();
-        return stack != null && (GTSRItemList.HubSingularityChip.isStackEqual(stack, true, true)
-            || GTSRItemList.ReinforcedHubSingularityChip.isStackEqual(stack, true, true));
-    }
-
-    /** 强化奇点芯片（等级3 前置，镜像蒸汽枢纽）：容量×20 与超压节点绑定门控共用。 */
-    private boolean hasReinforcedChipInstalled() {
-        if (mSetTier < 3) return false;
-        ItemStack stack = getControllerSlot();
-        return stack != null && GTSRItemList.ReinforcedHubSingularityChip.isStackEqual(stack, true, true);
-    }
-
-    @Override
-    public void onScrewdriverRightClick(ForgeDirection side, EntityPlayer aPlayer, float aX, float aY, float aZ,
-        ItemStack aTool) {
-        mOverflowInput = !mOverflowInput;
-        if (aPlayer.worldObj.isRemote) return;
-        GTUtility.sendChatToPlayer(
-            aPlayer,
-            StatCollector.translateToLocal("gtsr.tooltip.shared.overflow_input") + ": "
-                + (mOverflowInput ? EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.tooltip.shared.on")
-                    : EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.shared.off")));
     }
 
     @Override
@@ -1137,15 +1037,6 @@ public class MTEWaterHubArray extends MTEGTSRMultiBlockBase<MTEWaterHubArray>
                 + StatCollector.translateToLocal("gtsr.binding.mode_output"));
     }
 
-    private BoundCacheNode findBoundNode(int x, int y, int z, int dimId) {
-        for (BoundCacheNode node : mBoundNodes) {
-            if (node.x == x && node.y == y && node.z == z && node.dimensionId == dimId) {
-                return node;
-            }
-        }
-        return null;
-    }
-
     /** 奇点仓类型（模式锁定，右键已绑定分支只解绑不翻转；绑定消耗恒 0，无需消耗表条目）。 */
     private static boolean isModeLockedType(String type) {
         return "singularity_fluid_in".equals(type) || "singularity_fluid_out".equals(type);
@@ -1157,36 +1048,6 @@ public class MTEWaterHubArray extends MTEGTSRMultiBlockBase<MTEWaterHubArray>
      */
     private static boolean getLockedItemOutput(String type) {
         return "singularity_fluid_out".equals(type);
-    }
-
-    @Override
-    public void registerCacheNode(int x, int y, int z, int dim, boolean isOutputMode) {
-        BoundCacheNode existing = findBoundNode(x, y, z, dim);
-        if (existing != null) {
-            existing.isOutputMode = isOutputMode;
-        } else {
-            mBoundNodes.add(new BoundCacheNode(x, y, z, dim, isOutputMode));
-        }
-    }
-
-    @Override
-    public void unregisterCacheNode(int x, int y, int z, int dim) {
-        BoundCacheNode existing = findBoundNode(x, y, z, dim);
-        if (existing != null) {
-            existing.cachedTile = null;
-            existing.lastLookupTick = 0;
-            existing.nextLookupTick = 0;
-            existing.lastLookupLoaded = false;
-            mBoundNodes.remove(existing);
-        }
-    }
-
-    @Override
-    public void updateCacheNodeMode(int x, int y, int z, int dim, boolean isOutputMode) {
-        BoundCacheNode existing = findBoundNode(x, y, z, dim);
-        if (existing != null) {
-            existing.isOutputMode = isOutputMode;
-        }
     }
 
     @Override
@@ -1206,74 +1067,12 @@ public class MTEWaterHubArray extends MTEGTSRMultiBlockBase<MTEWaterHubArray>
     }
 
     /**
-     * 按坐标解析绑定缓存节点对应的 IHubCacheNode 实例（S1 拓宽：缓存节点与四个奇点仓）；
-     * 世界未加载、方块不存在或目标不是缓存节点/奇点仓时返回 null。
-     */
-    private IHubCacheNode resolveCacheNode(int x, int y, int z, int dim) {
-        BoundCacheNode bound = findBoundNode(x, y, z, dim);
-        return bound == null ? null : resolveCacheNode(bound, false);
-    }
-
-    private IHubCacheNode resolveCacheNodeForAction(int x, int y, int z, int dim) {
-        BoundCacheNode bound = findBoundNode(x, y, z, dim);
-        if (bound == null) return null;
-        bound.cachedTile = null;
-        bound.lastLookupTick = 0;
-        bound.nextLookupTick = 0;
-        bound.lastLookupLoaded = false;
-        return resolveCacheNode(bound, true);
-    }
-
-    /** Resolves one target per hub tick and keeps unavailable remote bindings for a later retry. */
-    private IHubCacheNode resolveCacheNode(BoundCacheNode bound, boolean loadChunk) {
-        IGregTechTileEntity base = getBaseMetaTileEntity();
-        World hubWorld = base == null ? null : base.getWorld();
-        long now = hubWorld == null ? 0L : hubWorld.getTotalWorldTime();
-        if (bound.cachedTile != null && (bound.lastLookupTick == now || now < bound.nextLookupTick)) {
-            IMetaTileEntity mte = bound.cachedTile.getMetaTileEntity();
-            return mte instanceof IHubCacheNode node ? node : null;
-        }
-        if (!loadChunk && now < bound.nextLookupTick) return null;
-
-        bound.lastLookupTick = now;
-        bound.lastLookupLoaded = false;
-        World world = DimensionManager.getWorld(bound.dimensionId);
-        if (world == null) {
-            bound.cachedTile = null;
-            bound.nextLookupTick = now + BOUND_TRANSFER_INTERVAL;
-            return null;
-        }
-        if (!world.blockExists(bound.x, 0, bound.z)) {
-            if (!loadChunk || !HubTeleportUtil.ensureChunkLoaded(world, bound.x, bound.z)) {
-                bound.cachedTile = null;
-                bound.nextLookupTick = now + BOUND_TRANSFER_INTERVAL;
-                return null;
-            }
-        }
-        if (!world.blockExists(bound.x, bound.y, bound.z)) {
-            bound.cachedTile = null;
-            bound.nextLookupTick = now + BOUND_TRANSFER_INTERVAL;
-            return null;
-        }
-
-        bound.lastLookupLoaded = true;
-        TileEntity te = world.getTileEntity(bound.x, bound.y, bound.z);
-        if (te instanceof IGregTechTileEntity gte && gte.getMetaTileEntity() instanceof IHubCacheNode node) {
-            bound.cachedTile = gte;
-            bound.nextLookupTick = now + BOUND_TRANSFER_INTERVAL;
-            return node;
-        }
-        bound.cachedTile = null;
-        bound.nextLookupTick = now + BOUND_TRANSFER_INTERVAL;
-        return null;
-    }
-
-    /**
-     * 按实际节点类判定类型字符串（不用缓存字段，水枢纽 BoundCacheNode 无 reinforced 字段）。
+     * 按实际节点类判定类型字符串（不用缓存字段，水枢纽绑定记录无 reinforced 维度）。
      * 各节点类与四仓互不继承、共同实现 IHubCacheNode（S1 起），instanceof 顺序无关
-     * （镜像蒸汽枢纽 resolveCacheNodeType）。
+     * （镜像蒸汽枢纽 resolveNodeType）。
      */
-    private static String resolveCacheNodeType(IHubCacheNode node) {
+    @Override
+    protected String resolveNodeType(IHubCacheNode node) {
         if (node instanceof MTEOverpressureWaterCacheNode) return "overpressure_water";
         if (node instanceof MTEReinforcedWaterCacheNode) return "reinforced_water";
         if (node instanceof MTEWaterCacheNode) return "water";
@@ -1282,154 +1081,23 @@ public class MTEWaterHubArray extends MTEGTSRMultiBlockBase<MTEWaterHubArray>
         return "";
     }
 
-    /**
-     * 序列化当前绑定缓存节点列表（供状态 UI 同步显示）。
-     * 每项含：坐标/维度/类型(type)/自定义名(name)/流体注册名(fluid)/储量(stored,long)/容量(cap,long)/
-     * 速率百分比(rate)/输出模式(out)。节点无法解析时数据回退为空/0，行仍显示（标记离线）。
-     */
-    public NBTTagList getCacheNodeListTag() {
-        NBTTagList list = new NBTTagList();
-        for (BoundCacheNode node : mBoundNodes) {
-            NBTTagCompound tag = new NBTTagCompound();
-            tag.setInteger("x", node.x);
-            tag.setInteger("y", node.y);
-            tag.setInteger("z", node.z);
-            tag.setInteger("dim", node.dimensionId);
-            IHubCacheNode cacheNode = resolveCacheNode(node, false);
-            tag.setString("type", cacheNode != null ? resolveCacheNodeType(cacheNode) : "");
-            // 节点自定义名（无则为空串，客户端回退显示默认类型名；奇点仓恒空串）
-            tag.setString("name", cacheNode != null ? cacheNode.getCustomName() : "");
-            tag.setString("fluid", cacheNode != null ? cacheNode.getStoredFluidName() : "");
-            // stored/cap 必须 long：缓存节点容量可能超出 int 范围
-            tag.setLong("stored", cacheNode != null ? cacheNode.getStoredFluidAmount() : 0L);
-            tag.setLong("cap", cacheNode != null ? cacheNode.getFluidCapacityLong() : 0L);
-            // 速率百分比（奇点仓无速率档恒 100；GUI 侧 S4 再对仓隐藏/改容量按钮）
-            tag.setInteger("rate", cacheNode != null ? cacheNode.getTransferRatePercent() : 0);
-            // 容量档百分比（S4：缓存节点与接收仓生效；发送仓恒 100，GUI 容量按钮对其禁用）
-            tag.setInteger("capPct", cacheNode != null ? cacheNode.getCapacityLimitPercent() : 100);
-            tag.setBoolean("out", cacheNode != null ? cacheNode.isOutputMode() : node.isOutputMode);
-            // 自动输出开关（与方向模式解耦）：节点离线时回退 false（奇点仓恒 false）
-            tag.setBoolean("auto", cacheNode != null && cacheNode.isAutoOutput());
-            tag.setBoolean("modeLocked", cacheNode != null && cacheNode.isOutputModeLocked());
-            list.appendTag(tag);
-        }
-        return list;
+    // 蓄水枢纽绑定列表的 NBT 序列化格式（count+nodeN，与基类 BoundCacheNode 解耦）：
+    // 键名/结构为存档契约，逐字保留（Steam 侧走 NBTTagList 逐项格式，两格式并存）
+    private static void writeBoundNodeToNBT(BoundCacheNode node, NBTTagCompound tag) {
+        tag.setInteger("x", node.x);
+        tag.setInteger("y", node.y);
+        tag.setInteger("z", node.z);
+        tag.setInteger("dim", node.dimensionId);
+        tag.setBoolean("out", node.isOutputMode);
     }
 
-    /** 状态 UI 循环节点交互速率百分比（与手持芯片右击同一循环逻辑；奇点仓为 no-op）。 */
-    public void cycleCacheNodeRateFromGui(int x, int y, int z, int dim) {
-        IHubCacheNode node = resolveCacheNodeForAction(x, y, z, dim);
-        if (node == null) return;
-        node.cycleTransferRatePercent();
-    }
-
-    /** 状态 UI 循环节点容量上限百分比（S4：缓存节点与接收仓；发送仓为 no-op，与空手 Shift 右击同逻辑）。 */
-    public void cycleCacheNodeCapFromGui(int x, int y, int z, int dim) {
-        IHubCacheNode node = resolveCacheNodeForAction(x, y, z, dim);
-        if (node == null) return;
-        node.cycleCapacityLimitPercent();
-    }
-
-    /** 状态 UI 切换节点输出模式：写节点本体 + 同步枢纽侧绑定记录（IHubArray.updateCacheNodeMode）。 */
-    public void setCacheNodeModeFromGui(int x, int y, int z, int dim, boolean output) {
-        IHubCacheNode node = resolveCacheNodeForAction(x, y, z, dim);
-        if (node == null) return;
-        // 模式锁定节点（奇点仓）：服务端整体拒改（节点与枢纽侧记录都不动，避免传输方向错位）
-        if (node.isOutputModeLocked()) return;
-        node.setOutputMode(output);
-        updateCacheNodeMode(x, y, z, dim, output);
-    }
-
-    /** 状态 UI 切换节点自动输出开关：只写节点本体（与方向模式解耦，枢纽绑定记录无需同步）。 */
-    public void setCacheNodeAutoFromGui(int x, int y, int z, int dim, boolean auto) {
-        IHubCacheNode node = resolveCacheNodeForAction(x, y, z, dim);
-        if (node == null) return;
-        node.setAutoOutput(auto);
-    }
-
-    /**
-     * 状态 UI 重命名节点：名字在服务端做安全裁剪（剔 §/去首尾空白/≤24 字符），
-     * 裁剪后为空表示清除自定义名（UI 回退默认类型名）。
-     * 名字变化由列表每 tick 变化检测自动同步到枢纽状态 UI 客户端；
-     * 节点方块自身（GUI 标题/Waila）另经 issueTileUpdate 触发 description packet 同步。
-     */
-    public void renameCacheNodeFromGui(int x, int y, int z, int dim, String name) {
-        IHubCacheNode node = resolveCacheNodeForAction(x, y, z, dim);
-        if (node == null) return;
-        node.setCustomName(com.miaokatze.gtsr.common.machine.base.MTERemoteWorkerNode.sanitizeCustomName(name));
-        // 触发节点 TE 重同步（S35 description packet），客户端 MTE 拿到新自定义名以更新 GUI 标题
-        if (node instanceof MetaTileEntity mte && mte.getBaseMetaTileEntity() != null) {
-            mte.getBaseMetaTileEntity()
-                .issueTileUpdate();
-        }
-    }
-
-    /** Performs the same validated, one-singularity teleport used by the drilling hub status UI. */
-    public void teleportPlayerToNodeFromGui(EntityPlayer player, int x, int y, int z, int dim) {
-        if (player == null) return;
-        if (!canUseStatusAction(player) || findBoundNode(x, y, z, dim) == null) {
-            GTUtility.sendChatToPlayer(player, StatCollector.translateToLocal("gtsr.hub_status.teleport_fail_node"));
-            return;
-        }
-
-        World targetWorld = HubTeleportUtil.resolveTargetWorld(player, dim);
-        if (targetWorld == null) {
-            GTUtility.sendChatToPlayer(player, StatCollector.translateToLocal("gtsr.hub_status.teleport_fail_dim"));
-            return;
-        }
-        if (!HubTeleportUtil.ensureChunkLoaded(targetWorld, x, z)) {
-            GTUtility.sendChatToPlayer(player, StatCollector.translateToLocal("gtsr.hub_status.teleport_fail_node"));
-            return;
-        }
-
-        IHubCacheNode node = resolveCacheNodeForAction(x, y, z, dim);
-        if (node == null || !acceptsNodeType(resolveCacheNodeType(node))) {
-            GTUtility.sendChatToPlayer(player, StatCollector.translateToLocal("gtsr.hub_status.teleport_fail_node"));
-            return;
-        }
-
-        int safeY = HubTeleportUtil.findSafeTeleportHeight(targetWorld, x, y, z);
-        if (safeY < 0) {
-            GTUtility.sendChatToPlayer(player, StatCollector.translateToLocal("gtsr.hub_status.teleport_fail_unsafe"));
-            return;
-        }
-        if (!HubTeleportUtil.teleportPlayer(player, targetWorld, dim, x, safeY, z)) {
-            GTUtility
-                .sendChatToPlayer(player, StatCollector.translateToLocal("gtsr.hub_status.teleport_no_singularity"));
-        }
-    }
-
-    private boolean canUseStatusAction(EntityPlayer player) {
-        IGregTechTileEntity base = getBaseMetaTileEntity();
-        World world = base == null ? null : base.getWorld();
-        if (player == null || base == null || world == null || player.dimension != world.provider.dimensionId)
-            return false;
-        return base.canAccessData()
-            && player.getDistanceSq(base.getXCoord() + 0.5D, base.getYCoord() + 0.5D, base.getZCoord() + 0.5D) <= 64.0D;
-    }
-
-    private void sendBindingDebug(EntityPlayer aPlayer) {
-        GTUtility.sendChatToPlayer(aPlayer, StatCollector.translateToLocal("gtsr.binding.debug_title"));
-        if (mBoundNodes.isEmpty()) {
-            GTUtility.sendChatToPlayer(aPlayer, StatCollector.translateToLocal("gtsr.binding.debug_no_bindings"));
-            return;
-        }
-        if (!hasChipInstalled()) {
-            GTUtility.sendChatToPlayer(aPlayer, StatCollector.translateToLocal("gtsr.binding.debug_no_chip"));
-        }
-        for (BoundCacheNode node : mBoundNodes) {
-            String mode = node.isOutputMode ? StatCollector.translateToLocal("gtsr.binding.debug_output")
-                : StatCollector.translateToLocal("gtsr.binding.debug_input");
-            String posInfo = StatCollector.translateToLocal("gtsr.binding.debug_node") + node.x
-                + ", "
-                + node.y
-                + ", "
-                + node.z
-                + " "
-                + StatCollector.translateToLocal("gtsr.binding.debug_mode")
-                + mode;
-            GTUtility.sendChatToPlayer(aPlayer, posInfo);
-        }
+    private static BoundCacheNode readBoundNodeFromNBT(NBTTagCompound tag) {
+        return new BoundCacheNode(
+            tag.getInteger("x"),
+            tag.getInteger("y"),
+            tag.getInteger("z"),
+            tag.getInteger("dim"),
+            tag.getBoolean("out"));
     }
 
     @Override
@@ -1452,8 +1120,7 @@ public class MTEWaterHubArray extends MTEGTSRMultiBlockBase<MTEWaterHubArray>
             boundListTag.setInteger("count", mBoundNodes.size());
             for (int i = 0; i < mBoundNodes.size(); i++) {
                 NBTTagCompound nodeTag = new NBTTagCompound();
-                mBoundNodes.get(i)
-                    .writeToNBT(nodeTag);
+                writeBoundNodeToNBT(mBoundNodes.get(i), nodeTag);
                 boundListTag.setTag("node" + i, nodeTag);
             }
             aNBT.setTag("mBoundNodes", boundListTag);
@@ -1481,7 +1148,7 @@ public class MTEWaterHubArray extends MTEGTSRMultiBlockBase<MTEWaterHubArray>
             int count = boundListTag.getInteger("count");
             for (int i = 0; i < count; i++) {
                 NBTTagCompound nodeTag = boundListTag.getCompoundTag("node" + i);
-                mBoundNodes.add(BoundCacheNode.readFromNBT(nodeTag));
+                mBoundNodes.add(readBoundNodeFromNBT(nodeTag));
             }
         }
     }
