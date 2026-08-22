@@ -1742,7 +1742,7 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
         AggregatorConfigGuiFactory.open(player, this);
     }
 
-    /** 螺丝刀右击：切换定向模式（服务端；幂等，进入时清空过滤/定向集合并按新模式重建矿池）。 */
+    /** 螺丝刀右击：切换定向模式（服务端；幂等；不清空过滤/定向配置，仅强制刷新矿池并重置奇点模式，见 toggleDirectionalMode）。 */
     @Override
     public void onScrewdriverRightClick(ForgeDirection side, EntityPlayer aPlayer, float aX, float aY, float aZ,
         ItemStack aTool) {
