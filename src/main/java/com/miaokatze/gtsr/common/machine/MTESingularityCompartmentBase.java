@@ -15,6 +15,7 @@ import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
 
+import com.miaokatze.gtsr.api.compat.GTVersionCompat;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.machine.base.IHubArray;
 import com.miaokatze.gtsr.common.machine.base.IHubCacheNode;
@@ -29,7 +30,6 @@ import gregtech.api.interfaces.IIconContainer;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
-import gregtech.api.metatileentity.implementations.MTEHatch;
 import gregtech.api.util.GTModHandler;
 import gregtech.api.util.GTUtility;
 
@@ -476,10 +476,12 @@ public interface MTESingularityCompartmentBase extends IHubCacheNode {
      * 顶面 [近亲基材, 框架]（无流体窗，俯视即可区分收/发仓）；正面三层
      * [近亲基材, 流体窗（罐内流体/枢纽类型默认，未绑定也使用默认流体）, 语义固定框架]；其余面近亲基类材质原样。
      * 底材结构成型时跟随结构，未成型回退 LV。
+     * v1.10.89：底材经兼容层反射读取（beta-2 MTEHatch#getCasingTexture 为 beta-2-only 符号，
+     * beta-1 无 ICasingTextureProvider 接口，恒回退 LV 机壳=v1.10.83 前行为）。
      */
     default ITexture[] buildCompartmentTextures(ITexture[] kinTextures, ForgeDirection side, ForgeDirection facing,
         int colorIndex) {
-        ITexture baseTexture = ((MTEHatch) this).getCasingTexture();
+        ITexture baseTexture = GTVersionCompat.getCasingTextureOrNull(this);
         if (baseTexture == null) baseTexture = Textures.BlockIcons.MACHINE_CASINGS[1][colorIndex + 1];
         if (side == ForgeDirection.UP) {
             return new ITexture[] { baseTexture };

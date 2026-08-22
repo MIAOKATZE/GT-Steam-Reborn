@@ -143,8 +143,8 @@ public class MTEAtmosphericCentrifuge extends MTESteamMultiBlockBase<MTEAtmosphe
      * v1.10.62：覆写 GT5U ICasingTextureProvider 钩子（GT5U SolarFactory 同款），控制器贴图按
      * getCasingTextureID()（== 2 判定）推导——修复未成型时字节同步回绕值 127 被基类
      * isHighPressure() >= 2 误判为钢外壳（刚放置即显示等级2底材）的问题。
+     * 不加 @Override：该接口仅 beta-2 存在（beta-1 无 ICasingTextureProvider），beta-1 下本方法为惰性方法。
      */
-    @Override
     public ITexture getCasingTexture() {
         return Textures.BlockIcons.getCasingTextureForId(getCasingTextureID());
     }

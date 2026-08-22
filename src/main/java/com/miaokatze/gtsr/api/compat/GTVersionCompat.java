@@ -1,11 +1,15 @@
 package com.miaokatze.gtsr.api.compat;
 
+import java.lang.reflect.Method;
+
 import net.minecraft.block.Block;
 
 import cpw.mods.fml.common.Loader;
 import cpw.mods.fml.common.ModContainer;
 import cpw.mods.fml.common.registry.GameRegistry;
 import gregtech.api.GregTechAPI;
+import gregtech.api.interfaces.ITexture;
+import gregtech.api.metatileentity.implementations.MTEHatch;
 
 /**
  * GT 版本兼容层：通过运行时探测 GT5U 版本号，实现 beta-1 与 beta-2 的单代码库兼容。
@@ -21,6 +25,10 @@ import gregtech.api.GregTechAPI;
  * <li><b>防爆玻璃</b>：beta-1 环境下 IC2 仍保留 {@code blockAlloyGlass}（meta 0）；
  * beta-2 的 GT5U 改用 {@link GregTechAPI#sBlockGlass1}（meta 10 = ReinforcedGlass）替代。
  * 见 GT5U PosteaTransformers.java 的 {@code addSimpleReplacement("IC2:blockAlloyGlass", ...)} 迁移逻辑。</li>
+ * <li><b>ICasingTextureProvider#getCasingTexture</b>：beta-2 的 {@link MTEHatch} 实现该接口提供仓体底材贴图；
+ * beta-1 整个接口不存在（v1.10.88 诊断编译实证），直接调用会在运行时抛 NoSuchMethodError。
+ * 该符号无法双版本编译，按维护指南改用反射适配（{@link #getCasingTextureOrNull(Object)}），
+ * beta-1 由调用方以 null 回退默认机壳贴图。</li>
  * </ul>
  * </p>
  *
@@ -70,6 +78,15 @@ public class GTVersionCompat {
      * </p>
      */
     private static final int REINFORCED_GLASS_META;
+
+    /**
+     * beta-2 {@code ICasingTextureProvider#getCasingTexture} 的反射句柄（类加载时一次性解析）。
+     * <p>
+     * {@link MTEHatch} 类双版本均存在，可直接引用；但该方法仅 beta-2 存在，
+     * beta-1 解析失败置 null（运行期间不变）。
+     * </p>
+     */
+    private static final Method CASING_TEXTURE_METHOD = resolveCasingTextureMethod();
 
     static {
         // 通过 GT5U 版本号检测运行环境
@@ -148,6 +165,36 @@ public class GTVersionCompat {
      */
     public static boolean isBeta1() {
         return IS_BETA_1;
+    }
+
+    /**
+     * 解析 beta-2 的 {@code MTEHatch#getCasingTexture} 反射句柄。
+     *
+     * @return 方法句柄；beta-1（方法不存在）或解析被拒时返回 null
+     */
+    private static Method resolveCasingTextureMethod() {
+        try {
+            return MTEHatch.class.getMethod("getCasingTexture");
+        } catch (NoSuchMethodException | SecurityException e) {
+            // beta-1：ICasingTextureProvider 接口与 getCasingTexture 均不存在
+            return null;
+        }
+    }
+
+    /**
+     * 版本安全地读取仓体底材贴图（beta-2 {@code MTEHatch#getCasingTexture} 反射适配）。
+     *
+     * @param aMetaTileEntity 目标 MTE（须为 MTEHatch 后代）
+     * @return beta-2 返回 {@code getCasingTexture()} 结果；beta-1、非 MTEHatch 或调用异常返回 null
+     *         （调用方应回退默认机壳贴图）
+     */
+    public static ITexture getCasingTextureOrNull(Object aMetaTileEntity) {
+        if (CASING_TEXTURE_METHOD == null || aMetaTileEntity == null) return null;
+        try {
+            return (ITexture) CASING_TEXTURE_METHOD.invoke(aMetaTileEntity);
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     /**
