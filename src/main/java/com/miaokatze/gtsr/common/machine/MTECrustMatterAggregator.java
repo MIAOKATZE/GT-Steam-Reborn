@@ -42,6 +42,7 @@ import com.gtnewhorizon.structurelib.structure.StructureDefinition;
 import com.gtnewhorizon.structurelib.util.Vec3Impl;
 import com.miaokatze.gtsr.api.compat.GTVersionCompat;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
+import com.miaokatze.gtsr.common.api.gui.OreEntryInfo;
 import com.miaokatze.gtsr.common.blocks.BlocksGTSR;
 import com.miaokatze.gtsr.common.event.GTSRMachineEvent;
 import com.miaokatze.gtsr.common.gui.AggregatorConfigGuiFactory;
@@ -914,30 +915,6 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
             this.dimName = dimName;
             this.dropMap = dropMap;
             this.extraDropMap = extraDropMap;
-        }
-    }
-
-    // —— 浏览器数据（后续终端 UI 切片用）——
-
-    /** 矿石浏览器条目：矿石、跨维权重和、所在维度缩写列表、是否被过滤、是否被定向瞄准。 */
-    public static class OreEntryInfo {
-
-        public final ItemStack ore;
-        public float weight;
-        public final List<String> dimAbbrs;
-        public final boolean filtered;
-        public final boolean aimed;
-
-        public OreEntryInfo(ItemStack ore, float weight, List<String> dimAbbrs, boolean filtered) {
-            this(ore, weight, dimAbbrs, filtered, false);
-        }
-
-        public OreEntryInfo(ItemStack ore, float weight, List<String> dimAbbrs, boolean filtered, boolean aimed) {
-            this.ore = ore;
-            this.weight = weight;
-            this.dimAbbrs = dimAbbrs;
-            this.filtered = filtered;
-            this.aimed = aimed;
         }
     }
 

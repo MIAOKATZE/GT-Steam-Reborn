@@ -41,8 +41,8 @@ import com.cleanroommc.modularui.widgets.slot.ItemSlot;
 import com.cleanroommc.modularui.widgets.slot.ModularSlot;
 import com.cleanroommc.modularui.widgets.textfield.TextFieldWidget;
 import com.gtnewhorizon.gtnhlib.util.numberformatting.NumberFormatUtil;
+import com.miaokatze.gtsr.common.api.gui.OreEntryInfo;
 import com.miaokatze.gtsr.common.machine.MTECrustMatterAggregator;
-import com.miaokatze.gtsr.common.machine.MTECrustMatterAggregator.OreEntryInfo;
 import com.miaokatze.gtsr.main.GTSteamReborn;
 
 import cpw.mods.fml.common.network.ByteBufUtils;
