@@ -1114,11 +1114,14 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
         // v1.10.8：饱和钳制到 int 范围——tier 11+（UIV/UMV）baseEUt 可达 13B+，
         // 原 (int) 强转溢出为负导致父类 onRunningTick 走耗电分支/输出异常。
         this.mTheoreticalEUt = (int) Math.min(Integer.MAX_VALUE, generatedEUt);
+        // v1.10.88-r2：mSteamConsumption 字段保 int 仅作显示/NBT 旧档兼容（饱和钳制）；
+        // 实扣与冷却产物改传未钳制 long——原 int 钳位使 UIV/UMV+临界档门控按 10B 存量放行、
+        // 每 tick 实扣却截断至 2.147B（虚省约 4.7 倍）
         this.mSteamConsumption = (int) Math.min(Integer.MAX_VALUE, steamConsumption);
         this.mSteamType = selectedType;
 
-        depleteSteamByType(selectedType, mSteamConsumption);
-        outputCoolingProduct(selectedType, mSteamConsumption);
+        depleteSteamByType(selectedType, steamConsumption);
+        outputCoolingProduct(selectedType, steamConsumption);
 
         // mFullBaseEUt 存储全精度基础 EU/t，平滑插值在 long 域进行（公式不变：每 tick 1% 或 10）；
         // int mEUt 保留钳制派生值仅供父类内部使用，实际输出走 onRunningTick 覆写的 long 路径
@@ -1309,13 +1312,15 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
         return total;
     }
 
-    private boolean depleteSteamByType(SteamType type, int amount) {
-        int remaining = amount;
+    // v1.10.88-r2：形参与 remaining 升 long——STEAM/SH_STEAM（euPerL=1）tier11+ 临界档实扣可越 int max；
+    // Math.min(fs.amount, remaining) 结果恒 <= fs.amount，(int) 回收无损失
+    private boolean depleteSteamByType(SteamType type, long amount) {
+        long remaining = amount;
         // v1.10.8：mInputHatches 段改用 GTSRHatchFluidAccess.depleteFluidAcross 跨仓按需取流
         // （原 getStoredFluids 聚合对 ME 仓按流体去重，多 ME 仓供汽欠计）
         for (FluidStack fs : getStoredFluids()) {
             if (classifyFluid(fs) == type) {
-                int canDrain = Math.min(fs.amount, remaining);
+                int canDrain = (int) Math.min(fs.amount, remaining);
                 if (canDrain > 0) {
                     remaining -= GTSRHatchFluidAccess.depleteFluidAcross(mInputHatches, new FluidStack(fs, canDrain));
                 }
@@ -1325,7 +1330,7 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
         for (MTEHatchPressureSteamInput hatch : mPressureSteamInputs) {
             FluidStack fs = hatch.getFluid();
             if (fs != null && classifyFluid(fs) == type) {
-                int canDrain = Math.min(fs.amount, remaining);
+                int canDrain = (int) Math.min(fs.amount, remaining);
                 if (canDrain > 0) {
                     hatch.drain(canDrain, true);
                     remaining -= canDrain;
@@ -1336,7 +1341,7 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
         for (MTEOverpressureTurbineInputHatch hatch : mOverpressureInputs) {
             FluidStack fs = hatch.getFluid();
             if (fs != null && classifyFluid(fs) == type) {
-                int canDrain = Math.min(fs.amount, remaining);
+                int canDrain = (int) Math.min(fs.amount, remaining);
                 if (canDrain > 0) {
                     hatch.consumeSteam(canDrain);
                     remaining -= canDrain;
@@ -1347,10 +1352,13 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
         return remaining <= 0;
     }
 
-    private void outputCoolingProduct(SteamType type, int consumedAmount) {
+    // v1.10.88-r2：consumedAmount 升 long 与实扣口径对齐；蒸馏水走 condenseSteam(long) 全精度，
+    // int 基输出 API（冷却蒸汽/次级蒸汽 FluidStack）按饱和值钳制
+    private void outputCoolingProduct(SteamType type, long consumedAmount) {
         // 循环超限芯片：过热/超临界蒸汽不再输出冷却蒸汽或次级蒸汽，全部冷凝为蒸馏水（蒸汽循环回收）
         boolean overlimit = isCycleOverlimitActive();
         if (consumedAmount <= 0) return;
+        int saturatedAmount = (int) Math.min(Integer.MAX_VALUE, consumedAmount);
         switch (type) {
             case STEAM: {
                 int waterOutput = condenseSteam(consumedAmount);
@@ -1369,7 +1377,7 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
                 if (overlimit) {
                     outputCoolingWater(condenseSteam(consumedAmount));
                 } else {
-                    outputCoolingSteam(consumedAmount);
+                    outputCoolingSteam(saturatedAmount);
                 }
                 break;
             }
@@ -1380,7 +1388,7 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
                     long equivalentSteam = (long) consumedAmount * 1000;
                     outputCoolingWater(condenseSteam(equivalentSteam));
                 } else {
-                    FluidStack denseSteam = Materials.DenseSteam.getGas(consumedAmount);
+                    FluidStack denseSteam = Materials.DenseSteam.getGas(saturatedAmount);
                     if (denseSteam != null) addOutput(denseSteam);
                 }
                 break;
@@ -1390,7 +1398,7 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
                 if (overlimit) {
                     outputCoolingWater(condenseSteam(consumedAmount));
                 } else {
-                    FluidStack shSteam = FluidRegistry.getFluidStack("ic2superheatedsteam", consumedAmount);
+                    FluidStack shSteam = FluidRegistry.getFluidStack("ic2superheatedsteam", saturatedAmount);
                     if (shSteam != null) addOutput(shSteam);
                 }
                 break;
@@ -1402,7 +1410,7 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
                     long equivalentSteam = (long) consumedAmount * 1000;
                     outputCoolingWater(condenseSteam(equivalentSteam));
                 } else {
-                    FluidStack denseSHSteam = Materials.DenseSuperheatedSteam.getGas(consumedAmount);
+                    FluidStack denseSHSteam = Materials.DenseSuperheatedSteam.getGas(saturatedAmount);
                     if (denseSHSteam != null) addOutput(denseSHSteam);
                 }
                 break;
