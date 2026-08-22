@@ -42,6 +42,7 @@ import com.gtnewhorizon.structurelib.structure.StructureDefinition;
 import com.gtnewhorizon.structurelib.util.Vec3Impl;
 import com.miaokatze.gtsr.api.compat.GTVersionCompat;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
+import com.miaokatze.gtsr.common.blocks.BlocksGTSR;
 import com.miaokatze.gtsr.common.event.GTSRMachineEvent;
 import com.miaokatze.gtsr.common.gui.AggregatorConfigGuiFactory;
 import com.miaokatze.gtsr.common.gui.MTECrustMatterAggregatorGui;
@@ -50,7 +51,6 @@ import com.miaokatze.gtsr.common.machine.base.VoidMinerUtilityShim;
 import com.miaokatze.gtsr.common.util.GTSROutputBusCompat;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
 import com.miaokatze.gtsr.common.util.OreCrushedUtil;
-import com.miaokatze.gtsr.loader.BlockLoader;
 import com.miaokatze.gtsr.main.GTSteamReborn;
 
 import bwcrossmod.galacticgreg.VoidMinerUtility;
@@ -430,7 +430,7 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
             @Override
             public boolean check(MTECrustMatterAggregator t, World world, int x, int y, int z) {
                 Block block = world.getBlock(x, y, z);
-                return block == BlockLoader.blockRunawaySingularity || block.isAir(world, x, y, z);
+                return block == BlocksGTSR.runawaySingularity || block.isAir(world, x, y, z);
             }
         };
 

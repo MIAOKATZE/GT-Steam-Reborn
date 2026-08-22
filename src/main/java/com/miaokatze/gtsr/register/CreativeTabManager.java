@@ -7,13 +7,16 @@ import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 
-import com.miaokatze.gtsr.main.GTSteamReborn;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * 创造模式物品栏管理器
  * 负责管理模组专属的创造模式标签页，包括图标设置、名称显示以及物品列表的维护。
  */
 public class CreativeTabManager {
+
+    private static final Logger LOG = LogManager.getLogger("gtsr");
 
     /**
      * 模组专属的创造模式标签页实例
@@ -82,7 +85,7 @@ public class CreativeTabManager {
     }
 
     public static void initCreativeTab() {
-        GTSteamReborn.LOG.info("正在初始化创造模式物品栏，当前包含 " + itemsToAdd.size() + " 个物品");
+        LOG.info("正在初始化创造模式物品栏，当前包含 " + itemsToAdd.size() + " 个物品");
     }
 
     public static List<ItemStack> getItemsToAdd() {

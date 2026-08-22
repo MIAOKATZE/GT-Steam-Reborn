@@ -29,10 +29,10 @@ import com.gtnewhorizon.structurelib.util.Vec3Impl;
 import com.miaokatze.gtsr.api.compat.GTVersionCompat;
 import com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
+import com.miaokatze.gtsr.common.blocks.BlocksGTSR;
 import com.miaokatze.gtsr.common.gui.MTESteamSingularityEntanglerGui;
 import com.miaokatze.gtsr.common.machine.base.MTESingularityMachineBase;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
-import com.miaokatze.gtsr.loader.BlockLoader;
 
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Materials;
@@ -162,7 +162,7 @@ public class MTESteamSingularityEntangler extends MTESingularityMachineBase impl
                 // 结构判定：接受失控奇点方块或空气（砖高炉式容错：运行期间此处生成奇点，结构判定仍有效）；
                 // CheckOnly 不放置：构建/全息投影保持空气，奇点仅由机器运行时惰性生成
                 Block block = world.getBlock(x, y, z);
-                return block == BlockLoader.blockRunawaySingularity || block.isAir(world, x, y, z);
+                return block == BlocksGTSR.runawaySingularity || block.isAir(world, x, y, z);
             }
         };
 

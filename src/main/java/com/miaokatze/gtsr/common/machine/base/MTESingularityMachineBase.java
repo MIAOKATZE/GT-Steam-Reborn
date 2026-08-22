@@ -24,9 +24,9 @@ import com.google.common.collect.ImmutableList;
 import com.gtnewhorizon.structurelib.alignment.IAlignmentLimits;
 import com.miaokatze.gtsr.api.compat.GTSRHatchFluidAccess;
 import com.miaokatze.gtsr.common.api.compat.IGTSRHatchCasingProvider;
+import com.miaokatze.gtsr.common.blocks.BlocksGTSR;
 import com.miaokatze.gtsr.common.blocks.TileRunawaySingularity;
 import com.miaokatze.gtsr.common.gui.MTESingularityMachineGui;
-import com.miaokatze.gtsr.loader.BlockLoader;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
@@ -458,7 +458,7 @@ public abstract class MTESingularityMachineBase extends MTESingularityModeMachin
                         spec.attributeId,
                         spec.color,
                         spec.fxRadius);
-                } else if (block == BlockLoader.blockRunawaySingularity) {
+                } else if (block == BlocksGTSR.runawaySingularity) {
                     // 参数修复（自愈）：与规格不符（如 NBT 丢失回退默认 600 tick）时重新应用，
                     // 防止 30 秒自毁或异常行为；elapsedTicks 不受影响
                     if (world.getTileEntity(x, y, z) instanceof TileRunawaySingularity t
@@ -479,7 +479,7 @@ public abstract class MTESingularityMachineBase extends MTESingularityModeMachin
                         t.markDirty();
                     }
                 }
-            } else if (world.getBlock(x, y, z) == BlockLoader.blockRunawaySingularity) {
+            } else if (world.getBlock(x, y, z) == BlocksGTSR.runawaySingularity) {
                 // 立即惰性移除：关闭/挂机/结构破坏后下一次检查即消失（重载豁免见上方 getmStartUpCheck 门）
                 world.setBlockToAir(x, y, z);
             }
@@ -502,7 +502,7 @@ public abstract class MTESingularityMachineBase extends MTESingularityModeMachin
             int y = base.getYCoord() + spec.dy;
             int z = base.getZCoord() + spec.dz;
             if (base.getWorld()
-                .getBlock(x, y, z) == BlockLoader.blockRunawaySingularity) {
+                .getBlock(x, y, z) == BlocksGTSR.runawaySingularity) {
                 base.getWorld()
                     .setBlockToAir(x, y, z);
             }

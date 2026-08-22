@@ -25,7 +25,6 @@ import net.minecraft.util.DamageSource;
 import net.minecraft.world.World;
 
 import com.miaokatze.gtsr.common.network.GTSRFXNet;
-import com.miaokatze.gtsr.loader.BlockLoader;
 
 /**
  * 失控奇点方块实体
@@ -272,7 +271,7 @@ public class TileRunawaySingularity extends TileEntity {
      */
     public static void spawnSingularity(World world, int x, int y, int z, double range, double speed, double damage,
         int duration, int attributeId, String color, double fxRadius, boolean destroyBlocks) {
-        world.setBlock(x, y, z, BlockLoader.blockRunawaySingularity);
+        world.setBlock(x, y, z, BlocksGTSR.runawaySingularity);
         TileEntity te = world.getTileEntity(x, y, z);
         if (te instanceof TileRunawaySingularity) {
             TileRunawaySingularity teSingularity = (TileRunawaySingularity) te;
@@ -339,7 +338,7 @@ public class TileRunawaySingularity extends TileEntity {
                     if (block.isAir(worldObj, wx, wy, wz) || block == Blocks.air) {
                         continue;
                     }
-                    if (block == BlockLoader.blockRunawaySingularity) {
+                    if (block == BlocksGTSR.runawaySingularity) {
                         continue;
                     }
                     float h = block.getBlockHardness(worldObj, wx, wy, wz);
