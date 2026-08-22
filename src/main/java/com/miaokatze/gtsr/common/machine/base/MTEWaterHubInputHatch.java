@@ -5,7 +5,6 @@ import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 import net.minecraftforge.fluids.FluidStack;
 
-import com.miaokatze.gtsr.common.machine.MTEWaterHubArray;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
 import com.miaokatze.gtsr.common.util.UnitFormatUtil;
 
@@ -16,7 +15,7 @@ import gregtech.api.metatileentity.implementations.MTEHatchInput;
 
 public class MTEWaterHubInputHatch extends MTEHatchInput {
 
-    public MTEWaterHubArray mController;
+    public IHubController mController;
 
     public MTEWaterHubInputHatch(int aID, String aName, String aNameRegional) {
         super(aID, aName, aNameRegional, 1);
@@ -40,7 +39,7 @@ public class MTEWaterHubInputHatch extends MTEHatchInput {
     public int fill(FluidStack aFluid, boolean doFill) {
         if (mController != null) {
             if (mController.isFormed()) {
-                return mController.receiveWater(aFluid, doFill);
+                return mController.receiveFluid(aFluid, doFill);
             }
             mController = null;
         }
@@ -54,7 +53,7 @@ public class MTEWaterHubInputHatch extends MTEHatchInput {
 
     @Override
     public String[] getInfoData() {
-        long stored = mController != null && mController.isFormed() ? mController.getWaterStored() : 0L;
+        long stored = mController != null && mController.isFormed() ? mController.getStoredFluidAmount() : 0L;
         return new String[] { "gt.blockmachines." + mName + ".name",
             EnumChatFormatting.GREEN + UnitFormatUtil.format(stored)
                 + " L"
@@ -68,7 +67,7 @@ public class MTEWaterHubInputHatch extends MTEHatchInput {
 
     public long getCapacityLong() {
         if (mController != null && mController.isFormed()) {
-            return Math.max(0L, mController.getTotalCapacity() - mController.getWaterStored());
+            return Math.max(0L, mController.getTotalCapacity() - mController.getStoredFluidAmount());
         }
         return 2_000_000L;
     }

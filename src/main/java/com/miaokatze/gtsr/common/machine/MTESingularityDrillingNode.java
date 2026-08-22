@@ -27,6 +27,7 @@ import com.gtnewhorizons.modularui.common.widget.FakeSyncWidget;
 import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
+import com.miaokatze.gtsr.common.machine.base.IHubArray;
 import com.miaokatze.gtsr.common.machine.base.MTERemoteWorkerNode;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
 
@@ -222,7 +223,8 @@ public class MTESingularityDrillingNode extends MTERemoteWorkerNode {
             return;
         }
 
-        MTESingularityDrillingHub hub = getBoundHub();
+        IHubArray bound = getBoundHub();
+        MTESingularityDrillingHub hub = bound instanceof MTESingularityDrillingHub drilling ? drilling : null;
         if (hub == null) {
             mStatus = STATUS_NO_HUB;
             return;

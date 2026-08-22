@@ -715,7 +715,7 @@ public class MTESteamHubArray extends MTEHubArrayBase<MTESteamHubArray>
 
     // A04-H3 族差异钩子（服务 tick 骨架见 MTEHubArrayBase.onPostTick：容量钳制→自动输出→同步去重→周期分派）
     @Override
-    protected long getStoredFluidAmount() {
+    public long getStoredFluidAmount() {
         return mSteamStored;
     }
 

@@ -56,7 +56,7 @@ import gregtech.api.util.MultiblockTooltipBuilder;
  * 与存档 NBT 键名一律逐字保留——基类化零行为变化（A04 施工图 4.1 镜像方法迁移表）。
  */
 public abstract class MTEHubArrayBase<T extends MTEHubArrayBase<T>> extends MTEGTSRMultiBlockBase<T>
-    implements IHubArray {
+    implements IHubController {
 
     /** 绑定节点解析失败后的重试间隔（tick）：两侧原独立常量现值同为 20，统一单源。 */
     protected static final int BOUND_NODE_RETRY_INTERVAL = 20;
@@ -141,6 +141,15 @@ public abstract class MTEHubArrayBase<T extends MTEHubArrayBase<T>> extends MTEG
 
     public boolean isFormed() {
         return mMachine;
+    }
+
+    /**
+     * 远程节点注册就绪门（IHubArray）：双枢纽恒就绪——历史语义为仅钻井枢纽设
+     * 「成形且允许运作」门（见 MTESingularityDrillingHub 覆写）。
+     */
+    @Override
+    public boolean isReadyForRemoteRegistration() {
+        return true;
     }
 
     // region 绑定缓存节点注册/注销/模式同步（IHubArray）
@@ -475,8 +484,9 @@ public abstract class MTEHubArrayBase<T extends MTEHubArrayBase<T>> extends MTEG
         onBoundTransferTick(aTick);
     }
 
-    /** 当前存储量（族字段 mSteamStored/mWaterStored 留子类）。 */
-    protected abstract long getStoredFluidAmount();
+    /** 当前存储量（族字段 mSteamStored/mWaterStored 留子类；IHubController hatch 视角读数）。 */
+    @Override
+    public abstract long getStoredFluidAmount();
 
     /** 写当前存储量（容量钳制用）。 */
     protected abstract void setStoredFluidAmount(long amount);

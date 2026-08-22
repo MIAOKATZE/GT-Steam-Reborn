@@ -1048,6 +1048,12 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
         return mMachine && base != null && base.isAllowedToWork();
     }
 
+    /** 远程节点注册就绪门（IHubArray）：钻井枢纽要求成形且允许运作（原 RemoteWorkerNode instanceof 门语义）。 */
+    @Override
+    public boolean isReadyForRemoteRegistration() {
+        return isMachineRunning();
+    }
+
     /**
      * v1.10.61：voidingMode 分流——保护时限流（余量存入 gtsr$pendingFluidOutput，onPostTick 每 tick
      * 重试推送），销毁时保持现状（剩余丢弃）。返回未放入的余量（fluid.amount 同步缩减），

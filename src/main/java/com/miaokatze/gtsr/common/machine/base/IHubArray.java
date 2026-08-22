@@ -15,4 +15,10 @@ public interface IHubArray {
     void updateCacheNodeMode(int x, int y, int z, int dim, boolean isOutputMode);
 
     boolean acceptsNodeType(String type);
+
+    /**
+     * 远程工作节点注册就绪门控（O2-B02 接口化，替代 base→machine 的钻井枢纽 instanceof）：
+     * 钻井枢纽为「成形且允许运作」，双枢纽恒就绪——历史语义为非钻井枢纽不设此门。
+     */
+    boolean isReadyForRemoteRegistration();
 }

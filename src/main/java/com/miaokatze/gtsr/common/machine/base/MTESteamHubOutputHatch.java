@@ -9,7 +9,6 @@ import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidStack;
 
-import com.miaokatze.gtsr.common.machine.MTESteamHubArray;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
 import com.miaokatze.gtsr.common.util.UnitFormatUtil;
 
@@ -22,7 +21,7 @@ import gregtech.api.util.GTUtility;
 
 public class MTESteamHubOutputHatch extends MTEHatchOutput {
 
-    public MTESteamHubArray mController;
+    public IHubController mController;
     public boolean mOverflowOutput = false;
 
     public MTESteamHubOutputHatch(int aID, String aName, String aNameRegional) {
@@ -61,11 +60,11 @@ public class MTESteamHubOutputHatch extends MTEHatchOutput {
     public FluidStack drain(int maxDrain, boolean doDrain) {
         if (mOverflowOutput && mController != null && mController.isFormed()) {
             long capacity = mController.getTotalCapacity();
-            if (capacity > 0 && mController.getSteamStored() < (long) (capacity * 0.9)) return null;
+            if (capacity > 0 && mController.getStoredFluidAmount() < (long) (capacity * 0.9)) return null;
         }
         if (mController != null) {
             if (mController.isFormed()) {
-                return mController.extractSteam(maxDrain, doDrain);
+                return mController.extractFluid(maxDrain, doDrain);
             }
             mController = null;
         }
@@ -82,7 +81,7 @@ public class MTESteamHubOutputHatch extends MTEHatchOutput {
 
     @Override
     public String[] getInfoData() {
-        long stored = mController != null && mController.isFormed() ? mController.getSteamStored() : 0L;
+        long stored = mController != null && mController.isFormed() ? mController.getStoredFluidAmount() : 0L;
         return new String[] { "gt.blockmachines." + mName + ".name",
             EnumChatFormatting.GREEN + UnitFormatUtil.format(stored)
                 + " L"

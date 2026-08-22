@@ -21,7 +21,6 @@ import com.gtnewhorizons.modularui.api.screen.ModularWindow;
 import com.gtnewhorizons.modularui.api.screen.UIBuildContext;
 import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
-import com.miaokatze.gtsr.common.machine.MTESingularityDrillingHub;
 import com.miaokatze.gtsr.common.util.HubBindingUtil;
 
 import gregtech.api.GregTechAPI;
@@ -515,10 +514,8 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity implements IAdd
 
         if (!(gte.getMetaTileEntity() instanceof IHubArray hub)) return false;
 
-        if (gte.getMetaTileEntity() instanceof MTESingularityDrillingHub drillingHub
-            && !drillingHub.isMachineRunning()) {
-            return false;
-        }
+        // O2-B02 接口化：钻井枢纽的「成形且允许运作」门收进 IHubArray.isReadyForRemoteRegistration
+        if (!hub.isReadyForRemoteRegistration()) return false;
 
         if (!hub.acceptsNodeType(mHubType)) return false;
 
@@ -531,7 +528,7 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity implements IAdd
         return true;
     }
 
-    protected MTESingularityDrillingHub getBoundHub() {
+    protected IHubArray getBoundHub() {
         if (!isBound()) return null;
         World world = DimensionManager.getWorld(mHubDim);
         if (world == null || !world.blockExists(mHubX, mHubY, mHubZ)) return null;
@@ -539,7 +536,7 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity implements IAdd
         TileEntity te = world.getTileEntity(mHubX, mHubY, mHubZ);
         if (!(te instanceof IGregTechTileEntity gte)) return null;
 
-        if (gte.getMetaTileEntity() instanceof MTESingularityDrillingHub hub) {
+        if (gte.getMetaTileEntity() instanceof IHubArray hub) {
             return hub;
         }
         return null;

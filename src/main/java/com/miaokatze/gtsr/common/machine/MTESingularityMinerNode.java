@@ -27,6 +27,7 @@ import com.gtnewhorizons.modularui.common.widget.FakeSyncWidget;
 import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
+import com.miaokatze.gtsr.common.machine.base.IHubArray;
 import com.miaokatze.gtsr.common.machine.base.MTERemoteWorkerNode;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
 import com.miaokatze.gtsr.common.util.OreCrushedUtil;
@@ -350,7 +351,8 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
             return;
         }
 
-        MTESingularityDrillingHub hub = getBoundHub();
+        IHubArray bound = getBoundHub();
+        MTESingularityDrillingHub hub = bound instanceof MTESingularityDrillingHub drilling ? drilling : null;
         if (hub == null) {
             setStatus(STATUS_NO_HUB);
             return;
@@ -605,7 +607,8 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
                 x,
                 targetY,
                 z);
-            MTESingularityDrillingHub hub = getBoundHub();
+            IHubArray bound = getBoundHub();
+            MTESingularityDrillingHub hub = bound instanceof MTESingularityDrillingHub drilling ? drilling : null;
             // 粉碎矿模式：将矿石掉落物替换为对应粉碎矿（数量 = 原数量 × 配方主产物数 × 1.5）
             if (mCrushedMode && drops != null) {
                 applyCrushedMode(drops);
