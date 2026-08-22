@@ -11,12 +11,15 @@ import com.miaokatze.gtsr.common.blocks.TileRunawaySingularity;
 
 /**
  * /gtsr 指令：在命令发送者位置生成失控奇点。
- * 用法：/gtsr singularity <range> <speed/20tick> <damage/20tick> <durationTicks|NA> <special|null|onlypull> [color]
+ * 用法：/gtsr singularity <range> <speed/20tick> <damage/20tick> <durationTicks|NA>
+ * <special|null|onlypull|nullplus|nature>
+ * [color]
  * [fxRadius]
  * speed=每20tick吸收方块数，damage=每20tick伤害值，durationTicks=tick 数；duration 为 NA 表示无限。
  * special=特殊状态（0-999），null=纯动画（不吸引/不破坏/不吸收任何方块与实体），
  * onlypull=只牵引不吸收（不吸收方块、不处理掉落物、牵引力度减半、伤害照常），
- * nullplus=null 基础上无电弧无粒子（吸积盘/电弧跳过），光片/辉光保留。
+ * nullplus=null 基础上无电弧无粒子（吸积盘/电弧跳过），光片/辉光保留，
+ * nature=自然生成专用（不吸引/伤害实体，只牵引破坏掉落物+吸收方块，挖后爆炸）。
  * color=16 原版染料色之一，省略默认 white；fxRadius=光效半径 [0.5,128]，省略默认 10。
  * 调试默认：10 1 1 600 0 white（范围 10、每20tick吸1块、每20tick 1点伤害、600 tick=30秒、事件 0、白色）。
  * 需要 OP 权限等级 4。
@@ -43,7 +46,7 @@ public class GTSRCommand extends CommandBase {
 
     @Override
     public String getCommandUsage(ICommandSender sender) {
-        return "/gtsr singularity <range> <speed/20tick> <damage/20tick> <durationTicks|NA> <special|null|onlypull> [color] [fxRadius]";
+        return "/gtsr singularity <range> <speed/20tick> <damage/20tick> <durationTicks|NA> <special|null|onlypull|nullplus|nature> [color] [fxRadius]";
     }
 
     @Override
@@ -100,7 +103,8 @@ public class GTSRCommand extends CommandBase {
                     + ", special "
                     + (special == TileRunawaySingularity.ATTRIBUTE_NULL ? "null"
                         : special == TileRunawaySingularity.ATTRIBUTE_ONLY_PULL ? "onlypull"
-                            : special == TileRunawaySingularity.ATTRIBUTE_NULL_PLUS ? "nullplus" : special)
+                            : special == TileRunawaySingularity.ATTRIBUTE_NULL_PLUS ? "nullplus"
+                                : special == TileRunawaySingularity.ATTRIBUTE_NATURE ? "nature" : special)
                     + ", color "
                     + color
                     + ", fxRadius "
@@ -113,9 +117,14 @@ public class GTSRCommand extends CommandBase {
             return getListOfStringsMatchingLastWord(args, "singularity");
         }
         if (args.length == 5) {
-            return getListOfStringsMatchingLastWord(args, "NA", "0", "null", "onlypull", "nullplus", "nature");
+            // B2-03：三档补全原各提前一位——第 5 参是 duration，仅 NA 是关键词
+            return getListOfStringsMatchingLastWord(args, "NA");
         }
         if (args.length == 6) {
+            // 第 6 参特殊状态关键词与 parseSpecial 同源（0-999 数值段不列）
+            return getListOfStringsMatchingLastWord(args, "0", "null", "onlypull", "nullplus", "nature");
+        }
+        if (args.length == 7) {
             // 色名表与非法颜色报错同源（VALID_COLORS）
             return getListOfStringsMatchingLastWord(args, VALID_COLORS);
         }
