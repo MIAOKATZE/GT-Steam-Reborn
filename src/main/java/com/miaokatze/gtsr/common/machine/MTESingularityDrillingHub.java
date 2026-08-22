@@ -47,6 +47,7 @@ import com.miaokatze.gtsr.common.machine.base.IHubArray;
 import com.miaokatze.gtsr.common.machine.base.MTERemoteWorkerNode;
 import com.miaokatze.gtsr.common.util.GTSROutputBusCompat;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
+import com.miaokatze.gtsr.common.util.HubBindingUtil;
 import com.miaokatze.gtsr.common.util.HubTeleportUtil;
 
 import cpw.mods.fml.relauncher.Side;
@@ -522,7 +523,7 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
         // 先按手持标记状态决定是否消耗：无标记则消耗 1 个奇点（不足则报错不执行，保持手持原状）
         if (!held.hasTagCompound() || !held.getTagCompound()
             .hasKey("gtsr.singularity_consumed")) {
-            if (!consumeSteamEntangledSingularity(aPlayer)) {
+            if (!HubBindingUtil.consumeSteamEntangledSingularities(aPlayer, 1)) {
                 GTUtility.sendChatToPlayer(aPlayer, StatCollector.translateToLocal("gtsr.binding.no_singularity"));
                 return;
             }
@@ -570,7 +571,7 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
         // 无标记则按堆叠数量消耗奇点并给整堆打标记
         if (!held.hasTagCompound() || !held.getTagCompound()
             .hasKey("gtsr.singularity_consumed")) {
-            if (!consumeSteamEntangledSingularities(aPlayer, held.stackSize)) {
+            if (!HubBindingUtil.consumeSteamEntangledSingularities(aPlayer, held.stackSize)) {
                 GTUtility.sendChatToPlayer(
                     aPlayer,
                     StatCollector.translateToLocal("gtsr.binding.no_singularity") + " (" + held.stackSize + ")");
@@ -1005,40 +1006,6 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
             return false;
         return base.canAccessData()
             && player.getDistanceSq(base.getXCoord() + 0.5D, base.getYCoord() + 0.5D, base.getZCoord() + 0.5D) <= 64.0D;
-    }
-
-    /**
-     * 从玩家主物品栏消耗指定数量个蒸汽纠缠奇点（背包总量不足时不消耗并返回 false）。
-     * 
-     * @return 是否成功消耗
-     */
-    private static boolean consumeSteamEntangledSingularities(EntityPlayer player, int amount) {
-        int found = 0;
-        for (ItemStack invStack : player.inventory.mainInventory) {
-            if (invStack != null && GTSRItemList.SteamEntangledSingularity.isStackEqual(invStack, true, true)) {
-                found += invStack.stackSize;
-            }
-        }
-        if (found < amount) return false;
-        int remaining = amount;
-        for (int i = 0; i < player.inventory.mainInventory.length && remaining > 0; i++) {
-            ItemStack invStack = player.inventory.mainInventory[i];
-            if (invStack != null && GTSRItemList.SteamEntangledSingularity.isStackEqual(invStack, true, true)) {
-                int toConsume = Math.min(remaining, invStack.stackSize);
-                invStack.stackSize -= toConsume;
-                remaining -= toConsume;
-                if (invStack.stackSize <= 0) {
-                    player.inventory.mainInventory[i] = null;
-                }
-            }
-        }
-        player.inventoryContainer.detectAndSendChanges();
-        return true;
-    }
-
-    /** 从玩家主物品栏消耗 1 个蒸汽纠缠奇点。 */
-    private static boolean consumeSteamEntangledSingularity(EntityPlayer player) {
-        return consumeSteamEntangledSingularities(player, 1);
     }
 
     /**

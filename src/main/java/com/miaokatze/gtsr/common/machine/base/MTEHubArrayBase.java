@@ -13,7 +13,10 @@ import net.minecraft.world.World;
 import net.minecraftforge.common.DimensionManager;
 import net.minecraftforge.common.util.ForgeDirection;
 
+import org.apache.commons.lang3.tuple.Pair;
+
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
+import com.miaokatze.gtsr.common.util.HubBindingUtil;
 import com.miaokatze.gtsr.common.util.HubTeleportUtil;
 
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
@@ -394,6 +397,258 @@ public abstract class MTEHubArrayBase<T extends MTEHubArrayBase<T>> extends MTEG
             return (int) Math.min(cacheNode.getEffectiveHubTransferRate(), Integer.MAX_VALUE);
         }
         return DEFAULT_NODE_TRANSFER_RATE;
+    }
+
+    // endregion
+
+    // region 绑定流（onRightclick 模板 + bindOne/bindWhole + 成本钩子，吸收 O2-11 双枢纽绑定流）
+
+    /** 手持物类型识别表（本族缓存节点 + 奇点仓物品；无法识别返回 null 走默认右键）。 */
+    protected abstract String resolveHeldType(ItemStack held);
+
+    /** 打开缓存节点状态管理界面（Modern UI 2，独立 factory；两侧 factory 不同）。 */
+    protected abstract void openHubStatusGui(EntityPlayer player);
+
+    /** 本族奇点仓类型对（输入仓类型, 输出仓类型）：模式锁定与恒定 output 判定共用。 */
+    protected abstract Pair<String, String> singularityCompartmentTypes();
+
+    /** 该类型绑定是否需要强化奇点芯片（等级3）门控：两侧仅超压档为 true。 */
+    protected boolean requiresReinforcedChipToBind(String type) {
+        return false;
+    }
+
+    /** 该类型是否属于强化变体（写入 hubPos 的 reinforced 标记）：仅蒸汽族 reinforced_steam 为 true。 */
+    protected boolean isReinforcedType(String type) {
+        return false;
+    }
+
+    /**
+     * 绑定奇点成本钩子（吸收 O2-11 三态）：基类默认 0（蓄水枢纽族恒 0，自动退化为仅打标记）；
+     * 蒸汽枢纽覆写查表（reinforced_steam=1、overpressure_steam=8、奇点仓=1），
+     * 钻井枢纽成本恒 1（未挂本基类，经 HubBindingUtil 同窗口部分吸收）。
+     */
+    protected int getBindSingularityCost(String type) {
+        return 0;
+    }
+
+    /** 奇点仓类型（模式锁定，右键已绑定分支只解绑不翻转）。 */
+    protected boolean isModeLockedType(String type) {
+        Pair<String, String> compartmentTypes = singularityCompartmentTypes();
+        return type.equals(compartmentTypes.getLeft()) || type.equals(compartmentTypes.getRight());
+    }
+
+    /**
+     * 锁定类型绑定时的 item output 恒定值（反转语义：false=枢纽→节点/接收仓，true=节点→枢纽/发送仓；
+     * 与节点 loadNBTData 强制归位值互补）。非锁定类型保持 false（现状）。
+     */
+    protected boolean getLockedItemOutput(String type) {
+        return type.equals(singularityCompartmentTypes().getRight());
+    }
+
+    /** 绑定 hubPos 的族差异字段（默认无；蒸汽族覆写补写 reinforced 标记）。 */
+    protected void writeBindExtras(NBTTagCompound hubTag, boolean isReinforced) {}
+
+    @Override
+    public boolean onRightclick(IGregTechTileEntity aBaseMetaTileEntity, EntityPlayer aPlayer, ForgeDirection side,
+        float aX, float aY, float aZ) {
+        ItemStack held = aPlayer.getHeldItem();
+
+        // 手持枢纽终端右击：打开缓存节点状态管理界面（Modern UI 2，独立 factory），
+        // 不占用空手右键（空手仍打开主 GUI），与钻井枢纽的打开方式保持一致
+        if (held != null && GTSRItemList.HubTerminal.isStackEqual(held, false, true)) {
+            if (aBaseMetaTileEntity.isServerSide()) {
+                openHubStatusGui(aPlayer);
+            }
+            return true;
+        }
+
+        if (held != null && (GTSRItemList.HubSingularityChip.isStackEqual(held, true, true)
+            || GTSRItemList.ReinforcedHubSingularityChip.isStackEqual(held, true, true))) {
+            if (aBaseMetaTileEntity.isServerSide()) {
+                sendBindingDebug(aPlayer);
+            }
+            return true;
+        }
+
+        if (held == null) {
+            return super.onRightclick(aBaseMetaTileEntity, aPlayer, side, aX, aY, aZ);
+        }
+
+        String type = resolveHeldType(held);
+
+        if (type == null) {
+            return super.onRightclick(aBaseMetaTileEntity, aPlayer, side, aX, aY, aZ);
+        }
+
+        if (!aBaseMetaTileEntity.isServerSide()) return true;
+
+        if (requiresReinforcedChipToBind(type) && !hasReinforcedChipInstalled()) {
+            GTUtility.sendChatToPlayer(
+                aPlayer,
+                StatCollector.translateToLocal("gtsr.binding.overpressure_no_reinforced_chip"));
+            return true;
+        }
+
+        if (!hasChipInstalled()) {
+            GTUtility.sendChatToPlayer(aPlayer, StatCollector.translateToLocal("gtsr.binding.no_chip"));
+            return true;
+        }
+
+        int myX = aBaseMetaTileEntity.getXCoord();
+        int myY = aBaseMetaTileEntity.getYCoord();
+        int myZ = aBaseMetaTileEntity.getZCoord();
+        int myDim = aBaseMetaTileEntity.getWorld().provider.dimensionId;
+
+        // 已绑定本枢纽的堆叠：无论普通/shift，优先走现有 output 翻转/解绑交互（完全保留现状逻辑）
+        if (held.hasTagCompound() && held.getTagCompound()
+            .hasKey("gtsr.hubPos")) {
+            NBTTagCompound existing = held.getTagCompound()
+                .getCompoundTag("gtsr.hubPos");
+            int boundX = existing.getInteger("x");
+            int boundY = existing.getInteger("y");
+            int boundZ = existing.getInteger("z");
+            int boundDim = existing.getInteger("dim");
+
+            if (boundX == myX && boundY == myY && boundZ == myZ && boundDim == myDim) {
+                // 奇点仓模式锁定：不提供 output 翻转，右击只解绑（沿用现解绑文案）
+                if (isModeLockedType(type)) {
+                    held.getTagCompound()
+                        .removeTag("gtsr.hubPos");
+                    GTUtility.sendChatToPlayer(
+                        aPlayer,
+                        StatCollector.translateToLocal("gtsr.binding.cleared") + held.getDisplayName()
+                            + StatCollector.translateToLocal("gtsr.binding.binding"));
+                    return true;
+                }
+                boolean isOutput = existing.hasKey("output") && existing.getBoolean("output");
+
+                if (!isOutput) {
+                    existing.setBoolean("output", true);
+                    GTUtility.sendChatToPlayer(
+                        aPlayer,
+                        StatCollector.translateToLocal("gtsr.binding.bound_input") + held.getDisplayName()
+                            + StatCollector.translateToLocal("gtsr.binding.mode_input"));
+                } else {
+                    held.getTagCompound()
+                        .removeTag("gtsr.hubPos");
+                    GTUtility.sendChatToPlayer(
+                        aPlayer,
+                        StatCollector.translateToLocal("gtsr.binding.cleared") + held.getDisplayName()
+                            + StatCollector.translateToLocal("gtsr.binding.binding"));
+                }
+                return true;
+            }
+        }
+
+        // shift 右击：整个手持堆叠全部绑定（奇点消耗 = 单次成本 × 堆叠数量）；
+        // 普通右击：拆出 1 个绑定（奇点按类型成本消耗一次），绑定物回背包，手持剩余保持未绑定
+        boolean isReinforced = isReinforcedType(type);
+        if (aPlayer.isSneaking()) {
+            bindWholeHeld(aPlayer, held, type, isReinforced, myX, myY, myZ, myDim);
+        } else {
+            bindOneFromHeld(aPlayer, held, type, isReinforced, myX, myY, myZ, myDim);
+        }
+        return true;
+    }
+
+    /**
+     * 普通右击：从手持堆叠拆出 1 个缓存节点绑定到本枢纽（无 singularity_consumed 标记则按类型成本
+     * 消耗一次奇点：成本表见 getBindSingularityCost；0 成本族仅打标记），
+     * 写 hubPos NBT 后放回玩家背包（背包无空位则落地），手持剩余 N-1 个保持未绑定。
+     * 绑定他处的堆叠仅覆盖拆出的这 1 个。
+     */
+    protected void bindOneFromHeld(EntityPlayer aPlayer, ItemStack held, String type, boolean isReinforced, int myX,
+        int myY, int myZ, int myDim) {
+        // 先按手持标记状态决定是否消耗：无标记则按类型成本消耗一次（不足则报错不执行，保持手持原状）
+        if (!held.hasTagCompound() || !held.getTagCompound()
+            .hasKey("gtsr.singularity_consumed")) {
+            int singularityCost = getBindSingularityCost(type);
+            if (singularityCost > 0 && !HubBindingUtil.consumeSteamEntangledSingularities(aPlayer, singularityCost)) {
+                GTUtility.sendChatToPlayer(
+                    aPlayer,
+                    StatCollector.translateToLocal("gtsr.binding.no_singularity") + " (" + singularityCost + ")");
+                return;
+            }
+        }
+
+        // 拆 1 个（copy + 减量，≤0 则清手持槽）
+        ItemStack bound = held.copy();
+        bound.stackSize = 1;
+        held.stackSize--;
+        if (held.stackSize <= 0) {
+            aPlayer.inventory.mainInventory[aPlayer.inventory.currentItem] = null;
+        }
+
+        // 打标记（拆出物继承原 NBT，无标记则补；标记/消耗只作用于拆出物）
+        if (!bound.hasTagCompound()) {
+            bound.setTagCompound(new NBTTagCompound());
+        }
+        bound.getTagCompound()
+            .setBoolean("gtsr.singularity_consumed", true);
+
+        // 写 hubPos（覆盖绑定他处的旧 hubPos）
+        NBTTagCompound hubTag = new NBTTagCompound();
+        hubTag.setInteger("x", myX);
+        hubTag.setInteger("y", myY);
+        hubTag.setInteger("z", myZ);
+        hubTag.setInteger("dim", myDim);
+        hubTag.setString("type", type);
+        hubTag.setBoolean("output", getLockedItemOutput(type));
+        writeBindExtras(hubTag, isReinforced);
+        bound.getTagCompound()
+            .setTag("gtsr.hubPos", hubTag);
+
+        GTUtility.addItemToPlayerInventory(aPlayer, bound);
+        aPlayer.inventoryContainer.detectAndSendChanges();
+        GTUtility.sendChatToPlayer(
+            aPlayer,
+            StatCollector.translateToLocal("gtsr.binding.bound_output") + bound.getDisplayName()
+                + StatCollector.translateToLocal("gtsr.binding.mode_output"));
+    }
+
+    /**
+     * shift 右击：整个手持堆叠全部绑定到本枢纽，奇点消耗 = 单次成本 × 堆叠数量
+     * （背包总量不足则报错不执行；0 成本族仅打标记）。绑定他处的堆叠覆盖整堆。
+     */
+    protected void bindWholeHeld(EntityPlayer aPlayer, ItemStack held, String type, boolean isReinforced, int myX,
+        int myY, int myZ, int myDim) {
+        // 无标记则按"单次成本 × 堆叠数量"消耗奇点并给整堆打标记
+        if (!held.hasTagCompound() || !held.getTagCompound()
+            .hasKey("gtsr.singularity_consumed")) {
+            int singularityCost = getBindSingularityCost(type) * held.stackSize;
+            if (singularityCost > 0 && !HubBindingUtil.consumeSteamEntangledSingularities(aPlayer, singularityCost)) {
+                GTUtility.sendChatToPlayer(
+                    aPlayer,
+                    StatCollector.translateToLocal("gtsr.binding.no_singularity") + " (" + singularityCost + ")");
+                return;
+            }
+            if (!held.hasTagCompound()) {
+                held.setTagCompound(new NBTTagCompound());
+            }
+            held.getTagCompound()
+                .setBoolean("gtsr.singularity_consumed", true);
+        }
+
+        // 整堆写 hubPos（覆盖绑定他处的旧 hubPos）
+        if (!held.hasTagCompound()) {
+            held.setTagCompound(new NBTTagCompound());
+        }
+        NBTTagCompound hubTag = new NBTTagCompound();
+        hubTag.setInteger("x", myX);
+        hubTag.setInteger("y", myY);
+        hubTag.setInteger("z", myZ);
+        hubTag.setInteger("dim", myDim);
+        hubTag.setString("type", type);
+        hubTag.setBoolean("output", getLockedItemOutput(type));
+        writeBindExtras(hubTag, isReinforced);
+        held.getTagCompound()
+            .setTag("gtsr.hubPos", hubTag);
+
+        aPlayer.inventoryContainer.detectAndSendChanges();
+        GTUtility.sendChatToPlayer(
+            aPlayer,
+            StatCollector.translateToLocal("gtsr.binding.bound_output") + held.getDisplayName()
+                + StatCollector.translateToLocal("gtsr.binding.mode_output"));
     }
 
     // endregion

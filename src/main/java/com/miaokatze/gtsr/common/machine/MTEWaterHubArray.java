@@ -848,206 +848,30 @@ public class MTEWaterHubArray extends MTEHubArrayBase<MTEWaterHubArray>
         mBoundNodes.removeAll(invalidNodes);
     }
 
+    // 蓄水枢纽族绑定差异钩子（绑定流主体见 MTEHubArrayBase.onRightclick / bindOne / bindWhole 模板；
+    // 绑定奇点成本恒 0 走基类默认，hubPos 无 reinforced 维度走基类默认 writeBindExtras 空实现）
     @Override
-    public boolean onRightclick(IGregTechTileEntity aBaseMetaTileEntity, EntityPlayer aPlayer, ForgeDirection side,
-        float aX, float aY, float aZ) {
-        ItemStack held = aPlayer.getHeldItem();
-
-        // 手持枢纽终端右击：打开缓存节点状态管理界面（Modern UI 2，独立 factory），
-        // 不占用空手右键（空手仍打开主 GUI），与钻井枢纽的打开方式保持一致
-        if (held != null && GTSRItemList.HubTerminal.isStackEqual(held, false, true)) {
-            if (aBaseMetaTileEntity.isServerSide()) {
-                openHubStatusGui(aPlayer);
-            }
-            return true;
+    protected String resolveHeldType(ItemStack held) {
+        if (GTSRItemList.WaterCacheNode.isStackEqual(held, false, true)) return "water";
+        if (GTSRItemList.ReinforcedWaterCacheNode.isStackEqual(held, false, true)) return "reinforced_water";
+        if (GTSRItemList.OverpressureWaterCacheNode.isStackEqual(held, false, true)) return "overpressure_water";
+        if (GTSRItemList.SingularityFluidInputCompartment.isStackEqual(held, false, true)) {
+            return "singularity_fluid_in";
         }
-
-        if (held != null && (GTSRItemList.HubSingularityChip.isStackEqual(held, true, true)
-            || GTSRItemList.ReinforcedHubSingularityChip.isStackEqual(held, true, true))) {
-            if (aBaseMetaTileEntity.isServerSide()) {
-                sendBindingDebug(aPlayer);
-            }
-            return true;
+        if (GTSRItemList.SingularityFluidOutputCompartment.isStackEqual(held, false, true)) {
+            return "singularity_fluid_out";
         }
-
-        if (held == null) {
-            return super.onRightclick(aBaseMetaTileEntity, aPlayer, side, aX, aY, aZ);
-        }
-
-        // 手持节点类型识别（三种水系节点 + 两类奇点流体仓，镜像蒸汽枢纽模式）
-        String type = null;
-        if (GTSRItemList.WaterCacheNode.isStackEqual(held, false, true)) {
-            type = "water";
-        } else if (GTSRItemList.ReinforcedWaterCacheNode.isStackEqual(held, false, true)) {
-            type = "reinforced_water";
-        } else if (GTSRItemList.OverpressureWaterCacheNode.isStackEqual(held, false, true)) {
-            type = "overpressure_water";
-        } else if (GTSRItemList.SingularityFluidInputCompartment.isStackEqual(held, false, true)) {
-            type = "singularity_fluid_in";
-        } else if (GTSRItemList.SingularityFluidOutputCompartment.isStackEqual(held, false, true)) {
-            type = "singularity_fluid_out";
-        }
-
-        if (type == null) {
-            return super.onRightclick(aBaseMetaTileEntity, aPlayer, side, aX, aY, aZ);
-        }
-
-        if (!aBaseMetaTileEntity.isServerSide()) return true;
-
-        // 超压节点绑定门控（镜像蒸汽枢纽对 overpressure_steam 的门控）：无强化芯片（等级3）拒绝
-        if ("overpressure_water".equals(type) && !hasReinforcedChipInstalled()) {
-            GTUtility.sendChatToPlayer(
-                aPlayer,
-                StatCollector.translateToLocal("gtsr.binding.overpressure_no_reinforced_chip"));
-            return true;
-        }
-
-        if (!hasChipInstalled()) {
-            GTUtility.sendChatToPlayer(aPlayer, StatCollector.translateToLocal("gtsr.binding.no_chip"));
-            return true;
-        }
-
-        int myX = aBaseMetaTileEntity.getXCoord();
-        int myY = aBaseMetaTileEntity.getYCoord();
-        int myZ = aBaseMetaTileEntity.getZCoord();
-        int myDim = aBaseMetaTileEntity.getWorld().provider.dimensionId;
-
-        // 已绑定本枢纽的堆叠：无论普通/shift，优先走现有 output 翻转/解绑交互（完全保留现状逻辑）
-        if (held.hasTagCompound() && held.getTagCompound()
-            .hasKey("gtsr.hubPos")) {
-            NBTTagCompound existing = held.getTagCompound()
-                .getCompoundTag("gtsr.hubPos");
-            int boundX = existing.getInteger("x");
-            int boundY = existing.getInteger("y");
-            int boundZ = existing.getInteger("z");
-            int boundDim = existing.getInteger("dim");
-
-            if (boundX == myX && boundY == myY && boundZ == myZ && boundDim == myDim) {
-                // 奇点仓模式锁定：不提供 output 翻转，右击只解绑（沿用现解绑文案，镜像蒸汽枢纽）
-                if (isModeLockedType(type)) {
-                    held.getTagCompound()
-                        .removeTag("gtsr.hubPos");
-                    GTUtility.sendChatToPlayer(
-                        aPlayer,
-                        StatCollector.translateToLocal("gtsr.binding.cleared") + held.getDisplayName()
-                            + StatCollector.translateToLocal("gtsr.binding.binding"));
-                    return true;
-                }
-                boolean isOutput = existing.hasKey("output") && existing.getBoolean("output");
-
-                if (!isOutput) {
-                    existing.setBoolean("output", true);
-                    GTUtility.sendChatToPlayer(
-                        aPlayer,
-                        StatCollector.translateToLocal("gtsr.binding.bound_input") + held.getDisplayName()
-                            + StatCollector.translateToLocal("gtsr.binding.mode_input"));
-                } else {
-                    held.getTagCompound()
-                        .removeTag("gtsr.hubPos");
-                    GTUtility.sendChatToPlayer(
-                        aPlayer,
-                        StatCollector.translateToLocal("gtsr.binding.cleared") + held.getDisplayName()
-                            + StatCollector.translateToLocal("gtsr.binding.binding"));
-                }
-                return true;
-            }
-        }
-
-        // shift 右击：整个手持堆叠全部绑定（0 奇点成本，仅打标记）；
-        // 普通右击：拆出 1 个绑定（0 奇点成本，仅打标记），绑定物回背包，手持剩余保持未绑定
-        if (aPlayer.isSneaking()) {
-            bindWholeHeld(aPlayer, held, type, myX, myY, myZ, myDim);
-        } else {
-            bindOneFromHeld(aPlayer, held, type, myX, myY, myZ, myDim);
-        }
-        return true;
+        return null;
     }
 
-    /**
-     * 普通右击：从手持堆叠拆出 1 个通用流体缓存节点绑定到本枢纽（0 奇点成本，仅打标记），
-     * 写 hubPos NBT 后放回玩家背包（背包无空位则落地），手持剩余 N-1 个保持未绑定。
-     * 绑定他处的堆叠仅覆盖拆出的这 1 个。
-     */
-    private void bindOneFromHeld(EntityPlayer aPlayer, ItemStack held, String type, int myX, int myY, int myZ,
-        int myDim) {
-        // Water cache node requires 0 singularity to bind
-        // (singularity_consumed flag still set for compatibility, but no actual consumption)
-        // 拆 1 个（copy + 减量，≤0 则清手持槽）
-        ItemStack bound = held.copy();
-        bound.stackSize = 1;
-        held.stackSize--;
-        if (held.stackSize <= 0) {
-            aPlayer.inventory.mainInventory[aPlayer.inventory.currentItem] = null;
-        }
-
-        // 打标记（拆出物继承原 NBT，无标记则补；标记只作用于拆出物）
-        if (!bound.hasTagCompound()) {
-            bound.setTagCompound(new NBTTagCompound());
-        }
-        bound.getTagCompound()
-            .setBoolean("gtsr.singularity_consumed", true);
-
-        // 写 hubPos（覆盖绑定他处的旧 hubPos）
-        NBTTagCompound hubTag = new NBTTagCompound();
-        hubTag.setInteger("x", myX);
-        hubTag.setInteger("y", myY);
-        hubTag.setInteger("z", myZ);
-        hubTag.setInteger("dim", myDim);
-        hubTag.setString("type", type);
-        hubTag.setBoolean("output", getLockedItemOutput(type));
-        bound.getTagCompound()
-            .setTag("gtsr.hubPos", hubTag);
-
-        GTUtility.addItemToPlayerInventory(aPlayer, bound);
-        aPlayer.inventoryContainer.detectAndSendChanges();
-        GTUtility.sendChatToPlayer(
-            aPlayer,
-            StatCollector.translateToLocal("gtsr.binding.bound_output") + bound.getDisplayName()
-                + StatCollector.translateToLocal("gtsr.binding.mode_output"));
+    @Override
+    protected boolean requiresReinforcedChipToBind(String type) {
+        return "overpressure_water".equals(type);
     }
 
-    /**
-     * shift 右击：整个手持堆叠全部绑定到本枢纽（0 奇点成本，仅打标记）。绑定他处的堆叠覆盖整堆。
-     */
-    private void bindWholeHeld(EntityPlayer aPlayer, ItemStack held, String type, int myX, int myY, int myZ,
-        int myDim) {
-        // Water cache node requires 0 singularity to bind
-        // (singularity_consumed flag still set for compatibility, but no actual consumption)
-        if (!held.hasTagCompound()) {
-            held.setTagCompound(new NBTTagCompound());
-        }
-        held.getTagCompound()
-            .setBoolean("gtsr.singularity_consumed", true);
-
-        // 整堆写 hubPos（覆盖绑定他处的旧 hubPos）
-        NBTTagCompound hubTag = new NBTTagCompound();
-        hubTag.setInteger("x", myX);
-        hubTag.setInteger("y", myY);
-        hubTag.setInteger("z", myZ);
-        hubTag.setInteger("dim", myDim);
-        hubTag.setString("type", type);
-        hubTag.setBoolean("output", getLockedItemOutput(type));
-        held.getTagCompound()
-            .setTag("gtsr.hubPos", hubTag);
-
-        aPlayer.inventoryContainer.detectAndSendChanges();
-        GTUtility.sendChatToPlayer(
-            aPlayer,
-            StatCollector.translateToLocal("gtsr.binding.bound_output") + held.getDisplayName()
-                + StatCollector.translateToLocal("gtsr.binding.mode_output"));
-    }
-
-    /** 奇点仓类型（模式锁定，右键已绑定分支只解绑不翻转；绑定消耗恒 0，无需消耗表条目）。 */
-    private static boolean isModeLockedType(String type) {
-        return "singularity_fluid_in".equals(type) || "singularity_fluid_out".equals(type);
-    }
-
-    /**
-     * 锁定类型绑定时的 item output 恒定值（反转语义：false=枢纽→节点/接收仓，true=节点→枢纽/发送仓；
-     * 与节点 loadNBTData 强制归位值互补）。非锁定类型保持 false（现状）。
-     */
-    private static boolean getLockedItemOutput(String type) {
-        return "singularity_fluid_out".equals(type);
+    @Override
+    protected Pair<String, String> singularityCompartmentTypes() {
+        return Pair.of("singularity_fluid_in", "singularity_fluid_out");
     }
 
     @Override
@@ -1062,6 +886,7 @@ public class MTEWaterHubArray extends MTEHubArrayBase<MTEWaterHubArray>
      * 打开缓存节点状态管理界面（Modern UI 2）。必须在服务端调用，
      * 实际打开逻辑委托给 WaterHubStatusGuiFactory（独立 MUI2 factory，不影响主 GUI）。
      */
+    @Override
     public void openHubStatusGui(EntityPlayer player) {
         com.miaokatze.gtsr.common.gui.WaterHubStatusGuiFactory.open(player, this);
     }

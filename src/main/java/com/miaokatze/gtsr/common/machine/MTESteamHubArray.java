@@ -819,272 +819,46 @@ public class MTESteamHubArray extends MTEHubArrayBase<MTESteamHubArray>
         }
     }
 
+    // 蒸汽枢纽族绑定差异钩子（绑定流主体见 MTEHubArrayBase.onRightclick / bindOne / bindWhole 模板）
     @Override
-    public boolean onRightclick(IGregTechTileEntity aBaseMetaTileEntity, EntityPlayer aPlayer, ForgeDirection side,
-        float aX, float aY, float aZ) {
-        ItemStack held = aPlayer.getHeldItem();
-
-        // 手持枢纽终端右击：打开缓存节点状态管理界面（Modern UI 2，独立 factory），
-        // 不占用空手右键（空手仍打开主 GUI），与钻井枢纽的打开方式保持一致
-        if (held != null && GTSRItemList.HubTerminal.isStackEqual(held, false, true)) {
-            if (aBaseMetaTileEntity.isServerSide()) {
-                openHubStatusGui(aPlayer);
-            }
-            return true;
+    protected String resolveHeldType(ItemStack held) {
+        if (GTSRItemList.SteamCacheNode.isStackEqual(held, false, true)) return "steam";
+        if (GTSRItemList.ReinforcedSteamCacheNode.isStackEqual(held, false, true)) return "reinforced_steam";
+        if (GTSRItemList.OverpressureSteamCacheNode.isStackEqual(held, false, true)) return "overpressure_steam";
+        if (GTSRItemList.SingularitySteamCompartment.isStackEqual(held, false, true)) return "singularity_steam";
+        if (GTSRItemList.SingularitySteamOutputCompartment.isStackEqual(held, false, true)) {
+            return "singularity_steam_out";
         }
-
-        if (held != null && (GTSRItemList.HubSingularityChip.isStackEqual(held, true, true)
-            || GTSRItemList.ReinforcedHubSingularityChip.isStackEqual(held, true, true))) {
-            if (aBaseMetaTileEntity.isServerSide()) {
-                sendBindingDebug(aPlayer);
-            }
-            return true;
-        }
-
-        if (held == null) {
-            return super.onRightclick(aBaseMetaTileEntity, aPlayer, side, aX, aY, aZ);
-        }
-
-        String type = null;
-        boolean isReinforced = false;
-        if (GTSRItemList.SteamCacheNode.isStackEqual(held, false, true)) {
-            type = "steam";
-        } else if (GTSRItemList.ReinforcedSteamCacheNode.isStackEqual(held, false, true)) {
-            type = "reinforced_steam";
-            isReinforced = true;
-        } else if (GTSRItemList.OverpressureSteamCacheNode.isStackEqual(held, false, true)) {
-            type = "overpressure_steam";
-        } else if (GTSRItemList.SingularitySteamCompartment.isStackEqual(held, false, true)) {
-            type = "singularity_steam";
-        } else if (GTSRItemList.SingularitySteamOutputCompartment.isStackEqual(held, false, true)) {
-            type = "singularity_steam_out";
-        }
-
-        if (type == null) {
-            return super.onRightclick(aBaseMetaTileEntity, aPlayer, side, aX, aY, aZ);
-        }
-
-        if (!aBaseMetaTileEntity.isServerSide()) return true;
-
-        if ("overpressure_steam".equals(type) && !hasReinforcedChipInstalled()) {
-            GTUtility.sendChatToPlayer(
-                aPlayer,
-                StatCollector.translateToLocal("gtsr.binding.overpressure_no_reinforced_chip"));
-            return true;
-        }
-
-        if (!hasChipInstalled()) {
-            GTUtility.sendChatToPlayer(aPlayer, StatCollector.translateToLocal("gtsr.binding.no_chip"));
-            return true;
-        }
-
-        int myX = aBaseMetaTileEntity.getXCoord();
-        int myY = aBaseMetaTileEntity.getYCoord();
-        int myZ = aBaseMetaTileEntity.getZCoord();
-        int myDim = aBaseMetaTileEntity.getWorld().provider.dimensionId;
-
-        // 已绑定本枢纽的堆叠：无论普通/shift，优先走现有 output 翻转/解绑交互（完全保留现状逻辑）
-        if (held.hasTagCompound() && held.getTagCompound()
-            .hasKey("gtsr.hubPos")) {
-            NBTTagCompound existing = held.getTagCompound()
-                .getCompoundTag("gtsr.hubPos");
-            int boundX = existing.getInteger("x");
-            int boundY = existing.getInteger("y");
-            int boundZ = existing.getInteger("z");
-            int boundDim = existing.getInteger("dim");
-
-            if (boundX == myX && boundY == myY && boundZ == myZ && boundDim == myDim) {
-                // 奇点仓模式锁定：不提供 output 翻转，右击只解绑（沿用现解绑文案）
-                if (isModeLockedType(type)) {
-                    held.getTagCompound()
-                        .removeTag("gtsr.hubPos");
-                    GTUtility.sendChatToPlayer(
-                        aPlayer,
-                        StatCollector.translateToLocal("gtsr.binding.cleared") + held.getDisplayName()
-                            + StatCollector.translateToLocal("gtsr.binding.binding"));
-                    return true;
-                }
-                boolean isOutput = existing.hasKey("output") && existing.getBoolean("output");
-
-                if (!isOutput) {
-                    existing.setBoolean("output", true);
-                    GTUtility.sendChatToPlayer(
-                        aPlayer,
-                        StatCollector.translateToLocal("gtsr.binding.bound_input") + held.getDisplayName()
-                            + StatCollector.translateToLocal("gtsr.binding.mode_input"));
-                } else {
-                    held.getTagCompound()
-                        .removeTag("gtsr.hubPos");
-                    GTUtility.sendChatToPlayer(
-                        aPlayer,
-                        StatCollector.translateToLocal("gtsr.binding.cleared") + held.getDisplayName()
-                            + StatCollector.translateToLocal("gtsr.binding.binding"));
-                }
-                return true;
-            }
-        }
-
-        // shift 右击：整个手持堆叠全部绑定（奇点消耗 = 单次成本 × 堆叠数量）；
-        // 普通右击：拆出 1 个绑定（奇点按类型成本消耗一次），绑定物回背包，手持剩余保持未绑定
-        if (aPlayer.isSneaking()) {
-            bindWholeHeld(aPlayer, held, type, isReinforced, myX, myY, myZ, myDim);
-        } else {
-            bindOneFromHeld(aPlayer, held, type, isReinforced, myX, myY, myZ, myDim);
-        }
-        return true;
+        return null;
     }
 
-    /**
-     * 普通右击：从手持堆叠拆出 1 个缓存节点绑定到本枢纽（无 singularity_consumed 标记则按类型成本
-     * 消耗一次奇点：steam=0 仅打标记；reinforced_steam=1；overpressure_steam=8），
-     * 写 hubPos NBT 后放回玩家背包（背包无空位则落地），手持剩余 N-1 个保持未绑定。
-     * 绑定他处的堆叠仅覆盖拆出的这 1 个。
-     */
-    private void bindOneFromHeld(EntityPlayer aPlayer, ItemStack held, String type, boolean isReinforced, int myX,
-        int myY, int myZ, int myDim) {
-        // 先按手持标记状态决定是否消耗：无标记则按类型成本消耗一次（不足则报错不执行，保持手持原状）
-        if (!held.hasTagCompound() || !held.getTagCompound()
-            .hasKey("gtsr.singularity_consumed")) {
-            int singularityCost = getSingularityCost(type);
-            if (singularityCost > 0 && !consumeSteamEntangledSingularities(aPlayer, singularityCost)) {
-                GTUtility.sendChatToPlayer(
-                    aPlayer,
-                    StatCollector.translateToLocal("gtsr.binding.no_singularity") + " (" + singularityCost + ")");
-                return;
-            }
-        }
-
-        // 拆 1 个（copy + 减量，≤0 则清手持槽）
-        ItemStack bound = held.copy();
-        bound.stackSize = 1;
-        held.stackSize--;
-        if (held.stackSize <= 0) {
-            aPlayer.inventory.mainInventory[aPlayer.inventory.currentItem] = null;
-        }
-
-        // 打标记（拆出物继承原 NBT，无标记则补；标记/消耗只作用于拆出物）
-        if (!bound.hasTagCompound()) {
-            bound.setTagCompound(new NBTTagCompound());
-        }
-        bound.getTagCompound()
-            .setBoolean("gtsr.singularity_consumed", true);
-
-        // 写 hubPos（覆盖绑定他处的旧 hubPos）
-        NBTTagCompound hubTag = new NBTTagCompound();
-        hubTag.setInteger("x", myX);
-        hubTag.setInteger("y", myY);
-        hubTag.setInteger("z", myZ);
-        hubTag.setInteger("dim", myDim);
-        hubTag.setString("type", type);
-        hubTag.setBoolean("output", getLockedItemOutput(type));
-        hubTag.setBoolean("reinforced", isReinforced);
-        bound.getTagCompound()
-            .setTag("gtsr.hubPos", hubTag);
-
-        GTUtility.addItemToPlayerInventory(aPlayer, bound);
-        aPlayer.inventoryContainer.detectAndSendChanges();
-        GTUtility.sendChatToPlayer(
-            aPlayer,
-            StatCollector.translateToLocal("gtsr.binding.bound_output") + bound.getDisplayName()
-                + StatCollector.translateToLocal("gtsr.binding.mode_output"));
+    @Override
+    protected boolean isReinforcedType(String type) {
+        return "reinforced_steam".equals(type);
     }
 
-    /**
-     * shift 右击：整个手持堆叠全部绑定到本枢纽，奇点消耗 = 单次成本 × 堆叠数量
-     * （背包总量不足则报错不执行；steam=0 仅打标记）。绑定他处的堆叠覆盖整堆。
-     */
-    private void bindWholeHeld(EntityPlayer aPlayer, ItemStack held, String type, boolean isReinforced, int myX,
-        int myY, int myZ, int myDim) {
-        // 无标记则按"单次成本 × 堆叠数量"消耗奇点并给整堆打标记
-        if (!held.hasTagCompound() || !held.getTagCompound()
-            .hasKey("gtsr.singularity_consumed")) {
-            int singularityCost = getSingularityCost(type) * held.stackSize;
-            if (singularityCost > 0 && !consumeSteamEntangledSingularities(aPlayer, singularityCost)) {
-                GTUtility.sendChatToPlayer(
-                    aPlayer,
-                    StatCollector.translateToLocal("gtsr.binding.no_singularity") + " (" + singularityCost + ")");
-                return;
-            }
-            if (!held.hasTagCompound()) {
-                held.setTagCompound(new NBTTagCompound());
-            }
-            held.getTagCompound()
-                .setBoolean("gtsr.singularity_consumed", true);
-        }
-
-        // 整堆写 hubPos（覆盖绑定他处的旧 hubPos）
-        if (!held.hasTagCompound()) {
-            held.setTagCompound(new NBTTagCompound());
-        }
-        NBTTagCompound hubTag = new NBTTagCompound();
-        hubTag.setInteger("x", myX);
-        hubTag.setInteger("y", myY);
-        hubTag.setInteger("z", myZ);
-        hubTag.setInteger("dim", myDim);
-        hubTag.setString("type", type);
-        hubTag.setBoolean("output", getLockedItemOutput(type));
-        hubTag.setBoolean("reinforced", isReinforced);
-        held.getTagCompound()
-            .setTag("gtsr.hubPos", hubTag);
-
-        aPlayer.inventoryContainer.detectAndSendChanges();
-        GTUtility.sendChatToPlayer(
-            aPlayer,
-            StatCollector.translateToLocal("gtsr.binding.bound_output") + held.getDisplayName()
-                + StatCollector.translateToLocal("gtsr.binding.mode_output"));
+    @Override
+    protected boolean requiresReinforcedChipToBind(String type) {
+        return "overpressure_steam".equals(type);
     }
 
-    /**
-     * 绑定奇点成本表：steam=0、reinforced_steam=1、overpressure_steam=8、
-     * 奇点蒸汽仓/奇点蒸汽输出仓=1。
-     */
-    private static int getSingularityCost(String type) {
+    /** 绑定奇点成本表：steam=0、reinforced_steam=1、overpressure_steam=8、奇点蒸汽仓/输出仓=1。 */
+    @Override
+    protected int getBindSingularityCost(String type) {
         if ("reinforced_steam".equals(type)) return 1;
         if ("overpressure_steam".equals(type)) return 8;
         if ("singularity_steam".equals(type) || "singularity_steam_out".equals(type)) return 1;
         return 0;
     }
 
-    /** 奇点仓类型（模式锁定，右键已绑定分支只解绑不翻转）。 */
-    private static boolean isModeLockedType(String type) {
-        return "singularity_steam".equals(type) || "singularity_steam_out".equals(type);
+    @Override
+    protected Pair<String, String> singularityCompartmentTypes() {
+        return Pair.of("singularity_steam", "singularity_steam_out");
     }
 
-    /**
-     * 锁定类型绑定时的 item output 恒定值（反转语义：false=枢纽→节点/接收仓，true=节点→枢纽/发送仓；
-     * 与 loadNBTData 强制归位值互补）。非锁定类型保持 false（现状）。
-     */
-    private static boolean getLockedItemOutput(String type) {
-        return "singularity_steam_out".equals(type);
-    }
-
-    /**
-     * 从玩家主物品栏消耗指定数量个蒸汽纠缠奇点（背包总量不足时不消耗并返回 false）。
-     * 
-     * @return 是否成功消耗
-     */
-    private static boolean consumeSteamEntangledSingularities(EntityPlayer player, int amount) {
-        int found = 0;
-        for (ItemStack invStack : player.inventory.mainInventory) {
-            if (invStack != null && GTSRItemList.SteamEntangledSingularity.isStackEqual(invStack, true, true)) {
-                found += invStack.stackSize;
-            }
-        }
-        if (found < amount) return false;
-        int remaining = amount;
-        for (int i = 0; i < player.inventory.mainInventory.length && remaining > 0; i++) {
-            ItemStack invStack = player.inventory.mainInventory[i];
-            if (invStack != null && GTSRItemList.SteamEntangledSingularity.isStackEqual(invStack, true, true)) {
-                int toConsume = Math.min(remaining, invStack.stackSize);
-                invStack.stackSize -= toConsume;
-                remaining -= toConsume;
-                if (invStack.stackSize <= 0) {
-                    player.inventory.mainInventory[i] = null;
-                }
-            }
-        }
-        player.inventoryContainer.detectAndSendChanges();
-        return true;
+    @Override
+    protected void writeBindExtras(NBTTagCompound hubTag, boolean isReinforced) {
+        hubTag.setBoolean("reinforced", isReinforced);
     }
 
     @Override
@@ -1099,6 +873,7 @@ public class MTESteamHubArray extends MTEHubArrayBase<MTESteamHubArray>
      * 打开缓存节点状态管理界面（Modern UI 2）。必须在服务端调用，
      * 实际打开逻辑委托给 SteamHubStatusGuiFactory（独立 MUI2 factory，不影响主 GUI）。
      */
+    @Override
     public void openHubStatusGui(EntityPlayer player) {
         com.miaokatze.gtsr.common.gui.SteamHubStatusGuiFactory.open(player, this);
     }
