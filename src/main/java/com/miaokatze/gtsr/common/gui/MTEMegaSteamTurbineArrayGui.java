@@ -12,6 +12,7 @@ import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.widgets.ListWidget;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.machine.MTEMegaSteamTurbineArray;
+import com.miaokatze.gtsr.common.machine.turbine.SteamTurbineSteamTypes.SteamType;
 
 import gregtech.api.metatileentity.implementations.MTEEnhancedMultiBlockBase;
 import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
@@ -48,7 +49,7 @@ public class MTEMegaSteamTurbineArrayGui extends MTEMultiBlockBaseGui<MTEEnhance
             val -> turbineArray.mSteamConsumption = val);
         mSteamTypeOrdinalSync = new IntSyncValue(
             () -> turbineArray.mSteamType.ordinal(),
-            val -> turbineArray.mSteamType = MTEMegaSteamTurbineArray.SteamType.values()[val]);
+            val -> turbineArray.mSteamType = SteamType.values()[val]);
         mGearTierSync = new IntSyncValue(() -> turbineArray.mGearTier, val -> turbineArray.mGearTier = val);
         mPipeTierSync = new IntSyncValue(() -> turbineArray.mPipeTier, val -> turbineArray.mPipeTier = val);
         mSingularityModeSync = new IntSyncValue(
@@ -74,8 +75,7 @@ public class MTEMegaSteamTurbineArrayGui extends MTEMultiBlockBaseGui<MTEEnhance
         ListWidget<IWidget, ?> widget = super.createTerminalTextWidget(syncManager, parent);
         // 文本行：蒸汽类型（数值词条由机器注册，appendEntryRows 在其后统一渲染）
         widget.child(IKey.dynamic(() -> {
-            MTEMegaSteamTurbineArray.SteamType steamType = MTEMegaSteamTurbineArray.SteamType
-                .values()[mSteamTypeOrdinalSync.getValue()];
+            SteamType steamType = SteamType.values()[mSteamTypeOrdinalSync.getValue()];
             return EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.steam_type")
                 + (steamType.requiresHighTier() ? EnumChatFormatting.LIGHT_PURPLE : EnumChatFormatting.YELLOW)
                 + StatCollector.translateToLocal(steamType.nameKey)
