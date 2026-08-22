@@ -2,9 +2,6 @@ package com.miaokatze.gtsr.api.compat;
 
 import java.util.ArrayList;
 
-import com.miaokatze.gtsr.common.machine.base.MTEPressureSteamCoolingHatch;
-import com.miaokatze.gtsr.common.machine.base.MTESteamCoolingHatch;
-
 /**
  * 冷却舱室持有者接口。
  * <p>
@@ -12,6 +9,10 @@ import com.miaokatze.gtsr.common.machine.base.MTESteamCoolingHatch;
  * {@code MTESteamMultiBlockBase} 父类），GTNL {@code SteamMultiMachineBase} 子类继承自动获得。
  * GTNL 专用 mixin 通过此接口访问父类注入的冷却舱室列表与累积蒸汽状态，
  * 因为子类 mixin 无法直接访问父类 mixin 的 {@code @Unique private} 字段。
+ * <p>
+ * O2-B03②：列表元素类型改 api 契约接口（{@code ArrayList<? extends ICoolingHatch>}），
+ * 擦除后签名与原具体类型版完全一致，mixin 侧实现（返回 {@code ArrayList<MTESteamCoolingHatch>}
+ * 等具体类型）保持协变兼容零改动。
  */
 public interface ICoolingHatchHolder {
 
@@ -20,14 +21,14 @@ public interface ICoolingHatchHolder {
      *
      * @return 普通冷却舱室列表
      */
-    ArrayList<MTESteamCoolingHatch> gtsr$getCoolingHatches();
+    ArrayList<? extends ICoolingHatch> gtsr$getCoolingHatches();
 
     /**
      * 获取压力冷却舱室列表（接收冷却蒸汽）。
      *
      * @return 压力冷却舱室列表
      */
-    ArrayList<MTEPressureSteamCoolingHatch> gtsr$getPressureHatches();
+    ArrayList<? extends IPressureSteamCoolingHatch> gtsr$getPressureHatches();
 
     /**
      * 获取累积的普通蒸汽量（每 160L 转 1L 水）。

@@ -10,6 +10,7 @@ import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.IFluidHandler;
 
+import com.miaokatze.gtsr.api.compat.ICoolingHatch;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
 
 import gregtech.api.GregTechAPI;
@@ -21,7 +22,8 @@ import gregtech.api.metatileentity.implementations.MTEHatchOutput;
 import gregtech.api.util.GTModHandler;
 import gregtech.common.blocks.BlockCasings1;
 
-public class MTESteamCoolingHatch extends MTEHatchOutput {
+// O2-B03②：接入 api 契约接口（isValid/updateTexture 继承 GT5U MTEHatch 链、pushCoolingWater 既有公有方法），零行为变化
+public class MTESteamCoolingHatch extends MTEHatchOutput implements ICoolingHatch {
 
     private static final int CAPACITY = 64_000;
     private static final int STEAM_PER_WATER = 160;

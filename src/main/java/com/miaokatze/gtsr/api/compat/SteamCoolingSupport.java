@@ -4,9 +4,6 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
 
-import com.miaokatze.gtsr.common.machine.base.MTEPressureSteamCoolingHatch;
-import com.miaokatze.gtsr.common.machine.base.MTESteamCoolingHatch;
-
 import gregtech.api.metatileentity.implementations.MTEHatch;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTEHatchCustomFluidBase;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.base.MTESteamMultiBlockBase;
@@ -45,7 +42,7 @@ public final class SteamCoolingSupport {
             // v1.10.61：过热蒸汽 → 先推送 pending 累积量再推本次新量（合并总量后逐仓顺序填充，
             // pushCoolingSteam 返回实际放入量，未放入部分退回 pending；不再每仓全额，消除 N 倍放大）
             long remaining = holder.gtsr$getPendingSuperheatedSteam() + steamConsumed;
-            for (MTEPressureSteamCoolingHatch hatch : holder.gtsr$getPressureHatches()) {
+            for (IPressureSteamCoolingHatch hatch : holder.gtsr$getPressureHatches()) {
                 if (remaining <= 0) break;
                 if (hatch != null && hatch.isValid()) {
                     remaining -= hatch.pushCoolingSteam((int) Math.min(remaining, Integer.MAX_VALUE));
@@ -61,7 +58,7 @@ public final class SteamCoolingSupport {
                 // v1.10.61：跨仓顺序填充（逐仓 pushCoolingWater 累减 remaining），
                 // 未放入部分按 remaining × STEAM_PER_WATER 退回累积器（保持余数语义）
                 long remaining = waterAmount;
-                for (MTESteamCoolingHatch hatch : holder.gtsr$getCoolingHatches()) {
+                for (ICoolingHatch hatch : holder.gtsr$getCoolingHatches()) {
                     if (remaining <= 0) break;
                     if (hatch != null && hatch.isValid()) {
                         remaining -= hatch.pushCoolingWater((int) Math.min(remaining, Integer.MAX_VALUE));
@@ -82,12 +79,12 @@ public final class SteamCoolingSupport {
      * @param textureID 当前机器 tier 对应的外壳贴图索引
      */
     public static void updateHatchTextures(ICoolingHatchHolder holder, int textureID) {
-        for (MTESteamCoolingHatch hatch : holder.gtsr$getCoolingHatches()) {
+        for (ICoolingHatch hatch : holder.gtsr$getCoolingHatches()) {
             if (hatch != null && hatch.isValid()) {
                 hatch.updateTexture(textureID);
             }
         }
-        for (MTEPressureSteamCoolingHatch hatch : holder.gtsr$getPressureHatches()) {
+        for (IPressureSteamCoolingHatch hatch : holder.gtsr$getPressureHatches()) {
             if (hatch != null && hatch.isValid()) {
                 hatch.updateTexture(textureID);
             }
