@@ -4,32 +4,59 @@ import java.lang.reflect.Field;
 import java.util.Map;
 
 import bwcrossmod.galacticgreg.VoidMinerUtility;
+import gregtech.GTMod;
 
+/**
+ * 跨 mod 反射 shim：读取 GalacticGreg {@link VoidMinerUtility} 的维度掉落表静态字段。
+ * SR-BUG-05 修复口径：反射查找仅执行一次（{@code initialized} 先置位再反射，失败缓存为 null、
+ * 永不重试，读点 {@link #getDropMap}/{@link #getExtraDropMap} 恒返回空 DropMap 安全默认）；
+ * 失败分支补一次性 warn（静态布尔防重复，含失败目标字段与后果），消除上游签名漂移后的静默退化。
+ */
 public class VoidMinerUtilityShim {
 
     private static Map<String, VoidMinerUtility.DropMap> dropMapsByName = null;
     private static Map<String, VoidMinerUtility.DropMap> extraDropsByName = null;
     private static boolean initialized = false;
+    // SR-BUG-05：失败告警一次性开关（init 本身单次执行，此布尔为日志防重复兜底）
+    private static boolean initFailureLogged = false;
 
     private static synchronized void init() {
         if (initialized) return;
         initialized = true;
-        try {
-            Field f = VoidMinerUtility.class.getDeclaredField("dropMapsByDimName");
-            @SuppressWarnings("unchecked")
-            Map<String, VoidMinerUtility.DropMap> map = (Map<String, VoidMinerUtility.DropMap>) f.get(null);
-            dropMapsByName = map;
-        } catch (NoSuchFieldException | IllegalAccessException e) {
-            dropMapsByName = null;
+        dropMapsByName = readDropMapField("dropMapsByDimName");
+        extraDropsByName = readDropMapField("extraDropsByDimName");
+        if (dropMapsByName == null || extraDropsByName == null) {
+            warnInitFailureOnce();
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, VoidMinerUtility.DropMap> readDropMapField(String fieldName) {
         try {
-            Field f = VoidMinerUtility.class.getDeclaredField("extraDropsByDimName");
-            @SuppressWarnings("unchecked")
-            Map<String, VoidMinerUtility.DropMap> map = (Map<String, VoidMinerUtility.DropMap>) f.get(null);
-            extraDropsByName = map;
+            Field f = VoidMinerUtility.class.getDeclaredField(fieldName);
+            return (Map<String, VoidMinerUtility.DropMap>) f.get(null);
         } catch (NoSuchFieldException | IllegalAccessException e) {
-            extraDropsByName = null;
+            // SR-BUG-05：失败态由外层缓存（null + initialized）不再重试；此处仅返回 null，由 warnInitFailureOnce 统一告警
+            return null;
         }
+    }
+
+    /**
+     * SR-BUG-05：init 失败的一次性告警（静态布尔防重复）。失败即缓存失败态，此后不再重试；
+     * 后果：受影响维度的虚空矿掉落表恒为空（不掉矿/无额外掉落），无崩溃、仅静默退化。
+     * 典型成因是 GalacticGreg 升级后字段改名/重构，需同步更新本 shim 的字段名。
+     */
+    private static synchronized void warnInitFailureOnce() {
+        if (initFailureLogged) return;
+        initFailureLogged = true;
+        GTMod.GT_FML_LOGGER.warn(
+            "[GTSR] VoidMinerUtilityShim failed to read GalacticGreg VoidMinerUtility drop tables"
+                + " (dropMapsByDimName present: "
+                + (dropMapsByName != null)
+                + ", extraDropsByDimName present: "
+                + (extraDropsByName != null)
+                + "). Affected dimensions will drop nothing / lose extra drops (silent degradation, no crash;"
+                + " no retry until restart). Likely a GalacticGreg version change - update the shim field names.");
     }
 
     /**
