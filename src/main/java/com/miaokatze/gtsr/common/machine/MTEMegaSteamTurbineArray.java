@@ -314,7 +314,20 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
     @Override
     protected void drawTexts(DynamicPositionedColumn screenElements, SlotWidget inventorySlot) {
         super.drawTexts(screenElements, inventorySlot);
+        // GUI 分区私有方法化（O2-04/A01 段 3）：12 个闭包按分区拆方法，行序与闭包体逐字保留。
+        addMachineStateSyncers(screenElements);
+        addSteamTypeRow(screenElements);
+        addPowerRow(screenElements);
+        addSteamConsumptionRow(screenElements);
+        addStatRows(screenElements);
+        addSingularityCountdownRow(screenElements);
+        addChipStateRow(screenElements);
+    }
 
+    /**
+     * 同步器组：mCasingTier/mStackCount/mTheoreticalEUt/mSteamConsumption/mSteamType 客户端镜像。
+     */
+    private void addMachineStateSyncers(DynamicPositionedColumn screenElements) {
         screenElements.widget(new FakeSyncWidget.IntegerSyncer(() -> mCasingTier, val -> mCasingTier = val));
         screenElements.widget(new FakeSyncWidget.IntegerSyncer(() -> mStackCount, val -> mStackCount = val));
         screenElements.widget(new FakeSyncWidget.IntegerSyncer(() -> mTheoreticalEUt, val -> mTheoreticalEUt = val));
@@ -322,7 +335,12 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
             .widget(new FakeSyncWidget.IntegerSyncer(() -> mSteamConsumption, val -> mSteamConsumption = val));
         screenElements.widget(
             new FakeSyncWidget.IntegerSyncer(() -> mSteamType.ordinal(), val -> mSteamType = SteamType.values()[val]));
+    }
 
+    /**
+     * 蒸汽类型行：高阶类型紫色标注 + (Tier 6+) 后缀。
+     */
+    private void addSteamTypeRow(DynamicPositionedColumn screenElements) {
         screenElements
             .widget(
                 TextWidget
@@ -335,7 +353,12 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
                     .setTextAlignment(Alignment.CenterLeft)
                     .setDefaultColor(COLOR_TEXT_WHITE.get())
                     .setEnabled(w -> mMachine));
+    }
 
+    /**
+     * 功率行：EU/t = voltage × powerParameter × groupCount × powerMult × effLimit × effFactor。
+     */
+    private void addPowerRow(DynamicPositionedColumn screenElements) {
         screenElements.widget(TextWidget.dynamicString(() -> {
             int powerMult = getSingularityPowerMult();
             return EnumChatFormatting.GOLD + StatCollector.translateToLocal("gtsr.gui.turbine_array.eu_t")
@@ -351,7 +374,12 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
             .setTextAlignment(Alignment.CenterLeft)
             .setDefaultColor(COLOR_TEXT_WHITE.get())
             .setEnabled(w -> mMachine));
+    }
 
+    /**
+     * 蒸汽消耗行：calcSteamConsumption L/t。
+     */
+    private void addSteamConsumptionRow(DynamicPositionedColumn screenElements) {
         screenElements.widget(
             TextWidget
                 .dynamicString(
@@ -362,7 +390,12 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
                 .setTextAlignment(Alignment.CenterLeft)
                 .setDefaultColor(COLOR_TEXT_WHITE.get())
                 .setEnabled(w -> mMachine));
+    }
 
+    /**
+     * 节省/编组/效率/上限/输出/功率参数六行：纯读数行组。
+     */
+    private void addStatRows(DynamicPositionedColumn screenElements) {
         screenElements.widget(
             TextWidget
                 .dynamicString(
@@ -435,7 +468,12 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
                 .setTextAlignment(Alignment.CenterLeft)
                 .setDefaultColor(COLOR_TEXT_WHITE.get())
                 .setEnabled(w -> mMachine));
+    }
 
+    /**
+     * 奇点模式倒计时行：蒸汽纠缠（1）与临界（2）共用倒计时，前缀文案区分。
+     */
+    private void addSingularityCountdownRow(DynamicPositionedColumn screenElements) {
         screenElements.widget(TextWidget.dynamicString(() -> {
             if (mSingularityMode == 0) {
                 return EnumChatFormatting.GOLD
@@ -454,7 +492,12 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
             .setTextAlignment(Alignment.CenterLeft)
             .setDefaultColor(COLOR_TEXT_WHITE.get())
             .setEnabled(w -> mMachine));
+    }
 
+    /**
+     * 循环超限芯片状态行：未安装 / 已安装但叠加层不足 / 已激活。
+     */
+    private void addChipStateRow(DynamicPositionedColumn screenElements) {
         // 循环超限芯片状态：未安装 / 已安装但叠加层不足 / 已激活（控制器槽物品客户端可读，mStackCount 经 IntegerSyncer 同步）
         screenElements.widget(TextWidget.dynamicString(() -> {
             if (!hasCycleOverlimitChip()) {
