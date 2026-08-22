@@ -433,11 +433,6 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
         mBoundNodes.removeAll(invalidNodes);
     }
 
-    private boolean hasChipInstalled() {
-        ItemStack stack = getControllerSlot();
-        return stack != null && GTSRItemList.HubSingularityChip.isStackEqual(stack, true, true);
-    }
-
     @Override
     public boolean onRightclick(IGregTechTileEntity aBaseMetaTileEntity, EntityPlayer aPlayer, ForgeDirection side,
         float aX, float aY, float aZ) {
@@ -1010,83 +1005,6 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
             return false;
         return base.canAccessData()
             && player.getDistanceSq(base.getXCoord() + 0.5D, base.getYCoord() + 0.5D, base.getZCoord() + 0.5D) <= 64.0D;
-    }
-
-    private void teleportPlayerToNodeLegacy(EntityPlayer player, int x, int y, int z, int dim) {
-        teleportPlayerToNodeFromGui(player, x, y, z, dim);
-        /*
-         * if (!(player instanceof EntityPlayerMP playerMP)) return;
-         * // 节点必须仍存在
-         * MTERemoteWorkerNode node = resolveWorkerNode(x, y, z, dim);
-         * if (node == null) {
-         * GTUtility.sendChatToPlayer(player, StatCollector.translateToLocal("gtsr.hub_status.teleport_fail_node"));
-         * return;
-         * }
-         * // 获取目标世界（同维度直接用玩家世界；跨维度按需初始化维度）
-         * World targetWorld;
-         * if (player.dimension == dim) {
-         * targetWorld = player.worldObj;
-         * } else {
-         * if (!DimensionManager.isDimensionRegistered(dim)) {
-         * GTUtility.sendChatToPlayer(player, StatCollector.translateToLocal("gtsr.hub_status.teleport_fail_dim"));
-         * return;
-         * }
-         * targetWorld = DimensionManager.getWorld(dim);
-         * if (targetWorld == null) {
-         * DimensionManager.initDimension(dim);
-         * targetWorld = DimensionManager.getWorld(dim);
-         * }
-         * if (targetWorld == null) {
-         * GTUtility.sendChatToPlayer(player, StatCollector.translateToLocal("gtsr.hub_status.teleport_fail_dim"));
-         * return;
-         * }
-         * }
-         * // 查找安全落脚点（失败不消耗奇点）
-         * int safeY = findSafeTeleportHeight(targetWorld, x, y, z);
-         * if (safeY < 0) {
-         * GTUtility.sendChatToPlayer(player, StatCollector.translateToLocal("gtsr.hub_status.teleport_fail_unsafe"));
-         * return;
-         * }
-         * // 消耗蒸汽纠缠奇点
-         * if (!consumeSteamEntangledSingularity(player)) {
-         * GTUtility
-         * .sendChatToPlayer(player, StatCollector.translateToLocal("gtsr.hub_status.teleport_no_singularity"));
-         * return;
-         * }
-         * // 执行传送
-         * double targetX = x + 0.5D;
-         * double targetY = (double) safeY;
-         * double targetZ = z + 0.5D;
-         * if (player.dimension == dim) {
-         * // 同维度：关闭 GUI 并直接设置位置
-         * playerMP.closeScreen();
-         * if (player.ridingEntity != null) player.mountEntity(null);
-         * if (player.riddenByEntity != null) player.riddenByEntity.mountEntity(null);
-         * playerMP.playerNetServerHandler
-         * .setPlayerLocation(targetX, targetY, targetZ, player.rotationYaw, player.rotationPitch);
-         * } else {
-         * // 跨维度：使用 GT5U 统一工具，内部已处理坐骑脱离、关闭 GUI、加载区块、同步背包/状态等
-         * GTUtility.moveEntityToDimensionAtCoords(playerMP, dim, targetX, targetY, targetZ);
-         * }
-         */
-    }
-
-    /**
-     * 从节点方块正上方 y+1 开始，向上查找最近的安全落脚点。
-     * 安全定义：落脚处（脚）与上方一格（头）均为空气，且脚下方块可承重（blocksMovement）。
-     * 若找不到则返回 -1。
-     */
-    private static int findSafeTeleportHeight(World world, int x, int y, int z) {
-        int maxY = world.getActualHeight() - 2;
-        for (int ty = y + 1; ty <= maxY; ty++) {
-            if (world.isAirBlock(x, ty, z) && world.isAirBlock(x, ty + 1, z)
-                && world.getBlock(x, ty - 1, z)
-                    .getMaterial()
-                    .blocksMovement()) {
-                return ty;
-            }
-        }
-        return -1;
     }
 
     /**

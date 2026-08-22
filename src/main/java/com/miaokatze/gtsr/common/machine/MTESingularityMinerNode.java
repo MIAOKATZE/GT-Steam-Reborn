@@ -1181,19 +1181,6 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
         };
     }
 
-    /**
-     * Determines if the given block+meta is a natural ore (eligible for fortune).
-     * For GT ores, checks OreInfo.isNatural (natural ores have meta >= 8000).
-     * For non-GT ores (vanilla/other mods), falls back to GTUtility.isOre() via Ore Dictionary.
-     */
-    private boolean isNaturalOre(Block block, int meta) {
-        try (OreInfo<?> info = OreManager.getOreInfo(block, meta)) {
-            if (info != null) return info.isNatural;
-        }
-        // Non-GT ores (vanilla iron/gold/coal, other mod ores) are always "natural"
-        return GTUtility.isOre(block, meta);
-    }
-
     private boolean consumeSingularityItems(EntityPlayer player, int count) {
         int found = 0;
         for (ItemStack stack : player.inventory.mainInventory) {

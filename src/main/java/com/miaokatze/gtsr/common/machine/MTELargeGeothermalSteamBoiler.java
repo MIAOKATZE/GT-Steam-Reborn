@@ -467,10 +467,6 @@ public class MTELargeGeothermalSteamBoiler extends MTEGTSRMultiBlockBase<MTELarg
         mCasingCount++;
     }
 
-    private boolean hasSteamOutputHatch() {
-        return !mSteamOutputHatches.isEmpty() || !mPressureSteamOutputHatches.isEmpty();
-    }
-
     /**
      * 覆写父类 addOutputBusToMachineList，使其兼容蒸汽版输出总线（MTEHatchSteamBusOutput）。
      * <p>

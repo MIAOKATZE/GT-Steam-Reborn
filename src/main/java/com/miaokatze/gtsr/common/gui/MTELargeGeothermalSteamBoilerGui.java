@@ -69,12 +69,6 @@ public class MTELargeGeothermalSteamBoilerGui extends MTEMultiBlockBaseGui<MTEEn
         return super.build(guiData, syncManager, uiSettings);
     }
 
-    private boolean hasOverheatChip() {
-        if (mSetTierSync.getValue() != 2) return false;
-        ItemStack stack = boiler.getControllerSlot();
-        return stack != null && GTSRItemList.GeothermalOverheatChip.isStackEqual(stack, true, true);
-    }
-
     private boolean hasInvalidChip() {
         if (mSetTierSync.getValue() == 2) return false;
         ItemStack stack = boiler.getControllerSlot();

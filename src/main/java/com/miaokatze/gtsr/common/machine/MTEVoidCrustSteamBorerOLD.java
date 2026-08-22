@@ -652,20 +652,4 @@ public class MTEVoidCrustSteamBorerOLD extends MTESteamMultiBlockBase<MTEVoidCru
                 + EnumChatFormatting.YELLOW
                 + steamType };
     }
-
-    private String getStatusText() {
-        if (!mMachine) return EnumChatFormatting.RED + "Incomplete" + EnumChatFormatting.RESET;
-        // 改进：原 "Plugin Missing" 提示过于含糊，改为具体插件名便于用户排查
-        if (!isPluginLoaded())
-            return EnumChatFormatting.RED + "GTNEIOrePlugin Not Installed" + EnumChatFormatting.RESET;
-        if ("None".equals(lastDimAbbr)) return EnumChatFormatting.RED + "No Dimension" + EnumChatFormatting.RESET;
-        // 改进：区分"未知缩写"和"已知维度但无 DropMap"两种场景
-        if (!ABBR_TO_DIM_NAME.containsKey(lastDimAbbr))
-            return EnumChatFormatting.RED + "Unknown Dim Abbr: " + lastDimAbbr + EnumChatFormatting.RESET;
-        if (!dropMapValid) return EnumChatFormatting.RED + "No Ores in " + lastDimAbbr + EnumChatFormatting.RESET;
-        if (!getBaseMetaTileEntity().isAllowedToWork())
-            return EnumChatFormatting.YELLOW + "Disabled" + EnumChatFormatting.RESET;
-        if (getTotalSteamStored() <= 0) return EnumChatFormatting.YELLOW + "No Steam" + EnumChatFormatting.RESET;
-        return EnumChatFormatting.GREEN + "Running" + EnumChatFormatting.RESET;
-    }
 }

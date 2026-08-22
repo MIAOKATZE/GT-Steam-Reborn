@@ -236,23 +236,4 @@ public class UndergroundOilHelper {
             return false;
         }
     }
-
-    public static int getFluidAmount(World w, int chunkX, int chunkZ) {
-        try {
-            Object storage = getStorage();
-            if (storage == null) return 0;
-
-            Method getMethod = STORAGE_GET.get(storage);
-            if (getMethod == null) return 0;
-            Object chunkData = getMethod.invoke(storage, w, chunkX, chunkZ);
-            if (chunkData == null) return 0;
-
-            Method getAmountMethod = CHUNK_GET_AMOUNT.get(chunkData);
-            if (getAmountMethod == null) return 0;
-            return (int) getAmountMethod.invoke(chunkData);
-        } catch (Exception e) {
-            GTMod.GT_FML_LOGGER.error("[GTSR] getFluidAmount failed", e);
-            return 0;
-        }
-    }
 }
