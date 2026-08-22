@@ -6,8 +6,6 @@ import static gregtech.api.enums.Textures.BlockIcons.MACHINE_BRONZE_SIDE;
 import static gregtech.api.enums.Textures.BlockIcons.MACHINE_BRONZE_TOP;
 import static gregtech.api.enums.Textures.BlockIcons.OVERLAY_PIPE;
 
-import java.util.List;
-
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumChatFormatting;
@@ -16,9 +14,6 @@ import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
-import net.minecraftforge.fluids.IFluidHandler;
-
-import com.miaokatze.gtsr.common.util.GTSRUtils;
 
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
@@ -29,6 +24,7 @@ import gregtech.api.util.GTUtility;
 public class MTESteamCacheNode extends MTEFilteredCacheNode {
 
     private static final int CAPACITY = 16_000_000;
+    /** 自动排出速率（L/s，每 20t 一次）：SR-OPT-02 上提后同时作为枢纽基础传输速率单源。 */
     private static final int OUTPUT_RATE_PER_SEC = 2_000_000;
 
     public MTESteamCacheNode(int aID, String aName, String aNameRegional) {
@@ -41,7 +37,7 @@ public class MTESteamCacheNode extends MTEFilteredCacheNode {
 
     @Override
     protected int getBaseHubTransferRate() {
-        return 2_000_000;
+        return OUTPUT_RATE_PER_SEC;
     }
 
     @Override
@@ -84,21 +80,8 @@ public class MTESteamCacheNode extends MTEFilteredCacheNode {
     }
 
     @Override
-    public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
-        super.onPostTick(aBaseMetaTileEntity, aTick);
-        if (aBaseMetaTileEntity.isServerSide()) {
-            if (mOutputFluid && getDrainableStack() != null && (aTick % 20 == 0)) {
-                IFluidHandler tTank = aBaseMetaTileEntity.getITankContainerAtSide(aBaseMetaTileEntity.getFrontFacing());
-                if (tTank != null) {
-                    FluidStack tDrained = drain(OUTPUT_RATE_PER_SEC, false);
-                    if (tDrained != null) {
-                        int tFilledAmount = tTank.fill(aBaseMetaTileEntity.getBackFacing(), tDrained, false);
-                        if (tFilledAmount > 0)
-                            tTank.fill(aBaseMetaTileEntity.getBackFacing(), drain(tFilledAmount, true), true);
-                    }
-                }
-            }
-        }
+    protected String getFluidTypeTooltipLangKey() {
+        return "gtsr.tooltip.steam_cache_node.fluid_type.steam";
     }
 
     @Override
@@ -177,33 +160,5 @@ public class MTESteamCacheNode extends MTEFilteredCacheNode {
                 + formatNumber(getRealCapacity())
                 + " L"
                 + EnumChatFormatting.RESET };
-    }
-
-    @Override
-    public void addAdditionalTooltipInformation(ItemStack stack, List<String> tooltip) {
-        super.addAdditionalTooltipInformation(stack, tooltip);
-        tooltip.add(
-            EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.shared.fluid_type")
-                + EnumChatFormatting.YELLOW
-                + StatCollector.translateToLocal("gtsr.tooltip.steam_cache_node.fluid_type.steam"));
-        tooltip.add(
-            EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.shared.output_rate")
-                + EnumChatFormatting.GREEN
-                + String.format("%,d", OUTPUT_RATE_PER_SEC)
-                + " "
-                + StatCollector.translateToLocal("gtsr.tooltip.shared.l_s"));
-        tooltip.add(
-            EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.shared.capacity")
-                + EnumChatFormatting.GOLD
-                + String.format("%,d", getRealCapacity())
-                + " "
-                + StatCollector.translateToLocal("gtsr.tooltip.shared.l"));
-        tooltip
-            .add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.shared.cache_node_standalone"));
-        tooltip.add(
-            EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.shared.cache_node_hub_transfer"));
-        tooltip.add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.shared.bind_hint"));
-        tooltip.add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.shared.bind_all_hint"));
-        tooltip.add(GTSRUtils.getAddedByLine());
     }
 }

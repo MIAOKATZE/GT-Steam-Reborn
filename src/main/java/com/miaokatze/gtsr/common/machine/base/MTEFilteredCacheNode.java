@@ -17,10 +17,12 @@ import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
+import net.minecraftforge.fluids.IFluidHandler;
 
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.gui.MTEFilteredCacheNodeGui;
 import com.miaokatze.gtsr.common.util.GTSRFluidWindowTexture;
+import com.miaokatze.gtsr.common.util.GTSRUtils;
 import com.miaokatze.gtsr.common.util.HubTeleportUtil;
 import com.miaokatze.gtsr.register.TextureManager;
 
@@ -89,6 +91,19 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase implements
     protected abstract boolean isFluidAllowed(Fluid fluid);
 
     protected abstract int getBaseHubTransferRate();
+
+    /**
+     * 节点 tooltip「流体类型」行的本地化 key（SR-OPT-02：原六变体同构 tooltip 6→1 上提后的变体钩子，
+     * 每个变体只给类型文案 key，公共行模板见 {@link #addAdditionalTooltipInformation}）。
+     */
+    protected abstract String getFluidTypeTooltipLangKey();
+
+    /**
+     * 变体专属 tooltip 行（SR-OPT-02 变体钩子）：插在公共「流体类型/输出速率/容量」三行之后、
+     * 四行通用绑定提示之前。默认空（基础蒸汽节点无额外行）；强化/超压/通用流体节点覆写补
+     * 奇点消耗、绑定要求、绑定目标等行。
+     */
+    protected void addVariantTooltipLines(List<String> tooltip) {}
 
     @Override
     public boolean onRightclick(IGregTechTileEntity aBaseMetaTileEntity, EntityPlayer aPlayer, ForgeDirection side,
@@ -532,7 +547,7 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase implements
     }
 
     @Override
-    public void addAdditionalTooltipInformation(ItemStack stack, List<String> tooltip) {
+    public final void addAdditionalTooltipInformation(ItemStack stack, List<String> tooltip) {
         super.addAdditionalTooltipInformation(stack, tooltip);
         tooltip.add(
             EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.cache_node.base_transfer_rate")
@@ -567,10 +582,37 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase implements
                     + mode
                     + "]");
         }
+        // ===== 节点族公共段（SR-OPT-02：原六变体 addAdditionalTooltipInformation 同构段 6→1 上提）=====
+        tooltip.add(
+            EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.shared.fluid_type")
+                + EnumChatFormatting.YELLOW
+                + StatCollector.translateToLocal(getFluidTypeTooltipLangKey()));
+        tooltip.add(
+            EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.shared.output_rate")
+                + EnumChatFormatting.GREEN
+                + String.format("%,d", getBaseHubTransferRate())
+                + " "
+                + StatCollector.translateToLocal("gtsr.tooltip.shared.l_s"));
+        tooltip.add(
+            EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.shared.capacity")
+                + EnumChatFormatting.GOLD
+                + String.format("%,d", getRealCapacity())
+                + " "
+                + StatCollector.translateToLocal("gtsr.tooltip.shared.l"));
+        // 变体专属行（奇点消耗/绑定要求/绑定目标等），默认空
+        addVariantTooltipLines(tooltip);
+        // 通用绑定提示尾段（六变体一致）
+        tooltip
+            .add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.shared.cache_node_standalone"));
+        tooltip.add(
+            EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.shared.cache_node_hub_transfer"));
+        tooltip.add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.shared.bind_hint"));
+        tooltip.add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.shared.bind_all_hint"));
+        tooltip.add(GTSRUtils.getAddedByLine());
     }
 
     @Override
-    public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
+    public final void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
         super.onPostTick(aBaseMetaTileEntity, aTick);
         if (!aBaseMetaTileEntity.isServerSide()) return;
 
@@ -586,6 +628,21 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase implements
         if (!syncKey.equals(mLastSyncKey)) {
             mLastSyncKey = syncKey;
             aBaseMetaTileEntity.issueTileUpdate();
+        }
+
+        // ===== 自动排出公共模板（SR-OPT-02：原六变体 onPostTick 同构块 6→1 上提，行序与原实现一致）=====
+        // 每 20t 向正面相邻容器排出 getBaseHubTransferRate() 的量（六变体的自动排出速率与枢纽基础
+        // 传输速率本就同值，上提后单源防数值漂移）；mOutputFluid 为父类自动输出开关。
+        if (mOutputFluid && getDrainableStack() != null && (aTick % 20 == 0)) {
+            IFluidHandler tTank = aBaseMetaTileEntity.getITankContainerAtSide(aBaseMetaTileEntity.getFrontFacing());
+            if (tTank != null) {
+                FluidStack tDrained = drain(getBaseHubTransferRate(), false);
+                if (tDrained != null) {
+                    int tFilledAmount = tTank.fill(aBaseMetaTileEntity.getBackFacing(), tDrained, false);
+                    if (tFilledAmount > 0)
+                        tTank.fill(aBaseMetaTileEntity.getBackFacing(), drain(tFilledAmount, true), true);
+                }
+            }
         }
     }
 
