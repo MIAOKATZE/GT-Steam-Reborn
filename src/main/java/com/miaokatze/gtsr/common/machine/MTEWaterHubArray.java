@@ -4,6 +4,7 @@ import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlocksT
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose;
+import static com.miaokatze.gtsr.common.structure.GTSRStructureChecks.require;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 
 import java.util.ArrayList;
@@ -72,7 +73,6 @@ import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.render.TextureFactory;
 import gregtech.api.structure.error.StructureError;
-import gregtech.api.structure.error.StructureErrorRegistry;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.IGTHatchAdder;
 import gregtech.api.util.MultiblockTooltipBuilder;
@@ -481,20 +481,17 @@ public class MTEWaterHubArray extends MTEGTSRMultiBlockBase<MTEWaterHubArray>
             mStackCount++;
         }
 
-        if (mStackCount == 0) {
-            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+        if (!require(mStackCount > 0, errors)) {
             getBaseMetaTileEntity().issueTileUpdate();
             return;
         }
 
         // Validate all tier fields are consistent
-        if (mCasingTier <= 0 || mPipeTier <= 0 || mFrameTier <= 0) {
-            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+        if (!require(mCasingTier > 0 && mPipeTier > 0 && mFrameTier > 0, errors)) {
             getBaseMetaTileEntity().issueTileUpdate();
             return;
         }
-        if (mCasingTier != mPipeTier || mCasingTier != mFrameTier) {
-            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+        if (!require(mCasingTier == mPipeTier && mCasingTier == mFrameTier, errors)) {
             getBaseMetaTileEntity().issueTileUpdate();
             return;
         }
@@ -502,34 +499,28 @@ public class MTEWaterHubArray extends MTEGTSRMultiBlockBase<MTEWaterHubArray>
 
         // 三段互斥（镜像蒸汽枢纽）：tier1 禁耐压/超压单元且需普通单元>0；
         // tier2 禁普通/超压单元且需耐压单元>0；tier≥3 禁普通/耐压单元且需超压单元>0
-        if (mSetTier == 1 && (mReinforcedHubUnitCount > 0 || mOverpressureHubUnitCount > 0)) {
-            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+        if (!require(mSetTier != 1 || (mReinforcedHubUnitCount <= 0 && mOverpressureHubUnitCount <= 0), errors)) {
             getBaseMetaTileEntity().issueTileUpdate();
             return;
         }
-        if (mSetTier == 2 && (mHubUnitCount > 0 || mOverpressureHubUnitCount > 0)) {
-            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+        if (!require(mSetTier != 2 || (mHubUnitCount <= 0 && mOverpressureHubUnitCount <= 0), errors)) {
             getBaseMetaTileEntity().issueTileUpdate();
             return;
         }
-        if (mSetTier >= 3 && (mHubUnitCount > 0 || mReinforcedHubUnitCount > 0)) {
-            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+        if (!require(mSetTier < 3 || (mHubUnitCount <= 0 && mReinforcedHubUnitCount <= 0), errors)) {
             getBaseMetaTileEntity().issueTileUpdate();
             return;
         }
 
-        if (mSetTier == 1 && mHubUnitCount <= 0) {
-            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+        if (!require(mSetTier != 1 || mHubUnitCount > 0, errors)) {
             getBaseMetaTileEntity().issueTileUpdate();
             return;
         }
-        if (mSetTier == 2 && mReinforcedHubUnitCount <= 0) {
-            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+        if (!require(mSetTier != 2 || mReinforcedHubUnitCount > 0, errors)) {
             getBaseMetaTileEntity().issueTileUpdate();
             return;
         }
-        if (mSetTier >= 3 && mOverpressureHubUnitCount <= 0) {
-            errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+        if (!require(mSetTier < 3 || mOverpressureHubUnitCount > 0, errors)) {
             getBaseMetaTileEntity().issueTileUpdate();
             return;
         }
