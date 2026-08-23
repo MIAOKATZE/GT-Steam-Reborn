@@ -77,6 +77,24 @@ public enum MetaTileEntityID {
     // 43/44 已被临界奇点压缩机/稠态操纵器占用，避免覆盖 LEGACY_TO_NEW_MAP）
     REDSTONE_HATCH(267, 45),
 
+    // --- 集群段 (相对 351-365；蒸汽动力矿物处理物流工程集群：总控1+工作7+增幅5+物流1) ---
+    // oldRelative 一律 ≥56：LEGACY_TO_NEW_MAP 长度 51（下标 0-50），56+ 天然落在映射表外，
+    // 新 ID 无旧存档迁移需求，不配 LegacyConverter（仿奇点仓四件套先例）。
+    CLUSTER_CONTROLLER(351, 56),
+    CLUSTER_UNIT_CRUSHER(352, 57),
+    CLUSTER_UNIT_ORE_WASHER(353, 58),
+    CLUSTER_UNIT_CENTRIFUGE(354, 59),
+    CLUSTER_UNIT_THERMOCENTRIFUGE(355, 60),
+    CLUSTER_UNIT_SIFTER(356, 61),
+    CLUSTER_UNIT_MAGNETIC_SEPARATOR(357, 62),
+    CLUSTER_UNIT_FURNACE(358, 63),
+    CLUSTER_BOOSTER_PARALLEL(359, 64),
+    CLUSTER_BOOSTER_SPEED(360, 65),
+    CLUSTER_BOOSTER_PRIMARY(361, 66),
+    CLUSTER_BOOSTER_SECONDARY(362, 67),
+    CLUSTER_BOOSTER_STEAM_SAVER(363, 68),
+    CLUSTER_UNIT_LOGISTICS(364, 69),
+
     ;
 
     public final int ID;
@@ -90,6 +108,7 @@ public enum MetaTileEntityID {
      * 新段位规则（BASE = 14700）：
      * 单方块 0-49 / 枢纽 50-99 / 蒸汽基类 100-149 / 工作机器 150-199 / 临界 200-249 / 仓室 250-350。
      * 旧段相对 ID 仅用于旧 ID 占位注册（BASE_OLD = 14620 为迁移锚点），两者共享 Config.metaIdOffset。
+     * 集群段 351-365：蒸汽动力矿物处理物流工程集群（总控 1 + 工作 7 + 增幅 5 + 物流 1，现用 351-364，365 预留）。
      */
     MetaTileEntityID(int relative, int oldRelative) {
         this(relative, oldRelative, -1);

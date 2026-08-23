@@ -92,6 +92,22 @@ public enum GTSRItemList implements IItemContainer {
     RedstoneHatch,
     HubTerminal,
 
+    // 集群段（蒸汽动力矿物处理物流工程集群：总控/工作/增幅/物流）
+    ClusterController,
+    ClusterUnitCrusher,
+    ClusterUnitOreWasher,
+    ClusterUnitCentrifuge,
+    ClusterUnitThermalCentrifuge,
+    ClusterUnitSifter,
+    ClusterUnitMagneticSeparator,
+    ClusterUnitFurnace,
+    ClusterBoosterParallel,
+    ClusterBoosterSpeed,
+    ClusterBoosterPrimary,
+    ClusterBoosterSecondary,
+    ClusterBoosterSteamSaver,
+    ClusterUnitLogistics,
+
     ;
 
     // 存储对应的物品堆栈实例

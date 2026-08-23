@@ -59,6 +59,20 @@ import com.miaokatze.gtsr.common.machine.base.MTESteamOutputHatchGeneric;
 import com.miaokatze.gtsr.common.machine.base.MTEWaterCacheNode;
 import com.miaokatze.gtsr.common.machine.base.MTEWaterHubInputHatch;
 import com.miaokatze.gtsr.common.machine.base.MTEWaterHubOutputHatch;
+import com.miaokatze.gtsr.common.machine.cluster.MTEBasicLogisticsUnit;
+import com.miaokatze.gtsr.common.machine.cluster.MTESteamMineralLogisticsCluster;
+import com.miaokatze.gtsr.common.machine.cluster.MTEUnitCentrifuge;
+import com.miaokatze.gtsr.common.machine.cluster.MTEUnitCrusher;
+import com.miaokatze.gtsr.common.machine.cluster.MTEUnitFurnace;
+import com.miaokatze.gtsr.common.machine.cluster.MTEUnitMagneticSeparator;
+import com.miaokatze.gtsr.common.machine.cluster.MTEUnitOreWasher;
+import com.miaokatze.gtsr.common.machine.cluster.MTEUnitParallelBooster;
+import com.miaokatze.gtsr.common.machine.cluster.MTEUnitPrimaryBooster;
+import com.miaokatze.gtsr.common.machine.cluster.MTEUnitSecondaryBooster;
+import com.miaokatze.gtsr.common.machine.cluster.MTEUnitSifter;
+import com.miaokatze.gtsr.common.machine.cluster.MTEUnitSpeedBooster;
+import com.miaokatze.gtsr.common.machine.cluster.MTEUnitSteamSaverBooster;
+import com.miaokatze.gtsr.common.machine.cluster.MTEUnitThermalCentrifuge;
 import com.miaokatze.gtsr.register.CreativeTabManager;
 
 public class MachineLoader {
@@ -565,6 +579,78 @@ public class MachineLoader {
         // 红石仓：任意多方块机器通用红石信号输出仓（267 为新 ID，无旧 ID 转换需求，不加 LegacyConverter）
         GTSRItemList.RedstoneHatch
             .set(new MTEGTSRRedstoneHatch(MetaTileEntityID.REDSTONE_HATCH.ID, "gtsr.redstone_hatch", "Redstone Hatch"));
+
+        // 蒸汽动力矿物处理物流工程集群（新 ID 段，无 LegacyConverter）
+        GTSRItemList.ClusterController.set(
+            new MTESteamMineralLogisticsCluster(
+                MetaTileEntityID.CLUSTER_CONTROLLER.ID,
+                "gtsr.cluster.controller",
+                "Steam Mineral Logistics Cluster"));
+        GTSRItemList.ClusterUnitCrusher.set(
+            new MTEUnitCrusher(
+                MetaTileEntityID.CLUSTER_UNIT_CRUSHER.ID,
+                "gtsr.cluster.unit.crusher",
+                "Cluster Crushing Unit"));
+        GTSRItemList.ClusterUnitOreWasher.set(
+            new MTEUnitOreWasher(
+                MetaTileEntityID.CLUSTER_UNIT_ORE_WASHER.ID,
+                "gtsr.cluster.unit.ore_washer",
+                "Cluster Ore Washing Unit"));
+        GTSRItemList.ClusterUnitCentrifuge.set(
+            new MTEUnitCentrifuge(
+                MetaTileEntityID.CLUSTER_UNIT_CENTRIFUGE.ID,
+                "gtsr.cluster.unit.centrifuge",
+                "Cluster Centrifuge Unit"));
+        GTSRItemList.ClusterUnitThermalCentrifuge.set(
+            new MTEUnitThermalCentrifuge(
+                MetaTileEntityID.CLUSTER_UNIT_THERMOCENTRIFUGE.ID,
+                "gtsr.cluster.unit.thermal_centrifuge",
+                "Cluster Thermal Centrifuge Unit"));
+        GTSRItemList.ClusterUnitSifter.set(
+            new MTEUnitSifter(
+                MetaTileEntityID.CLUSTER_UNIT_SIFTER.ID,
+                "gtsr.cluster.unit.sifter",
+                "Cluster Sifting Unit"));
+        GTSRItemList.ClusterUnitMagneticSeparator.set(
+            new MTEUnitMagneticSeparator(
+                MetaTileEntityID.CLUSTER_UNIT_MAGNETIC_SEPARATOR.ID,
+                "gtsr.cluster.unit.magnetic_separator",
+                "Cluster Magnetic Separation Unit"));
+        GTSRItemList.ClusterUnitFurnace.set(
+            new MTEUnitFurnace(
+                MetaTileEntityID.CLUSTER_UNIT_FURNACE.ID,
+                "gtsr.cluster.unit.furnace",
+                "Cluster Furnace Unit"));
+        GTSRItemList.ClusterBoosterParallel.set(
+            new MTEUnitParallelBooster(
+                MetaTileEntityID.CLUSTER_BOOSTER_PARALLEL.ID,
+                "gtsr.cluster.booster.parallel",
+                "Cluster Parallel Amplifier"));
+        GTSRItemList.ClusterBoosterSpeed.set(
+            new MTEUnitSpeedBooster(
+                MetaTileEntityID.CLUSTER_BOOSTER_SPEED.ID,
+                "gtsr.cluster.booster.speed",
+                "Cluster Speed Amplifier"));
+        GTSRItemList.ClusterBoosterPrimary.set(
+            new MTEUnitPrimaryBooster(
+                MetaTileEntityID.CLUSTER_BOOSTER_PRIMARY.ID,
+                "gtsr.cluster.booster.primary",
+                "Cluster Primary Output Amplifier"));
+        GTSRItemList.ClusterBoosterSecondary.set(
+            new MTEUnitSecondaryBooster(
+                MetaTileEntityID.CLUSTER_BOOSTER_SECONDARY.ID,
+                "gtsr.cluster.booster.secondary",
+                "Cluster Secondary Output Amplifier"));
+        GTSRItemList.ClusterBoosterSteamSaver.set(
+            new MTEUnitSteamSaverBooster(
+                MetaTileEntityID.CLUSTER_BOOSTER_STEAM_SAVER.ID,
+                "gtsr.cluster.booster.steam_saver",
+                "Cluster Steam Saver Amplifier"));
+        GTSRItemList.ClusterUnitLogistics.set(
+            new MTEBasicLogisticsUnit(
+                MetaTileEntityID.CLUSTER_UNIT_LOGISTICS.ID,
+                "gtsr.cluster.unit.logistics",
+                "Cluster Logistics Unit"));
     }
 
     /**
@@ -636,5 +722,20 @@ public class MachineLoader {
         // --- 新增奇点机器 (43-44) ---
         CreativeTabManager.addItemToTab(GTSRItemList.CriticalSingularityCompressor.get(1));
         CreativeTabManager.addItemToTab(GTSRItemList.DenseStateManipulator.get(1));
+        // --- 集群家族：总控、七工作单元、五增幅器与物流单元（顺序与注册一致） ---
+        CreativeTabManager.addItemToTab(GTSRItemList.ClusterController.get(1));
+        CreativeTabManager.addItemToTab(GTSRItemList.ClusterUnitCrusher.get(1));
+        CreativeTabManager.addItemToTab(GTSRItemList.ClusterUnitOreWasher.get(1));
+        CreativeTabManager.addItemToTab(GTSRItemList.ClusterUnitCentrifuge.get(1));
+        CreativeTabManager.addItemToTab(GTSRItemList.ClusterUnitThermalCentrifuge.get(1));
+        CreativeTabManager.addItemToTab(GTSRItemList.ClusterUnitSifter.get(1));
+        CreativeTabManager.addItemToTab(GTSRItemList.ClusterUnitMagneticSeparator.get(1));
+        CreativeTabManager.addItemToTab(GTSRItemList.ClusterUnitFurnace.get(1));
+        CreativeTabManager.addItemToTab(GTSRItemList.ClusterBoosterParallel.get(1));
+        CreativeTabManager.addItemToTab(GTSRItemList.ClusterBoosterSpeed.get(1));
+        CreativeTabManager.addItemToTab(GTSRItemList.ClusterBoosterPrimary.get(1));
+        CreativeTabManager.addItemToTab(GTSRItemList.ClusterBoosterSecondary.get(1));
+        CreativeTabManager.addItemToTab(GTSRItemList.ClusterBoosterSteamSaver.get(1));
+        CreativeTabManager.addItemToTab(GTSRItemList.ClusterUnitLogistics.get(1));
     }
 }

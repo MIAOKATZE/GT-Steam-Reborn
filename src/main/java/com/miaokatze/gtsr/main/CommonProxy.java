@@ -114,6 +114,9 @@ public class CommonProxy {
         // 注册地壳物质聚合器终端配置界面的 MUI2 factory（手持枢纽终端右击打开）
         com.cleanroommc.modularui.factory.GuiManager
             .registerFactory(com.miaokatze.gtsr.common.gui.AggregatorConfigGuiFactory.INSTANCE);
+        // 注册集群终端界面的 MUI2 factory（总控右击/物流模块右击打开，物流入口固定链路编辑页）
+        com.cleanroommc.modularui.factory.GuiManager
+            .registerFactory(com.miaokatze.gtsr.common.gui.cluster.ClusterTerminalUiFactory.INSTANCE);
 
         // 注册自然生成：失控奇点 nature 词条（主世界+下界，频率见配置 singularitySpawnFrequency）
         GameRegistry.registerWorldGenerator(new WorldGenRunawaySingularity(), 0);
