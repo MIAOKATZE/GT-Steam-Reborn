@@ -9,7 +9,7 @@ import net.minecraftforge.oredict.OreDictionary;
 import gregtech.api.util.GTUtility;
 
 /**
- * 集群物品形态分类器：按矿物词典前缀将物品堆归类为矿石产业链中的七种形态，
+ * 集群物品形态分类器：按矿物词典前缀将物品堆归类为矿石产业链中的九种形态，
  * 供集群状态机与执行器共用。
  * <p>
  * 范式移植自 GT5U {@code MTEIntegratedOreFactory}（矿石工厂哈希集惰性初始化）：
@@ -18,7 +18,11 @@ import gregtech.api.util.GTUtility;
  * {@link GTUtility#stackToInt(ItemStack)} 压缩为 int 存入集合。
  * <p>
  * 顺序敏感：{@code crushedPurified}/{@code crushedCentrifuged} 必须先于 {@code crushed}
- * 判定，否则会被短前缀吞掉；{@code dustImpure}/{@code dustPure} 同理先于潜在短前缀。
+ * 判定，否则会被短前缀吞掉；{@code dustImpure}/{@code dustPure} 同理必须先于普通
+ * {@code dust} 前缀（dust 桶按并集口径收纳 dust/dusts 及 dustTiny/dustSmall 等衍生短前缀，
+ * 与 FSM 终态 {@link ClusterChainFSM.Form#DUST} 对应）；{@code ingot}/{@code ingots} 归
+ * {@link OreForm#INGOT}（与 {@link ClusterChainFSM.Form#INGOT} 对应）——熔炉链对普通
+ * dust/ingot 终态可达（§3.6.6-1/2）。
  * 为避免扩大依赖面，此处使用 {@link HashSet} 而非 fastutil 的 IntOpenHashSet。
  */
 public final class ClusterItemForms {
@@ -44,6 +48,12 @@ public final class ClusterItemForms {
         /** 纯净粉尘（OD 前缀 dustPure）。 */
         DUST_PURE,
 
+        /** 纯粉尘（OD 前缀 dust，含 dusts 等衍生；FSM 终态）。 */
+        DUST,
+
+        /** 锭（OD 前缀 ingot，含 ingots；FSM 终态）。 */
+        INGOT,
+
         /** 不属于上述任何形态的物品。 */
         OTHER
     }
@@ -54,6 +64,8 @@ public final class ClusterItemForms {
     private static final Set<Integer> CRUSHED_CENTRIFUGED_STACKS = new HashSet<>();
     private static final Set<Integer> DUST_IMPURE_STACKS = new HashSet<>();
     private static final Set<Integer> DUST_PURE_STACKS = new HashSet<>();
+    private static final Set<Integer> DUST_STACKS = new HashSet<>();
+    private static final Set<Integer> INGOT_STACKS = new HashSet<>();
 
     private static boolean initialised = false;
 
@@ -76,12 +88,16 @@ public final class ClusterItemForms {
         if (CRUSHED_STACKS.contains(stackId)) return OreForm.CRUSHED;
         if (DUST_IMPURE_STACKS.contains(stackId)) return OreForm.DUST_IMPURE;
         if (DUST_PURE_STACKS.contains(stackId)) return OreForm.DUST_PURE;
+        if (DUST_STACKS.contains(stackId)) return OreForm.DUST;
         if (ORE_STACKS.contains(stackId)) return OreForm.ORE;
+        if (INGOT_STACKS.contains(stackId)) return OreForm.INGOT;
         return OreForm.OTHER;
     }
 
     /**
-     * 惰性初始化：遍历全部矿物词典名，按长名优先的 startsWith 顺序分桶。
+     * 惰性初始化：遍历全部矿物词典名，按长名优先的 startsWith 顺序分桶
+     * （{@code dustImpure}/{@code dustPure} 必须先于普通 {@code dust}，否则衍生粉尘会被
+     * 短前缀吞掉；ingot 与其余前缀无冲突）。
      */
     private static void ensureInit() {
         if (initialised) return;
@@ -94,7 +110,9 @@ public final class ClusterItemForms {
             else if (name.startsWith("crushed")) registerStacks(name, CRUSHED_STACKS);
             else if (name.startsWith("dustImpure")) registerStacks(name, DUST_IMPURE_STACKS);
             else if (name.startsWith("dustPure")) registerStacks(name, DUST_PURE_STACKS);
+            else if (name.startsWith("dust")) registerStacks(name, DUST_STACKS);
             else if (name.startsWith("ore") || name.startsWith("rawOre")) registerStacks(name, ORE_STACKS);
+            else if (name.startsWith("ingot")) registerStacks(name, INGOT_STACKS);
         }
     }
 

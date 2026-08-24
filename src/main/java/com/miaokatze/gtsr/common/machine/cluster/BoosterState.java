@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import net.minecraftforge.fluids.FluidStack;
+
 /**
  * 增幅聚合器：把一组建幅模块按拍板规则（D8/D9/A4）一次性聚合为不可变快照，GUI（增幅面板表）与
  * 服务器（蒸汽经济/执行计划）共用同一口径；纯计算、无副作用、不持有 tick 状态。
@@ -75,9 +77,16 @@ public final class BoosterState {
      * 聚合一组建幅模块：单次遍历一次性算全字段，返回不可变快照（不持有入参列表）。
      *
      * <p>
-     * 生效=已接入集群且锁定流体可用；在场但缺流体的模块计失效（双重豁免：增益与惩罚均不计）；
-     * 未接入集群（STANDBY）的模块与 null 元素直接跳过。无生效且无失效模块时返回 {@link #EMPTY} 单例
-     * （空列表/null 入参同此，语义等价）。
+     * 生效 = 已接入集群 && 锁定流体可用（{@link MTEBasicAmplifierUnit#isFluidAvailable()}）
+     * && tank 存量足以支付<b>本秒用量</b>（{@link ClusterParams#AMPLIFIER_FLUID_PER_SEC}[tier]，
+     * §3.6.3——增幅流体按秒支付，不足支付本秒用量的模块不入快照：<b>无增益也无蒸汽惩罚</b>，
+     * 计失效数；实扣增幅流体由主控按同口径另行执行）；在场但缺流体的模块同样计失效
+     * （双重豁免：增益与惩罚均不计）；未接入集群（STANDBY）的模块与 null 元素直接跳过。
+     * 无生效且无失效模块时返回 {@link #EMPTY} 单例（空列表/null 入参同此，语义等价）。
+     *
+     * <p>
+     * 主/副产物增益经 {@link #getPrimaryBonus()}（同类取最高仅一生效）/ {@link #getSecondaryBonus()}
+     * （加算）暴露给 {@code ClusterChainExecutor.rollOutputs}，真实作用于产物 chance。
      *
      * @param units 增幅模块列表（可为 null 或空）
      * @return 不可变聚合快照
@@ -94,7 +103,7 @@ public final class BoosterState {
         List<MTEBasicAmplifierUnit> active = new ArrayList<>();
         for (MTEBasicAmplifierUnit unit : units) {
             if (unit == null || unit.getCluster() == null) continue;
-            if (!unit.isFluidAvailable()) {
+            if (!unit.isTierValidForConnection() || !unit.isFluidAvailable() || !canPayAmplifierFluidThisSecond(unit)) {
                 failed++;
                 continue;
             }
@@ -112,6 +121,19 @@ public final class BoosterState {
         }
         if (active.isEmpty() && failed == 0) return EMPTY;
         return new BoosterState(parallel, speed, primary, secondary, saverRaw, penalty, active, failed);
+    }
+
+    /**
+     * 本秒增幅流体支付能力（§3.6.3）：模块 tank 存量 ≥ 其结构层级对应的
+     * {@link ClusterParams#AMPLIFIER_FLUID_PER_SEC}（4/8/12/16 L/s）才计入本秒快照。
+     * 只读判定、不实扣（按秒实扣由主控负责，与本谓词同口径）。
+     */
+    private static boolean canPayAmplifierFluidThisSecond(MTEBasicAmplifierUnit unit) {
+        int tier = unit.getStructureTier();
+        int idx = Math.max(0, Math.min(tier, ClusterParams.TIER_COUNT - 1));
+        int perSecLps = ClusterParams.AMPLIFIER_FLUID_PER_SEC[idx];
+        FluidStack tank = unit.getTankContent();
+        return tank != null && tank.amount >= perSecLps;
     }
 
     // ==================== 只读访问器 ====================

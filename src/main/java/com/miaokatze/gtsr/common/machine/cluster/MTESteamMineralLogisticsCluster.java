@@ -2,6 +2,7 @@ package com.miaokatze.gtsr.common.machine.cluster;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -9,6 +10,7 @@ import java.util.Map;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.network.PacketBuffer;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 import net.minecraft.world.World;
@@ -18,54 +20,72 @@ import com.gtnewhorizon.structurelib.alignment.IAlignmentLimits;
 import com.gtnewhorizon.structurelib.alignment.constructable.ISurvivalConstructable;
 import com.gtnewhorizon.structurelib.structure.IStructureDefinition;
 import com.gtnewhorizon.structurelib.structure.ISurvivalBuildEnvironment;
+import com.gtnewhorizon.structurelib.util.Vec3Impl;
+import com.miaokatze.gtsr.api.compat.GTSRHatchFluidAccess;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
+import com.miaokatze.gtsr.common.gui.cluster.ClusterGuiSync;
 import com.miaokatze.gtsr.common.gui.cluster.ClusterTerminalUiFactory;
 import com.miaokatze.gtsr.common.machine.base.MTEGTSRMultiBlockBase;
+import com.miaokatze.gtsr.common.machine.base.MTEHatchPressureSteamInput;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
+import com.miaokatze.gtsr.config.Config;
+import com.miaokatze.gtsr.main.GTSteamReborn;
 
 import gregtech.api.GregTechAPI;
+import gregtech.api.enums.Materials;
 import gregtech.api.enums.Textures;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
-import gregtech.api.metatileentity.implementations.MTEHatchInput;
-import gregtech.api.metatileentity.implementations.MTEHatchInputBus;
-import gregtech.api.metatileentity.implementations.MTEHatchOutputBus;
+import gregtech.api.metatileentity.implementations.MTEHatch;
 import gregtech.api.render.TextureFactory;
 import gregtech.api.structure.error.StructureError;
 import gregtech.api.structure.error.StructureErrorRegistry;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.MultiblockTooltipBuilder;
+import io.netty.buffer.Unpooled;
 
 /**
- * 蒸汽矿物物流集群总控：结构成型编排 + 运行时调度骨架。
+ * 蒸汽矿物物流集群总控：结构成型编排 + 运行态汇聚（O2 模块化：主控只做编排与状态汇聚，
+ * 热量/经济/链执行/公式/增幅聚合等逻辑全部委托批次1 各类，主控不新增私有大逻辑群）。
  *
  * <p>
- * 结构定义由 {@link ClusterStructureDef} 提供（主段 + 可选延伸段，四族 tier 同级约束）；
- * 预热状态机由 {@link ClusterPreheatController} 承载；蒸汽/润滑液秒级原子结算由
- * {@link ClusterSteamEconomy} 承载；NBT 持久化由 {@link ClusterPersistence} 承载。
+ * 委托关系：结构定义 {@link ClusterStructureDef}（主段 12 深 + 8 深延伸段、四族 tier、F/H/G 挂点、
+ * P 通用输入仓位）；拓扑簿记 {@link ClusterTopology}；预热状态机 {@link ClusterPreheatController}
+ * （每 tick 驱动）；蒸汽/润滑 20t 原子结算 {@link ClusterSteamEconomy}（settlePreheatFull /
+ * settleRunFull 完整状态口径）；链批执行 {@link ClusterChainExecutor}（三参入口，本类实现
+ * {@link ClusterBatchHost} 契约）；C 公式聚合 {@link ExecutionPlan}；增幅聚合 {@link BoosterState}。
  *
  * <p>
- * 总控职责（本切片落地）：checkMachine 全流程（复位 → 主段 → 延伸段循环 → 四族同级 →
- * 仓校验 → tier 下发，失败路径一律回滚 tier 并拆除本次收集到的单元连接）；onPostTick 服务端
- * 编排骨架（周期重连容错 → 磁选/热力离心通电闸门 EU 扣减 → 每 20 tick 蒸汽结算与链执行钩子）。
- * 链执行本体（{@link #runChains}）与吞吐公式（{@link #computeTotalSteamLps}）已填充：
- * 批次链执行委托 {@code ClusterChainExecutor}，蒸汽 Lps 由 {@code ExecutionPlan.totalSteamLps}
- * （链长 × 增幅惩罚）与 {@code BoosterState.aggregate} 计算。
+ * 服务端编排（onPostTick）：客户端粒子 → 未成型衰减 → 周期重连 → 每 tick 热量推进（供给态用
+ * 20t 结算锁存 thermalSupplyOkLatched，修复旧版只在 20t 结算内推进热量的 20 倍定标错误）→
+ * 粒子窗口驱动 → 每 20t 结算编排（吞吐窗口发布 → 物流单元软锤/低温边沿轮询 → 关机清态 /
+ * 预热结算 / 运行结算 + 链执行 + 增幅液实扣）。主控不再持有总线/集中供电模型（plan §3.3.2）：
+ * 输入/输出总线归物流模块，热离/磁选能源仓由单元自身扣减。
  *
  * <p>
- * 零配方说明：总控不跑任何配方——{@code getRecipeMap()} 与 {@code createProcessingLogic()}
- * 在父类 MTEMultiBlockBase 中均默认返回 null（已核实 5.09.54.20 源码），本类不覆写二者，
- * 实际的矿物处理由集群内工作单元按批次执行。
+ * 统一蒸汽源（plan §3.3.2/E5）：P 位可容纳标准输入仓 / 蒸汽输入仓（入 mInputHatches）与
+ * 耐压蒸汽输入仓（{@link MTEHatchPressureSteamInput}，类非 MTEHatchInput 无法入标准列表，
+ * 由本类在结构成型后按 P 位枚举持有）；{@link #getClusterFluidInputHatches()} 返回二者统一
+ * 可枚举列表供 {@link ClusterSteamEconomy} 结算；结构校验为合计 ≥ 1。
+ *
+ * <p>
+ * [GTSR-JQ] 日志（附录 C）：INFO/WARN 边沿事件（开始预热/满热/供给翻转/满热降温/模块低温关机/
+ * 软锤复位/主结构成型/破坏/段数变化/links 写入钩子）+ Config.logisticsClusterDebug 下的
+ * 明细（结构扫描统计/模块断开/结算与批执行摘要/增幅有效性摘要），全部边沿或每 20t 至多一条。
+ *
+ * <p>
+ * 零配方说明：总控不跑任何配方——getRecipeMap()/createProcessingLogic() 在父类中均默认返回
+ * null，本类不覆写，实际矿物处理由集群内工作单元按批次执行。
  */
 public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESteamMineralLogisticsCluster>
-    implements ISurvivalConstructable {
-
-    /** 延伸段数上限（防呆，超限即视为结构终止；AssemblyLine 延伸口径）。 */
-    private static final int MAX_EXTENSION_SEGMENTS = 64;
+    implements ISurvivalConstructable, ClusterBatchHost {
 
     /** 蒸汽/润滑液秒级结算节拍（tick）。 */
     private static final int SETTLE_INTERVAL_TICKS = 20;
+
+    /** [GTSR-JQ] 日志统一前缀（附录 C）。 */
+    private static final String LOG_PREFIX = "[GTSR-JQ] ";
 
     private static IStructureDefinition<MTESteamMineralLogisticsCluster> STRUCTURE_DEFINITION = null;
 
@@ -75,32 +95,52 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
     /** 集群拓扑：结构成型时收集的全部单元模块（结构重检时先 clear 再重建）。 */
     protected final ClusterTopology topology = ClusterTopology.empty();
 
-    /** 预热状态机（M3 契约实现，tickServer 驱动、进度/就绪查询与 NBT 由其自理）。 */
+    /** 预热状态机（tickServer 每 tick 驱动、进度/就绪查询与 NBT 由其自理）。 */
     protected final ClusterPreheatController preheat = new ClusterPreheatController();
 
-    /** 蒸汽经济：每秒一次的蒸汽+润滑液原子结算（预热 2000L/s / 运行按 Lps 计价）。 */
+    /** 蒸汽经济：每秒一次的蒸汽+润滑液原子结算（完整状态口径 EconomySettleResult）。 */
     protected final ClusterSteamEconomy economy = new ClusterSteamEconomy();
 
     /** 垫位登记：(segment,padId) → 已占用单元；同垫去重与失效剔除共用，checkMachine 复位时清空。 */
     private final Map<Long, MTEClusterUnitBase> occupiedSlots = new HashMap<>();
 
+    /** 耐压蒸汽输入仓（P 位枚举收集，结构重检时清空重建；与 mInputHatches 合成统一结算源）。 */
+    private final List<MTEHatchPressureSteamInput> pressureSteamHatches = new ArrayList<>();
+
+    /** 物理电源边沿锁存（软锤复位/模块低温关机检测，20t 轮询；结构重检时清空）。 */
+    private final IdentityHashMap<MTEBasicLogisticsUnit, Boolean> logisticsPowerLatch = new IdentityHashMap<>();
+
+    /** 最近一次结构扫描的模块冲突（drainModuleConflicts 取走；结构仍成型，仅上报——GUI/日志）。 */
+    private final List<ClusterStructureError> lastModuleConflicts = new ArrayList<>();
+
     /** 延伸段数（主段外成功成型的延伸段个数；0 = 仅主段，合法）。 */
     protected int extensionCount = 0;
 
-    /** 开关机（GUI ToggleButton 驱动，M7 批接 GUI）：关机时集群停产但保留预热进度衰减逻辑。 */
-    protected boolean machineEnabled = false;
+    /** 开关机（GUI ToggleButton 驱动）；新放置默认 true（plan §3.6.1：成型+流体足即预热）。 */
+    protected boolean machineEnabled = true;
 
-    /** 吞吐记账：集群累计处理矿数（NBT 持久，M5 批接产出累加）。 */
+    /** 吞吐记账：集群累计处理矿数（NBT 持久，批执行经 addProcessedOre 累加）。 */
     protected long totalProcessedOre = 0L;
 
-    /** 吞吐记账：最近一秒处理矿数（链执行器每秒批后回填，停机/结构未成型清 0；进度词条直读）。 */
+    /** 吞吐记账：最近一秒处理矿数（20t 窗口发布，停机/未成型清 0；进度词条直读）。 */
     protected double lastThroughputOrePerSec = 0D;
+
+    /** 真实批吞吐 20t 对齐窗口累计（ClusterBatchHost.addRealBatchThroughput 累加，结算时发布清零）。 */
+    private int throughputWindowItems = 0;
+
+    /** 20t 双流体原子结算锁存（蒸汽+润滑均足=true）：驱动断供降温与 ClusterBatchHost 判据。 */
+    protected boolean thermalSupplyOkLatched = false;
 
     /** 载入重连提示（x,y,z,dim,pad,segment 六元组；读档回填，周期重连时消费）。 */
     private final List<int[]> pendingReconnectHints = new ArrayList<>();
 
     /** FX 节流锚点：最近一次链批执行成功的服务端 tick（getBaseMetaTileEntity().getTimer()；MIN_VALUE=从未）。 */
     protected long lastBatchServerTick = Long.MIN_VALUE;
+
+    /** @return 最近一次真实批成功的服务端 tick（ClusterParticleFx.isFxWorking 窗口判据）。 */
+    public long getLastBatchServerTick() {
+        return lastBatchServerTick;
+    }
 
     /** 客户端粒子工作态（getUpdateData/onValueUpdate bit0 通道同步；onPostTick 客户端分支据此喷粒子）。 */
     protected boolean mWorkingForFX = false;
@@ -110,6 +150,23 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
 
     /** 终端 GUI 当前选中的物流单元下标（GUI 交互态；越界由 getSelectedLogisticsUnit 兜底 null）。 */
     protected int selectedLogisticsIndex = 0;
+
+    // —— 日志边沿锁存（防同秒重复输出；附录 C）——
+
+    /** 加热中锁存（开始预热 INFO 边沿用）。 */
+    private boolean wasHeating = false;
+
+    /** 满热锁存（满热 INFO / 满热→降温 WARN 边沿用）。 */
+    private boolean wasFullHeat = false;
+
+    /** 供给正常锁存（充足→短缺 WARN / 短缺→充足 INFO 边沿用）。 */
+    private boolean wasSupplyOk = false;
+
+    /** 加热开始计时锚（满热 INFO 耗时换算；0=未知，如载入即满热）。 */
+    private long heatStartTimer = 0L;
+
+    /** 增幅 debug 摘要锁存（active/failed 计数变化才重发）。 */
+    private int lastBoosterActive = -1, lastBoosterFailed = -1;
 
     // 四族 tier 字段（0-3，对应 ClusterParams.ClusterTier 下标）：ofBlocksTiered 挂接点，
     // 由结构元素 setter 写入；每次 checkMachine 前复位 -1，未成型即 -1
@@ -127,7 +184,7 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
 
     /**
      * GTSR 进度词条注册：注册顺序 = GUI 终端显示顺序（预热进度/吞吐）。预热进度实时接入
-     * {@link #getPreheatProgress()}；吞吐接入 {@link #getLastThroughputOrePerSec()}（链执行器回填）。
+     * {@link #getPreheatProgress()}；吞吐接入 {@link #getLastThroughputOrePerSec()}（20t 真实窗口发布）。
      */
     private void registerProgressEntries() {
         registerEntry(
@@ -212,33 +269,41 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
         return 0;
     }
 
-    /** stackSize 段数语义：总段数（含主段）→ 延伸段数 = 总段数-1，钳到防呆上限。 */
+    /** stackSize 段数语义：总段数（含主段）→ 延伸段数 = 总段数-1，钳到 {@link ClusterTopology} 上限。 */
     private static int extensionSegments(ItemStack stackSize) {
         if (stackSize == null || stackSize.stackSize < 1) return 0;
-        return Math.min(stackSize.stackSize - 1, MAX_EXTENSION_SEGMENTS);
+        return Math.min(stackSize.stackSize - 1, ClusterTopology.MAX_EXTENSION_SEGMENTS);
     }
 
     /**
-     * 结构检查全流程（父类 MTEMultiBlockBase 为 void 签名：不加错误即成型，mMachine 由父类
-     * {@code structureErrors.isEmpty()} 统一管理，本类不手动置位）。
+     * 结构检查全流程（父类 MTEMultiBlockBase：不加错误即成型，mMachine 由父类按 errors 空否统一管理）。
      *
      * <p>
-     * 流程：复位四族 tier 与拓扑（旧单元统一 disconnect）→ 主段 checkPiece → 延伸段循环
-     * （失配即停，延伸段失配是正常终止不追加错误；上限 {@link #MAX_EXTENSION_SEGMENTS} 防呆）
-     * → 四族同级校验（任一 &lt;0 或互不相等即失败）→ 输入总线/输出总线/流体输入仓非空校验
-     * → 全过后 tier 统一下发 topology 全员。
+     * 流程：复位（拓扑/垫位/延伸计数/耐压仓/挂点中心/电源边沿锁存 → 四 tier 归 -1 → 旧单元断开）→
+     * 主段 checkPiece → 延伸段循环（失配即停；失配段之后仍可识别延伸结构时上报断层错误
+     * {@link ClusterStructureError#extensionBreak}）→ 四族同级校验 → 通用输入仓合计校验
+     * （mInputHatches + 耐压仓 ≥ 1，plan §3.3.2 删除总线/能源校验）→ tier 统一下发 → 收尾
+     * （模块冲突取走上报、挂点中心注册、供给锁存乐观复位、成型/段数边沿日志）。
      *
      * <p>
-     * 所有失败路径一律回滚四 tier=-1，并拆除本次扫描已收集到的单元连接（checkPiece 的
-     * 元素回调在失配前即可能已收集部分单元，未成型的集群不得保留这些反向引用）。
+     * 所有失败路径统一 rollbackFormation（回滚四 tier、拆除本次收集连接、清拓扑）并输出
+     * 主结构破坏边沿日志（仅此前已成型时）；模块冲突不阻断成型（仅上报）。
      */
     @Override
     public void checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack, List<StructureError> errors) {
-        // 1) 复位：快照旧单元 → 清拓扑/垫位登记/延伸计数 → 四 tier 归 -1 → 旧单元统一断开
+        boolean wasFormed = mMachine;
+        int prevSegments = topology.getSegmentCount();
+        int prevUnits = topology.getUnits()
+            .size();
+
+        // 1) 复位
         List<MTEClusterUnitBase> previousUnits = new ArrayList<>(topology.getUnits());
         topology.clear();
         occupiedSlots.clear();
         extensionCount = 0;
+        pressureSteamHatches.clear();
+        logisticsPowerLatch.clear();
+        ClusterParticleFx.clearMountCenters(this);
         rollbackTiers();
         for (MTEClusterUnitBase unit : previousUnits) {
             unit.disconnect();
@@ -251,59 +316,53 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
             ClusterStructureDef.mainOffsetB(),
             ClusterStructureDef.mainOffsetC(),
             errors)) {
-            rollbackFormation();
+            failFormation("主段结构失配", wasFormed, prevSegments, prevUnits);
             return;
         }
 
-        // 3) 延伸段循环：失配即停（正常终止）；延伸 0 段（仅主段）合法。SR-终审 B2 修正：第 5 参
-        // 传 null——checkPiece 失配元素必写 PositionedStructureError，共享主 errors 列表会让
-        // "仅主段"的合法形态因边界外的第 1 延伸段失配而永远不成型（父类按 errors 空否判 mMachine）
-        for (int k = 0; k < MAX_EXTENSION_SEGMENTS; k++) {
+        // 3) 延伸段循环：失配即停（正常终止，仅主段合法）；第 5 参 null 防止"仅主段"合法形态被
+        // 边界外失配误伤。断层检测：失配段之后仍可识别延伸结构（下一延伸段底框采样非空气）→
+        // 断层错误上报 + 断裂段登记，结构不成型（E1a 遗留收尾）
+        for (int k = 0; k < ClusterTopology.MAX_EXTENSION_SEGMENTS; k++) {
             if (!checkPiece(
                 ClusterStructureDef.PIECE_EXT,
                 ClusterStructureDef.extOffsetA(k),
                 ClusterStructureDef.extOffsetB(),
                 ClusterStructureDef.extOffsetC(k),
                 null)) {
+                if (hasStructureBehind(k)) {
+                    errors.add(ClusterStructureError.extensionBreak(k + 1));
+                    failFormation("延伸段断层@" + (k + 1), wasFormed, prevSegments, prevUnits);
+                    topology.setBrokenExtensionSegment(k + 1);
+                    return;
+                }
                 break;
             }
             extensionCount = k + 1;
         }
 
-        // 4) 四族同级：任一 <0（对应族未被结构元素写入）→ 通用错误；互不相等 → tier 混拼错误
+        // 4) 四族同级
         if (mCasingTier < 0 || mPipeTier < 0 || mFrameTier < 0 || mFireboxTier < 0) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
-            rollbackFormation();
+            failFormation("四族 tier 未定", wasFormed, prevSegments, prevUnits);
             return;
         }
         if (mCasingTier != mPipeTier || mCasingTier != mFrameTier || mCasingTier != mFireboxTier) {
             errors.add(new ClusterStructureError("gtsr.gui.cluster.structure.tier_mismatch"));
-            rollbackFormation();
+            failFormation("四族 tier 混拼", wasFormed, prevSegments, prevUnits);
             return;
         }
 
-        // 5) 仓校验：输入总线 / 输出总线 / 流体输入仓（蒸汽+润滑共用）任一缺失即失败
-        // （lang key 预留，缺键时显示原键，由 lang 并行切片补齐）
-        if (mInputBusses.isEmpty()) {
-            errors.add(new ClusterStructureError("gtsr.gui.cluster.structure.missing_input_bus"));
-            rollbackFormation();
-            return;
-        }
-        if (mOutputBusses.isEmpty()) {
-            errors.add(new ClusterStructureError("gtsr.gui.cluster.structure.missing_output_bus"));
-            rollbackFormation();
-            return;
-        }
-        if (mInputHatches.isEmpty()) {
+        // 5) 通用输入仓合计：标准输入仓（含蒸汽输入仓）+ 耐压蒸汽输入仓 ≥ 1（总线/能源校验已按 §3.3.2 删除）
+        collectPressureSteamHatches();
+        if (mInputHatches.isEmpty() && pressureSteamHatches.isEmpty()) {
             errors.add(new ClusterStructureError("gtsr.gui.cluster.structure.missing_fluid_hatch"));
-            rollbackFormation();
+            failFormation("缺少通用输入仓", wasFormed, prevSegments, prevUnits);
             return;
         }
 
-        // 6) 全过：tier 定级（四值相等且非负，getStructureTierIndex 必然 >= 0）统一下发全员；
-        // connect 已在 addClusterUnit 收集时完成；段数（主段+延伸段）落地供拓扑快照。
-        // D2/D3 同级强制：自身已成型且 tier 与集群不一致的单元就地剔除（disconnect+撤槽），
-        // 不阻断其余单元与集群成型；未成型单元（tier<0）保留连接，由 isModuleEnabled 闸门兜底
+        // 6) tier 定级统一下发；D2/D3 同级强制：自身已成型且 tier 与集群不一致的单元就地剔除
+        // （disconnect+撤槽），不阻断其余单元与集群成型；未成型单元（tier<0）保留连接
         int tier = getStructureTierIndex();
         topology.setSegmentCount(extensionCount + 1);
         for (MTEClusterUnitBase unit : new ArrayList<>(topology.getUnits())) {
@@ -315,6 +374,12 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
             }
             unit.onStructureTier(tier);
         }
+
+        // 7) 收尾：供给锁存乐观复位（首个 20t 结算前按充足处理，防成型初即无谓衰减）→
+        // 挂点中心注册（粒子 FX）→ 冲突取走上报 → 成型/段数边沿日志 → debug 扫描统计
+        thermalSupplyOkLatched = true;
+        registerMountCenters();
+        finishFormation(wasFormed, prevSegments, prevUnits);
     }
 
     /** 四族 tier 回滚到未成型态（-1）。 */
@@ -325,7 +390,52 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
         mFireboxTier = -1;
     }
 
-    /** 失败路径统一收尾：回滚四 tier + 拆除本次扫描已收集的单元连接并清空拓扑/垫位登记。 */
+    /** 失败路径统一收尾：回滚 tier + 拆除本次收集连接清空拓扑 + 冲突取走 + 主结构破坏边沿日志（含原因）。 */
+    private void failFormation(String reason, boolean wasFormed, int prevSegments, int prevUnits) {
+        rollbackFormation();
+        lastModuleConflicts.clear();
+        lastModuleConflicts.addAll(ClusterStructureDef.drainModuleConflicts());
+        if (wasFormed) {
+            GTSteamReborn.LOG
+                .warn("{}主结构破坏: {} 原因={} 原段数={} 原模块数={}", LOG_PREFIX, logCoords(), reason, prevSegments, prevUnits);
+        }
+    }
+
+    /** 成功路径收尾：冲突取走上报（不阻断成型）+ 成型/段数变化边沿日志 + debug 扫描统计（每次结构检查一条）。 */
+    private void finishFormation(boolean wasFormed, int prevSegments, int prevUnits) {
+        lastModuleConflicts.clear();
+        lastModuleConflicts.addAll(ClusterStructureDef.drainModuleConflicts());
+        if (!lastModuleConflicts.isEmpty()) {
+            GTSteamReborn.LOG.info("{}模块冲突: {} 处（同段同类仅首个接入）", LOG_PREFIX, lastModuleConflicts.size());
+        }
+        int segments = topology.getSegmentCount();
+        int units = topology.getUnits()
+            .size();
+        if (!wasFormed) {
+            GTSteamReborn.LOG.info(
+                "{}主结构成型: {} tier={} 段数={} 模块数={}",
+                LOG_PREFIX,
+                logCoords(),
+                ClusterParams.ClusterTier.get(getStructureTierIndex())
+                    .getEnglishName(),
+                segments,
+                units);
+        } else if (segments != prevSegments) {
+            GTSteamReborn.LOG.info("{}段数变化: {} 旧段数={} 新段数={}", LOG_PREFIX, logCoords(), prevSegments, segments);
+        }
+        if (Config.logisticsClusterDebug) {
+            GTSteamReborn.LOG.debug(
+                "{}结构扫描: {} 结果=成型 段数={} 模块数={} 输入仓={}+{}耐压",
+                LOG_PREFIX,
+                logCoords(),
+                segments,
+                units,
+                mInputHatches.size(),
+                pressureSteamHatches.size());
+        }
+    }
+
+    /** 失败路径统一回滚：回滚四 tier + 拆除本次扫描已收集的单元连接并清空拓扑/垫位登记/耐压仓。 */
     private void rollbackFormation() {
         rollbackTiers();
         for (MTEClusterUnitBase unit : topology.getUnits()) {
@@ -333,13 +443,87 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
         }
         topology.clear();
         occupiedSlots.clear();
+        pressureSteamHatches.clear();
         extensionCount = 0;
     }
 
     /**
-     * @return 四族 tier 全部相等且有效时返回该 tier 下标（0-3，对应 {@link ClusterParams.ClusterTier}），
-     *         否则 -1（混拼或未成型）。
+     * 延伸断层探测：第 failedK 延伸段失配后，采样第 failedK+1 延伸段底框（layer13/14 三个可靠
+     * 实心位，坐标换算经 ClusterStructureDef 偏移族）是否存在非空气方块——存在即玩家在缺口
+     * 之后仍建了延伸结构（断层，需上报错误）；全空气即正常短簇终止。
      */
+    private boolean hasStructureBehind(int failedK) {
+        int j = failedK + 1;
+        if (j >= ClusterTopology.MAX_EXTENSION_SEGMENTS) return false;
+        IGregTechTileEntity base = getBaseMetaTileEntity();
+        World world = base == null ? null : base.getWorld();
+        if (world == null) return false;
+        int aOff = ClusterStructureDef.mainOffsetA();
+        int bOff = ClusterStructureDef.mainOffsetB();
+        int cOff = ClusterStructureDef.extOffsetC(j);
+        // (col, layer, depthRow) 采样：主段/延伸段底框 row 的实心位（见 ClusterStructureDef.SHAPE_EXT y13/y14）
+        int[][] samples = { { 8, 13, 0 }, { 2, 14, 2 }, { 20, 14, 5 } };
+        for (int[] s : samples) {
+            Vec3Impl off = getExtendedFacing().getWorldOffset(new Vec3Impl(s[0] - aOff, s[1] - bOff, s[2] - cOff));
+            int x = base.getXCoord() + off.get0();
+            int y = base.getYCoord() + off.get1();
+            int z = base.getZCoord() + off.get2();
+            if (!world.blockExists(x, y, z)) continue;
+            if (!world.getBlock(x, y, z)
+                .isAir(world, x, y, z)) return true;
+        }
+        return false;
+    }
+
+    /**
+     * P 位耐压蒸汽输入仓枚举（TODO-E1b 收口）：主段 P 位（控制器左右，局部 (-1,0,0)/(1,0,0)）与
+     * 各成型延伸段 P 位（局部 (-24,0,8+8j)，经 extOffsetC 换算）；标准输入仓已由结构 adder 入
+     * mInputHatches，本方法只补耐压仓（其类非 MTEHatchInput 无标准注册通道）。
+     */
+    private void collectPressureSteamHatches() {
+        pressureSteamHatches.clear();
+        scanPressureHatchAt(-1, 0, 0);
+        scanPressureHatchAt(1, 0, 0);
+        for (int j = 0; j < extensionCount; j++) {
+            scanPressureHatchAt(0 - ClusterStructureDef.mainOffsetA(), 0, 3 - ClusterStructureDef.extOffsetC(j));
+        }
+    }
+
+    /** 单点耐压仓探测：局部 ABC（控制器相对）→ 世界坐标 → MTEHatchPressureSteamInput 即收集。 */
+    private void scanPressureHatchAt(int a, int b, int c) {
+        IGregTechTileEntity base = getBaseMetaTileEntity();
+        World world = base == null ? null : base.getWorld();
+        if (world == null) return;
+        Vec3Impl off = getExtendedFacing().getWorldOffset(new Vec3Impl(a, b, c));
+        int x = base.getXCoord() + off.get0();
+        int y = base.getYCoord() + off.get1();
+        int z = base.getZCoord() + off.get2();
+        if (!world.blockExists(x, y, z)) return;
+        if (!(world.getTileEntity(x, y, z) instanceof IGregTechTileEntity gtte)) return;
+        if (gtte.getMetaTileEntity() instanceof MTEHatchPressureSteamInput hatch) {
+            pressureSteamHatches.add(hatch);
+        }
+    }
+
+    /** 挂点中心注册（粒子 FX 候选位）：各已收集单元控制器位（控制器相对 ABC 偏移）；结构重检/断裂时清除。 */
+    private void registerMountCenters() {
+        IGregTechTileEntity base = getBaseMetaTileEntity();
+        if (base == null) return;
+        List<int[]> centers = new ArrayList<>();
+        for (MTEClusterUnitBase unit : topology.getUnits()) {
+            IGregTechTileEntity ub = unit.getBaseMetaTileEntity();
+            if (ub == null) continue;
+            Vec3Impl abc = getExtendedFacing().getOffsetABC(
+                new Vec3Impl(
+                    ub.getXCoord() - base.getXCoord(),
+                    ub.getYCoord() - base.getYCoord(),
+                    ub.getZCoord() - base.getZCoord()));
+            centers.add(new int[] { abc.get0(), abc.get1(), abc.get2() });
+        }
+        if (!centers.isEmpty()) ClusterParticleFx.registerMountCenters(this, centers);
+    }
+
+    /** @return 四族 tier 全部相等且有效时返回该 tier 下标（0-3），否则 -1（混拼或未成型）。 */
     public int getStructureTierIndex() {
         if (mCasingTier < 0 || mCasingTier != mPipeTier || mCasingTier != mFrameTier || mCasingTier != mFireboxTier) {
             return -1;
@@ -355,6 +539,11 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
     /** @return 延伸段数（主段外成功成型的段数，0 = 仅主段）。 */
     public int getExtensionCount() {
         return extensionCount;
+    }
+
+    /** @return 最近一次结构扫描的模块冲突（结构仍成型；GUI 上报用，调用方不得修改）。 */
+    public List<ClusterStructureError> getLastModuleConflicts() {
+        return lastModuleConflicts;
     }
 
     /**
@@ -394,7 +583,7 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
         };
     }
 
-    /** 垫位登记键打包：(segment,padId) → long（segment 上界 64、padId 上界 2，无碰撞）。 */
+    /** 垫位登记键打包：(segment,padId) → long（segment 上界 10、padId 上界 2，无碰撞）。 */
     private static long slotKey(int segment, int padId) {
         return ((long) segment << 2) | padId;
     }
@@ -410,8 +599,8 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
      *
      * <p>
      * mStartUpCheck=100 为 GT5U「一次性事件型重检」惯例（100 tick 后由父类 --mStartUpCheck==0
-     * 触发一次 checkStructure，随后继续自减入负值不再触发）。注意这是事件式单次赋值，不得
-     * 放进每 tick 路径反复置位——那会让父类倒数永远停在 99（见 MTESiemensMartinFurnace 修复注记）。
+     * 触发一次 checkStructure，随后继续自减入负值不再触发）。事件式单次赋值，不得放进每 tick
+     * 路径反复置位（结构重检保持事件式，禁止周期全量 checkMachine）。
      */
     public void onUnitRemoved(MTEClusterUnitBase unit) {
         topology.getUnits()
@@ -422,27 +611,41 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
     }
 
     /**
-     * 服务端编排骨架（每 tick）。
+     * 服务端编排（每 tick，O2：只编排与状态汇聚）。
      *
      * <p>
-     * 顺序：super（父类结构重检/runMachine）→ 客户端直接返回（粒子另批处理）→ 结构未成型
-     * 只驱动预热衰减 → 周期重连容错（{@link ClusterParams#RECONNECT_INTERVAL_TICKS} 节流）→
-     * 通电闸门 EU 扣减（每 tick）→ 蒸汽/润滑秒级结算 + 链执行钩子（每 20 tick）。
+     * 顺序：super（父类事件式结构重检/runMachine）→ 客户端粒子分支 → 未成型衰减分支 →
+     * 周期重连容错 → 每 tick 热量推进（供给态 = 20t 结算锁存）→ 粒子窗口驱动 →
+     * 每 20t 结算编排（settleSteamEconomy）。
      */
     @Override
     public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
         super.onPostTick(aBaseMetaTileEntity, aTick);
-        // 客户端：工作态时每 tick 喷石头位粒子（'G' 位 cloud 粒子，委托 ClusterParticleFx），其余客户端逻辑无
+        // 客户端：工作态时每 tick 喷粒子（ClusterParticleFx 内部再判真实批窗口），其余客户端逻辑无
         if (!aBaseMetaTileEntity.isServerSide()) {
             if (mWorkingForFX) ClusterParticleFx.spawnParticles(this);
             return;
         }
 
-        // 结构未成型：只让预热状态机走「停机衰减」分支，蒸汽经济红标清位，吞吐读数清 0
+        // 结构未成型：停机衰减（-5/tick）、经济红标清位、吞吐清 0、粒子窗口关；满热丢失边沿日志
         if (!mMachine) {
             preheat.tickServer(false, false, false);
             economy.clearFlags();
+            thermalSupplyOkLatched = false;
             lastThroughputOrePerSec = 0D;
+            throughputWindowItems = 0;
+            ClusterParticleFx.setParticleWindow(false);
+            if (wasHeating || (wasFullHeat && !preheat.isReady())) {
+                if (wasFullHeat && !preheat.isReady()) {
+                    GTSteamReborn.LOG.warn(
+                        "{}满热→降温: {} 原因=结构破坏 热量={}%",
+                        LOG_PREFIX,
+                        logCoords(),
+                        (int) Math.round(preheat.getProgress() * 100D));
+                }
+                wasHeating = false;
+                wasFullHeat = preheat.isReady();
+            }
             return;
         }
 
@@ -451,10 +654,13 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
             maintainClusterLinks();
         }
 
-        // 通电闸门：磁选/热力离心的持续供电每 tick 扣减（不足全扣，跨仓分摊）
-        drainPoweredUnitEnergy(poweredUnitEnergyDemand());
+        // 每 tick 热量推进（修复 20 倍定标：供给态用 20t 结算锁存值；+16.667/-2.5/-5 由状态机自理）
+        preheat.tickServer(machineEnabled, mMachine, thermalSupplyOkLatched);
 
-        // 蒸汽/润滑液秒级结算（每 20 tick 一次）+ 链执行钩子
+        // 粒子窗口驱动：成型 + 开机 + 满热 + 距最近真实成功批 < 40t（isFxWorking）才开窗
+        ClusterParticleFx.setParticleWindow(machineEnabled && preheat.isReady() && ClusterParticleFx.isFxWorking(this));
+
+        // 蒸汽/润滑液秒级结算编排（每 20 tick 一次）
         if (aTick % SETTLE_INTERVAL_TICKS == 0) {
             settleSteamEconomy();
         }
@@ -474,6 +680,14 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
                 it.remove();
                 forgetSlotsOf(unit);
                 unit.disconnect();
+                if (Config.logisticsClusterDebug) {
+                    GTSteamReborn.LOG.debug(
+                        "{}模块断开: {} 段={} 槽={}",
+                        LOG_PREFIX,
+                        logCoords(),
+                        unit.getSegmentIndex(),
+                        unit.getPadId());
+                }
                 continue;
             }
             if (unit.getCluster() == null) {
@@ -497,7 +711,6 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
         while (it.hasNext()) {
             int[] hint = it.next();
             if (hint.length < 6 || hint[3] != dim) {
-                // 畸形/异维度提示为死数据，直接移除避免每周期重扫（SR-终审 C2）
                 it.remove();
                 continue;
             }
@@ -514,101 +727,458 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
         }
     }
 
-    /** @return 每 tick 通电闸门 EU 需求（在场且开机时的磁选×32 + 热力离心×32；关机即 0）。 */
-    private long poweredUnitEnergyDemand() {
-        if (!machineEnabled) return 0L;
-        return (long) topology.countUnits(MTEUnitMagneticSeparator.class) * ClusterParams.MAGNETIC_EU_PER_TICK
-            + (long) topology.countUnits(MTEUnitThermalCentrifuge.class) * ClusterParams.THERMOCENTRIFUGE_EU_PER_TICK;
-    }
-
-    /** 跨能源仓分摊扣 EU（不足则把已有的全扣，剩余缺口丢弃——闸门表现为断电）。 */
-    private void drainPoweredUnitEnergy(long demand) {
-        if (demand <= 0) return;
-        long remaining = demand;
-        for (var hatch : GTUtility.validMTEList(mEnergyHatches)) {
-            if (remaining <= 0) break;
-            if (hatch.getBaseMetaTileEntity() == null) continue;
-            long stored = hatch.getEUVar();
-            if (stored <= 0) continue;
-            long drained = Math.min(stored, remaining);
-            hatch.setEUVar(stored - drained);
-            remaining -= drained;
-        }
-    }
-
     /**
-     * 通电闸门查询：任一能源仓存量 EU &gt; 0 即视为通电（磁选/热力离心单元的 isModuleEnabled
-     * 由单元切片接本方法；EU 被 {@link #drainPoweredUnitEnergy} 持续扣减，枯竭即返回 false）。
-     */
-    public boolean isPoweredUnitActive(MTEClusterUnitBase unit) {
-        for (var hatch : GTUtility.validMTEList(mEnergyHatches)) {
-            if (hatch.getBaseMetaTileEntity() == null) continue;
-            if (hatch.getEUVar() > 0) return true;
-        }
-        return false;
-    }
-
-    /**
-     * 蒸汽/润滑秒级结算（每 20 tick 一次，仅在结构成型路径进入）。
+     * 蒸汽/润滑 20t 结算编排（完整状态口径，plan §3.6.2 数值总表）。
      *
      * <p>
-     * 关机：预热状态机走停机分支，economy 不扣。开机：预热未满先 settlePreheat（2000L/s）
-     * 得 steamOK；预热已满时以最近一次运行结算的短缺状态回填 steamOK（蒸汽断供可持续衰减
-     * 预热进度）。随后 settleRun 原子扣蒸汽+润滑——缺润滑不停机，但 runChains 不跑。
+     * 顺序：吞吐窗口发布 → 物流单元物理电源边沿轮询（软锤复位/低温关机边沿）→ 关机清态 /
+     * 预热结算（2000+10）/ 运行结算（2000+C）→ 锁存 thermalSupplyOkLatched → 结算成功且满热时
+     * 执行可执行链（本秒至少一条链实际执行成功才实扣增幅液）→ 边沿日志 + debug 摘要。
+     * 刚满热的秒段（justReachedFullHeat）由 EconomySettleResult 口径处理，主控不再自行
+     * 双调用（无双扣）。
      */
     private void settleSteamEconomy() {
+        publishThroughputWindow();
+        pollLogisticsPowerEdges();
+
         if (!machineEnabled) {
-            preheat.tickServer(false, mMachine, false);
-            lastThroughputOrePerSec = 0D;
+            // 关机：0 L/s / 0 L/s，供给锁存与红标清位，不执行链（热量走停机衰减）
+            thermalSupplyOkLatched = false;
+            economy.clearFlags();
+            logHeatAndSupplyEdges(null);
             return;
         }
-        boolean steamOK = preheat.isReady() ? !economy.isSteamShortage() : economy.settlePreheat(this);
-        preheat.tickServer(machineEnabled, mMachine, steamOK);
-        if (preheat.isReady() && economy.settleRun(this, computeTotalSteamLps()) && economy.isLubricantOk()) {
-            runChains();
+
+        ClusterSteamEconomy.EconomySettleResult r;
+        BoosterState booster = null;
+        boolean anyChainExecuted = false;
+        if (!preheat.isReady()) {
+            // 预热中：2000 L/s 蒸汽 + 10 L/s 润滑；本秒能抵达满热时结果携带 justReachedFullHeat，
+            // 该秒不得再叠加运行结算（无双扣），下一秒起转 settleRunFull
+            r = economy.settlePreheatFull(this);
+        } else {
+            // 满热（含无可执行链）：2000 + C；C 为可执行链聚合（增幅快照同参复用）
+            booster = BoosterState.aggregate(topology.getBoosterUnits());
+            double c = ExecutionPlan
+                .computeAggregateSteamC(topology.getLogisticsUnits(), topology, getStructureTierIndex(), booster);
+            r = economy.settleRunFull(this, ClusterParams.PREHEAT_STEAM_LPS + c);
+            if (r.ok) {
+                anyChainExecuted = runChains();
+                if (anyChainExecuted) {
+                    // 只有链实际执行的秒才扣增幅液（对同口径聚合快照的 active 模块实扣）
+                    for (MTEBasicAmplifierUnit amplifier : booster.getActiveUnits()) {
+                        amplifier.tryConsumeAmplifierFluid(amplifier.amplifierFluidPerSec());
+                    }
+                }
+            }
+        }
+        thermalSupplyOkLatched = r.ok;
+        logHeatAndSupplyEdges(r);
+        if (booster != null) debugBoosterSummary(booster);
+        if (Config.logisticsClusterDebug) {
+            GTSteamReborn.LOG.debug(
+                "{}结算: {} 状态={} ok={} 蒸汽={}L/s 润滑={}L/s 链执行={} 本秒批矿={}",
+                LOG_PREFIX,
+                logCoords(),
+                preheat.isReady() ? "运行" : "预热",
+                r.ok,
+                r.settledSteamLps,
+                r.settledLubricantLps,
+                anyChainExecuted,
+                throughputWindowItems);
         }
     }
 
     /**
-     * 本秒总蒸汽需求（Lps），委托 {@code ExecutionPlan.totalSteamLps}（链长 × 增幅惩罚等）。
-     * tier &lt; 0（未成型/混拼）时由 ExecutionPlan 内部返回 0。
+     * 热量/供给边沿日志（附录 C）：开始预热 / 满热 / 满热→降温 / 供给充足→短缺 / 供给短缺→充足。
+     * r=null 表示关机路径（只走热量边沿，不走供给边沿）。同秒同类状态未变化不重复输出。
      */
-    protected double computeTotalSteamLps() {
-        return ExecutionPlan.totalSteamLps(
-            topology.getLogisticsUnits(),
-            topology,
-            getStructureTierIndex(),
-            BoosterState.aggregate(topology.getBoosterUnits()));
+    private void logHeatAndSupplyEdges(ClusterSteamEconomy.EconomySettleResult r) {
+        boolean heating = machineEnabled && mMachine && thermalSupplyOkLatched;
+        if (heating && !wasHeating) {
+            heatStartTimer = serverTimer();
+            GTSteamReborn.LOG.info(
+                "{}开始预热: {} tier={} 段数={}",
+                LOG_PREFIX,
+                logCoords(),
+                ClusterParams.ClusterTier.get(getStructureTierIndex())
+                    .getEnglishName(),
+                topology.getSegmentCount());
+        }
+        boolean fullHeat = preheat.isReady();
+        if (fullHeat && !wasFullHeat) {
+            long elapsedSec = heatStartTimer <= 0L ? -1L : Math.max(0L, (serverTimer() - heatStartTimer) / 20L);
+            GTSteamReborn.LOG.info(
+                "{}满热: {} 耗时={}s 供给态={}",
+                LOG_PREFIX,
+                logCoords(),
+                elapsedSec,
+                thermalSupplyOkLatched ? "充足" : "短缺");
+        } else if (!fullHeat && wasFullHeat) {
+            GTSteamReborn.LOG.warn(
+                "{}满热→降温: {} 原因={} 热量={}%",
+                LOG_PREFIX,
+                logCoords(),
+                machineEnabled ? "断供" : "停机",
+                (int) Math.round(preheat.getProgress() * 100D));
+        }
+        if (r != null) {
+            if (!r.ok && wasSupplyOk) {
+                // 短缺项与实际可用量（跨仓模拟探测，仅边沿时执行一次）
+                List<MTEHatch> hatches = getClusterFluidInputHatches();
+                long steamAvail = GTSRHatchFluidAccess
+                    .probeFluidAmountAcross(hatches, Materials.Steam.getGas(Math.max(1, r.settledSteamLps)));
+                long lubAvail = GTSRHatchFluidAccess
+                    .probeFluidAmountAcross(hatches, Materials.Lubricant.getFluid(Math.max(1, r.settledLubricantLps)));
+                GTSteamReborn.LOG.warn(
+                    "{}供给充足→短缺: {} 蒸汽需求={}L/s 可用={}L 润滑需求={}L/s 可用={}L 短缺项={}",
+                    LOG_PREFIX,
+                    logCoords(),
+                    r.settledSteamLps,
+                    steamAvail,
+                    r.settledLubricantLps,
+                    lubAvail,
+                    (!r.steamEnough && !r.lubricantEnough) ? "蒸汽+润滑" : r.steamEnough ? "润滑" : "蒸汽");
+            } else if (r.ok && !wasSupplyOk) {
+                GTSteamReborn.LOG.info(
+                    "{}供给短缺→充足: {} 蒸汽={}L/s 润滑={}L/s 恢复时热量={}%",
+                    LOG_PREFIX,
+                    logCoords(),
+                    r.settledSteamLps,
+                    r.settledLubricantLps,
+                    (int) Math.round(preheat.getProgress() * 100D));
+            }
+            wasSupplyOk = r.ok;
+        }
+        wasHeating = heating;
+        wasFullHeat = fullHeat;
+    }
+
+    /** 增幅有效性 debug 摘要（每 20t 至多一条，active/failed 计数未变不重发）。 */
+    private void debugBoosterSummary(BoosterState booster) {
+        if (!Config.logisticsClusterDebug) return;
+        int active = booster.getActiveCount();
+        int failed = booster.getFailedCount();
+        if (active == lastBoosterActive && failed == lastBoosterFailed) return;
+        lastBoosterActive = active;
+        lastBoosterFailed = failed;
+        GTSteamReborn.LOG.debug("{}增幅有效性: {} 生效={} 失效={}", LOG_PREFIX, logCoords(), active, failed);
+    }
+
+    /** 真实吞吐 20t 窗口发布：累计值发布到读数字段后清零（下一窗口由批执行重新累计）。 */
+    private void publishThroughputWindow() {
+        lastThroughputOrePerSec = throughputWindowItems;
+        throughputWindowItems = 0;
     }
 
     /**
-     * 链执行钩子：预热完成且蒸汽/润滑结算成功时由 {@link #settleSteamEconomy} 调用（润滑
-     * 由 {@code economy.isLubricantOk()} 门控——缺润滑不停机但链不跑）。
+     * 物流单元物理电源边沿轮询（20t）：false→true = 软锤复位（清低温通知位 + 链重校验 +
+     * INFO 日志）；true→false 且热量不满、链非空 = 模块低温关机（WARN 日志）。首次观测
+     * （prev==null）只建锁存不发事件（GT5U 软锤路径直改 BaseMetaTileEntity.mWorks，无 MTE
+     * 回调钩子，主控以边沿轮询对齐 §3.6.4 复位语义）。
+     */
+    private void pollLogisticsPowerEdges() {
+        List<MTEBasicLogisticsUnit> units = topology.getLogisticsUnits();
+        for (MTEBasicLogisticsUnit unit : units) {
+            boolean allowed = unit.isPowerAllowed();
+            Boolean prev = logisticsPowerLatch.put(unit, allowed);
+            if (prev == null || prev == allowed) continue;
+            if (allowed) {
+                unit.onSoftHammerReset();
+                GTSteamReborn.LOG.info(
+                    "{}软锤复位: {} 段={} 槽={} 链重校验={}",
+                    LOG_PREFIX,
+                    logCoords(),
+                    unit.getSegmentIndex(),
+                    unit.getPadId(),
+                    unit.isChainExecutableNow());
+            } else if (preheat.getProgress() < 1.0D && !unit.getChain()
+                .isEmpty()) {
+                    GTSteamReborn.LOG.warn(
+                        "{}模块低温关机: {} 段={} 槽={} 链长={} 热量={}%",
+                        LOG_PREFIX,
+                        logCoords(),
+                        unit.getSegmentIndex(),
+                        unit.getPadId(),
+                        unit.getChain()
+                            .length(),
+                        (int) Math.round(preheat.getProgress() * 100D));
+                }
+        }
+        logisticsPowerLatch.keySet()
+            .retainAll(units);
+    }
+
+    /**
+     * 链执行钩子（结算成功且满热时由 settleSteamEconomy 调用）。
      *
      * <p>
-     * 逐物流单元驱动：冷却中的单元按结算节拍递减冷却（重置由执行器在批执行成功后进行，
-     * 发生在本递减之后，二者不冲突），冷却归零/无冷却的单元交 {@code ClusterChainExecutor}
-     * 批执行（取料 → 工作单元链 → 产出回填，返回本批矿数，冷却未到返 0）。
+     * 逐物流单元驱动：冷却中的单元按结算节拍递减 20 后无条件 continue（现状保留——E4 执行器
+     * 已按 -20 补偿批耗时，节拍已验证正确，勿改）；冷却归零/无冷却的单元交
+     * {@code ClusterChainExecutor.executeBatch} 三参批执行（本类即 ClusterBatchHost）。
+     *
+     * @return 本秒是否至少一条链实际执行成功（成功才扣增幅液）
      */
-    protected void runChains() {
+    protected boolean runChains() {
+        boolean anyExecuted = false;
         for (MTEBasicLogisticsUnit unit : topology.getLogisticsUnits()) {
             if (unit.getChainCooldownTicks() > 0) {
                 unit.setChainCooldownTicks(unit.getChainCooldownTicks() - SETTLE_INTERVAL_TICKS);
                 continue;
             }
-            if (ClusterChainExecutor.executeBatch(this, unit) > 0) {
-                // FX 节流锚点：批执行成功记服务端 tick（客户端经 getUpdateData bit0 同步工作态，40t 窗口）
-                lastBatchServerTick = getBaseMetaTileEntity().getTimer();
+            if (ClusterChainExecutor.executeBatch(this, unit, this) > 0) {
+                anyExecuted = true;
             }
+        }
+        return anyExecuted;
+    }
+
+    // ==================== ClusterBatchHost 契约（E4 执行器只消费本三方法） ====================
+
+    /** {@inheritDoc} 瞬时热量分率 0..1（预热进度；&lt;1.0 时批执行走低温吞批路径 §3.6.4）。 */
+    @Override
+    public double heatFraction() {
+        return preheat.getProgress();
+    }
+
+    /** {@inheritDoc} 最近一次 20t 双流体原子结算锁存（蒸汽+润滑均足=true；断供降温同判据）。 */
+    @Override
+    public boolean isThermalSupplyOkLatched() {
+        return thermalSupplyOkLatched;
+    }
+
+    /**
+     * {@inheritDoc} 真实成功批吞吐累计：同秒段多链求和进 20t 对齐窗口（结算时发布为矿石/s 读数），
+     * 同时刷新 FX 节流锚点（距最近成功批 &lt; 40t 视为工作态）。
+     */
+    @Override
+    public void addRealBatchThroughput(int items) {
+        if (items <= 0) return;
+        throughputWindowItems += items;
+        IGregTechTileEntity base = getBaseMetaTileEntity();
+        if (base != null) {
+            lastBatchServerTick = base.getTimer();
         }
     }
 
-    /** @return 最近一次链批执行成功的服务端 tick（Long.MIN_VALUE=从未；粒子 FX 工作窗口判定用）。 */
-    public long getLastBatchServerTick() {
-        return lastBatchServerTick;
+    // ==================== GUI 数据接口（E6 并行依赖，签名冻结） ====================
+
+    /**
+     * 拓扑紧凑快照（E6 解码协议，30 槽 × 5 字节 = 150 字节）：槽序 = segment 升序 × pad 升序
+     * （{@link ClusterTopology#getSlots()} 顺序）。每槽 5 字节注册表以解码端（ClusterGuiSync
+     * 类注释 + ClusterTopologyView.typeLangKey/errorText）为准，编码端适配解码端：
+     * <ul>
+     * <li>[0] typeId：0=空槽；1..7=加工分型（1 粉碎/2 洗矿/3 离心/4 热力离心/5 筛选/6 磁选/7 熔炼）；
+     * 8..12=增幅分型（= 8+BoosterType.ordinal()：8 并行/9 速度/10 主产物/11 副产物/12 节汽）；
+     * 13=物流（无分型，在槽即 13）；255=占位未识别（加工/增幅控制器在槽但未自成型或未连接本主控，
+     * GUI「未运行，暂无法识别」，不得伪装空位）；</li>
+     * <li>[1] tier：主控下发集群 tier 0-3，0xFF=未下发（-1）/空槽；</li>
+     * <li>[2] stateOrdinal：{@link ClusterUnitStatus} ordinal，0xFF=空槽（解码端现不读取，布局契约保留）；</li>
+     * <li>[3] errId（优先级 1&gt;2&gt;3，空槽恒 0）：1=模块冲突（lastModuleConflicts 命中本槽）；
+     * 2=tier 不匹配（已连接且自身成型 tier 与主控下发 tier 不一致）；3=未关联集群（cluster 引用非
+     * 本主控）；4=延伸断裂为结构级错误，走 KEY_BREAK 独立通道，本快照不编出；</li>
+     * <li>[4] linkId：物流槽=该单元在拓扑物流列表（结构扫描序）中的下标 0..9（与链路页选中下标
+     * 同序）；非物流槽与空槽=255。</li>
+     * </ul>
+     */
+    public byte[] buildTopologySnapshot() {
+        byte[] out = new byte[ClusterTopology.SLOT_COUNT * 5];
+        List<ClusterTopology.SlotSnapshot> slots = topology.getSlots();
+        List<MTEBasicLogisticsUnit> logisticsUnits = topology.getLogisticsUnits();
+        boolean[] conflictMarks = moduleConflictSlotMarks(slots.size());
+        for (int i = 0; i < ClusterTopology.SLOT_COUNT && i < slots.size(); i++) {
+            ClusterTopology.SlotSnapshot slot = slots.get(i);
+            int o = i * 5;
+            MTEClusterUnitBase unit = slot.unit;
+            if (unit == null) {
+                out[o] = (byte) ClusterGuiSync.TYPE_EMPTY;
+                out[o + 1] = (byte) 0xFF;
+                out[o + 2] = (byte) 0xFF;
+                out[o + 3] = 0;
+                out[o + 4] = (byte) 0xFF;
+                continue;
+            }
+            out[o] = (byte) unitTypeId(unit);
+            int tier = unit.getClusterTier();
+            out[o + 1] = (byte) (tier < 0 || tier > 255 ? 0xFF : tier);
+            out[o + 2] = (byte) unit.getUnitStatus()
+                .ordinal();
+            out[o + 3] = (byte) unitErrId(unit, conflictMarks[i]);
+            out[o + 4] = (byte) logisticsLinkIndex(unit, logisticsUnits);
+        }
+        return out;
     }
 
-    // —— 字节通道：bit0=工作态（粒子开关，批执行 40t 窗口）；bit1-6 恒 63 预留（照聚合器口径）——
+    /**
+     * 单元 → typeId（E6 稳定注册表，对齐 ClusterTopologyView.typeLangKey）。物流恒 13（单型无分型，
+     * 解码端 255「未识别」语义只覆盖加工/增幅）；加工/增幅须自成型（{@code mMachine}）且 cluster
+     * 引用为本主控才报分型，否则 255 占位；增幅 = 8+BoosterType.ordinal()；加工七类 instanceof
+     * 分派，未知子类防御性回 255（不伪装空位）。
+     */
+    private int unitTypeId(MTEClusterUnitBase unit) {
+        if (unit instanceof MTEBasicLogisticsUnit) return 13;
+        boolean formed = unit.isUnitStructureFormed() && unit.getCluster() == this;
+        if (!formed) return ClusterGuiSync.TYPE_UNRECOGNIZED;
+        if (unit instanceof MTEBasicAmplifierUnit amplifier) {
+            return amplifier.getBoosterType() != null ? 8 + amplifier.getBoosterType()
+                .ordinal() : ClusterGuiSync.TYPE_UNRECOGNIZED;
+        }
+        if (unit instanceof MTEUnitCrusher) return 1;
+        if (unit instanceof MTEUnitOreWasher) return 2;
+        if (unit instanceof MTEUnitCentrifuge) return 3;
+        if (unit instanceof MTEUnitThermalCentrifuge) return 4;
+        if (unit instanceof MTEUnitSifter) return 5;
+        if (unit instanceof MTEUnitMagneticSeparator) return 6;
+        if (unit instanceof MTEUnitFurnace) return 7;
+        return ClusterGuiSync.TYPE_UNRECOGNIZED;
+    }
+
+    /**
+     * 单元 → errId（E6 稳定注册表，优先级 1&gt;2&gt;3）。1=模块冲突（本槽命中 lastModuleConflicts）；
+     * 2=tier 不匹配（已连接、自身成型 tier ≥ 0 且与主控下发 tier 不一致——未成型的 -1 不算不匹配，
+     * 走 typeId 255/状态通道）；3=未关联集群（cluster 引用非本主控）；其余 0。延伸断裂不在此编出
+     * （结构级错误走 KEY_BREAK 独立通道，见方法 javadoc）。
+     */
+    private int unitErrId(MTEClusterUnitBase unit, boolean conflictMark) {
+        if (conflictMark) return ClusterGuiSync.ERR_MODULE_CONFLICT;
+        boolean connected = unit.getCluster() == this;
+        if (connected && unit.getUnitStructureTier() >= 0 && !unit.isTierValidForConnection()) {
+            return ClusterGuiSync.ERR_TIER_MISMATCH;
+        }
+        return connected ? 0 : ClusterGuiSync.ERR_NOT_CONNECTED;
+    }
+
+    /**
+     * 单元 → linkId：物流槽=该单元在拓扑物流列表（结构扫描序）中的引用级下标（0..9，与链路页
+     * KEY_SEL_LOGISTICS/KEY_LE_UNITS 同序，GUI tooltip 显示「已关联 #N+1」）；非物流槽与
+     * 未入列单元（防御）=255。
+     */
+    private static int logisticsLinkIndex(MTEClusterUnitBase unit, List<MTEBasicLogisticsUnit> logisticsUnits) {
+        if (!(unit instanceof MTEBasicLogisticsUnit logistics)) return 255;
+        for (int i = 0; i < logisticsUnits.size() && i < 255; i++) {
+            if (logisticsUnits.get(i) == logistics) return i;
+        }
+        return 255;
+    }
+
+    /**
+     * 模块冲突槽标记（errId=1 数据源）：{@link #lastModuleConflicts}（结构扫描期挂点记录，仅结构
+     * 重检时变化）中的 (segment,padId) → 槽下标 {@code segment*3+padId}（每段 3 垫槽，与快照槽序
+     * 同构；越界下标防御丢弃）。{@link ClusterStructureError} 无参数访问器，(segment,padId) 经其
+     * {@code serialize} 线上格式反解（LangText=判别子 0+lang key+参数列，LiteralText=判别子 1+文本，
+     * 见 GT5U TranslatableText 线上协议）——确定性、服务端安全，不触碰客户端本地化。
+     *
+     * @param slotCount 快照槽位数
+     * @return 槽位冲突标记（长度 slotCount；常态无冲突时零解析开销）
+     */
+    private boolean[] moduleConflictSlotMarks(int slotCount) {
+        boolean[] marks = new boolean[slotCount];
+        if (lastModuleConflicts.isEmpty()) return marks;
+        for (ClusterStructureError error : lastModuleConflicts) {
+            int[] segPad = parseModuleConflictSlot(error);
+            if (segPad == null) continue;
+            int index = segPad[0] * 3 + segPad[1];
+            if (index >= 0 && index < slotCount) marks[index] = true;
+        }
+        return marks;
+    }
+
+    /** 反解单个模块冲突错误的 (segment,padId) 文本参数；非 module_conflict 键或格式不符返回 null（防御）。 */
+    private static int[] parseModuleConflictSlot(ClusterStructureError error) {
+        PacketBuffer buf = new PacketBuffer(Unpooled.buffer());
+        try {
+            error.serialize(buf);
+            buf.readerIndex(0);
+            if (buf.readUnsignedByte() != 0) return null; // LangText 判别子
+            if (!ClusterStructureError.LANG_KEY_MODULE_CONFLICT.equals(buf.readStringFromBuffer(128))) return null;
+            if (buf.readInt() < 2) return null; // 参数个数（segment, padId）
+            int[] segPad = new int[2];
+            for (int i = 0; i < 2; i++) {
+                if (buf.readUnsignedByte() != 1) return null; // LiteralText 判别子
+                segPad[i] = Integer.parseInt(
+                    buf.readStringFromBuffer(8)
+                        .trim());
+            }
+            return segPad;
+        } catch (Exception ignored) {
+            return null;
+        } finally {
+            buf.release();
+        }
+    }
+
+    /** @return 热量百分比 0..100（量化口径，GUI 顶栏）。 */
+    public int getHeatPercent() {
+        return (int) Math.round(preheat.getProgress() * 100D);
+    }
+
+    /** @return 蒸汽读数（L/s；停机/未成型为 0，运行中为最近一次结算需求）。 */
+    public int getSteamLps() {
+        if (!mMachine || !machineEnabled) return 0;
+        return (int) Math.min(Integer.MAX_VALUE, economy.getLastSteamLps());
+    }
+
+    /** @return 润滑油读数（L/s；停机/未成型为 0，运行中为最近一次结算需求）。 */
+    public int getLubricantLps() {
+        if (!mMachine || !machineEnabled) return 0;
+        return (int) Math.min(Integer.MAX_VALUE, economy.getLastLubricantLps());
+    }
+
+    /** @return 真实窗口吞吐（矿石/s，20t 对齐窗口发布；停机/未成型为 0）。 */
+    public int getThroughputPerSec() {
+        return (int) Math.max(0L, (long) lastThroughputOrePerSec);
+    }
+
+    /** @return 供给异常位组（bit0=蒸汽不足，bit1=润滑不足，bit2=断供降温中；停机/未成型为 0）。 */
+    public int getSupplyFlags() {
+        if (!mMachine || !machineEnabled) return 0;
+        int flags = 0;
+        if (economy.isSteamShortage()) flags |= 0x01;
+        if (!economy.isLubricantOk()) flags |= 0x02;
+        if (!thermalSupplyOkLatched) flags |= 0x04;
+        return flags;
+    }
+
+    /**
+     * links 写入日志钩子（附录 C「links 写入」边沿；E6 链编辑提交路径调用）：玩家、物流段、
+     * 链长度、结构有效（FSM 终态）/当前可执行（对拓扑真实查询）两级口径。
+     */
+    public void notifyChainWritten(EntityPlayer player, MTEBasicLogisticsUnit unit) {
+        if (unit == null) return;
+        GTSteamReborn.LOG.info(
+            "{}links 写入: 玩家={} 段={} 槽={} 链长={} 结构有效={} 当前可执行={}",
+            LOG_PREFIX,
+            player == null ? "?" : player.getCommandSenderName(),
+            unit.getSegmentIndex(),
+            unit.getPadId(),
+            unit.getChain()
+                .length(),
+            unit.getChain()
+                .isValidStructure(),
+            unit.isChainExecutableNow());
+    }
+
+    /** @return 服务端计时（getTimer；基座不可达时 0）。 */
+    private long serverTimer() {
+        IGregTechTileEntity base = getBaseMetaTileEntity();
+        return base == null ? 0L : base.getTimer();
+    }
+
+    /** @return 日志坐标串 "dim(x,y,z)"。 */
+    private String logCoords() {
+        IGregTechTileEntity base = getBaseMetaTileEntity();
+        if (base == null) return "?";
+        return base.getWorld() == null ? "?"
+            : base.getWorld().provider.dimensionId + "("
+                + base.getXCoord()
+                + ","
+                + base.getYCoord()
+                + ","
+                + base.getZCoord()
+                + ")";
+    }
+
+    // —— 字节通道：bit0=工作态（粒子开关，批执行 40t 窗口）；bit1-6 恒 63 预留 ——
 
     @Override
     public void onValueUpdate(byte aValue) {
@@ -621,7 +1191,7 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
         return (byte) ((63 << 1) | (ClusterParticleFx.isFxWorking(this) ? 0x01 : 0x00));
     }
 
-    /** @return 预热状态机（NBT 编解码与 GUI 直读共用）。 */
+    /** @return 预热状态机（NBT 编解码和 GUI 直读共用）。 */
     public ClusterPreheatController getPreheat() {
         return preheat;
     }
@@ -631,19 +1201,15 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
         return economy;
     }
 
-    /** @return 流体输入仓 live 视图（蒸汽+润滑液经济结算的仓源，ME 仓兼容由访问层自理）。 */
-    public List<MTEHatchInput> getClusterFluidInputHatches() {
-        return mInputHatches;
-    }
-
-    /** @return 输入总线 live 视图（链执行器批次取料源）。 */
-    public List<MTEHatchInputBus> getClusterInputBusses() {
-        return mInputBusses;
-    }
-
-    /** @return 输出总线 live 视图（链执行器批次产出回填目标）。 */
-    public List<MTEHatchOutputBus> getClusterOutputBusses() {
-        return mOutputBusses;
+    /**
+     * @return 统一蒸汽/润滑结算源（每次调用新建组合列表：mInputHatches + 耐压蒸汽输入仓；
+     *         {@link ClusterSteamEconomy} 经本方法取仓，ME 仓兼容由 GTSRHatchFluidAccess 自理）。
+     */
+    public List<MTEHatch> getClusterFluidInputHatches() {
+        List<MTEHatch> hatches = new ArrayList<>(mInputHatches.size() + pressureSteamHatches.size());
+        hatches.addAll(mInputHatches);
+        hatches.addAll(pressureSteamHatches);
+        return hatches;
     }
 
     /** 触发父类槽位重算（链执行器在总线/仓内容变化后调用，使 GT 槽位视图同步）。 */
@@ -663,14 +1229,9 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
         markDirty();
     }
 
-    /** @return 最近一秒处理矿数（链执行器每秒批后回填，停机/结构未成型清 0；进度词条直读）。 */
+    /** @return 最近一秒处理矿数（20t 真实窗口发布；停机/未成型清 0；进度词条直读）。 */
     public double getLastThroughputOrePerSec() {
         return lastThroughputOrePerSec;
-    }
-
-    /** 吞吐回填 setter（链执行器记账用；不做 NBT 持久——瞬态读数）。 */
-    public void setLastThroughputOrePerSec(double v) {
-        lastThroughputOrePerSec = v;
     }
 
     /** 载入重连提示清单回填（ClusterPersistence 读档路径写入，maintainClusterLinks 消费）。 */
@@ -679,7 +1240,7 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
         if (hints != null) pendingReconnectHints.addAll(hints);
     }
 
-    /** @return 集群是否开机（GUI ToggleButton 双端同步，M7 批接 GUI）。 */
+    /** @return 集群是否开机（GUI ToggleButton 双端同步；新放置默认 true）。 */
     public boolean isMachineEnabled() {
         return machineEnabled;
     }
@@ -736,9 +1297,7 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
     }
 
     /**
-     * 按面纹理：Enhanced 多方体系（MTEEnhancedMultiBlockBase 直系）没有
-     * getActiveOverlay/getInactiveOverlay/glow overlay 钩子（那是 GT++ 蒸汽基族的抽象），此处照
-     * MTECrustMatterAggregator 范式直接覆写 getTexture——底材镀铜砖块
+     * 按面纹理：Enhanced 多方体系直系范式（MTECrustMatterAggregator 口径）——底材镀铜砖块
      * （gregtech:gt.blockcasings meta10 = Casing_BronzePlatedBricks）+ 正面采矿钻头叠层
      * （OVERLAY_FRONT_ORE_DRILL）区分启停。叠层为 GT5U 内置常量，无需 registerIcons。
      */
@@ -755,43 +1314,28 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
     }
 
     /**
-     * 全量结构 tooltip（模板 MTELargeSteamFurnace :402-450 范式）：机器类型/一句话 → 蒸汽公式摘要 →
-     * 主段结构块（20×15×29）+ 控制器/仓位列 → 四族同级表 → 三垫沿深度 → 延伸层循环口径 →
-     * 增幅流体表 → 终端入口 hint → AddedBy 收尾。文案键全部走 gtsr.tooltip.cluster.*（lang 切片补齐）。
+     * 全量结构 tooltip（plan §3.3.2/§3.2 重写，文案键 gtsr.cluster.tooltip.* 序列，E7 落盘）：
+     * 12 深基础段 + 8 深延伸段（最多 9 延伸 / 总段 10）→ 主控无总线/能源仓 → 通用输入仓至少 1
+     * （蒸汽/普通/耐压 512k ≈ 4 分钟）→ F/H/G 挂点不校验朝向 + 模块撞结构自身无法成型 →
+     * 物流四 I/O + 默认关机 → 热离/磁选自带能源仓 → 蒸汽/润滑经济数值简述。
      */
     @Override
     protected MultiblockTooltipBuilder createTooltip() {
         MultiblockTooltipBuilder tt = new MultiblockTooltipBuilder();
-        tt.addMachineType(StatCollector.translateToLocal("gtsr.tooltip.cluster.type"))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.cluster.desc"))
+        tt.addMachineType(StatCollector.translateToLocal("gtsr.cluster.tooltip.type"))
+            .addInfo(StatCollector.translateToLocal("gtsr.cluster.tooltip.desc"))
             .addSeparator()
-            .addInfo(EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.cluster.steam_formula"))
-            .beginStructureBlock(20, 15, 29, false)
-            .addController(StatCollector.translateToLocal("gtsr.tooltip.cluster.ctrl"))
-            .addInputBus(StatCollector.translateToLocal("gtsr.tooltip.cluster.input_bus"), 1)
-            .addOutputBus(StatCollector.translateToLocal("gtsr.tooltip.cluster.output_bus"), 1)
-            .addOtherStructurePart(
-                StatCollector.translateToLocal("gtsr.tooltip.cluster.steam_hatch"),
-                StatCollector.translateToLocal("gtsr.tooltip.shared.any_casing"),
-                1)
-            .addOtherStructurePart(
-                StatCollector.translateToLocal("gtsr.tooltip.cluster.fluid_hatch"),
-                StatCollector.translateToLocal("gtsr.tooltip.shared.any_casing"),
-                1)
-            .addOtherStructurePart(
-                StatCollector.translateToLocal("gtsr.tooltip.cluster.energy_hatch"),
-                StatCollector.translateToLocal("gtsr.tooltip.shared.any_casing"),
-                1)
-            .addStructureInfo("")
-            .addStructureInfo(
-                EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.cluster.tier_family"))
-            .addStructureInfo(
-                EnumChatFormatting.DARK_PURPLE + StatCollector.translateToLocal("gtsr.tooltip.cluster.pads_depth"))
-            .addStructureInfo(
-                EnumChatFormatting.LIGHT_PURPLE + StatCollector.translateToLocal("gtsr.tooltip.cluster.extension"))
-            .addStructureInfo(
-                EnumChatFormatting.DARK_AQUA + StatCollector.translateToLocal("gtsr.tooltip.cluster.booster_fluids"))
-            .addStructureHint("gtsr.tooltip.cluster.terminal_hint")
+            .beginStructureBlock(ClusterParams.SEGMENT_DEPTH_MAIN, 15, 29, false)
+            .addController(StatCollector.translateToLocal("gtsr.cluster.tooltip.ctrl"))
+            .addStructureInfo(StatCollector.translateToLocal("gtsr.cluster.tooltip.main.1"))
+            .addStructureInfo(StatCollector.translateToLocal("gtsr.cluster.tooltip.main.2"))
+            .addStructureInfo(StatCollector.translateToLocal("gtsr.cluster.tooltip.main.3"))
+            .addStructureInfo(StatCollector.translateToLocal("gtsr.cluster.tooltip.main.4"))
+            .addStructureInfo(StatCollector.translateToLocal("gtsr.cluster.tooltip.main.5"))
+            .addStructureInfo(StatCollector.translateToLocal("gtsr.cluster.tooltip.main.6"))
+            .addStructureInfo(StatCollector.translateToLocal("gtsr.cluster.tooltip.main.7"))
+            .addStructureInfo(StatCollector.translateToLocal("gtsr.cluster.tooltip.main.8"))
+            .addStructureHint("gtsr.cluster.tooltip.terminal")
             .addInfo(GTSRUtils.getAddedByLine())
             .toolTipFinisher();
         return tt;
@@ -804,7 +1348,8 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
     }
 
     /**
-     * {@inheritDoc} 开关机位兜底直写 + 运行态（预热进度等）委托 {@link ClusterPersistence}。
+     * {@inheritDoc} 开关机位兜底直写（缺键保持默认 true）+ 运行态（预热进度等）委托
+     * {@link ClusterPersistence}。
      */
     @Override
     public void saveNBTData(NBTTagCompound aNBT) {
@@ -813,11 +1358,11 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
         ClusterPersistence.write(this, aNBT);
     }
 
-    /** {@inheritDoc} 与 {@link #saveNBTData} 对应。 */
+    /** {@inheritDoc} 与 {@link #saveNBTData} 对应；缺键时保持新放置默认 true（plan §3.6.1）。 */
     @Override
     public void loadNBTData(NBTTagCompound aNBT) {
         super.loadNBTData(aNBT);
-        machineEnabled = aNBT.getBoolean("machineEnabled");
+        machineEnabled = aNBT.hasKey("machineEnabled") ? aNBT.getBoolean("machineEnabled") : true;
         ClusterPersistence.read(this, aNBT);
     }
 

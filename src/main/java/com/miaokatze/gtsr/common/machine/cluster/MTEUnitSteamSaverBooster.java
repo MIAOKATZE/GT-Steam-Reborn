@@ -2,6 +2,8 @@ package com.miaokatze.gtsr.common.machine.cluster;
 
 import net.minecraftforge.fluids.Fluid;
 
+import gregtech.api.enums.Textures;
+import gregtech.api.interfaces.IIconContainer;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
 
@@ -14,8 +16,19 @@ import gregtech.api.metatileentity.MetaTileEntity;
  * 锁定流体：冷却液——优先取 {@code FluidRegistry.getFluid(ClusterParams.BOOSTER_COOLANT_FLUID)} 注册名，
  * 缺失时回退超冷却液（SuperCoolant）；两者都不可用时本模块增幅禁用（isFluidAvailable 恒 false，不崩）。
  * 类型名 key：gtsr.gui.cluster.unit_type.booster.steam_saver。
+ * <p>
+ * 正面 overlay 引用离心机（centrifuge）原机资源（gregtech 域，无 BlockIcons 常量，走 customOptional；
+ * 该目录无 GLOW 变体，仅 inactive/active 两组）；类加载期（贴图缝合前）以 static final 字段绑定，禁止移入方法体。
  */
 public class MTEUnitSteamSaverBooster extends MTEBasicAmplifierUnit {
+
+    /** 正面 overlay（inactive）：{@code basicmachines/centrifuge/OVERLAY_FRONT}。 */
+    private static final IIconContainer OVERLAY_INACTIVE = Textures.BlockIcons
+        .customOptional("basicmachines/centrifuge/OVERLAY_FRONT");
+
+    /** 正面 overlay（active）：{@code basicmachines/centrifuge/OVERLAY_FRONT_ACTIVE}。 */
+    private static final IIconContainer OVERLAY_ACTIVE = Textures.BlockIcons
+        .customOptional("basicmachines/centrifuge/OVERLAY_FRONT_ACTIVE");
 
     public MTEUnitSteamSaverBooster(int aID, String aName, String aNameRegional) {
         super(aID, aName, aNameRegional, ClusterParams.BoosterType.STEAM_SAVER);
@@ -34,6 +47,16 @@ public class MTEUnitSteamSaverBooster extends MTEBasicAmplifierUnit {
     @Override
     protected Fluid resolveLockedFluid() {
         return resolveBoosterFluid(ClusterParams.BoosterType.STEAM_SAVER);
+    }
+
+    @Override
+    protected IIconContainer unitOverlayInactive() {
+        return OVERLAY_INACTIVE;
+    }
+
+    @Override
+    protected IIconContainer unitOverlayActive() {
+        return OVERLAY_ACTIVE;
     }
 
     /** tooltip：类型行 + 四档增益行 + 锁定流体行 + 缺流体失效红字行，AddedBy 收尾（写法对齐 MTESteamInputHatchGeneric）。 */

@@ -22,6 +22,23 @@ public class ClusterStructureError implements StructureError {
 
     private static final int TEXT_COLOR = 0xFFE0E0E0;
 
+    /**
+     * E1a 新增错误类型（ID 沿用既有 lang 键空间<b>尾部追加</b>，不重排、不删除既有键）：
+     * 延伸段断裂。lang 键由 lang 切片补齐（缺键时按现有机制显示原键）。
+     * <p>
+     * 语义：延伸链在第 {@code expectedSegment} 段（1 基，1..9）缺失/不完整，且其后仍存在可识别的
+     * 延伸结构；该段及之后不收集。写入方为总控 checkMachine（E1b），配合
+     * {@code ClusterTopology#setBrokenExtensionSegment} 使用。
+     */
+    public static final String LANG_KEY_EXTENSION_BREAK = "gtsr.gui.cluster.structure.extension_break";
+
+    /**
+     * E1a 新增错误类型（同上尾部追加）：模块冲突。同段同类挂点出现第二个正确类型模块控制器——
+     * 结构仍成型，仅首个模块接入。由 {@code ClusterStructureDef} 挂点回调记录（模块冲突检查点），
+     * 总控经 {@code ClusterStructureDef#drainModuleConflicts()} 取走。
+     */
+    public static final String LANG_KEY_MODULE_CONFLICT = "gtsr.gui.cluster.structure.module_conflict";
+
     private final TranslatableText message;
 
     public ClusterStructureError(String langKey) {
@@ -30,6 +47,19 @@ public class ClusterStructureError implements StructureError {
 
     public ClusterStructureError(TranslatableText message) {
         this.message = message;
+    }
+
+    /** 延伸段断裂错误（expectedSegment 为 1 基延伸段号，1..9）。 */
+    public static ClusterStructureError extensionBreak(int expectedSegment) {
+        return new ClusterStructureError(
+            TranslatableText.lang(LANG_KEY_EXTENSION_BREAK, TranslatableText.literal(expectedSegment)));
+    }
+
+    /** 模块冲突错误（segment 为段号 0..9，padId 为 {@link ClusterTopology} 的 PAD_* 值）。 */
+    public static ClusterStructureError moduleConflict(int segment, int padId) {
+        return new ClusterStructureError(
+            TranslatableText
+                .lang(LANG_KEY_MODULE_CONFLICT, TranslatableText.literal(segment), TranslatableText.literal(padId)));
     }
 
     @Override

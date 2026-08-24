@@ -5,14 +5,12 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
-import com.google.common.collect.ImmutableList;
-
 /**
  * 物流链最小骨架：一个物流模块（{@link MTEBasicLogisticsUnit}）持有的可变有序 ChainLink 表，
  * 同一 link 允许重复出现（UI 显示「在链×N」）。
  * <p>
- * 本切片只保证可变有序表语义；M4 批在本骨架上扩展：链有效性验证（能否产出最终纯净粉/有效终端）、
- * 预设载入（{@link #setLinks}）与 NBT 持久化。
+ * 本切片只保证可变有序表语义；后续批次在本骨架上扩展：链有效性验证（能否产出最终纯净粉/有效终端）、
+ * 批量写入（{@link #setLinks}）与 NBT 持久化（六预设数据已于批2 E6 删除）。
  * <p>
  * 线约定：仅主线程（游戏逻辑 tick）读写；{@link #getLinks()} 返回 live 视图，调用方遍历期间的
  * 结构变更责任在调用方。
@@ -21,6 +19,9 @@ public final class LogisticsChain {
 
     /** 有序可重复链表（live 视图直接暴露）。 */
     private final List<ChainLink> links = new ArrayList<>();
+
+    /** 脏标记：任一变更方法置位，供持有方（物流模块/持久化路径）检测后落盘（§3.6.7）。 */
+    private boolean dirty;
 
     /** live 视图：外部只读遍历/按索引访问，勿缓存引用后假设其不可变。 */
     public List<ChainLink> getLinks() {
@@ -35,14 +36,22 @@ public final class LogisticsChain {
         return links.size();
     }
 
-    /** 追加链尾；null link 无意义，静默忽略。 */
+    /**
+     * 追加链尾；null link 无意义静默忽略；链长已达 {@link ClusterParams#CHAIN_MAX_LINKS}
+     * （16 步，服务端强制上限）时拒绝追加，保持链长不越界。
+     */
     public void append(ChainLink link) {
-        if (link != null) links.add(link);
+        if (link == null || links.size() >= ClusterParams.CHAIN_MAX_LINKS) return;
+        links.add(link);
+        markDirty();
     }
 
     /** 按索引删除；越界安全（不抛不删）。 */
     public void removeAt(int index) {
-        if (index >= 0 && index < links.size()) links.remove(index);
+        if (index >= 0 && index < links.size()) {
+            links.remove(index);
+            markDirty();
+        }
     }
 
     /** 位置调整：direction=-1 左移 / +1 右移；索引越界或移出边界时安全忽略（不抛不动）。 */
@@ -51,16 +60,48 @@ public final class LogisticsChain {
         int target = index + direction;
         if (target < 0 || target >= links.size()) return;
         Collections.swap(links, index, target);
+        markDirty();
     }
 
     public void clear() {
-        links.clear();
+        if (!links.isEmpty()) {
+            links.clear();
+            markDirty();
+        }
     }
 
-    /** 整表替换（预设载入用）：只拷贝元素、不持外部列表引用；null 等价 clear。 */
+    /**
+     * 整表替换（批量写入用）：只拷贝元素、不持外部列表引用；null 等价 clear；
+     * 超过 {@link ClusterParams#CHAIN_MAX_LINKS}（16 步）的部分拒绝写入（保留前 16 步），
+     * 服务端强制链长上限。
+     */
     public void setLinks(List<ChainLink> newLinks) {
         links.clear();
-        if (newLinks != null) links.addAll(newLinks);
+        if (newLinks != null) {
+            int limit = Math.min(newLinks.size(), ClusterParams.CHAIN_MAX_LINKS);
+            for (int i = 0; i < limit; i++) {
+                ChainLink link = newLinks.get(i);
+                if (link != null) links.add(link);
+            }
+        }
+        markDirty();
+    }
+
+    // ---- markDirty 支持（§3.6.7：链编辑不得只改内存列表） ----
+
+    /** 置脏标记（本类全部变更方法已自动调用；持有方可额外显式调用）。 */
+    public void markDirty() {
+        this.dirty = true;
+    }
+
+    /** @return 自上次 {@link #clearDirty()} 以来是否发生变更（持久化/重校验触发用）。 */
+    public boolean isDirty() {
+        return dirty;
+    }
+
+    /** 清除脏标记（持有方完成 markDirty→落盘/重校验后调用）。 */
+    public void clearDirty() {
+        this.dirty = false;
     }
 
     /** 「在链×N」计数：按 equals 匹配（null 入参计链中 null 元素个数，正常链不含 null）。 */
@@ -72,59 +113,7 @@ public final class LogisticsChain {
         return count;
     }
 
-    // ---- 预设（固定 6 条，顺序即 GUI 显示序；来源 plan-prompt §5.2） ----
-
-    /** 预设条数（固定 6，GUI 预设栏容量与 {@link #getPresetLinks} 合法下标上限）。 */
-    public static final int PRESET_COUNT = 6;
-
-    /**
-     * 预设链表（不可变，双 层）：外层下标 0..5 即 GUI 显示序，内层为该预设的有序链步。
-     * 本工程经 Jabel 编译到 J8 字节码（语法现代化、stdlib 仍 J8，无 {@code java.util.List.of}），
-     * 故不可变集合用 Guava {@link ImmutableList}（同包 {@link ClusterStructureDef} 同款用法）。
-     */
-    private static final List<List<ChainLink>> PRESETS = ImmutableList.of(
-        // 1 极速成粉：粉碎→锻造锤→简易洗（依赖 GT++ 简易洗口径：dustImpure→dust 终态）
-        ImmutableList.of(ChainLink.CRUSH, ChainLink.HAMMER, ChainLink.SIMPLE_WASH),
-        // 2 快速成锭：+熔炉（任意形态→ingot 终态）
-        ImmutableList.of(ChainLink.CRUSH, ChainLink.HAMMER, ChainLink.SIMPLE_WASH, ChainLink.FURNACE),
-        // 3 离心副产：粉碎→粉碎→离心（crushed→dustImpure→离心→dust 终态）
-        ImmutableList.of(ChainLink.CRUSH, ChainLink.CRUSH, ChainLink.CENTRIFUGE),
-        // 4 洗矿副产：粉碎→洗矿→粉碎→离心（crushedPurified→磨→dustPure→离心→dust 终态）
-        ImmutableList.of(ChainLink.CRUSH, ChainLink.ORE_WASH, ChainLink.CRUSH, ChainLink.CENTRIFUGE),
-        // 5 热离副产：粉碎→洗矿→热力离心→粉碎（crushedCentrifuged→磨→dust 终态）
-        ImmutableList.of(ChainLink.CRUSH, ChainLink.ORE_WASH, ChainLink.THERMOCENTRIFUGE, ChainLink.CRUSH),
-        // 6 典型筛选：粉碎→洗矿→筛选（crushedPurified→筛选→dust+宝石 终态，仅含 gem 材料）
-        ImmutableList.of(ChainLink.CRUSH, ChainLink.ORE_WASH, ChainLink.SIFTER));
-
-    /**
-     * 取预设链（预设载入用：返回值经 {@link #setLinks} 注入物流链，本表不可变故可安全共享）。
-     *
-     * @param index 预设下标 [0, {@link #PRESET_COUNT})
-     * @return 该预设的不可变有序链步表（元素引用级共享，调用方不得修改）
-     * @throws IllegalArgumentException 下标越界
-     */
-    public static List<ChainLink> getPresetLinks(int index) {
-        checkPresetIndex(index);
-        return PRESETS.get(index);
-    }
-
-    /**
-     * 取预设名的本地化 key，形如 {@code gtsr.gui.cluster.preset.1} .. {@code gtsr.gui.cluster.preset.6}。
-     *
-     * @param index 预设下标 [0, {@link #PRESET_COUNT})
-     * @return 本地化 key
-     * @throws IllegalArgumentException 下标越界
-     */
-    public static String getPresetNameKey(int index) {
-        checkPresetIndex(index);
-        return "gtsr.gui.cluster.preset." + (index + 1);
-    }
-
-    private static void checkPresetIndex(int index) {
-        if (index < 0 || index >= PRESET_COUNT) {
-            throw new IllegalArgumentException("preset index out of range [0," + PRESET_COUNT + "): " + index);
-        }
-    }
+    // ---- 预设数据已删除（批2 E6：GUI 无预设按钮，§4.4.5 预设动作服务端拒绝）----
 
     // ---- 有效性（结构性：FSM 终态判定） ----
 
@@ -192,11 +181,14 @@ public final class LogisticsChain {
     // ---- 可执行判定与 NBT 序列化 ----
 
     /**
-     * 可执行判定：非空 && {@link #isValidStructure()} && 链上全部 link 可用
-     * （{@link #isLinkAvailable}；topology 为 null 时按全 link 不可用处理，返回 false）。
+     * 可执行判定（§3.6.7 强化口径）：非空 && 链长 ≤ {@link ClusterParams#CHAIN_MAX_LINKS}
+     * && {@link #isValidStructure()}（FSM 终态为 DUST 或 INGOT）&& 链上全部 link 可用
+     * （{@link #isLinkAvailable}：所需工作模块已连接且可用/通电；topology 为 null 时按全
+     * link 不可用处理，返回 false）。物流模块自身允许工作状态由执行器/调用方另行门控。
      */
     public boolean isExecutable(ClusterTopology topology) {
-        if (isEmpty() || !isValidStructure()) return false;
+        if (isEmpty() || length() > ClusterParams.CHAIN_MAX_LINKS) return false;
+        if (!isValidStructure()) return false;
         for (ChainLink link : links) {
             if (!isLinkAvailable(link, topology)) return false;
         }

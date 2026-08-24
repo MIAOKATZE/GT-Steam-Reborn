@@ -1,9 +1,18 @@
 package com.miaokatze.gtsr.common.machine.cluster;
 
+import static gregtech.api.enums.HatchElement.InputBus;
+import static gregtech.api.enums.HatchElement.InputHatch;
+import static gregtech.api.enums.HatchElement.OutputBus;
+import static gregtech.api.enums.HatchElement.OutputHatch;
+import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
+
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.Fluid;
@@ -13,45 +22,86 @@ import net.minecraftforge.fluids.FluidTank;
 import net.minecraftforge.fluids.FluidTankInfo;
 
 import com.gtnewhorizon.structurelib.structure.StructureDefinition;
-import com.miaokatze.gtsr.common.gui.cluster.ClusterTerminalUiFactory;
+import com.miaokatze.gtsr.api.compat.GTSRHatchFluidAccess;
+import com.miaokatze.gtsr.common.event.GTSRMachineEvent;
+import com.miaokatze.gtsr.common.gui.cluster.MTEBasicLogisticsUnitGui;
 
 import gregtech.api.GregTechAPI;
+import gregtech.api.enums.Materials;
+import gregtech.api.enums.Textures;
+import gregtech.api.interfaces.IIconContainer;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
+import gregtech.api.metatileentity.implementations.MTEHatch;
+import gregtech.api.metatileentity.implementations.MTEHatchInput;
+import gregtech.api.metatileentity.implementations.MTEHatchInputBus;
+import gregtech.api.metatileentity.implementations.MTEHatchOutput;
+import gregtech.api.metatileentity.implementations.MTEHatchOutputBus;
+import gregtech.api.structure.error.StructureError;
+import gregtech.api.util.GTUtility;
+import gregtech.common.tileentities.machines.MTEHatchInputBusME;
 
 /**
- * 物流模块：集群的单点链执行器（本切片只落骨架——链持有与双流体 tank 分发；链执行在后续批次接入）。
+ * 物流模块：集群的单点链执行器骨架（E3b 切片：四 I/O 结构 + 默认关机 + 双 tank 语义收紧 + 独立 GUI stub）。
  * <p>
- * 每个物流模块恰好持有 1 条有序链（{@link LogisticsChain}，默认空链，永非 null）。
+ * <b>结构（3×4×3，控制器 (1,2,0)）</b>：正面 z0 层四 I/O——D(0,0,0) 输入总线 / E(2,0,0) 输出总线 /
+ * F(0,1,0) 输入仓 / G(2,1,0) 输出仓，各自独立 {@code atLeast} 单元素 hatch 挂点（四挂点互不共用），
+ * 且 checkMachine 末尾显式校验四列表均非空（缺任一即不成型）。B=tiered 齿轮箱
+ * （{@link #tieredGearboxElement()}，casings2:2/3/4/5）、C=tiered 框架
+ * （{@link #tieredFrameElement()}），与 A 外壳经基类 {@code resolveUnitStructureTier} 分族同级
+ * 强校验（跨 tier 混搭不成型）。{@link MTEHatchInputBusME} 在 {@link #addInputBusToMachineList}
+ * 直接拒绝致结构不成型（范式同 GT5U MTETreeFarm：ME 输入总线会绕过物流批事务语义）。
  * <p>
- * 流体模型：MTEBasicTank 只有单一 mFluid 主 tank，本类将其弃用（getFillableStack/getDrainableStack 钉
- * null、容器倒换关闭），自持两个独立 {@link FluidTank}（容量 {@link ClusterParams#LOGISTICS_TANK_CAPACITY_L}）：
- * <ul>
- * <li>{@link #getWaterTank()}——只接受水（洗矿 link 批流体）；</li>
- * <li>{@link #getChemBathTank()}——通用 tank，接受非水流体（化洗 link 按实际配方匹配的化浴液）。</li>
- * </ul>
- * 分发点按 MTEBasicTank 源码实读：所有填充路径（管道→BaseMetaTileEntity.fill(side,…)→fill_default→
- * fill(FluidStack,boolean)）收口于 {@link #fill(FluidStack, boolean)}，在此按水/非水路由；
- * 放出侧覆写 {@link #drain(int, boolean)}（化洗优先）与类型敏感 drain(ForgeDirection,FluidStack,int,boolean)
- * （按请求流体匹配对应 tank）；{@link #getTankInfo(ForgeDirection)} 返回双 tank 信息供管道/ME 交互。
+ * <b>物理电源</b>：新放置模块在 {@link #onFirstTick} 一次性 {@code disableWorking()}（mWorks=false，
+ * BaseMetaTileEntity 原生 NBT 持久化），"一次性已初始化"标记入 NBT 防区块重载重复关停用户已复位的
+ * 模块；用户经软锤复位（GT 标准启停切换）。{@link #getUnitStatus()} 优先 {@code isAllowedToWork()}，
+ * 关闭时显示"无功率/未通电"而非可工作。
  * <p>
- * tank 与链的 NBT 持久化在本类自落（{@link #saveNBTData}）：链存 "clusterChain" int 数组，
- * 双 tank 存 "clusterWaterTank"/"clusterChemTank"（基类 MTEBasicTank 只持久化 mFluid，自持 FluidTank
- * 不入基类 NBT）；链有效性细化仍留 M4 批接入。
- * 手工容器交互沿承基类语义（关闭）：onPreTick 的桶装路径会直写 setFillableStack 绕过双 tank 分发，
- * 必须保持关闭；纹理亦直接继承基类青铜机器三面。
+ * <b>双 tank 语义（plan 3.4.5 收口）</b>：基类 mFluid 主 tank 全面弃用（get/set Fillable/Drainable 钉
+ * null、无并行写入旁路）；自持水 tank（普通水+蒸馏水均收，蒸馏优先扣液路径由 E4 落）与化浴 tank
+ * （仅含汞/过硫酸钠，GT5U 化学洗配方流体）两个独立 {@link FluidTank}。外部填充按流体类型严格路由，
+ * 非法流体一律拒收；管道/ME 经 {@link #getTankInfo} 可见双 tank。自身输入仓每 20t 节流自动补液
+ * （{@link #refillTanksFromHatches}，探测/实扣走 {@link GTSRHatchFluidAccess} 统一访问层）。
+ * <p>
+ * <b>交互</b>：右击不再跳转集群终端链编辑页，改为打开自身 GUI
+ * （{@link MTEBasicLogisticsUnitGui.LogisticsUnitGuiFactory}，MUI2 最小 stub，批2 E6 全量重写）；
+ * 链编辑入口只经集群 UI，本类保留 {@link #getChain()}/{@link #setChain(LogisticsChain)} 访问器。
+ * 正面叠层经基类 E2a 钩子 {@link #unitOverlayInactive()}/{@link #unitOverlayActive()}（拆解机
+ * 贴图四态，Textures.BlockIcons T:1306-1309），底材随 unitStructureTier 四档联动（3.5.2）。
+ * <p>
+ * 链与双 tank 的 NBT 自落（{@link #saveNBTData}）：链存 "clusterChain"，双 tank 存
+ * "clusterWaterTank"/"clusterChemTank"，电源初始化标记存 "clusterLogiPowerInit"，
+ * 低温通知位存 "clusterLogiLowTemp"。
  * 类型名 key：gtsr.gui.cluster.unit_type.logistics。
  */
 public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsUnit> {
 
+    /** 四 hatch 挂点与 hatch 贴图共用的青铜底材贴图 id（同总控 hatch 挂点）。 */
+    private static final int HATCH_CASING_INDEX = GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings1, 10);
+
+    /** 正面叠层：拆解机贴图四态之停机态（Textures.BlockIcons T:1306）。 */
+    private static final IIconContainer UNIT_OVERLAY_INACTIVE = Textures.BlockIcons.OVERLAY_FRONT_DISASSEMBLER;
+
+    /** 正面叠层：拆解机贴图四态之运行态（T:1308；辉光态 T:1307/1309 留 E6 视觉迭代）。 */
+    private static final IIconContainer UNIT_OVERLAY_ACTIVE = Textures.BlockIcons.OVERLAY_FRONT_DISASSEMBLER_ACTIVE;
+
     /** 本模块的有序链（永非 null；setChain(null) 亦只置空链）。 */
     private LogisticsChain chain = new LogisticsChain();
 
-    /** 水 tank：仅接受水（洗矿 link 每批 1000L 从此扣）。 */
+    /** 水 tank：普通水+蒸馏水（洗矿/简易洗批流体；蒸馏优先扣液路径由 E4 落）。 */
     private final FluidTank waterTank = new FluidTank(ClusterParams.LOGISTICS_TANK_CAPACITY_L);
 
-    /** 化洗 tank：接受非水流体（化洗 link 按实际配方匹配的化浴液）。 */
+    /** 化浴 tank：仅含汞/过硫酸钠（GT5U 化学洗 CHEM_BATH 配方介质）。 */
     private final FluidTank chemBathTank = new FluidTank(ClusterParams.LOGISTICS_TANK_CAPACITY_L);
+
+    /** 一次性电源初始化标记：onFirstTick 默认关机只执行一次，NBT 持久化防重载复关。 */
+    private boolean powerOnInitDone;
+
+    /** 低温关机通知位：true 时 onLowTemperatureShutdown 不再刷屏，软锤复位清除，NBT 持久化。 */
+    private boolean lowTempNotified;
+
+    /** 链脏标记（瞬态）：置位表示链需在下次执行前重校验（重校验由 E4/主控执行）。 */
+    private boolean chainDirty;
 
     public MTEBasicLogisticsUnit(int aID, String aName, String aNameRegional) {
         super(aID, aName, aNameRegional);
@@ -61,19 +111,62 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
         super(aName);
     }
 
+    // ------------------------------------------------------------------
+    // 结构：3×4×3 四 I/O 矩阵（plan 3.3.3）
+    // ------------------------------------------------------------------
+
+    /**
+     * 结构矩阵（[Z][Y][X]，z0=正面）：
+     *
+     * <pre>
+     * z0 = [DAE / FAG / A~A / AAA]   D输入总线 E输出总线 / F输入仓 G输出仓 / 控制器 / 底排
+     * z1 = [CAC / C C / CAC / ABA]
+     * z2 = [AAA / AAA / AAA / ABA]
+     * </pre>
+     *
+     * 控制器 '~' 位于 (1,2,0)（offsets 1/2/0 不变）。
+     */
     @Override
     protected String[][] getUnitShape() {
-        return new String[][] { { "AAA", "AAA", "A~A", "AAA" }, { "CAC", "C C", "CAC", "ABA" },
+        return new String[][] { { "DAE", "FAG", "A~A", "AAA" }, { "CAC", "C C", "CAC", "ABA" },
             { "AAA", "AAA", "AAA", "ABA" }, };
     }
 
+    /**
+     * 专有结构元素：B/C 用基类 tier 族元素（tieredGearboxElement/tieredFrameElement，分族 tier
+     * 经基类 resolveUnitStructureTier 同级强校验）；D/E/F/G 为四个互不共用的单元素 hatch 挂点
+     * （各自独立 atLeast：D=输入总线、E=输出总线、F=输入仓、G=输出仓——任一位置放错 hatch 类型
+     * 即该挂点 check 失败致结构不成型）。
+     */
     @Override
     @SuppressWarnings("rawtypes")
     protected void addUnitStructureElements(StructureDefinition.Builder builder) {
-        addPipeElement(builder);
+        builder.addElement('B', tieredGearboxElement());
+        builder.addElement('C', tieredFrameElement());
         builder.addElement(
-            'C',
-            com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlock(GregTechAPI.sBlockFrames, 300));
+            'D',
+            buildHatchAdder(MTEBasicLogisticsUnit.class).atLeast(InputBus)
+                .casingIndex(HATCH_CASING_INDEX)
+                .hint(1)
+                .build());
+        builder.addElement(
+            'E',
+            buildHatchAdder(MTEBasicLogisticsUnit.class).atLeast(OutputBus)
+                .casingIndex(HATCH_CASING_INDEX)
+                .hint(1)
+                .build());
+        builder.addElement(
+            'F',
+            buildHatchAdder(MTEBasicLogisticsUnit.class).atLeast(InputHatch)
+                .casingIndex(HATCH_CASING_INDEX)
+                .hint(1)
+                .build());
+        builder.addElement(
+            'G',
+            buildHatchAdder(MTEBasicLogisticsUnit.class).atLeast(OutputHatch)
+                .casingIndex(HATCH_CASING_INDEX)
+                .hint(1)
+                .build());
     }
 
     @Override
@@ -91,80 +184,167 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
         return 0;
     }
 
+    /**
+     * 结构校验追加：super（E2a 基类）复位分族 tier 并 checkPiece + 分族同级校验（失配即已写错误）；
+     * 成型后追加四 I/O 列表非空校验（belt-and-suspenders：四挂点单元素 atLeast 已天然保证非空，
+     * 此处显式复核以固化"缺任一四 I/O 不成型"验收口径）。errors 非空由父类折算为不成型。
+     */
+    @Override
+    public void checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack, List<StructureError> errors) {
+        super.checkMachine(aBaseMetaTileEntity, aStack, errors);
+        if (!errors.isEmpty()) return;
+        if (mInputBusses.isEmpty()) {
+            errors.add(new ClusterStructureError("gtsr.gui.cluster.structure.missing_input_bus"));
+            return;
+        }
+        if (mOutputBusses.isEmpty()) {
+            errors.add(new ClusterStructureError("gtsr.gui.cluster.structure.missing_output_bus"));
+            return;
+        }
+        if (mInputHatches.isEmpty()) {
+            errors.add(new ClusterStructureError("gtsr.gui.cluster.structure.missing_fluid_hatch"));
+            return;
+        }
+        if (mOutputHatches.isEmpty()) {
+            errors.add(new ClusterStructureError("gtsr.gui.cluster.structure.missing_output_hatch"));
+            return;
+        }
+    }
+
+    /**
+     * ME 输入总线拒绝（范式同 GT5U MTETreeFarm#addInputBusToMachineList）：ME 总线抽料绕过
+     * 物流批事务的输入总线语义，直接返回 false 使 D 挂点校验失败、结构不成型。
+     */
+    @Override
+    public boolean addInputBusToMachineList(IGregTechTileEntity aTileEntity, int aBaseCasingIndex) {
+        if (aTileEntity != null && aTileEntity.getMetaTileEntity() instanceof MTEHatchInputBusME) return false;
+        return super.addInputBusToMachineList(aTileEntity, aBaseCasingIndex);
+    }
+
     @Override
     public IMetaTileEntity newMetaEntity(IGregTechTileEntity aTileEntity) {
         return new MTEBasicLogisticsUnit(mName);
     }
 
-    /** 朝向透传（供 'L' 槽结构校验取正向）：等价 getBaseMetaTileEntity().getFrontFacing()。 */
-    public ForgeDirection getFrontFacing() {
-        return getBaseMetaTileEntity().getFrontFacing();
+    // ------------------------------------------------------------------
+    // 四 I/O 契约（E4 执行器独占调用，签名冻结）
+    // ------------------------------------------------------------------
+
+    /** 本模块自身输入总线（GT 标准列表 live 视图；结构成型时至少含 D 挂点一枚）。 */
+    public List<MTEHatchInputBus> getLogisticsInputBusses() {
+        return mInputBusses;
     }
 
-    /** 判水：与 FluidRegistry.WATER 同体或名字相等（防他 mod 替换注册实例）。 */
-    private static boolean isWater(FluidStack aFluid) {
-        if (aFluid == null || aFluid.getFluid() == null) return false;
-        Fluid fluid = aFluid.getFluid();
-        return fluid == FluidRegistry.WATER || "water".equals(fluid.getName());
+    /** 本模块自身输出总线（GT 标准列表 live 视图；结构成型时至少含 E 挂点一枚）。 */
+    public List<MTEHatchOutputBus> getLogisticsOutputBusses() {
+        return mOutputBusses;
     }
 
-    public FluidTank getWaterTank() {
-        return waterTank;
+    /** 本模块自身输入仓/输出仓（live 视图；输入仓供双 tank 补液，输出仓为结构要求）。 */
+    public List<MTEHatchInput> getLogisticsInputHatches() {
+        return mInputHatches;
     }
 
-    public FluidTank getChemBathTank() {
-        return chemBathTank;
+    public List<MTEHatchOutput> getLogisticsOutputHatches() {
+        return mOutputHatches;
     }
 
-    public LogisticsChain getChain() {
-        return chain;
-    }
-
-    /** 整链替换（编辑器/预设载入用）；null 安全——置为空链，保证字段永非 null。 */
-    public void setChain(LogisticsChain aChain) {
-        this.chain = (aChain != null) ? aChain : new LogisticsChain();
-    }
-
-    @Override
-    public String getUnitTypeNameKey() {
-        return "gtsr.gui.cluster.unit_type.logistics";
-    }
-
-    /** 单元 tooltip：链执行说明 + 双流体 tank + 右击入口提示（键见 gtsr.tooltip.cluster.unit.logistics.*）。 */
+    // ------------------------------------------------------------------
+    // 物理电源（默认关机 + 低温一次性通知）
+    // ------------------------------------------------------------------
 
     /**
-     * 右击分流（空手/持任意物品含枢纽终端皆同）：服务端打开集群终端并固定落到链路编辑页
-     * （{@link ClusterTerminalUiFactory#PAGE_CHAIN_EDIT}），双端均返回 true 消费事件。
-     * 空手右击不再走基类普通机器 GUI——物流模块自身无独立 GUI，集群终端即其操作界面；
-     * 总控侧空手右击仍走标准 GUI，不冲突。
-     * 注：潜行右击收不到本事件——GT BaseMetaTileEntity 在潜行时拦截右击（用于贴墙放方块），
-     * 与聚合器/枢纽同款限制（见 MTECrustMatterAggregator#onRightclick 注释）。
+     * 一次性默认关机：新放置模块首个 tick 关闭物理电源（mWorks=false）。标记 NBT 持久化
+     * （"clusterLogiPowerInit"）——区块重载再次触发 onFirstTick 时不重复关停用户已软锤复位的
+     * 模块；mWorks 本身由 BaseMetaTileEntity NBT 原生持久化。
      */
     @Override
-    public boolean onRightclick(IGregTechTileEntity aBaseMetaTileEntity, EntityPlayer aPlayer, ForgeDirection side,
-        float aX, float aY, float aZ) {
-        if (aBaseMetaTileEntity.isServerSide()) {
-            ClusterTerminalUiFactory.open(aPlayer, aBaseMetaTileEntity, ClusterTerminalUiFactory.PAGE_CHAIN_EDIT);
+    public void onFirstTick(IGregTechTileEntity aBaseMetaTileEntity) {
+        super.onFirstTick(aBaseMetaTileEntity);
+        if (aBaseMetaTileEntity == null || !aBaseMetaTileEntity.isServerSide()) return;
+        if (!powerOnInitDone) {
+            powerOnInitDone = true;
+            aBaseMetaTileEntity.disableWorking();
         }
-        return true;
     }
+
+    /** 物理电源开关（GUI/同步用）：BaseMetaTileEntity.isAllowedToWork()（mWorks）。 */
+    public boolean isPowerAllowed() {
+        IGregTechTileEntity base = getBaseMetaTileEntity();
+        return base != null && base.isAllowedToWork();
+    }
+
+    /** 本单元自身结构 tier（GUI 用公开访问器；未成型/未判定为 -1）。 */
+    public int getLogisticsStructureTier() {
+        return getUnitStructureTier();
+    }
+
+    /** 已连接集群（GUI 用）。 */
+    public boolean isClusterConnected() {
+        return cluster != null;
+    }
+
+    /**
+     * 低温一次性关机通知（E4 调用）：首次发送
+     * {@code GTSRMachineEvent.sendToOwner(ownerUuid, "gtsr.chat.cluster.temperature_low")}
+     * 并 {@code disableWorking()}；通知位 NBT 持久化（"clusterLogiLowTemp"），重复调用不刷屏
+     * （disableWorking 幂等）。复位经 {@link #onSoftHammerReset()}。
+     */
+    public void onLowTemperatureShutdown() {
+        if (!lowTempNotified) {
+            lowTempNotified = true;
+            IGregTechTileEntity base = getBaseMetaTileEntity();
+            if (base != null) {
+                GTSRMachineEvent.sendToOwner(base.getOwnerUuid(), "gtsr.chat.cluster.temperature_low");
+            }
+        }
+        IGregTechTileEntity base = getBaseMetaTileEntity();
+        if (base != null && base.isAllowedToWork()) base.disableWorking();
+    }
+
+    /** 软锤复位回调（E4 调用）：清低温通知位 + 标记链重校验（重校验本身由 E4/主控在下次执行前做）。 */
+    public void onSoftHammerReset() {
+        lowTempNotified = false;
+        markChainDirty();
+    }
+
+    /** 标记链需重校验（链内容变更/软锤复位时置位；重校验在下次执行前由 E4/主控消费）。 */
+    public void markChainDirty() {
+        this.chainDirty = true;
+    }
+
+    /** 链脏标记读取（E4/GUI 用；瞬态，不持久化）。 */
+    public boolean isChainDirty() {
+        return chainDirty;
+    }
+
+    /** 链可执行（E4 契约）：链非空 && 已连接集群 && 物理电源开 && LogisticsChain.isExecutable(topology)。 */
+    public boolean isChainExecutableNow() {
+        if (chain.isEmpty() || cluster == null) return false;
+        if (!isPowerAllowed()) return false;
+        return chain.isExecutable(cluster.getTopology());
+    }
+
+    // ------------------------------------------------------------------
+    // 状态机（电源门控优先）
+    // ------------------------------------------------------------------
 
     /**
      * 状态细化（自上而下）：
      * <ol>
-     * <li>未入集群（cluster null）→ STANDBY；</li>
-     * <li>总控停机（!{@code cluster.isMachineEnabled()}）→ STANDBY；</li>
-     * <li>链空 → STANDBY；</li>
-     * <li>链不可执行（!{@link LogisticsChain#isExecutable}，含缺工作模块/磁选热离未通电/无效形状）→
-     * NO_POWER_OR_INVALID；</li>
-     * <li>链含洗矿（ORE_WASH）/化洗（CHEM_BATH）且对应批流体不足（!{@link #hasBatchFluids}）→
-     * FLUID_MISSING（批用量：洗矿耗水 1000L、化洗耗化浴液 1000L，简易洗矿与其余 link 无批流体）；</li>
-     * <li>其余（就绪或批冷却中，{@link #getChainCooldownTicks()}＞0）→ WORKING——就绪/运行同为绿。</li>
+     * <li>未自成型 → NO_POWER_OR_INVALID；</li>
+     * <li>物理电源关闭（!isAllowedToWork()，含默认关机/低温关机/软锤关闭）→ NO_POWER_OR_INVALID
+     * （"关机/未通电"，不得显示可工作或待机）；</li>
+     * <li>未入集群 / 总控停机 / 链空 → STANDBY；</li>
+     * <li>链不可执行（!{@link LogisticsChain#isExecutable}）→ NO_POWER_OR_INVALID；</li>
+     * <li>洗矿/化洗批流体不足（!{@link #hasBatchFluids}）→ FLUID_MISSING；</li>
+     * <li>其余（就绪或批冷却中）→ WORKING。</li>
      * </ol>
      */
     @Override
     public ClusterUnitStatus getUnitStatus() {
         if (!isUnitStructureFormed()) return ClusterUnitStatus.NO_POWER_OR_INVALID;
+        if (!isPowerAllowed()) return ClusterUnitStatus.NO_POWER_OR_INVALID;
         MTESteamMineralLogisticsCluster cluster = getCluster();
         if (cluster == null) return ClusterUnitStatus.STANDBY;
         if (!cluster.isMachineEnabled()) return ClusterUnitStatus.STANDBY;
@@ -178,17 +358,74 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
         return ClusterUnitStatus.WORKING;
     }
 
-    /** 填充统一分发点：水→waterTank，非水→chemBathTank；成功写入时标记脏块。 */
+    // ------------------------------------------------------------------
+    // 双 tank 语义（plan 3.4.5：基类 mFluid 全收口）
+    // ------------------------------------------------------------------
+
+    /** 判水系（waterTank 接受面）：普通水或蒸馏水同名变体（GT5U Materials 无 DistilledWater 常量，走名称匹配）。 */
+    private static boolean isWaterLike(FluidStack aFluid) {
+        if (aFluid == null || aFluid.getFluid() == null) return false;
+        Fluid fluid = aFluid.getFluid();
+        if (fluid == FluidRegistry.WATER) return true;
+        String name = fluid.getName();
+        return "water".equalsIgnoreCase(name) || "distilledwater".equalsIgnoreCase(name)
+            || "distilled_water".equalsIgnoreCase(name);
+    }
+
+    /** 判化浴液（chemBathTank 唯一接受面）：含汞/过硫酸钠（GT5U 化学洗配方流体，Materials.mFluid 直引+名称兜底）。 */
+    private static boolean isChemBathFluid(FluidStack aFluid) {
+        if (aFluid == null || aFluid.getFluid() == null) return false;
+        Fluid fluid = aFluid.getFluid();
+        if (fluid == Materials.Mercury.mFluid || fluid == Materials.SodiumPersulfate.mFluid) return true;
+        String name = fluid.getName();
+        return "mercury".equalsIgnoreCase(name) || "sodiumpersulfate".equalsIgnoreCase(name)
+            || "sodium_persulfate".equalsIgnoreCase(name);
+    }
+
+    /** 水 tank 补液候选（蒸馏水优先，其次普通水；null 剔重）。 */
+    private static List<Fluid> waterCandidates() {
+        Set<Fluid> fluids = new LinkedHashSet<>();
+        if (FluidRegistry.getFluid("distilledwater") != null) fluids.add(FluidRegistry.getFluid("distilledwater"));
+        if (FluidRegistry.getFluid("distilled_water") != null) fluids.add(FluidRegistry.getFluid("distilled_water"));
+        if (FluidRegistry.WATER != null) fluids.add(FluidRegistry.WATER);
+        return new ArrayList<>(fluids);
+    }
+
+    /** 化浴 tank 补液候选（含汞、过硫酸钠；null 剔重）。 */
+    private static List<Fluid> chemBathCandidates() {
+        Set<Fluid> fluids = new LinkedHashSet<>();
+        if (Materials.Mercury.mFluid != null) fluids.add(Materials.Mercury.mFluid);
+        if (FluidRegistry.getFluid("mercury") != null) fluids.add(FluidRegistry.getFluid("mercury"));
+        if (Materials.SodiumPersulfate.mFluid != null) fluids.add(Materials.SodiumPersulfate.mFluid);
+        if (FluidRegistry.getFluid("sodium_persulfate") != null)
+            fluids.add(FluidRegistry.getFluid("sodium_persulfate"));
+        if (FluidRegistry.getFluid("sodiumpersulfate") != null) fluids.add(FluidRegistry.getFluid("sodiumpersulfate"));
+        return new ArrayList<>(fluids);
+    }
+
+    public FluidTank getWaterTank() {
+        return waterTank;
+    }
+
+    public FluidTank getChemBathTank() {
+        return chemBathTank;
+    }
+
+    /**
+     * 填充统一分发点（语义收紧）：水系→waterTank，化浴液→chemBathTank，其余流体一律拒收
+     * （返回 0）；成功写入时标记脏块。覆盖基类 mFluid 路径，无旁路。
+     */
     @Override
     public int fill(FluidStack aFluid, boolean doFill) {
         if (aFluid == null || aFluid.getFluid() == null || aFluid.amount <= 0 || !canTankBeFilled()) return 0;
-        FluidTank target = isWater(aFluid) ? waterTank : chemBathTank;
+        FluidTank target = isWaterLike(aFluid) ? waterTank : isChemBathFluid(aFluid) ? chemBathTank : null;
+        if (target == null) return 0;
         int filled = target.fill(aFluid, doFill);
         if (filled > 0 && doFill) markDirty();
         return filled;
     }
 
-    /** 无类型放出：化洗 tank 优先，空则放水 tank（覆盖基类 mFluid 语义）。 */
+    /** 无类型放出：化浴 tank 优先，空则放水 tank（覆盖基类 mFluid 语义）。 */
     @Override
     public FluidStack drain(int maxDrain, boolean doDrain) {
         if (maxDrain <= 0 || !canTankBeEmptied()) return null;
@@ -217,9 +454,14 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
         return null;
     }
 
-    /** 主 tank（mFluid）弃用：一切读写经双 tank 分发，杜绝基类存储旁路。 */
+    /** 基类 mFluid 主 tank 全收口（plan 3.4.5）：读写钉 null，一切存储走双 tank，无并行旁路。 */
     @Override
     public FluidStack getFillableStack() {
+        return null;
+    }
+
+    @Override
+    public FluidStack setFillableStack(FluidStack aFluid) {
         return null;
     }
 
@@ -228,7 +470,12 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
         return null;
     }
 
-    /** 兼容读数：化洗优先的非空内容视图（类型敏感 drain 兜底与 GUI 直读用）。 */
+    @Override
+    public FluidStack setDrainableStack(FluidStack aFluid) {
+        return null;
+    }
+
+    /** 兼容读数：化浴优先的非空内容视图。 */
     @Override
     public FluidStack getFluid() {
         if (chemBathTank.getFluid() != null) return chemBathTank.getFluid();
@@ -241,7 +488,13 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
         return waterTank.getFluidAmount() + chemBathTank.getFluidAmount();
     }
 
-    /** 单 tank 名义容量（管道/ME 显示用；实际总容量的双 tank 见 getTankInfo）。 */
+    /** 填充门（防御纵深）：仅水系与化浴液可入（fill 已路由，此处双保险）。 */
+    @Override
+    public boolean isFluidInputAllowed(FluidStack aFluid) {
+        return isWaterLike(aFluid) || isChemBathFluid(aFluid);
+    }
+
+    /** 单 tank 名义容量（管道/ME 显示用；实际双 tank 见 getTankInfo）。 */
     @Override
     public int getCapacity() {
         return ClusterParams.LOGISTICS_TANK_CAPACITY_L;
@@ -265,9 +518,107 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
     }
 
     /**
-     * 链配置与双 tank 持久化：链存 "clusterChain" int 数组（ChainLink.ordinal 列表，空链存空数组）；
-     * 双 tank 存 "clusterWaterTank"/"clusterChemTank"（{@link FluidTank#writeToNBT}）。super 保留基类
-     * mFluid 语义（本类恒 null，等价写空 tag，保持 NBT 对称）。
+     * 从自身输入仓向双 tank 自动补液（契约方法，onPostTick 每 20t 节流调用；也可由 E4 显式调用）：
+     * 逐仓探测候选流体（蒸馏水优先→普通水入 waterTank；含汞/过硫酸钠入 chemBathTank），
+     * 按目标 tank 剩余容量为上限，探测→实扣两段式（GTSRHatchFluidAccess 口径，3 参 UNKNOWN
+     * 实扣兼容普通仓/ME 仓）。
+     */
+    public void refillTanksFromHatches() {
+        if (!isUnitStructureFormed()) return;
+        for (MTEHatch hatch : GTUtility.validMTEList(mInputHatches)) {
+            if (hatch == null) continue;
+            refillFromHatch(hatch, waterCandidates(), waterTank);
+            refillFromHatch(hatch, chemBathCandidates(), chemBathTank);
+        }
+    }
+
+    /** 单仓补液：候选序探测→按 tank 剩余容量实扣→注入 tank；全失败静默返回。 */
+    private static void refillFromHatch(MTEHatch hatch, List<Fluid> candidates, FluidTank tank) {
+        int free = tank.getCapacity() - tank.getFluidAmount();
+        if (free <= 0) return;
+        for (Fluid fluid : candidates) {
+            FluidStack probed = GTSRHatchFluidAccess.probeFluidAmount(hatch, fluid, free);
+            if (probed == null || probed.amount <= 0) continue;
+            FluidStack drained = hatch.drain(ForgeDirection.UNKNOWN, new FluidStack(fluid, probed.amount), true);
+            if (drained == null || drained.amount <= 0) continue;
+            tank.fill(drained, true);
+            return;
+        }
+    }
+
+    /** 每 20t 节流补液（服务端；结构未成型时 refill 内部自短路）。 */
+    @Override
+    public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTimer) {
+        super.onPostTick(aBaseMetaTileEntity, aTimer);
+        if (aBaseMetaTileEntity != null && aBaseMetaTileEntity.isServerSide() && aTimer % 20 == 0) {
+            refillTanksFromHatches();
+        }
+    }
+
+    // ------------------------------------------------------------------
+    // 链持有与交互（编辑入口只经集群 UI）
+    // ------------------------------------------------------------------
+
+    public LogisticsChain getChain() {
+        return chain;
+    }
+
+    /** 整链替换（集群链编辑页/预设载入用）；null 安全——置为空链，并标记链重校验。 */
+    public void setChain(LogisticsChain aChain) {
+        this.chain = (aChain != null) ? aChain : new LogisticsChain();
+        markChainDirty();
+    }
+
+    /** 朝向透传（等价 getBaseMetaTileEntity().getFrontFacing()）。 */
+    public ForgeDirection getFrontFacing() {
+        return getBaseMetaTileEntity().getFrontFacing();
+    }
+
+    @Override
+    public String getUnitTypeNameKey() {
+        return "gtsr.gui.cluster.unit_type.logistics";
+    }
+
+    /**
+     * 右击分流（空手/持任意物品皆同）：服务端打开自身 GUI stub
+     * （{@link MTEBasicLogisticsUnitGui.LogisticsUnitGuiFactory#open}），双端均返回 true 消费事件。
+     * 不再跳转集群终端链编辑页——链编辑职责只经集群 UI；本 GUI 为最小状态页（批2 E6 全量重写）。
+     * 注：潜行右击收不到本事件——GT BaseMetaTileEntity 在潜行时拦截右击（用于贴墙放方块）。
+     */
+    @Override
+    public boolean onRightclick(IGregTechTileEntity aBaseMetaTileEntity, EntityPlayer aPlayer, ForgeDirection side,
+        float aX, float aY, float aZ) {
+        if (aBaseMetaTileEntity.isServerSide()) {
+            MTEBasicLogisticsUnitGui.LogisticsUnitGuiFactory.open(aPlayer, this);
+        }
+        return true;
+    }
+
+    // ------------------------------------------------------------------
+    // 贴图（正面拆解机叠层，经基类 E2a 钩子；底材随 tier 四档联动由基类 getTexture 承载）
+    // ------------------------------------------------------------------
+
+    /** 前脸停机叠层（基类钩子覆写：拆解机停机贴图）。 */
+    @Override
+    protected IIconContainer unitOverlayInactive() {
+        return UNIT_OVERLAY_INACTIVE;
+    }
+
+    /** 前脸运行叠层（基类钩子覆写：拆解机运行贴图；active 由基类 isUnitRunning 驱动，随物理电源联动）。 */
+    @Override
+    protected IIconContainer unitOverlayActive() {
+        return UNIT_OVERLAY_ACTIVE;
+    }
+
+    // ------------------------------------------------------------------
+    // NBT 持久化
+    // ------------------------------------------------------------------
+
+    /**
+     * 链/双 tank/电源与通知位持久化：链存 "clusterChain" int 数组（ChainLink.ordinal，空链空数组）；
+     * 双 tank 存 "clusterWaterTank"/"clusterChemTank"；一次性电源初始化标记存 "clusterLogiPowerInit"
+     * （防重载复关）；低温通知位存 "clusterLogiLowTemp"（防重载重发）。super 保留基类 mFluid 语义
+     * （本类恒 null，不落 tag，无并行写入旁路）。
      */
     @Override
     public void saveNBTData(NBTTagCompound aNBT) {
@@ -281,12 +632,14 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
         aNBT.setIntArray("clusterChain", ordinals);
         aNBT.setTag("clusterWaterTank", waterTank.writeToNBT(new NBTTagCompound()));
         aNBT.setTag("clusterChemTank", chemBathTank.writeToNBT(new NBTTagCompound()));
+        aNBT.setBoolean("clusterLogiPowerInit", powerOnInitDone);
+        aNBT.setBoolean("clusterLogiLowTemp", lowTempNotified);
     }
 
     /**
-     * 回读对称：按 ordinal 反解链并整链重建（new LogisticsChain() + setLinks，越界 ordinal 静默丢弃），
-     * 双 tank 经 {@link FluidTank#readFromNBT} 恢复；tag 缺失时 getIntArray 回空数组、getCompoundTag
-     * 回空 tag，天然回退空链/空 tank，不崩。
+     * 回读对称：按 ordinal 反解链整链重建（越界 ordinal 静默丢弃）；双 tank 经
+     * {@link FluidTank#readFromNBT} 恢复；两个标记位回读（缺失时回 false）。tag 缺失天然回退
+     * 空链/空 tank/false，不崩。
      */
     @Override
     public void loadNBTData(NBTTagCompound aNBT) {
@@ -298,15 +651,21 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
             if (ordinal >= 0 && ordinal < values.length) parsed.add(values[ordinal]);
         }
         rebuilt.setLinks(parsed);
-        setChain(rebuilt);
+        chain = rebuilt;
         waterTank.readFromNBT(aNBT.getCompoundTag("clusterWaterTank"));
         chemBathTank.readFromNBT(aNBT.getCompoundTag("clusterChemTank"));
+        powerOnInitDone = aNBT.getBoolean("clusterLogiPowerInit");
+        lowTempNotified = aNBT.getBoolean("clusterLogiLowTemp");
     }
+
+    // ------------------------------------------------------------------
+    // 批冷却（ClusterChainExecutor 节拍）
+    // ------------------------------------------------------------------
 
     /**
      * 批处理冷却剩余 tick：每批执行后由 ClusterChainExecutor 置为 max(20, 本批耗时秒×20)，
      * 总控每 20t 统一 -20，≤0 且全部门控通过才可再执行一批。不持久化——重载/重摆后从零
-     * 开始（冷却只是节拍器，非玩家资产），不入 {@link #saveNBTData}。
+     * 开始（冷却只是节拍器，非玩家资产）。
      */
     private long chainCooldownTicks;
 

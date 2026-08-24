@@ -1,5 +1,7 @@
 package com.miaokatze.gtsr.common.machine.cluster;
 
+import gregtech.api.enums.Textures;
+import gregtech.api.interfaces.IIconContainer;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
 
@@ -33,6 +35,17 @@ public class MTEUnitCentrifuge extends MTEBasicProcessingUnit {
     @Override
     public String getUnitTypeNameKey() {
         return "gtsr.gui.cluster.unit_type.centrifuge";
+    }
+
+    /** overlay：GT5U 蒸汽离心机前脸 inactive/active（仅 base+ACTIVE 有 PNG，禁 glow 变体）。 */
+    @Override
+    public IIconContainer unitOverlayInactive() {
+        return Textures.BlockIcons.OVERLAY_FRONT_STEAM_CENTRIFUGE;
+    }
+
+    @Override
+    public IIconContainer unitOverlayActive() {
+        return Textures.BlockIcons.OVERLAY_FRONT_STEAM_CENTRIFUGE_ACTIVE;
     }
 
     /** tooltip：类型行 + 解锁链步行 + 放置提示，AddedBy 收尾（写法对齐 MTESteamInputHatchGeneric）。 */

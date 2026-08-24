@@ -17,16 +17,16 @@ import org.apache.commons.lang3.tuple.Pair;
 import com.google.common.collect.ImmutableList;
 import com.gtnewhorizon.structurelib.alignment.constructable.ISurvivalConstructable;
 import com.gtnewhorizon.structurelib.structure.IStructureDefinition;
+import com.gtnewhorizon.structurelib.structure.IStructureElement;
 import com.gtnewhorizon.structurelib.structure.ISurvivalBuildEnvironment;
-import com.gtnewhorizon.structurelib.structure.ITierConverter;
 import com.gtnewhorizon.structurelib.structure.StructureDefinition;
 import com.gtnewhorizons.modularui.common.fluid.FluidStackTank;
 import com.miaokatze.gtsr.common.machine.base.MTEGTSRMultiBlockBase;
 
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Textures;
+import gregtech.api.interfaces.IIconContainer;
 import gregtech.api.interfaces.ITexture;
-import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.recipe.check.CheckRecipeResult;
 import gregtech.api.recipe.check.CheckRecipeResultRegistry;
@@ -41,6 +41,26 @@ import gregtech.api.util.MultiblockTooltipBuilder;
  * <p>
  * 单元自身先独立成型，才可由集群总控的 F 槽收集。结构未成型时，状态为红色且所有能力闸门关闭；
  * 集群侧的 collect/connect、周期重连和读档重连仍沿用原有双向引用契约。
+ *
+ * <p>
+ * tier 分族（3.4.4）：A 外壳 / B 齿轮箱 / C 管道 / D 框架各族独立记录匹配 tier，
+ * {@link #checkMachine} 开头 {@link #resetTierFamilies()} 全复位，结构检查后所有参与 tier 判定的
+ * 族必须存在且同级才得出 {@link #getUnitStructureTier()}——跨 tier 混搭不成型；主控下发的集群
+ * tier 经 clusterTier 独立保存（{@link #getClusterTier()}），{@link #isTierValidForConnection()}
+ * 要求两者一致。单元底材贴图、增幅数值、物流链蒸汽 tier 取单元自身已验证 tier；集群拓扑仍以
+ * 主控结构 tier 为全局等级。
+ *
+ * <p>
+ * 零内部容量（3.4.5）：16000L 通用内部槽改为可选——{@link #enableInternalFluidTank()} 仅增幅
+ * 子类构造期启用；加工/物流子类不启用并覆写 {@link #getCapacity()}/{@link #getFillableStack()}/
+ * {@link #getDrainableStack()}/{@link #fill(FluidStack, boolean)}/{@link #drain(int, boolean)}/
+ * {@link #getTankInfo(ForgeDirection)} 及 NBT tank 路径收紧为拒绝/空（详见各方法契约注释）。
+ *
+ * <p>
+ * 独立运行信号（3.4.6）：{@link #onPostTick} 服务端末尾以 {@link #isUnitRunning()} 驱动
+ * {@code setActive}（范式同 MTESingularityDrillingHub），不复用 {@link #checkProcessing()}
+ * （恒 NO_RECIPE）；底材贴图随 unitStructureTier 四档联动（客户端 byte 通道镜像 + NBT 兜底，
+ * 范式同 MTELargeSteamFurnace）。
  */
 public abstract class MTEClusterUnitBase<T extends MTEClusterUnitBase<T>> extends MTEGTSRMultiBlockBase<T>
     implements ISurvivalConstructable {
@@ -55,19 +75,19 @@ public abstract class MTEClusterUnitBase<T extends MTEClusterUnitBase<T>> extend
         Pair.of(GregTechAPI.sBlockCasings4, 2),
         Pair.of(GregTechAPI.sBlockCasings4, 0));
 
-    /** B 管道族：与集群总控相同的四档 tier 顺序。 */
+    /** B 齿轮箱族：gt.blockcasings2 meta 2/3/4/5（青铜/钢/钛/钨钢齿轮箱），与管道族语义严格分离。 */
+    private static final List<Pair<Block, Integer>> GEARBOX_FAMILY = ImmutableList.of(
+        Pair.of(GregTechAPI.sBlockCasings2, 2),
+        Pair.of(GregTechAPI.sBlockCasings2, 3),
+        Pair.of(GregTechAPI.sBlockCasings2, 4),
+        Pair.of(GregTechAPI.sBlockCasings2, 5));
+
+    /** C 管道族：与集群总控相同的四档 tier 顺序。 */
     private static final List<Pair<Block, Integer>> PIPE_FAMILY = ImmutableList.of(
         Pair.of(GregTechAPI.sBlockCasings2, 12),
         Pair.of(GregTechAPI.sBlockCasings2, 13),
         Pair.of(GregTechAPI.sBlockCasings2, 14),
         Pair.of(GregTechAPI.sBlockCasings2, 15));
-
-    /** C 燃烧室族：与集群总控相同的四档 tier 顺序。 */
-    private static final List<Pair<Block, Integer>> FIREBOX_FAMILY = ImmutableList.of(
-        Pair.of(GregTechAPI.sBlockCasings3, 13),
-        Pair.of(GregTechAPI.sBlockCasings3, 14),
-        Pair.of(GregTechAPI.sBlockCasings4, 3),
-        Pair.of(GregTechAPI.sBlockCasings3, 15));
 
     /** D 框架族：与集群总控相同的四档 tier 顺序。 */
     private static final List<Pair<Block, Integer>> FRAME_FAMILY = ImmutableList.of(
@@ -76,20 +96,41 @@ public abstract class MTEClusterUnitBase<T extends MTEClusterUnitBase<T>> extend
         Pair.of(GregTechAPI.sBlockFrames, 28),
         Pair.of(GregTechAPI.sBlockFrames, 316));
 
-    /** 单元自持小型流体槽，保留原 MTEBasicTank 公有 tank API。 */
+    /**
+     * tier→外壳底材纹理索引（3.5.2）：0 青铜镀铜砖 / 1 钢 / 2 钛 / 3 钨钢。类加载期一次解析，
+     * getTexture 体内零动态贴图查找（NEI 红线），底材四档切换经此常量表。
+     */
+    private static final int[] TIER_CASING_TEXTURE_IDS = {
+        GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings1, 10),
+        GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings2, 0),
+        GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings4, 2),
+        GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings4, 0) };
+
+    /** 内部流体槽内容（增幅缓冲，3.4.5 增幅子类豁免）；未启用内部槽的子类恒为 null。 */
     protected FluidStack mFluid;
-    public final FluidStackTank fluidTank = new FluidStackTank(
-        () -> mFluid,
-        fluid -> mFluid = fluid,
-        this::getRealCapacity);
+
+    /** 可选内部 tank 视图；仅 {@link #enableInternalFluidTank()}（增幅子类构造期）启用，默认 null。 */
+    protected FluidStackTank fluidTank;
 
     /** 所属集群总控引用；未入集群时为 null。 */
     protected MTESteamMineralLogisticsCluster cluster;
 
-    /** 集群结构 tier 下标；未被总控成型扫描收集时为 -1。 */
-    protected int structureTier = -1;
+    /** 主控下发的集群 tier；未收集时为 -1（运行期由总控重下发，不入 NBT）。 */
+    protected int clusterTier = -1;
 
-    /** 本单元自身多方块的 A 族 tier，仅供自身结构校验，绝不覆盖总控下发的 structureTier。 */
+    /** A 外壳族本次成型匹配的 tier；未参与/未复位后为 -1。 */
+    private int casingFamilyTier = -1;
+
+    /** B 齿轮箱族本次成型匹配的 tier；未参与为 -1。 */
+    private int gearboxFamilyTier = -1;
+
+    /** C 管道族本次成型匹配的 tier；未参与为 -1。 */
+    private int pipeFamilyTier = -1;
+
+    /** D 框架族本次成型匹配的 tier；未参与为 -1。 */
+    private int frameFamilyTier = -1;
+
+    /** 单元自身多方块验证后的 tier（分族同级校验通过才落值）；客户端经 byte 通道镜像用于贴图。 */
     private int unitStructureTier = -1;
 
     /** 所在总控 F 垫位；未收集时为 -1。 */
@@ -120,57 +161,82 @@ public abstract class MTEClusterUnitBase<T extends MTEClusterUnitBase<T>> extend
 
     protected abstract int getStructureOffsetC();
 
+    @SuppressWarnings({ "rawtypes", "unchecked" })
     @Override
     public IStructureDefinition<T> getStructureDefinition() {
         StructureDefinition.Builder<T> builder = StructureDefinition.<T>builder()
             .addShape(STRUCTURE_PIECE_MAIN, getUnitShape())
-            .addElement(
-                'A',
-                ofBlocksTiered(
-                    MTEClusterUnitBase::getCasingTier,
-                    CASING_FAMILY,
-                    -1,
-                    (t, tier) -> t.onUnitStructureTier(tier),
-                    T::getUnitStructureTier));
+            .addElement('A', tieredCasingElement());
         addUnitStructureElements(builder);
         return builder.build();
     }
 
-    /** 子结构成型时的 tier 回调，同样是总控对外冻结 API 的状态字段。 */
-    protected final void onUnitStructureTier(int tier) {
-        unitStructureTier = tier;
+    /** checkMachine 开头调用：全部 tier 分族与派生 unitStructureTier 复位 -1，杜绝上次扫描残留。 */
+    protected void resetTierFamilies() {
+        casingFamilyTier = -1;
+        gearboxFamilyTier = -1;
+        pipeFamilyTier = -1;
+        frameFamilyTier = -1;
+        unitStructureTier = -1;
     }
 
-    protected final int getUnitStructureTier() {
-        return unitStructureTier;
-    }
-
+    /** A 外壳族 tier 元素（青铜/钢/钛/钨钢四档）：匹配写 casingFamilyTier，提示读该族当前 tier。 */
     @SuppressWarnings({ "rawtypes", "unchecked" })
-    protected static void addPipeElement(StructureDefinition.Builder builder) {
-        addTieredElement(builder, 'B', PIPE_FAMILY, MTEClusterUnitBase::getPipeTier);
+    protected IStructureElement tieredCasingElement() {
+        return ofBlocksTiered(
+            MTEClusterUnitBase::getCasingTier,
+            CASING_FAMILY,
+            -1,
+            (MTEClusterUnitBase t, Integer tier) -> t.casingFamilyTier = tier,
+            (MTEClusterUnitBase t) -> t.casingFamilyTier);
     }
 
+    /**
+     * B 齿轮箱族 tier 元素（gt.blockcasings2 meta 2/3/4/5）：新建 helper，不复用/不污染现有
+     * 管道族（meta 12-15）语义。匹配写 gearboxFamilyTier。
+     */
     @SuppressWarnings({ "rawtypes", "unchecked" })
-    protected static void addFireboxElement(StructureDefinition.Builder builder) {
-        addTieredElement(builder, 'C', FIREBOX_FAMILY, MTEClusterUnitBase::getFireboxTier);
+    protected IStructureElement tieredGearboxElement() {
+        return ofBlocksTiered(
+            MTEClusterUnitBase::getGearboxTier,
+            GEARBOX_FAMILY,
+            -1,
+            (MTEClusterUnitBase t, Integer tier) -> t.gearboxFamilyTier = tier,
+            (MTEClusterUnitBase t) -> t.gearboxFamilyTier);
     }
 
+    /** C 管道族 tier 元素（gt.blockcasings2 meta 12/13/14/15）：匹配写 pipeFamilyTier。 */
     @SuppressWarnings({ "rawtypes", "unchecked" })
-    protected static void addFrameElement(StructureDefinition.Builder builder) {
-        addTieredElement(builder, 'D', FRAME_FAMILY, MTEClusterUnitBase::getFrameTier);
+    protected IStructureElement tieredPipeElement() {
+        return ofBlocksTiered(
+            MTEClusterUnitBase::getPipeTier,
+            PIPE_FAMILY,
+            -1,
+            (MTEClusterUnitBase t, Integer tier) -> t.pipeFamilyTier = tier,
+            (MTEClusterUnitBase t) -> t.pipeFamilyTier);
     }
 
+    /** D 框架族 tier 元素：匹配写 frameFamilyTier。 */
     @SuppressWarnings({ "rawtypes", "unchecked" })
-    private static void addTieredElement(StructureDefinition.Builder builder, char key,
-        List<Pair<Block, Integer>> family, ITierConverter<Integer> resolver) {
-        builder.addElement(
-            key,
-            ofBlocksTiered(
-                resolver,
-                family,
-                -1,
-                (MTEClusterUnitBase t, Integer tier) -> t.onUnitStructureTier(tier),
-                (MTEClusterUnitBase t) -> t.getUnitStructureTier()));
+    protected IStructureElement tieredFrameElement() {
+        return ofBlocksTiered(
+            MTEClusterUnitBase::getFrameTier,
+            FRAME_FAMILY,
+            -1,
+            (MTEClusterUnitBase t, Integer tier) -> t.frameFamilyTier = tier,
+            (MTEClusterUnitBase t) -> t.frameFamilyTier);
+    }
+
+    /** 过渡 helper：'B'=管道族（E2b 后子类改用 tieredGearboxElement()/tieredPipeElement()）。 */
+    @SuppressWarnings("rawtypes")
+    protected void addPipeElement(StructureDefinition.Builder builder) {
+        builder.addElement('B', tieredPipeElement());
+    }
+
+    /** 过渡 helper：'D'=框架族。 */
+    @SuppressWarnings("rawtypes")
+    protected void addFrameElement(StructureDefinition.Builder builder) {
+        builder.addElement('D', tieredFrameElement());
     }
 
     private static Integer getCasingTier(Block block, int meta) {
@@ -181,22 +247,21 @@ public abstract class MTEClusterUnitBase<T extends MTEClusterUnitBase<T>> extend
         return null;
     }
 
+    private static Integer getGearboxTier(Block block, int meta) {
+        if (block != GregTechAPI.sBlockCasings2) return null;
+        if (meta == 2) return 0;
+        if (meta == 3) return 1;
+        if (meta == 4) return 2;
+        if (meta == 5) return 3;
+        return null;
+    }
+
     private static Integer getPipeTier(Block block, int meta) {
         if (block != GregTechAPI.sBlockCasings2) return null;
         if (meta == 12) return 0;
         if (meta == 13) return 1;
         if (meta == 14) return 2;
         if (meta == 15) return 3;
-        return null;
-    }
-
-    private static Integer getFireboxTier(Block block, int meta) {
-        if (block == GregTechAPI.sBlockCasings3) {
-            if (meta == 13) return 0;
-            if (meta == 14) return 1;
-            if (meta == 15) return 3;
-        }
-        if (block == GregTechAPI.sBlockCasings4 && meta == 3) return 2;
         return null;
     }
 
@@ -237,16 +302,43 @@ public abstract class MTEClusterUnitBase<T extends MTEClusterUnitBase<T>> extend
 
     @Override
     public void checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack, List<StructureError> errors) {
-        unitStructureTier = -1;
+        resetTierFamilies();
         if (!checkPiece(
             STRUCTURE_PIECE_MAIN,
             getStructureOffsetA(),
             getStructureOffsetB(),
             getStructureOffsetC(),
             errors)) return;
-        if (unitStructureTier < 0) {
+        int resolved = resolveUnitStructureTier();
+        if (resolved == -1) {
             errors.add(gregtech.api.structure.error.StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            return;
         }
+        if (resolved == -2) {
+            errors.add(new ClusterStructureError("gtsr.gui.cluster.structure.tier_mismatch"));
+            return;
+        }
+        unitStructureTier = resolved;
+    }
+
+    /**
+     * 结构后验证（3.4.4）：收集本次成型实际写入的各族 tier（≥0 者参与判定；结构未用到该族的
+     * 单元形态合法，不强制参与）。参与族必须全部同级，否则跨 tier 混搭不成型。
+     *
+     * @return 同级 tier；无任何参与族返回 -1；跨 tier 混搭返回 -2
+     */
+    private int resolveUnitStructureTier() {
+        int[] familyTiers = { casingFamilyTier, gearboxFamilyTier, pipeFamilyTier, frameFamilyTier };
+        int resolved = -1;
+        for (int familyTier : familyTiers) {
+            if (familyTier < 0) continue;
+            if (resolved < 0) {
+                resolved = familyTier;
+            } else if (resolved != familyTier) {
+                return -2;
+            }
+        }
+        return resolved;
     }
 
     /** 总控结构元素收集时调用：记录所属集群引用。 */
@@ -283,13 +375,31 @@ public abstract class MTEClusterUnitBase<T extends MTEClusterUnitBase<T>> extend
         return segmentIndex;
     }
 
-    /** 总控在自身结构完全成型后下发统一 tier。 */
+    /** 总控在自身结构完全成型后下发统一 tier（clusterTier 写入口，与单元自身 tier 分开保存）。 */
     public void onStructureTier(int tier) {
-        this.structureTier = tier;
+        this.clusterTier = tier;
     }
 
     public int getStructureTier() {
-        return structureTier;
+        return clusterTier;
+    }
+
+    /** @return 主控下发的集群 tier；未关联/未下发时为 -1。 */
+    public int getClusterTier() {
+        return clusterTier;
+    }
+
+    /**
+     * @return 单元自身验证后的结构 tier（分族同级校验通过才 ≥0；未成型为 -1）。该 tier 驱动底材
+     *         贴图、增幅数值与物流链蒸汽 tier，与 {@link #getClusterTier()} 分离保存。
+     */
+    public int getUnitStructureTier() {
+        return unitStructureTier;
+    }
+
+    /** 连接 tier 资格（3.4.4）：单元自身成型且自身 tier 与主控下发 tier 一致才为 true。 */
+    public boolean isTierValidForConnection() {
+        return unitStructureTier >= 0 && unitStructureTier == clusterTier;
     }
 
     /** 单元多方块自身是否成型。 */
@@ -302,17 +412,59 @@ public abstract class MTEClusterUnitBase<T extends MTEClusterUnitBase<T>> extend
         return cluster != null && mMachine;
     }
 
+    /**
+     * 独立运行信号（3.4.6）：基类口径 = 自身结构成型 && 已连接集群 && 总闸允许工作。
+     * 加工/热离/磁选子类覆写扩展（追加独立运行条件与能源自支付判定）；本方法只读字段，
+     * 不触发结构重检或配方检查。
+     */
+    public boolean isUnitRunning() {
+        return mMachine && cluster != null
+            && getBaseMetaTileEntity() != null
+            && getBaseMetaTileEntity().isAllowedToWork();
+    }
+
+    /**
+     * 运行信号驱动（3.4.6，范式同 MTESingularityDrillingHub）：super.onPostTick 以
+     * mMaxProgresstime&gt;0 置 active，而本族 {@link #checkProcessing()} 恒 NO_RECIPE，
+     * 故服务端末尾直接以 {@link #isUnitRunning()} 覆写 active（setActive 触发贴图包同步）。
+     * 不以 getUnitStatus() 作为 active 来源，避免递归/周期检查。
+     */
+    @Override
+    public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
+        super.onPostTick(aBaseMetaTileEntity, aTick);
+        if (aBaseMetaTileEntity.isServerSide()) {
+            aBaseMetaTileEntity.setActive(isUnitRunning());
+        }
+    }
+
     public abstract String getUnitTypeNameKey();
 
-    /** 未成型优先显示红色，避免总控收集到尚未成型的控制器时误显示可用。 */
+    /** 未成型优先显示红色，避免总控收集到尚未成型的控制器时误显示可用；只读字段，不触发任何重检。 */
     public ClusterUnitStatus getUnitStatus() {
         if (!mMachine) return ClusterUnitStatus.NO_POWER_OR_INVALID;
         return cluster == null ? ClusterUnitStatus.STANDBY : ClusterUnitStatus.WORKING;
     }
 
-    /** MTEBasicTank 兼容访问器。 */
+    /** MTEBasicTank 兼容访问器（内部槽未启用时为 null 视图，调用方需自理）。 */
     public FluidStackTank getFluidTank() {
         return fluidTank;
+    }
+
+    /**
+     * 启用可选内部流体槽（3.4.5 增幅豁免）：仅增幅子类构造期调用一次；加工/物流子类不调用——
+     * 它们覆写 {@link #getCapacity()}/{@link #getFillableStack()}/{@link #getDrainableStack()}/
+     * {@link #fill(FluidStack, boolean)}/{@link #drain(int, boolean)}/{@link #getTankInfo(ForgeDirection)}
+     * 与 saveNBTData/loadNBTData 的 tank 路径为拒绝/空。重复调用幂等。
+     */
+    protected void enableInternalFluidTank() {
+        if (fluidTank == null) {
+            fluidTank = new FluidStackTank(() -> mFluid, fluid -> mFluid = fluid, this::getRealCapacity);
+        }
+    }
+
+    /** @return 16000L 通用内部槽是否启用（默认关闭，仅增幅子类构造期开启）。 */
+    protected boolean isInternalFluidTankEnabled() {
+        return fluidTank != null;
     }
 
     @Override
@@ -350,16 +502,24 @@ public abstract class MTEClusterUnitBase<T extends MTEClusterUnitBase<T>> extend
         return true;
     }
 
+    /**
+     * tank 收口契约（3.4.5）：基类默认 = 内部槽启用才有 16000L 名义容量，未启用为 0（零内部
+     * 容量）；增幅子类启用内部槽并可覆写为增幅缓冲容量，加工/物流子类覆写收紧（拒绝/空）。
+     */
     public int getCapacity() {
-        return TANK_CAPACITY;
+        return isInternalFluidTankEnabled() ? TANK_CAPACITY : 0;
     }
 
     public boolean isFluidInputAllowed(FluidStack aFluid) {
         return true;
     }
 
+    /**
+     * tank 收口契约：内部槽未启用恒 null；增幅子类经启用后的 mFluid 增幅缓冲读取，加工/物流
+     * 子类覆写钉 null（物流另有双 tank 视图）。
+     */
     public FluidStack getFillableStack() {
-        return mFluid;
+        return isInternalFluidTankEnabled() ? mFluid : null;
     }
 
     public FluidStack setFillableStack(FluidStack aFluid) {
@@ -367,8 +527,9 @@ public abstract class MTEClusterUnitBase<T extends MTEClusterUnitBase<T>> extend
         return mFluid;
     }
 
+    /** tank 收口契约：同 {@link #getFillableStack()}。 */
     public FluidStack getDrainableStack() {
-        return mFluid;
+        return isInternalFluidTankEnabled() ? mFluid : null;
     }
 
     public FluidStack setDrainableStack(FluidStack aFluid) {
@@ -385,9 +546,14 @@ public abstract class MTEClusterUnitBase<T extends MTEClusterUnitBase<T>> extend
         return fluid == null ? 0 : fluid.amount;
     }
 
+    /**
+     * tank 收口契约：内部槽未启用恒拒收（0）；增幅子类启用后按锁定流体闸门
+     * （{@link #isFluidInputAllowed}）放行；加工/物流子类覆写为拒绝/自有 tank 分发。
+     */
     public int fill(FluidStack aFluid, boolean doFill) {
         if (aFluid == null || aFluid.getFluid() == null
             || aFluid.amount <= 0
+            || !isInternalFluidTankEnabled()
             || !canTankBeFilled()
             || !isFluidInputAllowed(aFluid)) return 0;
         if (mFluid == null || mFluid.getFluid() != aFluid.getFluid()) {
@@ -408,8 +574,9 @@ public abstract class MTEClusterUnitBase<T extends MTEClusterUnitBase<T>> extend
         return filled;
     }
 
+    /** tank 收口契约：内部槽未启用恒 null；增幅子类正常放出，加工/物流子类覆写为拒绝/自有 tank。 */
     public FluidStack drain(int maxDrain, boolean doDrain) {
-        if (maxDrain <= 0 || mFluid == null || !canTankBeEmptied()) return null;
+        if (maxDrain <= 0 || mFluid == null || !canTankBeEmptied() || !isInternalFluidTankEnabled()) return null;
         int drainedAmount = Math.min(maxDrain, mFluid.amount);
         FluidStack drained = mFluid.copy();
         drained.amount = drainedAmount;
@@ -426,7 +593,12 @@ public abstract class MTEClusterUnitBase<T extends MTEClusterUnitBase<T>> extend
         return drain(maxDrain, doDrain);
     }
 
+    /**
+     * tank 收口契约：内部槽未启用返回空数组（对外零 tank 暴露）；增幅子类返回内部槽信息，
+     * 加工/物流子类覆写为空/自有双 tank 信息。
+     */
     public FluidTankInfo[] getTankInfo(ForgeDirection side) {
+        if (!isInternalFluidTankEnabled()) return new FluidTankInfo[0];
         return new FluidTankInfo[] { new FluidTankInfo(mFluid, getCapacity()) };
     }
 
@@ -434,12 +606,27 @@ public abstract class MTEClusterUnitBase<T extends MTEClusterUnitBase<T>> extend
     public void saveNBTData(NBTTagCompound aNBT) {
         super.saveNBTData(aNBT);
         if (mFluid != null) aNBT.setTag("mFluid", mFluid.writeToNBT(new NBTTagCompound()));
+        aNBT.setInteger("unitStructureTier", unitStructureTier);
     }
 
     @Override
     public void loadNBTData(NBTTagCompound aNBT) {
         super.loadNBTData(aNBT);
-        mFluid = FluidStack.loadFluidStackFromNBT(aNBT.getCompoundTag("mFluid"));
+        // tank 收口契约：内部槽未启用的子类不回读 mFluid，杜绝旧存档通用流体经基类旁路复活。
+        mFluid = isInternalFluidTankEnabled() ? FluidStack.loadFluidStackFromNBT(aNBT.getCompoundTag("mFluid")) : null;
+        // 旧档无 tier 键时回 -1；服务端下次 checkMachine 会按分族校验重derive。
+        unitStructureTier = aNBT.hasKey("unitStructureTier") ? aNBT.getInteger("unitStructureTier") : -1;
+    }
+
+    /** 客户端 byte 通道：镜像服务端 unitStructureTier 供 getTexture 渲染（MTELargeSteamFurnace 范式）。 */
+    @Override
+    public void onValueUpdate(byte aValue) {
+        unitStructureTier = aValue;
+    }
+
+    @Override
+    public byte getUpdateData() {
+        return (byte) unitStructureTier;
     }
 
     /** 单元只充当结构与能力控制器，永不走 GT 配方执行。 */
@@ -454,21 +641,41 @@ public abstract class MTEClusterUnitBase<T extends MTEClusterUnitBase<T>> extend
     }
 
     /**
-     * 单元控制器贴图（12 变体统一继承本实现，不各自覆写）：底材镀铜砖块
-     * （gregtech:gt.blockcasings meta10 = Casing_BronzePlatedBricks）+ 正面采矿钻头叠层
-     * （OVERLAY_FRONT_ORE_DRILL）区分启停，范式对齐总控与 MTECrustMatterAggregator。
+     * 单元贴图（3.5.2 tier 底材联动）：底材随 unitStructureTier 四档切换（青铜/钢/钛/钨钢，客户端
+     * 经 byte 通道镜像 + NBT 兜底）；前脸叠 {@link #unitOverlayInactive()}/{@link #unitOverlayActive()}
+     * 子类静态常量（IIconContainer，与 GT getActiveOverlay/getInactiveOverlay 钩子口径一致），
+     * 缺 overlay（null）时只返回底材不崩。
+     * <p>
+     * NEI 安全红线：方法体内零 icon 分配（无 customOptional/new CustomIcon）、零 aBaseMetaTileEntity
+     * 解引用、零动态贴图查找——底材索引取自类加载期常量表，叠层经子类覆写的静态常量回调经
+     * {@code TextureFactory.of(IIconContainer)} 包装（GT 内置常量包装件，非新分配 icon）。
      */
     @Override
     public ITexture[] getTexture(IGregTechTileEntity aBaseMetaTileEntity, ForgeDirection side, ForgeDirection facing,
         int colorIndex, boolean active, boolean redstone) {
-        int casingIndex = GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings1, 10);
+        ITexture baseCasing = Textures.BlockIcons.getCasingTextureForId(casingTextureIdForTier(unitStructureTier));
         if (side == facing) {
-            return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(casingIndex),
-                TextureFactory.of(
-                    active ? Textures.BlockIcons.OVERLAY_FRONT_ORE_DRILL_ACTIVE
-                        : Textures.BlockIcons.OVERLAY_FRONT_ORE_DRILL) };
+            IIconContainer overlay = active ? unitOverlayActive() : unitOverlayInactive();
+            return overlay == null ? new ITexture[] { baseCasing }
+                : new ITexture[] { baseCasing, TextureFactory.of(overlay) };
         }
-        return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(casingIndex) };
+        return new ITexture[] { baseCasing };
+    }
+
+    /** 前脸 inactive 叠层；基类无叠层返回 null，子类返回本类 static final IIconContainer 常量。 */
+    protected IIconContainer unitOverlayInactive() {
+        return null;
+    }
+
+    /** 前脸 active 叠层；基类无叠层返回 null，子类返回本类 static final IIconContainer 常量。 */
+    protected IIconContainer unitOverlayActive() {
+        return null;
+    }
+
+    /** tier → 外壳底材纹理索引（0 青铜镀铜砖 / 1 钢 / 2 钛 / 3 钨钢）；越界/未成型回退青铜。 */
+    protected int casingTextureIdForTier(int tier) {
+        if (tier < 0 || tier >= TIER_CASING_TEXTURE_IDS.length) return TIER_CASING_TEXTURE_IDS[0];
+        return TIER_CASING_TEXTURE_IDS[tier];
     }
 
     @Override
@@ -479,7 +686,4 @@ public abstract class MTEClusterUnitBase<T extends MTEClusterUnitBase<T>> extend
             .addController(StatCollector.translateToLocal("gtsr.tooltip.cluster.unit.pad_hint"))
             .toolTipFinisher("GTSR");
     }
-
-    @Override
-    public abstract IMetaTileEntity newMetaEntity(IGregTechTileEntity aTileEntity);
 }

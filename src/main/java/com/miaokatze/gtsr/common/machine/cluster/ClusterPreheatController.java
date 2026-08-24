@@ -17,7 +17,8 @@ import net.minecraft.nbt.NBTTagCompound;
  * <li>AmmoniaPlant 每 20 tick 整数阶梯增减；本类每 tick 以 double 连续累计，速率由
  * {@link ClusterParams#PREHEAT_SECONDS} 与两个衰减百分比常量换算，本类零调参硬编码。</li>
  * <li>AmmoniaPlant 在预热循环内自行扣蒸汽（consumeFuelAndSteam）；本类不自己扣蒸汽，
- * 由 ClusterSteamEconomy 统一结算后以 {@code steamAvailable} 布尔传入，本类只消费判定结果。</li>
+ * 由 ClusterSteamEconomy 统一双流体原子结算后以锁存布尔传入（tickServer 的
+ * thermalSupplyOkLatched 参数），本类只消费判定结果。</li>
  * <li>衰减分两档：断汽走 STEAM_LOSS_DECAY_PCT_PER_SEC，停机/未成型走 SHUTDOWN_DECAY_PCT_PER_SEC。</li>
  * </ul>
  *
@@ -43,7 +44,10 @@ public final class ClusterPreheatController {
     public ClusterPreheatController() {}
 
     /**
-     * 服务端每 tick 推进：按三态互斥优先级执行升温或衰减。
+     * 服务端每 tick 推进（每 tick 纯算法，不扣任何流体——经济实扣是
+     * {@link ClusterSteamEconomy} 的职责）：按三态互斥优先级执行升温或衰减，
+     * 速率与附录 B 对齐——升温 {@code +10000/30/20 ≈ +16.6667/tick}（30 s 预热）、
+     * 断供降温 {@code -0.5%/s = -2.5/tick}、停机/未成型降温 {@code -1%/s = -5/tick}。
      *
      * <p>
      * 升温：每秒增长 100%/PREHEAT_SECONDS，即每 tick 增加
@@ -51,13 +55,14 @@ public final class ClusterPreheatController {
      * PREHEAT_SECONDS=30 时每 tick 16.666...，600 tick 累计存在浮点误差，
      * 至第 601 tick 封顶，属可容忍误差。
      *
-     * @param machineEnabled 机器是否启用（停机闸门，最高优先级）
-     * @param machineFormed  多方块结构是否成型（未成型同停机衰减）
-     * @param steamAvailable 蒸汽是否充足（由 ClusterSteamEconomy 结算后传入，本类不扣蒸汽）
+     * @param machineEnabled         机器是否启用（停机闸门，最高优先级）
+     * @param machineFormed          多方块结构是否成型（未成型同停机衰减）
+     * @param thermalSupplyOkLatched 当前秒段热供应锁存（20t 双流体原子结算结果：
+     *                               蒸汽且润滑均足=true，由调用方传入，本类只消费判定结果）
      */
-    public void tickServer(boolean machineEnabled, boolean machineFormed, boolean steamAvailable) {
+    public void tickServer(boolean machineEnabled, boolean machineFormed, boolean thermalSupplyOkLatched) {
         if (machineEnabled && machineFormed) {
-            if (steamAvailable) {
+            if (thermalSupplyOkLatched) {
                 double gainPerTick = (HEAT_MAX / ClusterParams.PREHEAT_SECONDS) / TICKS_PER_SECOND;
                 heatLevel = Math.min(HEAT_MAX, heatLevel + gainPerTick);
             } else {

@@ -27,6 +27,15 @@ public final class ClusterParams {
     /** 链长蒸汽消耗增长倍率。 */
     public static final double CHAIN_LENGTH_MULT = 1.5;
 
+    /** 单条物流链的最大链步数（服务端强制上限，plan §3.6.7）。 */
+    public static final int CHAIN_MAX_LINKS = 16;
+
+    /** 主段结构深度（格，plan §3.2.1/3.2.2：宽 29 × 高 15 × 主段深 12）。 */
+    public static final int SEGMENT_DEPTH_MAIN = 12;
+
+    /** 延伸段结构深度（格/段，plan §3.2.2）。 */
+    public static final int SEGMENT_DEPTH_EXT = 8;
+
     // ==================== 增幅剂 ====================
 
     /** 各增幅剂的蒸汽惩罚倍率，下标对应 BoosterType 序号。 */
@@ -52,6 +61,9 @@ public final class ClusterParams {
 
     /** 增幅剂储罐容量（L）。 */
     public static final int BOOSTER_TANK_CAPACITY_L = 16_000;
+
+    /** 各层级增幅模块锁定流体每秒消耗（L/s），下标对应层级序号（附录 B：4/8/12/16）。 */
+    public static final int[] AMPLIFIER_FLUID_PER_SEC = { 4, 8, 12, 16 };
 
     /** 节汽增幅冷却液流体 ID；解析失败回退 Materials.SuperCoolant，由使用方处理。 */
     public static final String BOOSTER_COOLANT_FLUID = "ic2coolant";
@@ -81,6 +93,9 @@ public final class ClusterParams {
     /** 每批次化学浸浴液用量（L）。 */
     public static final int CHEM_BATH_FLUID_PER_BATCH_L = 1000;
 
+    /** 简易洗矿每命中物品的普通水消耗（mB，附录 B；按实际命中物品数累计）。 */
+    public static final int SIMPLE_WASH_WATER_PER_ITEM_MB = 100;
+
     /** 磁选单元持续供电需求（EU/t），用户拍板：磁选需持续供电。 */
     public static final int MAGNETIC_EU_PER_TICK = 32;
 
@@ -104,10 +119,10 @@ public final class ClusterParams {
     // ==================== GUI ====================
 
     /** 集群 GUI 宽度（像素）。 */
-    public static final int GUI_WIDTH = 560;
+    public static final int GUI_WIDTH = 620;
 
     /** 集群 GUI 高度（像素）。 */
-    public static final int GUI_HEIGHT = 330;
+    public static final int GUI_HEIGHT = 340;
 
     /**
      * 集群层级枚举：青铜(0) → 钢(1) → 钛(2) → 钨钢(3)，序号即层级下标。
@@ -175,6 +190,9 @@ public final class ClusterParams {
 
     /**
      * 增幅剂类型枚举：并行、速度、主产出、副产出、节汽。
+     * <p>
+     * 顺序冻结：拓扑快照协议以 {@code 8 + ordinal()} 编码增幅槽 typeId（MTESteamMineralLogisticsCluster
+     * ↔ ClusterGuiSync 两端），仅允许尾部追加，不得重排/插队/改名。
      */
     public enum BoosterType {
 

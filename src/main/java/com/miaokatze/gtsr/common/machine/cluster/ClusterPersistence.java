@@ -35,7 +35,7 @@ public final class ClusterPersistence {
     /** 结构 tier 记账（0-3，未成型/混拼为 -1；载入仅供参考，不恢复成型）。 */
     private static final String KEY_TIER = "clusterTier";
 
-    /** 段数记账（载入仅供参考，段划分由重检 rebuild 重新推导）。 */
+    /** 段数记账（[1,10]，载入仅供参考，段划分由重检 rebuild 重新推导）。 */
     private static final String KEY_SEGMENTS = "clusterSegments";
 
     /** 单元句柄清单（NBTTagList，每项一个单元坐标句柄复合标签）。 */
@@ -100,13 +100,19 @@ public final class ClusterPersistence {
             .getUnits()) {
             IGregTechTileEntity base = unit.getBaseMetaTileEntity();
             if (base == null) continue;
+            int pad = unit.getPadId();
+            int segment = unit.getSegmentIndex();
+            // 段/垫句柄合法域收敛：segment ∈ [0,10)、pad ∈ [0,3)（对应 ClusterTopology 槽表容量）；
+            // 合法拓扑经 putSlot 校验本不越界，此处为防御旧档/异常态句柄，越界条目不写
+            if (segment < 0 || segment >= ClusterTopology.MAX_SEGMENTS) continue;
+            if (pad < 0 || pad > ClusterTopology.PAD_LOGISTICS) continue;
             NBTTagCompound unitTag = new NBTTagCompound();
             unitTag.setInteger(KEY_UNIT_X, base.getXCoord());
             unitTag.setInteger(KEY_UNIT_Y, base.getYCoord());
             unitTag.setInteger(KEY_UNIT_Z, base.getZCoord());
             unitTag.setInteger(KEY_UNIT_DIM, base.getWorld().provider.dimensionId);
-            unitTag.setInteger(KEY_UNIT_PAD, unit.getPadId());
-            unitTag.setInteger(KEY_UNIT_SEGMENT, unit.getSegmentIndex());
+            unitTag.setInteger(KEY_UNIT_PAD, pad);
+            unitTag.setInteger(KEY_UNIT_SEGMENT, segment);
             unitList.appendTag(unitTag);
         }
         nbt.setTag(KEY_UNITS, unitList);
@@ -145,13 +151,19 @@ public final class ClusterPersistence {
             NBTTagList unitList = nbt.getTagList(KEY_UNITS, 10);
             for (int i = 0; i < unitList.tagCount(); i++) {
                 NBTTagCompound unitTag = unitList.getCompoundTagAt(i);
+                int pad = unitTag.getInteger(KEY_UNIT_PAD);
+                int segment = unitTag.getInteger(KEY_UNIT_SEGMENT);
+                // 旧档（64 段时代）的越界句柄直接丢弃：句柄仅为重连提示，权威连接由结构重扫
+                // 建立（plan 3.7，不把不在挂点的模块接入），丢提示无副作用且避免回填时越界
+                if (segment < 0 || segment >= ClusterTopology.MAX_SEGMENTS) continue;
+                if (pad < 0 || pad > ClusterTopology.PAD_LOGISTICS) continue;
                 int[] hint = new int[HINT_LENGTH];
                 hint[0] = unitTag.getInteger(KEY_UNIT_X);
                 hint[1] = unitTag.getInteger(KEY_UNIT_Y);
                 hint[2] = unitTag.getInteger(KEY_UNIT_Z);
                 hint[3] = unitTag.getInteger(KEY_UNIT_DIM);
-                hint[4] = unitTag.getInteger(KEY_UNIT_PAD);
-                hint[5] = unitTag.getInteger(KEY_UNIT_SEGMENT);
+                hint[4] = pad;
+                hint[5] = segment;
                 hints.add(hint);
             }
             if (!hints.isEmpty()) {

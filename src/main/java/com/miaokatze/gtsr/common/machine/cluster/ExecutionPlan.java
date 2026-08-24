@@ -110,6 +110,42 @@ public final class ExecutionPlan {
     }
 
     /**
+     * 本链蒸汽（L/s）——主控组装 2000+C 的单链口径（§3.6.2 冻结名）：
+     * {@code BASE_CHAIN_STEAM_LPS × CHAIN_LENGTH_MULT^max(0, 链长-1) × TIER_STEAM_MULT[tier]}
+     * （tier 蒸汽倍率 1/1.5/2.5/4）。与 {@link #chainSteamLps} 同式，供主控/新切片引用；
+     * 不含 2000 基础保温项与集群级增幅惩罚/节汽（后者在聚合方法统一施加）。
+     *
+     * @param chain   有序链（可含重复 link；null/空返 0——空链不可执行不计蒸汽）
+     * @param tierIdx 结构层级下标
+     * @return 本链蒸汽消耗（L/s）
+     */
+    public static double computeChainSteam(List<ChainLink> chain, int tierIdx) {
+        return chainSteamLps(chain, tierIdx);
+    }
+
+    /**
+     * 集群聚合蒸汽 C（L/s）——主控组装 2000+C 的聚合口径（§3.6.2 冻结名）：
+     *
+     * <pre>
+     * C = Σ 可执行物流单元( 8000 × 1.5^(链长-1) × tierSteam(1/1.5/2.5/4) )
+     *     × Π 生效增幅蒸汽惩罚 × (1 - min(48%, Σ生效节汽))
+     * </pre>
+     *
+     * 与 {@link #totalSteamLps} 同式同防御口径；主控以 {@code ceil(2000 + C)} 组装运行蒸汽需求
+     * 传入 {@code ClusterSteamEconomy.settleRunFull}（保温下限 2000 由经济器兜底）。
+     *
+     * @param units    待结算的物流单元列表（通常为 topology.getLogisticsUnits()）
+     * @param topology 集群拓扑（链可执行性判定）
+     * @param tierIdx  结构层级下标
+     * @param booster  增幅聚合快照，null 按零增益（惩罚乘积 1、节汽 0）
+     * @return 聚合蒸汽需求 C（L/s，不含 2000 基础保温项与润滑）
+     */
+    public static double computeAggregateSteamC(List<MTEBasicLogisticsUnit> units, ClusterTopology topology,
+        int tierIdx, BoosterState booster) {
+        return totalSteamLps(units, topology, tierIdx, booster);
+    }
+
+    /**
      * 本链蒸汽（L/s），§6.1 原式：{@code BASE_CHAIN_STEAM_LPS × CHAIN_LENGTH_MULT^max(0, 链长-1)
      * × TIER_STEAM_MULT[tier]}。
      * <p>

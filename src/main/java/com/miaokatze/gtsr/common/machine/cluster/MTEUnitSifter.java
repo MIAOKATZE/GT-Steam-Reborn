@@ -1,7 +1,9 @@
 package com.miaokatze.gtsr.common.machine.cluster;
 
+import gregtech.api.interfaces.IIconContainer;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
+import gtPlusPlus.xmod.gregtech.common.blocks.textures.TexturesGtBlock;
 
 /**
  * 工作单元：筛选机（能力闸门）。
@@ -33,6 +35,17 @@ public class MTEUnitSifter extends MTEBasicProcessingUnit {
     @Override
     public String getUnitTypeNameKey() {
         return "gtsr.gui.cluster.unit_type.sifter";
+    }
+
+    /** overlay：GT++ 工业筛选机前脸 inactive/active（常量直引，忠实引用原资源域，不复制 PNG）。 */
+    @Override
+    public IIconContainer unitOverlayInactive() {
+        return TexturesGtBlock.oMCDIndustrialSifter;
+    }
+
+    @Override
+    public IIconContainer unitOverlayActive() {
+        return TexturesGtBlock.oMCDIndustrialSifterActive;
     }
 
     /** tooltip：类型行 + 解锁链步行 + 放置提示，AddedBy 收尾（写法对齐 MTESteamInputHatchGeneric）。 */

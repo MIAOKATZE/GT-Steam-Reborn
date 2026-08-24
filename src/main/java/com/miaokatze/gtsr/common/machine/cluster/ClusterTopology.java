@@ -8,11 +8,13 @@ import java.util.List;
  * 集群拓扑：段/垫/槽模型簿记 + GUI 快照数据源。
  *
  * <p>
- * 模型：集群由「主段 + 0..N 个延伸段」纵向组成（segment=0 主段，k+1 即第 k+1 延伸段），每段恰 3 个
- * 垫槽（{@link #PAD_WORKING} / {@link #PAD_BOOSTER} / {@link #PAD_LOGISTICS}）。本类持有两份互补数据：
+ * 模型：集群由「主段 + 0..9 个延伸段」纵向组成（segment=0 主段；延伸段 k=0..8 对应 segment=k+1，
+ * 即 1..9），每段恰 3 个垫槽（{@link #PAD_WORKING} / {@link #PAD_BOOSTER} / {@link #PAD_LOGISTICS}），
+ * 槽位总量上限 {@link #SLOT_COUNT}=30。段锚/延伸偏移（主段 Z=8 即 k=-1、延伸 Z=16+8k）的几何推导归
+ * {@code ClusterStructureDef}（E1a），本类只管段/槽数据簿记。本类持有两份互补数据：
  * <ul>
  * <li>单元清单：结构扫描顺序收集的全部已 connect 单元（同一 TE 实例引用级去重）；</li>
- * <li>槽位登记表 [64][3]：segment×pad 坐标到单元的映射，空槽不登记，快照时按需产出。</li>
+ * <li>槽位登记表 [10][3]：segment×pad 坐标到单元的映射，空槽不登记，快照时按需产出。</li>
  * </ul>
  *
  * <p>
@@ -38,8 +40,14 @@ public final class ClusterTopology {
     /** 每段垫槽数（恒为 3，对应三个 PAD_* 常量）。 */
     private static final int PAD_COUNT = 3;
 
-    /** 段数上限（主段 + 延伸段总数 ≤ 64）。 */
-    private static final int MAX_SEGMENTS = 64;
+    /** 延伸段数上限（延伸段 k=0..8，共 9 段）。 */
+    public static final int MAX_EXTENSION_SEGMENTS = 9;
+
+    /** 段数上限（主段 + 延伸段总数 ≤ 10，即主段 0 + 延伸段 1..9）。 */
+    public static final int MAX_SEGMENTS = 10;
+
+    /** 槽位总量上限（段数上限 × 每段垫槽数 = 10 × 3 = 30，含空槽）。 */
+    public static final int SLOT_COUNT = MAX_SEGMENTS * PAD_COUNT;
 
     /**
      * 槽位快照（不可变）：GUI 快照行的最小数据载体，{@link #unit} 为 null 即空槽。
@@ -72,6 +80,13 @@ public final class ClusterTopology {
     /** 当前段数（主段 + 延伸段）：clear 后为 1（仅主段），由总控在 checkMachine 末尾写入。 */
     private int segmentCount = 1;
 
+    /**
+     * 延伸断裂位置（段下标）：-1 = 无断裂；≥ 1 = 延伸链第一个被判定为断裂的延伸段下标（1..9）。
+     * 错误详情（识别到的后续结构、lang 键）由 E1a 的 {@code ClusterStructureError} 承载，本字段只
+     * 保存断裂段位置供 GUI 展示；断裂后该段及之后的段不收集（不进单元清单/槽表）。
+     */
+    private int brokenExtensionSegment = -1;
+
     /** 纯数据容器，可直接实例化。 */
     public ClusterTopology() {}
 
@@ -80,13 +95,14 @@ public final class ClusterTopology {
         return new ClusterTopology();
     }
 
-    /** 清空单元清单与全部槽位登记，段数复位为 1（结构破坏/重检时由总控调用；单元侧 disconnect 通知归总控 rebuild 流程）。 */
+    /** 清空单元清单与全部槽位登记，段数复位为 1、断裂记录复位为无（结构破坏/重检时由总控调用；单元侧 disconnect 通知归总控 rebuild 流程）。 */
     public void clear() {
         units.clear();
         for (SlotSnapshot[] row : slots) {
             Arrays.fill(row, null);
         }
         segmentCount = 1;
+        brokenExtensionSegment = -1;
     }
 
     /**
@@ -107,7 +123,7 @@ public final class ClusterTopology {
      * 登记在别的槽，旧槽自动置空。允许登记在 segment ≥ 当前段数的段（段数随后由
      * {@link #setSegmentCount} 在 checkMachine 末尾统一落定，未落定前不出现在快照中）。
      *
-     * @param segment 段下标 [0, 64)
+     * @param segment 段下标 [0, 10)（0=主段，1..9=延伸段 k+1）
      * @param pad     垫位 ID [0, 3)
      * @param unit    登记单元，null = 空槽
      */
@@ -128,7 +144,7 @@ public final class ClusterTopology {
      * 落定段数（主段 + 延伸段数），总控在 checkMachine 末尾写入；快照
      * {@link #getSlots()} 以此为准只产出 segment &lt; 段数的段。
      *
-     * @param segmentCount 段数 [1, 64]
+     * @param segmentCount 段数 [1, 10]（1=仅主段，10=主段+9 延伸段满配）
      */
     public void setSegmentCount(int segmentCount) {
         if (segmentCount < 1 || segmentCount > MAX_SEGMENTS) {
@@ -142,9 +158,33 @@ public final class ClusterTopology {
         return segmentCount;
     }
 
-    /** @return 延伸段数 = 段数 - 1（最小 0；无延伸段时恰为 0）。 */
+    /** @return 延伸段数 = 段数 - 1（最小 0，最大 {@link #MAX_EXTENSION_SEGMENTS}；无延伸段时恰为 0）。 */
     public int getExtensionCount() {
         return Math.max(0, segmentCount - 1);
+    }
+
+    /**
+     * 记录延伸断裂位置（总控 checkMachine 延伸链检查时写入）：第一个缺失/不完整且其后仍有可识别
+     * 延伸结构的段。错误详情由 E1a 的 {@code ClusterStructureError} 承载，本类只保存断裂段下标供
+     * GUI 展示。每次结构重检 {@link #clear()} 复位为 -1，之后按最新扫描结果重写。
+     *
+     * @param segment 断裂的延伸段下标 [1, 9]（主段不成型不产生断裂记录），-1 = 清除断裂记录
+     */
+    public void setBrokenExtensionSegment(int segment) {
+        if (segment == -1) {
+            this.brokenExtensionSegment = -1;
+            return;
+        }
+        if (segment < 1 || segment >= MAX_SEGMENTS) {
+            throw new IllegalArgumentException(
+                "broken extension segment out of range [1," + MAX_EXTENSION_SEGMENTS + "]: " + segment);
+        }
+        this.brokenExtensionSegment = segment;
+    }
+
+    /** @return 延伸断裂段下标（-1 = 无断裂；≥ 1 = 断裂发生在该延伸段，其后段未收集）。 */
+    public int getBrokenExtensionSegment() {
+        return brokenExtensionSegment;
     }
 
     /** @return 单元列表的 live 视图（已 connect 的全部单元；调用方不得缓存引用，遍历期间禁止增删）。 */
@@ -154,7 +194,8 @@ public final class ClusterTopology {
 
     /**
      * GUI 快照数据源：按 segment 升序、pad 升序产出全部槽位，每段恰 3 槽（含空槽），
-     * 因此快照行数恒 = 段数 × 3。每次调用新建列表副本，元素本身不可变，可安全跨 tick 持有。
+     * 因此快照行数恒 = 段数 × 3 ≤ {@link #SLOT_COUNT}（满配 10 段恰 30 槽，全部可编码）。
+     * 每次调用新建列表副本，元素本身不可变，可安全跨 tick 持有；完整快照 DTO 归 GUI 批（E4/E6）。
      *
      * @return 槽位快照副本（只产出 segment &lt; {@link #getSegmentCount()} 的段）
      */

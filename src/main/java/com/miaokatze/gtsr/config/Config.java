@@ -25,6 +25,11 @@ public class Config {
     // 自然生成的奇点是否具有破坏方块的能力（默认开；关闭后自然奇点不吸收/破坏方块）。
     public static boolean singularityDestroyBlocks = true;
 
+    // 集群总控 [GTSR-JQ] 调试明细日志开关（默认关）。开启后输出结构扫描统计/模块发现断开/
+    // 批执行与流体扣量摘要/增幅有效性摘要（均为边沿或每 20t 至多一条）；关闭时仅保留
+    // 附录 C 的 INFO/WARN 边沿事件（开始预热/满热/供给翻转/成型破坏等）。
+    public static boolean logisticsClusterDebug = false;
+
     /**
      * 同步配置文件
      * 从磁盘读取配置并更新静态变量，如果配置有变动则自动保存
@@ -61,6 +66,12 @@ public class Config {
             Configuration.CATEGORY_GENERAL,
             singularityDestroyBlocks,
             "自然生成的奇点是否具有破坏方块的能力（默认开；关闭后自然奇点不吸收/破坏方块）");
+
+        logisticsClusterDebug = configuration.getBoolean(
+            "logisticsClusterDebug",
+            Configuration.CATEGORY_GENERAL,
+            false,
+            "集群总控[GTSR-JQ]调试明细日志（结构扫描统计/模块发现断开/批执行与流体扣量摘要/增幅有效性摘要，边沿或每20t至多一条）。默认关。");
 
         if (configuration.hasChanged()) {
             configuration.save();
