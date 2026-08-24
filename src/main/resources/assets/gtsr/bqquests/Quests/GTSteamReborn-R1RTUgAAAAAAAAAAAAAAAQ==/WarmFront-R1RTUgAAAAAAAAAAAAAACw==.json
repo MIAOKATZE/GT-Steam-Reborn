@@ -1,0 +1,55 @@
+{
+  "preRequisites:9": {
+    "0:10": {
+      "questIDHigh:4": 5139824686389002240,
+      "questIDLow:4": 10
+    }
+  },
+  "properties:10": {
+    "betterquesting:10": {
+      "autoClaim:1": 0,
+      "countAsQuest:1": 1,
+      "desc:8": "Heat only changes speed and parallel — it never changes which recipes match. A cold furnace still runs your first steel batches at 1x with a single parallel slot.\n\nEach 1% of furnace heat adds +1% recipe speed on top of the base, and parallel slots follow 1 + 3×heat (rounded): 25% heat already gives you 2 slots.\n\nKeep the furnace fed continuously — every idle second throws away 1% of heat.",
+      "globalShare:1": 0,
+      "icon:10": {
+        "Count:3": 1,
+        "Damage:2": 0,
+        "OreDict:8": "",
+        "id:8": "minecraft:furnace"
+      },
+      "isMain:1": 0,
+      "isSilent:1": 0,
+      "lockedProgress:1": 0,
+      "name:8": "Warm Front",
+      "questLogic:8": "AND",
+      "repeatTime:3": -1,
+      "simultaneous:1": 0,
+      "snd_complete:8": "random.levelup",
+      "snd_update:8": "random.levelup",
+      "taskLogic:8": "AND",
+      "visibility:8": "NORMAL"
+    }
+  },
+  "questIDHigh:4": 5139824686389002240,
+  "questIDLow:4": 11,
+  "rewards:9": {
+    "0:10": {
+      "index:3": 0,
+      "rewardID:8": "bq_standard:item",
+      "rewards:9": {
+        "0:10": {
+          "Count:3": 16,
+          "Damage:2": 0,
+          "OreDict:8": "",
+          "id:8": "minecraft:coal"
+        }
+      }
+    }
+  },
+  "tasks:9": {
+    "0:10": {
+      "index:3": 0,
+      "taskID:8": "bq_standard:checkbox"
+    }
+  }
+}

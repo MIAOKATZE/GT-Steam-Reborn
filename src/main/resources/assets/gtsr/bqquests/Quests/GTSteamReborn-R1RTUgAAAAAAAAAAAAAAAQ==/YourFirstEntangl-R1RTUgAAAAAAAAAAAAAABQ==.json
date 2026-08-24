@@ -1,0 +1,87 @@
+{
+  "preRequisites:9": {
+    "0:10": {
+      "questIDHigh:4": 5139824686389002240,
+      "questIDLow:4": 4
+    }
+  },
+  "properties:10": {
+    "betterquesting:10": {
+      "autoClaim:1": 0,
+      "countAsQuest:1": 1,
+      "desc:8": "Time to hold one. The Steam Entangled Singularity is the currency of GTSR: chips, remote nodes, hub bindings and singularity machines all cost them.\n\nGet it from a natural runaway singularity, a structure chest, or — later — the Steam Singularity Entangler in chapter 5.\n\nFair warning: dropped singularities explode after 5 seconds (no block damage). Keep them in your inventory, not on the floor.",
+      "globalShare:1": 0,
+      "icon:10": {
+        "Count:3": 1,
+        "Damage:2": 0,
+        "OreDict:8": "",
+        "id:8": "gtsr:SteamEntangledSingularity"
+      },
+      "isMain:1": 1,
+      "isSilent:1": 0,
+      "lockedProgress:1": 0,
+      "name:8": "Your First Entanglement",
+      "questLogic:8": "AND",
+      "repeatTime:3": -1,
+      "simultaneous:1": 0,
+      "snd_complete:8": "random.levelup",
+      "snd_update:8": "random.levelup",
+      "taskLogic:8": "AND",
+      "visibility:8": "NORMAL"
+    }
+  },
+  "questIDHigh:4": 5139824686389002240,
+  "questIDLow:4": 5,
+  "rewards:9": {
+    "0:10": {
+      "index:3": 0,
+      "rewardID:8": "bq_standard:item",
+      "rewards:9": {
+        "0:10": {
+          "Count:3": 16,
+          "Damage:2": 0,
+          "OreDict:8": "",
+          "id:8": "minecraft:iron_ingot"
+        }
+      }
+    },
+    "1:10": {
+      "choices:9": {
+        "0:10": {
+          "Count:3": 1,
+          "Damage:2": 2,
+          "OreDict:8": "",
+          "id:8": "enhancedlootbags:lootbag"
+        },
+        "1:10": {
+          "Count:3": 8,
+          "Damage:2": 0,
+          "OreDict:8": "",
+          "id:8": "minecraft:gold_ingot"
+        }
+      },
+      "index:3": 1,
+      "rewardID:8": "bq_standard:choice"
+    }
+  },
+  "tasks:9": {
+    "0:10": {
+      "autoConsume:1": 0,
+      "consume:1": 0,
+      "groupDetect:1": 0,
+      "ignoreNBT:1": 1,
+      "index:3": 0,
+      "partialMatch:1": 1,
+      "requireOnlyOneItem:1": 0,
+      "requiredItems:9": {
+        "0:10": {
+          "Count:3": 1,
+          "Damage:2": 0,
+          "OreDict:8": "",
+          "id:8": "gtsr:SteamEntangledSingularity"
+        }
+      },
+      "taskID:8": "bq_standard:retrieval"
+    }
+  }
+}

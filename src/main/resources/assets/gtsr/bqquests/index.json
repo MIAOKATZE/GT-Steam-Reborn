@@ -1,0 +1,337 @@
+{
+  "questLines": [
+    {
+      "entries": [
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/BronzeAgeReSteam-R1RTUgAAAAAAAAAAAAAAAg==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/BronzeAgeReSteam-R1RTUgAAAAAAAAAAAAAAAg==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/AFieldGuidetoSte-R1RTUgAAAAAAAAAAAAAAAw==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/AFieldGuidetoSte-R1RTUgAAAAAAAAAAAAAAAw==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/ItCameFromtheSky-R1RTUgAAAAAAAAAAAAAABA==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/ItCameFromtheSky-R1RTUgAAAAAAAAAAAAAABA==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/YourFirstEntangl-R1RTUgAAAAAAAAAAAAAABQ==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/YourFirstEntangl-R1RTUgAAAAAAAAAAAAAABQ==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/LootBoxLottery-R1RTUgAAAAAAAAAAAAAABg==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/LootBoxLottery-R1RTUgAAAAAAAAAAAAAABg==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/SuperheatedandSu-R1RTUgAAAAAAAAAAAAAABw==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/SuperheatedandSu-R1RTUgAAAAAAAAAAAAAABw==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/CondensationEduc-R1RTUgAAAAAAAAAAAAAACA==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/CondensationEduc-R1RTUgAAAAAAAAAAAAAACA==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/SteamMultiblocks-R1RTUgAAAAAAAAAAAAAACQ==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/SteamMultiblocks-R1RTUgAAAAAAAAAAAAAACQ==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/BrickbyBrick-R1RTUgAAAAAAAAAAAAAACg==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/BrickbyBrick-R1RTUgAAAAAAAAAAAAAACg==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/WarmFront-R1RTUgAAAAAAAAAAAAAACw==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/WarmFront-R1RTUgAAAAAAAAAAAAAACw==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/TheBigMelt-R1RTUgAAAAAAAAAAAAAADA==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/TheBigMelt-R1RTUgAAAAAAAAAAAAAADA==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/DiscountEU-R1RTUgAAAAAAAAAAAAAADQ==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/DiscountEU-R1RTUgAAAAAAAAAAAAAADQ==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/OvenOversized-R1RTUgAAAAAAAAAAAAAADg==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/OvenOversized-R1RTUgAAAAAAAAAAAAAADg==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/CreosoteRiver-R1RTUgAAAAAAAAAAAAAADw==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/CreosoteRiver-R1RTUgAAAAAAAAAAAAAADw==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/AirApparent-R1RTUgAAAAAAAAAAAAAAEA==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/AirApparent-R1RTUgAAAAAAAAAAAAAAEA==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/HellishAirQualit-R1RTUgAAAAAAAAAAAAAAEQ==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/HellishAirQualit-R1RTUgAAAAAAAAAAAAAAEQ==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/CentrifugalForce-R1RTUgAAAAAAAAAAAAAAEg==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/CentrifugalForce-R1RTUgAAAAAAAAAAAAAAEg==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/RareAir-R1RTUgAAAAAAAAAAAAAAEw==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/RareAir-R1RTUgAAAAAAAAAAAAAAEw==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/NobleGasesIgnobl-R1RTUgAAAAAAAAAAAAAAFA==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/NobleGasesIgnobl-R1RTUgAAAAAAAAAAAAAAFA==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/WaterWhereYouWan-R1RTUgAAAAAAAAAAAAAAFQ==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/WaterWhereYouWan-R1RTUgAAAAAAAAAAAAAAFQ==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/ScrewdriverSomme-R1RTUgAAAAAAAAAAAAAAFg==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/ScrewdriverSomme-R1RTUgAAAAAAAAAAAAAAFg==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/VeinMeetSteam-R1RTUgAAAAAAAAAAAAAAFw==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/VeinMeetSteam-R1RTUgAAAAAAAAAAAAAAFw==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/ChipOfftheOldVei-R1RTUgAAAAAAAAAAAAAAGA==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/ChipOfftheOldVei-R1RTUgAAAAAAAAAAAAAAGA==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/ScanlineExpansio-R1RTUgAAAAAAAAAAAAAAGQ==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/ScanlineExpansio-R1RTUgAAAAAAAAAAAAAAGQ==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/OpenHearthClosed-R1RTUgAAAAAAAAAAAAAAGg==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/OpenHearthClosed-R1RTUgAAAAAAAAAAAAAAGg==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/HotterThan100-R1RTUgAAAAAAAAAAAAAAGw==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/HotterThan100-R1RTUgAAAAAAAAAAAAAAGw==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/CrustFundamental-R1RTUgAAAAAAAAAAAAAAHA==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/CrustFundamental-R1RTUgAAAAAAAAAAAAAAHA==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/SteamMultiblocks-R1RTUgAAAAAAAAAAAAAAHQ==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/SteamMultiblocks-R1RTUgAAAAAAAAAAAAAAHQ==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/MagmaPowered-R1RTUgAAAAAAAAAAAAAAHg==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/MagmaPowered-R1RTUgAAAAAAAAAAAAAAHg==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/OverheatOvercloc-R1RTUgAAAAAAAAAAAAAAHw==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/OverheatOvercloc-R1RTUgAAAAAAAAAAAAAAHw==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/ObsidianByproduc-R1RTUgAAAAAAAAAAAAAAIA==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/ObsidianByproduc-R1RTUgAAAAAAAAAAAAAAIA==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/SolarFarmSteamFa-R1RTUgAAAAAAAAAAAAAAIQ==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/SolarFarmSteamFa-R1RTUgAAAAAAAAAAAAAAIQ==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/HardWaterProblem-R1RTUgAAAAAAAAAAAAAAIg==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/HardWaterProblem-R1RTUgAAAAAAAAAAAAAAIg==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/FourtoOne-R1RTUgAAAAAAAAAAAAAAIw==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/FourtoOne-R1RTUgAAAAAAAAAAAAAAIw==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/SmellsLikeAmmoni-R1RTUgAAAAAAAAAAAAAAJA==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/SmellsLikeAmmoni-R1RTUgAAAAAAAAAAAAAAJA==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/CatalystforChang-R1RTUgAAAAAAAAAAAAAAJQ==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/CatalystforChang-R1RTUgAAAAAAAAAAAAAAJQ==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/PlatinumPlusUran-R1RTUgAAAAAAAAAAAAAAJg==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/PlatinumPlusUran-R1RTUgAAAAAAAAAAAAAAJg==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/QuantumLeap-R1RTUgAAAAAAAAAAAAAAJw==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/QuantumLeap-R1RTUgAAAAAAAAAAAAAAJw==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/OneArrayAnyRecip-R1RTUgAAAAAAAAAAAAAAKA==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/OneArrayAnyRecip-R1RTUgAAAAAAAAAAAAAAKA==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/PipeDreamsandGea-R1RTUgAAAAAAAAAAAAAAKQ==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/PipeDreamsandGea-R1RTUgAAAAAAAAAAAAAAKQ==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/SteamtoEUMegaSiz-R1RTUgAAAAAAAAAAAAAAKg==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/SteamtoEUMegaSiz-R1RTUgAAAAAAAAAAAAAAKg==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/StackItHigher-R1RTUgAAAAAAAAAAAAAAKw==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/StackItHigher-R1RTUgAAAAAAAAAAAAAAKw==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/DialDowntheWatts-R1RTUgAAAAAAAAAAAAAALA==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/DialDowntheWatts-R1RTUgAAAAAAAAAAAAAALA==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/HubsandLogistics-R1RTUgAAAAAAAAAAAAAALQ==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/HubsandLogistics-R1RTUgAAAAAAAAAAAAAALQ==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/TheSteamBackbone-R1RTUgAAAAAAAAAAAAAALg==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/TheSteamBackbone-R1RTUgAAAAAAAAAAAAAALg==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/ChipIn-R1RTUgAAAAAAAAAAAAAALw==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/ChipIn-R1RTUgAAAAAAAAAAAAAALw==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/CacheMoney-R1RTUgAAAAAAAAAAAAAAMA==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/CacheMoney-R1RTUgAAAAAAAAAAAAAAMA==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/ReinforcedCachin-R1RTUgAAAAAAAAAAAAAAMQ==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/ReinforcedCachin-R1RTUgAAAAAAAAAAAAAAMQ==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/WaterWorks-R1RTUgAAAAAAAAAAAAAAMg==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/WaterWorks-R1RTUgAAAAAAAAAAAAAAMg==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/UniversalFluidNo-R1RTUgAAAAAAAAAAAAAAMw==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/UniversalFluidNo-R1RTUgAAAAAAAAAAAAAAMw==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/TheCompartmentQu-R1RTUgAAAAAAAAAAAAAANA==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/TheCompartmentQu-R1RTUgAAAAAAAAAAAAAANA==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/CompartmentsComp-R1RTUgAAAAAAAAAAAAAANQ==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/CompartmentsComp-R1RTUgAAAAAAAAAAAAAANQ==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/StorageStackedan-R1RTUgAAAAAAAAAAAAAANg==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/StorageStackedan-R1RTUgAAAAAAAAAAAAAANg==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/TerminalVelocity-R1RTUgAAAAAAAAAAAAAANw==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/TerminalVelocity-R1RTUgAAAAAAAAAAAAAANw==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/BeamMeUpSingular-R1RTUgAAAAAAAAAAAAAAOA==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/BeamMeUpSingular-R1RTUgAAAAAAAAAAAAAAOA==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/ReinforcetheHub-R1RTUgAAAAAAAAAAAAAAOQ==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/ReinforcetheHub-R1RTUgAAAAAAAAAAAAAAOQ==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/TheSingularityCh-R1RTUgAAAAAAAAAAAAAAOg==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/TheSingularityCh-R1RTUgAAAAAAAAAAAAAAOg==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/EntangleThis-R1RTUgAAAAAAAAAAAAAAOw==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/EntangleThis-R1RTUgAAAAAAAAAAAAAAOw==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/HeatMath-R1RTUgAAAAAAAAAAAAAAPA==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/HeatMath-R1RTUgAAAAAAAAAAAAAAPA==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/AThousandtoOne-R1RTUgAAAAAAAAAAAAAAPQ==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/AThousandtoOne-R1RTUgAAAAAAAAAAAAAAPQ==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/TwoKindsofFuel-R1RTUgAAAAAAAAAAAAAAPg==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/TwoKindsofFuel-R1RTUgAAAAAAAAAAAAAAPg==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/CriticalMass-R1RTUgAAAAAAAAAAAAAAPw==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/CriticalMass-R1RTUgAAAAAAAAAAAAAAPw==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/TheCriticalSingu-R1RTUgAAAAAAAAAAAAAAQA==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/TheCriticalSingu-R1RTUgAAAAAAAAAAAAAAQA==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/CyclePasttheLimi-R1RTUgAAAAAAAAAAAAAAQQ==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/CyclePasttheLimi-R1RTUgAAAAAAAAAAAAAAQQ==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/TheDrillingHub-R1RTUgAAAAAAAAAAAAAAQg==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/TheDrillingHub-R1RTUgAAAAAAAAAAAAAAQg==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/NodesGoRemote-R1RTUgAAAAAAAAAAAAAAQw==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/NodesGoRemote-R1RTUgAAAAAAAAAAAAAAQw==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/MatterFromtheCru-R1RTUgAAAAAAAAAAAAAARA==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/MatterFromtheCru-R1RTUgAAAAAAAAAAAAAARA==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/TheFullCluster-R1RTUgAAAAAAAAAAAAAARQ==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/TheFullCluster-R1RTUgAAAAAAAAAAAAAARQ==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/Challenges-R1RTUgAAAAAAAAAAAAAARg==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/Challenges-R1RTUgAAAAAAAAAAAAAARg==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/HandleWithCare-R1RTUgAAAAAAAAAAAAAARw==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/HandleWithCare-R1RTUgAAAAAAAAAAAAAARw==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/ThreeHundredPerc-R1RTUgAAAAAAAAAAAAAASA==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/ThreeHundredPerc-R1RTUgAAAAAAAAAAAAAASA==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/DimensionHopper-R1RTUgAAAAAAAAAAAAAASQ==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/DimensionHopper-R1RTUgAAAAAAAAAAAAAASQ==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/SteamBillMath-R1RTUgAAAAAAAAAAAAAASg==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/SteamBillMath-R1RTUgAAAAAAAAAAAAAASg==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/BoosterBuffet-R1RTUgAAAAAAAAAAAAAASw==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/BoosterBuffet-R1RTUgAAAAAAAAAAAAAASw==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/SingularityCusto-R1RTUgAAAAAAAAAAAAAATA==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/SingularityCusto-R1RTUgAAAAAAAAAAAAAATA==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/BeyondSteam-R1RTUgAAAAAAAAAAAAAATQ==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/BeyondSteam-R1RTUgAAAAAAAAAAAAAATQ==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/CuttheCables-R1RTUgAAAAAAAAAAAAAATg==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/CuttheCables-R1RTUgAAAAAAAAAAAAAATg==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/SomethingInteres-R1RTUgAAAAAAAAAAAAAATw==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/SomethingInteres-R1RTUgAAAAAAAAAAAAAATw==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/TheMIAOVerse-R1RTUgAAAAAAAAAAAAAAUA==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/TheMIAOVerse-R1RTUgAAAAAAAAAAAAAAUA==.json"
+        },
+        {
+          "entryFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/GraduationDay-R1RTUgAAAAAAAAAAAAAAUQ==.json",
+          "questFile": "assets/gtsr/bqquests/Quests/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/GraduationDay-R1RTUgAAAAAAAAAAAAAAUQ==.json"
+        }
+      ],
+      "idHigh": 5139824686389002240,
+      "idLow": 1,
+      "lineFile": "assets/gtsr/bqquests/QuestLines/GTSteamReborn-R1RTUgAAAAAAAAAAAAAAAQ==/QuestLine.json",
+      "orderIndex": 900
+    }
+  ],
+  "version": 1
+}

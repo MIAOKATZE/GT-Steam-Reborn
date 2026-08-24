@@ -1,0 +1,55 @@
+{
+  "preRequisites:9": {
+    "0:10": {
+      "questIDHigh:4": 5139824686389002240,
+      "questIDLow:4": 74
+    }
+  },
+  "properties:10": {
+    "betterquesting:10": {
+      "autoClaim:1": 0,
+      "countAsQuest:1": 1,
+      "desc:8": "Tune all five cluster amplifiers on one cluster and balance the books. Each running amplifier costs fluid by its tier — 4/8/12/16 L/s — and applies its multiplier to the steam bill: parallel ×1.3, speed ×1.4, primary output ×2.0, secondary output ×1.6, steam saver ×1.1.\n\nPrimary output boosts take only the highest of their kind; secondary boosts add up; steam savings cap at 48% total.\n\nThe question every cluster engineer answers differently: how much parallel can you afford?",
+      "globalShare:1": 0,
+      "icon:10": {
+        "Count:3": 1,
+        "Damage:2": 15059,
+        "OreDict:8": "",
+        "id:8": "gregtech:gt.blockmachines"
+      },
+      "isMain:1": 0,
+      "isSilent:1": 0,
+      "lockedProgress:1": 0,
+      "name:8": "Booster Buffet",
+      "questLogic:8": "AND",
+      "repeatTime:3": -1,
+      "simultaneous:1": 0,
+      "snd_complete:8": "random.levelup",
+      "snd_update:8": "random.levelup",
+      "taskLogic:8": "AND",
+      "visibility:8": "NORMAL"
+    }
+  },
+  "questIDHigh:4": 5139824686389002240,
+  "questIDLow:4": 75,
+  "rewards:9": {
+    "0:10": {
+      "index:3": 0,
+      "rewardID:8": "bq_standard:item",
+      "rewards:9": {
+        "0:10": {
+          "Count:3": 8,
+          "Damage:2": 0,
+          "OreDict:8": "",
+          "id:8": "gtsr:SteamEntangledSingularity"
+        }
+      }
+    }
+  },
+  "tasks:9": {
+    "0:10": {
+      "index:3": 0,
+      "taskID:8": "bq_standard:checkbox"
+    }
+  }
+}

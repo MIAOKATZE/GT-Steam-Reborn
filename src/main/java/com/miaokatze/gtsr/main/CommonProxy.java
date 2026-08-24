@@ -51,6 +51,8 @@ public class CommonProxy {
         }
         Config.synchronizeConfiguration(newConfigFile);
         GTSRFXNet.init();
+        // BetterQuesting 可选集成探测（BQ 缺席时静默降级；反射探测不加载 BQ 类）
+        com.miaokatze.gtsr.crossmod.bq.BqCompat.detect();
 
         GTSteamReborn.LOG.info("GTSteamReborn 开始初始化 (版本: " + Tags.VERSION + ")");
 
@@ -150,6 +152,12 @@ public class CommonProxy {
      */
     public void serverStarting(FMLServerStartingEvent event) {
         event.registerServerCommand(new GTSRCommand());
+        // BetterQuesting 任务线注入（BQ default load 之后幂等追加）。
+        // 守卫必须在调用方：BQ 缺席时 BqQuestInjector 类链接即会触发 BQ 类型解析，
+        // 唯有先经零 BQ 引用的 BqCompat 短路才能保证注入器类根本不加载。
+        if (com.miaokatze.gtsr.crossmod.bq.BqCompat.isBqLoaded()) {
+            com.miaokatze.gtsr.crossmod.bq.BqQuestInjector.inject();
+        }
     }
 
     /**

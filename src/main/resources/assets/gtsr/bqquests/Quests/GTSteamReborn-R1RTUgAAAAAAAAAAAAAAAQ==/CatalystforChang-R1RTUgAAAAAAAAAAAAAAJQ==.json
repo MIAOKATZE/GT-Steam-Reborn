@@ -1,0 +1,81 @@
+{
+  "preRequisites:9": {
+    "0:10": {
+      "questIDHigh:4": 5139824686389002240,
+      "questIDLow:4": 36
+    }
+  },
+  "properties:10": {
+    "betterquesting:10": {
+      "autoClaim:1": 0,
+      "countAsQuest:1": 1,
+      "desc:8": "The plant's controller slot takes one of seven catalysts — they set parallelism and reaction time. Nickel is the entry: 64 parallel, 64 seconds per reaction.\n\nThe assembler recipes climb HV through platinum, uranium, osmium, iron-cobalt and ruthenium up to quantum at UV.\n\nReaction time is the real multiplier: shorter reactions mean more extra steam per second (parallel × 16,000 / seconds).",
+      "globalShare:1": 0,
+      "icon:10": {
+        "Count:3": 1,
+        "Damage:2": 0,
+        "OreDict:8": "",
+        "id:8": "gtsr:AmmoniaCatalystNickel"
+      },
+      "isMain:1": 0,
+      "isSilent:1": 0,
+      "lockedProgress:1": 0,
+      "name:8": "Catalyst for Change",
+      "questLogic:8": "AND",
+      "repeatTime:3": -1,
+      "simultaneous:1": 0,
+      "snd_complete:8": "random.levelup",
+      "snd_update:8": "random.levelup",
+      "taskLogic:8": "AND",
+      "visibility:8": "NORMAL"
+    }
+  },
+  "questIDHigh:4": 5139824686389002240,
+  "questIDLow:4": 37,
+  "rewards:9": {
+    "0:10": {
+      "choices:9": {
+        "0:10": {
+          "Count:3": 1,
+          "Damage:2": 0,
+          "OreDict:8": "",
+          "id:8": "gtsr:AmmoniaCatalystPlatinum"
+        },
+        "1:10": {
+          "Count:3": 1,
+          "Damage:2": 0,
+          "OreDict:8": "",
+          "id:8": "gtsr:AmmoniaCatalystOsmium"
+        },
+        "2:10": {
+          "Count:3": 1,
+          "Damage:2": 3,
+          "OreDict:8": "",
+          "id:8": "enhancedlootbags:lootbag"
+        }
+      },
+      "index:3": 0,
+      "rewardID:8": "bq_standard:choice"
+    }
+  },
+  "tasks:9": {
+    "0:10": {
+      "autoConsume:1": 0,
+      "consume:1": 0,
+      "groupDetect:1": 0,
+      "ignoreNBT:1": 1,
+      "index:3": 0,
+      "partialMatch:1": 1,
+      "requireOnlyOneItem:1": 0,
+      "requiredItems:9": {
+        "0:10": {
+          "Count:3": 1,
+          "Damage:2": 0,
+          "OreDict:8": "",
+          "id:8": "gtsr:AmmoniaCatalystNickel"
+        }
+      },
+      "taskID:8": "bq_standard:retrieval"
+    }
+  }
+}
