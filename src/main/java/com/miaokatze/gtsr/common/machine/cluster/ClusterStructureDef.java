@@ -65,8 +65,10 @@ import gregtech.api.util.GTUtility;
  * {@link ClusterStructureError#moduleConflict(int, int)}（模块冲突检查点，总控 E1b 收尾取走）。
  *
  * <h2>P 主控输入仓</h2>
- * 主段 {@code (23,12,7)}/{@code (25,12,7)}（控制器左右）与延伸段 {@code (0,12,3)} 为可选输入仓：
- * tiered 外壳或 anyOf(标准输入仓 / 蒸汽输入仓 / 耐压蒸汽输入仓) 三者之一（禁用 atLeast）。
+ * 主段 layer12/depthRow7 行 {@code (19..23,12,7)}/{@code (25..27,12,7)}（控制器左右共 8 格，col18
+ * 留空气与 B 管道分隔）与延伸段 {@code (0..2,12,3)}（每段 3 格）为可选输入仓：tiered 外壳或
+ * anyOf(标准输入仓 / 蒸汽输入仓 / 耐压蒸汽输入仓) 三者之一（禁用 atLeast）。满配 8+9×3=35 格
+ * （主控上限：通用输入仓 1..10、蒸汽仓类合计 0..10，校验在总控 checkMachine）。
  * A 外壳回退纯 tiered casing，不再容纳任何 bus / energy hatch。
  *
  * <h2>四族 tier（0-3）</h2>
@@ -125,7 +127,8 @@ public final class ClusterStructureDef {
      * 主段（15×12×29）＝草稿 {@code plan/集群扣除延伸层.java} 字面矩阵 + 挂点重放：
      * 加工 F 十字 {@code (10,10,6)/(8,10,8)/(12,10,8)/(10,10,10)}、增幅 H 四格 y7
      * {@code (18,7,7)/(17,7,8)/(19,7,8)/(18,7,9)}、物流 G {@code (27,12,8)}、输入仓 P
-     * {@code (23,12,7)/(25,12,7)}；y13 的 40 格 F 菱形（深 2-9、列 2-9）按草稿字面保留。
+     * {@code (19..23,12,7)}/{@code (25..27,12,7)}（控制器左右 8 格，col18 留空气与 BBBB 分隔）；
+     * y13 的 40 格 F 菱形（深 2-9、列 2-9）按草稿字面保留。
      * 'I' 字符不再使用（延伸段塔位归一化为 '-'）。
      */
     private static final String[][] SHAPE_MAIN = {
@@ -179,7 +182,7 @@ public final class ClusterStructureDef {
             "   A----A      AAAA   A   A  ", "   DAAAAD              AAA   ", "D          D                 " },
         { "D          D                 ", "   DAAAAD                    ", "   A----A                    ",
             " DA------AD                  ", " A--------A    EEEE   A   A  ", " A--------A   A    EEE     E ",
-            " A--------A  ABBBB          E", " A--------A  ABBBB     P~P  E", " DA------AD   A    EEE     G ",
+            " A--------A  ABBBB          E", " A--------A  ABBBB PPPPP~PPPE", " DA------AD   A    EEE     G ",
             "   A----A      EEEE   E   E  ", "   DAAAAD              EEE   ", "D          D                 " },
         { "D   ----   D                 ", "   D----D                    ", "   --FF---                   ",
             " D--FFFF--D                  ", "---FFFFFF---   AAAA   A   A  ", "--FFFFFFFF--  A    AAA     A ",
@@ -195,7 +198,7 @@ public final class ClusterStructureDef {
      * 挂点重放：草稿 F 四格字面保留（y10：深2列10 / 深4列8 / 深4列12 / 深6列10）；草稿 y10 的
      * H 四格上移到 y7（深3列18 / 深4列17 / 深4列19 / 深5列18），原位改回 '-' 严格空气；G 字面
      * 保留（y12 深4 列27）；y3 塔 'AIIIA' 的 15 格 I 归一化为 '-'（严格空气）；可选输入仓 P
-     * {@code (0,12,3)}。
+     * {@code (0..2,12,3)}（每段 3 格）。
      */
     private static final String[][] SHAPE_EXT = {
         { "                             ", "                             ", "                             ",
@@ -235,7 +238,7 @@ public final class ClusterStructureDef {
             "A---A                        ", "A---A                        ", "A---A                        ",
             "A---A          DD   DD  D    ", "DAAAD  D     D               " },
         { "                             ", "DAAAD  DD   DD         D    D", "A---A  D     D DDD DDD  DA   ",
-            "P---AEEE     EEEE   EEEEA    ", "A---AEEE     EEEE   EEEEA  G ", "A---AEEE     EEEE   EEEEA    ",
+            "PPP-AEEE     EEEE   EEEEA    ", "A---AEEE     EEEE   EEEEA  G ", "A---AEEE     EEEE   EEEEA    ",
             "A---A  D     D DDD DDD  DA   ", "DAAAD  DD   DD         D    D" },
         { "                             ", "DAAAD  DD   DD  DD DD  D   DD", "A---A  DAAAAAD DAAAAAD  AAAAD",
             "A---AEEEAABAAEEEA   AEEAA    ", "A---BBBBBBBBBBBBB   BBBBB    ", "A---AEEEAABAAEEEA   AEEAA    ",
@@ -369,8 +372,9 @@ public final class ClusterStructureDef {
      * P 主控输入仓元素：tiered 外壳（可选位默认形态）或 anyOf(标准输入仓 / 蒸汽输入仓 / 耐压蒸汽
      * 输入仓)。禁用 atLeast（GT5U atLeast 是“各元素至少一个”语义，此处不适用）。自定义 adder：
      * 标准输入仓走 {@code addInputHatchToMachineList} 纳入 mInputHatches；耐压蒸汽输入仓在本
-     * Enhanced 基座上无标准注册通道（其类不是 MTEHatchInput），先 updateTexture 接受成型，
-     * 仓列表归总控持有（TODO-E1b，参照 MTEKineticProcessingArray.mPressureSteamInputs 范式）。
+     * Enhanced 基座上无标准注册通道（其类不是 MTEHatchInput），updateTexture 接受成型后经
+     * {@code registerPressureSteamHatch} 直收总控 pressureSteamHatches 列表（终验反馈 FA：取代
+     * 旧硬编码偏移枚举收集；checkMachine 复位段先清列表、失配延伸段由总控 prune 剔除）。
      */
     private static IStructureElement<MTESteamMineralLogisticsCluster> controllerInputSlot() {
         return ofChain(
@@ -395,7 +399,7 @@ public final class ClusterStructureDef {
         IMetaTileEntity mte = te.getMetaTileEntity();
         if (mte instanceof MTEHatchPressureSteamInput hatch) {
             hatch.updateTexture(casingIndex == null ? 0 : casingIndex.intValue());
-            // TODO-E1b: 总控侧耐压蒸汽输入仓列表（经济结算经 GTSRHatchFluidAccess 读该列表）
+            t.registerPressureSteamHatch(hatch);
             return true;
         }
         return t.addInputHatchToMachineList(te, casingIndex == null ? 0 : casingIndex.intValue());
@@ -470,8 +474,9 @@ public final class ClusterStructureDef {
      * abc[2] is the registered canonical depth axis: main {@code [-7,+4]} is segment 0; extension k
      * {@code [5+8k, 12+8k]} is {@code k+1}. This is the inverse of {@link #extOffsetC(int)}
      * {@code -5-8k} (formula itself unchanged from the 20-deep era; only MAIN_DEPTH shrank 20→12).
+     * 包私有：总控 prune 未成型延伸段耐压仓时复用（FA）。
      */
-    private static int segmentOfWorldPos(MTESteamMineralLogisticsCluster t, int x, int y, int z) {
+    static int segmentOfWorldPos(MTESteamMineralLogisticsCluster t, int x, int y, int z) {
         IGregTechTileEntity base = t.getBaseMetaTileEntity();
         Vec3Impl abc = t.getExtendedFacing()
             .getOffsetABC(new Vec3Impl(x - base.getXCoord(), y - base.getYCoord(), z - base.getZCoord()));

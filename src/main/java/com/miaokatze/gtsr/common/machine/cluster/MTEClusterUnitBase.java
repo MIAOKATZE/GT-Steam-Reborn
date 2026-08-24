@@ -21,6 +21,7 @@ import com.gtnewhorizon.structurelib.structure.IStructureElement;
 import com.gtnewhorizon.structurelib.structure.ISurvivalBuildEnvironment;
 import com.gtnewhorizon.structurelib.structure.StructureDefinition;
 import com.gtnewhorizons.modularui.common.fluid.FluidStackTank;
+import com.miaokatze.gtsr.common.gui.cluster.MTEClusterUnitNativeGui;
 import com.miaokatze.gtsr.common.machine.base.MTEGTSRMultiBlockBase;
 
 import gregtech.api.GregTechAPI;
@@ -676,6 +677,16 @@ public abstract class MTEClusterUnitBase<T extends MTEClusterUnitBase<T>> extend
     protected int casingTextureIdForTier(int tier) {
         if (tier < 0 || tier >= TIER_CASING_TEXTURE_IDS.length) return TIER_CASING_TEXTURE_IDS[0];
         return TIER_CASING_TEXTURE_IDS[tier];
+    }
+
+    /**
+     * GT 原生 GUI（终验反馈：全部集群模块不使用独立 UI）：默认返回共享原生 GUI
+     * {@link MTEClusterUnitNativeGui}（模块类型/tier/六态/运行/连接通用词条）；物流子类覆写
+     * 返回富词条子类。空手右击经 GT 基类默认路径打开（MTECrustMatterAggregator 同款语义）。
+     */
+    @Override
+    protected gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui<?> getGui() {
+        return new MTEClusterUnitNativeGui(this);
     }
 
     @Override

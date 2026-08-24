@@ -11,7 +11,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
-import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraftforge.common.util.ForgeDirection;
@@ -24,7 +23,7 @@ import net.minecraftforge.fluids.FluidTankInfo;
 import com.gtnewhorizon.structurelib.structure.StructureDefinition;
 import com.miaokatze.gtsr.api.compat.GTSRHatchFluidAccess;
 import com.miaokatze.gtsr.common.event.GTSRMachineEvent;
-import com.miaokatze.gtsr.common.gui.cluster.MTEBasicLogisticsUnitGui;
+import com.miaokatze.gtsr.common.gui.cluster.MTEBasicLogisticsUnitNativeGui;
 
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Materials;
@@ -63,8 +62,8 @@ import gregtech.common.tileentities.machines.MTEHatchInputBusME;
  * 非法流体一律拒收；管道/ME 经 {@link #getTankInfo} 可见双 tank。自身输入仓每 20t 节流自动补液
  * （{@link #refillTanksFromHatches}，探测/实扣走 {@link GTSRHatchFluidAccess} 统一访问层）。
  * <p>
- * <b>交互</b>：右击不再跳转集群终端链编辑页，改为打开自身 GUI
- * （{@link MTEBasicLogisticsUnitGui.LogisticsUnitGuiFactory}，MUI2 最小 stub，批2 E6 全量重写）；
+ * <b>交互</b>：右击不再跳转集群终端链编辑页，也不再有独立 MUI2 状态页——空手右击打开
+ * GT 原生 GUI（{@link MTEBasicLogisticsUnitNativeGui}，物流富词条，基类 getGui 覆写）；
  * 链编辑入口只经集群 UI，本类保留 {@link #getChain()}/{@link #setChain(LogisticsChain)} 访问器。
  * 正面叠层经基类 E2a 钩子 {@link #unitOverlayInactive()}/{@link #unitOverlayActive()}（拆解机
  * 贴图四态，Textures.BlockIcons T:1306-1309），底材随 unitStructureTier 四档联动（3.5.2）。
@@ -580,18 +579,13 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
     }
 
     /**
-     * 右击分流（空手/持任意物品皆同）：服务端打开自身 GUI stub
-     * （{@link MTEBasicLogisticsUnitGui.LogisticsUnitGuiFactory#open}），双端均返回 true 消费事件。
-     * 不再跳转集群终端链编辑页——链编辑职责只经集群 UI；本 GUI 为最小状态页（批2 E6 全量重写）。
-     * 注：潜行右击收不到本事件——GT BaseMetaTileEntity 在潜行时拦截右击（用于贴墙放方块）。
+     * GT 原生 GUI（终验反馈：物流不使用独立 MUI2 UI）：覆写基类共享 GUI 为物流富词条子类
+     * （段/垫、链摘要、批冷却、双 tank、物理电源）。空手右击经 GT 基类默认路径打开本 GUI
+     * （MTECrustMatterAggregator 同款语义），MUI2 状态页跳转已删除。
      */
     @Override
-    public boolean onRightclick(IGregTechTileEntity aBaseMetaTileEntity, EntityPlayer aPlayer, ForgeDirection side,
-        float aX, float aY, float aZ) {
-        if (aBaseMetaTileEntity.isServerSide()) {
-            MTEBasicLogisticsUnitGui.LogisticsUnitGuiFactory.open(aPlayer, this);
-        }
-        return true;
+    protected gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui<?> getGui() {
+        return new MTEBasicLogisticsUnitNativeGui(this);
     }
 
     // ------------------------------------------------------------------

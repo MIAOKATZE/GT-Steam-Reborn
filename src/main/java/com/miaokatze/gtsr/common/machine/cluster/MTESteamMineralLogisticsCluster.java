@@ -25,8 +25,10 @@ import com.miaokatze.gtsr.api.compat.GTSRHatchFluidAccess;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.gui.cluster.ClusterGuiSync;
 import com.miaokatze.gtsr.common.gui.cluster.ClusterTerminalUiFactory;
+import com.miaokatze.gtsr.common.gui.cluster.MTESteamMineralLogisticsClusterNativeGui;
 import com.miaokatze.gtsr.common.machine.base.MTEGTSRMultiBlockBase;
 import com.miaokatze.gtsr.common.machine.base.MTEHatchPressureSteamInput;
+import com.miaokatze.gtsr.common.machine.base.MTESteamInputHatchGeneric;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
 import com.miaokatze.gtsr.config.Config;
 import com.miaokatze.gtsr.main.GTSteamReborn;
@@ -38,6 +40,7 @@ import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.implementations.MTEHatch;
+import gregtech.api.metatileentity.implementations.MTEHatchInput;
 import gregtech.api.render.TextureFactory;
 import gregtech.api.structure.error.StructureError;
 import gregtech.api.structure.error.StructureErrorRegistry;
@@ -66,8 +69,9 @@ import io.netty.buffer.Unpooled;
  * <p>
  * 统一蒸汽源（plan §3.3.2/E5）：P 位可容纳标准输入仓 / 蒸汽输入仓（入 mInputHatches）与
  * 耐压蒸汽输入仓（{@link MTEHatchPressureSteamInput}，类非 MTEHatchInput 无法入标准列表，
- * 由本类在结构成型后按 P 位枚举持有）；{@link #getClusterFluidInputHatches()} 返回二者统一
- * 可枚举列表供 {@link ClusterSteamEconomy} 结算；结构校验为合计 ≥ 1。
+ * 由 P 位结构 adder 经 {@code registerPressureSteamHatch} 直收本类列表）；{@link
+ * #getClusterFluidInputHatches()} 返回二者统一可枚举列表供 {@link ClusterSteamEconomy} 结算；
+ * 结构校验：通用输入仓 1..10、蒸汽仓类合计 0..10（终验反馈 FA）。
  *
  * <p>
  * [GTSR-JQ] 日志（附录 C）：INFO/WARN 边沿事件（开始预热/满热/供给翻转/满热降温/模块低温关机/
@@ -104,7 +108,9 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
     /** 垫位登记：(segment,padId) → 已占用单元；同垫去重与失效剔除共用，checkMachine 复位时清空。 */
     private final Map<Long, MTEClusterUnitBase> occupiedSlots = new HashMap<>();
 
-    /** 耐压蒸汽输入仓（P 位枚举收集，结构重检时清空重建；与 mInputHatches 合成统一结算源）。 */
+    /**
+     * 耐压蒸汽输入仓（P 位结构 adder 直收 registerPressureSteamHatch；checkMachine 复位清空重建、未成型延伸段 prune 剔除；与 mInputHatches 合成统一结算源）。
+     */
     private final List<MTEHatchPressureSteamInput> pressureSteamHatches = new ArrayList<>();
 
     /** 物理电源边沿锁存（软锤复位/模块低温关机检测，20t 轮询；结构重检时清空）。 */
@@ -281,8 +287,8 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
      * <p>
      * 流程：复位（拓扑/垫位/延伸计数/耐压仓/挂点中心/电源边沿锁存 → 四 tier 归 -1 → 旧单元断开）→
      * 主段 checkPiece → 延伸段循环（失配即停；失配段之后仍可识别延伸结构时上报断层错误
-     * {@link ClusterStructureError#extensionBreak}）→ 四族同级校验 → 通用输入仓合计校验
-     * （mInputHatches + 耐压仓 ≥ 1，plan §3.3.2 删除总线/能源校验）→ tier 统一下发 → 收尾
+     * {@link ClusterStructureError#extensionBreak}）→ 四族同级校验 → 输入仓上限校验
+     * （通用 1..10、蒸汽类合计 0..10，plan §3.3.2 删除总线/能源校验；终验反馈 FA）→ tier 统一下发 → 收尾
      * （模块冲突取走上报、挂点中心注册、供给锁存乐观复位、成型/段数边沿日志）。
      *
      * <p>
@@ -353,11 +359,28 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
             return;
         }
 
-        // 5) 通用输入仓合计：标准输入仓（含蒸汽输入仓）+ 耐压蒸汽输入仓 ≥ 1（总线/能源校验已按 §3.3.2 删除）
-        collectPressureSteamHatches();
-        if (mInputHatches.isEmpty() && pressureSteamHatches.isEmpty()) {
+        // 5) 输入仓上限校验（终验反馈 FA）：通用输入仓（MTEHatchInput 且非蒸汽类）1..10、
+        // 蒸汽仓类（MTESteamInputHatchGeneric + 耐压仓）合计 0..10；先剔除失配延伸段中途收集的耐压仓
+        pruneUnformedSegmentPressureHatches();
+        int genericHatchCount = 0;
+        int steamHatchCount = pressureSteamHatches.size();
+        for (MTEHatch hatch : mInputHatches) {
+            if (hatch instanceof MTESteamInputHatchGeneric) steamHatchCount++;
+            else if (hatch instanceof MTEHatchInput) genericHatchCount++;
+        }
+        if (genericHatchCount < 1) {
             errors.add(new ClusterStructureError("gtsr.gui.cluster.structure.missing_fluid_hatch"));
             failFormation("缺少通用输入仓", wasFormed, prevSegments, prevUnits);
+            return;
+        }
+        if (genericHatchCount > 10) {
+            errors.add(new ClusterStructureError("gtsr.gui.cluster.structure.input_hatch_limit"));
+            failFormation("通用输入仓超上限@" + genericHatchCount, wasFormed, prevSegments, prevUnits);
+            return;
+        }
+        if (steamHatchCount > 10) {
+            errors.add(new ClusterStructureError("gtsr.gui.cluster.structure.steam_hatch_limit"));
+            failFormation("蒸汽仓类超上限@" + steamHatchCount, wasFormed, prevSegments, prevUnits);
             return;
         }
 
@@ -476,33 +499,32 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
     }
 
     /**
-     * P 位耐压蒸汽输入仓枚举（TODO-E1b 收口）：主段 P 位（控制器左右，局部 (-1,0,0)/(1,0,0)）与
-     * 各成型延伸段 P 位（局部 (-24,0,8+8j)，经 extOffsetC 换算）；标准输入仓已由结构 adder 入
-     * mInputHatches，本方法只补耐压仓（其类非 MTEHatchInput 无标准注册通道）。
+     * 耐压蒸汽输入仓直收（P 位结构 adder 回调入口，ClusterStructureDef.addControllerInputHatch
+     * 调用；终验反馈 FA 取代旧硬编码偏移枚举收集 collectPressureSteamHatches——已删）。checkMachine
+     * 复位段已清列表防陈旧引用，此处引用级去重防同轮重复收集。
      */
-    private void collectPressureSteamHatches() {
-        pressureSteamHatches.clear();
-        scanPressureHatchAt(-1, 0, 0);
-        scanPressureHatchAt(1, 0, 0);
-        for (int j = 0; j < extensionCount; j++) {
-            scanPressureHatchAt(0 - ClusterStructureDef.mainOffsetA(), 0, 3 - ClusterStructureDef.extOffsetC(j));
-        }
+    public void registerPressureSteamHatch(MTEHatchPressureSteamInput hatch) {
+        if (hatch == null || pressureSteamHatches.contains(hatch)) return;
+        pressureSteamHatches.add(hatch);
     }
 
-    /** 单点耐压仓探测：局部 ABC（控制器相对）→ 世界坐标 → MTEHatchPressureSteamInput 即收集。 */
-    private void scanPressureHatchAt(int a, int b, int c) {
-        IGregTechTileEntity base = getBaseMetaTileEntity();
-        World world = base == null ? null : base.getWorld();
-        if (world == null) return;
-        Vec3Impl off = getExtendedFacing().getWorldOffset(new Vec3Impl(a, b, c));
-        int x = base.getXCoord() + off.get0();
-        int y = base.getYCoord() + off.get1();
-        int z = base.getZCoord() + off.get2();
-        if (!world.blockExists(x, y, z)) return;
-        if (!(world.getTileEntity(x, y, z) instanceof IGregTechTileEntity gtte)) return;
-        if (gtte.getMetaTileEntity() instanceof MTEHatchPressureSteamInput hatch) {
-            pressureSteamHatches.add(hatch);
+    /**
+     * 剔除未成型延伸段中途收集的耐压仓：延伸段 checkPiece 失配（非断层、正常短簇终止）时，
+     * 失败段内先于失配元素注册的耐压仓仍留在列表；按 {@link ClusterStructureDef#segmentOfWorldPos}
+     * 反解段号，段号超出已成型段（&gt; extensionCount）或 TE 失联即移除。上限校验前调用。
+     */
+    private void pruneUnformedSegmentPressureHatches() {
+        if (getBaseMetaTileEntity() == null) {
+            pressureSteamHatches.clear();
+            return;
         }
+        pressureSteamHatches.removeIf(hatch -> {
+            IGregTechTileEntity hatchTe = hatch.getBaseMetaTileEntity();
+            if (hatchTe == null) return true;
+            int segment = ClusterStructureDef
+                .segmentOfWorldPos(this, hatchTe.getXCoord(), hatchTe.getYCoord(), hatchTe.getZCoord());
+            return segment > extensionCount;
+        });
     }
 
     /** 挂点中心注册（粒子 FX 候选位）：各已收集单元控制器位（控制器相对 ABC 偏移）；结构重检/断裂时清除。 */
@@ -1364,6 +1386,16 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
         super.loadNBTData(aNBT);
         machineEnabled = aNBT.hasKey("machineEnabled") ? aNBT.getBoolean("machineEnabled") : true;
         ClusterPersistence.read(this, aNBT);
+    }
+
+    /**
+     * GT 原生 GUI（终验反馈 FB 建类、FA 接线）：空手右击经 GT 基类默认路径打开集群总控原生 GUI
+     * （成型/段数/tier/热量/蒸汽/润滑/吞吐/模块计数/供给异常词条，MTECrustMatterAggregator
+     * 同款语义）；持枢纽终端右击仍开 MUI2 终端（onRightclick 分支保持不动）。
+     */
+    @Override
+    protected gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui<?> getGui() {
+        return new MTESteamMineralLogisticsClusterNativeGui(this);
     }
 
     /**

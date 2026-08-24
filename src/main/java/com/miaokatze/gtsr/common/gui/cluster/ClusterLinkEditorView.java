@@ -40,8 +40,9 @@ import com.miaokatze.gtsr.common.machine.cluster.MTESteamMineralLogisticsCluster
  * <li>顶行 y0..14：物流模块下拉（位置+关联+授权状态；无物流模块空状态引导）+ 两级有效性横幅
  * （结构有效 = FSM 终态 / 当前可执行 = 服务端逐 link 真实查询，失败步名一并显示）；</li>
  * <li>左列（x0..272）：「可用链」10 行（链名/在链 ×N/耗时与介质需求/禁用原因；前置不满足
- * <b>恒渲染</b>灰字+锁因 tooltip，不用 setEnabledIf——禁用=整棵子树不渲染）；底部同步反馈行
- * （已授权/待应用/写入失败/模块未关联）与链长 N/16；</li>
+ * <b>恒渲染</b>灰字+锁因 tooltip，不用 setEnabledIf——禁用=整棵子树不渲染）——修订 FC 行高 ×2
+ * （33px），10 行超列高装 {@link ScrollKeepingListWidget} 滚动容器（同 chips 防回顶），「可用链」
+ * 标题与底部同步反馈行（已授权/待应用/写入失败/模块未关联）及链长 N/16 钉在滚动区外；</li>
  * <li>右列（x280..582）：「当前有序链」chips 滚动列表（序号/名称/实际耗时/左移右移删除，可重复；
  * {@link ScrollKeepingListWidget} 防回顶）+ 清空钮；状态机推演条（原矿→逐步→透传→终态）；
  * 可折叠性能详情（单物品耗时/有效并行/预测吞吐/本链蒸汽/集群总蒸汽——<b>全部服务端真值</b>，
@@ -69,11 +70,13 @@ public final class ClusterLinkEditorView {
     private static final int RIGHT_W = 302;
     /** 列标题偏移。 */
     private static final int TITLE_DY = 17;
-    /** 链步行区：起始偏移与行距。 */
+    /** 链步行区：起始偏移与行距（修订 FC 行高 ×2：34 = 33 按钮高 + 1 行距）。 */
     private static final int LINKS_DY = 28;
-    private static final int LINK_PITCH = 17;
-    /** 左列底部同步反馈行偏移。 */
-    private static final int FEEDBACK_DY = LINKS_DY + ChainLink.values().length * LINK_PITCH + 4;
+    private static final int LINK_PITCH = 34;
+    /** 左列底部同步反馈行高（Y 按 contentH 钉底，不随行距下移）。 */
+    private static final int FEEDBACK_H = 12;
+    /** 左列可用链滚动区内缩（DISPLAY 背景面板与列表间留白，同右列 chips）。 */
+    private static final int LINK_LIST_INSET = 2;
     /** 右列：chips 区。 */
     private static final int CHIPS_DY = 28;
     private static final int CHIPS_H = 88;
@@ -96,6 +99,8 @@ public final class ClusterLinkEditorView {
     private boolean formulaOpen = false;
     /** chips 滚动偏移回写。 */
     private int chipsScrollValue;
+    /** 可用链列表滚动偏移回写。 */
+    private int linksScrollValue;
     /** 同步反馈：最近一次本地编辑时间戳（0=无待应用）；最近一次客户端拒绝时间戳（0=无）。 */
     private long lastEditAt;
     private long lastRejectAt;
@@ -125,7 +130,7 @@ public final class ClusterLinkEditorView {
         }
         ParentWidget<?> page = new ParentWidget<>().size(contentW, contentH);
         view.buildTopRow(page);
-        view.buildLinkColumn(page);
+        view.buildLinkColumn(page, contentH);
         view.buildChainColumn(page, contentH);
         paged.addPage(page);
         // 初始构建（sync handler 未初始化时为空态，首同步后 changeListener 再刷新）
@@ -255,20 +260,34 @@ public final class ClusterLinkEditorView {
 
     // ==================== 左列：可用链 + 同步反馈（无预设） ====================
 
-    private void buildLinkColumn(ParentWidget<?> page) {
+    private void buildLinkColumn(ParentWidget<?> page, int contentH) {
         page.child(
             IKey.str(EnumChatFormatting.GOLD.toString() + EnumChatFormatting.BOLD + tr("gtsr.cluster.gui.link.avail"))
                 .asWidget()
                 .pos(0, TITLE_DY - 12)
                 .scale(0.7f));
+        // 可用链滚动区（修订 FC）：10 行 ×34 = 340 超出列区剩余高，装入 ScrollKeepingListWidget
+        // （同右列 chips 防回顶方案）；标题与底部反馈行钉在滚动区外，不随滚动移走
+        int feedbackDy = contentH - FEEDBACK_H;
+        int listH = feedbackDy - LINKS_DY - 2;
+        page.child(
+            new ParentWidget<>().pos(0, LINKS_DY)
+                .size(LEFT_W, listH)
+                .background(GuiTextures.DISPLAY));
+        ListWidget<IWidget, ?> linksList = new ScrollKeepingListWidget(
+            () -> linksScrollValue,
+            value -> linksScrollValue = value);
+        linksList.pos(LINK_LIST_INSET, LINKS_DY + LINK_LIST_INSET)
+            .size(LEFT_W - 2 * LINK_LIST_INSET, listH - 2 * LINK_LIST_INSET);
         for (int i = 0; i < LINKS.length; i++) {
-            page.child(buildLinkRow(LINKS[i], LINKS_DY + i * LINK_PITCH));
+            linksList.child(buildLinkRow(LINKS[i]));
         }
-        // 同步反馈行 + 链长计数（动态）
+        page.child(linksList);
+        // 同步反馈行 + 链长计数（动态，钉底）
         page.child(
             IKey.dynamic(this::feedbackText)
                 .asWidget()
-                .pos(0, FEEDBACK_DY)
+                .pos(0, feedbackDy)
                 .scale(0.65f));
         page.child(
             IKey.dynamic(
@@ -277,17 +296,20 @@ public final class ClusterLinkEditorView {
                     chainOrdinals().size(),
                     ClusterParams.CHAIN_MAX_LINKS))
                 .asWidget()
-                .pos(150, FEEDBACK_DY)
+                .pos(150, feedbackDy)
                 .scale(0.65f));
     }
 
     /**
      * 单个链步行（恒渲染——不用 setEnabledIf，禁用行灰字+锁因仍在）：两行 overlay
      * （名称+在链×N / 基准秒+介质需求+锁因红字），可用点击 appendLink，锁定点击本地拒绝（反馈行提示）。
+     * 修订 FC：行高 ×2（33px；overlay 无折叠内容仍两行）；列表内由 ListWidget 纵向堆叠布局
+     * （不设主轴 pos），widthRel 填满列宽，marginBottom 留 1px 行距。
      */
-    private IWidget buildLinkRow(ChainLink link, int y) {
-        return new ButtonWidget<>().pos(0, y)
-            .size(LEFT_W, LINK_PITCH - 1)
+    private IWidget buildLinkRow(ChainLink link) {
+        return new ButtonWidget<>().widthRel(1f)
+            .height(LINK_PITCH - 1)
+            .marginBottom(1)
             .overlay(IKey.dynamic(() -> formatLinkOverlay(link)))
             .onMousePressed(mouseButton -> {
                 if (lockKind(link.ordinal()) == 0 && chainOrdinals().size() < ClusterParams.CHAIN_MAX_LINKS) {

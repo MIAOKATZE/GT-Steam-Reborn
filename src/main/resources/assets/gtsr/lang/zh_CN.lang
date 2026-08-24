@@ -1365,6 +1365,8 @@ gtsr.gui.cluster.structure.missing_fluid_hatch=缺少流体输入仓（蒸汽+�
 gtsr.gui.cluster.structure.missing_output_hatch=缺少输出仓
 gtsr.gui.cluster.structure.missing_input_bus=缺少输入总线
 gtsr.gui.cluster.structure.missing_output_bus=缺少输出总线
+gtsr.gui.cluster.structure.input_hatch_limit=通用输入仓数量超上限（最多 10 个）
+gtsr.gui.cluster.structure.steam_hatch_limit=蒸汽仓数量超上限（最多 10 个）
 
 # 集群聊天提示
 gtsr.chat.cluster.temperature_low=温度过低：已终止物流作业并关停物流模块，请用软锤复位
@@ -1407,6 +1409,57 @@ gtsr.cluster.gui.foot.normal=供给正常
 gtsr.gui.cluster.power.on=开机
 gtsr.gui.cluster.power.off=关机
 gtsr.gui.cluster.power.tip=点击切换集群电源
+
+# 集群 GT 原生 GUI 终端词条（主控 NativeGui；heat/steam/lube/throughput/total 为纯标签拼接，segments 单 %s）
+gtsr.cluster.native.structure=结构状态：
+gtsr.cluster.native.structure.formed=已成型
+gtsr.cluster.native.structure.unformed=未成型
+gtsr.cluster.native.segments=段数 %s/10
+gtsr.cluster.native.power=电源：
+gtsr.cluster.native.power.on=开启
+gtsr.cluster.native.power.off=关闭
+gtsr.cluster.native.heat=热量：
+gtsr.cluster.native.steam=蒸汽消耗：
+gtsr.cluster.native.lube=润滑油消耗：
+gtsr.cluster.native.throughput=吞吐：
+gtsr.cluster.native.total=累计处理：
+gtsr.cluster.native.modules=模块：
+gtsr.cluster.native.modules.count=加工 %s · 增幅 %s · 物流 %s
+gtsr.cluster.native.supply=供给状态：
+gtsr.cluster.native.supply.ok=正常
+gtsr.cluster.native.supply.steam_short=蒸汽不足
+gtsr.cluster.native.supply.lube_short=润滑油不足
+gtsr.cluster.native.supply.thermal=断供降温中
+
+# 集群 GT 原生 GUI 终端词条（共享模块 NativeGui）
+gtsr.cluster.native.unit.type=模块类型：
+gtsr.cluster.native.unit.tier=结构等级：
+gtsr.cluster.native.unit.tier.unverified=未验证
+gtsr.cluster.native.unit.status=状态：
+gtsr.cluster.native.unit.running=运行信号：
+gtsr.cluster.native.unit.running.on=运行中
+gtsr.cluster.native.unit.running.off=停止
+gtsr.cluster.native.unit.link=集群连接：
+gtsr.cluster.native.unit.link.connected=已连接
+gtsr.cluster.native.unit.link.disconnected=未连接
+
+# 集群 GT 原生 GUI 终端词条（物流 NativeGui；slot.value 双 %s，chain.length 单 %s，chain.blocked 纯文本，失败原因由代码追加）
+gtsr.cluster.native.logistics.slot=挂点位置：
+gtsr.cluster.native.logistics.slot.unplaced=未入位
+gtsr.cluster.native.logistics.slot.value=段 %s · 槽 %s
+gtsr.cluster.native.logistics.chain=链摘要：
+gtsr.cluster.native.logistics.chain.empty=空链
+gtsr.cluster.native.logistics.chain.length=%s 步
+gtsr.cluster.native.logistics.chain.executable=可执行
+gtsr.cluster.native.logistics.chain.blocked=不可执行
+gtsr.cluster.native.logistics.cooldown=批冷却：
+gtsr.cluster.native.logistics.cooldown.ready=就绪
+gtsr.cluster.native.logistics.water=水槽：
+gtsr.cluster.native.logistics.chem=化浴槽：
+gtsr.cluster.native.logistics.power=物理电源：
+gtsr.cluster.native.logistics.power.on=开机
+gtsr.cluster.native.logistics.power.off=已关机
+gtsr.cluster.native.logistics.power.hint=用软锤复位后重新校验链路
 
 # 拓扑页（E6）
 gtsr.cluster.gui.topo.formed=已成型

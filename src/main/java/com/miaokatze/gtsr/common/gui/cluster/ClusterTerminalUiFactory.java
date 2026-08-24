@@ -13,8 +13,8 @@ import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
  * 集群终端界面的 MUI2 工厂（通用骨架见 AbstractGTSRPosUiFactory）。
  * <p>
  * 主入口：持枢纽终端右击总控打开（{@link #open} 三参入口，按 initialPage 定初始页）。
- * 物流模块右击现打开其自身状态页（{@link MTEBasicLogisticsUnitGui.LogisticsUnitGuiFactory}，
- * 批2 E6 起）；本工厂保留物流模块解析分支作为兼容入口（解析所属 cluster 后固定链路编辑页
+ * 物流模块右击现打开其 GT 原生状态 GUI（MTEBasicLogisticsUnitNativeGui，r3 修订起）；
+ * 本工厂保留物流模块解析分支作为兼容入口（解析所属 cluster 后固定链路编辑页
  * {@link #PAGE_CHAIN_EDIT}，供其他调用方直达链路编辑）。基类 {@code getGuiHolder} 的 TE 校验
  * 只认总控——物流入口在 open 里先换算成总控坐标再开界面，故 holder 校验无需放宽；服务端守卫
  * （EntityPlayerMP/FakePlayer/基 TE 判空）由基类 openGui 单点承载，{@code setGuiInitialPage}

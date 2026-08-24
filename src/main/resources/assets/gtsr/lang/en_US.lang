@@ -1370,6 +1370,8 @@ gtsr.gui.cluster.structure.missing_fluid_hatch=Missing fluid input hatch (steam 
 gtsr.gui.cluster.structure.missing_output_hatch=Missing output hatch
 gtsr.gui.cluster.structure.missing_input_bus=Missing input bus
 gtsr.gui.cluster.structure.missing_output_bus=Missing output bus
+gtsr.gui.cluster.structure.input_hatch_limit=Too many universal input hatches (max 10)
+gtsr.gui.cluster.structure.steam_hatch_limit=Too many steam hatches (max 10)
 
 # Cluster chat
 gtsr.chat.cluster.temperature_low=Temperature too low: logistics job aborted and logistics module shut down; use a soft hammer to reset
@@ -1412,6 +1414,57 @@ gtsr.cluster.gui.foot.normal=Supply normal
 gtsr.gui.cluster.power.on=On
 gtsr.gui.cluster.power.off=Off
 gtsr.gui.cluster.power.tip=Click to toggle cluster power
+
+# Cluster native GUI terminal entries (controller NativeGui; heat/steam/lube/throughput/total are plain labels, segments takes one %s)
+gtsr.cluster.native.structure=Structure status: 
+gtsr.cluster.native.structure.formed=Formed
+gtsr.cluster.native.structure.unformed=Unformed
+gtsr.cluster.native.segments=Segments %s/10
+gtsr.cluster.native.power=Power: 
+gtsr.cluster.native.power.on=On
+gtsr.cluster.native.power.off=Off
+gtsr.cluster.native.heat=Heat: 
+gtsr.cluster.native.steam=Steam use: 
+gtsr.cluster.native.lube=Lubricant use: 
+gtsr.cluster.native.throughput=Throughput: 
+gtsr.cluster.native.total=Total processed: 
+gtsr.cluster.native.modules=Modules: 
+gtsr.cluster.native.modules.count=%s processing · %s booster · %s logistics
+gtsr.cluster.native.supply=Supply: 
+gtsr.cluster.native.supply.ok=Normal
+gtsr.cluster.native.supply.steam_short=Steam short
+gtsr.cluster.native.supply.lube_short=Lubricant short
+gtsr.cluster.native.supply.thermal=Cooling down after supply loss
+
+# Cluster native GUI terminal entries (shared unit NativeGui)
+gtsr.cluster.native.unit.type=Module type: 
+gtsr.cluster.native.unit.tier=Structure tier: 
+gtsr.cluster.native.unit.tier.unverified=Unverified
+gtsr.cluster.native.unit.status=Status: 
+gtsr.cluster.native.unit.running=Run signal: 
+gtsr.cluster.native.unit.running.on=Running
+gtsr.cluster.native.unit.running.off=Stopped
+gtsr.cluster.native.unit.link=Cluster link: 
+gtsr.cluster.native.unit.link.connected=Connected
+gtsr.cluster.native.unit.link.disconnected=Disconnected
+
+# Cluster native GUI terminal entries (logistics NativeGui; slot.value two %s, chain.length one %s, chain.blocked plain text with reason appended by code)
+gtsr.cluster.native.logistics.slot=Mount point: 
+gtsr.cluster.native.logistics.slot.unplaced=Unplaced
+gtsr.cluster.native.logistics.slot.value=Segment %s · Pad %s
+gtsr.cluster.native.logistics.chain=Chain summary: 
+gtsr.cluster.native.logistics.chain.empty=Empty chain
+gtsr.cluster.native.logistics.chain.length=%s steps
+gtsr.cluster.native.logistics.chain.executable=Executable
+gtsr.cluster.native.logistics.chain.blocked=Not executable
+gtsr.cluster.native.logistics.cooldown=Batch cooldown: 
+gtsr.cluster.native.logistics.cooldown.ready=Ready
+gtsr.cluster.native.logistics.water=Water tank: 
+gtsr.cluster.native.logistics.chem=Chemical bath tank: 
+gtsr.cluster.native.logistics.power=Physical power: 
+gtsr.cluster.native.logistics.power.on=On
+gtsr.cluster.native.logistics.power.off=Off
+gtsr.cluster.native.logistics.power.hint=Reset with a soft hammer and re-validate the chain
 
 # Topology page (E6)
 gtsr.cluster.gui.topo.formed=Formed
