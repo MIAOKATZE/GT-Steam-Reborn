@@ -24,7 +24,6 @@ import net.minecraftforge.fluids.FluidTankInfo;
 import com.gtnewhorizon.structurelib.structure.IStructureElement;
 import com.gtnewhorizon.structurelib.structure.StructureDefinition;
 import com.miaokatze.gtsr.api.compat.GTSRHatchFluidAccess;
-import com.miaokatze.gtsr.common.event.GTSRMachineEvent;
 import com.miaokatze.gtsr.common.gui.cluster.MTEBasicLogisticsUnitNativeGui;
 
 import gregtech.api.GregTechAPI;
@@ -43,7 +42,7 @@ import gregtech.api.util.GTUtility;
 import gregtech.common.tileentities.machines.MTEHatchInputBusME;
 
 /**
- * 物流模块：集群的单点链执行器骨架（E3b 切片：四 I/O 结构 + 默认关机 + 双 tank 语义收紧 + 独立 GUI stub）。
+ * 物流模块：集群的单点链执行器骨架（E3b 切片：四 I/O 结构 + 软锤启停 + 双 tank 语义收紧 + 独立 GUI stub）。
  * <p>
  * <b>结构（3×4×3，控制器 (1,2,0)）</b>：正面 z0 层与全矩阵 A 位四 I/O 自由化（切片 3）——'A' 元素
  * = ofChain(tiered 外壳 + hatchAdder.anyOf(输入总线/输出总线/输入仓/输出仓))，矩阵内任意 A 位皆可
@@ -54,10 +53,10 @@ import gregtech.common.tileentities.machines.MTEHatchInputBusME;
  * 强校验（跨 tier 混搭不成型）。{@link MTEHatchInputBusME} 在 {@link #addInputBusToMachineList}
  * 直接拒绝致结构不成型（范式同 GT5U MTETreeFarm：ME 输入总线会绕过物流批事务语义）。
  * <p>
- * <b>物理电源</b>：新放置模块在 {@link #onFirstTick} 一次性 {@code disableWorking()}（mWorks=false，
- * BaseMetaTileEntity 原生 NBT 持久化），"一次性已初始化"标记入 NBT 防区块重载重复关停用户已复位的
- * 模块；用户经软锤复位（GT 标准启停切换）。{@link #getUnitStatus()} 优先 {@code isAllowedToWork()}，
- * 关闭时显示"无功率/未通电"而非可工作。
+ * <b>物理电源</b>：默认开机（SR-Cluster-r5 决策 1），启停经软锤切换（GT5U mWorks 原生 NBT
+ * 持久化）；{@link #getUnitStatus()} 优先 {@code isAllowedToWork()}，关闭时显示"无功率/未通电"
+ * 而非可工作。"仅处理矿石才工作"（决策 5）：运行态贴图/状态由处理窗口闩驱动——执行器成功批
+ * 提交后调 {@link #onBatchProcessed(int)} 开窗 {@link #isUnitRunning()} 才为 true。
  * <p>
  * <b>双 tank 语义（plan 3.4.5 收口）</b>：基类 mFluid 主 tank 全面弃用（get/set Fillable/Drainable 钉
  * null、无并行写入旁路）；自持水 tank（普通水+蒸馏水均收，蒸馏优先扣液路径由 E4 落）与化浴 tank
@@ -72,8 +71,7 @@ import gregtech.common.tileentities.machines.MTEHatchInputBusME;
  * 贴图四态，Textures.BlockIcons T:1306-1309），底材随 unitStructureTier 四档联动（3.5.2）。
  * <p>
  * 链与双 tank 的 NBT 自落（{@link #saveNBTData}）：链存 "clusterChain"，双 tank 存
- * "clusterWaterTank"/"clusterChemTank"，电源初始化标记存 "clusterLogiPowerInit"，
- * 低温通知位存 "clusterLogiLowTemp"。
+ * "clusterWaterTank"/"clusterChemTank"。
  * 类型名 key：gtsr.gui.cluster.unit_type.logistics。
  */
 public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsUnit> {
@@ -99,11 +97,15 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
     /** 化浴 tank：仅含汞/过硫酸钠（GT5U 化学洗 CHEM_BATH 配方介质）。 */
     private final FluidTank chemBathTank = new FluidTank(ClusterParams.LOGISTICS_TANK_CAPACITY_L);
 
-    /** 一次性电源初始化标记：onFirstTick 默认关机只执行一次，NBT 持久化防重载复关。 */
-    private boolean powerOnInitDone;
+    /**
+     * 处理窗口闩（SR-Cluster-r5 决策 5，瞬态无 NBT）：最近一次成功批提交后的"工作中"显示窗，
+     * 窗口 = 提交时计时器 + max(批冷却, 40t)；{@link #isUnitRunning()} 与 {@link #getUnitStatus()}
+     * 据此区分"就绪待机"与"正在加工"。重载后从零开始（仅显示语义，非玩家资产）。
+     */
+    private long processingDisplayUntilTick;
 
-    /** 低温关机通知位：true 时 onLowTemperatureShutdown 不再刷屏，软锤复位清除，NBT 持久化。 */
-    private boolean lowTempNotified;
+    /** 处理窗口下限（tick）：批冷却为 0（全透传批）时仍保持 2 秒工作态显示。 */
+    private static final long MIN_PROCESSING_WINDOW_TICKS = 40L;
 
     /** 链脏标记（瞬态）：置位表示链需在下次执行前重校验（重校验由 E4/主控执行）。 */
     private boolean chainDirty;
@@ -272,23 +274,8 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
     }
 
     // ------------------------------------------------------------------
-    // 物理电源（默认关机 + 低温一次性通知）
+    // 物理电源（软锤启停，默认开机）
     // ------------------------------------------------------------------
-
-    /**
-     * 一次性默认关机：新放置模块首个 tick 关闭物理电源（mWorks=false）。标记 NBT 持久化
-     * （"clusterLogiPowerInit"）——区块重载再次触发 onFirstTick 时不重复关停用户已软锤复位的
-     * 模块；mWorks 本身由 BaseMetaTileEntity NBT 原生持久化。
-     */
-    @Override
-    public void onFirstTick(IGregTechTileEntity aBaseMetaTileEntity) {
-        super.onFirstTick(aBaseMetaTileEntity);
-        if (aBaseMetaTileEntity == null || !aBaseMetaTileEntity.isServerSide()) return;
-        if (!powerOnInitDone) {
-            powerOnInitDone = true;
-            aBaseMetaTileEntity.disableWorking();
-        }
-    }
 
     /** 物理电源开关（GUI/同步用）：BaseMetaTileEntity.isAllowedToWork()（mWorks）。 */
     public boolean isPowerAllowed() {
@@ -307,26 +294,35 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
     }
 
     /**
-     * 低温一次性关机通知（E4 调用）：首次发送
-     * {@code GTSRMachineEvent.sendToOwner(ownerUuid, "gtsr.chat.cluster.temperature_low")}
-     * 并 {@code disableWorking()}；通知位 NBT 持久化（"clusterLogiLowTemp"），重复调用不刷屏
-     * （disableWorking 幂等）。复位经 {@link #onSoftHammerReset()}。
+     * 成功批提交回调（SR-Cluster-r5 决策 5，ClusterChainExecutor 步骤 10 调用）：开处理窗口——
+     * 窗口 = 当前计时器 + max(批冷却, {@link #MIN_PROCESSING_WINDOW_TICKS})；窗口内
+     * {@link #isUnitRunning()} 为 true（正面运行叠层联动）、{@link #getUnitStatus()} 显示 WORKING。
+     * 瞬态无 NBT：重载后窗口归零（仅显示语义）。batch ≤ 0 忽略。
      */
-    public void onLowTemperatureShutdown() {
-        if (!lowTempNotified) {
-            lowTempNotified = true;
-            IGregTechTileEntity base = getBaseMetaTileEntity();
-            if (base != null) {
-                GTSRMachineEvent.sendToOwner(base.getOwnerUuid(), "gtsr.chat.cluster.temperature_low");
-            }
-        }
+    public void onBatchProcessed(int batch) {
+        if (batch <= 0) return;
         IGregTechTileEntity base = getBaseMetaTileEntity();
-        if (base != null && base.isAllowedToWork()) base.disableWorking();
+        long now = base == null ? 0L : base.getTimer();
+        processingDisplayUntilTick = now + Math.max(getChainCooldownTicks(), MIN_PROCESSING_WINDOW_TICKS);
     }
 
-    /** 软锤复位回调（E4 调用）：清低温通知位 + 标记链重校验（重校验本身由 E4/主控在下次执行前做）。 */
+    /** 处理窗口判据：当前计时器仍在最近一次成功批的显示窗口内。 */
+    private boolean isInProcessingWindow() {
+        IGregTechTileEntity base = getBaseMetaTileEntity();
+        return base != null && base.getTimer() < processingDisplayUntilTick;
+    }
+
+    /**
+     * 独立运行信号（决策 5 覆写）：基类口径（成型+连接+物理电源开）之上追加处理窗口判据——
+     * 仅在成功批后的窗口内为 true（"仅处理矿石才工作"），驱动正面运行叠层与 active 位。
+     */
+    @Override
+    public boolean isUnitRunning() {
+        return super.isUnitRunning() && isInProcessingWindow();
+    }
+
+    /** 软锤复位回调（E4 调用）：标记链重校验（重校验本身由 E4/主控在下次执行前做）。 */
     public void onSoftHammerReset() {
-        lowTempNotified = false;
         markChainDirty();
     }
 
@@ -352,15 +348,17 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
     // ------------------------------------------------------------------
 
     /**
-     * 状态细化（自上而下）：
+     * 状态细化（SR-Cluster-r5 决策 4 重映射，自上而下）：
      * <ol>
      * <li>未自成型 → NO_POWER_OR_INVALID；</li>
-     * <li>物理电源关闭（!isAllowedToWork()，含默认关机/低温关机/软锤关闭）→ NO_POWER_OR_INVALID
+     * <li>物理电源关闭（!isAllowedToWork()，软锤/红石关闭）→ NO_POWER_OR_INVALID
      * （"关机/未通电"，不得显示可工作或待机）；</li>
      * <li>未入集群 / 总控停机 / 链空 → STANDBY；</li>
-     * <li>链不可执行（!{@link LogisticsChain#isExecutable}）→ NO_POWER_OR_INVALID；</li>
+     * <li>链不可执行（!{@link LogisticsChain#isExecutable}，如缺工作单元）→ STANDBY
+     * （配置问题不再显示为红字离线）；</li>
      * <li>洗矿/化洗批流体不足（!{@link #hasBatchFluids}）→ FLUID_MISSING；</li>
-     * <li>其余（就绪或批冷却中）→ WORKING。</li>
+     * <li>处理窗口内（最近成功批后 {@link #isInProcessingWindow()}）→ WORKING；</li>
+     * <li>其余（就绪待批或批冷却中）→ STANDBY。</li>
      * </ol>
      */
     @Override
@@ -371,13 +369,14 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
         if (cluster == null) return ClusterUnitStatus.STANDBY;
         if (!cluster.isMachineEnabled()) return ClusterUnitStatus.STANDBY;
         if (chain.isEmpty()) return ClusterUnitStatus.STANDBY;
-        if (!chain.isExecutable(cluster.getTopology())) return ClusterUnitStatus.NO_POWER_OR_INVALID;
+        if (!chain.isExecutable(cluster.getTopology())) return ClusterUnitStatus.STANDBY;
         boolean needWater = chain.countOf(ChainLink.ORE_WASH) > 0;
         boolean needChemBath = chain.countOf(ChainLink.CHEM_BATH) > 0;
         if ((needWater || needChemBath) && !hasBatchFluids(needWater, needChemBath)) {
             return ClusterUnitStatus.FLUID_MISSING;
         }
-        return ClusterUnitStatus.WORKING;
+        if (isInProcessingWindow()) return ClusterUnitStatus.WORKING;
+        return ClusterUnitStatus.STANDBY;
     }
 
     // ------------------------------------------------------------------
@@ -632,10 +631,9 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
     // ------------------------------------------------------------------
 
     /**
-     * 链/双 tank/电源与通知位持久化：链存 "clusterChain" int 数组（ChainLink.ordinal，空链空数组）；
-     * 双 tank 存 "clusterWaterTank"/"clusterChemTank"；一次性电源初始化标记存 "clusterLogiPowerInit"
-     * （防重载复关）；低温通知位存 "clusterLogiLowTemp"（防重载重发）。super 保留基类 mFluid 语义
-     * （本类恒 null，不落 tag，无并行写入旁路）。
+     * 链/双 tank 持久化：链存 "clusterChain" int 数组（ChainLink.ordinal，空链空数组）；
+     * 双 tank 存 "clusterWaterTank"/"clusterChemTank"。处理窗口闩为瞬态不落 NBT。super 保留
+     * 基类 mFluid 语义（本类恒 null，不落 tag，无并行写入旁路）。
      */
     @Override
     public void saveNBTData(NBTTagCompound aNBT) {
@@ -649,14 +647,11 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
         aNBT.setIntArray("clusterChain", ordinals);
         aNBT.setTag("clusterWaterTank", waterTank.writeToNBT(new NBTTagCompound()));
         aNBT.setTag("clusterChemTank", chemBathTank.writeToNBT(new NBTTagCompound()));
-        aNBT.setBoolean("clusterLogiPowerInit", powerOnInitDone);
-        aNBT.setBoolean("clusterLogiLowTemp", lowTempNotified);
     }
 
     /**
      * 回读对称：按 ordinal 反解链整链重建（越界 ordinal 静默丢弃）；双 tank 经
-     * {@link FluidTank#readFromNBT} 恢复；两个标记位回读（缺失时回 false）。tag 缺失天然回退
-     * 空链/空 tank/false，不崩。
+     * {@link FluidTank#readFromNBT} 恢复。tag 缺失天然回退空链/空 tank，不崩。
      */
     @Override
     public void loadNBTData(NBTTagCompound aNBT) {
@@ -671,8 +666,6 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
         chain = rebuilt;
         waterTank.readFromNBT(aNBT.getCompoundTag("clusterWaterTank"));
         chemBathTank.readFromNBT(aNBT.getCompoundTag("clusterChemTank"));
-        powerOnInitDone = aNBT.getBoolean("clusterLogiPowerInit");
-        lowTempNotified = aNBT.getBoolean("clusterLogiLowTemp");
     }
 
     // ------------------------------------------------------------------

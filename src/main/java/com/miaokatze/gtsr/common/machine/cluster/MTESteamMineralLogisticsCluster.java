@@ -691,9 +691,11 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
      * 服务端编排（每 tick，O2：只编排与状态汇聚）。
      *
      * <p>
-     * 顺序：super（父类事件式结构重检/runMachine）→ 客户端粒子分支 → 未成型衰减分支 →
-     * 周期重连容错 → 每 tick 热量推进（供给态 = 20t 结算锁存）→ 粒子窗口驱动 →
-     * 每 20t 结算编排（settleSteamEconomy）。
+     * 顺序：super（父类事件式结构重检/runMachine）→ 客户端粒子分支 → 总控工作态覆写（决策 6：
+     * setActive 与 preheat 升温入参逐字同口径，零配方总控的正面贴图随热量/供给联动）→
+     * 未成型衰减分支（头部懒加载守卫：决策 13，重载首检窗口内只关粒子窗，不衰减/不清红标/
+     * 不写边沿日志/不结算）→ 周期重连容错 → 每 tick 热量推进（供给态 = 20t 结算锁存）→
+     * 粒子窗口驱动 → 每 20t 结算编排（settleSteamEconomy）。
      */
     @Override
     public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
@@ -704,8 +706,22 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
             return;
         }
 
-        // 结构未成型：停机衰减（-5/tick）、经济红标清位、吞吐清 0、粒子窗口关；满热丢失边沿日志
+        // 总控工作态覆写（SR-Cluster-r5 决策 6，范式 MTEClusterUnitBase.onPostTick）：本控零配方
+        // → GT5U 基类 setActive(mMaxProgresstime>0) 恒 false，正面贴图恒停机；改为与 preheat
+        // 升温入参逐字同口径的显式覆写（成型+开机+允许工作+供给锁存），满热+供汽自然保持，
+        // 未成型时亦为 false（覆盖下方早退分支的工作态清位）
+        aBaseMetaTileEntity
+            .setActive(mMachine && machineEnabled && aBaseMetaTileEntity.isAllowedToWork() && thermalSupplyOkLatched);
+
+        // 结构未成型：停机衰减（-5/tick）、经济红标清位、吞吐清 0、粒子窗口关；满热丢失边沿日志。
+        // 懒加载守卫（SR-Cluster-r5 决策 13）：GT5U 重载后 mStartUpCheck=100 首检窗口内 mMachine
+        // 尚未由 checkStructure 判定——此时不得衰减热量/清经济红标/写边沿日志/结算（NBT 热量跨
+        // 重载冻结保持）；窗口过后结构真坏则照常衰减。仅关粒子窗口。
         if (!mMachine) {
+            if (getmStartUpCheck() > 0) {
+                ClusterParticleFx.setParticleWindow(false);
+                return;
+            }
             preheat.tickServer(false, false, false);
             economy.clearFlags();
             thermalSupplyOkLatched = false;
@@ -1427,7 +1443,7 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
      * 全量结构 tooltip（plan §3.3.2/§3.2 重写，文案键 gtsr.cluster.tooltip.* 序列，E7 落盘）：
      * 20 深基础段 + 8 深延伸段（最多 9 延伸 / 总段 10）→ 主控无总线/能源仓 → 通用输入仓至少 1
      * （蒸汽/普通/耐压 512k ≈ 4 分钟）→ F/H/G 挂点不校验朝向 + 模块撞结构自身无法成型 →
-     * 物流四 I/O + 默认关机 → 热离/磁选自带能源仓 → 蒸汽/润滑经济数值简述。
+     * 物流四 I/O + 软锤启停（默认开机）→ 热离/磁选自带能源仓 → 蒸汽/润滑经济数值简述。
      */
     @Override
     protected MultiblockTooltipBuilder createTooltip() {

@@ -101,7 +101,7 @@ public class MTESteamMineralLogisticsClusterGui implements IGuiHolder<PosGuiData
         return machine;
     }
 
-    /** buildUI 后可用（§4.4 加固的 C2S 动作处理器：togglePower/selectLogistics/appendLink 等）。 */
+    /** buildUI 后可用（§4.4 加固的 C2S 动作处理器：togglePower/selectLogistics/saveChain 等；append/move 等旧编辑位已占位退役）。 */
     public ClusterActionSyncHandler getActions() {
         return actions;
     }

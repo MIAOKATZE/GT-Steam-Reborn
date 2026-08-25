@@ -558,18 +558,20 @@ public final class ClusterGuiSync {
         TOGGLE_POWER,
         /** 选中物流单元（buf=[idx]）。 */
         SELECT_LOGISTICS,
-        /** 链尾追加链步（buf=[ordinal]）。 */
+        /** 链尾追加链步（buf=[ordinal]）。GUI 已改暂存保存流程，无调用入口，保留占位（同 APPLY_PRESET 先例）。 */
         APPEND_LINK,
-        /** 按索引删除链步（buf=[index]）。 */
+        /** 按索引删除链步（buf=[index]）。GUI 已改暂存保存流程，无调用入口，保留占位（同 APPLY_PRESET 先例）。 */
         REMOVE_LINK,
-        /** 链步位移（buf=[index,dir]，-1 左移 / +1 右移）。 */
+        /** 链步位移（buf=[index,dir]，-1 左移 / +1 右移）。GUI 已改暂存保存流程，无调用入口，保留占位（同 APPLY_PRESET 先例）。 */
         MOVE_LINK,
-        /** 清空当前链（无参）。 */
+        /** 清空当前链（无参）。GUI 已改暂存保存流程，无调用入口，保留占位（同 APPLY_PRESET 先例）。 */
         CLEAR_CHAIN,
         /** 已废弃：预设载入（预设数据已删除；服务端拒绝，GUI 无入口，保序占位）。 */
         APPLY_PRESET,
         /** 公式区折叠切换（无参；客户端本地状态，服务端空分支）。 */
-        TOGGLE_FORMULA
+        TOGGLE_FORMULA,
+        /** 整链保存（buf=[len][ordinals...]）。暂存保存流程的唯一链写入入口；服务端终态复核通过后整表写入。 */
+        SAVE_CHAIN
     }
 
     /**
@@ -638,6 +640,20 @@ public final class ClusterGuiSync {
             syncToServer(ClusterAction.TOGGLE_FORMULA.ordinal(), buf -> {});
         }
 
+        /**
+         * 整链保存（buf=[len][ordinals...]，决策8）。暂存保存流程的唯一链写入入口：客户端预校验
+         * （非空 + FSM 结构有效）通过后才调用；服务端仍全量复核（终态复核 + 界界 + SIMPLE_WASH 可用）。
+         */
+        public void saveChain(int[] ordinals) {
+            syncToServer(ClusterAction.SAVE_CHAIN.ordinal(), buf -> {
+                int len = ordinals != null ? ordinals.length : 0;
+                buf.writeInt(len);
+                for (int i = 0; i < len; i++) {
+                    buf.writeInt(ordinals[i]);
+                }
+            });
+        }
+
         // ===== 服务端执行（复核 + 分发） =====
 
         @Override
@@ -650,6 +666,7 @@ public final class ClusterGuiSync {
             // 动作与参数先整包读出（读序与客户端写序严格一致），防抖判定后才分发
             ClusterAction action = actions[id];
             int p1 = 0, p2 = 0;
+            int[] chainOrdinals = null;
             switch (action) {
                 case SELECT_LOGISTICS:
                 case APPEND_LINK:
@@ -660,11 +677,24 @@ public final class ClusterGuiSync {
                     p1 = buf.readInt();
                     p2 = buf.readInt();
                     break;
+                // 变长 payload（决策8）：p1=len，防抖摘要拼入数组哈希；异常长度不再继续读
+                // （每个 C2S 包独立 buffer，伪造包零副作用）
+                case SAVE_CHAIN:
+                    int len = buf.readInt();
+                    p1 = len;
+                    if (len >= 0 && len <= ClusterParams.CHAIN_MAX_LINKS) {
+                        chainOrdinals = new int[len];
+                        for (int i = 0; i < len; i++) {
+                            chainOrdinals[i] = buf.readInt();
+                        }
+                        p2 = Arrays.hashCode(chainOrdinals);
+                    }
+                    break;
                 default:
                     break;
             }
             if (duplicatePacket(id, p1, p2)) return;
-            executeChecked(action, p1, p2);
+            executeChecked(action, p1, p2, chainOrdinals);
         }
 
         /** 防抖：同玩家 + 同 tick + 同 action + 同参数摘要（拼接散列）→ 重复包静默丢弃。 */
@@ -684,8 +714,11 @@ public final class ClusterGuiSync {
             return false;
         }
 
-        /** 服务端复核 + 分发（复核不通过一律静默拒绝——伪造包不产生任何副作用）。 */
-        private void executeChecked(ClusterAction action, int p1, int p2) {
+        /**
+         * 服务端复核 + 分发（复核不通过一律静默拒绝——伪造包不产生任何副作用）。
+         * SAVE_CHAIN 的变长数组经 {@code ordinals} 承接（其余动作为 null）。
+         */
+        private void executeChecked(ClusterAction action, int p1, int p2, int[] ordinals) {
             if (!terminalValid()) return;
             switch (action) {
                 case TOGGLE_POWER -> cluster.setMachineEnabled(!cluster.isMachineEnabled());
@@ -749,6 +782,29 @@ public final class ClusterGuiSync {
                 }
                 case TOGGLE_FORMULA -> {
                     // 客户端本地状态，无服务端副作用
+                }
+                case SAVE_CHAIN -> {
+                    MTEBasicLogisticsUnit unit = checkedUnit();
+                    if (unit == null || unit.getChain() == null) return;
+                    // 主控必须成型（checkedUnit 已拦截；显式复核与 APPEND 口径一致）
+                    if (cluster.getStructureTierIndex() < 0) return;
+                    // 链长界：len ∈ [1, CHAIN_MAX_LINKS]
+                    if (ordinals == null || ordinals.length < 1 || ordinals.length > ClusterParams.CHAIN_MAX_LINKS)
+                        return;
+                    ChainLink[] values = ChainLink.values();
+                    for (int ordinal : ordinals) {
+                        // ordinal 全部界内（越界即伪造，整包拒绝）
+                        if (ordinal < 0 || ordinal >= values.length) return;
+                        // GT++ 简易洗配方图缺失时拒绝（同 APPEND 口径）
+                        if (values[ordinal] == ChainLink.SIMPLE_WASH && !ChainLink.isSimpleWashAvailable()) return;
+                    }
+                    // 服务端终态复核（恰好一个终态产物）：不满足静默拒绝零副作用
+                    LogisticsChain candidate = LogisticsChain.fromOrdinalArray(ordinals);
+                    if (candidate.isEmpty() || !candidate.isValidStructure()) return;
+                    unit.getChain()
+                        .setLinks(candidate.getLinks());
+                    unit.markChainDirty();
+                    cluster.notifyChainWritten(getSyncManager().getPlayer(), unit);
                 }
             }
         }

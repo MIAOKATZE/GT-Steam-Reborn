@@ -1373,7 +1373,6 @@ gtsr.gui.cluster.structure.logi_input_hatch_limit=物流输入仓数量超上限
 gtsr.gui.cluster.structure.logi_output_hatch_limit=物流输出仓数量超上限（最多 2 个）
 
 # 集群聊天提示
-gtsr.chat.cluster.temperature_low=温度过低：已终止物流作业并关停物流模块，请用软锤复位
 
 # 主控 tooltip（E5；键名以代码引用为准，批次2 复核）
 gtsr.cluster.tooltip.type=蒸汽动力矿物处理物流工程集群
@@ -1385,7 +1384,7 @@ gtsr.cluster.tooltip.main.3=至少 1 个通用输入仓（蒸汽/普通/耐压�
 gtsr.cluster.tooltip.main.4=耐压蒸汽仓 512k 缓冲约 4 分钟
 gtsr.cluster.tooltip.main.5=无输入输出总线与能源仓
 gtsr.cluster.tooltip.main.6=挂点不校验朝向，模块撞结构自身无法成型
-gtsr.cluster.tooltip.main.7=每段 4 加工 + 4 增幅 + 1 物流挂点，物流四 I/O 默认关机
+gtsr.cluster.tooltip.main.7=每段 4 加工 + 4 增幅 + 1 物流挂点，物流模块软锤启停
 gtsr.cluster.tooltip.main.8=预热 30 秒，持续消耗蒸汽与润滑油
 gtsr.cluster.tooltip.terminal=手持枢纽终端右击总控打开集群终端
 
@@ -1458,8 +1457,6 @@ gtsr.cluster.native.logistics.chain.executable=可执行
 gtsr.cluster.native.logistics.chain.blocked=不可执行
 gtsr.cluster.native.logistics.cooldown=批冷却：
 gtsr.cluster.native.logistics.cooldown.ready=就绪
-gtsr.cluster.native.logistics.water=水槽：
-gtsr.cluster.native.logistics.chem=化浴槽：
 gtsr.cluster.native.logistics.power=物理电源：
 gtsr.cluster.native.logistics.power.on=开机
 gtsr.cluster.native.logistics.power.off=已关机
@@ -1496,7 +1493,10 @@ gtsr.cluster.gui.link.banner.exec_bad=不可执行：%s
 gtsr.cluster.gui.link.chain=当前链
 gtsr.cluster.gui.link.chain.clear=清空
 gtsr.cluster.gui.link.chain.empty=链为空
+gtsr.cluster.gui.link.chain.invalid=链无效：需恰好一个终态产物
 gtsr.cluster.gui.link.chain.len=链长 %s/%s
+gtsr.cluster.gui.link.chain.save=保存
+gtsr.cluster.gui.link.chain.unsaved=未保存更改
 gtsr.cluster.gui.link.need_chem=需化浴药剂
 gtsr.cluster.gui.link.need_power=需持续供电
 gtsr.cluster.gui.link.need_simple_wash=需安装 GT++
@@ -1508,8 +1508,6 @@ gtsr.cluster.gui.link.perf.parallel=并行数
 gtsr.cluster.gui.link.perf.thru=吞吐
 gtsr.cluster.gui.link.perf.steam=链蒸汽耗
 gtsr.cluster.gui.link.perf.steam_total=总蒸汽耗
-gtsr.cluster.gui.link.sync.apply=等待同步…
-gtsr.cluster.gui.link.sync.fail=同步失败
 gtsr.cluster.gui.link.sync.ok=已同步
 gtsr.cluster.gui.link.unit.none=无物流模块
 gtsr.cluster.gui.link.unit.linked=已关联
@@ -1570,8 +1568,6 @@ gtsr.cluster.gui.logistics.off=关
 gtsr.cluster.gui.logistics.chain=链路
 gtsr.cluster.gui.logistics.cooldown=冷却
 gtsr.cluster.gui.logistics.exec=可执行性
-gtsr.cluster.gui.logistics.water=水箱
-gtsr.cluster.gui.logistics.chem=化浴箱
 gtsr.cluster.gui.logistics.need.none=无需
 gtsr.cluster.gui.logistics.need.batch=每批 %s L
 gtsr.cluster.gui.logistics.reason.unlinked=未关联集群

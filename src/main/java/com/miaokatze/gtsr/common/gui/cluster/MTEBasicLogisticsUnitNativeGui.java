@@ -19,12 +19,12 @@ import com.miaokatze.gtsr.common.machine.cluster.MTESteamMineralLogisticsCluster
 /**
  * 物流模块的 GT 原生 GUI（终验反馈：物流不使用独立 MUI2 UI），继承
  * {@link MTEClusterUnitNativeGui} 通用词条，追加物流富词条：段/垫位置、链摘要
- * （长度+可执行+失败步原因）、批冷却、双 tank（水/化浴）存量、物理电源开关与软锤复位指引。
+ * （长度+可执行+失败步原因）、批冷却、物理电源开关与软锤复位指引。
  *
  * <p>
  * 失败步原因为服务端计算的 lang 键（链结构无效取 {@link LogisticsChain#getInvalidReasonKey()}，
  * 链步锁定取 {@link LogisticsChain#getLinkLockReasonKey}，均复用现有 gtsr.gui.cluster.* 键），
- * 经 StringSyncValue 同步后客户端本地化；段/垫、冷却与双 tank 存量同为服务端真值同步。
+ * 经 StringSyncValue 同步后客户端本地化；段/垫与冷却同为服务端真值同步。
  */
 public class MTEBasicLogisticsUnitNativeGui extends MTEClusterUnitNativeGui {
 
@@ -50,16 +50,6 @@ public class MTEBasicLogisticsUnitNativeGui extends MTEClusterUnitNativeGui {
         syncManager.syncValue(
             "gtsr.logi.cooldown",
             new IntSyncValue(() -> (int) Math.min(Integer.MAX_VALUE, Math.max(0L, logistics.getChainCooldownTicks()))));
-        syncManager.syncValue(
-            "gtsr.logi.water",
-            new IntSyncValue(
-                () -> logistics.getWaterTank()
-                    .getFluidAmount()));
-        syncManager.syncValue(
-            "gtsr.logi.chem",
-            new IntSyncValue(
-                () -> logistics.getChemBathTank()
-                    .getFluidAmount()));
         syncManager.syncValue("gtsr.logi.power", new BooleanSyncValue(logistics::isPowerAllowed));
     }
 
@@ -91,8 +81,6 @@ public class MTEBasicLogisticsUnitNativeGui extends MTEClusterUnitNativeGui {
         BooleanSyncValue chainExecSync = syncManager.findSyncHandler("gtsr.logi.chainExec", BooleanSyncValue.class);
         StringSyncValue chainFailSync = syncManager.findSyncHandler("gtsr.logi.chainFail", StringSyncValue.class);
         IntSyncValue cooldownSync = syncManager.findSyncHandler("gtsr.logi.cooldown", IntSyncValue.class);
-        IntSyncValue waterSync = syncManager.findSyncHandler("gtsr.logi.water", IntSyncValue.class);
-        IntSyncValue chemSync = syncManager.findSyncHandler("gtsr.logi.chem", IntSyncValue.class);
         BooleanSyncValue powerSync = syncManager.findSyncHandler("gtsr.logi.power", BooleanSyncValue.class);
 
         ListWidget<IWidget, ?> list = super.createTerminalTextWidget(syncManager, parent);
@@ -169,37 +157,6 @@ public class MTEBasicLogisticsUnitNativeGui extends MTEClusterUnitNativeGui {
                 .asWidget()
                 .marginBottom(2)
                 .fullWidth())
-            // 双 tank 存量（容量为常量，客户端实例直读安全）
-            .child(
-                IKey.dynamic(
-                    () -> EnumChatFormatting.YELLOW
-                        + StatCollector.translateToLocal("gtsr.cluster.native.logistics.water")
-                        + EnumChatFormatting.WHITE
-                        + String.format(
-                            "%s / %s L",
-                            String.valueOf(waterSync.getValue()),
-                            String.valueOf(
-                                logistics.getWaterTank()
-                                    .getCapacity()))
-                        + EnumChatFormatting.RESET)
-                    .asWidget()
-                    .marginBottom(2)
-                    .fullWidth())
-            .child(
-                IKey.dynamic(
-                    () -> EnumChatFormatting.YELLOW
-                        + StatCollector.translateToLocal("gtsr.cluster.native.logistics.chem")
-                        + EnumChatFormatting.WHITE
-                        + String.format(
-                            "%s / %s L",
-                            String.valueOf(chemSync.getValue()),
-                            String.valueOf(
-                                logistics.getChemBathTank()
-                                    .getCapacity()))
-                        + EnumChatFormatting.RESET)
-                    .asWidget()
-                    .marginBottom(2)
-                    .fullWidth())
             // 物理电源：关机时红字附软锤复位指引（GT 标准启停切换）
             .child(IKey.dynamic(() -> {
                 if (powerSync.getValue()) {

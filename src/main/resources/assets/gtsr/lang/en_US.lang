@@ -1378,7 +1378,6 @@ gtsr.gui.cluster.structure.logi_input_hatch_limit=Too many logistics input hatch
 gtsr.gui.cluster.structure.logi_output_hatch_limit=Too many logistics output hatches (max 2)
 
 # Cluster chat
-gtsr.chat.cluster.temperature_low=Temperature too low: logistics job aborted and logistics module shut down; use a soft hammer to reset
 
 # Main controller tooltip (E5; key names follow code references, batch 2 rework)
 gtsr.cluster.tooltip.type=Steam-Powered Mineral Processing Logistics Engineering Cluster
@@ -1390,7 +1389,7 @@ gtsr.cluster.tooltip.main.3=At least 1 universal input hatch (steam / normal / o
 gtsr.cluster.tooltip.main.4=Overpressure steam hatch: 512k buffer, about 4 minutes
 gtsr.cluster.tooltip.main.5=No input/output buses and no energy hatch
 gtsr.cluster.tooltip.main.6=Mount points ignore facing; a module clipping the structure prevents forming
-gtsr.cluster.tooltip.main.7=Each segment: 4 processing + 4 booster + 1 logistics mount points; logistics I/O off by default
+gtsr.cluster.tooltip.main.7=Each segment: 4 processing + 4 booster + 1 logistics mount points; logistics module toggled by soft hammer
 gtsr.cluster.tooltip.main.8=30s preheat, continuously consumes steam and lubricant
 gtsr.cluster.tooltip.terminal=Right-click the controller with a Hub Terminal to open the cluster terminal
 
@@ -1463,8 +1462,6 @@ gtsr.cluster.native.logistics.chain.executable=Executable
 gtsr.cluster.native.logistics.chain.blocked=Not executable
 gtsr.cluster.native.logistics.cooldown=Batch cooldown: 
 gtsr.cluster.native.logistics.cooldown.ready=Ready
-gtsr.cluster.native.logistics.water=Water tank: 
-gtsr.cluster.native.logistics.chem=Chemical bath tank: 
 gtsr.cluster.native.logistics.power=Physical power: 
 gtsr.cluster.native.logistics.power.on=On
 gtsr.cluster.native.logistics.power.off=Off
@@ -1501,7 +1498,10 @@ gtsr.cluster.gui.link.banner.exec_bad=Not executable: %s
 gtsr.cluster.gui.link.chain=Current chain
 gtsr.cluster.gui.link.chain.clear=Clear
 gtsr.cluster.gui.link.chain.empty=Chain empty
+gtsr.cluster.gui.link.chain.invalid=Invalid chain: exactly one terminal product required
 gtsr.cluster.gui.link.chain.len=Length %s/%s
+gtsr.cluster.gui.link.chain.save=Save
+gtsr.cluster.gui.link.chain.unsaved=Unsaved changes
 gtsr.cluster.gui.link.need_chem=Needs chemical agent
 gtsr.cluster.gui.link.need_power=Needs continuous power
 gtsr.cluster.gui.link.need_simple_wash=Requires GT++
@@ -1513,8 +1513,6 @@ gtsr.cluster.gui.link.perf.parallel=Parallel
 gtsr.cluster.gui.link.perf.thru=Throughput
 gtsr.cluster.gui.link.perf.steam=Chain steam
 gtsr.cluster.gui.link.perf.steam_total=Total steam
-gtsr.cluster.gui.link.sync.apply=Sync pending...
-gtsr.cluster.gui.link.sync.fail=Sync failed
 gtsr.cluster.gui.link.sync.ok=Synced
 gtsr.cluster.gui.link.unit.none=No logistics module
 gtsr.cluster.gui.link.unit.linked=Linked
@@ -1575,8 +1573,6 @@ gtsr.cluster.gui.logistics.off=Off
 gtsr.cluster.gui.logistics.chain=Chain
 gtsr.cluster.gui.logistics.cooldown=Cooldown
 gtsr.cluster.gui.logistics.exec=Executability
-gtsr.cluster.gui.logistics.water=Water tank
-gtsr.cluster.gui.logistics.chem=Bath tank
 gtsr.cluster.gui.logistics.need.none=not needed
 gtsr.cluster.gui.logistics.need.batch=%s L per batch
 gtsr.cluster.gui.logistics.reason.unlinked=Not linked to cluster

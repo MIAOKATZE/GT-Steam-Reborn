@@ -1,6 +1,7 @@
 package com.miaokatze.gtsr.common.machine.cluster;
 
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -34,9 +35,15 @@ import gregtech.api.util.GTUtility;
  * 执行器不访问主控总线（主控输入仓仅保留给蒸汽/润滑经济结算）。
  *
  * <p>
- * 热量门控（§3.6.4 低温吞批）：完成取料登记后、链加工前检查宿主 {@link ClusterBatchHost#heatFraction()}；
- * &lt;1.0 时吞料（applyTakes）后返回 0——不 runChain、不输出、不回滚、不扣水/化浴液、不记吞吐，
- * 并通知物流单元（{@code unit.onLowTemperatureShutdown()}，E3b 契约：一次性 owner 通知+停用）。
+ * 热量门控（§3.6.4 取料前低温门控，SR-Cluster-r5 决策 2）：冷却检查通过后、取料登记前检查宿主
+ * {@link ClusterBatchHost#heatFraction()}；&lt;1.0 时直接返回 0——不取料、不 runChain、不输出、
+ * 不扣水/化浴液、不记吞吐、零副作用（低温不再吞批/停机，仅暂停开批；热量回满后自动恢复，
+ * 无 owner 通知与软锤复位需求）。
+ *
+ * <p>
+ * 跳步时间节约（SR-Cluster-r5 决策 12）：runChain 跟踪实际命中配方的链步集合
+ * {@code processedLinks}，成功批冷却按 {@code itemTimeSec(processedLinks, ...)} 计算
+ * （仅计实际加工的链步；全透传批冷却 0）。吞吐/蒸汽 C 聚合口径不变。
  *
  * <p>
  * 真实配方逐物品扣液（§3.6.5，IOF :413-539 范式）：不再按「链含洗矿/化洗每批扣固定 1000L」，
@@ -58,8 +65,9 @@ import gregtech.api.util.GTUtility;
  * <p>
  * 冷却模型：每单元 {@code chainCooldownTicks}，总控每 20t 统一 -20 且对仍 &gt;0 的单元跳过本秒
  * （现主控 {@code runChains} 的「减 20 后无条件 continue」口径）。本执行器写入
- * {@code max(0, 批耗时×20 - 20)}：经该减法循环后的实际开批节拍恰为批耗时 T 秒（修复 §3.6.6-3
- * 的「多等一秒」）。若批 2 E5 改主控为「减 20 后立即判定 ≤0 可开批」，需同步回退本 -20 补偿。
+ * {@code max(0, 实际加工链步耗时×20 - 20)}（决策 12：仅计 processedLinks；空集合写 0）：
+ * 经该减法循环后的实际开批节拍恰为批耗时 T 秒（修复 §3.6.6-3 的「多等一秒」）。若批 2 E5 改
+ * 主控为「减 20 后立即判定 ≤0 可开批」，需同步回退本 -20 补偿。
  *
  * <p>
  * 吞吐（§3.6.6-4）：真实成功批经 {@link ClusterBatchHost#addRealBatchThroughput(int)} 累计
@@ -82,10 +90,10 @@ public final class ClusterChainExecutor {
      * 推进一个物流单元的链批处理（每秒由总控 runChains 调用一次；冷却未到直接返回）。
      *
      * <p>
-     * 事务流程：门控（主控+单元启用+物理电源/链可执行/tier/冷却）→ 取料登记（不扣料）→
-     * 低温吞批检查 → 链加工（副本单遍执行 + 逐物品真实配方流体需求累计）→ 批流体预检
-     * （不足整批零副作用）→ 扣料 → 产出探测-实放（失败回滚输入，零副作用）→ 提交
-     * （实扣配方流体 + 冷却/记账/吞吐）。
+     * 事务流程：门控（主控+单元启用+物理电源/链可执行/tier/冷却）→ 低温门控（热量不足取料前
+     * 零副作用返 0）→ 取料登记（不扣料）→ 链加工（副本单遍执行 + 逐物品真实配方流体需求累计 +
+     * processedLinks 跟踪）→ 批流体预检（不足整批零副作用）→ 扣料 → 产出探测-实放（失败回滚
+     * 输入，零副作用）→ 提交（实扣配方流体 + 冷却/记账/吞吐/处理窗口开窗）。
      *
      * @param cluster   集群总控（拓扑、tier 与累计记账入口）
      * @param unit      物流单元（链、I/O 总线、双 tank、冷却字段持有者）
@@ -98,8 +106,8 @@ public final class ClusterChainExecutor {
         LogisticsChain chain = unit.getChain();
         if (chain == null || chain.isEmpty()) return 0;
 
-        // 1) 门控：主控开机 + 单元自身允许工作（成型/通电）+ 物理电源开（必修 a：软锤关停/
-        // 低温关机即 isPowerAllowed()=false 的单元在满热下不得执行批处理，口径同
+        // 1) 门控：主控开机 + 单元自身允许工作（成型/通电）+ 物理电源开（软锤关停即
+        // isPowerAllowed()=false 的单元在满热下不得执行批处理，口径同
         // MTEBasicLogisticsUnit.isChainExecutableNow）+ 链可执行 + tier 有效
         int tier = cluster.getStructureTierIndex();
         ClusterTopology topology = cluster.getTopology();
@@ -111,21 +119,19 @@ public final class ClusterChainExecutor {
         // 2) 冷却未到（冷却由调用方按 20t 递减，本方法不递减）
         if (unit.getChainCooldownTicks() > 0) return 0;
 
-        // 3) 并行与输入：从物流单元自己的输入总线收集形态为 ORE 的物品，只登记台账不扣料
+        // 3) 低温门控（§3.6.4 取料前，决策 2）：热量不满 → 直接返 0 零副作用——不取料/不加工/
+        // 不输出/不扣批流体/不记吞吐/不停机（低温不再吞批，热量回满后自动恢复开批）
+        if (batchHost.heatFraction() < 1.0) return 0;
+
+        // 4) 并行与输入：从物流单元自己的输入总线收集全部非 OTHER 形态的物品（决策 3：
+        // ORE 与粉碎矿/污浊粉等全部中间态均收），只登记台账不扣料
         BoosterState booster = BoosterState.aggregate(topology.getBoosterUnits());
         int parallel = ExecutionPlan.effectiveParallel(tier, booster);
         List<InputTake> takes = new ArrayList<>();
         int batch = collectOreBatch(unit, parallel, takes);
         if (batch <= 0) return 0;
 
-        // 4) 低温吞批（§3.6.4）：热量不满 → 吞料不加工——不 runChain/不输出/不回滚/不扣批流体/不记吞吐
-        if (batchHost.heatFraction() < 1.0) {
-            applyTakes(takes);
-            unit.onLowTemperatureShutdown();
-            return 0;
-        }
-
-        // 5) 链加工（副本单遍执行，逐物品累计真实配方流体需求；此点零副作用）
+        // 5) 链加工（副本单遍执行，逐物品累计真实配方流体需求 + processedLinks 跟踪；此点零副作用）
         List<ItemStack> mid = new ArrayList<>(batch);
         for (InputTake take : takes) {
             for (int i = 0; i < take.amount; i++) {
@@ -133,7 +139,8 @@ public final class ClusterChainExecutor {
             }
         }
         BatchFluidLedger fluids = new BatchFluidLedger();
-        List<ItemStack> outputs = runChain(chain, mid, unit, fluids, booster);
+        EnumSet<ChainLink> processedLinks = EnumSet.noneOf(ChainLink.class);
+        List<ItemStack> outputs = runChain(chain, mid, unit, fluids, booster, processedLinks);
 
         // 6) 批流体预检（§3.6.5-3）：本批将处理物品的累计需求任一不足 → 整批零副作用
         if (!fluids.isSatisfiable(unit)) return 0;
@@ -152,13 +159,17 @@ public final class ClusterChainExecutor {
         fluids.consume(unit);
         unit.markDirty();
 
-        // 10) 冷却与记账：max(0, 耗时×20-20) 补偿主控「减 20 后无条件 continue」的一秒顺延
-        List<ChainLink> links = chain.getLinks();
-        long cooldown = Math.max(
-            0L,
-            (long) Math.ceil(ExecutionPlan.itemTimeSec(links, tier, topology, booster) * 20D)
-                - COOLDOWN_SETTLE_STEP_TICKS);
+        // 10) 冷却与记账：max(0, 耗时×20-20) 补偿主控「减 20 后无条件 continue」的一秒顺延；
+        // 仅计实际命中配方的链步（决策 12 跳步时间节约），空集合（全透传批）冷却 0；
+        // 成功批提交后开处理窗口（决策 5："仅处理矿石才工作"显示联动）
+        List<ChainLink> processedLinksList = new ArrayList<>(processedLinks);
+        long cooldown = processedLinksList.isEmpty() ? 0L
+            : Math.max(
+                0L,
+                (long) Math.ceil(ExecutionPlan.itemTimeSec(processedLinksList, tier, topology, booster) * 20D)
+                    - COOLDOWN_SETTLE_STEP_TICKS);
         unit.setChainCooldownTicks(cooldown);
+        unit.onBatchProcessed(batch);
         cluster.addProcessedOre(batch);
         batchHost.addRealBatchThroughput(batch);
         return batch;
@@ -183,11 +194,13 @@ public final class ClusterChainExecutor {
     }
 
     /**
-     * 按剩余并行数从<b>物流单元自己的</b>输入总线收集形态为 {@link ClusterItemForms.OreForm#ORE}
-     * 的物品，只登记台账不扣料：每源堆 take = min(remaining, stackSize)（IOF :309-318 取料口径），
+     * 按剩余并行数从<b>物流单元自己的</b>输入总线收集全部非 OTHER 形态的物品
+     * （SR-Cluster-r5 决策 3 中间态通用：ORE/CRUSHED/CRUSHED_PURIFIED/CRUSHED_CENTRIFUGED/
+     * DUST_IMPURE/DUST_PURE/DUST/INGOT 均收，仅 {@link ClusterItemForms.OreForm#OTHER} 拒收），
+     * 只登记台账不扣料：每源堆 take = min(remaining, stackSize)（IOF :309-318 取料口径），
      * live 引用与槽位记入 {@link InputTake}，实际扣减由 {@link #applyTakes} 执行。
      *
-     * @return 登记的可取总数（≤parallel；即 min(parallel, 总线内 ORE 可取总数)）
+     * @return 登记的可取总数（≤parallel；即 min(parallel, 总线内非 OTHER 形态可取总数)）
      */
     private static int collectOreBatch(MTEBasicLogisticsUnit unit, int parallel, List<InputTake> takes) {
         int remaining = parallel;
@@ -196,7 +209,7 @@ public final class ClusterChainExecutor {
             for (int i = 0, n = bus.getSizeInventory(); i < n && remaining > 0; i++) {
                 ItemStack ore = bus.getStackInSlot(i);
                 if (GTUtility.isStackInvalid(ore)) continue;
-                if (ClusterItemForms.classify(ore) != ClusterItemForms.OreForm.ORE) continue;
+                if (ClusterItemForms.classify(ore) == ClusterItemForms.OreForm.OTHER) continue;
 
                 int take = Math.min(remaining, ore.stackSize);
                 takes.add(new InputTake(bus, i, ore, take));
@@ -314,14 +327,16 @@ public final class ClusterChainExecutor {
     /**
      * 逐 link 推进中产物：对每个 stack 先做形态约束过滤（并集口径见 {@link #acceptsForm}），
      * 命中则查配方（{@link #findLinkRecipe} 按 §3.6.5 的流体路径解析）——命中取
-     * {@link #rollOutputs}（IOF :558-581 移植 + 增幅作用于 chance）并按命中配方累计流体需求
-     * （{@link BatchFluidLedger#charge}），null 原样透传；每步尾 {@link #compress} 合并同类项
+     * {@link #rollOutputs}（IOF :558-581 移植 + 增幅作用于 chance）、按命中配方累计流体需求
+     * （{@link BatchFluidLedger#charge}）并把该 link 记入 {@code processedLinks}
+     * （决策 12：冷却仅计实际加工链步），null 原样透传；每步尾 {@link #compress} 合并同类项
      * （IOF :583-599 移植）。SIMPLE_WASH 配方图缺失（GT++ 不在场）时该步整体透传。
      *
+     * @param processedLinks 实际命中配方的链步集合（调用方持有，EnumSet 去重；方法内只增不改他项）
      * @return 合并后的最终产物列表（调用方负责写入输出总线）
      */
     private static List<ItemStack> runChain(LogisticsChain chain, List<ItemStack> mid, MTEBasicLogisticsUnit unit,
-        BatchFluidLedger fluids, BoosterState booster) {
+        BatchFluidLedger fluids, BoosterState booster, EnumSet<ChainLink> processedLinks) {
         boolean seenReduction = false;
         for (ChainLink link : chain.getLinks()) {
             boolean firstReduction = false;
@@ -340,6 +355,7 @@ public final class ClusterChainExecutor {
                 }
                 GTRecipe recipe = findLinkRecipe(link, map, GTUtility.copyOrNull(stack), unit);
                 if (recipe != null) {
+                    processedLinks.add(link);
                     fluids.charge(link, recipe, stack.stackSize);
                     output.addAll(rollOutputs(recipe, stack.stackSize, booster));
                 } else {

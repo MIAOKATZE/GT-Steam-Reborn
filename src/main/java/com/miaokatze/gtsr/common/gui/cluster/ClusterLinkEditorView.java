@@ -1,6 +1,7 @@
 package com.miaokatze.gtsr.common.gui.cluster;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import net.minecraft.util.EnumChatFormatting;
@@ -29,6 +30,7 @@ import com.miaokatze.gtsr.common.machine.cluster.ChainLink;
 import com.miaokatze.gtsr.common.machine.cluster.ClusterChainFSM;
 import com.miaokatze.gtsr.common.machine.cluster.ClusterChainFSM.Form;
 import com.miaokatze.gtsr.common.machine.cluster.ClusterParams;
+import com.miaokatze.gtsr.common.machine.cluster.LogisticsChain;
 import com.miaokatze.gtsr.common.machine.cluster.MTESteamMineralLogisticsCluster;
 
 /**
@@ -42,9 +44,9 @@ import com.miaokatze.gtsr.common.machine.cluster.MTESteamMineralLogisticsCluster
  * <li>左列（x0..272）：「可用链」10 行（链名/在链 ×N/耗时与介质需求/禁用原因；前置不满足
  * <b>恒渲染</b>灰字+锁因 tooltip，不用 setEnabledIf——禁用=整棵子树不渲染）——修订 FC 行高 ×2
  * （33px），10 行超列高装 {@link ScrollKeepingListWidget} 滚动容器（同 chips 防回顶），「可用链」
- * 标题与底部同步反馈行（已授权/待应用/写入失败/模块未关联）及链长 N/16 钉在滚动区外；</li>
+ * 标题与底部同步反馈行（已授权/未保存更改/链无效/模块未关联）及链长 N/16 钉在滚动区外；</li>
  * <li>右列（x280..582）：「当前有序链」chips 滚动列表（序号/名称/实际耗时/左移右移删除，可重复；
- * {@link ScrollKeepingListWidget} 防回顶）+ 清空钮；状态机推演条（原矿→逐步→透传→终态）；
+ * {@link ScrollKeepingListWidget} 防回顶）+ 清空钮与保存钮；状态机推演条（原矿→逐步→透传→终态）；
  * 可折叠性能详情（单物品耗时/有效并行/预测吞吐/本链蒸汽/集群总蒸汽——<b>全部服务端真值</b>，
  * ×100 定点 IntSyncValue 解码，客户端不推算）。</li>
  * </ul>
@@ -53,7 +55,10 @@ import com.miaokatze.gtsr.common.machine.cluster.MTESteamMineralLogisticsCluster
  * 数据流（全部只读 {@link ClusterGuiSync} 键）：KEY_LE_UNITS（下拉数据）/ KEY_LE_CHAIN（整链快照，
  * 变化重建 chips）/ KEY_LE_LOCK（锁因+模块计数）/ KEY_LE_EXEC+KEY_LE_FAIL（两级横幅）/ KEY_SEL_LOGI /
  * KEY_F_*（性能真值）。C2S 仅经 {@link ClusterActionSyncHandler}（§4.4 加固：防抖+服务端复核，
- * 客户端只发索引/ordinal）。
+ * 客户端只发索引/ordinal/整链 ordinal 数组）。<b>暂存保存流程</b>（决策7）：追加/删除/位移/清空四类
+ * 编辑全部只改本地暂存 {@code stagedOrdinals}（干净态跟随 KEY_LE_CHAIN 快照，dirty 期间不被覆盖），
+ * 不再即时发包；保存按钮客户端预校验（非空 + FSM 结构有效）通过后才发 SAVE_CHAIN，服务器快照
+ * 追平暂存时自动清脏回到绿态。
  */
 public final class ClusterLinkEditorView {
 
@@ -101,9 +106,12 @@ public final class ClusterLinkEditorView {
     private int chipsScrollValue;
     /** 可用链列表滚动偏移回写。 */
     private int linksScrollValue;
-    /** 同步反馈：最近一次本地编辑时间戳（0=无待应用）；最近一次客户端拒绝时间戳（0=无）。 */
-    private long lastEditAt;
+    /** 同步反馈：最近一次客户端拒绝时间戳（0=无；锁定点击与保存校验失败共用）。 */
     private long lastRejectAt;
+    /** 本地暂存链（决策7）：干净态恒跟随服务器快照（见 {@link #displayOrdinals}），dirty 期间为独立编辑副本不被覆盖。 */
+    private List<Integer> stagedOrdinals = new ArrayList<>();
+    /** 暂存脏标记：首个本地编辑置位；服务器快照追平暂存（保存生效回流）时自动清除。 */
+    private boolean stagingDirty = false;
     /** 常驻部件。 */
     private DropdownWidget<Integer, ?> unitDropdown;
     private ListWidget<IWidget, ?> chipsList;
@@ -293,7 +301,7 @@ public final class ClusterLinkEditorView {
             IKey.dynamic(
                 () -> EnumChatFormatting.GRAY + String.format(
                     tr("gtsr.cluster.gui.link.chain.len"),
-                    chainOrdinals().size(),
+                    displayOrdinals().size(),
                     ClusterParams.CHAIN_MAX_LINKS))
                 .asWidget()
                 .pos(150, feedbackDy)
@@ -302,7 +310,8 @@ public final class ClusterLinkEditorView {
 
     /**
      * 单个链步行（恒渲染——不用 setEnabledIf，禁用行灰字+锁因仍在）：两行 overlay
-     * （名称+在链×N / 基准秒+介质需求+锁因红字），可用点击 appendLink，锁定点击本地拒绝（反馈行提示）。
+     * （名称+在链×N / 基准秒+介质需求+锁因红字），可用点击本地暂存追加（决策7：不发 C2S），
+     * 锁定点击或链长已满本地拒绝（反馈行提示）。
      * 修订 FC：行高 ×2（33px；overlay 无折叠内容仍两行）；列表内由 ListWidget 纵向堆叠布局
      * （不设主轴 pos），widthRel 填满列宽，marginBottom 留 1px 行距。
      */
@@ -312,9 +321,8 @@ public final class ClusterLinkEditorView {
             .marginBottom(1)
             .overlay(IKey.dynamic(() -> formatLinkOverlay(link)))
             .onMousePressed(mouseButton -> {
-                if (lockKind(link.ordinal()) == 0 && chainOrdinals().size() < ClusterParams.CHAIN_MAX_LINKS) {
-                    lastEditAt = System.currentTimeMillis();
-                    actions.appendLink(link.ordinal());
+                if (lockKind(link.ordinal()) == 0 && displayOrdinals().size() < ClusterParams.CHAIN_MAX_LINKS) {
+                    stageAppend(link.ordinal());
                 } else {
                     lastRejectAt = System.currentTimeMillis();
                 }
@@ -386,19 +394,36 @@ public final class ClusterLinkEditorView {
         };
     }
 
-    /** 同步反馈：模块未关联（红）/ 写入失败（红，本地拒绝）/ 待应用…（橙）/ 已授权（绿）。 */
+    /**
+     * 同步反馈行（优先级从高到低，决策9）：模块未关联（灰）/ 保存被拒·链无效（红，复用 lastRejectAt
+     * 窗口）/ 暂存未保存更改（橙）/ 已授权可执行（绿——保存生效后快照追平暂存即回到此绿态确认）。
+     * 本方法每帧求值，兼作快照追平检测点（相等才清 dirty，显示内容不变无渲染抖动）。
+     */
     private String feedbackText() {
+        checkSnapshotCaughtUp();
         long now = System.currentTimeMillis();
         if (unitSegments().length == 0) {
             return EnumChatFormatting.GRAY + tr("gtsr.cluster.gui.link.unit.none");
         }
         if (now - lastRejectAt < APPLY_WINDOW_MS) {
-            return EnumChatFormatting.RED + "✖ " + tr("gtsr.cluster.gui.link.sync.fail");
+            return EnumChatFormatting.RED + "✖ " + tr("gtsr.cluster.gui.link.chain.invalid");
         }
-        if (now - lastEditAt < APPLY_WINDOW_MS) {
-            return EnumChatFormatting.GOLD + tr("gtsr.cluster.gui.link.sync.apply");
+        if (stagingDirty) {
+            return EnumChatFormatting.GOLD + tr("gtsr.cluster.gui.link.chain.unsaved");
         }
         return EnumChatFormatting.GREEN + "✔ " + tr("gtsr.cluster.gui.link.sync.ok");
+    }
+
+    /**
+     * 快照追平检测（幂等）：仅当暂存脏且服务器 KEY_LE_CHAIN 快照与本地暂存完全相等
+     * （SAVE_CHAIN 已被服务端接受并回推）时清脏；不等则保持 dirty 继续等待（服务端静默拒绝时
+     * 橙态持续，用户可修改后重试保存）。
+     */
+    private void checkSnapshotCaughtUp() {
+        if (!stagingDirty) return;
+        if (chainOrdinals().equals(stagedOrdinals)) {
+            stagingDirty = false;
+        }
     }
 
     // ==================== 右列：当前有序链 + FSM 推演 + 性能详情 ====================
@@ -410,14 +435,26 @@ public final class ClusterLinkEditorView {
                 .asWidget()
                 .pos(RIGHT_X, TITLE_DY - 12)
                 .scale(0.7f));
+        // 保存钮（决策7）：清空钮左侧同规格；客户端预校验通过才发 SAVE_CHAIN，非法红字反馈不发包
+        page.child(
+            new ButtonWidget<>().pos(RIGHT_X + RIGHT_W - 86, TITLE_DY - 14)
+                .size(42, 12)
+                .overlay(IKey.lang("gtsr.cluster.gui.link.chain.save"))
+                .onMousePressed(mouseButton -> {
+                    attemptSave();
+                    return true;
+                })
+                .tooltipBuilder(t -> {
+                    t.addLine(IKey.lang("gtsr.cluster.gui.link.chain.save"));
+                    t.addLine(IKey.lang("gtsr.cluster.gui.link.chain.invalid"));
+                }));
         page.child(
             new ButtonWidget<>().pos(RIGHT_X + RIGHT_W - 42, TITLE_DY - 14)
                 .size(42, 12)
                 .overlay(IKey.lang("gtsr.cluster.gui.link.chain.clear"))
                 .onMousePressed(mouseButton -> {
-                    if (!chainOrdinals().isEmpty()) {
-                        lastEditAt = System.currentTimeMillis();
-                        actions.clearChain();
+                    if (!displayOrdinals().isEmpty()) {
+                        stageClear();
                     }
                     return true;
                 })
@@ -465,11 +502,11 @@ public final class ClusterLinkEditorView {
         page.child(perfList);
     }
 
-    /** 重建 chips 行（KEY_LE_CHAIN 变化时由外部 changeListener 或本地调用；空链占位提示）。 */
+    /** 重建 chips 行（KEY_LE_CHAIN 变化时由外部 changeListener 或本地暂存编辑后调用；空链占位提示）。 */
     private void rebuildChips() {
         if (chipsList == null) return;
         chipsList.removeAll();
-        List<Integer> ordinals = chainOrdinals();
+        List<Integer> ordinals = displayOrdinals();
         if (ordinals.isEmpty()) {
             chipsList.child(
                 IKey.str(EnumChatFormatting.GRAY + tr("gtsr.cluster.gui.link.chain.empty"))
@@ -509,8 +546,7 @@ public final class ClusterLinkEditorView {
                 new ButtonWidget<>().size(14, 13)
                     .overlay(IKey.str("◀"))
                     .onMousePressed(mouseButton -> {
-                        lastEditAt = System.currentTimeMillis();
-                        actions.moveLink(idx, -1);
+                        stageMove(idx, -1);
                         return true;
                     })
                     .tooltipBuilder(t -> t.addLine(IKey.lang("gtsr.gui.cluster.chain.move_left"))))
@@ -518,8 +554,7 @@ public final class ClusterLinkEditorView {
                 new ButtonWidget<>().size(14, 13)
                     .overlay(IKey.str("▶"))
                     .onMousePressed(mouseButton -> {
-                        lastEditAt = System.currentTimeMillis();
-                        actions.moveLink(idx, 1);
+                        stageMove(idx, 1);
                         return true;
                     })
                     .tooltipBuilder(t -> t.addLine(IKey.lang("gtsr.gui.cluster.chain.move_right"))))
@@ -527,8 +562,7 @@ public final class ClusterLinkEditorView {
                 new ButtonWidget<>().size(16, 13)
                     .overlay(IKey.str(EnumChatFormatting.RED + "✖"))
                     .onMousePressed(mouseButton -> {
-                        lastEditAt = System.currentTimeMillis();
-                        actions.removeLink(idx);
+                        stageRemove(idx);
                         return true;
                     })
                     .tooltipBuilder(t -> t.addLine(IKey.lang("gtsr.gui.cluster.chain.remove"))));
@@ -545,7 +579,7 @@ public final class ClusterLinkEditorView {
 
     /** FSM 推演条：原矿 →(链步)→ 形态 →…→ 终态（终态绿 + ✓终；末位非终态红）。 */
     private String formatFlowLine() {
-        List<Integer> ordinals = chainOrdinals();
+        List<Integer> ordinals = displayOrdinals();
         if (ordinals.isEmpty()) {
             return EnumChatFormatting.GRAY + tr("gtsr.cluster.gui.link.chain.empty");
         }
@@ -615,6 +649,82 @@ public final class ClusterLinkEditorView {
             .scale(0.7f);
     }
 
+    // ==================== 本地暂存编辑（决策7：不发 C2S，保存按钮统一下发） ====================
+
+    /** 当前展示链：干净态跟随服务器快照（KEY_LE_CHAIN），暂存脏期间为本地编辑副本。 */
+    private List<Integer> displayOrdinals() {
+        return stagingDirty ? stagedOrdinals : chainOrdinals();
+    }
+
+    /** 干净态首次本地编辑：物化快照副本为独立暂存并置脏（此后不被快照覆盖）。 */
+    private void ensureStaged() {
+        if (!stagingDirty) {
+            stagedOrdinals = new ArrayList<>(chainOrdinals());
+            stagingDirty = true;
+        }
+    }
+
+    /** 暂存链尾追加（保持 CHAIN_MAX_LINKS 上限）并重建 chips。 */
+    private void stageAppend(int ordinal) {
+        ensureStaged();
+        if (stagedOrdinals.size() >= ClusterParams.CHAIN_MAX_LINKS) return;
+        stagedOrdinals.add(ordinal);
+        rebuildChips();
+    }
+
+    /** 暂存链步位移（-1 左移 / +1 右移；越界安全忽略）并重建 chips。 */
+    private void stageMove(int index, int dir) {
+        ensureStaged();
+        if (index < 0 || index >= stagedOrdinals.size()) return;
+        int target = index + dir;
+        if (target < 0 || target >= stagedOrdinals.size()) return;
+        Collections.swap(stagedOrdinals, index, target);
+        rebuildChips();
+    }
+
+    /** 按索引删除暂存链步（越界安全忽略）并重建 chips。 */
+    private void stageRemove(int index) {
+        ensureStaged();
+        if (index < 0 || index >= stagedOrdinals.size()) return;
+        stagedOrdinals.remove(index);
+        rebuildChips();
+    }
+
+    /** 清空暂存链并重建 chips。 */
+    private void stageClear() {
+        ensureStaged();
+        stagedOrdinals.clear();
+        rebuildChips();
+    }
+
+    /**
+     * 保存暂存链（决策7/9）：staged 非空且 FSM 结构有效才发 SAVE_CHAIN；否则红字反馈不发包。
+     * 结构校验为纯函数客户端安全：按 ordinal 建 {@link LogisticsChain} 后复用 {@link LogisticsChain#isValidStructure()}。
+     */
+    private void attemptSave() {
+        List<Integer> staged = displayOrdinals();
+        boolean valid = !staged.isEmpty() && isValidStructure(staged);
+        if (!valid) {
+            lastRejectAt = System.currentTimeMillis();
+            return;
+        }
+        int[] ordinals = new int[staged.size()];
+        for (int i = 0; i < ordinals.length; i++) {
+            ordinals[i] = staged.get(i);
+        }
+        actions.saveChain(ordinals);
+    }
+
+    /** 客户端结构校验（纯函数）：恰好一个终态产物（FSM 终态 ∈ {DUST, INGOT}）。 */
+    private static boolean isValidStructure(List<Integer> ordinals) {
+        int[] arr = new int[ordinals.size()];
+        for (int i = 0; i < arr.length; i++) {
+            arr[i] = ordinals.get(i);
+        }
+        return LogisticsChain.fromOrdinalArray(arr)
+            .isValidStructure();
+    }
+
     // ==================== 快照读数 ====================
 
     /** 当前链 ordinal 列表（KEY_LE_CHAIN 解析，越界项丢弃）。 */
@@ -669,10 +779,10 @@ public final class ClusterLinkEditorView {
         return out;
     }
 
-    /** 「在链 ×N」计数。 */
+    /** 「在链 ×N」计数（读展示链：干净态快照 / 暂存脏期间 staged）。 */
     private int countInChain(int linkOrdinal) {
         int count = 0;
-        for (int ordinal : chainOrdinals()) {
+        for (int ordinal : displayOrdinals()) {
             if (ordinal == linkOrdinal) count++;
         }
         return count;
