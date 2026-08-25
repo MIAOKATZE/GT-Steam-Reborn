@@ -7,7 +7,9 @@ import java.util.List;
 import net.minecraft.block.Block;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.StatCollector;
+import net.minecraft.world.World;
 import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.FluidTankInfo;
@@ -69,6 +71,12 @@ public abstract class MTEClusterUnitBase<T extends MTEClusterUnitBase<T>> extend
 
     private static final String STRUCTURE_PIECE_MAIN = "main";
     private static final int TANK_CAPACITY = 16_000;
+
+    /**
+     * 模块成型后定点反解所属总控的搜索半径（Chebyshev 格）：覆盖满配 9 延伸段最远挂点到总控
+     * 控制器的距离（约 8+8k，k=9 时 80 格）；只在 checkMachine 成功边沿用一次。
+     */
+    private static final int CLUSTER_SEARCH_RADIUS = 80;
 
     /** A 外壳族：与集群总控相同的四档 tier 顺序。 */
     private static final List<Pair<Block, Integer>> CASING_FAMILY = ImmutableList.of(
@@ -315,6 +323,40 @@ public abstract class MTEClusterUnitBase<T extends MTEClusterUnitBase<T>> extend
             return;
         }
         unitStructureTier = resolved;
+        // 终验反馈缺陷1根因B：模块成型成功且尚未接入集群时，定点反解挂点所属总控并触发其事件式
+        // 重检（仅此一 tick 的一次性查询，非周期扫描；见 requestClusterRecheckOnFormation）
+        if (cluster == null && aBaseMetaTileEntity != null && aBaseMetaTileEntity.isServerSide()) {
+            requestClusterRecheckOnFormation(aBaseMetaTileEntity);
+        }
+    }
+
+    /**
+     * 模块成型后的定点总控反解（终验反馈缺陷1根因B）：模块接入集群的唯一入口是总控 checkMachine
+     * 的挂点 unitSlot 收集，而总控只在自身放置/单元移除/事件式重检时扫描——先建集群后放模块时模块
+     * 永远接不上（模块自身成型成功没有任何路径通知集群）。本方法在模块 checkMachine 成功那一 tick
+     * 执行一次：遍历维度已加载 TileEntity 列表（远轻于逐格枚举），命中与模块控制器距离不超过
+     * {@value #CLUSTER_SEARCH_RADIUS} 格的 {@link MTESteamMineralLogisticsCluster} 且其结构已
+     * 成型时调用其 {@code requestStructureRecheck()} 置 mStartUpCheck=100（与总控 onUnitRemoved
+     * 同口径的事件式单次重检），100 tick 后总控 checkMachine 扫到挂点即接入本模块。半径 80 覆盖
+     * 满配 9 延伸段最远挂点到总控的距离（约 8+8k，k=9 时 80 格）；多总控场景下各自重检均只接入
+     * 自己挂点上的模块，无串扰。查询不到（集群未建）静默返回，等待总控成型时自然扫到。禁止进入
+     * 每 tick 周期路径（红线：禁止周期扫描，本方法只在成型成功边沿调用一次）。
+     */
+    private void requestClusterRecheckOnFormation(IGregTechTileEntity unitBase) {
+        World world = unitBase.getWorld();
+        if (world == null) return;
+        int cx = unitBase.getXCoord();
+        int cy = unitBase.getYCoord();
+        int cz = unitBase.getZCoord();
+        for (Object o : world.loadedTileEntityList) {
+            if (!(o instanceof TileEntity te)) continue;
+            if (Math.abs(te.xCoord - cx) > CLUSTER_SEARCH_RADIUS || Math.abs(te.yCoord - cy) > CLUSTER_SEARCH_RADIUS
+                || Math.abs(te.zCoord - cz) > CLUSTER_SEARCH_RADIUS) continue;
+            if (!(te instanceof IGregTechTileEntity gte)) continue;
+            if (!(gte.getMetaTileEntity() instanceof MTESteamMineralLogisticsCluster cluster)) continue;
+            if (!cluster.isClusterStructureFormed()) continue;
+            cluster.requestStructureRecheck();
+        }
     }
 
     /**

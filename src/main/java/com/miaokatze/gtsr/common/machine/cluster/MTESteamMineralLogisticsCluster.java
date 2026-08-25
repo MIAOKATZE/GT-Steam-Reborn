@@ -466,6 +466,10 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
                 units);
         } else if (segments != prevSegments) {
             GTSteamReborn.LOG.info("{}段数变化: {} 旧段数={} 新段数={}", LOG_PREFIX, logCoords(), prevSegments, segments);
+        } else if (units != prevUnits) {
+            // 模块接入/剔除边沿（终验反馈缺陷1根因B）：模块成型触发的重检在集群已成型时重新扫描，
+            // 段数不变而模块数变化——本边沿补一条 INFO，消除接入成功/失败的静默面
+            GTSteamReborn.LOG.info("{}模块数变化: {} 旧模块数={} 新模块数={}", LOG_PREFIX, logCoords(), prevUnits, units);
         }
         if (Config.logisticsClusterDebug) {
             GTSteamReborn.LOG.debug(
@@ -667,6 +671,22 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
         mStartUpCheck = 100;
     }
 
+    /** @return 总控多方块结构当前是否成型（模块侧定点反解验证用，MTEClusterUnitBase 成型边沿调用）。 */
+    public boolean isClusterStructureFormed() {
+        return mMachine;
+    }
+
+    /**
+     * 事件式重检请求（终验反馈缺陷1根因B）：模块自身成型成功但尚未接入集群时，由
+     * {@code MTEClusterUnitBase.checkMachine} 成功边沿经定点反解（80 格内找到本总控且已成型）
+     * 调用。与 {@link #onUnitRemoved} 同口径——单次置 mStartUpCheck=100，100 tick 后父类触发一次
+     * checkStructure 扫描挂点接入该模块；事件式单次赋值，不得放进每 tick 路径反复置位
+     * （红线：禁止周期全量 checkMachine）。
+     */
+    public void requestStructureRecheck() {
+        mStartUpCheck = 100;
+    }
+
     /**
      * 服务端编排（每 tick，O2：只编排与状态汇聚）。
      *
@@ -711,8 +731,11 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
             maintainClusterLinks();
         }
 
-        // 每 tick 热量推进（修复 20 倍定标：供给态用 20t 结算锁存值；+16.667/-2.5/-5 由状态机自理）
-        preheat.tickServer(machineEnabled, mMachine, thermalSupplyOkLatched);
+        // 每 tick 热量推进（修复 20 倍定标：供给态用 20t 结算锁存值；+16.667/-2.5/-5 由状态机自理）。
+        // 双门控（终验反馈缺陷2，范式 MTEAmmoniaPlant:465 mMachine && isAllowedToWork()）：GUI 开关
+        // 与物理电源（软锤/红石）任一关闭即按停机处理——预热停增、走 -1%/s 停机衰减（保热量设计）。
+        preheat
+            .tickServer(machineEnabled && getBaseMetaTileEntity().isAllowedToWork(), mMachine, thermalSupplyOkLatched);
 
         // 粒子窗口驱动：成型 + 开机 + 满热 + 距最近真实成功批 < 40t（isFxWorking）才开窗
         ClusterParticleFx.setParticleWindow(machineEnabled && preheat.isReady() && ClusterParticleFx.isFxWorking(this));
@@ -796,8 +819,9 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
         publishThroughputWindow();
         pollLogisticsPowerEdges();
 
-        if (!machineEnabled) {
-            // 关机：0 L/s / 0 L/s，供给锁存与红标清位，不执行链（热量走停机衰减）
+        // 双门控（终验反馈缺陷2）：GUI 关机或物理电源关闭（软锤/红石 isAllowedToWork=false）均按
+        // 关机处理——0 L/s / 0 L/s，供给锁存与红标清位，不执行链（热量走停机衰减 -1%/s）
+        if (!machineEnabled || !getBaseMetaTileEntity().isAllowedToWork()) {
             thermalSupplyOkLatched = false;
             economy.clearFlags();
             logHeatAndSupplyEdges(null);

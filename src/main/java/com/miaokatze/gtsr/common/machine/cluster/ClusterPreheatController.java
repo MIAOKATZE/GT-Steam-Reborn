@@ -70,7 +70,9 @@ public final class ClusterPreheatController {
      * （未成型衰减此后作用于 0，无操作）；载入首 tick 起步 false，只构成 false→true 上升沿
      * （不清零），NBT 载入的成型热量不受影响。
      *
-     * @param machineEnabled         机器是否启用（停机闸门，最高优先级）
+     * @param machineEnabled         机器是否启用（停机闸门，最高优先级；调用方 MTESteamMineralLogisticsCluster
+     *                               以「GUI 开关 machineEnabled && 物理电源 isAllowedToWork()」复合传入——软锤/红石
+     *                               关机视同停机，实现与 AmmoniaPlant 双门控范式一致）
      * @param machineFormed          多方块结构是否成型（未成型同停机衰减；下降沿触发 reset）
      * @param thermalSupplyOkLatched 当前秒段热供应锁存（20t 双流体原子结算结果：
      *                               蒸汽且润滑均足=true，由调用方传入，本类只消费判定结果）
