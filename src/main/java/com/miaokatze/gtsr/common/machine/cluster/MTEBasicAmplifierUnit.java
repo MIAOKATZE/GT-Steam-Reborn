@@ -116,12 +116,17 @@ public abstract class MTEBasicAmplifierUnit extends MTEClusterUnitBase<MTEBasicA
      * 成型校验追加：正面 H 输入仓至少一个（{@code mInputHatches} 非空），缺失即整体不成型
      * （errors 非空 → checkStructure 判 mMachine=false；checkStructure 在 checkMachine 前已
      * clearHatches，本处无需自清）。lang key 缺键时显示原键，由 lang 并行切片补齐。
+     * 成型成功末尾按 unitStructureTier 刷新 H 输入仓贴图（切片 2 统一入口）。
      */
     @Override
     public void checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack, List<StructureError> errors) {
         super.checkMachine(aBaseMetaTileEntity, aStack, errors);
         if (errors.isEmpty() && mInputHatches.isEmpty()) {
             errors.add(new ClusterStructureError("gtsr.gui.cluster.structure.booster_missing_input_hatch"));
+            return;
+        }
+        if (errors.isEmpty()) {
+            refreshHatchTextures(mInputHatches);
         }
     }
 

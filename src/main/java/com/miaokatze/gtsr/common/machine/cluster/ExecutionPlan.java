@@ -40,9 +40,10 @@ public final class ExecutionPlan {
      *
      * <p>
      * 其中每个 link 项 = {@code link.getBaseSeconds() × TIER_TIME_FACTOR[tierIdx]
-     * ÷ max(1, topology.countUnits(link.getRequiredUnitClass()))}——同类工作模块复数放置时
-     * 对应 link 时间按数量均摊（§4.1「复数→对应 link 时间÷数量」）；速度增幅整体作用于工作段
-     * （除法在物流时间之前），物流耗时不受速度增幅影响。
+     * ÷ max(1, 同类已启用工作模块数)}——同类工作模块复数放置时对应 link 时间按数量均摊
+     * （§4.1「复数→对应 link 时间÷数量」）；均摊只计 {@code isModuleEnabled()} 的模块（必修 c：
+     * 与 {@link LogisticsChain} 可执行判定同口径，未成型/断电的同类模块不参与均摊，防耗时 ÷N
+     * 虚快）；速度增幅整体作用于工作段（除法在物流时间之前），物流耗时不受速度增幅影响。
      *
      * <p>
      * 防御口径：
@@ -55,7 +56,7 @@ public final class ExecutionPlan {
      *
      * @param chain    有序链（可含重复 link）
      * @param tierIdx  结构层级下标（0=青铜 … 3=钨钢）
-     * @param topology 集群拓扑（按 link 所需工作单元类计数）
+     * @param topology 集群拓扑（按 link 所需工作单元类计数，仅计 isModuleEnabled 的单元）
      * @param booster  增幅聚合快照，null 按零增益
      * @return 单物品耗时（秒）；tierIdx 越界时 0
      */
@@ -68,11 +69,29 @@ public final class ExecutionPlan {
             double tierFactor = ClusterParams.TIER_TIME_FACTOR[tierIdx];
             for (ChainLink link : chain) {
                 if (link == null) continue;
-                int moduleCount = topology == null ? 0 : topology.countUnits(link.getRequiredUnitClass());
+                int moduleCount = countEnabledUnits(topology, link.getRequiredUnitClass());
                 work += link.getBaseSeconds() * tierFactor / Math.max(1, moduleCount);
             }
         }
         return work / (1.0 + speed) + ClusterParams.LOGISTICS_TIME_SEC[tierIdx];
+    }
+
+    /**
+     * 并行因子计数（必修 c）：仅计 {@code isModuleEnabled()} 的同类工作模块（stream/filter 在
+     * ExecutionPlan 侧过滤，不改 {@link ClusterTopology#countUnits} 的原始计数语义）——未成型/
+     * 断电的同类模块照计会把对应 link 耗时 ÷N 虚快（冷却结算与 GUI 公式同源失真）。判别口径与
+     * {@link LogisticsChain} 的可执行判定（类型 isInstance + isModuleEnabled）一致。
+     *
+     * @param topology 集群拓扑；null 计 0（等价 max(1, 0) 语义，防御口径不变）
+     * @param type     link 所需工作单元类型（instanceof 语义，含子类）
+     * @return 该类型且已启用（isModuleEnabled）的单元数
+     */
+    private static int countEnabledUnits(ClusterTopology topology, Class<? extends MTEClusterUnitBase> type) {
+        if (topology == null) return 0;
+        return (int) topology.getUnits()
+            .stream()
+            .filter(unit -> type.isInstance(unit) && unit.isModuleEnabled())
+            .count();
     }
 
     /**

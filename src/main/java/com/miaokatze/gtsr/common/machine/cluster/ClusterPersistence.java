@@ -142,8 +142,11 @@ public final class ClusterPersistence {
             preheat.readFromNBT(nbt);
         }
 
-        // 记账键：读出仅为保持写读对称，不写回总控——结构 tier 与段划分由重检重新推导成型
-        if (nbt.hasKey(KEY_TIER)) nbt.getInteger(KEY_TIER);
+        // 段数记账键：读出仅为保持写读对称，不写回总控——段划分由重检（checkMachine）重新推导。
+        // 结构 tier：写回总控渲染字段（渲染过渡用——载入初至首次重检前控制器贴图按存档 tier 显示；
+        // 缺键走新机器默认 -1，无旧档兼容），结构重检仍是最终权威（重检开头 rollbackTiers 复位后
+        // 按实际方块重推导）
+        if (nbt.hasKey(KEY_TIER)) cluster.applyLoadedCasingTier(nbt.getInteger(KEY_TIER));
         if (nbt.hasKey(KEY_SEGMENTS)) nbt.getInteger(KEY_SEGMENTS);
 
         if (nbt.hasKey(KEY_UNITS)) {

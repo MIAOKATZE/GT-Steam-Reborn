@@ -13,6 +13,7 @@ import java.util.Set;
 import com.gtnewhorizon.structurelib.structure.StructureDefinition;
 
 import gregtech.api.GregTechAPI;
+import gregtech.api.interfaces.IIconContainer;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 
@@ -24,8 +25,10 @@ import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
  * 配方查找、消耗与产出全部在集群总控/物流核心侧完成，本类只回答"该单元允许哪些链路通过"。
  *
  * <p>
- * 链路集合在构造期由具体子类以静态常量一次性注入，此后不可变；集群结构成型时总控遍历各单元
- * 收集 providedLinks 并集，即为该集群当前解锁的工艺链全集。
+ * 声明式差异（链路集合、GUI 类型词条 key、前脸 overlay 常量对）在构造期由具体子类以静态常量
+ * 一次性注入，此后不可变；集群结构成型时总控遍历各单元收集 providedLinks 并集，即为该集群
+ * 当前解锁的工艺链全集。子类只需保留构造器注入与 newMetaEntity，公共结构/注册路径全在本类
+ * 与 {@link MTEClusterUnitBase}。
  *
  * <p>
  * 状态色口径（{@link #getUnitStatus}，六态中本族产出四态）：
@@ -45,17 +48,35 @@ public abstract class MTEBasicProcessingUnit extends MTEClusterUnitBase<MTEBasic
     /** 本单元解锁的链路集合（构造期一次性注入，外部拿到的是不可变视图）。 */
     private final Set<ChainLink> providedLinks;
 
+    /** GUI 类型词条 key（构造期一次性注入，getUnitTypeNameKey 直读）。 */
+    private final String unitTypeKey;
+
+    /** 前脸 inactive 叠层常量（构造期一次性注入；null=无叠层）。 */
+    private final IIconContainer overlayInactive;
+
+    /** 前脸 active 叠层常量（构造期一次性注入；null=无叠层）。 */
+    private final IIconContainer overlayActive;
+
     /**
-     * 注册用构造器：以子类静态链路常量注入本单元解锁的 ChainLink。
+     * 注册用构造器：以子类静态常量注入本单元的声明式差异——解锁的 ChainLink、GUI 类型词条 key
+     * 与前脸 overlay 常量对（inactive/active，GT/GT++ 静态常量直引，允许 null）。
      */
-    protected MTEBasicProcessingUnit(int aID, String aName, String aNameRegional, ChainLink... providedLinks) {
+    protected MTEBasicProcessingUnit(int aID, String aName, String aNameRegional, String unitTypeKey,
+        IIconContainer overlayInactive, IIconContainer overlayActive, ChainLink... providedLinks) {
         super(aID, aName, aNameRegional);
+        this.unitTypeKey = unitTypeKey;
+        this.overlayInactive = overlayInactive;
+        this.overlayActive = overlayActive;
         this.providedLinks = Collections.unmodifiableSet(new LinkedHashSet<>(Arrays.asList(providedLinks)));
     }
 
-    /** 克隆用构造器：多方块控制器仅需名称，链路常量随类型一同透传。 */
-    protected MTEBasicProcessingUnit(String aName, ChainLink... providedLinks) {
+    /** 克隆用构造器：多方块控制器仅需名称，声明式差异常量随类型一同透传。 */
+    protected MTEBasicProcessingUnit(String aName, String unitTypeKey, IIconContainer overlayInactive,
+        IIconContainer overlayActive, ChainLink... providedLinks) {
         super(aName);
+        this.unitTypeKey = unitTypeKey;
+        this.overlayInactive = overlayInactive;
+        this.overlayActive = overlayActive;
         this.providedLinks = Collections.unmodifiableSet(new LinkedHashSet<>(Arrays.asList(providedLinks)));
     }
 
@@ -152,6 +173,24 @@ public abstract class MTEBasicProcessingUnit extends MTEClusterUnitBase<MTEBasic
 
     @Override
     public abstract IMetaTileEntity newMetaEntity(IGregTechTileEntity aTileEntity);
+
+    /** 构造期注入的 GUI 类型词条 key（原五类子类各自覆写收敛为统一直读）。 */
+    @Override
+    public String getUnitTypeNameKey() {
+        return unitTypeKey;
+    }
+
+    /** 构造期注入的前脸 inactive 叠层常量（原子类覆写收敛为统一直读）。 */
+    @Override
+    protected IIconContainer unitOverlayInactive() {
+        return overlayInactive;
+    }
+
+    /** 构造期注入的前脸 active 叠层常量（原子类覆写收敛为统一直读）。 */
+    @Override
+    protected IIconContainer unitOverlayActive() {
+        return overlayActive;
+    }
 
     /** @return 本单元解锁的链路集合（不可变视图）。 */
     public Set<ChainLink> getProvidedLinks() {

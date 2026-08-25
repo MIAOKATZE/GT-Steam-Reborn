@@ -1,5 +1,6 @@
 package com.miaokatze.gtsr.common.machine.cluster;
 
+import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
 import static gregtech.api.enums.HatchElement.InputBus;
 import static gregtech.api.enums.HatchElement.InputHatch;
 import static gregtech.api.enums.HatchElement.OutputBus;
@@ -20,6 +21,7 @@ import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.FluidTank;
 import net.minecraftforge.fluids.FluidTankInfo;
 
+import com.gtnewhorizon.structurelib.structure.IStructureElement;
 import com.gtnewhorizon.structurelib.structure.StructureDefinition;
 import com.miaokatze.gtsr.api.compat.GTSRHatchFluidAccess;
 import com.miaokatze.gtsr.common.event.GTSRMachineEvent;
@@ -43,9 +45,10 @@ import gregtech.common.tileentities.machines.MTEHatchInputBusME;
 /**
  * 物流模块：集群的单点链执行器骨架（E3b 切片：四 I/O 结构 + 默认关机 + 双 tank 语义收紧 + 独立 GUI stub）。
  * <p>
- * <b>结构（3×4×3，控制器 (1,2,0)）</b>：正面 z0 层四 I/O——D(0,0,0) 输入总线 / E(2,0,0) 输出总线 /
- * F(0,1,0) 输入仓 / G(2,1,0) 输出仓，各自独立 {@code atLeast} 单元素 hatch 挂点（四挂点互不共用），
- * 且 checkMachine 末尾显式校验四列表均非空（缺任一即不成型）。B=tiered 齿轮箱
+ * <b>结构（3×4×3，控制器 (1,2,0)）</b>：正面 z0 层与全矩阵 A 位四 I/O 自由化（切片 3）——'A' 元素
+ * = ofChain(tiered 外壳 + hatchAdder.anyOf(输入总线/输出总线/输入仓/输出仓))，矩阵内任意 A 位皆可
+ * 承载四类 I/O hatch 之一（原 D/E/F/G 专用字符已按草稿还原为 'A'）；数量校验在 checkMachine 按
+ * 真实注册列表计数（四类各 1..2，任一类 0 或 &gt;2 不成型）。B=tiered 齿轮箱
  * （{@link #tieredGearboxElement()}，casings2:2/3/4/5）、C=tiered 框架
  * （{@link #tieredFrameElement()}），与 A 外壳经基类 {@code resolveUnitStructureTier} 分族同级
  * 强校验（跨 tier 混搭不成型）。{@link MTEHatchInputBusME} 在 {@link #addInputBusToMachineList}
@@ -77,6 +80,9 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
 
     /** 四 hatch 挂点与 hatch 贴图共用的青铜底材贴图 id（同总控 hatch 挂点）。 */
     private static final int HATCH_CASING_INDEX = GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings1, 10);
+
+    /** 四类 I/O hatch 各自数量上限（切片 3：各 1..2，A 位自由化后由 checkMachine 计数校验）。 */
+    private static final int IO_HATCH_LIMIT = 2;
 
     /** 正面叠层：拆解机贴图四态之停机态（Textures.BlockIcons T:1306）。 */
     private static final IIconContainer UNIT_OVERLAY_INACTIVE = Textures.BlockIcons.OVERLAY_FRONT_DISASSEMBLER;
@@ -115,10 +121,11 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
     // ------------------------------------------------------------------
 
     /**
-     * 结构矩阵（[Z][Y][X]，z0=正面）：
+     * 结构矩阵（[Z][Y][X]，z0=正面；切片 3 四 I/O 自由化——原 D(0,0,0)/E(2,0,0)/F(0,1,0)/
+     * G(2,1,0) 专用字符按草稿「基本物流单元-修.java」还原为 'A'，四类 I/O hatch 可置于任意 A 位）：
      *
      * <pre>
-     * z0 = [DAE / FAG / A~A / AAA]   D输入总线 E输出总线 / F输入仓 G输出仓 / 控制器 / 底排
+     * z0 = [AAA / AAA / A~A / AAA]   任意 A 位可承载四类 I/O hatch（checkMachine 各计 1..2）
      * z1 = [CAC / C C / CAC / ABA]
      * z2 = [AAA / AAA / AAA / ABA]
      * </pre>
@@ -127,45 +134,39 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
      */
     @Override
     protected String[][] getUnitShape() {
-        return new String[][] { { "DAE", "FAG", "A~A", "AAA" }, { "CAC", "C C", "CAC", "ABA" },
+        return new String[][] { { "AAA", "AAA", "A~A", "AAA" }, { "CAC", "C C", "CAC", "ABA" },
             { "AAA", "AAA", "AAA", "ABA" }, };
     }
 
     /**
+     * 'A' 元素覆写（切片 3 四 I/O 自由化，范式同 ClusterStructureDef A 总控仓室元素）：tiered 外壳
+     * （默认形态，四族 casing 之一，tier 强校验语义经基类元素原样保留）或 anyOf(输入总线/输出总线/
+     * 输入仓/输出仓)——矩阵内任意 A 位皆可承载四类 I/O hatch 之一；数量校验在 {@link #checkMachine}
+     * 按真实注册列表计数（各 1..2）。禁用 atLeast（GT5U atLeast 是「各元素至少一个」语义，此处不
+     * 适用）；casingIndex+hint 齐备（静态青铜 hint 口径保留）；ME 输入总线经
+     * {@link #addInputBusToMachineList} 覆写拒绝。
+     */
+    @Override
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    protected IStructureElement tieredCasingElement() {
+        return ofChain(
+            super.tieredCasingElement(),
+            buildHatchAdder(MTEBasicLogisticsUnit.class).anyOf(InputBus, OutputBus, InputHatch, OutputHatch)
+                .casingIndex(HATCH_CASING_INDEX)
+                .hint(1)
+                .build());
+    }
+
+    /**
      * 专有结构元素：B/C 用基类 tier 族元素（tieredGearboxElement/tieredFrameElement，分族 tier
-     * 经基类 resolveUnitStructureTier 同级强校验）；D/E/F/G 为四个互不共用的单元素 hatch 挂点
-     * （各自独立 atLeast：D=输入总线、E=输出总线、F=输入仓、G=输出仓——任一位置放错 hatch 类型
-     * 即该挂点 check 失败致结构不成型）。
+     * 经基类 resolveUnitStructureTier 同级强校验）。四 I/O hatch 挂点不再用专用字符——已并入
+     * {@link #tieredCasingElement()} 的 'A' 元素链（切片 3）。
      */
     @Override
     @SuppressWarnings("rawtypes")
     protected void addUnitStructureElements(StructureDefinition.Builder builder) {
         builder.addElement('B', tieredGearboxElement());
         builder.addElement('C', tieredFrameElement());
-        builder.addElement(
-            'D',
-            buildHatchAdder(MTEBasicLogisticsUnit.class).atLeast(InputBus)
-                .casingIndex(HATCH_CASING_INDEX)
-                .hint(1)
-                .build());
-        builder.addElement(
-            'E',
-            buildHatchAdder(MTEBasicLogisticsUnit.class).atLeast(OutputBus)
-                .casingIndex(HATCH_CASING_INDEX)
-                .hint(1)
-                .build());
-        builder.addElement(
-            'F',
-            buildHatchAdder(MTEBasicLogisticsUnit.class).atLeast(InputHatch)
-                .casingIndex(HATCH_CASING_INDEX)
-                .hint(1)
-                .build());
-        builder.addElement(
-            'G',
-            buildHatchAdder(MTEBasicLogisticsUnit.class).atLeast(OutputHatch)
-                .casingIndex(HATCH_CASING_INDEX)
-                .hint(1)
-                .build());
     }
 
     @Override
@@ -185,8 +186,10 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
 
     /**
      * 结构校验追加：super（E2a 基类）复位分族 tier 并 checkPiece + 分族同级校验（失配即已写错误）；
-     * 成型后追加四 I/O 列表非空校验（belt-and-suspenders：四挂点单元素 atLeast 已天然保证非空，
-     * 此处显式复核以固化"缺任一四 I/O 不成型"验收口径）。errors 非空由父类折算为不成型。
+     * 成型后按真实注册列表做四 I/O 计数校验（切片 3：A 位自由化后挂点不再天然保证非空/上限——
+     * 输入总线/输出总线/输入仓/输出仓各 1..2，任一类 0 或 &gt;2 不成型，错误信息按类可识别）。
+     * 成型成功末尾按 unitStructureTier 统一刷新四类 I/O hatch 贴图（切片 2 统一入口）。
+     * errors 非空由父类折算为不成型。
      */
     @Override
     public void checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack, List<StructureError> errors) {
@@ -196,23 +199,43 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
             errors.add(new ClusterStructureError("gtsr.gui.cluster.structure.missing_input_bus"));
             return;
         }
+        if (mInputBusses.size() > IO_HATCH_LIMIT) {
+            errors.add(new ClusterStructureError("gtsr.gui.cluster.structure.logi_input_bus_limit"));
+            return;
+        }
         if (mOutputBusses.isEmpty()) {
             errors.add(new ClusterStructureError("gtsr.gui.cluster.structure.missing_output_bus"));
+            return;
+        }
+        if (mOutputBusses.size() > IO_HATCH_LIMIT) {
+            errors.add(new ClusterStructureError("gtsr.gui.cluster.structure.logi_output_bus_limit"));
             return;
         }
         if (mInputHatches.isEmpty()) {
             errors.add(new ClusterStructureError("gtsr.gui.cluster.structure.missing_fluid_hatch"));
             return;
         }
+        if (mInputHatches.size() > IO_HATCH_LIMIT) {
+            errors.add(new ClusterStructureError("gtsr.gui.cluster.structure.logi_input_hatch_limit"));
+            return;
+        }
         if (mOutputHatches.isEmpty()) {
             errors.add(new ClusterStructureError("gtsr.gui.cluster.structure.missing_output_hatch"));
             return;
         }
+        if (mOutputHatches.size() > IO_HATCH_LIMIT) {
+            errors.add(new ClusterStructureError("gtsr.gui.cluster.structure.logi_output_hatch_limit"));
+            return;
+        }
+        refreshHatchTextures(mInputBusses);
+        refreshHatchTextures(mOutputBusses);
+        refreshHatchTextures(mInputHatches);
+        refreshHatchTextures(mOutputHatches);
     }
 
     /**
      * ME 输入总线拒绝（范式同 GT5U MTETreeFarm#addInputBusToMachineList）：ME 总线抽料绕过
-     * 物流批事务的输入总线语义，直接返回 false 使 D 挂点校验失败、结构不成型。
+     * 物流批事务的输入总线语义，直接返回 false 使 'A' 元素 hatchAdder 校验失败、结构不成型。
      */
     @Override
     public boolean addInputBusToMachineList(IGregTechTileEntity aTileEntity, int aBaseCasingIndex) {
@@ -229,17 +252,17 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
     // 四 I/O 契约（E4 执行器独占调用，签名冻结）
     // ------------------------------------------------------------------
 
-    /** 本模块自身输入总线（GT 标准列表 live 视图；结构成型时至少含 D 挂点一枚）。 */
+    /** 本模块自身输入总线（GT 标准列表 live 视图；结构成型时 1..2 枚，A 位自由化计数校验）。 */
     public List<MTEHatchInputBus> getLogisticsInputBusses() {
         return mInputBusses;
     }
 
-    /** 本模块自身输出总线（GT 标准列表 live 视图；结构成型时至少含 E 挂点一枚）。 */
+    /** 本模块自身输出总线（GT 标准列表 live 视图；结构成型时 1..2 枚，A 位自由化计数校验）。 */
     public List<MTEHatchOutputBus> getLogisticsOutputBusses() {
         return mOutputBusses;
     }
 
-    /** 本模块自身输入仓/输出仓（live 视图；输入仓供双 tank 补液，输出仓为结构要求）。 */
+    /** 本模块自身输入仓/输出仓（live 视图；各 1..2 枚；输入仓供双 tank 补液，输出仓为结构要求）。 */
     public List<MTEHatchInput> getLogisticsInputHatches() {
         return mInputHatches;
     }

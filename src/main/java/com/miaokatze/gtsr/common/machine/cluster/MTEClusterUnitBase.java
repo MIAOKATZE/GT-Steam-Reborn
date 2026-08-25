@@ -29,6 +29,7 @@ import gregtech.api.enums.Textures;
 import gregtech.api.interfaces.IIconContainer;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
+import gregtech.api.metatileentity.implementations.MTEHatch;
 import gregtech.api.recipe.check.CheckRecipeResult;
 import gregtech.api.recipe.check.CheckRecipeResultRegistry;
 import gregtech.api.render.TextureFactory;
@@ -232,12 +233,6 @@ public abstract class MTEClusterUnitBase<T extends MTEClusterUnitBase<T>> extend
     @SuppressWarnings("rawtypes")
     protected void addPipeElement(StructureDefinition.Builder builder) {
         builder.addElement('B', tieredPipeElement());
-    }
-
-    /** 过渡 helper：'D'=框架族。 */
-    @SuppressWarnings("rawtypes")
-    protected void addFrameElement(StructureDefinition.Builder builder) {
-        builder.addElement('D', tieredFrameElement());
     }
 
     private static Integer getCasingTier(Block block, int meta) {
@@ -673,10 +668,31 @@ public abstract class MTEClusterUnitBase<T extends MTEClusterUnitBase<T>> extend
         return null;
     }
 
-    /** tier → 外壳底材纹理索引（0 青铜镀铜砖 / 1 钢 / 2 钛 / 3 钨钢）；越界/未成型回退青铜。 */
-    protected int casingTextureIdForTier(int tier) {
+    /**
+     * tier → 外壳底材纹理索引（静态共用表入口，3.5.2）：总控 getCasingTextureID 与本族 getTexture
+     * 共用同一类加载期常量表；越界/未成型回退青铜（索引常量，零 icon 分配，NEI 安全红线）。
+     */
+    static int tierCasingTextureId(int tier) {
         if (tier < 0 || tier >= TIER_CASING_TEXTURE_IDS.length) return TIER_CASING_TEXTURE_IDS[0];
         return TIER_CASING_TEXTURE_IDS[tier];
+    }
+
+    /** tier → 外壳底材纹理索引（0 青铜镀铜砖 / 1 钢 / 2 钛 / 3 钨钢）；越界/未成型回退青铜。 */
+    protected int casingTextureIdForTier(int tier) {
+        return tierCasingTextureId(tier);
+    }
+
+    /**
+     * 模块 hatch 贴图统一刷新（3.5.2 tier 联动，切片 2 下沉）：以当前 {@link #getUnitStructureTier()}
+     * 对应底材贴图刷新指定 hatch 集合——hatch 贴图自身状态不随宿主（MTEHatch.updateTexture 为
+     * final，改 texturePage/Index + issueTileUpdate），必须显式刷新。各模块在自身成型成功末尾对
+     * 全部自有 hatch 列表调用；结构失败不调用（保持 hatchAdder 静态青铜 hint 口径）。
+     */
+    protected void refreshHatchTextures(List<? extends MTEHatch> hatches) {
+        int textureId = casingTextureIdForTier(getUnitStructureTier());
+        for (MTEHatch hatch : hatches) {
+            if (hatch != null) hatch.updateTexture(textureId);
+        }
     }
 
     /**

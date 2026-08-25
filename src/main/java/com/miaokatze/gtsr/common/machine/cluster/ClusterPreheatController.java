@@ -25,6 +25,13 @@ import net.minecraft.nbt.NBTTagCompound;
  * <p>
  * 三态互斥优先级（每 tick 单路径）：成型且启用且有汽 → 升温；成型且启用但断汽 → 断汽衰减；
  * 停机或未成型 → 停机衰减（其中停机判定优先于供汽状态）。
+ *
+ * <p>
+ * 结构失效清零（必修 e 的 reset 接线）：总控 {@code checkMachine} 失败收尾（failFormation）在
+ * MTESteamMineralLogisticsCluster 内闭合、不经过本类，故以<b>预热线入口的成型态检查</b>作为
+ * 结构失效可观测钩子——成型→未成型的下降沿（每 tick 入口检测）立即 {@link #reset()} 清零热量，
+ * 至多比失败时刻晚一个 tick；结构重建后从 0 重新预热，堵死「拆一格快修白得满热」。停机
+ * （未启用但结构完整）不清零、仍走停机衰减（软锤停机保热量语义不变）。
  */
 public final class ClusterPreheatController {
 
@@ -39,6 +46,9 @@ public final class ClusterPreheatController {
 
     /** 预热进度：0..HEAT_MAX，构造从 0 开始。 */
     private double heatLevel = 0.0;
+
+    /** 上一 tick 成型态（reset 接线用：成型→未成型下降沿检测；瞬态边沿，不持久化）。 */
+    private boolean lastMachineFormed = false;
 
     /** 集群预热状态机构造器：从 0 开始预热。 */
     public ClusterPreheatController() {}
@@ -55,12 +65,19 @@ public final class ClusterPreheatController {
      * PREHEAT_SECONDS=30 时每 tick 16.666...，600 tick 累计存在浮点误差，
      * 至第 601 tick 封顶，属可容忍误差。
      *
+     * <p>
+     * 结构失效清零（必修 e）：入口先做成型态下降沿检测，成型→未成型即刻 {@link #reset()}
+     * （未成型衰减此后作用于 0，无操作）；载入首 tick 起步 false，只构成 false→true 上升沿
+     * （不清零），NBT 载入的成型热量不受影响。
+     *
      * @param machineEnabled         机器是否启用（停机闸门，最高优先级）
-     * @param machineFormed          多方块结构是否成型（未成型同停机衰减）
+     * @param machineFormed          多方块结构是否成型（未成型同停机衰减；下降沿触发 reset）
      * @param thermalSupplyOkLatched 当前秒段热供应锁存（20t 双流体原子结算结果：
      *                               蒸汽且润滑均足=true，由调用方传入，本类只消费判定结果）
      */
     public void tickServer(boolean machineEnabled, boolean machineFormed, boolean thermalSupplyOkLatched) {
+        if (lastMachineFormed && !machineFormed) reset();
+        lastMachineFormed = machineFormed;
         if (machineEnabled && machineFormed) {
             if (thermalSupplyOkLatched) {
                 double gainPerTick = (HEAT_MAX / ClusterParams.PREHEAT_SECONDS) / TICKS_PER_SECOND;
@@ -96,7 +113,7 @@ public final class ClusterPreheatController {
         return heatLevel >= HEAT_MAX;
     }
 
-    /** 归零预热进度（结构重建成型后重新预热）。 */
+    /** 归零预热进度（结构重建成型后重新预热）。接线（必修 e）：tickServer 成型→未成型下降沿自动调用。 */
     public void reset() {
         heatLevel = 0.0;
     }

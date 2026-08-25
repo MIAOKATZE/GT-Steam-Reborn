@@ -10,7 +10,8 @@ import java.util.List;
  * <p>
  * 模型：集群由「主段 + 0..9 个延伸段」纵向组成（segment=0 主段；延伸段 k=0..8 对应 segment=k+1，
  * 即 1..9），每段恰 3 个垫槽（{@link #PAD_WORKING} / {@link #PAD_BOOSTER} / {@link #PAD_LOGISTICS}），
- * 槽位总量上限 {@link #SLOT_COUNT}=30。段锚/延伸偏移（主段 Z=8 即 k=-1、延伸 Z=16+8k）的几何推导归
+ * 槽位总量上限 {@link #SLOT_COUNT}=30。段锚/延伸偏移（局部深度主段 {@code [-7,+12]}=段 0、延伸段
+ * {@code [13+8k,20+8k]}=段 k+1、extOffsetC(k)=-13-8k）的几何推导归
  * {@code ClusterStructureDef}（E1a），本类只管段/槽数据簿记。本类持有两份互补数据：
  * <ul>
  * <li>单元清单：结构扫描顺序收集的全部已 connect 单元（同一 TE 实例引用级去重）；</li>

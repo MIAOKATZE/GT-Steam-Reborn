@@ -30,8 +30,8 @@ public final class ClusterParams {
     /** 单条物流链的最大链步数（服务端强制上限，plan §3.6.7）。 */
     public static final int CHAIN_MAX_LINKS = 16;
 
-    /** 主段结构深度（格，plan §3.2.1/3.2.2：宽 29 × 高 15 × 主段深 12）。 */
-    public static final int SEGMENT_DEPTH_MAIN = 12;
+    /** 主段结构深度（格，plan §3.2.1/3.2.2：宽 29 × 高 15 × 主段深 20，含并入的 8 深基础延伸图案）。 */
+    public static final int SEGMENT_DEPTH_MAIN = 20;
 
     /** 延伸段结构深度（格/段，plan §3.2.2）。 */
     public static final int SEGMENT_DEPTH_EXT = 8;

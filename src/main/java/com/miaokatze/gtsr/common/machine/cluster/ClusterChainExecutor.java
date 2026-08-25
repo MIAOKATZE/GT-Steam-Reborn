@@ -82,9 +82,10 @@ public final class ClusterChainExecutor {
      * 推进一个物流单元的链批处理（每秒由总控 runChains 调用一次；冷却未到直接返回）。
      *
      * <p>
-     * 事务流程：门控（主控+单元启用/链可执行/tier/冷却）→ 取料登记（不扣料）→ 低温吞批检查 →
-     * 链加工（副本单遍执行 + 逐物品真实配方流体需求累计）→ 批流体预检（不足整批零副作用）→
-     * 扣料 → 产出探测-实放（失败回滚输入，零副作用）→ 提交（实扣配方流体 + 冷却/记账/吞吐）。
+     * 事务流程：门控（主控+单元启用+物理电源/链可执行/tier/冷却）→ 取料登记（不扣料）→
+     * 低温吞批检查 → 链加工（副本单遍执行 + 逐物品真实配方流体需求累计）→ 批流体预检
+     * （不足整批零副作用）→ 扣料 → 产出探测-实放（失败回滚输入，零副作用）→ 提交
+     * （实扣配方流体 + 冷却/记账/吞吐）。
      *
      * @param cluster   集群总控（拓扑、tier 与累计记账入口）
      * @param unit      物流单元（链、I/O 总线、双 tank、冷却字段持有者）
@@ -97,11 +98,15 @@ public final class ClusterChainExecutor {
         LogisticsChain chain = unit.getChain();
         if (chain == null || chain.isEmpty()) return 0;
 
-        // 1) 门控：主控开机 + 单元自身允许工作（成型/通电）+ 链可执行 + tier 有效
+        // 1) 门控：主控开机 + 单元自身允许工作（成型/通电）+ 物理电源开（必修 a：软锤关停/
+        // 低温关机即 isPowerAllowed()=false 的单元在满热下不得执行批处理，口径同
+        // MTEBasicLogisticsUnit.isChainExecutableNow）+ 链可执行 + tier 有效
         int tier = cluster.getStructureTierIndex();
         ClusterTopology topology = cluster.getTopology();
-        if (!cluster.isMachineEnabled() || !unit.isModuleEnabled() || !chain.isExecutable(topology) || tier < 0)
-            return 0;
+        if (!cluster.isMachineEnabled() || !unit.isModuleEnabled()
+            || !unit.isPowerAllowed()
+            || !chain.isExecutable(topology)
+            || tier < 0) return 0;
 
         // 2) 冷却未到（冷却由调用方按 20t 递减，本方法不递减）
         if (unit.getChainCooldownTicks() > 0) return 0;
