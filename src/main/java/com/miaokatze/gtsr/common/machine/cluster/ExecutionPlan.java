@@ -22,9 +22,9 @@ import java.util.List;
  * <li>tier0 单链「粉碎+熔炼」（每类 1 模块、unitTier=0、无增幅）：
  * T_粉碎=480t×1.0÷1=480t、T_熔炼=160t，ΣT=640t；
  * 链蒸汽 C=(2000×480+2000×160)÷640=2000 L/s；单物品工作耗时=(480+160)÷20=32 s（物流段另加）；</li>
- * <li>tier0 单链「锻造锤+粉碎」：C=(8000×160+2000×480)÷640=3500 L/s——时间加权使长步低耗的
+ * <li>tier0 单链「锻造锤+粉碎」：C=(8000×16+2000×480)÷(16+480)=1088000÷496≈2194 L/s——时间加权使长步低耗的
  * 粉碎在均值中占主导；unitTier=1 时该值不变（4^u/2^u 同乘 T_i 后在 Σ(C·T)/Σ(T) 中约去）、
- * 但单物品工作耗时减半为 (160+480)÷2÷20=16 s；</li>
+ * 但单物品工作耗时减半为 (16+480)÷2÷20=12.4 s；</li>
  * <li>集群运行总需求（主控组装）：8000 × FIXED_STEAM_TIER_MULT[集群 tier] + Σ可执行链加权值
  * ×Π惩罚乘子×(1-min(48%,Σ节汽))——节汽封顶只作用于加权链路段，不影响固定项。</li>
  * </ol>
@@ -259,7 +259,7 @@ public final class ExecutionPlan {
         if (topology == null) return 0;
         double chainSum = 0.0;
         for (MTEBasicLogisticsUnit unit : units) {
-            if (unit == null) continue;
+            if (unit == null || !unit.isWorkInProgress()) continue;
             LogisticsChain chain = unit.getChain();
             if (chain == null || chain.isEmpty()) continue;
             if (!chain.isExecutable(topology)) continue;

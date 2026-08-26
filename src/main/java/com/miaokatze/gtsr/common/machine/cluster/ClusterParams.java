@@ -62,9 +62,6 @@ public final class ClusterParams {
     /** 各层级节汽增幅百分比，下标对应层级序号。 */
     public static final int[] BOOSTER_SAVER_PCT = { 2, 4, 8, 12 };
 
-    /** 增幅剂储罐容量（L）。 */
-    public static final int BOOSTER_TANK_CAPACITY_L = 16_000;
-
     /** 并行增幅（锁定流体：硝酸）各层级增幅液每秒消耗（L/s），下标对应层级序号。 */
     public static final int[] AMPLIFIER_NITRIC_ACID_LPS = { 50, 200, 1000, 2000 };
 

@@ -26,10 +26,10 @@ public enum ChainLink {
     CRUSH(480, 2000),
 
     /** 锻造：矿物锤锻成形。 */
-    HAMMER(160, 8000),
+    HAMMER(16, 8000),
 
     /** 简易洗矿（GT++）：轻量水洗；依赖 GT++ simpleWasherRecipes，GT++ 缺失时该链步不可用。 */
-    SIMPLE_WASH(160, 200),
+    SIMPLE_WASH(16, 200),
 
     /** 矿石清洗：洗去碎矿表面杂质。 */
     ORE_WASH(640, 200),

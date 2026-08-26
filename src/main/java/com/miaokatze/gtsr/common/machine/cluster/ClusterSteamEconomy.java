@@ -225,7 +225,7 @@ public final class ClusterSteamEconomy {
         int best = -1;
         for (MTEBasicLogisticsUnit unit : cluster.getTopology()
             .getLogisticsUnits()) {
-            if (unit == null || !unit.isModuleEnabled() || !unit.isUnitRunning()) continue;
+            if (unit == null || !unit.isModuleEnabled() || !unit.isWorkInProgress()) continue;
             best = Math.max(best, unit.getUnitStructureTier());
         }
         return best;

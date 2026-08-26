@@ -114,7 +114,18 @@ public abstract class MTEUnitSelfPoweredProcessingUnit extends MTEBasicProcessin
             && base.isAllowedToWork()
             && cluster.isPreheatReady()
             && cluster.isChainWindowActive()
+            && hasWorkInProgressLogisticsUnit()
             && participatedInCurrentBatch();
+    }
+
+    /** 任一物流单元当前存在未完成的真实工作进度。 */
+    private boolean hasWorkInProgressLogisticsUnit() {
+        if (cluster == null || cluster.getTopology() == null) return false;
+        for (MTEBasicLogisticsUnit unit : cluster.getTopology()
+            .getLogisticsUnits()) {
+            if (unit != null && unit.isWorkInProgress()) return true;
+        }
+        return false;
     }
 
     /** 本环节是否参与最近一次成功批（r6-S8：EU 只为实际命中的链步扣，纯物流批/无关环节不扣）。 */

@@ -430,8 +430,12 @@ public final class ClusterGuiSync {
         for (MTEBasicAmplifierUnit unit : units) {
             if (unit == null || unit.getBoosterType() == null) continue;
             if (sb.length() > 0) sb.append(',');
-            net.minecraftforge.fluids.FluidStack tank = unit.getTankContent();
-            sb.append(tank != null ? tank.amount : 0)
+            net.minecraftforge.fluids.Fluid locked = unit.getBoosterFluidForAccess();
+            long available = locked == null ? 0L
+                : com.miaokatze.gtsr.api.compat.GTSRHatchFluidAccess.probeFluidAmountAcross(
+                    unit.getInputHatchesForAccess(),
+                    new net.minecraftforge.fluids.FluidStack(locked, 1));
+            sb.append(Math.min(Integer.MAX_VALUE, available))
                 .append(':')
                 .append(unit.isFluidAvailable() ? 1 : 0);
         }

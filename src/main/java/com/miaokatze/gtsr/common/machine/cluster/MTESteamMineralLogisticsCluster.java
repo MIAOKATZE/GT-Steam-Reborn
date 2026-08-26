@@ -1538,6 +1538,17 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
         ClusterPersistence.read(this, aNBT);
     }
 
+    /** 总控零配方，使用真实状态词条，不显示恒定 NO_RECIPE 结果词条与配方信息区。 */
+    @Override
+    public boolean shouldDisplayCheckRecipeResult() {
+        return false;
+    }
+
+    @Override
+    public boolean showRecipeTextInGUI() {
+        return false;
+    }
+
     /**
      * GT 原生 GUI（终验反馈 FB 建类、FA 接线）：空手右击经 GT 基类默认路径打开集群总控原生 GUI
      * （成型/段数/tier/热量/蒸汽/润滑/吞吐/模块计数/供给异常词条，MTECrustMatterAggregator

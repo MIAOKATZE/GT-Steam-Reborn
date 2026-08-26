@@ -6,6 +6,8 @@ import java.util.List;
 
 import net.minecraftforge.fluids.FluidStack;
 
+import com.miaokatze.gtsr.api.compat.GTSRHatchFluidAccess;
+
 /**
  * 增幅聚合器：把一组建幅模块按拍板规则（D8/D9/A4）一次性聚合为不可变快照，GUI（增幅面板表）与
  * 服务器（蒸汽经济/执行计划）共用同一口径；纯计算、无副作用、不持有 tick 状态。
@@ -78,7 +80,7 @@ public final class BoosterState {
      *
      * <p>
      * 生效 = 已接入集群 && 锁定流体可用（{@link MTEBasicAmplifierUnit#isFluidAvailable()}）
-     * && tank 存量足以支付<b>本秒用量</b>（{@link MTEBasicAmplifierUnit#amplifierFluidPerSec()}——
+     * && 输入仓合计足以支付<b>本秒用量</b>（{@link MTEBasicAmplifierUnit#amplifierFluidPerSec()}——
      * S7 联动加成后实耗，§3.6.3——增幅流体按秒支付，不足支付本秒用量的模块不入快照：<b>无增益也无蒸汽惩罚</b>，
      * 计失效数；实扣增幅流体由主控按同口径另行执行）；在场但缺流体的模块同样计失效
      * （双重豁免：增益与惩罚均不计）；未接入集群（STANDBY）的模块与 null 元素直接跳过。
@@ -130,8 +132,10 @@ public final class BoosterState {
      */
     private static boolean canPayAmplifierFluidThisSecond(MTEBasicAmplifierUnit unit) {
         int perSecLps = unit.amplifierFluidPerSec();
-        FluidStack tank = unit.getTankContent();
-        return tank != null && tank.amount >= perSecLps;
+        if (perSecLps <= 0) return false;
+        net.minecraftforge.fluids.Fluid locked = unit.getBoosterFluidForAccess();
+        return locked != null
+            && GTSRHatchFluidAccess.hasEnoughAcross(unit.getInputHatchesForAccess(), new FluidStack(locked, perSecLps));
     }
 
     // ==================== 只读访问器 ====================

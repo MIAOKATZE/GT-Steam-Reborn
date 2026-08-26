@@ -359,9 +359,11 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
      * 状态细化（SR-Cluster-r5 决策 4 重映射，自上而下）：
      * <ol>
      * <li>未自成型 → NO_POWER_OR_INVALID；</li>
+     * <li>总控停机 → SHUT_DOWN；</li>
+     * <li>处理进度进行中（{@link #isWorkInProgress()}）→ WORKING；</li>
      * <li>物理电源关闭（!isAllowedToWork()，软锤/红石关闭）→ NO_POWER_OR_INVALID
      * （"关机/未通电"，不得显示可工作或待机）；</li>
-     * <li>未入集群 / 总控停机 / 链空 → STANDBY；</li>
+     * <li>未入集群 / 链空 → STANDBY；</li>
      * <li>链不可执行（!{@link LogisticsChain#isExecutable}，如缺工作单元）→ STANDBY
      * （配置问题不再显示为红字离线）；</li>
      * <li>洗矿/化洗批流体不足（!{@link #hasBatchFluids}）→ FLUID_MISSING；</li>
@@ -374,6 +376,7 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
         if (!isUnitStructureFormed()) return ClusterUnitStatus.NO_POWER_OR_INVALID;
         MTESteamMineralLogisticsCluster cluster = getCluster();
         if (cluster != null && !cluster.isMachineEnabled()) return ClusterUnitStatus.SHUT_DOWN;
+        if (isWorkInProgress()) return ClusterUnitStatus.WORKING;
         if (!isPowerAllowed()) return ClusterUnitStatus.NO_POWER_OR_INVALID;
         if (cluster == null) return ClusterUnitStatus.STANDBY;
         if (chain.isEmpty()) return ClusterUnitStatus.STANDBY;
@@ -457,6 +460,11 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
      * （段/垫、链摘要、批配方时间、物理电源）。空手右击经 GT 基类默认路径打开本 GUI
      * （MTECrustMatterAggregator 同款语义），MUI2 状态页跳转已删除。
      */
+    @Override
+    public boolean showRecipeTextInGUI() {
+        return false;
+    }
+
     @Override
     protected gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui<?> getGui() {
         return new MTEBasicLogisticsUnitNativeGui(this);

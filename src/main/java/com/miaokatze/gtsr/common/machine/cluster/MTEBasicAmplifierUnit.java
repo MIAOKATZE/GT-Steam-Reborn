@@ -27,14 +27,11 @@ import gregtech.api.util.GTUtility;
 /**
  * 增幅模块基类：集群五类增幅（并行/速度/主产物/副产物/蒸汽效率）的公共骨架。
  * <p>
- * 每个增幅模块自带一个只接受「锁定流体」的内置 tank（容量 {@link ClusterParams#BOOSTER_TANK_CAPACITY_L}），
- * 是增幅液缓冲（基类 tank 在增幅族豁免收紧）。正面 {@code (0,3,0)} 为 H 输入仓（标准
- * {@code InputHatch}，至少一个否则不成型），服务端成型后每 tick 自动把仓内锁定流体补入 mFluid
- * （tank 满时 O(1) 早退）；E4 经济结算经 {@link #tryConsumeAmplifierFluid} 按秒预检实扣，
+ * 正面 {@code (0,3,0)} 为 H 输入仓（标准 {@code InputHatch}，至少一个否则不成型），
+ * E4 经济结算经 {@link #tryConsumeAmplifierFluid} 按秒预检实扣，
  * 预检失败零扣、该模块当秒无增益无惩罚。
  * <p>
- * 锁定流体的接受点为 {@link #isFluidInputAllowed}——MTEBasicTank.fill 入口即调用该钩子，
- * 管道/ME/倒容器（onPreTick）全部填充路径统一经它放行；drain 走基类 mFluid 语义正常放出，无需覆写。
+ * 锁定流体直接从 H 输入仓读取并按秒扣除；不再启用内部流体槽，管道直灌面随之关闭。
  * 手工容器交互（桶/胶囊）沿承 {@link MTEClusterUnitBase} 家族语义（关闭），流体出入一律走管道/ME。
  * <p>
  * 锁定流体解析表（集中在本类 {@link #resolveBoosterFluid}，null 安全）：
@@ -62,13 +59,11 @@ public abstract class MTEBasicAmplifierUnit extends MTEClusterUnitBase<MTEBasicA
     protected MTEBasicAmplifierUnit(int aID, String aName, String aNameRegional, ClusterParams.BoosterType type) {
         super(aID, aName, aNameRegional);
         this.boosterType = type;
-        enableInternalFluidTank();
     }
 
     protected MTEBasicAmplifierUnit(String aName, ClusterParams.BoosterType type) {
         super(aName);
         this.boosterType = type;
-        enableInternalFluidTank();
     }
 
     @Override
@@ -133,25 +128,9 @@ public abstract class MTEBasicAmplifierUnit extends MTEClusterUnitBase<MTEBasicA
         }
     }
 
-    /**
-     * 服务端成型后自动补液：从 H 输入仓抽取本模块锁定流体填入内置 mFluid 缓冲。tank 满时 O(1) 早退
-     * （稳态零探测开销）；探测/实扣统一走 {@link GTSRHatchFluidAccess} 模拟→实扣两段式，兼容 ME 输入仓。
-     */
     @Override
-    public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
-        super.onPostTick(aBaseMetaTileEntity, aTick);
-        if (aBaseMetaTileEntity.isServerSide() && mMachine) pullBoosterFluidFromInputHatches();
-    }
-
-    /** 输入仓 → mFluid 补液：只取锁定流体，量 = tank 剩余容量；fill 侧再经 isFluidInputAllowed 双保险。 */
-    private void pullBoosterFluidFromInputHatches() {
-        if (mInputHatches.isEmpty()) return;
-        int room = getCapacity() - (mFluid == null ? 0 : mFluid.amount);
-        if (room <= 0) return;
-        Fluid locked = getLockedFluidOrNull();
-        if (locked == null || (mFluid != null && mFluid.getFluid() != locked)) return;
-        int drained = GTSRHatchFluidAccess.depleteFluidAcross(mInputHatches, new FluidStack(locked, room));
-        if (drained > 0) fill(new FluidStack(locked, drained), true);
+    public boolean showRecipeTextInGUI() {
+        return false;
     }
 
     @Override
@@ -215,24 +194,27 @@ public abstract class MTEBasicAmplifierUnit extends MTEClusterUnitBase<MTEBasicA
     }
 
     /**
-     * E4 结算冻结接口：预检 mFluid 足量才实扣；不足（或参数非正）返回 false 且零扣——
-     * 该模块当秒应从 BoosterState 剔除（无增益、无蒸汽惩罚乘子），剔除动作由 E4 结算侧完成。
+     * E4 结算冻结接口：先跨输入仓合计预检足额、足额才整笔实扣（不足零扣原子语义——
+     * {@code depleteFluidAcross} 允许部分提取，直接调用会破坏「不足零扣」）；不足（或参数非正）
+     * 返回 false 且零扣——该模块当秒应从 BoosterState 剔除（无增益、无蒸汽惩罚乘子），
+     * 剔除动作由 E4 结算侧完成。
      */
     public boolean tryConsumeAmplifierFluid(int liters) {
-        if (liters <= 0 || !hasBoosterFluid() || mFluid.amount < liters) return false;
-        mFluid.amount -= liters;
-        if (mFluid.amount <= 0) mFluid = null;
-        markDirty();
-        return true;
+        Fluid locked = getLockedFluidOrNull();
+        if (liters <= 0 || locked == null || mInputHatches.isEmpty()) return false;
+        if (!GTSRHatchFluidAccess.hasEnoughAcross(mInputHatches, new FluidStack(locked, liters))) return false;
+        int drained = GTSRHatchFluidAccess.depleteFluidAcross(mInputHatches, new FluidStack(locked, liters));
+        return drained >= liters;
     }
 
     /**
-     * 便捷判据：mFluid 含锁定流体且 ≥ 1 mB。增幅「在供流体」的具体识别由主控拓扑层判，
-     * 本方法只提供 tank 事实快照。
+     * 便捷判据：结构输入仓合计含锁定流体且 ≥ 1 mB。增幅「在供流体」的具体识别由主控拓扑层判，
+     * 本方法只提供输入仓事实快照。
      */
     public boolean hasBoosterFluid() {
         Fluid locked = getLockedFluidOrNull();
-        return locked != null && mFluid != null && mFluid.getFluid() == locked && mFluid.amount >= 1;
+        return locked != null
+            && GTSRHatchFluidAccess.probeFluidAmountAcross(mInputHatches, new FluidStack(locked, 1)) >= 1;
     }
 
     /**
@@ -271,11 +253,12 @@ public abstract class MTEBasicAmplifierUnit extends MTEClusterUnitBase<MTEBasicA
         return lockedFluid;
     }
 
-    /** tank 非空、单元结构已成型且流体==锁定流体时视为增幅流体可用。 */
+    /** 输入仓存在锁定流体时视为增幅流体可用。 */
     public boolean isFluidAvailable() {
-        if (!isModuleEnabled() || mFluid == null || mFluid.amount <= 0) return false;
+        if (!isModuleEnabled()) return false;
         Fluid locked = getLockedFluidOrNull();
-        return locked != null && mFluid.getFluid() == locked;
+        return locked != null
+            && GTSRHatchFluidAccess.probeFluidAmountAcross(mInputHatches, new FluidStack(locked, 1)) > 0;
     }
 
     /**
@@ -294,18 +277,28 @@ public abstract class MTEBasicAmplifierUnit extends MTEClusterUnitBase<MTEBasicA
         return isModuleEnabled() && getStructureTier() >= 0 ? getBoosterType().getBoosterValue(getStructureTier()) : 0;
     }
 
-    /** tank 当前内容（live 视图，可为 null）。 */
-    public FluidStack getTankContent() {
-        return mFluid;
+    /** 当前锁定流体，供同包支付快照与 GUI 访问。 */
+    public Fluid getBoosterFluidForAccess() {
+        return getLockedFluidOrNull();
     }
 
-    /** 增幅锁定流体 tank 容量（结构 tier 不改变容量）。 */
+    /** 当前增幅输入仓列表，供同包支付快照与 GUI 访问。 */
+    public List<gregtech.api.metatileentity.implementations.MTEHatchInput> getInputHatchesForAccess() {
+        return mInputHatches;
+    }
+
+    /** tank 当前内容（已移除内置缓存，始终为空）。 */
+    public FluidStack getTankContent() {
+        return null;
+    }
+
+    /** 内部 tank 已移除，增幅模块不暴露可灌装容量。 */
     @Override
     public int getCapacity() {
-        return ClusterParams.BOOSTER_TANK_CAPACITY_L;
+        return 0;
     }
 
-    /** 锁定流体闸门：fill/倒容器全路径统一入口；解析失败（null）时恒 false → 增幅禁用但不崩。 */
+    /** 锁定流体闸门：内部 tank 关闭后所有直灌路径均拒绝。 */
     @Override
     public boolean isFluidInputAllowed(FluidStack aFluid) {
         if (aFluid == null || aFluid.getFluid() == null) return false;

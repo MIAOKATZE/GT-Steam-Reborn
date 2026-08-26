@@ -450,6 +450,11 @@ public abstract class MTEClusterUnitBase<T extends MTEClusterUnitBase<T>> extend
         return cluster != null && mMachine;
     }
 
+    /** 经济判定统一使用的工作进度原语；isUnitRunning() 仅供贴图/active 叠层。 */
+    public boolean isWorkInProgress() {
+        return mMachine && cluster != null && mMaxProgresstime > 0 && mProgresstime < mMaxProgresstime;
+    }
+
     /**
      * 独立运行信号（3.4.6）：基类口径 = 自身结构成型 && 已连接集群 && 总闸允许工作。
      * 加工/热离/磁选子类覆写扩展（追加独立运行条件与能源自支付判定）；本方法只读字段，
@@ -481,11 +486,6 @@ public abstract class MTEClusterUnitBase<T extends MTEClusterUnitBase<T>> extend
     public ClusterUnitStatus getUnitStatus() {
         if (!mMachine) return ClusterUnitStatus.NO_POWER_OR_INVALID;
         return cluster == null ? ClusterUnitStatus.STANDBY : ClusterUnitStatus.WORKING;
-    }
-
-    /** MTEBasicTank 兼容访问器（内部槽未启用时为 null 视图，调用方需自理）。 */
-    public FluidStackTank getFluidTank() {
-        return fluidTank;
     }
 
     /**
@@ -561,6 +561,7 @@ public abstract class MTEClusterUnitBase<T extends MTEClusterUnitBase<T>> extend
     }
 
     public FluidStack setFillableStack(FluidStack aFluid) {
+        if (!isInternalFluidTankEnabled()) return null;
         mFluid = aFluid;
         return mFluid;
     }
@@ -571,6 +572,7 @@ public abstract class MTEClusterUnitBase<T extends MTEClusterUnitBase<T>> extend
     }
 
     public FluidStack setDrainableStack(FluidStack aFluid) {
+        if (!isInternalFluidTankEnabled()) return null;
         mFluid = aFluid;
         return mFluid;
     }
@@ -643,7 +645,9 @@ public abstract class MTEClusterUnitBase<T extends MTEClusterUnitBase<T>> extend
     @Override
     public void saveNBTData(NBTTagCompound aNBT) {
         super.saveNBTData(aNBT);
-        if (mFluid != null) aNBT.setTag("mFluid", mFluid.writeToNBT(new NBTTagCompound()));
+        if (isInternalFluidTankEnabled() && mFluid != null) {
+            aNBT.setTag("mFluid", mFluid.writeToNBT(new NBTTagCompound()));
+        }
         aNBT.setInteger("unitStructureTier", unitStructureTier);
     }
 
@@ -665,6 +669,12 @@ public abstract class MTEClusterUnitBase<T extends MTEClusterUnitBase<T>> extend
     @Override
     public byte getUpdateData() {
         return (byte) unitStructureTier;
+    }
+
+    /** 集群单元使用真实进度/状态词条，不显示恒定 NO_RECIPE 结果词条。 */
+    @Override
+    public boolean shouldDisplayCheckRecipeResult() {
+        return false;
     }
 
     /** 单元只充当结构与能力控制器，永不走 GT 配方执行。 */
