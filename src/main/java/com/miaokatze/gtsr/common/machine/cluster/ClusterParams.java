@@ -45,10 +45,13 @@ public final class ClusterParams {
     public static final double STEAM_SAVER_CAP = 0.48;
 
     /** 各层级并行增幅点数，下标对应层级序号。 */
-    public static final int[] BOOSTER_PARALLEL_VALUES = { 4, 8, 32, 48 };
+    public static final int[] BOOSTER_PARALLEL_VALUES = { 4, 8, 24, 48 };
 
     /** 各层级速度增幅百分比，下标对应层级序号。 */
     public static final int[] BOOSTER_SPEED_PCT = { 5, 10, 30, 40 };
+
+    /** 速度/并行模块对其他增幅模块流体消耗的加成百分比，下标对应<b>施加方</b>层级序号。 */
+    public static final int[] BOOSTER_SURCHARGE_PCT = { 5, 10, 30, 40 };
 
     /** 各层级主产出增幅百分比，下标对应层级序号。 */
     public static final int[] BOOSTER_PRIMARY_PCT = { 5, 10, 15, 20 };
@@ -62,16 +65,55 @@ public final class ClusterParams {
     /** 增幅剂储罐容量（L）。 */
     public static final int BOOSTER_TANK_CAPACITY_L = 16_000;
 
-    /** 各层级增幅模块锁定流体每秒消耗（L/s），下标对应层级序号（附录 B：4/8/12/16）。 */
-    public static final int[] AMPLIFIER_FLUID_PER_SEC = { 4, 8, 12, 16 };
+    /** 并行增幅（锁定流体：硝酸）各层级增幅液每秒消耗（L/s），下标对应层级序号。 */
+    public static final int[] AMPLIFIER_NITRIC_ACID_LPS = { 50, 200, 1000, 2000 };
+
+    /** 速度增幅（锁定流体：盐酸）各层级增幅液每秒消耗（L/s），下标对应层级序号。 */
+    public static final int[] AMPLIFIER_HYDROCHLORIC_ACID_LPS = { 60, 300, 1500, 3000 };
+
+    /** 主产物增幅（锁定流体：硫酸）各层级增幅液每秒消耗（L/s），下标对应层级序号。 */
+    public static final int[] AMPLIFIER_SULFURIC_ACID_LPS = { 80, 400, 2000, 4000 };
+
+    /** 副产物增幅（锁定流体：氯化铵）各层级增幅液每秒消耗（L/s），下标对应层级序号。 */
+    public static final int[] AMPLIFIER_AMMONIUM_CHLORIDE_LPS = { 20, 80, 300, 500 };
+
+    /** 节汽增幅（锁定流体：SuperCoolant）各层级增幅液每秒消耗（L/s），下标对应层级序号。 */
+    public static final int[] AMPLIFIER_SUPER_COOLANT_LPS = { 10, 50, 200, 400 };
 
     /** 节汽增幅冷却液流体 ID；解析失败回退 Materials.SuperCoolant，由使用方处理。 */
     public static final String BOOSTER_COOLANT_FLUID = "ic2coolant";
 
+    /**
+     * 按增幅类型取该层级的增幅液每秒消耗（L/s）：五表按 {@link BoosterType} ordinal 分发。
+     *
+     * @param type    增幅类型（非 null）
+     * @param tierIdx 层级下标，越界按边界截断
+     * @return 对应增幅液每秒消耗（L/s）
+     */
+    public static int amplifierFluidLps(BoosterType type, int tierIdx) {
+        int idx = Math.max(0, Math.min(tierIdx, TIER_COUNT - 1));
+        switch (type) {
+            case SPEED:
+                return AMPLIFIER_HYDROCHLORIC_ACID_LPS[idx];
+            case PRIMARY_OUTPUT:
+                return AMPLIFIER_SULFURIC_ACID_LPS[idx];
+            case SECONDARY_OUTPUT:
+                return AMPLIFIER_AMMONIUM_CHLORIDE_LPS[idx];
+            case STEAM_SAVER:
+                return AMPLIFIER_SUPER_COOLANT_LPS[idx];
+            case PARALLEL:
+            default:
+                return AMPLIFIER_NITRIC_ACID_LPS[idx];
+        }
+    }
+
     // ==================== 预热与停机衰减 ====================
 
-    /** 预热阶段蒸汽消耗（L/s）。 */
-    public static final int PREHEAT_STEAM_LPS = 2000;
+    /** 集群固定蒸汽消耗（L/s）：预热全额口径与运行保温下限共用（原 PREHEAT_STEAM_LPS，r6 重定义）。 */
+    public static final int FIXED_CLUSTER_STEAM_LPS = 8000;
+
+    /** 各层级固定蒸汽乘率，下标对应层级序号（供经济切片对固定蒸汽按档缩放）。 */
+    public static final int[] FIXED_STEAM_TIER_MULT = { 1, 4, 16, 48 };
 
     /** 预热持续时间（秒）。 */
     public static final int PREHEAT_SECONDS = 30;
@@ -84,8 +126,11 @@ public final class ClusterParams {
 
     // ==================== 辅助流体与持续供电 ====================
 
-    /** 润滑剂消耗（L/s）。 */
-    public static final int LUBRICANT_LPS = 10;
+    /** 集群本体润滑剂消耗（L/s），下标对应集群层级序号（r6：按档取代旧恒定 LUBRICANT_LPS=10）。 */
+    public static final int[] CLUSTER_LUBRICANT_LPS = { 20, 80, 500, 1000 };
+
+    /** 物流单元润滑剂消耗（L/s），下标对应物流单元 unitStructureTier 序号。 */
+    public static final int[] LOGISTICS_UNIT_LUBRICANT_LPS = { 20, 60, 300, 500 };
 
     /** 每批次清洗用水量（L）。 */
     public static final int WASH_WATER_PER_BATCH_L = 1000;
@@ -96,16 +141,33 @@ public final class ClusterParams {
     /** 简易洗矿每命中物品的普通水消耗（mB，附录 B；按实际命中物品数累计）。 */
     public static final int SIMPLE_WASH_WATER_PER_ITEM_MB = 100;
 
-    /** 磁选单元持续供电需求（EU/t），用户拍板：磁选需持续供电。 */
+    /** 磁选单元持续供电需求（LV 电压档 EU/t），用户拍板：磁选需持续供电；合计 = 本值 × MAGNETIC_AMPERAGE。 */
     public static final int MAGNETIC_EU_PER_TICK = 32;
 
-    /** 热力离心单元持续供电需求（EU/t），用户拍板：热力离心需持续供电。 */
+    /** 磁选单元供电安培数（LV × 1A = 32EU/t 合计）。 */
+    public static final int MAGNETIC_AMPERAGE = 1;
+
+    /** 热力离心单元持续供电需求（LV 电压档 EU/t），用户拍板：热力离心需持续供电。 */
     public static final int THERMOCENTRIFUGE_EU_PER_TICK = 32;
+
+    /** 热力离心单元供电安培数（LV × 3A = 96EU/t 合计）。 */
+    public static final int THERMOCENTRIFUGE_AMPERAGE = 3;
+
+    // ==================== 粉碎副产物乘率 ====================
+
+    /** 粉碎链步副产物乘率（常规口径）。 */
+    public static final double CRUSH_BYPRODUCT_MULT_NORMAL = 0.1;
+
+    /** 粉碎链步副产物乘率（钢级处理口径）。 */
+    public static final double CRUSH_BYPRODUCT_MULT_STEEL = 0.5;
 
     // ==================== 物流单元 ====================
 
     /** 各层级物流单元基准并行数，下标对应层级序号。 */
     public static final int[] LOGISTICS_BASE_PARALLEL = { 4, 8, 24, 48 };
+
+    /** 物流链步基础耗时（tick，8s=160t；无蒸汽消耗——见 {@link ChainLink} 基础表口径）。 */
+    public static final int LOGISTICS_LINK_BASE_TICKS = 160;
 
     /** 各层级物流单元处理耗时（秒，0 表示即时完成），下标对应层级序号。 */
     public static final int[] LOGISTICS_TIME_SEC = { 10, 6, 2, 0 };
@@ -267,6 +329,94 @@ public final class ClusterParams {
         /** @return 本增幅剂的蒸汽惩罚倍率（BOOSTER_PENALTY_MULT[ordinal]）。 */
         public double getPenaltyMultiplier() {
             return BOOSTER_PENALTY_MULT[ordinal()];
+        }
+    }
+
+    /**
+     * 蒸汽种类折算与层级门控（供 S8 蒸汽经济切片使用）：折算系数表示相对普通 Steam 的能量密度，
+     * 等效消耗 = 本种类流量 ÷ {@link #getDivisor()}（如 DenseSuperheatedSteam 1L 折合普通蒸汽 2000L，
+     * 等效口径下消耗除以 2000）。
+     */
+    public enum SteamGrade {
+
+        /** 普通 Steam：×1（流体注册名 steam）。 */
+        STEAM(1, "steam"),
+        /** 过热蒸汽 SuperheatedSteam：÷2（流体注册名 ic2superheatedsteam）。 */
+        SUPERHEATED_STEAM(2, "ic2superheatedsteam"),
+        /** 超临界蒸汽 SupercriticalSteam：÷4（流体注册名 supercriticalsteam）。 */
+        SUPERCRITICAL_STEAM(4, "supercriticalsteam"),
+        /** 密集蒸汽 DenseSteam：÷1000（流体注册名 densesteam）。 */
+        DENSE_STEAM(1000, "densesteam"),
+        /** 密集过热蒸汽 DenseSuperheatedSteam：÷2000（流体注册名 densesuperheatedsteam）。 */
+        DENSE_SUPERHEATED_STEAM(2000, "densesuperheatedsteam"),
+        /** 密集超临界蒸汽 DenseSupercriticalSteam：÷4000（流体注册名 densesupercriticalsteam）。 */
+        DENSE_SUPERCRITICAL_STEAM(4000, "densesupercriticalsteam");
+
+        /** 折算除数：等效普通 Steam 流量 = 本种类流量 ÷ 该值（普通 Steam 为 1，即原样计收）。 */
+        private final int divisor;
+
+        /** 流体注册名（与耐压蒸汽输入仓白名单、MTEOverpressureTurbineInputHatch 六名一致）。 */
+        private final String fluidName;
+
+        SteamGrade(int divisor, String fluidName) {
+            this.divisor = divisor;
+            this.fluidName = fluidName;
+        }
+
+        /** @return 折算除数（等效普通 Steam 口径的除数）。 */
+        public int getDivisor() {
+            return divisor;
+        }
+
+        /** @return 流体注册名（仓室白名单与结算端共用同一命名事实来源）。 */
+        public String getFluidName() {
+            return fluidName;
+        }
+
+        /**
+         * 解析本种类对应流体（null 安全，S8 结算端使用）：
+         * <ul>
+         * <li>普通/致密三档 → GT Materials 的 mGas 字段（{@code Materials.Steam} 与
+         * {@code Materials.DenseSteam/DenseSuperheatedSteam/DenseSupercriticalSteam}，
+         * 与既有 r5 结算 {@code Materials.Steam.getGas} 同一流体对象）；</li>
+         * <li>过热/超临界 → FluidRegistry 按注册名解析；任一环节未注册返回 null（该种类跳过）。</li>
+         * </ul>
+         *
+         * @return 对应流体；未注册时 null
+         */
+        public net.minecraftforge.fluids.Fluid resolveFluid() {
+            switch (this) {
+                case STEAM:
+                    return gregtech.api.enums.Materials.Steam.mGas;
+                case SUPERHEATED_STEAM:
+                    return net.minecraftforge.fluids.FluidRegistry.getFluid(fluidName);
+                case SUPERCRITICAL_STEAM:
+                    return net.minecraftforge.fluids.FluidRegistry.getFluid(fluidName);
+                case DENSE_STEAM:
+                    return gregtech.api.enums.Materials.DenseSteam.mGas;
+                case DENSE_SUPERHEATED_STEAM:
+                    return gregtech.api.enums.Materials.DenseSuperheatedSteam.mGas;
+                case DENSE_SUPERCRITICAL_STEAM:
+                    return gregtech.api.enums.Materials.DenseSupercriticalSteam.mGas;
+                default:
+                    return null;
+            }
+        }
+
+        /**
+         * 集群层级门控（r6-S8 用户拍板定稿，仅两档特殊）：青铜全收；钨钢仅收 SupercriticalSteam 与
+         * DenseSupercriticalSteam；其余层级（钢/钛等）同规拒收原始低压两档 Steam 与 DenseSteam
+         * （即接受 Superheated/Supercritical 及全部 Dense 变体）。
+         *
+         * @param tier 集群层级
+         * @return 该层级是否接受本蒸汽种类
+         */
+        public boolean isAcceptedBy(ClusterTier tier) {
+            if (tier == ClusterTier.TUNGSTENSTEEL) {
+                return this == SUPERCRITICAL_STEAM || this == DENSE_SUPERCRITICAL_STEAM;
+            }
+            if (tier == ClusterTier.BRONZE) return true;
+            return this != STEAM && this != DENSE_STEAM;
         }
     }
 }

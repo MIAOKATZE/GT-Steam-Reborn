@@ -78,8 +78,8 @@ public final class BoosterState {
      *
      * <p>
      * 生效 = 已接入集群 && 锁定流体可用（{@link MTEBasicAmplifierUnit#isFluidAvailable()}）
-     * && tank 存量足以支付<b>本秒用量</b>（{@link ClusterParams#AMPLIFIER_FLUID_PER_SEC}[tier]，
-     * §3.6.3——增幅流体按秒支付，不足支付本秒用量的模块不入快照：<b>无增益也无蒸汽惩罚</b>，
+     * && tank 存量足以支付<b>本秒用量</b>（{@link MTEBasicAmplifierUnit#amplifierFluidPerSec()}——
+     * S7 联动加成后实耗，§3.6.3——增幅流体按秒支付，不足支付本秒用量的模块不入快照：<b>无增益也无蒸汽惩罚</b>，
      * 计失效数；实扣增幅流体由主控按同口径另行执行）；在场但缺流体的模块同样计失效
      * （双重豁免：增益与惩罚均不计）；未接入集群（STANDBY）的模块与 null 元素直接跳过。
      * 无生效且无失效模块时返回 {@link #EMPTY} 单例（空列表/null 入参同此，语义等价）。
@@ -124,14 +124,12 @@ public final class BoosterState {
     }
 
     /**
-     * 本秒增幅流体支付能力（§3.6.3）：模块 tank 存量 ≥ 其结构层级对应的
-     * {@link ClusterParams#AMPLIFIER_FLUID_PER_SEC}（4/8/12/16 L/s）才计入本秒快照。
-     * 只读判定、不实扣（按秒实扣由主控负责，与本谓词同口径）。
+     * 本秒增幅流体支付能力（§3.6.3，S7 联动口径）：模块 tank 存量 ≥ 其<b>实际</b>按秒增幅液消耗
+     * （{@link MTEBasicAmplifierUnit#amplifierFluidPerSec()}——基础五表值 × (1 + Σ速度/并行联动
+     * 加成)，与主控实扣同口径）才计入本秒快照。只读判定、不实扣。
      */
     private static boolean canPayAmplifierFluidThisSecond(MTEBasicAmplifierUnit unit) {
-        int tier = unit.getStructureTier();
-        int idx = Math.max(0, Math.min(tier, ClusterParams.TIER_COUNT - 1));
-        int perSecLps = ClusterParams.AMPLIFIER_FLUID_PER_SEC[idx];
+        int perSecLps = unit.amplifierFluidPerSec();
         FluidStack tank = unit.getTankContent();
         return tank != null && tank.amount >= perSecLps;
     }

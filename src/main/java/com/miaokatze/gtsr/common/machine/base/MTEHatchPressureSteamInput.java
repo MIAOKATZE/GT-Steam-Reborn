@@ -35,8 +35,18 @@ public class MTEHatchPressureSteamInput extends MTEHatchCustomFluidBase {
             .getFluid();
     }
 
+    /**
+     * S8 六种蒸汽白名单（注册名与 {@code ClusterParams.SteamGrade} 一一对应）：
+     * steam / ic2superheatedsteam / supercriticalsteam / densesteam / densesuperheatedsteam /
+     * densesupercriticalsteam。仓侧不做集群 tier 门控（hatch 不感知所属集群），层级适配由
+     * {@code ClusterSteamEconomy} 结算端把关——未接受种类不消耗也不扣。
+     */
     private boolean isSteamType(String fluidName) {
-        return "steam".equals(fluidName) || "ic2superheatedsteam".equals(fluidName);
+        return "steam".equals(fluidName) || "ic2superheatedsteam".equals(fluidName)
+            || "supercriticalsteam".equals(fluidName)
+            || "densesteam".equals(fluidName)
+            || "densesuperheatedsteam".equals(fluidName)
+            || "densesupercriticalsteam".equals(fluidName);
     }
 
     @Override
@@ -119,7 +129,7 @@ public class MTEHatchPressureSteamInput extends MTEHatchCustomFluidBase {
                 + StatCollector.translateToLocal("gtsr.tooltip.shared.l"),
             EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.shared.fluid_type")
                 + EnumChatFormatting.YELLOW
-                + StatCollector.translateToLocal("gtsr.tooltip.shared.steam_and_superheated"),
+                + StatCollector.translateToLocal("gtsr.tooltip.shared.steam_family_six"),
             EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.shared.steam_machine_only"),
             GTSRUtils.getAddedByLine() };
     }

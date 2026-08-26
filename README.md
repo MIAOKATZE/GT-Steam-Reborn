@@ -1,9 +1,9 @@
 <h1 align="center">GT-Steam-Reborn</h1>
 <p align="center"><strong><em>GTNH Steam Age Expansion Mod</em></strong><br><strong><em>GTNH 蒸汽时代扩展模组</em></strong></p>
 
-A GregTech New Horizons expansion mod that **supplements the Steam Age and significantly expands steam usage**, providing 22 multiblock steam machines, 8 single-block nodes, 15 types of hatches plus 4 singularity compartments and 3 hub storage units, and a Hub-Node binding system. It fills the gameplay gap between the steam age and the electric age in GTNH, making steam a viable and deep progression path rather than a transient phase.
+A GregTech New Horizons expansion mod that **supplements the Steam Age and significantly expands steam usage**, providing 23 multiblock steam machines, 8 single-block nodes, 15 types of hatches plus 4 singularity compartments and 3 hub storage units, and a Hub-Node binding system. It fills the gameplay gap between the steam age and the electric age in GTNH, making steam a viable and deep progression path rather than a transient phase.
 
-一个 GregTech New Horizons 扩展模组，**补充蒸汽时代并显著拓展蒸汽用途**，提供22台多方块蒸汽机器、8个单方块节点、15类仓室与4个奇点仓、3种存储单元以及枢纽-节点绑定系统。它填补了 GTNH 蒸汽阶段到电力阶段之间的玩法空白，让蒸汽成为一条可行且有深度的进阶路线，而非过渡阶段。
+一个 GregTech New Horizons 扩展模组，**补充蒸汽时代并显著拓展蒸汽用途**，提供23台多方块蒸汽机器、8个单方块节点、15类仓室与4个奇点仓、3种存储单元以及枢纽-节点绑定系统。它填补了 GTNH 蒸汽阶段到电力阶段之间的玩法空白，让蒸汽成为一条可行且有深度的进阶路线，而非过渡阶段。
 
 > [!NOTE]
 > This is an unofficial mod. Please avoid discussing this mod in official GTNH forums.
@@ -21,7 +21,7 @@ A GregTech New Horizons expansion mod that **supplements the Steam Age and signi
 
 ***
 
-## Multiblock Machines / 多方块机器 (22)
+## Multiblock Machines / 多方块机器 (23)
 
 ### Storage Hub Machines / 存储枢纽机器 (2)
 
@@ -253,6 +253,27 @@ Reverse-injects steam energy underground to increase fluid reserves, solving lon
 | 扫描范围 Scan Range (T1/T2/T3) | 2×2 / 4×4 / 8×8 区块 chunks |
 
 ***
+
+### Mineral Logistics Cluster / 蒸汽动力矿物处理物流工程集群 (1)
+
+> 📷 图片待配：蒸汽动力矿物处理物流工程集群全景图 / Cluster overview screenshot
+
+**蒸汽动力矿物处理物流工程集群 / Mineral Logistics Cluster (MLC)**
+
+蒸汽驱动的矿石链式加工多方块工程集群：以物流模块为单元编排「粉碎→锻造→简易洗矿→洗矿→化洗→离心→热离→筛选→磁选→熔炼」加工链并自动吞吐矿石，全程无电力、仅靠蒸汽与润滑剂驱动，是蒸汽时代的大型矿石处理中枢。
+
+A steam-driven multiblock ore-processing cluster: logistics modules orchestrate a crush→hammer→wash→bath→centrifuge→sift→magnetize→smelt chain with automatic throughput — no EU at all, only steam and lubricant.
+
+**模块清单**：粉碎/锻造/简易洗矿/洗矿/化学浸浴/离心/热离心/筛分/磁选/熔炼十类工作单元 + 物流单元（链编排与并行取料），另可选装并行/速度/主产物/副产物/节汽五类增幅模块。
+
+**核心机制 / Core Mechanics**
+
+| 机制 Mechanic | 说明 Description |
+|---|---|
+| 加权蒸汽消耗 Weighted Steam | 总需求 = 固定项 8,000 L/s × 结构档位乘率 {1, 4, 16, 48} + 各可执行链加权蒸汽 Σ(C_i·T_i)/Σ(T_i)（增幅惩罚与节汽封顶 48% 仅作用于加权段）Fixed term by tier plus per-chain time-weighted steam; penalties & saver cap apply to the weighted part only |
+| 润滑两段 Two-Stage Lubricant | 集群恒定段 {20, 80, 500, 1000} L/s（按总控档位）+ 物流工作段 {20, 60, 300, 500} L/s（按工作中物流单元最高结构档位）Cluster constant stage + logistics working stage, both tier-scaled |
+| 蒸汽种类折算 Steam Grades | 六种蒸汽按能量密度折算（普通×1/过热÷2/超临界÷4/致密÷1000/致密过热÷2000/致密超临界÷4000），按集群档位门控，自动择优扣一种 Six grades converted by energy density, gated by cluster tier, best-grade auto-selection |
+| 结构档位升级 Unit Tier Up | 单元自身结构档每升 1 级：该链步耗时 ÷2、对应蒸汽消耗 ×4 Each unit structure tier halves that link's time and quadruples its steam |
 
 ### Enhanced Processing Machines / 强化加工机器 (9)
 

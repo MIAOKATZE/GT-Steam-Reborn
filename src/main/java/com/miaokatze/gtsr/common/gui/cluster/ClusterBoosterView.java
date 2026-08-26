@@ -31,8 +31,11 @@ import com.miaokatze.gtsr.common.machine.cluster.MTESteamMineralLogisticsCluster
  * 布局（页内绝对定位，582×258）：
  * <ul>
  * <li>六列表（y 10..150，滚动区 = {@link ScrollKeepingListWidget}）：模块/等级/特殊流体/
- * 特殊流体供给（<b>只读检测</b>，非 Toggle）/增益/状态；缺流行<b>红底</b>（#3A1E1E）+
- * 「缺 X，增益失效」；正常行深底 #26262B；</li>
+ * 特殊流体供给（<b>只读检测</b>，非 Toggle；S7 起附实际秒耗数值「N L · N L/s」）/增益/状态；
+ * 缺流行<b>红底</b>（#3A1E1E）+「缺 X，增益失效」；正常行深底 #26262B；</li>
+ * <li>S7 实耗口径（KEY_BO_COST，20t）：供给列秒耗 = 基础五表值 ×(1+Σ速度/并行联动加成) 的
+ * 服务端真值（×10 定点）；行悬浮 tooltip 显示代入实值的公式串（如
+ * 「基础 50 × (1 + 10%[速度 钛] + 5%[并行 青铜]) = 57.5 L/s」，客户端本地化拼装）。</li>
  * <li>空状态区分：无模块（空表提示+引导）/未关联（行 flags bit0）/未运行（集群停机提示行）/
  * 缺流体（行红底）；</li>
  * <li>2×3 汇总卡（y 154..216）：速度/并行/主产物/副产物/节汽≤48%（超限红字标注截断）/
@@ -41,9 +44,10 @@ import com.miaokatze.gtsr.common.machine.cluster.MTESteamMineralLogisticsCluster
  * </ul>
  *
  * <p>
- * 数据流：{@code KEY_BO_STRUCT}（结构字段：类型/tier/段/flags——结构 revision 界，变化重建行）与
- * {@code KEY_BO_LIVE}（tank 存量+可用性——20t 周期）分离；行内容随 STRUCT 重建，余量文字
- * IKey.dynamic 直读 LIVE 缓存。本页无 C2S 动作。
+ * 数据流：{@code KEY_BO_STRUCT}（结构字段：类型/tier/段/flags——结构 revision 界，变化重建行）、
+ * {@code KEY_BO_LIVE}（tank 存量+可用性——20t 周期）与 {@code KEY_BO_COST}（S7 实耗+联动加成
+ * 三元组——20t 周期）分离；行内容随 STRUCT 重建，余量与秒耗文字 IKey.dynamic 直读缓存。
+ * 本页无 C2S 动作。
  */
 public final class ClusterBoosterView {
 
@@ -205,16 +209,20 @@ public final class ClusterBoosterView {
                 .asWidget()
                 .width(COLS[2])
                 .scale(0.65f));
-        // 供给（只读检测）：余量 L + 可用/不足
+        // 供给（只读检测）：余量 L + S7 实际秒耗（联动加成后口径）；悬浮 tooltip 显示代入实值公式串
         row.child(IKey.dynamic(() -> {
             int[] now = liveRow(rowIndex);
-            String state = now[1] != 0 ? EnumChatFormatting.GREEN + tr("gtsr.cluster.gui.boost.supply.ok")
-                : EnumChatFormatting.RED + tr("gtsr.cluster.gui.boost.supply.short");
-            return state + EnumChatFormatting.GRAY + " " + NumberFormatUtil.formatNumber(now[0]) + " L";
+            String state = now[1] != 0 ? EnumChatFormatting.GREEN.toString() : EnumChatFormatting.RED.toString();
+            return state + NumberFormatUtil.formatNumber(
+                now[0]) + " L " + EnumChatFormatting.GRAY + "· " + rateText(costLpsX10(rowIndex)) + " L/s";
         })
             .asWidget()
             .width(COLS[3])
-            .scale(0.65f));
+            .scale(0.65f)
+            .tooltipBuilder(t -> {
+                String formula = costFormulaText(rowIndex);
+                if (!formula.isEmpty()) t.addLine(IKey.str(formula));
+            }));
         // 增益
         String gain = tier >= 0 && formed && connected ? formatGain(type, tier) : "--";
         row.child(
@@ -443,6 +451,87 @@ public final class ClusterBoosterView {
         } catch (NumberFormatException e) {
             return new int[] { 0, 0 };
         }
+    }
+
+    /**
+     * 解析 KEY_BO_COST 第 index 项（S7 实耗）：{@code lpsX10:base:pct:tier:type:pct:tier:type...}
+     * 变长字段整型数组；越界/畸形返回 null（调用方按无数据显示处理）。与 KEY_BO_STRUCT/LIVE
+     * 按下标一一对应。
+     */
+    private int[] costRow(int index) {
+        String encoded = ClusterGuiSync.strOf(sync, ClusterGuiSync.KEY_BO_COST, "");
+        if (encoded.isEmpty()) return null;
+        String[] entries = encoded.split(",", -1);
+        if (index < 0 || index >= entries.length) return null;
+        String[] fields = entries[index].split(":", -1);
+        if (fields.length < 2 || (fields.length - 2) % 3 != 0) return null;
+        try {
+            int[] out = new int[fields.length];
+            for (int i = 0; i < fields.length; i++) {
+                out[i] = Integer.parseInt(fields[i].trim());
+            }
+            return out;
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    /** 第 index 行实际秒耗 ×10 定点（无数据/畸形回 0）。 */
+    private int costLpsX10(int index) {
+        int[] cost = costRow(index);
+        return cost != null ? cost[0] : 0;
+    }
+
+    /** 秒耗文本：×10 定点 → 整数值省小数、非整数保留一位小数（如 575→"57.5"、400→"40"）。 */
+    private static String rateText(int lpsX10) {
+        if (lpsX10 % 10 == 0) return String.valueOf(lpsX10 / 10);
+        return String.format("%.1f", lpsX10 / 10.0D);
+    }
+
+    /**
+     * S7 公式串（tooltip，代入实值）：{@code 基础 50 × (1 + 10%[速度 钢] + 5%[并行 青铜]) = 57.5 L/s}。
+     * 施加方类型经三元组 typeOrdinal 本地化（速度/并行加成表同值，不可由 pct 反推）；无联动加成时
+     * 显示 {@code 基础 N × (1) = N L/s}；无实耗数据（未成型/越界）返回空串不显示 tooltip。
+     */
+    private String costFormulaText(int rowIndex) {
+        int[] cost = costRow(rowIndex);
+        if (cost == null || cost.length < 2 || cost[1] <= 0) return "";
+        StringBuilder sb = new StringBuilder();
+        sb.append(EnumChatFormatting.GRAY)
+            .append(tr("gtsr.cluster.gui.boost.cost.base"))
+            .append(' ')
+            .append(NumberFormatUtil.formatNumber(cost[1]))
+            .append(" × (1");
+        for (int i = 2; i + 2 < cost.length; i += 3) {
+            int pct = cost[i], tier = cost[i + 1], typeOrdinal = cost[i + 2];
+            sb.append(" + ")
+                .append(pct)
+                .append("%[")
+                .append(sourceLabel(typeOrdinal))
+                .append(' ')
+                .append(tierLabel(tier))
+                .append(']');
+        }
+        sb.append(") = ")
+            .append(rateText(cost[0]))
+            .append(" L/s");
+        return sb.toString();
+    }
+
+    /** 施加方类型短标签（SPEED/PARALLEL；越界回退并行）。 */
+    private static String sourceLabel(int typeOrdinal) {
+        if (typeOrdinal == ClusterParams.BoosterType.SPEED.ordinal()) {
+            return tr("gtsr.cluster.gui.boost.cost.src.speed");
+        }
+        return tr("gtsr.cluster.gui.boost.cost.src.parallel");
+    }
+
+    /** 施加方 tier 标签（复用集群层级 lang key；越界回 "--"）。 */
+    private static String tierLabel(int tier) {
+        if (tier < 0 || tier >= ClusterParams.TIER_COUNT) return "--";
+        return tr(
+            ClusterParams.ClusterTier.get(tier)
+                .getLangKey());
     }
 
     /** 解析 KEY_BO_SUM 八字段 CSV（畸形回退全 0 数组）。 */

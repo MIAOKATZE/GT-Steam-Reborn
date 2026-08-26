@@ -4,6 +4,7 @@ import static gregtech.api.enums.HatchElement.Energy;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 
 import java.util.List;
+import java.util.Set;
 
 import net.minecraft.item.ItemStack;
 
@@ -23,9 +24,14 @@ import gregtech.api.util.GTUtility;
  * <p>
  * 在 {@link MTEBasicProcessingUnit} 的能力闸门之上叠加「自持能源」语义：背面中心 (2,4,4) 一带
  * {@code DAAAD→DAPAD}，P=自身能源位（标准能源 hatch 添加器），checkMachine 校验
- * {@code mEnergyHatches >= 1}（无 P 不成型）；运行判据=自身 {@code drainEnergyInput} 本 tick
- * 可支付（总控不集中扣 EU）。EU 探测保持原样：真扣 1 EU 后立即返还（净零，仅记录项的已知副作用
- * 不动）。子类（加工类型/overlay/文案差异）经构造器注入，仅保留构造器与 newMetaEntity。
+ * {@code mEnergyHatches >= 1}（无 P 不成型）；运行判据=自身能源仓存量足额（总控不集中扣 EU）。
+ * EU 实扣（r6-S6，取代旧「真扣 1 EU 后返还」净零探测）：本环节按链步表实扣运行 EU/t——磁选
+ * {@code MAGNETIC_EU_PER_TICK × MAGNETIC_AMPERAGE}=32、热离
+ * {@code THERMOCENTRIFUGE_EU_PER_TICK × THERMOCENTRIFUGE_AMPERAGE}=96——在集群运行相位内每 tick
+ * 持续真扣；能源不足 → 环节闸门关闭（{@code isModuleEnabled()=false}，链路不可经其执行，防免费
+ * 运行），恢复供电自动恢复。r5 的「事件式结构重检」与「预热门控」不受影响：本类不改 checkMachine/
+ * mStartUpCheck 路径，运行相位判据含满热（预热期不扣不判）。子类（加工类型/overlay/文案差异）经
+ * 构造器注入，仅保留构造器与 newMetaEntity。
  */
 public abstract class MTEUnitSelfPoweredProcessingUnit extends MTEBasicProcessingUnit {
 
@@ -36,6 +42,13 @@ public abstract class MTEUnitSelfPoweredProcessingUnit extends MTEBasicProcessin
         IIconContainer overlayInactive, IIconContainer overlayActive, ChainLink... providedLinks) {
         super(aID, aName, aNameRegional, unitTypeKey, overlayInactive, overlayActive, providedLinks);
     }
+
+    /**
+     * 运行期每 tick 实扣 EU（r6-S6）：按构造期注入的链步查表——磁选
+     * {@code MAGNETIC_EU_PER_TICK × MAGNETIC_AMPERAGE}=32 EU/t、热离
+     * {@code THERMOCENTRIFUGE_EU_PER_TICK × THERMOCENTRIFUGE_AMPERAGE}=96 EU/t；无供电类链步为 0。
+     */
+    private long runEuPerTick = -1L;
 
     /** 克隆用构造器：多方块控制器仅需名称，声明式差异常量随类型一同透传。 */
     protected MTEUnitSelfPoweredProcessingUnit(String aName, String unitTypeKey, IIconContainer overlayInactive,
@@ -76,6 +89,127 @@ public abstract class MTEUnitSelfPoweredProcessingUnit extends MTEBasicProcessin
             .build();
     }
 
+    // ==================== 运行期 EU 真扣（r6-S6） ====================
+
+    /**
+     * 服务端每 tick 先行结算运行相位 EU 实扣，再交基类 setActive（{@code isUnitRunning()} 读到的是
+     * 本 tick 扣电后的最新存量闸门）；客户端仅透传基类（FX 注册在加工基类）。
+     */
+    @Override
+    public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
+        if (aBaseMetaTileEntity.isServerSide()) tryDrainRunEu();
+        super.onPostTick(aBaseMetaTileEntity, aTick);
+    }
+
+    /**
+     * 运行相位判定：自身成型 + 已入集群 + 集群开机 + 自身物理电源开 + 集群满热 + 链处理窗口激活
+     * + 本环节实际参与最近一次成功批（r6-S6 审查修正：空闲保温期/未参与批不扣电）。不含本环节
+     * 供电闸门本身，保证断电后恢复供电仍能被探测并自动复位。
+     */
+    private boolean isInPoweredRunPhase() {
+        IGregTechTileEntity base = getBaseMetaTileEntity();
+        if (base == null || !base.isServerSide()) return false;
+        return isUnitStructureFormed() && cluster != null
+            && cluster.isMachineEnabled()
+            && base.isAllowedToWork()
+            && cluster.isPreheatReady()
+            && cluster.isChainWindowActive()
+            && participatedInCurrentBatch();
+    }
+
+    /** 本环节是否参与最近一次成功批（r6-S8：EU 只为实际命中的链步扣，纯物流批/无关环节不扣）。 */
+    private boolean participatedInCurrentBatch() {
+        Set<ChainLink> batchLinks = cluster.getLastBatchLinks();
+        if (batchLinks == null || batchLinks.isEmpty()) return false;
+        for (ChainLink link : rawProvidedLinks()) {
+            if (batchLinks.contains(link)) return true;
+        }
+        return false;
+    }
+
+    /** @return 本环节运行 EU/t（懒推导一次；无供电类链步恒 0）。 */
+    private long runEuPerTickCost() {
+        if (runEuPerTick < 0L) runEuPerTick = resolveRunEuPerTick(rawProvidedLinks());
+        return runEuPerTick;
+    }
+
+    /** 链步 → EU/t 表：磁选 LV×1A、热离 LV×3A（合计口径取自 ClusterParams 安培常量）。 */
+    private static long resolveRunEuPerTick(Set<ChainLink> links) {
+        long total = 0L;
+        if (links == null) return 0L;
+        for (ChainLink link : links) {
+            switch (link) {
+                case MAGNETIC_SEPARATOR:
+                    total += (long) ClusterParams.MAGNETIC_EU_PER_TICK * ClusterParams.MAGNETIC_AMPERAGE;
+                    break;
+                case THERMOCENTRIFUGE:
+                    total += (long) ClusterParams.THERMOCENTRIFUGE_EU_PER_TICK
+                        * ClusterParams.THERMOCENTRIFUGE_AMPERAGE;
+                    break;
+                default:
+                    break;
+            }
+        }
+        return total;
+    }
+
+    /** @return 全部有效能源仓存量合计（EU）。 */
+    private long storedEuAcrossHatches() {
+        long stored = 0L;
+        for (MTEHatchEnergy hatch : mEnergyHatches) {
+            if (hatch != null && hatch.isValid()) stored += hatch.getBaseMetaTileEntity()
+                .getStoredEU();
+        }
+        return stored;
+    }
+
+    /**
+     * 运行相位内每 tick 真扣本环节 EU/t（原子口径：先跨仓合计探测足额、足额才统一实扣——不足则
+     * 全程零扣）。非运行相位不扣不判（保持现状），恢复供电后下一运行相位 tick 自动续扣。
+     */
+    private void tryDrainRunEu() {
+        long need = runEuPerTickCost();
+        if (need <= 0L) return;
+        if (!isInPoweredRunPhase()) return;
+        if (storedEuAcrossHatches() < need) return;
+        long remaining = need;
+        for (MTEHatchEnergy hatch : mEnergyHatches) {
+            if (remaining <= 0L) break;
+            if (hatch == null || !hatch.isValid()) continue;
+            IGregTechTileEntity hatchTe = hatch.getBaseMetaTileEntity();
+            long take = Math.min(hatchTe.getStoredEU(), remaining);
+            if (take > 0L) {
+                hatchTe.decreaseStoredEnergyUnits(take, false);
+                remaining -= take;
+            }
+        }
+    }
+
+    /**
+     * 能源闸门：本环节运行 EU/t 能否由自身能源仓存量支付（只读探测，零副作用；实扣在
+     * {@link #tryDrainRunEu} 运行相位逐 tick 进行）。全部能源仓存量不足时返回 false——
+     * {@code isModuleEnabled()} 关闭使链路不可经其执行（防免费运行），补电后自动恢复。
+     */
+    private boolean canPayRunEnergy() {
+        long need = runEuPerTickCost();
+        return need <= 0L || storedEuAcrossHatches() >= need;
+    }
+
+    /**
+     * 通电闸门：在基类「已成型 + 已入集群」之上追加自身能源可支付——断电即链路不可用
+     * （getProvidedLinks 关闭），EU 由本单元自身能源位结算，总控不代扣。
+     */
+    @Override
+    public boolean isModuleEnabled() {
+        return super.isModuleEnabled() && canPayRunEnergy();
+    }
+
+    /** 运行信号：基类条件（成型 && 连接 && tier 有效）+ 自身能源可支付（只读存量判据）。 */
+    @Override
+    public boolean isUnitRunning() {
+        return super.isUnitRunning() && canPayRunEnergy();
+    }
+
     /**
      * 结构校验：基类 tier 校验之上要求自身能源位至少一个能源 hatch（无 P 不成型）；成型成功末尾按
      * unitStructureTier 刷新能源仓贴图（切片 2 统一入口）。
@@ -90,37 +224,6 @@ public abstract class MTEUnitSelfPoweredProcessingUnit extends MTEBasicProcessin
         if (errors.isEmpty()) {
             refreshHatchTextures(mEnergyHatches);
         }
-    }
-
-    /**
-     * 能源探测：本 tick 自身能源仓能否支付 1 EU——{@code drainEnergyInput} 真扣 1 EU 后立即向首个
-     * 有效能源仓返还（净零，探测不消耗）；全部能源仓枯竭时返回 false。
-     */
-    private boolean canPayEnergyProbe() {
-        if (!drainEnergyInput(1L)) return false;
-        for (MTEHatchEnergy hatch : mEnergyHatches) {
-            if (hatch.isValid()) {
-                hatch.getBaseMetaTileEntity()
-                    .increaseStoredEnergyUnits(1L, true);
-                break;
-            }
-        }
-        return true;
-    }
-
-    /**
-     * 通电闸门：在基类「已成型 + 已入集群」之上追加自身能源可支付——断电即链路不可用
-     * （getProvidedLinks 关闭），EU 由本单元自身能源位结算，总控不代扣。
-     */
-    @Override
-    public boolean isModuleEnabled() {
-        return super.isModuleEnabled() && canPayEnergyProbe();
-    }
-
-    /** 运行信号：基类条件（成型 && 连接 && tier 有效）+ 自身能源可支付（探测性扣返）。 */
-    @Override
-    public boolean isUnitRunning() {
-        return super.isUnitRunning() && canPayEnergyProbe();
     }
 
     /** 状态细化：已入集群但断电（能源不可支付）→ NO_POWER_OR_INVALID；其余沿基类判定。 */

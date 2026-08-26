@@ -8,18 +8,13 @@ import static gregtech.api.enums.HatchElement.OutputHatch;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 
 import java.util.ArrayList;
-import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Set;
 
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraftforge.common.util.ForgeDirection;
-import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
-import net.minecraftforge.fluids.FluidTank;
-import net.minecraftforge.fluids.FluidTankInfo;
 
 import com.gtnewhorizon.structurelib.structure.IStructureElement;
 import com.gtnewhorizon.structurelib.structure.StructureDefinition;
@@ -32,12 +27,12 @@ import gregtech.api.enums.Textures;
 import gregtech.api.interfaces.IIconContainer;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
-import gregtech.api.metatileentity.implementations.MTEHatch;
 import gregtech.api.metatileentity.implementations.MTEHatchInput;
 import gregtech.api.metatileentity.implementations.MTEHatchInputBus;
 import gregtech.api.metatileentity.implementations.MTEHatchOutput;
 import gregtech.api.metatileentity.implementations.MTEHatchOutputBus;
 import gregtech.api.structure.error.StructureError;
+import gregtech.api.util.GTModHandler;
 import gregtech.api.util.GTUtility;
 import gregtech.common.tileentities.machines.MTEHatchInputBusME;
 
@@ -58,11 +53,18 @@ import gregtech.common.tileentities.machines.MTEHatchInputBusME;
  * 而非可工作。"仅处理矿石才工作"（决策 5）：运行态贴图/状态由处理窗口闩驱动——执行器成功批
  * 提交后调 {@link #onBatchProcessed(int)} 开窗 {@link #isUnitRunning()} 才为 true。
  * <p>
- * <b>双 tank 语义（plan 3.4.5 收口）</b>：基类 mFluid 主 tank 全面弃用（get/set Fillable/Drainable 钉
- * null、无并行写入旁路）；自持水 tank（普通水+蒸馏水均收，蒸馏优先扣液路径由 E4 落）与化浴 tank
- * （仅含汞/过硫酸钠，GT5U 化学洗配方流体）两个独立 {@link FluidTank}。外部填充按流体类型严格路由，
- * 非法流体一律拒收；管道/ME 经 {@link #getTankInfo} 可见双 tank。自身输入仓每 20t 节流自动补液
- * （{@link #refillTanksFromHatches}，探测/实扣走 {@link GTSRHatchFluidAccess} 统一访问层）。
+ * <b>零流体缓存（SR-Cluster-r6 S2 去缓存收口）</b>：旧自持水/化浴双 tank 与每 20t 自补液路径已
+ * 删除，基类 mFluid 主 tank 维持零内部容量收口（读写恒 null、fill/drain 全拒、对外零 tank 暴露）；
+ * 洗矿水/化工浴液在批执行时由 {@link ClusterChainExecutor} 经 {@link GTSRHatchFluidAccess}
+ * （hasEnoughAcross/depleteFluidAcross 口径）直接对本模块输入仓结算，本类仅保留状态显示用粗检
+ * {@link #hasBatchFluids}。管道/ME 对本单元不再有可填充面。
+ * <p>
+ * <b>配方时间与虚拟空配方（SR-Cluster-r6 S3）</b>：成功批提交后本批"配方时间"（tick，见
+ * {@link ChainLink#getBaseTicks()}/ExecutionPlan 时间口径，经执行器写入 {@link #chainCooldownTicks}）
+ * 驱动 GT 多方块真实进度——{@link #onBatchProcessed(int)} 置 mMaxProgresstime/mProgresstime 起一炉
+ * 虚拟空配方（mEUt=0 无能耗，{@code checkProcessing} 恒 NO_RECIPE 不受影响），基类 runMachine 逐 t
+ * 计数、整批时长内 {@link #isUnitRunning()} 保持 true（active 贯穿），批结束归零回 STANDBY；
+ * 处理窗口闩保留 max(配方时间, {@value #MIN_PROCESSING_WINDOW_TICKS}t) 下限（r5 工作间隔语义）。
  * <p>
  * <b>交互</b>：右击不再跳转集群终端链编辑页，也不再有独立 MUI2 状态页——空手右击打开
  * GT 原生 GUI（{@link MTEBasicLogisticsUnitNativeGui}，物流富词条，基类 getGui 覆写）；
@@ -70,8 +72,8 @@ import gregtech.common.tileentities.machines.MTEHatchInputBusME;
  * 正面叠层经基类 E2a 钩子 {@link #unitOverlayInactive()}/{@link #unitOverlayActive()}（拆解机
  * 贴图四态，Textures.BlockIcons T:1306-1309），底材随 unitStructureTier 四档联动（3.5.2）。
  * <p>
- * 链与双 tank 的 NBT 自落（{@link #saveNBTData}）：链存 "clusterChain"，双 tank 存
- * "clusterWaterTank"/"clusterChemTank"。
+ * 链 NBT 自落（{@link #saveNBTData}）：链存 "clusterChain"；旧档 "clusterWaterTank"/
+ * "clusterChemTank" 键静默容忍忽略（不读不写，不迁移不崩溃）。
  * 类型名 key：gtsr.gui.cluster.unit_type.logistics。
  */
 public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsUnit> {
@@ -90,12 +92,6 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
 
     /** 本模块的有序链（永非 null；setChain(null) 亦只置空链）。 */
     private LogisticsChain chain = new LogisticsChain();
-
-    /** 水 tank：普通水+蒸馏水（洗矿/简易洗批流体；蒸馏优先扣液路径由 E4 落）。 */
-    private final FluidTank waterTank = new FluidTank(ClusterParams.LOGISTICS_TANK_CAPACITY_L);
-
-    /** 化浴 tank：仅含汞/过硫酸钠（GT5U 化学洗 CHEM_BATH 配方介质）。 */
-    private final FluidTank chemBathTank = new FluidTank(ClusterParams.LOGISTICS_TANK_CAPACITY_L);
 
     /**
      * 处理窗口闩（SR-Cluster-r5 决策 5，瞬态无 NBT）：最近一次成功批提交后的"工作中"显示窗，
@@ -264,7 +260,10 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
         return mOutputBusses;
     }
 
-    /** 本模块自身输入仓/输出仓（live 视图；各 1..2 枚；输入仓供双 tank 补液，输出仓为结构要求）。 */
+    /**
+     * 本模块自身输入仓/输出仓（live 视图；各 1..2 枚；输入仓为洗矿水/化浴液批流体直结结算面
+     * （SR-Cluster-r6 S2），输出仓为结构要求）。
+     */
     public List<MTEHatchInput> getLogisticsInputHatches() {
         return mInputHatches;
     }
@@ -294,16 +293,25 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
     }
 
     /**
-     * 成功批提交回调（SR-Cluster-r5 决策 5，ClusterChainExecutor 步骤 10 调用）：开处理窗口——
-     * 窗口 = 当前计时器 + max(批冷却, {@link #MIN_PROCESSING_WINDOW_TICKS})；窗口内
-     * {@link #isUnitRunning()} 为 true（正面运行叠层联动）、{@link #getUnitStatus()} 显示 WORKING。
-     * 瞬态无 NBT：重载后窗口归零（仅显示语义）。batch ≤ 0 忽略。
+     * 成功批提交回调（SR-Cluster-r5 决策 5，ClusterChainExecutor 步骤 10 调用；调用前执行器须已
+     * {@link #setChainCooldownTicks(long)} 写入本批配方时间）：开处理窗口并起一炉虚拟空配方——
+     * <ul>
+     * <li>mMaxProgresstime = 本批配方时间（tick）、mProgresstime = 0：GT 基类 runMachine 以 mEUt=0
+     * 逐 t 推进真实多方块进度条，完成时自行归零（虚拟空配方，不产物品/流体）；</li>
+     * <li>窗口 = 当前计时器 + max(配方时间, {@link #MIN_PROCESSING_WINDOW_TICKS})：窗口内
+     * {@link #isUnitRunning()} 为 true（正面运行叠层与 active 贯穿整批时长）、
+     * {@link #getUnitStatus()} 显示 WORKING，批结束回 STANDBY。</li>
+     * </ul>
+     * 瞬态无 NBT：重载后窗口与进度归零（仅显示/节拍语义）。batch ≤ 0 忽略。
      */
     public void onBatchProcessed(int batch) {
         if (batch <= 0) return;
         IGregTechTileEntity base = getBaseMetaTileEntity();
         long now = base == null ? 0L : base.getTimer();
-        processingDisplayUntilTick = now + Math.max(getChainCooldownTicks(), MIN_PROCESSING_WINDOW_TICKS);
+        long recipeTicks = Math.max(0L, chainCooldownTicks);
+        mMaxProgresstime = (int) Math.min(Integer.MAX_VALUE, recipeTicks);
+        mProgresstime = 0;
+        processingDisplayUntilTick = now + Math.max(recipeTicks, MIN_PROCESSING_WINDOW_TICKS);
     }
 
     /** 处理窗口判据：当前计时器仍在最近一次成功批的显示窗口内。 */
@@ -364,10 +372,10 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
     @Override
     public ClusterUnitStatus getUnitStatus() {
         if (!isUnitStructureFormed()) return ClusterUnitStatus.NO_POWER_OR_INVALID;
-        if (!isPowerAllowed()) return ClusterUnitStatus.NO_POWER_OR_INVALID;
         MTESteamMineralLogisticsCluster cluster = getCluster();
+        if (cluster != null && !cluster.isMachineEnabled()) return ClusterUnitStatus.SHUT_DOWN;
+        if (!isPowerAllowed()) return ClusterUnitStatus.NO_POWER_OR_INVALID;
         if (cluster == null) return ClusterUnitStatus.STANDBY;
-        if (!cluster.isMachineEnabled()) return ClusterUnitStatus.STANDBY;
         if (chain.isEmpty()) return ClusterUnitStatus.STANDBY;
         if (!chain.isExecutable(cluster.getTopology())) return ClusterUnitStatus.STANDBY;
         boolean needWater = chain.countOf(ChainLink.ORE_WASH) > 0;
@@ -380,200 +388,44 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
     }
 
     // ------------------------------------------------------------------
-    // 双 tank 语义（plan 3.4.5：基类 mFluid 全收口）
+    // 批流体直结（SR-Cluster-r6 S2：零自持缓存）
     // ------------------------------------------------------------------
 
-    /** 判水系（waterTank 接受面）：普通水或蒸馏水同名变体（GT5U Materials 无 DistilledWater 常量，走名称匹配）。 */
-    private static boolean isWaterLike(FluidStack aFluid) {
-        if (aFluid == null || aFluid.getFluid() == null) return false;
-        Fluid fluid = aFluid.getFluid();
-        if (fluid == FluidRegistry.WATER) return true;
-        String name = fluid.getName();
-        return "water".equalsIgnoreCase(name) || "distilledwater".equalsIgnoreCase(name)
-            || "distilled_water".equalsIgnoreCase(name);
-    }
-
-    /** 判化浴液（chemBathTank 唯一接受面）：含汞/过硫酸钠（GT5U 化学洗配方流体，Materials.mFluid 直引+名称兜底）。 */
-    private static boolean isChemBathFluid(FluidStack aFluid) {
-        if (aFluid == null || aFluid.getFluid() == null) return false;
-        Fluid fluid = aFluid.getFluid();
-        if (fluid == Materials.Mercury.mFluid || fluid == Materials.SodiumPersulfate.mFluid) return true;
-        String name = fluid.getName();
-        return "mercury".equalsIgnoreCase(name) || "sodiumpersulfate".equalsIgnoreCase(name)
-            || "sodium_persulfate".equalsIgnoreCase(name);
-    }
-
-    /** 水 tank 补液候选（蒸馏水优先，其次普通水；null 剔重）。 */
-    private static List<Fluid> waterCandidates() {
-        Set<Fluid> fluids = new LinkedHashSet<>();
-        if (FluidRegistry.getFluid("distilledwater") != null) fluids.add(FluidRegistry.getFluid("distilledwater"));
-        if (FluidRegistry.getFluid("distilled_water") != null) fluids.add(FluidRegistry.getFluid("distilled_water"));
-        if (FluidRegistry.WATER != null) fluids.add(FluidRegistry.WATER);
-        return new ArrayList<>(fluids);
-    }
-
-    /** 化浴 tank 补液候选（含汞、过硫酸钠；null 剔重）。 */
-    private static List<Fluid> chemBathCandidates() {
-        Set<Fluid> fluids = new LinkedHashSet<>();
-        if (Materials.Mercury.mFluid != null) fluids.add(Materials.Mercury.mFluid);
-        if (FluidRegistry.getFluid("mercury") != null) fluids.add(FluidRegistry.getFluid("mercury"));
-        if (Materials.SodiumPersulfate.mFluid != null) fluids.add(Materials.SodiumPersulfate.mFluid);
-        if (FluidRegistry.getFluid("sodium_persulfate") != null)
-            fluids.add(FluidRegistry.getFluid("sodium_persulfate"));
-        if (FluidRegistry.getFluid("sodiumpersulfate") != null) fluids.add(FluidRegistry.getFluid("sodiumpersulfate"));
-        return new ArrayList<>(fluids);
-    }
-
-    public FluidTank getWaterTank() {
-        return waterTank;
-    }
-
-    public FluidTank getChemBathTank() {
-        return chemBathTank;
-    }
-
     /**
-     * 填充统一分发点（语义收紧）：水系→waterTank，化浴液→chemBathTank，其余流体一律拒收
-     * （返回 0）；成功写入时标记脏块。覆盖基类 mFluid 路径，无旁路。
-     */
-    @Override
-    public int fill(FluidStack aFluid, boolean doFill) {
-        if (aFluid == null || aFluid.getFluid() == null || aFluid.amount <= 0 || !canTankBeFilled()) return 0;
-        FluidTank target = isWaterLike(aFluid) ? waterTank : isChemBathFluid(aFluid) ? chemBathTank : null;
-        if (target == null) return 0;
-        int filled = target.fill(aFluid, doFill);
-        if (filled > 0 && doFill) markDirty();
-        return filled;
-    }
-
-    /** 无类型放出：化浴 tank 优先，空则放水 tank（覆盖基类 mFluid 语义）。 */
-    @Override
-    public FluidStack drain(int maxDrain, boolean doDrain) {
-        if (maxDrain <= 0 || !canTankBeEmptied()) return null;
-        FluidStack drained = chemBathTank.getFluid() != null ? chemBathTank.drain(maxDrain, doDrain) : null;
-        if (drained == null) drained = waterTank.drain(maxDrain, doDrain);
-        if (drained != null && doDrain) markDirty();
-        return drained;
-    }
-
-    /** 类型敏感放出（ME/CD 管道按流体请求）：匹配哪个 tank 就从哪个放，都不匹配返回 null。 */
-    @Override
-    public FluidStack drain(ForgeDirection side, FluidStack fluidStack, int amount, boolean doDrain) {
-        if (fluidStack == null || amount <= 0) return null;
-        FluidStack water = waterTank.getFluid();
-        if (water != null && water.isFluidEqual(fluidStack)) {
-            FluidStack drained = waterTank.drain(amount, doDrain);
-            if (drained != null && doDrain) markDirty();
-            return drained;
-        }
-        FluidStack chemBath = chemBathTank.getFluid();
-        if (chemBath != null && chemBath.isFluidEqual(fluidStack)) {
-            FluidStack drained = chemBathTank.drain(amount, doDrain);
-            if (drained != null && doDrain) markDirty();
-            return drained;
-        }
-        return null;
-    }
-
-    /** 基类 mFluid 主 tank 全收口（plan 3.4.5）：读写钉 null，一切存储走双 tank，无并行旁路。 */
-    @Override
-    public FluidStack getFillableStack() {
-        return null;
-    }
-
-    @Override
-    public FluidStack setFillableStack(FluidStack aFluid) {
-        return null;
-    }
-
-    @Override
-    public FluidStack getDrainableStack() {
-        return null;
-    }
-
-    @Override
-    public FluidStack setDrainableStack(FluidStack aFluid) {
-        return null;
-    }
-
-    /** 兼容读数：化浴优先的非空内容视图。 */
-    @Override
-    public FluidStack getFluid() {
-        if (chemBathTank.getFluid() != null) return chemBathTank.getFluid();
-        return waterTank.getFluid();
-    }
-
-    /** 兼容读数：双 tank 总存量。 */
-    @Override
-    public int getFluidAmount() {
-        return waterTank.getFluidAmount() + chemBathTank.getFluidAmount();
-    }
-
-    /** 填充门（防御纵深）：仅水系与化浴液可入（fill 已路由，此处双保险）。 */
-    @Override
-    public boolean isFluidInputAllowed(FluidStack aFluid) {
-        return isWaterLike(aFluid) || isChemBathFluid(aFluid);
-    }
-
-    /** 单 tank 名义容量（管道/ME 显示用；实际双 tank 见 getTankInfo）。 */
-    @Override
-    public int getCapacity() {
-        return ClusterParams.LOGISTICS_TANK_CAPACITY_L;
-    }
-
-    /** 双 tank 信息暴露：管道/ME 按侧可见两个独立 tank。 */
-    @Override
-    public FluidTankInfo[] getTankInfo(ForgeDirection side) {
-        return new FluidTankInfo[] { waterTank.getInfo(), chemBathTank.getInfo() };
-    }
-
-    /**
-     * 批流体判定：链含洗矿（needWater）/化洗（needChemBath）时，对应 tank 存量须达到每批用量
+     * 批流体判定（状态显示用粗检，{@link #getUnitStatus()} FLUID_MISSING 判据）：链含洗矿
+     * （needWater）/化洗（needChemBath）时，对应流体须能在本模块输入仓列表合计探得每批用量
      * （{@link ClusterParams#WASH_WATER_PER_BATCH_L} / {@link ClusterParams#CHEM_BATH_FLUID_PER_BATCH_L}，
-     * 均 1000L）；两者都不需要时恒 true。
+     * 均 1000L）；两者都不需要时恒 true。探测经 {@link GTSRHatchFluidAccess#hasEnoughAcross} 统一
+     * 访问层（普通仓/ME 仓同口径，零自持缓存）：水系蒸馏水或普通水任一足额即可，化浴液含汞或
+     * 过硫酸钠任一足额即可；精确的逐物品需求预检与实扣在 {@link ClusterChainExecutor} 批事务内对
+     * 同一仓列表完成。
      */
     public boolean hasBatchFluids(boolean needWater, boolean needChemBath) {
         if (!isModuleEnabled()) return false;
-        if (needWater && waterTank.getFluidAmount() < ClusterParams.WASH_WATER_PER_BATCH_L) return false;
-        return !needChemBath || chemBathTank.getFluidAmount() >= ClusterParams.CHEM_BATH_FLUID_PER_BATCH_L;
+        List<MTEHatchInput> hatches = getLogisticsInputHatches();
+        if (needWater && !hasWaterAcross(hatches, ClusterParams.WASH_WATER_PER_BATCH_L)) return false;
+        return !needChemBath || hasChemBathAcross(hatches, ClusterParams.CHEM_BATH_FLUID_PER_BATCH_L);
     }
 
     /**
-     * 从自身输入仓向双 tank 自动补液（契约方法，onPostTick 每 20t 节流调用；也可由 E4 显式调用）：
-     * 逐仓探测候选流体（蒸馏水优先→普通水入 waterTank；含汞/过硫酸钠入 chemBathTank），
-     * 按目标 tank 剩余容量为上限，探测→实扣两段式（GTSRHatchFluidAccess 口径，3 参 UNKNOWN
-     * 实扣兼容普通仓/ME 仓）。
+     * 水系跨仓足额判定：蒸馏水优先探测，不足/不可用再探普通水，任一足额即 true
+     * （蒸馏水口径同 {@code GTModHandler.getDistilledWater}，与执行器 isDistilledFluid 一致）。
      */
-    public void refillTanksFromHatches() {
-        if (!isUnitStructureFormed()) return;
-        for (MTEHatch hatch : GTUtility.validMTEList(mInputHatches)) {
-            if (hatch == null) continue;
-            refillFromHatch(hatch, waterCandidates(), waterTank);
-            refillFromHatch(hatch, chemBathCandidates(), chemBathTank);
-        }
+    private static boolean hasWaterAcross(List<MTEHatchInput> hatches, int amountMb) {
+        FluidStack distilled = GTModHandler.getDistilledWater(amountMb);
+        if (distilled != null && distilled.getFluid() != null
+            && GTSRHatchFluidAccess.hasEnoughAcross(hatches, distilled)) return true;
+        return FluidRegistry.WATER != null
+            && GTSRHatchFluidAccess.hasEnoughAcross(hatches, new FluidStack(FluidRegistry.WATER, amountMb));
     }
 
-    /** 单仓补液：候选序探测→按 tank 剩余容量实扣→注入 tank；全失败静默返回。 */
-    private static void refillFromHatch(MTEHatch hatch, List<Fluid> candidates, FluidTank tank) {
-        int free = tank.getCapacity() - tank.getFluidAmount();
-        if (free <= 0) return;
-        for (Fluid fluid : candidates) {
-            FluidStack probed = GTSRHatchFluidAccess.probeFluidAmount(hatch, fluid, free);
-            if (probed == null || probed.amount <= 0) continue;
-            FluidStack drained = hatch.drain(ForgeDirection.UNKNOWN, new FluidStack(fluid, probed.amount), true);
-            if (drained == null || drained.amount <= 0) continue;
-            tank.fill(drained, true);
-            return;
-        }
-    }
-
-    /** 每 20t 节流补液（服务端；结构未成型时 refill 内部自短路）。 */
-    @Override
-    public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTimer) {
-        super.onPostTick(aBaseMetaTileEntity, aTimer);
-        if (aBaseMetaTileEntity != null && aBaseMetaTileEntity.isServerSide() && aTimer % 20 == 0) {
-            refillTanksFromHatches();
-        }
+    /** 化浴液跨仓足额判定：含汞或过硫酸钠任一足额即 true（GT5U 化学洗配方介质两口径）。 */
+    private static boolean hasChemBathAcross(List<MTEHatchInput> hatches, int amountMb) {
+        if (Materials.Mercury.mFluid != null
+            && GTSRHatchFluidAccess.hasEnoughAcross(hatches, new FluidStack(Materials.Mercury.mFluid, amountMb)))
+            return true;
+        return Materials.SodiumPersulfate.mFluid != null && GTSRHatchFluidAccess
+            .hasEnoughAcross(hatches, new FluidStack(Materials.SodiumPersulfate.mFluid, amountMb));
     }
 
     // ------------------------------------------------------------------
@@ -602,7 +454,7 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
 
     /**
      * GT 原生 GUI（终验反馈：物流不使用独立 MUI2 UI）：覆写基类共享 GUI 为物流富词条子类
-     * （段/垫、链摘要、批冷却、双 tank、物理电源）。空手右击经 GT 基类默认路径打开本 GUI
+     * （段/垫、链摘要、批配方时间、物理电源）。空手右击经 GT 基类默认路径打开本 GUI
      * （MTECrustMatterAggregator 同款语义），MUI2 状态页跳转已删除。
      */
     @Override
@@ -631,9 +483,9 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
     // ------------------------------------------------------------------
 
     /**
-     * 链/双 tank 持久化：链存 "clusterChain" int 数组（ChainLink.ordinal，空链空数组）；
-     * 双 tank 存 "clusterWaterTank"/"clusterChemTank"。处理窗口闩为瞬态不落 NBT。super 保留
-     * 基类 mFluid 语义（本类恒 null，不落 tag，无并行写入旁路）。
+     * 链持久化：链存 "clusterChain" int 数组（ChainLink.ordinal，空链空数组）。批流体无自持缓存
+     * 不落 NBT（SR-Cluster-r6 S2）；旧档 "clusterWaterTank"/"clusterChemTank" 键在
+     * {@link #loadNBTData} 静默容忍忽略。处理窗口闩与虚拟空配方进度均为瞬态不落 NBT。
      */
     @Override
     public void saveNBTData(NBTTagCompound aNBT) {
@@ -645,13 +497,12 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
                 .ordinal();
         }
         aNBT.setIntArray("clusterChain", ordinals);
-        aNBT.setTag("clusterWaterTank", waterTank.writeToNBT(new NBTTagCompound()));
-        aNBT.setTag("clusterChemTank", chemBathTank.writeToNBT(new NBTTagCompound()));
     }
 
     /**
-     * 回读对称：按 ordinal 反解链整链重建（越界 ordinal 静默丢弃）；双 tank 经
-     * {@link FluidTank#readFromNBT} 恢复。tag 缺失天然回退空链/空 tank，不崩。
+     * 回读对称：按 ordinal 反解链整链重建（越界 ordinal 静默丢弃）。旧档 tank 键
+     * （"clusterWaterTank"/"clusterChemTank"）不再读取——缺失/残留均静默忽略，不迁移不崩溃；
+     * 虚拟空配方进度归零（批进度瞬态，重载后从零开始，杜绝不可见幽灵炉）。
      */
     @Override
     public void loadNBTData(NBTTagCompound aNBT) {
@@ -664,27 +515,28 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
         }
         rebuilt.setLinks(parsed);
         chain = rebuilt;
-        waterTank.readFromNBT(aNBT.getCompoundTag("clusterWaterTank"));
-        chemBathTank.readFromNBT(aNBT.getCompoundTag("clusterChemTank"));
+        mProgresstime = 0;
+        mMaxProgresstime = 0;
     }
 
     // ------------------------------------------------------------------
-    // 批冷却（ClusterChainExecutor 节拍）
+    // 批配方时间（SR-Cluster-r6 S3：ClusterChainExecutor 写入，主控每 20t 节拍递减）
     // ------------------------------------------------------------------
 
     /**
-     * 批处理冷却剩余 tick：每批执行后由 ClusterChainExecutor 置为 max(20, 本批耗时秒×20)，
-     * 总控每 20t 统一 -20，≤0 且全部门控通过才可再执行一批。不持久化——重载/重摆后从零
-     * 开始（冷却只是节拍器，非玩家资产）。
+     * 本批配方时间剩余 tick：每批执行后由 ClusterChainExecutor 置为本批"配方时间"（tick，
+     * ExecutionPlan.itemTimeSec × 20 向上取整口径），总控每 20t 统一 -20、仍 &gt;0 的单元本秒跳过；
+     * 该值同时是 {@link #onBatchProcessed(int)} 虚拟空配方的总时长与处理窗口基准。不持久化——
+     * 重载/重摆后从零开始（节拍器语义，非玩家资产）。
      */
     private long chainCooldownTicks;
 
-    /** @return 批处理冷却剩余 tick（0 = 可立即执行下一批）。 */
+    /** @return 本批配方时间剩余 tick（0 = 可立即执行下一批）。 */
     public long getChainCooldownTicks() {
         return chainCooldownTicks;
     }
 
-    /** 设置批处理冷却（ClusterChainExecutor 批执行后写入；不持久化，重载后从零开始）。 */
+    /** 设置本批配方时间（ClusterChainExecutor 批执行后写入；不持久化，重载后从零开始）。 */
     public void setChainCooldownTicks(long ticks) {
         this.chainCooldownTicks = ticks;
     }

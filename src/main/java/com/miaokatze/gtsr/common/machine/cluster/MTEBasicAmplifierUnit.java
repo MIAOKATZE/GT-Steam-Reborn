@@ -14,6 +14,8 @@ import net.minecraftforge.fluids.FluidStack;
 import com.gtnewhorizon.structurelib.structure.StructureDefinition;
 import com.miaokatze.gtsr.api.compat.GTSRHatchFluidAccess;
 
+import bartworks.system.material.Werkstoff;
+import bartworks.system.material.WerkstoffLoader;
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Materials;
 import gregtech.api.interfaces.IIconContainer;
@@ -39,8 +41,9 @@ import gregtech.api.util.GTUtility;
  * <ul>
  * <li>PARALLEL（并行增幅）→ 硝酸 {@code Materials.NitricAcid.getFluid(1).getFluid()}
  * <li>SPEED（速度增幅）→ 盐酸 {@code Materials.HydrochloricAcid.getFluid(1).getFluid()}
- * <li>PRIMARY_OUTPUT（主产物增幅）→ 氨气（气态）{@code Materials.Ammonia.getGas(1).getFluid()}
- * <li>SECONDARY_OUTPUT（副产物增幅）→ 硫酸 {@code Materials.SulfuricAcid.getFluid(1).getFluid()}
+ * <li>PRIMARY_OUTPUT（主产物增幅）→ 硫酸 {@code Materials.SulfuricAcid.getFluid(1).getFluid()}
+ * <li>SECONDARY_OUTPUT（副产物增幅）→ 氯化铵（BW Werkstoff）
+ * {@code WerkstoffLoader.AmmoniumChloride.getFluidOrGas(1)}
  * <li>STEAM_SAVER（蒸汽效率增幅）→ 冷却液 {@code FluidRegistry.getFluid(ClusterParams.BOOSTER_COOLANT_FLUID)}，
  * 注册缺失时回退 {@code Materials.SuperCoolant}；仍解析失败则该增幅禁用（isFluidAvailable 恒 false，不崩）
  * </ul>
@@ -155,14 +158,60 @@ public abstract class MTEBasicAmplifierUnit extends MTEClusterUnitBase<MTEBasicA
     public abstract IMetaTileEntity newMetaEntity(IGregTechTileEntity aTileEntity);
 
     /**
-     * E4 结算冻结接口：本模块每秒增幅液消耗（L/s），经
-     * {@code ClusterParams.AMPLIFIER_FLUID_PER_SEC[单元已验证结构 tier]} 取值
-     * （T1/T2/T3/T4 = 4/8/12/16 L/s，五类增幅共用；tier 无效——未成型/越界——返回 0）。
+     * E4/S7 结算冻结接口：本模块每秒增幅液<b>实际</b>消耗（L/s，联动加成后向上取整）——
+     * {@link #amplifierFluidPerSecExact()} 取整口径；tier 无效（未成型/越界）返回 0。
+     * 预检（{@code BoosterState.aggregate} 支付判定）与实扣（主控 {@code tryConsumeAmplifierFluid}）
+     * 统一走本值，保证「预检 = 实扣」同一口径。
      */
     public int amplifierFluidPerSec() {
+        double exact = amplifierFluidPerSecExact();
+        return exact <= 0 ? 0 : (int) Math.ceil(exact - 1e-9);
+    }
+
+    /**
+     * S7 联动加成后的实际每秒消耗精确值（L/s，可为小数，显示与公式串共用）：
+     *
+     * <pre>
+     * 实耗 = amplifierFluidLps(type, 单元已验证结构 tier) × (1 + Σ 施加方 BOOSTER_SURCHARGE_PCT[tier] / 100)
+     * </pre>
+     *
+     * 加成明细见 {@link #amplifierSurchargeSources()}；无施加方时退化为基础表值。
+     */
+    public double amplifierFluidPerSecExact() {
         int tier = getUnitStructureTier();
         if (tier < 0 || tier >= ClusterParams.TIER_COUNT) return 0;
-        return ClusterParams.AMPLIFIER_FLUID_PER_SEC[tier];
+        double base = ClusterParams.amplifierFluidLps(boosterType, tier);
+        int pctSum = 0;
+        for (int[] source : amplifierSurchargeSources()) {
+            pctSum += source[0];
+        }
+        return base * (1D + pctSum / 100D);
+    }
+
+    /**
+     * S7 联动加成明细：每个元素为 {@code [施加方 pct%, 施加方结构 tier, 施加方类型 ordinal]}。
+     * 施加方 = 集群内
+     * 所有<b>其他</b>速度/并行型增幅模块（不含自身、不含加工/物流模块；速度↔并行互相影响），
+     * 按施加方自身结构 tier 查 {@link ClusterParams#BOOSTER_SURCHARGE_PCT} 得 +5%/10%/30%/40%，
+     * 加算叠加。施加方资格与 {@code BoosterState} 双重豁免同口径——已接入集群 && 自身成型 &&
+     * 连接 tier 有效 && 锁定流体可用（缺流体模块不施压他人）；未接入集群返回空列表。
+     * 类型 ordinal 供 GUI 公式串区分施加方种类（速度/并行加成表同值，数值上不可反推）；
+     * GUI 编码（ClusterGuiSync KEY_BO_COST）与本计算共用本实现，保证显示 = 实扣。
+     */
+    public java.util.List<int[]> amplifierSurchargeSources() {
+        java.util.List<int[]> sources = new java.util.ArrayList<>();
+        if (cluster == null || boosterType == null) return sources;
+        for (MTEBasicAmplifierUnit other : cluster.getTopology()
+            .getBoosterUnits()) {
+            if (other == null || other == this) continue;
+            if (other.boosterType != ClusterParams.BoosterType.PARALLEL
+                && other.boosterType != ClusterParams.BoosterType.SPEED) continue;
+            if (!other.isTierValidForConnection() || !other.isFluidAvailable()) continue;
+            int srcTier = other.getUnitStructureTier();
+            int idx = Math.max(0, Math.min(srcTier, ClusterParams.TIER_COUNT - 1));
+            sources.add(new int[] { ClusterParams.BOOSTER_SURCHARGE_PCT[idx], srcTier, other.boosterType.ordinal() });
+        }
+        return sources;
     }
 
     /**
@@ -285,20 +334,34 @@ public abstract class MTEBasicAmplifierUnit extends MTEClusterUnitBase<MTEBasicA
     }
 
     /**
-     * 锁定流体集中解析（null 安全）：Materials 取流体经 {@code getFluid(1).getFluid()}（氨气为气态走
-     * {@code getGas(1).getFluid()}），任一环节未注册返回 null；蒸汽效率增幅先查配置注册名冷却液，缺失回退超冷却液。
+     * 锁定流体集中解析（null 安全）：Materials 取流体经 {@code getFluid(1).getFluid()}；氯化铵为
+     * BW Werkstoff（{@code WerkstoffLoader.AmmoniumChloride}），经 {@code getFluidOrGas(1)} 解析并
+     * 捕获未注册异常回退 null；任一环节未注册返回 null；蒸汽效率增幅先查配置注册名冷却液，缺失
+     * 回退超冷却液。
      */
     protected static Fluid resolveBoosterFluid(ClusterParams.BoosterType type) {
         if (type == null) return null;
         if (type == ClusterParams.BoosterType.PARALLEL) return toFluid(Materials.NitricAcid.getFluid(1));
         if (type == ClusterParams.BoosterType.SPEED) return toFluid(Materials.HydrochloricAcid.getFluid(1));
-        if (type == ClusterParams.BoosterType.PRIMARY_OUTPUT) return toFluid(Materials.Ammonia.getGas(1));
-        if (type == ClusterParams.BoosterType.SECONDARY_OUTPUT) return toFluid(Materials.SulfuricAcid.getFluid(1));
+        if (type == ClusterParams.BoosterType.PRIMARY_OUTPUT) return toFluid(Materials.SulfuricAcid.getFluid(1));
+        if (type == ClusterParams.BoosterType.SECONDARY_OUTPUT)
+            return toWerkstoffFluid(WerkstoffLoader.AmmoniumChloride);
         if (type == ClusterParams.BoosterType.STEAM_SAVER) {
             Fluid coolant = FluidRegistry.getFluid(ClusterParams.BOOSTER_COOLANT_FLUID);
             return coolant != null ? coolant : toFluid(Materials.SuperCoolant.getFluid(1));
         }
         return null;
+    }
+
+    /** BW Werkstoff → 流体（null 安全）：流体未注册（BW 未加载完成等）时返回 null，不崩。 */
+    private static Fluid toWerkstoffFluid(Werkstoff werkstoff) {
+        try {
+            FluidStack stack = werkstoff != null ? werkstoff.getFluidOrGas(1) : null;
+            return stack != null ? stack.getFluid() : null;
+        } catch (Throwable ignored) {
+            // 氯化铵流体尚未注册：解析失败 → 副产物增幅禁用（isFluidAvailable 恒 false），不崩。
+            return null;
+        }
     }
 
     private static Fluid toFluid(FluidStack aStack) {

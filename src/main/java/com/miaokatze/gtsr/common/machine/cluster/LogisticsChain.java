@@ -122,12 +122,18 @@ public final class LogisticsChain {
      * 终态 ∈ {dust, ingot} 即有效；与 GUI 推演器/服务器执行器共用同一状态机。
      */
     public boolean isValidStructure() {
-        return ClusterChainFSM.isTerminal(ClusterChainFSM.simulate(links));
+        ClusterChainFSM.Form form = ClusterChainFSM.start();
+        int terminalCount = 0;
+        for (ChainLink link : links) {
+            form = ClusterChainFSM.next(form, link);
+            if (ClusterChainFSM.isTerminal(form)) terminalCount++;
+        }
+        return terminalCount == 1;
     }
 
-    /** @return 有效返回 {@code null}；否则返回 {@code "gtsr.gui.cluster.chain.invalid_not_terminal"}。 */
+    /** @return 有效返回 {@code null}；否则返回恰一终态产物提示键。 */
     public String getInvalidReasonKey() {
-        return isValidStructure() ? null : "gtsr.gui.cluster.chain.invalid_not_terminal";
+        return isValidStructure() ? null : "gtsr.gui.cluster.chain.invalid_terminal";
     }
 
     // ---- link 可用性（在场工作模块 + 磁选/热离通电 + GT++ 简易洗） ----

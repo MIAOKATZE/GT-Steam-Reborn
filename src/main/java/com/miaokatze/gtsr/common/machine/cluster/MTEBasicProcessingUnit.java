@@ -197,6 +197,14 @@ public abstract class MTEBasicProcessingUnit extends MTEClusterUnitBase<MTEBasic
         return isModuleEnabled() ? providedLinks : Collections.emptySet();
     }
 
+    /**
+     * @return 构造期注入的原始链路集合（不受能力闸门影响的只读视图；子类运行参数推导用，
+     *         如 {@link MTEUnitSelfPoweredProcessingUnit} 按链步查 EU/t 表）。
+     */
+    protected Set<ChainLink> rawProvidedLinks() {
+        return providedLinks;
+    }
+
     /** @return 本单元是否解锁指定链路（结构未成型时关闭能力闸门）。 */
     public boolean providesLink(ChainLink link) {
         return isModuleEnabled() && link != null && providedLinks.contains(link);

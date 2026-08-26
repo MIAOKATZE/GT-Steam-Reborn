@@ -36,7 +36,10 @@ public enum ClusterUnitStatus {
     STANDBY(0x6E6E6E, "gtsr.gui.cluster.state.standby"),
 
     /** 离线：无功率或无效单元（红色，规范名 OFFLINE：未通电·未识别·未关联·空位）。 */
-    NO_POWER_OR_INVALID(0xBE2D2D, "gtsr.gui.cluster.state.no_power");
+    NO_POWER_OR_INVALID(0xBE2D2D, "gtsr.gui.cluster.state.no_power"),
+
+    /** 用户关机（红色）。追加于枚举末尾以冻结既有 ordinal 协议。 */
+    SHUT_DOWN(0xBE2D2D, "gtsr.gui.cluster.state.shut_down");
 
     private final int colorRgb;
     private final String langKey;

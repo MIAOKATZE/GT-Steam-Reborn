@@ -100,8 +100,6 @@ public final class ClusterLinkEditorView {
 
     private final PanelSyncManager sync;
     private final ClusterActionSyncHandler actions;
-    /** 公式折叠区展开态（客户端本地状态，不落服务器）。 */
-    private boolean formulaOpen = false;
     /** chips 滚动偏移回写。 */
     private int chipsScrollValue;
     /** 可用链列表滚动偏移回写。 */
@@ -479,18 +477,14 @@ public final class ClusterLinkEditorView {
                     new TextWidget<>(IKey.dynamic(this::formatFlowLine)).pos(3, 2)
                         .size(RIGHT_W - 6, FLOW_H - 4)));
 
-        // 性能折叠头（客户端本地翻转，不走路由）
+        // 性能详情常驻显示（服务端真值）
         page.child(
-            new ButtonWidget<>().pos(RIGHT_X, FOLD_DY)
-                .size(RIGHT_W, FOLD_H)
-                .overlay(IKey.dynamic(() -> tr("gtsr.cluster.gui.link.perf") + (formulaOpen ? " ▾" : " ▸")))
-                .onMousePressed(mouseButton -> {
-                    formulaOpen = !formulaOpen;
-                    rebuildPerf();
-                    return true;
-                }));
+            IKey.lang("gtsr.cluster.gui.link.perf")
+                .asWidget()
+                .pos(RIGHT_X, FOLD_DY)
+                .size(RIGHT_W, FOLD_H));
 
-        // 性能详情（折叠时清空；展开 5 行服务端真值）
+        // 性能详情常驻显示（服务端真值）
         int perfH = Math.max(30, contentH - PERF_DY);
         page.child(
             new ParentWidget<>().pos(RIGHT_X, PERF_DY)
@@ -609,11 +603,10 @@ public final class ClusterLinkEditorView {
             + (terminal ? " ✓" + tr("gtsr.gui.cluster.chain.preview_terminal") : "");
     }
 
-    /** 重建性能详情（折叠清空；展开 5 行 ×100 定点真值：耗时/并行/吞吐/本链蒸汽/总蒸汽）。 */
+    /** 重建性能详情（常驻 6 行 ×100 定点真值：耗时/并行/吞吐/本链蒸汽/总蒸汽/实际加权公式）。 */
     private void rebuildPerf() {
         if (perfList == null) return;
         perfList.removeAll();
-        if (!formulaOpen) return;
         perfList.child(perfLine("gtsr.cluster.gui.link.perf.time", () -> {
             int raw = ClusterGuiSync.intOf(sync, ClusterGuiSync.KEY_F_TIME, 0);
             return EnumChatFormatting.GREEN + String.format("%.2f", raw / 100.0D) + " s";
@@ -640,6 +633,10 @@ public final class ClusterLinkEditorView {
                 () -> EnumChatFormatting.RED
                     + NumberFormatUtil.formatNumber(ClusterGuiSync.intOf(sync, ClusterGuiSync.KEY_F_TOTAL, 0))
                     + " L/s"));
+        perfList.child(
+            perfLine(
+                "gtsr.gui.cluster.link.perf.formula",
+                () -> EnumChatFormatting.GREEN + ClusterGuiSync.strOf(sync, ClusterGuiSync.KEY_F_FORMULA, "0 L/s")));
     }
 
     /** 性能行：黄标签 = 绿值（IKey.dynamic 随同步缓存刷新）。 */

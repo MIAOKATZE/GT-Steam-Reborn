@@ -1,11 +1,13 @@
 package com.miaokatze.gtsr.common.machine.cluster;
 
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
@@ -165,6 +167,9 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
 
     /** 加热开始计时锚（满热 INFO 耗时换算；0=未知，如载入即满热）。 */
     private long heatStartTimer = 0L;
+
+    /** 最近一次成功批实际命中的链步集合（瞬态，r6-S8 EU 实扣参与闸；不持久化）。 */
+    private EnumSet<ChainLink> lastBatchLinks = EnumSet.noneOf(ChainLink.class);
 
     /** 增幅 debug 摘要锁存（active/failed 计数变化才重发）。 */
     private int lastBoosterActive = -1, lastBoosterFailed = -1;
@@ -848,16 +853,17 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
         BoosterState booster = null;
         boolean anyChainExecuted = false;
         if (!preheat.isReady()) {
-            // 预热中：2000 L/s 蒸汽 + 10 L/s 润滑；本秒能抵达满热时结果携带 justReachedFullHeat，
-            // 该秒不得再叠加运行结算（无双扣），下一秒起转 settleRunFull
+            // 预热中：FIXED_CLUSTER_STEAM_LPS 蒸汽 + 润滑恒定段；本秒能抵达满热时
+            // 结果携带 justReachedFullHeat，该秒不得再叠加运行结算（无双扣），下一秒起转 settleRunFull
             r = economy.settlePreheatFull(this);
         } else {
-            // 满热（含无可执行链）：2000 + C；C 为可执行链聚合（增幅快照同参复用）；切片 5b：
-            // 聚合循环只计 isModuleEnabled 的物流单元（拓扑可暂留未成型单元，混合成型态不高估需量）
+            // 满热（含无可执行链）：固定项（FIXED_CLUSTER_STEAM_LPS × FIXED_STEAM_TIER_MULT[tier]，
+            // r6-S6 新口径）+ 加权链路段 C；C 为可执行链聚合（增幅快照同参复用，节汽/惩罚只作用于该段）；
+            // 切片 5b：聚合循环只计 isModuleEnabled 的物流单元（拓扑可暂留未成型单元，混合成型态不高估需量）
             booster = BoosterState.aggregate(topology.getBoosterUnits());
             double c = ExecutionPlan
                 .computeAggregateSteamC(enabledLogisticsUnits(), topology, getStructureTierIndex(), booster);
-            r = economy.settleRunFull(this, ClusterParams.PREHEAT_STEAM_LPS + c);
+            r = economy.settleRunFull(this, runFixedSteamLps(), c);
             if (r.ok) {
                 anyChainExecuted = runChains();
                 if (anyChainExecuted) {
@@ -883,6 +889,16 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
                 anyChainExecuted,
                 throughputWindowItems);
         }
+    }
+
+    /**
+     * 运行期固定蒸汽项（L/s，r6-S6 新口径）：{@code FIXED_CLUSTER_STEAM_LPS × FIXED_STEAM_TIER_MULT[集群 tier]}
+     * ——节汽增幅封顶与惩罚只作用于加权链路段，本固定项不受影响；tier 未定/越界按青铜档防御。
+     */
+    long runFixedSteamLps() {
+        int tier = getStructureTierIndex();
+        if (tier < 0 || tier >= ClusterParams.TIER_COUNT) tier = 0;
+        return (long) ClusterParams.FIXED_CLUSTER_STEAM_LPS * ClusterParams.FIXED_STEAM_TIER_MULT[tier];
     }
 
     /**
@@ -1223,10 +1239,22 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
         return (int) Math.round(preheat.getProgress() * 100D);
     }
 
-    /** @return 蒸汽读数（L/s；停机/未成型为 0，运行中为最近一次结算需求）。 */
+    /**
+     * 蒸汽读数（停机/未成型为 0；运行中为最近一次结算需求，S8 显示转化：按最近成功结算的
+     * 实际蒸汽种类 ÷divisor 折算——即「当前实际使用蒸汽种类」口径，普通蒸汽时与等效值一致）。
+     */
     public int getSteamLps() {
         if (!mMachine || !machineEnabled) return 0;
-        return (int) Math.min(Integer.MAX_VALUE, economy.getLastSteamLps());
+        long gradeLiters = ClusterSteamEconomy.toGradeLiters(economy.getLastSteamLps(), economy.getLastSteamGrade());
+        return (int) Math.min(Integer.MAX_VALUE, gradeLiters);
+    }
+
+    /**
+     * S8/S10 接口：当前实际使用的蒸汽种类（最近一次成功结算锁存；未成功结算/零需求为 null，
+     * 调用方按普通 Steam 处理）。供性能详情读数与 S10 性能面板做种类口径转化，本切片不改面板布局。
+     */
+    public ClusterParams.SteamGrade getActiveSteamGrade() {
+        return economy.getLastSteamGrade();
     }
 
     /** @return 润滑油读数（L/s；停机/未成型为 0，运行中为最近一次结算需求）。 */
@@ -1404,6 +1432,24 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
     /** @return 预热是否完成，委托预热状态机。 */
     public boolean isPreheatReady() {
         return preheat.isReady();
+    }
+
+    /** 记录最近一次成功批实际命中的链步（执行器批次提交点调用，瞬态；空批合法——纯物流批）。 */
+    void recordBatchLinks(Set<ChainLink> links) {
+        lastBatchLinks = links.isEmpty() ? EnumSet.noneOf(ChainLink.class) : EnumSet.copyOf(links);
+    }
+
+    /** @return 最近一次成功批的链步集合（供电类单元 EU 实扣参与闸用，瞬态）。 */
+    Set<ChainLink> getLastBatchLinks() {
+        return lastBatchLinks;
+    }
+
+    /** @return 任一物流单元处理窗口激活（链批进行中/配方时间冷却中），r6-S8 EU 实扣窗口闸。 */
+    boolean isChainWindowActive() {
+        for (MTEBasicLogisticsUnit unit : topology.getLogisticsUnits()) {
+            if (unit != null && unit.isUnitRunning()) return true;
+        }
+        return false;
     }
 
     /** 总控与全部单元一致：不生成维护检修仓需求（决策 R6）。 */

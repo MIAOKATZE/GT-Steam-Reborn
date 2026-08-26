@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 import java.util.function.Supplier;
 
@@ -141,6 +142,8 @@ public final class ClusterGuiSync {
     public static final String KEY_F_STEAM = "cl.f.steam";
     /** 链路页性能组：集群总蒸汽 L/s（IntSyncValue，服务端真值）。 */
     public static final String KEY_F_TOTAL = "cl.f.total";
+    /** 链路页性能组：实际加权公式（StringSyncValue，ExecutionPlan 同源实值）。 */
+    public static final String KEY_F_FORMULA = "cl.f.formula";
 
     /**
      * 增幅页：结构字段（StringSyncValue）——条目逗号分隔，条目内 {@code typeOrdinal:tier:segment:flags}（flags：bit0 已关联/bit1 自成型）；结构 revision
@@ -155,6 +158,12 @@ public final class ClusterGuiSync {
      * 真值）。
      */
     public static final String KEY_BO_SUM = "cl.bo.sum";
+    /**
+     * 增幅页：S7 实耗组（StringSyncValue，20t 采样）——条目逗号分隔、与 KEY_BO_STRUCT 下标一一对应，
+     * 条目内冒号分隔：首字段实耗 L/s ×10 定点、次字段基础表值 L/s，其后为联动施加方三元组
+     * {@code pct:tier:typeOrdinal}（可零至多组；服务端 {@code amplifierSurchargeSources()} 真值）。
+     */
+    public static final String KEY_BO_COST = "cl.bo.cost";
 
     // ==================== typeId / errId 稳定注册表（E5 快照编码共用） ====================
 
@@ -247,7 +256,9 @@ public final class ClusterGuiSync {
                 sampledInt(
                     cluster,
                     10,
-                    () -> toX100(ExecutionPlan.chainSteamLps(selectedLinks(cluster), tierIdx(cluster))))));
+                    () -> toX100(
+                        ExecutionPlan
+                            .chainSteamLps(selectedLinks(cluster), tierIdx(cluster), cluster.getTopology())))));
         mgr.syncValue(
             KEY_F_TOTAL,
             new IntSyncValue(
@@ -261,11 +272,13 @@ public final class ClusterGuiSync {
                             cluster.getTopology(),
                             tierIdx(cluster),
                             boosterSnapshot(cluster))))));
+        mgr.syncValue(KEY_F_FORMULA, new StringSyncValue(sampledString(cluster, 10, () -> formulaText(cluster))));
 
-        // —— 增幅页（§4.3.5：结构字段与 tank/可用性分离；结构串 revision 界、live/汇总 20t）——
+        // —— 增幅页（§4.3.5：结构字段与 tank/可用性分离；结构串 revision 界、live/汇总/实耗 20t）——
         mgr.syncValue(KEY_BO_STRUCT, new StringSyncValue(() -> encodeBoosterStruct(cluster)));
         mgr.syncValue(KEY_BO_LIVE, new StringSyncValue(sampledString(cluster, 20, () -> encodeBoosterLive(cluster))));
         mgr.syncValue(KEY_BO_SUM, new StringSyncValue(sampledString(cluster, 20, () -> encodeBoosterSummary(cluster))));
+        mgr.syncValue(KEY_BO_COST, new StringSyncValue(sampledString(cluster, 20, () -> encodeBoosterCost(cluster))));
     }
 
     /**
@@ -444,12 +457,73 @@ public final class ClusterGuiSync {
             + state.getFailedCount();
     }
 
+    /**
+     * 增幅实耗串（S7）：条目逗号分隔（与 KEY_BO_STRUCT 同序同过滤，下标一一对应），条目内
+     * {@code lpsX10:base:pct:tier:type:pct:tier:type...}——首字段为联动加成后实际秒耗 ×10 定点
+     * （显示一位小数），次字段基础表值 L/s，其后为施加方三元组 {@code pct:tier:typeOrdinal}
+     * （{@code amplifierSurchargeSources()} 真值；速度/并行加成表同值，类型须显式携带供客户端
+     * 本地化拼装公式串），保证显示 = 实扣同一实现。
+     */
+    private static String encodeBoosterCost(MTESteamMineralLogisticsCluster cluster) {
+        StringBuilder sb = new StringBuilder(64);
+        List<MTEBasicAmplifierUnit> units = cluster.getTopology()
+            .getBoosterUnits();
+        for (MTEBasicAmplifierUnit unit : units) {
+            if (unit == null || unit.getBoosterType() == null) continue;
+            if (sb.length() > 0) sb.append(',');
+            int tier = unit.getUnitStructureTier();
+            boolean valid = tier >= 0 && tier < ClusterParams.TIER_COUNT;
+            long lpsX10 = Math.round(unit.amplifierFluidPerSecExact() * 10.0D);
+            int base = valid ? ClusterParams.amplifierFluidLps(unit.getBoosterType(), tier) : 0;
+            sb.append(lpsX10)
+                .append(':')
+                .append(base);
+            for (int[] source : unit.amplifierSurchargeSources()) {
+                sb.append(':')
+                    .append(source[0])
+                    .append(':')
+                    .append(source[1])
+                    .append(':')
+                    .append(source[2]);
+            }
+        }
+        return sb.toString();
+    }
+
     // ==================== 服务端取值辅助（supplier 侧专用） ====================
 
     /** 公式：单物品耗时（秒，服务端真值）。 */
     private static double formulaTimeSec(MTESteamMineralLogisticsCluster cluster) {
         return ExecutionPlan
             .itemTimeSec(selectedLinks(cluster), tierIdx(cluster), cluster.getTopology(), boosterSnapshot(cluster));
+    }
+
+    /** 实际加权公式文本：分步蒸汽×有效耗时权重，数值与 ExecutionPlan.chainSteamLps 同源。 */
+    private static String formulaText(MTESteamMineralLogisticsCluster cluster) {
+        List<ChainLink> links = selectedLinks(cluster);
+        int tier = tierIdx(cluster);
+        if (links == null || links.isEmpty()) return "0 L/s";
+        double weighted = 0.0;
+        double weights = 0.0;
+        StringBuilder terms = new StringBuilder();
+        for (ChainLink link : links) {
+            if (link == null) continue;
+            double seconds = link.getBaseTicks() * ClusterParams.TIER_TIME_FACTOR[tier] / ChainLink.TICKS_PER_SECOND;
+            double steam = link.getBaseSteamLps();
+            weighted += steam * seconds;
+            weights += seconds;
+            if (terms.length() > 0) terms.append(" + ");
+            terms.append(Math.round(steam))
+                .append("×")
+                .append(Math.round(seconds * 20.0D));
+        }
+        double result = weights <= 0.0 ? 0.0 : weighted / weights;
+        return terms.append("/")
+            .append(Math.round(weights * 20.0D))
+            .append("t = ")
+            .append(String.format(Locale.ROOT, "%.0f", result))
+            .append(" L/s")
+            .toString();
     }
 
     /** 选中单元链 live 视图（未选中 null，ExecutionPlan 防御口径兼容）。 */
@@ -568,7 +642,8 @@ public final class ClusterGuiSync {
         CLEAR_CHAIN,
         /** 已废弃：预设载入（预设数据已删除；服务端拒绝，GUI 无入口，保序占位）。 */
         APPLY_PRESET,
-        /** 公式区折叠切换（无参；客户端本地状态，服务端空分支）。 */
+        /** @deprecated 协议冻结兼容位；公式面板现常驻，禁止客户端发送。 */
+        @Deprecated
         TOGGLE_FORMULA,
         /** 整链保存（buf=[len][ordinals...]）。暂存保存流程的唯一链写入入口；服务端终态复核通过后整表写入。 */
         SAVE_CHAIN
@@ -633,11 +708,6 @@ public final class ClusterGuiSync {
         /** 清空当前链（无参）。服务端复核单元在册。 */
         public void clearChain() {
             syncToServer(ClusterAction.CLEAR_CHAIN.ordinal(), buf -> {});
-        }
-
-        /** 公式区折叠（无参；客户端本地状态，服务端空分支）。 */
-        public void toggleFormulaFold() {
-            syncToServer(ClusterAction.TOGGLE_FORMULA.ordinal(), buf -> {});
         }
 
         /**
@@ -781,7 +851,7 @@ public final class ClusterGuiSync {
                     return;
                 }
                 case TOGGLE_FORMULA -> {
-                    // 客户端本地状态，无服务端副作用
+                    // 已废弃兼容位：枚举 ordinal 协议冻结，保留空处理，不再发送。
                 }
                 case SAVE_CHAIN -> {
                     MTEBasicLogisticsUnit unit = checkedUnit();
