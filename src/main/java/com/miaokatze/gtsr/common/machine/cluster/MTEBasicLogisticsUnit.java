@@ -12,6 +12,7 @@ import java.util.List;
 
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.util.EnumChatFormatting;
 import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
@@ -108,10 +109,26 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
 
     public MTEBasicLogisticsUnit(int aID, String aName, String aNameRegional) {
         super(aID, aName, aNameRegional);
+        registerProgressEntries();
     }
 
     public MTEBasicLogisticsUnit(String aName) {
         super(aName);
+        registerProgressEntries();
+    }
+
+    /**
+     * GTSR 进度词条注册：「工作进度」——mMaxProgresstime&gt;0（批冷却虚拟空配方进行中）时显示
+     * mProgresstime×100/mMaxProgresstime 百分比；==0（就绪待机）时经自定义格式化器返回空串隐藏数值
+     * （词条系统不持条件行，空值即不显示任何进度文本）。
+     */
+    private void registerProgressEntries() {
+        registerEntryCustom(
+            "work_progress",
+            "gtsr.gui.logistics.work_progress",
+            EnumChatFormatting.GREEN,
+            () -> mMaxProgresstime > 0 ? mProgresstime * 100.0D / mMaxProgresstime : 0.0D,
+            v -> mMaxProgresstime > 0 ? String.format("%.1f%%", v) : "");
     }
 
     // ------------------------------------------------------------------
@@ -533,7 +550,7 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
 
     /**
      * 本批配方时间剩余 tick：每批执行后由 ClusterChainExecutor 置为本批"配方时间"（tick，
-     * ExecutionPlan.itemTimeSec × 20 向上取整口径），总控每 20t 统一 -20、仍 &gt;0 的单元本秒跳过；
+     * ExecutionPlan.itemTimeSec × 20 四舍五入且至少 1 tick），总控每 20t 统一 -20、仍 &gt;0 的单元本秒跳过；
      * 该值同时是 {@link #onBatchProcessed(int)} 虚拟空配方的总时长与处理窗口基准。不持久化——
      * 重载/重摆后从零开始（节拍器语义，非玩家资产）。
      */

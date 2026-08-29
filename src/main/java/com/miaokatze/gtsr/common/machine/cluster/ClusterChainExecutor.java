@@ -70,7 +70,7 @@ import gregtech.api.util.GTUtility;
  *
  * <p>
  * 配方时间模型（SR-Cluster-r6 S3，批冷却语义重定义）：每单元 {@code chainCooldownTicks} 在成功批
- * 提交后写为本批<b>配方时间</b>（tick）＝{@code ceil(itemTimeSec(processedLinks) × 20)}（ExecutionPlan
+ * 提交后写为本批<b>配方时间</b>（tick）＝{@code round(itemTimeSec(processedLinks) × 20)}，结果至少 1 tick（ExecutionPlan
  * 时间口径，含物流段时间；空 processedLinks 即纯物流时间），总控每 20t 统一 -20 且对仍 &gt;0 的单元
  * 跳过本秒；该值同时驱动物流单元虚拟空配方进度与工作态窗口（见 MTEBasicLogisticsUnit.onBatchProcessed）。
  *
@@ -162,13 +162,14 @@ public final class ClusterChainExecutor {
         fluids.consume(unit);
         unit.markDirty();
 
-        // 10) 配方时间与记账（r6 S3）：本批配方时间（tick）= ceil(itemTimeSec(processedLinks)×20)
-        // —— ExecutionPlan 时间口径含物流段，仅计实际命中配方的链步（决策 12 跳步时间节约），
-        // 空集合即纯物流时间；写入后由总控每 20t 递减、并经 onBatchProcessed 驱动物流单元虚拟
-        // 空配方进度与工作态窗口
+        // 10) 配方时间与记账（r6 S3）：本批配方时间（tick）= round(itemTimeSec(processedLinks)×20)
+        // —— 四舍五入取整且下限 1 tick（0.8s 批显 16t 不被 ceil/upward 截断偏差放大，纯物流批也有
+        // 最短 1t 冷却）；ExecutionPlan 时间口径含物流段，仅计实际命中配方的链步（决策 12 跳步时间
+        // 节约），空集合即纯物流时间；写入后由总控每 20t 递减、并经 onBatchProcessed 驱动物流单元
+        // 虚拟空配方进度与工作态窗口
         List<ChainLink> processedLinksList = new ArrayList<>(processedLinks);
         long recipeTicks = Math
-            .max(0L, (long) Math.ceil(ExecutionPlan.itemTimeSec(processedLinksList, tier, topology, booster) * 20D));
+            .max(1L, Math.round(ExecutionPlan.itemTimeSec(processedLinksList, tier, topology, booster) * 20D));
         unit.setChainCooldownTicks(recipeTicks);
         unit.onBatchProcessed(batch);
         cluster.recordBatchLinks(processedLinks);

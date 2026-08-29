@@ -1,0 +1,66 @@
+{
+  "preRequisites:9": {
+    "0:10": {
+      "questIDHigh:4": 5139824686389002240,
+      "questIDLow:4": 7,
+      "type:1": 1
+    },
+    "1:10": {
+      "questIDHigh:4": 5139824686389002240,
+      "questIDLow:4": 34
+    }
+  },
+  "properties:10": {
+    "betterquesting:10": {
+      "autoClaim:1": 0,
+      "countAsQuest:1": 1,
+      "desc:8": "Graduation opens: the §dsingularity§r becomes hard currency. Chain overview — the entangler mass-produces singularities, the DSM presses them §11000:1§r into dense, the CSC presses those into critical, and the SDH's twin nodes burn them for work.\n\nFrom this chapter on, every bill is priced in §dunits§r — steam itself becomes the small change.\n\nSteam-rich players may walk straight in from chapter A's closed loop, without finishing C and D.\n\n§3The steam age ends with steam itself collapsing.§r",
+      "globalShare:1": 0,
+      "icon:10": {
+        "Count:3": 1,
+        "Damage:2": 0,
+        "OreDict:8": "",
+        "id:8": "gtsr:SteamEntangledSingularity"
+      },
+      "isMain:1": 1,
+      "isSilent:1": 0,
+      "lockedProgress:1": 0,
+      "name:8": "§d§lSingularity Graduation",
+      "questLogic:8": "AND",
+      "repeatTime:3": -1,
+      "simultaneous:1": 0,
+      "snd_complete:8": "random.levelup",
+      "snd_update:8": "random.levelup",
+      "taskLogic:8": "AND",
+      "visibility:8": "NORMAL"
+    }
+  },
+  "questIDHigh:4": 5139824686389002240,
+  "questIDLow:4": 43,
+  "rewards:9": {
+    "0:10": {
+      "index:3": 0,
+      "rewardID:8": "bq_standard:item",
+      "rewards:9": {
+        "0:10": {
+          "Count:3": 128,
+          "Damage:2": 0,
+          "OreDict:8": "",
+          "id:8": "minecraft:diamond"
+        },
+        "1:10": {
+          "Count:3": 1,
+          "Damage:2": 0,
+          "OreDict:8": "",
+          "id:8": "gtit:neko_coin"
+        }
+      }
+    }
+  },
+  "tasks:9": {
+    "0:10": {
+      "index:3": 0,
+      "taskID:8": "bq_standard:checkbox"
+    }
+  }
+}

@@ -1,5 +1,6 @@
 package com.miaokatze.gtsr.common.machine.cluster;
 
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -9,23 +10,28 @@ import net.minecraft.world.World;
 
 import com.gtnewhorizon.structurelib.util.Vec3Impl;
 
+import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
+
 /**
- * 集群工作粒子 FX（仅客户端生效）：真实批执行窗口内，每 tick 从候选位池随机取一位喷一个上升
- * "cloud" 粒子。
+ * 集群工作粒子 FX（仅客户端生效）：主控工作态（mWorkingForFX 字节同步）期间，每 tick 从候选位池
+ * 随机取一位喷一个上升 "cloud" 粒子。
  *
  * <h2>候选位</h2>
  * <ul>
  * <li>加工模块自身矩阵的严格空气位（F 与 '-'）：模块类在客户端 tick 一次性注册
  * {@link #registerAirCandidates}，热离/磁选的 P 能源位非空气、不进候选；</li>
- * <li>集群挂点中心：主控侧 {@link #registerMountCenters} 注册。</li>
+ * <li>集群挂点中心：双端各注册各自实例 key——服务端成型扫描（总控 checkMachine 收尾）、
+ * 客户端惰性扫描（总控客户端 onPostTick 首次成型信号时）经 {@link #registerMountCenters} 注册。</li>
  * </ul>
  * 架构不强制每类模块必有候选位：物流模块不注册即无粒子。
  *
  * <h2>窗口语义（默认关闭）</h2>
- * 结构未成型 / 预热 / 无真实批执行时不喷粒子。窗口由主控真实批执行驱动：
- * {@link #setParticleWindow(boolean)}（成型+满热+实际执行批开，否则关）；主控字节同步的
- * {@link #isFxWorking}「距最近真实批 &lt; 40t」判据同为放行条件，二者任一开窗即可。单元侧另以
+ * 结构未成型 / 预热 / 未执行时不喷粒子。唯一权威判据是主控字节同步的 {@code mWorkingForFX}
+ * （getUpdateData bit0：结构正常工作四项判据——成型+开机+允许工作+供给锁存），主控 onPostTick
+ * 客户端分支仅在 mWorkingForFX 为 true 时调用 {@link #spawnParticles}；单元侧另以
  * active（服务端 setActive(isUnitRunning) 同步）过滤，未运行模块不喷。
+ * 旧静态粒子窗（setParticleWindow/isParticleWindowOpen）与「距最近真实批 &lt; 40t」的
+ * {@code isFxWorking} 判据已删除——bit0 改按结构正常工作口径直接服务端判定，无需静态跨实例窗口。
  *
  * <h2>世界换算</h2>
  * 候选位为模块控制器相对坐标 {@code (x-offsetA, y-offsetB, z-offsetC)}，经模块自身
@@ -34,29 +40,13 @@ import com.gtnewhorizon.structurelib.util.Vec3Impl;
  */
 public final class ClusterParticleFx {
 
-    /** 真实批窗口长度：距最近一次成功批 < 40t 视为工作态（结算节拍 20t 的双周期余量）。 */
-    public static final long WORKING_WINDOW_TICKS = 40L;
-
-    /** 主控真实批执行驱动的粒子开关窗口；默认关闭。 */
-    private static volatile boolean particleWindowOpen = false;
-
     /** 模块空气候选位：unit → 控制器相对偏移列表（客户端实例注册）。 */
     private static final Map<MTEClusterUnitBase, List<int[]>> unitAirCandidates = new ConcurrentHashMap<>();
 
-    /** 集群挂点中心候选位：cluster → 控制器相对偏移列表（主控侧注册）。 */
+    /** 集群挂点中心候选位：cluster → 控制器相对偏移列表（双端各注册各自实例 key：服务端成型扫描、客户端惰性扫描）。 */
     private static final Map<MTESteamMineralLogisticsCluster, List<int[]>> clusterMountCenters = new ConcurrentHashMap<>();
 
     private ClusterParticleFx() {}
-
-    /** 主控调用：真实批执行窗口开关（成型 + 满热 + 实际执行批时开，否则关）。 */
-    public static void setParticleWindow(boolean open) {
-        particleWindowOpen = open;
-    }
-
-    /** @return 显式窗口是否开启（不含 isFxWorking 判据）。 */
-    public static boolean isParticleWindowOpen() {
-        return particleWindowOpen;
-    }
 
     /** 模块侧（客户端 tick）注册自身严格空气候选位；重复注册以最后一次为准。 */
     public static void registerAirCandidates(MTEClusterUnitBase unit, List<int[]> controllerRelativeOffsets) {
@@ -82,48 +72,62 @@ public final class ClusterParticleFx {
     }
 
     /**
-     * 真实批窗口判据（主控 getUpdateData 字节协议沿用）：距最近一次成功批 < 40t。
-     */
-    public static boolean isFxWorking(MTESteamMineralLogisticsCluster cluster) {
-        if (cluster == null || cluster.getBaseMetaTileEntity() == null) return false;
-        long lastBatch = cluster.getLastBatchServerTick();
-        if (lastBatch == Long.MIN_VALUE) return false;
-        return cluster.getBaseMetaTileEntity()
-            .getTimer() - lastBatch < WORKING_WINDOW_TICKS;
-    }
-
-    /** @return 粒子窗口是否放行：显式窗口开，或主控真实批窗口（isFxWorking）开。 */
-    public static boolean isParticleWindowOpen(MTESteamMineralLogisticsCluster cluster) {
-        return particleWindowOpen || isFxWorking(cluster);
-    }
-
-    /**
-     * 客户端入口（主控 onPostTick 客户端分支调用，签名沿用旧协议）：窗口放行时从候选位池
-     * （active 单元的空气位 + 本主控挂点中心）随机取一位喷一个 cloud 粒子；窗口关或无候选位则无粒子。
+     * 客户端入口（主控 onPostTick 客户端分支调用，调用方以 mWorkingForFX 为唯一工作态权威判据）：
+     * 从候选位池（active 单元的空气位 + 本主控挂点中心）随机取一位喷一个 cloud 粒子；无候选位则无粒子。
      */
     public static void spawnParticles(MTESteamMineralLogisticsCluster cluster) {
         if (cluster == null || cluster.getBaseMetaTileEntity() == null) return;
-        if (!isParticleWindowOpen(cluster)) return;
         World world = cluster.getBaseMetaTileEntity()
             .getWorld();
         if (world == null) return;
         pruneStaleUnits(world);
-        int total = countActiveUnitCandidates(world) + mountCenterCount(cluster);
-        if (total <= 0) return;
-        int pick = world.rand.nextInt(total);
-        if (trySpawnUnitCandidate(world, pick)) return;
-        int[] off = clusterMountCenters.get(cluster)
-            .get(pick - countActiveUnitCandidates(world));
-        spawnOne(
-            cluster.getBaseMetaTileEntity()
-                .getXCoord(),
-            cluster.getBaseMetaTileEntity()
-                .getYCoord(),
-            cluster.getBaseMetaTileEntity()
-                .getZCoord(),
-            cluster.getExtendedFacing()
-                .getWorldOffset(new Vec3Impl(off[0], off[1], off[2])),
-            world);
+        List<Candidate> candidates = new ArrayList<>();
+        for (Map.Entry<MTEClusterUnitBase, List<int[]>> entry : unitAirCandidates.entrySet()) {
+            if (!isActiveUnit(entry.getKey(), world)) continue;
+            MTEClusterUnitBase unit = entry.getKey();
+            IGregTechTileEntity base = unit.getBaseMetaTileEntity();
+            if (base == null) continue;
+            for (int[] off : entry.getValue()) {
+                candidates.add(
+                    new Candidate(
+                        base.getXCoord(),
+                        base.getYCoord(),
+                        base.getZCoord(),
+                        unit.getExtendedFacing()
+                            .getWorldOffset(new Vec3Impl(off[0], off[1], off[2]))));
+            }
+        }
+        List<int[]> centers = clusterMountCenters.get(cluster);
+        if (centers != null) {
+            IGregTechTileEntity base = cluster.getBaseMetaTileEntity();
+            for (int[] off : centers) {
+                candidates.add(
+                    new Candidate(
+                        base.getXCoord(),
+                        base.getYCoord(),
+                        base.getZCoord(),
+                        cluster.getExtendedFacing()
+                            .getWorldOffset(new Vec3Impl(off[0], off[1], off[2]))));
+            }
+        }
+        if (candidates.isEmpty()) return;
+        Candidate candidate = candidates.get(world.rand.nextInt(candidates.size()));
+        spawnOne(candidate.x, candidate.y, candidate.z, candidate.offset, world);
+    }
+
+    private static final class Candidate {
+
+        private final int x;
+        private final int y;
+        private final int z;
+        private final Vec3Impl offset;
+
+        private Candidate(int x, int y, int z, Vec3Impl offset) {
+            this.x = x;
+            this.y = y;
+            this.z = z;
+            this.offset = offset;
+        }
     }
 
     /** 清理基座已失效（区块卸载残留）的单元注册项。 */

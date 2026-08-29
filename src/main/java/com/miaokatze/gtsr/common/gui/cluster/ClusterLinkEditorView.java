@@ -346,7 +346,7 @@ public final class ClusterLinkEditorView {
         }
         StringBuilder second = new StringBuilder(
             available ? EnumChatFormatting.GRAY.toString() : EnumChatFormatting.DARK_GRAY.toString())
-                .append(String.format(tr("gtsr.gui.cluster.editor.link_seconds"), link.getBaseSeconds()))
+                .append(String.format(tr("gtsr.gui.cluster.editor.link_seconds"), link.getBaseSecondsPrecise()))
                 .append(" · ")
                 .append(mediumText(link));
         int kind = lockKind(link.ordinal());
@@ -568,7 +568,7 @@ public final class ClusterLinkEditorView {
         double factor = ClusterParams.TIER_TIME_FACTOR[Math.max(0, Math.min(ClusterParams.TIER_COUNT - 1, tier))];
         int[] counts = lockCounts();
         int modules = Math.max(1, linkOrdinal < counts.length ? counts[linkOrdinal] : 0);
-        return formatSec(LINKS[linkOrdinal].getBaseSeconds() * factor / modules) + "s";
+        return formatSec(LINKS[linkOrdinal].getBaseSecondsPrecise() * factor / modules) + "s";
     }
 
     /** FSM 推演条：原矿 →(链步)→ 形态 →…→ 终态（终态绿 + ✓终；末位非终态红）。 */
@@ -800,12 +800,9 @@ public final class ClusterLinkEditorView {
         unitDropdown.deleteMenu();
     }
 
-    /** 秒数一位小数（整数显整数）。 */
+    /** 秒数统一两位小数（含整数值，如 16t 显 0.80s）。 */
     private static String formatSec(double seconds) {
-        if (Math.abs(seconds - Math.rint(seconds)) < 1e-6) {
-            return String.valueOf((long) Math.rint(seconds));
-        }
-        return String.format("%.1f", seconds);
+        return String.format("%.2f", seconds);
     }
 
     private static String tr(String key) {

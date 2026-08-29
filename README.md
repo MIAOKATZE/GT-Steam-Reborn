@@ -1,6 +1,12 @@
 <h1 align="center">GT-Steam-Reborn</h1>
 <p align="center"><strong><em>GTNH Steam Age Expansion Mod</em></strong><br><strong><em>GTNH 蒸汽时代扩展模组</em></strong></p>
 
+<p align="center">
+  <a href="https://github.com/MIAOKATZE/GT-Steam-Reborn/releases"><img src="https://img.shields.io/badge/release-1.11.8-blue" alt="Release 1.11.8"></a>
+  <a href="https://github.com/MIAOKATZE/GT-Steam-Reborn/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-BSD--3--Clause-green" alt="License BSD-3-Clause"></a>
+  <a href="https://github.com/MIAOKATZE/GT-Steam-Reborn/wiki"><img src="https://img.shields.io/badge/docs-Wiki-orange" alt="Wiki"></a>
+</p>
+
 A GregTech New Horizons expansion mod that **supplements the Steam Age and significantly expands steam usage**, providing 23 multiblock steam machines, 8 single-block nodes, 15 types of hatches plus 4 singularity compartments and 3 hub storage units, and a Hub-Node binding system. It fills the gameplay gap between the steam age and the electric age in GTNH, making steam a viable and deep progression path rather than a transient phase.
 
 一个 GregTech New Horizons 扩展模组，**补充蒸汽时代并显著拓展蒸汽用途**，提供23台多方块蒸汽机器、8个单方块节点、15类仓室与4个奇点仓、3种存储单元以及枢纽-节点绑定系统。它填补了 GTNH 蒸汽阶段到电力阶段之间的玩法空白，让蒸汽成为一条可行且有深度的进阶路线，而非过渡阶段。
@@ -15,7 +21,8 @@ A GregTech New Horizons expansion mod that **supplements the Steam Age and signi
 
 | GTNH         | GTSR           | Maintenance / 维护 |
 | ------------ | -------------- | :--------------: |
-| 2.9.0 beta-2 | 1.7.16+        |        ✔️        |
+| 2.9.0 beta-2 | **1.11.8**（当前 / current） |        ✔️        |
+| 2.9.0 beta-2 | 1.7.16~1.11.7  |        ✔️        |
 | 2.9.0 beta-1 | 1.7.1\~1.7.15  |        ✔️        |
 | 2.8.4        | 1.6.0          |        ❌️        |
 
@@ -128,14 +135,14 @@ The Hub Terminal is a handheld remote management device (crafted with 1 Steam En
 
 **Cache Hub Status Terminal (Steam & Water hubs) / 缓存枢纽状态终端（蒸汽与蓄水枢纽阵列通用）**:
 
-<p align="center"><img src="README/HubTerminalCacheStatus.png" width="400"><br><em>缓存枢纽状态终端 / Cache Hub Status Terminal</em></p>
+<p align="center"><img src="README/HubTerminalCacheStatus.png" width="400" alt="缓存枢纽状态终端 / Cache Hub Status Terminal"><br><em>缓存枢纽状态终端 / Cache Hub Status Terminal</em></p>
 使用枢纽终端右击控制器，打开状态GUI。 / Right-click the controller on the hub terminal and open the status GUI.
 
 - Per-node display (icon, custom name, coords + dimension, fluid type, storage/capacity) with 16×16 hover-tooltip buttons: rate cycle (six cache nodes + four singularity compartments) / capacity cycle / mode toggle (node↔hub) / auto-output / teleport above the node (consumes 1 Steam Entangled Singularity from your main inventory only after a safe landing spot is confirmed); in-place renaming; handheld shortcuts: right-click (non-sneaking) a node/compartment with the terminal to cycle its rate tier, sneak+right-click to cycle the capacity limit tier (send-type compartments show a locked hint) — direction modes can only be switched via this UI's mode button or by right-clicking the hub while holding the node (singularity compartments are mode-locked and reject both; send-type compartments have no capacity tier) / 每节点显示（图标、自定义名、坐标+维度、流体类型、储量/容量），16×16 悬浮说明按钮：速率循环（六缓存节点+四奇点仓）/ 容量循环 / 模式切换（节点↔枢纽）/ 自动输出 / 传送至节点正上方（确认安全落点后才从主物品栏消耗 1 个蒸汽纠缠奇点）；内嵌重命名；手持快捷操作：终端右击（非潜行）节点/仓循环传输速率档、终端潜行右击循环容量上限档（发送类仓提示容量锁定）——方向模式仅能经本界面模式按钮或持节点右击枢纽切换（奇点仓方向锁定，两者均被拒绝；发送类仓无容量档）
 
 **Drilling Hub Status Terminal / 钻井枢纽状态终端**:
 
-<p align="center"><img src="README/HubTerminalDrillingStatus.png" width="400"><br><em>钻井枢纽状态终端 / Drilling Hub Status Terminal</em></p>
+<p align="center"><img src="README/HubTerminalDrillingStatus.png" width="400" alt="钻井枢纽状态终端 / Drilling Hub Status Terminal"><br><em>钻井枢纽状态终端 / Drilling Hub Status Terminal</em></p>
 使用枢纽终端右击控制器，打开状态GUI。 / Right-click the controller on the hub terminal and open the status GUI.
 
 - Per-node display (icon, name, tier Mk1-4, status, coords); remote start/stop, quick recycle (needs node stopped/idle, returns mining pipes), in-GUI upgrades, in-place renaming (syncs to WAILA and node GUI) / 每节点显示（图标、名字、等级 Mk1-4、状态、坐标）；远程启停、快捷回收（需节点停止/待机，返还钻管）、UI 内升级、内嵌重命名（同步至 WAILA 与节点 GUI）
@@ -258,22 +265,35 @@ Reverse-injects steam energy underground to increase fluid reserves, solving lon
 
 > 📷 图片待配：蒸汽动力矿物处理物流工程集群全景图 / Cluster overview screenshot
 
-**蒸汽动力矿物处理物流工程集群 / Mineral Logistics Cluster (MLC)**
+**蒸汽动力矿物处理物流工程集群（开发中，逐步实装）/ Mineral Logistics Cluster (MLC) — in development, rolling out incrementally**
 
-蒸汽驱动的矿石链式加工多方块工程集群：以物流模块为单元编排「粉碎→锻造→简易洗矿→洗矿→化洗→离心→热离→筛选→磁选→熔炼」加工链并自动吞吐矿石，全程无电力、仅靠蒸汽与润滑剂驱动，是蒸汽时代的大型矿石处理中枢。
+蒸汽驱动的矿石链式加工多方块工程集群：以物流模块为单元编排「粉碎→锻造→简易洗矿→洗矿→化洗→离心→热离→筛选→磁选→熔炼」加工链并自动吞吐矿石，以蒸汽与润滑剂为主驱动（热离与磁选链步需能源仓持续供电），是蒸汽时代的大型矿石处理中枢。
 
-A steam-driven multiblock ore-processing cluster: logistics modules orchestrate a crush→hammer→wash→bath→centrifuge→sift→magnetize→smelt chain with automatic throughput — no EU at all, only steam and lubricant.
+A steam-driven multiblock ore-processing cluster: logistics modules orchestrate a crush→hammer→simple-wash→ore-wash→chem-bath→centrifuge→thermal-centrifuge→sift→magnetize→smelt chain with automatic throughput — driven by steam and lubricant (the thermal-centrifuge and magnetic-separation links need continuous energy-hatch power).
 
-**模块清单**：粉碎/锻造/简易洗矿/洗矿/化学浸浴/离心/热离心/筛分/磁选/熔炼十类工作单元 + 物流单元（链编排与并行取料），另可选装并行/速度/主产物/副产物/节汽五类增幅模块。
+**模块清单 / Module List**：十种链步——粉碎/锻造/简易洗矿/洗矿/化学浸浴/离心/热离心/筛分/磁选/熔炼——由七类工作单元执行：粉碎机兼锻造、洗矿机兼简易洗矿/化学浸浴；另配物流单元（链编排与并行取料），可选装并行/速度/主产物/副产物/节汽五类增幅模块。集群共 14 个多方块机器：总控 1 + 工作单元 7 + 增幅 5 + 物流 1。锻造与简易洗矿是链步骤而非独立机器（各基础耗时 16 tick；简易洗矿依赖 GT++ 配方图，GT++ 缺席时该链步自动不可用）。
+
+**Module list**: the ten chain steps — crush / hammer / simple wash / ore wash / chemical bath / centrifuge / thermal centrifuge / sifting / magnetic separation / smelting — are executed by seven working-unit classes: the crusher also handles hammering, the ore washer also simple washing and chemical bathing; plus a logistics unit (chain orchestration and parallel fetching) and five optional amplifier modules (parallel / speed / primary / secondary / steam saver). The cluster totals 14 multiblock machines: 1 controller + 7 working units + 5 amplifiers + 1 logistics unit. Hammer and simple wash are chain steps, not standalone machines (16 base ticks each; simple wash relies on the GT++ recipe map and is auto-disabled when GT++ is absent).
+
+**结构 / Structure**：主段 15×20×29，背面最多串接 9 个 15×8×29 延伸段（总段数 ≤10）；四族结构方块 tier0-3 = 青铜/钢/钛/钨钢；每段提供 4 加工（F）+ 4 增幅（H）+ 1 物流（G）模块挂点。
+
+**Structure**: a 15×20×29 main segment with up to nine 15×8×29 extension segments chained behind it (≤10 segments in total); four structure block families tier 0-3 = bronze / steel / titanium / tungsten steel; each segment offers 4 processing (F) + 4 amplifier (H) + 1 logistics (G) module mounts.
 
 **核心机制 / Core Mechanics**
 
 | 机制 Mechanic | 说明 Description |
 |---|---|
-| 加权蒸汽消耗 Weighted Steam | 总需求 = 固定项 8,000 L/s × 结构档位乘率 {1, 4, 16, 48} + 各可执行链加权蒸汽 Σ(C_i·T_i)/Σ(T_i)（增幅惩罚与节汽封顶 48% 仅作用于加权段）Fixed term by tier plus per-chain time-weighted steam; penalties & saver cap apply to the weighted part only |
+| 加权蒸汽消耗 Weighted Steam | 总需求 = 固定项 8,000 L/s × 结构档位乘率 {1, 4, 16, 48} + 各可执行链加权蒸汽 Σ(C_i·T_i)/Σ(T_i)，只统计处于工作进度的物流单元（进度未清零即计费，断电冻结不豁免）（增幅惩罚与节汽封顶 48% 仅作用于加权段）Fixed term by tier plus per-chain time-weighted steam — only logistics units with work in progress count (uncleared progress stays billed; a power-cut freeze is no exemption); penalties & saver cap apply to the weighted part only |
 | 润滑两段 Two-Stage Lubricant | 集群恒定段 {20, 80, 500, 1000} L/s（按总控档位）+ 物流工作段 {20, 60, 300, 500} L/s（按工作中物流单元最高结构档位）Cluster constant stage + logistics working stage, both tier-scaled |
 | 蒸汽种类折算 Steam Grades | 六种蒸汽按能量密度折算（普通×1/过热÷2/超临界÷4/致密÷1000/致密过热÷2000/致密超临界÷4000），按集群档位门控，自动择优扣一种 Six grades converted by energy density, gated by cluster tier, best-grade auto-selection |
 | 结构档位升级 Unit Tier Up | 单元自身结构档每升 1 级：该链步耗时 ÷2、对应蒸汽消耗 ×4 Each unit structure tier halves that link's time and quadruples its steam |
+| 关机态 SHUT_DOWN State | 集群可经总控开关机：用户关机后单元显示红色 SHUT_DOWN 关机态，区别于待机与离线（无功率/无效单元）The cluster can be toggled on/off from the controller; after a user shutdown units show a red SHUT_DOWN state, distinct from standby and offline (no power / invalid) |
+| 运行前置 Run-Phase Gate | 加工单元进入供电运行相位需同时满足：集群开机、自身物理电源开、满热、链处理窗口激活且本环节参与当批——空闲保温期不消耗电力A processing unit's powered run phase requires all of: cluster on, own physical power on, preheat ready, an active chain window, and participation in the current batch — idle keep-warm draws no power |
+| 批冷却配方时间化 Recipe-Timed Batch Cooldown | 成功批提交后单元冷却写入本批配方时间（tick，含物流段时间），总控每 20t 统一递减，冷却未清零的单元跳过开批After each successful batch a unit's cooldown is set to that batch's recipe time in ticks (logistics leg included), decremented uniformly every 20t; units with remaining cooldown skip batch starts |
+| 链编辑暂存 Staged Chain Editing | 链编辑（追加/删除/位移/清空）仅修改 GUI 本地暂存、不即时发包；保存按钮预校验通过后才经 SAVE_CHAIN 整链提交，服务端终态复核后写入Chain edits (append / remove / move / clear) only modify a local staging buffer with no per-edit packets; the save button pre-validates, then commits the whole chain via SAVE_CHAIN with a final server-side recheck |
+| 物流封漏 Sealed Logistics I/O | 批处理的一切取料/产出/批流体均经物流单元自身的总线与仓室，执行器不触碰总控库存（总控输入仓仅用于蒸汽/润滑结算）All batch fetching, outputs and batch fluids pass through the logistics unit's own buses and hatches; the executor never touches the controller inventory (controller hatches serve the steam/lubricant economy only) |
+| 增幅直连原子预检 Atomic Amplifier Draw | 增幅模块无内部流体槽，锁定流体直连其 H 输入仓按秒原子预检：足额才整笔实扣，不足零扣且当秒无增益无惩罚Amplifiers carry no internal tank; their locked fluid is drawn straight from their H input hatches under a per-second atomic precheck — the full amount is debited only when sufficient, otherwise zero deduction with no boost and no penalty that second |
+| 真实状态词条 Real GUI Entries | 总控与模块 GUI 使用真实状态词条，不显示恒定 NO_RECIPE 结果词条与配方信息区Controller and module GUIs show real status entries — no constant NO_RECIPE result entry and no recipe info area |
 
 ### Enhanced Processing Machines / 强化加工机器 (9)
 
@@ -797,15 +817,15 @@ Hub/Reinforced/Overpressure Hub Storage Units for stacking layers in hub arrays.
 ## Items / 物品
 
 - **枢纽终端 / Hub Terminal**: Handheld remote management device. Right-click a hub controller to open its status terminal (cache hub / drilling hub); right-click (non-sneaking) a node/compartment to cycle its rate tier (six cache nodes + four singularity compartments), sneak+right-click to cycle the capacity limit tier (send-type compartments show a locked hint). Crafted with 1 Steam Entangled Singularity + 8 steel plates. / 手持远程管理设备。右击枢纽控制器打开对应状态终端（缓存枢纽/钻井枢纽）；终端右击（非潜行）节点/仓循环传输速率档（六缓存节点+四奇点仓）、终端潜行右击循环容量上限档（发送类仓提示容量锁定）。1 蒸汽纠缠奇点 + 8 钢板合成。
-- **蒸汽纠缠奇点 / Steam Entangled Singularity**: Core binding material. Produced by the Steam Singularity Entangler (heat accumulation). Consumed when binding nodes to hubs and in various crafting recipes.
+- **蒸汽纠缠奇点 / Steam Entangled Singularity**: Core binding material. Produced by the Steam Singularity Entangler (heat accumulation). Consumed when binding nodes to hubs and in various crafting recipes. / 核心绑定材料，由蒸汽奇点纠缠装置累积热量产出；节点绑定枢纽与多种合成均会消耗。
 - **临界蒸汽纠缠奇点 / Critical Steam Entangled Singularity**: Produced by the Critical Entangled Singularity Stabilizer (CSC). Used for more advanced crafting and amplification; legend says it can tear apart the very limits of dimensions... DANGEROUS — it explodes when dropped, never discard it! The drop explosion guarantees that normal singularities will appear. / 由临界纠缠奇点稳定装置（CSC）产出。用于更高级的合成与增幅；传说其能够彻底撕开维度的限制……危险品——掉落物会爆炸，请勿丢弃！掉落爆炸保证会出现普通奇点。
-- **枢纽奇点芯片 / Hub Singularity Chip**: Required for Steam/Water Hub node binding, multiplies hub total capacity ×5. Also enables hub debug mode when right-clicked. Removing it from a filled hub swallows the stored fluid exceeding the reduced capacity.
+- **枢纽奇点芯片 / Hub Singularity Chip**: Required for Steam/Water Hub node binding, multiplies hub total capacity ×5. Also enables hub debug mode when right-clicked. Removing it from a filled hub swallows the stored fluid exceeding the reduced capacity. / 蒸汽/蓄水枢纽节点绑定所需，枢纽总容量×5；右击可进入枢纽调试模式；从已填充枢纽取下会吞掉超出缩减后容量的流体。
 - **强化枢纽奇点芯片 / Reinforced Hub Singularity Chip**: For tier 3 (TungstenSteel) Steam/Water hubs — on the Steam Hub it enables dense/supercritical steam; on both hubs it grants ×20 capacity (takes priority over the ×5 Hub Chip bonus) and unlocks overpressure cache node binding; right-click a hub with it to list bound cache nodes. / 等级3（钨钢）蒸汽/蓄水枢纽阵列通用——蒸汽枢纽阵列解锁致密/超临界蒸汽；双枢纽容量×20（优先于普通芯片×5）并解锁超压缓存节点绑定；手持右击枢纽可列出已绑定缓存节点。
 - **蒸汽轮机循环超限芯片 / Steam Turbine Cycle Overlimit Chip**: For Mega Steam Turbine Array controller slot — requires all 4 extra stack groups to activate: superheated/supercritical (incl. dense) steam cooling becomes distilled water, and steam efficiency factors stack within their steam family (e.g. supercritical = 超临界+过热+蒸汽 = 2.5×). / 装入巨型蒸汽轮机阵列控制器槽，需完成全部4组额外叠加层：过热/超临界（含致密）蒸汽冷却直接产蒸馏水，蒸汽效率因子按蒸汽家族内叠加（如超临界=超临界+过热+蒸汽=2.5倍）。
-- **地热过热芯片 / Geothermal Overheat Chip**: For Large Geothermal Steam Boiler (steel tier) — enables superheated steam output and rare byproducts.
-- **稀有气体分离芯片 / Rare Gas Separation Chip**: For Atmospheric Centrifuge — unlocks recipes with >3 fluid outputs (up to 9).
-- **矿脉裂解器芯片（T1/T2/T3）/ Vein Pyrolyzer Chip (T1/T2/T3)**: For Vein Steam Pyrolyzer — expands underground fluid scan range.
-- **制氨催化剂（7种变体）/ Ammonia Catalyst (7 variants)**: For Ammonia Plant — determines parallel count and reaction time. 7-tier progression from Nickel to Quantum.
+- **地热过热芯片 / Geothermal Overheat Chip**: For Large Geothermal Steam Boiler (steel tier) — enables superheated steam output and rare byproducts. / 用于大型地热蒸汽锅炉（钢级）——启用过热蒸汽输出与稀有副产物。
+- **稀有气体分离芯片 / Rare Gas Separation Chip**: For Atmospheric Centrifuge — unlocks recipes with >3 fluid outputs (up to 9). / 用于大气离心机——解锁超过 3 个流体输出的配方（最多 9 个）。
+- **矿脉裂解器芯片（T1/T2/T3）/ Vein Pyrolyzer Chip (T1/T2/T3)**: For Vein Steam Pyrolyzer — expands underground fluid scan range. / 用于地脉蒸汽热解机——扩大地下流体扫描范围。
+- **制氨催化剂（7种变体）/ Ammonia Catalyst (7 variants)**: For Ammonia Plant — determines parallel count and reaction time. 7-tier progression from Nickel to Quantum. / 用于制氨工厂——决定并行数与反应时间，镍至量子共 7 级进阶。
 
 > 📷 图片待配：物品栏合成图（10 类物品）
 
@@ -860,14 +880,28 @@ GTSR 向 GT5U 和 GT++ 注入了 11 个 Mixin 类，从根本上增强了蒸汽�
 
 ***
 
+## Admin Commands / 管理员命令
+
+- **`/gtsr singularity <range> <speed/20tick> <damage/20tick> <durationTicks|NA> <special|null|onlypull|nullplus|nature> [color] [fxRadius]`**
+  - 在命令发送者（玩家）位置生成一个失控奇点，用于调试与演示。权限 OP 4，仅限玩家执行（命令方块/控制台不可用）。
+  - Spawns a runaway singularity at the sender's (player's) position for debugging and demos. Requires OP level 4; player senders only (command blocks / console not supported).
+  - 参数 / Params:
+    - range：吸引范围 [0.5, 128] / attraction radius [0.5, 128]
+    - speed：每 20tick 吸收方块数 [0, 100] / blocks absorbed per 20 ticks [0, 100]
+    - damage：每 20tick 伤害值 [0, 1000] / damage per 20 ticks [0, 1000]
+    - durationTicks：持续 tick 数，NA = 无限 / duration in ticks, NA = infinite
+    - special：特殊状态（0-999 数值，或 null = 纯动画不吸引/不破坏/不吸收、onlypull = 只牵引不吸收（力度减半、伤害照常）、nullplus = null 且无电弧无粒子、nature = 自然生成专用——不吸引/不伤害实体，只牵引破坏掉落物并吸收方块，结束后爆炸）/ special state (numeric 0-999, or null = pure animation, onlypull = pull-only with halved force but normal damage, nullplus = null without arcs/particles, nature = natural-spawn variant — no attracting or harming entities, only pulls and destroys dropped items and absorbs blocks, explodes when done)
+    - color：16 种原版染料色之一，缺省 white / one of 16 vanilla dye colors, default white
+    - fxRadius：光效半径 [0.5, 128]，缺省 10 / visual-effect radius [0.5, 128], default 10
+
 ## Tech Stack / 技术栈
 
 - Java 8 (Jabel) / Minecraft 1.7.10 / Forge 10.13.4.1614
 - SpongePowered Mixin (11 mixin classes)
 - ModularUI / StructureLib
-- Dependencies: GT5U (explicit API dependency), GT++ (visible at compile time via the GT5U fat dev jar, no explicit declaration), Bartworks, TecTech (same fat dev jar), AE2, ModularUI/ModularUI2, GTNHLib, StructureLib, Postea, NEI, IC2, GTNEIOrePlugin, Botania, Waila; EFR (etfuturum) and BuildCraft are soft references (recipes only)
+- Dependencies: GT5U (explicit API dependency), GT++ (visible at compile time via the GT5U fat dev jar, no explicit declaration), Bartworks, TecTech (same fat dev jar), AE2, ModularUI/ModularUI2, GTNHLib, StructureLib, Postea, NEI, IC2, GTNEIOrePlugin, Botania, Waila, BetterQuesting (compileOnly — quest-line runtime injection, silently disabled when absent / 任务线运行时注入，缺席时静默停用); EFR (etfuturum) and BuildCraft are soft references (recipes only)
 
 ## License / 许可证
 
-See LICENSE file.
-详见 LICENSE 文件。
+BSD 3-Clause — see the LICENSE file.
+采用 BSD 3-Clause 许可证，详见 LICENSE 文件。

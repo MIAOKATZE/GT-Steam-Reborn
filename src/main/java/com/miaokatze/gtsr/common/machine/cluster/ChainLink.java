@@ -87,6 +87,14 @@ public enum ChainLink {
     }
 
     /**
+     * @return 该链步无加速时的基础耗时（秒，tick ÷ 20 的 double 精确值——亚秒基础时间如 16t=0.8s
+     *         不再被 int 除法截断；GUI 显示口径用，执行计时仍以 {@link #getBaseTicks()} 为准）
+     */
+    public double getBaseSecondsPrecise() {
+        return baseTicks / (double) TICKS_PER_SECOND;
+    }
+
+    /**
      * @return 该链步的基础蒸汽消耗（L/s）；物流链步无蒸汽，不经本枚举表达
      */
     public int getBaseSteamLps() {

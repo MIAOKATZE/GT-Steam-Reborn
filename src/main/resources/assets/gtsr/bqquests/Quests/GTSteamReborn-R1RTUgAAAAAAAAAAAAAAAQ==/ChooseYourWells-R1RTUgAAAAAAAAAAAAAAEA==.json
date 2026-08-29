@@ -1,0 +1,69 @@
+{
+  "preRequisites:9": {
+    "0:10": {
+      "questIDHigh:4": 5139824686389002240,
+      "questIDLow:4": 11
+    },
+    "1:10": {
+      "questIDHigh:4": 5139824686389002240,
+      "questIDLow:4": 13
+    },
+    "2:10": {
+      "questIDHigh:4": 5139824686389002240,
+      "questIDLow:4": 15
+    }
+  },
+  "properties:10": {
+    "betterquesting:10": {
+      "autoClaim:1": 0,
+      "countAsQuest:1": 1,
+      "desc:8": "The three wells meet — selection time: geothermal eats §3capital cost§r in exchange for round-the-clock output, but wants magma plumbing; solar runs §1full by day, zero by night§r and must shave its peaks with reservoirs; the compressor converts §1steam surplus§r into superheated — the most flexible, and the hungriest for total volume.\n\nThere is no standard answer, only fit or misfit — ratio them by your base's §3veins, weather and steam ledger§r.\n\n§8§oAdults, of course, take all three.§r",
+      "globalShare:1": 0,
+      "icon:10": {
+        "Count:3": 1,
+        "Damage:2": 14855,
+        "OreDict:8": "",
+        "id:8": "gregtech:gt.blockmachines"
+      },
+      "isMain:1": 0,
+      "isSilent:1": 0,
+      "lockedProgress:1": 0,
+      "name:8": "§6§lChoose Your Wells",
+      "questLogic:8": "AND",
+      "repeatTime:3": -1,
+      "simultaneous:1": 0,
+      "snd_complete:8": "random.levelup",
+      "snd_update:8": "random.levelup",
+      "taskLogic:8": "AND",
+      "visibility:8": "NORMAL"
+    }
+  },
+  "questIDHigh:4": 5139824686389002240,
+  "questIDLow:4": 16,
+  "rewards:9": {
+    "0:10": {
+      "index:3": 0,
+      "rewardID:8": "bq_standard:item",
+      "rewards:9": {
+        "0:10": {
+          "Count:3": 1,
+          "Damage:2": 0,
+          "OreDict:8": "",
+          "id:8": "gtsr:GeothermalOverheatChip"
+        },
+        "1:10": {
+          "Count:3": 128,
+          "Damage:2": 0,
+          "OreDict:8": "",
+          "id:8": "minecraft:gold_ingot"
+        }
+      }
+    }
+  },
+  "tasks:9": {
+    "0:10": {
+      "index:3": 0,
+      "taskID:8": "bq_standard:checkbox"
+    }
+  }
+}

@@ -1,0 +1,59 @@
+{
+  "preRequisites:9": {
+    "0:10": {
+      "questIDHigh:4": 5139824686389002240,
+      "questIDLow:4": 4
+    },
+    "1:10": {
+      "questIDHigh:4": 5139824686389002240,
+      "questIDLow:4": 5
+    }
+  },
+  "properties:10": {
+    "betterquesting:10": {
+      "autoClaim:1": 0,
+      "countAsQuest:1": 1,
+      "desc:8": "String chapter A's formulas into one closed production line: the compressor drinks §66,400 steam/s§r, puts out §61,600 superheated/s§r and tips §130 L/s§r of distilled water back; that water reboils into §64,800 steam/s§r.\n\nOn this loop a bronze air compressor rated §6400 L/s§r runs on superheated as §63,200 L air/s§r — §2a 4x throughput at zero net steam cost§r.\n\nLine up the reservoir, the compressor and the steam eaters in a row, and the books close themselves.\n\n§8§oSteam burns, and the accounts balance themselves.§r",
+      "globalShare:1": 0,
+      "icon:10": {
+        "Count:3": 1,
+        "Damage:2": 14855,
+        "OreDict:8": "",
+        "id:8": "gregtech:gt.blockmachines"
+      },
+      "isMain:1": 0,
+      "isSilent:1": 0,
+      "lockedProgress:1": 0,
+      "name:8": "§6§lThe Free 4x Loop",
+      "questLogic:8": "AND",
+      "repeatTime:3": -1,
+      "simultaneous:1": 0,
+      "snd_complete:8": "random.levelup",
+      "snd_update:8": "random.levelup",
+      "taskLogic:8": "AND",
+      "visibility:8": "NORMAL"
+    }
+  },
+  "questIDHigh:4": 5139824686389002240,
+  "questIDLow:4": 7,
+  "rewards:9": {
+    "0:10": {
+      "index:3": 0,
+      "rewardID:8": "bq_standard:item",
+      "rewards:9": {
+        "0:10": {
+          "Count:3": 64,
+          "Damage:2": 0,
+          "OreDict:8": "",
+          "id:8": "minecraft:iron_ingot"
+        }
+      }
+    }
+  },
+  "tasks:9": {
+    "0:10": {
+      "index:3": 0,
+      "taskID:8": "bq_standard:checkbox"
+    }
+  }
+}

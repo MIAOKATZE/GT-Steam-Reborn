@@ -137,10 +137,10 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
     /** 载入重连提示（x,y,z,dim,pad,segment 六元组；读档回填，周期重连时消费）。 */
     private final List<int[]> pendingReconnectHints = new ArrayList<>();
 
-    /** FX 节流锚点：最近一次链批执行成功的服务端 tick（getBaseMetaTileEntity().getTimer()；MIN_VALUE=从未）。 */
+    /** FX 吞吐记账锚点：最近一次链批执行成功的服务端 tick（getBaseMetaTileEntity().getTimer()；MIN_VALUE=从未）。 */
     protected long lastBatchServerTick = Long.MIN_VALUE;
 
-    /** @return 最近一次真实批成功的服务端 tick（ClusterParticleFx.isFxWorking 窗口判据）。 */
+    /** @return 最近一次真实批成功的服务端 tick（吞吐记账锚点；旧 isFxWorking 40t 窗口判据已删）。 */
     public long getLastBatchServerTick() {
         return lastBatchServerTick;
     }
@@ -560,12 +560,22 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
         });
     }
 
-    /** 挂点中心注册（粒子 FX 候选位）：各已收集单元控制器位（控制器相对 ABC 偏移）；结构重检/断裂时清除。 */
+    /** 挂点中心注册（粒子 FX 候选位，服务端）：拓扑各单元控制器位（控制器相对 ABC 偏移）。 */
     private void registerMountCenters() {
+        registerFxMountCenterOffsets(topology.getUnits());
+    }
+
+    /**
+     * 挂点中心注册公共实现（粒子 FX 候选位）：各单元控制器位（控制器相对 ABC 偏移）。
+     * 双端各注册各自实例 key——服务端在 checkMachine 收尾（拓扑单元）、客户端经
+     * {@link #updateClientFxMountCenters} 惰性扫描（结构重检/断裂时 checkMachine 复位段清服务端
+     * key、tier 归 -1 清客户端 key；onRemoval 配对清理本端 key）。
+     */
+    private void registerFxMountCenterOffsets(List<MTEClusterUnitBase> units) {
         IGregTechTileEntity base = getBaseMetaTileEntity();
         if (base == null) return;
         List<int[]> centers = new ArrayList<>();
-        for (MTEClusterUnitBase unit : topology.getUnits()) {
+        for (MTEClusterUnitBase unit : units) {
             IGregTechTileEntity ub = unit.getBaseMetaTileEntity();
             if (ub == null) continue;
             Vec3Impl abc = getExtendedFacing().getOffsetABC(
@@ -576,6 +586,57 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
             centers.add(new int[] { abc.get0(), abc.get1(), abc.get2() });
         }
         if (!centers.isEmpty()) ClusterParticleFx.registerMountCenters(this, centers);
+    }
+
+    /** 客户端挂点中心候选武装标记（一次性注册范式；tier 归 -1 时清除并重武装）。 */
+    private boolean fxMountCentersRegistered = false;
+
+    /** 客户端挂点中心扫描半径（格）：覆盖满配 9 延伸段 92 深结构对角余量。 */
+    private static final int FX_MOUNT_SEARCH_RADIUS = 100;
+
+    /**
+     * 客户端惰性注册/清理挂点中心候选（仿 MTEBasicProcessingUnit 客户端一次性注册范式）：
+     * 字节同步 tier ≥ 0（结构成型信号——mMachine 本身不下发客户端）后首次执行，扫描本客户端
+     * 实例结构包络内的单元控制器并注册挂点中心候选；tier 归 -1（结构断裂）时配对
+     * {@link ClusterParticleFx#clearMountCenters} 清本客户端实例 key 并重武装，再次成型时重扫。
+     * 成员资格以「总控结构包络（29 宽 × 15 高 × 主段+延伸段深）内出现单元控制器」判定——成型
+     * 结构方块独占，包络内的控制器必落在本控 F/G/H 挂点槽位（服务端扫描同源收集），异集群
+     * 控制器不可能落入本包络。每 tick 客户端分支调用，注册/清理仅在武装标记边沿各执行一次。
+     */
+    private void updateClientFxMountCenters(IGregTechTileEntity aBaseMetaTileEntity) {
+        if (mCasingTier < 0) {
+            if (fxMountCentersRegistered) {
+                fxMountCentersRegistered = false;
+                ClusterParticleFx.clearMountCenters(this);
+            }
+            return;
+        }
+        if (fxMountCentersRegistered) return;
+        IGregTechTileEntity base = getBaseMetaTileEntity();
+        World world = base == null ? null : base.getWorld();
+        if (base == null || world == null) return;
+        List<MTEClusterUnitBase> units = new ArrayList<>();
+        int cx = base.getXCoord(), cy = base.getYCoord(), cz = base.getZCoord();
+        int depthMin = -ClusterStructureDef.mainOffsetC();
+        int depthMax = depthMin + ClusterParams.SEGMENT_DEPTH_MAIN
+            - 1
+            + ClusterParams.SEGMENT_DEPTH_EXT * ClusterTopology.MAX_EXTENSION_SEGMENTS;
+        for (Object o : world.loadedTileEntityList) {
+            if (!(o instanceof net.minecraft.tileentity.TileEntity te)) continue;
+            if (Math.abs(te.xCoord - cx) > FX_MOUNT_SEARCH_RADIUS || Math.abs(te.yCoord - cy) > FX_MOUNT_SEARCH_RADIUS
+                || Math.abs(te.zCoord - cz) > FX_MOUNT_SEARCH_RADIUS) continue;
+            if (!(te instanceof IGregTechTileEntity gte)) continue;
+            if (!(gte.getMetaTileEntity() instanceof MTEClusterUnitBase unit)) continue;
+            Vec3Impl abc = getExtendedFacing()
+                .getOffsetABC(new Vec3Impl(te.xCoord - cx, te.yCoord - cy, te.zCoord - cz));
+            // 结构包络过滤：列 0..28 × 层 0..14 × 深度 [-7, 84]（主段 20 + 9×8 延伸）
+            if (abc.get0() < 0 || abc.get0() >= 29 || abc.get1() < 0 || abc.get1() >= 15) continue;
+            if (abc.get2() < depthMin || abc.get2() > depthMax) continue;
+            units.add(unit);
+        }
+        if (units.isEmpty()) return;
+        registerFxMountCenterOffsets(units);
+        fxMountCentersRegistered = true;
     }
 
     /** @return 四族 tier 全部相等且有效时返回该 tier 下标（0-3），否则 -1（混拼或未成型）。 */
@@ -696,17 +757,19 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
      * 服务端编排（每 tick，O2：只编排与状态汇聚）。
      *
      * <p>
-     * 顺序：super（父类事件式结构重检/runMachine）→ 客户端粒子分支 → 总控工作态覆写（决策 6：
-     * setActive 与 preheat 升温入参逐字同口径，零配方总控的正面贴图随热量/供给联动）→
-     * 未成型衰减分支（头部懒加载守卫：决策 13，重载首检窗口内只关粒子窗，不衰减/不清红标/
-     * 不写边沿日志/不结算）→ 周期重连容错 → 每 tick 热量推进（供给态 = 20t 结算锁存）→
-     * 粒子窗口驱动 → 每 20t 结算编排（settleSteamEconomy）。
+     * 顺序：super（父类事件式结构重检/runMachine）→ 客户端粒子分支（惰性注册挂点中心候选 + 工作态
+     * mWorkingForFX 每 tick 喷粒子）→ 总控工作态覆写（决策 6：setActive 与 preheat 升温入参逐字
+     * 同口径，零配方总控的正面贴图随热量/供给联动）→ 未成型衰减分支（头部懒加载守卫：决策 13，
+     * 重载首检窗口内只衰减豁免，不衰减/不清红标/不写边沿日志/不结算）→ 周期重连容错 →
+     * 每 tick 热量推进（供给态 = 20t 结算锁存）→ 每 20t 结算编排（settleSteamEconomy）。
      */
     @Override
     public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
         super.onPostTick(aBaseMetaTileEntity, aTick);
-        // 客户端：工作态时每 tick 喷粒子（ClusterParticleFx 内部再判真实批窗口），其余客户端逻辑无
+        // 客户端：惰性注册/清理挂点中心候选（成型信号 = 字节同步 mCasingTier ≥ 0）；工作态
+        // （mWorkingForFX，getUpdateData bit0 结构正常工作口径）时每 tick 喷粒子，其余客户端逻辑无
         if (!aBaseMetaTileEntity.isServerSide()) {
+            updateClientFxMountCenters(aBaseMetaTileEntity);
             if (mWorkingForFX) ClusterParticleFx.spawnParticles(this);
             return;
         }
@@ -718,13 +781,13 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
         aBaseMetaTileEntity
             .setActive(mMachine && machineEnabled && aBaseMetaTileEntity.isAllowedToWork() && thermalSupplyOkLatched);
 
-        // 结构未成型：停机衰减（-5/tick）、经济红标清位、吞吐清 0、粒子窗口关；满热丢失边沿日志。
+        // 结构未成型：停机衰减（-5/tick）、经济红标清位、吞吐清 0；满热丢失边沿日志。
         // 懒加载守卫（SR-Cluster-r5 决策 13）：GT5U 重载后 mStartUpCheck=100 首检窗口内 mMachine
         // 尚未由 checkStructure 判定——此时不得衰减热量/清经济红标/写边沿日志/结算（NBT 热量跨
-        // 重载冻结保持）；窗口过后结构真坏则照常衰减。仅关粒子窗口。
+        // 重载冻结保持）；窗口过后结构真坏则照常衰减。（旧"仅关粒子窗"守卫已随静态窗口 API 删除——
+        // 粒子门控唯一权威是字节同步 mWorkingForFX，客户端实例的挂点候选由 tier 归 -1 配对清理）
         if (!mMachine) {
             if (getmStartUpCheck() > 0) {
-                ClusterParticleFx.setParticleWindow(false);
                 return;
             }
             preheat.tickServer(false, false, false);
@@ -732,7 +795,6 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
             thermalSupplyOkLatched = false;
             lastThroughputOrePerSec = 0D;
             throughputWindowItems = 0;
-            ClusterParticleFx.setParticleWindow(false);
             if (wasHeating || (wasFullHeat && !preheat.isReady())) {
                 if (wasFullHeat && !preheat.isReady()) {
                     GTSteamReborn.LOG.warn(
@@ -757,9 +819,6 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
         // 与物理电源（软锤/红石）任一关闭即按停机处理——预热停增、走 -1%/s 停机衰减（保热量设计）。
         preheat
             .tickServer(machineEnabled && getBaseMetaTileEntity().isAllowedToWork(), mMachine, thermalSupplyOkLatched);
-
-        // 粒子窗口驱动：成型 + 开机 + 满热 + 距最近真实成功批 < 40t（isFxWorking）才开窗
-        ClusterParticleFx.setParticleWindow(machineEnabled && preheat.isReady() && ClusterParticleFx.isFxWorking(this));
 
         // 蒸汽/润滑液秒级结算编排（每 20 tick 一次）
         if (aTick % SETTLE_INTERVAL_TICKS == 0) {
@@ -1076,7 +1135,7 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
 
     /**
      * {@inheritDoc} 真实成功批吞吐累计：同秒段多链求和进 20t 对齐窗口（结算时发布为矿石/s 读数），
-     * 同时刷新 FX 节流锚点（距最近成功批 &lt; 40t 视为工作态）。
+     * 同时刷新批成功记账锚点。
      */
     @Override
     public void addRealBatchThroughput(int items) {
@@ -1317,7 +1376,7 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
                 + ")";
     }
 
-    // —— 字节通道：bit0=工作态（粒子开关，批执行 40t 窗口）；bit1-6=集群 tier+1（0=未成型 -1，
+    // —— 字节通道：bit0=工作态（结构正常工作四项判据）；bit1-6=集群 tier+1（0=未成型 -1，
     // 1..4=tier 0..3；切片 2 新增，不复用 bit0 粒子字段）——
 
     @Override
@@ -1330,9 +1389,13 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
 
     @Override
     public byte getUpdateData() {
-        // 工作态 = 距最近一次批执行 < 40t（结算节拍 20t 的双周期余量），判定委托 ClusterParticleFx
+        // 工作态 bit0 = 结构正常工作四项判据，与 onPostTick 的 setActive 覆写完全同口径：
+        // 成型 + 开机（GUI 开关）+ 允许工作（软锤/红石）+ 20t 双流体供给锁存——粒子动画随结构
+        // 工作态驱动（旧「距最近真实批 < 40t」的 ClusterParticleFx.isFxWorking 判据已删）
         int tierBits = Math.max(0, Math.min(0x3F, mCasingTier + 1));
-        return (byte) ((tierBits << 1) | (ClusterParticleFx.isFxWorking(this) ? 0x01 : 0x00));
+        return (byte) ((tierBits << 1)
+            | (mMachine && machineEnabled && getBaseMetaTileEntity().isAllowedToWork() && thermalSupplyOkLatched ? 0x01
+                : 0x00));
     }
 
     /** @return 预热状态机（NBT 编解码和 GUI 直读共用）。 */
@@ -1536,6 +1599,18 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
         super.loadNBTData(aNBT);
         machineEnabled = aNBT.hasKey("machineEnabled") ? aNBT.getBoolean("machineEnabled") : true;
         ClusterPersistence.read(this, aNBT);
+    }
+
+    /**
+     * {@inheritDoc} 拆除/区块卸载清理：配对注销本端实例的粒子挂点中心候选注册（服务端 key 由
+     * checkMachine 复位段与 onRemoval 双路径清理，客户端 key 由 tier 归 -1 分支与 onRemoval
+     * 双路径清理——与双端惰性/成型注册一一成对）。
+     */
+    @Override
+    public void onRemoval() {
+        ClusterParticleFx.clearMountCenters(this);
+        fxMountCentersRegistered = false;
+        super.onRemoval();
     }
 
     /** 总控零配方，使用真实状态词条，不显示恒定 NO_RECIPE 结果词条与配方信息区。 */

@@ -51,6 +51,7 @@ public final class GTSRProgressBarGuiHelper {
                         + entry.getFormattedText(sync.getValue())
                         + EnumChatFormatting.RESET)
                     .asWidget()
+                    .setEnabledIf(w -> sync.getValue() > 0.0D)
                     .marginBottom(2)
                     .fullWidth());
         }
