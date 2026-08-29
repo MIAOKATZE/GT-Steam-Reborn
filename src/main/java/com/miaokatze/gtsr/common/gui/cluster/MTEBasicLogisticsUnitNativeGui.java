@@ -11,7 +11,6 @@ import com.cleanroommc.modularui.value.sync.IntSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.value.sync.StringSyncValue;
 import com.cleanroommc.modularui.widgets.ListWidget;
-import com.miaokatze.gtsr.common.gui.GTSRProgressBarGuiHelper;
 import com.miaokatze.gtsr.common.machine.cluster.ChainLink;
 import com.miaokatze.gtsr.common.machine.cluster.LogisticsChain;
 import com.miaokatze.gtsr.common.machine.cluster.MTEBasicLogisticsUnit;
@@ -20,13 +19,13 @@ import com.miaokatze.gtsr.common.machine.cluster.MTESteamMineralLogisticsCluster
 /**
  * 物流模块的 GT 原生 GUI（终验反馈：物流不使用独立 MUI2 UI），继承
  * {@link MTEClusterUnitNativeGui} 通用词条，追加物流富词条：段/垫位置、链摘要
- * （长度+可执行+失败步原因）、GTSR 工作进度词条、物理电源开关与软锤复位指引。
+ * （长度+可执行+失败步原因）、物理电源开关与软锤复位指引。
  *
  * <p>
  * 失败步原因为服务端计算的 lang 键（链结构无效取 {@link LogisticsChain#getInvalidReasonKey()}，
  * 链步锁定取 {@link LogisticsChain#getLinkLockReasonKey}，均复用现有 gtsr.gui.cluster.* 键），
- * 经 StringSyncValue 同步后客户端本地化；段/垫同为服务端真值同步。批冷却词条已删除——工作态
- * 显示由 {@link MTEBasicLogisticsUnit} 注册的「工作进度」词条（GTSR 词条系统）承担。
+ * 经 StringSyncValue 同步后客户端本地化；段/垫同为服务端真值同步。工作态进度显示由
+ * GT 原生配方进度行承担（showRecipeTextInGUI 恢复默认，空闲自动隐藏）。
  */
 public class MTEBasicLogisticsUnitNativeGui extends MTEClusterUnitNativeGui {
 
@@ -82,8 +81,6 @@ public class MTEBasicLogisticsUnitNativeGui extends MTEClusterUnitNativeGui {
         BooleanSyncValue powerSync = syncManager.findSyncHandler("gtsr.logi.power", BooleanSyncValue.class);
 
         ListWidget<IWidget, ?> list = super.createTerminalTextWidget(syncManager, parent);
-        // GTSR 工作进度词条（批冷却显示已删，工作态由此承担：mMaxProgresstime>0 显百分比，0 隐藏）
-        GTSRProgressBarGuiHelper.appendEntryRows(list, syncManager, logistics);
         // 段/垫位置（padId<0 = 未入位）
         list.child(IKey.dynamic(() -> {
             if (padSync.getValue() < 0 || segSync.getValue() < 0) {

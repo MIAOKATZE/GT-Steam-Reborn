@@ -1461,7 +1461,6 @@ gtsr.cluster.native.logistics.chain.empty=Empty chain
 gtsr.cluster.native.logistics.chain.length=%s steps
 gtsr.cluster.native.logistics.chain.executable=Executable
 gtsr.cluster.native.logistics.chain.blocked=Not executable
-gtsr.gui.logistics.work_progress=Work progress:
 gtsr.cluster.native.logistics.power=Physical power: 
 gtsr.cluster.native.logistics.power.on=On
 gtsr.cluster.native.logistics.power.off=Off

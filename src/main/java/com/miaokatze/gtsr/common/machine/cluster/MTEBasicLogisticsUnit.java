@@ -12,7 +12,6 @@ import java.util.List;
 
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.util.EnumChatFormatting;
 import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
@@ -109,26 +108,10 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
 
     public MTEBasicLogisticsUnit(int aID, String aName, String aNameRegional) {
         super(aID, aName, aNameRegional);
-        registerProgressEntries();
     }
 
     public MTEBasicLogisticsUnit(String aName) {
         super(aName);
-        registerProgressEntries();
-    }
-
-    /**
-     * GTSR 进度词条注册：「工作进度」——mMaxProgresstime&gt;0（批冷却虚拟空配方进行中）时显示
-     * mProgresstime×100/mMaxProgresstime 百分比；==0（就绪待机）时经自定义格式化器返回空串隐藏数值
-     * （词条系统不持条件行，空值即不显示任何进度文本）。
-     */
-    private void registerProgressEntries() {
-        registerEntryCustom(
-            "work_progress",
-            "gtsr.gui.logistics.work_progress",
-            EnumChatFormatting.GREEN,
-            () -> mMaxProgresstime > 0 ? mProgresstime * 100.0D / mMaxProgresstime : 0.0D,
-            v -> mMaxProgresstime > 0 ? String.format("%.1f%%", v) : "");
     }
 
     // ------------------------------------------------------------------
@@ -476,12 +459,12 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
      * GT 原生 GUI（终验反馈：物流不使用独立 MUI2 UI）：覆写基类共享 GUI 为物流富词条子类
      * （段/垫、链摘要、批配方时间、物理电源）。空手右击经 GT 基类默认路径打开本 GUI
      * （MTECrustMatterAggregator 同款语义），MUI2 状态页跳转已删除。
+     * <p>
+     * 配方进度读秒行（v1.11.9 遗留覆写已删除）：showRecipeTextInGUI 恢复 GT5U 默认 true——
+     * GUI 显示 GT5U 原生配方进度读秒行（mMaxProgresstime&gt;0 时 current/max 秒+百分比，
+     * 空闲自动隐藏）；"没有找到合成表"仍由基类
+     * {@code MTEClusterUnitBase.shouldDisplayCheckRecipeResult=false} 抑制。
      */
-    @Override
-    public boolean showRecipeTextInGUI() {
-        return false;
-    }
-
     @Override
     protected gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui<?> getGui() {
         return new MTEBasicLogisticsUnitNativeGui(this);

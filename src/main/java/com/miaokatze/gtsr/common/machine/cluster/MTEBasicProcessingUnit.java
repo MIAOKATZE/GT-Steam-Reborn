@@ -87,7 +87,8 @@ public abstract class MTEBasicProcessingUnit extends MTEClusterUnitBase<MTEBasic
      * 字面来源 {@code plan/基本加工单元-修.java}（草稿层在前 [Y][Z][X]），按 {@code current[z][y]=draft[y][z]}
      * 逐字符转置。字符语义：A=tiered 外壳族（基类绑定）；B=tiered 齿轮箱族（青铜/钢/钛/钨钢，
      * gt.blockcasings2 meta 2/3/4/5）；C=tiered 管道族（meta 12-15，草稿 y=1 环中列全 C，以草稿为准）；
-     * D=tiered 框架族；E=GT 玻璃；F 与 '-'=严格空气（草稿 stone 占位重绑为 isAir，并作为粒子候选位）。
+     * D=tiered 框架族；E=GT 玻璃；F 与 '-'=严格空气（草稿 stone 占位重绑为 isAir），其中 F 为严格
+     * 空气、非粒子候选位；仅 '-' 为粒子候选位。
      */
     @Override
     protected String[][] getUnitShape() {
@@ -100,7 +101,8 @@ public abstract class MTEBasicProcessingUnit extends MTEClusterUnitBase<MTEBasic
 
     /**
      * 结构元素绑定：B/C/D 走基类 tiered 族 helper（齿轮箱族不再借用旧管道 helper），E=GT 玻璃
-     * （沿用既有绑定），F 与 '-'=严格空气（原 stone/firebox 语义废弃）。
+     * （沿用既有绑定），F 与 '-'=严格空气（原 stone/firebox 语义废弃），F 非粒子候选位、
+     * 仅 '-' 为粒子候选位。
      */
     @Override
     @SuppressWarnings("rawtypes")
@@ -132,7 +134,7 @@ public abstract class MTEBasicProcessingUnit extends MTEClusterUnitBase<MTEBasic
     private boolean fxCandidatesRegistered = false;
 
     /**
-     * 客户端：一次性把本单元矩阵的全部严格空气位（F 与 '-'）注册为粒子候选位。
+     * 客户端：一次性把本单元矩阵的全部 '-' 内腔空气位注册为粒子候选位（F 为严格空气、非候选）。
      *
      * <p>
      * 成型/运行判定不在注册侧做——客户端不知 mMachine，实际喷粒子由 {@link ClusterParticleFx}
@@ -154,7 +156,7 @@ public abstract class MTEBasicProcessingUnit extends MTEClusterUnitBase<MTEBasic
         super.onRemoval();
     }
 
-    /** 本单元矩阵全部严格空气位相对控制器 {@code (offsetA, offsetB, offsetC)} 的偏移（懒扫描一次）。 */
+    /** 本单元矩阵全部 '-' 内腔空气位相对控制器 {@code (offsetA, offsetB, offsetC)} 的偏移（懒扫描一次）。 */
     private List<int[]> computeAirCandidateOffsets() {
         String[][] shape = getUnitShape();
         List<int[]> offsets = new ArrayList<>();
@@ -163,7 +165,7 @@ public abstract class MTEBasicProcessingUnit extends MTEClusterUnitBase<MTEBasic
                 String line = shape[z][y];
                 for (int x = 0; x < line.length(); x++) {
                     char c = line.charAt(x);
-                    if (c == 'F' || c == '-') offsets.add(
+                    if (c == '-') offsets.add(
                         new int[] { x - getStructureOffsetA(), y - getStructureOffsetB(), z - getStructureOffsetC() });
                 }
             }

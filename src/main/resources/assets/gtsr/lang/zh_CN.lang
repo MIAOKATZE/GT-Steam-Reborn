@@ -1456,7 +1456,6 @@ gtsr.cluster.native.logistics.chain.empty=空链
 gtsr.cluster.native.logistics.chain.length=%s 步
 gtsr.cluster.native.logistics.chain.executable=可执行
 gtsr.cluster.native.logistics.chain.blocked=不可执行
-gtsr.gui.logistics.work_progress=工作进度：
 gtsr.cluster.native.logistics.power=物理电源：
 gtsr.cluster.native.logistics.power.on=开机
 gtsr.cluster.native.logistics.power.off=已关机

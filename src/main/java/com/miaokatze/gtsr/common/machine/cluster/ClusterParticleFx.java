@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.particle.EntityCloudFX;
 import net.minecraft.world.World;
 
 import com.gtnewhorizon.structurelib.util.Vec3Impl;
@@ -13,12 +15,12 @@ import com.gtnewhorizon.structurelib.util.Vec3Impl;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 
 /**
- * 集群工作粒子 FX（仅客户端生效）：主控工作态（mWorkingForFX 字节同步）期间，每 tick 从候选位池
- * 随机取一位喷一个上升 "cloud" 粒子。
+ * 集群工作粒子 FX（仅客户端生效）：主控工作态（mWorkingForFX 字节同步）期间，每 tick 独立取两位
+ * 喷两个上升 "cloud" 粒子（密度×2），经 EntityCloudFX 缩放 0.5 的细颗粒。
  *
  * <h2>候选位</h2>
  * <ul>
- * <li>加工模块自身矩阵的严格空气位（F 与 '-'）：模块类在客户端 tick 一次性注册
+ * <li>加工模块自身矩阵的 '-' 内腔空气位：模块类在客户端 tick 一次性注册
  * {@link #registerAirCandidates}，热离/磁选的 P 能源位非空气、不进候选；</li>
  * <li>集群挂点中心：双端各注册各自实例 key——服务端成型扫描（总控 checkMachine 收尾）、
  * 客户端惰性扫描（总控客户端 onPostTick 首次成型信号时）经 {@link #registerMountCenters} 注册。</li>
@@ -73,7 +75,7 @@ public final class ClusterParticleFx {
 
     /**
      * 客户端入口（主控 onPostTick 客户端分支调用，调用方以 mWorkingForFX 为唯一工作态权威判据）：
-     * 从候选位池（active 单元的空气位 + 本主控挂点中心）随机取一位喷一个 cloud 粒子；无候选位则无粒子。
+     * 从候选位池（active 单元的空气位 + 本主控挂点中心）独立取两位各喷一个 cloud 粒子；无候选位则无粒子。
      */
     public static void spawnParticles(MTESteamMineralLogisticsCluster cluster) {
         if (cluster == null || cluster.getBaseMetaTileEntity() == null) return;
@@ -111,8 +113,10 @@ public final class ClusterParticleFx {
             }
         }
         if (candidates.isEmpty()) return;
-        Candidate candidate = candidates.get(world.rand.nextInt(candidates.size()));
-        spawnOne(candidate.x, candidate.y, candidate.z, candidate.offset, world);
+        for (int i = 0; i < 2; i++) {
+            Candidate candidate = candidates.get(world.rand.nextInt(candidates.size()));
+            spawnOne(candidate.x, candidate.y, candidate.z, candidate.offset, world);
+        }
     }
 
     private static final class Candidate {
@@ -198,15 +202,21 @@ public final class ClusterParticleFx {
                 .isActive();
     }
 
-    /** 在世界坐标（控制器 + 朝向偏移）处喷一个上升 cloud 粒子（参数对齐既有 0.8 格抖动）。 */
+    /**
+     * 在世界坐标（控制器 + 朝向偏移）处喷一个上升 cloud 粒子（EntityCloudFX 经
+     * multipleParticleScaleBy(0.5F) 细颗粒；+0.5 居中、0.8 格抖动、vy=0.3 语义不变），
+     * 加入客户端 EffectRenderer（仅客户端调用路径触达）。
+     */
     private static void spawnOne(int x, int y, int z, Vec3Impl worldOff, World world) {
-        world.spawnParticle(
-            "cloud",
+        EntityCloudFX fx = new EntityCloudFX(
+            world,
             x + worldOff.get0() + 0.5D + (world.rand.nextDouble() - 0.5D) * 0.8D,
             y + worldOff.get1() + 0.5D,
             z + worldOff.get2() + 0.5D + (world.rand.nextDouble() - 0.5D) * 0.8D,
             0.0D,
             0.3D,
             0.0D);
+        fx.multipleParticleScaleBy(0.5F);
+        Minecraft.getMinecraft().effectRenderer.addEffect(fx);
     }
 }
