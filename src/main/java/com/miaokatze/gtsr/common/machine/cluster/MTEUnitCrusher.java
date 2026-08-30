@@ -20,8 +20,8 @@ import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
  * 渲染面由基类 {@code getTexture} 的 side==facing 判定；底材走基类 tier 联动。
  *
  * <p>
- * 结构（r9 权威规格，5×6×5 canonical [Z][Y][X]，控制器 (0,4,2)）：'e'×4 粒子候选空气位
- * （x∈{1,3}, y0, z∈{1,3}）；A=外壳族（基类绑定）、B=齿轮箱族、C=管道族、D=框架族、E=玻璃、
+ * 结构（GTUDK 2026-08-31 重排规格，5×6×5 canonical [Z][Y][X]，控制器正面 (2,4,0)）：'e'×4 粒子
+ * 候选空气位（x∈{1,3}, y0, z∈{1,3}）；A=外壳族（基类绑定）、B=齿轮箱族、C=管道族、D=框架族、E=玻璃、
  * '-'/'e'=严格空气。
  */
 public class MTEUnitCrusher extends MTEBasicProcessingUnit {
@@ -54,14 +54,14 @@ public class MTEUnitCrusher extends MTEBasicProcessingUnit {
             PROVIDED_LINKS);
     }
 
-    /** 结构矩阵（canonical [Z][Y][X]，z0=正面；'~' 位于 (0,4,2)）。 */
+    /** 结构矩阵（canonical [Z][Y][X]，z0=正面；'~' 位于 (2,4,0)）。 */
     @Override
     protected String[][] getUnitShape() {
-        return new String[][] { { " DDD ", " AAA ", "DEEED", "DEEED", "DEEED", "DAAAD" },
-            { "DeAeD", "ACCCA", "A-B-A", "A---A", "A-B-A", "ABCBA" },
-            { "DAAAD", "ACCCA", "ABBBA", "A---A", "~BBBA", "ACCCA" },
-            { "DeAeD", "ACCCA", "A-B-A", "A---A", "A-B-A", "ABCBA" },
-            { " DDD ", " AAA ", "DEEED", "DEEED", "DEEED", "DAAAD" }, };
+        return new String[][] { { " DDD ", " AAA ", "DAAAD", "DAAAD", "DA~AD", "DAAAD" },
+            { "DeAeD", "ACCCA", "E-B-E", "E---E", "E-B-E", "ABCBA" },
+            { "DAAAD", "ACCCA", "EBBBE", "E---E", "EBBBE", "ACCCA" },
+            { "DeAeD", "ACCCA", "E-B-E", "E---E", "E-B-E", "ABCBA" },
+            { " DDD ", " AAA ", "DAAAD", "DAAAD", "DAAAD", "DAAAD" }, };
     }
 
     /** 专有结构元素：B=齿轮箱族、C=管道族、D=框架族、E=玻璃、'-'/'e'=严格空气。 */
@@ -78,7 +78,7 @@ public class MTEUnitCrusher extends MTEBasicProcessingUnit {
 
     @Override
     protected int getStructureOffsetA() {
-        return 0;
+        return 2;
     }
 
     @Override
@@ -88,7 +88,7 @@ public class MTEUnitCrusher extends MTEBasicProcessingUnit {
 
     @Override
     protected int getStructureOffsetC() {
-        return 2;
+        return 0;
     }
 
     @Override

@@ -763,10 +763,11 @@ public abstract class MTEHubArrayBase<T extends MTEHubArrayBase<T>> extends MTEG
 
         GTUtility.addItemToPlayerInventory(aPlayer, bound);
         aPlayer.inventoryContainer.detectAndSendChanges();
+        String modeKey = getLockedItemOutput(type) ? "gtsr.binding.mode_input" : "gtsr.binding.mode_output";
         GTUtility.sendChatToPlayer(
             aPlayer,
             StatCollector.translateToLocal("gtsr.binding.bound_output") + bound.getDisplayName()
-                + StatCollector.translateToLocal("gtsr.binding.mode_output"));
+                + StatCollector.translateToLocal(modeKey));
     }
 
     /**
@@ -799,10 +800,11 @@ public abstract class MTEHubArrayBase<T extends MTEHubArrayBase<T>> extends MTEG
             .setTag("gtsr.hubPos", hubTag);
 
         aPlayer.inventoryContainer.detectAndSendChanges();
+        String modeKey = getLockedItemOutput(type) ? "gtsr.binding.mode_input" : "gtsr.binding.mode_output";
         GTUtility.sendChatToPlayer(
             aPlayer,
             StatCollector.translateToLocal("gtsr.binding.bound_output") + held.getDisplayName()
-                + StatCollector.translateToLocal("gtsr.binding.mode_output"));
+                + StatCollector.translateToLocal(modeKey));
     }
 
     // endregion

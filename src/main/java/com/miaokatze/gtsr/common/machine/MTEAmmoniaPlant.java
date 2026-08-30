@@ -78,7 +78,7 @@ public class MTEAmmoniaPlant extends MTEGTSRMultiBlockBase<MTEAmmoniaPlant> impl
     private static final int MAINTAIN_GAS_PER_TICK = MAINTAIN_REFINERY_GAS_PER_SEC / 20;
     private static final int EXTRA_STEAM_FORMULA_CONSTANT = 16000;
 
-    private static final int[][] CATALYST_DATA = { { 64, 64 }, { 96, 48 }, { 128, 64 }, { 192, 24 }, { 256, 16 },
+    private static final int[][] CATALYST_DATA = { { 80, 64 }, { 96, 48 }, { 128, 32 }, { 192, 24 }, { 256, 16 },
         { 256, 8 }, { 256, 1 } };
 
     private static final String STRUCTURE_PIECE_MAIN = "main";

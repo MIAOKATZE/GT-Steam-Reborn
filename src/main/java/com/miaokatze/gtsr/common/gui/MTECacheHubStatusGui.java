@@ -253,9 +253,10 @@ public abstract class MTECacheHubStatusGui implements IGuiHolder<PosGuiData> {
             }, true);
         capButton.setEnabled(!offline && supportsCapTier(info.type));
 
-        // 输出模式开关按钮：图标随状态切换（export=输出：节点→枢纽 / import=输入：枢纽→节点），点击切换
+        // 输出模式开关按钮：图标随状态切换（out=true 实际为枢纽→节点，显示 import；
+        // out=false 实际为节点→枢纽，显示 export），点击切换
         ButtonWidget<?> modeButton = new ButtonWidget<>().size(16)
-            .overlay(info.out ? GTGuiTextures.OVERLAY_BUTTON_EXPORT : GTGuiTextures.OVERLAY_BUTTON_IMPORT)
+            .overlay(info.out ? GTGuiTextures.OVERLAY_BUTTON_IMPORT : GTGuiTextures.OVERLAY_BUTTON_EXPORT)
             .onMousePressed(mouseButton -> {
                 CacheNodeInfo current = currentInfo.get();
                 if (current != null) actionSync.sendSetMode(current);
@@ -266,13 +267,13 @@ public abstract class MTECacheHubStatusGui implements IGuiHolder<PosGuiData> {
                 boolean output = (current == null ? info : current).out;
                 t.addLine(
                     IKey.lang(
-                        output ? "gtsr.cache_hub_status.mode_tip_output" : "gtsr.cache_hub_status.mode_tip_input"));
+                        output ? "gtsr.cache_hub_status.mode_tip_input" : "gtsr.cache_hub_status.mode_tip_output"));
             })
             .onUpdateListener(button -> {
                 CacheNodeInfo current = currentInfo.get();
                 if (current != null) {
                     button.overlay(
-                        current.out ? GTGuiTextures.OVERLAY_BUTTON_EXPORT : GTGuiTextures.OVERLAY_BUTTON_IMPORT);
+                        current.out ? GTGuiTextures.OVERLAY_BUTTON_IMPORT : GTGuiTextures.OVERLAY_BUTTON_EXPORT);
                     button.setEnabled(!current.type.isEmpty() && !current.modeLocked);
                 }
             }, true);
@@ -461,7 +462,7 @@ public abstract class MTECacheHubStatusGui implements IGuiHolder<PosGuiData> {
         public final int rate;
         /** 容量上限百分比（S4：100→80→…→5 循环档位；发送类仓恒 100 不适用） */
         public final int capPct;
-        /** 输出模式：true=节点→枢纽，false=枢纽→节点 */
+        /** 方向模式（与枢纽 transferOneNode 实际流向一致）：true=枢纽→节点，false=节点→枢纽 */
         public final boolean out;
         /** 自动输出开关：true=节点向正面相邻容器推送流体（与方向模式解耦） */
         public final boolean auto;
