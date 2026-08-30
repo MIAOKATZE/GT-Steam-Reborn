@@ -1,10 +1,14 @@
 package com.miaokatze.gtsr.common.machine.cluster;
 
+import static com.gtnewhorizon.structurelib.structure.StructureUtility.isAir;
+import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlock;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlocksTiered;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import net.minecraft.block.Block;
+import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
@@ -47,9 +51,9 @@ import gregtech.api.util.MultiblockTooltipBuilder;
  * 集群侧的 collect/connect、周期重连和读档重连仍沿用原有双向引用契约。
  *
  * <p>
- * tier 分族（3.4.4）：A 外壳 / B 齿轮箱 / C 管道 / D 框架各族独立记录匹配 tier，
- * {@link #checkMachine} 开头 {@link #resetTierFamilies()} 全复位，结构检查后所有参与 tier 判定的
- * 族必须存在且同级才得出 {@link #getUnitStructureTier()}——跨 tier 混搭不成型；主控下发的集群
+ * tier 分族（r9 扩为七族）：A 外壳 / B 齿轮箱 / C 管道 / D 框架 / C' 燃烧室 / 金属 / 线圈各族独立
+ * 记录匹配 tier，{@link #checkMachine} 开头 {@link #resetTierFamilies()} 全复位，结构检查后所有参与
+ * tier 判定的族必须存在且同级才得出 {@link #getUnitStructureTier()}——跨 tier 混搭不成型；主控下发的集群
  * tier 经 clusterTier 独立保存（{@link #getClusterTier()}），{@link #isTierValidForConnection()}
  * 要求两者一致。单元底材贴图、增幅数值、物流链蒸汽 tier 取单元自身已验证 tier；集群拓扑仍以
  * 主控结构 tier 为全局等级。
@@ -107,6 +111,26 @@ public abstract class MTEClusterUnitBase<T extends MTEClusterUnitBase<T>> extend
         Pair.of(GregTechAPI.sBlockFrames, 316));
 
     /**
+     * 金属族（r9，磁选 'b'）：铁块 0 档 / 钢块（gt.blockmetal6:13）/ 钕块（gt.blockmetal6:5）/
+     * 钐块（gt.blockmetal5:0），四档 tier 顺序（权威规格 plan/结构）。
+     */
+    private static final List<Pair<Block, Integer>> METAL_FAMILY = ImmutableList.of(
+        Pair.of(Blocks.iron_block, 0),
+        Pair.of(GregTechAPI.sBlockMetal6, 13),
+        Pair.of(GregTechAPI.sBlockMetal6, 5),
+        Pair.of(GregTechAPI.sBlockMetal5, 0));
+
+    /**
+     * 线圈族（r9，热离 'a'）：gt.blockcasings5 白铜(:0) / 坎塔尔(:1) / 钛铂钒(:3) / HSS-G(:4)。
+     * ⚠ 第四档为 meta 4（GT5U lang 证据，规格注释误写 meta 0，唯一授权偏离）。
+     */
+    private static final List<Pair<Block, Integer>> COIL_FAMILY = ImmutableList.of(
+        Pair.of(GregTechAPI.sBlockCasings5, 0),
+        Pair.of(GregTechAPI.sBlockCasings5, 1),
+        Pair.of(GregTechAPI.sBlockCasings5, 3),
+        Pair.of(GregTechAPI.sBlockCasings5, 4));
+
+    /**
      * tier→外壳底材纹理索引（3.5.2）：0 青铜镀铜砖 / 1 钢 / 2 钛 / 3 钨钢。类加载期一次解析，
      * getTexture 体内零动态贴图查找（NEI 红线），底材四档切换经此常量表。
      */
@@ -139,6 +163,15 @@ public abstract class MTEClusterUnitBase<T extends MTEClusterUnitBase<T>> extend
 
     /** D 框架族本次成型匹配的 tier；未参与为 -1。 */
     private int frameFamilyTier = -1;
+
+    /** C' 燃烧室族（r9 熔炉模块 D 位同族）本次成型匹配的 tier；未参与为 -1。 */
+    private int fireboxFamilyTier = -1;
+
+    /** 金属族（r9 磁选 'b'）本次成型匹配的 tier；未参与为 -1。 */
+    private int metalFamilyTier = -1;
+
+    /** 线圈族（r9 热离 'a'）本次成型匹配的 tier；未参与为 -1。 */
+    private int coilFamilyTier = -1;
 
     /** 单元自身多方块验证后的 tier（分族同级校验通过才落值）；客户端经 byte 通道镜像用于贴图。 */
     private int unitStructureTier = -1;
@@ -187,6 +220,9 @@ public abstract class MTEClusterUnitBase<T extends MTEClusterUnitBase<T>> extend
         gearboxFamilyTier = -1;
         pipeFamilyTier = -1;
         frameFamilyTier = -1;
+        fireboxFamilyTier = -1;
+        metalFamilyTier = -1;
+        coilFamilyTier = -1;
         unitStructureTier = -1;
     }
 
@@ -227,7 +263,7 @@ public abstract class MTEClusterUnitBase<T extends MTEClusterUnitBase<T>> extend
     }
 
     /** D 框架族 tier 元素：匹配写 frameFamilyTier。 */
-    @SuppressWarnings({ "rawtypes", "unchecked" })
+    @SuppressWarnings("rawtypes")
     protected IStructureElement tieredFrameElement() {
         return ofBlocksTiered(
             MTEClusterUnitBase::getFrameTier,
@@ -235,6 +271,51 @@ public abstract class MTEClusterUnitBase<T extends MTEClusterUnitBase<T>> extend
             -1,
             (MTEClusterUnitBase t, Integer tier) -> t.frameFamilyTier = tier,
             (MTEClusterUnitBase t) -> t.frameFamilyTier);
+    }
+
+    /** C' 燃烧室族 tier 元素（r9，与集群总控 FIREBOX_FAMILY 同族）：匹配写 fireboxFamilyTier。 */
+    @SuppressWarnings("rawtypes")
+    protected IStructureElement tieredFireboxElement() {
+        return ofBlocksTiered(
+            ClusterStructureDef::getFireboxTier,
+            ClusterStructureDef.FIREBOX_FAMILY,
+            -1,
+            (MTEClusterUnitBase t, Integer tier) -> t.fireboxFamilyTier = tier,
+            (MTEClusterUnitBase t) -> t.fireboxFamilyTier);
+    }
+
+    /** 金属族 tier 元素（r9，磁选 'b'：铁/钢/钕/钐）：匹配写 metalFamilyTier。 */
+    @SuppressWarnings("rawtypes")
+    protected IStructureElement tieredMetalElement() {
+        return ofBlocksTiered(
+            MTEClusterUnitBase::getMetalTier,
+            METAL_FAMILY,
+            -1,
+            (MTEClusterUnitBase t, Integer tier) -> t.metalFamilyTier = tier,
+            (MTEClusterUnitBase t) -> t.metalFamilyTier);
+    }
+
+    /** 线圈族 tier 元素（r9，热离 'a'：白铜/坎塔尔/钛铂钒/HSS-G）：匹配写 coilFamilyTier。 */
+    @SuppressWarnings("rawtypes")
+    protected IStructureElement tieredCoilElement() {
+        return ofBlocksTiered(
+            MTEClusterUnitBase::getCoilTier,
+            COIL_FAMILY,
+            -1,
+            (MTEClusterUnitBase t, Integer tier) -> t.coilFamilyTier = tier,
+            (MTEClusterUnitBase t) -> t.coilFamilyTier);
+    }
+
+    /** GT 玻璃元素（r9 helper：加工族 E 位共用，gt.blockglass1:10）。 */
+    @SuppressWarnings("rawtypes")
+    protected IStructureElement glassElement() {
+        return ofBlock(GregTechAPI.sBlockGlass1, 10);
+    }
+
+    /** 严格空气元素（r9 helper：'-' 与 'e' 粒子候选空气位共用）。 */
+    @SuppressWarnings("rawtypes")
+    protected IStructureElement airElement() {
+        return isAir();
     }
 
     /** 过渡 helper：'B'=管道族（E2b 后子类改用 tieredGearboxElement()/tieredPipeElement()）。 */
@@ -275,6 +356,28 @@ public abstract class MTEClusterUnitBase<T extends MTEClusterUnitBase<T>> extend
         if (meta == 305) return 1;
         if (meta == 28) return 2;
         if (meta == 316) return 3;
+        return null;
+    }
+
+    /** 金属族 tier 反解（r9 磁选 'b'）：铁块 0 / 钢 1 / 钕 2 / 钐 3。 */
+    private static Integer getMetalTier(Block block, int meta) {
+        if (block == Blocks.iron_block && meta == 0) return 0;
+        if (block == GregTechAPI.sBlockMetal6) {
+            if (meta == 13) return 1;
+            if (meta == 5) return 2;
+            return null;
+        }
+        if (block == GregTechAPI.sBlockMetal5 && meta == 0) return 3;
+        return null;
+    }
+
+    /** 线圈族 tier 反解（r9 热离 'a'）：白铜 0 / 坎塔尔 1 / 钛铂钒 3 档(:3) / HSS-G 3 档(:4)。 */
+    private static Integer getCoilTier(Block block, int meta) {
+        if (block != GregTechAPI.sBlockCasings5) return null;
+        if (meta == 0) return 0;
+        if (meta == 1) return 1;
+        if (meta == 3) return 2;
+        if (meta == 4) return 3;
         return null;
     }
 
@@ -366,7 +469,8 @@ public abstract class MTEClusterUnitBase<T extends MTEClusterUnitBase<T>> extend
      * @return 同级 tier；无任何参与族返回 -1；跨 tier 混搭返回 -2
      */
     private int resolveUnitStructureTier() {
-        int[] familyTiers = { casingFamilyTier, gearboxFamilyTier, pipeFamilyTier, frameFamilyTier };
+        int[] familyTiers = { casingFamilyTier, gearboxFamilyTier, pipeFamilyTier, frameFamilyTier, fireboxFamilyTier,
+            metalFamilyTier, coilFamilyTier };
         int resolved = -1;
         for (int familyTier : familyTiers) {
             if (familyTier < 0) continue;
@@ -391,6 +495,9 @@ public abstract class MTEClusterUnitBase<T extends MTEClusterUnitBase<T>> extend
 
     @Override
     public void onRemoval() {
+        // r9：客户端 'e' 候选注册配对注销（与 onPostTick 客户端一次性注册成对）
+        ClusterParticleFx.clearAirCandidates(this);
+        fxCandidatesRegistered = false;
         if (cluster != null) cluster.onUnitRemoved(this);
         super.onRemoval();
     }
@@ -467,17 +574,47 @@ public abstract class MTEClusterUnitBase<T extends MTEClusterUnitBase<T>> extend
     }
 
     /**
-     * 运行信号驱动（3.4.6，范式同 MTESingularityDrillingHub）：super.onPostTick 以
+     * 独立运行信号驱动（3.4.6，范式同 MTESingularityDrillingHub）：super.onPostTick 以
      * mMaxProgresstime&gt;0 置 active，而本族 {@link #checkProcessing()} 恒 NO_RECIPE，
      * 故服务端末尾直接以 {@link #isUnitRunning()} 覆写 active（setActive 触发贴图包同步）。
      * 不以 getUnitStatus() 作为 active 来源，避免递归/周期检查。
+     * <p>
+     * 客户端（r9 上移）：一次性扫描 {@link #getUnitShape()} 的 'e' 标记空气位注册为粒子候选
+     * （{@link ClusterParticleFx#registerAirCandidates}，空列表跳过——矩阵无 'e' 的模块不注册），
+     * onRemoval 配对注销。
      */
     @Override
     public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
         super.onPostTick(aBaseMetaTileEntity, aTick);
         if (aBaseMetaTileEntity.isServerSide()) {
             aBaseMetaTileEntity.setActive(isUnitRunning());
+        } else if (!fxCandidatesRegistered) {
+            fxCandidatesRegistered = true;
+            List<int[]> offsets = computeAirCandidateOffsets();
+            if (!offsets.isEmpty()) ClusterParticleFx.registerAirCandidates(this, offsets);
         }
+    }
+
+    /** 客户端 'e' 候选一次性注册标记（注册/清理仅在实例生命周期内各一次）。 */
+    private boolean fxCandidatesRegistered = false;
+
+    /**
+     * 本单元矩阵全部 'e' 标记空气位相对控制器 {@code (offsetA, offsetB, offsetC)} 的偏移
+     * （canonical [Z][Y][X] 扫描；空列表 = 本模块无粒子候选位）。
+     */
+    private List<int[]> computeAirCandidateOffsets() {
+        String[][] shape = getUnitShape();
+        List<int[]> offsets = new ArrayList<>();
+        for (int z = 0; z < shape.length; z++) {
+            for (int y = 0; y < shape[z].length; y++) {
+                String line = shape[z][y];
+                for (int x = 0; x < line.length(); x++) {
+                    if (line.charAt(x) == 'e') offsets.add(
+                        new int[] { x - getStructureOffsetA(), y - getStructureOffsetB(), z - getStructureOffsetC() });
+                }
+            }
+        }
+        return offsets;
     }
 
     public abstract String getUnitTypeNameKey();

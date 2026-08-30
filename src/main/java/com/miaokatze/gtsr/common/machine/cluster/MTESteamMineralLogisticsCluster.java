@@ -309,7 +309,7 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
         extensionCount = 0;
         pressureSteamHatches.clear();
         logisticsPowerLatch.clear();
-        ClusterParticleFx.clearMountCenters(this);
+        ClusterParticleFx.clearClusterAirCandidates(this);
         rollbackTiers();
         for (MTEClusterUnitBase unit : previousUnits) {
             unit.disconnect();
@@ -399,10 +399,9 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
         }
 
         // 7) 收尾：供给锁存乐观复位（首个 20t 结算前按充足处理，防成型初即无谓衰减）→
-        // 挂点中心注册（粒子 FX）→ 全输入 hatch 贴图按成型 tier 刷新（3.5.2；失败路径不刷新）→
+        // 全输入 hatch 贴图按成型 tier 刷新（3.5.2；失败路径不刷新）→
         // 冲突取走上报 → 成型/段数边沿日志 → debug 扫描统计
         thermalSupplyOkLatched = true;
-        registerMountCenters();
         updateAllHatchTextures();
         finishFormation(wasFormed, prevSegments, prevUnits);
     }
@@ -560,83 +559,35 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
         });
     }
 
-    /** 挂点中心注册（粒子 FX 候选位，服务端）：拓扑各单元控制器位（控制器相对 ABC 偏移）。 */
-    private void registerMountCenters() {
-        registerFxMountCenterOffsets(topology.getUnits());
-    }
+    /**
+     * 客户端镜像延伸段数（字节通道 packed 域解码，r9）：{@link #updateClientFxAirCandidates}
+     * 据此注册集群 'e' 精准候选；服务端权威为 {@link #extensionCount}，本镜像不入 NBT。
+     */
+    private int mSyncedExtensionCount = 0;
+
+    /** 客户端 'e' 精准候选已注册的延伸段数（-1 = 未注册/已清；边沿去重与配对清理）。 */
+    private int fxAirCandidatesExtensionCount = -1;
 
     /**
-     * 挂点中心注册公共实现（粒子 FX 候选位）：各单元控制器位（控制器相对 ABC 偏移）。
-     * 双端各注册各自实例 key——服务端在 checkMachine 收尾（拓扑单元）、客户端经
-     * {@link #updateClientFxMountCenters} 惰性扫描（结构重检/断裂时 checkMachine 复位段清服务端
-     * key、tier 归 -1 清客户端 key；onRemoval 配对清理本端 key）。
+     * 客户端 'e' 精准候选注册/清理（r9，取代旧挂点中心惰性扫描）：粒子候选不再扫描世界单元，
+     * 直接按字节同步的 tier（成型信号，&ge;0）与延伸段数注册
+     * {@link ClusterStructureDef#clusterAirFxOffsets(int)} 的全部 'e' 位——主段 55 格 + 每延伸段
+     * 15 格（重复注册整体替换，段数增长沿自动扩容）；tier 归 -1（结构断裂）时配对
+     * {@link ClusterParticleFx#clearClusterAirCandidates} 清本客户端实例 key。每 tick 客户端分支
+     * 调用，注册/清理仅在边沿各执行一次。
      */
-    private void registerFxMountCenterOffsets(List<MTEClusterUnitBase> units) {
-        IGregTechTileEntity base = getBaseMetaTileEntity();
-        if (base == null) return;
-        List<int[]> centers = new ArrayList<>();
-        for (MTEClusterUnitBase unit : units) {
-            IGregTechTileEntity ub = unit.getBaseMetaTileEntity();
-            if (ub == null) continue;
-            Vec3Impl abc = getExtendedFacing().getOffsetABC(
-                new Vec3Impl(
-                    ub.getXCoord() - base.getXCoord(),
-                    ub.getYCoord() - base.getYCoord(),
-                    ub.getZCoord() - base.getZCoord()));
-            centers.add(new int[] { abc.get0(), abc.get1(), abc.get2() });
-        }
-        if (!centers.isEmpty()) ClusterParticleFx.registerMountCenters(this, centers);
-    }
-
-    /** 客户端挂点中心候选武装标记（一次性注册范式；tier 归 -1 时清除并重武装）。 */
-    private boolean fxMountCentersRegistered = false;
-
-    /** 客户端挂点中心扫描半径（格）：覆盖满配 9 延伸段 92 深结构对角余量。 */
-    private static final int FX_MOUNT_SEARCH_RADIUS = 100;
-
-    /**
-     * 客户端惰性注册/清理挂点中心候选（仿 MTEBasicProcessingUnit 客户端一次性注册范式）：
-     * 字节同步 tier ≥ 0（结构成型信号——mMachine 本身不下发客户端）后首次执行，扫描本客户端
-     * 实例结构包络内的单元控制器并注册挂点中心候选；tier 归 -1（结构断裂）时配对
-     * {@link ClusterParticleFx#clearMountCenters} 清本客户端实例 key 并重武装，再次成型时重扫。
-     * 成员资格以「总控结构包络（29 宽 × 15 高 × 主段+延伸段深）内出现单元控制器」判定——成型
-     * 结构方块独占，包络内的控制器必落在本控 F/G/H 挂点槽位（服务端扫描同源收集），异集群
-     * 控制器不可能落入本包络。每 tick 客户端分支调用，注册/清理仅在武装标记边沿各执行一次。
-     */
-    private void updateClientFxMountCenters(IGregTechTileEntity aBaseMetaTileEntity) {
+    private void updateClientFxAirCandidates() {
         if (mCasingTier < 0) {
-            if (fxMountCentersRegistered) {
-                fxMountCentersRegistered = false;
-                ClusterParticleFx.clearMountCenters(this);
+            if (fxAirCandidatesExtensionCount >= 0) {
+                fxAirCandidatesExtensionCount = -1;
+                ClusterParticleFx.clearClusterAirCandidates(this);
             }
             return;
         }
-        if (fxMountCentersRegistered) return;
-        IGregTechTileEntity base = getBaseMetaTileEntity();
-        World world = base == null ? null : base.getWorld();
-        if (base == null || world == null) return;
-        List<MTEClusterUnitBase> units = new ArrayList<>();
-        int cx = base.getXCoord(), cy = base.getYCoord(), cz = base.getZCoord();
-        int depthMin = -ClusterStructureDef.mainOffsetC();
-        int depthMax = depthMin + ClusterParams.SEGMENT_DEPTH_MAIN
-            - 1
-            + ClusterParams.SEGMENT_DEPTH_EXT * ClusterTopology.MAX_EXTENSION_SEGMENTS;
-        for (Object o : world.loadedTileEntityList) {
-            if (!(o instanceof net.minecraft.tileentity.TileEntity te)) continue;
-            if (Math.abs(te.xCoord - cx) > FX_MOUNT_SEARCH_RADIUS || Math.abs(te.yCoord - cy) > FX_MOUNT_SEARCH_RADIUS
-                || Math.abs(te.zCoord - cz) > FX_MOUNT_SEARCH_RADIUS) continue;
-            if (!(te instanceof IGregTechTileEntity gte)) continue;
-            if (!(gte.getMetaTileEntity() instanceof MTEClusterUnitBase unit)) continue;
-            Vec3Impl abc = getExtendedFacing()
-                .getOffsetABC(new Vec3Impl(te.xCoord - cx, te.yCoord - cy, te.zCoord - cz));
-            // 结构包络过滤：列 0..28 × 层 0..14 × 深度 [-7, 84]（主段 20 + 9×8 延伸）
-            if (abc.get0() < 0 || abc.get0() >= 29 || abc.get1() < 0 || abc.get1() >= 15) continue;
-            if (abc.get2() < depthMin || abc.get2() > depthMax) continue;
-            units.add(unit);
-        }
-        if (units.isEmpty()) return;
-        registerFxMountCenterOffsets(units);
-        fxMountCentersRegistered = true;
+        if (fxAirCandidatesExtensionCount == mSyncedExtensionCount) return;
+        ClusterParticleFx
+            .registerClusterAirCandidates(this, ClusterStructureDef.clusterAirFxOffsets(mSyncedExtensionCount));
+        fxAirCandidatesExtensionCount = mSyncedExtensionCount;
     }
 
     /** @return 四族 tier 全部相等且有效时返回该 tier 下标（0-3），否则 -1（混拼或未成型）。 */
@@ -757,8 +708,8 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
      * 服务端编排（每 tick，O2：只编排与状态汇聚）。
      *
      * <p>
-     * 顺序：super（父类事件式结构重检/runMachine）→ 客户端粒子分支（惰性注册挂点中心候选 + 工作态
-     * mWorkingForFX 每 tick 喷粒子）→ 总控工作态覆写（决策 6：setActive 与 preheat 升温入参逐字
+     * 顺序：super（父类事件式结构重检/runMachine）→ 客户端粒子分支（'e' 精准候选边沿注册 +
+     * 工作态 mWorkingForFX 每 tick 喷粒子）→ 总控工作态覆写（决策 6：setActive 与 preheat 升温入参逐字
      * 同口径，零配方总控的正面贴图随热量/供给联动）→ 未成型衰减分支（头部懒加载守卫：决策 13，
      * 重载首检窗口内只衰减豁免，不衰减/不清红标/不写边沿日志/不结算）→ 周期重连容错 →
      * 每 tick 热量推进（供给态 = 20t 结算锁存）→ 每 20t 结算编排（settleSteamEconomy）。
@@ -766,10 +717,11 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
     @Override
     public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
         super.onPostTick(aBaseMetaTileEntity, aTick);
-        // 客户端：惰性注册/清理挂点中心候选（成型信号 = 字节同步 mCasingTier ≥ 0）；工作态
-        // （mWorkingForFX，getUpdateData bit0 结构正常工作口径）时每 tick 喷粒子，其余客户端逻辑无
+        // 客户端：'e' 精准候选边沿注册/清理（成型信号 = 字节同步 mCasingTier ≥ 0，段数增长沿自动
+        // 扩容）；工作态（mWorkingForFX，getUpdateData bit0 结构正常工作口径）时每 tick 喷粒子，
+        // 其余客户端逻辑无
         if (!aBaseMetaTileEntity.isServerSide()) {
-            updateClientFxMountCenters(aBaseMetaTileEntity);
+            updateClientFxAirCandidates();
             if (mWorkingForFX) ClusterParticleFx.spawnParticles(this);
             return;
         }
@@ -1376,15 +1328,21 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
                 + ")";
     }
 
-    // —— 字节通道：bit0=工作态（结构正常工作四项判据）；bit1-6=集群 tier+1（0=未成型 -1，
-    // 1..4=tier 0..3；切片 2 新增，不复用 bit0 粒子字段）——
+    // —— 字节通道（r9 重编码）：bit0=工作态（结构正常工作四项判据）；bit1-6=延伸段数与集群 tier
+    // 的无损打包域 packed = extensionCount×5 + (tier+1)（extensionCount 0..9、tier+1 0..4，
+    // packed 0..49 ≤ 63）。GT5U 事件通道剥 bit7（BaseMetaTileEntity.receiveClientEvent 对事件 1
+    // 施加 &0x7F；初始数据同口径），计划原 bit4-7 四位域在满配 8/9 延伸段时必被剥位——故按
+    // 「先核对现码位使用再编码」改为 6 位无损打包，语义零损失（MTELargeSolarOverpressureArray
+    // 注释同口径在案）。——
 
     @Override
     public void onValueUpdate(byte aValue) {
         mWorkingForFX = (aValue & 0x01) != 0;
-        // 客户端镜像集群 tier 供 getTexture 渲染（服务端结构重检仍是权威；MTELargeSteamFurnace/
-        // 单元基类 byte 通道同范式）
-        mCasingTier = ((aValue & 0x7E) >>> 1) - 1;
+        int packed = (aValue >>> 1) & 0x3F;
+        mSyncedExtensionCount = packed / 5;
+        // 客户端镜像集群 tier 供 getTexture 渲染与成型信号（服务端结构重检仍是权威；
+        // MTELargeSteamFurnace/单元基类 byte 通道同范式）
+        mCasingTier = packed % 5 - 1;
     }
 
     @Override
@@ -1392,8 +1350,10 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
         // 工作态 bit0 = 结构正常工作四项判据，与 onPostTick 的 setActive 覆写完全同口径：
         // 成型 + 开机（GUI 开关）+ 允许工作（软锤/红石）+ 20t 双流体供给锁存——粒子动画随结构
         // 工作态驱动（旧「距最近真实批 < 40t」的 ClusterParticleFx.isFxWorking 判据已删）
-        int tierBits = Math.max(0, Math.min(0x3F, mCasingTier + 1));
-        return (byte) ((tierBits << 1)
+        int ext = Math.max(0, Math.min(ClusterTopology.MAX_EXTENSION_SEGMENTS, extensionCount));
+        int tierPlus1 = Math.max(0, Math.min(4, mCasingTier + 1));
+        int packed = ext * 5 + tierPlus1;
+        return (byte) ((packed << 1)
             | (mMachine && machineEnabled && getBaseMetaTileEntity().isAllowedToWork() && thermalSupplyOkLatched ? 0x01
                 : 0x00));
     }
@@ -1602,14 +1562,13 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
     }
 
     /**
-     * {@inheritDoc} 拆除/区块卸载清理：配对注销本端实例的粒子挂点中心候选注册（服务端 key 由
-     * checkMachine 复位段与 onRemoval 双路径清理，客户端 key 由 tier 归 -1 分支与 onRemoval
-     * 双路径清理——与双端惰性/成型注册一一成对）。
+     * {@inheritDoc} 拆除/区块卸载清理：配对注销本端实例的集群 'e' 精准候选注册并复位边沿标记
+     * （服务端 key 由 checkMachine 复位段清理、客户端 key 由 tier 归 -1 分支与本路径配对清理）。
      */
     @Override
     public void onRemoval() {
-        ClusterParticleFx.clearMountCenters(this);
-        fxMountCentersRegistered = false;
+        ClusterParticleFx.clearClusterAirCandidates(this);
+        fxAirCandidatesExtensionCount = -1;
         super.onRemoval();
     }
 

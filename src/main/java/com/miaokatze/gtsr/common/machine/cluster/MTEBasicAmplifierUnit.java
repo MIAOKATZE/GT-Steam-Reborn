@@ -5,13 +5,14 @@ import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 
 import java.util.List;
 
-import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
 
+import com.gtnewhorizon.structurelib.structure.IStructureElement;
 import com.gtnewhorizon.structurelib.structure.StructureDefinition;
+import com.gtnewhorizon.structurelib.structure.StructureUtility;
 import com.miaokatze.gtsr.api.compat.GTSRHatchFluidAccess;
 
 import bartworks.system.material.Werkstoff;
@@ -27,8 +28,8 @@ import gregtech.api.util.GTUtility;
 /**
  * 增幅模块基类：集群五类增幅（并行/速度/主产物/副产物/蒸汽效率）的公共骨架。
  * <p>
- * 正面 {@code (0,3,0)} 为 H 输入仓（标准 {@code InputHatch}，至少一个否则不成型），
- * E4 经济结算经 {@link #tryConsumeAmplifierFluid} 按秒预检实扣，
+ * 正面 {@code (0,3,0)} 为输入仓位（r9 起 'A' 元素 = ofChain(tiered 外壳, InputHatch)——输入仓可置
+ * 任意 A 位，至少一个否则不成型），E4 经济结算经 {@link #tryConsumeAmplifierFluid} 按秒预检实扣，
  * 预检失败零扣、该模块当秒无增益无惩罚。
  * <p>
  * 锁定流体直接从 H 输入仓读取并按秒扣除；不再启用内部流体槽，管道直灌面随之关闭。
@@ -68,31 +69,41 @@ public abstract class MTEBasicAmplifierUnit extends MTEClusterUnitBase<MTEBasicA
 
     @Override
     protected String[][] getUnitShape() {
-        // canonical [Z][Y][X]，与草稿「基本增幅单元-修.java」（层在前 + transpose）零差异；
-        // 唯一改绑：正面 (0,3,0)（z=0, y=3, x=0，控制器 (1,4,0) 左下一格）'B' → 'H' 输入仓
-        return new String[][] { { "AAA", "ACA", "ACA", "HAB", "B~B", "BAB", "ACA", "ACA", "AAA" },
-            { "AAA", "C-C", "C-C", "C-C", "C-C", "C-C", "C-C", "CDC", "BBB" },
+        // canonical [Z][Y][X]，r9 权威规格 3×9×3（控制器 (1,4,0)）：旧 'H' 输入仓位 (0,3,0) 并入
+        // 'A'（输入仓任意 A 位混挂），旧 'D' 石头位 (1,7,1) 改 'e'（粒子候选空气位）；字符 diff 仅 2 格
+        return new String[][] { { "AAA", "ACA", "ACA", "BAB", "B~B", "BAB", "ACA", "ACA", "AAA" },
+            { "AAA", "C-C", "C-C", "C-C", "C-C", "C-C", "C-C", "CeC", "BBB" },
             { "AAA", "ACA", "ACA", "BCB", "BCB", "BCB", "ACA", "ACA", "AAA" }, };
     }
 
+    /**
+     * 'A' 元素覆写（r9，范式同物流四 I/O 与 ClusterStructureDef A 总控仓室元素）：tiered 外壳
+     * （默认形态，四族 casing 之一）或 anyOf(标准输入仓)——输入仓可置于矩阵任意 A 位；数量校验在
+     * {@link #checkMachine}（mInputHatches ≥ 1）。禁用 atLeast（GT5U atLeast 是「各元素至少一个」
+     * 语义，此处不适用）；casingIndex+hint 齐备（静态青铜 hint 口径保留）。
+     */
+    @Override
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    protected IStructureElement tieredCasingElement() {
+        return StructureUtility.ofChain(
+            super.tieredCasingElement(),
+            buildHatchAdder(MTEBasicAmplifierUnit.class).anyOf(InputHatch)
+                .casingIndex(HATCH_HINT_CASING_INDEX)
+                .hint(1)
+                .build());
+    }
+
+    /**
+     * 专有结构元素（r9 权威绑定）：B=管道族（沿用旧绑定）、C=玻璃、'-'/'e'=严格空气；
+     * 原 'D'（Blocks.stone）与 'H'（专用输入仓字符）绑定删除——输入仓改经 'A' 元素链混挂。
+     */
     @Override
     @SuppressWarnings("rawtypes")
     protected void addUnitStructureElements(StructureDefinition.Builder builder) {
-        addPipeElement(builder);
-        builder
-            .addElement(
-                'C',
-                com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlock(GregTechAPI.sBlockGlass1, 10))
-            .addElement('D', com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlock(Blocks.stone, 0))
-            .addElement('-', com.gtnewhorizon.structurelib.structure.StructureUtility.isAir())
-            // H=增幅液输入仓：标准 InputHatch hatchAdder（不与 tiered casing 混挂），
-            // 收集进本模块 mInputHatches；hint 底材沿用青铜外壳索引（与集群现有挂点口径一致）
-            .addElement(
-                'H',
-                buildHatchAdder(MTEBasicAmplifierUnit.class).atLeast(InputHatch)
-                    .casingIndex(HATCH_HINT_CASING_INDEX)
-                    .hint(1)
-                    .build());
+        builder.addElement('B', tieredPipeElement())
+            .addElement('C', glassElement())
+            .addElement('-', airElement())
+            .addElement('e', airElement());
     }
 
     @Override

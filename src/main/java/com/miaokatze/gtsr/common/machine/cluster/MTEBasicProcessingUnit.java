@@ -1,18 +1,10 @@
 package com.miaokatze.gtsr.common.machine.cluster;
 
-import static com.gtnewhorizon.structurelib.structure.StructureUtility.isAir;
-import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlock;
-
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Set;
 
-import com.gtnewhorizon.structurelib.structure.StructureDefinition;
-
-import gregtech.api.GregTechAPI;
 import gregtech.api.interfaces.IIconContainer;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
@@ -27,8 +19,9 @@ import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
  * <p>
  * 声明式差异（链路集合、GUI 类型词条 key、前脸 overlay 常量对）在构造期由具体子类以静态常量
  * 一次性注入，此后不可变；集群结构成型时总控遍历各单元收集 providedLinks 并集，即为该集群
- * 当前解锁的工艺链全集。子类只需保留构造器注入与 newMetaEntity，公共结构/注册路径全在本类
- * 与 {@link MTEClusterUnitBase}。
+ * 当前解锁的工艺链全集。子类只需保留构造器注入与 newMetaEntity，公共结构/注册路径全在
+ * {@link MTEClusterUnitBase}（r9：统一矩阵/元素绑定/offsets 实现与 FX 注册覆写已删除——七加工
+ * 模块按 plan/结构 权威规格各自持有独立矩阵，'e' 粒子候选注册上移单元基类）。
  *
  * <p>
  * 状态色口径（{@link #getUnitStatus}，六态中本族产出四态）：
@@ -78,99 +71,6 @@ public abstract class MTEBasicProcessingUnit extends MTEClusterUnitBase<MTEBasic
         this.overlayInactive = overlayInactive;
         this.overlayActive = overlayActive;
         this.providedLinks = Collections.unmodifiableSet(new LinkedHashSet<>(Arrays.asList(providedLinks)));
-    }
-
-    /**
-     * 统一加工矩阵（七种加工模块共享，5 宽 × 7 高 × 5 深，canonical [Z][Y][X]，控制器 ~(2,4,0)）。
-     *
-     * <p>
-     * 字面来源 {@code plan/基本加工单元-修.java}（草稿层在前 [Y][Z][X]），按 {@code current[z][y]=draft[y][z]}
-     * 逐字符转置。字符语义：A=tiered 外壳族（基类绑定）；B=tiered 齿轮箱族（青铜/钢/钛/钨钢，
-     * gt.blockcasings2 meta 2/3/4/5）；C=tiered 管道族（meta 12-15，草稿 y=1 环中列全 C，以草稿为准）；
-     * D=tiered 框架族；E=GT 玻璃；F 与 '-'=严格空气（草稿 stone 占位重绑为 isAir），其中 F 为严格
-     * 空气、非粒子候选位；仅 '-' 为粒子候选位。
-     */
-    @Override
-    protected String[][] getUnitShape() {
-        return new String[][] { { " DDD ", " AAA ", "DAAAD", "DAAAD", "DA~AD", "DAAAD", "AAAAA" },
-            { "DFAFD", "ACCCA", "E-B-E", "E---E", "E-B-E", "ABCBA", "AACAA" },
-            { "DAAAD", "ACCCA", "EBBBE", "E---E", "EBBBE", "ACCCA", "CCCCC" },
-            { "DFAFD", "ACCCA", "E-B-E", "E---E", "E-B-E", "ABCBA", "AACAA" },
-            { " DDD ", " AAA ", "DAAAD", "DAAAD", "DAAAD", "DAAAD", "AAAAA" }, };
-    }
-
-    /**
-     * 结构元素绑定：B/C/D 走基类 tiered 族 helper（齿轮箱族不再借用旧管道 helper），E=GT 玻璃
-     * （沿用既有绑定），F 与 '-'=严格空气（原 stone/firebox 语义废弃），F 非粒子候选位、
-     * 仅 '-' 为粒子候选位。
-     */
-    @Override
-    @SuppressWarnings("rawtypes")
-    protected void addUnitStructureElements(StructureDefinition.Builder builder) {
-        builder.addElement('B', tieredGearboxElement())
-            .addElement('C', tieredPipeElement())
-            .addElement('D', tieredFrameElement())
-            .addElement('E', ofBlock(GregTechAPI.sBlockGlass1, 10))
-            .addElement('F', isAir())
-            .addElement('-', isAir());
-    }
-
-    @Override
-    protected int getStructureOffsetA() {
-        return 2;
-    }
-
-    @Override
-    protected int getStructureOffsetB() {
-        return 4;
-    }
-
-    @Override
-    protected int getStructureOffsetC() {
-        return 0;
-    }
-
-    /** 粒子候选位（严格空气位）是否已注册到 {@link ClusterParticleFx}（客户端实例一次性）。 */
-    private boolean fxCandidatesRegistered = false;
-
-    /**
-     * 客户端：一次性把本单元矩阵的全部 '-' 内腔空气位注册为粒子候选位（F 为严格空气、非候选）。
-     *
-     * <p>
-     * 成型/运行判定不在注册侧做——客户端不知 mMachine，实际喷粒子由 {@link ClusterParticleFx}
-     * 的「真实批窗口 + 单元 active」双重门控；服务端 setActive（E2a 基类）保证只有成型且连接的
-     * 单元保持 active。服务端直接透传 super（setActive 等由基类完成）。
-     */
-    @Override
-    public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
-        super.onPostTick(aBaseMetaTileEntity, aTick);
-        if (!aBaseMetaTileEntity.isServerSide() && !fxCandidatesRegistered) {
-            fxCandidatesRegistered = true;
-            ClusterParticleFx.registerAirCandidates(this, computeAirCandidateOffsets());
-        }
-    }
-
-    @Override
-    public void onRemoval() {
-        ClusterParticleFx.clearAirCandidates(this);
-        super.onRemoval();
-    }
-
-    /** 本单元矩阵全部 '-' 内腔空气位相对控制器 {@code (offsetA, offsetB, offsetC)} 的偏移（懒扫描一次）。 */
-    private List<int[]> computeAirCandidateOffsets() {
-        String[][] shape = getUnitShape();
-        List<int[]> offsets = new ArrayList<>();
-        for (int z = 0; z < shape.length; z++) {
-            for (int y = 0; y < shape[z].length; y++) {
-                String line = shape[z][y];
-                for (int x = 0; x < line.length(); x++) {
-                    char c = line.charAt(x);
-                    if (c == '-') offsets.add(
-                        new int[] { x - getStructureOffsetA(), y - getStructureOffsetB(), z - getStructureOffsetC() });
-                }
-            }
-        }
-        return offsets;
     }
 
     @Override

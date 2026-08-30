@@ -1,5 +1,7 @@
 package com.miaokatze.gtsr.common.machine.cluster;
 
+import com.gtnewhorizon.structurelib.structure.StructureDefinition;
+
 import gregtech.api.enums.Textures;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
@@ -11,6 +13,10 @@ import gregtech.api.metatileentity.MetaTileEntity;
  * 仅声明解锁的 ChainLink（离心分离 CENTRIFUGE），自身零配方执行；配方匹配与执行由集群总控侧
  * 完成。纹理、集群接线与流体缓冲等公共行为全部继承自 MTEBasicProcessingUnit/MTEClusterUnitBase；
  * overlay 取 GT5U 蒸汽离心机前脸 inactive/active（仅 base+ACTIVE 有 PNG，禁 glow 变体）。
+ *
+ * <p>
+ * 结构（r9 权威规格，7×7×5 canonical [Z][Y][X]，控制器 (3,5,0)）：'e'×9 粒子候选空气位
+ * （x2-4, y1, z1-3）；A=外壳族（基类绑定）、B=齿轮箱族、C=管道族、D=框架族、'-'/'e'=严格空气。
  */
 public class MTEUnitCentrifuge extends MTEBasicProcessingUnit {
 
@@ -40,6 +46,42 @@ public class MTEUnitCentrifuge extends MTEBasicProcessingUnit {
             Textures.BlockIcons.OVERLAY_FRONT_STEAM_CENTRIFUGE,
             Textures.BlockIcons.OVERLAY_FRONT_STEAM_CENTRIFUGE_ACTIVE,
             PROVIDED_LINKS);
+    }
+
+    /** 结构矩阵（canonical [Z][Y][X]，z0=正面；'~' 位于 (3,5,0)；z4=同z0 但 '~'→'A'（唯一控制器）。 */
+    @Override
+    protected String[][] getUnitShape() {
+        return new String[][] { { "  AAA  ", " DAAAD ", " DAAAD ", " DAAAD ", " DAAAD ", " DA~AD ", " DAAAD " },
+            { " A   A ", " AeeeA ", "DACCCAD", "DBCBCBD", "DCBCBCD", "DBCBCBD", " ABCBA " },
+            { " A   A ", " AeeeA ", "DACCCAD", "DCBBBCD", "DBCCCBD", "DCBBBCD", " ACCCA " },
+            { " A   A ", " AeeeA ", "DACCCAD", "DBCBCBD", "DCBCBCD", "DBCBCBD", " ABCBA " },
+            { "  AAA  ", " DAAAD ", " DAAAD ", " DAAAD ", " DAAAD ", " DAAAD ", " DAAAD " }, };
+    }
+
+    /** 专有结构元素：B=齿轮箱族、C=管道族、D=框架族、'-'/'e'=严格空气。 */
+    @Override
+    @SuppressWarnings("rawtypes")
+    protected void addUnitStructureElements(StructureDefinition.Builder builder) {
+        builder.addElement('B', tieredGearboxElement())
+            .addElement('C', tieredPipeElement())
+            .addElement('D', tieredFrameElement())
+            .addElement('-', airElement())
+            .addElement('e', airElement());
+    }
+
+    @Override
+    protected int getStructureOffsetA() {
+        return 3;
+    }
+
+    @Override
+    protected int getStructureOffsetB() {
+        return 5;
+    }
+
+    @Override
+    protected int getStructureOffsetC() {
+        return 0;
     }
 
     @Override

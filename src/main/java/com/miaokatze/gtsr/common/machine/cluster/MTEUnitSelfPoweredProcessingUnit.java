@@ -22,16 +22,17 @@ import gregtech.api.util.GTUtility;
  * 带自持能源仓的加工单元父类（热力离心机/磁选机共用）。
  *
  * <p>
- * 在 {@link MTEBasicProcessingUnit} 的能力闸门之上叠加「自持能源」语义：背面中心 (2,4,4) 一带
- * {@code DAAAD→DAPAD}，P=自身能源位（标准能源 hatch 添加器），checkMachine 校验
+ * 在 {@link MTEBasicProcessingUnit} 的能力闸门之上叠加「自持能源」语义：背面中心能源位
+ * {@code 'P'}=自身能源位（标准能源 hatch 添加器，各子类矩阵字面定位），checkMachine 校验
  * {@code mEnergyHatches >= 1}（无 P 不成型）；运行判据=自身能源仓存量足额（总控不集中扣 EU）。
  * EU 实扣（r6-S6，取代旧「真扣 1 EU 后返还」净零探测）：本环节按链步表实扣运行 EU/t——磁选
  * {@code MAGNETIC_EU_PER_TICK × MAGNETIC_AMPERAGE}=32、热离
  * {@code THERMOCENTRIFUGE_EU_PER_TICK × THERMOCENTRIFUGE_AMPERAGE}=96——在集群运行相位内每 tick
  * 持续真扣；能源不足 → 环节闸门关闭（{@code isModuleEnabled()=false}，链路不可经其执行，防免费
  * 运行），恢复供电自动恢复。r5 的「事件式结构重检」与「预热门控」不受影响：本类不改 checkMachine/
- * mStartUpCheck 路径，运行相位判据含满热（预热期不扣不判）。子类（加工类型/overlay/文案差异）经
- * 构造器注入，仅保留构造器与 newMetaEntity。
+ * mStartUpCheck 路径，运行相位判据含满热（预热期不扣不判）。r9：统一加工矩阵已废弃——本类不再
+ * 覆写 {@code getUnitShape()}（矩阵与 P 位字面由热离/磁选子类按权威规格各自持有），只保留 P 能源
+ * 位元素注入。子类（加工类型/overlay/文案差异）经构造器注入，仅保留构造器与 newMetaEntity。
  */
 public abstract class MTEUnitSelfPoweredProcessingUnit extends MTEBasicProcessingUnit {
 
@@ -57,26 +58,12 @@ public abstract class MTEUnitSelfPoweredProcessingUnit extends MTEBasicProcessin
     }
 
     /**
-     * 统一加工矩阵 + 背面中心能源位：与基类矩阵逐字符一致，仅 z=4 行 y=4 的
-     * {@code "DAAAD"→"DAPAD"}（P=(2,4,4)）。
-     */
-    @Override
-    protected String[][] getUnitShape() {
-        return new String[][] { { " DDD ", " AAA ", "DAAAD", "DAAAD", "DA~AD", "DAAAD", "AAAAA" },
-            { "DFAFD", "ACCCA", "E-B-E", "E---E", "E-B-E", "ABCBA", "AACAA" },
-            { "DAAAD", "ACCCA", "EBBBE", "E---E", "EBBBE", "ACCCA", "CCCCC" },
-            { "DFAFD", "ACCCA", "E-B-E", "E---E", "E-B-E", "ABCBA", "AACAA" },
-            { " DDD ", " AAA ", "DAAAD", "DAAAD", "DAPAD", "DAAAD", "AAAAA" }, };
-    }
-
-    /**
-     * 基类元素绑定之上追加 P：能源位（atLeast(Energy)，标准 addEnergyInputToMachineList 添加器；
-     * 原 buildHatchAdder(具体类.class) 的类型令牌仅作编译期推断用，此处 getClass() 运行期等价）。
+     * P 能源位元素（r9：矩阵由子类各自持有，本类只注入能源位——标准 addEnergyInputToMachineList
+     * 添加器；buildHatchAdder(具体类.class) 的类型令牌仅作编译期推断用，此处 getClass() 运行期等价）。
      */
     @Override
     @SuppressWarnings("rawtypes")
     protected void addUnitStructureElements(StructureDefinition.Builder builder) {
-        super.addUnitStructureElements(builder);
         builder.addElement('P', energyHatchElement());
     }
 
@@ -93,7 +80,7 @@ public abstract class MTEUnitSelfPoweredProcessingUnit extends MTEBasicProcessin
 
     /**
      * 服务端每 tick 先行结算运行相位 EU 实扣，再交基类 setActive（{@code isUnitRunning()} 读到的是
-     * 本 tick 扣电后的最新存量闸门）；客户端仅透传基类（FX 注册在加工基类）。
+     * 本 tick 扣电后的最新存量闸门）；客户端透传基类（'e' 粒子候选注册已上移单元基类）。
      */
     @Override
     public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {

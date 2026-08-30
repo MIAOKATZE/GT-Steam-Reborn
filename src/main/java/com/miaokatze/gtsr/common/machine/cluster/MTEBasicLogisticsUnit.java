@@ -39,11 +39,11 @@ import gregtech.common.tileentities.machines.MTEHatchInputBusME;
 /**
  * 物流模块：集群的单点链执行器骨架（E3b 切片：四 I/O 结构 + 软锤启停 + 双 tank 语义收紧 + 独立 GUI stub）。
  * <p>
- * <b>结构（3×4×3，控制器 (1,2,0)）</b>：正面 z0 层与全矩阵 A 位四 I/O 自由化（切片 3）——'A' 元素
+ * <b>结构（r9 权威规格 5×4×4，控制器 (2,2,0)）</b>：全矩阵 A 位四 I/O 自由化（切片 3）——'A' 元素
  * = ofChain(tiered 外壳 + hatchAdder.anyOf(输入总线/输出总线/输入仓/输出仓))，矩阵内任意 A 位皆可
  * 承载四类 I/O hatch 之一（原 D/E/F/G 专用字符已按草稿还原为 'A'）；数量校验在 checkMachine 按
- * 真实注册列表计数（四类各 1..2，任一类 0 或 &gt;2 不成型）。B=tiered 齿轮箱
- * （{@link #tieredGearboxElement()}，casings2:2/3/4/5）、C=tiered 框架
+ * 真实注册列表计数（四类各 1..2，任一类 0 或 &gt;2 不成型）。B=tiered 管道
+ * （{@link #tieredPipeElement()}，r9 由齿轮箱族改绑——权威规格）、C=tiered 框架
  * （{@link #tieredFrameElement()}），与 A 外壳经基类 {@code resolveUnitStructureTier} 分族同级
  * 强校验（跨 tier 混搭不成型）。{@link MTEHatchInputBusME} 在 {@link #addInputBusToMachineList}
  * 直接拒绝致结构不成型（范式同 GT5U MTETreeFarm：ME 输入总线会绕过物流批事务语义）。
@@ -115,25 +115,26 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
     }
 
     // ------------------------------------------------------------------
-    // 结构：3×4×3 四 I/O 矩阵（plan 3.3.3）
+    // 结构：r9 权威规格 5×4×4 四 I/O 矩阵（plan 3.3.3 + SR-Cluster-r9）
     // ------------------------------------------------------------------
 
     /**
-     * 结构矩阵（[Z][Y][X]，z0=正面；切片 3 四 I/O 自由化——原 D(0,0,0)/E(2,0,0)/F(0,1,0)/
-     * G(2,1,0) 专用字符按草稿「基本物流单元-修.java」还原为 'A'，四类 I/O hatch 可置于任意 A 位）：
+     * 结构矩阵（[Z][Y][X]，z0=正面；r9 权威规格 5×4×4，四 I/O 自由化保持——矩阵内任意 A 位皆可
+     * 承载四类 I/O hatch 之一）：
      *
      * <pre>
-     * z0 = [AAA / AAA / A~A / AAA]   任意 A 位可承载四类 I/O hatch（checkMachine 各计 1..2）
-     * z1 = [CAC / C C / CAC / ABA]
-     * z2 = [AAA / AAA / AAA / ABA]
+     * z0 = [ AAA /  AAA /  A~A / AAA ]   任意 A 位可承载四类 I/O hatch（checkMachine 各计 1..2）
+     * z1 = [ CAC /  C C / CCACC / ABA ]
+     * z2 = [ AAA / CAAAC /  AAA / ABA ]
+     * z3 = [     /  CCC /      /     ]
      * </pre>
      *
-     * 控制器 '~' 位于 (1,2,0)（offsets 1/2/0 不变）。
+     * 控制器 '~' 位于 (2,2,0)（offsets 2/2/0）。
      */
     @Override
     protected String[][] getUnitShape() {
-        return new String[][] { { "AAA", "AAA", "A~A", "AAA" }, { "CAC", "C C", "CAC", "ABA" },
-            { "AAA", "AAA", "AAA", "ABA" }, };
+        return new String[][] { { " AAA ", " AAA ", " A~A ", " AAA " }, { " CAC ", " C C ", "CCACC", " ABA " },
+            { " AAA ", "CAAAC", " AAA ", " ABA " }, { "     ", " CCC ", "     ", "     " }, };
     }
 
     /**
@@ -156,20 +157,21 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
     }
 
     /**
-     * 专有结构元素：B/C 用基类 tier 族元素（tieredGearboxElement/tieredFrameElement，分族 tier
-     * 经基类 resolveUnitStructureTier 同级强校验）。四 I/O hatch 挂点不再用专用字符——已并入
-     * {@link #tieredCasingElement()} 的 'A' 元素链（切片 3）。
+     * 专有结构元素（r9）：B=管道族（{@link #tieredPipeElement()}，原齿轮箱族改绑——权威规格）、
+     * C=框架族（{@link #tieredFrameElement()}），与 A 外壳经基类 {@code resolveUnitStructureTier}
+     * 分族同级强校验（跨 tier 混搭不成型）。四 I/O hatch 挂点不用专用字符——并入
+     * {@link #tieredCasingElement()} 的 'A' 元素链。
      */
     @Override
     @SuppressWarnings("rawtypes")
     protected void addUnitStructureElements(StructureDefinition.Builder builder) {
-        builder.addElement('B', tieredGearboxElement());
+        builder.addElement('B', tieredPipeElement());
         builder.addElement('C', tieredFrameElement());
     }
 
     @Override
     protected int getStructureOffsetA() {
-        return 1;
+        return 2;
     }
 
     @Override
