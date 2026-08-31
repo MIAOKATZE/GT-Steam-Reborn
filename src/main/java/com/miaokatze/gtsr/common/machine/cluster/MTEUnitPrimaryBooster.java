@@ -132,7 +132,11 @@ public class MTEUnitPrimaryBooster extends MTEBasicAmplifierUnit {
                     red(boosterTierLps(type))))
             .addInfo(
                 EnumChatFormatting.YELLOW
-                    + StatCollector.translateToLocal("gtsr.tooltip.cluster.unit.booster.penalty.none"));
+                    + StatCollector.translateToLocal("gtsr.tooltip.cluster.unit.booster.penalty.none"))
+            .addInfo(
+                EnumChatFormatting.YELLOW + String.format(
+                    StatCollector.translateToLocal("gtsr.tooltip.cluster.unit.primary.link_receive"),
+                    gold(joinSurchargeTierValues())));
     }
 
     /** 仓室群（v1.11.15）：增幅输入仓行（锁定增幅流体自输入仓读取，≥1 由结构校验强制）。 */

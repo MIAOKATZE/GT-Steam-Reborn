@@ -19,6 +19,7 @@ import net.minecraft.world.World;
 import net.minecraftforge.common.util.ForgeDirection;
 
 import com.gtnewhorizon.structurelib.alignment.IAlignmentLimits;
+import com.gtnewhorizon.structurelib.alignment.constructable.ChannelDataAccessor;
 import com.gtnewhorizon.structurelib.alignment.constructable.ISurvivalConstructable;
 import com.gtnewhorizon.structurelib.structure.IStructureDefinition;
 import com.gtnewhorizon.structurelib.structure.ISurvivalBuildEnvironment;
@@ -224,9 +225,11 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
     /** {@inheritDoc} 主段 + 延伸段全息投影：stackSize.stackSize 语义 = 目标总段数（含主段，最小 1）。 */
     @Override
     public void construct(ItemStack stackSize, boolean hintsOnly) {
+        int tier = Math.max(1, Math.min(4, ChannelDataAccessor.getChannelData(stackSize, "tier")));
+        ItemStack tierTrigger = gregtech.api.util.GTUtility.copyAmount(tier, stackSize);
         buildPiece(
             ClusterStructureDef.PIECE_MAIN,
-            stackSize,
+            tierTrigger,
             hintsOnly,
             ClusterStructureDef.mainOffsetA(),
             ClusterStructureDef.mainOffsetB(),
@@ -235,7 +238,7 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
         for (int k = 0; k < extSegments; k++) {
             buildPiece(
                 ClusterStructureDef.PIECE_EXT,
-                stackSize,
+                tierTrigger,
                 hintsOnly,
                 ClusterStructureDef.extOffsetA(k),
                 ClusterStructureDef.extOffsetB(),
@@ -247,9 +250,11 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
     @Override
     public int survivalConstruct(ItemStack stackSize, int elementBudget, ISurvivalBuildEnvironment env) {
         if (mMachine) return -1;
+        int tier = Math.max(1, Math.min(4, ChannelDataAccessor.getChannelData(stackSize, "tier")));
+        ItemStack tierTrigger = gregtech.api.util.GTUtility.copyAmount(tier, stackSize);
         int built = survivalBuildPiece(
             ClusterStructureDef.PIECE_MAIN,
-            stackSize,
+            tierTrigger,
             ClusterStructureDef.mainOffsetA(),
             ClusterStructureDef.mainOffsetB(),
             ClusterStructureDef.mainOffsetC(),
@@ -262,7 +267,7 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
         for (int k = 0; k < extSegments; k++) {
             built = survivalBuildPiece(
                 ClusterStructureDef.PIECE_EXT,
-                stackSize,
+                tierTrigger,
                 ClusterStructureDef.extOffsetA(k),
                 ClusterStructureDef.extOffsetB(),
                 ClusterStructureDef.extOffsetC(k),
@@ -863,6 +868,7 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
         ClusterSteamEconomy.EconomySettleResult r;
         BoosterState booster = null;
         boolean anyChainExecuted = false;
+        int wipLogisticsCount = 0;
         if (!preheat.isReady()) {
             // 预热中：FIXED_CLUSTER_STEAM_LPS 蒸汽 + 润滑恒定段；本秒能抵达满热时
             // 结果携带 justReachedFullHeat，该秒不得再叠加运行结算（无双扣），下一秒起转 settleRunFull
@@ -871,16 +877,17 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
             // 满热（含无可执行链）：固定项（FIXED_CLUSTER_STEAM_LPS × FIXED_STEAM_TIER_MULT[tier]，
             // r6-S6 新口径）+ 加权链路段 C；C 为可执行链聚合（增幅快照同参复用，节汽/惩罚只作用于该段）；
             // 切片 5b：聚合循环只计 isModuleEnabled 的物流单元（拓扑可暂留未成型单元，混合成型态不高估需量）
-            booster = BoosterState.aggregate(topology.getBoosterUnits());
+            wipLogisticsCount = countWipLogisticsUnits();
+            booster = BoosterState.aggregate(topology.getBoosterUnits(), wipLogisticsCount);
             double c = ExecutionPlan
                 .computeAggregateSteamC(enabledLogisticsUnits(), topology, getStructureTierIndex(), booster);
             r = economy.settleRunFull(this, runFixedSteamLps(), c);
             if (r.ok) {
                 anyChainExecuted = runChains();
-                if (anyChainExecuted) {
-                    // 只有链实际执行的秒才扣增幅液（对同口径聚合快照的 active 模块实扣）
+                if (wipLogisticsCount > 0) {
+                    // 按本秒 WIP 物流单元数连续计费；链批是否实际完成不影响实扣。
                     for (MTEBasicAmplifierUnit amplifier : booster.getActiveUnits()) {
-                        amplifier.tryConsumeAmplifierFluid(amplifier.amplifierFluidPerSec());
+                        amplifier.tryConsumeAmplifierFluid(amplifier.amplifierFluidPerSec() * wipLogisticsCount);
                     }
                 }
             }
@@ -993,6 +1000,14 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
      * （已连接集群且自身成型）的物流单元——拓扑按 D2/D3 语义可暂留未成型（tier&lt;0）单元，其链即便
      * 结构上可执行也不计入蒸汽需求，防混合成型态高估需量。链执行侧仍按原全表驱动（执行器自带闸门）。
      */
+    public int countWipLogisticsUnits() {
+        int count = 0;
+        for (MTEBasicLogisticsUnit unit : topology.getLogisticsUnits()) {
+            if (unit != null && unit.isWorkInProgress()) count++;
+        }
+        return count;
+    }
+
     private List<MTEBasicLogisticsUnit> enabledLogisticsUnits() {
         List<MTEBasicLogisticsUnit> enabled = new ArrayList<>();
         for (MTEBasicLogisticsUnit unit : topology.getLogisticsUnits()) {
@@ -1535,6 +1550,7 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
                 EnumChatFormatting.YELLOW + String.format(
                     StatCollector.translateToLocal("gtsr.tooltip.cluster.preheat"),
                     gold(String.format("%d s", ClusterParams.PREHEAT_SECONDS))))
+            .addInfo(EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.cluster.preview_tier"))
             .addInfo(
                 EnumChatFormatting.YELLOW + String.format(
                     StatCollector.translateToLocal("gtsr.tooltip.cluster.logistics"),

@@ -1058,6 +1058,16 @@ public abstract class MTEClusterUnitBase<T extends MTEClusterUnitBase<T>> extend
         return values + " L/s";
     }
 
+    protected static String joinSurchargeTierValues() {
+        StringBuilder values = new StringBuilder();
+        for (int i = 0; i < ClusterParams.TIER_COUNT; i++) {
+            if (i > 0) values.append('/');
+            values.append(ClusterParams.BOOSTER_SURCHARGE_PCT[i])
+                .append('%');
+        }
+        return values.toString();
+    }
+
     /**
      * 惩罚四档乘率段（{@link ClusterParams#BOOSTER_STRUCTURE_PENALTY_MULT}，仅速度/并行生效、逐台连乘）：
      * {@code 1.2/1.4/1.8/2.0}。

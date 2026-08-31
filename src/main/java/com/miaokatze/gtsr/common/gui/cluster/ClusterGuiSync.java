@@ -477,7 +477,8 @@ public final class ClusterGuiSync {
             if (sb.length() > 0) sb.append(',');
             int tier = unit.getUnitStructureTier();
             boolean valid = tier >= 0 && tier < ClusterParams.TIER_COUNT;
-            long lpsX10 = Math.round(unit.amplifierFluidPerSecExact() * 10.0D);
+            int wip = cluster.countWipLogisticsUnits();
+            long lpsX10 = Math.round(unit.amplifierFluidPerSecExact() * wip * 10.0D);
             int base = valid ? ClusterParams.amplifierFluidLps(unit.getBoosterType(), tier) : 0;
             sb.append(lpsX10)
                 .append(':')

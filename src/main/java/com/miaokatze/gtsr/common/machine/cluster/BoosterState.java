@@ -94,7 +94,12 @@ public final class BoosterState {
      * @return 不可变聚合快照
      */
     public static BoosterState aggregate(List<MTEBasicAmplifierUnit> units) {
+        return aggregate(units, 1);
+    }
+
+    public static BoosterState aggregate(List<MTEBasicAmplifierUnit> units, int wipLogisticsCount) {
         if (units == null || units.isEmpty()) return EMPTY;
+        int wip = Math.max(0, wipLogisticsCount);
         int parallel = 0;
         int failed = 0;
         double speed = 0D;
@@ -105,7 +110,8 @@ public final class BoosterState {
         List<MTEBasicAmplifierUnit> active = new ArrayList<>();
         for (MTEBasicAmplifierUnit unit : units) {
             if (unit == null || unit.getCluster() == null) continue;
-            if (!unit.isTierValidForConnection() || !unit.isFluidAvailable() || !canPayAmplifierFluidThisSecond(unit)) {
+            if (!unit.isTierValidForConnection() || !unit.isFluidAvailable()
+                || !canPayAmplifierFluidThisSecond(unit, wip)) {
                 failed++;
                 continue;
             }
@@ -135,8 +141,8 @@ public final class BoosterState {
      * （{@link MTEBasicAmplifierUnit#amplifierFluidPerSec()}——基础五表值 × (1 + Σ速度/并行联动
      * 加成)，与主控实扣同口径）才计入本秒快照。只读判定、不实扣。
      */
-    private static boolean canPayAmplifierFluidThisSecond(MTEBasicAmplifierUnit unit) {
-        int perSecLps = unit.amplifierFluidPerSec();
+    private static boolean canPayAmplifierFluidThisSecond(MTEBasicAmplifierUnit unit, int wipLogisticsCount) {
+        int perSecLps = unit.amplifierFluidPerSec() * wipLogisticsCount;
         if (perSecLps <= 0) return false;
         net.minecraftforge.fluids.Fluid locked = unit.getBoosterFluidForAccess();
         return locked != null

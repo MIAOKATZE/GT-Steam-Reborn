@@ -4,6 +4,9 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 
+import net.minecraft.item.ItemStack;
+
+import com.gtnewhorizon.structurelib.StructureLibAPI;
 import com.miaokatze.gtsr.Tags;
 import com.miaokatze.gtsr.common.commands.GTSRCommand;
 import com.miaokatze.gtsr.common.crossmod.postea.PosteaCompat;
@@ -50,6 +53,7 @@ public class CommonProxy {
             }
         }
         Config.synchronizeConfiguration(newConfigFile);
+        registerClusterTierChannel();
         GTSRFXNet.init();
         // BetterQuesting 可选集成探测（BQ 缺席时静默降级；反射探测不加载 BQ 类）
         com.miaokatze.gtsr.crossmod.bq.BqCompat.detect();
@@ -90,6 +94,17 @@ public class CommonProxy {
         // MachineLoader.initMachines() 只做 MTE 注册（构造函数 + ItemList.set），不查询 GT 配方，符合 sAfterGTPreload 使用场景
         GregTechAPI.sAfterGTPreload.add(registerRunnable);
         GTSteamReborn.LOG.info("[1/3] 已将机器注册任务加入 GregTech PreInit 加载队列。");
+    }
+
+    private static void registerClusterTierChannel() {
+        StructureLibAPI.registerChannelDescription("tier", "gtsr", "gtsr.structurelib.channel.tier.desc");
+        java.util.List<org.apache.commons.lang3.tuple.Pair<net.minecraft.block.Block, Integer>> family = com.miaokatze.gtsr.common.machine.cluster.ClusterStructureDef
+            .casingFamily();
+        for (int tier = 1; tier <= 4; tier++) {
+            org.apache.commons.lang3.tuple.Pair<net.minecraft.block.Block, Integer> casing = family.get(tier - 1);
+            StructureLibAPI
+                .registerChannelItem("tier", "gtsr", tier, new ItemStack(casing.getLeft(), 1, casing.getRight()));
+        }
     }
 
     /**

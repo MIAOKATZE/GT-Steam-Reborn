@@ -107,7 +107,7 @@ public final class ClusterStructureDef {
     private static final int MAIN_DEPTH = ClusterParams.SEGMENT_DEPTH_MAIN;
     private static final int EXT_DEPTH = ClusterParams.SEGMENT_DEPTH_EXT;
 
-    // TODO-E6: hatchAdder.casingIndex 当前为静态 T1 青铜 hint；tier 联动底材随贴图切片落地
+    // hatchAdder.casingIndex 仅用于未成型 hatch hint 底材；预览底材档由 trigger 的 tier 通道/数量选择。
     private static final int BRONZE_CASING_TEXTURE_ID = GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings1, 10);
 
     private static final List<Pair<Block, Integer>> CASING_FAMILY = ImmutableList.of(
@@ -115,6 +115,11 @@ public final class ClusterStructureDef {
         Pair.of(GregTechAPI.sBlockCasings2, 0),
         Pair.of(GregTechAPI.sBlockCasings4, 2),
         Pair.of(GregTechAPI.sBlockCasings4, 0));
+
+    public static List<Pair<Block, Integer>> casingFamily() {
+        return CASING_FAMILY;
+    }
+
     private static final List<Pair<Block, Integer>> PIPE_FAMILY = ImmutableList.of(
         Pair.of(GregTechAPI.sBlockCasings2, 12),
         Pair.of(GregTechAPI.sBlockCasings2, 13),
