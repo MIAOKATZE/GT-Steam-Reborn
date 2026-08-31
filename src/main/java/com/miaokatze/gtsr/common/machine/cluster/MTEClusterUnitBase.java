@@ -12,6 +12,7 @@ import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 import net.minecraft.world.World;
 import net.minecraftforge.common.util.ForgeDirection;
@@ -29,6 +30,7 @@ import com.gtnewhorizon.structurelib.structure.StructureDefinition;
 import com.gtnewhorizons.modularui.common.fluid.FluidStackTank;
 import com.miaokatze.gtsr.common.gui.cluster.MTEClusterUnitNativeGui;
 import com.miaokatze.gtsr.common.machine.base.MTEGTSRMultiBlockBase;
+import com.miaokatze.gtsr.common.util.GTSRUtils;
 
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Textures;
@@ -896,10 +898,163 @@ public abstract class MTEClusterUnitBase<T extends MTEClusterUnitBase<T>> extend
 
     @Override
     protected MultiblockTooltipBuilder createTooltip() {
-        return new MultiblockTooltipBuilder().addMachineType(StatCollector.translateToLocal(getUnitTypeNameKey()))
-            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.cluster.unit.pad_hint"))
-            .beginStructureBlock(1, 1, 1, true)
-            .addController(StatCollector.translateToLocal("gtsr.tooltip.cluster.unit.pad_hint"))
+        MultiblockTooltipBuilder tt = new MultiblockTooltipBuilder();
+        // v1.11.15 单元统一骨架（构造期仅此一次）：type(BLUE) → desc(工序主色/普通色) → desc_2(AQUA
+        // 拆行) → 子类功能群 → 结构块(按子类 shape 实际尺寸) → ctrl(YELLOW) → 子类仓室群 →
+        // hint(GRAY 裸键) → 品牌行 → toolTipFinisher("GTSR")。
+        EnumChatFormatting descColor = getUnitDescColor();
+        tt.addMachineType(EnumChatFormatting.BLUE + StatCollector.translateToLocal(getUnitTypeNameKey()))
+            .addInfo(
+                descColor == null ? StatCollector.translateToLocal(getUnitDescKey())
+                    : descColor + StatCollector.translateToLocal(getUnitDescKey()))
+            .addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal(UNIT_DESC_2_KEY));
+        addUnitTooltipInfo(tt);
+        tt.beginStructureBlock(getUnitSizeX(), getUnitSizeY(), getUnitSizeZ(), false)
+            .addController(EnumChatFormatting.YELLOW + StatCollector.translateToLocal(UNIT_CTRL_KEY));
+        addUnitStructureTooltipInfo(tt);
+        tt.addStructureHint(UNIT_PAD_HINT_KEY)
+            .addInfo(GTSRUtils.getAddedByLine())
             .toolTipFinisher("GTSR");
+        return tt;
+    }
+
+    // ------------------------------------------------------------------
+    // Tooltip 骨架常量与扩展点（v1.11.15）
+    // ------------------------------------------------------------------
+
+    private static final String UNIT_DESC_KEY = "gtsr.tooltip.cluster.unit.desc";
+
+    private static final String UNIT_DESC_2_KEY = "gtsr.tooltip.cluster.unit.desc_2";
+
+    private static final String UNIT_CTRL_KEY = "gtsr.tooltip.cluster.unit.ctrl";
+
+    private static final String UNIT_PAD_HINT_KEY = "gtsr.tooltip.cluster.unit.pad_hint";
+
+    /**
+     * 子类功能群钩子：在 desc 之后、结构块之前调用（wiki 键序 type→desc→数值→ctrl）。默认空实现，
+     * 子类覆写追加 YELLOW 字段 + GOLD 数值 + RED 消耗的功能行；lang 只放纯文本标签，数值/单位/颜色
+     * 全部由 Java {@code String.format} + {@link EnumChatFormatting} 注入，禁止读取运行态可变数据。
+     */
+    protected void addUnitTooltipInfo(MultiblockTooltipBuilder tt) {}
+
+    /**
+     * 子类仓室群钩子：在 ctrl 之后、hint 之前调用（wiki 键序 ctrl→仓室→计数→hint）。默认空实现，
+     * 仅确有仓室/挂点的子类覆写（物流四 I/O、增幅输入仓、自持能源仓等）。
+     */
+    protected void addUnitStructureTooltipInfo(MultiblockTooltipBuilder tt) {}
+
+    /**
+     * 单元描述行工序主色（计划 §2.2 主色列）：返回 {@code null} 使用普通色（默认）。
+     */
+    protected EnumChatFormatting getUnitDescColor() {
+        return null;
+    }
+
+    /**
+     * 单元描述键（v1.11.15 W1 修正）：默认共享描述键；子类覆写返回
+     * {@code gtsr.tooltip.cluster.unit.<name>.desc} 专属描述行。
+     */
+    protected String getUnitDescKey() {
+        return UNIT_DESC_KEY;
+    }
+
+    /** 结构块 X 尺寸：子类 shape 全部行的最大宽度（按实际统计，不写死）。 */
+    private int getUnitSizeX() {
+        int x = 0;
+        for (String[] layer : getUnitShape()) {
+            for (String row : layer) {
+                x = Math.max(x, row.length());
+            }
+        }
+        return x;
+    }
+
+    /** 结构块 Y 尺寸：子类 shape 每层行数。 */
+    private int getUnitSizeY() {
+        return getUnitShape()[0].length;
+    }
+
+    /** 结构块 Z 尺寸：子类 shape 层数。 */
+    private int getUnitSizeZ() {
+        return getUnitShape().length;
+    }
+
+    /** 统计本单元 shape 中指定字符出现次数（如 'P' 能源位计数），供仓室群钩子引用。 */
+    protected final int countUnitShapeChar(char target) {
+        int count = 0;
+        for (String[] layer : getUnitShape()) {
+            for (String row : layer) {
+                for (int i = 0; i < row.length(); i++) {
+                    if (row.charAt(i) == target) count++;
+                }
+            }
+        }
+        return count;
+    }
+
+    /** GOLD 数值段（wiki 颜色规范：数值 GOLD）。 */
+    protected static String gold(String value) {
+        return EnumChatFormatting.GOLD + value;
+    }
+
+    /** RED 消耗段（wiki 颜色规范：消耗 RED）。 */
+    protected static String red(String value) {
+        return EnumChatFormatting.RED + value;
+    }
+
+    /** 秒值格式化：整数秒不带小数，亚秒保留 1 位（如 {@code 0.8 s}）。 */
+    protected static String fmtSeconds(double seconds) {
+        String number = seconds == Math.rint(seconds) ? String.format("%d", (long) seconds)
+            : String.format("%.1f", seconds);
+        return number + " s";
+    }
+
+    /** 每秒流率格式化（{@code L/s}）。 */
+    protected static String fmtLps(int litersPerSecond) {
+        return String.format("%d L/s", litersPerSecond);
+    }
+
+    /** 批量流体用量格式化（{@code L}，每批口径由 lang 标签承载）。 */
+    protected static String fmtL(int liters) {
+        return String.format("%d L", liters);
+    }
+
+    /** 毫升级流体用量格式化（{@code mB}，每物品口径由 lang 标签承载）。 */
+    protected static String fmtMb(int millibuckets) {
+        return String.format("%d mB", millibuckets);
+    }
+
+    /** 链步耗时值段（GOLD，秒——数据源 {@link ChainLink} 基础表）。 */
+    protected static String linkSeconds(ChainLink link) {
+        return gold(fmtSeconds(link.getBaseSecondsPrecise()));
+    }
+
+    /** 链步蒸汽消耗值段（RED，L/s——数据源 {@link ChainLink} 基础表）。 */
+    protected static String linkSteam(ChainLink link) {
+        return red(fmtLps(link.getBaseSteamLps()));
+    }
+
+    /**
+     * 增幅四档值段（{@link ClusterParams.BoosterType#getBoosterValue}）：按档以 {@code /} 相连，
+     * 每值后拼 {@code valueSuffix}（如 {@code "%"}；计数值传空串），调用方再着色。
+     */
+    protected static String boosterTierValues(ClusterParams.BoosterType type, String valueSuffix) {
+        StringBuilder values = new StringBuilder();
+        for (int i = 0; i < ClusterParams.TIER_COUNT; i++) {
+            if (i > 0) values.append('/');
+            values.append(type.getBoosterValue(i))
+                .append(valueSuffix);
+        }
+        return values.toString();
+    }
+
+    /** 增幅液四档流率段（{@link ClusterParams#amplifierFluidLps}）：{@code 50/200/1000/2000 L/s}。 */
+    protected static String boosterTierLps(ClusterParams.BoosterType type) {
+        StringBuilder values = new StringBuilder();
+        for (int i = 0; i < ClusterParams.TIER_COUNT; i++) {
+            if (i > 0) values.append('/');
+            values.append(ClusterParams.amplifierFluidLps(type, i));
+        }
+        return values + " L/s";
     }
 }

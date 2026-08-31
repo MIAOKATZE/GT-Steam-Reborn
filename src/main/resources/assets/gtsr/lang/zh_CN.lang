@@ -1375,19 +1375,17 @@ gtsr.gui.cluster.structure.logi_output_hatch_limit=物流输出仓数量超上�
 
 # 集群聊天提示
 
-# 主控 tooltip（E5；键名以代码引用为准，批次2 复核）
-gtsr.cluster.tooltip.type=蒸汽动力矿物处理物流工程集群
-gtsr.cluster.tooltip.desc=以蒸汽与润滑油驱动的多段矿石链式处理集群
-gtsr.cluster.tooltip.ctrl=控制器嵌入基础段外壳中层
-gtsr.cluster.tooltip.main.1=结构：20 深基础 + 8 深延伸
-gtsr.cluster.tooltip.main.2=延伸最多 9 段，总计 10 段
-gtsr.cluster.tooltip.main.3=至少 1 个通用输入仓（蒸汽/普通/耐压可选）
-gtsr.cluster.tooltip.main.4=耐压蒸汽仓 512k 缓冲约 4 分钟
-gtsr.cluster.tooltip.main.5=无输入输出总线与能源仓
-gtsr.cluster.tooltip.main.6=挂点不校验朝向，模块撞结构自身无法成型
-gtsr.cluster.tooltip.main.7=每段 4 加工 + 4 增幅 + 1 物流挂点，物流模块软锤启停
-gtsr.cluster.tooltip.main.8=预热 30 秒，持续消耗蒸汽与润滑油
-gtsr.cluster.tooltip.terminal=手持枢纽终端右击总控打开集群终端
+# 集群 tooltip（v1.11.15：键迁 gtsr.tooltip.cluster.*，数值由 Java String.format 注入常量）
+gtsr.tooltip.cluster.type=蒸汽动力矿物处理物流工程集群
+gtsr.tooltip.cluster.desc=以蒸汽与润滑油驱动的多段矿石链式处理集群
+gtsr.tooltip.cluster.steam_econ=蒸汽经济：固定蒸汽 %s，润滑 %s，档位蒸汽倍率 ×%s
+gtsr.tooltip.cluster.preheat=预热 %s 后达到满载效率
+gtsr.tooltip.cluster.logistics=物流挂点：每段 %s 个，最多 %s 个延伸段
+gtsr.tooltip.cluster.segments=结构分段：主段 %s 深，延伸段每段 %s 深，共 %s 段
+gtsr.tooltip.cluster.ctrl=控制器嵌入基础段外壳中层
+gtsr.tooltip.cluster.hatches=通用输入仓：蒸汽/普通/耐压蒸汽可选
+gtsr.tooltip.cluster.no_bus_energy=无输入输出总线与能源仓
+gtsr.tooltip.cluster.terminal=手持枢纽终端右击总控打开集群终端
 
 # 集群 GUI 通用（E6）
 gtsr.cluster.gui.tab.topology=拓扑
@@ -1637,14 +1635,57 @@ gtsr.gui.cluster.booster.secondary=副产物增幅模块
 gtsr.gui.cluster.booster.steam_saver=效率增幅模块
 gtsr.gui.cluster.booster.fluid.parallel=硝酸
 gtsr.gui.cluster.booster.fluid.speed=盐酸
-gtsr.gui.cluster.booster.fluid.primary=氨气
-gtsr.gui.cluster.booster.fluid.secondary=硫酸
+gtsr.gui.cluster.booster.fluid.primary=硫酸
+gtsr.gui.cluster.booster.fluid.secondary=氯化铵
 gtsr.gui.cluster.booster.fluid.steam_saver=冷却液
 gtsr.gui.cluster.preheat=预热
 gtsr.gui.cluster.throughput=吞吐
 gtsr.progress.cluster.preheat=预热：%s%%
 gtsr.progress.cluster.throughput=吞吐：%s 矿/s
 gtsr.tooltip.cluster.unit.pad_hint=放置于集群挂点槽位
+gtsr.tooltip.cluster.unit.desc=接入集群总控的单元模块，自身结构成型后方可被总控收集
+gtsr.tooltip.cluster.unit.desc_2=档位与能力详情见下方功能行说明
+gtsr.tooltip.cluster.unit.ctrl=控制器位于结构正面
+gtsr.tooltip.cluster.unit.hatch.energy=能源仓 ×%s（需持续供电）
+gtsr.tooltip.cluster.unit.hatch.input=输入仓（锁定增幅流体）
+gtsr.tooltip.cluster.unit.hatch.input_bus=输入总线 %s
+gtsr.tooltip.cluster.unit.hatch.output_bus=输出总线 %s
+gtsr.tooltip.cluster.unit.hatch.input_hatch=输入仓 %s
+gtsr.tooltip.cluster.unit.hatch.output_hatch=输出仓 %s
+gtsr.tooltip.cluster.unit.booster.fluid_cost=锁定流体：%s，按档消耗 %s
+gtsr.tooltip.cluster.unit.booster.penalty=蒸汽惩罚：×%s
+gtsr.tooltip.cluster.unit.crusher.desc=粉碎模块：解锁矿石粉碎与锤击两条破碎链
+gtsr.tooltip.cluster.unit.crusher.crush=粉碎链步：耗时 %s，蒸汽 %s
+gtsr.tooltip.cluster.unit.crusher.hammer=锤击链步：耗时 %s，蒸汽 %s
+gtsr.tooltip.cluster.unit.ore_washer.desc=洗矿模块：解锁矿石清洗、化学浴与简易清洗三条湿法链
+gtsr.tooltip.cluster.unit.ore_washer.ore_wash=矿石清洗：耗时 %s，蒸汽 %s，用水 %s（每批）
+gtsr.tooltip.cluster.unit.ore_washer.chem_bath=化学浸浴：耗时 %s，蒸汽 %s，药剂 %s（每批）
+gtsr.tooltip.cluster.unit.ore_washer.simple_wash=简易清洗：耗时 %s，蒸汽 %s，用水 %s（每物品）
+gtsr.tooltip.cluster.unit.centrifuge.desc=离心模块：解锁离心分离链
+gtsr.tooltip.cluster.unit.centrifuge.func=离心分离：耗时 %s，蒸汽 %s
+gtsr.tooltip.cluster.unit.thermal_centrifuge.desc=热力离心模块：解锁热离心链，需能源仓持续供电
+gtsr.tooltip.cluster.unit.thermal_centrifuge.func=热力离心：耗时 %s，蒸汽 %s
+gtsr.tooltip.cluster.unit.thermal_centrifuge.power=持续供电：%s
+gtsr.tooltip.cluster.unit.sifter.desc=筛选模块：解锁筛分链
+gtsr.tooltip.cluster.unit.sifter.func=筛分：耗时 %s，蒸汽 %s
+gtsr.tooltip.cluster.unit.magnetic_separator.desc=磁选模块：解锁磁选链，需能源仓持续供电
+gtsr.tooltip.cluster.unit.magnetic_separator.func=磁选：耗时 %s，蒸汽 %s
+gtsr.tooltip.cluster.unit.magnetic_separator.power=持续供电：%s
+gtsr.tooltip.cluster.unit.furnace.desc=熔炼模块：解锁熔炼链
+gtsr.tooltip.cluster.unit.furnace.func=熔炼：耗时 %s，蒸汽 %s
+gtsr.tooltip.cluster.unit.parallel.desc=并行增幅模块：提升物流模块并行数，可多模块加算
+gtsr.tooltip.cluster.unit.parallel.value=并行增幅：四档 +%s
+gtsr.tooltip.cluster.unit.speed.desc=速度增幅模块：配方增速，可多模块加算
+gtsr.tooltip.cluster.unit.speed.value=速度增幅：四档 +%s
+gtsr.tooltip.cluster.unit.primary.desc=主产物增幅模块：按概率额外产出主产物，同类只生效其一
+gtsr.tooltip.cluster.unit.primary.value=主产物增幅：四档 +%s
+gtsr.tooltip.cluster.unit.secondary.desc=副产物增幅模块：概率额外产出副产物，可多模块加算
+gtsr.tooltip.cluster.unit.secondary.value=副产物增幅：四档 +%s
+gtsr.tooltip.cluster.unit.steam_saver.desc=节汽增幅模块：按比例节约运行蒸汽，可多模块加算
+gtsr.tooltip.cluster.unit.steam_saver.value=节汽增幅：四档 %s，上限 %s
+gtsr.tooltip.cluster.unit.logistics.desc=物流模块：集群单点链执行器，四类 I/O 结构
+gtsr.tooltip.cluster.unit.logistics.window=处理窗口下限 %s
+gtsr.tooltip.cluster.unit.logistics.soft_hammer=软锤启停（默认开机）
 
 
 # BQ quests BEGIN

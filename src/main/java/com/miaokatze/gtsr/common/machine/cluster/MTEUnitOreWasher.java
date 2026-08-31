@@ -5,6 +5,8 @@ import static gregtech.api.util.GTStructureUtility.fillStructureWithWater;
 import java.util.List;
 
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.EnumChatFormatting;
+import net.minecraft.util.StatCollector;
 
 import com.gtnewhorizon.structurelib.structure.StructureDefinition;
 import com.gtnewhorizon.structurelib.structure.StructureUtility;
@@ -14,6 +16,7 @@ import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.structure.error.StructureError;
 import gregtech.api.util.GTStructureUtility;
+import gregtech.api.util.MultiblockTooltipBuilder;
 
 /**
  * 工作单元：洗矿机（能力闸门）。
@@ -133,5 +136,45 @@ public class MTEUnitOreWasher extends MTEBasicProcessingUnit {
     @Override
     public MetaTileEntity newMetaEntity(IGregTechTileEntity aTileEntity) {
         return new MTEUnitOreWasher(mName);
+    }
+
+    /** 工序主色（计划 §2.2）：BLUE。 */
+    @Override
+    protected EnumChatFormatting getUnitDescColor() {
+        return EnumChatFormatting.BLUE;
+    }
+
+    /** 单元描述键（v1.11.15 W1 修正）：洗矿模块专属描述行。 */
+    @Override
+    protected String getUnitDescKey() {
+        return "gtsr.tooltip.cluster.unit.ore_washer.desc";
+    }
+
+    /**
+     * 功能群（v1.11.15）：洗矿/化学浴/简易清洗三条湿法链行——耗时/蒸汽取自 {@link ChainLink}
+     * 基础表，批量用水/药剂取自 {@link ClusterParams#WASH_WATER_PER_BATCH_L}、
+     * {@link ClusterParams#CHEM_BATH_FLUID_PER_BATCH_L} 与
+     * {@link ClusterParams#SIMPLE_WASH_WATER_PER_ITEM_MB}（Java 侧注入，lang 只放纯文本标签）。
+     */
+    @Override
+    protected void addUnitTooltipInfo(MultiblockTooltipBuilder tt) {
+        tt.addInfo(
+            EnumChatFormatting.YELLOW + String.format(
+                StatCollector.translateToLocal("gtsr.tooltip.cluster.unit.ore_washer.ore_wash"),
+                linkSeconds(ChainLink.ORE_WASH),
+                linkSteam(ChainLink.ORE_WASH),
+                red(fmtL(ClusterParams.WASH_WATER_PER_BATCH_L))))
+            .addInfo(
+                EnumChatFormatting.YELLOW + String.format(
+                    StatCollector.translateToLocal("gtsr.tooltip.cluster.unit.ore_washer.chem_bath"),
+                    linkSeconds(ChainLink.CHEM_BATH),
+                    linkSteam(ChainLink.CHEM_BATH),
+                    red(fmtL(ClusterParams.CHEM_BATH_FLUID_PER_BATCH_L))))
+            .addInfo(
+                EnumChatFormatting.YELLOW + String.format(
+                    StatCollector.translateToLocal("gtsr.tooltip.cluster.unit.ore_washer.simple_wash"),
+                    linkSeconds(ChainLink.SIMPLE_WASH),
+                    linkSteam(ChainLink.SIMPLE_WASH),
+                    red(fmtMb(ClusterParams.SIMPLE_WASH_WATER_PER_ITEM_MB))));
     }
 }

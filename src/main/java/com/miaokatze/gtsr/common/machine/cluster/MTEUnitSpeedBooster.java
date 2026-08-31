@@ -1,11 +1,14 @@
 package com.miaokatze.gtsr.common.machine.cluster;
 
+import net.minecraft.util.EnumChatFormatting;
+import net.minecraft.util.StatCollector;
 import net.minecraftforge.fluids.Fluid;
 
 import gregtech.api.enums.Textures;
 import gregtech.api.interfaces.IIconContainer;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
+import gregtech.api.util.MultiblockTooltipBuilder;
 
 /**
  * 速度增幅模块：配方增速（百分比，不减小实际秒数），可多模块生效、加算后作为独立乘算层。
@@ -58,6 +61,46 @@ public class MTEUnitSpeedBooster extends MTEBasicAmplifierUnit {
         return OVERLAY_ACTIVE;
     }
 
-    /** tooltip：类型行 + 四档增益行 + 锁定流体行 + 缺流体失效红字行，AddedBy 收尾（写法对齐 MTESteamInputHatchGeneric）。 */
+    /** 工序主色（计划 §2.2）：GREEN 系。 */
+    @Override
+    protected EnumChatFormatting getUnitDescColor() {
+        return EnumChatFormatting.GREEN;
+    }
 
+    /** 单元描述键（v1.11.15 W1 修正）：速度增幅模块专属描述行。 */
+    @Override
+    protected String getUnitDescKey() {
+        return "gtsr.tooltip.cluster.unit.speed.desc";
+    }
+
+    /**
+     * 功能群（v1.11.15）：速度四档值行 + 共用「锁定流体 / 按档消耗」行 + 共用「蒸汽惩罚」行——
+     * 数值取自 {@link ClusterParams#BOOSTER_SPEED_PCT}（经 getBoosterValue）、
+     * {@link ClusterParams#AMPLIFIER_HYDROCHLORIC_ACID_LPS}（经 amplifierFluidLps）与
+     * {@link ClusterParams#BOOSTER_PENALTY_MULT}（经 getPenaltyMultiplier），Java 侧 GOLD/RED 注入。
+     */
+    @Override
+    protected void addUnitTooltipInfo(MultiblockTooltipBuilder tt) {
+        ClusterParams.BoosterType type = ClusterParams.BoosterType.SPEED;
+        tt.addInfo(
+            EnumChatFormatting.YELLOW + String.format(
+                StatCollector.translateToLocal("gtsr.tooltip.cluster.unit.speed.value"),
+                gold(boosterTierValues(type, "%"))))
+            .addInfo(
+                EnumChatFormatting.YELLOW + String.format(
+                    StatCollector.translateToLocal("gtsr.tooltip.cluster.unit.booster.fluid_cost"),
+                    EnumChatFormatting.WHITE + StatCollector.translateToLocal(type.getFluidLangKey()),
+                    red(boosterTierLps(type))))
+            .addInfo(
+                EnumChatFormatting.YELLOW + String.format(
+                    StatCollector.translateToLocal("gtsr.tooltip.cluster.unit.booster.penalty"),
+                    gold(String.format("%.1f", type.getPenaltyMultiplier()))));
+    }
+
+    /** 仓室群（v1.11.15）：增幅输入仓行（锁定增幅流体自输入仓读取，≥1 由结构校验强制）。 */
+    @Override
+    protected void addUnitStructureTooltipInfo(MultiblockTooltipBuilder tt) {
+        tt.addStructureInfo(
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.cluster.unit.hatch.input"));
+    }
 }

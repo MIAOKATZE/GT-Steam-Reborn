@@ -12,6 +12,8 @@ import java.util.List;
 
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.util.EnumChatFormatting;
+import net.minecraft.util.StatCollector;
 import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
@@ -34,6 +36,7 @@ import gregtech.api.metatileentity.implementations.MTEHatchOutputBus;
 import gregtech.api.structure.error.StructureError;
 import gregtech.api.util.GTModHandler;
 import gregtech.api.util.GTUtility;
+import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.common.tileentities.machines.MTEHatchInputBusME;
 
 /**
@@ -549,5 +552,58 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
     /** 设置本批配方时间（ClusterChainExecutor 批执行后写入；不持久化，重载后从零开始）。 */
     public void setChainCooldownTicks(long ticks) {
         this.chainCooldownTicks = ticks;
+    }
+
+    // ------------------------------------------------------------------
+    // Tooltip（v1.11.15）
+    // ------------------------------------------------------------------
+
+    /** 工序主色（计划 §2.2）：WHITE+GRAY 系——描述行 WHITE，辅助语义经 GRAY 行承载。 */
+    @Override
+    protected EnumChatFormatting getUnitDescColor() {
+        return EnumChatFormatting.WHITE;
+    }
+
+    /** 单元描述键（v1.11.15 W1 修正）：物流模块专属描述行。 */
+    @Override
+    protected String getUnitDescKey() {
+        return "gtsr.tooltip.cluster.unit.logistics.desc";
+    }
+
+    /**
+     * 功能群（v1.11.15）：处理窗口下限行 + 软锤启停行——窗口下限取自
+     * {@link #MIN_PROCESSING_WINDOW_TICKS}（tick ÷ {@link ChainLink#TICKS_PER_SECOND} 折秒）；
+     * 软锤启停为纯文案行（默认开机，{@code isAllowedToWork} 语义）。
+     */
+    @Override
+    protected void addUnitTooltipInfo(MultiblockTooltipBuilder tt) {
+        tt.addInfo(
+            EnumChatFormatting.YELLOW + String.format(
+                StatCollector.translateToLocal("gtsr.tooltip.cluster.unit.logistics.window"),
+                gold(fmtSeconds(MIN_PROCESSING_WINDOW_TICKS / (double) ChainLink.TICKS_PER_SECOND))))
+            .addInfo(
+                EnumChatFormatting.YELLOW
+                    + StatCollector.translateToLocal("gtsr.tooltip.cluster.unit.logistics.soft_hammer"));
+    }
+
+    /**
+     * 仓室群（v1.11.15）：四类 I/O 行（输入总线/输出总线/输入仓/输出仓）——数量区间下限 1 来自
+     * {@link #checkMachine} 的非空强制，上限引用 {@link #IO_HATCH_LIMIT}（Java 侧 GOLD 注入）。
+     */
+    @Override
+    protected void addUnitStructureTooltipInfo(MultiblockTooltipBuilder tt) {
+        String range = gold(String.format("1-%d", IO_HATCH_LIMIT));
+        tt.addStructureInfo(
+            EnumChatFormatting.YELLOW
+                + String.format(StatCollector.translateToLocal("gtsr.tooltip.cluster.unit.hatch.input_bus"), range))
+            .addStructureInfo(
+                EnumChatFormatting.YELLOW + String
+                    .format(StatCollector.translateToLocal("gtsr.tooltip.cluster.unit.hatch.output_bus"), range))
+            .addStructureInfo(
+                EnumChatFormatting.YELLOW + String
+                    .format(StatCollector.translateToLocal("gtsr.tooltip.cluster.unit.hatch.input_hatch"), range))
+            .addStructureInfo(
+                EnumChatFormatting.YELLOW + String
+                    .format(StatCollector.translateToLocal("gtsr.tooltip.cluster.unit.hatch.output_hatch"), range));
     }
 }

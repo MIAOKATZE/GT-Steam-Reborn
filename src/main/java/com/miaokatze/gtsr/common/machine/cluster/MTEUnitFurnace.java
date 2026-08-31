@@ -1,10 +1,14 @@
 package com.miaokatze.gtsr.common.machine.cluster;
 
+import net.minecraft.util.EnumChatFormatting;
+import net.minecraft.util.StatCollector;
+
 import com.gtnewhorizon.structurelib.structure.StructureDefinition;
 
 import gregtech.api.enums.Textures;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
+import gregtech.api.util.MultiblockTooltipBuilder;
 
 /**
  * 工作单元：熔炉（能力闸门）。
@@ -91,5 +95,27 @@ public class MTEUnitFurnace extends MTEBasicProcessingUnit {
     @Override
     public MetaTileEntity newMetaEntity(IGregTechTileEntity aTileEntity) {
         return new MTEUnitFurnace(mName);
+    }
+
+    /** 工序主色（计划 §2.2）：YELLOW。 */
+    @Override
+    protected EnumChatFormatting getUnitDescColor() {
+        return EnumChatFormatting.YELLOW;
+    }
+
+    /** 单元描述键（v1.11.15 W1 修正）：熔炼模块专属描述行。 */
+    @Override
+    protected String getUnitDescKey() {
+        return "gtsr.tooltip.cluster.unit.furnace.desc";
+    }
+
+    /** 功能群（v1.11.15）：熔炼链步「耗时 / 蒸汽消耗」行（数据源 {@link ChainLink#FURNACE}）。 */
+    @Override
+    protected void addUnitTooltipInfo(MultiblockTooltipBuilder tt) {
+        tt.addInfo(
+            EnumChatFormatting.YELLOW + String.format(
+                StatCollector.translateToLocal("gtsr.tooltip.cluster.unit.furnace.func"),
+                linkSeconds(ChainLink.FURNACE),
+                linkSteam(ChainLink.FURNACE)));
     }
 }

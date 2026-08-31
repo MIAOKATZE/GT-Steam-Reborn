@@ -1509,31 +1509,79 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
     }
 
     /**
-     * 全量结构 tooltip（plan §3.3.2/§3.2 重写，文案键 gtsr.cluster.tooltip.* 序列，E7 落盘）：
-     * 20 深基础段 + 8 深延伸段（最多 9 延伸 / 总段 10）→ 主控无总线/能源仓 → 通用输入仓至少 1
-     * （蒸汽/普通/耐压 512k ≈ 4 分钟）→ F/H/G 挂点不校验朝向 + 模块撞结构自身无法成型 →
-     * 物流四 I/O + 软锤启停（默认开机）→ 热离/磁选自带能源仓 → 蒸汽/润滑经济数值简述。
+     * 全量结构 tooltip（v1.11.15 重排，键迁 gtsr.tooltip.cluster.*，wiki 键序
+     * type→desc→数值→ctrl→仓室→计数→hint→品牌）：主控约 ≤25 行——类型/描述 → 蒸汽经济
+     * （固定蒸汽 × 档位乘率、润滑、tier 蒸汽倍率）→ 预热 → 物流挂点 → 结构分段 → 结构块
+     * （20×15×29）→ 控制器 → 仓室两行 → 终端 hint（裸键）→ 品牌行。数值全部由
+     * {@code String.format} 自 {@link ClusterParams}/{@link ClusterTopology} 常量注入，
+     * lang 只放纯文本标签（无 §/数值/单位）。
      */
     @Override
     protected MultiblockTooltipBuilder createTooltip() {
         MultiblockTooltipBuilder tt = new MultiblockTooltipBuilder();
-        tt.addMachineType(StatCollector.translateToLocal("gtsr.cluster.tooltip.type"))
-            .addInfo(StatCollector.translateToLocal("gtsr.cluster.tooltip.desc"))
+        tt.addMachineType(EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.cluster.type"))
+            .addInfo(EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.tooltip.cluster.desc"))
+            .addInfo(
+                EnumChatFormatting.YELLOW + String.format(
+                    StatCollector.translateToLocal("gtsr.tooltip.cluster.steam_econ"),
+                    gold(
+                        String.format(
+                            "%d L/s ×%s",
+                            ClusterParams.FIXED_CLUSTER_STEAM_LPS,
+                            joinInts(ClusterParams.FIXED_STEAM_TIER_MULT))),
+                    gold(joinInts(ClusterParams.CLUSTER_LUBRICANT_LPS) + " L/s"),
+                    gold(joinDoubles(ClusterParams.TIER_STEAM_MULT))))
+            .addInfo(
+                EnumChatFormatting.YELLOW + String.format(
+                    StatCollector.translateToLocal("gtsr.tooltip.cluster.preheat"),
+                    gold(String.format("%d s", ClusterParams.PREHEAT_SECONDS))))
+            .addInfo(
+                EnumChatFormatting.YELLOW + String.format(
+                    StatCollector.translateToLocal("gtsr.tooltip.cluster.logistics"),
+                    gold(String.format("%d", ClusterTopology.SLOT_COUNT / ClusterTopology.MAX_SEGMENTS)),
+                    gold(String.format("%d", ClusterTopology.MAX_EXTENSION_SEGMENTS))))
+            .addInfo(
+                EnumChatFormatting.YELLOW + String.format(
+                    StatCollector.translateToLocal("gtsr.tooltip.cluster.segments"),
+                    gold(String.format("%d", ClusterParams.SEGMENT_DEPTH_MAIN)),
+                    gold(String.format("%d", ClusterParams.SEGMENT_DEPTH_EXT)),
+                    gold(String.format("%d", ClusterTopology.MAX_SEGMENTS))))
             .addSeparator()
             .beginStructureBlock(ClusterParams.SEGMENT_DEPTH_MAIN, 15, 29, false)
-            .addController(StatCollector.translateToLocal("gtsr.cluster.tooltip.ctrl"))
-            .addStructureInfo(StatCollector.translateToLocal("gtsr.cluster.tooltip.main.1"))
-            .addStructureInfo(StatCollector.translateToLocal("gtsr.cluster.tooltip.main.2"))
-            .addStructureInfo(StatCollector.translateToLocal("gtsr.cluster.tooltip.main.3"))
-            .addStructureInfo(StatCollector.translateToLocal("gtsr.cluster.tooltip.main.4"))
-            .addStructureInfo(StatCollector.translateToLocal("gtsr.cluster.tooltip.main.5"))
-            .addStructureInfo(StatCollector.translateToLocal("gtsr.cluster.tooltip.main.6"))
-            .addStructureInfo(StatCollector.translateToLocal("gtsr.cluster.tooltip.main.7"))
-            .addStructureInfo(StatCollector.translateToLocal("gtsr.cluster.tooltip.main.8"))
-            .addStructureHint("gtsr.cluster.tooltip.terminal")
+            .addController(EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.cluster.ctrl"))
+            .addStructureInfo(
+                EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.cluster.hatches"))
+            .addStructureInfo(
+                EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.cluster.no_bus_energy"))
+            .addStructureHint("gtsr.tooltip.cluster.terminal")
             .addInfo(GTSRUtils.getAddedByLine())
             .toolTipFinisher();
         return tt;
+    }
+
+    /** int 表拼接（{@code 1/4/16/48}），供固定蒸汽档位乘率与润滑表展示。 */
+    private static String joinInts(int[] values) {
+        StringBuilder joined = new StringBuilder();
+        for (int i = 0; i < values.length; i++) {
+            if (i > 0) joined.append('/');
+            joined.append(values[i]);
+        }
+        return joined.toString();
+    }
+
+    /** double 表拼接（{@code 1.0/1.5/2.5/4.0}），供 tier 蒸汽倍率展示。 */
+    private static String joinDoubles(double[] values) {
+        StringBuilder joined = new StringBuilder();
+        for (int i = 0; i < values.length; i++) {
+            if (i > 0) joined.append('/');
+            joined.append(String.format("%.1f", values[i]));
+        }
+        return joined.toString();
+    }
+
+    /** GOLD 数值段（wiki 颜色规范：数值 GOLD）。 */
+    private static String gold(String value) {
+        return EnumChatFormatting.GOLD + value;
     }
 
     /** 限水平朝向、不旋转、不垂直翻转（与模板 MTELargeSteamFurnace 同限）。 */

@@ -1,11 +1,14 @@
 package com.miaokatze.gtsr.common.machine.cluster;
 
+import net.minecraft.util.EnumChatFormatting;
+import net.minecraft.util.StatCollector;
 import net.minecraftforge.fluids.Fluid;
 
 import gregtech.api.enums.Textures;
 import gregtech.api.interfaces.IIconContainer;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
+import gregtech.api.util.MultiblockTooltipBuilder;
 
 /**
  * 蒸汽效率增幅模块：按比例节约集群运行蒸汽消耗；可多模块生效、加算，全集群总节约上限 48%。
@@ -59,6 +62,47 @@ public class MTEUnitSteamSaverBooster extends MTEBasicAmplifierUnit {
         return OVERLAY_ACTIVE;
     }
 
-    /** tooltip：类型行 + 四档增益行 + 锁定流体行 + 缺流体失效红字行，AddedBy 收尾（写法对齐 MTESteamInputHatchGeneric）。 */
+    /** 工序主色（计划 §2.2）：GREEN 系。 */
+    @Override
+    protected EnumChatFormatting getUnitDescColor() {
+        return EnumChatFormatting.GREEN;
+    }
 
+    /** 单元描述键（v1.11.15 W1 修正）：节汽增幅模块专属描述行。 */
+    @Override
+    protected String getUnitDescKey() {
+        return "gtsr.tooltip.cluster.unit.steam_saver.desc";
+    }
+
+    /**
+     * 功能群（v1.11.15）：节汽四档值行（含全集群总节约上限）+ 共用「锁定流体 / 按档消耗」行 +
+     * 共用「蒸汽惩罚」行——数值取自 {@link ClusterParams#BOOSTER_SAVER_PCT}（经 getBoosterValue）、
+     * {@link ClusterParams#STEAM_SAVER_CAP}、{@link ClusterParams#AMPLIFIER_SUPER_COOLANT_LPS}
+     * （经 amplifierFluidLps）与 {@link ClusterParams#BOOSTER_PENALTY_MULT}（经 getPenaltyMultiplier）。
+     */
+    @Override
+    protected void addUnitTooltipInfo(MultiblockTooltipBuilder tt) {
+        ClusterParams.BoosterType type = ClusterParams.BoosterType.STEAM_SAVER;
+        tt.addInfo(
+            EnumChatFormatting.YELLOW + String.format(
+                StatCollector.translateToLocal("gtsr.tooltip.cluster.unit.steam_saver.value"),
+                gold(boosterTierValues(type, "%")),
+                gold(String.format("%.0f %%", ClusterParams.STEAM_SAVER_CAP * 100))))
+            .addInfo(
+                EnumChatFormatting.YELLOW + String.format(
+                    StatCollector.translateToLocal("gtsr.tooltip.cluster.unit.booster.fluid_cost"),
+                    EnumChatFormatting.WHITE + StatCollector.translateToLocal(type.getFluidLangKey()),
+                    red(boosterTierLps(type))))
+            .addInfo(
+                EnumChatFormatting.YELLOW + String.format(
+                    StatCollector.translateToLocal("gtsr.tooltip.cluster.unit.booster.penalty"),
+                    gold(String.format("%.1f", type.getPenaltyMultiplier()))));
+    }
+
+    /** 仓室群（v1.11.15）：增幅输入仓行（锁定增幅流体自输入仓读取，≥1 由结构校验强制）。 */
+    @Override
+    protected void addUnitStructureTooltipInfo(MultiblockTooltipBuilder tt) {
+        tt.addStructureInfo(
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.cluster.unit.hatch.input"));
+    }
 }

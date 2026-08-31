@@ -1,9 +1,13 @@
 package com.miaokatze.gtsr.common.machine.cluster;
 
+import net.minecraft.util.EnumChatFormatting;
+import net.minecraft.util.StatCollector;
+
 import com.gtnewhorizon.structurelib.structure.StructureDefinition;
 
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
+import gregtech.api.util.MultiblockTooltipBuilder;
 import gtPlusPlus.xmod.gregtech.common.blocks.textures.TexturesGtBlock;
 
 /**
@@ -93,5 +97,52 @@ public class MTEUnitThermalCentrifuge extends MTEUnitSelfPoweredProcessingUnit {
     @Override
     public IMetaTileEntity newMetaEntity(IGregTechTileEntity aTileEntity) {
         return new MTEUnitThermalCentrifuge(mName);
+    }
+
+    /** 工序主色（计划 §2.2）：LIGHT_PURPLE。 */
+    @Override
+    protected EnumChatFormatting getUnitDescColor() {
+        return EnumChatFormatting.LIGHT_PURPLE;
+    }
+
+    /** 单元描述键（v1.11.15 W1 修正）：热力离心模块专属描述行。 */
+    @Override
+    protected String getUnitDescKey() {
+        return "gtsr.tooltip.cluster.unit.thermal_centrifuge.desc";
+    }
+
+    /**
+     * 功能群（v1.11.15）：热离链步「耗时 / 蒸汽消耗」行 + 持续供电行——EU/t 与安培取自
+     * {@link ClusterParams#THERMOCENTRIFUGE_EU_PER_TICK}/{@link ClusterParams#THERMOCENTRIFUGE_AMPERAGE}
+     * （合计 = 乘积，Java 侧 GOLD 注入）。
+     */
+    @Override
+    protected void addUnitTooltipInfo(MultiblockTooltipBuilder tt) {
+        tt.addInfo(
+            EnumChatFormatting.YELLOW + String.format(
+                StatCollector.translateToLocal("gtsr.tooltip.cluster.unit.thermal_centrifuge.func"),
+                linkSeconds(ChainLink.THERMOCENTRIFUGE),
+                linkSteam(ChainLink.THERMOCENTRIFUGE)))
+            .addInfo(
+                EnumChatFormatting.YELLOW + String.format(
+                    StatCollector.translateToLocal("gtsr.tooltip.cluster.unit.thermal_centrifuge.power"),
+                    gold(
+                        powerEuLine(
+                            ClusterParams.THERMOCENTRIFUGE_EU_PER_TICK,
+                            ClusterParams.THERMOCENTRIFUGE_AMPERAGE))));
+    }
+
+    /** 仓室群（v1.11.15）：能源仓行——数量按本单元 shape 的 'P' 位实际统计。 */
+    @Override
+    protected void addUnitStructureTooltipInfo(MultiblockTooltipBuilder tt) {
+        tt.addStructureInfo(
+            EnumChatFormatting.YELLOW + String.format(
+                StatCollector.translateToLocal("gtsr.tooltip.cluster.unit.hatch.energy"),
+                gold(String.valueOf(countUnitShapeChar('P')))));
+    }
+
+    /** 持续供电值段：{@code 32 EU/t × 3 A = 96 EU/t}（合计由乘积得出，不另造数）。 */
+    private static String powerEuLine(int euPerTick, int amperage) {
+        return String.format("%d EU/t × %d A = %d EU/t", euPerTick, amperage, euPerTick * amperage);
     }
 }

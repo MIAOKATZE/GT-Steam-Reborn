@@ -1,10 +1,14 @@
 package com.miaokatze.gtsr.common.machine.cluster;
 
+import net.minecraft.util.EnumChatFormatting;
+import net.minecraft.util.StatCollector;
+
 import com.gtnewhorizon.structurelib.structure.StructureDefinition;
 
 import gregtech.api.enums.Textures;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
+import gregtech.api.util.MultiblockTooltipBuilder;
 
 /**
  * 工作单元：粉碎机（能力闸门）。
@@ -94,5 +98,36 @@ public class MTEUnitCrusher extends MTEBasicProcessingUnit {
     @Override
     public IMetaTileEntity newMetaEntity(IGregTechTileEntity aTileEntity) {
         return new MTEUnitCrusher(mName);
+    }
+
+    /** 工序主色（计划 §2.2）：RED。 */
+    @Override
+    protected EnumChatFormatting getUnitDescColor() {
+        return EnumChatFormatting.RED;
+    }
+
+    /** 单元描述键（v1.11.15 W1 修正）：粉碎模块专属描述行。 */
+    @Override
+    protected String getUnitDescKey() {
+        return "gtsr.tooltip.cluster.unit.crusher.desc";
+    }
+
+    /**
+     * 功能群（v1.11.15）：粉碎/锤击两条链步的「耗时 / 蒸汽消耗」行——数值取自
+     * {@link ChainLink#CRUSH}/{@link ChainLink#HAMMER} 基础表（{@code ChainLink} 唯一数值来源，
+     * Java 侧 GOLD 耗时 + RED 蒸汽注入，lang 只放纯文本标签）。
+     */
+    @Override
+    protected void addUnitTooltipInfo(MultiblockTooltipBuilder tt) {
+        tt.addInfo(
+            EnumChatFormatting.YELLOW + String.format(
+                StatCollector.translateToLocal("gtsr.tooltip.cluster.unit.crusher.crush"),
+                linkSeconds(ChainLink.CRUSH),
+                linkSteam(ChainLink.CRUSH)))
+            .addInfo(
+                EnumChatFormatting.YELLOW + String.format(
+                    StatCollector.translateToLocal("gtsr.tooltip.cluster.unit.crusher.hammer"),
+                    linkSeconds(ChainLink.HAMMER),
+                    linkSteam(ChainLink.HAMMER)));
     }
 }

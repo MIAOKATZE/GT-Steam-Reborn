@@ -1380,19 +1380,17 @@ gtsr.gui.cluster.structure.logi_output_hatch_limit=Too many logistics output hat
 
 # Cluster chat
 
-# Main controller tooltip (E5; key names follow code references, batch 2 rework)
-gtsr.cluster.tooltip.type=Steam-Powered Mineral Processing Logistics Engineering Cluster
-gtsr.cluster.tooltip.desc=Multi-segment ore chain processing cluster driven by steam and lubricant
-gtsr.cluster.tooltip.ctrl=Controller embedded in the mid shell of the base segment
-gtsr.cluster.tooltip.main.1=Structure: 20-deep base + 8-deep extension
-gtsr.cluster.tooltip.main.2=Up to 9 extension segments, 10 segments in total
-gtsr.cluster.tooltip.main.3=At least 1 universal input hatch (steam / normal / overpressure optional)
-gtsr.cluster.tooltip.main.4=Overpressure steam hatch: 512k buffer, about 4 minutes
-gtsr.cluster.tooltip.main.5=No input/output buses and no energy hatch
-gtsr.cluster.tooltip.main.6=Mount points ignore facing; a module clipping the structure prevents forming
-gtsr.cluster.tooltip.main.7=Each segment: 4 processing + 4 booster + 1 logistics mount points; logistics module toggled by soft hammer
-gtsr.cluster.tooltip.main.8=30s preheat, continuously consumes steam and lubricant
-gtsr.cluster.tooltip.terminal=Right-click the controller with a Hub Terminal to open the cluster terminal
+# Cluster tooltip (v1.11.15: keys moved to gtsr.tooltip.cluster.*, values injected from constants via Java String.format)
+gtsr.tooltip.cluster.type=Steam-Powered Mineral Processing Logistics Engineering Cluster
+gtsr.tooltip.cluster.desc=Multi-segment ore chain processing cluster driven by steam and lubricant
+gtsr.tooltip.cluster.steam_econ=Steam economy: fixed steam %s, lubricant %s, tier steam multiplier %s
+gtsr.tooltip.cluster.preheat=Reaches full efficiency after %s of preheat
+gtsr.tooltip.cluster.logistics=Logistics mount points: %s per segment, up to %s extension segments
+gtsr.tooltip.cluster.segments=Structure segments: main segment %s deep, each extension %s deep, %s segments total
+gtsr.tooltip.cluster.ctrl=Controller embedded in the mid shell of the base segment
+gtsr.tooltip.cluster.hatches=Universal input hatch: steam / normal / overpressure steam
+gtsr.tooltip.cluster.no_bus_energy=No input/output buses and no energy hatch
+gtsr.tooltip.cluster.terminal=Right-click the controller with a Hub Terminal to open the cluster terminal
 
 # Cluster GUI common (E6)
 gtsr.cluster.gui.tab.topology=Topology
@@ -1642,14 +1640,57 @@ gtsr.gui.cluster.booster.secondary=Secondary Output Booster Module
 gtsr.gui.cluster.booster.steam_saver=Efficiency Booster Module
 gtsr.gui.cluster.booster.fluid.parallel=Nitric Acid
 gtsr.gui.cluster.booster.fluid.speed=Hydrochloric Acid
-gtsr.gui.cluster.booster.fluid.primary=Ammonia
-gtsr.gui.cluster.booster.fluid.secondary=Sulfuric Acid
+gtsr.gui.cluster.booster.fluid.primary=Sulfuric Acid
+gtsr.gui.cluster.booster.fluid.secondary=Ammonium Chloride
 gtsr.gui.cluster.booster.fluid.steam_saver=Coolant
 gtsr.gui.cluster.preheat=Preheat
 gtsr.gui.cluster.throughput=Throughput
 gtsr.progress.cluster.preheat=Preheat: %s%%
 gtsr.progress.cluster.throughput=Throughput: %s ore/s
 gtsr.tooltip.cluster.unit.pad_hint=Place into a cluster mount point slot
+gtsr.tooltip.cluster.unit.desc=Cluster unit module; forms its own structure before the controller collects it
+gtsr.tooltip.cluster.unit.desc_2=Tier and capability details are shown in the function lines below
+gtsr.tooltip.cluster.unit.ctrl=Controller at the front of the structure
+gtsr.tooltip.cluster.unit.hatch.energy=Energy hatch x%s (continuous power required)
+gtsr.tooltip.cluster.unit.hatch.input=Input hatch (locked amplifier fluid)
+gtsr.tooltip.cluster.unit.hatch.input_bus=Input bus %s
+gtsr.tooltip.cluster.unit.hatch.output_bus=Output bus %s
+gtsr.tooltip.cluster.unit.hatch.input_hatch=Input hatch %s
+gtsr.tooltip.cluster.unit.hatch.output_hatch=Output hatch %s
+gtsr.tooltip.cluster.unit.booster.fluid_cost=Locked fluid: %s, tiered consumption %s
+gtsr.tooltip.cluster.unit.booster.penalty=Steam penalty: x%s
+gtsr.tooltip.cluster.unit.crusher.desc=Crusher unit: unlocks the crush and hammer breaking chains
+gtsr.tooltip.cluster.unit.crusher.crush=Crush link: takes %s, steam %s
+gtsr.tooltip.cluster.unit.crusher.hammer=Hammer link: takes %s, steam %s
+gtsr.tooltip.cluster.unit.ore_washer.desc=Ore washer unit: unlocks ore wash, chemical bath and simple wash chains
+gtsr.tooltip.cluster.unit.ore_washer.ore_wash=Ore wash: takes %s, steam %s, water %s per batch
+gtsr.tooltip.cluster.unit.ore_washer.chem_bath=Chemical bath: takes %s, steam %s, agent %s per batch
+gtsr.tooltip.cluster.unit.ore_washer.simple_wash=Simple wash: takes %s, steam %s, water %s per item
+gtsr.tooltip.cluster.unit.centrifuge.desc=Centrifuge unit: unlocks the centrifuge chain
+gtsr.tooltip.cluster.unit.centrifuge.func=Centrifuge link: takes %s, steam %s
+gtsr.tooltip.cluster.unit.thermal_centrifuge.desc=Thermal centrifuge unit: unlocks the thermal centrifuge chain; needs an energy hatch
+gtsr.tooltip.cluster.unit.thermal_centrifuge.func=Thermal centrifuge link: takes %s, steam %s
+gtsr.tooltip.cluster.unit.thermal_centrifuge.power=Continuous power: %s
+gtsr.tooltip.cluster.unit.sifter.desc=Sifter unit: unlocks the sifter chain
+gtsr.tooltip.cluster.unit.sifter.func=Sifter link: takes %s, steam %s
+gtsr.tooltip.cluster.unit.magnetic_separator.desc=Magnetic separator unit: unlocks the magnetic separation chain; needs an energy hatch
+gtsr.tooltip.cluster.unit.magnetic_separator.func=Magnetic separation link: takes %s, steam %s
+gtsr.tooltip.cluster.unit.magnetic_separator.power=Continuous power: %s
+gtsr.tooltip.cluster.unit.furnace.desc=Furnace unit: unlocks the furnace chain
+gtsr.tooltip.cluster.unit.furnace.func=Furnace link: takes %s, steam %s
+gtsr.tooltip.cluster.unit.parallel.desc=Parallel booster: raises logistics parallel; stacks across modules
+gtsr.tooltip.cluster.unit.parallel.value=Parallel bonus: +%s by tier
+gtsr.tooltip.cluster.unit.speed.desc=Speed booster: speeds up recipes; stacks across modules
+gtsr.tooltip.cluster.unit.speed.value=Speed bonus: +%s by tier
+gtsr.tooltip.cluster.unit.primary.desc=Primary output booster: chance for an extra main output; only one applies
+gtsr.tooltip.cluster.unit.primary.value=Primary bonus: +%s by tier
+gtsr.tooltip.cluster.unit.secondary.desc=Secondary output booster: chance for extra byproducts; stacks across modules
+gtsr.tooltip.cluster.unit.secondary.value=Secondary bonus: +%s by tier
+gtsr.tooltip.cluster.unit.steam_saver.desc=Steam saver booster: cuts running steam; stacks across modules
+gtsr.tooltip.cluster.unit.steam_saver.value=Steam saving: %s by tier, cap %s
+gtsr.tooltip.cluster.unit.logistics.desc=Logistics unit: cluster chain executor with four I/O types
+gtsr.tooltip.cluster.unit.logistics.window=Processing window floor %s
+gtsr.tooltip.cluster.unit.logistics.soft_hammer=Soft hammer toggle (powered on by default)
 
 
 # BQ quests BEGIN

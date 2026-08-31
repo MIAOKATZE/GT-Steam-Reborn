@@ -1,9 +1,13 @@
 package com.miaokatze.gtsr.common.machine.cluster;
 
+import net.minecraft.util.EnumChatFormatting;
+import net.minecraft.util.StatCollector;
+
 import com.gtnewhorizon.structurelib.structure.StructureDefinition;
 
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
+import gregtech.api.util.MultiblockTooltipBuilder;
 import gtPlusPlus.xmod.gregtech.common.blocks.textures.TexturesGtBlock;
 
 /**
@@ -87,5 +91,27 @@ public class MTEUnitSifter extends MTEBasicProcessingUnit {
     @Override
     public MetaTileEntity newMetaEntity(IGregTechTileEntity aTileEntity) {
         return new MTEUnitSifter(mName);
+    }
+
+    /** 工序主色（计划 §2.2）：GOLD。 */
+    @Override
+    protected EnumChatFormatting getUnitDescColor() {
+        return EnumChatFormatting.GOLD;
+    }
+
+    /** 单元描述键（v1.11.15 W1 修正）：筛选模块专属描述行。 */
+    @Override
+    protected String getUnitDescKey() {
+        return "gtsr.tooltip.cluster.unit.sifter.desc";
+    }
+
+    /** 功能群（v1.11.15）：筛分链步「耗时 / 蒸汽消耗」行（数据源 {@link ChainLink#SIFTER}）。 */
+    @Override
+    protected void addUnitTooltipInfo(MultiblockTooltipBuilder tt) {
+        tt.addInfo(
+            EnumChatFormatting.YELLOW + String.format(
+                StatCollector.translateToLocal("gtsr.tooltip.cluster.unit.sifter.func"),
+                linkSeconds(ChainLink.SIFTER),
+                linkSteam(ChainLink.SIFTER)));
     }
 }
