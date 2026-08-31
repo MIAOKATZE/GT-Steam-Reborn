@@ -53,7 +53,6 @@ public class CommonProxy {
             }
         }
         Config.synchronizeConfiguration(newConfigFile);
-        registerClusterTierChannel();
         GTSRFXNet.init();
         // BetterQuesting 可选集成探测（BQ 缺席时静默降级；反射探测不加载 BQ 类）
         com.miaokatze.gtsr.crossmod.bq.BqCompat.detect();
@@ -94,6 +93,12 @@ public class CommonProxy {
         // MachineLoader.initMachines() 只做 MTE 注册（构造函数 + ItemList.set），不查询 GT 配方，符合 sAfterGTPreload 使用场景
         GregTechAPI.sAfterGTPreload.add(registerRunnable);
         GTSteamReborn.LOG.info("[1/3] 已将机器注册任务加入 GregTech PreInit 加载队列。");
+
+        // tier 通道指示物是 GT5U casing 方块，其 ItemBlock 要到 GT Init 阶段（GTItemIterator）才注册；gtsr 为
+        // required-before:gregtech，自身 Init 仍早于 GT Init，preInit 直接注册会因 ItemStack.getItem()==null 使
+        // gtnhlib ItemStackMap.computeIfAbsent 返回 null，在 StructureLib ChannelDescription.item 内 NPE 启动崩溃。
+        // 故挂 sAfterGTLoad（GT Init 末尾执行，GTMod.java:402，晚于 ItemBlock 注册与 GTStructureChannels.register()）
+        GregTechAPI.sAfterGTLoad.add(CommonProxy::registerClusterTierChannel);
     }
 
     private static void registerClusterTierChannel() {
@@ -102,8 +107,12 @@ public class CommonProxy {
             .casingFamily();
         for (int tier = 1; tier <= 4; tier++) {
             org.apache.commons.lang3.tuple.Pair<net.minecraft.block.Block, Integer> casing = family.get(tier - 1);
-            StructureLibAPI
-                .registerChannelItem("tier", "gtsr", tier, new ItemStack(casing.getLeft(), 1, casing.getRight()));
+            ItemStack indicator = new ItemStack(casing.getLeft(), 1, casing.getRight());
+            if (indicator.getItem() == null) {
+                GTSteamReborn.LOG.warn("tier 通道第 {} 档指示物无 Item（casing 方块未就绪），跳过该档注册", tier);
+                continue;
+            }
+            StructureLibAPI.registerChannelItem("tier", "gtsr", tier, indicator);
         }
     }
 
