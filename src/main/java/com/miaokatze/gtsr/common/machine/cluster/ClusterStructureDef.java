@@ -397,7 +397,7 @@ public final class ClusterStructureDef {
         List<int[]> offsets = new ArrayList<>();
         collectAirFxOffsets(SHAPE_MAIN, mainOffsetA(), mainOffsetB(), mainOffsetC(), offsets);
         int k = Math.min(Math.max(extensionCount, 0), ClusterTopology.MAX_EXTENSION_SEGMENTS);
-        for (int i = 1; i <= k; i++) {
+        for (int i = 0; i < k; i++) {
             collectAirFxOffsets(SHAPE_EXT, extOffsetA(i), extOffsetB(), extOffsetC(i), offsets);
         }
         return offsets;
