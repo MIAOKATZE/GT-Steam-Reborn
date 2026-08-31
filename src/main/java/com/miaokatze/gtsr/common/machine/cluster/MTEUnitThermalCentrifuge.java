@@ -57,7 +57,7 @@ public class MTEUnitThermalCentrifuge extends MTEUnitSelfPoweredProcessingUnit {
     @Override
     protected String[][] getUnitShape() {
         return new String[][] { { " D   D ", " DAAAD ", " DaaaD ", " DA~AD ", " DAAAD " },
-            { "  DDD  ", "DACBCAD", "Da---aD", "DACBCAD", " ABCCA " },
+            { "  DDD  ", "DACBCAD", "Da---aD", "DACBCAD", " ABCBA " },
             { "  DDD  ", "DABBBAD", "Da---aD", "DABBBAD", " ACCCA " },
             { "  DDD  ", "DACBCAD", "Da---aD", "DACBCAD", " ABCBA " },
             { " D   D ", " DAAAD ", " DaaaD ", " DAPAD ", " DAAAD " }, };

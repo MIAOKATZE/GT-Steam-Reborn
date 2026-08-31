@@ -111,14 +111,14 @@ public abstract class MTEClusterUnitBase<T extends MTEClusterUnitBase<T>> extend
         Pair.of(GregTechAPI.sBlockFrames, 316));
 
     /**
-     * 金属族（r9，磁选 'b'）：铁块 0 档 / 钢块（gt.blockmetal6:13）/ 钕块（gt.blockmetal6:5）/
-     * 钐块（gt.blockmetal5:0），四档 tier 顺序（权威规格 plan/结构）。
+     * 金属族（r9，磁选 'b'）：铁块 0 档 / 钢块（gt.blockmetal6:13）/ 钕块（gt.blockmetal5:0）/
+     * 钐块（gt.blockmetal6:5），四档 tier 顺序（权威规格 plan/结构）。
      */
     private static final List<Pair<Block, Integer>> METAL_FAMILY = ImmutableList.of(
         Pair.of(Blocks.iron_block, 0),
         Pair.of(GregTechAPI.sBlockMetal6, 13),
-        Pair.of(GregTechAPI.sBlockMetal6, 5),
-        Pair.of(GregTechAPI.sBlockMetal5, 0));
+        Pair.of(GregTechAPI.sBlockMetal5, 0),
+        Pair.of(GregTechAPI.sBlockMetal6, 5));
 
     /**
      * 线圈族（r9，热离 'a'）：gt.blockcasings5 白铜(:0) / 坎塔尔(:1) / 钛铂钒(:3) / HSS-G(:4)。
@@ -364,10 +364,10 @@ public abstract class MTEClusterUnitBase<T extends MTEClusterUnitBase<T>> extend
         if (block == Blocks.iron_block && meta == 0) return 0;
         if (block == GregTechAPI.sBlockMetal6) {
             if (meta == 13) return 1;
-            if (meta == 5) return 2;
+            if (meta == 5) return 3;
             return null;
         }
-        if (block == GregTechAPI.sBlockMetal5 && meta == 0) return 3;
+        if (block == GregTechAPI.sBlockMetal5 && meta == 0) return 2;
         return null;
     }
 
