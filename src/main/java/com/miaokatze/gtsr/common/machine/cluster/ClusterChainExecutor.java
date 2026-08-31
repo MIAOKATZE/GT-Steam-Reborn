@@ -54,7 +54,7 @@ import gregtech.api.util.GTUtility;
  * 真实配方逐物品扣液（§3.6.5 + r6 S2，IOF :413-539 范式）：不再按「链含洗矿/化洗每批扣固定 1000L」，
  * 而是链加工单遍执行中对每个将实际处理的物品按命中配方累计流体需求（ORE_WASH 按命中配方
  * 蒸馏水 200mB 或普通水 1000mB，输入仓合计探得蒸馏水时优先蒸馏路径；CHEM_BATH 按配方汞 1000mB
- * 或过硫酸钠 100mB，以输入仓实际非水流体匹配；SIMPLE_WASH 每命中物品普通水 100mB）。任一不足
+ * 或过硫酸钠 100mB，以输入仓实际非水流体匹配；SIMPLE_WASH 按命中配方的实际流体输入累计）。任一不足
  * →整批零副作用（此时尚未扣料/扣流体/产出）；实扣推迟到输出可接收、事务提交之后；失败回滚
  * 路径零扣。配方查找失败/形态不接受/SIMPLE_WASH 图缺失 → 原样透传（§3.6.5-5）。
  *
@@ -250,10 +250,10 @@ public final class ClusterChainExecutor {
      */
     private static final class BatchFluidLedger {
 
-        /** 普通水需求累计（mB：ORE_WASH 水路径配方量 + SIMPLE_WASH 每物品 100mB）。 */
+        /** 普通水需求累计（mB：ORE_WASH/SIMPLE_WASH 命中配方的实际流体输入量）。 */
         private int plainWaterMb;
 
-        /** 普通水命中流体实例（按配方 representative 记账；SIMPLE_WASH 为普通水）。 */
+        /** 普通水命中流体实例（按配方 representative 记账；SIMPLE_WASH 同样按配方流体分类）。 */
         private Fluid plainWaterFluid;
 
         /** 蒸馏水需求累计（mB：ORE_WASH 蒸馏路径配方量，附录 B 200mB/物品）。 */
@@ -270,15 +270,10 @@ public final class ClusterChainExecutor {
 
         /** 按链步与命中配方累计需求（items = 本物品堆数量，rollOutputs 的 aTime 同口径）。 */
         void charge(ChainLink link, GTRecipe recipe, int items) {
-            if (link == ChainLink.SIMPLE_WASH) {
-                plainWaterMb += items * ClusterParams.SIMPLE_WASH_WATER_PER_ITEM_MB;
-                if (plainWaterFluid == null) plainWaterFluid = plainWaterInstance();
-                return;
-            }
-            if (link != ChainLink.ORE_WASH && link != ChainLink.CHEM_BATH) return;
+            if (link != ChainLink.ORE_WASH && link != ChainLink.CHEM_BATH && link != ChainLink.SIMPLE_WASH) return;
             FluidStack rep = recipe.getRepresentativeFluidInput(0);
             if (rep == null || rep.getFluid() == null || rep.amount <= 0) return;
-            if (link == ChainLink.ORE_WASH) {
+            if (link == ChainLink.ORE_WASH || link == ChainLink.SIMPLE_WASH) {
                 if (isDistilledFluid(rep.getFluid())) {
                     distilledWaterFluid = rep.getFluid();
                     distilledWaterMb += items * rep.amount;
@@ -438,7 +433,7 @@ public final class ClusterChainExecutor {
     /**
      * 各 link 查配方的流体匹配信号（§3.6.5 真实配方口径 + r6 S2 直结输入仓，仅匹配用；实扣走台账）：
      * ORE_WASH → 物流单元输入仓合计探得蒸馏水时先查蒸馏路径（蒸馏 MAX，命中即按配方 200mB 计），
-     * 否则/未命中查普通水路径（水 MAX，命中按配方 1000mB 计）；SIMPLE_WASH → 水 100mB
+     * 否则/未命中查普通水路径（水 MAX，命中按配方 1000mB 计）；SIMPLE_WASH → 普通水信号（仅用于配方查询，实扣按配方流体输入）
      * （IOF :489）；CHEM_BATH → 输入仓实际非水流体 MAX（IOF :503-506 按仓内实际流体的口径，
      * 跨仓取首个探得的非水流体的泛化版；仓内无任何非水流体 → 无信号，化浴配方必有流体输入
      * → 必 miss 透传，不以「任意有液体」冒充）；其余 link 无流体信号。
@@ -456,10 +451,7 @@ public final class ClusterChainExecutor {
                 return findRecipe(map, stackCopy, Materials.Water.getFluid(Integer.MAX_VALUE));
             }
             case SIMPLE_WASH:
-                return findRecipe(
-                    map,
-                    stackCopy,
-                    Materials.Water.getFluid(ClusterParams.SIMPLE_WASH_WATER_PER_ITEM_MB));
+                return findRecipe(map, stackCopy, Materials.Water.getFluid(ClusterParams.SIMPLE_WASH_RECIPE_PROBE_MB));
             case CHEM_BATH: {
                 Fluid available = firstNonWaterFluidAcross(unit);
                 if (available == null) return findRecipe(map, stackCopy, null);

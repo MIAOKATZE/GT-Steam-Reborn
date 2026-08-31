@@ -1654,13 +1654,14 @@ gtsr.tooltip.cluster.unit.hatch.input_hatch=输入仓 %s
 gtsr.tooltip.cluster.unit.hatch.output_hatch=输出仓 %s
 gtsr.tooltip.cluster.unit.booster.fluid_cost=锁定流体：%s，按档消耗 %s
 gtsr.tooltip.cluster.unit.booster.penalty=蒸汽惩罚：×%s
+gtsr.tooltip.cluster.unit.booster.penalty.none=无蒸汽惩罚
 gtsr.tooltip.cluster.unit.crusher.desc=粉碎模块：解锁矿石粉碎与锤击两条破碎链
 gtsr.tooltip.cluster.unit.crusher.crush=粉碎链步：耗时 %s，蒸汽 %s
 gtsr.tooltip.cluster.unit.crusher.hammer=锤击链步：耗时 %s，蒸汽 %s
-gtsr.tooltip.cluster.unit.ore_washer.desc=洗矿模块：解锁矿石清洗、化学浴与简易清洗三条湿法链
-gtsr.tooltip.cluster.unit.ore_washer.ore_wash=矿石清洗：耗时 %s，蒸汽 %s，用水 %s（每批）
-gtsr.tooltip.cluster.unit.ore_washer.chem_bath=化学浸浴：耗时 %s，蒸汽 %s，药剂 %s（每批）
-gtsr.tooltip.cluster.unit.ore_washer.simple_wash=简易清洗：耗时 %s，蒸汽 %s，用水 %s（每物品）
+gtsr.tooltip.cluster.unit.ore_washer.desc=洗矿模块：解锁矿石清洗、化学浴与简易清洗三条湿法链；流体消耗按配方而定，无额外消耗
+gtsr.tooltip.cluster.unit.ore_washer.ore_wash=矿石清洗：耗时 %s，蒸汽 %s；流体消耗按配方而定，无额外消耗
+gtsr.tooltip.cluster.unit.ore_washer.chem_bath=化学浸浴：耗时 %s，蒸汽 %s；流体消耗按配方而定，无额外消耗
+gtsr.tooltip.cluster.unit.ore_washer.simple_wash=简易清洗：耗时 %s，蒸汽 %s；流体消耗按配方而定，无额外消耗
 gtsr.tooltip.cluster.unit.centrifuge.desc=离心模块：解锁离心分离链
 gtsr.tooltip.cluster.unit.centrifuge.func=离心分离：耗时 %s，蒸汽 %s
 gtsr.tooltip.cluster.unit.thermal_centrifuge.desc=热力离心模块：解锁热离心链，需能源仓持续供电
@@ -1824,3 +1825,8 @@ betterquesting.quest.R1RTUgAAAAAAAAAAAAAAPw.desc=实机验收：一次交出集�
 betterquesting.quest.R1RTUgAAAAAAAAAAAAAAQA.name=§3§l让蒸汽继续伟大！
 betterquesting.quest.R1RTUgAAAAAAAAAAAAAAQA.desc=终局收束：§623 台§r蒸汽多方块全谱回顾——从 §6400 L/s§r的青铜空压机，一路膨胀到 §d40 亿 L 当量§r一颗的临界奇点。%n%n四条终局支线全部验收完毕，蒸汽时代的答卷就此交卷；回头看，每一步都是蒸汽自己铺出来的。%n%n巨构顶格的奖励已经备好，请笑纳。%n%n§8§o有人问电力呢？我们说：蒸汽，就是电力。§r
 # BQ quests END
+
+# S4 processing/logistics tier effects
+gtsr.tooltip.cluster.unit.processing.tier_effect=按模块结构档位：蒸汽 ×%s；耗时 ÷%s
+gtsr.tooltip.cluster.unit.logistics.segment_time=按模块结构档位：物流段时 %s
+gtsr.tooltip.cluster.unit.logistics.lubricant=按模块结构档位：WIP 润滑 %s

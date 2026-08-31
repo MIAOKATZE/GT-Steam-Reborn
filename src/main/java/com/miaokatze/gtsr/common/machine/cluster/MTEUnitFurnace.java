@@ -112,6 +112,7 @@ public class MTEUnitFurnace extends MTEBasicProcessingUnit {
     /** 功能群（v1.11.15）：熔炼链步「耗时 / 蒸汽消耗」行（数据源 {@link ChainLink#FURNACE}）。 */
     @Override
     protected void addUnitTooltipInfo(MultiblockTooltipBuilder tt) {
+        super.addUnitTooltipInfo(tt);
         tt.addInfo(
             EnumChatFormatting.YELLOW + String.format(
                 StatCollector.translateToLocal("gtsr.tooltip.cluster.unit.furnace.func"),

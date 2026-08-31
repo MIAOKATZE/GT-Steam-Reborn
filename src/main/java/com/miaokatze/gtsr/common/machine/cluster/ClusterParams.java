@@ -38,8 +38,11 @@ public final class ClusterParams {
 
     // ==================== 增幅剂 ====================
 
-    /** 各增幅剂的蒸汽惩罚倍率，下标对应 BoosterType 序号。 */
-    public static final double[] BOOSTER_PENALTY_MULT = { 1.3, 1.4, 2.0, 1.6, 1.1 };
+    /**
+     * 速度/并行增幅模块按自身结构档位取用的蒸汽惩罚倍率；仅作用于加权链路 C 段，
+     * 同类多台逐台连乘；主产物、副产物、节汽模块不贡献惩罚。
+     */
+    public static final float[] BOOSTER_STRUCTURE_PENALTY_MULT = { 1.2F, 1.4F, 1.8F, 2.0F };
 
     /** 节汽增幅的蒸汽节省比例上限。 */
     public static final double STEAM_SAVER_CAP = 0.48;
@@ -129,14 +132,24 @@ public final class ClusterParams {
     /** 物流单元润滑剂消耗（L/s），下标对应物流单元 unitStructureTier 序号。 */
     public static final int[] LOGISTICS_UNIT_LUBRICANT_LPS = { 20, 60, 300, 500 };
 
+    /**
+     * 加工单元按自身结构档位的蒸汽倍率；与 {@link ExecutionPlan} 的加权蒸汽 C_i 同源。
+     */
+    public static final int[] PROCESSING_UNIT_STEAM_MULT = { 1, 4, 16, 64 };
+
+    /**
+     * 加工单元按自身结构档位的耗时除数；与 {@link ExecutionPlan} 的耗时 T_i 同源。
+     */
+    public static final int[] PROCESSING_UNIT_TIME_DIVISOR = { 1, 2, 4, 8 };
+
     /** 每批次清洗用水量（L）。 */
     public static final int WASH_WATER_PER_BATCH_L = 1000;
 
     /** 每批次化学浸浴液用量（L）。 */
     public static final int CHEM_BATH_FLUID_PER_BATCH_L = 1000;
 
-    /** 简易洗矿每命中物品的普通水消耗（mB，附录 B；按实际命中物品数累计）。 */
-    public static final int SIMPLE_WASH_WATER_PER_ITEM_MB = 100;
+    /** 简易洗矿配方查询用的普通水信号量（mB；仅用于匹配，绝不计入台账或实扣）。 */
+    public static final int SIMPLE_WASH_RECIPE_PROBE_MB = 100;
 
     /** 磁选单元持续供电需求（LV 电压档 EU/t），用户拍板：磁选需持续供电；合计 = 本值 × MAGNETIC_AMPERAGE。 */
     public static final int MAGNETIC_EU_PER_TICK = 32;
@@ -323,10 +336,6 @@ public final class ClusterParams {
             }
         }
 
-        /** @return 本增幅剂的蒸汽惩罚倍率（BOOSTER_PENALTY_MULT[ordinal]）。 */
-        public double getPenaltyMultiplier() {
-            return BOOSTER_PENALTY_MULT[ordinal()];
-        }
     }
 
     /**

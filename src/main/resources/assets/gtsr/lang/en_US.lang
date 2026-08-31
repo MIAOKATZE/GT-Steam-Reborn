@@ -1659,13 +1659,14 @@ gtsr.tooltip.cluster.unit.hatch.input_hatch=Input hatch %s
 gtsr.tooltip.cluster.unit.hatch.output_hatch=Output hatch %s
 gtsr.tooltip.cluster.unit.booster.fluid_cost=Locked fluid: %s, tiered consumption %s
 gtsr.tooltip.cluster.unit.booster.penalty=Steam penalty: x%s
+gtsr.tooltip.cluster.unit.booster.penalty.none=No steam penalty
 gtsr.tooltip.cluster.unit.crusher.desc=Crusher unit: unlocks the crush and hammer breaking chains
 gtsr.tooltip.cluster.unit.crusher.crush=Crush link: takes %s, steam %s
 gtsr.tooltip.cluster.unit.crusher.hammer=Hammer link: takes %s, steam %s
-gtsr.tooltip.cluster.unit.ore_washer.desc=Ore washer unit: unlocks ore wash, chemical bath and simple wash chains
-gtsr.tooltip.cluster.unit.ore_washer.ore_wash=Ore wash: takes %s, steam %s, water %s per batch
-gtsr.tooltip.cluster.unit.ore_washer.chem_bath=Chemical bath: takes %s, steam %s, agent %s per batch
-gtsr.tooltip.cluster.unit.ore_washer.simple_wash=Simple wash: takes %s, steam %s, water %s per item
+gtsr.tooltip.cluster.unit.ore_washer.desc=Ore washer unit: unlocks ore wash, chemical bath and simple wash chains; fluid use follows recipes with no extra consumption
+gtsr.tooltip.cluster.unit.ore_washer.ore_wash=Ore wash: takes %s, steam %s; fluid use follows recipes with no extra consumption
+gtsr.tooltip.cluster.unit.ore_washer.chem_bath=Chemical bath: takes %s, steam %s; fluid use follows recipes with no extra consumption
+gtsr.tooltip.cluster.unit.ore_washer.simple_wash=Simple wash: takes %s, steam %s; fluid use follows recipes with no extra consumption
 gtsr.tooltip.cluster.unit.centrifuge.desc=Centrifuge unit: unlocks the centrifuge chain
 gtsr.tooltip.cluster.unit.centrifuge.func=Centrifuge link: takes %s, steam %s
 gtsr.tooltip.cluster.unit.thermal_centrifuge.desc=Thermal centrifuge unit: unlocks the thermal centrifuge chain; needs an energy hatch
@@ -1829,3 +1830,8 @@ betterquesting.quest.R1RTUgAAAAAAAAAAAAAAPw.desc=Acceptance: hand in the cluster
 betterquesting.quest.R1RTUgAAAAAAAAAAAAAAQA.name=§3§lMake Steam Great Again!
 betterquesting.quest.R1RTUgAAAAAAAAAAAAAAQA.desc=Final close: a full review of §623 steam multiblocks§r — from the §6400 L/s§r bronze air compressor all the way to the §d4-billion-L-equivalent§r critical singularity.%n%nAll four endgame branches accepted; the steam age's answer sheet is handed in.%n%nThe megastructure's top-shelf reward is ready — enjoy.%n%n§8§oSomeone asks about electricity? We say: steam IS electricity.§r
 # BQ quests END
+
+# S4 processing/logistics tier effects
+gtsr.tooltip.cluster.unit.processing.tier_effect=By module structure tier: steam x%s; time /%s
+gtsr.tooltip.cluster.unit.logistics.segment_time=By module structure tier: logistics segment time %s
+gtsr.tooltip.cluster.unit.logistics.lubricant=By module structure tier: WIP lubricant %s

@@ -1057,4 +1057,17 @@ public abstract class MTEClusterUnitBase<T extends MTEClusterUnitBase<T>> extend
         }
         return values + " L/s";
     }
+
+    /**
+     * 惩罚四档乘率段（{@link ClusterParams#BOOSTER_STRUCTURE_PENALTY_MULT}，仅速度/并行生效、逐台连乘）：
+     * {@code 1.2/1.4/1.8/2.0}。
+     */
+    protected static String boosterPenaltyTierValues() {
+        StringBuilder values = new StringBuilder();
+        for (int i = 0; i < ClusterParams.TIER_COUNT; i++) {
+            if (i > 0) values.append('/');
+            values.append(String.format("%.1f", ClusterParams.BOOSTER_STRUCTURE_PENALTY_MULT[i]));
+        }
+        return values.toString();
+    }
 }

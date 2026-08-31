@@ -4,6 +4,8 @@ import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 import net.minecraftforge.fluids.Fluid;
 
+import com.gtnewhorizon.structurelib.structure.StructureDefinition;
+
 import gregtech.api.interfaces.IIconContainer;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
@@ -36,6 +38,41 @@ public class MTEUnitParallelBooster extends MTEBasicAmplifierUnit {
 
     public MTEUnitParallelBooster(String aName) {
         super(aName, ClusterParams.BoosterType.PARALLEL);
+    }
+
+    @Override
+    protected String[][] getUnitShape() {
+        return new String[][] { { "     ", "     ", "     ", "     ", " D D ", " D D ", " D D ", "     ", "     " },
+            { " DBD ", "DBEBD", "DAEAD", "DCACD", "DB~BD", "DBABD", "DBEBD", " AEA ", " AAA " },
+            { " BAB ", " E-E ", " E-E ", " E-E ", " E-E ", " E-E ", " E-E ", " EeE ", " CCC " },
+            { " DBD ", "DBEBD", "DAEAD", "DCECD", "DBEBD", "DBEBD", "DBEBD", " AEA ", " AAA " },
+            { "     ", "     ", "     ", "     ", " D D ", " D D ", " D D ", "     ", "     " }, };
+    }
+
+    @Override
+    @SuppressWarnings("rawtypes")
+    protected void addUnitStructureElements(StructureDefinition.Builder builder) {
+        builder.addElement('B', tieredGearboxElement())
+            .addElement('C', tieredPipeElement())
+            .addElement('D', tieredFrameElement())
+            .addElement('E', glassElement())
+            .addElement('-', airElement())
+            .addElement('e', airElement());
+    }
+
+    @Override
+    protected int getStructureOffsetA() {
+        return 2;
+    }
+
+    @Override
+    protected int getStructureOffsetB() {
+        return 4;
+    }
+
+    @Override
+    protected int getStructureOffsetC() {
+        return 1;
     }
 
     @Override
@@ -75,7 +112,7 @@ public class MTEUnitParallelBooster extends MTEBasicAmplifierUnit {
      * 功能群（v1.11.15）：并行四档值行 + 共用「锁定流体 / 按档消耗」行 + 共用「蒸汽惩罚」行——
      * 数值取自 {@link ClusterParams#BOOSTER_PARALLEL_VALUES}（经 getBoosterValue）、
      * {@link ClusterParams#AMPLIFIER_NITRIC_ACID_LPS}（经 amplifierFluidLps）与
-     * {@link ClusterParams#BOOSTER_PENALTY_MULT}（经 getPenaltyMultiplier），Java 侧 GOLD/RED 注入。
+     * {@link ClusterParams#BOOSTER_STRUCTURE_PENALTY_MULT}，按结构档位逐台连乘，Java 侧 GOLD/RED 注入。
      */
     @Override
     protected void addUnitTooltipInfo(MultiblockTooltipBuilder tt) {
@@ -92,7 +129,7 @@ public class MTEUnitParallelBooster extends MTEBasicAmplifierUnit {
             .addInfo(
                 EnumChatFormatting.YELLOW + String.format(
                     StatCollector.translateToLocal("gtsr.tooltip.cluster.unit.booster.penalty"),
-                    gold(String.format("%.1f", type.getPenaltyMultiplier()))));
+                    gold(boosterPenaltyTierValues())));
     }
 
     /** 仓室群（v1.11.15）：增幅输入仓行（锁定增幅流体自输入仓读取，≥1 由结构校验强制）。 */

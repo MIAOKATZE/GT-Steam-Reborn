@@ -108,6 +108,7 @@ public class MTEUnitSifter extends MTEBasicProcessingUnit {
     /** 功能群（v1.11.15）：筛分链步「耗时 / 蒸汽消耗」行（数据源 {@link ChainLink#SIFTER}）。 */
     @Override
     protected void addUnitTooltipInfo(MultiblockTooltipBuilder tt) {
+        super.addUnitTooltipInfo(tt);
         tt.addInfo(
             EnumChatFormatting.YELLOW + String.format(
                 StatCollector.translateToLocal("gtsr.tooltip.cluster.unit.sifter.func"),

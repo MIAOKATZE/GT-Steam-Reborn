@@ -4,6 +4,8 @@ import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 import net.minecraftforge.fluids.Fluid;
 
+import com.gtnewhorizon.structurelib.structure.StructureDefinition;
+
 import gregtech.api.enums.Textures;
 import gregtech.api.interfaces.IIconContainer;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
@@ -38,6 +40,42 @@ public class MTEUnitSecondaryBooster extends MTEBasicAmplifierUnit {
 
     public MTEUnitSecondaryBooster(String aName) {
         super(aName, ClusterParams.BoosterType.SECONDARY_OUTPUT);
+    }
+
+    @Override
+    protected String[][] getUnitShape() {
+        return new String[][] {
+            { "     ", " D D ", " D D ", "DD DD", "DE ED", "DE E ", " E E ", "     ", "     ", "     " },
+            { " DDD ", "DBCBD", "DAEAD", "DAEAD", "ECACE", "EC~CE", "ECACE", " AEA ", " AEA ", " AAA " },
+            { " DDD ", " CBC ", " E-E ", " E-E ", " E-E ", " E-E ", " E-E ", " E-E ", " EeE ", " CCC " },
+            { " DDD ", "DBCBD", "DAEAD", "DAEAD", "ECECE", "ECECE", "ECECE", " AEA ", " AEA ", " AAA " },
+            { "     ", " D D ", " D D ", "DD DD", "DE ED", "DE ED", " E E ", "     ", "     ", "     " }, };
+    }
+
+    @Override
+    @SuppressWarnings("rawtypes")
+    protected void addUnitStructureElements(StructureDefinition.Builder builder) {
+        builder.addElement('B', tieredGearboxElement())
+            .addElement('C', tieredPipeElement())
+            .addElement('D', tieredFrameElement())
+            .addElement('E', glassElement())
+            .addElement('-', airElement())
+            .addElement('e', airElement());
+    }
+
+    @Override
+    protected int getStructureOffsetA() {
+        return 2;
+    }
+
+    @Override
+    protected int getStructureOffsetB() {
+        return 5;
+    }
+
+    @Override
+    protected int getStructureOffsetC() {
+        return 1;
     }
 
     @Override
@@ -78,7 +116,7 @@ public class MTEUnitSecondaryBooster extends MTEBasicAmplifierUnit {
      * 数值取自 {@link ClusterParams#BOOSTER_SECONDARY_PCT}（经 getBoosterValue）、
      * {@link ClusterParams#AMPLIFIER_AMMONIUM_CHLORIDE_LPS}（经 amplifierFluidLps；代码语义
      * resolveBoosterFluid(SECONDARY_OUTPUT)=氯化铵，lang fluid.secondary 值已同步校正）与
-     * {@link ClusterParams#BOOSTER_PENALTY_MULT}（经 getPenaltyMultiplier）。
+     * 无蒸汽惩罚。
      */
     @Override
     protected void addUnitTooltipInfo(MultiblockTooltipBuilder tt) {
@@ -93,9 +131,8 @@ public class MTEUnitSecondaryBooster extends MTEBasicAmplifierUnit {
                     EnumChatFormatting.WHITE + StatCollector.translateToLocal(type.getFluidLangKey()),
                     red(boosterTierLps(type))))
             .addInfo(
-                EnumChatFormatting.YELLOW + String.format(
-                    StatCollector.translateToLocal("gtsr.tooltip.cluster.unit.booster.penalty"),
-                    gold(String.format("%.1f", type.getPenaltyMultiplier()))));
+                EnumChatFormatting.YELLOW
+                    + StatCollector.translateToLocal("gtsr.tooltip.cluster.unit.booster.penalty.none"));
     }
 
     /** 仓室群（v1.11.15）：增幅输入仓行（锁定增幅流体自输入仓读取，≥1 由结构校验强制）。 */

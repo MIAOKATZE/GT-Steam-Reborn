@@ -5,9 +5,13 @@ import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
+import net.minecraft.util.EnumChatFormatting;
+import net.minecraft.util.StatCollector;
+
 import gregtech.api.interfaces.IIconContainer;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
+import gregtech.api.util.MultiblockTooltipBuilder;
 
 /**
  * 工作模块基类：能力闸门 + 运行状态色。
@@ -75,6 +79,25 @@ public abstract class MTEBasicProcessingUnit extends MTEClusterUnitBase<MTEBasic
 
     @Override
     public abstract IMetaTileEntity newMetaEntity(IGregTechTileEntity aTileEntity);
+
+    /** Shared four-tier processing effect row; values come from ClusterParams, matching ExecutionPlan. */
+    @Override
+    protected void addUnitTooltipInfo(MultiblockTooltipBuilder tt) {
+        tt.addInfo(
+            EnumChatFormatting.YELLOW + String.format(
+                StatCollector.translateToLocal("gtsr.tooltip.cluster.unit.processing.tier_effect"),
+                processingTierValues(ClusterParams.PROCESSING_UNIT_STEAM_MULT),
+                processingTierValues(ClusterParams.PROCESSING_UNIT_TIME_DIVISOR)));
+    }
+
+    private static String processingTierValues(int[] values) {
+        StringBuilder result = new StringBuilder();
+        for (int i = 0; i < ClusterParams.TIER_COUNT; i++) {
+            if (i > 0) result.append('/');
+            result.append(values[i]);
+        }
+        return gold(result.toString());
+    }
 
     /** 构造期注入的 GUI 类型词条 key（原五类子类各自覆写收敛为统一直读）。 */
     @Override

@@ -117,8 +117,13 @@ public final class BoosterState {
                 case SECONDARY_OUTPUT -> secondary += value / 100D;
                 case STEAM_SAVER -> saverRaw += value / 100D;
             }
-            penalty *= unit.getBoosterType()
-                .getPenaltyMultiplier();
+            // 仅速度/并行模块贡献 C 段惩罚；支付判定已过滤负 tier，仍防御性夹取到 0..3。
+            ClusterParams.BoosterType type = unit.getBoosterType();
+            if (type == ClusterParams.BoosterType.SPEED || type == ClusterParams.BoosterType.PARALLEL) {
+                int tier = unit.getUnitStructureTier();
+                int idx = Math.max(0, Math.min(tier, ClusterParams.BOOSTER_STRUCTURE_PENALTY_MULT.length - 1));
+                penalty *= ClusterParams.BOOSTER_STRUCTURE_PENALTY_MULT[idx];
+            }
             active.add(unit);
         }
         if (active.isEmpty() && failed == 0) return EMPTY;
@@ -173,7 +178,7 @@ public final class BoosterState {
         return Math.min(saverBonusRaw, ClusterParams.STEAM_SAVER_CAP);
     }
 
-    /** @return Π 生效模块 {@link ClusterParams.BoosterType#getPenaltyMultiplier()}（无生效模块=1.0，缺流体模块豁免不计）。 */
+    /** @return 速度/并行生效模块按结构档位惩罚倍率的逐台连乘（无生效模块=1.0，缺流体模块豁免不计）。 */
     public double getPenaltyProduct() {
         return penaltyProduct;
     }

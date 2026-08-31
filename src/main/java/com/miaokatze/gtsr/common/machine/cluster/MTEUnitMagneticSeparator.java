@@ -115,6 +115,7 @@ public class MTEUnitMagneticSeparator extends MTEUnitSelfPoweredProcessingUnit {
      */
     @Override
     protected void addUnitTooltipInfo(MultiblockTooltipBuilder tt) {
+        super.addUnitTooltipInfo(tt);
         tt.addInfo(
             EnumChatFormatting.YELLOW + String.format(
                 StatCollector.translateToLocal("gtsr.tooltip.cluster.unit.magnetic_separator.func"),

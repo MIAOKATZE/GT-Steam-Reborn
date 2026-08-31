@@ -11,7 +11,6 @@ import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
 
 import com.gtnewhorizon.structurelib.structure.IStructureElement;
-import com.gtnewhorizon.structurelib.structure.StructureDefinition;
 import com.gtnewhorizon.structurelib.structure.StructureUtility;
 import com.miaokatze.gtsr.api.compat.GTSRHatchFluidAccess;
 
@@ -67,15 +66,6 @@ public abstract class MTEBasicAmplifierUnit extends MTEClusterUnitBase<MTEBasicA
         this.boosterType = type;
     }
 
-    @Override
-    protected String[][] getUnitShape() {
-        // canonical [Z][Y][X]，r9 权威规格 3×9×3（控制器 (1,4,0)）：旧 'H' 输入仓位 (0,3,0) 并入
-        // 'A'（输入仓任意 A 位混挂），旧 'D' 石头位 (1,7,1) 改 'e'（粒子候选空气位）；字符 diff 仅 2 格
-        return new String[][] { { "AAA", "ACA", "ACA", "BAB", "B~B", "BAB", "ACA", "ACA", "AAA" },
-            { "AAA", "C-C", "C-C", "C-C", "C-C", "C-C", "C-C", "CeC", "BBB" },
-            { "AAA", "ACA", "ACA", "BCB", "BCB", "BCB", "ACA", "ACA", "AAA" }, };
-    }
-
     /**
      * 'A' 元素覆写（r9，范式同物流四 I/O 与 ClusterStructureDef A 总控仓室元素）：tiered 外壳
      * （默认形态，四族 casing 之一）或 anyOf(标准输入仓)——输入仓可置于矩阵任意 A 位；数量校验在
@@ -91,34 +81,6 @@ public abstract class MTEBasicAmplifierUnit extends MTEClusterUnitBase<MTEBasicA
                 .casingIndex(HATCH_HINT_CASING_INDEX)
                 .hint(1)
                 .build());
-    }
-
-    /**
-     * 专有结构元素（r9 权威绑定）：B=管道族（沿用旧绑定）、C=玻璃、'-'/'e'=严格空气；
-     * 原 'D'（Blocks.stone）与 'H'（专用输入仓字符）绑定删除——输入仓改经 'A' 元素链混挂。
-     */
-    @Override
-    @SuppressWarnings("rawtypes")
-    protected void addUnitStructureElements(StructureDefinition.Builder builder) {
-        builder.addElement('B', tieredPipeElement())
-            .addElement('C', glassElement())
-            .addElement('-', airElement())
-            .addElement('e', airElement());
-    }
-
-    @Override
-    protected int getStructureOffsetA() {
-        return 1;
-    }
-
-    @Override
-    protected int getStructureOffsetB() {
-        return 4;
-    }
-
-    @Override
-    protected int getStructureOffsetC() {
-        return 0;
     }
 
     /**

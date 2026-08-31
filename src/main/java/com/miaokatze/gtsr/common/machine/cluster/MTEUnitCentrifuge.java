@@ -108,6 +108,7 @@ public class MTEUnitCentrifuge extends MTEBasicProcessingUnit {
     /** 功能群（v1.11.15）：离心链步「耗时 / 蒸汽消耗」行（数据源 {@link ChainLink#CENTRIFUGE}）。 */
     @Override
     protected void addUnitTooltipInfo(MultiblockTooltipBuilder tt) {
+        super.addUnitTooltipInfo(tt);
         tt.addInfo(
             EnumChatFormatting.YELLOW + String.format(
                 StatCollector.translateToLocal("gtsr.tooltip.cluster.unit.centrifuge.func"),

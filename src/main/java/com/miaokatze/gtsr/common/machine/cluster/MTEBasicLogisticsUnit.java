@@ -582,8 +582,26 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
                 StatCollector.translateToLocal("gtsr.tooltip.cluster.unit.logistics.window"),
                 gold(fmtSeconds(MIN_PROCESSING_WINDOW_TICKS / (double) ChainLink.TICKS_PER_SECOND))))
             .addInfo(
+                EnumChatFormatting.YELLOW + String.format(
+                    StatCollector.translateToLocal("gtsr.tooltip.cluster.unit.logistics.segment_time"),
+                    gold(tierValues(ClusterParams.LOGISTICS_TIME_SEC, " s"))))
+            .addInfo(
+                EnumChatFormatting.YELLOW + String.format(
+                    StatCollector.translateToLocal("gtsr.tooltip.cluster.unit.logistics.lubricant"),
+                    gold(tierValues(ClusterParams.LOGISTICS_UNIT_LUBRICANT_LPS, " L/s"))))
+            .addInfo(
                 EnumChatFormatting.YELLOW
                     + StatCollector.translateToLocal("gtsr.tooltip.cluster.unit.logistics.soft_hammer"));
+    }
+
+    private static String tierValues(int[] values, String suffix) {
+        StringBuilder result = new StringBuilder();
+        for (int i = 0; i < ClusterParams.TIER_COUNT; i++) {
+            if (i > 0) result.append('/');
+            result.append(values[i])
+                .append(suffix);
+        }
+        return result.toString();
     }
 
     /**

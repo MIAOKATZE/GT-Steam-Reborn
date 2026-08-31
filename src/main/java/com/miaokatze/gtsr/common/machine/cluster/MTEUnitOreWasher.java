@@ -151,30 +151,26 @@ public class MTEUnitOreWasher extends MTEBasicProcessingUnit {
     }
 
     /**
-     * 功能群（v1.11.15）：洗矿/化学浴/简易清洗三条湿法链行——耗时/蒸汽取自 {@link ChainLink}
-     * 基础表，批量用水/药剂取自 {@link ClusterParams#WASH_WATER_PER_BATCH_L}、
-     * {@link ClusterParams#CHEM_BATH_FLUID_PER_BATCH_L} 与
-     * {@link ClusterParams#SIMPLE_WASH_WATER_PER_ITEM_MB}（Java 侧注入，lang 只放纯文本标签）。
+     * 功能群（v1.11.15）：洗矿/化学浴/简易清洗三条湿法链行——耗时与蒸汽取自 {@link ChainLink}
+     * 基础表；流体消耗完全按命中配方决定，且无额外固定消耗。
      */
     @Override
     protected void addUnitTooltipInfo(MultiblockTooltipBuilder tt) {
+        super.addUnitTooltipInfo(tt);
         tt.addInfo(
             EnumChatFormatting.YELLOW + String.format(
                 StatCollector.translateToLocal("gtsr.tooltip.cluster.unit.ore_washer.ore_wash"),
                 linkSeconds(ChainLink.ORE_WASH),
-                linkSteam(ChainLink.ORE_WASH),
-                red(fmtL(ClusterParams.WASH_WATER_PER_BATCH_L))))
+                linkSteam(ChainLink.ORE_WASH)))
             .addInfo(
                 EnumChatFormatting.YELLOW + String.format(
                     StatCollector.translateToLocal("gtsr.tooltip.cluster.unit.ore_washer.chem_bath"),
                     linkSeconds(ChainLink.CHEM_BATH),
-                    linkSteam(ChainLink.CHEM_BATH),
-                    red(fmtL(ClusterParams.CHEM_BATH_FLUID_PER_BATCH_L))))
+                    linkSteam(ChainLink.CHEM_BATH)))
             .addInfo(
                 EnumChatFormatting.YELLOW + String.format(
                     StatCollector.translateToLocal("gtsr.tooltip.cluster.unit.ore_washer.simple_wash"),
                     linkSeconds(ChainLink.SIMPLE_WASH),
-                    linkSteam(ChainLink.SIMPLE_WASH),
-                    red(fmtMb(ClusterParams.SIMPLE_WASH_WATER_PER_ITEM_MB))));
+                    linkSteam(ChainLink.SIMPLE_WASH)));
     }
 }

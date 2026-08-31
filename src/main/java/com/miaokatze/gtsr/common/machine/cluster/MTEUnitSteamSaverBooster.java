@@ -4,6 +4,8 @@ import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 import net.minecraftforge.fluids.Fluid;
 
+import com.gtnewhorizon.structurelib.structure.StructureDefinition;
+
 import gregtech.api.enums.Textures;
 import gregtech.api.interfaces.IIconContainer;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
@@ -39,6 +41,39 @@ public class MTEUnitSteamSaverBooster extends MTEBasicAmplifierUnit {
 
     public MTEUnitSteamSaverBooster(String aName) {
         super(aName, ClusterParams.BoosterType.STEAM_SAVER);
+    }
+
+    @Override
+    protected String[][] getUnitShape() {
+        return new String[][] { { "C   C", "CCCCC", " C C ", " C C ", " C C ", "     ", "     ", "     " },
+            { "     ", "CeeeC", "CBBBC", "CB~BC", "CBABC", " ADA ", " ADA ", " AAA " },
+            { "     ", "CeeeC", " BBB ", " DBD ", " DBD ", " DBD ", " DBD ", " BBB " },
+            { "     ", "CeeeC", "CBBBC", "CBDBC", "CBDBC", " ADA ", " ADA ", " AAA " },
+            { "C   C", "CCCCC", " C C ", " C C ", " C C ", "     ", "     ", "     " }, };
+    }
+
+    @Override
+    @SuppressWarnings("rawtypes")
+    protected void addUnitStructureElements(StructureDefinition.Builder builder) {
+        builder.addElement('B', tieredPipeElement())
+            .addElement('C', tieredFrameElement())
+            .addElement('D', glassElement())
+            .addElement('e', airElement());
+    }
+
+    @Override
+    protected int getStructureOffsetA() {
+        return 2;
+    }
+
+    @Override
+    protected int getStructureOffsetB() {
+        return 3;
+    }
+
+    @Override
+    protected int getStructureOffsetC() {
+        return 1;
     }
 
     @Override
@@ -78,7 +113,7 @@ public class MTEUnitSteamSaverBooster extends MTEBasicAmplifierUnit {
      * 功能群（v1.11.15）：节汽四档值行（含全集群总节约上限）+ 共用「锁定流体 / 按档消耗」行 +
      * 共用「蒸汽惩罚」行——数值取自 {@link ClusterParams#BOOSTER_SAVER_PCT}（经 getBoosterValue）、
      * {@link ClusterParams#STEAM_SAVER_CAP}、{@link ClusterParams#AMPLIFIER_SUPER_COOLANT_LPS}
-     * （经 amplifierFluidLps）与 {@link ClusterParams#BOOSTER_PENALTY_MULT}（经 getPenaltyMultiplier）。
+     * （经 amplifierFluidLps）与 无蒸汽惩罚。
      */
     @Override
     protected void addUnitTooltipInfo(MultiblockTooltipBuilder tt) {
@@ -94,9 +129,8 @@ public class MTEUnitSteamSaverBooster extends MTEBasicAmplifierUnit {
                     EnumChatFormatting.WHITE + StatCollector.translateToLocal(type.getFluidLangKey()),
                     red(boosterTierLps(type))))
             .addInfo(
-                EnumChatFormatting.YELLOW + String.format(
-                    StatCollector.translateToLocal("gtsr.tooltip.cluster.unit.booster.penalty"),
-                    gold(String.format("%.1f", type.getPenaltyMultiplier()))));
+                EnumChatFormatting.YELLOW
+                    + StatCollector.translateToLocal("gtsr.tooltip.cluster.unit.booster.penalty.none"));
     }
 
     /** 仓室群（v1.11.15）：增幅输入仓行（锁定增幅流体自输入仓读取，≥1 由结构校验强制）。 */
