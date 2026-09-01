@@ -34,7 +34,6 @@ import com.miaokatze.gtsr.common.machine.base.MTEGTSRMultiBlockBase;
 import com.miaokatze.gtsr.common.machine.base.MTEHatchPressureSteamInput;
 import com.miaokatze.gtsr.common.machine.base.MTESteamInputHatchGeneric;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
-import com.miaokatze.gtsr.config.Config;
 import com.miaokatze.gtsr.main.GTSteamReborn;
 
 import gregtech.api.enums.Materials;
@@ -79,9 +78,8 @@ import io.netty.buffer.Unpooled;
  * 结构校验：通用输入仓 1..10、蒸汽仓类合计 0..10（终验反馈 FA）。
  *
  * <p>
- * [GTSR-JQ] 日志（附录 C）：INFO/WARN 边沿事件（开始预热/满热/供给翻转/满热降温/模块低温关机/
- * 软锤复位/主结构成型/破坏/段数变化/links 写入钩子）+ Config.logisticsClusterDebug 下的
- * 明细（结构扫描统计/模块断开/结算与批执行摘要/增幅有效性摘要），全部边沿或每 20t 至多一条。
+ * 日志：仅保留 4 类错误边沿 WARN（主结构破坏、结构破坏致满热降温、
+ * 供给充足→短缺、模块低温关机）。
  *
  * <p>
  * 零配方说明：总控不跑任何配方——getRecipeMap()/createProcessingLogic() 在父类中均默认返回
@@ -93,7 +91,7 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
     /** 蒸汽/润滑液秒级结算节拍（tick）。 */
     private static final int SETTLE_INTERVAL_TICKS = 20;
 
-    /** [GTSR-JQ] 日志统一前缀（附录 C）。 */
+    /** 日志统一前缀。 */
     private static final String LOG_PREFIX = "[GTSR-JQ] ";
 
     private static IStructureDefinition<MTESteamMineralLogisticsCluster> STRUCTURE_DEFINITION = null;
@@ -172,25 +170,19 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
     /** 终端 GUI 当前选中的物流单元下标（GUI 交互态；越界由 getSelectedLogisticsUnit 兜底 null）。 */
     protected int selectedLogisticsIndex = 0;
 
-    // —— 日志边沿锁存（防同秒重复输出；附录 C）——
+    // —— 边沿锁存（日志防重与结构破坏降温判断）——
 
-    /** 加热中锁存（开始预热 INFO 边沿用）。 */
+    /** 加热中锁存（供给短缺 WARN 边沿与结构破坏降温判断用）。 */
     private boolean wasHeating = false;
 
-    /** 满热锁存（满热 INFO / 满热→降温 WARN 边沿用）。 */
+    /** 满热锁存（结构破坏致满热降温 WARN 边沿用）。 */
     private boolean wasFullHeat = false;
 
-    /** 供给正常锁存（充足→短缺 WARN / 短缺→充足 INFO 边沿用）。 */
+    /** 供给正常锁存（充足→短缺 WARN 边沿用）。 */
     private boolean wasSupplyOk = false;
-
-    /** 加热开始计时锚（满热 INFO 耗时换算；0=未知，如载入即满热）。 */
-    private long heatStartTimer = 0L;
 
     /** 最近一次成功批实际命中的链步集合（瞬态，r6-S8 EU 实扣参与闸；不持久化）。 */
     private EnumSet<ChainLink> lastBatchLinks = EnumSet.noneOf(ChainLink.class);
-
-    /** 增幅 debug 摘要锁存（active/failed 计数变化才重发）。 */
-    private int lastBoosterActive = -1, lastBoosterFailed = -1;
 
     // 四族 tier 字段（0-3，对应 ClusterParams.ClusterTier 下标）：ofBlocksTiered 挂接点，
     // 由结构元素 setter 写入；每次 checkMachine 前复位 -1，未成型即 -1
@@ -311,7 +303,7 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
      * 主段 checkPiece → 延伸段循环（失配即停；失配段之后仍可识别延伸结构时上报断层错误
      * {@link ClusterStructureError#extensionBreak}）→ 四族同级校验 → 输入仓上限校验
      * （通用 1..10、蒸汽类合计 0..10，plan §3.3.2 删除总线/能源校验；终验反馈 FA）→ tier 统一下发 → 收尾
-     * （模块冲突取走上报、挂点中心注册、供给锁存乐观复位、成型/段数边沿日志）。
+     * （模块冲突取走上报、挂点中心注册、供给锁存乐观复位）。
      *
      * <p>
      * 所有失败路径统一 rollbackFormation（回滚四 tier、拆除本次收集连接、清拓扑）并输出
@@ -471,42 +463,10 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
         }
     }
 
-    /** 成功路径收尾：冲突取走上报（不阻断成型）+ 成型/段数变化边沿日志 + debug 扫描统计（每次结构检查一条）。 */
+    /** 成功路径收尾：冲突取走上报（不阻断成型）。 */
     private void finishFormation(boolean wasFormed, int prevSegments, int prevUnits) {
         lastModuleConflicts.clear();
         lastModuleConflicts.addAll(ClusterStructureDef.drainModuleConflicts());
-        if (!lastModuleConflicts.isEmpty()) {
-            GTSteamReborn.LOG.info("{}模块冲突: {} 处（同段同类仅首个接入）", LOG_PREFIX, lastModuleConflicts.size());
-        }
-        int segments = topology.getSegmentCount();
-        int units = topology.getUnits()
-            .size();
-        if (!wasFormed) {
-            GTSteamReborn.LOG.info(
-                "{}主结构成型: {} tier={} 段数={} 模块数={}",
-                LOG_PREFIX,
-                logCoords(),
-                ClusterParams.ClusterTier.get(getStructureTierIndex())
-                    .getEnglishName(),
-                segments,
-                units);
-        } else if (segments != prevSegments) {
-            GTSteamReborn.LOG.info("{}段数变化: {} 旧段数={} 新段数={}", LOG_PREFIX, logCoords(), prevSegments, segments);
-        } else if (units != prevUnits) {
-            // 模块接入/剔除边沿（终验反馈缺陷1根因B）：模块成型触发的重检在集群已成型时重新扫描，
-            // 段数不变而模块数变化——本边沿补一条 INFO，消除接入成功/失败的静默面
-            GTSteamReborn.LOG.info("{}模块数变化: {} 旧模块数={} 新模块数={}", LOG_PREFIX, logCoords(), prevUnits, units);
-        }
-        if (Config.logisticsClusterDebug) {
-            GTSteamReborn.LOG.debug(
-                "{}结构扫描: {} 结果=成型 段数={} 模块数={} 输入仓={}+{}耐压",
-                LOG_PREFIX,
-                logCoords(),
-                segments,
-                units,
-                mInputHatches.size(),
-                pressureSteamHatches.size());
-        }
     }
 
     /** 失败路径统一回滚：回滚四 tier + 拆除本次扫描已收集的单元连接并清空拓扑/垫位登记/耐压仓。 */
@@ -812,14 +772,6 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
                 topology.removeUnit(unit);
                 forgetSlotsOf(unit);
                 unit.disconnect();
-                if (Config.logisticsClusterDebug) {
-                    GTSteamReborn.LOG.debug(
-                        "{}模块断开: {} 段={} 槽={}",
-                        LOG_PREFIX,
-                        logCoords(),
-                        unit.getSegmentIndex(),
-                        unit.getPadId());
-                }
                 continue;
             }
             if (unit.getCluster() == null) {
@@ -878,7 +830,7 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
      * 终止全部在飞配方（吞料）、主控断电、一次性聊天通知物主。
      *
      * <p>
-     * 供给锁存 thermalSupplyOkLatched=结算 ok 且未中止；边沿日志 + debug 摘要共用尾部。
+     * 供给锁存 thermalSupplyOkLatched=结算 ok 且未中止；边沿日志共用尾部。
      * 刚满热的秒段（justReachedFullHeat）由 EconomySettleResult 口径处理，主控不再自行双调用。
      */
     private void settleSteamEconomy() {
@@ -900,7 +852,6 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
 
         ClusterSteamEconomy.EconomySettleResult r;
         BoosterState booster = null;
-        boolean anyChainExecuted = false;
         boolean aborted = false;
         if (!preheat.isReady() && wip == 0) {
             // 预热中：FIXED_CLUSTER_STEAM_LPS 蒸汽 + 润滑恒定段；本秒能抵达满热时
@@ -925,7 +876,7 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
                 // （关电只阻止下一批）。本秒被递减的单元（含刚归零者）本轮不开批——
                 // 与旧版「递减-20 后 continue」逐字同节拍（勿改，E4 补偿口径依赖）
                 List<MTEBasicLogisticsUnit> decremented = decrementChainCooldowns();
-                if (powerOn) anyChainExecuted = runChains(decremented);
+                if (powerOn) runChains(decremented);
                 if (wip > 0) {
                     // 按本秒 WIP 物流单元数连续计费；链批是否实际完成不影响实扣。
                     // 任一 active 模块实扣失败，或任一在场模块本秒无法支付（failed>0，含缺增幅液）
@@ -945,20 +896,6 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
         }
         thermalSupplyOkLatched = r.ok && !aborted;
         logHeatAndSupplyEdges(r);
-        if (booster != null) debugBoosterSummary(booster);
-        if (Config.logisticsClusterDebug) {
-            GTSteamReborn.LOG.debug(
-                "{}结算: {} 状态={} ok={} 中止={} 蒸汽={}L/s 润滑={}L/s 链执行={} 本秒批矿={}",
-                LOG_PREFIX,
-                logCoords(),
-                (preheat.isReady() || wip > 0) ? "运行" : "预热",
-                r.ok,
-                aborted,
-                r.settledSteamLps,
-                r.settledLubricantLps,
-                anyChainExecuted,
-                throughputWindowItems);
-        }
     }
 
     /**
@@ -991,38 +928,13 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
     }
 
     /**
-     * 热量/供给边沿日志（附录 C）：开始预热 / 满热 / 满热→降温 / 供给充足→短缺 / 供给短缺→充足。
-     * r=null 表示关机路径（只走热量边沿，不走供给边沿）。同秒同类状态未变化不重复输出。
+     * 供给错误边沿日志：仅输出供给充足→短缺 WARN（含短缺项与可用量探测），同时维护
+     * wasHeating/wasFullHeat/wasSupplyOk 边沿锁存（tickServer 结构破坏降温判断依赖）。
+     * r=null 表示关机路径（不输出供给边沿）。
      */
     private void logHeatAndSupplyEdges(ClusterSteamEconomy.EconomySettleResult r) {
         boolean heating = machineEnabled && mMachine && thermalSupplyOkLatched;
-        if (heating && !wasHeating) {
-            heatStartTimer = serverTimer();
-            GTSteamReborn.LOG.info(
-                "{}开始预热: {} tier={} 段数={}",
-                LOG_PREFIX,
-                logCoords(),
-                ClusterParams.ClusterTier.get(getStructureTierIndex())
-                    .getEnglishName(),
-                topology.getSegmentCount());
-        }
         boolean fullHeat = preheat.isReady();
-        if (fullHeat && !wasFullHeat) {
-            long elapsedSec = heatStartTimer <= 0L ? -1L : Math.max(0L, (serverTimer() - heatStartTimer) / 20L);
-            GTSteamReborn.LOG.info(
-                "{}满热: {} 耗时={}s 供给态={}",
-                LOG_PREFIX,
-                logCoords(),
-                elapsedSec,
-                thermalSupplyOkLatched ? "充足" : "短缺");
-        } else if (!fullHeat && wasFullHeat) {
-            GTSteamReborn.LOG.warn(
-                "{}满热→降温: {} 原因={} 热量={}%",
-                LOG_PREFIX,
-                logCoords(),
-                machineEnabled ? "断供" : "停机",
-                (int) Math.round(preheat.getProgress() * 100D));
-        }
         if (r != null) {
             if (!r.ok && wasSupplyOk) {
                 // 短缺项与实际可用量（跨仓模拟探测，仅边沿时执行一次）
@@ -1040,30 +952,11 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
                     r.settledLubricantLps,
                     lubAvail,
                     (!r.steamEnough && !r.lubricantEnough) ? "蒸汽+润滑" : r.steamEnough ? "润滑" : "蒸汽");
-            } else if (r.ok && !wasSupplyOk) {
-                GTSteamReborn.LOG.info(
-                    "{}供给短缺→充足: {} 蒸汽={}L/s 润滑={}L/s 恢复时热量={}%",
-                    LOG_PREFIX,
-                    logCoords(),
-                    r.settledSteamLps,
-                    r.settledLubricantLps,
-                    (int) Math.round(preheat.getProgress() * 100D));
             }
             wasSupplyOk = r.ok;
         }
         wasHeating = heating;
         wasFullHeat = fullHeat;
-    }
-
-    /** 增幅有效性 debug 摘要（每 20t 至多一条，active/failed 计数未变不重发）。 */
-    private void debugBoosterSummary(BoosterState booster) {
-        if (!Config.logisticsClusterDebug) return;
-        int active = booster.getActiveCount();
-        int failed = booster.getFailedCount();
-        if (active == lastBoosterActive && failed == lastBoosterFailed) return;
-        lastBoosterActive = active;
-        lastBoosterFailed = failed;
-        GTSteamReborn.LOG.debug("{}增幅有效性: {} 生效={} 失效={}", LOG_PREFIX, logCoords(), active, failed);
     }
 
     /**
@@ -1109,8 +1002,8 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
     }
 
     /**
-     * 物流单元物理电源边沿轮询（20t）：false→true = 软锤复位（清低温通知位 + 链重校验 +
-     * INFO 日志）；true→false 且热量不满、链非空 = 模块低温关机（WARN 日志）。首次观测
+     * 物流单元物理电源边沿轮询（20t）：清理低温通知位并执行链重校验；true→false 且热量不满、
+     * 链非空时输出模块低温关机 WARN。首次观测
      * （prev==null）只建锁存不发事件（GT5U 软锤路径直改 BaseMetaTileEntity.mWorks，无 MTE
      * 回调钩子，主控以边沿轮询对齐 §3.6.4 复位语义）。
      */
@@ -1122,13 +1015,6 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
             if (prev == null || prev == allowed) continue;
             if (allowed) {
                 unit.onSoftHammerReset();
-                GTSteamReborn.LOG.info(
-                    "{}软锤复位: {} 段={} 槽={} 链重校验={}",
-                    LOG_PREFIX,
-                    logCoords(),
-                    unit.getSegmentIndex(),
-                    unit.getPadId(),
-                    unit.isChainExecutableNow());
             } else if (preheat.getProgress() < 1.0D && !unit.getChain()
                 .isEmpty()) {
                     GTSteamReborn.LOG.warn(
@@ -1407,31 +1293,6 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
         if (!economy.isLubricantOk()) flags |= 0x02;
         if (!thermalSupplyOkLatched) flags |= 0x04;
         return flags;
-    }
-
-    /**
-     * links 写入日志钩子（附录 C「links 写入」边沿；E6 链编辑提交路径调用）：玩家、物流段、
-     * 链长度、结构有效（FSM 终态）/当前可执行（对拓扑真实查询）两级口径。
-     */
-    public void notifyChainWritten(EntityPlayer player, MTEBasicLogisticsUnit unit) {
-        if (unit == null) return;
-        GTSteamReborn.LOG.info(
-            "{}links 写入: 玩家={} 段={} 槽={} 链长={} 结构有效={} 当前可执行={}",
-            LOG_PREFIX,
-            player == null ? "?" : player.getCommandSenderName(),
-            unit.getSegmentIndex(),
-            unit.getPadId(),
-            unit.getChain()
-                .length(),
-            unit.getChain()
-                .isValidStructure(),
-            unit.isChainExecutableNow());
-    }
-
-    /** @return 服务端计时（getTimer；基座不可达时 0）。 */
-    private long serverTimer() {
-        IGregTechTileEntity base = getBaseMetaTileEntity();
-        return base == null ? 0L : base.getTimer();
     }
 
     /** @return 日志坐标串 "dim(x,y,z)"。 */

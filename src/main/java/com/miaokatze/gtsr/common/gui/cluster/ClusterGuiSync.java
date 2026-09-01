@@ -820,7 +820,6 @@ public final class ClusterGuiSync {
                     unit.markChainDirty();
                     unit.getChain()
                         .append(link);
-                    cluster.notifyChainWritten(getSyncManager().getPlayer(), unit);
                 }
                 case REMOVE_LINK -> {
                     MTEBasicLogisticsUnit unit = checkedUnit();
@@ -830,7 +829,6 @@ public final class ClusterGuiSync {
                     unit.markChainDirty();
                     unit.getChain()
                         .removeAt(p1);
-                    cluster.notifyChainWritten(getSyncManager().getPlayer(), unit);
                 }
                 case MOVE_LINK -> {
                     MTEBasicLogisticsUnit unit = checkedUnit();
@@ -841,7 +839,6 @@ public final class ClusterGuiSync {
                     unit.markChainDirty();
                     unit.getChain()
                         .move(p1, p2);
-                    cluster.notifyChainWritten(getSyncManager().getPlayer(), unit);
                 }
                 case CLEAR_CHAIN -> {
                     MTEBasicLogisticsUnit unit = checkedUnit();
@@ -849,7 +846,6 @@ public final class ClusterGuiSync {
                     unit.markChainDirty();
                     unit.getChain()
                         .clear();
-                    cluster.notifyChainWritten(getSyncManager().getPlayer(), unit);
                 }
                 case APPLY_PRESET -> {
                     // 预设已删除（§4.4.5）：服务端一律拒绝，GUI 无入口
@@ -879,7 +875,6 @@ public final class ClusterGuiSync {
                     unit.getChain()
                         .setLinks(candidate.getLinks());
                     unit.markChainDirty();
-                    cluster.notifyChainWritten(getSyncManager().getPlayer(), unit);
                 }
             }
         }
