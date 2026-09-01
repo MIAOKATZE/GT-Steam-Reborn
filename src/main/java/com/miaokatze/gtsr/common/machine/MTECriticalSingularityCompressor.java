@@ -144,15 +144,10 @@ public class MTECriticalSingularityCompressor extends MTESingularityMachineBase 
         return GTSRItemList.CriticalSteamEntangledSingularity.get(1);
     }
 
+    // 奇点模式预留出口：输入总线可放置但非必需，后续接入奇点模式时恢复强制并接通消费逻辑
     @Override
     protected boolean requiresInputBus() {
-        return true;
-    }
-
-    @Override
-    protected boolean shouldRenderEntanglementSingularity(IGregTechTileEntity aBaseMetaTileEntity) {
-        // v1.10.59 关机即消失（结构成型且允许工作才渲染）
-        return mMachine && aBaseMetaTileEntity.isAllowedToWork();
+        return false;
     }
 
     private static Block getTier2FrameBlock() {
@@ -508,9 +503,7 @@ public class MTECriticalSingularityCompressor extends MTESingularityMachineBase 
                 StatCollector.translateToLocal("gtsr.tooltip.critical_singularity_compressor.steam_input_hatch"),
                 StatCollector.translateToLocal(keyPrefix + "steam_input"),
                 1);
-        if (requiresInputBus()) {
-            tt.addInputBus(StatCollector.translateToLocal(keyPrefix + "input_bus"), 1);
-        }
+        tt.addInputBus(StatCollector.translateToLocal(keyPrefix + "input_bus"), 1);
         tt.addOutputBus(StatCollector.translateToLocal(keyPrefix + "output_bus"), 1);
         tt.addStructureInfo("")
             .addStructureInfo(EnumChatFormatting.DARK_GRAY + StatCollector.translateToLocal(keyPrefix + "desc6"))

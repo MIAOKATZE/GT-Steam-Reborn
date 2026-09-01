@@ -421,8 +421,7 @@ public abstract class MTESingularityMachineBase extends MTESingularityModeMachin
 
     /**
      * 失控奇点渲染条件：默认机器工作（结构有效+允许工作+周期进行中或蒸汽尚存）才生成/保留奇点；
-     * 临界纠缠奇点稳定装置覆写为结构成型且允许工作；致密态蒸汽操控装置覆写为结构成型且
-     * （允许工作或奇点模式进行中）。
+     * 致密态蒸汽操控装置覆写为结构成型且（允许工作或奇点模式进行中）。
      */
     protected boolean shouldRenderEntanglementSingularity(IGregTechTileEntity aBaseMetaTileEntity) {
         return mMachine && aBaseMetaTileEntity.isAllowedToWork()

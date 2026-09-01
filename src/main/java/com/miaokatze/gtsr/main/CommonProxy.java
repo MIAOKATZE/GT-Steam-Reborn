@@ -22,12 +22,14 @@ import com.miaokatze.gtsr.loader.ItemLoader;
 import com.miaokatze.gtsr.loader.MachineLoader;
 import com.miaokatze.gtsr.register.CreativeTabManager;
 
+import cpw.mods.fml.common.Loader;
 import cpw.mods.fml.common.event.FMLInitializationEvent;
 import cpw.mods.fml.common.event.FMLPostInitializationEvent;
 import cpw.mods.fml.common.event.FMLPreInitializationEvent;
 import cpw.mods.fml.common.event.FMLServerStartingEvent;
 import cpw.mods.fml.common.registry.GameRegistry;
 import gregtech.api.GregTechAPI;
+import gregtech.api.enums.Mods;
 import gregtech.api.structure.error.StructureErrorRegistry;
 
 /**
@@ -94,10 +96,13 @@ public class CommonProxy {
         GregTechAPI.sAfterGTPreload.add(registerRunnable);
         GTSteamReborn.LOG.info("[1/3] 已将机器注册任务加入 GregTech PreInit 加载队列。");
 
-        // tier 通道指示物是 GT5U casing 方块，其 ItemBlock 要到 GT Init 阶段（GTItemIterator）才注册；gtsr 为
-        // required-before:gregtech，自身 Init 仍早于 GT Init，preInit 直接注册会因 ItemStack.getItem()==null 使
+        // tier 通道指示物是 GT5U casing 族方块；Block+ItemBlock 实际在 GT preInit 注册（GTMod.java:274-275 → :324
+        // LoaderGTBlockFluid.run()，其 run() 于 LoaderGTBlockFluid.java:735-750 实例化 sBlockCasings 族，
+        // GTGenericBlock 构造即 GameRegistry.registerBlock）。
+        // GTItemIterator（GT Init）仅为物品注册表兼容扫描，不执行注册调用；sAfterGTPreload（GTMod.java:342）虽是更早安全点，
+        // 但通道注册仍须晚于 GT Init 末尾的 GTStructureChannels.register()，故挂 sAfterGTLoad（GTMod.java:402）。
+        // gtsr 为 required-before:gregtech，自身 Init 仍早于 GT Init；preInit 直接注册会因 ItemStack.getItem()==null 使
         // gtnhlib ItemStackMap.computeIfAbsent 返回 null，在 StructureLib ChannelDescription.item 内 NPE 启动崩溃。
-        // 故挂 sAfterGTLoad（GT Init 末尾执行，GTMod.java:402，晚于 ItemBlock 注册与 GTStructureChannels.register()）
         GregTechAPI.sAfterGTLoad.add(CommonProxy::registerClusterTierChannel);
     }
 
@@ -147,8 +152,10 @@ public class CommonProxy {
         // 注册自然生成：失控奇点 nature 词条（主世界+下界，频率见配置 singularitySpawnFrequency）
         GameRegistry.registerWorldGenerator(new WorldGenRunawaySingularity(), 0);
 
-        // Waila 跨 mod 兼容：注册节点自定义名 WAILA 头部显示（Waila 缺失时为空操作，详见 GTSRWailaCompat）
-        GTSRWailaCompat.init();
+        // Waila 跨 mod 兼容：外置 isModLoaded 守卫；Waila 缺失时不加载兼容类（详见 GTSRWailaCompat）
+        if (Loader.isModLoaded(Mods.Waila.ID)) {
+            GTSRWailaCompat.init();
+        }
     }
 
     /**

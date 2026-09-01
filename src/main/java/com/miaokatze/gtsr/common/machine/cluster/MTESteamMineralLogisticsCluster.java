@@ -727,7 +727,7 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
         // 其余客户端逻辑无
         if (!aBaseMetaTileEntity.isServerSide()) {
             updateClientFxAirCandidates();
-            if (mWorkingForFX) ClusterParticleFx.spawnParticles(this);
+            if (mWorkingForFX) ClusterParticleFxClient.spawnParticles(this);
             return;
         }
 

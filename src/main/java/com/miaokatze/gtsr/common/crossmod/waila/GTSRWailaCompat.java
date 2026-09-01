@@ -11,11 +11,11 @@ import mcp.mobius.waila.api.IWailaRegistrar;
 /**
  * Waila 兼容层入口（参照 GT5U gregtech.crossmod.waila.Waila 的 IMC 注册模式）。
  * <p>
- * 类加载安全性：本类仅由 CommonProxy.init 调用 {@link #init()}，方法体只引用字符串常量与 Loader，
- * 不触碰任何 Waila 类型；{@link #callbackRegister(IWailaRegistrar)} 的方法签名虽引用 Waila API，
- * 但 JVM 对方法签名类型是延迟解析的——Waila 缺失时本类可正常加载，
- * 而 callbackRegister 仅在 Waila 存在时由 Waila 经 IMC 反射调用，
- * 其内部的 new GTSRNodeWailaProvider() 也随之只在 Waila 存在时触发加载。
+ * 本类在类级别包含 Waila 类型（{@link #callbackRegister(IWailaRegistrar)} 的签名）并实例化
+ * {@code GTSRNodeWailaProvider}，因此类加载要求 Waila 位于 classpath。唯一保护是
+ * {@link com.miaokatze.gtsr.main.CommonProxy#init} 中的外置 {@code isModLoaded} 守卫：
+ * Waila 缺失时该调用不会发生，本类根本不会被加载。{@link #callbackRegister(IWailaRegistrar)}
+ * 仍仅由 Waila 经 IMC 反射调用。
  */
 public class GTSRWailaCompat {
 
