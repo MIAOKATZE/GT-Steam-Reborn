@@ -281,6 +281,7 @@ gtsr.gui.geothermal_boiler.calcification=结垢：
 gtsr.chat.calcification_cleared=§a已清除沉积
 gtsr.chat.calcification_full=§c警告：机器已完全结垢，蒸汽产出降至 1％！请及时除垢。
 gtsr.chat.no_water=水供应中断，机器已停止工作，请重新开启（软锤右击或打开GUI点电源开关）
+gtsr.chat.cluster.supply_abort=供应中断（蒸汽/润滑/增幅液不足），进行中的配方已终止且原料损毁，机器已断电，请重新开启
 gtsr.chat.overpressure.on=超压模式已开启：热量上限提升至 200％
 gtsr.chat.overpressure.off=超压模式已关闭
 gtsr.chat.overpressure.need_heat=需要 100％ 热量才能开启超压模式
@@ -1457,7 +1458,6 @@ gtsr.cluster.native.logistics.chain.blocked=不可执行
 gtsr.cluster.native.logistics.power=物理电源：
 gtsr.cluster.native.logistics.power.on=开机
 gtsr.cluster.native.logistics.power.off=已关机
-gtsr.cluster.native.logistics.power.hint=用软锤复位后重新校验链路
 
 # 拓扑页（E6）
 gtsr.cluster.gui.topo.formed=已成型

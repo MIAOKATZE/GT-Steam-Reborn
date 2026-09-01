@@ -25,6 +25,7 @@ import gregtech.api.recipe.RecipeMap;
 import gregtech.api.util.GTModHandler;
 import gregtech.api.util.GTRecipe;
 import gregtech.api.util.GTUtility;
+import gregtech.common.tileentities.machines.outputme.MTEHatchOutputBusME;
 
 /**
  * IOF 式链批处理执行器：把一个物流单元（{@link MTEBasicLogisticsUnit}）的有序链
@@ -59,9 +60,17 @@ import gregtech.api.util.GTUtility;
  * 路径零扣。配方查找失败/形态不接受/SIMPLE_WASH 图缺失 → 原样透传（§3.6.5-5）。
  *
  * <p>
- * 零副作用事务：门控（含批流体预检）未过即返 0 且无任何状态变化；扣料虽按 IOF 口径改写输入
- * 总线 live 引用的 stackSize，但产出的放置走「逐组探测→实放→台账」，放置失败时已扣数量原样
- * 加回、已实放产物按 (bus,itemId,amount) 台账回滚，整批表现为未发生。链加工全程只操作取料副本。
+ * 零副作用事务：门控（含批流体预检与输出预检）未过即返 0 且无任何状态变化；输出预检走
+ * 「逐组探测→实放→台账→立即按台账回滚」（probe-place-undo，复用最终发放同一实现），证明整批
+ * 放得下才继续扣料；扣料虽按 IOF 口径改写输入总线 live 引用的 stackSize，但预检失败时输入原样
+ * 未动，整批表现为未发生。链加工全程只操作取料副本。
+ *
+ * <p>
+ * 配方运行绑定（r-logi-power-bind）：预检通过的批不再当场发放产出——扣料吞入、配方流体实扣、
+ * 配方时间写入后整批产出 {@link MTEBasicLogisticsUnit#stashPendingOutputs 暂存}于物流单元，
+ * 待配方进度读零后由单元自身 onPostTick 经 {@link #emitPendingOutputs} 排空（总线满则逐 t
+ * 空转重试，零消耗零丢料）。单元输出总线仅本执行器写入，开批预检结论在排空前有效；持有暂存
+ * 产出的单元拒绝开新批（防覆盖丢产出）。
  *
  * <p>
  * 增益（§3.6.3 + r6-S6）：{@link BoosterState} 的主产物增益（同类最高仅一生效）作用于主产物 chance、
@@ -69,10 +78,12 @@ import gregtech.api.util.GTUtility;
  * 粉碎链步（仅 CRUSH，不含 HAMMER 锻造）的副产物条目在增幅后最终概率上再乘粉碎乘率（tier0 ×0.1 / tier≥1 ×0.5）。
  *
  * <p>
- * 配方时间模型（SR-Cluster-r6 S3，批冷却语义重定义）：每单元 {@code chainCooldownTicks} 在成功批
- * 提交后写为本批<b>配方时间</b>（tick）＝{@code round(itemTimeSec(processedLinks) × 20)}，结果至少 1 tick（ExecutionPlan
- * 时间口径，含物流段时间；空 processedLinks 即纯物流时间），总控每 20t 统一 -20 且对仍 &gt;0 的单元
- * 跳过本秒；该值同时驱动物流单元虚拟空配方进度与工作态窗口（见 MTEBasicLogisticsUnit.onBatchProcessed）。
+ * 配方时间模型（SR-Cluster-r6 S3 + r-logi-power-bind 调序，批冷却语义重定义）：每单元
+ * {@code chainCooldownTicks} 在成功批提交后写为本批<b>配方时间</b>（tick）＝
+ * {@code round(itemTimeSec(processedLinks) × 20)}，结果至少 1 tick（ExecutionPlan
+ * 时间口径，含物流段时间；空 processedLinks 即纯物流时间），总控结算先统一 -20（decrementChainCooldowns，
+ * 关电/断供收尾路径同样照减）再对冷却 ≤0 的单元开批；该值同时驱动物流单元配方运行进度与
+ * 工作态窗口（见 MTEBasicLogisticsUnit.onBatchProcessed）。
  *
  * <p>
  * 吞吐（§3.6.6-4）：真实成功批经 {@link ClusterBatchHost#addRealBatchThroughput(int)} 累计
@@ -92,13 +103,15 @@ public final class ClusterChainExecutor {
      * 推进一个物流单元的链批处理（每秒由总控 runChains 调用一次；配方时间未到直接返回）。
      *
      * <p>
-     * 事务流程：门控（主控+单元启用+物理电源/链可执行/tier/配方时间）→ 低温门控（热量不足取料前
-     * 零副作用返 0）→ 取料登记（不扣料）→ 链加工（副本单遍执行 + 逐物品真实配方流体需求累计 +
-     * processedLinks 跟踪）→ 批流体预检（不足整批零副作用）→ 扣料 → 产出探测-实放（失败回滚
-     * 输入，零副作用）→ 提交（实扣配方流体 + 配方时间/记账/吞吐/处理窗口开窗）。
+     * 事务流程：门控（主控+单元启用+物理电源/链可执行/tier/暂存产出未排空/配方时间）→ 低温门控
+     * （热量不足取料前零副作用返 0）→ 取料登记（不扣料）→ 链加工（副本单遍执行 + 逐物品真实配方
+     * 流体需求累计 + processedLinks 跟踪）→ 批流体预检（不足整批零副作用）→ 输出预检
+     * （probe-place-undo：整批逐组实放再按台账立即回滚，放不下整批零副作用）→ 扣料（吞入）→
+     * 配方流体实扣 → 配方时间/记账/吞吐/处理窗口开窗 → 整批产出暂存（不再当场发放，
+     * 进度读零后由单元 onPostTick 排空）。
      *
      * @param cluster   集群总控（拓扑、tier 与累计记账入口）
-     * @param unit      物流单元（链、I/O 总线、输入仓流体结算面、配方时间字段持有者）
+     * @param unit      物流单元（链、I/O 总线、输入仓流体结算面、配方时间与暂存产出字段持有者）
      * @param batchHost 批宿主（热量分率/断供锁存/真实吞吐累计契约，批 2 E5 由主控实现）
      * @return 本批实际处理矿数（0=未执行）
      */
@@ -118,14 +131,18 @@ public final class ClusterChainExecutor {
             || !chain.isExecutable(topology)
             || tier < 0) return 0;
 
-        // 2) 配方时间未到（r6 S3：批冷却即本批配方时间，由调用方按 20t 递减，本方法不递减）
+        // 2) 暂存产出未排空（r-logi-power-bind）：在飞产出/待排空产出仍占着输出预检结论，
+        // 开新批会覆盖 stash 丢产出——拒绝开批（零副作用）
+        if (unit.hasPendingOutputs()) return 0;
+
+        // 3) 配方时间未到（r6 S3：批冷却即本批配方时间，由调用方按 20t 递减，本方法不递减）
         if (unit.getChainCooldownTicks() > 0) return 0;
 
-        // 3) 低温门控（§3.6.4 取料前，决策 2）：热量不满 → 直接返 0 零副作用——不取料/不加工/
+        // 4) 低温门控（§3.6.4 取料前，决策 2）：热量不满 → 直接返 0 零副作用——不取料/不加工/
         // 不输出/不扣批流体/不记吞吐/不停机（低温不再吞批，热量回满后自动恢复开批）
         if (batchHost.heatFraction() < 1.0) return 0;
 
-        // 4) 并行与输入：从物流单元自己的输入总线收集全部非 OTHER 形态的物品（决策 3：
+        // 5) 并行与输入：从物流单元自己的输入总线收集全部非 OTHER 形态的物品（决策 3：
         // ORE 与粉碎矿/污浊粉等全部中间态均收），只登记台账不扣料
         BoosterState booster = BoosterState.aggregate(topology.getBoosterUnits());
         int parallel = ExecutionPlan.effectiveParallel(tier, booster);
@@ -133,7 +150,7 @@ public final class ClusterChainExecutor {
         int batch = collectOreBatch(unit, parallel, takes);
         if (batch <= 0) return 0;
 
-        // 5) 链加工（副本单遍执行，逐物品累计真实配方流体需求 + processedLinks 跟踪；此点零副作用）
+        // 6) 链加工（副本单遍执行，逐物品累计真实配方流体需求 + processedLinks 跟踪；此点零副作用）
         List<ItemStack> mid = new ArrayList<>(batch);
         for (InputTake take : takes) {
             for (int i = 0; i < take.amount; i++) {
@@ -144,34 +161,40 @@ public final class ClusterChainExecutor {
         EnumSet<ChainLink> processedLinks = EnumSet.noneOf(ChainLink.class);
         List<ItemStack> outputs = runChain(chain, mid, unit, fluids, booster, processedLinks, tier);
 
-        // 6) 批流体预检（§3.6.5-3）：本批将处理物品的累计需求任一不足 → 整批零副作用
+        // 7) 批流体预检（§3.6.5-3）：本批将处理物品的累计需求任一不足 → 整批零副作用
         if (!fluids.isSatisfiable(unit)) return 0;
 
-        // 7) 扣料（IOF :306-319 口径：live 引用 stackSize -= take；0-size 槽由总线自身 tick 收口）
+        // 8) 输出预检（r-logi-power-bind，probe-place-undo）：整批逐组证明放得下后立即按台账
+        // 回滚——最终发放推迟到配方进度读零，若此刻放不下则后续排空必卡死，故开批前整批证明；
+        // ME 条目只模拟不落地（realPlaceMe=false），回滚精确；
+        // 失败（任一组无处可放，实放部分已内部回滚）→ 整批零副作用（输入未扣、流体未扣）
+        List<OutputLedger> probeLedger = tryEmitOutputs(unit, outputs, false);
+        if (probeLedger == null) return 0;
+        rollbackOutputs(probeLedger);
+
+        // 9) 扣料（IOF :306-319 口径：live 引用 stackSize -= take；0-size 槽由总线自身 tick 收口）
+        // ——此后输入已吞入，在飞批次仅能经 MTEBasicLogisticsUnit.abortPendingRun 中止（吞料）
         applyTakes(takes);
 
-        // 8) 产出：写入物流单元输出总线——整组放得下才实放（探测-实放+台账，GTSROutputBusCompat
-        // 兼容 ME 总线）；任一组无处可放 → 回滚已实放产物并加回输入，整批零副作用（含零扣流体）
-        if (!tryEmitOutputs(unit, outputs)) {
-            restoreInputs(takes);
-            return 0;
-        }
-
-        // 9) 提交：输出可接收后才实扣配方流体（§3.6.5-4，r6 S2：直接对物流单元输入仓跨仓结算）；
-        // 此点之后不再回滚
+        // 10) 提交：预检已证明输出可接收，实扣配方流体（§3.6.5-4，r6 S2：直接对物流单元输入仓
+        // 跨仓结算）；此点之后不再回滚
         fluids.consume(unit);
         unit.markDirty();
 
-        // 10) 配方时间与记账（r6 S3）：本批配方时间（tick）= round(itemTimeSec(processedLinks)×20)
+        // 11) 配方时间与记账（r6 S3）：本批配方时间（tick）= round(itemTimeSec(processedLinks)×20)
         // —— 四舍五入取整且下限 1 tick（0.8s 批显 16t 不被 ceil/upward 截断偏差放大，纯物流批也有
         // 最短 1t 冷却）；ExecutionPlan 时间口径含物流段，仅计实际命中配方的链步（决策 12 跳步时间
         // 节约），空集合即纯物流时间；写入后由总控每 20t 递减、并经 onBatchProcessed 驱动物流单元
-        // 虚拟空配方进度与工作态窗口
+        // 配方运行进度与工作态窗口
         List<ChainLink> processedLinksList = new ArrayList<>(processedLinks);
         long recipeTicks = Math
             .max(1L, Math.round(ExecutionPlan.itemTimeSec(processedLinksList, tier, topology, booster) * 20D));
         unit.setChainCooldownTicks(recipeTicks);
         unit.onBatchProcessed(batch);
+
+        // 12) 产出暂存（r-logi-power-bind）：不再当场发放——整批产出移交单元，进度读零后由单元
+        // onPostTick 经 emitPendingOutputs 排空（放不下时空转重试，零消耗零丢料）
+        unit.stashPendingOutputs(outputs);
         cluster.recordBatchLinks(processedLinks);
         cluster.addProcessedOre(batch);
         batchHost.addRealBatchThroughput(batch);
@@ -226,13 +249,6 @@ public final class ClusterChainExecutor {
     private static void applyTakes(List<InputTake> takes) {
         for (InputTake take : takes) {
             take.live.stackSize -= take.amount;
-        }
-    }
-
-    /** 取料回滚：把已扣数量加回各 live 引用（未调 updateSlots，槽位引用未被 null 化，原样可逆）。 */
-    private static void restoreInputs(List<InputTake> takes) {
-        for (InputTake take : takes) {
-            take.live.stackSize += take.amount;
         }
     }
 
@@ -585,37 +601,86 @@ public final class ClusterChainExecutor {
     }
 
     /**
-     * 产物写入<b>物流单元自己的</b>输出总线：每组产物依次对每个总线做 storePartial 模拟探测
-     * （探测会扣减入参 stackSize，故用副本），整组放得下才实放（聚合器 tryOutputOre 同式，经
-     * {@link GTSROutputBusCompat} 兼容 ME 总线 cache 满语义）。任一组全部总线都放不下 →
-     * 回滚此前已实放的各组并返回 false（调用方再加回输入，整批零副作用）。逐组「探测→实放」
-     * 之间无外部写入（同 tick 同线程），后续组的探测可见先续组的实放结果，无自我竞争误判。
+     * 产物写入/输出预检共用实现（普通总线 probe-place-ledger + ME 总线兜底双趟）：
+     * <ol>
+     * <li><b>趟 1（普通总线）</b>：每组产物依次对每个普通总线做 storePartial 模拟探测（探测会
+     * 扣减入参 stackSize，故用副本），整组放得下才实放（<b>实放同样传副本</b>——入参
+     * {@code outputs} 各堆尺寸保持不变，预检回滚与暂存重试共用同一列表）并记台账；后续组的
+     * 探测可见先续组的实放结果，累积可放性成立。</li>
+     * <li><b>趟 2（ME 总线兜底）</b>：趟 1 无处可放的组改投 ME 总线——先逐组模拟探测<b>全部</b>
+     * 选定可行目标，再一次性实放。ME 实放走 addToCache 无容量门控（{@link GTSROutputBusCompat}
+     * 类注释），探测过即实放必成；且回滚台账<b>永不含 ME 条目</b>（ME cache 不在 mInventory 槽，
+     * {@link #rollbackOutputs} 对 ME 恒 no-op）——失败路径上 ME 零实放，杜绝预检/排空重试对
+     * ME cache 的凭空多发与双份。</li>
+     * </ol>
+     * 趟 1 任一组普通放不下转入趟 2，趟 2 任一组全部 ME 探测失败 → 回滚已实放的普通条目并
+     * 返回 null（普通零残留；ME 未动）。组落点偏好普通总线、ME 仅兜底。
+     *
+     * @param realPlaceMe 预检（false）= ME 只模拟不落地（台账只含普通条目，立即回滚即
+     *                    probe-place-undo 精确还原）；排空实发（true）= ME 全组探测齐备后真实落地
+     * @return 实放台账（仅普通条目；ME 不入账）；null = 放不下（已内部回滚普通部分）
      */
-    private static boolean tryEmitOutputs(MTEBasicLogisticsUnit unit, List<ItemStack> outputs) {
+    private static List<OutputLedger> tryEmitOutputs(MTEBasicLogisticsUnit unit, List<ItemStack> outputs,
+        boolean realPlaceMe) {
+        var buses = GTUtility.validMTEList(unit.getLogisticsOutputBusses());
         List<OutputLedger> ledger = new ArrayList<>();
+        List<ItemStack> meOverflow = new ArrayList<>();
+        // 趟 1：普通总线逐组探测→实放（副本）→台账
         for (ItemStack out : outputs) {
             if (GTUtility.isStackInvalid(out)) continue;
             boolean placed = false;
-            for (MTEHatchOutputBus bus : GTUtility.validMTEList(unit.getLogisticsOutputBusses())) {
+            for (MTEHatchOutputBus bus : buses) {
+                if (bus instanceof MTEHatchOutputBusME) continue;
                 if (!GTSROutputBusCompat.storePartial(bus, GTUtility.copyOrNull(out), true)) continue;
                 int amount = out.stackSize;
-                GTSROutputBusCompat.storePartial(bus, out, false);
+                GTSROutputBusCompat.storePartial(bus, GTUtility.copyOrNull(out), false);
                 ledger.add(new OutputLedger(bus, GTUtility.stackToInt(out), amount));
                 placed = true;
                 break;
             }
-            if (!placed) {
+            if (!placed) meOverflow.add(out);
+        }
+        // 趟 2：ME 兜底——先全部模拟探测选定目标（任一失败即整趟零落地回滚普通台账），再一次性实放
+        MTEHatchOutputBus[] meTargets = new MTEHatchOutputBus[meOverflow.size()];
+        for (int g = 0; g < meOverflow.size(); g++) {
+            ItemStack out = meOverflow.get(g);
+            for (MTEHatchOutputBus bus : buses) {
+                if (!(bus instanceof MTEHatchOutputBusME)) continue;
+                if (!GTSROutputBusCompat.storePartial(bus, GTUtility.copyOrNull(out), true)) continue;
+                meTargets[g] = bus;
+                break;
+            }
+            if (meTargets[g] == null) {
                 rollbackOutputs(ledger);
-                return false;
+                return null;
             }
         }
-        return true;
+        if (realPlaceMe) {
+            for (int g = 0; g < meOverflow.size(); g++) {
+                GTSROutputBusCompat.storePartial(meTargets[g], GTUtility.copyOrNull(meOverflow.get(g)), false);
+            }
+        }
+        return ledger;
     }
 
     /**
-     * 实放回滚：按台账在各总线内扫同 id 堆扣回登记数量（扣空槽置 null）。实放可能并入既有
-     * 同类堆，回滚按物品多重集复原——槽位排布可能与回滚前有微小差异（GT 总线本就周期
-     * compact，无语义影响）。
+     * 排空暂存产出（配方运行绑定，MTEBasicLogisticsUnit.onPostTick 配方进度读零后逐 t 调用；
+     * 包级静态供单元包内直调）：普通总线探测-实放-失败回滚 + ME 全组探测齐备后一次性实放，
+     * 全部组放得下才算成功；任一组放不下则普通部分按台账回滚（ME 未动）并返回 false，调用方
+     * 保留暂存下 tick 重试（输出总线满 = 空转等排空，零消耗零丢料）。实放传副本，入参列表
+     * 尺寸不受影响，重试与回滚共用同一暂存列表。
+     *
+     * @return true = 整批产出已全部实放（调用方清空暂存）；false = 空间不足（暂存保留重试）
+     */
+    static boolean emitPendingOutputs(MTEBasicLogisticsUnit unit, List<ItemStack> outputs) {
+        return tryEmitOutputs(unit, outputs, true) != null;
+    }
+
+    /**
+     * 实放回滚：按台账在各<b>普通</b>总线内扫同 id 堆扣回登记数量（扣空槽置 null）。台账按构造
+     * 不变量永不含 ME 条目（ME cache 不在槽表、扣回恒 no-op——见 {@link #tryEmitOutputs} 趟 2），
+     * 回滚精确。实放可能并入既有同类堆，回滚按物品多重集复原——槽位排布可能与回滚前有微小
+     * 差异（GT 总线本就周期 compact，无语义影响）。
      */
     private static void rollbackOutputs(List<OutputLedger> ledger) {
         for (OutputLedger entry : ledger) {

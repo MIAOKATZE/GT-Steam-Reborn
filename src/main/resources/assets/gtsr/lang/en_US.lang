@@ -281,6 +281,7 @@ gtsr.gui.geothermal_boiler.calcification=Calcification:
 gtsr.chat.calcification_cleared=§aCalcification cleared
 gtsr.chat.calcification_full=§cWarning: the machine is fully calcified, steam output reduced to 1％! Decalcify it soon.
 gtsr.chat.no_water=Water supply interrupted, the machine has stopped. Please restart it (soft hammer right-click or toggle the power switch in the GUI).
+gtsr.chat.cluster.supply_abort=Supply interrupted (steam/lubricant/amplifier fluid shortage), running recipes terminated with input loss, machine powered off, please re-enable.
 gtsr.chat.overpressure.on=Overpressure mode enabled: heat cap raised to 200％
 gtsr.chat.overpressure.off=Overpressure mode disabled
 gtsr.chat.overpressure.need_heat=100％ heat is required to enable Overpressure mode
@@ -1462,7 +1463,6 @@ gtsr.cluster.native.logistics.chain.blocked=Not executable
 gtsr.cluster.native.logistics.power=Physical power: 
 gtsr.cluster.native.logistics.power.on=On
 gtsr.cluster.native.logistics.power.off=Off
-gtsr.cluster.native.logistics.power.hint=Reset with a soft hammer and re-validate the chain
 
 # Topology page (E6)
 gtsr.cluster.gui.topo.formed=Formed

@@ -62,12 +62,15 @@ import gregtech.common.tileentities.machines.MTEHatchInputBusME;
  * （hasEnoughAcross/depleteFluidAcross 口径）直接对本模块输入仓结算，本类仅保留状态显示用粗检
  * {@link #hasBatchFluids}。管道/ME 对本单元不再有可填充面。
  * <p>
- * <b>配方时间与虚拟空配方（SR-Cluster-r6 S3）</b>：成功批提交后本批"配方时间"（tick，见
- * {@link ChainLink#getBaseTicks()}/ExecutionPlan 时间口径，经执行器写入 {@link #chainCooldownTicks}）
- * 驱动 GT 多方块真实进度——{@link #onBatchProcessed(int)} 置 mMaxProgresstime/mProgresstime 起一炉
- * 虚拟空配方（mEUt=0 无能耗，{@code checkProcessing} 恒 NO_RECIPE 不受影响），基类 runMachine 逐 t
- * 计数、整批时长内 {@link #isUnitRunning()} 保持 true（active 贯穿），批结束归零回 STANDBY；
- * 处理窗口闩保留 max(配方时间, {@value #MIN_PROCESSING_WINDOW_TICKS}t) 下限（r5 工作间隔语义）。
+ * <b>配方时间与配方运行绑定（SR-Cluster-r6 S3 + r-logi-power-bind）</b>：成功批提交后本批"配方时间"
+ * （tick，见 {@link ChainLink#getBaseTicks()}/ExecutionPlan 时间口径，经执行器写入
+ * {@link #chainCooldownTicks}）驱动 GT 多方块真实进度——{@link #onBatchProcessed(int)} 置
+ * mMaxProgresstime/mProgresstime 起一炉真实配方运行（mEUt=0 无能耗，{@code checkProcessing} 恒
+ * NO_RECIPE 不受影响）：输入已在开批时整批扣料吞入、产出整批暂存于 {@link #pendingOutputs}，
+ * 基类 runMachine 逐 t 计数、整批时长内 {@link #isUnitRunning()} 保持 true（active 贯穿），
+ * 进度读完后由 {@link #onPostTick} 经 {@link ClusterChainExecutor#emitPendingOutputs} 排空暂存产出
+ * （输出总线满则逐 t 空转重试，零消耗零丢料），随后归零回 STANDBY；处理窗口闩保留
+ * max(配方时间, {@value #MIN_PROCESSING_WINDOW_TICKS}t) 下限（r5 工作间隔语义）。
  * <p>
  * <b>交互</b>：右击不再跳转集群终端链编辑页，也不再有独立 MUI2 状态页——空手右击打开
  * GT 原生 GUI（{@link MTEBasicLogisticsUnitNativeGui}，物流富词条，基类 getGui 覆写）；
@@ -108,6 +111,16 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
 
     /** 链脏标记（瞬态）：置位表示链需在下次执行前重校验（重校验由 E4/主控执行）。 */
     private boolean chainDirty;
+
+    /**
+     * 暂存产出（配方运行绑定，瞬态不落 NBT；读档/区块卸载即弃，与批进度瞬态同口径）：
+     * 开批时执行器经输出预检证明整批放得下后扣料吞入，整批产出并不当场发放，而是暂存于此——
+     * 待虚拟配方进度读零（{@link #onPostTick} 检测 {@code mMaxProgresstime <= 0}）后经
+     * {@link ClusterChainExecutor#emitPendingOutputs} 排空，输出总线满则逐 t 空转重试
+     * （零消耗零丢料）。列表由执行器新建并独占写入，本类只持引用；重载后丢失
+     * （在飞批次的产出与已扣输入一同湮灭，等价断供中止的吞料语义）。
+     */
+    private List<ItemStack> pendingOutputs;
 
     public MTEBasicLogisticsUnit(int aID, String aName, String aNameRegional) {
         super(aID, aName, aNameRegional);
@@ -299,10 +312,12 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
 
     /**
      * 成功批提交回调（SR-Cluster-r5 决策 5，ClusterChainExecutor 步骤 10 调用；调用前执行器须已
-     * {@link #setChainCooldownTicks(long)} 写入本批配方时间）：开处理窗口并起一炉虚拟空配方——
+     * {@link #setChainCooldownTicks(long)} 写入本批配方时间、完成扣料与输出暂存）：开处理窗口并起
+     * 一炉真实配方运行——
      * <ul>
      * <li>mMaxProgresstime = 本批配方时间（tick）、mProgresstime = 0：GT 基类 runMachine 以 mEUt=0
-     * 逐 t 推进真实多方块进度条，完成时自行归零（虚拟空配方，不产物品/流体）；</li>
+     * 逐 t 推进真实进度条（输入开批已扣、产出已暂存 {@link #pendingOutputs}），完成时自行归零，
+     * 随后 {@link #onPostTick} 排空暂存产出；</li>
      * <li>窗口 = 当前计时器 + max(配方时间, {@link #MIN_PROCESSING_WINDOW_TICKS})：窗口内
      * {@link #isUnitRunning()} 为 true（正面运行叠层与 active 贯穿整批时长）、
      * {@link #getUnitStatus()} 显示 WORKING，批结束回 STANDBY。</li>
@@ -332,6 +347,52 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
     @Override
     public boolean isUnitRunning() {
         return super.isUnitRunning() && isInProcessingWindow();
+    }
+
+    // ------------------------------------------------------------------
+    // 配方运行绑定（r-logi-power-bind）：产出暂存与排空、在飞批次中止
+    // ------------------------------------------------------------------
+
+    /** @return 是否持有暂存产出（在飞配方未读完或暂存未排空；执行器据此拒绝开新批防覆盖丢产出）。 */
+    public boolean hasPendingOutputs() {
+        return pendingOutputs != null;
+    }
+
+    /**
+     * 暂存整批产出（ClusterChainExecutor 批事务提交点调用；直接引用赋值——列表由执行器新建，
+     * 所有权移交本单元）。进度读零后由 {@link #onPostTick} 排空。
+     */
+    public void stashPendingOutputs(List<ItemStack> outputs) {
+        this.pendingOutputs = outputs;
+    }
+
+    /**
+     * 终止在飞配方运行（主控断供中止 supplyAbort 调用）：进度与批冷却归零、暂存产出丢弃——
+     * 输入在开批时已整批扣料吞入，此处不回填输入总线（吞料语义）；处理窗口闩同步清零
+     * （工作态显示立即回 STANDBY）。对空闲单元调用为无害归零。
+     */
+    public void abortPendingRun() {
+        mProgresstime = 0;
+        mMaxProgresstime = 0;
+        chainCooldownTicks = 0;
+        processingDisplayUntilTick = 0;
+        pendingOutputs = null;
+    }
+
+    /**
+     * 配方运行绑定排空（r-logi-power-bind）：先 super（基类做 setActive），服务端且持有暂存产出、
+     * 进度已读零（{@code mMaxProgresstime <= 0}，含关电/断供后基类 runMachine 不再推进的边界）时
+     * 经 {@link ClusterChainExecutor#emitPendingOutputs} 排空——探测-实放-失败回滚整组原子；
+     * 输出总线满则保留暂存下 tick 重试（空转等排空，零消耗零丢料）。
+     */
+    @Override
+    public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
+        super.onPostTick(aBaseMetaTileEntity, aTick);
+        if (aBaseMetaTileEntity.isServerSide() && pendingOutputs != null && mMaxProgresstime <= 0) {
+            if (ClusterChainExecutor.emitPendingOutputs(this, pendingOutputs)) {
+                pendingOutputs = null;
+            }
+        }
     }
 
     /** 软锤复位回调（E4 调用）：标记链重校验（重校验本身由 E4/主控在下次执行前做）。 */
@@ -498,7 +559,7 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
     /**
      * 链持久化：链存 "clusterChain" int 数组（ChainLink.ordinal，空链空数组）。批流体无自持缓存
      * 不落 NBT（SR-Cluster-r6 S2）；旧档 "clusterWaterTank"/"clusterChemTank" 键在
-     * {@link #loadNBTData} 静默容忍忽略。处理窗口闩与虚拟空配方进度均为瞬态不落 NBT。
+     * {@link #loadNBTData} 静默容忍忽略。处理窗口闩、配方进度与暂存产出均为瞬态不落 NBT。
      */
     @Override
     public void saveNBTData(NBTTagCompound aNBT) {
@@ -515,7 +576,8 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
     /**
      * 回读对称：按 ordinal 反解链整链重建（越界 ordinal 静默丢弃）。旧档 tank 键
      * （"clusterWaterTank"/"clusterChemTank"）不再读取——缺失/残留均静默忽略，不迁移不崩溃；
-     * 虚拟空配方进度归零（批进度瞬态，重载后从零开始，杜绝不可见幽灵炉）。
+     * 配方进度归零（批进度瞬态，重载后从零开始，杜绝不可见幽灵炉）；暂存产出为瞬态字段
+     * 不读不写——读档/区块卸载即弃，在飞批次的已扣输入与暂存产出一同湮灭（吞料同口径）。
      */
     @Override
     public void loadNBTData(NBTTagCompound aNBT) {

@@ -147,10 +147,6 @@ public class MTEBasicLogisticsUnitNativeGui extends MTEClusterUnitNativeGui {
                 return EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.cluster.native.logistics.power")
                     + EnumChatFormatting.RED
                     + StatCollector.translateToLocal("gtsr.cluster.native.logistics.power.off")
-                    + EnumChatFormatting.DARK_GRAY
-                    + " ("
-                    + StatCollector.translateToLocal("gtsr.cluster.native.logistics.power.hint")
-                    + ")"
                     + EnumChatFormatting.RESET;
             })
                 .asWidget()

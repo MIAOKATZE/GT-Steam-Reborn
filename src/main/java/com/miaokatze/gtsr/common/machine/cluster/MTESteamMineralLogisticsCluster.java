@@ -26,6 +26,7 @@ import com.gtnewhorizon.structurelib.structure.ISurvivalBuildEnvironment;
 import com.gtnewhorizon.structurelib.util.Vec3Impl;
 import com.miaokatze.gtsr.api.compat.GTSRHatchFluidAccess;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
+import com.miaokatze.gtsr.common.event.GTSRMachineEvent;
 import com.miaokatze.gtsr.common.gui.cluster.ClusterGuiSync;
 import com.miaokatze.gtsr.common.gui.cluster.ClusterTerminalUiFactory;
 import com.miaokatze.gtsr.common.gui.cluster.MTESteamMineralLogisticsClusterNativeGui;
@@ -63,8 +64,11 @@ import io.netty.buffer.Unpooled;
  * <p>
  * 服务端编排（onPostTick）：客户端粒子 → 未成型衰减 → 周期重连 → 每 tick 热量推进（供给态用
  * 20t 结算锁存 thermalSupplyOkLatched，修复旧版只在 20t 结算内推进热量的 20 倍定标错误）→
- * 粒子窗口驱动 → 每 20t 结算编排（吞吐窗口发布 → 物流单元软锤/低温边沿轮询 → 关机清态 /
- * 预热结算 / 运行结算 + 链执行 + 增幅液实扣）。主控不再持有总线/集中供电模型（plan §3.3.2）：
+ * 粒子窗口驱动 → 每 20t 结算编排（吞吐窗口发布 → 物流单元软锤/低温边沿轮询 → 关机早退 /
+ * 预热结算 / 运行结算 + 冷却递减 + 链执行 + 增幅液实扣 + 断供中止）。配方运行绑定
+ * （r-logi-power-bind）：关机只阻止开下一批，在飞批次继续按结算口径计费直至配方读完产出排空；
+ * 运行中断供（蒸汽/润滑结算失败或增幅液断供）立即终止在飞配方（吞料）、主控断电并一次性
+ * 通知物主（gtsr.chat.cluster.supply_abort）。主控不再持有总线/集中供电模型（plan §3.3.2）：
  * 输入/输出总线归物流模块，热离/磁选能源仓由单元自身扣减。
  *
  * <p>
@@ -120,7 +124,12 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
     /** 延伸段数（主段外成功成型的延伸段个数；0 = 仅主段，合法）。 */
     protected int extensionCount = 0;
 
-    /** 开关机（GUI ToggleButton 驱动）；新放置默认 true（plan §3.6.1：成型+流体足即预热）。 */
+    /**
+     * 开关机（GUI ToggleButton 驱动）；新放置默认 true（plan §3.6.1：成型+流体足即预热）。
+     * 配方运行绑定语义（r-logi-power-bind）：关机只阻止开下一批，在飞批次继续按结算口径
+     * 计费（蒸汽/润滑按 wip 口径、增幅液照扣）直至配方读完产出排空；断供中止也会经
+     * {@link #supplyAbort} 置 false（主控断电）。
+     */
     protected boolean machineEnabled = true;
 
     /** 吞吐记账：集群累计处理矿数（NBT 持久，批执行经 addProcessedOre 累加）。 */
@@ -134,6 +143,14 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
 
     /** 20t 双流体原子结算锁存（蒸汽+润滑均足=true）：驱动断供降温与 ClusterBatchHost 判据。 */
     protected boolean thermalSupplyOkLatched = false;
+
+    /**
+     * 断供中止一次性通知锁存（r-logi-power-bind，NBT 持久 "supplyAbortNotified"）：任一断供中止
+     * 边沿置 true 并向物主发一次 gtsr.chat.cluster.supply_abort（范式同
+     * MTELargeSolarOverpressureArray.stopForMissingWater 的 mNoWaterNotified——latch 随 NBT 持久、
+     * 重载后不重复骚扰，重新开机 {@link #setMachineEnabled(true)} 清除）。
+     */
+    private boolean supplyAbortNotified = false;
 
     /** 载入重连提示（x,y,z,dim,pad,segment 六元组；读档回填，周期重连时消费）。 */
     private final List<int[]> pendingReconnectHints = new ArrayList<>();
@@ -731,12 +748,12 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
             return;
         }
 
-        // 总控工作态覆写（SR-Cluster-r5 决策 6，范式 MTEClusterUnitBase.onPostTick）：本控零配方
-        // → GT5U 基类 setActive(mMaxProgresstime>0) 恒 false，正面贴图恒停机；改为与 preheat
-        // 升温入参逐字同口径的显式覆写（成型+开机+允许工作+供给锁存），满热+供汽自然保持，
-        // 未成型时亦为 false（覆盖下方早退分支的工作态清位）
-        aBaseMetaTileEntity
-            .setActive(mMachine && machineEnabled && aBaseMetaTileEntity.isAllowedToWork() && thermalSupplyOkLatched);
+        // 总控工作态覆写（SR-Cluster-r5 决策 6 + r-logi-power-bind 口径统一，范式
+        // MTEClusterUnitBase.onPostTick）：本控零配方 → GT5U 基类 setActive(mMaxProgresstime>0)
+        // 恒 false，正面贴图恒停机；改为显式覆写（isClusterWorkingForDisplay：成型+供给锁存+
+        // [开机且允许工作 || 有在飞物流配方]），满热+供汽自然保持，关电/断供只挡下一批、
+        // 在飞收尾期间动画照常；未成型时亦为 false（覆盖下方早退分支的工作态清位）
+        aBaseMetaTileEntity.setActive(isClusterWorkingForDisplay());
 
         // 结构未成型：停机衰减（-5/tick）、经济红标清位、吞吐清 0；满热丢失边沿日志。
         // 懒加载守卫（SR-Cluster-r5 决策 13）：GT5U 重载后 mStartUpCheck=100 首检窗口内 mMachine
@@ -843,22 +860,38 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
     }
 
     /**
-     * 蒸汽/润滑 20t 结算编排（完整状态口径，plan §3.6.2 数值总表）。
+     * 蒸汽/润滑 20t 结算编排（完整状态口径，plan §3.6.2 数值总表 + r-logi-power-bind 配方运行绑定）。
      *
      * <p>
-     * 顺序：吞吐窗口发布 → 物流单元物理电源边沿轮询（软锤复位/低温关机边沿）→ 关机清态 /
-     * 预热结算（2000+10）/ 运行结算（2000+C）→ 锁存 thermalSupplyOkLatched → 结算成功且满热时
-     * 执行可执行链（本秒至少一条链实际执行成功才实扣增幅液）→ 边沿日志 + debug 摘要。
-     * 刚满热的秒段（justReachedFullHeat）由 EconomySettleResult 口径处理，主控不再自行
-     * 双调用（无双扣）。
+     * 顺序：吞吐窗口发布 → 物流单元物理电源边沿轮询（软锤复位/低温关机边沿）→ 分支结算：
+     * <ul>
+     * <li><b>关机早退（仅 !powerOn 且无在飞批次）</b>：供给锁存与红标清位、不执行链、不计费
+     * （关机只阻止开下一批——无在飞批次时收尾费也为零）；</li>
+     * <li><b>预热结算（未满热且无在飞批次）</b>：2000+10 原口径；</li>
+     * <li><b>运行结算（满热，或无在飞批次之外的一切在飞收尾态）</b>：固定项 + 加权链路段 C——
+     * C 聚合按 powerOn 选 {@link #enabledLogisticsUnits()}（开机=全量可执行链需量）或
+     * 在飞 WIP 单元列表（关电收尾只对在飞配方计费）；r.ok 时冷却递减始终执行（在飞批次照常读秒）、
+     * runChains 仅 powerOn 调用（关电不开新批）、wip&gt;0 照常逐台实扣增幅液（×wip 连续计费）。</li>
+     * </ul>
+     * 断供中止（wip&gt;0 时：结算 r.ok=false，或任一 active 增幅模块实扣失败，或
+     * booster.getFailedCount()&gt;0=任一在场增幅模块本秒无法支付）：{@link #supplyAbort()}
+     * 终止全部在飞配方（吞料）、主控断电、一次性聊天通知物主。
+     *
+     * <p>
+     * 供给锁存 thermalSupplyOkLatched=结算 ok 且未中止；边沿日志 + debug 摘要共用尾部。
+     * 刚满热的秒段（justReachedFullHeat）由 EconomySettleResult 口径处理，主控不再自行双调用。
      */
     private void settleSteamEconomy() {
         publishThroughputWindow();
         pollLogisticsPowerEdges();
 
-        // 双门控（终验反馈缺陷2）：GUI 关机或物理电源关闭（软锤/红石 isAllowedToWork=false）均按
-        // 关机处理——0 L/s / 0 L/s，供给锁存与红标清位，不执行链（热量走停机衰减 -1%/s）
-        if (!machineEnabled || !getBaseMetaTileEntity().isAllowedToWork()) {
+        // powerOn = GUI 开机 && 物理电源开（软锤/红石）；WIP = 配方运行中的物流单元（在飞批次）
+        boolean powerOn = machineEnabled && getBaseMetaTileEntity().isAllowedToWork();
+        List<MTEBasicLogisticsUnit> wipUnits = collectWipLogisticsUnits();
+        int wip = wipUnits.size();
+
+        // 关机且无在飞批次：0 L/s / 0 L/s，供给锁存与红标清位，不执行链（热量走停机衰减 -1%/s）
+        if (!powerOn && wip == 0) {
             thermalSupplyOkLatched = false;
             economy.clearFlags();
             logHeatAndSupplyEdges(null);
@@ -868,44 +901,82 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
         ClusterSteamEconomy.EconomySettleResult r;
         BoosterState booster = null;
         boolean anyChainExecuted = false;
-        int wipLogisticsCount = 0;
-        if (!preheat.isReady()) {
+        boolean aborted = false;
+        if (!preheat.isReady() && wip == 0) {
             // 预热中：FIXED_CLUSTER_STEAM_LPS 蒸汽 + 润滑恒定段；本秒能抵达满热时
             // 结果携带 justReachedFullHeat，该秒不得再叠加运行结算（无双扣），下一秒起转 settleRunFull
             r = economy.settlePreheatFull(this);
         } else {
-            // 满热（含无可执行链）：固定项（FIXED_CLUSTER_STEAM_LPS × FIXED_STEAM_TIER_MULT[tier]，
-            // r6-S6 新口径）+ 加权链路段 C；C 为可执行链聚合（增幅快照同参复用，节汽/惩罚只作用于该段）；
-            // 切片 5b：聚合循环只计 isModuleEnabled 的物流单元（拓扑可暂留未成型单元，混合成型态不高估需量）
-            wipLogisticsCount = countWipLogisticsUnits();
-            booster = BoosterState.aggregate(topology.getBoosterUnits(), wipLogisticsCount);
-            double c = ExecutionPlan
-                .computeAggregateSteamC(enabledLogisticsUnits(), topology, getStructureTierIndex(), booster);
+            // 运行结算（满热含无可执行链；或无在飞之外的在飞收尾态——关电/未满热但有在飞批次时
+            // 不走预热/关机早退，按运行口径对在飞批次连续计费直至读完）：固定项
+            // （FIXED_CLUSTER_STEAM_LPS × FIXED_STEAM_TIER_MULT[tier]，r6-S6 新口径）+ 加权链路段 C；
+            // C 聚合按 powerOn 选全量启用单元（开机）或在飞 WIP 单元（关电收尾只对在飞计费）；
+            // 切片 5b：聚合只计 isModuleEnabled 的物流单元（混合成型态不高估需量）
+            booster = BoosterState.aggregate(topology.getBoosterUnits(), wip);
+            double c = ExecutionPlan.computeAggregateSteamC(
+                powerOn ? enabledLogisticsUnits() : wipUnits,
+                topology,
+                getStructureTierIndex(),
+                booster);
             r = economy.settleRunFull(this, runFixedSteamLps(), c);
+            boolean amplifierShortage = false;
             if (r.ok) {
-                anyChainExecuted = runChains();
-                if (wipLogisticsCount > 0) {
+                // 冷却递减始终执行（在飞批次的配方时间照常读秒，与是否开机无关）；链执行仅开机
+                // （关电只阻止下一批）。本秒被递减的单元（含刚归零者）本轮不开批——
+                // 与旧版「递减-20 后 continue」逐字同节拍（勿改，E4 补偿口径依赖）
+                List<MTEBasicLogisticsUnit> decremented = decrementChainCooldowns();
+                if (powerOn) anyChainExecuted = runChains(decremented);
+                if (wip > 0) {
                     // 按本秒 WIP 物流单元数连续计费；链批是否实际完成不影响实扣。
+                    // 任一 active 模块实扣失败，或任一在场模块本秒无法支付（failed>0，含缺增幅液）
+                    // = 增幅液断供 → 中止
                     for (MTEBasicAmplifierUnit amplifier : booster.getActiveUnits()) {
-                        amplifier.tryConsumeAmplifierFluid(amplifier.amplifierFluidPerSec() * wipLogisticsCount);
+                        if (!amplifier.tryConsumeAmplifierFluid(amplifier.amplifierFluidPerSec() * wip)) {
+                            amplifierShortage = true;
+                        }
                     }
+                    if (booster.getFailedCount() > 0) amplifierShortage = true;
                 }
             }
+            // 断供中止（wip>0）：蒸汽/润滑结算失败，或增幅液断供 → 终止全部在飞配方（吞料）、
+            // 主控断电、一次性通知物主（防在飞批次无限白嫖热量/增幅与半途产出悬空）
+            aborted = wip > 0 && (!r.ok || amplifierShortage);
+            if (aborted) supplyAbort();
         }
-        thermalSupplyOkLatched = r.ok;
+        thermalSupplyOkLatched = r.ok && !aborted;
         logHeatAndSupplyEdges(r);
         if (booster != null) debugBoosterSummary(booster);
         if (Config.logisticsClusterDebug) {
             GTSteamReborn.LOG.debug(
-                "{}结算: {} 状态={} ok={} 蒸汽={}L/s 润滑={}L/s 链执行={} 本秒批矿={}",
+                "{}结算: {} 状态={} ok={} 中止={} 蒸汽={}L/s 润滑={}L/s 链执行={} 本秒批矿={}",
                 LOG_PREFIX,
                 logCoords(),
-                preheat.isReady() ? "运行" : "预热",
+                (preheat.isReady() || wip > 0) ? "运行" : "预热",
                 r.ok,
+                aborted,
                 r.settledSteamLps,
                 r.settledLubricantLps,
                 anyChainExecuted,
                 throughputWindowItems);
+        }
+    }
+
+    /**
+     * 断供中止（r-logi-power-bind，运行中断供立即终止在飞配方）：全部物流单元
+     * {@link MTEBasicLogisticsUnit#abortPendingRun}（输入开批已扣、产出暂存丢弃=吞料，进度/批冷却/
+     * 处理窗口归零）→ 主控断电（setMachineEnabled(false)，重新开机需玩家手动开启）→ 供给锁存清位；
+     * 一次性 latch supplyAbortNotified（NBT 持久、重新开机清除）为 false 时置 true 并向物主发
+     * gtsr.chat.cluster.supply_abort（范式同 MTELargeSolarOverpressureArray.stopForMissingWater）。
+     */
+    private void supplyAbort() {
+        for (MTEBasicLogisticsUnit unit : topology.getLogisticsUnits()) {
+            unit.abortPendingRun();
+        }
+        setMachineEnabled(false);
+        thermalSupplyOkLatched = false;
+        if (!supplyAbortNotified) {
+            supplyAbortNotified = true;
+            GTSRMachineEvent.sendToOwner(getBaseMetaTileEntity().getOwnerUuid(), "gtsr.chat.cluster.supply_abort");
         }
     }
 
@@ -1008,6 +1079,19 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
         return count;
     }
 
+    /**
+     * 在飞物流单元收集（r-logi-power-bind）：{@link MTEClusterUnitBase#isWorkInProgress()} 的单元
+     * 列表（结构扫描序）——关电收尾时 C 聚合只对在飞配方计费（{@code settleSteamEconomy} 传入
+     * {@code ExecutionPlan.computeAggregateSteamC}），booster 聚合取其 size。
+     */
+    private List<MTEBasicLogisticsUnit> collectWipLogisticsUnits() {
+        List<MTEBasicLogisticsUnit> wip = new ArrayList<>();
+        for (MTEBasicLogisticsUnit unit : topology.getLogisticsUnits()) {
+            if (unit != null && unit.isWorkInProgress()) wip.add(unit);
+        }
+        return wip;
+    }
+
     private List<MTEBasicLogisticsUnit> enabledLogisticsUnits() {
         List<MTEBasicLogisticsUnit> enabled = new ArrayList<>();
         for (MTEBasicLogisticsUnit unit : topology.getLogisticsUnits()) {
@@ -1063,27 +1147,48 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
     }
 
     /**
-     * 链执行钩子（结算成功且满热时由 settleSteamEconomy 调用）。
+     * 链执行钩子（结算成功且满热、且主控开机时由 settleSteamEconomy 调用；r-logi-power-bind 调序：
+     * 冷却递减已拆出 {@link #decrementChainCooldowns} 并由调用方先行执行，本方法只执行冷却 ≤0
+     * 且<b>本秒未被递减</b>的单元——刚归零的本秒不开批，逐字保持旧版「递减-20 后 continue」
+     * 节拍（勿改，E4 补偿口径依赖）。
      *
      * <p>
-     * 逐物流单元驱动：冷却中的单元按结算节拍递减 20 后无条件 continue（现状保留——E4 执行器
-     * 已按 -20 补偿批耗时，节拍已验证正确，勿改）；冷却归零/无冷却的单元交
-     * {@code ClusterChainExecutor.executeBatch} 三参批执行（本类即 ClusterBatchHost）。
+     * 逐物流单元驱动：冷却归零/无冷却的单元交 {@code ClusterChainExecutor.executeBatch} 三参批执行
+     * （本类即 ClusterBatchHost）；执行器自带门控（暂存未排空/低温/链不可执行等零副作用返 0）。
      *
-     * @return 本秒是否至少一条链实际执行成功（成功才扣增幅液）
+     * @param decrementedThisSecond 本结算秒被 {@link #decrementChainCooldowns} 递减过的单元
+     *                              （含刚归零者），本轮跳过，下一秒才具备开批资格
+     * @return 本秒是否至少一条链实际执行成功
      */
-    protected boolean runChains() {
+    protected boolean runChains(List<MTEBasicLogisticsUnit> decrementedThisSecond) {
         boolean anyExecuted = false;
         for (MTEBasicLogisticsUnit unit : topology.getLogisticsUnits()) {
-            if (unit.getChainCooldownTicks() > 0) {
-                unit.setChainCooldownTicks(unit.getChainCooldownTicks() - SETTLE_INTERVAL_TICKS);
-                continue;
-            }
+            if (unit.getChainCooldownTicks() > 0) continue;
+            if (decrementedThisSecond != null && decrementedThisSecond.contains(unit)) continue;
             if (ClusterChainExecutor.executeBatch(this, unit, this) > 0) {
                 anyExecuted = true;
             }
         }
         return anyExecuted;
+    }
+
+    /**
+     * 批冷却递减（结算节拍统一 -20，r-logi-power-bind 自 runChains 拆出）：settleSteamEconomy 在
+     * r.ok 时无条件调用——关电/断供收尾路径下在飞批次的配方时间同样照常读秒（进度读完即排空
+     * 暂存产出），递减只作用于 &gt;0 的单元（0-size 槽由总线自身 tick 收口的同款幂等口径）。
+     *
+     * @return 本秒被递减过的单元清单（含由 &gt;0 减至 ≤0 的刚归零单元），调用方据此让
+     *         {@link #runChains} 本轮跳过——保持旧版当秒不抢跑节拍
+     */
+    private List<MTEBasicLogisticsUnit> decrementChainCooldowns() {
+        List<MTEBasicLogisticsUnit> decremented = new ArrayList<>();
+        for (MTEBasicLogisticsUnit unit : topology.getLogisticsUnits()) {
+            if (unit.getChainCooldownTicks() > 0) {
+                unit.setChainCooldownTicks(unit.getChainCooldownTicks() - SETTLE_INTERVAL_TICKS);
+                decremented.add(unit);
+            }
+        }
+        return decremented;
     }
 
     // ==================== ClusterBatchHost 契约（E4 执行器只消费本三方法） ====================
@@ -1362,15 +1467,24 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
 
     @Override
     public byte getUpdateData() {
-        // 工作态 bit0 = 结构正常工作四项判据，与 onPostTick 的 setActive 覆写完全同口径：
-        // 成型 + 开机（GUI 开关）+ 允许工作（软锤/红石）+ 20t 双流体供给锁存——粒子动画随结构
-        // 工作态驱动（旧「距最近真实批 < 40t」的 ClusterParticleFx.isFxWorking 判据已删）
+        // 工作态 bit0 = isClusterWorkingForDisplay（与 onPostTick 的 setActive 覆写完全同源）：
+        // 成型 + 20t 双流体供给锁存 + [开机（GUI 开关）且允许工作（软锤/红石）|| 有在飞物流配方]
+        // ——粒子动画随结构工作态驱动（r-logi-power-bind：关电收尾在飞批次期间 bit0 保持）
         int ext = Math.max(0, Math.min(ClusterTopology.MAX_EXTENSION_SEGMENTS, extensionCount));
         int tierPlus1 = Math.max(0, Math.min(4, mCasingTier + 1));
         int packed = ext * 5 + tierPlus1;
-        return (byte) ((packed << 1)
-            | (mMachine && machineEnabled && getBaseMetaTileEntity().isAllowedToWork() && thermalSupplyOkLatched ? 0x01
-                : 0x00));
+        return (byte) ((packed << 1) | (isClusterWorkingForDisplay() ? 0x01 : 0x00));
+    }
+
+    /**
+     * 主控工作态统一口径（r-logi-power-bind 抽取，onPostTick setActive 覆写与 getUpdateData bit0
+     * 同源单一实现）：{@code mMachine && thermalSupplyOkLatched && ((machineEnabled &&
+     * isAllowedToWork()) || countWipLogisticsUnits() > 0)}——关机/物理断电只阻止开下一批，
+     * 在飞配方收尾期间动画与粒子照常；断供中止（锁存清位+全单元 abort）后立即回 false。
+     */
+    private boolean isClusterWorkingForDisplay() {
+        return mMachine && thermalSupplyOkLatched
+            && ((machineEnabled && getBaseMetaTileEntity().isAllowedToWork()) || countWipLogisticsUnits() > 0);
     }
 
     /** @return 预热状态机（NBT 编解码和 GUI 直读共用）。 */
@@ -1427,11 +1541,15 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
         return machineEnabled;
     }
 
-    /** 开关机 setter：值变化即标脏落盘。 */
+    /**
+     * 开关机 setter：值变化即标脏落盘；重新开机（true）清除断供中止一次性通知锁存
+     * （{@link #supplyAbortNotified}，下次断供中止可再次通知）。
+     */
     public void setMachineEnabled(boolean v) {
         if (machineEnabled != v) {
             machineEnabled = v;
             markDirty();
+            if (v) supplyAbortNotified = false;
         }
     }
 
@@ -1607,13 +1725,15 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
     }
 
     /**
-     * {@inheritDoc} 开关机位兜底直写（缺键保持默认 true）+ 运行态（预热进度等）委托
+     * {@inheritDoc} 开关机位兜底直写（缺键保持默认 true）+ 断供中止一次性通知锁存
+     * （r-logi-power-bind，NBT 持久跨重载防重复骚扰）+ 运行态（预热进度等）委托
      * {@link ClusterPersistence}。
      */
     @Override
     public void saveNBTData(NBTTagCompound aNBT) {
         super.saveNBTData(aNBT);
         aNBT.setBoolean("machineEnabled", machineEnabled);
+        aNBT.setBoolean("supplyAbortNotified", supplyAbortNotified);
         ClusterPersistence.write(this, aNBT);
     }
 
@@ -1623,6 +1743,9 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
         super.loadNBTData(aNBT);
         machineEnabled = aNBT.hasKey("machineEnabled") ? aNBT.getBoolean("machineEnabled") : true;
         ClusterPersistence.read(this, aNBT);
+        // 锁存读回置于 ClusterPersistence.read 之后：其内部 setMachineEnabled(重开机) 清除的是
+        // 默认 false（无副作用），随后以 NBT 权威值覆盖，持久语义不受读档路径开关机影响
+        supplyAbortNotified = aNBT.hasKey("supplyAbortNotified") && aNBT.getBoolean("supplyAbortNotified");
     }
 
     /**
