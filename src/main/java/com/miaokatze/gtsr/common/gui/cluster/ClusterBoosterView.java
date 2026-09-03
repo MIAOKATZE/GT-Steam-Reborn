@@ -44,10 +44,11 @@ import com.miaokatze.gtsr.common.machine.cluster.MTESteamMineralLogisticsCluster
  * </ul>
  *
  * <p>
- * 数据流：{@code KEY_BO_STRUCT}（结构字段：类型/tier/段/flags——结构 revision 界，变化重建行）、
+ * 数据流：{@code KEY_BO_STRUCT}（结构字段：类型/tier/段/flags——结构 revision 界，变化重建行骨架）、
  * {@code KEY_BO_LIVE}（tank 存量+可用性——20t 周期）与 {@code KEY_BO_COST}（S7 实耗+联动加成
- * 三元组——20t 周期）分离；行内容随 STRUCT 重建，余量与秒耗文字 IKey.dynamic 直读缓存。
- * 本页无 C2S 动作。
+ * 三元组——20t 周期）分离；行内一切 live 相关内容（行底色/行基色/状态列/余量/秒耗）一律
+ * onUpdateListener 或 IKey.dynamic 每 tick 重读缓存，缺流→补液无需重开 GUI 即恢复，
+ * 首包 STRUCT 先于 LIVE 应用的暂态红底由后续 tick 自愈。本页无 C2S 动作。
  */
 public final class ClusterBoosterView {
 
@@ -166,7 +167,9 @@ public final class ClusterBoosterView {
     }
 
     /**
-     * 单模块行（六列与表头对齐；缺流行红底+状态「缺 X，增益失效」，正常行深底+绿「生效」）。
+     * 单模块行（六列与表头对齐；行骨架 = 类型/tier/段/flags，随 KEY_BO_STRUCT 重建）。
+     * 缺流表现（行红底 + 行基色红 + 状态「缺 X，增益失效」）经 onUpdateListener/IKey.dynamic
+     * 每 tick 重读 KEY_BO_LIVE，补液后无需重开 GUI 即恢复；正常行深底+绿「生效」。
      * 供给列只读动态直读 KEY_BO_LIVE（20t 周期真值，非可操作 Toggle）。
      */
     private IWidget buildBoosterRow(int[] struct, int rowIndex) {
@@ -174,38 +177,40 @@ public final class ClusterBoosterView {
         ClusterParams.BoosterType type = boosterType(typeOrdinal);
         boolean connected = (flags & 0x01) != 0;
         boolean formed = (flags & 0x02) != 0;
-        int[] live = liveRow(rowIndex);
+        // 行内静态文本构建期捕获一次；颜色前缀与缺流状态每帧重读 KEY_BO_LIVE 可用位
+        String moduleText = EnumChatFormatting.BOLD + tr(type.getLangKey())
+            + EnumChatFormatting.GRAY
+            + (segment >= 0 ? String.format(tr("gtsr.gui.cluster.editor.segment"), segment) : "");
+        String tierText = tier >= 0 ? tr(
+            ClusterParams.ClusterTier.get(tier)
+                .getLangKey())
+            : "--";
+        String fluidText = tr(type.getFluidLangKey());
+        String gainText = tier >= 0 && formed && connected ? formatGain(type, tier) : "--";
 
         Flow row = Flow.row()
             .widthRel(1f)
             .height(ROW_H)
             .childPadding(2)
             .crossAxisAlignment(Alignment.CrossAxis.CENTER)
-            .background(live[1] == 0 ? ROW_BG_FAIL : ROW_BG);
-        String base = live[1] == 0 ? EnumChatFormatting.RED.toString() : EnumChatFormatting.WHITE.toString();
+            .background(ROW_BG);
+        // 缺流红底每 tick 重评（首包 STRUCT 先于 LIVE 应用的暂态由后续 tick 自愈）
+        row.onUpdateListener(w -> w.background(liveRow(rowIndex)[1] == 0 ? ROW_BG_FAIL : ROW_BG), false);
         // 模块名 + @段N
-        String moduleText = base.toString() + EnumChatFormatting.BOLD
-            + tr(type.getLangKey())
-            + EnumChatFormatting.GRAY
-            + (segment >= 0 ? String.format(tr("gtsr.gui.cluster.editor.segment"), segment) : "");
         row.child(
-            IKey.str(moduleText)
+            IKey.dynamic(() -> baseColor(rowIndex) + moduleText)
                 .asWidget()
                 .width(COLS[0])
                 .scale(0.65f));
         // 等级
-        String tierText = tier >= 0 ? base + tr(
-            ClusterParams.ClusterTier.get(tier)
-                .getLangKey())
-            : base + "--";
         row.child(
-            IKey.str(tierText)
+            IKey.dynamic(() -> baseColor(rowIndex) + tierText)
                 .asWidget()
                 .width(COLS[1])
                 .scale(0.65f));
         // 特殊流体
         row.child(
-            IKey.str(base + tr(type.getFluidLangKey()))
+            IKey.dynamic(() -> baseColor(rowIndex) + fluidText)
                 .asWidget()
                 .width(COLS[2])
                 .scale(0.65f));
@@ -224,30 +229,33 @@ public final class ClusterBoosterView {
                 if (!formula.isEmpty()) t.addLine(IKey.str(formula));
             }));
         // 增益
-        String gain = tier >= 0 && formed && connected ? formatGain(type, tier) : "--";
         row.child(
-            IKey.str(base + gain)
+            IKey.dynamic(() -> baseColor(rowIndex) + gainText)
                 .asWidget()
                 .width(COLS[4])
                 .scale(0.65f));
-        // 状态：缺流红「缺 X，增益失效」/ 未关联/未成型 / 绿「生效」
-        String status;
-        if (!connected) {
-            status = EnumChatFormatting.GRAY + tr("gtsr.cluster.gui.boost.state.unlinked");
-        } else if (!formed) {
-            status = EnumChatFormatting.GRAY + tr("gtsr.cluster.gui.boost.state.unformed");
-        } else if (live[1] == 0) {
-            status = EnumChatFormatting.RED
-                + String.format(tr("gtsr.cluster.gui.boost.fail"), tr(type.getFluidLangKey()));
-        } else {
-            status = EnumChatFormatting.GREEN + "✔ " + tr("gtsr.cluster.gui.boost.active");
-        }
-        row.child(
-            IKey.str(status)
-                .asWidget()
-                .width(COLS[5])
-                .scale(0.65f));
+        // 状态：缺流红「缺 X，增益失效」/ 未关联/未成型 / 绿「生效」（可用位每帧重读）
+        row.child(IKey.dynamic(() -> {
+            if (!connected) {
+                return EnumChatFormatting.GRAY + tr("gtsr.cluster.gui.boost.state.unlinked");
+            }
+            if (!formed) {
+                return EnumChatFormatting.GRAY + tr("gtsr.cluster.gui.boost.state.unformed");
+            }
+            if (liveRow(rowIndex)[1] == 0) {
+                return EnumChatFormatting.RED + String.format(tr("gtsr.cluster.gui.boost.fail"), fluidText);
+            }
+            return EnumChatFormatting.GREEN + "✔ " + tr("gtsr.cluster.gui.boost.active");
+        })
+            .asWidget()
+            .width(COLS[5])
+            .scale(0.65f));
         return row;
+    }
+
+    /** 行基色：缺流红 / 正常白（每帧重读 KEY_BO_LIVE 可用位，与行底色同源）。 */
+    private String baseColor(int rowIndex) {
+        return liveRow(rowIndex)[1] == 0 ? EnumChatFormatting.RED.toString() : EnumChatFormatting.WHITE.toString();
     }
 
     /** 增益格式：并行 +N（台）；百分比类 +N%。 */
