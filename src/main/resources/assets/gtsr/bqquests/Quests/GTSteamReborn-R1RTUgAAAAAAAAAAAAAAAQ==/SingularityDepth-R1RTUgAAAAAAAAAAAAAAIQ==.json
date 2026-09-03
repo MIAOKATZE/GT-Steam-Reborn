@@ -1,0 +1,42 @@
+{
+  "preRequisites:9": {
+    "0:10": {
+      "questIDHigh:4": 5139824686389002240,
+      "questIDLow:4": 26
+    }
+  },
+  "properties:10": {
+    "betterquesting:10": {
+      "autoClaim:1": 0,
+      "countAsQuest:1": 1,
+      "desc:8": "Singularities become hard currency here — the deepest stretch of the current build. The chain: the §dSteam Singularity Entangler§r mass-produces them, the §dDense State Steam Manipulator§r presses a thousand into one dense variant, the §dCritical Entangled Singularity Stabilizer§r presses further into critical, and the §dSingularity Drilling Hub§r burns them for work.\n\nFrom this chapter on, every bill is counted in §dsingularities§r — steam becomes small change.\n\nNo need to clear chapters C and D: past the mid-line gate and the hub-logistics gateway, the singularity opens to you.\n\n§3The deepest point so far is steam collapsing into itself.§r",
+      "globalShare:1": 0,
+      "icon:10": {
+        "Count:3": 1,
+        "Damage:2": 0,
+        "OreDict:8": "",
+        "id:8": "gtsr:SteamEntangledSingularity"
+      },
+      "isMain:1": 1,
+      "isSilent:1": 0,
+      "lockedProgress:1": 0,
+      "name:8": "§d§lSingularity Depths",
+      "questLogic:8": "AND",
+      "repeatTime:3": -1,
+      "simultaneous:1": 0,
+      "snd_complete:8": "random.levelup",
+      "snd_update:8": "random.levelup",
+      "taskLogic:8": "AND",
+      "visibility:8": "NORMAL"
+    }
+  },
+  "questIDHigh:4": 5139824686389002240,
+  "questIDLow:4": 33,
+  "rewards:9": {},
+  "tasks:9": {
+    "0:10": {
+      "index:3": 0,
+      "taskID:8": "bq_standard:checkbox"
+    }
+  }
+}

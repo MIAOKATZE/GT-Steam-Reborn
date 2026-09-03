@@ -2,14 +2,14 @@
   "preRequisites:9": {
     "0:10": {
       "questIDHigh:4": 5139824686389002240,
-      "questIDLow:4": 57
+      "questIDLow:4": 49
     }
   },
   "properties:10": {
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "Acceptance: hand in the Mega Steam Turbine Array controller (display-only) — settle your safety margins first; the worked example is the template.\n\nA worked example for the margin math: an §1HV hull§r at power §110§r on single-group superheated at §1100%§r efficiency outputs §1512×10 = 5,120 EU/t§r, drinking §64,096 L/t = 81,920 L/s§r; with this arithmetic done, dynamo sizing becomes a formula.\n\n§cOnly 4×HV dynamo banks (2048 < 5120) detonates on the spot — fit 8A before ignition, safety first.§r\n\n§8§oArithmetic is safety; mental math saves lives.§r",
+      "desc:8": "Acceptance: the Mega Steam Turbine Array controller is the proof.\n\nDo the safety math before ignition: if the dynamo banks' combined output cannot cover the array's demanded EU, §cit blows on the spot§r — fit enough banks, then throw the switch.\n\nThere is no shortcut around this arithmetic, and it doubles as the template for every big machine that follows — work it out once, use it everywhere.\n\n§8§oArithmetic is safety; mental math saves lives.§r",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,
@@ -38,23 +38,18 @@
       "rewardID:8": "bq_standard:item",
       "rewards:9": {
         "0:10": {
-          "Count:3": 4096,
-          "Damage:2": 0,
+          "Count:3": 1,
+          "Damage:2": 14850,
           "OreDict:8": "",
-          "id:8": "minecraft:redstone"
+          "id:8": "gregtech:gt.blockmachines"
         }
       }
     }
   },
   "tasks:9": {
     "0:10": {
-      "autoConsume:1": 0,
-      "consume:1": 0,
-      "groupDetect:1": 0,
-      "ignoreNBT:1": 1,
       "index:3": 0,
-      "partialMatch:1": 1,
-      "requireOnlyOneItem:1": 0,
+      "taskID:8": "bq_standard:retrieval",
       "requiredItems:9": {
         "0:10": {
           "Count:3": 1,
@@ -63,7 +58,12 @@
           "id:8": "gregtech:gt.blockmachines"
         }
       },
-      "taskID:8": "bq_standard:retrieval"
+      "consume:1": 0,
+      "autoConsume:1": 0,
+      "ignoreNBT:1": 1,
+      "partialMatch:1": 1,
+      "groupDetect:1": 0,
+      "requireOnlyOneItem:1": 0
     }
   }
 }

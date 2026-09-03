@@ -1,0 +1,42 @@
+{
+  "preRequisites:9": {
+    "0:10": {
+      "questIDHigh:4": 5139824686389002240,
+      "questIDLow:4": 30
+    }
+  },
+  "properties:10": {
+    "betterquesting:10": {
+      "autoClaim:1": 0,
+      "countAsQuest:1": 1,
+      "desc:8": "No need to pump the vein to the surface: the Vein Steam Pyrolyzer sits right on the oil field and §3cracks it in place§r, skipping the pipeline entirely. Its finest virtue is §3backfill§r — every cycle returns part of the fluid to the chunk, so mining never drains the ledger and the vein steadies with use.\n\nRange chips grow its territory: upgrading absorbs the tier below outright, no sunk costs; the voltage gate climbs step by step and the appetite grows with it.\n\nPyrolyzer plus drill is the oil region's double insurance.\n\n§8§oTake and give back — the vein becomes an old friend.§r",
+      "globalShare:1": 0,
+      "icon:10": {
+        "Count:3": 1,
+        "Damage:2": 14803,
+        "OreDict:8": "",
+        "id:8": "gregtech:gt.blockmachines"
+      },
+      "isMain:1": 0,
+      "isSilent:1": 0,
+      "lockedProgress:1": 0,
+      "name:8": "§3§lPyrolyze the Vein",
+      "questLogic:8": "AND",
+      "repeatTime:3": -1,
+      "simultaneous:1": 0,
+      "snd_complete:8": "random.levelup",
+      "snd_update:8": "random.levelup",
+      "taskLogic:8": "AND",
+      "visibility:8": "NORMAL"
+    }
+  },
+  "questIDHigh:4": 5139824686389002240,
+  "questIDLow:4": 36,
+  "rewards:9": {},
+  "tasks:9": {
+    "0:10": {
+      "index:3": 0,
+      "taskID:8": "bq_standard:checkbox"
+    }
+  }
+}

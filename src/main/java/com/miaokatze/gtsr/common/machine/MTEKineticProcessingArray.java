@@ -571,8 +571,9 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
 
     /**
      * 将单方块机器的配方表映射到对应的多方块配方表。
-     * 电解机/离心机/化学反应釜/搅拌机/碎石机分别映射到 GT++ 工业电解机、GT++ 工业离心机、
-     * GT5U 大型化学反应釜、GT++ 大型搅拌机、GT++ 工业碎石机（与 GT5U 官方多方块实现同表驱动）。
+     * 电解机/离心机/化学反应釜/搅拌机/碎石机/干燥机（化学脱水机）分别映射到 GT++ 工业电解机、
+     * GT++ 工业离心机、GT5U 大型化学反应釜、GT++ 大型搅拌机、GT++ 工业碎石机、
+     * GT++ 工业脱水机（与 GT5U/GT++ 官方多方块实现同表驱动）。
      * 其他机器（如打包机、酿造机）保持原配方表不变（官方多方块同表）。
      */
     private static RecipeMap<?> mapToMultiblockRecipeMap(@Nullable RecipeMap<?> original) {
@@ -590,6 +591,9 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
         }
         if (original == RecipeMaps.mixerRecipes) {
             return GTPPRecipeMaps.mixerNonCellRecipes;
+        }
+        if (original == GTPPRecipeMaps.chemicalDehydratorRecipes) {
+            return GTPPRecipeMaps.chemicalDehydratorNonCellRecipes;
         }
         if (original == RecipeMaps.rockBreakerFakeRecipes) {
             return GTPPRecipeMaps.multiblockRockBreakerRecipes;

@@ -2,14 +2,14 @@
   "preRequisites:9": {
     "0:10": {
       "questIDHigh:4": 5139824686389002240,
-      "questIDLow:4": 31
+      "questIDLow:4": 25
     }
   },
   "properties:10": {
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "Acceptance: hand in the Siemens-Martin Furnace controller (display-only).\n\nBefore ignition, confirm both the §6superheated main§r and the §6air main§r reach its door: missing either, it never survives the preheat.\n\n§164-parallel§r-class smelting throughput is the real gate of the steel age.\n\n§2The day the furnace runs full is the day steel is measured in tons.§r",
+      "desc:8": "Acceptance: the Siemens-Martin Furnace controller is the proof.\n\nBefore ignition, confirm both the §6superheated main§r and the §6air main§r reach its door: missing either, it never survives the preheat. Preheat is its hungriest stretch — leave headroom on the mains ahead of time.\n\nOnce accepted, light it and start production — from that day on, steel is counted in tons.\n\n§2The day the furnace runs full, the warehouse is the bottleneck.§r",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,
@@ -38,23 +38,18 @@
       "rewardID:8": "bq_standard:item",
       "rewards:9": {
         "0:10": {
-          "Count:3": 1024,
-          "Damage:2": 0,
+          "Count:3": 1,
+          "Damage:2": 14853,
           "OreDict:8": "",
-          "id:8": "minecraft:gold_ingot"
+          "id:8": "gregtech:gt.blockmachines"
         }
       }
     }
   },
   "tasks:9": {
     "0:10": {
-      "autoConsume:1": 0,
-      "consume:1": 0,
-      "groupDetect:1": 0,
-      "ignoreNBT:1": 1,
       "index:3": 0,
-      "partialMatch:1": 1,
-      "requireOnlyOneItem:1": 0,
+      "taskID:8": "bq_standard:retrieval",
       "requiredItems:9": {
         "0:10": {
           "Count:3": 1,
@@ -63,7 +58,12 @@
           "id:8": "gregtech:gt.blockmachines"
         }
       },
-      "taskID:8": "bq_standard:retrieval"
+      "consume:1": 0,
+      "autoConsume:1": 0,
+      "ignoreNBT:1": 1,
+      "partialMatch:1": 1,
+      "groupDetect:1": 0,
+      "requireOnlyOneItem:1": 0
     }
   }
 }

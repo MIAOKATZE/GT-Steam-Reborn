@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "Every machine in the steam age eventually settles its bill on one formula. Memorize it — it pays better than any recipe.\n\nThe master formula: §6steam per tick = (−lEUt × 10000) ÷ max(1000, efficiency)§r, in §6L/tick§r — §1multiply by 20 to get L/s§r. Never mix the two units again.\n\nOnly recipes with lEUt < 0 are billed, and the efficiency in the denominator is a global multiplier — the next quest is exactly its trap.\n\n§3§nLearn the formula before you light the machines.§r",
+      "desc:8": "This lesson skips the machines and covers GTSR's under-the-hood mixin tweaks — no new blocks, just quality-of-life.\n\nSneak right-click a boiler controller with an empty hand to §2decalc it on the spot§r; a screwdriver gives input hatches and input busses §6auto-input§r (fed from the inventory in front) and toggles their filters; steam input busses accept direct pipe extraction, steam output busses learned auto-output; GT5U's own steam multiblocks now take cooling hatches; and the redstone hatch fits any multiblock (up to four per machine), emitting a signal that tracks progress.\n\n§8§oNot a single new machine — yet you will meet them everywhere.§r",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,
@@ -32,26 +32,7 @@
   },
   "questIDHigh:4": 5139824686389002240,
   "questIDLow:4": 2,
-  "rewards:9": {
-    "0:10": {
-      "index:3": 0,
-      "rewardID:8": "bq_standard:item",
-      "rewards:9": {
-        "0:10": {
-          "Count:3": 64,
-          "Damage:2": 0,
-          "OreDict:8": "",
-          "id:8": "minecraft:iron_ingot"
-        },
-        "1:10": {
-          "Count:3": 1,
-          "Damage:2": 0,
-          "OreDict:8": "",
-          "id:8": "gtit:neko_coin"
-        }
-      }
-    }
-  },
+  "rewards:9": {},
   "tasks:9": {
     "0:10": {
       "index:3": 0,

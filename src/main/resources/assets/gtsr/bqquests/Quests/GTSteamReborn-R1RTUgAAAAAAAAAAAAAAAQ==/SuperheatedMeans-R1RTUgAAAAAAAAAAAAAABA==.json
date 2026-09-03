@@ -32,20 +32,7 @@
   },
   "questIDHigh:4": 5139824686389002240,
   "questIDLow:4": 4,
-  "rewards:9": {
-    "0:10": {
-      "index:3": 0,
-      "rewardID:8": "bq_standard:item",
-      "rewards:9": {
-        "0:10": {
-          "Count:3": 24,
-          "Damage:2": 0,
-          "OreDict:8": "",
-          "id:8": "minecraft:redstone"
-        }
-      }
-    }
-  },
+  "rewards:9": {},
   "tasks:9": {
     "0:10": {
       "index:3": 0,

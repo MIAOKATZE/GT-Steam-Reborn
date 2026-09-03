@@ -2,14 +2,14 @@
   "preRequisites:9": {
     "0:10": {
       "questIDHigh:4": 5139824686389002240,
-      "questIDLow:4": 45
+      "questIDLow:4": 38
     }
   },
   "properties:10": {
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "Acceptance: hand in the Steam Singularity Entangler controller (display-only).\n\n§61.6 billion L per singularity§r is an exchange rate worth a dedicated reservoir line; keep the output bus clear, or production simply stops.\n\nSuperheated and supercritical feed halve the cycle, then halve it again — the difference in productivity is night and day.\n\n§2Singularities clock in for shifts now — mass production begins.§r",
+      "desc:8": "Acceptance: the Steam Singularity Entangler controller is the proof.\n\nIts output is a volume-for-singularities trade, worth a dedicated reservoir line — one line to feed it, one warehouse to receive; keep the output bus clear or production simply stops.\n\nSuperheated and supercritical feed cut the cycle again and again — the difference in mass-production is night and day.\n\n§2Singularities clock in for shifts now — mass production begins.§r",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,
@@ -38,23 +38,18 @@
       "rewardID:8": "bq_standard:item",
       "rewards:9": {
         "0:10": {
-          "Count:3": 2048,
-          "Damage:2": 0,
+          "Count:3": 1,
+          "Damage:2": 14902,
           "OreDict:8": "",
-          "id:8": "minecraft:redstone"
+          "id:8": "gregtech:gt.blockmachines"
         }
       }
     }
   },
   "tasks:9": {
     "0:10": {
-      "autoConsume:1": 0,
-      "consume:1": 0,
-      "groupDetect:1": 0,
-      "ignoreNBT:1": 1,
       "index:3": 0,
-      "partialMatch:1": 1,
-      "requireOnlyOneItem:1": 0,
+      "taskID:8": "bq_standard:retrieval",
       "requiredItems:9": {
         "0:10": {
           "Count:3": 1,
@@ -63,7 +58,12 @@
           "id:8": "gregtech:gt.blockmachines"
         }
       },
-      "taskID:8": "bq_standard:retrieval"
+      "consume:1": 0,
+      "autoConsume:1": 0,
+      "ignoreNBT:1": 1,
+      "partialMatch:1": 1,
+      "groupDetect:1": 0,
+      "requireOnlyOneItem:1": 0
     }
   }
 }

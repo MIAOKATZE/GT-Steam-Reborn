@@ -1,0 +1,42 @@
+{
+  "preRequisites:9": {
+    "0:10": {
+      "questIDHigh:4": 5139824686389002240,
+      "questIDLow:4": 40
+    }
+  },
+  "properties:10": {
+    "betterquesting:10": {
+      "autoClaim:1": 0,
+      "countAsQuest:1": 1,
+      "desc:8": "The Cluster is the biggest single machine in the current build, and the steam ledger's final exam: chain steam swells §3geometrically§r with chain length, capped by a step limit; fixed steam bills by tier multiplier — formulas live in the tooltip.\n\nThree rules of care: preheat before start; idling and starvation both bleed status, and §cstarvation hurts more than shutdown§r; lubricant and logistics modules drain continuously by tier — keep the feed steady.\n\nThe §1ten chain steps§r run from crushing to smelting, each with its own tempo.\n\n§8§oThis is not a factory. It is a pipe organ that breathes.§r",
+      "globalShare:1": 0,
+      "icon:10": {
+        "Count:3": 1,
+        "Damage:2": 15051,
+        "OreDict:8": "",
+        "id:8": "gregtech:gt.blockmachines"
+      },
+      "isMain:1": 0,
+      "isSilent:1": 0,
+      "lockedProgress:1": 0,
+      "name:8": "§3§lClusters and Ten Chain Steps",
+      "questLogic:8": "AND",
+      "repeatTime:3": -1,
+      "simultaneous:1": 0,
+      "snd_complete:8": "random.levelup",
+      "snd_update:8": "random.levelup",
+      "taskLogic:8": "AND",
+      "visibility:8": "NORMAL"
+    }
+  },
+  "questIDHigh:4": 5139824686389002240,
+  "questIDLow:4": 51,
+  "rewards:9": {},
+  "tasks:9": {
+    "0:10": {
+      "index:3": 0,
+      "taskID:8": "bq_standard:checkbox"
+    }
+  }
+}

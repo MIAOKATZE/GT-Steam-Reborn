@@ -2,14 +2,14 @@
   "preRequisites:9": {
     "0:10": {
       "questIDHigh:4": 5139824686389002240,
-      "questIDLow:4": 60
+      "questIDLow:4": 50
     }
   },
   "properties:10": {
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "Acceptance: hand in the Crust Matter Aggregator controller (display-only); the dense tier's ticket is startlingly cheap, the output anything but.\n\nThe dense tier's §6240 L/s§r entry fee buys a §1weight-targeted§r mineral buffet; dimension slots and filters stack the multiplier ever higher.\n\nA critical singularity tops fortune at §115§r — target-filter whatever you lack.\n\n§2The crust is the warehouse; the filter is the pick list.§r",
+      "desc:8": "Acceptance: the Crust Matter Aggregator controller is the proof.\n\nThe §3dense tier's§r entry fee is startlingly cheap, the output anything but: a weight-targeted mineral buffet; dimension slots pull other dimensions into the mining claim, and filters distill the output into the list you actually want.\n\nA critical singularity tops fortune at its ceiling — whatever you lack, target-filter exactly that.\n\n§2The crust is the warehouse; the filter is the pick list.§r",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,
@@ -38,23 +38,18 @@
       "rewardID:8": "bq_standard:item",
       "rewards:9": {
         "0:10": {
-          "Count:3": 2048,
-          "Damage:2": 0,
+          "Count:3": 1,
+          "Damage:2": 14802,
           "OreDict:8": "",
-          "id:8": "minecraft:iron_ingot"
+          "id:8": "gregtech:gt.blockmachines"
         }
       }
     }
   },
   "tasks:9": {
     "0:10": {
-      "autoConsume:1": 0,
-      "consume:1": 0,
-      "groupDetect:1": 0,
-      "ignoreNBT:1": 1,
       "index:3": 0,
-      "partialMatch:1": 1,
-      "requireOnlyOneItem:1": 0,
+      "taskID:8": "bq_standard:retrieval",
       "requiredItems:9": {
         "0:10": {
           "Count:3": 1,
@@ -63,7 +58,12 @@
           "id:8": "gregtech:gt.blockmachines"
         }
       },
-      "taskID:8": "bq_standard:retrieval"
+      "consume:1": 0,
+      "autoConsume:1": 0,
+      "ignoreNBT:1": 1,
+      "partialMatch:1": 1,
+      "groupDetect:1": 0,
+      "requireOnlyOneItem:1": 0
     }
   }
 }

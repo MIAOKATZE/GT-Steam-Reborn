@@ -1,0 +1,42 @@
+{
+  "preRequisites:9": {
+    "0:10": {
+      "questIDHigh:4": 5139824686389002240,
+      "questIDLow:4": 16
+    }
+  },
+  "properties:10": {
+    "betterquesting:10": {
+      "autoClaim:1": 0,
+      "countAsQuest:1": 1,
+      "desc:8": "The kiln district assembles its three brothers: §3the Reinforced Brick Blast Furnace, the Large Coke Oven and the Crust Steam Borer§r — three machines, three temperaments.\n\nThe blast furnace's §3heat§r is the delicate one: it climbs while running, sags while idle, and once the fire is right, speed and parallelism rise together — never let it go cold. The coke oven heats slowly and cools even slower, a game of patience; the borer speeds up outright on superheated and rolls its ores from a void-drop table.\n\nThe details differ; the common point does not: all three must be fed.\n\n§8§oFire all three and the neighbors think you brew elixirs.§r",
+      "globalShare:1": 0,
+      "icon:10": {
+        "Count:3": 1,
+        "Damage:2": 14856,
+        "OreDict:8": "",
+        "id:8": "gregtech:gt.blockmachines"
+      },
+      "isMain:1": 0,
+      "isSilent:1": 0,
+      "lockedProgress:1": 0,
+      "name:8": "§3§lThree Kiln Brothers",
+      "questLogic:8": "AND",
+      "repeatTime:3": -1,
+      "simultaneous:1": 0,
+      "snd_complete:8": "random.levelup",
+      "snd_update:8": "random.levelup",
+      "taskLogic:8": "AND",
+      "visibility:8": "NORMAL"
+    }
+  },
+  "questIDHigh:4": 5139824686389002240,
+  "questIDLow:4": 24,
+  "rewards:9": {},
+  "tasks:9": {
+    "0:10": {
+      "index:3": 0,
+      "taskID:8": "bq_standard:checkbox"
+    }
+  }
+}
