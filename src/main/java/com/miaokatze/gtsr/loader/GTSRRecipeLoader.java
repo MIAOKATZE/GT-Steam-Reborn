@@ -2,6 +2,7 @@ package com.miaokatze.gtsr.loader;
 
 import static com.miaokatze.gtsr.loader.recipes.RecipeLoaderUtils.log;
 
+import com.miaokatze.gtsr.loader.recipes.ClusterRecipes;
 import com.miaokatze.gtsr.loader.recipes.DisplayRecipes;
 import com.miaokatze.gtsr.loader.recipes.HatchRecipes;
 import com.miaokatze.gtsr.loader.recipes.MiscRecipes;
@@ -65,5 +66,7 @@ public class GTSRRecipeLoader implements Runnable {
         safeRegister("DenseStateManipulatorDisplay", DisplayRecipes::registerDenseStateManipulatorDisplayRecipes);
         safeRegister("ReinforcedBrickBlastFurnace", MiscRecipes::registerReinforcedBrickBlastFurnaceRecipe);
         safeRegister("LegacyConversion", MiscRecipes::registerLegacyConversionRecipes);
+        safeRegister("Cluster", ClusterRecipes::addRecipes); // 矿物处理集群 14 组件：7 工作台 + 7
+                                                             // 组装机（磁选/并行/速度/节省=LV，热力离心/主产物/副产物=MV）
     }
 }
