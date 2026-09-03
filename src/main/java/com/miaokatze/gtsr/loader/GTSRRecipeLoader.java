@@ -66,7 +66,7 @@ public class GTSRRecipeLoader implements Runnable {
         safeRegister("DenseStateManipulatorDisplay", DisplayRecipes::registerDenseStateManipulatorDisplayRecipes);
         safeRegister("ReinforcedBrickBlastFurnace", MiscRecipes::registerReinforcedBrickBlastFurnaceRecipe);
         safeRegister("LegacyConversion", MiscRecipes::registerLegacyConversionRecipes);
-        safeRegister("Cluster", ClusterRecipes::addRecipes); // 矿物处理集群 14 组件：7 工作台 + 7
-                                                             // 组装机（磁选/并行/速度/节省=LV，热力离心/主产物/副产物=MV）
+        safeRegister("Cluster", ClusterRecipes::addRecipes); // 矿物处理集群 14 组件：14 条全组装机配方
+                                                             // （GTUDK 用户规格）：eut 30/32=LV、128=MV，磁选与筛选为 MV
     }
 }
