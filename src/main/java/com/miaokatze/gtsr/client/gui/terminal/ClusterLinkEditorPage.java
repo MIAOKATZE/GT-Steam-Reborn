@@ -6,6 +6,7 @@ import java.util.List;
 
 import net.minecraft.network.PacketBuffer;
 import net.minecraft.util.EnumChatFormatting;
+import net.minecraft.util.StatCollector;
 
 import org.lwjgl.opengl.GL11;
 
@@ -63,6 +64,8 @@ final class ClusterLinkEditorPage implements ClusterPage {
     /** 右列：chips 区。 */
     private static final int CHIPS_DY = 28;
     private static final int CHIPS_H = 88;
+    /** chip 行距；副产物提示占用第二行。 */
+    private static final int CHIP_PITCH = 25;
     /** 右列：FSM 推演条。 */
     private static final int FLOW_DY = CHIPS_DY + CHIPS_H + 4;
     private static final int FLOW_H = 26;
@@ -424,7 +427,7 @@ final class ClusterLinkEditorPage implements ClusterPage {
         GtsrGuiDrawing.drawNineSlice(GtsrGuiTextures.LIST_PANEL, 4, rx, oy + CHIPS_DY, RIGHT_W, CHIPS_H, z);
         List<Integer> ordinals = displayOrdinals();
         int chipsInner = CHIPS_H - 4;
-        int maxChipsScroll = Math.max(0, ordinals.size() - chipsInner / 15);
+        int maxChipsScroll = Math.max(0, ordinals.size() - chipsInner / CHIP_PITCH);
         if (this.chipsScroll > maxChipsScroll) this.chipsScroll = maxChipsScroll;
         if (this.chipsScroll < 0) this.chipsScroll = 0;
         if (ordinals.isEmpty()) {
@@ -437,8 +440,8 @@ final class ClusterLinkEditorPage implements ClusterPage {
                 GtsrGuiPalette.TEXT_MUTED);
         } else {
             for (int i = 0; i < ordinals.size(); i++) {
-                int rowY = oy + CHIPS_DY + 2 + (i - this.chipsScroll) * 15;
-                if (rowY + 14 <= oy + CHIPS_DY || rowY >= oy + CHIPS_DY + CHIPS_H) continue;
+                int rowY = oy + CHIPS_DY + 2 + (i - this.chipsScroll) * CHIP_PITCH;
+                if (rowY < oy + CHIPS_DY || rowY >= oy + CHIPS_DY + CHIPS_H) continue;
                 drawChipRow(ordinals.get(i), i, rx + 2, rowY, mx, my);
             }
         }
@@ -510,9 +513,28 @@ final class ClusterLinkEditorPage implements ClusterPage {
             y + 4,
             0.6f,
             GtsrGuiPalette.TEXT_BODY);
+        String crushDebuff = crushByproductDebuff(linkOrdinal);
+        if (crushDebuff != null) {
+            int debuffX = x + 2;
+            int debuffY = y + 17;
+            String debuffLabel = GtsrGuiList.ellipsis(font(), crushDebuff, 110);
+            GuiClusterTerminalScreen
+                .drawScaledText(font(), debuffLabel, debuffX, debuffY, 0.55f, GtsrGuiPalette.TEXT_MUTED);
+        }
         drawChipButton(x + 114, y, 14, 13, "◀", mx, my);
         drawChipButton(x + 130, y, 14, 13, "▶", mx, my);
         drawChipButton(x + 146, y, 16, 13, EnumChatFormatting.RED + "✖", mx, my);
+    }
+
+    private String crushByproductDebuff(int linkOrdinal) {
+        if (LINKS[linkOrdinal] != ChainLink.CRUSH) return null;
+        int tier = ClusterTerminalClientCache.getInt(ClusterTerminalData.KEY_TIER, -1);
+        if (tier < 0) return null;
+        double multiplier = tier == 0 ? ClusterParams.CRUSH_BYPRODUCT_MULT_NORMAL
+            : ClusterParams.CRUSH_BYPRODUCT_MULT_STEEL;
+        long reductionPercent = Math.round((1.0 - multiplier) * 100.0);
+        return EnumChatFormatting.GRAY
+            + StatCollector.translateToLocalFormatted("gtsr.gui.cluster.link.crush.byproduct_debuff", reductionPercent);
     }
 
     /** chip 行内小钮（◀▶✖；hover 亮态）。 */
@@ -825,10 +847,10 @@ final class ClusterLinkEditorPage implements ClusterPage {
         int chipsTop = oy + CHIPS_DY;
         if (mx >= rx && mx < rx + RIGHT_W && my >= chipsTop && my < chipsTop + CHIPS_H) {
             List<Integer> ordinals = displayOrdinals();
-            int row = (my - (chipsTop + 2)) / 15 + this.chipsScroll;
+            int row = (my - (chipsTop + 2)) / CHIP_PITCH + this.chipsScroll;
             if (row >= 0 && row < ordinals.size()) {
                 int cx = rx + 2;
-                int rowY = chipsTop + 2 + (row - this.chipsScroll) * 15;
+                int rowY = chipsTop + 2 + (row - this.chipsScroll) * CHIP_PITCH;
                 if (my >= rowY && my < rowY + 14) {
                     if (mx >= cx + 114 && mx < cx + 128) {
                         stageMove(row, -1);

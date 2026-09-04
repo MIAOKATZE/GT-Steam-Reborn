@@ -570,6 +570,9 @@ gtsr.cache_hub_status.auto_tip=切换节点向正面相邻容器的自动流体�
 gtsr.cache_hub_status.no_fluid=空
 gtsr.cache_hub_status.offline=[离线]
 gtsr.cache_hub_status.unknown_node=未知节点
+gtsr.cache_hub_status.col.stored=储量
+gtsr.cache_hub_status.col.cap=容量
+gtsr.cache_hub_status.col.rate=速率
 
 # Node Status Messages
 gtsr.node.status.ok=正常运行
@@ -1605,6 +1608,7 @@ gtsr.gui.cluster.state.no_power=未通电
 gtsr.gui.cluster.state.shut_down=关机
 gtsr.gui.cluster.chain.invalid_terminal=终态产物必须恰好 1 个
 gtsr.gui.cluster.link.crush=粉碎
+gtsr.gui.cluster.link.crush.byproduct_debuff=副产物概率降低%s%%
 gtsr.gui.cluster.link.hammer=锻造锤
 gtsr.gui.cluster.link.simple_wash=简易洗矿
 gtsr.gui.cluster.link.ore_wash=洗矿

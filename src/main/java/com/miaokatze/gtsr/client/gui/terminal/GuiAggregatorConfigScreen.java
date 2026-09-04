@@ -131,11 +131,16 @@ public class GuiAggregatorConfigScreen extends GuiContainer {
     // 搜索行控件（搜索框靠左加宽至 x184..322，搜索/种类/清除配置按钮组靠最右，互不重叠、均留 4px 间距）
     private static final int SEARCH_FIELD_X = BROWSER_X + 4;
     private static final int SEARCH_FIELD_W = 138;
-    private static final int SEARCH_BTN_X = BROWSER_X + BROWSER_W - 4 - 44 - 4 - 44 - 4;
-    private static final int CATEGORY_BTN_X = BROWSER_X + BROWSER_W - 4 - 44 - 4 - 44;
-    private static final int CLEAR_BTN_X = BROWSER_X + BROWSER_W - 4 - 44;
     private static final int SEARCH_ROW_BTN_W = 44;
     private static final int SEARCH_ROW_BTN_H = 16;
+    private static final int SEARCH_ROW_BTN_GAP = 4;
+    private static final int CATEGORY_BTN_X = BROWSER_X + BROWSER_W
+        - SEARCH_ROW_BTN_GAP
+        - SEARCH_ROW_BTN_W
+        - SEARCH_ROW_BTN_GAP
+        - SEARCH_ROW_BTN_W;
+    private static final int SEARCH_BTN_X = CATEGORY_BTN_X - SEARCH_ROW_BTN_GAP - SEARCH_ROW_BTN_W;
+    private static final int CLEAR_BTN_X = BROWSER_X + BROWSER_W - SEARCH_ROW_BTN_GAP - SEARCH_ROW_BTN_W;
 
     // 表头排序（矿石/权重/维度可点，操作列不排序；命中区 y80..92 与按钮行 y62..78、列表 y100 起互不交叠）
     private static final int SORT_NAME = 0;

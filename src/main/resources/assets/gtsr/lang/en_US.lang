@@ -570,6 +570,9 @@ gtsr.cache_hub_status.auto_tip=Toggle auto fluid output to the adjacent containe
 gtsr.cache_hub_status.no_fluid=Empty
 gtsr.cache_hub_status.offline=[Offline]
 gtsr.cache_hub_status.unknown_node=Unknown Node
+gtsr.cache_hub_status.col.stored=Stored
+gtsr.cache_hub_status.col.cap=Cap
+gtsr.cache_hub_status.col.rate=Rate
 
 # Node Status Messages
 gtsr.node.status.ok=Running
@@ -1610,6 +1613,7 @@ gtsr.gui.cluster.state.no_power=No Power
 gtsr.gui.cluster.state.shut_down=Shut Down
 gtsr.gui.cluster.chain.invalid_terminal=Exactly one terminal product required
 gtsr.gui.cluster.link.crush=Crushing
+gtsr.gui.cluster.link.crush.byproduct_debuff=Byproduct chance reduced by %s%%
 gtsr.gui.cluster.link.hammer=Hammering
 gtsr.gui.cluster.link.simple_wash=Simple Washing
 gtsr.gui.cluster.link.ore_wash=Ore Washing

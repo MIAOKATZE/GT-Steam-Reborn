@@ -408,15 +408,26 @@ public abstract class GuiCacheHubStatusScreen extends GuiTerminalBase {
 
     /**
      * 列头标签行（列表上方 {@link GuiTerminalBase#COLUMN_HEADER_Y}，TEXT_LABEL 亮标签 token，
-     * 与行内数值列同右缘对齐）。lang 文件不在本切片授权范围：列头沿用行 tooltip 既有英文
-     * 小写字面风格（旧 tooltip "rate:"/"cap:" 同款），本地化留待后续 lang 授权切片。
+     * 与行内数值列同右缘对齐）。
      */
     private void drawColumnHeaders() {
         final int y = this.guiTop + COLUMN_HEADER_Y;
         final int x = this.guiLeft + LIST_X;
-        drawRightAligned("stored", x + COL_STORED_RIGHT, y, GtsrGuiPalette.TEXT_LABEL);
-        drawRightAligned("cap", x + COL_CAP_RIGHT, y, GtsrGuiPalette.TEXT_LABEL);
-        drawRightAligned("rate", x + COL_RATE_RIGHT, y, GtsrGuiPalette.TEXT_LABEL);
+        drawRightAligned(
+            StatCollector.translateToLocal("gtsr.cache_hub_status.col.stored"),
+            x + COL_STORED_RIGHT,
+            y,
+            GtsrGuiPalette.TEXT_LABEL);
+        drawRightAligned(
+            StatCollector.translateToLocal("gtsr.cache_hub_status.col.cap"),
+            x + COL_CAP_RIGHT,
+            y,
+            GtsrGuiPalette.TEXT_LABEL);
+        drawRightAligned(
+            StatCollector.translateToLocal("gtsr.cache_hub_status.col.rate"),
+            x + COL_RATE_RIGHT,
+            y,
+            GtsrGuiPalette.TEXT_LABEL);
     }
 
     /**
