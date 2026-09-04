@@ -326,8 +326,16 @@ public class TerminalNet {
 
     // ==================== 排水与任务载体 ====================
 
-    /** 自宿主排水监听：ServerTickEvent(END) 主线程逐条处理，单条异常仅记日志丢弃 */
-    private static final class ServerDrain {
+    /**
+     * 自宿主排水监听：ServerTickEvent(END) 主线程逐条处理，单条异常仅记日志丢弃。
+     * <p>
+     * 可见性红线：FML 事件总线为每个 {@code @SubscribeEvent} 监听器由独立 classloader
+     * 生成 {@code ASMEventHandler_<n>_<类>_<方法>} 包装类（落在 cpw.mods.fml.common.eventhandler
+     * 包），跨包直接引用监听类——监听类必须 public，否则首个服务器 tick 即
+     * {@code IllegalAccessError}（v1.11.27 实测崩溃 2026-09-04_12.45.12-server 教训；
+     * 注册期走反射不报错，init 阶段无法暴露）。
+     */
+    public static final class ServerDrain {
 
         @SubscribeEvent
         public void onServerTick(TickEvent.ServerTickEvent event) {
