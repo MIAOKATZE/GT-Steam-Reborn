@@ -171,6 +171,9 @@ public final class ClusterParams {
     /** 粉碎链步副产物乘率（钢级处理口径）。 */
     public static final double CRUSH_BYPRODUCT_MULT_STEEL = 0.5;
 
+    /** 粉碎链步副产物乘率（钛级及以上 tier≥2：无削弱）。 */
+    public static final double CRUSH_BYPRODUCT_MULT_HIGH_TIER = 1.0;
+
     // ==================== 物流单元 ====================
 
     /** 各层级物流单元基准并行数，下标对应层级序号。 */

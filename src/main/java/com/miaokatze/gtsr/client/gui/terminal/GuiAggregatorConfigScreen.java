@@ -240,7 +240,7 @@ public class GuiAggregatorConfigScreen extends GuiContainer {
                 this.guiTop + REFRESH_Y,
                 26,
                 12,
-                ellipsized("gtsr.aggregator_config.refresh", 26)));
+                ellipsized(StatCollector.translateToLocal("gtsr.aggregator_config.refresh"), 26)));
         this.buttonList
             .add(new GtsrGuiButton(BTN_DIRECTIONAL, this.guiLeft + LEFT_X, this.guiTop + DIRECTIONAL_Y, 90, 18, ""));
         this.buttonList.add(
@@ -250,7 +250,7 @@ public class GuiAggregatorConfigScreen extends GuiContainer {
                 this.guiTop + SEARCH_Y,
                 SEARCH_ROW_BTN_W,
                 SEARCH_ROW_BTN_H,
-                ellipsized("gtsr.aggregator_config.search", SEARCH_ROW_BTN_W)));
+                ellipsized(StatCollector.translateToLocal("gtsr.aggregator_config.search"), SEARCH_ROW_BTN_W)));
         this.buttonList.add(
             new GtsrGuiButton(
                 BTN_CATEGORY,
@@ -266,7 +266,7 @@ public class GuiAggregatorConfigScreen extends GuiContainer {
                 this.guiTop + SEARCH_Y,
                 SEARCH_ROW_BTN_W,
                 SEARCH_ROW_BTN_H,
-                ellipsized("gtsr.aggregator_config.clear_config", SEARCH_ROW_BTN_W)));
+                ellipsized(StatCollector.translateToLocal("gtsr.aggregator_config.clear_config"), SEARCH_ROW_BTN_W)));
         updateDynamicLabels();
     }
 

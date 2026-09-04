@@ -4,8 +4,10 @@ import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.network.PacketBuffer;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.World;
+import net.minecraftforge.common.MinecraftForge;
 
 import com.miaokatze.gtsr.common.blocks.GTSRSingularityFX;
+import com.miaokatze.gtsr.common.machine.HubBindPlacementGuard;
 import com.miaokatze.gtsr.common.terminal.TerminalNet;
 
 import cpw.mods.fml.common.network.NetworkRegistry;
@@ -30,6 +32,8 @@ public class GTSRFXNet {
         NETWORK.registerMessage(AbsorbMessageHandler.class, AbsorbMessage.class, 0, Side.CLIENT);
         // 终端轨（channel "gtsr_terminal"）：注册点收束于本 init 尾部，满足「GTSRFXNet 基建可扩展」决策
         TerminalNet.register();
+        // 枢纽绑定放置拦截（Forge 事件轨）：服务端取消潜行右击枢纽的放置并转调绑定入口
+        MinecraftForge.EVENT_BUS.register(new HubBindPlacementGuard());
     }
 
     /** 服务端：吸收方块处生成向心粒子（S2C 广播 64 格内玩家） */

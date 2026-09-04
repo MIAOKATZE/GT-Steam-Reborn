@@ -530,8 +530,10 @@ final class ClusterLinkEditorPage implements ClusterPage {
         if (LINKS[linkOrdinal] != ChainLink.CRUSH) return null;
         int tier = ClusterTerminalClientCache.getInt(ClusterTerminalData.KEY_TIER, -1);
         if (tier < 0) return null;
-        double multiplier = tier == 0 ? ClusterParams.CRUSH_BYPRODUCT_MULT_NORMAL
-            : ClusterParams.CRUSH_BYPRODUCT_MULT_STEEL;
+        double multiplier = tier >= 2 ? ClusterParams.CRUSH_BYPRODUCT_MULT_HIGH_TIER
+            : tier == 1 ? ClusterParams.CRUSH_BYPRODUCT_MULT_STEEL : ClusterParams.CRUSH_BYPRODUCT_MULT_NORMAL;
+        // tier≥2 无削弱：不显示「降低0%」提示行
+        if (multiplier >= 1.0) return null;
         long reductionPercent = Math.round((1.0 - multiplier) * 100.0);
         return EnumChatFormatting.GRAY
             + StatCollector.translateToLocalFormatted("gtsr.gui.cluster.link.crush.byproduct_debuff", reductionPercent);

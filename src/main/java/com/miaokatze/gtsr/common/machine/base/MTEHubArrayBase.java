@@ -643,10 +643,27 @@ public abstract class MTEHubArrayBase<T extends MTEHubArrayBase<T>> extends MTEG
             return super.onRightclick(aBaseMetaTileEntity, aPlayer, side, aX, aY, aZ);
         }
 
+        if (!tryHandleNodeBindClick(aBaseMetaTileEntity, aPlayer)) {
+            return super.onRightclick(aBaseMetaTileEntity, aPlayer, side, aX, aY, aZ);
+        }
+        return true;
+    }
+
+    /**
+     * 手持缓存节点类物品右击本枢纽的绑定处理入口（onRightclick 与潜行放置拦截事件共用）：
+     * 类型解析 → 芯片门控 → 已绑定堆叠翻转/解绑 → shift 整组绑定 / 普通拆一绑定。
+     * 潜行+手持可放置物品时原版直接走放置路径、onRightclick 收不到事件
+     * （ItemInWorldManager.activateBlockOrUseItem 的 useBlock 判定），由
+     * HubBindPlacementGuard 在服务端取消放置后调用本方法完成绑定。
+     *
+     * @return true=手持物属本枢纽可处理类型（调用方应吞掉本次交互）；false=非节点类物品
+     */
+    public boolean tryHandleNodeBindClick(IGregTechTileEntity aBaseMetaTileEntity, EntityPlayer aPlayer) {
+        ItemStack held = aPlayer.getHeldItem();
         String type = resolveHeldType(held);
 
         if (type == null) {
-            return super.onRightclick(aBaseMetaTileEntity, aPlayer, side, aX, aY, aZ);
+            return false;
         }
 
         if (!aBaseMetaTileEntity.isServerSide()) return true;

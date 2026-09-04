@@ -519,7 +519,8 @@ public final class ClusterChainExecutor {
      * {@code booster == null} 按零增益；</li>
      * <li><b>粉碎副产物乘率（r6-S6）</b>：链步为 CRUSH 时，增幅加成并钳制后的<b>最终</b>
      * 副产物概率（仅槽 1+ 条目，不影响主产物）再乘 {@code CRUSH_BYPRODUCT_MULT_NORMAL}=0.1
-     * （集群 tier0）/ {@code CRUSH_BYPRODUCT_MULT_STEEL}=0.5（钢级 tier≥1）；洗矿/离心等其他
+     * （集群 tier0）/ {@code CRUSH_BYPRODUCT_MULT_STEEL}=0.5（钢级 tier1）/
+     * {@code CRUSH_BYPRODUCT_MULT_HIGH_TIER}=1.0 无削弱（钛级及以上 tier≥2）；洗矿/离心等其他
      * 环节副产物不受影响；chance==10000 保底项不参与任何增益/乘率；</li>
      * <li>最终 chance 钳制 [0,1]；</li>
      * <li>概率项按二项分布的正态近似 nextGaussian（mean=aTime·p、std=sqrt(aTime·p·(1-p))，
@@ -532,7 +533,8 @@ public final class ClusterChainExecutor {
         double secondaryBonus = booster == null ? 0.0 : booster.getSecondaryBonus();
         boolean crushStep = link == ChainLink.CRUSH;
         double crushByproductMult = !crushStep ? 1.0
-            : tier >= 1 ? ClusterParams.CRUSH_BYPRODUCT_MULT_STEEL : ClusterParams.CRUSH_BYPRODUCT_MULT_NORMAL;
+            : tier >= 2 ? ClusterParams.CRUSH_BYPRODUCT_MULT_HIGH_TIER
+                : tier >= 1 ? ClusterParams.CRUSH_BYPRODUCT_MULT_STEEL : ClusterParams.CRUSH_BYPRODUCT_MULT_NORMAL;
         List<ItemStack> outputs = new ArrayList<>();
         for (int i = 0; i < recipe.mOutputs.length; i++) {
             ItemStack template = recipe.getOutput(i);

@@ -466,6 +466,23 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
             return super.onRightclick(aBaseMetaTileEntity, aPlayer, side, aX, aY, aZ);
         }
 
+        if (!tryHandleNodeBindClick(aBaseMetaTileEntity, aPlayer)) {
+            return super.onRightclick(aBaseMetaTileEntity, aPlayer, side, aX, aY, aZ);
+        }
+        return true;
+    }
+
+    /**
+     * 手持枢纽节点（采矿/钻井节点）右击本枢纽的绑定处理入口（onRightclick 与潜行放置拦截事件共用）：
+     * 类型解析 → 已绑定堆叠解绑 → shift 整组绑定 / 普通拆一绑定。
+     * 潜行+手持可放置物品时原版直接走放置路径、onRightclick 收不到事件
+     * （ItemInWorldManager.activateBlockOrUseItem 的 useBlock 判定），由
+     * HubBindPlacementGuard 在服务端取消放置后调用本方法完成绑定。
+     *
+     * @return true=手持物属本枢纽可处理类型（调用方应吞掉本次交互）；false=非节点类物品
+     */
+    public boolean tryHandleNodeBindClick(IGregTechTileEntity aBaseMetaTileEntity, EntityPlayer aPlayer) {
+        ItemStack held = aPlayer.getHeldItem();
         String type = null;
         boolean isMiner = false;
         if (GTSRItemList.SingularityMinerNode.isStackEqual(held, false, true)) {
@@ -476,7 +493,7 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
         }
 
         if (type == null) {
-            return super.onRightclick(aBaseMetaTileEntity, aPlayer, side, aX, aY, aZ);
+            return false;
         }
 
         if (!aBaseMetaTileEntity.isServerSide()) return true;
