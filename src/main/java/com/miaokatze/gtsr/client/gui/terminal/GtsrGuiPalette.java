@@ -8,8 +8,9 @@ package com.miaokatze.gtsr.client.gui.terminal;
  * 面板 alpha 档保留含 alpha 形式供 {@code Gui.drawRect} 使用。
  * <p>
  * 数值首发逐字取 GTSWN 同款（裁决：PLAN §4.6 / §8.4-L2 默认照搬，契约
- * plan/ui/terminal-native-ui/texture-list.md §1/§4/§5 定稿）；颜色一律不烘进 PNG，
- * 后续整装换皮只改本类与契约 §1，绘制逻辑零改动。
+ * plan/ui/terminal-native-ui/texture-list.md §1/§4/§5 定稿；例外：TEXT_LABEL/TEXT_MUTED 经
+ * 400×240 终端枢纽切片 A 上调可读性，旧值→新值记档于字段注释与契约 §5）；
+ * 颜色一律不烘进 PNG，后续整装换皮只改本类与契约 §1，绘制逻辑零改动。
  * <p>
  * 旧 MUI2/EnumChatFormatting 着色语义 → token 映射表见契约 §5；lang 键自带 § 色码
  * 保持原样（行为不回归红线），仅代码新绘制文字走本类 token。
@@ -35,11 +36,17 @@ public final class GtsrGuiPalette {
     /** 正文/列头字（GTSWN 原值） */
     public static final int TEXT_BODY = 0xFFD8D4C8;
 
-    /** 标签字（GTSWN 原值） */
-    public static final int TEXT_LABEL = 0xFFB0AA9A;
+    /**
+     * 标签字（400×240 切片 A 可读性上调：GTSWN 原值 0xB0AA9A → 0xC8C2B2，
+     * 契约 texture-list.md §5 记档；列头标签/次要标签用）
+     */
+    public static final int TEXT_LABEL = 0xFFC8C2B2;
 
-    /** 提示/占位/灰字（GTSWN 原值；底栏运行提示/异常摘要用） */
-    public static final int TEXT_MUTED = 0xFF9AA0A8;
+    /**
+     * 提示/占位/灰字（400×240 切片 A 可读性上调：GTSWN 原值 0x9AA0A8 → 0xB8BEC8，
+     * 契约 texture-list.md §5 记档；底栏运行提示/异常摘要用）
+     */
+    public static final int TEXT_MUTED = 0xFFB8BEC8;
 
     /** 强调字：警示强调、选中页签字（GTSWN 原值，与 HAZARD_AMBER #F0A028 同源） */
     public static final int TEXT_ACCENT = 0xFFF0A028;

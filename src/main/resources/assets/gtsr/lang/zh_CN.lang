@@ -142,9 +142,7 @@ gtsr.aggregator_config.search_hint=输入矿石名称片段后点击搜索应用
 gtsr.aggregator_config.category.all=全部
 gtsr.aggregator_config.category.unfiltered=未过滤
 gtsr.aggregator_config.category.filtered=已过滤
-gtsr.aggregator_config.category.asc=权重升序
-gtsr.aggregator_config.category.desc=权重降序
-gtsr.aggregator_config.category.tip=点击循环：全部 → 未过滤 → 已过滤 → 权重升序 → 权重降序
+gtsr.aggregator_config.category.tip=点击循环：全部 → 未过滤 → 已过滤；列表排序点击表头（矿石/权重/维度，再点反向）
 gtsr.aggregator_config.filter=过滤
 gtsr.aggregator_config.unfilter=取消过滤
 gtsr.aggregator_config.filtered_hint=已过滤：该矿石已解放权重，不再参与抽取
@@ -168,14 +166,13 @@ gtsr.aggregator_config.steam_cost.mult=（倍率 ×%s）
 gtsr.aggregator_config.steam_cost.detail_dir=倍率明细（模式/时运 × 固定+200% × 定向）: 
 gtsr.aggregator_config.steam_formula=消耗量=基础×（矿物模式+时运）消耗×维度消耗×定向/筛选消耗
 gtsr.aggregator_config.uu_formula=消耗量=1×（矿物模式+时运）消耗×定向消耗
-gtsr.aggregator_config.mode_hint.filtered.1=当前模式：筛选
-gtsr.aggregator_config.mode_hint.filtered.2=剔除矿物越多且权重越大
-gtsr.aggregator_config.mode_hint.filtered.3=则消耗蒸汽越多
-gtsr.aggregator_config.mode_hint.filtered.4=消耗增加%=筛选总权重%+5%×k(k-1)/2（k=筛选数，逐项+5%递增）
-gtsr.aggregator_config.mode_hint.directional.1=当前模式：定向
-gtsr.aggregator_config.mode_hint.directional.2=定向矿物越少且权重越低
-gtsr.aggregator_config.mode_hint.directional.3=则消耗蒸汽越多
-gtsr.aggregator_config.mode_hint.directional.4=消耗增加%=2500%/最低3个定向权重之和（不足3个累加全部）
+gtsr.aggregator_config.mode_hint.filtered.title=当前模式：筛选
+gtsr.aggregator_config.mode_hint.filtered=剔除矿物越多且权重越大，则消耗蒸汽越多；消耗增加%=筛选总权重%+5%×k(k-1)/2（k=筛选数，逐项+5%递增）
+gtsr.aggregator_config.mode_hint.directional.title=当前模式：定向
+gtsr.aggregator_config.mode_hint.directional=定向矿物越少且权重越低，则消耗蒸汽越多；消耗增加%=2500%/最低3个定向权重之和（不足3个累加全部）
+gtsr.aggregator_config.help.slots=在维度槽放入维度显示物品选择产出维度，控制器槽留空默认当前维度；放入/移除后点击「刷新」重建矿池
+gtsr.aggregator_config.help.filter=筛选模式：逐矿点击「过滤」剔除矿石，剔除越多且权重越大，蒸汽消耗越高
+gtsr.aggregator_config.help.directional=定向模式：逐矿点击「定向」锁定产出，定向越少且权重越低蒸汽消耗越高，仅产出被定向的矿石
 gtsr.aggregator_config.dim_text.filtered=20%蒸汽消耗增加/维度
 gtsr.aggregator_config.dim_text.directional=200%+20%/额外维度槽蒸汽消耗增加
 gtsr.aggregator_config.clear_config=清除配置
@@ -563,6 +560,8 @@ gtsr.cache_hub_status.title.steam=蒸汽枢纽缓存节点状态
 gtsr.cache_hub_status.title.water=蓄水枢纽阵列缓存节点状态
 gtsr.cache_hub_status.mode_tip_output=输出模式：节点 → 枢纽（点击切换）
 gtsr.cache_hub_status.mode_tip_input=输入模式：枢纽 → 节点（点击切换）
+gtsr.cache_hub_status.mode_short_output=输出模式：节点→枢纽
+gtsr.cache_hub_status.mode_short_input=输入模式：枢纽→节点
 gtsr.cache_hub_status.rate_tip=循环调整枢纽交互速率（100 → 80 → … → 0%）
 gtsr.cache_hub_status.cap_tip=循环调整容量上限（100 → 80 → … → 5%；手持枢纽终端潜行右击等效）
 gtsr.cache_hub_status.auto_on=自动输出:开

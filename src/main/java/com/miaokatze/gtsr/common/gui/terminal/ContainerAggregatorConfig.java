@@ -85,10 +85,13 @@ public class ContainerAggregatorConfig extends Container {
     public static final int PANEL_WIDTH = 475;
     public static final int PANEL_HEIGHT = 350;
 
-    // 左列 5×5 槽网格（PLAN §4.5-B：网格 84px @x18,y57；格距 17，格内物品区 16×16）
-    private static final int GRID_X = 18;
-    private static final int GRID_Y = 57;
-    private static final int GRID_PITCH = 17;
+    // 左列 5×5 槽网格（维度槽面板外框 (18,58) 158×110 内均匀展开：
+    // 槽区 x24..170（列距 32）/ y63..161（行距 20），格内物品区 16×16；
+    // 公共常量即唯一权威，GUI 绘制（槽框/面板/命中提示）同源引用本公式）
+    public static final int GRID_X = 24;
+    public static final int GRID_Y = 63;
+    public static final int GRID_PITCH_X = 32;
+    public static final int GRID_PITCH_Y = 20;
 
     /** 玩家背包 162×76 右下（PLAN §4.5-B：x=PANEL_W-172=303, y=PANEL_H-86=264） */
     private static final int PLAYER_INV_X = PANEL_WIDTH - 172;
@@ -109,8 +112,8 @@ public class ContainerAggregatorConfig extends Container {
                 new PluginSlot(
                     new InvWrapper(pluginInventory),
                     i,
-                    GRID_X + (grid % 5) * GRID_PITCH,
-                    GRID_Y + (grid / 5) * GRID_PITCH));
+                    GRID_X + (grid % 5) * GRID_PITCH_X,
+                    GRID_Y + (grid / 5) * GRID_PITCH_Y));
         }
         // index 25-51：玩家主背包 3×9（slot index 9-35）
         for (int row = 0; row < 3; row++) {

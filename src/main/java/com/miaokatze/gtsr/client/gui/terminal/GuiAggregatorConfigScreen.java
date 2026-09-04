@@ -34,12 +34,15 @@ import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
  * <p>
  * extends 原版 {@link GuiContainer}（槽位交互走原生窗口包；shift/拖拽语义见
  * {@link ContainerAggregatorConfig}），绘制层 GTSWN 琥珀工业风（panel_aggregator 475×350 整版），
- * 布局与旧 MUI2 GUI（git 基线 b4fabb2 同名源码）完全同分区：
+ * 布局与旧 MUI2 GUI（git 基线 b4fabb2 同名源码）同分区（维度槽面板经 UI 修复切片加宽）：
  * <ul>
- * <li><b>左列</b>：「维度槽」标题 + 刷新钮 + 维度 +X% @y44-56；5×5 槽网格 @x18,y57（slot_frame
- * 18×18 + renderItem + 原版数量角标）；维度说明 @y145；定向模式钮 @y163；模式提示块 @y185；</li>
+ * <li><b>左列</b>：「维度槽」标题 + 刷新钮 + 维度 +X% @y44-56；维度槽面板外框 @(18,58) 158×110
+ * （LIST_PANEL 9-slice，右缘 176 与浏览器 x180 留 4px 缝；5×5 槽网格 @24,63 步距 32×20，
+ * 公式单源见 {@link ContainerAggregatorConfig#GRID_X} 系）；维度说明 @y172；定向模式钮 @y182；
+ * 模式提示块 @y204（宽度感知换行，行距 10）；左下使用说明块 @y278（浏览器下缘之下）；</li>
  * <li><b>配置行</b>：矿石模式钮(104×18) + 时运钮(104×18) + 蒸汽消耗文本 @y22-40；</li>
- * <li><b>右侧矿石浏览器</b>：搜索框 + 搜索/种类/清除配置钮、表头、{@link GtsrGuiList} 矿石列表、
+ * <li><b>右侧矿石浏览器</b>：搜索框 + 搜索/种类/清除配置钮（互不重叠 @x326/374/422）、表头
+ * （矿石/权重/维度可点击排序，▲/▼ 指示；操作列不排序）、{@link GtsrGuiList} 矿石列表、
  * 逐矿过滤/定向钮、权重 +X% 粗体；</li>
  * <li><b>玩家背包</b> 162×76 右下。</li>
  * </ul>
@@ -49,8 +52,9 @@ import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
  * 蒸汽消耗 240/24000×倍率粗体+公式行+tooltip 明细、UU 紫、oreMode 文案、+X% 粗体）；</li>
  * <li>7 动作同参同名（1/2/4/5/7 无参，3/6 携带 uniqueId+meta 旧编码）；动作后 pollTimer 归零
  * 即时补发一次请求（GTSWN 即时反馈范式，等价旧「动作后列表自动刷新」）；</li>
- * <li>浏览器搜索按本地化显示名（兼容中文）、按下搜索钮才应用；种类三态+权重双序切换为
- * 客户端会话态（不发包、重开复位，同旧纪律）；滚动偏移随列表实例自持（数据刷新不回顶）；</li>
+ * <li>浏览器搜索按本地化显示名（兼容中文）、按下搜索钮才应用；种类三态过滤为
+ * 客户端会话态（不发包、重开复位，同旧纪律）；矿石/权重/维度表头点击排序（同列再点反转，
+ * 稳定排序，操作列不排序）同为会话态；滚动偏移随列表实例自持（数据刷新不回顶）；</li>
  * <li>刷新语义：放入/移除插件槽不自动重建矿池，REFRESH_POOL 显式（服务端语义，见 N36/N32）；</li>
  * <li>轮询 20t（PLAN §4.3-C 冻结；配置标量变化慢，pollTimer 初值 0 首帧即发）；</li>
  * <li>离 64 格/TE 失活：服务端 canInteractWith + tick 复核自动关窗（C0D），
@@ -73,19 +77,26 @@ public class GuiAggregatorConfigScreen extends GuiContainer {
     /** tooltip 悬浮延迟（GTSWN 同款 500ms） */
     private static final long TOOLTIP_DELAY_MILLIS = 500L;
 
-    // 左列（维度槽）
+    // 左列（维度槽面板：外框与浏览器同款 LIST_PANEL 9-slice；槽位坐标以 Container 公式为唯一权威）
     private static final int LEFT_X = 18;
     private static final int SLOT_TITLE_Y = 45;
-    private static final int GRID_X = 18;
-    private static final int GRID_Y = 57;
-    private static final int GRID_PITCH = 17;
+    private static final int SLOT_PANEL_X = LEFT_X;
+    private static final int SLOT_PANEL_Y = 58;
+    /** 面板外框右缘 176，与浏览器 x180 留 4px 缝（左栏可达最大宽；坐标严对 Container 槽区 24..170） */
+    private static final int SLOT_PANEL_W = 158;
+    private static final int SLOT_PANEL_H = 110;
     private static final int REFRESH_X = LEFT_X + 32;
     private static final int REFRESH_Y = SLOT_TITLE_Y - 1;
     private static final int DIM_INCREASE_X = REFRESH_X + 26 + 4;
-    private static final int DIM_TEXT_Y = 145;
-    private static final int DIRECTIONAL_Y = 163;
-    private static final int HINT_Y = 185;
+    private static final int DIM_TEXT_Y = 172;
+    private static final int DIRECTIONAL_Y = 182;
+    private static final int HINT_Y = 204;
     private static final int HINT_LINE_PITCH = 10;
+    /** 模式提示换行宽（左栏可用宽：x18..173，不触浏览器 x180） */
+    private static final int HINT_WRAP_W = 155;
+    /** 使用说明块（浏览器下缘 266 之下；右缘 298 在玩家背包 x303 之左） */
+    private static final int HELP_Y = 278;
+    private static final int HELP_WRAP_W = 280;
 
     // 配置行（矿石模式/时运/蒸汽消耗）
     private static final int CFG_ROW_Y = 22;
@@ -117,14 +128,21 @@ public class GuiAggregatorConfigScreen extends GuiContainer {
     private static final int ROW_DIM_DX = 172;
     private static final int ROW_ACTION_DX = 232;
     private static final int ROW_ACTION_BTN_H = 14;
-    // 搜索行控件（搜索框靠左，搜索/种类/清除配置按钮组靠最右）
+    // 搜索行控件（搜索框靠左加宽至 x184..322，搜索/种类/清除配置按钮组靠最右，互不重叠、均留 4px 间距）
     private static final int SEARCH_FIELD_X = BROWSER_X + 4;
-    private static final int SEARCH_FIELD_W = 124;
+    private static final int SEARCH_FIELD_W = 138;
     private static final int SEARCH_BTN_X = BROWSER_X + BROWSER_W - 4 - 44 - 4 - 44 - 4;
     private static final int CATEGORY_BTN_X = BROWSER_X + BROWSER_W - 4 - 44 - 4 - 44;
     private static final int CLEAR_BTN_X = BROWSER_X + BROWSER_W - 4 - 44;
     private static final int SEARCH_ROW_BTN_W = 44;
     private static final int SEARCH_ROW_BTN_H = 16;
+
+    // 表头排序（矿石/权重/维度可点，操作列不排序；命中区 y80..92 与按钮行 y62..78、列表 y100 起互不交叠）
+    private static final int SORT_NAME = 0;
+    private static final int SORT_WEIGHT = 1;
+    private static final int SORT_DIM = 2;
+    private static final int HEADER_HIT_Y = 80;
+    private static final int HEADER_HIT_H = 12;
 
     // 按钮 id（本 GUI 内部路由用）
     private static final int BTN_ORE_MODE = 1;
@@ -144,8 +162,12 @@ public class GuiAggregatorConfigScreen extends GuiContainer {
 
     /** 已应用的搜索词（按下搜索钮才应用；按本地化显示名匹配，兼容中文） */
     private String searchText = "";
-    /** 种类/排序 5 态：0 全部 / 1 未过滤 / 2 已过滤 / 3 权重升序 / 4 权重降序 */
+    /** 种类过滤 3 态：0 全部 / 1 未过滤 / 2 已过滤（排序解耦至表头点击，本钮纯过滤） */
     private int categoryMode = 0;
+    /** 表头排序键：0 矿石显示名 / 1 权重 / 2 维度（操作列不可排序）；会话态，重开复位 */
+    private int sortKey = SORT_NAME;
+    /** 当前排序方向（true 升序；同列再点反转） */
+    private boolean sortAsc = true;
 
     // ==================== 运行时组件 ====================
 
@@ -156,11 +178,13 @@ public class GuiAggregatorConfigScreen extends GuiContainer {
     /** 轮询计时（初值 0：首个 updateScreen 立即发送首帧请求） */
     private int pollTimer = 0;
 
-    /** 每帧缓存：可见矿石行（快照引用/搜索词/种类三元组变化才重算） */
+    /** 每帧缓存：可见矿石行（快照/搜索词/种类/排序键/方向五元组变化才重算） */
     private List<OreEntry> visibleCache = Collections.emptyList();
     private AggregatorClientCache.Snapshot cacheSnap;
     private String cacheSearch;
     private int cacheCategory = -1;
+    private int cacheSortKey = -1;
+    private boolean cacheSortAsc;
 
     /** 本帧悬浮命中的行内过滤/定向钮条目（paintRow 逐行登记，drawTooltips 消费后清空） */
     private OreEntry hoveredRowButtonEntry;
@@ -333,10 +357,44 @@ public class GuiAggregatorConfigScreen extends GuiContainer {
         if (this.searchField != null) {
             this.searchField.mouseClicked(mouseX, mouseY, mouseButton);
         }
+        int sortHit = headerSortHit(mouseX, mouseY);
+        if (sortHit >= 0) {
+            // 表头命中：同列再点反转，换列重置升序（会话态，不发包；命中区与按钮/列表矩形互不交叠）
+            if (this.sortKey == sortHit) {
+                this.sortAsc = !this.sortAsc;
+            } else {
+                this.sortKey = sortHit;
+                this.sortAsc = true;
+            }
+            return;
+        }
         if (this.oreList != null && this.oreList.mouseClicked(mouseX, mouseY, mouseButton)) {
             return; // 浏览器列表区消费（含逐矿过滤/定向钮）
         }
         super.mouseClicked(mouseX, mouseY, mouseButton); // GuiScreen 按钮分发 + GuiContainer 槽位交互
+    }
+
+    /**
+     * 表头排序命中（y80..92：按钮行 y62..78 之下、列表 y100 之上，无交叠）：
+     *
+     * @return 命中的排序键（矿石/权重/维度），未命中或操作列/列间隙返回 -1
+     */
+    private int headerSortHit(int mouseX, int mouseY) {
+        final int relX = mouseX - (this.guiLeft + LIST_X);
+        final int relY = mouseY - (this.guiTop + HEADER_HIT_Y);
+        if (relY < 0 || relY >= HEADER_HIT_H) {
+            return -1;
+        }
+        if (relX >= ROW_NAME_DX && relX < ROW_NAME_DX + COL_NAME) {
+            return SORT_NAME;
+        }
+        if (relX >= ROW_WEIGHT_DX && relX < ROW_WEIGHT_DX + COL_WEIGHT) {
+            return SORT_WEIGHT;
+        }
+        if (relX >= ROW_DIM_DX && relX < ROW_DIM_DX + COL_DIM) {
+            return SORT_DIM;
+        }
+        return -1;
     }
 
     @Override
@@ -390,8 +448,8 @@ public class GuiAggregatorConfigScreen extends GuiContainer {
                     .trim() : "";
                 break;
             case BTN_CATEGORY:
-                // 种类/排序 5 态循环；纯客户端会话态，不发包（排序会话态复位不发包）
-                this.categoryMode = (this.categoryMode + 1) % 5;
+                // 种类过滤 3 态循环（排序已解耦至表头点击）；纯客户端会话态，不发包
+                this.categoryMode = (this.categoryMode + 1) % 3;
                 break;
             default:
                 return;
@@ -412,6 +470,15 @@ public class GuiAggregatorConfigScreen extends GuiContainer {
             0,
             PANEL_W,
             PANEL_H,
+            this.zLevel);
+        // 维度槽面板外框（与浏览器同款 LIST_PANEL 凹陷 9-slice；右缘 176 与浏览器 x180 留 4px 缝）
+        GtsrGuiDrawing.drawNineSlice(
+            GtsrGuiTextures.LIST_PANEL,
+            4,
+            this.guiLeft + SLOT_PANEL_X,
+            this.guiTop + SLOT_PANEL_Y,
+            SLOT_PANEL_W,
+            SLOT_PANEL_H,
             this.zLevel);
         // 浏览器背景框（内嵌区装饰）
         GtsrGuiDrawing.drawNineSlice(
@@ -461,53 +528,78 @@ public class GuiAggregatorConfigScreen extends GuiContainer {
             this.guiLeft + BROWSER_X,
             this.guiTop + SLOT_TITLE_Y,
             GtsrGuiPalette.TEXT_BODY);
-        // 消耗增加% 实际值（粗体 "+X%"）：维度项（刷新钮右侧）与权重项（浏览器标题右侧）
+        // 消耗增加% 实际值（粗体 "+X%"，白字提亮）：维度项（刷新钮右侧）与权重项（浏览器标题右侧）
         if (snap != null) {
             this.fontRendererObj.drawString(
                 formatIncreaseValue(snap.data.dimIncrease),
                 this.guiLeft + DIM_INCREASE_X,
                 this.guiTop + SLOT_TITLE_Y,
-                0xFFFFFF);
+                GtsrGuiPalette.TEXT_WHITE);
             this.fontRendererObj.drawString(
                 formatIncreaseValue(snap.data.weightIncrease),
                 this.guiLeft + WEIGHT_INCREASE_X,
                 this.guiTop + SLOT_TITLE_Y,
-                0xFFFFFF);
-            // 蒸汽消耗文本（两行：粗体主行 + 黑色公式行）
-            drawMultiline(formatSteamCostLine(snap.data.steamMult, snap.data.denseState), STEAM_TEXT_X, CFG_ROW_Y + 1);
-            // 维度消耗说明文本（槽格下方，黑字）
+                GtsrGuiPalette.TEXT_WHITE);
+            // 蒸汽消耗文本（两行：粗体主行带金色倍率后缀 + 消耗量公式行；暗色 § 码改 TEXT_BODY 基色提亮）
+            List<StyledLine> steamLines = new ArrayList<StyledLine>();
+            buildSteamCostLines(steamLines, snap.data.steamMult, snap.data.denseState);
+            drawStyledLines(steamLines, STEAM_TEXT_X, CFG_ROW_Y + 1);
+            // 维度消耗说明文本（槽面板下方；原 §0 黑字在暗面板不可读 → TEXT_BODY 提亮，语义不变）
             this.fontRendererObj.drawString(
-                EnumChatFormatting.BLACK.toString() + StatCollector.translateToLocal(
+                StatCollector.translateToLocal(
                     directional ? "gtsr.aggregator_config.dim_text.directional"
                         : "gtsr.aggregator_config.dim_text.filtered"),
                 this.guiLeft + LEFT_X,
                 this.guiTop + DIM_TEXT_Y,
-                0xFFFFFF);
-            // 当前模式提示信息（蓝标题 + 黑正文 + 定向块底部紫 UU 消耗；逐行绘制）
-            drawMultiline(buildModeHintText(directional, snap.data.uuMult), LEFT_X, HINT_Y);
+                GtsrGuiPalette.TEXT_BODY);
+            // 当前模式提示块（宽度感知换行；琥珀标题 + 正文提亮，定向模式追加 UU 消耗段）
+            drawModeHintBlock(directional, snap.data.uuMult);
         }
-        // 表格标签栏（橙加粗小字，与列表行逐列对齐）
-        String label = EnumChatFormatting.GOLD.toString() + EnumChatFormatting.BOLD;
+        // 左下使用说明块（静态；浏览器/玩家背包之外留白区，宽度感知换行）
+        drawHelpBlock();
+        // 表格标签栏（橙加粗小字，与列表行逐列对齐；当前排序列尾随 ▲/▼，操作列不可排序）
+        drawHeaderLabel(SORT_NAME, "gtsr.aggregator_config.col.name", ROW_NAME_DX);
+        drawHeaderLabel(SORT_WEIGHT, "gtsr.aggregator_config.col.weight", ROW_WEIGHT_DX);
+        drawHeaderLabel(SORT_DIM, "gtsr.aggregator_config.col.dim", ROW_DIM_DX);
         this.fontRendererObj.drawString(
-            label + StatCollector.translateToLocal("gtsr.aggregator_config.col.name"),
-            this.guiLeft + LIST_X + ROW_NAME_DX,
-            this.guiTop + HEADER_Y,
-            0xFFFFFF);
-        this.fontRendererObj.drawString(
-            label + StatCollector.translateToLocal("gtsr.aggregator_config.col.weight"),
-            this.guiLeft + LIST_X + ROW_WEIGHT_DX,
-            this.guiTop + HEADER_Y,
-            0xFFFFFF);
-        this.fontRendererObj.drawString(
-            label + StatCollector.translateToLocal("gtsr.aggregator_config.col.dim"),
-            this.guiLeft + LIST_X + ROW_DIM_DX,
-            this.guiTop + HEADER_Y,
-            0xFFFFFF);
-        this.fontRendererObj.drawString(
-            label + StatCollector.translateToLocal("gtsr.aggregator_config.col.action"),
+            EnumChatFormatting.GOLD.toString() + EnumChatFormatting.BOLD
+                + StatCollector.translateToLocal("gtsr.aggregator_config.col.action"),
             this.guiLeft + LIST_X + ROW_ACTION_DX,
             this.guiTop + HEADER_Y,
             0xFFFFFF);
+    }
+
+    /** 单个可排序列标签（金加粗；当前排序列尾随 ▲/▼ 方向指示） */
+    private void drawHeaderLabel(int sortKey, String langKey, int columnDx) {
+        String suffix = this.sortKey != sortKey ? "" : this.sortAsc ? " ▲" : " ▼";
+        this.fontRendererObj.drawString(
+            EnumChatFormatting.GOLD.toString() + EnumChatFormatting.BOLD
+                + StatCollector.translateToLocal(langKey)
+                + suffix,
+            this.guiLeft + LIST_X + columnDx,
+            this.guiTop + HEADER_Y,
+            0xFFFFFF);
+    }
+
+    /** 左下使用说明块：槽位用法/筛选语义/定向语义三段，按 HELP_WRAP_W 宽度感知换行（TEXT_LABEL 弱化基色） */
+    private void drawHelpBlock() {
+        List<StyledLine> lines = new ArrayList<StyledLine>();
+        addWrapped(
+            lines,
+            StatCollector.translateToLocal("gtsr.aggregator_config.help.slots"),
+            HELP_WRAP_W,
+            GtsrGuiPalette.TEXT_LABEL);
+        addWrapped(
+            lines,
+            StatCollector.translateToLocal("gtsr.aggregator_config.help.filter"),
+            HELP_WRAP_W,
+            GtsrGuiPalette.TEXT_LABEL);
+        addWrapped(
+            lines,
+            StatCollector.translateToLocal("gtsr.aggregator_config.help.directional"),
+            HELP_WRAP_W,
+            GtsrGuiPalette.TEXT_LABEL);
+        drawStyledLines(lines, LEFT_X, HELP_Y);
     }
 
     @Override
@@ -548,23 +640,28 @@ public class GuiAggregatorConfigScreen extends GuiContainer {
         return visibleEntries().size();
     }
 
-    /** 可见矿石行（种类过滤 + 搜索 + 权重排序；快照/搜索词/种类三元组变化才重算） */
+    /** 可见矿石行（种类过滤 + 搜索 + 表头排序；快照/搜索词/种类/排序键/方向五元组变化才重算） */
     private List<OreEntry> visibleEntries() {
         AggregatorClientCache.Snapshot snap = currentSnapshot();
         List<OreEntry> all = snap != null ? snap.data.ores : Collections.<OreEntry>emptyList();
         if (snap != this.cacheSnap || !Objects.equals(this.searchText, this.cacheSearch)
-            || this.categoryMode != this.cacheCategory) {
+            || this.categoryMode != this.cacheCategory
+            || this.sortKey != this.cacheSortKey
+            || this.sortAsc != this.cacheSortAsc) {
             this.visibleCache = filterAndSort(all);
             this.cacheSnap = snap;
             this.cacheSearch = this.searchText;
             this.cacheCategory = this.categoryMode;
+            this.cacheSortKey = this.sortKey;
+            this.cacheSortAsc = this.sortAsc;
         }
         return this.visibleCache;
     }
 
     /**
-     * 客户端过滤与排序（旧 refreshOreList 语义移植）：种类（全部/未过滤/已过滤）+
-     * 搜索词（矿石本地化显示名，兼容中文）→ 权重排序（3=升序 / 4=降序，稳定排序）。
+     * 客户端过滤与排序（排序/过滤解耦）：种类三态（全部/未过滤/已过滤）+ 搜索词
+     * （矿石本地化显示名，兼容中文）过滤，再按表头 sortKey 排序——List.sort 为 TimSort
+     * 稳定排序，等值条目保持矿池原序；sortAsc=false 用反向比较器（同向等值仍保序）。
      */
     private List<OreEntry> filterAndSort(List<OreEntry> all) {
         List<OreEntry> visible = new ArrayList<OreEntry>();
@@ -580,11 +677,23 @@ public class GuiAggregatorConfigScreen extends GuiContainer {
                 visible.add(entry);
             }
         }
-        if (this.categoryMode == 3) {
-            visible.sort((a, b) -> Float.compare(a.weight, b.weight));
-        } else if (this.categoryMode == 4) {
-            visible.sort((a, b) -> Float.compare(b.weight, a.weight));
-        }
+        visible.sort((a, b) -> {
+            int c;
+            switch (this.sortKey) {
+                case SORT_WEIGHT:
+                    c = Float.compare(a.weight, b.weight);
+                    break;
+                case SORT_DIM:
+                    c = String.join("+", a.dimAbbrs)
+                        .compareToIgnoreCase(String.join("+", b.dimAbbrs));
+                    break;
+                case SORT_NAME:
+                default:
+                    c = entryDisplayName(a).compareToIgnoreCase(entryDisplayName(b));
+                    break;
+            }
+            return this.sortAsc ? c : -c;
+        });
         return visible;
     }
 
@@ -686,8 +795,14 @@ public class GuiAggregatorConfigScreen extends GuiContainer {
             this.hoverTooltip("rowBtn" + System.identityHashCode(entry), rowLines, mouseX, mouseY);
             return;
         }
-        // 槽 1 提示（控制器槽说明）
-        if (inRect(mouseX, mouseY, this.guiLeft + GRID_X, this.guiTop + GRID_Y, 18, 18)) {
+        // 槽 1 提示（控制器槽说明；命中矩形随 Container 槽位公式同源）
+        if (inRect(
+            mouseX,
+            mouseY,
+            this.guiLeft + ContainerAggregatorConfig.GRID_X,
+            this.guiTop + ContainerAggregatorConfig.GRID_Y,
+            18,
+            18)) {
             this.hoverTooltip(
                 "slot1",
                 lines(StatCollector.translateToLocal("gtsr.aggregator_config.slot1_hint")),
@@ -809,34 +924,9 @@ public class GuiAggregatorConfigScreen extends GuiContainer {
         return String.format(StatCollector.translateToLocal("gtsr.aggregator_config.fortune_level"), roman, bonus);
     }
 
-    /**
-     * 蒸汽消耗主文本（两行）：第一行 = 基准（致密档 240 L/s / 普通档 24000 L/s）× 同步倍率（整体加粗，
-     * 金色粗体附倍率后缀）；第二行 = 黑色消耗量公式（键 gtsr.aggregator_config.steam_formula）。
-     */
-    private static String formatSteamCostLine(double steamMult, boolean dense) {
-        long basePerSecond = dense ? MTECrustMatterAggregator.DENSE_STEAM_PER_SECOND
-            : MTECrustMatterAggregator.NORMAL_STEAM_PER_SECOND;
-        long perSecond = Math.round(basePerSecond * steamMult);
-        return EnumChatFormatting.BOLD + StatCollector.translateToLocal("gtsr.aggregator_config.steam_cost")
-            + " "
-            + NumberFormatUtil.formatNumber(perSecond)
-            + " L/s "
-            + EnumChatFormatting.GOLD.toString()
-            + EnumChatFormatting.BOLD
-            + String.format(
-                StatCollector.translateToLocal("gtsr.aggregator_config.steam_cost.mult"),
-                String.format("%.2f", steamMult))
-            + "\n"
-            + EnumChatFormatting.BLACK
-            + StatCollector.translateToLocal("gtsr.aggregator_config.steam_formula");
-    }
-
-    /** 消耗增加% 实际值（粗体 "+X%"；筛选/定向按模式由服务端算好）：用于浏览器标题右侧与刷新按钮右侧。 */
+    /** 消耗增加% 实际值（粗体 "+X%"；筛选/定向按模式由服务端算好）：色由调用方 TEXT_WHITE 基色提亮（原 §0 黑改亮）。 */
     private static String formatIncreaseValue(double percent) {
-        return EnumChatFormatting.BLACK.toString() + EnumChatFormatting.BOLD
-            + "+"
-            + String.format("%.0f", percent)
-            + "%";
+        return EnumChatFormatting.BOLD.toString() + "+" + String.format("%.0f", percent) + "%";
     }
 
     /**
@@ -868,42 +958,45 @@ public class GuiAggregatorConfigScreen extends GuiContainer {
     }
 
     /**
-     * 当前模式提示信息（精简版）：首行蓝色「当前模式：定向/筛选」，随后黑色公式正文；
-     * 定向模式最底部追加紫色 UU 物质消耗（前缀 + 实际速率含倍率）+ 黑色消耗量公式。
-     * 分行采用逐行独立 lang 键（mode_hint.<模式>.1~N），此处按序号读取并拼接。
+     * 当前模式提示块（宽度感知换行，行距 10px @HINT_Y）：首行模式标题（TEXT_ACCENT 琥珀，原 §1 蓝
+     * 在暗面板不可读）；正文整段按左栏可用宽 155px 换行（TEXT_BODY 基色，原 §0 黑提亮）；
+     * 定向模式底部追加 UU 消耗段（保持 §d 语义紫、§ 码随断行携带）+ 消耗量公式行。
+     * 文案取单键整段（mode_hint.<模式> / .title），替代原 .1~N 死分行键。
      */
-    private static String buildModeHintText(boolean directional, double uuMult) {
-        String base = directional ? "gtsr.aggregator_config.mode_hint.directional"
-            : "gtsr.aggregator_config.mode_hint.filtered";
-        StringBuilder sb = new StringBuilder();
-        boolean first = true;
-        for (int i = 1;; i++) {
-            String key = base + "." + i;
-            String line = StatCollector.translateToLocal(key);
-            if (line.isEmpty() || line.equals(key)) break;
-            if (!first) sb.append("\n");
-            // 首行蓝色模式标题，其余行黑色正文
-            sb.append(first ? EnumChatFormatting.BLUE : EnumChatFormatting.BLACK)
-                .append(line);
-            first = false;
-        }
+    private void drawModeHintBlock(boolean directional, double uuMult) {
+        List<StyledLine> lines = new ArrayList<StyledLine>();
+        lines.add(
+            new StyledLine(
+                StatCollector.translateToLocal(
+                    directional ? "gtsr.aggregator_config.mode_hint.directional.title"
+                        : "gtsr.aggregator_config.mode_hint.filtered.title"),
+                GtsrGuiPalette.TEXT_ACCENT));
+        addWrapped(
+            lines,
+            StatCollector.translateToLocal(
+                directional ? "gtsr.aggregator_config.mode_hint.directional"
+                    : "gtsr.aggregator_config.mode_hint.filtered"),
+            HINT_WRAP_W,
+            GtsrGuiPalette.TEXT_BODY);
         if (directional) {
-            // UU 消耗块（紫色）：前缀 + 实际速率（含倍率）+ 黑色消耗量公式
-            String ratePart = NumberFormatUtil.formatNumber(Math.round(uuMult)) + " L/s"
+            // UU 消耗段（紫色语义保持）：前缀 + 实际速率（含倍率）合段换行 + 消耗量公式行
+            String rate = NumberFormatUtil.formatNumber(Math.round(uuMult)) + " L/s"
                 + String.format(
                     StatCollector.translateToLocal("gtsr.aggregator_config.uu_cost.mult"),
                     String.format("%.2f", uuMult));
-            sb.append("\n")
-                .append(EnumChatFormatting.LIGHT_PURPLE)
-                .append(StatCollector.translateToLocal("gtsr.aggregator_config.uu_cost"))
-                .append("\n")
-                .append(EnumChatFormatting.LIGHT_PURPLE)
-                .append(ratePart)
-                .append("\n")
-                .append(EnumChatFormatting.BLACK)
-                .append(StatCollector.translateToLocal("gtsr.aggregator_config.uu_formula"));
+            addWrapped(
+                lines,
+                EnumChatFormatting.LIGHT_PURPLE + StatCollector.translateToLocal("gtsr.aggregator_config.uu_cost")
+                    + rate,
+                HINT_WRAP_W,
+                GtsrGuiPalette.TEXT_WHITE);
+            addWrapped(
+                lines,
+                StatCollector.translateToLocal("gtsr.aggregator_config.uu_formula"),
+                HINT_WRAP_W,
+                GtsrGuiPalette.TEXT_BODY);
         }
-        return sb.toString();
+        drawStyledLines(lines, LEFT_X, HINT_Y);
     }
 
     /** 权重显示：整数输出整数，否则一位小数。 */
@@ -914,17 +1007,13 @@ public class GuiAggregatorConfigScreen extends GuiContainer {
         return String.format("%.1f", weight);
     }
 
-    /** 种类/排序 5 态：全部 / 未过滤 / 已过滤 / 权重升序 / 权重降序。 */
+    /** 种类过滤 3 态：全部 / 未过滤 / 已过滤（排序已解耦至表头点击，asc/desc 键随 5 态一并删除）。 */
     private static String categoryLangKey(int mode) {
         switch (mode) {
             case 1:
                 return "gtsr.aggregator_config.category.unfiltered";
             case 2:
                 return "gtsr.aggregator_config.category.filtered";
-            case 3:
-                return "gtsr.aggregator_config.category.asc";
-            case 4:
-                return "gtsr.aggregator_config.category.desc";
             default:
                 return "gtsr.aggregator_config.category.all";
         }
@@ -932,11 +1021,127 @@ public class GuiAggregatorConfigScreen extends GuiContainer {
 
     // ==================== 工具 ====================
 
-    /** 多行文本绘制（按 \n 拆行，色码随文本生效；TextWidget 自动折行的自绘等价） */
-    private void drawMultiline(String text, int panelX, int panelY) {
+    /** 样式行：文本 + 本行 drawString 基色（行内 § 码仍照常生效，码色覆盖基色） */
+    private static final class StyledLine {
+
+        final String text;
+        final int color;
+
+        StyledLine(String text, int color) {
+            this.text = text;
+            this.color = color;
+        }
+    }
+
+    /**
+     * 蒸汽消耗两行（原 formatSteamCostLine 拆段提亮）：第一行 = 基准（致密 240 / 普通 24000 L/s）
+     * × 同步倍率，整行加粗、金粗倍率后缀（§ 码保持，基色 TEXT_BODY 替代不可读黑）；第二行 = 消耗量公式。
+     */
+    private static void buildSteamCostLines(List<StyledLine> out, double steamMult, boolean dense) {
+        long basePerSecond = dense ? MTECrustMatterAggregator.DENSE_STEAM_PER_SECOND
+            : MTECrustMatterAggregator.NORMAL_STEAM_PER_SECOND;
+        long perSecond = Math.round(basePerSecond * steamMult);
+        out.add(
+            new StyledLine(
+                EnumChatFormatting.BOLD + StatCollector.translateToLocal("gtsr.aggregator_config.steam_cost")
+                    + " "
+                    + NumberFormatUtil.formatNumber(perSecond)
+                    + " L/s "
+                    + EnumChatFormatting.GOLD.toString()
+                    + EnumChatFormatting.BOLD
+                    + String.format(
+                        StatCollector.translateToLocal("gtsr.aggregator_config.steam_cost.mult"),
+                        String.format("%.2f", steamMult)),
+                GtsrGuiPalette.TEXT_BODY));
+        out.add(
+            new StyledLine(
+                StatCollector.translateToLocal("gtsr.aggregator_config.steam_formula"),
+                GtsrGuiPalette.TEXT_BODY));
+    }
+
+    /**
+     * 宽度感知贪心换行：按 maxWrap 逐原子累计 getStringWidth 测宽，§ 码两字符零宽透传、
+     * 随断行携带到续行行首（遇 §r 清空）；拉丁/数字/符号连续段为原子不拆（公式/数字完整），
+     * 其余（CJK/全角）逐字可断；行首空格丢弃。
+     */
+    private void addWrapped(List<StyledLine> out, String text, int maxWrap, int color) {
+        final int n = text.length();
+        StringBuilder line = new StringBuilder();
+        StringBuilder activeCodes = new StringBuilder();
+        int lineW = 0;
+        int i = 0;
+        while (i < n) {
+            char c = text.charAt(i);
+            if (c == '§' && i + 1 < n) {
+                String seq = text.substring(i, i + 2);
+                line.append(seq);
+                if (text.charAt(i + 1) == 'r') {
+                    activeCodes.setLength(0);
+                } else {
+                    activeCodes.append(seq);
+                }
+                i += 2;
+                continue;
+            }
+            if (c == ' ') {
+                if (line.length() > 0) {
+                    line.append(c);
+                    lineW += this.fontRendererObj.getCharWidth(c);
+                }
+                i++;
+                continue;
+            }
+            // 原子：ASCII 可见符连续段保持完整，其余字符逐字成原子（CJK 可任意断行）
+            int j = i;
+            if (isKeepTogether(c)) {
+                while (j < n && text.charAt(j) != '§' && text.charAt(j) != ' ' && isKeepTogether(text.charAt(j))) {
+                    j++;
+                }
+            } else {
+                j = i + 1;
+            }
+            String atom = text.substring(i, j);
+            int atomW = this.fontRendererObj.getStringWidth(atom);
+            if (lineW > 0 && lineW + atomW > maxWrap) {
+                out.add(new StyledLine(line.toString(), color));
+                line.setLength(0);
+                line.append(activeCodes);
+                lineW = 0;
+            }
+            if (atomW > maxWrap) {
+                // 超宽原子（无空格长串）逐字硬断行，整原子不得原样塞入空行而溢出栏宽
+                for (int k = 0; k < atom.length(); k++) {
+                    int cw = this.fontRendererObj.getCharWidth(atom.charAt(k));
+                    if (lineW > 0 && lineW + cw > maxWrap) {
+                        out.add(new StyledLine(line.toString(), color));
+                        line.setLength(0);
+                        line.append(activeCodes);
+                        lineW = 0;
+                    }
+                    line.append(atom.charAt(k));
+                    lineW += cw;
+                }
+            } else {
+                line.append(atom);
+                lineW += atomW;
+            }
+            i = j;
+        }
+        if (line.length() > 0) {
+            out.add(new StyledLine(line.toString(), color));
+        }
+    }
+
+    /** ASCII 可见符（不含空格/§）＝换行时不拆开的原子字符（拉丁词、数字、公式段） */
+    private static boolean isKeepTogether(char c) {
+        return c >= 0x21 && c < 0x7F;
+    }
+
+    /** 样式行逐行绘制（行距 HINT_LINE_PITCH=10；基色生效，行内 § 码覆盖） */
+    private void drawStyledLines(List<StyledLine> lines, int panelX, int panelY) {
         int dy = 0;
-        for (String line : text.split("\n")) {
-            this.fontRendererObj.drawString(line, this.guiLeft + panelX, this.guiTop + panelY + dy, 0xFFFFFF);
+        for (StyledLine l : lines) {
+            this.fontRendererObj.drawString(l.text, this.guiLeft + panelX, this.guiTop + panelY + dy, l.color);
             dy += HINT_LINE_PITCH;
         }
     }

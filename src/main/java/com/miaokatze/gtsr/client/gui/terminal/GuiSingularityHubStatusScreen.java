@@ -30,8 +30,10 @@ import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
  * <li>重命名 GuiTextField 客户端纯本地（maxLength 24），确认按钮才发包；</li>
  * <li>滚动保持 = GtsrGuiList 偏移自持（数据刷新不回顶，等价旧滚动列表）。</li>
  * </ul>
- * 布局（§4.5-A 冻结）：行高 20（单行容纳名字/等级/状态 + 坐标行），行点击选中节点，
+ * 布局（400×240 切片 A 重排，与缓存枢纽同 GuiTerminalBase 共享常量，四屏几何一致）：
+ * 行高 20（单行容纳名字/等级/状态 + 坐标行），行点击选中节点，
  * 底部操作区按选中节点执行 5 动作（20px 冻结行高下等价承载旧行内按钮语义）。
+ * 行 tooltip 无速率/容量类信息（与缓存枢纽不同），切片 A 不加数值列与列头。
  */
 @SideOnly(Side.CLIENT)
 public class GuiSingularityHubStatusScreen extends GuiTerminalBase {
@@ -106,7 +108,7 @@ public class GuiSingularityHubStatusScreen extends GuiTerminalBase {
     @Override
     public void initGui() {
         super.initGui();
-        this.list = new GtsrGuiList(this, this.guiLeft + 8, this.guiTop + 18, 304, 142);
+        this.list = new GtsrGuiList(this, this.guiLeft + LIST_X, this.guiTop + LIST_Y, LIST_W, LIST_H);
         this.list.setRowSource(this::rowCount);
         this.list.setRowPainter(this::paintRow);
         this.list.setRowListener(this::selectRow);
@@ -115,7 +117,7 @@ public class GuiSingularityHubStatusScreen extends GuiTerminalBase {
             new GtsrGuiButton(
                 BTN_RENAME,
                 this.guiLeft + 152,
-                this.guiTop + 164,
+                this.guiTop + RENAME_ROW_Y,
                 64,
                 14,
                 ellipsized("gtsr.hub_status.rename", 64)));
@@ -123,7 +125,7 @@ public class GuiSingularityHubStatusScreen extends GuiTerminalBase {
             new GtsrGuiButton(
                 BTN_TELEPORT,
                 this.guiLeft + 8,
-                this.guiTop + 179,
+                this.guiTop + ACTION_ROW_Y,
                 64,
                 14,
                 ellipsized("gtsr.hub_status.teleport", 64)));
@@ -131,7 +133,7 @@ public class GuiSingularityHubStatusScreen extends GuiTerminalBase {
             new GtsrGuiButton(
                 BTN_TOGGLE,
                 this.guiLeft + 74,
-                this.guiTop + 179,
+                this.guiTop + ACTION_ROW_Y,
                 78,
                 14,
                 ellipsized("gtsr.hub_status.stop", 78)));
@@ -139,7 +141,7 @@ public class GuiSingularityHubStatusScreen extends GuiTerminalBase {
             new GtsrGuiButton(
                 BTN_RECYCLE,
                 this.guiLeft + 154,
-                this.guiTop + 179,
+                this.guiTop + ACTION_ROW_Y,
                 78,
                 14,
                 ellipsized("gtsr.hub_status.recycle", 78)));
@@ -147,7 +149,7 @@ public class GuiSingularityHubStatusScreen extends GuiTerminalBase {
             new GtsrGuiButton(
                 BTN_UPGRADE,
                 this.guiLeft + 234,
-                this.guiTop + 179,
+                this.guiTop + ACTION_ROW_Y,
                 78,
                 14,
                 ellipsized("gtsr.hub_status.upgrade", 78)));
@@ -269,7 +271,7 @@ public class GuiSingularityHubStatusScreen extends GuiTerminalBase {
             this.fontRendererObj.drawStringWithShadow(
                 StatCollector.translateToLocal("gtsr.hub_status.empty"),
                 this.guiLeft + 14,
-                this.guiTop + 26,
+                this.guiTop + LIST_Y + 8,
                 GtsrGuiPalette.TEXT_MUTED);
         }
         this.drawRenameField();
@@ -302,7 +304,7 @@ public class GuiSingularityHubStatusScreen extends GuiTerminalBase {
         }
         final HubNodeInfo info = nodes.get(index);
         final int textX = x + 24;
-        final int textWidth = 304 - 24 - 10;
+        final int textWidth = LIST_W - 24 - 10;
         // 图标（纯客户端静态映射，零网络开销）
         this.renderItemIcon(
             (info.isMiner ? GTSRItemList.SingularityMinerNode : GTSRItemList.SingularityDrillingNode).get(1),

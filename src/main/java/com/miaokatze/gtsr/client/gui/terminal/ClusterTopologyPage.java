@@ -89,11 +89,11 @@ final class ClusterTopologyPage implements ClusterPage {
         int tier = ClusterTerminalClientCache.getInt(ClusterTerminalData.KEY_TIER, -1);
         String[] parts = new String[] {
             tier >= 0 ? EnumChatFormatting.GREEN + "✔ " + tr("gtsr.cluster.gui.topo.formed")
-                : EnumChatFormatting.GRAY + "✖ " + tr("gtsr.cluster.gui.title.unformed"),
+                : EnumChatFormatting.WHITE + "✖ " + tr("gtsr.cluster.gui.title.unformed"),
             tier >= 0 ? EnumChatFormatting.WHITE + tr(
                 ClusterParams.ClusterTier.get(tier)
                     .getLangKey())
-                : EnumChatFormatting.GRAY + "--",
+                : EnumChatFormatting.WHITE + "--",
             EnumChatFormatting.WHITE + String.format(
                 tr("gtsr.cluster.gui.topo.segs"),
                 ClusterTerminalClientCache.getInt(ClusterTerminalData.KEY_SEGMENTS, 0)),
@@ -155,7 +155,7 @@ final class ClusterTopologyPage implements ClusterPage {
             int x = ox + LABEL_W + pad * (cardW + CARD_GAP);
             GuiClusterTerminalScreen.drawScaledText(
                 font(),
-                EnumChatFormatting.GRAY + tr(padLangKey(pad)),
+                EnumChatFormatting.WHITE + tr(padLangKey(pad)),
                 x,
                 oy + COLHEADER_DY,
                 0.6f,
@@ -202,7 +202,7 @@ final class ClusterTopologyPage implements ClusterPage {
             return EnumChatFormatting.WHITE.toString() + EnumChatFormatting.BOLD
                 + tr("gtsr.cluster.gui.topo.layer.base");
         }
-        return EnumChatFormatting.GRAY + String.format(tr("gtsr.cluster.gui.topo.layer.ext"), segment);
+        return EnumChatFormatting.WHITE + String.format(tr("gtsr.cluster.gui.topo.layer.ext"), segment);
     }
 
     /**
@@ -228,7 +228,7 @@ final class ClusterTopologyPage implements ClusterPage {
         if (unrecognized) {
             GuiClusterTerminalScreen.drawScaledText(
                 font(),
-                EnumChatFormatting.GRAY + tr("gtsr.cluster.gui.topo.slot.unrecognized"),
+                EnumChatFormatting.WHITE + tr("gtsr.cluster.gui.topo.slot.unrecognized"),
                 x + 2,
                 y + 2,
                 0.7f,
@@ -237,7 +237,7 @@ final class ClusterTopologyPage implements ClusterPage {
         if (!occupied) {
             GuiClusterTerminalScreen.drawScaledText(
                 font(),
-                EnumChatFormatting.DARK_GRAY + tr("gtsr.cluster.gui.topo.slot.empty"),
+                EnumChatFormatting.WHITE + tr("gtsr.cluster.gui.topo.slot.empty"),
                 x + 2,
                 y + 5,
                 0.7f,
@@ -266,27 +266,27 @@ final class ClusterTopologyPage implements ClusterPage {
         boolean unrecognized) {
         java.util.List<String> lines = new java.util.ArrayList<String>();
         if (unrecognized) {
-            lines.add(EnumChatFormatting.GRAY + tr("gtsr.cluster.gui.topo.slot.unrecognized"));
+            lines.add(EnumChatFormatting.WHITE + tr("gtsr.cluster.gui.topo.slot.unrecognized"));
             return lines;
         }
         if (!occupied) {
-            lines.add(EnumChatFormatting.DARK_GRAY + tr("gtsr.cluster.gui.topo.slot.empty"));
+            lines.add(EnumChatFormatting.WHITE + tr("gtsr.cluster.gui.topo.slot.empty"));
             return lines;
         }
         lines.add(tr(typeLangKey(typeId)));
         if (tier >= 0) {
             lines.add(
-                EnumChatFormatting.GRAY + tr(
+                EnumChatFormatting.WHITE + tr(
                     ClusterParams.ClusterTier.get(tier)
                         .getLangKey()));
         }
         ClusterUnitStatus status = statusOf(runOrdinalOf(slotIndex));
-        if (status != null) lines.add(EnumChatFormatting.GRAY + tr(status.getLangKey()));
+        if (status != null) lines.add(EnumChatFormatting.WHITE + tr(status.getLangKey()));
         String errText = errorText(this.errIds[slotIndex]);
         if (errText != null) lines.add(EnumChatFormatting.RED + errText);
         int linkId = this.linkIds[slotIndex];
         if (typeId == 13 && linkId != 255) {
-            lines.add(EnumChatFormatting.GRAY + String.format(tr("gtsr.cluster.gui.topo.linked"), linkId + 1));
+            lines.add(EnumChatFormatting.WHITE + String.format(tr("gtsr.cluster.gui.topo.linked"), linkId + 1));
         }
         return lines;
     }
@@ -294,7 +294,7 @@ final class ClusterTopologyPage implements ClusterPage {
     /** 状态行文字：六态色 + 状态名；errId ≠ 0 附加红字短因。 */
     private String statusLine(int slotIndex) {
         ClusterUnitStatus status = statusOf(runOrdinalOf(slotIndex));
-        if (status == null) return EnumChatFormatting.GRAY + tr("gtsr.gui.cluster.state.standby");
+        if (status == null) return EnumChatFormatting.WHITE + tr("gtsr.gui.cluster.state.standby");
         String text = statusColor(status) + tr(status.getLangKey());
         String errText = errorText(this.errIds[slotIndex]);
         return errText != null ? text + EnumChatFormatting.RED + " · " + errText : text;
@@ -381,7 +381,7 @@ final class ClusterTopologyPage implements ClusterPage {
                 this.host.zLevel(),
                 (status.getColorRgb() << 8) | 0xFF);
             cursor += LEGEND_SWATCH + 3;
-            String name = EnumChatFormatting.GRAY + tr(status.getLangKey());
+            String name = EnumChatFormatting.WHITE + tr(status.getLangKey());
             GuiClusterTerminalScreen.drawScaledText(font(), name, cursor, y + 1, 0.6f, GtsrGuiPalette.TEXT_MUTED);
             cursor += GuiClusterTerminalScreen.scaledTextWidth(font(), name, 0.6f) + 6;
         }

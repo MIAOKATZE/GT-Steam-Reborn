@@ -138,7 +138,7 @@ final class ClusterBoosterPage implements ClusterPage {
             liveRow(rowIndex)[1] == 0 ? ROW_BG_FAIL : ROW_BG);
         // 模块名 + @段N（行基色：缺流红 / 正常白，与行底色同源）
         String moduleText = EnumChatFormatting.BOLD + tr(type.getLangKey())
-            + EnumChatFormatting.GRAY
+            + EnumChatFormatting.WHITE
             + (segment >= 0 ? String.format(tr("gtsr.gui.cluster.editor.segment"), segment) : "");
         String base = baseColor(rowIndex);
         GuiClusterTerminalScreen
@@ -166,7 +166,7 @@ final class ClusterBoosterPage implements ClusterPage {
         GuiClusterTerminalScreen.drawScaledText(
             font(),
             state + NumberFormatUtil.formatNumber(
-                now[0]) + " L " + EnumChatFormatting.GRAY + "· " + rateText(costLpsX10(rowIndex)) + " L/s",
+                now[0]) + " L " + EnumChatFormatting.WHITE + "· " + rateText(costLpsX10(rowIndex)) + " L/s",
             supplyX,
             y + 4,
             0.65f,
@@ -224,10 +224,10 @@ final class ClusterBoosterPage implements ClusterPage {
     private String hintText() {
         List<int[]> rows = structRows();
         if (rows.isEmpty()) {
-            return EnumChatFormatting.GRAY + tr("gtsr.cluster.gui.boost.empty.hint");
+            return EnumChatFormatting.WHITE + tr("gtsr.cluster.gui.boost.empty.hint");
         }
         if (!ClusterTerminalClientCache.getBool(ClusterTerminalData.KEY_ENABLED, false)) {
-            return EnumChatFormatting.GRAY + tr("gtsr.cluster.gui.boost.empty.off");
+            return EnumChatFormatting.WHITE + tr("gtsr.cluster.gui.boost.empty.off");
         }
         int failed = 0;
         for (int i = 0; i < rows.size(); i++) {
@@ -288,7 +288,7 @@ final class ClusterBoosterPage implements ClusterPage {
     /** 卡注：蒸汽乘子卡 = 生效 N·失效 N；节汽卡超限 = 截断警示；其余 = 静态说明。 */
     private String noteText(String labelKey) {
         if (labelKey.endsWith("mult")) {
-            return EnumChatFormatting.GRAY
+            return EnumChatFormatting.WHITE
                 + String.format(tr("gtsr.cluster.gui.boost.sum.count"), summaryAt(6), summaryAt(7));
         }
         if (labelKey.endsWith("saver")) {
@@ -296,12 +296,12 @@ final class ClusterBoosterPage implements ClusterPage {
             if (raw > ClusterParams.STEAM_SAVER_CAP * 100 + 1) {
                 return EnumChatFormatting.RED + tr("gtsr.cluster.gui.boost.saver_capped");
             }
-            return EnumChatFormatting.GRAY + "≤ 48%";
+            return EnumChatFormatting.WHITE + "≤ 48%";
         }
         if (labelKey.endsWith("primary")) {
-            return EnumChatFormatting.GRAY + tr("gtsr.cluster.gui.boost.note.primary");
+            return EnumChatFormatting.WHITE + tr("gtsr.cluster.gui.boost.note.primary");
         }
-        return EnumChatFormatting.GRAY + tr("gtsr.cluster.gui.boost.note.additive");
+        return EnumChatFormatting.WHITE + tr("gtsr.cluster.gui.boost.note.additive");
     }
 
     private static String pctText(int x100) {
@@ -331,7 +331,7 @@ final class ClusterBoosterPage implements ClusterPage {
     private void drawRules(int ox, int oy) {
         GuiClusterTerminalScreen.drawScaledText(
             font(),
-            EnumChatFormatting.GRAY + tr("gtsr.cluster.gui.boost.rule.stack"),
+            EnumChatFormatting.WHITE + tr("gtsr.cluster.gui.boost.rule.stack"),
             ox,
             oy + RULE_DY,
             0.6f,
@@ -343,7 +343,7 @@ final class ClusterBoosterPage implements ClusterPage {
     private String ruleStateText() {
         List<int[]> rows = structRows();
         if (rows.isEmpty()) {
-            return EnumChatFormatting.GRAY + tr("gtsr.cluster.gui.boost.rule.none");
+            return EnumChatFormatting.WHITE + tr("gtsr.cluster.gui.boost.rule.none");
         }
         int failed = summaryAt(7);
         if (failed > 0) {
@@ -435,7 +435,7 @@ final class ClusterBoosterPage implements ClusterPage {
         int[] cost = costRow(rowIndex);
         if (cost == null || cost.length < 2 || cost[1] <= 0) return "";
         StringBuilder sb = new StringBuilder();
-        sb.append(EnumChatFormatting.GRAY)
+        sb.append(EnumChatFormatting.WHITE)
             .append(tr("gtsr.cluster.gui.boost.cost.base"))
             .append(' ')
             .append(NumberFormatUtil.formatNumber(cost[1]))

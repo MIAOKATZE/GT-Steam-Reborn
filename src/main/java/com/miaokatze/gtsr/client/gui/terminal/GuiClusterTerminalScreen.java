@@ -275,7 +275,12 @@ public class GuiClusterTerminalScreen extends GuiTerminalBase {
         this.powerButton.displayString = ClusterTerminalClientCache.getBool(ClusterTerminalData.KEY_ENABLED, false)
             ? tr("gtsr.gui.cluster.power.on")
             : tr("gtsr.gui.cluster.power.off");
-        super.drawScreen(mouseX, mouseY, partialTicks);
+        // 仅绘制集群自己的按钮；不能调用 GuiTerminalBase.drawScreen，它会绘制枢纽 panel_hub_status。
+        for (Object entry : this.buttonList) {
+            if (entry instanceof GuiButton) {
+                ((GuiButton) entry).drawButton(this.mc, mouseX, mouseY);
+            }
+        }
         // tooltip：电源钮区 + 页内登记（均在剪刀外绘制）
         if (mouseX >= this.guiLeft + POWER_BTN_X && mouseX < this.guiLeft + POWER_BTN_X + POWER_BTN_W
             && mouseY >= this.guiTop + POWER_BTN_Y
@@ -328,7 +333,7 @@ public class GuiClusterTerminalScreen extends GuiTerminalBase {
         for (int i = 0; i < labels.length; i++) {
             drawScaledText(
                 font,
-                EnumChatFormatting.GRAY + labels[i],
+                EnumChatFormatting.WHITE + labels[i],
                 this.guiLeft + CARDS_X0 + i * (CARD_W + CARD_GAP) + 3,
                 this.guiTop + CARDS_Y + 3,
                 0.6f,
@@ -381,7 +386,7 @@ public class GuiClusterTerminalScreen extends GuiTerminalBase {
             + " "
             + tr("gtsr.cluster.gui.card.thru.unit");
         drawScaledText(font, thruText, this.guiLeft + thruX + 3, y0, 0.9f, GtsrGuiPalette.TEXT_WHITE);
-        String totalText = EnumChatFormatting.GRAY + String.format(
+        String totalText = EnumChatFormatting.WHITE + String.format(
             tr("gtsr.cluster.gui.card.thru.total"),
             NumberFormatUtil.formatNumber(ClusterTerminalClientCache.getLong(ClusterTerminalData.KEY_TOTAL, 0L)));
         drawScaledText(
@@ -444,7 +449,7 @@ public class GuiClusterTerminalScreen extends GuiTerminalBase {
             alert = true;
         } else {
             alert = false;
-            text = EnumChatFormatting.GRAY + tr(footbarNormalKey());
+            text = EnumChatFormatting.WHITE + tr(footbarNormalKey());
         }
         final FontRenderer font = this.fontRendererObj;
         int textW = (int) (font.getStringWidth(text) * 0.7f);

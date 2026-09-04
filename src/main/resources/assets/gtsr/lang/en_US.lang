@@ -142,9 +142,7 @@ gtsr.aggregator_config.search_hint=Enter an ore name fragment, then press Search
 gtsr.aggregator_config.category.all=All
 gtsr.aggregator_config.category.unfiltered=Unfiltered
 gtsr.aggregator_config.category.filtered=Filtered
-gtsr.aggregator_config.category.asc=Weight Asc
-gtsr.aggregator_config.category.desc=Weight Desc
-gtsr.aggregator_config.category.tip=Click to cycle: All -> Unfiltered -> Filtered -> Weight Asc -> Weight Desc
+gtsr.aggregator_config.category.tip=Click to cycle: All -> Unfiltered -> Filtered; click a column header (Ore/Weight/Dims) to sort, click again to reverse
 gtsr.aggregator_config.filter=Filter
 gtsr.aggregator_config.unfilter=Unfilter
 gtsr.aggregator_config.filtered_hint=Filtered: this ore's weight is freed; no longer drawn
@@ -168,14 +166,13 @@ gtsr.aggregator_config.steam_cost.mult=(mult ×%s)
 gtsr.aggregator_config.steam_cost.detail_dir=Mult detail (mode/fortune × fixed +200% × directional): 
 gtsr.aggregator_config.steam_formula=Cost=base×(mode+fortune)×dimension×directional/filter cost
 gtsr.aggregator_config.uu_formula=Cost=1×(mode+fortune)×directional cost
-gtsr.aggregator_config.mode_hint.filtered.1=Current mode: filter
-gtsr.aggregator_config.mode_hint.filtered.2=The more ores you filter and the heavier they are
-gtsr.aggregator_config.mode_hint.filtered.3=the more steam is consumed
-gtsr.aggregator_config.mode_hint.filtered.4=Cost increase%=filtered total weight%+5%×k(k-1)/2 (k=filter count, +5% per extra filter)
-gtsr.aggregator_config.mode_hint.directional.1=Current mode: directional
-gtsr.aggregator_config.mode_hint.directional.2=The fewer ores you aim at and the lower their weight
-gtsr.aggregator_config.mode_hint.directional.3=the more steam is consumed
-gtsr.aggregator_config.mode_hint.directional.4=Cost increase%=2500%/sum of 3 lowest aimed weights (accumulate all if fewer than 3)
+gtsr.aggregator_config.mode_hint.filtered.title=Current mode: filter
+gtsr.aggregator_config.mode_hint.filtered=The more ores are filtered out and the heavier they are, the more steam is consumed; cost increase% = filtered total weight% + 5% x k(k-1)/2 (k = filter count, +5% per extra filter)
+gtsr.aggregator_config.mode_hint.directional.title=Current mode: directional
+gtsr.aggregator_config.mode_hint.directional=The fewer ores are aimed at and the lower their weight, the more steam is consumed; cost increase% = 2500% / sum of 3 lowest aimed weights (accumulate all if fewer than 3)
+gtsr.aggregator_config.help.slots=Place dimension display items to pick dimensions; an empty controller slot defaults to the current dimension; click Refresh after changes to rebuild the pool
+gtsr.aggregator_config.help.filter=Filter mode: click Filter per ore to exclude ores; the more ores filtered and the heavier, the more steam is consumed
+gtsr.aggregator_config.help.directional=Directional mode: click Aim per ore to lock output; the fewer aims and the lower their weight, the more steam; only aimed ores are produced
 gtsr.aggregator_config.dim_text.filtered=20% steam cost increase/dimension
 gtsr.aggregator_config.dim_text.directional=200%+20%/extra dimension slot steam cost increase
 gtsr.aggregator_config.clear_config=Clear Config
@@ -563,6 +560,8 @@ gtsr.cache_hub_status.title.steam=Steam Hub Cache Node Status
 gtsr.cache_hub_status.title.water=Water Hub Cache Node Status
 gtsr.cache_hub_status.mode_tip_output=Output mode: Node -> Hub (click to switch)
 gtsr.cache_hub_status.mode_tip_input=Input mode: Hub -> Node (click to switch)
+gtsr.cache_hub_status.mode_short_output=Output mode: Node -> Hub
+gtsr.cache_hub_status.mode_short_input=Input mode: Hub -> Node
 gtsr.cache_hub_status.rate_tip=Cycle hub transfer rate (100 -> 80 -> ... -> 0%)
 gtsr.cache_hub_status.cap_tip=Cycle capacity limit (100 -> 80 -> ... -> 5%; same as sneak-right-click with the Hub Terminal)
 gtsr.cache_hub_status.auto_on=Auto Output:ON

@@ -162,13 +162,13 @@ final class ClusterLinkEditorPage implements ClusterPage {
     private String formatUnitOption(int idx) {
         int[] segments = unitSegments();
         if (idx < 0 || idx >= segments.length) {
-            return EnumChatFormatting.GRAY + tr("gtsr.cluster.gui.link.unit.none");
+            return EnumChatFormatting.WHITE + tr("gtsr.cluster.gui.link.unit.none");
         }
         int flags = unitFlags()[idx];
         boolean connected = (flags & 0x01) != 0;
         boolean powered = (flags & 0x04) != 0;
         return EnumChatFormatting.WHITE + tr("gtsr.gui.cluster.unit_type.logistics")
-            + EnumChatFormatting.GRAY
+            + EnumChatFormatting.WHITE
             + String.format(tr("gtsr.gui.cluster.editor.segment"), segments[idx])
             + " · "
             + (connected ? EnumChatFormatting.GREEN + tr("gtsr.cluster.gui.link.unit.linked")
@@ -229,7 +229,7 @@ final class ClusterLinkEditorPage implements ClusterPage {
         sb.append(
             structValid ? EnumChatFormatting.GREEN + "✔ " + tr("gtsr.cluster.gui.link.banner.struct_ok")
                 : EnumChatFormatting.RED + "✖ " + tr("gtsr.cluster.gui.link.banner.struct_bad"));
-        sb.append(EnumChatFormatting.GRAY)
+        sb.append(EnumChatFormatting.WHITE)
             .append(" | ");
         if (exec == 2) {
             sb.append(EnumChatFormatting.GREEN)
@@ -271,7 +271,7 @@ final class ClusterLinkEditorPage implements ClusterPage {
             .drawScaledText(font(), feedbackText(), ox, oy + feedbackDy, 0.65f, GtsrGuiPalette.TEXT_BODY);
         GuiClusterTerminalScreen.drawScaledText(
             font(),
-            EnumChatFormatting.GRAY + String
+            EnumChatFormatting.WHITE + String
                 .format(tr("gtsr.cluster.gui.link.chain.len"), displayOrdinals().size(), ClusterParams.CHAIN_MAX_LINKS),
             ox + 150,
             oy + feedbackDy,
@@ -317,7 +317,7 @@ final class ClusterLinkEditorPage implements ClusterPage {
     /** 链步行 overlay：首行 名称 + 在链 ×N（绿）；次行 基准秒 + 介质需求 + 锁因（红）。 */
     private String formatLinkOverlay(ChainLink link) {
         boolean available = lockKind(link.ordinal()) == 0;
-        EnumChatFormatting base = available ? EnumChatFormatting.WHITE : EnumChatFormatting.DARK_GRAY;
+        EnumChatFormatting base = available ? EnumChatFormatting.WHITE : EnumChatFormatting.WHITE;
         StringBuilder first = new StringBuilder(base.toString()).append(tr(link.getLangKey()));
         int count = countInChain(link.ordinal());
         if (count > 0) {
@@ -326,7 +326,7 @@ final class ClusterLinkEditorPage implements ClusterPage {
                 .append(String.format(tr("gtsr.gui.cluster.chain.in_chain"), count));
         }
         StringBuilder second = new StringBuilder(
-            available ? EnumChatFormatting.GRAY.toString() : EnumChatFormatting.DARK_GRAY.toString())
+            available ? EnumChatFormatting.WHITE.toString() : EnumChatFormatting.WHITE.toString())
                 .append(String.format(tr("gtsr.gui.cluster.editor.link_seconds"), link.getBaseSecondsPrecise()))
                 .append(" · ")
                 .append(mediumText(link));
@@ -382,7 +382,7 @@ final class ClusterLinkEditorPage implements ClusterPage {
         checkSnapshotCaughtUp();
         long now = System.currentTimeMillis();
         if (unitSegments().length == 0) {
-            return EnumChatFormatting.GRAY + tr("gtsr.cluster.gui.link.unit.none");
+            return EnumChatFormatting.WHITE + tr("gtsr.cluster.gui.link.unit.none");
         }
         if (now - this.lastRejectAt < APPLY_WINDOW_MS) {
             return EnumChatFormatting.RED + "✖ " + tr("gtsr.cluster.gui.link.chain.invalid");
@@ -430,7 +430,7 @@ final class ClusterLinkEditorPage implements ClusterPage {
         if (ordinals.isEmpty()) {
             GuiClusterTerminalScreen.drawScaledText(
                 font(),
-                EnumChatFormatting.GRAY + tr("gtsr.cluster.gui.link.chain.empty"),
+                EnumChatFormatting.WHITE + tr("gtsr.cluster.gui.link.chain.empty"),
                 rx + 4,
                 oy + CHIPS_DY + 4,
                 0.8f,
@@ -544,7 +544,7 @@ final class ClusterLinkEditorPage implements ClusterPage {
     private String formatFlowLine() {
         List<Integer> ordinals = displayOrdinals();
         if (ordinals.isEmpty()) {
-            return EnumChatFormatting.GRAY + tr("gtsr.cluster.gui.link.chain.empty");
+            return EnumChatFormatting.WHITE + tr("gtsr.cluster.gui.link.chain.empty");
         }
         StringBuilder sb = new StringBuilder();
         Form form = ClusterChainFSM.start();
@@ -552,11 +552,11 @@ final class ClusterLinkEditorPage implements ClusterPage {
         for (int i = 0; i < ordinals.size(); i++) {
             Form next = ClusterChainFSM.next(form, LINKS[ordinals.get(i)]);
             boolean last = i == ordinals.size() - 1;
-            sb.append(EnumChatFormatting.GRAY)
+            sb.append(EnumChatFormatting.WHITE)
                 .append(" →(")
                 .append(EnumChatFormatting.WHITE)
                 .append(tr(LINKS[ordinals.get(i)].getLangKey()))
-                .append(EnumChatFormatting.GRAY)
+                .append(EnumChatFormatting.WHITE)
                 .append(")→ ")
                 .append(formTag(next, last));
             form = next;

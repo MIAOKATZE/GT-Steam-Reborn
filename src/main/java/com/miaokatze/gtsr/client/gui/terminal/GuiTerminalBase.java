@@ -38,16 +38,38 @@ import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
  * <li>重命名 {@link GuiTextField} 支持（客户端纯本地，确认才发包，maxLength 24）；</li>
  * <li>500ms drawHoveringText tooltip（GTSWN GuiDeviceInfoTerminal :631-669 范式）。</li>
  * </ul>
- * 布局（PLAN §4.5-A 冻结 320×200，契约 §2 净空裁决）：列表内嵌区 (8,18) 304×142
- * （GtsrGuiList 行高 20、滚动偏移自持）；底部操作区 y164-193：重命名行 + 动作按钮行。
+ * 布局（400×240 切片 A 重排，原 PLAN §4.5-A 冻结 320×200 记档；契约 §2 净空裁决内容止于行 233）：
+ * 列头行 y15-23（缓存枢纽列头用，钻井枢纽留白）；列表内嵌区 (8,24) 384×176
+ * （GtsrGuiList 行高 20、滚动偏移自持）；底部操作区：重命名行 y204 + 动作按钮行 y219。
+ * 枢纽各屏（钻井/蒸汽/蓄水）共用本类布局常量，几何一致。
  */
 @SideOnly(Side.CLIENT)
 public abstract class GuiTerminalBase extends GuiScreen {
 
-    /** 面板宽（PLAN §4.5-A 冻结 320×200，与 panel_hub_status 同尺寸 1:1） */
+    /** 面板宽（切片 A 400×240，与 panel_hub_status 同尺寸 1:1；原 PLAN §4.5-A 冻结 320 记档） */
     public static final int PANEL_W = GtsrGuiTextures.PANEL_HUB_STATUS_W;
     /** 面板高 */
     public static final int PANEL_H = GtsrGuiTextures.PANEL_HUB_STATUS_H;
+
+    // ---- 枢纽共享布局常量（400×240 切片 A 重排；钻井/蒸汽/蓄水四屏几何一致） ----
+
+    /** 列头标签行 y（GuiCacheHubStatusScreen 列头用；钻井枢纽该带留白保持几何一致） */
+    protected static final int COLUMN_HEADER_Y = 15;
+
+    /** 列表内嵌区左边界（面板相对；契约 §2 内容侧净空 x+8） */
+    protected static final int LIST_X = 8;
+    /** 列表内嵌区上边界（列头行之下） */
+    protected static final int LIST_Y = 24;
+    /** 列表内嵌区宽（面板相对 400-2×8） */
+    protected static final int LIST_W = 384;
+    /** 列表内嵌区高（8 整行 + 16px 局部行；GtsrGuiList 行高 20 冻结） */
+    protected static final int LIST_H = 176;
+
+    /** 重命名行 y（列表底 200 下方 4px，同旧 320×200 布局的 4px 行距节奏） */
+    protected static final int RENAME_ROW_Y = 204;
+
+    /** 动作按钮行 y（重命名行下 1px 间隔，行高 14；止于净空行 233 上方，同旧行距节奏） */
+    protected static final int ACTION_ROW_Y = 219;
 
     /** 轮询周期（tick）：PLAN §4.3-A/B 冻结 10t */
     public static final int POLL_INTERVAL_TICKS = 10;
@@ -105,7 +127,12 @@ public abstract class GuiTerminalBase extends GuiScreen {
         super.initGui();
         this.guiLeft = (this.width - PANEL_W) / 2;
         this.guiTop = (this.height - PANEL_H) / 2;
-        this.renameField = new GuiTextField(this.fontRendererObj, this.guiLeft + 8, this.guiTop + 164, 140, 14);
+        this.renameField = new GuiTextField(
+            this.fontRendererObj,
+            this.guiLeft + 8,
+            this.guiTop + RENAME_ROW_Y,
+            140,
+            14);
         this.renameField.setMaxStringLength(24);
         this.renameField.setFocused(false);
     }

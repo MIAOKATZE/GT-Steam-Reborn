@@ -27,12 +27,12 @@ public final class GtsrGuiTextures {
     // 整版面板（§2 三块整版，整绘 1:1，不用 9-slice）
     // ---------------------------------------------------------------------
 
-    /** §3 #1 枢纽状态三件套整版面板 320×200（奇点钻井/蒸汽/蓄水共用，N10-N13 接线） */
+    /** §3 #1 枢纽状态三件套整版面板 400×240（奇点钻井/蒸汽/蓄水共用，N10-N13 接线；切片 A 放大，原 320×200 记档） */
     public static final ResourceLocation PANEL_HUB_STATUS = rl("panel_hub_status");
-    /** #1 宽 320 px */
-    public static final int PANEL_HUB_STATUS_W = 320;
-    /** #1 高 200 px */
-    public static final int PANEL_HUB_STATUS_H = 200;
+    /** #1 宽 400 px（切片 A 修订，原 320 px） */
+    public static final int PANEL_HUB_STATUS_W = 400;
+    /** #1 高 240 px（切片 A 修订，原 200 px） */
+    public static final int PANEL_HUB_STATUS_H = 240;
 
     /** §3 #2 聚合器配置整版面板 475×350（N14 接线） */
     public static final ResourceLocation PANEL_AGGREGATOR = rl("panel_aggregator");

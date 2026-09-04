@@ -30,9 +30,11 @@ import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
  * 行为等价映射（旧 MUI2 缓存枢纽状态 GUI 基类 + 两薄壳，git 基线 b4fabb2 同名源码 → 本类，
  * 逐动作对照 PLAN §7.2）：
  * <ul>
- * <li>行渲染：图标 16×16 renderItem（子类 instanceof 类型串静态映射，零网络开销）+
- * 名字（离线红字后缀）+ 坐标+DIM 灰字 + 流体名/储量/容量（K/M/G 千位递进两位小数，
- * formatKMG 逐行移植）；速率/容量档进 500ms 行 tooltip（旧同款仅在 tooltip 展示）；</li>
+ * <li>行渲染（400×240 切片 A 列内化）：左列=图标 16×16 renderItem（子类 instanceof 类型串静态
+ * 映射，零网络开销）+ 名字（离线红字后缀）+ 流体名（强调）；右侧储量/容量/速率三列右对齐
+ * （formatKMG 逐行移植；速率原仅在 500ms 行 tooltip 展示，切片 A 起列内化为行内唯一来源，
+ * 行 tooltip 只留名字/类型与坐标维度补充，不留重复显示）；列表上方 muted 列头标签行
+ * （TEXT_LABEL，速率/容量档仍只在底部按钮与 tooltip 展示）；</li>
  * <li>6 动作最终调用与旧两薄壳委托表逐字对应（同批继承方法、同参序）；发送类仓
  * （type 以 _out 结尾）容量按钮禁用（旧 supportsCapTier 判定）；modeLocked 行模式按钮
  * 禁用仍展示；离线行禁操作按钮仅展示绑定记录；</li>
@@ -50,6 +52,20 @@ public abstract class GuiCacheHubStatusScreen extends GuiTerminalBase {
     private static final int BTN_CAP = 4;
     private static final int BTN_MODE = 5;
     private static final int BTN_AUTO = 6;
+
+    // ---- 行内数值列（400×240 切片 A 列内化；行相对偏移，行宽 = LIST_W = 384，右缘留 10px 避滚动条） ----
+
+    /** 储量列右缘（行相对；列宽 70） */
+    private static final int COL_STORED_RIGHT = 232;
+    /** 容量列右缘（行相对；列宽 70） */
+    private static final int COL_CAP_RIGHT = 308;
+    /** 速率列右缘（行相对；列宽 60） */
+    private static final int COL_RATE_RIGHT = 374;
+    /** 左列（图标+名/流体）文本可用宽：图标位 24 起，至储量列左缘（232-70=162）留 6px 间隔 */
+    private static final int LEFT_CELL_W = 162 - 24 - 6;
+
+    /** 「输入模式」按钮宽：短标签键在 zh/en 双语下均完整显示（en 最长 ~130px；ellipsized 仍兜底），完整「点击切换」提示留在 hover tooltip */
+    private static final int MODE_BTN_W = 136;
 
     private GtsrGuiList list;
 
@@ -141,7 +157,7 @@ public abstract class GuiCacheHubStatusScreen extends GuiTerminalBase {
     @Override
     public void initGui() {
         super.initGui();
-        this.list = new GtsrGuiList(this, this.guiLeft + 8, this.guiTop + 18, 304, 142);
+        this.list = new GtsrGuiList(this, this.guiLeft + LIST_X, this.guiTop + LIST_Y, LIST_W, LIST_H);
         this.list.setRowSource(this::rowCount);
         this.list.setRowPainter(this::paintRow);
         this.list.setRowListener(this::selectRow);
@@ -150,34 +166,35 @@ public abstract class GuiCacheHubStatusScreen extends GuiTerminalBase {
             new GtsrGuiButton(
                 BTN_RENAME,
                 this.guiLeft + 152,
-                this.guiTop + 164,
+                this.guiTop + RENAME_ROW_Y,
                 64,
                 14,
                 ellipsized("gtsr.hub_status.rename", 64)));
-        // 传送 + 速率 + 容量 + 模式 + 自动输出（旧行内横排按钮序：teleport→rate→cap→mode→auto）
+        // 传送 + 速率 + 容量 + 模式 + 自动输出（旧行内横排按钮序：teleport→rate→cap→mode→auto；
+        // mode 用短标签键双语完整显示，完整「点击切换」提示留在 hover tooltip；auto 随 mode 加宽右移 244→272→304）
         this.buttonList.add(
             new GtsrGuiButton(
                 BTN_TELEPORT,
                 this.guiLeft + 8,
-                this.guiTop + 179,
+                this.guiTop + ACTION_ROW_Y,
                 56,
                 14,
                 ellipsized("gtsr.hub_status.teleport", 56)));
-        this.buttonList.add(new GtsrGuiButton(BTN_RATE, this.guiLeft + 66, this.guiTop + 179, 48, 14, ""));
-        this.buttonList.add(new GtsrGuiButton(BTN_CAP, this.guiLeft + 116, this.guiTop + 179, 48, 14, ""));
+        this.buttonList.add(new GtsrGuiButton(BTN_RATE, this.guiLeft + 66, this.guiTop + ACTION_ROW_Y, 48, 14, ""));
+        this.buttonList.add(new GtsrGuiButton(BTN_CAP, this.guiLeft + 116, this.guiTop + ACTION_ROW_Y, 48, 14, ""));
         this.buttonList.add(
             new GtsrGuiButton(
                 BTN_MODE,
                 this.guiLeft + 166,
-                this.guiTop + 179,
-                76,
+                this.guiTop + ACTION_ROW_Y,
+                MODE_BTN_W,
                 14,
-                ellipsized("gtsr.cache_hub_status.mode_tip_output", 76)));
+                ellipsized("gtsr.cache_hub_status.mode_short_output", MODE_BTN_W)));
         this.buttonList.add(
             new GtsrGuiButton(
                 BTN_AUTO,
-                this.guiLeft + 244,
-                this.guiTop + 179,
+                this.guiLeft + 304,
+                this.guiTop + ACTION_ROW_Y,
                 68,
                 14,
                 ellipsized("gtsr.cache_hub_status.auto_off", 68)));
@@ -207,8 +224,8 @@ public abstract class GuiCacheHubStatusScreen extends GuiTerminalBase {
             setButtonText(
                 BTN_MODE,
                 ellipsized(
-                    cur.out ? "gtsr.cache_hub_status.mode_tip_input" : "gtsr.cache_hub_status.mode_tip_output",
-                    76));
+                    cur.out ? "gtsr.cache_hub_status.mode_short_input" : "gtsr.cache_hub_status.mode_short_output",
+                    MODE_BTN_W));
             setButtonText(
                 BTN_AUTO,
                 ellipsized(cur.auto ? "gtsr.cache_hub_status.auto_on" : "gtsr.cache_hub_status.auto_off", 68));
@@ -302,12 +319,13 @@ public abstract class GuiCacheHubStatusScreen extends GuiTerminalBase {
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         super.drawScreen(mouseX, mouseY, partialTicks);
+        drawColumnHeaders();
         this.list.draw(mouseX, mouseY, this.zLevel);
         if (rowCount() == 0) {
             this.fontRendererObj.drawStringWithShadow(
                 StatCollector.translateToLocal("gtsr.hub_status.empty"),
                 this.guiLeft + 14,
-                this.guiTop + 26,
+                this.guiTop + LIST_Y + 8,
                 GtsrGuiPalette.TEXT_MUTED);
         }
         this.drawRenameField();
@@ -331,9 +349,10 @@ public abstract class GuiCacheHubStatusScreen extends GuiTerminalBase {
     }
 
     /**
-     * 单行绘制：图标 + 名字（离线红字后缀）+ 坐标维度行 + 流体/储量/容量行。
-     * 字段与旧 CacheNodeInfo 行一一对应（图标/名/坐标 dim/流体/储量容量；速率与容量档在
-     * 行 tooltip 与按钮上展示——旧轨亦仅在 tooltip 展示）。
+     * 单行绘制（400×240 切片 A 列内化）：左列=图标 + 名字（离线红字后缀）+ 流体名（强调）；
+     * 右侧储量/容量/速率三列右对齐、行内垂直居中（列头见 {@link #drawColumnHeaders}）。
+     * 速率原仅在 500ms 行 tooltip 展示（旧轨同款），切片 A 起列内化为行内唯一来源；
+     * 坐标+DIM 为补充信息移入行 tooltip（{@link #rowTooltipLines}）。
      */
     private void paintRow(int index, int x, int y, int mouseX, int mouseY) {
         final List<CacheNodeInfo> nodes = matchedSnapshotNodes();
@@ -342,51 +361,68 @@ public abstract class GuiCacheHubStatusScreen extends GuiTerminalBase {
         }
         final CacheNodeInfo info = nodes.get(index);
         final int textX = x + 24;
-        final int textWidth = 304 - 24 - 10;
         final boolean offline = info.type.isEmpty();
 
         // 节点图标（子类静态映射）；未知类型无图标（旧同款仅省图标位）
         ItemStack iconStack = getNodeIcon(info.type);
         this.renderItemIcon(iconStack, x + 4, y + 2);
 
-        // 第 1 行：名字 + 离线红字后缀（名字空回退默认名：图标栈显示名/未知节点）
+        // 左列第 1 行：名字 + 离线红字后缀（名字空回退默认名：图标栈显示名/未知节点）
         String defaultName = iconStack != null ? iconStack.getDisplayName()
             : StatCollector.translateToLocal("gtsr.cache_hub_status.unknown_node");
         String nodeName = info.name.isEmpty() ? defaultName : info.name;
-        this.fontRendererObj.drawStringWithShadow(
-            GtsrGuiList.ellipsis(this.fontRendererObj, nodeName, textWidth),
-            textX,
-            y + 1,
-            GtsrGuiPalette.TEXT_BODY);
-        if (offline) {
-            String suffix = " " + StatCollector.translateToLocal("gtsr.cache_hub_status.offline");
+        // 名字与后缀合成一体按左列宽裁剪：先为后缀预留宽度，名字按余宽 ellipsis，后缀紧随其尾不越入数值列
+        String offlineSuffix = offline ? " " + StatCollector.translateToLocal("gtsr.cache_hub_status.offline") : null;
+        String shownName = GtsrGuiList.ellipsis(
+            this.fontRendererObj,
+            nodeName,
+            offlineSuffix != null ? LEFT_CELL_W - this.fontRendererObj.getStringWidth(offlineSuffix) : LEFT_CELL_W);
+        this.fontRendererObj.drawStringWithShadow(shownName, textX, y + 1, GtsrGuiPalette.TEXT_BODY);
+        if (offlineSuffix != null) {
             this.fontRendererObj.drawStringWithShadow(
-                suffix,
-                textX + Math.min(this.fontRendererObj.getStringWidth(nodeName), textWidth - 40),
+                offlineSuffix,
+                textX + this.fontRendererObj.getStringWidth(shownName),
                 y + 1,
                 GtsrGuiPalette.STATE_OFFLINE);
         }
 
-        // 第 2 行：坐标 + 维度（灰）+ 流体名（强调）+ 储量/容量（K/M/G，逐行移植 formatKMG）
-        String coords = "(" + info.x + ", " + info.y + ", " + info.z + ") DIM: " + info.dim;
-        this.fontRendererObj.drawStringWithShadow(coords, textX, y + 10, GtsrGuiPalette.TEXT_MUTED);
-        int cursor = textX + this.fontRendererObj.getStringWidth(coords) + 6;
+        // 左列第 2 行：流体名（强调，K/M/G 储量容量已移右侧数值列）
         String fluidText = localizeFluid(info.fluid);
-        String storedText = formatKMG(info.stored);
-        String capText = " / " + formatKMG(info.cap);
-        int need = this.fontRendererObj.getStringWidth(fluidText) + 1
-            + this.fontRendererObj.getStringWidth(storedText)
-            + this.fontRendererObj.getStringWidth(capText);
-        if (cursor + need <= textX + textWidth) {
-            this.fontRendererObj.drawStringWithShadow(fluidText, cursor, y + 10, GtsrGuiPalette.TEXT_ACCENT);
-            cursor += this.fontRendererObj.getStringWidth(fluidText) + 1;
-            this.fontRendererObj.drawStringWithShadow(storedText, cursor, y + 10, GtsrGuiPalette.TEXT_BODY);
-            cursor += this.fontRendererObj.getStringWidth(storedText);
-            this.fontRendererObj.drawStringWithShadow(capText, cursor, y + 10, GtsrGuiPalette.TEXT_MUTED);
-        }
+        this.fontRendererObj.drawStringWithShadow(
+            GtsrGuiList.ellipsis(this.fontRendererObj, fluidText, LEFT_CELL_W),
+            textX,
+            y + 10,
+            GtsrGuiPalette.TEXT_ACCENT);
+
+        // 右侧数值列（右对齐、y+6 垂直居中；formatKMG K/M/G 逐行移植）
+        drawRightAligned(formatKMG(info.stored), x + COL_STORED_RIGHT, y + 6, GtsrGuiPalette.TEXT_BODY);
+        drawRightAligned(formatKMG(info.cap), x + COL_CAP_RIGHT, y + 6, GtsrGuiPalette.TEXT_MUTED);
+        drawRightAligned(info.rate + "%", x + COL_RATE_RIGHT, y + 6, GtsrGuiPalette.TEXT_ACCENT);
     }
 
-    /** 行 tooltip（500ms）：名/类型、坐标维度、流体储量、速率%、容量档% */
+    /** 右缘定位文字绘制（数值列/列头共用；右对齐保证同列逐行对齐） */
+    private void drawRightAligned(String text, int rightEdge, int y, int color) {
+        this.fontRendererObj
+            .drawStringWithShadow(text, rightEdge - this.fontRendererObj.getStringWidth(text), y, color);
+    }
+
+    /**
+     * 列头标签行（列表上方 {@link GuiTerminalBase#COLUMN_HEADER_Y}，TEXT_LABEL 亮标签 token，
+     * 与行内数值列同右缘对齐）。lang 文件不在本切片授权范围：列头沿用行 tooltip 既有英文
+     * 小写字面风格（旧 tooltip "rate:"/"cap:" 同款），本地化留待后续 lang 授权切片。
+     */
+    private void drawColumnHeaders() {
+        final int y = this.guiTop + COLUMN_HEADER_Y;
+        final int x = this.guiLeft + LIST_X;
+        drawRightAligned("stored", x + COL_STORED_RIGHT, y, GtsrGuiPalette.TEXT_LABEL);
+        drawRightAligned("cap", x + COL_CAP_RIGHT, y, GtsrGuiPalette.TEXT_LABEL);
+        drawRightAligned("rate", x + COL_RATE_RIGHT, y, GtsrGuiPalette.TEXT_LABEL);
+    }
+
+    /**
+     * 行 tooltip（500ms，补充信息）：名/类型、坐标维度。
+     * 400×240 切片 A：流体/储量/容量/速率已列内化为行内唯一来源，不再重复展示。
+     */
     private List<String> rowTooltipLines(int index) {
         final List<CacheNodeInfo> nodes = matchedSnapshotNodes();
         if (index < 0 || index >= nodes.size()) {
@@ -396,9 +432,6 @@ public abstract class GuiCacheHubStatusScreen extends GuiTerminalBase {
         List<String> lines = new ArrayList<String>();
         lines.add(info.name.isEmpty() ? info.type : info.name);
         lines.add("(" + info.x + ", " + info.y + ", " + info.z + ") DIM: " + info.dim);
-        lines.add(localizeFluid(info.fluid) + " " + formatKMG(info.stored) + " / " + formatKMG(info.cap));
-        lines.add("rate: " + info.rate + "%");
-        lines.add("cap: " + info.capPct + "%");
         return lines;
     }
 
