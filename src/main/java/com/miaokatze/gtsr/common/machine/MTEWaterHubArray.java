@@ -16,10 +16,12 @@ import javax.annotation.Nullable;
 
 import net.minecraft.block.Block;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
+import net.minecraftforge.common.util.FakePlayer;
 import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidRegistry;
@@ -48,6 +50,8 @@ import com.miaokatze.gtsr.common.machine.base.MTEReinforcedWaterCacheNode;
 import com.miaokatze.gtsr.common.machine.base.MTEWaterCacheNode;
 import com.miaokatze.gtsr.common.machine.base.MTEWaterHubInputHatch;
 import com.miaokatze.gtsr.common.machine.base.MTEWaterHubOutputHatch;
+import com.miaokatze.gtsr.common.terminal.TerminalNet;
+import com.miaokatze.gtsr.common.terminal.TerminalUiType;
 import com.miaokatze.gtsr.common.util.UnitFormatUtil;
 
 import gregtech.api.GregTechAPI;
@@ -808,12 +812,17 @@ public class MTEWaterHubArray extends MTEHubArrayBase<MTEWaterHubArray>
     }
 
     /**
-     * 打开缓存节点状态管理界面（Modern UI 2）。必须在服务端调用，
-     * 实际打开逻辑委托给 WaterHubStatusGuiFactory（独立 MUI2 factory，不影响主 GUI）。
+     * 打开缓存节点状态管理界面（terminal-native-ui 轨 A：S2C open 包 + 客户端本地 displayGuiScreen，
+     * 零 windowId）。必须在服务端调用；守卫语义照旧（EntityPlayerMP/FakePlayer/基 TE 存活，
+     * 与原服务端 open 守卫一致），实际打开由 TerminalClientPacketSink 双校验后承载。
      */
     @Override
     public void openHubStatusGui(EntityPlayer player) {
-        com.miaokatze.gtsr.common.gui.WaterHubStatusGuiFactory.open(player, this);
+        if (!(player instanceof EntityPlayerMP playerMP) || player instanceof FakePlayer) return;
+        IGregTechTileEntity base = this.getBaseMetaTileEntity();
+        if (base == null) return;
+        TerminalNet
+            .sendOpen(TerminalUiType.WATER_HUB, playerMP, base.getXCoord(), base.getYCoord(), base.getZCoord(), 0);
     }
 
     /**

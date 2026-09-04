@@ -6,6 +6,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.World;
 
 import com.miaokatze.gtsr.common.blocks.GTSRSingularityFX;
+import com.miaokatze.gtsr.common.terminal.TerminalNet;
 
 import cpw.mods.fml.common.network.NetworkRegistry;
 import cpw.mods.fml.common.network.simpleimpl.IMessage;
@@ -17,8 +18,9 @@ import cpw.mods.fml.relauncher.SideOnly;
 import io.netty.buffer.ByteBuf;
 
 /**
- * GTSR 网络通道：客户端粒子特效 S2C 同步（首个网络设施）。
- * 服务端吸收方块时广播 AbsorbMessage，客户端在主线程生成向心粒子。
+ * GTSR 网络通道（粒子 S2C + 终端轨）。
+ * 服务端吸收方块时广播 AbsorbMessage，客户端在主线程生成向心粒子；
+ * init 尾部追加终端轨 TerminalNet 注册（channel "gtsr_terminal"，terminal-native-ui M8/N28）。
  */
 public class GTSRFXNet {
 
@@ -26,6 +28,8 @@ public class GTSRFXNet {
 
     public static void init() {
         NETWORK.registerMessage(AbsorbMessageHandler.class, AbsorbMessage.class, 0, Side.CLIENT);
+        // 终端轨（channel "gtsr_terminal"）：注册点收束于本 init 尾部，满足「GTSRFXNet 基建可扩展」决策
+        TerminalNet.register();
     }
 
     /** 服务端：吸收方块处生成向心粒子（S2C 广播 64 格内玩家） */

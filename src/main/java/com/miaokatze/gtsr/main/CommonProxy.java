@@ -14,6 +14,7 @@ import com.miaokatze.gtsr.common.crossmod.waila.GTSRWailaCompat;
 import com.miaokatze.gtsr.common.loot.LootInjectionRunawaySingularity;
 import com.miaokatze.gtsr.common.network.GTSRFXNet;
 import com.miaokatze.gtsr.common.structure.GTSRRedstoneHatchLimitError;
+import com.miaokatze.gtsr.common.terminal.AggregatorGuiHandler;
 import com.miaokatze.gtsr.common.world.WorldGenRunawaySingularity;
 import com.miaokatze.gtsr.config.Config;
 import com.miaokatze.gtsr.loader.BlockLoader;
@@ -27,6 +28,7 @@ import cpw.mods.fml.common.event.FMLInitializationEvent;
 import cpw.mods.fml.common.event.FMLPostInitializationEvent;
 import cpw.mods.fml.common.event.FMLPreInitializationEvent;
 import cpw.mods.fml.common.event.FMLServerStartingEvent;
+import cpw.mods.fml.common.network.NetworkRegistry;
 import cpw.mods.fml.common.registry.GameRegistry;
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Mods;
@@ -134,20 +136,14 @@ public class CommonProxy {
             "[2/3] 创造模式物品栏初始化完成，当前包含 " + CreativeTabManager.getItemsToAdd()
                 .size() + " 个物品。");
 
-        // 注册钻井枢纽状态界面的 MUI2 factory（双端均需注册，ClientProxy.init 会调用本方法）
-        com.cleanroommc.modularui.factory.GuiManager
-            .registerFactory(com.miaokatze.gtsr.common.gui.HubStatusGuiFactory.INSTANCE);
-        // 注册蒸汽/蓄水枢纽阵列缓存节点状态界面的 MUI2 factory（手持枢纽终端右击打开）
-        com.cleanroommc.modularui.factory.GuiManager
-            .registerFactory(com.miaokatze.gtsr.common.gui.SteamHubStatusGuiFactory.INSTANCE);
-        com.cleanroommc.modularui.factory.GuiManager
-            .registerFactory(com.miaokatze.gtsr.common.gui.WaterHubStatusGuiFactory.INSTANCE);
-        // 注册地壳物质聚合器终端配置界面的 MUI2 factory（手持枢纽终端右击打开）
-        com.cleanroommc.modularui.factory.GuiManager
-            .registerFactory(com.miaokatze.gtsr.common.gui.AggregatorConfigGuiFactory.INSTANCE);
-        // 注册集群终端界面的 MUI2 factory（持枢纽终端右击总控打开）
-        com.cleanroommc.modularui.factory.GuiManager
-            .registerFactory(com.miaokatze.gtsr.common.gui.cluster.ClusterTerminalUiFactory.INSTANCE);
+        // 注册 FML 原生 IGuiHandler：聚合器终端配置界面双端 openGui 配对（terminal-native-ui M7，
+        // 手持枢纽终端右击打开；服务端 Container + 客户端 Gui 经 main/ClientProxy 静态委托）
+        NetworkRegistry.INSTANCE.registerGuiHandler(AggregatorGuiHandler.modInstance(), new AggregatorGuiHandler());
+        // 注：钻井/蒸汽/蓄水三个枢纽状态界面已迁 terminal-native-ui 轨 A
+        // （TerminalNet.sendOpen + 客户端 displayGuiScreen），对应 MUI2 factory 注册已随旧轨删除；
+        // 聚合器终端配置界面已迁 FML 原生 IGuiHandler 轨 B（AggregatorGuiHandler），MUI2 factory 注册已删除；
+        // 集群终端界面已迁轨 A（MTESteamMineralLogisticsCluster.openClusterTerminal → TerminalNet.sendOpen），
+        // MUI2 factory 注册已删除。
 
         // 注册自然生成：失控奇点 nature 词条（主世界+下界，频率见配置 singularitySpawnFrequency）
         GameRegistry.registerWorldGenerator(new WorldGenRunawaySingularity(), 0);

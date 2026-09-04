@@ -19,6 +19,7 @@ import java.util.concurrent.ThreadLocalRandom;
 
 import net.minecraft.block.Block;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.inventory.IInventory;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemBlock;
@@ -28,6 +29,7 @@ import net.minecraft.nbt.NBTTagList;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 import net.minecraft.world.World;
+import net.minecraftforge.common.util.FakePlayer;
 import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
@@ -45,10 +47,10 @@ import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.api.gui.OreEntryInfo;
 import com.miaokatze.gtsr.common.blocks.BlocksGTSR;
 import com.miaokatze.gtsr.common.event.GTSRMachineEvent;
-import com.miaokatze.gtsr.common.gui.AggregatorConfigGuiFactory;
 import com.miaokatze.gtsr.common.gui.MTECrustMatterAggregatorGui;
 import com.miaokatze.gtsr.common.machine.base.MTESingularityMachineBase;
 import com.miaokatze.gtsr.common.machine.base.VoidMinerUtilityShim;
+import com.miaokatze.gtsr.common.terminal.AggregatorGuiHandler;
 import com.miaokatze.gtsr.common.util.GTSROutputBusCompat;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
 import com.miaokatze.gtsr.common.util.OreCrushedUtil;
@@ -1714,9 +1716,23 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
         return super.onRightclick(aBaseMetaTileEntity, aPlayer, side, aX, aY, aZ);
     }
 
-    /** 服务端调用：为玩家打开终端配置界面。 */
+    /**
+     * 服务端调用：为玩家打开终端配置界面（terminal-native-ui M5，FML openGui 原生轨双端配对）。
+     * 守卫照旧 MUI2 工厂 open 语义（EntityPlayerMP / 非 FakePlayer / 基 TE 判空）；
+     * 双端分派由 {@link AggregatorGuiHandler} 承载（服务端 ContainerAggregatorConfig、
+     * 客户端经 ClientProxy 委托构造 GuiAggregatorConfigScreen），windowId 由 FML 分配。
+     */
     public void openConfigGui(EntityPlayer player) {
-        AggregatorConfigGuiFactory.open(player, this);
+        if (!(player instanceof EntityPlayerMP) || player instanceof FakePlayer) return;
+        IGregTechTileEntity base = this.getBaseMetaTileEntity();
+        if (base == null) return;
+        player.openGui(
+            AggregatorGuiHandler.modInstance(),
+            AggregatorGuiHandler.ID_AGGREGATOR,
+            base.getWorld(),
+            base.getXCoord(),
+            base.getYCoord(),
+            base.getZCoord());
     }
 
     /** 螺丝刀右击：切换定向模式（服务端；幂等；不清空过滤/定向配置，仅强制刷新矿池并重置奇点模式，见 toggleDirectionalMode）。 */

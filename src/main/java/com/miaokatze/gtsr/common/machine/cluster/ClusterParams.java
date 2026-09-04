@@ -264,7 +264,7 @@ public final class ClusterParams {
      * 增幅剂类型枚举：并行、速度、主产出、副产出、节汽。
      * <p>
      * 顺序冻结：拓扑快照协议以 {@code 8 + ordinal()} 编码增幅槽 typeId（MTESteamMineralLogisticsCluster
-     * ↔ ClusterGuiSync 两端），仅允许尾部追加，不得重排/插队/改名。
+     * ↔ 原集群同步实现两端），仅允许尾部追加，不得重排/插队/改名。
      */
     public enum BoosterType {
 

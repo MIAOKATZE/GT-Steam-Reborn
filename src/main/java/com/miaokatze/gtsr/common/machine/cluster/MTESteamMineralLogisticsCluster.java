@@ -10,12 +10,14 @@ import java.util.Map;
 import java.util.Set;
 
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.PacketBuffer;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 import net.minecraft.world.World;
+import net.minecraftforge.common.util.FakePlayer;
 import net.minecraftforge.common.util.ForgeDirection;
 
 import com.gtnewhorizon.structurelib.alignment.IAlignmentLimits;
@@ -27,12 +29,13 @@ import com.gtnewhorizon.structurelib.util.Vec3Impl;
 import com.miaokatze.gtsr.api.compat.GTSRHatchFluidAccess;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.event.GTSRMachineEvent;
-import com.miaokatze.gtsr.common.gui.cluster.ClusterGuiSync;
-import com.miaokatze.gtsr.common.gui.cluster.ClusterTerminalUiFactory;
 import com.miaokatze.gtsr.common.gui.cluster.MTESteamMineralLogisticsClusterNativeGui;
 import com.miaokatze.gtsr.common.machine.base.MTEGTSRMultiBlockBase;
 import com.miaokatze.gtsr.common.machine.base.MTEHatchPressureSteamInput;
 import com.miaokatze.gtsr.common.machine.base.MTESteamInputHatchGeneric;
+import com.miaokatze.gtsr.common.terminal.ClusterTerminalData;
+import com.miaokatze.gtsr.common.terminal.TerminalNet;
+import com.miaokatze.gtsr.common.terminal.TerminalUiType;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
 import com.miaokatze.gtsr.main.GTSteamReborn;
 
@@ -163,9 +166,6 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
 
     /** 客户端粒子工作态（getUpdateData/onValueUpdate bit0 通道同步；onPostTick 客户端分支据此喷粒子）。 */
     protected boolean mWorkingForFX = false;
-
-    /** 终端 GUI 初始页（ClusterTerminalUiFactory.open 服务端写入、GUI 侧读取；瞬态不落 NBT）。 */
-    protected int guiInitialPage = 0;
 
     /** 终端 GUI 当前选中的物流单元下标（GUI 交互态；越界由 getSelectedLogisticsUnit 兜底 null）。 */
     protected int selectedLogisticsIndex = 0;
@@ -1109,8 +1109,8 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
 
     /**
      * 拓扑紧凑快照（E6 解码协议，30 槽 × 5 字节 = 150 字节）：槽序 = segment 升序 × pad 升序
-     * （{@link ClusterTopology#getSlots()} 顺序）。每槽 5 字节注册表以解码端（ClusterGuiSync
-     * 类注释 + ClusterTopologyView.typeLangKey/errorText）为准，编码端适配解码端：
+     * （{@link ClusterTopology#getSlots()} 顺序）。每槽 5 字节注册表以解码端（ClusterTerminalData
+     * 冻结常量注释为准，S5b 随迁自旧 MUI2 轨同值副本）为准，编码端适配解码端：
      * <ul>
      * <li>[0] typeId：0=空槽；1..7=加工分型（1 粉碎/2 洗矿/3 离心/4 热力离心/5 筛选/6 磁选/7 熔炼）；
      * 8..12=增幅分型（= 8+BoosterType.ordinal()：8 并行/9 速度/10 主产物/11 副产物/12 节汽）；
@@ -1135,7 +1135,7 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
             int o = i * 5;
             MTEClusterUnitBase unit = slot.unit;
             if (unit == null) {
-                out[o] = (byte) ClusterGuiSync.TYPE_EMPTY;
+                out[o] = (byte) ClusterTerminalData.TYPE_EMPTY;
                 out[o + 1] = (byte) 0xFF;
                 out[o + 2] = (byte) 0xFF;
                 out[o + 3] = 0;
@@ -1154,7 +1154,7 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
     }
 
     /**
-     * 单元 → typeId（E6 稳定注册表，对齐 ClusterTopologyView.typeLangKey）。物流恒 13（单型无分型，
+     * 单元 → typeId（E6 稳定注册表，对齐 ClusterTerminalData 冻结注册表）。物流恒 13（单型无分型，
      * 解码端 255「未识别」语义只覆盖加工/增幅）；加工/增幅须自成型（{@code mMachine}）且 cluster
      * 引用为本主控才报分型，否则 255 占位；增幅 = 8+BoosterType.ordinal()；加工七类 instanceof
      * 分派，未知子类防御性回 255（不伪装空位）。
@@ -1162,10 +1162,10 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
     private int unitTypeId(MTEClusterUnitBase unit) {
         if (unit instanceof MTEBasicLogisticsUnit) return 13;
         boolean formed = unit.isUnitStructureFormed() && unit.getCluster() == this;
-        if (!formed) return ClusterGuiSync.TYPE_UNRECOGNIZED;
+        if (!formed) return ClusterTerminalData.TYPE_UNRECOGNIZED;
         if (unit instanceof MTEBasicAmplifierUnit amplifier) {
             return amplifier.getBoosterType() != null ? 8 + amplifier.getBoosterType()
-                .ordinal() : ClusterGuiSync.TYPE_UNRECOGNIZED;
+                .ordinal() : ClusterTerminalData.TYPE_UNRECOGNIZED;
         }
         if (unit instanceof MTEUnitCrusher) return 1;
         if (unit instanceof MTEUnitOreWasher) return 2;
@@ -1174,7 +1174,7 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
         if (unit instanceof MTEUnitSifter) return 5;
         if (unit instanceof MTEUnitMagneticSeparator) return 6;
         if (unit instanceof MTEUnitFurnace) return 7;
-        return ClusterGuiSync.TYPE_UNRECOGNIZED;
+        return ClusterTerminalData.TYPE_UNRECOGNIZED;
     }
 
     /**
@@ -1184,12 +1184,12 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
      * （结构级错误走 KEY_BREAK 独立通道，见方法 javadoc）。
      */
     private int unitErrId(MTEClusterUnitBase unit, boolean conflictMark) {
-        if (conflictMark) return ClusterGuiSync.ERR_MODULE_CONFLICT;
+        if (conflictMark) return ClusterTerminalData.ERR_MODULE_CONFLICT;
         boolean connected = unit.getCluster() == this;
         if (connected && unit.getUnitStructureTier() >= 0 && !unit.isTierValidForConnection()) {
-            return ClusterGuiSync.ERR_TIER_MISMATCH;
+            return ClusterTerminalData.ERR_TIER_MISMATCH;
         }
-        return connected ? 0 : ClusterGuiSync.ERR_NOT_CONNECTED;
+        return connected ? 0 : ClusterTerminalData.ERR_NOT_CONNECTED;
     }
 
     /**
@@ -1414,16 +1414,6 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
         }
     }
 
-    /** @return 终端 GUI 初始页（工厂 open 前服务端写入；瞬态，不落 NBT）。 */
-    public int getGuiInitialPage() {
-        return guiInitialPage;
-    }
-
-    /** 终端初始页 setter（ClusterTerminalUiFactory.open 在 openGui 前写入）。 */
-    public void setGuiInitialPage(int page) {
-        guiInitialPage = page;
-    }
-
     /** @return 终端 GUI 当前选中的物流单元下标。 */
     public int getSelectedLogisticsIndex() {
         return selectedLogisticsIndex;
@@ -1641,17 +1631,53 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
         return new MTESteamMineralLogisticsClusterNativeGui(this);
     }
 
+    /** 物流模块兼容入口的固定初始页：链路编辑页（零基页序 1；旧 MUI2 工厂 PAGE_CHAIN_EDIT 同值冻结）。 */
+    public static final int PAGE_CHAIN_EDIT = 1;
+
     /**
-     * {@inheritDoc} 持枢纽终端右击 = 打开集群终端界面（MUI2，{@link ClusterTerminalUiFactory} 三参入口，
-     * 初始页 0；空手/他物右击走父类默认机器 GUI）。持物右击方案同聚合器/枢纽（潜行右击会被 GT 基座
-     * 拦截贴墙放方块，onRightclick 收不到）。终端入口提示见 tooltip structure hint。
+     * 服务端打开集群终端（terminal-native-ui M6，PLAN §4.1 轨 A：{@link TerminalNet#sendOpen}，
+     * 零 windowId）。分支逐字对齐旧 MUI2 工厂 open 分支（git 基线 b4fabb2 :43-58）：
+     * te 为总控时按 initialPage 打开；为物流模块时解析所属 cluster 并固定初始页
+     * {@link #PAGE_CHAIN_EDIT}（兼容入口保留语义）；未入集群（cluster null）或总控基 TE 失联
+     * （getBaseMetaTileEntity null）时静默返回。玩家校验同 S3 先例
+     * （EntityPlayerMP/FakePlayer，原服务端 open 守卫同口径）。
+     */
+    public static void openClusterTerminal(EntityPlayer player, IGregTechTileEntity te, int initialPage) {
+        if (!(player instanceof EntityPlayerMP playerMP) || player instanceof FakePlayer) return;
+        if (te == null) return;
+        IMetaTileEntity mte = te.getMetaTileEntity();
+        MTESteamMineralLogisticsCluster cluster;
+        if (mte instanceof MTESteamMineralLogisticsCluster controller) {
+            cluster = controller;
+        } else if (mte instanceof MTEBasicLogisticsUnit unit) {
+            cluster = unit.getCluster();
+            initialPage = PAGE_CHAIN_EDIT;
+        } else {
+            return;
+        }
+        if (cluster == null || cluster.getBaseMetaTileEntity() == null) return;
+        IGregTechTileEntity base = cluster.getBaseMetaTileEntity();
+        TerminalNet.sendOpen(
+            TerminalUiType.CLUSTER_TERMINAL,
+            playerMP,
+            base.getXCoord(),
+            base.getYCoord(),
+            base.getZCoord(),
+            initialPage);
+    }
+
+    /**
+     * {@inheritDoc} 持枢纽终端右击 = 打开集群终端界面（terminal-native-ui 轨 A：
+     * {@link #openClusterTerminal} 服务端复核后发 open 包，初始页 0；空手/他物右击走父类默认机器
+     * GUI）。持物右击方案同聚合器/枢纽（潜行右击会被 GT 基座拦截贴墙放方块，onRightclick 收不到）。
+     * 终端入口提示见 tooltip structure hint。
      */
     @Override
     public boolean onRightclick(IGregTechTileEntity aBaseMetaTileEntity, EntityPlayer aPlayer) {
         ItemStack held = aPlayer.getHeldItem();
         if (held != null && GTSRItemList.HubTerminal.isStackEqual(held, false, true)) {
             if (aBaseMetaTileEntity.isServerSide()) {
-                ClusterTerminalUiFactory.open(aPlayer, aBaseMetaTileEntity, 0);
+                openClusterTerminal(aPlayer, aBaseMetaTileEntity, 0);
             }
             return true;
         }

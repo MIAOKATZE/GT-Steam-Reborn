@@ -15,6 +15,7 @@ import java.util.List;
 
 import net.minecraft.client.renderer.texture.IIconRegister;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
@@ -23,6 +24,7 @@ import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 import net.minecraft.world.World;
 import net.minecraftforge.common.DimensionManager;
+import net.minecraftforge.common.util.FakePlayer;
 import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
@@ -45,6 +47,8 @@ import com.miaokatze.gtsr.common.api.progress.GTSRProgressBar;
 import com.miaokatze.gtsr.common.api.progress.GTSRProgressEntry;
 import com.miaokatze.gtsr.common.machine.base.IHubArray;
 import com.miaokatze.gtsr.common.machine.base.MTERemoteWorkerNode;
+import com.miaokatze.gtsr.common.terminal.TerminalNet;
+import com.miaokatze.gtsr.common.terminal.TerminalUiType;
 import com.miaokatze.gtsr.common.util.GTSROutputBusCompat;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
 import com.miaokatze.gtsr.common.util.HubBindingUtil;
@@ -786,11 +790,21 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
     }
 
     /**
-     * 打开节点状态管理界面（Modern UI 2）。必须在服务端调用，
-     * 实际打开逻辑委托给 HubStatusGuiFactory（独立 MUI2 factory，不影响主 GUI 的 MUI2 路径）。
+     * 打开节点状态管理界面（terminal-native-ui 轨 A：S2C open 包 + 客户端本地 displayGuiScreen，
+     * 零 windowId）。必须在服务端调用；守卫语义照旧（EntityPlayerMP/FakePlayer/基 TE 存活，
+     * 与原服务端 open 守卫一致），实际打开由 TerminalClientPacketSink 双校验后承载。
      */
     public void openHubStatusGui(EntityPlayer player) {
-        com.miaokatze.gtsr.common.gui.HubStatusGuiFactory.open(player, this);
+        if (!(player instanceof EntityPlayerMP playerMP) || player instanceof FakePlayer) return;
+        IGregTechTileEntity base = this.getBaseMetaTileEntity();
+        if (base == null) return;
+        TerminalNet.sendOpen(
+            TerminalUiType.SINGULARITY_HUB,
+            playerMP,
+            base.getXCoord(),
+            base.getYCoord(),
+            base.getZCoord(),
+            0);
     }
 
     /**

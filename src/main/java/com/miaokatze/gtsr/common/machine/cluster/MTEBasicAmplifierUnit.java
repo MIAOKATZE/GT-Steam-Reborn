@@ -148,7 +148,7 @@ public abstract class MTEBasicAmplifierUnit extends MTEClusterUnitBase<MTEBasicA
      * 加算叠加。施加方资格与 {@code BoosterState} 双重豁免同口径——已接入集群 && 自身成型 &&
      * 连接 tier 有效 && 锁定流体可用（缺流体模块不施压他人）；未接入集群返回空列表。
      * 类型 ordinal 供 GUI 公式串区分施加方种类（速度/并行加成表同值，数值上不可反推）；
-     * GUI 编码（ClusterGuiSync KEY_BO_COST）与本计算共用本实现，保证显示 = 实扣。
+     * GUI 编码（集群终端 KEY_BO_COST）与本计算共用本实现，保证显示 = 实扣。
      */
     public java.util.List<int[]> amplifierSurchargeSources() {
         java.util.List<int[]> sources = new java.util.ArrayList<>();
