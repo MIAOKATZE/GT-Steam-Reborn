@@ -136,12 +136,11 @@ public final class LogisticsChain {
         return isValidStructure() ? null : "gtsr.gui.cluster.chain.invalid_terminal";
     }
 
-    // ---- link 可用性（在场工作模块 + 磁选/热离通电 + GT++ 简易洗） ----
+    // ---- link 可用性（在场工作模块 + 磁选/热离通电） ----
 
     /**
      * link 可用性（编辑器灰化口径）：
      * <ol>
-     * <li>SIMPLE_WASH 且 GT++ 简易洗配方图缺失 → 不可用；</li>
      * <li>拓扑中无该链步所需工作单元（{@link ChainLink#getRequiredUnitClass()} 计数为 0）→ 不可用；</li>
      * <li>所需工作单元全部在场但均未成型（{@code !isModuleEnabled()}，含自身结构未成型/断电）→
      * 不可用：需持续供电链步（磁选/热离）报 locked_power，其余报 locked_unformed；</li>
@@ -156,16 +155,12 @@ public final class LogisticsChain {
      * link 锁定原因的本地化 key（判定顺序同 {@link #isLinkAvailable}）。
      *
      * @return 可用返回 {@code null}；否则按序返回
-     *         {@code gtsr.gui.cluster.link.locked_simple_wash} /
      *         {@code gtsr.gui.cluster.link.locked_module} /
      *         {@code gtsr.gui.cluster.link.locked_unformed} /
      *         {@code gtsr.gui.cluster.link.locked_power}
      */
     public static String getLinkLockReasonKey(ChainLink link, ClusterTopology topology) {
         if (link == null || topology == null) return "gtsr.gui.cluster.link.locked_module";
-        if (link == ChainLink.SIMPLE_WASH && !ChainLink.isSimpleWashAvailable()) {
-            return "gtsr.gui.cluster.link.locked_simple_wash";
-        }
         if (topology.countUnits(link.getRequiredUnitClass()) <= 0) {
             return "gtsr.gui.cluster.link.locked_module";
         }

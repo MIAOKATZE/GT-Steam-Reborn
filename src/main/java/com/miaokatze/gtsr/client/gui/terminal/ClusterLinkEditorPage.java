@@ -353,6 +353,12 @@ final class ClusterLinkEditorPage implements ClusterPage {
                 .append(String.format(tr("gtsr.gui.cluster.editor.link_seconds"), link.getBaseSecondsPrecise()))
                 .append(" · ")
                 .append(mediumText(link));
+        // CRUSH 副产物削弱/无削弱常显（颜色随串内 § 码；ellipsis 兜底防溢出）
+        if (link == ChainLink.CRUSH) {
+            String debuff = crushByproductDebuff(link.ordinal());
+            if (debuff != null) second.append(" · ")
+                .append(debuff);
+        }
         int kind = lockKind(link.ordinal());
         if (kind != 0) {
             second.append(" · ")
@@ -368,7 +374,7 @@ final class ClusterLinkEditorPage implements ClusterPage {
             case ORE_WASH -> tr("gtsr.cluster.gui.link.need_water");
             case CHEM_BATH -> tr("gtsr.cluster.gui.link.need_chem");
             case MAGNETIC_SEPARATOR, THERMOCENTRIFUGE -> tr("gtsr.cluster.gui.link.need_power");
-            case SIMPLE_WASH -> tr("gtsr.cluster.gui.link.need_simple_wash");
+            case SIMPLE_WASH -> tr("gtsr.cluster.gui.link.need_water");
             default -> tr("gtsr.cluster.gui.link.no_medium");
         };
     }
@@ -376,7 +382,6 @@ final class ClusterLinkEditorPage implements ClusterPage {
     /** 锁因文案（kind → 既有锁定 key；module 类带所需单元名填充 %s）。 */
     private static String lockReasonText(ChainLink link, int kind) {
         return switch (kind) {
-            case 1 -> tr("gtsr.gui.cluster.link.locked_simple_wash");
             case 2 -> String.format(tr("gtsr.gui.cluster.link.locked_module"), tr(unitTypeKey(link)));
             case 3 -> tr("gtsr.gui.cluster.link.locked_unformed");
             default -> tr("gtsr.gui.cluster.link.locked_power");
@@ -552,8 +557,10 @@ final class ClusterLinkEditorPage implements ClusterPage {
         if (tier < 0) return null;
         double multiplier = tier >= 2 ? ClusterParams.CRUSH_BYPRODUCT_MULT_HIGH_TIER
             : tier == 1 ? ClusterParams.CRUSH_BYPRODUCT_MULT_STEEL : ClusterParams.CRUSH_BYPRODUCT_MULT_NORMAL;
-        // tier≥2 无削弱：不显示「降低0%」提示行
-        if (multiplier >= 1.0) return null;
+        // tier≥2 无削弱：灰字常显「无削弱」提示（左列可见）
+        if (multiplier >= 1.0) {
+            return EnumChatFormatting.GRAY + tr("gtsr.gui.cluster.link.crush.byproduct_none");
+        }
         long reductionPercent = Math.round((1.0 - multiplier) * 100.0);
         return EnumChatFormatting.GOLD
             + StatCollector.translateToLocalFormatted("gtsr.gui.cluster.link.crush.byproduct_debuff", reductionPercent);

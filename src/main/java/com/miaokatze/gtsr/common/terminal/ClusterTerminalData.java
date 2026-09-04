@@ -75,8 +75,8 @@ import io.netty.buffer.Unpooled;
  * <li>SELECT_LOGISTICS：terminalValid → 索引 ∈ [0, 物流单元数) → setSelectedLogisticsIndex
  * （同上照旧）；</li>
  * <li>SAVE_CHAIN 复核链逐字移植 wiki §3.1：terminalValid → checkedUnit（选中单元在册引用级
- * 比对，内含 tier ≥ 0）→ 显式复核 tier ≥ 0 → len ∈ [1,16] → 每个 ordinal 界内且 SIMPLE_WASH
- * 可用 → {@code LogisticsChain.fromOrdinalArray} 非空且 isValidStructure → setLinks 整表写入 +
+ * 比对，内含 tier ≥ 0）→ 显式复核 tier ≥ 0 → len ∈ [1,16] → 每个 ordinal 界内 →
+ * {@code LogisticsChain.fromOrdinalArray} 非空且 isValidStructure → setLinks 整表写入 +
  * markChainDirty（源实现无 notifyChainWritten 方法，脏清除由客户端 KEY_LE_CHAIN 快照追平承载）；
  * 任一步失败静默拒绝；</li>
  * <li>占位动作 APPEND_LINK/REMOVE_LINK/MOVE_LINK/CLEAR_CHAIN/APPLY_PRESET/TOGGLE_FORMULA：
@@ -636,12 +636,10 @@ public final class ClusterTerminalData {
         return Math.max(0, Math.min(ClusterParams.TIER_COUNT - 1, cluster.getStructureTierIndex()));
     }
 
-    /** 锁定原因 key → 稳定种类。0 可用/1 简易洗缺失/2 缺模块/3 未成型/4 需通电。 */
+    /** 锁定原因 key → 稳定种类。0 可用/2 缺模块/3 未成型/4 需通电（1=简易洗缺失已废弃，2/3/4 编码不变保兼容）。 */
     private static int lockKindOf(String reasonKey) {
         if (reasonKey == null) return 0;
         switch (reasonKey) {
-            case "gtsr.gui.cluster.link.locked_simple_wash":
-                return 1;
             case "gtsr.gui.cluster.link.locked_module":
                 return 2;
             case "gtsr.gui.cluster.link.locked_unformed":
@@ -743,8 +741,6 @@ public final class ClusterTerminalData {
                 for (int ordinal : ordinals) {
                     // ordinal 全部界内（越界即伪造，整包拒绝）
                     if (ordinal < 0 || ordinal >= values.length) return;
-                    // GT++ 简易洗配方图缺失时拒绝（同旧轨口径）
-                    if (values[ordinal] == ChainLink.SIMPLE_WASH && !ChainLink.isSimpleWashAvailable()) return;
                 }
                 // 服务端终态复核（恰好一个终态产物）：不满足静默拒绝零副作用
                 LogisticsChain candidate = LogisticsChain.fromOrdinalArray(ordinals);

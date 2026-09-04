@@ -58,7 +58,7 @@ A GregTech New Horizons expansion mod that **supplements the Steam Age and signi
 | 传输 Transfer | 双向、跨维度 Bidirectional, cross-dimensional |
 | 自动输出 Auto Output | 20,000,000 L/s（每 tick 1,000,000 L）20,000,000 L/s (1,000,000 L per tick) |
 
-<p align="center"><img src="README/MTEWaterHubArray-T1.png" width="260" alt="蓄水枢纽阵列 / Water Hub Array"> <img src="README/MTEWaterHubArray-T2.png" width="260" alt="蓄水枢纽阵列 / Water Hub Array"><br><em>蓄水枢纽阵列 / Water Hub Array（青铜/钢）</em></p>
+<p align="center"><img src="README/MTEWaterHubArray-T1.png" width="240" alt="蓄水枢纽阵列 / Water Hub Array"> <img src="README/MTEWaterHubArray-T2.png" width="240" alt="蓄水枢纽阵列 / Water Hub Array"><img src="README/MTEWaterHubArray-T3.png" width="240" alt="蓄水枢纽阵列 / Water Hub Array"><br><em>蓄水枢纽阵列 / Water Hub Array（青铜/钢）</em></p>
 
 **蓄水枢纽阵列 / Water Hub Array (WHA)**
 

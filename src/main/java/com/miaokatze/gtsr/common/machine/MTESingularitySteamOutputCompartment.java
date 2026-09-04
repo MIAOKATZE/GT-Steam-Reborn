@@ -1,5 +1,6 @@
 package com.miaokatze.gtsr.common.machine;
 
+import java.lang.reflect.Field;
 import java.util.List;
 
 import net.minecraft.entity.player.EntityPlayer;
@@ -18,6 +19,7 @@ import gregtech.api.interfaces.IIconContainer;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
+import gregtech.api.metatileentity.implementations.MTEHatch;
 
 /**
  * 奇点通用蒸汽输出仓（发送仓）：模式锁定 mIsOutputMode=false（仓→枢纽，输出到枢纽），
@@ -39,11 +41,34 @@ public class MTESingularitySteamOutputCompartment extends MTEPressureSteamOutput
 
     public MTESingularitySteamOutputCompartment(int aID, String aName, String aNameRegional) {
         super(aID, aName, aNameRegional);
+        resetKinCasingTextureToUnset();
     }
 
     public MTESingularitySteamOutputCompartment(String aName, int aTier, String[] aDescription,
         ITexture[][][] aTextures) {
         super(aName, aTier, aDescription, aTextures);
+        resetKinCasingTextureToUnset();
+    }
+
+    /**
+     * 复位近亲构造链反射写入的机壳贴图：MTEPressureSteamOutputHatch 两构造器均经反射将
+     * MTEHatch texturePage/textureIndex 写为坚实钢机壳（sBlockCasings2 meta0），令本仓底材偏离
+     * 其余三奇点仓。MTEHatch 自身构造器将两字段初始化为 0（即"从未调用贴图写入"的未设态），
+     * beta-2 MTEHatch#getCasingTexture 判 texturePage&gt;0||textureIndex&gt;0 否则返回 null →
+     * GTVersionCompat.getCasingTextureOrNull 透传 null → buildCompartmentTextures 回退
+     * MACHINE_CASINGS[1][colorIndex+1]（LV 机壳），与三仓一致。反射习语沿用近亲
+     * setPressureDefaultTextureIndex（字段私有且无版本安全 setter，仅构造期一次性复位）。
+     */
+    private void resetKinCasingTextureToUnset() {
+        try {
+            Field texturePageField = MTEHatch.class.getDeclaredField("texturePage");
+            texturePageField.setAccessible(true);
+            texturePageField.setInt(this, 0);
+
+            Field textureIndexField = MTEHatch.class.getDeclaredField("textureIndex");
+            textureIndexField.setAccessible(true);
+            textureIndexField.setInt(this, 0);
+        } catch (Exception ignored) {}
     }
 
     @Override

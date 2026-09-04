@@ -17,8 +17,8 @@ import gregtech.api.recipe.RecipeMaps;
  * {@link ClusterParams#LOGISTICS_LINK_BASE_TICKS}（8s=160t），无蒸汽消耗。
  * <p>
  * SIMPLE_WASH（简易洗矿）依赖 GT++ 的 simpleWasherRecipes 配方图；GTSR 对 GT++ 无编译期依赖，
- * 故经懒反射探测（见 {@link #getRecipeMap()} 与 {@link #isSimpleWashAvailable()}），
- * GT++ 缺失时一次性探测失败即永久视为不可用，不抛错、不重试。
+ * 故经懒反射探测（见 {@link #getRecipeMap()}）：无 GT++ 时该步配方图缺失，链路不设单独可用性
+ * 门控，执行侧按无配方透传；探测一次性失败即永久缓存缺失，不抛错、不重试。
  */
 public enum ChainLink {
 
@@ -28,7 +28,7 @@ public enum ChainLink {
     /** 锻造：矿物锤锻成形。 */
     HAMMER(16, 8000),
 
-    /** 简易洗矿（GT++）：轻量水洗；依赖 GT++ simpleWasherRecipes，GT++ 缺失时该链步不可用。 */
+    /** 简易洗矿（GT++）：轻量水洗；依赖 GT++ simpleWasherRecipes，无 GT++ 时该步配方图缺失、执行透传。 */
     SIMPLE_WASH(16, 200),
 
     /** 矿石清洗：洗去碎矿表面杂质。 */
@@ -171,13 +171,6 @@ public enum ChainLink {
             default:
                 throw new AssertionError("未处理的链步: " + this);
         }
-    }
-
-    /**
-     * @return GT++ 简易洗矿链步当前是否可用（触发一次性探测并返回缓存值非 {@code null}）
-     */
-    public static boolean isSimpleWashAvailable() {
-        return getSimpleWasherMap() != null;
     }
 
     /**
