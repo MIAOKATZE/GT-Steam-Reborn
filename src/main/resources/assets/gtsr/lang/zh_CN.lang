@@ -73,7 +73,6 @@ gt.blockmachines.gtsr.pressure.steam.hatch.name=耐压蒸汽仓
 # Crust Steam Borer
 gt.blockmachines.gtsr.crust.steam.borer.name=地壳蒸汽掘进机
 
-# Crust Matter Aggregator (v1.10.33 全量改名替代 Singularity Crust Steam Borer)
 gt.blockmachines.gtsr.crust.matter.aggregator.name=地壳物质聚合器
 gtsr.tooltip.crust_matter_agg.type=地壳物质聚合器, CMA
 gtsr.tooltip.crust_matter_agg.desc=借助蒸汽纠缠奇点的力量，可以直接汇聚地壳中的物质！
@@ -225,8 +224,6 @@ gtsr.tooltip.solar_array.metal=金属块（金/镍/银）
 gtsr.tooltip.solar_array.water_block=圆石（水位）
 gtsr.tooltip.solar_array.particle_block=泥土（粒子喷口）
 gtsr.tooltip.solar_array.air_block=空气
-# [OLD] 保留：conductor/conductor_pos 仅 [OLD] 结构使用
-gtsr.tooltip.solar_array.conductor=导体方块 (银/金/镍)
 gtsr.tooltip.solar_array.input_hatch=输入仓
 
 # Solar Array GUI
@@ -844,17 +841,6 @@ gtsr.tooltip.entangler.ctrl=Layer 19 前侧偏左
 gtsr.tooltip.entangler.steam_input=输入仓/蒸汽仓/耐压蒸汽仓/巨型超压蒸汽输入仓（兼容ME仓室）
 gtsr.tooltip.entangler.output_bus=输出总线
 gtsr.tooltip.entangler.tier1_blocks=等级1：固体钢外壳×1340、钢管×568、钢框架×411、防爆玻璃×423
-gtsr.tooltip.old.singularity_compressor.type=蒸汽奇点压缩机, SSC
-gtsr.tooltip.old.singularity_compressor.desc=消耗 80,000 L/s 蒸汽，热量每秒增长 0.02%
-gtsr.tooltip.old.singularity_compressor.desc2=消耗 320,000 L/s 过热蒸汽，热量每秒增长 0.08%（过热优先）
-gtsr.tooltip.old.singularity_compressor.desc3=多种蒸汽共存时只识别最高等级；机器关机（含软锤关闭）或没有蒸汽时，热量每秒降低1%。
-gtsr.tooltip.old.singularity_compressor.desc4=热量达到100%时清零，产出1个蒸汽纠缠奇点。
-gtsr.tooltip.old.singularity_compressor.desc5=蒸汽奇点压缩机会吞噬所有：已禁用蒸汽冷却机制，不消耗任何电力。
-gtsr.tooltip.old.singularity_compressor.new_mechanism=新版蒸汽奇点纠缠装置采用新的消耗机制，奇点极限聚合速度更高。
-gtsr.tooltip.old.singularity_compressor.ctrl=Layer 8 中心偏下方
-gtsr.tooltip.old.singularity_compressor.steam_input=输入仓/蒸汽仓/耐压蒸汽仓/巨型超压蒸汽输入仓（兼容ME仓室）
-gtsr.tooltip.old.singularity_compressor.output_bus=输出总线/输出总线（蒸汽），奇点产出，兼容ME仓室
-gtsr.tooltip.old.singularity_compressor.tier1_blocks=等级1：固体钢外壳×175、钢管×16、钢齿轮箱×73、防爆玻璃×252、钢框架×144
 
 # 16. Vein Steam Pyrolyzer
 gtsr.tooltip.vein_pyrolyzer.type=地脉蒸汽热解机, VSP
@@ -862,11 +848,6 @@ gtsr.tooltip.vein_pyrolyzer.desc=以蒸汽为能源逆向注入地下，增加�
 gtsr.tooltip.vein_pyrolyzer.desc2=支持裂解器芯片扩展工作范围
 gtsr.tooltip.vein_pyrolyzer.ctrl=Layer 5 中心
 gtsr.tooltip.vein_pyrolyzer.output_bus=产物
-
-# 17. Void Crust Steam Borer
-gtsr.tooltip.void_borer.type=虚空地壳钻探机, SCSB
-gtsr.tooltip.void_borer.desc=通过安装GT NEI Ore Plugin，实现跨维度执行虚空采矿，挖掘跨维度特殊矿物。
-gtsr.tooltip.void_borer.ctrl=Layer 10 中心
 
 # 18. Water Hub Array
 gtsr.tooltip.water_hub.type=蓄水枢纽阵列, WHA
@@ -963,15 +944,11 @@ gtsr.tooltip.solar_array.steam_output=输出仓/蒸汽输出仓
 gtsr.tooltip.solar_array.tier_bronze=金/青铜
 gtsr.tooltip.solar_array.tier_steel=镍/钢
 gtsr.tooltip.solar_array.tier_nickel=银/钢
-gtsr.tooltip.solar_array.old_tier_bronze=银
-gtsr.tooltip.solar_array.old_tier_steel=金
-gtsr.tooltip.solar_array.old_tier_nickel=镍
 gtsr.tooltip.solar_array.tier_overpressure=超压
 gtsr.tooltip.solar_array.base_output=基础产出
 gtsr.tooltip.solar_array.superheated_steam=过热蒸汽
 gtsr.tooltip.solar_array.booster_label=在 GUI 控制器槽位放置单方块太阳能锅炉可增幅蒸汽产出：
 gtsr.tooltip.solar_array.booster_content=放入简易/高级太阳能锅炉（太阳能额外增幅最高+200%），
-gtsr.tooltip.solar_array.solar_booster_desc=在 GUI 控制器槽位放置单方块太阳能锅炉可增幅蒸汽产出：高级太阳能锅炉（Advanced Solar Boiler）每满组 64 台 +2.0x，简单太阳能锅炉（Simple Solar Boiler）每满组 64 台 +1.0x，太阳能额外增幅最多 +200%；超压模式（200% 热量）额外增幅 +100%；总倍率 = 1 + 太阳能额外 + 超压额外，最高 ×4.0。
 gtsr.tooltip.solar_array.max_boosted_output=最大增幅产出
 
 # 9. Large Steam Furnace - missing keys
@@ -1038,11 +1015,6 @@ gtsr.gui.water_hub.total_capacity=总容量:
 # 16. Vein Steam Pyrolyzer - missing hint
 gtsr.tooltip.vein_pyrolyzer.hint_bronze=支持裂解器芯片：T1(+1区块)、T2(+3区块)、T3(+7区块)
 
-# 17. Void Crust Steam Borer - missing keys
-gtsr.tooltip.void_borer.desc2=跨维度虚空采矿装置，需要GT NEI Ore Plugin支持。
-gtsr.tooltip.void_borer.output_bus=矿石产出
-gtsr.tooltip.void_borer.hint_bronze=可以在任意维度运行，但必须要GT NEI Ore Plugin
-
 # 4. Crust Steam Borer - missing GUI keys
 gtsr.gui.crust_borer.invalid_dim=无效维度
 gtsr.gui.crust_borer.no_steam=无蒸汽
@@ -1050,12 +1022,6 @@ gtsr.gui.crust_borer.dimension=维度:
 gtsr.gui.crust_borer.mining=采矿: 
 gtsr.gui.crust_borer.steam_cost=蒸汽消耗: 
 gtsr.gui.crust_borer.work_cycle=工作周期: 
-gtsr.gui.void_borer.no_dimension=无维度
-gtsr.gui.void_borer.no_ores=无矿石
-gtsr.gui.void_borer.no_steam=无蒸汽
-gtsr.gui.void_borer.dimension=维度: 
-gtsr.gui.void_borer.mining=采矿: 
-gtsr.gui.void_borer.steam_cost=蒸汽消耗: 
 gtsr.gui.status.running=运行中
 gtsr.gui.none=无
 gtsr.gui.vein_pyrolyzer.chip=芯片: 
@@ -1229,12 +1195,6 @@ gtsr.gui.reinforced_brick_blast_furnace.temperature=炉温:
 gtsr.gui.reinforced_brick_blast_furnace.status.heating=升温中
 gtsr.gui.reinforced_brick_blast_furnace.parallel=并行: 
 gtsr.gui.reinforced_brick_blast_furnace.speed=速度: 
-
-# Legacy / Migration
-gtsr.tooltip.old.remove_soon=该机器将于下一个大版本移除，请替换为新结构
-gt.blockmachines.gtsr.large.solar.overpressure.array.old.name=[OLD] 大型太阳能超压阵列
-gt.blockmachines.gtsr.steam.singularity.compressor.old.name=[OLD] 蒸汽奇点压缩机
-gt.blockmachines.gtsr.singularity.crust.steam.borer.old.name=[OLD] 奇点地壳蒸汽掘进机
 
 # Runaway Singularity
 tile.RunawaySingularity.name=失控奇点

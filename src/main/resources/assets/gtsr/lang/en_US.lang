@@ -73,7 +73,6 @@ gt.blockmachines.gtsr.pressure.steam.hatch.name=Pressure Steam Hatch
 # Crust Steam Borer
 gt.blockmachines.gtsr.crust.steam.borer.name=Crust Steam Borer
 
-# Crust Matter Aggregator (v1.10.33 full rename replacing Singularity Crust Steam Borer)
 gt.blockmachines.gtsr.crust.matter.aggregator.name=Crust Matter Aggregator
 gtsr.tooltip.crust_matter_agg.type=Crust Matter Aggregator, CMA
 gtsr.tooltip.crust_matter_agg.desc=With the power of steam-entangled singularities, it gathers matter directly from the crust!
@@ -225,8 +224,6 @@ gtsr.tooltip.solar_array.metal=Metal Block (Au/Ni/Ag)
 gtsr.tooltip.solar_array.water_block=Cobblestone (Water Level)
 gtsr.tooltip.solar_array.particle_block=Dirt (Particle Vents)
 gtsr.tooltip.solar_array.air_block=Air
-# [OLD] kept: conductor/conductor_pos used only by [OLD] structure
-gtsr.tooltip.solar_array.conductor=Conductor Block (Ag/Au/Ni)
 gtsr.tooltip.solar_array.input_hatch=Input Hatch
 
 # Solar Array GUI
@@ -822,17 +819,6 @@ gtsr.tooltip.entangler.ctrl=Layer 19, front-left
 gtsr.tooltip.entangler.steam_input=Input Hatch / Steam Input Hatch / Pressure Steam Hatch / Mega Overpressure Steam Input Hatch (ME hatches OK)
 gtsr.tooltip.entangler.output_bus=Output Bus
 gtsr.tooltip.entangler.tier1_blocks=Tier 1: Solid Steel Machine Casing x1340, Steel Pipe x568, Steel Frame x411, Reinforced Glass x423
-gtsr.tooltip.old.singularity_compressor.type=Steam Singularity Compressor, SSC
-gtsr.tooltip.old.singularity_compressor.desc=Consumes 80,000 L/s of steam, heat increases by 0.02% per second
-gtsr.tooltip.old.singularity_compressor.desc2=Consumes 320,000 L/s of superheated steam, heat increases by 0.08% per second (superheated preferred)
-gtsr.tooltip.old.singularity_compressor.desc3=When multiple steam types are present, only the highest grade is recognized; heat drops by 1% per second whenever the machine is off (including soft-hammer shutdown) or no steam is present.
-gtsr.tooltip.old.singularity_compressor.desc4=At 100% heat, heat resets and one Steam Entangled Singularity is produced.
-gtsr.tooltip.old.singularity_compressor.desc5=The Steam Singularity Compressor devours everything: steam cooling is disabled, and no EU is consumed.
-gtsr.tooltip.old.singularity_compressor.new_mechanism=The new Steam Singularity Entangler uses a new consumption mechanism with a higher singularity aggregation rate limit.
-gtsr.tooltip.old.singularity_compressor.ctrl=Layer 8, center, slightly below
-gtsr.tooltip.old.singularity_compressor.steam_input=Input Hatch / Steam Input Hatch / Pressure Steam Hatch / Mega Overpressure Steam Input Hatch (ME hatches OK)
-gtsr.tooltip.old.singularity_compressor.output_bus=Output Bus / Steam Output Bus - singularity output, ME buses OK
-gtsr.tooltip.old.singularity_compressor.tier1_blocks=Tier 1: Solid Steel Casing x175, Steel Pipe x16, Steel Gearbox x73, Reinforced Glass x252, Steel Frame x144
 
 # Vein Steam Pyrolyzer (VSP)
 gtsr.tooltip.vein_pyrolyzer.type=Vein Steam Pyrolyzer, VSP
@@ -840,11 +826,6 @@ gtsr.tooltip.vein_pyrolyzer.desc=Reverse-injects steam energy underground to inc
 gtsr.tooltip.vein_pyrolyzer.desc2=Supports Pyrolyzer Chips to extend the working range
 gtsr.tooltip.vein_pyrolyzer.ctrl=Layer 5, center
 gtsr.tooltip.vein_pyrolyzer.output_bus=Products
-
-# Void Crust Steam Borer (SCSB)
-gtsr.tooltip.void_borer.type=Void Crust Steam Borer, SCSB
-gtsr.tooltip.void_borer.desc=Cross-dimensional void mining enabled by GT NEI Ore Plugin, extracting special cross-dimensional minerals.
-gtsr.tooltip.void_borer.ctrl=Layer 10, center
 
 # Water Hub Array (WHA)
 gtsr.tooltip.water_hub.type=Water Hub Array, WHA
@@ -962,15 +943,11 @@ gtsr.tooltip.solar_array.steam_output=Output Hatch / Steam Output Hatch
 gtsr.tooltip.solar_array.tier_bronze=Gold/Bronze
 gtsr.tooltip.solar_array.tier_steel=Nickel/Steel
 gtsr.tooltip.solar_array.tier_nickel=Silver/Steel
-gtsr.tooltip.solar_array.old_tier_bronze=Silver
-gtsr.tooltip.solar_array.old_tier_steel=Gold
-gtsr.tooltip.solar_array.old_tier_nickel=Nickel
 gtsr.tooltip.solar_array.tier_overpressure=Overpressure
 gtsr.tooltip.solar_array.base_output=base output
 gtsr.tooltip.solar_array.superheated_steam=Superheated Steam
 gtsr.tooltip.solar_array.booster_label=Place single-block solar boilers in the GUI controller slot to boost steam output:
 gtsr.tooltip.solar_array.booster_content=Place Simple/Advanced Solar Boilers (solar bonus up to +200%),
-gtsr.tooltip.solar_array.solar_booster_desc=Place single-block solar boilers in the GUI controller slot to boost steam output: Advanced Solar Boiler +2.0x per full stack of 64, Simple Solar Boiler +1.0x per full stack of 64, solar extra boost up to +200%; Overpressure mode (200% heat) adds +100%; total multiplier = 1 + solar extra + overpressure extra, up to x4.0.
 gtsr.tooltip.solar_array.max_boosted_output=max boosted output
 
 # 9. Large Steam Furnace - missing keys
@@ -1040,11 +1017,6 @@ gtsr.gui.water_hub.total_capacity=Total Capacity:
 # 16. Vein Steam Pyrolyzer - missing hint
 gtsr.tooltip.vein_pyrolyzer.hint_bronze=Supports Pyrolyzer Chips: T1(+1 chunk), T2(+3 chunks), T3(+7 chunks)
 
-# 17. Void Crust Steam Borer - missing keys
-gtsr.tooltip.void_borer.desc2=Cross-dimensional void mining device, requires GT NEI Ore Plugin.
-gtsr.tooltip.void_borer.output_bus=Ore Output
-gtsr.tooltip.void_borer.hint_bronze=Can operate in any dimension, but requires GT NEI Ore Plugin
-
 # 4. Crust Steam Borer - missing GUI keys
 gtsr.gui.crust_borer.invalid_dim=Invalid Dimension
 gtsr.gui.crust_borer.no_steam=No Steam
@@ -1052,12 +1024,6 @@ gtsr.gui.crust_borer.dimension=Dimension:
 gtsr.gui.crust_borer.mining=Mining: 
 gtsr.gui.crust_borer.steam_cost=Steam Cost: 
 gtsr.gui.crust_borer.work_cycle=Work Cycle: 
-gtsr.gui.void_borer.no_dimension=No Dimension
-gtsr.gui.void_borer.no_ores=No Ores
-gtsr.gui.void_borer.no_steam=No Steam
-gtsr.gui.void_borer.dimension=Dimension: 
-gtsr.gui.void_borer.mining=Mining: 
-gtsr.gui.void_borer.steam_cost=Steam Cost: 
 gtsr.gui.status.running=Running
 gtsr.gui.none=None
 gtsr.gui.vein_pyrolyzer.chip=Chip: 
@@ -1233,12 +1199,6 @@ gtsr.gui.reinforced_brick_blast_furnace.temperature=Furnace Temperature:
 gtsr.gui.reinforced_brick_blast_furnace.status.heating=Heating
 gtsr.gui.reinforced_brick_blast_furnace.parallel=Parallels: 
 gtsr.gui.reinforced_brick_blast_furnace.speed=Speed:
-
-# Legacy / Migration
-gtsr.tooltip.old.remove_soon=This machine will be removed in the next major version. Replace it with the new structure.
-gt.blockmachines.gtsr.large.solar.overpressure.array.old.name=[OLD] Large Solar Overpressure Array
-gt.blockmachines.gtsr.steam.singularity.compressor.old.name=[OLD] Steam Singularity Compressor
-gt.blockmachines.gtsr.singularity.crust.steam.borer.old.name=[OLD] Singularity Crust Steam Borer
 
 # Runaway Singularity
 tile.RunawaySingularity.name=Runaway Singularity

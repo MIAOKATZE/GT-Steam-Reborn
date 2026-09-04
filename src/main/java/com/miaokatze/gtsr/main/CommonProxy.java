@@ -9,7 +9,6 @@ import net.minecraft.item.ItemStack;
 import com.gtnewhorizon.structurelib.StructureLibAPI;
 import com.miaokatze.gtsr.Tags;
 import com.miaokatze.gtsr.common.commands.GTSRCommand;
-import com.miaokatze.gtsr.common.crossmod.postea.PosteaCompat;
 import com.miaokatze.gtsr.common.crossmod.waila.GTSRWailaCompat;
 import com.miaokatze.gtsr.common.loot.LootInjectionRunawaySingularity;
 import com.miaokatze.gtsr.common.network.GTSRFXNet;
@@ -164,8 +163,6 @@ public class CommonProxy {
         try {
             new GTSRRecipeLoader().run();
             GTSteamReborn.LOG.info("[3/3] GTSR 配方注册完成。");
-            // Postea 旧 ID 机器物品 → 新 ID 映射（V2 meta 迁移；GT5U 的 PosteaTransformers 在 postload 已注册，此处晚于其执行）
-            PosteaCompat.init();
             // 注入蒸汽纠缠奇点到村庄/地牢/矿井/要塞箱子战利品（~2% 抽取概率，每次 1 个）
             LootInjectionRunawaySingularity.init();
         } catch (Throwable t) {

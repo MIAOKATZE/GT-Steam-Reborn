@@ -1,105 +1,98 @@
 package com.miaokatze.gtsr.common.api.enums;
 
-import java.util.EnumSet;
-import java.util.Set;
-
 import com.miaokatze.gtsr.config.Config;
 
 public enum MetaTileEntityID {
 
-    // --- 单方块机器段（相对 0-49；0-3 腾挪后仅保留已发布旧 ID 兼容映射） ---
-    STEAM_CACHE_NODE(6, 1, 0),
-    REINFORCED_STEAM_CACHE_NODE(7, 2, 1),
-    OVERPRESSURE_STEAM_CACHE_NODE(8, 3, 2),
-    WATER_CACHE_NODE(9, 4, 3),
+    // --- 单方块机器段（相对 0-49；0-3 已腾挪预留） ---
+    STEAM_CACHE_NODE(6),
+    REINFORCED_STEAM_CACHE_NODE(7),
+    OVERPRESSURE_STEAM_CACHE_NODE(8),
+    WATER_CACHE_NODE(9),
     // 0-3 预留；矿工/钻井节点位置保持不动
-    SINGULARITY_MINER_NODE(4, 28),
-    SINGULARITY_DRILLING_NODE(5, 29),
-    REINFORCED_WATER_CACHE_NODE(10, 46),
-    OVERPRESSURE_WATER_CACHE_NODE(11, 47),
+    SINGULARITY_MINER_NODE(4),
+    SINGULARITY_DRILLING_NODE(5),
+    REINFORCED_WATER_CACHE_NODE(10),
+    OVERPRESSURE_WATER_CACHE_NODE(11),
     // 12-15 预留；奇点仓四件套使用新位置
-    SINGULARITY_STEAM_COMPARTMENT(16, 51),
-    SINGULARITY_STEAM_OUTPUT_COMPARTMENT(17, 52),
-    SINGULARITY_FLUID_INPUT_COMPARTMENT(18, 53),
-    SINGULARITY_FLUID_OUTPUT_COMPARTMENT(19, 54),
+    SINGULARITY_STEAM_COMPARTMENT(16),
+    SINGULARITY_STEAM_OUTPUT_COMPARTMENT(17),
+    SINGULARITY_FLUID_INPUT_COMPARTMENT(18),
+    SINGULARITY_FLUID_OUTPUT_COMPARTMENT(19),
 
     // --- 多方块机器: 枢纽段 (相对 50-99) ---
-    STEAM_HUB_ARRAY(50, 6),
-    WATER_HUB_ARRAY(51, 7),
-    SINGULARITY_DRILLING_HUB(52, 27),
+    STEAM_HUB_ARRAY(50),
+    WATER_HUB_ARRAY(51),
+    SINGULARITY_DRILLING_HUB(52),
 
     // --- 多方块机器: 蒸汽基类段 (相对 100-149) ---
-    STEAM_FLUID_DRILL(100, 19),
-    CRUST_STEAM_BORER(101, 20),
-    SINGULARITY_CRUST_STEAM_BORER(102, 21),
-    VEIN_STEAM_PYROLYZER(103, 22),
-    LARGE_STEAM_FURNACE(104, 23),
-    AIR_COMPRESSOR(105, 24),
-    ATMOSPHERIC_CENTRIFUGE(106, 25),
-    LARGE_GEOTHERMAL_STEAM_BOILER(107, 16),
-    LARGE_SOLAR_OVERPRESSURE_ARRAY(108, 15),
+    STEAM_FLUID_DRILL(100),
+    CRUST_STEAM_BORER(101),
+    SINGULARITY_CRUST_STEAM_BORER(102),
+    VEIN_STEAM_PYROLYZER(103),
+    LARGE_STEAM_FURNACE(104),
+    AIR_COMPRESSOR(105),
+    ATMOSPHERIC_CENTRIFUGE(106),
+    LARGE_GEOTHERMAL_STEAM_BOILER(107),
+    LARGE_SOLAR_OVERPRESSURE_ARRAY(108),
 
     // --- 多方块机器: 工作机器段 (相对 150-199) ---
-    MEGA_STEAM_TURBINE_ARRAY(150, 17),
-    KINETIC_PROCESSING_ARRAY(151, 26),
-    LARGE_COKE_OVEN(152, 30),
-    SIEMENS_MARTIN_FURNACE(153, 31),
-    AMMONIA_PLANT(154, 32),
-    GEAR_STEAM_COMPRESSOR(155, 33),
-    REINFORCED_BRICK_BLAST_FURNACE(156, 50),
+    MEGA_STEAM_TURBINE_ARRAY(150),
+    KINETIC_PROCESSING_ARRAY(151),
+    LARGE_COKE_OVEN(152),
+    SIEMENS_MARTIN_FURNACE(153),
+    AMMONIA_PLANT(154),
+    GEAR_STEAM_COMPRESSOR(155),
+    REINFORCED_BRICK_BLAST_FURNACE(156),
 
     // --- 多方块机器: 临界段 (相对 200-249) ---
-    CRITICAL_SINGULARITY_COMPRESSOR(200, 43),
-    DENSE_STATE_MANIPULATOR(201, 44),
-    STEAM_SINGULARITY_ENTANGLER(202, 5),
+    CRITICAL_SINGULARITY_COMPRESSOR(200),
+    DENSE_STATE_MANIPULATOR(201),
+    STEAM_SINGULARITY_ENTANGLER(202),
 
     // --- 仓室段 (相对 250-350) ---
-    STEAM_INPUT_HATCH_GENERIC(250, 34),
-    STEAM_OUTPUT_HATCH_GENERIC(251, 35),
-    PRESSURE_STEAM_HATCH(252, 36),
-    PRESSURE_STEAM_OUTPUT_HATCH(253, 37),
-    STEAM_OUTPUT_HATCH(254, 38),
-    STEAM_COOLING_HATCH(255, 39),
-    PRESSURE_STEAM_COOLING_HATCH(256, 40),
+    STEAM_INPUT_HATCH_GENERIC(250),
+    STEAM_OUTPUT_HATCH_GENERIC(251),
+    PRESSURE_STEAM_HATCH(252),
+    PRESSURE_STEAM_OUTPUT_HATCH(253),
+    STEAM_OUTPUT_HATCH(254),
+    STEAM_COOLING_HATCH(255),
+    PRESSURE_STEAM_COOLING_HATCH(256),
     // 巨型空气输入仓：仅允许空气/下界空气，容量 100,000,000 L
-    MEGA_AIR_INPUT_HATCH(257, 41),
+    MEGA_AIR_INPUT_HATCH(257),
     // 蒸馏水仓：蓄水仓同性质，生成蒸馏水，容量 2,000,000,000 L
-    DISTILLED_WATER_HATCH(258, 42),
-    STEAM_HUB_INPUT_HATCH(259, 8),
-    STEAM_HUB_OUTPUT_HATCH(260, 9),
-    WATER_HUB_INPUT_HATCH(261, 10),
-    WATER_HUB_OUTPUT_HATCH(262, 11),
-    OVERPRESSURE_TURBINE_INPUT_HATCH(263, 18),
-    HUB_STORAGE_UNIT(264, 12),
-    REINFORCED_HUB_STORAGE_UNIT(265, 13),
-    OVERPRESSURE_HUB_STORAGE_UNIT(266, 14),
-    // 红石仓：任意多方块机器通用红石信号输出仓（新 ID，无旧机器转换需求；OLD_ID 用 45——
-    // 43/44 已被临界奇点压缩机/稠态操纵器占用，避免覆盖 LEGACY_TO_NEW_MAP）
-    REDSTONE_HATCH(267, 45),
+    DISTILLED_WATER_HATCH(258),
+    STEAM_HUB_INPUT_HATCH(259),
+    STEAM_HUB_OUTPUT_HATCH(260),
+    WATER_HUB_INPUT_HATCH(261),
+    WATER_HUB_OUTPUT_HATCH(262),
+    OVERPRESSURE_TURBINE_INPUT_HATCH(263),
+    HUB_STORAGE_UNIT(264),
+    REINFORCED_HUB_STORAGE_UNIT(265),
+    OVERPRESSURE_HUB_STORAGE_UNIT(266),
+    // 红石仓：任意多方块机器通用红石信号输出仓（全新 ID，无旧存档机器）
+    REDSTONE_HATCH(267),
 
     // --- 集群段 (相对 351-365；蒸汽动力矿物处理物流工程集群：总控1+工作7+增幅5+物流1) ---
-    // oldRelative 一律 ≥56：LEGACY_TO_NEW_MAP 长度 51（下标 0-50），56+ 天然落在映射表外，
-    // 新 ID 无旧存档迁移需求，不配 LegacyConverter（仿奇点仓四件套先例）。
-    CLUSTER_CONTROLLER(351, 56),
-    CLUSTER_UNIT_CRUSHER(352, 57),
-    CLUSTER_UNIT_ORE_WASHER(353, 58),
-    CLUSTER_UNIT_CENTRIFUGE(354, 59),
-    CLUSTER_UNIT_THERMOCENTRIFUGE(355, 60),
-    CLUSTER_UNIT_SIFTER(356, 61),
-    CLUSTER_UNIT_MAGNETIC_SEPARATOR(357, 62),
-    CLUSTER_UNIT_FURNACE(358, 63),
-    CLUSTER_BOOSTER_PARALLEL(359, 64),
-    CLUSTER_BOOSTER_SPEED(360, 65),
-    CLUSTER_BOOSTER_PRIMARY(361, 66),
-    CLUSTER_BOOSTER_SECONDARY(362, 67),
-    CLUSTER_BOOSTER_STEAM_SAVER(363, 68),
-    CLUSTER_UNIT_LOGISTICS(364, 69),
+    // 全新 ID 段，无旧存档机器。
+    CLUSTER_CONTROLLER(351),
+    CLUSTER_UNIT_CRUSHER(352),
+    CLUSTER_UNIT_ORE_WASHER(353),
+    CLUSTER_UNIT_CENTRIFUGE(354),
+    CLUSTER_UNIT_THERMOCENTRIFUGE(355),
+    CLUSTER_UNIT_SIFTER(356),
+    CLUSTER_UNIT_MAGNETIC_SEPARATOR(357),
+    CLUSTER_UNIT_FURNACE(358),
+    CLUSTER_BOOSTER_PARALLEL(359),
+    CLUSTER_BOOSTER_SPEED(360),
+    CLUSTER_BOOSTER_PRIMARY(361),
+    CLUSTER_BOOSTER_SECONDARY(362),
+    CLUSTER_BOOSTER_STEAM_SAVER(363),
+    CLUSTER_UNIT_LOGISTICS(364),
 
     ;
 
     public final int ID;
-    public final int OLD_ID;
-    public final int PUBLISHED_OLD_ID;
 
     private static final int BASE_OLD = 14620;
     private static final int BASE = 14700;
@@ -107,46 +100,22 @@ public enum MetaTileEntityID {
     /**
      * 新段位规则（BASE = 14700）：
      * 单方块 0-49 / 枢纽 50-99 / 蒸汽基类 100-149 / 工作机器 150-199 / 临界 200-249 / 仓室 250-350。
-     * 旧段相对 ID 仅用于旧 ID 占位注册（BASE_OLD = 14620 为迁移锚点），两者共享 Config.metaIdOffset。
      * 集群段 351-365：蒸汽动力矿物处理物流工程集群（总控 1 + 工作 7 + 增幅 5 + 物流 1，现用 351-364，365 预留）。
      */
-    MetaTileEntityID(int relative, int oldRelative) {
-        this(relative, oldRelative, -1);
-    }
-
-    MetaTileEntityID(int relative, int oldRelative, int publishedOldRelative) {
+    MetaTileEntityID(int relative) {
         this.ID = BASE + Config.metaIdOffset + relative;
-        this.OLD_ID = BASE_OLD + Config.metaIdOffset + oldRelative;
-        this.PUBLISHED_OLD_ID = publishedOldRelative < 0 ? -1 : BASE + Config.metaIdOffset + publishedOldRelative;
     }
-
-    /** 结构重置三机：旧 ID 注册 [OLD] 机器而非占位转换器（旧存档不转换，留一个大版本缓冲）。 */
-    public static final Set<MetaTileEntityID> STRUCTURE_RESET = EnumSet
-        .of(SINGULARITY_CRUST_STEAM_BORER, LARGE_SOLAR_OVERPRESSURE_ARRAY, STEAM_SINGULARITY_ENTANGLER);
 
     /**
-     * 旧 ID → 新 ID 物品映射表（临时机制：供 Postea ItemStackReplacementManager 与后续迁移逻辑使用；
-     * 下一大版本移除旧 ID 注册后，本表与 PosteaCompat 一并删除）。
-     * index = 旧绝对ID - BASE_OLD，值 = 新绝对ID；0 表示无映射。结构重置三机（STRUCTURE_RESET）不映射。
+     * 旧 ID → 新 ID 物品映射骨架（历史锚点）：
+     * v1.11.34 之前，本表承载"旧 ID 物品 → 新 ID"映射（旧段基准 14620），供占位转换器、
+     * [OLD] 实机注册、Postea 物品迁移与工作台转换配方等迁移机制查询。
+     * v1.11.34 起上述旧 ID 映射机制已整体移除，两表清空，仅保留数组结构与历史锚点
+     * （旧段基准 14620），getMappedId 查询契约维持不变（空表恒返回 -1）。
+     * 历史明细见 plan/sum/15_MetaV2迁移_sum.md 与 plan/sum/39_机器meta号段整理_sum.md。
      */
     public static final int[] LEGACY_TO_NEW_MAP = new int[51];
     public static final int[] PUBLISHED_REMAP = new int[4];
-
-    static {
-        for (MetaTileEntityID id : values()) {
-            if (STRUCTURE_RESET.contains(id)) continue;
-            int idx = id.OLD_ID - BASE_OLD;
-            if (idx >= 0 && idx < LEGACY_TO_NEW_MAP.length) {
-                LEGACY_TO_NEW_MAP[idx] = id.ID;
-            }
-            if (id.PUBLISHED_OLD_ID >= 0) {
-                int publishedIdx = id.PUBLISHED_OLD_ID - BASE;
-                if (publishedIdx >= 0 && publishedIdx < PUBLISHED_REMAP.length) {
-                    PUBLISHED_REMAP[publishedIdx] = id.ID;
-                }
-            }
-        }
-    }
 
     /** 查询旧绝对 ID（含已发布段及迁移段）对应的新绝对 ID；无映射返回 -1。 */
     public static int getMappedId(int oldId) {

@@ -263,7 +263,7 @@ Reverse-injects steam energy underground to increase fluid reserves, solving lon
 
 ### Mineral Logistics Cluster / 蒸汽动力矿物处理物流工程集群 (1)
 
-<p align="center"><img src="README/CRUSH-Module.png" width="240" alt="矿物处理集群模块总览 / MLC Module Overview"> <img src="README/CRUSH-UI1.png" width="240" alt="集群终端拓扑页 / Cluster Terminal Topology Page"> <img src="README/CRUSH-UI2.png" width="240" alt="集群终端链路页 / Cluster Terminal Chain Page"> <img src="README/CRUSH-UI3.png" width="240" alt="集群终端增幅页 / Cluster Terminal Amplifier Page"><br><em>矿物处理集群：模块总览（主控+7 加工模块+5 增幅模块+物流模块） / Mineral Logistics Cluster: module overview (controller + 7 processing + 5 amplifier + 1 logistics module)</em><br><em>集群终端三页：拓扑（蒸汽/润滑油/热量/吞吐总览+分段模块矩阵+状态图例）、链路（链步+链编辑+链式总公式+性能详情）、增幅（增幅模块等级/特殊流体供给/六类增益叠加） / Cluster terminal pages: Topology (steam/lubricant/heat/throughput overview, segmented module matrix, status legend), Chain editor (available links, chain editing, total chain formula, performance details), Amplifier (amplifier tiers, special fluid supply, six-fold boost stacking)</em></p>
+<p align="center"><img src="README/CRUSH-T1.png" width="500" alt="矿物处理集群主结构全景 / MLC Main Structure Overview"> <img src="README/CRUSH-UI1.png" width="800" alt="集群终端拓扑页 / Cluster Terminal Topology Page"><br><em>矿物处理集群主结构（主段 15×20×29 + 延伸段串接）与集群终端拓扑页；模块合影、链路/增幅页等更多配图见项目 wiki / Mineral Logistics Cluster main structure (main segment 15×20×29 + daisy-chained extension segments) and cluster terminal topology page; more shots (module group, chain/amplifier pages) in the project wiki</em></p>
 
 **蒸汽动力矿物处理物流工程集群（开发中，逐步实装）/ Mineral Logistics Cluster (MLC) — in development, rolling out incrementally**
 
@@ -881,6 +881,16 @@ GTSR 向 GT5U 和 GT++ 注入了 11 个 Mixin 类，从根本上增强了蒸汽�
 
 ***
 
+## BetterQuesting Questline Integration / BetterQuesting 任务线整合
+
+<p align="center"><img src="README/BQ.png" width="450" alt="任务线「GT 蒸汽重生」总览：66 个任务 / Quest line GT Steam Reborn overview: 66 quests"><br><em>任务线「GT 蒸汽重生」共 66 个任务，连线为任务依赖 / Quest line "GT Steam Reborn" with 66 quests; lines are quest dependencies</em></p>
+
+- **内置引导任务线**：66 个任务覆盖青铜基地验收、蒸汽经济学、枢纽网络到奇点账户的完整进度线，任务标题与描述随游戏语言自动切换（中/英）。/ **Built-in guided questline**: 66 quests covering the full progression from bronze-base acceptance and steam economics to hub networks and the singularity account; quest titles and descriptions follow the game language (CN/EN).
+- **自动注入，免手动迁移**：进入世界后按 jar 内清单幂等注入；mod 升级自动刷新任务定义（完成/领取进度保留），被移除的任务自动剪枝，所有存档自动生效。/ **Auto-injected, migration-free**: idempotently injected from the in-jar manifest on world entry; upgrading the mod refreshes quest definitions automatically (completion and claim progress kept), removed quests are pruned, and every save picks this up automatically.
+- **可选依赖**：BetterQuesting 未安装时本整合静默停用，其余功能不受影响。/ **Optional dependency**: with BetterQuesting absent, this integration silently disables and nothing else is affected.
+
+***
+
 ## Admin Commands / 管理员命令
 
 - **`/gtsr singularity <range> <speed/20tick> <damage/20tick> <durationTicks|NA> <special|null|onlypull|nullplus|nature> [color] [fxRadius]`**
@@ -900,7 +910,7 @@ GTSR 向 GT5U 和 GT++ 注入了 11 个 Mixin 类，从根本上增强了蒸汽�
 - Java 8 (Jabel) / Minecraft 1.7.10 / Forge 10.13.4.1614
 - SpongePowered Mixin (11 mixin classes)
 - ModularUI / StructureLib
-- Dependencies: GT5U (explicit API dependency), GT++ (visible at compile time via the GT5U fat dev jar, no explicit declaration), Bartworks, TecTech (same fat dev jar), AE2, ModularUI/ModularUI2, GTNHLib, StructureLib, Postea, NEI, IC2, GTNEIOrePlugin, Botania, Waila, BetterQuesting (compileOnly — quest-line runtime injection, silently disabled when absent / 任务线运行时注入，缺席时静默停用); EFR (etfuturum) and BuildCraft are soft references (recipes only)
+- Dependencies: GT5U (explicit API dependency), GT++ (visible at compile time via the GT5U fat dev jar, no explicit declaration), Bartworks, TecTech (same fat dev jar), AE2, ModularUI/ModularUI2, GTNHLib, StructureLib, NEI, IC2, GTNEIOrePlugin, Botania, Waila, BetterQuesting (compileOnly — quest-line runtime injection, silently disabled when absent / 任务线运行时注入，缺席时静默停用); EFR (etfuturum) and BuildCraft are soft references (recipes only)
 
 ## License / 许可证
 
