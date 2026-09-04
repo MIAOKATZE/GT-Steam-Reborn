@@ -223,6 +223,18 @@ public class GuiClusterTerminalScreen extends GuiTerminalBase {
         super.mouseClicked(mouseX, mouseY, mouseButton);
     }
 
+    @Override
+    protected void mouseClickMove(int mouseX, int mouseY, int button, long timeSinceLastClick) {
+        pageFor(this.activePage).mouseClickMove(mouseX, mouseY, button);
+        super.mouseClickMove(mouseX, mouseY, button, timeSinceLastClick);
+    }
+
+    @Override
+    protected void mouseMovedOrUp(int mouseX, int mouseY, int button) {
+        pageFor(this.activePage).mouseReleased(mouseX, mouseY, button);
+        super.mouseMovedOrUp(mouseX, mouseY, button);
+    }
+
     private ClusterPage pageFor(int index) {
         switch (index) {
             case 0:
@@ -440,22 +452,19 @@ public class GuiClusterTerminalScreen extends GuiTerminalBase {
         }
     }
 
-    // —— 底栏：异常摘要（红/chip_active）优先，其次未成型提示，默认运行提示（灰/chip_normal） ——
+    // —— 底栏：仅异常摘要或未成型提示；正常态完全留空 ——
 
     private void drawFootbar() {
-        boolean alert;
         String text = footbarAlertText();
-        if (text != null) {
-            alert = true;
-        } else {
-            alert = false;
-            text = EnumChatFormatting.WHITE + tr(footbarNormalKey());
+        if (text == null && ClusterTerminalClientCache.getInt(ClusterTerminalData.KEY_TIER, -1) < 0) {
+            text = EnumChatFormatting.WHITE + tr("gtsr.cluster.gui.foot.unformed");
         }
+        if (text == null) return;
         final FontRenderer font = this.fontRendererObj;
         int textW = (int) (font.getStringWidth(text) * 0.7f);
         int chipW = Math.min(CONTENT_W, textW + 10);
         GtsrGuiDrawing.drawNineSlice(
-            alert ? GtsrGuiTextures.CHIP_ACTIVE : GtsrGuiTextures.CHIP_NORMAL,
+            footbarAlertText() != null ? GtsrGuiTextures.CHIP_ACTIVE : GtsrGuiTextures.CHIP_NORMAL,
             4,
             this.guiLeft + CONTENT_X,
             this.guiTop + FOOTBAR_Y,
@@ -468,7 +477,7 @@ public class GuiClusterTerminalScreen extends GuiTerminalBase {
             this.guiLeft + CONTENT_X + 5,
             this.guiTop + FOOTBAR_Y + 4,
             0.7f,
-            alert ? GtsrGuiPalette.TEXT_WHITE : GtsrGuiPalette.TEXT_MUTED);
+            footbarAlertText() != null ? GtsrGuiPalette.TEXT_WHITE : GtsrGuiPalette.TEXT_MUTED);
     }
 
     /** 异常摘要文本（有异常返回红字串，null=无异常；旧 footbarText 前两段优先级）。 */
@@ -485,14 +494,6 @@ public class GuiClusterTerminalScreen extends GuiTerminalBase {
             return EnumChatFormatting.RED + String.format(tr("gtsr.cluster.gui.topo.error.ext"), brk);
         }
         return null;
-    }
-
-    /** 无异常时的运行提示键（未成型提示优先，旧 footbarText 后段）。 */
-    private String footbarNormalKey() {
-        if (ClusterTerminalClientCache.getInt(ClusterTerminalData.KEY_TIER, -1) < 0) {
-            return "gtsr.cluster.gui.foot.unformed";
-        }
-        return "gtsr.cluster.gui.foot.normal";
     }
 
     // ==================== 页面共用绘制/输入工具（包内静态） ====================
@@ -583,5 +584,9 @@ public class GuiClusterTerminalScreen extends GuiTerminalBase {
 
         /** 滚轮（dir=±1 行；仅鼠标落在内容区时生效）；页内自钳制。 */
         void wheel(int ox, int oy, int mx, int my, int dir);
+
+        default void mouseClickMove(int mouseX, int mouseY, int button) {}
+
+        default void mouseReleased(int mouseX, int mouseY, int button) {}
     }
 }

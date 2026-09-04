@@ -466,7 +466,7 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
             return super.onRightclick(aBaseMetaTileEntity, aPlayer, side, aX, aY, aZ);
         }
 
-        if (!tryHandleNodeBindClick(aBaseMetaTileEntity, aPlayer)) {
+        if (!tryHandleNodeBindClick(aBaseMetaTileEntity, aPlayer, false)) {
             return super.onRightclick(aBaseMetaTileEntity, aPlayer, side, aX, aY, aZ);
         }
         return true;
@@ -477,11 +477,18 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
      * 类型解析 → 已绑定堆叠解绑 → shift 整组绑定 / 普通拆一绑定。
      * 潜行+手持可放置物品时原版直接走放置路径、onRightclick 收不到事件
      * （ItemInWorldManager.activateBlockOrUseItem 的 useBlock 判定），由
-     * HubBindPlacementGuard 在服务端取消放置后调用本方法完成绑定。
+     * bindWhole=true 时绑定整组；普通右击传 false 仅绑定一件。
      *
      * @return true=手持物属本枢纽可处理类型（调用方应吞掉本次交互）；false=非节点类物品
      */
-    public boolean tryHandleNodeBindClick(IGregTechTileEntity aBaseMetaTileEntity, EntityPlayer aPlayer) {
+    /** 客户端预检手持物是否为可绑定钻井节点。 */
+    public static boolean canBindHeld(ItemStack held) {
+        return GTSRItemList.SingularityMinerNode.isStackEqual(held, false, true)
+            || GTSRItemList.SingularityDrillingNode.isStackEqual(held, false, true);
+    }
+
+    public boolean tryHandleNodeBindClick(IGregTechTileEntity aBaseMetaTileEntity, EntityPlayer aPlayer,
+        boolean bindWhole) {
         ItemStack held = aPlayer.getHeldItem();
         String type = null;
         boolean isMiner = false;
@@ -526,7 +533,7 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
 
         // shift 右击：整个手持堆叠全部绑定（奇点消耗 = 单次成本 × 堆叠数量）；
         // 普通右击：拆出 1 个绑定（奇点按现有成本消耗一次），绑定物回背包，手持剩余保持未绑定
-        if (aPlayer.isSneaking()) {
+        if (bindWhole) {
             bindWholeHeld(aPlayer, held, type, isMiner, myX, myY, myZ, myDim);
         } else {
             bindOneFromHeld(aPlayer, held, type, isMiner, myX, myY, myZ, myDim);

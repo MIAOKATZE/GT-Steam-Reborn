@@ -5,6 +5,7 @@ import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.World;
 import net.minecraftforge.common.MinecraftForge;
 
+import com.miaokatze.gtsr.client.HubBindClientHandler;
 import com.miaokatze.gtsr.client.gui.terminal.GuiAggregatorConfigScreen;
 import com.miaokatze.gtsr.common.fx.GTSRFXEngine;
 import com.miaokatze.gtsr.common.gui.terminal.ContainerAggregatorConfig;
@@ -37,6 +38,7 @@ public class ClientProxy extends CommonProxy {
             .register(new SingularityClientFXHandler());
 
         MinecraftForge.EVENT_BUS.register(GTSRFXEngine.instance());
+        MinecraftForge.EVENT_BUS.register(new HubBindClientHandler());
         FMLCommonHandler.instance()
             .bus()
             .register(GTSRFXEngine.instance());

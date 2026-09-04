@@ -572,6 +572,11 @@ public abstract class MTEHubArrayBase<T extends MTEHubArrayBase<T>> extends MTEG
 
     // region 绑定流（onRightclick 模板 + bindOne/bindWhole + 成本钩子，吸收 O2-11 双枢纽绑定流）
 
+    /** 客户端预检手持物是否属于本枢纽可绑定类型。 */
+    public final boolean canBindHeld(ItemStack held) {
+        return resolveHeldType(held) != null;
+    }
+
     /** 手持物类型识别表（本族缓存节点 + 奇点仓物品；无法识别返回 null 走默认右键）。 */
     protected abstract String resolveHeldType(ItemStack held);
 
@@ -643,7 +648,7 @@ public abstract class MTEHubArrayBase<T extends MTEHubArrayBase<T>> extends MTEG
             return super.onRightclick(aBaseMetaTileEntity, aPlayer, side, aX, aY, aZ);
         }
 
-        if (!tryHandleNodeBindClick(aBaseMetaTileEntity, aPlayer)) {
+        if (!tryHandleNodeBindClick(aBaseMetaTileEntity, aPlayer, false)) {
             return super.onRightclick(aBaseMetaTileEntity, aPlayer, side, aX, aY, aZ);
         }
         return true;
@@ -652,13 +657,12 @@ public abstract class MTEHubArrayBase<T extends MTEHubArrayBase<T>> extends MTEG
     /**
      * 手持缓存节点类物品右击本枢纽的绑定处理入口（onRightclick 与潜行放置拦截事件共用）：
      * 类型解析 → 芯片门控 → 已绑定堆叠翻转/解绑 → shift 整组绑定 / 普通拆一绑定。
-     * 潜行+手持可放置物品时原版直接走放置路径、onRightclick 收不到事件
-     * （ItemInWorldManager.activateBlockOrUseItem 的 useBlock 判定），由
-     * HubBindPlacementGuard 在服务端取消放置后调用本方法完成绑定。
+     * bindWhole=true 时绑定整组；普通右击传 false 仅绑定一件。
      *
      * @return true=手持物属本枢纽可处理类型（调用方应吞掉本次交互）；false=非节点类物品
      */
-    public boolean tryHandleNodeBindClick(IGregTechTileEntity aBaseMetaTileEntity, EntityPlayer aPlayer) {
+    public boolean tryHandleNodeBindClick(IGregTechTileEntity aBaseMetaTileEntity, EntityPlayer aPlayer,
+        boolean bindWhole) {
         ItemStack held = aPlayer.getHeldItem();
         String type = resolveHeldType(held);
 
@@ -729,7 +733,7 @@ public abstract class MTEHubArrayBase<T extends MTEHubArrayBase<T>> extends MTEG
         // shift 右击：整个手持堆叠全部绑定（奇点消耗 = 单次成本 × 堆叠数量）；
         // 普通右击：拆出 1 个绑定（奇点按类型成本消耗一次），绑定物回背包，手持剩余保持未绑定
         boolean isReinforced = isReinforcedType(type);
-        if (aPlayer.isSneaking()) {
+        if (bindWhole) {
             bindWholeHeld(aPlayer, held, type, isReinforced, myX, myY, myZ, myDim);
         } else {
             bindOneFromHeld(aPlayer, held, type, isReinforced, myX, myY, myZ, myDim);

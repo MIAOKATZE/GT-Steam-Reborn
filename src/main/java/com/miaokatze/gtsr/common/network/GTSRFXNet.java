@@ -1,15 +1,20 @@
 package com.miaokatze.gtsr.common.network;
 
+import java.util.concurrent.ConcurrentLinkedQueue;
+
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.network.PacketBuffer;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.World;
-import net.minecraftforge.common.MinecraftForge;
 
 import com.miaokatze.gtsr.common.blocks.GTSRSingularityFX;
-import com.miaokatze.gtsr.common.machine.HubBindPlacementGuard;
+import com.miaokatze.gtsr.common.machine.MTESingularityDrillingHub;
+import com.miaokatze.gtsr.common.machine.base.MTEHubArrayBase;
 import com.miaokatze.gtsr.common.terminal.TerminalNet;
 
+import cpw.mods.fml.common.eventhandler.SubscribeEvent;
+import cpw.mods.fml.common.gameevent.TickEvent;
 import cpw.mods.fml.common.network.NetworkRegistry;
 import cpw.mods.fml.common.network.simpleimpl.IMessage;
 import cpw.mods.fml.common.network.simpleimpl.IMessageHandler;
@@ -26,14 +31,18 @@ import io.netty.buffer.ByteBuf;
  */
 public class GTSRFXNet {
 
+    private static final ConcurrentLinkedQueue<PendingBind> PENDING_BIND = new ConcurrentLinkedQueue<PendingBind>();
+
     private static final SimpleNetworkWrapper NETWORK = NetworkRegistry.INSTANCE.newSimpleChannel("gtsr_fx");
 
     public static void init() {
         NETWORK.registerMessage(AbsorbMessageHandler.class, AbsorbMessage.class, 0, Side.CLIENT);
+        NETWORK.registerMessage(HubBindHandler.class, HubBindMessage.class, 1, Side.SERVER);
         // 终端轨（channel "gtsr_terminal"）：注册点收束于本 init 尾部，满足「GTSRFXNet 基建可扩展」决策
         TerminalNet.register();
-        // 枢纽绑定放置拦截（Forge 事件轨）：服务端取消潜行右击枢纽的放置并转调绑定入口
-        MinecraftForge.EVENT_BUS.register(new HubBindPlacementGuard());
+        cpw.mods.fml.common.FMLCommonHandler.instance()
+            .bus()
+            .register(new BindServerDrain());
     }
 
     /** 服务端：吸收方块处生成向心粒子（S2C 广播 64 格内玩家） */
@@ -53,6 +62,53 @@ public class GTSRFXNet {
                 if (dx * dx + dy * dy + dz * dz <= maxDistSq) {
                     NETWORK.sendTo(msg, p);
                 }
+            }
+        }
+    }
+
+    /** 客户端发送 Alt 绑定请求。 */
+    public static void sendHubBind(int x, int y, int z, int dim) {
+        NETWORK.sendToServer(new HubBindMessage(x, y, z, dim));
+    }
+
+    public static class HubBindHandler implements IMessageHandler<HubBindMessage, IMessage> {
+
+        @Override
+        public IMessage onMessage(HubBindMessage msg, MessageContext ctx) {
+            if (ctx.getServerHandler() != null)
+                PENDING_BIND.add(new PendingBind(ctx.getServerHandler().playerEntity, msg));
+            return null;
+        }
+    }
+
+    private static final class PendingBind {
+
+        final EntityPlayerMP player;
+        final HubBindMessage msg;
+
+        PendingBind(EntityPlayerMP p, HubBindMessage m) {
+            player = p;
+            msg = m;
+        }
+    }
+
+    public static final class BindServerDrain {
+
+        @SubscribeEvent
+        public void onServerTick(TickEvent.ServerTickEvent event) {
+            if (event.phase != TickEvent.Phase.END) return;
+            PendingBind task;
+            while ((task = PENDING_BIND.poll()) != null) {
+                EntityPlayerMP player = task.player;
+                if (player == null || player.dimension != task.msg.dim) continue;
+                if (player.getDistanceSq(task.msg.x + .5, task.msg.y + .5, task.msg.z + .5) >= 64.0) continue;
+                TileEntity te = player.worldObj.getTileEntity(task.msg.x, task.msg.y, task.msg.z);
+                if (!(te instanceof gregtech.api.interfaces.tileentity.IGregTechTileEntity gte)) continue;
+                if (gte.getMetaTileEntity() instanceof MTEHubArrayBase hub && hub.canBindHeld(player.getHeldItem()))
+                    hub.tryHandleNodeBindClick(gte, player, true);
+                else if (gte.getMetaTileEntity() instanceof MTESingularityDrillingHub drill
+                    && MTESingularityDrillingHub.canBindHeld(player.getHeldItem()))
+                    drill.tryHandleNodeBindClick(gte, player, true);
             }
         }
     }

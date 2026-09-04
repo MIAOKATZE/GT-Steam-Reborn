@@ -62,7 +62,7 @@ public class GtsrGuiList {
         int rowCount();
     }
 
-    /** 单行绘制回调（index 为数据下标；x/y 为行左上角屏幕坐标，宽即列表宽、高 20） */
+    /** 单行绘制回调（index 为数据下标；x/y 为行左上角屏幕坐标，宽即列表宽、高为构造行高） */
     public interface RowPainter {
 
         void paintRow(int index, int x, int y, int mouseX, int mouseY);
@@ -97,8 +97,8 @@ public class GtsrGuiList {
     /** 列表下边界 */
     private final int listBottom;
 
-    /** 单行高度（PLAN §4.5-A 冻结 20） */
-    private final int slotHeight = 20;
+    /** 行高（默认 20；链路页可注入 34） */
+    private final int slotHeight;
 
     /** 滚动条宽度 */
     private final int scrollbarWidth = 6;
@@ -141,12 +141,25 @@ public class GtsrGuiList {
      * @param height 列表可视高度（建议 20 的整倍数）
      */
     public GtsrGuiList(GuiScreen host, int left, int top, int width, int height) {
+        this(host, left, top, width, height, 20);
+    }
+
+    /**
+     * 创建指定行高的滚动列表。
+     *
+     * @param rowHeight 单行高度（像素，必须为正数）
+     */
+    public GtsrGuiList(GuiScreen host, int left, int top, int width, int height, int rowHeight) {
+        if (rowHeight <= 0) {
+            throw new IllegalArgumentException("rowHeight must be positive");
+        }
         this.host = host;
         this.listLeft = left;
         this.listTop = top;
         this.listRight = left + width;
         this.listWidth = width;
         this.listHeight = height;
+        this.slotHeight = rowHeight;
         this.listBottom = this.listTop + this.listHeight;
     }
 
@@ -330,6 +343,23 @@ public class GtsrGuiList {
         int y = host.height - Mouse.getEventY() * host.height / Minecraft.getMinecraft().displayHeight - 1;
         if (x >= listLeft && x <= listRight && y >= listTop && y <= listBottom) {
             scrollBy(-Integer.signum(dwheel));
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * 显式滚轮入口（宿主已读取事件方向时调用，不重读 Mouse 事件）：
+     * 终端页 wheel(dir) 转发路径使用，坐标口径与 {@link #mouseClicked} 一致（gui 绝对坐标）。
+     *
+     * @return 若点在列表区域内并被消费则返回 true
+     */
+    public boolean handleWheel(int mouseX, int mouseY, int dir) {
+        if (dir == 0) {
+            return false;
+        }
+        if (mouseX >= listLeft && mouseX <= listRight && mouseY >= listTop && mouseY <= listBottom) {
+            scrollBy(-dir);
             return true;
         }
         return false;

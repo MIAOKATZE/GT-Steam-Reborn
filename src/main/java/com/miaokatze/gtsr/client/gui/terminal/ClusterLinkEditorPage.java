@@ -55,7 +55,7 @@ final class ClusterLinkEditorPage implements ClusterPage {
     private static final int RIGHT_X = 280;
     private static final int RIGHT_W = 302;
     /** 列标题偏移。 */
-    private static final int TITLE_DY = 5;
+    private static final int TITLE_DY = 15;
     /** 链步行区：起始偏移与行距（修订 FC 行高 ×2：34 = 33 按钮高 + 1 行距）。 */
     private static final int LINKS_DY = 28;
     private static final int LINK_PITCH = 34;
@@ -79,8 +79,10 @@ final class ClusterLinkEditorPage implements ClusterPage {
     private static final ChainLink[] LINKS = ChainLink.values();
 
     private final GuiClusterTerminalScreen host;
-    /** 可用链列表滚动偏移（自持）。 */
-    private int linksScroll;
+    /** 可用链滚动列表。 */
+    private GtsrGuiList linksList;
+    /** 可用链列表几何快照。 */
+    private int linksListLeft, linksListTop, linksListWidth, linksListHeight;
     /** chips 滚动偏移（自持）。 */
     private int chipsScroll;
     /** 下拉菜单展开态。 */
@@ -258,17 +260,10 @@ final class ClusterLinkEditorPage implements ClusterPage {
             oy + TITLE_DY,
             0.7f,
             GtsrGuiPalette.TEXT_ACCENT);
-        // 可用链滚动区（修订 FC）：10 行 ×34 超列区剩余高，滚动偏移自持
+        // 可用链滚动区：列表实例按动态反馈区几何重建，面板由列表自绘。
         int listH = feedbackDy - LINKS_DY - 2;
-        GtsrGuiDrawing.drawNineSlice(GtsrGuiTextures.LIST_PANEL, 4, ox, oy + LINKS_DY, LEFT_W, listH, z);
-        int maxScroll = Math.max(0, LINKS.length - listH / LINK_PITCH);
-        if (this.linksScroll > maxScroll) this.linksScroll = maxScroll;
-        if (this.linksScroll < 0) this.linksScroll = 0;
-        for (int i = 0; i < LINKS.length; i++) {
-            int rowY = oy + LINKS_DY + 2 + (i - this.linksScroll) * LINK_PITCH;
-            if (rowY + LINK_PITCH - 1 <= oy + LINKS_DY || rowY >= oy + LINKS_DY + listH) continue;
-            drawLinkRow(LINKS[i], i, ox + 2, rowY, LEFT_W - 4, mx, my);
-        }
+        ensureLinksList(ox, oy + LINKS_DY, LEFT_W, listH);
+        this.linksList.draw(mx, my, z);
         // 同步反馈行 + 链长计数（动态，钉底）
         GuiClusterTerminalScreen
             .drawScaledText(font(), feedbackText(), ox, oy + feedbackDy, 0.65f, GtsrGuiPalette.TEXT_BODY);
@@ -286,6 +281,31 @@ final class ClusterLinkEditorPage implements ClusterPage {
      * 单个链步行（恒渲染——禁用行灰字+锁因仍在）：两行文本（名称+在链×N / 基准秒+介质需求+锁因红字），
      * 可用点击本地暂存追加（决策7：不发 C2S），锁定点击或链长已满本地拒绝（反馈行提示）。
      */
+    private void ensureLinksList(int left, int top, int width, int height) {
+        if (this.linksList != null && this.linksListLeft == left
+            && this.linksListTop == top
+            && this.linksListWidth == width
+            && this.linksListHeight == height) {
+            return;
+        }
+        this.linksListLeft = left;
+        this.linksListTop = top;
+        this.linksListWidth = width;
+        this.linksListHeight = height;
+        this.linksList = new GtsrGuiList(this.host, left, top, width, height, LINK_PITCH);
+        this.linksList.setRowSource(() -> LINKS.length);
+        this.linksList.setRowPainter(
+            (index, x, y, mouseX, mouseY) -> drawLinkRow(LINKS[index], index, x + 2, y, LEFT_W - 4, mouseX, mouseY));
+        this.linksList.setRowListener((index, mouseX, mouseY, button) -> {
+            ChainLink link = LINKS[index];
+            if (lockKind(link.ordinal()) == 0 && displayOrdinals().size() < ClusterParams.CHAIN_MAX_LINKS) {
+                stageAppend(link.ordinal());
+            } else {
+                this.lastRejectAt = System.currentTimeMillis();
+            }
+        });
+    }
+
     private void drawLinkRow(ChainLink link, int index, int x, int y, int w, int mx, int my) {
         boolean hovered = mx >= x && mx < x + w && my >= y && my < y + LINK_PITCH - 1;
         if (hovered) {
@@ -519,7 +539,7 @@ final class ClusterLinkEditorPage implements ClusterPage {
             int debuffY = y + 17;
             String debuffLabel = GtsrGuiList.ellipsis(font(), crushDebuff, 110);
             GuiClusterTerminalScreen
-                .drawScaledText(font(), debuffLabel, debuffX, debuffY, 0.55f, GtsrGuiPalette.TEXT_MUTED);
+                .drawScaledText(font(), debuffLabel, debuffX, debuffY, 0.55f, GtsrGuiPalette.TEXT_ACCENT);
         }
         drawChipButton(x + 114, y, 14, 13, "◀", mx, my);
         drawChipButton(x + 130, y, 14, 13, "▶", mx, my);
@@ -535,7 +555,7 @@ final class ClusterLinkEditorPage implements ClusterPage {
         // tier≥2 无削弱：不显示「降低0%」提示行
         if (multiplier >= 1.0) return null;
         long reductionPercent = Math.round((1.0 - multiplier) * 100.0);
-        return EnumChatFormatting.GRAY
+        return EnumChatFormatting.GOLD
             + StatCollector.translateToLocalFormatted("gtsr.gui.cluster.link.crush.byproduct_debuff", reductionPercent);
     }
 
@@ -832,18 +852,9 @@ final class ClusterLinkEditorPage implements ClusterPage {
             }
             return true;
         }
-        // 可用链行点击：可用且未满 → 暂存追加；锁定点击或链长已满本地拒绝（红字反馈）
-        if (mx >= ox && mx < ox + LEFT_W && my >= oy + LINKS_DY) {
-            int row = (my - (oy + LINKS_DY + 2)) / LINK_PITCH + this.linksScroll;
-            if (row >= 0 && row < LINKS.length) {
-                ChainLink link = LINKS[row];
-                if (lockKind(link.ordinal()) == 0 && displayOrdinals().size() < ClusterParams.CHAIN_MAX_LINKS) {
-                    stageAppend(link.ordinal());
-                } else {
-                    this.lastRejectAt = System.currentTimeMillis();
-                }
-                return true;
-            }
+        // 可用链列表：滚动条、行点击与拖拽均由列表统一处理。
+        if (this.linksList != null && this.linksList.mouseClicked(mx, my, button)) {
+            return true;
         }
         // chips 行内钮：◀ ▶ ✖（本地暂存位移/删除）
         int chipsTop = oy + CHIPS_DY;
@@ -875,12 +886,23 @@ final class ClusterLinkEditorPage implements ClusterPage {
 
     @Override
     public void wheel(int ox, int oy, int mx, int my, int dir) {
-        if (mx >= ox && mx < ox + GuiClusterTerminalScreen.CONTENT_W
-            && my >= oy
-            && my < oy + GuiClusterTerminalScreen.CONTENT_H) {
-            this.linksScroll += dir;
+        // 宿主已读取滚轮方向：经显式入口传入，不重读 Mouse 事件（handleMouseInput 二次读取语义不明）
+        if (this.linksList != null && this.linksList.handleWheel(mx, my, dir)) {
+            return;
+        }
+        if (mx >= ox + RIGHT_X && mx < ox + RIGHT_X + RIGHT_W && my >= oy + CHIPS_DY && my < oy + CHIPS_DY + CHIPS_H) {
             this.chipsScroll += dir;
         }
+    }
+
+    @Override
+    public void mouseClickMove(int mouseX, int mouseY, int button) {
+        if (this.linksList != null) this.linksList.mouseClickMove(mouseX, mouseY, button);
+    }
+
+    @Override
+    public void mouseReleased(int mouseX, int mouseY, int button) {
+        if (this.linksList != null) this.linksList.mouseReleased(mouseX, mouseY, button);
     }
 
     // ==================== payload 构造 ====================
