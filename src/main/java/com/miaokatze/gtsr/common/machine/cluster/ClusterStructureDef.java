@@ -32,6 +32,7 @@ import com.gtnewhorizon.structurelib.structure.IStructureElement;
 import com.gtnewhorizon.structurelib.structure.StructureDefinition;
 import com.gtnewhorizon.structurelib.structure.StructureUtility;
 import com.gtnewhorizon.structurelib.util.Vec3Impl;
+import com.miaokatze.gtsr.api.compat.GTVersionCompat;
 import com.miaokatze.gtsr.common.machine.base.MTEHatchPressureSteamInput;
 
 import gregtech.api.GregTechAPI;
@@ -342,7 +343,9 @@ public final class ClusterStructureDef {
                     -1,
                     (t, tier) -> t.mFrameTier = tier,
                     t -> t.mFrameTier))
-            .addElement('E', ofBlock(GregTechAPI.sBlockGlass1, 10))
+            .addElement(
+                'E',
+                ofBlock(GTVersionCompat.getReinforcedGlassBlock(), GTVersionCompat.getReinforcedGlassMeta()))
             .addElement('F', unitSlot(MTEBasicProcessingUnit.class, ClusterTopology.PAD_WORKING))
             .addElement('G', unitSlot(MTEBasicLogisticsUnit.class, ClusterTopology.PAD_LOGISTICS))
             .addElement('H', unitSlot(MTEBasicAmplifierUnit.class, ClusterTopology.PAD_BOOSTER))

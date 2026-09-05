@@ -28,6 +28,7 @@ import com.gtnewhorizon.structurelib.structure.IStructureElement;
 import com.gtnewhorizon.structurelib.structure.ISurvivalBuildEnvironment;
 import com.gtnewhorizon.structurelib.structure.StructureDefinition;
 import com.gtnewhorizons.modularui.common.fluid.FluidStackTank;
+import com.miaokatze.gtsr.api.compat.GTVersionCompat;
 import com.miaokatze.gtsr.common.gui.cluster.MTEClusterUnitNativeGui;
 import com.miaokatze.gtsr.common.machine.base.MTEGTSRMultiBlockBase;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
@@ -308,10 +309,12 @@ public abstract class MTEClusterUnitBase<T extends MTEClusterUnitBase<T>> extend
             (MTEClusterUnitBase t) -> t.coilFamilyTier);
     }
 
-    /** GT 玻璃元素（r9 helper：加工族 E 位共用，gt.blockglass1:10）。 */
+    /**
+     * 防爆玻璃元素（r9 helper：加工族 E 位共用，经 GTVersionCompat 双版本适配：beta-1 为 IC2 blockAlloyGlass:0，beta-2 为 gt.blockglass1:10）。
+     */
     @SuppressWarnings("rawtypes")
     protected IStructureElement glassElement() {
-        return ofBlock(GregTechAPI.sBlockGlass1, 10);
+        return ofBlock(GTVersionCompat.getReinforcedGlassBlock(), GTVersionCompat.getReinforcedGlassMeta());
     }
 
     /** 严格空气元素（r9 helper：'-' 与 'e' 粒子候选空气位共用）。 */
