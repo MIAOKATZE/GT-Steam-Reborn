@@ -277,9 +277,9 @@ A steam-driven multiblock ore-processing cluster: logistics modules orchestrate 
 
 **Module list**: the ten chain steps — crush / hammer / simple wash / ore wash / chemical bath / centrifuge / thermal centrifuge / sifting / magnetic separation / smelting — are executed by seven working-unit classes: the crusher also handles hammering, the ore washer also simple washing and chemical bathing; plus a logistics unit (chain orchestration and parallel fetching) and five optional amplifier modules (parallel / speed / primary / secondary / steam saver). The cluster totals 14 multiblock machines: 1 controller + 7 working units + 5 amplifiers + 1 logistics unit. Hammer and simple wash are chain steps, not standalone machines (16 base ticks each; simple wash needs water and does not depend on GT++ — recipes pass through when GT++ is absent, so the link stays available).
 
-**结构 / Structure**：主段 15×20×29，背面最多串接 19 个 15×8×29 延伸段（总段数 ≤20，基础段+19延伸层）；四族结构方块 tier0-3 = 青铜/钢/钛/钨钢；每段提供 4 加工（F）+ 4 增幅（H）+ 1 物流（G）模块挂点。
+**结构 / Structure**：主段 15×20×29，背面最多串接 19 个 15×8×29 延伸段（总段数 ≤20，基础段+19延伸层）；四族结构方块 tier0-3 = 青铜/钢/钛/钨钢；每段可以挂载 加工（左）+ 增幅（中）+ 1 物流（右）模块各一个，其中加工模块和增幅模块不限制方向，物流模块需要朝向主结构的右边。
 
-**Structure**: a 15×20×29 main segment with up to 19 15×8×29 extension segments chained behind it (≤20 segments in total, base plus 19 extensions); four structure block families tier 0-3 = bronze / steel / titanium / tungsten steel; each segment offers 4 processing (F) + 4 amplifier (H) + 1 logistics (G) module mounts.
+**Structure**: a 15×20×29 main segment with up to 19 15×8×29 extension segments chained behind it (≤20 segments in total, base plus 19 extensions); four structure block families tier 0-3 = bronze / steel / titanium / tungsten steel; each segment can mount one processing (left) + one amplifier (middle) + one logistics (right) module, where processing and amplifier modules have no facing restriction, while the logistics module must face the right side of the main structure.
 
 **核心机制 / Core Mechanics**
 

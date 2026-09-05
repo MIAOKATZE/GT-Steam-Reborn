@@ -70,7 +70,8 @@ import gregtech.api.util.GTUtility;
  * 模块能否实际成型由模块自身多方块空间与空气要求决定。自动建造不提示、不放置方块。同段同类第二个
  * 模块不接入，并经 {@link #drainModuleConflicts()} 记录
  * {@link ClusterStructureError#moduleConflict(int, int)}（模块冲突检查点，总控 E1b 收尾取走）。
- * 挂点只存在于基础层后部 8 深（延伸图案）区域：F y9 {@code (10,9,14)/(8,9,16)/(12,9,16)/(10,9,18)}、
+ * 挂点只存在于基础层后部 8 深（延伸图案）区域：F 世界 y9（层下标 11，层下标越大世界 y 越低）
+ * {@code (10,11,14)/(8,11,16)/(12,11,16)/(10,11,18)}、
  * H y9 {@code (18,9,15)/(17,9,16)/(19,9,16)/(18,9,17)}、G {@code (27,12,16)}；每延伸段同图案
  * 各一组。等级 1 全息即完整 20 深基础层（含挂点）。
  *
@@ -142,7 +143,7 @@ public final class ClusterStructureDef {
      * 主段（15×20×29）＝12 深基础字面（{@code plan/集群扣除延伸层.java}，行 0..11，F/H/G/P 注入
      * 全部移除恢复草稿）+ 延伸段同图案（行 12..19，即 {@code plan/蒸汽动力矿物处理物流工程集群-
      * 延伸层-修.java} 字面）拼接。拼接后基础层唯一挂点集（坐标 (col,layer,depthRow)）：
-     * 加工 F 十字 y9 {@code (10,9,14)/(8,9,16)/(12,9,16)/(10,9,18)}、增幅 H 四格 y9
+     * 加工 F 十字（世界 y9，层下标 11）{@code (10,11,14)/(8,11,16)/(12,11,16)/(10,11,18)}、增幅 H 四格 y9
      * {@code (18,9,15)/(17,9,16)/(19,9,16)/(18,9,17)}、物流 G {@code (27,12,16)}。
      * 增幅塔 y7 草稿 H 四格位改 ' ' skip（H 挂点让位至 y9 同图案）；y3 塔 'AIIIA' 的 15 格 I
      * 归一化为 '-'（严格空气），行 14-18 壁 'A---A' 改 'AeeeA'（粒子候选空气位）；y13 中央塔
@@ -217,9 +218,9 @@ public final class ClusterStructureDef {
             " DA------AD                  ", " A--------A            AAA   ", " A--------A    AAAA   AEEEA  ",
             " A--------A   AEEEEAAAEEEEEA ", " A--------A   AEEEEAAAEEEEEA ", " DA------AD    AAAA   AEEEA  ",
             "   A----A              AAA   ", "   DAAAAD                    ", "D          D                 ",
-            "                             ", "DAAAD                        ", "A---A     F                  ",
-            "A---A             H          ", "A---A   F   F    H H         ", "A---A             H          ",
-            "A---A     F                  ", "DAAAD                        " },
+            "                             ", "DAAAD                        ", "A---A                        ",
+            "A---A             H          ", "A---A            H H         ", "A---A             H          ",
+            "A---A                        ", "DAAAD                        " },
         { "D          D                 ", "   DAAAAD                    ", "   A----A                    ",
             " DA------AD                  ", " A--------A    AAAA   A   A  ", " A--------A   A    AAA     A ",
             " A--------A  A              A", " A--------A  A              A", " DA------AD   A    AAA     A ",
@@ -231,9 +232,9 @@ public final class ClusterStructureDef {
             " DA------AD                  ", " A--------A    AAAA   A   A  ", " A--------A   A    AAA     A ",
             " A--------A  ABBBB          A", " A--------A  ABBBB          A", " DA------AD   A    AAA     A ",
             "   A----A      AAAA   A   A  ", "   DAAAAD              AAA   ", "D          D                 ",
-            "                             ", "DAAAD  D     D               ", "A---A          DD   DD  D    ",
-            "A---A                        ", "A---A                        ", "A---A                        ",
-            "A---A          DD   DD  D    ", "DAAAD  D     D               " },
+            "                             ", "DAAAD  D     D               ", "A---A     F    DD   DD  D    ",
+            "A---A                        ", "A---A   F   F                ", "A---A                        ",
+            "A---A     F    DD   DD  D    ", "DAAAD  D     D               " },
         { "D          D                 ", "   DAAAAD                    ", "   A----A                    ",
             " DA------AD                  ", " A--------A    EEEE   A   A  ", " A--------A   A    EEE     E ",
             " A--------A  ABBBB          E", " A--------A  ABBBB     A~A  E", " DA------AD   A    EEE     E ",
@@ -258,9 +259,9 @@ public final class ClusterStructureDef {
 
     /**
      * 延伸段（15×8×29）＝草稿 {@code plan/蒸汽动力矿物处理物流工程集群-延伸层-修.java} 字面矩阵 +
-     * 修正：草稿 F 四格字面自 y10 下移至 y9 同列位（深2列10 / 深4列8 / 深4列12 / 深6列10，与 H 挂点
-     * 同层；y10 草稿 F 位改 ' ' skip）；草稿 y10 的 H 四格位改 ' ' skip、y7 的 H 四格位
-     * （深3列18 / 深4列17 / 深4列19 / 深5列18）同改 ' ' skip，H 挂点
+     * 修正：草稿 F 四格字面自草稿 y10 下移至世界 y9（层下标 11）同列位（深2列10 / 深4列8 / 深4列12 /
+     * 深6列10）；草稿层下标 9（v1.11.36 误放位）与层下标 10 的 F 位均改 ' ' skip；草稿 y10 的 H 四格位
+     * 改 ' ' skip、y7 的 H 四格位（深3列18 / 深4列17 / 深4列19 / 深5列18）同改 ' ' skip，H 挂点
      * 移至 y9 同列位（与主段 y9 同图案）；G 字面保留（y12 深4 列27）；y3 塔 'AIIIA' 的 15 格 I
      * 归一化为 '-'（严格空气），行 2-6 壁 'A---A' 改 'AeeeA'（粒子候选空气位，每段 15 格）；
      * y12 深3 列0..2 恢复草稿 {@code A--} 字面（P 注入移除，输入仓自由化后由 A 元素统一承载）。
@@ -294,15 +295,15 @@ public final class ClusterStructureDef {
         { "                             ", "DAAAD                        ", "A---A                        ",
             "A---A                        ", "A---A                        ", "A---A                        ",
             "A---A                        ", "DAAAD                        " },
-        { "                             ", "DAAAD                        ", "A---A     F                  ",
-            "A---A             H          ", "A---A   F   F    H H         ", "A---A             H          ",
-            "A---A     F                  ", "DAAAD                        " },
+        { "                             ", "DAAAD                        ", "A---A                        ",
+            "A---A             H          ", "A---A            H H         ", "A---A             H          ",
+            "A---A                        ", "DAAAD                        " },
         { "                             ", "DAAAD                        ", "A---A           D   D        ",
             "A---A                        ", "A---A                        ", "A---A                        ",
             "A---A           D   D        ", "DAAAD                        " },
-        { "                             ", "DAAAD  D     D               ", "A---A          DD   DD  D    ",
-            "A---A                        ", "A---A                        ", "A---A                        ",
-            "A---A          DD   DD  D    ", "DAAAD  D     D               " },
+        { "                             ", "DAAAD  D     D               ", "A---A     F    DD   DD  D    ",
+            "A---A                        ", "A---A   F   F                ", "A---A                        ",
+            "A---A     F    DD   DD  D    ", "DAAAD  D     D               " },
         { "                             ", "DAAAD  DD   DD         D    D", "A---A  D     D DDD DDD  DA   ",
             "A---AEEE     EEEE   EEEEA    ", "A---AEEE     EEEE   EEEEA  G ", "A---AEEE     EEEE   EEEEA    ",
             "A---A  D     D DDD DDD  DA   ", "DAAAD  DD   DD         D    D" },
