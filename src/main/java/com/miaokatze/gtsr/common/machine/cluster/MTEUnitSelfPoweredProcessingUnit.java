@@ -73,10 +73,16 @@ public abstract class MTEUnitSelfPoweredProcessingUnit extends MTEBasicProcessin
         builder.addElement('P', energyHatchElement());
     }
 
-    /** 能源 hatch 元素（P 位与 A 位放宽共用，T15；casingIndex/hint 与原子类逐字一致）。 */
+    /**
+     * 能源 hatch 元素（P 位与 A 位放宽共用，T15；casingIndex/hint 与原子类逐字一致）。
+     * anyOf 而非 atLeast（T15b 修订）：GT5U atLeast 携带「已达最少数量即 shouldReject」的自动建造
+     * 收窄（HatchElementBuilder.atLeast→mReject/mHatchItemFilter 按 count≥1 拒绝后续放置），多能源仓
+     * 自由化下不适用——与总控 A 位元素同口径禁用 atLeast（ClusterStructureDef casingOrControllerInputSlot
+     * 同款）；≥1 能源仓的成型校验由本类 checkMachine 强制，不依赖 atLeast。check 路径二者同 adder 等价。
+     */
     @SuppressWarnings({ "unchecked", "rawtypes" })
     private IStructureElement energyHatchElement() {
-        return buildHatchAdder(this.getClass()).atLeast(Energy)
+        return buildHatchAdder(this.getClass()).anyOf(Energy)
             .casingIndex(GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings1, 10))
             .hint(1)
             .build();
