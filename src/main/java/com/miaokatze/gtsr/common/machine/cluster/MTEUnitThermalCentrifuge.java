@@ -22,10 +22,12 @@ import gtPlusPlus.xmod.gregtech.common.blocks.textures.TexturesGtBlock;
  * overlay：GT++ 工业热力离心机前脸（忠实引用原资源域，不复制 PNG）。
  *
  * <p>
- * 结构（r9 权威规格，7×5×5 canonical [Z][Y][X]，控制器 (3,3,0)）：无 'e'（不产粒子候选）；
- * 'a'=线圈族（{@code tieredCoilElement}，白铜/坎塔尔/钛铂钒/HSS-G 四档，⚠ 第四档 meta 4 为
- * GT5U lang 证据的授权偏离）；'P'×1 能源位位于 (3,3,4)——控制器同列同层最深行；
- * A=外壳族（基类绑定）、B=齿轮箱族、C=管道族、D=框架族、'-'=严格空气。
+ * 结构（r9 权威规格 + T15 能源位放宽，7×5×5 canonical [Z][Y][X]，控制器 (3,3,0)）：无 'e'
+ * （不产粒子候选）；'a'=线圈族（{@code tieredCoilElement}，白铜/坎塔尔/钛铂钒/HSS-G 四档，
+ * ⚠ 第四档 meta 4 为 GT5U lang 证据的授权偏离）；'P'×1 能源位位于 (3,3,4)——控制器同列同层
+ * 最深行（保留为兼容额外能源位，非唯一必需能源位）；A=外壳族（基类绑定）+T15 放宽：任意 A
+ * 机壳位可替换为能源 hatch（入 mEnergyHatches，共享 EU 池，上限=A 位数量+P 位）；
+ * B=齿轮箱族、C=管道族、D=框架族、'-'=严格空气。
  */
 public class MTEUnitThermalCentrifuge extends MTEUnitSelfPoweredProcessingUnit {
 
@@ -112,9 +114,9 @@ public class MTEUnitThermalCentrifuge extends MTEUnitSelfPoweredProcessingUnit {
     }
 
     /**
-     * 功能群（v1.11.15）：热离链步「耗时 / 蒸汽消耗」行 + 持续供电行——EU/t 与安培取自
-     * {@link ClusterParams#THERMOCENTRIFUGE_EU_PER_TICK}/{@link ClusterParams#THERMOCENTRIFUGE_AMPERAGE}
-     * （合计 = 乘积，Java 侧 GOLD 注入）。
+     * 功能群（v1.11.15 + T7）：热离链步「耗时 / 蒸汽消耗」行 + 持续供电行——EU/t 与安培取自
+     * {@link ClusterParams#THERMOCENTRIFUGE_EU_PER_TICK}/{@link ClusterParams#THERMOCENTRIFUGE_AMPERAGE}，
+     * 按单元档位乘 {1,2,8,16}（Java 侧 GOLD 注入）。
      */
     @Override
     protected void addUnitTooltipInfo(MultiblockTooltipBuilder tt) {
@@ -133,17 +135,25 @@ public class MTEUnitThermalCentrifuge extends MTEUnitSelfPoweredProcessingUnit {
                             ClusterParams.THERMOCENTRIFUGE_AMPERAGE))));
     }
 
-    /** 仓室群（v1.11.15）：能源仓行——数量按本单元 shape 的 'P' 位实际统计。 */
+    /**
+     * 仓室群（v1.11.15 + T15）：能源仓行——数量区间 1..（A 位数量+P 位），至少 1 枚；
+     * A 位任意机壳可替换为能源仓（父类 {@code tieredCasingElement} 放宽），全部能源仓共享 EU 池。
+     */
     @Override
     protected void addUnitStructureTooltipInfo(MultiblockTooltipBuilder tt) {
         tt.addStructureInfo(
             EnumChatFormatting.YELLOW + String.format(
                 StatCollector.translateToLocal("gtsr.tooltip.cluster.unit.hatch.energy"),
-                gold(String.valueOf(countUnitShapeChar('P')))));
+                gold(energyHatchCountRange())));
     }
 
-    /** 持续供电值段：{@code 32 EU/t × 3 A = 96 EU/t}（合计由乘积得出，不另造数）。 */
+    /** 持续供电值段（T7）：{@code 96/192/768/1536 EU/t × 3 A}，按单元档位 1/2/8/16 乘算。 */
     private static String powerEuLine(int euPerTick, int amperage) {
-        return String.format("%d EU/t × %d A = %d EU/t", euPerTick, amperage, euPerTick * amperage);
+        StringBuilder perTier = new StringBuilder();
+        for (int i = 0; i < ClusterParams.POWER_TIER_MULTIPLIERS.length; i++) {
+            if (i > 0) perTier.append('/');
+            perTier.append((long) euPerTick * ClusterParams.POWER_TIER_MULTIPLIERS[i]);
+        }
+        return String.format("%s EU/t × %d A", perTier, amperage);
     }
 }

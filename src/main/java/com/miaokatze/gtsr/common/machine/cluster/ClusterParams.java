@@ -44,11 +44,20 @@ public final class ClusterParams {
      */
     public static final float[] BOOSTER_STRUCTURE_PENALTY_MULT = { 1.2F, 1.4F, 1.8F, 2.0F };
 
+    /** 主/副产物模块蒸汽惩罚倍率，与速度/并行模块共用四档理论倍数。 */
+    public static final float[] OUTPUT_BOOSTER_STRUCTURE_PENALTY_MULT = { 1.2F, 1.4F, 1.8F, 2.0F };
+
+    /** 速度/并行协同率。 */
+    public static final double SPEED_PARALLEL_SYNERGY_RATE = 0.10D;
+
+    /** 主/副产物协同率。 */
+    public static final double OUTPUT_SYNERGY_RATE = 0.50D;
+
     /** 节汽增幅的蒸汽节省比例上限。 */
     public static final double STEAM_SAVER_CAP = 0.48;
 
     /** 各层级并行增幅点数，下标对应层级序号。 */
-    public static final int[] BOOSTER_PARALLEL_VALUES = { 4, 8, 24, 48 };
+    public static final int[] BOOSTER_PARALLEL_VALUES = { 8, 16, 48, 96 };
 
     /** 各层级速度增幅百分比，下标对应层级序号。 */
     public static final int[] BOOSTER_SPEED_PCT = { 5, 10, 30, 40 };
@@ -68,7 +77,7 @@ public final class ClusterParams {
     /** 并行增幅（锁定流体：硝酸）各层级增幅液每秒消耗（L/s），下标对应层级序号。 */
     public static final int[] AMPLIFIER_NITRIC_ACID_LPS = { 50, 200, 1000, 2000 };
 
-    /** 速度增幅（锁定流体：盐酸）各层级增幅液每秒消耗（L/s），下标对应层级序号。 */
+    /** 速度增幅（锁定流体：氢氯酸）各层级增幅液每秒消耗（L/s），下标对应层级序号。 */
     public static final int[] AMPLIFIER_HYDROCHLORIC_ACID_LPS = { 60, 300, 1500, 3000 };
 
     /** 主产物增幅（锁定流体：硫酸）各层级增幅液每秒消耗（L/s），下标对应层级序号。 */
@@ -112,7 +121,7 @@ public final class ClusterParams {
     /** 集群固定蒸汽消耗（L/s）：预热全额口径与运行保温下限共用（原 PREHEAT_STEAM_LPS，r6 重定义）。 */
     public static final int FIXED_CLUSTER_STEAM_LPS = 8000;
 
-    /** 各层级固定蒸汽乘率，下标对应层级序号（供经济切片对固定蒸汽按档缩放）。 */
+    /** 各层级固定蒸汽乘率，下标对应层级序号（供经济切片对固定蒸汽按档缩放；T4 拍板范围外，维持基线值）。 */
     public static final int[] FIXED_STEAM_TIER_MULT = { 1, 4, 16, 48 };
 
     /** 预热持续时间（秒）。 */
@@ -133,14 +142,15 @@ public final class ClusterParams {
     public static final int[] LOGISTICS_UNIT_LUBRICANT_LPS = { 20, 60, 300, 500 };
 
     /**
-     * 加工单元按自身结构档位的蒸汽倍率；与 {@link ExecutionPlan} 的加权蒸汽 C_i 同源。
+     * 加工单元按自身结构档位的蒸汽倍率（T4 用户拍板 1/16/128/512）；与 {@link ExecutionPlan} 的
+     * 加权蒸汽 C_i 同源。
      */
-    public static final int[] PROCESSING_UNIT_STEAM_MULT = { 1, 4, 16, 64 };
+    public static final int[] PROCESSING_UNIT_STEAM_MULT = { 1, 16, 128, 512 };
 
     /**
      * 加工单元按自身结构档位的耗时除数；与 {@link ExecutionPlan} 的耗时 T_i 同源。
      */
-    public static final int[] PROCESSING_UNIT_TIME_DIVISOR = { 1, 2, 4, 8 };
+    public static final int[] PROCESSING_UNIT_TIME_DIVISOR = { 1, 4, 16, 64 };
 
     /** 每批次清洗用水量（L）。 */
     public static final int WASH_WATER_PER_BATCH_L = 1000;
@@ -151,17 +161,23 @@ public final class ClusterParams {
     /** 简易洗矿配方查询用的普通水信号量（mB；仅用于匹配，绝不计入台账或实扣）。 */
     public static final int SIMPLE_WASH_RECIPE_PROBE_MB = 100;
 
-    /** 磁选单元持续供电需求（LV 电压档 EU/t），用户拍板：磁选需持续供电；合计 = 本值 × MAGNETIC_AMPERAGE。 */
+    /**
+     * 磁选单元持续供电基准（LV 电压档 EU/t），用户拍板：磁选需持续供电；合计 =
+     * 本值 × MAGNETIC_AMPERAGE × POWER_TIER_MULTIPLIERS[单元档位]（T7）。
+     */
     public static final int MAGNETIC_EU_PER_TICK = 32;
 
-    /** 磁选单元供电安培数（LV × 1A = 32EU/t 合计）。 */
+    /** 磁选单元供电安培数（LV × 1A 基准，随档位再乘）。 */
     public static final int MAGNETIC_AMPERAGE = 1;
 
-    /** 热力离心单元持续供电需求（LV 电压档 EU/t），用户拍板：热力离心需持续供电。 */
+    /** 热力离心单元持续供电基准（LV 电压档 EU/t），用户拍板：热力离心需持续供电。 */
     public static final int THERMOCENTRIFUGE_EU_PER_TICK = 32;
 
-    /** 热力离心单元供电安培数（LV × 3A = 96EU/t 合计）。 */
+    /** 热力离心单元供电安培数（LV × 3A 基准，随档位再乘）。 */
     public static final int THERMOCENTRIFUGE_AMPERAGE = 3;
+
+    /** 磁选/热离功率档位倍数（T7，用户拍板 1/2/8/16）：按单元结构 tier 乘算持续供电需求。 */
+    public static final int[] POWER_TIER_MULTIPLIERS = { 1, 2, 8, 16 };
 
     // ==================== 粉碎副产物乘率 ====================
 

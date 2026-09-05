@@ -48,8 +48,21 @@ import gregtech.common.tileentities.machines.MTEHatchInputBusME;
  * 真实注册列表计数（四类各 1..2，任一类 0 或 &gt;2 不成型）。B=tiered 管道
  * （{@link #tieredPipeElement()}，r9 由齿轮箱族改绑——权威规格）、C=tiered 框架
  * （{@link #tieredFrameElement()}），与 A 外壳经基类 {@code resolveUnitStructureTier} 分族同级
- * 强校验（跨 tier 混搭不成型）。{@link MTEHatchInputBusME} 在 {@link #addInputBusToMachineList}
- * 直接拒绝致结构不成型（范式同 GT5U MTETreeFarm：ME 输入总线会绕过物流批事务语义）。
+ * 强校验（跨 tier 混搭不成型）。<b>ME 系仓室兼容（T14）</b>：GT5U 5.09.54.20 实证
+ * {@code MTEHatchInputBusME extends MTEHatchInputBus}（Stocking Input Bus (ME)）、
+ * {@code MTEHatchOutputBusME extends MTEHatchOutputBus}（Output Bus (ME)）、
+ * {@code MTEHatchInputME extends MTEHatchInput}（Stocking Input Hatch (ME)，流体）、
+ * {@code MTEHatchOutputME extends MTEHatchOutput}（Output Hatch (ME)，流体）——四类 ME 仓室经
+ * HatchElement 继承匹配自然通过 'A' 元素 anyOf 并入各自标准列表，计入 {@link #checkMachine}
+ * 各类 1..2 计数（旧 {@code addInputBusToMachineList} 对 {@code MTEHatchInputBusME} 的
+ * instanceof 拒绝已删除）。流体批结算经 {@link GTSRHatchFluidAccess} 普通仓/ME 仓同口径；
+ * ME 输出总线产物写入由 {@link ClusterChainExecutor} 趟 2 兜底 +
+ * {@code GTSROutputBusCompat.storePartial} 模拟/实放两段式承载（既有）。<b>ME 输入总线读取
+ * 契约（GT5U 源码实证）</b>：{@code getStackInSlot} 仅在 {@code startRecipeProcessing()} 窗口内
+ * 返回 {@code slot.extracted}（AE 网络 SIMULATE 快照 live 引用），窗口外恒 null；
+ * {@code endRecipeProcessing} 按快照差额 {@code poweredExtraction} 实扣、失败即停机——
+ * {@link ClusterChainExecutor} 批取料（collectOreBatch/applyTakes）需在批事务外围补该握手，
+ * 未握手时 ME 输入总线读取恒空（fail-safe：不复制不丢料，批次按缺料拒绝）。
  * <p>
  * <b>物理电源</b>：默认开机（SR-Cluster-r5 决策 1），启停经软锤切换（GT5U mWorks 原生 NBT
  * 持久化）；{@link #getUnitStatus()} 优先 {@code isAllowedToWork()}，关闭时显示"无功率/未通电"
@@ -154,12 +167,13 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
     }
 
     /**
-     * 'A' 元素覆写（切片 3 四 I/O 自由化，范式同 ClusterStructureDef A 总控仓室元素）：tiered 外壳
-     * （默认形态，四族 casing 之一，tier 强校验语义经基类元素原样保留）或 anyOf(输入总线/输出总线/
-     * 输入仓/输出仓)——矩阵内任意 A 位皆可承载四类 I/O hatch 之一；数量校验在 {@link #checkMachine}
-     * 按真实注册列表计数（各 1..2）。禁用 atLeast（GT5U atLeast 是「各元素至少一个」语义，此处不
-     * 适用）；casingIndex+hint 齐备（静态青铜 hint 口径保留）；ME 输入总线经
-     * {@link #addInputBusToMachineList} 覆写拒绝。
+     * 'A' 元素覆写（切片 3 四 I/O 自由化 + T14 ME 仓兼容，范式同 ClusterStructureDef A 总控仓室
+     * 元素）：tiered 外壳（默认形态，四族 casing 之一，tier 强校验语义经基类元素原样保留）或
+     * anyOf(输入总线/输出总线/输入仓/输出仓)——矩阵内任意 A 位皆可承载四类 I/O hatch 之一；
+     * GT5U ME 系四类仓室（MTEHatchInputBusME/MTEHatchOutputBusME/MTEHatchInputME/MTEHatchOutputME，
+     * 均为对应基类子类）经 HatchElement 继承匹配同路入列，不再单独拒绝；数量校验在
+     * {@link #checkMachine} 按真实注册列表计数（各 1..2）。禁用 atLeast（GT5U atLeast 是「各元素
+     * 至少一个」语义，此处不适用）；casingIndex+hint 齐备（静态青铜 hint 口径保留）。
      */
     @Override
     @SuppressWarnings({ "rawtypes", "unchecked" })
@@ -249,16 +263,6 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
         refreshHatchTextures(mOutputHatches);
     }
 
-    /**
-     * ME 输入总线拒绝（范式同 GT5U MTETreeFarm#addInputBusToMachineList）：ME 总线抽料绕过
-     * 物流批事务的输入总线语义，直接返回 false 使 'A' 元素 hatchAdder 校验失败、结构不成型。
-     */
-    @Override
-    public boolean addInputBusToMachineList(IGregTechTileEntity aTileEntity, int aBaseCasingIndex) {
-        if (aTileEntity != null && aTileEntity.getMetaTileEntity() instanceof MTEHatchInputBusME) return false;
-        return super.addInputBusToMachineList(aTileEntity, aBaseCasingIndex);
-    }
-
     @Override
     public IMetaTileEntity newMetaEntity(IGregTechTileEntity aTileEntity) {
         return new MTEBasicLogisticsUnit(mName);
@@ -271,6 +275,20 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
     /** 本模块自身输入总线（GT 标准列表 live 视图；结构成型时 1..2 枚，A 位自由化计数校验）。 */
     public List<MTEHatchInputBus> getLogisticsInputBusses() {
         return mInputBusses;
+    }
+
+    /** T14：为批取料开启所有 ME 输入总线的窗口。调用方必须成对结束。 */
+    public void beginMEBusProcessing() {
+        for (MTEHatchInputBus bus : mInputBusses) {
+            if (bus instanceof MTEHatchInputBusME) ((MTEHatchInputBusME) bus).startRecipeProcessing();
+        }
+    }
+
+    /** T14：关闭所有 ME 输入总线窗口并触发差额实扣；失败由总线自身停机。 */
+    public void endMEBusProcessing(MTESteamMineralLogisticsCluster controller) {
+        for (MTEHatchInputBus bus : mInputBusses) {
+            if (bus instanceof MTEHatchInputBusME) ((MTEHatchInputBusME) bus).endRecipeProcessing(controller);
+        }
     }
 
     /** 本模块自身输出总线（GT 标准列表 live 视图；结构成型时 1..2 枚，A 位自由化计数校验）。 */

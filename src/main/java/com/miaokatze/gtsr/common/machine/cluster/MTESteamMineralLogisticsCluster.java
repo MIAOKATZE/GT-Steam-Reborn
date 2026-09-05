@@ -924,7 +924,9 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
     long runFixedSteamLps() {
         int tier = getStructureTierIndex();
         if (tier < 0 || tier >= ClusterParams.TIER_COUNT) tier = 0;
-        return (long) ClusterParams.FIXED_CLUSTER_STEAM_LPS * ClusterParams.FIXED_STEAM_TIER_MULT[tier];
+        double extensionFactor = 1D + 0.1D * topology.getExtensionCount();
+        return (long) Math
+            .ceil(ClusterParams.FIXED_CLUSTER_STEAM_LPS * ClusterParams.FIXED_STEAM_TIER_MULT[tier] * extensionFactor);
     }
 
     /**
@@ -1121,8 +1123,8 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
      * <li>[3] errId（优先级 1&gt;2&gt;3，空槽恒 0）：1=模块冲突（lastModuleConflicts 命中本槽）；
      * 2=tier 不匹配（已连接且自身成型 tier 与主控下发 tier 不一致）；3=未关联集群（cluster 引用非
      * 本主控）；4=延伸断裂为结构级错误，走 KEY_BREAK 独立通道，本快照不编出；</li>
-     * <li>[4] linkId：物流槽=该单元在拓扑物流列表（结构扫描序）中的下标 0..9（与链路页选中下标
-     * 同序）；非物流槽与空槽=255。</li>
+     * <li>[4] linkId：物流槽=该单元在拓扑物流列表（结构扫描序）中的下标（0..254 字节域，T10 扩段后
+     * 实际上限随拓扑物流单元数增长；与链路页选中下标同序）；非物流槽与空槽=255。</li>
      * </ul>
      */
     public byte[] buildTopologySnapshot() {
@@ -1309,12 +1311,14 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
                 + ")";
     }
 
-    // —— 字节通道（r9 重编码）：bit0=工作态（结构正常工作四项判据）；bit1-6=延伸段数与集群 tier
-    // 的无损打包域 packed = extensionCount×5 + (tier+1)（extensionCount 0..9、tier+1 0..4，
-    // packed 0..49 ≤ 63）。GT5U 事件通道剥 bit7（BaseMetaTileEntity.receiveClientEvent 对事件 1
-    // 施加 &0x7F；初始数据同口径），计划原 bit4-7 四位域在满配 8/9 延伸段时必被剥位——故按
-    // 「先核对现码位使用再编码」改为 6 位无损打包，语义零损失（MTELargeSolarOverpressureArray
-    // 注释同口径在案）。——
+    // —— 字节通道（r9 重编码；T10 扩展域饱和口径）：bit0=工作态（结构正常工作四项判据）；
+    // bit1-6=延伸段数与集群 tier 的无损打包域 packed = extensionCount×5 + (tier+1)（6 位上限
+    // 63 → 显示域 extensionCount 0..11）。T10 结构上限扩到 19 段后，≥12 段的<b>权威</b>段数仍走
+    // KEY 终端通道与 NBT（服务器侧 getExtensionCount 全量参与蒸汽/润滑系数），本字节通道仅承载
+    // 客户端 FX/成型信号，编码端对 extensionCount 饱和钳到 11 防剥位错译。GT5U 事件通道剥 bit7
+    // （BaseMetaTileEntity.receiveClientEvent 对事件 1 施加 &0x7F；初始数据同口径），7 位预算
+    // （1 位工作态 + 6 位打包域）无法容纳 20 段 × 5 档 = 100 组合，协议扩位需另立切片决策。
+    // ——（MTELargeSolarOverpressureArray 注释同口径在案）——
 
     @Override
     public void onValueUpdate(byte aValue) {
@@ -1333,7 +1337,7 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
         // ——粒子动画随结构工作态驱动（r-logi-power-bind：关电收尾在飞批次期间 bit0 保持）
         int ext = Math.max(0, Math.min(ClusterTopology.MAX_EXTENSION_SEGMENTS, extensionCount));
         int tierPlus1 = Math.max(0, Math.min(4, mCasingTier + 1));
-        int packed = ext * 5 + tierPlus1;
+        int packed = Math.min(ext, 11) * 5 + tierPlus1; // 6 位域饱和：ext≥12 时客户端 FX 层数钳到 11
         return (byte) ((packed << 1) | (isClusterWorkingForDisplay() ? 0x01 : 0x00));
     }
 

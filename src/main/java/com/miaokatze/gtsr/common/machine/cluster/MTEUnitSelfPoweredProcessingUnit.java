@@ -1,5 +1,6 @@
 package com.miaokatze.gtsr.common.machine.cluster;
 
+import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
 import static gregtech.api.enums.HatchElement.Energy;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 
@@ -23,11 +24,15 @@ import gregtech.api.util.GTUtility;
  *
  * <p>
  * 在 {@link MTEBasicProcessingUnit} 的能力闸门之上叠加「自持能源」语义：背面中心能源位
- * {@code 'P'}=自身能源位（标准能源 hatch 添加器，各子类矩阵字面定位），checkMachine 校验
- * {@code mEnergyHatches >= 1}（无 P 不成型）；运行判据=自身能源仓存量足额（总控不集中扣 EU）。
+ * {@code 'P'}=自身能源位（标准能源 hatch 添加器，各子类矩阵字面定位，保留为兼容额外能源位）；
+ * A 机壳位放宽（T15）：任意 A 位可为对应机壳或能源 hatch 二态（{@link #tieredCasingElement()}），
+ * 能源仓统一写入 mEnergyHatches、不计入 casingFamilyTier，上限=本单元 A 位数量（每 A 位至多
+ * 一枚）+P 位；checkMachine 校验 {@code mEnergyHatches >= 1}（P 或 A 位满足均可）；运行判据=
+ * 全部能源仓合计存量足额（共享 EU 池，跨仓扣减，总控不集中扣 EU，需求不随仓数量放大）。
  * EU 实扣（r6-S6，取代旧「真扣 1 EU 后返还」净零探测）：本环节按链步表实扣运行 EU/t——磁选
  * {@code MAGNETIC_EU_PER_TICK × MAGNETIC_AMPERAGE}=32、热离
- * {@code THERMOCENTRIFUGE_EU_PER_TICK × THERMOCENTRIFUGE_AMPERAGE}=96——在集群运行相位内每 tick
+ * {@code THERMOCENTRIFUGE_EU_PER_TICK × THERMOCENTRIFUGE_AMPERAGE}=96，均随单元档位再乘
+ * {1,2,8,16}（T7）——在集群运行相位内每 tick
  * 持续真扣；能源不足 → 环节闸门关闭（{@code isModuleEnabled()=false}，链路不可经其执行，防免费
  * 运行），恢复供电自动恢复。r5 的「事件式结构重检」与「预热门控」不受影响：本类不改 checkMachine/
  * mStartUpCheck 路径，运行相位判据含满热（预热期不扣不判）。r9：统一加工矩阵已废弃——本类不再
@@ -47,7 +52,8 @@ public abstract class MTEUnitSelfPoweredProcessingUnit extends MTEBasicProcessin
     /**
      * 运行期每 tick 实扣 EU（r6-S6）：按构造期注入的链步查表——磁选
      * {@code MAGNETIC_EU_PER_TICK × MAGNETIC_AMPERAGE}=32 EU/t、热离
-     * {@code THERMOCENTRIFUGE_EU_PER_TICK × THERMOCENTRIFUGE_AMPERAGE}=96 EU/t；无供电类链步为 0。
+     * {@code THERMOCENTRIFUGE_EU_PER_TICK × THERMOCENTRIFUGE_AMPERAGE}=96 EU/t，再按本单元
+     * 结构 tier 乘功率档位倍数 {1,2,8,16}（T7）；无供电类链步为 0。
      */
     private long runEuPerTick = -1L;
 
@@ -67,13 +73,26 @@ public abstract class MTEUnitSelfPoweredProcessingUnit extends MTEBasicProcessin
         builder.addElement('P', energyHatchElement());
     }
 
-    /** P 位能源 hatch 元素（casingIndex/hint 与原子类逐字一致）。 */
+    /** 能源 hatch 元素（P 位与 A 位放宽共用，T15；casingIndex/hint 与原子类逐字一致）。 */
     @SuppressWarnings({ "unchecked", "rawtypes" })
     private IStructureElement energyHatchElement() {
         return buildHatchAdder(this.getClass()).atLeast(Energy)
             .casingIndex(GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings1, 10))
             .hint(1)
             .build();
+    }
+
+    /**
+     * A 外壳位放宽（T15）：tiered 外壳（默认形态，基类四族 casing 元素原样保留——能源仓分支不写
+     * casingFamilyTier）或 {@link #energyHatchElement()}——任意 A 机壳位可替换为能源 hatch（入
+     * mEnergyHatches，成型末尾统一刷新贴图；每 A 位至多一枚，天然上限=本单元 A 位数量；重复注册
+     * 由 GT5U checkStructure→clearHatches 每轮清表防双计）。与 P 位同元素（同 casingIndex/hint），
+     * 误改全部 A 位为能源仓必选不会发生——外壳分支仍为默认首选形态。
+     */
+    @Override
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    protected IStructureElement tieredCasingElement() {
+        return ofChain(super.tieredCasingElement(), energyHatchElement());
     }
 
     // ==================== 运行期 EU 真扣（r6-S6） ====================
@@ -127,22 +146,27 @@ public abstract class MTEUnitSelfPoweredProcessingUnit extends MTEBasicProcessin
 
     /** @return 本环节运行 EU/t（懒推导一次；无供电类链步恒 0）。 */
     private long runEuPerTickCost() {
-        if (runEuPerTick < 0L) runEuPerTick = resolveRunEuPerTick(rawProvidedLinks());
+        if (runEuPerTick < 0L) runEuPerTick = resolveRunEuPerTick(rawProvidedLinks(), getUnitStructureTier());
         return runEuPerTick;
     }
 
-    /** 链步 → EU/t 表：磁选 LV×1A、热离 LV×3A（合计口径取自 ClusterParams 安培常量）。 */
-    private static long resolveRunEuPerTick(Set<ChainLink> links) {
+    /**
+     * 链步 → EU/t 表：磁选 LV×1A、热离 LV×3A（合计口径取自 ClusterParams 安培常量），并按本单元
+     * 结构 tier 乘功率档位倍数 {1,2,8,16}（T7）。
+     */
+    private static long resolveRunEuPerTick(Set<ChainLink> links, int unitTier) {
         long total = 0L;
         if (links == null) return 0L;
+        int[] multipliers = ClusterParams.POWER_TIER_MULTIPLIERS;
+        int mult = unitTier >= 0 && unitTier < multipliers.length ? multipliers[unitTier] : 1;
         for (ChainLink link : links) {
             switch (link) {
                 case MAGNETIC_SEPARATOR:
-                    total += (long) ClusterParams.MAGNETIC_EU_PER_TICK * ClusterParams.MAGNETIC_AMPERAGE;
+                    total += (long) ClusterParams.MAGNETIC_EU_PER_TICK * ClusterParams.MAGNETIC_AMPERAGE * mult;
                     break;
                 case THERMOCENTRIFUGE:
-                    total += (long) ClusterParams.THERMOCENTRIFUGE_EU_PER_TICK
-                        * ClusterParams.THERMOCENTRIFUGE_AMPERAGE;
+                    total += (long) ClusterParams.THERMOCENTRIFUGE_EU_PER_TICK * ClusterParams.THERMOCENTRIFUGE_AMPERAGE
+                        * mult;
                     break;
                 default:
                     break;
@@ -209,11 +233,21 @@ public abstract class MTEUnitSelfPoweredProcessingUnit extends MTEBasicProcessin
     }
 
     /**
-     * 结构校验：基类 tier 校验之上要求自身能源位至少一个能源 hatch（无 P 不成型）；成型成功末尾按
-     * unitStructureTier 刷新能源仓贴图（切片 2 统一入口）。
+     * 能源仓数量区间段（T15，子类仓室群共用）：下限 1（{@link #checkMachine} 强制），上限=本单元
+     * shape 的 A 位数量+P 位（每个位置至多承载一枚能源仓，物理天然封顶，不设更紧的人为上限）。
+     */
+    protected String energyHatchCountRange() {
+        return String.format("1-%d", countUnitShapeChar('A') + countUnitShapeChar('P'));
+    }
+
+    /**
+     * 结构校验：基类 tier 校验之上要求至少一个能源 hatch（T15：P 位或 A 位能源仓满足均可，多仓
+     * 合计共享 EU 池；重复注册由 GT5U checkStructure→clearHatches 每轮清表防双计）；成型成功末尾
+     * 按 unitStructureTier 统一刷新全部能源仓贴图（切片 2 统一入口）。
      */
     @Override
     public void checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack, List<StructureError> errors) {
+        runEuPerTick = -1L;
         super.checkMachine(aBaseMetaTileEntity, aStack, errors);
         if (errors.isEmpty() && mEnergyHatches.isEmpty()) {
             errors.add(new ClusterStructureError("gtsr.gui.cluster.structure.energy_hatch_missing"));

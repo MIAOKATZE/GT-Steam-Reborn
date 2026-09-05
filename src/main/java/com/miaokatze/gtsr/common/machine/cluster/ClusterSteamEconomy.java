@@ -193,13 +193,14 @@ public final class ClusterSteamEconomy {
     }
 
     /**
-     * 润滑剂两段需求（L/s，r6-S6 接管 TODO(r6-S6) 临时接线）：
+     * 润滑剂两段需求（L/s，r6-S6 接管 TODO(r6-S6) 临时接线；T9/T10 重定义）：
      * <ol>
      * <li><b>集群恒定段</b>：{@code CLUSTER_LUBRICANT_LPS[集群 tier]}——按总控结构 tier 取档，
-     * tier 未定（-1）时回退青铜档；</li>
-     * <li><b>物流工作段</b>：存在正在工作（{@link MTEBasicLogisticsUnit#isUnitRunning()} 处理窗口内）
-     * 的物流单元时，加计 {@code LOGISTICS_UNIT_LUBRICANT_LPS[该单元 unitStructureTier]}
-     * （多台工作时取最高结构 tier 计一段——D2/D3 同级强制下各单元 tier 恒一致；未成型 -1 不计入）。</li>
+     * tier 未定（-1）时回退青铜档；两段各自乘延伸层线性系数
+     * {@code (1 + 0.1 × 延伸段数)}（T10，作用在基础值上、不逐层复利）；</li>
+     * <li><b>物流工作段</b>：按正在工作（{@code isWorkInProgress()} 处理窗口内）的物流单元数 wip
+     * 计 wip 段 {@code LOGISTICS_UNIT_LUBRICANT_LPS[最高工作单元 tier]}（T9：额外段 ×运行中链路数；
+     * 多台工作时按最高结构 tier 取档——D2/D3 同级强制下各单元 tier 恒一致；未成型 -1 不计入）。</li>
      * </ol>
      * 两段合并为单一润滑需求进入 {@link #settle} 原子结算（与蒸汽同时探测/实扣、双零扣语义不变）；
      * 预热期无批执行 → 物流单元不处于处理窗口，自然只有恒定段。
@@ -207,11 +208,17 @@ public final class ClusterSteamEconomy {
     private static long lubricantLpsFor(MTESteamMineralLogisticsCluster cluster) {
         int tier = cluster == null ? -1 : cluster.getStructureTierIndex();
         if (tier < 0 || tier >= ClusterParams.TIER_COUNT) tier = 0;
-        long lubricantLps = ClusterParams.CLUSTER_LUBRICANT_LPS[tier];
+        double extensionFactor = 1D + 0.1D * (cluster == null || cluster.getTopology() == null ? 0
+            : cluster.getTopology()
+                .getExtensionCount());
+        long lubricantLps = (long) Math.ceil(ClusterParams.CLUSTER_LUBRICANT_LPS[tier] * extensionFactor);
         int workingTier = workingLogisticsUnitTier(cluster);
         if (workingTier >= 0) {
-            lubricantLps += ClusterParams.LOGISTICS_UNIT_LUBRICANT_LPS[Math
-                .min(workingTier, ClusterParams.TIER_COUNT - 1)];
+            long perUnitLps = (long) Math.ceil(
+                ClusterParams.LOGISTICS_UNIT_LUBRICANT_LPS[Math.min(workingTier, ClusterParams.TIER_COUNT - 1)]
+                    * extensionFactor);
+            // T9：物流模块额外润滑油段 ×运行中链路数 wip（每在飞链各计一段）。
+            lubricantLps += perUnitLps * workingLogisticsUnitCount(cluster);
         }
         return lubricantLps;
     }
@@ -229,6 +236,18 @@ public final class ClusterSteamEconomy {
             best = Math.max(best, unit.getUnitStructureTier());
         }
         return best;
+    }
+
+    /** @return 正在工作的物流单元台数（wip，T9 润滑段乘数；与 workingLogisticsUnitTier 同过滤口径）。 */
+    private static int workingLogisticsUnitCount(MTESteamMineralLogisticsCluster cluster) {
+        if (cluster == null || cluster.getTopology() == null) return 0;
+        int count = 0;
+        for (MTEBasicLogisticsUnit unit : cluster.getTopology()
+            .getLogisticsUnits()) {
+            if (unit == null || !unit.isModuleEnabled() || !unit.isWorkInProgress()) continue;
+            count++;
+        }
+        return count;
     }
 
     /**

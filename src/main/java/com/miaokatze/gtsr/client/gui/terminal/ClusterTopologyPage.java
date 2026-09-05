@@ -17,8 +17,8 @@ import cpw.mods.fml.relauncher.SideOnly;
  * 行高/列宽 1:1：摘要条 11 + 列头 13 + 槽位列表 24..244（行高 22）+ 六态图例 246）。
  *
  * <p>
- * 数据流：{@code KEY_TOPO} byte[150]（30 槽 × [typeId,tier,stateOrdinal,errId,linkId]，seg=i/3、
- * pad=i%3；解码注册表照 wiki §1.1-1.4 冻结，与 N33 常量一致）、{@code KEY_RUN} byte[30]（20t 采样，
+ * 数据流：{@code KEY_TOPO} byte[300]（60 槽 × [typeId,tier,stateOrdinal,errId,linkId]，seg=i/3、
+ * pad=i%3；解码注册表照 wiki §1.1-1.4 冻结，与 N33 常量一致）、{@code KEY_RUN} byte[60]（20t 采样，
  * 空槽 255）、KEY_TIER/KEY_SEGMENTS/KEY_BREAK/KEY_LE_AVAIL。<b>live 每帧重读</b>：快照与状态字节
  * 由 {@link #draw} 每帧解析直读（零构造期快照求值，无 KEY_RUN 监听遗漏面）；行序段降序（延伸在上、
  * 基础最下）；typeId=255「未运行，暂无法识别」不伪装空位。列表滚动偏移自持（数据刷新不回顶，
@@ -28,7 +28,7 @@ import cpw.mods.fml.relauncher.SideOnly;
 final class ClusterTopologyPage implements ClusterPage {
 
     private static final int PAD_COUNT = 3;
-    private static final int SLOT_COUNT = 30;
+    private static final int SLOT_COUNT = 60;
     private static final int SLOT_BYTES = 5;
     private static final int COLHEADER_DY = 13;
     private static final int LIST_DY = 24;
@@ -65,7 +65,7 @@ final class ClusterTopologyPage implements ClusterPage {
         drawLegend(ox, oy);
     }
 
-    /** 解析拓扑快照 byte[150]（畸形/短包防御：越界槽按空槽处理；旧 parseTopo 同逻辑）。 */
+    /** 解析拓扑快照 byte[300]（畸形/短包防御：越界槽按空槽处理；旧 parseTopo 同逻辑）。 */
     private void parseTopo(byte[] snapshot) {
         for (int i = 0; i < SLOT_COUNT; i++) {
             int base = i * SLOT_BYTES;

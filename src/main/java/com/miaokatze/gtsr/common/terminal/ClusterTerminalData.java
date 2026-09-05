@@ -51,7 +51,7 @@ import io.netty.buffer.Unpooled;
  * 标量 19（KEY_ENABLED bool、KEY_HEAT/KEY_STEAM/KEY_LUBE/KEY_THRU/KEY_SUPPLY/KEY_TIER/
  * KEY_SEGMENTS/KEY_BREAK/KEY_SEL_LOGI/KEY_LE_EXEC/KEY_LE_FAIL/KEY_LE_AVAIL/KEY_F_TIME/
  * KEY_F_PAR/KEY_F_THRU/KEY_F_STEAM/KEY_F_TOTAL varint、KEY_TOTAL long）+ byte[] 2
- * （KEY_TOPO 150B=30 槽×5B、KEY_RUN 30B 空槽 255）+ CSV 8（KEY_LE_UNITS/KEY_LE_CHAIN/
+ * （KEY_TOPO 300B=60 槽×5B、KEY_RUN 60B 空槽 255）+ CSV 8（KEY_LE_UNITS/KEY_LE_CHAIN/
  * KEY_LE_LOCK/KEY_F_FORMULA/KEY_BO_STRUCT/KEY_BO_LIVE/KEY_BO_SUM/KEY_BO_COST）。
  * KEY_* 字符串常量字面量与原集群同步实现逐字相同（客户端缓存键复用）。
  *
@@ -109,9 +109,9 @@ public final class ClusterTerminalData {
     public static final String KEY_SEGMENTS = "cl.segs";
     /** 延伸断裂段下标，-1 无（varint）。 */
     public static final String KEY_BREAK = "cl.brk";
-    /** 拓扑快照：30 槽 × 5 字节（byte[]；内容变化才入包，数组相等检测）。 */
+    /** 拓扑快照：60 槽 × 5 字节（byte[]；内容变化才入包，数组相等检测）。 */
     public static final String KEY_TOPO = "cl.topo";
-    /** 运行状态：30 槽状态 ordinal 字节（byte[]，20t 采样；空槽 255）。 */
+    /** 运行状态：60 槽状态 ordinal 字节（byte[]，20t 采样；空槽 255）。 */
     public static final String KEY_RUN = "cl.run";
     /** 链路页：选中物流单元下标（varint）。 */
     public static final String KEY_SEL_LOGI = "cl.selLogi";
@@ -216,7 +216,7 @@ public final class ClusterTerminalData {
     public static final int SUPPLY_LUBE_SHORT = 0x02;
 
     /** 槽位总数（ClusterTopology.SLOT_COUNT 同值；避免反向 import 语义耦合，数值冻结）。 */
-    private static final int SLOT_COUNT = 30;
+    private static final int SLOT_COUNT = 60;
 
     /** 会话空闲复位阈值（tick）：超过视为新会话，缓存全量重建（首包全量键，等价旧轨 GUI 重开重建）。 */
     private static final long SESSION_GAP_TICKS = 40L;
@@ -382,7 +382,7 @@ public final class ClusterTerminalData {
         }
     }
 
-    /** 运行状态字节构建：拓扑槽序（seg 升序 × pad 升序）→ 状态 ordinal；空槽 255；不足 30 槽补空。 */
+    /** 运行状态字节构建：拓扑槽序（seg 升序 × pad 升序）→ 状态 ordinal；空槽 255；不足 60 槽补空。 */
     private static byte[] buildRunStates(MTESteamMineralLogisticsCluster cluster) {
         byte[] out = new byte[SLOT_COUNT];
         Arrays.fill(out, RUN_EMPTY);

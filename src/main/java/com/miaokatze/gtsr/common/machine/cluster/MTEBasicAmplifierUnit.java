@@ -37,7 +37,7 @@ import gregtech.api.util.GTUtility;
  * 锁定流体解析表（集中在本类 {@link #resolveBoosterFluid}，null 安全）：
  * <ul>
  * <li>PARALLEL（并行增幅）→ 硝酸 {@code Materials.NitricAcid.getFluid(1).getFluid()}
- * <li>SPEED（速度增幅）→ 盐酸 {@code Materials.HydrochloricAcid.getFluid(1).getFluid()}
+ * <li>SPEED（速度增幅）→ 氢氯酸 {@code Materials.HydrochloricAcid.getFluid(1).getFluid()}
  * <li>PRIMARY_OUTPUT（主产物增幅）→ 硫酸 {@code Materials.SulfuricAcid.getFluid(1).getFluid()}
  * <li>SECONDARY_OUTPUT（副产物增幅）→ 氯化铵（BW Werkstoff）
  * {@code WerkstoffLoader.AmmoniumChloride.getFluidOrGas(1)}
@@ -121,13 +121,15 @@ public abstract class MTEBasicAmplifierUnit extends MTEClusterUnitBase<MTEBasicA
     }
 
     /**
-     * S7 联动加成后的实际每秒消耗精确值（L/s，可为小数，显示与公式串共用）：
+     * S7/T12 联动加成后的实际每秒消耗精确值（L/s，可为小数，显示与公式串共用）：
      *
      * <pre>
      * 实耗 = amplifierFluidLps(type, 单元已验证结构 tier) × (1 + Σ 施加方 BOOSTER_SURCHARGE_PCT[tier] / 100)
+     *        × (1 + (同种生效模块数 - 1) × 协同率)      // T12：速度/并行/节汽 10%，主/副产物 50%
      * </pre>
      *
-     * 加成明细见 {@link #amplifierSurchargeSources()}；无施加方时退化为基础表值。
+     * 加成明细见 {@link #amplifierSurchargeSources()}；无施加方且无同种模块时退化为基础表值。
+     * 主控实扣与支付预检再乘运行中链路数 wip（MTESteamMineralLogisticsCluster / BoosterState）。
      */
     public double amplifierFluidPerSecExact() {
         int tier = getUnitStructureTier();
@@ -137,7 +139,20 @@ public abstract class MTEBasicAmplifierUnit extends MTEClusterUnitBase<MTEBasicA
         for (int[] source : amplifierSurchargeSources()) {
             pctSum += source[0];
         }
-        return base * (1D + pctSum / 100D);
+        int sameTypeCount = 1;
+        if (cluster != null) {
+            for (MTEBasicAmplifierUnit other : cluster.getTopology()
+                .getBoosterUnits()) {
+                if (other != null && other != this
+                    && other.boosterType == boosterType
+                    && other.isTierValidForConnection()
+                    && other.isFluidAvailable()) sameTypeCount++;
+            }
+        }
+        double synergyRate = boosterType == ClusterParams.BoosterType.PRIMARY_OUTPUT
+            || boosterType == ClusterParams.BoosterType.SECONDARY_OUTPUT ? ClusterParams.OUTPUT_SYNERGY_RATE
+                : ClusterParams.SPEED_PARALLEL_SYNERGY_RATE;
+        return base * (1D + pctSum / 100D) * (1D + (sameTypeCount - 1) * synergyRate);
     }
 
     /**

@@ -48,8 +48,11 @@ import gregtech.common.tileentities.machines.outputme.MTEHatchOutputBusME;
  *
  * <p>
  * 跳步时间节约（SR-Cluster-r5 决策 12）：runChain 跟踪实际命中配方的链步集合
- * {@code processedLinks}，本批配方时间按 {@code itemTimeSec(processedLinks, ...)} 计算
- * （仅计实际加工的链步；全透传批 = 纯物流段时间）。吞吐/蒸汽 C 聚合口径不变。
+ * {@code processedLinks}（EnumSet 去重——链内重复出现的同一 link 时间只计一次），本批配方时间按
+ * {@code itemTimeSec(processedLinks, ...)} 计算
+ * （仅计实际加工的链步；全透传批 = 纯物流段时间）。T4 口径注记：单步 T_i 的 0.2 tick 下限在
+ * 「÷同类模块数」与「÷档位时间除数」之后施加——重复放置同类加工模块只把 T_i 压到下限为止，
+ * 与去重无叠加效应。吞吐/蒸汽 C 聚合口径不变（蒸汽 C_i 侧按 T11 ×同类模块数累计）。
  *
  * <p>
  * 真实配方逐物品扣液（§3.6.5 + r6 S2，IOF :413-539 范式）：不再按「链含洗矿/化洗每批扣固定 1000L」，
@@ -73,14 +76,16 @@ import gregtech.common.tileentities.machines.outputme.MTEHatchOutputBusME;
  * 产出的单元拒绝开新批（防覆盖丢产出）。
  *
  * <p>
- * 增益（§3.6.3 + r6-S6）：{@link BoosterState} 的主产物增益（同类最高仅一生效）作用于主产物 chance、
- * 副产物增益（可加算）作用于副产物 chance，最终 chance 钳制 [0,1]；100% 主产物不因增益重复产出。
+ * 增益（§3.6.3 + r6-S6 + T2/T6 重定义）：{@link BoosterState} 的主产物增益（多模块加算）与副产物
+ * 增益（加算）分别加到主/副产物 chance 上；总概率 p ≥ 1 时 floor(p) 份整份输出保底复制 + 余数概率
+ * 再 roll 一份（100% 主产物不再跳过增幅），p &lt; 1 钳制 [0,1] 后按历史正态近似掷取。
  * 粉碎链步（仅 CRUSH，不含 HAMMER 锻造）的副产物条目在增幅后最终概率上再乘粉碎乘率（tier0 ×0.1 / tier≥1 ×0.5）。
  *
  * <p>
- * 配方时间模型（SR-Cluster-r6 S3 + r-logi-power-bind 调序，批冷却语义重定义）：每单元
- * {@code chainCooldownTicks} 在成功批提交后写为本批<b>配方时间</b>（tick）＝
- * {@code round(itemTimeSec(processedLinks) × 20)}，结果至少 1 tick（ExecutionPlan
+ * 配方时间模型（SR-Cluster-r6 S3 + r-logi-power-bind 调序，批冷却语义重定义；T4 改 ceil 口径）：
+ * 每单元 {@code chainCooldownTicks} 在成功批提交后写为本批<b>配方时间</b>（tick）＝
+ * {@code ceil(itemTimeSec(processedLinks) × 20)}（内部允许小数 tick，按 1t=0.05s 向上取整、
+ * 余数计整 tick），结果至少 1 tick（ExecutionPlan
  * 时间口径，含物流段时间；空 processedLinks 即纯物流时间），总控结算先统一 -20（decrementChainCooldowns，
  * 关电/断供收尾路径同样照减）再对冷却 ≤0 的单元开批；该值同时驱动物流单元配方运行进度与
  * 工作态窗口（见 MTEBasicLogisticsUnit.onBatchProcessed）。
@@ -144,10 +149,21 @@ public final class ClusterChainExecutor {
 
         // 5) 并行与输入：从物流单元自己的输入总线收集全部非 OTHER 形态的物品（决策 3：
         // ORE 与粉碎矿/污浊粉等全部中间态均收），只登记台账不扣料
-        BoosterState booster = BoosterState.aggregate(topology.getBoosterUnits());
+        int runningLinks = 0;
+        for (MTEBasicLogisticsUnit logistics : topology.getLogisticsUnits()) {
+            if (logistics != null && logistics.isWorkInProgress()) runningLinks++;
+        }
+        BoosterState booster = BoosterState.aggregate(topology.getBoosterUnits(), Math.max(1, runningLinks));
         int parallel = ExecutionPlan.effectiveParallel(tier, booster);
         List<InputTake> takes = new ArrayList<>();
-        int batch = collectOreBatch(unit, parallel, takes);
+        unit.beginMEBusProcessing();
+        int batch;
+        try {
+            batch = collectOreBatch(unit, parallel, takes);
+        } finally {
+            if (takes.isEmpty()) unit.endMEBusProcessing(cluster);
+        }
+        boolean meWindow = !takes.isEmpty();
         if (batch <= 0) return 0;
 
         // 6) 链加工（副本单遍执行，逐物品累计真实配方流体需求 + processedLinks 跟踪；此点零副作用）
@@ -162,33 +178,37 @@ public final class ClusterChainExecutor {
         List<ItemStack> outputs = runChain(chain, mid, unit, fluids, booster, processedLinks, tier);
 
         // 7) 批流体预检（§3.6.5-3）：本批将处理物品的累计需求任一不足 → 整批零副作用
-        if (!fluids.isSatisfiable(unit)) return 0;
+        if (!fluids.isSatisfiable(unit)) {
+            if (meWindow) unit.endMEBusProcessing(cluster);
+            return 0;
+        }
 
         // 8) 输出预检（r-logi-power-bind，probe-place-undo）：整批逐组证明放得下后立即按台账
         // 回滚——最终发放推迟到配方进度读零，若此刻放不下则后续排空必卡死，故开批前整批证明；
         // ME 条目只模拟不落地（realPlaceMe=false），回滚精确；
         // 失败（任一组无处可放，实放部分已内部回滚）→ 整批零副作用（输入未扣、流体未扣）
         List<OutputLedger> probeLedger = tryEmitOutputs(unit, outputs, false);
-        if (probeLedger == null) return 0;
+        if (probeLedger == null) {
+            if (meWindow) unit.endMEBusProcessing(cluster);
+            return 0;
+        }
         rollbackOutputs(probeLedger);
 
         // 9) 扣料（IOF :306-319 口径：live 引用 stackSize -= take；0-size 槽由总线自身 tick 收口）
         // ——此后输入已吞入，在飞批次仅能经 MTEBasicLogisticsUnit.abortPendingRun 中止（吞料）
         applyTakes(takes);
+        if (meWindow) unit.endMEBusProcessing(cluster);
 
         // 10) 提交：预检已证明输出可接收，实扣配方流体（§3.6.5-4，r6 S2：直接对物流单元输入仓
         // 跨仓结算）；此点之后不再回滚
         fluids.consume(unit);
         unit.markDirty();
 
-        // 11) 配方时间与记账（r6 S3）：本批配方时间（tick）= round(itemTimeSec(processedLinks)×20)
-        // —— 四舍五入取整且下限 1 tick（0.8s 批显 16t 不被 ceil/upward 截断偏差放大，纯物流批也有
-        // 最短 1t 冷却）；ExecutionPlan 时间口径含物流段，仅计实际命中配方的链步（决策 12 跳步时间
-        // 节约），空集合即纯物流时间；写入后由总控每 20t 递减、并经 onBatchProcessed 驱动物流单元
-        // 配方运行进度与工作态窗口
+        // 11) 配方时间与记账：整链时间按 1 tick=0.05s 向上取整，余数计 1 tick，最低 1 tick。
         List<ChainLink> processedLinksList = new ArrayList<>(processedLinks);
-        long recipeTicks = Math
-            .max(1L, Math.round(ExecutionPlan.itemTimeSec(processedLinksList, tier, topology, booster) * 20D));
+        long recipeTicks = Math.max(
+            1L,
+            (long) Math.ceil(ExecutionPlan.itemTimeSec(processedLinksList, tier, topology, booster) * 20D - 1e-9));
         unit.setChainCooldownTicks(recipeTicks);
         unit.onBatchProcessed(batch);
 
@@ -512,19 +532,21 @@ public final class ClusterChainExecutor {
     }
 
     /**
-     * 配方产物掷取（IOF getOutputStack :558-581 移植 + §3.6.3 增幅 + r6-S6 粉碎副产物乘率）：
+     * 配方产物掷取（IOF getOutputStack :558-581 移植 + §3.6.3 增幅 + r6-S6 粉碎副产物乘率，
+     * T2/T6 重定义）：
      * <ul>
-     * <li>主产物（输出槽 0）chance += 主产物增益（{@link BoosterState#getPrimaryBonus()}，
-     * 同类最高仅一生效）；副产物（槽 1+）chance += 副产物增益（加算）；
+     * <li>主产物（输出槽 0）p = chance + 主产物增益之和（{@link BoosterState#getPrimaryBonus()}，
+     * T6 起多模块加算）；副产物（槽 1+）p = chance + 副产物增益之和（加算）；
      * {@code booster == null} 按零增益；</li>
-     * <li><b>粉碎副产物乘率（r6-S6）</b>：链步为 CRUSH 时，增幅加成并钳制后的<b>最终</b>
-     * 副产物概率（仅槽 1+ 条目，不影响主产物）再乘 {@code CRUSH_BYPRODUCT_MULT_NORMAL}=0.1
-     * （集群 tier0）/ {@code CRUSH_BYPRODUCT_MULT_STEEL}=0.5（钢级 tier1）/
-     * {@code CRUSH_BYPRODUCT_MULT_HIGH_TIER}=1.0 无削弱（钛级及以上 tier≥2）；洗矿/离心等其他
-     * 环节副产物不受影响；chance==10000 保底项不参与任何增益/乘率；</li>
-     * <li>最终 chance 钳制 [0,1]；</li>
-     * <li>概率项按二项分布的正态近似 nextGaussian（mean=aTime·p、std=sqrt(aTime·p·(1-p))，
-     * 向上取整后乘 template.stackSize）；quantity≤0 的槽位不产出。</li>
+     * <li><b>p ≥ 1（T2/T6）</b>：floor(p) 份<b>整份输出保底复制</b>（原输出几件就多几件），
+     * 余数再按概率复制一份——chance==10000 的保底主产物不再跳过增幅；</li>
+     * <li><b>粉碎副产物乘率（r6-S6）</b>：链步为 CRUSH 时，副产物（仅槽 1+，不影响主产物）的
+     * 增幅后概率先乘 {@code CRUSH_BYPRODUCT_MULT_NORMAL}=0.1（集群 tier0）/
+     * {@code CRUSH_BYPRODUCT_MULT_STEEL}=0.5（钢级 tier1）/ {@code CRUSH_BYPRODUCT_MULT_HIGH_TIER}
+     * =1.0 无削弱（钛级及以上 tier≥2）再判定；洗矿/离心等其他环节副产物不受影响；</li>
+     * <li><b>p &lt; 1</b>：钳制 [0,1] 后按二项分布的正态近似 nextGaussian（mean=aTime·p、
+     * std=sqrt(aTime·p·(1-p))，向上取整后乘 template.stackSize）——历史口径保留；</li>
+     * <li>quantity≤0 的槽位不产出。</li>
      * </ul>
      */
     private static List<ItemStack> rollOutputs(GTRecipe recipe, int aTime, BoosterState booster, ChainLink link,
@@ -542,17 +564,24 @@ public final class ClusterChainExecutor {
 
             int chance = recipe.getOutputChance(i);
             int quantity;
-            if (chance == 10000) {
-                quantity = aTime * template.stackSize;
-            } else {
+            {
                 double p = chance / 10000.0 + (i == 0 ? primaryBonus : secondaryBonus);
-                p = Math.max(0.0, Math.min(1.0, p));
                 if (i > 0 && crushStep) p *= crushByproductMult;
-                // Normal-distribution approximation for probabilistic drops
-                double mean = aTime * p;
-                double std = Math.sqrt(aTime * p * (1 - p));
-                quantity = (int) Math.ceil(std * RANDOM.nextGaussian() + mean);
-                quantity *= template.stackSize;
+                // T2/T6：增幅后概率可超过 100%（主/副产物皆然）——floor(p) 份整份输出保底复制
+                // （原输出几件就多几件），余数再按概率 roll 一份；p<1 保持原正态近似口径。
+                if (p >= 1.0D) {
+                    int guaranteed = (int) Math.floor(p);
+                    double remainder = p - guaranteed;
+                    quantity = aTime * template.stackSize * guaranteed;
+                    if (remainder > 0D && RANDOM.nextDouble() < remainder) quantity += aTime * template.stackSize;
+                } else {
+                    p = Math.max(0.0, Math.min(1.0, p));
+                    // Normal-distribution approximation for probabilistic drops
+                    double mean = aTime * p;
+                    double std = Math.sqrt(aTime * p * (1 - p));
+                    quantity = (int) Math.ceil(std * RANDOM.nextGaussian() + mean);
+                    quantity *= template.stackSize;
+                }
             }
             if (quantity > 0) {
                 outputs.add(GTUtility.copyAmountUnsafe(quantity, template));

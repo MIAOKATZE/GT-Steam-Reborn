@@ -277,18 +277,18 @@ A steam-driven multiblock ore-processing cluster: logistics modules orchestrate 
 
 **Module list**: the ten chain steps — crush / hammer / simple wash / ore wash / chemical bath / centrifuge / thermal centrifuge / sifting / magnetic separation / smelting — are executed by seven working-unit classes: the crusher also handles hammering, the ore washer also simple washing and chemical bathing; plus a logistics unit (chain orchestration and parallel fetching) and five optional amplifier modules (parallel / speed / primary / secondary / steam saver). The cluster totals 14 multiblock machines: 1 controller + 7 working units + 5 amplifiers + 1 logistics unit. Hammer and simple wash are chain steps, not standalone machines (16 base ticks each; simple wash needs water and does not depend on GT++ — recipes pass through when GT++ is absent, so the link stays available).
 
-**结构 / Structure**：主段 15×20×29，背面最多串接 9 个 15×8×29 延伸段（总段数 ≤10）；四族结构方块 tier0-3 = 青铜/钢/钛/钨钢；每段提供 4 加工（F）+ 4 增幅（H）+ 1 物流（G）模块挂点。
+**结构 / Structure**：主段 15×20×29，背面最多串接 19 个 15×8×29 延伸段（总段数 ≤20，基础段+19延伸层）；四族结构方块 tier0-3 = 青铜/钢/钛/钨钢；每段提供 4 加工（F）+ 4 增幅（H）+ 1 物流（G）模块挂点。
 
-**Structure**: a 15×20×29 main segment with up to nine 15×8×29 extension segments chained behind it (≤10 segments in total); four structure block families tier 0-3 = bronze / steel / titanium / tungsten steel; each segment offers 4 processing (F) + 4 amplifier (H) + 1 logistics (G) module mounts.
+**Structure**: a 15×20×29 main segment with up to 19 15×8×29 extension segments chained behind it (≤20 segments in total, base plus 19 extensions); four structure block families tier 0-3 = bronze / steel / titanium / tungsten steel; each segment offers 4 processing (F) + 4 amplifier (H) + 1 logistics (G) module mounts.
 
 **核心机制 / Core Mechanics**
 
 | 机制 Mechanic | 说明 Description |
 |---|---|
-| 加权蒸汽消耗 Weighted Steam | 总需求 = 固定项 8,000 L/s × 结构档位乘率 {1, 4, 16, 48} + 各可执行链加权蒸汽 Σ(C_i·T_i)/Σ(T_i)，只统计处于工作进度的物流单元（进度未清零即计费，断电冻结不豁免）（增幅惩罚与节汽封顶 48% 仅作用于加权段）Fixed term by tier plus per-chain time-weighted steam — only logistics units with work in progress count (uncleared progress stays billed; a power-cut freeze is no exemption); penalties & saver cap apply to the weighted part only |
+| 加权蒸汽消耗 Weighted Steam | 总需求 = 固定项 8,000 L/s × 结构档位乘率 {1, 4, 16, 48} × (1+0.1×延伸层数) + 各可执行链加权蒸汽 Σ(C_i·T_i)/Σ(T_i)，只统计处于工作进度的物流单元（进度未清零即计费，断电冻结不豁免）（增幅惩罚与节汽封顶 48% 仅作用于加权段）Fixed term by tier plus per-chain time-weighted steam — only logistics units with work in progress count (uncleared progress stays billed; a power-cut freeze is no exemption); penalties & saver cap apply to the weighted part only |
 | 润滑两段 Two-Stage Lubricant | 集群恒定段 {20, 80, 500, 1000} L/s（按总控档位）+ 物流工作段 {20, 60, 300, 500} L/s（按工作中物流单元最高结构档位）Cluster constant stage + logistics working stage, both tier-scaled |
 | 蒸汽种类折算 Steam Grades | 六种蒸汽按能量密度折算（普通×1/过热÷2/超临界÷4/致密÷1000/致密过热÷2000/致密超临界÷4000），按集群档位门控，自动择优扣一种 Six grades converted by energy density, gated by cluster tier, best-grade auto-selection |
-| 结构档位升级 Unit Tier Up | 单元自身结构档每升 1 级：该链步耗时 ÷2、对应蒸汽消耗 ×4 Each unit structure tier halves that link's time and quadruples its steam |
+| 结构档位升级 Unit Tier Up | 链步时间除数 {1,4,16,64}、蒸汽倍率 {1,16,128,512}；同类模块 N 使时间 ÷N、蒸汽 ×N Link time divisors {1,4,16,64} and steam multipliers {1,16,128,512}; same-kind module count N divides time and multiplies steam |
 | 关机态 SHUT_DOWN State | 集群可经总控开关机：用户关机后单元显示红色 SHUT_DOWN 关机态，区别于待机与离线（无功率/无效单元）The cluster can be toggled on/off from the controller; after a user shutdown units show a red SHUT_DOWN state, distinct from standby and offline (no power / invalid) |
 | 运行前置 Run-Phase Gate | 加工单元进入供电运行相位需同时满足：集群开机、自身物理电源开、满热、链处理窗口激活且本环节参与当批——空闲保温期不消耗电力A processing unit's powered run phase requires all of: cluster on, own physical power on, preheat ready, an active chain window, and participation in the current batch — idle keep-warm draws no power |
 | 批冷却配方时间化 Recipe-Timed Batch Cooldown | 成功批提交后单元冷却写入本批配方时间（tick，含物流段时间），总控每 20t 统一递减，冷却未清零的单元跳过开批After each successful batch a unit's cooldown is set to that batch's recipe time in ticks (logistics leg included), decremented uniformly every 20t; units with remaining cooldown skip batch starts |

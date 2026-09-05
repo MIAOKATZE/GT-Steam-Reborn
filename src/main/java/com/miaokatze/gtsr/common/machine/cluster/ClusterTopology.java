@@ -8,14 +8,15 @@ import java.util.List;
  * 集群拓扑：段/垫/槽模型簿记 + GUI 快照数据源。
  *
  * <p>
- * 模型：集群由「主段 + 0..9 个延伸段」纵向组成（segment=0 主段；延伸段 k=0..8 对应 segment=k+1，
- * 即 1..9），每段恰 3 个垫槽（{@link #PAD_WORKING} / {@link #PAD_BOOSTER} / {@link #PAD_LOGISTICS}），
- * 槽位总量上限 {@link #SLOT_COUNT}=30。段锚/延伸偏移（局部深度主段 {@code [-7,+12]}=段 0、延伸段
+ * 模型：集群由「主段 + 0..19 个延伸段」纵向组成（T10：含基础共 20 段；segment=0 主段；延伸段
+ * k=0..18 对应 segment=k+1，即 1..19），每段恰 3 个垫槽（{@link #PAD_WORKING} / {@link #PAD_BOOSTER} /
+ * {@link #PAD_LOGISTICS}），槽位总量上限 {@link #SLOT_COUNT}=60。段锚/延伸偏移（局部深度主段
+ * {@code [-7,+12]}=段 0、延伸段
  * {@code [13+8k,20+8k]}=段 k+1、extOffsetC(k)=-13-8k）的几何推导归
  * {@code ClusterStructureDef}（E1a），本类只管段/槽数据簿记。本类持有两份互补数据：
  * <ul>
  * <li>单元清单：结构扫描顺序收集的全部已 connect 单元（同一 TE 实例引用级去重）；</li>
- * <li>槽位登记表 [10][3]：segment×pad 坐标到单元的映射，空槽不登记，快照时按需产出。</li>
+ * <li>槽位登记表 [20][3]：segment×pad 坐标到单元的映射，空槽不登记，快照时按需产出。</li>
  * </ul>
  *
  * <p>
@@ -41,11 +42,11 @@ public final class ClusterTopology {
     /** 每段垫槽数（恒为 3，对应三个 PAD_* 常量）。 */
     private static final int PAD_COUNT = 3;
 
-    /** 延伸段数上限（延伸段 k=0..8，共 9 段）。 */
-    public static final int MAX_EXTENSION_SEGMENTS = 9;
+    /** 延伸段数上限（延伸段 k=0..18，共 19 段）。 */
+    public static final int MAX_EXTENSION_SEGMENTS = 19;
 
-    /** 段数上限（主段 + 延伸段总数 ≤ 10，即主段 0 + 延伸段 1..9）。 */
-    public static final int MAX_SEGMENTS = 10;
+    /** 段数上限（主段 + 延伸段总数 ≤ 20，即主段 0 + 延伸段 1..19）。 */
+    public static final int MAX_SEGMENTS = 20;
 
     /** 槽位总量上限（段数上限 × 每段垫槽数 = 10 × 3 = 30，含空槽）。 */
     public static final int SLOT_COUNT = MAX_SEGMENTS * PAD_COUNT;
@@ -195,7 +196,9 @@ public final class ClusterTopology {
 
     /**
      * GUI 快照数据源：按 segment 升序、pad 升序产出全部槽位，每段恰 3 槽（含空槽），
-     * 因此快照行数恒 = 段数 × 3 ≤ {@link #SLOT_COUNT}（满配 10 段恰 30 槽，全部可编码）。
+     * 因此快照行数恒 = 段数 × 3 ≤ {@link #SLOT_COUNT}（满配 20 段恰 60 槽，全部可编码；
+     * 注意终端解码端 ClusterTerminalData.SLOT_COUNT 仍为冻结值 30，T10 扩段同步归主代理合并——
+     * 见切片 B manifest 报备）。
      * 每次调用新建列表副本，元素本身不可变，可安全跨 tick 持有；完整快照 DTO 归 GUI 批（E4/E6）。
      *
      * @return 槽位快照副本（只产出 segment &lt; {@link #getSegmentCount()} 的段）

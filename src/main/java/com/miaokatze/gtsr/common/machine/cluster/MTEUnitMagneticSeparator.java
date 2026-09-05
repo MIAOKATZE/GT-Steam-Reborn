@@ -22,9 +22,11 @@ import gregtech.api.util.MultiblockTooltipBuilder;
  * overlay：GT5U 电磁选矿机前脸 inactive/active（四态常量存在，绑定前两态，glow 由基类统一）。
  *
  * <p>
- * 结构（r9 权威规格，5×5×5 canonical [Z][Y][X]，控制器 (2,3,0)）：无 'e'（不产粒子候选）；
- * 'b'=金属族（{@code tieredMetalElement}，铁/钢/钕/钐四档）；'P'×1 能源位位于 (2,3,4)——控制器
- * 同列同层最深行；A=外壳族（基类绑定）、B=齿轮箱族、C=管道族、D=框架族、E=玻璃、'-'=严格空气。
+ * 结构（r9 权威规格 + T15 能源位放宽，5×5×5 canonical [Z][Y][X]，控制器 (2,3,0)）：无 'e'
+ * （不产粒子候选）；'b'=金属族（{@code tieredMetalElement}，铁/钢/钕/钐四档）；'P'×1 能源位位于
+ * (2,3,4)——控制器同列同层最深行（保留为兼容额外能源位，非唯一必需能源位）；A=外壳族
+ * （基类绑定）+T15 放宽：任意 A 机壳位可替换为能源 hatch（入 mEnergyHatches，共享 EU 池，
+ * 上限=A 位数量+P 位）；B=齿轮箱族、C=管道族、D=框架族、E=玻璃、'-'=严格空气。
  */
 public class MTEUnitMagneticSeparator extends MTEUnitSelfPoweredProcessingUnit {
 
@@ -110,8 +112,9 @@ public class MTEUnitMagneticSeparator extends MTEUnitSelfPoweredProcessingUnit {
     }
 
     /**
-     * 功能群（v1.11.15）：磁选链步「耗时 / 蒸汽消耗」行 + 持续供电行——EU/t 与安培取自
-     * {@link ClusterParams#MAGNETIC_EU_PER_TICK}/{@link ClusterParams#MAGNETIC_AMPERAGE}。
+     * 功能群（v1.11.15 + T7）：磁选链步「耗时 / 蒸汽消耗」行 + 持续供电行——EU/t 与安培取自
+     * {@link ClusterParams#MAGNETIC_EU_PER_TICK}/{@link ClusterParams#MAGNETIC_AMPERAGE}，
+     * 按单元档位乘 {1,2,8,16}。
      */
     @Override
     protected void addUnitTooltipInfo(MultiblockTooltipBuilder tt) {
@@ -127,17 +130,25 @@ public class MTEUnitMagneticSeparator extends MTEUnitSelfPoweredProcessingUnit {
                     gold(powerEuLine(ClusterParams.MAGNETIC_EU_PER_TICK, ClusterParams.MAGNETIC_AMPERAGE))));
     }
 
-    /** 仓室群（v1.11.15）：能源仓行——数量按本单元 shape 的 'P' 位实际统计。 */
+    /**
+     * 仓室群（v1.11.15 + T15）：能源仓行——数量区间 1..（A 位数量+P 位），至少 1 枚；
+     * A 位任意机壳可替换为能源仓（父类 {@code tieredCasingElement} 放宽），全部能源仓共享 EU 池。
+     */
     @Override
     protected void addUnitStructureTooltipInfo(MultiblockTooltipBuilder tt) {
         tt.addStructureInfo(
             EnumChatFormatting.YELLOW + String.format(
                 StatCollector.translateToLocal("gtsr.tooltip.cluster.unit.hatch.energy"),
-                gold(String.valueOf(countUnitShapeChar('P')))));
+                gold(energyHatchCountRange())));
     }
 
-    /** 持续供电值段：{@code 32 EU/t × 1 A = 32 EU/t}（合计由乘积得出，不另造数）。 */
+    /** 持续供电值段（T7）：{@code 32/64/256/512 EU/t × 1 A}，按单元档位 1/2/8/16 乘算。 */
     private static String powerEuLine(int euPerTick, int amperage) {
-        return String.format("%d EU/t × %d A = %d EU/t", euPerTick, amperage, euPerTick * amperage);
+        StringBuilder perTier = new StringBuilder();
+        for (int i = 0; i < ClusterParams.POWER_TIER_MULTIPLIERS.length; i++) {
+            if (i > 0) perTier.append('/');
+            perTier.append((long) euPerTick * ClusterParams.POWER_TIER_MULTIPLIERS[i]);
+        }
+        return String.format("%s EU/t × %d A", perTier, amperage);
     }
 }

@@ -131,8 +131,9 @@ public class MTEUnitSecondaryBooster extends MTEBasicAmplifierUnit {
                     EnumChatFormatting.WHITE + StatCollector.translateToLocal(type.getFluidLangKey()),
                     red(boosterTierLps(type))))
             .addInfo(
-                EnumChatFormatting.YELLOW
-                    + StatCollector.translateToLocal("gtsr.tooltip.cluster.unit.booster.penalty.none"))
+                EnumChatFormatting.YELLOW + String.format(
+                    StatCollector.translateToLocal("gtsr.tooltip.cluster.unit.booster.penalty"),
+                    gold(boosterPenaltyTierValues())))
             .addInfo(
                 EnumChatFormatting.YELLOW + String.format(
                     StatCollector.translateToLocal("gtsr.tooltip.cluster.unit.secondary.link_receive"),
