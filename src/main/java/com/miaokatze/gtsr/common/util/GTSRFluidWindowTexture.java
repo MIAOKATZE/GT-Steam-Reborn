@@ -10,8 +10,8 @@ import net.minecraft.util.IIcon;
 import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.Fluid;
 
-import gregtech.api.interfaces.ITexture;
 import gregtech.api.render.ISBRContext;
+import gregtech.common.render.GTTextureBase;
 
 /**
  * "流体窗口"渲染核心：自定义 ITexture，在方块面上绘制流体 still 贴图，
@@ -20,12 +20,15 @@ import gregtech.api.render.ISBRContext;
  * 内缩窗（{@link #getOrCreate}）——面中央 20×20 窗（纹理坐标系 6/32..26/32，即每边 6 像素
  * 边框、20 像素窗），整图缩放进窗（{@link WindowIcon} 重映射）；缓存节点顶面与奇点仓正面使用。
  * 两种变体均固定 alpha pass（pass 1）绘制以保留半透明混合。
+ * Tessellator 会话归属沿用 beta-3 GTTextureBase 契约：世界路径直写区块缓冲，物品栏路径由
+ * GTRendererBlock.renderInventoryBlockImmediate 统一开会话、本类仅设法线不重开（beta-2 的
+ * ITexture.startDrawingQuads 自开会话旧契约在 beta-3 下会 Already tesselating! 崩溃）。
  * 机制沿用 GTRenderedTexture 的 RenderBlocks 边界内缩技巧：仅内缩变体改动面内四周边界，
  * 平面方向字段保持层循环传入值（每层 nextUp 外推 1ulp）不动，内缩变体平面字段沿外法向
  * +0.001 显式偏移（层循环 1ulp 外推 float 化丢失的确定性深度分离，tectech RenderDoubleSidedGlass 先例），
  * 结束后恢复全部六字段；整面变体不动任何边界。
  */
-public final class GTSRFluidWindowTexture implements ITexture {
+public final class GTSRFluidWindowTexture extends GTTextureBase {
 
     /** 窗口下界（单位立方坐标）：每边向内缩 6/32。 */
     private static final float WINDOW_MIN = 6.0F / 32.0F;
@@ -118,9 +121,10 @@ public final class GTSRFluidWindowTexture implements ITexture {
     }
 
     /**
-     * 六面共用的窗口绘制：pass 门控 → startDrawingQuads+reset → 保存六边界字段 →
+     * 六面共用的窗口绘制：pass 门控 → beginDrawingQuads（GTTextureBase 会话归属检测：世界路径
+     * 空操作直写区块缓冲，物品栏路径按归属决定是否自开会话，恒设法线）+reset → 保存六边界字段 →
      * 内缩变体仅内缩面内四边并沿外法向偏移平面字段 +0.001 + 整图缩放重映射；整面变体不动任何边界、原图直绘 →
-     * 面光照/AO 一致的 setupColor → renderFace*(Blocks.air) → 恢复。
+     * 面光照/AO 一致的 setupColor → renderFace*(Blocks.air) → endDrawingQuads（仅自开会话时 draw）。
      */
     private void renderWindow(ISBRContext ctx, ForgeDirection side) {
         final GTSRFluidAppearance.Appearance appearance = this.appearance;
@@ -128,7 +132,7 @@ public final class GTSRFluidWindowTexture implements ITexture {
         if (icon == null) return;
         if (!ctx.canRenderInPass(ALPHA_PASS_ONLY)) return;
         final RenderBlocks rb = ctx.getRenderBlocks();
-        startDrawingQuads(rb, side.offsetX, side.offsetY, side.offsetZ);
+        final boolean startedDrawing = beginDrawingQuads(rb, side.offsetX, side.offsetY, side.offsetZ);
         ctx.reset();
         final double oldMinX = rb.renderMinX, oldMaxX = rb.renderMaxX;
         final double oldMinY = rb.renderMinY, oldMaxY = rb.renderMaxY;
@@ -151,7 +155,7 @@ public final class GTSRFluidWindowTexture implements ITexture {
                 case NORTH -> rb.renderFaceZNeg(Blocks.air, x, y, z, icon);
                 default -> {}
             }
-            draw(rb);
+            endDrawingQuads(rb, startedDrawing);
             return;
         }
         switch (side) {
@@ -217,7 +221,7 @@ public final class GTSRFluidWindowTexture implements ITexture {
         rb.renderMaxY = oldMaxY;
         rb.renderMinZ = oldMinZ;
         rb.renderMaxZ = oldMaxZ;
-        draw(rb);
+        endDrawingQuads(rb, startedDrawing);
     }
 
     /**
