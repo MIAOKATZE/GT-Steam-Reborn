@@ -1347,6 +1347,7 @@ gtsr.gui.cluster.structure.logi_output_hatch_limit=Too many logistics output hat
 gtsr.tooltip.cluster.type=Steam-Powered Mineral Processing Logistics Engineering Cluster
 gtsr.tooltip.cluster.desc=Multi-segment ore chain processing cluster driven by steam and lubricant
 gtsr.tooltip.cluster.steam_econ=Steam economy: fixed steam %s, lubricant %s, tier steam multiplier %s
+gtsr.tooltip.cluster.steam_gate=Steam gate: bronze accepts all; steel/titanium superheated and up (steam/dense steam rejected); tungstensteel supercritical/dense supercritical only
 gtsr.tooltip.cluster.preheat=Reaches full efficiency after %s of preheat
 gtsr.tooltip.cluster.logistics=Logistics mount points: %s per segment, up to %s extension segments
 gtsr.tooltip.cluster.segments=Structure segments: main segment %s deep, each extension %s deep, %s segments total

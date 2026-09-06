@@ -1499,7 +1499,7 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
     /**
      * 全量结构 tooltip（v1.11.15 重排，键迁 gtsr.tooltip.cluster.*，wiki 键序
      * type→desc→数值→ctrl→仓室→计数→hint→品牌）：主控约 ≤25 行——类型/描述 → 蒸汽经济
-     * （固定蒸汽 × 档位乘率、润滑、tier 蒸汽倍率）→ 预热 → 物流挂点 → 结构分段 → 结构块
+     * （固定蒸汽 × 档位乘率、润滑、tier 蒸汽倍率、蒸汽种类门控）→ 预热 → 物流挂点 → 结构分段 → 结构块
      * （20×15×29）→ 控制器 → 仓室两行 → 终端 hint（裸键）→ 品牌行。数值全部由
      * {@code String.format} 自 {@link ClusterParams}/{@link ClusterTopology} 常量注入，
      * lang 只放纯文本标签（无 §/数值/单位）。
@@ -1519,6 +1519,7 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
                             joinInts(ClusterParams.FIXED_STEAM_TIER_MULT))),
                     gold(joinInts(ClusterParams.CLUSTER_LUBRICANT_LPS) + " L/s"),
                     gold(joinDoubles(ClusterParams.TIER_STEAM_MULT))))
+            .addInfo(EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.cluster.steam_gate"))
             .addInfo(
                 EnumChatFormatting.YELLOW + String.format(
                     StatCollector.translateToLocal("gtsr.tooltip.cluster.preheat"),

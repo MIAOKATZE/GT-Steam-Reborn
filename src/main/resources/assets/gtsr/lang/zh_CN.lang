@@ -1342,6 +1342,7 @@ gtsr.gui.cluster.structure.logi_output_hatch_limit=物流输出仓数量超上�
 gtsr.tooltip.cluster.type=蒸汽动力矿物处理物流工程集群
 gtsr.tooltip.cluster.desc=以蒸汽与润滑油驱动的多段矿石链式处理集群
 gtsr.tooltip.cluster.steam_econ=蒸汽经济：固定蒸汽 %s，润滑 %s，档位蒸汽倍率 ×%s
+gtsr.tooltip.cluster.steam_gate=蒸汽种类门控：青铜全收；钢/钛需过热及以上（拒普通/致密蒸汽）；钨钢仅收超临界/致密超临界
 gtsr.tooltip.cluster.preheat=预热 %s 后达到满载效率
 gtsr.tooltip.cluster.logistics=物流挂点：每段 %s 个，最多 %s 个延伸段
 gtsr.tooltip.cluster.segments=结构分段：主段 %s 深，延伸段每段 %s 深，共 %s 段
