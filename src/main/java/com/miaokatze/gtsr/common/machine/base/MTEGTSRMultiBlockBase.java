@@ -4,8 +4,12 @@ import java.util.List;
 import java.util.function.DoubleFunction;
 import java.util.function.DoubleSupplier;
 
+import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumChatFormatting;
 
+import com.gtnewhorizon.structurelib.alignment.enumerable.ExtendedFacing;
+import com.gtnewhorizon.structurelib.alignment.enumerable.Flip;
+import com.gtnewhorizon.structurelib.alignment.enumerable.Rotation;
 import com.miaokatze.gtsr.common.api.progress.GTSRProgressBar;
 import com.miaokatze.gtsr.common.api.progress.GTSRProgressEntry;
 import com.miaokatze.gtsr.common.api.progress.IGTSRProgressProvider;
@@ -70,6 +74,59 @@ public abstract class MTEGTSRMultiBlockBase<T extends MTEGTSRMultiBlockBase<T>> 
     protected final void registerEntryCustom(String internalKey, String displayKey, EnumChatFormatting color,
         DoubleSupplier valueSupplier, DoubleFunction<String> formatter) {
         registerEntry(GTSRProgressEntry.ofCustom(internalKey, displayKey, color, valueSupplier, formatter));
+    }
+
+    // endregion
+
+    // region [GT-compat] beta-1/2 NBT 描述包同步垫片（beta-3 迁 writeToStream/readFromStream 的兼容层）
+
+    /**
+     * [GT-compat] GT5U 2.9.0 beta-3（PR7821）把 MTE 客户端同步从 NBT 描述包
+     * （getDescriptionData/onDescriptionPacket）迁到 writeToStream/readFromStream 并删除了
+     * MTEEnhancedMultiBlockBase 的这两个方法，子类（MTEHubArrayBase）旧 NBT 路径的 super 调用
+     * 由此失去编译期落点。本垫片按 beta-2 MTEEnhancedMultiBlockBase 原实现（:552-589）复刻：
+     * beta-1/2 运行时经虚分派覆写父类同名方法承住 super 链（root IMetaTileEntity 默认实现
+     * 返回 null/空方法体，无祖先键可丢）；beta-3 下父类方法已删，本方法为不覆写任何父类方法的
+     * 合法死代码（故无 @Override）。
+     *
+     * 对 beta-2 原实现的可达性差异（所用符号在 beta-1/2/3 三版本均已核实存在）：
+     * - center 为 private final 字段：经 public getCenter()（返回可变 Vector3f）读写，行为等价；
+     * - mExtendedFacing 为 private 字段：读经 public getExtendedFacing()，写经 public
+     * setExtendedFacing(...)（ExtendedFacing.of 返回缓存实例，其引用比较去重仍生效）；
+     * - structureRadius 为 private 且三版本均无 setter：radius 键两侧一致省略——beta-1/2 客户端
+     * 结构半径不再经描述包同步，仅影响客户端活动音循环音量档（createSoundLoop 的 setVolume
+     * 缩放退回 1f 基线）与 radius 变化触发 restartActivitySound，服务端半径逻辑不受影响。
+     */
+    public NBTTagCompound getDescriptionData() {
+        NBTTagCompound data = new NBTTagCompound();
+        data.setFloat("centerX", getCenter().x);
+        data.setFloat("centerY", getCenter().y);
+        data.setFloat("centerZ", getCenter().z);
+        data.setByte(
+            "eRotation",
+            (byte) getExtendedFacing().getRotation()
+                .getIndex());
+        data.setByte(
+            "eFlip",
+            (byte) getExtendedFacing().getFlip()
+                .getIndex());
+        return data;
+    }
+
+    /**
+     * [GT-compat] onDescriptionPacket 垫片，与 {@link #getDescriptionData()} 成对（beta-1/2 运行时
+     * 覆写父类、beta-3 下死代码）。读侧与写侧严格对称（centerX/Y/Z float×3 + eRotation/eFlip
+     * byte×2），radius 键两侧一致省略。与 beta-2 原实现的唯一语义差异：朝向落地经
+     * setExtendedFacing 而非直接字段赋值，值变化时客户端会顺带走 issueTextureUpdate/状态复位
+     * 分支（无服务端副作用，详见 getDescriptionData 注释）。
+     */
+    public void onDescriptionPacket(NBTTagCompound data) {
+        getCenter().set(data.getFloat("centerX"), data.getFloat("centerY"), data.getFloat("centerZ"));
+        setExtendedFacing(
+            ExtendedFacing.of(
+                getBaseMetaTileEntity().getFrontFacing(),
+                Rotation.byIndex(data.getByte("eRotation")),
+                Flip.byIndex(data.getByte("eFlip"))));
     }
 
     // endregion

@@ -47,6 +47,7 @@ import com.gtnewhorizons.modularui.common.widget.FakeSyncWidget;
 import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import com.miaokatze.gtsr.api.compat.GTSRHatchFluidAccess;
+import com.miaokatze.gtsr.api.compat.GTVersionCompat;
 import com.miaokatze.gtsr.api.util.CasingTierTextureHelper;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.gui.MTEKineticProcessingArrayGui;
@@ -91,7 +92,6 @@ import gregtech.common.tileentities.machines.IDualInputHatch;
 import gregtech.common.tileentities.machines.basic.MTEBoxinator;
 import gregtech.common.tileentities.machines.basic.MTEPotionBrewer;
 import gregtech.common.tileentities.machines.basic.MTERockBreaker;
-import gtPlusPlus.api.recipe.GTPPRecipeMaps;
 
 public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticProcessingArray>
     implements IConstructable, ISurvivalConstructable {
@@ -184,7 +184,9 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
 
         @Override
         public String getDisplayName() {
-            return GTUtility.translate(translationKey);
+            // [GT-compat] beta 兼容层（beta1/beta2/beta3）：正式版发布时移除本分支并切换至最新 API
+            // GTUtility.translate 在 GT5U beta-3 中已移除，改用 1.7.10 原版 StatCollector 单参保真
+            return StatCollector.translateToLocal(translationKey);
         }
 
         @Override
@@ -575,28 +577,35 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
      * GT++ 工业离心机、GT5U 大型化学反应釜、GT++ 大型搅拌机、GT++ 工业碎石机、
      * GT++ 工业脱水机（与 GT5U/GT++ 官方多方块实现同表驱动）。
      * 其他机器（如打包机、酿造机）保持原配方表不变（官方多方块同表）。
+     * <p>
+     * [GT-compat] beta 兼容层（beta1/beta2/beta3）：正式版发布时移除本分支并切换至最新 API。
+     * GTPPRecipeMaps 类在 GT5U beta-3 中被删除（7 个配方映射字段迁入 gregtech.api.recipe.RecipeMaps，
+     * 字段名类型不变），故 GT++ 配方映射字段引用经 {@link GTVersionCompat#gppRecipeMap(String)} 反射
+     * 双宿主按序探测；探测失败返回 null 时：比较分支因 original 非空前置判空天然不匹配（引用相等无 NPE），
+     * 返回分支返回 null 使机器退回"无配方表"待机（checkInternalMachine 对 recipeMap==null 自愈重查）。
+     * </p>
      */
     private static RecipeMap<?> mapToMultiblockRecipeMap(@Nullable RecipeMap<?> original) {
         if (original == null) {
             return null;
         }
         if (original == RecipeMaps.electrolyzerRecipes) {
-            return GTPPRecipeMaps.electrolyzerNonCellRecipes;
+            return GTVersionCompat.gppRecipeMap("electrolyzerNonCellRecipes");
         }
         if (original == RecipeMaps.centrifugeRecipes) {
-            return GTPPRecipeMaps.centrifugeNonCellRecipes;
+            return GTVersionCompat.gppRecipeMap("centrifugeNonCellRecipes");
         }
         if (original == RecipeMaps.chemicalReactorRecipes) {
             return RecipeMaps.multiblockChemicalReactorRecipes;
         }
         if (original == RecipeMaps.mixerRecipes) {
-            return GTPPRecipeMaps.mixerNonCellRecipes;
+            return GTVersionCompat.gppRecipeMap("mixerNonCellRecipes");
         }
-        if (original == GTPPRecipeMaps.chemicalDehydratorRecipes) {
-            return GTPPRecipeMaps.chemicalDehydratorNonCellRecipes;
+        if (original == GTVersionCompat.gppRecipeMap("chemicalDehydratorRecipes")) {
+            return GTVersionCompat.gppRecipeMap("chemicalDehydratorNonCellRecipes");
         }
         if (original == RecipeMaps.rockBreakerFakeRecipes) {
-            return GTPPRecipeMaps.multiblockRockBreakerRecipes;
+            return GTVersionCompat.gppRecipeMap("multiblockRockBreakerRecipes");
         }
         return original;
     }

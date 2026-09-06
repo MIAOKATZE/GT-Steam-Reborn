@@ -33,6 +33,7 @@ import com.miaokatze.gtsr.common.util.HubTeleportUtil;
 import com.miaokatze.gtsr.common.util.UnitFormatUtil;
 import com.miaokatze.gtsr.register.TextureManager;
 
+import cpw.mods.fml.common.network.ByteBufUtils;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 import gregtech.api.GregTechAPI;
@@ -45,6 +46,7 @@ import gregtech.api.render.TextureFactory;
 import gregtech.api.structure.error.StructureError;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.MultiblockTooltipBuilder;
+import io.netty.buffer.ByteBuf;
 
 /**
  * 双枢纽（蒸汽/蓄水）钩子基类（O2-02/A04-H1）：上提两侧逐字镜像的无状态段——绑定缓存节点的
@@ -860,7 +862,10 @@ public abstract class MTEHubArrayBase<T extends MTEHubArrayBase<T>> extends MTEG
         super.registerIcons(aBlockIconRegister);
     }
 
-    @Override
+    // [GT-compat] beta-1/2 NBT 描述包路径：beta-3 删除父类同名方法后去 @Override（编译期不再覆写
+    // 任何父类方法），beta-1/2 运行时仍经虚分派覆写父类；super 落到 MTEGTSRMultiBlockBase 垫片，
+    // 由垫片承住 beta-2 父类的 center/朝向键（radius 见垫片注释的降级说明）。
+
     public NBTTagCompound getDescriptionData() {
         NBTTagCompound data = super.getDescriptionData();
         if (data == null) data = new NBTTagCompound();
@@ -870,7 +875,6 @@ public abstract class MTEHubArrayBase<T extends MTEHubArrayBase<T>> extends MTEG
         return data;
     }
 
-    @Override
     public void onDescriptionPacket(NBTTagCompound data) {
         super.onDescriptionPacket(data);
         mSetTier = data.getInteger("mSetTier");
@@ -879,6 +883,31 @@ public abstract class MTEHubArrayBase<T extends MTEHubArrayBase<T>> extends MTEG
         if (base != null) {
             base.issueTextureUpdate();
         }
+    }
+
+    /**
+     * [GT-compat] beta-3 流同步路径：首行 super 承住 MTEEnhancedMultiBlockBase 的
+     * center XYZ float×3 + radius int + 朝向 byte（beta-3 :553-560 顺序），本类追加
+     * mSetTier int + hubFluid UTF8 串。与旧 NBT 路径同策略无条件写全（fluid 空串也写长度
+     * 前缀，无省略哨兵——NBT getString 对缺键本就返回空串），读侧严格对称；beta-1/2 运行时
+     * gregtech.api 无任何流调用方，本对方法为死代码。
+     */
+    @Override
+    public void writeToStream(ByteBuf buf) {
+        super.writeToStream(buf);
+        buf.writeInt(mSetTier);
+        ByteBufUtils.writeUTF8String(buf, storedFluidNameForSync());
+    }
+
+    /**
+     * [GT-compat] beta-3 流读侧：与 {@link #writeToStream(ByteBuf)} 对称（int tier → UTF8 fluid），
+     * 不调 issueTextureUpdate——beta-3 流路径的贴图刷新时机由基类统一负责（同四仓 stream 增量约定）。
+     */
+    @Override
+    public void readFromStream(ByteBuf buf) {
+        super.readFromStream(buf);
+        mSetTier = buf.readInt();
+        mClientFluidName = ByteBufUtils.readUTF8String(buf);
     }
 
     /** 当前等级对应的外壳纹理索引（≥3 钨钢机壳 / 2 钢机壳 / 其余青铜基材），checkMachine 与 getTexture 共用。 */

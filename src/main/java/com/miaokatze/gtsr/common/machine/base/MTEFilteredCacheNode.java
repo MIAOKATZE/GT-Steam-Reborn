@@ -29,6 +29,7 @@ import com.miaokatze.gtsr.common.util.HubBindingUtil;
 import com.miaokatze.gtsr.common.util.HubTeleportUtil;
 import com.miaokatze.gtsr.register.TextureManager;
 
+import cpw.mods.fml.common.network.ByteBufUtils;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 import gregtech.api.interfaces.ITexture;
@@ -36,6 +37,7 @@ import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.render.TextureFactory;
 import gregtech.api.util.GTUtility;
 import gregtech.common.tileentities.storage.MTEDigitalTankBase;
+import io.netty.buffer.ByteBuf;
 
 /**
  * 量子缸族缓存节点基类。S1 起实现 {@link IHubCacheNode} 共同接口：四个奇点仓已脱离本继承链
@@ -576,10 +578,9 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase implements
     // 非 null 返回值作为 "mte" 标签随 S35PacketUpdateTileEntity 发出；客户端 onDataPacket 回调
     // onDescriptionPacket()。初始区块同步与 issueTileUpdate() 触发的重发都走此链路。
     // 注意必须始终返回非 null：返回 null 时客户端收不到回调，「清除自定义名」将无法同步到客户端。
-    @Override
+    // [GT-compat] beta 兼容层（beta1/beta2/beta3）：beta-1/2 运行时经虚分派继续生效；beta-3 走 writeToStream/readFromStream，正式版发布时移除本分支
     public NBTTagCompound getDescriptionData() {
-        NBTTagCompound data = super.getDescriptionData();
-        if (data == null) data = new NBTTagCompound();
+        NBTTagCompound data = new NBTTagCompound();
         if (!getCustomName().isEmpty()) {
             data.setString("gtsr.customName", getCustomName());
         }
@@ -591,9 +592,8 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase implements
         return data;
     }
 
-    @Override
+    // [GT-compat] beta 兼容层（beta1/beta2/beta3）：beta-1/2 运行时经虚分派继续生效；beta-3 走 writeToStream/readFromStream，正式版发布时移除本分支
     public void onDescriptionPacket(NBTTagCompound data) {
-        super.onDescriptionPacket(data);
         // 无 key 表示服务端已清除自定义名，回退空串（GUI 标题恢复默认本地化名）
         mCustomName = data.hasKey("gtsr.customName") ? data.getString("gtsr.customName") : "";
         // 渲染状态副本回读落地（getTexture 只读这组字段）
@@ -605,6 +605,32 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase implements
         if (base != null) {
             base.issueTextureUpdate();
         }
+    }
+
+    // [GT-compat] beta-3 ByteBuf 同步链（CommonBaseMetaTileEntity.writeDescriptionBuffer/readDescriptionBuffer
+    // → 本方法对）：字段与上面 NBT 版逐一对应，写读逐字节对称（bool 哨兵 + writeUTF8String）；
+    // 纹理刷新由基座 readDescriptionBuffer 尾部自动 issueTextureUpdate，此处不重复调用；
+    // super 为接口 default 空体（父链无中间覆写），调用无害且防将来父类加字段。
+    @Override
+    public void writeToStream(ByteBuf buf) {
+        super.writeToStream(buf);
+        boolean hasName = !getCustomName().isEmpty();
+        buf.writeBoolean(hasName);
+        if (hasName) ByteBufUtils.writeUTF8String(buf, getCustomName());
+        buf.writeBoolean(mBound);
+        buf.writeBoolean(mIsOutputMode);
+        ByteBufUtils.writeUTF8String(buf, mHubType == null ? "" : mHubType);
+        ByteBufUtils.writeUTF8String(buf, getStoredFluidName());
+    }
+
+    @Override
+    public void readFromStream(ByteBuf buf) {
+        super.readFromStream(buf);
+        mCustomName = buf.readBoolean() ? ByteBufUtils.readUTF8String(buf) : "";
+        mClientBound = buf.readBoolean();
+        mClientOutputMode = buf.readBoolean();
+        mClientHubType = ByteBufUtils.readUTF8String(buf);
+        mClientFluidName = ByteBufUtils.readUTF8String(buf);
     }
 
     @Override

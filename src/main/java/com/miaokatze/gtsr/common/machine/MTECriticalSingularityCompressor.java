@@ -497,7 +497,8 @@ public class MTECriticalSingularityCompressor extends MTESingularityMachineBase 
             .addInfo(EnumChatFormatting.RED + StatCollector.translateToLocal(keyPrefix + "desc4"))
             .addInfo(EnumChatFormatting.DARK_PURPLE + StatCollector.translateToLocal(keyPrefix + "desc5"))
             .addSeparator()
-            .beginStructureBlock(27, 27, 21, false)
+            // [GT-compat] beta 兼容层（beta1/beta2/beta3）：beta-3 起始参数序为 (w,h,l)，实参已按 beta-3 语义排列
+            .beginStructureBlock(27, 21, 27, false)
             .addController(StatCollector.translateToLocal(keyPrefix + "ctrl"))
             .addOtherStructurePart(
                 StatCollector.translateToLocal("gtsr.tooltip.critical_singularity_compressor.steam_input_hatch"),

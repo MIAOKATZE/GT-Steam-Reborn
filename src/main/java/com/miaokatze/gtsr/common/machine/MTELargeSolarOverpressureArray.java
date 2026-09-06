@@ -879,7 +879,8 @@ public class MTELargeSolarOverpressureArray extends MTEGTSRMultiBlockBase<MTELar
                     + " ("
                     + StatCollector.translateToLocal("gtsr.tooltip.solar_array.superheated_steam")
                     + ")")
-            .beginStructureBlock(30, 27, 7, false)
+            // [GT-compat] beta 兼容层（beta1/beta2/beta3）：beta-3 起始参数序为 (w,h,l)，实参已按 beta-3 语义排列
+            .beginStructureBlock(27, 7, 30, false)
             .addController(StatCollector.translateToLocal("gtsr.tooltip.solar_array.ctrl"))
             .addInputHatch(StatCollector.translateToLocal("gtsr.tooltip.solar_array.input_hatch"), 1)
             .addOtherStructurePart(

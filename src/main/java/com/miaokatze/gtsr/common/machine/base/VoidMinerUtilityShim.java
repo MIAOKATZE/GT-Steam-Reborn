@@ -3,8 +3,10 @@ package com.miaokatze.gtsr.common.machine.base;
 import java.lang.reflect.Field;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import bwcrossmod.galacticgreg.VoidMinerUtility;
-import gregtech.GTMod;
 
 /**
  * 跨 mod 反射 shim：读取 GalacticGreg {@link VoidMinerUtility} 的维度掉落表静态字段。
@@ -13,6 +15,9 @@ import gregtech.GTMod;
  * 失败分支补一次性 warn（静态布尔防重复，含失败目标字段与后果），消除上游签名漂移后的静默退化。
  */
 public class VoidMinerUtilityShim {
+
+    // [GT-compat] beta 兼容层（beta1/beta2/beta3）：GTLog.err/GTMod.GT_FML_LOGGER 于 beta-3 移除，改用环境 log4j2（三版本通用）
+    private static final Logger LOG = LogManager.getLogger("gtsr");
 
     private static Map<String, VoidMinerUtility.DropMap> dropMapsByName = null;
     private static Map<String, VoidMinerUtility.DropMap> extraDropsByName = null;
@@ -49,7 +54,8 @@ public class VoidMinerUtilityShim {
     private static synchronized void warnInitFailureOnce() {
         if (initFailureLogged) return;
         initFailureLogged = true;
-        GTMod.GT_FML_LOGGER.warn(
+        // [GT-compat] beta 兼容层（beta1/beta2/beta3）：GTLog.err/GTMod.GT_FML_LOGGER 于 beta-3 移除，改用环境 log4j2（三版本通用）
+        LOG.warn(
             "[GTSR] VoidMinerUtilityShim failed to read GalacticGreg VoidMinerUtility drop tables"
                 + " (dropMapsByDimName present: "
                 + (dropMapsByName != null)

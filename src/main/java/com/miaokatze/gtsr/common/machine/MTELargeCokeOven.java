@@ -315,7 +315,8 @@ public class MTELargeCokeOven extends MTEGTSRMultiBlockBase<MTELargeCokeOven>
             .addSeparator()
             .addInfo(EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.coke_oven.formula"))
             .addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.coke_oven.accel"))
-            .beginStructureBlock(3, 7, 7, true)
+            // [GT-compat] beta 兼容层（beta1/beta2/beta3）：beta-3 起始参数序为 (w,h,l)，实参已按 beta-3 语义排列
+            .beginStructureBlock(7, 7, 3, true)
             .addController(StatCollector.translateToLocal("gtsr.tooltip.coke_oven.ctrl"))
             .addInputBus(StatCollector.translateToLocal("gtsr.tooltip.coke_oven.input_bus"), 1)
             .addOutputBus(StatCollector.translateToLocal("gtsr.tooltip.coke_oven.output_bus"), 1)

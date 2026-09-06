@@ -1009,7 +1009,8 @@ public class MTESiemensMartinFurnace extends MTEGTSRMultiBlockBase<MTESiemensMar
             .addInfo(EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.siemens_martin.air_cost"))
             .addInfo(
                 EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.siemens_martin.air_preheat"))
-            .beginStructureBlock(12, 19, 14, false)
+            // [GT-compat] beta 兼容层（beta1/beta2/beta3）：beta-3 起始参数序为 (w,h,l)，实参已按 beta-3 语义排列
+            .beginStructureBlock(14, 19, 12, false)
             .addController(StatCollector.translateToLocal("gtsr.tooltip.siemens_martin.ctrl"))
             .addOtherStructurePart(
                 StatCollector.translateToLocal("gtsr.tooltip.siemens_martin.steam_input_hatch"),

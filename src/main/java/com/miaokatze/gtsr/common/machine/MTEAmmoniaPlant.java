@@ -886,7 +886,8 @@ public class MTEAmmoniaPlant extends MTEGTSRMultiBlockBase<MTEAmmoniaPlant> impl
                     + "64s\u21921s"
                     + EnumChatFormatting.GRAY
                     + StatCollector.translateToLocal("gtsr.tooltip.ammonia_plant.catalyst_detail.3"))
-            .beginStructureBlock(10, 14, 13, false)
+            // [GT-compat] beta 兼容层（beta1/beta2/beta3）：beta-3 起始参数序为 (w,h,l)，实参已按 beta-3 语义排列
+            .beginStructureBlock(13, 14, 10, false)
             .addController(StatCollector.translateToLocal("gtsr.tooltip.ammonia_plant.ctrl"))
             .addInputHatch(StatCollector.translateToLocal("gtsr.tooltip.ammonia_plant.input_hatch"), 1)
             .addOutputBus(StatCollector.translateToLocal("gtsr.tooltip.ammonia_plant.output_bus"), 1)

@@ -177,7 +177,8 @@ public class MTEGearSteamCompressor extends MTEGTSRMultiBlockBase<MTEGearSteamCo
 
         @Override
         public String getDisplayName() {
-            return GTUtility.translate(translationKey);
+            // [GT-compat] beta 兼容层（beta1/beta2/beta3）：GTUtility.translate 于 beta-3 移除，改用 vanilla StatCollector（三版本通用）
+            return StatCollector.translateToLocal(translationKey);
         }
 
         @Override

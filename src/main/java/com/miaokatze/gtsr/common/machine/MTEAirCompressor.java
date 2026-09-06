@@ -425,7 +425,8 @@ public class MTEAirCompressor extends MTESteamMultiBlockBase<MTEAirCompressor> i
                 EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.tooltip.shared.superheated_quadruples"))
             .addInfo(
                 EnumChatFormatting.LIGHT_PURPLE + StatCollector.translateToLocal("gtsr.tooltip.air_compressor.nether"))
-            .beginStructureBlock(5, 4, 3, false)
+            // [GT-compat] beta 兼容层（beta1/beta2/beta3）：beta-3 起始参数序为 (w,h,l)，实参已按 beta-3 语义排列
+            .beginStructureBlock(3, 4, 5, false)
             .addController(StatCollector.translateToLocal("gtsr.tooltip.air_compressor.ctrl"))
             .addOutputHatch(StatCollector.translateToLocal("gtsr.tooltip.air_compressor.output_hatch"), 1)
             .addOtherStructurePart(

@@ -6,7 +6,9 @@ import java.lang.reflect.Method;
 import net.minecraft.world.World;
 import net.minecraftforge.fluids.Fluid;
 
-import gregtech.GTMod;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import gregtech.common.UndergroundOil;
 
 /**
@@ -16,6 +18,9 @@ import gregtech.common.UndergroundOil;
  * 避免 GT5U 签名漂移后表现为「每次调用重复反射解析 + 热解机周期内反复刷 error 日志」。
  */
 public class UndergroundOilHelper {
+
+    // [GT-compat] beta 兼容层（beta1/beta2/beta3）：GTLog.err/GTMod.GT_FML_LOGGER 于 beta-3 移除，改用环境 log4j2（三版本通用）
+    private static final Logger LOG = LogManager.getLogger("gtsr");
 
     /**
      * 单个反射目标的懒解析缓存：成功缓存解析结果；失败置 failed 后永久短路（get 恒返回 null，
@@ -47,7 +52,9 @@ public class UndergroundOilHelper {
                     resolved = lookup(owner);
                 } catch (Exception e) {
                     failed = true;
-                    GTMod.GT_FML_LOGGER.warn(
+                    // [GT-compat] beta 兼容层（beta1/beta2/beta3）：GTLog.err/GTMod.GT_FML_LOGGER 于 beta-3 移除，改用环境
+                    // log4j2（三版本通用）
+                    LOG.warn(
                         "[GTSR] UndergroundOilHelper reflection lookup failed for " + target
                             + "; caching failure and degrading to "
                             + degradedTo
@@ -156,7 +163,8 @@ public class UndergroundOilHelper {
     private static synchronized void logStorageNullOnce() {
         if (storageNullLogged) return;
         storageNullLogged = true;
-        GTMod.GT_FML_LOGGER.error(
+        // [GT-compat] beta 兼容层（beta1/beta2/beta3）：GTLog.err/GTMod.GT_FML_LOGGER 于 beta-3 移除，改用环境 log4j2（三版本通用）
+        LOG.error(
             "[GTSR] UndergroundOilHelper: UndergroundOil storage is null (logged once); oil reads/writes return 0/false");
     }
 
@@ -169,7 +177,8 @@ public class UndergroundOilHelper {
             if (getMethod == null) return 0;
             Object chunkData = getMethod.invoke(storage, w, chunkX, chunkZ);
             if (chunkData == null) {
-                GTMod.GT_FML_LOGGER.warn("[GTSR] increaseFluidAmount: chunkData is null");
+                // [GT-compat] beta 兼容层（beta1/beta2/beta3）：GTLog.err/GTMod.GT_FML_LOGGER 于 beta-3 移除，改用环境 log4j2（三版本通用）
+                LOG.warn("[GTSR] increaseFluidAmount: chunkData is null");
                 return 0;
             }
 
@@ -177,7 +186,8 @@ public class UndergroundOilHelper {
             if (getFluidMethod == null) return 0;
             Fluid fluid = (Fluid) getFluidMethod.invoke(chunkData);
             if (fluid == null) {
-                GTMod.GT_FML_LOGGER.warn("[GTSR] increaseFluidAmount: fluid is null");
+                // [GT-compat] beta 兼容层（beta1/beta2/beta3）：GTLog.err/GTMod.GT_FML_LOGGER 于 beta-3 移除，改用环境 log4j2（三版本通用）
+                LOG.warn("[GTSR] increaseFluidAmount: fluid is null");
                 return 0;
             }
 
@@ -191,7 +201,8 @@ public class UndergroundOilHelper {
 
             int actualIncrease = Math.min(increase, maxAmount - currentAmount);
             if (actualIncrease <= 0) {
-                GTMod.GT_FML_LOGGER.warn("[GTSR] increaseFluidAmount: actualIncrease={}, skipping", actualIncrease);
+                // [GT-compat] beta 兼容层（beta1/beta2/beta3）：GTLog.err/GTMod.GT_FML_LOGGER 于 beta-3 移除，改用环境 log4j2（三版本通用）
+                LOG.warn("[GTSR] increaseFluidAmount: actualIncrease={}, skipping", actualIncrease);
                 return 0;
             }
 
@@ -201,7 +212,8 @@ public class UndergroundOilHelper {
 
             return actualIncrease;
         } catch (Exception e) {
-            GTMod.GT_FML_LOGGER.error("[GTSR] increaseFluidAmount failed", e);
+            // [GT-compat] beta 兼容层（beta1/beta2/beta3）：GTLog.err/GTMod.GT_FML_LOGGER 于 beta-3 移除，改用环境 log4j2（三版本通用）
+            LOG.error("[GTSR] increaseFluidAmount failed", e);
             return 0;
         }
     }
@@ -232,7 +244,8 @@ public class UndergroundOilHelper {
             setAmountMethod.invoke(chunkData, capAmount);
             return true;
         } catch (Exception e) {
-            GTMod.GT_FML_LOGGER.error("[GTSR] capFluidAmountIfBug failed", e);
+            // [GT-compat] beta 兼容层（beta1/beta2/beta3）：GTLog.err/GTMod.GT_FML_LOGGER 于 beta-3 移除，改用环境 log4j2（三版本通用）
+            LOG.error("[GTSR] capFluidAmountIfBug failed", e);
             return false;
         }
     }

@@ -6,13 +6,17 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import gregtech.api.util.GTLog;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * 进度条容器（组合用，非基类）：机器组合一个实例并注册词条，
  * 注册顺序 = 终端显示顺序。词条只声明「显示口径」，本容器统一提供查询与客户端同步缓存。
  */
 public class GTSRProgressBar {
+
+    // [GT-compat] beta 兼容层（beta1/beta2/beta3）：GTLog.err/GTMod.GT_FML_LOGGER 于 beta-3 移除，改用环境 log4j2（三版本通用）
+    private static final Logger LOG = LogManager.getLogger("gtsr");
 
     /** 词条列表（有序，注册顺序 = 显示顺序） */
     private final List<GTSRProgressEntry> entries = new ArrayList<>();
@@ -26,7 +30,8 @@ public class GTSRProgressBar {
             if (entries.get(i)
                 .getInternalKey()
                 .equals(entry.getInternalKey())) {
-                GTLog.err.println(
+                // [GT-compat] beta 兼容层（beta1/beta2/beta3）：GTLog.err/GTMod.GT_FML_LOGGER 于 beta-3 移除，改用环境 log4j2（三版本通用）
+                LOG.error(
                     "Warning: GTSRProgressBar duplicate internalKey '" + entry.getInternalKey()
                         + "', the latter entry overrides the former.");
                 entries.set(i, entry);

@@ -1,6 +1,12 @@
 package com.miaokatze.gtsr.common.gui;
 
+import java.util.function.Predicate;
+
+import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.IFluidTank;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.value.sync.FluidSlotSyncHandler;
@@ -28,6 +34,8 @@ import gregtech.common.gui.modularui.singleblock.base.MTEDigitalTankBaseGui;
  */
 public class MTEFilteredCacheNodeGui extends MTEDigitalTankBaseGui<MTEFilteredCacheNode> {
 
+    private static final Logger LOGGER = LogManager.getLogger("gtsr");
+
     public MTEFilteredCacheNodeGui(MTEFilteredCacheNode machine) {
         super(machine);
     }
@@ -41,7 +49,16 @@ public class MTEFilteredCacheNodeGui extends MTEDigitalTankBaseGui<MTEFilteredCa
         // 同时重新施加流体过滤，避免非目标流体通过拖动流体单元注入。
         FluidSlotSyncHandler fluidSlotSH = new FluidSlotSyncHandler(fluidTank);
         fluidSlotSH.setChangeListener(machine::setLockIfEmpty);
-        fluidSlotSH.filter(machine::isFluidInputAllowed);
+        // [GT-compat] beta 兼容层（beta1/beta2/beta3）：正式版发布时移除本分支并切换至最新 API。
+        // MUI2 2.3.70（beta-1）无 FluidSlotSyncHandler#filter（beta-2 2.3.79+ 引入）；
+        // 反射探测调用，beta-1 下降级为不过滤（流体槽接受拖入任意流体，GUI 仍可正常打开）。
+        try {
+            FluidSlotSyncHandler.class.getMethod("filter", Predicate.class)
+                .invoke(fluidSlotSH, (Predicate<FluidStack>) machine::isFluidInputAllowed);
+        } catch (ReflectiveOperationException e) {
+            LOGGER
+                .warn("MUI2 FluidSlotSyncHandler#filter unavailable; fluid slot filter disabled for cache node GUI", e);
+        }
 
         return slot.syncHandler(fluidSlotSH);
     }

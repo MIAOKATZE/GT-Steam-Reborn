@@ -17,6 +17,7 @@ import gregtech.api.interfaces.IIconContainer;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
+import io.netty.buffer.ByteBuf;
 
 /**
  * 奇点通用蒸汽仓（接收仓）：模式锁定 mIsOutputMode=true（枢纽→仓，从枢纽接受蒸汽），
@@ -181,17 +182,35 @@ public class MTESingularitySteamCompartment extends MTEHatchPressureSteamInput
         onCompartmentHubTick(aBaseMetaTileEntity, aTick);
     }
 
-    @Override
+    // [GT-compat] beta 兼容层（beta1/beta2/beta3）：beta-3 起 description packet 改走
+    // writeToStream/readFromStream 流路径且基类 NBT 覆写点已删除（beta-3 编译目标下 @Override
+    // 不再成立），本组 NBT 方法仅 beta-1/2 经运行时虚分派生效——去 @Override 去 super
+    // （super 链 MTEHatch 只写/读 texturePage/textureIndex 两键，GTSR 无设置入口恒 0=0，
+    // 两键随 super 移除而丢失=行为中性）。
     public NBTTagCompound getDescriptionData() {
-        NBTTagCompound data = super.getDescriptionData();
-        if (data == null) data = new NBTTagCompound();
-        return writeCompartmentDescriptionData(data);
+        // 原 super 返回 null 后自 new 的防御保留为直接 new
+        return writeCompartmentDescriptionData(new NBTTagCompound());
     }
 
-    @Override
     public void onDescriptionPacket(NBTTagCompound data) {
-        super.onDescriptionPacket(data);
         readCompartmentDescriptionData(data);
+    }
+
+    // [GT-compat] beta-3 stream 同步：首行 super 承接 MTEHatch beta-3 覆写的
+    // texturePage/textureIndex 两 int 承重，再委托接口助手补 bound+fluid 两字段
+    // （字段序与 getDescriptionData 增量一致）；beta-1/2 基类无此覆写点，仅 beta-3 生效。
+    @Override
+    public void writeToStream(ByteBuf buf) {
+        super.writeToStream(buf);
+        writeCompartmentToStream(buf);
+    }
+
+    // [GT-compat] beta-3 stream 同步：读序与 writeToStream 严格对称
+    // （super 两 int → bound bool → fluid UTF8 名）。
+    @Override
+    public void readFromStream(ByteBuf buf) {
+        super.readFromStream(buf);
+        readCompartmentFromStream(buf);
     }
 
     // ===== 正面流体窗 + 语义固定框架 =====

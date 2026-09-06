@@ -4,12 +4,14 @@ import net.minecraft.block.Block;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import com.miaokatze.gtsr.register.CreativeTabManager;
 import com.miaokatze.gtsr.register.IItemContainer;
 
 import cpw.mods.fml.common.registry.GameRegistry;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
-import gregtech.api.util.GTLog;
 
 /**
  * 模组物品统一索引枚举
@@ -109,6 +111,9 @@ public enum GTSRItemList implements IItemContainer {
     ClusterUnitLogistics,
 
     ;
+
+    // [GT-compat] beta 兼容层（beta1/beta2/beta3）：GTLog.err/GTMod.GT_FML_LOGGER 于 beta-3 移除，改用环境 log4j2（三版本通用）
+    private static final Logger LOG = LogManager.getLogger("gtsr");
 
     // 存储对应的物品堆栈实例
     private ItemStack mStack;
@@ -226,7 +231,8 @@ public enum GTSRItemList implements IItemContainer {
     @Override
     public void sanityCheck() {
         if (mHasNotBeenSet && !mWarned) {
-            GTLog.err.println("Warning: Item '" + name() + "' has not been set!");
+            // [GT-compat] beta 兼容层（beta1/beta2/beta3）：GTLog.err/GTMod.GT_FML_LOGGER 于 beta-3 移除，改用环境 log4j2（三版本通用）
+            LOG.error("Warning: Item '" + name() + "' has not been set!");
             mWarned = true;
         }
     }

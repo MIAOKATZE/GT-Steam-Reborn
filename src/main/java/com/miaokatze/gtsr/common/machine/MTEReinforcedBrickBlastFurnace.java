@@ -550,7 +550,8 @@ public class MTEReinforcedBrickBlastFurnace extends MTEGTSRMultiBlockBase<MTERei
             .addInfo(
                 EnumChatFormatting.GRAY
                     + StatCollector.translateToLocal("gtsr.tooltip.reinforced_brick_blast_furnace.speed_hint"))
-            .beginStructureBlock(3, 3, 5, false)
+            // [GT-compat] beta 兼容层（beta1/beta2/beta3）：beta-3 起始参数序为 (w,h,l)，实参已按 beta-3 语义排列
+            .beginStructureBlock(3, 5, 3, false)
             .addController(StatCollector.translateToLocal("gtsr.tooltip.reinforced_brick_blast_furnace.ctrl"))
             .addInputBus(StatCollector.translateToLocal("gtsr.tooltip.reinforced_brick_blast_furnace.input_bus"), 1)
             .addOutputBus(StatCollector.translateToLocal("gtsr.tooltip.reinforced_brick_blast_furnace.output_bus"), 1)

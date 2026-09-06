@@ -3,6 +3,8 @@ package com.miaokatze.gtsr.common.api.enums;
 import java.util.List;
 import java.util.function.Supplier;
 
+import net.minecraft.util.StatCollector;
+
 import com.google.common.collect.ImmutableList;
 
 import gregtech.api.interfaces.IHatchElement;
@@ -12,7 +14,6 @@ import gregtech.api.metatileentity.implementations.MTEHatchInputBus;
 import gregtech.api.metatileentity.implementations.MTEHatchOutput;
 import gregtech.api.metatileentity.implementations.MTEHatchOutputBus;
 import gregtech.api.metatileentity.implementations.MTEMultiBlockBase;
-import gregtech.api.util.GTUtility;
 import gregtech.api.util.IGTHatchAdder;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.MTEHatchSteamBusInput;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.MTEHatchSteamBusOutput;
@@ -215,7 +216,8 @@ public enum GTSRHatchElement implements IHatchElement<MTEMultiBlockBase> {
 
     @Override
     public String getDisplayName() {
-        return GTUtility.translate(translationKey);
+        // [GT-compat] beta 兼容层（beta1/beta2/beta3）：GTUtility.translate 于 beta-3 移除，改用 vanilla StatCollector（三版本通用）
+        return StatCollector.translateToLocal(translationKey);
     }
 
     @Override

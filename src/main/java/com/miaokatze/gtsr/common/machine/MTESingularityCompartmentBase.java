@@ -26,6 +26,7 @@ import com.miaokatze.gtsr.common.util.HubBindingUtil;
 import com.miaokatze.gtsr.common.util.HubTeleportUtil;
 import com.miaokatze.gtsr.register.TextureManager;
 
+import cpw.mods.fml.common.network.ByteBufUtils;
 import gregtech.api.enums.Textures;
 import gregtech.api.interfaces.IIconContainer;
 import gregtech.api.interfaces.ITexture;
@@ -33,6 +34,7 @@ import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.util.GTModHandler;
 import gregtech.api.util.GTUtility;
+import io.netty.buffer.ByteBuf;
 
 /**
  * 奇点仓共同契约（S1 重写）：方向模式锁定的枢纽缓存仓（四个实现 = 蒸汽收/发 + 流体收/发）。
@@ -401,6 +403,31 @@ public interface MTESingularityCompartmentBase extends IHubCacheNode {
         }
     }
 
+    // ===== 客户端渲染同步（beta-3 stream：writeToStream/readFromStream 增量）=====
+
+    /**
+     * [GT-compat] beta 兼容层（beta1/beta2/beta3）：beta-3 起 description packet 改走
+     * writeToStream/readFromStream 流路径，本助手承担四仓 stream 增量（正面流体窗渲染状态）。
+     * 字段序与 {@link #writeCompartmentDescriptionData} 两键一致（bound、fluid），与旧 NBT
+     * 路径同样无条件写全（fluid 空串也写长度前缀，无省略哨兵），与读侧严格对称。
+     */
+    default void writeCompartmentToStream(ByteBuf buf) {
+        HubCompartmentState s = getHubState();
+        buf.writeBoolean(s.bound);
+        ByteBufUtils.writeUTF8String(buf, getStoredFluidName());
+    }
+
+    /**
+     * [GT-compat] beta 兼容层（beta1/beta2/beta3）：readFromStream 增量，客户端渲染副本落地。
+     * 与 {@link #readCompartmentDescriptionData} 对称读（bound bool → fluid UTF8 名），但
+     * 不调 issueTextureUpdate——beta-3 流路径的贴图刷新时机由基类统一负责，助手只落状态。
+     */
+    default void readCompartmentFromStream(ByteBuf buf) {
+        HubCompartmentState s = getHubState();
+        s.clientBound = buf.readBoolean();
+        s.clientFluidName = ByteBufUtils.readUTF8String(buf);
+    }
+
     // ===== 终端登记（源 MTEFilteredCacheNode#registerWithHub 整段迁移）=====
 
     /**
@@ -447,6 +474,8 @@ public interface MTESingularityCompartmentBase extends IHubCacheNode {
 
     /** 语义固定框架层（静态缓存，getTexture 仅客户端渲染路径调用，registerIcons 不必介入）。 */
     default ITexture getFixedFrameLayer() {
+        // [GT-compat] 兜底降级说明：TextureManager 静态初始化失败时 HUB_FRAME_RECEIVE/SEND 同为 VOID 常量对象，
+        // 本三元恒走 receive 分支——两分支同为透明纹理，渲染不可见，方向区分丢失属无感降级（详见 plan/beta-compat-audit.md B 节）。
         return getFrameIconContainer() == TextureManager.HUB_FRAME_RECEIVE
             ? TextureManager.getOrCreateTexture("gtsr.hub_frame_receive_layer", TextureManager.HUB_FRAME_RECEIVE)
             : TextureManager.getOrCreateTexture("gtsr.hub_frame_send_layer", TextureManager.HUB_FRAME_SEND);

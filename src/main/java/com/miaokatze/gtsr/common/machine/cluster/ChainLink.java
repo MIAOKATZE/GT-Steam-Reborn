@@ -2,6 +2,8 @@ package com.miaokatze.gtsr.common.machine.cluster;
 
 import java.util.Locale;
 
+import com.miaokatze.gtsr.api.compat.GTVersionCompat;
+
 import gregtech.api.recipe.RecipeMap;
 import gregtech.api.recipe.RecipeMaps;
 
@@ -176,25 +178,18 @@ public enum ChainLink {
     /**
      * 探测并返回 GT++ 的简易洗矿机配方图。
      * <p>
-     * 首次调用时反射读取 {@code gtPlusPlus.api.recipe.GTPPRecipeMaps} 的 static 字段
-     * {@code simpleWasherRecipes}，值为 {@code gregtech.api.recipe.RecipeMap} 实例则缓存；
-     * 任何 {@link Throwable}（类缺失、字段缺失、类型不符等）捕获后缓存 {@code null}（永久），不崩、不重试。
+     * [GT-compat] beta 兼容层（beta1/beta2/beta3）：正式版发布时移除本分支并切换至最新 API。
+     * GTPPRecipeMaps 类在 GT5U beta-3 中被删除（字段迁入 gregtech.api.recipe.RecipeMaps，字段名不变），
+     * 故委托 {@link GTVersionCompat#gppRecipeMap(String)} 反射双宿主按序探测（其内部已吞异常并缓存
+     * 双失败终态）；本方法保留 simpleWasherProbed 一次性探测语义，探测失败仍返回 null
+     * （SIMPLE_WASH 链透传，调用方已有 null 处理），不崩、不重试。
      *
      * @return GT++ 简易洗矿配方图；GT++ 不存在或字段不可用时为 {@code null}
      */
     private static RecipeMap<?> getSimpleWasherMap() {
         if (!simpleWasherProbed) {
             simpleWasherProbed = true;
-            try {
-                Class<?> gtppRecipeMaps = Class.forName("gtPlusPlus.api.recipe.GTPPRecipeMaps");
-                Object candidate = gtppRecipeMaps.getField("simpleWasherRecipes")
-                    .get(null);
-                if (candidate instanceof RecipeMap<?>) {
-                    simpleWasherMap = (RecipeMap<?>) candidate;
-                }
-            } catch (Throwable ignored) {
-                // GT++ 缺失或字段不可用：simpleWasherMap 保持 null（永久），不崩、不重试。
-            }
+            simpleWasherMap = GTVersionCompat.gppRecipeMap("simpleWasherRecipes");
         }
         return simpleWasherMap;
     }

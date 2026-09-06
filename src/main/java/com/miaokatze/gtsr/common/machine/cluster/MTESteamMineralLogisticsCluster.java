@@ -1537,7 +1537,8 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
                     gold(String.format("%d", ClusterParams.SEGMENT_DEPTH_EXT)),
                     gold(String.format("%d", ClusterTopology.MAX_SEGMENTS))))
             .addSeparator()
-            .beginStructureBlock(ClusterParams.SEGMENT_DEPTH_MAIN, 15, 29, false)
+            // [GT-compat] beta 兼容层（beta1/beta2/beta3）：beta-3 起始参数序为 (w,h,l)，实参已按 beta-3 语义排列
+            .beginStructureBlock(29, 15, ClusterParams.SEGMENT_DEPTH_MAIN, false)
             .addController(EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.cluster.ctrl"))
             .addStructureInfo(
                 EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.cluster.hatches"))

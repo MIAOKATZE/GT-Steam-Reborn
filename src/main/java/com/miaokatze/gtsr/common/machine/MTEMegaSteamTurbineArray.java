@@ -223,7 +223,7 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
 
         @Override
         public String getDisplayName() {
-            return GTUtility.translate(translationKey);
+            return StatCollector.translateToLocal(translationKey);
         }
 
         @Override
@@ -1474,7 +1474,10 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
             .addInfo(
                 EnumChatFormatting.AQUA
                     + StatCollector.translateToLocal("gtsr.tooltip.turbine_array.cycle_overlimit_chip_3"))
-            .beginVariableStructureBlock(5, 5, 13, 13, 9, 25, true)
+            // [GT-compat] beta 兼容层（beta1/beta2/beta3）：beta-3 起始参数序为 (w,h,l)，实参已按 beta-3 语义排列。
+            // 六参序 (wmin,wmax,hmin,hmax,lmin,lmax)=(13,13,9,25,13,13)：h 为堆叠可变维 [9,25]（BASE=9+4×4 层）；
+            // 截面 13×13（三件套 shape 13 行×13 字符，buildPiece 中心锚 6），旧参首位 5 为 beta-2 时代误值，本次一并修正。
+            .beginVariableStructureBlock(13, 13, 9, 25, 13, 13, true)
             .addController(StatCollector.translateToLocal("gtsr.tooltip.turbine_array.ctrl"))
             .addStructureInfo("")
             // beta-1 兼容：GTStructureChannels.STRUCTURE_HEIGHT 与 MultiblockTooltipBuilder.addSubChannel

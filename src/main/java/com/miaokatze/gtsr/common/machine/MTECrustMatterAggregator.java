@@ -1675,7 +1675,8 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
                     + " L/s ("
                     + StatCollector.translateToLocal(keyPrefix + "steam_cost_dense")
                     + ")")
-            .beginStructureBlock(26, 26, 8, false)
+            // [GT-compat] beta 兼容层（beta1/beta2/beta3）：beta-3 起始参数序为 (w,h,l)，实参已按 beta-3 语义排列
+            .beginStructureBlock(26, 8, 26, false)
             .addController(StatCollector.translateToLocal(keyPrefix + "ctrl"))
             .addOtherStructurePart(
                 StatCollector.translateToLocal("gtsr.tooltip.crust_matter_agg.steam_input_hatch"),
