@@ -9,6 +9,7 @@ import net.minecraft.item.ItemStack;
 import com.gtnewhorizon.structurelib.StructureLibAPI;
 import com.miaokatze.gtsr.Tags;
 import com.miaokatze.gtsr.common.commands.GTSRCommand;
+import com.miaokatze.gtsr.common.crossmod.ae2.GTSRAE2ExternalStorageHandler;
 import com.miaokatze.gtsr.common.crossmod.waila.GTSRWailaCompat;
 import com.miaokatze.gtsr.common.loot.LootInjectionRunawaySingularity;
 import com.miaokatze.gtsr.common.network.GTSRFXNet;
@@ -22,6 +23,7 @@ import com.miaokatze.gtsr.loader.ItemLoader;
 import com.miaokatze.gtsr.loader.MachineLoader;
 import com.miaokatze.gtsr.register.CreativeTabManager;
 
+import appeng.api.AEApi;
 import cpw.mods.fml.common.Loader;
 import cpw.mods.fml.common.event.FMLInitializationEvent;
 import cpw.mods.fml.common.event.FMLPostInitializationEvent;
@@ -168,6 +170,10 @@ public class CommonProxy {
         } catch (Throwable t) {
             GTSteamReborn.LOG.error("[3/3] GTSR 配方注册过程中发生错误", t);
         }
+        AEApi.instance()
+            .registries()
+            .externalStorage()
+            .addExternalStorageInterface(new GTSRAE2ExternalStorageHandler());
     }
 
     /**

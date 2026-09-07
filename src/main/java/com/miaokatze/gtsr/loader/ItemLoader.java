@@ -10,6 +10,7 @@ import com.miaokatze.gtsr.common.items.RareGasSeparationChip;
 import com.miaokatze.gtsr.common.items.ReinforcedHubSingularityChip;
 import com.miaokatze.gtsr.common.items.SteamEntangledSingularity;
 import com.miaokatze.gtsr.common.items.SteamTurbineCycleOverlimitChip;
+import com.miaokatze.gtsr.common.items.TCDSDenseSteamChip;
 import com.miaokatze.gtsr.common.items.VeinPyrolyzerChip;
 
 public class ItemLoader {
@@ -17,6 +18,7 @@ public class ItemLoader {
     public static void initItems() {
         registerPyrolyzerChips();
         registerGeothermalOverheatChip();
+        registerTcdsDenseSteamChip();
         registerHubSingularityChip();
         registerReinforcedHubSingularityChip();
         registerSteamTurbineCycleOverlimitChip();
@@ -41,6 +43,10 @@ public class ItemLoader {
     private static void registerGeothermalOverheatChip() {
         GTSRItemList.GeothermalOverheatChip
             .setAndRegister(new GeothermalOverheatChip("GeothermalOverheatChip"), "GeothermalOverheatChip", true);
+    }
+
+    private static void registerTcdsDenseSteamChip() {
+        GTSRItemList.TcdsBoostChip.setAndRegister(new TCDSDenseSteamChip("TcdsBoostChip"), "TcdsBoostChip", true);
     }
 
     private static void registerHubSingularityChip() {

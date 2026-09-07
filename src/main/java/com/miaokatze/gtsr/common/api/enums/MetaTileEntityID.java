@@ -89,6 +89,11 @@ public enum MetaTileEntityID {
     CLUSTER_BOOSTER_SECONDARY(362),
     CLUSTER_BOOSTER_STEAM_SAVER(363),
     CLUSTER_UNIT_LOGISTICS(364),
+    // 365 集群预留位保持不动
+
+    // --- 多方块机器: 热化学致密蒸汽发生系统 (366) ---
+    // 全新 ID，无旧存档机器。
+    TCDS_CONTROLLER(366),
 
     ;
 
@@ -101,6 +106,7 @@ public enum MetaTileEntityID {
      * 新段位规则（BASE = 14700）：
      * 单方块 0-49 / 枢纽 50-99 / 蒸汽基类 100-149 / 工作机器 150-199 / 临界 200-249 / 仓室 250-350。
      * 集群段 351-365：蒸汽动力矿物处理物流工程集群（总控 1 + 工作 7 + 增幅 5 + 物流 1，现用 351-364，365 预留）。
+     * 366：热化学致密蒸汽发生系统（TCDS）控制器，全新 ID 无旧存档机器。
      */
     MetaTileEntityID(int relative) {
         this.ID = BASE + Config.metaIdOffset + relative;

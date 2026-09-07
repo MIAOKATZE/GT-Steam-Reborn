@@ -1808,3 +1808,37 @@ betterquesting.quest.R1RTUgAAAAAAAAAAAAAAQg.desc=The wrap-up inventory: a full s
 gtsr.tooltip.cluster.unit.processing.tier_effect=By module structure tier: steam x%s; time /%s
 gtsr.tooltip.cluster.unit.logistics.segment_time=By module structure tier: logistics segment time %s
 gtsr.tooltip.cluster.unit.logistics.lubricant=By module structure tier: WIP lubricant %s
+
+# TCDS ThermoChemical Dense Steam Generator
+gt.blockmachines.gtsr.tcds.dense.steam.generator.name=ThermoChemical Dense Steam Generator
+item.TcdsBoostChip.name=Dense Steam Chip
+gtsr.tooltip.chip.tcds_dense_steam=Insert into the ThermoChemical Dense Steam Generator controller slot: switches output to Dense Steam (/1000) or Dense Superheated Steam (/2000)
+gtsr.tooltip.tcds.type=ThermoChemical Dense Steam Generator, TCDS
+gtsr.tooltip.tcds.desc=Drives vaporization directly with high-temperature combustion: single-fuel design that locks onto the highest heat-value fuel available,
+gtsr.tooltip.tcds.desc_2=converting all heat into steam equivalent, buffered internally and distributed to output hatches by tier.
+gtsr.tooltip.tcds.fuel_threshold=Fuel tier: gas >= 350 EU/L or liquid >= 450 EU/L switches to the superheated tier; below-threshold fuels still burn into normal steam and are never rejected
+gtsr.tooltip.tcds.heat=Heat: starts at 100%; surplus supply raises it to 200% (double output), cooling 1% per second while stopped
+gtsr.tooltip.tcds.air=Air: 100 L per liter of fuel; shortage scales output down and lowers the heat cap, zero air halts the machine
+gtsr.tooltip.tcds.water_warning=Warning: a distilled water shortage stops everything without consuming a drop; above 100% heat the machine will explode!
+gtsr.tooltip.tcds.buffer=Built-in 840,000,000 L equivalent buffer: production halts when full (output blockage), keep your outputs flowing
+gtsr.tooltip.tcds.chip_info=Dense Steam Chip: insert into the controller slot for dense variants (dense tier /1000, superheated tier /2000)
+gtsr.tooltip.tcds.chip_desc=The chip slot is the controller GUI slot; foreign items trigger a GUI warning
+gtsr.tooltip.tcds.ctrl=Front center of middle layer
+gtsr.tooltip.tcds.maintenance=Maintenance Hatch (at least 1, required)
+gtsr.tooltip.tcds.muffler=Muffler Hatch (at least 1, required)
+gtsr.tooltip.tcds.input_hatch=Input Hatch (fuel/air/distilled water, at least 1)
+gtsr.tooltip.tcds.output_hatch=Output Hatch (at least 1)
+gtsr.tooltip.tcds.casing=Clean Stainless Steel Machine Casing
+gtsr.tooltip.tcds.frame=Stainless Steel Frame
+gtsr.gui.tcds.heat=Heat: 
+gtsr.gui.tcds.output=Equivalent Output: 
+gtsr.gui.tcds.fuel=Fuel: 
+gtsr.gui.tcds.mode=Mode
+gtsr.gui.tcds.fuel_none=None
+gtsr.gui.tcds.fuel_gas=Gas family
+gtsr.gui.tcds.fuel_liquid=Liquid family
+gtsr.gui.tcds.steam= (Steam)
+gtsr.gui.tcds.superheated= (Superheated Steam)
+gtsr.gui.tcds.dense_steam= (Dense Steam)
+gtsr.gui.tcds.dense_superheated= (Dense Superheated Steam)
+gtsr.gui.tcds.chip_warn=Invalid item in controller slot: insert a Dense Steam Chip or leave empty

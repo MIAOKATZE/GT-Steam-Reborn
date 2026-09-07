@@ -69,6 +69,7 @@ import com.miaokatze.gtsr.common.machine.cluster.MTEUnitSifter;
 import com.miaokatze.gtsr.common.machine.cluster.MTEUnitSpeedBooster;
 import com.miaokatze.gtsr.common.machine.cluster.MTEUnitSteamSaverBooster;
 import com.miaokatze.gtsr.common.machine.cluster.MTEUnitThermalCentrifuge;
+import com.miaokatze.gtsr.common.machine.tcds.MTEThermoChemicalDenseSteamGenerator;
 import com.miaokatze.gtsr.register.CreativeTabManager;
 
 public class MachineLoader {
@@ -415,6 +416,13 @@ public class MachineLoader {
                 MetaTileEntityID.CLUSTER_UNIT_LOGISTICS.ID,
                 "gtsr.cluster.unit.logistics",
                 "Cluster Logistics Unit"));
+
+        // --- 多方块机器: 热化学致密蒸汽发生系统（全新 ID 366，无旧存档机器）---
+        GTSRItemList.TcdsController.set(
+            new MTEThermoChemicalDenseSteamGenerator(
+                MetaTileEntityID.TCDS_CONTROLLER.ID,
+                "gtsr.tcds.dense.steam.generator",
+                "ThermoChemical Dense Steam Generator"));
     }
 
     /**
@@ -501,5 +509,7 @@ public class MachineLoader {
         CreativeTabManager.addItemToTab(GTSRItemList.ClusterBoosterSecondary.get(1));
         CreativeTabManager.addItemToTab(GTSRItemList.ClusterBoosterSteamSaver.get(1));
         CreativeTabManager.addItemToTab(GTSRItemList.ClusterUnitLogistics.get(1));
+        // --- 热化学致密蒸汽发生系统（TCDS）控制器（366） ---
+        CreativeTabManager.addItemToTab(GTSRItemList.TcdsController.get(1));
     }
 }
