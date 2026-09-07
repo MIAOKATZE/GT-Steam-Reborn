@@ -701,6 +701,14 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
      * 重载首检窗口内只衰减豁免，不衰减/不清红标/不写边沿日志/不结算）→ 周期重连容错 →
      * 每 tick 热量推进（供给态 = 20t 结算锁存）→ 每 20t 结算编排（settleSteamEconomy）。
      */
+    /**
+     * 客户端候选位重建与喷粒依赖持续 tick；基类默认 false 会摘出客户端 tick 列表。
+     */
+    @Override
+    public boolean needsClientTick() {
+        return true;
+    }
+
     @Override
     public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
         super.onPostTick(aBaseMetaTileEntity, aTick);

@@ -567,6 +567,15 @@ public class MTEThermoChemicalDenseSteamGenerator extends MTEGTSRMultiBlockBase<
         return mFxOffsets;
     }
 
+    /**
+     * 客户端 onPostTick 粒子链（updateClientFxCandidates / TcdsParticleFxClient.spawnParticles）依赖持续客户端 tick。
+     * 基类默认 false 会 tryDisableTicking 摘出 tick 列表，致粒子链不执行；与 MTECharcoalPit 等 GT5U 先例同范式。
+     */
+    @Override
+    public boolean needsClientTick() {
+        return true;
+    }
+
     /** 客户端 'e' 候选登记/清理（工作态边沿各执行一次，集群 updateClientFxAirCandidates 同范式） */
     private void updateClientFxCandidates() {
         if (mWorkingForFX) {

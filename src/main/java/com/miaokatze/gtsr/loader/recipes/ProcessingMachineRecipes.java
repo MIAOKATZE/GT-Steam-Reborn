@@ -341,6 +341,29 @@ public final class ProcessingMachineRecipes {
             warn("Skipped RareGasSeparationChip recipe - output is null");
         }
 
+        // --- 致密蒸汽芯片 (GTUDK 配方导出 2026-09-07，编程电路不消耗，EUt 2048) ---
+        ItemStack chipOut = get(GTSRItemList.TcdsBoostChip, 1);
+        if (!hasNull(chipOut)) {
+            ItemStack[] chipInputs = filterNulls(
+                get(OrePrefixes.circuit, Materials.EV, 32),
+                new ItemStack(GameRegistry.findItem("gregtech", "gt.metaitem.01"), 16, 32643),
+                GTSRItemList.SteamEntangledSingularity.get(32),
+                new ItemStack(GameRegistry.findItem("gregtech", "gt.metaitem.01"), 32, 19028));
+            if (!hasNull(chipInputs)) {
+                GTValues.RA.stdBuilder()
+                    .itemInputs(chipInputs)
+                    .circuit(24)
+                    .itemOutputs(chipOut)
+                    .duration(2400)
+                    .eut(2048)
+                    .addTo(assemblerRecipes);
+            } else {
+                warn("Skipped TcdsBoostChip recipe - inputs contain null");
+            }
+        } else {
+            warn("Skipped TcdsBoostChip recipe - output is null");
+        }
+
         log("Chip recipes done.");
     }
 

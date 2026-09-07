@@ -178,6 +178,31 @@ public final class MultiblockMachineRecipes {
         } else {
             warn("Skipped DenseStateManipulator recipe - output is null");
         }
+
+        // --- 热化学致密蒸汽发生系统 (GTUDK 配方导出 2026-09-07，编程电路不消耗，EUt 512) ---
+        ItemStack tcdsOut = get(GTSRItemList.TcdsController, 1);
+        if (!hasNull(tcdsOut)) {
+            ItemStack[] tcdsInputs = filterNulls(
+                new ItemStack(GameRegistry.findItem("gregtech", "gt.blockcasings4"), 32, 1),
+                new ItemStack(GameRegistry.findItem("gregtech", "gt.blockframes"), 64, 306),
+                new ItemStack(GameRegistry.findItem("gregtech", "gt.blockmachines"), 64, 5144),
+                get(OrePrefixes.circuit, Materials.HV, 32),
+                new ItemStack(GameRegistry.findItem("gregtech", "gt.metaitem.01"), 32, 32622),
+                new ItemStack(GameRegistry.findItem("gregtech", "gt.metaitem.01"), 48, 32612));
+            if (!hasNull(tcdsInputs)) {
+                GTValues.RA.stdBuilder()
+                    .itemInputs(tcdsInputs)
+                    .circuit(24)
+                    .itemOutputs(tcdsOut)
+                    .duration(2400)
+                    .eut(512)
+                    .addTo(assemblerRecipes);
+            } else {
+                warn("Skipped TcdsController recipe - inputs contain null");
+            }
+        } else {
+            warn("Skipped TcdsController recipe - output is null");
+        }
     }
 
     /** 轮机与阵列段：巨型轮机阵列/动能处理阵列/地壳物质聚合器。 */
