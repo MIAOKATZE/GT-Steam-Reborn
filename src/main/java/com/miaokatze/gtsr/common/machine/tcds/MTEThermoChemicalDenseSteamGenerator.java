@@ -16,6 +16,7 @@ import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -79,12 +80,18 @@ import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
  * 350 EU/L，燃油族（dieselFuels ∪ denseLiquidFuels）过热阈值 450 EU/L；不过线仍照常燃烧产普通档蒸汽，
  * 不拒绝燃料。两族燃料并存且均命中静态类别映射（7 燃气类 × 7 燃油类，协同矩阵 v5）时进入协同燃烧：
  * 输出 ×协同系数/100，最大热量加共燃温度，每种燃料需求各 0.25 当量（合计恒等于单燃料 0.5 当量）</li>
- * <li>每 tick 顺序：基准需求 → fuelRatio（封顶 1）→ unconstrainedOutput/Fuel → airNeed = 燃料×100 →
- * airRatio（封顶 1，完全断气二元停机）→ 缺水二元停摆（heat>100% 爆炸）→ 全过后实扣 → 缓冲入账；
- * 协同分支实扣顺序：燃气 → 燃油 → 空气 → 蒸馏水</li>
- * <li>heatCap = min(200, 2×输出档位, 100×rawFuelRatio, 100×rawAirRatio)（未封顶比例；heat>heatCap 停机降温，
- * 供给富余可把热量推到 200% 使产出翻倍；螺丝刀 Shift+右键降档可压低上限）；热量初值 0%——新机 0% 起步，
- * 运行自热至 100%，供给富余可至 200%；旧档已写值保留，缺省回落 0%；热量每 20 tick 结算：运行 <100% +0.5、
+ * <li>保底消耗（v1.20.9）：单燃料 demand = (BASE ÷ hv) × 0.5 × (1 − saving)、协同每种 0.25 当量同式，
+ * saving = max(0, heat − 100) × 0.005（≤100% 恒 0，>100% 每超 1 个百分点节省 0.5%，等价每超 1 点 ×0.995）；
+ * 消耗不含 heat/100 项（不随热量增长，只有 >100% 节省折扣），也不乘任何供给比例</li>
+ * <li>二元足额判定（先全查后扣）：燃料与空气供给任一低于需求 → 本 tick NO_RECIPE（不产出、不扣任何流体，
+ * 机器停机降温，无线性降载）；足额时满额扣料：各 demand、空气 = Σdemand × 100、蒸馏水 = 产出 ÷ 160；
+ * 缺水二元停摆同前（heat>100% 爆炸）；实扣顺序：单燃料 燃料→空气→蒸馏水，协同 燃气→燃油→空气→蒸馏水</li>
+ * <li>heatCap = min(热量链上限, 100×min(rawFuelRatio 们), 100×rawAirRatio)：rawRatio = available/demand
+ * （不钳 1）；供给仅够 1× 时 cap=100（热量>100 自动停摆降温），供给富余按比例抬升至链上限；供给探测窗口 =
+ * max(1, capFactor) × demand（capFactor = capTarget/100，正共燃温度据此可突破 200% 至 250%）；热量链上限
+ * = maxHeatForTier(输出档位)（查表）+ 共燃温度（仅协同，钳 0，≤0 不燃烧；单燃料路径恒 >0）；输出档位九档
+ * {100,80,60,40,20,10,5,2,1}%，最大热量查表 {200,160,120,80,40,10,5,2,1}%；热量初值 0%——新机 0% 起步，
+ * 运行自热至 100%，供给富余可至链上限；旧档已写值保留，缺省回落 0%；热量每 20 tick 结算：运行 <100% +0.5、
  * 100%≤heat<heatCap +0.01、停机 −1（下限 0）</li>
  * <li>产出先进内部蒸汽当量缓冲（上限 840,000,000 L 当量，满则本 tick 停产不扣料），每 tick 按档位
  * 换算向全部输出仓分摊：非芯片 1:1（普通蒸汽/ic2superheatedsteam）；芯片致密蒸汽、
@@ -174,10 +181,14 @@ public class MTEThermoChemicalDenseSteamGenerator extends MTEGTSRMultiBlockBase<
     // ===== 数值模型常量（单一权威；plan 契约逐条对应）=====
     /** 基准产出：4,200,000 L/s = 210,000 L/t 蒸汽当量 @100% 热量 */
     private static final long BASE_OUTPUT_PER_TICK = 210_000L;
-    /** 热量上限（%）：供给富余（rawRatio≥2）时可升至 200%，产出翻倍 */
-    private static final double HEAT_MAX = 200.0d;
-    /** 热量初值（%）：新机 0% 起步，运行自热至 100%，供给富余可至 200%；旧档已写值保留，缺省回落 0% */
+    /** 热量初值（%）：新机 0% 起步，运行自热至 100%，供给富余可至热量链上限；旧档已写值保留，缺省回落 0% */
     private static final double HEAT_START = 0.0d;
+    /** 保底消耗节省率（v1.20.9）：>100% 热量每超 1 个百分点总消耗 ×0.995（即节省 0.5%）；≤100% 恒无折扣 */
+    private static final double HEAT_SAVING_PER_POINT = 0.005d;
+    /** 单燃料消耗当量（保底消耗公式系数） */
+    private static final double SINGLE_FUEL_QUOTA = 0.5d;
+    /** 协同各燃料消耗当量（两种合计恒等于单燃料 0.5 当量，守恒） */
+    private static final double SYNERGY_FUEL_QUOTA = 0.25d;
     /** 燃气族过热阈值（EU/L，mSpecialValue 热值）：达到 → 过热档 */
     private static final int GAS_SUPERHEAT_THRESHOLD = 350;
     /** 燃油族过热阈值（EU/L）：达到 → 过热档；不过线仍照常燃烧产普通档，不拒绝燃料 */
@@ -191,8 +202,16 @@ public class MTEThermoChemicalDenseSteamGenerator extends MTEGTSRMultiBlockBase<
     /** 致密系数：芯片普通档 ÷1000（致密蒸汽）、过热档 ÷1000（致密过热蒸汽） */
     private static final int DENSE_DIVISOR = 1_000;
     private static final int DENSE_SUPERHEATED_DIVISOR = 1_000;
-    /** 输出档位白名单（%）：螺丝刀 Shift+右键轮换，最大热量 = 2×档位 */
-    private static final int[] OUTPUT_TIERS = { 100, 80, 60, 40, 20 };
+    /**
+     * 输出档位白名单（%）：螺丝刀 Shift+右键按此顺序轮换；前五档最大热量 = 2×档位，后四档 = 档位本身
+     * （从 100% 基准分别降低 90/95/98/99）
+     */
+    private static final int[] OUTPUT_TIERS = { 100, 80, 60, 40, 20, 10, 5, 2, 1 };
+    /**
+     * 各档位最大热量（%）静态查表（与 OUTPUT_TIERS 同序，显式表非隐式公式）：v1.20.8 旧五档取值不变，
+     * 旧档 NBT 值仍合法；产出自然封顶 = BASE × maxHeat ÷ 100
+     */
+    private static final int[] MAX_HEAT_BY_TIER = { 200, 160, 120, 80, 40, 10, 5, 2, 1 };
     /** 输出档位缺省值（旧档无 mOutputTier / 非法值回落） */
     private static final int OUTPUT_TIER_DEFAULT = 100;
 
@@ -210,13 +229,21 @@ public class MTEThermoChemicalDenseSteamGenerator extends MTEGTSRMultiBlockBase<
     public int mCurrentOutputEquivalent = 0;
     /** 当前燃料族（GUI 显示）：0 无 / 1 燃气 / 2 燃油 / 3 油气协同 */
     public int mCurrentFuelKind = 0;
-    /** 当前燃料热值 EU/L（GUI 显示） */
-    public int mCurrentFuelValue = 0;
     /** 当前燃料具体流体名（GUI 显示态，服务端赋值客户端消费，不进 NBT） */
     public String mCurrentFuelFluidName = "";
+    /** 本 tick 单燃料消耗（L/t，GUI 显示态，服务端赋值客户端消费，不进 NBT；仅 kind=1/2 非零） */
+    public int mCurrentFuelConsumption = 0;
+    /** 协同模式本 tick 燃气消耗（L/t，GUI 显示态，不进 NBT；仅 kind=3 非零） */
+    public int mCurrentGasConsumption = 0;
+    /** 协同模式本 tick 燃油消耗（L/t，GUI 显示态，不进 NBT；仅 kind=3 非零） */
+    public int mCurrentLiquidConsumption = 0;
+    /** 本 tick 空气消耗（L/t，GUI 显示态，服务端赋值客户端消费，不进 NBT） */
+    public int mCurrentAirConsumption = 0;
+    /** 本 tick 蒸馏水消耗（L/t，GUI 显示态，服务端赋值客户端消费，不进 NBT） */
+    public int mCurrentWaterConsumption = 0;
     /**
-     * 螺丝刀可切的输出档位（%）：取值 ∈ {100, 80, 60, 40, 20}（NBT 持久化，白名单校验），
-     * 最大热量 = 2×档位（100 档 = 200% = HEAT_MAX，行为与旧版一致）
+     * 螺丝刀可切的输出档位（%）：取值 ∈ {100, 80, 60, 40, 20, 10, 5, 2, 1}（NBT 持久化，白名单校验，
+     * v1.20.8 旧五档值仍合法），最大热量 = maxHeatForTier(档位) 查表（100 档 = 200%，行为与旧版一致）
      */
     public int mOutputTier = OUTPUT_TIER_DEFAULT;
     /** 协同模式当前燃油具体流体名（GUI 显示态，服务端赋值客户端消费，不进 NBT） */
@@ -240,18 +267,98 @@ public class MTEThermoChemicalDenseSteamGenerator extends MTEGTSRMultiBlockBase<
         registerProgressEntries();
     }
 
-    // GTSR 进度词条：GUI 终端显示（热量%、当量产出速率 + 模式后缀）
+    // GTSR 进度词条：GUI 终端统一数值行（v1.20.9 重排，LSOA 配色纪律——标签 WHITE、产量类数值 GREEN、
+    // 消耗类 GOLD、状态提示 AQUA）；行序：热量 → 输出档位 → 蒸汽输出 → 燃料段（单燃料/协同互斥，
+    // 零值行自动隐藏）→ 空气消耗 → 蒸馏水消耗
     private void registerProgressEntries() {
-        // 热量词条零值仍显示（showZero）：新机 0% 起步时 GUI 也要能看到热量行
+        // 1 热量：当前% / 上限%（协同含共燃温度分解，如 "218% (200+18)"）；零值仍显示（新机 0% 起步）
         registerEntry(
-            GTSRProgressEntry.of("tcds_heat", "gtsr.gui.tcds.heat", "%.1f%%", EnumChatFormatting.GOLD, () -> mHeat)
+            GTSRProgressEntry
+                .ofCustom(
+                    "tcds_heat",
+                    "gtsr.gui.tcds.heat",
+                    EnumChatFormatting.GOLD,
+                    () -> mHeat,
+                    v -> String.format(Locale.ENGLISH, "%.1f%%", v) + " / " + heatCapDisplay())
                 .showZero());
+        // 2 输出档位：当前% 与最大热量%（查表值）
+        registerEntryCustom(
+            "tcds_tier",
+            "gtsr.gui.tcds.output_tier",
+            EnumChatFormatting.AQUA,
+            () -> mOutputTier,
+            v -> (int) v + "% / " + maxHeatForTier((int) v) + "%");
+        // 3 蒸汽输出：当量 L/t + 模式后缀（致密档注明 ÷1000）
         registerEntryCustom(
             "tcds_output",
             "gtsr.gui.tcds.output",
-            EnumChatFormatting.AQUA,
+            EnumChatFormatting.GREEN,
             () -> mCurrentOutputEquivalent,
-            v -> NumberFormatUtil.formatNumber((long) v) + " L/t " + EnumChatFormatting.WHITE + outputModeSuffix());
+            v -> NumberFormatUtil.formatNumber((long) v) + " L/t "
+                + EnumChatFormatting.WHITE
+                + outputModeSuffix()
+                + (hasDenseSteamChip() ? EnumChatFormatting.GREEN + " ÷1000" : ""));
+        // 4a 单燃料消耗（仅 kind=1/2 非零显示）：燃料名 · 消耗 L/t
+        registerEntryCustom(
+            "tcds_fuel",
+            "gtsr.gui.tcds.fuel",
+            EnumChatFormatting.GOLD,
+            () -> mCurrentFuelConsumption,
+            v -> localizedFluidName(mCurrentFuelFluidName) + " · " + NumberFormatUtil.formatNumber((long) v) + " L/t");
+        // 4b 协同燃气消耗（仅 kind=3 非零显示）
+        registerEntryCustom(
+            "tcds_fuel_gas",
+            "gtsr.gui.tcds.fuel_gas",
+            EnumChatFormatting.GOLD,
+            () -> mCurrentGasConsumption,
+            v -> localizedFluidName(mCurrentFuelFluidName) + " · " + NumberFormatUtil.formatNumber((long) v) + " L/t");
+        // 4c 协同燃油消耗（仅 kind=3 非零显示）
+        registerEntryCustom(
+            "tcds_fuel_liquid",
+            "gtsr.gui.tcds.fuel_liquid",
+            EnumChatFormatting.GOLD,
+            () -> mCurrentLiquidConsumption,
+            v -> localizedFluidName(mCurrentFuelLiquidName) + " · " + NumberFormatUtil.formatNumber((long) v) + " L/t");
+        // 4d 协同系数（仅 kind=3 非零显示，附共燃温度 ±）
+        registerEntryCustom(
+            "tcds_synergy",
+            "gtsr.gui.tcds.synergy",
+            EnumChatFormatting.AQUA,
+            () -> mCurrentSynergyPercent,
+            v -> (int) v + "%" + synergyTempSuffix());
+        // 5 空气消耗 L/t
+        registerEntryCustom(
+            "tcds_air",
+            "gtsr.gui.tcds.air",
+            EnumChatFormatting.GOLD,
+            () -> mCurrentAirConsumption,
+            v -> NumberFormatUtil.formatNumber((long) v) + " L/t");
+        // 6 蒸馏水消耗 L/t
+        registerEntryCustom(
+            "tcds_water",
+            "gtsr.gui.tcds.water",
+            EnumChatFormatting.GOLD,
+            () -> mCurrentWaterConsumption,
+            v -> NumberFormatUtil.formatNumber((long) v) + " L/t");
+    }
+
+    /**
+     * 热量上限显示（GUI 热量行右半）：档位查表上限 +（协同模式）共燃温度分解，
+     * 如 "218% (200+18)" / "150% (200-50)"；非协同或温度 0 时仅显示链上限。
+     */
+    public String heatCapDisplay() {
+        int tierCap = maxHeatForTier(mOutputTier);
+        int temp = mCurrentFuelKind == 3 ? mCurrentSynergyTemp : 0;
+        int cap = Math.max(0, tierCap + temp);
+        return temp != 0 ? cap + "% (" + tierCap + (temp > 0 ? "+" : "-") + Math.abs(temp) + ")" : cap + "%";
+    }
+
+    /** 协同系数行共燃温度后缀（仅 kind=3 且温度非 0）：WHITE " · 共燃温度: %+d%%" */
+    private String synergyTempSuffix() {
+        if (mCurrentFuelKind != 3 || mCurrentSynergyTemp == 0) return "";
+        return " " + EnumChatFormatting.WHITE
+            + "· "
+            + StatCollector.translateToLocalFormatted("gtsr.gui.tcds.synergy_temp", mCurrentSynergyTemp);
     }
 
     /** 产出模式后缀：普通蒸汽/过热蒸汽（非芯片）与致密蒸汽/致密过热蒸汽（芯片） */
@@ -374,8 +481,8 @@ public class MTEThermoChemicalDenseSteamGenerator extends MTEGTSRMultiBlockBase<
 
     /**
      * 协同系数矩阵 v5（%）：行=燃气 GH/GA/GO/GG/GT/GI/GX，列=燃油 OL/OD/OR/OO/OH/OT/OE。
-     * 协同输出 = 基准 × heat/100 × fuelRatio × airRatio × 系数/100；燃料需求与系数无关
-     * （两种各 0.25 当量，守恒）。热值一律运行时 findFuel(...).mSpecialValue 查询，矩阵不含热值。
+     * 协同输出 = 基准 × heat/100 × 系数/100（满额，v1.20.9 起不乘供给比例）；燃料需求与系数无关
+     * （两种各 0.25 当量 ×(1−节省)，守恒）。热值一律运行时 findFuel(...).mSpecialValue 查询，矩阵不含热值。
      */
     private static final int[][] SYNERGY_PERCENT = { { 132, 155, 217, 128, 166, 182, 245 }, // GH
         { 118, 150, 183, 112, 138, 105, 147 }, // GA
@@ -625,11 +732,15 @@ public class MTEThermoChemicalDenseSteamGenerator extends MTEGTSRMultiBlockBase<
     public CheckRecipeResult checkProcessing() {
         mCurrentOutputEquivalent = 0;
         mCurrentFuelKind = 0;
-        mCurrentFuelValue = 0;
         mCurrentFuelFluidName = "";
         mCurrentFuelLiquidName = "";
         mCurrentSynergyPercent = 0;
         mCurrentSynergyTemp = 0;
+        mCurrentFuelConsumption = 0;
+        mCurrentGasConsumption = 0;
+        mCurrentLiquidConsumption = 0;
+        mCurrentAirConsumption = 0;
+        mCurrentWaterConsumption = 0;
         if (!mMachine || !getBaseMetaTileEntity().isAllowedToWork()) {
             return CheckRecipeResultRegistry.NO_RECIPE;
         }
@@ -650,57 +761,68 @@ public class MTEThermoChemicalDenseSteamGenerator extends MTEGTSRMultiBlockBase<
         return processSingleFuel(scan.bestSingle);
     }
 
-    /** 单燃料生产路径（原 checkProcessing 主体原样保留）：燃气或燃油取可用热值最高者 */
+    /**
+     * 单燃料生产路径（v1.20.9 保底消耗 + 二元足额）：燃气或燃油取可用热值最高者。
+     * <ul>
+     * <li>保底需求 demand = (BASE ÷ hv) × 0.5 × (1 − saving)，saving = max(0, heat−100)×0.005——
+     * 不含 heat/100 项（消耗不随热量增长），不乘任何供给比例</li>
+     * <li>二元足额（先全查后扣）：燃料与空气任一不足 → 本 tick 不产出、不扣任何流体，停机降温（不降载）；
+     * 足额时满额扣料：round(demand)、round(airNeed)、水 = round(产出÷160)</li>
+     * <li>heatCap = min(链上限 maxHeatForTier(档位), 100×rawFuelRatio, 100×rawAirRatio)（rawRatio 不钳 1）：
+     * 供给仅够 1× 时 cap=100，热量>100 自动停摆降温；供给富余按比例抬升至链上限</li>
+     * </ul>
+     */
     private CheckRecipeResult processSingleFuel(FuelCandidate fuel) {
         mCurrentFuelKind = fuel.gasFamily ? 1 : 2;
-        mCurrentFuelValue = fuel.heatValue;
         mCurrentFuelFluidName = fuel.fluid.getName();
 
-        // 基准需求 = (210,000 ÷ 热值) × 热量系数；热量系数 ≤100% 恒 0.5，>100% 每超 1 个百分点总消耗 ×0.995
-        double heatCoefficient = mHeat <= 100.0d ? 0.5d : 0.5d * (1.0d - 0.005d * (mHeat - 100.0d));
-        double baseDemand = ((double) BASE_OUTPUT_PER_TICK / fuel.heatValue) * heatCoefficient;
-        // 探测上限取 2×基准需求（heatCap=200% 所需供给）：rawRatio 封顶 2，产出用比例封顶 1
-        long availableFuel = GTSRHatchFluidAccess
-            .probeFluidAmountAcross(mInputHatches, new FluidStack(fuel.fluid, (int) (2L * Math.ceil(baseDemand))));
-        double rawFuelRatio = baseDemand <= 0.0d ? 2.0d : (double) availableFuel / baseDemand;
-        double fuelRatio = Math.min(1.0d, rawFuelRatio);
+        // a. 保底需求与空气需求（v1.20.9：消耗不随热量增长，只有 >100% 节省折扣）
+        double demandFuel = ((double) BASE_OUTPUT_PER_TICK / fuel.heatValue) * SINGLE_FUEL_QUOTA
+            * consumptionSavingFactor();
+        double airNeed = demandFuel * AIR_PER_FUEL;
 
-        // a/b. 不受限产出与燃料量
-        double unconstrainedOutput = BASE_OUTPUT_PER_TICK * (mHeat / 100.0d) * fuelRatio;
-        double unconstrainedFuel = (unconstrainedOutput / fuel.heatValue) * heatCoefficient;
+        // 热量链上限 capTarget = maxHeatForTier(档位)（单燃料路径恒 >0）；探测倍率 capFactor = capTarget/100
+        double capTarget = maxHeatForTier(mOutputTier);
+        double capFactor = capTarget / 100.0d;
 
-        // c. 空气需求 = 燃料 × 100；可用空气 == 0 → 二元停机（不产出不扣料）
-        double airNeed = unconstrainedFuel * AIR_PER_FUEL;
-        long availableAir = 0;
+        // b. 燃料探测：rawRatio = available/demand（不钳 1，供热上限富余度判定；demand≤0 守卫分支保留）
+        double rawFuelRatio;
+        if (demandFuel <= 0.0d) {
+            rawFuelRatio = capFactor;
+        } else {
+            long availableFuel = GTSRHatchFluidAccess
+                .probeFluidAmountAcross(mInputHatches, new FluidStack(fuel.fluid, probeAmount(capFactor, demandFuel)));
+            rawFuelRatio = (double) availableFuel / demandFuel;
+        }
+
+        // c. 空气探测（同式；airNeed≤0 守卫分支保留）
         double rawAirRatio;
         if (airNeed <= 0.0d) {
-            rawAirRatio = 2.0d;
+            rawAirRatio = capFactor;
         } else {
-            int airProbe = (int) Math.min(Integer.MAX_VALUE, 2L * (long) Math.ceil(airNeed));
-            availableAir = GTSRHatchFluidAccess.probeFluidAmountAcross(mInputHatches, Materials.Air.getGas(airProbe));
-            if (availableAir <= 0) {
-                return CheckRecipeResultRegistry.NO_RECIPE;
-            }
+            long availableAir = GTSRHatchFluidAccess
+                .probeFluidAmountAcross(mInputHatches, Materials.Air.getGas(probeAmount(capFactor, airNeed)));
             rawAirRatio = (double) availableAir / airNeed;
         }
-        double airRatio = Math.min(1.0d, rawAirRatio);
 
-        // f. heatCap = min(200, 2×输出档位, 100×rawFuelRatio, 100×rawAirRatio)；heat > heatCap → 停机降温
-        // （档位 100 时 2×100=200=HEAT_MAX 行为不变；螺丝刀降档即降低热量上限）
-        double heatCap = Math
-            .min(HEAT_MAX, Math.min(2.0d * mOutputTier, Math.min(100.0d * rawFuelRatio, 100.0d * rawAirRatio)));
+        // d. 二元足额判定：任一不足 → 本 tick 不产出、不扣任何流体（停机降温，无线性降载）
+        if ((demandFuel > 0.0d && rawFuelRatio < 1.0d) || (airNeed > 0.0d && rawAirRatio < 1.0d)) {
+            return CheckRecipeResultRegistry.NO_RECIPE;
+        }
+
+        // e. heatCap = min(capTarget, 100×rawFuelRatio, 100×rawAirRatio)；heat > heatCap → 停机降温
+        double heatCap = Math.min(capTarget, Math.min(100.0d * rawFuelRatio, 100.0d * rawAirRatio));
         if (mHeat > heatCap) {
             return CheckRecipeResultRegistry.NO_RECIPE;
         }
 
-        // d. 实际值（airRatio 缩放；消耗量四舍五入为整数 L）
-        double actualOutput = unconstrainedOutput * airRatio;
-        double actualFuel = unconstrainedFuel * airRatio;
-        int fuelToConsume = (int) Math.round(actualFuel);
-        int airToConsume = (int) Math.round(airNeed * airRatio);
-        int waterToConsume = (int) Math.round(actualOutput / STEAM_PER_WATER);
+        // f. 满额产出与消耗（不乘任何比例；消耗量四舍五入为整数 L）
+        long outputRounded = Math.round(BASE_OUTPUT_PER_TICK * (mHeat / 100.0d));
+        int fuelToConsume = (int) Math.round(demandFuel);
+        int airToConsume = (int) Math.round(airNeed);
+        int waterToConsume = (int) Math.round((double) outputRounded / STEAM_PER_WATER);
 
-        // e. 缺水裁决（用户拍板）：蒸馏水不足 → 本 tick 完全不产出、不扣任何流体；
+        // g. 缺水裁决（先查后扣）：蒸馏水不足 → 本 tick 完全不产出、不扣任何流体；
         // heat > 100% → 爆炸（基类 explodeMultiblock，MTEMultiBlockBase:1515）；≤100% → 安全停摆
         FluidStack waterWant = GTModHandler.getDistilledWater(waterToConsume);
         if (waterToConsume > 0 && !GTSRHatchFluidAccess.hasEnoughAcross(mInputHatches, waterWant)) {
@@ -710,7 +832,7 @@ public class MTEThermoChemicalDenseSteamGenerator extends MTEGTSRMultiBlockBase<
             return CheckRecipeResultRegistry.NO_RECIPE;
         }
 
-        // 先全过后扣（平炉 MTESiemensMartinFurnace 两阶段范式）：燃料 / 空气 / 蒸馏水顺序实扣
+        // h. 先全过后扣（平炉 MTESiemensMartinFurnace 两阶段范式）：燃料 / 空气 / 蒸馏水顺序实扣
         if (fuelToConsume > 0) {
             GTSRHatchFluidAccess.depleteFluidAcross(mInputHatches, new FluidStack(fuel.fluid, fuelToConsume));
         }
@@ -721,11 +843,13 @@ public class MTEThermoChemicalDenseSteamGenerator extends MTEGTSRMultiBlockBase<
             GTSRHatchFluidAccess.depleteFluidAcross(mInputHatches, waterWant);
         }
 
-        // g. 缓冲入账 + 产出档位判定（热值达阈值 → 过热档；芯片在落仓时选择致密变体）
-        long outputRounded = Math.round(actualOutput);
+        // i. 缓冲入账 + 产出档位判定（热值达阈值 → 过热档；芯片在落仓时选择致密变体）+ GUI 消耗字段
         mCurrentOutputEquivalent = (int) Math.min(Integer.MAX_VALUE, outputRounded);
         mSteamEquivalentBuffer += outputRounded;
         mSuperheatedTier = fuel.heatValue >= (fuel.gasFamily ? GAS_SUPERHEAT_THRESHOLD : LIQUID_SUPERHEAT_THRESHOLD);
+        mCurrentFuelConsumption = fuelToConsume;
+        mCurrentAirConsumption = airToConsume;
+        mCurrentWaterConsumption = waterToConsume;
         mLastHeatCap = heatCap;
 
         // mMaxProgresstime = 1：基类 runMachine 每 tick 完成一次并立刻 checkRecipe 重启，实现连续逐 tick 生产
@@ -736,77 +860,93 @@ public class MTEThermoChemicalDenseSteamGenerator extends MTEGTSRMultiBlockBase<
     }
 
     /**
-     * 油气协同燃烧分支（v5 定稿）：
+     * 消耗节省因子（保底消耗公式，v1.20.9）：1 − max(0, heat − 100) × 0.005。
+     * 等价语义：热量 ≤100% 恒 1（无折扣），>100% 每超 1 个百分点总消耗 ×0.995；负节省忽略。
+     */
+    private double consumptionSavingFactor() {
+        return 1.0d - Math.max(0.0d, mHeat - 100.0d) * HEAT_SAVING_PER_POINT;
+    }
+
+    /**
+     * 供给探测窗口（L）：max(1, capFactor) × ceil(demand)。capFactor ≥1 时窗口扩至链上限所需供给倍率
+     * （富余度/热量上限抬升探测，正共燃温度可至 2.5×）；低档位 capFactor&lt;1 时至少探满 1×demand，
+     * 保证二元足额判定可满足（纯 capFactor 窗口会低于 demand，低档将永判不足）。
+     */
+    private static int probeAmount(double capFactor, double demand) {
+        return (int) Math.min(Integer.MAX_VALUE, (long) Math.ceil(Math.max(1.0d, capFactor) * Math.ceil(demand)));
+    }
+
+    /**
+     * 油气协同燃烧分支（v5 定稿 + v1.20.9 保底消耗/二元足额）：
      * <ul>
-     * <li>需求 demand_i = (基准 × heat/100 ÷ hv_i) × 0.25 × 过热惩罚（>100% 每超 1 点 ×0.995），
-     * 两种合计恒等于单燃料 0.5 当量</li>
-     * <li>输出 = 基准 × heat/100 × fuelRatio × airRatio × 协同系数/100</li>
-     * <li>heatCap = max(0, min(200, 2×输出档位) + 共燃温度)（=capTarget），再与 100×rawFuelRatio、100×rawAirRatio 取 min；
-     * 供给探测倍率取 capTarget/100，正共燃温度据此可突破 200% 直至温度扩展上限（+50 → 250%）</li>
-     * <li>实扣顺序：燃气 → 燃油 → 空气 → 蒸馏水；缺水爆炸/停摆裁决与单燃料路径一致</li>
+     * <li>保底需求 demand_i = (BASE ÷ hv_i) × 0.25 × (1 − saving)（各 0.25 当量，合计恒等于单燃料 0.5 当量；
+     * 不含 heat/100 项，不乘任何供给比例）</li>
+     * <li>输出 = 基准 × heat/100 × 协同系数/100（满额，无比例缩放）</li>
+     * <li>capTarget = max(0, maxHeatForTier(档位) + 共燃温度)（≤0 → 无法燃烧本 tick 停机）；heatCap = min(capTarget,
+     * 100×min(rawRatio 们))；探测倍率 capFactor = capTarget/100，正共燃温度据此可突破 200% 直至 250%</li>
+     * <li>二元足额（先全查后扣）：燃气、燃油、空气任一不足 → 不产出不扣料，停机降温；
+     * 实扣顺序：燃气 → 燃油 → 空气 → 蒸馏水；缺水爆炸/停摆裁决与单燃料路径一致</li>
      * </ul>
      */
     private CheckRecipeResult processSynergy(SynergyPair synergy) {
         FuelCandidate gas = synergy.gas;
         FuelCandidate liquid = synergy.liquid;
         mCurrentFuelKind = 3;
-        mCurrentFuelValue = gas.heatValue;
         mCurrentFuelFluidName = gas.fluid.getName();
         mCurrentFuelLiquidName = liquid.fluid.getName();
         mCurrentSynergyPercent = synergy.percent;
         mCurrentSynergyTemp = synergy.temp;
 
         // 目标热量上限 capTarget 与供给探测倍率 capFactor：正共燃温度突破 200% 的关键——
-        // 探测上限随 capTarget 扩展，使 100×rawRatio 供给比例项可放行至温度扩展后的上限（默认 2.0，+50 温度时 2.5）
-        double capTarget = Math.max(0.0d, Math.min(HEAT_MAX, 2.0d * mOutputTier) + synergy.temp);
+        // 探测窗口随 capTarget 扩展，使 100×rawRatio 供给比例项可放行至温度扩展后的上限（默认 2.0，+50 温度时 2.5）
+        double capTarget = Math.max(0.0d, maxHeatForTier(mOutputTier) + synergy.temp);
         if (capTarget <= 0.0d) {
-            // 档位与负共燃温度叠加钳 0：无法维持燃烧，本 tick 停机
+            // 档位与负共燃温度叠加钳 0（maxHeat=0 不工作）：无法维持燃烧，本 tick 停机
             return CheckRecipeResultRegistry.NO_RECIPE;
         }
         double capFactor = capTarget / 100.0d;
 
-        // 每种燃料需求（0.25 当量 × 2 种 = 0.5 当量，守恒）；过热惩罚与单燃料热量系数同式
-        double heatPenalty = mHeat > 100.0d ? (1.0d - 0.005d * (mHeat - 100.0d)) : 1.0d;
-        double demandGas = ((double) BASE_OUTPUT_PER_TICK * mHeat / 100.0d / gas.heatValue) * 0.25d * heatPenalty;
-        double demandLiquid = ((double) BASE_OUTPUT_PER_TICK * mHeat / 100.0d / liquid.heatValue) * 0.25d * heatPenalty;
+        // 保底需求（各 0.25 当量 ×(1−saving)，合计 = 单燃料 0.5 当量，守恒）；空气需求 = Σdemand × 100
+        double savingFactor = consumptionSavingFactor();
+        double demandGas = ((double) BASE_OUTPUT_PER_TICK / gas.heatValue) * SYNERGY_FUEL_QUOTA * savingFactor;
+        double demandLiquid = ((double) BASE_OUTPUT_PER_TICK / liquid.heatValue) * SYNERGY_FUEL_QUOTA * savingFactor;
+        double airNeed = (demandGas + demandLiquid) * AIR_PER_FUEL;
 
-        // fuelRatio = min(1, avail_G/need_G, avail_L/need_L)；探测上限 = capFactor×需求（probeFluidAmountAcross 范式），
-        // demand≤0 → ratio=capFactor（供给充裕语义，上限同 capTarget）
-        double rawFuelRatio;
-        if (demandGas <= 0.0d || demandLiquid <= 0.0d) {
-            rawFuelRatio = capFactor;
+        // 燃料探测：rawRatio_i = available_i/demand_i（不钳 1）；demand≤0 守卫分支保留（ratio=capFactor 语义）
+        double rawGasRatio;
+        double rawLiquidRatio;
+        if (demandGas <= 0.0d) {
+            rawGasRatio = capFactor;
         } else {
-            long availableGas = GTSRHatchFluidAccess.probeFluidAmountAcross(
-                mInputHatches,
-                new FluidStack(
-                    gas.fluid,
-                    (int) Math.min(Integer.MAX_VALUE, (long) Math.ceil(capFactor * Math.ceil(demandGas)))));
+            long availableGas = GTSRHatchFluidAccess
+                .probeFluidAmountAcross(mInputHatches, new FluidStack(gas.fluid, probeAmount(capFactor, demandGas)));
+            rawGasRatio = (double) availableGas / demandGas;
+        }
+        if (demandLiquid <= 0.0d) {
+            rawLiquidRatio = capFactor;
+        } else {
             long availableLiquid = GTSRHatchFluidAccess.probeFluidAmountAcross(
                 mInputHatches,
-                new FluidStack(
-                    liquid.fluid,
-                    (int) Math.min(Integer.MAX_VALUE, (long) Math.ceil(capFactor * Math.ceil(demandLiquid)))));
-            rawFuelRatio = Math.min((double) availableGas / demandGas, (double) availableLiquid / demandLiquid);
+                new FluidStack(liquid.fluid, probeAmount(capFactor, demandLiquid)));
+            rawLiquidRatio = (double) availableLiquid / demandLiquid;
         }
-        double fuelRatio = Math.min(1.0d, rawFuelRatio);
+        double rawFuelRatio = Math.min(rawGasRatio, rawLiquidRatio);
 
-        // 不受限实耗（含 fuelRatio 缩放）与空气需求；可用空气 == 0 → 二元停机（不产出不扣料）
-        double unconstrainedFuelGas = demandGas * fuelRatio;
-        double unconstrainedFuelLiquid = demandLiquid * fuelRatio;
-        double airNeed = (unconstrainedFuelGas + unconstrainedFuelLiquid) * AIR_PER_FUEL;
+        // 空气探测（同式；airNeed≤0 守卫分支保留）
         double rawAirRatio;
         if (airNeed <= 0.0d) {
             rawAirRatio = capFactor;
         } else {
-            int airProbe = (int) Math.min(Integer.MAX_VALUE, (long) Math.ceil(capFactor * Math.ceil(airNeed)));
             long availableAir = GTSRHatchFluidAccess
-                .probeFluidAmountAcross(mInputHatches, Materials.Air.getGas(airProbe));
-            if (availableAir <= 0) {
-                return CheckRecipeResultRegistry.NO_RECIPE;
-            }
+                .probeFluidAmountAcross(mInputHatches, Materials.Air.getGas(probeAmount(capFactor, airNeed)));
             rawAirRatio = (double) availableAir / airNeed;
         }
-        double airRatio = Math.min(1.0d, rawAirRatio);
+
+        // 二元足额判定（先全查后扣）：燃气、燃油、空气任一不足 → 本 tick 不产出、不扣任何流体（停机降温）
+        if ((demandGas > 0.0d && rawGasRatio < 1.0d) || (demandLiquid > 0.0d && rawLiquidRatio < 1.0d)
+            || (airNeed > 0.0d && rawAirRatio < 1.0d)) {
+            return CheckRecipeResultRegistry.NO_RECIPE;
+        }
 
         // heatCap = capTarget，再与供给比例取 min；heat > heatCap → 停机降温
         double heatCap = Math.min(capTarget, Math.min(100.0d * rawFuelRatio, 100.0d * rawAirRatio));
@@ -814,15 +954,12 @@ public class MTEThermoChemicalDenseSteamGenerator extends MTEGTSRMultiBlockBase<
             return CheckRecipeResultRegistry.NO_RECIPE;
         }
 
-        // 实际值（airRatio 缩放；消耗量四舍五入为整数 L）
-        double actualOutput = BASE_OUTPUT_PER_TICK * (mHeat / 100.0d)
-            * fuelRatio
-            * airRatio
-            * (synergy.percent / 100.0d);
-        int gasToConsume = (int) Math.round(unconstrainedFuelGas * airRatio);
-        int liquidToConsume = (int) Math.round(unconstrainedFuelLiquid * airRatio);
-        int airToConsume = (int) Math.round(airNeed * airRatio);
-        int waterToConsume = (int) Math.round(actualOutput / STEAM_PER_WATER);
+        // 满额产出与消耗（不乘任何比例；消耗量四舍五入为整数 L）
+        long outputRounded = Math.round(BASE_OUTPUT_PER_TICK * (mHeat / 100.0d) * (synergy.percent / 100.0d));
+        int gasToConsume = (int) Math.round(demandGas);
+        int liquidToConsume = (int) Math.round(demandLiquid);
+        int airToConsume = (int) Math.round(airNeed);
+        int waterToConsume = (int) Math.round((double) outputRounded / STEAM_PER_WATER);
 
         // 缺水裁决（同单燃料路径）：蒸馏水不足 → 本 tick 完全不产出、不扣任何流体；
         // heat > 100% → 爆炸；≤100% → 安全停摆
@@ -848,11 +985,14 @@ public class MTEThermoChemicalDenseSteamGenerator extends MTEGTSRMultiBlockBase<
             GTSRHatchFluidAccess.depleteFluidAcross(mInputHatches, waterWant);
         }
 
-        // 缓冲入账 + 过热致密档判定（协同推广：燃气热值 ≥350 且 燃油热值 ≥450 → 过热档，否则普通档）
-        long outputRounded = Math.round(actualOutput);
+        // 缓冲入账 + 过热致密档判定（协同推广：燃气热值 ≥350 且 燃油热值 ≥450 → 过热档，否则普通档）+ GUI 消耗字段
         mCurrentOutputEquivalent = (int) Math.min(Integer.MAX_VALUE, outputRounded);
         mSteamEquivalentBuffer += outputRounded;
         mSuperheatedTier = gas.heatValue >= GAS_SUPERHEAT_THRESHOLD && liquid.heatValue >= LIQUID_SUPERHEAT_THRESHOLD;
+        mCurrentGasConsumption = gasToConsume;
+        mCurrentLiquidConsumption = liquidToConsume;
+        mCurrentAirConsumption = airToConsume;
+        mCurrentWaterConsumption = waterToConsume;
         mLastHeatCap = heatCap;
 
         mMaxProgresstime = 1;
@@ -950,8 +1090,19 @@ public class MTEThermoChemicalDenseSteamGenerator extends MTEGTSRMultiBlockBase<
     }
 
     /**
-     * 螺丝刀右键：潜行轮换输出档位 100→80→60→40→20→100 并聊天栏播报；非潜行仅提示不切换
-     * （GT5U 分发层无 shift 门控，须自行判定）。降档后 mLastHeatCap 无需强制复位：
+     * 档位 → 最大热量（%）静态查表（MAX_HEAT_BY_TIER，显式表非隐式公式）：{100,80,60,40,20} → 2×档位、
+     * {10,5,2,1} → 档位本身；白名单外档位兜底回落 100 档（200%）。
+     */
+    public static int maxHeatForTier(int tier) {
+        for (int i = 0; i < OUTPUT_TIERS.length; i++) {
+            if (OUTPUT_TIERS[i] == tier) return MAX_HEAT_BY_TIER[i];
+        }
+        return MAX_HEAT_BY_TIER[0];
+    }
+
+    /**
+     * 螺丝刀右键：潜行轮换输出档位 100→80→60→40→20→10→5→2→1→100 并聊天栏播报（最大热量按查表值）；
+     * 非潜行仅提示不切换（GT5U 分发层无 shift 门控，须自行判定）。降档后 mLastHeatCap 无需强制复位：
      * heat > 新 cap 走 checkProcessing 既有停机降温分支，恢复产出的 tick 会按新档位
      * 重算 heatCap 并在 mLastHeatCap 处自然刷新（20t 热量结算消费该值）。
      */
@@ -972,7 +1123,7 @@ public class MTEThermoChemicalDenseSteamGenerator extends MTEGTSRMultiBlockBase<
         }
         // 白名单外异常值（正常被 NBT 加载守卫拦下）兜底回 100
         mOutputTier = index < 0 ? OUTPUT_TIER_DEFAULT : OUTPUT_TIERS[(index + 1) % OUTPUT_TIERS.length];
-        GTUtility.sendChatTrans(aPlayer, "gtsr.chat.tcds.output_tier", mOutputTier, 2 * mOutputTier);
+        GTUtility.sendChatTrans(aPlayer, "gtsr.chat.tcds.output_tier", mOutputTier, maxHeatForTier(mOutputTier));
         getBaseMetaTileEntity().markDirty();
     }
 
@@ -1132,7 +1283,9 @@ public class MTEThermoChemicalDenseSteamGenerator extends MTEGTSRMultiBlockBase<
         return info.toArray(new String[0]);
     }
 
-    // 遗留 GUI 文本路径（modular UI 终端行由 MTEThermoChemicalDenseSteamGeneratorGui 承载，LGB 双路径同范式）
+    // 遗留 GUI 文本路径（modular UI 终端行由 MTEThermoChemicalDenseSteamGeneratorGui 承载，LGB 双路径同范式）。
+    // v1.20.9：热量/燃料/产出显示行已由 GTSRProgressBar 词条替代（清显示层冗余），保留芯片告警行与
+    // FakeSyncer 同步通道（数值行同步态词条系统与 GUI registerSyncValues 各自承载，此处通道照旧补全）。
     @Deprecated
     @Override
     protected void drawTexts(DynamicPositionedColumn screenElements, SlotWidget inventorySlot) {
@@ -1146,57 +1299,26 @@ public class MTEThermoChemicalDenseSteamGenerator extends MTEGTSRMultiBlockBase<
                             : " ")
                     .setSynced(false)
                     .setDefaultColor(COLOR_TEXT_WHITE.get()))
-            .widget(
-                new TextWidget().setStringSupplier(
-                    () -> EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.gui.tcds.heat")
-                        + EnumChatFormatting.GOLD
-                        + String.format("%.1f%%", mHeat)
-                        + " "
-                        + EnumChatFormatting.RESET))
-            .widget(
-                new TextWidget().setStringSupplier(
-                    () -> EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.gui.tcds.fuel")
-                        + EnumChatFormatting.AQUA
-                        + fuelDisplayText()
-                        + EnumChatFormatting.RESET))
-            .widget(
-                new TextWidget().setStringSupplier(
-                    () -> EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.gui.tcds.output")
-                        + EnumChatFormatting.AQUA
-                        + NumberFormatUtil.formatNumber(mCurrentOutputEquivalent)
-                        + " L/t "
-                        + EnumChatFormatting.WHITE
-                        + outputModeSuffix()
-                        + EnumChatFormatting.RESET))
             .widget(new FakeSyncWidget.DoubleSyncer(() -> mHeat, val -> mHeat = val))
             .widget(
                 new FakeSyncWidget.IntegerSyncer(() -> mCurrentOutputEquivalent, val -> mCurrentOutputEquivalent = val))
             .widget(new FakeSyncWidget.IntegerSyncer(() -> mCurrentFuelKind, val -> mCurrentFuelKind = val))
-            .widget(new FakeSyncWidget.IntegerSyncer(() -> mCurrentFuelValue, val -> mCurrentFuelValue = val))
             .widget(new FakeSyncWidget.StringSyncer(() -> mCurrentFuelFluidName, val -> mCurrentFuelFluidName = val))
             .widget(new FakeSyncWidget.StringSyncer(() -> mCurrentFuelLiquidName, val -> mCurrentFuelLiquidName = val))
             .widget(new FakeSyncWidget.IntegerSyncer(() -> mCurrentSynergyPercent, val -> mCurrentSynergyPercent = val))
-            .widget(new FakeSyncWidget.IntegerSyncer(() -> mCurrentSynergyTemp, val -> mCurrentSynergyTemp = val));
-    }
-
-    /**
-     * 燃料状态文本：无燃料 / 具体燃料流体名·热值（EU/L）/ 协同模式（kind=3）双燃料名+协同系数（lang 模板拼装）。
-     * 名称来自 mCurrentFuelFluidName / mCurrentFuelLiquidName（GUI 同步态），客户端经 FluidRegistry 本地化；
-     * 注册表未命中时回退显示注册名字符串。
-     */
-    public String fuelDisplayText() {
-        if (mCurrentFuelKind <= 0 || mCurrentFuelValue <= 0) {
-            return StatCollector.translateToLocal("gtsr.gui.tcds.fuel_none");
-        }
-        String gasName = localizedFluidName(mCurrentFuelFluidName);
-        if (mCurrentFuelKind == 3) {
-            return StatCollector.translateToLocalFormatted(
-                "gtsr.gui.tcds.fuel_synergy",
-                gasName,
-                localizedFluidName(mCurrentFuelLiquidName),
-                mCurrentSynergyPercent);
-        }
-        return gasName + " · " + NumberFormatUtil.formatNumber(mCurrentFuelValue) + " EU/L";
+            .widget(new FakeSyncWidget.IntegerSyncer(() -> mCurrentSynergyTemp, val -> mCurrentSynergyTemp = val))
+            .widget(
+                new FakeSyncWidget.IntegerSyncer(() -> mCurrentFuelConsumption, val -> mCurrentFuelConsumption = val))
+            .widget(new FakeSyncWidget.IntegerSyncer(() -> mCurrentGasConsumption, val -> mCurrentGasConsumption = val))
+            .widget(
+                new FakeSyncWidget.IntegerSyncer(
+                    () -> mCurrentLiquidConsumption,
+                    val -> mCurrentLiquidConsumption = val))
+            .widget(new FakeSyncWidget.IntegerSyncer(() -> mCurrentAirConsumption, val -> mCurrentAirConsumption = val))
+            .widget(
+                new FakeSyncWidget.IntegerSyncer(
+                    () -> mCurrentWaterConsumption,
+                    val -> mCurrentWaterConsumption = val));
     }
 
     /** 流体注册名 → 本地化名；注册表未命中回退注册名字符串 */
@@ -1205,27 +1327,47 @@ public class MTEThermoChemicalDenseSteamGenerator extends MTEGTSRMultiBlockBase<
         return f != null ? f.getLocalizedName(new FluidStack(f, 0)) : fluidName;
     }
 
-    // ===== Tooltip（三段式：Info / Structure / Additional + 品牌尾缀）=====
+    // ===== Tooltip（仿 MTELargeSolarOverpressureArray.createTooltip 三段式：核心描述 / 关键参数 / 结构 + 品牌尾缀）=====
 
     @Override
     protected MultiblockTooltipBuilder createTooltip() {
         MultiblockTooltipBuilder tt = new MultiblockTooltipBuilder();
+        // 核心描述段：2 行 WHITE + 1 行 AQUA 强调（油气协同与共燃温度机制）
         tt.addMachineType(StatCollector.translateToLocal("gtsr.tooltip.tcds.type"))
             .addInfo(EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.tooltip.tcds.desc"))
-            .addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.tcds.desc_2"))
+            .addInfo(EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.tooltip.tcds.desc_2"))
+            .addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.tcds.desc_3"))
             .addSeparator()
-            // 数值段（Java 端配色拼接：BLUE 标签 + GOLD 数字 + GRAY 单位/后缀；数值硬编码，单位文案走 lang）
+            // 关键参数段（LSOA 配色纪律：BLUE/GOLD 标签 + GOLD 数值 + GRAY 单位 + GREEN 括注；数值硬编码，模板走 lang）
             .addInfo(
                 EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.tcds.output_base")
                     + EnumChatFormatting.GOLD
                     + "210,000"
                     + EnumChatFormatting.GRAY
                     + " "
-                    + StatCollector.translateToLocal("gtsr.tooltip.tcds.output_base_unit"))
+                    + StatCollector.translateToLocal("gtsr.tooltip.tcds.output_base_unit")
+                    + EnumChatFormatting.GREEN
+                    + " "
+                    + StatCollector.translateToLocal("gtsr.tooltip.tcds.output_base_note"))
             .addInfo(
                 EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.tcds.fuel_consumption")
-                    + EnumChatFormatting.GRAY
+                    + EnumChatFormatting.AQUA
                     + StatCollector.translateToLocal("gtsr.tooltip.tcds.fuel_consumption_unit"))
+            .addInfo(
+                EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.tcds.output_tiers")
+                    + EnumChatFormatting.GOLD
+                    + "100-80-60-40-20-10-5-2-1%"
+                    + EnumChatFormatting.GRAY
+                    + " "
+                    + StatCollector.translateToLocal("gtsr.tooltip.tcds.output_tiers_unit"))
+            .addInfo(
+                EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.tcds.air_water")
+                    + EnumChatFormatting.GOLD
+                    + "x100 / ÷160"
+                    + EnumChatFormatting.GRAY
+                    + " "
+                    + StatCollector.translateToLocal("gtsr.tooltip.tcds.air_water_unit"))
+            .addInfo(EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.tcds.water_warning"))
             .addInfo(
                 EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.tcds.fuel_threshold")
                     + EnumChatFormatting.GOLD
@@ -1237,29 +1379,14 @@ public class MTEThermoChemicalDenseSteamGenerator extends MTEGTSRMultiBlockBase<
                     + EnumChatFormatting.GRAY
                     + " EU/L")
             .addInfo(
-                EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.tcds.water_ratio")
-                    + EnumChatFormatting.GOLD
-                    + "160"
-                    + EnumChatFormatting.GRAY
-                    + " "
-                    + StatCollector.translateToLocal("gtsr.tooltip.tcds.water_ratio_unit"))
-            .addInfo(
-                EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.tcds.air")
-                    + EnumChatFormatting.GOLD
-                    + "100"
-                    + EnumChatFormatting.GRAY
-                    + " "
-                    + StatCollector.translateToLocal("gtsr.tooltip.tcds.air_unit"))
-            .addInfo(
                 EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.tcds.buffer")
                     + EnumChatFormatting.GOLD
                     + "840,000,000"
                     + EnumChatFormatting.GRAY
                     + " L")
             .addInfo(EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.tcds.heat"))
-            .addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.tcds.synergy"))
-            .addInfo(EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.tcds.water_warning"))
             .addSeparator()
+            .addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.tcds.synergy"))
             .addInfo(EnumChatFormatting.LIGHT_PURPLE + StatCollector.translateToLocal("gtsr.tooltip.tcds.chip_info"))
             .addSeparator()
             // [GT-compat] beta 兼容层（beta1/beta2/beta3）：beta-3 起始参数序为 (w,h,l)，实参按 beta-3 语义排列

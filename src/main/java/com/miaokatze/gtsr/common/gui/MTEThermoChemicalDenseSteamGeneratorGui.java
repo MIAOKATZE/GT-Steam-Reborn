@@ -17,9 +17,10 @@ import gregtech.api.metatileentity.implementations.MTEEnhancedMultiBlockBase;
 import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
 
 /**
- * TCDS GUI（LGB 同款 ModularUI 终端模式）：热量条/状态行走 GTSRProgressBar 词条系统，
- * 芯片槽为 GT5U 基类 GUI 自带控制器槽（mInventory[1]）。附加行：芯片槽告警、燃料名称与热值、
- * 普通/致密模式。
+ * TCDS GUI（LGB 同款 ModularUI 终端模式）：全部数值行统一走 GTSRProgressBar 词条系统
+ * （v1.20.9 重排：热量 → 输出档位 → 蒸汽输出 → 燃料段（单燃料/协同互斥）→ 空气 → 蒸馏水，
+ * 配色仿 LSOA 纪律：标签 WHITE、产量类 GREEN、消耗类 GOLD、状态提示 AQUA；协同专属行零值自动隐藏）。
+ * 芯片槽为 GT5U 基类 GUI 自带控制器槽（mInventory[1]）；本类保留芯片告警文本行与字段同步链。
  */
 public class MTEThermoChemicalDenseSteamGeneratorGui extends MTEMultiBlockBaseGui<MTEEnhancedMultiBlockBase<?>> {
 
@@ -28,13 +29,17 @@ public class MTEThermoChemicalDenseSteamGeneratorGui extends MTEMultiBlockBaseGu
     private DoubleSyncValue mHeatSync;
     private IntSyncValue mOutputSync;
     private IntSyncValue mFuelKindSync;
-    private IntSyncValue mFuelValueSync;
     private StringSyncValue mFuelNameSync;
     private IntSyncValue mSuperTierSync;
     private IntSyncValue mOutputTierSync;
     private StringSyncValue mFuelLiquidNameSync;
     private IntSyncValue mSynergyPercentSync;
     private IntSyncValue mSynergyTempSync;
+    private IntSyncValue mFuelConsumptionSync;
+    private IntSyncValue mGasConsumptionSync;
+    private IntSyncValue mLiquidConsumptionSync;
+    private IntSyncValue mAirConsumptionSync;
+    private IntSyncValue mWaterConsumptionSync;
 
     public MTEThermoChemicalDenseSteamGeneratorGui(MTEEnhancedMultiBlockBase<?> multiblock) {
         super(multiblock);
@@ -44,13 +49,12 @@ public class MTEThermoChemicalDenseSteamGeneratorGui extends MTEMultiBlockBaseGu
     @Override
     protected void registerSyncValues(PanelSyncManager syncManager) {
         super.registerSyncValues(syncManager);
-        // setter 回写客户端机器字段：模式/燃料行直接复用服务端同源显示口径（客户端槽位物品本地可读）
+        // setter 回写客户端机器字段：数值行/燃料行直接复用服务端同源显示口径（客户端槽位物品本地可读）
         mHeatSync = new DoubleSyncValue(() -> generator.mHeat, val -> generator.mHeat = val);
         mOutputSync = new IntSyncValue(
             () -> generator.mCurrentOutputEquivalent,
             val -> generator.mCurrentOutputEquivalent = val);
         mFuelKindSync = new IntSyncValue(() -> generator.mCurrentFuelKind, val -> generator.mCurrentFuelKind = val);
-        mFuelValueSync = new IntSyncValue(() -> generator.mCurrentFuelValue, val -> generator.mCurrentFuelValue = val);
         mFuelNameSync = new StringSyncValue(
             () -> generator.mCurrentFuelFluidName,
             val -> generator.mCurrentFuelFluidName = val);
@@ -67,16 +71,35 @@ public class MTEThermoChemicalDenseSteamGeneratorGui extends MTEMultiBlockBaseGu
         mSynergyTempSync = new IntSyncValue(
             () -> generator.mCurrentSynergyTemp,
             val -> generator.mCurrentSynergyTemp = val);
+        mFuelConsumptionSync = new IntSyncValue(
+            () -> generator.mCurrentFuelConsumption,
+            val -> generator.mCurrentFuelConsumption = val);
+        mGasConsumptionSync = new IntSyncValue(
+            () -> generator.mCurrentGasConsumption,
+            val -> generator.mCurrentGasConsumption = val);
+        mLiquidConsumptionSync = new IntSyncValue(
+            () -> generator.mCurrentLiquidConsumption,
+            val -> generator.mCurrentLiquidConsumption = val);
+        mAirConsumptionSync = new IntSyncValue(
+            () -> generator.mCurrentAirConsumption,
+            val -> generator.mCurrentAirConsumption = val);
+        mWaterConsumptionSync = new IntSyncValue(
+            () -> generator.mCurrentWaterConsumption,
+            val -> generator.mCurrentWaterConsumption = val);
         syncManager.syncValue("tcdsHeat", mHeatSync);
         syncManager.syncValue("tcdsOutput", mOutputSync);
         syncManager.syncValue("tcdsFuelKind", mFuelKindSync);
-        syncManager.syncValue("tcdsFuelValue", mFuelValueSync);
         syncManager.syncValue("tcdsFuelName", mFuelNameSync);
         syncManager.syncValue("tcdsSuperTier", mSuperTierSync);
         syncManager.syncValue("tcdsOutputTier", mOutputTierSync);
         syncManager.syncValue("tcdsFuelLiquidName", mFuelLiquidNameSync);
         syncManager.syncValue("tcdsSynergyPercent", mSynergyPercentSync);
         syncManager.syncValue("tcdsSynergyTemp", mSynergyTempSync);
+        syncManager.syncValue("tcdsFuelConsumption", mFuelConsumptionSync);
+        syncManager.syncValue("tcdsGasConsumption", mGasConsumptionSync);
+        syncManager.syncValue("tcdsLiquidConsumption", mLiquidConsumptionSync);
+        syncManager.syncValue("tcdsAirConsumption", mAirConsumptionSync);
+        syncManager.syncValue("tcdsWaterConsumption", mWaterConsumptionSync);
     }
 
     @Override
@@ -90,48 +113,8 @@ public class MTEThermoChemicalDenseSteamGeneratorGui extends MTEMultiBlockBaseGu
             .asWidget()
             .marginBottom(2)
             .fullWidth());
-        // 燃料行：无燃料 / 具体燃料流体名·热值
-        list.child(
-            IKey.dynamic(
-                () -> EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.gui.tcds.fuel")
-                    + EnumChatFormatting.AQUA
-                    + generator.fuelDisplayText()
-                    + EnumChatFormatting.RESET)
-                .asWidget()
-                .marginBottom(2)
-                .fullWidth());
-        // 输出档位行：螺丝刀 Shift+右键轮换 {100,80,60,40,20}，最大热量 = 2×档位
-        list.child(
-            IKey.dynamic(
-                () -> EnumChatFormatting.WHITE
-                    + StatCollector.translateToLocalFormatted("gtsr.gui.tcds.output_tier", generator.mOutputTier)
-                    + EnumChatFormatting.RESET)
-                .asWidget()
-                .marginBottom(2)
-                .fullWidth());
-        // 共燃温度行：仅协同模式（kind=3）显示
-        list.child(
-            IKey.dynamic(
-                () -> generator.mCurrentFuelKind == 3
-                    ? EnumChatFormatting.WHITE
-                        + StatCollector
-                            .translateToLocalFormatted("gtsr.gui.tcds.synergy_temp", generator.mCurrentSynergyTemp)
-                        + EnumChatFormatting.RESET
-                    : " ")
-                .asWidget()
-                .marginBottom(2)
-                .fullWidth());
-        // 模式行：普通/致密 × 蒸汽/过热蒸汽（芯片判定读客户端同步槽位）
-        list.child(
-            IKey.dynamic(
-                () -> EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.gui.tcds.mode")
-                    + EnumChatFormatting.LIGHT_PURPLE
-                    + generator.outputModeSuffix()
-                    + EnumChatFormatting.RESET)
-                .asWidget()
-                .marginBottom(2)
-                .fullWidth());
-        // 热量% / 当量产出速率（GTSRProgressBar 词条系统）
+        // 数值行统一走词条系统：热量 / 输出档位 / 蒸汽输出 / 燃料段（单燃料·燃气·燃油·协同系数，
+        // 零值行自动隐藏实现模式互斥）/ 空气消耗 / 蒸馏水消耗（行序与配色见机器端 registerProgressEntries）
         GTSRProgressBarGuiHelper.appendEntryRows(list, syncManager, generator);
         return list;
     }

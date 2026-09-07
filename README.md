@@ -9,9 +9,9 @@
   <a href="https://github.com/MIAOKATZE/GT-Steam-Reborn/releases"><img alt="Release 1.11.34" src="https://img.shields.io/badge/Release-1.11.34-green.svg"></a>
 </p>
 
-A GregTech New Horizons expansion mod that **supplements the Steam Age and significantly expands steam usage**, providing 23 multiblock steam machines, 8 single-block nodes, 15 types of hatches plus 4 singularity compartments and 3 hub storage units, and a Hub-Node binding system. It fills the gameplay gap between the steam age and the electric age in GTNH, making steam a viable and deep progression path rather than a transient phase.
+A GregTech New Horizons expansion mod that **supplements the Steam Age and significantly expands steam usage**, providing 24 multiblock steam machines, 8 single-block nodes, 15 types of hatches plus 4 singularity compartments and 3 hub storage units, and a Hub-Node binding system. It fills the gameplay gap between the steam age and the electric age in GTNH, making steam a viable and deep progression path rather than a transient phase.
 
-一个 GregTech New Horizons 扩展模组，**补充蒸汽时代并显著拓展蒸汽用途**，提供23台多方块蒸汽机器、8个单方块节点、15类仓室与4个奇点仓、3种存储单元以及枢纽-节点绑定系统。它填补了 GTNH 蒸汽阶段到电力阶段之间的玩法空白，让蒸汽成为一条可行且有深度的进阶路线，而非过渡阶段。
+一个 GregTech New Horizons 扩展模组，**补充蒸汽时代并显著拓展蒸汽用途**，提供24台多方块蒸汽机器、8个单方块节点、15类仓室与4个奇点仓、3种存储单元以及枢纽-节点绑定系统。它填补了 GTNH 蒸汽阶段到电力阶段之间的玩法空白，让蒸汽成为一条可行且有深度的进阶路线，而非过渡阶段。
 
 > [!NOTE]
 > This is an unofficial mod. Please avoid discussing this mod in official GTNH forums.
@@ -299,7 +299,7 @@ A steam-driven multiblock ore-processing cluster: logistics modules orchestrate 
 | 真实状态词条 Real GUI Entries | 总控与模块 GUI 使用真实状态词条，不显示恒定 NO_RECIPE 结果词条与配方信息区Controller and module GUIs show real status entries — no constant NO_RECIPE result entry and no recipe info area |
 | CRUSH 副产物削弱 Byproduct Nerf | 粉碎链副产物按集群结构档位三档削弱：tier0 ×0.1、tier1（钢级）×0.5、tier≥2 ×1.0 无削弱；终端链路页橙字常显当前削弱比例，tier≥2 以灰字显示「无削弱」Crusher byproducts are nerfed in three tiers by cluster structure tier: tier 0 ×0.1, tier 1 (steel) ×0.5, tier ≥2 ×1.0 with no nerf; the terminal chain page always shows the current multiplier in orange, with a gray "no nerf" label at tier ≥2 |
 
-### Enhanced Processing Machines / 强化加工机器 (9)
+### Enhanced Processing Machines / 强化加工机器 (10)
 
 All inherit from `MTEEnhancedMultiBlockBase` (GT5U), with more advanced mechanics.
 
@@ -471,6 +471,30 @@ Single-tier, no steam required; runs GT5U primitive blast furnace recipes. Highe
 | 功能 Feature | 说明 Description |
 |---|---|
 | 结构 Structure | 钢加固砖结构，无需维护/空气/耐压蒸汽 Steel-reinforced brick; no maintenance/air/pressure steam required |
+
+**热化学致密蒸汽发生系统 / Thermochemical Dense Steam Generator (TCDS)**
+
+吞下一切可燃流体的蒸汽巨兽：燃气与燃油皆可为食；双族并存时触发**油气协同燃烧**与**共燃温度**机制，追求极限热量与致密蒸汽输出。具体协同/温度参数表见项目 wiki 页 *Dense-Steam-Generator*。
+A steam powerhouse that devours any combustible fluid — fuel gases and fuel oils alike; when both families coexist, the **gas-oil synergy combustion** and **co-firing temperature** mechanics engage in pursuit of extreme heat and dense steam output. Full synergy / temperature tables on the wiki page *Dense-Steam-Generator*.
+
+| 参数 Parameter | 数值 Value |
+|----------|-------|
+| 标准蒸汽输出 Base Output | 210,000 L/t @100% 热量（200% 时 420,000）210,000 L/t at 100% heat (420,000 at 200%) |
+| 热量 Heat | 0% 起步，上限 200%（协同共燃温度下最高 250%）；供给不足即停机降温，上限钳 0 不工作 starts at 0%, caps at 200% (up to 250% with synergy co-firing temperature); any supply shortage stops & cools, a cap clamped to 0 won't burn |
+| 燃料消耗 Fuel Consumption | 保底消耗 =（标准蒸汽输出÷热值）×50%，>100% 热量每超 1% 节省 0.5% guaranteed rate = (base ÷ heat value) × 50%, saving 0.5% per 1% heat above 100% |
+| 空气消耗 Air | 燃料 ×100 L（供给不足即停机，不降载）Fuel × 100 L (any shortage stops the machine, no derating) |
+| 水耗 Water | 蒸汽 ÷160；热量 >100% 时缺水会爆炸 Steam ÷ 160; explodes on water shortage above 100% heat |
+
+**额外功能 / Additional Features**
+
+| 功能 Feature | 说明 Description |
+|---|---|
+| 输出档位 Output Tier | Shift+螺丝刀右键轮换 100→80→60→40→20→10→5→2→1%，最大热量 200/160/120/80/40/10/5/2/1%（10/5/2/1 档热量上限即 10/5/2/1%）Shift+screwdriver cycles 100→80→60→40→20→10→5→2→1%, max heat 200/160/120/80/40/10/5/2/1% (the 10/5/2/1 tiers cap heat at 10/5/2/1%) |
+| 油气协同 Gas-Oil Synergy | 燃气族与燃油族并存时自动择优配对，两种燃料各按 25% 消耗当量燃烧，蒸汽输出乘协同系数（20%\~385%）Auto-picks the best pairing when both families coexist; each fuel burns at a 25% consumption quota, steam output multiplied by the synergy coefficient (20%\~385%) |
+| 共燃温度 Co-Firing Temperature | 每个协同组合将最大热量上限改变 −50\~+50（正温度可突破 200% 至最高 250% 热量）Each synergy pair shifts the max heat cap by −50 to +50 (positive temperatures break past 200%, up to 250% heat) |
+| 致密档 Dense Tier | 致密蒸汽芯片（组装机配方）切换致密输出；过热致密档需燃气热值 ≥350 且燃油 ≥450 Dense Steam Chip (assembler recipe) for dense output; superheated dense tier needs gas heat value ≥350 and oil ≥450 |
+
+> 📷 图片待配：TCDS 多方块结构、GUI（热量/燃料/协同显示）与档位切换截图 / TCDS multiblock structure, GUI (heat / fuel / synergy display) and tier switching screenshots
 
 ***
 
