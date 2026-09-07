@@ -31,6 +31,10 @@ public class MTEThermoChemicalDenseSteamGeneratorGui extends MTEMultiBlockBaseGu
     private IntSyncValue mFuelValueSync;
     private StringSyncValue mFuelNameSync;
     private IntSyncValue mSuperTierSync;
+    private IntSyncValue mOutputTierSync;
+    private StringSyncValue mFuelLiquidNameSync;
+    private IntSyncValue mSynergyPercentSync;
+    private IntSyncValue mSynergyTempSync;
 
     public MTEThermoChemicalDenseSteamGeneratorGui(MTEEnhancedMultiBlockBase<?> multiblock) {
         super(multiblock);
@@ -53,12 +57,26 @@ public class MTEThermoChemicalDenseSteamGeneratorGui extends MTEMultiBlockBaseGu
         mSuperTierSync = new IntSyncValue(
             () -> generator.mSuperheatedTier ? 1 : 0,
             val -> generator.mSuperheatedTier = val != 0);
+        mOutputTierSync = new IntSyncValue(() -> generator.mOutputTier, val -> generator.mOutputTier = val);
+        mFuelLiquidNameSync = new StringSyncValue(
+            () -> generator.mCurrentFuelLiquidName,
+            val -> generator.mCurrentFuelLiquidName = val);
+        mSynergyPercentSync = new IntSyncValue(
+            () -> generator.mCurrentSynergyPercent,
+            val -> generator.mCurrentSynergyPercent = val);
+        mSynergyTempSync = new IntSyncValue(
+            () -> generator.mCurrentSynergyTemp,
+            val -> generator.mCurrentSynergyTemp = val);
         syncManager.syncValue("tcdsHeat", mHeatSync);
         syncManager.syncValue("tcdsOutput", mOutputSync);
         syncManager.syncValue("tcdsFuelKind", mFuelKindSync);
         syncManager.syncValue("tcdsFuelValue", mFuelValueSync);
         syncManager.syncValue("tcdsFuelName", mFuelNameSync);
         syncManager.syncValue("tcdsSuperTier", mSuperTierSync);
+        syncManager.syncValue("tcdsOutputTier", mOutputTierSync);
+        syncManager.syncValue("tcdsFuelLiquidName", mFuelLiquidNameSync);
+        syncManager.syncValue("tcdsSynergyPercent", mSynergyPercentSync);
+        syncManager.syncValue("tcdsSynergyTemp", mSynergyTempSync);
     }
 
     @Override
@@ -79,6 +97,27 @@ public class MTEThermoChemicalDenseSteamGeneratorGui extends MTEMultiBlockBaseGu
                     + EnumChatFormatting.AQUA
                     + generator.fuelDisplayText()
                     + EnumChatFormatting.RESET)
+                .asWidget()
+                .marginBottom(2)
+                .fullWidth());
+        // 输出档位行：螺丝刀 Shift+右键轮换 {100,80,60,40,20}，最大热量 = 2×档位
+        list.child(
+            IKey.dynamic(
+                () -> EnumChatFormatting.WHITE
+                    + StatCollector.translateToLocalFormatted("gtsr.gui.tcds.output_tier", generator.mOutputTier)
+                    + EnumChatFormatting.RESET)
+                .asWidget()
+                .marginBottom(2)
+                .fullWidth());
+        // 共燃温度行：仅协同模式（kind=3）显示
+        list.child(
+            IKey.dynamic(
+                () -> generator.mCurrentFuelKind == 3
+                    ? EnumChatFormatting.WHITE
+                        + StatCollector
+                            .translateToLocalFormatted("gtsr.gui.tcds.synergy_temp", generator.mCurrentSynergyTemp)
+                        + EnumChatFormatting.RESET
+                    : " ")
                 .asWidget()
                 .marginBottom(2)
                 .fullWidth());
