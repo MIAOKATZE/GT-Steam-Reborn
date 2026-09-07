@@ -1646,6 +1646,7 @@ gtsr.tooltip.cluster.unit.parallel.value=Parallel bonus: +%s by tier
 gtsr.tooltip.cluster.unit.speed.desc=Speed booster: speeds up recipes; stacks across modules; more same-kind modules raise fluid cost and steam penalty (10% synergy each)
 gtsr.tooltip.cluster.unit.speed.value=Speed bonus: +%s by tier
 gtsr.tooltip.cluster.preview_tier=Structure preview casing tier: choose trigger count 1-4 or the "tier" channel
+gtsr.tooltip.cluster.channel_length=Total segments: hologram "length" channel 1-%s, fallback to held quantity
 gtsr.structurelib.channel.tier.desc=Cluster casing tier (choose 1-4)
 gtsr.tooltip.cluster.unit.speed.link_apply=Applies to other boosters: +%s fluid cost per tier
 gtsr.tooltip.cluster.unit.parallel.link_apply=Applies to other boosters: +%s fluid cost per tier

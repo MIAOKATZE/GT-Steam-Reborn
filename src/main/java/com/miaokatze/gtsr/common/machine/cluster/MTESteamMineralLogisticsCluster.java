@@ -50,6 +50,7 @@ import gregtech.api.render.TextureFactory;
 import gregtech.api.structure.error.StructureError;
 import gregtech.api.structure.error.StructureErrorRegistry;
 import gregtech.api.util.MultiblockTooltipBuilder;
+import gregtech.common.misc.GTStructureChannels;
 import io.netty.buffer.Unpooled;
 
 /**
@@ -231,7 +232,7 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
         return STRUCTURE_DEFINITION;
     }
 
-    /** {@inheritDoc} 主段 + 延伸段全息投影：stackSize.stackSize 语义 = 目标总段数（含主段，最小 1）。 */
+    /** {@inheritDoc} 主段 + 延伸段全息投影：length 信道/手持数量回退 = 目标总段数（含主段，最小 1）。 */
     @Override
     public void construct(ItemStack stackSize, boolean hintsOnly) {
         int tier = Math.max(1, Math.min(4, ChannelDataAccessor.getChannelData(stackSize, "tier")));
@@ -255,7 +256,7 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
         }
     }
 
-    /** {@inheritDoc} 主段优先，预算耗尽即止；延伸段按 stackSize 段数依次追加。 */
+    /** {@inheritDoc} 主段优先，预算耗尽即止；延伸段按 length 信道/手持数量回退 = 目标总段数（含主段，最小 1）依次追加。 */
     @Override
     public int survivalConstruct(ItemStack stackSize, int elementBudget, ISurvivalBuildEnvironment env) {
         if (mMachine) return -1;
@@ -289,10 +290,14 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
         return 0;
     }
 
-    /** stackSize 段数语义：总段数（含主段）→ 延伸段数 = 总段数-1，钳到 {@link ClusterTopology} 上限。 */
+    /**
+     * GT5U length 信道（未设时 {@code getChannelData} 回退手持数量）= 目标总段数（含主段），
+     * 延伸段数 = 总段数-1；{@code getValueClamped(stackSize,1,20)} 对数量语义与旧实现
+     * {@code Math.min(stackSize-1, 19)} 逐位等价。
+     */
     private static int extensionSegments(ItemStack stackSize) {
         if (stackSize == null || stackSize.stackSize < 1) return 0;
-        return Math.min(stackSize.stackSize - 1, ClusterTopology.MAX_EXTENSION_SEGMENTS);
+        return GTStructureChannels.STRUCTURE_LENGTH.getValueClamped(stackSize, 1, ClusterTopology.MAX_SEGMENTS) - 1;
     }
 
     /**
@@ -1499,8 +1504,8 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
     /**
      * 全量结构 tooltip（v1.11.15 重排，键迁 gtsr.tooltip.cluster.*，wiki 键序
      * type→desc→数值→ctrl→仓室→计数→hint→品牌）：主控约 ≤25 行——类型/描述 → 蒸汽经济
-     * （固定蒸汽 × 档位乘率、润滑、tier 蒸汽倍率、蒸汽种类门控）→ 预热 → 物流挂点 → 结构分段 → 结构块
-     * （20×15×29）→ 控制器 → 仓室两行 → 终端 hint（裸键）→ 品牌行。数值全部由
+     * （固定蒸汽 × 档位乘率、润滑、tier 蒸汽倍率、蒸汽种类门控）→ 预热 → 物流挂点 → 结构分段 →
+     * length 信道上限 → 结构块（20×15×29）→ 控制器 → 仓室两行 → 终端 hint（裸键）→ 品牌行。数值全部由
      * {@code String.format} 自 {@link ClusterParams}/{@link ClusterTopology} 常量注入，
      * lang 只放纯文本标签（无 §/数值/单位）。
      */
@@ -1535,6 +1540,10 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
                     StatCollector.translateToLocal("gtsr.tooltip.cluster.segments"),
                     gold(String.format("%d", ClusterParams.SEGMENT_DEPTH_MAIN)),
                     gold(String.format("%d", ClusterParams.SEGMENT_DEPTH_EXT)),
+                    gold(String.format("%d", ClusterTopology.MAX_SEGMENTS))))
+            .addInfo(
+                EnumChatFormatting.YELLOW + String.format(
+                    StatCollector.translateToLocal("gtsr.tooltip.cluster.channel_length"),
                     gold(String.format("%d", ClusterTopology.MAX_SEGMENTS))))
             .addSeparator()
             // [GT-compat] beta 兼容层（beta1/beta2/beta3）：beta-3 起始参数序为 (w,h,l)，实参已按 beta-3 语义排列

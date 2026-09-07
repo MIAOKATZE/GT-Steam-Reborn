@@ -25,7 +25,7 @@ public enum MetaTileEntityID {
     WATER_HUB_ARRAY(51),
     SINGULARITY_DRILLING_HUB(52),
 
-    // --- 多方块机器: 蒸汽基类段 (相对 100-149) ---
+    // --- 多方块机器: 蒸汽基类段 (相对 100-109) ---
     STEAM_FLUID_DRILL(100),
     CRUST_STEAM_BORER(101),
     SINGULARITY_CRUST_STEAM_BORER(102),
@@ -35,6 +35,10 @@ public enum MetaTileEntityID {
     ATMOSPHERIC_CENTRIFUGE(106),
     LARGE_GEOTHERMAL_STEAM_BOILER(107),
     LARGE_SOLAR_OVERPRESSURE_ARRAY(108),
+    // TCDS 控制器：绝对 ID 14809。硬边界：GT5U .133 自 15065 起为 EV*AWirelessEnergyHatch 连续占用区
+    // （15065-15082+，随版本增长），即 BASE=14700 下本 mod 可用相对 ID 上限 364；
+    // 相对 365/366 已被 GT5U 占用、禁用（v1.20.2 曾占用 366 与 GT5U 无线能量仓注册冲突的教训）。
+    TCDS_CONTROLLER(109),
 
     // --- 多方块机器: 工作机器段 (相对 150-199) ---
     MEGA_STEAM_TURBINE_ARRAY(150),
@@ -73,7 +77,7 @@ public enum MetaTileEntityID {
     // 红石仓：任意多方块机器通用红石信号输出仓（全新 ID，无旧存档机器）
     REDSTONE_HATCH(267),
 
-    // --- 集群段 (相对 351-365；蒸汽动力矿物处理物流工程集群：总控1+工作7+增幅5+物流1) ---
+    // --- 集群段 (相对 351-364；蒸汽动力矿物处理物流工程集群：总控1+工作7+增幅5+物流1) ---
     // 全新 ID 段，无旧存档机器。
     CLUSTER_CONTROLLER(351),
     CLUSTER_UNIT_CRUSHER(352),
@@ -89,11 +93,6 @@ public enum MetaTileEntityID {
     CLUSTER_BOOSTER_SECONDARY(362),
     CLUSTER_BOOSTER_STEAM_SAVER(363),
     CLUSTER_UNIT_LOGISTICS(364),
-    // 365 集群预留位保持不动
-
-    // --- 多方块机器: 热化学致密蒸汽发生系统 (366) ---
-    // 全新 ID，无旧存档机器。
-    TCDS_CONTROLLER(366),
 
     ;
 
@@ -104,9 +103,10 @@ public enum MetaTileEntityID {
 
     /**
      * 新段位规则（BASE = 14700）：
-     * 单方块 0-49 / 枢纽 50-99 / 蒸汽基类 100-149 / 工作机器 150-199 / 临界 200-249 / 仓室 250-350。
-     * 集群段 351-365：蒸汽动力矿物处理物流工程集群（总控 1 + 工作 7 + 增幅 5 + 物流 1，现用 351-364，365 预留）。
-     * 366：热化学致密蒸汽发生系统（TCDS）控制器，全新 ID 无旧存档机器。
+     * 单方块 0-49 / 枢纽 50-99 / 蒸汽基类 100-109（TCDS 控制器 = 109，绝对 14809）/ 工作机器 150-199 / 临界 200-249 / 仓室 250-350。
+     * 集群段 351-364：蒸汽动力矿物处理物流工程集群（总控 1 + 工作 7 + 增幅 5 + 物流 1）。
+     * 硬边界：相对 365+ = 绝对 15065+ 属 GT5U（.133 起 EV*AWirelessEnergyHatch 连续占用区 15065-15082+，随版本增长），本 mod 禁用。
+     * 教训：v1.20.2 曾将 TCDS 控制器置于相对 366，落入上述 GT5U 占用区引发注册冲突，v1.20.3 迁至蒸汽基类段 109。
      */
     MetaTileEntityID(int relative) {
         this.ID = BASE + Config.metaIdOffset + relative;

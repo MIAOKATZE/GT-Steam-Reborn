@@ -417,7 +417,7 @@ public class MachineLoader {
                 "gtsr.cluster.unit.logistics",
                 "Cluster Logistics Unit"));
 
-        // --- 多方块机器: 热化学致密蒸汽发生系统（全新 ID 366，无旧存档机器）---
+        // --- 多方块机器: 热化学致密蒸汽发生系统（全新 ID 109，无旧存档机器）---
         GTSRItemList.TcdsController.set(
             new MTEThermoChemicalDenseSteamGenerator(
                 MetaTileEntityID.TCDS_CONTROLLER.ID,
@@ -509,7 +509,7 @@ public class MachineLoader {
         CreativeTabManager.addItemToTab(GTSRItemList.ClusterBoosterSecondary.get(1));
         CreativeTabManager.addItemToTab(GTSRItemList.ClusterBoosterSteamSaver.get(1));
         CreativeTabManager.addItemToTab(GTSRItemList.ClusterUnitLogistics.get(1));
-        // --- 热化学致密蒸汽发生系统（TCDS）控制器（366） ---
+        // --- 热化学致密蒸汽发生系统（TCDS）控制器（109） ---
         CreativeTabManager.addItemToTab(GTSRItemList.TcdsController.get(1));
     }
 }
