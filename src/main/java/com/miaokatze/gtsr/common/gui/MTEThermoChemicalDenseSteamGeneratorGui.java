@@ -9,6 +9,7 @@ import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.value.sync.DoubleSyncValue;
 import com.cleanroommc.modularui.value.sync.IntSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
+import com.cleanroommc.modularui.value.sync.StringSyncValue;
 import com.cleanroommc.modularui.widgets.ListWidget;
 import com.miaokatze.gtsr.common.machine.tcds.MTEThermoChemicalDenseSteamGenerator;
 
@@ -17,7 +18,7 @@ import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
 
 /**
  * TCDS GUI（LGB 同款 ModularUI 终端模式）：热量条/状态行走 GTSRProgressBar 词条系统，
- * 芯片槽为 GT5U 基类 GUI 自带控制器槽（mInventory[1]）。附加行：芯片槽告警、燃料族与热值、
+ * 芯片槽为 GT5U 基类 GUI 自带控制器槽（mInventory[1]）。附加行：芯片槽告警、燃料名称与热值、
  * 普通/致密模式。
  */
 public class MTEThermoChemicalDenseSteamGeneratorGui extends MTEMultiBlockBaseGui<MTEEnhancedMultiBlockBase<?>> {
@@ -28,6 +29,7 @@ public class MTEThermoChemicalDenseSteamGeneratorGui extends MTEMultiBlockBaseGu
     private IntSyncValue mOutputSync;
     private IntSyncValue mFuelKindSync;
     private IntSyncValue mFuelValueSync;
+    private StringSyncValue mFuelNameSync;
     private IntSyncValue mSuperTierSync;
 
     public MTEThermoChemicalDenseSteamGeneratorGui(MTEEnhancedMultiBlockBase<?> multiblock) {
@@ -45,6 +47,9 @@ public class MTEThermoChemicalDenseSteamGeneratorGui extends MTEMultiBlockBaseGu
             val -> generator.mCurrentOutputEquivalent = val);
         mFuelKindSync = new IntSyncValue(() -> generator.mCurrentFuelKind, val -> generator.mCurrentFuelKind = val);
         mFuelValueSync = new IntSyncValue(() -> generator.mCurrentFuelValue, val -> generator.mCurrentFuelValue = val);
+        mFuelNameSync = new StringSyncValue(
+            () -> generator.mCurrentFuelFluidName,
+            val -> generator.mCurrentFuelFluidName = val);
         mSuperTierSync = new IntSyncValue(
             () -> generator.mSuperheatedTier ? 1 : 0,
             val -> generator.mSuperheatedTier = val != 0);
@@ -52,6 +57,7 @@ public class MTEThermoChemicalDenseSteamGeneratorGui extends MTEMultiBlockBaseGu
         syncManager.syncValue("tcdsOutput", mOutputSync);
         syncManager.syncValue("tcdsFuelKind", mFuelKindSync);
         syncManager.syncValue("tcdsFuelValue", mFuelValueSync);
+        syncManager.syncValue("tcdsFuelName", mFuelNameSync);
         syncManager.syncValue("tcdsSuperTier", mSuperTierSync);
     }
 
@@ -66,7 +72,7 @@ public class MTEThermoChemicalDenseSteamGeneratorGui extends MTEMultiBlockBaseGu
             .asWidget()
             .marginBottom(2)
             .fullWidth());
-        // 燃料行：无燃料 / 燃气族·热值 / 燃油族·热值
+        // 燃料行：无燃料 / 具体燃料流体名·热值
         list.child(
             IKey.dynamic(
                 () -> EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.gui.tcds.fuel")

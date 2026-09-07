@@ -8,12 +8,15 @@ import static gregtech.api.enums.HatchElement.InputHatch;
 import static gregtech.api.enums.HatchElement.Maintenance;
 import static gregtech.api.enums.HatchElement.Muffler;
 import static gregtech.api.enums.HatchElement.OutputHatch;
+import static gregtech.api.enums.Textures.BlockIcons.OVERLAY_FRONT_LARGE_BOILER;
+import static gregtech.api.enums.Textures.BlockIcons.OVERLAY_FRONT_LARGE_BOILER_ACTIVE;
+import static gregtech.api.enums.Textures.BlockIcons.OVERLAY_FRONT_LARGE_BOILER_ACTIVE_GLOW;
+import static gregtech.api.enums.Textures.BlockIcons.OVERLAY_FRONT_LARGE_BOILER_GLOW;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import net.minecraft.client.renderer.texture.IIconRegister;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumChatFormatting;
@@ -37,16 +40,14 @@ import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import com.miaokatze.gtsr.api.compat.GTSRHatchFluidAccess;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
+import com.miaokatze.gtsr.common.api.progress.GTSRProgressEntry;
 import com.miaokatze.gtsr.common.gui.MTEThermoChemicalDenseSteamGeneratorGui;
 import com.miaokatze.gtsr.common.machine.base.MTEGTSRMultiBlockBase;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
 
-import cpw.mods.fml.relauncher.Side;
-import cpw.mods.fml.relauncher.SideOnly;
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Materials;
 import gregtech.api.enums.Textures;
-import gregtech.api.interfaces.IIconContainer;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
@@ -75,11 +76,12 @@ import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
  * <li>每 tick 顺序：基准需求 → fuelRatio（封顶 1）→ unconstrainedOutput/Fuel → airNeed = 燃料×100 →
  * airRatio（封顶 1，完全断气二元停机）→ 缺水二元停摆（heat>100% 爆炸）→ 全过后实扣 → 缓冲入账</li>
  * <li>heatCap = min(200, 100×rawFuelRatio, 100×rawAirRatio)（未封顶比例；heat>heatCap 停机降温，
- * 供给富余可把热量推到 200% 使产出翻倍）；热量每 20 tick 结算：运行 <100% +0.5、
+ * 供给富余可把热量推到 200% 使产出翻倍）；热量初值 0%——新机 0% 起步，运行自热至 100%，
+ * 供给富余可至 200%；旧档已写值保留，缺省回落 0%；热量每 20 tick 结算：运行 <100% +0.5、
  * 100%≤heat<heatCap +0.01、停机 −1（下限 0）</li>
  * <li>产出先进内部蒸汽当量缓冲（上限 840,000,000 L 当量，满则本 tick 停产不扣料），每 tick 按档位
- * 换算向全部输出仓分摊：非芯片 1:1（普通蒸汽/ic2superheatedsteam）；芯片致密蒸汽 ÷1000、
- * 致密过热蒸汽 ÷2000，余量保留在缓冲</li>
+ * 换算向全部输出仓分摊：非芯片 1:1（普通蒸汽/ic2superheatedsteam）；芯片致密蒸汽、
+ * 致密过热蒸汽均 ÷1000，余量保留在缓冲</li>
  * <li>蒸馏水消耗 = 当量产出 ÷ 160，两阶段（探测全过 → 实扣）经 GTSRHatchFluidAccess 跨仓结算</li>
  * </ul>
  */
@@ -167,8 +169,8 @@ public class MTEThermoChemicalDenseSteamGenerator extends MTEGTSRMultiBlockBase<
     private static final long BASE_OUTPUT_PER_TICK = 210_000L;
     /** 热量上限（%）：供给富余（rawRatio≥2）时可升至 200%，产出翻倍 */
     private static final double HEAT_MAX = 200.0d;
-    /** 热量初值（%）：新机/旧档缺省即 100% */
-    private static final double HEAT_START = 100.0d;
+    /** 热量初值（%）：新机 0% 起步，运行自热至 100%，供给富余可至 200%；旧档已写值保留，缺省回落 0% */
+    private static final double HEAT_START = 0.0d;
     /** 燃气族过热阈值（EU/L，mSpecialValue 热值）：达到 → 过热档 */
     private static final int GAS_SUPERHEAT_THRESHOLD = 350;
     /** 燃油族过热阈值（EU/L）：达到 → 过热档；不过线仍照常燃烧产普通档，不拒绝燃料 */
@@ -179,13 +181,13 @@ public class MTEThermoChemicalDenseSteamGenerator extends MTEGTSRMultiBlockBase<
     private static final int AIR_PER_FUEL = 100;
     /** 蒸汽当量缓冲上限：840,000,000 L 当量（200% 热量满产 100 秒）；满则本 tick 停产不扣料 */
     private static final long STEAM_BUFFER_CAPACITY = 840_000_000L;
-    /** 致密系数：芯片普通档 ÷1000（致密蒸汽）、过热档 ÷2000（致密过热蒸汽） */
+    /** 致密系数：芯片普通档 ÷1000（致密蒸汽）、过热档 ÷1000（致密过热蒸汽） */
     private static final int DENSE_DIVISOR = 1_000;
-    private static final int DENSE_SUPERHEATED_DIVISOR = 2_000;
+    private static final int DENSE_SUPERHEATED_DIVISOR = 1_000;
 
     // ===== 运行状态（NBT 持久化：heat / 缓冲 / 档位；工作态由基类 mMaxProgresstime 持久化）=====
     // 下列 GUI 同步字段为 public（ModularUI DoubleSyncValue/IntSyncValue 客户端 setter 回写，LGB 同范式）
-    /** 热量（%），double，每 20 tick 结算，初值 100.0 */
+    /** 热量（%），double，每 20 tick 结算，初值 0.0（新机 0% 起步，运行自热至 100%） */
     public double mHeat = HEAT_START;
     /** 蒸汽当量缓冲（L 当量）：产出先进缓冲，每 tick 按档位换算向输出仓分摊，余量保留 */
     private long mSteamEquivalentBuffer = 0L;
@@ -199,14 +201,12 @@ public class MTEThermoChemicalDenseSteamGenerator extends MTEGTSRMultiBlockBase<
     public int mCurrentFuelKind = 0;
     /** 当前燃料热值 EU/L（GUI 显示） */
     public int mCurrentFuelValue = 0;
+    /** 当前燃料具体流体名（GUI 显示态，服务端赋值客户端消费，不进 NBT） */
+    public String mCurrentFuelFluidName = "";
     /** 客户端粒子工作态（getUpdateData/onValueUpdate bit0 通道同步；集群 mWorkingForFX 同范式） */
     protected boolean mWorkingForFX = false;
     /** 客户端 'e' 候选登记边沿标记（true = 已登记） */
     private boolean fxCandidatesRegistered = false;
-
-    // 正面 overlay（材质切片契约：OFF/ON 路径常量固定，贴图资产由材质切片交付）
-    private static IIconContainer OVERLAY_OFF;
-    private static IIconContainer OVERLAY_ON;
 
     public MTEThermoChemicalDenseSteamGenerator(int aID, String aName, String aNameRegional) {
         super(aID, aName, aNameRegional);
@@ -220,7 +220,10 @@ public class MTEThermoChemicalDenseSteamGenerator extends MTEGTSRMultiBlockBase<
 
     // GTSR 进度词条：GUI 终端显示（热量%、当量产出速率 + 模式后缀）
     private void registerProgressEntries() {
-        registerEntry("tcds_heat", "gtsr.gui.tcds.heat", "%.1f%%", EnumChatFormatting.GOLD, () -> mHeat);
+        // 热量词条零值仍显示（showZero）：新机 0% 起步时 GUI 也要能看到热量行
+        registerEntry(
+            GTSRProgressEntry.of("tcds_heat", "gtsr.gui.tcds.heat", "%.1f%%", EnumChatFormatting.GOLD, () -> mHeat)
+                .showZero());
         registerEntryCustom(
             "tcds_output",
             "gtsr.gui.tcds.output",
@@ -370,6 +373,7 @@ public class MTEThermoChemicalDenseSteamGenerator extends MTEGTSRMultiBlockBase<
         mCurrentOutputEquivalent = 0;
         mCurrentFuelKind = 0;
         mCurrentFuelValue = 0;
+        mCurrentFuelFluidName = "";
         if (!mMachine || !getBaseMetaTileEntity().isAllowedToWork()) {
             return CheckRecipeResultRegistry.NO_RECIPE;
         }
@@ -384,6 +388,7 @@ public class MTEThermoChemicalDenseSteamGenerator extends MTEGTSRMultiBlockBase<
         }
         mCurrentFuelKind = fuel.gasFamily ? 1 : 2;
         mCurrentFuelValue = fuel.heatValue;
+        mCurrentFuelFluidName = fuel.fluid.getName();
 
         // 基准需求 = (210,000 ÷ 热值) × 0.5 × (1 − 0.005×(heat−100))；热量系数随热量升高而降
         double heatCoefficient = 0.5d * (1.0d - 0.005d * (mHeat - 100.0d));
@@ -464,7 +469,7 @@ public class MTEThermoChemicalDenseSteamGenerator extends MTEGTSRMultiBlockBase<
 
     // ===== 芯片（控制器槽 mInventory[1]，LGB :569-577 范式）=====
 
-    /** 控制器槽装入致密蒸汽芯片 → 产出致密变体（普通档 ÷1000 / 过热档 ÷2000） */
+    /** 控制器槽装入致密蒸汽芯片 → 产出致密变体（普通档 ÷1000 / 过热档 ÷1000） */
     public boolean hasDenseSteamChip() {
         ItemStack stack = getControllerSlot();
         return stack != null && GTSRItemList.TcdsBoostChip.isStackEqual(stack, true, true);
@@ -479,7 +484,7 @@ public class MTEThermoChemicalDenseSteamGenerator extends MTEGTSRMultiBlockBase<
     // ===== 落仓：缓冲 → 输出仓（每 tick 分摊，LGB distributeSteam 范式）=====
 
     /**
-     * 每 tick 按档位换算目标流体（非芯片 1:1；芯片 ÷1000 / ÷2000，余量保留在缓冲），向全部输出仓
+     * 每 tick 按档位换算目标流体（非芯片 1:1；芯片两档均 ÷1000，余量保留在缓冲），向全部输出仓
      * 分摊；装不下的部分以蒸汽当量形态留在缓冲，缓冲满后本 tick 停产（输出堵 → 停机衰减热量）。
      */
     private void distributeBufferToOutputHatches() {
@@ -607,7 +612,7 @@ public class MTEThermoChemicalDenseSteamGenerator extends MTEGTSRMultiBlockBase<
     @Override
     public void loadNBTData(NBTTagCompound aNBT) {
         super.loadNBTData(aNBT);
-        // 旧档/缺省回落到初值 100%
+        // 旧档已写值保留，缺省回落 0%（新机 0% 起步）
         mHeat = aNBT.hasKey("mHeat") ? aNBT.getDouble("mHeat") : HEAT_START;
         mSteamEquivalentBuffer = aNBT.getLong("mSteamEquivalentBuffer");
         mSuperheatedTier = aNBT.getBoolean("mSuperheatedTier");
@@ -640,30 +645,25 @@ public class MTEThermoChemicalDenseSteamGenerator extends MTEGTSRMultiBlockBase<
         return 10000;
     }
 
-    @Override
-    @SideOnly(Side.CLIENT)
-    public void registerIcons(IIconRegister aBlockIconRegister) {
-        OVERLAY_OFF = Textures.BlockIcons.custom("gtsr:MTEThermoChemicalDenseSteamGenerator_OFF");
-        OVERLAY_ON = Textures.BlockIcons.custom("gtsr:MTEThermoChemicalDenseSteamGenerator_ON");
-        super.registerIcons(aBlockIconRegister);
-    }
-
+    // 复刻 GT5U 大型钨钢锅炉官方 casing+overlay 逐层组装语义（beta-1 无 casing 纹理提供者接口，
+    // 不 implements，循 MTEGearSteamCompressor 手工组装逐层等价范式）：
+    // 正面 = casing 底层 + overlay 层（OFF/ON 同款大型钨钢锅炉，随面向旋转）+ 辉光层（glow，随面向旋转）。
     @Override
     public ITexture[] getTexture(IGregTechTileEntity aBaseMetaTileEntity, ForgeDirection side, ForgeDirection facing,
         int aColorIndex, boolean aActive, boolean aRedstone) {
         if (side == facing) {
             return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(getCasingTextureID()),
-                aActive ? getFrontOverlayActive() : getFrontOverlay() };
+                TextureFactory.builder()
+                    .addIcon(aActive ? OVERLAY_FRONT_LARGE_BOILER_ACTIVE : OVERLAY_FRONT_LARGE_BOILER)
+                    .extFacing()
+                    .build(),
+                TextureFactory.builder()
+                    .addIcon(aActive ? OVERLAY_FRONT_LARGE_BOILER_ACTIVE_GLOW : OVERLAY_FRONT_LARGE_BOILER_GLOW)
+                    .extFacing()
+                    .glow()
+                    .build() };
         }
         return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(getCasingTextureID()) };
-    }
-
-    protected ITexture getFrontOverlay() {
-        return TextureFactory.of(OVERLAY_OFF);
-    }
-
-    protected ITexture getFrontOverlayActive() {
-        return TextureFactory.of(OVERLAY_ON);
     }
 
     @Override
@@ -728,18 +728,21 @@ public class MTEThermoChemicalDenseSteamGenerator extends MTEGTSRMultiBlockBase<
             .widget(
                 new FakeSyncWidget.IntegerSyncer(() -> mCurrentOutputEquivalent, val -> mCurrentOutputEquivalent = val))
             .widget(new FakeSyncWidget.IntegerSyncer(() -> mCurrentFuelKind, val -> mCurrentFuelKind = val))
-            .widget(new FakeSyncWidget.IntegerSyncer(() -> mCurrentFuelValue, val -> mCurrentFuelValue = val));
+            .widget(new FakeSyncWidget.IntegerSyncer(() -> mCurrentFuelValue, val -> mCurrentFuelValue = val))
+            .widget(new FakeSyncWidget.StringSyncer(() -> mCurrentFuelFluidName, val -> mCurrentFuelFluidName = val));
     }
 
-    /** 燃料状态文本：无燃料 / 燃气族·热值 / 燃油族·热值（EU/L） */
+    /**
+     * 燃料状态文本：无燃料 / 具体燃料流体名·热值（EU/L）。名称来自 mCurrentFuelFluidName（GUI 同步态），
+     * 客户端经 FluidRegistry 本地化；注册表未命中时回退显示注册名字符串。
+     */
     public String fuelDisplayText() {
         if (mCurrentFuelKind <= 0 || mCurrentFuelValue <= 0) {
             return StatCollector.translateToLocal("gtsr.gui.tcds.fuel_none");
         }
-        return StatCollector
-            .translateToLocal(mCurrentFuelKind == 1 ? "gtsr.gui.tcds.fuel_gas" : "gtsr.gui.tcds.fuel_liquid") + " · "
-            + NumberFormatUtil.formatNumber(mCurrentFuelValue)
-            + " EU/L";
+        Fluid f = FluidRegistry.getFluid(mCurrentFuelFluidName);
+        String name = f != null ? f.getLocalizedName(new FluidStack(f, 0)) : mCurrentFuelFluidName;
+        return name + " · " + NumberFormatUtil.formatNumber(mCurrentFuelValue) + " EU/L";
     }
 
     // ===== Tooltip（三段式：Info / Structure / Additional + 品牌尾缀）=====
@@ -747,14 +750,51 @@ public class MTEThermoChemicalDenseSteamGenerator extends MTEGTSRMultiBlockBase<
     @Override
     protected MultiblockTooltipBuilder createTooltip() {
         MultiblockTooltipBuilder tt = new MultiblockTooltipBuilder();
-        tt.addMachineType(EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.tcds.type"))
+        tt.addMachineType(StatCollector.translateToLocal("gtsr.tooltip.tcds.type"))
             .addInfo(EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.tooltip.tcds.desc"))
             .addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.tcds.desc_2"))
-            .addInfo(EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.tcds.fuel_threshold"))
+            .addSeparator()
+            // 数值段（Java 端配色拼接：BLUE 标签 + GOLD 数字 + GRAY 单位/后缀；数值硬编码，单位文案走 lang）
+            .addInfo(
+                EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.tcds.output_base")
+                    + EnumChatFormatting.GOLD
+                    + "210,000"
+                    + EnumChatFormatting.GRAY
+                    + " "
+                    + StatCollector.translateToLocal("gtsr.tooltip.tcds.output_base_unit"))
+            .addInfo(
+                EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.tcds.fuel_threshold")
+                    + EnumChatFormatting.GOLD
+                    + "350"
+                    + EnumChatFormatting.GRAY
+                    + " / "
+                    + EnumChatFormatting.GOLD
+                    + "450"
+                    + EnumChatFormatting.GRAY
+                    + " EU/L")
+            .addInfo(
+                EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.tcds.water_ratio")
+                    + EnumChatFormatting.GOLD
+                    + "160"
+                    + EnumChatFormatting.GRAY
+                    + " "
+                    + StatCollector.translateToLocal("gtsr.tooltip.tcds.water_ratio_unit"))
+            .addInfo(
+                EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.tcds.air")
+                    + EnumChatFormatting.GOLD
+                    + "100"
+                    + EnumChatFormatting.GRAY
+                    + " "
+                    + StatCollector.translateToLocal("gtsr.tooltip.tcds.air_unit"))
+            .addInfo(
+                EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.tcds.buffer")
+                    + EnumChatFormatting.GOLD
+                    + "840,000,000"
+                    + EnumChatFormatting.GRAY
+                    + " L")
             .addInfo(EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.tcds.heat"))
-            .addInfo(EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.tcds.air"))
             .addInfo(EnumChatFormatting.RED + StatCollector.translateToLocal("gtsr.tooltip.tcds.water_warning"))
-            .addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.tcds.buffer"))
+            .addSeparator()
             .addInfo(EnumChatFormatting.LIGHT_PURPLE + StatCollector.translateToLocal("gtsr.tooltip.tcds.chip_info"))
             .addSeparator()
             // [GT-compat] beta 兼容层（beta1/beta2/beta3）：beta-3 起始参数序为 (w,h,l)，实参按 beta-3 语义排列
@@ -768,6 +808,7 @@ public class MTEThermoChemicalDenseSteamGenerator extends MTEGTSRMultiBlockBase<
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.tcds.casing"), 1191, false)
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.tcds.frame"), 218, false)
             .addInfo(EnumChatFormatting.LIGHT_PURPLE + StatCollector.translateToLocal("gtsr.tooltip.tcds.chip_desc"))
+            .addSeparator()
             .addInfo(GTSRUtils.getAddedByLine())
             .toolTipFinisher();
         return tt;

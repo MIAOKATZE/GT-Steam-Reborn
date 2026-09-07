@@ -13,7 +13,7 @@ import com.miaokatze.gtsr.register.CreativeTabManager;
 
 /**
  * 致密蒸汽芯片：装入热化学致密蒸汽发生系统（TCDS）控制器槽位，产出切换为致密变体——
- * 普通档致密蒸汽（÷1000）、过热档致密过热蒸汽（÷2000）。仿 GeothermalOverheatChip。
+ * 普通档致密蒸汽、过热档致密过热蒸汽（均 ÷1000）。仿 GeothermalOverheatChip。
  */
 public class TCDSDenseSteamChip extends Item {
 

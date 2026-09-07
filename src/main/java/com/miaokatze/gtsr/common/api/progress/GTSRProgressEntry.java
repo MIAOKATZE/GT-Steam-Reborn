@@ -24,14 +24,17 @@ public class GTSRProgressEntry {
     private final DoubleSupplier valueSupplier;
     /** 格式化器：value → 显示文本（含单位/后缀） */
     private final DoubleFunction<String> formatter;
+    /** 词条级零值仍显示开关：true = 值为 0 时该行照常渲染（默认 false = 0 值隐藏，GUI helper 判定） */
+    private final boolean showZero;
 
     private GTSRProgressEntry(String internalKey, String displayKey, EnumChatFormatting color,
-        DoubleSupplier valueSupplier, DoubleFunction<String> formatter) {
+        DoubleSupplier valueSupplier, DoubleFunction<String> formatter, boolean showZero) {
         this.internalKey = internalKey;
         this.displayKey = displayKey;
         this.color = color;
         this.valueSupplier = valueSupplier;
         this.formatter = formatter;
+        this.showZero = showZero;
     }
 
     /** 工厂：默认 formatter = String.format(Locale.ENGLISH, format, value)（format 如 "%.1f%%"、"%,.0f L/s"、"%,.0f EU/t"） */
@@ -42,13 +45,22 @@ public class GTSRProgressEntry {
             displayKey,
             color,
             valueSupplier,
-            value -> String.format(Locale.ENGLISH, format, value));
+            value -> String.format(Locale.ENGLISH, format, value),
+            false);
     }
 
     /** 工厂：自定义格式化（如按值追加条件后缀） */
     public static GTSRProgressEntry ofCustom(String internalKey, String displayKey, EnumChatFormatting color,
         DoubleSupplier valueSupplier, DoubleFunction<String> formatter) {
-        return new GTSRProgressEntry(internalKey, displayKey, color, valueSupplier, formatter);
+        return new GTSRProgressEntry(internalKey, displayKey, color, valueSupplier, formatter, false);
+    }
+
+    /**
+     * 词条级零值仍显示：返回 showZero=true 的复制实例（本类字段全部 final 不可变，返回新实例不改原实例）。
+     * 供 GUI helper 在值为 0 时仍渲染该行（如热量词条 0% 起步显示）。
+     */
+    public GTSRProgressEntry showZero() {
+        return new GTSRProgressEntry(internalKey, displayKey, color, valueSupplier, formatter, true);
     }
 
     public String getInternalKey() {
@@ -61,6 +73,11 @@ public class GTSRProgressEntry {
 
     public EnumChatFormatting getColor() {
         return color;
+    }
+
+    /** 零值仍显示开关（GUI helper 据此决定 0 值行是否渲染） */
+    public boolean isShowZero() {
+        return showZero;
     }
 
     /** 实时值（委托 valueSupplier） */
