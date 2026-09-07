@@ -1,4 +1,7 @@
+<p align="center"><img alt="GTSR" src="README/GTSR.png"></p>
+
 <h1 align="center">GT-Steam-Reborn</h1>
+
 <p align="center"><strong><em>GTNH 蒸汽时代扩展模组</em></strong><br><strong><em>GTNH Steam Age Expansion Mod</em></strong></p>
 
 <p align="center">

@@ -49,9 +49,13 @@ import cpw.mods.fml.common.Loader;
  * 且只在 {@link BqCompat#isBqLoaded()} 为 true 时才会被类加载
  * （BQ 缺席环境下本类永不加载，无需 @Optional 字节码剥离）。
  * <p>
- * 挂载点：CommonProxy.serverStarting。@Mod 声明 after:betterquesting
- * 保证 BQ 的 default load（clear 后从 config 重载）已同步完成，
- * 本注入器在其后做幂等追加，不会被清库。
+ * 挂载点：CommonProxy.serverStarted（FMLServerStartedEvent，整波 ServerStarting
+ * 结束、tick 与玩家登录前）。@Mod 声明 after:betterquesting 保证 BQ 的 default
+ * load（clear 后从 config 重载）已同步完成，本注入器在其后做幂等追加，不会被清库。
+ * 专用服根因：GTNH 2.9.0-beta-3 专用服上 dreamcraft 会在同波次更晚的
+ * FMLServerStartingEvent 因 "Modpack has been updated" 整库重载默认任务库，
+ * 同波次注入被覆盖，故迁移至 ServerStarted（BQ 3.8.84 全源码零
+ * FMLServerStartedEvent 订阅，该阶段无 BQ 写库方，注入不被覆盖）。
  * <p>
  * 流程（照抄 BQ 官方装载路径 QuestCommandDefaults.load 的同构形状）：
  * <ol>
@@ -67,6 +71,7 @@ import cpw.mods.fml.common.Loader;
  * 任务数据库——删除操作同样自动传播到所有世界</li>
  * <li>进度回填：QuestProgress 目录逐玩家 merge=true 重放（对抗 default load
  * 对"库内不存在任务"进度的静默丢弃）</li>
+ * <li>前排有序规则收尾（gtsr→gtswn→gtit 依存在线序位 setOrderIndex）</li>
  * <li>同步四连（NetSettingSync / NetQuestSync.quickSync / NetChapterSync / markDirty）</li>
  * </ol>
  */
@@ -78,10 +83,19 @@ public final class BqQuestInjector {
     /** 世界侧版本戳文件名（位于 BQ_Settings.curWorldDir 下），记录最近一次注入所用定义版本 */
     private static final String STAMP_FILE_NAME = "gtsr-injected.json";
 
+    /**
+     * 前排有序常量表（规范 §6 条款 10，2026-09-07 拍板 gtsr→gtswn→gtit）。
+     * 值为任务线 UUID 高 32 位（ASCII 记忆 GTSR/GTWN/GTIT）；仅重排表内命中线，官方线零写入。
+     */
+    private static final long[] FRONT_ORDER_UUID_HIGH = { 0x47545352L, // gtsr
+        0x4754574eL, // gtswn
+        0x47544954L // gtit
+    };
+
     private BqQuestInjector() {}
 
     /**
-     * 任务注入入口（serverStarting，BQ default load 之后）。
+     * 任务注入入口（serverStarted，整波 ServerStarting 结束后、tick 与玩家登录前）。
      * <p>
      * 双哨兵加固：BqCompat 探测标志 + Loader.isModLoaded 二次确认；
      * {@code BQ_Settings.curWorldDir != null} 表示 BQ 已完成世界装载流程，
@@ -110,6 +124,8 @@ public final class BqQuestInjector {
             int questCount = 0;
             int refreshedCount = 0;
             int prunedCount = 0;
+            int lineCreatedCount = 0;
+            int skippedCount = 0;
             // 版本戳对账：版本变化（含老世界无戳）→ 刷新全部已存在任务的定义与挂线坐标
             boolean refresh = isDefinitionRefreshNeeded();
             for (int i = 0; i < lines.size(); i++) {
@@ -120,23 +136,32 @@ public final class BqQuestInjector {
                 questCount += r[0];
                 refreshedCount += r[1];
                 prunedCount += r[2];
+                lineCreatedCount += r[3];
+                skippedCount += r[4];
             }
             restoreProgress();
             if (refresh) {
                 writeStamp(Tags.VERSION);
             }
+            int frontOrdered = applyFrontOrder();
             // 同步四连（与 QuestCommandDefaults.load 尾部同款）
             NetSettingSync.sendSync(null);
             NetQuestSync.quickSync(null, true, true);
             NetChapterSync.sendSync(null, null);
             SaveLoadHandler.INSTANCE.markDirty();
             GTSteamReborn.LOG.info(
-                "[BQ] 任务注入完成：{} 条任务线，{} 个新任务，{} 个定义刷新{}，{} 个已删除任务清理",
+                "[BQ] 任务注入完成（serverStarted）：任务线总数 {}（线新建 {}），任务新建 {}，跳过 {}，删除 {}，定义刷新 {}{}，"
+                    + "setOrderIndex 落位 {}（清单序位 {} + 前排有序 {}）；新建>0 即疑似被第三方整库重载覆盖后重建",
                 lines.size(),
+                lineCreatedCount,
                 questCount,
+                skippedCount,
+                prunedCount,
                 refreshedCount,
                 refresh ? "（对齐版本 " + Tags.VERSION + "）" : "",
-                prunedCount);
+                lines.size() + frontOrdered,
+                lines.size(),
+                frontOrdered);
         } catch (Throwable t) {
             GTSteamReborn.LOG.error("[BQ] 任务注入失败（不影响 GTSR 主功能）", t);
         }
@@ -159,7 +184,7 @@ public final class BqQuestInjector {
      *
      * @param lineSpec index.json 中该线的声明对象
      * @param refresh  是否对已存在任务执行定义刷新
-     * @return int[]{本次新建任务数, 本次刷新定义任务数, 本次剪枝删除任务数}
+     * @return int[]{本次新建任务数, 本次刷新定义任务数, 本次剪枝删除任务数, 线新建(0/1), 本次跳过任务数}
      */
     private static int[] loadQuestLine(JsonObject lineSpec, boolean refresh) {
         UUID lineId = new UUID(
@@ -178,7 +203,7 @@ public final class BqQuestInjector {
                     .getAsString());
             if (lineTag == null) {
                 GTSteamReborn.LOG.warn("[BQ] 任务线定义文件缺失，跳过该线: {}", lineSpec.get("lineFile"));
-                return new int[] { 0, 0, 0 };
+                return new int[] { 0, 0, 0, 0, 0 };
             }
             line = new QuestLine();
             line.readFromNBT(lineTag);
@@ -190,6 +215,7 @@ public final class BqQuestInjector {
 
         int created = 0;
         int refreshed = 0;
+        int skipped = 0;
         Set<UUID> expected = new HashSet<>();
         JsonArray entries = lineSpec.getAsJsonArray("entries");
         for (int i = 0; i < entries.size(); i++) {
@@ -214,6 +240,9 @@ public final class BqQuestInjector {
                 // 版本升级：重读定义（名称/描述/前置/奖励/任务），玩家进度保留
                 refreshDefinition(existing, questTag);
                 refreshed++;
+            } else {
+                // 已存在且无需刷新：幂等跳过（用于对账日志判读库是否被第三方整库重载）
+                skipped++;
             }
             // 任务必须挂线（/bq_admin purge_hidden_quests 会清未挂线任务）：未挂才 put；
             // 已挂线且刷新中则替换条目以同步编辑器坐标
@@ -254,7 +283,37 @@ public final class BqQuestInjector {
         if (lineCreated || created > 0 || refreshed > 0) {
             GTSteamReborn.LOG.info("[BQ] 任务线 {} 装载：线新建={}，新任务={}，刷新定义={}", lineId, lineCreated, created, refreshed);
         }
-        return new int[] { created, refreshed, pruned };
+        return new int[] { created, refreshed, pruned, lineCreated ? 1 : 0, skipped };
+    }
+
+    /**
+     * 前排有序规则（注入收尾、同步四连之前执行一次）。
+     * 按常量表序扫描 QuestLineDatabase.INSTANCE.keySet()，UUID 高 32 位命中库内
+     * 已存在线者依存在线序位 i（命中才递增，缺线无空洞）setOrderIndex(lineId, i)；
+     * setOrderIndex 为 remove+clamp-insert（QuestLineDatabase.java:84-87），幂等收敛，
+     * 最后执行者定最终序。禁用 setOrderedEntries（其首行整库 clear）。
+     * 客户端顺序经 NetChapterSync order 列表自动镜像，零客户端代码。
+     *
+     * @return 实际 setOrderIndex 的线数（计数日志用）
+     */
+    private static int applyFrontOrder() {
+        int applied = 0;
+        int i = 0;
+        for (long high : FRONT_ORDER_UUID_HIGH) {
+            UUID lineId = null;
+            for (UUID id : QuestLineDatabase.INSTANCE.keySet()) {
+                if ((id.getMostSignificantBits() >>> 32) == high) {
+                    lineId = id;
+                    break;
+                }
+            }
+            if (lineId != null) {
+                QuestLineDatabase.INSTANCE.setOrderIndex(lineId, i);
+                i++;
+                applied++;
+            }
+        }
+        return applied;
     }
 
     /**

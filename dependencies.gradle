@@ -69,7 +69,7 @@ dependencies {
 
     // BetterQuesting：任务线运行时注入（crossmod/bq/BqQuestInjector，按 assets/gtsr/bqquests/index.json 清单装载）。
     // 仅编译期依赖；运行时 BQ 缺席时经 BqCompat 探测静默停用（BqCompat/BqQuestInjector 不加载 BQ 类）。
-    compileOnly("com.github.GTNewHorizons:BetterQuesting:3.8.72-GTNH:dev") { transitive = false }
+    compileOnly("com.github.GTNewHorizons:BetterQuesting:3.8.84-GTNH:dev") { transitive = false }
 
     // UniMixins is automatically included by the GTNH build script because usesMixins = true in gradle.properties.
     // No need to declare it manually.

@@ -28,6 +28,7 @@ import cpw.mods.fml.common.Loader;
 import cpw.mods.fml.common.event.FMLInitializationEvent;
 import cpw.mods.fml.common.event.FMLPostInitializationEvent;
 import cpw.mods.fml.common.event.FMLPreInitializationEvent;
+import cpw.mods.fml.common.event.FMLServerStartedEvent;
 import cpw.mods.fml.common.event.FMLServerStartingEvent;
 import cpw.mods.fml.common.network.NetworkRegistry;
 import cpw.mods.fml.common.registry.GameRegistry;
@@ -182,9 +183,17 @@ public class CommonProxy {
      */
     public void serverStarting(FMLServerStartingEvent event) {
         event.registerServerCommand(new GTSRCommand());
-        // BetterQuesting 任务线注入（BQ default load 之后幂等追加）。
-        // 守卫必须在调用方：BQ 缺席时 BqQuestInjector 类链接即会触发 BQ 类型解析，
-        // 唯有先经零 BQ 引用的 BqCompat 短路才能保证注入器类根本不加载。
+    }
+
+    /**
+     * 服务器启动完成阶段
+     * BQ 任务线注入（迁移自 serverStarting）。整个 ServerStarting 波次——含 BQ default
+     * load 与任何第三方整库重载（GTNH 2.9.0-beta-3 专用服 dreamcraft "Modpack has been
+     * updated" 整库重载案例）——结束后、tick 与玩家登录前执行，注入不再被覆盖。
+     * 守卫必须在调用方：BQ 缺席时 BqQuestInjector 类链接即会触发 BQ 类型解析，
+     * 唯有先经零 BQ 引用的 BqCompat 短路才能保证注入器类根本不加载。
+     */
+    public void serverStarted(FMLServerStartedEvent event) {
         if (com.miaokatze.gtsr.crossmod.bq.BqCompat.isBqLoaded()) {
             com.miaokatze.gtsr.crossmod.bq.BqQuestInjector.inject();
         }
