@@ -45,6 +45,7 @@ import com.miaokatze.gtsr.common.gui.MTEThermoChemicalDenseSteamGeneratorGui;
 import com.miaokatze.gtsr.common.machine.base.MTEGTSRMultiBlockBase;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
 
+import cpw.mods.fml.common.registry.GameRegistry;
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Materials;
 import gregtech.api.enums.Textures;
@@ -275,8 +276,8 @@ public class MTEThermoChemicalDenseSteamGenerator extends MTEGTSRMultiBlockBase<
                             .casingIndex(casingIndex)
                             .hint(1)
                             .build()))
-                // 'B' 不锈钢框架：gt.blockframes meta 306（Materials.Steel.mMetaItemSubID）
-                .addElement('B', ofBlock(GregTechAPI.sBlockFrames, Materials.Steel.mMetaItemSubID))
+                // 'B' 不锈钢框架：gt.blockframes meta 306
+                .addElement('B', ofBlock(GameRegistry.findBlock("gregtech", "gt.blockframes"), 306))
                 // 'e' 蒸汽粒子动画位：结构上是空气，偏移在惰性扫描时收集供客户端喷粒
                 .addElement('e', isAir())
                 .addElement('-', isAir())
