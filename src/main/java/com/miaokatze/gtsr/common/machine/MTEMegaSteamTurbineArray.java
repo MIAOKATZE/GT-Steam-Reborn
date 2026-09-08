@@ -261,8 +261,14 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
             "steam_output",
             "gtsr.gui.turbine_array.steam",
             EnumChatFormatting.AQUA,
-            () -> calcSteamConsumption(mSteamType),
-            value -> NumberFormatUtil.formatNumber((long) value) + " L/t");
+            () -> mSteamType != SteamType.NONE ? calcSteamConsumption(mSteamType)
+                : (mMachine ? calcSteamConsumption(SteamType.STEAM) : 0),
+            value -> {
+                String base = NumberFormatUtil.formatNumber((long) value) + " L/t";
+                return mSteamType != SteamType.NONE
+                    ? base + " (" + StatCollector.translateToLocal(mSteamType.nameKey) + ")"
+                    : base + " (" + StatCollector.translateToLocal("gtsr.gui.turbine_array.theoretical") + ")";
+            });
         registerEntry(
             "steam_savings",
             "gtsr.gui.turbine_array.savings",

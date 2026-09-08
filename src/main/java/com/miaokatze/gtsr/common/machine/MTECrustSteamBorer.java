@@ -82,6 +82,11 @@ public class MTECrustSteamBorer extends MTESteamMultiBlockBase<MTECrustSteamBore
     public boolean canMineInCurrentDim = false;
     public String mLastOreName = "";
 
+    /** 钻头热量 0-1（0%→100%）：运行升温 0.05%/s，停机降温 1%/s；100% 时配方时长减半（%20 节拍结算，同地热锅炉先例） */
+    public double mHeat = 0.0d;
+    private static final double HEAT_UP_PER_SECOND = 0.0005d;
+    private static final double HEAT_DOWN_PER_SECOND = 0.01d;
+
     public MTECrustSteamBorer(int aID, String aName, String aNameRegional) {
         super(aID, aName, aNameRegional);
     }
@@ -91,7 +96,7 @@ public class MTECrustSteamBorer extends MTESteamMultiBlockBase<MTECrustSteamBore
     }
 
     /**
-     * GTSR 进度词条收集钩子（mixin 惰性触发一次）：注册顺序 = GUI 终端显示顺序（蒸汽消耗 → 工作周期）。
+     * GTSR 进度词条收集钩子（mixin 惰性触发一次）：注册顺序 = GUI 终端显示顺序（蒸汽消耗 → 工作周期 → 热量）。
      * 不加 @Override：编译期 GT++ jar 无此方法，运行时由 mixin 注入后多态生效。
      */
     protected void gtsr$collectProgressEntries(GTSRProgressBar bar) {
@@ -109,6 +114,10 @@ public class MTECrustSteamBorer extends MTESteamMultiBlockBase<MTECrustSteamBore
                 "%.0fs",
                 EnumChatFormatting.YELLOW,
                 () -> WORK_TIME_TICKS / 20.0));
+        bar.registerEntry(
+            GTSRProgressEntry
+                .of("heat", "gtsr.gui.crust_borer.heat", "%.1f%%", EnumChatFormatting.GOLD, () -> mHeat * 100)
+                .showZero());
     }
 
     @Override
@@ -385,6 +394,20 @@ public class MTECrustSteamBorer extends MTESteamMultiBlockBase<MTECrustSteamBore
     }
 
     @Override
+    public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
+        super.onPostTick(aBaseMetaTileEntity, aTick);
+        if (aTick % 20 != 0) return;
+        // 配方完成同 tick 会立即重启新配方，重启 tick 存在 1 tick 的 mMaxProgresstime==0 空窗，
+        // 机器实际连续运行，不应视为停机（同 MTELargeGeothermalSteamBoiler 先例）
+        boolean isRunning = mMaxProgresstime > 0;
+        if (isRunning) {
+            mHeat = Math.min(1.0d, mHeat + HEAT_UP_PER_SECOND);
+        } else {
+            mHeat = Math.max(0.0d, mHeat - HEAT_DOWN_PER_SECOND);
+        }
+    }
+
+    @Override
     public CheckRecipeResult checkProcessing() {
         if (!canMineInCurrentDim) {
             return CheckRecipeResultRegistry.NO_RECIPE;
@@ -392,7 +415,7 @@ public class MTECrustSteamBorer extends MTESteamMultiBlockBase<MTECrustSteamBore
 
         if (getTotalSteamStored() > 0) {
             lEUt = -STEAM_L_EUT;
-            mMaxProgresstime = WORK_TIME_TICKS;
+            mMaxProgresstime = (int) Math.max(1, Math.round(WORK_TIME_TICKS * (1.0d - 0.5d * mHeat)));
             // 显式置满效率：自定义 checkProcessing 不经标准流程的 mEfficiency 初始化，
             // 父类 onRunningTick 按 -lEUt*10000/max(1000,mEfficiency) 扣蒸汽，
             // 效率 <=1000 时 10 倍消耗且缺汽停机归零效率形成恶性循环（同热解机 bug）
@@ -505,6 +528,7 @@ public class MTECrustSteamBorer extends MTESteamMultiBlockBase<MTECrustSteamBore
     @Override
     public void saveNBTData(NBTTagCompound aNBT) {
         super.saveNBTData(aNBT);
+        aNBT.setDouble("mHeat", mHeat);
         aNBT.setInteger("mCurrentDimId", mCurrentDimId);
         aNBT.setBoolean("canMineInCurrentDim", canMineInCurrentDim);
         aNBT.setString("mLastOreName", mLastOreName);
@@ -516,6 +540,7 @@ public class MTECrustSteamBorer extends MTESteamMultiBlockBase<MTECrustSteamBore
         mCurrentDimId = aNBT.getInteger("mCurrentDimId");
         canMineInCurrentDim = aNBT.getBoolean("canMineInCurrentDim");
         mLastOreName = aNBT.getString("mLastOreName");
+        mHeat = aNBT.hasKey("mHeat") ? aNBT.getDouble("mHeat") : 0.0d;
         if (canMineInCurrentDim) {
             calculateDropMap();
         }
@@ -615,6 +640,9 @@ public class MTECrustSteamBorer extends MTESteamMultiBlockBase<MTECrustSteamBore
             EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.crust_borer.work_cycle")
                 + EnumChatFormatting.YELLOW
                 + (workTime / 20)
-                + "s" };
+                + "s",
+            EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.crust_borer.heat")
+                + EnumChatFormatting.GOLD
+                + String.format("%.1f%%", mHeat * 100) };
     }
 }
