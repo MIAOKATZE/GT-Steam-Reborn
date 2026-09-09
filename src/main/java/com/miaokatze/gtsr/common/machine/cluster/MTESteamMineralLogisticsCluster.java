@@ -1127,7 +1127,7 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
     // ==================== GUI 数据接口（E6 并行依赖，签名冻结） ====================
 
     /**
-     * 拓扑紧凑快照（E6 解码协议，30 槽 × 5 字节 = 150 字节）：槽序 = segment 升序 × pad 升序
+     * 拓扑紧凑快照（E6 解码协议，60 槽 × 5 字节 = 300 字节）：槽序 = segment 升序 × pad 升序
      * （{@link ClusterTopology#getSlots()} 顺序）。每槽 5 字节注册表以解码端（ClusterTerminalData
      * 冻结常量注释为准，S5b 随迁自旧 MUI2 轨同值副本）为准，编码端适配解码端：
      * <ul>
@@ -1463,6 +1463,20 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
     /** @return 增幅产出统计条目（格式同 {@link #getStatInputEntries()}）。 */
     public long[] getStatBonusEntries() {
         return sortedStatEntries(statBonus);
+    }
+
+    /**
+     * 清空分物品统计三账本并落盘（终端 CLEAR_STATS C2S 动作，S2b 新增）：statInput/statOutput/
+     * statBonus 三 Map 一起 clear。待回填的 bonus 增量缓冲（打包键 {@code (itemId<<32)|meta}）
+     * 为 ClusterChainExecutor 批内方法局部量（executeChainBatch 内新建、提交点同主线程同步经
+     * {@link #addStatBonusEntries} 并入，无跨 tick 持久结构），无旧缓冲回填残留问题，无需另清；
+     * markDirty 走类内既有惯例，确保清空结果整体重写 NBT 统计三复合（旧条目不残留）。
+     */
+    public void clearStats() {
+        statInput.clear();
+        statOutput.clear();
+        statBonus.clear();
+        markDirty();
     }
 
     /** 单条统计累计（ItemStack 入口）：取注册名 + damage 组条目键。 */

@@ -197,8 +197,7 @@ public final class ClusterTopology {
     /**
      * GUI 快照数据源：按 segment 升序、pad 升序产出全部槽位，每段恰 3 槽（含空槽），
      * 因此快照行数恒 = 段数 × 3 ≤ {@link #SLOT_COUNT}（满配 20 段恰 60 槽，全部可编码；
-     * 注意终端解码端 ClusterTerminalData.SLOT_COUNT 仍为冻结值 30，T10 扩段同步归主代理合并——
-     * 见切片 B manifest 报备）。
+     * 终端解码端 ClusterTerminalData.SLOT_COUNT 已同步为同值 60，S2b 注释核实修正）。
      * 每次调用新建列表副本，元素本身不可变，可安全跨 tick 持有；完整快照 DTO 归 GUI 批（E4/E6）。
      *
      * @return 槽位快照副本（只产出 segment &lt; {@link #getSegmentCount()} 的段）

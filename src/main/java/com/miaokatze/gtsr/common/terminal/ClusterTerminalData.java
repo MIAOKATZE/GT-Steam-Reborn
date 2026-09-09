@@ -62,7 +62,8 @@ import io.netty.buffer.Unpooled;
  * 8..12=8+BoosterType.ordinal()（并行/速度/主产物/副产物/节汽）、13=物流、255=占位未识别
  * （未运行加工/增幅，不得伪装空位）；errId 0=无、1=模块冲突、2=tier 不匹配、3=未关联集群、
  * 4=延伸断裂（结构级错误不编进快照，走 KEY_BREAK 独立通道）；linkId 物流槽=拓扑物流列表
- * （结构扫描序）下标 0..9，非物流槽与空槽=255。编码端为总控
+ * （结构扫描序）下标 0..19（每段 1 物流垫槽 × 段上限 20，S2b 注释核实修正：原文档 0..9 过期），
+ * 非物流槽与空槽=255。编码端为总控
  * {@link MTESteamMineralLogisticsCluster#buildTopologySnapshot()}（本类只透传字节）。
  *
  * <p>
@@ -80,11 +81,13 @@ import io.netty.buffer.Unpooled;
  * {@code LogisticsChain.fromOrdinalArray} 非空且 isValidStructure → setLinks 整表写入 +
  * markChainDirty（源实现无 notifyChainWritten 方法，脏清除由客户端 KEY_LE_CHAIN 快照追平承载）；
  * 任一步失败静默拒绝；</li>
+ * <li>CLEAR_STATS（S2b 尾追）：terminalValid → 集群总控 {@code clearStats()}（三账本清空 +
+ * markDirty 落盘）；复核失败静默拒绝；空 payload。</li>
  * <li>占位动作 APPEND_LINK/REMOVE_LINK/MOVE_LINK/CLEAR_CHAIN/APPLY_PRESET/TOGGLE_FORMULA：
  * 服务端一律拒绝（GUI 无入口）。</li>
  * </ul>
  * 客户端零回传计算结果纪律不变：线上参数只有索引与 ordinal（SELECT_LOGISTICS buf=[idx int]、
- * SAVE_CHAIN buf=[len int][ordinal int × len]、TOGGLE_POWER 空）。
+ * SAVE_CHAIN buf=[len int][ordinal int × len]、TOGGLE_POWER/CLEAR_STATS 空）。
  */
 public final class ClusterTerminalData {
 
@@ -229,6 +232,13 @@ public final class ClusterTerminalData {
 
     /** 槽位总数（ClusterTopology.SLOT_COUNT 同值；避免反向 import 语义耦合，数值冻结）。 */
     private static final int SLOT_COUNT = 60;
+
+    /**
+     * KEY_LE_AVAIL 位集编码上限 = 物流单元真实上界：每段恰 1 个物流垫槽（PAD_LOGISTICS）×
+     * 段数上限 20（ClusterTopology.MAX_SEGMENTS 同值）；int 位图 32 位界内，varint 编码无损。
+     * S2b 核实修正：原硬上限 10 为过期截断，第 10..19 个物流单元的可执行位被静默丢弃。
+     */
+    private static final int LE_AVAIL_MAX_UNITS = 20;
 
     /** 会话空闲复位阈值（tick）：超过视为新会话，缓存全量重建（首包全量键，等价旧轨 GUI 重开重建）。 */
     private static final long SESSION_GAP_TICKS = 40L;
@@ -493,12 +503,12 @@ public final class ClusterTerminalData {
         return 0;
     }
 
-    /** 物流模块可用性 bitset（bit i = units[i] 链当前可执行）。 */
+    /** 物流模块可用性 bitset（bit i = units[i] 链当前可执行；上限 {@link #LE_AVAIL_MAX_UNITS}=物流单元真实上界 20）。 */
     private static int encodeAvailBitset(MTESteamMineralLogisticsCluster cluster) {
         int bits = 0;
         List<MTEBasicLogisticsUnit> units = cluster.getTopology()
             .getLogisticsUnits();
-        for (int i = 0; i < units.size() && i < 10; i++) {
+        for (int i = 0; i < units.size() && i < LE_AVAIL_MAX_UNITS; i++) {
             if (units.get(i) != null && units.get(i)
                 .isChainExecutableNow()) bits |= (1 << i);
         }
@@ -886,7 +896,7 @@ public final class ClusterTerminalData {
                 if (buf.readableBytes() >= 4) chainPeak = buf.readInt();
                 break;
             default:
-                break; // TOGGLE_POWER：无参
+                break; // TOGGLE_POWER/CLEAR_STATS：无参
         }
         executeChecked(cluster, action, idx, chainOrdinals, chainPeak);
     }
@@ -935,6 +945,10 @@ public final class ClusterTerminalData {
                 unit.markChainDirty();
                 break;
             }
+            case CLEAR_STATS:
+                // S2b：terminalValid 已在方法头复核通过；清空三账本 + markDirty 落盘（空 payload 无参）
+                cluster.clearStats();
+                break;
             default:
                 break; // 占位动作已在上层拒绝；不可达
         }

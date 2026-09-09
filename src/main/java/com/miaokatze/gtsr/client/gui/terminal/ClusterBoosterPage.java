@@ -3,22 +3,15 @@ package com.miaokatze.gtsr.client.gui.terminal;
 import java.util.ArrayList;
 import java.util.List;
 
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.RenderHelper;
-import net.minecraft.client.renderer.entity.RenderItem;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumChatFormatting;
 
-import org.lwjgl.opengl.GL11;
-
-import com.gtnewhorizon.gtnhlib.util.numberformatting.NumberFormatUtil;
 import com.miaokatze.gtsr.client.gui.terminal.GuiClusterTerminalScreen.ClusterPage;
 import com.miaokatze.gtsr.client.terminal.ClusterTerminalClientCache;
 import com.miaokatze.gtsr.common.machine.cluster.ClusterParams;
 import com.miaokatze.gtsr.common.machine.cluster.ClusterParams.BoosterType;
 import com.miaokatze.gtsr.common.terminal.ClusterTerminalActions;
 import com.miaokatze.gtsr.common.terminal.ClusterTerminalData;
+import com.miaokatze.gtsr.common.util.GtsrNumFormat;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
@@ -26,7 +19,8 @@ import cpw.mods.fml.relauncher.SideOnly;
 /**
  * 集群终端·页 2「增幅」（terminal-native-ui N18；旧 MUI2 轨增幅视图（git 基线 b4fabb2）自绘移植，
  * 布局 1:1：六列表 y20..150（行高 15，列宽 148/30/54/86/42/190）/ 空状态提示行 y152 /
- * 2×3 汇总卡 y154..216（191×30）/ 规则两行 y224/234）。
+ * 2×3 汇总卡 y154..216（191×30）/ 规则两行 y224/234）。S3 起原内容区底部统计三栏迁独立第四页
+ * {@link ClusterStatsPage}，本页不再消费分物品统计串。
  *
  * <p>
  * 数据流：{@code KEY_BO_STRUCT}（结构字段 {@code typeOrdinal:tier:segment:flags}——结构 revision 界）、
@@ -50,12 +44,8 @@ final class ClusterBoosterPage implements ClusterPage {
     private static final int CELL_H = 30;
     private static final int CELL_GAP = 4;
     private static final int CELL_W = (582 - CELL_GAP * 2) / 3;
-    /** 规则两行（T10 压缩行距 10→7，为统计三栏让出内容区底部）。 */
+    /** 规则两行（T10 压缩行距 10→7；原腾挪出的统计三栏已迁独立第四页 {@link ClusterStatsPage}）。 */
     private static final int RULE_DY = SUMMARY_DY + CELL_H * 2 + CELL_GAP + 6;
-    /** 统计三栏（T10）：标题行 + 单行物品图标窗（242..258 收于内容区内；条目窗滚轮换页）。 */
-    private static final int STATS_DY = RULE_DY + 13;
-    private static final int STATS_H = GuiClusterTerminalScreen.CONTENT_H - STATS_DY;
-    private static final int ICON_PITCH = 17;
     /** 数据行高。 */
     private static final int ROW_H = 15;
     /** 列宽：模块/等级/特殊流体/供给/增益/状态。 */
@@ -67,8 +57,6 @@ final class ClusterBoosterPage implements ClusterPage {
     private final GuiClusterTerminalScreen host;
     /** 列表滚动偏移（自持）。 */
     private int scroll;
-    /** 统计三栏条目窗偏移（T10；自持，滚轮悬停统计栏时换页）。 */
-    private int statsOffset;
 
     ClusterBoosterPage(GuiClusterTerminalScreen host) {
         this.host = host;
@@ -90,7 +78,6 @@ final class ClusterBoosterPage implements ClusterPage {
         GuiClusterTerminalScreen.drawScaledText(font(), hintText(), ox, oy + HINT_DY, 0.6f, GtsrGuiPalette.TEXT_MUTED);
         drawSummary(ox, oy, mx, my);
         drawRules(ox, oy);
-        drawStats(ox, oy, mx, my, z);
     }
 
     private static void drawTableHeader(int ox, int oy) {
@@ -179,8 +166,8 @@ final class ClusterBoosterPage implements ClusterPage {
         String state = now[1] != 0 ? EnumChatFormatting.GREEN.toString() : EnumChatFormatting.RED.toString();
         GuiClusterTerminalScreen.drawScaledText(
             font(),
-            state + NumberFormatUtil.formatNumber(
-                now[0]) + " L " + EnumChatFormatting.WHITE + "· " + rateText(costLpsX10(rowIndex)) + " L/s",
+            state + GtsrNumFormat
+                .grouped(now[0]) + " L " + EnumChatFormatting.WHITE + "· " + rateText(costLpsX10(rowIndex)) + " L/s",
             supplyX,
             y + 4,
             0.65f,
@@ -366,114 +353,6 @@ final class ClusterBoosterPage implements ClusterPage {
         return EnumChatFormatting.GREEN + tr("gtsr.cluster.gui.boost.rule.ok");
     }
 
-    // ==================== 统计三栏（T10：KEY_STATS <in>|<out>|<bonus>，图标 + k/M 数量 + tooltip） ====================
-
-    /**
-     * 三栏统计（in/out/bonus 各占 CELL_W，网格复用汇总卡先例）：栏标题 + 单行物品图标窗
-     * （条目多于窗宽经滚轮换页，statsOffset 自持）；图标右下角 k/M 缩写数量；悬浮经宿主
-     * 500ms 通道出物品名+数量 tooltip。每帧重读 KEY_STATS（live 每帧重读纪律）。
-     */
-    private void drawStats(int ox, int oy, int mx, int my, float z) {
-        List<String[]> segments = statsSegments();
-        String[] titleKeys = { "gtsr.terminal.stats.in", "gtsr.terminal.stats.out", "gtsr.terminal.stats.bonus" };
-        int maxIcons = Math.max(1, (CELL_W - 2) / ICON_PITCH);
-        int maxOffset = 0;
-        for (String[] segment : segments) {
-            maxOffset = Math.max(maxOffset, segment.length - maxIcons);
-        }
-        if (this.statsOffset > maxOffset) this.statsOffset = Math.max(0, maxOffset);
-        if (this.statsOffset < 0) this.statsOffset = 0;
-        int iconY = oy + STATS_DY + 5;
-        for (int col = 0; col < 3 && col < segments.size(); col++) {
-            int x = ox + col * (CELL_W + CELL_GAP);
-            GuiClusterTerminalScreen.drawScaledText(
-                font(),
-                EnumChatFormatting.GOLD.toString() + EnumChatFormatting.BOLD + tr(titleKeys[col]),
-                x + 2,
-                oy + STATS_DY,
-                0.55f,
-                GtsrGuiPalette.TEXT_ACCENT);
-            String[] entries = segments.get(col);
-            int start = Math.min(this.statsOffset, entries.length);
-            int shown = Math.min(entries.length - start, maxIcons);
-            for (int i = 0; i < shown; i++) {
-                long[] parsed = parseStatEntry(entries[start + i]);
-                if (parsed == null) continue;
-                Item item = Item.getItemById((int) parsed[0]);
-                if (item == null) continue; // 注册表缺失条目跳过（防伪造/版本漂移）
-                ItemStack stack = new ItemStack(item, 1, (int) parsed[1]);
-                int ix = x + 2 + i * ICON_PITCH;
-                drawItemIcon(stack, ix, iconY, z);
-                String count = abbrevCount(parsed[2]);
-                int countW = GuiClusterTerminalScreen.scaledTextWidth(font(), count, 0.5f);
-                GuiClusterTerminalScreen.drawScaledText(
-                    font(),
-                    EnumChatFormatting.WHITE + count,
-                    ix + 16 - countW,
-                    iconY + 11,
-                    0.5f,
-                    GtsrGuiPalette.TEXT_WHITE);
-                if (mx >= ix && mx < ix + 16 && my >= iconY && my < iconY + 16) {
-                    List<String> tip = new ArrayList<String>();
-                    tip.add(EnumChatFormatting.WHITE + stack.getDisplayName());
-                    tip.add(EnumChatFormatting.GRAY + "×" + NumberFormatUtil.formatNumber(parsed[2]));
-                    this.host.requestTooltip("stat" + col + ":" + (start + i), tip);
-                }
-            }
-        }
-    }
-
-    /** KEY_STATS 三段拆分（缺段补空数组；段内 CSV 条目保序）。 */
-    private static List<String[]> statsSegments() {
-        List<String[]> out = new ArrayList<>();
-        String[] parts = getStats().split("\\|", -1);
-        for (int i = 0; i < 3; i++) {
-            String segment = i < parts.length ? parts[i] : "";
-            out.add(segment.isEmpty() ? new String[0] : segment.split(",", -1));
-        }
-        return out;
-    }
-
-    /** 条目 {@code itemId:meta:count} 解析（畸形回 null）。 */
-    private static long[] parseStatEntry(String entry) {
-        String[] fields = entry.split(":", -1);
-        if (fields.length != 3) return null;
-        try {
-            return new long[] { Long.parseLong(fields[0].trim()), Long.parseLong(fields[1].trim()),
-                Long.parseLong(fields[2].trim()) };
-        } catch (NumberFormatException e) {
-            return null;
-        }
-    }
-
-    /** 数量缩写（<1000 原样；k/M 一位小数去尾零；右下角 0.5f 小字口径）。 */
-    private static String abbrevCount(long count) {
-        if (count >= 1_000_000L) return trim1(count / 1_000_000.0D) + "M";
-        if (count >= 1000L) return trim1(count / 1000.0D) + "k";
-        return String.valueOf(count);
-    }
-
-    private static String trim1(double value) {
-        return Math.abs(value - Math.rint(value)) < 0.05D ? String.valueOf((long) Math.rint(value))
-            : String.format("%.1f", value);
-    }
-
-    /** 物品图标渲染（GuiTerminalBase.renderItemIcon 同款：GUI 标准光照 + 画完复位顶点色；页非 GuiScreen 子类故自持 RenderItem）。 */
-    private static void drawItemIcon(ItemStack stack, int x, int y, float z) {
-        RenderItem renderItem = RenderItem.getInstance();
-        RenderHelper.enableGUIStandardItemLighting();
-        renderItem.zLevel = z;
-        renderItem.renderItemAndEffectIntoGUI(
-            font0(),
-            Minecraft.getMinecraft()
-                .getTextureManager(),
-            stack,
-            x,
-            y);
-        RenderHelper.disableStandardItemLighting();
-        GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
-    }
-
     // ==================== 快照解析 ====================
 
     /**
@@ -560,7 +439,7 @@ final class ClusterBoosterPage implements ClusterPage {
         sb.append(EnumChatFormatting.WHITE)
             .append(tr("gtsr.cluster.gui.boost.cost.base"))
             .append(' ')
-            .append(NumberFormatUtil.formatNumber(cost[1]))
+            .append(GtsrNumFormat.grouped(cost[1]))
             .append(" × (1");
         for (int i = 2; i + 2 < cost.length; i += 3) {
             int pct = cost[i], tier = cost[i + 1], typeOrdinal = cost[i + 2];
@@ -635,12 +514,6 @@ final class ClusterBoosterPage implements ClusterPage {
      */
     @Override
     public boolean mouseClicked(int ox, int oy, int mx, int my, int button) {
-        // 统计三栏（T10）：只读，区内点击一律消费防穿透
-        if (mx >= ox && mx < ox + GuiClusterTerminalScreen.CONTENT_W
-            && my >= oy + STATS_DY
-            && my < oy + STATS_DY + STATS_H) {
-            return true;
-        }
         List<int[]> rows = structRows();
         int row = (my - (oy + LIST_DY)) / ROW_H + this.scroll;
         if (mx >= ox && mx < ox + GuiClusterTerminalScreen.CONTENT_W
@@ -662,13 +535,6 @@ final class ClusterBoosterPage implements ClusterPage {
 
     @Override
     public void wheel(int ox, int oy, int mx, int my, int dir) {
-        // 统计三栏条目窗（T10）：悬停统计栏时滚轮换页（MC 标准方向，与 GtsrGuiList.handleWheel 同号）
-        if (mx >= ox && mx < ox + GuiClusterTerminalScreen.CONTENT_W
-            && my >= oy + STATS_DY
-            && my < oy + STATS_DY + STATS_H) {
-            this.statsOffset -= dir;
-            return;
-        }
         if (mx >= ox && mx < ox + GuiClusterTerminalScreen.CONTENT_W
             && my >= oy
             && my < oy + GuiClusterTerminalScreen.CONTENT_H) {
@@ -694,10 +560,5 @@ final class ClusterBoosterPage implements ClusterPage {
 
     private static String tr(String key) {
         return GuiClusterTerminalScreen.tr(key);
-    }
-
-    /** S1 统计串只读（cl.stats；缺包回空串）。 */
-    private static String getStats() {
-        return ClusterTerminalClientCache.getStats("");
     }
 }

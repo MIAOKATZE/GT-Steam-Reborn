@@ -10,7 +10,6 @@ import net.minecraft.util.StatCollector;
 
 import org.lwjgl.opengl.GL11;
 
-import com.gtnewhorizon.gtnhlib.util.numberformatting.NumberFormatUtil;
 import com.miaokatze.gtsr.client.gui.terminal.GuiClusterTerminalScreen.ClusterPage;
 import com.miaokatze.gtsr.client.terminal.ClusterTerminalClientCache;
 import com.miaokatze.gtsr.common.machine.cluster.ChainLink;
@@ -20,6 +19,7 @@ import com.miaokatze.gtsr.common.machine.cluster.ClusterParams;
 import com.miaokatze.gtsr.common.machine.cluster.LogisticsChain;
 import com.miaokatze.gtsr.common.terminal.ClusterTerminalActions;
 import com.miaokatze.gtsr.common.terminal.ClusterTerminalData;
+import com.miaokatze.gtsr.common.util.GtsrNumFormat;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
@@ -28,7 +28,11 @@ import io.netty.buffer.Unpooled;
 /**
  * 集群终端·页 1「链路」（terminal-native-ui N17；旧 MUI2 轨链路视图（git 基线 b4fabb2）自绘移植，
  * 布局 1:1：顶行 y0..14（下拉 200×14 + 两级横幅）/ 左列 x0..272（可用链 10 行 ×34 + 底部反馈行
- * y246 钉底）/ 右列 x280..582（chips 区 88 高 + FSM 推演条 120..146 + 性能组 146 起））。
+ * y246 钉底）/ 右列 x280..582（chips 区 88 高 + FSM 推演条 120..146 + 链路详情组 146 起））。
+ *
+ * <p>
+ * <b>链路详情区（S2 手术后）</b>：五行摘要（耗时/并行/吞吐/链蒸汽耗/公式）+ 链范围详情行
+ * LINK/LOGI/PEAK；FLUID/LUBE/BOOST 与总蒸汽耗迁第五页性能页，本页不再展示。
  *
  * <p>
  * <b>FSM 整体移植</b>（删前逐函数对照旧 MUI2 轨链路视图，语义逐字、绘制轨适配）：
@@ -89,11 +93,11 @@ final class ClusterLinkEditorPage implements ClusterPage {
     private GtsrGuiList linksList;
     /** 可用链列表几何快照。 */
     private int linksListLeft, linksListTop, linksListWidth, linksListHeight;
-    /** 性能详情滚动列表（T6：旧 6 行直绘迁移至 GtsrGuiList，行高 11）。 */
+    /** 性能详情滚动列表（T6：五行摘要直绘迁移至 GtsrGuiList，行高 11）。 */
     private GtsrGuiList perfList;
     /** 性能详情列表几何快照。 */
     private int perfListLeft, perfListTop, perfListWidth, perfListHeight;
-    /** 本帧性能详情行（draw 每帧重建：旧 6 行头部 + KEY_F_DETAIL 令牌行；live 每帧重读纪律）。 */
+    /** 本帧性能详情行（draw 每帧重建：五行摘要头部 + KEY_F_DETAIL 令牌行；live 每帧重读纪律）。 */
     private List<String> perfFrameLines = Collections.emptyList();
     /** chips 滚动偏移（自持）。 */
     private int chipsScroll;
@@ -582,7 +586,12 @@ final class ClusterLinkEditorPage implements ClusterPage {
         return Math.min(UNITS_CHIP_MAX_W, (RIGHT_W - UNITS_LABEL_W - 4) / unitCount);
     }
 
-    /** 全物流单元链摘要（KEY_LE_CHAINS 每帧解析：unitIdx/len/peak；len=0 时 peak=-1，畸形条目跳过）。 */
+    /**
+     * 全物流单元链摘要（KEY_LE_CHAINS 每帧解析：unitIdx/len/peak；len=0 时 peak=-1，畸形条目跳过）。
+     * S2b 修复：peak 字段含服务端 encodeChains 的 ordinal 尾巴 {@code peak.o1.o2...}（主产物单峰），
+     * 只取首个 '.' 前的整数前缀（{@link #parseLeadingInt}）——不再对 {@code "1.5.3"} 整数解析抛
+     * NumberFormatException 而整条丢弃 len ≥ 1 链条目（单元 chips 与快照峰步同源受益）。
+     */
     private static List<int[]> leChainSummaries() {
         List<int[]> out = new ArrayList<>();
         String encoded = getLeChains();
@@ -593,12 +602,30 @@ final class ClusterLinkEditorPage implements ClusterPage {
             try {
                 out.add(
                     new int[] { Integer.parseInt(fields[0].trim()), Integer.parseInt(fields[1].trim()),
-                        Integer.parseInt(fields[2].trim()) });
+                        parseLeadingInt(fields[2].trim()) });
             } catch (NumberFormatException ignored) {
-                // 畸形条目跳过
+                // 畸形条目跳过（unitIdx/len 仍整数解析；peak 由 helper 兜底）
             }
         }
         return out;
+    }
+
+    /**
+     * 首个非数字字符前的整数前缀（兼容负号与 {@code "1.5.3"} 型 ordinal 尾巴；无有效数字前缀回 -1）。
+     * KEY_LE_CHAINS peak 段专用：len=0 条目的 {@code "-1"} 原样透传为 -1，与「无前缀」哨兵同值——
+     * 消费端（snapshotPeakIndex/chips tooltip）对 peak 已有 max(0,·)/len 门控，哨兵回落无副作用。
+     */
+    private static int parseLeadingInt(String raw) {
+        if (raw == null || raw.isEmpty()) return -1;
+        int start = raw.charAt(0) == '-' ? 1 : 0;
+        int end = start;
+        while (end < raw.length() && raw.charAt(end) >= '0' && raw.charAt(end) <= '9') end++;
+        if (end == start) return -1;
+        try {
+            return Integer.parseInt(raw.substring(0, end));
+        } catch (NumberFormatException ignored) {
+            return -1;
+        }
     }
 
     /**
@@ -617,7 +644,7 @@ final class ClusterLinkEditorPage implements ClusterPage {
         return this.stagingDirty ? this.stagedPeakIndex : snapshotPeakIndex();
     }
 
-    // ==================== 性能详情滚动列表（T6：旧 6 行头部 + KEY_F_DETAIL 令牌行） ====================
+    // ==================== 链路详情滚动列表（五行摘要 耗时/并行/吞吐/链蒸汽耗/公式 + KEY_F_DETAIL 令牌行） ====================
 
     /** 性能详情列表（惰性重建：几何与 linksList 同款快照比对；行高 11）。 */
     private void ensurePerfList(int left, int top, int width, int height) {
@@ -645,7 +672,7 @@ final class ClusterLinkEditorPage implements ClusterPage {
         });
     }
 
-    /** 详情行集（每帧重建）：旧 6 行（TIME/PAR/THRU/STEAM/TOTAL/FORMULA 令牌 S1 未输出，沿用旧键文案）前置于 KEY_F_DETAIL 令牌行。 */
+    /** 详情行集（每帧重建）：链路五行摘要（TIME/PAR/THRU/STEAM/FORMULA）前置于 KEY_F_DETAIL 令牌行（LINK/LOGI/PEAK）。 */
     private List<String> buildPerfDetailLines() {
         List<String> out = new ArrayList<>();
         Collections.addAll(out, perfLines());
@@ -661,7 +688,8 @@ final class ClusterLinkEditorPage implements ClusterPage {
 
     /**
      * 单详情行本地化（行首令牌分发；{@code |} 分行、{@code :} 分段，畸形行返回 null 丢弃）：
-     * LINK/LOGI/FLUID/LUBE(cluster|logi)/BOOST/PEAK → gtsr.terminal.f.detail.* 键。
+     * LINK/LOGI/PEAK → gtsr.terminal.f.detail.* 键；FLUID/LUBE/BOOST 迁第五页性能页（本页不再消费），
+     * payload 中残留的集群级令牌走 default 丢弃，前向兼容语义不变。
      */
     private static String formatDetailRow(String row) {
         if (row == null || row.isEmpty()) return null;
@@ -679,28 +707,6 @@ final class ClusterLinkEditorPage implements ClusterPage {
                 case "LOGI": {
                     if (f.length < 3) return null;
                     return EnumChatFormatting.GREEN + String.format(tr("gtsr.terminal.f.detail.logi"), x100Text(f[2]));
-                }
-                case "FLUID": {
-                    if (f.length < 3) return null;
-                    // 流体注册名可含 ':'：名称取首尾定界之间，末段恒为数量
-                    String fluidName = row.substring(row.indexOf(':') + 1, row.lastIndexOf(':'));
-                    return EnumChatFormatting.GREEN + String.format(
-                        tr("gtsr.terminal.f.detail.fluid"),
-                        fluidName,
-                        NumberFormatUtil.formatNumber(Long.parseLong(f[f.length - 1].trim())));
-                }
-                case "LUBE": {
-                    if (f.length < 3) return null;
-                    String key = "logi".equals(f[1]) ? "gtsr.terminal.f.detail.lube.logi"
-                        : "gtsr.terminal.f.detail.lube.cluster";
-                    return EnumChatFormatting.GREEN + String.format(tr(key), x100Text(f[2]));
-                }
-                case "BOOST": {
-                    if (f.length < 3) return null;
-                    return EnumChatFormatting.GREEN + String.format(
-                        tr("gtsr.terminal.f.detail.boost"),
-                        boosterLabel(Integer.parseInt(f[1].trim())),
-                        x100Text(f[2]));
                 }
                 case "PEAK": {
                     if (f.length < 2) return null;
@@ -723,14 +729,6 @@ final class ClusterLinkEditorPage implements ClusterPage {
         } catch (NumberFormatException ignored) {
             return "0.00";
         }
-    }
-
-    /** 增幅类型序号 → 本地名（越界回退并行型，与 boosterType 防御口径一致）。 */
-    private static String boosterLabel(int typeOrdinal) {
-        ClusterParams.BoosterType[] values = ClusterParams.BoosterType.values();
-        ClusterParams.BoosterType type = typeOrdinal >= 0 && typeOrdinal < values.length ? values[typeOrdinal]
-            : ClusterParams.BoosterType.PARALLEL;
-        return tr(type.getLangKey());
     }
 
     /** 小型 chip 按钮（42×12 保存/清空钮；hover 亮态）。 */
@@ -879,13 +877,12 @@ final class ClusterLinkEditorPage implements ClusterPage {
             + (terminal ? " ✓" + tr("gtsr.gui.cluster.chain.preview_terminal") : "");
     }
 
-    /** 性能详情 6 行（常驻 ×100 定点真值：耗时/并行/吞吐/本链蒸汽/总蒸汽/实际加权公式；每帧重读）。 */
+    /** 性能详情 5 行（常驻 ×100 定点真值：耗时/并行/吞吐/链蒸汽耗/实际加权公式；每帧重读；总蒸汽耗迁第五页性能页）。 */
     private String[] perfLines() {
         int timeRaw = ClusterTerminalClientCache.getInt(ClusterTerminalData.KEY_F_TIME, 0);
         int parRaw = ClusterTerminalClientCache.getInt(ClusterTerminalData.KEY_F_PAR, 0);
         int thruRaw = ClusterTerminalClientCache.getInt(ClusterTerminalData.KEY_F_THRU, 0);
         int steamRaw = ClusterTerminalClientCache.getInt(ClusterTerminalData.KEY_F_STEAM, 0);
-        int totalRaw = ClusterTerminalClientCache.getInt(ClusterTerminalData.KEY_F_TOTAL, 0);
         String formula = ClusterTerminalClientCache.getStr(ClusterTerminalData.KEY_F_FORMULA, "0 L/s");
         return new String[] {
             EnumChatFormatting.YELLOW + tr("gtsr.cluster.gui.link.perf.time")
@@ -905,12 +902,7 @@ final class ClusterLinkEditorPage implements ClusterPage {
                 + tr("gtsr.cluster.gui.card.thru.unit"),
             EnumChatFormatting.YELLOW + tr("gtsr.cluster.gui.link.perf.steam")
                 + " = "
-                + NumberFormatUtil.formatNumber(steamRaw)
-                + " L/s",
-            EnumChatFormatting.YELLOW + tr("gtsr.cluster.gui.link.perf.steam_total")
-                + " = "
-                + EnumChatFormatting.RED
-                + NumberFormatUtil.formatNumber(totalRaw)
+                + GtsrNumFormat.grouped(Math.round(steamRaw / 100.0D))
                 + " L/s",
             EnumChatFormatting.YELLOW + tr("gtsr.gui.cluster.link.perf.formula")
                 + " = "

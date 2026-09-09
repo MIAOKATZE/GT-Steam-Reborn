@@ -40,5 +40,10 @@ public enum ClusterTerminalActions {
     TOGGLE_FORMULA,
 
     /** 整链保存（buf=[len][ordinals...]）。暂存保存流程的唯一链写入入口；服务端终态复核通过后整表写入。 */
-    SAVE_CHAIN
+    SAVE_CHAIN,
+
+    /**
+     * 清空分物品统计三账本（S2b 尾追；空 payload）。服务端 terminalValid 复核通过后清空 statInput/statOutput/statBonus 并 markDirty 落盘，复核失败静默拒绝。
+     */
+    CLEAR_STATS
 }

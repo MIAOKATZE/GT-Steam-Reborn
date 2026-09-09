@@ -11,13 +11,13 @@ import net.minecraft.util.StatCollector;
 
 import org.lwjgl.opengl.GL11;
 
-import com.gtnewhorizon.gtnhlib.util.numberformatting.NumberFormatUtil;
 import com.miaokatze.gtsr.client.terminal.ClusterTerminalClientCache;
 import com.miaokatze.gtsr.common.machine.cluster.ClusterParams;
 import com.miaokatze.gtsr.common.machine.cluster.MTESteamMineralLogisticsCluster;
 import com.miaokatze.gtsr.common.terminal.ClusterTerminalActions;
 import com.miaokatze.gtsr.common.terminal.ClusterTerminalData;
 import com.miaokatze.gtsr.common.terminal.TerminalUiType;
+import com.miaokatze.gtsr.common.util.GtsrNumFormat;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
@@ -33,9 +33,11 @@ import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
  * 运行状态（未成型灰/停机灰/预热橙/运行绿）+ 电源钮 56×20 右部（点击发 TOGGLE_POWER）；</li>
  * <li>四卡区 y18-58：蒸汽/润滑/热量/吞吐 4×142×32 内嵌卡（数值每帧读缓存；蒸汽/润滑异常
  * 红字+⚠ 三重编码与旧轨一致）；</li>
- * <li>左页签轨 x2-30：3 页签 28×28（tab_active/inactive）竖排，点击切页；</li>
- * <li>内容区 x32,y62,582×258：三页填充（{@link ClusterTopologyPage}/
- * {@link ClusterLinkEditorPage}/{@link ClusterBoosterPage}，构造期注入、每帧自绘）；</li>
+ * <li>左页签轨 x2-30：5 页签 28×28（tab_active/inactive）竖排（0=拓扑/1=链路/2=增幅/3=统计/4=性能），
+ * 点击切页；</li>
+ * <li>内容区 x32,y62,582×258：五页填充（{@link ClusterTopologyPage}/
+ * {@link ClusterLinkEditorPage}/{@link ClusterBoosterPage}/{@link ClusterStatsPage}/
+ * {@link ClusterPerfPage}，构造期注入、每帧自绘）；</li>
  * <li>底栏 y324-338：运行提示/异常摘要（chip_normal/chip_active + 灰字/红字，优先级与旧
  * footbarText 一致）。</li>
  * </ul>
@@ -64,7 +66,7 @@ public class GuiClusterTerminalScreen extends GuiTerminalBase {
     private static final int CARD_H = 32;
     private static final int CARD_GAP = 4;
     private static final int CARDS_X0 = CONTENT_X;
-    /** 页签轨（x 2..30）：3 页签 28×28 竖排。 */
+    /** 页签轨（x 2..30）：5 页签 28×28 竖排。 */
     private static final int TAB_X = 2;
     private static final int TAB_Y = CONTENT_Y;
     private static final int TAB_SIZE = 28;
@@ -75,9 +77,9 @@ public class GuiClusterTerminalScreen extends GuiTerminalBase {
     private static final int POWER_BTN_W = 56;
     private static final int POWER_BTN_H = 20;
     private static final int POWER_BTN_ID = 100;
-    /** 页签 lang key（0=拓扑 / 1=链路 / 2=增幅）。 */
+    /** 页签 lang key（0=拓扑 / 1=链路 / 2=增幅 / 3=统计 / 4=性能）。 */
     private static final String[] TAB_LANG_KEYS = { "gtsr.cluster.gui.tab.topology", "gtsr.cluster.gui.tab.links",
-        "gtsr.cluster.gui.tab.boosters" };
+        "gtsr.cluster.gui.tab.boosters", "gtsr.cluster.gui.tab.stats", "gtsr.cluster.gui.tab.perf" };
     /** tier 徽章真彩点（青铜/钢/钛/钨钢 + 未成型灰；旧 TIER_BADGE_DOTS 同值）。 */
     private static final int[] TIER_BADGE_COLORS = { 0xFFC87E3B, 0xFFC2C8D0, 0xFF8EA2C8, 0xFF6E7F8C, 0xFF6E6E6E };
     /** 卡底深色（#26262B，禁纯黑；旧 CARD_BG_ARGB 同值）。 */
@@ -87,11 +89,13 @@ public class GuiClusterTerminalScreen extends GuiTerminalBase {
 
     // ==================== 状态 ====================
 
-    /** 当前页（初始随 open 包 initialPage；钳 0..2）。 */
+    /** 当前页（初始随 open 包 initialPage；钳 0..4）。 */
     private int activePage;
     private final ClusterTopologyPage topologyPage;
     private final ClusterLinkEditorPage linkEditorPage;
     private final ClusterBoosterPage boosterPage;
+    private final ClusterStatsPage statsPage;
+    private final ClusterPerfPage perfPage;
     private GuiButton powerButton;
     /** 页内 tooltip 延迟登记（页绘制在内容区剪刀内，出剪后再统一画，避免被裁剪）。 */
     private Object pendingTipKey;
@@ -99,10 +103,12 @@ public class GuiClusterTerminalScreen extends GuiTerminalBase {
 
     public GuiClusterTerminalScreen(int x, int y, int z, int dim, int initialPage) {
         super(x, y, z, dim);
-        this.activePage = Math.max(0, Math.min(2, initialPage));
+        this.activePage = Math.max(0, Math.min(4, initialPage));
         this.topologyPage = new ClusterTopologyPage(this);
         this.linkEditorPage = new ClusterLinkEditorPage(this);
         this.boosterPage = new ClusterBoosterPage(this);
+        this.statsPage = new ClusterStatsPage(this);
+        this.perfPage = new ClusterPerfPage(this);
     }
 
     // ==================== GuiTerminalBase 差异点 ====================
@@ -241,6 +247,12 @@ public class GuiClusterTerminalScreen extends GuiTerminalBase {
                 return this.topologyPage;
             case 1:
                 return this.linkEditorPage;
+            case 2:
+                return this.boosterPage;
+            case 3:
+                return this.statsPage;
+            case 4:
+                return this.perfPage;
             default:
                 return this.boosterPage;
         }
@@ -274,7 +286,7 @@ public class GuiClusterTerminalScreen extends GuiTerminalBase {
         drawTitleBar();
         drawTopCards();
         drawTabs();
-        // 内容区：剪刀内自绘三页之一
+        // 内容区：剪刀内自绘五页之一
         final int ox = contentOriginX();
         final int oy = contentOriginY();
         this.pendingTipKey = null;
@@ -393,14 +405,13 @@ public class GuiClusterTerminalScreen extends GuiTerminalBase {
         // 卡 4：吞吐（真实矿/s + 累计小字）
         int thruX = CARDS_X0 + (CARD_W + CARD_GAP) * 3;
         long thru = ClusterTerminalClientCache.getInt(ClusterTerminalData.KEY_THRU, 0);
-        String thruText = (thru > 0 ? EnumChatFormatting.GREEN : EnumChatFormatting.WHITE)
-            + NumberFormatUtil.formatNumber(thru)
+        String thruText = (thru > 0 ? EnumChatFormatting.GREEN : EnumChatFormatting.WHITE) + GtsrNumFormat.grouped(thru)
             + " "
             + tr("gtsr.cluster.gui.card.thru.unit");
         drawScaledText(font, thruText, this.guiLeft + thruX + 3, y0, 0.9f, GtsrGuiPalette.TEXT_WHITE);
         String totalText = EnumChatFormatting.WHITE + String.format(
             tr("gtsr.cluster.gui.card.thru.total"),
-            NumberFormatUtil.formatNumber(ClusterTerminalClientCache.getLong(ClusterTerminalData.KEY_TOTAL, 0L)));
+            GtsrNumFormat.grouped(ClusterTerminalClientCache.getLong(ClusterTerminalData.KEY_TOTAL, 0L)));
         drawScaledText(
             font,
             totalText,
@@ -414,7 +425,7 @@ public class GuiClusterTerminalScreen extends GuiTerminalBase {
     private String rateLine(String valueKey, int supplyBit, String shortKey) {
         int value = ClusterTerminalClientCache.getInt(valueKey, 0);
         boolean alert = (ClusterTerminalClientCache.getInt(ClusterTerminalData.KEY_SUPPLY, 0) & supplyBit) != 0;
-        String number = NumberFormatUtil.formatNumber(value);
+        String number = GtsrNumFormat.grouped(value);
         if (alert) {
             return EnumChatFormatting.RED + "\u26a0 "
                 + EnumChatFormatting.BOLD
@@ -428,7 +439,7 @@ public class GuiClusterTerminalScreen extends GuiTerminalBase {
         return EnumChatFormatting.WHITE + number + " " + tr("gtsr.cluster.gui.card.unit.lps");
     }
 
-    // —— 左页签轨（3×28×28 竖排） ——
+    // —— 左页签轨（5×28×28 竖排） ——
 
     private void drawTabs() {
         for (int i = 0; i < TAB_LANG_KEYS.length; i++) {
