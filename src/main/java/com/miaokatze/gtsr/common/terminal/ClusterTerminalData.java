@@ -889,18 +889,28 @@ public final class ClusterTerminalData {
             .itemTimeSec(selectedLinks(cluster), tierIdx(cluster), cluster.getTopology(), boosterSnapshot(cluster));
     }
 
-    /** 实际加权公式文本：分步蒸汽×有效耗时权重，数值与 ExecutionPlan.chainSteamLps 同源。 */
+    /** 实际加权公式文本：分步蒸汽×有效耗时权重，并展开模块数、增幅惩罚与节汽折扣。 */
     private static String formulaText(MTESteamMineralLogisticsCluster cluster) {
         List<ChainLink> links = selectedLinks(cluster);
         int tier = tierIdx(cluster);
         if (links == null || links.isEmpty()) return "0 L/s";
+        ClusterTopology topology = cluster.getTopology();
+        BoosterState booster = boosterSnapshot(cluster);
         double weighted = 0.0;
         double weights = 0.0;
         StringBuilder terms = new StringBuilder();
         for (ChainLink link : links) {
             if (link == null) continue;
-            double seconds = link.getBaseTicks() * ClusterParams.TIER_TIME_FACTOR[tier] / ChainLink.TICKS_PER_SECOND;
-            double steam = link.getBaseSteamLps();
+            int[] stat = enabledUnitStats(topology, link.getRequiredUnitClass());
+            int unitTier = Math.max(0, Math.min(stat[1], ClusterParams.TIER_COUNT - 1));
+            double seconds = Math.max(
+                0.2D,
+                link.getBaseTicks() * ClusterParams.TIER_TIME_FACTOR[tier]
+                    / Math.max(1, stat[0])
+                    / ClusterParams.PROCESSING_UNIT_TIME_DIVISOR[unitTier])
+                / ChainLink.TICKS_PER_SECOND;
+            double steam = link.getBaseSteamLps() * ClusterParams.PROCESSING_UNIT_STEAM_MULT[unitTier]
+                * Math.max(1, stat[0]);
             weighted += steam * seconds;
             weights += seconds;
             if (terms.length() > 0) terms.append(" + ");
@@ -908,10 +918,23 @@ public final class ClusterTerminalData {
                 .append("×")
                 .append(Math.round(seconds * 20.0D));
         }
-        double result = weights <= 0.0 ? 0.0 : weighted / weights;
+        double raw = weights <= 0.0 ? 0.0 : weighted / weights;
+        double saver = booster.getSaverBonusEffective();
+        double result = raw * booster.getPenaltyProduct() * (1.0D - saver);
+        int moduleCount = 0;
+        for (MTEBasicLogisticsUnit unit : topology.getLogisticsUnits()) {
+            if (unit != null && unit.isModuleEnabled()) moduleCount++;
+        }
         return terms.append("/")
             .append(Math.round(weights * 20.0D))
-            .append("t = ")
+            .append("t")
+            .append("; N=")
+            .append(moduleCount)
+            .append("; penalty×")
+            .append(String.format(Locale.ROOT, "%.2f", booster.getPenaltyProduct()))
+            .append("; saver-")
+            .append(String.format(Locale.ROOT, "%.0f%%", saver * 100.0D))
+            .append("; = ")
             .append(String.format(Locale.ROOT, "%.0f", result))
             .append(" L/s")
             .toString();

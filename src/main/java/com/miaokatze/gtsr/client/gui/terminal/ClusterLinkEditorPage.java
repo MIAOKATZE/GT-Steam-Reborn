@@ -149,23 +149,35 @@ final class ClusterLinkEditorPage implements ClusterPage {
         // 两级横幅（恒渲染单行动态）：结构有效（FSM 终态）+ 当前可执行（服务端逐 link 查询 + 失败步）
         GuiClusterTerminalScreen
             .drawScaledText(font(), bannerText(), ox + DROPDOWN_W + 12, oy + 2, 0.75f, GtsrGuiPalette.TEXT_BODY);
-        // 展开的选项菜单（页剪刀内，向下展开）
-        if (this.dropdownOpen) {
-            int unitCount = unitSegments().length;
-            int optionCount = Math.max(1, unitCount);
-            for (int i = 0; i < optionCount; i++) {
-                int myY = oy + 16 + i * 13;
-                GuiClusterTerminalScreen.fillRect(ox, myY, DROPDOWN_W, 12, this.host.zLevel(), 0xF0202024);
-                GuiClusterTerminalScreen.drawScaledText(
-                    font(),
-                    GtsrGuiList
-                        .ellipsis(font(), formatUnitOption(i >= unitCount ? -1 : i), (int) ((DROPDOWN_W - 8) / 0.7f)),
-                    ox + 4,
-                    myY + 3,
-                    0.7f,
-                    GtsrGuiPalette.TEXT_BODY);
-            }
+        // 展开菜单由宿主在内容区剪裁结束后绘制，避免被内容列表覆盖或剪裁。
+    }
+
+    /** 下拉浮层：必须在宿主 popScissor 后绘制，保持顶层且不受内容区高度限制。 */
+    void drawDropdownOverlay(int ox, int oy, float z) {
+        if (!this.dropdownOpen) return;
+        int unitCount = unitSegments().length;
+        int optionCount = Math.max(1, unitCount);
+        for (int i = 0; i < optionCount; i++) {
+            int myY = oy + 16 + i * 13;
+            GuiClusterTerminalScreen.fillRect(ox, myY, DROPDOWN_W, 12, z, 0xF0202024);
+            GuiClusterTerminalScreen.drawScaledText(
+                font(),
+                GtsrGuiList
+                    .ellipsis(font(), formatUnitOption(i >= unitCount ? -1 : i), (int) ((DROPDOWN_W - 8) / 0.7f)),
+                ox + 4,
+                myY + 3,
+                0.7f,
+                GtsrGuiPalette.TEXT_BODY);
         }
+    }
+
+    /** 下拉浮层命中范围可能超出内容区，供宿主放宽输入门槛。 */
+    boolean isDropdownOpen() {
+        return this.dropdownOpen;
+    }
+
+    int dropdownBottom(int oy) {
+        return oy + 16 + Math.max(1, unitSegments().length) * 13;
     }
 
     private int selectedDisplayIndex() {
@@ -1094,9 +1106,13 @@ final class ClusterLinkEditorPage implements ClusterPage {
 
     @Override
     public boolean mouseClicked(int ox, int oy, int mx, int my, int button) {
-        boolean inPage = mx >= ox && mx < ox + GuiClusterTerminalScreen.CONTENT_W
+        boolean inDropdown = this.dropdownOpen && mx >= ox
+            && mx < ox + DROPDOWN_W
             && my >= oy
-            && my < oy + GuiClusterTerminalScreen.CONTENT_H;
+            && my < dropdownBottom(oy);
+        boolean inPage = inDropdown || (mx >= ox && mx < ox + GuiClusterTerminalScreen.CONTENT_W
+            && my >= oy
+            && my < oy + GuiClusterTerminalScreen.CONTENT_H);
         if (!inPage) return false;
         // 下拉菜单：展开时选项命中优先，其次页内任意点击收起
         if (this.dropdownOpen) {

@@ -288,6 +288,8 @@ final class ClusterPerfPage implements ClusterPage {
             + "· "
             + tr("gtsr.terminal.perf.caliber.formula");
         entry.expansion.add(tr("gtsr.terminal.perf.exp.steam.head"));
+        String formula = ClusterTerminalClientCache.getStr(ClusterTerminalData.KEY_F_FORMULA, "");
+        if (!formula.isEmpty()) entry.expansion.add(formula);
         if (frame.linkSteps.isEmpty()) {
             entry.expansion.add("--"); // 无链步：未选中单元/空链/旧服务端——降级占位
         } else {

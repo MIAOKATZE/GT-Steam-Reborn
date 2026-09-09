@@ -294,6 +294,9 @@ public class GuiClusterTerminalScreen extends GuiTerminalBase {
         pushScissor(ox, oy, CONTENT_W, CONTENT_H);
         pageFor(this.activePage).draw(ox, oy, mouseX, mouseY, z);
         popScissor();
+        if (this.activePage == 1) {
+            this.linkEditorPage.drawDropdownOverlay(ox, oy, z);
+        }
         drawFootbar();
         // 电源钮标签随 KEY_ENABLED 每帧联动，再画原版按钮列表
         this.powerButton.displayString = ClusterTerminalClientCache.getBool(ClusterTerminalData.KEY_ENABLED, false)
