@@ -125,7 +125,7 @@ public final class ClusterTopology {
      * 登记在别的槽，旧槽自动置空。允许登记在 segment ≥ 当前段数的段（段数随后由
      * {@link #setSegmentCount} 在 checkMachine 末尾统一落定，未落定前不出现在快照中）。
      *
-     * @param segment 段下标 [0, 10)（0=主段，1..9=延伸段 k+1）
+     * @param segment 段下标 [0, 20)（0=主段，1..19=延伸段 k+1）
      * @param pad     垫位 ID [0, 3)
      * @param unit    登记单元，null = 空槽
      */
@@ -146,7 +146,7 @@ public final class ClusterTopology {
      * 落定段数（主段 + 延伸段数），总控在 checkMachine 末尾写入；快照
      * {@link #getSlots()} 以此为准只产出 segment &lt; 段数的段。
      *
-     * @param segmentCount 段数 [1, 10]（1=仅主段，10=主段+9 延伸段满配）
+     * @param segmentCount 段数 [1, 20]（1=仅主段，20=主段+19 延伸段满配）
      */
     public void setSegmentCount(int segmentCount) {
         if (segmentCount < 1 || segmentCount > MAX_SEGMENTS) {

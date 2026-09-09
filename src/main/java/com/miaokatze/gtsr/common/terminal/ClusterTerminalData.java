@@ -23,6 +23,7 @@ import com.miaokatze.gtsr.common.machine.cluster.MTEBasicAmplifierUnit;
 import com.miaokatze.gtsr.common.machine.cluster.MTEBasicLogisticsUnit;
 import com.miaokatze.gtsr.common.machine.cluster.MTEClusterUnitBase;
 import com.miaokatze.gtsr.common.machine.cluster.MTESteamMineralLogisticsCluster;
+import com.miaokatze.gtsr.main.GTSteamReborn;
 
 import cpw.mods.fml.common.network.ByteBufUtils;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
@@ -614,75 +615,167 @@ public final class ClusterTerminalData {
     private static final int STATS_TOP_N = 64;
 
     /**
-     * 性能详情行串（S1-T6 新增，键 cl.f.detail）：{@code |} 分行——
+     * 性能详情行串（S1-T6 新增，键 cl.f.detail；v1.20.14 T3 扩展：选择无关组不再受选中单元门控）：
+     * {@code |} 分行，行语法两组——
+     * <ul>
+     * <li><b>选择无关组</b>（v1.20.14 起恒下发，无选中单元/空链照常编码）：
+     * {@code FMOD:unitIdx:seg:timeSecX100:parallel:thruX100:steamLpsX100}（每物流模块一行运行摘要，
+     * 结构扫描序；耗时/吞吐为公式口径与 KEY_F_TIME/KEY_F_THRU 同式同源（逐链
+     * {@code itemTimeSec}/{@code chainThroughputPerSec}，不含可执行门控），蒸汽为可执行在飞口径并
+     * 施加增幅惩罚×节汽折扣（{@link ExecutionPlan#unitSteamLps}，逐模块和=KEY_F_TOTAL）、
+     * {@code LUBE:cluster:litersPerSecX100}、{@code BOOST:boosterTypeOrdinal:litersPerSecX100}
+     * （5 行，S1-T7 wip 流体倍率口径）、{@code FWIP:wipMultiplierX100}（wip 流体倍率真值，
+     * 增幅展开计算路径用）、{@code FTOT:fluidLiters:lubeLpsX100:boostLpsX100}（三组显示合计真值，
+     * 客户端占比分母：流体合计=选中单元最近成功批 charged 项之和（未选中为 0）、
+     * 润滑合计=集群+选中物流单元润滑（未选中仅集群项）、增幅合计=5 型 BOOST 行之和）；</li>
+     * <li><b>选中相关组</b>（原门控保留，无选中单元/空链整组省略）：
      * {@code LINK:linkOrdinal:timeSecX100:steamLpsX100}（本链实际包含加工步，链序；T_i/C_i 与
      * ExecutionPlan 同式同源）、{@code LOGI:unitIdx:timeSecX100}、
      * {@code FLUID:fluidName:liters}（仅最近成功批实际 charged 的洗矿水/化浴）、
-     * {@code LUBE:cluster:litersPerSecX100}、{@code LUBE:logi:litersPerSecX100}、
-     * {@code BOOST:boosterTypeOrdinal:litersPerSecX100}（5 行，S1-T7 wip 流体倍率口径）、
-     * {@code PEAK:effectivePeakStepIdx:linkOrdinal}（无命中省略）。未选中单元/空链返回空串。
+     * {@code LUBE:logi:litersPerSecX100}、{@code PEAK:effectivePeakStepIdx:linkOrdinal}（无命中省略）。</li>
+     * </ul>
+     * 客户端未知令牌前向兼容丢弃（旧客户端收到 FMOD/FTOT/FWIP 静默不显示）。
      */
     private static String encodeDetail(MTESteamMineralLogisticsCluster cluster) {
         MTEBasicLogisticsUnit unit = cluster.getSelectedLogisticsUnit();
-        if (unit == null || unit.getChain() == null
-            || unit.getChain()
-                .isEmpty())
-            return "";
-        List<ChainLink> links = unit.getChain()
-            .getLinks();
+        boolean hasSelection = unit != null && unit.getChain() != null
+            && !unit.getChain()
+                .isEmpty();
         int tier = tierIdx(cluster);
         ClusterTopology topology = cluster.getTopology();
-        StringBuilder sb = new StringBuilder(128);
-        // LINK 行：链序逐步（单步 T_i 与 C_i 按 ExecutionPlan.linkWeightTicks / chainSteamLps 同式重算）
-        for (ChainLink link : links) {
-            if (link == null) continue;
-            int[] stat = enabledUnitStats(topology, link.getRequiredUnitClass());
-            int unitTier = Math.max(0, Math.min(stat[1], ClusterParams.TIER_COUNT - 1));
-            double tTicks = Math.max(
-                0.2D,
-                link.getBaseTicks() * ClusterParams.TIER_TIME_FACTOR[tier]
-                    / Math.max(1, stat[0])
-                    / ClusterParams.PROCESSING_UNIT_TIME_DIVISOR[unitTier]);
-            double steamLps = link.getBaseSteamLps() * ClusterParams.PROCESSING_UNIT_STEAM_MULT[unitTier]
-                * Math.max(1, stat[0]);
+        BoosterState booster = boosterSnapshot(cluster);
+        StringBuilder sb = new StringBuilder(160);
+        // ---- 选择无关组：逐物流模块运行摘要（FMOD，结构扫描序；与 KEY_F_*/KEY_F_TOTAL 同式同源） ----
+        List<MTEBasicLogisticsUnit> units = topology.getLogisticsUnits();
+        double[] unitSteams = ExecutionPlan.unitSteamLps(units, topology, tier, booster);
+        // 定点补差：逐项独立 toX100 舍入会使 Σ分项 ≠ toX100(Σ)（KEY_F_TOTAL 口径），差额补在
+        // 最后一个非空单元行，保证 Σ FMOD steamX100 逐位等于 KEY_F_TOTAL
+        int fmodTotalX100 = toX100(ExecutionPlan.totalSteamLps(units, topology, tier, booster));
+        int fmodAcc = 0;
+        int lastUnitIdx = -1;
+        for (int i = 0; i < units.size(); i++) {
+            if (units.get(i) != null) lastUnitIdx = i;
+        }
+        for (int i = 0; i < units.size(); i++) {
+            MTEBasicLogisticsUnit module = units.get(i);
+            if (module == null) {
+                appendDetailRow(sb, "FMOD:" + i + ":-1:0:0:0:0");
+                continue;
+            }
+            List<ChainLink> chain = module.getChain() != null ? module.getChain()
+                .getLinks() : null;
+            double timeSec = ExecutionPlan.itemTimeSec(chain, tier, topology, booster);
+            double thru = ExecutionPlan.chainThroughputPerSec(chain, tier, topology, booster);
+            int steamX100 = toX100(unitSteams[i]);
+            if (i == lastUnitIdx) steamX100 = fmodTotalX100 - fmodAcc;
+            fmodAcc += steamX100;
             appendDetailRow(
                 sb,
-                "LINK:" + link.ordinal() + ":" + toX100(tTicks / ChainLink.TICKS_PER_SECOND) + ":" + toX100(steamLps));
+                "FMOD:" + i
+                    + ":"
+                    + module.getSegmentIndex()
+                    + ":"
+                    + toX100(timeSec)
+                    + ":"
+                    + ExecutionPlan.effectiveParallel(tier, booster)
+                    + ":"
+                    + toX100(thru)
+                    + ":"
+                    + steamX100);
         }
-        // LOGI 行：物流段耗时（纯物流段，无速度增幅影响）
-        appendDetailRow(
-            sb,
-            "LOGI:" + cluster.getSelectedLogisticsIndex() + ":" + (ClusterParams.LOGISTICS_TIME_SEC[tier] * 100));
-        // FLUID 行：最近成功批实际 charged 的洗矿水/化浴（unit 瞬态摘要，executor 提交点写入）
-        for (String entry : unit.getLastBatchFluidSummary()) {
-            appendDetailRow(sb, "FLUID:" + entry);
-        }
-        // LUBE 行：集群润滑 + 物流单元润滑（×100 定点）
-        int logiTier = Math.max(0, Math.min(unit.getLogisticsStructureTier(), ClusterParams.TIER_COUNT - 1));
+        // LUBE:cluster：集群润滑（选择无关）
         appendDetailRow(sb, "LUBE:cluster:" + toX100(ClusterParams.CLUSTER_LUBRICANT_LPS[tier]));
-        appendDetailRow(sb, "LUBE:logi:" + toX100(ClusterParams.LOGISTICS_UNIT_LUBRICANT_LPS[logiTier]));
-        // BOOST 行：5 型逐型合计实耗（S1-T7 wip 流体倍率口径）
+        // ---- 选中相关组：链步/物流段/批流体/物流润滑（原门控保留） ----
+        long fluidTotal = 0L;
+        double lubeLogi = 0.0D;
+        if (hasSelection) {
+            // LINK 行：链序逐步（单步 T_i 与 C_i 按 ExecutionPlan.linkWeightTicks / chainSteamLps 同式重算）
+            List<ChainLink> links = unit.getChain()
+                .getLinks();
+            for (ChainLink link : links) {
+                if (link == null) continue;
+                int[] stat = enabledUnitStats(topology, link.getRequiredUnitClass());
+                int unitTier = Math.max(0, Math.min(stat[1], ClusterParams.TIER_COUNT - 1));
+                double tTicks = Math.max(
+                    0.2D,
+                    link.getBaseTicks() * ClusterParams.TIER_TIME_FACTOR[tier]
+                        / Math.max(1, stat[0])
+                        / ClusterParams.PROCESSING_UNIT_TIME_DIVISOR[unitTier]);
+                double steamLps = link.getBaseSteamLps() * ClusterParams.PROCESSING_UNIT_STEAM_MULT[unitTier]
+                    * Math.max(1, stat[0]);
+                appendDetailRow(
+                    sb,
+                    "LINK:" + link
+                        .ordinal() + ":" + toX100(tTicks / ChainLink.TICKS_PER_SECOND) + ":" + toX100(steamLps));
+            }
+            // LOGI 行：物流段耗时（纯物流段，无速度增幅影响）
+            appendDetailRow(
+                sb,
+                "LOGI:" + cluster.getSelectedLogisticsIndex() + ":" + (ClusterParams.LOGISTICS_TIME_SEC[tier] * 100));
+            // FLUID 行：最近成功批实际 charged 的洗矿水/化浴（unit 瞬态摘要，executor 提交点写入）；
+            // 合计随 FTOT 下发（占比分母真值，不由客户端局部推导）
+            for (String entry : unit.getLastBatchFluidSummary()) {
+                appendDetailRow(sb, "FLUID:" + entry);
+                int colon = entry.lastIndexOf(':');
+                if (colon >= 0) {
+                    try {
+                        fluidTotal += Long.parseLong(
+                            entry.substring(colon + 1)
+                                .trim());
+                    } catch (NumberFormatException ignored) {
+                        // 畸形数量段不计入合计（与客户端丢弃该 FLUID 行口径一致）
+                    }
+                }
+            }
+            // LUBE:logi：选中物流单元润滑（×100 定点）
+            int logiTier = Math.max(0, Math.min(unit.getLogisticsStructureTier(), ClusterParams.TIER_COUNT - 1));
+            lubeLogi = ClusterParams.LOGISTICS_UNIT_LUBRICANT_LPS[logiTier];
+            appendDetailRow(sb, "LUBE:logi:" + toX100(lubeLogi));
+        }
+        // ---- 选择无关组：增幅 5 型逐型合计（S1-T7 wip 流体倍率口径）+ wip 倍率 + 三组合计真值 ----
         double wipMultiplier = BoosterState.computeWipFluidMultiplier(cluster.collectWipLogisticsUnits());
-        for (ClusterParams.BoosterType type : ClusterParams.BoosterType.values()) {
+        ClusterParams.BoosterType[] boostTypes = ClusterParams.BoosterType.values();
+        double[] typedLps = new double[boostTypes.length];
+        double boostTotal = 0.0D;
+        for (int t = 0; t < boostTypes.length; t++) {
             double lps = 0.0D;
             for (MTEBasicAmplifierUnit amplifier : cluster.getTopology()
                 .getBoosterUnits()) {
-                if (amplifier == null || amplifier.getBoosterType() != type) continue;
+                if (amplifier == null || amplifier.getBoosterType() != boostTypes[t]) continue;
                 if (amplifier.getUnitStructureTier() < 0
                     || amplifier.getUnitStructureTier() >= ClusterParams.TIER_COUNT) continue;
                 lps += amplifier.amplifierFluidPerSecExact();
             }
-            appendDetailRow(sb, "BOOST:" + type.ordinal() + ":" + toX100(lps * wipMultiplier));
+            typedLps[t] = lps * wipMultiplier;
+            boostTotal += typedLps[t];
         }
-        // PEAK 行：最近成功批生效峰步（无命中/尚无批省略）
-        int peak = unit.getLastEffectivePeak();
-        if (peak >= 0 && peak < links.size() && links.get(peak) != null) {
-            appendDetailRow(
-                sb,
-                "PEAK:" + peak
-                    + ":"
-                    + links.get(peak)
-                        .ordinal());
+        // 定点补差：与 FMOD 同口径，Σ BOOST 行(×100) 逐位等于 FTOT 增幅合计
+        int boostTotalX100 = toX100(boostTotal);
+        int boostAcc = 0;
+        for (int t = 0; t < boostTypes.length; t++) {
+            int typedX100 = toX100(typedLps[t]);
+            if (t == boostTypes.length - 1) typedX100 = boostTotalX100 - boostAcc;
+            boostAcc += typedX100;
+            appendDetailRow(sb, "BOOST:" + boostTypes[t].ordinal() + ":" + typedX100);
+        }
+        appendDetailRow(sb, "FWIP:" + toX100(wipMultiplier));
+        double lubeTotal = ClusterParams.CLUSTER_LUBRICANT_LPS[tier] + lubeLogi;
+        appendDetailRow(
+            sb,
+            "FTOT:" + Math.min(Integer.MAX_VALUE, fluidTotal) + ":" + toX100(lubeTotal) + ":" + boostTotalX100);
+        // PEAK 行：最近成功批生效峰步（无命中/尚无批省略；选中相关）
+        if (hasSelection) {
+            List<ChainLink> links = unit.getChain()
+                .getLinks();
+            int peak = unit.getLastEffectivePeak();
+            if (peak >= 0 && peak < links.size() && links.get(peak) != null) {
+                appendDetailRow(
+                    sb,
+                    "PEAK:" + peak
+                        + ":"
+                        + links.get(peak)
+                            .ordinal());
+            }
         }
         return sb.toString();
     }
@@ -741,9 +834,16 @@ public final class ClusterTerminalData {
      * {@code unitIdx:len:peak:o1.o2...oN}（ordinal 以 {@code .} 分隔；len=0 时 peak=-1 且无 ordinal
      * 段），遍历全部物流单元（结构扫描序）；峰步越界按边界钳制后编出。
      */
+    private static String lastLoggedChains;
+
     private static String encodeChains(MTESteamMineralLogisticsCluster cluster) {
         List<MTEBasicLogisticsUnit> units = cluster.getTopology()
             .getLogisticsUnits();
+        int logisticsSlots = 0;
+        for (ClusterTopology.SlotSnapshot slot : cluster.getTopology()
+            .getSlots()) {
+            if (slot.pad == ClusterTopology.PAD_LOGISTICS && slot.unit != null) logisticsSlots++;
+        }
         StringBuilder sb = new StringBuilder(64);
         for (int i = 0; i < units.size(); i++) {
             MTEBasicLogisticsUnit unit = units.get(i);
@@ -766,7 +866,19 @@ public final class ClusterTerminalData {
                     .append(ordinal);
             }
         }
-        return sb.toString();
+        String encoded = sb.toString();
+        if (!encoded.equals(lastLoggedChains)) {
+            lastLoggedChains = encoded;
+            GTSteamReborn.LOG.info(
+                "[TEMP-DIAG-v1.20.14][T2-S-ENCODE] unitsSize={} logisticsSlots={} logisticsUnitsSize={} encoded={}",
+                cluster.getTopology()
+                    .getUnits()
+                    .size(),
+                logisticsSlots,
+                units.size(),
+                encoded);
+        }
+        return encoded;
     }
 
     // ==================== 取值辅助（supplier 侧专用，移植自旧实现） ====================

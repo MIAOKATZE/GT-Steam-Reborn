@@ -625,15 +625,51 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
      * @return true = 收集成功；false = 垫族不匹配或垫位重复被跳过
      */
     public boolean addClusterUnit(MTEClusterUnitBase unit, int padId, int segment) {
-        if (unit == null) return false;
-        if (!padMatchesUnit(padId, unit)) return false;
+        String unitType = unit == null ? "null"
+            : unit.getClass()
+                .getSimpleName();
+        if (unit == null) {
+            GTSteamReborn.LOG.info(
+                "[TEMP-DIAG-v1.20.14][T2-S-COLLECT] unitClass={} padId={} segment={} result=REJECT_PAD_MISMATCH",
+                unitType,
+                padId,
+                segment);
+            return false;
+        }
+        if (!padMatchesUnit(padId, unit)) {
+            GTSteamReborn.LOG.info(
+                "[TEMP-DIAG-v1.20.14][T2-S-COLLECT] unitClass={} padId={} segment={} result=REJECT_PAD_MISMATCH",
+                unitType,
+                padId,
+                segment);
+            return false;
+        }
         long key = slotKey(segment, padId);
-        if (occupiedSlots.containsKey(key)) return false;
-        if (!topology.addUnit(unit)) return false;
+        if (occupiedSlots.containsKey(key)) {
+            GTSteamReborn.LOG.info(
+                "[TEMP-DIAG-v1.20.14][T2-S-COLLECT] unitClass={} padId={} segment={} result=REJECT_OCCUPIED",
+                unitType,
+                padId,
+                segment);
+            return false;
+        }
+        if (!topology.addUnit(unit)) {
+            GTSteamReborn.LOG.info(
+                "[TEMP-DIAG-v1.20.14][T2-S-COLLECT] unitClass={} padId={} segment={} result=REJECT_UNIT_DUP",
+                unitType,
+                padId,
+                segment);
+            return false;
+        }
         occupiedSlots.put(key, unit);
         topology.putSlot(segment, padId, unit);
         unit.onCollected(padId, segment);
         unit.connect(this);
+        GTSteamReborn.LOG.info(
+            "[TEMP-DIAG-v1.20.14][T2-S-COLLECT] unitClass={} padId={} segment={} result=OK",
+            unitType,
+            padId,
+            segment);
         return true;
     }
 

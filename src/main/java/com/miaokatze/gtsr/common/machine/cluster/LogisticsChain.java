@@ -242,7 +242,15 @@ public final class LogisticsChain {
      * @return 重建的链
      */
     public static LogisticsChain fromOrdinalArray(int[] ordinals, int peakIndex) {
-        LogisticsChain chain = fromOrdinalArray(ordinals);
+        LogisticsChain chain = new LogisticsChain();
+        if (ordinals != null) {
+            ChainLink[] values = ChainLink.values();
+            for (int ordinal : ordinals) {
+                if (ordinal >= 0 && ordinal < values.length) {
+                    chain.append(values[ordinal]);
+                }
+            }
+        }
         chain.setPeakIndex(Math.max(0, Math.min(chain.length() - 1, peakIndex)));
         return chain;
     }

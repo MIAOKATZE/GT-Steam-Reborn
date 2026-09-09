@@ -1551,9 +1551,13 @@ gtsr.terminal.f.detail.title=链路详情
 gtsr.terminal.f.detail.link=链步 %s：耗时 %s s / 蒸汽 %s L/s
 gtsr.terminal.f.detail.logi=物流段：耗时 %s s
 gtsr.terminal.f.detail.fluid=%s：每批 %s L
+gtsr.terminal.f.detail.fluid.pct=%s：每批 %s L（%s%%）
 gtsr.terminal.f.detail.lube.cluster=集群润滑：%s L/s
+gtsr.terminal.f.detail.lube.cluster.pct=集群润滑：%s L/s（%s%%）
 gtsr.terminal.f.detail.lube.logi=物流润滑：%s L/s
-gtsr.terminal.f.detail.boost=增幅液 %s：%s L/s
+gtsr.terminal.f.detail.lube.logi.pct=物流润滑：%s L/s（%s%%）
+gtsr.terminal.f.detail.boost=%s（%s）：%s L/s
+gtsr.terminal.f.detail.boost.pct=%s（%s）：%s L/s（%s%%）
 gtsr.terminal.f.detail.peak=主产物增幅峰：第 %s 步
 gtsr.terminal.stats.title=统计
 gtsr.terminal.stats.in=累计进入
@@ -1574,6 +1578,14 @@ gtsr.terminal.perf.chains.count=链数: %s
 gtsr.terminal.perf.chains.steps=总链步: %s
 gtsr.terminal.perf.chains.longest=最长链: %s
 gtsr.terminal.perf.chains.avg=平均链长: %s
+gtsr.terminal.perf.fmod=#%s·段%s：%ss · %s · %s · %s L/s
+gtsr.terminal.perf.exp.fluid.head=最近成功批实际记账（charged）
+gtsr.terminal.perf.exp.fluid.total=批记账合计 %s L · %s 项
+gtsr.terminal.perf.exp.lube=集群 %s + 物流 %s = 合计 %s L/s
+gtsr.terminal.perf.exp.boost.unit=#%s 基础 %s → %s L/s · %s
+gtsr.terminal.perf.exp.boost.wip=wip 流体倍率 ×%s
+gtsr.terminal.perf.exp.steam.head=加权蒸汽 = 各步(蒸汽×耗时)合计 ÷ 耗时合计
+gtsr.terminal.perf.exp.steam.step=%s：T=%s s · C=%s L/s
 gtsr.terminal.le.chains.title=全部物流链
 gtsr.terminal.le.chains.peak=峰位：第 %s 步
 gtsr.cluster.logistics.queue.on=队列模式：开启

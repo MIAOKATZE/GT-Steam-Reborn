@@ -1556,9 +1556,13 @@ gtsr.terminal.f.detail.title=Link details
 gtsr.terminal.f.detail.link=Link %s: takes %s s / steam %s L/s
 gtsr.terminal.f.detail.logi=Logistics leg: takes %s s
 gtsr.terminal.f.detail.fluid=%s: %s L per batch
+gtsr.terminal.f.detail.fluid.pct=%s: %s L per batch (%s%%)
 gtsr.terminal.f.detail.lube.cluster=Cluster lubricant: %s L/s
+gtsr.terminal.f.detail.lube.cluster.pct=Cluster lubricant: %s L/s (%s%%)
 gtsr.terminal.f.detail.lube.logi=Logistics lubricant: %s L/s
-gtsr.terminal.f.detail.boost=Booster fluid %s: %s L/s
+gtsr.terminal.f.detail.lube.logi.pct=Logistics lubricant: %s L/s (%s%%)
+gtsr.terminal.f.detail.boost=%s (%s): %s L/s
+gtsr.terminal.f.detail.boost.pct=%s (%s): %s L/s (%s%%)
 gtsr.terminal.f.detail.peak=Peak: step %s
 gtsr.terminal.stats.title=Statistics
 gtsr.terminal.stats.in=Cumulative input
@@ -1579,6 +1583,14 @@ gtsr.terminal.perf.chains.count=Chains: %s
 gtsr.terminal.perf.chains.steps=Total Steps: %s
 gtsr.terminal.perf.chains.longest=Longest: %s
 gtsr.terminal.perf.chains.avg=Avg Length: %s
+gtsr.terminal.perf.fmod=#%s@Seg%s: %ss · %s · %s · %s L/s
+gtsr.terminal.perf.exp.fluid.head=Charged in last successful batch
+gtsr.terminal.perf.exp.fluid.total=Batch charge total %s L · %s entries
+gtsr.terminal.perf.exp.lube=Cluster %s + logistics %s = total %s L/s
+gtsr.terminal.perf.exp.boost.unit=#%s base %s → %s L/s · %s
+gtsr.terminal.perf.exp.boost.wip=wip fluid multiplier ×%s
+gtsr.terminal.perf.exp.steam.head=Weighted steam = sum(step steam × time) / total time
+gtsr.terminal.perf.exp.steam.step=%s: T=%s s · C=%s L/s
 gtsr.terminal.le.chains.title=All logistics chains
 gtsr.terminal.le.chains.peak=Peak: step %s
 gtsr.cluster.logistics.queue.on=Queue mode: ON

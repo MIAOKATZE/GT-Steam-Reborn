@@ -8,6 +8,7 @@ import net.minecraft.util.EnumChatFormatting;
 
 import com.miaokatze.gtsr.client.gui.terminal.GuiClusterTerminalScreen.ClusterPage;
 import com.miaokatze.gtsr.client.terminal.ClusterTerminalClientCache;
+import com.miaokatze.gtsr.common.machine.cluster.ChainLink;
 import com.miaokatze.gtsr.common.machine.cluster.ClusterParams;
 import com.miaokatze.gtsr.common.terminal.ClusterTerminalData;
 import com.miaokatze.gtsr.common.util.GtsrNumFormat;
@@ -16,21 +17,24 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * 集群终端·第五页「性能」（terminal-native-ui S3 新独立页：集群级极详细只读页，六分组三栏排版，
- * 只消费既有缓存键、零协议扩展）。
+ * 集群终端·第五页「性能」（terminal-native-ui S3 新独立页：集群级极详细只读页，六分组三栏排版；
+ * v1.20.14 T3 四项改造：运行汇总分模块列 / 详情词条占比 / 词条展开计算路径 / BOOST 实际流体名）。
  *
  * <p>
  * 版面：页标题 + 三栏各 191px（栏距 4），每栏一个 {@link GtsrGuiList}（行高 11，惰性重建范式
  * 照链路页 perfList）；组标题行=金粗 0.7f（{@code gtsr.terminal.perf.group.*}），数据行 0.7f，
  * 长行 ellipsis。三栏六分组：
  * <ul>
- * <li>栏 1【运行汇总】：耗时（KEY_F_TIME ×100 定点→%.2f 秒）/ 有效并行（KEY_F_PAR raw）/
- * 预测吞吐（KEY_F_THRU ×100→%.2f）/ 实际加权公式（KEY_F_FORMULA，标签+长串两行）/ 热量 / 润滑 /
- * 真实吞吐 / 累计处理（后四行与主壳顶卡同口径，数值 grouped）；</li>
+ * <li>栏 1【运行汇总】：总计行（耗时 KEY_F_TIME ×100 定点→%.2f 秒 / 有效并行 KEY_F_PAR raw /
+ * 预测吞吐 KEY_F_THRU ×100→%.2f / 实际加权公式 KEY_F_FORMULA 标签+长串两行）+ <b>每物流模块一行</b>
+ * （v1.20.14 (a)：cl.f.detail 新增 FMOD 令牌——选择无关、服务端逐物流单元摘要
+ * {@code idx:seg:timeX100:par:thruX100:steamX100}，#序号·段号 前缀；旧服务端缺令牌整块省略）
+ * + 热量 / 润滑 / 真实吞吐 / 累计处理（后四行与主壳顶卡同口径，数值 grouped）；</li>
  * <li>栏 2【蒸汽口径 + 集群详情】：总蒸汽耗与链蒸汽耗（KEY_F_TOTAL/KEY_F_STEAM 均 ×100 定点，
- * <b>÷100.0D 解码修复</b>——服务端 toX100 后原值直读会放大 100 倍）+ 结算蒸汽（KEY_STEAM 原值，
- * 行尾注口径来源）；KEY_F_DETAIL 的 FLUID/LUBE/BOOST 令牌行（自 d6acf00 基线
- * formatDetailRow/x100Text/boosterLabel 逐字移植，LINK/LOGI/PEAK 由链路页消费、本页丢弃）；</li>
+ * <b>÷100.0D 解码修复</b>）+ 结算蒸汽（KEY_STEAM 原值，行尾注口径来源）+ 集群详情词条——
+ * FLUID/LUBE/BOOST 令牌行升级为<b>可展开词条</b>（v1.20.14 (b)(c)(d)：行首 ▶/▼ 箭头、
+ * 互斥展开计算路径小字行、正文追加 FTOT 服务端合计真值占比、BOOST 行首词改实际增幅流体名），
+ * 链蒸汽耗行同样可展开（计算路径 = LINK 逐步 T_i/C_i 加权式）；</li>
  * <li>栏 3【链路概览 + 增幅汇总 + 增幅实耗】：KEY_LE_CHAINS len 派生四行（链数/总链步/最长链/
  * 平均链长，len 首整数 token 防御解析）+ KEY_BO_SUM 八字段（增幅页汇总卡同式解码，
  * pctText/saverText/multText）+ KEY_BO_COST 逐增幅器实耗行（tooltip 完整公式，
@@ -39,8 +43,10 @@ import cpw.mods.fml.relauncher.SideOnly;
  *
  * <p>
  * <b>live 每帧重读纪律</b>：三列行集全部由 draw 每帧重建（零构造期快照）；列表实例仅随几何
- * 惰性重建。交互：只读页——内容区点击一律消费防穿透；滚轮分栏转发鼠标所落栏的
- * {@code list.handleWheel}；拖拽/释放转发各栏列表（滚动条）。
+ * 惰性重建。交互：只读页——第二列词条行点击经 {@link GtsrGuiList} 行回调切换互斥展开态
+ * （滚动条命中由列表内滚动条分支先行、滚轮走独立 handleWheel，互不冲突）；其余内容区点击
+ * 一律消费防穿透；滚轮分栏转发鼠标所落栏的 {@code list.handleWheel}；拖拽/释放转发各栏列表
+ * （滚动条）。cl.f.detail 未知令牌（含旧客户端视角的 FMOD/FTOT/FWIP）前向兼容丢弃。
  */
 @SideOnly(Side.CLIENT)
 final class ClusterPerfPage implements ClusterPage {
@@ -68,6 +74,14 @@ final class ClusterPerfPage implements ClusterPage {
     private final List<String> boostFormulas = new ArrayList<>();
     /** 本帧 boostcost 首行在第三列行集中的下标（未含 boostcost 组时置 Integer.MAX_VALUE）。 */
     private int boostCostStart = Integer.MAX_VALUE;
+    /** 本帧第二列词条行键（与第二列行集同下标同步重建；null=非词条行，点击不切换展开）。 */
+    private final List<String> col2RowKeys = new ArrayList<>();
+    /** 本帧第二列小字行标记（true=展开计算路径行：0.6f 缩进绘制；与第二列行集同下标）。 */
+    private final List<Boolean> col2RowSmall = new ArrayList<>();
+    /** 互斥展开态：当前展开词条键（"STEAM_CHAIN"/"FLUID:i"/"LUBE:*"/"BOOST:ordinal"；null=全折叠）。 */
+    private String openEntryKey;
+    /** 展开态身份哨兵：选中物流单元下标；变化即清 openEntryKey，防止展开状态跨选择泄漏。 */
+    private int openEntrySel = -1;
 
     ClusterPerfPage(GuiClusterTerminalScreen host) {
         this.host = host;
@@ -116,20 +130,34 @@ final class ClusterPerfPage implements ClusterPage {
             () -> this.colFrameLines.get(c)
                 .size());
         list.setRowPainter((index, x, y, mouseX, mouseY) -> paintPerfRow(c, index, x, y, mouseX, mouseY));
+        if (c == 1) {
+            // (c)：第二列词条行点击 = 互斥切换展开态；滚动条命中由列表滚动条分支先行处理，不冲突
+            list.setRowListener((index, mouseX, mouseY, button) -> {
+                if (index < 0 || index >= this.col2RowKeys.size()) return;
+                String key = this.col2RowKeys.get(index);
+                if (key == null) return; // 非词条行（组标题/小字行/蒸汽口径普通行）
+                this.openEntryKey = key.equals(this.openEntryKey) ? null : key;
+            });
+        }
         this.colLists[col] = list;
     }
 
-    /** 单行绘制：数据行 0.7f 长行 ellipsis（组标题行经 § GOLD/BOLD 前缀同款渲染）；boostcost 行命中出公式 tooltip。 */
+    /**
+     * 单行绘制：数据行 0.7f 长行 ellipsis（组标题行经 § GOLD/BOLD 前缀同款渲染）；第二列小字行
+     * （展开计算路径）0.6f 缩进暗色；boostcost 行命中出公式 tooltip。
+     */
     private void paintPerfRow(int col, int index, int x, int y, int mx, int my) {
         List<String> lines = this.colFrameLines.get(col);
         if (index < 0 || index >= lines.size()) return;
-        GuiClusterTerminalScreen.drawScaledText(
-            font(),
-            GtsrGuiList.ellipsis(font(), lines.get(index), (int) ((this.colListWidth - 6) / 0.7f)),
-            x + 3,
-            y + 2,
-            0.7f,
-            GtsrGuiPalette.TEXT_BODY);
+        boolean small = col == 1 && index < this.col2RowSmall.size() && this.col2RowSmall.get(index);
+        String text = lines.get(index);
+        if (small) {
+            text = GtsrGuiList.ellipsis(font(), text, (int) ((this.colListWidth - 18) / 0.6f));
+            GuiClusterTerminalScreen.drawScaledText(font(), text, x + 12, y + 2, 0.6f, GtsrGuiPalette.TEXT_MUTED);
+        } else {
+            text = GtsrGuiList.ellipsis(font(), text, (int) ((this.colListWidth - 6) / 0.7f));
+            GuiClusterTerminalScreen.drawScaledText(font(), text, x + 3, y + 2, 0.7f, GtsrGuiPalette.TEXT_BODY);
+        }
         if (col == 2 && mx >= x && mx < x + this.colListWidth && my >= y && my < y + ROW_H) {
             int booster = index - this.boostCostStart;
             if (booster >= 0 && booster < this.boostFormulas.size()) {
@@ -142,7 +170,7 @@ final class ClusterPerfPage implements ClusterPage {
 
     // ==================== 栏 1【运行汇总】 ====================
 
-    /** 运行汇总（KEY_F_* ×100 定点解码 + 顶卡口径四行；每帧重读）。 */
+    /** 运行汇总（KEY_F_* ×100 定点解码 + 总计行下每物流模块一行（FMOD 令牌）+ 顶卡口径四行；每帧重读）。 */
     private List<String> buildSummaryLines() {
         List<String> out = new ArrayList<>();
         out.add(groupHeader("gtsr.terminal.perf.group.summary"));
@@ -159,6 +187,21 @@ final class ClusterPerfPage implements ClusterPage {
         out.add(EnumChatFormatting.YELLOW + tr("gtsr.gui.cluster.link.perf.formula") + " =");
         out.add(
             EnumChatFormatting.GREEN + ClusterTerminalClientCache.getStr(ClusterTerminalData.KEY_F_FORMULA, "0 L/s"));
+        // (a) 总计行下每物流模块一行：cl.f.detail 的 FMOD 令牌（选择无关，服务端逐物流单元摘要）；
+        // 旧服务端缺令牌 → 整块省略（降级不显示）
+        DetailFrame frame = parseDetail(ClusterTerminalClientCache.getFDetail(""));
+        for (int[] fmod : frame.fmods) {
+            String seg = fmod[1] < 0 ? "--" : String.valueOf(fmod[1]);
+            out.add(
+                EnumChatFormatting.WHITE + String.format(
+                    tr("gtsr.terminal.perf.fmod"),
+                    String.valueOf(fmod[0] + 1),
+                    seg,
+                    String.format("%.2f", fmod[2] / 100.0D) + "s",
+                    String.valueOf(fmod[3]),
+                    String.format("%.2f", fmod[4] / 100.0D),
+                    GtsrNumFormat.grouped(Math.round(fmod[5] / 100.0D))));
+        }
         out.add(
             kvLine(
                 "gtsr.cluster.gui.card.heat",
@@ -179,14 +222,22 @@ final class ClusterPerfPage implements ClusterPage {
         return out;
     }
 
-    // ==================== 栏 2【蒸汽口径 + 集群详情】 ====================
+    // ==================== 栏 2【蒸汽口径 + 集群详情（可展开词条）】 ====================
 
     /**
-     * 蒸汽口径三行 + 集群详情行：总蒸汽耗/链蒸汽耗为 ×100 定点（<b>÷100.0D 解码修复</b>），
-     * 结算蒸汽为 KEY_STEAM 原值（行尾注口径来源）；详情仅消费 FLUID/LUBE/BOOST 令牌行。
+     * 蒸汽口径三行 + 集群详情词条：总蒸汽耗/链蒸汽耗为 ×100 定点（<b>÷100.0D 解码修复</b>），
+     * 结算蒸汽为 KEY_STEAM 原值（行尾注口径来源）；链蒸汽耗行与 FLUID/LUBE/BOOST 词条行首带
+     * ▶/▼ 箭头、点击互斥展开计算路径小字行（v1.20.14 (b)(c)(d)）。
      */
     private List<String> buildSteamDetailLines() {
+        int selNow = ClusterTerminalClientCache.getInt(ClusterTerminalData.KEY_SEL_LOGI, -1);
+        if (selNow != this.openEntrySel) {
+            this.openEntrySel = selNow;
+            this.openEntryKey = null;
+        }
         List<String> out = new ArrayList<>();
+        this.col2RowKeys.clear();
+        this.col2RowSmall.clear();
         out.add(groupHeader("gtsr.terminal.perf.group.steam"));
         int totalRaw = ClusterTerminalClientCache.getInt(ClusterTerminalData.KEY_F_TOTAL, 0);
         int chainRaw = ClusterTerminalClientCache.getInt(ClusterTerminalData.KEY_F_STEAM, 0);
@@ -194,12 +245,9 @@ final class ClusterPerfPage implements ClusterPage {
             kvLine(
                 "gtsr.cluster.gui.link.perf.steam_total",
                 GtsrNumFormat.grouped(Math.round(totalRaw / 100.0D)) + " L/s"));
-        out.add(
-            kvLine("gtsr.cluster.gui.link.perf.steam", GtsrNumFormat.grouped(Math.round(chainRaw / 100.0D)) + " L/s")
-                + " "
-                + EnumChatFormatting.GRAY
-                + "· "
-                + tr("gtsr.terminal.perf.caliber.formula"));
+        DetailFrame frame = parseDetail(ClusterTerminalClientCache.getFDetail(""));
+        // 链蒸汽耗行 = 可展开词条（计算路径 = cl.f.detail LINK 逐步 T_i/C_i 加权式；LINK 由链路页与本页共享）
+        appendEntry(out, buildChainSteamEntry(frame, chainRaw));
         out.add(
             kvLine(
                 "gtsr.cluster.gui.card.steam",
@@ -209,71 +257,291 @@ final class ClusterPerfPage implements ClusterPage {
                 + "· "
                 + tr("gtsr.terminal.perf.caliber.settle"));
         out.add(groupHeader("gtsr.terminal.perf.group.detail"));
-        String detail = ClusterTerminalClientCache.getFDetail("");
-        if (!detail.isEmpty()) {
-            for (String row : detail.split("\\|", -1)) {
-                String line = formatDetailRow(row);
-                if (line != null) out.add(line);
+        for (EntryRow entry : buildDetailEntries(frame)) {
+            appendEntry(out, entry);
+        }
+        return out;
+    }
+
+    /** 词条行落列：按展开态加行首箭头（▶ 折叠 / ▼ 展开，MC 字体安全字符——链路页 chip ◀▶ 同族），展开时尾随计算路径小字行。 */
+    private void appendEntry(List<String> out, EntryRow entry) {
+        boolean open = entry.key.equals(this.openEntryKey);
+        out.add(EnumChatFormatting.WHITE + (open ? "▼ " : "▶ ") + entry.text);
+        this.col2RowKeys.add(entry.key);
+        this.col2RowSmall.add(Boolean.FALSE);
+        if (open) {
+            for (String line : entry.expansion) {
+                out.add(EnumChatFormatting.GRAY + line);
+                this.col2RowKeys.add(null);
+                this.col2RowSmall.add(Boolean.TRUE);
             }
+        }
+    }
+
+    /** 链蒸汽耗词条：正文沿用既有 kv 行 + 口径注；展开 = LINK 逐步（T_i 秒 / C_i 蒸汽）与加权式说明。 */
+    private static EntryRow buildChainSteamEntry(DetailFrame frame, int chainRawX100) {
+        EntryRow entry = new EntryRow(KEY_STEAM_CHAIN);
+        entry.text = kvLine(
+            "gtsr.cluster.gui.link.perf.steam",
+            GtsrNumFormat.grouped(Math.round(chainRawX100 / 100.0D)) + " L/s") + " "
+            + EnumChatFormatting.GRAY
+            + "· "
+            + tr("gtsr.terminal.perf.caliber.formula");
+        entry.expansion.add(tr("gtsr.terminal.perf.exp.steam.head"));
+        if (frame.linkSteps.isEmpty()) {
+            entry.expansion.add("--"); // 无链步：未选中单元/空链/旧服务端——降级占位
+        } else {
+            for (int[] step : frame.linkSteps) {
+                String name = step[0] >= 0 && step[0] < CHAIN_LINKS.length ? tr(CHAIN_LINKS[step[0]].getLangKey())
+                    : "#" + step[0];
+                entry.expansion
+                    .add(String.format(tr("gtsr.terminal.perf.exp.steam.step"), name, x100(step[1]), x100(step[2])));
+            }
+        }
+        return entry;
+    }
+
+    /**
+     * 集群详情词条集（v1.20.14 (b)(c)(d)）：FLUID/LUBE/BOOST 升级为可展开词条——正文追加服务端
+     * 合计真值占比（FTOT 缺失=旧服务端→沿用无占比旧格式；合计 ≤0=零分母→占比位 "--"）；
+     * BOOST 正文首词改实际增幅流体名（{@code BoosterType.getFluidLangKey()}）+ 括号保留增幅
+     * 类型名（如「硫酸（主产物增幅）：X L/s」）；展开 = 计算路径（FLUID=批记账合计/项数、
+     * LUBE=集群+物流=合计分量式、BOOST=KEY_BO_COST 该型逐台分量 + FWIP wip 倍率）。
+     */
+    private static List<EntryRow> buildDetailEntries(DetailFrame frame) {
+        List<EntryRow> out = new ArrayList<>();
+        // FLUID：充流体（选中单元最近成功批 charged；占比分母 = FTOT 流体合计真值）
+        for (int i = 0; i < frame.fluidNames.size(); i++) {
+            String name = frame.fluidNames.get(i);
+            long liters = frame.fluidLiters.get(i)[0];
+            EntryRow entry = new EntryRow("FLUID:" + i);
+            String pct = shareText(liters, frame.ftotFluid);
+            entry.text = pct == null
+                ? EnumChatFormatting.GREEN
+                    + String.format(tr("gtsr.terminal.f.detail.fluid"), name, GtsrNumFormat.grouped(liters))
+                : EnumChatFormatting.GREEN
+                    + String.format(tr("gtsr.terminal.f.detail.fluid.pct"), name, GtsrNumFormat.grouped(liters), pct);
+            entry.expansion.add(tr("gtsr.terminal.perf.exp.fluid.head"));
+            if (frame.ftotFluid >= 0) {
+                entry.expansion.add(
+                    String.format(
+                        tr("gtsr.terminal.perf.exp.fluid.total"),
+                        GtsrNumFormat.grouped(frame.ftotFluid),
+                        frame.fluidNames.size()));
+            }
+            out.add(entry);
+        }
+        // LUBE：集群/物流两词条（展开共用同一条分量路径：集群 + 物流 = 合计）
+        appendLubeEntry(out, frame, "cluster", "gtsr.terminal.f.detail.lube.cluster", frame.lubeCluster);
+        appendLubeEntry(out, frame, "logi", "gtsr.terminal.f.detail.lube.logi", frame.lubeLogi);
+        // BOOST：5 型逐型（占比分母 = FTOT 增幅合计真值；展开 = 该型逐台分量 + wip 倍率）
+        List<int[]> costs = costRows();
+        for (int[] boost : frame.boosts) {
+            ClusterParams.BoosterType type = boosterType(boost[0]);
+            EntryRow entry = new EntryRow("BOOST:" + boost[0]);
+            String fluid = tr(type.getFluidLangKey());
+            String typeLabel = boosterLabel(boost[0]);
+            String pct = shareText(boost[1], frame.ftotBoost);
+            entry.text = pct == null
+                ? EnumChatFormatting.GREEN
+                    + String.format(tr("gtsr.terminal.f.detail.boost"), fluid, typeLabel, x100(boost[1]))
+                : EnumChatFormatting.GREEN
+                    + String.format(tr("gtsr.terminal.f.detail.boost.pct"), fluid, typeLabel, x100(boost[1]), pct);
+            int unitNo = 1;
+            for (int[] cost : costs) {
+                if (cost.length < 5 || cost[4] != boost[0]) continue;
+                entry.expansion.add(
+                    String.format(
+                        tr("gtsr.terminal.perf.exp.boost.unit"),
+                        unitNo++,
+                        GtsrNumFormat.grouped(cost[1]),
+                        rateText(cost[0]),
+                        tierLabel(cost[3])));
+            }
+            if (frame.fwip >= 0) {
+                entry.expansion.add(String.format(tr("gtsr.terminal.perf.exp.boost.wip"), x100(frame.fwip)));
+            }
+            out.add(entry);
         }
         return out;
     }
 
     /**
-     * 单详情行本地化（性能页专用，自 d6acf00 基线逐字移植后仅保留 FLUID/LUBE/BOOST 三 case；
-     * 行首令牌分发、{@code |} 分行、{@code :} 分段，畸形行返回 null 丢弃；
-     * LINK/LOGI/PEAK 由链路页消费，本页与未知令牌同走 default 丢弃）。
+     * LUBE 词条构建：正文按有无占比真值选新旧格式（缺行——如物流行需选中单元——整词条不渲染）；
+     * 展开 = 润滑分量路径 {@code 集群 + 物流 = 合计}（分量/合计缺服务端真值以 "--" 占位）。
      */
-    private static String formatDetailRow(String row) {
-        if (row == null || row.isEmpty()) return null;
-        String[] f = row.split(":", -1);
+    private static void appendLubeEntry(List<EntryRow> out, DetailFrame frame, String kind, String langKey,
+        int valueX100) {
+        if (valueX100 == Integer.MIN_VALUE) return;
+        EntryRow entry = new EntryRow("LUBE:" + kind);
+        String pct = shareText(valueX100, frame.ftotLube);
+        entry.text = pct == null ? EnumChatFormatting.GREEN + String.format(tr(langKey), x100(valueX100))
+            : EnumChatFormatting.GREEN + String.format(tr(langKey + ".pct"), x100(valueX100), pct);
+        String clusterTxt = frame.lubeCluster == Integer.MIN_VALUE ? "--" : x100(frame.lubeCluster);
+        String logiTxt = frame.lubeLogi == Integer.MIN_VALUE ? "--" : x100(frame.lubeLogi);
+        String totalTxt = frame.ftotLube < 0 ? "--" : x100(frame.ftotLube);
+        entry.expansion.add(String.format(tr("gtsr.terminal.perf.exp.lube"), clusterTxt, logiTxt, totalTxt));
+        out.add(entry);
+    }
+
+    /**
+     * 占比文本（v1.20.14 (b)）：{@code part/total×100}（同 ×100 定点比值与量纲无关）——整值省
+     * 小数、非整留一位（增幅页 pctText 同式去 "+"）；{@code total<0}（服务端未下发合计真值）回
+     * {@code null}（调用方走无占比旧格式），{@code total≤0}（零分母）回 "--"（现有 UI 无数据哨兵）。
+     */
+    private static String shareText(double part, long total) {
+        if (total < 0) return null;
+        if (total <= 0) return "--";
+        double pct = part / total * 100.0D;
+        return Math.abs(pct - Math.rint(pct)) < 1e-6 ? String.valueOf((long) Math.rint(pct)) + "%"
+            : String.format("%.1f", pct) + "%";
+    }
+
+    /** ×100 定点 int → 两位小数文本（int 已解析无畸形；旧 x100Text(String) 的 int 版）。 */
+    private static String x100(int rawX100) {
+        return String.format("%.2f", rawX100 / 100.0D);
+    }
+
+    /** 增幅类型序号 → 枚举（越界回退并行型，与 boosterType 防御口径一致）。 */
+    private static ClusterParams.BoosterType boosterType(int typeOrdinal) {
+        ClusterParams.BoosterType[] values = ClusterParams.BoosterType.values();
+        return typeOrdinal >= 0 && typeOrdinal < values.length ? values[typeOrdinal]
+            : ClusterParams.BoosterType.PARALLEL;
+    }
+
+    /** 增幅类型序号 → 本地名（越界回退并行型；d6acf00 基线语义保留）。 */
+    private static String boosterLabel(int typeOrdinal) {
+        return tr(boosterType(typeOrdinal).getLangKey());
+    }
+
+    // ==================== cl.f.detail 单帧解析（(a)(b)(c) 数据基座） ====================
+
+    /** 词条键：链蒸汽耗行（蒸汽口径组内；展开 = LINK 逐步 T_i/C_i 计算路径）。 */
+    private static final String KEY_STEAM_CHAIN = "STEAM_CHAIN";
+
+    /** 链步枚举缓存（LINK 行 ordinal → 本地名；链路页 LINKS 同款）。 */
+    private static final ChainLink[] CHAIN_LINKS = ChainLink.values();
+
+    /** 可展开词条（正文 + 计算路径小字行；draw 每帧重建的临时结构）。 */
+    private static final class EntryRow {
+
+        /** 互斥展开键（词条唯一；点击同键再点折叠）。 */
+        final String key;
+        /** 词条正文（不含行首箭头——绘制时按展开态加 ▶/▼ 前缀）。 */
+        String text;
+        /** 计算路径小字行（展开时缩进 0.6f 渲染；服务端缺真值段以 "--" 占位）。 */
+        final List<String> expansion = new ArrayList<>();
+
+        EntryRow(String key) {
+            this.key = key;
+        }
+    }
+
+    /**
+     * cl.f.detail 单帧解析结果（draw 每帧重建；畸形行/段丢弃；LOGI/PEAK 本页不消费直接跳过）。
+     * 数值哨兵：合计/wip 字段 {@code -1} = 服务端未下发（旧服务端降级），LUBE 分量
+     * {@code Integer.MIN_VALUE} = 缺行。
+     */
+    private static final class DetailFrame {
+
+        /** FMOD 行：[unitIdx, seg, timeX100, par, thruX100, steamX100]（token 序）。 */
+        final List<int[]> fmods = new ArrayList<>();
+        /** LINK 行：[ordinal, timeX100, steamX100]（链序；链蒸汽耗展开用）。 */
+        final List<int[]> linkSteps = new ArrayList<>();
+        /** FLUID 行：[liters]（与 {@link #fluidNames} 同下标）。 */
+        final List<long[]> fluidLiters = new ArrayList<>();
+        /** FLUID 行：流体注册名（可含 ':'，取首尾定界之间）。 */
+        final List<String> fluidNames = new ArrayList<>();
+        /** LUBE:cluster 值（×100 定点；MIN_VALUE=缺行）。 */
+        int lubeCluster = Integer.MIN_VALUE;
+        /** LUBE:logi 值（×100 定点；MIN_VALUE=缺行——未选中单元/旧服务端）。 */
+        int lubeLogi = Integer.MIN_VALUE;
+        /** BOOST 行：[typeOrdinal, lpsX100]（恒 5 行；token 序）。 */
+        final List<int[]> boosts = new ArrayList<>();
+        /** FTOT 流体合计（L；-1=缺 token）。 */
+        long ftotFluid = -1L;
+        /** FTOT 润滑合计（×100 定点；-1=缺 token）。 */
+        int ftotLube = -1;
+        /** FTOT 增幅合计（×100 定点；-1=缺 token）。 */
+        int ftotBoost = -1;
+        /** FWIP wip 流体倍率（×100 定点；-1=缺 token）。 */
+        int fwip = -1;
+    }
+
+    /**
+     * cl.f.detail 单帧解析（{@code |} 分行、行首令牌分发；{@code :} 分段，畸形行丢弃）：
+     * FMOD/FTOT/FWIP 为 v1.20.14 (a)(b) 新增令牌；LINK 供链蒸汽耗展开 (c)；FLUID/LUBE/BOOST
+     * 供集群详情词条 (b)(c)(d)。未知令牌（LOGI/PEAK 及未来扩展）静默跳过——前向兼容。
+     */
+    private static DetailFrame parseDetail(String detail) {
+        DetailFrame f = new DetailFrame();
+        if (detail == null || detail.isEmpty()) return f;
+        for (String row : detail.split("\\|", -1)) {
+            if (row.isEmpty()) continue;
+            if (row.startsWith("FMOD:")) {
+                int[] v = parseIntValues(row, 6);
+                if (v != null) f.fmods.add(v);
+            } else if (row.startsWith("LINK:")) {
+                int[] v = parseIntValues(row, 3);
+                if (v != null) f.linkSteps.add(v);
+            } else if (row.startsWith("FLUID:")) {
+                int first = row.indexOf(':');
+                int last = row.lastIndexOf(':');
+                if (last <= first) continue;
+                try {
+                    f.fluidLiters.add(
+                        new long[] { Long.parseLong(
+                            row.substring(last + 1)
+                                .trim()) });
+                    f.fluidNames.add(row.substring(first + 1, last));
+                } catch (NumberFormatException ignored) {
+                    // 畸形数量段整行丢弃（名称段不入列，防下标错位）
+                }
+            } else if (row.startsWith("LUBE:")) {
+                int second = row.indexOf(':', 5);
+                if (second < 0) continue;
+                String kind = row.substring(5, second);
+                try {
+                    int value = Integer.parseInt(
+                        row.substring(second + 1)
+                            .trim());
+                    if ("cluster".equals(kind)) f.lubeCluster = value;
+                    else if ("logi".equals(kind)) f.lubeLogi = value;
+                } catch (NumberFormatException ignored) {
+                    // 畸形行丢弃
+                }
+            } else if (row.startsWith("BOOST:")) {
+                int[] v = parseIntValues(row, 2);
+                if (v != null) f.boosts.add(v);
+            } else if (row.startsWith("FTOT:")) {
+                int[] v = parseIntValues(row, 3);
+                if (v != null) {
+                    // 服务端 clamp ≥0；负值（伪造/畸形）自然落入 -1 哨兵语义=缺真值
+                    f.ftotFluid = v[0];
+                    f.ftotLube = v[1];
+                    f.ftotBoost = v[2];
+                }
+            } else if (row.startsWith("FWIP:")) {
+                int[] v = parseIntValues(row, 1);
+                if (v != null) f.fwip = v[0];
+            }
+        }
+        return f;
+    }
+
+    /** 冒号分段整数解析（token 首段后的 value 段，期望 count 段全可解析；畸形回 null 整行丢弃）。 */
+    private static int[] parseIntValues(String row, int count) {
+        String[] parts = row.split(":", -1);
+        if (parts.length < count + 1) return null;
+        int[] out = new int[count];
         try {
-            switch (f[0]) {
-                case "FLUID": {
-                    if (f.length < 3) return null;
-                    // 流体注册名可含 ':'：名称取首尾定界之间，末段恒为数量
-                    String fluidName = row.substring(row.indexOf(':') + 1, row.lastIndexOf(':'));
-                    return EnumChatFormatting.GREEN + String.format(
-                        tr("gtsr.terminal.f.detail.fluid"),
-                        fluidName,
-                        GtsrNumFormat.grouped(Long.parseLong(f[f.length - 1].trim())));
-                }
-                case "LUBE": {
-                    if (f.length < 3) return null;
-                    String key = "logi".equals(f[1]) ? "gtsr.terminal.f.detail.lube.logi"
-                        : "gtsr.terminal.f.detail.lube.cluster";
-                    return EnumChatFormatting.GREEN + String.format(tr(key), x100Text(f[2]));
-                }
-                case "BOOST": {
-                    if (f.length < 3) return null;
-                    return EnumChatFormatting.GREEN + String.format(
-                        tr("gtsr.terminal.f.detail.boost"),
-                        boosterLabel(Integer.parseInt(f[1].trim())),
-                        x100Text(f[2]));
-                }
-                default:
-                    return null; // 未知令牌丢弃（前向兼容：服务端新增令牌旧客户端不炸）
+            for (int i = 0; i < count; i++) {
+                out[i] = Integer.parseInt(parts[i + 1].trim());
             }
         } catch (NumberFormatException ignored) {
             return null;
         }
-    }
-
-    /** ×100 定点字段 → 两位小数文本（畸形回 "0.00"；d6acf00 基线逐字移植）。 */
-    private static String x100Text(String rawX100) {
-        try {
-            return String.format("%.2f", Integer.parseInt(rawX100.trim()) / 100.0D);
-        } catch (NumberFormatException ignored) {
-            return "0.00";
-        }
-    }
-
-    /** 增幅类型序号 → 本地名（越界回退并行型，与 boosterType 防御口径一致；d6acf00 基线逐字移植）。 */
-    private static String boosterLabel(int typeOrdinal) {
-        ClusterParams.BoosterType[] values = ClusterParams.BoosterType.values();
-        ClusterParams.BoosterType type = typeOrdinal >= 0 && typeOrdinal < values.length ? values[typeOrdinal]
-            : ClusterParams.BoosterType.PARALLEL;
-        return tr(type.getLangKey());
+        return out;
     }
 
     // ==================== 栏 3【链路概览 + 增幅汇总 + 增幅实耗】 ====================
@@ -488,12 +756,21 @@ final class ClusterPerfPage implements ClusterPage {
 
     // ==================== 输入 ====================
 
-    /** 只读页：内容区内点击一律消费防穿透（无按钮）。 */
+    /**
+     * 内容区内点击：三栏列表先行接管（滚动条拖拽/第二列词条行展开切换/区内其余点击消费防穿透，
+     * GtsrGuiList.mouseClicked 滚动条分支先行于行命中，滚轮走独立 handleWheel——互不冲突）；
+     * 列表外残余内容区点击仍一律消费。
+     */
     @Override
     public boolean mouseClicked(int ox, int oy, int mx, int my, int button) {
-        return mx >= ox && mx < ox + GuiClusterTerminalScreen.CONTENT_W
+        boolean inPage = mx >= ox && mx < ox + GuiClusterTerminalScreen.CONTENT_W
             && my >= oy
             && my < oy + GuiClusterTerminalScreen.CONTENT_H;
+        if (!inPage) return false;
+        for (GtsrGuiList list : this.colLists) {
+            if (list != null && list.mouseClicked(mx, my, button)) return true;
+        }
+        return true;
     }
 
     @Override

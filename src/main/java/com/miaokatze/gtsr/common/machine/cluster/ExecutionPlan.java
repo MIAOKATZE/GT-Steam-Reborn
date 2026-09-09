@@ -281,4 +281,36 @@ public final class ExecutionPlan {
         double steamSaver = booster == null ? 0.0 : booster.getSaverBonusEffective();
         return chainSum * penaltyProduct * (1.0 - Math.min(ClusterParams.STEAM_SAVER_CAP, steamSaver));
     }
+
+    /**
+     * 逐物流单元蒸汽分项（v1.20.14 性能页分模块摘要专用）——{@link #totalSteamLps} 的逐单元展开：
+     * 可执行口径与防御口径逐字一致（单元在飞 {@code isWorkInProgress}、链非空且
+     * {@code chain.isExecutable(topology)}；units 空 / tierIdx 越界 / topology null 时全部分项为 0，
+     * 与 {@link #totalSteamLps} 同条件返 0 等价），增幅惩罚乘子 × 节汽折扣按同一因子逐单元施加
+     * （对总和而言与「先求和后施加」数学等价——因子分配律），因此
+     * {@code Σ out[i] == totalSteamLps(units, topology, tierIdx, booster)}（×100 定点前）。
+     *
+     * @param units    物流单元列表（通常为 topology.getLogisticsUnits()；返回数组下标一一对应）
+     * @param topology 集群拓扑（链可执行性判定）
+     * @param tierIdx  结构层级下标
+     * @param booster  增幅聚合快照，null 按零增益（惩罚乘积 1、节汽 0）
+     * @return 与 units 等长的蒸汽分项数组（L/s；null 单元/空链/不可执行对应位为 0）
+     */
+    public static double[] unitSteamLps(List<MTEBasicLogisticsUnit> units, ClusterTopology topology, int tierIdx,
+        BoosterState booster) {
+        int n = units == null ? 0 : units.size();
+        double[] out = new double[n];
+        if (n == 0 || tierIdx < 0 || tierIdx >= ClusterParams.TIER_COUNT || topology == null) return out;
+        double factor = (booster == null ? 1.0 : booster.getPenaltyProduct())
+            * (1.0 - Math.min(ClusterParams.STEAM_SAVER_CAP, booster == null ? 0.0 : booster.getSaverBonusEffective()));
+        for (int i = 0; i < n; i++) {
+            MTEBasicLogisticsUnit unit = units.get(i);
+            if (unit == null || !unit.isWorkInProgress()) continue;
+            LogisticsChain chain = unit.getChain();
+            if (chain == null || chain.isEmpty()) continue;
+            if (!chain.isExecutable(topology)) continue;
+            out[i] = chainSteamLps(chain.getLinks(), tierIdx, topology) * factor;
+        }
+        return out;
+    }
 }

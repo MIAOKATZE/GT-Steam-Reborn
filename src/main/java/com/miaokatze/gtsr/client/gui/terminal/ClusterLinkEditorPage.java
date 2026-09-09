@@ -20,6 +20,7 @@ import com.miaokatze.gtsr.common.machine.cluster.LogisticsChain;
 import com.miaokatze.gtsr.common.terminal.ClusterTerminalActions;
 import com.miaokatze.gtsr.common.terminal.ClusterTerminalData;
 import com.miaokatze.gtsr.common.util.GtsrNumFormat;
+import com.miaokatze.gtsr.main.GTSteamReborn;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
@@ -592,6 +593,8 @@ final class ClusterLinkEditorPage implements ClusterPage {
      * 只取首个 '.' 前的整数前缀（{@link #parseLeadingInt}）——不再对 {@code "1.5.3"} 整数解析抛
      * NumberFormatException 而整条丢弃 len ≥ 1 链条目（单元 chips 与快照峰步同源受益）。
      */
+    private static String lastLoggedLeChains;
+
     private static List<int[]> leChainSummaries() {
         List<int[]> out = new ArrayList<>();
         String encoded = getLeChains();
@@ -606,6 +609,11 @@ final class ClusterLinkEditorPage implements ClusterPage {
             } catch (NumberFormatException ignored) {
                 // 畸形条目跳过（unitIdx/len 仍整数解析；peak 由 helper 兜底）
             }
+        }
+        if (!encoded.equals(lastLoggedLeChains)) {
+            lastLoggedLeChains = encoded;
+            GTSteamReborn.LOG
+                .info("[TEMP-DIAG-v1.20.14][T2-C-CHAINS] encoded={} parsedEntries={}", encoded, out.size());
         }
         return out;
     }
