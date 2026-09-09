@@ -109,8 +109,9 @@ public final class ClusterChainExecutor {
      *
      * <p>
      * 事务流程：门控（主控+单元启用+物理电源/链可执行/tier/暂存产出未排空/配方时间）→ 低温门控
-     * （热量不足取料前零副作用返 0）→ 取料登记（不扣料）→ 链加工（副本单遍执行 + 逐物品真实配方
-     * 流体需求累计 + processedLinks 跟踪）→ 批流体预检（不足整批零副作用）→ 输出预检
+     * （热量不足取料前零副作用返 0）→ 取料登记（不扣料）→ 队列模式闸（S1：queueMode 开启且收集
+     * 输入无任一单种 item+meta ≥ 有效并行时零副作用返 0）→ 链加工（副本单遍执行 + 逐物品真实配方
+     * 流体需求累计 + processedLinks 跟踪 + 主产物单峰解析 S1-T9）→ 批流体预检（不足整批零副作用）→ 输出预检
      * （probe-place-undo：整批逐组实放再按台账立即回滚，放不下整批零副作用）→ 扣料（吞入）→
      * 配方流体实扣 → 配方时间/记账/吞吐/处理窗口开窗 → 整批产出暂存（不再当场发放，
      * 进度读零后由单元 onPostTick 排空）。
@@ -149,11 +150,14 @@ public final class ClusterChainExecutor {
 
         // 5) 并行与输入：从物流单元自己的输入总线收集全部非 OTHER 形态的物品（决策 3：
         // ORE 与粉碎矿/污浊粉等全部中间态均收），只登记台账不扣料
-        int runningLinks = 0;
+        List<MTEBasicLogisticsUnit> wipUnits = new ArrayList<>();
         for (MTEBasicLogisticsUnit logistics : topology.getLogisticsUnits()) {
-            if (logistics != null && logistics.isWorkInProgress()) runningLinks++;
+            if (logistics != null && logistics.isWorkInProgress()) wipUnits.add(logistics);
         }
-        BoosterState booster = BoosterState.aggregate(topology.getBoosterUnits(), Math.max(1, runningLinks));
+        // S1-T7：支付预检改用 wip 流体倍率（短运行 1/实际秒数口径），下限保底单倍——与主控实扣
+        // （settleSteamEconomy 实扣段）同函数同口径
+        BoosterState booster = BoosterState
+            .aggregate(topology.getBoosterUnits(), Math.max(1.0D, BoosterState.computeWipFluidMultiplier(wipUnits)));
         int parallel = ExecutionPlan.effectiveParallel(tier, booster);
         List<InputTake> takes = new ArrayList<>();
         unit.beginMEBusProcessing();
@@ -166,7 +170,16 @@ public final class ClusterChainExecutor {
         boolean meWindow = !takes.isEmpty();
         if (batch <= 0) return 0;
 
-        // 6) 链加工（副本单遍执行，逐物品累计真实配方流体需求 + processedLinks 跟踪；此点零副作用）
+        // 5b) 队列模式闸（S1 新增）：queueMode 开启时要求收集输入中存在单种 item+meta 数量
+        // ≥ 本批有效并行（上一步 ExecutionPlan.effectiveParallel 现算值），否则零副作用返 0
+        // （静默；状态机保持 STANDBY 口径；ME 窗口对称关闭，未扣料零残留）
+        if (unit.isQueueMode() && !hasSingleItemStackOf(takes, parallel)) {
+            if (meWindow) unit.endMEBusProcessing(cluster);
+            return 0;
+        }
+
+        // 6) 链加工（副本单遍执行，逐物品累计真实配方流体需求 + processedLinks 跟踪 + 主产物单峰
+        // 解析（S1-T9）；此点零副作用——bonusSink 仅在提交成功后回填主控统计）
         List<ItemStack> mid = new ArrayList<>(batch);
         for (InputTake take : takes) {
             for (int i = 0; i < take.amount; i++) {
@@ -175,7 +188,8 @@ public final class ClusterChainExecutor {
         }
         BatchFluidLedger fluids = new BatchFluidLedger();
         EnumSet<ChainLink> processedLinks = EnumSet.noneOf(ChainLink.class);
-        List<ItemStack> outputs = runChain(chain, mid, unit, fluids, booster, processedLinks, tier);
+        Map<Long, Long> bonusSink = new HashMap<>();
+        List<ItemStack> outputs = runChain(chain, mid, unit, fluids, booster, processedLinks, tier, bonusSink);
 
         // 7) 批流体预检（§3.6.5-3）：本批将处理物品的累计需求任一不足 → 整批零副作用
         if (!fluids.isSatisfiable(unit)) {
@@ -194,15 +208,23 @@ public final class ClusterChainExecutor {
         }
         rollbackOutputs(probeLedger);
 
-        // 9) 扣料（IOF :306-319 口径：live 引用 stackSize -= take；0-size 槽由总线自身 tick 收口）
+        // 9) 扣料（IOF :317 口径：live 引用 stackSize -= take；0-size 槽由总线自身 tick 收口）
         // ——此后输入已吞入，在飞批次仅能经 MTEBasicLogisticsUnit.abortPendingRun 中止（吞料）
         applyTakes(takes);
+        // S1-T10 进入统计：吞入台账按 item+meta 累计（主控持久，per-item 输入计数）
+        for (InputTake take : takes) {
+            cluster.addStatInput(take.live, take.amount);
+        }
         if (meWindow) unit.endMEBusProcessing(cluster);
 
         // 10) 提交：预检已证明输出可接收，实扣配方流体（§3.6.5-4，r6 S2：直接对物流单元输入仓
         // 跨仓结算）；此点之后不再回滚
         fluids.consume(unit);
         unit.markDirty();
+        // S1-T9/T10 提交后记账：批流体摘要供终端 FLUID 行；增幅额外产出（bonusSink）回填主控
+        // per-item 增幅产出统计（失败/中止路径不回填，与零副作用口径一致）
+        unit.setLastBatchFluidSummary(fluids.summaryEntries());
+        cluster.addStatBonusEntries(bonusSink);
 
         // 11) 配方时间与记账：整链时间按 1 tick=0.05s 向上取整，余数计 1 tick，最低 1 tick。
         List<ChainLink> processedLinksList = new ArrayList<>(processedLinks);
@@ -270,6 +292,21 @@ public final class ClusterChainExecutor {
         for (InputTake take : takes) {
             take.live.stackSize -= take.amount;
         }
+    }
+
+    /**
+     * 队列模式闸判据（S1 新增）：收集台账按 item+meta 分组计数（{@link GTUtility#stackToInt} 打包键
+     * 与 {@link #compress} 同一恒等口径），存在任一单种物品数量 ≥ threshold 即放行。
+     */
+    private static boolean hasSingleItemStackOf(List<InputTake> takes, int threshold) {
+        Map<Integer, Integer> byStack = new HashMap<>();
+        for (InputTake take : takes) {
+            byStack.merge(GTUtility.stackToInt(take.live), take.amount, Integer::sum);
+        }
+        for (int count : byStack.values()) {
+            if (count >= threshold) return true;
+        }
+        return false;
     }
 
     // ==================== 批流体台账（§3.6.5 逐物品真实配方扣液，r6 S2 直结输入仓） ====================
@@ -359,6 +396,28 @@ public final class ClusterChainExecutor {
             }
         }
 
+        /**
+         * 本批实际记账（charged）流体摘要（S1-T6 详情行 FLUID 数据源）：{@code fluidName:liters}
+         * 列表，仅 charged &gt; 0 的项（顺序：洗矿水 → 蒸馏水 → 化浴液）；供批提交点写入单元
+         * 瞬态 {@code lastBatchFluidSummary}。
+         */
+        List<String> summaryEntries() {
+            List<String> out = new ArrayList<>(3);
+            if (plainWaterMb > 0 && plainWaterFluid != null) {
+                out.add(plainWaterFluid.getName() + ":" + plainWaterMb);
+            }
+            if (distilledWaterMb > 0 && distilledWaterFluid != null) {
+                out.add(distilledWaterFluid.getName() + ":" + distilledWaterMb);
+            }
+            if (chemFluid != null && chemFluid.amount > 0 && chemFluid.getFluid() != null) {
+                out.add(
+                    chemFluid.getFluid()
+                        .getName() + ":"
+                        + chemFluid.amount);
+            }
+            return out;
+        }
+
         /** 台账 FluidStack 组装（防御：fluid 未记账时回退普通水，正常流程不触发）。 */
         private static FluidStack ledgerStack(Fluid fluid, int amountMb) {
             return new FluidStack(fluid != null ? fluid : plainWaterInstance(), amountMb);
@@ -385,21 +444,102 @@ public final class ClusterChainExecutor {
     // ==================== 链加工（IOF processStep :413-430） ====================
 
     /**
-     * 逐 link 推进中产物：对每个 stack 先做形态约束过滤（并集口径见 {@link #acceptsForm}），
-     * 命中则查配方（{@link #findLinkRecipe} 按 §3.6.5 的流体路径解析）——命中取
-     * {@link #rollOutputs}（IOF :558-581 移植 + 增幅作用于 chance）、按命中配方累计流体需求
+     * 逐 link 推进中产物（S1-T9 主产物单峰版）：先经 {@link #resolveEffectivePeak} 按<b>链序</b>
+     * （{@code chain.getLinks()}，禁止 EnumSet 迭代序）解析生效峰步，再执行正式单遍流水线——
+     * 对每个 stack 先做形态约束过滤（并集口径见 {@link #acceptsForm}），命中则查配方
+     * （{@link #findLinkRecipe} 按 §3.6.5 的流体路径解析）——命中取 {@link #rollOutputs}
+     * （峰步拿满主产物增益、非峰步缩至 10%，S1-T9）、按命中配方累计流体需求
      * （{@link BatchFluidLedger#charge}）并把该 link 记入 {@code processedLinks}
-     * （决策 12：冷却仅计实际加工链步），null 原样透传；每步尾 {@link #compress} 合并同类项
-     * （IOF :583-599 移植）。SIMPLE_WASH 配方图缺失（GT++ 不在场）时该步整体透传。
+     * （决策 12：冷却仅计实际加工链步），null 原样透传；每步尾 {@link #compress} 合并同类项。
+     * SIMPLE_WASH 配方图缺失（GT++ 不在场）时该步整体透传。解析出的生效峰写入
+     * {@code unit.lastEffectivePeak}（瞬态，供终端详情 PEAK 行）。
      *
      * @param processedLinks 实际命中配方的链步集合（调用方持有，EnumSet 去重；方法内只增不改他项）
      * @param tier           集群结构层级下标（r6-S6 粉碎副产物乘率的档位来源；调用方已保证 ≥0）
+     * @param bonusSink      增幅额外产出累计表（S1-T10，可空；提交成功后由调用方回填主控统计）
      * @return 合并后的最终产物列表（调用方负责写入输出总线）
      */
     private static List<ItemStack> runChain(LogisticsChain chain, List<ItemStack> mid, MTEBasicLogisticsUnit unit,
-        BatchFluidLedger fluids, BoosterState booster, EnumSet<ChainLink> processedLinks, int tier) {
+        BatchFluidLedger fluids, BoosterState booster, EnumSet<ChainLink> processedLinks, int tier,
+        Map<Long, Long> bonusSink) {
+        int effectivePeak = resolveEffectivePeak(chain, mid, unit);
+        unit.setLastEffectivePeak(effectivePeak);
+        return runChainPass(chain, mid, unit, fluids, booster, processedLinks, tier, bonusSink, effectivePeak);
+    }
+
+    /**
+     * 生效峰解析（S1-T9）：自 {@code chain.getPeakIndex()}（越界按边界钳制）起，首个实际命中配方步
+     * = 峰；其后无命中则回落<b>全链首个命中步</b>；全链无命中 = -1。解析经独立探测遍历
+     * （{@link #probeChainHits}）：真实配方查询、不 roll 不扣液——命中判定只看物品种类，
+     * 与正式遍历的随机 roll 无关（概率副产物不参与探测流，主流=保底输出）。
+     */
+    private static int resolveEffectivePeak(LogisticsChain chain, List<ItemStack> mid, MTEBasicLogisticsUnit unit) {
+        List<ChainLink> links = chain.getLinks();
+        boolean[] linkHit = new boolean[links.size()];
+        probeChainHits(links, mid, unit, linkHit);
+        int configuredPeak = Math.max(0, Math.min(links.size() - 1, chain.getPeakIndex()));
+        for (int i = configuredPeak; i < linkHit.length; i++) {
+            if (linkHit[i]) return i;
+        }
+        // 回落：配置峰之后无命中 → 全链首个命中步
+        for (int i = 0; i < configuredPeak && i < linkHit.length; i++) {
+            if (linkHit[i]) return i;
+        }
+        return -1;
+    }
+
+    /**
+     * 峰解析探测遍历（S1-T9，只读）：按链序对每个 stack 走形态过滤 + 真实配方查询，记录命中步；
+     * 命中处以<b>保底输出</b>（chance ≥ 10000 的原始模板，主流物品）推进探测物品流——与正式遍历的
+     * 物品种类主流一致，不产生 roll 随机、不扣液、不记账。尾步 {@link #compress} 合并保持口径一致。
+     */
+    private static void probeChainHits(List<ChainLink> links, List<ItemStack> mid, MTEBasicLogisticsUnit unit,
+        boolean[] linkHit) {
         boolean seenReduction = false;
-        for (ChainLink link : chain.getLinks()) {
+        List<ItemStack> current = mid;
+        for (int i = 0; i < links.size(); i++) {
+            ChainLink link = links.get(i);
+            boolean firstReduction = false;
+            if (link == ChainLink.CRUSH || link == ChainLink.HAMMER) {
+                firstReduction = !seenReduction;
+                seenReduction = true;
+            }
+            RecipeMap<?> map = link.getRecipeMap();
+            List<ItemStack> output = new ArrayList<>(current.size());
+            for (ItemStack stack : current) {
+                ClusterItemForms.OreForm form = ClusterItemForms.classify(stack);
+                if (map == null || !acceptsForm(link, form, firstReduction)) {
+                    output.add(stack);
+                    continue;
+                }
+                GTRecipe recipe = findLinkRecipe(link, map, GTUtility.copyOrNull(stack), unit);
+                if (recipe != null) {
+                    linkHit[i] = true;
+                    for (int slot = 0; slot < recipe.mOutputs.length; slot++) {
+                        ItemStack template = recipe.getOutput(slot);
+                        if (template != null && recipe.getOutputChance(slot) >= 10000) {
+                            output.add(template.copy());
+                        }
+                    }
+                } else {
+                    output.add(stack);
+                }
+            }
+            current = compress(output);
+        }
+    }
+
+    /**
+     * 正式链加工单遍（S1-T9）：峰步 {@code i == effectivePeak} 的命中以 {@code peakStep=true}
+     * roll（主产物增益满额），其余步 {@code peakStep=false}（主产物增益缩至 10%）。
+     */
+    private static List<ItemStack> runChainPass(LogisticsChain chain, List<ItemStack> mid, MTEBasicLogisticsUnit unit,
+        BatchFluidLedger fluids, BoosterState booster, EnumSet<ChainLink> processedLinks, int tier,
+        Map<Long, Long> bonusSink, int effectivePeak) {
+        List<ChainLink> links = chain.getLinks();
+        boolean seenReduction = false;
+        for (int i = 0; i < links.size(); i++) {
+            ChainLink link = links.get(i);
             boolean firstReduction = false;
             if (link == ChainLink.CRUSH || link == ChainLink.HAMMER) {
                 firstReduction = !seenReduction;
@@ -418,7 +558,8 @@ public final class ClusterChainExecutor {
                 if (recipe != null) {
                     processedLinks.add(link);
                     fluids.charge(link, recipe, stack.stackSize);
-                    output.addAll(rollOutputs(recipe, stack.stackSize, booster, link, tier));
+                    output.addAll(
+                        rollOutputs(recipe, stack.stackSize, booster, link, tier, i == effectivePeak, bonusSink));
                 } else {
                     output.add(stack);
                 }
@@ -533,11 +674,11 @@ public final class ClusterChainExecutor {
 
     /**
      * 配方产物掷取（IOF getOutputStack :558-581 移植 + §3.6.3 增幅 + r6-S6 粉碎副产物乘率，
-     * T2/T6 重定义）：
+     * T2/T6 重定义 + S1-T9 主产物单峰）：
      * <ul>
-     * <li>主产物（输出槽 0）p = chance + 主产物增益之和（{@link BoosterState#getPrimaryBonus()}，
-     * T6 起多模块加算）；副产物（槽 1+）p = chance + 副产物增益之和（加算）；
-     * {@code booster == null} 按零增益；</li>
+     * <li>主产物（输出槽 0）p = chance + 主产物增益之和（{@link BoosterState#getPrimaryBonus()}）；
+     * <b>非峰步增益缩至 10%</b>（{@code !peakStep → primaryBonus × 0.1}，S1-T9 单峰）；副产物
+     * （槽 1+）p = chance + 副产物增益之和（加算，不随 peakStep 缩放）；{@code booster == null} 按零增益；</li>
      * <li><b>p ≥ 1（T2/T6）</b>：floor(p) 份<b>整份输出保底复制</b>（原输出几件就多几件），
      * 余数再按概率复制一份——chance==10000 的保底主产物不再跳过增幅；</li>
      * <li><b>粉碎副产物乘率（r6-S6）</b>：链步为 CRUSH 时，副产物（仅槽 1+，不影响主产物）的
@@ -546,12 +687,18 @@ public final class ClusterChainExecutor {
      * =1.0 无削弱（钛级及以上 tier≥2）再判定；洗矿/离心等其他环节副产物不受影响；</li>
      * <li><b>p &lt; 1</b>：钳制 [0,1] 后按二项分布的正态近似 nextGaussian（mean=aTime·p、
      * std=sqrt(aTime·p·(1-p))，向上取整后乘 template.stackSize）——历史口径保留；</li>
+     * <li><b>bonusSink（S1-T10）</b>：非空时把超出基础 chance 期望的额外产出
+     * （quantity − round(chance/10000 × aTime × stackSize)，>0 部分）按
+     * {@code key=((long)itemId<<32)|(meta&0xFFFFFFFFL)}（itemId=注册 id）累加 count，供主控
+     * per-item 增幅产出统计；失败批由调用方整体丢弃，不入账；</li>
      * <li>quantity≤0 的槽位不产出。</li>
      * </ul>
      */
     private static List<ItemStack> rollOutputs(GTRecipe recipe, int aTime, BoosterState booster, ChainLink link,
-        int tier) {
-        double primaryBonus = booster == null ? 0.0 : booster.getPrimaryBonus();
+        int tier, boolean peakStep, Map<Long, Long> bonusSink) {
+        double primaryBonusRaw = booster == null ? 0.0 : booster.getPrimaryBonus();
+        // S1-T9 主产物单峰：峰步拿满主产物增益，非峰步缩至 10%（副产物增益不缩）
+        double primaryBonus = peakStep ? primaryBonusRaw : primaryBonusRaw * 0.1;
         double secondaryBonus = booster == null ? 0.0 : booster.getSecondaryBonus();
         boolean crushStep = link == ChainLink.CRUSH;
         double crushByproductMult = !crushStep ? 1.0
@@ -585,6 +732,16 @@ public final class ClusterChainExecutor {
             }
             if (quantity > 0) {
                 outputs.add(GTUtility.copyAmountUnsafe(quantity, template));
+                // S1-T10 增幅产出统计：超出基础 chance 期望的额外产出按 item+meta 累计
+                if (bonusSink != null) {
+                    long baseExpected = Math.round(chance / 10000.0 * aTime * template.stackSize);
+                    long extra = quantity - baseExpected;
+                    if (extra > 0) {
+                        long key = ((long) net.minecraft.item.Item.getIdFromItem(template.getItem()) << 32)
+                            | (template.getItemDamage() & 0xFFFFFFFFL);
+                        bonusSink.merge(key, extra, Long::sum);
+                    }
+                }
             }
         }
         return outputs;
@@ -699,12 +856,21 @@ public final class ClusterChainExecutor {
      * 包级静态供单元包内直调）：普通总线探测-实放-失败回滚 + ME 全组探测齐备后一次性实放，
      * 全部组放得下才算成功；任一组放不下则普通部分按台账回滚（ME 未动）并返回 false，调用方
      * 保留暂存下 tick 重试（输出总线满 = 空转等排空，零消耗零丢料）。实放传副本，入参列表
-     * 尺寸不受影响，重试与回滚共用同一暂存列表。
+     * 尺寸不受影响，重试与回滚共用同一暂存列表。整批实放成功后按产出堆 item+meta 累计主控
+     * 输出统计（S1-T10；未连接主控/空产出静默跳过）。
      *
      * @return true = 整批产出已全部实放（调用方清空暂存）；false = 空间不足（暂存保留重试）
      */
     static boolean emitPendingOutputs(MTEBasicLogisticsUnit unit, List<ItemStack> outputs) {
-        return tryEmitOutputs(unit, outputs, true) != null;
+        List<OutputLedger> ledger = tryEmitOutputs(unit, outputs, true);
+        if (ledger == null) return false;
+        MTESteamMineralLogisticsCluster host = unit.getCluster();
+        if (host != null) {
+            for (ItemStack out : outputs) {
+                if (!GTUtility.isStackInvalid(out)) host.addStatOutput(out, out.stackSize);
+            }
+        }
+        return true;
     }
 
     /**

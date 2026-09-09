@@ -30,7 +30,7 @@ import io.netty.buffer.Unpooled;
 @SideOnly(Side.CLIENT)
 public final class ClusterTerminalClientCache {
 
-    /** 键注册序（= N33 K_* 常量序 = 旧 KEY_ 注册序；下标即线上 keyByte）。 */
+    /** 键注册序（= N33 K_* 常量序 = 旧 KEY_ 注册序；下标即线上 keyByte；S1-T6 尾追三键后 32 位）。 */
     private static final String[] KEY_ORDER = { ClusterTerminalData.KEY_ENABLED, ClusterTerminalData.KEY_HEAT,
         ClusterTerminalData.KEY_STEAM, ClusterTerminalData.KEY_LUBE, ClusterTerminalData.KEY_THRU,
         ClusterTerminalData.KEY_TOTAL, ClusterTerminalData.KEY_SUPPLY, ClusterTerminalData.KEY_TIER,
@@ -40,13 +40,19 @@ public final class ClusterTerminalClientCache {
         ClusterTerminalData.KEY_LE_FAIL, ClusterTerminalData.KEY_LE_AVAIL, ClusterTerminalData.KEY_F_TIME,
         ClusterTerminalData.KEY_F_PAR, ClusterTerminalData.KEY_F_THRU, ClusterTerminalData.KEY_F_STEAM,
         ClusterTerminalData.KEY_F_TOTAL, ClusterTerminalData.KEY_F_FORMULA, ClusterTerminalData.KEY_BO_STRUCT,
-        ClusterTerminalData.KEY_BO_LIVE, ClusterTerminalData.KEY_BO_SUM, ClusterTerminalData.KEY_BO_COST };
+        ClusterTerminalData.KEY_BO_LIVE, ClusterTerminalData.KEY_BO_SUM, ClusterTerminalData.KEY_BO_COST,
+        ClusterTerminalData.KEY_F_DETAIL, ClusterTerminalData.KEY_STATS, ClusterTerminalData.KEY_LE_CHAINS };
 
     private static final int KEY_COUNT = KEY_ORDER.length;
 
     /** byte[] 通道键序下标（N33 K_TOPO/K_RUN）。 */
     private static final int IDX_TOPO = 10;
     private static final int IDX_RUN = 11;
+
+    /** String（CSV）通道键序下标（S1-T6 尾追：详情行 / 统计 / 全单元链快照）。 */
+    private static final int IDX_F_DETAIL = 29;
+    private static final int IDX_STATS = 30;
+    private static final int IDX_LE_CHAINS = 31;
 
     /** byte[] 分型长度防御上限（KEY_TOPO 150 / KEY_RUN 30，放宽到页大小兜底防伪造）。 */
     private static final int BYTE_ARRAY_MAX = 4096;
@@ -114,6 +120,21 @@ public final class ClusterTerminalClientCache {
         return v instanceof String ? (String) v : fallback;
     }
 
+    /** 读性能详情行串（S1-T6，键 cl.f.detail；缺包/类型不符回 fallback）。 */
+    public static String getFDetail(String fallback) {
+        return getStr(ClusterTerminalData.KEY_F_DETAIL, fallback);
+    }
+
+    /** 读分物品统计串（S1-T6，键 cl.stats；缺包/类型不符回 fallback）。 */
+    public static String getStats(String fallback) {
+        return getStr(ClusterTerminalData.KEY_STATS, fallback);
+    }
+
+    /** 读全单元链快照串（S1-T6，键 cl.le.chains；缺包/类型不符回 fallback）。 */
+    public static String getLeChains(String fallback) {
+        return getStr(ClusterTerminalData.KEY_LE_CHAINS, fallback);
+    }
+
     private static Object raw(String key) {
         Snapshot s = current;
         if (s == null) return null;
@@ -179,7 +200,9 @@ public final class ClusterTerminalClientCache {
                 return null; // N33 约定本位恒 true（真 valid 由信封承载）
             }
             int changedMask = pb.readVarIntFromBuffer();
-            if (changedMask < 0 || changedMask >= (1 << KEY_COUNT)) {
+            // KEY_COUNT=32 时 (1 << KEY_COUNT) 按 JLS 位移取模回绕为 1，须按无符号 32 位比较
+            long maskU = changedMask & 0xFFFFFFFFL;
+            if (maskU >= (1L << KEY_COUNT)) {
                 return null; // 位图越界：脏数据/伪造
             }
             Object[] out = new Object[KEY_COUNT];
@@ -218,8 +241,20 @@ public final class ClusterTerminalClientCache {
         return pb.readVarIntFromBuffer(); // 其余 19 键 = varint 标量
     }
 
-    /** CSV 字符串通道键（K_LE_UNITS/K_LE_CHAIN/K_LE_LOCK/K_F_FORMULA/K_BO_STRUCT/K_BO_LIVE/K_BO_SUM/K_BO_COST）。 */
+    /**
+     * CSV 字符串通道键（K_LE_UNITS/K_LE_CHAIN/K_LE_LOCK/K_F_FORMULA/K_BO_STRUCT/K_BO_LIVE/K_BO_SUM/K_BO_COST + S1-T6 尾追
+     * F_DETAIL/STATS/LE_CHAINS）。
+     */
     private static boolean isCsvKey(int key) {
-        return key == 13 || key == 14 || key == 15 || key == 24 || key == 25 || key == 26 || key == 27 || key == 28;
+        return key == 13 || key == 14
+            || key == 15
+            || key == 24
+            || key == 25
+            || key == 26
+            || key == 27
+            || key == 28
+            || key == IDX_F_DETAIL
+            || key == IDX_STATS
+            || key == IDX_LE_CHAINS;
     }
 }

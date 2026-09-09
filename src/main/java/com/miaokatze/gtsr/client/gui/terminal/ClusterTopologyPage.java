@@ -408,7 +408,7 @@ final class ClusterTopologyPage implements ClusterPage {
         if (mx >= ox && mx < ox + GuiClusterTerminalScreen.CONTENT_W
             && my >= oy
             && my < oy + GuiClusterTerminalScreen.CONTENT_H) {
-            this.scroll += dir;
+            this.scroll -= dir; // T8：MC 标准滚轮（上=内容上移 offset-，与 GtsrGuiList.handleWheel 同号）
         }
     }
 

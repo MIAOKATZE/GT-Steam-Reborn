@@ -16,7 +16,7 @@ import gregtech.api.recipe.RecipeMaps;
  * 实现，此处仅做引用，不承担其构建逻辑。
  * <p>
  * 物流链步不设本枚举项（物流由总控物流单元直接承担）：其基础耗时见
- * {@link ClusterParams#LOGISTICS_LINK_BASE_TICKS}（8s=160t），无蒸汽消耗。
+ * {@link ClusterParams#LOGISTICS_TIME_SEC}，无蒸汽消耗。
  * <p>
  * SIMPLE_WASH（简易洗矿）依赖 GT++ 的 simpleWasherRecipes 配方图；GTSR 对 GT++ 无编译期依赖，
  * 故经懒反射探测（见 {@link #getRecipeMap()}）：无 GT++ 时该步配方图缺失，链路不设单独可用性
@@ -25,34 +25,34 @@ import gregtech.api.recipe.RecipeMaps;
 public enum ChainLink {
 
     /** 破碎：矿石粗碎为碎矿。 */
-    CRUSH(480, 2000),
+    CRUSH(120, 2000),
 
     /** 锻造：矿物锤锻成形。 */
-    HAMMER(16, 8000),
+    HAMMER(4, 8000),
 
     /** 简易洗矿（GT++）：轻量水洗；依赖 GT++ simpleWasherRecipes，无 GT++ 时该步配方图缺失、执行透传。 */
-    SIMPLE_WASH(16, 200),
+    SIMPLE_WASH(4, 200),
 
     /** 矿石清洗：洗去碎矿表面杂质。 */
-    ORE_WASH(640, 200),
+    ORE_WASH(160, 200),
 
     /** 化学浸浴：用药剂分离矿物表面附着物。 */
-    CHEM_BATH(960, 1000),
+    CHEM_BATH(240, 1000),
 
     /** 离心：按密度分离粉碎产物。 */
-    CENTRIFUGE(640, 3000),
+    CENTRIFUGE(160, 3000),
 
     /** 热离心：加热条件下进一步分离矿物；需要能源仓持续供电。 */
-    THERMOCENTRIFUGE(480, 1000),
+    THERMOCENTRIFUGE(120, 1000),
 
     /** 筛分：从粉碎产物中筛出稀有副产物。 */
-    SIFTER(2560, 1000),
+    SIFTER(640, 1000),
 
     /** 磁力分离：以磁场提取含铁组分；需要能源仓持续供电。 */
-    MAGNETIC_SEPARATOR(160, 100),
+    MAGNETIC_SEPARATOR(40, 100),
 
     /** 熔炼：将处理后的矿物熔为锭。 */
-    FURNACE(160, 2000);
+    FURNACE(40, 2000);
 
     /** tick 与秒换算基准（20t = 1s）。 */
     public static final int TICKS_PER_SECOND = 20;

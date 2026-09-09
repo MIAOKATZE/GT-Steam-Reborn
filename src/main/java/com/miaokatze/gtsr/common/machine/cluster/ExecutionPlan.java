@@ -20,11 +20,11 @@ import java.util.List;
  * 数值自查（r6-S6 加权链路口径；T4/T11 重算后口径——旧「÷2^u/×4^u 相互约去」的说明已过时）：
  * <ol>
  * <li>tier0 单链「粉碎+熔炼」（每类 1 模块、unitTier=0、无增幅）：
- * T_粉碎=480t×1.0÷1=480t、T_熔炼=160t，ΣT=640t；
- * 链蒸汽 C=(2000×480+2000×160)÷640=2000 L/s；单物品工作耗时=(480+160)÷20=32 s（物流段另加）；</li>
- * <li>tier0 单链「锻造锤+粉碎」：C=(8000×16+2000×480)÷(16+480)=1088000÷496≈2194 L/s——时间加权使长步低耗的
- * 粉碎在均值中占主导；T4 后 unitTier=1 时 C_i×16、T_i÷4（不再约去），加权 C 放大 ×4，
- * 单物品工作耗时缩为 (16+480)÷4÷20=6.2 s；</li>
+ * T_粉碎=120t×1.0÷1=120t、T_熔炼=40t，ΣT=160t；
+ * 链蒸汽 C=(2000×120+2000×40)÷160=2000 L/s；单物品工作耗时=(120+40)÷20=8 s（物流段另加）；</li>
+ * <li>tier0 单链「锻造锤+粉碎」：C=(8000×4+2000×120)÷(4+120)=272000÷124≈2194 L/s——时间加权使长步低耗的
+ * 粉碎在均值中占主导；T4 后 unitTier=1 时 C_i×16、T_i÷8（不再约去），加权 C 放大 ×16，
+ * 单物品工作耗时缩为 (4+120)÷8÷20=0.775 s；</li>
  * <li>集群运行总需求（主控组装）：8000 × FIXED_STEAM_TIER_MULT[集群 tier] + Σ可执行链加权值
  * ×Π惩罚乘子×(1-min(48%,Σ节汽))——节汽封顶只作用于加权链路段，不影响固定项。</li>
  * </ol>
@@ -47,7 +47,7 @@ public final class ExecutionPlan {
      * 每个 link 项 T_i 与 {@link #linkWeightTicks}（链蒸汽加权分母）完全同源：同类工作模块复数
      * 放置时对应 link 时间按数量均摊（§4.1），均摊只计 {@code isModuleEnabled()} 的模块（必修 c：
      * 未成型/断电的同类模块不参与均摊，防耗时 ÷N 虚快）；单元自身结构档位按
-     * {@link ClusterParams#PROCESSING_UNIT_TIME_DIVISOR}（T4：1/4/16/64）缩小该 link 时间
+     * {@link ClusterParams#PROCESSING_UNIT_TIME_DIVISOR}（T4：1/8/32/64）缩小该 link 时间
      * （{@code unitStructureTier} 为 -1/未成型时按 0）；单步 T_i 下限 0.2 tick（0.01s，T4）。
      * 速度增幅整体作用于工作段（除法在物流时间之前），物流耗时不受速度增幅影响。
      *
@@ -84,7 +84,7 @@ public final class ExecutionPlan {
      * 单个链步的有效耗时权重 T_i（tick）——{@link #itemTimeSec} 的逐 link 时间项与链蒸汽加权
      * 分母共用的唯一实现（同源一致口径）：{@code baseTicks × TIER_TIME_FACTOR[tierIdx]
      * ÷ max(1, 同类已启用工作模块数) ÷ PROCESSING_UNIT_TIME_DIVISOR[unitStructureTier]
-     * （T4：1/4/16/64）}，单步下限 0.2 tick。
+     * （T4：1/8/32/64）}，单步下限 0.2 tick。
      *
      * @param link     链步（非 null）
      * @param tierIdx  集群结构层级下标（已由调用方验证有效）

@@ -30,7 +30,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 
 /**
- * 集群终端数据（terminal-native-ui N33，PLAN §4.3-D）：24 键（29 通道，见下）快照组装 +
+ * 集群终端数据（terminal-native-ui N33，PLAN §4.3-D）：24 键（32 通道，S1-T6 尾追三键，见下）快照组装 +
  * 动作执行分发，supplier 逐个移植原集群同步实现（git 基线 b4fabb2）的
  * syncValue 注册段（:97-166）与编码 helper（:297-571），语义逐字不变；采样包装移植其
  * {@code SampledValue}（:601-626，间隔语义不变），状态改挂每玩家会话（旧轨 = 每 GUI 实例，
@@ -46,7 +46,8 @@ import io.netty.buffer.Unpooled;
  * 只有值变化（相对本会话上次组装缓存）的键入包，天然对齐旧「变化即发」；客户端全量覆盖命中键。
  *
  * <p>
- * <b>键清单（29 通道；计划口径「24 键」= 本清单的习惯名，与 wiki
+ * <b>键清单（32 通道；S1-T6 尾追 cl.f.detail/cl.stats/cl.le.chains 三键，0-28 冻结不动；
+ * 计划口径「24 键」= 本清单的习惯名，与 wiki
  * mods/gtsr/ui/cluster-gui-sync-protocol.md §1 逐键一致）</b>：
  * 标量 19（KEY_ENABLED bool、KEY_HEAT/KEY_STEAM/KEY_LUBE/KEY_THRU/KEY_SUPPLY/KEY_TIER/
  * KEY_SEGMENTS/KEY_BREAK/KEY_SEL_LOGI/KEY_LE_EXEC/KEY_LE_FAIL/KEY_LE_AVAIL/KEY_F_TIME/
@@ -147,6 +148,12 @@ public final class ClusterTerminalData {
     public static final String KEY_BO_SUM = "cl.bo.sum";
     /** 增幅页：实耗组（{@code lpsX10:base[:pct:tier:type]...} 条目 CSV，20t 采样）。 */
     public static final String KEY_BO_COST = "cl.bo.cost";
+    /** 性能详情行（S1-T6 尾追）：{@code |} 分行，行语法 LINK/LOGI/FLUID/LUBE/BOOST/PEAK（见 encodeDetail）。 */
+    public static final String KEY_F_DETAIL = "cl.f.detail";
+    /** 分物品统计（S1-T6 尾追）：{@code <in>|<out>|<bonus>} 三段，每段 CSV {@code itemId:meta:count} 按 count 降序 Top-64。 */
+    public static final String KEY_STATS = "cl.stats";
+    /** 链路页全单元链快照（S1-T6 尾追）：CSV {@code unitIdx:len:peak:o1.o2...oN}（len=0 时 peak=-1 无 ordinal 段）。 */
+    public static final String KEY_LE_CHAINS = "cl.le.chains";
 
     // ==================== 键序（线上 keyByte = 下标；= 旧 KEY_ 注册序） ====================
 
@@ -179,12 +186,15 @@ public final class ClusterTerminalData {
     private static final int K_BO_LIVE = 26;
     private static final int K_BO_SUM = 27;
     private static final int K_BO_COST = 28;
-    private static final int KEY_COUNT = 29;
+    private static final int K_F_DETAIL = 29;
+    private static final int K_STATS = 30;
+    private static final int K_LE_CHAINS = 31;
+    private static final int KEY_COUNT = 32;
 
     /**
      * 采样间隔表（tick，下标 = 键序；0 = 直读，每次组装重算）：标量组 10t、KEY_RUN/增幅 live 组
      * 20t、KEY_TOPO/结构标量/整链快照/结构串 revision 界直读——与原集群同步注册段
-     * （:200-282）逐键一致。
+     * （:200-282）逐键一致；S1-T6 尾追三键 {cl.f.detail=0, cl.stats=20, cl.le.chains=0}。
      */
     private static final int[] SAMPLE_INTERVALS = {
         // cl.enabled cl.heat cl.steam cl.lube cl.thru cl.total cl.supply cl.tier cl.segs cl.brk
@@ -192,7 +202,9 @@ public final class ClusterTerminalData {
         // cl.topo cl.run cl.selLogi cl.le.units cl.le.chain cl.le.lock cl.le.exec cl.le.fail cl.le.avail
         0, 20, 0, 10, 0, 10, 10, 10, 20,
         // cl.f.time cl.f.par cl.f.thru cl.f.steam cl.f.total cl.f.formula cl.bo.struct cl.bo.live cl.bo.sum cl.bo.cost
-        10, 10, 10, 10, 10, 10, 0, 20, 20, 20 };
+        10, 10, 10, 10, 10, 10, 0, 20, 20, 20,
+        // cl.f.detail cl.stats cl.le.chains（S1-T6 尾追）
+        0, 20, 0 };
 
     // ==================== typeId / errId 稳定注册表（冻结常量；编码端在总控） ====================
 
@@ -284,7 +296,7 @@ public final class ClusterTerminalData {
                 pb.writeVarIntToBuffer(arr.length);
                 pb.writeBytes(arr);
             }
-            case K_LE_UNITS, K_LE_CHAIN, K_LE_LOCK, K_F_FORMULA, K_BO_STRUCT, K_BO_LIVE, K_BO_SUM, K_BO_COST -> ByteBufUtils
+            case K_LE_UNITS, K_LE_CHAIN, K_LE_LOCK, K_F_FORMULA, K_BO_STRUCT, K_BO_LIVE, K_BO_SUM, K_BO_COST, K_F_DETAIL, K_STATS, K_LE_CHAINS -> ByteBufUtils
                 .writeUTF8String(pb, (String) value);
             default -> pb.writeVarIntToBuffer((Integer) value);
         }
@@ -377,6 +389,12 @@ public final class ClusterTerminalData {
                 return encodeBoosterSummary(cluster);
             case K_BO_COST:
                 return encodeBoosterCost(cluster);
+            case K_F_DETAIL:
+                return encodeDetail(cluster);
+            case K_STATS:
+                return encodeStats(cluster);
+            case K_LE_CHAINS:
+                return encodeChains(cluster);
             default:
                 return Integer.valueOf(0); // 不可达（键序封闭）；防御回退
         }
@@ -558,13 +576,14 @@ public final class ClusterTerminalData {
         StringBuilder sb = new StringBuilder(64);
         List<MTEBasicAmplifierUnit> units = cluster.getTopology()
             .getBoosterUnits();
+        // S1-T7：实耗显示改 wip 流体倍率口径（短运行 1/实际秒数），与主控实扣/支付预检同一 helper
+        double wipMultiplier = BoosterState.computeWipFluidMultiplier(cluster.collectWipLogisticsUnits());
         for (MTEBasicAmplifierUnit unit : units) {
             if (unit == null || unit.getBoosterType() == null) continue;
             if (sb.length() > 0) sb.append(',');
             int tier = unit.getUnitStructureTier();
             boolean valid = tier >= 0 && tier < ClusterParams.TIER_COUNT;
-            int wip = cluster.countWipLogisticsUnits();
-            long lpsX10 = Math.round(unit.amplifierFluidPerSecExact() * wip * 10.0D);
+            long lpsX10 = Math.round(unit.amplifierFluidPerSecExact() * wipMultiplier * 10.0D);
             int base = valid ? ClusterParams.amplifierFluidLps(unit.getBoosterType(), tier) : 0;
             sb.append(lpsX10)
                 .append(':')
@@ -576,6 +595,165 @@ public final class ClusterTerminalData {
                     .append(source[1])
                     .append(':')
                     .append(source[2]);
+            }
+        }
+        return sb.toString();
+    }
+
+    /** 统计同步端每段截断条数（持久端全量、同步端 Top-N，S1-T6）。 */
+    private static final int STATS_TOP_N = 64;
+
+    /**
+     * 性能详情行串（S1-T6 新增，键 cl.f.detail）：{@code |} 分行——
+     * {@code LINK:linkOrdinal:timeSecX100:steamLpsX100}（本链实际包含加工步，链序；T_i/C_i 与
+     * ExecutionPlan 同式同源）、{@code LOGI:unitIdx:timeSecX100}、
+     * {@code FLUID:fluidName:liters}（仅最近成功批实际 charged 的洗矿水/化浴）、
+     * {@code LUBE:cluster:litersPerSecX100}、{@code LUBE:logi:litersPerSecX100}、
+     * {@code BOOST:boosterTypeOrdinal:litersPerSecX100}（5 行，S1-T7 wip 流体倍率口径）、
+     * {@code PEAK:effectivePeakStepIdx:linkOrdinal}（无命中省略）。未选中单元/空链返回空串。
+     */
+    private static String encodeDetail(MTESteamMineralLogisticsCluster cluster) {
+        MTEBasicLogisticsUnit unit = cluster.getSelectedLogisticsUnit();
+        if (unit == null || unit.getChain() == null
+            || unit.getChain()
+                .isEmpty())
+            return "";
+        List<ChainLink> links = unit.getChain()
+            .getLinks();
+        int tier = tierIdx(cluster);
+        ClusterTopology topology = cluster.getTopology();
+        StringBuilder sb = new StringBuilder(128);
+        // LINK 行：链序逐步（单步 T_i 与 C_i 按 ExecutionPlan.linkWeightTicks / chainSteamLps 同式重算）
+        for (ChainLink link : links) {
+            if (link == null) continue;
+            int[] stat = enabledUnitStats(topology, link.getRequiredUnitClass());
+            int unitTier = Math.max(0, Math.min(stat[1], ClusterParams.TIER_COUNT - 1));
+            double tTicks = Math.max(
+                0.2D,
+                link.getBaseTicks() * ClusterParams.TIER_TIME_FACTOR[tier]
+                    / Math.max(1, stat[0])
+                    / ClusterParams.PROCESSING_UNIT_TIME_DIVISOR[unitTier]);
+            double steamLps = link.getBaseSteamLps() * ClusterParams.PROCESSING_UNIT_STEAM_MULT[unitTier]
+                * Math.max(1, stat[0]);
+            appendDetailRow(
+                sb,
+                "LINK:" + link.ordinal() + ":" + toX100(tTicks / ChainLink.TICKS_PER_SECOND) + ":" + toX100(steamLps));
+        }
+        // LOGI 行：物流段耗时（纯物流段，无速度增幅影响）
+        appendDetailRow(
+            sb,
+            "LOGI:" + cluster.getSelectedLogisticsIndex() + ":" + (ClusterParams.LOGISTICS_TIME_SEC[tier] * 100));
+        // FLUID 行：最近成功批实际 charged 的洗矿水/化浴（unit 瞬态摘要，executor 提交点写入）
+        for (String entry : unit.getLastBatchFluidSummary()) {
+            appendDetailRow(sb, "FLUID:" + entry);
+        }
+        // LUBE 行：集群润滑 + 物流单元润滑（×100 定点）
+        int logiTier = Math.max(0, Math.min(unit.getLogisticsStructureTier(), ClusterParams.TIER_COUNT - 1));
+        appendDetailRow(sb, "LUBE:cluster:" + toX100(ClusterParams.CLUSTER_LUBRICANT_LPS[tier]));
+        appendDetailRow(sb, "LUBE:logi:" + toX100(ClusterParams.LOGISTICS_UNIT_LUBRICANT_LPS[logiTier]));
+        // BOOST 行：5 型逐型合计实耗（S1-T7 wip 流体倍率口径）
+        double wipMultiplier = BoosterState.computeWipFluidMultiplier(cluster.collectWipLogisticsUnits());
+        for (ClusterParams.BoosterType type : ClusterParams.BoosterType.values()) {
+            double lps = 0.0D;
+            for (MTEBasicAmplifierUnit amplifier : cluster.getTopology()
+                .getBoosterUnits()) {
+                if (amplifier == null || amplifier.getBoosterType() != type) continue;
+                if (amplifier.getUnitStructureTier() < 0
+                    || amplifier.getUnitStructureTier() >= ClusterParams.TIER_COUNT) continue;
+                lps += amplifier.amplifierFluidPerSecExact();
+            }
+            appendDetailRow(sb, "BOOST:" + type.ordinal() + ":" + toX100(lps * wipMultiplier));
+        }
+        // PEAK 行：最近成功批生效峰步（无命中/尚无批省略）
+        int peak = unit.getLastEffectivePeak();
+        if (peak >= 0 && peak < links.size() && links.get(peak) != null) {
+            appendDetailRow(
+                sb,
+                "PEAK:" + peak
+                    + ":"
+                    + links.get(peak)
+                        .ordinal());
+        }
+        return sb.toString();
+    }
+
+    /** 详情行追加（{@code |} 分隔；首行无前导分隔符）。 */
+    private static void appendDetailRow(StringBuilder sb, String row) {
+        if (sb.length() > 0) sb.append('|');
+        sb.append(row);
+    }
+
+    /**
+     * 单链步有效耗时权重 T_i 的同源辅助（S1-T6 详情行专用）：与 ExecutionPlan.linkWeightTicks
+     * 同式（该类为只读契约，本类按同式重算保证口径一致）。
+     */
+    private static int[] enabledUnitStats(ClusterTopology topology, Class<? extends MTEClusterUnitBase> type) {
+        int count = 0;
+        int tier = 0;
+        if (topology != null) {
+            for (MTEClusterUnitBase unit : topology.getUnits()) {
+                if (type.isInstance(unit) && unit.isModuleEnabled()) {
+                    if (count == 0) tier = Math.max(0, unit.getUnitStructureTier());
+                    count++;
+                }
+            }
+        }
+        return new int[] { count, tier };
+    }
+
+    /**
+     * 统计串（S1-T6 新增，键 cl.stats）：{@code <in>|<out>|<bonus>} 三段，每段 CSV
+     * {@code itemId:meta:count} 按 count 降序（主控访问器已排序）Top-64（持久端全量、同步端截断）。
+     */
+    private static String encodeStats(MTESteamMineralLogisticsCluster cluster) {
+        return encodeStatSegment(cluster.getStatInputEntries()) + "|"
+            + encodeStatSegment(cluster.getStatOutputEntries())
+            + "|"
+            + encodeStatSegment(cluster.getStatBonusEntries());
+    }
+
+    /** 统计段编码：三元组展平数组 → CSV，截断 Top-{@link #STATS_TOP_N}。 */
+    private static String encodeStatSegment(long[] entries) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i + 2 < entries.length && i < STATS_TOP_N * 3; i += 3) {
+            if (i > 0) sb.append(',');
+            sb.append(entries[i])
+                .append(':')
+                .append(entries[i + 1])
+                .append(':')
+                .append(entries[i + 2]);
+        }
+        return sb.toString();
+    }
+
+    /**
+     * 全物流单元链快照串（S1-T6 新增，键 cl.le.chains）：CSV 条目
+     * {@code unitIdx:len:peak:o1.o2...oN}（ordinal 以 {@code .} 分隔；len=0 时 peak=-1 且无 ordinal
+     * 段），遍历全部物流单元（结构扫描序）；峰步越界按边界钳制后编出。
+     */
+    private static String encodeChains(MTESteamMineralLogisticsCluster cluster) {
+        List<MTEBasicLogisticsUnit> units = cluster.getTopology()
+            .getLogisticsUnits();
+        StringBuilder sb = new StringBuilder(64);
+        for (int i = 0; i < units.size(); i++) {
+            MTEBasicLogisticsUnit unit = units.get(i);
+            if (i > 0) sb.append(',');
+            sb.append(i)
+                .append(':');
+            LogisticsChain chain = unit != null ? unit.getChain() : null;
+            int len = chain != null ? chain.length() : 0;
+            if (chain == null || len <= 0) {
+                sb.append(0)
+                    .append(':')
+                    .append(-1);
+                continue;
+            }
+            sb.append(len)
+                .append(':')
+                .append(Math.max(0, Math.min(len - 1, chain.getPeakIndex())));
+            for (int ordinal : chain.toOrdinalArray()) {
+                sb.append('.')
+                    .append(ordinal);
             }
         }
         return sb.toString();
@@ -688,6 +866,7 @@ public final class ClusterTerminalData {
         ByteBuf buf = Unpooled.wrappedBuffer(payload == null ? new byte[0] : payload);
         int idx = 0;
         int[] chainOrdinals = null;
+        int chainPeak = 0;
         switch (action) {
             case SELECT_LOGISTICS:
                 if (buf.readableBytes() < 4) return; // idx 读不全：异常长度即断
@@ -703,20 +882,23 @@ public final class ClusterTerminalData {
                 for (int i = 0; i < len; i++) {
                     chainOrdinals[i] = buf.readInt();
                 }
+                // S1-T9 主产物单峰：峰步为可选尾参（旧客户端不携峰缺省 0）
+                if (buf.readableBytes() >= 4) chainPeak = buf.readInt();
                 break;
             default:
                 break; // TOGGLE_POWER：无参
         }
-        executeChecked(cluster, action, idx, chainOrdinals);
+        executeChecked(cluster, action, idx, chainOrdinals, chainPeak);
     }
 
     /**
      * 服务端复核 + 执行（移植旧 ClusterActionSyncHandler.executeChecked 对应分支）：
      * TOGGLE_POWER 仅 terminalValid；SELECT_LOGISTICS 复核索引界内；SAVE_CHAIN 走 wiki §3.1
-     * 完整复核链。复核不通过一律静默拒绝——伪造包不产生任何副作用。
+     * 完整复核链（峰步 S1-T9：{@code Math.max(0, Math.min(len-1, peak))} clamp 后写回）。
+     * 复核不通过一律静默拒绝——伪造包不产生任何副作用。
      */
     private static void executeChecked(MTESteamMineralLogisticsCluster cluster, ClusterTerminalActions action, int idx,
-        int[] ordinals) {
+        int[] ordinals, int peak) {
         if (!terminalValid(cluster)) return;
         switch (action) {
             case TOGGLE_POWER:
@@ -747,6 +929,9 @@ public final class ClusterTerminalData {
                 if (candidate.isEmpty() || !candidate.isValidStructure()) return;
                 unit.getChain()
                     .setLinks(candidate.getLinks());
+                // S1-T9：主产物峰步 clamp [0, len-1] 后写回（缺省 0 已在读参端兜底）
+                unit.getChain()
+                    .setPeakIndex(Math.max(0, Math.min(candidate.length() - 1, peak)));
                 unit.markChainDirty();
                 break;
             }

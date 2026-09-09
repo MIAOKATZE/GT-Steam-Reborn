@@ -876,7 +876,8 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
             // （FIXED_CLUSTER_STEAM_LPS × FIXED_STEAM_TIER_MULT[tier]，r6-S6 新口径）+ 加权链路段 C；
             // C 聚合按 powerOn 选全量启用单元（开机）或在飞 WIP 单元（关电收尾只对在飞计费）；
             // 切片 5b：聚合只计 isModuleEnabled 的物流单元（混合成型态不高估需量）
-            booster = BoosterState.aggregate(topology.getBoosterUnits(), wip);
+            booster = BoosterState
+                .aggregate(topology.getBoosterUnits(), BoosterState.computeWipFluidMultiplier(wipUnits));
             double c = ExecutionPlan.computeAggregateSteamC(
                 powerOn ? enabledLogisticsUnits() : wipUnits,
                 topology,
@@ -891,11 +892,13 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
                 List<MTEBasicLogisticsUnit> decremented = decrementChainCooldowns();
                 if (powerOn) runChains(decremented);
                 if (wip > 0) {
-                    // 按本秒 WIP 物流单元数连续计费；链批是否实际完成不影响实扣。
-                    // 任一 active 模块实扣失败，或任一在场模块本秒无法支付（failed>0，含缺增幅液）
-                    // = 增幅液断供 → 中止
+                    // 按本秒 WIP 流体倍率连续计费（S1-T7 短运行 1/实际秒数口径）；链批是否实际完成
+                    // 不影响实扣。任一 active 模块实扣失败，或任一在场模块本秒无法支付（failed>0，
+                    // 含缺增幅液）= 增幅液断供 → 中止
+                    double fluidMult = BoosterState.computeWipFluidMultiplier(wipUnits);
                     for (MTEBasicAmplifierUnit amplifier : booster.getActiveUnits()) {
-                        if (!amplifier.tryConsumeAmplifierFluid(amplifier.amplifierFluidPerSec() * wip)) {
+                        if (!amplifier
+                            .tryConsumeAmplifierFluid((int) Math.ceil(amplifier.amplifierFluidPerSec() * fluidMult))) {
                             amplifierShortage = true;
                         }
                     }
@@ -990,9 +993,10 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
     /**
      * 在飞物流单元收集（r-logi-power-bind）：{@link MTEClusterUnitBase#isWorkInProgress()} 的单元
      * 列表（结构扫描序）——关电收尾时 C 聚合只对在飞配方计费（{@code settleSteamEconomy} 传入
-     * {@code ExecutionPlan.computeAggregateSteamC}），booster 聚合取其 size。
+     * {@code ExecutionPlan.computeAggregateSteamC}），booster 聚合取其 wip 流体倍率（S1-T7）；
+     * 终端详情/实耗编码（KEY_BO_COST）亦经本列表取同一倍率口径。
      */
-    private List<MTEBasicLogisticsUnit> collectWipLogisticsUnits() {
+    public List<MTEBasicLogisticsUnit> collectWipLogisticsUnits() {
         List<MTEBasicLogisticsUnit> wip = new ArrayList<>();
         for (MTEBasicLogisticsUnit unit : topology.getLogisticsUnits()) {
             if (unit != null && unit.isWorkInProgress()) wip.add(unit);
@@ -1403,6 +1407,131 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
         markDirty();
     }
 
+    // ==================== 分物品统计（S1-T10：进入/输出/增幅产出，NBT 持久） ====================
+
+    /** NBT 键：进入统计复合（条目键 {@code domain:item:meta} 字符串 → long，禁止持久化数值 itemId）。 */
+    private static final String NBT_STAT_INPUT = "clusterStatInput";
+
+    /** NBT 键：输出统计复合（键格式同上）。 */
+    private static final String NBT_STAT_OUTPUT = "clusterStatOutput";
+
+    /** NBT 键：增幅产出统计复合（键格式同上）。 */
+    private static final String NBT_STAT_BONUS = "clusterStatBonus";
+
+    /** 进入统计：条目键 {@code domain:item:meta} → 累计数（执行器 applyTakes 吞入点累计）。 */
+    private final Map<String, Long> statInput = new HashMap<>();
+
+    /** 输出统计：条目键同上（MTEBasicLogisticsUnit.emitPendingOutputs 排空成功点累计）。 */
+    private final Map<String, Long> statOutput = new HashMap<>();
+
+    /** 增幅产出统计：条目键同上（执行器 rollOutputs bonusSink 提交后回填累计）。 */
+    private final Map<String, Long> statBonus = new HashMap<>();
+
+    /** 进入统计累计（执行器扣料吞入点调用；item+meta 维度，count ≤ 0 忽略，无法解析注册名跳过）。 */
+    public void addStatInput(net.minecraft.item.ItemStack stack, long count) {
+        addStatEntry(statInput, stack, count);
+    }
+
+    /** 输出统计累计（排空成功点调用；item+meta 维度，count ≤ 0 忽略，无法解析注册名跳过）。 */
+    public void addStatOutput(net.minecraft.item.ItemStack stack, long count) {
+        addStatEntry(statOutput, stack, count);
+    }
+
+    /**
+     * 增幅产出统计回填（执行器批提交点调用）：把 {@code rollOutputs} 的 bonusSink（键
+     * {@code ((long)itemId<<32)|(meta&0xFFFFFFFFL)}，itemId=注册 id）并入增幅产出统计；
+     * null/空表静默跳过。
+     */
+    public void addStatBonusEntries(Map<Long, Long> bonusSink) {
+        if (bonusSink == null || bonusSink.isEmpty()) return;
+        for (Map.Entry<Long, Long> e : bonusSink.entrySet()) {
+            long packed = e.getKey();
+            addStatEntry(statBonus, (int) (packed >> 32), (int) packed, e.getValue());
+        }
+    }
+
+    /** @return 进入统计条目（{@code long[]{itemId, meta, count}}，按 count 降序；解析失败条目跳过）。 */
+    public long[] getStatInputEntries() {
+        return sortedStatEntries(statInput);
+    }
+
+    /** @return 输出统计条目（格式同 {@link #getStatInputEntries()}）。 */
+    public long[] getStatOutputEntries() {
+        return sortedStatEntries(statOutput);
+    }
+
+    /** @return 增幅产出统计条目（格式同 {@link #getStatInputEntries()}）。 */
+    public long[] getStatBonusEntries() {
+        return sortedStatEntries(statBonus);
+    }
+
+    /** 单条统计累计（ItemStack 入口）：取注册名 + damage 组条目键。 */
+    private void addStatEntry(Map<String, Long> map, net.minecraft.item.ItemStack stack, long count) {
+        if (count <= 0 || gregtech.api.util.GTUtility.isStackInvalid(stack)) return;
+        addStatEntry(map, net.minecraft.item.Item.getIdFromItem(stack.getItem()), stack.getItemDamage(), count);
+    }
+
+    /** 单条统计累计（id+meta 入口）：解析注册名组条目键，未注册 id 静默跳过。 */
+    private static void addStatEntry(Map<String, Long> map, int itemId, int meta, long count) {
+        if (count <= 0) return;
+        net.minecraft.item.Item item = net.minecraft.item.Item.getItemById(itemId);
+        if (item == null) return;
+        Object name = net.minecraft.item.Item.itemRegistry.getNameForObject(item);
+        if (name == null) return;
+        map.merge(name.toString() + ":" + meta, count, Long::sum);
+    }
+
+    /**
+     * 统计条目导出：字符串键运行时解析回 id+meta（{@code domain:item:meta} 末段为 meta，前缀经
+     * 物品注册表反查；解析失败条目跳过），按 count 降序展平为 {@code long[]{itemId, meta, count}}。
+     */
+    private static long[] sortedStatEntries(Map<String, Long> map) {
+        List<long[]> entries = new ArrayList<>(map.size());
+        for (Map.Entry<String, Long> e : map.entrySet()) {
+            String key = e.getKey();
+            int sep = key.lastIndexOf(':');
+            if (sep <= 0) continue;
+            int meta;
+            try {
+                meta = Integer.parseInt(key.substring(sep + 1));
+            } catch (NumberFormatException ex) {
+                continue;
+            }
+            Object item = net.minecraft.item.Item.itemRegistry.getObject(key.substring(0, sep));
+            if (!(item instanceof net.minecraft.item.Item resolved)) continue;
+            entries.add(new long[] { net.minecraft.item.Item.getIdFromItem(resolved), meta, e.getValue() });
+        }
+        entries.sort((a, b) -> Long.compare(b[2], a[2]));
+        long[] out = new long[entries.size() * 3];
+        for (int i = 0; i < entries.size(); i++) {
+            long[] entry = entries.get(i);
+            out[i * 3] = entry[0];
+            out[i * 3 + 1] = entry[1];
+            out[i * 3 + 2] = entry[2];
+        }
+        return out;
+    }
+
+    /** 统计复合标签写出（字符串键 → long，条目键即注册名口径）。 */
+    private static net.minecraft.nbt.NBTTagCompound statCompound(Map<String, Long> map) {
+        net.minecraft.nbt.NBTTagCompound tag = new net.minecraft.nbt.NBTTagCompound();
+        for (Map.Entry<String, Long> e : map.entrySet()) {
+            tag.setLong(e.getKey(), e.getValue());
+        }
+        return tag;
+    }
+
+    /** 统计复合标签回读（缺键安全跳过；条目键逐条回填，读后与写入对称）。 */
+    private static void readStatCompound(Map<String, Long> map, NBTTagCompound root, String key) {
+        map.clear();
+        if (!root.hasKey(key)) return;
+        net.minecraft.nbt.NBTTagCompound tag = root.getCompoundTag(key);
+        // func_150296_c = getKeySet（MCP 名在本工作区编译面不可达，GT5U GTUtil:44 同款 SRG 直呼）
+        for (String entryKey : tag.func_150296_c()) {
+            map.put(entryKey, tag.getLong(entryKey));
+        }
+    }
+
     /** @return 最近一秒处理矿数（20t 真实窗口发布；停机/未成型清 0；进度词条直读）。 */
     public double getLastThroughputOrePerSec() {
         return lastThroughputOrePerSec;
@@ -1608,6 +1737,10 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
         super.saveNBTData(aNBT);
         aNBT.setBoolean("machineEnabled", machineEnabled);
         aNBT.setBoolean("supplyAbortNotified", supplyAbortNotified);
+        // S1-T10：分物品统计（进入/输出/增幅产出）持久化（复合：条目键 domain:item:meta → long）
+        aNBT.setTag(NBT_STAT_INPUT, statCompound(statInput));
+        aNBT.setTag(NBT_STAT_OUTPUT, statCompound(statOutput));
+        aNBT.setTag(NBT_STAT_BONUS, statCompound(statBonus));
         ClusterPersistence.write(this, aNBT);
     }
 
@@ -1616,6 +1749,10 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
     public void loadNBTData(NBTTagCompound aNBT) {
         super.loadNBTData(aNBT);
         machineEnabled = aNBT.hasKey("machineEnabled") ? aNBT.getBoolean("machineEnabled") : true;
+        // S1-T10：分物品统计回读（缺键保持空表；旧档无此三键 = 从零累计，安全跳过）
+        readStatCompound(statInput, aNBT, NBT_STAT_INPUT);
+        readStatCompound(statOutput, aNBT, NBT_STAT_OUTPUT);
+        readStatCompound(statBonus, aNBT, NBT_STAT_BONUS);
         ClusterPersistence.read(this, aNBT);
         // 锁存读回置于 ClusterPersistence.read 之后：其内部 setMachineEnabled(重开机) 清除的是
         // 默认 false（无副作用），随后以 NBT 权威值覆盖，持久语义不受读档路径开关机影响

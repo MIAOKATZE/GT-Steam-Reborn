@@ -148,9 +148,10 @@ public final class ClusterParams {
     public static final int[] PROCESSING_UNIT_STEAM_MULT = { 1, 16, 128, 512 };
 
     /**
-     * 加工单元按自身结构档位的耗时除数；与 {@link ExecutionPlan} 的耗时 T_i 同源。
+     * 加工单元按自身结构档位的耗时除数（T4 用户拍板 1/8/32/64）；与 {@link ExecutionPlan} 的
+     * 耗时 T_i 同源。
      */
-    public static final int[] PROCESSING_UNIT_TIME_DIVISOR = { 1, 4, 16, 64 };
+    public static final int[] PROCESSING_UNIT_TIME_DIVISOR = { 1, 8, 32, 64 };
 
     /** 每批次清洗用水量（L）。 */
     public static final int WASH_WATER_PER_BATCH_L = 1000;
@@ -193,13 +194,10 @@ public final class ClusterParams {
     // ==================== 物流单元 ====================
 
     /** 各层级物流单元基准并行数，下标对应层级序号。 */
-    public static final int[] LOGISTICS_BASE_PARALLEL = { 4, 8, 24, 48 };
-
-    /** 物流链步基础耗时（tick，8s=160t；无蒸汽消耗——见 {@link ChainLink} 基础表口径）。 */
-    public static final int LOGISTICS_LINK_BASE_TICKS = 160;
+    public static final int[] LOGISTICS_BASE_PARALLEL = { 24, 48, 64, 128 };
 
     /** 各层级物流单元处理耗时（秒，0 表示即时完成），下标对应层级序号。 */
-    public static final int[] LOGISTICS_TIME_SEC = { 10, 6, 2, 0 };
+    public static final int[] LOGISTICS_TIME_SEC = { 5, 2, 1, 0 };
 
     /** 物流单元储罐容量（L）。 */
     public static final int LOGISTICS_TANK_CAPACITY_L = 16_000;

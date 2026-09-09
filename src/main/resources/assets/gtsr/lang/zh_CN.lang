@@ -1544,6 +1544,24 @@ gtsr.cluster.gui.logistics.reason.need_module=缺模块：%s
 gtsr.cluster.gui.logistics.reason.other=原因未知
 gtsr.cluster.gui.logistics.soft_hammer=软锤敲击模块可复位物流
 
+# 集群终端性能详情/统计/全链（gtsr.terminal.*）
+gtsr.terminal.f.detail.title=性能详情
+gtsr.terminal.f.detail.link=链步 %s：耗时 %s s / 蒸汽 %s L/s
+gtsr.terminal.f.detail.logi=物流段：耗时 %s s
+gtsr.terminal.f.detail.fluid=%s：每批 %s L
+gtsr.terminal.f.detail.lube.cluster=集群润滑：%s L/s
+gtsr.terminal.f.detail.lube.logi=物流润滑：%s L/s
+gtsr.terminal.f.detail.boost=增幅液 %s：%s L/s
+gtsr.terminal.f.detail.peak=主产物增幅峰：第 %s 步
+gtsr.terminal.stats.title=统计
+gtsr.terminal.stats.in=累计进入
+gtsr.terminal.stats.out=累计输出
+gtsr.terminal.stats.bonus=增幅产出
+gtsr.terminal.le.chains.title=全部物流链
+gtsr.terminal.le.chains.peak=峰位：第 %s 步
+gtsr.cluster.logistics.queue.on=队列模式：开启
+gtsr.cluster.logistics.queue.off=队列模式：关闭
+
 # 集群机器域存活键（ClusterParams/ChainLink/ClusterChainFSM/ClusterUnitStatus 引用）
 gtsr.gui.cluster.tier.bronze=青铜
 gtsr.gui.cluster.tier.steel=钢
@@ -1640,9 +1658,9 @@ gtsr.tooltip.cluster.unit.magnetic_separator.func=磁选：耗时 %s，蒸汽 %s
 gtsr.tooltip.cluster.unit.magnetic_separator.power=持续供电：%s
 gtsr.tooltip.cluster.unit.furnace.desc=熔炼模块：解锁熔炼链
 gtsr.tooltip.cluster.unit.furnace.func=熔炼：耗时 %s，蒸汽 %s
-gtsr.tooltip.cluster.unit.parallel.desc=并行增幅模块：提升物流模块并行数，可多模块加算；同种越多，流体消耗与蒸汽惩罚越高（协同率 10%）
+gtsr.tooltip.cluster.unit.parallel.desc=并行增幅模块：提升物流模块并行数，可多模块加算；同种越多，增幅流体消耗越高（协同率 10%）；蒸汽惩罚只随结构档位累乘
 gtsr.tooltip.cluster.unit.parallel.value=并行增幅：四档 +%s
-gtsr.tooltip.cluster.unit.speed.desc=速度增幅模块：配方增速，可多模块加算；同种越多，流体消耗与蒸汽惩罚越高（协同率 10%）
+gtsr.tooltip.cluster.unit.speed.desc=速度增幅模块：配方增速，可多模块加算；同种越多，增幅流体消耗越高（协同率 10%）；蒸汽惩罚只随结构档位累乘
 gtsr.tooltip.cluster.unit.speed.value=速度增幅：四档 +%s
 gtsr.tooltip.cluster.preview_tier=结构预览底材档：构造触发器数量 1-4 或通道“tier”选择
 gtsr.tooltip.cluster.channel_length=结构总段数：全息图 length 信道控制 1-%s，未设时按手持数量
@@ -1652,15 +1670,15 @@ gtsr.tooltip.cluster.unit.parallel.link_apply=施加方：按自身结构档位�
 gtsr.tooltip.cluster.unit.primary.link_receive=被提高：集群内速度/并行增幅按其档位使本模块流体耗量增加 %s/档
 gtsr.tooltip.cluster.unit.secondary.link_receive=被提高：集群内速度/并行增幅按其档位使本模块流体耗量增加 %s/档
 gtsr.tooltip.cluster.unit.steam_saver.link_receive=被提高：集群内速度/并行增幅按其档位使本模块流体耗量增加 %s/档
-gtsr.tooltip.cluster.unit.primary.desc=主产物增幅模块：按概率整份复制主产物产出，多台加算且可超 100%（超出部分按概率再复制）；同种越多，流体消耗与蒸汽惩罚越高（协同率 50%）
+gtsr.tooltip.cluster.unit.primary.desc=主产物增幅模块：按概率整份复制主产物产出，多台加算且可超 100%（超出部分按概率再复制）；同种越多，增幅流体消耗越高（协同率 50%）；蒸汽惩罚只随结构档位累乘
 gtsr.tooltip.cluster.unit.primary.value=主产物增幅：四档 +%s
-gtsr.tooltip.cluster.unit.secondary.desc=副产物增幅模块：按概率额外产出副产物（2/3/4 号位全部生效），可多模块加算；同种越多，流体消耗与蒸汽惩罚越高（协同率 50%）
+gtsr.tooltip.cluster.unit.secondary.desc=副产物增幅模块：按概率额外产出副产物（2/3/4 号位全部生效），可多模块加算；同种越多，增幅流体消耗越高（协同率 50%）；蒸汽惩罚只随结构档位累乘
 gtsr.tooltip.cluster.unit.secondary.value=副产物增幅：四档 +%s
-gtsr.tooltip.cluster.unit.steam_saver.desc=节汽增幅模块：按比例节约运行蒸汽，可多模块加算；同种越多，流体消耗越高（协同率 10%）
+gtsr.tooltip.cluster.unit.steam_saver.desc=节汽增幅模块：按比例节约运行蒸汽，可多模块加算；同种越多，增幅流体消耗越高（协同率 10%）；蒸汽惩罚只随结构档位累乘
 gtsr.tooltip.cluster.unit.steam_saver.value=节汽增幅：四档 %s，上限 %s
 gtsr.tooltip.cluster.unit.logistics.desc=物流模块：集群单点链执行器，四类 I/O 结构（普通或 ME 系仓室皆可）
-gtsr.tooltip.cluster.unit.logistics.window=处理窗口下限 %s
 gtsr.tooltip.cluster.unit.logistics.soft_hammer=软锤启停（默认开机）
+gtsr.tooltip.cluster.unit.logistics.queue=队列模式：螺丝刀右击切换；开启后单种物品攒满并行数才开批
 
 
 # BQ quests BEGIN

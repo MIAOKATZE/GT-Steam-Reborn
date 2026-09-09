@@ -61,8 +61,14 @@ final class ClusterLinkEditorPage implements ClusterPage {
     private static final int LINK_PITCH = 34;
     /** 左列底部同步反馈行高（Y 按 contentH 钉底）。 */
     private static final int FEEDBACK_H = 12;
-    /** 右列：chips 区。 */
-    private static final int CHIPS_DY = 28;
+    /** 右列：全物流链分组头条（单元 chips；点击=SELECT_LOGISTICS 切换编辑目标）。 */
+    private static final int UNITS_DY = 28;
+    private static final int UNITS_H = 14;
+    /** 分组头条：左缘标题宽与单元 chip 最大宽（draw 与命中共用）。 */
+    private static final int UNITS_LABEL_W = 44;
+    private static final int UNITS_CHIP_MAX_W = 46;
+    /** 右列：chips 区（当前链，位于分组头条之下）。 */
+    private static final int CHIPS_DY = UNITS_DY + UNITS_H + 4;
     private static final int CHIPS_H = 88;
     /** chip 行距；副产物提示占用第二行。 */
     private static final int CHIP_PITCH = 25;
@@ -83,6 +89,12 @@ final class ClusterLinkEditorPage implements ClusterPage {
     private GtsrGuiList linksList;
     /** 可用链列表几何快照。 */
     private int linksListLeft, linksListTop, linksListWidth, linksListHeight;
+    /** 性能详情滚动列表（T6：旧 6 行直绘迁移至 GtsrGuiList，行高 11）。 */
+    private GtsrGuiList perfList;
+    /** 性能详情列表几何快照。 */
+    private int perfListLeft, perfListTop, perfListWidth, perfListHeight;
+    /** 本帧性能详情行（draw 每帧重建：旧 6 行头部 + KEY_F_DETAIL 令牌行；live 每帧重读纪律）。 */
+    private List<String> perfFrameLines = Collections.emptyList();
     /** chips 滚动偏移（自持）。 */
     private int chipsScroll;
     /** 下拉菜单展开态。 */
@@ -91,6 +103,8 @@ final class ClusterLinkEditorPage implements ClusterPage {
     private long lastRejectAt;
     /** 本地暂存链：干净态恒跟随服务器快照（见 {@link #displayOrdinals}），dirty 期间为独立编辑副本不被覆盖。 */
     private List<Integer> stagedOrdinals = new ArrayList<>();
+    /** 暂存峰步（T9 主产物单峰；干净态跟随 KEY_LE_CHAINS 快照，dirty 期间为本地暂存值，保存尾参下发）。 */
+    private int stagedPeakIndex;
     /** 暂存脏标记：首个本地编辑置位；服务器快照追平暂存（保存生效回流）时自动清除。 */
     private boolean stagingDirty = false;
 
@@ -428,7 +442,8 @@ final class ClusterLinkEditorPage implements ClusterPage {
      */
     private void checkSnapshotCaughtUp() {
         if (!this.stagingDirty) return;
-        if (chainOrdinals().equals(this.stagedOrdinals)) {
+        // T9：链步与峰步双双追平才清脏（仅峰位变更的保存同样回流确认）
+        if (chainOrdinals().equals(this.stagedOrdinals) && this.stagedPeakIndex == snapshotPeakIndex()) {
             this.stagingDirty = false;
         }
     }
@@ -447,6 +462,9 @@ final class ClusterLinkEditorPage implements ClusterPage {
             GtsrGuiPalette.TEXT_ACCENT);
         drawSmallButton(rx + RIGHT_W - 86, oy + TITLE_DY - 2, 42, 12, tr("gtsr.cluster.gui.link.chain.save"), mx, my);
         drawSmallButton(rx + RIGHT_W - 42, oy + TITLE_DY - 2, 42, 12, tr("gtsr.cluster.gui.link.chain.clear"), mx, my);
+
+        // 全物流链分组头条（当前链 chips 之上；点击单元 = SELECT_LOGISTICS 切换编辑目标）
+        drawUnitsStrip(rx, oy, mx, my, z);
 
         // chips 滚动列表（滚动偏移自持；暂存脏期间显示本地 staged 副本）
         GtsrGuiDrawing.drawNineSlice(GtsrGuiTextures.LIST_PANEL, 4, rx, oy + CHIPS_DY, RIGHT_W, CHIPS_H, z);
@@ -482,21 +500,237 @@ final class ClusterLinkEditorPage implements ClusterPage {
             GL11.glPopMatrix();
         }
 
-        // 性能详情常驻显示（服务端真值，×100 定点解码；每帧重读缓存）
-        GuiClusterTerminalScreen
-            .drawScaledText(font(), tr("gtsr.cluster.gui.link.perf"), rx, oy + FOLD_DY, 0.7f, GtsrGuiPalette.TEXT_BODY);
+        // 性能详情常驻显示（服务端真值，×100 定点解码；T6 迁移 GtsrGuiList——滚轮/滚动条/剪刀自带，
+        // 面板标题与九宫格底保留，列表嵌在面板区内）
+        GuiClusterTerminalScreen.drawScaledText(
+            font(),
+            tr("gtsr.terminal.f.detail.title"),
+            rx,
+            oy + FOLD_DY,
+            0.7f,
+            GtsrGuiPalette.TEXT_BODY);
         int perfH = Math.max(30, feedbackDy - PERF_DY);
         GtsrGuiDrawing.drawNineSlice(GtsrGuiTextures.LIST_PANEL, 4, rx, oy + PERF_DY, RIGHT_W, perfH, z);
-        String[] perfLines = perfLines();
-        for (int i = 0; i < perfLines.length; i++) {
+        this.perfFrameLines = buildPerfDetailLines();
+        ensurePerfList(rx, oy + PERF_DY, RIGHT_W, perfH);
+        this.perfList.draw(mx, my, z);
+    }
+
+    // ==================== 全物流链分组头条（KEY_LE_CHAINS → 单元 chips，点击 = SELECT_LOGISTICS） ====================
+
+    /**
+     * 全物流链分组头条（当前链 chips 之上的分组头）：读 {@code cl.le.chains}（unitIdx:len:peak CSV）
+     * 每帧重析，每单元一枚 chip（#序号·链长；空链灰字）；选中单元亮态（KEY_SEL_LOGI 每帧联动）。
+     * 点击 chip = SELECT_LOGISTICS（服务端复核后经 KEY_SEL_LOGI 推回权威值，单链编辑流程不变）。
+     */
+    private void drawUnitsStrip(int rx, int oy, int mx, int my, float z) {
+        GtsrGuiDrawing.drawNineSlice(GtsrGuiTextures.LIST_PANEL, 4, rx, oy + UNITS_DY, RIGHT_W, UNITS_H, z);
+        GuiClusterTerminalScreen.drawScaledText(
+            font(),
+            EnumChatFormatting.GOLD.toString() + EnumChatFormatting.BOLD
+                + GtsrGuiList.ellipsis(font(), tr("gtsr.terminal.le.chains.title"), (int) (UNITS_LABEL_W / 0.55f)),
+            rx + 3,
+            oy + UNITS_DY + 4,
+            0.55f,
+            GtsrGuiPalette.TEXT_ACCENT);
+        List<int[]> chains = leChainSummaries();
+        int chipW = unitChipWidth(chains.size());
+        int sel = ClusterTerminalClientCache.getInt(ClusterTerminalData.KEY_SEL_LOGI, 0);
+        for (int i = 0; i < chains.size(); i++) {
+            int[] entry = chains.get(i);
+            int cx = rx + UNITS_LABEL_W + i * chipW;
+            boolean selected = entry[0] == sel;
+            boolean hovered = mx >= cx && mx < cx + chipW && my >= oy + UNITS_DY && my < oy + UNITS_DY + UNITS_H;
+            GtsrGuiDrawing.drawNineSlice(
+                selected || hovered ? GtsrGuiTextures.CHIP_ACTIVE : GtsrGuiTextures.CHIP_NORMAL,
+                4,
+                cx + 1,
+                oy + UNITS_DY + 1,
+                chipW - 2,
+                UNITS_H - 2,
+                z);
+            String label = EnumChatFormatting.WHITE + "#"
+                + (entry[0] + 1)
+                + "·"
+                + (entry[1] > 0 ? EnumChatFormatting.GREEN + String.valueOf(entry[1]) : EnumChatFormatting.GRAY + "--");
             GuiClusterTerminalScreen.drawScaledText(
                 font(),
-                GtsrGuiList.ellipsis(font(), perfLines[i], (int) ((RIGHT_W - 6) / 0.7f)),
-                rx + 3,
-                oy + PERF_DY + 3 + i * 11,
+                GtsrGuiList.ellipsis(font(), label, (int) ((chipW - 4) / 0.55f)),
+                cx + 3,
+                oy + UNITS_DY + 4,
+                0.55f,
+                GtsrGuiPalette.TEXT_BODY);
+            if (hovered) {
+                List<String> tip = new ArrayList<String>();
+                tip.add(EnumChatFormatting.WHITE + tr("gtsr.terminal.le.chains.title") + " #" + (entry[0] + 1));
+                tip.add(
+                    entry[1] > 0
+                        ? EnumChatFormatting.WHITE + String
+                            .format(tr("gtsr.cluster.gui.link.chain.len"), entry[1], ClusterParams.CHAIN_MAX_LINKS)
+                        : EnumChatFormatting.GRAY + tr("gtsr.cluster.gui.link.chain.empty"));
+                if (entry[1] > 0) {
+                    tip.add(EnumChatFormatting.GOLD + String.format(tr("gtsr.terminal.le.chains.peak"), entry[2] + 1));
+                }
+                this.host.requestTooltip("lech" + entry[0], tip);
+            }
+        }
+    }
+
+    /** 单元 chip 宽（均分剩余宽，上限 {@link #UNITS_CHIP_MAX_W}；无单元回 0 不绘制）。 */
+    private static int unitChipWidth(int unitCount) {
+        if (unitCount <= 0) return 0;
+        return Math.min(UNITS_CHIP_MAX_W, (RIGHT_W - UNITS_LABEL_W - 4) / unitCount);
+    }
+
+    /** 全物流单元链摘要（KEY_LE_CHAINS 每帧解析：unitIdx/len/peak；len=0 时 peak=-1，畸形条目跳过）。 */
+    private static List<int[]> leChainSummaries() {
+        List<int[]> out = new ArrayList<>();
+        String encoded = getLeChains();
+        if (encoded.isEmpty()) return out;
+        for (String entry : encoded.split(",", -1)) {
+            String[] fields = entry.split(":", -1);
+            if (fields.length < 3) continue;
+            try {
+                out.add(
+                    new int[] { Integer.parseInt(fields[0].trim()), Integer.parseInt(fields[1].trim()),
+                        Integer.parseInt(fields[2].trim()) });
+            } catch (NumberFormatException ignored) {
+                // 畸形条目跳过
+            }
+        }
+        return out;
+    }
+
+    /**
+     * 快照峰步（KEY_LE_CHAINS 中选中单元项；空链/无数据回 0——与旧客户端缺省峰步口径一致）。
+     */
+    private int snapshotPeakIndex() {
+        int sel = ClusterTerminalClientCache.getInt(ClusterTerminalData.KEY_SEL_LOGI, 0);
+        for (int[] entry : leChainSummaries()) {
+            if (entry[0] == sel) return entry[1] > 0 ? Math.max(0, entry[2]) : 0;
+        }
+        return 0;
+    }
+
+    /** 当前展示峰步：干净态跟随服务器快照，暂存脏期间为本地暂存值（与 displayOrdinals 同分流）。 */
+    private int displayPeakIndex() {
+        return this.stagingDirty ? this.stagedPeakIndex : snapshotPeakIndex();
+    }
+
+    // ==================== 性能详情滚动列表（T6：旧 6 行头部 + KEY_F_DETAIL 令牌行） ====================
+
+    /** 性能详情列表（惰性重建：几何与 linksList 同款快照比对；行高 11）。 */
+    private void ensurePerfList(int left, int top, int width, int height) {
+        if (this.perfList != null && this.perfListLeft == left
+            && this.perfListTop == top
+            && this.perfListWidth == width
+            && this.perfListHeight == height) {
+            return;
+        }
+        this.perfListLeft = left;
+        this.perfListTop = top;
+        this.perfListWidth = width;
+        this.perfListHeight = height;
+        this.perfList = new GtsrGuiList(this.host, left, top, width, height, 11);
+        this.perfList.setRowSource(() -> this.perfFrameLines.size());
+        this.perfList.setRowPainter((index, x, y, mouseX, mouseY) -> {
+            if (index < 0 || index >= this.perfFrameLines.size()) return;
+            GuiClusterTerminalScreen.drawScaledText(
+                font(),
+                GtsrGuiList.ellipsis(font(), this.perfFrameLines.get(index), (int) ((width - 6) / 0.7f)),
+                x + 3,
+                y + 2,
                 0.7f,
                 GtsrGuiPalette.TEXT_BODY);
+        });
+    }
+
+    /** 详情行集（每帧重建）：旧 6 行（TIME/PAR/THRU/STEAM/TOTAL/FORMULA 令牌 S1 未输出，沿用旧键文案）前置于 KEY_F_DETAIL 令牌行。 */
+    private List<String> buildPerfDetailLines() {
+        List<String> out = new ArrayList<>();
+        Collections.addAll(out, perfLines());
+        String detail = getFDetail();
+        if (!detail.isEmpty()) {
+            for (String row : detail.split("\\|", -1)) {
+                String line = formatDetailRow(row);
+                if (line != null) out.add(line);
+            }
         }
+        return out;
+    }
+
+    /**
+     * 单详情行本地化（行首令牌分发；{@code |} 分行、{@code :} 分段，畸形行返回 null 丢弃）：
+     * LINK/LOGI/FLUID/LUBE(cluster|logi)/BOOST/PEAK → gtsr.terminal.f.detail.* 键。
+     */
+    private static String formatDetailRow(String row) {
+        if (row == null || row.isEmpty()) return null;
+        String[] f = row.split(":", -1);
+        try {
+            switch (f[0]) {
+                case "LINK": {
+                    if (f.length < 4) return null;
+                    int ordinal = Integer.parseInt(f[1].trim());
+                    String name = ordinal >= 0 && ordinal < LINKS.length ? tr(LINKS[ordinal].getLangKey())
+                        : "#" + ordinal;
+                    return EnumChatFormatting.GREEN
+                        + String.format(tr("gtsr.terminal.f.detail.link"), name, x100Text(f[2]), x100Text(f[3]));
+                }
+                case "LOGI": {
+                    if (f.length < 3) return null;
+                    return EnumChatFormatting.GREEN + String.format(tr("gtsr.terminal.f.detail.logi"), x100Text(f[2]));
+                }
+                case "FLUID": {
+                    if (f.length < 3) return null;
+                    // 流体注册名可含 ':'：名称取首尾定界之间，末段恒为数量
+                    String fluidName = row.substring(row.indexOf(':') + 1, row.lastIndexOf(':'));
+                    return EnumChatFormatting.GREEN + String.format(
+                        tr("gtsr.terminal.f.detail.fluid"),
+                        fluidName,
+                        NumberFormatUtil.formatNumber(Long.parseLong(f[f.length - 1].trim())));
+                }
+                case "LUBE": {
+                    if (f.length < 3) return null;
+                    String key = "logi".equals(f[1]) ? "gtsr.terminal.f.detail.lube.logi"
+                        : "gtsr.terminal.f.detail.lube.cluster";
+                    return EnumChatFormatting.GREEN + String.format(tr(key), x100Text(f[2]));
+                }
+                case "BOOST": {
+                    if (f.length < 3) return null;
+                    return EnumChatFormatting.GREEN + String.format(
+                        tr("gtsr.terminal.f.detail.boost"),
+                        boosterLabel(Integer.parseInt(f[1].trim())),
+                        x100Text(f[2]));
+                }
+                case "PEAK": {
+                    if (f.length < 2) return null;
+                    // 峰步按本页 chip 1 基序号展示（快照 0 基 → +1）
+                    return EnumChatFormatting.GOLD
+                        + String.format(tr("gtsr.terminal.f.detail.peak"), Integer.parseInt(f[1].trim()) + 1);
+                }
+                default:
+                    return null; // 未知令牌丢弃（前向兼容：服务端新增令牌旧客户端不炸）
+            }
+        } catch (NumberFormatException ignored) {
+            return null;
+        }
+    }
+
+    /** ×100 定点字段 → 两位小数文本（畸形回 "0.00"）。 */
+    private static String x100Text(String rawX100) {
+        try {
+            return String.format("%.2f", Integer.parseInt(rawX100.trim()) / 100.0D);
+        } catch (NumberFormatException ignored) {
+            return "0.00";
+        }
+    }
+
+    /** 增幅类型序号 → 本地名（越界回退并行型，与 boosterType 防御口径一致）。 */
+    private static String boosterLabel(int typeOrdinal) {
+        ClusterParams.BoosterType[] values = ClusterParams.BoosterType.values();
+        ClusterParams.BoosterType type = typeOrdinal >= 0 && typeOrdinal < values.length ? values[typeOrdinal]
+            : ClusterParams.BoosterType.PARALLEL;
+        return tr(type.getLangKey());
     }
 
     /** 小型 chip 按钮（42×12 保存/清空钮；hover 亮态）。 */
@@ -515,8 +749,16 @@ final class ClusterLinkEditorPage implements ClusterPage {
             .drawScaledText(font(), label, x + (w - textW) / 2, y + (h - 8) / 2 + 1, 0.7f, GtsrGuiPalette.TEXT_BODY);
     }
 
-    /** 单 chip 行：序号 / 名称 / 实际耗时（基准×tier÷同类模块数，显示口径） / ◀ ▶ ✖。 */
+    /**
+     * 单 chip 行：序号 / 名称 / 实际耗时（基准×tier÷同类模块数，显示口径） / ◀ ▶ ✖ ▲峰。
+     * T9 峰位：当前峰步 chip 整行淡金高亮；▲峰钮（hitbox 模式随 ◀▶✖）点击=设为峰位
+     * （本地暂存，保存尾参下发；无链不渲染 chip 行=天然禁用）。
+     */
     private void drawChipRow(int linkOrdinal, int index, int x, int y, int mx, int my) {
+        boolean isPeak = index == displayPeakIndex();
+        if (isPeak) {
+            GuiClusterTerminalScreen.fillRect(x + 1, y, RIGHT_W - 6, 13, this.host.zLevel(), 0x30C87E3B);
+        }
         GuiClusterTerminalScreen.drawScaledText(
             font(),
             EnumChatFormatting.GOLD.toString() + EnumChatFormatting.BOLD + (index + 1) + ".",
@@ -549,6 +791,20 @@ final class ClusterLinkEditorPage implements ClusterPage {
         drawChipButton(x + 114, y, 14, 13, "◀", mx, my);
         drawChipButton(x + 130, y, 14, 13, "▶", mx, my);
         drawChipButton(x + 146, y, 16, 13, EnumChatFormatting.RED + "✖", mx, my);
+        drawChipButton(
+            x + 164,
+            y,
+            32,
+            13,
+            isPeak ? EnumChatFormatting.GOLD + "▲峰" : EnumChatFormatting.WHITE + "▲峰",
+            mx,
+            my);
+        // ▲峰钮悬浮：说明点击后该步成为峰位（峰步 1 基展示，与 chip 序号一致）
+        if (mx >= x + 164 && mx < x + 196 && my >= y && my < y + 13) {
+            List<String> tip = new ArrayList<String>();
+            tip.add(EnumChatFormatting.GOLD + String.format(tr("gtsr.terminal.le.chains.peak"), index + 1));
+            this.host.requestTooltip("peak" + index, tip);
+        }
     }
 
     private String crushByproductDebuff(int linkOrdinal) {
@@ -669,10 +925,11 @@ final class ClusterLinkEditorPage implements ClusterPage {
         return this.stagingDirty ? this.stagedOrdinals : chainOrdinals();
     }
 
-    /** 干净态首次本地编辑：物化快照副本为独立暂存并置脏（此后不被快照覆盖）。 */
+    /** 干净态首次本地编辑：物化快照副本为独立暂存（链步 + 峰步）并置脏（此后不被快照覆盖）。 */
     private void ensureStaged() {
         if (!this.stagingDirty) {
             this.stagedOrdinals = new ArrayList<>(chainOrdinals());
+            this.stagedPeakIndex = snapshotPeakIndex();
             this.stagingDirty = true;
         }
     }
@@ -693,17 +950,30 @@ final class ClusterLinkEditorPage implements ClusterPage {
         Collections.swap(this.stagedOrdinals, index, target);
     }
 
-    /** 按索引删除暂存链步（越界安全忽略）。 */
+    /** 按索引删除暂存链步（越界安全忽略）；峰步越界随链长钳制，链空归 0（T9）。 */
     private void stageRemove(int index) {
         ensureStaged();
         if (index < 0 || index >= this.stagedOrdinals.size()) return;
         this.stagedOrdinals.remove(index);
+        if (this.stagedOrdinals.isEmpty()) {
+            this.stagedPeakIndex = 0;
+        } else if (this.stagedPeakIndex >= this.stagedOrdinals.size()) {
+            this.stagedPeakIndex = this.stagedOrdinals.size() - 1;
+        }
     }
 
-    /** 清空暂存链。 */
+    /** 设暂存峰步（T9）：无链禁用；越界钳 [0, len-1]。 */
+    private void stagePeak(int index) {
+        ensureStaged();
+        if (this.stagedOrdinals.isEmpty()) return;
+        this.stagedPeakIndex = Math.max(0, Math.min(this.stagedOrdinals.size() - 1, index));
+    }
+
+    /** 清空暂存链（峰步一并归 0）。 */
     private void stageClear() {
         ensureStaged();
         this.stagedOrdinals.clear();
+        this.stagedPeakIndex = 0;
     }
 
     /**
@@ -722,7 +992,9 @@ final class ClusterLinkEditorPage implements ClusterPage {
         for (int i = 0; i < ordinals.length; i++) {
             ordinals[i] = staged.get(i);
         }
-        this.host.clusterAction(ClusterTerminalActions.SAVE_CHAIN, chainPayload(ordinals));
+        // T9：峰步随 SAVE_CHAIN 尾参下发（服务端 clamp [0, len-1] 后写回）
+        int peak = Math.max(0, Math.min(staged.size() - 1, displayPeakIndex()));
+        this.host.clusterAction(ClusterTerminalActions.SAVE_CHAIN, chainPayload(ordinals, peak));
     }
 
     /** 客户端结构校验（纯函数）：恰好一个终态产物（FSM 终态 ∈ {DUST, INGOT}）。 */
@@ -859,8 +1131,27 @@ final class ClusterLinkEditorPage implements ClusterPage {
             }
             return true;
         }
+        // 全物流链分组头条：单元 chip 点击 = SELECT_LOGISTICS（服务端复核后经 KEY_SEL_LOGI 推回）
+        if (mx >= rx && mx < rx + RIGHT_W && my >= oy + UNITS_DY && my < oy + UNITS_DY + UNITS_H) {
+            List<int[]> chains = leChainSummaries();
+            int chipW = unitChipWidth(chains.size());
+            if (chipW > 0) {
+                int col = (mx - (rx + UNITS_LABEL_W)) / chipW;
+                if (col >= 0 && col < chains.size()) {
+                    int unitIdx = chains.get(col)[0];
+                    if (unitIdx != ClusterTerminalClientCache.getInt(ClusterTerminalData.KEY_SEL_LOGI, -1)) {
+                        this.host.clusterAction(ClusterTerminalActions.SELECT_LOGISTICS, intPayload(unitIdx));
+                    }
+                }
+            }
+            return true; // 头条区内点击一律消费防穿透
+        }
         // 可用链列表：滚动条、行点击与拖拽均由列表统一处理。
         if (this.linksList != null && this.linksList.mouseClicked(mx, my, button)) {
+            return true;
+        }
+        // 性能详情列表（T6）：滚动条与行点击由列表统一处理（区内点击消费防穿透）。
+        if (this.perfList != null && this.perfList.mouseClicked(mx, my, button)) {
             return true;
         }
         // chips 行内钮：◀ ▶ ✖（本地暂存位移/删除）
@@ -884,6 +1175,11 @@ final class ClusterLinkEditorPage implements ClusterPage {
                         stageRemove(row);
                         return true;
                     }
+                    // ▲峰钮（T9）：点击设该步为峰位（本地暂存，保存尾参下发）
+                    if (mx >= cx + 164 && mx < cx + 196) {
+                        stagePeak(row);
+                        return true;
+                    }
                 }
             }
             return true; // chips 区内其余点击消费防穿透
@@ -897,30 +1193,36 @@ final class ClusterLinkEditorPage implements ClusterPage {
         if (this.linksList != null && this.linksList.handleWheel(mx, my, dir)) {
             return;
         }
+        if (this.perfList != null && this.perfList.handleWheel(mx, my, dir)) {
+            return;
+        }
         if (mx >= ox + RIGHT_X && mx < ox + RIGHT_X + RIGHT_W && my >= oy + CHIPS_DY && my < oy + CHIPS_DY + CHIPS_H) {
-            this.chipsScroll += dir;
+            this.chipsScroll -= dir; // T8：MC 标准滚轮（上=内容上移 offset-，与 GtsrGuiList.handleWheel 同号）
         }
     }
 
     @Override
     public void mouseClickMove(int mouseX, int mouseY, int button) {
         if (this.linksList != null) this.linksList.mouseClickMove(mouseX, mouseY, button);
+        if (this.perfList != null) this.perfList.mouseClickMove(mouseX, mouseY, button);
     }
 
     @Override
     public void mouseReleased(int mouseX, int mouseY, int button) {
         if (this.linksList != null) this.linksList.mouseReleased(mouseX, mouseY, button);
+        if (this.perfList != null) this.perfList.mouseReleased(mouseX, mouseY, button);
     }
 
     // ==================== payload 构造 ====================
 
-    /** SAVE_CHAIN payload：[len int][ordinal int × len]（服务端读序逐字一致）。 */
-    private static byte[] chainPayload(int[] ordinals) {
-        PacketBuffer pb = new PacketBuffer(Unpooled.buffer(4 + ordinals.length * 4));
+    /** SAVE_CHAIN payload：[len int][ordinal int × len][peak int]（服务端读序逐字一致；峰步为可选尾参，旧服务端忽略）。 */
+    private static byte[] chainPayload(int[] ordinals, int peak) {
+        PacketBuffer pb = new PacketBuffer(Unpooled.buffer(8 + ordinals.length * 4));
         pb.writeInt(ordinals.length);
         for (int ordinal : ordinals) {
             pb.writeInt(ordinal);
         }
+        pb.writeInt(peak);
         return readAll(pb);
     }
 
@@ -943,5 +1245,15 @@ final class ClusterLinkEditorPage implements ClusterPage {
 
     private static String tr(String key) {
         return GuiClusterTerminalScreen.tr(key);
+    }
+
+    /** S1 详情行串只读（cl.f.detail；缺包回空串）。 */
+    private static String getFDetail() {
+        return ClusterTerminalClientCache.getFDetail("");
+    }
+
+    /** S1 全单元链快照串只读（cl.le.chains；缺包回空串）。 */
+    private static String getLeChains() {
+        return ClusterTerminalClientCache.getLeChains("");
     }
 }

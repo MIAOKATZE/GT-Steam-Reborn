@@ -1549,6 +1549,24 @@ gtsr.cluster.gui.logistics.reason.need_module=Missing module: %s
 gtsr.cluster.gui.logistics.reason.other=Unknown reason
 gtsr.cluster.gui.logistics.soft_hammer=Tap the module with a soft hammer to reset logistics
 
+# Cluster terminal performance details / statistics / all-chains (gtsr.terminal.*)
+gtsr.terminal.f.detail.title=Performance details
+gtsr.terminal.f.detail.link=Link %s: takes %s s / steam %s L/s
+gtsr.terminal.f.detail.logi=Logistics leg: takes %s s
+gtsr.terminal.f.detail.fluid=%s: %s L per batch
+gtsr.terminal.f.detail.lube.cluster=Cluster lubricant: %s L/s
+gtsr.terminal.f.detail.lube.logi=Logistics lubricant: %s L/s
+gtsr.terminal.f.detail.boost=Booster fluid %s: %s L/s
+gtsr.terminal.f.detail.peak=Peak: step %s
+gtsr.terminal.stats.title=Statistics
+gtsr.terminal.stats.in=Cumulative input
+gtsr.terminal.stats.out=Cumulative output
+gtsr.terminal.stats.bonus=Boost output
+gtsr.terminal.le.chains.title=All logistics chains
+gtsr.terminal.le.chains.peak=Peak: step %s
+gtsr.cluster.logistics.queue.on=Queue mode: ON
+gtsr.cluster.logistics.queue.off=Queue mode: OFF
+
 # Cluster machine-domain live keys (referenced by ClusterParams/ChainLink/ClusterChainFSM/ClusterUnitStatus)
 gtsr.gui.cluster.tier.bronze=Bronze
 gtsr.gui.cluster.tier.steel=Steel
@@ -1645,9 +1663,9 @@ gtsr.tooltip.cluster.unit.magnetic_separator.func=Magnetic separation link: take
 gtsr.tooltip.cluster.unit.magnetic_separator.power=Continuous power: %s
 gtsr.tooltip.cluster.unit.furnace.desc=Furnace unit: unlocks the furnace chain
 gtsr.tooltip.cluster.unit.furnace.func=Furnace link: takes %s, steam %s
-gtsr.tooltip.cluster.unit.parallel.desc=Parallel booster: raises logistics parallel; stacks across modules; more same-kind modules raise fluid cost and steam penalty (10% synergy each)
+gtsr.tooltip.cluster.unit.parallel.desc=Parallel booster: raises logistics parallel; stacks across modules; more same-kind modules raise booster fluid cost (10% synergy each); steam penalty scales only with structure tier
 gtsr.tooltip.cluster.unit.parallel.value=Parallel bonus: +%s by tier
-gtsr.tooltip.cluster.unit.speed.desc=Speed booster: speeds up recipes; stacks across modules; more same-kind modules raise fluid cost and steam penalty (10% synergy each)
+gtsr.tooltip.cluster.unit.speed.desc=Speed booster: speeds up recipes; stacks across modules; more same-kind modules raise booster fluid cost (10% synergy each); steam penalty scales only with structure tier
 gtsr.tooltip.cluster.unit.speed.value=Speed bonus: +%s by tier
 gtsr.tooltip.cluster.preview_tier=Structure preview casing tier: choose trigger count 1-4 or the "tier" channel
 gtsr.tooltip.cluster.channel_length=Total segments: hologram "length" channel 1-%s, fallback to held quantity
@@ -1657,15 +1675,15 @@ gtsr.tooltip.cluster.unit.parallel.link_apply=Applies to other boosters: +%s flu
 gtsr.tooltip.cluster.unit.primary.link_receive=Received increase: speed/parallel boosters add +%s fluid cost per tier
 gtsr.tooltip.cluster.unit.secondary.link_receive=Received increase: speed/parallel boosters add +%s fluid cost per tier
 gtsr.tooltip.cluster.unit.steam_saver.link_receive=Received increase: speed/parallel boosters add +%s fluid cost per tier
-gtsr.tooltip.cluster.unit.primary.desc=Primary output booster: chance to duplicate the whole main output; stacks across modules, may exceed 100% (overflow rolls by probability); more same-kind modules raise fluid cost and steam penalty (50% synergy each)
+gtsr.tooltip.cluster.unit.primary.desc=Primary output booster: chance to duplicate the whole main output; stacks across modules, may exceed 100% (overflow rolls by probability); more same-kind modules raise booster fluid cost (50% synergy each); steam penalty scales only with structure tier
 gtsr.tooltip.cluster.unit.primary.value=Primary bonus: +%s by tier
-gtsr.tooltip.cluster.unit.secondary.desc=Secondary output booster: chance for extra byproducts (all output slots 2-4); stacks across modules; more same-kind modules raise fluid cost and steam penalty (50% synergy each)
+gtsr.tooltip.cluster.unit.secondary.desc=Secondary output booster: chance for extra byproducts (all output slots 2-4); stacks across modules; more same-kind modules raise booster fluid cost (50% synergy each); steam penalty scales only with structure tier
 gtsr.tooltip.cluster.unit.secondary.value=Secondary bonus: +%s by tier
-gtsr.tooltip.cluster.unit.steam_saver.desc=Steam saver booster: cuts running steam; stacks across modules; more same-kind modules raise fluid cost (10% synergy each)
+gtsr.tooltip.cluster.unit.steam_saver.desc=Steam saver booster: cuts running steam; stacks across modules; more same-kind modules raise booster fluid cost (10% synergy each); steam penalty scales only with structure tier
 gtsr.tooltip.cluster.unit.steam_saver.value=Steam saving: %s by tier, cap %s
 gtsr.tooltip.cluster.unit.logistics.desc=Logistics unit: cluster chain executor with four I/O types (normal or ME hatches accepted)
-gtsr.tooltip.cluster.unit.logistics.window=Processing window floor %s
 gtsr.tooltip.cluster.unit.logistics.soft_hammer=Soft hammer toggle (powered on by default)
+gtsr.tooltip.cluster.unit.logistics.queue=Queue mode: screwdriver toggles; when enabled a batch starts only after a single item type reaches the parallel count
 
 
 # BQ quests BEGIN

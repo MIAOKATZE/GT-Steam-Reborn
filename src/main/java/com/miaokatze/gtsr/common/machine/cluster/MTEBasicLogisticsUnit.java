@@ -10,6 +10,7 @@ import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 import java.util.ArrayList;
 import java.util.List;
 
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumChatFormatting;
@@ -21,6 +22,7 @@ import net.minecraftforge.fluids.FluidStack;
 import com.gtnewhorizon.structurelib.structure.IStructureElement;
 import com.gtnewhorizon.structurelib.structure.StructureDefinition;
 import com.miaokatze.gtsr.api.compat.GTSRHatchFluidAccess;
+import com.miaokatze.gtsr.common.event.GTSRMachineEvent;
 import com.miaokatze.gtsr.common.gui.cluster.MTEBasicLogisticsUnitNativeGui;
 
 import gregtech.api.GregTechAPI;
@@ -82,8 +84,7 @@ import gregtech.common.tileentities.machines.MTEHatchInputBusME;
  * NO_RECIPE 不受影响）：输入已在开批时整批扣料吞入、产出整批暂存于 {@link #pendingOutputs}，
  * 基类 runMachine 逐 t 计数、整批时长内 {@link #isUnitRunning()} 保持 true（active 贯穿），
  * 进度读完后由 {@link #onPostTick} 经 {@link ClusterChainExecutor#emitPendingOutputs} 排空暂存产出
- * （输出总线满则逐 t 空转重试，零消耗零丢料），随后归零回 STANDBY；处理窗口闩保留
- * max(配方时间, {@value #MIN_PROCESSING_WINDOW_TICKS}t) 下限（r5 工作间隔语义）。
+ * （输出总线满则逐 t 空转重试，零消耗零丢料），随后归零回 STANDBY；处理窗口 = 本批配方时间全长。
  * <p>
  * <b>交互</b>：右击不再跳转集群终端链编辑页，也不再有独立 MUI2 状态页——空手右击打开
  * GT 原生 GUI（{@link MTEBasicLogisticsUnitNativeGui}，物流富词条，基类 getGui 覆写）；
@@ -114,16 +115,57 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
 
     /**
      * 处理窗口闩（SR-Cluster-r5 决策 5，瞬态无 NBT）：最近一次成功批提交后的"工作中"显示窗，
-     * 窗口 = 提交时计时器 + max(批冷却, 40t)；{@link #isUnitRunning()} 与 {@link #getUnitStatus()}
+     * 窗口 = 提交时计时器 + 本批配方时间；{@link #isUnitRunning()} 与 {@link #getUnitStatus()}
      * 据此区分"就绪待机"与"正在加工"。重载后从零开始（仅显示语义，非玩家资产）。
      */
     private long processingDisplayUntilTick;
 
-    /** 处理窗口下限（tick）：批冷却为 0（全透传批）时仍保持 2 秒工作态显示。 */
-    private static final long MIN_PROCESSING_WINDOW_TICKS = 40L;
-
     /** 链脏标记（瞬态）：置位表示链需在下次执行前重校验（重校验由 E4/主控执行）。 */
     private boolean chainDirty;
+
+    /**
+     * 最近一次成功批的生效主产物峰步（S1-T9，链步下标、链序；-1 = 本批无命中配方步或尚无批）。
+     * 瞬态不落 NBT，供终端详情行（KEY_F_DETAIL 的 PEAK 行）与执行器峰解析消费。
+     */
+    private int lastEffectivePeak = -1;
+
+    /**
+     * 最近一次成功批实际记账（charged）的批流体摘要（S1-T6，{@code fluidName:liters} 列表，仅
+     * 洗矿水/化浴实际 charged 项）。瞬态不落 NBT，供终端详情行（KEY_F_DETAIL 的 FLUID 行）。
+     */
+    private List<String> lastBatchFluidSummary = java.util.Collections.emptyList();
+
+    /**
+     * 队列模式（S1 新增，NBT 持久键 {@code clusterQueueMode}，默认关）：开启后执行器开批闸要求
+     * 收集输入中存在单种 item+meta 数量 ≥ 本批有效并行才开批（整批按同种矿队列推进），否则零副作用
+     * 返 0（静默，状态机保持 STANDBY 口径）。螺丝刀右击切换。
+     */
+    private boolean queueMode;
+
+    /** @return 最近一次成功批的生效主产物峰步（链步下标；-1 = 无命中/尚无批）。 */
+    public int getLastEffectivePeak() {
+        return lastEffectivePeak;
+    }
+
+    /** 生效峰步写入（ClusterChainExecutor.runChain 峰解析点调用；包内专用，瞬态）。 */
+    void setLastEffectivePeak(int index) {
+        this.lastEffectivePeak = index;
+    }
+
+    /** @return 最近一次成功批实际记账的批流体摘要（{@code fluidName:liters} 列表，只读视图）。 */
+    public List<String> getLastBatchFluidSummary() {
+        return lastBatchFluidSummary;
+    }
+
+    /** 批流体摘要写入（ClusterChainExecutor 批提交点调用；包内专用，瞬态）。 */
+    void setLastBatchFluidSummary(List<String> summary) {
+        this.lastBatchFluidSummary = summary == null ? java.util.Collections.<String>emptyList() : summary;
+    }
+
+    /** @return 队列模式是否开启（螺丝刀切换，NBT 持久）。 */
+    public boolean isQueueMode() {
+        return queueMode;
+    }
 
     /**
      * 暂存产出（配方运行绑定，瞬态不落 NBT；读档/区块卸载即弃，与批进度瞬态同口径）：
@@ -336,7 +378,7 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
      * <li>mMaxProgresstime = 本批配方时间（tick）、mProgresstime = 0：GT 基类 runMachine 以 mEUt=0
      * 逐 t 推进真实进度条（输入开批已扣、产出已暂存 {@link #pendingOutputs}），完成时自行归零，
      * 随后 {@link #onPostTick} 排空暂存产出；</li>
-     * <li>窗口 = 当前计时器 + max(配方时间, {@link #MIN_PROCESSING_WINDOW_TICKS})：窗口内
+     * <li>窗口 = 当前计时器 + 本批配方时间：窗口内
      * {@link #isUnitRunning()} 为 true（正面运行叠层与 active 贯穿整批时长）、
      * {@link #getUnitStatus()} 显示 WORKING，批结束回 STANDBY。</li>
      * </ul>
@@ -349,7 +391,7 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
         long recipeTicks = Math.max(0L, chainCooldownTicks);
         mMaxProgresstime = (int) Math.min(Integer.MAX_VALUE, recipeTicks);
         mProgresstime = 0;
-        processingDisplayUntilTick = now + Math.max(recipeTicks, MIN_PROCESSING_WINDOW_TICKS);
+        processingDisplayUntilTick = now + recipeTicks;
     }
 
     /** 处理窗口判据：当前计时器仍在最近一次成功批的显示窗口内。 */
@@ -433,6 +475,22 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
         if (chain.isEmpty() || cluster == null) return false;
         if (!isPowerAllowed()) return false;
         return chain.isExecutable(cluster.getTopology());
+    }
+
+    /**
+     * 螺丝刀切换队列模式（S1 新增；范式 {@code MTELargeSolarOverpressureArray.onScrewdriverRightClick}）：
+     * 仅服务端执行，切换即取反并标脏持久化（"clusterQueueMode"）；向玩家发
+     * {@code gtsr.cluster.logistics.queue.on} / {@code gtsr.cluster.logistics.queue.off}
+     * （ChatComponentTranslation 按客户端语言渲染，S3 落值）。
+     */
+    @Override
+    public void onScrewdriverRightClick(ForgeDirection side, EntityPlayer aPlayer, float aX, float aY, float aZ,
+        ItemStack aTool) {
+        if (aPlayer.worldObj.isRemote) return;
+        queueMode = !queueMode;
+        getBaseMetaTileEntity().markDirty();
+        GTSRMachineEvent
+            .sendToPlayer(aPlayer, queueMode ? "gtsr.cluster.logistics.queue.on" : "gtsr.cluster.logistics.queue.off");
     }
 
     // ------------------------------------------------------------------
@@ -575,8 +633,9 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
     // ------------------------------------------------------------------
 
     /**
-     * 链持久化：链存 "clusterChain" int 数组（ChainLink.ordinal，空链空数组）。批流体无自持缓存
-     * 不落 NBT（SR-Cluster-r6 S2）；旧档 "clusterWaterTank"/"clusterChemTank" 键在
+     * 链持久化：链存 "clusterChain" int 数组（ChainLink.ordinal，空链空数组）+ 峰步下标
+     * "clusterChainPeak"（S1-T9，缺省 0）+ 队列模式 "clusterQueueMode"（S1，缺省 false）。
+     * 批流体无自持缓存不落 NBT（SR-Cluster-r6 S2）；旧档 "clusterWaterTank"/"clusterChemTank" 键在
      * {@link #loadNBTData} 静默容忍忽略。处理窗口闩、配方进度与暂存产出均为瞬态不落 NBT。
      */
     @Override
@@ -589,12 +648,15 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
                 .ordinal();
         }
         aNBT.setIntArray("clusterChain", ordinals);
+        aNBT.setInteger("clusterChainPeak", chain.getPeakIndex());
+        aNBT.setBoolean("clusterQueueMode", queueMode);
     }
 
     /**
-     * 回读对称：按 ordinal 反解链整链重建（越界 ordinal 静默丢弃）。旧档 tank 键
-     * （"clusterWaterTank"/"clusterChemTank"）不再读取——缺失/残留均静默忽略，不迁移不崩溃；
-     * 配方进度归零（批进度瞬态，重载后从零开始，杜绝不可见幽灵炉）；暂存产出为瞬态字段
+     * 回读对称：按 ordinal 反解链整链重建（越界 ordinal 静默丢弃）；峰步 "clusterChainPeak"
+     * hasKey 缺省 0、越界（&lt;0 或 ≥ 链长）回落 0（S1-T9）；队列模式 "clusterQueueMode" 缺省 false。
+     * 旧档 tank 键（"clusterWaterTank"/"clusterChemTank"）不再读取——缺失/残留均静默忽略，不迁移
+     * 不崩溃；配方进度归零（批进度瞬态，重载后从零开始，杜绝不可见幽灵炉）；暂存产出为瞬态字段
      * 不读不写——读档/区块卸载即弃，在飞批次的已扣输入与暂存产出一同湮灭（吞料同口径）。
      */
     @Override
@@ -607,7 +669,10 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
             if (ordinal >= 0 && ordinal < values.length) parsed.add(values[ordinal]);
         }
         rebuilt.setLinks(parsed);
+        int storedPeak = aNBT.hasKey("clusterChainPeak") ? aNBT.getInteger("clusterChainPeak") : 0;
+        rebuilt.setPeakIndex(storedPeak >= 0 && storedPeak < rebuilt.length() ? storedPeak : 0);
         chain = rebuilt;
+        queueMode = aNBT.hasKey("clusterQueueMode") && aNBT.getBoolean("clusterQueueMode");
         mProgresstime = 0;
         mMaxProgresstime = 0;
     }
@@ -651,27 +716,26 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
     }
 
     /**
-     * 功能群（v1.11.15）：处理窗口下限行 + 软锤启停行——窗口下限取自
-     * {@link #MIN_PROCESSING_WINDOW_TICKS}（tick ÷ {@link ChainLink#TICKS_PER_SECOND} 折秒）；
-     * 软锤启停为纯文案行（默认开机，{@code isAllowedToWork} 语义）。
+     * 功能群（v1.11.15）：物流耗时行 + 润滑剂行 + 软锤启停行；软锤启停为纯文案行
+     * （默认开机，{@code isAllowedToWork} 语义）。旧「处理窗口下限」行与同名词常量一并删除
+     * （窗口 = 本批配方时间全长，S1-T2）。
      */
     @Override
     protected void addUnitTooltipInfo(MultiblockTooltipBuilder tt) {
         tt.addInfo(
             EnumChatFormatting.YELLOW + String.format(
-                StatCollector.translateToLocal("gtsr.tooltip.cluster.unit.logistics.window"),
-                gold(fmtSeconds(MIN_PROCESSING_WINDOW_TICKS / (double) ChainLink.TICKS_PER_SECOND))))
-            .addInfo(
-                EnumChatFormatting.YELLOW + String.format(
-                    StatCollector.translateToLocal("gtsr.tooltip.cluster.unit.logistics.segment_time"),
-                    gold(tierValues(ClusterParams.LOGISTICS_TIME_SEC, " s"))))
+                StatCollector.translateToLocal("gtsr.tooltip.cluster.unit.logistics.segment_time"),
+                gold(tierValues(ClusterParams.LOGISTICS_TIME_SEC, " s"))))
             .addInfo(
                 EnumChatFormatting.YELLOW + String.format(
                     StatCollector.translateToLocal("gtsr.tooltip.cluster.unit.logistics.lubricant"),
                     gold(tierValues(ClusterParams.LOGISTICS_UNIT_LUBRICANT_LPS, " L/s"))))
             .addInfo(
                 EnumChatFormatting.YELLOW
-                    + StatCollector.translateToLocal("gtsr.tooltip.cluster.unit.logistics.soft_hammer"));
+                    + StatCollector.translateToLocal("gtsr.tooltip.cluster.unit.logistics.soft_hammer"))
+            .addInfo(
+                EnumChatFormatting.YELLOW
+                    + StatCollector.translateToLocal("gtsr.tooltip.cluster.unit.logistics.queue"));
     }
 
     private static String tierValues(int[] values, String suffix) {

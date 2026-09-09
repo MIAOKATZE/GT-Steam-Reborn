@@ -20,12 +20,29 @@ public final class LogisticsChain {
     /** 有序可重复链表（live 视图直接暴露）。 */
     private final List<ChainLink> links = new ArrayList<>();
 
+    /**
+     * 主产物峰步配置下标（S1-T9 主产物单峰）：玩家指定的链步下标，生效峰 = 自此起首个实际命中
+     * 配方步（无命中回落全链首个命中步，解析在 {@code ClusterChainExecutor.runChain}）；缺省 0。
+     */
+    private int peakIndex = 0;
+
     /** 脏标记：任一变更方法置位，供持有方（物流模块/持久化路径）检测后落盘（§3.6.7）。 */
     private boolean dirty;
 
     /** live 视图：外部只读遍历/按索引访问，勿缓存引用后假设其不可变。 */
     public List<ChainLink> getLinks() {
         return links;
+    }
+
+    /** @return 主产物峰步配置下标（S1-T9；不保证界内——越界由执行器解析口径回落处理）。 */
+    public int getPeakIndex() {
+        return peakIndex;
+    }
+
+    /** 设置主产物峰步配置下标（调用方负责界内性，SAVE_CHAIN/NBT 读取端先 clamp/回落）；置脏。 */
+    public void setPeakIndex(int peakIndex) {
+        this.peakIndex = peakIndex;
+        markDirty();
     }
 
     public boolean isEmpty() {
@@ -210,15 +227,23 @@ public final class LogisticsChain {
 
     /**
      * NBT 反序列化：按序把 ordinal 还原为 link 并追加到新链；越界（含负数）ordinal 静默丢弃，
-     * {@code null} 数组返回空链。枚举增删后旧存档仍可安全载入（缺失项丢弃）。
+     * {@code null} 数组返回空链。枚举增删后旧存档仍可安全载入（缺失项丢弃）。峰步缺省 0。
      */
     public static LogisticsChain fromOrdinalArray(int[] ordinals) {
-        LogisticsChain chain = new LogisticsChain();
-        if (ordinals == null) return chain;
-        ChainLink[] values = ChainLink.values();
-        for (int ordinal : ordinals) {
-            if (ordinal >= 0 && ordinal < values.length) chain.append(values[ordinal]);
-        }
+        return fromOrdinalArray(ordinals, 0);
+    }
+
+    /**
+     * NBT 反序列化重载（S1-T9）：同 {@link #fromOrdinalArray(int[])}，并携带主产物峰步下标——
+     * 内部 clamp 到 {@code [0, len-1]}（空链 clamp 到 0），越界不抛错。
+     *
+     * @param ordinals  链 ordinal 数组（越界项静默丢弃，null 返回空链）
+     * @param peakIndex 主产物峰步下标（越界按边界钳制）
+     * @return 重建的链
+     */
+    public static LogisticsChain fromOrdinalArray(int[] ordinals, int peakIndex) {
+        LogisticsChain chain = fromOrdinalArray(ordinals);
+        chain.setPeakIndex(Math.max(0, Math.min(chain.length() - 1, peakIndex)));
         return chain;
     }
 }
