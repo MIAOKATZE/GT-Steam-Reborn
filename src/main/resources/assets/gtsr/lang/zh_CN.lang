@@ -275,7 +275,8 @@ gtsr.gui.geothermal_boiler.calcification=结垢：
 gtsr.chat.calcification_cleared=§a已清除沉积
 gtsr.chat.calcification_full=§c警告：机器已完全结垢，蒸汽产出降至 1％！请及时除垢。
 gtsr.chat.no_water=水供应中断，机器已停止工作，请重新开启（软锤右击或打开GUI点电源开关）
-gtsr.chat.cluster.supply_abort=供应中断（蒸汽/润滑/增幅液不足），进行中的配方已终止且原料损毁，机器已断电，请重新开启
+gtsr.chat.cluster.supply_abort=供应中断（蒸汽/润滑不足），进行中的配方已终止且原料损毁，机器已断电，请重新开启
+gtsr.chat.booster_shortage=集群增幅液供给不足：本批部分增幅模块失效（只提示一次）
 gtsr.chat.overpressure.on=超压模式已开启：热量上限提升至 200％
 gtsr.chat.overpressure.off=超压模式已关闭
 gtsr.chat.overpressure.need_heat=需要 100％ 热量才能开启超压模式
@@ -1367,9 +1368,9 @@ gtsr.cluster.gui.card.lube=润滑油
 gtsr.cluster.gui.card.lube.short=润滑油短缺
 gtsr.cluster.gui.card.heat=热量
 gtsr.cluster.gui.card.thru=吞吐
-gtsr.cluster.gui.card.thru.unit=矿/s
+gtsr.cluster.gui.card.thru.unit=矿/秒
 gtsr.cluster.gui.card.thru.total=累计 %s
-gtsr.cluster.gui.card.unit.lps=L/s
+gtsr.cluster.gui.card.unit.lps=L/秒
 gtsr.cluster.gui.title.unformed=未成型
 gtsr.cluster.gui.title.standby=已停机
 gtsr.cluster.gui.title.preheating=预热中
@@ -1548,16 +1549,10 @@ gtsr.cluster.gui.logistics.soft_hammer=软锤敲击模块可复位物流
 
 # 集群终端性能详情/统计/全链（gtsr.terminal.*）
 gtsr.terminal.f.detail.title=链路详情
-gtsr.terminal.f.detail.link=链步 %s：耗时 %s s / 蒸汽 %s L/s
-gtsr.terminal.f.detail.logi=物流段：耗时 %s s
+gtsr.terminal.f.detail.link=链步 %s：耗时 %s 秒 / 蒸汽 %s L/秒
+gtsr.terminal.f.detail.logi=物流段：耗时 %s 秒
 gtsr.terminal.f.detail.fluid=%s：每批 %s L
 gtsr.terminal.f.detail.fluid.pct=%s：每批 %s L（%s%%）
-gtsr.terminal.f.detail.lube.cluster=集群润滑：%s L/s
-gtsr.terminal.f.detail.lube.cluster.pct=集群润滑：%s L/s（%s%%）
-gtsr.terminal.f.detail.lube.logi=物流润滑：%s L/s
-gtsr.terminal.f.detail.lube.logi.pct=物流润滑：%s L/s（%s%%）
-gtsr.terminal.f.detail.boost=%s（%s）：%s L/s
-gtsr.terminal.f.detail.boost.pct=%s（%s）：%s L/s（%s%%）
 gtsr.terminal.f.detail.peak=主产物增幅峰：第 %s 步
 gtsr.terminal.stats.title=统计
 gtsr.terminal.stats.in=累计进入
@@ -1574,18 +1569,48 @@ gtsr.terminal.perf.group.boost=增幅汇总
 gtsr.terminal.perf.group.boostcost=增幅实耗
 gtsr.terminal.perf.caliber.formula=公式加权口径
 gtsr.terminal.perf.caliber.settle=结算口径
-gtsr.terminal.perf.chains.count=链数: %s
-gtsr.terminal.perf.chains.steps=总链步: %s
-gtsr.terminal.perf.chains.longest=最长链: %s
-gtsr.terminal.perf.chains.avg=平均链长: %s
-gtsr.terminal.perf.fmod=#%s·段%s：%ss · %s · %s · %s L/s
-gtsr.terminal.perf.exp.fluid.head=最近成功批实际记账（charged）
+gtsr.terminal.perf.caliber.weighted=加权全链口径
+gtsr.terminal.perf.time=单批耗时
+gtsr.terminal.perf.deriv.head=推导：
+gtsr.terminal.perf.deriv.table=档位表：
+gtsr.terminal.perf.lube.dual=润滑（集群 + 物流）
+gtsr.terminal.perf.boost.na=未安装
+gtsr.terminal.perf.boost.off=失效
+gtsr.terminal.perf.chains.count=链数
+gtsr.terminal.perf.chains.steps=总链步
+gtsr.terminal.perf.chains.longest=最长链
+gtsr.terminal.perf.chains.avg=平均链长
+gtsr.terminal.perf.fmod=#%s·段%s：%s 秒 · %s · %s · %s L/秒
+gtsr.terminal.perf.exp.fluid.head=最近成功批实际记账
 gtsr.terminal.perf.exp.fluid.total=批记账合计 %s L · %s 项
-gtsr.terminal.perf.exp.lube=集群 %s + 物流 %s = 合计 %s L/s
-gtsr.terminal.perf.exp.boost.unit=#%s 基础 %s → %s L/s · %s
-gtsr.terminal.perf.exp.boost.wip=wip 流体倍率 ×%s
-gtsr.terminal.perf.exp.steam.head=加权蒸汽 = 各步(蒸汽×耗时)合计 ÷ 耗时合计
-gtsr.terminal.perf.exp.steam.step=%s：T=%s s · C=%s L/s
+gtsr.terminal.perf.tip.time=单批耗时\n处理一个矿的完整时间。悬浮看机制；点 ▶ 看本值的逐步推导。
+gtsr.terminal.perf.tip.parallel=并行数\n每批处理的矿数。点 ▶ 看推导。
+gtsr.terminal.perf.tip.thru=吞吐\n理论处理速度。点 ▶ 看推导。
+gtsr.terminal.perf.tip.formula=实际加权公式\n当前链的时间加权蒸汽构成（通式见链蒸汽耗 ▶ 推导）。
+gtsr.terminal.perf.tip.fmod=逐段摘要\n每个物流段一行概览。
+gtsr.terminal.perf.tip.heat=热量\n预热进度 0~100%，满热才能开批。\n升温 30 秒满热；断汽 -0.5%/秒，停机 -1%/秒。
+gtsr.terminal.perf.tip.lube=润滑油\n两段合计，按秒口径。点 ▶ 看推导。
+gtsr.terminal.perf.tip.thru_real=实时吞吐\n最近 1 秒窗口实际完成的矿数。
+gtsr.terminal.perf.tip.total=累计处理\n开炉至今进入集群的矿总数。
+gtsr.terminal.perf.tip.steam_total=总蒸汽耗（加权全链口径）\nΣ全部可执行链蒸汽×乘子×(1-节汽)，不含固定项。
+gtsr.terminal.perf.tip.steam_chain=链蒸汽耗（公式加权口径）\n选中单元那条链的理论蒸汽功率。\n点 ▶ 看完整的逐步推导。
+gtsr.terminal.perf.tip.steam_settle=蒸汽（结算口径）\n每秒实际扣量。点 ▶ 看推导。
+gtsr.terminal.perf.tip.lube_split=润滑两段\n机制见运行汇总「润滑油」。点 ▶ 看分量。
+gtsr.terminal.perf.tip.boost.0=硝酸（并行增幅）\n作用：每批矿数 +8。\n消耗体积/单位：开批时按实际矿数一次扣除。\n点 ▶ 看单价与本批消耗的逐步推导。
+gtsr.terminal.perf.tip.boost.1=氢氯酸（速度增幅）\n作用：工作段耗时 ÷(1+速度总和)。\n未安装；安装后单价 = 基础表÷10，点 ▶ 看四档单价表。
+gtsr.terminal.perf.tip.boost.2=硫酸（主产物增幅）\n同类取最高仅一台生效；单峰：峰位链步满额、其余加工步 ×0.1。\n单价 = 基础表÷10（青铜 80 → 8 L/矿），开批按实际矿数扣。\n不产生蒸汽乘子。
+gtsr.terminal.perf.tip.boost.3=氯化铵（副产物增幅）\n副产物概率加算叠加，可超 100%；粉碎链步受集群档削弱 ×0.1/×0.5/无。\n单价 = 基础表÷10（青铜 20 → 2 L/矿）。\n不产生蒸汽乘子。
+gtsr.terminal.perf.tip.boost.4=冷却液（效率增幅）\n节汽：加权全链×(1-节汽率)，加算封顶 48%；固定项与润滑不受影响。\n单价 = 基础表÷10（青铜 10 → 1 L/矿）。\n不产生蒸汽乘子。
+gtsr.terminal.perf.tip.chains_count=链数\n识别到的物流链条数；链 = 一台物流单元的加工顺序。
+gtsr.terminal.perf.tip.chains_steps=总链步 / 最长链 / 平均链长\n链步 = 链上的一道加工工序。
+gtsr.terminal.perf.tip.boost_state=生效 / 失效\n付不起整批用量 → 本批失效：加成与乘子撤除，批继续。\n失效时聊天播报一次（结钙式锁存，下次成功运行前不重复），终端与物流模块同步显示。
+gtsr.terminal.perf.tip.sum_speed=速度增幅合计\n速度模块求和 Σ。
+gtsr.terminal.perf.tip.sum_parallel=并行增幅合计\n并行模块求和 Σ，加到物流基数。
+gtsr.terminal.perf.tip.sum_primary=主产物增幅\n同类取最高 max。
+gtsr.terminal.perf.tip.sum_secondary=副产物增幅\n加算叠加 Σ。
+gtsr.terminal.perf.tip.sum_saver=节汽率\n加算叠加 Σ，封顶 48%。
+gtsr.terminal.perf.tip.sum_mult=蒸汽乘子\n速度/并行模块按档逐台连乘。点 ▶ 看推导。
+gtsr.terminal.perf.tip.cost=增幅实耗（每批口径）\n开批一次扣除，随批大小浮动。点 ▶ 看推导。
 gtsr.terminal.le.chains.title=全部物流链
 gtsr.terminal.le.chains.peak=峰位：第 %s 步
 gtsr.cluster.logistics.queue.on=队列模式：开启
@@ -1665,7 +1690,7 @@ gtsr.tooltip.cluster.unit.hatch.input_bus=输入总线 %s
 gtsr.tooltip.cluster.unit.hatch.output_bus=输出总线 %s
 gtsr.tooltip.cluster.unit.hatch.input_hatch=输入仓 %s
 gtsr.tooltip.cluster.unit.hatch.output_hatch=输出仓 %s
-gtsr.tooltip.cluster.unit.booster.fluid_cost=锁定流体：%s，按档消耗 %s
+gtsr.tooltip.cluster.unit.booster.fluid_cost=锁定流体：%s，按档单价 %s
 gtsr.tooltip.cluster.unit.booster.penalty=蒸汽惩罚：×%s
 gtsr.tooltip.cluster.unit.booster.penalty.none=无蒸汽惩罚
 gtsr.tooltip.cluster.unit.crusher.desc=粉碎模块：解锁矿石粉碎与锤击两条破碎链

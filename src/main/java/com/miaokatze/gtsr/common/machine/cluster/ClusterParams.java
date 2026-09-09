@@ -74,45 +74,62 @@ public final class ClusterParams {
     /** 各层级节汽增幅百分比，下标对应层级序号。 */
     public static final int[] BOOSTER_SAVER_PCT = { 2, 4, 8, 12 };
 
-    /** 并行增幅（锁定流体：硝酸）各层级增幅液每秒消耗（L/s），下标对应层级序号。 */
-    public static final int[] AMPLIFIER_NITRIC_ACID_LPS = { 50, 200, 1000, 2000 };
+    /**
+     * 并行增幅（锁定流体：硝酸）各层级增幅液单价（L/矿，v1.20.16 起÷10 新口径：历史 L/s 表值
+     * 50/200/1000/2000 → 5/20/100/200），下标对应层级序号；开批一次扣 = 单价 × 本批矿数。
+     */
+    public static final int[] AMPLIFIER_NITRIC_ACID_PER_ORE = { 5, 20, 100, 200 };
 
-    /** 速度增幅（锁定流体：氢氯酸）各层级增幅液每秒消耗（L/s），下标对应层级序号。 */
-    public static final int[] AMPLIFIER_HYDROCHLORIC_ACID_LPS = { 60, 300, 1500, 3000 };
+    /**
+     * 速度增幅（锁定流体：氢氯酸）各层级增幅液单价（L/矿，v1.20.16 起÷10 新口径：历史 L/s 表值
+     * 60/300/1500/3000 → 6/30/150/300），下标对应层级序号。
+     */
+    public static final int[] AMPLIFIER_HYDROCHLORIC_ACID_PER_ORE = { 6, 30, 150, 300 };
 
-    /** 主产物增幅（锁定流体：硫酸）各层级增幅液每秒消耗（L/s），下标对应层级序号。 */
-    public static final int[] AMPLIFIER_SULFURIC_ACID_LPS = { 80, 400, 2000, 4000 };
+    /**
+     * 主产物增幅（锁定流体：硫酸）各层级增幅液单价（L/矿，v1.20.16 起÷10 新口径：历史 L/s 表值
+     * 80/400/2000/4000 → 8/40/200/400），下标对应层级序号。
+     */
+    public static final int[] AMPLIFIER_SULFURIC_ACID_PER_ORE = { 8, 40, 200, 400 };
 
-    /** 副产物增幅（锁定流体：氯化铵）各层级增幅液每秒消耗（L/s），下标对应层级序号。 */
-    public static final int[] AMPLIFIER_AMMONIUM_CHLORIDE_LPS = { 20, 80, 300, 500 };
+    /**
+     * 副产物增幅（锁定流体：氯化铵）各层级增幅液单价（L/矿，v1.20.16 起÷10 新口径：历史 L/s 表值
+     * 20/80/300/500 → 2/8/30/50），下标对应层级序号。
+     */
+    public static final int[] AMPLIFIER_AMMONIUM_CHLORIDE_PER_ORE = { 2, 8, 30, 50 };
 
-    /** 节汽增幅（锁定流体：SuperCoolant）各层级增幅液每秒消耗（L/s），下标对应层级序号。 */
-    public static final int[] AMPLIFIER_SUPER_COOLANT_LPS = { 10, 50, 200, 400 };
+    /**
+     * 节汽增幅（锁定流体：SuperCoolant）各层级增幅液单价（L/矿，v1.20.16 起÷10 新口径：历史 L/s
+     * 表值 10/50/200/400 → 1/5/20/40），下标对应层级序号。
+     */
+    public static final int[] AMPLIFIER_SUPER_COOLANT_PER_ORE = { 1, 5, 20, 40 };
 
     /** 节汽增幅冷却液流体 ID；解析失败回退 Materials.SuperCoolant，由使用方处理。 */
     public static final String BOOSTER_COOLANT_FLUID = "ic2coolant";
 
     /**
-     * 按增幅类型取该层级的增幅液每秒消耗（L/s）：五表按 {@link BoosterType} ordinal 分发。
+     * 按增幅类型取该层级的增幅液单价（L/矿，v1.20.16 开批一次扣口径）：五表按
+     * {@link BoosterType} ordinal 分发。历史名 {@code amplifierFluidLps} 保留——消费点含协议编码
+     * （ClusterTerminalData KEY_BO_COST），语义已从「每秒消耗 L/s」改为「单价 L/矿」。
      *
      * @param type    增幅类型（非 null）
      * @param tierIdx 层级下标，越界按边界截断
-     * @return 对应增幅液每秒消耗（L/s）
+     * @return 对应增幅液单价（L/矿）
      */
     public static int amplifierFluidLps(BoosterType type, int tierIdx) {
         int idx = Math.max(0, Math.min(tierIdx, TIER_COUNT - 1));
         switch (type) {
             case SPEED:
-                return AMPLIFIER_HYDROCHLORIC_ACID_LPS[idx];
+                return AMPLIFIER_HYDROCHLORIC_ACID_PER_ORE[idx];
             case PRIMARY_OUTPUT:
-                return AMPLIFIER_SULFURIC_ACID_LPS[idx];
+                return AMPLIFIER_SULFURIC_ACID_PER_ORE[idx];
             case SECONDARY_OUTPUT:
-                return AMPLIFIER_AMMONIUM_CHLORIDE_LPS[idx];
+                return AMPLIFIER_AMMONIUM_CHLORIDE_PER_ORE[idx];
             case STEAM_SAVER:
-                return AMPLIFIER_SUPER_COOLANT_LPS[idx];
+                return AMPLIFIER_SUPER_COOLANT_PER_ORE[idx];
             case PARALLEL:
             default:
-                return AMPLIFIER_NITRIC_ACID_LPS[idx];
+                return AMPLIFIER_NITRIC_ACID_PER_ORE[idx];
         }
     }
 

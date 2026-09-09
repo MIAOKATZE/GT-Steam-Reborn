@@ -98,11 +98,11 @@ public final class ClusterTerminalData {
     public static final String KEY_ENABLED = "cl.enabled";
     /** 顶栏标量组：热量百分比 1% 量化（varint，10t 采样）。 */
     public static final String KEY_HEAT = "cl.heat";
-    /** 顶栏标量组：蒸汽 L/s（varint，10t 采样）。 */
+    /** 顶栏标量组：蒸汽流量（升/秒，varint，10t 采样）。 */
     public static final String KEY_STEAM = "cl.steam";
-    /** 顶栏标量组：润滑 L/s（varint，10t 采样）。 */
+    /** 顶栏标量组：润滑流量（升/秒，varint，10t 采样）。 */
     public static final String KEY_LUBE = "cl.lube";
-    /** 顶栏标量组：真实吞吐 矿/s（varint，10t 采样）。 */
+    /** 顶栏标量组：真实吞吐（矿/秒，varint，10t 采样）。 */
     public static final String KEY_THRU = "cl.thru";
     /** 顶栏标量组：累计处理矿数（long）。 */
     public static final String KEY_TOTAL = "cl.total";
@@ -136,21 +136,32 @@ public final class ClusterTerminalData {
     public static final String KEY_F_TIME = "cl.f.time";
     /** 链路页性能组：有效并行。 */
     public static final String KEY_F_PAR = "cl.f.par";
-    /** 链路页性能组：预测吞吐（矿/s ×100 定点）。 */
+    /** 链路页性能组：预测吞吐（矿/秒，×100 定点）。 */
     public static final String KEY_F_THRU = "cl.f.thru";
-    /** 链路页性能组：本链蒸汽 L/s（×100 定点）。 */
+    /** 链路页性能组：本链蒸汽（升/秒，×100 定点）。 */
     public static final String KEY_F_STEAM = "cl.f.steam";
-    /** 链路页性能组：集群总蒸汽 L/s（×100 定点）。 */
+    /** 链路页性能组：集群总蒸汽（升/秒，×100 定点）。 */
     public static final String KEY_F_TOTAL = "cl.f.total";
-    /** 链路页性能组：实际加权公式文本（ExecutionPlan 同源实值）。 */
+    /** 链路页性能组：实际加权公式文本（ExecutionPlan 同源实值；v1.20.16 起段标记与单位中文下发）。 */
     public static final String KEY_F_FORMULA = "cl.f.formula";
     /** 增幅页：结构字段（{@code typeOrdinal:tier:segment:flags} 条目 CSV）。 */
     public static final String KEY_BO_STRUCT = "cl.bo.struct";
-    /** 增幅页：tank/可用性（{@code amountLiters:available} 条目 CSV，20t 采样）。 */
+    /**
+     * 增幅页：tank/可用性（{@code amountLiters:available} 条目 CSV，20t 采样）。
+     * v1.20.16 位语义演进（协议键名/键数量不变，同 jar 双端交付）：{@code available} 从
+     * 「流体存在位（isFluidAvailable）」改为「最近开批预检通过位」——1=最近一次开批预检通过、
+     * 0=本批失效（读 {@link MTEBasicAmplifierUnit#isLastBatchPrecheckFailed()} 取反），使终端
+     * 增幅行与物流模块状态显示同步呈现断供失效（用户拍板口径）。
+     */
     public static final String KEY_BO_LIVE = "cl.bo.live";
     /** 增幅页：汇总 8 字段 CSV（×100 定点 + 生效 N + 失效 N，20t 采样）。 */
     public static final String KEY_BO_SUM = "cl.bo.sum";
-    /** 增幅页：实耗组（{@code lpsX10:base[:pct:tier:type]...} 条目 CSV，20t 采样）。 */
+    /**
+     * 增幅页：实耗组（{@code priceX10:base[:pct:tier:type]...} 条目 CSV，20t 采样）。
+     * v1.20.16 首字段语义演进（协议键名/条目结构/键数量不变，同 jar 双端交付）：
+     * {@code priceX10} = 单份单价 ×10 定点（L/矿，开批按 batch×单价一次扣除），不再是
+     * 联动加成后秒耗 ×10（短批反比倍率退役）；{@code base} 仍为基础表值。
+     */
     public static final String KEY_BO_COST = "cl.bo.cost";
     /** 性能详情行（S1-T6 尾追）：{@code |} 分行，行语法 LINK/LOGI/FLUID/LUBE/BOOST/PEAK（见 encodeDetail）。 */
     public static final String KEY_F_DETAIL = "cl.f.detail";
@@ -540,7 +551,12 @@ public final class ClusterTerminalData {
         return sb.toString();
     }
 
-    /** 增幅 live 串：条目逗号分隔，条目内 {@code amount:available}（tank 存量 L 与本秒可用；供给只读）。 */
+    /**
+     * 增幅 live 串：条目逗号分隔，条目内 {@code amount:available}（tank 存量 L 与可用位；供给只读）。
+     * v1.20.16 位语义演进：{@code available} = 最近开批预检通过位（1=通过、0=本批失效，读
+     * {@link MTEBasicAmplifierUnit#isLastBatchPrecheckFailed()} 取反）——原「流体存在位」
+     * （isFluidAvailable）退役，断供失效在终端与物流模块状态同步显示；详见 {@link #KEY_BO_LIVE}。
+     */
     private static String encodeBoosterLive(MTESteamMineralLogisticsCluster cluster) {
         StringBuilder sb = new StringBuilder(40);
         List<MTEBasicAmplifierUnit> units = cluster.getTopology()
@@ -554,7 +570,7 @@ public final class ClusterTerminalData {
                     .probeFluidAmountAcross(unit.getInputHatchesForAccess(), new FluidStack(locked, 1));
             sb.append(Math.min(Integer.MAX_VALUE, available))
                 .append(':')
-                .append(unit.isFluidAvailable() ? 1 : 0);
+                .append(unit.isLastBatchPrecheckFailed() ? 0 : 1);
         }
         return sb.toString();
     }
@@ -580,23 +596,25 @@ public final class ClusterTerminalData {
 
     /**
      * 增幅实耗串：条目逗号分隔（与 KEY_BO_STRUCT 同序同过滤，下标一一对应），条目内
-     * {@code lpsX10:base:pct:tier:type...}——首字段为联动加成后实际秒耗 ×10 定点，次字段基础表值
-     * L/s，其后为施加方三元组 {@code pct:tier:typeOrdinal}（{@code amplifierSurchargeSources()} 真值）。
+     * {@code priceX10:base:pct:tier:typeOrdinal...}——首字段为单份单价 ×10 定点（口径 L/矿；
+     * 开批由执行器按 batch×单价一次扣除，客户端本批实耗 = priceX10×矿数÷10），次字段基础表值，
+     * 其后为施加方三元组 {@code pct:tier:typeOrdinal}（{@code amplifierSurchargeSources()} 真值）。
+     * v1.20.16 语义演进：原「联动加成后实际秒耗 ×10（含短批反比倍率）」退役，键名与条目结构
+     * 不变（详见 {@link #KEY_BO_COST}）。
      */
     private static String encodeBoosterCost(MTESteamMineralLogisticsCluster cluster) {
         StringBuilder sb = new StringBuilder(64);
         List<MTEBasicAmplifierUnit> units = cluster.getTopology()
             .getBoosterUnits();
-        // S1-T7：实耗显示改 wip 流体倍率口径（短运行 1/实际秒数），与主控实扣/支付预检同一 helper
-        double wipMultiplier = BoosterState.computeWipFluidMultiplier(cluster.collectWipLogisticsUnits());
+        // v1.20.16：短批流体倍率已退役，消耗模型改 L/矿单价（开批一次扣）；首字段 = round(单价×10)
         for (MTEBasicAmplifierUnit unit : units) {
             if (unit == null || unit.getBoosterType() == null) continue;
             if (sb.length() > 0) sb.append(',');
             int tier = unit.getUnitStructureTier();
             boolean valid = tier >= 0 && tier < ClusterParams.TIER_COUNT;
-            long lpsX10 = Math.round(unit.amplifierFluidPerSecExact() * wipMultiplier * 10.0D);
+            long priceX10 = Math.round(unit.amplifierFluidPerSecExact() * 10.0D);
             int base = valid ? ClusterParams.amplifierFluidLps(unit.getBoosterType(), tier) : 0;
-            sb.append(lpsX10)
+            sb.append(priceX10)
                 .append(':')
                 .append(base);
             for (int[] source : unit.amplifierSurchargeSources()) {
@@ -624,17 +642,18 @@ public final class ClusterTerminalData {
      * {@code itemTimeSec}/{@code chainThroughputPerSec}，不含可执行门控），蒸汽为可执行在飞口径并
      * 施加增幅惩罚×节汽折扣（{@link ExecutionPlan#unitSteamLps}，逐模块和=KEY_F_TOTAL）、
      * {@code LUBE:cluster:litersPerSecX100}、{@code BOOST:boosterTypeOrdinal:litersPerSecX100}
-     * （5 行，S1-T7 wip 流体倍率口径）、{@code FWIP:wipMultiplierX100}（wip 流体倍率真值，
-     * 增幅展开计算路径用）、{@code FTOT:fluidLiters:lubeLpsX100:boostLpsX100}（三组显示合计真值，
-     * 客户端占比分母：流体合计=选中单元最近成功批 charged 项之和（未选中为 0）、
+     * {@code LUBE:cluster:litersPerSecX100}、{@code BOOST:boosterTypeOrdinal:litersPerSecX100}
+     * （5 行，v1.20.16 起为五型单价合计 ×100 定点，短批倍率退役）、{@code FTOT:fluidLiters:lubeLpsX100:boostLpsX100}
+     * （三组显示合计真值，
+     * 客户端占比分母：流体合计=选中单元最近成功批实际记账项之和（未选中为 0）、
      * 润滑合计=集群+选中物流单元润滑（未选中仅集群项）、增幅合计=5 型 BOOST 行之和）；</li>
      * <li><b>选中相关组</b>（原门控保留，无选中单元/空链整组省略）：
      * {@code LINK:linkOrdinal:timeSecX100:steamLpsX100}（本链实际包含加工步，链序；T_i/C_i 与
      * ExecutionPlan 同式同源）、{@code LOGI:unitIdx:timeSecX100}、
-     * {@code FLUID:fluidName:liters}（仅最近成功批实际 charged 的洗矿水/化浴）、
+     * {@code FLUID:fluidName:liters}（仅最近成功批实际记账的洗矿水/化浴）、
      * {@code LUBE:logi:litersPerSecX100}、{@code PEAK:effectivePeakStepIdx:linkOrdinal}（无命中省略）。</li>
      * </ul>
-     * 客户端未知令牌前向兼容丢弃（旧客户端收到 FMOD/FTOT/FWIP 静默不显示）。
+     * 客户端未知令牌前向兼容丢弃（旧客户端收到 FMOD/FTOT 静默不显示）。
      */
     private static String encodeDetail(MTESteamMineralLogisticsCluster cluster) {
         MTEBasicLogisticsUnit unit = cluster.getSelectedLogisticsUnit();
@@ -712,7 +731,7 @@ public final class ClusterTerminalData {
             appendDetailRow(
                 sb,
                 "LOGI:" + cluster.getSelectedLogisticsIndex() + ":" + (ClusterParams.LOGISTICS_TIME_SEC[tier] * 100));
-            // FLUID 行：最近成功批实际 charged 的洗矿水/化浴（unit 瞬态摘要，executor 提交点写入）；
+            // FLUID 行：最近成功批实际记账的洗矿水/化浴（unit 瞬态摘要，executor 提交点写入）；
             // 合计随 FTOT 下发（占比分母真值，不由客户端局部推导）
             for (String entry : unit.getLastBatchFluidSummary()) {
                 appendDetailRow(sb, "FLUID:" + entry);
@@ -732,8 +751,7 @@ public final class ClusterTerminalData {
             lubeLogi = ClusterParams.LOGISTICS_UNIT_LUBRICANT_LPS[logiTier];
             appendDetailRow(sb, "LUBE:logi:" + toX100(lubeLogi));
         }
-        // ---- 选择无关组：增幅 5 型逐型合计（S1-T7 wip 流体倍率口径）+ wip 倍率 + 三组合计真值 ----
-        double wipMultiplier = BoosterState.computeWipFluidMultiplier(cluster.collectWipLogisticsUnits());
+        // ---- 选择无关组：增幅 5 型逐型单价合计（v1.20.16 起 L/矿单价口径，短批倍率退役）+ 三组合计真值 ----
         ClusterParams.BoosterType[] boostTypes = ClusterParams.BoosterType.values();
         double[] typedLps = new double[boostTypes.length];
         double boostTotal = 0.0D;
@@ -746,7 +764,7 @@ public final class ClusterTerminalData {
                     || amplifier.getUnitStructureTier() >= ClusterParams.TIER_COUNT) continue;
                 lps += amplifier.amplifierFluidPerSecExact();
             }
-            typedLps[t] = lps * wipMultiplier;
+            typedLps[t] = lps;
             boostTotal += typedLps[t];
         }
         // 定点补差：与 FMOD 同口径，Σ BOOST 行(×100) 逐位等于 FTOT 增幅合计
@@ -758,7 +776,6 @@ public final class ClusterTerminalData {
             boostAcc += typedX100;
             appendDetailRow(sb, "BOOST:" + boostTypes[t].ordinal() + ":" + typedX100);
         }
-        appendDetailRow(sb, "FWIP:" + toX100(wipMultiplier));
         double lubeTotal = ClusterParams.CLUSTER_LUBRICANT_LPS[tier] + lubeLogi;
         appendDetailRow(
             sb,
@@ -889,11 +906,15 @@ public final class ClusterTerminalData {
             .itemTimeSec(selectedLinks(cluster), tierIdx(cluster), cluster.getTopology(), boosterSnapshot(cluster));
     }
 
-    /** 实际加权公式文本：分步蒸汽×有效耗时权重，并展开模块数、增幅惩罚与节汽折扣。 */
+    /**
+     * 实际加权公式文本：分步蒸汽×有效耗时权重，并展开模块数、惩罚乘子与节汽折扣。
+     * v1.20.16 起段标记与单位中文下发（对齐模拟稿：147-148）：
+     * {@code 粉碎 2000×120 + 锻造 8000×4 ÷ 128刻；链数 2；惩罚乘子 ×1.20；节汽 -0%；= 2131 L/秒}。
+     */
     private static String formulaText(MTESteamMineralLogisticsCluster cluster) {
         List<ChainLink> links = selectedLinks(cluster);
         int tier = tierIdx(cluster);
-        if (links == null || links.isEmpty()) return "0 L/s";
+        if (links == null || links.isEmpty()) return "0 L/秒";
         ClusterTopology topology = cluster.getTopology();
         BoosterState booster = boosterSnapshot(cluster);
         double weighted = 0.0;
@@ -925,18 +946,17 @@ public final class ClusterTerminalData {
         for (MTEBasicLogisticsUnit unit : topology.getLogisticsUnits()) {
             if (unit != null && unit.isModuleEnabled()) moduleCount++;
         }
-        return terms.append("/")
+        return terms.append("÷ ")
             .append(Math.round(weights * 20.0D))
-            .append("t")
-            .append("; N=")
+            .append("刻；链数 ")
             .append(moduleCount)
-            .append("; penalty×")
+            .append("；惩罚乘子 ×")
             .append(String.format(Locale.ROOT, "%.2f", booster.getPenaltyProduct()))
-            .append("; saver-")
+            .append("；节汽 -")
             .append(String.format(Locale.ROOT, "%.0f%%", saver * 100.0D))
-            .append("; = ")
+            .append("%；= ")
             .append(String.format(Locale.ROOT, "%.0f", result))
-            .append(" L/s")
+            .append(" L/秒")
             .toString();
     }
 

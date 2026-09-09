@@ -112,8 +112,8 @@ public class MTEUnitSteamSaverBooster extends MTEBasicAmplifierUnit {
     /**
      * 功能群（v1.11.15）：节汽四档值行（含全集群总节约上限）+ 共用「锁定流体 / 按档消耗」行 +
      * 共用「蒸汽惩罚」行——数值取自 {@link ClusterParams#BOOSTER_SAVER_PCT}（经 getBoosterValue）、
-     * {@link ClusterParams#STEAM_SAVER_CAP}、{@link ClusterParams#AMPLIFIER_SUPER_COOLANT_LPS}
-     * （经 amplifierFluidLps）与 无蒸汽惩罚。
+     * {@link ClusterParams#STEAM_SAVER_CAP}、{@link ClusterParams#AMPLIFIER_SUPER_COOLANT_PER_ORE}
+     * （经 amplifierFluidLps，L/矿单价口径）与 无蒸汽惩罚。
      */
     @Override
     protected void addUnitTooltipInfo(MultiblockTooltipBuilder tt) {

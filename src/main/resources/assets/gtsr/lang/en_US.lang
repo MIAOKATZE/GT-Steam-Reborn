@@ -275,7 +275,8 @@ gtsr.gui.geothermal_boiler.calcification=Calcification:
 gtsr.chat.calcification_cleared=§aCalcification cleared
 gtsr.chat.calcification_full=§cWarning: the machine is fully calcified, steam output reduced to 1％! Decalcify it soon.
 gtsr.chat.no_water=Water supply interrupted, the machine has stopped. Please restart it (soft hammer right-click or toggle the power switch in the GUI).
-gtsr.chat.cluster.supply_abort=Supply interrupted (steam/lubricant/amplifier fluid shortage), running recipes terminated with input loss, machine powered off, please re-enable.
+gtsr.chat.cluster.supply_abort=Supply interrupted (steam/lubricant shortage), running recipes terminated with input loss, machine powered off, please re-enable.
+gtsr.chat.booster_shortage=Cluster booster fluid shortage: some booster modules failed this batch (notified once)
 gtsr.chat.overpressure.on=Overpressure mode enabled: heat cap raised to 200％
 gtsr.chat.overpressure.off=Overpressure mode disabled
 gtsr.chat.overpressure.need_heat=100％ heat is required to enable Overpressure mode
@@ -1557,12 +1558,6 @@ gtsr.terminal.f.detail.link=Link %s: takes %s s / steam %s L/s
 gtsr.terminal.f.detail.logi=Logistics leg: takes %s s
 gtsr.terminal.f.detail.fluid=%s: %s L per batch
 gtsr.terminal.f.detail.fluid.pct=%s: %s L per batch (%s%%)
-gtsr.terminal.f.detail.lube.cluster=Cluster lubricant: %s L/s
-gtsr.terminal.f.detail.lube.cluster.pct=Cluster lubricant: %s L/s (%s%%)
-gtsr.terminal.f.detail.lube.logi=Logistics lubricant: %s L/s
-gtsr.terminal.f.detail.lube.logi.pct=Logistics lubricant: %s L/s (%s%%)
-gtsr.terminal.f.detail.boost=%s (%s): %s L/s
-gtsr.terminal.f.detail.boost.pct=%s (%s): %s L/s (%s%%)
 gtsr.terminal.f.detail.peak=Peak: step %s
 gtsr.terminal.stats.title=Statistics
 gtsr.terminal.stats.in=Cumulative input
@@ -1579,18 +1574,48 @@ gtsr.terminal.perf.group.boost=Booster Summary
 gtsr.terminal.perf.group.boostcost=Booster Cost
 gtsr.terminal.perf.caliber.formula=Weighted-formula
 gtsr.terminal.perf.caliber.settle=Settled
-gtsr.terminal.perf.chains.count=Chains: %s
-gtsr.terminal.perf.chains.steps=Total Steps: %s
-gtsr.terminal.perf.chains.longest=Longest: %s
-gtsr.terminal.perf.chains.avg=Avg Length: %s
-gtsr.terminal.perf.fmod=#%s@Seg%s: %ss · %s · %s · %s L/s
-gtsr.terminal.perf.exp.fluid.head=Charged in last successful batch
+gtsr.terminal.perf.caliber.weighted=Weighted all-chain
+gtsr.terminal.perf.time=Time per Batch
+gtsr.terminal.perf.deriv.head=Derivation:
+gtsr.terminal.perf.deriv.table=Tier table:
+gtsr.terminal.perf.lube.dual=Lubricant (cluster + logistics)
+gtsr.terminal.perf.boost.na=Not installed
+gtsr.terminal.perf.boost.off=Failed
+gtsr.terminal.perf.chains.count=Chains
+gtsr.terminal.perf.chains.steps=Total Steps
+gtsr.terminal.perf.chains.longest=Longest
+gtsr.terminal.perf.chains.avg=Avg Length
+gtsr.terminal.perf.fmod=#%s@Seg%s: %s s · %s · %s · %s L/s
+gtsr.terminal.perf.exp.fluid.head=Recorded in last successful batch
 gtsr.terminal.perf.exp.fluid.total=Batch charge total %s L · %s entries
-gtsr.terminal.perf.exp.lube=Cluster %s + logistics %s = total %s L/s
-gtsr.terminal.perf.exp.boost.unit=#%s base %s → %s L/s · %s
-gtsr.terminal.perf.exp.boost.wip=wip fluid multiplier ×%s
-gtsr.terminal.perf.exp.steam.head=Weighted steam = sum(step steam × time) / total time
-gtsr.terminal.perf.exp.steam.step=%s: T=%s s · C=%s L/s
+gtsr.terminal.perf.tip.time=Time per Batch\nComplete time to process one ore. Hover for mechanics; click ▶ for the step-by-step derivation.
+gtsr.terminal.perf.tip.parallel=Parallel\nOres processed per batch. Click ▶ for the derivation.
+gtsr.terminal.perf.tip.thru=Throughput\nTheoretical processing speed. Click ▶ for the derivation.
+gtsr.terminal.perf.tip.formula=Actual weighted formula\nTime-weighted steam composition of the current chain (general formula in the chain steam ▶ derivation).
+gtsr.terminal.perf.tip.fmod=Per-segment summary\nOne overview line per logistics module.
+gtsr.terminal.perf.tip.heat=Heat\nPreheat progress 0~100%; a batch can only start at full heat.\nHeats up in 30 s; steam loss -0.5%/s, idle -1%/s.
+gtsr.terminal.perf.tip.lube=Lubricant\nTwo segments combined, per-second basis. Click ▶ for the derivation.
+gtsr.terminal.perf.tip.thru_real=Real-time throughput\nOres actually completed in the last 1-second window.
+gtsr.terminal.perf.tip.total=Total processed\nTotal ores that entered the cluster since it started.
+gtsr.terminal.perf.tip.steam_total=Total steam (weighted all-chain)\nΣ executable-chain steam × multiplier × (1-saver), fixed terms excluded.
+gtsr.terminal.perf.tip.steam_chain=Chain steam (formula-weighted)\nTheoretical steam power of the selected unit's chain.\nClick ▶ for the full step-by-step derivation.
+gtsr.terminal.perf.tip.steam_settle=Steam (settled)\nActual deduction per second. Click ▶ for the derivation.
+gtsr.terminal.perf.tip.lube_split=Lubricant segments\nMechanics under Runtime Summary "Lubricant". Click ▶ for the breakdown.
+gtsr.terminal.perf.tip.boost.0=Nitric acid (parallel booster)\nEffect: +8 ores per batch.\nConsumption per unit: deducted once per batch by the actual ore count.\nClick ▶ for the unit-price and per-batch derivation.
+gtsr.terminal.perf.tip.boost.1=Hydrochloric acid (speed booster)\nEffect: working-segment time ÷(1+speed total).\nNot installed; once installed the unit price = base table ÷ 10 — click ▶ for the four-tier price table.
+gtsr.terminal.perf.tip.boost.2=Sulfuric acid (primary-output booster)\nSame kind takes the max with only one active; single peak: the peak step is full, other processing steps ×0.1.\nUnit price = base table ÷ 10 (bronze 80 → 8 L/ore), deducted by actual ore count per batch.\nNo steam multiplier.
+gtsr.terminal.perf.tip.boost.3=Ammonium chloride (secondary-output booster)\nSecondary-output chance stacks additively, can exceed 100%; crush steps weakened by cluster tier ×0.1/×0.5/none.\nUnit price = base table ÷ 10 (bronze 20 → 2 L/ore).\nNo steam multiplier.
+gtsr.terminal.perf.tip.boost.4=Coolant (steam-saver booster)\nSteam saving: weighted all-chain ×(1-saver rate), additive capped at 48%; fixed terms and lubricant unaffected.\nUnit price = base table ÷ 10 (bronze 10 → 1 L/ore).\nNo steam multiplier.
+gtsr.terminal.perf.tip.chains_count=Chains\nNumber of logistics chains identified; a chain = one logistics unit's processing order.
+gtsr.terminal.perf.tip.chains_steps=Total steps / longest / avg length\nA chain step = one processing operation on the chain.
+gtsr.terminal.perf.tip.boost_state=Active / failed\nCannot afford a full batch → failed for this batch: bonus and multiplier removed, the batch continues.\nOn failure a chat notice is sent once (latched, not repeated before the next successful run); terminal and logistics modules stay in sync.
+gtsr.terminal.perf.tip.sum_speed=Speed booster total\nΣ of speed modules.
+gtsr.terminal.perf.tip.sum_parallel=Parallel booster total\nΣ of parallel modules, added to the logistics base.
+gtsr.terminal.perf.tip.sum_primary=Primary-output booster\nSame kind takes the max.
+gtsr.terminal.perf.tip.sum_secondary=Secondary-output booster\nAdditive stack Σ.
+gtsr.terminal.perf.tip.sum_saver=Steam-saver rate\nAdditive stack Σ, capped at 48%.
+gtsr.terminal.perf.tip.sum_mult=Steam multiplier\nSpeed/parallel modules multiplied per unit by tier. Click ▶ for the derivation.
+gtsr.terminal.perf.tip.cost=Booster cost (per-batch basis)\nDeducted once per batch, scaling with batch size. Click ▶ for the derivation.
 gtsr.terminal.le.chains.title=All logistics chains
 gtsr.terminal.le.chains.peak=Peak: step %s
 gtsr.cluster.logistics.queue.on=Queue mode: ON
@@ -1670,7 +1695,7 @@ gtsr.tooltip.cluster.unit.hatch.input_bus=Input bus %s
 gtsr.tooltip.cluster.unit.hatch.output_bus=Output bus %s
 gtsr.tooltip.cluster.unit.hatch.input_hatch=Input hatch %s
 gtsr.tooltip.cluster.unit.hatch.output_hatch=Output hatch %s
-gtsr.tooltip.cluster.unit.booster.fluid_cost=Locked fluid: %s, tiered consumption %s
+gtsr.tooltip.cluster.unit.booster.fluid_cost=Locked fluid: %s, tier price %s
 gtsr.tooltip.cluster.unit.booster.penalty=Steam penalty: x%s
 gtsr.tooltip.cluster.unit.booster.penalty.none=No steam penalty
 gtsr.tooltip.cluster.unit.crusher.desc=Crusher unit: unlocks the crush and hammer breaking chains

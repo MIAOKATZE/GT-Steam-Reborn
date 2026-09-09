@@ -4,17 +4,15 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import net.minecraftforge.fluids.FluidStack;
-
-import com.miaokatze.gtsr.api.compat.GTSRHatchFluidAccess;
-
 /**
  * 增幅聚合器：把一组建幅模块按拍板规则（D8/D9/A4）一次性聚合为不可变快照，GUI（增幅面板表）与
  * 服务器（蒸汽经济/执行计划）共用同一口径；纯计算、无副作用、不持有 tick 状态。
  *
  * <p>
  * 聚合规则：仅统计 {@code cluster != null} 且 {@link MTEBasicAmplifierUnit#isFluidAvailable()}
- * 的「生效」模块；缺流体模块双重豁免——增益与蒸汽惩罚倍率同时不计，但计入失效数。「在场」= 已接入
+ * 且最近一次开批预检通过（非 {@link MTEBasicAmplifierUnit#isLastBatchPrecheckFailed()}）的
+ * 「生效」模块；失效模块双重豁免——增益与蒸汽惩罚倍率同时不计，但计入失效数（失效语义
+ * v1.20.16 起 = 缺流体或存量不足整批单价，见 {@link #getFailedCount()}）。「在场」= 已接入
  * 集群（{@code getCluster() != null}），未接入集群的 STANDBY 模块既不计生效也不计失效。
  *
  * <p>
@@ -27,15 +25,19 @@ import com.miaokatze.gtsr.api.compat.GTSRHatchFluidAccess;
  * <li>蒸汽惩罚（T13 分组、S1-T4 起结构惩罚不再乘协同因子）：速度/并行/主产物/副产物模块按
  * （种类×档位）分组——组实际 = 组内逐台档位乘子连乘，总惩罚 = 各组实际连乘；
  * 节汽模块不惩罚（协同率常量仅剩增幅流体联动加成路径 {@code amplifierFluidPerSecExact} 使用）；</li>
+ * <li>增幅液支付（v1.20.16 L/矿口径）不在本聚合内判定或实扣：开批预检 存量 ≥ batch×单价 与
+ * 提交点一次扣共用 {@code MTEBasicAmplifierUnit.batchCost/tryConsumeForBatch} 同一 helper
+ * （预检 = 实扣同一口径，禁止二次 ceil）；失效标记由 {@code ClusterChainExecutor} 开批预检段
+ * 统一登记后重聚合生效；</li>
  * <li>空列表（含 null）直接返回 {@link #EMPTY} 单例，与全零快照语义等价。</li>
  * </ul>
  *
  * <p>
- * 缺流体双重豁免验证示例（速度增幅 tier1/惩罚 1.4 缺流体，主产物增幅 tier3/惩罚 2.0 与节汽增幅生效）：
- * 速度项 {@code getSpeedBonus()=0}、主产物增益照常累加、节汽项 {@code getSaverBonusRaw()} 照常，
- * 惩罚项 {@code getPenaltyProduct()=2.0}（主产物组实际值，速度组 1.4 同步豁免不计；节汽无惩罚）；
- * 若速度增幅流体恢复，则 {@code getSpeedBonus()} 照常累加、
- * {@code getPenaltyProduct()=1.4×2.0=2.8}。
+ * 失效双重豁免验证示例（速度增幅 tier1/惩罚 1.4 最近预检失效，主产物增幅 tier3/惩罚 2.0 与节汽
+ * 增幅生效）：速度项 {@code getSpeedBonus()=0}、主产物增益照常累加、节汽项
+ * {@code getSaverBonusRaw()} 照常，惩罚项 {@code getPenaltyProduct()=2.0}（主产物组实际值，
+ * 速度组 1.4 同步豁免不计；节汽无惩罚）；若速度增幅液恢复并通过下次开批预检，则
+ * {@code getSpeedBonus()} 照常累加、{@code getPenaltyProduct()=1.4×2.0=2.8}。
  */
 public final class BoosterState {
 
@@ -66,6 +68,9 @@ public final class BoosterState {
     /** 在场但缺流体的失效模块数。 */
     private final int failedCount;
 
+    // v1.20.16 失效语义注记：failedCount 现为「最近开批预检失效计数」（含缺流体与存量不足
+    // 整批单价两种，标记由 ClusterChainExecutor 开批预检段登记），字段含义不变。
+
     private BoosterState(int parallelBonus, double speedBonus, double primaryBonus, double secondaryBonus,
         double saverBonusRaw, double penaltyProduct, List<MTEBasicAmplifierUnit> activeUnits, int failedCount) {
         this.parallelBonus = parallelBonus;
@@ -83,11 +88,15 @@ public final class BoosterState {
      *
      * <p>
      * 生效 = 已接入集群 && 锁定流体可用（{@link MTEBasicAmplifierUnit#isFluidAvailable()}）
-     * && 输入仓合计足以支付<b>本秒用量</b>（{@code canPayAmplifierFluidThisSecond(unit, wipMultiplier)}
-     * ——S7 联动加成后实耗 × wip 流体倍率，§3.6.3——增幅流体按秒支付，不足支付本秒用量的模块不入
-     * 快照：<b>无增益也无蒸汽惩罚</b>，计失效数；实扣增幅流体由主控按同口径另行执行）；在场但缺流体
-     * 的模块同样计失效（双重豁免：增益与惩罚均不计）；未接入集群（STANDBY）的模块与 null 元素直接跳过。
-     * 无生效且无失效模块时返回 {@link #EMPTY} 单例（空列表/null 入参同此，语义等价）。
+     * && 最近一次开批预检通过（非 {@link MTEBasicAmplifierUnit#isLastBatchPrecheckFailed()}，
+     * V3：标记由 {@code ClusterChainExecutor} 开批预检段按 存量 ≥ batch×单价 统一登记，未参与过
+     * 预检的模块默认通过）。不满足者不入快照：<b>无增益也无蒸汽惩罚</b>，计失效数；未接入集群
+     * （STANDBY）的模块与 null 元素直接跳过。无生效且无失效模块时返回 {@link #EMPTY} 单例
+     * （空列表/null 入参同此，语义等价）。
+     *
+     * <p>
+     * 增幅液支付（v1.20.16 L/矿口径）不在本聚合内判定或实扣：开批预检与提交点一次扣共用
+     * {@code MTEBasicAmplifierUnit.batchCost/tryConsumeForBatch} 同一 helper（预检 = 实扣同一口径）。
      *
      * <p>
      * 主/副产物增益经 {@link #getPrimaryBonus()}（T6 起多模块加算、无上限）/
@@ -98,24 +107,6 @@ public final class BoosterState {
      * @return 不可变聚合快照
      */
     public static BoosterState aggregate(List<MTEBasicAmplifierUnit> units) {
-        return aggregate(units, 1.0D);
-    }
-
-    /**
-     * 聚合重载（旧 T12 支付口径保留，委托 double 版）：{@code wipLogisticsCount} 按台数近似 wip
-     * 流体倍率（下限钳 1——调用方传 0/负值时仍按单倍口径支付）。其余口径同单参重载。
-     */
-    public static BoosterState aggregate(List<MTEBasicAmplifierUnit> units, int wipLogisticsCount) {
-        return aggregate(units, (double) Math.max(1, wipLogisticsCount));
-    }
-
-    /**
-     * 聚合重载（S1-T7 支付口径）：{@code wipMultiplier} = wip 流体倍率（
-     * {@link #computeWipFluidMultiplier(List)} 的返回值，Σ max(1, 1/实际秒数)），判定本秒支付能力时
-     * 判定量 = {@code ceil(amplifierFluidPerSec() × wipMultiplier)}——短运行批（配方时间 &lt; 1s）
-     * 按实际时长反比放大本秒增幅液判定量。其余口径同单参重载。
-     */
-    public static BoosterState aggregate(List<MTEBasicAmplifierUnit> units, double wipMultiplier) {
         if (units == null || units.isEmpty()) return EMPTY;
         int parallel = 0;
         int failed = 0;
@@ -127,8 +118,7 @@ public final class BoosterState {
         int[][] activeByTypeTier = new int[ClusterParams.BoosterType.values().length][ClusterParams.TIER_COUNT];
         for (MTEBasicAmplifierUnit unit : units) {
             if (unit == null || unit.getCluster() == null) continue;
-            if (!unit.isTierValidForConnection() || !unit.isFluidAvailable()
-                || !canPayAmplifierFluidThisSecond(unit, wipMultiplier)) {
+            if (!unit.isTierValidForConnection() || !unit.isFluidAvailable() || unit.isLastBatchPrecheckFailed()) {
                 failed++;
                 continue;
             }
@@ -166,44 +156,6 @@ public final class BoosterState {
         }
         if (active.isEmpty() && failed == 0) return EMPTY;
         return new BoosterState(parallel, speed, primary, secondary, saverRaw, penalty, active, failed);
-    }
-
-    /**
-     * wip 流体倍率（S1-T7 短运行口径）：{@code Σ max(1.0, 1.0/(unit.mMaxProgresstime/20.0))}
-     * ——每台在飞物流单元按其实际配方秒数的倒数计倍（短于 1s 的批反比放大，长批保底 1 倍），
-     * 判定与实扣（主控 / {@code ClusterTerminalData} KEY_BO_COST）共用本函数同口径。
-     * 防御：null/空表返回 0.0（调用方按需钳下限）；{@code mMaxProgresstime ≤ 0} 的单元按 1.0 计
-     * （不放大）。
-     *
-     * @param wipUnits 在飞物流单元列表（可 null/空）
-     * @return wip 流体倍率；空表 0.0
-     */
-    public static double computeWipFluidMultiplier(java.util.List<MTEBasicLogisticsUnit> wipUnits) {
-        if (wipUnits == null || wipUnits.isEmpty()) return 0.0D;
-        double multiplier = 0.0D;
-        for (MTEBasicLogisticsUnit unit : wipUnits) {
-            if (unit == null) continue;
-            double seconds = unit.mMaxProgresstime / 20.0D;
-            multiplier += seconds <= 0.0D ? 1.0D : Math.max(1.0D, 1.0D / seconds);
-        }
-        return multiplier;
-    }
-
-    /**
-     * 本秒增幅流体支付能力（§3.6.3，S7/T12 → S1-T7 口径）：模块输入仓合计存量 ≥
-     * {@code ceil(amplifierFluidPerSec() × wipMultiplier)}（基础五表值 × (1 + Σ速度/并行联动加成)
-     * × (1+(同种台数-1)×协同率) × wip 流体倍率后向上取整，与主控实扣同口径）才计入本秒快照。
-     * 只读判定、不实扣。
-     */
-    private static boolean canPayAmplifierFluidThisSecond(MTEBasicAmplifierUnit unit, double wipMultiplier) {
-        // 判定量 = ceil(amplifierFluidPerSec × wip 倍率)（S1-T7 短运行口径）；倍率经局部变量承载，
-        // 与旧「× wip 台数」口径（T12，已删除）区分
-        double mult = wipMultiplier;
-        int perSecLps = (int) Math.ceil(unit.amplifierFluidPerSec() * mult);
-        if (perSecLps <= 0) return false;
-        net.minecraftforge.fluids.Fluid locked = unit.getBoosterFluidForAccess();
-        return locked != null
-            && GTSRHatchFluidAccess.hasEnoughAcross(unit.getInputHatchesForAccess(), new FluidStack(locked, perSecLps));
     }
 
     // ==================== 只读访问器 ====================
@@ -255,7 +207,10 @@ public final class BoosterState {
         return activeUnits.size();
     }
 
-    /** @return 失效模块数（在场=已接入集群但锁定流体缺失；STANDBY 模块不计）。 */
+    /**
+     * @return 失效模块数（v1.20.16 起 = 最近开批预检失效计数：在场=已接入集群但锁定流体缺失，
+     *         或最近一次开批预检 存量不足 batch×单价；STANDBY 模块与未参与过预检的模块不计）。
+     */
     public int getFailedCount() {
         return failedCount;
     }

@@ -114,7 +114,8 @@ public class MTEUnitSecondaryBooster extends MTEBasicAmplifierUnit {
     /**
      * 功能群（v1.11.15）：副产物四档值行 + 共用「锁定流体 / 按档消耗」行 + 共用「蒸汽惩罚」行——
      * 数值取自 {@link ClusterParams#BOOSTER_SECONDARY_PCT}（经 getBoosterValue）、
-     * {@link ClusterParams#AMPLIFIER_AMMONIUM_CHLORIDE_LPS}（经 amplifierFluidLps；代码语义
+     * {@link ClusterParams#AMPLIFIER_AMMONIUM_CHLORIDE_PER_ORE}（经 amplifierFluidLps，L/矿单价口径；
+     * 代码语义
      * resolveBoosterFluid(SECONDARY_OUTPUT)=氯化铵，lang fluid.secondary 值已同步校正）与
      * 无蒸汽惩罚。
      */

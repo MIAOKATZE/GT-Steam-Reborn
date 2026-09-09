@@ -1,10 +1,15 @@
 package com.miaokatze.gtsr.client.gui.terminal;
 
+import java.nio.IntBuffer;
+import java.util.ArrayList;
+import java.util.List;
+
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.ScaledResolution;
 
+import org.lwjgl.BufferUtils;
 import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.GL11;
 
@@ -20,6 +25,11 @@ import org.lwjgl.opengl.GL11;
  * 视觉（契约 §3 #9-#12）：list_panel 凹陷底（9-slice 4px）+ 行 hover row_hover
  * （左缘 2px 琥珀暗线，仅视觉不改命中）+ 6px 滚动条（track/thumb 纵向 9-slice 2px，
  * 右缘 2px 边距）；行高固定 20（PLAN §4.5-A 冻结）。
+ * <p>
+ * 行内容契约（v1.20.16 G5/G6）：行文本左缘 ≥{@link #ROW_PAD_LEFT}（4px 边厚不入边带）、
+ * 右缘预留 {@link #ROW_PAD_RIGHT}（滚动条 8px 不压字），宽度预算统一走
+ * {@link #rowTextWidthCap()}；超宽行用 {@link #wrapLine} 按宽折行（ellipsis 末位兜底）；
+ * 行绘制区对齐整行边界（无底行残条），剪刀退出恢复外层状态（不击穿宿主内容区剪刀）。
  * <p>
  * 悬浮：鼠标停在行上计时、换行或移出列表区即重置（{@link #hoveredIndex()} /
  * {@link #hoverElapsedMillis()}），宿主 drawScreen 末尾按 ≥0.5s 询问画
@@ -76,6 +86,12 @@ public class GtsrGuiList {
 
     // ==================== 几何（构造快照） ====================
 
+    /**
+     * 行文本左缘最小内边距（LIST_PANEL 4px 边厚）：行内容 x 偏移不得小于此值，
+     * 否则压入凹陷边带（v1.20.16 边框层级修复 G5-1；宿主消费先例 PerfPage 旧 x+3）。
+     */
+    public static final int ROW_PAD_LEFT = 4;
+
     /** 宿主 GUI（width/height 公有字段活取：滚轮事件坐标换算） */
     private final GuiScreen host;
 
@@ -101,10 +117,16 @@ public class GtsrGuiList {
     private final int slotHeight;
 
     /** 滚动条宽度 */
-    private final int scrollbarWidth = 6;
+    private static final int scrollbarWidth = 6;
 
     /** 滚动条距离列表右边距 */
-    private final int scrollbarMarginRight = 2;
+    private static final int scrollbarMarginRight = 2;
+
+    /**
+     * 行文本右侧滚动条预留 = 滚动条宽 6 + 距右缘 2：满宽行文本 cap 须扣除，
+     * 否则与滚动条重叠（v1.20.16 G5-3；宽度预算取 {@link #rowTextWidthCap()}）。
+     */
+    public static final int ROW_PAD_RIGHT = scrollbarWidth + scrollbarMarginRight;
 
     // ==================== 注入件 ====================
 
@@ -132,6 +154,21 @@ public class GtsrGuiList {
 
     /** 进入当前悬浮行的墙钟时间戳（毫秒） */
     private long hoverStartMillis = 0L;
+
+    // ==================== 剪刀状态保存（v1.20.16 G5-4 泄漏修复） ====================
+
+    /**
+     * 进入列表剪刀前外层 GL_SCISSOR_TEST 是否已启用（宿主 GuiClusterTerminalScreen
+     * 内容区剪刀先例：pushScissor/popScissor 包裹页面绘制）。true=退出恢复 box 并保持启用；
+     * false=退出直接关闭（旧实现无条件 glDisable 会击穿外层剪刀——泄漏根因）。
+     */
+    private boolean outerScissorEnabled = false;
+
+    /** 进入列表剪刀前保存的外层 GL_SCISSOR_BOX（x/y/w/h，outerScissorEnabled 时退出恢复用） */
+    private final int[] outerScissorBox = new int[4];
+
+    /** GL_SCISSOR_BOX 查询缓冲（客户端绘制线程单线程 GL，静态复用避免每帧分配） */
+    private static final IntBuffer SCISSOR_BOX_QUERY = BufferUtils.createIntBuffer(16);
 
     /**
      * @param host   宿主 GUI（读 width/height/zLevel 公有字段）
@@ -203,8 +240,9 @@ public class GtsrGuiList {
         drawListBackground(zLevel);
         enableListScissor();
         int firstRow = scrollOffset;
-        // 多渲染一行以覆盖可能部分显示的最底行
-        int lastRow = Math.min(rows, firstRow + visibleRows() + 1);
+        // 只画完整可见行：剪刀已对齐整行边界（visibleRows()×行高），原 "+1" 补渲染
+        // 会从底边不足一行的高度缝隙（如 LIST_H=244=22×11+2 的 2px）露出残行（v1.20.16 G5-2）
+        int lastRow = Math.min(rows, firstRow + visibleRows());
         for (int i = firstRow; i < lastRow; i++) {
             int y = listTop + (i - firstRow) * slotHeight;
             // 悬浮计时（GTSWN :181-192 同构）：命中本行才计时，换行即重置时间戳
@@ -253,22 +291,43 @@ public class GtsrGuiList {
      * 启用剪刀测试，将后续绘制限制在列表可视区域内。
      * <p>
      * OpenGL 的 scissor 坐标以屏幕左下角为原点，单位是像素，因此需要按 GUI 缩放比例转换。
+     * <p>
+     * 进入前先保存外层剪刀状态（v1.20.16 G5-4）：宿主内容区剪刀（GuiClusterTerminalScreen
+     * pushScissor）在本列表内层启用，退出时恢复其 box 并保持启用，而非无条件 glDisable。
+     * 剪刀高度对齐整行边界（{@link #visibleRows()}×行高）：不足一行的高度不参与行绘制，
+     * 任何滚动位置都不出现残行（v1.20.16 G5-2）。
      */
     private void enableListScissor() {
+        outerScissorEnabled = GL11.glIsEnabled(GL11.GL_SCISSOR_TEST);
+        if (outerScissorEnabled) {
+            SCISSOR_BOX_QUERY.clear();
+            GL11.glGetInteger(GL11.GL_SCISSOR_BOX, SCISSOR_BOX_QUERY);
+            for (int i = 0; i < 4; i++) {
+                outerScissorBox[i] = SCISSOR_BOX_QUERY.get(i);
+            }
+        }
         Minecraft mc = Minecraft.getMinecraft();
         ScaledResolution sr = new ScaledResolution(mc, mc.displayWidth, mc.displayHeight);
         int scale = sr.getScaleFactor();
         int sx = listLeft * scale;
         int sy = mc.displayHeight - listBottom * scale;
         int sw = listWidth * scale;
-        int sh = listHeight * scale;
+        // 绘制区裁剪到整行：底边不足一行的缝隙（listHeight % slotHeight）整段不绘制
+        int sh = visibleRows() * slotHeight * scale;
         GL11.glEnable(GL11.GL_SCISSOR_TEST);
         GL11.glScissor(sx, sy, sw, sh);
     }
 
-    /** 关闭剪刀测试，恢复普通绘制。 */
+    /**
+     * 退出剪刀测试：有外层剪刀则恢复进入前 box 并保持启用（宿主内容区剪刀继续生效），
+     * 无外层剪刀才真正关闭——修复旧实现无条件 glDisable 的状态泄漏（v1.20.16 G5-4）。
+     */
     private void disableListScissor() {
-        GL11.glDisable(GL11.GL_SCISSOR_TEST);
+        if (outerScissorEnabled) {
+            GL11.glScissor(outerScissorBox[0], outerScissorBox[1], outerScissorBox[2], outerScissorBox[3]);
+        } else {
+            GL11.glDisable(GL11.GL_SCISSOR_TEST);
+        }
     }
 
     // ==================== 滚动条 ====================
@@ -294,6 +353,15 @@ public class GtsrGuiList {
     /** 返回最大可滚动行数（总条目 - 可见行数，至少为 0）。 */
     private int getMaxScroll(int rows) {
         return Math.max(0, rows - visibleRows());
+    }
+
+    /**
+     * 行文本宽度 cap（列表宽 − 左内边距 − 右侧滚动条预留，即 {@link #ROW_PAD_LEFT}
+     * + {@link #ROW_PAD_RIGHT} 之外的全部余量）：宿主行绘制/折行/ellipsis 的统一宽度预算；
+     * 缩放绘制（0.7f/0.6f）时自行按 scale 换算（v1.20.16 G5-1/G5-3，PerfPage 切片 2 联动）。
+     */
+    public int rowTextWidthCap() {
+        return listWidth - ROW_PAD_LEFT - ROW_PAD_RIGHT;
     }
 
     /** 返回列表可视区域可容纳的完整行数。 */
@@ -446,5 +514,101 @@ public class GtsrGuiList {
             return text;
         }
         return font.trimStringToWidth(text, Math.max(0, width - 6)) + "...";
+    }
+
+    /**
+     * 按可用宽度把单行文本折行为多行（v1.20.16 G6 折行基建，切片 2 行集生成消费）：
+     * 拉丁字母/数字连续段视为"词"整体移动（词边界优先），其余字符——中文、符号、空格——
+     * 逐字换行；§ 格式序列（两字符）永不拆断，断行处激活格式在续行行首补写，
+     * 逐行 drawString 与整段绘制观感一致（vanilla wrapFormattedString 同款续写语义）。
+     * <p>
+     * 与 {@link #ellipsis}（截断兜底）互补：单个不可断单元超宽时整单元独占一行原样返回，
+     * 由宿主再以 ellipsis 兜底截断。恰好等宽（=maxWidth）视为放得下。
+     * 先例：ClusterPerfPage 长公式两行手工拆分（:186-189）/ ClusterLinkEditorPage
+     * drawSplitString 折行（:509-518）。
+     *
+     * @param font     测量与最终绘制同实例的 FontRenderer（宽度口径一致）
+     * @param text     单行文本（可含 § 序列；null/空串返回单个空串行）
+     * @param maxWidth 最大行宽像素（≤0 时不折行原样单行返回）
+     * @return 折行后行集（≥1 行，可直接逐行 drawString）
+     */
+    public static List<String> wrapLine(FontRenderer font, String text, int maxWidth) {
+        List<String> out = new ArrayList<String>();
+        if (text == null || text.isEmpty()) {
+            out.add("");
+            return out;
+        }
+        if (maxWidth <= 0 || font.getStringWidth(text) <= maxWidth) {
+            out.add(text);
+            return out;
+        }
+        String activeFormat = "";
+        StringBuilder line = new StringBuilder();
+        final int n = text.length();
+        int i = 0;
+        while (i < n) {
+            int len = nextUnitLength(text, i);
+            String unit = text.substring(i, i + len);
+            boolean formatSeq = len == 2 && unit.charAt(0) == '\u00a7';
+            if (font.getStringWidth(line.toString() + unit) <= maxWidth) {
+                line.append(unit);
+                if (formatSeq) {
+                    activeFormat = appendFormatCode(activeFormat, unit.charAt(1));
+                }
+            } else if (font.getStringWidth(line.toString()) == 0) {
+                // 当前行无可视内容（空/仅格式前缀）：超宽不可断单元独占一行，ellipsis 宿主侧兜底
+                line.append(unit);
+                if (formatSeq) {
+                    activeFormat = appendFormatCode(activeFormat, unit.charAt(1));
+                }
+                out.add(line.toString());
+                line = new StringBuilder(activeFormat);
+            } else {
+                // 正常断行：续行行首补写激活格式；断行处行首空格丢弃
+                out.add(line.toString());
+                line = new StringBuilder(activeFormat);
+                if (!unit.equals(" ")) {
+                    line.append(unit);
+                    if (formatSeq) {
+                        activeFormat = appendFormatCode(activeFormat, unit.charAt(1));
+                    }
+                }
+            }
+            i += len;
+        }
+        // 尾行有可视内容才收行（纯 § 序列结尾不产生空尾行；整串零可视内容时保底一行）
+        if (out.isEmpty() || font.getStringWidth(line.toString()) > 0) {
+            out.add(line.toString());
+        }
+        return out;
+    }
+
+    /** 下一个不可拆单元长度：§ 序列 2 字符；拉丁字母/数字连续段（词）整体；其余逐字符。 */
+    private static int nextUnitLength(String text, int i) {
+        char c = text.charAt(i);
+        if (c == '\u00a7' && i + 1 < text.length()) {
+            return 2;
+        }
+        if (isLatinWordChar(c)) {
+            int j = i + 1;
+            while (j < text.length() && isLatinWordChar(text.charAt(j))) {
+                j++;
+            }
+            return j - i;
+        }
+        return 1;
+    }
+
+    /** 是否拉丁词字符（字母/数字/下划线；§ 序列与空白不参与组词）。 */
+    private static boolean isLatinWordChar(char c) {
+        return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '_';
+    }
+
+    /** 追加格式序列到激活格式串（§r/§R 复位清空，其余颜色/样式累积）。 */
+    private static String appendFormatCode(String activeFormat, char code) {
+        if (code == 'r' || code == 'R') {
+            return "";
+        }
+        return activeFormat + '\u00a7' + code;
     }
 }

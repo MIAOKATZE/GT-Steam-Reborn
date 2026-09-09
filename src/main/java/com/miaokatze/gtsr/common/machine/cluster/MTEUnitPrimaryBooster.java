@@ -114,7 +114,8 @@ public class MTEUnitPrimaryBooster extends MTEBasicAmplifierUnit {
     /**
      * 功能群（v1.11.15）：主产物四档值行 + 共用「锁定流体 / 按档消耗」行 + 共用「蒸汽惩罚」行——
      * 数值取自 {@link ClusterParams#BOOSTER_PRIMARY_PCT}（经 getBoosterValue）、
-     * {@link ClusterParams#AMPLIFIER_SULFURIC_ACID_LPS}（经 amplifierFluidLps；代码语义
+     * {@link ClusterParams#AMPLIFIER_SULFURIC_ACID_PER_ORE}（经 amplifierFluidLps，L/矿单价口径；
+     * 代码语义
      * resolveBoosterFluid(PRIMARY_OUTPUT)=硫酸，lang fluid.primary 值已同步校正）与
      * 无蒸汽惩罚。
      */

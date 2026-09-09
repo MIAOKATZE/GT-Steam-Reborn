@@ -862,7 +862,7 @@ final class ClusterLinkEditorPage implements ClusterPage {
         double factor = ClusterParams.TIER_TIME_FACTOR[Math.max(0, Math.min(ClusterParams.TIER_COUNT - 1, tier))];
         int[] counts = lockCounts();
         int modules = Math.max(1, linkOrdinal < counts.length ? counts[linkOrdinal] : 0);
-        return formatSec(LINKS[linkOrdinal].getBaseSecondsPrecise() * factor / modules) + "s";
+        return formatSec(LINKS[linkOrdinal].getBaseSecondsPrecise() * factor / modules) + " 秒";
     }
 
     /** FSM 推演条：原矿 →(链步)→ 形态 →…→ 终态（终态绿 + ✓终；末位非终态红）。 */
@@ -903,13 +903,13 @@ final class ClusterLinkEditorPage implements ClusterPage {
         int parRaw = ClusterTerminalClientCache.getInt(ClusterTerminalData.KEY_F_PAR, 0);
         int thruRaw = ClusterTerminalClientCache.getInt(ClusterTerminalData.KEY_F_THRU, 0);
         int steamRaw = ClusterTerminalClientCache.getInt(ClusterTerminalData.KEY_F_STEAM, 0);
-        String formula = ClusterTerminalClientCache.getStr(ClusterTerminalData.KEY_F_FORMULA, "0 L/s");
+        String formula = ClusterTerminalClientCache.getStr(ClusterTerminalData.KEY_F_FORMULA, "0 L/秒");
         return new String[] {
             EnumChatFormatting.YELLOW + tr("gtsr.cluster.gui.link.perf.time")
                 + " = "
                 + EnumChatFormatting.GREEN
                 + String.format("%.2f", timeRaw / 100.0D)
-                + " s",
+                + " 秒",
             EnumChatFormatting.YELLOW + tr("gtsr.cluster.gui.link.perf.parallel")
                 + " = "
                 + EnumChatFormatting.GREEN
@@ -923,7 +923,7 @@ final class ClusterLinkEditorPage implements ClusterPage {
             EnumChatFormatting.YELLOW + tr("gtsr.cluster.gui.link.perf.steam")
                 + " = "
                 + GtsrNumFormat.grouped(Math.round(steamRaw / 100.0D))
-                + " L/s",
+                + " L/秒",
             EnumChatFormatting.YELLOW + tr("gtsr.gui.cluster.link.perf.formula")
                 + " = "
                 + EnumChatFormatting.GREEN

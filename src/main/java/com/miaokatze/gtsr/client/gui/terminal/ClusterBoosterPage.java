@@ -24,8 +24,9 @@ import cpw.mods.fml.relauncher.SideOnly;
  *
  * <p>
  * 数据流：{@code KEY_BO_STRUCT}（结构字段 {@code typeOrdinal:tier:segment:flags}——结构 revision 界）、
- * {@code KEY_BO_LIVE}（tank 余量+可用性，20t）、{@code KEY_BO_COST}（S7 实耗+联动加成三元组，20t）、
- * {@code KEY_BO_SUM}（8 字段汇总 ×100 定点，20t）。<b>live 每帧重读纪律</b>（v1.11.22 缺流定格教训）：
+ * {@code KEY_BO_LIVE}（tank 余量+最近开批预检通过位，20t）、{@code KEY_BO_COST}（单价×10 定点
+ * L/矿口径+联动加成三元组，20t）、{@code KEY_BO_SUM}（8 字段汇总 ×100 定点，20t）。
+ * <b>live 每帧重读纪律</b>（v1.11.22 缺流定格教训）：
  * 行底色/行基色/供给列/状态列/汇总卡/规则行全部由 draw 每帧重读缓存——缺流→补液无需重开 GUI 即恢复；
  * 行骨架（类型/tier/段/flags）虽随 STRUCT 语义分组，但绘制同样每帧重解析（零构建期快照求值）。
  * 交互：结构行点击 → SELECT_LOGISTICS(idx)（N18 计划指定交互；客户端先以 KEY_LE_UNITS 单元数
@@ -106,7 +107,7 @@ final class ClusterBoosterPage implements ClusterPage {
         return net.minecraft.client.Minecraft.getMinecraft().fontRenderer;
     }
 
-    /** 表行（每帧重解析 STRUCT/LIVE/COST；行底色与行基色/状态列随 LIVE 可用位每帧联动）。 */
+    /** 表行（每帧重解析 STRUCT/LIVE/COST；行底色与行基色/状态列随 LIVE 预检通过位每帧联动）。 */
     private void drawRows(int ox, int oy, int mx, int my, float z) {
         List<int[]> rows = structRows();
         int maxScroll = Math.max(0, rows.size() - LIST_H / ROW_H);
@@ -120,9 +121,10 @@ final class ClusterBoosterPage implements ClusterPage {
     }
 
     /**
-     * 单模块行（六列与表头对齐）。缺流表现（行红底 + 行基色红 + 状态「缺 X，增益失效」）每帧重读
-     * KEY_BO_LIVE 可用位，补液后无需重开 GUI 即恢复；正常行深底+绿「生效」。供给列只读动态直读
-     * KEY_BO_LIVE（20t 周期真值）+ KEY_BO_COST 实耗（S7）。
+     * 单模块行（六列与表头对齐）。失效表现（行红底 + 行基色红 + 状态「缺 X，增益失效」）每帧重读
+     * KEY_BO_LIVE 预检通过位（v1.20.16：最近开批预检失效位，与物流模块状态同步），补液后
+     * 无需重开 GUI 即恢复；正常行深底+绿「生效」。供给列只读动态直读
+     * KEY_BO_LIVE（20t 周期真值）+ KEY_BO_COST 单价（L/矿 口径）。
      */
     private void drawBoosterRow(int[] struct, int rowIndex, int ox, int y, int mx, int my) {
         int typeOrdinal = struct[0], tier = struct[1], segment = struct[2], flags = struct[3];
@@ -160,14 +162,14 @@ final class ClusterBoosterPage implements ClusterPage {
             y + 4,
             0.65f,
             GtsrGuiPalette.TEXT_BODY);
-        // 供给（只读检测）：余量 L + S7 实际秒耗（联动加成后口径）；悬浮 tooltip 显示代入实值公式串
+        // 供给（只读检测）：余量 L + 单价（v1.20.16 L/矿 口径，联动加成后）；悬浮 tooltip 显示代入实值公式串
         int supplyX = ox + COLS[0] + COLS[1] + COLS[2] + 8;
         int[] now = liveRow(rowIndex);
         String state = now[1] != 0 ? EnumChatFormatting.GREEN.toString() : EnumChatFormatting.RED.toString();
         GuiClusterTerminalScreen.drawScaledText(
             font(),
             state + GtsrNumFormat
-                .grouped(now[0]) + " L " + EnumChatFormatting.WHITE + "· " + rateText(costLpsX10(rowIndex)) + " L/s",
+                .grouped(now[0]) + " L " + EnumChatFormatting.WHITE + "· " + rateText(costPriceX10(rowIndex)) + " L/矿",
             supplyX,
             y + 4,
             0.65f,
@@ -181,7 +183,7 @@ final class ClusterBoosterPage implements ClusterPage {
             y + 4,
             0.65f,
             GtsrGuiPalette.TEXT_BODY);
-        // 状态：缺流红「缺 X，增益失效」/ 未关联/未成型 / 绿「生效」（可用位每帧重读）
+        // 状态：失效红「缺 X，增益失效」/ 未关联/未成型 / 绿「生效」（预检通过位每帧重读）
         String statusText;
         if (!connected) {
             statusText = EnumChatFormatting.GRAY + tr("gtsr.cluster.gui.boost.state.unlinked");
@@ -199,7 +201,7 @@ final class ClusterBoosterPage implements ClusterPage {
             y + 4,
             0.65f,
             GtsrGuiPalette.TEXT_BODY);
-        // 行命中：tooltip（S7 公式串）+ SELECT_LOGISTICS 点击预检标记
+        // 行命中：tooltip（单价公式串）+ SELECT_LOGISTICS 点击预检标记
         if (mx >= ox && mx < ox + GuiClusterTerminalScreen.CONTENT_W && my >= y && my < y + ROW_H) {
             String formula = costFormulaText(rowIndex);
             if (!formula.isEmpty()) {
@@ -210,7 +212,7 @@ final class ClusterBoosterPage implements ClusterPage {
         }
     }
 
-    /** 行基色：缺流红 / 正常白（每帧重读 KEY_BO_LIVE 可用位，与行底色同源）。 */
+    /** 行基色：失效红 / 正常白（每帧重读 KEY_BO_LIVE 预检通过位，与行底色同源）。 */
     private String baseColor(int rowIndex) {
         return liveRow(rowIndex)[1] == 0 ? EnumChatFormatting.RED.toString() : EnumChatFormatting.WHITE.toString();
     }
@@ -393,9 +395,9 @@ final class ClusterBoosterPage implements ClusterPage {
     }
 
     /**
-     * 解析 KEY_BO_COST 第 index 项（S7 实耗）：{@code lpsX10:base:pct:tier:type:pct:tier:type...}
-     * 变长字段整型数组；越界/畸形返回 null（调用方按无数据显示处理）。与 KEY_BO_STRUCT/LIVE
-     * 按下标一一对应。
+     * 解析 KEY_BO_COST 第 index 项（v1.20.16 L/矿 口径）：{@code priceX10:base:pct:tier:type:...}
+     * 变长字段整型数组，首字段 = 单价 ×10 定点；越界/畸形返回 null（调用方按无数据显示处理）。
+     * 与 KEY_BO_STRUCT/LIVE 按下标一一对应。
      */
     private static int[] costRow(int index) {
         String encoded = ClusterTerminalClientCache.getStr(ClusterTerminalData.KEY_BO_COST, "");
@@ -415,22 +417,23 @@ final class ClusterBoosterPage implements ClusterPage {
         }
     }
 
-    /** 第 index 行实际秒耗 ×10 定点（无数据/畸形回 0）。 */
-    private static int costLpsX10(int index) {
+    /** 第 index 行单价 ×10 定点（L/矿 口径；无数据/畸形回 0）。 */
+    private static int costPriceX10(int index) {
         int[] cost = costRow(index);
         return cost != null ? cost[0] : 0;
     }
 
-    /** 秒耗文本：×10 定点 → 整数值省小数、非整数保留一位小数（如 575→"57.5"、400→"40"）。 */
-    private static String rateText(int lpsX10) {
-        if (lpsX10 % 10 == 0) return String.valueOf(lpsX10 / 10);
-        return String.format("%.1f", lpsX10 / 10.0D);
+    /** 单价文本：×10 定点 → 整数值省小数、非整数保留一位小数（如 575→"57.5"、50→"5"；L/矿 口径）。 */
+    private static String rateText(int priceX10) {
+        if (priceX10 % 10 == 0) return String.valueOf(priceX10 / 10);
+        return String.format("%.1f", priceX10 / 10.0D);
     }
 
     /**
-     * S7 公式串（tooltip，代入实值）：{@code 基础 50 × (1 + 10%[速度 钢] + 5%[并行 青铜]) = 57.5 L/s}。
-     * 施加方类型经三元组 typeOrdinal 本地化（速度/并行加成表同值，不可由 pct 反推）；无联动加成时
-     * 显示 {@code 基础 N × (1) = N L/s}；无实耗数据（未成型/越界）返回空串不显示 tooltip。
+     * 单价公式串（tooltip，代入实值，v1.20.16 L/矿 口径）：
+     * {@code 基础 50 × (1 + 10%[速度 钢] + 5%[并行 青铜]) = 57.5 L/矿}。施加方类型经三元组
+     * typeOrdinal 本地化（速度/并行加成表同值，不可由 pct 反推）；无联动加成时显示
+     * {@code 基础 N × (1) = N L/矿}；无实耗数据（未成型/越界）返回空串不显示 tooltip。
      */
     private static String costFormulaText(int rowIndex) {
         int[] cost = costRow(rowIndex);
@@ -453,7 +456,7 @@ final class ClusterBoosterPage implements ClusterPage {
         }
         sb.append(") = ")
             .append(rateText(cost[0]))
-            .append(" L/s");
+            .append(" L/矿");
         return sb.toString();
     }
 

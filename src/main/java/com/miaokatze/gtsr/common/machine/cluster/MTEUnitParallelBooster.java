@@ -111,7 +111,7 @@ public class MTEUnitParallelBooster extends MTEBasicAmplifierUnit {
     /**
      * 功能群（v1.11.15）：并行四档值行 + 共用「锁定流体 / 按档消耗」行 + 共用「蒸汽惩罚」行——
      * 数值取自 {@link ClusterParams#BOOSTER_PARALLEL_VALUES}（经 getBoosterValue）、
-     * {@link ClusterParams#AMPLIFIER_NITRIC_ACID_LPS}（经 amplifierFluidLps）与
+     * {@link ClusterParams#AMPLIFIER_NITRIC_ACID_PER_ORE}（经 amplifierFluidLps，L/矿单价口径）与
      * {@link ClusterParams#BOOSTER_STRUCTURE_PENALTY_MULT}，按结构档位逐台连乘，Java 侧 GOLD/RED 注入。
      */
     @Override

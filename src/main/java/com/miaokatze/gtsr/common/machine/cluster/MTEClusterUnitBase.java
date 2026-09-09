@@ -1005,16 +1005,16 @@ public abstract class MTEClusterUnitBase<T extends MTEClusterUnitBase<T>> extend
         return EnumChatFormatting.RED + value;
     }
 
-    /** 秒值格式化：整数秒不带小数，亚秒保留 1 位（如 {@code 0.8 s}）。 */
+    /** 秒值格式化：整数秒不带小数，亚秒保留 1 位（如 {@code 0.8 秒}）。 */
     protected static String fmtSeconds(double seconds) {
         String number = seconds == Math.rint(seconds) ? String.format("%d", (long) seconds)
             : String.format("%.1f", seconds);
-        return number + " s";
+        return number + " 秒";
     }
 
-    /** 每秒流率格式化（{@code L/s}）。 */
+    /** 每秒流率格式化（{@code L/秒}）。 */
     protected static String fmtLps(int litersPerSecond) {
-        return String.format("%d L/s", litersPerSecond);
+        return String.format("%d L/秒", litersPerSecond);
     }
 
     /** 批量流体用量格式化（{@code L}，每批口径由 lang 标签承载）。 */
@@ -1032,7 +1032,7 @@ public abstract class MTEClusterUnitBase<T extends MTEClusterUnitBase<T>> extend
         return gold(fmtSeconds(link.getBaseSecondsPrecise()));
     }
 
-    /** 链步蒸汽消耗值段（RED，L/s——数据源 {@link ChainLink} 基础表）。 */
+    /** 链步蒸汽消耗值段（RED，L/秒——数据源 {@link ChainLink} 基础表）。 */
     protected static String linkSteam(ChainLink link) {
         return red(fmtLps(link.getBaseSteamLps()));
     }
@@ -1051,14 +1051,17 @@ public abstract class MTEClusterUnitBase<T extends MTEClusterUnitBase<T>> extend
         return values.toString();
     }
 
-    /** 增幅液四档流率段（{@link ClusterParams#amplifierFluidLps}）：{@code 50/200/1000/2000 L/s}。 */
+    /**
+     * 增幅液四档单价段（{@link ClusterParams#amplifierFluidLps}，v1.20.16 L/矿 开批一次扣口径）：
+     * {@code 5/20/100/200 L/矿}（并行增幅示例）。
+     */
     protected static String boosterTierLps(ClusterParams.BoosterType type) {
         StringBuilder values = new StringBuilder();
         for (int i = 0; i < ClusterParams.TIER_COUNT; i++) {
             if (i > 0) values.append('/');
             values.append(ClusterParams.amplifierFluidLps(type, i));
         }
-        return values + " L/s";
+        return values + " L/矿";
     }
 
     protected static String joinSurchargeTierValues() {

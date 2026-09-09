@@ -110,11 +110,13 @@ public final class ClusterChainExecutor {
      * <p>
      * 事务流程：门控（主控+单元启用+物理电源/链可执行/tier/暂存产出未排空/配方时间）→ 低温门控
      * （热量不足取料前零副作用返 0）→ 取料登记（不扣料）→ 队列模式闸（S1：queueMode 开启且收集
-     * 输入无任一单种 item+meta ≥ 有效并行时零副作用返 0）→ 链加工（副本单遍执行 + 逐物品真实配方
+     * 输入无任一单种 item+meta ≥ 有效并行时零副作用返 0）→ 增幅开批预检（v1.20.16：逐模块
+     * 存量 ≥ batch×单价，失效模块本批从聚合剔除——无增益不计乘子、批照常执行、输入照常收取）
+     * → 链加工（副本单遍执行 + 逐物品真实配方
      * 流体需求累计 + processedLinks 跟踪 + 主产物单峰解析 S1-T9）→ 批流体预检（不足整批零副作用）→ 输出预检
      * （probe-place-undo：整批逐组实放再按台账立即回滚，放不下整批零副作用）→ 扣料（吞入）→
-     * 配方流体实扣 → 配方时间/记账/吞吐/处理窗口开窗 → 整批产出暂存（不再当场发放，
-     * 进度读零后由单元 onPostTick 排空）。
+     * 配方流体实扣 + 增幅液提交点一次扣（batch×单价，预检通过模块）→ 配方时间/记账/吞吐/处理窗口开窗 →
+     * 整批产出暂存（不再当场发放，进度读零后由单元 onPostTick 排空）。
      *
      * @param cluster   集群总控（拓扑、tier 与累计记账入口）
      * @param unit      物流单元（链、I/O 总线、输入仓流体结算面、配方时间与暂存产出字段持有者）
@@ -149,15 +151,10 @@ public final class ClusterChainExecutor {
         if (batchHost.heatFraction() < 1.0) return 0;
 
         // 5) 并行与输入：从物流单元自己的输入总线收集全部非 OTHER 形态的物品（决策 3：
-        // ORE 与粉碎矿/污浊粉等全部中间态均收），只登记台账不扣料
-        List<MTEBasicLogisticsUnit> wipUnits = new ArrayList<>();
-        for (MTEBasicLogisticsUnit logistics : topology.getLogisticsUnits()) {
-            if (logistics != null && logistics.isWorkInProgress()) wipUnits.add(logistics);
-        }
-        // S1-T7：支付预检改用 wip 流体倍率（短运行 1/实际秒数口径），下限保底单倍——与主控实扣
-        // （settleSteamEconomy 实扣段）同函数同口径
-        BoosterState booster = BoosterState
-            .aggregate(topology.getBoosterUnits(), Math.max(1.0D, BoosterState.computeWipFluidMultiplier(wipUnits)));
+        // ORE 与粉碎矿/污浊粉等全部中间态均收），只登记台账不扣料。
+        // v1.20.16：增幅聚合不再乘短批反比倍率（按秒口径退役）；增幅液支付预检延后到 5c
+        // （本批矿数已知后逐模块按 存量 ≥ batch×单价 执行，与提交点实扣同一 helper）
+        BoosterState booster = BoosterState.aggregate(topology.getBoosterUnits());
         int parallel = ExecutionPlan.effectiveParallel(tier, booster);
         List<InputTake> takes = new ArrayList<>();
         unit.beginMEBusProcessing();
@@ -177,6 +174,13 @@ public final class ClusterChainExecutor {
             if (meWindow) unit.endMEBusProcessing(cluster);
             return 0;
         }
+
+        // 5c) 增幅开批预检（v1.20.16 L/矿口径）：本批矿数已定，逐在场增幅模块预检
+        // 存量 ≥ batch×单价（canPayForBatch 与提交点实扣 tryConsumeForBatch 同一 helper 同一数值），
+        // 结果登记为各模块「最近开批预检失效」标记；随后按标记重聚合——失效模块本批从聚合输入
+        // 剔除（无增益、不计蒸汽惩罚乘子），批照常执行、输入照常收取（不重取料、不缩批）；
+        // 通过者本处不实扣，整批提交点（步骤 10）一次扣除。主控一次性播报锁存读同一标记。
+        booster = precheckBoosterForBatch(topology, batch);
 
         // 6) 链加工（副本单遍执行，逐物品累计真实配方流体需求 + processedLinks 跟踪 + 主产物单峰
         // 解析（S1-T9）；此点零副作用——bonusSink 仅在提交成功后回填主控统计）
@@ -218,8 +222,14 @@ public final class ClusterChainExecutor {
         if (meWindow) unit.endMEBusProcessing(cluster);
 
         // 10) 提交：预检已证明输出可接收，实扣配方流体（§3.6.5-4，r6 S2：直接对物流单元输入仓
-        // 跨仓结算）；此点之后不再回滚
+        // 跨仓结算）；此点之后不再回滚。
+        // 增幅液开批一次扣（v1.20.16 L/矿口径）：5c 预检通过的本批参与模块按 batch×单价（同一
+        // helper）跨各自输入仓一次扣除；预检与实扣同 tick 且中间无增幅仓写入，整扣必成
+        // （防御性返回值仅忽略——增幅短缺不再触发中止，见主控收窄语义）。
         fluids.consume(unit);
+        for (MTEBasicAmplifierUnit amplifier : booster.getActiveUnits()) {
+            amplifier.tryConsumeForBatch(batch);
+        }
         unit.markDirty();
         // S1-T9/T10 提交后记账：批流体摘要供终端 FLUID 行；增幅额外产出（bonusSink）回填主控
         // per-item 增幅产出统计（失败/中止路径不回填，与零副作用口径一致）
@@ -244,6 +254,25 @@ public final class ClusterChainExecutor {
     }
 
     // ==================== 取料（IOF :306-319，I/O 经物流单元输入总线） ====================
+
+    /**
+     * 增幅开批预检（v1.20.16 L/矿口径）：对全部在场增幅模块（已接入集群 && 结构 tier 有效）按
+     * 本批矿数逐台预检 {@code 存量 ≥ batch×单价}（{@link MTEBasicAmplifierUnit#canPayForBatch}，
+     * 与提交点实扣 {@link MTEBasicAmplifierUnit#tryConsumeForBatch} 同一 helper 同一数值），
+     * 结果写入各模块「最近开批预检失效」标记（缺流体/存量不足 → 失效），随后按标记重聚合并返回
+     * 本批参与快照（失效模块剔除：无增益、不计蒸汽惩罚乘子）。
+     * <p>
+     * 纪律（R3）：预检/实扣对象一律为增幅模块自身输入仓（{@code MTEBasicAmplifierUnit} API），
+     * 与批配方流体 {@link BatchFluidLedger} 的物流仓管线互不相接。
+     */
+    private static BoosterState precheckBoosterForBatch(ClusterTopology topology, int batch) {
+        for (MTEBasicAmplifierUnit amplifier : topology.getBoosterUnits()) {
+            if (amplifier == null || amplifier.getCluster() == null) continue;
+            if (!amplifier.isTierValidForConnection()) continue;
+            amplifier.markBatchPrecheckResult(amplifier.isFluidAvailable() && amplifier.canPayForBatch(batch));
+        }
+        return BoosterState.aggregate(topology.getBoosterUnits());
+    }
 
     /** 一笔取料台账：来源总线、槽位、live 引用与扣减数量（回滚 = live.stackSize += amount）。 */
     private static final class InputTake {
@@ -397,8 +426,8 @@ public final class ClusterChainExecutor {
         }
 
         /**
-         * 本批实际记账（charged）流体摘要（S1-T6 详情行 FLUID 数据源）：{@code fluidName:liters}
-         * 列表，仅 charged &gt; 0 的项（顺序：洗矿水 → 蒸馏水 → 化浴液）；供批提交点写入单元
+         * 本批实际记账流体摘要（S1-T6 详情行 FLUID 数据源）：{@code fluidName:liters}
+         * 列表，仅记账量大于 0 的项（顺序：洗矿水 → 蒸馏水 → 化浴液）；供批提交点写入单元
          * 瞬态 {@code lastBatchFluidSummary}。
          */
         List<String> summaryEntries() {
