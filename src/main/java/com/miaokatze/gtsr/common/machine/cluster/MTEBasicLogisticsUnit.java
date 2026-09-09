@@ -440,17 +440,24 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
     }
 
     /**
-     * 配方运行绑定排空（r-logi-power-bind）：先 super（基类做 setActive），服务端且持有暂存产出、
-     * 进度已读零（{@code mMaxProgresstime <= 0}，含关电/断供后基类 runMachine 不再推进的边界）时
+     * 配方运行绑定排空 + 批冷却逐刻递减（r-logi-power-bind；v1.20.17 方案 C）：先 super（基类做
+     * setActive 与 runMachine 配方推进），服务端每刻将 {@link #chainCooldownTicks} 在 &gt;0 时 -1
+     * ——与虚拟配方进度同速递减，恰于"批提交后第 R 刻"=配方完成刻归零（主控 20t 结算递减退役，
+     * 单元侧自驱与主控解耦，关电收尾/断供边沿照减），随后持有暂存产出且进度已读零
+     * （{@code mMaxProgresstime <= 0}，含关电/断供后基类 runMachine 不再推进的边界）时
      * 经 {@link ClusterChainExecutor#emitPendingOutputs} 排空——探测-实放-失败回滚整组原子；
      * 输出总线满则保留暂存下 tick 重试（空转等排空，零消耗零丢料）。
      */
     @Override
     public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
         super.onPostTick(aBaseMetaTileEntity, aTick);
-        if (aBaseMetaTileEntity.isServerSide() && pendingOutputs != null && mMaxProgresstime <= 0) {
-            if (ClusterChainExecutor.emitPendingOutputs(this, pendingOutputs)) {
-                pendingOutputs = null;
+        if (aBaseMetaTileEntity.isServerSide()) {
+            // 批冷却逐刻递减（v1.20.17 方案 C，瞬态字段幂等口径：仅 >0 时 -1）
+            if (chainCooldownTicks > 0) chainCooldownTicks--;
+            if (pendingOutputs != null && mMaxProgresstime <= 0) {
+                if (ClusterChainExecutor.emitPendingOutputs(this, pendingOutputs)) {
+                    pendingOutputs = null;
+                }
             }
         }
     }
@@ -678,14 +685,16 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
     }
 
     // ------------------------------------------------------------------
-    // 批配方时间（SR-Cluster-r6 S3：ClusterChainExecutor 写入，主控每 20t 节拍递减）
+    // 批配方时间（SR-Cluster-r6 S3：ClusterChainExecutor 写入，服务端 onPostTick 逐刻递减）
     // ------------------------------------------------------------------
 
     /**
      * 本批配方时间剩余 tick：每批执行后由 ClusterChainExecutor 置为本批"配方时间"（tick，
-     * ExecutionPlan.itemTimeSec × 20 四舍五入且至少 1 tick），总控每 20t 统一 -20、仍 &gt;0 的单元本秒跳过；
-     * 该值同时是 {@link #onBatchProcessed(int)} 虚拟空配方的总时长与处理窗口基准。不持久化——
-     * 重载/重摆后从零开始（节拍器语义，非玩家资产）。
+     * ExecutionPlan 时间口径向上取整且至少 1 tick），服务端 {@link #onPostTick} 每刻 &gt;0 时
+     * -1（v1.20.17 方案 C：与虚拟配方进度同速，恰于"批提交后第 R 刻"=配方完成刻归零——主控
+     * 每刻 runChains 资格检查即可无缝衔接下一批，批周期 = 配方时间整、批间零空转；主控 20t
+     * 结算递减退役，关电收尾/断供边沿照减）。该值同时是 {@link #onBatchProcessed(int)} 虚拟
+     * 空配方的总时长与处理窗口基准。瞬态不持久化——重载/重摆后从零开始（节拍器语义，非玩家资产）。
      */
     private long chainCooldownTicks;
 

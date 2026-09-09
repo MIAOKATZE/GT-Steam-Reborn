@@ -86,9 +86,10 @@ import gregtech.common.tileentities.machines.outputme.MTEHatchOutputBusME;
  * 每单元 {@code chainCooldownTicks} 在成功批提交后写为本批<b>配方时间</b>（tick）＝
  * {@code ceil(itemTimeSec(processedLinks) × 20)}（内部允许小数 tick，按 1t=0.05s 向上取整、
  * 余数计整 tick），结果至少 1 tick（ExecutionPlan
- * 时间口径，含物流段时间；空 processedLinks 即纯物流时间），总控结算先统一 -20（decrementChainCooldowns，
- * 关电/断供收尾路径同样照减）再对冷却 ≤0 的单元开批；该值同时驱动物流单元配方运行进度与
- * 工作态窗口（见 MTEBasicLogisticsUnit.onBatchProcessed）。
+ * 时间口径，含物流段时间；空 processedLinks 即纯物流时间），冷却由物流单元服务端 onPostTick
+ * 逐刻 -1（v1.20.17 方案 C：与配方进度同速、恰于配方完成刻归零，关电/断供收尾路径同样照减），
+ * 主控每刻 runChains 资格检查对冷却 ≤0 的单元开批（批周期 = 配方时间整、批间零空转）；该值
+ * 同时驱动物流单元配方运行进度与工作态窗口（见 MTEBasicLogisticsUnit.onBatchProcessed）。
  *
  * <p>
  * 吞吐（§3.6.6-4）：真实成功批经 {@link ClusterBatchHost#addRealBatchThroughput(int)} 累计
@@ -105,7 +106,7 @@ public final class ClusterChainExecutor {
     private ClusterChainExecutor() {}
 
     /**
-     * 推进一个物流单元的链批处理（每秒由总控 runChains 调用一次；配方时间未到直接返回）。
+     * 推进一个物流单元的链批处理（由总控 runChains 每 tick 批启动资格检查调用；配方时间未到直接返回）。
      *
      * <p>
      * 事务流程：门控（主控+单元启用+物理电源/链可执行/tier/暂存产出未排空/配方时间）→ 低温门控
@@ -143,7 +144,7 @@ public final class ClusterChainExecutor {
         // 开新批会覆盖 stash 丢产出——拒绝开批（零副作用）
         if (unit.hasPendingOutputs()) return 0;
 
-        // 3) 配方时间未到（r6 S3：批冷却即本批配方时间，由调用方按 20t 递减，本方法不递减）
+        // 3) 配方时间未到（r6 S3：批冷却即本批配方时间，由物流单元自身 onPostTick 逐刻递减，本方法不递减）
         if (unit.getChainCooldownTicks() > 0) return 0;
 
         // 4) 低温门控（§3.6.4 取料前，决策 2）：热量不满 → 直接返 0 零副作用——不取料/不加工/

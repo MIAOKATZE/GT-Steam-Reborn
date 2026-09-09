@@ -9,12 +9,12 @@
   <img alt="Minecraft 1.7.10" src="https://img.shields.io/badge/Minecraft-1.7.10-blue.svg">
   <img alt="Forge 10.13.4.1614" src="https://img.shields.io/badge/Forge-10.13.4.1614-blue.svg">
   <a href="https://github.com/GTNewHorizons/GT-New-Horizons-Modpack"><img alt="GTNH 2.9.0 beta-1&2&3" src="https://img.shields.io/badge/GTNH-2.9.0%20beta--1%262-orange.svg"></a>
-  <a href="https://github.com/MIAOKATZE/GT-Steam-Reborn/releases"><img alt="Release 1.11.34" src="https://img.shields.io/badge/Release-1.11.34-green.svg"></a>
+  <a href="https://github.com/MIAOKATZE/GT-Steam-Reborn/releases"><img alt="Release 1.20.17" src="https://img.shields.io/badge/Release-1.20.17-green.svg"></a>
 </p>
 
-A GregTech New Horizons expansion mod that **supplements the Steam Age and significantly expands steam usage**, providing 24 multiblock steam machines, 8 single-block nodes, 15 types of hatches plus 4 singularity compartments and 3 hub storage units, and a Hub-Node binding system. It fills the gameplay gap between the steam age and the electric age in GTNH, making steam a viable and deep progression path rather than a transient phase.
+A GregTech New Horizons expansion mod that **supplements the Steam Age and significantly expands steam usage**, providing 23 multiblock steam machines, 8 single-block nodes, 15 types of hatches plus 4 singularity compartments and 3 hub storage units, a Hub-Node binding system, and a Mineral Logistics Cluster for chain-based ore processing. It fills the gameplay gap between the steam age and the electric age in GTNH, making steam a viable and deep progression path rather than a transient phase.
 
-一个 GregTech New Horizons 扩展模组，**补充蒸汽时代并显著拓展蒸汽用途**，提供24台多方块蒸汽机器、8个单方块节点、15类仓室与4个奇点仓、3种存储单元以及枢纽-节点绑定系统。它填补了 GTNH 蒸汽阶段到电力阶段之间的玩法空白，让蒸汽成为一条可行且有深度的进阶路线，而非过渡阶段。
+一个 GregTech New Horizons 扩展模组，**补充蒸汽时代并显著拓展蒸汽用途**，提供23台多方块蒸汽机器、8个单方块节点、15类仓室与4个奇点仓、3种存储单元、枢纽-节点绑定系统以及一套矿物处理物流工程集群。它填补了 GTNH 蒸汽阶段到电力阶段之间的玩法空白，让蒸汽成为一条可行且有深度的进阶路线，而非过渡阶段。
 
 > [!NOTE]
 > This is an unofficial mod. Please avoid discussing this mod in official GTNH forums.
@@ -295,16 +295,16 @@ A steam-driven multiblock ore-processing cluster: logistics modules orchestrate 
 | 结构档位升级 Unit Tier Up | 链步时间除数 {1,8,32,64}、蒸汽倍率 {1,16,128,512}；同类模块 N 使时间 ÷N、蒸汽 ×N Link time divisors {1,8,32,64} and steam multipliers {1,16,128,512}; same-kind module count N divides time and multiplies steam |
 | 关机态 SHUT_DOWN State | 集群可经总控开关机：用户关机后单元显示红色 SHUT_DOWN 关机态，区别于待机与离线（无功率/无效单元）The cluster can be toggled on/off from the controller; after a user shutdown units show a red SHUT_DOWN state, distinct from standby and offline (no power / invalid) |
 | 运行前置 Run-Phase Gate | 加工单元进入供电运行相位需同时满足：集群开机、自身物理电源开、满热、链处理窗口激活且本环节参与当批——空闲保温期不消耗电力A processing unit's powered run phase requires all of: cluster on, own physical power on, preheat ready, an active chain window, and participation in the current batch — idle keep-warm draws no power |
-| 批冷却配方时间化 Recipe-Timed Batch Cooldown | 成功批提交后单元冷却写入本批配方时间（tick，含物流段时间），总控每 20t 统一递减，冷却未清零的单元跳过开批After each successful batch a unit's cooldown is set to that batch's recipe time in ticks (logistics leg included), decremented uniformly every 20t; units with remaining cooldown skip batch starts |
+| 批冷却零空转衔接 Zero-Gap Batch Chaining | 成功批提交后单元冷却写入本批配方时间（tick，含物流段时间），由物流单元逐刻递减——配方完成刻即冷却归零刻；总控每刻做批启动资格检查，批周期=配方时间整、批间无固定空转（v1.20.17）After each successful batch a unit's cooldown is set to that batch's recipe time in ticks (logistics leg included) and decremented per tick by the logistics unit itself — cooldown hits zero exactly when the recipe completes; the controller checks batch-start eligibility every tick, so the batch period equals the recipe time with zero inter-batch idle (v1.20.17) |
 | 链编辑暂存 Staged Chain Editing | 链编辑（追加/删除/位移/清空）仅修改 GUI 本地暂存、不即时发包；保存按钮预校验通过后才经 SAVE_CHAIN 整链提交，服务端终态复核后写入Chain edits (append / remove / move / clear) only modify a local staging buffer with no per-edit packets; the save button pre-validates, then commits the whole chain via SAVE_CHAIN with a final server-side recheck |
 | 物流封漏 Sealed Logistics I/O | 批处理的一切取料/产出/批流体均经物流单元自身的总线与仓室，执行器不触碰总控库存（总控输入仓仅用于蒸汽/润滑结算）All batch fetching, outputs and batch fluids pass through the logistics unit's own buses and hatches; the executor never touches the controller inventory (controller hatches serve the steam/lubricant economy only) |
-| 增幅直连原子预检 Atomic Amplifier Draw | 增幅模块无内部流体槽，锁定流体直连其 H 输入仓按秒原子预检：足额才整笔实扣，不足零扣且当秒无增益无惩罚Amplifiers carry no internal tank; their locked fluid is drawn straight from their H input hatches under a per-second atomic precheck — the full amount is debited only when sufficient, otherwise zero deduction with no boost and no penalty that second |
+| 增幅液按矿计价 Per-Ore Booster Pricing | 增幅模块无内部流体槽，锁定流体直连其 H 输入仓按体积/单位计价：单价=基础表值÷10（×联动加成×同种协同），开批时按实际处理矿数一次扣除 batch×单价；液量不足整批用量→本批该模块失效（无增益、不计蒸汽乘子、批照常执行、不吞料）并聊天播报一次（成功运行前不重复）Amplifiers carry no internal tank; their locked fluid is drawn straight from their H input hatches and priced per volume/unit: unit price = base table ÷ 10 (× surcharge × same-type synergy), debited once per batch at batch start as batch × price. If the tank can't cover a full batch, the module fails for that batch only (no boost, no steam penalty, batch proceeds, nothing swallowed) with a one-shot chat alert (not repeated until the next successful run) |
 | 真实状态词条 Real GUI Entries | 总控与模块 GUI 使用真实状态词条，不显示恒定 NO_RECIPE 结果词条与配方信息区Controller and module GUIs show real status entries — no constant NO_RECIPE result entry and no recipe info area |
 | CRUSH 副产物削弱 Byproduct Nerf | 粉碎链副产物按集群结构档位三档削弱：tier0 ×0.1、tier1（钢级）×0.5、tier≥2 ×1.0 无削弱；终端链路页橙字常显当前削弱比例，tier≥2 以灰字显示「无削弱」Crusher byproducts are nerfed in three tiers by cluster structure tier: tier 0 ×0.1, tier 1 (steel) ×0.5, tier ≥2 ×1.0 with no nerf; the terminal chain page always shows the current multiplier in orange, with a gray "no nerf" label at tier ≥2 |
 | 链步耗时重校 Chain-Step Retiming | 链步基础耗时全表 ÷4（v1.20.12）：锻造/简易洗矿 0.8s→0.2s、筛分 128s→32s 等，其余链步按表内数值同步 ÷4（完整表见项目 wiki）The whole chain-step base-time table is divided by 4 (v1.20.12): hammer/simple wash 0.8s→0.2s, sifting 128s→32s, and every other step ÷4 per the table (full table in the project wiki) |
 | 物流模块参数 Logistics Unit Params | 执行段耗时按物流单元结构档位 {5, 2, 1, 0} 秒、基础并行四档 {24, 48, 64, 128}；队列模式：螺丝刀右击切换，开启后单种物品攒满并行数才开批 Logistics leg takes {5, 2, 1, 0} s by logistics unit structure tier; base parallel four tiers {24, 48, 64, 128}; queue mode: screwdriver toggles — when enabled a batch starts only after a single item type reaches the parallel count |
-| 增幅口径 Amplifier Rules | 主产物增幅单峰生效：仅配置峰位（默认链首，中继自动后移至首个实际加工步）全额生效，其余加工步按 10% 计；协同惩罚仅作用于增幅流体消耗，蒸汽惩罚只随结构档位累乘；短运行：运行不足 1s 时增幅液按 1/实际时间 倍消耗（每批至少一个整秒量）Primary-output boost is single-peak: full effect only at the configured peak step (default chain head; relays auto-advance to the first actual processing step), all other processing steps count 10%; synergy penalty applies to booster fluid cost only — the steam penalty scales solely with structure tier; short runs: under 1 s the booster fluid is consumed at 1/actual-time (at least one full second's worth per batch) |
-| 终端页 Terminal Pages | 性能详情为可滚动完整消耗列表（逐链步耗时/蒸汽、物流段、批流体、集群与物流润滑、增幅液、增幅峰）；统计面板三栏（累计进入/累计输出/增幅产出，物品图标+数量）；链路页显示全部物流单元链 Performance details is a scrollable full consumption list (per-link time/steam, logistics leg, batch fluids, cluster & logistics lubricant, booster fluids, boost peak); the statistics panel has three columns (cumulative input / output / boost output, item icons + counts); the links page lists every logistics unit chain |
+| 增幅口径 Amplifier Rules | 主产物增幅单峰生效：仅配置峰位（默认链首，中继自动后移至首个实际加工步）全额生效，其余加工步按 10% 计；协同率仅作用于增幅液单价，蒸汽惩罚只随结构档位连乘 Primary-output boost is single-peak: full effect only at the configured peak step (default chain head; relays auto-advance to the first actual processing step), all other processing steps count 10%; synergy applies to the booster fluid unit price only — the steam penalty scales solely with structure tier multipliers |
+| 终端页 Terminal Pages | 终端五页（拓扑/链路/增幅/统计/性能）：性能页三列等高面板、超行宽自动折行，悬浮任意参数 0.5 秒弹出中文机制 Tooltip，▶ 展开为物理公式式数值推导（通式→代入→分步→结果）；增幅实耗按 L/批、单价按 L/矿；统计页三栏物品计数（累计进入/输出/增幅产出）与两步确认清除 Five terminal pages (topology / links / boosters / statistics / performance): the performance page has three equal-height panels with automatic line wrapping, hovering any parameter for 0.5 s shows a Chinese mechanics tooltip, and ▶ expands into physics-style step-by-step derivations (formula → substitute → steps → result); booster cost reads L/batch with unit prices in L/ore; the statistics page has three item-count columns (cumulative input / output / boost output) with a two-step confirm clear |
 
 ### Enhanced Processing Machines / 强化加工机器 (10)
 
@@ -883,9 +883,9 @@ GTSR 添加了11个自定义 RecipeMap 和大量合成配方：
 
 ## Core Mechanic: Mixin Enhancements / 核心机制：Mixin 增强
 
-GTSR injects 11 Mixin classes into GT5U and GT++ to fundamentally enhance the steam machine experience. These are critical to the mod's functionality:
+GTSR injects 12 Mixin classes into GT5U and GT++ to fundamentally enhance the steam machine experience. These are critical to the mod's functionality:
 
-GTSR 向 GT5U 和 GT++ 注入了 11 个 Mixin 类，从根本上增强了蒸汽机器体验。这些是模组功能的关键：
+GTSR 向 GT5U 和 GT++ 注入了 12 个 Mixin 类，从根本上增强了蒸汽机器体验。这些是模组功能的关键：
 
 ### MTESteamMultiBaseMixin — Steam Multiblock Core Enhancement / 蒸汽多方块核心增强
 
@@ -942,7 +942,7 @@ GTSR 向 GT5U 和 GT++ 注入了 11 个 Mixin 类，从根本上增强了蒸汽�
 ## Tech Stack / 技术栈
 
 - Java 8 (Jabel) / Minecraft 1.7.10 / Forge 10.13.4.1614
-- SpongePowered Mixin (11 mixin classes)
+- SpongePowered Mixin (12 mixin classes)
 - ModularUI / StructureLib
 - Dependencies: GT5U (explicit API dependency), GT++ (visible at compile time via the GT5U fat dev jar, no explicit declaration), Bartworks, TecTech (same fat dev jar), AE2, ModularUI/ModularUI2, GTNHLib, StructureLib, NEI, IC2, GTNEIOrePlugin, Botania, Waila, BetterQuesting (compileOnly — quest-line runtime injection, silently disabled when absent / 任务线运行时注入，缺席时静默停用); EFR (etfuturum) and BuildCraft are soft references (recipes only)
 

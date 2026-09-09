@@ -68,7 +68,10 @@ import io.netty.buffer.Unpooled;
  * 服务端编排（onPostTick）：客户端粒子 → 未成型衰减 → 周期重连 → 每 tick 热量推进（供给态用
  * 20t 结算锁存 thermalSupplyOkLatched，修复旧版只在 20t 结算内推进热量的 20 倍定标错误）→
  * 粒子窗口驱动 → 每 20t 结算编排（吞吐窗口发布 → 物流单元软锤/低温边沿轮询 → 关机早退 /
- * 预热结算 / 运行结算 + 冷却递减 + 链执行 + 增幅短缺播报锁存 + 断供中止）。配方运行绑定
+ * 预热结算 / 运行结算 + 增幅短缺播报锁存 + 断供中止）→ 每 tick 批启动资格检查（v1.20.17
+ * 方案 C：批冷却由物流单元逐刻递减、恰于配方完成刻归零，主控每刻 runChains 对冷却 ≤0 的
+ * 开机单元开批——批周期 = 配方时间整、批间零空转；20t 结算内的冷却递减与链执行退役）。
+ * 配方运行绑定
  * （r-logi-power-bind）：关机只阻止开下一批，在飞批次继续按结算口径计费（蒸汽/润滑按 wip 口径）
  * 直至配方读完产出排空；运行中断供（v1.20.16 收窄：仅蒸汽/润滑结算失败）立即终止在飞配方
  * （吞料）、主控断电并一次性通知物主（gtsr.chat.cluster.supply_abort）；增幅液短缺不再中止
@@ -819,6 +822,16 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
         if (aTick % SETTLE_INTERVAL_TICKS == 0) {
             settleSteamEconomy();
         }
+
+        // 每 tick 批启动资格检查（v1.20.17 方案 C：批间零空转自然衔接）——批冷却已由物流单元
+        // 服务端 onPostTick 逐刻递减、恰于"批提交后第 R 刻"=配方完成刻归零，此处对冷却 ≤0 的
+        // 单元 runChains 开批（批周期 = 配方时间整）。门控 O(1)：集群成型（mMachine，上方未成型
+        // 早退已保证）&& 开机（GUI 开关+物理电源）&& 供给锁存；executeBatch 内部自挡低温
+        // （heatFraction<1）/暂存未排空/取料不足/链不可执行/冷却>0（零副作用零开销级返回），
+        // 预热期与关电收尾在此天然不开新批。
+        if (mMachine && machineEnabled && getBaseMetaTileEntity().isAllowedToWork() && thermalSupplyOkLatched) {
+            runChains();
+        }
     }
 
     /**
@@ -874,7 +887,9 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
 
     /**
      * 蒸汽/润滑 20t 结算编排（完整状态口径，plan §3.6.2 数值总表 + r-logi-power-bind 配方运行绑定；
-     * v1.20.16 增幅液退出按秒结算——消耗改开批提交点一次扣，短缺改一次性播报）。
+     * v1.20.16 增幅液退出按秒结算——消耗改开批提交点一次扣，短缺改一次性播报；v1.20.17 方案 C
+     * 批冷却递减与链执行移出结算——冷却由单元侧逐刻递减、开批由 onPostTick 每刻资格检查承接，
+     * 结算回归纯计费节拍）。
      *
      * <p>
      * 顺序：吞吐窗口发布 → 物流单元物理电源边沿轮询（软锤复位/低温关机边沿）→ 分支结算：
@@ -884,8 +899,7 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
      * <li><b>预热结算（未满热且无在飞批次）</b>：2000+10 原口径；</li>
      * <li><b>运行结算（满热，或无在飞批次之外的一切在飞收尾态）</b>：固定项 + 加权链路段 C——
      * C 聚合按 powerOn 选 {@link #enabledLogisticsUnits()}（开机=全量可执行链需量）或
-     * 在飞 WIP 单元列表（关电收尾只对在飞配方计费）；r.ok 时冷却递减始终执行（在飞批次照常读秒）、
-     * runChains 仅 powerOn 调用（关电不开新批）；增幅液由链批执行器在开批提交点按 batch×单价
+     * 在飞 WIP 单元列表（关电收尾只对在飞配方计费）；增幅液由链批执行器在开批提交点按 batch×单价
      * 一次扣（短缺仅本批该模块失效 + {@link #reportBoosterShortageIfNeeded} 一次性播报）。</li>
      * </ul>
      * 断供中止（v1.20.16 收窄为蒸汽与润滑：wip&gt;0 时结算 r.ok=false）：
@@ -935,11 +949,10 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
                 booster);
             r = economy.settleRunFull(this, runFixedSteamLps(), c);
             if (r.ok) {
-                // 冷却递减始终执行（在飞批次的配方时间照常读秒，与是否开机无关）；链执行仅开机
-                // （关电只阻止下一批）。本秒被递减的单元（含刚归零者）本轮不开批——
-                // 与旧版「递减-20 后 continue」逐字同节拍（勿改，E4 补偿口径依赖）
-                List<MTEBasicLogisticsUnit> decremented = decrementChainCooldowns();
-                if (powerOn) runChains(decremented);
+                // v1.20.17 方案 C：批冷却递减与链开批移出 20t 结算——冷却由物流单元服务端
+                // onPostTick 逐刻 -1（与配方进度同速、恰于配方完成刻归零，关电收尾/断供边沿照减），
+                // 开批由 onPostTick 每刻资格检查（runChains，内部自挡关电/低温/冷却未到/暂存未排空）
+                // 承接，结算回归纯计费节拍；本块仅保留计费成功后的收尾逻辑。
                 // v1.20.16：增幅液按秒实扣段退役（消耗改开批提交点一次扣，见 ClusterChainExecutor
                 // 步骤 10）；短缺播报锁存（任一参与模块最近开批预检失效→一次性播报，全部重新通过→复位）
                 reportBoosterShortageIfNeeded();
@@ -975,7 +988,7 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
     }
 
     /**
-     * 增幅液短缺一次性播报（v1.20.16，20t 结算内、runChains 之后调用；仅服务器主线程）：
+     * 增幅液短缺一次性播报（v1.20.16，20t 结算内运行结算 ok 分支调用；仅服务器主线程）：
      * 任一在场增幅模块最近开批预检失效（缺流体或存量不足整批单价 batch×单价——标记由
      * {@code ClusterChainExecutor} 开批预检段经 {@code markBatchPrecheckResult} 登记）且未播报 →
      * 向物主发一次 gtsr.chat.booster_shortage（lang 值由 lang 切片落地）；此后全部参与模块
@@ -1123,48 +1136,25 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
     }
 
     /**
-     * 链执行钩子（结算成功且满热、且主控开机时由 settleSteamEconomy 调用；r-logi-power-bind 调序：
-     * 冷却递减已拆出 {@link #decrementChainCooldowns} 并由调用方先行执行，本方法只执行冷却 ≤0
-     * 且<b>本秒未被递减</b>的单元——刚归零的本秒不开批，逐字保持旧版「递减-20 后 continue」
-     * 节拍（勿改，E4 补偿口径依赖）。
+     * 链执行钩子（v1.20.17 方案 C：由 {@link #onPostTick} 每 tick 批启动资格检查调用——批冷却
+     * 已由物流单元服务端 onPostTick 逐刻递减、与虚拟配方进度同速恰于配方完成刻归零，本方法每刻
+     * 对冷却 ≤0 的单元尝试开批，批周期 = 配方时间整、批间零空转；关电不开新批语义由调用方门控
+     * （mMachine && machineEnabled && isAllowedToWork && thermalSupplyOkLatched）保持）。轻量
+     * O(1)/单元资格检查：冷却 &gt;0 即跳过，其余交 {@code ClusterChainExecutor.executeBatch}
+     * 三参批执行（本类即 ClusterBatchHost）——执行器自带门控（暂存未排空/低温/取料不足/链不可
+     * 执行等零副作用返 0），资格不满足时零开销级返回。
      *
-     * <p>
-     * 逐物流单元驱动：冷却归零/无冷却的单元交 {@code ClusterChainExecutor.executeBatch} 三参批执行
-     * （本类即 ClusterBatchHost）；执行器自带门控（暂存未排空/低温/链不可执行等零副作用返 0）。
-     *
-     * @param decrementedThisSecond 本结算秒被 {@link #decrementChainCooldowns} 递减过的单元
-     *                              （含刚归零者），本轮跳过，下一秒才具备开批资格
-     * @return 本秒是否至少一条链实际执行成功
+     * @return 本 tick 是否至少一条链实际执行成功
      */
-    protected boolean runChains(List<MTEBasicLogisticsUnit> decrementedThisSecond) {
+    protected boolean runChains() {
         boolean anyExecuted = false;
         for (MTEBasicLogisticsUnit unit : topology.getLogisticsUnits()) {
             if (unit.getChainCooldownTicks() > 0) continue;
-            if (decrementedThisSecond != null && decrementedThisSecond.contains(unit)) continue;
             if (ClusterChainExecutor.executeBatch(this, unit, this) > 0) {
                 anyExecuted = true;
             }
         }
         return anyExecuted;
-    }
-
-    /**
-     * 批冷却递减（结算节拍统一 -20，r-logi-power-bind 自 runChains 拆出）：settleSteamEconomy 在
-     * r.ok 时无条件调用——关电/断供收尾路径下在飞批次的配方时间同样照常读秒（进度读完即排空
-     * 暂存产出），递减只作用于 &gt;0 的单元（0-size 槽由总线自身 tick 收口的同款幂等口径）。
-     *
-     * @return 本秒被递减过的单元清单（含由 &gt;0 减至 ≤0 的刚归零单元），调用方据此让
-     *         {@link #runChains} 本轮跳过——保持旧版当秒不抢跑节拍
-     */
-    private List<MTEBasicLogisticsUnit> decrementChainCooldowns() {
-        List<MTEBasicLogisticsUnit> decremented = new ArrayList<>();
-        for (MTEBasicLogisticsUnit unit : topology.getLogisticsUnits()) {
-            if (unit.getChainCooldownTicks() > 0) {
-                unit.setChainCooldownTicks(unit.getChainCooldownTicks() - SETTLE_INTERVAL_TICKS);
-                decremented.add(unit);
-            }
-        }
-        return decremented;
     }
 
     // ==================== ClusterBatchHost 契约（E4 执行器只消费本三方法） ====================
