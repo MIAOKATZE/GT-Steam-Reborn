@@ -23,7 +23,6 @@ import com.miaokatze.gtsr.common.machine.cluster.MTEBasicAmplifierUnit;
 import com.miaokatze.gtsr.common.machine.cluster.MTEBasicLogisticsUnit;
 import com.miaokatze.gtsr.common.machine.cluster.MTEClusterUnitBase;
 import com.miaokatze.gtsr.common.machine.cluster.MTESteamMineralLogisticsCluster;
-import com.miaokatze.gtsr.main.GTSteamReborn;
 
 import cpw.mods.fml.common.network.ByteBufUtils;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
@@ -851,16 +850,9 @@ public final class ClusterTerminalData {
      * {@code unitIdx:len:peak:o1.o2...oN}（ordinal 以 {@code .} 分隔；len=0 时 peak=-1 且无 ordinal
      * 段），遍历全部物流单元（结构扫描序）；峰步越界按边界钳制后编出。
      */
-    private static String lastLoggedChains;
-
     private static String encodeChains(MTESteamMineralLogisticsCluster cluster) {
         List<MTEBasicLogisticsUnit> units = cluster.getTopology()
             .getLogisticsUnits();
-        int logisticsSlots = 0;
-        for (ClusterTopology.SlotSnapshot slot : cluster.getTopology()
-            .getSlots()) {
-            if (slot.pad == ClusterTopology.PAD_LOGISTICS && slot.unit != null) logisticsSlots++;
-        }
         StringBuilder sb = new StringBuilder(64);
         for (int i = 0; i < units.size(); i++) {
             MTEBasicLogisticsUnit unit = units.get(i);
@@ -883,19 +875,7 @@ public final class ClusterTerminalData {
                     .append(ordinal);
             }
         }
-        String encoded = sb.toString();
-        if (!encoded.equals(lastLoggedChains)) {
-            lastLoggedChains = encoded;
-            GTSteamReborn.LOG.info(
-                "[TEMP-DIAG-v1.20.14][T2-S-ENCODE] unitsSize={} logisticsSlots={} logisticsUnitsSize={} encoded={}",
-                cluster.getTopology()
-                    .getUnits()
-                    .size(),
-                logisticsSlots,
-                units.size(),
-                encoded);
-        }
-        return encoded;
+        return sb.toString();
     }
 
     // ==================== 取值辅助（supplier 侧专用，移植自旧实现） ====================
