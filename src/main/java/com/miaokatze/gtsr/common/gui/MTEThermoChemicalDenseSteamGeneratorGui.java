@@ -11,16 +11,13 @@ import com.cleanroommc.modularui.value.sync.IntSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.value.sync.StringSyncValue;
 import com.cleanroommc.modularui.widgets.ListWidget;
-import com.cleanroommc.modularui.widgets.layout.Flow;
-import com.cleanroommc.modularui.widgets.textfield.TextFieldWidget;
 import com.miaokatze.gtsr.common.machine.tcds.MTEThermoChemicalDenseSteamGenerator;
 
 import gregtech.api.metatileentity.implementations.MTEEnhancedMultiBlockBase;
 import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
 
 /**
- * TCDS GUI（LGB 同款 ModularUI 终端模式）：芯片告警行 + 流量数字输入行（先例 MTEGTSRRedstoneHatchGui：
- * TextFieldWidget.numbersInt + IntSyncValue.allowC2S，C2S 经 setFlow 服务端钳 >=1）+ 全部数值行统一走
+ * TCDS GUI（LGB 同款 ModularUI 终端模式）：芯片告警行 + 全部数值行统一走
  * GTSRProgressBar 词条系统（热量 → 输出档位 → 流量（设定+理论最大热量）→ 蒸汽输出 → 燃料段（单燃料一行 /
  * 双燃料两行）→ 空气 → 蒸馏水，配色仿 LSOA 纪律：标签 WHITE、产量类 GREEN、消耗类 GOLD、状态提示 AQUA；
  * 燃料行零值自动隐藏实现单/双燃料互斥）。
@@ -107,23 +104,6 @@ public class MTEThermoChemicalDenseSteamGeneratorGui extends MTEMultiBlockBaseGu
             .asWidget()
             .marginBottom(2)
             .fullWidth());
-        // 流量输入行（先例 MTEGTSRRedstoneHatchGui.createIntervalRow：numbersInt 钳 >=1 + allowC2S；
-        // ListWidget 内嵌输入框焦点行为待实机验证，异常时回退 GT5U 基类 createTerminalRow 钩子）
-        IntSyncValue flowSync = new IntSyncValue(generator::getFlow, generator::setFlow).allowC2S();
-        syncManager.syncValue("tcdsFlow", flowSync);
-        list.child(
-            Flow.row()
-                .child(
-                    new TextFieldWidget().numbersInt(v -> Math.max(1, v))
-                        .size(77, 12)
-                        .value(flowSync))
-                .child(
-                    IKey.lang("gtsr.gui.tcds.flow")
-                        .asWidget())
-                .coverChildren()
-                .childPadding(2)
-                .marginBottom(2)
-                .fullWidth());
         // 数值行统一走词条系统：热量 / 输出档位 / 流量（设定+理论最大热量）/ 蒸汽输出 / 燃料段（单燃料一行 /
         // 双燃料两行，零值行自动隐藏实现模式互斥）/ 空气消耗 / 蒸馏水消耗（行序与配色见机器端 registerProgressEntries）
         GTSRProgressBarGuiHelper.appendEntryRows(list, syncManager, generator);

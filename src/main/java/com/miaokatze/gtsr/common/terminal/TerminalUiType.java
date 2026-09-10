@@ -28,7 +28,14 @@ public enum TerminalUiType {
      * 聚合器终端配置（尾追复用位，S4 接入）：由 openGui 双端打开，
      * 不发 open 包；仅 Request/Data/Action 包以本 ordinal 标识 uiType。
      */
-    AGGREGATOR;
+    AGGREGATOR,
+
+    /**
+     * TCDS 流量终端（尾部追加，PLAN：TCDS 流量设定迁机器终端 GUI，轨 A）：
+     * S2C open + 轮询 + 动作全走 {@code PacketOpenTerminalUi}/Request/Data/Action 四包，
+     * 由机器 onRightclick 手持终端触发（MTEThermoChemicalDenseSteamGenerator）。
+     */
+    TCDS;
 
     /**
      * 线上 varint → 枚举的安全解析（未知 id 返回 null，调用方静默丢弃）。

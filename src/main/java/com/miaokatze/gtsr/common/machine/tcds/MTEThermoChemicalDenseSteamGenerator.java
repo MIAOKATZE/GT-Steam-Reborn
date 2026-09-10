@@ -19,10 +19,12 @@ import java.util.List;
 import java.util.Locale;
 
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
+import net.minecraftforge.common.util.FakePlayer;
 import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidRegistry;
@@ -45,6 +47,8 @@ import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.api.progress.GTSRProgressEntry;
 import com.miaokatze.gtsr.common.gui.MTEThermoChemicalDenseSteamGeneratorGui;
 import com.miaokatze.gtsr.common.machine.base.MTEGTSRMultiBlockBase;
+import com.miaokatze.gtsr.common.terminal.TerminalNet;
+import com.miaokatze.gtsr.common.terminal.TerminalUiType;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
 
 import cpw.mods.fml.common.registry.GameRegistry;
@@ -893,6 +897,38 @@ public class MTEThermoChemicalDenseSteamGenerator extends MTEGTSRMultiBlockBase<
         // 旧档无 mFlow 回落 100；非法值（<1，损坏/篡改档）同样回落 100
         int flow = aNBT.hasKey("mFlow") ? aNBT.getInteger("mFlow") : FLOW_DEFAULT;
         mFlow = flow >= 1 ? flow : FLOW_DEFAULT;
+    }
+
+    // ===== 右击分发（手持机器终端 → TCDS 流量终端，轨 A 原生自绘）=====
+
+    /**
+     * 手持机器终端右击：打开 TCDS 流量终端（TerminalNet open → 客户端 GuiTcdsTerminalScreen
+     * 轮询/动作），不占用空手右键（空手仍打开 MUI 主 GUI）。守卫语义照抄
+     * MTEHubArrayBase.onRightclick（:628-639，与钻井枢纽同款）。
+     * 注：GT BaseMetaTileEntity 潜行时拦截右击，潜行 + 持终端同样打开（枢纽族既定方案）。
+     */
+    @Override
+    public boolean onRightclick(IGregTechTileEntity aBaseMetaTileEntity, EntityPlayer aPlayer, ForgeDirection side,
+        float aX, float aY, float aZ) {
+        ItemStack held = aPlayer.getHeldItem();
+        if (held != null && GTSRItemList.HubTerminal.isStackEqual(held, false, true)) {
+            if (aBaseMetaTileEntity.isServerSide()) {
+                openTcdsTerminalGui(aPlayer);
+            }
+            return true;
+        }
+        return super.onRightclick(aBaseMetaTileEntity, aPlayer, side, aX, aY, aZ);
+    }
+
+    /**
+     * 服务端：通知客户端打开 TCDS 流量终端（MTESteamHubArray.openHubStatusGui 同构；
+     * FakePlayer 拒发；TE 存活/距离/机器类复核由 TerminalNet C2S 链主线程重做）。
+     */
+    private void openTcdsTerminalGui(EntityPlayer player) {
+        if (!(player instanceof EntityPlayerMP playerMP) || player instanceof FakePlayer) return;
+        IGregTechTileEntity base = getBaseMetaTileEntity();
+        if (base == null) return;
+        TerminalNet.sendOpen(TerminalUiType.TCDS, playerMP, base.getXCoord(), base.getYCoord(), base.getZCoord(), 0);
     }
 
     // ===== GUI / 对齐 / 杂项 =====

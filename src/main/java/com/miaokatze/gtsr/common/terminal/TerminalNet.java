@@ -11,6 +11,7 @@ import com.miaokatze.gtsr.client.terminal.TerminalClientPacketSink;
 import com.miaokatze.gtsr.common.machine.MTECrustMatterAggregator;
 import com.miaokatze.gtsr.common.machine.MTESingularityDrillingHub;
 import com.miaokatze.gtsr.common.machine.cluster.MTESteamMineralLogisticsCluster;
+import com.miaokatze.gtsr.common.machine.tcds.MTEThermoChemicalDenseSteamGenerator;
 import com.miaokatze.gtsr.main.GTSteamReborn;
 
 import cpw.mods.fml.common.FMLCommonHandler;
@@ -211,7 +212,8 @@ public class TerminalNet {
      * <ul>
      * <li>S3（已落地）→ case SINGULARITY_HUB（N30）/ STEAM_HUB、WATER_HUB（N31）快照组装；</li>
      * <li>S4（已落地）→ case AGGREGATOR（N32）；</li>
-     * <li>S5（已落地）→ case CLUSTER_TERMINAL（N33，24 键变化位图分型打包 + SampledValue 采样）。</li>
+     * <li>S5（已落地）→ case CLUSTER_TERMINAL（N33，24 键变化位图分型打包 + SampledValue 采样）；</li>
+     * <li>TCDS → case TCDS（流量终端快照：flow + heatCapDisplay，尾部追加）。</li>
      * </ul>
      *
      * @return payload 字节（valid=true 回包），null = 组装未实现/复核失败（valid=false）
@@ -236,6 +238,11 @@ public class TerminalNet {
                     return AggregatorTerminalData.assembleSnapshot(aggregator);
                 }
                 return null; // 机器类不符（锚点被换机器）：valid=false
+            case TCDS:
+                if (base.getMetaTileEntity() instanceof MTEThermoChemicalDenseSteamGenerator generator) {
+                    return TcdsTerminalData.assembleSnapshot(generator);
+                }
+                return null; // 机器类不符（锚点被换机器）：valid=false
             default:
                 return null;
         }
@@ -246,7 +253,8 @@ public class TerminalNet {
      * <ul>
      * <li>S3（已落地）→ case SINGULARITY_HUB（N30 五动作）/ STEAM_HUB、WATER_HUB（N31 六动作委托表）；</li>
      * <li>S4（已落地）→ case AGGREGATOR（N32 七动作）；</li>
-     * <li>S5（已落地）→ case CLUSTER_TERMINAL（N34 枚举分发，占位动作服务端拒绝）。</li>
+     * <li>S5（已落地）→ case CLUSTER_TERMINAL（N34 枚举分发，占位动作服务端拒绝）；</li>
+     * <li>TCDS → case TCDS（ACTION_SET_FLOW=1 唯一动作，setFlow 服务端钳 ≥1，尾部追加）。</li>
      * </ul>
      */
     private static void executeAction(TerminalUiType uiType, EntityPlayerMP player, IGregTechTileEntity base,
@@ -269,6 +277,11 @@ public class TerminalNet {
             case AGGREGATOR:
                 if (base.getMetaTileEntity() instanceof MTECrustMatterAggregator aggregator) {
                     AggregatorTerminalData.executeAction(aggregator, player, actionCode, payload);
+                }
+                break; // 机器类不符：静默拒绝
+            case TCDS:
+                if (base.getMetaTileEntity() instanceof MTEThermoChemicalDenseSteamGenerator generator) {
+                    TcdsTerminalData.executeAction(generator, actionCode, payload);
                 }
                 break; // 机器类不符：静默拒绝
             default:

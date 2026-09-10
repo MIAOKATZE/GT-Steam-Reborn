@@ -9,12 +9,14 @@ import com.miaokatze.gtsr.client.gui.terminal.GuiAggregatorConfigScreen;
 import com.miaokatze.gtsr.client.gui.terminal.GuiClusterTerminalScreen;
 import com.miaokatze.gtsr.client.gui.terminal.GuiSingularityHubStatusScreen;
 import com.miaokatze.gtsr.client.gui.terminal.GuiSteamHubStatusScreen;
+import com.miaokatze.gtsr.client.gui.terminal.GuiTcdsTerminalScreen;
 import com.miaokatze.gtsr.client.gui.terminal.GuiTerminalBase;
 import com.miaokatze.gtsr.client.gui.terminal.GuiWaterHubStatusScreen;
 import com.miaokatze.gtsr.common.machine.MTESingularityDrillingHub;
 import com.miaokatze.gtsr.common.machine.MTESteamHubArray;
 import com.miaokatze.gtsr.common.machine.MTEWaterHubArray;
 import com.miaokatze.gtsr.common.machine.cluster.MTESteamMineralLogisticsCluster;
+import com.miaokatze.gtsr.common.machine.tcds.MTEThermoChemicalDenseSteamGenerator;
 import com.miaokatze.gtsr.common.terminal.PacketOpenTerminalUi;
 import com.miaokatze.gtsr.common.terminal.PacketTerminalData;
 import com.miaokatze.gtsr.common.terminal.TerminalUiType;
@@ -33,7 +35,7 @@ import gregtech.api.metatileentity.MetaTileEntity;
  * <ul>
  * <li><b>open 包</b>：func_152344_a 切客户端主线程 → 双校验（玩家 dim 匹配 +
  * pos 处 TE 为目标机器类）不符静默忽略（防伪造/竞态钓鱼，PLAN R3）→
- * 通过后 displayGuiScreen（轨 A 四分支全落地：S3 三枢纽 + S5b CLUSTER_TERMINAL）；</li>
+ * 通过后 displayGuiScreen（轨 A 分支全落地：S3 三枢纽 + S5b CLUSTER_TERMINAL + TCDS 流量终端）；</li>
  * <li><b>data 包</b>：切主线程后按 uiType 分派写客户端缓存（S3：HubTerminalClientCache、
  * S4：AggregatorClientCache、S5b：ClusterTerminalClientCache；snapshotVersion 单调门控由缓存持有，
  * 防迟到旧包回写；valid=false 清缓存 + 锚点一致的自关）。</li>
@@ -121,6 +123,11 @@ public final class TerminalClientPacketSink {
                             msg.getDim(),
                             msg.getInitialPage()));
                 return;
+            case TCDS:
+                // TCDS 流量终端（轨 A，尾部追加）：双校验通过后本地打开
+                Minecraft.getMinecraft()
+                    .displayGuiScreen(new GuiTcdsTerminalScreen(msg.getX(), msg.getY(), msg.getZ(), msg.getDim()));
+                return;
             default:
                 return; // AGGREGATOR 不收 open 包
         }
@@ -173,6 +180,17 @@ public final class TerminalClientPacketSink {
                 }
                 AggregatorClientCache.accept(msg);
                 return;
+            case TCDS:
+                // TCDS 流量终端快照（缓存内联于 GuiTcdsTerminalScreen 静态仓：解码失败整包丢弃、
+                // snapshotVersion 单调门控、整体替换防撕裂均由其 accept 自持）
+                if (!msg.isValid()) {
+                    // 服务端复核失败（TE 失活/超 64 格/机器类不符）：清缓存 + 锚点自关（等价 canInteractWith）
+                    GuiTcdsTerminalScreen.invalidate(msg);
+                    closeIfAnchored(msg);
+                    return;
+                }
+                GuiTcdsTerminalScreen.accept(msg);
+                return;
             default:
                 return;
         }
@@ -214,6 +232,8 @@ public final class TerminalClientPacketSink {
                 return MTEWaterHubArray.class;
             case CLUSTER_TERMINAL:
                 return MTESteamMineralLogisticsCluster.class;
+            case TCDS:
+                return MTEThermoChemicalDenseSteamGenerator.class;
             default:
                 return null; // AGGREGATOR 恒 null（openGui 轨 B）
         }
