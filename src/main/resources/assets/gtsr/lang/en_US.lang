@@ -1891,21 +1891,25 @@ gt.blockmachines.gtsr.tcds.dense.steam.generator.name=ThermoChemical Dense Steam
 item.TcdsBoostChip.name=Dense Steam Chip
 gtsr.tooltip.chip.tcds_dense_steam=Insert into the ThermoChemical Dense Steam Generator controller slot: switches output to Dense Steam or Dense Superheated Steam
 gtsr.tooltip.tcds.type=ThermoChemical Dense Steam Generator, TCDS
-gtsr.tooltip.tcds.desc=Drives vaporization directly with high-temperature combustion: recognizes gas and liquid fuel families and locks onto the highest heat-value fuel available; output scales linearly with heat, and any fuel or air shortage stops the machine cold.
+gtsr.tooltip.tcds.desc=Drives vaporization directly with high-temperature combustion: recognizes gas and liquid fuel families, each locking onto its highest heat-value fuel available; output scales linearly with heat, partial supply automatically lowers flow without stopping, and a full fuel or air cutoff stops the machine cold.
 gtsr.tooltip.tcds.desc_2=Steam equivalent flows into an internal buffer and is distributed to output hatches by tier; insert the Dense Steam Chip for ÷1000 dense output.
-gtsr.tooltip.tcds.desc_3=Gas-oil synergy & co-firing temperature: when both families coexist the best pairing is auto-picked per the matrix — output multiplied by the synergy coefficient, heat cap shifted by the co-firing temperature (positive temps break past 200% up to 250%).
-gtsr.tooltip.tcds.output_base=Standard steam output: 
-gtsr.tooltip.tcds.output_base_unit=L/t steam equivalent @100% heat
-gtsr.tooltip.tcds.output_base_note=(420,000 L/t at 200% heat; up to 250% heat with synergy)
+gtsr.tooltip.tcds.desc_3=Flow-driven combustion: set the target flow in the terminal (default 100 L/t); output = Σ flow x heat value x efficiency x 2 x heat%, with the heat cap scaling up to x1.5 with flow.
+gtsr.tooltip.tcds.output_formula=Output formula: 
+gtsr.tooltip.tcds.output_formula_unit=flow x heat value x efficiency x 2 x heat%
+gtsr.tooltip.tcds.output_formula_note=(at default 100 L/t: single fuel = 200 x heat value; dual fuel = 200 x (gas + liquid heat values))
 gtsr.tooltip.tcds.fuel_consumption=Fuel consumption: 
-gtsr.tooltip.tcds.fuel_consumption_unit=guaranteed rate = (standard steam output ÷ heat value) x 50%, saving 0.5% per 1% heat above 100% (each synergy fuel at a 25% quota)
+gtsr.tooltip.tcds.fuel_consumption_unit== each family's actual flow (partial supply lowers flow without stopping)
+gtsr.tooltip.tcds.flow=Flow setting: 
+gtsr.tooltip.tcds.flow_note=(adjustable >= 1 L/t; below 100 L the heat cap scales down to a 50% floor, 100-500 L ramps linearly to a 150% cap)
+gtsr.tooltip.tcds.efficiency=Combustion efficiency: 
+gtsr.tooltip.tcds.efficiency_note=(efficiency keeps approaching 0 at higher flows, never reaching it)
 gtsr.tooltip.tcds.output_tiers=Output tiers: 
 gtsr.tooltip.tcds.output_tiers_unit=(max heat 200/160/120/80/40/10/5/2/1%)
 gtsr.tooltip.tcds.air_water=Air / water use: 
 gtsr.tooltip.tcds.air_water_unit=(air = fuel x 100 L; distilled water = steam ÷ 160)
 gtsr.tooltip.tcds.fuel_threshold=Superheat threshold (gas/liquid): 
-gtsr.tooltip.tcds.heat=Heat mechanism: starts at 0%, self-heats to 100% while running, surplus supply can raise it to the tier heat cap (200% standard, up to 250% with synergy); any shortage stops and cools it; a heat cap clamped to 0 cannot burn
-gtsr.tooltip.tcds.synergy=Gas-liquid synergy: supplying both a gas and a liquid fuel that hit the category map burns them per the synergy matrix (output x coefficient / 100, max heat shifted by the co-combustion temp; live values in the GUI)
+gtsr.tooltip.tcds.heat=Heat mechanism: starts at 0%, self-heats to 100% while running, ample supply and flow raise it to the heat cap (= tier max heat x flow factor); any shortage stops and cools it
+gtsr.tooltip.tcds.dual_fuel=Dual-fuel stacking: gas and liquid fuel supplied together burn at once — output is the direct sum of both families' flow x heat-value terms (each derates its flow independently); dual superheat needs gas >= 350 and oil >= 450
 gtsr.tooltip.tcds.water_warning=Warning: any fuel, air, or distilled water shortage stops everything without consuming a drop; above 100% heat a water shortage explodes!
 gtsr.tooltip.tcds.buffer=Equivalent buffer: 
 gtsr.tooltip.tcds.chip_info=Dense Steam Chip: insert into the controller slot; dense variants are a 1000:1 compression
@@ -1919,12 +1923,12 @@ gtsr.tooltip.tcds.casing=Clean Stainless Steel Machine Casing
 gtsr.tooltip.tcds.frame=Stainless Steel Frame
 gtsr.gui.tcds.heat=Heat: 
 gtsr.gui.tcds.output=Steam Output: 
+gtsr.gui.tcds.flow=Flow: 
+gtsr.gui.tcds.flow_heat=Theoretical max heat: %s
 gtsr.gui.tcds.fuel=Fuel: 
 gtsr.gui.tcds.output_tier=Output Tier: 
 gtsr.gui.tcds.fuel_gas=Gas Fuel: 
 gtsr.gui.tcds.fuel_liquid=Liquid Fuel: 
-gtsr.gui.tcds.synergy=Synergy Coefficient: 
-gtsr.gui.tcds.synergy_temp=Co-combustion temp: %+d%%
 gtsr.gui.tcds.air=Air Consumption: 
 gtsr.gui.tcds.water=Distilled Water Consumption: 
 gtsr.gui.tcds.steam= (Steam)

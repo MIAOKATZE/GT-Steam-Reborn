@@ -481,15 +481,17 @@ Single-tier, no steam required; runs GT5U primitive blast furnace recipes. Highe
 
 **热化学致密蒸汽发生系统 / Thermochemical Dense Steam Generator (TCDS)**
 
-吞下一切可燃流体的蒸汽巨兽：燃气与燃油皆可为食；双族并存时触发**油气协同燃烧**与**共燃温度**机制，追求极限热量与致密蒸汽输出。具体协同/温度参数表见项目 wiki 页 *Dense-Steam-Generator*。
-A steam powerhouse that devours any combustible fluid — fuel gases and fuel oils alike; when both families coexist, the **gas-oil synergy combustion** and **co-firing temperature** mechanics engage in pursuit of extreme heat and dense steam output. Full synergy / temperature tables on the wiki page *Dense-Steam-Generator*.
+吞下一切可燃流体的蒸汽巨兽：燃气与燃油皆可为食，终端可调**设定流量**驱动燃烧——产出与最大热量随流量伸缩，部分供给自动降流量不停机。
+A steam powerhouse that devours any combustible fluid — fuel gases and fuel oils alike, with a terminal-adjustable **flow setting** driving combustion: output and heat cap scale with flow, and partial supply automatically derates flow without stopping.
 
 | 参数 Parameter | 数值 Value |
 |----------|-------|
-| 标准蒸汽输出 Base Output | 210,000 L/t @100% 热量（200% 时 420,000）210,000 L/t at 100% heat (420,000 at 200%) |
-| 热量 Heat | 0% 起步，上限 200%（协同共燃温度下最高 250%）；供给不足即停机降温，上限钳 0 不工作 starts at 0%, caps at 200% (up to 250% with synergy co-firing temperature); any supply shortage stops & cools, a cap clamped to 0 won't burn |
-| 燃料消耗 Fuel Consumption | 保底消耗 =（标准蒸汽输出÷热值）×50%，>100% 热量每超 1% 节省 0.5% guaranteed rate = (base ÷ heat value) × 50%, saving 0.5% per 1% heat above 100% |
-| 空气消耗 Air | 燃料 ×100 L（供给不足即停机，不降载）Fuel × 100 L (any shortage stops the machine, no derating) |
+| 产出公式 Output Formula | 流量×热值×效率×2×热量%（默认 100 L/t：单燃料 = 200×热值，双燃料 = 200×(燃气+燃油热值)）Flow x heat value x efficiency x 2 x heat% (at default 100 L/t: single fuel = 200 x heat value, dual fuel = 200 x (gas + liquid heat values)) |
+| 流量设定 Flow | ≥1（默认 100）L/t；<100 L 热量上限等比至 50% 地板，100~500 L 线性升至 150% 上限 ≥1 (default 100) L/t; below 100 L the heat cap scales down to a 50% floor, 100-500 L ramps linearly to a 150% cap |
+| 燃烧效率 Efficiency | ≤500 L/t 100%，1000 L/t 约 50%，5000 L/t 约 25%，更高流量趋近 0 永不为 0 100% at ≤500 L/t, ~50% at 1000 L/t, ~25% at 5000 L/t, approaching but never reaching 0 |
+| 热量 Heat | 0% 起步，上限 = 档位最大热量×流量因子（基准 200%）；供给不足即停机降温 starts at 0%, capped at tier max heat x flow factor (200% base); any supply shortage stops & cools |
+| 燃料消耗 Fuel Consumption | 各族实际流量（供给不足自动降流量不停机）Each family's actual flow (partial supply derates flow without stopping) |
+| 空气消耗 Air | 实际流量 ×100 L（不足即停机，不降载）Actual flow x 100 L (any shortage stops the machine, no derating) |
 | 水耗 Water | 蒸汽 ÷160；热量 >100% 时缺水会爆炸 Steam ÷ 160; explodes on water shortage above 100% heat |
 
 **额外功能 / Additional Features**
@@ -497,11 +499,10 @@ A steam powerhouse that devours any combustible fluid — fuel gases and fuel oi
 | 功能 Feature | 说明 Description |
 |---|---|
 | 输出档位 Output Tier | Shift+螺丝刀右键轮换 100→80→60→40→20→10→5→2→1%，最大热量 200/160/120/80/40/10/5/2/1%（10/5/2/1 档热量上限即 10/5/2/1%）Shift+screwdriver cycles 100→80→60→40→20→10→5→2→1%, max heat 200/160/120/80/40/10/5/2/1% (the 10/5/2/1 tiers cap heat at 10/5/2/1%) |
-| 油气协同 Gas-Oil Synergy | 燃气族与燃油族并存时自动择优配对，两种燃料各按 25% 消耗当量燃烧，蒸汽输出乘协同系数（20%\~385%）Auto-picks the best pairing when both families coexist; each fuel burns at a 25% consumption quota, steam output multiplied by the synergy coefficient (20%\~385%) |
-| 共燃温度 Co-Firing Temperature | 每个协同组合将最大热量上限改变 −50\~+50（正温度可突破 200% 至最高 250% 热量）Each synergy pair shifts the max heat cap by −50 to +50 (positive temperatures break past 200%, up to 250% heat) |
+| 双燃料叠加 Dual-Fuel Stacking | 燃气与燃油同时供给时两种同烧，产出为两族流量×热值项直加（各自独立降流量）；双过热档需燃气热值 ≥350 且燃油 ≥450 With gas and liquid fuel supplied together both burn at once — output is the direct sum of both families' flow x heat-value terms (each derates its flow independently); dual superheat needs gas ≥350 and oil ≥450 |
 | 致密档 Dense Tier | 致密蒸汽芯片（组装机配方）切换致密输出；过热致密档需燃气热值 ≥350 且燃油 ≥450 Dense Steam Chip (assembler recipe) for dense output; superheated dense tier needs gas heat value ≥350 and oil ≥450 |
 
-> 📷 图片待配：TCDS 多方块结构、GUI（热量/燃料/协同显示）与档位切换截图 / TCDS multiblock structure, GUI (heat / fuel / synergy display) and tier switching screenshots
+> 📷 图片待配：TCDS 多方块结构、GUI（热量/流量/燃料显示）与档位切换截图 / TCDS multiblock structure, GUI (heat / flow / fuel display) and tier switching screenshots
 
 ***
 

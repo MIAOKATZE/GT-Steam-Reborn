@@ -6,7 +6,7 @@
 		"description": "GT Steam Reborn - a GregTech addon for Minecraft 1.7.10 providing steam-age geological prospecting and utility machines.",
 		"version": "1.11.8",
 		"mcversion": "1.7.10",
-		"url": "",
+		"url": "https://github.com/MIAOKATZE/GT-Steam-Reborn",
 		"updateUrl": "",
 		"authorList": ["miaokatze"],
 		"credits": "",
