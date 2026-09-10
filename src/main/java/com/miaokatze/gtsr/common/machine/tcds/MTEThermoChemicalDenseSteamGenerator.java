@@ -1048,11 +1048,13 @@ public class MTEThermoChemicalDenseSteamGenerator extends MTEGTSRMultiBlockBase<
     @Override
     protected MultiblockTooltipBuilder createTooltip() {
         MultiblockTooltipBuilder tt = new MultiblockTooltipBuilder();
-        // 核心描述段：2 行 WHITE + 1 行 AQUA 强调（供给驱动燃烧机制）
+        // 核心描述段：3 行 WHITE + 1 行 AQUA 强调（供给驱动燃烧机制；EN>150 字符键按句子边界拆 a/b）
         tt.addMachineType(StatCollector.translateToLocal("gtsr.tooltip.tcds.type"))
-            .addInfo(EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.tooltip.tcds.desc"))
+            .addInfo(EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.tooltip.tcds.desc_a"))
+            .addInfo(EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.tooltip.tcds.desc_b"))
             .addInfo(EnumChatFormatting.WHITE + StatCollector.translateToLocal("gtsr.tooltip.tcds.desc_2"))
-            .addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.tcds.desc_3"))
+            .addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.tcds.desc_3_a"))
+            .addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.tcds.desc_3_b"))
             .addSeparator()
             // 关键参数段（LSOA 配色纪律：BLUE/GOLD 标签 + GOLD 数值 + GRAY 单位 + GREEN 括注；数值硬编码，模板走 lang）
             .addInfo(
@@ -1067,11 +1069,9 @@ public class MTEThermoChemicalDenseSteamGenerator extends MTEGTSRMultiBlockBase<
                     + EnumChatFormatting.AQUA
                     + StatCollector.translateToLocal("gtsr.tooltip.tcds.fuel_consumption_unit"))
             .addInfo(
-                EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.tcds.flow")
+                EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.tcds.heat_cap_formula")
                     + EnumChatFormatting.GOLD
-                    + "100"
-                    + EnumChatFormatting.GRAY
-                    + " L/t"
+                    + "200/160/120/80/40/10/5/2/1%"
                     + EnumChatFormatting.GREEN
                     + " "
                     + StatCollector.translateToLocal("gtsr.tooltip.tcds.flow_note"))
@@ -1084,13 +1084,6 @@ public class MTEThermoChemicalDenseSteamGenerator extends MTEGTSRMultiBlockBase<
                     + EnumChatFormatting.GREEN
                     + " "
                     + StatCollector.translateToLocal("gtsr.tooltip.tcds.efficiency_note"))
-            .addInfo(
-                EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.tcds.output_tiers")
-                    + EnumChatFormatting.GOLD
-                    + "100-80-60-40-20-10-5-2-1%"
-                    + EnumChatFormatting.GRAY
-                    + " "
-                    + StatCollector.translateToLocal("gtsr.tooltip.tcds.output_tiers_unit"))
             .addInfo(
                 EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.tcds.air_water")
                     + EnumChatFormatting.GOLD
@@ -1115,9 +1108,11 @@ public class MTEThermoChemicalDenseSteamGenerator extends MTEGTSRMultiBlockBase<
                     + "840,000,000"
                     + EnumChatFormatting.GRAY
                     + " L")
-            .addInfo(EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.tcds.heat"))
+            .addInfo(EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.tcds.heat_a"))
+            .addInfo(EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.tcds.heat_b"))
             .addSeparator()
-            .addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.tcds.dual_fuel"))
+            .addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.tcds.dual_fuel_a"))
+            .addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.tcds.dual_fuel_b"))
             .addInfo(EnumChatFormatting.LIGHT_PURPLE + StatCollector.translateToLocal("gtsr.tooltip.tcds.chip_info"))
             .addSeparator()
             // [GT-compat] beta 兼容层（beta1/beta2/beta3）：beta-3 起始参数序为 (w,h,l)，实参按 beta-3 语义排列

@@ -1886,25 +1886,27 @@ gt.blockmachines.gtsr.tcds.dense.steam.generator.name=热化学致密蒸汽发�
 item.TcdsBoostChip.name=致密蒸汽芯片
 gtsr.tooltip.chip.tcds_dense_steam=装入热化学致密蒸汽发生系统控制器槽位：产出切换为致密蒸汽 / 致密过热蒸汽
 gtsr.tooltip.tcds.type=热化学致密蒸汽发生系统, TCDS
-gtsr.tooltip.tcds.desc=以高温化学燃烧直接驱动汽化：燃气/燃油双族识别，各自锁定可用燃料中热值最高者持续燃烧；产出随热量线性放大，供给不足自动降流量不停机，燃料或空气断供立即停机降温。
+gtsr.tooltip.tcds.desc_a=以高温化学燃烧直接驱动汽化：燃气/燃油双族识别，各自锁定可用燃料中热值最高者持续燃烧；
+gtsr.tooltip.tcds.desc_b=产出随热量线性放大，供给不足自动降流量不停机，燃料或空气断供立即停机降温。
 gtsr.tooltip.tcds.desc_2=蒸汽当量经内置缓冲按档位换算后向输出仓连续分摊；装入致密蒸汽芯片切换 ÷1000 致密输出。
-gtsr.tooltip.tcds.desc_3=供给驱动燃烧：终端设定流量（默认 100 L/t），产出 = Σ流量×热值×效率×2×热量%，最大热量上限随流量最高 ×1.5。
+gtsr.tooltip.tcds.desc_3_a=供给驱动燃烧：终端设定流量（默认 100 L/t）；
+gtsr.tooltip.tcds.desc_3_b=产出 = Σ流量×热值×效率×2×热量%，最大热量上限随流量最高 ×1.5。
 gtsr.tooltip.tcds.output_formula=产出公式: 
 gtsr.tooltip.tcds.output_formula_unit=流量×热值×效率×2×热量%
 gtsr.tooltip.tcds.output_formula_note=（默认 100 L/t：单燃料 = 200×热值；双燃料 = 200×(燃气+燃油热值)）
 gtsr.tooltip.tcds.fuel_consumption=燃料消耗: 
 gtsr.tooltip.tcds.fuel_consumption_unit== 各族实际流量（供给不足自动降流量不停机）
-gtsr.tooltip.tcds.flow=流量设定: 
-gtsr.tooltip.tcds.flow_note=（可调 ≥1 L/t；<100 L 热量上限等比至 50% 地板，100~500 L 线性升至 150% 上限）
+gtsr.tooltip.tcds.heat_cap_formula=热量上限 = 输出档位上限 × 流量热量因子(F): 
+gtsr.tooltip.tcds.flow_note=（流量可调，≥1 L/t；完整公式见机器终端屏）
 gtsr.tooltip.tcds.efficiency=燃烧效率: 
 gtsr.tooltip.tcds.efficiency_note=（更高流量效率继续趋近 0，永不为 0）
-gtsr.tooltip.tcds.output_tiers=输出档位: 
-gtsr.tooltip.tcds.output_tiers_unit=（最大热量 200/160/120/80/40/10/5/2/1%）
 gtsr.tooltip.tcds.air_water=空气/水耗: 
 gtsr.tooltip.tcds.air_water_unit=（空气 = 燃料×100 L；蒸馏水 = 蒸汽÷160）
 gtsr.tooltip.tcds.fuel_threshold=过热阈值（燃气/燃油）: 
-gtsr.tooltip.tcds.heat=热量机制: 0% 起步，运行自热至 100%，供给与流量富余可升至热量上限（= 档位最大热量×流量因子）；供给不足立即停机降温
-gtsr.tooltip.tcds.dual_fuel=双燃料叠加: 燃气与燃油同时供给时两种同烧，产出为两族流量×热值项直加（各自独立降流量）；双过热档需燃气热值 ≥350 且燃油 ≥450
+gtsr.tooltip.tcds.heat_a=热量机制: 0% 起步，运行自热至 100%，供给与流量富余可升至热量上限（= 档位最大热量×流量因子）；
+gtsr.tooltip.tcds.heat_b=供给不足立即停机降温
+gtsr.tooltip.tcds.dual_fuel_a=双燃料叠加: 燃气与燃油同时供给时两种同烧，产出为两族流量×热值项直加（各自独立降流量）；
+gtsr.tooltip.tcds.dual_fuel_b=双过热档需燃气热值 ≥350 且燃油 ≥450
 gtsr.tooltip.tcds.water_warning=警告: 燃料、空气或蒸馏水任一不足时整机停摆、分毫不扣；热量高于 100% 时缺水会爆炸！
 gtsr.tooltip.tcds.buffer=当量缓冲: 
 gtsr.tooltip.tcds.chip_info=致密蒸汽芯片: 装入控制器槽位，致密变体为 1000:1 压缩
@@ -1938,3 +1940,11 @@ gtsr.tcds_terminal.input_label=流量输入（L/t）
 gtsr.tcds_terminal.confirm=确认
 gtsr.tcds_terminal.confirm_hint=将输入的流量写入机器（服务端钳制不低于 1）
 gtsr.tcds_terminal.input_hint=输入新流量（L/t）；非法或非正值最终由服务端钳至 1
+gtsr.tcds_terminal.formula_flow=实际流量 = min(设定, 供给)，燃气/燃油各族独立
+gtsr.tcds_terminal.formula_efficiency=效率η(F)：F≤500=1；500<F≤1000=500/F；F>1000=0.5×(1000/F)^0.4307
+gtsr.tcds_terminal.formula_output=单族产出 = 流量×热值×η×2×(热量/100)，双燃料两族直加
+gtsr.tcds_terminal.formula_cap=热量上限=档位上限×因子(F): F<100=max(0.5,F/100); 100~500 线性 1.0→1.5; >500=1.5
+gtsr.tcds_terminal.formula_consumption=消耗：燃料 = Σ各族实际流量；空气 = Σ流量×100；蒸馏水 = 产出÷160
+gtsr.tcds_terminal.formula_shortage=空气或蒸馏水不足：整 tick 停产、分毫不扣
+gtsr.tcds_terminal.formula_buffer=840M 当量缓冲存满：本 tick 停产
+gtsr.tcds_terminal.formula_chip=致密蒸汽芯片：输出 ÷1000 落入输出仓

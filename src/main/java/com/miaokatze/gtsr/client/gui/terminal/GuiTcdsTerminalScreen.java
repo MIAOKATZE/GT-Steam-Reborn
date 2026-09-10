@@ -156,12 +156,14 @@ public class GuiTcdsTerminalScreen extends GuiTerminalBase {
         // 流量输入框复用基类 renameField 载体（客户端纯本地、确认才发包）；限长 9 位数字
         // （int 域安全，超长输入靠 maxLength 拦截，解析兜底仍走服务端钳制）
         this.renameField.setMaxStringLength(9);
-        // 确认按钮：与枢纽重命名按钮同位同尺寸（152, RENAME_ROW_Y）64×14，输入框右侧直接确认
+        // TCDS 专用布局：输入为第三行（标签 y64、文本框 y74），不改基类共用常量。
+        this.renameField.yPosition = this.guiTop + INFO_ROW_Y + INFO_ROW_STEP * 2 + 10;
+        // 确认按钮与输入框同行，保持输入框右侧直接确认。
         this.buttonList.add(
             new GtsrGuiButton(
                 BTN_CONFIRM,
                 this.guiLeft + 152,
-                this.guiTop + RENAME_ROW_Y,
+                this.renameField.yPosition,
                 CONFIRM_BTN_W,
                 14,
                 ellipsized("gtsr.tcds_terminal.confirm", CONFIRM_BTN_W)));
@@ -170,6 +172,9 @@ public class GuiTcdsTerminalScreen extends GuiTerminalBase {
     @Override
     public void updateScreen() {
         super.updateScreen();
+        if (this.renameField != null) {
+            this.renameField.updateCursorCounter();
+        }
         // 快照回填（快照回显纪律）：仅在用户未开始本地编辑时回填服务端设定流量；
         // 文本一致时不重写（避免每轮询周期无谓复位光标）
         if (this.renameField != null && !this.flowEdited) {
@@ -181,6 +186,14 @@ public class GuiTcdsTerminalScreen extends GuiTerminalBase {
                 }
             }
         }
+    }
+
+    @Override
+    protected void mouseClicked(int mouseX, int mouseY, int mouseButton) {
+        if (this.renameField != null) {
+            this.renameField.mouseClicked(mouseX, mouseY, mouseButton);
+        }
+        super.mouseClicked(mouseX, mouseY, mouseButton);
     }
 
     @Override
@@ -254,9 +267,10 @@ public class GuiTcdsTerminalScreen extends GuiTerminalBase {
         this.fontRendererObj.drawStringWithShadow(
             StatCollector.translateToLocal("gtsr.tcds_terminal.input_label"),
             this.guiLeft + 8,
-            this.guiTop + RENAME_ROW_Y - 10,
+            this.guiTop + INFO_ROW_Y + INFO_ROW_STEP * 2,
             GtsrGuiPalette.TEXT_LABEL);
         this.drawRenameField();
+        drawFormulaLines();
 
         // 输入框 hover tooltip（500ms）：输入说明与非法值兜底语义
         if (this.renameField != null && mouseX >= this.renameField.xPosition
@@ -270,6 +284,23 @@ public class GuiTcdsTerminalScreen extends GuiTerminalBase {
                 mouseY);
         } else {
             this.drawButtonTooltips(mouseX, mouseY);
+        }
+    }
+
+    /** 公式只读区：静态双语文案，第三行输入之后按 16px 节奏绘制，底界 y233 内最多 8 行。 */
+    private void drawFormulaLines() {
+        String[] keys = { "gtsr.tcds_terminal.formula_flow", "gtsr.tcds_terminal.formula_efficiency",
+            "gtsr.tcds_terminal.formula_output", "gtsr.tcds_terminal.formula_cap",
+            "gtsr.tcds_terminal.formula_consumption", "gtsr.tcds_terminal.formula_shortage",
+            "gtsr.tcds_terminal.formula_buffer", "gtsr.tcds_terminal.formula_chip" };
+        int y = this.guiTop + INFO_ROW_Y + INFO_ROW_STEP * 4;
+        for (String key : keys) {
+            this.fontRendererObj.drawStringWithShadow(
+                StatCollector.translateToLocal(key),
+                this.guiLeft + 8,
+                y,
+                GtsrGuiPalette.TEXT_MUTED);
+            y += INFO_ROW_STEP;
         }
     }
 

@@ -1891,25 +1891,27 @@ gt.blockmachines.gtsr.tcds.dense.steam.generator.name=ThermoChemical Dense Steam
 item.TcdsBoostChip.name=Dense Steam Chip
 gtsr.tooltip.chip.tcds_dense_steam=Insert into the ThermoChemical Dense Steam Generator controller slot: switches output to Dense Steam or Dense Superheated Steam
 gtsr.tooltip.tcds.type=ThermoChemical Dense Steam Generator, TCDS
-gtsr.tooltip.tcds.desc=Drives vaporization directly with high-temperature combustion: recognizes gas and liquid fuel families, each locking onto its highest heat-value fuel available; output scales linearly with heat, partial supply automatically lowers flow without stopping, and a full fuel or air cutoff stops the machine cold.
+gtsr.tooltip.tcds.desc_a=Drives vaporization directly with high-temperature combustion: recognizes gas and liquid fuel families, each locking onto its highest heat-value fuel available;
+gtsr.tooltip.tcds.desc_b=output scales linearly with heat, partial supply automatically lowers flow without stopping, and a full fuel or air cutoff stops the machine cold.
 gtsr.tooltip.tcds.desc_2=Steam equivalent flows into an internal buffer and is distributed to output hatches by tier; insert the Dense Steam Chip for ÷1000 dense output.
-gtsr.tooltip.tcds.desc_3=Flow-driven combustion: set the target flow in the terminal (default 100 L/t); output = Σ flow x heat value x efficiency x 2 x heat%, with the heat cap scaling up to x1.5 with flow.
+gtsr.tooltip.tcds.desc_3_a=Flow-driven combustion: set the target flow in the terminal (default 100 L/t);
+gtsr.tooltip.tcds.desc_3_b=output = Σ flow x heat value x efficiency x 2 x heat%, with the heat cap scaling up to x1.5 with flow.
 gtsr.tooltip.tcds.output_formula=Output formula: 
 gtsr.tooltip.tcds.output_formula_unit=flow x heat value x efficiency x 2 x heat%
 gtsr.tooltip.tcds.output_formula_note=(at default 100 L/t: single fuel = 200 x heat value; dual fuel = 200 x (gas + liquid heat values))
 gtsr.tooltip.tcds.fuel_consumption=Fuel consumption: 
 gtsr.tooltip.tcds.fuel_consumption_unit== each family's actual flow (partial supply lowers flow without stopping)
-gtsr.tooltip.tcds.flow=Flow setting: 
-gtsr.tooltip.tcds.flow_note=(adjustable >= 1 L/t; below 100 L the heat cap scales down to a 50% floor, 100-500 L ramps linearly to a 150% cap)
+gtsr.tooltip.tcds.heat_cap_formula=Heat cap = tier max heat x flow heat factor(F): 
+gtsr.tooltip.tcds.flow_note=(flow adjustable, >= 1 L/t; full formula in the machine terminal screen)
 gtsr.tooltip.tcds.efficiency=Combustion efficiency: 
 gtsr.tooltip.tcds.efficiency_note=(efficiency keeps approaching 0 at higher flows, never reaching it)
-gtsr.tooltip.tcds.output_tiers=Output tiers: 
-gtsr.tooltip.tcds.output_tiers_unit=(max heat 200/160/120/80/40/10/5/2/1%)
 gtsr.tooltip.tcds.air_water=Air / water use: 
 gtsr.tooltip.tcds.air_water_unit=(air = fuel x 100 L; distilled water = steam ÷ 160)
 gtsr.tooltip.tcds.fuel_threshold=Superheat threshold (gas/liquid): 
-gtsr.tooltip.tcds.heat=Heat mechanism: starts at 0%, self-heats to 100% while running, ample supply and flow raise it to the heat cap (= tier max heat x flow factor); any shortage stops and cools it
-gtsr.tooltip.tcds.dual_fuel=Dual-fuel stacking: gas and liquid fuel supplied together burn at once — output is the direct sum of both families' flow x heat-value terms (each derates its flow independently); dual superheat needs gas >= 350 and oil >= 450
+gtsr.tooltip.tcds.heat_a=Heat mechanism: starts at 0%, self-heats to 100% while running, ample supply and flow raise it to the heat cap (= tier max heat x flow factor);
+gtsr.tooltip.tcds.heat_b=any shortage stops and cools it
+gtsr.tooltip.tcds.dual_fuel_a=Dual-fuel stacking: gas and liquid fuel supplied together burn at once — output is the direct sum of both families' flow x heat-value terms (each derates its flow independently);
+gtsr.tooltip.tcds.dual_fuel_b=dual superheat needs gas >= 350 and oil >= 450
 gtsr.tooltip.tcds.water_warning=Warning: any fuel, air, or distilled water shortage stops everything without consuming a drop; above 100% heat a water shortage explodes!
 gtsr.tooltip.tcds.buffer=Equivalent buffer: 
 gtsr.tooltip.tcds.chip_info=Dense Steam Chip: insert into the controller slot; dense variants are a 1000:1 compression
@@ -1943,3 +1945,11 @@ gtsr.tcds_terminal.input_label=Flow Input (L/t)
 gtsr.tcds_terminal.confirm=Confirm
 gtsr.tcds_terminal.confirm_hint=Write the entered flow to the machine (server clamps it to at least 1)
 gtsr.tcds_terminal.input_hint=Enter a new flow in L/t; invalid or non-positive values are clamped to 1 server-side
+gtsr.tcds_terminal.formula_flow=Actual flow = min(setpoint, supply), per fuel family independent
+gtsr.tcds_terminal.formula_efficiency=eta(F): F<=500=1; 500<F<=1000=500/F; F>1000=0.5x(1000/F)^0.4307
+gtsr.tcds_terminal.formula_output=Output/family = flow x heat value x eta x 2 x heat%; dual sums both
+gtsr.tcds_terminal.formula_cap=Heat cap=tier max x F: <100 max(0.5,F/100); 100-500 1-1.5; >500 1.5
+gtsr.tcds_terminal.formula_consumption=Use: fuel = Σ flows; air = flow x 100; distilled water = output / 160
+gtsr.tcds_terminal.formula_shortage=Air or water shortage: no output and nothing consumed for the tick
+gtsr.tcds_terminal.formula_buffer=840,000,000 L equivalent buffer full: no production that tick
+gtsr.tcds_terminal.formula_chip=Dense Steam Chip: output / 1000 into the output hatches
