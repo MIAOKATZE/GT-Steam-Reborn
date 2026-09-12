@@ -48,6 +48,8 @@ import cpw.mods.fml.relauncher.SideOnly;
  * <b>▶ 推导块</b>：沿用 openEntryKey 全页互斥展开（选择变化即清空）；每块四段式
  * 通式（金 §e）→ 代入（白 §f）→ 分步（灰 §7）→ 结果（绿 §a，= 界面显示值），可附注（暗灰 §8）、
  * 块头（青 §b）；词条键命名 TIME/PAR/THRU/LUBE/CHAIN/SETTLE/LUB2/FLUID:i/BOOSTTYPE:o/MULT/COST:i。
+ * 栏 1 实际加权公式行经 {@link ClusterFormulaText} 结构化消费（S 分步 §7 / M 附注 §8 小字 /
+ * R 结果 §a），其 §8 小字汇总行同守该配色纪律。
  * 推导数据源白名单：KEY_F_TIME/KEY_F_PAR/KEY_F_THRU/KEY_F_DETAIL/KEY_F_FORMULA/KEY_LE_CHAINS/
  * KEY_BO_COST/KEY_BO_SUM/KEY_BO_LIVE/KEY_HEAT/KEY_LUBE/KEY_THRU + 客户端同 jar 公共常量
  * {@link ClusterParams}/{@link ChainLink}；服务端不下发推导文本，禁止引用协议外状态。
@@ -328,15 +330,16 @@ final class ClusterPerfPage implements ClusterPage {
         appendEntry(out, buildTimeEntry(frame, timeRaw, sum8), "gtsr.terminal.perf.tip.time", null);
         appendEntry(out, buildParEntry(parRaw, sum8), "gtsr.terminal.perf.tip.parallel", null);
         appendEntry(out, buildThruEntry(timeRaw, parRaw, thruRaw), "gtsr.terminal.perf.tip.thru", null);
-        // 实际加权公式：标签 + 长串折行直显（ellipsis 兜底）
+        // 实际加权公式：标签 + 结构化公式行（KEY_F_FORMULA 令牌串 → S 分步/M §8 附注小字/R 结果；
+        // legacy 无 | 串单行 §a 直显；解析空表仅留标签行；small 透传 → wrapRows 按 0.6f cap 折行）
         out.add(
             plainTip(
                 EnumChatFormatting.YELLOW + tr("gtsr.gui.cluster.link.perf.formula") + " =",
                 "gtsr.terminal.perf.tip.formula"));
-        out.add(
-            plain(
-                EnumChatFormatting.GREEN
-                    + ClusterTerminalClientCache.getStr(ClusterTerminalData.KEY_F_FORMULA, "0 L/秒")));
+        for (ClusterFormulaText.Line line : ClusterFormulaText
+            .parse(ClusterTerminalClientCache.getStr(ClusterTerminalData.KEY_F_FORMULA, "0 L/秒"))) {
+            out.add(line.small ? small(line.text) : plain(line.text));
+        }
         // 逐物流模块一行：cl.f.detail 的 FMOD 令牌（选择无关，服务端逐物流单元摘要）；缺令牌整块省略
         for (int[] fmod : frame.fmods) {
             String seg = fmod[1] < 0 ? "--" : String.valueOf(fmod[1]);

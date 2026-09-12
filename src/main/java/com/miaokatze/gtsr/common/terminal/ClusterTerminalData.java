@@ -887,9 +887,12 @@ public final class ClusterTerminalData {
     }
 
     /**
-     * 实际加权公式文本：分步蒸汽×有效耗时权重，并展开模块数、惩罚乘子与节汽折扣。
-     * v1.20.16 起段标记与单位中文下发（对齐模拟稿：147-148）：
-     * {@code 粉碎 2000×120 + 锻造 8000×4 ÷ 128刻；链数 2；惩罚乘子 ×1.20；节汽 -0%；= 2131 L/秒}。
+     * 实际加权公式文本：结构化令牌协议（契约 A），单位与标签改由客户端 lang 渲染，服务端不下发中文。
+     * 空链返回 legacy 兜底 {@code 0 L/秒}（客户端按结果行渲染）；有链为以 {@code |} 连接、{@code :}
+     * 分段的令牌行——每个 link 一行 {@code S:<序号从1>:<round(该步蒸汽)>:<round(该步秒×20)>}（循环序，
+     * 步名不下发，客户端用第N步 lang 键渲染）；汇总一行
+     * {@code M:<启用模块数>:<%.2f 惩罚乘子>:<%.0f 节汽×100>}；结果一行 {@code R:<%.0f 结果 L/秒>}。
+     * 数值口径与旧中文串逐字段同源：分步蒸汽×有效耗时加权 ÷ 总耗时，再 ×惩罚乘子 ×(1-节汽)。
      */
     private static String formulaText(MTESteamMineralLogisticsCluster cluster) {
         List<ChainLink> links = selectedLinks(cluster);
@@ -899,7 +902,8 @@ public final class ClusterTerminalData {
         BoosterState booster = boosterSnapshot(cluster);
         double weighted = 0.0;
         double weights = 0.0;
-        StringBuilder terms = new StringBuilder();
+        StringBuilder sb = new StringBuilder(64);
+        int step = 0;
         for (ChainLink link : links) {
             if (link == null) continue;
             int[] stat = enabledUnitStats(topology, link.getRequiredUnitClass());
@@ -914,9 +918,14 @@ public final class ClusterTerminalData {
                 * Math.max(1, stat[0]);
             weighted += steam * seconds;
             weights += seconds;
-            if (terms.length() > 0) terms.append(" + ");
-            terms.append(Math.round(steam))
-                .append("×")
+            if (step > 0) sb.append('|');
+            step++;
+            sb.append('S')
+                .append(':')
+                .append(step)
+                .append(':')
+                .append(Math.round(steam))
+                .append(':')
                 .append(Math.round(seconds * 20.0D));
         }
         double raw = weights <= 0.0 ? 0.0 : weighted / weights;
@@ -926,17 +935,15 @@ public final class ClusterTerminalData {
         for (MTEBasicLogisticsUnit unit : topology.getLogisticsUnits()) {
             if (unit != null && unit.isModuleEnabled()) moduleCount++;
         }
-        return terms.append("÷ ")
-            .append(Math.round(weights * 20.0D))
-            .append("刻；链数 ")
+        if (step > 0) sb.append('|');
+        return sb.append("M:")
             .append(moduleCount)
-            .append("；惩罚乘子 ×")
+            .append(':')
             .append(String.format(Locale.ROOT, "%.2f", booster.getPenaltyProduct()))
-            .append("；节汽 -")
-            .append(String.format(Locale.ROOT, "%.0f%%", saver * 100.0D))
-            .append("%；= ")
+            .append(':')
+            .append(String.format(Locale.ROOT, "%.0f", saver * 100.0D))
+            .append("|R:")
             .append(String.format(Locale.ROOT, "%.0f", result))
-            .append(" L/秒")
             .toString();
     }
 

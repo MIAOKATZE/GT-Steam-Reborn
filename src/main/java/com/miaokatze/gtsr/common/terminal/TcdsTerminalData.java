@@ -34,13 +34,25 @@ public final class TcdsTerminalData {
     // ==================== 服务端快照组装 ====================
 
     /**
-     * 组装快照 payload：{@code [flow varint][heatCap UTF8]}。
-     * 数据源 = {@code generator.getFlow()} 与 {@code generator.heatCapDisplay()}（每请求活取）。
+     * 组装快照 payload：{@code [flow varint][int32×9：output/kind/fuel/gas/liquid/air/water/gasHV/liquidHV]
+     * [float64×2：heat/efficiency][heatCap UTF8]}。
+     * 数据源 = {@code generator.getFlow()}、{@code generator.heatCapDisplay()} 与 mCurrent* 显示字段（每请求活取）。
      */
     public static byte[] assembleSnapshot(MTEThermoChemicalDenseSteamGenerator generator) {
         ByteBuf buf = Unpooled.buffer();
         PacketBuffer pb = new PacketBuffer(buf);
         pb.writeVarIntToBuffer(generator.getFlow());
+        pb.writeInt(generator.mCurrentOutputEquivalent);
+        pb.writeInt(generator.mCurrentFuelKind);
+        pb.writeInt(generator.mCurrentFuelConsumption);
+        pb.writeInt(generator.mCurrentGasConsumption);
+        pb.writeInt(generator.mCurrentLiquidConsumption);
+        pb.writeInt(generator.mCurrentAirConsumption);
+        pb.writeInt(generator.mCurrentWaterConsumption);
+        pb.writeInt(generator.mCurrentGasHeatValue);
+        pb.writeInt(generator.mCurrentLiquidHeatValue);
+        pb.writeDouble(generator.mHeat);
+        pb.writeDouble(MTEThermoChemicalDenseSteamGenerator.flowEfficiency(generator.getFlow()));
         ByteBufUtils.writeUTF8String(buf, generator.heatCapDisplay());
         byte[] payload = new byte[buf.readableBytes()];
         buf.readBytes(payload);
@@ -90,6 +102,20 @@ public final class TcdsTerminalData {
             ByteBuf buf = Unpooled.wrappedBuffer(payload);
             PacketBuffer pb = new PacketBuffer(buf);
             int flow = pb.readVarIntFromBuffer();
+            if (buf.readableBytes() < 52) {
+                return null;
+            }
+            int output = buf.readInt();
+            int fuelKind = buf.readInt();
+            int fuel = buf.readInt();
+            int gas = buf.readInt();
+            int liquid = buf.readInt();
+            int air = buf.readInt();
+            int water = buf.readInt();
+            int gasHeatValue = buf.readInt();
+            int liquidHeatValue = buf.readInt();
+            double heat = buf.readDouble();
+            double efficiency = buf.readDouble();
             if (!buf.isReadable()) {
                 return null;
             }
@@ -97,7 +123,20 @@ public final class TcdsTerminalData {
             if (buf.isReadable()) {
                 return null; // 尾部多余字节：整包退化丢弃
             }
-            return new Snapshot(flow, heatCap);
+            return new Snapshot(
+                flow,
+                output,
+                fuelKind,
+                fuel,
+                gas,
+                liquid,
+                air,
+                water,
+                gasHeatValue,
+                liquidHeatValue,
+                heat,
+                efficiency,
+                heatCap);
         } catch (RuntimeException e) {
             return null; // 越界/截断：整包退化丢弃
         }
@@ -110,11 +149,37 @@ public final class TcdsTerminalData {
 
         /** 设定流量（L/t，服务端 setter 钳 ≥1 后的权威值） */
         public final int flow;
+        public final int output;
+        public final int fuelKind;
+        public final int fuelConsumption;
+        public final int gasConsumption;
+        public final int liquidConsumption;
+        public final int airConsumption;
+        public final int waterConsumption;
+        /** 本 tick 燃气族燃料热值（kind=1/3 实测，其余 0；产出公式服务端同源项） */
+        public final int gasHeatValue;
+        /** 本 tick 燃油族燃料热值（kind=2/3 实测，其余 0；产出公式服务端同源项） */
+        public final int liquidHeatValue;
+        public final double heat;
+        public final double efficiency;
         /** 理论最大热量显示串（如 "250% (200×1.25)"） */
         public final String heatCap;
 
-        public Snapshot(int flow, String heatCap) {
+        public Snapshot(int flow, int output, int fuelKind, int fuelConsumption, int gasConsumption,
+            int liquidConsumption, int airConsumption, int waterConsumption, int gasHeatValue, int liquidHeatValue,
+            double heat, double efficiency, String heatCap) {
             this.flow = flow;
+            this.output = output;
+            this.fuelKind = fuelKind;
+            this.fuelConsumption = fuelConsumption;
+            this.gasConsumption = gasConsumption;
+            this.liquidConsumption = liquidConsumption;
+            this.airConsumption = airConsumption;
+            this.waterConsumption = waterConsumption;
+            this.gasHeatValue = gasHeatValue;
+            this.liquidHeatValue = liquidHeatValue;
+            this.heat = heat;
+            this.efficiency = efficiency;
             this.heatCap = heatCap;
         }
     }

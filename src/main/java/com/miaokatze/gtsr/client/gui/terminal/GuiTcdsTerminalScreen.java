@@ -3,15 +3,20 @@ package com.miaokatze.gtsr.client.gui.terminal;
 import java.util.ArrayList;
 import java.util.List;
 
+import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.network.PacketBuffer;
+import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
+
+import org.lwjgl.opengl.GL11;
 
 import com.gtnewhorizon.gtnhlib.util.numberformatting.NumberFormatUtil;
 import com.miaokatze.gtsr.common.machine.tcds.MTEThermoChemicalDenseSteamGenerator;
 import com.miaokatze.gtsr.common.terminal.PacketTerminalData;
 import com.miaokatze.gtsr.common.terminal.TcdsTerminalData;
 import com.miaokatze.gtsr.common.terminal.TerminalUiType;
+import com.miaokatze.gtsr.common.util.GtsrNumFormat;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
@@ -52,6 +57,31 @@ public class GuiTcdsTerminalScreen extends GuiTerminalBase {
     private static final int INFO_ROW_STEP = 16;
     /** 只读值列 x（面板相对：标签 @8 起，值固定列对齐 @150） */
     private static final int INFO_VALUE_X = 150;
+
+    // ==================== 公式区行模型常量（结构化重排；输入行 y88 之下 8px 起步） ====================
+
+    /** 公式区首行 y（面板相对 = 96，与输入行净距 8px） */
+    private static final int FORMULA_Y = INFO_ROW_Y + INFO_ROW_STEP * 4;
+    /** 公式区物理行高（不折行，超宽 ellipsis 兜底） */
+    private static final int FORMULA_ROW_H = 11;
+    /** 公式区正文缩放（组头/KV 行） */
+    private static final float FORMULA_BODY_SCALE = 0.7f;
+    /** 公式区推导小字缩放 */
+    private static final float FORMULA_SMALL_SCALE = 0.6f;
+    /** 推导小字缩进（面板相对，列左缘 x8 之内再缩） */
+    private static final int FORMULA_SMALL_INDENT = 12;
+    /** 公式区右缘（面板相对；净宽 384，x∈[8,392]） */
+    private static final int FORMULA_RIGHT = LIST_X + LIST_W;
+
+    // 宽度红线（构造性保证：全部入绘文本必为 ellipsis 产物；cap 为 1.0f 口径 = 面板净宽 ÷ 缩放）
+    /** 组头 cap（384/0.7f≈548；§l 加粗偏移按组头短标签惯例由右缘余量吸收） */
+    private static final int CAP_HEADER = (int) (LIST_W / FORMULA_BODY_SCALE);
+    /** KV 标签 cap（(150-8-4)/0.7f≈197，标签与值列间留 4px 空隙） */
+    private static final int CAP_KV_LABEL = (int) ((INFO_VALUE_X - LIST_X - 4) / FORMULA_BODY_SCALE);
+    /** KV 值 cap（(392-150)/0.7f≈345） */
+    private static final int CAP_KV_VALUE = (int) ((FORMULA_RIGHT - INFO_VALUE_X) / FORMULA_BODY_SCALE);
+    /** 推导小字 cap（(384-12)/0.6f≈620） */
+    private static final int CAP_SMALL = (int) ((LIST_W - FORMULA_SMALL_INDENT) / FORMULA_SMALL_SCALE);
 
     // ==================== 客户端静态快照缓存（sink 主线程写） ====================
 
@@ -270,7 +300,7 @@ public class GuiTcdsTerminalScreen extends GuiTerminalBase {
             this.guiTop + INFO_ROW_Y + INFO_ROW_STEP * 2,
             GtsrGuiPalette.TEXT_LABEL);
         this.drawRenameField();
-        drawFormulaLines();
+        final List<FormulaRow> formulaRows = drawFormulaLines(cur);
 
         // 输入框 hover tooltip（500ms）：输入说明与非法值兜底语义
         if (this.renameField != null && mouseX >= this.renameField.xPosition
@@ -282,26 +312,298 @@ public class GuiTcdsTerminalScreen extends GuiTerminalBase {
                 lines(StatCollector.translateToLocal("gtsr.tcds_terminal.input_hint")),
                 mouseX,
                 mouseY);
-        } else {
+        } else if (formulaRows == null || !formulaTooltipHit(formulaRows, mouseX, mouseY)) {
+            // 公式区逐行 tooltip 未命中（含无快照/区域外）：按钮兜底（原序保留）
             this.drawButtonTooltips(mouseX, mouseY);
         }
     }
 
-    /** 公式只读区：静态双语文案，第三行输入之后按 16px 节奏绘制，底界 y233 内最多 8 行。 */
-    private void drawFormulaLines() {
-        String[] keys = { "gtsr.tcds_terminal.formula_flow", "gtsr.tcds_terminal.formula_efficiency",
-            "gtsr.tcds_terminal.formula_output", "gtsr.tcds_terminal.formula_cap",
-            "gtsr.tcds_terminal.formula_consumption", "gtsr.tcds_terminal.formula_shortage",
-            "gtsr.tcds_terminal.formula_buffer", "gtsr.tcds_terminal.formula_chip" };
-        int y = this.guiTop + INFO_ROW_Y + INFO_ROW_STEP * 4;
-        for (String key : keys) {
-            this.fontRendererObj.drawStringWithShadow(
-                StatCollector.translateToLocal(key),
-                this.guiLeft + 8,
-                y,
-                GtsrGuiPalette.TEXT_MUTED);
-            y += INFO_ROW_STEP;
+    /**
+     * 公式区绘制（结构化行模型，替代旧 8 行单色平铺）：组头（金粗 0.7f @x8）/ KV（标签
+     * TEXT_LABEL @8、值语义色 @150 对齐）/ 推导小字（0.6f 缩进 12 TEXT_MUTED）三类物理行，
+     * 固定 11px 节奏不折行，入绘文本全部经 ellipsis 定宽（红线见 CAP_* 常量）。
+     *
+     * @return 本帧行集（无快照为 null；供逐行 tooltip 命中复用，避免二次构建）
+     */
+    private List<FormulaRow> drawFormulaLines(TcdsTerminalData.Snapshot snap) {
+        if (snap == null) return null;
+        List<FormulaRow> rows = buildFormulaRows(snap);
+        int y = this.guiTop + FORMULA_Y;
+        for (FormulaRow row : rows) {
+            if (row.kind == FormulaRow.KIND_KV) {
+                drawScaledText(
+                    this.fontRendererObj,
+                    row.label,
+                    this.guiLeft + LIST_X,
+                    y,
+                    FORMULA_BODY_SCALE,
+                    GtsrGuiPalette.TEXT_LABEL);
+                drawScaledText(
+                    this.fontRendererObj,
+                    row.value,
+                    this.guiLeft + INFO_VALUE_X,
+                    y,
+                    FORMULA_BODY_SCALE,
+                    row.valueColor);
+            } else if (row.kind == FormulaRow.KIND_HEADER) {
+                drawScaledText(
+                    this.fontRendererObj,
+                    row.label,
+                    this.guiLeft + LIST_X,
+                    y,
+                    FORMULA_BODY_SCALE,
+                    GtsrGuiPalette.TEXT_ACCENT);
+            } else {
+                drawScaledText(
+                    this.fontRendererObj,
+                    row.label,
+                    this.guiLeft + LIST_X + FORMULA_SMALL_INDENT,
+                    y,
+                    FORMULA_SMALL_SCALE,
+                    GtsrGuiPalette.TEXT_MUTED);
+            }
+            y += FORMULA_ROW_H;
         }
+        return rows;
+    }
+
+    /**
+     * 公式区行集构建（每帧重建，产出式逐项同源 {@code MTEThermoChemicalDenseSteamGenerator#processFuels}）。
+     * 行数预算：双燃料满配 12 行 × 11px = 132px（y96..228 < 契约净空 233）；单燃料 11 行；
+     * 停机（fuelKind=0）不产逐族推导行共 10 行。旧 8 行 formula_* 信息等价可达：
+     * formula_flow→行2（值+tooltip）、formula_efficiency→行3 常显、formula_output→行5-7+G2 头 tooltip、
+     * formula_cap→G1 头 tooltip、formula_consumption→行9-11+G3 头 tooltip、
+     * formula_shortage/buffer/chip→行12（正文+tooltip 三行全文）。
+     * 状态判定按服务端全有全无扣料语义：任一消耗 >0 即正常产（绿），双双归零为本 tick 停产
+     * （中性琥珀）；快照不含停因细分，旧 "checked" 残差不再呈现。
+     */
+    private List<FormulaRow> buildFormulaRows(TcdsTerminalData.Snapshot snap) {
+        final List<FormulaRow> rows = new ArrayList<FormulaRow>();
+        final String eta = String.format(java.util.Locale.ENGLISH, "%.3f", snap.efficiency);
+
+        final boolean dual = snap.fuelKind == 3;
+        final boolean gasActive = snap.fuelKind == 1 || dual;
+        final boolean liquidActive = snap.fuelKind == 2 || dual;
+
+        // 燃料/流量代入串（旧 formula_flow、formula_consumption 行值同源拼装）
+        final String fuelDisp;
+        final String flowSub;
+        if (dual) {
+            fuelDisp = "gas " + snap.gasConsumption + " + liquid " + snap.liquidConsumption;
+            flowSub = fuelDisp + " = " + (snap.gasConsumption + snap.liquidConsumption) + " L/t";
+        } else if (gasActive || liquidActive) {
+            fuelDisp = (gasActive ? "gas " : "liquid ") + snap.fuelConsumption;
+            flowSub = fuelDisp + " = " + snap.fuelConsumption + " L/t";
+        } else {
+            fuelDisp = "0";
+            flowSub = "0 L/t";
+        }
+        // 逐族取整项与产出代入串（合计用服务端权威 output）
+        final long gasTerm = gasActive
+            ? familyTerm(dual ? snap.gasConsumption : snap.fuelConsumption, snap.gasHeatValue, snap)
+            : 0;
+        final long liquidTerm = liquidActive
+            ? familyTerm(dual ? snap.liquidConsumption : snap.fuelConsumption, snap.liquidHeatValue, snap)
+            : 0;
+        final String outputSub;
+        if (dual) {
+            outputSub = "gas " + gasTerm + " + liquid " + liquidTerm + " = " + snap.output + " L/t";
+        } else if (gasActive) {
+            outputSub = "gas " + gasTerm + " = " + snap.output + " L/t";
+        } else if (liquidActive) {
+            outputSub = "liquid " + liquidTerm + " = " + snap.output + " L/t";
+        } else {
+            outputSub = "0 L/t";
+        }
+        // 运行状态：服务端全有全无扣料（任一不足整 tick 双归零），快照无法细分缺气/缺水/缓冲满
+        final String statusText;
+        final int statusColor;
+        if (snap.airConsumption > 0 || snap.waterConsumption > 0) {
+            statusText = tr("gtsr.tcds_terminal.status_ok");
+            statusColor = GtsrGuiPalette.STATE_ONLINE;
+        } else {
+            statusText = tr("gtsr.tcds_terminal.status_stopped");
+            statusColor = GtsrGuiPalette.STATE_IDLE;
+        }
+        // 行12 tooltip：旧 formula_shortage/buffer/chip 三行全文
+        final List<String> statusTip = new ArrayList<String>(3);
+        statusTip.add(tr("gtsr.tcds_terminal.formula_shortage") + " → " + statusText);
+        statusTip.add(tr("gtsr.tcds_terminal.formula_buffer") + " → " + GtsrNumFormat.grouped(snap.output) + " L/t");
+        statusTip.add(
+            tr("gtsr.tcds_terminal.formula_chip") + " = "
+                + GtsrNumFormat.grouped(snap.output)
+                + " ÷ 1000 = "
+                + GtsrNumFormat.grouped(snap.output / 1000));
+
+        // G1 流量与效率
+        rows.add(
+            headerRow(
+                "gtsr.tcds_terminal.group_flow",
+                lines(tr("gtsr.tcds_terminal.formula_cap") + " = " + snap.heatCap)));
+        rows.add(
+            kvRow(
+                "gtsr.tcds_terminal.kv_actual_flow",
+                flowSub,
+                GtsrGuiPalette.TEXT_BODY,
+                lines(tr("gtsr.tcds_terminal.formula_flow") + " = " + flowSub)));
+        rows.add(smallRow(tr("gtsr.tcds_terminal.formula_efficiency") + " → " + eta));
+
+        // G2 产出（总产出千分位高亮；逐族代入小字仅相应燃料族出）
+        rows.add(
+            headerRow(
+                "gtsr.tcds_terminal.group_output",
+                lines(tr("gtsr.tcds_terminal.formula_output") + " = " + outputSub)));
+        rows.add(
+            kvRow(
+                "gtsr.tcds_terminal.kv_output_total",
+                GtsrNumFormat.grouped(snap.output) + " L/t",
+                GtsrGuiPalette.TEXT_ACCENT,
+                null));
+        if (gasActive) {
+            rows.add(smallRow(tr("gtsr.tcds_terminal.derive_gas") + " = " + GtsrNumFormat.grouped(gasTerm) + " L/t"));
+        }
+        if (liquidActive) {
+            rows.add(
+                smallRow(tr("gtsr.tcds_terminal.derive_liquid") + " = " + GtsrNumFormat.grouped(liquidTerm) + " L/t"));
+        }
+
+        // G3 消耗与状态
+        rows.add(
+            headerRow(
+                "gtsr.tcds_terminal.group_consumption",
+                lines(
+                    tr("gtsr.tcds_terminal.formula_consumption") + " = "
+                        + fuelDisp
+                        + " + air "
+                        + snap.airConsumption
+                        + " + water "
+                        + snap.waterConsumption)));
+        rows.add(kvRow("gtsr.tcds_terminal.kv_fuel", fuelDisp, GtsrGuiPalette.TEXT_BODY, null));
+        rows.add(
+            kvRow(
+                "gtsr.tcds_terminal.kv_air",
+                GtsrNumFormat.grouped(snap.airConsumption),
+                GtsrGuiPalette.TEXT_BODY,
+                null));
+        rows.add(
+            kvRow(
+                "gtsr.tcds_terminal.kv_water",
+                GtsrNumFormat.grouped(snap.waterConsumption),
+                GtsrGuiPalette.TEXT_BODY,
+                null));
+        rows.add(
+            kvRow(
+                "gtsr.tcds_terminal.kv_status",
+                statusText + " · " + GtsrNumFormat.grouped(snap.output / 1000),
+                statusColor,
+                statusTip));
+        return rows;
+    }
+
+    /** 组头行（金粗 0.7f；ClusterPerfPage.groupHeader 同款 §6§l 惯例，绘制色走 TEXT_ACCENT）。 */
+    private FormulaRow headerRow(String langKey, List<String> tooltip) {
+        String text = EnumChatFormatting.GOLD.toString() + EnumChatFormatting.BOLD + tr(langKey);
+        return new FormulaRow(
+            FormulaRow.KIND_HEADER,
+            GtsrGuiList.ellipsis(this.fontRendererObj, text, CAP_HEADER),
+            null,
+            0,
+            tooltip);
+    }
+
+    /** KV 行（标签 TEXT_LABEL @8、值语义色 @150 对齐；标签与值各自 ellipsis 定宽）。 */
+    private FormulaRow kvRow(String labelKey, String value, int valueColor, List<String> tooltip) {
+        return new FormulaRow(
+            FormulaRow.KIND_KV,
+            GtsrGuiList.ellipsis(this.fontRendererObj, tr(labelKey), CAP_KV_LABEL),
+            GtsrGuiList.ellipsis(this.fontRendererObj, value, CAP_KV_VALUE),
+            valueColor,
+            tooltip);
+    }
+
+    /** 推导小字行（0.6f 缩进 12，TEXT_MUTED）。 */
+    private FormulaRow smallRow(String text) {
+        return new FormulaRow(
+            FormulaRow.KIND_SMALL,
+            GtsrGuiList.ellipsis(this.fontRendererObj, text, CAP_SMALL),
+            null,
+            0,
+            null);
+    }
+
+    /**
+     * 公式区逐行 tooltip 命中（行矩形 = 面板 x∈[8,392] × 行 y 起 11px）：命中带 tooltip 的行
+     * 登记 hoverTooltip（键 "fr"+行号，与输入框 "field"/按钮 "btn"+id 键空间不冲突）。
+     *
+     * @return 是否已登记命中（未命中落回按钮兜底）
+     */
+    private boolean formulaTooltipHit(List<FormulaRow> rows, int mouseX, int mouseY) {
+        if (mouseX < this.guiLeft + LIST_X || mouseX >= this.guiLeft + FORMULA_RIGHT) {
+            return false;
+        }
+        int rel = mouseY - this.guiTop - FORMULA_Y;
+        if (rel < 0) {
+            return false;
+        }
+        int index = rel / FORMULA_ROW_H;
+        if (index >= rows.size()) {
+            return false;
+        }
+        FormulaRow row = rows.get(index);
+        if (row.tooltip == null) {
+            return false;
+        }
+        this.hoverTooltip("fr" + index, row.tooltip, mouseX, mouseY);
+        return true;
+    }
+
+    /** 单族取整项：流量×热值×η×2×(热量/100) 后 Math.round，与 processFuels 逐族项同式（仅展示代入用）。 */
+    private static long familyTerm(int flow, int heatValue, TcdsTerminalData.Snapshot snap) {
+        return Math.round(flow * (double) heatValue * snap.efficiency * 2.0d * (snap.heat / 100.0d));
+    }
+
+    /** 缩放文字绘制（glPushMatrix + glScalef；GuiClusterTerminalScreen.drawScaledText 同款，本屏私有最小实现）。 */
+    private static void drawScaledText(FontRenderer font, String text, int x, int y, float scale, int color) {
+        if (text == null || text.isEmpty()) return;
+        GL11.glPushMatrix();
+        GL11.glTranslatef(x, y, 0.0f);
+        GL11.glScalef(scale, scale, 1.0f);
+        font.drawStringWithShadow(text, 0, 0, color);
+        GL11.glPopMatrix();
+    }
+
+    /**
+     * 公式区单条物理行（固定 11px，不折行）：文本已在构建期按 1.0f 口径 cap 经 ellipsis 定宽，
+     * 绘制侧零测量；tooltip 行集 null = 该行不登记（未命中落回按钮兜底）。
+     */
+    private static final class FormulaRow {
+
+        static final int KIND_HEADER = 0;
+        static final int KIND_KV = 1;
+        static final int KIND_SMALL = 2;
+
+        /** 行类型（KIND_*） */
+        final int kind;
+        /** HEADER/SMALL：行全文；KV：标签文本（均已 ellipsis） */
+        final String label;
+        /** KV 值列文本（ellipsis 产物；非 KV 为 null） */
+        final String value;
+        /** KV 值语义色（非 KV 忽略） */
+        final int valueColor;
+        /** 悬停 tooltip 行集（null=不登记） */
+        final List<String> tooltip;
+
+        FormulaRow(int kind, String label, String value, int valueColor, List<String> tooltip) {
+            this.kind = kind;
+            this.label = label;
+            this.value = value;
+            this.valueColor = valueColor;
+            this.tooltip = tooltip;
+        }
+    }
+
+    private static String tr(String key) {
+        return StatCollector.translateToLocal(key);
     }
 
     /** 只读信息行：标签（TEXT_LABEL，@8 起）+ 值（指定语义色，固定列 @150 对齐） */

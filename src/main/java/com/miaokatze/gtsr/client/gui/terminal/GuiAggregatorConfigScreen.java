@@ -7,6 +7,7 @@ import java.util.Objects;
 
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiTextField;
+import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.client.renderer.RenderHelper;
 import net.minecraft.inventory.Slot;
@@ -14,6 +15,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 
+import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.GL11;
 
 import com.gtnewhorizon.gtnhlib.util.numberformatting.NumberFormatUtil;
@@ -179,6 +181,13 @@ public class GuiAggregatorConfigScreen extends GuiContainer {
     private final ContainerAggregatorConfig containerAggregator;
     private GuiTextField searchField;
     private GtsrGuiList oreList;
+
+    /** 左栏提示区滚动偏移（0 = 底部对齐最新行；滚轮上/拖拽滑块增大以露出更旧行） */
+    private int hintScrollOffset = 0;
+    /** 提示区滚动条拖拽态（mouseClickMove/mouseMovedOrUp 转发用） */
+    private boolean draggingHintScrollbar = false;
+    /** 提示区总行数（每帧绘制时缓存，输入事件按此计算最大偏移） */
+    private int hintLineCount = 0;
 
     /** 轮询计时（初值 0：首个 updateScreen 立即发送首帧请求） */
     private int pollTimer = 0;
@@ -351,8 +360,17 @@ public class GuiAggregatorConfigScreen extends GuiContainer {
 
     @Override
     public void handleMouseInput() {
-        if (this.oreList != null && this.oreList.handleMouseInput()) {
-            return; // 滚轮命中列表区：消费（GtsrGuiList 偏移自持）
+        int dwheel = Mouse.getEventDWheel();
+        if (dwheel != 0) {
+            // 事件方向只读一次，按命中区域显式分发（列表优先，其次提示区；GtsrGuiList.handleWheel 显式入口）
+            int x = Mouse.getEventX() * this.width / this.mc.displayWidth;
+            int y = this.height - Mouse.getEventY() * this.height / this.mc.displayHeight - 1;
+            if (this.oreList != null && this.oreList.handleWheel(x, y, dwheel)) {
+                return; // 滚轮命中列表区：消费
+            }
+            if (scrollHintArea(x, y, dwheel)) {
+                return; // 滚轮命中左栏提示区：消费（提示列滚动自持）
+            }
         }
         super.handleMouseInput();
     }
@@ -372,6 +390,11 @@ public class GuiAggregatorConfigScreen extends GuiContainer {
                 this.sortAsc = true;
             }
             return;
+        }
+        if (hitHintScrollbar(mouseX, mouseY)) {
+            this.draggingHintScrollbar = true;
+            updateHintScrollFromMouse(mouseY);
+            return; // 提示区滚动条命中：开始拖拽
         }
         if (this.oreList != null && this.oreList.mouseClicked(mouseX, mouseY, mouseButton)) {
             return; // 浏览器列表区消费（含逐矿过滤/定向钮）
@@ -404,6 +427,9 @@ public class GuiAggregatorConfigScreen extends GuiContainer {
 
     @Override
     protected void mouseClickMove(int mouseX, int mouseY, int clickedMouseButton, long timeSinceLastClick) {
+        if (this.draggingHintScrollbar) {
+            updateHintScrollFromMouse(mouseY);
+        }
         if (this.oreList != null) {
             this.oreList.mouseClickMove(mouseX, mouseY, clickedMouseButton);
         }
@@ -412,6 +438,7 @@ public class GuiAggregatorConfigScreen extends GuiContainer {
 
     @Override
     protected void mouseMovedOrUp(int mouseX, int mouseY, int state) {
+        this.draggingHintScrollbar = false;
         if (this.oreList != null) {
             this.oreList.mouseReleased(mouseX, mouseY, state);
         }
@@ -997,11 +1024,118 @@ public class GuiAggregatorConfigScreen extends GuiContainer {
                 GtsrGuiPalette.TEXT_WHITE);
             addWrapped(
                 lines,
-                StatCollector.translateToLocal("gtsr.aggregator_config.uu_formula"),
+                StatCollector.translateToLocal("gtsr.aggregator_config.uu_formula") + " = 1 × "
+                    + String.format("%.2f", uuMult)
+                    + " = "
+                    + NumberFormatUtil.formatNumber(Math.round(uuMult))
+                    + " L/s",
                 HINT_WRAP_W,
                 GtsrGuiPalette.TEXT_BODY);
         }
-        drawStyledLines(lines, LEFT_X, HINT_Y);
+        int maxLines = hintVisibleLines();
+        int maxScroll = Math.max(0, lines.size() - maxLines);
+        if (this.hintScrollOffset > maxScroll) {
+            this.hintScrollOffset = maxScroll;
+        }
+        if (this.hintScrollOffset < 0) {
+            this.hintScrollOffset = 0;
+        }
+        this.hintLineCount = lines.size();
+        int start = Math.max(0, lines.size() - maxLines - this.hintScrollOffset);
+        int end = Math.min(lines.size(), start + maxLines);
+        GL11.glPushMatrix();
+        GL11.glEnable(GL11.GL_SCISSOR_TEST);
+        int scale = new ScaledResolution(this.mc, this.mc.displayWidth, this.mc.displayHeight).getScaleFactor();
+        GL11.glScissor(
+            (this.guiLeft + LEFT_X) * scale,
+            this.mc.displayHeight - (this.guiTop + HINT_Y + maxLines * HINT_LINE_PITCH) * scale,
+            HINT_WRAP_W * scale,
+            maxLines * HINT_LINE_PITCH * scale);
+        drawStyledLines(lines.subList(start, end), LEFT_X, HINT_Y);
+        GL11.glDisable(GL11.GL_SCISSOR_TEST);
+        GL11.glPopMatrix();
+        drawHintScrollbar(maxScroll);
+    }
+
+    // ==================== 提示区滚动（超出可见行数时滚轮 + 拖拽滚动条可达旧行） ====================
+
+    /** 提示区可见行数（与绘制 scissor 高度同源） */
+    private static int hintVisibleLines() {
+        return Math.max(1, (PANEL_H - HINT_Y - 8) / HINT_LINE_PITCH);
+    }
+
+    /** 提示区最大滚动偏移（总行数 - 可见行数，至少 0） */
+    private int hintMaxScroll() {
+        return Math.max(0, this.hintLineCount - hintVisibleLines());
+    }
+
+    /** 滚轮命中提示区：有溢出内容时按行滚动（滚轮上 = 露出更旧行）。事件方向由宿主读一次后传入。 */
+    private boolean scrollHintArea(int mouseX, int mouseY, int dwheel) {
+        if (hintMaxScroll() <= 0 || !mouseInHintArea(mouseX, mouseY)) {
+            return false;
+        }
+        this.hintScrollOffset += Integer.signum(dwheel);
+        int maxScroll = hintMaxScroll();
+        if (this.hintScrollOffset > maxScroll) {
+            this.hintScrollOffset = maxScroll;
+        }
+        if (this.hintScrollOffset < 0) {
+            this.hintScrollOffset = 0;
+        }
+        return true;
+    }
+
+    /** 鼠标是否位于提示区矩形内（左栏提示列：x = LEFT_X..+HINT_WRAP_W，y = HINT_Y..+可见高）。 */
+    private boolean mouseInHintArea(int mouseX, int mouseY) {
+        return mouseX >= this.guiLeft + LEFT_X && mouseX < this.guiLeft + LEFT_X + HINT_WRAP_W
+            && mouseY >= this.guiTop + HINT_Y
+            && mouseY < this.guiTop + HINT_Y + hintVisibleLines() * HINT_LINE_PITCH;
+    }
+
+    /** 提示区滚动条命中（列右缘 6px 轨道，几何与绘制一致）。 */
+    private boolean hitHintScrollbar(int mouseX, int mouseY) {
+        if (hintMaxScroll() <= 0) {
+            return false;
+        }
+        int trackX = this.guiLeft + LEFT_X + HINT_WRAP_W - 6 - 2;
+        return mouseX >= trackX && mouseX <= trackX + 6
+            && mouseY >= this.guiTop + HINT_Y
+            && mouseY < this.guiTop + HINT_Y + hintVisibleLines() * HINT_LINE_PITCH;
+    }
+
+    /** 拖拽换算：按滑块中点相对轨道位置映射滚动偏移（GtsrGuiList.updateScrollFromMouse 同式）。 */
+    private void updateHintScrollFromMouse(int mouseY) {
+        int maxScroll = hintMaxScroll();
+        if (maxScroll <= 0) {
+            this.hintScrollOffset = 0;
+            return;
+        }
+        int trackH = hintVisibleLines() * HINT_LINE_PITCH;
+        int total = Math.max(hintVisibleLines(), this.hintLineCount);
+        int thumbH = Math.max(10, trackH * hintVisibleLines() / total);
+        int available = trackH - thumbH;
+        int relY = mouseY - (this.guiTop + HINT_Y) - thumbH / 2;
+        if (relY < 0) {
+            relY = 0;
+        }
+        if (relY > available) {
+            relY = available;
+        }
+        this.hintScrollOffset = available == 0 ? 0 : relY * maxScroll / available;
+    }
+
+    /** 绘制提示区滚动条（轨道常驻、滑块仅在可滚动时出现；SCROLLBAR 九切片与 GtsrGuiList 同视觉）。 */
+    private void drawHintScrollbar(int maxScroll) {
+        int trackX = this.guiLeft + LEFT_X + HINT_WRAP_W - 6 - 2;
+        int trackH = hintVisibleLines() * HINT_LINE_PITCH;
+        GtsrGuiDrawing
+            .drawNineSlice(GtsrGuiTextures.SCROLLBAR_TRACK, 2, trackX, this.guiTop + HINT_Y, 6, trackH, this.zLevel);
+        if (maxScroll > 0) {
+            int total = Math.max(hintVisibleLines(), this.hintLineCount);
+            int thumbH = Math.max(10, trackH * hintVisibleLines() / total);
+            int thumbY = this.guiTop + HINT_Y + this.hintScrollOffset * (trackH - thumbH) / maxScroll;
+            GtsrGuiDrawing.drawNineSlice(GtsrGuiTextures.SCROLLBAR_THUMB, 2, trackX, thumbY, 6, thumbH, this.zLevel);
+        }
     }
 
     /** 权重显示：整数输出整数，否则一位小数。 */
@@ -1060,7 +1194,13 @@ public class GuiAggregatorConfigScreen extends GuiContainer {
                 GtsrGuiPalette.TEXT_BODY));
         out.add(
             new StyledLine(
-                StatCollector.translateToLocal("gtsr.aggregator_config.steam_formula"),
+                StatCollector.translateToLocal("gtsr.aggregator_config.steam_formula") + " = "
+                    + basePerSecond
+                    + " × "
+                    + String.format("%.2f", steamMult)
+                    + " = "
+                    + NumberFormatUtil.formatNumber(perSecond)
+                    + " L/s",
                 GtsrGuiPalette.TEXT_BODY));
     }
 

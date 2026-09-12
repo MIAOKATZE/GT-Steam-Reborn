@@ -31,8 +31,10 @@ import io.netty.buffer.Unpooled;
  * y246 钉底）/ 右列 x280..582（chips 区 88 高 + FSM 推演条 120..146 + 链路详情组 146 起））。
  *
  * <p>
- * <b>链路详情区（S2 手术后）</b>：五行摘要（耗时/并行/吞吐/链蒸汽耗/公式）+ 链范围详情行
- * LINK/LOGI/PEAK；FLUID/LUBE/BOOST 与总蒸汽耗迁第五页性能页，本页不再展示。
+ * <b>链路详情区（S2 手术后）</b>：摘要行（耗时/并行/吞吐/链蒸汽耗/公式）+ 链范围详情行
+ * LINK/LOGI/PEAK；FLUID/LUBE/BOOST 与总蒸汽耗迁第五页性能页，本页不再展示。公式行走
+ * {@link ClusterFormulaText#parse} 结构化消费（KEY_F_FORMULA 协议：S 分步 §7 常规 / M 附注
+ * §8 0.6f 小字 / R 结果 §a），与性能页同源同纪律。
  *
  * <p>
  * <b>FSM 整体移植</b>（删前逐函数对照旧 MUI2 轨链路视图，语义逐字、绘制轨适配）：
@@ -93,12 +95,12 @@ final class ClusterLinkEditorPage implements ClusterPage {
     private GtsrGuiList linksList;
     /** 可用链列表几何快照。 */
     private int linksListLeft, linksListTop, linksListWidth, linksListHeight;
-    /** 性能详情滚动列表（T6：五行摘要直绘迁移至 GtsrGuiList，行高 11）。 */
+    /** 性能详情滚动列表（T6：摘要直绘迁移至 GtsrGuiList，行高 11；公式结构化后行数可变、滚动承载）。 */
     private GtsrGuiList perfList;
     /** 性能详情列表几何快照。 */
     private int perfListLeft, perfListTop, perfListWidth, perfListHeight;
-    /** 本帧性能详情行（draw 每帧重建：五行摘要头部 + KEY_F_DETAIL 令牌行；live 每帧重读纪律）。 */
-    private List<String> perfFrameLines = Collections.emptyList();
+    /** 本帧性能详情行（draw 每帧重建：摘要头部 + 结构化公式行 + KEY_F_DETAIL 令牌行；live 每帧重读纪律）。 */
+    private List<PerfLine> perfFrameLines = Collections.emptyList();
     /** chips 滚动偏移（自持）。 */
     private int chipsScroll;
     /** 下拉菜单展开态。 */
@@ -656,7 +658,7 @@ final class ClusterLinkEditorPage implements ClusterPage {
         return this.stagingDirty ? this.stagedPeakIndex : snapshotPeakIndex();
     }
 
-    // ==================== 链路详情滚动列表（五行摘要 耗时/并行/吞吐/链蒸汽耗/公式 + KEY_F_DETAIL 令牌行） ====================
+    // ==================== 链路详情滚动列表（摘要行 耗时/并行/吞吐/链蒸汽耗/结构化公式 + KEY_F_DETAIL 令牌行） ====================
 
     /** 性能详情列表（惰性重建：几何与 linksList 同款快照比对；行高 11）。 */
     private void ensurePerfList(int left, int top, int width, int height) {
@@ -674,25 +676,43 @@ final class ClusterLinkEditorPage implements ClusterPage {
         this.perfList.setRowSource(() -> this.perfFrameLines.size());
         this.perfList.setRowPainter((index, x, y, mouseX, mouseY) -> {
             if (index < 0 || index >= this.perfFrameLines.size()) return;
+            // 小字行（公式 M 附注）0.6f，常规行 0.7f；行文本已在构建期经 wrapLine 折行（1.0f 口径
+            // maxWidth = 面板宽减边 ÷ scale），此处 ellipsis 仅兜底单个不可断超宽单元（同 PerfPage 纪律）
+            PerfLine line = this.perfFrameLines.get(index);
+            float scale = line.small ? 0.6f : 0.7f;
             GuiClusterTerminalScreen.drawScaledText(
                 font(),
-                GtsrGuiList.ellipsis(font(), this.perfFrameLines.get(index), (int) ((width - 6) / 0.7f)),
+                GtsrGuiList.ellipsis(font(), line.text, (int) ((width - 6) / scale)),
                 x + 3,
                 y + 2,
-                0.7f,
+                scale,
                 GtsrGuiPalette.TEXT_BODY);
         });
     }
 
-    /** 详情行集（每帧重建）：链路五行摘要（TIME/PAR/THRU/STEAM/FORMULA）前置于 KEY_F_DETAIL 令牌行（LINK/LOGI/PEAK）。 */
-    private List<String> buildPerfDetailLines() {
-        List<String> out = new ArrayList<>();
-        Collections.addAll(out, perfLines());
+    /**
+     * 详情行集（每帧重建）：链路摘要（TIME/PAR/THRU/STEAM/结构化 FORMULA）前置于 KEY_F_DETAIL
+     * 令牌行（LINK/LOGI/PEAK；addAll 语义不变——摘要恒先行）。全部逻辑行经
+     * {@link GtsrGuiList#wrapLine} 按与绘制 scale 匹配的宽度（1.0f 口径 = 面板宽减边 ÷ scale）
+     * 展开为物理行，续行继承所属逻辑行小字标记；行高 11 下超出行数由列表滚动承载（现状纪律）。
+     */
+    private List<PerfLine> buildPerfDetailLines() {
+        List<PerfLine> logical = new ArrayList<>();
+        logical.addAll(perfLines());
         String detail = getFDetail();
         if (!detail.isEmpty()) {
             for (String row : detail.split("\\|", -1)) {
                 String line = formatDetailRow(row);
-                if (line != null) out.add(line);
+                if (line != null) logical.add(new PerfLine(line, false));
+            }
+        }
+        // 逻辑行 → 物理行展开（折行宽度换算与 painter ellipsis cap 同口径；ensurePerfList 恒收 RIGHT_W）
+        List<PerfLine> out = new ArrayList<>();
+        int capNormal = (int) ((RIGHT_W - 6) / 0.7f);
+        int capSmall = (int) ((RIGHT_W - 6) / 0.6f);
+        for (PerfLine row : logical) {
+            for (String line : GtsrGuiList.wrapLine(font(), row.text, row.small ? capSmall : capNormal)) {
+                out.add(new PerfLine(line, row.small));
             }
         }
         return out;
@@ -854,7 +874,9 @@ final class ClusterLinkEditorPage implements ClusterPage {
         double factor = ClusterParams.TIER_TIME_FACTOR[Math.max(0, Math.min(ClusterParams.TIER_COUNT - 1, tier))];
         int[] counts = lockCounts();
         int modules = Math.max(1, linkOrdinal < counts.length ? counts[linkOrdinal] : 0);
-        return formatSec(LINKS[linkOrdinal].getBaseSecondsPrecise() * factor / modules) + " 秒";
+        double base = LINKS[linkOrdinal].getBaseSecondsPrecise();
+        double actual = base * factor / modules;
+        return formatSec(actual) + " 秒";
     }
 
     /** FSM 推演条：原矿 →(链步)→ 形态 →…→ 终态（终态绿 + ✓终；末位非终态红）。 */
@@ -889,37 +911,73 @@ final class ClusterLinkEditorPage implements ClusterPage {
             + (terminal ? " ✓" + tr("gtsr.gui.cluster.chain.preview_terminal") : "");
     }
 
-    /** 性能详情 5 行（常驻 ×100 定点真值：耗时/并行/吞吐/链蒸汽耗/实际加权公式；每帧重读；总蒸汽耗迁第五页性能页）。 */
-    private String[] perfLines() {
+    /**
+     * 性能区私有行类型：正文（含 § 色码）+ 小字标记（true = 0.6f 绘制）。
+     * 摘要行与公式标签行 regular；公式 M 附注行（{@link ClusterFormulaText.Line#small}）透传为小字。
+     */
+    private static final class PerfLine {
+
+        /** 行正文（含完整 § 色码）。 */
+        final String text;
+        /** true = 0.6f 小字行（仅公式附注行）。 */
+        final boolean small;
+
+        PerfLine(String text, boolean small) {
+            this.text = text;
+            this.small = small;
+        }
+    }
+
+    /**
+     * 性能摘要行（常驻 ×100 定点真值：耗时/并行/吞吐/链蒸汽耗/实际加权公式；每帧重读；
+     * 总蒸汽耗迁第五页性能页）。公式行 = 标签行（现键 gtsr.gui.cluster.link.perf.formula）+
+     * {@link ClusterFormulaText#parse} 结构化成品行（KEY_F_FORMULA 协议：S 分步 §7 / M 附注 §8
+     * 小字透传 / R 结果 §a；未知令牌与畸形段静默丢弃），不再原串整行渲染。
+     */
+    private List<PerfLine> perfLines() {
         int timeRaw = ClusterTerminalClientCache.getInt(ClusterTerminalData.KEY_F_TIME, 0);
         int parRaw = ClusterTerminalClientCache.getInt(ClusterTerminalData.KEY_F_PAR, 0);
         int thruRaw = ClusterTerminalClientCache.getInt(ClusterTerminalData.KEY_F_THRU, 0);
         int steamRaw = ClusterTerminalClientCache.getInt(ClusterTerminalData.KEY_F_STEAM, 0);
         String formula = ClusterTerminalClientCache.getStr(ClusterTerminalData.KEY_F_FORMULA, "0 L/秒");
-        return new String[] {
-            EnumChatFormatting.YELLOW + tr("gtsr.cluster.gui.link.perf.time")
-                + " = "
-                + EnumChatFormatting.GREEN
-                + String.format("%.2f", timeRaw / 100.0D)
-                + " 秒",
-            EnumChatFormatting.YELLOW + tr("gtsr.cluster.gui.link.perf.parallel")
-                + " = "
-                + EnumChatFormatting.GREEN
-                + parRaw,
-            EnumChatFormatting.YELLOW + tr("gtsr.cluster.gui.link.perf.thru")
-                + " = "
-                + EnumChatFormatting.GREEN
-                + String.format("%.2f", thruRaw / 100.0D)
-                + " "
-                + tr("gtsr.cluster.gui.card.thru.unit"),
-            EnumChatFormatting.YELLOW + tr("gtsr.cluster.gui.link.perf.steam")
-                + " = "
-                + GtsrNumFormat.grouped(Math.round(steamRaw / 100.0D))
-                + " L/秒",
-            EnumChatFormatting.YELLOW + tr("gtsr.gui.cluster.link.perf.formula")
-                + " = "
-                + EnumChatFormatting.GREEN
-                + formula };
+        List<PerfLine> out = new ArrayList<>();
+        out.add(
+            new PerfLine(
+                EnumChatFormatting.YELLOW + tr("gtsr.cluster.gui.link.perf.time")
+                    + " = "
+                    + EnumChatFormatting.GREEN
+                    + String.format("%.2f", timeRaw / 100.0D)
+                    + " 秒",
+                false));
+        out.add(
+            new PerfLine(
+                EnumChatFormatting.YELLOW + tr("gtsr.cluster.gui.link.perf.parallel")
+                    + " = "
+                    + EnumChatFormatting.GREEN
+                    + parRaw,
+                false));
+        out.add(
+            new PerfLine(
+                EnumChatFormatting.YELLOW + tr("gtsr.cluster.gui.link.perf.thru")
+                    + " = "
+                    + EnumChatFormatting.GREEN
+                    + String.format("%.2f", thruRaw / 100.0D)
+                    + " "
+                    + tr("gtsr.cluster.gui.card.thru.unit"),
+                false));
+        out.add(
+            new PerfLine(
+                EnumChatFormatting.YELLOW + tr("gtsr.cluster.gui.link.perf.steam")
+                    + " = "
+                    + GtsrNumFormat.grouped(Math.round(steamRaw / 100.0D))
+                    + " L/秒",
+                false));
+        // 公式标签行（值改由 parse 结构化逐行渲染，标签行不再带 GREEN 值串）
+        out.add(new PerfLine(EnumChatFormatting.YELLOW + tr("gtsr.gui.cluster.link.perf.formula") + " =", false));
+        for (ClusterFormulaText.Line line : ClusterFormulaText.parse(formula)) {
+            out.add(new PerfLine(line.text, line.small));
+        }
+        return out;
     }
 
     // ==================== 本地暂存编辑（决策7：不发 C2S，保存按钮统一下发；FSM 函数级移植） ====================

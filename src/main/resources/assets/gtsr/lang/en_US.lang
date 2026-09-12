@@ -164,7 +164,7 @@ gtsr.aggregator_config.uu_cost.off=—
 gtsr.aggregator_config.steam_cost.mult=(mult ×%s)
 gtsr.aggregator_config.steam_cost.detail_dir=Mult detail (mode/fortune × fixed +200% × directional): 
 gtsr.aggregator_config.steam_formula=Cost=base×(mode+fortune)×dimension×directional/filter cost
-gtsr.aggregator_config.uu_formula=Cost=1×(mode+fortune)×directional cost
+gtsr.aggregator_config.uu_formula=Cost=1×UU mult (mult already includes mode + fortune×directional)
 gtsr.aggregator_config.mode_hint.filtered.title=Current mode: filter
 gtsr.aggregator_config.mode_hint.filtered=The more ores are filtered out and the heavier they are, the more steam is consumed; cost increase% = filtered total weight% + 5% x k(k-1)/2 (k = filter count, +5% per extra filter)
 gtsr.aggregator_config.mode_hint.directional.title=Current mode: directional
@@ -1586,6 +1586,12 @@ gtsr.terminal.perf.chains.steps=Total Steps
 gtsr.terminal.perf.chains.longest=Longest
 gtsr.terminal.perf.chains.avg=Avg Length
 gtsr.terminal.perf.fmod=#%s@Seg%s: %s s · %s · %s · %s L/s
+gtsr.terminal.perf.formula.step=Step %s
+gtsr.terminal.perf.formula.chains=Chains
+gtsr.terminal.perf.formula.penalty=Penalty multiplier
+gtsr.terminal.perf.formula.saver=Steam saver
+gtsr.terminal.perf.formula.tick_unit=ticks
+gtsr.terminal.perf.formula.rate_unit=L/s
 gtsr.terminal.perf.exp.fluid.head=Recorded in last successful batch
 gtsr.terminal.perf.exp.fluid.total=Batch charge total %s L · %s entries
 gtsr.terminal.perf.tip.time=Time per Batch\nComplete time to process one ore. Hover for mechanics; click ▶ for the step-by-step derivation.
@@ -1953,3 +1959,16 @@ gtsr.tcds_terminal.formula_consumption=Use: fuel = Σ flows; air = flow x 100; d
 gtsr.tcds_terminal.formula_shortage=Air or water shortage: no output and nothing consumed for the tick
 gtsr.tcds_terminal.formula_buffer=840,000,000 L equivalent buffer full: no production that tick
 gtsr.tcds_terminal.formula_chip=Dense Steam Chip: output / 1000 into the output hatches
+gtsr.tcds_terminal.group_flow=Flow & Efficiency
+gtsr.tcds_terminal.group_output=Output
+gtsr.tcds_terminal.group_consumption=Consumption & Status
+gtsr.tcds_terminal.kv_actual_flow=Actual flow
+gtsr.tcds_terminal.kv_output_total=Total output
+gtsr.tcds_terminal.kv_fuel=Fuel
+gtsr.tcds_terminal.kv_air=Air
+gtsr.tcds_terminal.kv_water=Distilled water
+gtsr.tcds_terminal.kv_status=Status
+gtsr.tcds_terminal.status_ok=Normal
+gtsr.tcds_terminal.status_stopped=Stopped
+gtsr.tcds_terminal.derive_gas=Gas
+gtsr.tcds_terminal.derive_liquid=Liquid

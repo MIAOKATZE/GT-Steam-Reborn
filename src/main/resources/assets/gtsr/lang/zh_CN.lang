@@ -164,7 +164,7 @@ gtsr.aggregator_config.uu_cost.off=—
 gtsr.aggregator_config.steam_cost.mult=（倍率 ×%s）
 gtsr.aggregator_config.steam_cost.detail_dir=倍率明细（模式/时运 × 固定+200% × 定向）: 
 gtsr.aggregator_config.steam_formula=消耗量=基础×（矿物模式+时运）消耗×维度消耗×定向/筛选消耗
-gtsr.aggregator_config.uu_formula=消耗量=1×（矿物模式+时运）消耗×定向消耗
+gtsr.aggregator_config.uu_formula=消耗量=1×UU倍率（倍率已含矿物模式+时运×定向）
 gtsr.aggregator_config.mode_hint.filtered.title=当前模式：筛选
 gtsr.aggregator_config.mode_hint.filtered=剔除矿物越多且权重越大，则消耗蒸汽越多；消耗增加%=筛选总权重%+5%×k(k-1)/2（k=筛选数，逐项+5%递增）
 gtsr.aggregator_config.mode_hint.directional.title=当前模式：定向
@@ -1581,6 +1581,12 @@ gtsr.terminal.perf.chains.steps=总链步
 gtsr.terminal.perf.chains.longest=最长链
 gtsr.terminal.perf.chains.avg=平均链长
 gtsr.terminal.perf.fmod=#%s·段%s：%s 秒 · %s · %s · %s L/秒
+gtsr.terminal.perf.formula.step=第%s步
+gtsr.terminal.perf.formula.chains=链数
+gtsr.terminal.perf.formula.penalty=惩罚乘子
+gtsr.terminal.perf.formula.saver=节汽
+gtsr.terminal.perf.formula.tick_unit=刻
+gtsr.terminal.perf.formula.rate_unit=L/秒
 gtsr.terminal.perf.exp.fluid.head=最近成功批实际记账
 gtsr.terminal.perf.exp.fluid.total=批记账合计 %s L · %s 项
 gtsr.terminal.perf.tip.time=单批耗时\n处理一个矿的完整时间。悬浮看机制；点 ▶ 看本值的逐步推导。
@@ -1948,3 +1954,16 @@ gtsr.tcds_terminal.formula_consumption=消耗：燃料 = Σ各族实际流量；
 gtsr.tcds_terminal.formula_shortage=空气或蒸馏水不足：整 tick 停产、分毫不扣
 gtsr.tcds_terminal.formula_buffer=840M 当量缓冲存满：本 tick 停产
 gtsr.tcds_terminal.formula_chip=致密蒸汽芯片：输出 ÷1000 落入输出仓
+gtsr.tcds_terminal.group_flow=流量与效率
+gtsr.tcds_terminal.group_output=产出
+gtsr.tcds_terminal.group_consumption=消耗与状态
+gtsr.tcds_terminal.kv_actual_flow=实际流量
+gtsr.tcds_terminal.kv_output_total=合计产出
+gtsr.tcds_terminal.kv_fuel=燃料
+gtsr.tcds_terminal.kv_air=空气
+gtsr.tcds_terminal.kv_water=蒸馏水
+gtsr.tcds_terminal.kv_status=状态
+gtsr.tcds_terminal.status_ok=正常
+gtsr.tcds_terminal.status_stopped=停产
+gtsr.tcds_terminal.derive_gas=燃气
+gtsr.tcds_terminal.derive_liquid=燃油

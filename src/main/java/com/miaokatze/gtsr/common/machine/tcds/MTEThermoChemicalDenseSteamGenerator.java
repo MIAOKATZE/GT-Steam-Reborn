@@ -234,6 +234,10 @@ public class MTEThermoChemicalDenseSteamGenerator extends MTEGTSRMultiBlockBase<
     public int mCurrentGasConsumption = 0;
     /** 双燃料模式本 tick 燃油实际流量（L/t，GUI 显示态，不进 NBT；仅 kind=3 非零） */
     public int mCurrentLiquidConsumption = 0;
+    /** 本 tick 燃气族燃料热值（GUI 显示态，服务端赋值客户端消费，不进 NBT；kind=1/3 取实测值，其余为 0） */
+    public int mCurrentGasHeatValue = 0;
+    /** 本 tick 燃油族燃料热值（GUI 显示态，服务端赋值客户端消费，不进 NBT；kind=2/3 取实测值，其余为 0） */
+    public int mCurrentLiquidHeatValue = 0;
     /** 本 tick 空气消耗（L/t，GUI 显示态，服务端赋值客户端消费，不进 NBT） */
     public int mCurrentAirConsumption = 0;
     /** 本 tick 蒸馏水消耗（L/t，GUI 显示态，服务端赋值客户端消费，不进 NBT） */
@@ -549,6 +553,8 @@ public class MTEThermoChemicalDenseSteamGenerator extends MTEGTSRMultiBlockBase<
         mCurrentFuelConsumption = 0;
         mCurrentGasConsumption = 0;
         mCurrentLiquidConsumption = 0;
+        mCurrentGasHeatValue = 0;
+        mCurrentLiquidHeatValue = 0;
         mCurrentAirConsumption = 0;
         mCurrentWaterConsumption = 0;
         if (!mMachine || !getBaseMetaTileEntity().isAllowedToWork()) {
@@ -657,6 +663,8 @@ public class MTEThermoChemicalDenseSteamGenerator extends MTEGTSRMultiBlockBase<
             mCurrentFuelLiquidName = liquid.fluid.getName();
             mCurrentGasConsumption = gasFlow;
             mCurrentLiquidConsumption = liquidFlow;
+            mCurrentGasHeatValue = gas.heatValue;
+            mCurrentLiquidHeatValue = liquid.heatValue;
             mSuperheatedTier = gas.heatValue >= GAS_SUPERHEAT_THRESHOLD
                 && liquid.heatValue >= LIQUID_SUPERHEAT_THRESHOLD;
         } else {
@@ -664,6 +672,13 @@ public class MTEThermoChemicalDenseSteamGenerator extends MTEGTSRMultiBlockBase<
             mCurrentFuelKind = fuel.gasFamily ? 1 : 2;
             mCurrentFuelFluidName = fuel.fluid.getName();
             mCurrentFuelConsumption = fuel.gasFamily ? gasFlow : liquidFlow;
+            if (fuel.gasFamily) {
+                mCurrentGasHeatValue = fuel.heatValue;
+                mCurrentLiquidHeatValue = 0;
+            } else {
+                mCurrentGasHeatValue = 0;
+                mCurrentLiquidHeatValue = fuel.heatValue;
+            }
             mSuperheatedTier = fuel.heatValue
                 >= (fuel.gasFamily ? GAS_SUPERHEAT_THRESHOLD : LIQUID_SUPERHEAT_THRESHOLD);
         }
