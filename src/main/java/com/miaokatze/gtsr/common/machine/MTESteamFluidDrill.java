@@ -4,7 +4,9 @@ import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlocksT
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.ofChain;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.onElementPass;
 import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose;
+import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.PressureSteamCoolingHatch;
 import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.PressureSteamInputHatch;
+import static com.miaokatze.gtsr.common.api.enums.GTSRHatchElement.SteamCoolingHatch;
 import static gregtech.api.enums.HatchElement.OutputHatch;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 
@@ -34,6 +36,7 @@ import com.gtnewhorizons.modularui.common.widget.DynamicPositionedColumn;
 import com.gtnewhorizons.modularui.common.widget.FakeSyncWidget;
 import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
+import com.miaokatze.gtsr.api.compat.ICoolingHatchHolder;
 import com.miaokatze.gtsr.api.compat.SteamCoolingSupport;
 import com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps;
 import com.miaokatze.gtsr.common.api.progress.GTSRProgressBar;
@@ -174,6 +177,9 @@ public class MTESteamFluidDrill extends MTESteamMultiBlockBase<MTESteamFluidDril
         super.updateHatchTexture();
         int textureID = getCasingTextureID();
         for (MTEHatch h : mOutputHatches) h.updateTexture(textureID);
+        // v1.20.23：冷却仓底材纹理按当前等级重刷——冷却仓经 addToMachineList 拦截注册进冷却列表，
+        // 注册时被 updateTexture(镀铜砖块) 定格且不在标准仓列表内，缺此调用则等级2仍显示等级1底材。
+        SteamCoolingSupport.updateHatchTextures((ICoolingHatchHolder) this, textureID);
     }
 
     @Override
@@ -223,6 +229,13 @@ public class MTESteamFluidDrill extends MTESteamMultiBlockBase<MTESteamFluidDril
                             .shouldReject(t -> !t.mSteamInputFluids.isEmpty() && !t.mInputHatches.isEmpty())
                             .build(),
                         buildHatchAdder(MTESteamFluidDrill.class).atLeast(OutputHatch)
+                            .casingIndex(bronzeCasingIndex)
+                            .hint(1)
+                            .build(),
+                        // v1.20.23 新增：冷却仓元素（可选）。冷却产物的实际注册经上方 PressureSteamInputHatch
+                        // 组的 addToMachineList 拦截完成（冷却仓优先命中该拦截），本组仅用于 NEI 提示可见性
+                        // （与地壳蒸汽钻机 v1.9.40 同款）。
+                        buildHatchAdder(MTESteamFluidDrill.class).atLeast(SteamCoolingHatch, PressureSteamCoolingHatch)
                             .casingIndex(bronzeCasingIndex)
                             .hint(1)
                             .build()))
@@ -423,7 +436,12 @@ public class MTESteamFluidDrill extends MTESteamMultiBlockBase<MTESteamFluidDril
         if (getTotalSteamStored() >= getSteamPerSecond()) {
             mMaxProgresstime = PROGRESSION_TIME_TICKS;
             mEfficiencyIncrease = getEfficiencyIncrease();
+            // v1.20.23：扣汽前判定蒸汽类型（扣汽后本地罐可能已排空导致误判）。
+            // 本机蒸汽消耗不走 lEUt/onRunningTick 路径，mixin 的冷却产物推送不触发，
+            // 需在扣汽后手动推送（普通→蒸馏水 160:1、过热→压力冷却仓 1:1），与奇点枢纽/地壳钻机同源。
+            boolean isSuperheated = hasSuperheatedSteamInHatch();
             tryConsumeSteam(getSteamPerSecond());
+            SteamCoolingSupport.pushCoolingProducts((ICoolingHatchHolder) this, getSteamPerSecond(), isSuperheated);
             mOutputFluids = getOutputFluid(waterOutput);
             updateSlots();
             return CheckRecipeResultRegistry.SUCCESSFUL;
@@ -527,6 +545,7 @@ public class MTESteamFluidDrill extends MTESteamMultiBlockBase<MTESteamFluidDril
             .addCasingInfoExactly(StatCollector.translateToLocal("gtsr.tooltip.shared.frame"), 10, false)
             .addStructureHint("gtsr.tooltip.shared.no_maintenance")
             .addStructureHint("gtsr.tooltip.fluid_drill.hint_bronze")
+            .addStructureHint("gtsr.tooltip.shared.optional_cooling")
             .addInfo(GTSRUtils.getAddedByLine())
             .toolTipFinisher();
         return tt;
