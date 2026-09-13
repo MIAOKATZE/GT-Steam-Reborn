@@ -1010,12 +1010,15 @@ gtsr.tooltip.fluid_drill.hint_bronze=Bronze tier reaches max efficiency in ~5 mi
 # 14. Steam Hub Array - missing GUI keys
 gtsr.gui.steam_hub.storage_units=Storage Units: 
 gtsr.gui.steam_hub.steam_buffer=Steam Buffer: 
+gtsr.gui.steam_hub.stored_fluid_type=Stored Type: 
 gtsr.gui.steam_hub.total_capacity=Total Capacity: 
 
 # 15. Water Hub Array - missing GUI keys
 gtsr.gui.water_hub.storage_units=Storage Units: 
 gtsr.gui.water_hub.water_buffer=Water Buffer: 
+gtsr.gui.water_hub.stored_fluid_type=Stored Type: 
 gtsr.gui.water_hub.total_capacity=Total Capacity: 
+gtsr.gui.hub.stored_fluid_none=None
 
 # 16. Vein Steam Pyrolyzer - missing hint
 gtsr.tooltip.vein_pyrolyzer.hint_bronze=Supports Pyrolyzer Chips: T1(+1 chunk), T2(+3 chunks), T3(+7 chunks)

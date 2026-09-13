@@ -1008,12 +1008,15 @@ gtsr.tooltip.fluid_drill.hint_bronze=青铜版约5分钟达满效；钢版约1�
 # 14. Steam Hub Array - missing GUI keys
 gtsr.gui.steam_hub.storage_units=存储单元: 
 gtsr.gui.steam_hub.steam_buffer=蒸汽缓冲: 
+gtsr.gui.steam_hub.stored_fluid_type=存储种类: 
 gtsr.gui.steam_hub.total_capacity=总容量: 
 
 # 15. Water Hub Array - missing GUI keys
 gtsr.gui.water_hub.storage_units=存储单元: 
 gtsr.gui.water_hub.water_buffer=水缓冲: 
+gtsr.gui.water_hub.stored_fluid_type=存储种类: 
 gtsr.gui.water_hub.total_capacity=总容量: 
+gtsr.gui.hub.stored_fluid_none=无
 
 # 16. Vein Steam Pyrolyzer - missing hint
 gtsr.tooltip.vein_pyrolyzer.hint_bronze=支持裂解器芯片：T1(+1区块)、T2(+3区块)、T3(+7区块)

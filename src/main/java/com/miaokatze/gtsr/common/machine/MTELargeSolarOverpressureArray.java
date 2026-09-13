@@ -53,6 +53,7 @@ import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import com.miaokatze.gtsr.api.IShiftRightClickDecalcifiable;
 import com.miaokatze.gtsr.api.compat.GTSRHatchFluidAccess;
 import com.miaokatze.gtsr.api.compat.GTVersionCompat;
+import com.miaokatze.gtsr.common.api.progress.GTSRProgressEntry;
 import com.miaokatze.gtsr.common.event.GTSRMachineEvent;
 import com.miaokatze.gtsr.common.gui.MTELargeSolarOverpressureArrayGui;
 import com.miaokatze.gtsr.common.machine.base.MTEGTSRMultiBlockBase;
@@ -221,36 +222,45 @@ public class MTELargeSolarOverpressureArray extends MTEGTSRMultiBlockBase<MTELar
         registerProgressEntries();
     }
 
-    // GTSR 进度词条：注册顺序 = GUI 终端显示顺序（热量/阳光比例/结垢/蒸汽输出；太阳能增幅行为文本行保留在 GUI）
+    // GTSR 进度词条：注册顺序 = GUI 终端显示顺序（热量/阳光比例/结垢/蒸汽输出；太阳能增幅行为文本行保留在 GUI）；
+    // 四词条零值仍显示——词条渲染默认零值隐藏，热量停机衰减、阳光比例夜间归零、结垢 0 起步、输出停机归零，
+    // 不加 showZero 会让停机/夜间/新机阵列词条整行消失（与地热锅炉 v1.20.22 同修）
     private void registerProgressEntries() {
         registerEntry(
-            "temperature",
-            "gtsr.gui.solar_array.heat",
-            "%.3f%%",
-            EnumChatFormatting.GOLD,
-            () -> mHeat * 100.0d);
+            GTSRProgressEntry
+                .of("temperature", "gtsr.gui.solar_array.heat", "%.3f%%", EnumChatFormatting.GOLD, () -> mHeat * 100.0d)
+                .showZero());
         registerEntry(
-            "sun_ratio",
-            "gtsr.gui.solar_array.sun_ratio",
-            "%.3f%%",
-            EnumChatFormatting.AQUA,
-            () -> mSunRatio * 100.0d);
+            GTSRProgressEntry
+                .of(
+                    "sun_ratio",
+                    "gtsr.gui.solar_array.sun_ratio",
+                    "%.3f%%",
+                    EnumChatFormatting.AQUA,
+                    () -> mSunRatio * 100.0d)
+                .showZero());
         registerEntry(
-            "calcification",
-            "gtsr.gui.solar_array.calcification",
-            "%.3f%%",
-            EnumChatFormatting.RED,
-            () -> mCalcification * 100.0d);
+            GTSRProgressEntry
+                .of(
+                    "calcification",
+                    "gtsr.gui.solar_array.calcification",
+                    "%.3f%%",
+                    EnumChatFormatting.RED,
+                    () -> mCalcification * 100.0d)
+                .showZero());
         // 蒸汽输出行末尾 (蒸汽)/(超热蒸汽) 后缀：formatter 内读机器字段判定
-        registerEntryCustom(
-            "steam_output",
-            "gtsr.gui.solar_array.steam_output",
-            EnumChatFormatting.AQUA,
-            () -> mCurrentSteamOutput,
-            v -> NumberFormatUtil.formatNumber((long) v) + " L/s "
-                + EnumChatFormatting.WHITE
-                + (isNickel() ? StatCollector.translateToLocal("gtsr.gui.solar_array.superheated")
-                    : StatCollector.translateToLocal("gtsr.gui.solar_array.steam")));
+        registerEntry(
+            GTSRProgressEntry
+                .ofCustom(
+                    "steam_output",
+                    "gtsr.gui.solar_array.steam_output",
+                    EnumChatFormatting.AQUA,
+                    () -> mCurrentSteamOutput,
+                    v -> NumberFormatUtil.formatNumber((long) v) + " L/s "
+                        + EnumChatFormatting.WHITE
+                        + (isNickel() ? StatCollector.translateToLocal("gtsr.gui.solar_array.superheated")
+                            : StatCollector.translateToLocal("gtsr.gui.solar_array.steam")))
+                .showZero());
     }
 
     @Override

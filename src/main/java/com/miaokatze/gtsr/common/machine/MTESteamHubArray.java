@@ -40,6 +40,7 @@ import com.gtnewhorizon.structurelib.structure.StructureDefinition;
 import com.gtnewhorizons.modularui.common.widget.DynamicPositionedColumn;
 import com.gtnewhorizons.modularui.common.widget.FakeSyncWidget;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
+import com.miaokatze.gtsr.common.api.progress.GTSRProgressEntry;
 import com.miaokatze.gtsr.common.gui.MTESteamHubArrayGui;
 import com.miaokatze.gtsr.common.machine.base.IHubCacheNode;
 import com.miaokatze.gtsr.common.machine.base.MTEHubArrayBase;
@@ -357,7 +358,7 @@ public class MTESteamHubArray extends MTEHubArrayBase<MTESteamHubArray>
         registerProgressEntries();
     }
 
-    // GTSR 进度词条：注册顺序 = GUI 终端显示顺序（存储单元/蒸汽缓冲/总容量；等级/芯片/状态为文本行保留在 GUI）
+    // GTSR 进度词条：注册顺序 = GUI 终端显示顺序（存储单元/蒸汽缓冲/存储种类/总容量；等级/芯片/状态为文本行保留在 GUI）
     private void registerProgressEntries() {
         // 存储单元：显示 "已装/上限(25×堆叠)"，formatter 内读机器字段拼上限
         registerEntryCustom(
@@ -372,12 +373,37 @@ public class MTESteamHubArray extends MTEHubArrayBase<MTESteamHubArray>
             EnumChatFormatting.LIGHT_PURPLE,
             () -> mSteamStored,
             v -> UnitFormatUtil.format((long) v) + " L");
+        // 存储种类：formatter 读基类客户端字段 mClientFluidName（description packet/stream 双通道同步，
+        // 仅名字变化发包），显示锁定流体本地化名；值口径 0/1（有无存储类型锁，该词条显示为文本无数值）；
+        // 零值仍显示（空存储显式提示「无」，词条不静默消失）
+        registerEntry(
+            GTSRProgressEntry
+                .ofCustom(
+                    "stored_fluid_type",
+                    "gtsr.gui.steam_hub.stored_fluid_type",
+                    EnumChatFormatting.AQUA,
+                    () -> mStoredFluidType != null ? 1.0d : 0.0d,
+                    v -> formatStoredFluidName())
+                .showZero());
         registerEntryCustom(
             "total_capacity",
             "gtsr.gui.steam_hub.total_capacity",
             EnumChatFormatting.LIGHT_PURPLE,
             () -> getTotalCapacity(),
             v -> UnitFormatUtil.format((long) v) + " L");
+    }
+
+    /** 存储种类词条显示文本：空存储显式提示（词条常显不隐藏），有锁显示本地化流体名。 */
+    private String formatStoredFluidName() {
+        return mClientFluidName == null || mClientFluidName.isEmpty()
+            ? StatCollector.translateToLocal("gtsr.gui.hub.stored_fluid_none")
+            : localizedFluidName(mClientFluidName);
+    }
+
+    /** 流体注册名 → 本地化名；注册表未命中回退注册名字符串（同 TCDS 词条燃料名口径）。 */
+    private static String localizedFluidName(String fluidName) {
+        Fluid f = FluidRegistry.getFluid(fluidName);
+        return f != null ? f.getLocalizedName(new FluidStack(f, 0)) : fluidName;
     }
 
     @Override

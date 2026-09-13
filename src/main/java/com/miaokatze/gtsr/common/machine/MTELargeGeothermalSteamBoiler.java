@@ -50,6 +50,7 @@ import com.miaokatze.gtsr.api.IShiftRightClickDecalcifiable;
 import com.miaokatze.gtsr.api.compat.GTSRHatchFluidAccess;
 import com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
+import com.miaokatze.gtsr.common.api.progress.GTSRProgressEntry;
 import com.miaokatze.gtsr.common.event.GTSRMachineEvent;
 import com.miaokatze.gtsr.common.gui.MTELargeGeothermalSteamBoilerGui;
 import com.miaokatze.gtsr.common.machine.base.MTEGTSRMultiBlockBase;
@@ -214,30 +215,41 @@ public class MTELargeGeothermalSteamBoiler extends MTEGTSRMultiBlockBase<MTELarg
         registerProgressEntries();
     }
 
-    // GTSR 进度词条：注册顺序 = GUI 终端显示顺序（热量/结垢/蒸汽输出，芯片警告行为文本行保留在 GUI）
+    // GTSR 进度词条：注册顺序 = GUI 终端显示顺序（热量/结垢/蒸汽输出，芯片警告行为文本行保留在 GUI）；
+    // 三词条零值仍显示——词条渲染默认零值隐藏，热量停机衰减、结垢 0 起步、输出停机归零，
+    // 不加 showZero 会让停机/新机锅炉词条整行消失（v1.20.22 修复）
     private void registerProgressEntries() {
         registerEntry(
-            "temperature",
-            "gtsr.gui.geothermal_boiler.heat",
-            "%.3f%%",
-            EnumChatFormatting.GOLD,
-            () -> mHeat * 100.0d);
+            GTSRProgressEntry
+                .of(
+                    "temperature",
+                    "gtsr.gui.geothermal_boiler.heat",
+                    "%.3f%%",
+                    EnumChatFormatting.GOLD,
+                    () -> mHeat * 100.0d)
+                .showZero());
         registerEntry(
-            "calcification",
-            "gtsr.gui.geothermal_boiler.calcification",
-            "%.3f%%",
-            EnumChatFormatting.RED,
-            () -> mCalcification * 100.0d);
+            GTSRProgressEntry
+                .of(
+                    "calcification",
+                    "gtsr.gui.geothermal_boiler.calcification",
+                    "%.3f%%",
+                    EnumChatFormatting.RED,
+                    () -> mCalcification * 100.0d)
+                .showZero());
         // 蒸汽输出行末尾 (蒸汽)/(超热蒸汽) 后缀：formatter 内读机器字段判定
-        registerEntryCustom(
-            "steam_output",
-            "gtsr.gui.geothermal_boiler.steam_output",
-            EnumChatFormatting.AQUA,
-            () -> mCurrentSteamOutput,
-            v -> NumberFormatUtil.formatNumber((long) v) + " L/s "
-                + EnumChatFormatting.WHITE
-                + (hasOverheatChip() ? StatCollector.translateToLocal("gtsr.gui.geothermal_boiler.superheated")
-                    : StatCollector.translateToLocal("gtsr.gui.geothermal_boiler.steam")));
+        registerEntry(
+            GTSRProgressEntry
+                .ofCustom(
+                    "steam_output",
+                    "gtsr.gui.geothermal_boiler.steam_output",
+                    EnumChatFormatting.AQUA,
+                    () -> mCurrentSteamOutput,
+                    v -> NumberFormatUtil.formatNumber((long) v) + " L/s "
+                        + EnumChatFormatting.WHITE
+                        + (hasOverheatChip() ? StatCollector.translateToLocal("gtsr.gui.geothermal_boiler.superheated")
+                            : StatCollector.translateToLocal("gtsr.gui.geothermal_boiler.steam")))
+                .showZero());
     }
 
     @Override
