@@ -144,14 +144,26 @@ public class MTESingularitySteamCompartment extends MTEHatchPressureSteamInput
         return stored != null && stored.isFluidEqual(fluidStack) ? drain(fluidStack.amount, doDrain) : null;
     }
 
-    // ===== 无 GUI =====
+    // ===== GUI：标准流体槽（持枢纽终端右击=速率循环）=====
 
     @Override
     public boolean onRightclick(IGregTechTileEntity aBaseMetaTileEntity, EntityPlayer aPlayer) {
         // 持终端右击=速率循环（本分支）；Shift+右击容量=HubTerminal.onItemUse 潜行路径
         if (MTESingularityCompartmentBase.handleHubTerminalRateClick(aBaseMetaTileEntity, this, aPlayer)) return true;
+        openGui(aPlayer);
         return true;
     }
+
+    /**
+     * no-op：抑制近亲 GT++ 链的螺丝刀开关入口（自动拉取开关经 CommonMetaTileEntityMixin
+     * 注入在 CommonMetaTileEntity.onScrewdriverRightClick 内、GT++ mLockedFluid 切换同理；
+     * 本覆写为最派生实现且不调 super，虚分派整段短路）。自动拉取本已被方向参数版 fill 的
+     * UNKNOWN 门阻断（gtsr$doAutoInput 经 GTUtility.moveFluid 走正面方向 fill 必为 0），
+     * 此处收口防回归。保留 GUI 专有控件（GT++ 蒸汽过滤槽）不受影响。
+     */
+    @Override
+    public void onScrewdriverRightClick(ForgeDirection side, EntityPlayer aPlayer, float aX, float aY, float aZ,
+        ItemStack aTool) {}
 
     // ===== NBT 三处（gtsr.hubPos / gtsr.modeLocked / gtsr.singularity_consumed）=====
 

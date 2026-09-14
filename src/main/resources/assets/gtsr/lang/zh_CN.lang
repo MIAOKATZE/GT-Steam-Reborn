@@ -425,6 +425,10 @@ gtsr.tooltip.singularity_compartment.bind_cost_one=绑定消耗: 1×蒸汽纠缠
 gtsr.tooltip.singularity_compartment.bind_cost_free=绑定消耗: 无
 gtsr.tooltip.singularity_compartment.bind_target_steam=绑定目标: 蒸汽枢纽阵列
 gtsr.tooltip.singularity_compartment.bind_target_fluid=绑定目标: 蓄水枢纽阵列
+gtsr.tooltip.singularity_compartment.fluid_input_port=奇点流体输入仓
+gtsr.tooltip.singularity_compartment.fluid_output_port=奇点流体输出仓
+gtsr.tooltip.singularity_compartment.port_fluid_type=任意流体（同一枢纽同时仅存一种）
+gtsr.tooltip.singularity_compartment.port_buffer=本地缓存: 256,000 L，仅经绑定枢纽链路读写
 gtsr.cache_node.mode_locked=该仓模式固定，无法切换
 
 # Hub Array Binding

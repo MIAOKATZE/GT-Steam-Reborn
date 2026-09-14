@@ -148,6 +148,39 @@ public class MTESingularitySteamOutputCompartment extends MTEPressureSteamOutput
         return false;
     }
 
+    /**
+     * put 侧锁定门（前置验证①：MUI2 GUI 槽 put 经 FluidStackTank 直写 mFluid，不经
+     * fill/canTankBeFilled/acceptsFluid，唯一能拦 GUI put 的杠杆是槽过滤本方法；同时覆盖
+     * MTEBasicTank 容器倒空路径与管道 fill 门，管道路径未放开）：锁定后仅锁定流体可入罐，
+     * 判据镜像 GT5U canStoreFluid 的 lockedFluid.equals(fluidStack.getFluid())；未锁定
+     * 保持近亲默认全放行（未锁定行为与现状一致）。
+     */
+    @Override
+    public boolean isFluidInputAllowed(FluidStack aFluid) {
+        if (aFluid == null || aFluid.getFluid() == null) return false;
+        if (isFluidLocked() && getLockedFluid() != null) {
+            return getLockedFluid().equals(aFluid.getFluid());
+        }
+        return true;
+    }
+
+    /**
+     * 抽侧锁定门 + 委托近亲罐抽取（super 链 MTEHatchOutput→MTEBasicTank.drain，近亲
+     * MTESteamOutputHatch/MTEPressureSteamOutputHatch 无 int 版覆写，GT5U 锁定链
+     * isFluidLocked/getLockedFluid 直接继承可用）：锁定后罐内容不等于锁定流体一律拒抽
+     * （判据镜像 GT5U canStoreFluid 的 lockedFluid.equals(fluid)），方向参数版 drain 均委托
+     * 本方法，枢纽/管道抽取全路径过门；GUI 槽取流走 FluidStackTank 直写罐体不经本方法，
+     * 与 GT5U 原生输出仓行为一致。锁定持久化走 GT5U mMode+lockedFluidName 键（super 链）。
+     */
+    @Override
+    public FluidStack drain(int maxDrain, boolean doDrain) {
+        if (isFluidLocked() && getLockedFluid() != null) {
+            FluidStack stored = getStoredFluidStackLocal();
+            if (stored == null || stored.amount <= 0 || !getLockedFluid().equals(stored.getFluid())) return null;
+        }
+        return super.drain(maxDrain, doDrain);
+    }
+
     // ===== 仅枢纽交互：方向参数版 fill/drain 只放行 UNKNOWN =====
 
     @Override
@@ -167,12 +200,14 @@ public class MTESingularitySteamOutputCompartment extends MTEPressureSteamOutput
         return stored != null && stored.isFluidEqual(fluidStack) ? drain(fluidStack.amount, doDrain) : null;
     }
 
-    // ===== 无 GUI =====
+    // ===== GUI：标准流体槽（持枢纽终端右击=速率循环）=====
 
     @Override
     public boolean onRightclick(IGregTechTileEntity aBaseMetaTileEntity, EntityPlayer aPlayer) {
         // 持终端右击=速率循环（本分支）；Shift+右击容量=HubTerminal.onItemUse 潜行路径
+        // （近亲链 GT5U MTEHatchOutput.tryToLockHatch 的持容器锁定路径在 4 参 onRightclick 中先于本方法）
         if (MTESingularityCompartmentBase.handleHubTerminalRateClick(aBaseMetaTileEntity, this, aPlayer)) return true;
+        openGui(aPlayer);
         return true;
     }
 

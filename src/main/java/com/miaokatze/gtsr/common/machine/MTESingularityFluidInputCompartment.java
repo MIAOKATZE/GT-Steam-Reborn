@@ -5,12 +5,15 @@ import java.util.List;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.util.EnumChatFormatting;
+import net.minecraft.util.StatCollector;
 import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
 
 import com.miaokatze.gtsr.common.machine.base.MTEWaterHubInputHatch;
+import com.miaokatze.gtsr.common.util.GTSRUtils;
 import com.miaokatze.gtsr.register.TextureManager;
 
 import gregtech.api.interfaces.IIconContainer;
@@ -176,12 +179,27 @@ public class MTESingularityFluidInputCompartment extends MTEWaterHubInputHatch
         return stored != null && stored.isFluidEqual(fluidStack) ? drain(fluidStack.amount, doDrain) : null;
     }
 
-    // ===== 无 GUI =====
+    // ===== Tooltip：奇点仓语义（覆盖近亲 MTEWaterHubInputHatch 的蓄水枢纽阵列描述）=====
+
+    @Override
+    public String[] getDescription() {
+        return new String[] {
+            EnumChatFormatting.DARK_AQUA
+                + StatCollector.translateToLocal("gtsr.tooltip.singularity_compartment.fluid_input_port"),
+            EnumChatFormatting.AQUA
+                + StatCollector.translateToLocal("gtsr.tooltip.singularity_compartment.port_fluid_type"),
+            EnumChatFormatting.GRAY
+                + StatCollector.translateToLocal("gtsr.tooltip.singularity_compartment.port_buffer"),
+            GTSRUtils.getAddedByLine() };
+    }
+
+    // ===== GUI：标准流体槽（持枢纽终端右击=速率循环）=====
 
     @Override
     public boolean onRightclick(IGregTechTileEntity aBaseMetaTileEntity, EntityPlayer aPlayer) {
         // 持终端右击=速率循环（本分支）；Shift+右击容量=HubTerminal.onItemUse 潜行路径
         if (MTESingularityCompartmentBase.handleHubTerminalRateClick(aBaseMetaTileEntity, this, aPlayer)) return true;
+        openGui(aPlayer);
         return true;
     }
 

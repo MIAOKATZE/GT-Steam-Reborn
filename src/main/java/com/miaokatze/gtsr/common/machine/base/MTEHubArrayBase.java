@@ -127,6 +127,13 @@ public abstract class MTEHubArrayBase<T extends MTEHubArrayBase<T>> extends MTEG
     // 存储流体名的客户端副本（description packet 同步）：正面流体窗取流体用，空串=无（回退默认流体）
     protected String mClientFluidName = "";
 
+    /**
+     * 窗流体记忆名（服务端真值）：存储非空时每 tick 刷新为当前存储流体名，抽干清空后保持不变；
+     * 新流体到来覆盖记忆，方块破坏即重置（存档键 gtsr.memoryFluid 只进 TE 存档，物品链不携带，
+     * 旧档无键=空串→族默认流体）。
+     */
+    protected String mMemoryFluidName = "";
+
     protected MTEHubArrayBase(int aID, String aName, String aNameRegional) {
         super(aID, aName, aNameRegional);
     }
@@ -476,8 +483,13 @@ public abstract class MTEHubArrayBase<T extends MTEHubArrayBase<T>> extends MTEG
 
         autoOutputStored();
 
-        // 存储流体名变化才发 description packet（首流锁定与抽干清空自然覆盖，量变化不发包，稳态零流量）
-        String syncKey = storedFluidNameForSync();
+        // 窗流体记忆维护（服务端）：存储非空即刷新记忆名，覆盖枢纽灌入/近亲注入/读档恢复全路径，
+        // 每 tick 收敛；抽干清空后窗保持记忆流体
+        String current = storedFluidNameForSync();
+        if (!current.isEmpty()) mMemoryFluidName = current;
+
+        // 存储流体名变化才发 description packet（首流锁定、抽干清空后保持记忆流体，量变化不发包，稳态零流量）
+        String syncKey = displayFluidNameForSync();
         if (!syncKey.equals(mLastSyncKey)) {
             mLastSyncKey = syncKey;
             aBaseMetaTileEntity.issueTileUpdate();
@@ -498,6 +510,17 @@ public abstract class MTEHubArrayBase<T extends MTEHubArrayBase<T>> extends MTEG
 
     /** 存储流体名同步 key（空串=无存储；蒸汽侧取 FluidStack 名、水侧取 String 名）。 */
     protected abstract String storedFluidNameForSync();
+
+    /**
+     * 流体窗显示名（同步写值与去重 key 单源）：存储非空显示存储流体；存储空回退
+     * {@link #mMemoryFluidName} 记忆名。记忆语义：服务端每 tick 收敛（见 {@link #onPostTick}），
+     * 抽干清空后窗保持记忆流体，新流体覆盖记忆，方块破坏即重置（存档键 gtsr.memoryFluid 只进
+     * TE 存档，物品/掉落链不携带；旧档无键回退空串→族默认流体）。
+     */
+    protected String displayFluidNameForSync() {
+        String cur = storedFluidNameForSync();
+        return cur.isEmpty() ? mMemoryFluidName : cur;
+    }
 
     /** 周期传输触发族差异钩子（Steam：mTickCounter 计数取模；Water：世界 aTick 取模）。 */
     protected abstract void onBoundTransferTick(long aTick);
@@ -545,6 +568,8 @@ public abstract class MTEHubArrayBase<T extends MTEHubArrayBase<T>> extends MTEG
         aNBT.setInteger("mPipeTier", mPipeTier);
         aNBT.setInteger("mFrameTier", mFrameTier);
         aNBT.setBoolean("mOverflowInput", mOverflowInput);
+        // 窗流体记忆名（仅服务端存档携带；物品链不写——破坏重置语义）
+        if (!mMemoryFluidName.isEmpty()) aNBT.setString("gtsr.memoryFluid", mMemoryFluidName);
         if (!mBoundNodes.isEmpty()) {
             saveBoundNodes(aNBT);
         }
@@ -561,6 +586,8 @@ public abstract class MTEHubArrayBase<T extends MTEHubArrayBase<T>> extends MTEG
         mPipeTier = aNBT.getInteger("mPipeTier");
         mFrameTier = aNBT.getInteger("mFrameTier");
         mOverflowInput = aNBT.getBoolean("mOverflowInput");
+        // 窗流体记忆名读回；旧档无键回退空串（窗回退族默认流体，存档兼容）
+        mMemoryFluidName = aNBT.hasKey("gtsr.memoryFluid") ? aNBT.getString("gtsr.memoryFluid") : "";
         mBoundNodes.clear();
         if (aNBT.hasKey("mBoundNodes")) {
             loadBoundNodes(aNBT);
@@ -870,8 +897,8 @@ public abstract class MTEHubArrayBase<T extends MTEHubArrayBase<T>> extends MTEG
         NBTTagCompound data = super.getDescriptionData();
         if (data == null) data = new NBTTagCompound();
         data.setInteger("mSetTier", mSetTier);
-        // 正面流体窗渲染状态：存储流体名（空串=无，客户端回退族默认流体）；写值与 storedFluidNameForSync 同源
-        data.setString("gtsr.hubFluid", storedFluidNameForSync());
+        // 正面流体窗渲染状态：窗显示流体名（存储非空=存储流体，空=记忆流体，客户端再回退族默认流体）
+        data.setString("gtsr.hubFluid", displayFluidNameForSync());
         return data;
     }
 
@@ -896,7 +923,7 @@ public abstract class MTEHubArrayBase<T extends MTEHubArrayBase<T>> extends MTEG
     public void writeToStream(ByteBuf buf) {
         super.writeToStream(buf);
         buf.writeInt(mSetTier);
-        ByteBufUtils.writeUTF8String(buf, storedFluidNameForSync());
+        ByteBufUtils.writeUTF8String(buf, displayFluidNameForSync());
     }
 
     /**

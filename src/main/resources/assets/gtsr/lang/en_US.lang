@@ -425,6 +425,10 @@ gtsr.tooltip.singularity_compartment.bind_cost_one=Binding cost: 1x Steam Entang
 gtsr.tooltip.singularity_compartment.bind_cost_free=Binding cost: none
 gtsr.tooltip.singularity_compartment.bind_target_steam=Binding target: Steam Hub Array
 gtsr.tooltip.singularity_compartment.bind_target_fluid=Binding target: Water Hub Array
+gtsr.tooltip.singularity_compartment.fluid_input_port=Singularity Fluid Input Compartment
+gtsr.tooltip.singularity_compartment.fluid_output_port=Singularity Fluid Output Compartment
+gtsr.tooltip.singularity_compartment.port_fluid_type=Any fluid (one fluid type per hub at a time)
+gtsr.tooltip.singularity_compartment.port_buffer=Local buffer: 256,000 L, read/written only via the bound hub link
 gtsr.cache_node.mode_locked=This compartment's mode is fixed and cannot be switched
 
 # Hub Array Binding

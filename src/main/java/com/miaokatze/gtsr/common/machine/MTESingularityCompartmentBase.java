@@ -94,6 +94,12 @@ public interface MTESingularityCompartmentBase extends IHubCacheNode {
         public boolean clientBound = false;
 
         public String clientFluidName = "";
+
+        /**
+         * 窗流体记忆名（服务端真值）：罐内有流体时每 tick 刷新为当前流体名，清空后保持不变；
+         * 新流体到来覆盖记忆，方块破坏即重置（物品 NBT 不写记忆键，旧档无键=空串）。
+         */
+        public String memoryFluidName = "";
     }
 
     // ===== 子类语义常量（四仓各自实现）=====
@@ -210,6 +216,17 @@ public interface MTESingularityCompartmentBase extends IHubCacheNode {
             .getName() : "";
     }
 
+    /**
+     * 流体窗显示名（同步与去重 key 单源）：罐内有流体显示罐内流体；罐空回退记忆名
+     * {@code getHubState().memoryFluidName}。记忆语义：服务端每 tick 收敛（见
+     * {@link #onCompartmentHubTick}），罐被清空后窗保持记忆流体，新流体到来覆盖记忆，
+     * 方块破坏即重置（物品 NBT 不写记忆键，旧档无键回退空串→族默认流体）。
+     */
+    default String getDisplayedWindowFluidName() {
+        String cur = getStoredFluidName();
+        return cur.isEmpty() ? getHubState().memoryFluidName : cur;
+    }
+
     @Override
     default long getStoredFluidAmount() {
         FluidStack fluid = getStoredFluidStackLocal();
@@ -305,6 +322,8 @@ public interface MTESingularityCompartmentBase extends IHubCacheNode {
         // S4 容量档（仅接收仓持久化；键名与缓存节点 mCapacityLimitPercent 对称）
         if (supportsCapacityTier()) aNBT.setInteger("mCapacityLimitPercent", s.capacityLimitPercent);
         aNBT.setInteger("mTransferRatePercent", s.transferRatePercent);
+        // 窗流体记忆名（仅服务端存档携带；物品 NBT 不写——破坏重置语义）
+        if (!s.memoryFluidName.isEmpty()) aNBT.setString("gtsr.memoryFluid", s.memoryFluidName);
         if (s.bound) {
             // 反转语义：与 setItemNBT 一致，与读取侧的反转解读对称
             aNBT.setTag(
@@ -344,6 +363,8 @@ public interface MTESingularityCompartmentBase extends IHubCacheNode {
                 }
             }
         }
+        // 窗流体记忆名读回；旧档无键回退空串（窗回退族默认流体，存档兼容）
+        s.memoryFluidName = aNBT.hasKey("gtsr.memoryFluid") ? aNBT.getString("gtsr.memoryFluid") : "";
         if (aNBT.hasKey("gtsr.hubPos")) {
             NBTTagCompound hubTag = aNBT.getCompoundTag("gtsr.hubPos");
             s.hubX = hubTag.getInteger("x");
@@ -380,15 +401,16 @@ public interface MTESingularityCompartmentBase extends IHubCacheNode {
         aNBT.setInteger("mTransferRatePercent", getHubState().transferRatePercent);
         // 保留奇点消耗标记，避免玩家通过破坏→重新放置来重复利用蒸汽纠缠奇点
         aNBT.setBoolean("gtsr.singularity_consumed", true);
+        // 显式不写窗流体记忆键（gtsr.memoryFluid）：破坏重置语义，掉落物 NBT 不携带记忆
     }
 
     // ===== 客户端渲染同步（description packet）=====
 
-    /** getDescriptionData 增量：正面流体窗渲染状态（绑定 + 罐内流体名，空串=罐空）。 */
+    /** getDescriptionData 增量：正面流体窗渲染状态（绑定 + 窗显示流体名——罐内流体或记忆流体）。 */
     default NBTTagCompound writeCompartmentDescriptionData(NBTTagCompound data) {
         HubCompartmentState s = getHubState();
         data.setBoolean("gtsr.bound", s.bound);
-        data.setString("gtsr.fluid", getStoredFluidName());
+        data.setString("gtsr.fluid", getDisplayedWindowFluidName());
         return data;
     }
 
@@ -414,7 +436,7 @@ public interface MTESingularityCompartmentBase extends IHubCacheNode {
     default void writeCompartmentToStream(ByteBuf buf) {
         HubCompartmentState s = getHubState();
         buf.writeBoolean(s.bound);
-        ByteBufUtils.writeUTF8String(buf, getStoredFluidName());
+        ByteBufUtils.writeUTF8String(buf, getDisplayedWindowFluidName());
     }
 
     /**
@@ -432,7 +454,8 @@ public interface MTESingularityCompartmentBase extends IHubCacheNode {
 
     /**
      * 服务端每 tick 的枢纽登记与渲染同步（四仓 onPostTick 调用，内部自判服务端）。
-     * 登记失败 20t 重试、成功 600t 周期复查（hub 重建后绑定自动恢复）；绑定/流体类型变化才发 description packet（稳态零发包）。
+     * 登记失败 20t 重试、成功 600t 周期复查（hub 重建后绑定自动恢复）；绑定/窗显示流体（罐内或记忆）
+     * 变化才发 description packet（稳态零发包）。
      */
     default void onCompartmentHubTick(IGregTechTileEntity baseTE, long tick) {
         if (!baseTE.isServerSide()) return;
@@ -441,7 +464,11 @@ public interface MTESingularityCompartmentBase extends IHubCacheNode {
             s.registered = registerCompartmentWithHub(baseTE);
             s.nextRegistrationTick = tick + (s.registered ? 600 : 20);
         }
-        String syncKey = s.bound + "|" + getStoredFluidName();
+        // 窗流体记忆维护（服务端）：罐内非空即刷新记忆名，覆盖枢纽灌入/近亲 fill/读档恢复全路径，
+        // 每 tick 收敛；清空后记忆保持，新流体覆盖旧记忆
+        String current = getStoredFluidName();
+        if (!current.isEmpty()) s.memoryFluidName = current;
+        String syncKey = s.bound + "|" + getDisplayedWindowFluidName();
         if (!syncKey.equals(s.lastSyncKey)) {
             s.lastSyncKey = syncKey;
             baseTE.issueTileUpdate();

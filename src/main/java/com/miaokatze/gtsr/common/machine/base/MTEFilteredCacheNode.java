@@ -87,6 +87,13 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase implements
     /** 渲染状态同步去重 key（bound|out|fluid 拼接），服务端 onPostTick 维护，变化才 issueTileUpdate。 */
     private String mLastSyncKey = null;
 
+    /**
+     * 窗流体记忆名（服务端真值）：罐内有流体时每 tick 刷新为当前罐内流体名，清空后保持不变；
+     * 新流体到来覆盖记忆，方块破坏即重置（存档键 gtsr.memoryFluid 只进 TE 存档，物品 NBT 不写，
+     * 旧档无键=空串→三段兜底）。
+     */
+    protected String mMemoryFluidName = "";
+
     /** 传输速率档位单源于 IHubCacheNode，缓存节点与奇点仓共用。 */
     private static final int[] TRANSFER_RATE_CYCLE = IHubCacheNode.TRANSFER_RATE_CYCLE;
 
@@ -282,6 +289,18 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase implements
             .getName() : "";
     }
 
+    /**
+     * 顶面流体窗显示名（同步写值与去重 key 单源）：罐内有流体显示罐内流体；罐空回退
+     * {@link #mMemoryFluidName} 记忆名。记忆语义：服务端每 tick 收敛（见 {@link #onPostTick}），
+     * 罐被清空后窗保持记忆流体，新流体到来覆盖记忆，方块破坏即重置（存档键 gtsr.memoryFluid
+     * 只进 TE 存档，setItemNBT 不写；掉落物若带罐内流体，放置后首 tick 记忆自动重建；
+     * 旧档无键回退空串→三段兜底）。
+     */
+    public String getDisplayedWindowFluidName() {
+        String cur = getStoredFluidName();
+        return cur.isEmpty() ? mMemoryFluidName : cur;
+    }
+
     /** 当前存储量（long，强化/超压节点容量超出 int 范围）。 */
     public long getStoredFluidAmount() {
         return mFluid != null ? mFluid.amount : 0L;
@@ -466,6 +485,8 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase implements
         aNBT.setBoolean("mIsOutputMode", mIsOutputMode);
         aNBT.setInteger("mTransferRatePercent", mTransferRatePercent);
         aNBT.setInteger("mCapacityLimitPercent", mCapacityLimitPercent);
+        // 窗流体记忆名（仅服务端存档携带；setItemNBT 不写——破坏重置语义）
+        if (!mMemoryFluidName.isEmpty()) aNBT.setString("gtsr.memoryFluid", mMemoryFluidName);
         // 用 mBound 判断绑定状态，避免主世界 dim=0 被误判为未绑定
         if (mBound) {
             // 与 loadNBTData 的反转读取语义对称：output 字段取反存储
@@ -501,6 +522,8 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase implements
         }
         // 保留奇点消耗标记，避免玩家通过破坏→重新放置来重复利用蒸汽纠缠奇点
         aNBT.setBoolean("gtsr.singularity_consumed", true);
+        // 显式不写窗流体记忆键（gtsr.memoryFluid）：破坏重置语义；掉落物若带罐内流体，
+        // 放置后首 tick 记忆自动重建（语义一致）
         // 自定义名写入掉落物（原版 display.Name 结构）：物品栏直接显示自定义名，且铁砧改名走同一标签
         if (!getCustomName().isEmpty()) {
             NBTTagCompound displayTag = new NBTTagCompound();
@@ -538,6 +561,8 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase implements
                 }
             }
         }
+        // 窗流体记忆名读回；旧档无键回退空串（窗回退三段兜底，存档兼容）
+        mMemoryFluidName = aNBT.hasKey("gtsr.memoryFluid") ? aNBT.getString("gtsr.memoryFluid") : "";
         if (aNBT.hasKey("gtsr.hubPos")) {
             NBTTagCompound hubTag = aNBT.getCompoundTag("gtsr.hubPos");
             mHubX = hubTag.getInteger("x");
@@ -584,11 +609,11 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase implements
         if (!getCustomName().isEmpty()) {
             data.setString("gtsr.customName", getCustomName());
         }
-        // 渲染状态（顶面流体窗+框架层）：绑定/方向模式/枢纽类型/罐内流体名（空串=罐空）
+        // 渲染状态（顶面流体窗+框架层）：绑定/方向模式/枢纽类型/窗显示流体名（罐内流体或记忆流体）
         data.setBoolean("gtsr.bound", mBound);
         data.setBoolean("gtsr.out", mIsOutputMode);
         data.setString("gtsr.hubType", mHubType == null ? "" : mHubType);
-        data.setString("gtsr.fluid", getStoredFluidName());
+        data.setString("gtsr.fluid", getDisplayedWindowFluidName());
         return data;
     }
 
@@ -620,7 +645,7 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase implements
         buf.writeBoolean(mBound);
         buf.writeBoolean(mIsOutputMode);
         ByteBufUtils.writeUTF8String(buf, mHubType == null ? "" : mHubType);
-        ByteBufUtils.writeUTF8String(buf, getStoredFluidName());
+        ByteBufUtils.writeUTF8String(buf, getDisplayedWindowFluidName());
     }
 
     @Override
@@ -711,7 +736,11 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase implements
 
         // 渲染状态同步：绑定/方向模式/流体类型任一变化才发 description packet（覆盖绑定/解绑/模式切换/
         // 流体类型变化/清空全部路径）；节点每 20t 传输只变量不触发，正常稳态零发包
-        String syncKey = mBound + "|" + mIsOutputMode + "|" + getStoredFluidName();
+        // 窗流体记忆维护（服务端）：罐内非空即刷新记忆名，覆盖枢纽灌入/管道注入/读档恢复全路径，
+        // 每 tick 收敛；清空后记忆保持，新流体覆盖旧记忆
+        String current = getStoredFluidName();
+        if (!current.isEmpty()) mMemoryFluidName = current;
+        String syncKey = mBound + "|" + mIsOutputMode + "|" + getDisplayedWindowFluidName();
         if (!syncKey.equals(mLastSyncKey)) {
             mLastSyncKey = syncKey;
             aBaseMetaTileEntity.issueTileUpdate();

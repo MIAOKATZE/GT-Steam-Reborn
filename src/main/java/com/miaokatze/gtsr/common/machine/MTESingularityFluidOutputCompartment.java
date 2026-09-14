@@ -5,12 +5,15 @@ import java.util.List;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.util.EnumChatFormatting;
+import net.minecraft.util.StatCollector;
 import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
 
 import com.miaokatze.gtsr.common.machine.base.MTEWaterHubOutputHatch;
+import com.miaokatze.gtsr.common.util.GTSRUtils;
 import com.miaokatze.gtsr.register.TextureManager;
 
 import gregtech.api.interfaces.IIconContainer;
@@ -127,6 +130,32 @@ public class MTESingularityFluidOutputCompartment extends MTEWaterHubOutputHatch
         return false;
     }
 
+    /**
+     * 奇点输出仓开放流体锁定（推翻近亲 MTEWaterHubOutputHatch 的 false）：GUI 锁定槽
+     * （FluidLockSlotWidget 经本判定决定收否）由此可用；锁定状态走 GT5U mMode=8/9 +
+     * lockedFluidName 键，经 super 链 saveNBTData/loadNBTData 自动持久化（零改动）。
+     */
+    @Override
+    public boolean acceptsFluidLock(Fluid fluid) {
+        return true;
+    }
+
+    /**
+     * put 侧锁定门（前置验证①：MUI2 GUI 槽 put 经 FluidStackTank 直写 mFluid，不经
+     * fill/canTankBeFilled/acceptsFluid，唯一能拦 GUI put 的杠杆是槽过滤本方法；同时覆盖
+     * MTEBasicTank 容器倒空路径与管道 fill 门，管道路径未放开）：锁定后仅锁定流体可入罐，
+     * 判据镜像 GT5U canStoreFluid 的 lockedFluid.equals(fluidStack.getFluid())；未锁定
+     * 保持近亲默认全放行（未锁定行为与现状一致）。
+     */
+    @Override
+    public boolean isFluidInputAllowed(FluidStack aFluid) {
+        if (aFluid == null || aFluid.getFluid() == null) return false;
+        if (isFluidLocked() && getLockedFluid() != null) {
+            return getLockedFluid().equals(aFluid.getFluid());
+        }
+        return true;
+    }
+
     /** mMode 恒为 3：不响应螺丝刀切档（近亲此键切换 mOverflowOutput，仓无溢流输出语义）。 */
     @Override
     public void onScrewdriverRightClick(ForgeDirection side, EntityPlayer aPlayer, float aX, float aY, float aZ,
@@ -143,11 +172,15 @@ public class MTESingularityFluidOutputCompartment extends MTEWaterHubOutputHatch
     /**
      * 自管抽取（枢纽 drain(ForgeDirection.UNKNOWN) 路径）：屏蔽近亲 MTEWaterHubOutputHatch.drain 的
      * mOverflowOutput 门与 mController.extractWater 转发——发送仓只被枢纽从本地罐抽取。
+     * 抽侧锁定门：锁定后罐内容不等于锁定流体一律拒抽（判据镜像 GT5U canStoreFluid 的
+     * lockedFluid.equals(fluid)），方向参数版 drain 均委托本方法，枢纽/管道抽取全路径过门；
+     * GUI 槽取流走 FluidStackTank 直写罐体不经本方法，与 GT5U 原生输出仓行为一致。
      */
     @Override
     public FluidStack drain(int maxDrain, boolean doDrain) {
         FluidStack stored = mFluid;
         if (stored == null || stored.amount <= 0) return null;
+        if (isFluidLocked() && getLockedFluid() != null && !getLockedFluid().equals(stored.getFluid())) return null;
         int used = Math.min(maxDrain, stored.amount);
         FluidStack drained = stored.copy();
         drained.amount = used;
@@ -180,12 +213,28 @@ public class MTESingularityFluidOutputCompartment extends MTEWaterHubOutputHatch
         return stored != null && stored.isFluidEqual(fluidStack) ? drain(fluidStack.amount, doDrain) : null;
     }
 
-    // ===== 无 GUI =====
+    // ===== Tooltip：奇点仓语义（覆盖近亲 MTEWaterHubOutputHatch 的蓄水枢纽阵列描述）=====
+
+    @Override
+    public String[] getDescription() {
+        return new String[] {
+            EnumChatFormatting.DARK_AQUA
+                + StatCollector.translateToLocal("gtsr.tooltip.singularity_compartment.fluid_output_port"),
+            EnumChatFormatting.AQUA
+                + StatCollector.translateToLocal("gtsr.tooltip.singularity_compartment.port_fluid_type"),
+            EnumChatFormatting.GRAY
+                + StatCollector.translateToLocal("gtsr.tooltip.singularity_compartment.port_buffer"),
+            GTSRUtils.getAddedByLine() };
+    }
+
+    // ===== GUI：标准流体槽（持枢纽终端右击=速率循环）=====
 
     @Override
     public boolean onRightclick(IGregTechTileEntity aBaseMetaTileEntity, EntityPlayer aPlayer) {
         // 持终端右击=速率循环（本分支）；Shift+右击容量=HubTerminal.onItemUse 潜行路径
+        // （近亲链 GT5U MTEHatchOutput.tryToLockHatch 的持容器锁定路径在 4 参 onRightclick 中先于本方法）
         if (MTESingularityCompartmentBase.handleHubTerminalRateClick(aBaseMetaTileEntity, this, aPlayer)) return true;
+        openGui(aPlayer);
         return true;
     }
 
