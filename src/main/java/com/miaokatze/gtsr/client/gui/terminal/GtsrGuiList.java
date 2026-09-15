@@ -295,7 +295,8 @@ public class GtsrGuiList {
      * 进入前先保存外层剪刀状态（v1.20.16 G5-4）：宿主内容区剪刀（GuiClusterTerminalScreen
      * pushScissor）在本列表内层启用，退出时恢复其 box 并保持启用，而非无条件 glDisable。
      * 剪刀高度对齐整行边界（{@link #visibleRows()}×行高）：不足一行的高度不参与行绘制，
-     * 任何滚动位置都不出现残行（v1.20.16 G5-2）。
+     * 任何滚动位置都不出现残行（v1.20.16 G5-2）；锚定边取顶（listTop）——取底会把
+     * listHeight%行高 的余数从首行顶部裁掉，行高非整除的宿主首行不可见（v1.20.25）。
      */
     private void enableListScissor() {
         outerScissorEnabled = GL11.glIsEnabled(GL11.GL_SCISSOR_TEST);
@@ -310,10 +311,10 @@ public class GtsrGuiList {
         ScaledResolution sr = new ScaledResolution(mc, mc.displayWidth, mc.displayHeight);
         int scale = sr.getScaleFactor();
         int sx = listLeft * scale;
-        int sy = mc.displayHeight - listBottom * scale;
         int sw = listWidth * scale;
-        // 绘制区裁剪到整行：底边不足一行的缝隙（listHeight % slotHeight）整段不绘制
+        // 绘制区裁剪到整行并顶边锚定 listTop：首行恒完整，底边不足一行的缝隙（listHeight % slotHeight）整段不绘制
         int sh = visibleRows() * slotHeight * scale;
+        int sy = mc.displayHeight - (listTop + visibleRows() * slotHeight) * scale;
         GL11.glEnable(GL11.GL_SCISSOR_TEST);
         GL11.glScissor(sx, sy, sw, sh);
     }
