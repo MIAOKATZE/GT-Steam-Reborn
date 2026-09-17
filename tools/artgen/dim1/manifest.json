@@ -1,0 +1,762 @@
+{
+  "_manifest": "dim1 S7a 方块材质 唯一权威（gtnh-block-texture-artgen 契约：manifest 单点收口 PALETTE / DERIVED_RULES / SEEDS / STYLE / OUTPUTS）。",
+  "_authority": {
+    "plan": "plan/新维度计划/dim1-implementation-plan.md §4（:335-356，17 张清单）+ §S7a（:237-243）",
+    "naming_contract": "文件名 = 未来注册 icon 路径；S2/S6a 代码当前用 minecraft: 原版占位（BlockProsperitySurface.java:36-38/65-67、BlockRuinDebris.java:29-30、BlockRuinedCasing.java:29-30），本轮只补像素不改注册名、不改 Java。",
+    "code_meta_authority": "meta 语义以代码常量为准：BlockRuinedCasing META_RUSTED/SOOTED/PORCELAIN(0/1/2)、BlockRuinDebris META_SLEEPER/PIPE/RIVET_PLATE/CHIMNEY(0/1/2/3)。",
+    "no_timestamp": "本文件与产物一律不含时间戳，禁用 random/time/datetime（脚本内 AST 自检）。"
+  },
+  "PALETTE": {
+    "_note": "基色锚点（唯一可手挑的色值）；一切明暗阶经 DERIVED_RULES 由锚点派生，脚本零硬编码色值。",
+    "DARK_ANCHOR": "140F13",
+    "LIGHT_ANCHOR": "F0EAE0",
+    "GRASS_TINT_NEUTRAL": "C9C3AF",
+    "RUST_DIRT": "6B4A32",
+    "BRASS_SAND": "B08D3E",
+    "RUST_PEAT": "463726",
+    "RUST_CLAY": "8A8577",
+    "RUST_STONE": "7A7364",
+    "SLEEPER_WOOD": "3E3128",
+    "IRON_PIPE": "5A6069",
+    "STEEL_PLATE": "4A505A",
+    "CHIMNEY_BRICK": "6A4034",
+    "CASING_RUST": "8A5528",
+    "CASING_SOOT": "2A2724",
+    "PORCELAIN": "D8D2C2",
+    "SHATTER_SOD": "6B6656",
+    "SHATTER_PURPLE": "6A5268",
+    "SHATTER_DIRT": "4A3A42",
+    "RIFT_STONE": "3A3A42",
+    "BLACKSTONE": "1E1A22",
+    "RUST_OXIDE": "8A5A34",
+    "RAIL_IRON": "6E4A2E",
+    "GLOW_PURPLE": "C0A6E0",
+    "GLINT": "E8E2D0",
+    "STEEL_BARE": "7A808A",
+    "CRACK_DARK": "38303C",
+    "RIFT_HALO": "5A4A70"
+  },
+  "DERIVED_RULES": {
+    "D008": {
+      "toward": "DARK_ANCHOR",
+      "t": 0.008
+    },
+    "D014": {
+      "toward": "DARK_ANCHOR",
+      "t": 0.014
+    },
+    "D016": {
+      "toward": "DARK_ANCHOR",
+      "t": 0.016
+    },
+    "D022": {
+      "toward": "DARK_ANCHOR",
+      "t": 0.022
+    },
+    "D030": {
+      "toward": "DARK_ANCHOR",
+      "t": 0.03
+    },
+    "D032": {
+      "toward": "DARK_ANCHOR",
+      "t": 0.032
+    },
+    "D035": {
+      "toward": "DARK_ANCHOR",
+      "t": 0.035
+    },
+    "D040": {
+      "toward": "DARK_ANCHOR",
+      "t": 0.04
+    },
+    "D055": {
+      "toward": "DARK_ANCHOR",
+      "t": 0.055
+    },
+    "D070": {
+      "toward": "DARK_ANCHOR",
+      "t": 0.07
+    },
+    "D090": {
+      "toward": "DARK_ANCHOR",
+      "t": 0.09
+    },
+    "D110": {
+      "toward": "DARK_ANCHOR",
+      "t": 0.11
+    },
+    "D140": {
+      "toward": "DARK_ANCHOR",
+      "t": 0.14
+    },
+    "D160": {
+      "toward": "DARK_ANCHOR",
+      "t": 0.16
+    },
+    "D180": {
+      "toward": "DARK_ANCHOR",
+      "t": 0.18
+    },
+    "D200": {
+      "toward": "DARK_ANCHOR",
+      "t": 0.2
+    },
+    "D240": {
+      "toward": "DARK_ANCHOR",
+      "t": 0.24
+    },
+    "D320": {
+      "toward": "DARK_ANCHOR",
+      "t": 0.32
+    },
+    "L012": {
+      "toward": "LIGHT_ANCHOR",
+      "t": 0.012
+    },
+    "L022": {
+      "toward": "LIGHT_ANCHOR",
+      "t": 0.022
+    },
+    "L030": {
+      "toward": "LIGHT_ANCHOR",
+      "t": 0.03
+    },
+    "L035": {
+      "toward": "LIGHT_ANCHOR",
+      "t": 0.035
+    },
+    "L040": {
+      "toward": "LIGHT_ANCHOR",
+      "t": 0.04
+    },
+    "L045": {
+      "toward": "LIGHT_ANCHOR",
+      "t": 0.045
+    },
+    "L050": {
+      "toward": "LIGHT_ANCHOR",
+      "t": 0.05
+    },
+    "L055": {
+      "toward": "LIGHT_ANCHOR",
+      "t": 0.055
+    },
+    "L070": {
+      "toward": "LIGHT_ANCHOR",
+      "t": 0.07
+    },
+    "L090": {
+      "toward": "LIGHT_ANCHOR",
+      "t": 0.09
+    },
+    "L120": {
+      "toward": "LIGHT_ANCHOR",
+      "t": 0.12
+    },
+    "L160": {
+      "toward": "LIGHT_ANCHOR",
+      "t": 0.16
+    },
+    "L180": {
+      "toward": "LIGHT_ANCHOR",
+      "t": 0.18
+    },
+    "L240": {
+      "toward": "LIGHT_ANCHOR",
+      "t": 0.24
+    },
+    "_note": "shade(基色, 锚点, t) 线性插值；token D=向 DARK_ANCHOR、L=向 LIGHT_ANCHOR，后三位=千分之 t。t 值即本表，禁止脚本内另立数值。"
+  },
+  "BIOME_TINT_REFERENCE": {
+    "_note": "Java 常量同步抄录（草 tint 为渲染期乘色）：BiomeRustedSteppe.java:31 / BiomeGearworkForest.java:30 / BiomeBrassWastes.java:30 / BiomeFumaroleSwamp.java:30。",
+    "rustedSteppe": "8A7B4A",
+    "gearworkForest": "6E7B44",
+    "brassWastes": "B08D3E",
+    "fumaroleSwamp": "5C6B3F"
+  },
+  "SEEDS": {
+    "_note": "每输出一个 LCG/混合种子（splitmix64 混合，禁 random 模块）；种子改动 = 整张重画。",
+    "prosperity_surface_rust_grass": "0x5EED1001",
+    "prosperity_surface_rust_dirt": "0x5EED1002",
+    "prosperity_surface_rust_sand": "0x5EED1003",
+    "prosperity_surface_rust_peat": "0x5EED1004",
+    "prosperity_surface_rust_clay": "0x5EED1005",
+    "prosperity_surface_rust_stone": "0x5EED1006",
+    "ruin_debris_sleeper": "0x5EED2001",
+    "ruin_debris_pipe": "0x5EED2002",
+    "ruin_debris_rivet_plate": "0x5EED2003",
+    "ruin_debris_chimney": "0x5EED2004",
+    "ruined_casing_rusted": "0x5EED3001",
+    "ruined_casing_sooted": "0x5EED3002",
+    "ruined_casing_porcelain": "0x5EED3003",
+    "shattered_grass": "0x5EED4001",
+    "shattered_dirt": "0x5EED4002",
+    "rift_stone": "0x5EED4003",
+    "shattered_blackstone": "0x5EED4004"
+  },
+  "STYLE": {
+    "pixel_discipline": {
+      "size": [
+        16,
+        16
+      ],
+      "max_distinct_rgb": 16,
+      "forbid_rgb": [
+        "000000",
+        "FFFFFF"
+      ],
+      "alpha": 255,
+      "palette_gate": "每张 distinct RGB ≤ 16；全图禁纯黑/纯白（DARK_ANCHOR/LIGHT_ANCHOR 亦非极值）"
+    },
+    "prosperity_terrain": {
+      "_note": "繁荣地表：锈色系，明度中低-中，锈斑/颗粒/纤维/波纹/砖缝各异；地表类四边无缝（周期 16 场 + 环绕落笔）。",
+      "octaves": [
+        [
+          2,
+          0.46
+        ],
+        [
+          4,
+          0.32
+        ],
+        [
+          8,
+          0.22
+        ]
+      ],
+      "tileable": true,
+      "seam_gross_max": 1.5,
+      "_seam_metric": "gross = 环边相邻差 / 内部相邻差最大值（杀硬缝的粗检，必要非充分；场断裂/边缘描边类硬缝实测 >2，1.5 给合法高对比相邻——如釉面反光点——留头寸）；无缝充分保证 = 噪声场精确周期 16 自证 + 环绕落笔"
+    },
+    "prosperity_ruin": {
+      "_note": "残骸件：构件化（轨枕/管段/铆板/烟囱段/机制壳三态），非地表 → 不要求无缝；明度中低，破损感靠缺口/锈斑/烟炱/裂纹。",
+      "tileable": false
+    },
+    "shattered": {
+      "_note": "破碎之地：暗紫黑系，基调最暗；裂隙石裂缝发光淡紫（glow halo）；地表类四边无缝。",
+      "octaves": [
+        [
+          2,
+          0.44
+        ],
+        [
+          4,
+          0.34
+        ],
+        [
+          8,
+          0.22
+        ]
+      ],
+      "tileable": true,
+      "seam_gross_max": 1.5,
+      "_seam_metric": "同 prosperity_terrain：gross 粗检（阈值 1.5）+ 周期场自证"
+    }
+  },
+  "OUTPUTS": [
+    {
+      "key": "prosperity_surface_rust_grass",
+      "file": "prosperity_surface_rust_grass.png",
+      "group": "prosperity_terrain",
+      "block": "BlockProsperitySurface meta0 顶面",
+      "kind": "grass_tinted",
+      "tileable": true,
+      "tint": "biome_grass_multiplier",
+      "params": {
+        "base": "GRASS_TINT_NEUTRAL",
+        "levels": [
+          "BASE@D140",
+          "BASE@D070",
+          "BASE",
+          "BASE@L090"
+        ],
+        "blade_dark": "BASE@D240",
+        "blade_lit": "BASE@L160",
+        "speckle": "RUST_OXIDE@D070",
+        "blade_density": 0.55,
+        "speckle_density": 0.022,
+        "blotch": "RUST_OXIDE@D140",
+        "blotch_count": 3
+      }
+    },
+    {
+      "key": "prosperity_surface_rust_dirt",
+      "file": "prosperity_surface_rust_dirt.png",
+      "group": "prosperity_terrain",
+      "block": "BlockProsperitySurface meta1（兼草底面）",
+      "kind": "terrain_grit",
+      "tileable": true,
+      "params": {
+        "base": "RUST_DIRT",
+        "levels": [
+          "BASE@D070",
+          "BASE@D040",
+          "BASE",
+          "BASE@L022",
+          "BASE@L050"
+        ],
+        "grit_dark": "BASE@D110",
+        "grit_lit": "BASE@L070",
+        "grit_density": 0.2,
+        "flake": "RUST_OXIDE",
+        "flake_density": 0.03,
+        "clod": "BASE@D090",
+        "clod_density": 0.045
+      }
+    },
+    {
+      "key": "prosperity_surface_rust_sand",
+      "file": "prosperity_surface_rust_sand.png",
+      "group": "prosperity_terrain",
+      "block": "BlockProsperitySurface meta2",
+      "kind": "terrain_ripple",
+      "tileable": true,
+      "params": {
+        "base": "BRASS_SAND",
+        "levels": [
+          "BASE@D055",
+          "BASE@D030",
+          "BASE",
+          "BASE@L022",
+          "BASE@L045"
+        ],
+        "ripple_period": 8,
+        "ripple_strength": 0.7,
+        "grit_dark": "BASE@D090",
+        "grit_lit": "BASE@L090",
+        "grit_density": 0.14
+      }
+    },
+    {
+      "key": "prosperity_surface_rust_peat",
+      "file": "prosperity_surface_rust_peat.png",
+      "group": "prosperity_terrain",
+      "block": "BlockProsperitySurface meta3",
+      "kind": "terrain_fiber",
+      "tileable": true,
+      "params": {
+        "base": "RUST_PEAT",
+        "levels": [
+          "BASE@D055",
+          "BASE@D030",
+          "BASE",
+          "BASE@L035"
+        ],
+        "fiber_row_period": 8,
+        "fiber_dark": "BASE@D090",
+        "fiber_lit": "BASE@L050",
+        "fiber_density": 0.34,
+        "muck": "BASE@D110",
+        "muck_density": 0.06
+      }
+    },
+    {
+      "key": "prosperity_surface_rust_clay",
+      "file": "prosperity_surface_rust_clay.png",
+      "group": "prosperity_terrain",
+      "block": "BlockProsperitySurface meta4",
+      "kind": "terrain_smooth",
+      "tileable": true,
+      "params": {
+        "base": "RUST_CLAY",
+        "levels": [
+          "BASE@D055",
+          "BASE@D030",
+          "BASE",
+          "BASE@L030",
+          "BASE@L055"
+        ],
+        "octaves": [
+          [
+            2,
+            0.62
+          ],
+          [
+            4,
+            0.38
+          ]
+        ],
+        "sheen": "GLINT@D140",
+        "sheen_density": 0.008,
+        "sheen_halo": "BASE@L035",
+        "dither": 0.09
+      }
+    },
+    {
+      "key": "prosperity_surface_rust_stone",
+      "file": "prosperity_surface_rust_stone.png",
+      "group": "prosperity_terrain",
+      "block": "BlockProsperitySurface meta5（街道路面）",
+      "kind": "stone_brick",
+      "tileable": true,
+      "params": {
+        "base": "RUST_STONE",
+        "course_h": 4,
+        "joint_x_even": [
+          7,
+          15
+        ],
+        "joint_x_odd": [
+          3,
+          11
+        ],
+        "joint": "BASE@D090",
+        "joint_lip": "BASE@L022",
+        "brick_levels": [
+          "BASE@D040",
+          "BASE",
+          "BASE@L022"
+        ],
+        "rust": "RUST_OXIDE",
+        "rust_levels": [
+          "RUST_OXIDE@D140",
+          "RUST_OXIDE@D070",
+          "RUST_OXIDE@L022"
+        ],
+        "blob_count": 6,
+        "pit": "BASE@D110",
+        "pit_density": 0.05
+      }
+    },
+    {
+      "key": "ruin_debris_sleeper",
+      "file": "ruin_debris_sleeper.png",
+      "group": "prosperity_ruin",
+      "block": "BlockRuinDebris meta0",
+      "kind": "object_sleeper",
+      "tileable": false,
+      "params": {
+        "wood": "SLEEPER_WOOD",
+        "wood_levels": [
+          "BASE@D055",
+          "BASE",
+          "BASE@L050"
+        ],
+        "grain": "BASE@D090",
+        "plank_seam": "BASE@D140",
+        "rail": "RAIL_IRON",
+        "rail_lit": "RAIL_IRON@L090",
+        "rail_shadow": "RAIL_IRON@D110",
+        "spike": "RAIL_IRON@D180",
+        "groove": "SLEEPER_WOOD@D180",
+        "base": "SLEEPER_WOOD"
+      }
+    },
+    {
+      "key": "ruin_debris_pipe",
+      "file": "ruin_debris_pipe.png",
+      "group": "prosperity_ruin",
+      "block": "BlockRuinDebris meta1",
+      "kind": "object_pipe",
+      "tileable": false,
+      "params": {
+        "pipe": "IRON_PIPE",
+        "pipe_levels": [
+          "BASE@D140",
+          "BASE@D070",
+          "BASE",
+          "BASE@L070",
+          "BASE@L120"
+        ],
+        "flange": "IRON_PIPE@L090",
+        "flange_lip": "IRON_PIPE@L160",
+        "flange_edge": "IRON_PIPE@D180",
+        "rivet_lit": "IRON_PIPE@L160",
+        "rivet_dark": "IRON_PIPE@D240",
+        "rust": "RUST_OXIDE",
+        "rust_levels": [
+          "RUST_OXIDE@D160",
+          "RUST_OXIDE@D070",
+          "RUST_OXIDE@D022"
+        ],
+        "rust_density": 0.045,
+        "pit": "IRON_PIPE@D240",
+        "pit_density": 0.03,
+        "flange_cols": [
+          0,
+          1,
+          14,
+          15
+        ],
+        "base": "IRON_PIPE"
+      }
+    },
+    {
+      "key": "ruin_debris_rivet_plate",
+      "file": "ruin_debris_rivet_plate.png",
+      "group": "prosperity_ruin",
+      "block": "BlockRuinDebris meta2",
+      "kind": "object_plate",
+      "tileable": false,
+      "params": {
+        "plate": "STEEL_PLATE",
+        "plate_levels": [
+          "BASE@D140",
+          "BASE@D055",
+          "BASE",
+          "BASE@L050",
+          "BASE@L090"
+        ],
+        "bevel_lit": "BASE@L090",
+        "bevel_dark": "BASE@D180",
+        "rivet_lit": "STEEL_BARE@L070",
+        "rivet_mid": "STEEL_BARE@D070",
+        "rivet_dark": "STEEL_BARE@D200",
+        "scratch": "STEEL_BARE@L090",
+        "scratch_count": 3,
+        "rust": "RUST_OXIDE",
+        "rust_levels": [
+          "RUST_OXIDE@D140",
+          "RUST_OXIDE@D070",
+          "RUST_OXIDE@L022"
+        ],
+        "rivet_sites": [
+          [
+            2,
+            2
+          ],
+          [
+            11,
+            2
+          ],
+          [
+            2,
+            11
+          ],
+          [
+            11,
+            11
+          ]
+        ],
+        "base": "STEEL_PLATE"
+      }
+    },
+    {
+      "key": "ruin_debris_chimney",
+      "file": "ruin_debris_chimney.png",
+      "group": "prosperity_ruin",
+      "block": "BlockRuinDebris meta3",
+      "kind": "object_chimney",
+      "tileable": false,
+      "params": {
+        "base": "CHIMNEY_BRICK",
+        "course_h": 4,
+        "joint_x_even": [
+          7,
+          15
+        ],
+        "joint_x_odd": [
+          3,
+          11
+        ],
+        "joint": "BASE@D140",
+        "joint_lip": "BASE@L035",
+        "brick_levels": [
+          "BASE@D055",
+          "BASE",
+          "BASE@L022"
+        ],
+        "break_min": 1,
+        "break_span": 3,
+        "rim": "BASE@L120",
+        "cavity": "CASING_SOOT@D022",
+        "cavity_hi": "CASING_SOOT@L035",
+        "soot": "CASING_SOOT",
+        "soot_density": 0.055
+      }
+    },
+    {
+      "key": "ruined_casing_rusted",
+      "file": "ruined_casing_rusted.png",
+      "group": "prosperity_ruin",
+      "block": "BlockRuinedCasing meta0",
+      "kind": "casing_rusted",
+      "tileable": false,
+      "params": {
+        "base": "CASING_RUST",
+        "levels": [
+          "BASE@D090",
+          "BASE@D040",
+          "BASE",
+          "BASE@L035",
+          "BASE@L070"
+        ],
+        "frame": "CASING_RUST@D240",
+        "frame_lip": "CASING_RUST@L090",
+        "rivet_lit": "CASING_RUST@L160",
+        "rivet_mid": "CASING_RUST@D070",
+        "rivet_dark": "CASING_RUST@D240",
+        "chip": "STEEL_BARE@D070",
+        "chip_levels": [
+          "STEEL_BARE@D160",
+          "STEEL_BARE@D070",
+          "STEEL_BARE@L022"
+        ],
+        "bloom": "RUST_OXIDE@D160",
+        "bloom_count": 6,
+        "rust_levels": [
+          "RUST_OXIDE@D070",
+          "RUST_OXIDE",
+          "RUST_OXIDE@L022"
+        ],
+        "chip_blobs": 3
+      }
+    },
+    {
+      "key": "ruined_casing_sooted",
+      "file": "ruined_casing_sooted.png",
+      "group": "prosperity_ruin",
+      "block": "BlockRuinedCasing meta1（'C' 核心位占位）",
+      "kind": "casing_sooted",
+      "tileable": false,
+      "params": {
+        "base": "CASING_SOOT",
+        "levels": [
+          "BASE@D070",
+          "BASE",
+          "BASE@L035",
+          "BASE@L090",
+          "BASE@L160"
+        ],
+        "frame": "CASING_SOOT@D110",
+        "frame_lip": "CASING_SOOT@L070",
+        "rivet_lit": "CASING_SOOT@L160",
+        "rivet_mid": "CASING_SOOT@L022",
+        "rivet_dark": "CASING_SOOT@D070",
+        "drip": "CASING_SOOT@D160",
+        "drip_lit": "CASING_SOOT@L240",
+        "drip_count": 6
+      }
+    },
+    {
+      "key": "ruined_casing_porcelain",
+      "file": "ruined_casing_porcelain.png",
+      "group": "prosperity_ruin",
+      "block": "BlockRuinedCasing meta2",
+      "kind": "casing_porcelain",
+      "tileable": false,
+      "params": {
+        "base": "PORCELAIN",
+        "levels": [
+          "BASE@D055",
+          "BASE@D022",
+          "BASE",
+          "BASE@L022"
+        ],
+        "frame": "PORCELAIN@D090",
+        "frame_lip": "PORCELAIN@L050",
+        "rivet_lit": "PORCELAIN@L070",
+        "rivet_mid": "PORCELAIN@D030",
+        "rivet_dark": "PORCELAIN@D090",
+        "crack": "PORCELAIN@D240",
+        "crack_faint": "PORCELAIN@D140",
+        "crack_count": 3,
+        "chip": "PORCELAIN@D240",
+        "chip_lit": "PORCELAIN@L070"
+      }
+    },
+    {
+      "key": "shattered_grass",
+      "file": "shattered_grass.png",
+      "group": "shattered",
+      "block": "BlockShatteredGrass（S6a，Java 未落地）",
+      "kind": "grass_shattered",
+      "tileable": true,
+      "params": {
+        "base": "SHATTER_SOD",
+        "accent": "SHATTER_PURPLE",
+        "levels": [
+          "BASE@D070",
+          "BASE@D035",
+          "BASE",
+          "BASE@L035"
+        ],
+        "accent_levels": [
+          "SHATTER_PURPLE@D070",
+          "SHATTER_PURPLE@D035",
+          "SHATTER_PURPLE",
+          "SHATTER_PURPLE@L050"
+        ],
+        "accent_blend": 0.42,
+        "blade_dark": "BASE@D110",
+        "crack": "CRACK_DARK",
+        "crack_count": 4,
+        "glint": "GLOW_PURPLE",
+        "glint_density": 0.014
+      }
+    },
+    {
+      "key": "shattered_dirt",
+      "file": "shattered_dirt.png",
+      "group": "shattered",
+      "block": "BlockShatteredDirt（S6a，Java 未落地）",
+      "kind": "terrain_grit",
+      "tileable": true,
+      "params": {
+        "base": "SHATTER_DIRT",
+        "levels": [
+          "BASE@D070",
+          "BASE@D040",
+          "BASE",
+          "BASE@L035",
+          "BASE@L070"
+        ],
+        "grit_dark": "BASE@D110",
+        "grit_lit": "BASE@L090",
+        "grit_density": 0.18,
+        "flake": "GLOW_PURPLE",
+        "flake_density": 0.016,
+        "clod": "BASE@D090",
+        "clod_density": 0.05
+      }
+    },
+    {
+      "key": "rift_stone",
+      "file": "rift_stone.png",
+      "group": "shattered",
+      "block": "BlockRiftStone（S6a，Java 未落地）",
+      "kind": "rift_stone",
+      "tileable": true,
+      "params": {
+        "base": "RIFT_STONE",
+        "levels": [
+          "BASE@D055",
+          "BASE@D030",
+          "BASE",
+          "BASE@L022",
+          "BASE@L045"
+        ],
+        "crack_count": 2,
+        "crack": "GLOW_PURPLE@D180",
+        "crack_core": "GLOW_PURPLE@D090",
+        "glow": "RIFT_HALO",
+        "glow_rim": "GLOW_PURPLE@D090",
+        "pit": "BASE@D090",
+        "pit_density": 0.06
+      }
+    },
+    {
+      "key": "shattered_blackstone",
+      "file": "shattered_blackstone.png",
+      "group": "shattered",
+      "block": "BlockShatteredBlackstone（S6a，Java 未落地）",
+      "kind": "blackstone",
+      "tileable": true,
+      "params": {
+        "base": "BLACKSTONE",
+        "levels": [
+          "BASE@D070",
+          "BASE",
+          "BASE@L090",
+          "BASE@L180"
+        ],
+        "char": "BASE@L240",
+        "char_density": 0.1,
+        "ash": "GLOW_PURPLE@D240",
+        "ash_density": 0.012,
+        "vein": "BASE@L120",
+        "vein_count": 3
+      }
+    }
+  ]
+}
