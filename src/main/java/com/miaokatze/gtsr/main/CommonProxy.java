@@ -12,13 +12,15 @@ import com.miaokatze.gtsr.common.commands.GTSRCommand;
 import com.miaokatze.gtsr.common.crossmod.ae2.GTSRAE2ExternalStorageHandler;
 import com.miaokatze.gtsr.common.crossmod.waila.GTSRWailaCompat;
 import com.miaokatze.gtsr.common.dimension.framework.DimensionRegistrar;
-import com.miaokatze.gtsr.common.dimension.framework.GTSRChunkProviderBase;
 import com.miaokatze.gtsr.common.dimension.framework.GTSRDimensionDef;
-import com.miaokatze.gtsr.common.dimension.framework.GTSRWorldProviderBase;
+import com.miaokatze.gtsr.common.dimension.prosperity.ChunkProviderProsperityRuins;
+import com.miaokatze.gtsr.common.dimension.prosperity.WorldProviderProsperityRuins;
 import com.miaokatze.gtsr.common.dimension.prosperity.air.GTSRProsperityAirMaterials;
 import com.miaokatze.gtsr.common.dimension.prosperity.biome.ProsperityBiomes;
 import com.miaokatze.gtsr.common.dimension.prosperity.ruins.ProsperityWorldGenerator;
 import com.miaokatze.gtsr.common.dimension.shattered.ChunkProviderShatteredLands;
+import com.miaokatze.gtsr.common.dimension.shattered.ShatteredWeatherHandler;
+import com.miaokatze.gtsr.common.dimension.shattered.WorldGenShatteredRuins;
 import com.miaokatze.gtsr.common.dimension.shattered.WorldProviderShatteredLands;
 import com.miaokatze.gtsr.common.dimension.shattered.biome.ShatteredBiomes;
 import com.miaokatze.gtsr.common.loot.LootInjectionRunawaySingularity;
@@ -113,8 +115,10 @@ public class CommonProxy {
                 Config.prosperityDimId,
                 Config.prosperityProviderId,
                 () -> Config.planDimension.prosperityDimension,
-                GTSRWorldProviderBase.Skeleton.class,
-                (world, seed) -> new GTSRChunkProviderBase(world, seed));
+                // dim1 S4b：专属 Provider/ChunkProvider 替换 S1 Skeleton 占位（照 shattered 段样式；
+                // ChunkProvider = ProsperityTerrainProfile.heightAt 高度场，与古代城同源纯函数）
+                WorldProviderProsperityRuins.class,
+                ChunkProviderProsperityRuins::new);
             ProsperityBiomes.init(prosperityDef);
             final GTSRDimensionDef shatteredDef = new GTSRDimensionDef(
                 "shattered-lands",
@@ -211,6 +215,13 @@ public class CommonProxy {
         // dim1 S4a：繁荣维度世界生成编排器（残缺机器 5 机型 + 地表散布；古代城为 S4b 挂点）。
         // 构造时向 StructureRegistry 登记 5 机型变体并输出注册证据日志（plan S4a 验收 grep 锚点）。
         GameRegistry.registerWorldGenerator(new ProsperityWorldGenerator(), 1);
+
+        // dim1 S6b：破碎遗迹散布（1/48 chunk，3×3 黑石缺角平台 + husk_small/husk_tall 骨架，无 TE 无箱子）。
+        // 构造时向 StructureRegistry 登记 2 骨架变体并输出注册证据日志（plan S6b 验收 grep 锚点）。
+        GameRegistry.registerWorldGenerator(new WorldGenShatteredRuins(), 1);
+
+        // dim1 S6b：破碎之地强制雷暴 + 附加雷（WorldTickEvent 服务端 dim79 守卫，离开维度不再写入天气）。
+        ShatteredWeatherHandler.register();
 
         // Waila 跨 mod 兼容：外置 isModLoaded 守卫；Waila 缺失时不加载兼容类（详见 GTSRWailaCompat）
         if (Loader.isModLoaded(Mods.Waila.ID)) {

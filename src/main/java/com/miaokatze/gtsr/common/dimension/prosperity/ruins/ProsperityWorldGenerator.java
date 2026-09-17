@@ -8,7 +8,14 @@ import net.minecraft.world.chunk.IChunkProvider;
 
 import com.miaokatze.gtsr.common.dimension.framework.structure.BlockSink;
 import com.miaokatze.gtsr.common.dimension.framework.structure.ChunkClampedSink;
+import com.miaokatze.gtsr.common.dimension.framework.structure.StructureBuilder;
 import com.miaokatze.gtsr.common.dimension.framework.structure.StructureRegistry;
+import com.miaokatze.gtsr.common.dimension.prosperity.ProsperityTerrainProfile;
+import com.miaokatze.gtsr.common.dimension.prosperity.ruins.city.CityBlockResolver;
+import com.miaokatze.gtsr.common.dimension.prosperity.ruins.city.CityPlan;
+import com.miaokatze.gtsr.common.dimension.prosperity.ruins.city.CityPlanner;
+import com.miaokatze.gtsr.common.dimension.prosperity.ruins.city.CitySliceSink;
+import com.miaokatze.gtsr.common.dimension.prosperity.ruins.city.CityVariants;
 import com.miaokatze.gtsr.config.Config;
 import com.miaokatze.gtsr.main.GTSteamReborn;
 
@@ -43,6 +50,7 @@ public class ProsperityWorldGenerator implements IWorldGenerator {
 
     public ProsperityWorldGenerator() {
         RuinedMachinePlacer.registerVariants();
+        CityVariants.registerVariants();
         if (evidenceLogged) {
             return;
         }
@@ -52,6 +60,11 @@ public class ProsperityWorldGenerator implements IWorldGenerator {
             Config.prosperityDimId,
             StructureRegistry.names(),
             Config.prosperityMachineChance);
+        GTSteamReborn.LOG.info(
+            "[GTSR] prosperity city variants: {} registered (cell={} chance={}%)",
+            CityVariants.ALL.length,
+            CityPlanner.CITY_CELL,
+            Config.prosperityCityChance);
     }
 
     @Override
@@ -68,8 +81,15 @@ public class ProsperityWorldGenerator implements IWorldGenerator {
         // 每 chunk 一个钳制 Sink：越界写入协议层丢弃并计数（每 256 chunk 汇总日志，02 代码 15 越界瑕疵修复）
         final BlockSink sink = new ChunkClampedSink(world, chunkX, chunkZ);
 
-        // —— 1. 古代城（S4b 挂点：CityPlanner 渲染交集切片；本切片留空调用，plan §2 S4a）——
-        placeCities(world, worldSeed, chunkX, chunkZ, sink);
+        // —— 1. 古代城（S4b）：3×3 cell 检索邻域城市，仅渲染与 C 相交的交集切片（plan §3.1）——
+        final CityPlan[] cities = CityPlanner.citiesNear(worldSeed, chunkX, chunkZ);
+        placeCities(worldSeed, chunkX, chunkZ, cities, sink);
+
+        // 城市缓冲窗（半径+1 chunk）内跳过散布与残缺机器（plan §3.4：城市本身即"结构密度拉满"，
+        // 二者混叠只脏；窗判定与渲染检索同源 CityPlanner.citiesNear，跨 chunk 一致）
+        if (cities.length > 0) {
+            return;
+        }
 
         // —— 2. 残缺机器（1/prosperityMachineChance × 群系机器权重，'C' 位=积碳壳，无 TE）——
         RuinedMachinePlacer
@@ -81,11 +101,38 @@ public class ProsperityWorldGenerator implements IWorldGenerator {
     }
 
     /**
-     * 古代城调用点（<b>S4b 挂点</b>，本切片留空）：S4b 落地 CityPlanner 纯函数渲染——
-     * chunk C 检索 footprint 与 C 相交的城市地块，只把落在 C 内的方块交给 sink（plan §3.1）。
+     * 古代城渲染（S4b，plan §3.1 渲染协议 + §3.2 街道/地块）：
+     * <ul>
+     * <li>Sink 链 = CitySliceSink（交集切片：邻 chunk 职责静默吸收，非越界事故）
+     * → CityBlockResolver（String 键→Block）→ ChunkClampedSink（最终守卫，构造零丢弃）；</li>
+     * <li>街道：锈石铺面 meta5，街中线每 8 格轨枕 meta0，逐列落地
+     * y = {@link ProsperityTerrainProfile#heightAt}（高度红线，不读方块）；</li>
+     * <li>地块：footprint 与 C 相交者重算同一纯函数放置（损伤档/朝向 plotSeed 派生，
+     * 跨 chunk 幂等）。</li>
+     * </ul>
      */
-    @SuppressWarnings("unused")
-    private void placeCities(World world, long worldSeed, int chunkX, int chunkZ, BlockSink sink) {}
+    private static void placeCities(long worldSeed, int chunkX, int chunkZ, CityPlan[] cities, BlockSink sink) {
+        if (cities.length == 0) {
+            return;
+        }
+        final BlockSink cityChain = new CitySliceSink(new CityBlockResolver(sink), chunkX, chunkZ);
+        final StructureBuilder builder = new StructureBuilder(cityChain);
+        final CityVariants.GroundFn ground = (x, z) -> ProsperityTerrainProfile.heightAt(worldSeed, x, z);
+        for (final CityPlan city : cities) {
+            city.forEachStreetColumn(chunkX, chunkZ, (wx, wz, sleeper) -> {
+                final int gy = ground.groundY(wx, wz);
+                builder.setBlock(wx, gy, wz, CityVariants.K_SURFACE, 5, BlockSink.FLAG_POPULATE);
+                if (sleeper) {
+                    builder.setBlock(wx, gy + 1, wz, CityVariants.K_DEBRIS, 0, BlockSink.FLAG_POPULATE);
+                }
+            });
+            city.forEachPlotInChunk(
+                chunkX,
+                chunkZ,
+                (variant, originX, originZ, plotSeed) -> CityVariants
+                    .placeByName(variant, cityChain, originX, originZ, ground, plotSeed, BlockSink.FLAG_POPULATE));
+        }
+    }
 
     /** 群系权重查表（biomeId int 相对偏移；非本维度群系/未知群系回退 1.0）。 */
     private static float biomeWeight(World world, int chunkX, int chunkZ, float[] table) {

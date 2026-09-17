@@ -25,6 +25,9 @@ public class Config {
     // 自然生成的奇点是否具有破坏方块的能力（默认开；关闭后自然奇点不吸收/破坏方块）。
     public static boolean singularityDestroyBlocks = true;
 
+    // 破碎维度奇点频率倍增分母（破碎分支频率 = singularitySpawnFrequency/N，默认 8 = 等效 8 倍密度；S6b 消费）。
+    public static int shatteredSingularityMultiplier = 8;
+
     // 繁荣维度（prosperity-ruins）维度 ID（默认 78）。
     // 与其他 mod 冲突时该维度自动禁用（解析记 -1），不回退到空闲 ID。
     public static int prosperityDimId = 78;
@@ -47,6 +50,9 @@ public class Config {
 
     // 繁荣维度残缺机器生成频率分母（平均 1/N chunk × 群系机器权重；默认 24，0 = 禁用；S4a 消费）。
     public static int prosperityMachineChance = 24;
+
+    // 繁荣维度古代城存在概率（每个 24×24 chunk cell 的存在掷骰百分比；默认 45，0 = 无城，100 = 全 cell 有城；S4b 消费）。
+    public static int prosperityCityChance = 45;
 
     /**
      * planDimension 总开关持有者（plan 维度组键 planDimension.*，见 synchronizeConfiguration）。
@@ -99,6 +105,14 @@ public class Config {
             Configuration.CATEGORY_GENERAL,
             true,
             "自然生成的奇点是否具有破坏方块的能力（默认开；关闭后自然奇点不吸收/破坏方块）");
+
+        shatteredSingularityMultiplier = configuration.getInt(
+            "shatteredSingularityMultiplier",
+            Configuration.CATEGORY_GENERAL,
+            shatteredSingularityMultiplier,
+            1,
+            64,
+            "破碎维度奇点频率倍增分母（破碎分支频率 = singularitySpawnFrequency/N，默认 8 = 等效 8 倍密度；范围 1-64）");
 
         planDimension.prosperityDimension = configuration.getBoolean(
             "planDimension.prosperityDimension",
@@ -167,6 +181,14 @@ public class Config {
             0,
             1000,
             "繁荣维度残缺机器生成频率分母（平均 1/N 区块 × 群系机器权重，默认 24 = 约 5% 每区块；0 = 禁用）");
+
+        prosperityCityChance = configuration.getInt(
+            "prosperityCityChance",
+            Configuration.CATEGORY_GENERAL,
+            prosperityCityChance,
+            0,
+            100,
+            "繁荣维度古代城存在概率（每个 24×24 区块 cell 的存在掷骰百分比，默认 45 = 平均每 500-600 格一座；0 = 无城）");
 
         if (configuration.hasChanged()) {
             configuration.save();
