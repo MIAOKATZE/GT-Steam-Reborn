@@ -45,6 +45,9 @@ public class Config {
     // 破碎维度群系 ID 段起始（默认 190，预留 190-192 共 3 个群系槽位；S6a 消费）。
     public static int shatteredBiomeIdStart = 190;
 
+    // 繁荣维度残缺机器生成频率分母（平均 1/N chunk × 群系机器权重；默认 24，0 = 禁用；S4a 消费）。
+    public static int prosperityMachineChance = 24;
+
     /**
      * planDimension 总开关持有者（plan 维度组键 planDimension.*，见 synchronizeConfiguration）。
      * 关闭后对应维度完全不注册（DimensionRegistrar 冲突检测第一道闸）。
@@ -156,6 +159,14 @@ public class Config {
             0,
             255,
             "破碎维度群系 ID 段起始（默认 190，预留 190-192 共 3 个群系槽位）");
+
+        prosperityMachineChance = configuration.getInt(
+            "prosperityMachineChance",
+            Configuration.CATEGORY_GENERAL,
+            prosperityMachineChance,
+            0,
+            1000,
+            "繁荣维度残缺机器生成频率分母（平均 1/N 区块 × 群系机器权重，默认 24 = 约 5% 每区块；0 = 禁用）");
 
         if (configuration.hasChanged()) {
             configuration.save();
