@@ -15,6 +15,7 @@ import com.miaokatze.gtsr.common.dimension.framework.DimensionRegistrar;
 import com.miaokatze.gtsr.common.dimension.framework.GTSRChunkProviderBase;
 import com.miaokatze.gtsr.common.dimension.framework.GTSRDimensionDef;
 import com.miaokatze.gtsr.common.dimension.framework.GTSRWorldProviderBase;
+import com.miaokatze.gtsr.common.dimension.prosperity.biome.ProsperityBiomes;
 import com.miaokatze.gtsr.common.loot.LootInjectionRunawaySingularity;
 import com.miaokatze.gtsr.common.network.GTSRFXNet;
 import com.miaokatze.gtsr.common.structure.GTSRRedstoneHatchLimitError;
@@ -83,30 +84,33 @@ public class CommonProxy {
             GTSteamReborn.LOG.error("[0/3] 方块注册过程中发生严重错误，请检查日志", t);
         }
 
-        // 维度框架注册（dim1 S1）：注册编排照 plan §1.1 架构图——BlockLoader 之后。
+        // 维度框架注册（dim1 S1）+ 繁荣群系挂接（S2）：注册编排照 plan §1.1 架构图——BlockLoader 之后。
+        // S2：ProsperityBiomes.init 在 def 注册前构造 4 群系（构造即占 biomeList 槽，构造前经空闲校验，
+        // 被占跳过+告警降级运行）并按权重表 45/30/15/10 挂入 def（GTSRWorldChunkManager 消费，空表回退保持）。
         // 冲突检测顺序 = 总开关 → isDimensionRegistered(dimId) → providerId 占用探测 → 记 -1 禁用告警；
         // 成功日志锚点 [GTSR] dimension <key> registered: dimId=... providerId=...（plan §6.1 grep 点）。
-        // 群系表本切片为空（S2/S6a 填充）；不注册任何 IWorldGenerator（S4/S6 责任）。
+        // 不注册任何 IWorldGenerator（S4/S6 责任）。
         try {
-            DimensionRegistrar.preInitDimensions(
-                new GTSRDimensionDef(
-                    "prosperity-ruins",
-                    "Prosperity Ruins",
-                    0x50524F53L,
-                    Config.prosperityDimId,
-                    Config.prosperityProviderId,
-                    () -> Config.planDimension.prosperityDimension,
-                    GTSRWorldProviderBase.Skeleton.class,
-                    (world, seed) -> new GTSRChunkProviderBase(world, seed)),
-                new GTSRDimensionDef(
-                    "shattered-lands",
-                    "Shattered Lands",
-                    0x53484C53L,
-                    Config.shatteredDimId,
-                    Config.shatteredProviderId,
-                    () -> Config.planDimension.shatteredDimension,
-                    GTSRWorldProviderBase.Skeleton.class,
-                    (world, seed) -> new GTSRChunkProviderBase(world, seed)));
+            final GTSRDimensionDef prosperityDef = new GTSRDimensionDef(
+                "prosperity-ruins",
+                "Prosperity Ruins",
+                0x50524F53L,
+                Config.prosperityDimId,
+                Config.prosperityProviderId,
+                () -> Config.planDimension.prosperityDimension,
+                GTSRWorldProviderBase.Skeleton.class,
+                (world, seed) -> new GTSRChunkProviderBase(world, seed));
+            ProsperityBiomes.init(prosperityDef);
+            final GTSRDimensionDef shatteredDef = new GTSRDimensionDef(
+                "shattered-lands",
+                "Shattered Lands",
+                0x53484C53L,
+                Config.shatteredDimId,
+                Config.shatteredProviderId,
+                () -> Config.planDimension.shatteredDimension,
+                GTSRWorldProviderBase.Skeleton.class,
+                (world, seed) -> new GTSRChunkProviderBase(world, seed));
+            DimensionRegistrar.preInitDimensions(prosperityDef, shatteredDef);
         } catch (Throwable t) {
             GTSteamReborn.LOG.error("[GTSR] 维度框架注册过程中发生严重错误", t);
         }

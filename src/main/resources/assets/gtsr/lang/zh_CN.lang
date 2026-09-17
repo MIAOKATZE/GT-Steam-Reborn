@@ -2030,3 +2030,24 @@ gtsr.tooltip.node.natural=自然奇点：自然生成口径，机器管理零触
 gtsr.tooltip.node.stable=稳定奇点：机器生成托管，受自愈/停机回收管辖
 gtsr.tooltip.node.runaway=失控奇点：失控状态，独立存活至持续时长自毁
 gtsr.tooltip.node.common=变体仅名称与分型不同，节点参数可相同；指令生成固定为失控节点
+
+# 维度繁荣蒸汽时代遗迹：群系（dim1 S2；键名跟随 setBiomeName 的 biome.<biomeName>.name）
+biome.Rusted Steppe.name=锈蚀草原
+biome.Gearwork Forest.name=齿轮森林
+biome.Brass Wastes.name=黄铜荒漠
+biome.Fumarole Swamp.name=起雾沼泽
+
+# 维度繁荣蒸汽时代遗迹：方块族（dim1 S2；贴图为原版路径占位，S7a artgen 换像素不改注册名）
+tile.ProsperitySurface.0.name=锈蚀草方块
+tile.ProsperitySurface.1.name=锈蚀土
+tile.ProsperitySurface.2.name=黄铜沙
+tile.ProsperitySurface.3.name=锈泥炭
+tile.ProsperitySurface.4.name=锈黏土
+tile.ProsperitySurface.5.name=锈石铺面
+tile.RuinDebris.0.name=轨枕残骸
+tile.RuinDebris.1.name=管道残骸
+tile.RuinDebris.2.name=铆接板残骸
+tile.RuinDebris.3.name=烟囱残段
+tile.RuinedCasing.0.name=锈蚀外壳
+tile.RuinedCasing.1.name=积碳外壳
+tile.RuinedCasing.2.name=碎瓷外壳

@@ -12,5 +12,16 @@ public final class BlocksGTSR {
     /** 失控奇点方块（BlockLoader.initBlocks 注册期写入）。 */
     public static Block runawaySingularity;
 
+    // ==== dim1 S2：繁荣维度 meta 族方块（BlockLoader.initBlocks 注册期写入）====
+
+    /** 锈变地表 6 meta（0 锈草/1 锈土/2 黄铜沙/3 锈泥炭/4 锈黏/5 锈石；群系 top/filler 挂接）。 */
+    public static Block prosperitySurface;
+
+    /** 残骸散点 4 meta（0 轨枕/1 管道/2 铆接板/3 烟囱残段；S4a 结构消费）。 */
+    public static Block ruinDebris;
+
+    /** 残缺外壳 3 meta（0 锈蚀/1 积碳/2 碎瓷；S4a/S4b 结构消费）。 */
+    public static Block ruinedCasing;
+
     private BlocksGTSR() {}
 }

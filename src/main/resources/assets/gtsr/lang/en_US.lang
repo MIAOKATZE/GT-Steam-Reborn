@@ -2035,3 +2035,24 @@ gtsr.tooltip.node.natural=Natural singularity: worldgen caliber, machine managem
 gtsr.tooltip.node.stable=Stable singularity: machine-managed, subject to self-heal/reclaim
 gtsr.tooltip.node.runaway=Runaway singularity: unmanaged, survives independently until duration expires
 gtsr.tooltip.node.common=Variants differ only in name & type line; node params may match; command spawns are always Runaway
+
+# Dimension prosperity-ruins: biomes (dim1 S2; keys follow biome.<biomeName>.name from setBiomeName)
+biome.Rusted Steppe.name=Rusted Steppe
+biome.Gearwork Forest.name=Gearwork Forest
+biome.Brass Wastes.name=Brass Wastes
+biome.Fumarole Swamp.name=Fumarole Swamp
+
+# Dimension prosperity-ruins: block family (dim1 S2; textures are vanilla placeholders until S7a artgen)
+tile.ProsperitySurface.0.name=Rusted Grass Block
+tile.ProsperitySurface.1.name=Rusted Dirt
+tile.ProsperitySurface.2.name=Brass Sand
+tile.ProsperitySurface.3.name=Rust Peat
+tile.ProsperitySurface.4.name=Rust Clay
+tile.ProsperitySurface.5.name=Rust Stone Paving
+tile.RuinDebris.0.name=Ruined Sleeper
+tile.RuinDebris.1.name=Ruined Pipe
+tile.RuinDebris.2.name=Riveted Plate
+tile.RuinDebris.3.name=Chimney Segment
+tile.RuinedCasing.0.name=Rusted Casing
+tile.RuinedCasing.1.name=Sooted Casing
+tile.RuinedCasing.2.name=Porcelain Casing

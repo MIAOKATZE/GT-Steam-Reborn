@@ -6,6 +6,11 @@ import com.miaokatze.gtsr.common.blocks.BlockRunawaySingularity;
 import com.miaokatze.gtsr.common.blocks.BlocksGTSR;
 import com.miaokatze.gtsr.common.blocks.ItemBlockRunawaySingularity;
 import com.miaokatze.gtsr.common.blocks.TileRunawaySingularity;
+import com.miaokatze.gtsr.common.dimension.prosperity.block.BlockProsperitySurface;
+import com.miaokatze.gtsr.common.dimension.prosperity.block.BlockRuinDebris;
+import com.miaokatze.gtsr.common.dimension.prosperity.block.BlockRuinedCasing;
+import com.miaokatze.gtsr.common.dimension.prosperity.block.ItemBlockProsperityMeta;
+import com.miaokatze.gtsr.main.GTSteamReborn;
 import com.miaokatze.gtsr.register.CreativeTabManager;
 
 import cpw.mods.fml.common.registry.GameRegistry;
@@ -23,5 +28,26 @@ public class BlockLoader {
         CreativeTabManager.addItemToTab(new ItemStack(BlocksGTSR.runawaySingularity, 1, 1));
         CreativeTabManager.addItemToTab(new ItemStack(BlocksGTSR.runawaySingularity, 1, 2));
         CreativeTabManager.addItemToTab(new ItemStack(BlocksGTSR.runawaySingularity, 1, 3));
+
+        // dim1 S2：繁荣维度 meta 族方块（runawaySingularity 自持持有者范式）。
+        // 必须先于 ProsperityBiomes.init（群系 top/filler 引用 BlocksGTSR.prosperitySurface，
+        // CommonProxy.preInit 顺序：BlockLoader → ProsperityBiomes → DimensionRegistrar）。
+        BlocksGTSR.prosperitySurface = new BlockProsperitySurface();
+        GameRegistry.registerBlock(BlocksGTSR.prosperitySurface, ItemBlockProsperityMeta.class, "ProsperitySurface");
+        BlocksGTSR.ruinDebris = new BlockRuinDebris();
+        GameRegistry.registerBlock(BlocksGTSR.ruinDebris, ItemBlockProsperityMeta.class, "RuinDebris");
+        BlocksGTSR.ruinedCasing = new BlockRuinedCasing();
+        GameRegistry.registerBlock(BlocksGTSR.ruinedCasing, ItemBlockProsperityMeta.class, "RuinedCasing");
+        for (int meta = 0; meta < BlockProsperitySurface.META_COUNT; meta++) {
+            CreativeTabManager.addItemToTab(new ItemStack(BlocksGTSR.prosperitySurface, 1, meta));
+        }
+        for (int meta = 0; meta < BlockRuinDebris.META_COUNT; meta++) {
+            CreativeTabManager.addItemToTab(new ItemStack(BlocksGTSR.ruinDebris, 1, meta));
+        }
+        for (int meta = 0; meta < BlockRuinedCasing.META_COUNT; meta++) {
+            CreativeTabManager.addItemToTab(new ItemStack(BlocksGTSR.ruinedCasing, 1, meta));
+        }
+        GTSteamReborn.LOG
+            .info("[GTSR] prosperity blocks registered: ProsperitySurface(6)/RuinDebris(4)/RuinedCasing(3)");
     }
 }
