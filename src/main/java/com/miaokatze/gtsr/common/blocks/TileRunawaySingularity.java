@@ -35,9 +35,46 @@ import com.miaokatze.gtsr.common.network.GTSRFXNet;
  * attributeId=-2 表示 special=onlypull，只牵引不吸收（不吸收方块、不处理掉落物、牵引力度减半、伤害照常）；
  * attributeId=-3 表示 special=nullplus，null 基础上无电弧无粒子（吸积盘/电弧跳过），光片/辉光保留。
  * 光效半径：fxRadius（默认 10，钳制 [0.5,128]）仅影响视觉（光片/辉光），与吸收/牵引半径 range 独立。
+ * 三分类：type = NATURAL（自然生成，机器管理逻辑零触碰）/ STABLE（机器生成托管，受自愈/停机回收/onRemoval 管辖）/
+ * RUNAWAY（命令生成或脱管失控，机器管理逻辑零触碰，独立存活至 duration 自毁）；
+ * 旧档无 type 键按 attribute 派生：-4 nature → NATURAL，其余一律 → STABLE。
  * 无 NBT 默认参数：(10 0 0 600 null white 10)——NBT 丢失时回退为惰性有限时长奇点，绝不摧毁周边机器。
  */
 public class TileRunawaySingularity extends TileEntity {
+
+    /**
+     * 奇点三分类：单 Tile 内以 NBT type 键（第 10 键）分型，不新增方块/TE/物品/ID 注册。
+     * 机器管理逻辑（自愈/停机回收/onRemoval）只作用于 STABLE，NATURAL/RUNAWAY 一律跳过（现存自然奇点不碰）。
+     */
+    public enum SingularityType {
+        /** 自然生成奇点（WorldGen，attribute=-4 nature，硬度 4 空手可挖，挖后爆炸） */
+        NATURAL,
+        /** 稳定奇点（机器 spawnSingularity 生成并托管） */
+        STABLE,
+        /** 失控奇点（命令生成/机器爆炸链脱管，独立存活至 duration 自毁） */
+        RUNAWAY
+    }
+
+    /**
+     * 旧档兼容派生：attribute=-4（nature）→ NATURAL，其余一律 → STABLE。
+     * 禁止字面缺省 NATURAL——旧档稳定奇点（如 SSE spec attr=-1）会被误判成可挖会炸的自然奇点。
+     */
+    private static SingularityType deriveTypeFromAttribute(int attributeId) {
+        return attributeId == ATTRIBUTE_NATURE ? SingularityType.NATURAL : SingularityType.STABLE;
+    }
+
+    /**
+     * type 字符串解析：非法名返回 null（回退 attribute 派生）
+     */
+    private static SingularityType parseType(String name) {
+        for (SingularityType t : SingularityType.values()) {
+            if (t.name()
+                .equals(name)) {
+                return t;
+            }
+        }
+        return null;
+    }
 
     private static final int SCAN_INTERVAL = 4; // 吸收扫描间隔 tick
     private static final int DAMAGE_INTERVAL = 20; // 实体伤害间隔 tick（speed/damage 均按每 20 tick 计量）
@@ -101,6 +138,7 @@ public class TileRunawaySingularity extends TileEntity {
     private double fxRadius = 10.0D; // 光效半径，NBT 缺省默认 10；仅影响视觉（光片/辉光），与 range 独立
     private boolean destroyBlocks = true; // 自然生成奇点是否吸收破坏方块（absorbScan 方块吸收），NBT 缺省默认 true（向后兼容）；仅服务端逻辑字段
     private int elapsedTicks = 0; // 服务端与客户端各自递增
+    private SingularityType type = SingularityType.STABLE; // 三分类；字段缺省 STABLE，旧档加载时按 attribute 派生覆盖
 
     @Override
     public void readFromNBT(NBTTagCompound tag) {
@@ -131,6 +169,14 @@ public class TileRunawaySingularity extends TileEntity {
             this.destroyBlocks = data.getBoolean("destroyBlocks"); // 缺省保持 true（旧 NBT 无键 → 向后兼容）
         }
         this.elapsedTicks = data.getInteger("elapsed"); // 无键保持 0
+        if (data.hasKey("type")) {
+            // 新档：显式 type 键（第 10 键，枚举名字符串）；非法名回退 attribute 派生
+            SingularityType parsed = parseType(data.getString("type"));
+            this.type = parsed != null ? parsed : deriveTypeFromAttribute(this.attributeId);
+        } else {
+            // 旧档兼容：无 type 键按 attribute 派生——-4 nature → NATURAL，其余（含 SSE 稳定奇点 -1）一律 → STABLE
+            this.type = deriveTypeFromAttribute(this.attributeId);
+        }
     }
 
     @Override
@@ -146,6 +192,7 @@ public class TileRunawaySingularity extends TileEntity {
         data.setDouble("fxRadius", this.fxRadius);
         data.setBoolean("destroyBlocks", this.destroyBlocks);
         data.setInteger("elapsed", this.elapsedTicks);
+        data.setString("type", this.type.name()); // 第 10 键：三分类（NATURAL/STABLE/RUNAWAY），随 getDescriptionPacket 同步客户端
         tag.setTag("gtsrSingularity", data);
     }
 
@@ -196,6 +243,26 @@ public class TileRunawaySingularity extends TileEntity {
         this.destroyBlocks = destroyBlocks; // 服务端逻辑字段，不需 markBlockForUpdate（不参与客户端渲染同步）
     }
 
+    public SingularityType getType() {
+        return type;
+    }
+
+    public void setType(SingularityType type) {
+        if (type != null) {
+            this.type = type; // 服务端逻辑字段；客户端同步走 getDescriptionPacket 全量 NBT（含 type 键）
+        }
+    }
+
+    /** 失控奇点判定：type==RUNAWAY（命令生成/超限爆炸链脱管口径） */
+    public boolean isRogue() {
+        return type == SingularityType.RUNAWAY;
+    }
+
+    /** 自然奇点判定：type==NATURAL（机器管理逻辑零触碰） */
+    public boolean isNatural() {
+        return type == SingularityType.NATURAL;
+    }
+
     /**
      * 当前颜色 RGB（0~1），返回副本；未知名回退 white 的 RGB
      */
@@ -220,10 +287,11 @@ public class TileRunawaySingularity extends TileEntity {
         this.attributeId = attributeId == ATTRIBUTE_NULL || attributeId == ATTRIBUTE_ONLY_PULL
             || attributeId == ATTRIBUTE_NULL_PLUS
             || attributeId == ATTRIBUTE_NATURE ? attributeId : Math.max(0, Math.min(999, attributeId)); // 仅放行四个特殊值（-1
-                                                                                                        // null 纯动画 / -2
-                                                                                                        // onlypull
+                                                                                                        // null 纯动画 /
+                                                                                                        // -2 onlypull
                                                                                                         // 只牵引不吸收 /
-                                                                                                        // -3 nullplus
+                                                                                                        // -3
+                                                                                                        // nullplus
                                                                                                         // null
                                                                                                         // 基础上无电弧无粒子 /
                                                                                                         // -4 nature
@@ -259,24 +327,68 @@ public class TileRunawaySingularity extends TileEntity {
     }
 
     /**
-     * 静态生成助手（11 参版本，供命令/机器调用）：委托 12 参版本，destroyBlocks 缺省 true（向后兼容）
+     * 静态生成助手（11 参版本，供机器等既有调用点）：委托 13 参版本，destroyBlocks 缺省 true、type 缺省 STABLE（向后兼容）
      */
     public static void spawnSingularity(World world, int x, int y, int z, double range, double speed, double damage,
         int duration, int attributeId, String color, double fxRadius) {
-        spawnSingularity(world, x, y, z, range, speed, damage, duration, attributeId, color, fxRadius, true);
+        spawnSingularity(
+            world,
+            x,
+            y,
+            z,
+            range,
+            speed,
+            damage,
+            duration,
+            attributeId,
+            color,
+            fxRadius,
+            true,
+            SingularityType.STABLE);
     }
 
     /**
-     * 静态生成助手（12 参版本）：destroyBlocks=false 时自然生成奇点不吸收破坏方块（absorbScan 跳过），实体/掉落物处理照常
+     * 静态生成助手（12 参版本，type 尾参，供命令调用）：destroyBlocks 缺省 true（向后兼容），type 显式指定
+     */
+    public static void spawnSingularity(World world, int x, int y, int z, double range, double speed, double damage,
+        int duration, int attributeId, String color, double fxRadius, SingularityType type) {
+        spawnSingularity(world, x, y, z, range, speed, damage, duration, attributeId, color, fxRadius, true, type);
+    }
+
+    /**
+     * 静态生成助手（12 参版本，destroyBlocks 尾参，供 worldgen 等调用）：type 缺省 STABLE（向后兼容）
      */
     public static void spawnSingularity(World world, int x, int y, int z, double range, double speed, double damage,
         int duration, int attributeId, String color, double fxRadius, boolean destroyBlocks) {
+        spawnSingularity(
+            world,
+            x,
+            y,
+            z,
+            range,
+            speed,
+            damage,
+            duration,
+            attributeId,
+            color,
+            fxRadius,
+            destroyBlocks,
+            SingularityType.STABLE);
+    }
+
+    /**
+     * 静态生成助手（13 参版本）：destroyBlocks=false 时自然生成奇点不吸收破坏方块（absorbScan 跳过），实体/掉落物处理照常；
+     * type 三分类落 NBT：worldgen → NATURAL / 命令 → RUNAWAY / 机器 → STABLE
+     */
+    public static void spawnSingularity(World world, int x, int y, int z, double range, double speed, double damage,
+        int duration, int attributeId, String color, double fxRadius, boolean destroyBlocks, SingularityType type) {
         world.setBlock(x, y, z, BlocksGTSR.runawaySingularity);
         TileEntity te = world.getTileEntity(x, y, z);
         if (te instanceof TileRunawaySingularity) {
             TileRunawaySingularity teSingularity = (TileRunawaySingularity) te;
             teSingularity.setParams(range, speed, damage, duration, attributeId, color, fxRadius);
             teSingularity.setDestroyBlocks(destroyBlocks);
+            teSingularity.setType(type);
             te.markDirty();
         }
     }

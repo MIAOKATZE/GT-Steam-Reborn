@@ -21,6 +21,7 @@ import com.miaokatze.gtsr.common.blocks.TileRunawaySingularity;
  * nullplus=null 基础上无电弧无粒子（吸积盘/电弧跳过），光片/辉光保留，
  * nature=自然生成专用（不吸引/伤害实体，只牵引破坏掉落物+吸收方块，挖后爆炸）。
  * color=16 原版染料色之一，省略默认 white；fxRadius=光效半径 [0.5,128]，省略默认 10。
+ * 分型：命令生成的奇点固定 type=RUNAWAY（失控，机器自愈/回收/onRemoval 逻辑零触碰，独立存活至 duration 自毁）。
  * 调试默认：10 1 1 600 0 white（范围 10、每20tick吸1块、每20tick 1点伤害、600 tick=30秒、事件 0、白色）。
  * 需要 OP 权限等级 4。
  */
@@ -89,7 +90,8 @@ public class GTSRCommand extends CommandBase {
             duration,
             special,
             color,
-            fxRadius);
+            fxRadius,
+            TileRunawaySingularity.SingularityType.RUNAWAY); // 命令生成默认失控分型（机器失控等其他情况口径）
 
         sender.addChatMessage(
             new ChatComponentText(
@@ -108,7 +110,10 @@ public class GTSRCommand extends CommandBase {
                     + ", color "
                     + color
                     + ", fxRadius "
-                    + fxRadius));
+                    + fxRadius
+                    // T7 顺手项：回执补充分型字样（命令生成固定 RUNAWAY，与 TileRunawaySingularity 三分类口径一致）
+                    + ", type "
+                    + TileRunawaySingularity.SingularityType.RUNAWAY));
     }
 
     @Override

@@ -283,6 +283,15 @@ gtsr.chat.overpressure.need_heat=100％ heat is required to enable Overpressure 
 gtsr.chat.tcds.output_tier=Output tier switched to %s%% (max heat cap %s%%)
 gtsr.chat.tcds.output_tier.hint=Tip: Shift + right-click with a screwdriver switches the max output tier
 gtsr.event.broadcast=The %5$s at %1$s %2$s %3$s %4$s has %7$s due to %6$s
+# T7 Singularity machine events (broadcast to all players, via the 7-arg gtsr.event.broadcast format)
+gtsr.event.singularity.overlimit=Device Overlimit
+gtsr.event.singularity.struct_chill=Structural Chill
+gtsr.event.singularity.struct_collapse=Structural Collapse
+gtsr.event.singularity.dim_solidify=Dimension Solidification
+gtsr.event.singularity.dim_tear=Dimension Tear
+gtsr.event.result.rogue_singularity=singularity gone rogue
+gtsr.event.result.shutdown=forced shutdown
+gtsr.event.result.dim_shatter=momentary dimensional shattering
 
 # Geothermal Boiler Tooltip
 gtsr.tooltip.geothermal_boiler.input_hatch=Input Hatch
@@ -312,11 +321,22 @@ gtsr.tooltip.critical_singularity_compressor.input_bus=Input Bus (Optional)
 gtsr.tooltip.critical_singularity_compressor.output_bus=Output Bus
 gtsr.tooltip.critical_singularity_compressor.output_hatch=Output Hatch
 gtsr.tooltip.critical_singularity_compressor.tier1_blocks=Materials: Advanced Rhodium Plated Palladium Machine Casing x1325, Fusion Coil Block x494, Fusion Machine Casing MK II x322, ZPM Machine Casing x212, Superconductor Coil Casing x112, Europium Frame x80, Rhodium Plated Palladium Frame x64, BW Tiered Glass III x117
+# T6 Three-value mechanics (one sentence per line)
+gtsr.tooltip.critical_singularity_compressor.overlimit_1=Overlimit mode tracks three values: singularity overlimit (0-1000%), structural instability (0-100%) and dimension tear (0-100%), all readable via GUI entries and the redstone hatch;
+gtsr.tooltip.critical_singularity_compressor.overlimit_2=Blazing Pyrotheum raises overlimit (y=0.05x/(x+5000)) and amplifies heat by (1 + overlimit/100) x (1 + tear/100); overlimit decays passively each second;
+gtsr.tooltip.critical_singularity_compressor.overlimit_3=Above 200% overlimit, instability accumulates while working (+overlimit/1000 per second); Gelid Cryotheum lowers it (y=0.01x/(x+1000)), overdosing forces a shutdown (Structural Chill);
+gtsr.tooltip.critical_singularity_compressor.overlimit_4=With instability >50% and overlimit >800%: the core singularity turns purple and dimension tear accumulates (+instability/100 + overlimit/1000 per second);
+gtsr.tooltip.critical_singularity_compressor.overlimit_5=UU-Matter lowers tear (-0.1% per 100 mB), overdosing forces a shutdown (Dimension Solidification); without UU the tear creeps +0.1% per second;
+gtsr.tooltip.critical_singularity_compressor.overlimit_6=While off, instability and tear each decay 0.1% per second.
+gtsr.tooltip.critical_singularity_compressor.overlimit_explode=Three explosion chains (first trigger wins): overlimit >=1000% Device Overlimit / instability >100% Structural Collapse (black, 60 s) / tear >100% Dimension Tear (purple, 20 min)!
 gtsr.gui.critical_singularity_compressor.status=Status:
 gtsr.gui.critical_singularity_compressor.status.building=Building
 gtsr.gui.critical_singularity_compressor.status.running=Running
 gtsr.gui.critical_singularity_compressor.status.idle=Idle
 gtsr.gui.critical_singularity_compressor.heat=Heat:
+gtsr.gui.critical_singularity_compressor.overlimit=Overlimit:
+gtsr.gui.critical_singularity_compressor.instability=Structural Instability:
+gtsr.gui.critical_singularity_compressor.tear=Dimension Tear:
 
 # Dense State Manipulator
 gt.blockmachines.gtsr.dense.state.manipulator.name=Dense State Steam Manipulator
@@ -826,6 +846,13 @@ gtsr.tooltip.entangler.ctrl=Layer 19, front-left
 gtsr.tooltip.entangler.steam_input=Input Hatch / Steam Input Hatch / Pressure Steam Hatch / Mega Overpressure Steam Input Hatch (ME hatches OK)
 gtsr.tooltip.entangler.output_bus=Output Bus
 gtsr.tooltip.entangler.tier1_blocks=Tier 1: Solid Steel Machine Casing x1340, Steel Pipe x568, Steel Frame x411, Reinforced Glass x423
+# T5 Overlimit/instability mechanics (one sentence per line)
+gtsr.tooltip.entangler.overlimit_1=Overlimit mode: Blazing Pyrotheum raises singularity overlimit (0-500%) and amplifies heat by (1 + overlimit/100), capped at 6x at 500%;
+gtsr.tooltip.entangler.overlimit_2=Overlimit decays passively each second (-0.01% while below 0.01%, otherwise -value/2000);
+gtsr.tooltip.entangler.overlimit_3=Above 200% overlimit, structural instability accumulates while working (+overlimit/1000 per second);
+gtsr.tooltip.entangler.overlimit_4=Gelid Cryotheum lowers structural instability (y=0.01x/(x+1000)); overdosing forces a shutdown (Structural Chill, recover with soft hammer);
+gtsr.tooltip.entangler.overlimit_5=While off, instability decays 0.1% per second.
+gtsr.tooltip.entangler.overlimit_explode=Two explosion chains (first trigger wins): overlimit >500% Device Overlimit / instability >100% Structural Collapse - a rogue black singularity (60 s self-destruct) spawns and destroys the machine!
 
 # Vein Steam Pyrolyzer (VSP)
 gtsr.tooltip.vein_pyrolyzer.type=Vein Steam Pyrolyzer, VSP
@@ -1107,6 +1134,8 @@ gtsr.gui.entangler.status=Status:
 gtsr.gui.entangler.status.running=Running
 gtsr.gui.entangler.status.idle=Idle
 gtsr.gui.entangler.heat=Heat: 
+gtsr.gui.entangler.overlimit=Overlimit: 
+gtsr.gui.entangler.instability=Structural Instability: 
 gtsr.chat.compressor_mode.on.compress=Switched to Steam Compression mode
 gtsr.chat.compressor_mode.on.decompress=Switched to Steam Decompression mode
 gtsr.chat.compressor_mode.require_tier2=Tier 2 structure required to switch modes

@@ -15,6 +15,8 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 import net.minecraft.world.World;
+import net.minecraftforge.fluids.FluidRegistry;
+import net.minecraftforge.fluids.FluidStack;
 
 import com.gtnewhorizon.structurelib.alignment.constructable.ISurvivalConstructable;
 import com.gtnewhorizon.structurelib.structure.IStructureDefinition;
@@ -24,7 +26,12 @@ import com.gtnewhorizon.structurelib.structure.StructureDefinition;
 import com.gtnewhorizon.structurelib.util.Vec3Impl;
 import com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
+import com.miaokatze.gtsr.common.api.progress.GTSRProgressEntry;
 import com.miaokatze.gtsr.common.blocks.BlocksGTSR;
+import com.miaokatze.gtsr.common.event.GTSRSingularityDimSolidifyEvent;
+import com.miaokatze.gtsr.common.event.GTSRSingularityDimTearEvent;
+import com.miaokatze.gtsr.common.event.GTSRSingularityOverlimitEvent;
+import com.miaokatze.gtsr.common.event.GTSRSingularityStructCollapseEvent;
 import com.miaokatze.gtsr.common.gui.MTECriticalSingularityCompressorGui;
 import com.miaokatze.gtsr.common.machine.base.MTESingularityMachineBase;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
@@ -51,6 +58,19 @@ public class MTECriticalSingularityCompressor extends MTESingularityMachineBase 
     private static final int VERTICAL_OFF_SET = 10;
     private static final int DEPTH_OFF_SET = 2;
 
+    /** T6 超限上限（%）：>=1000 触发装置超限爆炸链（v1.1 §2.4） */
+    private static final double OVERLIMIT_CAP = 1000.0d;
+    /** 结构崩解失稳阈值（%）：>100 触发结构崩解爆炸链 */
+    private static final double INSTABILITY_COLLAPSE_THRESHOLD = 100.0d;
+    /** 维度撕裂爆炸阈值（%）：>100 触发维度撕裂爆炸链（紫色 rogue） */
+    private static final double TEAR_THRESHOLD = 100.0d;
+    /** 撕裂积累条件（v1.1 §2.6）：失稳 > 50 且超限 > 800（同条件机内奇点变紫） */
+    private static final double TEAR_INSTABILITY_GATE = 50.0d;
+    private static final double TEAR_OVERLIMIT_GATE = 800.0d;
+    /** UU 物质流体双名（CMA:1325-1329 同款：GTNH 注册名 ic2uumatter 优先，回退旧名 uumatter） */
+    private static final String UU_MATTER_FLUID_NAME = "ic2uumatter";
+    private static final String UU_MATTER_FLUID_NAME_LEGACY = "uumatter";
+
     private static IStructureDefinition<MTECriticalSingularityCompressor> STRUCTURE_DEFINITION;
     private static Block TIER2_FRAME_BLOCK;
     private static Integer TIER2_FRAME_META;
@@ -74,7 +94,148 @@ public class MTECriticalSingularityCompressor extends MTESingularityMachineBase 
             "%.1f%%",
             EnumChatFormatting.RED,
             () -> mHeat * 100.0d);
+        // T6 超限/失稳/撕裂词条（全部 .showZero()：0% 为安全态，GUI/红石仓监控需常显，v1.20.22 零值默认隐藏约定）
+        registerEntry(
+            GTSRProgressEntry
+                .of(
+                    "overlimit",
+                    "gtsr.gui.critical_singularity_compressor.overlimit",
+                    "%.1f%%",
+                    EnumChatFormatting.RED,
+                    () -> mOverlimit)
+                .showZero());
+        registerEntry(
+            GTSRProgressEntry
+                .of(
+                    "instability",
+                    "gtsr.gui.critical_singularity_compressor.instability",
+                    "%.1f%%",
+                    EnumChatFormatting.GOLD,
+                    () -> mInstability)
+                .showZero());
+        registerEntry(
+            GTSRProgressEntry
+                .of(
+                    "tear",
+                    "gtsr.gui.critical_singularity_compressor.tear",
+                    "%.1f%%",
+                    EnumChatFormatting.LIGHT_PURPLE,
+                    () -> mTear)
+                .showZero());
     }
+
+    // region T6 超限模式（v1.1 机制不变，v1.2 适配）：三值全实装，三爆炸链首触即止
+
+    /** 本秒是否实扣过 UU 物质（蠕变豁免：无 UU 时撕裂每秒 +0.1）；仅服务端秒级管线内读写 */
+    private boolean mUUConsumedThisSecond = false;
+
+    @Override
+    protected boolean hasOverlimitMechanics() {
+        return true;
+    }
+
+    @Override
+    protected boolean hasTearMechanics() {
+        return true;
+    }
+
+    /** CESS 热量乘数：(1 + 超限/100)(1 + 撕裂/100)（与 SSE 对称：两者均无失稳项，v1.2 §4-35） */
+    @Override
+    protected double getHeatMultiplier() {
+        return (1.0d + mOverlimit / 100.0d) * (1.0d + mTear / 100.0d);
+    }
+
+    /**
+     * 三流体消耗：pyrotheum 提超限 + cryotheum 降温/超扣停机（基类共享实现）+ UU 物质降撕裂/超扣停机。
+     */
+    @Override
+    protected void consumeOverlimitFluids() {
+        mUUConsumedThisSecond = false;
+        consumePyrotheumAndCryotheum();
+        // UU 物质（双名探测）：全量消耗 → 撕裂 -0.001x；超扣（减少量 > 当前撕裂）→ clamp 0 + 停机 + 聊天「维度固化→停机」
+        FluidStack uuProbe = FluidRegistry.getFluidStack(UU_MATTER_FLUID_NAME, 1);
+        if (uuProbe == null) uuProbe = FluidRegistry.getFluidStack(UU_MATTER_FLUID_NAME_LEGACY, 1);
+        int uu = drainAllOfFluid(uuProbe);
+        if (uu > 0) {
+            mUUConsumedThisSecond = true;
+            double reduction = 0.001d * uu;
+            if (reduction > mTear) {
+                mTear = 0.0d;
+                GTSRSingularityDimSolidifyEvent event = newMachineEvent(GTSRSingularityDimSolidifyEvent::new);
+                event.setBroadcast(true)
+                    .sendChat(); // 聊天先于停机发送
+                getBaseMetaTileEntity().disableWorking();
+            } else {
+                mTear -= reduction;
+            }
+        }
+    }
+
+    /**
+     * 撕裂积累（v1.1 §2.6）：工作中且失稳>50 且超限>800 → 每秒 +失稳/100+超限/1000；
+     * 蠕变：工作中且撕裂>0 且本秒未实扣 UU → 每秒 +0.1。（停机衰减与爆炸链由基类管线统一处理）
+     */
+    @Override
+    protected void accumulateTear(boolean working) {
+        if (working && mInstability > TEAR_INSTABILITY_GATE && mOverlimit > TEAR_OVERLIMIT_GATE) {
+            mTear += mInstability / 100.0d + mOverlimit / 1000.0d;
+        }
+        if (working && mTear > 0.0d && !mUUConsumedThisSecond) {
+            mTear += 0.1d; // 蠕变
+        }
+    }
+
+    /** 撕裂积累条件成立（失稳>50 且超限>800）：机内奇点 spec 颜色 gray→purple 的同一状态源 */
+    private boolean isTearAccumulating() {
+        return mInstability > TEAR_INSTABILITY_GATE && mOverlimit > TEAR_OVERLIMIT_GATE;
+    }
+
+    /**
+     * 三爆炸链（顺序首触即止，v1.1 §2.7）：装置超限（>=1000%）→ 结构崩解（失稳>100%）→ 维度撕裂（>100%，紫色 rogue）。
+     * 装置超限/结构崩解黑色 rogue `20 5 5 1200 0 black 60`（60 秒自毁）；维度撕裂紫色 rogue `50 20 10 24000 0 purple 100`（20 分钟）。
+     */
+    @Override
+    protected boolean checkOverlimitExplosionChain() {
+        if (mOverlimit >= OVERLIMIT_CAP) {
+            detonateRunawaySingularity(
+                newMachineEvent(GTSRSingularityOverlimitEvent::new),
+                20.0d,
+                5.0d,
+                5.0d,
+                1200,
+                0,
+                "black",
+                60.0d);
+            return true;
+        }
+        if (mInstability > INSTABILITY_COLLAPSE_THRESHOLD) {
+            detonateRunawaySingularity(
+                newMachineEvent(GTSRSingularityStructCollapseEvent::new),
+                20.0d,
+                5.0d,
+                5.0d,
+                1200,
+                0,
+                "black",
+                60.0d);
+            return true;
+        }
+        if (mTear > TEAR_THRESHOLD) {
+            detonateRunawaySingularity(
+                newMachineEvent(GTSRSingularityDimTearEvent::new),
+                50.0d,
+                20.0d,
+                10.0d,
+                24000,
+                0,
+                "purple",
+                100.0d);
+            return true;
+        }
+        return false;
+    }
+
+    // endregion
 
     @Override
     protected String getTooltipKeyPrefix() {
@@ -478,7 +639,10 @@ public class MTECriticalSingularityCompressor extends MTESingularityMachineBase 
         // I 定位块：形状偏移 (a+0, b+0, c+11)（I 字符在 slice10 行13 列13，控制器在 slice10 行2 列13），
         // 经 ExtendedFacing 换算世界偏移（与 checkPiece 同源映射）
         Vec3Impl off = getExtendedFacing().getWorldOffset(new Vec3Impl(0, 0, 11));
-        return new EntanglementSpec(off.get0(), off.get1(), off.get2(), 9.0D, 0.0D, 0.0D, -1, -1, "gray", 40.0D);
+        // T6 状态化颜色（v1.1 §2.6）：撕裂积累条件成立 → purple，解除 → gray；
+        // 颜色随 spec 变化由基类自愈分支（参数比对不符即 setParams 重应用）自动落到机内奇点
+        String color = isTearAccumulating() ? "purple" : "gray";
+        return new EntanglementSpec(off.get0(), off.get1(), off.get2(), 9.0D, 0.0D, 0.0D, -1, -1, color, 40.0D);
     }
 
     @Override
@@ -495,8 +659,10 @@ public class MTECriticalSingularityCompressor extends MTESingularityMachineBase 
             .addInfo(EnumChatFormatting.GREEN + StatCollector.translateToLocal(keyPrefix + "desc3"))
             .addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal(keyPrefix + "desc3_2"))
             .addInfo(EnumChatFormatting.RED + StatCollector.translateToLocal(keyPrefix + "desc4"))
-            .addInfo(EnumChatFormatting.DARK_PURPLE + StatCollector.translateToLocal(keyPrefix + "desc5"))
-            .addSeparator()
+            .addInfo(EnumChatFormatting.DARK_PURPLE + StatCollector.translateToLocal(keyPrefix + "desc5"));
+        // T6 三值机制说明（用户拍板追加）：在既有描述之后、结构段之前追加，键未配置时零输出
+        addOverlimitTooltipLines(tt, keyPrefix);
+        tt.addSeparator()
             // [GT-compat] beta 兼容层（beta1/beta2/beta3）：beta-3 起始参数序为 (w,h,l)，实参已按 beta-3 语义排列
             .beginStructureBlock(27, 21, 27, false)
             .addController(StatCollector.translateToLocal(keyPrefix + "ctrl"))

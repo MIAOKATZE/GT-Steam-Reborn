@@ -68,7 +68,8 @@ public class WorldGenRunawaySingularity implements IWorldGenerator {
             TileRunawaySingularity.ATTRIBUTE_NATURE,
             "white",
             10.0D + random.nextInt(16),
-            Config.singularityDestroyBlocks);
+            Config.singularityDestroyBlocks,
+            TileRunawaySingularity.SingularityType.NATURAL); // 自然生成分型：机器管理逻辑零触碰
     }
 
     /**

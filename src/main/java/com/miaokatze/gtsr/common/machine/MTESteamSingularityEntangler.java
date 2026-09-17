@@ -29,7 +29,10 @@ import com.gtnewhorizon.structurelib.util.Vec3Impl;
 import com.miaokatze.gtsr.api.compat.GTVersionCompat;
 import com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
+import com.miaokatze.gtsr.common.api.progress.GTSRProgressEntry;
 import com.miaokatze.gtsr.common.blocks.BlocksGTSR;
+import com.miaokatze.gtsr.common.event.GTSRSingularityOverlimitEvent;
+import com.miaokatze.gtsr.common.event.GTSRSingularityStructCollapseEvent;
 import com.miaokatze.gtsr.common.gui.MTESteamSingularityEntanglerGui;
 import com.miaokatze.gtsr.common.machine.base.MTESingularityMachineBase;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
@@ -53,6 +56,11 @@ public class MTESteamSingularityEntangler extends MTESingularityMachineBase impl
     private static final int VERTICAL_OFF_SET = 19;
     private static final int DEPTH_OFF_SET = 2;
 
+    /** T5 超限上限（%）：>500 触发装置超限爆炸链（沿用 SSE 自身 > 语义，v1.2 拍板） */
+    private static final double OVERLIMIT_CAP = 500.0d;
+    /** 结构崩解失稳阈值（%）：>100 触发结构崩解爆炸链 */
+    private static final double INSTABILITY_COLLAPSE_THRESHOLD = 100.0d;
+
     private static IStructureDefinition<MTESteamSingularityEntangler> STRUCTURE_DEFINITION;
 
     private int mCasingTierA = -1;
@@ -73,7 +81,75 @@ public class MTESteamSingularityEntangler extends MTESingularityMachineBase impl
     /** 注册终端数值词条（顺序 = GUI 显示顺序；热量 mHeat 口径 0-1，显示 ×100） */
     private void registerProgressEntries() {
         registerEntry("temperature", "gtsr.gui.entangler.heat", "%.1f%%", EnumChatFormatting.RED, () -> mHeat * 100.0d);
+        // T5 超限/失稳词条（全部 .showZero()：0% 为安全态，GUI/红石仓监控需常显，v1.20.22 零值默认隐藏约定）
+        registerEntry(
+            GTSRProgressEntry
+                .of("overlimit", "gtsr.gui.entangler.overlimit", "%.1f%%", EnumChatFormatting.RED, () -> mOverlimit)
+                .showZero());
+        registerEntry(
+            GTSRProgressEntry
+                .of(
+                    "instability",
+                    "gtsr.gui.entangler.instability",
+                    "%.1f%%",
+                    EnumChatFormatting.GOLD,
+                    () -> mInstability)
+                .showZero());
     }
+
+    // region T5 超限模式（v1.2 §4）：超限 0-500% + 失稳 0-100%，双爆炸链首触即止；不实装撕裂
+
+    @Override
+    protected boolean hasOverlimitMechanics() {
+        return true;
+    }
+
+    /** SSE 热量乘数：(1 + 超限/100)，500% 封顶 6×（不加失稳项，与 CESS 对称，v1.2 §4-35） */
+    @Override
+    protected double getHeatMultiplier() {
+        return 1.0d + mOverlimit / 100.0d;
+    }
+
+    /** 双流体消耗：pyrotheum 提超限 + cryotheum 降温/超扣停机（与 CESS 同款，基类共享实现） */
+    @Override
+    protected void consumeOverlimitFluids() {
+        consumePyrotheumAndCryotheum();
+    }
+
+    /**
+     * 双爆炸链（顺序首触即止，v1.2 §4-34）：装置超限（>500%）→ 结构崩解（失稳>100%）。
+     * 失控奇点参数 `20 5 5 1200 0 black 60`（duration 1200 tick = 60 秒自毁，attribute 0 普通吸收）。
+     */
+    @Override
+    protected boolean checkOverlimitExplosionChain() {
+        if (mOverlimit > OVERLIMIT_CAP) {
+            detonateRunawaySingularity(
+                newMachineEvent(GTSRSingularityOverlimitEvent::new),
+                20.0d,
+                5.0d,
+                5.0d,
+                1200,
+                0,
+                "black",
+                60.0d);
+            return true;
+        }
+        if (mInstability > INSTABILITY_COLLAPSE_THRESHOLD) {
+            detonateRunawaySingularity(
+                newMachineEvent(GTSRSingularityStructCollapseEvent::new),
+                20.0d,
+                5.0d,
+                5.0d,
+                1200,
+                0,
+                "black",
+                60.0d);
+            return true;
+        }
+        return false;
+    }
+
+    // endregion
 
     @Override
     public IMetaTileEntity newMetaEntity(IGregTechTileEntity aTileEntity) {
@@ -567,6 +643,8 @@ public class MTESteamSingularityEntangler extends MTESingularityMachineBase impl
     protected MultiblockTooltipBuilder createTooltip() {
         String keyPrefix = getTooltipKeyPrefix();
         MultiblockTooltipBuilder tt = super.createTooltip();
+        // T5 超限/失稳机制说明（用户拍板追加）：在既有描述之后、结构段之前追加，键未配置时零输出
+        addOverlimitTooltipLines(tt, keyPrefix);
         tt.addSeparator()
             // [GT-compat] beta 兼容层（beta1/beta2/beta3）：beta-3 起始参数序为 (w,h,l)，实参已按 beta-3 语义排列
             .beginStructureBlock(30, 23, 24, false)

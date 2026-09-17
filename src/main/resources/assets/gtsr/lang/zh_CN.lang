@@ -283,6 +283,15 @@ gtsr.chat.overpressure.need_heat=需要 100％ 热量才能开启超压模式
 gtsr.chat.tcds.output_tier=输出档位已切换为 %s%%（最大热量上限 %s%%）
 gtsr.chat.tcds.output_tier.hint=提示：Shift+螺丝刀右键可切换最大输出档位
 gtsr.event.broadcast=坐标位于 %1$s %2$s %3$s %4$s 的 %5$s，因 %6$s 而 %7$s
+# T7 奇点机器五类事件（v1.1 §5；全服广播，格式键 gtsr.event.broadcast 七参）
+gtsr.event.singularity.overlimit=装置超限
+gtsr.event.singularity.struct_chill=结构失温
+gtsr.event.singularity.struct_collapse=结构崩解
+gtsr.event.singularity.dim_solidify=维度固化
+gtsr.event.singularity.dim_tear=维度撕裂
+gtsr.event.result.rogue_singularity=奇点失控
+gtsr.event.result.shutdown=停机
+gtsr.event.result.dim_shatter=短时维度破碎
 
 # Geothermal Boiler Tooltip
 gtsr.tooltip.geothermal_boiler.input_hatch=输入仓
@@ -312,11 +321,22 @@ gtsr.tooltip.critical_singularity_compressor.input_bus=输入总线（可选）
 gtsr.tooltip.critical_singularity_compressor.output_bus=输出总线
 gtsr.tooltip.critical_singularity_compressor.output_hatch=输出仓
 gtsr.tooltip.critical_singularity_compressor.tier1_blocks=结构材料：强化镀铑钯机械方块×1325、熔融线圈方块×494、熔融机械方块MK II×322、ZPM机械方块×212、超导线圈外壳×112、铕框架×80、镀铑钯框架×64、巴特沃克3级玻璃×117
+# T6 三值机制说明（每行一句）
+gtsr.tooltip.critical_singularity_compressor.overlimit_1=超限模式三值：奇点超限（0-1000%）、结构失稳（0-100%）、维度撕裂（0-100%），GUI 词条与红石仓实时可读；
+gtsr.tooltip.critical_singularity_compressor.overlimit_2=通入烈焰之炽焱提升超限（y=0.05x/(x+5000)）并放大热量 (1+超限/100)×(1+撕裂/100)；超限每秒被动衰减；
+gtsr.tooltip.critical_singularity_compressor.overlimit_3=超限>200% 时工作中失稳持续积累（每秒 +超限/1000）；通入极寒之凛冰降低失稳（y=0.01x/(x+1000)），过量降温强制停机（结构失温）；
+gtsr.tooltip.critical_singularity_compressor.overlimit_4=失稳>50% 且超限>800% 时：机内奇点变紫，维度撕裂开始积累（每秒 +失稳/100+超限/1000）；
+gtsr.tooltip.critical_singularity_compressor.overlimit_5=通入 UU 物质降低撕裂（每 100mB -0.1%），过量固化强制停机（维度固化）；无 UU 时撕裂蠕变每秒 +0.1%；
+gtsr.tooltip.critical_singularity_compressor.overlimit_6=停机时失稳/撕裂每秒各自然衰减 0.1%。
+gtsr.tooltip.critical_singularity_compressor.overlimit_explode=三条爆炸链（首触即爆）：超限>=1000% 装置超限 / 失稳>100% 结构崩解（黑奇点，60 秒）/ 撕裂>100% 维度撕裂（紫奇点，20 分钟）！
 gtsr.gui.critical_singularity_compressor.status=状态:
 gtsr.gui.critical_singularity_compressor.status.building=构建中
 gtsr.gui.critical_singularity_compressor.status.running=运行中
 gtsr.gui.critical_singularity_compressor.status.idle=待机中
 gtsr.gui.critical_singularity_compressor.heat=热量:
+gtsr.gui.critical_singularity_compressor.overlimit=超限程度:
+gtsr.gui.critical_singularity_compressor.instability=结构失稳程度:
+gtsr.gui.critical_singularity_compressor.tear=维度撕裂程度:
 
 # Dense State Manipulator
 gt.blockmachines.gtsr.dense.state.manipulator.name=致密态蒸汽操控装置
@@ -848,6 +868,13 @@ gtsr.tooltip.entangler.ctrl=Layer 19 前侧偏左
 gtsr.tooltip.entangler.steam_input=输入仓/蒸汽仓/耐压蒸汽仓/巨型超压蒸汽输入仓（兼容ME仓室）
 gtsr.tooltip.entangler.output_bus=输出总线
 gtsr.tooltip.entangler.tier1_blocks=等级1：固体钢外壳×1340、钢管×568、钢框架×411、防爆玻璃×423
+# T5 超限/失稳机制说明（每行一句）
+gtsr.tooltip.entangler.overlimit_1=超限模式：通入烈焰之炽焱提升奇点超限（0-500%），并按 (1+超限/100) 放大热量（500% 封顶 6 倍）；
+gtsr.tooltip.entangler.overlimit_2=超限每秒自然衰减（不足 0.01% 时降 0.01%，否则降 值/2000）；
+gtsr.tooltip.entangler.overlimit_3=超限>200% 时，工作中结构失稳持续积累（每秒 +超限/1000）；
+gtsr.tooltip.entangler.overlimit_4=通入极寒之凛冰降低结构失稳（y=0.01x/(x+1000)），过量降温会强制停机（结构失温，软锤恢复）；
+gtsr.tooltip.entangler.overlimit_5=停机时失稳每秒自然衰减 0.1%。
+gtsr.tooltip.entangler.overlimit_explode=两条爆炸链（首触即爆）：超限>500% 装置超限 / 失稳>100% 结构崩解——生成失控黑奇点（60 秒自毁）并摧毁装置！
 
 # 16. Vein Steam Pyrolyzer
 gtsr.tooltip.vein_pyrolyzer.type=地脉蒸汽热解机, VSP
@@ -1074,6 +1101,8 @@ gtsr.gui.entangler.status=状态：
 gtsr.gui.entangler.status.running=运行中
 gtsr.gui.entangler.status.idle=待机中
 gtsr.gui.entangler.heat=热量： 
+gtsr.gui.entangler.overlimit=超限程度： 
+gtsr.gui.entangler.instability=结构失稳程度： 
 gtsr.chat.compressor_mode.on.compress=已切换为蒸汽压缩模式
 gtsr.chat.compressor_mode.on.decompress=已切换为蒸汽解压模式
 gtsr.chat.compressor_mode.require_tier2=切换模式需等级2结构

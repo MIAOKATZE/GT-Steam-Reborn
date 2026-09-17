@@ -9,12 +9,12 @@
   <img alt="Minecraft 1.7.10" src="https://img.shields.io/badge/Minecraft-1.7.10-blue.svg">
   <img alt="Forge 10.13.4.1614" src="https://img.shields.io/badge/Forge-10.13.4.1614-blue.svg">
   <a href="https://github.com/GTNewHorizons/GT-New-Horizons-Modpack"><img alt="GTNH 2.9.0 beta-1&2&3" src="https://img.shields.io/badge/GTNH-2.9.0%20beta--1%262%263-orange.svg"></a>
-  <a href="https://github.com/MIAOKATZE/GT-Steam-Reborn/releases"><img alt="Release 1.20.24" src="https://img.shields.io/badge/Release-1.20.24-green.svg"></a>
+  <a href="https://github.com/MIAOKATZE/GT-Steam-Reborn/releases"><img alt="Release 1.20.26" src="https://img.shields.io/badge/Release-1.20.26-green.svg"></a>
 </p>
 
-A GregTech New Horizons expansion mod that **supplements the Steam Age and significantly expands steam usage**, providing 23 multiblock steam machines, 8 single-block nodes, 15 types of hatches plus 4 singularity compartments and 3 hub storage units, a Hub-Node binding system, and a Mineral Logistics Cluster for chain-based ore processing. It fills the gameplay gap between the steam age and the electric age in GTNH, making steam a viable and deep progression path rather than a transient phase.
+A GregTech New Horizons expansion mod that **supplements the Steam Age and significantly expands steam usage**, providing 23 multiblock steam machines, 8 single-block nodes, 15 types of hatches plus 4 singularity compartments and 3 hub storage units, a Hub-Node binding system, and a Mineral Logistics Cluster for chain-based ore processing. It fills the gameplay gap between the steam age and the electric age in GTNH, making steam a viable and deep progression path rather than a transient phase. Singularity blocks carry an explicit three-way type — **Natural** (worldgen) / **Stable** (machine-managed) / **Runaway** (command-spawned or overlimit detonation) — and the singularity producers gain an **overlimit mode**: the Steam Singularity Entangler pushes overlimit up to 500% (heat up to 6×) with structural instability accumulating above 200% overlimit, while the Critical Entangled Singularity Stabilizer manages three values (overlimit up to 1000%, instability, dimension tear) — breaching a cap spawns a Runaway singularity and destroys the machine.
 
-一个 GregTech New Horizons 扩展模组，**补充蒸汽时代并显著拓展蒸汽用途**，提供23台多方块蒸汽机器、8个单方块节点、15类仓室与4个奇点仓、3种存储单元、枢纽-节点绑定系统以及一套矿物处理物流工程集群。它填补了 GTNH 蒸汽阶段到电力阶段之间的玩法空白，让蒸汽成为一条可行且有深度的进阶路线，而非过渡阶段。
+一个 GregTech New Horizons 扩展模组，**补充蒸汽时代并显著拓展蒸汽用途**，提供23台多方块蒸汽机器、8个单方块节点、15类仓室与4个奇点仓、3种存储单元、枢纽-节点绑定系统以及一套矿物处理物流工程集群。它填补了 GTNH 蒸汽阶段到电力阶段之间的玩法空白，让蒸汽成为一条可行且有深度的进阶路线，而非过渡阶段。奇点方块显式三分类——**自然**（世界生成）/ **稳定**（机器托管）/ **失控**（命令生成或超限爆炸链脱管）；奇点生产设备实装**超限模式**：蒸汽奇点纠缠装置超限上限 500%（热量最高 6 倍），超限超 200% 后结构失稳持续积累；临界纠缠奇点稳定装置实装超限（上限 1000%）、失稳、维度撕裂三值——数值爆表即生成失控奇点并摧毁装置。
 
 > [!NOTE]
 > This is an unofficial mod. Please avoid discussing this mod in official GTNH forums.
