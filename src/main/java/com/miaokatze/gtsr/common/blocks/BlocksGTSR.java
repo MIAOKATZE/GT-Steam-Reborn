@@ -23,5 +23,19 @@ public final class BlocksGTSR {
     /** 残缺外壳 3 meta（0 锈蚀/1 积碳/2 碎瓷；S4a/S4b 结构消费）。 */
     public static Block ruinedCasing;
 
+    // ==== dim1 S6a：破碎之地方块族（BlockLoader.initBlocks 注册期写入）====
+
+    /** 碎裂草（碎裂浮岛 top；群系草色 tint 消费）。 */
+    public static Block shatteredGrass;
+
+    /** 碎裂泥土（碎裂浮岛 filler）。 */
+    public static Block shatteredDirt;
+
+    /** 裂隙石（深裂谷 top/filler 通体）。 */
+    public static Block riftStone;
+
+    /** 碎裂黑石（奇点荒原 top/filler + 裂隙层 y<20 基底 + 荒原黑石斑）。 */
+    public static Block shatteredBlackstone;
+
     private BlocksGTSR() {}
 }

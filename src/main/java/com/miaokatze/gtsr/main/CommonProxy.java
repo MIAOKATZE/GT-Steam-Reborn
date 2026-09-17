@@ -17,6 +17,10 @@ import com.miaokatze.gtsr.common.dimension.framework.GTSRDimensionDef;
 import com.miaokatze.gtsr.common.dimension.framework.GTSRWorldProviderBase;
 import com.miaokatze.gtsr.common.dimension.prosperity.air.GTSRProsperityAirMaterials;
 import com.miaokatze.gtsr.common.dimension.prosperity.biome.ProsperityBiomes;
+import com.miaokatze.gtsr.common.dimension.prosperity.ruins.ProsperityWorldGenerator;
+import com.miaokatze.gtsr.common.dimension.shattered.ChunkProviderShatteredLands;
+import com.miaokatze.gtsr.common.dimension.shattered.WorldProviderShatteredLands;
+import com.miaokatze.gtsr.common.dimension.shattered.biome.ShatteredBiomes;
 import com.miaokatze.gtsr.common.loot.LootInjectionRunawaySingularity;
 import com.miaokatze.gtsr.common.network.GTSRFXNet;
 import com.miaokatze.gtsr.common.structure.GTSRRedstoneHatchLimitError;
@@ -119,8 +123,11 @@ public class CommonProxy {
                 Config.shatteredDimId,
                 Config.shatteredProviderId,
                 () -> Config.planDimension.shatteredDimension,
-                GTSRWorldProviderBase.Skeleton.class,
-                (world, seed) -> new GTSRChunkProviderBase(world, seed));
+                // dim1 S6a：专属 Provider/ChunkProvider 替换 S1 Skeleton 占位
+                WorldProviderShatteredLands.class,
+                ChunkProviderShatteredLands::new);
+            // dim1 S6a：三群系（190..192 权重 50/30/20）在 def 注册前挂接（BlockLoader 已注册 shattered* 方块）
+            ShatteredBiomes.init(shatteredDef);
             DimensionRegistrar.preInitDimensions(prosperityDef, shatteredDef);
         } catch (Throwable t) {
             GTSteamReborn.LOG.error("[GTSR] 维度框架注册过程中发生严重错误", t);
@@ -200,6 +207,10 @@ public class CommonProxy {
 
         // 注册自然生成：失控奇点 nature 词条（主世界+下界，频率见配置 singularitySpawnFrequency）
         GameRegistry.registerWorldGenerator(new WorldGenRunawaySingularity(), 0);
+
+        // dim1 S4a：繁荣维度世界生成编排器（残缺机器 5 机型 + 地表散布；古代城为 S4b 挂点）。
+        // 构造时向 StructureRegistry 登记 5 机型变体并输出注册证据日志（plan S4a 验收 grep 锚点）。
+        GameRegistry.registerWorldGenerator(new ProsperityWorldGenerator(), 1);
 
         // Waila 跨 mod 兼容：外置 isModLoaded 守卫；Waila 缺失时不加载兼容类（详见 GTSRWailaCompat）
         if (Loader.isModLoaded(Mods.Waila.ID)) {

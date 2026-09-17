@@ -2057,3 +2057,14 @@ Material.wastesigh=荒原叹息
 Material.thickgrease=浓稠油污
 Material.metalgrit=金属风沙
 Material.umbralmire=至暗泥泞
+
+# 维度破碎之地：群系（dim1 S6a；键名跟随 setBiomeName 的 biome.<biomeName>.name）
+biome.Shattered Isles.name=碎裂浮岛
+biome.Rift Canyon.name=深裂谷
+biome.Singularity Wastes.name=奇点荒原
+
+# 维度破碎之地：方块（dim1 S6a）
+tile.ShatteredGrass.name=碎裂草方块
+tile.ShatteredDirt.name=碎裂泥土
+tile.RiftStone.name=裂隙石
+tile.ShatteredBlackstone.name=碎裂黑石

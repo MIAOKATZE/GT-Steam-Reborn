@@ -10,6 +10,10 @@ import com.miaokatze.gtsr.common.dimension.prosperity.block.BlockProsperitySurfa
 import com.miaokatze.gtsr.common.dimension.prosperity.block.BlockRuinDebris;
 import com.miaokatze.gtsr.common.dimension.prosperity.block.BlockRuinedCasing;
 import com.miaokatze.gtsr.common.dimension.prosperity.block.ItemBlockProsperityMeta;
+import com.miaokatze.gtsr.common.dimension.shattered.block.BlockRiftStone;
+import com.miaokatze.gtsr.common.dimension.shattered.block.BlockShatteredBlackstone;
+import com.miaokatze.gtsr.common.dimension.shattered.block.BlockShatteredDirt;
+import com.miaokatze.gtsr.common.dimension.shattered.block.BlockShatteredGrass;
 import com.miaokatze.gtsr.main.GTSteamReborn;
 import com.miaokatze.gtsr.register.CreativeTabManager;
 
@@ -49,5 +53,23 @@ public class BlockLoader {
         }
         GTSteamReborn.LOG
             .info("[GTSR] prosperity blocks registered: ProsperitySurface(6)/RuinDebris(4)/RuinedCasing(3)");
+
+        // dim1 S6a：破碎之地方块族（单方块无 meta，runawaySingularity/prosperity 自持持有者范式）。
+        // 必须先于 ShatteredBiomes.init（群系 top/filler 引用 BlocksGTSR.shattered*，
+        // CommonProxy.preInit 顺序：BlockLoader → ShatteredBiomes.init → DimensionRegistrar）。
+        BlocksGTSR.shatteredGrass = new BlockShatteredGrass();
+        GameRegistry.registerBlock(BlocksGTSR.shatteredGrass, "ShatteredGrass");
+        BlocksGTSR.shatteredDirt = new BlockShatteredDirt();
+        GameRegistry.registerBlock(BlocksGTSR.shatteredDirt, "ShatteredDirt");
+        BlocksGTSR.riftStone = new BlockRiftStone();
+        GameRegistry.registerBlock(BlocksGTSR.riftStone, "RiftStone");
+        BlocksGTSR.shatteredBlackstone = new BlockShatteredBlackstone();
+        GameRegistry.registerBlock(BlocksGTSR.shatteredBlackstone, "ShatteredBlackstone");
+        CreativeTabManager.addItemToTab(new ItemStack(BlocksGTSR.shatteredGrass));
+        CreativeTabManager.addItemToTab(new ItemStack(BlocksGTSR.shatteredDirt));
+        CreativeTabManager.addItemToTab(new ItemStack(BlocksGTSR.riftStone));
+        CreativeTabManager.addItemToTab(new ItemStack(BlocksGTSR.shatteredBlackstone));
+        GTSteamReborn.LOG
+            .info("[GTSR] shattered blocks registered: ShatteredGrass/ShatteredDirt/RiftStone/ShatteredBlackstone");
     }
 }

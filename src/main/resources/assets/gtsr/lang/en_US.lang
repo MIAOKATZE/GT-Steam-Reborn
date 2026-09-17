@@ -2062,3 +2062,14 @@ Material.wastesigh=Waste Sigh
 Material.thickgrease=Thick Grease
 Material.metalgrit=Metal Grit
 Material.umbralmire=Umbral Mire
+
+# Dimension shattered-lands: biomes (dim1 S6a; keys follow biome.<biomeName>.name from setBiomeName)
+biome.Shattered Isles.name=Shattered Isles
+biome.Rift Canyon.name=Rift Canyon
+biome.Singularity Wastes.name=Singularity Wastes
+
+# Dimension shattered-lands: blocks (dim1 S6a)
+tile.ShatteredGrass.name=Shattered Grass Block
+tile.ShatteredDirt.name=Shattered Dirt
+tile.RiftStone.name=Rift Stone
+tile.ShatteredBlackstone.name=Shattered Blackstone
