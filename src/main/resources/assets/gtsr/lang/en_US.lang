@@ -2056,3 +2056,9 @@ tile.RuinDebris.3.name=Chimney Segment
 tile.RuinedCasing.0.name=Rusted Casing
 tile.RuinedCasing.1.name=Sooted Casing
 tile.RuinedCasing.2.name=Porcelain Casing
+
+# Prosperity Air Materials (dim1 S3)
+Material.wastesigh=Waste Sigh
+Material.thickgrease=Thick Grease
+Material.metalgrit=Metal Grit
+Material.umbralmire=Umbral Mire

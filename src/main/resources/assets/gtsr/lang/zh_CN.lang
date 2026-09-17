@@ -2051,3 +2051,9 @@ tile.RuinDebris.3.name=烟囱残段
 tile.RuinedCasing.0.name=锈蚀外壳
 tile.RuinedCasing.1.name=积碳外壳
 tile.RuinedCasing.2.name=碎瓷外壳
+
+# 繁荣四空气材料 (dim1 S3)
+Material.wastesigh=荒原叹息
+Material.thickgrease=浓稠油污
+Material.metalgrit=金属风沙
+Material.umbralmire=至暗泥泞

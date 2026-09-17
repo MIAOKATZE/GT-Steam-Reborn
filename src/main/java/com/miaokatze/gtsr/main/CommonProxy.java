@@ -15,6 +15,7 @@ import com.miaokatze.gtsr.common.dimension.framework.DimensionRegistrar;
 import com.miaokatze.gtsr.common.dimension.framework.GTSRChunkProviderBase;
 import com.miaokatze.gtsr.common.dimension.framework.GTSRDimensionDef;
 import com.miaokatze.gtsr.common.dimension.framework.GTSRWorldProviderBase;
+import com.miaokatze.gtsr.common.dimension.prosperity.air.GTSRProsperityAirMaterials;
 import com.miaokatze.gtsr.common.dimension.prosperity.biome.ProsperityBiomes;
 import com.miaokatze.gtsr.common.loot.LootInjectionRunawaySingularity;
 import com.miaokatze.gtsr.common.network.GTSRFXNet;
@@ -38,6 +39,7 @@ import cpw.mods.fml.common.event.FMLServerStartingEvent;
 import cpw.mods.fml.common.network.NetworkRegistry;
 import cpw.mods.fml.common.registry.GameRegistry;
 import gregtech.api.GregTechAPI;
+import gregtech.api.enums.Materials;
 import gregtech.api.enums.Mods;
 import gregtech.api.structure.error.StructureErrorRegistry;
 
@@ -64,6 +66,15 @@ public class CommonProxy {
             }
         }
         Config.synchronizeConfiguration(newConfigFile);
+        // dim1 S3：繁荣四空气材料 handler 必须在 GTSR 自身首次触碰 gregtech Materials 类之前登记
+        // （此处为 CommonProxy.preInit 最早处）。Materials.add 仅登记；GT 于自身 preInit 的
+        // Materials.init()（参考库 GTMod.java:337）末尾回调 onMaterialsInit 完成注册——gtsr 为
+        // required-before:gregtech，本时序先于 GT preInit，回调必然可达（plan S3 ①）。
+        try {
+            Materials.add(new GTSRProsperityAirMaterials());
+        } catch (Throwable t) {
+            GTSteamReborn.LOG.error("[GTSR] prosperity air material handler registration failed", t);
+        }
         GTSRFXNet.init();
         // BetterQuesting 可选集成探测（BQ 缺席时静默降级；反射探测不加载 BQ 类）
         com.miaokatze.gtsr.crossmod.bq.BqCompat.detect();
@@ -167,6 +178,10 @@ public class CommonProxy {
      */
     @SuppressWarnings({ "unused" })
     public void init(FMLInitializationEvent event) {
+        // dim1 S3 dev 探针（S3 验收②）：init 晚于 GT preInit 的 Materials.init()/流体注册管线，
+        // 此处回读 FluidRegistry 与静态持有者，逐材料输出非空证据（行为级验证 defer S8 冒烟）。
+        GTSRProsperityAirMaterials.logRegistrationProbe();
+
         GTSteamReborn.LOG.info("[2/3] 开始初始化创造模式物品栏...");
 
         CreativeTabManager.initCreativeTab();

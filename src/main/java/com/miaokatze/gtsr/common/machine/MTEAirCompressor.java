@@ -19,6 +19,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
+import net.minecraft.world.World;
 import net.minecraftforge.fluids.FluidStack;
 
 import org.apache.commons.lang3.tuple.Pair;
@@ -38,7 +39,9 @@ import com.miaokatze.gtsr.api.compat.SteamCoolingSupport;
 import com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps;
 import com.miaokatze.gtsr.common.api.progress.GTSRProgressBar;
 import com.miaokatze.gtsr.common.api.progress.GTSRProgressEntry;
+import com.miaokatze.gtsr.common.dimension.prosperity.air.ProsperityAirLookup;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
+import com.miaokatze.gtsr.config.Config;
 
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Materials;
@@ -324,9 +327,22 @@ public class MTEAirCompressor extends MTESteamMultiBlockBase<MTEAirCompressor> i
         if (getTotalSteamStored() <= 0) {
             return CheckRecipeResultRegistry.NO_RECIPE;
         }
-        boolean isNether = getBaseMetaTileEntity().getWorld().provider.dimensionId == -1;
-        int amount = 800 * getMaxParallelRecipes();
-        FluidStack outputFluid = isNether ? Materials.NetherAir.getFluid(amount) : Materials.Air.getGas(amount);
+        // dim1 S3：维度分派查表化（原二值三目 isNether，plan S3 ②）。
+        // 三分支：繁荣维度（非禁用态）→ ProsperityAirLookup 按四群系出对应四气，未命中/注册降级回落 Air；
+        // 下界 → NetherAir.getFluid；其余（含主世界）→ Air.getGas——0/-1 与其他维度行为与改前逐字节一致。
+        final World world = getBaseMetaTileEntity().getWorld();
+        final int dimensionId = world.provider.dimensionId;
+        final int amount = 800 * getMaxParallelRecipes();
+        final FluidStack outputFluid;
+        if (Config.prosperityDimId >= 0 && dimensionId == Config.prosperityDimId) {
+            final Materials prosperityAir = ProsperityAirLookup
+                .of(world, getBaseMetaTileEntity().getXCoord(), getBaseMetaTileEntity().getZCoord());
+            outputFluid = prosperityAir != null ? prosperityAir.getGas(amount) : Materials.Air.getGas(amount);
+        } else if (dimensionId == -1) {
+            outputFluid = Materials.NetherAir.getFluid(amount);
+        } else {
+            outputFluid = Materials.Air.getGas(amount);
+        }
 
         // v1.7.26 修复：先预检查输出仓空间是否足够。
         // 原实现直接设置 mOutputFluids 后由 onPostTick 的 addFluidOutputs 尝试输出，
