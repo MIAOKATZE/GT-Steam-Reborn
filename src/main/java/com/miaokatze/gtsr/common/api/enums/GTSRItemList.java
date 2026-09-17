@@ -114,6 +114,9 @@ public enum GTSRItemList implements IItemContainer {
     TcdsController,
     TcdsBoostChip,
 
+    // 调试工具（管理员物品，无配方无 NEI 途径）
+    SingularityTuningWand,
+
     ;
 
     // [GT-compat] beta 兼容层（beta1/beta2/beta3）：GTLog.err/GTMod.GT_FML_LOGGER 于 beta-3 移除，改用环境 log4j2（三版本通用）

@@ -40,6 +40,8 @@ public class GTSRFXNet {
         NETWORK.registerMessage(HubBindHandler.class, HubBindMessage.class, 1, Side.SERVER);
         // 终端轨（channel "gtsr_terminal"）：注册点收束于本 init 尾部，满足「GTSRFXNet 基建可扩展」决策
         TerminalNet.register();
+        // 调谐棒轨（channel "gtsr_wand"）：同上收束策略
+        WandNet.init();
         cpw.mods.fml.common.FMLCommonHandler.instance()
             .bus()
             .register(new BindServerDrain());

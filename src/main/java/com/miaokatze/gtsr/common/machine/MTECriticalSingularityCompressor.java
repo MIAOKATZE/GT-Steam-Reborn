@@ -91,7 +91,7 @@ public class MTECriticalSingularityCompressor extends MTESingularityMachineBase 
         registerEntry(
             "temperature",
             "gtsr.gui.critical_singularity_compressor.heat",
-            "%.1f%%",
+            "%.2f%%",
             EnumChatFormatting.RED,
             () -> mHeat * 100.0d);
         // T6 超限/失稳/撕裂词条（全部 .showZero()：0% 为安全态，GUI/红石仓监控需常显，v1.20.22 零值默认隐藏约定）
@@ -100,7 +100,7 @@ public class MTECriticalSingularityCompressor extends MTESingularityMachineBase 
                 .of(
                     "overlimit",
                     "gtsr.gui.critical_singularity_compressor.overlimit",
-                    "%.1f%%",
+                    "%.2f%%",
                     EnumChatFormatting.RED,
                     () -> mOverlimit)
                 .showZero());
@@ -109,7 +109,7 @@ public class MTECriticalSingularityCompressor extends MTESingularityMachineBase 
                 .of(
                     "instability",
                     "gtsr.gui.critical_singularity_compressor.instability",
-                    "%.1f%%",
+                    "%.2f%%",
                     EnumChatFormatting.GOLD,
                     () -> mInstability)
                 .showZero());
@@ -118,7 +118,7 @@ public class MTECriticalSingularityCompressor extends MTESingularityMachineBase 
                 .of(
                     "tear",
                     "gtsr.gui.critical_singularity_compressor.tear",
-                    "%.1f%%",
+                    "%.2f%%",
                     EnumChatFormatting.LIGHT_PURPLE,
                     () -> mTear)
                 .showZero());
@@ -199,10 +199,10 @@ public class MTECriticalSingularityCompressor extends MTESingularityMachineBase 
         if (mOverlimit >= OVERLIMIT_CAP) {
             detonateRunawaySingularity(
                 newMachineEvent(GTSRSingularityOverlimitEvent::new),
-                20.0d,
+                40.0d,
+                80.0d,
                 5.0d,
-                5.0d,
-                1200,
+                4800,
                 0,
                 "black",
                 60.0d);
@@ -211,10 +211,10 @@ public class MTECriticalSingularityCompressor extends MTESingularityMachineBase 
         if (mInstability > INSTABILITY_COLLAPSE_THRESHOLD) {
             detonateRunawaySingularity(
                 newMachineEvent(GTSRSingularityStructCollapseEvent::new),
-                20.0d,
+                40.0d,
+                80.0d,
                 5.0d,
-                5.0d,
-                1200,
+                4800,
                 0,
                 "black",
                 60.0d);
@@ -223,12 +223,12 @@ public class MTECriticalSingularityCompressor extends MTESingularityMachineBase 
         if (mTear > TEAR_THRESHOLD) {
             detonateRunawaySingularity(
                 newMachineEvent(GTSRSingularityDimTearEvent::new),
-                50.0d,
-                20.0d,
-                10.0d,
+                90.0d,
+                240.0d,
+                15.0d,
                 24000,
                 0,
-                "purple",
+                "black",
                 100.0d);
             return true;
         }

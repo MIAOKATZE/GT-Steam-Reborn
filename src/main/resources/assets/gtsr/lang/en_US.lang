@@ -328,7 +328,7 @@ gtsr.tooltip.critical_singularity_compressor.overlimit_3=Above 200% overlimit, i
 gtsr.tooltip.critical_singularity_compressor.overlimit_4=With instability >50% and overlimit >800%: the core singularity turns purple and dimension tear accumulates (+instability/100 + overlimit/1000 per second);
 gtsr.tooltip.critical_singularity_compressor.overlimit_5=UU-Matter lowers tear (-0.1% per 100 mB), overdosing forces a shutdown (Dimension Solidification); without UU the tear creeps +0.1% per second;
 gtsr.tooltip.critical_singularity_compressor.overlimit_6=While off, instability and tear each decay 0.1% per second.
-gtsr.tooltip.critical_singularity_compressor.overlimit_explode=Three explosion chains (first trigger wins): overlimit >=1000% Device Overlimit / instability >100% Structural Collapse (black, 60 s) / tear >100% Dimension Tear (purple, 20 min)!
+gtsr.tooltip.critical_singularity_compressor.overlimit_explode=Three explosion chains (first trigger wins): overlimit >=1000% Device Overlimit / instability >100% Structural Collapse (black, 4 min) / tear >100% Dimension Tear (black, 20 min)!
 gtsr.gui.critical_singularity_compressor.status=Status:
 gtsr.gui.critical_singularity_compressor.status.building=Building
 gtsr.gui.critical_singularity_compressor.status.running=Running
@@ -852,7 +852,7 @@ gtsr.tooltip.entangler.overlimit_2=Overlimit decays passively each second (-0.01
 gtsr.tooltip.entangler.overlimit_3=Above 200% overlimit, structural instability accumulates while working (+overlimit/1000 per second);
 gtsr.tooltip.entangler.overlimit_4=Gelid Cryotheum lowers structural instability (y=0.01x/(x+1000)); overdosing forces a shutdown (Structural Chill, recover with soft hammer);
 gtsr.tooltip.entangler.overlimit_5=While off, instability decays 0.1% per second.
-gtsr.tooltip.entangler.overlimit_explode=Two explosion chains (first trigger wins): overlimit >500% Device Overlimit / instability >100% Structural Collapse - a rogue black singularity (60 s self-destruct) spawns and destroys the machine!
+gtsr.tooltip.entangler.overlimit_explode=Two explosion chains (first trigger wins): overlimit >500% Device Overlimit / instability >100% Structural Collapse - a rogue black singularity (4 min self-destruct) spawns and destroys the machine!
 
 # Vein Steam Pyrolyzer (VSP)
 gtsr.tooltip.vein_pyrolyzer.type=Vein Steam Pyrolyzer, VSP
@@ -2008,3 +2008,30 @@ gtsr.tcds_terminal.status_ok=Normal
 gtsr.tcds_terminal.status_stopped=Stopped
 gtsr.tcds_terminal.derive_gas=Gas
 gtsr.tcds_terminal.derive_liquid=Liquid
+
+# Singularity Tuning Wand (admin debug item)
+item.SingularityTuningWand.name=Singularity Tuning Wand
+gtsr.tooltip.tuning_wand.desc.1=Admin debug item: tune singularity machine overlimit entries
+gtsr.tooltip.tuning_wand.desc.2=Right-click a singularity machine controller to add the selected delta
+gtsr.tooltip.tuning_wand.desc.3=Shift+right-click air to open the entry & delta selector
+gtsr.tooltip.tuning_wand.desc.4=No recipe (admin/GM item)
+gtsr.wand.entry.overlimit=Overlimit
+gtsr.wand.entry.instability=Structural Instability
+gtsr.wand.entry.tear=Dimensional Tear
+gtsr.wand.ui.title=Singularity Tuning Wand
+gtsr.wand.ui.entry_group=Entry
+gtsr.wand.ui.delta_group=Delta
+gtsr.wand.ui.current=Selected
+gtsr.wand.ui.done=Done
+gtsr.wand.no_tear=This machine does not support Dimensional Tear (Critical Singularity Compressor only)
+
+# Singularity node item variants (damage 0=OLD/1=Natural/2=Stable/3=Runaway; params may match, only name & type line differ)
+item.RunawaySingularity.old.name=Runaway Node [OLD]
+item.RunawaySingularity.natural.name=Natural Node
+item.RunawaySingularity.stable.name=Stable Node
+item.RunawaySingularity.runaway.name=Runaway Node
+gtsr.tooltip.node.old=Legacy singularity (save compat): placed nodes derive type by legacy rules
+gtsr.tooltip.node.natural=Natural singularity: worldgen caliber, machine management never touches it
+gtsr.tooltip.node.stable=Stable singularity: machine-managed, subject to self-heal/reclaim
+gtsr.tooltip.node.runaway=Runaway singularity: unmanaged, survives independently until duration expires
+gtsr.tooltip.node.common=Variants differ only in name & type line; node params may match; command spawns are always Runaway

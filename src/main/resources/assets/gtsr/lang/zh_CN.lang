@@ -328,7 +328,7 @@ gtsr.tooltip.critical_singularity_compressor.overlimit_3=超限>200% 时工作�
 gtsr.tooltip.critical_singularity_compressor.overlimit_4=失稳>50% 且超限>800% 时：机内奇点变紫，维度撕裂开始积累（每秒 +失稳/100+超限/1000）；
 gtsr.tooltip.critical_singularity_compressor.overlimit_5=通入 UU 物质降低撕裂（每 100mB -0.1%），过量固化强制停机（维度固化）；无 UU 时撕裂蠕变每秒 +0.1%；
 gtsr.tooltip.critical_singularity_compressor.overlimit_6=停机时失稳/撕裂每秒各自然衰减 0.1%。
-gtsr.tooltip.critical_singularity_compressor.overlimit_explode=三条爆炸链（首触即爆）：超限>=1000% 装置超限 / 失稳>100% 结构崩解（黑奇点，60 秒）/ 撕裂>100% 维度撕裂（紫奇点，20 分钟）！
+gtsr.tooltip.critical_singularity_compressor.overlimit_explode=三条爆炸链（首触即爆）：超限>=1000% 装置超限 / 失稳>100% 结构崩解（黑奇点，4 分钟）/ 撕裂>100% 维度撕裂（黑奇点，20 分钟）！
 gtsr.gui.critical_singularity_compressor.status=状态:
 gtsr.gui.critical_singularity_compressor.status.building=构建中
 gtsr.gui.critical_singularity_compressor.status.running=运行中
@@ -874,7 +874,7 @@ gtsr.tooltip.entangler.overlimit_2=超限每秒自然衰减（不足 0.01% 时�
 gtsr.tooltip.entangler.overlimit_3=超限>200% 时，工作中结构失稳持续积累（每秒 +超限/1000）；
 gtsr.tooltip.entangler.overlimit_4=通入极寒之凛冰降低结构失稳（y=0.01x/(x+1000)），过量降温会强制停机（结构失温，软锤恢复）；
 gtsr.tooltip.entangler.overlimit_5=停机时失稳每秒自然衰减 0.1%。
-gtsr.tooltip.entangler.overlimit_explode=两条爆炸链（首触即爆）：超限>500% 装置超限 / 失稳>100% 结构崩解——生成失控黑奇点（60 秒自毁）并摧毁装置！
+gtsr.tooltip.entangler.overlimit_explode=两条爆炸链（首触即爆）：超限>500% 装置超限 / 失稳>100% 结构崩解——生成失控黑奇点（4 分钟自毁）并摧毁装置！
 
 # 16. Vein Steam Pyrolyzer
 gtsr.tooltip.vein_pyrolyzer.type=地脉蒸汽热解机, VSP
@@ -2003,3 +2003,30 @@ gtsr.tcds_terminal.status_ok=正常
 gtsr.tcds_terminal.status_stopped=停产
 gtsr.tcds_terminal.derive_gas=燃气
 gtsr.tcds_terminal.derive_liquid=燃油
+
+# 奇点调谐棒（管理员调试物品）
+item.SingularityTuningWand.name=奇点调谐棒
+gtsr.tooltip.tuning_wand.desc.1=管理员调试物品：调整奇点机器超限词条数值
+gtsr.tooltip.tuning_wand.desc.2=右击奇点机器控制器：给所选词条加上增量
+gtsr.tooltip.tuning_wand.desc.3=Shift+右击空气：打开词条与增量选择界面
+gtsr.tooltip.tuning_wand.desc.4=无配方（管理员/GM 物品）
+gtsr.wand.entry.overlimit=超限程度
+gtsr.wand.entry.instability=结构失稳
+gtsr.wand.entry.tear=维度撕裂
+gtsr.wand.ui.title=奇点调谐棒设置
+gtsr.wand.ui.entry_group=词条
+gtsr.wand.ui.delta_group=增量
+gtsr.wand.ui.current=当前
+gtsr.wand.ui.done=完成
+gtsr.wand.no_tear=该机器不支持维度撕裂（仅临界奇点压缩机可用）
+
+# 奇点节点物品四变体（damage 0=OLD/1=自然/2=稳定/3=失控；属性可相同，仅名称与分型词条不同）
+item.RunawaySingularity.old.name=失控节点[OLD]
+item.RunawaySingularity.natural.name=自然节点
+item.RunawaySingularity.stable.name=稳定节点
+item.RunawaySingularity.runaway.name=失控节点
+gtsr.tooltip.node.old=旧版奇点（存档兼容）：放置后按旧规则派生分型
+gtsr.tooltip.node.natural=自然奇点：自然生成口径，机器管理零触碰
+gtsr.tooltip.node.stable=稳定奇点：机器生成托管，受自愈/停机回收管辖
+gtsr.tooltip.node.runaway=失控奇点：失控状态，独立存活至持续时长自毁
+gtsr.tooltip.node.common=变体仅名称与分型不同，节点参数可相同；指令生成固定为失控节点

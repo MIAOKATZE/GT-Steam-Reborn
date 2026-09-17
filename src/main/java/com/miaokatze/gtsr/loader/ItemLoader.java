@@ -8,6 +8,7 @@ import com.miaokatze.gtsr.common.items.HubSingularityChip;
 import com.miaokatze.gtsr.common.items.HubTerminal;
 import com.miaokatze.gtsr.common.items.RareGasSeparationChip;
 import com.miaokatze.gtsr.common.items.ReinforcedHubSingularityChip;
+import com.miaokatze.gtsr.common.items.SingularityTuningWand;
 import com.miaokatze.gtsr.common.items.SteamEntangledSingularity;
 import com.miaokatze.gtsr.common.items.SteamTurbineCycleOverlimitChip;
 import com.miaokatze.gtsr.common.items.TCDSDenseSteamChip;
@@ -27,6 +28,7 @@ public class ItemLoader {
         registerSteamEntangledSingularity();
         registerCriticalSteamEntangledSingularity();
         registerHubTerminal();
+        registerSingularityTuningWand();
     }
 
     private static void registerPyrolyzerChips() {
@@ -75,6 +77,10 @@ public class ItemLoader {
 
     private static void registerHubTerminal() {
         GTSRItemList.HubTerminal.setAndRegister(new HubTerminal(), "HubTerminal", true);
+    }
+
+    private static void registerSingularityTuningWand() {
+        GTSRItemList.SingularityTuningWand.setAndRegister(new SingularityTuningWand(), "SingularityTuningWand", true);
     }
 
     private static void registerAmmoniaCatalysts() {

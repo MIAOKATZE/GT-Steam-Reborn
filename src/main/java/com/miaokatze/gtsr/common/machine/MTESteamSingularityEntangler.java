@@ -80,18 +80,18 @@ public class MTESteamSingularityEntangler extends MTESingularityMachineBase impl
 
     /** 注册终端数值词条（顺序 = GUI 显示顺序；热量 mHeat 口径 0-1，显示 ×100） */
     private void registerProgressEntries() {
-        registerEntry("temperature", "gtsr.gui.entangler.heat", "%.1f%%", EnumChatFormatting.RED, () -> mHeat * 100.0d);
+        registerEntry("temperature", "gtsr.gui.entangler.heat", "%.2f%%", EnumChatFormatting.RED, () -> mHeat * 100.0d);
         // T5 超限/失稳词条（全部 .showZero()：0% 为安全态，GUI/红石仓监控需常显，v1.20.22 零值默认隐藏约定）
         registerEntry(
             GTSRProgressEntry
-                .of("overlimit", "gtsr.gui.entangler.overlimit", "%.1f%%", EnumChatFormatting.RED, () -> mOverlimit)
+                .of("overlimit", "gtsr.gui.entangler.overlimit", "%.2f%%", EnumChatFormatting.RED, () -> mOverlimit)
                 .showZero());
         registerEntry(
             GTSRProgressEntry
                 .of(
                     "instability",
                     "gtsr.gui.entangler.instability",
-                    "%.1f%%",
+                    "%.2f%%",
                     EnumChatFormatting.GOLD,
                     () -> mInstability)
                 .showZero());
@@ -118,17 +118,17 @@ public class MTESteamSingularityEntangler extends MTESingularityMachineBase impl
 
     /**
      * 双爆炸链（顺序首触即止，v1.2 §4-34）：装置超限（>500%）→ 结构崩解（失稳>100%）。
-     * 失控奇点参数 `20 5 5 1200 0 black 60`（duration 1200 tick = 60 秒自毁，attribute 0 普通吸收）。
+     * 失控奇点参数 `40 80 5 4800 0 black 60`（duration 4800 tick = 4 分钟自毁，attribute 0 普通吸收）。
      */
     @Override
     protected boolean checkOverlimitExplosionChain() {
         if (mOverlimit > OVERLIMIT_CAP) {
             detonateRunawaySingularity(
                 newMachineEvent(GTSRSingularityOverlimitEvent::new),
-                20.0d,
+                40.0d,
+                80.0d,
                 5.0d,
-                5.0d,
-                1200,
+                4800,
                 0,
                 "black",
                 60.0d);
@@ -137,10 +137,10 @@ public class MTESteamSingularityEntangler extends MTESingularityMachineBase impl
         if (mInstability > INSTABILITY_COLLAPSE_THRESHOLD) {
             detonateRunawaySingularity(
                 newMachineEvent(GTSRSingularityStructCollapseEvent::new),
-                20.0d,
+                40.0d,
+                80.0d,
                 5.0d,
-                5.0d,
-                1200,
+                4800,
                 0,
                 "black",
                 60.0d);

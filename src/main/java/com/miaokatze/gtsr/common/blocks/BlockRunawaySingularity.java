@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import net.minecraft.block.BlockContainer;
 import net.minecraft.block.material.Material;
 import net.minecraft.client.renderer.texture.IIconRegister;
+import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
@@ -19,6 +20,9 @@ import cpw.mods.fml.relauncher.SideOnly;
 /**
  * 失控奇点方块
  * 不可破坏的透明方块骨架，业务逻辑由 TileRunawaySingularity 承载。
+ * 物品形态四 meta 变体（0=OLD/1=自然/2=稳定/3=失控，见 ItemBlockRunawaySingularity）：
+ * 玩家放置时按 meta 显式落分型（meta 0 不写 type，保持旧版字段缺省派生行为）；
+ * 世界生成/机器/命令/爆炸链等直接 spawn 路径不经过本钩子，分型由各调用点自带。
  */
 public class BlockRunawaySingularity extends BlockContainer {
 
@@ -60,6 +64,32 @@ public class BlockRunawaySingularity extends BlockContainer {
             SingularityDropExplosion.explodeNature(world, x + 0.5D, y + 0.5D, z + 0.5D);
         }
         return super.removedByPlayer(world, player, x, y, z, willHarvest);
+    }
+
+    /**
+     * 玩家放置四变体物品时按 meta 落分型：1=自然 2=稳定 3=失控；meta 0（旧版物品）不写 type，
+     * 保持与旧版放置行为一致（字段缺省 attr=-1 → STABLE 派生）。
+     */
+    @Override
+    public void onBlockPlacedBy(World world, int x, int y, int z, EntityLivingBase placer, ItemStack stack) {
+        TileEntity te = world.getTileEntity(x, y, z);
+        if (!(te instanceof TileRunawaySingularity) || stack == null) {
+            return;
+        }
+        TileRunawaySingularity node = (TileRunawaySingularity) te;
+        switch (ItemBlockRunawaySingularity.variantIndex(stack)) {
+            case ItemBlockRunawaySingularity.META_NATURAL:
+                node.setType(TileRunawaySingularity.SingularityType.NATURAL);
+                break;
+            case ItemBlockRunawaySingularity.META_STABLE:
+                node.setType(TileRunawaySingularity.SingularityType.STABLE);
+                break;
+            case ItemBlockRunawaySingularity.META_RUNAWAY:
+                node.setType(TileRunawaySingularity.SingularityType.RUNAWAY);
+                break;
+            default:
+                break; // META_OLD：不写 type，旧版派生口径
+        }
     }
 
     @Override
