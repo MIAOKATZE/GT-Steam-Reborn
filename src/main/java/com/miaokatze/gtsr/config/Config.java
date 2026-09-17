@@ -25,6 +25,41 @@ public class Config {
     // 自然生成的奇点是否具有破坏方块的能力（默认开；关闭后自然奇点不吸收/破坏方块）。
     public static boolean singularityDestroyBlocks = true;
 
+    // 繁荣维度（prosperity-ruins）维度 ID（默认 78）。
+    // 与其他 mod 冲突时该维度自动禁用（解析记 -1），不回退到空闲 ID。
+    public static int prosperityDimId = 78;
+
+    // 繁荣维度 ProviderType ID（默认 178）。被占用时维度自动禁用（解析记 -1）。
+    public static int prosperityProviderId = 178;
+
+    // 破碎维度（shattered-lands）维度 ID（默认 79）。
+    // 与其他 mod 冲突时该维度自动禁用（解析记 -1），不回退到空闲 ID。
+    public static int shatteredDimId = 79;
+
+    // 破碎维度 ProviderType ID（默认 179）。被占用时维度自动禁用（解析记 -1）。
+    public static int shatteredProviderId = 179;
+
+    // 繁荣维度群系 ID 段起始（默认 180，预留 180-183 共 4 个群系槽位；S2 消费）。
+    public static int prosperityBiomeIdStart = 180;
+
+    // 破碎维度群系 ID 段起始（默认 190，预留 190-192 共 3 个群系槽位；S6a 消费）。
+    public static int shatteredBiomeIdStart = 190;
+
+    /**
+     * planDimension 总开关持有者（plan 维度组键 planDimension.*，见 synchronizeConfiguration）。
+     * 关闭后对应维度完全不注册（DimensionRegistrar 冲突检测第一道闸）。
+     */
+    public static final PlanDimensionHolder planDimension = new PlanDimensionHolder();
+
+    public static final class PlanDimensionHolder {
+
+        // 繁荣蒸汽时代遗迹维度总开关。默认开。关闭后维度不注册，相关生成与指令一并禁用。
+        public boolean prosperityDimension = true;
+
+        // 维度破碎之地维度总开关。默认开。关闭后维度不注册，相关生成与指令一并禁用。
+        public boolean shatteredDimension = true;
+    }
+
     /**
      * 同步配置文件
      * 从磁盘读取配置并更新静态变量，如果配置有变动则自动保存
@@ -59,8 +94,68 @@ public class Config {
         singularityDestroyBlocks = configuration.getBoolean(
             "singularityDestroyBlocks",
             Configuration.CATEGORY_GENERAL,
-            singularityDestroyBlocks,
+            true,
             "自然生成的奇点是否具有破坏方块的能力（默认开；关闭后自然奇点不吸收/破坏方块）");
+
+        planDimension.prosperityDimension = configuration.getBoolean(
+            "planDimension.prosperityDimension",
+            Configuration.CATEGORY_GENERAL,
+            true,
+            "繁荣蒸汽时代遗迹维度（prosperity-ruins）总开关。默认开。关闭后维度不注册，相关生成与指令一并禁用。");
+
+        planDimension.shatteredDimension = configuration.getBoolean(
+            "planDimension.shatteredDimension",
+            Configuration.CATEGORY_GENERAL,
+            true,
+            "维度破碎之地（shattered-lands）总开关。默认开。关闭后维度不注册，相关生成与指令一并禁用。");
+
+        prosperityDimId = configuration.getInt(
+            "prosperityDimId",
+            Configuration.CATEGORY_GENERAL,
+            prosperityDimId,
+            0,
+            1000,
+            "繁荣维度 ID（默认 78）。与其他 mod 冲突时维度自动禁用（记 -1），不回退到空闲 ID");
+
+        prosperityProviderId = configuration.getInt(
+            "prosperityProviderId",
+            Configuration.CATEGORY_GENERAL,
+            prosperityProviderId,
+            0,
+            1000,
+            "繁荣维度 ProviderType ID（默认 178）。被占用时维度自动禁用（记 -1）");
+
+        shatteredDimId = configuration.getInt(
+            "shatteredDimId",
+            Configuration.CATEGORY_GENERAL,
+            shatteredDimId,
+            0,
+            1000,
+            "破碎维度 ID（默认 79）。与其他 mod 冲突时维度自动禁用（记 -1），不回退到空闲 ID");
+
+        shatteredProviderId = configuration.getInt(
+            "shatteredProviderId",
+            Configuration.CATEGORY_GENERAL,
+            shatteredProviderId,
+            0,
+            1000,
+            "破碎维度 ProviderType ID（默认 179）。被占用时维度自动禁用（记 -1）");
+
+        prosperityBiomeIdStart = configuration.getInt(
+            "prosperityBiomeIdStart",
+            Configuration.CATEGORY_GENERAL,
+            prosperityBiomeIdStart,
+            0,
+            255,
+            "繁荣维度群系 ID 段起始（默认 180，预留 180-183 共 4 个群系槽位）");
+
+        shatteredBiomeIdStart = configuration.getInt(
+            "shatteredBiomeIdStart",
+            Configuration.CATEGORY_GENERAL,
+            shatteredBiomeIdStart,
+            0,
+            255,
+            "破碎维度群系 ID 段起始（默认 190，预留 190-192 共 3 个群系槽位）");
 
         if (configuration.hasChanged()) {
             configuration.save();

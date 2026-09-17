@@ -11,6 +11,10 @@ import com.miaokatze.gtsr.Tags;
 import com.miaokatze.gtsr.common.commands.GTSRCommand;
 import com.miaokatze.gtsr.common.crossmod.ae2.GTSRAE2ExternalStorageHandler;
 import com.miaokatze.gtsr.common.crossmod.waila.GTSRWailaCompat;
+import com.miaokatze.gtsr.common.dimension.framework.DimensionRegistrar;
+import com.miaokatze.gtsr.common.dimension.framework.GTSRChunkProviderBase;
+import com.miaokatze.gtsr.common.dimension.framework.GTSRDimensionDef;
+import com.miaokatze.gtsr.common.dimension.framework.GTSRWorldProviderBase;
 import com.miaokatze.gtsr.common.loot.LootInjectionRunawaySingularity;
 import com.miaokatze.gtsr.common.network.GTSRFXNet;
 import com.miaokatze.gtsr.common.structure.GTSRRedstoneHatchLimitError;
@@ -77,6 +81,34 @@ public class CommonProxy {
             GTSteamReborn.LOG.info("[0/3] 方块注册完成。");
         } catch (Throwable t) {
             GTSteamReborn.LOG.error("[0/3] 方块注册过程中发生严重错误，请检查日志", t);
+        }
+
+        // 维度框架注册（dim1 S1）：注册编排照 plan §1.1 架构图——BlockLoader 之后。
+        // 冲突检测顺序 = 总开关 → isDimensionRegistered(dimId) → providerId 占用探测 → 记 -1 禁用告警；
+        // 成功日志锚点 [GTSR] dimension <key> registered: dimId=... providerId=...（plan §6.1 grep 点）。
+        // 群系表本切片为空（S2/S6a 填充）；不注册任何 IWorldGenerator（S4/S6 责任）。
+        try {
+            DimensionRegistrar.preInitDimensions(
+                new GTSRDimensionDef(
+                    "prosperity-ruins",
+                    "Prosperity Ruins",
+                    0x50524F53L,
+                    Config.prosperityDimId,
+                    Config.prosperityProviderId,
+                    () -> Config.planDimension.prosperityDimension,
+                    GTSRWorldProviderBase.Skeleton.class,
+                    (world, seed) -> new GTSRChunkProviderBase(world, seed)),
+                new GTSRDimensionDef(
+                    "shattered-lands",
+                    "Shattered Lands",
+                    0x53484C53L,
+                    Config.shatteredDimId,
+                    Config.shatteredProviderId,
+                    () -> Config.planDimension.shatteredDimension,
+                    GTSRWorldProviderBase.Skeleton.class,
+                    (world, seed) -> new GTSRChunkProviderBase(world, seed)));
+        } catch (Throwable t) {
+            GTSteamReborn.LOG.error("[GTSR] 维度框架注册过程中发生严重错误", t);
         }
 
         Runnable registerRunnable = () -> {
