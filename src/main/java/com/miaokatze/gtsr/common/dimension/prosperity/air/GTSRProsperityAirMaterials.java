@@ -31,13 +31,13 @@ import gregtech.api.interfaces.IMaterialHandler;
  */
 public class GTSRProsperityAirMaterials implements IMaterialHandler {
 
-    /** 荒原叹息（en: Waste Sigh）——黄铜荒漠 brassWastes（182）产出（plan §5）。 */
+    /** 荒原叹息（en: Waste Sigh）——锈蚀草原 rustedSteppe 产出（用户口径，运行时查表见 ProsperityAirLookup）。 */
     public static Materials WastesSigh;
-    /** 浓稠油污（en: Thick Grease）——起雾沼泽 fumaroleSwamp（183）产出（plan §5）。 */
+    /** 浓稠油污（en: Thick Grease）——齿轮森林 gearworkForest 产出（同上）。 */
     public static Materials ThickGrease;
-    /** 金属风沙（en: Metal Grit）——锈蚀草原 rustedSteppe（180）产出（plan §5）。 */
+    /** 金属风沙（en: Metal Grit）——黄铜荒漠 brassWastes 产出（同上）。 */
     public static Materials MetalGrit;
-    /** 至暗泥泞（en: Umbral Mire）——齿轮森林 gearworkForest（181）产出（plan §5）。 */
+    /** 至暗泥泞（en: Umbral Mire）——起雾沼泽 fumaroleSwamp 产出（同上）。 */
     public static Materials UmbralMire;
 
     @Override
