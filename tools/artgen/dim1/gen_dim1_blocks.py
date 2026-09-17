@@ -15,8 +15,13 @@
 - 像素纪律：每张 distinct RGB ≤ 16、禁纯黑 #000000 与纯白 #FFFFFF（锚点亦非极值）、alpha 恒 255。
 
 产物：
-- src/main/resources/assets/gtsr/textures/blocks/<17 张>.png（同名，未改任何 Java 注册名）
-- plan/新维度计划/review/dim1/textures/preview.png（预览板：17 张 8x + 3x3 拼接 + 色数/缝感指标）
+- src/main/resources/assets/gtsr/textures/blocks/<19 张>.png（同名，未改任何 Java 注册名）
+- plan/新维度计划/review/dim1/textures/preview.png（预览板：19 张 8x + 拼接 + 色数/缝感指标）
+
+草侧面类（kind=grass_side，19 张中的 2 张：prosperity_surface_rust_grass_side / shattered_grass_side）：
+- 色彩按 manifest.params_from 引用既有条目（body ← 同族 dirt 的调色板、fringe ← 草顶面的草沿色彩），零新增色值；
+- 草沿锚顶（顶部 3-4px）+ 土体在下 → 只断言水平（x）环边（entry.seam_axes="x"）；
+  垂直向是设计不连续（草沿对其下方土体），row 指标仍打印供目检，不做自拼接断言。
 
 用法：python tools/artgen/dim1/gen_dim1_blocks.py（任意 cwd；路径相对本文件定位）
 """
@@ -512,6 +517,63 @@ def paint_grass_shattered(r, seed, p):
     return t
 
 
+def paint_grass_side(r, seed, p):
+    """草方块侧面（kind=grass_side）：土体 + 顶部 3-4px 草沿（色彩复用，见 manifest.params_from）。
+
+    - 土体：直接复用 paint_terrain_grit(同 params, 异种子) → 与同族 dirt 贴图同画法不同排列；
+    - 草沿：逐列高度 h ∈ [fringe_min, fringe_max]（周期 16 场取阶上色；有 accent_levels 的
+      变体按 paint_grass_shattered 同款混色规则叠 accent），沿口下缘压 blade_dark、顶缘偶受光
+      blade_lit、沿内偶见 edge_speckle，沿下 1px 用土体深阶投影、偶有 1px 垂落草茎；
+    - 无缝：一切落笔经 put() 环绕 + 周期 16 场 → 水平（x）自拼接；垂直为设计不连续（草沿在上），
+      由 manifest entry.seam_axes 声明，断言只在 x 轴做。
+    """
+    body = p["body"]
+    fringe = p["fringe"]
+    t = paint_terrain_grit(r, seed, body)
+
+    levels = r.levels(fringe["levels"], fringe["base"])
+    n = len(levels)
+    blade_dark = r.resolve(fringe["blade_dark"], fringe["base"]) if fringe.get("blade_dark") else None
+    blade_lit = r.resolve(fringe["blade_lit"], fringe["base"]) if fringe.get("blade_lit") else None
+    accent_levels = (
+        r.levels(fringe["accent_levels"], fringe["accent"]) if fringe.get("accent_levels") else None)
+    accent_blend = float(fringe.get("accent_blend", 0.0))
+    fringe_min = int(p["fringe_min"])
+    fringe_max = int(p["fringe_max"])
+    hang = float(p.get("hang_density", 0.0))
+    speckle = r.resolve(p["edge_speckle"], fringe["base"]) if p.get("edge_speckle") else None
+    shadow = r.resolve(p["shadow"], body["base"]) if p.get("shadow") else None
+
+    field = octave_field(seed, "gras", [(2, 0.52), (4, 0.30), (8, 0.18)])
+    blend = octave_field(seed, "gacc", [(4, 0.6), (8, 0.4)]) if accent_levels else None
+    heights = []
+    for x in range(W):
+        h = fringe_min + int(h01(seed, "fh", x, 0) * (fringe_max - fringe_min + 1))
+        h = max(fringe_min, min(fringe_max, h))
+        heights.append(h)
+        for y in range(h):
+            idx = max(0, min(n - 1, int(field(x, y) * n)))
+            color = levels[idx]
+            if accent_levels is not None:
+                mix = blend(x, y) * 0.55 + accent_blend * 0.45
+                if h01(seed, "gacck", x, y) < mix:
+                    color = accent_levels[idx]
+            if y == h - 1 and blade_dark is not None and h01(seed, "gedge", x, 0) < 0.55:
+                color = blade_dark
+            elif y == 0 and blade_lit is not None and h01(seed, "glit", x, 0) < 0.35:
+                color = blade_lit
+            t.put(x, y, color)
+        if shadow is not None:
+            t.put(x, h, shadow)
+        if blade_dark is not None and h01(seed, "ghang", x, 0) < hang:
+            t.put(x, h + 1, blade_dark)
+    if speckle is not None:
+        for x, y in scatter(seed, "gspk", float(p["edge_speckle_density"])):
+            if y < heights[x]:
+                t.put(x, y, speckle)
+    return t
+
+
 def paint_rift_stone(r, seed, p):
     levels = r.levels(p["levels"], p["base"])
     field = octave_field(seed, "mot", OCTAVES)
@@ -777,6 +839,7 @@ def paint_casing_porcelain(r, seed, p):
 PAINTERS = {
     "grass_tinted": paint_grass_tinted,
     "grass_shattered": paint_grass_shattered,
+    "grass_side": paint_grass_side,
     "terrain_grit": paint_terrain_grit,
     "terrain_ripple": paint_terrain_ripple,
     "terrain_fiber": paint_terrain_fiber,
@@ -895,6 +958,7 @@ def build_all(manifest):
     _assert_source_clean()
     noise_period_selftest(0x5EED5EED)
     rules = Rules(manifest)
+    by_key = {entry["key"]: entry for entry in manifest["OUTPUTS"]}
     out = {}
     meta = []
     style = manifest["STYLE"]
@@ -904,7 +968,11 @@ def build_all(manifest):
     )
     for entry in manifest["OUTPUTS"]:
         key = entry["key"]
-        params = entry["params"]
+        params = dict(entry["params"])
+        for slot, ref_key in entry.get("params_from", {}).items():
+            if ref_key not in by_key:
+                raise AssertionError("%s.params_from.%s 指向未知条目 %s" % (key, slot, ref_key))
+            params[slot] = by_key[ref_key]["params"]
         seed = _parse_seed(manifest["SEEDS"][key])
         painter = PAINTERS[entry["kind"]]
         tex = painter(rules, seed, params)
@@ -921,16 +989,19 @@ def build_all(manifest):
             for x in range(SIZE):
                 if im.getpixel((x, y))[3] != 255:
                     raise AssertionError("%s 存在非不透明像素 (%d,%d)" % (key, x, y))
+        axes = str(entry.get("seam_axes", "xy"))
+        if not set(axes) <= set("xy"):
+            raise AssertionError("%s seam_axes 非法: %r" % (key, axes))
         ratio = None
         if entry.get("tileable"):
             ratio = seam_metrics(im)
             seam_max = float(style[entry["group"]]["seam_gross_max"])
-            gross = max(ratio["col_gross"], ratio["row_gross"])
-            if gross > seam_max:
-                raise AssertionError(
-                    "%s 硬缝超限 col_gross=%.3f row_gross=%.3f > %.2f"
-                    % (key, ratio["col_gross"], ratio["row_gross"], seam_max)
-                )
+            for axis, gross in (("x", ratio["col_gross"]), ("y", ratio["row_gross"])):
+                if axis in axes and gross > seam_max:
+                    raise AssertionError(
+                        "%s 硬缝超限 %s_gross=%.3f > %.2f（seam_axes=%s；col=%.3f row=%.3f）"
+                        % (key, axis, gross, seam_max, axes, ratio["col_gross"], ratio["row_gross"])
+                    )
         out["blocks/" + entry["file"]] = _png_bytes(im)
         meta.append(
             {
@@ -939,6 +1010,8 @@ def build_all(manifest):
                 "group": entry["group"],
                 "kind": entry["kind"],
                 "tileable": bool(entry.get("tileable")),
+                "axes": axes,
+                "tint": entry.get("tint"),
                 "colors": len(colors),
                 "seam": ratio,
                 "image": im,
@@ -958,10 +1031,10 @@ def _nearest(im, factor):
     return im.resize((im.width * factor, im.height * factor), Image.NEAREST)
 
 
-def _tiled(im, times):
-    out = Image.new("RGBA", (im.width * times, im.height * times), (0, 0, 0, 0))
-    for i in range(times):
-        for j in range(times):
+def _tiled(im, nx, ny):
+    out = Image.new("RGBA", (im.width * nx, im.height * ny), (0, 0, 0, 0))
+    for i in range(nx):
+        for j in range(ny):
             out.paste(im, (i * im.width, j * im.height))
     return out
 
@@ -984,7 +1057,7 @@ def build_board(meta, seam_warn=1.5):
     draw = ImageDraw.Draw(board)
     font = ImageFont.load_default()
     draw.text((12, 8), "dim1 S7a block textures (16x16) - manifest: tools/artgen/dim1/manifest.json", font=font, fill=PREVIEW_HDR)
-    draw.text((12, 22), "left: 8x single / right: 3x3 tiling 2x  |  metrics: distinct RGB / seam ratio(col,row)", font=font, fill=PREVIEW_DIM)
+    draw.text((12, 22), "left: 8x single / right: tiling 2x (3x3, or 3x1 when seam_axes=x)  |  metrics: distinct RGB / seam ratio(col,row); grass_side = fringe-on-top, x-seam only", font=font, fill=PREVIEW_DIM)
     y_cursor = header
     for group, items, rows in groups:
         draw.text((12, y_cursor + 4), "== %s (%d) ==" % (group, len(items)), font=font, fill=PREVIEW_HDR)
@@ -996,18 +1069,34 @@ def build_board(meta, seam_warn=1.5):
             y0 = y_cursor + row * cell_h
             draw.text((x0, y0 + 2), item["file"][:-4], font=font, fill=PREVIEW_FG)
             seam = item["seam"]
-            if item["tileable"]:
+            axes = item.get("axes", "xy")
+            if item["tileable"] and axes == "xy":
                 metric = "rgb=%d  seam idx=%.2f,%.2f gross=%.2f,%.2f" % (
                     item["colors"], seam["col_idx"], seam["row_idx"], seam["col_gross"], seam["row_gross"])
                 metric_fill = PREVIEW_FG if max(seam["col_gross"], seam["row_gross"]) <= seam_warn else PREVIEW_WARN
+                tile_label = "tile 3x3@2x"
+                tiled = _nearest(_tiled(item["image"], 3, 3), 2)
+            elif item["tileable"] and axes == "x":
+                metric = "rgb=%d  seam x-only idx=%.2f gross=%.2f [y=%.2f n/a]" % (
+                    item["colors"], seam["col_idx"], seam["col_gross"], seam["row_gross"])
+                metric_fill = PREVIEW_FG if seam["col_gross"] <= seam_warn else PREVIEW_WARN
+                tile_label = "tile 3x1@2x (x)"
+                tiled = _nearest(_tiled(item["image"], 3, 1), 2)
+            elif item["tileable"]:
+                metric = "rgb=%d  seam y-only idx=%.2f gross=%.2f [x=%.2f n/a]" % (
+                    item["colors"], seam["row_idx"], seam["row_gross"], seam["col_gross"])
+                metric_fill = PREVIEW_FG if seam["row_gross"] <= seam_warn else PREVIEW_WARN
+                tile_label = "tile 1x3@2x (y)"
+                tiled = _nearest(_tiled(item["image"], 1, 3), 2)
             else:
                 metric = "rgb=%d  object (no tiling req.)" % item["colors"]
                 metric_fill = PREVIEW_DIM
+                tile_label = "single @2x"
+                tiled = _nearest(item["image"], 2)
             draw.text((x0, y0 + 14), metric, font=font, fill=metric_fill)
             board.paste(_nearest(item["image"], 8), (x0, y0 + 28))
-            tiled = _nearest(_tiled(item["image"], 3), 2)
             board.paste(tiled, (x0 + 146, y0 + 44))
-            draw.text((x0 + 146, y0 + 30), "tile 3x3@2x", font=font, fill=PREVIEW_DIM)
+            draw.text((x0 + 146, y0 + 30), tile_label, font=font, fill=PREVIEW_DIM)
         y_cursor += rows * cell_h
     return board
 
@@ -1047,31 +1136,37 @@ def main():
     for key in sorted(k for k in manifest["PALETTE"] if not k.startswith("_")):
         c = _c(manifest["PALETTE"][key])
         print("  %-20s #%02X%02X%02X" % (key, c[0], c[1], c[2]))
-    print("[METRICS] 逐张（色数 / 缝感 idx=环边÷内部均值 与 gross=环边÷内部最大值 / 拼接要求）:")
+    print("[METRICS] 逐张（色数 / 缝感 idx=环边÷内部均值 与 gross=环边÷内部最大值 / 断言轴 / 拼接要求）:")
     for item in meta:
         if item["tileable"]:
             seam = "idx %.2f,%.2f gross %.2f,%.2f" % (
                 item["seam"]["col_idx"], item["seam"]["row_idx"], item["seam"]["col_gross"], item["seam"]["row_gross"])
+            axes = "axes=%s" % item.get("axes", "xy")
         else:
             seam = "-"
-        print("  %-32s rgb=%2d seam=%-26s tileable=%s" % (item["key"], item["colors"], seam, item["tileable"]))
-    grass = [m for m in meta if m["key"] == "prosperity_surface_rust_grass"][0]["image"]
-    print("[TINT] prosperity_surface_rust_grass 渲染期草 tint 预测（乘色，Java 常量同步抄录）:")
-    px = grass.load()
+            axes = "-"
+        print("  %-34s rgb=%2d seam=%-28s %-8s tileable=%s" % (
+            item["key"], item["colors"], seam, axes, item["tileable"]))
     total = float(SIZE * SIZE)
-    for name, hexv in manifest["BIOME_TINT_REFERENCE"].items():
-        if name.startswith("_"):
+    print("[TINT] 渲染期草 tint 预测（乘色，Java 常量同步抄录；草侧面为整面乘色，含土体带）:")
+    for item in meta:
+        if not item.get("tint"):
             continue
-        tint = _c(hexv)
-        acc = [0.0, 0.0, 0.0]
-        for y in range(SIZE):
-            for x in range(SIZE):
-                for i in range(3):
-                    acc[i] += px[x, y][i] * tint[i] / 255.0
-        print(
-            "  %-16s tint #%s -> mean #%02X%02X%02X"
-            % (name, hexv, int(acc[0] / total), int(acc[1] / total), int(acc[2] / total))
-        )
+        px = item["image"].load()
+        print("  %s:" % item["key"])
+        for name, hexv in manifest["BIOME_TINT_REFERENCE"].items():
+            if name.startswith("_"):
+                continue
+            tint = _c(hexv)
+            acc = [0.0, 0.0, 0.0]
+            for y in range(SIZE):
+                for x in range(SIZE):
+                    for i in range(3):
+                        acc[i] += px[x, y][i] * tint[i] / 255.0
+            print(
+                "    %-16s tint #%s -> mean #%02X%02X%02X"
+                % (name, hexv, int(acc[0] / total), int(acc[1] / total), int(acc[2] / total))
+            )
     print("[SHA256] 落地资产（assets/gtsr/textures/blocks/）:")
     for name, size, digest in landed:
         print("  %-40s %5d B  %s" % (name, size, digest))
@@ -1081,7 +1176,7 @@ def main():
     preview_digest = hashlib.sha256(first["preview"]).hexdigest()
     print("[SET-SHA256] assets=%s" % asset_digest)
     print("[SET-SHA256] preview=%s" % preview_digest)
-    print("[OK] 17 张落地 + 预览板；双跑与回读字节一致。")
+    print("[OK] %d 张落地 + 预览板；双跑与回读字节一致。" % len(landed))
 
 
 def _set_digest(lines):

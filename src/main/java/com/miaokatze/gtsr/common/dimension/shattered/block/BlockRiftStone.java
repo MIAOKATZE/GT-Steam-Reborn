@@ -11,8 +11,8 @@ import cpw.mods.fml.relauncher.SideOnly;
 /**
  * 裂隙石（dim1 S6a，04 §1.1 深裂谷 topBlock/fillerBlock 通体）。
  * <p>
- * 单方块无 meta；贴图占位（S7a artgen 前临时口径）：原版 stone 路径；
- * 注册名（方块名/lang 键）S7a 换像素时保持不变。
+ * 单方块无 meta；贴图（S7a 自有像素）：gtsr:rift_stone；
+ * 注册名（方块名/lang 键）保持不变。
  */
 public class BlockRiftStone extends Block {
 
@@ -30,7 +30,7 @@ public class BlockRiftStone extends Block {
     @Override
     @SideOnly(Side.CLIENT)
     public void registerBlockIcons(IIconRegister register) {
-        this.stoneIcon = register.registerIcon("minecraft:stone");
+        this.stoneIcon = register.registerIcon("gtsr:rift_stone");
     }
 
     @Override

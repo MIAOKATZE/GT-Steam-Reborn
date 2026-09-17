@@ -177,6 +177,7 @@
   "SEEDS": {
     "_note": "每输出一个 LCG/混合种子（splitmix64 混合，禁 random 模块）；种子改动 = 整张重画。",
     "prosperity_surface_rust_grass": "0x5EED1001",
+    "prosperity_surface_rust_grass_side": "0x5EED1007",
     "prosperity_surface_rust_dirt": "0x5EED1002",
     "prosperity_surface_rust_sand": "0x5EED1003",
     "prosperity_surface_rust_peat": "0x5EED1004",
@@ -190,6 +191,7 @@
     "ruined_casing_sooted": "0x5EED3002",
     "ruined_casing_porcelain": "0x5EED3003",
     "shattered_grass": "0x5EED4001",
+    "shattered_grass_side": "0x5EED4005",
     "shattered_dirt": "0x5EED4002",
     "rift_stone": "0x5EED4003",
     "shattered_blackstone": "0x5EED4004"
@@ -251,6 +253,11 @@
       "tileable": true,
       "seam_gross_max": 1.5,
       "_seam_metric": "同 prosperity_terrain：gross 粗检（阈值 1.5）+ 周期场自证"
+    },
+    "grass_side": {
+      "_note": "草方块侧面类（kind=grass_side，输出自身带 seam_axes=x）：草沿锚顶（顶部 3-4px 草色）+ 土体在下（复用同族 dirt 调色板），故只在水平（x）方向自拼接——相邻草方块侧面横向相接必须无硬缝；垂直向顶部草沿对其下方土体是设计不连续，不做自拼接断言（row 指标仍打印供目检）。落笔仍全经 put() 环绕 + 周期 16 场，与地表类同一纪律。",
+      "seam_gross_max": 1.5,
+      "seam_axes": "x"
     }
   },
   "OUTPUTS": [
@@ -277,6 +284,30 @@
         "speckle_density": 0.022,
         "blotch": "RUST_OXIDE@D140",
         "blotch_count": 3
+      }
+    },
+    {
+      "key": "prosperity_surface_rust_grass_side",
+      "file": "prosperity_surface_rust_grass_side.png",
+      "group": "prosperity_terrain",
+      "block": "BlockProsperitySurface meta0 侧面（顶部 3-4px 锈红草沿 + 锈土主体；Java 现占位 minecraft:grass_side）",
+      "kind": "grass_side",
+      "tileable": true,
+      "seam_axes": "x",
+      "tint": "biome_grass_multiplier",
+      "_color_reuse": "body params ← prosperity_surface_rust_dirt（锈土调色板），fringe params ← prosperity_surface_rust_grass（顶面草沿色彩，基色 GRASS_TINT_NEUTRAL 与之同源）",
+      "_seam_axes_note": "草侧面锚顶（草沿在上、土体在下）→ 垂直自拼接非本资产性质，只断言水平（x）环边；垂直数值仍打印供目检",
+      "params_from": {
+        "body": "prosperity_surface_rust_dirt",
+        "fringe": "prosperity_surface_rust_grass"
+      },
+      "params": {
+        "fringe_min": 3,
+        "fringe_max": 4,
+        "hang_density": 0.16,
+        "edge_speckle": "RUST_OXIDE@D070",
+        "edge_speckle_density": 0.012,
+        "shadow": "BASE@D110"
       }
     },
     {
@@ -683,6 +714,30 @@
         "crack_count": 4,
         "glint": "GLOW_PURPLE",
         "glint_density": 0.014
+      }
+    },
+    {
+      "key": "shattered_grass_side",
+      "file": "shattered_grass_side.png",
+      "group": "shattered",
+      "block": "BlockShatteredGrass 侧面（顶部 3-4px 碎裂暗紫草沿 + 暗紫土主体；Java 现占位 minecraft:grass_side）",
+      "kind": "grass_side",
+      "tileable": true,
+      "seam_axes": "x",
+      "tint": "biome_grass_multiplier",
+      "_color_reuse": "body params ← shattered_dirt（暗紫土调色板），fringe params ← shattered_grass（顶面草沿色彩 + accent 混色规则同源）",
+      "_seam_axes_note": "同草侧面口径：草沿锚顶、土体在下，仅断言水平（x）环边",
+      "params_from": {
+        "body": "shattered_dirt",
+        "fringe": "shattered_grass"
+      },
+      "params": {
+        "fringe_min": 3,
+        "fringe_max": 4,
+        "hang_density": 0.18,
+        "edge_speckle": "GLOW_PURPLE",
+        "edge_speckle_density": 0.010,
+        "shadow": "BASE@D110"
       }
     },
     {

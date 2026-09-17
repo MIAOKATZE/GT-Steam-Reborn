@@ -16,9 +16,9 @@ import cpw.mods.fml.relauncher.SideOnly;
  * <li>群系挂接：锈蚀草原/齿轮森林 top=0 filler=1；黄铜荒漠 top=2 filler=5；起雾沼泽 top=3 filler=4。</li>
  * <li>草色 tint：meta0 走 {@link #colorMultiplier(IBlockAccess, int, int, int)} 的 3×3 邻域群系草色均值
  * （GT5U toxiceverglades BlockDarkWorldPollutedDirt.java:46-62 样板）；其余 meta 恒白色不 tint。</li>
- * <li>贴图占位（S7a artgen 前临时口径）：全部原版路径（grass_top/grass_side/dirt/sand/clay/stonebrick），
- * 零外部依赖——BlockRunawaySingularity.java:130-137 教训（不引外部 mod jar 中可能缺失的贴图）；
- * 注册名（方块名/lang 键）S7a 换像素时保持不变。</li>
+ * <li>贴图（S7a 自有像素）：gtsr:prosperity_surface_rust_* 家族（meta0 三面 grass/grass_side/dirt 分置，
+ * 其余 meta 单 icon），零外部依赖——BlockRunawaySingularity.java:130-137 教训（不引外部 mod jar 中可能缺失的贴图）；
+ * 注册名（方块名/lang 键）换贴图时保持不变。</li>
  * </ul>
  */
 public class BlockProsperitySurface extends Block {
@@ -32,10 +32,12 @@ public class BlockProsperitySurface extends Block {
     /** meta 总数（越界 meta 钳回本值域）。 */
     public static final int META_COUNT = 6;
 
-    /** meta1..5 占位贴图（原版路径；meta0 三面分置不用本表）。 */
+    /** meta1..5 贴图（gtsr 自有贴图；meta0 三面分置不用本表）。 */
     private static final String[] PLACEHOLDER_ICONS = {
-        // meta0 占位空缺（草三面：grass_top / grass_side / dirt）
-        null, "minecraft:dirt", "minecraft:sand", "minecraft:dirt", "minecraft:clay", "minecraft:stonebrick" };
+        // meta0 空缺（草三面：prosperity_surface_rust_grass / _grass_side / _dirt 在 registerBlockIcons 单独注册）
+        null, "gtsr:prosperity_surface_rust_dirt", "gtsr:prosperity_surface_rust_sand",
+        "gtsr:prosperity_surface_rust_peat", "gtsr:prosperity_surface_rust_clay",
+        "gtsr:prosperity_surface_rust_stone" };
 
     /** meta0 世界外取色（物品栏/准星）：与 BiomeRustedSteppe.GRASS_COLOR 同值占位，S7a 艺术轮同调。 */
     private static final int PLACEHOLDER_GRASS_COLOR = 0x8A7B4A;
@@ -62,9 +64,9 @@ public class BlockProsperitySurface extends Block {
     @SideOnly(Side.CLIENT)
     public void registerBlockIcons(IIconRegister register) {
         this.metaIcons = new IIcon[META_COUNT];
-        this.grassTopIcon = register.registerIcon("minecraft:grass_top");
-        this.grassSideIcon = register.registerIcon("minecraft:grass_side");
-        this.grassBottomIcon = register.registerIcon("minecraft:dirt");
+        this.grassTopIcon = register.registerIcon("gtsr:prosperity_surface_rust_grass");
+        this.grassSideIcon = register.registerIcon("gtsr:prosperity_surface_rust_grass_side");
+        this.grassBottomIcon = register.registerIcon("gtsr:prosperity_surface_rust_dirt");
         for (int meta = META_RUST_DIRT; meta < META_COUNT; meta++) {
             this.metaIcons[meta] = register.registerIcon(PLACEHOLDER_ICONS[meta]);
         }

@@ -11,8 +11,8 @@ import cpw.mods.fml.relauncher.SideOnly;
 /**
  * 碎裂泥土（dim1 S6a，04 §1.1 碎裂浮岛 fillerBlock）。
  * <p>
- * 单方块无 meta；贴图占位（S7a artgen 前临时口径）：原版 dirt 路径；
- * 注册名（方块名/lang 键）S7a 换像素时保持不变。
+ * 单方块无 meta；贴图（S7a 自有像素）：gtsr:shattered_dirt；
+ * 注册名（方块名/lang 键）保持不变。
  */
 public class BlockShatteredDirt extends Block {
 
@@ -30,7 +30,7 @@ public class BlockShatteredDirt extends Block {
     @Override
     @SideOnly(Side.CLIENT)
     public void registerBlockIcons(IIconRegister register) {
-        this.dirtIcon = register.registerIcon("minecraft:dirt");
+        this.dirtIcon = register.registerIcon("gtsr:shattered_dirt");
     }
 
     @Override

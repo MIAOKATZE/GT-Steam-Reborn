@@ -11,8 +11,8 @@ import cpw.mods.fml.relauncher.SideOnly;
 /**
  * 碎裂黑石（dim1 S6a，04 §1.1 奇点荒原 topBlock/fillerBlock + §1.6 裂隙层 y&lt;20 基底）。
  * <p>
- * 单方块无 meta；贴图占位（S7a artgen 前临时口径）：原版 coal_block 路径（1.7.10 无黑石原版贴图，
- * 取暗色近邻）；注册名（方块名/lang 键）S7a 换像素时保持不变。
+ * 单方块无 meta；贴图（S7a 自有像素）：gtsr:shattered_blackstone；
+ * 注册名（方块名/lang 键）保持不变。
  */
 public class BlockShatteredBlackstone extends Block {
 
@@ -30,7 +30,7 @@ public class BlockShatteredBlackstone extends Block {
     @Override
     @SideOnly(Side.CLIENT)
     public void registerBlockIcons(IIconRegister register) {
-        this.blackstoneIcon = register.registerIcon("minecraft:coal_block");
+        this.blackstoneIcon = register.registerIcon("gtsr:shattered_blackstone");
     }
 
     @Override

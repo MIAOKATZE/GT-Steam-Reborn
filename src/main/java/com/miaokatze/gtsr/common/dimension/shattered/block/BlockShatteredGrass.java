@@ -14,8 +14,8 @@ import cpw.mods.fml.relauncher.SideOnly;
  * <p>
  * 单方块无 meta；草色 tint 走 {@link #colorMultiplier(IBlockAccess, int, int, int)} 的 3×3
  * 邻域群系草色均值（BlockProsperitySurface meta0 同款，GT5U BlockDarkWorldPollutedDirt 样板）。
- * 贴图占位（S7a artgen 前临时口径）：全部原版路径（grass_top/grass_side/dirt），零外部依赖；
- * 注册名（方块名/lang 键）S7a 换像素时保持不变。
+ * 贴图（S7a 自有像素）：gtsr:shattered_grass / shattered_grass_side / shattered_dirt 三面分置；
+ * 注册名（方块名/lang 键）保持不变。
  */
 public class BlockShatteredGrass extends Block {
 
@@ -41,9 +41,9 @@ public class BlockShatteredGrass extends Block {
     @Override
     @SideOnly(Side.CLIENT)
     public void registerBlockIcons(IIconRegister register) {
-        this.grassTopIcon = register.registerIcon("minecraft:grass_top");
-        this.grassSideIcon = register.registerIcon("minecraft:grass_side");
-        this.grassBottomIcon = register.registerIcon("minecraft:dirt");
+        this.grassTopIcon = register.registerIcon("gtsr:shattered_grass");
+        this.grassSideIcon = register.registerIcon("gtsr:shattered_grass_side");
+        this.grassBottomIcon = register.registerIcon("gtsr:shattered_dirt");
     }
 
     @Override
