@@ -12,8 +12,13 @@ import net.minecraft.world.biome.WorldChunkManager;
 /**
  * 自写 BiomeProvider（dim1 S1，不走 GenLayer；plan §1.2/§5.4 口径）。
  * <p>
- * per-chunk 选择纯函数 {@link #biomeAt(int, int)}：对 def 群系权重表按权重展开成数组，
- * 用 splitmix 终结哈希（世界种子掺 chunk 坐标）取模——确定性、与 chunk 生成顺序无关。
+ * 群系选择纯函数 {@link #biomeAt(int, int)}，两级策略（dim78 修复 S-A2）：
+ * <ol>
+ * <li>def 挂有 {@link GTSRDimensionDef.BiomeSelector} 时（头部优先）：委托 selector 按空间连贯
+ * 分区（如 {@link BiomeZoneSelector}）返回权重表下标；</li>
+ * <li>否则维持原行为：对 def 群系权重表按权重展开成数组，用 splitmix 终结哈希（世界种子掺
+ * chunk 坐标）取模——确定性、与 chunk 生成顺序无关。</li>
+ * </ol>
  * 群系表为空时（S1 骨架态）回退原版 plains，保证维度可运行。
  * 无 BiomeCache：哈希为 O(1) 纯函数，覆写 cleanupCache 为空操作。
  */
@@ -25,27 +30,50 @@ public class GTSRWorldChunkManager extends WorldChunkManager {
     private final long seed;
     /** 按权重展开的群系选择表（null = 空群系表，走 fallback）。 */
     private final BiomeGenBase[] weightedBiomes;
+    /** 可选群系选择策略（S-A2；null = 原 per-chunk 均匀掷骰行为）。 */
+    private final GTSRDimensionDef.BiomeSelector biomeSelector;
+    /** def 群系表快照（selector 路径按权重表下标取用；与 {@link #selectorWeights} 下标对齐）。 */
+    private final BiomeGenBase[] selectorTable;
+    /** def 权重表快照（selector 路径入参）。 */
+    private final int[] selectorWeights;
 
     public GTSRWorldChunkManager(long seed, GTSRDimensionDef def) {
         this.seed = seed;
         List<BiomeGenBase> expanded = new ArrayList<>();
+        BiomeGenBase[] table = null;
+        int[] weights = null;
         if (def != null) {
-            List<BiomeGenBase> table = def.getBiomeTable();
-            int[] weights = def.getBiomeWeights();
-            for (int i = 0; i < table.size(); i++) {
+            List<BiomeGenBase> biomeTable = def.getBiomeTable();
+            weights = def.getBiomeWeights();
+            if (!biomeTable.isEmpty()) {
+                table = biomeTable.toArray(new BiomeGenBase[0]);
+            }
+            for (int i = 0; i < biomeTable.size(); i++) {
                 int weight = Math.max(1, weights[i]);
                 for (int w = 0; w < weight; w++) {
-                    expanded.add(table.get(i));
+                    expanded.add(biomeTable.get(i));
                 }
             }
         }
         this.weightedBiomes = expanded.isEmpty() ? null : expanded.toArray(new BiomeGenBase[0]);
+        this.biomeSelector = def != null ? def.getBiomeSelector() : null;
+        this.selectorTable = table;
+        this.selectorWeights = weights;
     }
 
-    /** per-chunk 群系选择纯函数（确定性哈希驱动；空群系表回退原版 plains）。 */
+    /**
+     * per-chunk 群系选择纯函数（确定性哈希驱动；空群系表回退原版 plains）。
+     * def 挂有 selector 时头部优先走空间连贯分区，否则 per-chunk 均匀掷骰；输出口径不变
+     * （仍整 chunk 单一群系）。
+     */
     public BiomeGenBase biomeAt(int chunkX, int chunkZ) {
         if (this.weightedBiomes == null) {
             return BiomeGenBase.plains;
+        }
+        if (this.biomeSelector != null && this.selectorTable != null) {
+            final int index = this.biomeSelector
+                .select(this.seed, chunkX, chunkZ, this.selectorTable.length, this.selectorWeights);
+            return this.selectorTable[Math.floorMod(index, this.selectorTable.length)];
         }
         return this.weightedBiomes[hash(chunkX, chunkZ) % this.weightedBiomes.length];
     }

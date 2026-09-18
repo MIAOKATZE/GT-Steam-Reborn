@@ -12,17 +12,19 @@ import com.miaokatze.gtsr.common.dimension.framework.structure.StructureBuilder;
 
 /**
  * 地表人工痕迹散布器（dim1 S4a，plan §1.2 S4a / 02 §3.2 代码 5 裁剪版）：
- * 预算 32 次/chunk × 群系散布权重（02 §1.1 表），散布物权重表 轨枕30/管道25/铆接板30/烟囱残段15
- * （02 §3.1）。只散布在锈变地表（{@code ground == prosperitySurface}，02 §3.2 门）；
- * 烟囱残段逐格 {@code isAirBlock} 让行（只长在空气里，02 §8.4 优先级 4）。
+ * 预算 64 次/chunk × 群系散布权重（02 §1.1 表；S-A5 密度上调 32→64 = plan §12 修订 7"散布可以
+ * 更大，本身稀有"），散布物权重表 轨枕30/管道25/铆接板30/烟囱残段15（02 §3.1）。只散布在锈变地表
+ * （{@link ProsperityOutpostPlacer#isNaturalProsperityTop}：四自然 top 方块族 ∪ prosperitySurface
+ * ——S-A1 连带放宽，A1 主体换装后自然区 top 为群系新方块；02 §3.2 门）。烟囱残段逐格
+ * {@code isAirBlock} 让行（只长在空气里，02 §8.4 优先级 4）。
  * <p>
  * 所有随机从 chunk 确定性哈希派生（盐 "ScAt" 0x5C4174，02 §3.2 原样）；放置经注入的
  * {@link BlockSink}（ChunkClampedSink 钳制），散布落点/短线段钳制在 chunk 内——零越界丢弃。
  */
 public final class ProsperitySurfaceScatter {
 
-    /** 每 chunk 预算（账本口径，plan §1.2 S4a）。 */
-    private static final int BUDGET_PER_CHUNK = 32;
+    /** 每 chunk 预算（S-A5 密度上调 32→64，plan §12 修订 7）。 */
+    private static final int BUDGET_PER_CHUNK = 64;
 
     /** 盐 "ScAt"（02 §3.2 代码 5 同款）。 */
     private static final long SALT_SCATTER = 0x5C4174L;
@@ -51,8 +53,8 @@ public final class ProsperitySurfaceScatter {
             if (surfaceY <= 0 || surfaceY > 200) {
                 continue;
             }
-            // 只散布在锈变地表上（02 §3.2 代码 5 门）
-            if (world.getBlock(x, surfaceY, z) != BlocksGTSR.prosperitySurface) {
+            // 只散布在锈变地表上（02 §3.2 代码 5 门；S-A1 连带放宽：四自然 top ∪ prosperitySurface）
+            if (!ProsperityOutpostPlacer.isNaturalProsperityTop(world.getBlock(x, surfaceY, z))) {
                 continue;
             }
             final int y = surfaceY + 1;

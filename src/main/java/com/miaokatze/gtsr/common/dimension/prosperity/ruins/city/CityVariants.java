@@ -17,9 +17,12 @@ import com.miaokatze.gtsr.common.dimension.framework.structure.StructureRegistry
  * 记号（02 §6.1 记号族超集）：{@code #}=锈壳0 {@code @}=积碳壳1 {@code %}=碎瓷壳2
  * {@code d}=轨枕0 {@code p}=管道1 {@code r}=铆接板2 {@code c}=烟囱残段3
  * {@code s}=锈石铺面(Surface5) {@code S}=原版石 {@code C}=圆石 {@code G}=沙砾
- * {@code B}=铁栏杆 {@code .}=清空为空气(y&gt;0) {@code 空格}=不触碰。全部落在
+ * {@code B}=铁栏杆 {@code X}=GT5U 镀铜砖块(sBlockCasings1 meta10) {@code Z}=GT5U 固体钢机械外壳
+ * (sBlockCasings2 meta0) {@code .}=清空为空气(y&gt;0) {@code 空格}=不触碰。全部落在
  * plan §3.3 材料红线内（BlockRuinedCasing 0-2 / BlockRuinDebris 0-3 / BlockProsperitySurface
- * 0-5 + 原版 stone/cobble/gravel/iron_bars；<b>无 TE/无箱子/无控制器/无战利品</b>）。
+ * 0-5 + 原版 stone/cobble/gravel/iron_bars + GT5U casing 白名单两键（S-A4，dim78-fix-and-dim79-redo
+ * plan §4 S-A4：sBlockCasings1 meta10 / sBlockCasings2 meta0，逻辑键游戏侧
+ * {@code CityBlockResolver} 直引，GT 未加载防御=null 不 put）；<b>无 TE/无箱子/无控制器/无战利品</b>）。
  * <p>
  * 损伤档（plan §3.3：×3 档缺失率 5%/20%/40%，由 plotSeed 哈希选档）：y&gt;0 层逐块掷缺失，
  * y=0 垫层不缺失（残骸被岁月吞没观感，RuinedMachinePlacer 同款纪律）；朝向 0/90/180/270 由
@@ -71,6 +74,10 @@ public final class CityVariants {
     public static final String K_COBBLE = "minecraft:cobblestone";
     public static final String K_GRAVEL = "minecraft:gravel";
     public static final String K_BARS = "minecraft:iron_bars";
+    /** GT5U 镀铜砖块（逻辑键，非注册名；游戏侧 = GregTechAPI.sBlockCasings1 meta10，S-A4）。 */
+    public static final String K_GT_BRONZE = "gt5u:CasingBronzePlated";
+    /** GT5U 固体钢机械外壳（逻辑键，非注册名；游戏侧 = GregTechAPI.sBlockCasings2 meta0，S-A4）。 */
+    public static final String K_GT_STEEL = "gt5u:CasingSolidSteel";
 
     /** char → 方块键（'.'/' ' 返回 null）。 */
     public static String blockKeyOf(char c) {
@@ -94,6 +101,10 @@ public final class CityVariants {
                 return K_GRAVEL;
             case 'B':
                 return K_BARS;
+            case 'X':
+                return K_GT_BRONZE;
+            case 'Z':
+                return K_GT_STEEL;
             default:
                 return null;
         }
@@ -116,6 +127,10 @@ public final class CityVariants {
                 return 3;
             case 's':
                 return 5; // 锈石铺面（02 §1.1 meta 表）
+            case 'X':
+                return 10; // GT5U sBlockCasings1 meta10 = Bronze Plated Bricks（交叉证见切片报告）
+            case 'Z':
+                return 0; // GT5U sBlockCasings2 meta0 = Solid Steel Machine Casing
             default:
                 return 0;
         }
@@ -420,11 +435,11 @@ public final class CityVariants {
             7,
             8,
             new String[][] {
-                // y=6 屋脊 + 烟囱穿孔
-                { "...........", "...........", "...........", "###c####c##", "###########", "...........",
+                // y=6 屋脊 + 烟囱穿孔（烟囱束=钢外壳 'Z'，S-A4 金属质感层；承重 '#' 不动）
+                { "...........", "...........", "...........", "###Z####Z##", "###########", "...........",
                     "...........", "..........." },
-                // y=5 屋坡 + 天窗破洞
-                { "...........", "...........", "###########", "####.######", "######.####", "###########",
+                // y=5 屋坡 + 天窗破洞（檐口镀铜砖带 'X'）
+                { "...........", "...........", "#XXXXXXXXX#", "####.######", "######.####", "###########",
                     "...........", "..........." },
                 // y=4 檐口环
                 WALLS11_8,
@@ -434,9 +449,9 @@ public final class CityVariants {
                 // y=2 大门南墙
                 { "###########", "#.........#", "#.........#", "#.........#", "#.........#", "#.........#",
                     "###########", "####..#####" },
-                // y=1 炉座积碳带
+                // y=1 炉座积碳带（炉座护壁墩=镀铜砖 'X'）
                 { "###########", "#@@#...#@@#", "#@@#...#@@#", "#@@#...#@@#", "#@@#...#@@#", "#@@#...#@@#",
-                    "###########", "###########" },
+                    "#XX#####XX#", "###########" },
                 SLAB11_8 });
     }
 
@@ -468,18 +483,18 @@ public final class CityVariants {
             7,
             7,
             new String[][] {
-                // y=6 屋脊
-                { ".............", ".............", ".............", "#############", ".............", ".............",
+                // y=6 屋脊（脊段=钢外壳 'Z'，S-A4 金属质感层）
+                { ".............", ".............", ".............", "###ZZ#####ZZ#", ".............", ".............",
                     "............." },
-                // y=5 屋坡 + 塌洞
-                { ".............", ".............", "#############", "##...####...#", "#############", ".............",
+                // y=5 屋坡 + 塌洞（檐口镀铜砖带 'X'）
+                { ".............", ".............", "#XXXXXXXXXXX#", "##...####...#", "#############", ".............",
                     "............." },
                 WALLS13_7,
                 // y=3 大门山墙（北墙门洞）+ 高窗
                 { "#####.#######", "#....B......#", "#...........#", "#...........#", "#......B....#", "#...........#",
                     "#############" },
-                // y=2 炉座残基
-                { "#############", "#@@.......@@#", "#@@..@@@..@@#", "#@@..@@@..@@#", "#@@.......@@#", "#...........#",
+                // y=2 炉座残基（炉座垫层=镀铜砖 'X'）
+                { "#############", "#@@.......@@#", "#@@..@@@..@@#", "#@@..@@@..@@#", "#@@.......@@#", "#XX.......XX#",
                     "#############" },
                 WALLS13_7, SLAB13_7 });
     }
@@ -488,6 +503,9 @@ public final class CityVariants {
     private static Variant engineRoom() {
         final String[] ring9x7 = { "#########", "#.......#", "#.......#", "#.......#", "#.......#", "#.......#",
             "#########" };
+        // 腰带环（镀铜砖 'X' 整环，S-A4 金属质感层；承重 '#' 环保持原样）
+        final String[] bronzeRing9x7 = { "XXXXXXXXX", "X.......X", "X.......X", "X.......X", "X.......X", "X.......X",
+            "XXXXXXXXX" };
         return new Variant(
             "engine_room",
             "industry",
@@ -495,9 +513,9 @@ public final class CityVariants {
             6,
             7,
             new String[][] {
-                // y=5 屋面 + 天窗带（铁栏杆格栅）
-                { ".........", "sssssssss", "sssBBBsss", "sssssssss", "sssBBBsss", "sssssssss", "........." }, ring9x7,
-                ring9x7,
+                // y=5 屋面 + 天窗带（天窗框=钢外壳 'Z'）
+                { ".........", "sssssssss", "sssZZZsss", "sssssssss", "sssZZZsss", "sssssssss", "........." }, ring9x7,
+                bronzeRing9x7,
                 // y=3 高窗
                 { "##B###B##", "#.......#", "#.......#", "#.......#", "#.......#", "#.......#", "##B###B##" },
                 // y=1 汽机基座
@@ -509,6 +527,9 @@ public final class CityVariants {
     /** gas_holder 7×9×7：铁栏杆导架 + 积碳壳外皮立罐，顶钟下陷。 */
     private static Variant gasHolder() {
         final String[] shellRing = { "B.....B", "B@@@@@B", "B@...@B", "B@...@B", "B@...@B", "B@...@B", "B@@@@@B" };
+        // 镀铜环带（罐身一圈镀铜砖 'X'，S-A4 金属质感层）
+        final String[] bronzeShellRing = { "B.....B", "BXXXXXB", "BX...XB", "BX...XB", "BX...XB", "BX...XB",
+            "BXXXXXB" };
         return new Variant(
             "gas_holder",
             "industry",
@@ -518,13 +539,13 @@ public final class CityVariants {
             new String[][] {
                 // y=8 顶钟下陷破口
                 { ".@@.@@.", ".@...@.", ".@.....", ".@...@.", ".....@.", ".@...@.", ".@@.@@." },
-                // y=7 钟顶
-                { "B.....B", "B@@@@@B", "B@...@B", "B@...@B", "B@...@B", "B@...@B", "B@@@@@B" },
+                // y=7 钟顶（钟沿=镀铜砖 'X'）
+                { "B.....B", "B@XXX@B", "B@...@B", "B@...@B", "B@...@B", "B@XXX@B", "B@@@@@B" },
                 // y=6 导架裸段（钟体下陷）
                 { "B.....B", "B.....B", "B.....B", "B.....B", "B.....B", "B.....B", "B.....B" }, shellRing, shellRing,
-                shellRing, shellRing,
-                // y=2 罐底阀管
-                { "B.....B", "B@ppp@B", "B@...@B", "B@.@.@B", "B@...@B", "B@ppp@B", "B@@@@@B" }, SLAB7 });
+                bronzeShellRing, shellRing,
+                // y=2 罐底阀管（阀管=钢外壳 'Z'）
+                { "B.....B", "B@ZZZ@B", "B@...@B", "B@.@.@B", "B@...@B", "B@ZZZ@B", "B@@@@@B" }, SLAB7 });
     }
 
     /** broken_bridge 16×5×5：跨街拱桥，中段 2 孔坍塌。 */

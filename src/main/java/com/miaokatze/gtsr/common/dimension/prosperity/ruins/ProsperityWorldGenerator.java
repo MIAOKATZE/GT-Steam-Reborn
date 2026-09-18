@@ -24,8 +24,9 @@ import cpw.mods.fml.common.IWorldGenerator;
 /**
  * 繁荣维度世界生成编排器（dim1 S4a，plan §1.2 S4a / 02 §8.2 代码 20 裁剪版）：
  * 仅 dim78 生效（维度过滤范式同 WorldGenRunawaySingularity.java:28-31，dimId 走 Config 可改口径）。
- * generate 顺序 = 城市段（<b>S4b 挂点，本切片留空调用</b>）→ 残缺机器（1/prosperityMachineChance ×
- * 群系机器权重）→ 地表散布（预算 32 × 群系散布权重）。矿洞/矿坑/矿脉在用户裁剪范围外（不实现）。
+ * generate 顺序 = 城市段（<b>S4b 挂点，本切片留空调用</b>）→ 城外中型废墟 outpost（1/64，S-A5；
+ * 命中则跳过机器）→ 残缺机器（1/prosperityMachineChance × 群系机器权重）→ 地表散布（预算 64 ×
+ * 群系散布权重）。矿洞/矿坑/矿脉在用户裁剪范围外（不实现）。
  * <p>
  * 群系权重按 biomeId int 查表（相对 {@link Config#prosperityBiomeIdStart}， ProsperityAirLookup 同款
  * 不 import 群系类）；每 chunk 一个 {@link ChunkClampedSink}（协议层钳制 + 越界计数），
@@ -51,15 +52,18 @@ public class ProsperityWorldGenerator implements IWorldGenerator {
     public ProsperityWorldGenerator() {
         RuinedMachinePlacer.registerVariants();
         CityVariants.registerVariants();
+        ProsperityOutpostPlacer.registerVariants();
         if (evidenceLogged) {
             return;
         }
         evidenceLogged = true;
         GTSteamReborn.LOG.info(
-            "[GTSR] prosperity worldgen registered: dimId={} machines=5 {} scatterBudget=32/chunk machineChance=1/{}",
+            "[GTSR] prosperity worldgen registered: dimId={} machines=5 outposts=6 {} scatterBudget=64/chunk"
+                + " machineChance=1/{} outpostChance=1/{}",
             Config.prosperityDimId,
             StructureRegistry.names(),
-            Config.prosperityMachineChance);
+            Config.prosperityMachineChance,
+            Config.prosperityOutpostChance);
         GTSteamReborn.LOG.info(
             "[GTSR] prosperity city variants: {} registered (cell={} chance={}%)",
             CityVariants.ALL.length,
@@ -91,13 +95,21 @@ public class ProsperityWorldGenerator implements IWorldGenerator {
             return;
         }
 
-        // —— 2. 残缺机器（1/prosperityMachineChance × 群系机器权重，'C' 位=积碳壳，无 TE）——
-        RuinedMachinePlacer
-            .placeAll(world, worldSeed, chunkX, chunkZ, biomeWeight(world, chunkX, chunkZ, MACHINE_WEIGHTS), sink);
+        // —— 2. 城外中型废墟（S-A5，plan §12 修订 7/8）：1/prosperityOutpostChance 掷骰；同 chunk
+        // 互斥掷骰 = 先 outpost，命中则本 chunk 跳过残缺机器（防 footprint 撞格；散布/装饰仍照常）——
+        if (!ProsperityOutpostPlacer.placeAll(world, worldSeed, chunkX, chunkZ, sink)) {
+            // —— 3. 残缺机器（1/prosperityMachineChance × 群系机器权重，'C' 位=积碳壳，无 TE）——
+            RuinedMachinePlacer
+                .placeAll(world, worldSeed, chunkX, chunkZ, biomeWeight(world, chunkX, chunkZ, MACHINE_WEIGHTS), sink);
+        }
 
-        // —— 3. 地表散布（预算 32 × 群系散布权重；最低优先级，只落空气/锈变地表）——
+        // —— 4. 地表散布（预算 64 × 群系散布权重；最低优先级，只落自然锈变地表+空气让行）——
         ProsperitySurfaceScatter
             .scatter(world, worldSeed, chunkX, chunkZ, biomeWeight(world, chunkX, chunkZ, SCATTER_WEIGHTS), sink);
+
+        // —— 5. 自然区装饰（S-A1，plan §12 修订 5：草丛 2-4/锈树 1/16/碎石 0-2 堆，频率常量
+        // 登记 ProsperityDecorPlacer 类注释；城 buffer 窗由上方 :90-92 return 天然保证）——
+        ProsperityDecorPlacer.decorate(world, worldSeed, chunkX, chunkZ, sink);
     }
 
     /**

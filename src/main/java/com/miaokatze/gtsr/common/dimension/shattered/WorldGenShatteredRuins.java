@@ -19,12 +19,13 @@ import com.miaokatze.gtsr.main.GTSteamReborn;
 import cpw.mods.fml.common.IWorldGenerator;
 
 /**
- * 破碎遗迹散布生成器（dim1 S6b，plan §2 S6b / 04 §7 裁剪版）：
+ * 破碎遗迹散布生成器（dim1 S6b 建链；dim79 重做 S-B4 同步新方块集，plan §5 S-B4）：
  * 仅破碎维度生效（shatteredDimId 守卫 + planDimension.shatteredDimension 双保险），频率 = 1/48 chunk
- * （常量封板，Config 不加键）。落点 = 岛面：自上而下第一处"非空气且上方为空气"的真岛面，表面方块须为
- * shattered 族（非族表面退取其下第一实体层兜底），y ∈ [28, 200]（近裂隙层不生成）。
+ * （常量封板，Config 不加键）。落点 = 全地形表面：自上而下第一处"非空气且上方为空气"的地表面
+ * （全地形列扫，dim78 scatter findSurfaceY 范式；浮岛"岛面 + shattered 族门"随旧模型作废），
+ * y ∈ [40, 96]（按新地形钳制域 36..96 重标定：下沿留 4 格谷地余量、上沿即钳制顶）。
  * <p>
- * 结构 = 3×3 碎裂黑石缺角平台（逐格 20% 缺失，嵌入岛面顶替换表层）+ 1-2 个残缺机器骨架
+ * 结构 = 3×3 独碑岩缺角平台（逐格 20% 缺失，嵌入地表面替换表层）+ 1-2 个残缺机器骨架
  * （{@link #HUSK_SMALL}/{@link #HUSK_TALL} 两变体，'C' 核心位 = BlockRuinedCasing 积碳壳 meta1——
  * <b>无 TileEntity、无箱子、无战利品</b>（失稳值/碎片在裁剪范围外））。放置经 {@link StructureBuilder}
  * → 注入 {@link BlockSink}（世界生成期 ChunkClampedSink / S5 指令期 DirectWorldSink 同一放置路径）；
@@ -42,11 +43,11 @@ public class WorldGenShatteredRuins implements IWorldGenerator {
     /** 遗迹掷骰分母：平均 1/48 chunk 一处（04 §7；常量封板，Config 不加键）。 */
     private static final int RUIN_CHANCE_DIVISOR = 48;
 
-    /** 最低岛面高度（04 §7：太低近裂隙层不生成）。 */
-    private static final int MIN_SURFACE_Y = 28;
+    /** 最低表面高度（S-B4 按 ShatteredTerrainProfile 钳制域 36..96 重标定：谷地下沿余量 4 格）。 */
+    private static final int MIN_SURFACE_Y = 40;
 
-    /** 最高岛面高度（同 RuinedMachinePlacer 20-200 区间上沿，防异常地形）。 */
-    private static final int MAX_SURFACE_Y = 200;
+    /** 最高表面高度（钳制域上沿；防异常地形）。 */
+    private static final int MAX_SURFACE_Y = 96;
 
     /** husk_small：2×3×2 矮残骸（残墙断口 + 双残柱 + 基板核心位）。 */
     public static final HuskShape HUSK_SMALL = new HuskShape(
@@ -163,7 +164,7 @@ public class WorldGenShatteredRuins implements IWorldGenerator {
         }
         evidenceLogged = true;
         GTSteamReborn.LOG.info(
-            "[GTSR] shattered ruins generator registered: dimId={} chance=1/{} variants=[husk_small, husk_tall] platform=3x3_shattered_blackstone",
+            "[GTSR] shattered ruins generator registered: dimId={} chance=1/{} variants=[husk_small, husk_tall] platform=3x3_shattered_monolith",
             Config.shatteredDimId,
             RUIN_CHANCE_DIVISOR);
     }
@@ -179,7 +180,7 @@ public class WorldGenShatteredRuins implements IWorldGenerator {
             return;
         }
         // 方块族未就绪防御（BlockLoader 失败等异常场景整体跳过，不炸生成链）
-        if (BlocksGTSR.shatteredBlackstone == null || BlocksGTSR.ruinedCasing == null) {
+        if (BlocksGTSR.shatteredCorestone == null || BlocksGTSR.ruinedCasing == null) {
             return;
         }
         // 随机流：chunk 确定性哈希派生（02 §0.3，同 RuinedMachinePlacer 口径）
@@ -190,19 +191,19 @@ public class WorldGenShatteredRuins implements IWorldGenerator {
         // 平台中心钳制在 [1,14]：3×3 平台完整落在当前 chunk（ChunkClampedSink 零丢弃）
         final int x = (chunkX << 4) + 1 + r.nextInt(14);
         final int z = (chunkZ << 4) + 1 + r.nextInt(14);
-        final int surfaceY = findIslandSurfaceY(world, x, z);
+        final int surfaceY = findSurfaceY(world, x, z);
         if (surfaceY < MIN_SURFACE_Y || surfaceY > MAX_SURFACE_Y) {
             return;
         }
         final BlockSink sink = new ChunkClampedSink(world, chunkX, chunkZ);
         final StructureBuilder builder = new StructureBuilder(sink);
-        // 1. 3×3 碎裂黑石缺角平台：嵌入岛面顶（逐格 20% 缺失，04 §7 口径；缺失格保留原地形仍受支撑）
+        // 1. 3×3 独碑岩缺角平台：嵌入地表面（逐格 20% 缺失，04 §7 口径承袭；缺失格保留原地形仍受支撑）
         for (int dx = -1; dx <= 1; dx++) {
             for (int dz = -1; dz <= 1; dz++) {
                 if (r.nextInt(5) == 0) {
                     continue; // 缺角
                 }
-                builder.setBlock(x + dx, surfaceY, z + dz, BlocksGTSR.shatteredBlackstone, 0, BlockSink.FLAG_POPULATE);
+                builder.setBlock(x + dx, surfaceY, z + dz, BlocksGTSR.shatteredMonolith, 0, BlockSink.FLAG_POPULATE);
             }
         }
         // 2. 残缺机器骨架 1-2 座：footprint 2×2 低角锚格 ∈ {(0,0),(-1,0),(0,-1),(-1,-1)}，均落在平台 3×3 内
@@ -243,33 +244,21 @@ public class WorldGenShatteredRuins implements IWorldGenerator {
     }
 
     /**
-     * 岛面查找（"脚下第一实体层"口径）：自上而下第一处"非空气且上方为空气"的真岛面；表面方块须为
-     * shattered 族，非族真表面记作兜底（被残块/异常方块占据时退取其下第一实体层）；找不到返回 -1。
+     * 表面查找（S-B4 改全地形列扫，dim78 scatter findSurfaceY 范式）：自上而下第一处
+     * "非空气且上方为空气"的地表面；找不到返回 -1。浮岛模型下的"shattered 族表面门 +
+     * 兜底回退"随旧方块集/浮岛作废——完整地形下最高裸露面即地表。
      */
-    static int findIslandSurfaceY(World world, int x, int z) {
-        int fallback = -1;
+    static int findSurfaceY(World world, int x, int z) {
         for (int y = 255; y > 0; y--) {
             final Block block = world.getBlock(x, y, z);
             if (block == null || block.getMaterial() == Material.air) {
                 continue;
             }
             if (!world.isAirBlock(x, y + 1, z)) {
-                continue; // 非真表面（洞穴顶/浮块下层）
+                continue; // 非真表面（洞穴顶/悬块下层，防御口径承袭）
             }
-            if (isShatteredFamily(block)) {
-                return y;
-            }
-            if (fallback < 0) {
-                fallback = y;
-            }
+            return y;
         }
-        return fallback;
-    }
-
-    /** shattered 族判定（S6a 四方块：碎裂草/碎裂土/裂隙石/黑石）。 */
-    private static boolean isShatteredFamily(Block block) {
-        return block == BlocksGTSR.shatteredGrass || block == BlocksGTSR.shatteredDirt
-            || block == BlocksGTSR.riftStone
-            || block == BlocksGTSR.shatteredBlackstone;
+        return -1;
     }
 }

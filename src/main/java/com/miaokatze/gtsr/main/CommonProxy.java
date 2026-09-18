@@ -11,6 +11,7 @@ import com.miaokatze.gtsr.Tags;
 import com.miaokatze.gtsr.common.commands.GTSRCommand;
 import com.miaokatze.gtsr.common.crossmod.ae2.GTSRAE2ExternalStorageHandler;
 import com.miaokatze.gtsr.common.crossmod.waila.GTSRWailaCompat;
+import com.miaokatze.gtsr.common.dimension.framework.BiomeZoneSelector;
 import com.miaokatze.gtsr.common.dimension.framework.DimensionRegistrar;
 import com.miaokatze.gtsr.common.dimension.framework.GTSRDimensionDef;
 import com.miaokatze.gtsr.common.dimension.prosperity.ChunkProviderProsperityRuins;
@@ -18,7 +19,7 @@ import com.miaokatze.gtsr.common.dimension.prosperity.WorldProviderProsperityRui
 import com.miaokatze.gtsr.common.dimension.prosperity.air.GTSRProsperityAirMaterials;
 import com.miaokatze.gtsr.common.dimension.prosperity.biome.ProsperityBiomes;
 import com.miaokatze.gtsr.common.dimension.prosperity.ruins.ProsperityWorldGenerator;
-import com.miaokatze.gtsr.common.dimension.shattered.ChunkProviderShatteredLands;
+import com.miaokatze.gtsr.common.dimension.shattered.ChunkProviderShatteredGrounds;
 import com.miaokatze.gtsr.common.dimension.shattered.ShatteredWeatherHandler;
 import com.miaokatze.gtsr.common.dimension.shattered.WorldGenShatteredRuins;
 import com.miaokatze.gtsr.common.dimension.shattered.WorldProviderShatteredLands;
@@ -119,6 +120,19 @@ public class CommonProxy {
                 // ChunkProvider = ProsperityTerrainProfile.heightAt 高度场，与古代城同源纯函数）
                 WorldProviderProsperityRuins.class,
                 ChunkProviderProsperityRuins::new);
+            // dim78 修复 S-A2（plan §4 S-A2 + §12 修订第 6 条）：挂空间连贯分区 selector——
+            // zone cell=16 chunk（用户：不要把群系做得太大）+ 边带 12% 邻 cell 过渡碎斑；盐
+            // 0x5A4F4E45（"ZONE"）与其他 cellSeed 用途域分离。selector 为纯函数（零 MC import），
+            // biomeAt 头部优先走之，空表 plains 回退保持；dim79 def 同款挂接（S-B3，盐 +1 域分离）。
+            prosperityDef.setBiomeSelector(
+                (seed, chunkX, chunkZ, biomeCount, weights) -> BiomeZoneSelector.select(
+                    seed,
+                    chunkX,
+                    chunkZ,
+                    biomeCount,
+                    weights,
+                    BiomeZoneSelector.ZONE_CELL_CHUNKS,
+                    0x5A4F4E45L));
             ProsperityBiomes.init(prosperityDef);
             final GTSRDimensionDef shatteredDef = new GTSRDimensionDef(
                 "shattered-lands",
@@ -127,10 +141,23 @@ public class CommonProxy {
                 Config.shatteredDimId,
                 Config.shatteredProviderId,
                 () -> Config.planDimension.shatteredDimension,
-                // dim1 S6a：专属 Provider/ChunkProvider 替换 S1 Skeleton 占位
+                // dim79 重做 S-B1：完整正常地形 ChunkProvider 替换浮岛 ChunkProviderShatteredLands
+                // （ShatteredTerrainProfile.heightAt 高度场，基准 64 / 钳制 36..96，零 MC 纯函数）
                 WorldProviderShatteredLands.class,
-                ChunkProviderShatteredLands::new);
-            // dim1 S6a：三群系（190..192 权重 50/30/20）在 def 注册前挂接（BlockLoader 已注册 shattered* 方块）
+                ChunkProviderShatteredGrounds::new);
+            // dim79 重做 S-B3（plan §5 S-B3）：挂空间连贯分区 selector（S-A2 框架同款，zone cell 同 16）——
+            // 四群系（190..193 权重 40/30/20/10）在 def 注册前挂接；盐 0x5A4F4E46（dim78 ZONE 盐 +1
+            // 域分离，seed 已由 def.seedSalt 分维）。selector 为纯函数（零 MC import），空表 plains 回退保持。
+            shatteredDef.setBiomeSelector(
+                (seed, chunkX, chunkZ, biomeCount, weights) -> BiomeZoneSelector.select(
+                    seed,
+                    chunkX,
+                    chunkZ,
+                    biomeCount,
+                    weights,
+                    BiomeZoneSelector.ZONE_CELL_CHUNKS,
+                    0x5A4F4E46L));
+            // dim1 S6a → S-B3：四群系（190..193 权重 40/30/20/10）在 def 注册前挂接（BlockLoader 已注册 shattered* 方块）
             ShatteredBiomes.init(shatteredDef);
             DimensionRegistrar.preInitDimensions(prosperityDef, shatteredDef);
         } catch (Throwable t) {
@@ -216,7 +243,7 @@ public class CommonProxy {
         // 构造时向 StructureRegistry 登记 5 机型变体并输出注册证据日志（plan S4a 验收 grep 锚点）。
         GameRegistry.registerWorldGenerator(new ProsperityWorldGenerator(), 1);
 
-        // dim1 S6b：破碎遗迹散布（1/48 chunk，3×3 黑石缺角平台 + husk_small/husk_tall 骨架，无 TE 无箱子）。
+        // dim1 S6b → S-B4：破碎遗迹散布（1/48 chunk，3×3 独碑岩缺角平台 + husk_small/husk_tall 骨架，无 TE 无箱子）。
         // 构造时向 StructureRegistry 登记 2 骨架变体并输出注册证据日志（plan S6b 验收 grep 锚点）。
         GameRegistry.registerWorldGenerator(new WorldGenShatteredRuins(), 1);
 

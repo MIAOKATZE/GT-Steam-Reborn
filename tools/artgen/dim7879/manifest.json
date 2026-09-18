@@ -1,0 +1,946 @@
+{
+  "_manifest": "dim78 自然区 + dim79 破碎之地 正式方块材质 唯一权威（gtnh-block-texture-artgen 契约：manifest 单点收口 PALETTE / DERIVED_RULES / SEEDS / STYLE / OUTPUTS）。35 张 = dim78 17 + dim79 18。",
+  "_authority": {
+    "dim78_semantics": "plan/investigation/dim78-fix-slice-A1-report.md §1（12 方块登记表：四群系 top/base + 2 草丛 + 锈树干 + 锈树叶；17 张占位）",
+    "dim79_semantics": "plan/investigation/dim79-redo-slice-B-report.md §0（13 方块登记表：corestone/monolith + 四群系 top/base + 石刺簇 + 灰烬枯树干 + 灰烬棘丛；18 张占位）",
+    "naming_contract": "文件名 = BlockLoader.java 已注册 icon 名（:70-72/:76/:81-83/:87/:91-93/:97/:101-103/:107/:111/:116-117/:120/:146-148/:150/:154-156/:160/:164-166/:168/:172-173/:184-185/:187）；本轮只换像素，注册名/lang 键/Java 零改动（dim1 manifest 同款纪律）。",
+    "placeholder_state": "17 张 prosperity_* 占位 = 既有贴图字节拷贝（steppe/forest/swamp 复用 prosperity_surface_* 调色板；tuft 2 张误用 rust_grass 全不透明贴图）；18 张 shattered_* 占位 = 程序化纯色噪声。本轮同名同路径覆写。",
+    "style_anchor": "tools/artgen/dim1/manifest.json + gen_dim1_blocks.py（同调色板派生纪律：一切明暗阶 shade(基色, 锚点, t)，t 值全进 DERIVED_RULES，脚本零硬编码色值）。跨域共享色值沿用同名锚点（DARK_ANCHOR/LIGHT_ANCHOR/GLINT/RUST_OXIDE/RUST_DIRT/BRASS_SAND）。",
+    "biome_color_source": "Java 常量同步抄录：BiomeRustedSteppe.java:31 = 0x8A7B4A / BiomeGearworkForest.java:32 = 0x4E8A6E / BiomeBrassWastes.java:31 = 0xB08D3E / BiomeFumaroleSwamp.java:31 = 0x4A5732",
+    "tint_consumers": "BlockProsperityTuft.colorMultiplier / BlockProsperityRustLeaves.colorMultiplier（3×3 邻域群系草色均值）→ 本 manifest 中 tuft_* 与 rust_leaves 的贴图为**中性乘色底**（近灰），实际色相由渲染期乘色产生；BlockProsperityNaturalTop / BlockShatteredSurfaceTop 不 tint → top 贴图自带烘焙色。",
+    "no_timestamp": "本文件与产物一律不含时间戳，禁用 random/time/datetime（脚本内 AST 自检，两个源文件都扫）。",
+    "no_mcmeta": "本轮 35 张全部为静态单帧 16x16；占位目录下无对应 .png.mcmeta，不做动画帧带（dim1 先例同款）。"
+  },
+  "PALETTE": {
+    "_note": "基色锚点（唯一可手挑的色值）；一切明暗阶经 DERIVED_RULES 由锚点派生，脚本零硬编码色值。跨域同名锚点与 dim1 manifest 同值。",
+    "DARK_ANCHOR": "140F13",
+    "LIGHT_ANCHOR": "F0EAE0",
+    "GLINT": "E8E2D0",
+    "RUST_OXIDE": "8A5A34",
+    "RUST_DIRT": "6B4A32",
+    "BRASS_SAND": "B08D3E",
+    "STEPPE_SWARD": "8A7B4A",
+    "PATINA_SWARD": "5E9377",
+    "PATINA_DEEP": "3E6A52",
+    "PATINA_SOIL": "3F5C4E",
+    "PATINA_BLOOM": "7FB08F",
+    "BRASS_ROCK": "8A6E36",
+    "PEAT_CRUST": "44462E",
+    "PEAT_MUD": "363222",
+    "RUST_BARK": "4A3626",
+    "RUST_CORE": "8A6234",
+    "TUFT_RUST_MAT": "CDBFA0",
+    "TUFT_PATINA_MAT": "B9C8B4",
+    "LEAF_MAT": "C6C4A8",
+    "CORE_ROCK": "3E3E46",
+    "CORE_VEIN": "6E6E7A",
+    "MONO_ROCK": "2A2A32",
+    "ASH_CRUST": "5C584E",
+    "ASH_SOIL": "3C3830",
+    "ASH_CHAR": "201C18",
+    "SLAG_CRUST": "4E5A3A",
+    "SLAG_SOIL": "343C28",
+    "GLASS_CRUST": "587890",
+    "GLASS_SOIL": "3A5060",
+    "GLASS_GLINT": "C4DCE8",
+    "TAR_CRUST": "2E2822",
+    "TAR_SOIL": "201A16",
+    "SPIKE_STONE": "74747E",
+    "THORN_ASH": "56504A",
+    "ASH_BARK": "453E36",
+    "ASH_RING": "5E564C"
+  },
+  "DERIVED_RULES": {
+    "D006": { "toward": "DARK_ANCHOR", "t": 0.006 },
+    "D010": { "toward": "DARK_ANCHOR", "t": 0.01 },
+    "D014": { "toward": "DARK_ANCHOR", "t": 0.014 },
+    "D018": { "toward": "DARK_ANCHOR", "t": 0.018 },
+    "D022": { "toward": "DARK_ANCHOR", "t": 0.022 },
+    "D028": { "toward": "DARK_ANCHOR", "t": 0.028 },
+    "D035": { "toward": "DARK_ANCHOR", "t": 0.035 },
+    "D045": { "toward": "DARK_ANCHOR", "t": 0.045 },
+    "D055": { "toward": "DARK_ANCHOR", "t": 0.055 },
+    "D070": { "toward": "DARK_ANCHOR", "t": 0.07 },
+    "D090": { "toward": "DARK_ANCHOR", "t": 0.09 },
+    "D110": { "toward": "DARK_ANCHOR", "t": 0.11 },
+    "D120": { "toward": "DARK_ANCHOR", "t": 0.12 },
+    "D140": { "toward": "DARK_ANCHOR", "t": 0.14 },
+    "D160": { "toward": "DARK_ANCHOR", "t": 0.16 },
+    "D180": { "toward": "DARK_ANCHOR", "t": 0.18 },
+    "D200": { "toward": "DARK_ANCHOR", "t": 0.2 },
+    "D220": { "toward": "DARK_ANCHOR", "t": 0.22 },
+    "D240": { "toward": "DARK_ANCHOR", "t": 0.24 },
+    "D280": { "toward": "DARK_ANCHOR", "t": 0.28 },
+    "D340": { "toward": "DARK_ANCHOR", "t": 0.34 },
+    "D420": { "toward": "DARK_ANCHOR", "t": 0.42 },
+    "L008": { "toward": "LIGHT_ANCHOR", "t": 0.008 },
+    "L012": { "toward": "LIGHT_ANCHOR", "t": 0.012 },
+    "L016": { "toward": "LIGHT_ANCHOR", "t": 0.016 },
+    "L022": { "toward": "LIGHT_ANCHOR", "t": 0.022 },
+    "L028": { "toward": "LIGHT_ANCHOR", "t": 0.028 },
+    "L035": { "toward": "LIGHT_ANCHOR", "t": 0.035 },
+    "L045": { "toward": "LIGHT_ANCHOR", "t": 0.045 },
+    "L055": { "toward": "LIGHT_ANCHOR", "t": 0.055 },
+    "L060": { "toward": "LIGHT_ANCHOR", "t": 0.06 },
+    "L070": { "toward": "LIGHT_ANCHOR", "t": 0.07 },
+    "L090": { "toward": "LIGHT_ANCHOR", "t": 0.09 },
+    "L110": { "toward": "LIGHT_ANCHOR", "t": 0.11 },
+    "L120": { "toward": "LIGHT_ANCHOR", "t": 0.12 },
+    "L140": { "toward": "LIGHT_ANCHOR", "t": 0.14 },
+    "L160": { "toward": "LIGHT_ANCHOR", "t": 0.16 },
+    "L180": { "toward": "LIGHT_ANCHOR", "t": 0.18 },
+    "L200": { "toward": "LIGHT_ANCHOR", "t": 0.2 },
+    "L220": { "toward": "LIGHT_ANCHOR", "t": 0.22 },
+    "L240": { "toward": "LIGHT_ANCHOR", "t": 0.24 },
+    "L280": { "toward": "LIGHT_ANCHOR", "t": 0.28 },
+    "L340": { "toward": "LIGHT_ANCHOR", "t": 0.34 },
+    "L420": { "toward": "LIGHT_ANCHOR", "t": 0.42 },
+    "_note": "shade(基色, 锚点, t) 线性插值；token D=向 DARK_ANCHOR、L=向 LIGHT_ANCHOR，后三位=千分之 t。暗域基色（dim79）向 D 的步进会塌到 1 单位，故暗域对比主要走 L 侧大 t（L090/L200/L280）+ 独立明色锚点（GLASS_GLINT/ASH_CHAR）；t 值即本表，禁止脚本内另立数值。"
+  },
+  "BIOME_TINT_REFERENCE": {
+    "_note": "Java 常量同步抄录（草/叶 tint 为渲染期乘色）：BiomeRustedSteppe.java:31 / BiomeGearworkForest.java:32 / BiomeBrassWastes.java:31 / BiomeFumaroleSwamp.java:31。仅 prosperity 侧生效（dim79 无 colorMultiplier 消费端）。",
+    "rustedSteppe": "8A7B4A",
+    "gearworkForest": "4E8A6E",
+    "brassWastes": "B08D3E",
+    "fumaroleSwamp": "4A5732"
+  },
+  "SEEDS": {
+    "_note": "每输出一个 LCG/混合种子（splitmix64 混合，禁 random 模块）；种子改动 = 整张重画。8xxx=dim78 自然区，9xxx=dim79 破碎之地。",
+    "prosperity_steppe_top": "0x5EED8101",
+    "prosperity_steppe_top_side": "0x5EED8102",
+    "prosperity_steppe_base": "0x5EED8103",
+    "prosperity_forest_top": "0x5EED8104",
+    "prosperity_forest_top_side": "0x5EED8105",
+    "prosperity_forest_base": "0x5EED8106",
+    "prosperity_wastes_top": "0x5EED8107",
+    "prosperity_wastes_top_side": "0x5EED8108",
+    "prosperity_wastes_base": "0x5EED8109",
+    "prosperity_swamp_top": "0x5EED810A",
+    "prosperity_swamp_top_side": "0x5EED810B",
+    "prosperity_swamp_base": "0x5EED810C",
+    "prosperity_tuft_rust": "0x5EED810D",
+    "prosperity_tuft_copper": "0x5EED810E",
+    "prosperity_rust_log_side": "0x5EED810F",
+    "prosperity_rust_log_top": "0x5EED8110",
+    "prosperity_rust_leaves": "0x5EED8111",
+    "shattered_corestone": "0x5EED9101",
+    "shattered_monolith": "0x5EED9102",
+    "shattered_ash_top": "0x5EED9103",
+    "shattered_ash_top_side": "0x5EED9104",
+    "shattered_ash_base": "0x5EED9105",
+    "shattered_slag_top": "0x5EED9106",
+    "shattered_slag_top_side": "0x5EED9107",
+    "shattered_slag_base": "0x5EED9108",
+    "shattered_glass_top": "0x5EED9109",
+    "shattered_glass_top_side": "0x5EED910A",
+    "shattered_glass_base": "0x5EED910B",
+    "shattered_tar_top": "0x5EED910C",
+    "shattered_tar_top_side": "0x5EED910D",
+    "shattered_tar_base": "0x5EED910E",
+    "shattered_spike_cluster": "0x5EED910F",
+    "shattered_ash_log_side": "0x5EED9110",
+    "shattered_ash_log_top": "0x5EED9111",
+    "shattered_ash_thorn": "0x5EED9112"
+  },
+  "STYLE": {
+    "pixel_discipline": {
+      "size": [16, 16],
+      "max_distinct_rgb": 16,
+      "forbid_rgb": ["000000", "FFFFFF"],
+      "alpha": 255,
+      "palette_gate": "不透明贴图：每张 distinct RGB ≤ 16、alpha 恒 255、全图禁纯黑/纯白（锚点亦非极值）。十字装饰：alpha 二值（前景 255 / 背景 0），背景像素 RGB 必须为 (0,0,0,0) 且**不计入** distinct RGB 与纯黑禁则，前景仍受 ≤16 与禁纯黑/纯白约束。",
+      "period_rule": "一切 % 取模周期（ripple/fiber/strata/course）的周期必须整除 16（1/2/4/8/16），否则环绕断裂；格点值噪无此约束（u 前进整数格点，mod cells 后逐点精确相等）。"
+    },
+    "prosperity_natural": {
+      "_note": "dim78 自然地表（四群系 top/base + 锈树叶）：锈色系，明度中低-中；四群系读感互异 = 锈褐草甸 / 铜绿齿轮林 / 黄铜沙丘 / 泥炭沼。地表类四边无缝（周期 16 场 + 环绕落笔）。",
+      "octaves": [[2, 0.20], [4, 0.30], [8, 0.30], [16, 0.20]],
+      "tileable": true,
+      "seam_gross_max": 1.5,
+      "_seam_metric": "gross = 环边相邻差 / 内部相邻差最大值（杀硬缝的粗检，必要非充分；场断裂/边缘描边类硬缝实测 >2）；无缝充分保证 = 噪声场精确周期 16 自证 + 环绕落笔"
+    },
+    "prosperity_side": {
+      "_note": "dim78 表层侧面（kind=crust_side，输出自身带 seam_axes=x）：草沿/腐殖沿锚顶（顶部 2-4px）+ 土体在下（复用同族 base 调色板），故只在水平（x）方向自拼接；垂直向顶部沿对其下方土体是设计不连续。",
+      "seam_gross_max": 1.5,
+      "seam_axes": "x"
+    },
+    "prosperity_decor": {
+      "_note": "dim78 装饰（2 草丛十字 + 锈树干 side/top）：草丛透明底、树干构件化；明度中低，破损感靠锈斑/纤维/裂纹。",
+      "tileable": false,
+      "seam_gross_max": 1.5
+    },
+    "shattered_natural": {
+      "_note": "dim79 破碎之地地表（碎核岩 + 四群系 top/base）：超硬暗色调，与 dim78 锈色系拉开（全族基色明度 32..144，暗端比 dim78 低一档）；四群系读感互异 = 灰烬 / 渣木橄榄 / 琉璃冷蓝 / 焦油近黑。硬石风靠棱面/裂纹/矿脉，不靠有机软噪。",
+      "octaves": [[2, 0.18], [4, 0.32], [8, 0.30], [16, 0.20]],
+      "tileable": true,
+      "seam_gross_max": 1.5,
+      "_seam_metric": "同 prosperity_natural：gross 粗检（阈值 1.5）+ 周期场自证"
+    },
+    "shattered_side": {
+      "_note": "dim79 表层侧面（kind=crust_side，seam_axes=x）：壳层锚顶（顶部 3-4px，灰烬/渣壳/琉璃层/焦油壳）+ 下层 base 主体，只断言水平环边。",
+      "seam_gross_max": 1.5,
+      "seam_axes": "x"
+    },
+    "shattered_decor": {
+      "_note": "dim79 装饰（monolith 结构块 + 石刺簇/灰烬棘丛十字 + 灰烬枯树干 side/top）：十字透明底；monolith 与 log_side 为构造/构件面，不做拼接硬性要求时按 entry.tileable 声明。",
+      "tileable": false,
+      "seam_gross_max": 1.5
+    },
+    "cross_rules": {
+      "_note": "十字装饰（getRenderType=1）共用断言：alpha 二值；落地生根（最下一行至少 N 个前景像素，否则飘空）；覆盖率区间（防糊成实心块 or 稀到看不见）。",
+      "alpha_binary": true,
+      "bottom_row_fg_min": 3,
+      "coverage_min": 0.12,
+      "coverage_max": 0.62
+    }
+  },
+  "OUTPUTS": [
+    {
+      "key": "prosperity_steppe_top",
+      "file": "prosperity_steppe_top.png",
+      "group": "prosperity_natural",
+      "block": "ProsperitySteppeTop 顶面（BlockProsperityNaturalTop，BlockLoader.java:70）",
+      "kind": "grass_baked",
+      "tileable": true,
+      "params": {
+        "base": "STEPPE_SWARD",
+        "levels": ["BASE@D220", "BASE@D110", "BASE", "BASE@L120"],
+        "blade_dark": "BASE@D340",
+        "blade_lit": "BASE@L280",
+        "speckle": "RUST_OXIDE@D070",
+        "blade_density": 0.72,
+        "speckle_density": 0.045,
+        "blotch": "RUST_OXIDE@D180",
+        "blotch_count": 3
+      },
+      "_read": "锈草甸草皮：草色 = BiomeRustedSteppe.GRASS_COLOR 0x8A7B4A 烘焙进贴图（方块不 tint）；干草叶簇 + 锈斑 = 锈褐草甸"
+    },
+    {
+      "key": "prosperity_steppe_top_side",
+      "file": "prosperity_steppe_top_side.png",
+      "group": "prosperity_side",
+      "block": "ProsperitySteppeTop 侧面（BlockLoader.java:71）",
+      "kind": "crust_side",
+      "tileable": true,
+      "seam_axes": "x",
+      "_color_reuse": "body params ← prosperity_steppe_base（锈壤），fringe params ← prosperity_steppe_top（草沿烘焙色）",
+      "params_from": {
+        "body": "prosperity_steppe_base",
+        "fringe": "prosperity_steppe_top"
+      },
+      "params": {
+        "fringe_min": 3,
+        "fringe_max": 4,
+        "hang_density": 0.16,
+        "edge_speckle": "RUST_OXIDE@D070",
+        "edge_speckle_density": 0.012,
+        "shadow": "BASE@D110"
+      }
+    },
+    {
+      "key": "prosperity_steppe_base",
+      "file": "prosperity_steppe_base.png",
+      "group": "prosperity_natural",
+      "block": "ProsperitySteppeBase（BlockLoader.java:76，主体+filler）",
+      "kind": "terrain_grit",
+      "tileable": true,
+      "params": {
+        "base": "RUST_DIRT",
+        "levels": ["BASE@D140", "BASE@D070", "BASE", "BASE@L070"],
+        "grit_dark": "BASE@D180",
+        "grit_lit": "BASE@L140",
+        "grit_density": 0.2,
+        "clod": "BASE@D090",
+        "clod_density": 0.05,
+        "flake": "RUST_OXIDE@D070",
+        "flake_density": 0.03
+      },
+      "_read": "锈壤：粗颗粒 + 土块 + 锈氧化物碎屑（与既有 prosperity_surface_rust_dirt 同源基色 RUST_DIRT，读感延续）"
+    },
+    {
+      "key": "prosperity_forest_top",
+      "file": "prosperity_forest_top.png",
+      "group": "prosperity_natural",
+      "block": "ProsperityForestTop 顶面（BlockLoader.java:81）",
+      "kind": "grass_baked",
+      "tileable": true,
+      "params": {
+        "base": "PATINA_SWARD",
+        "levels": ["BASE@D220", "BASE@D110", "BASE", "BASE@L140"],
+        "blade_dark": "BASE@D340",
+        "blade_lit": "BASE@L280",
+        "accent": "PATINA_DEEP",
+        "accent_levels": ["PATINA_DEEP@D070", "PATINA_DEEP", "PATINA_DEEP@L090"],
+        "accent_blend": 0.3,
+        "speckle": "PATINA_BLOOM@D140",
+        "blade_density": 0.7,
+        "speckle_density": 0.03,
+        "blotch": "PATINA_DEEP",
+        "blotch_count": 3
+      },
+      "_read": "铜绿草皮：草色 = BiomeGearworkForest.GRASS_COLOR 0x4E8A6E 烘焙（方块不 tint）；accent 混色 = 氧化铜绿口袋 → 与锈草甸色相完全脱钩"
+    },
+    {
+      "key": "prosperity_forest_top_side",
+      "file": "prosperity_forest_top_side.png",
+      "group": "prosperity_side",
+      "block": "ProsperityForestTop 侧面（BlockLoader.java:82）",
+      "kind": "crust_side",
+      "tileable": true,
+      "seam_axes": "x",
+      "_color_reuse": "body params ← prosperity_forest_base，fringe params ← prosperity_forest_top",
+      "params_from": {
+        "body": "prosperity_forest_base",
+        "fringe": "prosperity_forest_top"
+      },
+      "params": {
+        "fringe_min": 3,
+        "fringe_max": 4,
+        "hang_density": 0.18,
+        "edge_speckle": "PATINA_BLOOM@D140",
+        "edge_speckle_density": 0.012,
+        "shadow": "BASE@D110"
+      }
+    },
+    {
+      "key": "prosperity_forest_base",
+      "file": "prosperity_forest_base.png",
+      "group": "prosperity_natural",
+      "block": "ProsperityForestBase（BlockLoader.java:87）",
+      "kind": "terrain_grit",
+      "tileable": true,
+      "params": {
+        "base": "PATINA_SOIL",
+        "levels": ["BASE@D140", "BASE@D070", "BASE", "BASE@L090"],
+        "grit_dark": "BASE@D200",
+        "grit_lit": "BASE@L160",
+        "grit_density": 0.2,
+        "clod": "BASE@D090",
+        "clod_density": 0.05,
+        "flake": "PATINA_BLOOM",
+        "flake_density": 0.035
+      },
+      "_read": "铜绿壤土：暗青绿基色 + 铜绿霜花碎屑（PATINA_BLOOM）= 氧化铜浸染的土"
+    },
+    {
+      "key": "prosperity_wastes_top",
+      "file": "prosperity_wastes_top.png",
+      "group": "prosperity_natural",
+      "block": "ProsperityWastesTop 顶面（BlockLoader.java:91）",
+      "kind": "terrain_ripple",
+      "tileable": true,
+      "params": {
+        "base": "BRASS_SAND",
+        "levels": ["BASE@D090", "BASE@D045", "BASE", "BASE@L070", "BASE@L140"],
+        "octaves": [[2, 0.24], [8, 0.36], [16, 0.40]],
+        "ripple_period": 8,
+        "ripple_strength": 0.7,
+        "grit_dark": "BASE@D120",
+        "grit_lit": "BASE@L180",
+        "grit_density": 0.16,
+        "glint": "GLINT@D140",
+        "glint_density": 0.006
+      },
+      "_read": "黄铜丘沙：沙纹（周期 8）+ 无方向颗粒 + 极稀疏金属闪点 = 黄铜沙丘（全族最亮的暖色）"
+    },
+    {
+      "key": "prosperity_wastes_top_side",
+      "file": "prosperity_wastes_top_side.png",
+      "group": "prosperity_side",
+      "block": "ProsperityWastesTop 侧面（BlockLoader.java:92）",
+      "kind": "crust_side",
+      "tileable": true,
+      "seam_axes": "x",
+      "_color_reuse": "body params ← prosperity_wastes_base，fringe params ← prosperity_wastes_top",
+      "params_from": {
+        "body": "prosperity_wastes_base",
+        "fringe": "prosperity_wastes_top"
+      },
+      "params": {
+        "fringe_min": 2,
+        "fringe_max": 3,
+        "hang_density": 0.1,
+        "edge_speckle": "BRASS_SAND@D220",
+        "edge_speckle_density": 0.014,
+        "shadow": "BASE@D110"
+      },
+      "_side_note": "沙层薄（2-3px）+ 少垂落：沙不像草沿那样挂丝"
+    },
+    {
+      "key": "prosperity_wastes_base",
+      "file": "prosperity_wastes_base.png",
+      "group": "prosperity_natural",
+      "block": "ProsperityWastesBase（BlockLoader.java:97）",
+      "kind": "terrain_grit",
+      "tileable": true,
+      "params": {
+        "base": "BRASS_ROCK",
+        "levels": ["BASE@D140", "BASE@D070", "BASE", "BASE@L070", "BASE@L140"],
+        "strata_period": 4,
+        "strata_strength": 0.45,
+        "grit_dark": "BASE@D180",
+        "grit_lit": "BASE@L180",
+        "grit_density": 0.18
+      },
+      "_read": "黄铜砂岩：4 皮水平层理（周期整除 16）+ 颗粒 = 与同群系沙丘顶面同色系但更压暗、成层"
+    },
+    {
+      "key": "prosperity_swamp_top",
+      "file": "prosperity_swamp_top.png",
+      "group": "prosperity_natural",
+      "block": "ProsperitySwampTop 顶面（BlockLoader.java:101）",
+      "kind": "terrain_fiber",
+      "tileable": true,
+      "params": {
+        "base": "PEAT_CRUST",
+        "levels": ["BASE@D110", "BASE@D045", "BASE", "BASE@L070"],
+        "fiber_row_period": 8,
+        "fiber_dark": "BASE@D200",
+        "fiber_lit": "BASE@L140",
+        "fiber_density": 0.34,
+        "muck": "BASE@D180",
+        "muck_density": 0.07,
+        "seep": "RUST_OXIDE@D140",
+        "seep_density": 0.008
+      },
+      "_read": "泥炭沼表土：雾浊橄榄基色 + 纤维行纹 + 泥斑 + 极稀疏锈水渗点 = 全群系最暗最浊（与 steppe 暖褐/forest 铜绿/brass 亮金四方互异）"
+    },
+    {
+      "key": "prosperity_swamp_top_side",
+      "file": "prosperity_swamp_top_side.png",
+      "group": "prosperity_side",
+      "block": "ProsperitySwampTop 侧面（BlockLoader.java:102）",
+      "kind": "crust_side",
+      "tileable": true,
+      "seam_axes": "x",
+      "_color_reuse": "body params ← prosperity_swamp_base，fringe params ← prosperity_swamp_top",
+      "params_from": {
+        "body": "prosperity_swamp_base",
+        "fringe": "prosperity_swamp_top"
+      },
+      "params": {
+        "fringe_min": 3,
+        "fringe_max": 4,
+        "hang_density": 0.2,
+        "edge_speckle": "RUST_OXIDE@D140",
+        "edge_speckle_density": 0.01,
+        "shadow": "BASE@D160"
+      }
+    },
+    {
+      "key": "prosperity_swamp_base",
+      "file": "prosperity_swamp_base.png",
+      "group": "prosperity_natural",
+      "block": "ProsperitySwampBase（BlockLoader.java:107）",
+      "kind": "terrain_grit",
+      "tileable": true,
+      "params": {
+        "base": "PEAT_MUD",
+        "levels": ["BASE@D140", "BASE@D070", "BASE", "BASE@L090"],
+        "grit_dark": "BASE@D220",
+        "grit_lit": "BASE@L160",
+        "grit_density": 0.18,
+        "clod": "BASE@D110",
+        "clod_density": 0.06,
+        "flake": "RUST_OXIDE@D180",
+        "flake_density": 0.012
+      },
+      "_read": "泥炭沼泥：暗褐土 + 泥团 + 稀疏锈水斑"
+    },
+    {
+      "key": "prosperity_tuft_rust",
+      "file": "prosperity_tuft_rust.png",
+      "group": "prosperity_decor",
+      "block": "ProsperityTuftRust（BlockLoader.java:107-108，十字渲染）",
+      "kind": "cross_decor",
+      "tileable": false,
+      "tint": "biome_grass_multiplier",
+      "alpha": "binary",
+      "params": {
+        "form": "dry_tuft",
+        "base": "TUFT_RUST_MAT",
+        "blade_dark": "BASE@D340",
+        "blade_mid": "BASE@D140",
+        "blade_lit": "BASE@L220",
+        "head": "BASE@D090",
+        "blade_count": 11,
+        "height_min": 4,
+        "height_max": 7,
+        "head_chance": 0.45,
+        "oxide": "RUST_OXIDE@L140",
+        "oxide_density": 0.03
+      },
+      "_read": "锈草丛：稀疏干草叶（4-7px、有弯折）+ 穗头 + 锈屑点；中性乘色底 → 渲染期乘群系草色（Steppe 锈褐/Wastes 黄铜）"
+    },
+    {
+      "key": "prosperity_tuft_copper",
+      "file": "prosperity_tuft_copper.png",
+      "group": "prosperity_decor",
+      "block": "ProsperityTuftCopper（BlockLoader.java:110-112，十字渲染）",
+      "kind": "cross_decor",
+      "tileable": false,
+      "tint": "biome_grass_multiplier",
+      "alpha": "binary",
+      "params": {
+        "form": "moss_tuft",
+        "base": "TUFT_PATINA_MAT",
+        "blade_dark": "BASE@D340",
+        "blade_mid": "BASE@D140",
+        "blade_lit": "BASE@L220",
+        "head": "BASE@D090",
+        "blade_count": 15,
+        "height_min": 3,
+        "height_max": 5,
+        "head_chance": 0.3,
+        "bloom": "PATINA_BLOOM@D140",
+        "bloom_density": 0.035
+      },
+      "_read": "铜绿草丛：密而矮的苔簇（3-5px）+ 铜绿霜点；与锈草丛靠**形态**（疏高 vs 密矮）+ 乘色群系（Forest 铜绿/Swamp 橄榄）双差可辨"
+    },
+    {
+      "key": "prosperity_rust_log_side",
+      "file": "prosperity_rust_log_side.png",
+      "group": "prosperity_decor",
+      "block": "ProsperityRustLog side（BlockLoader.java:116）",
+      "kind": "log_side",
+      "tileable": true,
+      "params": {
+        "base": "RUST_BARK",
+        "bark_dark": "BASE@D220",
+        "bark_lit": "BASE@L180",
+        "grain_cells_x": 4,
+        "grain_cells_y": 16,
+        "ridge_chance": 0.34,
+        "bloom": "RUST_OXIDE@D070",
+        "bloom_density": 0.035,
+        "bloom_count": 2,
+        "band": "RUST_CORE@D220",
+        "band_rows": [3, 11]
+      },
+      "_read": "锈树干侧面：4×16 各向异性纹（细密纵向纹理）+ 纵向棱脊 + 锈斑簇 + 2 道锈芯色环带（周期 8 差 → 环绕不断）"
+    },
+    {
+      "key": "prosperity_rust_log_top",
+      "file": "prosperity_rust_log_top.png",
+      "group": "prosperity_decor",
+      "block": "ProsperityRustLog top（BlockLoader.java:117）",
+      "kind": "log_top",
+      "tileable": false,
+      "params": {
+        "base": "RUST_BARK",
+        "core": "RUST_CORE",
+        "ring_alt": "RUST_CORE@D220",
+        "ring_lit": "RUST_CORE@L140",
+        "bark_rim_1": "BASE@D140",
+        "bark_rim_2": "BASE@D220",
+        "pit": "RUST_CORE@D340",
+        "pit_density": 0.05,
+        "crack": "RUST_CORE@D340",
+        "crack_count": 2,
+        "ring_period": 3
+      },
+      "_read": "锈树干横截面：同心年轮（周期 3px 取阶）+ 外圈树皮环 + 放射裂纹；逐块各自成环 = 不做拼接断言（vanilla 原木顶面同款口径）"
+    },
+    {
+      "key": "prosperity_rust_leaves",
+      "file": "prosperity_rust_leaves.png",
+      "group": "prosperity_natural",
+      "block": "ProsperityRustLeaves（BlockLoader.java:120，普通立方块）",
+      "kind": "leaves_clump",
+      "tileable": true,
+      "tint": "biome_grass_multiplier",
+      "params": {
+        "base": "LEAF_MAT",
+        "levels": ["BASE@D180", "BASE@D090", "BASE", "BASE@L055", "BASE@L140"],
+        "hole": "BASE@D340",
+        "hole_density": 0.09,
+        "octaves": [[4, 0.36], [8, 0.36], [16, 0.28]],
+        "needle_lit": "BASE@L240",
+        "needle_density": 0.16,
+        "oxide": "RUST_OXIDE@D070",
+        "oxide_density": 0.018
+      },
+      "_read": "锈树叶：细碎冠层簇 + 暗孔 + 亮针尖 + 稀疏锈斑；中性乘色底 → 同一冠层跨群系读作锈褐/铜绿（与草丛同 tint 消费口径）"
+    },
+    {
+      "key": "shattered_corestone",
+      "file": "shattered_corestone.png",
+      "group": "shattered_natural",
+      "block": "ShatteredCorestone（BlockShatteredCorestone.java:41，地形主体石）",
+      "kind": "stone_facet",
+      "tileable": true,
+      "params": {
+        "base": "CORE_ROCK",
+        "levels": ["BASE@D180", "BASE@D070", "BASE", "BASE@L045", "BASE@L110", "BASE@L200"],
+        "facet_cells": 4,
+        "joint": "BASE@D420",
+        "facet_lit": "BASE@L280",
+        "vein": "CORE_VEIN",
+        "vein_lit": "CORE_VEIN@L180",
+        "vein_count": 2,
+        "pit": "BASE@D280",
+        "pit_density": 0.05
+      },
+      "_read": "碎核岩：6 阶暗石 + 8 格棱面（硬边、1px 深缝、受光棱边）+ 2 道浅色矿脉 + 凹坑 = 硬而脆的主体石"
+    },
+    {
+      "key": "shattered_monolith",
+      "file": "shattered_monolith.png",
+      "group": "shattered_decor",
+      "block": "ShatteredMonolith（WorldGenShatteredRuins 3×3 平台，BlockLoader.java:141）",
+      "kind": "stone_banded",
+      "tileable": true,
+      "params": {
+        "base": "MONO_ROCK",
+        "levels": ["BASE@D220", "BASE@D110", "BASE", "BASE@L090", "BASE@L200"],
+        "course_period": 8,
+        "course_joint": "BASE@D420",
+        "course_lit": "BASE@L140",
+        "chisel": "BASE@L280",
+        "chisel_density": 0.02,
+        "pit": "BASE@D280",
+        "pit_density": 0.04,
+        "crack": "BASE@D420",
+        "crack_count": 2
+      },
+      "_read": "地标平台块：全族最暗基色 + 周期 8 皮通缝（跨块成连续皮数 ⇒ 可拼接）+ 凿痕点 + 2 道应力裂纹 = \"人工砌筑\"与 corestone 的\"天然碎裂\"区分"
+    },
+    {
+      "key": "shattered_ash_top",
+      "file": "shattered_ash_top.png",
+      "group": "shattered_natural",
+      "block": "ShatteredAshTop 顶面（BlockLoader.java:146）",
+      "kind": "terrain_ash",
+      "tileable": true,
+      "params": {
+        "base": "ASH_CRUST",
+        "levels": ["BASE@D220", "BASE@D110", "BASE", "BASE@L090", "BASE@L200"],
+        "drift_period": 8,
+        "drift_strength": 0.25,
+        "char": "ASH_CHAR",
+        "char_density": 0.03,
+        "char_blobs": 2,
+        "glint": "GLINT@D220",
+        "glint_density": 0.006
+      },
+      "_read": "灰烬草原表壳：细灰粒 + 周期 8 风积纹 + 炭渣点/炭斑 + 极稀疏余烬亮点"
+    },
+    {
+      "key": "shattered_ash_top_side",
+      "file": "shattered_ash_top_side.png",
+      "group": "shattered_side",
+      "block": "ShatteredAshTop 侧面（BlockLoader.java:147）",
+      "kind": "crust_side",
+      "tileable": true,
+      "seam_axes": "x",
+      "_color_reuse": "body params ← shattered_ash_base，fringe params ← shattered_ash_top",
+      "params_from": {
+        "body": "shattered_ash_base",
+        "fringe": "shattered_ash_top"
+      },
+      "params": {
+        "fringe_min": 3,
+        "fringe_max": 4,
+        "hang_density": 0.14,
+        "edge_speckle": "ASH_CHAR",
+        "edge_speckle_density": 0.012,
+        "shadow": "BASE@D140"
+      }
+    },
+    {
+      "key": "shattered_ash_base",
+      "file": "shattered_ash_base.png",
+      "group": "shattered_natural",
+      "block": "ShatteredAshBase（BlockLoader.java:150）",
+      "kind": "terrain_grit",
+      "tileable": true,
+      "params": {
+        "base": "ASH_SOIL",
+        "levels": ["BASE@D140", "BASE@D070", "BASE", "BASE@L110"],
+        "grit_dark": "BASE@D240",
+        "grit_lit": "BASE@L180",
+        "grit_density": 0.2,
+        "clod": "BASE@D090",
+        "clod_density": 0.055,
+        "flake": "ASH_CHAR",
+        "flake_density": 0.03
+      },
+      "_read": "压实灰烬土：中灰颗粒 + 板结团块 + 炭屑"
+    },
+    {
+      "key": "shattered_slag_top",
+      "file": "shattered_slag_top.png",
+      "group": "shattered_natural",
+      "block": "ShatteredSlagTop 顶面（BlockLoader.java:154）",
+      "kind": "terrain_slag",
+      "tileable": true,
+      "params": {
+        "base": "SLAG_CRUST",
+        "levels": ["BASE@D220", "BASE@D110", "BASE", "BASE@L090", "BASE@L200"],
+        "facet_cells": 4,
+        "joint": "BASE@D420",
+        "facet_lit": "BASE@L280",
+        "pit": "BASE@D340",
+        "pit_density": 0.06
+      },
+      "_read": "渣木林表壳：橄榄色玻渣块 + 4 格锐角碎片（暗缝 + 受光棱）+ 熔蚀凹坑 = 与灰烬（细颗粒）和琉璃（冷蓝光滑）三方互异"
+    },
+    {
+      "key": "shattered_slag_top_side",
+      "file": "shattered_slag_top_side.png",
+      "group": "shattered_side",
+      "block": "ShatteredSlagTop 侧面（BlockLoader.java:155）",
+      "kind": "crust_side",
+      "tileable": true,
+      "seam_axes": "x",
+      "_color_reuse": "body params ← shattered_slag_base，fringe params ← shattered_slag_top",
+      "params_from": {
+        "body": "shattered_slag_base",
+        "fringe": "shattered_slag_top"
+      },
+      "params": {
+        "fringe_min": 3,
+        "fringe_max": 4,
+        "hang_density": 0.12,
+        "edge_speckle": "SLAG_CRUST@D340",
+        "edge_speckle_density": 0.012,
+        "shadow": "BASE@D140"
+      }
+    },
+    {
+      "key": "shattered_slag_base",
+      "file": "shattered_slag_base.png",
+      "group": "shattered_natural",
+      "block": "ShatteredSlagBase（BlockLoader.java:160）",
+      "kind": "terrain_grit",
+      "tileable": true,
+      "params": {
+        "base": "SLAG_SOIL",
+        "levels": ["BASE@D140", "BASE@D070", "BASE", "BASE@L110"],
+        "grit_dark": "BASE@D240",
+        "grit_lit": "BASE@L180",
+        "grit_density": 0.18,
+        "clod": "BASE@D090",
+        "clod_density": 0.05,
+        "flake": "ASH_CHAR",
+        "flake_density": 0.02
+      },
+      "_read": "渣木林下层土：暗橄榄颗粒 + 炭屑"
+    },
+    {
+      "key": "shattered_glass_top",
+      "file": "shattered_glass_top.png",
+      "group": "shattered_natural",
+      "block": "ShatteredGlassTop 顶面（BlockLoader.java:164）",
+      "kind": "terrain_vitreous",
+      "tileable": true,
+      "params": {
+        "base": "GLASS_CRUST",
+        "levels": ["BASE@D220", "BASE@D110", "BASE", "BASE@L090", "BASE@L200"],
+        "octaves": [[4, 0.5], [8, 0.5]],
+        "crack_dark": "BASE@D420",
+        "crack_lit": "BASE@L340",
+        "crack_count": 3,
+        "glint": "GLASS_GLINT",
+        "glint_density": 0.008,
+        "glint_halo": "BASE@L280"
+      },
+      "_read": "琉璃荒漠表壳：全族最亮冷蓝 + 光滑基场 + 3 道贝壳状裂纹（暗线 + 亮唇）+ 玻璃反光点/晕 = 与另三群系拉开（冷色/高光）"
+    },
+    {
+      "key": "shattered_glass_top_side",
+      "file": "shattered_glass_top_side.png",
+      "group": "shattered_side",
+      "block": "ShatteredGlassTop 侧面（BlockLoader.java:165）",
+      "kind": "crust_side",
+      "tileable": true,
+      "seam_axes": "x",
+      "_color_reuse": "body params ← shattered_glass_base，fringe params ← shattered_glass_top",
+      "params_from": {
+        "body": "shattered_glass_base",
+        "fringe": "shattered_glass_top"
+      },
+      "params": {
+        "fringe_min": 3,
+        "fringe_max": 4,
+        "hang_density": 0.1,
+        "edge_speckle": "GLASS_GLINT",
+        "edge_speckle_density": 0.01,
+        "shadow": "BASE@D140"
+      }
+    },
+    {
+      "key": "shattered_glass_base",
+      "file": "shattered_glass_base.png",
+      "group": "shattered_natural",
+      "block": "ShatteredGlassBase（BlockLoader.java:168）",
+      "kind": "terrain_grit",
+      "tileable": true,
+      "params": {
+        "base": "GLASS_SOIL",
+        "levels": ["BASE@D140", "BASE@D070", "BASE", "BASE@L110"],
+        "grit_dark": "BASE@D240",
+        "grit_lit": "BASE@L180",
+        "grit_density": 0.18,
+        "clod": "BASE@D090",
+        "clod_density": 0.05,
+        "flake": "GLASS_GLINT@D220",
+        "flake_density": 0.012
+      },
+      "_read": "琉璃下层：冷蓝颗粒 + 玻璃碎屑反光点"
+    },
+    {
+      "key": "shattered_tar_top",
+      "file": "shattered_tar_top.png",
+      "group": "shattered_natural",
+      "block": "ShatteredTarTop 顶面（BlockLoader.java:172）",
+      "kind": "terrain_tar",
+      "tileable": true,
+      "params": {
+        "base": "TAR_CRUST",
+        "levels": ["BASE@D180", "BASE@D070", "BASE", "BASE@L045", "BASE@L110"],
+        "crack_net_cells": 4,
+        "crack": "ASH_CHAR",
+        "gloss": "BASE@L200",
+        "gloss_node": "BASE@L340",
+        "gloss_density": 0.02
+      },
+      "_read": "焦油洼地壳：全族最暗暖黑 + 4 格龟裂网（深缝）+ 裂缝节点沥青反光 = 近黑但仍有光泽层次"
+    },
+    {
+      "key": "shattered_tar_top_side",
+      "file": "shattered_tar_top_side.png",
+      "group": "shattered_side",
+      "block": "ShatteredTarTop 侧面（BlockLoader.java:173）",
+      "kind": "crust_side",
+      "tileable": true,
+      "seam_axes": "x",
+      "_color_reuse": "body params ← shattered_tar_base，fringe params ← shattered_tar_top",
+      "params_from": {
+        "body": "shattered_tar_base",
+        "fringe": "shattered_tar_top"
+      },
+      "params": {
+        "fringe_min": 3,
+        "fringe_max": 4,
+        "hang_density": 0.18,
+        "edge_speckle": "TAR_CRUST@L280",
+        "edge_speckle_density": 0.01,
+        "shadow": "BASE@D140"
+      }
+    },
+    {
+      "key": "shattered_tar_base",
+      "file": "shattered_tar_base.png",
+      "group": "shattered_natural",
+      "block": "ShatteredTarBase（BlockLoader.java:177）",
+      "kind": "terrain_grit",
+      "tileable": true,
+      "params": {
+        "base": "TAR_SOIL",
+        "levels": ["BASE@D140", "BASE", "BASE@L070", "BASE@L180"],
+        "grit_dark": "BASE@D240",
+        "grit_lit": "BASE@L110",
+        "grit_density": 0.14,
+        "clod": "BASE@D090",
+        "clod_density": 0.08,
+        "flake": "BASE@L240",
+        "flake_density": 0.01
+      },
+      "_read": "焦油基底：近黑（明度 32 档，暗域步进会塌到 1 单位，故对比走 L 侧大 t）+ 湿亮细点 = 全库最暗贴图",
+      "_dark_range_note": "TAR_SOIL 的 D 侧步进 ≈1 单位（shade 取整后可能并档，distinct RGB 只减不增，属预期）"
+    },
+    {
+      "key": "shattered_spike_cluster",
+      "file": "shattered_spike_cluster.png",
+      "group": "shattered_decor",
+      "block": "ShatteredSpikeCluster（BlockLoader.java:181，十字渲染）",
+      "kind": "cross_decor",
+      "tileable": false,
+      "alpha": "binary",
+      "params": {
+        "form": "stone_spike",
+        "base": "SPIKE_STONE",
+        "blade_dark": "BASE@D340",
+        "blade_mid": "BASE@D140",
+        "blade_lit": "BASE@L200",
+        "head": "BASE@D090",
+        "spike_count": 4,
+        "height_min": 6,
+        "height_max": 11,
+        "tip": "GLINT@D090",
+        "tip_chance": 0.6,
+        "chip_count": 3
+      },
+      "_read": "石刺簇：4 根锥形硬刺（2-4px 根宽收至 1px 尖）+ 尖顶反光 + 底部碎屑；菱形棱线（左暗右亮）读作矿物棱面"
+    },
+    {
+      "key": "shattered_ash_log_side",
+      "file": "shattered_ash_log_side.png",
+      "group": "shattered_decor",
+      "block": "ShatteredAshLog side（BlockLoader.java:184）",
+      "kind": "log_side",
+      "tileable": true,
+      "params": {
+        "base": "ASH_BARK",
+        "bark_dark": "BASE@D220",
+        "bark_lit": "BASE@L180",
+        "grain_cells_x": 4,
+        "grain_cells_y": 16,
+        "ridge_chance": 0.3,
+        "seam": "ASH_CHAR",
+        "seam_density": 0.03,
+        "dust": "BASE@L240",
+        "dust_density": 0.02,
+        "band": "BASE@D420",
+        "band_rows": [3, 11]
+      },
+      "_read": "灰烬枯树干侧面：石化树皮（纵向纹理 + 棱脊 + 炭化纵缝 + 灰白尘点 + 2 道暗环带）"
+    },
+    {
+      "key": "shattered_ash_log_top",
+      "file": "shattered_ash_log_top.png",
+      "group": "shattered_decor",
+      "block": "ShatteredAshLog top（BlockLoader.java:185）",
+      "kind": "log_top",
+      "tileable": false,
+      "params": {
+        "base": "ASH_BARK",
+        "core": "ASH_RING@D140",
+        "ring_alt": "ASH_RING@D220",
+        "ring_lit": "ASH_RING@L180",
+        "bark_rim_1": "BASE@D140",
+        "bark_rim_2": "BASE@D220",
+        "pit": "ASH_CHAR",
+        "pit_density": 0.05,
+        "crack": "ASH_CHAR",
+        "crack_count": 2,
+        "ring_period": 3
+      },
+      "_read": "枯树横截面：灰白年轮（周期 3px）+ 树皮环 + 放射炭化裂纹（与锈树干顶面同画法不同色系）"
+    },
+    {
+      "key": "shattered_ash_thorn",
+      "file": "shattered_ash_thorn.png",
+      "group": "shattered_decor",
+      "block": "ShatteredAshThorn（BlockLoader.java:187，十字渲染）",
+      "kind": "cross_decor",
+      "tileable": false,
+      "alpha": "binary",
+      "params": {
+        "form": "thorn",
+        "base": "THORN_ASH",
+        "blade_dark": "BASE@D340",
+        "blade_mid": "BASE@D140",
+        "blade_lit": "BASE@L200",
+        "node": "ASH_CHAR",
+        "twig_count": 5,
+        "height_min": 5,
+        "height_max": 9,
+        "barb_chance": 0.4,
+        "tip": "GLINT@D220",
+        "tip_chance": 0.35
+      },
+      "_read": "灰烬棘丛：5 根细斜枝（1px 折线、斜率 0.5）+ 交错倒刺 + 节瘤炭点 + 灰白枯梢；细/乱/暗 与石刺簇的粗/整/亮 形态对立"
+    }
+  ]
+}

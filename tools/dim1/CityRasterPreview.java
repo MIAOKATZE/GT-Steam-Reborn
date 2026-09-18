@@ -47,7 +47,7 @@ public class CityRasterPreview {
                     : sink.setBlock(x, y, z, block, meta, flags);
             CityVariants.place(v, previewSink, 0, 0, (x, z) -> 0, plotSeed, 0);
             final File out = new File(outDir, v.name + ".png");
-            sink.renderPng(out, RasterSink.DEFAULT_CELL_PX, RasterSink.defaultPalette());
+            sink.renderPng(out, RasterSink.DEFAULT_CELL_PX, gtAccentPalette());
             System.out.println(
                 "RASTER " + v.name + " (" + v.category + ") " + v.sizeX + "x" + v.sizeY + "x" + v.sizeZ + " placed="
                     + sink.getPlacedCount()
@@ -58,5 +58,23 @@ public class CityRasterPreview {
             done++;
         }
         System.out.println("RASTER DONE " + done + " city variants -> " + outDir.getAbsolutePath());
+    }
+
+    /**
+     * 调色板 = defaultPalette() + GT5U casing 白名单两键色（S-A4：'X' 镀铜砖块 meta10 铜橙 /
+     * 'Z' 固体钢机械外壳 meta0 冷钢蓝灰；framework/ 零改动，包装仅在预览侧补名）。
+     */
+    private static RasterSink.Palette gtAccentPalette() {
+        final RasterSink.Palette base = RasterSink.defaultPalette();
+        return (block, meta) -> {
+            final String key = block + ":" + meta;
+            if ("gt5u:CasingBronzePlated:10".equals(key)) {
+                return 0xFFB87333; // 镀铜砖块：铜橙
+            }
+            if ("gt5u:CasingSolidSteel:0".equals(key)) {
+                return 0xFF8C9BA5; // 固体钢机械外壳：冷钢蓝灰
+            }
+            return base.applyAsInt(block, meta);
+        };
     }
 }

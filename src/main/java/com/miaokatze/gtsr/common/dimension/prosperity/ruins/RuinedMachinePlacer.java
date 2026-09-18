@@ -99,8 +99,10 @@ public final class RuinedMachinePlacer {
         if (surfaceY < 20 || surfaceY > 200) {
             return;
         }
-        // 让行（02 §8.4）：落点地表必须是实心锈变地表（矿坑/矿洞空腔/水体自动跳过）
-        if (world.getBlock(x + shape.sizeX / 2, surfaceY, z) != BlocksGTSR.prosperitySurface) {
+        // 让行（02 §8.4）：落点地表必须是实心锈变地表（S-A1 连带放宽：四自然 top ∪ prosperitySurface
+        // ——A1 主体换装后自然区 top 为群系新方块，仅认 prosperitySurface 会使自然区机器归零；
+        // 矿坑/矿洞空腔/水体自动跳过）
+        if (!ProsperityOutpostPlacer.isNaturalProsperityTop(world.getBlock(x + shape.sizeX / 2, surfaceY, z))) {
             return;
         }
         place(new StructureBuilder(sink), r, shape, x, surfaceY + 1, z, BlockSink.FLAG_POPULATE);

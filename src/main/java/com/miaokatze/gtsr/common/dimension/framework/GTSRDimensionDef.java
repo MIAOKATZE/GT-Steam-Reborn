@@ -32,6 +32,17 @@ public class GTSRDimensionDef {
         IChunkProvider create(World world, long seed);
     }
 
+    /**
+     * 群系选择策略（dim78 修复 S-A2）：给定（世界种子，chunk 坐标，群系表长度，权重表）返回
+     * 群系权重表下标 ∈ [0, biomeCount)。实现必须是纯函数（同输入恒同输出，离线可复算——
+     * BiomeZoneCheck 双跑逐字节一致的前提）。{@code null}（默认）= 原 per-chunk 均匀掷骰行为。
+     */
+    @FunctionalInterface
+    public interface BiomeSelector {
+
+        int select(long seed, int chunkX, int chunkZ, int biomeCount, int[] weights);
+    }
+
     private final String key;
     private final String englishName;
     private final long seedSalt;
@@ -44,6 +55,9 @@ public class GTSRDimensionDef {
     /** 群系表（S1 为空；S2/S6a 经 {@link #addBiome} 填充，与权重表按下标一一对应）。 */
     private final List<BiomeGenBase> biomeTable = new ArrayList<>();
     private final List<Integer> biomeWeights = new ArrayList<>();
+
+    /** 可选群系选择策略（S-A2；null = 原 per-chunk 均匀掷骰行为，注册前经 {@link #setBiomeSelector} 接线）。 */
+    private BiomeSelector biomeSelector;
 
     /** 注册解析结果；-1 = 禁用/未注册（DimensionRegistrar 冲突检测失败或总开关关闭）。 */
     private int resolvedDimId = -1;
@@ -112,6 +126,16 @@ public class GTSRDimensionDef {
             weights[i] = this.biomeWeights.get(i);
         }
         return weights;
+    }
+
+    /** 可选群系选择策略（null = 原 per-chunk 均匀掷骰行为）。 */
+    public BiomeSelector getBiomeSelector() {
+        return this.biomeSelector;
+    }
+
+    /** 注册前接线群系选择策略（dim78 在 CommonProxy def 构造处挂 {@link BiomeZoneSelector}）。 */
+    public void setBiomeSelector(BiomeSelector biomeSelector) {
+        this.biomeSelector = biomeSelector;
     }
 
     /** 解析后的实际维度 ID；-1 = 禁用。 */

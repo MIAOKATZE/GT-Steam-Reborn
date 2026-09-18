@@ -2057,19 +2057,43 @@ tile.RuinedCasing.0.name=Rusted Casing
 tile.RuinedCasing.1.name=Sooted Casing
 tile.RuinedCasing.2.name=Porcelain Casing
 
+# Dimension prosperity-ruins: natural surface blocks (dim78 S-A1; independent block IDs per plan §12-2; placeholder art until artgen pass)
+tile.ProsperitySteppeTop.name=Rusted Meadow Sod
+tile.ProsperitySteppeBase.name=Rusted Meadow Soil
+tile.ProsperityForestTop.name=Verdigris Turf
+tile.ProsperityForestBase.name=Verdigris Loam
+tile.ProsperityWastesTop.name=Brass Dune Sand
+tile.ProsperityWastesBase.name=Brass Sandstone
+tile.ProsperitySwampTop.name=Bog Peat
+tile.ProsperitySwampBase.name=Bog Mud
+tile.ProsperityTuftRust.name=Rust Tuft
+tile.ProsperityTuftCopper.name=Copper Tuft
+tile.ProsperityRustLog.name=Rust Log
+tile.ProsperityRustLeaves.name=Rust Leaves
+
 # Prosperity Air Materials (dim1 S3)
 Material.wastesigh=Waste Sigh
 Material.thickgrease=Thick Grease
 Material.metalgrit=Metal Grit
 Material.umbralmire=Umbral Mire
 
-# Dimension shattered-lands: biomes (dim1 S6a; keys follow biome.<biomeName>.name from setBiomeName)
-biome.Shattered Isles.name=Shattered Isles
-biome.Rift Canyon.name=Rift Canyon
-biome.Singularity Wastes.name=Singularity Wastes
+# Dimension shattered-lands: biomes (S-B3; keys follow biome.<biomeName>.name from setBiomeName)
+biome.Ashen Prairie.name=Ashen Prairie
+biome.Slagwood Grove.name=Slagwood Grove
+biome.Vitreous Waste.name=Vitreous Waste
+biome.Tar Basin.name=Tar Basin
 
-# Dimension shattered-lands: blocks (dim1 S6a)
-tile.ShatteredGrass.name=Shattered Grass Block
-tile.ShatteredDirt.name=Shattered Dirt
-tile.RiftStone.name=Rift Stone
-tile.ShatteredBlackstone.name=Shattered Blackstone
+# Dimension shattered-lands: blocks (S-B2)
+tile.ShatteredCorestone.name=Shattered Corestone
+tile.ShatteredMonolith.name=Shattered Monolith
+tile.ShatteredAshTop.name=Ashen Prairie Sod
+tile.ShatteredAshBase.name=Ashen Prairie Soil
+tile.ShatteredSlagTop.name=Slagwood Turf
+tile.ShatteredSlagBase.name=Slagwood Slag
+tile.ShatteredGlassTop.name=Vitreous Sand
+tile.ShatteredGlassBase.name=Vitrified Stone
+tile.ShatteredTarTop.name=Tar Crust
+tile.ShatteredTarBase.name=Tar-Bound Aggregate
+tile.ShatteredSpikeCluster.name=Shattered Spike Cluster
+tile.ShatteredAshLog.name=Ashen Dead Log
+tile.ShatteredAshThorn.name=Ashen Thorn Thicket

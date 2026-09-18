@@ -17,6 +17,7 @@ import com.miaokatze.gtsr.common.dimension.framework.structure.BlockSink;
 import com.miaokatze.gtsr.common.dimension.framework.structure.DirectWorldSink;
 import com.miaokatze.gtsr.common.dimension.framework.structure.GTSRWorldgenHash;
 import com.miaokatze.gtsr.common.dimension.framework.structure.StructureRegistry;
+import com.miaokatze.gtsr.common.dimension.prosperity.ruins.city.CityBlockResolver;
 import com.miaokatze.gtsr.config.Config;
 
 /**
@@ -26,7 +27,8 @@ import com.miaokatze.gtsr.config.Config;
  * &lt;special|null|onlypull|nullplus|nature&gt; [color] [fxRadius]——在命令发送者位置生成失控奇点
  * （S5 前原逻辑逐字节保持：args[0] 本就是子命令名，参数索引 1..7 不含平移）。</li>
  * <li>/gtsr structure &lt;name&gt;——以发送者脚下 (floor(x),floor(y),floor(z)) 为原点，经
- * {@link DirectWorldSink}（写前强制 chunk load，跨 chunk 全量放置）执行 {@link StructureRegistry}
+ * {@link CityBlockResolver}（String 逻辑键→Block，含 X/Z GT5U 两键）+ {@link DirectWorldSink}
+ * （写前强制 chunk load，跨 chunk 全量放置）执行 {@link StructureRegistry}
  * 对应 placer；回执实测 footprint（w×h×l）与放置方块计数；未知名报 WrongUsageException 并提示用 Tab。</li>
  * <li>/gtsr tpdim &lt;A|B&gt;——A=解析 {@link Config#prosperityDimId}、B=解析 {@link Config#shatteredDimId}；
  * 禁用/未注册（id&lt;0 或 {@link DimensionRegistrar#defForDimension} 无 def，冲突/总开关关闭场景）报错回执且玩家
@@ -148,7 +150,8 @@ public class GTSRCommand extends CommandBase {
     }
 
     /**
-     * /gtsr structure &lt;name&gt;：脚下三轴 floor 为原点，DirectWorldSink 全量放置（写前强制 chunk load）。
+     * /gtsr structure &lt;name&gt;：脚下三轴 floor 为原点，CityBlockResolver（String 键→Block）+
+     * DirectWorldSink 全量放置（写前强制 chunk load）。
      * 校验顺序与 singularity 同型（先参数后玩家）：未知名/缺参 → WrongUsageException（含 Tab 提示）；
      * 控制台等无实体发送者 → getCommandSenderAsPlayer 的「需要玩家」错误。
      */
@@ -171,7 +174,13 @@ public class GTSRCommand extends CommandBase {
         final int z = MathHelper.floor_double(player.posZ);
         // 种子：worldSeed+原点+变体名确定性派生（GTSRWorldgenHash 口径），同种子同坐标重放逐方块一致
         final long seed = GTSRWorldgenHash.blockSeed(player.worldObj.getSeed(), x, y, z) ^ (long) name.hashCode();
-        final CountingSink sink = new CountingSink(new DirectWorldSink(player.worldObj));
+        // String 逻辑键解析层（S-A6 单点修复，A4A5 报告 §9-3 缺口销号）：城变体 placer（CityVariants.place）
+        // 与 outpost placer 经 CityVariants.blockKeyOf 产出 String 契约键，裸 DirectWorldSink 的
+        // instanceof Block 门会整链丢弃（26 城变体指令通道 v1.20.28 起放置为空）——指令通道与
+        // 世界生成通道（ProsperityWorldGenerator 城链）同源挂 CityBlockResolver（键表含 X/Z GT5U 两键；
+        // GT 字段 null 时 resolve 落空 → 该格跳过，既有防御链）。outpost placer 自包 resolver，双层
+        // 包裹幂等（Block 直通）；RuinedMachinePlacer/WorldGenShatteredRuins 产出 Block 实例，直通不受影响。
+        final CountingSink sink = new CountingSink(new CityBlockResolver(new DirectWorldSink(player.worldObj)));
         entry.placer.place(sink, x, y, z, seed);
         final String footprint = sink.count == 0 ? "0x0x0"
             : (sink.maxX - sink.minX + 1) + "x" + (sink.maxY - sink.minY + 1) + "x" + (sink.maxZ - sink.minZ + 1);

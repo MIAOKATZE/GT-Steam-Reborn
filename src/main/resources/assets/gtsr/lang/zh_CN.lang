@@ -2052,19 +2052,43 @@ tile.RuinedCasing.0.name=锈蚀外壳
 tile.RuinedCasing.1.name=积碳外壳
 tile.RuinedCasing.2.name=碎瓷外壳
 
+# 维度繁荣蒸汽时代遗迹：自然区方块族（dim78 S-A1；每群系独立方块 ID，plan §12 修订 2；贴图占位待 artgen 轮次）
+tile.ProsperitySteppeTop.name=锈草甸草皮
+tile.ProsperitySteppeBase.name=锈草甸壤土
+tile.ProsperityForestTop.name=铜绿草皮
+tile.ProsperityForestBase.name=铜绿壤土
+tile.ProsperityWastesTop.name=黄铜丘沙
+tile.ProsperityWastesBase.name=黄铜砂岩
+tile.ProsperitySwampTop.name=泥炭沼表土
+tile.ProsperitySwampBase.name=泥炭沼泥
+tile.ProsperityTuftRust.name=锈草丛
+tile.ProsperityTuftCopper.name=铜绿草丛
+tile.ProsperityRustLog.name=锈木原木
+tile.ProsperityRustLeaves.name=锈树叶
+
 # 繁荣四空气材料 (dim1 S3)
 Material.wastesigh=荒原叹息
 Material.thickgrease=浓稠油污
 Material.metalgrit=金属风沙
 Material.umbralmire=至暗泥泞
 
-# 维度破碎之地：群系（dim1 S6a；键名跟随 setBiomeName 的 biome.<biomeName>.name）
-biome.Shattered Isles.name=碎裂浮岛
-biome.Rift Canyon.name=深裂谷
-biome.Singularity Wastes.name=奇点荒原
+# 维度破碎之地：群系（S-B3；键名跟随 setBiomeName 的 biome.<biomeName>.name）
+biome.Ashen Prairie.name=灰烬草原
+biome.Slagwood Grove.name=渣木林
+biome.Vitreous Waste.name=琉璃荒漠
+biome.Tar Basin.name=焦油洼地
 
-# 维度破碎之地：方块（dim1 S6a）
-tile.ShatteredGrass.name=碎裂草方块
-tile.ShatteredDirt.name=碎裂泥土
-tile.RiftStone.name=裂隙石
-tile.ShatteredBlackstone.name=碎裂黑石
+# 维度破碎之地：方块（S-B2）
+tile.ShatteredCorestone.name=碎核岩
+tile.ShatteredMonolith.name=独碑岩
+tile.ShatteredAshTop.name=灰烬草毡
+tile.ShatteredAshBase.name=灰烬壤
+tile.ShatteredSlagTop.name=渣木草皮
+tile.ShatteredSlagBase.name=渣木渣
+tile.ShatteredGlassTop.name=琉璃沙
+tile.ShatteredGlassBase.name=琉璃化岩
+tile.ShatteredTarTop.name=焦油壳
+tile.ShatteredTarBase.name=焦油砾
+tile.ShatteredSpikeCluster.name=石刺簇
+tile.ShatteredAshLog.name=灰烬枯树干
+tile.ShatteredAshThorn.name=灰烬棘丛

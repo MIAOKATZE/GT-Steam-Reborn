@@ -45,11 +45,16 @@ public class Config {
     // 繁荣维度群系 ID 段起始（默认 180，预留 180-183 共 4 个群系槽位；S2 消费）。
     public static int prosperityBiomeIdStart = 180;
 
-    // 破碎维度群系 ID 段起始（默认 190，预留 190-192 共 3 个群系槽位；S6a 消费）。
+    // 破碎维度群系 ID 段起始（默认 190，预留 190-193 共 4 个群系槽位；S-B3 消费）。
     public static int shatteredBiomeIdStart = 190;
 
-    // 繁荣维度残缺机器生成频率分母（平均 1/N chunk × 群系机器权重；默认 24，0 = 禁用；S4a 消费）。
-    public static int prosperityMachineChance = 24;
+    // 繁荣维度残缺机器生成频率分母（平均 1/N chunk × 群系机器权重；默认 16，0 = 禁用；S4a 消费，
+    // S-A5 密度上调 24→16 = plan §12 修订 7）。
+    public static int prosperityMachineChance = 16;
+
+    // 繁荣维度城外中型废墟（outpost）生成频率分母（平均 1/N chunk 生成 1 座；默认 64，0 = 禁用；
+    // S-A5 新增消费 = plan §12 修订 7/8，与残缺机器同 chunk 互斥掷骰：先 outpost，命中跳过机器）。
+    public static int prosperityOutpostChance = 64;
 
     // 繁荣维度古代城存在概率（每个 24×24 chunk cell 的存在掷骰百分比；默认 45，0 = 无城，100 = 全 cell 有城；S4b 消费）。
     public static int prosperityCityChance = 45;
@@ -172,7 +177,7 @@ public class Config {
             shatteredBiomeIdStart,
             0,
             255,
-            "破碎维度群系 ID 段起始（默认 190，预留 190-192 共 3 个群系槽位）");
+            "破碎维度群系 ID 段起始（默认 190，预留 190-193 共 4 个群系槽位）");
 
         prosperityMachineChance = configuration.getInt(
             "prosperityMachineChance",
@@ -180,7 +185,15 @@ public class Config {
             prosperityMachineChance,
             0,
             1000,
-            "繁荣维度残缺机器生成频率分母（平均 1/N 区块 × 群系机器权重，默认 24 = 约 5% 每区块；0 = 禁用）");
+            "繁荣维度残缺机器生成频率分母（平均 1/N 区块 × 群系机器权重，默认 16 = 约 4-8% 每区块；0 = 禁用）");
+
+        prosperityOutpostChance = configuration.getInt(
+            "prosperityOutpostChance",
+            Configuration.CATEGORY_GENERAL,
+            prosperityOutpostChance,
+            0,
+            1000,
+            "繁荣维度城外中型废墟（outpost）生成频率分母（平均 1/N 区块生成 1 座，默认 64；0 = 禁用；与残缺机器同区块互斥：outpost 命中则跳过机器）");
 
         prosperityCityChance = configuration.getInt(
             "prosperityCityChance",

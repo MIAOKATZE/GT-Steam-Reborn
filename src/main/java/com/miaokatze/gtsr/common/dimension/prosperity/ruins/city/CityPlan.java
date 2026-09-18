@@ -14,6 +14,14 @@ import com.miaokatze.gtsr.common.dimension.framework.structure.StructureBuilder;
  * 2≤r&lt;5 工业环（halls+infra 池）/ r≥5 边缘废墟环（towers+rubble 池，空地率↑）。
  * 地块 roll：空地 25%（核心/工业）或 45%（边缘，"城市消融进荒野"），空地落 rubble 小件。
  * <p>
+ * <b>城界（dim78-fix S-A3 异形边界）</b>：城市不再是欧氏圆——边界为 Fourier 径向扰动轮廓
+ * r(θ) = radiusBlocks × (1 + Σ_{k=1..3} a_k·cos(kθ + φ_k))（θ = atan2(dv,du)，du/dv 为
+ * 至中心偏移；a_k/φ_k 由 cellSeed 经 {@link CityPlanner#mix} 派生，构造期定值）。振幅硬约束
+ * Σ|a_k|·radiusBlocks ≤ {@link #MAX_EDGE_PERTURBATION} 格（构造期等比钳制），故最大延伸
+ * radiusBlocks+12 ≤ (radius+1)*16 恰在缓冲窗内、reach（radius*16+32）内余 16+ 格。
+ * {@link #insideCity(int, int)} 为<b>全城唯一边界判定</b>：plot 圆界（{@link #plotInCircle}）
+ * 与街道裁剪（{@link #forEachStreetColumn}）一律委托之——全仓禁止旁路欧氏圆独立实现。
+ * <p>
  * <b>渲染协议（plan §3.1）</b>：populate chunk C 时只遍历 footprint 与 C 相交的地块，重算
  * 同一纯函数；{@link PlotVisitor}/{@link StreetVisitor} 回调面向纯几何（本类零 Minecraft
  * 依赖），写入钳制由调用方（ChunkSliceSink+ChunkClampedSink）协议层完成——锚点一次性副作用
@@ -35,6 +43,25 @@ public final class CityPlan {
 
     private static final long PLOT_SALT_TIER = 0x71E2L; // district roll 分路盐
 
+    /**
+     * 振幅硬约束（格）：Σ|a_k|·radiusBlocks ≤ 12（&lt;16 硬上限，SanityCheck reach =
+     * radius*16+32 余 16+ 格；dim78-fix S-A3）。
+     */
+    public static final double MAX_EDGE_PERTURBATION = 12.0;
+    /** 单谐波振幅候选域下界（radiusBlocks 比例）。 */
+    private static final double EDGE_AMP_MIN = 0.012;
+    /**
+     * 单谐波振幅候选域上界（radiusBlocks 比例）：Σ 候选 ≤ 0.108，7 chunk 城（112 格）未钳
+     * 扰动至多 ≈ 12.1 格 → 构造期等比钳制兜底；4 chunk 城天然在约束内。
+     */
+    private static final double EDGE_AMP_MAX = 0.036;
+    /** a_k 派生盐基（mix(cellSeed, 盐基+k)，k=1..3；与 CityPlanner.planFor 的 1..4 盐分路）。 */
+    private static final long SALT_EDGE_AMPLITUDE = 0xA1B0L;
+    /** φ_k 派生盐基（mix(cellSeed, 盐基+k)，k=1..3）。 */
+    private static final long SALT_EDGE_PHASE = 0xC0D0L;
+    /** 2π（φ_k 相位域）。 */
+    private static final double TWO_PI = Math.PI * 2.0;
+
     private final long worldSeed;
     private final long cellSeed;
     private final int centerChunkX;
@@ -43,6 +70,14 @@ public final class CityPlan {
     private final int centerX;
     private final int centerZ;
     private final int radiusBlocks;
+    /** k 次谐波振幅（radiusBlocks 比例；构造期钳制后定值）。 */
+    private final double amp1;
+    private final double amp2;
+    private final double amp3;
+    /** k 次谐波相位（弧度 [0,2π)；构造期定值）。 */
+    private final double phi1;
+    private final double phi2;
+    private final double phi3;
 
     CityPlan(long worldSeed, long cellSeed, int centerChunkX, int centerChunkZ, int radiusChunks) {
         this.worldSeed = worldSeed;
@@ -53,6 +88,28 @@ public final class CityPlan {
         this.centerX = centerChunkX * 16 + 8;
         this.centerZ = centerChunkZ * 16 + 8;
         this.radiusBlocks = radiusChunks * 16;
+        // —— 城界 Fourier 参数派生（S-A3）：a_k/φ_k 全由 cellSeed + 盐基+k 决定，纯函数 ——
+        double a1 = EDGE_AMP_MIN
+            + (EDGE_AMP_MAX - EDGE_AMP_MIN) * frac(CityPlanner.mix(cellSeed, SALT_EDGE_AMPLITUDE + 1));
+        double a2 = EDGE_AMP_MIN
+            + (EDGE_AMP_MAX - EDGE_AMP_MIN) * frac(CityPlanner.mix(cellSeed, SALT_EDGE_AMPLITUDE + 2));
+        double a3 = EDGE_AMP_MIN
+            + (EDGE_AMP_MAX - EDGE_AMP_MIN) * frac(CityPlanner.mix(cellSeed, SALT_EDGE_AMPLITUDE + 3));
+        this.phi1 = TWO_PI * frac(CityPlanner.mix(cellSeed, SALT_EDGE_PHASE + 1));
+        this.phi2 = TWO_PI * frac(CityPlanner.mix(cellSeed, SALT_EDGE_PHASE + 2));
+        this.phi3 = TWO_PI * frac(CityPlanner.mix(cellSeed, SALT_EDGE_PHASE + 3));
+        // 振幅硬约束钳制（构造期；Σ|a_k|·radiusBlocks ≤ 12 格，超限整族等比缩，保持频谱特征）
+        final double sumAbs = a1 + a2 + a3; // 候选振幅均非负
+        final double maxSum = MAX_EDGE_PERTURBATION / this.radiusBlocks;
+        final double scale = sumAbs > maxSum ? maxSum / sumAbs : 1.0;
+        this.amp1 = a1 * scale;
+        this.amp2 = a2 * scale;
+        this.amp3 = a3 * scale;
+    }
+
+    /** 长整哈希 → [0,1) 双精度（丢低 11 位取 53 位精度的标准映射）。 */
+    private static double frac(long v) {
+        return (v >>> 11) * 0x1.0p-53;
     }
 
     public long getWorldSeed() {
@@ -89,6 +146,39 @@ public final class CityPlan {
             && Math.abs(chunkZ - this.centerChunkZ) <= this.radiusChunks + 1;
     }
 
+    // ═══ 城界（单一判定；dim78-fix S-A3 Fourier 径向扰动）═══
+
+    /**
+     * 世界坐标 (wx,wz) 是否落在城界内——<b>全城唯一边界判定</b>（S-A3 红线：plot 圆界与
+     * 街道裁剪一律委托本函数，全仓禁止旁路欧氏圆独立实现）。边界 = Fourier 径向扰动轮廓：
+     * <p>
+     * {@code r(θ) = radiusBlocks × (1 + Σ_{k=1..3} a_k·cos(k·θ + φ_k))}，θ = atan2(dv,du)
+     * （du/dv = (wx,wz) 至中心偏移）；a_k/φ_k 由 cellSeed 派生（构造期定值），振幅满足硬约束
+     * Σ|a_k|·radiusBlocks ≤ {@value #MAX_EDGE_PERTURBATION} 格（构造期等比钳制），保证最大
+     * 延伸 radiusBlocks+12 在缓冲窗（radius+1 chunk）内、SanityCheck reach（radius*16+32）
+     * 内余 16+ 格，3×3 cell 检索不漏检。
+     */
+    public boolean insideCity(int wx, int wz) {
+        final double du = wx - this.centerX;
+        final double dv = wz - this.centerZ;
+        final double distSq = du * du + dv * dv;
+        // 快速外退：扰动上界 12 格，超出 (radiusBlocks+12)² 必在城外，跳过三角函数
+        final double rOuter = this.radiusBlocks + MAX_EDGE_PERTURBATION;
+        if (distSq >= rOuter * rOuter) {
+            return false;
+        }
+        final double theta = Math.atan2(dv, du);
+        final double rBoundary = this.radiusBlocks * (1.0 + this.amp1 * Math.cos(theta + this.phi1)
+            + this.amp2 * Math.cos(2.0 * theta + this.phi2)
+            + this.amp3 * Math.cos(3.0 * theta + this.phi3));
+        return distSq <= rBoundary * rBoundary;
+    }
+
+    /** 钳制后总扰动幅值 Σ|a_k|·radiusBlocks（格；≤ {@value #MAX_EDGE_PERTURBATION}，自证用）。 */
+    public double edgePerturbationBlocks() {
+        return (Math.abs(this.amp1) + Math.abs(this.amp2) + Math.abs(this.amp3)) * this.radiusBlocks;
+    }
+
     // ═══ 街道（纯几何）═══
 
     /** 普通街带：u ≡ -1/0/+1 (mod 16)。 */
@@ -123,11 +213,9 @@ public final class CityPlan {
         return this.cellSeed ^ (plotIndex(k, l) * 0x9E37L);
     }
 
-    /** plot (k,l) 中心是否落在城市圆界内（欧氏距 ≤ radiusBlocks；与街道裁剪同口径）。 */
+    /** plot (k,l) 中心是否落在城界内（委托 {@link #insideCity(int, int)} 单一判定；S-A3 异形边界，与街道裁剪同口径）。 */
     public boolean plotInCircle(int k, int l) {
-        final int du = k * STREET_SPACING + 8;
-        final int dv = l * STREET_SPACING + 8;
-        return (long) du * du + (long) dv * dv <= (long) this.radiusBlocks * this.radiusBlocks;
+        return insideCity(this.centerX + k * STREET_SPACING + 8, this.centerZ + l * STREET_SPACING + 8);
     }
 
     /** plot (k,l) 的世界原点（最小角；u = k*16+2）。 */
@@ -195,7 +283,7 @@ public final class CityPlan {
     }
 
     /**
-     * 遍历 chunk 内的街道格（圆界内；确定性列序）。
+     * 遍历 chunk 内的街道格（城界内；确定性列序）。
      */
     public void forEachStreetColumn(int chunkX, int chunkZ, StreetVisitor visitor) {
         final int baseX = chunkX * 16;
@@ -206,8 +294,8 @@ public final class CityPlan {
                 final int wz = baseZ + z;
                 final int du = wx - this.centerX;
                 final int dv = wz - this.centerZ;
-                if (du * du + dv * dv > this.radiusBlocks * this.radiusBlocks) {
-                    continue; // 圆界外（街道只在城内）
+                if (!insideCity(wx, wz)) {
+                    continue; // 城界外（街道只在城内；与 plotInCircle 同口径 = insideCity 单一判定）
                 }
                 if (!onStreet(wx, wz)) {
                     continue;
@@ -229,9 +317,9 @@ public final class CityPlan {
 
     /**
      * 遍历 footprint 与 chunk 相交的地块并回调变体放置参数。
-     * plot 网格 = plot 中心 (k*16+8, l*16+8) 落在城市圆界内（欧氏距离 ≤ radiusBlocks，
-     * 与街道圆界裁剪同口径）；bbox 相交 = plot 矩形（原点扩 footprint 余量 16）与
-     * chunk 矩形相交。
+     * plot 网格 = plot 中心 (k*16+8, l*16+8) 落在城界内（{@link #plotInCircle} 委托
+     * {@link #insideCity(int, int)} 单一判定，与街道裁剪同口径）；bbox 相交 = plot 矩形
+     * （原点扩 footprint 余量 16）与 chunk 矩形相交。
      */
     public void forEachPlotInChunk(int chunkX, int chunkZ, PlotVisitor visitor) {
         final int kLim = this.radiusBlocks / STREET_SPACING + 1;
@@ -248,7 +336,7 @@ public final class CityPlan {
             }
             for (int l = kMin; l <= kMax; l++) {
                 if (!plotInCircle(k, l)) {
-                    continue; // 圆界外（plot 中心欧氏距）
+                    continue; // 城界外（plot 中心经 insideCity 单一判定）
                 }
                 final int pz = plotOriginZ(l);
                 // plot bbox [px, px+PLOT_DEPTH-1]×[pz, pz+PLOT_DEPTH-1] 外扩 footprint 余量后与 chunk 相交
