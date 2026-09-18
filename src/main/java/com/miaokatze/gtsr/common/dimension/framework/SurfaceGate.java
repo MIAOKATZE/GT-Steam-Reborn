@@ -39,12 +39,16 @@ import com.miaokatze.gtsr.main.GTSteamReborn;
  * <pre>
  * 三个口径（都是<b>列级</b>：每列用生产 findSurfaceY 取顶格方块，再过本谓词）：
  *   A「pristine 自然面」＝L3 表层缝铺完、未经任何 placer 写入；
- *   B「散布前」＝outpost（1/64）与残缺机器（1/24，互斥）写完、散布尚未落笔；
+ *   B「散布前」＝outpost 与残缺机器（两者互斥掷骰）写完、散布尚未落笔；概率单一真值在
+ *     {@code config.Config}（{@code prosperityOutpostChance} / {@code prosperityMachineChance}），
+ *     本表刻意不写死数值以免与 Config 漂移（plan §2.1 横切 roster）；
  *   C「装饰前」＝真实编排链（outpost →（互斥）机器 → 散布）全部写完、装饰尚未落笔——
  *     这一列就是 {@link com.miaokatze.gtsr.common.dimension.prosperity.ruins.ProsperityDecorPlacer}
  *     每次落笔时真正面对的可落地面。
- * 由 tools/dim1/SurfaceGateUnifyCheck（132 条断言）的 measure 模式实测；同一个小样本（2 seed
- * × 1 区）也进了 D 组申报带：A 99.99-100、B 97.5-100、C 68-76 百分点（该样本实测 100 / 99.315 / 71.850）。
+ * 由 tools/dim1/SurfaceGateUnifyCheck 的 measure 模式实测；D 组申报带：A 99.99-100、B 97.5-100、
+ * <b>C 93.5-96.5</b> 百分点。C 带原钉 [68,76]（P4 期小样本实测 100 / 99.315 / 71.850），P5 把散布
+ * 从 K=64 含 15% 竖向件改为 K=8 且摘除竖向件后，散布不再把列埋成残骸，实测上移到 94.968
+ * （8 seed × 8 窗、14091 可散布 chunk）——是期望值随行为更新，不是放宽阈值凑绿。
  * 城 buffer 窗 chunk 按同源 CityPlanner.citiesNear 判据排除；采样前提"列内无悬块/无洞穴"
  * 实测 violations=0（悬块/洞穴会让列级口径与门读到的地表不同源，故必须先证它为空）。
  *

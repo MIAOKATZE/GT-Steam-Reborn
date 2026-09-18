@@ -25,8 +25,9 @@ import cpw.mods.fml.common.IWorldGenerator;
  * 繁荣维度世界生成编排器（dim1 S4a，plan §1.2 S4a / 02 §8.2 代码 20 裁剪版）：
  * 仅 dim78 生效（维度过滤范式同 WorldGenRunawaySingularity.java:28-31，dimId 走 Config 可改口径）。
  * generate 顺序 = 城市段（<b>S4b 挂点，本切片留空调用</b>）→ 城外中型废墟 outpost（1/64，S-A5；
- * 命中则跳过机器）→ 残缺机器（1/prosperityMachineChance × 群系机器权重）→ 地表散布（预算 64 ×
- * 群系散布权重）。矿洞/矿坑/矿脉在用户裁剪范围外（不实现）。
+ * 命中则跳过机器）→ 残缺机器（1/prosperityMachineChance × 群系机器权重）→ 地表散布（<b>P5 起：
+ * 每 chunk 件数 K × 群系散布权重，另有落块/掷点两道上限，全部取自 Config</b>；见
+ * {@link ProsperitySurfaceScatter} 类注释）。矿洞/矿坑/矿脉在用户裁剪范围外（不实现）。
  * <p>
  * 群系权重按 <b>L1 维内名册下标</b>查表（{@link GTSRBiomeAuthority#ordinalAt(int, int)} 的
  * {@code ordinal}，P1 收口：不再读 {@code Chunk} 的 byte biome id、不再做 {@code id - idStart} 减法，
@@ -60,11 +61,24 @@ public class ProsperityWorldGenerator implements IWorldGenerator {
             return;
         }
         evidenceLogged = true;
+        // P5（plan §2.4 判据 4 单一真值）：注册证据行的散布口径改从 Config 取值，不再硬编码 64——
+        // 用户包真值行（plan/log.txt:11452 "scatterBudget=64/chunk"）就是被硬编码骗过去的。
+        // 竖向件关闭时权重表不含烟囱项（权重和 85），故一并回显，便于实机一眼分辨"柱阵回没回来"。
         GTSteamReborn.LOG.info(
-            "[GTSR] prosperity worldgen registered: dimId={} machines=5 outposts=6 {} scatterBudget=64/chunk"
-                + " machineChance=1/{} outpostChance=1/{}",
+            "[GTSR] prosperity worldgen registered: dimId={} machines=5 outposts=6 {} scatterK={}/chunk"
+                + " scatterBlocks={}/chunk scatterAttempts={}/chunk scatterVertical={} scatterWindowCap={}"
+                + " scatterWeights={}/{}/{}/{} machineChance=1/{} outpostChance=1/{}",
             Config.prosperityDimId,
             StructureRegistry.names(),
+            Config.prosperityScatterContoursPerChunk,
+            Config.prosperityScatterBlocksPerChunk,
+            Config.prosperityScatterAttemptsPerChunk,
+            Config.prosperityScatterVerticalPieces,
+            Config.prosperityScatterWindowRepeatCap,
+            Config.prosperityScatterWeightSleeper,
+            Config.prosperityScatterWeightPipe,
+            Config.prosperityScatterWeightRivetPlate,
+            Config.prosperityScatterWeightChimney,
             Config.prosperityMachineChance,
             Config.prosperityOutpostChance);
         GTSteamReborn.LOG.info(
@@ -106,7 +120,8 @@ public class ProsperityWorldGenerator implements IWorldGenerator {
                 .placeAll(world, worldSeed, chunkX, chunkZ, biomeWeight(world, chunkX, chunkZ, MACHINE_WEIGHTS), sink);
         }
 
-        // —— 4. 地表散布（预算 64 × 群系散布权重；最低优先级，只落自然锈变地表+空气让行）——
+        // —— 4. 地表散布（P5：每 chunk 件数 K × 群系散布权重 + 落块/掷点上限，全部 Config 取值；
+        // 最低优先级，只落自然锈变地表+空气让行。掷骰顺序与上方 2→3 的互斥关系一字未改）——
         ProsperitySurfaceScatter
             .scatter(world, worldSeed, chunkX, chunkZ, biomeWeight(world, chunkX, chunkZ, SCATTER_WEIGHTS), sink);
 

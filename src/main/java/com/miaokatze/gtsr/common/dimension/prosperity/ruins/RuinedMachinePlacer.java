@@ -82,7 +82,9 @@ public final class RuinedMachinePlacer {
             return; // 0 = 禁用（plan S4a 失败回退开关）
         }
         final Random r = new Random(GTSRWorldgenHash.chunkSeed(worldSeed, cx, cz) ^ SALT_MACHINE);
-        // P(生成/chunk) = weight / chance（如 0.7/24 ≈ 2.9%，权重 1.2 时封顶 5%/chunk）
+        // P(生成/chunk) = 群系机器权重 / chance。分母唯一出处 = Config.prosperityMachineChance
+        // （P5 plan §2.4 判据 4 / §3.1 更正 2：改造前这句注释写死过一个具体分母，与代码默认值漂移，
+        // 导致机器密度口径三处不一致；此处起只写公式与出处，不写数字。）
         if (r.nextDouble() * chance >= biomeMachineWeight) {
             return;
         }

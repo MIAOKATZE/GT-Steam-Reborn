@@ -1,8 +1,9 @@
 #!/bin/bash
-# P2「表层上收框架 + 降级态不铺 + 转置闭合」、P3「L2 高度/哈希单一真值」与
-# P4「L4/L5 地表门统一 + dim78 装饰门缺陷修复」离线断言与回归的一键复跑入口。
+# P2「表层上收框架 + 降级态不铺 + 转置闭合」、P3「L2 高度/哈希单一真值」、
+# P4「L4/L5 地表门统一 + dim78 装饰门缺陷修复」与
+# P5「密度 γ：H-3 轮廓/落块双上限 + 竖向件摘出 + H-2 窗重复上限」离线断言与回归的一键复跑入口。
 #
-# 为什么需要脚本：这两片全部判据都跑在 MC-classpath 的离线 JVM（任务包禁止 gradlew 全量构建），
+# 为什么需要脚本：这些片的全部判据都跑在 MC-classpath 的离线 JVM（任务包禁止 gradlew 全量构建），
 # 配方见 plan/investigation/v12030-hotfix-replaceruntime-report.md §3。两个已知坑已由
 # SurfaceHarness / ReplaceSurfaceRuntimeCheck 在代码内注释：
 #   ① Unsafe.putObject 之前必须先 Class.forName("net.minecraft.init.Blocks")；
@@ -17,6 +18,8 @@
 #                                                  #   [7] 单一真值自检 RED→GREEN
 #                                                  #   [8] P4 门 A/B 量化（BASE=缺陷态 vs AFTER）
 #                                                  #   [9] P4 地表门 RED→GREEN（两条单变量破坏）
+#                                                  #   [10] P5 密度 γ：回退摘要对拍 + 非散布零漂移
+#                                                  #        + ContourBudget/RegionRepeatCap RED→GREEN
 #
 # BASE 快照：temp/p3-base/all/src/main/java/… 下<b>本片（P3）开工前</b>的生产文件副本
 # ——任务包口径「BASE 取开工前快照（片内口径）」。P2/P3 期用的是 temp/p2-base、temp/p3-base，
@@ -24,6 +27,8 @@
 # 拿它当 P4 的 BASE 会让 [5] 命中实现差异（rd≈8）而 [4] 又混入 P3 的改动，判据 1 直接失真
 # （实测过一次：p3-base 当 P4-BASE 时 [4] 报 20 行差异、[5] 报 rd=8）。
 # 缺该快照时 --parity 直接判失败（不许用"看起来一样"替代对拍）。
+# P5 另建自己的 BASE：temp/p5-base/all/src/main/java/…（= P5 开工前快照，即 P4 终态）。
+# [4]/[5]/[8]/[9] 继续用 temp/p4-base（P4 判据对象是"装饰门"，与 P5 无关），[10] 用 p5-base。
 #
 # 退出码：0 = 全绿；非 0 = 有工具变红（每行都打 EXIT= 便于机器读）。
 set -u
@@ -117,7 +122,9 @@ MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8 \
   tools/dim1/ReplaceSurfaceRuntimeCheck.java tools/dim1/BiomeAllocationCheck.java \
   tools/dim1/ShatteredTerrainCheck.java tools/dim1/SurfaceBiomeMatrixCheck.java \
   tools/dim1/BiomeZoneCheck.java tools/dim1/SurfaceGateUnifyCheck.java \
-  tools/dim1/gregtech/api/GregTechAPI.java >"$OUT/javac-tools.log" 2>&1
+  tools/dim1/Dim78ScatterDensityCheck.java tools/dim1/ContourBudgetCheck.java \
+  tools/dim1/RegionRepeatCapCheck.java tools/dim1/gregtech/api/GregTechAPI.java \
+  >"$OUT/javac-tools.log" 2>&1
 echo "COMPILE tools EXIT=$? ($(grep -ac 'error:' "$OUT/javac-tools.log") error)"
 
 run() { # run <label> <classname> [args...] —— 带参时日志分文件（<cls>-<arg>.out），避免互相覆盖
@@ -147,6 +154,9 @@ run "SurfaceDegradationCheck（判据 B：EMPTY/SHORT 不铺表层 + NPE 守卫 
   SurfaceDegradationCheck
 run "SurfaceTranspositionCheck（判据 C：逐列异群系下标对号 + 灵敏度自检）" SurfaceTranspositionCheck
 run "SurfaceGateUnifyCheck（P4 判据 2/4：门集合单一真值 + 别名等价 + 源级自造门 0 + 通过率带）"   SurfaceGateUnifyCheck assert src/main/java
+
+echo "== [2b] P5 密度 γ 断言（快档：纯函数硬钉 + 16 窗行为钉；P5 全档与对拍在 [10]） =="
+run "RegionRepeatCapCheck（P5 判据 2：H-2 每 16×16 窗同模板发射上限，cap=1..4 穷举硬钉）" RegionRepeatCapCheck 8 2
 
 echo "== [3] 既有回归（必须保持绿） =="
 run "ReplaceSurfaceRuntimeCheck（46 项，含 null/plains 回退与逐列下标断言；P2b 起 256 格假绿已除）" ReplaceSurfaceRuntimeCheck
@@ -361,20 +371,35 @@ PY
   lpb=$(g "$OUT/gate-ab-base.txt" "kind=decor surface=pristine" landedTotal)
   lpa=$(g "$OUT/gate-after.txt" "kind=decor surface=pristine" landedTotal)
   prb=$(grep -a "kind=premise" "$OUT/gate-ab-base.txt"); pra=$(grep -a "kind=premise" "$OUT/gate-after.txt")
-  chb=$(grep -a "kind=chain" "$OUT/gate-ab-base.txt"); cha=$(grep -a "kind=chain" "$OUT/gate-after.txt")
+  # P5 口径变更（保留强度、只拆一项）：kind=chain 行里的 scatterLanded* 两项<b>就是 P5 的被验对象</b>
+  # （密度 γ 只改散布层），若仍要求"整行逐字相同"，本片的预期效果会被误判成"P4 判据被破坏"。
+  # 故拆成两条门槛：① 非散布前序项（outpost 命中数 / 机器落块）必须逐字相同——强度与原断言一致；
+  # ② 散部落块必须<b>严格下降</b>（方向钉）——比原来的"相等"更强：同时钉住"P5 确实生效"与
+  #   "P5 没把散布改密"。两条合起来仍然保证"P4 的 A/B 差只来自装饰门 + P5 的散布档"。
+  chainl() { grep -a "kind=chain" "$1"; }
+  chb=$(chainl "$OUT/gate-ab-base.txt" | sed 's/ scatterLanded=.*//')
+  cha=$(chainl "$OUT/gate-after.txt" | sed 's/ scatterLanded=.*//')
+  scb=$(chainl "$OUT/gate-ab-base.txt" | grep -ao "scatterLanded=[0-9]*" | head -1 | cut -d= -f2)
+  sca=$(chainl "$OUT/gate-after.txt" | grep -ao "scatterLanded=[0-9]*" | head -1 | cut -d= -f2)
   echo "   BASE EXIT=$ea AFTER EXIT=$eb 样本列数 BASE=$colb AFTER=$cola"
   echo "   可落地列数(散布前)   ：BASE=$pab → AFTER=$paa（差 $((paa - pab))）"
-  echo "   可落地列数(装饰前)   ：BASE=$pb → AFTER=$pa（差 $((pa - pb))，全部是 outpost/机器的 's' 板面）"
+  echo "   可落地列数(装饰前)   ：BASE=$pb → AFTER=$pa（差 $((pa - pb))；P4 期这一项全是 outpost/机器的 's' 板面）"
   echo "   装饰落块(生产口径)   ：BASE=$lb → AFTER=$la（差 $((la - lb)) 块）"
   echo "   装饰落块(pristine 面)：BASE=$lpb → AFTER=$lpa（差 $((lpa - lpb))，必须为 0）"
   echo "   前序阶段交叉校验     ：BASE[$chb]"
   echo "                          AFTER[$cha]"
+  echo "   散部落块(P5 密度γ项) ：BASE=${scb:-?} → AFTER=${sca:-?}（P5 必须严格下降）"
+  echo "   注(P5)：口径C/装饰落块两行的差值自 P5 起同时含'修门'与'散布变疏'两项，不再是纯门净效应；"
+  echo "        要保持 P4 §3.2 的纯门 A/B，需给 SurfaceGateUnifyCheck 的 measure 模式加'散布回退'开关"
+  echo "        （不在 P5 允许路径内，已上报主代理）。P4 期的 +1360 列/+54 块只在 P4 期样本成立。"
   echo "   采样前提（无悬块/洞穴）：BASE[$prb]"
   echo "                          AFTER[$pra]"
   [ "$ea" = "0" ] || { echo "   FAIL：BASE measure 非 0"; FAILS=$((FAILS + 1)); }
   [ "$eb" = "0" ] || { echo "   FAIL：AFTER measure 非 0"; FAILS=$((FAILS + 1)); }
   [ "$colb" = "$cola" ] || { echo "   FAIL：BASE/AFTER 样本列数不同（$colb vs $cola）⇒ 不是同一输入"; FAILS=$((FAILS + 1)); }
-  [ "$chb" = "$cha" ] || { echo "   FAIL：前序阶段（outpost/机器/散布）落块不同 ⇒ 差异不止来自装饰门"; FAILS=$((FAILS + 1)); }
+  [ "$chb" = "$cha" ] || { echo "   FAIL：非散布前序项（outpost 命中/机器落块）不同 ⇒ 差异不止来自装饰门+散布档"; FAILS=$((FAILS + 1)); }
+  [ -n "$scb" ] && [ -n "$sca" ] && [ "$sca" -lt "$scb" ] \
+    || { echo "   FAIL：P5 散部落块未严格低于 p4-BASE（BASE=${scb:-?} AFTER=${sca:-?}）⇒ 密度γ 未生效或反被改密"; FAILS=$((FAILS + 1)); }
   [ "$prb" = "$pra" ] || { echo "   FAIL：采样前提在两跑间不一致"; FAILS=$((FAILS + 1)); }
   [ "$pa" -ge "$pb" ] || { echo "   FAIL：修门后可落地列数反而变少（放宽必须单向）"; FAILS=$((FAILS + 1)); }
   [ "$la" -ge "$lb" ] || { echo "   FAIL：修门后装饰落块反而变少（放宽必须单向）"; FAILS=$((FAILS + 1)); }
@@ -410,12 +435,136 @@ PY
   rm -rf "$REDROOT" "$REDCLS"
   run "SurfaceGateUnifyCheck（RED 后工作树复位 GREEN）" SurfaceGateUnifyCheck assert src/main/java
 
+  # ── [10] P5 密度 γ：可回退摘要对拍 + 非散布路径零漂移 + 两条新上限 RED→GREEN ──
+  # BASE 必须是<b>本片开工前</b>的快照 temp/p5-base/all/src/main/java/…（= P4 终态）。
+  # 沿用 p4-base 会把 P4 的门缺陷一起拉进来 ⇒ "回退逐位相同"会因两个原因同时成立而失真（假绿）。
+  echo "== [10] P5 密度 γ（H-2/H-3）：摘要对拍 + 非散布零漂移 + 新上限 RED→GREEN =="
+  BASE5=temp/p5-base/all
+  SNAP5=$BASE5/src/main/java
+  P5_BASE_FILES="com/miaokatze/gtsr/common/dimension/prosperity/ruins/ProsperitySurfaceScatter.java
+com/miaokatze/gtsr/common/dimension/prosperity/ruins/ProsperityWorldGenerator.java
+com/miaokatze/gtsr/common/dimension/prosperity/ruins/RuinedMachinePlacer.java
+com/miaokatze/gtsr/config/Config.java"
+  if [ ! -f "$SNAP5/com/miaokatze/gtsr/common/dimension/prosperity/ruins/ProsperitySurfaceScatter.java" ]; then
+    echo "   FAIL：缺 P5 BASE 快照 $SNAP5/…/ProsperitySurfaceScatter.java"
+    echo "        （必须先自建 temp/p5-base/all/src/main/java/… = 本片开工前工作树副本）"
+    FAILS=$((FAILS + 1))
+  else
+    rm -rf "$BASE5/com" "$OUT/p5-base-classes" "$OUT/p5-base-tools"
+    mkdir -p "$BASE5/com" "$OUT/p5-base-classes" "$OUT/p5-base-tools"
+    cp -a src/main/java/. "$BASE5/"
+    miss=0
+    for rel in $P5_BASE_FILES; do
+      if [ -f "$SNAP5/$rel" ]; then
+        cp "$SNAP5/$rel" "$BASE5/$rel"
+        cmp -s "$SNAP5/$rel" "$BASE5/$rel" || { echo "   FAIL：BASE 还原后与工作树相同（快照已失效）"; miss=$((miss + 1)); }
+      else
+        echo "   FAIL：BASE 快照缺 $rel"; miss=$((miss + 1))
+      fi
+    done
+    [ "$miss" = "0" ] || FAILS=$((FAILS + 1))
+    # BASE 树不得含 P5 新键（防"快照其实是改造后"的假对拍）
+    if grep -aq "prosperityScatterContoursPerChunk" "$BASE5/com/miaokatze/gtsr/config/Config.java"; then
+      echo "   FAIL：BASE 侧 Config 已含 P5 新键 ⇒ 快照不是开工前形态"; FAILS=$((FAILS + 1))
+    else
+      echo "   BASE 侧确认无 P5 新键（快照有效）"
+    fi
+    P5_SRC="$(prefix $BASE5)"
+    MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8 -cp "$CP" \
+      -sourcepath "$BASE5" -d "$OUT/p5-base-classes" $P5_SRC >"$OUT/p5-javac-base.log" 2>&1
+    echo "COMPILE P5-BASE EXIT=$? ($(grep -ac 'error:' "$OUT/p5-javac-base.log") error)"
+    # 工具源码同一份，只在 BASE classpath 上重编（证明本工具确实是双树可跑的）
+    MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8 \
+      -cp "$OUT/p5-base-classes;$CP" -sourcepath "$BASE5;tools/dim1" -d "$OUT/p5-base-tools" \
+      tools/dim1/SurfaceHarness.java tools/dim1/Dim78ScatterDensityCheck.java \
+      tools/dim1/gregtech/api/GregTechAPI.java >"$OUT/p5-javac-base-tools.log" 2>&1
+    echo "COMPILE P5-BASE-TOOLS EXIT=$? ($(grep -ac 'error:' "$OUT/p5-javac-base-tools.log") error)"
+
+    PS=${P5_AB_SEEDS:-4}; PR=${P5_AB_REGIONS:-4}
+    MSYS2_ARG_CONV_EXCL='*' java $STD $LOG4J -cp "$OUT/p5-base-tools;$OUT/p5-base-classes;$CP" \
+      Dim78ScatterDensityCheck digest $PS $PR 16 >"$OUT/p5-digest-base.txt" 2>&1
+    eb=$?
+    MSYS2_ARG_CONV_EXCL='*' java $STD $LOG4J -cp "$OUT/tools;$OUT/classes;$CP" \
+      Dim78ScatterDensityCheck digest $PS $PR 16 >"$OUT/p5-digest-after.txt" 2>&1
+    ea=$?
+    # digest 模式在 AFTER 树上跑的就是"四键设回旧值"那一行（ProsperitySurfaceScatter 的 B0 档），
+    # 因此 SCAN 行与 CHAIN 行应当逐字相同：前者 = 回退位级复现，后者 = 判据 5 非散布路径零漂移。
+    n=$(diff <(grep -a "^SCAN\|^CHAIN" "$OUT/p5-digest-base.txt") \
+             <(grep -a "^SCAN\|^CHAIN" "$OUT/p5-digest-after.txt") | grep -ac "^[<>]")
+    db=$(grep -ao "digest=[0-9a-f]*" "$OUT/p5-digest-base.txt" | head -1 | cut -d= -f2)
+    da=$(grep -ao "digest=[0-9a-f]*" "$OUT/p5-digest-after.txt" | head -1 | cut -d= -f2)
+    cb=$(grep -ao "chimColPerChunk=[0-9.]*" "$OUT/p5-digest-base.txt" | head -1 | cut -d= -f2)
+    ca=$(grep -ao "chimColPerChunk=[0-9.]*" "$OUT/p5-digest-after.txt" | head -1 | cut -d= -f2)
+    bm=$(grep -ao "blockMean=[0-9.]*" "$OUT/p5-digest-after.txt" | head -1 | cut -d= -f2)
+    chb2=$(grep -a "^CHAIN" "$OUT/p5-digest-base.txt"); cha2=$(grep -a "^CHAIN" "$OUT/p5-digest-after.txt")
+    echo "   BASE EXIT=$eb AFTER EXIT=$ea 样本=${PS}seed×${PR}区  回退档/改造前摘要：$db vs $da → $([ "$db" = "$da" ] && echo 逐位相同 || echo 不同)"
+    echo "   柱/chunk：BASE=$cb → ROLLBACK=$ca（判据3：柱阵必须复现）"
+    echo "   非散布路径 CHAIN 行：BASE[$chb2]"
+    echo "                      AFTER[$cha2]"
+    echo "   明细：$OUT/p5-digest-base.txt vs $OUT/p5-digest-after.txt（SCAN+CHAIN 差异行=$n）"
+    [ "$ea" = "0" ] && [ "$eb" = "0" ] || { echo "   FAIL：摘要对拍两跑有一跑非 0"; FAILS=$((FAILS + 1)); }
+    [ "$db" = "$da" ] || { echo "   FAIL：回退档摘要与改造前不同（$db vs $da）⇒ 判据3「可回退」不成立"; FAILS=$((FAILS + 1)); }
+    [ "$n" = "0" ] || { echo "   FAIL：SCAN/CHAIN 行有差异（$n 行）⇒ 非散布路径出现漂移"; FAILS=$((FAILS + 1)); }
+
+    # [10b] 表层/高度/群系面逐字节对拍（BASE = p5-base 快照）
+    MSYS2_ARG_CONV_EXCL='*' java $STD $LOG4J -cp "$OUT/tools;$OUT/classes;$CP" \
+      SurfaceByteParityDump 16 >"$OUT/p5-parity-after.txt" 2>&1
+    # 工具类走 $OUT/tools（与 [4] 同口径：同一份 dump 代码），只有生产 class 指向 P5-BASE。
+    # 用 $OUT/p5-base-tools 会 ClassNotFoundException（首版实测踩过，524 行差异全是 JVM 报错文本）
+    MSYS2_ARG_CONV_EXCL='*' java $STD $LOG4J -cp "$OUT/tools;$OUT/p5-base-classes;$CP" \
+      SurfaceByteParityDump 16 >"$OUT/p5-parity-base.txt" 2>&1
+    n2=$(diff "$OUT/p5-parity-base.txt" "$OUT/p5-parity-after.txt" | grep -ac "^[<>]")
+    c2=$(grep -ac "^CHUNK" "$OUT/p5-parity-after.txt")
+    echo "   [10b] chunks=$c2 diff_lines=$n2（$(grep -a '^# unmapped' "$OUT/p5-parity-after.txt")）"
+    [ "$n2" = "0" ] || { echo "   FAIL：表层/高度/群系面出现漂移（$n2 行）⇒ P5 越界"; FAILS=$((FAILS + 1)); }
+
+    # [10c] 两条新上限先 GREEN（8×4 = 8192 chunk 采样）
+    KS=${P5_PIN_SEEDS:-8}; KR=${P5_PIN_REGIONS:-4}
+    run "ContourBudgetCheck（P5 判据 2/3：H-3 件数+落块双上限钉 + 回退摘要 + 灵敏度）" ContourBudgetCheck $KS $KR
+    run "RegionRepeatCapCheck（P5 判据 2：H-2 窗上限钉 + pinned/relaxed 灵敏度）" RegionRepeatCapCheck $KS $KR
+
+    # [10d] 判据 2 的"人为放宽上限必须变红"：影子树单变量改 Config 默认值（不碰工作树）
+    P5RED=temp/p5-red-shadow; P5REDCLS=$OUT/p5-red-classes
+    P5_RED_SRC=$(echo "$REL" | sed 's|^|temp/p5-red-shadow/|' | tr '\n' ' ')
+    p5red() { # p5red <标签> <sed> <工具类> <seeds> <regions>
+      rm -rf "$P5RED" "$P5REDCLS"; mkdir -p "$P5REDCLS"
+      cp -a src/main/java "$P5RED"
+      sed -i "$2" "$P5RED/com/miaokatze/gtsr/config/Config.java"
+      cmp -s src/main/java/com/miaokatze/gtsr/config/Config.java \
+        "$P5RED/com/miaokatze/gtsr/config/Config.java" \
+        && { echo "   $1 注入未生效（影子 Config 与工作树相同）"; FAILS=$((FAILS + 1)); }
+      MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8 -cp "$CP" \
+        -sourcepath "$P5RED" -d "$P5REDCLS" $P5_RED_SRC >"$OUT/p5-red-$1-javac.log" 2>&1
+      if [ $? -ne 0 ]; then echo "   $1 影子树编译失败（不是 RED，是脚本坏了）"; FAILS=$((FAILS + 1)); fi
+      MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8 \
+        -cp "$P5REDCLS;$CP" -sourcepath "$P5RED;tools/dim1" -d "$OUT/p5-red-tools" \
+        tools/dim1/SurfaceHarness.java tools/dim1/Dim78ScatterDensityCheck.java \
+        tools/dim1/ContourBudgetCheck.java tools/dim1/RegionRepeatCapCheck.java \
+        tools/dim1/gregtech/api/GregTechAPI.java >"$OUT/p5-red-$1-tooljavac.log" 2>&1
+      if [ $? -ne 0 ]; then echo "   $1 工具影子编译失败（不是 RED，是脚本坏了）"; FAILS=$((FAILS + 1)); fi
+      MSYS2_ARG_CONV_EXCL='*' java $STD -cp "$OUT/p5-red-tools;$P5REDCLS;$CP" "$3" "$4" "$5" \
+        >"$OUT/p5-red-$1.txt" 2>&1
+      er=$?
+      grep -a "^  FAIL" "$OUT/p5-red-$1.txt" | head -3 | cut -c1-150 | sed "s/^/     /"
+      tail -1 "$OUT/p5-red-$1.txt" | cut -c1-150 | sed "s/^/     /"
+      echo "     $1 EXIT=$er（RED 必须非 0）log=$OUT/p5-red-$1.txt"
+      [ "$er" != "0" ] || { echo "   FAIL：$1 未变红 ⇒ 本判据对这类放宽不敏感"; FAILS=$((FAILS + 1)); }
+    }
+    # 只演示任务包要求的两条"人为放宽上限"：H-3 件数 K 与 H-2 窗重复上限（各钉各的工具）。
+    p5red K64 's|public static int prosperityScatterContoursPerChunk = 8;|public static int prosperityScatterContoursPerChunk = 64;|' ContourBudgetCheck $KS $KR
+    p5red CAP999 's|public static int prosperityScatterWindowRepeatCap = 2;|public static int prosperityScatterWindowRepeatCap = 999;|' RegionRepeatCapCheck $KS $KR
+    rm -rf "$P5RED" "$P5REDCLS" "$OUT/p5-red-tools"
+    # 复位确认（影子树从不碰工作树，这一步只证明工作树仍是 GREEN 档）
+    run "ContourBudgetCheck（RED 后工作树复位 GREEN）" ContourBudgetCheck $KS $KR
+    run "RegionRepeatCapCheck（RED 后工作树复位 GREEN）" RegionRepeatCapCheck $KS $KR
+  fi
+
 fi
 
 echo "== SUMMARY =="
 if [ "$FAILS" = "0" ]; then
-  echo "P2/P3/P4 SURFACE CHECKS: ALL GREEN"
+  echo "P2/P3/P4/P5 SURFACE CHECKS: ALL GREEN"
 else
-  echo "P2/P3/P4 SURFACE CHECKS: $FAILS tool(s)/step(s) FAILED"
+  echo "P2/P3/P4/P5 SURFACE CHECKS: $FAILS tool(s)/step(s) FAILED"
 fi
 [ "$FAILS" = "0" ]

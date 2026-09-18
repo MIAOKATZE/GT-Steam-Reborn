@@ -123,8 +123,15 @@ public final class SurfaceGateUnifyCheck {
      * （G 组用影子集合自证这一点）。
      */
     private static final double BAND_PRISTINE_MIN = 99.99D, BAND_PRISTINE_MAX = 100.0D;
-    /** D 组：编排链之后 dim78 列级通过率带（残骸 's' 板把更多列抬进可落地面）。 */
-    private static final double BAND_CHAIN_MIN = 68.0D, BAND_CHAIN_MAX = 76.0D;
+    /**
+     * D 组：编排链之后 dim78 列级通过率带（残骸 's' 板把更多列抬进可落地面）。
+     * <p>
+     * <b>P5 期望值更新（非放宽凑绿）</b>：旧带 [68,76] 钉的是"散布以 K=64 含 15% 竖向件落笔"
+     * 的状态——彼时约 29pp 的列被散布自己埋成 ruinDebris，故链后通过率只剩 ~70%。P5 选定 K=8
+     * 并摘除竖向件后，散布不再吞列，实测口径 C 上移到 <b>94.968pp</b>（8 seed × 8 窗、14091 可散布
+     * chunk）。带按 P5 后实测取 [93.5,96.5]；若将来再调散布档，此带必须随实测重标而不是放宽。
+     */
+    private static final double BAND_CHAIN_MIN = 93.5D, BAND_CHAIN_MAX = 96.5D;
     /**
      * D 组：口径 B（散布前，即 outpost/机器写完、散布尚未落笔）通过率带。
      * 冒烟 E6 的 attempt 级 82.0-85.7% 落在口径 B 与口径 C 之间（scatter 是"边写边探"，
