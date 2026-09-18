@@ -1,7 +1,17 @@
 package com.miaokatze.gtsr.common.dimension.framework;
 
+import com.miaokatze.gtsr.common.dimension.framework.structure.GTSRWorldgenHash;
+
 /**
  * 群系空间连贯分区选择器（dim78 修复 S-A2，plan §4 S-A2 + §12 修订第 6 条）。
+ * <p>
+ * <b>P3（plan §2.1 L2「禁止手搓哈希」）</b>：本类原有私有 {@code mix(long)}（splitmix64 终结器）
+ * 与 4 个内联乘子常数（{@code CELL_CONSTANT_X/Z}、{@code CHUNK_CONSTANT_X/Z}）已改走
+ * {@link GTSRWorldgenHash}——算法体与<b>常数值均逐字搬移，未做任何数值调整</b>；
+ * 两处掷骰的输入形状与终结器与改造前<b>逐位相同</b>（对拍见
+ * {@code tools/dim1/SurfaceYParityCheck} 的 {@code zone.selector_cell} / {@code zone.edge_band} 站点，
+ * 以及 {@code BiomeZoneCheck} 全回归）。域分离盐 {@link #CELL_DOMAIN}/{@link #CHUNK_DOMAIN}
+ * 是本类自己的策略常量，保留在本类。
  * <p>
  * 两级确定性掷骰（全 splitmix 终结哈希，<b>零 Minecraft import</b>，离线可复算）：
  * <ol>
@@ -34,11 +44,6 @@ public final class BiomeZoneSelector {
     private static final long CELL_DOMAIN = 0x5A4F4E455A4F4E45L;
     /** chunk 级域分离盐。 */
     private static final long CHUNK_DOMAIN = 0x2B1E4E4F5A4F4E45L;
-
-    private static final long CELL_CONSTANT_X = 0x9E3779B97F4A7C15L;
-    private static final long CELL_CONSTANT_Z = 0xC2B2AE3D27D4EB4FL;
-    private static final long CHUNK_CONSTANT_X = 0xBF58476D1CE4E5B9L;
-    private static final long CHUNK_CONSTANT_Z = 0x94D049BB133111EBL;
 
     private BiomeZoneSelector() {}
 
@@ -123,8 +128,10 @@ public final class BiomeZoneSelector {
         if (biomeCount <= 0) {
             throw new IllegalArgumentException("biomeCount must be positive: " + biomeCount);
         }
-        final long h = seed ^ ((long) cellX * CELL_CONSTANT_X) ^ ((long) cellZ * CELL_CONSTANT_Z) ^ salt ^ CELL_DOMAIN;
-        return pickWeighted(mix(h), biomeCount, weights);
+        // 原实现：seed ^ ((long)cellX * 0x9E37…) ^ ((long)cellZ * 0xC2B2…) ^ salt ^ CELL_DOMAIN
+        // 该形状与 GTSRWorldgenHash.cellSeed 完全同式（乘子即其 CELL_MUL_X/Z），故直接复用，逐位相同。
+        final long h = GTSRWorldgenHash.cellSeed(seed, cellX, cellZ, salt ^ CELL_DOMAIN);
+        return pickWeighted(GTSRWorldgenHash.splitmix64(h), biomeCount, weights);
     }
 
     /**
@@ -145,13 +152,23 @@ public final class BiomeZoneSelector {
         return Math.max(1, Math.round(cell * EDGE_BAND_FRACTION));
     }
 
-    /** chunk 级边带掷骰源（与 cell 级常量/域分离，独立同分布）。 */
+    /**
+     * chunk 级边带掷骰源（与 cell 级常量/域分离，独立同分布）。
+     * <p>
+     * 原实现的输入形状是 {@code seed ^ (chunkX * 0xBF58…) ^ (chunkZ * 0x94D0…)}——两个乘子与
+     * cell 级<b>不同</b>（其中 0xBF58… 恰是 splitmix64 的标准增量被本仓复用为 x 乘子，
+     * 见 {@link GTSRWorldgenHash#SPLITMIX_INCREMENT}），故走通用入口 {@code mixSeed} 而不是
+     * {@code cellSeed}；乘子值一字未改。
+     */
     private static long chunkRoll(long seed, int chunkX, int chunkZ, long salt) {
-        final long h = seed ^ ((long) chunkX * CHUNK_CONSTANT_X)
-            ^ ((long) chunkZ * CHUNK_CONSTANT_Z)
-            ^ salt
-            ^ CHUNK_DOMAIN;
-        return mix(h);
+        final long h = GTSRWorldgenHash.mixSeed(
+            seed,
+            chunkX,
+            chunkZ,
+            GTSRWorldgenHash.SPLITMIX_INCREMENT,
+            GTSRWorldgenHash.CHUNK_Z_MUL,
+            salt ^ CHUNK_DOMAIN);
+        return GTSRWorldgenHash.splitmix64(h);
     }
 
     /** 权重掷骰：roll 落入累计权重区间选下标；权重 null/缺位按 1、&lt;1 按 1（与展开表口径一致）。 */
@@ -176,15 +193,5 @@ public final class BiomeZoneSelector {
             return 1;
         }
         return Math.max(1, weights[index]);
-    }
-
-    /** splitmix64 终结哈希（与 GTSRWorldChunkManager.hash 同族，纯 long 位运算，跨平台确定）。 */
-    private static long mix(long h) {
-        h ^= h >>> 33;
-        h *= 0xFF51AFD7ED558CCDL;
-        h ^= h >>> 33;
-        h *= 0xC4CEB9FE1A85EC53L;
-        h ^= h >>> 33;
-        return h;
     }
 }

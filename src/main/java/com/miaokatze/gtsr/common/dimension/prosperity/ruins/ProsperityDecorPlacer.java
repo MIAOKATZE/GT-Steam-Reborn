@@ -1,5 +1,7 @@
 package com.miaokatze.gtsr.common.dimension.prosperity.ruins;
 
+import static com.miaokatze.gtsr.common.dimension.framework.GTSRChunkProviderBase.findSurfaceY;
+
 import java.util.Random;
 
 import net.minecraft.block.Block;
@@ -7,6 +9,7 @@ import net.minecraft.init.Blocks;
 import net.minecraft.world.World;
 
 import com.miaokatze.gtsr.common.blocks.BlocksGTSR;
+import com.miaokatze.gtsr.common.dimension.framework.SurfaceGate;
 import com.miaokatze.gtsr.common.dimension.framework.structure.BlockSink;
 import com.miaokatze.gtsr.common.dimension.framework.structure.GTSRWorldgenHash;
 import com.miaokatze.gtsr.common.dimension.framework.structure.StructureBuilder;
@@ -26,9 +29,12 @@ import com.miaokatze.gtsr.common.dimension.framework.structure.StructureBuilder;
  * <p>
  * 让行纪律（不覆盖已有结构）：草丛/碎石逐块 {@code isAirBlock} 让行（02 §8.4 优先级 4 口径）；
  * 锈树整柱干 + 冠层中心列先查空气、有占用整树跳过。接地：逐列 {@code findSurfaceY}
- * （WorldGenRunawaySingularity.java:82-91 范式）。落点门：只落在四群系自然区 top 方块上
- * （城内 meta0-5 / 散布残骸上不长）。碎石用原版 gravel（CityVariants 'g' 键先例；
- * BlockFalling 属性要求必须贴地，逐块独立找地表）。
+ * （WorldGenRunawaySingularity.java:82-91 范式）。<b>落点门（P4 起）= 框架单一谓词
+ * {@link SurfaceGate}（见 {@link #isNaturalTop}）</b>：dim78 声明集 = 四群系自然区 top
+ * ∪ {@code prosperitySurface}（后者 = 城内 meta0-5 冻结块与 S-A1 前旧地表；改造前装饰层漏认它，
+ * 与结构层结论相反，属审计 D-5 缺陷，本片补齐）。草丛另有 {@link #tuftForGround} 变体选择器，
+ * 只认四自然 top ⇒ {@code prosperitySurface} 上不长草。碎石用原版 gravel（CityVariants 'g'
+ * 键先例；BlockFalling 属性要求必须贴地，逐块独立找地表）。
  * <p>
  * 跨界协议：树冠 ±2 格跨度 → 干位钳制在 chunk 内 2..13（ ProsperitySurfaceScatter "段长收到
  * chunk 边界"同款惯例），ChunkClampedSink 零越界丢弃；草丛/碎石落点单格不跨界。
@@ -37,6 +43,12 @@ public final class ProsperityDecorPlacer {
 
     /** 盐 "decor"（0x006465636F72 截断；chunk 级隔离，区别于机器 0x6D6163 / 散布 0x5C4174）。 */
     private static final long SALT_DECOR = 0x6465636FL;
+
+    /**
+     * 本类所属维度键（P4：门的显式维度入参）。取 L1 账本同一词汇 {@link SurfaceGate#DIM78}
+     * （= {@code GTSRBiomeAuthority.DIM_KEY_PROSPERITY}），不另造字符串。
+     */
+    private static final String DIM_KEY = SurfaceGate.DIM78;
 
     /** 草丛放置尝试次数下限/chunk（plan §12 修订 5：草丛 2-4 次/chunk）。 */
     private static final int TUFT_ATTEMPTS_MIN = 2;
@@ -184,23 +196,29 @@ public final class ProsperityDecorPlacer {
     }
 
     /**
-     * 自然区 top 方块判定（四群系独立方块族；放置落点门共用；public 供
-     * tools/dim1/ReplaceSurfaceRuntimeCheck 冒烟断言替换后地表命中本门）。
+     * 自然区 top 方块判定（<b>P4 起为一行委托</b>，plan §5 P4 / 审计 A-5 §2 #1）：成员集合与
+     * {@link ProsperityOutpostPlacer#isNaturalProsperityTop} 同源于
+     * {@link SurfaceGate#landableTops(String)}，本方法自身<b>不含任何方块集合知识</b>；保留本名是
+     * 因为既有工具 {@code tools/dim1/ReplaceSurfaceRuntimeCheck:401} 与 {@code :49} 的引用、
+     * 以及本类三处调用点的可读性。<b>public 供离线冒烟断言</b>。
+     * <p>
+     * <b>本片修复的缺陷（审计 D-5）</b>：改造前本方法是 dim78 内唯一<b>不</b>认
+     * {@code prosperitySurface} 的门（旧 :192-196 只列四自然 top），于是同一格地表装饰层判"不可落"、
+     * 结构层（outpost/机器/散布，同集 5 员）判"可落"——两族结论相反。现补齐为同一 5 员集合。
+     * <p>
+     * <b>补齐后仍存在的本层更窄面（登记，不视作等价）</b>：草丛走
+     * {@link #tuftForGround(Block)}，它是"落哪种草丛"的<b>变体选择器</b>而非门——
+     * {@code prosperitySurface} 无群系身份，无法二分 rust/copper，故选择器<b>故意</b>只认四自然 top
+     * 并返回 null。因此补齐后 {@code prosperitySurface} 上可以长锈树/落碎石，但<b>不长草丛</b>。
+     * 与 y 域门（{@link #MAX_SURFACE_Y}）和空气让行门同样是本层自有门，均未上收（语义各异，
+     * 见 {@code SurfaceGateUnifyCheck} B/D 组）。
      */
     public static boolean isNaturalTop(Block ground) {
-        return ground == BlocksGTSR.prosperitySteppeTop || ground == BlocksGTSR.prosperityForestTop
-            || ground == BlocksGTSR.prosperityWastesTop
-            || ground == BlocksGTSR.prosperitySwampTop;
+        return SurfaceGate.isNaturalTop(DIM_KEY, SurfaceGate.landableTops(DIM_KEY), ground);
     }
 
-    /** 自上而下找地表（WorldGenRunawaySingularity.java:82-91 / ProsperitySurfaceScatter 范式）；找不到返回 -1。 */
-    private static int findSurfaceY(World world, int x, int z) {
-        for (int y = 255; y > 0; y--) {
-            final Block block = world.getBlock(x, y, z);
-            if (block != null && block.getMaterial() != net.minecraft.block.material.Material.air) {
-                return y;
-            }
-        }
-        return -1;
-    }
+    // P3（plan §5 P3 / 审计 A-5 §1 #4）：本类原有一份私有 findSurfaceY(World,int,int)，与
+    // ProsperitySurfaceScatter #2 / RuinedMachinePlacer #3 / ProsperityOutpostPlacer #5 /
+    // ShatteredDecorPlacer #6 共 5 份实现体逐字符等价（差别只是 Material 用全限定名书写），
+    // 已并到框架唯一件 GTSRChunkProviderBase.findSurfaceY（本文件静态导入，四处调用点一字未改）。
 }

@@ -8,6 +8,7 @@ import net.minecraft.world.biome.BiomeGenBase;
 
 import com.miaokatze.gtsr.common.blocks.BlocksGTSR;
 import com.miaokatze.gtsr.common.dimension.framework.BiomeZoneSelector;
+import com.miaokatze.gtsr.common.dimension.framework.GTSRBiomeAuthority;
 import com.miaokatze.gtsr.common.dimension.framework.GTSRDimensionDef;
 import com.miaokatze.gtsr.common.dimension.framework.GTSRWorldChunkManager;
 import com.miaokatze.gtsr.common.dimension.prosperity.ChunkProviderProsperityRuins;
@@ -44,18 +45,23 @@ import com.miaokatze.gtsr.common.dimension.shattered.block.BlockShatteredSurface
  * 整段换装——产出方块非 stone；</li>
  * <li>dim79 四群系：表层落群系 top、其下 1-2 格 filler（复用 base）、主体保持 corestone——
  * 产出地表非 corestone；</li>
- * <li>回退语义：null 群系列零改动；非本维群系（plains）走 instanceof 回退（top/filler 换、base 仍 stone）；</li>
+ * <li>回退语义：null 群系列零改动；非本维群系（plains）走 L1 点名不到回退（top/filler 换、
+ * base 仍 stone；P2b 起 provider 身份读面已收口 {@code GTSRBiomeAuthority}，判定语义与
+ * 旧 instanceof 未命中口径逐格一致）；</li>
  * <li>装饰/结构落点门冒烟：替换<b>前</b>的 stone/corestone 列不过门（解释实机"城外无结构/无装饰"），
  * 替换<b>后</b>的地表方块四群系各自命中 {@link ProsperityDecorPlacer#isNaturalTop}/
  * {@link ProsperityOutpostPlacer#isNaturalProsperityTop}/{@link ShatteredDecorPlacer#isNaturalTop}；</li>
- * <li>biome 数组来源与时序（H1③/H4）：GTSRDimensionDef（挂 BiomeZoneSelector，同 CommonProxy 接线）→
- * GTSRWorldChunkManager.loadBlockGeneratorData 下标口径 = {@code dx + dz*16}（消费侧
- * {@code biomes[z + x * 16]} 一致性）、chunk 内 256 格同群系、采样 400 chunk 四群系全覆盖
+ * <li>biome 数组来源与时序（H1③/H4；<b>P2b 起改为逐列转置敏感断言</b>——原"chunk 内 256 格
+ * 同群系"断言对下标/转置错误结构性免疫，plan §6 诚实性公理禁用）：
+ * GTSRWorldChunkManager.loadBlockGeneratorData 在生产者口径 {@code dx + dz*width} 下，
+ * 对 64×64 块坐标窗<b>逐列</b>等于 {@code mgr.biomeAt(块坐标>>4)}，并带"若生产者写反成
+ * {@code dz + dx*width} 会有多少格错位"的灵敏度自检；采样 400 chunk 四群系全覆盖
  * （"看不到其他群系"证伪为表层问题）。</li>
  * </ol>
  * <p>
- * <b>与既有工具的边界</b>：ShatteredTerrainCheck/BiomeZoneCheck/SurfaceBiomeMatrixCheck 等零 MC 纯函数与
- * 源码文本断言保持原样；本工具是唯一的 MC-classpath 行为断言（需要 patched MC 类可加载，命令见运行手册
+ * <b>与既有工具的边界</b>：ShatteredTerrainCheck/BiomeZoneCheck 等零 MC 纯函数与接线级断言保持原样；
+ * 本工具与 SurfaceDegradationCheck/SurfaceTranspositionCheck/SurfaceByteParityDump 同属
+ * MC-classpath 行为断言（需要 patched MC 类可加载，命令见运行手册
  * plan/investigation/v12030-hotfix-replaceruntime-report.md §6）。
  * <p>
  * 命令（Git-Bash 下必须 MSYS2_ARG_CONV_EXCL='*'，classpath 用分号）：
@@ -91,6 +97,16 @@ public class ReplaceSurfaceRuntimeCheck {
         BiomeGenBase[] prosperity = {
             new BiomeRustedSteppe(180), new BiomeGearworkForest(181),
             new BiomeBrassWastes(182), new BiomeFumaroleSwamp(183) };
+        // P2b 身份读面收口 L1 后，provider 的 baseBlockOf/fillerMetaOf 经 GTSRBiomeAuthority
+        // 账本解析身份——合成实例必须先经 L1 写入入口 recordAllocation 入账（口径同
+        // SurfaceHarness.recordAllAllocations，本工具不共用其群系数组故逐槽自记），
+        // 否则两跳（实例账本 → 实际 id 反查）都点名不到，主体会误回退 stone。
+        final GTSRBiomeAuthority.BiomeId[] pKeys = { GTSRBiomeAuthority.BiomeId.RUSTED_STEPPE,
+            GTSRBiomeAuthority.BiomeId.GEARWORK_FOREST, GTSRBiomeAuthority.BiomeId.BRASS_WASTES,
+            GTSRBiomeAuthority.BiomeId.FUMAROLE_SWAMP };
+        for (int i = 0; i < 4; i++) {
+            GTSRBiomeAuthority.recordAllocation(pKeys[i], 180 + i, 180 + i, prosperity[i]);
+        }
         Block[] pTop = { BlocksGTSR.prosperitySteppeTop, BlocksGTSR.prosperityForestTop,
             BlocksGTSR.prosperityWastesTop, BlocksGTSR.prosperitySwampTop };
         Block[] pBase = { BlocksGTSR.prosperitySteppeBase, BlocksGTSR.prosperityForestBase,
@@ -307,7 +323,8 @@ public class ReplaceSurfaceRuntimeCheck {
             }
         }
         check(untouched, "dim78 null-biome columns must stay untouched");
-        // 外来群系（plains）：top/filler 换、base 回退 stone（instanceof 未命中口径保持）
+        // 外来群系（plains）：top/filler 换、base 回退 stone（P2b 后为 L1 名册点名不到回退，
+        // 与旧 instanceof 未命中口径逐格一致）
         final Block[] b2 = syntheticChunk(Blocks.stone, BiomeGenBase.plains);
         final byte[] m2 = syntheticMeta();
         final BiomeGenBase[] biomes2 = new BiomeGenBase[256];
@@ -317,7 +334,7 @@ public class ReplaceSurfaceRuntimeCheck {
             "dim78 plains surface = plains.topBlock");
         // plains 主体回退 stone：找任一深层格
         int deepY = BEDROCK_TOP + 1;
-        check(b2[column0() | deepY] == Blocks.stone, "dim78 plains body stays stone (instanceof fallback)");
+        check(b2[column0() | deepY] == Blocks.stone, "dim78 plains body stays stone (L1 unresolved fallback)");
     }
 
     private static int column0() {
@@ -400,17 +417,49 @@ public class ReplaceSurfaceRuntimeCheck {
         def.addBiome(prosperity[2], BiomeBrassWastes.WEIGHT);
         def.addBiome(prosperity[3], BiomeFumaroleSwamp.WEIGHT);
         final GTSRWorldChunkManager mgr = new GTSRWorldChunkManager(WORLD_SEED, def);
-        // ① 下标口径：loadBlockGeneratorData(dx + dz*16) 与消费侧 biomes[z + x*16] 一致
-        final BiomeGenBase[] array = mgr.loadBlockGeneratorData(null, 0, 0, 16, 16);
-        check(array != null && array.length == 256, "loadBlockGeneratorData 256-entry array");
-        Set<BiomeGenBase> uniq = new HashSet<>();
-        for (int dx = 0; dx < 16; dx++) {
-            for (int dz = 0; dz < 16; dz++) {
-                uniq.add(array[dz + dx * 16]);
+        // ① 下标口径逐列断言（P2b：替换旧"chunk 内 256 格同群系"假绿——那种断言对下标/转置
+        //    错误结构性免疫，plan §6 诚实性公理禁用）。生产者口径 dx + dz*width 下 64×64 块
+        //    坐标窗逐格 == biomeAt(块坐标>>4)；灵敏度自检：若生产侧写反成 dz + dx*width，
+        //    会有多少格错位——阈值按实测留余量（本轮实测 4/8 窗敏感、6418/32768 格错位），
+        //    归零即说明本断言对转置免疫（假绿），直接判失败。窗取 64×64 而非 32×32：
+        //    小窗可能整窗落入单一群系而失去抓力（32 实测仅 3/8 窗敏感）。
+        final BiomeGenBase[] first = mgr.loadBlockGeneratorData(null, 0, 0, 16, 16);
+        check(first != null && first.length == 256, "loadBlockGeneratorData 256-entry array");
+        final int w = 64;
+        final int windowCount = 8;
+        int cells = 0;
+        int badCells = 0;
+        int driftTotal = 0;
+        int sensitiveWindows = 0;
+        for (int k = 0; k < windowCount; k++) {
+            final int x0 = -23 + k * 53;
+            final int z0 = 11 - k * 37;
+            final BiomeGenBase[] area = mgr.loadBlockGeneratorData(null, x0, z0, w, w);
+            check(area != null && area.length == w * w, "64x64 area window #" + k + " length");
+            int winDrift = 0;
+            for (int dx = 0; dx < w; dx++) {
+                for (int dz = 0; dz < w; dz++) {
+                    final BiomeGenBase want = mgr.biomeAt((x0 + dx) >> 4, (z0 + dz) >> 4);
+                    cells++;
+                    if (area[dx + dz * w] != want) {
+                        badCells++;
+                    }
+                    if (area[dz + dx * w] != want) {
+                        winDrift++;
+                    }
+                }
+            }
+            driftTotal += winDrift;
+            if (winDrift > 0) {
+                sensitiveWindows++;
             }
         }
-        check(uniq.size() == 1 && uniq.contains(mgr.biomeAt(0, 0)),
-            "chunk-granular biome fill: single group = biomeAt(0,0) (index contract z + x*16)");
+        check(badCells == 0, "producer index contract per-cell: area[dx+dz*64]==biomeAt(cell>>4) over " + cells
+            + " cells in " + windowCount + " windows, bad=" + badCells);
+        check(sensitiveWindows >= 2 && driftTotal >= 1024,
+            "transposition sensitivity: >=2/8 windows broken by dz+dx*64 and >=1024 cells drift (else this"
+                + " assertion is structurally immune = forbidden false green), sensitive=" + sensitiveWindows + "/"
+                + windowCount + " driftCells=" + driftTotal + "/" + cells);
         // ② 四群系可达（"看不到其他群系"=表层问题的反证：selector 真出四群系）
         Set<Integer> seen = new HashSet<>();
         for (int cx = -80; cx < 80; cx++) {

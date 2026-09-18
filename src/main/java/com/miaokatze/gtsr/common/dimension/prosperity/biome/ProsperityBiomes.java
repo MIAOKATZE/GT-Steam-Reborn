@@ -1,43 +1,56 @@
 package com.miaokatze.gtsr.common.dimension.prosperity.biome;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.function.IntFunction;
 
 import net.minecraft.block.Block;
-import net.minecraft.world.biome.BiomeGenBase;
 
+import com.miaokatze.gtsr.common.dimension.framework.GTSRBiomeAuthority;
+import com.miaokatze.gtsr.common.dimension.framework.GTSRBiomeAuthority.BiomeId;
 import com.miaokatze.gtsr.common.dimension.framework.GTSRBiomeBase;
 import com.miaokatze.gtsr.common.dimension.framework.GTSRDimensionDef;
 import com.miaokatze.gtsr.config.Config;
 import com.miaokatze.gtsr.main.GTSteamReborn;
 
 /**
- * 繁荣蒸汽时代遗迹（dim78）四群系持有者 + 注册入口（dim1 S2，plan §1.2 S2）。
+ * 繁荣蒸汽时代遗迹（dim78）四群系持有者 + 注册入口（dim1 S2；<b>P1 改写配槽口径</b>，
+ * plan §2.1 L0 + §7.1 U7 已锁定）。
  * <p>
  * 职责：
  * <ol>
- * <li>preInit（BlockLoader 之后，地表方块已注册）调用 {@link #init}：按
- * {@link Config#prosperityBiomeIdStart}（默认 180..183）逐个经
- * {@link GTSRBiomeBase#isBiomeIdFree} 校验后再构造（构造即占 biomeList 槽且不可回退），
- * 被占群系跳过 + 告警，维度以剩余群系降级运行（plan R3）；</li>
- * <li>把 4 群系按 02 §1.1 权重表 45/30/15/10 挂入 def（{@link GTSRDimensionDef#addBiome}），
- * 由 GTSRWorldChunkManager 展开为 per-chunk 选择表，空表回退逻辑（S1）保持；</li>
+ * <li>preInit（BlockLoader 之后，地表方块已注册）调用 {@link #init}：<b>逐群系独立配槽</b>——
+ * 每个群系以 {@link Config#prosperityBiomeIdStart} + 维内下标为<b>首选</b> id，经
+ * {@link GTSRBiomeBase#allocate(int, int)} 向后扫描空槽（<b>允许非连续</b>，不再假设四连号），
+ * 拿到槽才构造（构造即占 biomeList 槽且不可回退）；扫到 {@link GTSRBiomeBase#HARD_ID_MAX}
+ * 仍无槽才算无槽，记入 {@link GTSRBiomeAuthority} 账本并<b>显式</b>降级；</li>
+ * <li>把注册成功的群系按 02 §1.1 权重表 45/30/15/10 挂入 def（{@link GTSRDimensionDef#addBiome}），
+ * 由 {@code GTSRWorldChunkManager} 展开为 per-chunk 选择表；<b>空表不再回退 plains</b>；</li>
  * <li>补齐 fillerBlock meta 写入（{@link #applyFillerMeta}）。</li>
  * </ol>
  * BiomeDictionary 注册与草色覆写在各群系类构造器/方法内自持；不调 addSpawnBiome（维度专属群系）。
- * 成功日志锚点（plan §6.1 grep 点）：{@code [GTSR] prosperity biomes: 180 181 182 183 registered}。
+ * <p>
+ * <b>日志锚点（L8，用户只 grep {@code [GTSR]} 即可分辨三态）</b>：
+ * 汇总行 {@code [GTSR] prosperity biomes: allocated=[180->180, ...] degraded=NONE} ——
+ * {@code degraded=} 取 {@code NONE}（正常）/ {@code SHORT}（短表级，部分群系无槽）/
+ * {@code EMPTY}（空表级，一个群系都没拿到槽，另有 {@code DEGRADED: EMPTY} 单独告警行）。
+ * 被占槽另有 owner 快照行 {@code [GTSR] prosperity slot 180 already occupied by other:Firefly Forest}。
  */
 public final class ProsperityBiomes {
 
-    /** 本维度群系槽数（biomeIdStart .. biomeIdStart+3）。 */
+    /** 本维度名册群系数（首选 id = {@code biomeIdStart + 0..3}；实际 id 由配槽顺延决定）。 */
     private static final int BIOME_SLOT_COUNT = 4;
 
     /** meta 补写扫描带上界（原版 genBiomeTerrain 的 topBand 从 y=62 起，filler 只会出现在其下方）。 */
     private static final int TOP_BAND_MIN_Y = 62;
 
+    /** owner 快照聚合行的最大列出条数（超出折叠为 "…(+N)"，防止极端整合包刷日志）。 */
+    private static final int OCCUPANT_LIST_CAP = 12;
+
     private ProsperityBiomes() {}
 
     /**
-     * S2 注册入口：构造四群系（先空闲校验后构造）并挂入 def 权重表。
+     * P1 注册入口：逐群系独立配槽 → 构造 → 挂入 def 权重表 → 账本与汇总日志。
      * 总开关关闭时跳过全部构造（biomeList 零占用，维度已由 DimensionRegistrar 按开关禁用）。
      */
     public static void init(GTSRDimensionDef def) {
@@ -50,50 +63,110 @@ public final class ProsperityBiomes {
             return;
         }
         final int start = Config.prosperityBiomeIdStart;
-        final StringBuilder ids = new StringBuilder();
+        final int maxId = scanCeiling();
+        if (start > maxId) {
+            GTSteamReborn.LOG.warn(
+                "[GTSR] prosperityBiomeIdStart={} exceeds usable ceiling {} (byte-plane hard max {})"
+                    + " — no slot will be allocated, check config", start, maxId, GTSRBiomeBase.HARD_ID_MAX);
+        }
+        // 非首选槽的占用者快照（顺延途中撞到的既有槽，聚合打一行，避免逐槽刷屏）
+        final Map<Integer, String> scannedOccupants = new LinkedHashMap<>();
         int registered = 0;
-        registered += attachBiome(def, start + 0, BiomeRustedSteppe.WEIGHT, BiomeRustedSteppe::new, ids);
-        registered += attachBiome(def, start + 1, BiomeGearworkForest.WEIGHT, BiomeGearworkForest::new, ids);
-        registered += attachBiome(def, start + 2, BiomeBrassWastes.WEIGHT, BiomeBrassWastes::new, ids);
-        registered += attachBiome(def, start + 3, BiomeFumaroleSwamp.WEIGHT, BiomeFumaroleSwamp::new, ids);
-        GTSteamReborn.LOG.info(
-            "[GTSR] prosperity biomes: " + (ids.length() == 0 ? "(none)"
-                : ids.toString()
-                    .trim())
-                + " registered (idStart="
-                + start
-                + ", "
-                + registered
-                + "/"
-                + BIOME_SLOT_COUNT
-                + " slots free)");
+        registered += attachBiome(def, start + 0, BiomeRustedSteppe.WEIGHT, BiomeRustedSteppe::new, BiomeId.RUSTED_STEPPE,
+            maxId, scannedOccupants);
+        registered += attachBiome(def, start + 1, BiomeGearworkForest.WEIGHT, BiomeGearworkForest::new, BiomeId.GEARWORK_FOREST,
+            maxId, scannedOccupants);
+        registered += attachBiome(def, start + 2, BiomeBrassWastes.WEIGHT, BiomeBrassWastes::new, BiomeId.BRASS_WASTES,
+            maxId, scannedOccupants);
+        registered += attachBiome(def, start + 3, BiomeFumaroleSwamp.WEIGHT, BiomeFumaroleSwamp::new, BiomeId.FUMAROLE_SWAMP,
+            maxId, scannedOccupants);
+        logAllocation(def, start, maxId, registered, scannedOccupants);
     }
 
     /**
-     * 单群系挂接：biomeList 槽位空闲才构造（构造即占槽），权重表入 def；被占跳过 + 告警（降级运行）。
+     * 单群系配槽 + 挂接：拿到空槽才构造（构造即占槽）；无槽记 {@code recordNoSlot} 并告警。
      *
      * @return 实际注册数（0 或 1）
      */
-    private static int attachBiome(GTSRDimensionDef def, int biomeId, int weight,
-        IntFunction<? extends GTSRBiomeBase> factory, StringBuilder ids) {
-        if (!GTSRBiomeBase.isBiomeIdFree(biomeId)) {
-            GTSteamReborn.LOG.warn(
-                "[GTSR] prosperity biome id " + biomeId
-                    + " already occupied by "
-                    + describeOccupant(biomeId)
-                    + ", biome skipped (dimension degrades, plan R3; check config prosperityBiomeIdStart)");
+    private static int attachBiome(GTSRDimensionDef def, int preferredId, int weight,
+        IntFunction<? extends GTSRBiomeBase> factory, BiomeId key, int maxId,
+        Map<Integer, String> scannedOccupants) {
+        final int actualId = GTSRBiomeBase.allocate(preferredId, maxId, occupiedId -> {
+            final String owner = GTSRBiomeBase.occupantName(occupiedId);
+            if (occupiedId == preferredId) {
+                GTSRBiomeAuthority.recordPreferredOccupant(key, preferredId, owner);
+                GTSteamReborn.LOG.warn(
+                    "[GTSR] prosperity slot {} already occupied by {} (owner snapshot; {} slides forward)",
+                    preferredId, owner, key.name());
+            } else {
+                scannedOccupants.put(occupiedId, owner);
+            }
+        });
+        if (actualId == GTSRBiomeBase.NO_SLOT) {
+            GTSRBiomeAuthority.recordNoSlot(
+                key,
+                preferredId,
+                preferredId <= maxId ? GTSRBiomeBase.occupantName(preferredId) : "out of range");
+            GTSteamReborn.LOG.error(
+                "[GTSR] prosperity biome {} got NO slot in {}..{} (byte-plane ceiling {}) — roster degrades",
+                key.name(), preferredId, maxId, GTSRBiomeBase.HARD_ID_MAX);
             return 0;
         }
-        final GTSRBiomeBase biome = factory.apply(biomeId);
+        final GTSRBiomeBase biome = factory.apply(actualId);
+        GTSRBiomeAuthority.recordAllocation(key, preferredId, actualId, biome);
         def.addBiome(biome, weight);
-        ids.append(biomeId)
-            .append(' ');
         return 1;
     }
 
-    private static String describeOccupant(int biomeId) {
-        final BiomeGenBase occupant = BiomeGenBase.getBiome(biomeId);
-        return occupant != null ? occupant.biomeName : "unknown";
+    /** 本次配槽的扫描上界：Config 只能收紧，永不能超过 byte 平面硬上界 {@link GTSRBiomeBase#HARD_ID_MAX}。 */
+    private static int scanCeiling() {
+        return Math.min(Config.biomeIdScanLimit, GTSRBiomeBase.HARD_ID_MAX);
+    }
+
+    /** 一行可 grep 的分配汇总（L8）+ 非首选槽快照聚合行 + 降级态单独告警行。 */
+    private static void logAllocation(GTSRDimensionDef def, int start, int maxId, int registered,
+        Map<Integer, String> scannedOccupants) {
+        final GTSRBiomeAuthority authority = GTSRBiomeAuthority.forDimKey(GTSRBiomeAuthority.DIM_KEY_PROSPERITY);
+        final GTSRBiomeAuthority.Degraded degraded = authority.degraded();
+        GTSteamReborn.LOG.info(
+            "[GTSR] prosperity biomes: allocated=[{}] degraded={} (idStart={}, scanMax={}, {}/{} registered, def table={})",
+            authority.allocationSummary(),
+            degraded.name(),
+            start,
+            maxId,
+            registered,
+            BIOME_SLOT_COUNT,
+            def.getBiomeTable().size());
+        if (!scannedOccupants.isEmpty()) {
+            final StringBuilder sb = new StringBuilder();
+            int shown = 0;
+            for (final Map.Entry<Integer, String> e : scannedOccupants.entrySet()) {
+                if (shown++ >= OCCUPANT_LIST_CAP) {
+                    sb.append(" …(+")
+                        .append(scannedOccupants.size() - OCCUPANT_LIST_CAP)
+                        .append(')');
+                    break;
+                }
+                if (sb.length() > 0) {
+                    sb.append(", ");
+                }
+                sb.append(e.getKey())
+                    .append('=')
+                    .append(e.getValue());
+            }
+            GTSteamReborn.LOG
+                .info("[GTSR] prosperity scan passed occupied slots: [{}] (owner snapshot)", sb);
+        }
+        if (degraded == GTSRBiomeAuthority.Degraded.EMPTY) {
+            GTSteamReborn.LOG.error(
+                "[GTSR] prosperity biomes DEGRADED: EMPTY — 空表级降级，本维度没有任何群系（plains 回退已删除，"
+                    + "表层将不铺方块）；请调高 prosperityBiomeIdStart 或释放 biomeList 槽位");
+        } else if (degraded == GTSRBiomeAuthority.Degraded.SHORT) {
+            GTSteamReborn.LOG.warn(
+                "[GTSR] prosperity biomes DEGRADED: SHORT — 短表级降级，名册 {}/{} 拿到槽位（缺席群系的权重被吞）",
+                registered,
+                BIOME_SLOT_COUNT);
+        }
     }
 
     /**

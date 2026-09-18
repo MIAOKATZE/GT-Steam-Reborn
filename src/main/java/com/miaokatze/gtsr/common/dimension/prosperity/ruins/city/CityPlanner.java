@@ -79,14 +79,18 @@ public final class CityPlanner {
         return exact;
     }
 
-    /** splitmix64 终结混哈希（非负长整；与 CityVariants.mix 同族常数族，盐分路）。 */
+    /**
+     * splitmix64 终结混哈希（非负长整）——<b>P3 起算法体在 {@link GTSRWorldgenHash}</b>，
+     * 本方法只保留城市选址这一调用场景的<b>专属盐乘子</b>实参。
+     * <p>
+     * <b>登记差异（审计 A-5 §5 的"同族常数族"说法需更正）</b>：本方法与
+     * {@code CityVariants.mix} 只在「完整 splitmix64 终结器 + 非负掩码」上同族，
+     * <b>盐乘子不同值</b>——此处用 {@link GTSRWorldgenHash#CITY_PLAN_SALT_MUL}
+     * （0xD1B5…），变体侧用 {@link GTSRWorldgenHash#CITY_PLOT_SALT_MUL}（0x9E37…）。
+     * 二者对同一 (seed, salt) 的输出<b>不逐位相同</b>，故两片各传自己的乘子、<b>不合并</b>；
+     * 逐位对拍见 {@code tools/dim1/SurfaceYParityCheck} 的 {@code city.planner_mix} 站点。
+     */
     static long mix(long cellSeed, long salt) {
-        long h = cellSeed ^ (salt * 0xD1B54A32D192ED03L);
-        h ^= h >>> 33;
-        h *= 0xFF51AFD7ED558CCDL;
-        h ^= h >>> 33;
-        h *= 0xC4CEB9FE1A85EC53L;
-        h ^= h >>> 33;
-        return h & 0x7FFFFFFFFFFFFFFFL;
+        return GTSRWorldgenHash.saltRoutedHash(cellSeed, salt, GTSRWorldgenHash.CITY_PLAN_SALT_MUL);
     }
 }

@@ -14,9 +14,10 @@ import cpw.mods.fml.relauncher.SideOnly;
  * 泥炭沼泥。filler 复用 base（planner 授权实现轮定夺，plan §12 修订 4 "filler 可复用 base"）。
  * <p>
  * 单 icon；贴图占位（gtsr:prosperity_*_base，后续 artgen 轮次换像素不改注册名/lang 键）。
- * 主体替换点在 ChunkProviderProsperityRuins.replaceBlocksForBiome（该切片证据：biomes 数组
- * 在 generateTerrain 之后才加载，主体替换无法前移）；城内 's' 键 = prosperitySurface meta5
- * 语义冻结不受影响。
+ * 主体替换实现点在框架 {@code GTSRChunkProviderBase.applyBiomeSurface}（P2 起 L3 表层链唯一
+ * 实现体；本族方块经 provider 的 {@code baseBlockOf} 回调按 L1 身份选取——旧指向
+ * {@code ChunkProviderProsperityRuins.replaceBlocksForBiome} 的注释已随 P2 上收作废）。
+ * 城内 's' 键 = prosperitySurface meta5 语义冻结不受影响。
  */
 public class BlockProsperityNaturalBase extends Block {
 

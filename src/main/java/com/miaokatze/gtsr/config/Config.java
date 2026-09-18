@@ -4,6 +4,8 @@ import java.io.File;
 
 import net.minecraftforge.common.config.Configuration;
 
+import com.miaokatze.gtsr.common.dimension.framework.GTSRBiomeBase;
+
 /**
  * 模组配置管理类
  * 负责读取和保存模组的配置文件 (config/gtsr/gtsr.cfg)
@@ -42,11 +44,17 @@ public class Config {
     // 破碎维度 ProviderType ID（默认 179）。被占用时维度自动禁用（解析记 -1）。
     public static int shatteredProviderId = 179;
 
-    // 繁荣维度群系 ID 段起始（默认 180，预留 180-183 共 4 个群系槽位；S2 消费）。
+    // 繁荣维度群系 ID 段起始（默认 180 = 四名群系的**首选** id 起点；P1 起逐群系独立配槽，
+    // 首选槽被外部 mod 占用时向后顺延，允许非连续结果，硬上界见 GTSRBiomeBase.HARD_ID_MAX）。
     public static int prosperityBiomeIdStart = 180;
 
-    // 破碎维度群系 ID 段起始（默认 190，预留 190-193 共 4 个群系槽位；S-B3 消费）。
+    // 破碎维度群系 ID 段起始（默认 190，口径同 prosperityBiomeIdStart：首选起点 + 逐群系顺延）。
     public static int shatteredBiomeIdStart = 190;
+
+    // 群系配槽扫描上界（P1 新增；默认 254 = byte 平面硬上界，见 GTSRBiomeBase.HARD_ID_MAX）。
+    // 只能**收紧**不能放宽：实际扫描上界 = min(本值, HARD_ID_MAX, biomeList 实际表长 - 1)。
+    // 用途——整合包若想给自家群系预留高位段，把它调小即可让我方群系提前判"无槽"并显式降级。
+    public static int biomeIdScanLimit = 254;
 
     // 繁荣维度残缺机器生成频率分母（平均 1/N chunk × 群系机器权重；默认 16，0 = 禁用；S4a 消费，
     // S-A5 密度上调 24→16 = plan §12 修订 7）。
@@ -168,16 +176,28 @@ public class Config {
             Configuration.CATEGORY_GENERAL,
             prosperityBiomeIdStart,
             0,
-            255,
-            "繁荣维度群系 ID 段起始（默认 180，预留 180-183 共 4 个群系槽位）");
+            GTSRBiomeBase.HARD_ID_MAX,
+            "繁荣维度群系 ID 首选起点（默认 180）。P1 起逐群系独立配槽：首选槽被占则向后顺延，允许非连续；"
+                + "可用上界 " + GTSRBiomeBase.HARD_ID_MAX + "（byte 平面 + 255 懒回填哨兵，见 GTSRBiomeBase.HARD_ID_MAX）");
 
         shatteredBiomeIdStart = configuration.getInt(
             "shatteredBiomeIdStart",
             Configuration.CATEGORY_GENERAL,
             shatteredBiomeIdStart,
             0,
-            255,
-            "破碎维度群系 ID 段起始（默认 190，预留 190-193 共 4 个群系槽位）");
+            GTSRBiomeBase.HARD_ID_MAX,
+            "破碎维度群系 ID 首选起点（默认 190）。配槽口径同 prosperityBiomeIdStart（首选 + 顺延，允许非连续）；"
+                + "可用上界 " + GTSRBiomeBase.HARD_ID_MAX);
+
+        biomeIdScanLimit = configuration.getInt(
+            "biomeIdScanLimit",
+            Configuration.CATEGORY_GENERAL,
+            biomeIdScanLimit,
+            1,
+            GTSRBiomeBase.HARD_ID_MAX,
+            "群系配槽扫描上界（默认 " + GTSRBiomeBase.HARD_ID_MAX
+                + " = byte 平面硬上界，只能收紧不能放宽）。整合包要预留高位段时调小它，"
+                + "我方群系会提前判无槽并在日志显式降级 degraded=SHORT/EMPTY");
 
         prosperityMachineChance = configuration.getInt(
             "prosperityMachineChance",

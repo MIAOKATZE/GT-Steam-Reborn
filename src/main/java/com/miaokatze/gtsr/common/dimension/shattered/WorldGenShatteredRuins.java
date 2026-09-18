@@ -247,6 +247,16 @@ public class WorldGenShatteredRuins implements IWorldGenerator {
      * 表面查找（S-B4 改全地形列扫，dim78 scatter findSurfaceY 范式）：自上而下第一处
      * "非空气且上方为空气"的地表面；找不到返回 -1。浮岛模型下的"shattered 族表面门 +
      * 兜底回退"随旧方块集/浮岛作废——完整地形下最高裸露面即地表。
+     * <p>
+     * <b>P3 登记：本列扫刻意不并入框架唯一件
+     * {@link com.miaokatze.gtsr.common.dimension.framework.GTSRChunkProviderBase#findSurfaceY}</b>
+     * （审计 A-5 §1 #7）——本件比框架件<b>更严</b>：命中第一处非空气后还要
+     * {@code world.isAirBlock(x, y+1, z)} 为真才返回，否则继续下扫（:257）。
+     * 因此对"洞穴顶/悬块下层/装饰抬高的列"两者可差 1 至多格：框架件返回最高非空气格，
+     * 本件返回最高<b>真裸露面</b>。合并任一方向都会改变废墟落点 y（把结构埋进悬块下或
+     * 抬到装饰上），属独立裁决；本片保留原语义。同包的 {@code ShatteredDecorPlacer}
+     * 则已并入框架件（审计判其等价），故 dim79 内部装饰与结构对同一列可差 1 格——
+     * 该并存事实属审计 A-4，统一归 P7。
      */
     static int findSurfaceY(World world, int x, int z) {
         for (int y = 255; y > 0; y--) {

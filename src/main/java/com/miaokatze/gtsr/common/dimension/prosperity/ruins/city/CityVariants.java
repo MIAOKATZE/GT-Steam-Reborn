@@ -3,6 +3,7 @@ package com.miaokatze.gtsr.common.dimension.prosperity.ruins.city;
 import java.util.Random;
 
 import com.miaokatze.gtsr.common.dimension.framework.structure.BlockSink;
+import com.miaokatze.gtsr.common.dimension.framework.structure.GTSRWorldgenHash;
 import com.miaokatze.gtsr.common.dimension.framework.structure.StructureBuilder;
 import com.miaokatze.gtsr.common.dimension.framework.structure.StructureRegistry;
 
@@ -812,14 +813,18 @@ public final class CityVariants {
         return (int) (mix(plotSeed, SALT_ROT) & 3);
     }
 
+    /**
+     * plot 级 splitmix64 混哈希（非负长整）——<b>P3 起算法体在 {@link GTSRWorldgenHash}</b>，
+     * 本方法只保留本类的<b>专属盐乘子</b>实参（{@link GTSRWorldgenHash#CITY_PLOT_SALT_MUL}）。
+     * <p>
+     * 与 {@code CityPlanner.mix} <b>不同值</b>（那边乘子是 0xD1B5…），二者对同一入参输出不同，
+     * 故不合并；详见 {@code CityPlanner.mix} 的差异登记与
+     * {@code tools/dim1/SurfaceYParityCheck} 的 {@code city.variants_mix} 站点逐位对拍。
+     * 本方法被 {@link #damageTier(long)}/{@link #rotationOf(long)} 消费，其取值口径逐位不变，
+     * 因而 26 个城变体的损伤档/朝向选择与改造前完全一致。
+     */
     private static long mix(long seed, long salt) {
-        long h = seed ^ (salt * 0x9E3779B97F4A7C15L);
-        h ^= h >>> 33;
-        h *= 0xFF51AFD7ED558CCDL;
-        h ^= h >>> 33;
-        h *= 0xC4CEB9FE1A85EC53L;
-        h ^= h >>> 33;
-        return h & 0x7FFFFFFFFFFFFFFFL;
+        return GTSRWorldgenHash.saltRoutedHash(seed, salt, GTSRWorldgenHash.CITY_PLOT_SALT_MUL);
     }
 
     /**

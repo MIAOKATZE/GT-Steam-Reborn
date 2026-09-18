@@ -6,6 +6,24 @@
     "code_meta_authority": "meta 语义以代码常量为准：BlockRuinedCasing META_RUSTED/SOOTED/PORCELAIN(0/1/2)、BlockRuinDebris META_SLEEPER/PIPE/RIVET_PLATE/CHIMNEY(0/1/2/3)。",
     "no_timestamp": "本文件与产物一律不含时间戳，禁用 random/time/datetime（脚本内 AST 自检）。"
   },
+  "_changelog": [
+    {
+      "date": "2026-09-18",
+      "change": "OUTPUTS 19 -> 14、SEEDS 19 -> 14：剪掉 5 条已不在盘的旧 dim79 碎裂系条目（manifest<->disk 漂移：跑本批生成器会重生已废弃贴图）。",
+      "removed_entries": [
+        { "key": "shattered_grass", "file": "shattered_grass.png", "group": "shattered", "kind": "grass_shattered", "seed": "0x5EED4001" },
+        { "key": "shattered_grass_side", "file": "shattered_grass_side.png", "group": "shattered", "kind": "grass_side", "seed": "0x5EED4005", "params_from": { "body": "shattered_dirt", "fringe": "shattered_grass" } },
+        { "key": "shattered_dirt", "file": "shattered_dirt.png", "group": "shattered", "kind": "dirt_shattered", "seed": "0x5EED4002" },
+        { "key": "rift_stone", "file": "rift_stone.png", "group": "shattered", "kind": "rift_stone", "seed": "0x5EED4003" },
+        { "key": "shattered_blackstone", "file": "shattered_blackstone.png", "group": "shattered", "kind": "blackstone", "seed": "0x5EED4004" }
+      ],
+      "reason": "commit 881950a（v1.20.30）删除 dim79 碎裂草/碎裂草侧/碎裂土/rift_stone/碎裂黑石 旧 5 张方块与其注册；本批 manifest 未同步剪枝，P0 三点核对（tools/dim1/asset_baseline_check.sh）判红。",
+      "restore_hint": "要恢复该批材质必须同时恢复 Java 注册名（BlockShatteredGrass 等，S6a 未落地），不得只往 OUTPUTS 里加回条目。",
+      "palette_orphans_left_in_place": ["SHATTER_SOD", "SHATTER_PURPLE", "SHATTER_DIRT", "RIFT_STONE", "BLACKSTONE", "GLOW_PURPLE", "CRACK_DARK", "RIFT_HALO"],
+      "palette_orphan_note": "剪枝后 PALETTE 有 8 个锚点不再被任何 OUTPUTS/DERIVED_RULES 引用（27 -> 19 在用）。本片不删：锚点是调色板血统记录，删除属 P10 美术口径，留待该片一并处置。",
+      "pinned_by": "tools/dim1/asset_baseline_check.sh + tools/artgen/dim1/landed.sha256（P0 新增侧车；本批生成器暂不写侧车，见脚本 --write-sidecars）"
+    }
+  ],
   "PALETTE": {
     "_note": "基色锚点（唯一可手挑的色值）；一切明暗阶经 DERIVED_RULES 由锚点派生，脚本零硬编码色值。",
     "DARK_ANCHOR": "140F13",
@@ -189,12 +207,7 @@
     "ruin_debris_chimney": "0x5EED2004",
     "ruined_casing_rusted": "0x5EED3001",
     "ruined_casing_sooted": "0x5EED3002",
-    "ruined_casing_porcelain": "0x5EED3003",
-    "shattered_grass": "0x5EED4001",
-    "shattered_grass_side": "0x5EED4005",
-    "shattered_dirt": "0x5EED4002",
-    "rift_stone": "0x5EED4003",
-    "shattered_blackstone": "0x5EED4004"
+    "ruined_casing_porcelain": "0x5EED3003"
   },
   "STYLE": {
     "pixel_discipline": {
@@ -684,133 +697,6 @@
         "crack_count": 3,
         "chip": "PORCELAIN@D240",
         "chip_lit": "PORCELAIN@L070"
-      }
-    },
-    {
-      "key": "shattered_grass",
-      "file": "shattered_grass.png",
-      "group": "shattered",
-      "block": "BlockShatteredGrass（S6a，Java 未落地）",
-      "kind": "grass_shattered",
-      "tileable": true,
-      "params": {
-        "base": "SHATTER_SOD",
-        "accent": "SHATTER_PURPLE",
-        "levels": [
-          "BASE@D070",
-          "BASE@D035",
-          "BASE",
-          "BASE@L035"
-        ],
-        "accent_levels": [
-          "SHATTER_PURPLE@D070",
-          "SHATTER_PURPLE@D035",
-          "SHATTER_PURPLE",
-          "SHATTER_PURPLE@L050"
-        ],
-        "accent_blend": 0.42,
-        "blade_dark": "BASE@D110",
-        "crack": "CRACK_DARK",
-        "crack_count": 4,
-        "glint": "GLOW_PURPLE",
-        "glint_density": 0.014
-      }
-    },
-    {
-      "key": "shattered_grass_side",
-      "file": "shattered_grass_side.png",
-      "group": "shattered",
-      "block": "BlockShatteredGrass 侧面（顶部 3-4px 碎裂暗紫草沿 + 暗紫土主体；Java 现占位 minecraft:grass_side）",
-      "kind": "grass_side",
-      "tileable": true,
-      "seam_axes": "x",
-      "tint": "biome_grass_multiplier",
-      "_color_reuse": "body params ← shattered_dirt（暗紫土调色板），fringe params ← shattered_grass（顶面草沿色彩 + accent 混色规则同源）",
-      "_seam_axes_note": "同草侧面口径：草沿锚顶、土体在下，仅断言水平（x）环边",
-      "params_from": {
-        "body": "shattered_dirt",
-        "fringe": "shattered_grass"
-      },
-      "params": {
-        "fringe_min": 3,
-        "fringe_max": 4,
-        "hang_density": 0.18,
-        "edge_speckle": "GLOW_PURPLE",
-        "edge_speckle_density": 0.010,
-        "shadow": "BASE@D110"
-      }
-    },
-    {
-      "key": "shattered_dirt",
-      "file": "shattered_dirt.png",
-      "group": "shattered",
-      "block": "BlockShatteredDirt（S6a，Java 未落地）",
-      "kind": "terrain_grit",
-      "tileable": true,
-      "params": {
-        "base": "SHATTER_DIRT",
-        "levels": [
-          "BASE@D070",
-          "BASE@D040",
-          "BASE",
-          "BASE@L035",
-          "BASE@L070"
-        ],
-        "grit_dark": "BASE@D110",
-        "grit_lit": "BASE@L090",
-        "grit_density": 0.18,
-        "flake": "GLOW_PURPLE",
-        "flake_density": 0.016,
-        "clod": "BASE@D090",
-        "clod_density": 0.05
-      }
-    },
-    {
-      "key": "rift_stone",
-      "file": "rift_stone.png",
-      "group": "shattered",
-      "block": "BlockRiftStone（S6a，Java 未落地）",
-      "kind": "rift_stone",
-      "tileable": true,
-      "params": {
-        "base": "RIFT_STONE",
-        "levels": [
-          "BASE@D055",
-          "BASE@D030",
-          "BASE",
-          "BASE@L022",
-          "BASE@L045"
-        ],
-        "crack_count": 2,
-        "crack": "GLOW_PURPLE@D180",
-        "crack_core": "GLOW_PURPLE@D090",
-        "glow": "RIFT_HALO",
-        "glow_rim": "GLOW_PURPLE@D090",
-        "pit": "BASE@D090",
-        "pit_density": 0.06
-      }
-    },
-    {
-      "key": "shattered_blackstone",
-      "file": "shattered_blackstone.png",
-      "group": "shattered",
-      "block": "BlockShatteredBlackstone（S6a，Java 未落地）",
-      "kind": "blackstone",
-      "tileable": true,
-      "params": {
-        "base": "BLACKSTONE",
-        "levels": [
-          "BASE@D070",
-          "BASE",
-          "BASE@L090",
-          "BASE@L180"
-        ],
-        "char": "BASE@L240",
-        "char_density": 0.1,
-        "ash": "GLOW_PURPLE@D240",
-        "ash_density": 0.012,
-        "vein": "BASE@L120",
-        "vein_count": 3
       }
     }
   ]

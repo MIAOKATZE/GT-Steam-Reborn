@@ -6,6 +6,7 @@ import net.minecraft.util.MathHelper;
 import net.minecraft.util.Vec3;
 import net.minecraft.world.chunk.Chunk;
 
+import com.miaokatze.gtsr.common.dimension.framework.GTSRBiomeAuthority;
 import com.miaokatze.gtsr.common.dimension.framework.GTSRWorldProviderBase;
 import com.miaokatze.gtsr.common.dimension.shattered.biome.ShatteredBiomes;
 
@@ -16,7 +17,9 @@ import com.miaokatze.gtsr.common.dimension.shattered.biome.ShatteredBiomes;
  * <li>无太阳视觉：{@link #fixedCelestialAngle()} 恒 0.75F（永夜偏移，太阳/月亮恒在地平线下，
  * 天光经 moonlight 档保持可见不全黑）；</li>
  * <li>天空/雾色：04 §1.1 暗紫三变体按当前群系取色（{@link ShatteredBiomes#skyFogColorFor}），
- * getFogColor 无坐标参数，取最近玩家（渲染端即本地玩家）所在群系；</li>
+ * getFogColor 无坐标参数，取最近玩家（渲染端即本地玩家）所在群系；<b>P2 起群系身份走 L1
+ * {@link GTSRBiomeAuthority#ordinalAt(int, int)}</b>，不再读 {@code Chunk} 的 byte 平面
+ * （{@code World.getBiomeGenForCoords}），见 {@link #biomeIdentityAt}；</li>
  * <li>canDoLightning=true（天气层允许闪电，强制雷暴与附加雷击 = S6b 责任）；</li>
  * <li>canRespawnHere=false 继承 GTSRWorldProviderBase（plan §S6a 裁剪口径：死亡回主世界，
  * 比 04 §1.7 的 true 更符合"不做出生系统"；04 §4 出生/堡垒整节不做）；</li>
@@ -43,14 +46,32 @@ public class WorldProviderShatteredLands extends GTSRWorldProviderBase {
         final EntityPlayer player = this.worldObj.getClosestPlayer(0.0D, 128.0D, 0.0D, Double.MAX_VALUE);
         final int x = player != null ? MathHelper.floor_double(player.posX) : 0;
         final int z = player != null ? MathHelper.floor_double(player.posZ) : 0;
-        return toVec3(ShatteredBiomes.skyFogColorFor(this.worldObj.getBiomeGenForCoords(x, z)));
+        return toVec3(ShatteredBiomes.skyFogColorFor(biomeIdentityAt(x, z)));
     }
 
     @Override
     public Vec3 getSkyColor(Entity cameraEntity, float partialTicks) {
         final int x = cameraEntity != null ? MathHelper.floor_double(cameraEntity.posX) : 0;
         final int z = cameraEntity != null ? MathHelper.floor_double(cameraEntity.posZ) : 0;
-        return toVec3(ShatteredBiomes.skyFogColorFor(this.worldObj.getBiomeGenForCoords(x, z)));
+        return toVec3(ShatteredBiomes.skyFogColorFor(biomeIdentityAt(x, z)));
+    }
+
+    /**
+     * 渲染色所需群系身份（<b>P2 身份读面收口</b>，plan §2.1 L1 禁止项 / L6 "禁止用
+     * {@code getBiomeGenForCoords}"之一）：改造前两处直接
+     * {@code worldObj.getBiomeGenForCoords(x, z)}——该入口读 {@code Chunk} 保存的 byte biome id，
+     * 既受 255 懒回填哨兵与 ≥256 静默别名影响，又会跨 chunk 边界<b>触发邻接区块生成</b>
+     * （渲染端代价）；空表降级时 vanilla 的第二分支还会落到 plains。
+     * 现改走 L1 唯一出口 {@link GTSRBiomeAuthority#ordinalAt(int, int)}（确定性纯函数采样，
+     * chunk 粒度同口径），取其 {@code biomeId} 交 {@link ShatteredBiomes#skyFogColorFor} 取色；
+     * 解析不到（降级/外来群系）时与改造前"非本维群系回退灰烬草原色"完全同值——
+     * <b>取色内容与常量零改动</b>，只换身份来源。
+     */
+    private GTSRBiomeAuthority.BiomeId biomeIdentityAt(int x, int z) {
+        return GTSRBiomeAuthority
+            .forDimension(this.worldObj.provider.dimensionId)
+            .ordinalAt(x, z)
+            .biomeId;
     }
 
     private static Vec3 toVec3(int rgb) {

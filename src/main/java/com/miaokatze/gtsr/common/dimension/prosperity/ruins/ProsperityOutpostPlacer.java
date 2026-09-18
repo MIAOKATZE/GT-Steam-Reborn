@@ -1,12 +1,13 @@
 package com.miaokatze.gtsr.common.dimension.prosperity.ruins;
 
+import static com.miaokatze.gtsr.common.dimension.framework.GTSRChunkProviderBase.findSurfaceY;
+
 import java.util.Random;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.material.Material;
 import net.minecraft.world.World;
 
-import com.miaokatze.gtsr.common.blocks.BlocksGTSR;
+import com.miaokatze.gtsr.common.dimension.framework.SurfaceGate;
 import com.miaokatze.gtsr.common.dimension.framework.structure.BlockSink;
 import com.miaokatze.gtsr.common.dimension.framework.structure.GTSRWorldgenHash;
 import com.miaokatze.gtsr.common.dimension.framework.structure.StructureBuilder;
@@ -29,9 +30,10 @@ import com.miaokatze.gtsr.config.Config;
  * {@link CityVariants#rotationOf(long)} 纯函数（outpostSeed 派生）。
  * <p>
  * 落地契约：接地 y = {@link ProsperityTerrainProfile#heightAt}（高度红线同源，每列独立）；
- * 落点门 = {@link #isNaturalProsperityTop(Block)}（<b>S-A1 连带放宽</b>：四自然 top 方块族 ∪
- * prosperitySurface——A1 主体换装后自然区 top 已是群系新方块，仅认 prosperitySurface 会使
- * 城外结构全灭，见 dim78-fix-slice-A1-report §8）。
+ * 落点门 = {@link #isNaturalProsperityTop(Block)}（P4 起为框架单一谓词 {@link SurfaceGate}
+ * 的一行委托；dim78 集合 = 四自然 top 方块族 ∪ prosperitySurface——A1 主体换装后自然区 top
+ * 已是群系新方块，仅认 prosperitySurface 会使城外结构全灭，见 dim78-fix-slice-A1-report §8；
+ * 该集合改造前在本类里自持一份、装饰层另立一份，现两族同源）。
  * <p>
  * 编排契约：由 {@code ProsperityWorldGenerator.generate} 在城 buffer 窗外（cities.length&gt;0
  * return 天然保证）<b>先掷 outpost、命中则本 chunk 跳过残缺机器</b>（同 chunk 互斥掷骰，防
@@ -45,6 +47,9 @@ public final class ProsperityOutpostPlacer {
 
     /** 放置细节种子盐（旋转/损伤/缺失掷骰与存在掷骰解耦）。 */
     private static final long SALT_PLACE = 0x5A4C4EL;
+
+    /** 本类所属维度键（P4：门的显式维度入参，取 L1 账本同一词汇，不另造字符串）。 */
+    private static final String DIM_KEY = SurfaceGate.DIM78;
 
     private static volatile boolean registered;
 
@@ -396,26 +401,25 @@ public final class ProsperityOutpostPlacer {
     }
 
     /**
-     * 锈变地表门（S-A1 连带放宽，dim78-fix-slice-A1-report §8）：四自然 top 方块族
-     * （ProsperitySteppe/Forest/Wastes/SwampTop，A1 主体换装后自然区地表）∪ prosperitySurface
-     * （城内冻结语义 + 旧 chunk 兼容）。Scatter/MachinePlacer 共用本谓词；public 供
-     * tools/dim1/ReplaceSurfaceRuntimeCheck 冒烟断言替换后地表命中本门。
+     * 锈变地表门（<b>P4 起为一行委托</b>，plan §5 P4 / 审计 A-5 §2 #2）：成员集合的<b>唯一出处</b>
+     * 是框架单一谓词 {@link SurfaceGate#landableTops(String)}（dim78 = 四自然 top 方块族
+     * ∪ {@code prosperitySurface}：城内冻结语义 + S-A1 前旧 chunk，见
+     * dim78-fix-slice-A1-report §8）。改造前本方法是 dim78 集合的真身、装饰层另立一套 4 员集合，
+     * 二者对同一格结论相反（审计 D-5）——现两族同源，装饰层与本层对任意输入输出必然一致
+     * （由 {@code tools/dim1/SurfaceGateUnifyCheck} C 组逐方块对拍钉住）。
+     * <p>
+     * 本名保留的原因：{@code RuinedMachinePlacer:106}（不在本片允许路径内，跨 placer 直调残留
+     * 归 P7）与 {@code tools/dim1/ReplaceSurfaceRuntimeCheck:402} 仍引用它。<b>public 供离线冒烟
+     * 断言</b>。
      */
     public static boolean isNaturalProsperityTop(Block block) {
-        return block == BlocksGTSR.prosperitySurface || block == BlocksGTSR.prosperitySteppeTop
-            || block == BlocksGTSR.prosperityForestTop
-            || block == BlocksGTSR.prosperityWastesTop
-            || block == BlocksGTSR.prosperitySwampTop;
+        return SurfaceGate.isNaturalTop(DIM_KEY, SurfaceGate.landableTops(DIM_KEY), block);
     }
 
-    /** 自上而下找地表（WorldGenRunawaySingularity.java:82-91 范式）；找不到返回 -1。 */
-    private static int findSurfaceY(World world, int x, int z) {
-        for (int y = 255; y > 0; y--) {
-            final Block block = world.getBlock(x, y, z);
-            if (block != null && block.getMaterial() != Material.air) {
-                return y;
-            }
-        }
-        return -1;
-    }
+    // P3（plan §5 P3 / 审计 A-5 §1 #5）：本类原有一份私有 findSurfaceY(World,int,int)，与
+    // ProsperitySurfaceScatter #2 / RuinedMachinePlacer #3 / ProsperityDecorPlacer #4 /
+    // ShatteredDecorPlacer #6 共 5 份实现体逐字符等价，已并到框架唯一件
+    // GTSRChunkProviderBase.findSurfaceY（本文件静态导入）。本类是"两套接地混用"的现场
+    // （审计 A-4/B-2）：落点门 :335 走列扫、落地 :379 走 heightAt 纯函数——本片只并列扫实现体，
+    // <b>不改任何一处取用哪套接地的决定</b>；统一到逐列 heightAt 归 P7。
 }

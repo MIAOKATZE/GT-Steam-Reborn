@@ -3,9 +3,9 @@ package com.miaokatze.gtsr.common.dimension.prosperity.ruins;
 import java.util.Random;
 
 import net.minecraft.world.World;
-import net.minecraft.world.biome.BiomeGenBase;
 import net.minecraft.world.chunk.IChunkProvider;
 
+import com.miaokatze.gtsr.common.dimension.framework.GTSRBiomeAuthority;
 import com.miaokatze.gtsr.common.dimension.framework.structure.BlockSink;
 import com.miaokatze.gtsr.common.dimension.framework.structure.ChunkClampedSink;
 import com.miaokatze.gtsr.common.dimension.framework.structure.StructureBuilder;
@@ -28,21 +28,24 @@ import cpw.mods.fml.common.IWorldGenerator;
  * 命中则跳过机器）→ 残缺机器（1/prosperityMachineChance × 群系机器权重）→ 地表散布（预算 64 ×
  * 群系散布权重）。矿洞/矿坑/矿脉在用户裁剪范围外（不实现）。
  * <p>
- * 群系权重按 biomeId int 查表（相对 {@link Config#prosperityBiomeIdStart}， ProsperityAirLookup 同款
- * 不 import 群系类）；每 chunk 一个 {@link ChunkClampedSink}（协议层钳制 + 越界计数），
+ * 群系权重按 <b>L1 维内名册下标</b>查表（{@link GTSRBiomeAuthority#ordinalAt(int, int)} 的
+ * {@code ordinal}，P1 收口：不再读 {@code Chunk} 的 byte biome id、不再做 {@code id - idStart} 减法，
+ * 也不 import 群系类做 instanceof）；每 chunk 一个 {@link ChunkClampedSink}（协议层钳制 + 越界计数），
  * 机器与散布共用同一 Sink。构造时向 {@link StructureRegistry} 登记 5 机型变体并输出注册证据日志
  * （plan S4a 验收：runServer 日志 grep 锚点）。
  */
 public class ProsperityWorldGenerator implements IWorldGenerator {
 
     /**
-     * 群系机器权重表（02 §1.1 结构权重列·残缺机器）：下标 = biomeId - prosperityBiomeIdStart
-     * → 锈蚀草原 0.7 / 齿轮森林 1.2 / 黄铜荒漠 0.9 / 起雾沼泽 0.8。
+     * 群系机器权重表（02 §1.1 结构权重列·残缺机器）：下标 = L1 维内名册下标
+     * （{@code GTSRBiomeAuthority.BiomeId.rosterIndex()}，即注册顺序 锈蚀草原/齿轮森林/黄铜荒漠/起雾沼泽）
+     * → 0.7 / 1.2 / 0.9 / 0.8。
      */
     public static final float[] MACHINE_WEIGHTS = { 0.7F, 1.2F, 0.9F, 0.8F };
 
     /**
-     * 群系散布权重表（02 §1.1 结构权重列·散布）：锈蚀草原 1.2 / 齿轮森林 1.0 / 黄铜荒漠 1.5 / 起雾沼泽 1.1。
+     * 群系散布权重表（02 §1.1 结构权重列·散布，下标口径同 {@link #MACHINE_WEIGHTS}）：
+     * 锈蚀草原 1.2 / 齿轮森林 1.0 / 黄铜荒漠 1.5 / 起雾沼泽 1.1。
      */
     public static final float[] SCATTER_WEIGHTS = { 1.2F, 1.0F, 1.5F, 1.1F };
 
@@ -146,13 +149,30 @@ public class ProsperityWorldGenerator implements IWorldGenerator {
         }
     }
 
-    /** 群系权重查表（biomeId int 相对偏移；非本维度群系/未知群系回退 1.0）。 */
-    private static float biomeWeight(World world, int chunkX, int chunkZ, float[] table) {
-        final BiomeGenBase biome = world.getBiomeGenForCoords((chunkX << 4) + 8, (chunkZ << 4) + 8);
-        if (biome == null) {
-            return 1.0F;
-        }
-        final int index = biome.biomeID - Config.prosperityBiomeIdStart;
+    /**
+     * 群系权重查表（P1 L1 收口，plan §2.1 L1 禁止项）：身份来源唯一——
+     * {@link GTSRBiomeAuthority#ordinalAt(int, int)} 给出的<b>维内名册下标</b>；本方法只按下标取权重，
+     * 非本维群系 / 降级态（{@code ordinal < 0}）一律回退 1.0F（与改造前"越界回退 1.0"数值口径一致）。
+     * <p>
+     * 公开是为了离线断言（{@code tools/dim1/BiomeAllocationCheck}）用<b>同一段代码</b>对拍改造前后
+     * 的权重数值，不是给生产代码开的后门：生产侧唯一调用者是本类的 {@link #biomeWeight}。
+     */
+    public static float weightForRosterIndex(int index, float[] table) {
         return index >= 0 && index < table.length ? table[index] : 1.0F;
+    }
+
+    /**
+     * 群系权重解析（chunk 中心坐标）。
+     * <p>
+     * <b>P1 改造点</b>：改造前是 {@code world.getBiomeGenForCoords(...)} 读 {@code Chunk} 的 byte
+     * biome 平面，再按 {@code biomeID - Config.prosperityBiomeIdStart} 做减法——配槽改为逐群系顺延
+     * （允许非连续）后减法必然失真（186 被算成下标 6 ⇒ 恒回退 1.0）。现改为走 L1 唯一出口，
+     * 既不再读 byte id，也不再依赖 id 段连续性。采样坐标（chunk 中心块坐标）与判定阈值保持不变，
+     * 故正常态（四群系连号）下逐位权重与改造前一致——由 BiomeAllocationCheck 场景 A 对拍钉住。
+     */
+    private static float biomeWeight(World world, int chunkX, int chunkZ, float[] table) {
+        final GTSRBiomeAuthority.Resolution resolution = GTSRBiomeAuthority.forDimension(
+            world.provider.dimensionId).ordinalAt((chunkX << 4) + 8, (chunkZ << 4) + 8);
+        return weightForRosterIndex(resolution.ordinal, table);
     }
 }

@@ -107,6 +107,18 @@ public class WorldGenRunawaySingularity implements IWorldGenerator {
      * 调用处会用 surfaceY + 2~6 偏移，使奇点落在该地表方块上方 2-6 格。
      * 下界无统一地表，取顶部实心层(从 127 向下扫)上方。
      * 找不到返回 -1。
+     * <p>
+     * <b>P3 登记：本列扫刻意不并入框架唯一件
+     * {@link com.miaokatze.gtsr.common.dimension.framework.GTSRChunkProviderBase#findSurfaceY}</b>
+     * （审计 A-5 §1 #8）。除扫描体形状与框架件逐字符相同外，本件另有两点框架件没有的语义：
+     * <ol>
+     * <li>带 {@code dim} 参并据此分支起点——{@code dim == -1}（下界）从 <b>127</b> 起扫，
+     * 其余从 255 起；框架件恒 255；</li>
+     * <li>它是 {@code IWorldGenerator} 实例方法、服务<b>主世界/下界</b>，不是新维度 L2 高度场的
+     * 一部分（plan §2.1 的 L2 契约只管 dim78/79），把它接进框架件会让主世界生成反向依赖
+     * 维度 provider 基类。</li>
+     * </ol>
+     * 两点任一被"统一"都会改变奇点生成高度或引入跨层依赖，故本片只登记不合并。
      */
     private int findSurfaceY(World world, int x, int z, int dim) {
         int topY = dim == -1 ? 127 : 255;

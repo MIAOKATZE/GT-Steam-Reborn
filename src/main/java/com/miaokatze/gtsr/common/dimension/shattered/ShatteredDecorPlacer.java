@@ -1,11 +1,14 @@
 package com.miaokatze.gtsr.common.dimension.shattered;
 
+import static com.miaokatze.gtsr.common.dimension.framework.GTSRChunkProviderBase.findSurfaceY;
+
 import java.util.Random;
 
 import net.minecraft.block.Block;
 import net.minecraft.world.World;
 
 import com.miaokatze.gtsr.common.blocks.BlocksGTSR;
+import com.miaokatze.gtsr.common.dimension.framework.SurfaceGate;
 import com.miaokatze.gtsr.common.dimension.framework.structure.BlockSink;
 import com.miaokatze.gtsr.common.dimension.framework.structure.GTSRWorldgenHash;
 import com.miaokatze.gtsr.common.dimension.framework.structure.StructureBuilder;
@@ -24,12 +27,18 @@ import com.miaokatze.gtsr.common.dimension.framework.structure.StructureBuilder;
  * 同 seed 同坐标跨 chunk 重算一致；禁用 populate 裸 Random 语义。
  * <p>
  * 让行纪律（不覆盖已有结构/地形）：逐块 {@code isAirBlock} 让行；枯树整柱干先查空气、
- * 有占用整树跳过。接地：逐列 {@link #findSurfaceY}（全地形列扫，dim78 scatter 同范式）。
- * 落点门：只落在四群系自然区 top 方块上（corestone 主体/独碑平台上不长）。
+ * 有占用整树跳过。接地：逐列
+ * {@link com.miaokatze.gtsr.common.dimension.framework.GTSRChunkProviderBase#findSurfaceY}
+ * （全地形列扫；P3 起本类不再自带实现体——dim79 这份与 dim78 侧 4 份逐字符等价，已并为框架一件，
+ * 详见审计 A-5 §1 #6）。<b>落点门（P4 起）= 框架单一谓词 {@link SurfaceGate}</b>
+ * （dim79 声明集 = 四群系自然区 top，见 {@link #isNaturalTop}；corestone 主体/独碑平台上不长）。
  * <p>
  * 跨界协议：全部落点单格、枯树干单列（无冠层跨度），天然零跨界，ChunkClampedSink 零丢弃。
  */
 public final class ShatteredDecorPlacer {
+
+    /** 本类所属维度键（P4：门的显式维度入参，取 L1 账本同一词汇，不另造字符串）。 */
+    private static final String DIM_KEY = SurfaceGate.DIM79;
 
     /** 盐 "shde"（chunk 级隔离；区别于遗迹 0x73687275/"shru"）。 */
     private static final long SALT_DECOR = 0x73686465L;
@@ -129,7 +138,14 @@ public final class ShatteredDecorPlacer {
         }
     }
 
-    /** 落点门：地表 y 在域内、地面为四群系自然区 top、上方空气（让行）。 */
+    /**
+     * 落点门（审计 A-5 §2 #4）：y 域门 ∧ {@link #isNaturalTop} ∧ 上方空气（让行）。
+     * <p>
+     * <b>P4 刻意不并入 {@link SurfaceGate}</b>——它比成员归属多了两个本层独有的合取项，
+     * 同一输入可以本方法假、框架门真（地面是自然 top 但上方已被占；或 surfaceY 越出 200 上界），
+     * 这正是"语义各异不许强并"的实例；本片只把它对<b>方块集合</b>的知识交给单一谓词，
+     * y 域与空气让行仍留在本层。
+     */
     private static boolean placeableOnNaturalTop(World world, int x, int surfaceY, int z) {
         if (surfaceY <= 0 || surfaceY > MAX_SURFACE_Y) {
             return false;
@@ -138,23 +154,21 @@ public final class ShatteredDecorPlacer {
     }
 
     /**
-     * 自然区 top 方块判定（四群系独立方块族；放置落点门共用；public 供
-     * tools/dim1/ReplaceSurfaceRuntimeCheck 冒烟断言替换后地表命中本门）。
+     * 自然区 top 方块判定（<b>P4 起为一行委托</b>，审计 A-5 §2 #3）：成员集合的出处是框架
+     * {@link SurfaceGate#landableTops(String)} 的 dim79 声明集（四群系 top；dim79 无
+     * {@code prosperitySurface} 对应物，也<b>不</b>该有——S-B 未引入 meta 冻结地表块，
+     * 独碑/corestone 主体一律不可落地）。与 dim78 集合<b>无一个共同成员</b>（跨维互斥由
+     * {@code SurfaceGateUnifyCheck} F 组断言），故"同名不同域"在本片后只剩名字。
+     * public 供 tools/dim1/ReplaceSurfaceRuntimeCheck:403 冒烟断言。
      */
     public static boolean isNaturalTop(Block ground) {
-        return ground == BlocksGTSR.shatteredAshTop || ground == BlocksGTSR.shatteredSlagTop
-            || ground == BlocksGTSR.shatteredGlassTop
-            || ground == BlocksGTSR.shatteredTarTop;
+        return SurfaceGate.isNaturalTop(DIM_KEY, SurfaceGate.landableTops(DIM_KEY), ground);
     }
 
-    /** 自上而下全地形列扫找地表（dim78 scatter findSurfaceY 范式）；找不到返回 -1。 */
-    private static int findSurfaceY(World world, int x, int z) {
-        for (int y = 255; y > 0; y--) {
-            final Block block = world.getBlock(x, y, z);
-            if (block != null && block.getMaterial() != net.minecraft.block.material.Material.air) {
-                return y;
-            }
-        }
-        return -1;
-    }
+    // P3（plan §5 P3 / 审计 A-5 §1 #6）：本类原有的私有 findSurfaceY(World,int,int) 与 dim78 侧
+    // ProsperitySurfaceScatter #2 / RuinedMachinePlacer #3 / ProsperityDecorPlacer #4 /
+    // ProsperityOutpostPlacer #5 共 5 份实现体逐字符等价（跨维度同型），已并到框架唯一件
+    // GTSRChunkProviderBase.findSurfaceY（本文件静态导入，四处调用点一字未改）。
+    // 与之相反，同包的 WorldGenShatteredRuins.findSurfaceY（#7）多一道"上方须为空气"的
+    // 真表面门，语义更严，本片刻意未并。
 }

@@ -1,11 +1,13 @@
 package com.miaokatze.gtsr.common.dimension.prosperity.ruins;
 
+import static com.miaokatze.gtsr.common.dimension.framework.GTSRChunkProviderBase.findSurfaceY;
+
 import java.util.Random;
 
-import net.minecraft.block.Block;
 import net.minecraft.world.World;
 
 import com.miaokatze.gtsr.common.blocks.BlocksGTSR;
+import com.miaokatze.gtsr.common.dimension.framework.SurfaceGate;
 import com.miaokatze.gtsr.common.dimension.framework.structure.BlockSink;
 import com.miaokatze.gtsr.common.dimension.framework.structure.GTSRWorldgenHash;
 import com.miaokatze.gtsr.common.dimension.framework.structure.StructureBuilder;
@@ -14,12 +16,20 @@ import com.miaokatze.gtsr.common.dimension.framework.structure.StructureBuilder;
  * 地表人工痕迹散布器（dim1 S4a，plan §1.2 S4a / 02 §3.2 代码 5 裁剪版）：
  * 预算 64 次/chunk × 群系散布权重（02 §1.1 表；S-A5 密度上调 32→64 = plan §12 修订 7"散布可以
  * 更大，本身稀有"），散布物权重表 轨枕30/管道25/铆接板30/烟囱残段15（02 §3.1）。只散布在锈变地表
- * （{@link ProsperityOutpostPlacer#isNaturalProsperityTop}：四自然 top 方块族 ∪ prosperitySurface
- * ——S-A1 连带放宽，A1 主体换装后自然区 top 为群系新方块；02 §3.2 门）。烟囱残段逐格
+ * （<b>P4 起直调框架单一谓词 {@link SurfaceGate}</b>：dim78 声明集 = 四自然 top 方块族 ∪
+ * prosperitySurface——S-A1 连带放宽，A1 主体换装后自然区 top 为群系新方块；02 §3.2 门。
+ * 改造前本类横向直调 {@code ProsperityOutpostPlacer} 的内部谓词（审计 A-2 #3），本处不再互调；
+ * {@code RuinedMachinePlacer:106} 的同一处横向直调不在本片允许路径内，残留归 P7）。烟囱残段逐格
  * {@code isAirBlock} 让行（只长在空气里，02 §8.4 优先级 4）。
  * <p>
  * 所有随机从 chunk 确定性哈希派生（盐 "ScAt" 0x5C4174，02 §3.2 原样）；放置经注入的
  * {@link BlockSink}（ChunkClampedSink 钳制），散布落点/短线段钳制在 chunk 内——零越界丢弃。
+ * <p>
+ * <b>P3（plan §5 P3 / 审计 A-5 §1 #2）</b>：本类原有的私有 {@code findSurfaceY(World,int,int)}
+ * 是 dim78/dim79 内 <b>5 份逐字符等价</b>列扫之一（当时的"基准"份），现已并入框架唯一件
+ * {@link com.miaokatze.gtsr.common.dimension.framework.GTSRChunkProviderBase#findSurfaceY}
+ * ——本文件以静态导入引用，故 {@code findSurfaceY(world, x, z)} 调用点一字未改，
+ * 接地 y 取值口径（自上而下第一处非空气、兜底 -1）逐位不变。
  */
 public final class ProsperitySurfaceScatter {
 
@@ -28,6 +38,9 @@ public final class ProsperitySurfaceScatter {
 
     /** 盐 "ScAt"（02 §3.2 代码 5 同款）。 */
     private static final long SALT_SCATTER = 0x5C4174L;
+
+    /** 本类所属维度键（P4：门的显式维度入参，取 L1 账本同一词汇，不另造字符串）。 */
+    private static final String DIM_KEY = SurfaceGate.DIM78;
 
     /** 散布物权重：0 轨枕 30 / 1 管道 25 / 2 铆接板 30 / 3 烟囱残段 15（02 §3.1）。 */
     private static final int[] WEIGHTS = { 30, 25, 30, 15 };
@@ -53,8 +66,10 @@ public final class ProsperitySurfaceScatter {
             if (surfaceY <= 0 || surfaceY > 200) {
                 continue;
             }
-            // 只散布在锈变地表上（02 §3.2 代码 5 门；S-A1 连带放宽：四自然 top ∪ prosperitySurface）
-            if (!ProsperityOutpostPlacer.isNaturalProsperityTop(world.getBlock(x, surfaceY, z))) {
+            // 只散布在锈变地表上（02 §3.2 代码 5 门；P4 起走框架单一谓词，集合见 SurfaceGate
+            // roster 表：四自然 top ∪ prosperitySurface）
+            if (!SurfaceGate.isNaturalTop(DIM_KEY, SurfaceGate.landableTops(DIM_KEY),
+                world.getBlock(x, surfaceY, z))) {
                 continue;
             }
             final int y = surfaceY + 1;
@@ -131,17 +146,6 @@ public final class ProsperitySurfaceScatter {
                 BlockRuinDebrisMeta.RIVET_PLATE,
                 BlockSink.FLAG_POPULATE);
         }
-    }
-
-    /** 自上而下找地表（WorldGenRunawaySingularity.java:82-91 范式）；找不到返回 -1。 */
-    private static int findSurfaceY(World world, int x, int z) {
-        for (int y = 255; y > 0; y--) {
-            final Block block = world.getBlock(x, y, z);
-            if (block != null && block.getMaterial() != net.minecraft.block.material.Material.air) {
-                return y;
-            }
-        }
-        return -1;
     }
 
     /** 权重选取（02 §3.2 pickWeighted 原样）。 */

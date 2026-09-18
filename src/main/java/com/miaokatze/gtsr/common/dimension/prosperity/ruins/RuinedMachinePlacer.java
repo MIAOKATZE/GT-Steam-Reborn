@@ -1,11 +1,12 @@
 package com.miaokatze.gtsr.common.dimension.prosperity.ruins;
 
+import static com.miaokatze.gtsr.common.dimension.framework.GTSRChunkProviderBase.findSurfaceY;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.material.Material;
 import net.minecraft.init.Blocks;
 import net.minecraft.world.World;
 
@@ -143,16 +144,11 @@ public final class RuinedMachinePlacer {
         }
     }
 
-    /** 自上而下找地表（WorldGenRunawaySingularity.java:82-91 范式）；找不到返回 -1。 */
-    private static int findSurfaceY(World world, int x, int z) {
-        for (int y = 255; y > 0; y--) {
-            final Block block = world.getBlock(x, y, z);
-            if (block != null && block.getMaterial() != Material.air) {
-                return y;
-            }
-        }
-        return -1;
-    }
+    // P3（plan §5 P3 / 审计 A-5 §1 #3）：本类原有一份私有 findSurfaceY(World,int,int)，与
+    // ProsperitySurfaceScatter #2 / ProsperityDecorPlacer #4 / ProsperityOutpostPlacer #5 /
+    // ShatteredDecorPlacer #6 共 5 份实现体经 diff 实测逐字符等价，已并到框架唯一件
+    // GTSRChunkProviderBase.findSurfaceY（本文件静态导入，调用点 originY=surfaceY+1 一字未改）。
+    // 注意：机器接地仍走列扫而非 heightAt 纯函数——两套接地并存属审计 A-4，统一归 P7，本片不动。
 
     /** 方块键解析（含未注册防御：总开关关闭等场景方块可能缺失，跳过该部件不炸生成链）。 */
     private static Block resolveBlock(String key) {
