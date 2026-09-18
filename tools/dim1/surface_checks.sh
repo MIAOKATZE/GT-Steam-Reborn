@@ -1,7 +1,8 @@
 #!/bin/bash
 # P2「表层上收框架 + 降级态不铺 + 转置闭合」、P3「L2 高度/哈希单一真值」、
 # P4「L4/L5 地表门统一 + dim78 装饰门缺陷修复」与
-# P5「密度 γ：H-3 轮廓/落块双上限 + 竖向件摘出 + H-2 窗重复上限」离线断言与回归的一键复跑入口。
+# P5「密度 γ：H-3 轮廓/落块双上限 + 竖向件摘出 + H-2 窗重复上限」与
+# P6「H-1 群系带分层（macro 64 + micro 16）+ L6 城门（锈蚀草原带）」离线断言与回归的一键复跑入口。
 #
 # 为什么需要脚本：这些片的全部判据都跑在 MC-classpath 的离线 JVM（任务包禁止 gradlew 全量构建），
 # 配方见 plan/investigation/v12030-hotfix-replaceruntime-report.md §3。两个已知坑已由
@@ -20,6 +21,23 @@
 #                                                  #   [9] P4 地表门 RED→GREEN（两条单变量破坏）
 #                                                  #   [10] P5 密度 γ：回退摘要对拍 + 非散布零漂移
 #                                                  #        + ContourBudget/RegionRepeatCap RED→GREEN
+#                                                  #   [11] P6 群系带分层与城门：rollback 逐字节对拍
+#                                                  #        + 四张数字表（T1..T4）+ 三条单变量 RED→GREEN
+#
+# ── P6 口径变更（读旧判据前必看）──
+# P6 给 dim78 加了两个新自由度：macro 群系带尺度（默认 64）与城门条件档（默认 1=锚点带）。
+# 两者都会改变 dim78 的群系面与"哪些 chunk 属城窗"。实测结论（本轮跑过才写进注释）：
+#   · [4]/[5]/[8] 不需要包装——它们的 BASE 树是「cp -a 当前树 + 只还原 P4 的 4 个 placer」，
+#     两侧都带 P6 代码，差值里只隔离 P4 那一件事（实测 diff_lines=0 / rd=0 / 非散布前序项相等）；
+#   · [10] 与 [10b] 必须在 AFTER 侧把 P6 的三键设回改造前口径（`BiomeBandHierarchyCheck rollback
+#     <目标工具 main> …`：反射写 Config，BASE 树无该键则登记并跳过），否则会把「P6 的城窗重分布」
+#     误报成「P5 判据 3/5 不成立」（未包装时实测 3 条红 + 92 行漂移）；
+#   · [10] 的 BASE 编译面还要同时还原 P6 的 3 个生产文件，否则 P5-BASE 编不过（实测 4 error）；
+#   · rollback 包装必须在 Dim78ScatterDensityCheck.bootstrap() <b>之前</b>委托目标 main：bootstrap 会
+#     二次创建方块实例，而 SurfaceByteParityDump 的 per-chunk sha 覆盖"标签+meta"，二次实例化会让
+#     连 dim79 都跟着变（实测 774 行假漂移）。
+# P6 自己带来的行为变化（带尺度=64 + 门=1）的对账在 [11]：暴露增量表 T4 与 P5 §10 的预算比对。
+
 #
 # BASE 快照：temp/p3-base/all/src/main/java/… 下<b>本片（P3）开工前</b>的生产文件副本
 # ——任务包口径「BASE 取开工前快照（片内口径）」。P2/P3 期用的是 temp/p2-base、temp/p3-base，
@@ -85,6 +103,13 @@ com/miaokatze/gtsr/config/Config.java"
 # 本片（P4）BASE 快照覆盖的文件 = 本片改动的生产文件全集（4 个门定义/调用点；
 # framework/SurfaceGate.java 是本片<b>新增</b>文件，BASE 树里没有它，靠"BASE 侧 placer 快照
 # 不引用它"来保证 BASE 编译通过——不要把它加进本清单，否则 BASE 侧会缺一整个类）。
+# P6（H-1 群系带分层 + L6 城门）开工前快照 = 本片第一个写入之前的工作树副本（b747dad）。
+# 它同时服务 [11] 自己的对拍与 [10] 的 P5-BASE 编译面（见下方 [10] 的 P6_BASE_FILES 还原循环）。
+SNAP6=temp/p6-base/all/src/main/java
+P6_BASE_FILES="com/miaokatze/gtsr/common/dimension/framework/BiomeZoneSelector.java
+com/miaokatze/gtsr/common/dimension/framework/GTSRWorldChunkManager.java
+com/miaokatze/gtsr/common/dimension/prosperity/ruins/city/CityPlanner.java
+com/miaokatze/gtsr/config/Config.java"
 PARITY_BASE_FILES="com/miaokatze/gtsr/common/dimension/prosperity/ruins/ProsperityDecorPlacer.java
 com/miaokatze/gtsr/common/dimension/prosperity/ruins/ProsperityOutpostPlacer.java
 com/miaokatze/gtsr/common/dimension/prosperity/ruins/ProsperitySurfaceScatter.java
@@ -123,7 +148,8 @@ MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8 \
   tools/dim1/ShatteredTerrainCheck.java tools/dim1/SurfaceBiomeMatrixCheck.java \
   tools/dim1/BiomeZoneCheck.java tools/dim1/SurfaceGateUnifyCheck.java \
   tools/dim1/Dim78ScatterDensityCheck.java tools/dim1/ContourBudgetCheck.java \
-  tools/dim1/RegionRepeatCapCheck.java tools/dim1/gregtech/api/GregTechAPI.java \
+  tools/dim1/RegionRepeatCapCheck.java tools/dim1/BiomeBandHierarchyCheck.java \
+  tools/dim1/CityBiomeGateCheck.java tools/dim1/gregtech/api/GregTechAPI.java \
   >"$OUT/javac-tools.log" 2>&1
 echo "COMPILE tools EXIT=$? ($(grep -ac 'error:' "$OUT/javac-tools.log") error)"
 
@@ -157,6 +183,13 @@ run "SurfaceGateUnifyCheck（P4 判据 2/4：门集合单一真值 + 别名等�
 
 echo "== [2b] P5 密度 γ 断言（快档：纯函数硬钉 + 16 窗行为钉；P5 全档与对拍在 [10]） =="
 run "RegionRepeatCapCheck（P5 判据 2：H-2 每 16×16 窗同模板发射上限，cap=1..4 穷举硬钉）" RegionRepeatCapCheck 8 2
+
+echo "== [2c] P6 断言（H-1 群系带分层 + L6 城门；四张表的实测出口在 --parity 的 [11]） =="
+run "BiomeBandHierarchyCheck（P6 判据 4/5：分层职责/macro-micro 恒等式与回退位/单一真值/带尺度守恒/确定性）" \
+  BiomeBandHierarchyCheck assert src/main/java 8 128
+run "CityBiomeGateCheck（P6 判据 2/3：无鬼窗逐点一致 + 城市 100% 落草原带 + 门非恒真 + 两种数法一致）" \
+  CityBiomeGateCheck assert 8 8
+echo "   P6 合计 assertions=$(total_assertions BiomeBandHierarchyCheck)（带分层）+ $(total_assertions CityBiomeGateCheck)（城门）"
 
 echo "== [3] 既有回归（必须保持绿） =="
 run "ReplaceSurfaceRuntimeCheck（46 项，含 null/plains 回退与逐列下标断言；P2b 起 256 格假绿已除）" ReplaceSurfaceRuntimeCheck
@@ -454,6 +487,17 @@ com/miaokatze/gtsr/config/Config.java"
     mkdir -p "$BASE5/com" "$OUT/p5-base-classes" "$OUT/p5-base-tools"
     cp -a src/main/java/. "$BASE5/"
     miss=0
+    # P6 起：先还原 P6 改过的 4 个生产文件（= b747dad 内容），再还原 P5 自己的 4 个快照文件——
+    # 顺序不能反：两片都改过 Config.java，后写者赢 ⇒ 交集文件必须落在**更早**（P5 期）的形态。
+    # 之所以要还原 P6 的文件：否则 BASE 侧会带上引用新 Config 键的 P6 代码而 P5-era Config 无那些键
+    # ⇒ COMPILE P5-BASE 直接 4 error（实测踩过）。P5 本身没动那 3 个文件，故其 P6 前快照 == P5 期内容。
+    for rel in $P6_BASE_FILES; do
+      if [ -f "$SNAP6/$rel" ]; then
+        cp "$SNAP6/$rel" "$BASE5/$rel"
+      else
+        echo "   FAIL：P6 快照缺 $rel（P5-BASE 树回不到纯 P5 期）"; miss=$((miss + 1))
+      fi
+    done
     for rel in $P5_BASE_FILES; do
       if [ -f "$SNAP5/$rel" ]; then
         cp "$SNAP5/$rel" "$BASE5/$rel"
@@ -463,6 +507,11 @@ com/miaokatze/gtsr/config/Config.java"
       fi
     done
     [ "$miss" = "0" ] || FAILS=$((FAILS + 1))
+    if grep -aq "prosperityCityBiomeGate" "$BASE5/com/miaokatze/gtsr/config/Config.java"; then
+      echo "   FAIL：P5-BASE 树仍含 P6 新键 ⇒ P6 还原失败"; FAILS=$((FAILS + 1))
+    else
+      echo "   P5-BASE 树确认同时无 P5/P6 新键（快照有效）"
+    fi
     # BASE 树不得含 P5 新键（防"快照其实是改造后"的假对拍）
     if grep -aq "prosperityScatterContoursPerChunk" "$BASE5/com/miaokatze/gtsr/config/Config.java"; then
       echo "   FAIL：BASE 侧 Config 已含 P5 新键 ⇒ 快照不是开工前形态"; FAILS=$((FAILS + 1))
@@ -481,11 +530,13 @@ com/miaokatze/gtsr/config/Config.java"
     echo "COMPILE P5-BASE-TOOLS EXIT=$? ($(grep -ac 'error:' "$OUT/p5-javac-base-tools.log") error)"
 
     PS=${P5_AB_SEEDS:-4}; PR=${P5_AB_REGIONS:-4}
+    # AFTER 侧经 BiomeBandHierarchyCheck 的 rollback 包装：把 P6 的三个键设回改造前口径，否则本判据
+    # 会把"P6 的城窗重分布"误报成"P5 判据 3「可回退」不成立"（P6 自己的账在 [11c] 的表 4）。
     MSYS2_ARG_CONV_EXCL='*' java $STD $LOG4J -cp "$OUT/p5-base-tools;$OUT/p5-base-classes;$CP" \
       Dim78ScatterDensityCheck digest $PS $PR 16 >"$OUT/p5-digest-base.txt" 2>&1
     eb=$?
     MSYS2_ARG_CONV_EXCL='*' java $STD $LOG4J -cp "$OUT/tools;$OUT/classes;$CP" \
-      Dim78ScatterDensityCheck digest $PS $PR 16 >"$OUT/p5-digest-after.txt" 2>&1
+      BiomeBandHierarchyCheck rollback Dim78ScatterDensityCheck digest $PS $PR 16 >"$OUT/p5-digest-after.txt" 2>&1
     ea=$?
     # digest 模式在 AFTER 树上跑的就是"四键设回旧值"那一行（ProsperitySurfaceScatter 的 B0 档），
     # 因此 SCAN 行与 CHAIN 行应当逐字相同：前者 = 回退位级复现，后者 = 判据 5 非散布路径零漂移。
@@ -508,15 +559,17 @@ com/miaokatze/gtsr/config/Config.java"
 
     # [10b] 表层/高度/群系面逐字节对拍（BASE = p5-base 快照）
     MSYS2_ARG_CONV_EXCL='*' java $STD $LOG4J -cp "$OUT/tools;$OUT/classes;$CP" \
-      SurfaceByteParityDump 16 >"$OUT/p5-parity-after.txt" 2>&1
+      BiomeBandHierarchyCheck rollback SurfaceByteParityDump 16 >"$OUT/p5-parity-after.txt" 2>"$OUT/p5-parity-after.err"
     # 工具类走 $OUT/tools（与 [4] 同口径：同一份 dump 代码），只有生产 class 指向 P5-BASE。
     # 用 $OUT/p5-base-tools 会 ClassNotFoundException（首版实测踩过，524 行差异全是 JVM 报错文本）
     MSYS2_ARG_CONV_EXCL='*' java $STD $LOG4J -cp "$OUT/tools;$OUT/p5-base-classes;$CP" \
-      SurfaceByteParityDump 16 >"$OUT/p5-parity-base.txt" 2>&1
+      SurfaceByteParityDump 16 >"$OUT/p5-parity-base.txt" 2>"$OUT/p5-parity-base.err"
+    # 两侧 stderr 都单独收（P6 起 AFTER 侧经 rollback 包装，包装的标记与 JVM 告警都不能混进正文，
+    # 否则"整文件逐字节 diff"会因为日志而非生产行为变红——实测 1 行 / 4 行两种假漂移都踩过）
     n2=$(diff "$OUT/p5-parity-base.txt" "$OUT/p5-parity-after.txt" | grep -ac "^[<>]")
     c2=$(grep -ac "^CHUNK" "$OUT/p5-parity-after.txt")
     echo "   [10b] chunks=$c2 diff_lines=$n2（$(grep -a '^# unmapped' "$OUT/p5-parity-after.txt")）"
-    [ "$n2" = "0" ] || { echo "   FAIL：表层/高度/群系面出现漂移（$n2 行）⇒ P5 越界"; FAILS=$((FAILS + 1)); }
+    [ "$n2" = "0" ] || { echo "   FAIL：表层/高度/群系面出现漂移（$n2 行）⇒ P5/P6 越界（AFTER 侧已回退 P6 三键）"; FAILS=$((FAILS + 1)); }
 
     # [10c] 两条新上限先 GREEN（8×4 = 8192 chunk 采样）
     KS=${P5_PIN_SEEDS:-8}; KR=${P5_PIN_REGIONS:-4}
@@ -559,12 +612,148 @@ com/miaokatze/gtsr/config/Config.java"
     run "RegionRepeatCapCheck（RED 后工作树复位 GREEN）" RegionRepeatCapCheck $KS $KR
   fi
 
+
+  # ── [11] P6 群系带分层与城门（H-1/L6）：rollback 逐字节对拍 + 四张数字表 + 单变量 RED→GREEN ──
+  # BASE 必须是<b>本片开工前</b>的快照 temp/p6-base/all/src/main/java/…（= P5 终态 b747dad）。
+  # 关键口径：P6 的两个新自由度（macro 带尺度、城门条件档）本身就是被验对象，所以
+  # "非本片路径零漂移"的对拍必须在 AFTER 侧把这三个键<b>设回改造前口径</b>（走 BiomeBandHierarchyCheck
+  # 的 rollback 包装：反射写 Config，BASE 树无该键则登记并跳过）；另外再跑一次<b>默认档</b> dump，
+  # 要求 dim79 差异为 0（dim79 零改动）而 dim78 差异 > 0（反假绿：P6 确实只在 dim78 生效）。
+  echo "== [11] P6 群系带分层与城门（H-1/L6）=="
+  BASE6=temp/p6-base/all
+  SNAP6=$BASE6/src/main/java
+  P6_BASE_FILES="com/miaokatze/gtsr/common/dimension/framework/BiomeZoneSelector.java
+com/miaokatze/gtsr/common/dimension/framework/GTSRWorldChunkManager.java
+com/miaokatze/gtsr/common/dimension/prosperity/ruins/city/CityPlanner.java
+com/miaokatze/gtsr/config/Config.java"
+  if [ ! -f "$SNAP6/com/miaokatze/gtsr/common/dimension/prosperity/ruins/city/CityPlanner.java" ]; then
+    echo "   FAIL：缺 P6 BASE 快照 $SNAP6/…/CityPlanner.java（必须先自建 = 本片开工前工作树副本）"
+    FAILS=$((FAILS + 1))
+  else
+    rm -rf "$BASE6/com" "$OUT/p6-base-classes"
+    mkdir -p "$BASE6/com" "$OUT/p6-base-classes"
+    cp -a src/main/java/. "$BASE6/"
+    miss=0
+    for rel in $P6_BASE_FILES; do
+      if [ -f "$SNAP6/$rel" ]; then
+        cp "$SNAP6/$rel" "$BASE6/$rel"
+        cmp -s "$SNAP6/$rel" "$BASE6/$rel" || { echo "   FAIL：BASE 还原后与工作树相同（快照失效）"; miss=$((miss + 1)); }
+      else
+        echo "   FAIL：BASE 快照缺 $rel"; miss=$((miss + 1))
+      fi
+    done
+    [ "$miss" = "0" ] || FAILS=$((FAILS + 1))
+    if grep -aq "prosperityCityBiomeGate" "$BASE6/com/miaokatze/gtsr/config/Config.java"; then
+      echo "   FAIL：BASE 侧 Config 已含 P6 新键 ⇒ 快照不是开工前形态"; FAILS=$((FAILS + 1))
+    else
+      echo "   BASE 侧确认无 P6 新键（快照有效）"
+    fi
+    P6_SRC="$(prefix $BASE6)"
+    MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8 -cp "$CP" \
+      -sourcepath "$BASE6" -d "$OUT/p6-base-classes" $P6_SRC >"$OUT/p6-javac-base.log" 2>&1
+    echo "COMPILE P6-BASE EXIT=$? ($(grep -ac 'error:' "$OUT/p6-javac-base.log") error)"
+
+    # [11a] 表层/高度/群系面 512 chunk 逐字节对拍（AFTER 侧三个 P6 键回退到改造前口径）
+    MSYS2_ARG_CONV_EXCL='*' java $STD $LOG4J -cp "$OUT/tools;$OUT/p6-base-classes;$CP" \
+      SurfaceByteParityDump 16 >"$OUT/p6-parity-base.txt" 2>"$OUT/p6-parity-base.err"
+    MSYS2_ARG_CONV_EXCL='*' java $STD $LOG4J -cp "$OUT/tools;$OUT/classes;$CP" \
+      BiomeBandHierarchyCheck rollback SurfaceByteParityDump 16 >"$OUT/p6-parity-rollback.txt" 2>"$OUT/p6-parity-rb.err"
+    n6=$(diff <(grep -a "^CHUNK\|^AGG\|^DIMHDR" "$OUT/p6-parity-base.txt") \
+             <(grep -a "^CHUNK\|^AGG\|^DIMHDR" "$OUT/p6-parity-rollback.txt") | grep -ac "^[<>]")
+    c6=$(grep -ac "^CHUNK" "$OUT/p6-parity-rollback.txt")
+    rb=$(grep -a "^# P6-ROLLBACK" "$OUT/p6-parity-rb.err" | head -1)
+    echo "   [11a] 回退位对拍 chunks=$c6 diff_lines=$n6｜$rb"
+    [ "$n6" = "0" ] || { echo "   FAIL：P6 键回退后仍有漂移（$n6 行）⇒ 本片越界改了表层/高度/群系面的其它路径"; FAILS=$((FAILS + 1)); }
+
+    # [11b] 默认档 dump：dim79 必须 0 差异（零改动），dim78 必须 >0（P6 真的生效，不是两边恒等）
+    MSYS2_ARG_CONV_EXCL='*' java $STD $LOG4J -cp "$OUT/tools;$OUT/classes;$CP" \
+      SurfaceByteParityDump 16 >"$OUT/p6-parity-default.txt" 2>"$OUT/p6-parity-def.err"
+    d79=$(diff <(grep -a "^CHUNK dim=79\|^AGG dim=79" "$OUT/p6-parity-base.txt") \
+              <(grep -a "^CHUNK dim=79\|^AGG dim=79" "$OUT/p6-parity-default.txt") | grep -ac "^[<>]")
+    d78=$(diff <(grep -a "^CHUNK dim=78\|^AGG dim=78" "$OUT/p6-parity-base.txt") \
+              <(grep -a "^CHUNK dim=78\|^AGG dim=78" "$OUT/p6-parity-default.txt") | grep -ac "^[<>]")
+    echo "   [11b] 默认档 vs 开工前：dim79 差异行=$d79（必须 0）dim78 差异行=$d78（必须 >0 = 本片目标行为）"
+    [ "$d79" = "0" ] || { echo "   FAIL：dim79 出现漂移（$d79 行）——本片禁止动 dim79"; FAILS=$((FAILS + 1)); }
+    [ "$d78" -gt "0" ] || { echo "   FAIL：dim78 默认档与开工前逐字节相同 ⇒ macro 带根本没生效（假绿）"; FAILS=$((FAILS + 1)); }
+
+    # [11c] 四张数字表（判据 1）：T1/T2 = macro × 门档，T3 = 份额守恒，T4 = 暴露增量对账
+    echo "   [11c] 表 1/表 2（8 seed × 8 区 = 16384 chunk；选定档行尾标 SELECTED）"
+    MSYS2_ARG_CONV_EXCL='*' java $STD -cp "$OUT/tools;$OUT/classes;$CP" \
+      CityBiomeGateCheck table 8 8 >"$OUT/p6-table-t1t2.txt" 2>&1
+    et12=$?
+    echo "     EXIT=$et12 明细=$OUT/p6-table-t1t2.txt"
+    [ "$et12" = "0" ] || { echo "   FAIL：表 1/表 2 出口非 0"; FAILS=$((FAILS + 1)); }
+    grep -a "SELECTED" "$OUT/p6-table-t1t2.txt" | cut -c1-210 | sed 's/^/     /'
+    echo "   [11c] 表 3（带尺度/chunk 尺度份额 vs 45-30-15-10 + 连贯性）"
+    MSYS2_ARG_CONV_EXCL='*' java $STD -cp "$OUT/tools;$OUT/classes;$CP" \
+      BiomeBandHierarchyCheck table 8 256 >"$OUT/p6-table-t3.txt" 2>&1
+    et3=$?
+    echo "     EXIT=$et3 明细=$OUT/p6-table-t3.txt"
+    [ "$et3" = "0" ] || { echo "   FAIL：表 3 出口非 0"; FAILS=$((FAILS + 1)); }
+    grep -aq "^T3" "$OUT/p6-table-t3.txt" || { echo "   FAIL：表 3 没有 T3 行（mode 派发被改坏过，实测踩过）"; FAILS=$((FAILS + 1)); }
+    grep -a "^T3" "$OUT/p6-table-t3.txt" | cut -c1-210 | sed 's/^/     /'
+    echo "   [11c] 表 4（真实链两跑：净暴露增量 vs P5 §10 预算；report 模式只申报不判红）"
+    MSYS2_ARG_CONV_EXCL='*' java $STD $LOG4J -cp "$OUT/tools;$OUT/classes;$CP" \
+      CityBiomeGateCheck load ${P6_LOAD_SEEDS:-8} ${P6_LOAD_REGIONS:-8} >"$OUT/p6-table-t4.txt" 2>&1
+    e6=$?
+    grep -a "^T4\|BUDGET" "$OUT/p6-table-t4.txt" | cut -c1-270 | sed 's/^/     /'
+    echo "     EXIT=$e6 明细=$OUT/p6-table-t4.txt（要把预算当硬门禁：CityBiomeGateCheck load <s> <r> strict）"
+    [ "$e6" = "0" ] || { echo "   FAIL：表 4 跑非 0（真缺陷，不是预算申报）"; FAILS=$((FAILS + 1)); }
+    if grep -aq "BUDGET-EXCEEDED" "$OUT/p6-table-t4.txt"; then
+      echo "     注意：城门净暴露增量超 P5 让出的 8pp 预算 ⇒ 按任务包口径上报主代理裁决（本片不改 K）"
+    fi
+
+    # [11d] 判据 9：单变量 RED→GREEN（影子树，绝不碰工作树）
+    P6RED=temp/p6-red-shadow; P6REDCLS=$OUT/p6-red-classes
+    P6_RED_SRC=$(echo "$REL" | sed 's|^|temp/p6-red-shadow/|' | tr '\n' ' ')
+    p6red() { # p6red <标签> <sed 表达式> <目标文件> <工具类> <工具参数...>
+      local label="$1" expr="$2" file="$3" tool="$4"; shift 4
+      rm -rf "$P6RED" "$P6REDCLS"; mkdir -p "$P6REDCLS"
+      cp -a src/main/java "$P6RED"
+      sed -i "$expr" "$P6RED/$file"
+      cmp -s "$P6RED/$file" "src/main/java/$file" \
+        && { echo "   $label 注入未生效（影子文件与工作树相同）"; FAILS=$((FAILS + 1)); }
+      MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8 -cp "$CP" \
+        -sourcepath "$P6RED" -d "$P6REDCLS" $P6_RED_SRC >"$OUT/p6-red-$label-javac.log" 2>&1
+      if [ $? -ne 0 ]; then echo "   $label 影子树编译失败（脚本坏了，不是 RED）"; FAILS=$((FAILS + 1)); fi
+      MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8 \
+        -cp "$P6REDCLS;$CP" -sourcepath "$P6RED;tools/dim1" -d "$OUT/p6-red-tools" \
+        tools/dim1/SurfaceHarness.java tools/dim1/Dim78ScatterDensityCheck.java \
+        tools/dim1/BiomeBandHierarchyCheck.java tools/dim1/CityBiomeGateCheck.java \
+        tools/dim1/gregtech/api/GregTechAPI.java >"$OUT/p6-red-$label-tooljavac.log" 2>&1
+      if [ $? -ne 0 ]; then echo "   $label 工具影子编译失败（脚本坏了，不是 RED）"; FAILS=$((FAILS + 1)); fi
+      MSYS2_ARG_CONV_EXCL='*' java $STD -cp "$OUT/p6-red-tools;$P6REDCLS;$CP" "$tool" "$@" \
+        >"$OUT/p6-red-$label.txt" 2>&1
+      local er=$?
+      grep -a "^  FAIL" "$OUT/p6-red-$label.txt" | head -3 | cut -c1-150 | sed "s/^/     /"
+      tail -1 "$OUT/p6-red-$label.txt" | cut -c1-150 | sed "s/^/     /"
+      echo "     $label EXIT=$er（RED 必须非 0）log=$OUT/p6-red-$label.txt"
+      [ "$er" != "0" ] || { echo "   FAIL：$label 未变红 ⇒ 本判据对这类破坏不敏感（假绿）"; FAILS=$((FAILS + 1)); }
+    }
+    P6F_CFG=com/miaokatze/gtsr/config/Config.java
+    P6F_PLAN=com/miaokatze/gtsr/common/dimension/prosperity/ruins/city/CityPlanner.java
+    # R1：关掉城门 ⇒ "城市 100% 落锈蚀草原带" 必须变红
+    p6red R1_GATE_OFF 's|public static int prosperityCityBiomeGate = 1;|public static int prosperityCityBiomeGate = 0;|' \
+      "$P6F_CFG" CityBiomeGateCheck assert 8 8
+    # R2a：把 macro 带尺度改回 16（改造前单层）⇒ 分层申报档断言必须变红
+    p6red R2_MACRO16 's|public static int prosperityBiomeMacroBandChunks = 64;|public static int prosperityBiomeMacroBandChunks = 16;|' \
+      "$P6F_CFG" BiomeBandHierarchyCheck assert src/main/java 8 128
+    # R2b：同一破坏在城门侧的表现——"整座城能落进同一带"（64 带 57.7%）必须塌回 16 口径而变红
+    p6red R2b_MACRO16 's|public static int prosperityBiomeMacroBandChunks = 64;|public static int prosperityBiomeMacroBandChunks = 16;|' \
+      "$P6F_CFG" CityBiomeGateCheck assert 8 8
+    # R3：门条件从"锚点所在 macro 带"退化成"中心 chunk 的 16 格分区"⇒ 锚点带 100% 必须变红
+    p6red R3_CENTER_CHUNK 's|return steppeBandAt(worldSeed, plan.getCenterChunkX(), plan.getCenterChunkZ());|return BiomeZoneSelector.select(worldSeed, plan.getCenterChunkX(), plan.getCenterChunkZ(), PROSPERITY_BAND_WEIGHTS.length, PROSPERITY_BAND_WEIGHTS, BiomeZoneSelector.MICRO_CELL_CHUNKS, BiomeZoneSelector.ZONE_SALT_PROSPERITY) == GTSRBiomeAuthority.BiomeId.RUSTED_STEPPE.rosterIndex();|' \
+      "$P6F_PLAN" CityBiomeGateCheck assert 8 8
+    rm -rf "$P6RED" "$P6REDCLS" "$OUT/p6-red-tools"
+    run "BiomeBandHierarchyCheck（RED 后工作树复位 GREEN）" BiomeBandHierarchyCheck assert src/main/java 8 128
+    run "CityBiomeGateCheck（RED 后工作树复位 GREEN）" CityBiomeGateCheck assert 8 8
+  fi
 fi
 
 echo "== SUMMARY =="
 if [ "$FAILS" = "0" ]; then
-  echo "P2/P3/P4/P5 SURFACE CHECKS: ALL GREEN"
+  echo "P2/P3/P4/P5/P6 SURFACE CHECKS: ALL GREEN"
 else
-  echo "P2/P3/P4/P5 SURFACE CHECKS: $FAILS tool(s)/step(s) FAILED"
+  echo "P2/P3/P4/P5/P6 SURFACE CHECKS: $FAILS tool(s)/step(s) FAILED"
 fi
 [ "$FAILS" = "0" ]

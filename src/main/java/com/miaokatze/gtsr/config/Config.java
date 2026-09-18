@@ -71,6 +71,30 @@ public class Config {
     // 繁荣维度古代城存在概率（每个 24×24 chunk cell 的存在掷骰百分比；默认 45，0 = 无城，100 = 全 cell 有城；S4b 消费）。
     public static int prosperityCityChance = 45;
 
+    // ═════════ P6 群系带分层与城门（plan §2.2 H-1/L6 / §5 P6 / §7.1 已锁定 U2）═════════
+    //
+    // H-1 身份层的尺度：dim78 macro 群系带 64 chunk（城盘 9-15 chunk 才可能整座落进同一带），
+    // micro cell 恒 16（BiomeZoneSelector.MICRO_CELL_CHUNKS，只作用变体/装饰强度，不参与身份）。
+    // 两键都必须是 16 的正整数倍；非整数倍由 BiomeZoneSelector.normalizeMacroCell 向下取整，
+    // 非正值/小于 16 回退 16（= 改造前单层行为，plan §2.3 判据 5 的单值回退位）。
+    // dim79 的键默认 16 ⇒ 其身份与地表逐位不变（本片对 dim79 内容零改动）。
+
+    // dim78 macro 群系带尺度（chunk；默认 64 = U2 锁定档；16 = 回退到改造前单层分区）。
+    public static int prosperityBiomeMacroBandChunks = 64;
+
+    // dim79 macro 群系带尺度（chunk；默认 16 = 与改造前逐位相同，非本片刻意调整项）。
+    public static int shatteredBiomeMacroBandChunks = 16;
+
+    // L6 城门条件档（古代城只允许出现在锈蚀草原带；plan §2.1 L6 + §7.1 U2「门=锚点带」）：
+    //   0 = 关（改造前行为：城与群系无关，四带均可出现）
+    //   1 = 城盘锚点（中心 chunk）所在 macro 带为锈蚀草原 —— 默认档，U2 锁定
+    //   2 = 城盘（边长 2r+1 的方形盘，r=4..7）≥50% chunk 落在锈蚀草原带
+    //   3 = 城盘 100% 落在锈蚀草原带（最严，城市数会进一步塌缩，仅供调参）
+    // 判定是纯函数（走 BiomeZoneSelector 带出口，禁止 world.getBiomeGenForCoords——城中心最远跨
+    // 8 chunk 会触发邻 chunk 生成），且<b>只在 CityPlanner.citiesNear 内生效</b> ⇒ 渲染与
+    // "cities.length>0 抑制散布/机器" 天然同一入口（plan §2.1 L6 禁止"鬼窗"）。
+    public static int prosperityCityBiomeGate = 1;
+
     // ═════════════════ P5 密度 γ（plan §2.2 H-2/H-3 / §5 P5 / §7.1 已锁定 U3「中道 K + 摘竖向件」）═════════════════
     //
     // 受控量从"每 chunk 落多少<b>块</b>"改成"每 chunk 放多少<b>件（轮廓）</b>"：
@@ -279,6 +303,33 @@ public class Config {
             0,
             100,
             "繁荣维度古代城存在概率（每个 24×24 区块 cell 的存在掷骰百分比，默认 45 = 平均每 500-600 格一座；0 = 无城）");
+
+        // ═════ P6 群系带分层与城门（H-1/L6）——键名/默认值/注释与本类字段声明严格一致 ═════
+        prosperityBiomeMacroBandChunks = configuration.getInt(
+            "prosperityBiomeMacroBandChunks",
+            Configuration.CATEGORY_GENERAL,
+            prosperityBiomeMacroBandChunks,
+            16,
+            1024,
+            "dim78 macro 群系带尺度（区块，默认 64 = U2 锁定档；须为 micro cell 16 的正整数倍，"
+                + "非整数倍向下取整。16 = 回退改造前单层分区，群系身份逐位不变）");
+
+        shatteredBiomeMacroBandChunks = configuration.getInt(
+            "shatteredBiomeMacroBandChunks",
+            Configuration.CATEGORY_GENERAL,
+            shatteredBiomeMacroBandChunks,
+            16,
+            1024,
+            "dim79 macro 群系带尺度（区块，默认 16 = 与改造前逐位相同；口径同上，仅整合包可调）");
+
+        prosperityCityBiomeGate = configuration.getInt(
+            "prosperityCityBiomeGate",
+            Configuration.CATEGORY_GENERAL,
+            prosperityCityBiomeGate,
+            0,
+            3,
+            "古代城群系门条件档（默认 1 = 城盘锚点所在 macro 带须为锈蚀草原；0 = 关城门（改造前行为）"
+                + "；2 = 城盘≥50% 落草原带；3 = 城盘全落草原带。判定与城渲染同走 CityPlanner.citiesNear 单一入口）");
 
         // ═════════ P5 密度 γ（H-2/H-3）——键名/默认值/注释与本类字段声明严格一致（plan §2.1 横切 roster
         // 「禁止同一数值在 Config/常量/注释三处漂移」）═════════

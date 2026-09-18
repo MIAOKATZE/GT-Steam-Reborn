@@ -25,11 +25,73 @@ import com.miaokatze.gtsr.common.dimension.framework.structure.GTSRWorldgenHash;
  * 输出契约：返回值 ∈ [0, biomeCount)（def 群系权重表下标），消费侧仍整 chunk 单群系
  * （{@link GTSRWorldChunkManager#biomeAt} 口径不变）。纯函数：同 seed 同坐标结果恒定，
  * 与 chunk 生成顺序无关。
+ * <p>
+ * <b>P6 分层（plan §2.2 H-1 + §7.1 已锁定 U2「macro 群系带 64 chunk + micro cell 16」）</b>：
+ * 上面的两级掷骰本身<b>一字未改</b>——改的只是"它跑在哪个尺度上"。本类现在是 <b>H-1 群系带身份
+ * 的唯一出口</b>，两层各自独立：
+ * <ul>
+ * <li><b>macro 带（身份层，dim78 = 64 chunk）</b>：{@link #bandIndex} / {@link #bandIdentity}
+ * 给群系<b>身份</b>。带尺度由调用方（{@link GTSRWorldChunkManager} 按维读 Config）给出，
+ * 本类只负责合法性化（{@link #normalizeMacroCell}：micro 的正整数倍）与换算。</li>
+ * <li><b>micro cell（强度层，恒 16 chunk）</b>：{@link #microStrengthTier}/{@link #microStrength}
+ * 只给<b>变体/装饰强度档</b>（{@link #MICRO_STRENGTHS} = 0.7/1.0/1.3，均值恰为 1.0 ⇒ 采用后
+ * 不改变 P5 钉住的总密度口径），<b>不参与身份</b>。</li>
+ * </ul>
+ * <b>任何消费方不得再自己算带</b>：身份一律经 {@link GTSRWorldChunkManager#biomeAt} → L1
+ * {@link GTSRBiomeAuthority}，或经本类 {@code band*} 出口；{@link #select} 保留"给定 cell 尺度的
+ * 分区身份"原语义（{@code tools/dim1/BiomeZoneCheck} 钉的就是它在 cell=16 下的行为，即强度层的
+ * 空间粒度）。
+ * <p>
+ * <b>macro 与 micro 的数值关系（带基准逐位相同；边带改掷的具体块不同）</b>：
+ * {@code macroCell = s × MICRO_CELL_CHUNKS} 时，"以 macroCell 为 cell 跑一次本算法"与"先把 chunk
+ * 坐标按 s 折算、再以 microCell 跑"在<b>带基准身份</b>上逐位相同——因为
+ * {@code floorDiv(floorDiv(a,s),16) == floorDiv(a,16s)}（s、16 均正），故带原点掷骰、邻带集合与
+ * 边带宽度（{@code band(64)=round(64×0.12)=8} chunk ↔ 折算口径下 {@code band(16)=2} 个折算格）
+ * 全部同式；差别只有两处，且都不改变分布：
+ * <ol>
+ * <li><b>边带内 12% 改掷的随机数输入</b>是（折算后的）块坐标，故具体哪几块被改掷与原生口径不同，
+ * 但改掷率仍是 12%、改掷候选仍是"基准不同的邻带"；折算粒度是 {@code s} chunk 的方块组，即边带碎斑
+ * 以 4×4 chunk（s=4）为单位而不是单 chunk（更连贯，非近似）。</li>
+ * <li><b>边带宽度按 s 量化</b>：{@code band(16s) = round(16s×0.12)} 与 {@code s×band(16) = 2s}
+ * 可差 1 格（s=7/8 时），只影响边界那一圈 chunk 在两种口径下"算不算边带"的分类。</li>
+ * </ol>
+ * s=2（32）与 s=4（64，U2 锁定档）两处均无量化差，边带宽度都是 8 chunk。实测边带偏离率、带尺度与
+ * chunk 尺度份额守恒见 {@code tools/dim1/BiomeBandHierarchyCheck} 的 A1b/D 组；折算实现与上述许可
+ * 差异边界由 B 组穷举（s=1..8 含负坐标）钉住。
+ * s=1（dim79、以及 dim78 回退 macro=16）时坐标折算退化为恒等变换 ⇒ 与改造前<b>逐位相同</b>
+ * （判据「非本片路径零漂移」的依据，B2 组穷举钉住）。
  */
 public final class BiomeZoneSelector {
 
-    /** zone cell 尺寸（chunk）：plan §12 修订第 6 条，48→16（用户：不要把群系做得太大）。 */
-    public static final int ZONE_CELL_CHUNKS = 16;
+    /**
+     * micro cell 尺寸（chunk）：强度层与"单层口径"的空间粒度。
+     * <p>
+     * 值就是原 {@code ZONE_CELL_CHUNKS}（用户拍板 48→16，plan §12 修订第 6 条），<b>一字未改</b>；
+     * P6 起它只作 micro/单层口径，macro 带尺度另见 {@link #bandIndex}。
+     */
+    public static final int MICRO_CELL_CHUNKS = 16;
+
+    /**
+     * 兼容别名（改造前的名字，值同 {@link #MICRO_CELL_CHUNKS}）：dim79 接线与既有自检工具
+     * （{@code BiomeZoneCheck}/{@code BiomeAllocationCheck}/{@code SurfaceHarness} 等）仍按本名传参，
+     * 传 16 即"单层口径"，行为逐位不变。新代码请用 {@link #MICRO_CELL_CHUNKS}。
+     */
+    public static final int ZONE_CELL_CHUNKS = MICRO_CELL_CHUNKS;
+
+    /**
+     * dim78 群系带域分离盐（{@code "ZONE"+"E"}）——H-1 身份层的<b>唯一申报处</b>。
+     * <p>
+     * {@code CommonProxy} 的 dim78 selector 接线用的是同一字面量（本类不在允许改动面内，故不合并），
+     * 两处一致由 {@code tools/dim1/BiomeBandHierarchyCheck} 的 C 组源级断言钉住；dim79 用
+     * {@code 0x5A4F4E46}（同盐 +1 域分离），本片不改其接线、其带尺度亦保持 16（零变化）。
+     */
+    public static final long ZONE_SALT_PROSPERITY = 0x5A4F4E45L;
+
+    /**
+     * micro 层的变体/装饰强度档（plan §7.1 U2 锁定的 0.7/1.0/1.3）。
+     * 三档均值 == 1.0F ⇒ 强度层被消费时不改变"整维总量"口径（P5 的 K/落块上限不受影响）。
+     */
+    public static final float[] MICRO_STRENGTHS = { 0.7F, 1.0F, 1.3F };
 
     /**
      * 边带比例：既是边带宽度系数（band = cell×此值 四舍五入），也是边带内 chunk 改掷邻 cell
@@ -44,8 +106,105 @@ public final class BiomeZoneSelector {
     private static final long CELL_DOMAIN = 0x5A4F4E455A4F4E45L;
     /** chunk 级域分离盐。 */
     private static final long CHUNK_DOMAIN = 0x2B1E4E4F5A4F4E45L;
+    /**
+     * micro 强度层域分离盐（P6 新增用途；与 cell/chunk 两级掷骰互不复用，形状照 {@link #CELL_DOMAIN}）。
+     * 调用方另需传入本维接线盐（dim78 = {@link #ZONE_SALT_PROSPERITY}），故两维同种子同坐标也不会撞档。
+     */
+    private static final long MICRO_DOMAIN = 0x4D4943524F535452L; // "MICROSTR"
 
     private BiomeZoneSelector() {}
+
+    /**
+     * 身份层委托（P6）：{@link GTSRWorldChunkManager} 把 def 挂的
+     * {@link GTSRDimensionDef.BiomeSelector} 以方法引用交进来，本类负责带尺度折算。
+     * <p>
+     * 独立声明（而不是直接引用 {@code GTSRDimensionDef.BiomeSelector}）是为了保住本类
+     * "零 Minecraft import、离线 JEP330 可复算"的既有性质（{@code GTSRDimensionDef} 携 MC 类型）。
+     */
+    public interface ZoneDelegate {
+
+        int select(long seed, int chunkX, int chunkZ, int biomeCount, int[] weights);
+    }
+
+    /**
+     * macro 带尺度合法性化（H-1 唯一口径）：必须落在 micro 的<b>正整数倍</b>上。
+     * <p>
+     * 非正值或未达 micro 的值一律回退 {@link #MICRO_CELL_CHUNKS}（= 改造前单层行为，"配置写错不炸
+     * 世界生成"）；其余向下取整到整数倍（如 100 → 96），保证 {@link #bandIndex} 的坐标折算恒等式成立。
+     */
+    public static int normalizeMacroCell(int requested) {
+        if (requested < MICRO_CELL_CHUNKS) {
+            return MICRO_CELL_CHUNKS;
+        }
+        return (requested / MICRO_CELL_CHUNKS) * MICRO_CELL_CHUNKS;
+    }
+
+    /**
+     * H-1 群系带<b>身份</b>（显式入参版；城门等零世界读取消费方用）：macro 带尺度上的分区掷骰。
+     *
+     * @param macroCell 带尺度（chunk；经 {@link #normalizeMacroCell} 合法性化，16 = 单层/改造前口径）
+     * @return 群系权重表下标 ∈ [0, biomeCount)
+     */
+    public static int bandIndex(
+        long seed, int chunkX, int chunkZ, int biomeCount, int[] weights, int macroCell, long salt) {
+        final int cell = normalizeMacroCell(macroCell);
+        if (cell == MICRO_CELL_CHUNKS) {
+            // 单层口径：与改造前逐位相同（坐标不折算，直接按 chunk 走带算法）
+            return select(seed, chunkX, chunkZ, biomeCount, weights, MICRO_CELL_CHUNKS, salt);
+        }
+        final int scale = cell / MICRO_CELL_CHUNKS;
+        return select(
+            seed,
+            Math.floorDiv(chunkX, scale),
+            Math.floorDiv(chunkZ, scale),
+            biomeCount,
+            weights,
+            MICRO_CELL_CHUNKS,
+            salt);
+    }
+
+    /**
+     * H-1 群系带<b>身份</b>（委托版；{@link GTSRWorldChunkManager} 接线用）：与
+     * {@link #bandIndex} 同值，只是域分离盐由接线方的 selector lambda 自带，本类不感知盐。
+     *
+     * @param delegate  接线方提供的分区掷骰（内部 cell = {@link #MICRO_CELL_CHUNKS}）
+     * @param macroCell 带尺度（chunk）
+     * @return 群系权重表下标 ∈ [0, biomeCount)
+     */
+    public static int bandIdentity(
+        ZoneDelegate delegate, long seed, int chunkX, int chunkZ, int biomeCount, int[] weights, int macroCell) {
+        final int cell = normalizeMacroCell(macroCell);
+        if (cell == MICRO_CELL_CHUNKS) {
+            return delegate.select(seed, chunkX, chunkZ, biomeCount, weights);
+        }
+        final int scale = cell / MICRO_CELL_CHUNKS;
+        return delegate.select(
+            seed,
+            Math.floorDiv(chunkX, scale),
+            Math.floorDiv(chunkZ, scale),
+            biomeCount,
+            weights);
+    }
+
+    /**
+     * micro 层强度档 ∈ [0, {@link #MICRO_STRENGTHS})（P6；只作用变体/装饰强度，<b>不参与身份</b>）。
+     * <p>
+     * 每 micro cell（16 chunk）一整档，与 macro 带身份<b>独立掷骰</b>（不同域分离盐、不同哈希输入
+     * 形状），故同一带内各 cell 的强度档互不相关；三档等概率 ⇒ 均值恒 1.0。
+     */
+    public static int microStrengthTier(long seed, int chunkX, int chunkZ, long salt) {
+        final long h = GTSRWorldgenHash.cellSeed(
+            seed,
+            Math.floorDiv(chunkX, MICRO_CELL_CHUNKS),
+            Math.floorDiv(chunkZ, MICRO_CELL_CHUNKS),
+            salt ^ MICRO_DOMAIN);
+        return (int) Math.floorMod(GTSRWorldgenHash.splitmix64(h), MICRO_STRENGTHS.length);
+    }
+
+    /** micro 层强度系数（{@link #microStrengthTier} 的取值口径）。 */
+    public static float microStrength(long seed, int chunkX, int chunkZ, long salt) {
+        return MICRO_STRENGTHS[microStrengthTier(seed, chunkX, chunkZ, salt)];
+    }
 
     /**
      * 群系 zone 选择（plan §4 S-A2 定夺签名）：cell 级权重掷骰 + 边带 12% chunk 级邻 cell 掷骰。

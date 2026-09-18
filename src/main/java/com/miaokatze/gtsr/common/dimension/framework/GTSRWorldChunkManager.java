@@ -10,6 +10,7 @@ import net.minecraft.world.biome.BiomeGenBase;
 import net.minecraft.world.biome.WorldChunkManager;
 
 import com.miaokatze.gtsr.common.dimension.framework.structure.GTSRWorldgenHash;
+import com.miaokatze.gtsr.config.Config;
 
 /**
  * 自写 BiomeProvider（dim1 S1，不走 GenLayer；plan §1.2/§5.4 口径）。
@@ -47,6 +48,15 @@ public class GTSRWorldChunkManager extends WorldChunkManager {
     private final BiomeGenBase[] selectorTable;
     /** def 权重表快照（selector 路径入参）。 */
     private final int[] selectorWeights;
+    /**
+     * H-1 身份层委托（P6）：{@link #biomeSelector} 的方法引用形态，交给
+     * {@link BiomeZoneSelector#bandIdentity} 做带尺度折算（null = 本维未挂 selector）。
+     */
+    private final BiomeZoneSelector.ZoneDelegate bandDelegate;
+    /** 本维 macro 带尺度（chunk，已 {@link BiomeZoneSelector#normalizeMacroCell 合法性化}）。 */
+    private final int macroCell;
+    /** 本维 micro 强度层域分离盐输入（= def.seedSalt；匿名 def 为 0）。 */
+    private final long microDomainSalt;
     /** 所属维度的 def key（L1 账本键；null = 匿名 def，仅离线自检会出现）。 */
     private final String dimKey;
 
@@ -55,6 +65,7 @@ public class GTSRWorldChunkManager extends WorldChunkManager {
         List<BiomeGenBase> expanded = new ArrayList<>();
         BiomeGenBase[] table = null;
         int[] weights = null;
+        long seedSalt = 0L;
         if (def != null) {
             List<BiomeGenBase> biomeTable = def.getBiomeTable();
             weights = def.getBiomeWeights();
@@ -68,17 +79,38 @@ public class GTSRWorldChunkManager extends WorldChunkManager {
                 }
             }
             this.dimKey = def.getKey();
+            seedSalt = def.getSeedSalt();
         } else {
             this.dimKey = null;
         }
         this.weightedBiomes = expanded.isEmpty() ? null : expanded.toArray(new BiomeGenBase[0]);
         this.biomeSelector = def != null ? def.getBiomeSelector() : null;
+        this.bandDelegate = this.biomeSelector == null ? null : this.biomeSelector::select;
         this.selectorTable = table;
         this.selectorWeights = weights;
+        this.macroCell = BiomeZoneSelector.normalizeMacroCell(macroBandChunksFor(this.dimKey));
+        this.microDomainSalt = seedSalt;
         // L1 绑定：身份解析复用本 manager 的采样函数（同表、同种子、同 selector）
         if (this.dimKey != null) {
             GTSRBiomeAuthority.bind(this.dimKey, def.getResolvedDimId(), this::biomeAt);
         }
+    }
+
+    /**
+     * 本维 macro 带尺度（P6 H-1 接线；plan §7.1 已锁定 U2）。
+     * <p>
+     * 只有两维各自的 Config 键，<b>其它 dimKey/匿名 def 一律取 micro 口径（16）</b>——即"未接线的消费方
+     * 保持改造前单层行为"，与 {@code tools/dim1/BiomeBandHierarchyCheck} 的"dim79 带尺度必须仍是 16"
+     * 断言互为防线（dim79 的 Config 键默认 16，即便被误改也不影响其接线值语义，但会被该断言判红）。
+     */
+    private static int macroBandChunksFor(String dimKey) {
+        if (GTSRBiomeAuthority.DIM_KEY_PROSPERITY.equals(dimKey)) {
+            return Config.prosperityBiomeMacroBandChunks;
+        }
+        if (GTSRBiomeAuthority.DIM_KEY_SHATTERED.equals(dimKey)) {
+            return Config.shatteredBiomeMacroBandChunks;
+        }
+        return BiomeZoneSelector.MICRO_CELL_CHUNKS;
     }
 
     /**
@@ -88,17 +120,62 @@ public class GTSRWorldChunkManager extends WorldChunkManager {
      * <b>P1 起不再有 plains 回退</b>；调用方必须显式处理 null（表层决定权在 P2）。
      * def 挂有 selector 时头部优先走空间连贯分区，否则 per-chunk 均匀掷骰；输出口径不变
      * （仍整 chunk 单一群系）。
+     * <p>
+     * <b>P6（H-1 分层）</b>：selector 路径的身份现在按 <b>macro 带</b>解析
+     * （{@link BiomeZoneSelector#bandIdentity}，带尺度见 {@link #macroBandChunksFor(String)}），
+     * 不再逐 chunk 掷"本 chunk 属于哪个带"之外的东西；带尺度 == micro（16）时
+     * {@code bandIdentity} 退化为直接委托，与改造前<b>逐位相同</b>（dim79 即此情形，零变化）。
+     * L1 语义与降级三态一字未改（仍同一张表、同一 {@code bind}、同样的 null 口径）。
      */
     public BiomeGenBase biomeAt(int chunkX, int chunkZ) {
         if (this.weightedBiomes == null) {
             return null;
         }
-        if (this.biomeSelector != null && this.selectorTable != null) {
-            final int index = this.biomeSelector
-                .select(this.seed, chunkX, chunkZ, this.selectorTable.length, this.selectorWeights);
+        final int index = bandRosterIndex(chunkX, chunkZ);
+        if (index >= 0) {
             return this.selectorTable[Math.floorMod(index, this.selectorTable.length)];
         }
         return this.weightedBiomes[hash(chunkX, chunkZ) % this.weightedBiomes.length];
+    }
+
+    /**
+     * H-1 群系带身份下标（本维权重表/名册下标；P6 新增只读出口）。
+     *
+     * @return ∈ [0, biomeCount)；{@code -1} = 本维未挂 selector 或群系表为空（消费方按降级口径处理，
+     *         与 {@link #biomeAt} 的 null 口径同源，<b>不</b>伪造身份）
+     */
+    public int bandRosterIndex(int chunkX, int chunkZ) {
+        if (this.bandDelegate == null || this.selectorTable == null) {
+            return -1;
+        }
+        return BiomeZoneSelector
+            .bandIdentity(
+                this.bandDelegate,
+                this.seed,
+                chunkX,
+                chunkZ,
+                this.selectorTable.length,
+                this.selectorWeights,
+                this.macroCell);
+    }
+
+    /** 本维 macro 带尺度（chunk，已合法性化；离线自检与日志用）。 */
+    public int macroBandChunks() {
+        return this.macroCell;
+    }
+
+    /**
+     * micro 层变体/装饰强度系数（P6 新增只读出口；0.7/1.0/1.3，见
+     * {@link BiomeZoneSelector#MICRO_STRENGTHS}）。
+     * <p>
+     * <b>不参与群系身份</b>，且本片<b>不接入</b>散布/装饰的 K 与权重（P5 已锁定，plan §5 P6 禁止越界）；
+     * 消费方是 P7/P8 的变体选择与装饰强度。未挂 selector 或空表降级时返回中性 1.0F（不伪造强度）。
+     */
+    public float microStrengthAt(int chunkX, int chunkZ) {
+        if (this.bandDelegate == null || this.selectorTable == null) {
+            return 1.0F;
+        }
+        return BiomeZoneSelector.microStrength(this.seed, chunkX, chunkZ, this.microDomainSalt);
     }
 
     /**
