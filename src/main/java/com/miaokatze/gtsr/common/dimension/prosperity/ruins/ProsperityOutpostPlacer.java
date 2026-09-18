@@ -398,9 +398,10 @@ public final class ProsperityOutpostPlacer {
     /**
      * 锈变地表门（S-A1 连带放宽，dim78-fix-slice-A1-report §8）：四自然 top 方块族
      * （ProsperitySteppe/Forest/Wastes/SwampTop，A1 主体换装后自然区地表）∪ prosperitySurface
-     * （城内冻结语义 + 旧 chunk 兼容）。Scatter/MachinePlacer 共用本谓词。
+     * （城内冻结语义 + 旧 chunk 兼容）。Scatter/MachinePlacer 共用本谓词；public 供
+     * tools/dim1/ReplaceSurfaceRuntimeCheck 冒烟断言替换后地表命中本门。
      */
-    static boolean isNaturalProsperityTop(Block block) {
+    public static boolean isNaturalProsperityTop(Block block) {
         return block == BlocksGTSR.prosperitySurface || block == BlocksGTSR.prosperitySteppeTop
             || block == BlocksGTSR.prosperityForestTop
             || block == BlocksGTSR.prosperityWastesTop

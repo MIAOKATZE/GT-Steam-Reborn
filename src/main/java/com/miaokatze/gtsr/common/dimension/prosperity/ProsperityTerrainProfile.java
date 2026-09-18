@@ -92,6 +92,7 @@ public final class ProsperityTerrainProfile {
         h ^= h >>> 33;
         h *= 0xC4CEB9FE1A85EC53L;
         h ^= h >>> 33;
-        return ((h >>> 11) / (double) (1L << 52)) * 2.0D - 1.0D;
+        // >>>11 留 53 位有效值，须除以 2^53 才得 [0,1)；除 2^52 会致域 [0,2)、均值+1（v1.20.30 削平事故根因）
+        return ((h >>> 11) / (double) (1L << 53)) * 2.0D - 1.0D;
     }
 }

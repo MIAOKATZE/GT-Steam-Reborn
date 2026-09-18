@@ -64,6 +64,17 @@ public class GTSRChunkProviderBase implements IChunkProvider {
     protected void onPopulate(Random random, int chunkX, int chunkZ) {}
 
     /**
+     * 原始 Block[] 数组"空"判定（<b>框架级约定</b>，v1.20.30 终验修复）：provideChunk 以
+     * {@code new Block[65536]} 建列——未写入槽位为 <b>null</b>（{@code Blocks.air} 实例仅存在于
+     * 已写入槽位；{@code new Chunk(world, blocks, ...)} 构造时才把 null 视作空气）。
+     * 任何在 Chunk 组装前扫描"裸露面/上方空气"的子类必须走本判定，
+     * 直接比较 {@code == Blocks.air} 会把空气误判为实体（dim78/dim79 表层替换 no-op 事故根因）。
+     */
+    protected static boolean isAirOrEmpty(Block block) {
+        return block == null || block == Blocks.air;
+    }
+
+    /**
      * 群系 surface 应用（GT5U replaceBlocksForBiome 同款）：POST ReplaceBiomeBlocks 事件后
      * 按列调用 biome.genTerrainBlocks（topBlock/fillerBlock 替换）。
      */

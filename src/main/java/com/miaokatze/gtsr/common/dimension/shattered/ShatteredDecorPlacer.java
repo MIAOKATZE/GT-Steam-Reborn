@@ -137,8 +137,11 @@ public final class ShatteredDecorPlacer {
         return isNaturalTop(world.getBlock(x, surfaceY, z)) && world.isAirBlock(x, surfaceY + 1, z);
     }
 
-    /** 自然区 top 方块判定（四群系独立方块族；放置落点门共用）。 */
-    private static boolean isNaturalTop(Block ground) {
+    /**
+     * 自然区 top 方块判定（四群系独立方块族；放置落点门共用；public 供
+     * tools/dim1/ReplaceSurfaceRuntimeCheck 冒烟断言替换后地表命中本门）。
+     */
+    public static boolean isNaturalTop(Block ground) {
         return ground == BlocksGTSR.shatteredAshTop || ground == BlocksGTSR.shatteredSlagTop
             || ground == BlocksGTSR.shatteredGlassTop
             || ground == BlocksGTSR.shatteredTarTop;

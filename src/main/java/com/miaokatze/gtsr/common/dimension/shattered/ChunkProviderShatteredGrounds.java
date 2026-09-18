@@ -73,9 +73,13 @@ public class ChunkProviderShatteredGrounds extends GTSRChunkProviderBase {
 
     /**
      * 表层三段式替换（保留框架 ReplaceBiomeBlocks 事件契约；不调 super——super 实现会按
-     * biome.genTerrainBlocks 原版管线再做一遍表面，与本实现二选一）：逐列自顶向下，首个
+     * biome.genTerrainBlocks 原版管线再做一遍表面，与本实现二选一；v1.20.30 终验修复：
+     * 裸露面判定走框架 {@code isAirOrEmpty}——原始数组未写入槽位是 <b>null</b> 而非
+     * {@code Blocks.air}，此前的 {@code != Blocks.air} 恒真导致整链 no-op）：逐列自顶向下，首个
      * "corestone + 上方空气"裸露面落 top，其下 filler 段 1-2 格（确定性深度）落 base
      * （filler 复用 base），主体保持 corestone；filler 段写完即 break（下方无替换需求）。
+     * 扫描/落位核心在 {@link #applyBiomeSurface}（public static，供
+     * tools/dim1/ReplaceSurfaceRuntimeCheck 以合成 biomes 数组离线驱动同一运行时代码路径）。
      */
     @Override
     protected void replaceBlocksForBiome(int chunkX, int chunkZ, Block[] blocks, byte[] metadata,
@@ -93,9 +97,15 @@ public class ChunkProviderShatteredGrounds extends GTSRChunkProviderBase {
         if (event.getResult() == cpw.mods.fml.common.eventhandler.Event.Result.DENY) {
             return;
         }
-        final long worldSeed = this.worldObj.getSeed();
-        final int baseX = chunkX * 16;
-        final int baseZ = chunkZ * 16;
+        applyBiomeSurface(this.worldObj.getSeed(), chunkX * 16, chunkZ * 16, blocks, metadata, biomes);
+    }
+
+    /**
+     * 表层替换核心（世界种子 + chunk 原点世界坐标入参的纯数组变换，零 World 依赖，
+     * 与 {@link #replaceBlocksForBiome} 事件段同一实现体——运行时路径级离线断言的静态缝）。
+     */
+    public static void applyBiomeSurface(long worldSeed, int baseX, int baseZ, Block[] blocks, byte[] metadata,
+        BiomeGenBase[] biomes) {
         for (int x = 0; x < 16; x++) {
             for (int z = 0; z < 16; z++) {
                 final BiomeGenBase biome = biomes[z + x * 16];
@@ -112,7 +122,7 @@ public class ChunkProviderShatteredGrounds extends GTSRChunkProviderBase {
                         continue;
                     }
                     if (!topPlaced) {
-                        if (blocks[idx + 1] != Blocks.air) {
+                        if (!isAirOrEmpty(blocks[idx + 1])) {
                             continue; // 尚未到达裸露面（上方仍被 corestone 覆盖）
                         }
                         blocks[idx] = biome.topBlock;
@@ -120,7 +130,7 @@ public class ChunkProviderShatteredGrounds extends GTSRChunkProviderBase {
                         continue;
                     }
                     // 裸露面以下：filler 段（1-2 格）落 base，写完主体保持 corestone
-                    if (blocks[idx + 1] == Blocks.air) {
+                    if (isAirOrEmpty(blocks[idx + 1])) {
                         continue; // 悬空 corestone（不应出现，防御跳过）
                     }
                     blocks[idx] = biome.fillerBlock;

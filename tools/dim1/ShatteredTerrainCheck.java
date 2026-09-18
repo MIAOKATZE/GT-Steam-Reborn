@@ -77,12 +77,64 @@ public class ShatteredTerrainCheck {
             "TERRAIN PASS: seeds=" + SEEDS.length + " doubleRunSamples=" + samples + " clamp=[" + MIN_HEIGHT + ","
                 + MAX_HEIGHT + "] maxAdjacentDelta=" + maxAdjDelta + "(<=" + MAX_ADJACENT_DELTA
                 + ") maxSpan16Delta=" + maxSpan16Delta + "(<=" + MAX_SPAN16_DELTA + ") noNaN=byValueDomain");
+        assertChunkSeamContinuity();
         assertFourBiomeAnchors();
         if (failures > 0) {
             System.out.println("SHATTERED CHECK FAIL: " + failures + " assertion(s) failed");
             System.exit(1);
         }
         System.out.println("SHATTERED CHECK PASS");
+    }
+
+    /**
+     * 跨 chunk 边界连续性断言（v1.20.30 终验修复轮补检：实机报"山突然被削平"，先证伪
+     * "provider 采样坐标口径错 → chunk 周期平顶/边界悬崖"假设）：heightAt 以世界坐标为入参，
+     * 跨 x=16k / z=16k 边界的相邻列（x=16k-1 与 x=16k）必须与内部相邻列同界（≤MAX_ADJACENT_DELTA），
+     * 且不得存在"整 chunk 同高触钳制边界"的平台（clamp 饱和=削平形态）。本断言逮到的实际根因
+     * 为噪声域缺陷（hashUnit 除 2^52 致值域 [−1,3) 均值上移大面积顶死 96，见热修报告 §H3）；
+     * 修复后本断言为常驻回归防线。WorldGenRunawaySingularity destroyBlocks 独立观察项（证伪为主因）。
+     */
+    private static void assertChunkSeamContinuity() {
+        int maxSeamDelta = 0;
+        for (long seed : SEEDS) {
+            for (int k = -128; k <= 128; k++) {
+                final int seam = k * 16;
+                for (int z : new int[] { -7, 0, 5, 133 }) {
+                    final int hx = ShatteredTerrainProfile.heightAt(seed, seam - 1, z);
+                    final int hy = ShatteredTerrainProfile.heightAt(seed, seam, z);
+                    maxSeamDelta = Math.max(maxSeamDelta, Math.abs(hx - hy));
+                    if (Math.abs(hx - hy) > MAX_ADJACENT_DELTA) {
+                        fail("chunk seam cliff at x=" + seam + " z=" + z + " d=" + (hy - hx) + " seed=" + seed);
+                    }
+                    final int hzA = ShatteredTerrainProfile.heightAt(seed, z, seam - 1);
+                    final int hzB = ShatteredTerrainProfile.heightAt(seed, z, seam);
+                    maxSeamDelta = Math.max(maxSeamDelta, Math.abs(hzA - hzB));
+                    if (Math.abs(hzA - hzB) > MAX_ADJACENT_DELTA) {
+                        fail("chunk seam cliff at x=" + z + " z=" + seam + " d=" + (hzB - hzA) + " seed=" + seed);
+                    }
+                }
+            }
+            // chunk 级高度方差 >0（同 seed 大样本，杜绝"整 chunk 平顶"退化）
+            for (int cx = -5; cx < 5; cx++) {
+                for (int cz = -5; cz < 5; cz++) {
+                    int min = Integer.MAX_VALUE, max = Integer.MIN_VALUE;
+                    for (int x = 0; x < 16; x += 3) {
+                        for (int z = 0; z < 16; z += 3) {
+                            final int h = ShatteredTerrainProfile.heightAt(seed, cx * 16 + x, cz * 16 + z);
+                            min = Math.min(min, h);
+                            max = Math.max(max, h);
+                        }
+                    }
+                    // 病理判定 = 整 chunk 同高 **且触钳制边界**（clamp 饱和=削平形态）；
+                    // 域内偶发同高 chunk 是地形特征非缺陷（粗采样 6x6 下合法存在）
+                    if (max == min && (max == MAX_HEIGHT || max == MIN_HEIGHT)) {
+                        fail("CLAMPED flat chunk plateau at chunk (" + cx + "," + cz + ") h=" + max + " seed=" + seed);
+                    }
+                }
+            }
+        }
+        System.out.println("SEAM CONTINUITY PASS: maxSeamDelta=" + maxSeamDelta + "(<=" + MAX_ADJACENT_DELTA
+            + ") noFlatChunkPlateau=true");
     }
 
     /**
