@@ -781,6 +781,8 @@ public final class CityVariants {
 
     /** 损伤档（0..2，plotSeed 哈希选档——世界生成与 /gtsr structure 同函数同结果）。 */
     public static int damageTier(long plotSeed) {
+        // mix 已规范非负（0x7FFF... 截断，与 CityPlanner.mix 同口径）；% 3 得 0..2。
+        // 历史：mix 未规范时负 plotSeed 使 %3 返回 -2/-1，MISSING_RATES 负索引崩世界（2026-09-18 实测）。
         return (int) (mix(plotSeed, SALT_TIER) % 3);
     }
 
@@ -796,7 +798,7 @@ public final class CityVariants {
         h ^= h >>> 33;
         h *= 0xC4CEB9FE1A85EC53L;
         h ^= h >>> 33;
-        return h;
+        return h & 0x7FFFFFFFFFFFFFFFL;
     }
 
     /**
