@@ -124,8 +124,7 @@ public class ChunkProviderProsperityRuins extends GTSRChunkProviderBase {
         }
         for (final BiomeId key : BiomeId.values()) {
             if (key.dimKey()
-                .equals(GTSRBiomeAuthority.DIM_KEY_PROSPERITY)
-                && authority.actualIdOf(key) == biome.biomeID) {
+                .equals(GTSRBiomeAuthority.DIM_KEY_PROSPERITY) && authority.actualIdOf(key) == biome.biomeID) {
                 return key;
             }
         }

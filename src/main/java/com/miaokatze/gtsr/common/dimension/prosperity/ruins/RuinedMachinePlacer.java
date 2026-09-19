@@ -9,6 +9,7 @@ import net.minecraft.init.Blocks;
 import net.minecraft.world.World;
 
 import com.miaokatze.gtsr.common.blocks.BlocksGTSR;
+import com.miaokatze.gtsr.common.dimension.framework.GTSRBiomeAuthority;
 import com.miaokatze.gtsr.common.dimension.framework.SurfaceGate;
 import com.miaokatze.gtsr.common.dimension.framework.structure.BlockSink;
 import com.miaokatze.gtsr.common.dimension.framework.structure.GTSRWorldgenHash;
@@ -42,8 +43,10 @@ import com.miaokatze.gtsr.config.Config;
  * <li><b>放置真值</b>：改造前 {@code placeAll} 是 {@code void}，编排器与统计都无从知道这台机器
  * 到底有没有落块；现返回 {@code boolean}，且该值 = {@link PlacementGate.Permit#commit(int)} 的
  * 结果（被 sink 接受的非空气落块数 &gt; 0）。0 块 ⇒ 不计成功、不扣预算。</li>
- * <li><b>门的一入口</b>：每 chunk 结构预算、同族互斥、H-2 窗重复上限、就绪门 y 带全部走
- * {@link PlacementGate}；本类不再自带可落地表 y 带的那对字面量。</li>
+ * <li><b>门的一入口</b>：每 chunk 结构预算、同族互斥、H-2① 窗重复上限、H-2② 同族间距、就绪门 y 带
+ * 全部走 {@link PlacementGate}；本类不再自带可落地表 y 带的那对字面量，也不再自带第二份掷骰序列
+ * （P7c：{@link #roll(long, int, int, float)} 是唯一实现体，命中重放口 {@link #MACHINE_INTENT} 与
+ * {@link #placeAll} 共用它）。</li>
  * </ol>
  * P4 遗留的"横向直调 {@code ProsperityOutpostPlacer.isNaturalProsperityTop}"（审计 A-2 #3 之二）
  * 一并消掉：本类改成像散布层那样直调框架单一谓词 {@link SurfaceGate}（成员集合真值仍在
@@ -58,7 +61,11 @@ public final class RuinedMachinePlacer {
     /** 本类所属维度键（P4 起门的显式维度入参；与 outpost/散布层同一词汇）。 */
     private static final String DIM_KEY = SurfaceGate.DIM78;
 
-    /** 群系机器权重表已由编排器折算传入；本类不做群系查询。 */
+    /**
+     * 群系机器权重表的<b>真实值仍由编排器折算传入</b>（{@link #placeAll} 的入参）；P7c 起本类只为
+     * H-2 的命中重放另算一次同口径权重（{@link #machineWeightAt}，走 L1 唯一出口 + 编排器的权重表，
+     * 不是第二份权重真值），两者逐槽同值由 {@code PlacementContractCheck} C7 钉住。
+     */
 
     private static volatile boolean registered;
 
@@ -115,57 +122,127 @@ public final class RuinedMachinePlacer {
     }
 
     /**
-     * populate 入口：掷频 → 掷机型 → <b>过 {@link PlacementGate}（预算/互斥/H-2 窗上限）</b>→
-     * 选点（footprint 收缩钳制在 chunk 内）→ 逐列接地 + 就绪门 → 放置 → <b>按真实落块数兑现许可</b>。
+     * populate 入口：掷频 → 掷机型 → <b>过 {@link PlacementGate}（预算/互斥/H-2① 窗重复上限/H-2② 同族
+     * 间距）</b>→ 逐列接地 + 就绪门 → 放置 → <b>按真实落块数兑现许可</b>。
+     * <p>
+     * <b>P7c</b>：掷骰不再写在本方法里，而是收成唯一的 {@link #roll(long, int, int, float)}——
+     * {@link #intentAt(long, int, int)}（H-2 的命中重放口）与 {@code placeAll} 共用同一段实现体，
+     * 所以"别窗别槽会不会放这一族"与"本槽到底放没放"不可能各说一套（由
+     * {@code tools/dim1/PlacementContractCheck} D7/A9 钉住）。随机流消耗序列与 P7b 逐位相同
+     * （门判定不消费 {@code r}），故本片的落点/落块只在 H-2 两条规则咬合处变化。
      *
      * @param biomeMachineWeight 群系机器权重（02 §1.1：草原 0.7/森林 1.2/荒漠 0.9/沼泽 0.8）
      * @param gate               本 chunk 的结构门（编排器创建）；{@code null} = 自派生
      * @return true = 本 chunk 真实落了至少一块的机器（编排器据此扣预算）
      */
-    public static boolean placeAll(World world, long worldSeed, int cx, int cz, float biomeMachineWeight, BlockSink sink,
-        PlacementGate.ChunkGate gate) {
-        final int chance = Config.prosperityMachineChance;
-        if (chance <= 0 || sink == null || biomeMachineWeight <= 0F) {
-            return false; // 0 = 禁用（plan S4a 失败回退开关）
-        }
-        final Random r = new Random(GTSRWorldgenHash.chunkSeed(worldSeed, cx, cz) ^ SALT_MACHINE);
-        // P(生成/chunk) = 群系机器权重 / chance。分母唯一出处 = Config.prosperityMachineChance
-        // （P5 plan §2.4 判据 4 / §3.1 更正 2：改造前这句注释写死过一个具体分母，与代码默认值漂移，
-        // 导致机器密度口径三处不一致；此处起只写公式与出处，不写数字。）
-        if (r.nextDouble() * chance >= biomeMachineWeight) {
+    public static boolean placeAll(World world, long worldSeed, int cx, int cz, float biomeMachineWeight,
+        BlockSink sink, PlacementGate.ChunkGate gate) {
+        if (sink == null) {
             return false;
         }
-        final RuinedMachineShapes.Shape shape = RuinedMachineShapes.ALL[r.nextInt(RuinedMachineShapes.ALL.length)];
-        // footprint 收缩钳制：origin 使整机（含垫层）完全落在当前 chunk（>16 格形状防御性跳过）
-        final int freeX = 16 - shape.sizeX;
-        final int freeZ = 16 - shape.sizeZ;
-        if (freeX < 0 || freeZ < 0) {
-            return false;
+        final Roll roll = roll(worldSeed, cx, cz, biomeMachineWeight);
+        if (roll == null) {
+            return false; // 禁用位 / 掷骰未中 / footprint 超出单 chunk
         }
-        // —— 结构侧唯一入口（P7）：预算 → 同族互斥 → H-2 窗重复上限。不消费本类的随机流，
-        // 故 prosperityStructureWindowRepeatCap=0 时与改造前逐位同（回退位实测见 p7 报告贴脸率表）。——
-        final PlacementGate.ChunkGate chunkGate =
-            gate != null ? gate : PlacementGate.beginChunk(DIM_KEY, worldSeed, cx, cz);
-        final PlacementGate.Permit permit = chunkGate.request(PlacementGate.FAMILY_MACHINE, shape.name);
+        // —— 结构侧唯一入口（P7/P7c）：预算 → 同族互斥 → H-2① 窗重复上限 → H-2② 同族间距。——
+        final PlacementGate.ChunkGate chunkGate = gate != null ? gate
+            : PlacementGate.beginChunk(DIM_KEY, worldSeed, cx, cz);
+        final PlacementGate.Permit permit = chunkGate
+            .request(PlacementGate.FAMILY_MACHINE, roll.intent.templateName, MACHINE_INTENT);
         if (permit == null) {
             return false;
         }
-        final int x = (cx << 4) + r.nextInt(freeX + 1);
-        final int z = (cz << 4) + r.nextInt(freeZ + 1);
+        final int x = roll.intent.originX;
+        final int z = roll.intent.originZ;
         // 落点判定与接地同源（P7）：三族共用 PlacementGate.groundFn 这同一个供给器——中心列的
         // heightAt 值既是就绪门读的顶块所在行，也是整机逐列落地的基准（改造前这里走 findSurfaceY
         // 列扫出的整台平面，与落地用的另一套高度并存，审计 A-4）。
         final CityVariants.GroundFn ground = PlacementGate.groundFn(worldSeed);
-        final int centerX = x + shape.sizeX / 2;
-        final int centerZ = z + shape.sizeZ / 2;
+        final int centerX = x + roll.shape.sizeX / 2;
+        final int centerZ = z + roll.shape.sizeZ / 2;
         final int groundY = ground.groundY(centerX, centerZ);
         if (!PlacementGate.readyAt(groundY, landableTopAt(world, centerX, groundY, centerZ))) {
             permit.abort(); // 未落块：显式归还，预算不扣
             return false;
         }
         final PlacementGate.CountingSink counter = PlacementGate.counting(sink);
-        place(new StructureBuilder(counter), r, shape, x, z, ground, BlockSink.FLAG_POPULATE);
+        place(new StructureBuilder(counter), roll.rnd, roll.shape, x, z, ground, BlockSink.FLAG_POPULATE);
         return permit.commit(counter.solid());
+    }
+
+    /**
+     * H-2 命中重放的公开入口（纯函数）：槽位 (cx,cz) 在<b>没有任何窗上限/间距约束</b>时会请求哪台
+     * 机型、落在何处；{@code null} = 本槽不请求。群系权重按 L1 唯一出口自算（与编排器给
+     * {@link #placeAll} 的那一份同值，由 {@code PlacementContractCheck} C7 在真地形上逐槽对账钉住）。
+     */
+    public static PlacementGate.Intent intentAt(long worldSeed, int cx, int cz) {
+        return intentAt(worldSeed, cx, cz, machineWeightAt(cx, cz));
+    }
+
+    /** {@link #intentAt(long, int, int)} 的权重显式形态（{@code placeAll} 一侧用编排器算出的权重）。 */
+    public static PlacementGate.Intent intentAt(long worldSeed, int cx, int cz, float biomeMachineWeight) {
+        final Roll roll = roll(worldSeed, cx, cz, biomeMachineWeight);
+        return roll == null ? null : roll.intent;
+    }
+
+    /** 供 {@link PlacementGate} 枚举邻域/窗内槽位用本族命中集的重放口（生产侧唯一一份）。 */
+    public static final PlacementGate.IntentFn MACHINE_INTENT = new PlacementGate.IntentFn() {
+
+        @Override
+        public PlacementGate.Intent intentAt(long worldSeed, int cx, int cz) {
+            return RuinedMachinePlacer.intentAt(worldSeed, cx, cz);
+        }
+    };
+
+    /** 机器族的群系权重（L1 唯一出口 + 编排器的权重表；与 {@code ProsperityWorldGenerator#biomeWeight} 同口径）。 */
+    private static float machineWeightAt(int cx, int cz) {
+        final GTSRBiomeAuthority.Resolution res = GTSRBiomeAuthority.forDimKey(GTSRBiomeAuthority.DIM_KEY_PROSPERITY)
+            .ordinalAt((cx << 4) + 8, (cz << 4) + 8);
+        return ProsperityWorldGenerator.weightForRosterIndex(res.ordinal, ProsperityWorldGenerator.MACHINE_WEIGHTS);
+    }
+
+    /** 一次掷骰的结果：命中意图 + 掷完意图所需的随机流后的 {@code Random}（供损伤/缺失继续消耗）。 */
+    private static final class Roll {
+
+        final PlacementGate.Intent intent;
+        final Random rnd;
+        final RuinedMachineShapes.Shape shape;
+
+        Roll(PlacementGate.Intent intent, Random rnd, RuinedMachineShapes.Shape shape) {
+            this.intent = intent;
+            this.rnd = rnd;
+            this.shape = shape;
+        }
+    }
+
+    /**
+     * 掷骰的<b>唯一</b>实现体（P7c）：频率 = 1/{@link Config#prosperityMachineChance} × 群系机器权重，
+     * 机型在 {@link RuinedMachineShapes#ALL} 中均匀掷选，origin 由 footprint 收缩钳制后的余量掷出。
+     * 顺序与 P7b 逐位一致（{@code nextDouble → nextInt(机型) → nextInt(freeX+1) → nextInt(freeZ+1)}），
+     * 只是从 {@code placeAll} 的方法体里原样搬进来 ⇒ 落点零漂移。
+     */
+    private static Roll roll(long worldSeed, int cx, int cz, float biomeMachineWeight) {
+        final int chance = Config.prosperityMachineChance;
+        if (chance <= 0 || biomeMachineWeight <= 0F) {
+            return null; // 0 = 禁用（plan S4a 失败回退开关）
+        }
+        final Random r = new Random(GTSRWorldgenHash.chunkSeed(worldSeed, cx, cz) ^ SALT_MACHINE);
+        // P(生成/chunk) = 群系机器权重 / chance。分母唯一出处 = Config.prosperityMachineChance
+        // （P5 plan §2.4 判据 4 / §3.1 更正 2：改造前这句注释写死过一个具体分母，与代码默认值漂移，
+        // 导致机器密度口径三处不一致；此处起只写公式与出处，不写数字。）
+        if (r.nextDouble() * chance >= biomeMachineWeight) {
+            return null;
+        }
+        final RuinedMachineShapes.Shape shape = RuinedMachineShapes.ALL[r.nextInt(RuinedMachineShapes.ALL.length)];
+        // footprint 收缩钳制：origin 使整机（含垫层）完全落在当前 chunk（>16 格形状防御性跳过）
+        final int freeX = 16 - shape.sizeX;
+        final int freeZ = 16 - shape.sizeZ;
+        if (freeX < 0 || freeZ < 0) {
+            return null;
+        }
+        final int x = (cx << 4) + r.nextInt(freeX + 1);
+        final int z = (cz << 4) + r.nextInt(freeZ + 1);
+        return new Roll(new PlacementGate.Intent(shape.name, x, z, shape.sizeX, shape.sizeZ), r, shape);
     }
 
     /**

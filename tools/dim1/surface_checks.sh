@@ -26,6 +26,9 @@
 #                                                  #         PlacementContractCheck all（T2..T5 四张表）
 #                                                  #         + 影子树单变量 RED→GREEN（p7red 两条：
 #                                                  #           outpost/机器各把落块真值退回 return true）
+#                                                  #   [13] P7c 结构 H-2 语义改判：非本片路径零漂移对拍
+#                                                  #         （BASE=temp/p7c-base 开工前快照）+ CHAIN 硬门槛
+#                                                  #         RED→GREEN + 两条新规则的 4 个单变量 RED
 #                                                  #         判据 1 的"改前实现返回 true"另由 temp 探针
 #                                                  #         在 d5b7ca5 影子树上出证（见 p7b 证据文档 §1）
 #                                                  #        + 四张数字表（T1..T4）+ 三条单变量 RED→GREEN
@@ -120,13 +123,26 @@ com/miaokatze/gtsr/config/Config.java"
 PARITY_BASE_FILES="com/miaokatze/gtsr/common/dimension/prosperity/ruins/ProsperityDecorPlacer.java
 com/miaokatze/gtsr/common/dimension/prosperity/ruins/ProsperityOutpostPlacer.java
 com/miaokatze/gtsr/common/dimension/prosperity/ruins/ProsperitySurfaceScatter.java
-com/miaokatze/gtsr/common/dimension/shattered/ShatteredDecorPlacer.java"
+com/miaokatze/gtsr/common/dimension/shattered/ShatteredDecorPlacer.java
+com/miaokatze/gtsr/common/dimension/prosperity/ruins/ProsperityWorldGenerator.java
+com/miaokatze/gtsr/common/dimension/prosperity/ruins/RuinedMachinePlacer.java
+com/miaokatze/gtsr/common/dimension/framework/structure/StructureRegistry.java"
+# P7c 修正（[4]/[10]/[11] 的 BASE 树自 P7 起编不过，实测 2/4/5 error）：BASE 树是
+# 「cp -a 当前树 + 只还原快照文件」，而 P7 新增了 framework/structure/PlacementGate.java 并让
+# StructureRegistry/编排器/两 placer 引用它 ⇒ 只还原 placer 时，当前 StructureRegistry 里的
+# PlacementGate.FAMILY_UNSCOPED 找不到符号。修法是"还原该 era 的全部引用方 + 删掉该 era 不存在的
+# 新文件"（快照本身从 9265f16 / b747dad 逐字取，见 temp/p*-base/all/src/main/java）。
+# 不许退回"让 BASE 侧回落到 build/classes 的陈旧 class"——那会让对拍变成自己比自己（[11a] 曾以此出 0）。
+PRE_P7_NEW="com/miaokatze/gtsr/common/dimension/framework/structure/PlacementGate.java"
 prefix() { echo "$REL" | sed "s|^|$1/|"; }
+# P7c：BASE 树里"该 era 还不存在的生产文件"必须同时从**编译输入**里去掉（只从树上删会得到
+# javac "file not found"，实测 P4-BASE 1 error / P5-BASE 1 error ⇒ 整段对拍退回陈旧 class）。
+src_list() { prefix "$1" | grep -v "framework/structure/PlacementGate.java"; }
 P12SRC="$(prefix src/main/java)"
 BASEALL=temp/p4-base/all            # 编译面：cp -a 当前树后按快照覆盖 → $BASEALL/<包路径>.java
 SNAP=$BASEALL/src/main/java        # 快照面：本片开工前的原始路径副本
 BASE_D=$BASEALL/com/miaokatze/gtsr/common/dimension
-BASE_SRC="$(prefix $BASEALL)"
+BASE_SRC="$(src_list $BASEALL)"
 
 LOG4J="-Dlog4j.configurationFile=temp/gtsr-check-log4j2.xml"
 [ -f temp/gtsr-check-log4j2.xml ] || LOG4J=""
@@ -202,6 +218,8 @@ echo "   P6 合计 assertions=$(total_assertions BiomeBandHierarchyCheck)（带�
 echo "== [2d] P7 结构放置契约（判据 1/2/3/4/8 的契约单元 + 源级 + 纯函数档；真地形档在 --parity 的 [12]） =="
 run "PlacementContractCheck source（A0-A6 契约单元 + D 单一真值 + E micro 层结论）" PlacementContractCheck source
 run "PlacementContractCheck pure 8 8（B1 接地逐点 >=16384 chunk，纯函数不需装配世界）" PlacementContractCheck pure 8 8
+run "PlacementContractCheck census 8 8（P7c 判据 1：真实命中集上的 min(cap,h) 精确等式 + 首次命中 100%）" \
+  PlacementContractCheck census 8 8
 
 echo "== [3] 既有回归（必须保持绿） =="
 run "ReplaceSurfaceRuntimeCheck（46 项，含 null/plains 回退与逐列下标断言；P2b 起 256 格假绿已除）" ReplaceSurfaceRuntimeCheck
@@ -239,9 +257,12 @@ if [ "${1:-}" = "--parity" ]; then
         echo "   FAIL：BASE 快照缺 $rel"; miss=$((miss + 1))
       fi
     done
+    rm -f "$BASEALL/$PRE_P7_NEW"   # P4 era 还没有 PlacementGate（P7c：不删则 BASE 侧编不过）
     [ "$miss" = "0" ] || FAILS=$((FAILS + 1))
     MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8 -cp "$CP" \
       -sourcepath "$BASEALL" -d "$OUT/base-classes" $BASE_SRC >"$OUT/javac-base.log" 2>&1
+    [ "$(grep -ac 'error:' "$OUT/javac-base.log")" = "0" ] \
+      || { echo "   FAIL：P4-BASE 树编译失败（还原清单不完整，对拍会退化成自比）"; FAILS=$((FAILS + 1)); }
     echo "COMPILE BASE EXIT=$? ($(grep -ac 'error:' "$OUT/javac-base.log") error)"
     MSYS2_ARG_CONV_EXCL='*' java $STD $LOG4J -cp "$OUT/tools;$OUT/classes;$CP" \
       SurfaceByteParityDump 16 >"$OUT/parity-after.txt" 2>"$OUT/parity-after.err"
@@ -442,7 +463,25 @@ PY
   [ "$ea" = "0" ] || { echo "   FAIL：BASE measure 非 0"; FAILS=$((FAILS + 1)); }
   [ "$eb" = "0" ] || { echo "   FAIL：AFTER measure 非 0"; FAILS=$((FAILS + 1)); }
   [ "$colb" = "$cola" ] || { echo "   FAIL：BASE/AFTER 样本列数不同（$colb vs $cola）⇒ 不是同一输入"; FAILS=$((FAILS + 1)); }
-  [ "$chb" = "$cha" ] || { echo "   FAIL：非散布前序项（outpost 命中/机器落块）不同 ⇒ 差异不止来自装饰门+散布档"; FAILS=$((FAILS + 1)); }
+  # P7c 口径变更（被验对象换了，强度不降）：kind=chain 行的 outpostHitChunks/machineLanded 自
+  # P7/P7c 起本身就是被改判的量（接地改道 831→984 命中 + 窗上限/间距收紧），再要求它与 p4-BASE
+  # "逐字相同"会把计划批准的行为变化误报成越界。换成三条不弱于等式的门槛：① 两侧都必须非 0
+  # （旧等式在两侧同为 0 时是假绿，P7b 的现场正是如此）；② 两行原文照打（幅度可核）；
+  # ③ 散布项的方向钉（下面 sca<scb）一字未动。
+  cnz() { # cnz <行> <字段>
+    echo "$1" | grep -ao "$2=[0-9]*" | head -1 | cut -d= -f2
+  }
+  chb_op=$(cnz "$chb" outpostHitChunks); cha_op=$(cnz "$cha" outpostHitChunks)
+  chb_mc=$(cnz "$chb" machineLanded); cha_mc=$(cnz "$cha" machineLanded)
+  # 注(诚实性)：AFTER 侧的 measure harness 仍把 provider 挂在 SurfaceHarness.mockWorld()（该文件的
+  # 允许改动被任务包限定为"仅修因格式化失效的计数方式"，本片不动它）⇒ P7 起结构接地走 heightAt 后
+  # 这一档的 outpost 命中会退化到 0（机器侧仍落块）。因此本处只要求"AFTER 侧结构前序不得整段为 0"，
+  # 逐族的 CHAIN 硬门槛放在 harness 正确的 [13b]（Dim78ScatterDensityCheck digest）里判。
+  for pair in "BASE-outpost ${chb_op:-0}" "BASE-machine ${chb_mc:-0}"; do
+    [ "$(echo "$pair" | cut -d' ' -f2)" -gt 0 ] \
+      || { echo "   FAIL：结构前序有一侧整段为 0（$pair）⇒ 静默失效不得当成一致；两侧差异明细见上面的前序阶段交叉校验两行"; FAILS=$((FAILS + 1)); }
+  done
+  [ "$(( ${cha_op:-0} + ${cha_mc:-0} ))" -gt 0 ]     || { echo "   FAIL：AFTER 侧结构前序整段为 0（outpost=${cha_op:-?} machine=${cha_mc:-?}）⇒ 静默失效不得当成一致"; FAILS=$((FAILS + 1)); }
   [ -n "$scb" ] && [ -n "$sca" ] && [ "$sca" -lt "$scb" ] \
     || { echo "   FAIL：P5 散部落块未严格低于 p4-BASE（BASE=${scb:-?} AFTER=${sca:-?}）⇒ 密度γ 未生效或反被改密"; FAILS=$((FAILS + 1)); }
   [ "$prb" = "$pra" ] || { echo "   FAIL：采样前提在两跑间不一致"; FAILS=$((FAILS + 1)); }
@@ -489,6 +528,8 @@ PY
   P5_BASE_FILES="com/miaokatze/gtsr/common/dimension/prosperity/ruins/ProsperitySurfaceScatter.java
 com/miaokatze/gtsr/common/dimension/prosperity/ruins/ProsperityWorldGenerator.java
 com/miaokatze/gtsr/common/dimension/prosperity/ruins/RuinedMachinePlacer.java
+com/miaokatze/gtsr/common/dimension/prosperity/ruins/ProsperityOutpostPlacer.java
+com/miaokatze/gtsr/common/dimension/framework/structure/StructureRegistry.java
 com/miaokatze/gtsr/config/Config.java"
   if [ ! -f "$SNAP5/com/miaokatze/gtsr/common/dimension/prosperity/ruins/ProsperitySurfaceScatter.java" ]; then
     echo "   FAIL：缺 P5 BASE 快照 $SNAP5/…/ProsperitySurfaceScatter.java"
@@ -518,6 +559,7 @@ com/miaokatze/gtsr/config/Config.java"
         echo "   FAIL：BASE 快照缺 $rel"; miss=$((miss + 1))
       fi
     done
+    rm -f "$BASE5/$PRE_P7_NEW"   # P5 era 还没有 PlacementGate（P7c 修正）
     [ "$miss" = "0" ] || FAILS=$((FAILS + 1))
     if grep -aq "prosperityCityBiomeGate" "$BASE5/com/miaokatze/gtsr/config/Config.java"; then
       echo "   FAIL：P5-BASE 树仍含 P6 新键 ⇒ P6 还原失败"; FAILS=$((FAILS + 1))
@@ -530,10 +572,12 @@ com/miaokatze/gtsr/config/Config.java"
     else
       echo "   BASE 侧确认无 P5 新键（快照有效）"
     fi
-    P5_SRC="$(prefix $BASE5)"
+    P5_SRC="$(src_list $BASE5)"
     MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8 -cp "$CP" \
       -sourcepath "$BASE5" -d "$OUT/p5-base-classes" $P5_SRC >"$OUT/p5-javac-base.log" 2>&1
     echo "COMPILE P5-BASE EXIT=$? ($(grep -ac 'error:' "$OUT/p5-javac-base.log") error)"
+    [ "$(grep -ac 'error:' "$OUT/p5-javac-base.log")" = "0" ] \
+      || { echo "   FAIL：P5-BASE 树编译失败（还原清单不完整，摘要对拍会退化成自比）"; FAILS=$((FAILS + 1)); } 
     # 工具源码同一份，只在 BASE classpath 上重编（证明本工具确实是双树可跑的）
     MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8 \
       -cp "$OUT/p5-base-classes;$CP" -sourcepath "$BASE5;tools/dim1" -d "$OUT/p5-base-tools" \
@@ -544,16 +588,18 @@ com/miaokatze/gtsr/config/Config.java"
     PS=${P5_AB_SEEDS:-4}; PR=${P5_AB_REGIONS:-4}
     # AFTER 侧经 BiomeBandHierarchyCheck 的 rollback 包装：把 P6 的三个键设回改造前口径，否则本判据
     # 会把"P6 的城窗重分布"误报成"P5 判据 3「可回退」不成立"（P6 自己的账在 [11c] 的表 4）。
-    MSYS2_ARG_CONV_EXCL='*' java $STD $LOG4J -cp "$OUT/p5-base-tools;$OUT/p5-base-classes;$CP" \
+    # P7c：两侧都在"跳过结构前序"的档上跑（-Dgtsr.skipStructure=1），让 SCAN/CHAIN 的逐位相同
+    # 真正只隔离散布那一件事（P7/P7c 之后结构前序本身是被改判的量）；结构侧判据在 [12]/[13]。
+    MSYS2_ARG_CONV_EXCL='*' java $STD $LOG4J -Dgtsr.skipStructure=1 -cp "$OUT/p5-base-tools;$OUT/p5-base-classes;$CP" \
       Dim78ScatterDensityCheck digest $PS $PR 16 >"$OUT/p5-digest-base.txt" 2>&1
     eb=$?
-    MSYS2_ARG_CONV_EXCL='*' java $STD $LOG4J -cp "$OUT/tools;$OUT/classes;$CP" \
+    MSYS2_ARG_CONV_EXCL='*' java $STD $LOG4J -Dgtsr.skipStructure=1 -cp "$OUT/tools;$OUT/classes;$CP" \
       BiomeBandHierarchyCheck rollback Dim78ScatterDensityCheck digest $PS $PR 16 >"$OUT/p5-digest-after.txt" 2>&1
     ea=$?
     # digest 模式在 AFTER 树上跑的就是"四键设回旧值"那一行（ProsperitySurfaceScatter 的 B0 档），
     # 因此 SCAN 行与 CHAIN 行应当逐字相同：前者 = 回退位级复现，后者 = 判据 5 非散布路径零漂移。
-    n=$(diff <(grep -a "^SCAN\|^CHAIN" "$OUT/p5-digest-base.txt") \
-             <(grep -a "^SCAN\|^CHAIN" "$OUT/p5-digest-after.txt") | grep -ac "^[<>]")
+    n=$(diff <(grep -a "^SCAN\|^CHAIN " "$OUT/p5-digest-base.txt") \
+             <(grep -a "^SCAN\|^CHAIN " "$OUT/p5-digest-after.txt") | grep -ac "^[<>]")
     db=$(grep -ao "digest=[0-9a-f]*" "$OUT/p5-digest-base.txt" | head -1 | cut -d= -f2)
     da=$(grep -ao "digest=[0-9a-f]*" "$OUT/p5-digest-after.txt" | head -1 | cut -d= -f2)
     cb=$(grep -ao "chimColPerChunk=[0-9.]*" "$OUT/p5-digest-base.txt" | head -1 | cut -d= -f2)
@@ -637,6 +683,10 @@ com/miaokatze/gtsr/config/Config.java"
   P6_BASE_FILES="com/miaokatze/gtsr/common/dimension/framework/BiomeZoneSelector.java
 com/miaokatze/gtsr/common/dimension/framework/GTSRWorldChunkManager.java
 com/miaokatze/gtsr/common/dimension/prosperity/ruins/city/CityPlanner.java
+com/miaokatze/gtsr/common/dimension/prosperity/ruins/ProsperityWorldGenerator.java
+com/miaokatze/gtsr/common/dimension/prosperity/ruins/RuinedMachinePlacer.java
+com/miaokatze/gtsr/common/dimension/prosperity/ruins/ProsperityOutpostPlacer.java
+com/miaokatze/gtsr/common/dimension/framework/structure/StructureRegistry.java
 com/miaokatze/gtsr/config/Config.java"
   if [ ! -f "$SNAP6/com/miaokatze/gtsr/common/dimension/prosperity/ruins/city/CityPlanner.java" ]; then
     echo "   FAIL：缺 P6 BASE 快照 $SNAP6/…/CityPlanner.java（必须先自建 = 本片开工前工作树副本）"
@@ -654,16 +704,19 @@ com/miaokatze/gtsr/config/Config.java"
         echo "   FAIL：BASE 快照缺 $rel"; miss=$((miss + 1))
       fi
     done
+    rm -f "$BASE6/$PRE_P7_NEW"   # P5 era（P6 开工前）还没有 PlacementGate（P7c 修正）
     [ "$miss" = "0" ] || FAILS=$((FAILS + 1))
     if grep -aq "prosperityCityBiomeGate" "$BASE6/com/miaokatze/gtsr/config/Config.java"; then
       echo "   FAIL：BASE 侧 Config 已含 P6 新键 ⇒ 快照不是开工前形态"; FAILS=$((FAILS + 1))
     else
       echo "   BASE 侧确认无 P6 新键（快照有效）"
     fi
-    P6_SRC="$(prefix $BASE6)"
+    P6_SRC="$(src_list $BASE6)"
     MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8 -cp "$CP" \
       -sourcepath "$BASE6" -d "$OUT/p6-base-classes" $P6_SRC >"$OUT/p6-javac-base.log" 2>&1
     echo "COMPILE P6-BASE EXIT=$? ($(grep -ac 'error:' "$OUT/p6-javac-base.log") error)"
+    [ "$(grep -ac 'error:' "$OUT/p6-javac-base.log")" = "0" ] \
+      || { echo "   FAIL：P6-BASE 树编译失败（还原清单不完整，[11a] 的 0 差异会是假绿）"; FAILS=$((FAILS + 1)); } 
 
     # [11a] 表层/高度/群系面 512 chunk 逐字节对拍（AFTER 侧三个 P6 键回退到改造前口径）
     MSYS2_ARG_CONV_EXCL='*' java $STD $LOG4J -cp "$OUT/tools;$OUT/p6-base-classes;$CP" \
@@ -762,10 +815,10 @@ com/miaokatze/gtsr/config/Config.java"
   fi
 
   # ── [12] P7 结构放置契约（任务包判据 1/2/3/6/8 的真地形档 + 单变量 RED→GREEN） ──
-  echo "== [12] P7 结构放置契约：真地形 16384 chunk 四张表 + 影子树单变量 RED =="
+  echo "== [12] P7/P7c 结构放置契约：真地形 16384 chunk 六张表 + 影子树单变量 RED =="
   run "PlacementContractCheck all 8 8（T2 接地逐点 / T3 列扫对账 / T4 贴脸率三档 / T5 落点位移）" \
     PlacementContractCheck all 8 8
-  echo "   明细：$OUT/PlacementContractCheck-all.out（表行以 # P7B-T 开头；C6 = 已上报待裁决项）"
+  echo "   明细：$OUT/PlacementContractCheck-all.out（T2..T7 六张表；P7c 后 C6 与 C5/C5b/C6b/C6c/C7/C8/C9/C10/G1 全绿）"
   P7RED=temp/p7-red-shadow; P7REDCLS=$OUT/p7-red-classes
   P7_RED_SRC=$(echo "$REL" | sed 's|^|temp/p7-red-shadow/|' | tr '\n' ' ')
   p7red() { # p7red <标签> <sed 表达式> <目标文件> <工具参数...>——同 p6red 口径，只改影子树
@@ -800,12 +853,122 @@ com/miaokatze/gtsr/config/Config.java"
   p7red R2_MACHINE_LIE 's|return permit.commit(counter.solid());|return true;|' "$F_MC" all 1 8
   rm -rf "$P7RED" "$P7REDCLS" "$OUT/p7-red-tools"
   echo "   P7 合计 assertions=$(total_assertions PlacementContractCheck)"
+
+  # ── [13] P7c：结构 H-2 语义改判（窗上限 = 命中集条件、贴脸 = 同族间距） ──
+  # 三件事：① 非本片路径零漂移（表层/高度/群系/散布档 512 chunk 逐字节，BASE = 本片开工前快照）；
+  #        ② CHAIN 硬门槛 GREEN（Dim78ScatterDensityCheck 结构命中为 0 必须判红）；
+  #        ③ 四个单变量 RED：窗上限退回排名配额 / 上限退化成"只数首次" / 间距档默认改 0 /
+  #           两 placer 的 roll 整段静默失效（CHAIN 归零）。
+  echo "== [13] P7c 结构 H-2 语义改判：零漂移对拍 + CHAIN 硬门槛 + 四条单变量 RED =="
+  BASE7C=temp/p7c-base/all
+  SNAP7C=temp/p7c-base/src/main/java
+  P7C_BASE_FILES="com/miaokatze/gtsr/common/dimension/framework/structure/PlacementGate.java
+com/miaokatze/gtsr/common/dimension/framework/structure/StructureRegistry.java
+com/miaokatze/gtsr/common/dimension/prosperity/ruins/ProsperityWorldGenerator.java
+com/miaokatze/gtsr/common/dimension/prosperity/ruins/RuinedMachinePlacer.java
+com/miaokatze/gtsr/common/dimension/prosperity/ruins/ProsperityOutpostPlacer.java
+com/miaokatze/gtsr/config/Config.java"
+  if [ ! -f "$SNAP7C/com/miaokatze/gtsr/common/dimension/framework/structure/PlacementGate.java" ]; then
+    echo "   FAIL：缺 P7c BASE 快照 $SNAP7C/…/PlacementGate.java（必须是本片第一个写入之前的工作树副本）"
+    FAILS=$((FAILS + 1))
+  else
+    rm -rf "$BASE7C" ; mkdir -p "$BASE7C/com" "$OUT/p7c-base-classes"
+    cp -a src/main/java/. "$BASE7C/"
+    miss7c=0
+    for rel in $P7C_BASE_FILES; do
+      if [ -f "$SNAP7C/$rel" ]; then
+        cp "$SNAP7C/$rel" "$BASE7C/$rel"
+      else
+        echo "   FAIL：P7c BASE 快照缺 $rel"; miss7c=$((miss7c + 1))
+      fi
+    done
+    [ "$miss7c" = "0" ] || FAILS=$((FAILS + 1))
+    # 反假绿：BASE 侧必须"还没有 P7c 的新键"，否则快照其实是改造后
+    if grep -aq "prosperityStructureFamilyGapChunks" "$BASE7C/com/miaokatze/gtsr/config/Config.java"; then
+      echo "   FAIL：P7c-BASE 侧 Config 已含 prosperityStructureFamilyGapChunks ⇒ 快照不是开工前形态"
+      FAILS=$((FAILS + 1))
+    else
+      echo "   P7c-BASE 侧确认无间距新键（快照有效）"
+    fi
+    P7C_SRC="$(prefix $BASE7C)"
+    MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8 -cp "$CP" \
+      -sourcepath "$BASE7C" -d "$OUT/p7c-base-classes" $P7C_SRC >"$OUT/p7c-javac-base.log" 2>&1
+    echo "COMPILE P7C-BASE EXIT=$? ($(grep -ac 'error:' "$OUT/p7c-javac-base.log") error)"
+    [ "$(grep -ac 'error:' "$OUT/p7c-javac-base.log")" = "0" ] \
+      || { echo "   FAIL：P7c-BASE 树编译失败"; FAILS=$((FAILS + 1)); }
+    MSYS2_ARG_CONV_EXCL='*' java $STD $LOG4J -cp "$OUT/tools;$OUT/classes;$CP" \
+      SurfaceByteParityDump 16 >"$OUT/p7c-parity-after.txt" 2>"$OUT/p7c-parity-after.err"
+    MSYS2_ARG_CONV_EXCL='*' java $STD $LOG4J -cp "$OUT/tools;$OUT/p7c-base-classes;$CP" \
+      SurfaceByteParityDump 16 >"$OUT/p7c-parity-base.txt" 2>"$OUT/p7c-parity-base.err"
+    n7c=$(diff "$OUT/p7c-parity-base.txt" "$OUT/p7c-parity-after.txt" | grep -ac "^[<>]")
+    c7c=$(grep -ac "^CHUNK" "$OUT/p7c-parity-after.txt")
+    d78_7c=$(grep -ac "^CHUNK dim=78" "$OUT/p7c-parity-after.txt")
+    d79_7c=$(grep -ac "^CHUNK dim=79" "$OUT/p7c-parity-after.txt")
+    echo "   [13a] 非本片路径逐字节对拍 chunks=$c7c (dim78=$d78_7c dim79=$d79_7c) diff_lines=$n7c"
+    [ "$n7c" = "0" ] || { echo "   FAIL：表层/高度/群系/散布档出现漂移（$n7c 行）⇒ P7c 越界"; FAILS=$((FAILS + 1)); }
+
+    # [13b] CHAIN 硬门槛 GREEN：默认档下结构命中必须非零（P7b 现场是 0/0/0 且静默通过）
+    run "Dim78ScatterDensityCheck digest 8 2（P5 摘要 + P7c CHAIN 硬门槛）" \
+      Dim78ScatterDensityCheck digest 8 2
+    grep -a "^CHAIN-GATE" "$OUT/Dim78ScatterDensityCheck-digest.out" | cut -c1-170 | sed 's/^/     /'
+    grep -aq "CHAIN-GATE .* verdict=OK" "$OUT/Dim78ScatterDensityCheck-digest.out" \
+      || { echo "   FAIL：CHAIN-GATE 未出 OK（结构命中被判红或门槛行缺失）"; FAILS=$((FAILS + 1)); }
+
+    # [13c] 四条单变量 RED（影子树，绝不碰工作树）
+    P7CRED=temp/p7c-red-shadow; P7CREDCLS=$OUT/p7c-red-classes
+    P7C_RED_SRC=$(echo "$REL" | sed 's|^|temp/p7c-red-shadow/|' | tr '\n' ' ')
+    p7cred() { # p7cred <标签> <sed 表达式> <目标文件> <工具类> <工具参数...>
+      local label="$1" expr="$2" file="$3" tool="$4"; shift 4
+      rm -rf "$P7CRED" "$P7CREDCLS" "$OUT/p7c-red-tools"; mkdir -p "$P7CREDCLS" "$OUT/p7c-red-tools"
+      cp -a src/main/java "$P7CRED"
+      sed -i "$expr" "$P7CRED/$file"
+      cmp -s "$P7CRED/$file" "src/main/java/$file" \
+        && { echo "   $label 注入未生效（影子文件与工作树相同）"; FAILS=$((FAILS + 1)); }
+      MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8 -cp "$CP" \
+        -sourcepath "$P7CRED" -d "$P7CREDCLS" $P7C_RED_SRC >"$OUT/p7c-red-$label-javac.log" 2>&1
+      if [ $? -ne 0 ]; then echo "   $label 影子树编译失败（脚本坏了，不是 RED）"; FAILS=$((FAILS + 1)); fi
+      MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8 \
+        -cp "$P7CREDCLS;$CP" -sourcepath "$P7CRED;tools/dim1" -d "$OUT/p7c-red-tools" \
+        tools/dim1/SurfaceHarness.java tools/dim1/Dim78ScatterDensityCheck.java \
+        tools/dim1/PlacementContractCheck.java tools/dim1/gregtech/api/GregTechAPI.java \
+        >"$OUT/p7c-red-$label-tooljavac.log" 2>&1
+      if [ $? -ne 0 ]; then echo "   $label 工具影子编译失败（脚本坏了，不是 RED）"; FAILS=$((FAILS + 1)); fi
+      MSYS2_ARG_CONV_EXCL='*' java $STD -Xmx2g -cp "$OUT/p7c-red-tools;$P7CREDCLS;$CP" "$tool" "$@" \
+        >"$OUT/p7c-red-$label.txt" 2>&1
+      local er=$?
+      grep -a "^  FAIL" "$OUT/p7c-red-$label.txt" | head -4 | cut -c1-150 | sed "s/^/     /"
+      tail -1 "$OUT/p7c-red-$label.txt" | cut -c1-150 | sed "s/^/     /"
+      echo "     $label EXIT=$er（RED 必须非 0）log=$OUT/p7c-red-$label.txt"
+      [ "$er" != "0" ] || { echo "   FAIL：$label 未变红 ⇒ 判据对这类破坏不敏感（假绿）"; FAILS=$((FAILS + 1)); }
+      return $er
+    }
+    F_GATE=com/miaokatze/gtsr/common/dimension/framework/structure/PlacementGate.java
+    F_CFG=com/miaokatze/gtsr/config/Config.java
+    F_MC=com/miaokatze/gtsr/common/dimension/prosperity/ruins/RuinedMachinePlacer.java
+    F_OP=com/miaokatze/gtsr/common/dimension/prosperity/ruins/ProsperityOutpostPlacer.java
+    # R1：窗上限退回 P7/P7b 的"排名配额"（与掷骰独立 ⇒ 密度乘子）⇒ C5/C6/C8 必须变红
+    p7cred R1_RANKING_QUOTA 's|final long mine = windowRepeatHash(worldSeed, cx, cz, templateName);|if (cap >= 0) { return ProsperitySurfaceScatter.windowAllows(worldSeed, cx, cz, templateIdOf(templateName), cap); }\n        final long mine = windowRepeatHash(worldSeed, cx, cz, templateName);|' \
+      "$F_GATE" PlacementContractCheck census 8 8
+    # R2：语义退化成"只数首次"（cap 档位被忽略，等价 cap≡1）⇒ C6b/C8/A5b 必须变红
+    p7cred R2_ONLY_FIRST 's|if (++ahead >= cap) {|if (++ahead >= 1) {|' "$F_GATE" PlacementContractCheck census 8 8
+    # R3：默认间距档改回 0（治疗被关掉）⇒ A0 申报与 C10 都必须变红
+    p7cred R3_GAP_OFF 's|public static int prosperityStructureFamilyGapChunks = 1;|public static int prosperityStructureFamilyGapChunks = 0;|' \
+      "$F_CFG" PlacementContractCheck source
+    # R4：两 placer 的 roll 整段静默失效（= P7b 的 CHAIN 0/0/0 现场）⇒ CHAIN 硬门槛必须判红
+    p7cred R4_CHAIN_DEAD 's|final Random r = new Random(GTSRWorldgenHash.chunkSeed(worldSeed, cx, cz) . SALT_MACHINE);|if (chance >= 0) { return null; }\n        final Random r = new Random(GTSRWorldgenHash.chunkSeed(worldSeed, cx, cz) ^ SALT_MACHINE);|' \
+      "$F_MC" Dim78ScatterDensityCheck digest 4 4
+    p7cred R4b_CHAIN_DEAD 's|final Random r = new Random(GTSRWorldgenHash.chunkSeed(worldSeed, cx, cz) . SALT_OUTPOST);|if (chance >= 0) { return null; }\n        final Random r = new Random(GTSRWorldgenHash.chunkSeed(worldSeed, cx, cz) ^ SALT_OUTPOST);|' \
+      "$F_OP" Dim78ScatterDensityCheck digest 4 4
+    rm -rf "$P7CRED" "$P7CREDCLS" "$OUT/p7c-red-tools"
+    run "PlacementContractCheck census 8 8（RED 后工作树复位 GREEN）" PlacementContractCheck census 8 8
+    run "Dim78ScatterDensityCheck digest 8 2（RED 后工作树复位 GREEN）" Dim78ScatterDensityCheck digest 8 2
+  fi
 fi
 
 echo "== SUMMARY =="
 if [ "$FAILS" = "0" ]; then
-  echo "P2/P3/P4/P5/P6/P7 SURFACE CHECKS: ALL GREEN"
+  echo "P2/P3/P4/P5/P6/P7/P7c SURFACE CHECKS: ALL GREEN"
 else
-  echo "P2/P3/P4/P5/P6/P7 SURFACE CHECKS: $FAILS tool(s)/step(s) FAILED"
+  echo "P2/P3/P4/P5/P6/P7/P7c SURFACE CHECKS: $FAILS tool(s)/step(s) FAILED"
 fi
 [ "$FAILS" = "0" ]

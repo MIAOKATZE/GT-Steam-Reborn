@@ -121,8 +121,7 @@ public final class ProsperitySurfaceScatter {
             }
             // 只散布在锈变地表上（02 §3.2 代码 5 门；P4 起走框架单一谓词，集合见 SurfaceGate
             // roster 表：四自然 top ∪ prosperitySurface）
-            if (!SurfaceGate.isNaturalTop(DIM_KEY, SurfaceGate.landableTops(DIM_KEY),
-                world.getBlock(x, surfaceY, z))) {
+            if (!SurfaceGate.isNaturalTop(DIM_KEY, SurfaceGate.landableTops(DIM_KEY), world.getBlock(x, surfaceY, z))) {
                 continue;
             }
             final int y = surfaceY + 1;
@@ -138,8 +137,9 @@ public final class ProsperitySurfaceScatter {
                     placed = placeRivetPlate(builder, world, x, y, z);
                     break;
                 case KIND_CHIMNEY:
-                    placed = windowAllows(worldSeed, cx, cz, KIND_CHIMNEY,
-                        windowCapFor(KIND_CHIMNEY)) ? placeChimneyStub(builder, world, x, y, z, rand) : 0;
+                    placed = windowAllows(worldSeed, cx, cz, KIND_CHIMNEY, windowCapFor(KIND_CHIMNEY))
+                        ? placeChimneyStub(builder, world, x, y, z, rand)
+                        : 0;
                     break;
                 default:
                     placed = 0;
@@ -220,8 +220,8 @@ public final class ProsperitySurfaceScatter {
 
     /** 窗槽位哈希（盐隔离 + 模板隔离 + splitmix64 终结；同一 (seed,cx,cz,template) 恒同值）。 */
     private static long windowSlotHash(long worldSeed, int cx, int cz, int template) {
-        return GTSRWorldgenHash.splitmix64(
-            GTSRWorldgenHash.chunkSeed(worldSeed, cx, cz) ^ (SALT_WINDOW_RANK * (template + 1L)));
+        return GTSRWorldgenHash
+            .splitmix64(GTSRWorldgenHash.chunkSeed(worldSeed, cx, cz) ^ (SALT_WINDOW_RANK * (template + 1L)));
     }
 
     /**
@@ -254,8 +254,7 @@ public final class ProsperitySurfaceScatter {
             if (!world.isAirBlock(wx, y, wz)) {
                 break; // 让行规则：只长在空气里（02 §3.2）
             }
-            if (builder.setBlock(wx, y, wz, BlocksGTSR.ruinDebris, BlockRuinDebrisMeta.PIPE,
-                BlockSink.FLAG_POPULATE)) {
+            if (builder.setBlock(wx, y, wz, BlocksGTSR.ruinDebris, BlockRuinDebrisMeta.PIPE, BlockSink.FLAG_POPULATE)) {
                 placed++;
             }
         }
@@ -267,8 +266,8 @@ public final class ProsperitySurfaceScatter {
         if (!world.isAirBlock(x, y, z)) {
             return 0;
         }
-        return builder.setBlock(x, y, z, BlocksGTSR.ruinDebris, BlockRuinDebrisMeta.RIVET_PLATE,
-            BlockSink.FLAG_POPULATE) ? 1 : 0;
+        return builder
+            .setBlock(x, y, z, BlocksGTSR.ruinDebris, BlockRuinDebrisMeta.RIVET_PLATE, BlockSink.FLAG_POPULATE) ? 1 : 0;
     }
 
     /**
@@ -285,8 +284,8 @@ public final class ProsperitySurfaceScatter {
             if (!world.isAirBlock(x, y + i, z)) {
                 break; // 让行规则：只长在空气里
             }
-            if (builder.setBlock(x, y + i, z, BlocksGTSR.ruinDebris, BlockRuinDebrisMeta.CHIMNEY,
-                BlockSink.FLAG_POPULATE)) {
+            if (builder
+                .setBlock(x, y + i, z, BlocksGTSR.ruinDebris, BlockRuinDebrisMeta.CHIMNEY, BlockSink.FLAG_POPULATE)) {
                 placed++;
             }
         }

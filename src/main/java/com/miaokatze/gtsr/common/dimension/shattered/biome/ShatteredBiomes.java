@@ -63,18 +63,45 @@ public final class ShatteredBiomes {
         if (start > maxId) {
             GTSteamReborn.LOG.warn(
                 "[GTSR] shatteredBiomeIdStart={} exceeds usable ceiling {} (byte-plane hard max {})"
-                    + " — no slot will be allocated, check config", start, maxId, GTSRBiomeBase.HARD_ID_MAX);
+                    + " — no slot will be allocated, check config",
+                start,
+                maxId,
+                GTSRBiomeBase.HARD_ID_MAX);
         }
         final Map<Integer, String> scannedOccupants = new LinkedHashMap<>();
         int registered = 0;
-        registered += attachBiome(def, start + 0, BiomeAshenPrairie.WEIGHT, BiomeAshenPrairie::new, BiomeId.ASHEN_PRAIRIE,
-            maxId, scannedOccupants);
-        registered += attachBiome(def, start + 1, BiomeSlagwoodGrove.WEIGHT, BiomeSlagwoodGrove::new, BiomeId.SLAGWOOD_GROVE,
-            maxId, scannedOccupants);
-        registered += attachBiome(def, start + 2, BiomeVitreousWaste.WEIGHT, BiomeVitreousWaste::new, BiomeId.VITREOUS_WASTE,
-            maxId, scannedOccupants);
-        registered += attachBiome(def, start + 3, BiomeTarBasin.WEIGHT, BiomeTarBasin::new, BiomeId.TAR_BASIN,
-            maxId, scannedOccupants);
+        registered += attachBiome(
+            def,
+            start + 0,
+            BiomeAshenPrairie.WEIGHT,
+            BiomeAshenPrairie::new,
+            BiomeId.ASHEN_PRAIRIE,
+            maxId,
+            scannedOccupants);
+        registered += attachBiome(
+            def,
+            start + 1,
+            BiomeSlagwoodGrove.WEIGHT,
+            BiomeSlagwoodGrove::new,
+            BiomeId.SLAGWOOD_GROVE,
+            maxId,
+            scannedOccupants);
+        registered += attachBiome(
+            def,
+            start + 2,
+            BiomeVitreousWaste.WEIGHT,
+            BiomeVitreousWaste::new,
+            BiomeId.VITREOUS_WASTE,
+            maxId,
+            scannedOccupants);
+        registered += attachBiome(
+            def,
+            start + 3,
+            BiomeTarBasin.WEIGHT,
+            BiomeTarBasin::new,
+            BiomeId.TAR_BASIN,
+            maxId,
+            scannedOccupants);
         logAllocation(def, start, maxId, registered, scannedOccupants);
     }
 
@@ -84,15 +111,16 @@ public final class ShatteredBiomes {
      * @return 实际注册数（0 或 1）
      */
     private static int attachBiome(GTSRDimensionDef def, int preferredId, int weight,
-        IntFunction<? extends GTSRBiomeBase> factory, BiomeId key, int maxId,
-        Map<Integer, String> scannedOccupants) {
+        IntFunction<? extends GTSRBiomeBase> factory, BiomeId key, int maxId, Map<Integer, String> scannedOccupants) {
         final int actualId = GTSRBiomeBase.allocate(preferredId, maxId, occupiedId -> {
             final String owner = GTSRBiomeBase.occupantName(occupiedId);
             if (occupiedId == preferredId) {
                 GTSRBiomeAuthority.recordPreferredOccupant(key, preferredId, owner);
                 GTSteamReborn.LOG.warn(
                     "[GTSR] shattered slot {} already occupied by {} (owner snapshot; {} slides forward)",
-                    preferredId, owner, key.name());
+                    preferredId,
+                    owner,
+                    key.name());
             } else {
                 scannedOccupants.put(occupiedId, owner);
             }
@@ -104,7 +132,10 @@ public final class ShatteredBiomes {
                 preferredId <= maxId ? GTSRBiomeBase.occupantName(preferredId) : "out of range");
             GTSteamReborn.LOG.error(
                 "[GTSR] shattered biome {} got NO slot in {}..{} (byte-plane ceiling {}) — roster degrades",
-                key.name(), preferredId, maxId, GTSRBiomeBase.HARD_ID_MAX);
+                key.name(),
+                preferredId,
+                maxId,
+                GTSRBiomeBase.HARD_ID_MAX);
             return 0;
         }
         final GTSRBiomeBase biome = factory.apply(actualId);
@@ -131,7 +162,8 @@ public final class ShatteredBiomes {
             maxId,
             registered,
             BIOME_SLOT_COUNT,
-            def.getBiomeTable().size());
+            def.getBiomeTable()
+                .size());
         if (!scannedOccupants.isEmpty()) {
             final StringBuilder sb = new StringBuilder();
             int shown = 0;
@@ -149,8 +181,7 @@ public final class ShatteredBiomes {
                     .append('=')
                     .append(e.getValue());
             }
-            GTSteamReborn.LOG
-                .info("[GTSR] shattered scan passed occupied slots: [{}] (owner snapshot)", sb);
+            GTSteamReborn.LOG.info("[GTSR] shattered scan passed occupied slots: [{}] (owner snapshot)", sb);
         }
         if (degraded == GTSRBiomeAuthority.Degraded.EMPTY) {
             GTSteamReborn.LOG.error(
@@ -219,8 +250,7 @@ public final class ShatteredBiomes {
         }
         for (final GTSRBiomeAuthority.BiomeId key : GTSRBiomeAuthority.BiomeId.values()) {
             if (key.dimKey()
-                .equals(GTSRBiomeAuthority.DIM_KEY_SHATTERED)
-                && authority.actualIdOf(key) == biome.biomeID) {
+                .equals(GTSRBiomeAuthority.DIM_KEY_SHATTERED) && authority.actualIdOf(key) == biome.biomeID) {
                 return key;
             }
         }

@@ -148,15 +148,14 @@ public class GTSRWorldChunkManager extends WorldChunkManager {
         if (this.bandDelegate == null || this.selectorTable == null) {
             return -1;
         }
-        return BiomeZoneSelector
-            .bandIdentity(
-                this.bandDelegate,
-                this.seed,
-                chunkX,
-                chunkZ,
-                this.selectorTable.length,
-                this.selectorWeights,
-                this.macroCell);
+        return BiomeZoneSelector.bandIdentity(
+            this.bandDelegate,
+            this.seed,
+            chunkX,
+            chunkZ,
+            this.selectorTable.length,
+            this.selectorWeights,
+            this.macroCell);
     }
 
     /** 本维 macro 带尺度（chunk，已合法性化；离线自检与日志用）。 */
@@ -183,11 +182,10 @@ public class GTSRWorldChunkManager extends WorldChunkManager {
      */
     public GTSRBiomeAuthority.Degraded degraded() {
         if (this.dimKey == null) {
-            return this.weightedBiomes == null
-                ? GTSRBiomeAuthority.Degraded.EMPTY
-                : GTSRBiomeAuthority.Degraded.NONE;
+            return this.weightedBiomes == null ? GTSRBiomeAuthority.Degraded.EMPTY : GTSRBiomeAuthority.Degraded.NONE;
         }
-        return GTSRBiomeAuthority.forDimKey(this.dimKey).degraded();
+        return GTSRBiomeAuthority.forDimKey(this.dimKey)
+            .degraded();
     }
 
     /** 是否为空表降级（表层/装饰消费侧的便捷判定）。 */
@@ -207,13 +205,8 @@ public class GTSRWorldChunkManager extends WorldChunkManager {
      * 掩码（非负 31 位）也原样保留，取自 {@link GTSRWorldgenHash#NON_NEGATIVE_31}。
      */
     private int hash(int chunkX, int chunkZ) {
-        final long h = GTSRWorldgenHash.mixSeed(
-            this.seed,
-            chunkX,
-            chunkZ,
-            GTSRWorldgenHash.CELL_MUL_X,
-            GTSRWorldgenHash.SPLITMIX_INCREMENT,
-            0L);
+        final long h = GTSRWorldgenHash
+            .mixSeed(this.seed, chunkX, chunkZ, GTSRWorldgenHash.CELL_MUL_X, GTSRWorldgenHash.SPLITMIX_INCREMENT, 0L);
         return (int) (GTSRWorldgenHash.splitmix64(h) & GTSRWorldgenHash.NON_NEGATIVE_31);
     }
 

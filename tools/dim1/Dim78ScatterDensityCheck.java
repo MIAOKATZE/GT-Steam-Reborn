@@ -94,6 +94,18 @@ public final class Dim78ScatterDensityCheck {
      *  故用反射读回并核对（{@link #assertWindowSideLengthMatchesProduction()}）。 */
     static final int WINDOW_CHUNKS = 16;
 
+    /**
+     * P7c：结构前序的显式跳过开关（{@code -Dgtsr.skipStructure=1}）。
+     * <b>为什么需要</b>：[10] 的判据对象是"散布的回退位 == 改造前逐位相同"，而散布看得见 outpost/机器
+     * 已经落进网格的 's' 板面（生产 populate 语义）。P7/P7c 之后结构前序本身是被改判的量
+     * （接地改道 + 窗上限/间距），拿"含前序污染的整表"去要求逐位相同，测的就不再是散布那一件事。
+     * 置 1 后 SCAN 行在<b>净地形</b>上对拍（比 P5 原口径更严格隔离），结构侧另有
+     * {@code PlacementContractCheck} 的 T4/T7 与 {@link Sampler#assertChainAlive()} 负责。
+     * CHAIN 行在该档下两侧同为 0（禁用位语义，见 {@code CHAIN-GATE SKIPPED-BY-CONFIG} 同级处理）。
+     */
+    static final boolean SKIP_STRUCTURE_STAGES =
+        "1".equals(System.getProperty("gtsr.skipStructure", "0"));
+
     /** 一行参数 = 扫描表的一行。 */
     public static final class Row {
 
@@ -179,6 +191,10 @@ public final class Dim78ScatterDensityCheck {
         System.out.println("P5-DENSITY mode=" + mode + " seeds=" + seeds + " regionsPerSeed=" + regions
             + " treeFieldsMissing=" + MISSING_FIELDS.size()
             + (MISSING_FIELDS.isEmpty() ? "" : " " + MISSING_FIELDS));
+        // P7c 判据 4：CHAIN 硬门槛（结构命中为 0 必须判红，不再让散布行的绿灯掩盖整条结构链）
+        if (sampler.assertChainAlive() != 0) {
+            System.exit(1);
+        }
     }
 
     private static int intArg(String[] args, int i, int def) {
@@ -293,7 +309,6 @@ public final class Dim78ScatterDensityCheck {
             final byte[] scratchMeta = new byte[65536];
             for (int si = 0; si < seeds; si++) {
                 final long seed = SEEDS[si % SEEDS.length];
-                final GTSRChunkProviderBase provP = new ChunkProviderProsperityRuins(SurfaceHarness.mockWorld(), seed);
                 final GTSRWorldChunkManager mgrP = new GTSRWorldChunkManager(seed, defP);
                 for (int r = 0; r < regions; r++) {
                     // 区原点两轴都按 16 对齐 ⇒ 每区 == 恰好一个 H-2 窗；并按 3/5 个群系带 cell
@@ -301,9 +316,16 @@ public final class Dim78ScatterDensityCheck {
                     final int cx0 = r * axis * 3 + si * 4096;
                     final int cz0 = r * axis * 5 + si * 924816;
                     final Block[] grid = new Block[side * side * 256];
-                    materialize(provP, mgrP, seed, cx0, cz0, grid, scratch, scratchMeta);
                     final GridWorld world = world(grid, cx0, cz0, seed, side);
-                    runPreScatterStages(world, seed, cx0, cz0);
+                    // P7c：provider 必须挂在<b>本区世界</b>上（改造前挂 mockWorld）。generateTerrain 取的是
+                    // {@code this.worldObj.getSeed()}，挂 mockWorld ⇒ 地形按 SurfaceHarness 的常数种子生成，
+                    // 而 P7 起的结构接地走 {@code heightAt(SEEDS[si],...)} ⇒ 两套高度系统性错位、
+                    // 就绪门整段拒（实测 digest 8 2 的 CHAIN 只剩 2 座 / 1209 块，改造前口径是 39/20193/19678）。
+                    final GTSRChunkProviderBase provP = new ChunkProviderProsperityRuins(world, seed);
+                    materialize(provP, mgrP, seed, cx0, cz0, grid, scratch, scratchMeta);
+                    if (!SKIP_STRUCTURE_STAGES) {
+                        runPreScatterStages(world, seed, cx0, cz0);
+                    }
                     final Block[] preScatter = grid.clone();
                     for (final Row row : rows) {
                         applySpec(row.overrideSpec());
@@ -422,6 +444,66 @@ public final class Dim78ScatterDensityCheck {
                 + " machineLanded=" + machineLanded + " preScatterChunks=" + preScatterChunks
                 + " cityWindowChunks=" + cityWindowChunks + " generatedChunks=" + generatedChunks
                 + "（这三项与参数行无关 = 判据 5 非散布路径的对照面）");
+        }
+
+        /**
+         * <b>CHAIN 硬门槛（P7c 判据 4）</b>：结构命中整段为 0 必须判红。
+         * <p>
+         * 为什么要这道闸：本工具过去只对散布行做断言，CHAIN 行只打印不判——P7b 实测默认档把城外结构
+         * 砍到 {@code 0/0/0} 时工具仍 EXIT=0 静默通过（同族几何下 P5 记的是 39/20193/19678），
+         * 这就是"看起来在判"的假绿现场。样本量 ≥ 256 chunk（= 一个 16×16 窗）时，outpost 的 1/64
+         * 与机器的 1/24 独立掷骰让"命中 0 座"在正常链上不可能出现，故 0 就是缺陷而不是稀疏。
+         *
+         * @return 0 = 通过；1 = 结构层静默失效（调用方据此决定退出码，不自己吞掉）
+         */
+        /** 反射读 1/N 概率键（缺键按"开着"= 1 处理 ⇒ 门槛不会因为 BASE 树没有该键而放松）。 */
+        private static int chanceOf(String key) {
+            try {
+                final Field f = findField(Class.forName("com.miaokatze.gtsr.config.Config"), key);
+                return f == null ? 1 : f.getInt(null);
+            } catch (ReflectiveOperationException e) {
+                return 1;
+            }
+        }
+
+        public int assertChainAlive() {
+            if (SKIP_STRUCTURE_STAGES) {
+                System.out.println("CHAIN-GATE SKIPPED-BY-FLAG（本跑用 -Dgtsr.skipStructure=1 显式跳过结构前序，"
+                    + "命中为 0 是档位的定义；结构侧判据见 PlacementContractCheck T4/T7 与本工具的默认档跑）");
+                return 0;
+            }
+            if (generatedChunks < 256) {
+                System.out.println("CHAIN-GATE SKIPPED（样本 " + generatedChunks + " chunk < 256 = 一个 H-2 窗，"
+                    + "不足以把\"命中 0 座\"判成缺陷）");
+                return 0;
+            }
+            // 逐族判：只死一族同样是静默失效（P7c 的 R4 单变量 RED 就是这个形状——机器 roll 整段 return
+            // null 时 outpost 侧仍可非 0，只判"合计非 0"会漏）。概率被显式设 0 = 禁用位，不是缺陷。
+            // 概率键走反射读（本文件按"零直接引用后起 Config 字段"的既有约定，BASE 树也要能跑）；
+            // 键缺失时按"开着"处理，宁严不松。
+            final boolean outpostEnabled = chanceOf("prosperityOutpostChance") > 0;
+            final boolean machineEnabled = chanceOf("prosperityMachineChance") > 0;
+            int bad = 0;
+            if (outpostEnabled && outpostHitChunks <= 0) {
+                bad++;
+            }
+            if (machineEnabled && machineLanded <= 0) {
+                bad++;
+            }
+            if (!outpostEnabled && !machineEnabled) {
+                System.out.println("CHAIN-GATE SKIPPED-BY-CONFIG（两族概率都被显式设 0 = 禁用位，"
+                    + "命中 0 是设计而不是缺陷；结构侧的判据见 PlacementContractCheck T4/T7）");
+                return 0;
+            }
+            System.out.println("CHAIN-GATE outpostEnabled=" + outpostEnabled + " machineEnabled="
+                + machineEnabled + " outpostHitChunks=" + outpostHitChunks + " outpostLanded=" + outpostLanded
+                + " machineLanded=" + machineLanded + " 样本chunk=" + generatedChunks
+                + " verdict=" + (bad == 0 ? "OK" : "FAIL"));
+            if (bad != 0) {
+                System.out.println("CHAIN-GATE FAIL：概率仍开着却整段没有结构命中/落块 ⇒ 结构层静默失效"
+                    + "（窗上限/间距/接地/概率任一把它们全砍光就是这里的现场；P7b 的 cap=2 排名配额即此类）");
+            }
+            return bad == 0 ? 0 : 1;
         }
     }
 

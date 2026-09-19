@@ -70,7 +70,7 @@ public class ProsperityWorldGenerator implements IWorldGenerator {
             "[GTSR] prosperity worldgen registered: dimId={} machines=5 outposts=6 {} scatterK={}/chunk"
                 + " scatterBlocks={}/chunk scatterAttempts={}/chunk scatterVertical={} scatterWindowCap={}"
                 + " scatterWeights={}/{}/{}/{} machineChance=1/{} outpostChance=1/{}"
-                + " structureBudget={}/chunk structureWindowCap={}",
+                + " structureBudget={}/chunk structureWindowCap={} structureFamilyGap={}",
             Config.prosperityDimId,
             StructureRegistry.names(),
             Config.prosperityScatterContoursPerChunk,
@@ -85,7 +85,9 @@ public class ProsperityWorldGenerator implements IWorldGenerator {
             Config.prosperityMachineChance,
             Config.prosperityOutpostChance,
             Config.prosperityStructureBudgetPerChunk,
-            Config.prosperityStructureWindowRepeatCap);
+            Config.prosperityStructureWindowRepeatCap,
+            // P7c：贴脸由同族间距档负责（0 = 关闭 = 回退位），一并回显便于实机一眼分辨治疗是否生效
+            Config.prosperityStructureFamilyGapChunks);
         GTSteamReborn.LOG.info(
             "[GTSR] prosperity city variants: {} registered (cell={} chance={}%)",
             CityVariants.ALL.length,
@@ -122,7 +124,8 @@ public class ProsperityWorldGenerator implements IWorldGenerator {
         // P7（plan §5 P7 / §2.2 H-3）：互斥与预算不再靠"outpost 说它成功了"这句话——本 chunk 建一个
         // PlacementGate.ChunkGate 交给两个 placer 共用，预算<b>只在真实落块后</b>由 Permit.commit 扣减，
         // 所以 outpost 若门通过却一块没落进世界，机器照常有机会（改造前那种"假成功吞掉互斥位"已闭合）。——
-        final PlacementGate.ChunkGate structureGate = PlacementGate.beginChunk(SurfaceGate.DIM78, worldSeed, chunkX, chunkZ);
+        final PlacementGate.ChunkGate structureGate = PlacementGate
+            .beginChunk(SurfaceGate.DIM78, worldSeed, chunkX, chunkZ);
         if (!ProsperityOutpostPlacer.placeAll(world, worldSeed, chunkX, chunkZ, sink, structureGate)) {
             // —— 3. 残缺机器（1/prosperityMachineChance × 群系机器权重，'C' 位=积碳壳，无 TE）——
             RuinedMachinePlacer.placeAll(
@@ -211,8 +214,8 @@ public class ProsperityWorldGenerator implements IWorldGenerator {
      * 故正常态（四群系连号）下逐位权重与改造前一致——由 BiomeAllocationCheck 场景 A 对拍钉住。
      */
     private static float biomeWeight(World world, int chunkX, int chunkZ, float[] table) {
-        final GTSRBiomeAuthority.Resolution resolution = GTSRBiomeAuthority.forDimension(
-            world.provider.dimensionId).ordinalAt((chunkX << 4) + 8, (chunkZ << 4) + 8);
+        final GTSRBiomeAuthority.Resolution resolution = GTSRBiomeAuthority.forDimension(world.provider.dimensionId)
+            .ordinalAt((chunkX << 4) + 8, (chunkZ << 4) + 8);
         return weightForRosterIndex(resolution.ordinal, table);
     }
 }

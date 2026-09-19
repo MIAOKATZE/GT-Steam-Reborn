@@ -48,8 +48,10 @@ import com.miaokatze.gtsr.config.Config;
  * {@code return true}（sink 一块都没收也计成功，编排器据此跳过机器、上层据此算密度）。现返回值 =
  * {@link PlacementGate.Permit#commit(int)} 的结果，入参是被 sink 接受的非空气落块数；0 块 ⇒ false
  * 且不扣预算。{@link #place} 的返回值同时从 {@code void} 改为写入次数（调用方忽略即向后兼容）。</li>
- * <li><b>门的一入口</b>：每 chunk 结构预算 / 同族互斥 / H-2 窗重复上限走 {@link PlacementGate}，
- * 可落地表 y 带的那对字面量也从本类与机器层各收一份进 {@link PlacementGate}（plan §2.4 判据 4）。</li>
+ * <li><b>门的一入口</b>：每 chunk 结构预算 / 同族互斥 / H-2① 窗重复上限 / H-2② 同族间距走
+ * {@link PlacementGate}，可落地表 y 带的那对字面量也从本类与机器层各收一份进 {@link PlacementGate}
+ * （plan §2.4 判据 4）。本类的掷骰自 P7c 起只有一个实现体 {@link #roll(long, int, int)}，
+ * 它同时服务 {@link #placeAll} 与门的命中重放口 {@link #OUTPOST_INTENT}。</li>
  * </ol>
  */
 public final class ProsperityOutpostPlacer {
@@ -337,8 +339,13 @@ public final class ProsperityOutpostPlacer {
 
     /**
      * populate 入口：掷频 1/{@link Config#prosperityOutpostChance}（0 = 禁用）→ 掷变体/朝向/损伤 →
-     * <b>过 {@link PlacementGate}（预算/互斥/H-2 窗上限）</b>→ 选点（<b>旋转后</b> footprint 收缩钳制在
-     * chunk 内）→ 逐列接地 + 就绪门 → 放置 → <b>按真实落块数兑现许可</b>。
+     * <b>过 {@link PlacementGate}（预算/互斥/H-2① 窗重复上限/H-2② 同族间距）</b>→ 逐列接地 + 就绪门 →
+     * 放置 → <b>按真实落块数兑现许可</b>。
+     * <p>
+     * <b>P7c</b>：掷骰与选点收成唯一的 {@link #roll(long, int, int)}，与 {@link #intentAt(long, int, int)}
+     * （H-2 命中重放口）共用同一段实现体 ⇒ "本槽放不放" 与 "窗内别的槽放不放" 由同一份概率真值给出。
+     * 随机流消耗序列与 P7b 逐位相同（门判定不消费 {@code r}，且本类的放置用的是独立的
+     * {@code new Random(placeSeed)}），故落点/落块零漂移。
      *
      * @param gate 本 chunk 的结构门（编排器创建）；{@code null} = 自派生（与改造前等价）
      * @return true = 本 chunk <b>真实</b>落了至少一块的 outpost（编排器据此跳过残缺机器并扣预算）；
@@ -346,13 +353,100 @@ public final class ProsperityOutpostPlacer {
      */
     public static boolean placeAll(World world, long worldSeed, int cx, int cz, BlockSink sink,
         PlacementGate.ChunkGate gate) {
+        if (sink == null) {
+            return false;
+        }
+        final Roll roll = roll(worldSeed, cx, cz);
+        if (roll == null) {
+            return false; // 禁用位 / 未掷中 / footprint 超出单 chunk
+        }
+        // —— 结构侧唯一入口（P7/P7c）：预算 → 同族互斥 → H-2① 窗重复上限 → H-2② 同族间距。——
+        final PlacementGate.ChunkGate chunkGate = gate != null ? gate
+            : PlacementGate.beginChunk(DIM_KEY, worldSeed, cx, cz);
+        final PlacementGate.Permit permit = chunkGate
+            .request(PlacementGate.FAMILY_OUTPOST, roll.intent.templateName, OUTPOST_INTENT);
+        if (permit == null) {
+            return false;
+        }
+        final int x = roll.intent.originX;
+        final int z = roll.intent.originZ;
+        // 落点判定（P7 起与落地共用同一个接地供给器 PlacementGate.groundFn）：中心列取 heightAt——
+        // 改造前这一行走 findSurfaceY 列扫、落地却走 heightAt，同一个 chunk 内两套高度并存
+        // （审计 A-4/B-2，幅度实测见 plan/investigation/p7b-placement-contract-20260919.md 的 T3/T5）。
+        final CityVariants.GroundFn ground = PlacementGate.groundFn(worldSeed);
+        final int centerX = x + roll.rotatedX / 2;
+        final int centerZ = z + roll.rotatedZ / 2;
+        final int surfaceY = ground.groundY(centerX, centerZ);
+        if (!PlacementGate.readyAt(surfaceY, isNaturalProsperityTop(world.getBlock(centerX, surfaceY, centerZ)))) {
+            permit.abort(); // 未落块：显式归还，预算不扣
+            return false;
+        }
+        final PlacementGate.CountingSink counter = PlacementGate.counting(sink);
+        place(
+            new StructureBuilder(new CityBlockResolver(counter)),
+            roll.outpost,
+            x,
+            z,
+            roll.rot,
+            CityVariants.MISSING_RATES[CityVariants.damageTier(roll.placeSeed)],
+            new Random(roll.placeSeed),
+            ground,
+            BlockSink.FLAG_POPULATE);
+        return permit.commit(counter.solid());
+    }
+
+    /**
+     * H-2 命中重放入口（纯函数，供 {@link PlacementGate} 枚举窗内/邻域槽位）：槽位 (cx,cz) 在
+     * <b>没有任何窗上限/间距约束</b>时会请求哪个 outpost 变体、落在何处；{@code null} = 本槽不请求。
+     */
+    public static PlacementGate.Intent intentAt(long worldSeed, int cx, int cz) {
+        final Roll roll = roll(worldSeed, cx, cz);
+        return roll == null ? null : roll.intent;
+    }
+
+    /** 本族给门用的命中重放口（生产侧唯一一份）。 */
+    public static final PlacementGate.IntentFn OUTPOST_INTENT = new PlacementGate.IntentFn() {
+
+        @Override
+        public PlacementGate.Intent intentAt(long worldSeed, int cx, int cz) {
+            return ProsperityOutpostPlacer.intentAt(worldSeed, cx, cz);
+        }
+    };
+
+    /** 一次 outpost 掷骰的全部产物（意图 + 放置细节；{@link #placeAll} 与 {@link #intentAt} 共用）。 */
+    private static final class Roll {
+
+        final PlacementGate.Intent intent;
+        final Outpost outpost;
+        final int rot;
+        final int rotatedX;
+        final int rotatedZ;
+        final long placeSeed;
+
+        Roll(PlacementGate.Intent intent, Outpost outpost, int rot, int rotatedX, int rotatedZ, long placeSeed) {
+            this.intent = intent;
+            this.outpost = outpost;
+            this.rot = rot;
+            this.rotatedX = rotatedX;
+            this.rotatedZ = rotatedZ;
+            this.placeSeed = placeSeed;
+        }
+    }
+
+    /**
+     * 掷骰的<b>唯一</b>实现体（P7c）：{@code nextInt(chance) → nextInt(变体) → 旋转 → nextInt(freeX+1)
+     * → nextInt(freeZ+1)}，顺序与 P7b 逐位一致，只是从 {@code placeAll} 的方法体里原样搬进来。
+     * 注意：放置细节（损伤档/缺失）走另一条盐 {@link #SALT_PLACE} 的 {@code new Random(placeSeed)}，
+     * 与本 {@code r} 无关，故本方法返回值里只需带 {@code placeSeed}。
+     */
+    private static Roll roll(long worldSeed, int cx, int cz) {
         final int chance = Config.prosperityOutpostChance;
-        if (chance <= 0 || sink == null) {
-            return false; // 0 = 禁用（plan S-A5 失败回退开关）
+        if (chance <= 0) {
+            return null; // 0 = 禁用（plan S-A5 失败回退开关）
         }
         final Random r = new Random(GTSRWorldgenHash.chunkSeed(worldSeed, cx, cz) ^ SALT_OUTPOST);
         if (r.nextInt(chance) != 0) {
-            return false;
+            return null;
         }
         final Outpost outpost = ALL[r.nextInt(ALL.length)];
         final long placeSeed = GTSRWorldgenHash.chunkSeed(worldSeed, cx, cz) ^ SALT_PLACE;
@@ -362,40 +456,17 @@ public final class ProsperityOutpostPlacer {
         final int freeX = 16 - rotated[0];
         final int freeZ = 16 - rotated[1];
         if (freeX < 0 || freeZ < 0) {
-            return false; // >16 格防御性跳过（≤16×16×12 契约下不应发生）
-        }
-        // —— 结构侧唯一入口（P7）：预算 → 同族互斥 → H-2 窗重复上限；不消费本类的随机流 ——
-        final PlacementGate.ChunkGate chunkGate =
-            gate != null ? gate : PlacementGate.beginChunk(DIM_KEY, worldSeed, cx, cz);
-        final PlacementGate.Permit permit = chunkGate.request(PlacementGate.FAMILY_OUTPOST, outpost.name);
-        if (permit == null) {
-            return false;
+            return null; // >16 格防御性跳过（≤16×16×12 契约下不应发生）
         }
         final int x = (cx << 4) + r.nextInt(freeX + 1);
         final int z = (cz << 4) + r.nextInt(freeZ + 1);
-        // 落点判定（P7 起与落地共用同一个接地供给器 PlacementGate.groundFn）：中心列取 heightAt——
-        // 改造前这一行走 findSurfaceY 列扫、落地却走 heightAt，同一个 chunk 内两套高度并存
-        // （审计 A-4/B-2，幅度实测见 plan/investigation/p7b-placement-contract-20260919.md 的 T3/T5）。
-        final CityVariants.GroundFn ground = PlacementGate.groundFn(worldSeed);
-        final int centerX = x + rotated[0] / 2;
-        final int centerZ = z + rotated[1] / 2;
-        final int surfaceY = ground.groundY(centerX, centerZ);
-        if (!PlacementGate.readyAt(surfaceY, isNaturalProsperityTop(world.getBlock(centerX, surfaceY, centerZ)))) {
-            permit.abort(); // 未落块：显式归还，预算不扣
-            return false;
-        }
-        final PlacementGate.CountingSink counter = PlacementGate.counting(sink);
-        place(
-            new StructureBuilder(new CityBlockResolver(counter)),
+        return new Roll(
+            new PlacementGate.Intent(outpost.name, x, z, rotated[0], rotated[1]),
             outpost,
-            x,
-            z,
             rot,
-            CityVariants.MISSING_RATES[CityVariants.damageTier(placeSeed)],
-            new Random(placeSeed),
-            ground,
-            BlockSink.FLAG_POPULATE);
-        return permit.commit(counter.solid());
+            rotated[0],
+            rotated[1],
+            placeSeed);
     }
 
     /**

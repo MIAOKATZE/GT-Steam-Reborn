@@ -72,6 +72,7 @@ public final class GTSRBiomeAuthority {
      * 新增群系必须在此登记——这是"名册单一真值"的 L1 侧投影。
      */
     public enum BiomeId {
+
         RUSTED_STEPPE(DIM_KEY_PROSPERITY, 0),
         GEARWORK_FOREST(DIM_KEY_PROSPERITY, 1),
         BRASS_WASTES(DIM_KEY_PROSPERITY, 2),
@@ -164,8 +165,7 @@ public final class GTSRBiomeAuthority {
 
         @Override
         public String toString() {
-            return (this.biomeId == null ? "(none)" : this.biomeId.name())
-                + "@"
+            return (this.biomeId == null ? "(none)" : this.biomeId.name()) + "@"
                 + this.actualId
                 + " degraded="
                 + this.degraded;
@@ -189,7 +189,8 @@ public final class GTSRBiomeAuthority {
     private GTSRBiomeAuthority(String dimKey) {
         this.dimKey = dimKey;
         for (final BiomeId id : BiomeId.values()) {
-            if (id.dimKey().equals(dimKey)) {
+            if (id.dimKey()
+                .equals(dimKey)) {
                 final Entry entry = new Entry(id);
                 this.roster.add(entry);
                 this.byKey.put(id, entry);
@@ -203,8 +204,7 @@ public final class GTSRBiomeAuthority {
      * 记录一次成功配槽（持有者在 {@code new BiomeXxx(actualId)} 之后立刻调用）。
      * 幂等：同名册成员重复记录以最后一次为准。
      */
-    public static synchronized void recordAllocation(BiomeId key, int preferredId, int actualId,
-        BiomeGenBase biome) {
+    public static synchronized void recordAllocation(BiomeId key, int preferredId, int actualId, BiomeGenBase biome) {
         final Entry entry = entryOf(key, preferredId);
         entry.actualId = actualId;
         entry.biome = biome;
@@ -274,9 +274,10 @@ public final class GTSRBiomeAuthority {
         }
         if (!UNBOUND.unboundWarned) {
             UNBOUND.unboundWarned = true;
-            GTSteamReborn.LOG
-                .warn("[GTSR] biome authority unbound for dimId={} (no chunk manager bound yet; "
-                    + "every lookup resolves as degraded=EMPTY)", dimId);
+            GTSteamReborn.LOG.warn(
+                "[GTSR] biome authority unbound for dimId={} (no chunk manager bound yet; "
+                    + "every lookup resolves as degraded=EMPTY)",
+                dimId);
         }
         return UNBOUND;
     }

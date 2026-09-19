@@ -36,6 +36,7 @@ import com.miaokatze.gtsr.main.GTSteamReborn;
  * {@code ReplaceSurfaceRuntimeCheck:401-403} 仍按旧名引用，见 plan §5 P4 允许改动 1/3）。
  * <p>
  * ═══ <b>单一真值表：可落地方块集 + 门通过率实测列</b>（plan §2.1 横切 roster / §5 P4 判据）═══
+ * 
  * <pre>
  * 三个口径（都是<b>列级</b>：每列用生产 findSurfaceY 取顶格方块，再过本谓词）：
  *   A「pristine 自然面」＝L3 表层缝铺完、未经任何 placer 写入；
@@ -65,14 +66,45 @@ import com.miaokatze.gtsr.main.GTSteamReborn;
  * shattered-lands(dim79)   | 4 |shatteredAshTop / SlagTop / GlassTop / TarTop |100.000| —     | 四 top 合计 100.000
  *                          |    |                                              | %     |（dim79 无编排链可跑）
  * </pre>
+ * 
  * <b>缺陷修复的净效应（同 seed 集 A/B 两跑，逐位可复现）</b>：
  * <table border="1">
- * <tr><th>量</th><th>改造前（装饰门只认四 top）</th><th>改造后（单一谓词 5 员）</th><th>差</th></tr>
- * <tr><td>口径 C 可落地列数</td><td>1 964 873（70.299 %）</td><td>1 965 841（70.334 %）</td><td>+968 列（+0.035 pp）</td></tr>
- * <tr><td>口径 B 可落地列数</td><td>2 771 192（99.148 %）</td><td>2 772 552（99.197 %）</td><td>+1 360 列（+0.049 pp）</td></tr>
- * <tr><td>装饰落块（口径 C 面＝生产口径）</td><td>66 583 块 / 6.0985 块·chunk⁻¹</td><td>66 637 块 / 6.1034 块·chunk⁻¹</td><td><b>+54 块（+0.0811 %）／+0.0049 块·chunk⁻¹</b></td></tr>
- * <tr><td>装饰落块（口径 A 面＝纯自然面）</td><td>100 158 块 / 9.1737 块·chunk⁻¹</td><td>100 158 块 / 9.1737 块·chunk⁻¹</td><td><b>0（逐块相同）</b></td></tr>
- * <tr><td>前序阶段（outpost 命中 / 机器 / 散布落块）</td><td>164 / 57 603 / 1 098 122</td><td>164 / 57 603 / 1 098 122</td><td>0（交叉校验：差异只来自装饰门）</td></tr>
+ * <tr>
+ * <th>量</th>
+ * <th>改造前（装饰门只认四 top）</th>
+ * <th>改造后（单一谓词 5 员）</th>
+ * <th>差</th>
+ * </tr>
+ * <tr>
+ * <td>口径 C 可落地列数</td>
+ * <td>1 964 873（70.299 %）</td>
+ * <td>1 965 841（70.334 %）</td>
+ * <td>+968 列（+0.035 pp）</td>
+ * </tr>
+ * <tr>
+ * <td>口径 B 可落地列数</td>
+ * <td>2 771 192（99.148 %）</td>
+ * <td>2 772 552（99.197 %）</td>
+ * <td>+1 360 列（+0.049 pp）</td>
+ * </tr>
+ * <tr>
+ * <td>装饰落块（口径 C 面＝生产口径）</td>
+ * <td>66 583 块 / 6.0985 块·chunk⁻¹</td>
+ * <td>66 637 块 / 6.1034 块·chunk⁻¹</td>
+ * <td><b>+54 块（+0.0811 %）／+0.0049 块·chunk⁻¹</b></td>
+ * </tr>
+ * <tr>
+ * <td>装饰落块（口径 A 面＝纯自然面）</td>
+ * <td>100 158 块 / 9.1737 块·chunk⁻¹</td>
+ * <td>100 158 块 / 9.1737 块·chunk⁻¹</td>
+ * <td><b>0（逐块相同）</b></td>
+ * </tr>
+ * <tr>
+ * <td>前序阶段（outpost 命中 / 机器 / 散布落块）</td>
+ * <td>164 / 57 603 / 1 098 122</td>
+ * <td>164 / 57 603 / 1 098 122</td>
+ * <td>0（交叉校验：差异只来自装饰门）</td>
+ * </tr>
  * </table>
  * <b>与冒烟 E6 的 82-86% 不是同一个估计量</b>：{@code plan/smoketest/41} 的
  * {@code topGatePass/attempt = 82.0-85.7%} 是真实服务器上<b>散布层逐 attempt</b>的值——scatter
@@ -213,15 +245,18 @@ public final class SurfaceGate {
             return "SurfaceGate(" + dimKey + ")=<未申报维度键，门恒关>";
         }
         final StringBuilder sb = new StringBuilder("SurfaceGate(");
-        sb.append(dimKey).append(")={");
+        sb.append(dimKey)
+            .append(")={");
         for (int i = 0; i < names.length; i++) {
             if (i > 0) {
                 sb.append(',');
             }
-            sb.append(names[i]).append('=')
+            sb.append(names[i])
+                .append('=')
                 .append(landableTops(dimKey)[i] == null ? "null" : System.identityHashCode(landableTops(dimKey)[i]));
         }
-        return sb.append('}').toString();
+        return sb.append('}')
+            .toString();
     }
 
     /** 未申报维度键（门恒关）一次性锚点。 */
@@ -229,9 +264,8 @@ public final class SurfaceGate {
         if (!UNBOUND_LOGGED.add("unbound/" + dimKey)) {
             return;
         }
-        GTSteamReborn.LOG.warn(
-            "[GTSR] SurfaceGate: dimKey={} 无申报可落地集合 ⇒ 地表门恒关（不铺任何装饰/结构落点；plan §2.1 L8）",
-            String.valueOf(dimKey));
+        GTSteamReborn.LOG
+            .warn("[GTSR] SurfaceGate: dimKey={} 无申报可落地集合 ⇒ 地表门恒关（不铺任何装饰/结构落点；plan §2.1 L8）", String.valueOf(dimKey));
     }
 
     /** 跨维集合误用一次性锚点。 */

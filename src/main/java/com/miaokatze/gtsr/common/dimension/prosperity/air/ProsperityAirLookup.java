@@ -40,8 +40,7 @@ public final class ProsperityAirLookup {
             return null;
         }
         final BiomeId key = GTSRBiomeAuthority.forDimension(world.provider.dimensionId)
-            .ordinalAt(x, z)
-            .biomeId;
+            .ordinalAt(x, z).biomeId;
         if (key == null) {
             return null;
         }

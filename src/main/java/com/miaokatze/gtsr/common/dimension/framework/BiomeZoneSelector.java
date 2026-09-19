@@ -145,8 +145,8 @@ public final class BiomeZoneSelector {
      * @param macroCell 带尺度（chunk；经 {@link #normalizeMacroCell} 合法性化，16 = 单层/改造前口径）
      * @return 群系权重表下标 ∈ [0, biomeCount)
      */
-    public static int bandIndex(
-        long seed, int chunkX, int chunkZ, int biomeCount, int[] weights, int macroCell, long salt) {
+    public static int bandIndex(long seed, int chunkX, int chunkZ, int biomeCount, int[] weights, int macroCell,
+        long salt) {
         final int cell = normalizeMacroCell(macroCell);
         if (cell == MICRO_CELL_CHUNKS) {
             // 单层口径：与改造前逐位相同（坐标不折算，直接按 chunk 走带算法）
@@ -171,19 +171,14 @@ public final class BiomeZoneSelector {
      * @param macroCell 带尺度（chunk）
      * @return 群系权重表下标 ∈ [0, biomeCount)
      */
-    public static int bandIdentity(
-        ZoneDelegate delegate, long seed, int chunkX, int chunkZ, int biomeCount, int[] weights, int macroCell) {
+    public static int bandIdentity(ZoneDelegate delegate, long seed, int chunkX, int chunkZ, int biomeCount,
+        int[] weights, int macroCell) {
         final int cell = normalizeMacroCell(macroCell);
         if (cell == MICRO_CELL_CHUNKS) {
             return delegate.select(seed, chunkX, chunkZ, biomeCount, weights);
         }
         final int scale = cell / MICRO_CELL_CHUNKS;
-        return delegate.select(
-            seed,
-            Math.floorDiv(chunkX, scale),
-            Math.floorDiv(chunkZ, scale),
-            biomeCount,
-            weights);
+        return delegate.select(seed, Math.floorDiv(chunkX, scale), Math.floorDiv(chunkZ, scale), biomeCount, weights);
     }
 
     /**

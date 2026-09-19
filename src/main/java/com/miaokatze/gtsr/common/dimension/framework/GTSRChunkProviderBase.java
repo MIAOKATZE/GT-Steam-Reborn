@@ -5,8 +5,8 @@ import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
-import java.util.function.ToIntFunction;
 import java.util.function.Supplier;
+import java.util.function.ToIntFunction;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockFalling;
@@ -437,11 +437,11 @@ public class GTSRChunkProviderBase implements IChunkProvider {
         if (!SURFACE_SKIP_LOGGED.add(String.valueOf(dimKey) + '/' + degradedLevel)) {
             return false;
         }
-        GTSteamReborn.LOG
-            .warn("[GTSR] dim={} surface NOT laid: 本维度处于 {} 级降级，表层与填充层一律未写"
+        GTSteamReborn.LOG.warn(
+            "[GTSR] dim={} surface NOT laid: 本维度处于 {} 级降级，表层与填充层一律未写"
                 + "（保持 generateTerrain 主体原样，不回退 plains/grass/dirt；plan §5 P2 判据 B）",
-                String.valueOf(dimKey),
-                degradedLevel);
+            String.valueOf(dimKey),
+            degradedLevel);
         return true;
     }
 

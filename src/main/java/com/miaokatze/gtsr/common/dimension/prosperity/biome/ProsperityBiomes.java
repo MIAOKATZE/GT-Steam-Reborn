@@ -67,19 +67,46 @@ public final class ProsperityBiomes {
         if (start > maxId) {
             GTSteamReborn.LOG.warn(
                 "[GTSR] prosperityBiomeIdStart={} exceeds usable ceiling {} (byte-plane hard max {})"
-                    + " — no slot will be allocated, check config", start, maxId, GTSRBiomeBase.HARD_ID_MAX);
+                    + " — no slot will be allocated, check config",
+                start,
+                maxId,
+                GTSRBiomeBase.HARD_ID_MAX);
         }
         // 非首选槽的占用者快照（顺延途中撞到的既有槽，聚合打一行，避免逐槽刷屏）
         final Map<Integer, String> scannedOccupants = new LinkedHashMap<>();
         int registered = 0;
-        registered += attachBiome(def, start + 0, BiomeRustedSteppe.WEIGHT, BiomeRustedSteppe::new, BiomeId.RUSTED_STEPPE,
-            maxId, scannedOccupants);
-        registered += attachBiome(def, start + 1, BiomeGearworkForest.WEIGHT, BiomeGearworkForest::new, BiomeId.GEARWORK_FOREST,
-            maxId, scannedOccupants);
-        registered += attachBiome(def, start + 2, BiomeBrassWastes.WEIGHT, BiomeBrassWastes::new, BiomeId.BRASS_WASTES,
-            maxId, scannedOccupants);
-        registered += attachBiome(def, start + 3, BiomeFumaroleSwamp.WEIGHT, BiomeFumaroleSwamp::new, BiomeId.FUMAROLE_SWAMP,
-            maxId, scannedOccupants);
+        registered += attachBiome(
+            def,
+            start + 0,
+            BiomeRustedSteppe.WEIGHT,
+            BiomeRustedSteppe::new,
+            BiomeId.RUSTED_STEPPE,
+            maxId,
+            scannedOccupants);
+        registered += attachBiome(
+            def,
+            start + 1,
+            BiomeGearworkForest.WEIGHT,
+            BiomeGearworkForest::new,
+            BiomeId.GEARWORK_FOREST,
+            maxId,
+            scannedOccupants);
+        registered += attachBiome(
+            def,
+            start + 2,
+            BiomeBrassWastes.WEIGHT,
+            BiomeBrassWastes::new,
+            BiomeId.BRASS_WASTES,
+            maxId,
+            scannedOccupants);
+        registered += attachBiome(
+            def,
+            start + 3,
+            BiomeFumaroleSwamp.WEIGHT,
+            BiomeFumaroleSwamp::new,
+            BiomeId.FUMAROLE_SWAMP,
+            maxId,
+            scannedOccupants);
         logAllocation(def, start, maxId, registered, scannedOccupants);
     }
 
@@ -89,15 +116,16 @@ public final class ProsperityBiomes {
      * @return 实际注册数（0 或 1）
      */
     private static int attachBiome(GTSRDimensionDef def, int preferredId, int weight,
-        IntFunction<? extends GTSRBiomeBase> factory, BiomeId key, int maxId,
-        Map<Integer, String> scannedOccupants) {
+        IntFunction<? extends GTSRBiomeBase> factory, BiomeId key, int maxId, Map<Integer, String> scannedOccupants) {
         final int actualId = GTSRBiomeBase.allocate(preferredId, maxId, occupiedId -> {
             final String owner = GTSRBiomeBase.occupantName(occupiedId);
             if (occupiedId == preferredId) {
                 GTSRBiomeAuthority.recordPreferredOccupant(key, preferredId, owner);
                 GTSteamReborn.LOG.warn(
                     "[GTSR] prosperity slot {} already occupied by {} (owner snapshot; {} slides forward)",
-                    preferredId, owner, key.name());
+                    preferredId,
+                    owner,
+                    key.name());
             } else {
                 scannedOccupants.put(occupiedId, owner);
             }
@@ -109,7 +137,10 @@ public final class ProsperityBiomes {
                 preferredId <= maxId ? GTSRBiomeBase.occupantName(preferredId) : "out of range");
             GTSteamReborn.LOG.error(
                 "[GTSR] prosperity biome {} got NO slot in {}..{} (byte-plane ceiling {}) — roster degrades",
-                key.name(), preferredId, maxId, GTSRBiomeBase.HARD_ID_MAX);
+                key.name(),
+                preferredId,
+                maxId,
+                GTSRBiomeBase.HARD_ID_MAX);
             return 0;
         }
         final GTSRBiomeBase biome = factory.apply(actualId);
@@ -136,7 +167,8 @@ public final class ProsperityBiomes {
             maxId,
             registered,
             BIOME_SLOT_COUNT,
-            def.getBiomeTable().size());
+            def.getBiomeTable()
+                .size());
         if (!scannedOccupants.isEmpty()) {
             final StringBuilder sb = new StringBuilder();
             int shown = 0;
@@ -154,8 +186,7 @@ public final class ProsperityBiomes {
                     .append('=')
                     .append(e.getValue());
             }
-            GTSteamReborn.LOG
-                .info("[GTSR] prosperity scan passed occupied slots: [{}] (owner snapshot)", sb);
+            GTSteamReborn.LOG.info("[GTSR] prosperity scan passed occupied slots: [{}] (owner snapshot)", sb);
         }
         if (degraded == GTSRBiomeAuthority.Degraded.EMPTY) {
             GTSteamReborn.LOG.error(

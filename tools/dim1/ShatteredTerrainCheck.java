@@ -154,9 +154,12 @@ public class ShatteredTerrainCheck {
             StandardCharsets.UTF_8);
         final String config = new String(Files.readAllBytes(root.resolve("config/Config.java")), StandardCharsets.UTF_8);
         final String proxy = new String(Files.readAllBytes(root.resolve("main/CommonProxy.java")), StandardCharsets.UTF_8);
+        // 锚点计数按"抹平空白"后的形态做：spotless 会把 attachBiome( 的实参折行，
+        // 原文 contains 会假红（P7c 实测 4 条）。断言强度不变：仍是"四条 attachBiome(def, start+i)"。
+        final String flatBiomes = biomes.replaceAll("\\s+", "");
         check(biomes.contains("BIOME_SLOT_COUNT = 4"), "BIOME_SLOT_COUNT != 4");
         for (int i = 0; i < 4; i++) {
-            check(biomes.contains("attachBiome(def, start + " + i), "missing attachBiome start+" + i);
+            check(flatBiomes.contains("attachBiome(def,start+" + i + ","), "missing attachBiome start+" + i);
         }
         check(config.contains("shatteredBiomeIdStart = 190"), "Config default shatteredBiomeIdStart != 190");
         check(proxy.contains("ChunkProviderShatteredGrounds::new"), "CommonProxy factory not ShatteredGrounds");

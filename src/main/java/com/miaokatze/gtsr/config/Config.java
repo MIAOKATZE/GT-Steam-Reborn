@@ -86,10 +86,10 @@ public class Config {
     public static int shatteredBiomeMacroBandChunks = 16;
 
     // L6 城门条件档（古代城只允许出现在锈蚀草原带；plan §2.1 L6 + §7.1 U2「门=锚点带」）：
-    //   0 = 关（改造前行为：城与群系无关，四带均可出现）
-    //   1 = 城盘锚点（中心 chunk）所在 macro 带为锈蚀草原 —— 默认档，U2 锁定
-    //   2 = 城盘（边长 2r+1 的方形盘，r=4..7）≥50% chunk 落在锈蚀草原带
-    //   3 = 城盘 100% 落在锈蚀草原带（最严，城市数会进一步塌缩，仅供调参）
+    // 0 = 关（改造前行为：城与群系无关，四带均可出现）
+    // 1 = 城盘锚点（中心 chunk）所在 macro 带为锈蚀草原 —— 默认档，U2 锁定
+    // 2 = 城盘（边长 2r+1 的方形盘，r=4..7）≥50% chunk 落在锈蚀草原带
+    // 3 = 城盘 100% 落在锈蚀草原带（最严，城市数会进一步塌缩，仅供调参）
     // 判定是纯函数（走 BiomeZoneSelector 带出口，禁止 world.getBiomeGenForCoords——城中心最远跨
     // 8 chunk 会触发邻 chunk 生成），且<b>只在 CityPlanner.citiesNear 内生效</b> ⇒ 渲染与
     // "cities.length>0 抑制散布/机器" 天然同一入口（plan §2.1 L6 禁止"鬼窗"）。
@@ -103,10 +103,10 @@ public class Config {
     // private static final（不可回退）——P5 起全部上收到这里，plan §2.3 判据 5 才成立。
     //
     // 【回到改造前的"柱阵态"】以下四键一起设：
-    //   prosperityScatterVerticalPieces = true        （把 15% 竖向件放回权重表）
-    //   prosperityScatterContoursPerChunk = 64        （件数天花板抬到不低于尝试上限 ⇒ 实际不约束）
-    //   prosperityScatterBlocksPerChunk = 0           （关闭落块天花板）
-    //   prosperityScatterWindowRepeatCap = 0          （关闭 H-2 窗重复上限）
+    // prosperityScatterVerticalPieces = true （把 15% 竖向件放回权重表）
+    // prosperityScatterContoursPerChunk = 64 （件数天花板抬到不低于尝试上限 ⇒ 实际不约束）
+    // prosperityScatterBlocksPerChunk = 0 （关闭落块天花板）
+    // prosperityScatterWindowRepeatCap = 0 （关闭 H-2 窗重复上限）
     // 尝试上限与权重保持默认（64 / 30-25-30-15）即逐位复现改造前行为
     // （由 tools/dim1/Dim78ScatterDensityCheck 的 digest 对拍钉住，见 plan/investigation/p5-*）。
 
@@ -148,17 +148,26 @@ public class Config {
     // 竖向件权重（仅 prosperityScatterVerticalPieces=true 时参与掷选）。
     public static int prosperityScatterWeightChimney = 15;
 
-    // ═════════════════ P7 结构放置契约（plan §5 P7 / §2.2 H-2·H-3 / §2.1 L5）═════════════════
+    // ═════════════ P7/P7c 结构放置契约（plan §5 P7 / §2.2 H-2·H-3 / §2.1 L5 / §7.2 改判）═════════════
     //
-    // 结构族（残缺机器 / 城外中型废墟 / P8 起的废墟族）的预算与重复上限，唯一入口是
-    // framework/structure/PlacementGate——本段两键是它读取的<b>唯一数字出处</b>：placer 侧与
-    // PlacementGate 侧都不再写任何预算/上限字面量（plan §2.4 判据 4）。
+    // 结构族（残缺机器 / 城外中型废墟 / P8 起的废墟族）的预算、窗重复上限与同族间距，唯一入口是
+    // framework/structure/PlacementGate——本段三键是它读取的<b>唯一数字出处</b>：placer 侧与
+    // PlacementGate 侧都不再写任何预算/上限/间距字面量（plan §2.4 判据 4）。
     // StructureRegistry.Entry 的 windowRepeatCap / placementDenominator 允许"逐模板覆写"，
     // 但本片两条既有族一律传 0 = 跟随这里 ⇒ 树内仍只有一处数字。
     //
-    // 【回退位】prosperityStructureWindowRepeatCap = 0 ⇒ H-2 窗重复上限关闭，结构落点回到
-    // "只受 1/N 独立掷骰 + 每 chunk 预算约束"的状态（实测可复现改造前的贴脸率，见
-    // plan/investigation/p7b-placement-contract-20260919.md 的 T4 贴脸率表）。
+    // 【P7c 改判（plan §7.2）】P7 把"每窗同模板重复上限"实现成了散布侧那种<b>排名配额</b>，对 1/64、
+    // 1/16 的稀疏结构事件等于密度乘子（实测 cap=2 ⇒ 城外结构 984 → 12 座，−98.8%），那不是"上限"。
+    // 现语义 = <b>以实际命中集为条件</b>：某窗内某个模板已被请求 N 次，只有第 N+1 次请求在
+    // N ≥ cap 时才被拒 ⇒ <b>首次出现永不因 cap 被拒</b>，cap 只削重复副本。贴脸（同族相邻 chunk）
+    // 由下面的 prosperityStructureFamilyGapChunks 负责，不由配额负责。
+    // 用户口径同时锁定：<b>城外 outpost/机器的 1/N 概率一律不动</b>（目标"每 16×16 窗 16 座"≈ 现状
+    // 15.4 座/窗，由 machineChance=1/24 与 outpostChance=1/64 算术得出），故本段三键都不碰概率。
+    //
+    // 【回退位】prosperityStructureWindowRepeatCap = 0 ⇒ 窗重复上限关闭；
+    // prosperityStructureFamilyGapChunks = 0 ⇒ 同族间距关闭 ⇒ 两键同 0 即回到"只受 1/N 独立掷骰 +
+    // 每 chunk 预算约束"的状态（实测复现改造前 23.882% 贴脸率，见
+    // plan/investigation/p7b-placement-contract-20260919.md 的 T4 与 p7c 证据文档的 cap 扫描表）。
     // prosperityStructureBudgetPerChunk = 0 ⇒ 关闭每 chunk 结构预算（同 chunk 可叠多座，
     // 改造前的跨 chunk 贴脸之上再叠同 chunk 贴脸，只作调参观察用）。
 
@@ -166,9 +175,16 @@ public class Config {
     // 互斥掷骰等值，但改造前那条只在 outpost 谎报成功时才生效；0 = 不限）。
     public static int prosperityStructureBudgetPerChunk = 1;
 
-    // H-2 每 16×16 chunk 窗内"同一结构模板"允许发射的 chunk 数上限（默认 2 = 与 P5 竖向件同档；
-    // 0 = 关闭。判定复用散布侧唯一实现 ProsperitySurfaceScatter.windowAllows，见 PlacementGate 类注释）。
-    public static int prosperityStructureWindowRepeatCap = 2;
+    // H-2① 每 16×16 chunk 窗内"同一结构模板"允许<b>实际请求</b>的 chunk 数上限（默认 3 = 命中集条件
+    // 下几乎不咬合的松档：城外每窗每模板的命中数中位 1、实测最大 8 ⇒ 3 只削最密的重复，
+    // 结构总数仍回到 ~984 量级；0 = 关闭。判定 = PlacementGate.windowRepeatAllows，
+    // 与散布侧的排名配额是两套各自唯一的实现，见 PlacementGate 类注释第 4 点）。
+    public static int prosperityStructureWindowRepeatCap = 3;
+
+    // H-2② 同族结构的最小间距档（默认 1 = 8 邻 chunk 内已有同族命中则本座让行；0 = 关闭）。
+    // 档位 g ⇒ 邻域 (2g+1)²−1 个 chunk（g=1→8、g=2→24），上界由 PlacementGate.SPACING_GAP_MAX 钳制。
+    // 这是"贴脸率"的受控量（plan §2.2 H-2 的第二列），也是 23.882% 基线的唯一治疗手段。
+    public static int prosperityStructureFamilyGapChunks = 1;
 
     /**
      * planDimension 总开关持有者（plan 维度组键 planDimension.*，见 synchronizeConfiguration）。
@@ -280,8 +296,9 @@ public class Config {
             prosperityBiomeIdStart,
             0,
             GTSRBiomeBase.HARD_ID_MAX,
-            "繁荣维度群系 ID 首选起点（默认 180）。P1 起逐群系独立配槽：首选槽被占则向后顺延，允许非连续；"
-                + "可用上界 " + GTSRBiomeBase.HARD_ID_MAX + "（byte 平面 + 255 懒回填哨兵，见 GTSRBiomeBase.HARD_ID_MAX）");
+            "繁荣维度群系 ID 首选起点（默认 180）。P1 起逐群系独立配槽：首选槽被占则向后顺延，允许非连续；" + "可用上界 "
+                + GTSRBiomeBase.HARD_ID_MAX
+                + "（byte 平面 + 255 懒回填哨兵，见 GTSRBiomeBase.HARD_ID_MAX）");
 
         shatteredBiomeIdStart = configuration.getInt(
             "shatteredBiomeIdStart",
@@ -289,8 +306,8 @@ public class Config {
             shatteredBiomeIdStart,
             0,
             GTSRBiomeBase.HARD_ID_MAX,
-            "破碎维度群系 ID 首选起点（默认 190）。配槽口径同 prosperityBiomeIdStart（首选 + 顺延，允许非连续）；"
-                + "可用上界 " + GTSRBiomeBase.HARD_ID_MAX);
+            "破碎维度群系 ID 首选起点（默认 190）。配槽口径同 prosperityBiomeIdStart（首选 + 顺延，允许非连续）；" + "可用上界 "
+                + GTSRBiomeBase.HARD_ID_MAX);
 
         biomeIdScanLimit = configuration.getInt(
             "biomeIdScanLimit",
@@ -333,8 +350,7 @@ public class Config {
             prosperityBiomeMacroBandChunks,
             16,
             1024,
-            "dim78 macro 群系带尺度（区块，默认 64 = U2 锁定档；须为 micro cell 16 的正整数倍，"
-                + "非整数倍向下取整。16 = 回退改造前单层分区，群系身份逐位不变）");
+            "dim78 macro 群系带尺度（区块，默认 64 = U2 锁定档；须为 micro cell 16 的正整数倍，" + "非整数倍向下取整。16 = 回退改造前单层分区，群系身份逐位不变）");
 
         shatteredBiomeMacroBandChunks = configuration.getInt(
             "shatteredBiomeMacroBandChunks",
@@ -380,8 +396,7 @@ public class Config {
             prosperityScatterBlocksPerChunk,
             0,
             4096,
-            "H-3 每 chunk 散布落块上限（默认 24 = 件数之外的第二道天花板，防长管段叠字；折算口径同件数，"
-                + "单件最多越界 4 块。0 = 关闭落块上限）");
+            "H-3 每 chunk 散布落块上限（默认 24 = 件数之外的第二道天花板，防长管段叠字；折算口径同件数，" + "单件最多越界 4 块。0 = 关闭落块上限）");
 
         prosperityScatterVerticalPieces = configuration.getBoolean(
             "prosperityScatterVerticalPieces",
@@ -447,8 +462,18 @@ public class Config {
             prosperityStructureWindowRepeatCap,
             0,
             256,
-            "H-2 每 16×16 区块窗内同一结构模板允许发射的区块数上限（默认 2；0 = 关闭 = 回到改造前只受"
-                + " 1/N 独立掷骰的状态）。纯函数窗内槽位哈希排序，与 P5 竖向件共用同一判定实现");
+            "H-2① 每 16×16 区块窗内同一结构模板允许<b>实际请求</b>的区块数上限（默认 3；0 = 关闭）。" + "语义是命中集条件的重复上限：首次出现永不因本键被拒，只削第 cap+1 个副本"
+                + "（P7c 改判，plan §7.2；旧实现是排名配额 ⇒ 密度乘子，已作废）。"
+                + "纯函数重放，跨区块一致、无需共享状态；与 P5 竖向件的排名配额是两套各自唯一的实现");
+
+        prosperityStructureFamilyGapChunks = configuration.getInt(
+            "prosperityStructureFamilyGapChunks",
+            Configuration.CATEGORY_GENERAL,
+            prosperityStructureFamilyGapChunks,
+            0,
+            4,
+            "H-2② 同族结构最小间距档（默认 1 = 8 邻区块内已有同族命中则本座让行；0 = 关闭）。" + "档位 g 的邻域为 (2g+1)²−1 个区块（1→8、2→24、3→48、4→80）；贴脸率由本键负责，"
+                + "不由窗重复上限负责（P7c，plan §7.2「只治贴脸、概率不动」）");
 
         if (configuration.hasChanged()) {
             configuration.save();

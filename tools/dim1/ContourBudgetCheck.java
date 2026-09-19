@@ -182,7 +182,10 @@ public final class ContourBudgetCheck {
             "A2 P3 合并列扫未被复活（findSurfaceY 定义数=0，实测 "
                 + count(code, "int\\s+findSurfaceY\\s*\\(") + "）");
         check(!code.contains(">>> 33"), "A2 无手搓哈希（P3 红线：窗排序必须走 GTSRWorldgenHash）");
-        check(code.contains("GTSRWorldgenHash.splitmix64"), "A2 窗排序哈希走框架唯一件");
+        // spotless 会把成员调用折行（GTSRWorldgenHash 与 .splitmix64( 被拆到两行），字面量
+        // contains 因此少数 ⇒ 计数改走"空白不敏感"的同一语义（P7c 实测：格式化后本条曾假红）。
+        final int smix = count(code, "GTSRWorldgenHash\\s*\\.\\s*splitmix64\\s*\\(");
+        check(smix > 0, "A2 窗排序哈希走框架唯一件（空白不敏感计数，实测 " + smix + " 处）");
     }
 
     /** A3 判据 4：机器概率口径的三处漂移收敛为单一真值。 */

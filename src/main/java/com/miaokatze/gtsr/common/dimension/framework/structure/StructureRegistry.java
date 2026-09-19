@@ -65,7 +65,21 @@ public final class StructureRegistry {
         public final String family;
         /** 放置分母（1/N chunk）；0 = 跟随 Config 族键。 */
         public final int placementDenominator;
-        /** H-2 每窗同模板重复上限；0 = 跟随 Config 族键。 */
+        /**
+         * H-2① 每 16×16 窗内<b>同一模板</b>允许实际请求的 chunk 数上限；0 = 跟随 Config 族键。
+         * <p>
+         * <b>P7c 语义同步（形状不变、含义变了）</b>：本值现在喂给
+         * {@link PlacementGate#windowRepeatAllows(long, int, int, String, int, PlacementGate.IntentFn)}
+         * ——<b>以命中集为条件</b>的重复上限：首次出现永不因本值被拒，只削第 cap+1 个副本。
+         * P7/P7b 期它喂的是散布侧的"窗内槽位排名配额"（与掷骰独立 ⇒ 对 1/N 稀疏事件是密度乘子），
+         * 该语义已按 plan §7.2 作废。
+         * <p>
+         * <b>给 P8 的接口承诺</b>：字段名、类型、"0 = 跟随 Config"约定与 {@code family}/
+         * {@code placementDenominator}/{@code allowsDamagedVariant} 三项形状都保持原样；新增要求是
+         * 使用非 0 的 {@code windowRepeatCap} 时，请求侧要走
+         * {@link PlacementGate.ChunkGate#request(Entry, PlacementGate.IntentFn)} 并供给本族的命中重放口
+         * （无重放口时上限<b>不生效</b>而不是退回密度乘子，见 {@code PlacementContractCheck} A9）。
+         */
         public final int windowRepeatCap;
         /** 是否允许损毁变体（P8 废墟族的 opt-in 损毁算子读；既有两族均为 false）。 */
         public final boolean allowsDamagedVariant;
