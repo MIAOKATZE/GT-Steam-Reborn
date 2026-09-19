@@ -549,16 +549,34 @@ public class GTSRChunkProviderBase implements IChunkProvider {
     }
 
     /**
-     * 刷怪身份读取点——<b>P9（L7 生物层）责任</b>：本方法经
-     * {@code World.getBiomeGenForCoords} 走 Chunk byte 平面（plan §2.1 L1 禁止项、L7
-     * "禁止读 byte id 决定刷怪"）。P2 只登记不动（任务包约定），改造后 byte 平面在降级列
-     * 写 {@link #MISSING_BIOME_PLANE_ID} 而非 plains，但"按带刷怪"须由 P9 改为
-     * {@code GTSRBiomeAuthority.ordinalAt} 口径。
+     * 刷怪身份读取点（L7）——<b>P9 已收口到 L1</b>（plan §2.1 L1「禁止读 Chunk byte biome id」/
+     * L7「禁止读 byte id 决定刷怪」）。
+     * <p>
+     * 改造前这里是 {@code worldObj.getBiomeGenForCoords(x, z).getSpawnableList(type)}：经
+     * {@code Chunk} 的 byte 群系平面取身份，于是降级列（写
+     * {@link #MISSING_BIOME_PLANE_ID} 的槽位）与旧区块会被解析成<b>他方群系</b>，进而把他方群系
+     * 的刷怪表当作本维刷怪表（P7c 登记为"已知边界、归 P9"）。
+     * <p>
+     * 现在：身份 = {@link GTSRBiomeAuthority#ordinalAt(int, int)}（确定性纯函数采样，与 chunk
+     * 生成期同一张表、同一个 selector）⇒ 无 {@code instanceof} 链、无 {@code id - idStart} 减法、
+     * 无 byte 平面读面。生效表 = 声明表过 {@link GTSRBiomeBase#effectiveSpawnableList}
+     * （城窗 ×2 等空间调制在内容侧的策略里发生，框架不持有数字）。
+     * <p>
+     * 降级口径与 L1 一致：空表/短表解析不到名册成员时返回 {@code null}（vanilla
+     * {@code SpawnerAnimals} 对 null 即"该类型此处不刷"），<b>不</b>回退任何他方群系的表。
      */
     @Override
     public List<BiomeGenBase.SpawnListEntry> getPossibleCreatures(EnumCreatureType creatureType, int x, int y, int z) {
-        BiomeGenBase biome = this.worldObj.getBiomeGenForCoords(x, z);
-        return biome != null ? biome.getSpawnableList(creatureType) : null;
+        final World world = this.worldObj;
+        if (world == null || world.provider == null) {
+            return null;
+        }
+        final GTSRBiomeAuthority.Resolution resolved = GTSRBiomeAuthority.forDimension(world.provider.dimensionId)
+            .ordinalAt(x, z);
+        if (resolved == null || !resolved.resolved()) {
+            return null;
+        }
+        return GTSRBiomeBase.effectiveSpawnableList(resolved.biome, creatureType, world.getSeed(), x >> 4, z >> 4);
     }
 
     @Override

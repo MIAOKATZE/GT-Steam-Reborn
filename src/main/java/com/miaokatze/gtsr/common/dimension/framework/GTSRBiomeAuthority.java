@@ -36,12 +36,18 @@ import com.miaokatze.gtsr.main.GTSteamReborn;
  * 已知边界（P2/P2b 已收口登记）：provider 表层 {@code instanceof} 链与 {@code fillerMetaOf}/
  * {@code baseBlockOf}（P2b 起 {@code ChunkProviderProsperityRuins.identityOf} 两跳）、
  * {@code ProsperityAirLookup}（P2b 起 {@code ordinalAt} 口径）、{@code ShatteredBiomes.skyFogColorFor}
- * （P2 起 {@code identityOf} 口径）均已并本类；仍走旧口径的只剩四处——
- * {@code GTSRChunkProviderBase.getPossibleCreatures}（byte 平面读面，P9/L7 责任），以及
- * {@code BlockProsperityRustLeaves:74} / {@code BlockProsperitySurface:112} /
+ * （P2 起 {@code identityOf} 口径）均已并本类。
+ * <p>
+ * <b>P9（L7）收口一处</b>：{@code GTSRChunkProviderBase.getPossibleCreatures} 原来经
+ * {@code World.getBiomeGenForCoords} 读 Chunk byte 平面来决定刷怪表（P7c 时代登记为"已知边界、
+ * 归 P9"），现已改走本类的 {@link #ordinalAt(int, int)}（确定性纯函数采样），byte 平面读面在
+ * <b>刷怪</b>这条路上已不存在。
+ * <p>
+ * 仍走旧口径的只剩三处——{@code BlockProsperityRustLeaves:74} / {@code BlockProsperitySurface:112} /
  * {@code BlockProsperityTuft:105} 三处树叶与草的<b>取色</b>路径（经
  * {@code World.getBiomeGenForCoords} 读 byte 平面；正常态与本类同源，故不影响生成，
- * 但在短表/空表降级态与旧区块上会取到他方群系的颜色）。四处均挂 plan 裁决项 U-A 与 P9 backlog。
+ * 但在短表/空表降级态与旧区块上会取到他方群系的颜色）。三处均挂 plan 裁决项 U-A
+ * （P13 旧路径删除与收束时一并裁决）。
  * 本片收口 L1 本体、{@code ProsperityWorldGenerator} 与上述表层/空气/天空色三处消费面。
  */
 public final class GTSRBiomeAuthority {
@@ -354,6 +360,52 @@ public final class GTSRBiomeAuthority {
     public BiomeGenBase biomeOf(BiomeId key) {
         final Entry entry = this.byKey.get(key);
         return entry == null ? null : entry.biome;
+    }
+
+    /**
+     * 群系实例 → 名册身份（<b>P9 新增只读出口，跨两维查找</b>；{@code null} = 该实例不在任何维的
+     * 分配账本里）。
+     * <p>
+     * 为什么需要它：L7 的填充点在 {@code GTSRBiomeBase} 自己身上（任务包允许路径只含框架基类，
+     * 不含八个群系子类和 {@code ProsperityBiomes}），而基类只知道"我是谁"这一件事需要问账本。
+     * 本出口仍然只读 {@link Entry}（即 L0 写入的分配账本），<b>不</b>碰 Chunk byte 平面、
+     * <b>不</b>做 {@code instanceof} 链、<b>不</b>用 {@code id - idStart} 减法——与
+     * {@link #of(BiomeGenBase)} 同一份数据源，只是把"身份"而不是"解析结果"交出去。
+     * <p>
+     * 未入账（{@code degraded=SHORT/EMPTY} 的缺席成员、外部群系）返回 {@code null}，
+     * 调用方必须按"无身份 ⇒ 不填充"处理，不得伪造。
+     */
+    public static synchronized BiomeId identityOf(BiomeGenBase biome) {
+        final Entry entry = entryOfInstance(biome);
+        return entry == null ? null : entry.id;
+    }
+
+    /** 群系实例 → 所属维度的 def key（{@code null} 同上；与 {@link #identityOf} 同一账本）。 */
+    public static synchronized String dimKeyOf(BiomeGenBase biome) {
+        final Entry entry = entryOfInstance(biome);
+        return entry == null ? null : entry.id.dimKey();
+    }
+
+    /** 名册成员列表（只读快照，按维内 {@link BiomeId#rosterIndex()} 顺序；P9 生物层遍历用）。 */
+    public List<BiomeId> rosterKeys() {
+        final List<BiomeId> out = new ArrayList<>(this.roster.size());
+        for (final Entry entry : this.roster) {
+            out.add(entry.id);
+        }
+        return out;
+    }
+
+    private static Entry entryOfInstance(BiomeGenBase biome) {
+        if (biome == null) {
+            return null;
+        }
+        for (final GTSRBiomeAuthority authority : BY_DIM_KEY.values()) {
+            final Entry entry = authority.byInstance.get(biome);
+            if (entry != null) {
+                return entry;
+            }
+        }
+        return null;
     }
 
     /** 维内名册规模（枚举登记数，与是否成功配槽无关）。 */

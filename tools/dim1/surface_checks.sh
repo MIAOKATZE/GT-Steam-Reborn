@@ -26,6 +26,16 @@
 #                                                  #         PlacementContractCheck all（T2..T5 四张表）
 #                                                  #         + 影子树单变量 RED→GREEN（p7red 两条：
 #                                                  #           outpost/机器各把落块真值退回 return true）
+#                                                  #   [15] P8 城外废墟族：非本片路径零漂移对拍
+#                                                  #         （BASE=temp/p8-base）+ 散布档摘要对拍
+#                                                  #         + 真地形密度对照 + 数据件跨进程双跑 SHA
+#                                                  #         + 四条单变量影子 RED
+#                                                  #   [16] P9 自定义生物层（L7）：非本片路径零漂移
+#                                                  #         对拍（BASE=temp/p9-base = e3e14a6 快照，
+#                                                  #         含"BASE 编译零 error"硬门槛）+ 散布档
+#                                                  #         摘要对拍 + 六条单变量影子 RED
+#                                                  #         （生物<b>行为</b>不在此测：无头冒烟对实体
+#                                                  #          无效，见 CreatureSpawnAuthorityCheck 注释）
 #                                                  #   [14] P5b 散布成簇（plan §7.2）：BASE 零漂移对拍（含
 #                                                  #         BASE 编译零 error 硬门槛）+ P5 均匀档逐位退化
 #                                                  #         摘要对拍 + 双跑 SHA + 两条成簇参数影子 RED
@@ -82,6 +92,17 @@ else
   JARS="$JARS$(jar_of org.apache.logging.log4j 'log4j-core-2.0-beta9-fixed.jar')"
   CP="$(cygpath -w build/classes/java/main);$(cygpath -w build/classes/java/patchedMc);$JARS"
 fi
+# P9：渲染器薄壳继承 RenderLiving ⇒ javac 与运行都需要 org.lwjgl（原版 client 渲染链引用 GL11）
+# 与 com.google.code.gson（Render.<init> → RenderBlocks.<init> 里有 gson 类型字段）。
+# 只加 jar，不加资源根；资源根（原版 assets）只在 P9 的 runres/[16] 按次加，避免给别的工具
+# 改出新的 getResource 命中面。
+extra_jar() { find "$G/$1" -name "$2" 2>/dev/null | sort | head -1; }
+LWJ="$(extra_jar org.lwjgl.lwjgl 'lwjgl-2*.jar')"
+GSON="$(extra_jar com.google.code.gson 'gson-2.2.4.jar')"
+[ -z "$GSON" ] && GSON="$(extra_jar com.google.code.gson 'gson-2*.jar')"
+[ -n "$LWJ" ] && CP="$CP;$(cygpath -w "$LWJ")"
+[ -n "$GSON" ] && CP="$CP;$(cygpath -w "$GSON")"
+MCRES=build/resources/patchedMc
 
 D=src/main/java
 # 本片 + P1/P2 涉及的生产文件（相对 src/main/java 的路径）。AFTER 与 BASE 编译**同一文件集合**，
@@ -112,6 +133,12 @@ com/miaokatze/gtsr/common/dimension/shattered/ChunkProviderShatteredGrounds.java
 com/miaokatze/gtsr/common/dimension/shattered/ShatteredTerrainProfile.java
 com/miaokatze/gtsr/common/dimension/shattered/ShatteredDecorPlacer.java
 com/miaokatze/gtsr/common/dimension/shattered/WorldProviderShatteredLands.java
+com/miaokatze/gtsr/common/dimension/prosperity/entity/GTSRCreatureRoster.java
+com/miaokatze/gtsr/common/dimension/prosperity/entity/GTSRCreatureRegistry.java
+com/miaokatze/gtsr/common/dimension/prosperity/entity/GTSRCreatureRenderers.java
+com/miaokatze/gtsr/common/dimension/prosperity/entity/EntityGearPigeon.java
+com/miaokatze/gtsr/common/dimension/prosperity/entity/EntitySteamFirefly.java
+com/miaokatze/gtsr/common/dimension/prosperity/entity/EntitySlagRidgeHunter.java
 com/miaokatze/gtsr/config/Config.java"
 # 本片（P4）BASE 快照覆盖的文件 = 本片改动的生产文件全集（4 个门定义/调用点；
 # framework/SurfaceGate.java 是本片<b>新增</b>文件，BASE 树里没有它，靠"BASE 侧 placer 快照
@@ -142,7 +169,11 @@ PRE_P7_NEW="com/miaokatze/gtsr/common/dimension/framework/structure/PlacementGat
 prefix() { echo "$REL" | sed "s|^|$1/|"; }
 # P7c：BASE 树里"该 era 还不存在的生产文件"必须同时从**编译输入**里去掉（只从树上删会得到
 # javac "file not found"，实测 P4-BASE 1 error / P5-BASE 1 error ⇒ 整段对拍退回陈旧 class）。
-src_list() { prefix "$1" | grep -v "framework/structure/PlacementGate.java"; }
+no_entity() { grep -v "prosperity/entity/"; }
+# P7c/P5b/P8/P9 的 BASE 树（PlacementGate 已在该 era 存在）：只排掉 P9 才新增的实体包。
+# 不许退回"让它回落到 build/classes 的陈旧 class"（P7c 注释里的同一条纪律）。
+src_era7p() { prefix "$1" | no_entity; }
+src_list() { prefix "$1" | grep -v "framework/structure/PlacementGate.java" | no_entity; }
 P12SRC="$(prefix src/main/java)"
 BASEALL=temp/p4-base/all            # 编译面：cp -a 当前树后按快照覆盖 → $BASEALL/<包路径>.java
 SNAP=$BASEALL/src/main/java        # 快照面：本片开工前的原始路径副本
@@ -179,6 +210,7 @@ MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8 \
   tools/dim1/RegionRepeatCapCheck.java tools/dim1/BiomeBandHierarchyCheck.java \
   tools/dim1/CityBiomeGateCheck.java tools/dim1/PlacementContractCheck.java \
   tools/dim1/ScatterClusterVarianceCheck.java tools/dim1/RuinFamilyCheck.java \
+  tools/dim1/CreatureSpawnAuthorityCheck.java \
 tools/dim1/StructureViewerExport.java tools/dim1/RosterIntegrityCheck.java \
 tools/dim1/S8RegistryRosterCheck.java tools/dim1/OutpostTemplateCheck.java tools/dim1/CityDeterminismCheck.java \
   tools/dim1/gregtech/api/GregTechAPI.java \
@@ -191,6 +223,19 @@ run() { # run <label> <classname> [args...] —— 带参时日志分文件（<c
   [ $# -gt 0 ] && log="$OUT/$cls-$1.out"
   echo "-- $label"
   MSYS2_ARG_CONV_EXCL='*' java $STD $LOG4J -cp "$OUT/tools;$OUT/classes;$CP" "$cls" "$@" >"$log" 2>&1
+  local code=$?
+  tail -1 "$log" | cut -c1-170
+  echo "   EXIT=$code log=$log"
+  [ $code -ne 0 ] && FAILS=$((FAILS + 1))
+}
+
+runres() { # runres <label> <classname> [args...] —— 额外挂<b>原版资源根</b>（P9 判据 4 的纹理
+  # getResource 断言需要 assets/minecraft/...；只给这一类工具挂，见文件头 CP 段的说明）
+  local label="$1" cls="$2"; shift 2
+  local log="$OUT/$cls.out"
+  [ $# -gt 0 ] && log="$OUT/$cls-$1.out"
+  echo "-- $label"
+  MSYS2_ARG_CONV_EXCL='*' java $STD $LOG4J -cp "$OUT/tools;$OUT/classes;$MCRES;$CP" "$cls" "$@" >"$log" 2>&1
   local code=$?
   tail -1 "$log" | cut -c1-170
   echo "   EXIT=$code log=$log"
@@ -233,6 +278,15 @@ echo "== [2e] P8 城外废墟族（破坏结构）：谱系/派生复算/TE 洁�
 # 快档 = fast（不跑真地形密度对照；密度对照表在 --parity 的 [15b]，因为它要 generateTerrain 全量）
 run "RuinFamilyCheck fast（A 谱系契约 + B 派生可复算 + C TE 洁净与注入 RED + E micro 收口 + G opt-in 边界）"   RuinFamilyCheck fast
 
+echo "== [2f] P9 生物层（L7）：注册链/表内容/渲染器与纹理/DataWatcher/幂等/城窗的离线结构断言 =="
+# 三档分进程跑：判据 2 的"总开关关闭"档必须在冷装配里看到关态（同一 JVM 的账本与每实例幂等位会互污）
+runres "CreatureSpawnAuthorityCheck all（判据 1/2/3/4/5/6 + 城窗 ×2 与结构联动数据）" CreatureSpawnAuthorityCheck all
+runres "CreatureSpawnAuthorityCheck off（判据 2 回退档：关 ⇒ 四群系 4 张表全空 = P8 基线 + 原版零差异）" \
+  CreatureSpawnAuthorityCheck off
+runres "CreatureSpawnAuthorityCheck source（判据 3/5 源级档：L1 收口钉 + addObject 索引 ≥16 扫描）" \
+  CreatureSpawnAuthorityCheck source
+echo "   P9 合计 assertions=$(total_assertions CreatureSpawnAuthorityCheck)"
+
 echo "== [3] 既有回归（必须保持绿） =="
 run "ReplaceSurfaceRuntimeCheck（46 项，含 null/plains 回退与逐列下标断言；P2b 起 256 格假绿已除）" ReplaceSurfaceRuntimeCheck
 # BiomeAllocationCheck 按场景分进程跑（同一 JVM 里账本会互相污染）；A+B+C+D 合计 = P1 的 121 项
@@ -243,8 +297,7 @@ echo "   BiomeAllocationCheck 合计 assertions=$(total_assertions BiomeAllocati
 run "ShatteredTerrainCheck（纯函数 + 源码接线）" ShatteredTerrainCheck
 run "SurfaceBiomeMatrixCheck（表层四元组矩阵行为钉：真实注册链+真实表层链，P2b 起替代文本钉）" SurfaceBiomeMatrixCheck
 run "BiomeZoneCheck（空间连贯分区）" BiomeZoneCheck
-echo "-- asset_baseline_check.sh（P0 资产基线：roster/textures/SHA）"
-bash tools/dim1/asset_baseline_check.sh >"$OUT/asset.out" 2>&1
+echo "-- asset_baseline_check.sh（P0 资产基线：roster/textures/SHA）"bash tools/dim1/asset_baseline_check.sh >"$OUT/asset.out" 2>&1
 code=$?; tail -2 "$OUT/asset.out" | cut -c1-170; echo "   EXIT=$code log=$OUT/asset.out"
 [ $code -ne 0 ] && FAILS=$((FAILS + 1))
 
@@ -904,7 +957,7 @@ com/miaokatze/gtsr/config/Config.java"
     else
       echo "   P7c-BASE 侧确认无间距新键（快照有效）"
     fi
-    P7C_SRC="$(prefix $BASE7C)"
+    P7C_SRC="$(src_era7p $BASE7C)"
     MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8 -cp "$CP" \
       -sourcepath "$BASE7C" -d "$OUT/p7c-base-classes" $P7C_SRC >"$OUT/p7c-javac-base.log" 2>&1
     echo "COMPILE P7C-BASE EXIT=$? ($(grep -ac 'error:' "$OUT/p7c-javac-base.log") error)"
@@ -1024,7 +1077,7 @@ com/miaokatze/gtsr/config/Config.java"
     # 所以从"本片开工前快照"取它 = P5b 终态那一份；同时删掉本 era 还不存在的 ruin 新包。
     cp "$SNAP8_LATE/com/miaokatze/gtsr/common/dimension/framework/structure/PlacementGate.java"       "$BASE5B/com/miaokatze/gtsr/common/dimension/framework/structure/PlacementGate.java"
     rm -rf "$BASE5B/com/miaokatze/gtsr/common/dimension/prosperity/ruins/ruin"
-    P5B_SRC="$(prefix $BASE5B)"
+    P5B_SRC="$(src_era7p $BASE5B)"
     MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8 -cp "$CP" \
       -sourcepath "$BASE5B" -d "$OUT/p5b-base-classes" $P5B_SRC >"$OUT/p5b-javac-base.log" 2>&1
     echo "COMPILE P5B-BASE EXIT=$? ($(grep -ac 'error:' "$OUT/p5b-javac-base.log") error)"
@@ -1126,6 +1179,8 @@ com/miaokatze/gtsr/config/Config.java"
   SNAP8=temp/p8-base/src/main/java
   P8_BASE_FILES="com/miaokatze/gtsr/common/dimension/framework/structure/PlacementGate.java
 com/miaokatze/gtsr/common/dimension/framework/GTSRBiomeAuthority.java
+com/miaokatze/gtsr/common/dimension/framework/GTSRBiomeBase.java
+com/miaokatze/gtsr/common/dimension/framework/GTSRChunkProviderBase.java
 com/miaokatze/gtsr/common/dimension/framework/GTSRWorldChunkManager.java
 com/miaokatze/gtsr/common/dimension/prosperity/ruins/ProsperityWorldGenerator.java
 com/miaokatze/gtsr/config/Config.java"
@@ -1154,7 +1209,7 @@ com/miaokatze/gtsr/config/Config.java"
     else
       echo "   P8-BASE 侧确认无废墟族新键（快照有效）"
     fi
-    P8_SRC="$(prefix $BASE8)"
+    P8_SRC="$(src_era7p $BASE8)"
     MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8 -cp "$CP" \
       -sourcepath "$BASE8" -d "$OUT/p8-base-classes" $P8_SRC >"$OUT/p8-javac-base.log" 2>&1
     echo "COMPILE P8-BASE EXIT=$? ($(grep -ac 'error:' "$OUT/p8-javac-base.log") error)"
@@ -1268,12 +1323,150 @@ com/miaokatze/gtsr/config/Config.java"
   rm -rf "$P8RED" "$P8REDCLS" "$OUT/p8-red-tools"
   run "RuinFamilyCheck fast（P8 RED 后工作树复位 GREEN）" RuinFamilyCheck fast
 
+  # ── [16] P9 自定义生物层（L7）──
+  # ① 非本片路径零漂移（表层/高度/群系 512 chunk 逐字节 + 散布档 SCAN 逐字节，
+  #    BASE=temp/p9-base 的 e3e14a6=P8 终态快照，带"BASE 编译零 error"硬门槛）；
+  # ② 五条单变量影子 RED（判据 2 的缺席门/幂等、判据 3 的 L1 身份、判据 2 回退档的总开关、
+  #    判据 4 的纹理可解析）——每条都必须变红，否则对应判据是假绿；
+  # ③ 本段<b>不</b>测任何生物行为（无头冒烟对实体无效，见 CreatureSpawnAuthorityCheck 类注释）。
+  echo "== [16] P9 生物层（L7）：非本片路径零漂移对拍 + 五条单变量影子 RED =="
+  BASE9=temp/p9-base/all
+  SNAP9=temp/p9-base/src/main/java
+  P9_BASE_FILES="com/miaokatze/gtsr/common/dimension/framework/GTSRBiomeBase.java
+com/miaokatze/gtsr/common/dimension/framework/GTSRBiomeAuthority.java
+com/miaokatze/gtsr/common/dimension/framework/GTSRWorldChunkManager.java
+com/miaokatze/gtsr/common/dimension/framework/GTSRChunkProviderBase.java
+com/miaokatze/gtsr/config/Config.java"
+  if [ ! -f "$SNAP9/com/miaokatze/gtsr/common/dimension/framework/GTSRBiomeBase.java" ]; then
+    echo "   FAIL：缺 P9 BASE 快照 $SNAP9（必须是本片第一个写入之前的工作树副本 = e3e14a6）"
+    FAILS=$((FAILS + 1))
+  else
+    rm -rf "$BASE9"; mkdir -p "$BASE9/com" "$OUT/p9-base-classes" "$OUT/p9-base-tools"
+    cp -a src/main/java/. "$BASE9/"
+    miss9=0
+    for rel in $P9_BASE_FILES; do
+      if [ -f "$SNAP9/$rel" ]; then
+        cp "$SNAP9/$rel" "$BASE9/$rel"
+        cmp -s "$BASE9/$rel" "src/main/java/$rel" \
+          && { echo "   FAIL：BASE 还原后与工作树相同（快照失效）$rel"; miss9=$((miss9 + 1)); }
+      else
+        echo "   FAIL：P9 BASE 快照缺 $rel"; miss9=$((miss9 + 1))
+      fi
+    done
+    # 生物层是本片<b>新增</b>的包 ⇒ BASE 树里必须没有它（否则 BASE 侧的 GTSRBiomeBase 快照
+    # 会被引用到本片才有的 setCreatureSpawnPolicy，对拍退化成自比）
+    rm -rf "$BASE9/com/miaokatze/gtsr/common/dimension/prosperity/entity"
+    [ "$miss9" = "0" ] || FAILS=$((FAILS + 1))
+    if grep -aq "prosperityCreaturesEnabled" "$BASE9/com/miaokatze/gtsr/config/Config.java"; then
+      echo "   FAIL：P9-BASE 侧 Config 已含生物层新键 ⇒ 快照不是开工前形态"; FAILS=$((FAILS + 1))
+    else
+      echo "   P9-BASE 确认无生物层新键、无 L7 填充口（快照有效 = e3e14a6 / P8 终态）"
+    fi
+    grep -aq "setCreatureSpawnPolicy" "$BASE9/com/miaokatze/gtsr/common/dimension/framework/GTSRBiomeBase.java" \
+      && { echo "   FAIL：P9-BASE 侧 GTSRBiomeBase 已有 L7 填充口 ⇒ 快照不是开工前形态"; FAILS=$((FAILS + 1)); }
+    P9_SRC="$(src_era7p $BASE9)"
+    MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8 -cp "$CP" \
+      -sourcepath "$BASE9" -d "$OUT/p9-base-classes" $P9_SRC >"$OUT/p9-javac-base.log" 2>&1
+    echo "COMPILE P9-BASE EXIT=$? ($(grep -ac 'error:' "$OUT/p9-javac-base.log") error)"
+    # 判据 7 的硬门槛（沿用 P7c/P5b/P8 口径）：BASE 编译零 error，否则 [16a] 的 0 差异是假绿
+    [ "$(grep -ac 'error:' "$OUT/p9-javac-base.log")" = "0" ] \
+      || { echo "   FAIL：P9-BASE 树编译失败（还原清单不完整，[16a] 的 0 差异会是假绿）"; FAILS=$((FAILS + 1)); }
+    grep -a "error:" "$OUT/p9-javac-base.log" | head -5 | sed 's/^/     /'
+
+    # [16a] 表层/高度/群系逐字节对拍（512 chunk = 256 × 两维）
+    MSYS2_ARG_CONV_EXCL='*' java $STD $LOG4J -cp "$OUT/tools;$OUT/classes;$CP" \
+      SurfaceByteParityDump 16 >"$OUT/p9-parity-after.txt" 2>"$OUT/p9-parity-after.err"
+    MSYS2_ARG_CONV_EXCL='*' java $STD $LOG4J -cp "$OUT/tools;$OUT/p9-base-classes;$CP" \
+      SurfaceByteParityDump 16 >"$OUT/p9-parity-base.txt" 2>"$OUT/p9-parity-base.err"
+    n9=$(diff "$OUT/p9-parity-base.txt" "$OUT/p9-parity-after.txt" | grep -ac "^[<>]")
+    c9=$(grep -ac "^CHUNK" "$OUT/p9-parity-after.txt")
+    d78_9=$(grep -ac "^CHUNK dim=78" "$OUT/p9-parity-after.txt")
+    d79_9=$(grep -ac "^CHUNK dim=79" "$OUT/p9-parity-after.txt")
+    echo "   [16a] chunks=$c9 (dim78=$d78_9 dim79=$d79_9) diff_lines=$n9  BASE=temp/p9-base（零 error 门槛已过）"
+    [ "$n9" = "0" ] || { echo "   FAIL：表层/高度/群系面出现漂移（$n9 行）⇒ P9 越界"; FAILS=$((FAILS + 1)); }
+
+    # [16a2] 散布档逐字节：两侧都在净地形上跑（-Dgtsr.skipStructure=1，P7c 判据 4 口径）
+    MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8 \
+      -cp "$OUT/p9-base-classes;$CP" -sourcepath "$BASE9;tools/dim1" -d "$OUT/p9-base-tools" \
+      tools/dim1/SurfaceHarness.java tools/dim1/Dim78ScatterDensityCheck.java \
+      tools/dim1/gregtech/api/GregTechAPI.java >"$OUT/p9-javac-base-tools.log" 2>&1
+    echo "   COMPILE P9-BASE-TOOLS EXIT=$? ($(grep -ac 'error:' "$OUT/p9-javac-base-tools.log") error)"
+    MSYS2_ARG_CONV_EXCL='*' java $STD $LOG4J -Dgtsr.skipStructure=1 -Xmx2g \
+      -cp "$OUT/p9-base-tools;$OUT/p9-base-classes;$CP" Dim78ScatterDensityCheck digest 2 2 \
+      >"$OUT/p9-scatter-base.txt" 2>&1
+    esb9=$?
+    MSYS2_ARG_CONV_EXCL='*' java $STD $LOG4J -Dgtsr.skipStructure=1 -Xmx2g \
+      -cp "$OUT/tools;$OUT/classes;$CP" Dim78ScatterDensityCheck digest 2 2 \
+      >"$OUT/p9-scatter-after.txt" 2>&1
+    esa9=$?
+    sb9=$(grep -a "^SCAN" "$OUT/p9-scatter-base.txt" | sha256sum | cut -c1-16)
+    sa9=$(grep -a "^SCAN" "$OUT/p9-scatter-after.txt" | sha256sum | cut -c1-16)
+    nd9=$(diff <(grep -av "^WARNING\|^Picked up" "$OUT/p9-scatter-base.txt")                <(grep -av "^WARNING\|^Picked up" "$OUT/p9-scatter-after.txt") | grep -ac "^[<>]")
+    echo "   [16a2] 散布档 SCAN 摘要 BASE=$sb9 AFTER=$sa9 行差=$nd9（EXIT $esb9/$esa9）"
+    { [ "$esb9" = "0" ] && [ "$esa9" = "0" ]; } || { echo "   FAIL：散布档两跑有一跑非 0"; FAILS=$((FAILS + 1)); }
+    [ "$sb9" = "$sa9" ] || { echo "   FAIL：散布档摘要漂移 ⇒ P9 越界碰了 P5/P5b"; FAILS=$((FAILS + 1)); }
+
+    # [16b] 五条单变量影子 RED（影子树，绝不碰工作树）
+    P9RED=temp/p9-red-shadow; P9REDCLS=$OUT/p9-red-classes
+    P9_RED_SRC=$(echo "$REL" | sed 's|^|temp/p9-red-shadow/|' | tr '\n' ' ')
+    p9red() { # p9red <标签> <sed 表达式> <目标文件> <工具模式...>
+      local label="$1" expr="$2" file="$3"; shift 3
+      rm -rf "$P9RED" "$P9REDCLS" "$OUT/p9-red-tools"; mkdir -p "$P9REDCLS" "$OUT/p9-red-tools"
+      cp -a src/main/java "$P9RED"
+      sed -i "$expr" "$P9RED/$file"
+      cmp -s "$P9RED/$file" "src/main/java/$file" \
+        && { echo "   $label 注入未生效（影子文件与工作树相同）"; FAILS=$((FAILS + 1)); }
+      MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8 -cp "$CP" \
+        -sourcepath "$P9RED" -d "$P9REDCLS" $P9_RED_SRC >"$OUT/p9-red-$label-javac.log" 2>&1
+      if [ $? -ne 0 ]; then echo "   $label 影子树编译失败（脚本坏了，不是 RED）"; FAILS=$((FAILS + 1)); fi
+      MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8 \
+        -cp "$P9REDCLS;$CP" -sourcepath "$P9RED;tools/dim1" -d "$OUT/p9-red-tools" \
+        tools/dim1/SurfaceHarness.java tools/dim1/CreatureSpawnAuthorityCheck.java \
+        >"$OUT/p9-red-$label-tooljavac.log" 2>&1
+      if [ $? -ne 0 ]; then echo "   $label 工具影子编译失败（脚本坏了，不是 RED）"; FAILS=$((FAILS + 1)); fi
+      MSYS2_ARG_CONV_EXCL='*' java $STD $LOG4J -Xmx2g \
+        -cp "$OUT/p9-red-tools;$P9REDCLS;$MCRES;$CP" CreatureSpawnAuthorityCheck "$@" \
+        >"$OUT/p9-red-$label.txt" 2>&1
+      local er=$?
+      grep -a "^  FAIL\|^  - " "$OUT/p9-red-$label.txt" | head -3 | cut -c1-150 | sed "s/^/     /"
+      tail -1 "$OUT/p9-red-$label.txt" | cut -c1-150 | sed "s/^/     /"
+      echo "     $label EXIT=$er（RED 必须非 0）log=$OUT/p9-red-$label.txt"
+      [ "$er" != "0" ] || { echo "   FAIL：$label 未变红 ⇒ 对应判据对这类破坏不敏感（假绿）"; FAILS=$((FAILS + 1)); }
+      return $er
+    }
+    F_BBASE=com/miaokatze/gtsr/common/dimension/framework/GTSRBiomeBase.java
+    F_PROVIDER=com/miaokatze/gtsr/common/dimension/framework/GTSRChunkProviderBase.java
+    F_REG=com/miaokatze/gtsr/common/dimension/prosperity/entity/GTSRCreatureRegistry.java
+    F_ROSTER=com/miaokatze/gtsr/common/dimension/prosperity/entity/GTSRCreatureRoster.java
+    # R1：带乘子矩阵的"缺席位"被改成 1（喷气口沼泽的齿轮鸽 0→1）⇒ B1 的缺席判定与字面量表必红
+    #     （判据 2 的"该带不出现该档"语义被钉住；addCreatureSpawn 里的 weight<=0 门只是防御性双保险）
+    p9red R1_ABSENT_BAND_DEAD 's|{ 3, 5, 1, 0 }, { 1, 2, 0, 5 }|{ 3, 5, 1, 1 }, { 1, 2, 0, 5 }|' \
+      "$F_ROSTER" all
+    # R2：幂等位失效（每次读列表都再填一遍）⇒ F1「重跑 3 次条目不变」必红（判据 6）
+    p9red R2_IDEMPOTENT_DEAD 's|if (this.creatureSpawnsApplied) {|if (false) {|' "$F_BBASE" all
+    # R3：L1 身份出口接错维度 ⇒ C2 的逐坐标核对必红，而 C1 的源级钉仍绿
+    #     （证明"行为级"那条腿真的在独立咬合，不是源级断言的复读）
+    p9red R3_L1_WRONG_DIM 's|forDimension(world\.provider\.dimensionId)|forDimension(0)|' \
+      "$F_PROVIDER" all
+    # R4：总开关的 fill 侧闸门被摘 ⇒ 判据 2 的回退档（off 模式）必红
+    p9red R4_SWITCH_GATE_DEAD 's|^            if (!Config.prosperityCreaturesEnabled) {|            if (false) {|' \
+      "$F_REG" off
+    # R5：城窗乘子失效 ⇒ G3「城窗 ×2」必红
+    p9red R5_CITY_MULT_DEAD 's|^    public static final int CITY_WINDOW_WEIGHT_MULTIPLIER = 2;|    public static final int CITY_WINDOW_WEIGHT_MULTIPLIER = 1;|' \
+      "$F_ROSTER" all
+    # R6：纹理路径改成指不存在的 ⇒ D2「资源实际可解析」必红（防隐形实体的正向断言被钉住）
+    p9red R6_TEX_DEAD 's|"textures/entity/chicken.png"|"textures/entity/gtsr_not_there_pigeon.png"|' \
+      "$F_ROSTER" all
+    rm -rf "$P9RED" "$P9REDCLS" "$OUT/p9-red-tools"
+    runres "CreatureSpawnAuthorityCheck all（P9 RED 后工作树复位 GREEN）" CreatureSpawnAuthorityCheck all
+  fi
+
 fi
 
 echo "== SUMMARY =="
 if [ "$FAILS" = "0" ]; then
-  echo "P2/P3/P4/P5/P5b/P6/P7/P7c/P8 SURFACE CHECKS: ALL GREEN"
+  echo "P2/P3/P4/P5/P5b/P6/P7/P7c/P8/P9 SURFACE CHECKS: ALL GREEN"
 else
-  echo "P2/P3/P4/P5/P5b/P6/P7/P7c/P8 SURFACE CHECKS: $FAILS tool(s)/step(s) FAILED"
+  echo "P2/P3/P4/P5/P5b/P6/P7/P7c/P8/P9 SURFACE CHECKS: $FAILS tool(s)/step(s) FAILED"
 fi
 [ "$FAILS" = "0" ]

@@ -18,6 +18,8 @@ import com.miaokatze.gtsr.common.dimension.prosperity.ChunkProviderProsperityRui
 import com.miaokatze.gtsr.common.dimension.prosperity.WorldProviderProsperityRuins;
 import com.miaokatze.gtsr.common.dimension.prosperity.air.GTSRProsperityAirMaterials;
 import com.miaokatze.gtsr.common.dimension.prosperity.biome.ProsperityBiomes;
+import com.miaokatze.gtsr.common.dimension.prosperity.entity.GTSRCreatureRegistry;
+import com.miaokatze.gtsr.common.dimension.prosperity.entity.GTSRCreatureRenderers;
 import com.miaokatze.gtsr.common.dimension.prosperity.ruins.ProsperityWorldGenerator;
 import com.miaokatze.gtsr.common.dimension.shattered.ChunkProviderShatteredGrounds;
 import com.miaokatze.gtsr.common.dimension.shattered.ShatteredWeatherHandler;
@@ -37,6 +39,7 @@ import com.miaokatze.gtsr.loader.MachineLoader;
 import com.miaokatze.gtsr.register.CreativeTabManager;
 
 import appeng.api.AEApi;
+import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.common.Loader;
 import cpw.mods.fml.common.event.FMLInitializationEvent;
 import cpw.mods.fml.common.event.FMLPostInitializationEvent;
@@ -100,6 +103,23 @@ public class CommonProxy {
             GTSteamReborn.LOG.info("[0/3] 方块注册完成。");
         } catch (Throwable t) {
             GTSteamReborn.LOG.error("[0/3] 方块注册过程中发生严重错误，请检查日志", t);
+        }
+
+        // ═══ P9 / L7 生物层注册（plan §5 P9；本片在此段只<b>新增</b>调用，不改任何既有顺序）═══
+        // 必须在下面的群系挂接之前：GTSRBiomeBase 的填充是"第一次读 spawn 列表时"惰性发生的，
+        // 但策略注入要在那之前就位，否则空跑的注册链会让群系带着清空态被后续读取（详见基类注释）。
+        // 关掉 Config.prosperityCreaturesEnabled 即整段跳过 ⇒ 与 P8 基线逐位一致。
+        // 渲染器只在 client 分支加载（专用服不触碰 net.minecraft.client.*；本仓 common 侧跨侧
+        // 引用已有先例 MTECrustMatterAggregator:1743 的 GTMod.clientProxy()）。
+        try {
+            GTSRCreatureRegistry.preInit();
+            if (FMLCommonHandler.instance()
+                .getSide()
+                .isClient()) {
+                GTSRCreatureRenderers.registerAll();
+            }
+        } catch (Throwable t) {
+            GTSteamReborn.LOG.error("[GTSR] 生物层（L7）注册过程中发生严重错误，本维刷怪表保持清空态", t);
         }
 
         // 维度框架注册（dim1 S1）+ 繁荣群系挂接（S2）：注册编排照 plan §1.1 架构图——BlockLoader 之后。

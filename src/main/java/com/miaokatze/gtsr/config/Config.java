@@ -264,6 +264,29 @@ public class Config {
     // 这是"贴脸率"的受控量（plan §2.2 H-2 的第二列），也是 23.882% 基线的唯一治疗手段。
     public static int prosperityStructureFamilyGapChunks = 1;
 
+    // ═════ P9 生物层（L7）═════ 键名/默认值/注释与 GTSRCreatureRoster 的申报严格一致（§2.4 判据 4）。
+    // 【单一真值分工】本段只放<b>三档的基权</b>与总开关/追踪距离；
+    // "哪个群系带出现哪种生物、出现多少"的<b>带乘子表</b>只在 GTSRCreatureRoster 声明一处
+    // （生效权 = 本段基权 × roster 带乘子，乘子 0 ⇒ 该带不出现该生物）。两处各持一半，不互相抄。
+    // 【回退位】prosperityCreaturesEnabled = false ⇒ GTSRBiomeBase 的 4 张 spawn 列表回到
+    // P8 的无条件清空态（逐位一致），且不调 EntityRegistry.registerModEntity。
+
+    // L7 生物层总开关（默认开）。关掉后本维四群系的 spawn 列表恒空 ⇒ 与 P8 基线逐位一致。
+    public static boolean prosperityCreaturesEnabled = true;
+
+    // 三档实体的 FML 追踪距离（registerModEntity 的 trackingRange，默认 64 = GT++ 配方同档；
+    // updateFrequency 固定 3，见 wiki mods/gto/machines/wave-creature-system.md:48-49，不做键）。
+    public static int prosperityCreatureTrackingRange = 64;
+
+    // 齿轮鸽基权（02 册 §1.4 设计值 12；生效权 = 12 × 本维带乘子）。
+    public static int prosperityCreatureGearPigeonWeight = 12;
+
+    // 汽雾萤基权（02 册 §1.4 设计值 8；生效权 = 8 × 本维带乘子）。
+    public static int prosperityCreatureSteamFireflyWeight = 8;
+
+    // 渣脊猎手基权（敌对档，用户 AUQ 已确认保留；02 册无此档 ⇒ 取低于两件和平档的 6）。
+    public static int prosperityCreatureSlagRidgeHunterWeight = 6;
+
     /**
      * planDimension 总开关持有者（plan 维度组键 planDimension.*，见 synchronizeConfiguration）。
      * 关闭后对应维度完全不注册（DimensionRegistrar 冲突检测第一道闸）。
@@ -644,6 +667,46 @@ public class Config {
             4,
             "H-2② 同族结构最小间距档（默认 1 = 8 邻区块内已有同族命中则本座让行；0 = 关闭）。" + "档位 g 的邻域为 (2g+1)²−1 个区块（1→8、2→24、3→48、4→80）；贴脸率由本键负责，"
                 + "不由窗重复上限负责（P7c，plan §7.2「只治贴脸、概率不动」）");
+
+        // ═════ P9 生物层（L7）——三档基权 / 总开关 / 追踪距离（带乘子表在 GTSRCreatureRoster） ═════
+        prosperityCreaturesEnabled = configuration.getBoolean(
+            "prosperityCreaturesEnabled",
+            Configuration.CATEGORY_GENERAL,
+            prosperityCreaturesEnabled,
+            "L7 生物层总开关（默认开）。关闭后本维四群系的 4 张 spawn 列表回到无条件清空态" + "（与 P8 基线逐位一致），实体也不再走 registerModEntity。");
+
+        prosperityCreatureTrackingRange = configuration.getInt(
+            "prosperityCreatureTrackingRange",
+            Configuration.CATEGORY_GENERAL,
+            prosperityCreatureTrackingRange,
+            8,
+            128,
+            "三档实体的 FML 追踪距离（registerModEntity 的 trackingRange，默认 64；"
+                + "updateFrequency 固定 3，不做键 —— 见 wiki wave-creature-system.md:48-49）");
+
+        prosperityCreatureGearPigeonWeight = configuration.getInt(
+            "prosperityCreatureGearPigeonWeight",
+            Configuration.CATEGORY_GENERAL,
+            prosperityCreatureGearPigeonWeight,
+            0,
+            100,
+            "齿轮鸽基权（02 册 §1.4 设计值 12；0 = 该档整档退出）。生效权 = 基权 × 带乘子，" + "带乘子表唯一声明在 GTSRCreatureRoster");
+
+        prosperityCreatureSteamFireflyWeight = configuration.getInt(
+            "prosperityCreatureSteamFireflyWeight",
+            Configuration.CATEGORY_GENERAL,
+            prosperityCreatureSteamFireflyWeight,
+            0,
+            100,
+            "汽雾萤基权（02 册 §1.4 设计值 8；0 = 该档整档退出）。口径同齿轮鸽");
+
+        prosperityCreatureSlagRidgeHunterWeight = configuration.getInt(
+            "prosperityCreatureSlagRidgeHunterWeight",
+            Configuration.CATEGORY_GENERAL,
+            prosperityCreatureSlagRidgeHunterWeight,
+            0,
+            100,
+            "渣脊猎手基权（敌对档，plan §7.1 生物裁决保留；0 = 该档整档退出）。口径同齿轮鸽");
 
         if (configuration.hasChanged()) {
             configuration.save();

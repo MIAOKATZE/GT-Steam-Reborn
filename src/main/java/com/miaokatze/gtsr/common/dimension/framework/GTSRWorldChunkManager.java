@@ -1,6 +1,7 @@
 package com.miaokatze.gtsr.common.dimension.framework;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
@@ -59,6 +60,11 @@ public class GTSRWorldChunkManager extends WorldChunkManager {
     private final long microDomainSalt;
     /** 所属维度的 def key（L1 账本键；null = 匿名 def，仅离线自检会出现）。 */
     private final String dimKey;
+    /**
+     * {@link #getBiomesToSpawnIn()} 的返回值（P9 / L7 新增；def 群系表去权重快照，
+     * 空表降级时为空表）。构造期一次成型、此后只读。
+     */
+    private final List<BiomeGenBase> biomesToSpawnIn;
 
     public GTSRWorldChunkManager(long seed, GTSRDimensionDef def) {
         this.seed = seed;
@@ -90,6 +96,9 @@ public class GTSRWorldChunkManager extends WorldChunkManager {
         this.selectorWeights = weights;
         this.macroCell = BiomeZoneSelector.normalizeMacroCell(macroBandChunksFor(this.dimKey));
         this.microDomainSalt = seedSalt;
+        // P9/L7：getBiomesToSpawnIn 的出口——去权重、去 null（空表降级 ⇒ 空表，与 degraded=EMPTY 同口径）
+        this.biomesToSpawnIn = table == null ? Collections.<BiomeGenBase>emptyList()
+            : Collections.unmodifiableList(Arrays.asList(table));
         // L1 绑定：身份解析复用本 manager 的采样函数（同表、同种子、同 selector）
         if (this.dimKey != null) {
             // P8：同一次 bind 顺带把 micro 强度的只读出口交给 L1（见 Source#microStrengthAtChunk）。
@@ -228,9 +237,22 @@ public class GTSRWorldChunkManager extends WorldChunkManager {
         return biomeAt(x >> 4, z >> 4);
     }
 
+    /**
+     * 本维群系表（<b>P9 / L7 改造点</b>：原来恒返回空表，是"双机制零生物"的第二条机制）。
+     * <p>
+     * 返回 def 群系表的<b>去权重</b>快照（一个群系一项，不含 {@code weightedBiomes} 的权重展开，
+     * 也不含空表降级产生的 {@code null} 槽位）。vanilla 唯一消费点是
+     * {@code WorldServer.createSpawnPosition}（把本表喂给 {@link #findBiomePosition}），
+     * 而本类的 {@code findBiomePosition} 恒返回 {@code null} ⇒ 本表内容不影响出生点结果，
+     * 改造前后<b>逐位等价</b>；真正拿到收益的是第三方按该出口找"本维合法群系"的消费方
+     * （刷怪/传送/探路类 mod）。
+     * <p>
+     * 与 L1 同源：本表就是 {@link GTSRBiomeAuthority} 账本里那一批实例（{@code def.getBiomeTable()}），
+     * 不新造第二份群系来源。
+     */
     @Override
     public List<BiomeGenBase> getBiomesToSpawnIn() {
-        return Collections.emptyList();
+        return this.biomesToSpawnIn;
     }
 
     @Override
