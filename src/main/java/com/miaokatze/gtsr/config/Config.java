@@ -148,6 +148,48 @@ public class Config {
     // 竖向件权重（仅 prosperityScatterVerticalPieces=true 时参与掷选）。
     public static int prosperityScatterWeightChimney = 15;
 
+    // ═════════════ P5b 成簇散布（plan §7.2 U3 改判「K=1 + 必须成簇（高方差）」）═════════════
+    //
+    // 用户口径：「别出现每个区块都有，要有的区块多一点，有的区块少一点，方差拉大！」⇒ 散布层
+    // 从"每 chunk 独立掷骰"换成两级过程：先按低概率在 C×C chunk 格上选"残骸场中心"（H-2/H-3
+    // 中间尺度），再围绕场心按径向衰减撒件（H-3）。均值 ≈1.2 件/chunk，但多数 chunk 为 0、
+    // 少数 chunk 成堆（判据带实测见 plan/investigation/p5b-clustered-scatter-20260919.md）。
+    //
+    // 【回退链两级】
+    // ① prosperityScatterClusterMode = 0 ⇒ 走 P5 均匀档（scatterUniform 为 P5 代码原样），
+    // 连同下方 P5 段四键（默认 K=8/落块24/竖向off/窗2）即与 P5 终态<b>逐位相同</b>
+    // （tools/dim1/surface_checks.sh [14b] 摘要对拍钉住）；
+    // ② 不关开关、只把参数设成退化档 cell=1 + chanceDenom=1 + piecesMin=piecesMax=8 +
+    // radius=0 ⇒ 与 P5 K=8 均匀档<b>统计一致</b>（每 chunk 填到 round(8×群系权重)；
+    // 实测对照见 ScatterClusterVarianceCheck DEGEN 行）；
+    // ③ 回到改造前"现状柱阵"= ① + P5 段注释的四键旧值组合（竖向true/件数64/落块0/窗0）。
+    // 竖向件在本片仍然<b>保持摘除</b>（任务包禁止复活；prosperityScatterVerticalPieces 默认 false 不动）。
+
+    // 成簇模型开关：0 = P5 均匀档（回退位），1 = 两级成簇档（默认）。
+    public static int prosperityScatterClusterMode = 1;
+
+    // 场中心候选格的边长（chunk 数）。默认 4 ⇒ 4×4 chunk = 64×64 格一个候选场格；
+    // 尺度必须介于 H-3(1 chunk) 与 H-2(16 chunk) 之间（plan §2.2），1 = 退化档（每 chunk 一场）。
+    public static int prosperityScatterClusterCellChunks = 4;
+
+    // 场中心命中分母：每个候选场格以 1/本值 的概率成为残骸场。默认取实测扫描选定档；
+    // 1 = 每格皆场（退化档要件之一，此时密度由 piecesMin/Max 决定）。
+    public static int prosperityScatterClusterFieldChanceDenom = 3;
+
+    // 单场件数配额的均匀分布下界（该 chunk 对该场的落件上限，round(配额×群系权重) 口径同 P5 的 K）。
+    public static int prosperityScatterClusterPiecesMin = 8;
+
+    // 单场件数配额的均匀分布上界（< min 时按 min 处理）。默认档取值与 min 一起决定"富 chunk 堆多大"
+    // （实测件数分布直方图见 p5b 证据文档判据 1）。
+    public static int prosperityScatterClusterPiecesMax = 14;
+
+    // 径向衰减半径（chunk 数；件位 r = 半径×16格 × u^falloffPower 采样）。0 = 件全部落在场心所在
+    // chunk 内（退化档要件之一：配合 cell=1/denom=1/pieces=K 复现 P5 均匀形状）。
+    public static int prosperityScatterClusterRadiusChunks = 2;
+
+    // 径向衰减幂次（r = R·u^p，p=1 ⇒ 面密度 ∝1/r 中心聚簇最强；越大越向外均摊）。默认 1。
+    public static int prosperityScatterClusterFalloffPower = 1;
+
     // ═════════════ P7/P7c 结构放置契约（plan §5 P7 / §2.2 H-2·H-3 / §2.1 L5 / §7.2 改判）═════════════
     //
     // 结构族（残缺机器 / 城外中型废墟 / P8 起的废墟族）的预算、窗重复上限与同族间距，唯一入口是
@@ -175,11 +217,13 @@ public class Config {
     // 互斥掷骰等值，但改造前那条只在 outpost 谎报成功时才生效；0 = 不限）。
     public static int prosperityStructureBudgetPerChunk = 1;
 
-    // H-2① 每 16×16 chunk 窗内"同一结构模板"允许<b>实际请求</b>的 chunk 数上限（默认 3 = 命中集条件
-    // 下几乎不咬合的松档：城外每窗每模板的命中数中位 1、实测最大 8 ⇒ 3 只削最密的重复，
-    // 结构总数仍回到 ~984 量级；0 = 关闭。判定 = PlacementGate.windowRepeatAllows，
+    // H-2① 每 16×16 chunk 窗内"同一结构模板"允许<b>实际请求</b>的 chunk 数上限（P5b 起默认 8 =
+    // 主代理拍板档「cap=8 + gap=1」：cap 退化为仅护栏、对当前命中分布几乎不咬合（P7c 扫描表
+    // cap=8/gap=0 结构总数 = 回退档 984），密度损失全部由下方间距键承担 ⇒ 符合用户
+    // "概率不动只治贴脸"口径；实测见 p5b 证据文档判据 3。旧默认 3 的 P7c 实测在
+    // p7c-window-cap-semantics-20260919.md 判据 1/2；0 = 关闭。判定 = PlacementGate.windowRepeatAllows，
     // 与散布侧的排名配额是两套各自唯一的实现，见 PlacementGate 类注释第 4 点）。
-    public static int prosperityStructureWindowRepeatCap = 3;
+    public static int prosperityStructureWindowRepeatCap = 8;
 
     // H-2② 同族结构的最小间距档（默认 1 = 8 邻 chunk 内已有同族命中则本座让行；0 = 关闭）。
     // 档位 g ⇒ 邻域 (2g+1)²−1 个 chunk（g=1→8、g=2→24），上界由 PlacementGate.SPACING_GAP_MAX 钳制。
@@ -446,6 +490,64 @@ public class Config {
             1000,
             "散布件型权重·烟囱残段（02 §3.1 原值 15；仅 prosperityScatterVerticalPieces=true 时参与掷选）");
 
+        // ═════ P5b 成簇散布（plan §7.2 U3 改判）——键名/默认值/注释与本类字段声明严格一致 ═════
+        prosperityScatterClusterMode = configuration.getInt(
+            "prosperityScatterClusterMode",
+            Configuration.CATEGORY_GENERAL,
+            prosperityScatterClusterMode,
+            0,
+            1,
+            "成簇散布开关（默认 1 = 两级成簇档：低概率选残骸场中心 + 径向衰减撒件；" + "0 = P5 均匀档（每 chunk 独立掷骰，回退位，与 P5 终态逐位相同）。竖向件开关在两种模式下均保持原语义）");
+
+        prosperityScatterClusterCellChunks = configuration.getInt(
+            "prosperityScatterClusterCellChunks",
+            Configuration.CATEGORY_GENERAL,
+            prosperityScatterClusterCellChunks,
+            1,
+            16,
+            "场中心候选格边长（chunk 数，默认 4 ⇒ 候选格 64×64 格；尺度介于 H-3 与 H-2 之间，" + "不得回到每 chunk 独立判定。1 = 退化档：每 chunk 一个候选场）");
+
+        prosperityScatterClusterFieldChanceDenom = configuration.getInt(
+            "prosperityScatterClusterFieldChanceDenom",
+            Configuration.CATEGORY_GENERAL,
+            prosperityScatterClusterFieldChanceDenom,
+            1,
+            1024,
+            "场中心命中分母（每候选格 1/本值 概率成场；默认档与 cell/pieces/radius 联合标定，"
+                + "目标均值 ≈1.2 件/chunk 且 0 件 chunk 占比 ≥70%。1 = 每格皆场（退化档要件））");
+
+        prosperityScatterClusterPiecesMin = configuration.getInt(
+            "prosperityScatterClusterPiecesMin",
+            Configuration.CATEGORY_GENERAL,
+            prosperityScatterClusterPiecesMin,
+            1,
+            1024,
+            "单场件数配额下界（该 chunk 对该场的落件上限，round(配额×群系权重) 口径同 P5 的 K）");
+
+        prosperityScatterClusterPiecesMax = configuration.getInt(
+            "prosperityScatterClusterPiecesMax",
+            Configuration.CATEGORY_GENERAL,
+            prosperityScatterClusterPiecesMax,
+            1,
+            1024,
+            "单场件数配额上界（< 下界时按下界处理；min..max 均匀掷配额。min=max=K 且 cell=1/denom=1/radius=0" + " ⇒ 统计退化为 P5 的 K 档）");
+
+        prosperityScatterClusterRadiusChunks = configuration.getInt(
+            "prosperityScatterClusterRadiusChunks",
+            Configuration.CATEGORY_GENERAL,
+            prosperityScatterClusterRadiusChunks,
+            0,
+            16,
+            "径向衰减半径（chunk 数，默认 2；件位 r = 半径×16格 × u^falloffPower，中心密外围疏。" + "0 = 件全部落在场心所在 chunk（退化档要件））");
+
+        prosperityScatterClusterFalloffPower = configuration.getInt(
+            "prosperityScatterClusterFalloffPower",
+            Configuration.CATEGORY_GENERAL,
+            prosperityScatterClusterFalloffPower,
+            1,
+            4,
+            "径向衰减幂次（r = R·u^p；p=1 ⇒ 面密度 ∝1/r 聚簇最强，p 越大越向外均摊。默认 1）");
+
         // ═════ P7 结构放置契约（H-2/H-3 结构侧）——键名/默认值/注释与本类字段声明严格一致 ═════
         prosperityStructureBudgetPerChunk = configuration.getInt(
             "prosperityStructureBudgetPerChunk",
@@ -462,7 +564,9 @@ public class Config {
             prosperityStructureWindowRepeatCap,
             0,
             256,
-            "H-2① 每 16×16 区块窗内同一结构模板允许<b>实际请求</b>的区块数上限（默认 3；0 = 关闭）。" + "语义是命中集条件的重复上限：首次出现永不因本键被拒，只削第 cap+1 个副本"
+            "H-2① 每 16×16 区块窗内同一结构模板允许<b>实际请求</b>的区块数上限（默认 8 = P5b 拍板档"
+                + "「cap=8 + gap=1」：cap 只作护栏、密度损失全部由间距承担；0 = 关闭）。"
+                + "语义是命中集条件的重复上限：首次出现永不因本键被拒，只削第 cap+1 个副本"
                 + "（P7c 改判，plan §7.2；旧实现是排名配额 ⇒ 密度乘子，已作废）。"
                 + "纯函数重放，跨区块一致、无需共享状态；与 P5 竖向件的排名配额是两套各自唯一的实现");
 

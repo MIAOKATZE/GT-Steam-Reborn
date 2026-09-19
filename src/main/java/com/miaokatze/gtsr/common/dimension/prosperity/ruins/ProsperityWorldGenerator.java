@@ -69,7 +69,8 @@ public class ProsperityWorldGenerator implements IWorldGenerator {
         GTSteamReborn.LOG.info(
             "[GTSR] prosperity worldgen registered: dimId={} machines=5 outposts=6 {} scatterK={}/chunk"
                 + " scatterBlocks={}/chunk scatterAttempts={}/chunk scatterVertical={} scatterWindowCap={}"
-                + " scatterWeights={}/{}/{}/{} machineChance=1/{} outpostChance=1/{}"
+                + " scatterWeights={}/{}/{}/{} scatterClusterMode={} clusterCell={}ch clusterDenom={}"
+                + " clusterPieces={}..{} clusterRadius={}ch clusterFalloff={} machineChance=1/{} outpostChance=1/{}"
                 + " structureBudget={}/chunk structureWindowCap={} structureFamilyGap={}",
             Config.prosperityDimId,
             StructureRegistry.names(),
@@ -82,6 +83,14 @@ public class ProsperityWorldGenerator implements IWorldGenerator {
             Config.prosperityScatterWeightPipe,
             Config.prosperityScatterWeightRivetPlate,
             Config.prosperityScatterWeightChimney,
+            // P5b（plan §7.2）：成簇档回显——场中心选择（cell/denom）与场内撒落（pieces/radius/falloff）
+            Config.prosperityScatterClusterMode,
+            Config.prosperityScatterClusterCellChunks,
+            Config.prosperityScatterClusterFieldChanceDenom,
+            Config.prosperityScatterClusterPiecesMin,
+            Config.prosperityScatterClusterPiecesMax,
+            Config.prosperityScatterClusterRadiusChunks,
+            Config.prosperityScatterClusterFalloffPower,
             Config.prosperityMachineChance,
             Config.prosperityOutpostChance,
             Config.prosperityStructureBudgetPerChunk,

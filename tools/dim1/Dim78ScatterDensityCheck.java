@@ -109,20 +109,38 @@ public final class Dim78ScatterDensityCheck {
     /** 一行参数 = 扫描表的一行。 */
     public static final class Row {
 
+        /**
+         * P5b：既有六参行的既有语义 = "P5 均匀档扫描表"（{@code GRID} 的 B0/B1/K*、
+         * {@code ContourBudgetCheck} 的 B/C/D 行、{@code RegionRepeatCapCheck} 的 pin/relax 行
+         * 都由 {@code tools/dim1} 的<b>不可改</b>调用方按六参构造），故六参行一律显式带
+         * {@code prosperityScatterClusterMode=0} ⇒ 它们继续测 scatterUniform（P5 代码原样），
+         * 成簇档的扫描/判据在 {@code ScatterClusterVarianceCheck} 与新行（七参）里。
+         * BASE 树（P5b 前）无该键 ⇒ 反射登记 missing、行为不变（[10]/[13b] 摘要逐位仍绿）。
+         */
+        static final String LEGACY_UNIFORM_SPEC = "prosperityScatterClusterMode=0";
+
         public final String label;
         public final int contours;
         public final int blocks;
         public final int attempts;
         public final Boolean vertical;
         public final int windowCap;
+        /** P5b 追加键 spec（null = 不带额外键；{@link #LEGACY_UNIFORM_SPEC} 之外的簇参数由七参构造给）。 */
+        public final String extraSpec;
 
         public Row(String label, int contours, int blocks, int attempts, Boolean vertical, int windowCap) {
+            this(label, contours, blocks, attempts, vertical, windowCap, LEGACY_UNIFORM_SPEC);
+        }
+
+        public Row(String label, int contours, int blocks, int attempts, Boolean vertical, int windowCap,
+            String extraSpec) {
             this.label = label;
             this.contours = contours;
             this.blocks = blocks;
             this.attempts = attempts;
             this.vertical = vertical;
             this.windowCap = windowCap;
+            this.extraSpec = extraSpec;
         }
 
         String overrideSpec() {
@@ -133,6 +151,9 @@ public final class Dim78ScatterDensityCheck {
             put(sb, "prosperityScatterWindowRepeatCap", windowCap);
             if (vertical != null) {
                 put(sb, "prosperityScatterVerticalPieces", vertical.toString());
+            }
+            if (extraSpec != null && !extraSpec.isEmpty()) {
+                sb.append(',').append(extraSpec);
             }
             return sb.toString();
         }
@@ -159,10 +180,30 @@ public final class Dim78ScatterDensityCheck {
         row("K12-摘竖向件", 12, 0, 64, Boolean.FALSE, 0), row("K4-竖向件在", 4, 0, 64, Boolean.TRUE, 0),
         row("K6-竖向件在", 6, 0, 64, Boolean.TRUE, 0), row("K8-竖向件在", 8, 0, 64, Boolean.TRUE, 0),
         row("K12-竖向件在", 12, 0, 64, Boolean.TRUE, 0), row("K8-竖向件在+H2窗上限2", 8, 0, 64, Boolean.TRUE, 2),
-        row("DEFAULT档(K8+摘+落块24+窗2)", 8, 24, 64, Boolean.FALSE, 2) };
+        row("DEFAULT档(K8+摘+落块24+窗2)", 8, 24, 64, Boolean.FALSE, 2),
+        // P5b：成簇默认档 = 生产默认键（cell/denom/pieces/radius/falloff 全走 Config 当前默认，
+        // 其余四键与上一行同值 ⇒ 与 "DEFAULT档" 行的差只有"成簇开关"这一件事）
+        // CLU 行 = 生产默认档的<b>全量显式</b> spec（防同 JVM 行序泄漏，见 ScatterClusterVarianceCheck
+        // 的 clusterDefaultSpec 注释）；这六个值与 {@link Config} 的 P5b 段字段默认值严格一致，
+        // 改默认必须两处同改（HeightHashSingleSourceCheck 不管工具，靠本注释 + [14e] RED 兜底）。
+        clusterRow("CLU-P5b成簇默认档(全显式)", 8, 24, 64, Boolean.FALSE, 2,
+            "prosperityScatterClusterMode=1,prosperityScatterClusterCellChunks=4,"
+                + "prosperityScatterClusterFieldChanceDenom=3,prosperityScatterClusterPiecesMin=8,"
+                + "prosperityScatterClusterPiecesMax=14,prosperityScatterClusterRadiusChunks=2,"
+                + "prosperityScatterClusterFalloffPower=1"),
+        // P5b 判据 5 退化档：不关开关，只把簇参数设回"每 chunk 一场、每场 K 件、半径 0"
+        clusterRow("DEGEN-成簇参数退化到P5-K8", 8, 24, 64, Boolean.FALSE, 2,
+            "prosperityScatterClusterMode=1,prosperityScatterClusterCellChunks=1,"
+                + "prosperityScatterClusterFieldChanceDenom=1,prosperityScatterClusterPiecesMin=8,"
+                + "prosperityScatterClusterPiecesMax=8,prosperityScatterClusterRadiusChunks=0,"
+                + "prosperityScatterClusterFalloffPower=1") };
 
     private static Row row(String label, int k, int b, int a, Boolean v, int cap) {
         return new Row(label, k, b, a, v, cap);
+    }
+
+    private static Row clusterRow(String label, int k, int b, int a, Boolean v, int cap, String clusterSpec) {
+        return new Row(label, k, b, a, v, cap, clusterSpec);
     }
 
     /** 现状基线行（digest 模式与 BASE/AFTER 对拍只用这一行）。 */
@@ -518,6 +559,10 @@ public final class Dim78ScatterDensityCheck {
         private final List<Integer> chimneyCols = new ArrayList<>();
         private final Map<Long, int[]> windowEmit = new TreeMap<>();
         private final Map<Long, int[]> windowPieces = new TreeMap<>();
+        /** P5b 判据 2：每个 16×16 窗内的总件数（跨件型求和），供"窗间分布"读取。 */
+        private final Map<Long, Long> windowTotals = new TreeMap<>();
+        /** P5b 判据 2 的观感粒度：4×4 chunk（=64×64 格）子窗总件数（键 = 全局对齐坐标派生）。 */
+        private final Map<Long, Long> subwindowTotals = new TreeMap<>();
         private final MessageDigest md;
         long chunksSeen;
         long chunksWithScatter;
@@ -621,6 +666,10 @@ public final class Dim78ScatterDensityCheck {
             contours.add(pieces);
             blocks.add(blockCount);
             chimneyCols.add(chimCols.size());
+            if (pieces > 0) {
+                windowTotals.merge(windowKey(sink.cx, sink.cz), (long) pieces, Long::sum);
+                subwindowTotals.merge(subWindowKey(sink.cx, sink.cz), (long) pieces, Long::sum);
+            }
         }
 
         void finish() {
@@ -647,6 +696,16 @@ public final class Dim78ScatterDensityCheck {
         /** 窗键：chunk 坐标按 16 floorDiv（与 ProsperitySurfaceScatter.windowAllows 同一定义）。 */
         private static long windowKey(int cx, int cz) {
             return Math.floorDiv(cx, WINDOW_CHUNKS) * 1000003L + Math.floorDiv(cz, WINDOW_CHUNKS);
+        }
+
+        /** P5b：4×4 chunk 子窗键（64×64 格 = 玩家步行可感知的疏密尺度）。 */
+        private static long subWindowKey(int cx, int cz) {
+            return Math.floorDiv(cx, 4) * 1000003L + Math.floorDiv(cz, 4);
+        }
+
+        /** P5b 判据 2：4×4 chunk 子窗总件数表（缺失键 = 0 件子窗，由调用方补零）。 */
+        public Map<Long, Long> subwindowTotalsMap() {
+            return subwindowTotals;
         }
 
         /** 落块摘要（在 {@link #finish()} 里<b>一次算好并缓存</b>——{@code MessageDigest.digest()}
@@ -701,6 +760,49 @@ public final class Dim78ScatterDensityCheck {
 
         public int blockP95() {
             return p95(blocks);
+        }
+
+        // ══════════════════ P5b 判据 1/2 的分布读取口（成簇方差核对）══════════════════
+
+        /** 件数分位数（p∈[0,1]，最近秩法；与 {@link #p95} 同一族估计量）。 */
+        public int contourPercentile(double p) {
+            final int[] a = new int[contours.size()];
+            int i = 0;
+            for (final int x : contours) {
+                a[i++] = x;
+            }
+            java.util.Arrays.sort(a);
+            return a.length == 0 ? 0 : a[Math.min(a.length - 1, Math.max(0, (int) Math.ceil(a.length * p) - 1))];
+        }
+
+        /** 件数 ∈ [lo, hi]（闭区间）的 chunk 占比（百分点）——判据 1 直方图桶。 */
+        public double contourBucketPp(int lo, int hi) {
+            int n = 0;
+            for (final int x : contours) {
+                if (x >= lo && x <= hi) {
+                    n++;
+                }
+            }
+            return contours.isEmpty() ? 0 : 100.0D * n / contours.size();
+        }
+
+        /** 件数变异系数 CV = 样本标准差 / 均值（判据 1 的"方差拉大"主指标）。 */
+        public double contourCV() {
+            final double mean = contourMean();
+            if (mean <= 0) {
+                return 0;
+            }
+            double sq = 0;
+            for (final int x : contours) {
+                final double d = x - mean;
+                sq += d * d;
+            }
+            return Math.sqrt(sq / Math.max(1, contours.size() - 1)) / mean;
+        }
+
+        /** 每窗总件数表（键 = 窗键；未出现的窗 = 0 件，由调用方按样本窗数补零）。 */
+        public Map<Long, Long> windowTotalsMap() {
+            return windowTotals;
         }
 
         public int maxWinEmitChim() {

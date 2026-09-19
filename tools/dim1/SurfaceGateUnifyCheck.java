@@ -126,12 +126,21 @@ public final class SurfaceGateUnifyCheck {
     /**
      * D 组：编排链之后 dim78 列级通过率带（残骸 's' 板把更多列抬进可落地面）。
      * <p>
-     * <b>P5 期望值更新（非放宽凑绿）</b>：旧带 [68,76] 钉的是"散布以 K=64 含 15% 竖向件落笔"
-     * 的状态——彼时约 29pp 的列被散布自己埋成 ruinDebris，故链后通过率只剩 ~70%。P5 选定 K=8
-     * 并摘除竖向件后，散布不再吞列，实测口径 C 上移到 <b>94.968pp</b>（8 seed × 8 窗、14091 可散布
-     * chunk）。带按 P5 后实测取 [93.5,96.5]；若将来再调散布档，此带必须随实测重标而不是放宽。
+     * <b>P5b 重标（plan §7.2，成簇散布实测，不是手挪凑绿）</b>：旧带 [93.5,96.5] 钉的是
+     * "P5 均匀档 K=8"——彼时每 chunk 约 9.2 件把 ~4.7pp 列埋成 ruinDebris，链后通过率只剩
+     * 94.968pp（8 seed × 8 窗、14091 可散布 chunk，P5 实测）。成簇默认档（mode=1/cell=4/denom=3/
+     * pieces 8..14/radius=2）均值 1.271 件/chunk、72.3pp 的 chunk 零件 ⇒ 散布吞列趋势大幅减弱，
+     * 口径 C 上移到与口径 B 相邻：<b>实测 99.314pp</b>（本轮 8 seed × 4 区 = 8192 chunk、
+     * 1,519,616 列，明细 {@code temp/p4-surface/p5b-gate-measure84.txt}）；本 assert 自身的
+     * 2 seed × 1 区确定性样本实测 <b>99.202pp</b>。带取 [98.6, 99.6]（锚 = 本 assert 的确定性样本 99.202，±0.6pp 与 P4 带宽同族；全链路
+     * 只有整数 + IEEE 确定运算，跨机抖动远小于带宽）：上界 99.6 钉住"散布层不得整层消失
+     * （权重全 0 档 = 口径 B 99.975，越界即红）"；下界 98.6 钉住"不得退回均匀档吞列形态
+     * （实测 ClusterMode=0 影子档 = 95.641，红）"。
+     * <b>灵敏度自检</b>（判据 4 要求的"人为破坏必红"，见 surface_checks.sh [14d]）：影子树把
+     * {@code ClusterMode} 默认改 0（退回 P5 均匀档）⇒ 口径 C 回到 ~94.97 必红；把件型权重全 0
+     * （散布层关闭）⇒ 99.975 越上界必红。若将来再调散布档，本带必须随实测重标而不是放宽。
      */
-    private static final double BAND_CHAIN_MIN = 93.5D, BAND_CHAIN_MAX = 96.5D;
+    private static final double BAND_CHAIN_MIN = 98.6D, BAND_CHAIN_MAX = 99.6D;
     /**
      * D 组：口径 B（散布前，即 outpost/机器写完、散布尚未落笔）通过率带。
      * 冒烟 E6 的 attempt 级 82.0-85.7% 落在口径 B 与口径 C 之间（scatter 是"边写边探"，

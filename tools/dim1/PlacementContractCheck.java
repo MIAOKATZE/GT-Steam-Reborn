@@ -90,8 +90,17 @@ public final class PlacementContractCheck {
 
     // ── 申报值（改生产默认而不改这里，第一条断言就红：plan §2.4 判据 4）──
     static final int DECL_BUDGET = 1;
-    /** P7c 改判后的默认窗上限（命中集条件的重复上限；旧默认 2 是排名配额语义下的"同 P5 竖向件档"）。 */
-    static final int DECL_WINDOW_CAP = 3;
+    /**
+     * P5b 定档：默认窗上限 = 8，即<b>对当前自然分布（窗内同模板 max 实测 8）不咬合的纯护栏</b>——
+     * 用户口径"概率不动只治贴脸"，密度损失全部由 {@link #DECL_FAMILY_GAP} 承担。
+     */
+    static final int DECL_WINDOW_CAP = 8;
+    /**
+     * 上限"咬合灵敏度"探针档。<b>不得复用 {@link #DECL_WINDOW_CAP}</b>：默认档已取到自然分布上界，
+     * 在它自身上永远观测不到"关掉上限会越过上限"，那条断言会结构性地不可满足（P5b 实测）。
+     * 故咬合性一律在 3 这一有限档上证。
+     */
+    static final int PROBE_WINDOW_CAP = 3;
     /** P7c 新增：同族间距档默认 1 = 8 邻 chunk（贴脸由它治，不由配额治）。 */
     static final int DECL_FAMILY_GAP = 1;
     static final int DECL_LANDING_Y_MIN = 20;
@@ -628,8 +637,11 @@ public final class PlacementContractCheck {
         }
         check(def.maxWinEmit <= DECL_WINDOW_CAP, "C3 默认档窗内同模板发射 chunk 数 <= 上限 " + DECL_WINDOW_CAP
             + "（实测 " + def.maxWinEmit + "）");
-        check(noCap.maxWinEmit > DECL_WINDOW_CAP, "C3 灵敏度/反假绿：关掉窗上限后同模板发射数必须越过 "
-            + DECL_WINDOW_CAP + "（实测 " + noCap.maxWinEmit + "；未越限说明默认档的 <= 是巧合而非上限在咬合）");
+        final Rate probe = rateForCap(s, PROBE_WINDOW_CAP);
+        check(probe.maxWinEmit == PROBE_WINDOW_CAP && noCap.maxWinEmit > PROBE_WINDOW_CAP,
+            "C3 灵敏度/反假绿：上限咬合性在探针档 " + PROBE_WINDOW_CAP + " 上证——该档窗内 max 恰为 "
+                + PROBE_WINDOW_CAP + "（实测 " + probe.maxWinEmit + "）且关掉上限后越过它（实测 "
+                + noCap.maxWinEmit + "）。不在默认档上证：默认档已取自然分布上界，'关掉上限会越过上限'在其上结构性不可满足");
         check(naked.maxWinEmit == noCap.maxWinEmit,
             "C4 预算键与窗名额互不相干：budget=0/cap=0 与 budget=1/cap=0 的窗发射数应同（" + naked.maxWinEmit + " vs "
                 + noCap.maxWinEmit + "）");
@@ -680,9 +692,9 @@ public final class PlacementContractCheck {
         check(def.structures >= noCap.structures / 5, "C6 默认档结构密度不得低于回退档的 1/5（实测 " + def.structures
             + " vs " + noCap.structures + "）：窗内同模板上限必须以命中集合为条件才叫重复上限，"
             + "否则它只是把密度乘上 cap/256（P7/P7b 的排名配额语义，plan §7.2 已改判）");
-        check(cap1.maxWinEmit == 1 && cap3.maxWinEmit == DECL_WINDOW_CAP,
-            "C6b 上限必须随 cap 咬合：cap=1 ⇒ 窗内 max 恰为 1、cap=3 ⇒ 窗内 max 恰为 " + DECL_WINDOW_CAP
-                + "（实测 " + cap1.maxWinEmit + " / " + cap3.maxWinEmit
+        check(cap1.maxWinEmit == 1 && cap3.maxWinEmit == PROBE_WINDOW_CAP,
+            "C6b 上限必须随 cap 咬合：cap=1 ⇒ 窗内 max 恰为 1、cap=" + PROBE_WINDOW_CAP + " ⇒ 窗内 max 恰为 "
+                + PROBE_WINDOW_CAP + "（实测 " + cap1.maxWinEmit + " / " + cap3.maxWinEmit
                 + "）；若实现退化成\"只数首次\"（等价 cap≡1），后半句必红");
         check(cap3.requestedTotal() > cap1.requestedTotal(), "C6c cap=3 的发射数必须严格高于 cap=1（实测 "
             + cap3.requestedTotal() + " vs " + cap1.requestedTotal() + "）⇒ 上限档位不是摆设");

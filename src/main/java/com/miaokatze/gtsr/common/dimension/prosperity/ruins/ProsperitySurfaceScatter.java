@@ -54,6 +54,40 @@ import com.miaokatze.gtsr.config.Config;
  * <b>回退</b>（plan §2.3 判据 5，四键见 {@link Config} 的 P5 段注释）：竖向件开关=true +
  * 件数=64 + 落块=0 + 窗上限=0 ⇒ 掷点上限与权重表均为改造前原值 ⇒ 散布层行为<b>逐位</b>复现柱阵态
  * （证据：{@code tools/dim1/Dim78ScatterDensityCheck} 的 BASE/rollback 落块摘要对拍）。
+ * <p>
+ * <b>P5b（plan §7.2 追加裁决 U3 改判「K=1 + 必须成簇（高方差）」）——两级成簇散布</b>：
+ * 用户否掉的是"每 chunk 独立掷骰 ⇒ 处处稀稀拉拉几点"的低方差形态；成簇不是把 K 调小，
+ * 而是换过程。默认档（{@link Config#prosperityScatterClusterMode} = 1）走
+ * {@link #scatterClustered}：
+ * <ol>
+ * <li><b>H-2/H-3 中间尺度选场中心</b>：把世界划成
+ * {@link Config#prosperityScatterClusterCellChunks}² chunk 的格，每格以
+ * 1/{@link Config#prosperityScatterClusterFieldChanceDenom} 的概率成为"残骸场"
+ * （判定 = 格坐标的 {@link GTSRWorldgenHash#chunkSeed} ⊕ 盐 "CLFd" ⇒ 跨 chunk 重算一致、无共享状态，
+ * plan §2.3 判据 1）；</li>
+ * <li><b>H-3 场内按径向衰减撒件</b>：每场件数配额
+ * [{@link Config#prosperityScatterClusterPiecesMin}, {@link Config#prosperityScatterClusterPiecesMax}]
+ * （该 chunk 对该场的落件上限，群系权重折算口径同 P5 的 K），件位在以格心为原点、
+ * {@link Config#prosperityScatterClusterRadiusChunks}×16 格为半径的盘内按
+ * r = R·u^{@link Config#prosperityScatterClusterFalloffPower} 采样（power=1 ⇒ 面密度 ∝ 1/r，
+ * 中心密、外围疏）。件位与件型都是 (seed, 场格, 件序号) 的<b>纯函数</b>（盐 "CLPc" 派生，
+ * 仍只走 {@link GTSRWorldgenHash}），故件只会由它落点所属的那一个 chunk 尝试 ⇒ 跨 chunk
+ * 无重复、无遗漏、无需共享世界状态。</li>
+ * </ol>
+ * <b>降级态与城窗</b>：每一件仍然逐件走 {@code findSurfaceY} 范围判定 + {@link SurfaceGate}
+ * 单一谓词（降级 chunk 无表层 ⇒ 顶块不过门 ⇒ 一物不落地），与 {@link #scatterUniform} 同一守卫；
+ * 城 buffer 窗内编排器根本不调 {@code scatter}（{@code ProsperityWorldGenerator} 的
+ * {@code citiesNear} 同源判定），落点所属 chunk 不自散 ⇒ 不新增第二套城窗判定。
+ * <b>与城窗互斥的口径边界（申报）</b>：城窗外侧近旁的 chunk 仍会承接城内场次号落在它境内的件
+ * ——被城吞掉的件不回流（这是"每 chunk 只落自己境内件"的直接推论，非缺陷）。
+ * <p>
+ * <b>P5b 回退链</b>（判据 5 的两级证据）：
+ * ① {@code prosperityScatterClusterMode=0} ⇒ 走 {@link #scatterUniform}（P5 代码原样，
+ * 与 P5-BASE 树的落块摘要<b>逐位相同</b>，由 {@code tools/dim1/surface_checks.sh} [14b] 钉）；
+ * ② 成簇参数退化档（cell=1 + denom=1 + piecesMin=piecesMax=K + radius=0）⇒ 与 P5 均匀档
+ * <b>统计一致</b>（每 chunk 都填到 round(K×群系权重)，件数分布同负二项截断形状，实测对照见
+ * {@code tools/dim1/ScatterClusterVarianceCheck}）。回到"现状柱阵"的完整键组合见 {@link Config}
+ * P5 段注释（另需 prosperityScatterClusterMode=0）。
  */
 public final class ProsperitySurfaceScatter {
 
@@ -78,6 +112,12 @@ public final class ProsperitySurfaceScatter {
     /** 盐 "WnC"（P5 H-2 窗槽位排序专用；与 "ScAt" 隔离，避免同 chunk 的件型掷选与窗排序同相关）。 */
     private static final long SALT_WINDOW_RANK = 0x576E43L;
 
+    /** 盐 "CLFd"（P5b 残骸场中心掷选；与 "ScAt" 隔离 ⇒ 场存在性与 chunk 内掷选互不相关）。 */
+    private static final long SALT_CLUSTER_FIELD = 0x434C4664L;
+
+    /** 盐 "CLPc"（P5b 场内件位/件型的按件派生；乘子按件序号 ⇒ 同一件在任何 chunk 重算同位同型）。 */
+    private static final long SALT_CLUSTER_PIECE = 0x434C5063L;
+
     /** 本类所属维度键（P4：门的显式维度入参，取 L1 账本同一词汇，不另造字符串）。 */
     private static final String DIM_KEY = SurfaceGate.DIM78;
 
@@ -98,6 +138,21 @@ public final class ProsperitySurfaceScatter {
         if (weights == null) {
             return; // 四项权重全 0 = 散布层关闭（plan §2.3 判据 5 的单值回退口径之一）
         }
+        if (Config.prosperityScatterClusterMode > 0) {
+            // P5b 成簇档（plan §7.2 U3 改判）：两级过程，见类注释。
+            scatterClustered(world, worldSeed, cx, cz, biomeScatterWeight, sink, weights);
+            return;
+        }
+        scatterUniform(world, worldSeed, cx, cz, biomeScatterWeight, sink, weights);
+    }
+
+    /**
+     * P5 均匀档（原 scatter 主体<b>逐字搬入，一行未改</b>）：每 chunk 独立掷骰 + H-3 双天花板。
+     * {@code prosperityScatterClusterMode=0} 即回到本路径 ⇒ 与 P5-BASE 落块摘要逐位相同
+     * （{@code tools/dim1/surface_checks.sh} [14b]/[10] 钉住）。
+     */
+    private static void scatterUniform(World world, long worldSeed, int cx, int cz, float biomeScatterWeight,
+        BlockSink sink, int[] weights) {
         final Random rand = new Random(GTSRWorldgenHash.chunkSeed(worldSeed, cx, cz) ^ SALT_SCATTER);
         final int attempts = (int) (Config.prosperityScatterAttemptsPerChunk * biomeScatterWeight);
         final int contourCap = scaledByWeight(Config.prosperityScatterContoursPerChunk, biomeScatterWeight);
@@ -147,6 +202,124 @@ public final class ProsperitySurfaceScatter {
             if (placed > 0) {
                 contours++;
                 blocks += placed;
+            }
+        }
+    }
+
+    /**
+     * P5b 成簇档（plan §7.2 U3 改判；类注释有完整语义申报）。跨 chunk 一致性不靠共享状态，
+     * 靠"件 = (场格, 件序号) 的纯函数"：每件的位置/件型只由
+     * {@link GTSRWorldgenHash}（盐 "CLFd"/"CLPc"，禁止手搓哈希）派生，任何 chunk 重算都得到
+     * 同一名件 → 件只会由它落点所属的那一个 chunk 尝试放置（{@code (x>>4)!=cx} 短路）。
+     * 角度采样不用三角函数（跨 JVM ulp 不保证）：{@code t∈[-1,1)} + ±sqrt(1−t²)——IEEE754
+     * 乘法与 sqrt 是逐位确定的，{@code Math.round} 同。
+     */
+    private static void scatterClustered(World world, long worldSeed, int cx, int cz, float biomeScatterWeight,
+        BlockSink sink, int[] weights) {
+        final int cell = Math.max(1, Config.prosperityScatterClusterCellChunks);
+        final int denom = Math.max(1, Config.prosperityScatterClusterFieldChanceDenom);
+        final int piecesMin = Math.max(1, Config.prosperityScatterClusterPiecesMin);
+        final int piecesMax = Math.max(piecesMin, Config.prosperityScatterClusterPiecesMax);
+        final int radiusChunks = Math.max(0, Config.prosperityScatterClusterRadiusChunks);
+        final int falloff = Math.max(1, Config.prosperityScatterClusterFalloffPower);
+        final int cellBlocks = cell * 16;
+        // 候选场格 = 盘（半径 reach 块 + 本 chunk 宽度）能罩住本 chunk 的那些格；两轴独立枚举，
+        // 顺序固定 (kx 升, kz 升) ⇒ 各 chunk 的重放序列一致。
+        final int reach = radiusChunks * 16;
+        final int kx0 = Math.floorDiv((cx << 4) - reach, cellBlocks);
+        final int kx1 = Math.floorDiv((cx << 4) + 15 + reach, cellBlocks);
+        final int kz0 = Math.floorDiv((cz << 4) - reach, cellBlocks);
+        final int kz1 = Math.floorDiv((cz << 4) + 15 + reach, cellBlocks);
+        // 本 chunk 的 H-3 双天花板沿用 P5 口径（contourCap=round(K×w)、blockCap=round(N×w)）：
+        // 成簇只改"件位从哪来"，不改单 chunk 的削顶语义（防一场的密集件把落块上限顶穿）。
+        final int contourCap = scaledByWeight(Config.prosperityScatterContoursPerChunk, biomeScatterWeight);
+        final int blockCap = scaledByWeight(Config.prosperityScatterBlocksPerChunk, biomeScatterWeight);
+        // 单 chunk 掷点终止预算（与 uniform 同口径：(int)(上限×w) 截断）
+        final int attemptsPerField = (int) (Config.prosperityScatterAttemptsPerChunk * biomeScatterWeight);
+        final double radiusBlocks = reach > 0 ? reach : 1.0D;
+        final StructureBuilder builder = new StructureBuilder(sink);
+        int contours = 0;
+        int blocks = 0;
+        outer: for (int kx = kx0; kx <= kx1; kx++) {
+            for (int kz = kz0; kz <= kz1; kz++) {
+                final long fieldSeed = GTSRWorldgenHash.chunkSeed(worldSeed, kx, kz) ^ SALT_CLUSTER_FIELD;
+                final Random fieldRand = new Random(fieldSeed);
+                if (fieldRand.nextInt(denom) != 0) {
+                    continue; // 本场格无残骸场（H-2/H-3 中间尺度的低概率判定）
+                }
+                final int roll = piecesMin + (piecesMax > piecesMin ? fieldRand.nextInt(piecesMax - piecesMin + 1) : 0);
+                // 本 chunk 对该场的落件配额：round(roll×群系权重)（退化档 roll=K 时恰为 P5 的
+                // contourCap=round(K×w) ⇒ 填到配额 = P5"填到件数天花板"的同一形状）
+                final int quota = Math.max(1, scaledByWeight(roll, biomeScatterWeight));
+                final int centerX = kx * cellBlocks + (cellBlocks >> 1);
+                final int centerZ = kz * cellBlocks + (cellBlocks >> 1);
+                int placedHere = 0;
+                for (int i = 0; i < attemptsPerField && placedHere < quota; i++) {
+                    // 双天花板在消耗随机数之前判（与 uniform 同口径）
+                    if (contourCap > 0 && contours >= contourCap) {
+                        break outer;
+                    }
+                    if (blockCap > 0 && blocks >= blockCap) {
+                        break outer;
+                    }
+                    final Random pieceRand = new Random(
+                        GTSRWorldgenHash.splitmix64(fieldSeed ^ (SALT_CLUSTER_PIECE * (i + 1L))));
+                    final int x;
+                    final int z;
+                    if (radiusChunks == 0) {
+                        // 退化档（判据 5）：半径 0 ⇒ 件均匀落在场心所在 chunk ⇒ 形状逐点同 P5
+                        x = centerX - 8 + pieceRand.nextInt(16);
+                        z = centerZ - 8 + pieceRand.nextInt(16);
+                    } else {
+                        final double u = pieceRand.nextDouble();
+                        double r = u;
+                        for (int p = 1; p < falloff; p++) {
+                            r *= u; // r = R·u^falloff（乘法链，IEEE 逐位确定）
+                        }
+                        final double t = pieceRand.nextDouble() * 2.0D - 1.0D;
+                        final double sin = (pieceRand.nextBoolean() ? 1.0D : -1.0D)
+                            * Math.sqrt(Math.max(0.0D, 1.0D - t * t));
+                        x = centerX + (int) Math.round(r * radiusBlocks * t);
+                        z = centerZ + (int) Math.round(r * radiusBlocks * sin);
+                    }
+                    if ((x >> 4) != cx || (z >> 4) != cz) {
+                        continue; // 件落在他 chunk：由那个 chunk 自己重放尝试（此处不多掷任何随机数）
+                    }
+                    final int surfaceY = findSurfaceY(world, x, z);
+                    if (surfaceY <= 0 || surfaceY > 200) {
+                        continue;
+                    }
+                    // 与 uniform 完全同一个 SurfaceGate 守卫（降级 chunk 无表层 ⇒ 必然不过门）
+                    if (!SurfaceGate
+                        .isNaturalTop(DIM_KEY, SurfaceGate.landableTops(DIM_KEY), world.getBlock(x, surfaceY, z))) {
+                        continue;
+                    }
+                    final int y = surfaceY + 1;
+                    final int placed;
+                    switch (pickWeighted(pieceRand, weights)) {
+                        case KIND_SLEEPER:
+                            placed = placeSleeper(builder, world, x, y, z);
+                            break;
+                        case KIND_PIPE:
+                            placed = placePipeRun(builder, world, x, y, z, pieceRand, cx, cz);
+                            break;
+                        case KIND_RIVET_PLATE:
+                            placed = placeRivetPlate(builder, world, x, y, z);
+                            break;
+                        case KIND_CHIMNEY:
+                            placed = windowAllows(worldSeed, cx, cz, KIND_CHIMNEY, windowCapFor(KIND_CHIMNEY))
+                                ? placeChimneyStub(builder, world, x, y, z, pieceRand)
+                                : 0;
+                            break;
+                        default:
+                            placed = 0;
+                    }
+                    if (placed > 0) {
+                        contours++;
+                        blocks += placed;
+                        placedHere++;
+                    }
+                }
             }
         }
     }

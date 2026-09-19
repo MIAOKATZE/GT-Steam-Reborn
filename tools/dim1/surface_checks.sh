@@ -26,6 +26,9 @@
 #                                                  #         PlacementContractCheck all（T2..T5 四张表）
 #                                                  #         + 影子树单变量 RED→GREEN（p7red 两条：
 #                                                  #           outpost/机器各把落块真值退回 return true）
+#                                                  #   [14] P5b 散布成簇（plan §7.2）：BASE 零漂移对拍（含
+#                                                  #         BASE 编译零 error 硬门槛）+ P5 均匀档逐位退化
+#                                                  #         摘要对拍 + 双跑 SHA + 两条成簇参数影子 RED
 #                                                  #   [13] P7c 结构 H-2 语义改判：非本片路径零漂移对拍
 #                                                  #         （BASE=temp/p7c-base 开工前快照）+ CHAIN 硬门槛
 #                                                  #         RED→GREEN + 两条新规则的 4 个单变量 RED
@@ -173,7 +176,7 @@ MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8 \
   tools/dim1/Dim78ScatterDensityCheck.java tools/dim1/ContourBudgetCheck.java \
   tools/dim1/RegionRepeatCapCheck.java tools/dim1/BiomeBandHierarchyCheck.java \
   tools/dim1/CityBiomeGateCheck.java tools/dim1/PlacementContractCheck.java \
-  tools/dim1/gregtech/api/GregTechAPI.java \
+  tools/dim1/ScatterClusterVarianceCheck.java tools/dim1/gregtech/api/GregTechAPI.java \
   >"$OUT/javac-tools.log" 2>&1
 echo "COMPILE tools EXIT=$? ($(grep -ac 'error:' "$OUT/javac-tools.log") error)"
 
@@ -686,6 +689,7 @@ com/miaokatze/gtsr/common/dimension/prosperity/ruins/city/CityPlanner.java
 com/miaokatze/gtsr/common/dimension/prosperity/ruins/ProsperityWorldGenerator.java
 com/miaokatze/gtsr/common/dimension/prosperity/ruins/RuinedMachinePlacer.java
 com/miaokatze/gtsr/common/dimension/prosperity/ruins/ProsperityOutpostPlacer.java
+com/miaokatze/gtsr/common/dimension/prosperity/ruins/ProsperitySurfaceScatter.java
 com/miaokatze/gtsr/common/dimension/framework/structure/StructureRegistry.java
 com/miaokatze/gtsr/config/Config.java"
   if [ ! -f "$SNAP6/com/miaokatze/gtsr/common/dimension/prosperity/ruins/city/CityPlanner.java" ]; then
@@ -865,6 +869,7 @@ com/miaokatze/gtsr/config/Config.java"
   P7C_BASE_FILES="com/miaokatze/gtsr/common/dimension/framework/structure/PlacementGate.java
 com/miaokatze/gtsr/common/dimension/framework/structure/StructureRegistry.java
 com/miaokatze/gtsr/common/dimension/prosperity/ruins/ProsperityWorldGenerator.java
+com/miaokatze/gtsr/common/dimension/prosperity/ruins/ProsperitySurfaceScatter.java
 com/miaokatze/gtsr/common/dimension/prosperity/ruins/RuinedMachinePlacer.java
 com/miaokatze/gtsr/common/dimension/prosperity/ruins/ProsperityOutpostPlacer.java
 com/miaokatze/gtsr/config/Config.java"
@@ -962,6 +967,138 @@ com/miaokatze/gtsr/config/Config.java"
     rm -rf "$P7CRED" "$P7CREDCLS" "$OUT/p7c-red-tools"
     run "PlacementContractCheck census 8 8（RED 后工作树复位 GREEN）" PlacementContractCheck census 8 8
     run "Dim78ScatterDensityCheck digest 8 2（RED 后工作树复位 GREEN）" Dim78ScatterDensityCheck digest 8 2
+  fi
+
+  # ── [14] P5b 散布成簇（plan §7.2 U3 改判「K=1 + 必须成簇（高方差）」） ──
+  # 四件事：① 非本片路径零漂移（表层/高度/群系 512 chunk 逐字节，BASE=temp/p5b-base 开工前快照，
+  #           带 P7c 的"BASE 编译零 error"硬门槛）；
+  #        ② 判据 5 回退链①：ClusterMode=0 的 K8 行与 P5-BASE 树同名行 SCAN 逐字节一致（逐位退化）；
+  #        ③ 判据 5 回退链②的确定性面：成簇 variance 小档双跑 digest 相等（同 seed 同结果）；
+  #        ④ 判据 4 灵敏度：两条成簇参数的影子树单变量 RED（denom=1 → ContourBudgetCheck 红；
+  #           ClusterMode=0 → SurfaceGateUnifyCheck 口径 C 新带红）——带若对破坏不敏感就是假绿。
+  # 大样本实测（判据 1/2/3/5 的数字与断言）在 ScatterClusterVarianceCheck 的 variance/structure 档，
+  # 本脚本只挂快档；全量数字见 plan/investigation/p5b-clustered-scatter-20260919.md。
+  echo "== [14] P5b 散布成簇：零漂移对拍 + 逐位退化摘要 + 双跑 SHA + 两条影子 RED =="
+  BASE5B=temp/p5b-base/all
+  SNAP5B=temp/p5b-base/src/main/java
+  P5B_BASE_FILES="com/miaokatze/gtsr/common/dimension/prosperity/ruins/ProsperitySurfaceScatter.java
+com/miaokatze/gtsr/common/dimension/prosperity/ruins/ProsperityWorldGenerator.java
+com/miaokatze/gtsr/config/Config.java"
+  if [ ! -f "$SNAP5B/com/miaokatze/gtsr/common/dimension/prosperity/ruins/ProsperitySurfaceScatter.java" ]; then
+    echo "   FAIL：缺 P5b BASE 快照 $SNAP5B/…/ProsperitySurfaceScatter.java（必须=本片第一个写入前的工作树副本）"
+    FAILS=$((FAILS + 1))
+  else
+    rm -rf "$BASE5B/com" "$OUT/p5b-base-classes" "$OUT/p5b-base-tools"
+    mkdir -p "$BASE5B/com" "$OUT/p5b-base-classes" "$OUT/p5b-base-tools"
+    cp -a src/main/java/. "$BASE5B/"
+    miss5b=0
+    for rel in $P5B_BASE_FILES; do
+      if [ -f "$SNAP5B/$rel" ]; then
+        cp "$SNAP5B/$rel" "$BASE5B/$rel"
+        cmp -s "$SNAP5B/$rel" "$BASE5B/$rel" || true
+        cmp -s "$BASE5B/$rel" "src/main/java/$rel" \
+          && { echo "   FAIL：BASE 还原后与工作树相同（快照失效）"; miss5b=$((miss5b + 1)); }
+      else
+        echo "   FAIL：BASE 快照缺 $rel"; miss5b=$((miss5b + 1))
+      fi
+    done
+    [ "$miss5b" = "0" ] || FAILS=$((FAILS + 1))
+    # 反假绿：BASE 侧不得含 P5b 新键（否则快照其实是改造后，对拍/退化都会自比）
+    if grep -aq "prosperityScatterClusterMode" "$BASE5B/com/miaokatze/gtsr/config/Config.java"; then
+      echo "   FAIL：P5b-BASE 侧 Config 已含成簇键 ⇒ 快照不是开工前形态"; FAILS=$((FAILS + 1))
+    else
+      echo "   P5b-BASE 侧确认无成簇键（快照有效）"
+    fi
+    P5B_SRC="$(prefix $BASE5B)"
+    MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8 -cp "$CP" \
+      -sourcepath "$BASE5B" -d "$OUT/p5b-base-classes" $P5B_SRC >"$OUT/p5b-javac-base.log" 2>&1
+    echo "COMPILE P5B-BASE EXIT=$? ($(grep -ac 'error:' "$OUT/p5b-javac-base.log") error)"
+    # 判据 6 的 P7c 硬门槛：BASE 编译零 error，否则对拍退化成自比，直接判红
+    [ "$(grep -ac 'error:' "$OUT/p5b-javac-base.log")" = "0" ] \
+      || { echo "   FAIL：P5b-BASE 树编译失败（还原清单不完整，[14a] 的 0 差异会是假绿）"; FAILS=$((FAILS + 1)); }
+    MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8 \
+      -cp "$OUT/p5b-base-classes;$CP" -sourcepath "$BASE5B;tools/dim1" -d "$OUT/p5b-base-tools" \
+      tools/dim1/SurfaceHarness.java tools/dim1/Dim78ScatterDensityCheck.java \
+      tools/dim1/gregtech/api/GregTechAPI.java >"$OUT/p5b-javac-base-tools.log" 2>&1
+    echo "COMPILE P5B-BASE-TOOLS EXIT=$? ($(grep -ac 'error:' "$OUT/p5b-javac-base-tools.log") error)"
+
+    # [14a] 判据 6：非本片路径零漂移（表层/高度/群系 512 chunk 逐字节）
+    MSYS2_ARG_CONV_EXCL='*' java $STD $LOG4J -cp "$OUT/tools;$OUT/classes;$CP" \
+      SurfaceByteParityDump 16 >"$OUT/p5b-parity-after.txt" 2>"$OUT/p5b-parity-after.err"
+    MSYS2_ARG_CONV_EXCL='*' java $STD $LOG4J -cp "$OUT/tools;$OUT/p5b-base-classes;$CP" \
+      SurfaceByteParityDump 16 >"$OUT/p5b-parity-base.txt" 2>"$OUT/p5b-parity-base.err"
+    n5b=$(diff "$OUT/p5b-parity-base.txt" "$OUT/p5b-parity-after.txt" | grep -ac "^[<>]")
+    c5b=$(grep -ac "^CHUNK" "$OUT/p5b-parity-after.txt")
+    echo "   [14a] 零漂移对拍 chunks=$c5b diff_lines=$n5b（BASE=temp/p5b-base，编译零 error 门槛已过）"
+    [ "$n5b" = "0" ] || { echo "   FAIL：表层/高度/群系面出现漂移（$n5b 行）⇒ P5b 越界"; FAILS=$((FAILS + 1)); }
+
+    # [14b] 判据 5 回退链①：BASE（P5 终态树）与 AFTER 的 "K8-摘竖向件" 行（六参行自带 ClusterMode=0
+    #       = P5 均匀档）SCAN 行逐字节一致 ⇒ 成簇改造没碰均匀档一行行为
+    # 两侧都带 -Dgtsr.skipStructure=1（P7c 判据 4 口径）：结构侧默认档本片被改判（cap 3→8），
+    # 含前序的表会把"结构差"混进"均匀档逐位退化"这一件事（首版实测不带开关时 K8 行差 3 块）。
+    MSYS2_ARG_CONV_EXCL='*' java $STD $LOG4J -Dgtsr.skipStructure=1 -cp "$OUT/p5b-base-tools;$OUT/p5b-base-classes;$CP" \
+      Dim78ScatterDensityCheck grid 2 2 16 >"$OUT/p5b-uniform-base.txt" 2>&1
+    eb1=$?
+    MSYS2_ARG_CONV_EXCL='*' java $STD $LOG4J -Dgtsr.skipStructure=1 -cp "$OUT/tools;$OUT/classes;$CP" \
+      Dim78ScatterDensityCheck grid 2 2 16 >"$OUT/p5b-uniform-after.txt" 2>&1
+    ea1=$?
+    ub=$(grep -a "^SCAN label=K8-摘竖向件" "$OUT/p5b-uniform-base.txt")
+    ua=$(grep -a "^SCAN label=K8-摘竖向件" "$OUT/p5b-uniform-after.txt")
+    echo "   [14b] BASE[$ub]"
+    echo "         AFTER[$ua]"
+    [ "$eb1" = "0" ] && [ "$ea1" = "0" ] || { echo "   FAIL：均匀档退化对拍有一跑非 0"; FAILS=$((FAILS + 1)); }
+    [ -n "$ub" ] && [ "$ub" = "$ua" ] || { echo "   FAIL：ClusterMode=0 的 K8 行与 P5 树不同 ⇒ 回退链①不成立"; FAILS=$((FAILS + 1)); }
+
+    # [14c] 判据 5/1 的确定性面：成簇 variance 小档双跑（跨进程）digest 相等
+    MSYS2_ARG_CONV_EXCL='*' java $STD $LOG4J -cp "$OUT/tools;$OUT/classes;$CP" \
+      ScatterClusterVarianceCheck variance 2 2 >"$OUT/p5b-variance-run1.txt" 2>&1
+    e1=$?
+    MSYS2_ARG_CONV_EXCL='*' java $STD $LOG4J -cp "$OUT/tools;$OUT/classes;$CP" \
+      ScatterClusterVarianceCheck variance 2 2 >"$OUT/p5b-variance-run2.txt" 2>&1
+    e2=$?
+    d1=$(grep -a "^HIST label=CLU-DEFAULT" "$OUT/p5b-variance-run1.txt" | grep -ao "digest=[0-9a-f]*")
+    d2=$(grep -a "^HIST label=CLU-DEFAULT" "$OUT/p5b-variance-run2.txt" | grep -ao "digest=[0-9a-f]*")
+    echo "   [14c] variance(2x2) 双跑 EXIT=$e1/$e2 digest $d1 vs $d2 → $([ -n "$d1" ] && [ "$d1" = "$d2" ] && echo 同seed同结果 || echo 不同)"
+    [ "$e1" = "0" ] && [ "$e2" = "0" ] || { echo "   FAIL：variance 小档跑非 0（判据 1 带或判据 5 断言被破坏）"; FAILS=$((FAILS + 1)); }
+    [ -n "$d1" ] && [ "$d1" = "$d2" ] || { echo "   FAIL：双跑 digest 不同 ⇒ 确定性被破坏"; FAILS=$((FAILS + 1)); }
+
+    # [14d] 判据 4 灵敏度：两条成簇参数的影子树单变量 RED（不碰工作树）
+    P5BRED=temp/p5b-red-shadow; P5BREDCLS=$OUT/p5b-red-classes
+    P5B_RED_SRC=$(echo "$REL" | sed 's|^|temp/p5b-red-shadow/|' | tr '\n' ' ')
+    p5bred() { # p5bred <标签> <sed> <工具类> <工具参数...>
+      local label="$1" expr="$2" tool="$3"; shift 3
+      rm -rf "$P5BRED" "$P5BREDCLS" "$OUT/p5b-red-tools"; mkdir -p "$P5BREDCLS" "$OUT/p5b-red-tools"
+      cp -a src/main/java "$P5BRED"
+      sed -i "$expr" "$P5BRED/com/miaokatze/gtsr/config/Config.java"
+      cmp -s "$P5BRED/com/miaokatze/gtsr/config/Config.java" src/main/java/com/miaokatze/gtsr/config/Config.java \
+        && { echo "   $label 注入未生效（影子 Config 与工作树相同）"; FAILS=$((FAILS + 1)); }
+      MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8 -cp "$CP" \
+        -sourcepath "$P5BRED" -d "$P5BREDCLS" $P5B_RED_SRC >"$OUT/p5b-red-$label-javac.log" 2>&1
+      if [ $? -ne 0 ]; then echo "   $label 影子树编译失败（脚本坏了，不是 RED）"; FAILS=$((FAILS + 1)); fi
+      MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8 \
+        -cp "$P5BREDCLS;$CP" -sourcepath "$P5BRED;tools/dim1" -d "$OUT/p5b-red-tools" \
+        tools/dim1/SurfaceHarness.java tools/dim1/Dim78ScatterDensityCheck.java \
+        tools/dim1/ContourBudgetCheck.java tools/dim1/SurfaceGateUnifyCheck.java \
+        tools/dim1/ScatterClusterVarianceCheck.java tools/dim1/gregtech/api/GregTechAPI.java \
+        >"$OUT/p5b-red-$label-tooljavac.log" 2>&1
+      if [ $? -ne 0 ]; then echo "   $label 工具影子编译失败（脚本坏了，不是 RED）"; FAILS=$((FAILS + 1)); fi
+      MSYS2_ARG_CONV_EXCL='*' java $STD $LOG4J -cp "$OUT/p5b-red-tools;$P5BREDCLS;$CP" "$tool" "$@" \
+        >"$OUT/p5b-red-$label.txt" 2>&1
+      local er=$?
+      grep -a "^  FAIL" "$OUT/p5b-red-$label.txt" | head -3 | cut -c1-150 | sed "s/^/     /"
+      tail -1 "$OUT/p5b-red-$label.txt" | cut -c1-150 | sed "s/^/     /"
+      echo "     $label EXIT=$er（RED 必须非 0）log=$OUT/p5b-red-$label.txt"
+      [ "$er" != "0" ] || { echo "   FAIL：$label 未变红 ⇒ 申报带对这类破坏不敏感（假绿）"; FAILS=$((FAILS + 1)); }
+    }
+    # R1：场中心概率放宽成每格必中（denom 3→1）⇒ ContourBudgetCheck 的 A1b 声明 + B 行为带必红
+    p5bred R1_DENOM1 's|public static int prosperityScatterClusterFieldChanceDenom = 3;|public static int prosperityScatterClusterFieldChanceDenom = 1;|' ContourBudgetCheck 8 4
+    # R2：成簇开关默认改 0（退回 P5 均匀档）⇒ SurfaceGateUnifyCheck 口径 C 新带 [98.6,99.6] 必红（实测均匀档 95.641）
+    #     （这是判据 4 点名的"散布吞列趋势变了，带必须随实测走"的反证：不随就红）
+    p5bred R2_CLUSTER_OFF 's|public static int prosperityScatterClusterMode = 1;|public static int prosperityScatterClusterMode = 0;|' SurfaceGateUnifyCheck assert src/main/java
+    rm -rf "$P5BRED" "$P5BREDCLS" "$OUT/p5b-red-tools"
+    # 复位确认（影子树从不碰工作树，本步只证明工作树仍是 GREEN 档）
+    run "ContourBudgetCheck（P5b RED 后工作树复位 GREEN）" ContourBudgetCheck 8 4
+    run "SurfaceGateUnifyCheck（P5b RED 后口径 C 带复位 GREEN）" SurfaceGateUnifyCheck assert src/main/java
   fi
 fi
 

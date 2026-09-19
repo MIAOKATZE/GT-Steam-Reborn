@@ -25,15 +25,19 @@ import com.miaokatze.gtsr.config.Config;
  *  A3 单一真值（判据 4）：机器概率分母的具体数字在 src/main/java 只剩 Config 的"定义+注释"两处，
  *    其余文件出现 "/24" "/16" 形态的机器分母字面量必须为 0；全仓 Javadoc 残留上界申报 1 处
  *    （framework/SurfaceGate.java 的口径注释，非本片允许路径——修成 0 也绿，只打印位置）。
- *  B 行为级：真实编排链（outpost→互斥机器→散布）上 8 seed × 8 个 16×16 窗实测，默认档的
- *    件数均值/上界、落块均值、有内容 chunk 占比落在申报带内；同一份样本里的"现状行"
- *    必须显著更密（反假绿：带若宽到能同时容纳现状，就失去意义）。
+ *  A1b 声明级（P5b）：成簇七键（mode/cell/denom/piecesMin/piecesMax/radius/falloff）默认值
+ *    == 申报值（1/4/3/8/14/2/1），放宽任一键立刻红，不依赖采样。
+ *  B 行为级（P5b 重标）：真实编排链上 8 seed × 8 个 16×16 窗实测，<b>成簇默认档</b>的件数均值
+ *    ∈[1.0,1.4]、落块均值 ∈[1.3,1.9]、有内容 chunk 占比 ∈[20,32]pp、0 件占比 ≥70pp、CV ≥2、
+ *    max ≥5；同一份样本里的"现状行"必须显著更密（反假绿）。旧带 [8,11]/[10,14] 是 P5 均匀档
+ *    产物，按 plan §7.2 重测后作废（新实测与样本量见 p5b 证据文档判据 1/4）。
  *  C 可回退：把四键设回旧值 ⇒ 柱/chunk 必须回到冒烟 E6 的 8.8-10.2 带、落块回到 95-105 带，
  *    且其落块摘要与"现状行"逐位相同（同 JVM 内两行的 digest 相等）。
  *    BASE 树（改造前快照编译）与 AFTER 回退档的<b>跨进程</b>摘要对拍在
  *    {@code tools/dim1/surface_checks.sh} 的 [10] 步，不在本类里。
- *  D 灵敏度自检：在进程内把 K 放宽到 64 再跑一遍，件数/落块均值必须<b>超出</b> B 组申报带
- *    （若本工具对放宽不敏感，D 组自己判红）。
+ *  D 灵敏度自检（P5b 换成咬合成簇真变量的破坏）：进程内把"场中心命中分母"放宽成 1（每格必中）
+ *    再跑一遍，件数/落块均值必须<b>超出</b> B 组申报带且 0 件占比跌出成簇带
+ *    （若本工具对放宽不敏感，D 组自己判红）。跨进程影子树版在 surface_checks.sh [10d]/[14e]。
  * </pre>
  * <b>用法</b>：{@code java ContourBudgetCheck [seeds] [regionsPerSeed]}（默认 8 × 8 = 16384 chunk）
  * 退出码：0 = 全绿；1 = 有申报项被破坏；2 = 环境不可用。
@@ -48,6 +52,14 @@ public final class ContourBudgetCheck {
     static final boolean DECL_VERTICAL = false;
     static final int DECL_WINDOW_CAP = 2;
     static final int[] DECL_WEIGHTS = { 30, 25, 30, 15 };
+    // P5b（plan §7.2）：成簇默认档的第二份真值申报（人为放宽任一键，A 组立刻红，不依赖采样）。
+    static final int DECL_CLUSTER_MODE = 1;
+    static final int DECL_CLUSTER_CELL = 4;
+    static final int DECL_CLUSTER_DENOM = 3;
+    static final int DECL_CLUSTER_PIECES_MIN = 8;
+    static final int DECL_CLUSTER_PIECES_MAX = 14;
+    static final int DECL_CLUSTER_RADIUS = 2;
+    static final int DECL_CLUSTER_FALLOFF = 1;
 
     /** H-3 硬上界：K 折算到最大群系权重（荒漠 1.5）后的件数天花板。 */
     static int contourHardCeiling() {
@@ -69,12 +81,20 @@ public final class ContourBudgetCheck {
 
     // ═════════════════════════════════ B/C 组申报带 ═════════════════════════════════
 
-    /** 默认档件数均值带（实测 9.5 上下；带宽 ±1.0 吸收 seed 方差，但装不下"现状 64.9"）。 */
-    private static final double BAND_CONTOUR_MEAN_MIN = 8.0D, BAND_CONTOUR_MEAN_MAX = 11.0D;
-    /** 默认档落块均值带（实测 11.8；装不下现状 99.1，也装不下"再砍一半"）。 */
-    private static final double BAND_BLOCK_MEAN_MIN = 10.0D, BAND_BLOCK_MEAN_MAX = 14.0D;
-    /** 有内容 chunk 占比下界（摘竖向件 + K=8 后仍要"看得见痕迹"）。 */
-    private static final double BAND_COVERAGE_MIN = 95.0D;
+    /**
+     * P5b 成簇默认档件数均值带（实测 1.271，8 seed × 8 窗 = 16384 chunk，见
+     * plan/investigation/p5b-clustered-scatter-20260919.md 判据 1）。旧带 [8.0,11.0] 按 P5
+     * K=8 均匀档标定，成簇模型下作废（plan §7.2 明文"必须重测重标"）。新带装不下均匀档 9.19、
+     * 也装不下"denom 放宽到 1"的失控档（D 组实测），带宽吸收 seed 抖动但不足以容纳退回均匀档。
+     */
+    private static final double BAND_CONTOUR_MEAN_MIN = 1.0D, BAND_CONTOUR_MEAN_MAX = 1.4D;
+    /** 成簇默认档落块均值带（实测 1.584；旧 [10,14] 是 P5 均匀档产物）。 */
+    private static final double BAND_BLOCK_MEAN_MIN = 1.3D, BAND_BLOCK_MEAN_MAX = 1.9D;
+    /** 有内容 chunk 占比带（成簇 = 少数富 chunk；上界钉住不许退回均匀档那种几乎全覆盖）。 */
+    private static final double BAND_COVERAGE_MIN = 20.0D, BAND_COVERAGE_MAX = 32.0D;
+    /** 判据 1 的行为带（与 ScatterClusterVarianceCheck 同一判据的第二处独立钉）。 */
+    private static final double BAND_ZERO_PP_MIN = 70.0D, BAND_CV_MIN = 2.0D;
+    private static final int BAND_CONTOUR_MAX_MIN = 5;
     /** 现状行的柱带：冒烟 E6 实测 8.8-10.2 柱/chunk（离线口径＝含 chimney 落块的列数）。 */
     private static final double BAND_BASELINE_CHIMNEY_MIN = 8.0D, BAND_BASELINE_CHIMNEY_MAX = 11.0D;
     /** 现状行的落块带：P4 权威样本 100.58 块/chunk（不同样本原点，±10% 容差）。 */
@@ -98,28 +118,45 @@ public final class ContourBudgetCheck {
         final int defWindowCap = Config.prosperityScatterWindowRepeatCap;
         final int[] defWeights = { Config.prosperityScatterWeightSleeper, Config.prosperityScatterWeightPipe,
             Config.prosperityScatterWeightRivetPlate, Config.prosperityScatterWeightChimney };
+        final int defClusterMode = Config.prosperityScatterClusterMode;
+        final int defClusterCell = Config.prosperityScatterClusterCellChunks;
+        final int defClusterDenom = Config.prosperityScatterClusterFieldChanceDenom;
+        final int defClusterPMin = Config.prosperityScatterClusterPiecesMin;
+        final int defClusterPMax = Config.prosperityScatterClusterPiecesMax;
+        final int defClusterRadius = Config.prosperityScatterClusterRadiusChunks;
+        final int defClusterFalloff = Config.prosperityScatterClusterFalloffPower;
 
         checkGroupA(defAttempts, defContours, defBlocks, defVertical, defWindowCap, defWeights);
+        checkGroupA1b(defClusterMode, defClusterCell, defClusterDenom, defClusterPMin, defClusterPMax,
+            defClusterRadius, defClusterFalloff);
         checkGroupA2();
         checkGroupA3();
 
         // —— B/C/D：一次采样跑四行（默认档、现状行、回退档、放宽档），行内差只有散布 ——
         final List<Dim78ScatterDensityCheck.Row> rows = Arrays.asList(
+            // P5b：DEFAULT 行 = 生产成簇默认档全显式 spec（六参行自带 mode=0 = P5 均匀档，那已不是
+            // 生产默认档；"写默认档就要把默认档写全"，防同 JVM 行序泄漏——Dim78 工具同款注释）。
             new Dim78ScatterDensityCheck.Row("DEFAULT-生产默认档", defContours, defBlocks, defAttempts,
-                Boolean.valueOf(defVertical), defWindowCap),
+                Boolean.valueOf(defVertical), defWindowCap, clusterSpec(defClusterMode, defClusterCell,
+                    defClusterDenom, defClusterPMin, defClusterPMax, defClusterRadius, defClusterFalloff)),
             new Dim78ScatterDensityCheck.Row("BASELINE-现状柱阵", DECL_ATTEMPTS, 0, DECL_ATTEMPTS, Boolean.TRUE, 0),
             // 回退档故意把件数写成 Config 上界 1024（不是 64）：若件数天花板真的"高于掷点上限即不约束"，
             // 它的落块摘要必须与现状行逐位相同——这样 C 组的摘要相等才是有内容的断言，而不是同一行跑两遍。
             new Dim78ScatterDensityCheck.Row("ROLLBACK-四键设回旧值", 1024, 0, DECL_ATTEMPTS, Boolean.TRUE, 0),
-            new Dim78ScatterDensityCheck.Row("RELAX-K放宽到64(灵敏度)", 64, 0, DECL_ATTEMPTS, Boolean.valueOf(
-                defVertical), defWindowCap));
+            // P5b 灵敏度行：只把"场中心概率"放宽成每格必中（denom=1，其余=默认）⇒ 件数/落块均值
+            // 必须冲出申报带；旧的"K 放宽到 64"在成簇档只是抬天花板、不构成放宽（那是退化档的
+            // 形状，由 ScatterClusterVarianceCheck 的 DEGEN 行负责），故换成咬合真变量的这一行。
+            new Dim78ScatterDensityCheck.Row("RELAX-场中心放宽成每格必中(denom=1)", defContours, defBlocks,
+                defAttempts, Boolean.valueOf(defVertical), defWindowCap,
+                clusterSpec(defClusterMode, defClusterCell, 1, defClusterPMin, defClusterPMax, defClusterRadius,
+                    defClusterFalloff)));
         final Dim78ScatterDensityCheck.Sampler sampler =
             new Dim78ScatterDensityCheck.Sampler(seeds, regions, 16, rows);
         sampler.run();
         final Dim78ScatterDensityCheck.Stats def = sampler.stats("DEFAULT-生产默认档");
         final Dim78ScatterDensityCheck.Stats base = sampler.stats("BASELINE-现状柱阵");
         final Dim78ScatterDensityCheck.Stats back = sampler.stats("ROLLBACK-四键设回旧值");
-        final Dim78ScatterDensityCheck.Stats relax = sampler.stats("RELAX-K放宽到64(灵敏度)");
+        final Dim78ScatterDensityCheck.Stats relax = sampler.stats("RELAX-场中心放宽成每格必中(denom=1)");
 
         checkGroupB(def, base, sampler);
         checkGroupC(base, back);
@@ -131,6 +168,13 @@ public final class ContourBudgetCheck {
         Config.prosperityScatterBlocksPerChunk = defBlocks;
         Config.prosperityScatterVerticalPieces = defVertical;
         Config.prosperityScatterWindowRepeatCap = defWindowCap;
+        Config.prosperityScatterClusterMode = defClusterMode;
+        Config.prosperityScatterClusterCellChunks = defClusterCell;
+        Config.prosperityScatterClusterFieldChanceDenom = defClusterDenom;
+        Config.prosperityScatterClusterPiecesMin = defClusterPMin;
+        Config.prosperityScatterClusterPiecesMax = defClusterPMax;
+        Config.prosperityScatterClusterRadiusChunks = defClusterRadius;
+        Config.prosperityScatterClusterFalloffPower = defClusterFalloff;
 
         report(def, base, back, relax, sampler);
         if (FAILURES.isEmpty()) {
@@ -174,7 +218,12 @@ public final class ContourBudgetCheck {
         final String[] keys = { "prosperityScatterAttemptsPerChunk", "prosperityScatterContoursPerChunk",
             "prosperityScatterBlocksPerChunk", "prosperityScatterVerticalPieces",
             "prosperityScatterWeightSleeper", "prosperityScatterWeightPipe", "prosperityScatterWeightRivetPlate",
-            "prosperityScatterWeightChimney", "prosperityScatterWindowRepeatCap" };
+            "prosperityScatterWeightChimney", "prosperityScatterWindowRepeatCap",
+            // P5b：成簇七键也必须真实引用（散布层若把簇参数重新内联，本组红）
+            "prosperityScatterClusterMode", "prosperityScatterClusterCellChunks",
+            "prosperityScatterClusterFieldChanceDenom", "prosperityScatterClusterPiecesMin",
+            "prosperityScatterClusterPiecesMax", "prosperityScatterClusterRadiusChunks",
+            "prosperityScatterClusterFalloffPower" };
         for (final String k : keys) {
             check(code.contains("Config." + k), "A2 散布层引用 Config." + k);
         }
@@ -276,9 +325,16 @@ public final class ContourBudgetCheck {
             "B H-3 落块硬上界：单 chunk 最大落块 " + def.blockMax() + " ≤ " + blockHardCeiling() + "+4（单件越界）");
         check(def.contourP95() <= contourHardCeiling(),
             "B 件数 p95 " + def.contourP95() + " ≤ 硬上界 " + contourHardCeiling());
-        check(def.coveragePp() >= BAND_COVERAGE_MIN,
-            "B 有散布内容的 chunk 占比 " + fmt(def.coveragePp()) + "pp ≥ " + BAND_COVERAGE_MIN
-                + "pp（摘竖向件后不得把痕迹削成光地）");
+        check(def.coveragePp() >= BAND_COVERAGE_MIN && def.coveragePp() <= BAND_COVERAGE_MAX,
+            "B 有散布内容的 chunk 占比 " + fmt(def.coveragePp()) + "pp ∈ [" + BAND_COVERAGE_MIN + ", "
+                + BAND_COVERAGE_MAX + "]pp（成簇档 = 少数富 chunk；上界钉住不得退回处处有件）");
+        // P5b 判据 1 行为带（第二处独立钉，主钉在 ScatterClusterVarianceCheck）
+        check(def.contourBucketPp(0, 0) >= BAND_ZERO_PP_MIN,
+            "B 成簇 0 件 chunk 占比 " + fmt(def.contourBucketPp(0, 0)) + "pp ≥ " + BAND_ZERO_PP_MIN + "pp");
+        check(def.contourCV() >= BAND_CV_MIN,
+            "B 成簇件数 CV " + fmt(def.contourCV()) + " ≥ " + BAND_CV_MIN);
+        check(def.contourMax() >= BAND_CONTOUR_MAX_MIN,
+            "B 成簇件数 max " + def.contourMax() + " ≥ " + BAND_CONTOUR_MAX_MIN);
         // 判据 1 的正向证据：默认档柱阵归零
         check(def.chimneyMean() == 0.0D,
             "B 判据1 柱阵归零：默认档烟囱柱/chunk = " + fmt(def.chimneyMean()) + "（必须严格 0）");
@@ -313,12 +369,38 @@ public final class ContourBudgetCheck {
 
     private static void checkGroupD(Dim78ScatterDensityCheck.Stats def, Dim78ScatterDensityCheck.Stats relax) {
         check(relax.contourMean() > BAND_CONTOUR_MEAN_MAX,
-            "D 灵敏度：K 放宽到 64 后件数均值 " + fmt(relax.contourMean()) + " 必须越过申报带上界 "
-                + BAND_CONTOUR_MEAN_MAX + "（否则 B 组是恒绿）");
+            "D 灵敏度：场中心放宽成每格必中(denom=1)后件数均值 " + fmt(relax.contourMean())
+                + " 必须越过申报带上界 " + BAND_CONTOUR_MEAN_MAX + "（否则 B 组是恒绿）");
         check(relax.blockMean() > BAND_BLOCK_MEAN_MAX,
-            "D 灵敏度：K 放宽后落块均值 " + fmt(relax.blockMean()) + " 必须越过申报带上界 " + BAND_BLOCK_MEAN_MAX);
+            "D 灵敏度：denom=1 后落块均值 " + fmt(relax.blockMean()) + " 必须越过申报带上界 "
+                + BAND_BLOCK_MEAN_MAX);
+        check(relax.contourBucketPp(0, 0) < BAND_ZERO_PP_MIN,
+            "D 灵敏度：denom=1 后 0 件占比 " + fmt(relax.contourBucketPp(0, 0)) + "pp 必须跌出 ≥"
+                + BAND_ZERO_PP_MIN + "pp 的成簇带");
         check(!relax.digest()
-            .equals(def.digest()), "D 灵敏度：放宽档与默认档的落块摘要不同（同则说明上限根本没生效）");
+            .equals(def.digest()), "D 灵敏度：放宽档与默认档的落块摘要不同（同则说明成簇参数根本没生效）");
+    }
+
+    /** 成簇七键的显式 spec（DEFAULT/RELAX 行共用；"写默认档就要把默认档写全"）。 */
+    static String clusterSpec(int mode, int cell, int denom, int pmin, int pmax, int radius, int falloff) {
+        return "prosperityScatterClusterMode=" + mode + ",prosperityScatterClusterCellChunks=" + cell
+            + ",prosperityScatterClusterFieldChanceDenom=" + denom + ",prosperityScatterClusterPiecesMin=" + pmin
+            + ",prosperityScatterClusterPiecesMax=" + pmax + ",prosperityScatterClusterRadiusChunks=" + radius
+            + ",prosperityScatterClusterFalloffPower=" + falloff;
+    }
+
+    /** A1b 组：成簇七键的声明级钉（与 Config 字段严格一致；放宽任一键本组立刻红）。 */
+    private static void checkGroupA1b(int mode, int cell, int denom, int pmin, int pmax, int radius,
+        int falloff) {
+        check(mode == DECL_CLUSTER_MODE, "A1b 成簇开关默认 = " + DECL_CLUSTER_MODE + "（实测 " + mode + "）");
+        check(cell == DECL_CLUSTER_CELL, "A1b 场格边长 = " + DECL_CLUSTER_CELL + "（实测 " + cell + "）");
+        check(denom == DECL_CLUSTER_DENOM,
+            "A1b 场中心命中分母 = " + DECL_CLUSTER_DENOM + "（实测 " + denom + "；放宽即红）");
+        check(pmin == DECL_CLUSTER_PIECES_MIN && pmax == DECL_CLUSTER_PIECES_MAX,
+            "A1b 单场件数配额 = [" + DECL_CLUSTER_PIECES_MIN + ", " + DECL_CLUSTER_PIECES_MAX + "]（实测 [" + pmin
+                + ", " + pmax + "]）");
+        check(radius == DECL_CLUSTER_RADIUS, "A1b 径向衰减半径 = " + DECL_CLUSTER_RADIUS + "（实测 " + radius + "）");
+        check(falloff == DECL_CLUSTER_FALLOFF, "A1b 衰减幂次 = " + DECL_CLUSTER_FALLOFF + "（实测 " + falloff + "）");
     }
 
     private static void report(Dim78ScatterDensityCheck.Stats def, Dim78ScatterDensityCheck.Stats base,
