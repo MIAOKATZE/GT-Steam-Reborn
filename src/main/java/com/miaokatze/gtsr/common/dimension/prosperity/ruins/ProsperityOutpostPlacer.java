@@ -1,7 +1,5 @@
 package com.miaokatze.gtsr.common.dimension.prosperity.ruins;
 
-import static com.miaokatze.gtsr.common.dimension.framework.GTSRChunkProviderBase.findSurfaceY;
-
 import java.util.Random;
 
 import net.minecraft.block.Block;
@@ -10,6 +8,7 @@ import net.minecraft.world.World;
 import com.miaokatze.gtsr.common.dimension.framework.SurfaceGate;
 import com.miaokatze.gtsr.common.dimension.framework.structure.BlockSink;
 import com.miaokatze.gtsr.common.dimension.framework.structure.GTSRWorldgenHash;
+import com.miaokatze.gtsr.common.dimension.framework.structure.PlacementGate;
 import com.miaokatze.gtsr.common.dimension.framework.structure.StructureBuilder;
 import com.miaokatze.gtsr.common.dimension.framework.structure.StructureRegistry;
 import com.miaokatze.gtsr.common.dimension.prosperity.ProsperityTerrainProfile;
@@ -39,6 +38,19 @@ import com.miaokatze.gtsr.config.Config;
  * return 天然保证）<b>先掷 outpost、命中则本 chunk 跳过残缺机器</b>（同 chunk 互斥掷骰，防
  * footprint 撞格）；散布/装饰在 outpost 之后照常运行（其空气让行门不会覆盖本结构）。
  * 所有随机从 chunk 确定性哈希派生（盐 "OUtP" 0x4F557450），禁用 populate 裸 Random。
+ * <p>
+ * <b>P7（plan §5 P7 / §2.1 L5 禁止项）</b>：
+ * <ol>
+ * <li><b>落点门与接地同源</b>：改造前本类的"落地"已经逐列 {@code heightAt}（{@link #place}），
+ * 但"落点判定"却走 {@code findSurfaceY} 列扫（审计 A-4/B-2 的"两套接地混用"现场）。现两者同取
+ * {@link ProsperityTerrainProfile#heightAt}——列扫不再作为本类的放置依据。</li>
+ * <li><b>失败不得计成功</b>：改造前 {@link #placeAll} 在 {@link #place} 之后<b>无条件</b>
+ * {@code return true}（sink 一块都没收也计成功，编排器据此跳过机器、上层据此算密度）。现返回值 =
+ * {@link PlacementGate.Permit#commit(int)} 的结果，入参是被 sink 接受的非空气落块数；0 块 ⇒ false
+ * 且不扣预算。{@link #place} 的返回值同时从 {@code void} 改为写入次数（调用方忽略即向后兼容）。</li>
+ * <li><b>门的一入口</b>：每 chunk 结构预算 / 同族互斥 / H-2 窗重复上限走 {@link PlacementGate}，
+ * 可落地表 y 带的那对字面量也从本类与机器层各收一份进 {@link PlacementGate}（plan §2.4 判据 4）。</li>
+ * </ol>
  */
 public final class ProsperityOutpostPlacer {
 
@@ -281,6 +293,11 @@ public final class ProsperityOutpostPlacer {
      * 旋转安全口径，幂等）。placer 回调自包 {@link CityBlockResolver}（String 键→Block，含 GT5U
      * 两键 null 防御），flat ground（/gtsr structure 原点 y 即基面，CityVariants.registerVariants
      * 同款口径）。
+     * <p>
+     * P7 起的 roster 形状见 {@link StructureRegistry.Entry} 注释：族 = {@link PlacementGate#FAMILY_OUTPOST}，
+     * 放置分母/窗上限一律 0（= 跟随 {@link Config#prosperityOutpostChance} 与
+     * {@link Config#prosperityStructureWindowRepeatCap}，本类不自持数字），
+     * {@code allowsDamagedVariant=false}（6 变体本身已是损毁剪影，P8 的损毁算子不再叠加）。
      */
     public static void registerVariants() {
         if (registered) {
@@ -303,17 +320,32 @@ public final class ProsperityOutpostPlacer {
                         CityVariants.MISSING_RATES[CityVariants.damageTier(seed)],
                         new Random(seed),
                         CityVariants.flatGround(y),
-                        BlockSink.FLAG_DIRECT)));
+                        BlockSink.FLAG_DIRECT),
+                    PlacementGate.FAMILY_OUTPOST,
+                    0,
+                    0,
+                    false));
         }
     }
 
     /**
-     * populate 入口：掷频 1/{@link Config#prosperityOutpostChance}（0 = 禁用）→ 掷变体/朝向/损伤 →
-     * 选点（<b>旋转后</b> footprint 收缩钳制在 chunk 内）→ 落点判定 → 放置。
-     *
-     * @return true = 本 chunk 已生成 outpost（编排器据此跳过残缺机器，互斥掷骰）
+     * populate 入口（无显式门上下文的兼容形态，供离线断言与旧调用点用）。
      */
     public static boolean placeAll(World world, long worldSeed, int cx, int cz, BlockSink sink) {
+        return placeAll(world, worldSeed, cx, cz, sink, null);
+    }
+
+    /**
+     * populate 入口：掷频 1/{@link Config#prosperityOutpostChance}（0 = 禁用）→ 掷变体/朝向/损伤 →
+     * <b>过 {@link PlacementGate}（预算/互斥/H-2 窗上限）</b>→ 选点（<b>旋转后</b> footprint 收缩钳制在
+     * chunk 内）→ 逐列接地 + 就绪门 → 放置 → <b>按真实落块数兑现许可</b>。
+     *
+     * @param gate 本 chunk 的结构门（编排器创建）；{@code null} = 自派生（与改造前等价）
+     * @return true = 本 chunk <b>真实</b>落了至少一块的 outpost（编排器据此跳过残缺机器并扣预算）；
+     *         false = 未掷中 / 被门拒 / 落点门不过 / 一块都没落进世界
+     */
+    public static boolean placeAll(World world, long worldSeed, int cx, int cz, BlockSink sink,
+        PlacementGate.ChunkGate gate) {
         final int chance = Config.prosperityOutpostChance;
         if (chance <= 0 || sink == null) {
             return false; // 0 = 禁用（plan S-A5 失败回退开关）
@@ -332,34 +364,38 @@ public final class ProsperityOutpostPlacer {
         if (freeX < 0 || freeZ < 0) {
             return false; // >16 格防御性跳过（≤16×16×12 契约下不应发生）
         }
+        // —— 结构侧唯一入口（P7）：预算 → 同族互斥 → H-2 窗重复上限；不消费本类的随机流 ——
+        final PlacementGate.ChunkGate chunkGate =
+            gate != null ? gate : PlacementGate.beginChunk(DIM_KEY, worldSeed, cx, cz);
+        final PlacementGate.Permit permit = chunkGate.request(PlacementGate.FAMILY_OUTPOST, outpost.name);
+        if (permit == null) {
+            return false;
+        }
         final int x = (cx << 4) + r.nextInt(freeX + 1);
         final int z = (cz << 4) + r.nextInt(freeZ + 1);
-        // 落点判定：中心列自上而下找地表 + 锈变地表门（S-A1 连带放宽：四自然 top ∪ prosperitySurface）
+        // 落点判定（P7 起与落地共用同一个接地供给器 PlacementGate.groundFn）：中心列取 heightAt——
+        // 改造前这一行走 findSurfaceY 列扫、落地却走 heightAt，同一个 chunk 内两套高度并存
+        // （审计 A-4/B-2，幅度实测见 plan/investigation/p7b-placement-contract-20260919.md 的 T3/T5）。
+        final CityVariants.GroundFn ground = PlacementGate.groundFn(worldSeed);
         final int centerX = x + rotated[0] / 2;
         final int centerZ = z + rotated[1] / 2;
-        final int surfaceY = findSurfaceY(world, centerX, centerZ);
-        if (surfaceY < 20 || surfaceY > 200) {
+        final int surfaceY = ground.groundY(centerX, centerZ);
+        if (!PlacementGate.readyAt(surfaceY, isNaturalProsperityTop(world.getBlock(centerX, surfaceY, centerZ)))) {
+            permit.abort(); // 未落块：显式归还，预算不扣
             return false;
         }
-        if (!isNaturalProsperityTop(world.getBlock(centerX, surfaceY, centerZ))) {
-            return false;
-        }
+        final PlacementGate.CountingSink counter = PlacementGate.counting(sink);
         place(
-            new StructureBuilder(new CityBlockResolver(sink)),
+            new StructureBuilder(new CityBlockResolver(counter)),
             outpost,
             x,
             z,
             rot,
             CityVariants.MISSING_RATES[CityVariants.damageTier(placeSeed)],
             new Random(placeSeed),
-            groundFn(worldSeed),
+            ground,
             BlockSink.FLAG_POPULATE);
-        return true;
-    }
-
-    /** 每列落地 y = heightAt（高度红线同源，纯函数不读方块）。 */
-    private static CityVariants.GroundFn groundFn(final long worldSeed) {
-        return (x, z) -> ProsperityTerrainProfile.heightAt(worldSeed, x, z);
+        return permit.commit(counter.solid());
     }
 
     /**
@@ -367,9 +403,14 @@ public final class ProsperityOutpostPlacer {
      * CityVariants.place 同款语义）：基座层（y=0）恒放置；其余层按损伤档掷缺失；
      * '.'（y&gt;0）清空气；每列落地 y 由 ground 给出。签名与函数体零 Minecraft 依赖
      * （String 键 + GroundFn），JEP330 离线驱动可直接调用。
+     * <p>
+     * <b>P7</b>：返回值由 {@code void} 改为<b>写入次数</b>（尝试写入 sink 的格数，含被拒绝的），
+     * 调用方若要求"落块真值"须自己经 {@link PlacementGate.CountingSink} 折算被接受的非空气块数；
+     * 忽略返回值的既有调用点（离线预览 / 指令直写）行为逐位不变。
      */
-    public static void place(StructureBuilder builder, Outpost outpost, int originX, int originZ, int rot,
+    public static int place(StructureBuilder builder, Outpost outpost, int originX, int originZ, int rot,
         int missingRate, Random r, CityVariants.GroundFn ground, int flags) {
+        int writes = 0;
         for (int y = 0; y < outpost.sizeY; y++) {
             for (int dz = 0; dz < outpost.sizeZ; dz++) {
                 for (int dx = 0; dx < outpost.sizeX; dx++) {
@@ -387,17 +428,20 @@ public final class ProsperityOutpostPlacer {
                     }
                     if (c == '.') {
                         if (y > 0) {
-                            builder.setBlock(wx, wy, wz, CityVariants.K_AIR, 0, flags); // 内腔清空
+                            writes += builder.setBlock(wx, wy, wz, CityVariants.K_AIR, 0, flags) ? 1 : 0; // 内腔清空
                         }
                         continue; // y=0 的 '.' = 地坪留白（地形让行）
                     }
                     if (y > 0 && r.nextInt(100) < missingRate) {
                         continue; // 损伤档缺失（垫层不缺失）
                     }
-                    builder.setBlock(wx, wy, wz, CityVariants.blockKeyOf(c), CityVariants.metaOf(c), flags);
+                    writes += builder.setBlock(wx, wy, wz, CityVariants.blockKeyOf(c), CityVariants.metaOf(c), flags)
+                        ? 1
+                        : 0;
                 }
             }
         }
+        return writes;
     }
 
     /**
@@ -408,9 +452,9 @@ public final class ProsperityOutpostPlacer {
      * 二者对同一格结论相反（审计 D-5）——现两族同源，装饰层与本层对任意输入输出必然一致
      * （由 {@code tools/dim1/SurfaceGateUnifyCheck} C 组逐方块对拍钉住）。
      * <p>
-     * 本名保留的原因：{@code RuinedMachinePlacer:106}（不在本片允许路径内，跨 placer 直调残留
-     * 归 P7）与 {@code tools/dim1/ReplaceSurfaceRuntimeCheck:402} 仍引用它。<b>public 供离线冒烟
-     * 断言</b>。
+     * 本名保留的原因：{@code tools/dim1/ReplaceSurfaceRuntimeCheck:402} 与本类 {@link #placeAll} 仍引用它
+     * （P4 登记的"机器层横向直调"已在 P7 消除——{@code RuinedMachinePlacer} 现与散布层同样直调框架
+     * 单一谓词）。<b>public 供离线冒烟断言</b>。
      */
     public static boolean isNaturalProsperityTop(Block block) {
         return SurfaceGate.isNaturalTop(DIM_KEY, SurfaceGate.landableTops(DIM_KEY), block);
@@ -419,7 +463,7 @@ public final class ProsperityOutpostPlacer {
     // P3（plan §5 P3 / 审计 A-5 §1 #5）：本类原有一份私有 findSurfaceY(World,int,int)，与
     // ProsperitySurfaceScatter #2 / RuinedMachinePlacer #3 / ProsperityDecorPlacer #4 /
     // ShatteredDecorPlacer #6 共 5 份实现体逐字符等价，已并到框架唯一件
-    // GTSRChunkProviderBase.findSurfaceY（本文件静态导入）。本类是"两套接地混用"的现场
-    // （审计 A-4/B-2）：落点门 :335 走列扫、落地 :379 走 heightAt 纯函数——本片只并列扫实现体，
-    // <b>不改任何一处取用哪套接地的决定</b>；统一到逐列 heightAt 归 P7。
+    // GTSRChunkProviderBase.findSurfaceY。当时登记的"两套接地混用现场"（审计 A-4/B-2：落点门走列扫、
+    // 落地走 heightAt 纯函数）由 <b>P7 闭合</b>：本类两个取高度处现在都是 heightAt，
+    // findSurfaceY 只剩这里的历史登记注释与散布/装饰层的逐件列扫用途。
 }

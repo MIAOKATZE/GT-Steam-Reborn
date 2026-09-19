@@ -6,8 +6,10 @@ import net.minecraft.world.World;
 import net.minecraft.world.chunk.IChunkProvider;
 
 import com.miaokatze.gtsr.common.dimension.framework.GTSRBiomeAuthority;
+import com.miaokatze.gtsr.common.dimension.framework.SurfaceGate;
 import com.miaokatze.gtsr.common.dimension.framework.structure.BlockSink;
 import com.miaokatze.gtsr.common.dimension.framework.structure.ChunkClampedSink;
+import com.miaokatze.gtsr.common.dimension.framework.structure.PlacementGate;
 import com.miaokatze.gtsr.common.dimension.framework.structure.StructureBuilder;
 import com.miaokatze.gtsr.common.dimension.framework.structure.StructureRegistry;
 import com.miaokatze.gtsr.common.dimension.prosperity.ProsperityTerrainProfile;
@@ -67,7 +69,8 @@ public class ProsperityWorldGenerator implements IWorldGenerator {
         GTSteamReborn.LOG.info(
             "[GTSR] prosperity worldgen registered: dimId={} machines=5 outposts=6 {} scatterK={}/chunk"
                 + " scatterBlocks={}/chunk scatterAttempts={}/chunk scatterVertical={} scatterWindowCap={}"
-                + " scatterWeights={}/{}/{}/{} machineChance=1/{} outpostChance=1/{}",
+                + " scatterWeights={}/{}/{}/{} machineChance=1/{} outpostChance=1/{}"
+                + " structureBudget={}/chunk structureWindowCap={}",
             Config.prosperityDimId,
             StructureRegistry.names(),
             Config.prosperityScatterContoursPerChunk,
@@ -80,7 +83,9 @@ public class ProsperityWorldGenerator implements IWorldGenerator {
             Config.prosperityScatterWeightRivetPlate,
             Config.prosperityScatterWeightChimney,
             Config.prosperityMachineChance,
-            Config.prosperityOutpostChance);
+            Config.prosperityOutpostChance,
+            Config.prosperityStructureBudgetPerChunk,
+            Config.prosperityStructureWindowRepeatCap);
         GTSteamReborn.LOG.info(
             "[GTSR] prosperity city variants: {} registered (cell={} chance={}%)",
             CityVariants.ALL.length,
@@ -113,11 +118,21 @@ public class ProsperityWorldGenerator implements IWorldGenerator {
         }
 
         // —— 2. 城外中型废墟（S-A5，plan §12 修订 7/8）：1/prosperityOutpostChance 掷骰；同 chunk
-        // 互斥掷骰 = 先 outpost，命中则本 chunk 跳过残缺机器（防 footprint 撞格；散布/装饰仍照常）——
-        if (!ProsperityOutpostPlacer.placeAll(world, worldSeed, chunkX, chunkZ, sink)) {
+        // 互斥掷骰 = 先 outpost，命中则本 chunk 跳过残缺机器（防 footprint 撞格；散布/装饰仍照常）。
+        // P7（plan §5 P7 / §2.2 H-3）：互斥与预算不再靠"outpost 说它成功了"这句话——本 chunk 建一个
+        // PlacementGate.ChunkGate 交给两个 placer 共用，预算<b>只在真实落块后</b>由 Permit.commit 扣减，
+        // 所以 outpost 若门通过却一块没落进世界，机器照常有机会（改造前那种"假成功吞掉互斥位"已闭合）。——
+        final PlacementGate.ChunkGate structureGate = PlacementGate.beginChunk(SurfaceGate.DIM78, worldSeed, chunkX, chunkZ);
+        if (!ProsperityOutpostPlacer.placeAll(world, worldSeed, chunkX, chunkZ, sink, structureGate)) {
             // —— 3. 残缺机器（1/prosperityMachineChance × 群系机器权重，'C' 位=积碳壳，无 TE）——
-            RuinedMachinePlacer
-                .placeAll(world, worldSeed, chunkX, chunkZ, biomeWeight(world, chunkX, chunkZ, MACHINE_WEIGHTS), sink);
+            RuinedMachinePlacer.placeAll(
+                world,
+                worldSeed,
+                chunkX,
+                chunkZ,
+                biomeWeight(world, chunkX, chunkZ, MACHINE_WEIGHTS),
+                sink,
+                structureGate);
         }
 
         // —— 4. 地表散布（P5：每 chunk 件数 K × 群系散布权重 + 落块/掷点上限，全部 Config 取值；
@@ -140,6 +155,14 @@ public class ProsperityWorldGenerator implements IWorldGenerator {
      * <li>地块：footprint 与 C 相交者重算同一纯函数放置（损伤档/朝向 plotSeed 派生，
      * 跨 chunk 幂等）。</li>
      * </ul>
+     * <p>
+     * <b>P7 接地口径</b>：这里的 {@code ground} 与 {@link ProsperityOutpostPlacer#placeAll}、
+     * {@link RuinedMachinePlacer#placeAll} 内的逐列落地表达式<b>同为</b>
+     * {@link ProsperityTerrainProfile#heightAt(long, int, int)}（plan §2.1 L2「heightAt 唯一制式」）。
+     * 改造前机器那一族用的是中心列 {@code findSurfaceY} 列扫出的<b>整台同一平面</b>，与本处的逐列
+     * 高度不同源（审计 A-4）；P7 起三族一致，逐点一致性由
+     * {@code tools/dim1/PlacementContractCheck grounding} 在真实链上钉住。城内地块仍不归
+     * {@link PlacementGate} 管（其密度由城窗 H-1/L6 决定，不是每 chunk 掷骰）。
      */
     private static void placeCities(long worldSeed, int chunkX, int chunkZ, CityPlan[] cities, BlockSink sink) {
         if (cities.length == 0) {
@@ -147,7 +170,9 @@ public class ProsperityWorldGenerator implements IWorldGenerator {
         }
         final BlockSink cityChain = new CitySliceSink(new CityBlockResolver(sink), chunkX, chunkZ);
         final StructureBuilder builder = new StructureBuilder(cityChain);
-        final CityVariants.GroundFn ground = (x, z) -> ProsperityTerrainProfile.heightAt(worldSeed, x, z);
+        // P7：城的接地与两族城外结构取同一个供给器（PlacementGate.groundFn），"同一列同一个 y"
+        // 由构造保证；离线断言 tools/dim1/PlacementContractCheck grounding 逐点复核。
+        final CityVariants.GroundFn ground = PlacementGate.groundFn(worldSeed);
         for (final CityPlan city : cities) {
             city.forEachStreetColumn(chunkX, chunkZ, (wx, wz, sleeper) -> {
                 final int gy = ground.groundY(wx, wz);

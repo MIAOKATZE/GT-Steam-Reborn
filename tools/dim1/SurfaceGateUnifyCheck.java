@@ -151,7 +151,9 @@ public final class SurfaceGateUnifyCheck {
         { "com/miaokatze/gtsr/common/dimension/prosperity/ruins/ProsperityOutpostPlacer.java", "OUTPOST" },
         { "com/miaokatze/gtsr/common/dimension/prosperity/ruins/ProsperitySurfaceScatter.java", "SCATTER" },
         { "com/miaokatze/gtsr/common/dimension/shattered/ShatteredDecorPlacer.java", "SHATTERED" },
-        { "com/miaokatze/gtsr/common/dimension/prosperity/ruins/RuinedMachinePlacer.java", "MACHINE_RESIDUAL" } };
+        // P7 同步（plan §5 P7 / 审计 A-2 #3 之二）：RuinedMachinePlacer 的"横向直调另一 placer 别名"
+        // 残留已消，形态从 MACHINE_RESIDUAL 升为与散布层同级的 MACHINE 直调（下方 E 组两条申报同步）。
+        { "com/miaokatze/gtsr/common/dimension/prosperity/ruins/RuinedMachinePlacer.java", "MACHINE" } };
 
     /**
      * E 组例外申报：<b>唯一</b>允许继续出现 top 方块成员比较的地方——dim78 的草丛<b>变体选择器</b>
@@ -526,11 +528,14 @@ public final class SurfaceGateUnifyCheck {
         check(count(shattered, "isNaturalTop(") == 3, "E dim79 = 1 个调用点 + 1 个定义 + 1 个委托转发（实测 "
             + count(shattered, "isNaturalTop(") + "）");
 
-        // 残留登记：本片允许路径不含 RuinedMachinePlacer，故它的横向直调保留——钉它没有自造集合
+        // P7 同步（清单第 5 行 MACHINE_RESIDUAL → MACHINE）：机器层原本的"横向直调另一 placer 别名"
+        // （审计 A-2 #3 之二，P4 因允许路径不含该文件而只能申报残留）现已改道为与散布层同形的
+        // 框架单一谓词直调。两条申报<b>逐条替换、不增不减</b>（本工具的断言总数仍须是 132）。
         final String machine = stripComments(read(root.resolve(GATE_CALL_SITES[4][0])));
-        check(machine.contains("ProsperityOutpostPlacer.isNaturalProsperityTop("),
-            "E 残留登记：机器层仍经 outpost 别名进门（该别名已零集合知识 ⇒ 与单一谓词同源）");
-        check(!machine.contains("SurfaceGate."), "E 残留登记：机器层未被本片顺手改道（越界即红）");
+        check(machine.contains("SurfaceGate.isNaturalTop(DIM_KEY, SurfaceGate.landableTops(DIM_KEY),"),
+            "E 机器层已改道直调单一谓词（显式集合 + 维度键，与散布层同形）");
+        check(!machine.contains("ProsperityOutpostPlacer."),
+            "E 机器层不再横向直调另一 placer 的别名（审计 A-2 #3 之二闭合）");
     }
 
     /** 该文件对应的例外申报方法体范围（无申报返回 null）。 */

@@ -22,6 +22,12 @@
 #                                                  #   [10] P5 密度 γ：回退摘要对拍 + 非散布零漂移
 #                                                  #        + ContourBudget/RegionRepeatCap RED→GREEN
 #                                                  #   [11] P6 群系带分层与城门：rollback 逐字节对拍
+#                                                  #   [12] P7 结构放置契约：真地形 16384 chunk 跑
+#                                                  #         PlacementContractCheck all（T2..T5 四张表）
+#                                                  #         + 影子树单变量 RED→GREEN（p7red 两条：
+#                                                  #           outpost/机器各把落块真值退回 return true）
+#                                                  #         判据 1 的"改前实现返回 true"另由 temp 探针
+#                                                  #         在 d5b7ca5 影子树上出证（见 p7b 证据文档 §1）
 #                                                  #        + 四张数字表（T1..T4）+ 三条单变量 RED→GREEN
 #
 # ── P6 口径变更（读旧判据前必看）──
@@ -84,6 +90,7 @@ com/miaokatze/gtsr/common/dimension/framework/GTSRChunkProviderBase.java
 com/miaokatze/gtsr/common/dimension/framework/GTSRWorldChunkManager.java
 com/miaokatze/gtsr/common/dimension/framework/BiomeZoneSelector.java
 com/miaokatze/gtsr/common/dimension/framework/structure/GTSRWorldgenHash.java
+com/miaokatze/gtsr/common/dimension/framework/structure/PlacementGate.java
 com/miaokatze/gtsr/common/dimension/prosperity/biome/ProsperityBiomes.java
 com/miaokatze/gtsr/common/dimension/prosperity/ChunkProviderProsperityRuins.java
 com/miaokatze/gtsr/common/dimension/prosperity/ProsperityTerrainProfile.java
@@ -149,7 +156,8 @@ MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8 \
   tools/dim1/BiomeZoneCheck.java tools/dim1/SurfaceGateUnifyCheck.java \
   tools/dim1/Dim78ScatterDensityCheck.java tools/dim1/ContourBudgetCheck.java \
   tools/dim1/RegionRepeatCapCheck.java tools/dim1/BiomeBandHierarchyCheck.java \
-  tools/dim1/CityBiomeGateCheck.java tools/dim1/gregtech/api/GregTechAPI.java \
+  tools/dim1/CityBiomeGateCheck.java tools/dim1/PlacementContractCheck.java \
+  tools/dim1/gregtech/api/GregTechAPI.java \
   >"$OUT/javac-tools.log" 2>&1
 echo "COMPILE tools EXIT=$? ($(grep -ac 'error:' "$OUT/javac-tools.log") error)"
 
@@ -190,6 +198,10 @@ run "BiomeBandHierarchyCheck（P6 判据 4/5：分层职责/macro-micro 恒等�
 run "CityBiomeGateCheck（P6 判据 2/3：无鬼窗逐点一致 + 城市 100% 落草原带 + 门非恒真 + 两种数法一致）" \
   CityBiomeGateCheck assert 8 8
 echo "   P6 合计 assertions=$(total_assertions BiomeBandHierarchyCheck)（带分层）+ $(total_assertions CityBiomeGateCheck)（城门）"
+
+echo "== [2d] P7 结构放置契约（判据 1/2/3/4/8 的契约单元 + 源级 + 纯函数档；真地形档在 --parity 的 [12]） =="
+run "PlacementContractCheck source（A0-A6 契约单元 + D 单一真值 + E micro 层结论）" PlacementContractCheck source
+run "PlacementContractCheck pure 8 8（B1 接地逐点 >=16384 chunk，纯函数不需装配世界）" PlacementContractCheck pure 8 8
 
 echo "== [3] 既有回归（必须保持绿） =="
 run "ReplaceSurfaceRuntimeCheck（46 项，含 null/plains 回退与逐列下标断言；P2b 起 256 格假绿已除）" ReplaceSurfaceRuntimeCheck
@@ -748,12 +760,52 @@ com/miaokatze/gtsr/config/Config.java"
     run "BiomeBandHierarchyCheck（RED 后工作树复位 GREEN）" BiomeBandHierarchyCheck assert src/main/java 8 128
     run "CityBiomeGateCheck（RED 后工作树复位 GREEN）" CityBiomeGateCheck assert 8 8
   fi
+
+  # ── [12] P7 结构放置契约（任务包判据 1/2/3/6/8 的真地形档 + 单变量 RED→GREEN） ──
+  echo "== [12] P7 结构放置契约：真地形 16384 chunk 四张表 + 影子树单变量 RED =="
+  run "PlacementContractCheck all 8 8（T2 接地逐点 / T3 列扫对账 / T4 贴脸率三档 / T5 落点位移）" \
+    PlacementContractCheck all 8 8
+  echo "   明细：$OUT/PlacementContractCheck-all.out（表行以 # P7B-T 开头；C6 = 已上报待裁决项）"
+  P7RED=temp/p7-red-shadow; P7REDCLS=$OUT/p7-red-classes
+  P7_RED_SRC=$(echo "$REL" | sed 's|^|temp/p7-red-shadow/|' | tr '\n' ' ')
+  p7red() { # p7red <标签> <sed 表达式> <目标文件> <工具参数...>——同 p6red 口径，只改影子树
+    local label="$1" expr="$2" file="$3"; shift 3
+    rm -rf "$P7RED" "$P7REDCLS" "$OUT/p7-red-tools"; mkdir -p "$P7REDCLS" "$OUT/p7-red-tools"
+    cp -a src/main/java "$P7RED"
+    sed -i "$expr" "$P7RED/$file"
+    cmp -s "$P7RED/$file" "src/main/java/$file" \
+      && { echo "   $label 注入未生效（影子文件与工作树相同）"; FAILS=$((FAILS + 1)); }
+    MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8 -cp "$CP" \
+      -sourcepath "$P7RED" -d "$P7REDCLS" $P7_RED_SRC >"$OUT/p7-red-$label-javac.log" 2>&1
+    if [ $? -ne 0 ]; then echo "   $label 影子树编译失败（脚本坏了，不是 RED）"; FAILS=$((FAILS + 1)); fi
+    MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8 \
+      -cp "$P7REDCLS;$CP" -sourcepath "$P7RED;tools/dim1" -d "$OUT/p7-red-tools" \
+      tools/dim1/SurfaceHarness.java tools/dim1/Dim78ScatterDensityCheck.java \
+      tools/dim1/PlacementContractCheck.java tools/dim1/gregtech/api/GregTechAPI.java \
+      >"$OUT/p7-red-$label-tooljavac.log" 2>&1
+    if [ $? -ne 0 ]; then echo "   $label 工具影子编译失败（脚本坏了，不是 RED）"; FAILS=$((FAILS + 1)); fi
+    MSYS2_ARG_CONV_EXCL='*' java $STD -Xmx2g -cp "$OUT/p7-red-tools;$P7REDCLS;$CP" \
+      PlacementContractCheck "$@" >"$OUT/p7-red-$label.txt" 2>&1
+    local er=$?
+    grep -a "^  FAIL" "$OUT/p7-red-$label.txt" | head -4 | cut -c1-150 | sed "s/^/     /"
+    tail -1 "$OUT/p7-red-$label.txt" | cut -c1-150 | sed "s/^/     /"
+    echo "     $label EXIT=$er（RED 必须非 0）log=$OUT/p7-red-$label.txt"
+    [ "$er" != "0" ] || { echo "   FAIL：$label 未变红 ⇒ 判据 1 对这类破坏不敏感（假绿）"; FAILS=$((FAILS + 1)); }
+  }
+  F_OP=com/miaokatze/gtsr/common/dimension/prosperity/ruins/ProsperityOutpostPlacer.java
+  F_MC=com/miaokatze/gtsr/common/dimension/prosperity/ruins/RuinedMachinePlacer.java
+  # R1：outpost 的落块真值退回"无条件报成功"（改造前 :342-352 的原样）⇒ A7 假成功计数必须变红
+  p7red R1_OUTPOST_LIE 's|return permit.commit(counter.solid());|return true;|' "$F_OP" all 1 8
+  # R2：机器那一侧同样退回报成功 ⇒ A7/A8（预算位与互斥位被假成功吞掉）必须变红
+  p7red R2_MACHINE_LIE 's|return permit.commit(counter.solid());|return true;|' "$F_MC" all 1 8
+  rm -rf "$P7RED" "$P7REDCLS" "$OUT/p7-red-tools"
+  echo "   P7 合计 assertions=$(total_assertions PlacementContractCheck)"
 fi
 
 echo "== SUMMARY =="
 if [ "$FAILS" = "0" ]; then
-  echo "P2/P3/P4/P5/P6 SURFACE CHECKS: ALL GREEN"
+  echo "P2/P3/P4/P5/P6/P7 SURFACE CHECKS: ALL GREEN"
 else
-  echo "P2/P3/P4/P5/P6 SURFACE CHECKS: $FAILS tool(s)/step(s) FAILED"
+  echo "P2/P3/P4/P5/P6/P7 SURFACE CHECKS: $FAILS tool(s)/step(s) FAILED"
 fi
 [ "$FAILS" = "0" ]

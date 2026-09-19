@@ -473,6 +473,13 @@ public class GTSRChunkProviderBase implements IChunkProvider {
 
     @Override
     public Chunk provideChunk(int chunkX, int chunkZ) {
+        // P7 登记（plan §2.1 L2「禁止手搓哈希，须走 GTSRWorldgenHash」的<b>已知例外</b>，只登记不改值）：
+        // 下一行是本仓第 10 处手搓 (cx,cz)→long 混合，与 GTSRWorldgenHash.chunkSeed 不同族。
+        // <b>本片及 P5/P6 一律不动它的数值</b>：它喂给 vanilla 的 rand 流，改它等于移动两维全部
+        // 结构落点（含本文件之下 generateTerrain/replaceBlocksForBiome 的消费者），会把 P3/P5/P6
+        // 的逐字节对拍基线与 review/dim1 的 _determinism_sample.txt 钉全部作废。
+        // 收口时机：P13（旧生成路径删除）统一换 GTSRWorldgenHash 并重钉全部样本，见
+        // plan/investigation/p7b-placement-contract-20260919.md §0（同一条登记的实测出口在 §6）。
         this.rand.setSeed(chunkX * 341873128712L + chunkZ * 132897987541L);
         Block[] blocks = new Block[65536];
         byte[] metadata = new byte[65536];

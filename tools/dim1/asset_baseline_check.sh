@@ -165,7 +165,10 @@ TEXTURES=$(echo "$TEX_OUT" | sed -n 's/^TEXTURES \([0-9]*\)\/\([0-9]*\)$/\1\/\2/
 [ "$TEXTURES" = "$EXPECTED_TEXTURES/$EXPECTED_TEXTURES" ] \
   || fail "在用维度材质数不是 $EXPECTED_TEXTURES（实得 $TEXTURES）——两批 OUTPUTS 之一漂移"
 
-# ── 4. 结构数据件对账（只报事实，不改生成器） ────────────────────────────────
+# ── 4. 结构数据件对账（P7 起升级为硬断言：生成器已有四条腿，缺谁就是真缺陷） ─────────
+# P0 交付时这里"只报事实、不改生成器"（缺 5 机型是生成器只有三条腿，见 P0 报告 §3.3），
+# 因此 STRUCT-JSON MISSING 是一行常驻告警。P7 把机型腿补进 tools/dim1/StructureViewerExport 后，
+# 本行改为<b>只在真的有缺项/多项时才打印</b>并判 FAIL——告警行从此消失＝覆盖完整，不是被删掉。
 echo "[3/3] 结构数据件对账"
 SJ=$(ROSTER_NAMES=$(printf '%s\n' "$S8_OUT" | sed -n 's/^NAMES(39): \[\(.*\)\]$/\1/p') \
     PYTHONIOENCODING=utf-8 python -B - <<'PY'
@@ -178,21 +181,31 @@ groups = {}
 for e in v:
     groups[e["group"]] = groups.get(e["group"], 0) + 1
 names = sorted(e["id"] for e in v)
+missing, extra = sorted(set(roster) - set(names)), sorted(set(names) - set(roster))
 print("STRUCT-JSON variants=%d groups=%s" % (len(v), sorted(groups.items())))
 print("STRUCT-JSON 覆盖名数=%d / 名册=%d" % (len(names), len(roster)))
-print("STRUCT-JSON MISSING=%s" % sorted(set(roster) - set(names)))
-print("STRUCT-JSON EXTRA=%s" % sorted(set(names) - set(roster)))
+if missing:
+    print("STRUCT-JSON MISSING=%s" % missing)
+if extra:
+    print("STRUCT-JSON EXTRA=%s" % extra)
+print("STRUCT-JSON COVER=OK" if not missing and not extra else "STRUCT-JSON COVER=FAIL")
 PY
 )
 echo "$SJ" | sed 's/^/  /'
 STRUCT_N=$(echo "$SJ" | sed -n 's/^STRUCT-JSON variants=\([0-9]*\) .*/\1/p')
 [ -n "$STRUCT_N" ] || STRUCT_N="?"
+STRUCT_FULL=no
+echo "$SJ" | grep -q "^STRUCT-JSON COVER=OK$" && STRUCT_FULL=yes
 
 # ── 5. 结论 ─────────────────────────────────────────────────────────────────
 echo "[SUMMARY] 结论"
 if [ "$ROSTER" = "$EXPECTED_ROSTER/$EXPECTED_ROSTER" ] && [ "$TEXTURES" = "$EXPECTED_TEXTURES/$EXPECTED_TEXTURES" ]; then
-  echo "roster=$ROSTER textures=$TEXTURES SHA=OK  (结构数据件 $STRUCT_N/39：见上方 STRUCT-JSON MISSING，P0 未授权改生成器)"
-  exit 0
+  if [ "$STRUCT_FULL" = "yes" ]; then
+    echo "roster=$ROSTER textures=$TEXTURES SHA=OK"
+    exit 0
+  fi
+  echo "roster=$ROSTER textures=$TEXTURES SHA=OK  (结构数据件 $STRUCT_N/$EXPECTED_ROSTER：见上方 STRUCT-JSON MISSING/EXTRA)"
+  fail "结构数据件未覆盖全名册（$STRUCT_N/$EXPECTED_ROSTER）"
 fi
 echo "roster=$ROSTER textures=$TEXTURES SHA=FAIL"
 exit 1

@@ -148,6 +148,28 @@ public class Config {
     // 竖向件权重（仅 prosperityScatterVerticalPieces=true 时参与掷选）。
     public static int prosperityScatterWeightChimney = 15;
 
+    // ═════════════════ P7 结构放置契约（plan §5 P7 / §2.2 H-2·H-3 / §2.1 L5）═════════════════
+    //
+    // 结构族（残缺机器 / 城外中型废墟 / P8 起的废墟族）的预算与重复上限，唯一入口是
+    // framework/structure/PlacementGate——本段两键是它读取的<b>唯一数字出处</b>：placer 侧与
+    // PlacementGate 侧都不再写任何预算/上限字面量（plan §2.4 判据 4）。
+    // StructureRegistry.Entry 的 windowRepeatCap / placementDenominator 允许"逐模板覆写"，
+    // 但本片两条既有族一律传 0 = 跟随这里 ⇒ 树内仍只有一处数字。
+    //
+    // 【回退位】prosperityStructureWindowRepeatCap = 0 ⇒ H-2 窗重复上限关闭，结构落点回到
+    // "只受 1/N 独立掷骰 + 每 chunk 预算约束"的状态（实测可复现改造前的贴脸率，见
+    // plan/investigation/p7b-placement-contract-20260919.md 的 T4 贴脸率表）。
+    // prosperityStructureBudgetPerChunk = 0 ⇒ 关闭每 chunk 结构预算（同 chunk 可叠多座，
+    // 改造前的跨 chunk 贴脸之上再叠同 chunk 贴脸，只作调参观察用）。
+
+    // H-3 每 chunk 允许<b>真实落块</b>的结构座数上限（默认 1 = 与改造前"outpost 命中则跳过机器"的
+    // 互斥掷骰等值，但改造前那条只在 outpost 谎报成功时才生效；0 = 不限）。
+    public static int prosperityStructureBudgetPerChunk = 1;
+
+    // H-2 每 16×16 chunk 窗内"同一结构模板"允许发射的 chunk 数上限（默认 2 = 与 P5 竖向件同档；
+    // 0 = 关闭。判定复用散布侧唯一实现 ProsperitySurfaceScatter.windowAllows，见 PlacementGate 类注释）。
+    public static int prosperityStructureWindowRepeatCap = 2;
+
     /**
      * planDimension 总开关持有者（plan 维度组键 planDimension.*，见 synchronizeConfiguration）。
      * 关闭后对应维度完全不注册（DimensionRegistrar 冲突检测第一道闸）。
@@ -408,6 +430,25 @@ public class Config {
             0,
             1000,
             "散布件型权重·烟囱残段（02 §3.1 原值 15；仅 prosperityScatterVerticalPieces=true 时参与掷选）");
+
+        // ═════ P7 结构放置契约（H-2/H-3 结构侧）——键名/默认值/注释与本类字段声明严格一致 ═════
+        prosperityStructureBudgetPerChunk = configuration.getInt(
+            "prosperityStructureBudgetPerChunk",
+            Configuration.CATEGORY_GENERAL,
+            prosperityStructureBudgetPerChunk,
+            0,
+            16,
+            "H-3 每区块允许真实落块的结构座数上限（默认 1 = 城外废墟与残缺机器互斥的唯一真值口径；"
+                + "0 = 不限，仅供调参观察。判定入口 PlacementGate.ChunkGate.request，预算只在真实落块后扣减）");
+
+        prosperityStructureWindowRepeatCap = configuration.getInt(
+            "prosperityStructureWindowRepeatCap",
+            Configuration.CATEGORY_GENERAL,
+            prosperityStructureWindowRepeatCap,
+            0,
+            256,
+            "H-2 每 16×16 区块窗内同一结构模板允许发射的区块数上限（默认 2；0 = 关闭 = 回到改造前只受"
+                + " 1/N 独立掷骰的状态）。纯函数窗内槽位哈希排序，与 P5 竖向件共用同一判定实现");
 
         if (configuration.hasChanged()) {
             configuration.save();
