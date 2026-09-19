@@ -43,7 +43,9 @@ ASSET_DIR = ROOT / "src" / "main" / "resources" / "assets" / "gtsr" / "textures"
 PREVIEW_PATH = ROOT / "plan" / "新维度计划" / "review" / "dim1" / "textures" / "preview.png"
 
 SIZE = 16
+BASE_SIZE = 16          # 母版尺度：manifest 与画笔里所有 px 量按 16 标定
 W = SIZE
+R = 1                   # 线性倍率 = SIZE // BASE_SIZE（16→1，32→2）
 M64 = (1 << 64) - 1
 TAU = math.pi * 2.0
 FORBIDDEN_MODULES = ("random", "time", "datetime")
@@ -54,6 +56,48 @@ PREVIEW_FG = (232, 228, 216, 255)
 PREVIEW_DIM = (150, 146, 134, 255)
 PREVIEW_WARN = (214, 168, 96, 255)
 PREVIEW_HDR = (214, 208, 188, 255)
+
+
+# --------------------------------------------------------------------------
+# 尺度参数化（P10a，与 tools/artgen/dim7879/gen_dim7879_blocks.py 同口径）：
+# SIZE 可在 16 / 32 之间切换，默认 16 = 在产资源母版；14 张在用 dim1 贴图因此在两档下都可再生。
+#   R1 场波长与取模周期不随 R 缩放（cells / period 保持"每张贴图"口径 ⇒ 特征世界尺寸不变）；
+#   R2 离散笔刷长度 ×R、其布点密度 ÷R²；R3 单像素斑点密度不变（覆盖率不变、颗粒变细）；
+#   R4 1px 发丝线（描边、裂纹主线、机壳框）不加倍，轮廓级条带（草沿、铁轨带、法兰、砖皮、铆钉）×R；
+#   R5 按像素计数的门槛 ×R / ×R²，按比率的门槛（色数 ≤16、覆盖率）不动。
+# R=1 时全部表达式恒等于母版写法 ⇒ 16 档产物逐字节不变。
+# --------------------------------------------------------------------------
+def set_size(size):
+    """切换出图尺度；size 必须是 BASE_SIZE 的整数倍（保证格点/周期整数倍率，R=1 时零漂移）。"""
+    global SIZE, W, R
+    size = int(size)
+    if size < BASE_SIZE or size % BASE_SIZE:
+        raise AssertionError("SIZE 必须是 %d 的正整数倍（实得 %d）" % (BASE_SIZE, size))
+    SIZE = size
+    W = size
+    R = size // BASE_SIZE
+    return SIZE
+
+
+def sp(v):
+    """线性 px 量（行/列号、母版坐标、条带厚度、笔刷长度）→ 当前尺度；R=1 恒等。"""
+    return int(v) * R if isinstance(v, int) else v * R
+
+
+def srows(base):
+    """把母版的"一个 1px 行/列号"展开成当前尺度下的连续 R 行/列（R=1 时逐位相同）。"""
+    base = int(base) * R
+    return [base + k for k in range(R)]
+
+
+def sarea(d):
+    """面密度（每像素命中率）→ 当前尺度：R=1 恒等，R=2 时 ÷4。"""
+    return float(d) / float(R * R)
+
+
+def zoom(base):
+    """预览板放大倍率：母版按 base 倍放大，32 档自动降倍以保持版面尺寸稳定。"""
+    return max(1, int(base) // R)
 
 
 # --------------------------------------------------------------------------
@@ -235,8 +279,13 @@ def patch_field(seed, tag, cells, threshold):
 
 
 def crack_paths(seed, tag, count, length, start_at=None):
-    """确定性走线（环绕坐标）：对象裂纹/缝隙/矿脉通用件。"""
+    """确定性走线（环绕坐标）：对象裂纹/缝隙/矿脉通用件。
+
+    length 以母版（16）像素标定，×R 后保持世界长度；count 是每张图上的条数（不动）。
+    """
+    length = (sp(length[0]), sp(length[1]))
     paths = []
+
     for k in range(count):
         x = int(h01(seed, tag + ":x", k, 0) * W)
         y = int(h01(seed, tag + ":y", k, 0) * W)
@@ -258,8 +307,13 @@ def crack_paths(seed, tag, count, length, start_at=None):
 
 
 def paint_blob(t, seed, tag, cx, cy, rad, core, edge):
-    """不规则斑块（锈斑/漆面剥落/炭斑）：半径内按距离衰减 + 哈希腐蚀边缘 → 拒绝方块感。"""
+    """不规则斑块（锈斑/漆面剥落/炭斑）：半径内按距离衰减 + 哈希腐蚀边缘 → 拒绝方块感。
+
+    rad 以母版（16）像素标定，×R 后保持世界尺寸（R=1 恒等）。
+    """
+    rad = float(rad) * R
     span = int(math.ceil(rad)) + 1
+
     for iy in range(-span, span + 1):
         for ix in range(-span, span + 1):
             x = cx + ix
@@ -313,16 +367,28 @@ def paint_crack_line(t, seed, tag, count, length, core, halo=None, halo_axis="v"
 
 
 def draw_rivets(t, sites, lit, mid, dark):
-    """2x2 铆钉（左上受光 / 右下背光），sites = 左上角坐标。"""
+    """2x2 铆钉（左上受光 / 右下背光），sites = 母版（16）口径的左上角坐标。
+
+    铆钉是轮廓级凸起（不是 1px 发丝线）⇒ 位置与边长都按 ×R 走；R=1 时逐位等价于母版 2x2。
+    """
+    n = 1 + R
     for rx, ry in sites:
-        t.put(rx, ry, lit)
-        t.put(rx + 1, ry, mid)
-        t.put(rx, ry + 1, mid)
-        t.put(rx + 1, ry + 1, dark)
+        x0, y0 = int(rx) * R, int(ry) * R
+        for dy in range(n):
+            for dx in range(n):
+                if dx == 0 and dy == 0:
+                    color = lit
+                elif dx == n - 1 and dy == n - 1:
+                    color = dark
+                elif dx + dy == n - 1:
+                    color = mid
+                else:
+                    color = mid
+                t.put(x0 + dx, y0 + dy, color)
 
 
 def draw_frame(t, frame, lip):
-    """1px 机壳框：上/左受光唇，下/右背光框。"""
+    """1px 机壳框：上/左受光唇，下/右背光框（发丝线纪律 R4：32 档仍 1px，不做 ×R 增厚）。"""
     for x in range(W):
         t.put(x, 0, lip)
         t.put(x, W - 1, frame)
@@ -332,10 +398,14 @@ def draw_frame(t, frame, lip):
 
 
 def fill_bricks(t, seed, params, levels, joint, joint_lip):
-    """砖砌布局（周期 16：4 行皮数，8 宽砖，奇偶皮错 4，砖色按 (皮, 砖位) 哈希取阶）。"""
-    course_h = params["course_h"]
-    seams_even = set(params["joint_x_even"])
-    seams_odd = set(params["joint_x_odd"])
+    """砖砌布局（母版口径：4 行皮数，8 宽砖，奇偶皮错 4，砖色按 (皮, 砖位) 哈希取阶）。
+
+    皮高 / 砖宽 / 竖缝列号都是轮廓级条带 ⇒ ×R（R4）；哈希键随之走，保证 32 档砖位仍确定。
+    """
+    course_h = sp(params["course_h"])
+    seams_even = set(sp(x) for x in params["joint_x_even"])
+    seams_odd = set(sp(x) for x in params["joint_x_odd"])
+    brick_w = sp(8)
     n = len(levels)
     for y in range(W):
         course = y // course_h
@@ -347,7 +417,7 @@ def fill_bricks(t, seed, params, levels, joint, joint_lip):
             elif in_course == course_h - 2:
                 t.put(x, y, joint_lip)
             else:
-                tone = levels[int(h01(seed, "brick", course, x // 8) * n) % n]
+                tone = levels[int(h01(seed, "brick", course, x // brick_w) * n) % n]
                 t.put(x, y, tone)
 
 
@@ -420,11 +490,12 @@ def paint_terrain_fiber(r, seed, p):
         for x in range(W):
             if mucks[y][x] and h01(seed, "muckk", x, y) < 0.7:
                 t.put(x, y, muck)
-    for x, y in scatter(seed, "fib", p["fiber_density"]):
-        dash = 1 + int(h01(seed, "fibl", x, y) * 3.0)
+    for x, y in scatter(seed, "fib", sarea(p["fiber_density"])):
+        dash = sp(1 + int(h01(seed, "fibl", x, y) * 3.0))
         color = fiber_dark if h01(seed, "fibk", x, y) < 0.6 else fiber_lit
         for i in range(dash):
             t.put(x + i, y, color)
+
     return t
 
 
@@ -473,12 +544,13 @@ def paint_grass_tinted(r, seed, p):
     blade_dark = r.resolve(p["blade_dark"], p["base"])
     blade_lit = r.resolve(p["blade_lit"], p["base"])
     speckle = r.resolve(p["speckle"], p["base"])
-    for x, y in scatter(seed, "blade", p["blade_density"]):
-        length = 1 + int(h01(seed, "bladel", x, y) * 3.0)
+    for x, y in scatter(seed, "blade", sarea(p["blade_density"])):
+        length = sp(1 + int(h01(seed, "bladel", x, y) * 3.0))
         for i in range(length):
             t.put(x, y - i, blade_dark)
         if h01(seed, "bladek", x, y) < 0.40:
             t.put(x, y - length + 1, blade_lit)
+
     for x, y in scatter(seed, "speck", p["speckle_density"]):
         t.put(x, y, speckle)
     blotch = p.get("blotch")
@@ -504,8 +576,8 @@ def paint_grass_shattered(r, seed, p):
             accent_mix = blend(x, y) * 0.55 + p["accent_blend"] * 0.45
             t.put(x, y, accent_levels[idx] if h01(seed, "acc", x, y) < accent_mix else levels[idx])
     blade_dark = r.resolve(p["blade_dark"], p["base"])
-    for x, y in scatter(seed, "blade", 0.34):
-        length = 1 + int(h01(seed, "bladel", x, y) * 2.0)
+    for x, y in scatter(seed, "blade", sarea(0.34)):
+        length = sp(1 + int(h01(seed, "bladel", x, y) * 2.0))
         for i in range(length):
             t.put(x, y - i, blade_dark)
     paint_crack_line(
@@ -538,8 +610,9 @@ def paint_grass_side(r, seed, p):
     accent_levels = (
         r.levels(fringe["accent_levels"], fringe["accent"]) if fringe.get("accent_levels") else None)
     accent_blend = float(fringe.get("accent_blend", 0.0))
-    fringe_min = int(p["fringe_min"])
-    fringe_max = int(p["fringe_max"])
+    fringe_min = sp(p["fringe_min"])          # 草沿厚度：轮廓级条带 ⇒ ×R（R4）
+    fringe_max = sp(p["fringe_max"])
+
     hang = float(p.get("hang_density", 0.0))
     speckle = r.resolve(p["edge_speckle"], fringe["base"]) if p.get("edge_speckle") else None
     shadow = r.resolve(p["shadow"], body["base"]) if p.get("shadow") else None
@@ -625,69 +698,78 @@ def paint_object_sleeper(r, seed, p):
     rail_lit = r.resolve(p["rail_lit"], p["base"])
     rail_shadow = r.resolve(p["rail_shadow"], p["base"])
     spike = r.resolve(p["spike"], p["base"])
-    wood_rows = [y for y in range(W) if y not in (2, 3, 4, 5, 11, 12, 13, 14)]
+    rail_rows = set()
+    for base_y in (2, 11):
+        for off in range(4 * R):
+            rail_rows.add(sp(base_y) + off)
+    wood_rows = [y for y in range(W) if y not in rail_rows]
     for y in wood_rows:
         for x in range(W):
             if h01(seed, "grain", x, y) < 0.30:
                 t.put(x, y, grain)
-    seam_x = 9 + int(h01(seed, "seam", 0, 0) * 5.0)
+    seam_x = sp(9) + int(h01(seed, "seam", 0, 0) * 5.0 * R)
     for y in wood_rows:
-        t.put(seam_x, y, seam)
-        t.put(seam_x + 1, y, seam)
+        for dx in range(2 * R):
+            t.put(seam_x + dx, y, seam)
     for base_y in (2, 11):
-        for x in range(W):
-            t.put(x, base_y, groove)
-            t.put(x, base_y + 1, rail_lit)
-            t.put(x, base_y + 2, rail)
-            t.put(x, base_y + 3, rail_shadow)
+        for off, color in enumerate((groove, rail_lit, rail, rail_shadow)):   # 铁轨带：轮廓级 ⇒ 每子带 ×R
+            for y in range(sp(base_y) + off * R, sp(base_y) + (off + 1) * R):
+                for x in range(W):
+                    t.put(x, y, color)
     for sx in (2, 7, 12):
-        t.put(sx, 5, spike)
-        t.put(sx + 1, 5, spike)
-        t.put(sx, 14, spike)
-        t.put(sx + 1, 14, spike)
+        for dx in range(2 * R):                    # 道钉：母版 2px 宽 → ×R（轮廓级凸起）
+            t.put(sp(sx) + dx, sp(5), spike)
+            t.put(sp(sx) + dx, sp(14), spike)
+
     return t
 
 
 def paint_object_pipe(r, seed, p):
     levels = r.levels(p["pipe_levels"], p["base"])
-    profile = [4, 4, 4, 3, 4, 3, 2, 2, 2, 2, 1, 1, 1, 0, 0, 0]
+    profile = [4, 4, 4, 3, 4, 3, 2, 2, 2, 2, 1, 1, 1, 0, 0, 0]   # 母版 16 行的管道明暗剖面
+
+    def prof(y):
+        return profile[min(len(profile) - 1, y // R)]     # 母版剖面按 R 最近邻展开（R=1 恒等）
+
     t = Tex()
     for y in range(W):
         for x in range(W):
-            value = 0.30 + 0.55 * (profile[y] / 4.0)
+            value = 0.30 + 0.55 * (prof(y) / 4.0)
             value += 0.05 * (h01(seed, "pipe", x, y) - 0.5)
             idx = max(0, min(len(levels) - 1, int(value * len(levels))))
             t.put(x, y, levels[idx])
     flange = r.resolve(p["flange"], p["base"])
     flange_edge = r.resolve(p["flange_edge"], p["base"])
-    for x in (2, 13):
+    for x in (sp(2), sp(13)):                       # 体内 1px 分模线：发丝线不加倍，位置按比例走
         for y in range(W):
             t.put(x, y, flange_edge)
-    for x in (0, 1, 14, 15):
+    flange_cols = srows(0) + srows(1) + srows(14) + srows(15)   # 两端法兰：2px 母版凸缘 ⇒ ×R 增厚
+    for x in flange_cols:
         for y in range(W):
-            t.put(x, y, flange_edge if y in (0, W - 1) else flange)
-    for x in (0, 1, 14, 15):
-        t.put(x, 1, r.resolve(p["flange_lip"], p["base"]))
-        t.put(x, W - 2, flange_edge)
+            t.put(x, y, flange_edge if (y < R or y >= W - R) else flange)
+    for x in flange_cols:
+        for k in range(R):
+            t.put(x, sp(1) + k, r.resolve(p["flange_lip"], p["base"]))
+            t.put(x, W - 1 - R + k, flange_edge)
     rivet_lit = r.resolve(p["rivet_lit"], p["base"])
     rivet_dark = r.resolve(p["rivet_dark"], p["base"])
-    for rx in (0, 15):
-        for ry in (4, 10):
+    for rx, step in ((sp(0), 1), (sp(15), -1)):
+        for ry in (sp(4), sp(10)):
             t.put(rx, ry, rivet_lit)
-            t.put(rx + (1 if rx == 0 else -1), ry, rivet_dark)
+            t.put(rx + step, ry, rivet_dark)
     rust_levels = r.levels(p["rust_levels"], p["base"])
     count = int(p["rust_density"] * W * W)
     for k in range(count):
         x = int(h01(seed, "rustx", k, 0) * W)
         y = int(h01(seed, "rusty", k, 0) * W)
-        t.put(x, y, rust_levels[min(1, profile[y] // 3)])
+        t.put(x, y, rust_levels[min(1, prof(y) // 3)])
     for k in range(max(1, count // 6)):
-        cx = 4 + int(h01(seed, "rustbx", k, 0) * 8.0)
-        cy = 2 + int(h01(seed, "rustby", k, 0) * 12.0)
+        cx = sp(4) + int(h01(seed, "rustbx", k, 0) * 8.0 * R)
+        cy = sp(2) + int(h01(seed, "rustby", k, 0) * 12.0 * R)
         paint_blob(t, seed, "prust%d" % k, cx, cy, 0.9, rust_levels[1], rust_levels[0])
     pit = r.resolve(p["pit"], p["base"])
     for x, y in scatter(seed, "pit", p["pit_density"]):
-        if 3 < x < 12:
+        if sp(3) < x < sp(12):
             t.put(x, y, pit)
     return t
 
@@ -702,7 +784,7 @@ def paint_object_plate(r, seed, p):
     scratch = r.resolve(p["scratch"], p["base"])
     paint_crack_line(t, seed, "scratch", int(p["scratch_count"]), (4, 9), scratch)
     for y in range(W):
-        t.put(7 + int(h01(seed, "seamx", 0, y) * 2.0), y, r.resolve(p["plate_levels"][0], p["base"]))
+        t.put(sp(7) + int(h01(seed, "seamx", 0, y) * 2.0 * R), y, r.resolve(p["plate_levels"][0], p["base"]))
     rust_levels = r.levels(p["rust_levels"], p["base"])
     for k in range(7):
         cx = int(h01(seed, "rustx", k, 0) * W)
@@ -722,8 +804,9 @@ def paint_object_plate(r, seed, p):
         r.resolve(p["rivet_dark"], p["base"]),
     )
     for sx, sy in [tuple(site) for site in p["rivet_sites"]]:
-        t.put(sx + 1, sy + 1, r.resolve(p["rivet_dark"], p["base"]))
-        t.put(sx + 1, sy, r.resolve(p["rivet_lit"], p["base"]))
+        t.put(sp(sx) + R, sp(sy) + R, r.resolve(p["rivet_dark"], p["base"]))
+        t.put(sp(sx) + R, sp(sy), r.resolve(p["rivet_lit"], p["base"]))
+
     return t
 
 
@@ -737,16 +820,17 @@ def paint_object_chimney(r, seed, p):
     cavity_hi = r.resolve(p["cavity_hi"], p["base"])
     rim = r.resolve(p["rim"], p["base"])
     soot = r.resolve(p["soot"], p["base"])
-    break_min = int(p["break_min"])
-    break_span = int(p["break_span"])
+    break_min = sp(p["break_min"])
+    break_span = int(p["break_span"]) * R
     for x in range(W):
         top = break_min + int(h01(seed, "brk", x, 0) * break_span)
         for y in range(top):
             t.put(x, y, cavity if y > 0 else cavity_hi)
         t.put(x, top, rim)
     for x, y in scatter(seed, "soot", p["soot_density"]):
-        if y > 3:
+        if y > sp(3):
             t.put(x, y, soot)
+
     return t
 
 
@@ -757,8 +841,8 @@ def paint_casing_rusted(r, seed, p):
     t.fill_field(field, levels)
     chip_levels = r.levels(p["chip_levels"], p["chip"])
     for k in range(int(p.get("chip_blobs", 4))):
-        cx = 3 + int(h01(seed, "chipx", k, 0) * 10.0)
-        cy = 3 + int(h01(seed, "chipy", k, 0) * 10.0)
+        cx = sp(3) + int(h01(seed, "chipx", k, 0) * 10.0 * R)
+        cy = sp(3) + int(h01(seed, "chipy", k, 0) * 10.0 * R)
         paint_blob(t, seed, "chip%d" % k, cx, cy, 0.9 + h01(seed, "chipr", k, 0) * 0.6, chip_levels[1], chip_levels[0])
     for x, y in scatter(seed, "chipk", 0.020):
         t.put(x, y, chip_levels[2])
@@ -789,17 +873,18 @@ def paint_casing_sooted(r, seed, p):
     drip = r.resolve(p["drip"], p["base"])
     drip_lit = r.resolve(p["drip_lit"], p["base"])
     for k in range(int(p["drip_count"])):
-        cx = 2 + int(h01(seed, "dripx", k, 0) * 12.0)
-        start = 2 + int(h01(seed, "dripsy", k, 0) * 2.0)
-        length = 5 + int(h01(seed, "dripl", k, 0) * 8.0)
-        for y in range(start, min(W - 2, start + length)):
+        cx = sp(2) + int(h01(seed, "dripx", k, 0) * 12.0 * R)
+        start = sp(2) + int(h01(seed, "dripsy", k, 0) * 2.0 * R)
+        length = sp(5) + int(h01(seed, "dripl", k, 0) * 8.0 * R)
+        stop = min(W - 1 - R, start + length)
+        for y in range(start, stop):
             t.put(cx, y, drip)
         t.put(cx, start, drip_lit)
         if h01(seed, "drips", k, 0) < 0.5:
-            t.put(cx, min(W - 2, start + length), drip_lit)
+            t.put(cx, stop, drip_lit)
     for k in range(4):
-        cy = 3 + int(h01(seed, "oilx", k, 0) * 10.0)
-        cx = 3 + int(h01(seed, "oily", k, 0) * 10.0)
+        cy = sp(3) + int(h01(seed, "oilx", k, 0) * 10.0 * R)
+        cx = sp(3) + int(h01(seed, "oily", k, 0) * 10.0 * R)
         paint_blob(t, seed, "oil%d" % k, cx, cy, 1.1, levels[-1], levels[-2])
     draw_frame(t, r.resolve(p["frame"], p["base"]), r.resolve(p["frame_lip"], p["base"]))
     draw_rivets(
@@ -822,9 +907,9 @@ def paint_casing_porcelain(r, seed, p):
     paint_crack_line(t, seed, "porc", int(p["crack_count"]), (6, 11), crack, halo=None, faint=faint)
     chip = r.resolve(p["chip"], p["base"])
     chip_lit = r.resolve(p["chip_lit"], p["base"])
-    paint_blob(t, seed, "chip", 3, 13, 1.6, chip, chip)
-    t.put(2, 11, chip_lit)
-    t.put(5, 12, chip_lit)
+    paint_blob(t, seed, "chip", sp(3), sp(13), 1.6, chip, chip)
+    t.put(sp(2), sp(11), chip_lit)
+    t.put(sp(5), sp(12), chip_lit)
     draw_frame(t, r.resolve(p["frame"], p["base"]), r.resolve(p["frame_lip"], p["base"]))
     draw_rivets(
         t,
@@ -875,14 +960,52 @@ def distinct_rgb(im):
     return seen
 
 
-def noise_period_selftest(seed):
-    """工具链自证：周期 16 格点值噪/倍频和满足 f(x+16,y)==f(x,y) 与 f(x,y+16)==f(x,y)（精确相等）。"""
-    field = octave_field(seed, "selftest", [(2, 0.46), (4, 0.32), (8, 0.22)])
-    for x in range(SIZE):
-        for y in range(SIZE):
-            if field(x + SIZE, y) != field(x, y) or field(x, y + SIZE) != field(x, y):
-                raise AssertionError("噪声场非周期 16: (%d,%d)" % (x, y))
+def noise_period_selftest(seed, period=None, fields=None):
+    """工具链自证：格点值噪 / 倍频和满足 f(x+P,y)==f(x,y) 与 f(x,y+P)==f(x,y)（精确相等）。
+
+    P10a 反假绿（与 dim7879 同三条）：① P 默认取当前 SIZE 且拒绝 ≠ SIZE 的显式值（把"硬编码 16"
+    的回退变成 RED）；② 字段必须变动；③ 半周期必须**不等**（negative control，防空断言）。
+    """
+    if period is None:
+        period = SIZE
+    if int(period) != int(SIZE):
+        raise AssertionError(
+            "噪声自检周期 %d 与画布 SIZE %d 不符：断言未随尺度走（SIZE=%d 下这是假绿）"
+            % (int(period), int(SIZE), int(SIZE))
+        )
+    fields = fields or (octave_field(seed, "selftest", [(2, 0.46), (4, 0.32), (8, 0.22)]),)
+    for field in fields:
+        if len(set(field(x, y) for x in range(SIZE) for y in range(SIZE))) < 2:
+            raise AssertionError("噪声自检字段恒定（周期断言空洞通过）")
+        half = max(1, SIZE // 2)
+        if all(field(x + half, y) == field(x, y) for x in range(SIZE) for y in range(SIZE)):
+            raise AssertionError("半周期即相等（%d）⇒ 周期断言不提供信息" % half)
+        for x in range(SIZE):
+            for y in range(SIZE):
+                if field(x + period, y) != field(x, y) or field(x, y + period) != field(x, y):
+                    raise AssertionError("噪声场非周期 %d: (%d,%d)" % (period, x, y))
     return True
+
+
+def seam_warn_ceiling(style):
+    """预览板色标上限（只影响板上高亮配色，不做断言）；某组在 32 档无 tileable 样本时退回母版值。"""
+    vals = []
+    for name, block in style.items():
+        if isinstance(block, dict) and "seam_gross_max" in block:
+            key = "seam_gross_max" if R == 1 else "seam_gross_max_x%d" % R
+            vals.append(float(block.get(key, block["seam_gross_max"])))
+    return max(vals)
+
+
+def seam_gross_max(style, group):
+    """接缝粗检阈值按尺度取表；32 档必须用实测重标键 seam_gross_max_x2，缺键即报错（不沿用 16 档数）。"""
+    block = style[group]
+    key = "seam_gross_max" if R == 1 else "seam_gross_max_x%d" % R
+    if key not in block:
+        raise AssertionError(
+            "STYLE[%s] 缺 %s：SIZE=%d 的接缝阈值未实测重标（禁止沿用 16 档标定）" % (group, key, SIZE)
+        )
+    return float(block[key])
 
 
 def seam_metrics(im):
@@ -963,9 +1086,9 @@ def build_all(manifest):
     meta = []
     style = manifest["STYLE"]
     max_colors = int(style["pixel_discipline"]["max_distinct_rgb"])
-    seam_warn = max(
-        float(block["seam_gross_max"]) for block in style.values() if isinstance(block, dict) and "seam_gross_max" in block
-    )
+    seam_warn = seam_warn_ceiling(style)
+
+
     for entry in manifest["OUTPUTS"]:
         key = entry["key"]
         params = dict(entry["params"])
@@ -978,7 +1101,7 @@ def build_all(manifest):
         tex = painter(rules, seed, params)
         im = tex.image()
         if (im.width, im.height) != (SIZE, SIZE):
-            raise AssertionError("%s 尺寸 %s != 16x16" % (key, im.size))
+            raise AssertionError("%s 尺寸 %s != %dx%d" % (key, im.size, SIZE, SIZE))
         colors = distinct_rgb(im)
         if len(colors) > max_colors:
             raise AssertionError("%s 色数 %d > %d：%s" % (key, len(colors), max_colors, sorted(colors)))
@@ -995,12 +1118,13 @@ def build_all(manifest):
         ratio = None
         if entry.get("tileable"):
             ratio = seam_metrics(im)
-            seam_max = float(style[entry["group"]]["seam_gross_max"])
+            seam_max = seam_gross_max(style, entry["group"])
             for axis, gross in (("x", ratio["col_gross"]), ("y", ratio["row_gross"])):
                 if axis in axes and gross > seam_max:
                     raise AssertionError(
-                        "%s 硬缝超限 %s_gross=%.3f > %.2f（seam_axes=%s；col=%.3f row=%.3f）"
-                        % (key, axis, gross, seam_max, axes, ratio["col_gross"], ratio["row_gross"])
+                        "%s 硬缝超限 %s_gross=%.3f > %.2f（SIZE=%d 阈值集 %s；col=%.3f row=%.3f）"
+                        % (key, axis, gross, seam_max, SIZE, "母版" if R == 1 else "x%d" % R,
+                           ratio["col_gross"], ratio["row_gross"])
                     )
         out["blocks/" + entry["file"]] = _png_bytes(im)
         meta.append(
@@ -1056,8 +1180,8 @@ def build_board(meta, seam_warn=1.5):
     board = Image.new("RGBA", (board_w, board_h), PREVIEW_BG)
     draw = ImageDraw.Draw(board)
     font = ImageFont.load_default()
-    draw.text((12, 8), "dim1 S7a block textures (16x16) - manifest: tools/artgen/dim1/manifest.json", font=font, fill=PREVIEW_HDR)
-    draw.text((12, 22), "left: 8x single / right: tiling 2x (3x3, or 3x1 when seam_axes=x)  |  metrics: distinct RGB / seam ratio(col,row); grass_side = fringe-on-top, x-seam only", font=font, fill=PREVIEW_DIM)
+    draw.text((12, 8), "dim1 S7a block textures (%dx%d) - manifest: tools/artgen/dim1/manifest.json" % (SIZE, SIZE), font=font, fill=PREVIEW_HDR)
+    draw.text((12, 22), "left: %dx single / right: tiling %dx (3x3, or 3x1 when seam_axes=x)  |  metrics: distinct RGB / seam ratio(col,row); grass_side = fringe-on-top, x-seam only" % (zoom(8), zoom(2)), font=font, fill=PREVIEW_DIM)
     y_cursor = header
     for group, items, rows in groups:
         draw.text((12, y_cursor + 4), "== %s (%d) ==" % (group, len(items)), font=font, fill=PREVIEW_HDR)
@@ -1074,27 +1198,27 @@ def build_board(meta, seam_warn=1.5):
                 metric = "rgb=%d  seam idx=%.2f,%.2f gross=%.2f,%.2f" % (
                     item["colors"], seam["col_idx"], seam["row_idx"], seam["col_gross"], seam["row_gross"])
                 metric_fill = PREVIEW_FG if max(seam["col_gross"], seam["row_gross"]) <= seam_warn else PREVIEW_WARN
-                tile_label = "tile 3x3@2x"
-                tiled = _nearest(_tiled(item["image"], 3, 3), 2)
+                tile_label = "tile 3x3@%dx" % zoom(2)
+                tiled = _nearest(_tiled(item["image"], 3, 3), zoom(2))
             elif item["tileable"] and axes == "x":
                 metric = "rgb=%d  seam x-only idx=%.2f gross=%.2f [y=%.2f n/a]" % (
                     item["colors"], seam["col_idx"], seam["col_gross"], seam["row_gross"])
                 metric_fill = PREVIEW_FG if seam["col_gross"] <= seam_warn else PREVIEW_WARN
-                tile_label = "tile 3x1@2x (x)"
-                tiled = _nearest(_tiled(item["image"], 3, 1), 2)
+                tile_label = "tile 3x1@%dx (x)" % zoom(2)
+                tiled = _nearest(_tiled(item["image"], 3, 1), zoom(2))
             elif item["tileable"]:
                 metric = "rgb=%d  seam y-only idx=%.2f gross=%.2f [x=%.2f n/a]" % (
                     item["colors"], seam["row_idx"], seam["row_gross"], seam["col_gross"])
                 metric_fill = PREVIEW_FG if seam["row_gross"] <= seam_warn else PREVIEW_WARN
-                tile_label = "tile 1x3@2x (y)"
-                tiled = _nearest(_tiled(item["image"], 1, 3), 2)
+                tile_label = "tile 1x3@%dx (y)" % zoom(2)
+                tiled = _nearest(_tiled(item["image"], 1, 3), zoom(2))
             else:
                 metric = "rgb=%d  object (no tiling req.)" % item["colors"]
                 metric_fill = PREVIEW_DIM
-                tile_label = "single @2x"
-                tiled = _nearest(item["image"], 2)
+                tile_label = "single @%dx" % zoom(2)
+                tiled = _nearest(item["image"], zoom(2))
             draw.text((x0, y0 + 14), metric, font=font, fill=metric_fill)
-            board.paste(_nearest(item["image"], 8), (x0, y0 + 28))
+            board.paste(_nearest(item["image"], zoom(8)), (x0, y0 + 28))
             board.paste(tiled, (x0 + 146, y0 + 44))
             draw.text((x0 + 146, y0 + 30), tile_label, font=font, fill=PREVIEW_DIM)
         y_cursor += rows * cell_h
@@ -1104,38 +1228,79 @@ def build_board(meta, seam_warn=1.5):
 # --------------------------------------------------------------------------
 # main
 # --------------------------------------------------------------------------
-def main():
+def _parse_args(argv):
+    """极简 --k=v / --flag 解析（与 dim7879 同法，不引 argparse）。"""
+    args = {}
+    for token in argv:
+        if not token.startswith("--"):
+            raise AssertionError("未知参数: %r（用法见文件头）" % token)
+        body = token[2:]
+        if "=" in body:
+            key, value = body.split("=", 1)
+        else:
+            key, value = body, True
+        args[key.replace("-", "_")] = value
+    return args
+
+
+def main(argv=None):
+    args = _parse_args(sys.argv[1:] if argv is None else list(argv))
+    size = int(args.get("size", BASE_SIZE))
+    set_size(size)
+    only = args.get("only")
+    only = sorted(str(x).strip() for x in str(only).split(",") if x.strip()) if only else None
     manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
+    if only:
+        known = set(e["key"] for e in manifest["OUTPUTS"])
+        unknown = sorted(set(only) - known)
+        if unknown:
+            raise AssertionError("--only 含未知条目 %s（可用名见 manifest.OUTPUTS）" % unknown)
+        manifest["OUTPUTS"] = [e for e in manifest["OUTPUTS"] if e["key"] in set(only)]
     first, meta = build_all(manifest)
     second, _ = build_all(manifest)
     for name in first:
         if first[name] != second[name]:
             raise AssertionError("双次生成不一致（非幂等）: " + name)
 
-    ASSET_DIR.mkdir(parents=True, exist_ok=True)
-    PREVIEW_PATH.parent.mkdir(parents=True, exist_ok=True)
+    out_dir = Path(str(args["out"])) if args.get("out") else ASSET_DIR
+    preview_path = Path(str(args["preview"])) if args.get("preview") else PREVIEW_PATH
+    landing = not args.get("no_land")
+    if size != BASE_SIZE and out_dir.resolve() == ASSET_DIR.resolve() and landing and not args.get("force_land"):
+        raise AssertionError(
+            "SIZE=%d 直接落地会覆写 src/main/resources 下在产母版贴图（未经用户目检的美术决策）："
+            "请加 --out <草稿目录> 或（P10b 授权后）--force-land" % size
+        )
     landed = []
+    if landing:
+        out_dir.mkdir(parents=True, exist_ok=True)
     for entry in manifest["OUTPUTS"]:
         rel = "blocks/" + entry["file"]
-        path = ASSET_DIR / entry["file"]
-        path.write_bytes(first[rel])
-        back = path.read_bytes()
-        if back != first[rel]:
-            raise AssertionError("回读字节不一致: %s" % entry["file"])
-        ihdr_check(back, (SIZE, SIZE))
-        landed.append((entry["file"], len(back), hashlib.sha256(back).hexdigest()))
-    PREVIEW_PATH.write_bytes(first["preview"])
-    if PREVIEW_PATH.read_bytes() != first["preview"]:
-        raise AssertionError("预览板回读字节不一致")
-    with Image.open(io.BytesIO(first["preview"])) as preview_im:
-        preview_size = preview_im.size
-    ihdr_check(first["preview"], preview_size)
+        data = first[rel]
+        ihdr_check(data, (SIZE, SIZE))
+        landed.append((entry["file"], len(data), hashlib.sha256(data).hexdigest()))
+        if landing:
+            path = out_dir / entry["file"]
+            path.write_bytes(data)
+            if path.read_bytes() != data:
+                raise AssertionError("回读字节不一致: %s" % entry["file"])
+    if not args.get("no_preview"):
+        preview_path.parent.mkdir(parents=True, exist_ok=True)
+        preview_path.write_bytes(first["preview"])
+        if preview_path.read_bytes() != first["preview"]:
+            raise AssertionError("预览板回读字节不一致")
+        with Image.open(io.BytesIO(first["preview"])) as preview_im:
+            preview_size = preview_im.size
+        ihdr_check(first["preview"], preview_size)
 
+    print("[SIZE] SIZE=%d（母版 %d，倍率 R=%d），条目 %d 张，落地=%s 目录=%s"
+          % (SIZE, BASE_SIZE, R, len(manifest["OUTPUTS"]), "开" if landing else "关（草稿档）",
+             out_dir if landing else "-"))
     print("[SOURCE] AST 自检：无 random/time/datetime/hash() 依赖")
     print("[PALETTE] 基色锚点（manifest.PALETTE 原值）:")
     for key in sorted(k for k in manifest["PALETTE"] if not k.startswith("_")):
         c = _c(manifest["PALETTE"][key])
         print("  %-20s #%02X%02X%02X" % (key, c[0], c[1], c[2]))
+
     print("[METRICS] 逐张（色数 / 缝感 idx=环边÷内部均值 与 gross=环边÷内部最大值 / 断言轴 / 拼接要求）:")
     for item in meta:
         if item["tileable"]:
@@ -1171,7 +1336,12 @@ def main():
     for name, size, digest in landed:
         print("  %-40s %5d B  %s" % (name, size, digest))
     print("[SHA256] 预览板:")
-    print("  %-40s %5d B  %s" % (PREVIEW_PATH.name, len(first["preview"]), hashlib.sha256(first["preview"]).hexdigest()))
+    print("  %-40s %5d B  %s" % (preview_path.name, len(first["preview"]), hashlib.sha256(first["preview"]).hexdigest()))
+    print("[SEAM] 阈值集=%s：%s" % ("母版 16（seam_gross_max）" if R == 1 else "32 实测重标（seam_gross_max_x%d）" % R,
+                                    ", ".join("%s=%s" % (g, manifest["STYLE"][g].get(
+                                        "seam_gross_max" if R == 1 else "seam_gross_max_x%d" % R))
+                                        for g in manifest["STYLE"]
+                                        if isinstance(manifest["STYLE"][g], dict) and "seam_gross_max" in manifest["STYLE"][g])))
     asset_digest = _set_digest(["%s %s" % (n, d) for n, _, d in landed])
     preview_digest = hashlib.sha256(first["preview"]).hexdigest()
     print("[SET-SHA256] assets=%s" % asset_digest)

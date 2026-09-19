@@ -209,6 +209,7 @@
     "ruined_casing_sooted": "0x5EED3002",
     "ruined_casing_porcelain": "0x5EED3003"
   },
+  "_size_switch": "P10a：出图尺度由命令行 --size=16|32 切换（默认 16 = 在产母版，零漂移；14 张在用 dim1 材质在 32 档同样可再生）。32 档产物一律 --out 到草稿目录，禁止覆写 src/main/resources。px 口径的缩放规则见生成器文件头 R1..R5；组级 32 档接缝阈值见 STYLE[*].seam_gross_max_x2。",
   "STYLE": {
     "pixel_discipline": {
       "size": [
@@ -241,6 +242,8 @@
       ],
       "tileable": true,
       "seam_gross_max": 1.5,
+      "seam_gross_max_x2": 1.2,
+      "_note_32": "P10a 尺度阈值：_x2 = SIZE=32 档用（16 档的 seam_gross_max 不变）。推导规则 = 16 档同一余量系数（1.50 ÷ 16 档全批实测 max 1.177 = 1.275）× 本组 32 档实测 max（n=7 p50=0.640 max=0.941）→ 1.20。复跑台架：python tools/artgen/checks/seam_recalib.py --probe。shattered / grass_side 两组在当前 14 张里没有 tileable 条目 ⇒ 不预填 32 档数（P10b 若启用该组，必须先跑台架补标定，缺键时生成器直接报错而不是沿用母版值）。",
       "_seam_metric": "gross = 环边相邻差 / 内部相邻差最大值（杀硬缝的粗检，必要非充分；场断裂/边缘描边类硬缝实测 >2，1.5 给合法高对比相邻——如釉面反光点——留头寸）；无缝充分保证 = 噪声场精确周期 16 自证 + 环绕落笔"
     },
     "prosperity_ruin": {
