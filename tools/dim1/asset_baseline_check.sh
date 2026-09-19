@@ -11,8 +11,15 @@
 #   ② 贴图：两批 artgen（dim7879 / dim1）manifest OUTPUTS ↔ landed.sha256 ↔
 #            src/main/resources/assets/gtsr/textures/blocks/ 磁盘实数 三点反向核对
 #   ③ 结构数据件 data/structures-dim7879.json 的变体计数（当前 34，缺 5 机型；见下方 STRUCT-JSON 行）
+#   ④ 【P13 挂点】展示页一致性 plan/新维度计划/review/dim1/_tools/check_feedback.py
+#      ——含 P11 新增的横向断言「区2 表行群系名集合 == PAGE_ASSETS 群系键集合」。
+#      为什么挂在这里而不是 surface_checks.sh（P11 上报"全仓无脚本调用本 py"）：本脚本已经跑
+#      python 且已声明"资产/页面"职责；surface_checks.sh 跑在 MC-classpath 离线 JVM 域，
+#      而本 py 依赖 PIL 与 review 目录，混挂会污染职责（P11 未闭合项 7 的原话）。
+#      代价（如实申报）：本门因此需要 gitignore 的 plan/ 目录在场——与既有的
+#      build/classes/java/main、~/.gradle 缓存前置同一性质（都是"开发树门"，非 clean clone 可跑）。
 #
-# 末行输出单行结论：roster=47/47 textures=49/49 SHA=OK
+# 末行输出单行结论：roster=47/47 textures=49/49 SHA=OK（口径不变；页面门在其上方独立成行，红则整体 FAIL）
 #
 # 离线 Java 运行配方来源：plan/investigation/v12030-hotfix-replaceruntime-report.md §3（JEP330 单文件）。
 # 实测本两只检只需 build/classes/java/main + forge universal jar（满足 WorldGenShatteredRuins 的
@@ -51,7 +58,7 @@ run_java() { # $1=source $2..=args
 }
 
 # ── 2. 名册（结构侧） ───────────────────────────────────────────────────────
-echo "[1/3] 结构名册"
+echo "[1/4] 结构名册"
 S8_OUT=$(run_java tools/dim1/S8RegistryRosterCheck.java) || true
 echo "$S8_OUT" | grep -E "ROSTER (PASS|FAIL|INTEGRITY)" | head -5
 if ! echo "$S8_OUT" | grep -q "^ROSTER PASS: StructureRegistry names() = ${EXPECTED_ROSTER} "; then
@@ -66,7 +73,7 @@ ROSTER=$(echo "$RI_OUT" | sed -n 's/^ROSTER INTEGRITY PASS: roster=\([0-9]*\)\/\
 [ -n "$ROSTER" ] || ROSTER="?"
 
 # ── 3. 贴图三点核对（+ 可选侧重建） ──────────────────────────────────────────
-echo "[2/3] 贴图 manifest <-> landed.sha256 <-> 磁盘"
+echo "[2/4] 贴图 manifest <-> landed.sha256 <-> 磁盘"
 TEX_OUT=$(PYTHONIOENCODING=utf-8 python -B - "$MODE" "$ASSET_DIR" <<'PY'
 import hashlib
 import io
@@ -174,7 +181,7 @@ TEXTURES=$(echo "$TEX_OUT" | sed -n 's/^TEXTURES \([0-9]*\)\/\([0-9]*\)$/\1\/\2/
 # P0 交付时这里"只报事实、不改生成器"（缺 5 机型是生成器只有三条腿，见 P0 报告 §3.3），
 # 因此 STRUCT-JSON MISSING 是一行常驻告警。P7 把机型腿补进 tools/dim1/StructureViewerExport 后，
 # 本行改为<b>只在真的有缺项/多项时才打印</b>并判 FAIL——告警行从此消失＝覆盖完整，不是被删掉。
-echo "[3/3] 结构数据件对账"
+echo "[3/4] 结构数据件对账"
 SJ=$(ROSTER_NAMES=$(printf '%s\n' "$S8_OUT" | sed -n 's/^NAMES([0-9]*): \[\(.*\)\]$/\1/p') \
     PYTHONIOENCODING=utf-8 python -B - <<'PY'
 import io, json, os
@@ -202,7 +209,29 @@ STRUCT_N=$(echo "$SJ" | sed -n 's/^STRUCT-JSON variants=\([0-9]*\) .*/\1/p')
 STRUCT_FULL=no
 echo "$SJ" | grep -q "^STRUCT-JSON COVER=OK$" && STRUCT_FULL=yes
 
-# ── 5. 结论 ─────────────────────────────────────────────────────────────────
+# ── 5. 展示页一致性（P13 挂点：把 P11 的横向断言变成常驻门） ────────────────────────────
+# 目标断言（check_feedback.py 第②段）：区2 表行群系名集合 == PAGE_ASSETS 的 kind=="biome" 键集合。
+# 这条之所以必须进门：①段只比"页面声明 vs feedback 键数"，从不横向比页面内部两个域，所以
+# 旧 3 群系死键能在 P11 之前长期漏检（P11 证据文档 §2 的开工 RED 三条之一）。
+# 挂整个脚本而非只摘一条：P11 上报的"全仓无脚本调用 check_feedback.py"一次修净，
+# 顺带把 49 张贴图色数标注、俯视域零残留、路径 404 三组也变成常驻门。
+echo "[4/4] 展示页一致性（区2 群系行 ↔ PAGE_ASSETS 群系键 + 色数实测 + 零残留）"
+PAGE_PY="plan/新维度计划/review/dim1/_tools/check_feedback.py"
+if [ ! -f "$PAGE_PY" ]; then
+  fail "缺 $PAGE_PY —— 本门要求展示页核对件在场（plan/ 被 gitignore，本脚本是开发树门，不降级为跳过）"
+fi
+PAGE_OUT=$(PYTHONIOENCODING=utf-8 python -B "$PAGE_PY" 2>&1)
+PAGE_RC=$?
+echo "$PAGE_OUT" | grep -aE "^(PASS|FAIL|CHECK|INFO)" | head -20
+echo "$PAGE_OUT" | grep -a "区2 表行群系名集合" | head -2 | cut -c1-170
+[ $PAGE_RC -eq 0 ] || fail "展示页核对不通过（见上方 FAIL 行；CHECK FAILED 计数在末行）"
+PAGE_BIOME_LINE=$(echo "$PAGE_OUT" | grep -a "区2 表行群系名集合" | head -1)
+case "$PAGE_BIOME_LINE" in
+  PASS*) echo "  BIOME-KEY CROSSCHECK=OK";;
+  *) fail "未取到「区2↔PAGE_ASSETS 群系键」断言行 ⇒ 挂点本身失效（脚本输出格式变了？）实得: $PAGE_BIOME_LINE";;
+esac
+
+# ── 6. 结论 ─────────────────────────────────────────────────────────────────
 echo "[SUMMARY] 结论"
 if [ "$ROSTER" = "$EXPECTED_ROSTER/$EXPECTED_ROSTER" ] && [ "$TEXTURES" = "$EXPECTED_TEXTURES/$EXPECTED_TEXTURES" ]; then
   if [ "$STRUCT_FULL" = "yes" ]; then

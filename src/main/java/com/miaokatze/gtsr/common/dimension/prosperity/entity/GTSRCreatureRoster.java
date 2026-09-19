@@ -246,11 +246,6 @@ public final class GTSRCreatureRoster {
         return out;
     }
 
-    /** 城窗乘子（生效权调制；{@code false} 时恒 1）。 */
-    public static int cityWindowMultiplier(boolean inCityWindow) {
-        return inCityWindow ? CITY_WINDOW_WEIGHT_MULTIPLIER : 1;
-    }
-
     /**
      * 该 chunk 是否在城窗内——<b>只走 P6 的唯一真值</b> {@link CityPlanner#citiesNear}
      * （与城市渲染、城内散布抑制同一判定），不另造第二套数法。

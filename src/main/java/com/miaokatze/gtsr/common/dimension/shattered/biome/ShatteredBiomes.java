@@ -196,21 +196,9 @@ public final class ShatteredBiomes {
     }
 
     /**
-     * 天空/雾色按群系取色（S-B3 四变体；非本维群系回退灰烬草原色）。
-     * <p>
-     * <b>P2 身份读面收口</b>（plan §2.1 L1 禁止项，P1 交给本片的 4 处之一）：改造前是
-     * {@code instanceof BiomeXxx} 四分支链——隐含"四群系连号"式实例判定。现走
-     * {@link GTSRBiomeAuthority}：① 账本实例命中（运行时唯一路径，L0 注册时 {@code recordAllocation}
-     * 写入）；② 未命中时按账本的<b>实际 id</b> 反查（{@link GTSRBiomeAuthority#actualIdOf}，
-     * 供离线合成实例与注册后新建实例同样可命名）。<b>不</b>读 Chunk 保存的 byte biome id，
-     * <b>不</b>用 {@code id - shatteredBiomeIdStart} 减法，也不留 instanceof 链。
-     * 颜色常量本身零改动（差异只在"怎么判定是哪个群系"）。
+     * 天空/雾色按群系取色（S-B3 四变体）；入参是 L1 身份枚举，{@code null}（空表降级 /
+     * 外来群系）回退灰烬草原色——身份怎么解析的见 {@link #identityOf}（颜色常量本身零改动）。
      */
-    public static int skyFogColorFor(BiomeGenBase biome) {
-        return skyFogColorFor(identityOf(biome));
-    }
-
-    /** 按 L1 身份枚举取色；{@code null}（空表降级 / 外来群系）回退灰烬草原色。 */
     public static int skyFogColorFor(GTSRBiomeAuthority.BiomeId key) {
         if (key != null) {
             switch (key) {
@@ -238,6 +226,20 @@ public final class ShatteredBiomes {
      * L1 群系身份（两跳：实例账本 → 实际 id 反查）。返回 {@code null} = 本维名册点名不到。
      * 与本类注册入口 {@link #init} 共用同一份 {@link GTSRBiomeAuthority} 账本，故身份与
      * 配槽结果永不分叉。
+     * <p>
+     * <b>P2 身份读面收口</b>（plan §2.1 L1 禁止项，P1 交给本片的 4 处之一）：改造前是
+     * {@code instanceof BiomeXxx} 四分支链——隐含"四群系连号"式实例判定。现走
+     * {@link GTSRBiomeAuthority}：① 账本实例命中（运行时唯一路径，L0 注册时 {@code recordAllocation}
+     * 写入）；② 未命中时按账本的<b>实际 id</b> 反查（{@link GTSRBiomeAuthority#actualIdOf}，
+     * 供离线合成实例与注册后新建实例同样可命名）。<b>不</b>读 Chunk 保存的 byte biome id，
+     * <b>不</b>用 {@code id - shatteredBiomeIdStart} 减法，也不留 instanceof 链。
+     * <p>
+     * P13 实测：本重载是本维<b>天空/雾色侧</b>身份读面的唯一出口——其原
+     * {@code skyFogColorFor(BiomeGenBase)} 便捷重载（曾经的一行转发）已无任何调用方
+     * （两个渲染端消费点在 P2 改传 {@code ordinalAt(x, z).biomeId}），故作为悬空 API 删除；
+     * 取色档位由 {@link #skyFogColorFor(GTSRBiomeAuthority.BiomeId)} 一处承担。
+     * 注：dim78 的<b>方块草色 tint</b> 仍有 3 处走 {@code World.getBiomeGenForCoords}
+     * （读 byte 平面）未收口，登记为 P13 缺口 G-1，不在本方法的主张范围内。
      */
     public static GTSRBiomeAuthority.BiomeId identityOf(BiomeGenBase biome) {
         if (biome == null) {

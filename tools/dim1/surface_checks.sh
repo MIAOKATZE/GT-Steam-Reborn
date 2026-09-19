@@ -43,6 +43,12 @@
 #                                                  #         （BASE=temp/p14-base 开工前快照 9735cef，
 #                                                  #          含"BASE 编译零 error"硬门槛 + Config 无
 #                                                  #          tpdim 新键反假绿钉；快档断言在 [2h]）
+#                                                  #   [18] P13 死代码清扫：512 chunk 逐字节对拍
+#                                                  #         （BASE=temp/p13-base 开工前快照 04ede7c，
+#                                                  #          含"BASE 编译零 error"硬门槛 + 两面反假绿：
+#                                                  #          BASE 仍含被删成员声明 / AFTER 已净；
+#                                                  #          快档侧 P13 另修 asset 行 echo 粘连并补
+#                                                  #          RosterIntegrity/S8Registry 两条 run 挂点）
 #                                                  #   [13] P7c 结构 H-2 语义改判：非本片路径零漂移对拍
 #                                                  #         （BASE=temp/p7c-base 开工前快照）+ CHAIN 硬门槛
 #                                                  #         RED→GREEN + 两条新规则的 4 个单变量 RED
@@ -341,9 +347,24 @@ echo "   BiomeAllocationCheck 合计 assertions=$(total_assertions BiomeAllocati
 run "ShatteredTerrainCheck（纯函数 + 源码接线）" ShatteredTerrainCheck
 run "SurfaceBiomeMatrixCheck（表层四元组矩阵行为钉：真实注册链+真实表层链，P2b 起替代文本钉）" SurfaceBiomeMatrixCheck
 run "BiomeZoneCheck（空间连贯分区）" BiomeZoneCheck
-echo "-- asset_baseline_check.sh（P0 资产基线：roster/textures/SHA）"bash tools/dim1/asset_baseline_check.sh >"$OUT/asset.out" 2>&1
+# ── P13 修复 1：asset 行 echo 粘连（基线遗留，P14 证据文档 §线索 已登记）──────────────────
+# 原行为 `echo "-- …）"bash tools/dim1/asset_baseline_check.sh >out` ——shell 把 `"字符串"词`
+# 拼成<b>同一个参数</b>，于是 asset_baseline_check.sh <b>从未被执行</b>，下一行 `code=$?` 取到的
+# 是 echo 的 0 ⇒ P0 资产基线门在 surface_checks 里长期假绿（各片的 roster=47 全靠手工直跑补）。
+# 现拆成两行，并把 --parity 的 [3] 计数纳入 FAILS。
+echo "-- asset_baseline_check.sh（P0 资产基线：roster/textures/SHA + 结构数据件 + 展示页群系键横向钉）"
+bash tools/dim1/asset_baseline_check.sh >"$OUT/asset.out" 2>&1
 code=$?; tail -2 "$OUT/asset.out" | cut -c1-170; echo "   EXIT=$code log=$OUT/asset.out"
 [ $code -ne 0 ] && FAILS=$((FAILS + 1))
+# ── P13 修复 2：RosterIntegrityCheck / S8RegistryRosterCheck 补 run 挂点 ──────────────────
+# 两者原本只进 [1] 编译清单、没有任何 run 挂点（P14 证据文档 §线索 2），在本脚本里只被
+# asset 行（而 asset 行又因上面的粘连从未跑）间接覆盖 ⇒ 名集合三方相等 / 逐名 footprint /
+# 模板 SHA256 / 敏感度自检这四组断言在本一键复跑入口内<b>零执行</b>。现各自直接挂点，
+# 与 asset 门互为冗余（asset 门钉末行口径，这里钉断言数与 EXIT）。
+run "RosterIntegrityCheck（P0 判据 1：名集合三方相等 + 逐名 footprint + 模板 SHA256 + 双跑 + 敏感度）" \
+  RosterIntegrityCheck
+run "S8RegistryRosterCheck（P0 判据 1 名数面：名册名数 + 分组计数 + 名集合相等）" \
+  S8RegistryRosterCheck
 
 if [ "${1:-}" = "--parity" ]; then
   echo "== [4] 正常态逐字节对拍（BASE=本片开工前快照 / AFTER=当前树，各 256 chunk × 两维） =="
@@ -1555,12 +1576,86 @@ com/miaokatze/gtsr/common/commands/GTSRCommand.java"
     [ "$n14" = "0" ] || { echo "   FAIL：表层/高度/群系面出现漂移（$n14 行）⇒ P14 越界碰了生成链"; FAILS=$((FAILS + 1)); }
   fi
 
+  # ── [18] P13 死代码清扫：非本片路径零漂移（512 chunk 逐字节，BASE=temp/p13-base=开工前快照 04ede7c）──
+  # P13 生产面只删「全仓零消费方」的成员（StructureBuilder 7 个成员 + RuinShapes.isRuinName +
+  # GTSRCreatureRoster.cityWindowMultiplier + ShatteredBiomes 的 skyFogColorFor(BiomeGenBase) 重载），
+  # 判定逻辑与数值一字未改 ⇒ 本档的期望是**严格** diff_lines=0。
+  # 反假绿两面：① BASE 快照必须**仍含**这些被删成员（否则快照其实是改造后，0 差异是自比）；
+  # ② AFTER 工作树必须**已无**它们（否则删除没落地，[18a] 的 0 差异只是两边都还在）。
+  echo "== [18] P13：512 chunk 逐字节对拍（BASE=p13-base=04ede7c 快照，含 BASE 编译零 error 硬门槛） =="
+  BASE13=temp/p13-base/all
+  SNAP13=temp/p13-base/src/main/java
+  P13_BASE_FILES="com/miaokatze/gtsr/common/dimension/framework/structure/StructureBuilder.java
+com/miaokatze/gtsr/common/dimension/prosperity/ruins/ruin/RuinShapes.java
+com/miaokatze/gtsr/common/dimension/prosperity/entity/GTSRCreatureRoster.java
+com/miaokatze/gtsr/common/dimension/shattered/biome/ShatteredBiomes.java"
+  if [ ! -f "$SNAP13/com/miaokatze/gtsr/common/dimension/framework/structure/StructureBuilder.java" ]; then
+    echo "   FAIL：缺 P13 BASE 快照 $SNAP13（必须先自建 = 本片第一个写入之前的工作树副本 / git show 04ede7c）"
+    FAILS=$((FAILS + 1))
+  else
+    rm -rf "$BASE13" "$OUT/p13-base-classes"
+    mkdir -p "$BASE13/com" "$OUT/p13-base-classes"
+    cp -a src/main/java/. "$BASE13/"
+    miss13=0
+    for rel in $P13_BASE_FILES; do
+      if [ -f "$SNAP13/$rel" ]; then
+        cp "$SNAP13/$rel" "$BASE13/$rel"
+      else
+        echo "   FAIL：P13 BASE 快照缺 $rel"; miss13=$((miss13 + 1))
+      fi
+    done
+    [ "$miss13" = "0" ] || FAILS=$((FAILS + 1))
+    # 反假绿①：BASE 侧必须还能看到被删成员的<b>声明签名</b>（用声明而非裸名，避免 AFTER 的
+    # 收口说明注释里提到这些名字造成误判）
+    dead13=0
+    for probe in "public void hollowBox(:framework/structure/StructureBuilder" \
+                 "public static boolean isRuinName(:prosperity/ruins/ruin/RuinShapes" \
+                 "public static int cityWindowMultiplier(:prosperity/entity/GTSRCreatureRoster" \
+                 "public static int skyFogColorFor(BiomeGenBase:shattered/biome/ShatteredBiomes"; do
+      tok="${probe%%:*}"; rel="com/miaokatze/gtsr/common/dimension/${probe#*:}.java"
+      if grep -aqF "$tok" "$BASE13/$rel"; then :; else
+        echo "   FAIL：P13-BASE 侧已无声明 $tok ⇒ 快照不是开工前形态（对拍会退化成自比）"; dead13=$((dead13 + 1))
+      fi
+    done
+    [ "$dead13" = "0" ] && echo "   P13-BASE 侧确认 4 个被删成员的声明仍在场（快照有效）"
+    [ "$dead13" = "0" ] || FAILS=$((FAILS + 1))
+    # 反假绿②：AFTER 工作树必须已无这些<b>声明</b>（否则删除没落地，0 差异只是两边都还在）
+    left13=0
+    for probe in "public void hollowBox(:framework/structure/StructureBuilder" \
+                 "public static boolean isRuinName(:prosperity/ruins/ruin/RuinShapes" \
+                 "public static int cityWindowMultiplier(:prosperity/entity/GTSRCreatureRoster" \
+                 "public static int skyFogColorFor(BiomeGenBase:shattered/biome/ShatteredBiomes"; do
+      tok="${probe%%:*}"; rel="com/miaokatze/gtsr/common/dimension/${probe#*:}.java"
+      if grep -aqF "$tok" "src/main/java/$rel"; then
+        echo "   FAIL：AFTER 侧仍有声明 $tok ⇒ 删除未落地"; left13=$((left13 + 1))
+      fi
+    done
+    [ "$left13" = "0" ] && echo "   P13-AFTER 侧确认 4 个被删成员已净（工作树 = 删除后形态）"
+    [ "$left13" = "0" ] || FAILS=$((FAILS + 1))
+    P13_SRC="$(prefix $BASE13)"
+    MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8 -cp "$CP" \
+      -sourcepath "$BASE13" -d "$OUT/p13-base-classes" $P13_SRC >"$OUT/p13-javac-base.log" 2>&1
+    echo "COMPILE P13-BASE EXIT=$? ($(grep -ac 'error:' "$OUT/p13-javac-base.log") error)"
+    [ "$(grep -ac 'error:' "$OUT/p13-javac-base.log")" = "0" ] \
+      || { echo "   FAIL：P13-BASE 树编译失败（还原清单不完整，[18a] 的 0 差异会是假绿）"; FAILS=$((FAILS + 1)); }
+    MSYS2_ARG_CONV_EXCL='*' java $STD $LOG4J -cp "$OUT/tools;$OUT/classes;$CP" \
+      SurfaceByteParityDump 16 >"$OUT/p13-parity-after.txt" 2>"$OUT/p13-parity-after.err"
+    MSYS2_ARG_CONV_EXCL='*' java $STD $LOG4J -cp "$OUT/tools;$OUT/p13-base-classes;$CP" \
+      SurfaceByteParityDump 16 >"$OUT/p13-parity-base.txt" 2>"$OUT/p13-parity-base.err"
+    n13=$(diff "$OUT/p13-parity-base.txt" "$OUT/p13-parity-after.txt" | grep -ac "^[<>]")
+    c13=$(grep -ac "^CHUNK" "$OUT/p13-parity-after.txt")
+    d78_13=$(grep -ac "^CHUNK dim=78" "$OUT/p13-parity-after.txt")
+    d79_13=$(grep -ac "^CHUNK dim=79" "$OUT/p13-parity-after.txt")
+    echo "   [18a] 逐字节对拍 chunks=$c13 (dim78=$d78_13 dim79=$d79_13) diff_lines=$n13"
+    [ "$n13" = "0" ] || { echo "   FAIL：表层/高度/群系面出现漂移（$n13 行）⇒ P13 的「纯删除」主张不成立"; FAILS=$((FAILS + 1)); }
+  fi
+
 fi
 
 echo "== SUMMARY =="
 if [ "$FAILS" = "0" ]; then
-  echo "P2/P3/P4/P5/P5b/P6/P7/P7c/P8/P9 SURFACE CHECKS: ALL GREEN"
+  echo "P2/P3/P4/P5/P5b/P6/P7/P7c/P8/P9/P12/P13/P14 SURFACE CHECKS: ALL GREEN"
 else
-  echo "P2/P3/P4/P5/P5b/P6/P7/P7c/P8/P9 SURFACE CHECKS: $FAILS tool(s)/step(s) FAILED"
+  echo "P2/P3/P4/P5/P5b/P6/P7/P7c/P8/P9/P12/P13/P14 SURFACE CHECKS: $FAILS tool(s)/step(s) FAILED"
 fi
 [ "$FAILS" = "0" ]

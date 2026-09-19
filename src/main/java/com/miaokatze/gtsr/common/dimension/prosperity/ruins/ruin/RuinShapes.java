@@ -217,9 +217,4 @@ public final class RuinShapes {
         }
         return null;
     }
-
-    /** 是否属于本族（按注册名前缀，不按 roster 里的 family 字段——机检两边都要读，这里给字符串口径）。 */
-    public static boolean isRuinName(String name) {
-        return name != null && name.startsWith(NAME_PREFIX);
-    }
 }
