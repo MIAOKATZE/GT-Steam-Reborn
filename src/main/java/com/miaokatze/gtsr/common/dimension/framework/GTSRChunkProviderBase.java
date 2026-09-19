@@ -24,6 +24,7 @@ import net.minecraftforge.event.terraingen.ChunkProviderEvent;
 import net.minecraftforge.event.terraingen.PopulateChunkEvent;
 
 import com.miaokatze.gtsr.common.dimension.framework.structure.GTSRWorldgenHash;
+import com.miaokatze.gtsr.common.dimension.framework.structure.StructureRegistry;
 import com.miaokatze.gtsr.main.GTSteamReborn;
 
 import cpw.mods.fml.common.eventhandler.Event.Result;
@@ -162,6 +163,11 @@ public class GTSRChunkProviderBase implements IChunkProvider {
      * 后续片单点接管本常量）。
      */
     protected static final boolean LAY_SURFACE_WHEN_DEGRADED = false;
+
+    /** {@link #LAY_SURFACE_WHEN_DEGRADED} 的只读出口（P12 诊断行/boot 汇总用；不参与判定）。 */
+    public static boolean laySurfaceWhenDegraded() {
+        return LAY_SURFACE_WHEN_DEGRADED;
+    }
 
     /** {@link SurfaceSpec#fillerMeta} 返回本值表示<b>不写</b> metadata（保持槽位现值）。 */
     protected static final int NO_META_WRITE = -1;
@@ -428,6 +434,15 @@ public class GTSRChunkProviderBase implements IChunkProvider {
     private static final Set<String> SURFACE_SKIP_LOGGED = ConcurrentHashMap.newKeySet();
 
     /**
+     * 只读查询"surface NOT laid"锚点是否已打出（<b>P12 为离线断言新增</b>；{@link
+     * #logSurfaceNotLaidOnce} 不同，本方法<b>零副作用</b>——断言"没打过的不该说有"时
+     * 不能反过来把锚点消耗掉，这是 P12 迭代中踩过的坑）。
+     */
+    public static boolean surfaceNotLaidAnchorTaken(String dimKey, String degradedLevel) {
+        return SURFACE_SKIP_LOGGED.contains(String.valueOf(dimKey) + '/' + degradedLevel);
+    }
+
+    /**
      * 降级态"表层未铺"的一次性日志锚点（plan §2.3 判据 2「降级可见」+ §2.1 L8「禁止无日志的降级」）。
      * 同一 {@code dimKey/级别} 组合只打一行（chunk 级门与列级缺席共用）。
      *
@@ -443,6 +458,172 @@ public class GTSRChunkProviderBase implements IChunkProvider {
             String.valueOf(dimKey),
             degradedLevel);
         return true;
+    }
+
+    /** 已打过"生物权重被吞"锚点的 {@code dimKey/级别} 组合（一次性，P12 L8）。 */
+    private static final Set<String> SPAWN_ABSORB_LOGGED = ConcurrentHashMap.newKeySet();
+
+    /**
+     * 群系缺席导致刷怪权重被吞的一次性可见锚点（<b>P12 新增，plan §2.1 L8「禁止无日志的降级」+
+     * §2.3 判据 2</b>）。
+     * <p>
+     * 触发口径：{@link #getPossibleCreatures} 在 SHORT/EMPTY 降级维解析不到名册群系时，返回语义
+     * <b>一字未改</b>（仍返回 {@code null} = vanilla 对 null 即"该类型此处不刷"），只是第一次发生时
+     * 补一行可 grep 的 WARN——缺席群系的权重就"静默没了"正是用户看不到内部状态的老痛点。
+     * 未绑定权威（离线/未注册维度）与正常态（{@code degraded=NONE}）都<b>不</b>打：前者没有名册
+     * 可言，后者不存在吞权重。
+     *
+     * @return {@code true} = 本次是该内容的首次打印（供离线断言验证"一次性"）
+     */
+    public static boolean logCreatureWeightAbsorbedOnce(GTSRBiomeAuthority authority) {
+        if (authority == null || !authority.isBound()) {
+            return false;
+        }
+        final GTSRBiomeAuthority.Degraded degraded = authority.degraded();
+        if (degraded == GTSRBiomeAuthority.Degraded.NONE) {
+            return false;
+        }
+        if (!SPAWN_ABSORB_LOGGED.add(authority.dimKey() + '/' + degraded.name())) {
+            return false;
+        }
+        GTSteamReborn.LOG.warn(
+            "[GTSR] dim={} creature weights ABSORBED: {} 级降级下该坐标解析不到名册群系，生效刷怪表按"
+                + " null（该处不刷）处理——缺席群系的权重已被吞（plan §2.3 判据 2，与 L1 降级口径一致）",
+            authority.dimKey(),
+            degraded.name());
+        return true;
+    }
+
+    // ————————————————————————— L8 进维一次性诊断行（P12） —————————————————————————
+
+    /** 已打过进维诊断行的 {@code dimId/dimKey} 组合（每 JVM 会话每维度一行，P12 L8）。 */
+    private static final Set<String> DIAG_EMITTED = ConcurrentHashMap.newKeySet();
+
+    /**
+     * 诊断行内容段供给器（dimKey → {@code " scatter=[..] structure=[..] creature=[..] roster=.. textures=.."}）。
+     * <p>
+     * 框架不 import 内容件（散布/结构/生物/资产计数都在 prosperity/config 侧），由组合根
+     * {@code CommonProxy#installDiagSupplement} 在 LoadComplete 注入；注入前的诊断行以
+     * {@code extra=not-installed} 显式申报缺口而非静默缺列（L8 禁止无日志的降级同样适用于观测自身）。
+     * 纯观测：本字段不参与任何生成判定。
+     */
+    private static volatile Function<String, String> diagSupplement;
+
+    /** 注入诊断行内容段供给器（组合根专用；{@code null} = 卸载）。 */
+    public static void setDiagSupplement(Function<String, String> supplement) {
+        diagSupplement = supplement;
+    }
+
+    /** 本 provider 实例是否已尝试过进维诊断行（每实例一次的门；跨实例去重靠 {@link #DIAG_EMITTED}）。 */
+    private boolean entryDiagChecked;
+
+    /**
+     * 进维一次性诊断行触发点（{@link #provideChunk} 首行调用；离线 harness 经
+     * {@link #emitEntryDiagOnce(World, String)} 走<b>同一实现体</b>）。
+     */
+    private void maybeEmitEntryDiag() {
+        if (this.entryDiagChecked) {
+            return;
+        }
+        this.entryDiagChecked = true;
+        final SurfaceSpec spec = surfaceSpec();
+        emitEntryDiagOnce(this.worldObj, spec == null ? null : spec.dimKey);
+    }
+
+    /**
+     * 玩家（或本维度首次 chunk 生成）进入 dim78/dim79 时打<b>一行</b> {@code [GTSR][diag]}——
+     * 不是每 chunk（{@link #DIAG_EMITTED} 按 {@code dimId/dimKey} 一次性）。
+     * <p>
+     * 观测硬约束（任务包 P12 目标 4「日志不得改变行为」）：整行组装包在 try/catch 内，
+     * 任何供给器异常都只降级为一条 WARN，绝不把诊断变成 provideChunk 的新故障面。
+     *
+     * @return {@code true} = 本次实际打印了诊断行（离线断言"一次性"用）
+     */
+    public static boolean emitEntryDiagOnce(World world, String dimKeyHint) {
+        final int dimId = world == null || world.provider == null ? -1 : world.provider.dimensionId;
+        final GTSRWorldChunkManager mgr = world != null && world.getWorldChunkManager() instanceof GTSRWorldChunkManager
+            ? (GTSRWorldChunkManager) world.getWorldChunkManager()
+            : null;
+        // P12 时代树编译纪律：本类不引用 P6/P9 之后新增的 manager 只读 getter（BASE 快照树会还原
+        // GTSRWorldChunkManager，引用新符号会让 P5/P6-BASE 编译面崩）——dimKey 一律取调用方 hint。
+        final String dimKey = dimKeyHint;
+        if (!DIAG_EMITTED.add(dimId + "/" + dimKey)) {
+            return false;
+        }
+        try {
+            GTSteamReborn.LOG.info(buildEntryDiagLine(dimId, dimKey, mgr));
+        } catch (Throwable t) {
+            // 诊断行自身失败也必须可见（L8），但绝不冒泡进生成链
+            GTSteamReborn.LOG.warn("[GTSR][diag] build failed for dim={}/{}: {}", dimId, dimKey, t.toString());
+        }
+        return true;
+    }
+
+    /**
+     * 组装进维诊断行（唯一实现体，生产与 {@code tools/dim1/DiagLineCheck} 共用）。
+     * 字段顺序即列名申报顺序：dim / def / bound / biomes / allocated / degraded / occupant /
+     * surface / layWhenDegraded / biomeTable / roster，其后接内容段供给器的 macro/scatter/structure/
+     * creature/textures 列。全部取自只读 getter，零副作用；且本方法只引用<b>历代 BASE 快照树都存在</b>
+     * 的符号（StructureRegistry.names / WorldChunkManager.getBiomesToSpawnIn / macroBandChunks），
+     * 保证 surface_checks 各 era 的 BASE 编译面不因 P12 崩（装配新符号全部外置到 CommonProxy$DiagAssembly）。
+     */
+    public static String buildEntryDiagLine(int dimId, String dimKey, GTSRWorldChunkManager mgr) {
+        // dimKey 缺失（S1 匿名模板路径）时按维度回查权威（UNBOUND 时 degraded=EMPTY、isBound=false，
+        // 与全部既有消费方同一口径），不向 forDimKey 塞 null 键
+        final GTSRBiomeAuthority authority = dimKey == null ? GTSRBiomeAuthority.forDimension(dimId)
+            : GTSRBiomeAuthority.forDimKey(dimKey);
+        final GTSRBiomeAuthority.Degraded degraded = mgr != null ? mgr.degraded() : authority.degraded();
+        final String occupant = authority.occupantSummary();
+        final Function<String, String> supplement = diagSupplement;
+        final String extra;
+        if (supplement == null) {
+            extra = " extra=not-installed";
+        } else {
+            String raw = supplement.apply(dimKey);
+            extra = raw == null || raw.isEmpty() ? " extra=empty" : " " + raw;
+        }
+        return "[GTSR][diag]" + " dim="
+            + dimId
+            + " def="
+            + dimKey
+            + " bound="
+            + authority.isBound()
+            + " biomes=["
+            + authority.allocationSummary()
+            + "]"
+            + " allocated="
+            + authority.allocatedCount()
+            + "/"
+            + authority.rosterSize()
+            + " degraded="
+            + degraded.name()
+            + " occupant="
+            + (occupant.isEmpty() ? "-" : "[" + occupant + "]")
+            + " surface="
+            + surfaceDiagLabel(degraded)
+            + " layWhenDegraded="
+            + LAY_SURFACE_WHEN_DEGRADED
+            // macro 列在内容段（macroBandChunks 是 P6 才有的 manager 方法，P5-BASE 编译面还原的是
+            // pre-P6 manager，源级引用会让 BASE 崩——装配体外置到 CommonProxy$DiagAssembly）
+            + " biomeTable="
+            + (mgr == null ? "NA"
+                : mgr.getBiomesToSpawnIn()
+                    .size())
+            + " roster="
+            + StructureRegistry.names()
+                .size()
+            + extra;
+    }
+
+    /** 表层是否铺的降级摘要口径（与 {@link #surfaceMayBeLaid}/{@link #columnSurfaceable} 同一判据的只读复述）。 */
+    private static String surfaceDiagLabel(GTSRBiomeAuthority.Degraded degraded) {
+        if (degraded == GTSRBiomeAuthority.Degraded.NONE) {
+            return "laid";
+        }
+        if (LAY_SURFACE_WHEN_DEGRADED) {
+            return "laid-despite-" + degraded.name();
+        }
+        return degraded == GTSRBiomeAuthority.Degraded.SHORT ? "partial(SHORT)" : "not-laid(EMPTY)";
     }
 
     /** 降级/缺席列写进 Chunk byte 平面的占位 id（详见 {@link #writeBiomePlane}）。 */
@@ -473,6 +654,9 @@ public class GTSRChunkProviderBase implements IChunkProvider {
 
     @Override
     public Chunk provideChunk(int chunkX, int chunkZ) {
+        // P12（L8）：进维一次性诊断行——每实例只试一次、每维度每会话只打一行（DIAG_EMITTED 去重），
+        // 纯观测：emit 内部自带 try/catch，绝不把诊断变成本方法的故障面（判据 3「日志不得改变行为」）。
+        maybeEmitEntryDiag();
         // P7 登记（plan §2.1 L2「禁止手搓哈希，须走 GTSRWorldgenHash」的<b>已知例外</b>，只登记不改值）：
         // 下一行是本仓第 10 处手搓 (cx,cz)→long 混合，与 GTSRWorldgenHash.chunkSeed 不同族。
         // <b>本片及 P5/P6 一律不动它的数值</b>：它喂给 vanilla 的 rand 流，改它等于移动两维全部
@@ -571,9 +755,12 @@ public class GTSRChunkProviderBase implements IChunkProvider {
         if (world == null || world.provider == null) {
             return null;
         }
-        final GTSRBiomeAuthority.Resolution resolved = GTSRBiomeAuthority.forDimension(world.provider.dimensionId)
-            .ordinalAt(x, z);
+        final GTSRBiomeAuthority authority = GTSRBiomeAuthority.forDimension(world.provider.dimensionId);
+        final GTSRBiomeAuthority.Resolution resolved = authority.ordinalAt(x, z);
         if (resolved == null || !resolved.resolved()) {
+            // P12（L8）：降级态下"权重被吞"从静默变可 grep（同一 dimKey/级别只一行），返回值仍是 null，
+            // vanilla SpawnerAnimals 对 null 的处置一字未动（判据 3 零行为漂移）
+            logCreatureWeightAbsorbedOnce(authority);
             return null;
         }
         return GTSRBiomeBase.effectiveSpawnableList(resolved.biome, creatureType, world.getSeed(), x >> 4, z >> 4);

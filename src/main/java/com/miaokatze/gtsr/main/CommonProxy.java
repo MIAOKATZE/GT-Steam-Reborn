@@ -13,13 +13,19 @@ import com.miaokatze.gtsr.common.crossmod.ae2.GTSRAE2ExternalStorageHandler;
 import com.miaokatze.gtsr.common.crossmod.waila.GTSRWailaCompat;
 import com.miaokatze.gtsr.common.dimension.framework.BiomeZoneSelector;
 import com.miaokatze.gtsr.common.dimension.framework.DimensionRegistrar;
+import com.miaokatze.gtsr.common.dimension.framework.GTSRBiomeAuthority;
+import com.miaokatze.gtsr.common.dimension.framework.GTSRChunkProviderBase;
 import com.miaokatze.gtsr.common.dimension.framework.GTSRDimensionDef;
+import com.miaokatze.gtsr.common.dimension.framework.structure.PlacementGate;
+import com.miaokatze.gtsr.common.dimension.framework.structure.StructureRegistry;
 import com.miaokatze.gtsr.common.dimension.prosperity.ChunkProviderProsperityRuins;
 import com.miaokatze.gtsr.common.dimension.prosperity.WorldProviderProsperityRuins;
 import com.miaokatze.gtsr.common.dimension.prosperity.air.GTSRProsperityAirMaterials;
 import com.miaokatze.gtsr.common.dimension.prosperity.biome.ProsperityBiomes;
 import com.miaokatze.gtsr.common.dimension.prosperity.entity.GTSRCreatureRegistry;
 import com.miaokatze.gtsr.common.dimension.prosperity.entity.GTSRCreatureRenderers;
+import com.miaokatze.gtsr.common.dimension.prosperity.entity.GTSRCreatureRoster;
+import com.miaokatze.gtsr.common.dimension.prosperity.ruins.ProsperitySurfaceScatter;
 import com.miaokatze.gtsr.common.dimension.prosperity.ruins.ProsperityWorldGenerator;
 import com.miaokatze.gtsr.common.dimension.shattered.ChunkProviderShatteredGrounds;
 import com.miaokatze.gtsr.common.dimension.shattered.ShatteredWeatherHandler;
@@ -323,5 +329,219 @@ public class CommonProxy {
      * 模组加载完成阶段
      * 如果之前注册失败，可以在此处进行最后的补救尝试。
      */
-    public void loadComplete(cpw.mods.fml.common.event.FMLLoadCompleteEvent event) {}
+    public void loadComplete(cpw.mods.fml.common.event.FMLLoadCompleteEvent event) {
+        // P12（L8）：装配进维一次性诊断行的内容段供给器 + 打一行 [GTSR][diag] boot 汇总
+        // （降级三态/owner 快照/开关/roster/贴图）。纯观测：任何异常只 WARN，不影响加载链。
+        try {
+            DiagAssembly.install();
+            GTSteamReborn.LOG.info(DiagAssembly.bootSummaryLine());
+        } catch (Throwable t) {
+            GTSteamReborn.LOG.warn("[GTSR][diag] boot summary install failed (observability only)", t);
+        }
+    }
+
+    /**
+     * P12（L8）诊断装配体（进维诊断行内容段 + LoadComplete boot 汇总 + 贴图基线核对）。
+     * <p>
+     * <b>为什么是 CommonProxy 的嵌套类、而不是框架基类的方法</b>：surface_checks 的各 era BASE 树是
+     * 「{@code cp -a} 当前树 + 按清单还原 era 文件」——框架基类会连同 scatter/roster/manager/
+     * PlacementGate 一起进 BASE 编译面，基类里任何对"P12 才新增的跨文件符号"的引用都会把
+     * P4/P5/P6/P7c-BASE 编译面打崩（实测 P4-BASE 1 error、P5-BASE 9 error ⇒ 对拍退化并误报
+     * 88 行漂移）。本类不在任何 BASE 编译清单内，装配引用新符号零污染；框架基类的诊断行只留
+     * "历代都存在"的核心列 + {@code setDiagSupplement} 注入缝。
+     * <p>
+     * <b>工具链同一实现体</b>：{@code tools/dim1/DiagLineCheck} 经
+     * {@code Class.forName("com.miaokatze.gtsr.main.CommonProxy$DiagAssembly")} 反射调用本类
+     * （直接 import 会令工具 javac 隐式编译 CommonProxy 本体、牵出 gregtech/AE2 依赖，实测
+     * NoClassDefFoundError）。本类与 CommonProxy 外部类互不引用，类加载互不牵连。
+     */
+    public static final class DiagAssembly {
+
+        private DiagAssembly() {}
+
+        /** 注入进维诊断行的内容段（scatter/structure/creature/textures；roster 在框架核心列）。 */
+        public static void install() {
+            GTSRChunkProviderBase.setDiagSupplement(
+                dimKey -> "macro=" + macroBandFor(dimKey)
+                    + " scatter=["
+                    + ProsperitySurfaceScatter.diagSummary()
+                    + "]"
+                    + " structure=[budget="
+                    + Config.prosperityStructureBudgetPerChunk
+                    + " windowRepeatCap="
+                    + PlacementGate.familyWindowRepeatCap(PlacementGate.FAMILY_MACHINE)
+                    + " familyGap="
+                    + Config.prosperityStructureFamilyGapChunks
+                    + " ruinWindowRepeatCap="
+                    + PlacementGate.familyWindowRepeatCap(PlacementGate.FAMILY_RUIN)
+                    + " familyGapMax="
+                    + PlacementGate.SPACING_GAP_MAX
+                    + "]"
+                    + " creature=["
+                    + GTSRCreatureRoster.diagSummary(dimKey)
+                    + "]"
+                    + " textures="
+                    + textureBaselineDiag());
+        }
+
+        /** LoadComplete 一次性汇总行：两维降级态 + owner 快照 + 关键开关 + roster/贴图基线。 */
+        public static String bootSummaryLine() {
+            final GTSRBiomeAuthority prosperity = GTSRBiomeAuthority.forDimKey(GTSRBiomeAuthority.DIM_KEY_PROSPERITY);
+            final GTSRBiomeAuthority shattered = GTSRBiomeAuthority.forDimKey(GTSRBiomeAuthority.DIM_KEY_SHATTERED);
+            return "[GTSR][diag] boot" + " dim78="
+                + prosperity.degraded()
+                + "("
+                + prosperity.allocatedCount()
+                + "/"
+                + prosperity.rosterSize()
+                + ", occupant="
+                + occupantOrDash(prosperity)
+                + ")"
+                + " dim79="
+                + shattered.degraded()
+                + "("
+                + shattered.allocatedCount()
+                + "/"
+                + shattered.rosterSize()
+                + ", occupant="
+                + occupantOrDash(shattered)
+                + ")"
+                + " creatures="
+                + Config.prosperityCreaturesEnabled
+                + " ruins="
+                + Config.prosperityRuinsEnabled
+                + " laySurfaceWhenDegraded="
+                + GTSRChunkProviderBase.laySurfaceWhenDegraded()
+                + " roster="
+                + StructureRegistry.names()
+                    .size()
+                + " textures="
+                + textureBaselineDiag();
+        }
+
+        /** 该维 macro 带尺度（与 {@code GTSRWorldChunkManager.macroBandChunksFor} 同一 Config 出处）。 */
+        private static String macroBandFor(String dimKey) {
+            if (GTSRBiomeAuthority.DIM_KEY_PROSPERITY.equals(dimKey)) {
+                return String.valueOf(Config.prosperityBiomeMacroBandChunks);
+            }
+            if (GTSRBiomeAuthority.DIM_KEY_SHATTERED.equals(dimKey)) {
+                return String.valueOf(Config.shatteredBiomeMacroBandChunks);
+            }
+            return "NA";
+        }
+
+        private static String occupantOrDash(GTSRBiomeAuthority authority) {
+            final String occupants = authority.occupantSummary();
+            return occupants.isEmpty() ? "-" : "[" + occupants + "]";
+        }
+
+        /**
+         * 维度贴图基线核对（P0 资产链的运行时只读复述，两档诚实出口）：
+         * <ol>
+         * <li>repo 场景（dev/离线 harness，批次目录 {@code tools/artgen/<batch>/manifest.json}
+         * 可读）：只扫 OUTPUTS 数组区段、逐名探测 classpath 资源，输出 {@code present/declared}
+         * （现基线 49/49；全文正则会误收 _manifest/SEEDS 的 file 字段，实测 54，故限定区段）；</li>
+         * <li>打包场景 manifest 不随 jar 分发：输出 {@code NA(blockTexFiles=<目录 png 实数>)}，
+         * 宁显式 NA 不伪造 49（登记给 P13：贴图清单若需游戏内可见，须先入资源）。</li>
+         * </ol>
+         */
+        public static String textureBaselineDiag() {
+            final java.util.List<String> declared = new java.util.ArrayList<>();
+            for (final String batch : new String[] { "tools/artgen/dim7879", "tools/artgen/dim1" }) {
+                final java.nio.file.Path manifest = java.nio.file.Paths.get(batch, "manifest.json");
+                final String raw;
+                try {
+                    if (!java.nio.file.Files.isReadable(manifest)) {
+                        return "NA(blockTexFiles=" + countBlockTexFiles() + ")";
+                    }
+                    raw = new String(java.nio.file.Files.readAllBytes(manifest), "UTF-8");
+                } catch (Throwable t) {
+                    return "NA(blockTexFiles=" + countBlockTexFiles() + ")";
+                }
+                final String outputs = extractOutputsArray(raw);
+                if (outputs == null) {
+                    return "NA(blockTexFiles=" + countBlockTexFiles() + ")";
+                }
+                final java.util.regex.Matcher m = java.util.regex.Pattern.compile("\"file\"\s*:\s*\"([^\"]+)\"")
+                    .matcher(outputs);
+                while (m.find()) {
+                    declared.add(m.group(1));
+                }
+            }
+            final ClassLoader cl = CommonProxy.class.getClassLoader();
+            int present = 0;
+            for (final String name : declared) {
+                if (cl.getResource("assets/gtsr/textures/blocks/" + name) != null) {
+                    present++;
+                }
+            }
+            return present + "/" + declared.size();
+        }
+
+        /** 取 {@code "OUTPUTS": [ ... ]} 数组区段（括号计数配对；失败回 null）。 */
+        private static String extractOutputsArray(String raw) {
+            final int key = raw.indexOf("\"OUTPUTS\"");
+            if (key < 0) {
+                return null;
+            }
+            final int open = raw.indexOf('[', key);
+            if (open < 0) {
+                return null;
+            }
+            int depth = 0;
+            for (int i = open; i < raw.length(); i++) {
+                final char c = raw.charAt(i);
+                if (c == '[') {
+                    depth++;
+                } else if (c == ']') {
+                    depth--;
+                    if (depth == 0) {
+                        return raw.substring(open, i + 1);
+                    }
+                }
+            }
+            return null;
+        }
+
+        /** gtsr 方块贴图目录 png 实数（目录型 classpath 文件列举 / jar 型条目枚举；失败回 -1）。 */
+        public static int countBlockTexFiles() {
+            final ClassLoader cl = CommonProxy.class.getClassLoader();
+            try {
+                final java.net.URL dir = cl.getResource("assets/gtsr/textures/blocks");
+                if (dir == null) {
+                    return -1;
+                }
+                if ("file".equals(dir.getProtocol())) {
+                    try (java.util.stream.Stream<java.nio.file.Path> s = java.nio.file.Files
+                        .list(java.nio.file.Paths.get(dir.toURI()))) {
+                        return (int) s.filter(
+                            p -> p.getFileName()
+                                .toString()
+                                .endsWith(".png"))
+                            .count();
+                    }
+                }
+                if ("jar".equals(dir.getProtocol())) {
+                    final java.net.JarURLConnection c = (java.net.JarURLConnection) dir.openConnection();
+                    final String entryName = c.getEntryName();
+                    final String prefix = entryName == null ? "assets/gtsr/textures/blocks/"
+                        : (entryName.endsWith("/") ? entryName : entryName + "/");
+                    int n = 0;
+                    final java.util.Enumeration<java.util.jar.JarEntry> e = c.getJarFile()
+                        .entries();
+                    while (e.hasMoreElements()) {
+                        final String name = e.nextElement()
+                            .getName();
+                        if (name.startsWith(prefix) && name.endsWith(".png")) {
+                            n++;
+                        }
+                    }
+                    return n;
+                }
+            } catch (Throwable ignored) {
+                // 观测出口失败只回 -1，不抛（同「日志不得改变行为」）
+            }
+            return -1;
+        }
+    }
 }

@@ -211,6 +211,7 @@ MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8 \
   tools/dim1/CityBiomeGateCheck.java tools/dim1/PlacementContractCheck.java \
   tools/dim1/ScatterClusterVarianceCheck.java tools/dim1/RuinFamilyCheck.java \
   tools/dim1/CreatureSpawnAuthorityCheck.java \
+  tools/dim1/DiagLineCheck.java tools/dim1/StructureChannelCheck.java \
 tools/dim1/StructureViewerExport.java tools/dim1/RosterIntegrityCheck.java \
 tools/dim1/S8RegistryRosterCheck.java tools/dim1/OutpostTemplateCheck.java tools/dim1/CityDeterminismCheck.java \
   tools/dim1/gregtech/api/GregTechAPI.java \
@@ -286,6 +287,33 @@ runres "CreatureSpawnAuthorityCheck off（判据 2 回退档：关 ⇒ 四群系
 runres "CreatureSpawnAuthorityCheck source（判据 3/5 源级档：L1 收口钉 + addObject 索引 ≥16 扫描）" \
   CreatureSpawnAuthorityCheck source
 echo "   P9 合计 assertions=$(total_assertions CreatureSpawnAuthorityCheck)"
+
+echo "== [2g] P12 观测与降级（L8）：诊断行列名申报 + 一次性门 + StructureChannel 真实判据（三档） =="
+rundiag() { # rundiag <label> <classname> [args...] —— 额外挂 <b>gtsr 资源根</b>（P12 DiagLineCheck 的
+  # textures 列要真实解析 assets/gtsr/textures/blocks/<png>；其余工具不给，见文件头 CP 段纪律）
+  local label="$1" cls="$2"; shift 2
+  local log="$OUT/$cls.out"
+  [ $# -gt 0 ] && log="$OUT/$cls-$1.out"
+  echo "-- $label"
+  MSYS2_ARG_CONV_EXCL='*' java $STD $LOG4J -cp "$OUT/tools;$OUT/classes;src/main/resources;$CP" "$cls" "$@" >"$log" 2>&1
+  local code=$?
+  tail -1 "$log" | cut -c1-170
+  echo "   EXIT=$code log=$log"
+  [ $code -ne 0 ] && FAILS=$((FAILS + 1))
+}
+run "DiagLineCheck（P12 判据 1/2/5：dim78 正常与 dim79 强制 EMPTY 各一条 diag 行 + 16 列申报 + 512 一次性门 + boot 行）" \
+  DiagLineCheck
+run "StructureChannelCheck（P12 判据 4：chunk 窗真实落块，GREEN 档 clipped 必 0）" StructureChannelCheck
+# 判据 4 的 RED 档：sink 窗投到远端 chunk(60,60) 让写入全裁 ⇒ 必须变红（旧恒真 sink 在此必绿，
+# 由 --legacy-tautology-demo 同场对照；两档都进 [2g] 日志）
+MSYS2_ARG_CONV_EXCL='*' java $STD $LOG4J -cp "$OUT/tools;$OUT/classes;$CP" \
+  StructureChannelCheck --red-clipped >"$OUT/red-structurechannel.txt" 2>&1
+er=$?
+grep -a "STRUCTURECHANNEL" "$OUT/red-structurechannel.txt" | head -2 | cut -c1-170
+echo "   RED EXIT=$er（必须非 0）log=$OUT/red-structurechannel.txt"
+[ "$er" != "0" ] || FAILS=$((FAILS + 1))
+run "StructureChannelCheck --legacy-tautology-demo（反假绿对照：旧恒真判据对同一全裁流必绿）" \
+  StructureChannelCheck --legacy-tautology-demo
 
 echo "== [3] 既有回归（必须保持绿） =="
 run "ReplaceSurfaceRuntimeCheck（46 项，含 null/plains 回退与逐列下标断言；P2b 起 256 格假绿已除）" ReplaceSurfaceRuntimeCheck

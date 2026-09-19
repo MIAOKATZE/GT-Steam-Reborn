@@ -186,6 +186,25 @@ public class GTSRWorldChunkManager extends WorldChunkManager {
     }
 
     /**
+     * 本维 def key（L1 账本键；{@code null} = 匿名 def）。
+     * <p>
+     * <b>P12 新增只读出口（plan §2.1 L8）</b>：进维一次性诊断行需要"维度 id ↔ def key ↔ 是否已绑"
+     * 三元组，而 {@link GTSRChunkProviderBase} 只能经 {@code World} 摸到本 manager——没有这个出口
+     * 它就只能猜。纯读构造期字段，<b>不</b>参与任何生成/身份判定。
+     */
+    public String dimKey() {
+        return this.dimKey;
+    }
+
+    /**
+     * 本维名册群系表规模（去权重快照条数；{@code GTSRChunkProviderBase} 与诊断行的只读出口）。
+     * 空表降级时为 0，与 {@link #isEmptyDegraded()} 同口径。
+     */
+    public int biomeTableSize() {
+        return this.biomesToSpawnIn.size();
+    }
+
+    /**
      * micro 层变体/装饰强度系数（P6 新增只读出口；0.7/1.0/1.3，见
      * {@link BiomeZoneSelector#MICRO_STRENGTHS}）。
      * <p>

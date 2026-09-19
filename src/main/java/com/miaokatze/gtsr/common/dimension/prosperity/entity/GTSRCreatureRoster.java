@@ -301,4 +301,44 @@ public final class GTSRCreatureRoster {
         Collections.addAll(out, LINKED_FAMILIES[species.ordinal()]);
         return Collections.unmodifiableList(out);
     }
+
+    /**
+     * 生物档诊断摘要（<b>P12 新增，plan §2.1 L8</b>）：总开关 + 三实体基权 + 该维四群系的
+     * <b>在册声明表条目数</b>（dim79 恒 0/0/0/0，与 P9「dim79 恒零」同一口径）。
+     * <p>
+     * 条目数走 {@link #declaredEntries}（声明真值的纯派生复算，不读群系实例的运行时列表、
+     * 不触发 {@code GTSRBiomeBase} 的延迟填充），零行为介入；缺席群系（SHORT/EMPTY 未入账成员）
+     * 的权重被吞这件事由框架侧 {@code logCreatureWeightAbsorbedOnce} 锚点负责可见。
+     */
+    public static String diagSummary(String dimKey) {
+        final StringBuilder sb = new StringBuilder();
+        sb.append("enabled=")
+            .append(Config.prosperityCreaturesEnabled)
+            .append(" weights=")
+            .append(Species.GEAR_PIGEON.baseWeight())
+            .append('/')
+            .append(Species.STEAM_FIREFLY.baseWeight())
+            .append('/')
+            .append(Species.SLAG_RIDGE_HUNTER.baseWeight());
+        if (dimKey == null) {
+            return sb.append(" tables=NA(no-dim-key)")
+                .toString();
+        }
+        sb.append(" tables=[");
+        boolean first = true;
+        for (final BiomeId id : BiomeId.values()) {
+            if (!dimKey.equals(id.dimKey())) {
+                continue;
+            }
+            if (!first) {
+                sb.append(", ");
+            }
+            first = false;
+            sb.append(id.name())
+                .append(':')
+                .append(declaredEntries(id).size());
+        }
+        return sb.append(']')
+            .toString();
+    }
 }

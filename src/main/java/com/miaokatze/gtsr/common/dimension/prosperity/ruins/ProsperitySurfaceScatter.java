@@ -357,6 +357,48 @@ public final class ProsperitySurfaceScatter {
     }
 
     /**
+     * 散布档诊断摘要（<b>P12 新增，plan §2.1 L8</b>）：ClusterMode / 场格 / 分母 / 半径 /
+     * 件数上下限 / 竖向件开关 + 双天花板与权重表，逐项<b>只读</b> {@link Config}，不调任何
+     * 掷骰与放置（判据「日志不得改变行为」）。窗上限单独列（只有竖向件挂载，见 {@link #windowCapFor}）。
+     */
+    public static String diagSummary() {
+        return "mode=" + Config.prosperityScatterClusterMode
+            + " fieldCell="
+            + Config.prosperityScatterClusterCellChunks
+            + "ch"
+            + " denom="
+            + Config.prosperityScatterClusterFieldChanceDenom
+            + " radius="
+            + Config.prosperityScatterClusterRadiusChunks
+            + "ch"
+            + " pieces="
+            + Config.prosperityScatterClusterPiecesMin
+            + ".."
+            + Config.prosperityScatterClusterPiecesMax
+            + " falloff="
+            + Config.prosperityScatterClusterFalloffPower
+            + " verticalPieces="
+            + Config.prosperityScatterVerticalPieces
+            + " K="
+            + Config.prosperityScatterContoursPerChunk
+            + " blockCap="
+            + Config.prosperityScatterBlocksPerChunk
+            + " attempts="
+            + Config.prosperityScatterAttemptsPerChunk
+            + " weights=["
+            + Config.prosperityScatterWeightSleeper
+            + ","
+            + Config.prosperityScatterWeightPipe
+            + ","
+            + Config.prosperityScatterWeightRivetPlate
+            + ","
+            + Config.prosperityScatterWeightChimney
+            + "]"
+            + " chimneyWindowCap="
+            + windowCapFor(KIND_CHIMNEY);
+    }
+
+    /**
      * H-2 判据：给定 16×16 chunk 窗（chunk 坐标按 {@value #WINDOW_CHUNKS} 对齐，负坐标 floorDiv 安全），
      * 同一模板在本窗内的<b>发射名额</b>是否还轮到自己。
      * <p>
