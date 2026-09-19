@@ -39,6 +39,10 @@
 #                                                  #   [14] P5b 散布成簇（plan §7.2）：BASE 零漂移对拍（含
 #                                                  #         BASE 编译零 error 硬门槛）+ P5 均匀档逐位退化
 #                                                  #         摘要对拍 + 双跑 SHA + 两条成簇参数影子 RED
+#                                                  #   [17] P14 tpdim 群系定位：512 chunk 逐字节对拍
+#                                                  #         （BASE=temp/p14-base 开工前快照 9735cef，
+#                                                  #          含"BASE 编译零 error"硬门槛 + Config 无
+#                                                  #          tpdim 新键反假绿钉；快档断言在 [2h]）
 #                                                  #   [13] P7c 结构 H-2 语义改判：非本片路径零漂移对拍
 #                                                  #         （BASE=temp/p7c-base 开工前快照）+ CHAIN 硬门槛
 #                                                  #         RED→GREEN + 两条新规则的 4 个单变量 RED
@@ -212,6 +216,7 @@ MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8 \
   tools/dim1/ScatterClusterVarianceCheck.java tools/dim1/RuinFamilyCheck.java \
   tools/dim1/CreatureSpawnAuthorityCheck.java \
   tools/dim1/DiagLineCheck.java tools/dim1/StructureChannelCheck.java \
+  tools/dim1/TpdimNearestBiomeCheck.java \
 tools/dim1/StructureViewerExport.java tools/dim1/RosterIntegrityCheck.java \
 tools/dim1/S8RegistryRosterCheck.java tools/dim1/OutpostTemplateCheck.java tools/dim1/CityDeterminismCheck.java \
   tools/dim1/gregtech/api/GregTechAPI.java \
@@ -314,6 +319,17 @@ echo "   RED EXIT=$er（必须非 0）log=$OUT/red-structurechannel.txt"
 [ "$er" != "0" ] || FAILS=$((FAILS + 1))
 run "StructureChannelCheck --legacy-tautology-demo（反假绿对照：旧恒真判据对同一全裁流必绿）" \
   StructureChannelCheck --legacy-tautology-demo
+
+echo "== [2h] P14 tpdim 群系定位（环带步进最近性/代价上界/降级态错误通道/基线路径源级钉；512 chunk 零漂移对拍在 --parity 的 [17]） =="
+# 四档分进程跑（L1 账本/bind 同 JVM 互污，与 BiomeAllocationCheck 同纪律）
+run "TpdimNearestBiomeCheck d78（判据 2/3/4：四群系定位+穷举最近对拍+步数/耗时/两条上界档）" \
+  TpdimNearestBiomeCheck d78
+run "TpdimNearestBiomeCheck d79（同上，权重 40-30-20-10 与 macro=16 口径）" TpdimNearestBiomeCheck d79
+run "TpdimNearestBiomeCheck empty79（dim79 降级态：名单空/解析 null/81 步收口，不乱指）" \
+  TpdimNearestBiomeCheck empty79
+run "TpdimNearestBiomeCheck source（判据 1/5：基线路径逐字钉+补全单一真值+diag 反复制钉）" \
+  TpdimNearestBiomeCheck source
+echo "   P14 合计 assertions=$(total_assertions TpdimNearestBiomeCheck)"
 
 echo "== [3] 既有回归（必须保持绿） =="
 run "ReplaceSurfaceRuntimeCheck（46 项，含 null/plains 回退与逐列下标断言；P2b 起 256 格假绿已除）" ReplaceSurfaceRuntimeCheck
@@ -1487,6 +1503,56 @@ com/miaokatze/gtsr/config/Config.java"
       "$F_ROSTER" all
     rm -rf "$P9RED" "$P9REDCLS" "$OUT/p9-red-tools"
     runres "CreatureSpawnAuthorityCheck all（P9 RED 后工作树复位 GREEN）" CreatureSpawnAuthorityCheck all
+  fi
+
+  # ── [17] P14 tpdim 群系定位：非本片路径零漂移（512 chunk 逐字节，BASE=temp/p14-base=开工前快照 9735cef）──
+  # P14 生产面只动三件：GTSRCommand（不在 BASE 编译清单，指令层不进生成链）、Config（仅追加两键，
+  # 不改任何既有键名/默认值/范围）、GTSRBiomeAuthority（仅追加只读定位出口，配槽/降级/身份零触碰）。
+  # 硬门槛照 P7c 口径：BASE 编译零 error，否则对拍退化成自比直接判红。
+  echo "== [17] P14：512 chunk 逐字节对拍（BASE=p14-base 开工前快照，含 BASE 编译零 error 硬门槛） =="
+  BASE14=temp/p14-base/all
+  SNAP14=temp/p14-base/src/main/java
+  P14_BASE_FILES="com/miaokatze/gtsr/config/Config.java
+com/miaokatze/gtsr/common/dimension/framework/GTSRBiomeAuthority.java
+com/miaokatze/gtsr/common/commands/GTSRCommand.java"
+  if [ ! -f "$SNAP14/com/miaokatze/gtsr/common/commands/GTSRCommand.java" ]; then
+    echo "   FAIL：缺 P14 BASE 快照 $SNAP14（必须先自建 = 本片第一个写入之前的工作树副本/git show 9735cef）"
+    FAILS=$((FAILS + 1))
+  else
+    rm -rf "$BASE14" "$OUT/p14-base-classes"
+    mkdir -p "$BASE14/com" "$OUT/p14-base-classes"
+    cp -a src/main/java/. "$BASE14/"
+    miss14=0
+    for rel in $P14_BASE_FILES; do
+      if [ -f "$SNAP14/$rel" ]; then
+        cp "$SNAP14/$rel" "$BASE14/$rel"
+      else
+        echo "   FAIL：P14 BASE 快照缺 $rel"; miss14=$((miss14 + 1))
+      fi
+    done
+    [ "$miss14" = "0" ] || FAILS=$((FAILS + 1))
+    # 反假绿：BASE 侧不得含 P14 新键（否则快照其实是改造后，0 差异是自我比对口径）
+    if grep -aq "tpdimBiomeSearchMaxRadiusChunks" "$BASE14/com/miaokatze/gtsr/config/Config.java"; then
+      echo "   FAIL：P14-BASE 侧 Config 已含 tpdim 新键 ⇒ 快照不是开工前形态"; FAILS=$((FAILS + 1))
+    else
+      echo "   P14-BASE 侧确认无 tpdim 新键（快照有效）"
+    fi
+    P14_SRC="$(prefix $BASE14)"
+    MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8 -cp "$CP" \
+      -sourcepath "$BASE14" -d "$OUT/p14-base-classes" $P14_SRC >"$OUT/p14-javac-base.log" 2>&1
+    echo "COMPILE P14-BASE EXIT=$? ($(grep -ac 'error:' "$OUT/p14-javac-base.log") error)"
+    [ "$(grep -ac 'error:' "$OUT/p14-javac-base.log")" = "0" ] \
+      || { echo "   FAIL：P14-BASE 树编译失败（还原清单不完整，[17a] 的 0 差异会是假绿）"; FAILS=$((FAILS + 1)); }
+    MSYS2_ARG_CONV_EXCL='*' java $STD $LOG4J -cp "$OUT/tools;$OUT/classes;$CP" \
+      SurfaceByteParityDump 16 >"$OUT/p14-parity-after.txt" 2>"$OUT/p14-parity-after.err"
+    MSYS2_ARG_CONV_EXCL='*' java $STD $LOG4J -cp "$OUT/tools;$OUT/p14-base-classes;$CP" \
+      SurfaceByteParityDump 16 >"$OUT/p14-parity-base.txt" 2>"$OUT/p14-parity-base.err"
+    n14=$(diff "$OUT/p14-parity-base.txt" "$OUT/p14-parity-after.txt" | grep -ac "^[<>]")
+    c14=$(grep -ac "^CHUNK" "$OUT/p14-parity-after.txt")
+    d78_14=$(grep -ac "^CHUNK dim=78" "$OUT/p14-parity-after.txt")
+    d79_14=$(grep -ac "^CHUNK dim=79" "$OUT/p14-parity-after.txt")
+    echo "   [17a] 逐字节对拍 chunks=$c14 (dim78=$d78_14 dim79=$d79_14) diff_lines=$n14"
+    [ "$n14" = "0" ] || { echo "   FAIL：表层/高度/群系面出现漂移（$n14 行）⇒ P14 越界碰了生成链"; FAILS=$((FAILS + 1)); }
   fi
 
 fi

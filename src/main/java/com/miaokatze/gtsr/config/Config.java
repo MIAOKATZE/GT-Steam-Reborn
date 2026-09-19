@@ -102,6 +102,22 @@ public class Config {
      */
     public static boolean prosperityRuinMicroModulation = true;
 
+    // ═════════ P14 tpdim 群系定位传送（plan §5 P14「环带步进 + 代价有上界」）═════════
+    //
+    // 只在 `/gtsr tpdim <A|B> 群系名` 填了群系名时生效（不填 = 0,0 现行为，两键不参与）。
+    // 搜索是 L1 权威（GTSRBiomeAuthority.nearestBiomeChunk）上的由内向外环带步进，逐 chunk
+    // 身份判定走账本同一份采样源（禁读 Chunk byte 平面、禁 getBiomeGenForCoords）；本两键是
+    // 命令线程上扫描代价的唯一上界来源：半径上限决定搜多远，步数保险丝决定单跑最多评估多少
+    // chunk（先到者生效；步数截断且已有命中时落点仍给，但回执申报"未证全局最近"）。
+
+    // 群系定位环带搜索半径上限（chunk 数；默认 512 = 8192 格。超限返回可读错误
+    // "该维度内未找到该群系（已搜半径 R chunk）"，玩家原地不动；1 = 几乎只查起点列）。
+    public static int tpdimBiomeSearchMaxRadiusChunks = 512;
+
+    // 群系定位单次命令步数保险丝（评估 chunk 数上限；默认 400000 ≈ π·357²，防整合包把半径
+    // 调到 2048 后单跑逼近 1300 万次评估。0 与负值按 1 处理——保险丝不允许关掉）。
+    public static int tpdimBiomeSearchMaxSteps = 400000;
+
     // 繁荣维度古代城存在概率（每个 24×24 chunk cell 的存在掷骰百分比；默认 45，0 = 无城，100 = 全 cell 有城；S4b 消费）。
     public static int prosperityCityChance = 45;
 
@@ -443,6 +459,23 @@ public class Config {
             0,
             100,
             "繁荣维度古代城存在概率（每个 24×24 区块 cell 的存在掷骰百分比，默认 45 = 平均每 500-600 格一座；0 = 无城）");
+
+        // ═════ P14 tpdim 群系定位（环带步进上界）——键名/默认值/注释与本类字段声明严格一致 ═════
+        tpdimBiomeSearchMaxRadiusChunks = configuration.getInt(
+            "tpdimBiomeSearchMaxRadiusChunks",
+            Configuration.CATEGORY_GENERAL,
+            tpdimBiomeSearchMaxRadiusChunks,
+            1,
+            2048,
+            "tpdim 群系定位环带搜索半径上限（区块数，默认 512 = 8192 格；超限返回可读错误" + "「该维度内未找到该群系（已搜半径 R 区块）」且玩家原地不动；不填群系名的 0,0 传送不受本键影响）");
+
+        tpdimBiomeSearchMaxSteps = configuration.getInt(
+            "tpdimBiomeSearchMaxSteps",
+            Configuration.CATEGORY_GENERAL,
+            tpdimBiomeSearchMaxSteps,
+            1,
+            5000000,
+            "tpdim 群系定位单次命令步数保险丝（评估区块数上限，默认 400000；与半径上限先到者生效。" + "步数截断且已有命中时仍传送但回执申报「未证全局最近」。不允许 0/负值 = 关闭保险丝）");
 
         // ═════ P8 城外废墟族（三键与本类字段声明严格一致：键名 / 默认值 / 注释口径）═════
         prosperityRuinsEnabled = configuration.getBoolean(

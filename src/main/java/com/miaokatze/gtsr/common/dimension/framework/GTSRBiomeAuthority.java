@@ -395,6 +395,203 @@ public final class GTSRBiomeAuthority {
         return out;
     }
 
+    // ═════════ P14 只读定位出口（plan §5 P14「tpdim 群系名 → 最近带内 chunk」）═════════
+    //
+    // 本段三件（rosterBiomeNames / findRosterByName / nearestBiomeChunk）全部<b>只读</b>：
+    // 名册名取自 {@link Entry#biome} 的 {@code biomeName}（配槽账本单一真值，不新造第二份名单）；
+    // 身份判定复用 {@link #byInstance} 同一账本（与 {@link #of(BiomeGenBase)} 同一数据源），
+    // 空间采样走已绑定的 {@link Source}（确定性纯函数，<b>不</b>读 Chunk byte 平面、
+    // <b>不</b>碰 World.getBiomeGenForCoords）。禁止项（配槽/降级/带算法语义）一字未动。
+
+    /**
+     * 名册成员显示名列表（已配槽成员，按维内顺序；未配槽成员在降级态下没有可解析身份，
+     * 不列——tab 补全与名字解析共用本出口，与 {@link #rosterKeys()} 同源）。
+     */
+    public List<String> rosterBiomeNames() {
+        final List<String> out = new ArrayList<>(this.roster.size());
+        for (final Entry entry : this.roster) {
+            if (entry.biome != null) {
+                out.add(entry.biome.biomeName);
+            }
+        }
+        return out;
+    }
+
+    /**
+     * 群系名 → 名册身份（大小写不敏感；接受显示名原文、下划线别名与含多余空白形态——
+     * 服务端 1.7.10 的 {@code String.split(" ")} 不识别引号，故带空格名字由调用方把尾随参数
+     * 以空格重join 后传入，这里再折叠连续空白并把 {@code '_'} 视为空格别名）。
+     *
+     * @return 名册成员；{@code null} = 不在该维（已配槽）名册内，调用方必须给可读错误
+     */
+    public BiomeId findRosterByName(String rawName) {
+        if (rawName == null) {
+            return null;
+        }
+        final String normalized = normalizeBiomeName(rawName);
+        if (normalized.isEmpty()) {
+            return null;
+        }
+        for (final Entry entry : this.roster) {
+            if (entry.biome != null && normalized.equalsIgnoreCase(normalizeBiomeName(entry.biome.biomeName))) {
+                return entry.id;
+            }
+        }
+        return null;
+    }
+
+    /** 名字归一化（{@link #findRosterByName} 与工具对拍共用）：trim + 剥外层双引号 + 连续空白折叠 + 下划线视作空格。 */
+    public static String normalizeBiomeName(String raw) {
+        String s = raw.trim();
+        // 1.7.10 服务端切分不识别引号，`"Rusted Steppe"` 会裂成 `"Rusted` + `Steppe"` 两 token，
+        // 由指令层重 join 回到本方法——这里剥掉残留的一对外层双引号。
+        if (s.length() >= 2 && s.charAt(0) == '"' && s.charAt(s.length() - 1) == '"') {
+            s = s.substring(1, s.length() - 1)
+                .trim();
+        }
+        return s.replaceAll("\\s+", " ")
+            .replace('_', ' ')
+            .trim();
+    }
+
+    /** {@link #nearestBiomeChunk} 的状态申报（HIT 恒有命中；另两态 {@code biome==null} 或有保险丝前 best）。 */
+    public enum NearestStatus {
+        /** 环带步进已扫过"不可能更近"的外沿，命中即真·最近（块坐标欧氏距离，chunk 粒度）。 */
+        HIT,
+        /** 半径上限内未找到（可读错误出口，玩家不动）。 */
+        NOT_FOUND,
+        /** 步数保险丝先到：命中存在但未证全局最近（回执必须申报）。 */
+        STEP_LIMIT
+    }
+
+    /** 一次环带搜索的结果账目（P14 判据 3/4 的实测载体：命中点 + 距离 + 步数 + 状态）。 */
+    public static final class NearestBiomeChunk {
+
+        /** 命中群系（{@code null} = 未命中）。 */
+        public final BiomeId biome;
+        /** 命中 chunk 坐标（未命中时 {@code -1}）。 */
+        public final int chunkX;
+        public final int chunkZ;
+        /** 命中点到原点 (originChunkX, originChunkZ) 的欧氏距离平方（chunk 粒度；未命中 -1）。 */
+        public final long distSq;
+        /** 完整扫过的环带数（半径，chunk；含命中后为证明最近而继续扫的环带）。 */
+        public final int ringsScanned;
+        /** 实际评估的 chunk 数（判据 4 的步数实测列）。 */
+        public final long steps;
+        public final NearestStatus status;
+
+        private NearestBiomeChunk(BiomeId biome, int chunkX, int chunkZ, long distSq, int ringsScanned, long steps,
+            NearestStatus status) {
+            this.biome = biome;
+            this.chunkX = chunkX;
+            this.chunkZ = chunkZ;
+            this.distSq = distSq;
+            this.ringsScanned = ringsScanned;
+            this.steps = steps;
+            this.status = status;
+        }
+
+        static NearestBiomeChunk of(EntryProbe best, long originDistSq, int rings, long steps, NearestStatus status) {
+            if (best == null) {
+                return new NearestBiomeChunk(null, -1, -1, -1L, rings, steps, status);
+            }
+            return new NearestBiomeChunk(best.id, best.cx, best.cz, originDistSq, rings, steps, status);
+        }
+
+        @Override
+        public String toString() {
+            return status + " biome="
+                + biome
+                + " chunk=("
+                + chunkX
+                + ","
+                + chunkZ
+                + ")"
+                + " distSq="
+                + distSq
+                + " rings="
+                + ringsScanned
+                + " steps="
+                + steps;
+        }
+    }
+
+    /** 搜索内部 best 账目（chunk 坐标 + 名册身份）。 */
+    private static final class EntryProbe {
+
+        final int cx;
+        final int cz;
+        final BiomeId id;
+
+        EntryProbe(int cx, int cz, BiomeId id) {
+            this.cx = cx;
+            this.cz = cz;
+            this.id = id;
+        }
+    }
+
+    /**
+     * 由内向外的<b>环带步进</b>定位：以 (originChunkX, originChunkZ) 为心，按切比雪夫环带
+     * r=0,1,2…（每环 8r 个 chunk）逐格问 {@link #of} 同一份 {@link byInstance} 账本，命中后继续
+     * 扫到"外沿最小可能距离已严格大于当前 best"（{@code (r+1)² > bestDistSq}）才返回——
+     * 因此 HIT 的命中点是 <b>chunk 粒度欧氏距离（到原点 chunk 中心连线）下的真最近点</b>，
+     * 与穷举对拍距离差恒为 0（{@code tools/dim1/TpdimNearestBiomeCheck} 判据 3 钉住）。
+     * <p>
+     * 代价上界（plan §5 P14「不在指令线程做无界扫描」）：环带到 {@code maxRadiusChunks} 为止
+     * （到界未命中 ⇒ {@link NearestStatus#NOT_FOUND}）；评估数到 {@code maxSteps} 保险丝为止
+     * （截断 ⇒ {@link NearestStatus#STEP_LIMIT}，有 best 则照常带回）。未绑定 {@link Source} 时
+     * 不搜索，直接 {@code NOT_FOUND, steps=0}（降级可见：调用方按"权威未就位"报可读错误，不指野点）。
+     */
+    public NearestBiomeChunk nearestBiomeChunk(BiomeId target, int originChunkX, int originChunkZ, int maxRadiusChunks,
+        int maxSteps) {
+        final Source resolver = this.source;
+        if (resolver == null || target == null || maxRadiusChunks < 0) {
+            return NearestBiomeChunk.of(null, -1L, 0, 0L, NearestStatus.NOT_FOUND);
+        }
+        final long stepsCap = Math.max(1L, maxSteps);
+        long steps = 0L;
+        EntryProbe best = null;
+        long bestDistSq = Long.MAX_VALUE;
+        int rings = 0;
+        for (int r = 0; r <= maxRadiusChunks; r++) {
+            rings++;
+            for (int dx = -r; dx <= r; dx++) {
+                for (int dz = -r; dz <= r; dz++) {
+                    if (Math.max(Math.abs(dx), Math.abs(dz)) != r) {
+                        continue; // 只走环带轮廓（内部格在更早的环已评估过）
+                    }
+                    final long ddx = dx;
+                    final long ddz = dz;
+                    final long distSq = ddx * ddx + ddz * ddz;
+                    if (best != null && distSq > bestDistSq) {
+                        continue; // 本格已不可能优于 best（欧氏距离）——免一次评估；环完整性留给终止判据
+                    }
+                    if (++steps > stepsCap) {
+                        return NearestBiomeChunk
+                            .of(best, best == null ? -1L : bestDistSq, rings, steps, NearestStatus.STEP_LIMIT);
+                    }
+                    final Entry hit = this.byInstance.get(resolver.biomeAtChunk(originChunkX + dx, originChunkZ + dz));
+                    if (hit != null && hit.id == target) {
+                        best = new EntryProbe(originChunkX + dx, originChunkZ + dz, target);
+                        bestDistSq = distSq;
+                    }
+                }
+            }
+            // HIT 终止判据：下一环最小欧氏距离 (r+1) 已严格大于当前 best ⇒ best 即真最近，无需再扫
+            if (best != null && (long) (r + 1) * (r + 1) > bestDistSq) {
+                return NearestBiomeChunk.of(best, bestDistSq, rings, steps, NearestStatus.HIT);
+            }
+        }
+        // 走到这里 = 半径内所有环已完整扫过：best（若有）即"半径内真最近"，只是外沿证明因半径封顶未触发
+        // （回执照带 rings/steps，命令消息始终申报已搜半径，判据 4 的超限档由 NOT_FOUND 承担）
+        return NearestBiomeChunk.of(
+            best,
+            best == null ? -1L : bestDistSq,
+            rings,
+            steps,
+            best == null ? NearestStatus.NOT_FOUND : NearestStatus.HIT);
+    }
+
     private static Entry entryOfInstance(BiomeGenBase biome) {
         if (biome == null) {
             return null;
