@@ -6,13 +6,13 @@
 #   bash tools/dim1/asset_baseline_check.sh --write-sidecars  # 从磁盘重建 landed.sha256 侧车（改动后重钉）
 #
 # 覆盖计划 §2.4 可机检判据 1/2/3 的资产侧：
-#   ① 名册：S8RegistryRosterCheck（39 名 + 分组计数 + 名集合相等）
+#   ① 名册：S8RegistryRosterCheck（47 名 + 分组计数含 P8 ruin 桶 8 条 + 名集合相等）
 #            + RosterIntegrityCheck（名集合三方相等 + 逐名 footprint + 逐名字符模板 SHA256 + 敏感度自检）
 #   ② 贴图：两批 artgen（dim7879 / dim1）manifest OUTPUTS ↔ landed.sha256 ↔
 #            src/main/resources/assets/gtsr/textures/blocks/ 磁盘实数 三点反向核对
 #   ③ 结构数据件 data/structures-dim7879.json 的变体计数（当前 34，缺 5 机型；见下方 STRUCT-JSON 行）
 #
-# 末行输出单行结论：roster=39/39 textures=49/49 SHA=OK
+# 末行输出单行结论：roster=47/47 textures=49/49 SHA=OK
 #
 # 离线 Java 运行配方来源：plan/investigation/v12030-hotfix-replaceruntime-report.md §3（JEP330 单文件）。
 # 实测本两只检只需 build/classes/java/main + forge universal jar（满足 WorldGenShatteredRuins 的
@@ -29,7 +29,10 @@ MODE="check"
 CLASSES="build/classes/java/main"
 ASSET_DIR="src/main/resources/assets/gtsr/textures/blocks"
 BATCHES="tools/artgen/dim7879 tools/artgen/dim1"
-EXPECTED_ROSTER=39
+# P8 名册增长：P0 基线 39（26 城 + 6 outpost + 5 机型 + 2 husk）+ 废墟族 8 条 = 47。
+# 这是"增员"，与 P0 的"资产未丢"判据是两件事：贴图侧仍钉 49——废墟族只复用既有方块与记号族，
+# 一张新贴图都不许有（TEXTURES 一旦变成 50/50 就说明本片越了材质红线）。
+EXPECTED_ROSTER=47
 EXPECTED_TEXTURES=49
 
 fail() { echo "[FAIL] $*"; exit 1; }
@@ -51,11 +54,13 @@ run_java() { # $1=source $2..=args
 echo "[1/3] 结构名册"
 S8_OUT=$(run_java tools/dim1/S8RegistryRosterCheck.java) || true
 echo "$S8_OUT" | grep -E "ROSTER (PASS|FAIL|INTEGRITY)" | head -5
-echo "$S8_OUT" | grep -q "^ROSTER PASS: StructureRegistry names() = 39 " || fail "S8RegistryRosterCheck 未 PASS"
+if ! echo "$S8_OUT" | grep -q "^ROSTER PASS: StructureRegistry names() = ${EXPECTED_ROSTER} "; then
+  fail "S8RegistryRosterCheck 未 PASS（期望 $EXPECTED_ROSTER 名；名数改动要同时改本脚本与 S8 的名册源）"
+fi
 
 RI_OUT=$(run_java tools/dim1/RosterIntegrityCheck.java) || true
 echo "$RI_OUT" | grep -E "ROSTER INTEGRITY (PASS|FAIL)" | head -3
-echo "$RI_OUT" | grep -q "^ROSTER INTEGRITY PASS: roster=39/39 footprint=OK templateSHA=OK double-build=OK canary=39/39$" \
+echo "$RI_OUT" | grep -q "^ROSTER INTEGRITY PASS: roster=${EXPECTED_ROSTER}/${EXPECTED_ROSTER} footprint=OK templateSHA=OK double-build=OK canary=${EXPECTED_ROSTER}/${EXPECTED_ROSTER}$" \
   || fail "RosterIntegrityCheck 未 PASS（名集合/footprint/模板 SHA/敏感度自检 任一面红）"
 ROSTER=$(echo "$RI_OUT" | sed -n 's/^ROSTER INTEGRITY PASS: roster=\([0-9]*\)\/\([0-9]*\) .*/\1\/\2/p')
 [ -n "$ROSTER" ] || ROSTER="?"
@@ -170,7 +175,7 @@ TEXTURES=$(echo "$TEX_OUT" | sed -n 's/^TEXTURES \([0-9]*\)\/\([0-9]*\)$/\1\/\2/
 # 因此 STRUCT-JSON MISSING 是一行常驻告警。P7 把机型腿补进 tools/dim1/StructureViewerExport 后，
 # 本行改为<b>只在真的有缺项/多项时才打印</b>并判 FAIL——告警行从此消失＝覆盖完整，不是被删掉。
 echo "[3/3] 结构数据件对账"
-SJ=$(ROSTER_NAMES=$(printf '%s\n' "$S8_OUT" | sed -n 's/^NAMES(39): \[\(.*\)\]$/\1/p') \
+SJ=$(ROSTER_NAMES=$(printf '%s\n' "$S8_OUT" | sed -n 's/^NAMES([0-9]*): \[\(.*\)\]$/\1/p') \
     PYTHONIOENCODING=utf-8 python -B - <<'PY'
 import io, json, os
 p = "plan/新维度计划/review/dim1/data/structures-dim7879.json"

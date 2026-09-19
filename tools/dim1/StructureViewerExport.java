@@ -12,6 +12,8 @@ import com.miaokatze.gtsr.common.dimension.prosperity.ruins.ProsperityOutpostPla
 import com.miaokatze.gtsr.common.dimension.prosperity.ruins.ProsperityOutpostPlacer.Outpost;
 import com.miaokatze.gtsr.common.dimension.prosperity.ruins.RuinedMachineShapes;
 import com.miaokatze.gtsr.common.dimension.prosperity.ruins.city.CityVariants;
+import com.miaokatze.gtsr.common.dimension.prosperity.ruins.ruin.RuinShapes;
+import com.miaokatze.gtsr.common.dimension.prosperity.ruins.ruin.RuinTemplate;
 
 /**
  * S9 3D 查看器导出驱动（一次性导出 main，不进 jar，tools/ 惯例）：把 dim78 城变体
@@ -98,6 +100,17 @@ public class StructureViewerExport {
         { "pump_base", "泵座（矮台基座+四角柱脚+泵心积碳）" }, { "gear_mill_table", "齿轮碾磨台（碎瓷齿环包积碳磨芯）" },
         { "steam_gallery", "蒸汽管廊（墩柱+双排管槽+顶梁中跨坍塌）" }, { "chimney_base", "烟囱基座（中空烟道+顶部锯齿破口）" } };
 
+    /**
+     * P8 城外废墟族 8 条破坏结构的中文名。谱系（母体 + 算子序列）<b>不在这里手写</b>：
+     * {@link #appendRuinVariants} 从 {@link RuinTemplate#mother()} / {@link RuinTemplate#ops()}
+     * 拼进 label 字段——手写第二份谱系就是"名册谱系两处真值"，与 plan §2.1 横切 roster 行冲突。
+     */
+    private static final String[][] RUIN_LABELS = { { "ruin_aqueduct_span", "断跨渠段残段" },
+        { "ruin_truss_fan", "塌桁扇形残骸" }, { "ruin_kiln_stump", "砖窑缺角残冠" },
+        { "ruin_boiler_lean", "倾覆锅炉残座" }, { "ruin_watch_buried", "半埋瞭望残躯" },
+        { "ruin_chimney_fan", "烟囱塌落扇" }, { "ruin_gallery_span", "断跨管廊残段" },
+        { "ruin_pump_chip", "缺角泵座残墩" } };
+
     private final RasterSink.Palette palette;
     /** 本次构建实际写出的变体数（P7 起 EXPORT 行由它打印，不再写死总数——写死就是本次缺口的根因）。 */
     private int emitted;
@@ -128,7 +141,8 @@ public class StructureViewerExport {
         }
         System.out.println("EXPORT variants=" + exporter.emitted
             + " (city=" + CityVariants.ALL.length + " outpost=" + ProsperityOutpostPlacer.ALL.length
-            + " machine=" + RuinedMachineShapes.ALL.length + " husk=2) bytes=" + first.getBytes("UTF-8").length);
+            + " machine=" + RuinedMachineShapes.ALL.length + " ruin=" + RuinShapes.ALL.length + " husk=2) bytes="
+            + first.getBytes("UTF-8").length);
         System.out.println("SHA256 json=" + jsonSha);
         System.out.println("SHA256 js=" + jsSha);
         System.out.println("EXPORT DONE -> " + jsonOut.getAbsolutePath());
@@ -173,6 +187,12 @@ public class StructureViewerExport {
         b.append(
             "    {\"id\":\"machine\",\"name\":\"残缺蒸汽机器（dim78 machines，模板剪影·损伤掷骰在运行期）\",\"source\":\"RuinedMachineShapes.ALL\",\"count\":")
             .append(RuinedMachineShapes.ALL.length).append("},\n");
+        // P8 第五条腿：城外废墟族（破坏结构）。与 machine/husk 腿同口径——直接读剪影、不做运行期掷骰；
+        // 但 ruin 的剪影本身已经是 RuinDamageOps 的"破败化"产物，谱系（母体 + 算子序列）随 label 一起出，
+        // 这样展示页能一眼看出"这条烂墙是哪条结构变的"。
+        b.append(
+            "    {\"id\":\"ruin\",\"name\":\"城外废墟·破坏结构（dim78 ruins，P8 由既有结构破败化派生；无仓室/控制器/TE）\",\"source\":\"RuinShapes.ALL（RuinDamageOps 派生）\",\"count\":")
+            .append(RuinShapes.ALL.length).append("},\n");
         b.append(
             "    {\"id\":\"husk\",\"name\":\"破碎残骸骨架（dim79）\",\"source\":\"WorldGenShatteredRuins（反射形状）\",\"count\":")
             .append(HUSK_LABELS.length).append("}\n");
@@ -181,6 +201,7 @@ public class StructureViewerExport {
         appendCityVariants(b);
         appendOutpostVariants(b);
         appendMachineVariants(b);
+        appendRuinVariants(b);
         appendHuskVariants(b);
         b.append("\n  ]\n");
         b.append("}\n");
@@ -190,22 +211,22 @@ public class StructureViewerExport {
     /** 调色板图例：char → 颜色 → 语义名 → meta 备注；'C' 一字多义以 groups 域区分。 */
     private void appendPalette(StringBuilder b) {
         final String[][] legend = {
-            { "#", "gtsr:RuinedCasing", "0", "锈壳（外壳族 meta0）", "city,outpost,machine,husk", "husk 语境 = 积碳外层（WorldGenShatteredRuins 口径）" },
-            { "@", "gtsr:RuinedCasing", "1", "积碳壳（外壳族 meta1）", "city,outpost,machine", "烟黑" },
-            { "%", "gtsr:RuinedCasing", "2", "碎瓷壳（外壳族 meta2）", "city,outpost,machine", "青白" },
-            { "d", "gtsr:RuinDebris", "0", "轨枕残木", "city,outpost", "" },
-            { "p", "gtsr:RuinDebris", "1", "管道残段", "city,outpost", "" },
-            { "r", "gtsr:RuinDebris", "2", "铆接板", "city,outpost", "" },
-            { "c", "gtsr:RuinDebris", "3", "烟囱残段", "city,outpost", "" },
-            { "s", "gtsr:ProsperitySurface", "5", "锈石铺面", "city,outpost", "城内冻结地表 meta5" },
-            { "S", "minecraft:stone", "0", "原版石", "city,outpost", "" },
-            { "C", "minecraft:cobblestone", "0", "圆石", "city,outpost", "husk/machine 的 'C' 另有条目（核心位积碳壳）" },
-            { "G", "minecraft:gravel", "0", "沙砾", "city,outpost", "" },
-            { "B", "minecraft:iron_bars", "0", "铁栏杆", "city,outpost", "" },
+            { "#", "gtsr:RuinedCasing", "0", "锈壳（外壳族 meta0）", "city,outpost,machine,ruin,husk", "city/outpost/machine/ruin 共用；husk 语境 = 积碳外层（WorldGenShatteredRuins 口径）" },
+            { "@", "gtsr:RuinedCasing", "1", "积碳壳（外壳族 meta1）", "city,outpost,machine,ruin", "烟黑；P8 废墟族也是它（机型 'C' 核心位归一后的落点）" },
+            { "%", "gtsr:RuinedCasing", "2", "碎瓷壳（外壳族 meta2）", "city,outpost,machine,ruin", "青白；P8 废墟族里兼作 GT5U 'X' 锈变落点" },
+            { "d", "gtsr:RuinDebris", "0", "轨枕残木", "city,outpost,ruin", "" },
+            { "p", "gtsr:RuinDebris", "1", "管道残段", "city,outpost,ruin", "" },
+            { "r", "gtsr:RuinDebris", "2", "铆接板", "city,outpost,ruin", "" },
+            { "c", "gtsr:RuinDebris", "3", "烟囱残段", "city,outpost,ruin", "" },
+            { "s", "gtsr:ProsperitySurface", "5", "锈石铺面", "city,outpost,ruin", "城内冻结地表 meta5；废墟族里被锈蚀算子降级为碎瓷壳/沙砾" },
+            { "S", "minecraft:stone", "0", "原版石", "city,outpost,ruin", "" },
+            { "C", "minecraft:cobblestone", "0", "圆石", "city,outpost,ruin", "husk/machine 的 'C' 另有条目（核心位积碳壳）" },
+            { "G", "minecraft:gravel", "0", "沙砾", "city,outpost,ruin", "P8 废墟族的塌落扇形/半埋覆压散料" },
+            { "B", "minecraft:iron_bars", "0", "铁栏杆", "city,outpost,ruin", "" },
             { "X", "gt5u:CasingBronzePlated", "10", "镀铜砖块 Bronze Plated Bricks", "city,outpost",
-                "GT5U 福利键 GregTechAPI.sBlockCasings1 meta10" },
+                "GT5U 福利键 GregTechAPI.sBlockCasings1 meta10；P8 废墟族不用（GT 机器注册体，见 RuinFamilyCheck TE 组）" },
             { "Z", "gt5u:CasingSolidSteel", "0", "固体钢机械外壳 Solid Steel Machine Casing", "city,outpost",
-                "GT5U 福利键 GregTechAPI.sBlockCasings2 meta0" },
+                "GT5U 福利键 GregTechAPI.sBlockCasings2 meta0；P8 废墟族不用（同上）" },
             { "C", "gtsr:RuinedCasing", "1", "husk 核心位（积碳壳 meta1）", "husk", "仅 dim79 husk；无 TE 无箱子" },
             { "C", "gtsr:RuinedCasing", "1", "machine 核心位（积碳壳 meta1）", "machine",
                 "仅 dim78 机型 'C' 位；RuinedMachineShapes.metaOf 同款，无 TE 无控制器无修复无战利品" } };
@@ -271,6 +292,68 @@ public class StructureViewerExport {
                 BlockSink.FLAG_POPULATE);
             appendVariant(b, o.name, labelOf(OUTPOST_LABELS, o.name), "outpost", "outpost", o.sizeX, o.sizeY, o.sizeZ,
                 DEFAULT_TIER, CityVariants.MISSING_RATES[DEFAULT_TIER], PLACE_SEED, grid, ",");
+        }
+    }
+
+    /**
+     * 城外废墟族 8 条破坏结构（P8 第五条腿）。与 machine/husk 腿同口径：<b>直接读派生后的剪影</b>，
+     * 不走 {@code RuinPlacer.place}（那条路径要经 {@code CityBlockResolver} 取 Block 实例 ⇒ 触发 MC
+     * 类初始化，破掉本工具"零 MC 执行依赖"的前提）。
+     * <p>
+     * 与 machine/husk 的差别只在 {@code tier}：废墟的<b>结构损毁已经烧在模板里</b>
+     * （{@link RuinDamageOps} 的六个算子），运行期另有 {@code MISSING_RATES} 逐块侵蚀——
+     * 后者属于运行期行为，按既有口径不进模板，故 {@code tier=0 / missingRate=0 / 无 seed}。
+     * 谱系（母体 + 算子序列）从 {@link RuinTemplate#mother()} / {@link RuinTemplate#ops()} 拼进
+     * label，展示页因此能一眼看出"这条烂墙是哪条结构变的"。
+     */
+    private void appendRuinVariants(StringBuilder b) {
+        if (RuinShapes.ALL.length != RUIN_LABELS.length) {
+            fail("expected " + RUIN_LABELS.length + " ruins, got " + RuinShapes.ALL.length);
+        }
+        int done = 0;
+        for (final RuinTemplate ruin : RuinShapes.ALL) {
+            final char[][][] grid = emptyGrid(ruin.sizeX, ruin.sizeY, ruin.sizeZ);
+            for (int y = 0; y < ruin.sizeY; y++) {
+                for (int dz = 0; dz < ruin.sizeZ; dz++) {
+                    for (int dx = 0; dx < ruin.sizeX; dx++) {
+                        final char c = ruin.charAt(y, dx, dz);
+                        if (c == ' ') {
+                            continue; // 不触碰（同 RuinPlacer.place）
+                        }
+                        if (c != '#' && c != '@' && c != '%' && c != 'd' && c != 'p' && c != 'r' && c != 'c'
+                            && c != 's' && c != 'S' && c != 'C' && c != 'G' && c != 'B' && c != '.') {
+                            fail("ruin char '" + c + "' outside existing symbol family @" + ruin.name);
+                        }
+                        if (RuinShapes.isForbiddenChar(c)) {
+                            fail("ruin char '" + c + "' is a forbidden machine-body key @" + ruin.name);
+                        }
+                        if (c != '.' && CityVariants.blockKeyOf(c) == null) {
+                            fail("ruin char '" + c + "' has no block key @" + ruin.name);
+                        }
+                        grid[y][dz][dx] = c;
+                    }
+                }
+            }
+            final String label = labelOf(RUIN_LABELS, ruin.name) + "（母体 " + ruin.mother() + " · 算子 "
+                + String.join("+", ruin.ops()) + "）";
+            appendVariant(
+                b,
+                ruin.name,
+                label,
+                "ruin",
+                "ruin",
+                ruin.sizeX,
+                ruin.sizeY,
+                ruin.sizeZ,
+                0,
+                0,
+                -1,
+                grid,
+                ",");
+            done++;
+        }
+        if (done != RuinShapes.ALL.length) {
+            fail("expected " + RuinShapes.ALL.length + " ruins, got " + done);
         }
     }
 
@@ -465,10 +548,11 @@ public class StructureViewerExport {
     }
 
     /** 与 appendPalette 平行的 (groups, char) 表（仅用于断言面；必须与图例的 groups 域逐行一致）。 */
-    private static final String[][] PALETTE_GROUPS = { { "city,outpost,machine,husk", "#" },
-        { "city,outpost,machine", "@" }, { "city,outpost,machine", "%" }, { "city,outpost", "d" },
-        { "city,outpost", "p" }, { "city,outpost", "r" }, { "city,outpost", "c" }, { "city,outpost", "s" },
-        { "city,outpost", "S" }, { "city,outpost", "C" }, { "city,outpost", "G" }, { "city,outpost", "B" },
+    private static final String[][] PALETTE_GROUPS = { { "city,outpost,machine,ruin,husk", "#" },
+        { "city,outpost,machine,ruin", "@" }, { "city,outpost,machine,ruin", "%" },
+        { "city,outpost,ruin", "d" }, { "city,outpost,ruin", "p" }, { "city,outpost,ruin", "r" },
+        { "city,outpost,ruin", "c" }, { "city,outpost,ruin", "s" }, { "city,outpost,ruin", "S" },
+        { "city,outpost,ruin", "C" }, { "city,outpost,ruin", "G" }, { "city,outpost,ruin", "B" },
         { "city,outpost", "X" }, { "city,outpost", "Z" }, { "husk", "C" }, { "machine", "C" } };
 
     private static String labelOf(String[][] table, String id) {

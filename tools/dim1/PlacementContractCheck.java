@@ -7,6 +7,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -45,6 +46,8 @@ import com.miaokatze.gtsr.common.dimension.prosperity.ruins.ProsperityWorldGener
 import com.miaokatze.gtsr.common.dimension.prosperity.ruins.RuinedMachinePlacer;
 import com.miaokatze.gtsr.common.dimension.prosperity.ruins.city.CityPlanner;
 import com.miaokatze.gtsr.common.dimension.prosperity.ruins.city.CityVariants;
+import com.miaokatze.gtsr.common.dimension.prosperity.ruins.ruin.RuinPlacer;
+import com.miaokatze.gtsr.common.dimension.prosperity.ruins.ruin.RuinShapes;
 import com.miaokatze.gtsr.config.Config;
 
 /**
@@ -408,23 +411,41 @@ public final class PlacementContractCheck {
         final Map<String, Integer> famCount = new TreeMap<>();
         int badNumeric = 0;
         int badDamaged = 0;
+        int ruinNumeric = 0;
+        int ruinMissingDamaged = 0;
         for (final StructureRegistry.Entry e : StructureRegistry.all()) {
             famCount.merge(e.family, 1, Integer::sum);
+            final boolean ruin = PlacementGate.FAMILY_RUIN.equals(e.family);
             if (e.placementDenominator != 0 || e.windowRepeatCap != 0) {
-                badNumeric++;
+                if (ruin) {
+                    ruinNumeric++;
+                } else {
+                    badNumeric++;
+                }
             }
             if (e.allowsDamagedVariant) {
-                badDamaged++;
+                if (!ruin) {
+                    badDamaged++;
+                }
+            } else if (ruin) {
+                ruinMissingDamaged++;
             }
         }
         check(Integer.valueOf(5).equals(famCount.get(PlacementGate.FAMILY_MACHINE))
             && Integer.valueOf(6).equals(famCount.get(PlacementGate.FAMILY_OUTPOST))
-            && Integer.valueOf(26).equals(famCount.get(PlacementGate.FAMILY_UNSCOPED)),
-            "A6 族标注 = machine 5 / outpost 6 / 城内 26 未标注（实测 " + famCount + "）");
+            && Integer.valueOf(26).equals(famCount.get(PlacementGate.FAMILY_UNSCOPED))
+            && famCount.get(PlacementGate.FAMILY_RUIN) != null
+            && famCount.get(PlacementGate.FAMILY_RUIN) == RuinShapes.ALL.length,
+            "A6 族标注 = machine 5 / outpost 6 / 城内 26 未标注 / ruin " + RuinShapes.ALL.length
+                + "（P8 废墟族，实测 " + famCount + "）");
         check(badNumeric == 0, "A6 既有 39 条目的分母/窗上限一律 0 = 跟随 Config（非 0 者 " + badNumeric
             + " 条 ⇒ 会出现第二处数字真值）");
         check(badDamaged == 0, "A6 既有 39 条目 allowsDamagedVariant 一律 false（true 者 " + badDamaged
-            + " 条）⇒ 损毁算子的 opt-in 位留给 P8");
+            + " 条）⇒ P8 的损毁算子碰不到旧模板（判据 2\"算子只作用于新族\"）");
+        check(ruinNumeric == 0, "A6 P8 废墟族也一律把分母/窗上限传 0 = 跟随 Config 族键（非 0 者 " + ruinNumeric
+            + " 条）⇒ 全名册仍只有一处数字真值");
+        check(ruinMissingDamaged == 0, "A6 废墟族每条都 allowsDamagedVariant=true（缺位 " + ruinMissingDamaged
+            + " 条）⇒ opt-in 位是本族的族级契约，不是逐条偶发");
         final StructureRegistry.Entry m = StructureRegistry.get("boiler_frame");
         check(m != null && PlacementGate.FAMILY_MACHINE.equals(m.family) && m.footprintX > 0,
             "A6 机型条目在 roster 里可查（族/footprint 齐）");
@@ -892,20 +913,23 @@ public final class PlacementContractCheck {
             "src/main/java/com/miaokatze/gtsr/common/dimension/framework/structure/PlacementGate.java")));
         final String scatter = stripComments(read(root.resolve(
             "src/main/java/com/miaokatze/gtsr/common/dimension/prosperity/ruins/ProsperitySurfaceScatter.java")));
+        final String ruin = stripComments(read(root.resolve(
+            "src/main/java/com/miaokatze/gtsr/common/dimension/prosperity/ruins/ruin/RuinPlacer.java")));
 
         // D1 接地唯一制式
         check(!machine.contains("findSurfaceY"), "D1 机器层零列扫取高（审计 A-4 闭合，再出现即红）");
         check(!outpost.contains("findSurfaceY"), "D1 outpost 层零列扫取高（:335 那处已改道）");
+        check(!ruin.contains("findSurfaceY"), "D1 废墟层（P8）零列扫取高（新增族也不许自带第二套接地）");
         check(machine.contains("PlacementGate.groundFn") && outpost.contains("PlacementGate.groundFn")
-            && orchestrator.contains("PlacementGate.groundFn"),
-            "D1 三族接地都取同一个供给器 PlacementGate.groundFn");
+            && orchestrator.contains("PlacementGate.groundFn") && ruin.contains("PlacementGate.groundFn"),
+            "D1 三族城外结构 + 城的接地都取同一个供给器 PlacementGate.groundFn（P8 废墟族同口径）");
 
         // D2 placer 侧不自持数字
         // 编排器允许在注册日志里"打印"这三个键（L8 观测锚点），不允许"判定"它们 ⇒ 先把 LOG.info(...)
         // 整段摘掉再统计，剩下的出现次数必须为 0。
         final String orchestratorNoLog = stripLogCalls(orchestrator);
         for (final String[] pair : new String[][] { { machine, "机器" }, { outpost, "outpost" },
-            { orchestratorNoLog, "编排器(去日志)" } }) {
+            { ruin, "废墟(P8)" }, { orchestratorNoLog, "编排器(去日志)" } }) {
             final String body = pair[0];
             final String who = pair[1];
             check(!body.contains("prosperityStructureBudgetPerChunk")
@@ -927,9 +951,15 @@ public final class PlacementContractCheck {
         // 计数走"去空白"形态：spotless 会把 PlacementGate .beginChunk( 这类成员调用折行，
         // 按字面量数就会少数（P7c 实测 D4 曾因此从 3 掉到 2）。语义不变、只把换行/缩进抹平。
         final String flatGate = flat(gate);
-        check(count(flatGate, "Config.prosperityStructure") == 4, "D3 非 Config 侧只有本门读这三键（实测读 "
+        // P8 口径同步：窗上限的 Config 读取从"两处"收成<b>一处</b>（familyWindowRepeatCap 是本族/他族
+        // 上限键的唯一读取点，request 默认位与 Entry 覆写生效位都经它），所以 4 变 3。
+        // 少的那一处不是漏接，是"按 family 分支的读取点全仓只此一处"的兑现。
+        check(count(flatGate, "Config.prosperityStructure") == 3, "D3 非 Config 侧只有本门读这三键（实测读 "
             + count(flatGate, "Config.prosperityStructure")
-            + " 处：预算 1 + 窗上限 2〔request 默认位 + Entry 覆写生效位〕+ 间距 1）");
+            + " 处：预算 1 + 窗上限 1〔familyWindowRepeatCap 唯一读取点〕+ 间距 1）");
+        check(count(flatGate, "Config.prosperityRuin") == 1,
+            "D3 废墟族的上限键也只被本门读一处（实测 " + count(flatGate, "Config.prosperityRuin")
+                + "）⇒ P8 没有把族键散到 placer 侧");
         check(count(orchestratorNoLog, "Config.prosperityStructure") == 0,
             "D3 编排器不把这三键接进任何判定（去日志后出现 "
                 + count(orchestratorNoLog, "Config.prosperityStructure") + " 次）");
@@ -946,12 +976,16 @@ public final class PlacementContractCheck {
             root.resolve(
                 "src/main/java/com/miaokatze/gtsr/common/dimension/prosperity/ruins/RuinedMachinePlacer.java"),
             root.resolve(
-                "src/main/java/com/miaokatze/gtsr/common/dimension/prosperity/ruins/ProsperityOutpostPlacer.java"));
+                "src/main/java/com/miaokatze/gtsr/common/dimension/prosperity/ruins/ProsperityOutpostPlacer.java"),
+            // P8：废墟族作为互斥链第三环纳入同一调用面口径（不是"另立一摊"）
+            root.resolve(
+                "src/main/java/com/miaokatze/gtsr/common/dimension/prosperity/ruins/ruin/RuinPlacer.java"));
         int begin = 0;
         int request = 0;
         int commit = 0;
         int counting = 0;
         final List<Integer> requestArity = new ArrayList<>();
+        final List<String> requestCarriesIntent = new ArrayList<>();
         for (final Path p : placerSide) {
             final String b = flat(stripComments(read(p)));
             begin += count(b, "PlacementGate.beginChunk(");
@@ -959,24 +993,39 @@ public final class PlacementContractCheck {
             commit += count(b, ".commit(");
             counting += count(b, "PlacementGate.counting(");
             for (int at = b.indexOf(".request("); at >= 0; at = b.indexOf(".request(", at + 1)) {
-                requestArity.add(argCount(b, at + ".request".length()));
+                final int arity = argCount(b, at + ".request".length());
+                requestArity.add(arity);
+                requestCarriesIntent.add(
+                    b.substring(at, Math.min(b.length(), at + 96 + arity * 24)).contains("_INTENT") ? "yes" : "NO");
             }
         }
-        check(begin == 3, "D4 全仓 beginChunk 调用点 = 3（编排器 1 + 两个 placer 的无门兼容重载 2），实测 " + begin);
-        check(request == 2 && commit == 2 && counting == 2,
-            "D4 两 placer 各恰一次 request / commit / counting（实测 " + request + "/" + commit + "/" + counting + "）");
-        // D7（P7c 新增）：生产侧的两次 request 都必须带命中重放口，否则 H-2 两条静默失效
-        check(requestArity.size() == 2 && requestArity.get(0) == 3 && requestArity.get(1) == 3,
-            "D7 两处生产 request 都是三参（族, 模板, IntentFn）——实测元组 " + requestArity
-                + "；退化成两参 = 门拿不到命中集 = 上限不咬合或退回密度乘子");
-        check(count(flat(machine), "MACHINE_INTENT") == 2 && count(flat(outpost), "OUTPOST_INTENT") == 2,
-            "D7 两族各恰有\"定义 + 传给门\"两处重放口引用（实测 " + count(flat(machine), "MACHINE_INTENT") + "/"
-                + count(flat(outpost), "OUTPOST_INTENT") + "）");
+        check(begin == 4, "D4 全仓 beginChunk 调用点 = 4（编排器 1 + 三个 placer 的无门兼容重载 3），实测 " + begin);
+        check(request == 3 && commit == 3 && counting == 3,
+            "D4 三 placer 各恰一次 request / commit / counting（实测 " + request + "/" + commit + "/" + counting
+                + "）");
+        // D7（P7c 新增，P8 扩到三族）：生产侧的每一次 request 都必须带命中重放口，否则 H-2 两条静默失效
+        check(requestArity.size() == 3, "D7 生产侧 request 调用点 = 3，实测元组 " + requestArity);
+        check(!requestCarriesIntent.contains("NO"),
+            "D7 每一次生产 request 的实参里都出现本族的 *_INTENT 重放口（实测 " + requestCarriesIntent
+                + "）；少了它 = 门拿不到命中集 = 上限不咬合或退回密度乘子");
+        // 三族走的是两条同义通道：machine/outpost 用 (族, 模板, IntentFn)，ruin 用
+        // (Entry, 窗上限命中集, 邻域命中集)——后者是 P7c 给 P8 预留的 Entry 通道，P8 额外把
+        // "邻域让行"的命中集从"同族"换成"三条城外族的合并集"（废墟填的是前两环的空槽，
+        // 跨族贴脸只能由新族这一侧让掉）。两族的三参与废墟的三参实参形状不同但元数相同。
+        check(Collections.frequency(requestArity, 3) == 3,
+            "D7 三处生产 request 都是三参形态（两族 = 族/模板/IntentFn，废墟 = Entry/窗上限集/邻域集），实测 "
+                + requestArity);
+        check(count(flat(machine), "MACHINE_INTENT") == 2 && count(flat(outpost), "OUTPOST_INTENT") == 2
+            && count(flat(ruin), "RUIN_INTENT") == 2,
+            "D7 三族各恰有\"定义 + 传给门\"两处重放口引用（实测 " + count(flat(machine), "MACHINE_INTENT") + "/"
+                + count(flat(outpost), "OUTPOST_INTENT") + "/" + count(flat(ruin), "RUIN_INTENT") + "）");
         // 掷骰唯一实现体：placeAll 里不得再留第二份 Config.prosperityMachineChance 读取
         check(count(flat(machine), "Config.prosperityMachineChance") == 1
-            && count(flat(outpost), "Config.prosperityOutpostChance") == 1,
-            "D7 概率分母在 placer 侧各只读一处（实测 " + count(flat(machine), "Config.prosperityMachineChance")
-                + "/" + count(flat(outpost), "Config.prosperityOutpostChance")
+            && count(flat(outpost), "Config.prosperityOutpostChance") == 1
+            && count(flat(ruin), "Config.prosperityRuinChance") == 1,
+            "D7 概率分母在三族 placer 侧各只读一处（实测 " + count(flat(machine), "Config.prosperityMachineChance")
+                + "/" + count(flat(outpost), "Config.prosperityOutpostChance") + "/"
+                + count(flat(ruin), "Config.prosperityRuinChance")
                 + "）⇒ 命中重放与真实放置同用一份掷骰，不是两处真值");
 
         // D5（P7c 改口径）：H-2 两套规则各自唯一实现、互不共用
@@ -986,6 +1035,17 @@ public final class PlacementContractCheck {
         check(count(flatGate, "booleanwindowRepeatAllows(") == 1 && count(flatGate, "booleanfamilySpacingAllows(") == 1,
             "D5 结构侧 H-2 两条规则各只有一处实现（实测 " + count(flatGate, "booleanwindowRepeatAllows(") + "/"
                 + count(flatGate, "booleanfamilySpacingAllows(") + "）⇒ 没有第二套判定");
+        // P8：邻域规则多了一个"绝对让行"档，但它必须是<b>同一条规则的第二档而不是第二处实现</b>——
+        // 定义唯一、且只由 request0 的 absoluteYield 分支调用（既有两族一律 false）。
+        check(count(flatGate, "booleanneighborhoodClearAllows(") == 1,
+            "D5 绝对让行档的定义也唯一（实测 " + count(flatGate, "booleanneighborhoodClearAllows(") + "）");
+        check(count(flatGate, "neighborhoodClearAllows(") == 2,
+            "D5 绝对让行档只在「定义 + request0 的唯一分支」两处出现（实测 "
+                + count(flatGate, "neighborhoodClearAllows(") + "）⇒ 没有被别处绕过优先级档");
+        check(count(flatGate, "booleanfamilySpacingAllows(") == 1
+            && count(flatGate, "familySpacingAllows(") == 2,
+            "D5 优先级档仍是既有两族的唯一邻域规则（定义 + request0 调用，实测 "
+                + count(flatGate, "familySpacingAllows(") + "）");
         check(!scatter.contains("windowRepeatAllows") && !scatter.contains("IntentFn"),
             "D5 散布侧不知道结构侧的新规则（两套实现不互相夹带）⇒ 散布档仍归 P5/P5b");
         // 门自建的是"命中集条件"的排序哈希，必须只走框架唯一件（plan §2.1 L2 禁止手搓哈希）
@@ -1033,30 +1093,56 @@ public final class PlacementContractCheck {
         return -1; // 括号不平衡（源被改坏），调用方按缺失处理
     }
 
-    // ═════════════════════════ E 组：micro 强度层消费结论（判据 8）═════════════════════════
+    // ═════════════════════════ E 组：micro 强度层消费结论（判据 8 → P8 收口）═════════════════════════
 
+    /**
+     * <b>P8 改判</b>：P7b 交付时本组钉的是"结构/散布/城/装饰侧对 {@code microStrengthAt} 的消费点
+     * == 0，结论固定申报交 P8"——那是<b>悬空层的存在证明</b>，不是验收目标。P8 已经把废墟族接上
+     * （{@code ruin/RuinPlacer.microStrengthAt}），本组因此改成钉两面：
+     * ① 框架出口仍在（P6 交付件未回退）；② 废墟族的真实消费点 ≥ 1 且既有各族仍为 0
+     * （= 调制只在 ruin 族发生，前两环的密度没被偷偷改动）。
+     * 反向 RED 由 {@code tools/dim1/RuinFamilyCheck} 的 E 组承担（把 ruin 侧那两处引用注掉必红）。
+     */
     private static void groupE_microLayer() throws Exception {
         final Path root = Paths.get("");
-        int consumers = 0;
-        final List<String> seen = new ArrayList<>();
+        int legacyConsumers = 0;
+        int ruinConsumers = 0;
+        final List<String> ruinSites = new ArrayList<>();
+        final List<String> ruinFiles = Arrays.asList(
+            "ruin/RuinPlacer.java", "ruin/RuinShapes.java", "ruin/RuinDamageOps.java", "ruin/RuinTemplate.java");
         for (final String rel : new String[] { "framework/structure/PlacementGate.java",
             "prosperity/ruins/RuinedMachinePlacer.java", "prosperity/ruins/ProsperityOutpostPlacer.java",
             "prosperity/ruins/ProsperityWorldGenerator.java", "prosperity/ruins/ProsperitySurfaceScatter.java",
             "prosperity/ruins/ProsperityDecorPlacer.java", "prosperity/ruins/city/CityVariants.java",
             "prosperity/ruins/city/CityPlanner.java", "prosperity/ruins/city/CityBlockResolver.java" }) {
             final String b = stripComments(read(root.resolve("src/main/java/com/miaokatze/gtsr/common/dimension/" + rel)));
-            final int c = count(b, "microStrengthAt");
-            consumers += c;
+            legacyConsumers += count(b, "microStrengthAt");
+        }
+        for (final String rel : ruinFiles) {
+            final java.nio.file.Path p = root.resolve(
+                "src/main/java/com/miaokatze/gtsr/common/dimension/prosperity/ruins/" + rel);
+            if (!Files.exists(p)) {
+                MISSING.add("ruin family file absent: " + rel);
+                continue;
+            }
+            final int c = count(stripComments(read(p)), "microStrengthAt");
+            ruinConsumers += c;
             if (c > 0) {
-                seen.add(rel + ":" + c);
+                ruinSites.add(rel + ":" + c);
             }
         }
         final String mgr = stripComments(read(root.resolve(
             "src/main/java/com/miaokatze/gtsr/common/dimension/framework/GTSRWorldChunkManager.java")));
         check(mgr.contains("float microStrengthAt("), "E1 micro 强度只读出口仍在框架层（P6 交付件未回退）");
-        check(consumers == 0, "E2 结构/散布/城/装饰侧对 microStrengthAt 的消费点 = 0（实测 " + consumers + " " + seen
-            + "）⇒ 本片结论固定申报\"交 P8\"，不留悬空层（证据文档 §8）");
-        System.out.println("# P7B-MICRO verdict=deferred-to-P8 consumers=" + consumers);
+        check(legacyConsumers == 0, "E2 既有结构/散布/城/装饰侧对 microStrengthAt 的消费点仍为 0（实测 "
+            + legacyConsumers + "）⇒ P8 的调制只落在废墟族，前两环的概率没被顺手改动");
+        check(ruinConsumers >= 1, "E3 废墟族对 microStrengthAt 的真实消费点 >= 1（实测 " + ruinConsumers + " "
+            + ruinSites + "）⇒ P6 的悬空层已由 P8 收口（plan §5 P8 判据 6）");
+        final String placer = stripComments(read(root.resolve(
+            "src/main/java/com/miaokatze/gtsr/common/dimension/prosperity/ruins/ruin/RuinPlacer.java")));
+        check(placer.contains("PlacementGate.FAMILY_RUIN") && placer.contains("RUIN_INTENT"),
+            "E4 废墟族走带命中重放口的通道（P7c 对 P8 的接口承诺：非 0 上限必须自带重放口）");
+        System.out.println("# P8-MICRO verdict=closed legacy=0 ruinConsumers=" + ruinConsumers + " sites=" + ruinSites);
     }
 
     // ═════════════════════════════════ 真地形采样器 ═════════════════════════════════
@@ -1380,6 +1466,9 @@ public final class PlacementContractCheck {
                 it = RuinedMachinePlacer.intentAt(seed, cx, cz);
             } else if (PlacementGate.FAMILY_OUTPOST.equals(e.family)) {
                 it = ProsperityOutpostPlacer.intentAt(seed, cx, cz);
+            } else if (PlacementGate.FAMILY_RUIN.equals(e.family)) {
+                // P8：废墟族也必须有重放口（它的窗上限非 0，无重放口时上限不生效）
+                it = RuinPlacer.intentAt(seed, cx, cz);
             } else {
                 return; // 城内族不经本门（P7 口径）
             }
@@ -1625,6 +1714,8 @@ public final class PlacementContractCheck {
         RuinedMachinePlacer.registerVariants();
         ProsperityOutpostPlacer.registerVariants();
         CityVariants.registerVariants();
+        // P8：废墟族也进 roster，A6 的族计数与 E4 的通道申报才看得到它（注册幂等，顺序不影响名册序）
+        RuinPlacer.registerVariants();
     }
 
     /** 与 {@code SurfaceGateUnifyCheck}/{@code Dim78ScatterDensityCheck} 同名件同一口径。 */

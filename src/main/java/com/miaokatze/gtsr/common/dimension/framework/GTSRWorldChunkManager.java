@@ -92,7 +92,20 @@ public class GTSRWorldChunkManager extends WorldChunkManager {
         this.microDomainSalt = seedSalt;
         // L1 绑定：身份解析复用本 manager 的采样函数（同表、同种子、同 selector）
         if (this.dimKey != null) {
-            GTSRBiomeAuthority.bind(this.dimKey, def.getResolvedDimId(), this::biomeAt);
+            // P8：同一次 bind 顺带把 micro 强度的只读出口交给 L1（见 Source#microStrengthAtChunk）。
+            // 身份面仍逐字是 this::biomeAt 那一份实现体，未加任何分支或缓存 ⇒ L1 语义零改动。
+            GTSRBiomeAuthority.bind(this.dimKey, def.getResolvedDimId(), new GTSRBiomeAuthority.Source() {
+
+                @Override
+                public BiomeGenBase biomeAtChunk(final int chunkX, final int chunkZ) {
+                    return GTSRWorldChunkManager.this.biomeAt(chunkX, chunkZ);
+                }
+
+                @Override
+                public float microStrengthAtChunk(final int chunkX, final int chunkZ) {
+                    return GTSRWorldChunkManager.this.microStrengthAt(chunkX, chunkZ);
+                }
+            });
         }
     }
 

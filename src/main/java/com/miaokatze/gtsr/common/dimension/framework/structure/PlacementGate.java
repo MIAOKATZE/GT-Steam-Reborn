@@ -73,6 +73,18 @@ public final class PlacementGate {
     public static final String FAMILY_CITY = "city";
 
     /**
+     * 族：城外废墟（<b>P8 新增</b>，plan §5 P8「废墟族（L5 新增内容）」；
+     * {@code prosperity/ruins/ruin/RuinShapes} 的破坏结构模板，全部由既有结构"破败化"派生）。
+     * <p>
+     * 与既有三族的关系：本族<b>是</b>每 chunk 互斥掷骰链上的第三环（编排器 outpost → 机器 → 废墟），
+     * 但只在<b>前二环都没真实落块</b>时才问门，且过的是同一份 {@code prosperityStructureBudgetPerChunk}
+     * 预算 ⇒ 它是"在既有预算内挤位"，不是叠加密度（实测对照见
+     * {@code tools/dim1/RuinFamilyCheck} 的 DENSITY 表）。本族也是全名册里<b>唯一</b>
+     * {@code allowsDamagedVariant=true} 的一族（P8 的 opt-in 损毁算子只对它的模板生效）。
+     */
+    public static final String FAMILY_RUIN = "ruin";
+
+    /**
      * 族：未入册条目（{@link StructureRegistry.Entry} 的五参构造默认值）。
      * <b>不参与同族互斥</b>（否则未标注的条目会互相吞掉），只受每 chunk 预算约束。
      */
@@ -258,6 +270,38 @@ public final class PlacementGate {
         return true;
     }
 
+    /**
+     * H-2 规则②的<b>绝对让行档</b>（<b>P8 新增，只服务废墟族</b>）：邻域 {@code (2g+1)²−1} 个 chunk 内
+     * 只要 {@code intent} 在<b>任何一个</b>邻槽非空，本座就放弃——不比哈希序。
+     * <p>
+     * 与 {@link #familySpacingAllows} 的分工：那一条是"同族互贴时恰活一座"的贪心独立集（既有两族在用，
+     * 行为与默认值一字未改）；本一条是"新族不得贴任何既有城外结构"的单向约束。之所以需要单向档：
+     * 既有两族的掷骰在本片是<b>冻结</b>的（任务包禁止改互斥顺序与概率值），它们不会回头躲新开的一族，
+     * 于是跨族贴脸只能由新族这一侧让掉。实测口径与不这么做时的后果写在
+     * {@link ChunkGate#request(StructureRegistry.Entry, IntentFn, IntentFn)} 的注释里。
+     * <p>
+     * 成本：{@code gap=1} 时 8 次重放；档位仍是 {@link #SPACING_GAP_MAX} 钳制，与优先级档同一上界。
+     *
+     * @return true = 邻域干净（可放）；false = 邻域已有东西要放，本座让行
+     */
+    public static boolean neighborhoodClearAllows(long worldSeed, int cx, int cz, int gapChunks, IntentFn intent) {
+        final int gap = Math.min(Math.max(gapChunks, SPACING_OFF), SPACING_GAP_MAX);
+        if (gap <= SPACING_OFF || intent == null) {
+            return true; // 与优先级档同一"0 = 关闭"回退位；无重放口时同样不得凭空拒绝
+        }
+        for (int dx = -gap; dx <= gap; dx++) {
+            for (int dz = -gap; dz <= gap; dz++) {
+                if (dx == 0 && dz == 0) {
+                    continue;
+                }
+                if (intent.intentAt(worldSeed, cx + dx, cz + dz) != null) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
     /** 槽位全序的平局裁决：先 x 后 z（与散布侧同一写法，保证排名是全序且各槽自算一致）。 */
     private static boolean slotBefore(int sx, int sz, int cx, int cz) {
         return sx < cx || (sx == cx && sz < cz);
@@ -284,17 +328,31 @@ public final class PlacementGate {
     }
 
     /**
-     * 生效的每窗重复上限：{@code entry.windowRepeatCap > 0}（roster 显式覆写）优先，否则取 Config 族键。
+     * 生效的每窗重复上限：{@code entry.windowRepeatCap > 0}（roster 显式覆写）优先，否则取<b>本族</b>的
+     * Config 键（{@link #familyWindowRepeatCap(String)}）。
      * <p>
-     * {@code Entry} 里的"放置分母 / 每窗上限"两字段一律允许 <b>0 = 跟随 Config 族键</b>，本片两条既有族
-     * （machine/outpost）都取 0 ⇒ 树内不存在第二处数字真值；P8 的废墟族若需要"逐模板不同概率"，
-     * 才在 roster 里写非 0 值（那时 roster 就是唯一出处，Config 只留族级默认）。
+     * {@code Entry} 里的"放置分母 / 每窗上限"两字段一律允许 <b>0 = 跟随 Config 族键</b>；本片三条城外族
+     * （machine/outpost/ruin）<b>全部传 0</b> ⇒ 树内不存在第二处数字真值。P7 javadoc 预留的
+     * "roster 覆写非 0"通道 P8 <b>没有启用</b>：启用它等于把数字从 Config 搬进 roster，
+     * plan §2.1 横切 roster 行的"禁止同一数值两处漂移"要为此再加一条对账断言，
+     * 而收益只是"少一个 Config 键"，不划算。
      * <p>
      * <b>P7c 语义同步</b>：本值现在喂给 {@link #windowRepeatAllows}（命中集条件的重复上限），
      * 不再是"窗内前 cap 名槽位"的排名配额。
      */
     public static int effectiveWindowRepeatCap(StructureRegistry.Entry entry) {
-        return entry.windowRepeatCap > 0 ? entry.windowRepeatCap : Config.prosperityStructureWindowRepeatCap;
+        return entry.windowRepeatCap > 0 ? entry.windowRepeatCap : familyWindowRepeatCap(entry.family);
+    }
+
+    /**
+     * 族级"每窗重复上限"的<b>唯一读取点</b>（P8：废墟族需要自己的上限档，但按 family 分支的读取点
+     * 全仓只此一处 ⇒ 不会出现"ruin 族的键在两处各自被读"）。
+     * 非 ruin 族（machine/outpost/city/unscoped）一律回落到既有族键
+     * {@link Config#prosperityStructureWindowRepeatCap}，<b>取值与默认值一字未改</b>。
+     */
+    public static int familyWindowRepeatCap(String family) {
+        return FAMILY_RUIN.equals(family) ? Config.prosperityRuinWindowRepeatCap
+            : Config.prosperityStructureWindowRepeatCap;
     }
 
     // ═══════════════════════════════ 每 chunk 门（局部对象）═══════════════════════════════
@@ -352,20 +410,71 @@ public final class PlacementGate {
         }
 
         /**
-         * 请求放置许可（族 + 模板名口径；placer 侧的唯一用法，不需要先在 {@link StructureRegistry}
-         * 里有条目，故离线驱动与注册顺序都影响不到门的行为）。
-         * 依次过 <b>每 chunk 预算 → 同族互斥 → H-2① 窗重复上限 → H-2② 同族间距</b>；
-         * 返回 {@code null} = 不放行（调用方必须直接放弃，且<b>不得</b>扣任何预算）。
-         * <p>
-         * <b>全部 {@code request} 重载共用本方法</b>：预算读取点与判定顺序因此在全类里各只有一处
-         * （plan §2.4 判据 4——同一判定写两遍就是"两处会各自漂移的真值"，
-         * {@code tools/dim1/PlacementContractCheck} D3 按这个口径钉计数）。
+         * 请求放置许可（族 + 模板名口径）。依次过 <b>每 chunk 预算 → 同族互斥 → H-2① 窗重复上限 →
+         * H-2② 同族间距</b>；两条 H-2 规则共用同一个命中集。
          *
-         * @param intent 本族的命中重放口（见 {@link IntentFn}）；生产侧两族一律非空，
-         *               {@code null} 只用于"本槽没有可枚举的命中集合"的兼容形态，此时 H-2 两条规则
-         *               一律<b>放行</b>（退化方向见 {@link #windowRepeatAllows} 的 @param 说明）
+         * @param intent 本族的命中重放口；{@code null} = 两条规则都不适用（只过预算与互斥）
          */
-        private Permit request0(String family, String templateName, int windowRepeatCap, IntentFn intent) {
+        public Permit request(String family, String templateName, IntentFn intent) {
+            return request0(family, templateName, familyWindowRepeatCap(family), intent, intent, false);
+        }
+
+        /**
+         * 请求放置许可（<b>P8 新增</b>：窗重复上限与"邻域让行"各用各的命中集，且邻域规则取
+         * <b>绝对让行</b>档）。
+         * <p>
+         * 为什么废墟族要单独一档：{@link #familySpacingAllows} 是<b>优先级</b>让行（邻槽哈希序更高才让，
+         * 于是每个贴脸簇恰活一座），它对"同族互贴"是对的。但废墟族是互斥链上<b>填前两环空槽</b>的第三环，
+         * 而 outpost/机器这两环不知道第三环的存在（本片不许改它们的判定），于是优先级比较在跨族时
+         * 只有一半的概率让新族躲开——实测（2 seed × 2 区 = 874 有效 chunk）把 T4 口径的贴脸率从
+         * 8.889% 顶到 29.851%，比 P7c 要治的 23.882% 还差（{@code RuinFamilyCheck} 的 DENSITY-RISE 行）。
+         * <p>
+         * 本重载把新族的邻域规则改成"<b>邻域内任一城外结构族命中就放弃本座</b>"（绝对让行，不参与哈希
+         * 比较）。方向上只会更保守：既有两族的判定、概率与 {@code cap}/{@code gap} 两键的
+         * <b>语义与默认值一字未改</b>（它们走的仍是 {@link #request(String, String, IntentFn)} 那条
+         * 优先级路径），收紧的只有新增的第三族。
+         */
+        public Permit request(StructureRegistry.Entry entry, IntentFn windowIntent, IntentFn neighborhoodIntent) {
+            return entry == null ? null
+                : request0(
+                    entry.family,
+                    entry.name,
+                    effectiveWindowRepeatCap(entry),
+                    windowIntent,
+                    neighborhoodIntent,
+                    true);
+        }
+
+        /**
+         * 请求放置许可（{@link StructureRegistry.Entry} 口径：带 roster 覆写的窗上限）。
+         * 两条 H-2 规则共用 {@code intent}，邻域规则仍是优先级档。
+         */
+        public Permit request(StructureRegistry.Entry entry, IntentFn intent) {
+            return entry == null ? null
+                : request0(entry.family, entry.name, effectiveWindowRepeatCap(entry), intent, intent, false);
+        }
+
+        /** 无重放口的兼容形态（只过预算与互斥）。生产侧三族都不走这里。 */
+        public Permit request(String family, String templateName) {
+            return request(family, templateName, (IntentFn) null);
+        }
+
+        /** 无重放口的 {@link StructureRegistry.Entry} 形态（P8 废墟族走带 {@code IntentFn} 的重载）。 */
+        public Permit request(StructureRegistry.Entry entry) {
+            return request(entry, (IntentFn) null);
+        }
+
+        /**
+         * 判定顺序与预算读取的<b>唯一实现体</b>（全部 {@code request} 重载都汇到这里；
+         * {@code tools/dim1/PlacementContractCheck} D3/D4 按这个口径钉计数）。
+         *
+         * @param intent        H-2① 窗重复上限的命中集
+         * @param spacingIntent H-2② 邻域规则的命中集
+         * @param absoluteYield true ⇒ 邻域规则用<b>绝对让行</b>档（邻槽有任何命中即放弃，不比哈希序）；
+         *                      false ⇒ 沿用 {@link #familySpacingAllows} 的优先级档（既有两族）
+         */
+        private Permit request0(String family, String templateName, int windowRepeatCap, IntentFn intent,
+            IntentFn spacingIntent, boolean absoluteYield) {
             final int budget = Config.prosperityStructureBudgetPerChunk;
             if (budget > BUDGET_UNLIMITED && this.committed >= budget) {
                 return null;
@@ -376,36 +485,15 @@ public final class PlacementGate {
             if (!windowRepeatAllows(this.worldSeed, this.chunkX, this.chunkZ, templateName, windowRepeatCap, intent)) {
                 return null;
             }
-            if (!familySpacingAllows(
-                this.worldSeed,
-                this.chunkX,
-                this.chunkZ,
-                Config.prosperityStructureFamilyGapChunks,
-                intent)) {
+            final int gapChunks = Config.prosperityStructureFamilyGapChunks;
+            final boolean spacingOk = absoluteYield
+                ? neighborhoodClearAllows(this.worldSeed, this.chunkX, this.chunkZ, gapChunks, spacingIntent)
+                : familySpacingAllows(this.worldSeed, this.chunkX, this.chunkZ, gapChunks, spacingIntent);
+            if (!spacingOk) {
                 return null;
             }
             this.grantedTemplates.add(templateName);
             return new Permit(this, family, templateName);
-        }
-
-        /** 请求放置许可（族 + 模板名口径）；窗上限取 {@link Config} 族键，命中集由 {@code intent} 给出。 */
-        public Permit request(String family, String templateName, IntentFn intent) {
-            return request0(family, templateName, Config.prosperityStructureWindowRepeatCap, intent);
-        }
-
-        /** 无重放口的兼容形态：H-2 两条规则不适用（只过预算与互斥）。生产侧两族不走这里。 */
-        public Permit request(String family, String templateName) {
-            return request(family, templateName, null);
-        }
-
-        /** 请求放置许可（{@link StructureRegistry.Entry} 口径：带 roster 覆写的窗上限）。 */
-        public Permit request(StructureRegistry.Entry entry, IntentFn intent) {
-            return entry == null ? null : request0(entry.family, entry.name, effectiveWindowRepeatCap(entry), intent);
-        }
-
-        /** 无重放口的 {@link StructureRegistry.Entry} 形态（P8 若要用 roster 覆写上限，走带 IntentFn 的重载）。 */
-        public Permit request(StructureRegistry.Entry entry) {
-            return request(entry, null);
         }
 
         /** 记账（只由 {@link Permit#commit(int)} 调）。 */

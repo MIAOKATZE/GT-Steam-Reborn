@@ -18,6 +18,7 @@ import com.miaokatze.gtsr.common.dimension.prosperity.ruins.city.CityPlan;
 import com.miaokatze.gtsr.common.dimension.prosperity.ruins.city.CityPlanner;
 import com.miaokatze.gtsr.common.dimension.prosperity.ruins.city.CitySliceSink;
 import com.miaokatze.gtsr.common.dimension.prosperity.ruins.city.CityVariants;
+import com.miaokatze.gtsr.common.dimension.prosperity.ruins.ruin.RuinPlacer;
 import com.miaokatze.gtsr.config.Config;
 import com.miaokatze.gtsr.main.GTSteamReborn;
 
@@ -59,6 +60,11 @@ public class ProsperityWorldGenerator implements IWorldGenerator {
         RuinedMachinePlacer.registerVariants();
         CityVariants.registerVariants();
         ProsperityOutpostPlacer.registerVariants();
+        // P8：废墟族（破坏结构）。开关关闭时<b>一条 roster 都不登记</b>——名册/展示页/机检三条链
+        // 因此都读到"没有 ruin 族"的形态，与"注册了但掷骰不中"是两种可区分的状态。
+        if (Config.prosperityRuinsEnabled) {
+            RuinPlacer.registerVariants();
+        }
         if (evidenceLogged) {
             return;
         }
@@ -71,7 +77,8 @@ public class ProsperityWorldGenerator implements IWorldGenerator {
                 + " scatterBlocks={}/chunk scatterAttempts={}/chunk scatterVertical={} scatterWindowCap={}"
                 + " scatterWeights={}/{}/{}/{} scatterClusterMode={} clusterCell={}ch clusterDenom={}"
                 + " clusterPieces={}..{} clusterRadius={}ch clusterFalloff={} machineChance=1/{} outpostChance=1/{}"
-                + " structureBudget={}/chunk structureWindowCap={} structureFamilyGap={}",
+                + " structureBudget={}/chunk structureWindowCap={} structureFamilyGap={}"
+                + " ruins={} ruinEnabled={} ruinChance=1/{} ruinWindowCap={}",
             Config.prosperityDimId,
             StructureRegistry.names(),
             Config.prosperityScatterContoursPerChunk,
@@ -96,7 +103,12 @@ public class ProsperityWorldGenerator implements IWorldGenerator {
             Config.prosperityStructureBudgetPerChunk,
             Config.prosperityStructureWindowRepeatCap,
             // P7c：贴脸由同族间距档负责（0 = 关闭 = 回退位），一并回显便于实机一眼分辨治疗是否生效
-            Config.prosperityStructureFamilyGapChunks);
+            Config.prosperityStructureFamilyGapChunks,
+            // P8：废墟族（破坏结构）四元组——注册数/开关/分母/本族窗上限，全部取 Config 与 roster 真值
+            RuinPlacer.registeredCount(),
+            Config.prosperityRuinsEnabled,
+            Config.prosperityRuinChance,
+            Config.prosperityRuinWindowRepeatCap);
         GTSteamReborn.LOG.info(
             "[GTSR] prosperity city variants: {} registered (cell={} chance={}%)",
             CityVariants.ALL.length,
@@ -135,9 +147,11 @@ public class ProsperityWorldGenerator implements IWorldGenerator {
         // 所以 outpost 若门通过却一块没落进世界，机器照常有机会（改造前那种"假成功吞掉互斥位"已闭合）。——
         final PlacementGate.ChunkGate structureGate = PlacementGate
             .beginChunk(SurfaceGate.DIM78, worldSeed, chunkX, chunkZ);
-        if (!ProsperityOutpostPlacer.placeAll(world, worldSeed, chunkX, chunkZ, sink, structureGate)) {
+        boolean structureLanded = ProsperityOutpostPlacer
+            .placeAll(world, worldSeed, chunkX, chunkZ, sink, structureGate);
+        if (!structureLanded) {
             // —— 3. 残缺机器（1/prosperityMachineChance × 群系机器权重，'C' 位=积碳壳，无 TE）——
-            RuinedMachinePlacer.placeAll(
+            structureLanded = RuinedMachinePlacer.placeAll(
                 world,
                 worldSeed,
                 chunkX,
@@ -146,13 +160,19 @@ public class ProsperityWorldGenerator implements IWorldGenerator {
                 sink,
                 structureGate);
         }
+        // —— 4. 城外废墟族（P8，plan §5 P8）：互斥链的第三环。前两环的掷骰与概率值一个字未改，
+        // 本环只在它们都没真实落块时才问门，过的是同一份每 chunk 预算（默认 1）与同一份同族间距档
+        // ⇒ 废墟是"在既有预算内挤位"，不是叠加密度（实测对照见 tools/dim1/RuinFamilyCheck DENSITY 行）。
+        if (!structureLanded) {
+            RuinPlacer.placeAll(world, worldSeed, chunkX, chunkZ, sink, structureGate);
+        }
 
-        // —— 4. 地表散布（P5：每 chunk 件数 K × 群系散布权重 + 落块/掷点上限，全部 Config 取值；
-        // 最低优先级，只落自然锈变地表+空气让行。掷骰顺序与上方 2→3 的互斥关系一字未改）——
+        // —— 5. 地表散布（P5：每 chunk 件数 K × 群系散布权重 + 落块/掷点上限，全部 Config 取值；
+        // 最低优先级，只落自然锈变地表+空气让行。掷骰顺序与上方 2→3→4 的互斥关系一字未改）——
         ProsperitySurfaceScatter
             .scatter(world, worldSeed, chunkX, chunkZ, biomeWeight(world, chunkX, chunkZ, SCATTER_WEIGHTS), sink);
 
-        // —— 5. 自然区装饰（S-A1，plan §12 修订 5：草丛 2-4/锈树 1/16/碎石 0-2 堆，频率常量
+        // —— 6. 自然区装饰（S-A1，plan §12 修订 5：草丛 2-4/锈树 1/16/碎石 0-2 堆，频率常量
         // 登记 ProsperityDecorPlacer 类注释；城 buffer 窗由上方 :90-92 return 天然保证）——
         ProsperityDecorPlacer.decorate(world, worldSeed, chunkX, chunkZ, sink);
     }

@@ -123,6 +123,8 @@ P6_BASE_FILES="com/miaokatze/gtsr/common/dimension/framework/BiomeZoneSelector.j
 com/miaokatze/gtsr/common/dimension/framework/GTSRWorldChunkManager.java
 com/miaokatze/gtsr/common/dimension/prosperity/ruins/city/CityPlanner.java
 com/miaokatze/gtsr/config/Config.java"
+# P8：本片开工前快照（供各 era 的 BASE 树取"未被 P8 碰过"的框架件；[15] 自己用 SNAP8 同名别名）
+SNAP8_LATE=temp/p8-base/src/main/java
 PARITY_BASE_FILES="com/miaokatze/gtsr/common/dimension/prosperity/ruins/ProsperityDecorPlacer.java
 com/miaokatze/gtsr/common/dimension/prosperity/ruins/ProsperityOutpostPlacer.java
 com/miaokatze/gtsr/common/dimension/prosperity/ruins/ProsperitySurfaceScatter.java
@@ -176,7 +178,10 @@ MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8 \
   tools/dim1/Dim78ScatterDensityCheck.java tools/dim1/ContourBudgetCheck.java \
   tools/dim1/RegionRepeatCapCheck.java tools/dim1/BiomeBandHierarchyCheck.java \
   tools/dim1/CityBiomeGateCheck.java tools/dim1/PlacementContractCheck.java \
-  tools/dim1/ScatterClusterVarianceCheck.java tools/dim1/gregtech/api/GregTechAPI.java \
+  tools/dim1/ScatterClusterVarianceCheck.java tools/dim1/RuinFamilyCheck.java \
+tools/dim1/StructureViewerExport.java tools/dim1/RosterIntegrityCheck.java \
+tools/dim1/S8RegistryRosterCheck.java tools/dim1/OutpostTemplateCheck.java tools/dim1/CityDeterminismCheck.java \
+  tools/dim1/gregtech/api/GregTechAPI.java \
   >"$OUT/javac-tools.log" 2>&1
 echo "COMPILE tools EXIT=$? ($(grep -ac 'error:' "$OUT/javac-tools.log") error)"
 
@@ -223,6 +228,10 @@ run "PlacementContractCheck source（A0-A6 契约单元 + D 单一真值 + E mic
 run "PlacementContractCheck pure 8 8（B1 接地逐点 >=16384 chunk，纯函数不需装配世界）" PlacementContractCheck pure 8 8
 run "PlacementContractCheck census 8 8（P7c 判据 1：真实命中集上的 min(cap,h) 精确等式 + 首次命中 100%）" \
   PlacementContractCheck census 8 8
+
+echo "== [2e] P8 城外废墟族（破坏结构）：谱系/派生复算/TE 洁净/micro 收口/opt-in 边界 =="
+# 快档 = fast（不跑真地形密度对照；密度对照表在 --parity 的 [15b]，因为它要 generateTerrain 全量）
+run "RuinFamilyCheck fast（A 谱系契约 + B 派生可复算 + C TE 洁净与注入 RED + E micro 收口 + G opt-in 边界）"   RuinFamilyCheck fast
 
 echo "== [3] 既有回归（必须保持绿） =="
 run "ReplaceSurfaceRuntimeCheck（46 项，含 null/plains 回退与逐列下标断言；P2b 起 256 格假绿已除）" ReplaceSurfaceRuntimeCheck
@@ -1009,6 +1018,12 @@ com/miaokatze/gtsr/config/Config.java"
     else
       echo "   P5b-BASE 侧确认无成簇键（快照有效）"
     fi
+    # P8 同步（本清单之外的 era 修正）：P8 把 PlacementGate 的窗上限读取点改成
+    # familyWindowRepeatCap()，它会引用废墟族的 Config 键 ⇒「当前 PlacementGate + P5b 的 Config」编不过
+    # （实测 1 error：cannot find symbol prosperityRuinWindowRepeatCap）。P5b 没碰 PlacementGate，
+    # 所以从"本片开工前快照"取它 = P5b 终态那一份；同时删掉本 era 还不存在的 ruin 新包。
+    cp "$SNAP8_LATE/com/miaokatze/gtsr/common/dimension/framework/structure/PlacementGate.java"       "$BASE5B/com/miaokatze/gtsr/common/dimension/framework/structure/PlacementGate.java"
+    rm -rf "$BASE5B/com/miaokatze/gtsr/common/dimension/prosperity/ruins/ruin"
     P5B_SRC="$(prefix $BASE5B)"
     MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8 -cp "$CP" \
       -sourcepath "$BASE5B" -d "$OUT/p5b-base-classes" $P5B_SRC >"$OUT/p5b-javac-base.log" 2>&1
@@ -1100,12 +1115,165 @@ com/miaokatze/gtsr/config/Config.java"
     run "ContourBudgetCheck（P5b RED 后工作树复位 GREEN）" ContourBudgetCheck 8 4
     run "SurfaceGateUnifyCheck（P5b RED 后口径 C 带复位 GREEN）" SurfaceGateUnifyCheck assert src/main/java
   fi
+  # ── [15] P8 城外废墟族（破坏结构）──
+  # 四件事：① 非本片路径零漂移（表层/高度/群系 512 chunk 逐字节 + 散布档 SCAN 逐字节，
+  #           BASE=temp/p8-base 开工前快照，带"BASE 编译零 error"硬门槛）；
+  #        ② 密度对照表（判据 4）：真地形上"关新族 vs 开新族"同批 chunk 的座数/窗均/贴脸率/窗内 max；
+  #        ③ 确定性双跑（判据 2/5）：展示页数据件跨进程双跑逐字节一致；
+  #        ④ 三条单变量影子 RED：派生算子被削 / 盐失效 / micro 调制失效。
+  echo "== [15] P8 城外废墟族：零漂移对拍 + 密度对照 + 双跑 SHA + 三条影子 RED =="
+  BASE8=temp/p8-base/all
+  SNAP8=temp/p8-base/src/main/java
+  P8_BASE_FILES="com/miaokatze/gtsr/common/dimension/framework/structure/PlacementGate.java
+com/miaokatze/gtsr/common/dimension/framework/GTSRBiomeAuthority.java
+com/miaokatze/gtsr/common/dimension/framework/GTSRWorldChunkManager.java
+com/miaokatze/gtsr/common/dimension/prosperity/ruins/ProsperityWorldGenerator.java
+com/miaokatze/gtsr/config/Config.java"
+  if [ ! -f "$SNAP8/com/miaokatze/gtsr/common/dimension/framework/structure/PlacementGate.java" ]; then
+    echo "   FAIL：缺 P8 BASE 快照 $SNAP8（必须是本片第一个写入之前的工作树副本）"
+    FAILS=$((FAILS + 1))
+  else
+    rm -rf "$BASE8"; mkdir -p "$BASE8/com" "$OUT/p8-base-classes" "$OUT/p8-base-tools"
+    cp -a src/main/java/. "$BASE8/"
+    miss8=0
+    for rel in $P8_BASE_FILES; do
+      if [ -f "$SNAP8/$rel" ]; then
+        cp "$SNAP8/$rel" "$BASE8/$rel"
+        cmp -s "$BASE8/$rel" "src/main/java/$rel" \
+          && { echo "   FAIL：BASE 还原后与工作树相同（快照失效）"; miss8=$((miss8 + 1)); }
+      else
+        echo "   FAIL：P8 BASE 快照缺 $rel"; miss8=$((miss8 + 1))
+      fi
+    done
+    # 废墟族是本片<b>新增</b>的包 ⇒ BASE 树里必须没有它（留着会让 BASE 侧编排器引用到本片才有的
+    # PlacementGate.FAMILY_RUIN，而 PlacementGate 已还原 ⇒ BASE 编不过，对拍退化成自比）
+    rm -rf "$BASE8/com/miaokatze/gtsr/common/dimension/prosperity/ruins/ruin"
+    [ "$miss8" = "0" ] || FAILS=$((FAILS + 1))
+    if grep -aq "prosperityRuinChance" "$BASE8/com/miaokatze/gtsr/config/Config.java"; then
+      echo "   FAIL：P8-BASE 侧 Config 已含废墟族新键 ⇒ 快照不是开工前形态"; FAILS=$((FAILS + 1))
+    else
+      echo "   P8-BASE 侧确认无废墟族新键（快照有效）"
+    fi
+    P8_SRC="$(prefix $BASE8)"
+    MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8 -cp "$CP" \
+      -sourcepath "$BASE8" -d "$OUT/p8-base-classes" $P8_SRC >"$OUT/p8-javac-base.log" 2>&1
+    echo "COMPILE P8-BASE EXIT=$? ($(grep -ac 'error:' "$OUT/p8-javac-base.log") error)"
+    # 判据 7 的硬门槛（沿用 P7c/P5b 口径）：BASE 编译零 error，否则下面的 0 差异是假绿
+    [ "$(grep -ac 'error:' "$OUT/p8-javac-base.log")" = "0" ] \
+      || { echo "   FAIL：P8-BASE 树编译失败（还原清单不完整，[15a] 的 0 差异会是假绿）"; FAILS=$((FAILS + 1)); }
+    grep -a "error:" "$OUT/p8-javac-base.log" | head -5 | sed 's/^/     /'
+
+    # [15a] 表层/高度/群系逐字节对拍（512 chunk = 256 × 两维）
+    MSYS2_ARG_CONV_EXCL='*' java $STD $LOG4J -cp "$OUT/tools;$OUT/classes;$CP" \
+      SurfaceByteParityDump 16 >"$OUT/p8-parity-after.txt" 2>"$OUT/p8-parity-after.err"
+    MSYS2_ARG_CONV_EXCL='*' java $STD $LOG4J -cp "$OUT/tools;$OUT/p8-base-classes;$CP" \
+      SurfaceByteParityDump 16 >"$OUT/p8-parity-base.txt" 2>"$OUT/p8-parity-base.err"
+    n8=$(diff "$OUT/p8-parity-base.txt" "$OUT/p8-parity-after.txt" | grep -ac "^[<>]")
+    c8=$(grep -ac "^CHUNK" "$OUT/p8-parity-after.txt")
+    echo "   [15a] 表层/高度/群系逐字节对拍 chunks=$c8 diff_lines=$n8（BASE=temp/p8-base，零 error 门槛已过）"
+    [ "$n8" = "0" ] || { echo "   FAIL：表层/高度/群系面出现漂移（$n8 行）⇒ P8 越界"; FAILS=$((FAILS + 1)); }
+
+    # [15a2] 散布档逐字节：两侧都在净地形上跑（-Dgtsr.skipStructure=1，P7c 判据 4 口径）
+    MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8 \
+      -cp "$OUT/p8-base-classes;$CP" -sourcepath "$BASE8;tools/dim1" -d "$OUT/p8-base-tools" \
+      tools/dim1/SurfaceHarness.java tools/dim1/Dim78ScatterDensityCheck.java \
+      tools/dim1/gregtech/api/GregTechAPI.java >"$OUT/p8-javac-base-tools.log" 2>&1
+    echo "   COMPILE P8-BASE-TOOLS EXIT=$? ($(grep -ac 'error:' "$OUT/p8-javac-base-tools.log") error)"
+    MSYS2_ARG_CONV_EXCL='*' java $STD $LOG4J -Dgtsr.skipStructure=1 -Xmx2g \
+      -cp "$OUT/p8-base-tools;$OUT/p8-base-classes;$CP" Dim78ScatterDensityCheck digest 2 2 \
+      >"$OUT/p8-scatter-base.txt" 2>&1
+    esb=$?
+    MSYS2_ARG_CONV_EXCL='*' java $STD $LOG4J -Dgtsr.skipStructure=1 -Xmx2g \
+      -cp "$OUT/tools;$OUT/classes;$CP" Dim78ScatterDensityCheck digest 2 2 \
+      >"$OUT/p8-scatter-after.txt" 2>&1
+    esa=$?
+    sb=$(grep -a "^SCAN" "$OUT/p8-scatter-base.txt" | sha256sum | cut -c1-16)
+    sa=$(grep -a "^SCAN" "$OUT/p8-scatter-after.txt" | sha256sum | cut -c1-16)
+    # 只比"数据行"：两跑的 stderr 头里带各自的 classpath 目录名（Unsafe WARNING），全文 diff 会恒差 2 行
+    nd=$(diff <(grep -av "^WARNING\|^Picked up" "$OUT/p8-scatter-base.txt")                <(grep -av "^WARNING\|^Picked up" "$OUT/p8-scatter-after.txt") | grep -ac "^[<>]")
+    echo "   [15a2] 散布档 SCAN 摘要 BASE=$sb AFTER=$sa 行差=$nd（EXIT $esb/$esa）"
+    { [ "$esb" = "0" ] && [ "$esa" = "0" ]; } || { echo "   FAIL：散布档两跑有一跑非 0"; FAILS=$((FAILS + 1)); }
+    [ "$sb" = "$sa" ] || { echo "   FAIL：散布档摘要漂移 ⇒ P8 越界碰了 P5/P5b"; FAILS=$((FAILS + 1)); }
+
+    # [15b] 判据 4：真地形"关新族 vs 开新族"对照（DENSITY-RISE 行如实打印上升量）
+    run "RuinFamilyCheck all 4 4（P8 判据 2/3/4/5/6 全档：真地形 4096 chunk 密度对照）" \
+      RuinFamilyCheck all 4 4
+    grep -a "^DENSITY-RISE" "$OUT/RuinFamilyCheck-all.out" | cut -c1-260 | sed 's/^/     /'
+    grep -a "^TE-CHECK" "$OUT/RuinFamilyCheck-all.out" | cut -c1-200 | sed 's/^/     /'
+    grep -a "TE-CHECK RED PROBE" "$OUT/RuinFamilyCheck-all.out" | cut -c1-200 | sed 's/^/     /'
+
+    # [15c] 判据 2/5：展示页数据件跨进程双跑逐字节（导出器自带进程内双跑，这里补跨进程那一面）
+    MSYS2_ARG_CONV_EXCL='*' java $STD $LOG4J -cp "$OUT/tools;$OUT/classes;$CP" StructureViewerExport \
+      >"$OUT/p8-export-run1.log" 2>&1
+    e1=$?
+    MSYS2_ARG_CONV_EXCL='*' java $STD $LOG4J -cp "$OUT/tools;$OUT/classes;$CP" StructureViewerExport \
+      >"$OUT/p8-export-run2.log" 2>&1
+    e2=$?
+    x1=$(grep -a "^SHA256 json=" "$OUT/p8-export-run1.log" | sed -n "s/^SHA256 json=//p")
+    x2=$(grep -a "^SHA256 json=" "$OUT/p8-export-run2.log" | sed -n "s/^SHA256 json=//p")
+    echo "   [15c] 数据件双跑 EXIT=$e1/$e2 json SHA $x1 vs $x2 -> $([ -n "$x1" ] && [ "$x1" = "$x2" ] && echo 逐字节一致 || echo 不一致)"
+    { [ "$e1" = "0" ] && [ "$e2" = "0" ]; } || { echo "   FAIL：导出器跑非 0"; FAILS=$((FAILS + 1)); }
+    [ -n "$x1" ] && [ "$x1" = "$x2" ] || { echo "   FAIL：数据件双跑不一致 ⇒ 确定性被破坏"; FAILS=$((FAILS + 1)); }
+    grep -a "^EXPORT variants=" "$OUT/p8-export-run2.log" | cut -c1-170 | sed 's/^/     /'
+  fi
+
+  # [15d] 三条单变量影子 RED（影子树，绝不碰工作树）
+  P8RED=temp/p8-red-shadow; P8REDCLS=$OUT/p8-red-classes
+  P8_RED_SRC=$(echo "$REL" | sed 's|^|temp/p8-red-shadow/|' | tr '\n' ' ')
+  p8red() { # p8red <标签> <sed 表达式> <目标文件> <工具类> <工具参数...>
+    local label="$1" expr="$2" file="$3" tool="$4"; shift 4
+    rm -rf "$P8RED" "$P8REDCLS" "$OUT/p8-red-tools"; mkdir -p "$P8REDCLS" "$OUT/p8-red-tools"
+    cp -a src/main/java "$P8RED"
+    sed -i "$expr" "$P8RED/$file"
+    cmp -s "$P8RED/$file" "src/main/java/$file" \
+      && { echo "   $label 注入未生效（影子文件与工作树相同）"; FAILS=$((FAILS + 1)); }
+    MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8 -cp "$CP" \
+      -sourcepath "$P8RED" -d "$P8REDCLS" $P8_RED_SRC \
+      "$P8RED/com/miaokatze/gtsr/common/dimension/prosperity/ruins/ruin/RuinPlacer.java" \
+      "$P8RED/com/miaokatze/gtsr/common/dimension/prosperity/ruins/ruin/RuinShapes.java" \
+      "$P8RED/com/miaokatze/gtsr/common/dimension/prosperity/ruins/ruin/RuinTemplate.java" \
+      "$P8RED/com/miaokatze/gtsr/common/dimension/prosperity/ruins/ruin/RuinDamageOps.java" \
+      >"$OUT/p8-red-$label-javac.log" 2>&1
+    if [ $? -ne 0 ]; then echo "   $label 影子树编译失败（脚本坏了，不是 RED）"; FAILS=$((FAILS + 1)); fi
+    MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8 \
+      -cp "$P8REDCLS;$CP" -sourcepath "$P8RED;tools/dim1" -d "$OUT/p8-red-tools" \
+      tools/dim1/SurfaceHarness.java tools/dim1/Dim78ScatterDensityCheck.java \
+      tools/dim1/RuinFamilyCheck.java tools/dim1/PlacementContractCheck.java \
+      tools/dim1/gregtech/api/GregTechAPI.java >"$OUT/p8-red-$label-tooljavac.log" 2>&1
+    if [ $? -ne 0 ]; then echo "   $label 工具影子编译失败（脚本坏了，不是 RED）"; FAILS=$((FAILS + 1)); fi
+    MSYS2_ARG_CONV_EXCL='*' java $STD $LOG4J -Xmx2g -cp "$OUT/p8-red-tools;$P8REDCLS;$CP" "$tool" "$@" \
+      >"$OUT/p8-red-$label.txt" 2>&1
+    local er=$?
+    grep -a "^  FAIL\|^  - " "$OUT/p8-red-$label.txt" | head -3 | cut -c1-150 | sed "s/^/     /"
+    tail -1 "$OUT/p8-red-$label.txt" | cut -c1-150 | sed "s/^/     /"
+    echo "     $label EXIT=$er（RED 必须非 0）log=$OUT/p8-red-$label.txt"
+    [ "$er" != "0" ] || { echo "   FAIL：$label 未变红 ⇒ 判据对这类破坏不敏感（假绿）"; FAILS=$((FAILS + 1)); }
+    return $er
+  }
+  F_RSH=com/miaokatze/gtsr/common/dimension/prosperity/ruins/ruin/RuinShapes.java
+  F_RPL=com/miaokatze/gtsr/common/dimension/prosperity/ruins/ruin/RuinPlacer.java
+  F_RDO=com/miaokatze/gtsr/common/dimension/prosperity/ruins/ruin/RuinDamageOps.java
+  # R1：把本族的 opt-in 损毁位改回 false ⇒ A9「ruin 条目 allowsDamagedVariant = true」必须变红
+  p8red R1_OPTIN_OFF 's|^                    true));|                    false));|' \
+    "$F_RPL" RuinFamilyCheck fast
+  # R2：派生盐失效（换盐不变形）⇒ B2 盐敏感必须变红
+  p8red R2_SALT_DEAD 's|cellSeed(salt,|cellSeed(0L,|' \
+    "$F_RDO" RuinFamilyCheck fast
+  # R3：micro 调制整条链失效（强度恒中性）⇒ E4d/E5 的行为差必须变红
+  p8red R3_MICRO_DEAD 's|return Config.prosperityRuinMicroModulation ? raw : 1.0F;|return 1.0F;|' \
+    "$F_RPL" RuinFamilyCheck fast
+  # R4：opt-in 守卫被摘（false 也照样算缺失率）⇒ G1「恒 0」必须变红
+  p8red R4_GUARD_GONE 's|^            return 0;$|            return 20;|' \
+    "$F_RDO" RuinFamilyCheck fast
+  rm -rf "$P8RED" "$P8REDCLS" "$OUT/p8-red-tools"
+  run "RuinFamilyCheck fast（P8 RED 后工作树复位 GREEN）" RuinFamilyCheck fast
+
 fi
 
 echo "== SUMMARY =="
 if [ "$FAILS" = "0" ]; then
-  echo "P2/P3/P4/P5/P6/P7/P7c SURFACE CHECKS: ALL GREEN"
+  echo "P2/P3/P4/P5/P5b/P6/P7/P7c/P8 SURFACE CHECKS: ALL GREEN"
 else
-  echo "P2/P3/P4/P5/P6/P7/P7c SURFACE CHECKS: $FAILS tool(s)/step(s) FAILED"
+  echo "P2/P3/P4/P5/P5b/P6/P7/P7c/P8 SURFACE CHECKS: $FAILS tool(s)/step(s) FAILED"
 fi
 [ "$FAILS" = "0" ]

@@ -114,6 +114,22 @@ public final class GTSRBiomeAuthority {
          *         <b>不</b>回退 plains（P1 起 plains 回退已删除）
          */
         BiomeGenBase biomeAtChunk(int chunkX, int chunkZ);
+
+        /**
+         * micro 强度层只读出口（<b>P8 新增，plan §5 P8「收口 microStrengthAt 悬空层」</b>）。
+         * <p>
+         * <b>为什么是 default 方法而不是抽象方法</b>：本接口是函数式接口，既有接线方
+         * （{@code GTSRBiomeAuthorityTestBiomeBinds} / {@code tools/dim1/BiomeAllocationCheck:173,250,330}）
+         * 一律用 {@code mgr::biomeAt} 方法引用绑定——再加一个抽象方法会把它们全部编译打断，
+         * 而那些调用点不在本片允许路径内。default 保持单抽象方法 ⇒ 方法引用照常编译，
+         * 未覆写的接线方拿到中性 1.0F（= 不伪造强度，与 {@code microStrengthAt} 的降级口径同源）。
+         * <p>
+         * <b>本方法不参与群系身份</b>（P6 红线）：它只给结构侧（P8 废墟族）做"密度/规模档"调制，
+         * 算法体仍是 {@link GTSRWorldChunkManager#microStrengthAt(int, int)} 那一份，本类不自算。
+         */
+        default float microStrengthAtChunk(final int chunkX, final int chunkZ) {
+            return 1.0F;
+        }
     }
 
     /** 单个名册成员的分配账目。 */
@@ -296,6 +312,23 @@ public final class GTSRBiomeAuthority {
             return new Resolution(null, -1, GTSRBiomeBase.NO_SLOT, null, degraded());
         }
         return of(resolver.biomeAtChunk(x >> 4, z >> 4));
+    }
+
+    /**
+     * micro 强度层只读出口（<b>P8 新增，收口 plan §5 P6 留下的"结构侧消费点 == 0"悬空层</b>）。
+     * <p>
+     * 入参口径与 {@link #ordinalAt(int, int)} 完全一致（<b>块坐标</b>，内部按 chunk 粒度解析），
+     * 因为两者的消费方都在结构侧、拿到的都是 chunk 中心块坐标；实现体仍是
+     * {@link GTSRBiomeAuthority.Source#microStrengthAtChunk(int, int)} 交给的那一份
+     * {@code GTSRWorldChunkManager.microStrengthAt}（L1 不自己算强度）。
+     * <p>
+     * 未绑定 / 接线方未覆写 default ⇒ 返回<b>中性 1.0F</b>（与 {@code microStrengthAt} 的
+     * "未挂 selector 或空表降级时不伪造强度"同一口径）。本方法<b>不参与群系身份</b>，
+     * 也不得被用来推身份（P6 红线：身份只有 {@link #ordinalAt} 一条出口）。
+     */
+    public float microStrengthAt(int x, int z) {
+        final Source resolver = this.source;
+        return resolver == null ? 1.0F : resolver.microStrengthAtChunk(x >> 4, z >> 4);
     }
 
     /** 群系实例 → 身份解析（供已持有实例的消费方使用；同一账本，同一降级口径）。 */

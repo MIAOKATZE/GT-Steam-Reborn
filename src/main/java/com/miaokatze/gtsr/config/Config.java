@@ -68,6 +68,40 @@ public class Config {
     // S-A5 新增消费 = plan §12 修订 7/8，与残缺机器同 chunk 互斥掷骰：先 outpost，命中跳过机器）。
     public static int prosperityOutpostChance = 64;
 
+    // ═════════ P8 城外废墟族（plan §5 P8 / §2.1 L5 / §2.2 H-2·H-3）═════════
+    //
+    // 废墟族 = 由既有结构"破败化"派生出来的<b>破坏结构</b>（无仓室、无控制器、无战利品、无 TE），
+    // 是互斥掷骰链上的<b>第三环</b>：outpost → 残缺机器 → 废墟，且只在<b>前两环都没真实落块</b>时
+    // 才问门，过的是同一份 prosperityStructureBudgetPerChunk 预算 ⇒"在既有预算内挤位"，
+    // 不是叠加密度（实测对照表见 tools/dim1/RuinFamilyCheck 的 DENSITY 行）。
+    //
+    // 【四键的分工】
+    // ① prosperityRuinsEnabled 总开关：关掉后本族<b>一条 roster 都不注册</b>（不只是"不放置"），
+    // 名册 / 展示页 / 机检三条链都读得到"没有 ruin 族"这种形态；
+    // ② prosperityRuinChance 本族 1/N 分母（另有 0 = 禁用位，与机器/outpost 同口径）；
+    // ③ prosperityRuinWindowRepeatCap 本族<b>自己的</b> H-2① 窗重复上限（默认 3，比既有两族的 8 紧：
+    // 废墟 footprint 大，"同一种烂墙一窗里出 8 次"比机器更刺眼）；
+    // ④ prosperityRuinMicroModulation micro 强度层调制开关（P6 悬空层的收口位，见该字段注释）。
+    // 【单一真值】数字只在本类写一次：RuinPlacer/RuinShapes 一律读 Config，roster 的
+    // placementDenominator/windowRepeatCap 传 0 = 跟随族键（与 machine/outpost 同纪律），
+    // 类注释与注册日志只回显字段值、不写数字。
+    public static boolean prosperityRuinsEnabled = true;
+
+    public static int prosperityRuinChance = 48;
+
+    public static int prosperityRuinWindowRepeatCap = 3;
+
+    /**
+     * micro 强度层是否参与本族的<b>密度与规模档</b>调制（plan §5 P8 判据 6：P6 交付的
+     * {@code GTSRWorldChunkManager.microStrengthAt} 至此结构侧消费点一直是 0，是一片悬空层）。
+     * <p>
+     * 开（默认）：{@code P(废墟/chunk) = micro / prosperityRuinChance}，且规模档上界按 micro 放开
+     * （弱 cell 只出小件、强 cell 才出大件）。关：micro 按中性 1.0F 处理 ⇒ 概率恰为 1/N、规模档
+     * 放开到全族，即"链路活着但没有强度调制"。两档都仍然<b>读取</b> micro（出口不因此变成死码）；
+     * 关掉它也不删出口——删出口是另一次收口，由 {@code RuinFamilyCheck} E 组申报当前形态。
+     */
+    public static boolean prosperityRuinMicroModulation = true;
+
     // 繁荣维度古代城存在概率（每个 24×24 chunk cell 的存在掷骰百分比；默认 45，0 = 无城，100 = 全 cell 有城；S4b 消费）。
     public static int prosperityCityChance = 45;
 
@@ -386,6 +420,38 @@ public class Config {
             0,
             100,
             "繁荣维度古代城存在概率（每个 24×24 区块 cell 的存在掷骰百分比，默认 45 = 平均每 500-600 格一座；0 = 无城）");
+
+        // ═════ P8 城外废墟族（三键与本类字段声明严格一致：键名 / 默认值 / 注释口径）═════
+        prosperityRuinsEnabled = configuration.getBoolean(
+            "prosperityRuinsEnabled",
+            Configuration.CATEGORY_GENERAL,
+            prosperityRuinsEnabled,
+            "城外废墟族（P8 破坏结构）总开关（默认开；关闭后本族一条 roster 都不注册、编排器也不问门，" + "城外结构面逐位回到 P5b 终态）");
+
+        prosperityRuinChance = configuration.getInt(
+            "prosperityRuinChance",
+            Configuration.CATEGORY_GENERAL,
+            prosperityRuinChance,
+            0,
+            1000,
+            "繁荣维度城外废墟生成频率分母（平均 1/N 区块 1 座，默认 48；0 = 禁用；" + "互斥掷骰链第三环：outpost → 残缺机器 → 废墟，且与前两环共用每区块结构预算）");
+
+        prosperityRuinWindowRepeatCap = configuration.getInt(
+            "prosperityRuinWindowRepeatCap",
+            Configuration.CATEGORY_GENERAL,
+            prosperityRuinWindowRepeatCap,
+            0,
+            1000,
+            "城外废墟族每 16×16 窗内同一废墟模板允许实际请求的区块数上限（默认 3；0 = 关闭；"
+                + "判定 = PlacementGate.windowRepeatAllows，以命中集为条件、只削重复副本不削首次出现）");
+
+        prosperityRuinMicroModulation = configuration.getBoolean(
+            "prosperityRuinMicroModulation",
+            Configuration.CATEGORY_GENERAL,
+            prosperityRuinMicroModulation,
+            "micro 强度层是否调制城外废墟族的密度与规模档（默认开：P = micro/ruinChance 且弱 cell 不放大件；"
+                + "关 = 一律按中性 1.0F 处理，概率回到 1/N、规模档放开到全族。两档都仍经过 L1 的"
+                + " microStrengthAt 只读出口，关掉的是调制不是接线）");
 
         // ═════ P6 群系带分层与城门（H-1/L6）——键名/默认值/注释与本类字段声明严格一致 ═════
         prosperityBiomeMacroBandChunks = configuration.getInt(

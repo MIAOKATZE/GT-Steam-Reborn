@@ -14,15 +14,19 @@ import com.miaokatze.gtsr.common.dimension.prosperity.ruins.ProsperityOutpostPla
 import com.miaokatze.gtsr.common.dimension.prosperity.ruins.RuinedMachinePlacer;
 import com.miaokatze.gtsr.common.dimension.prosperity.ruins.RuinedMachineShapes;
 import com.miaokatze.gtsr.common.dimension.prosperity.ruins.city.CityVariants;
+import com.miaokatze.gtsr.common.dimension.prosperity.ruins.ruin.RuinPlacer;
+import com.miaokatze.gtsr.common.dimension.prosperity.ruins.ruin.RuinShapes;
+import com.miaokatze.gtsr.common.dimension.prosperity.ruins.ruin.RuinTemplate;
 import com.miaokatze.gtsr.common.dimension.shattered.WorldGenShatteredRuins;
 
 /**
  * P0 资产基线单一真值断言（一次性自检 main，不进 jar，tools/ 惯例）：以
- * {@link StructureRegistry} 为唯一名册真值，调用全部四个 {@code registerVariants()} 后钉死三件事：
+ * {@link StructureRegistry} 为唯一名册真值，调用全部五个 {@code registerVariants()} 后钉死三件事：
  * <ol>
- * <li><b>名集合相等</b>：注册表名集合 == 四类源派生名集合 == {@link #PIN} 的 39 名（① 不只数量相等）；</li>
+ * <li><b>名集合相等</b>：注册表名集合 == 五类源派生名集合 == {@link #PIN} 的
+ * {@link #EXPECTED_TOTAL} 名（① 不只数量相等）；</li>
  * <li><b>逐名 footprint</b>：{@code Entry.footprintX/Z} == 源形状按登记规则算出的 footprint == PIN 值
- * （城/outpost 用 {@code max(sizeX,sizeZ)} 旋转安全口径，机型/husk 用原始 sizeX×sizeZ）；</li>
+ * （城/outpost/<b>废墟</b> 用 {@code max(sizeX,sizeZ)} 旋转安全口径，机型/husk 用原始 sizeX×sizeZ）；</li>
  * <li><b>字符模板 SHA256 逐名钉死</b>：按 {@link #templateSha(Tpl)}
  * 的规范序列化（name|sizeX|sizeY|sizeZ + 自上而下逐行原文，含 {@code '.'} 与尾随空格）取 SHA-256，
  * 与 PIN 常量逐名比对 ⇒ 任何模板字符改动（哪怕一格）都会指名变红。</li>
@@ -30,9 +34,19 @@ import com.miaokatze.gtsr.common.dimension.shattered.WorldGenShatteredRuins;
  * 另有 ④ 敏感度自检（逐名把模板深拷贝改一个字符，断言 SHA 必须变，防「钉死」本身假绿）
  * 与进程内双跑对拍（两次独立派生逐字节一致）证明派生本身确定。
  * <p>
- * <b>期望 39 名的来源不是推定</b>：用户实机日志 {@code plan/log.txt:11452} 打印
+ * <b>39 名的来源不是推定</b>：用户实机日志 {@code plan/log.txt:11452} 打印
  * {@code machines=5 outposts=6} + 37 个 dim78 名，加 2 名 dim79 husk = 39；
  * 与 {@code S8RegistryRosterCheck} 同一名单口径。
+ * <p>
+ * <b>P8：名册 39 → {@value #EXPECTED_TOTAL} 是"增长"，不是 P0 那条"未丢"判据</b>。两者必须分开读：
+ * P0 的"未丢"钉的是名集合三方相等 + 逐名 SHA 与基线相同；本片的旧名册零改动钉的是
+ * <b>旧 39 行的 footprint/SHA 常量逐字节沿用 P0 的钉值、一行都没重钉</b>（{@code --emit} 重钉会
+ * 顺手改掉旧行，故本片只在表尾追加 ruin 行）。PIN 表里任何一条非 ruin 行发生变化都意味着
+ * 旧模板被动过 ⇒ 判据 1 直接红。
+ * <p>
+ * <b>废墟行的 SHA 是"派生产物"的 SHA</b>：{@link RuinShapes#ALL} 的 {@code layers} 是
+ * {@link RuinDamageOps} 的纯函数结果（母体字符盘 + 盐 + 算子序列），类加载期定盘。
+ * 本工具与生产读的是同一份，"派生可复算"由 {@code tools/dim1/RuinFamilyCheck} 单独钉。
  * <p>
  * <b>运行（与 S8 同配方，只需 forge universal jar 满足 {@code IWorldGenerator} 接口链接；
  * 零 MC 类初始化，故不需要 patchedMc/guava/log4j——本类只读纯 Java 形状字段）</b>：
@@ -49,13 +63,24 @@ import com.miaokatze.gtsr.common.dimension.shattered.WorldGenShatteredRuins;
  */
 public class RosterIntegrityCheck {
 
-    /** 期望名数（P0 起钉 39 = 26 城 + 6 outpost + 5 机型 + 2 husk）。 */
-    static final int EXPECTED_TOTAL = 39;
+    /**
+     * 期望名数：P0 基线 39（26 城 + 6 outpost + 5 机型 + 2 husk）+ P8 废墟族
+     * {@link RuinShapes#ALL} 条（8）= <b>47</b>。
+     * <p>
+     * 增长数<b>不写死</b>：这里写成 {@code 39 + RuinShapes.ALL.length}，于是"名册增长了几条"这件事
+     * 只有一个出处（废墟族的模板表本身）。{@link #PIN} 的行数仍单独钉（下面 main 里），
+     * 两者相等才 PASS——把 ALL 加长而忘了重钉 PIN，会红而不是静默通过。
+     */
+    static final int EXPECTED_TOTAL = 39 + RuinShapes.ALL.length;
 
     /**
      * 逐名钉死表：{name, footprintX, footprintZ, templateSha256}。
-     * 由 {@code --emit} 从四类源真实定义派生后钉入（禁止手编形状；改动走重钉 + 双跑）。
+     * 由 {@code --emit} 从五类源真实定义派生后钉入（禁止手编形状；改动走重钉 + 双跑）。
      * 序 = {@link StructureRegistry#names()} 的 TreeMap 字典序。
+     * <p>
+     * <b>P8 增量的边界</b>：下面 47 行里只有 8 条 {@code ruin_*} 是新钉的（表尾由 {@code --emit} 追加），
+     * 其余 39 行与 P0/基线 {@code e02b451} <b>逐字节相同</b>——这是判据 1「旧名册零改动」的机检面，
+     * 由 {@code RuinFamilyCheck} 的 LEGACY 组与本工具的逐名 SHA 比对共同钉住。
      */
     private static final String[][] PIN = {
         { "boiler_frame", "7", "7", "9d6738fda5a6a2218d356fedc09044c9fd0d10ecd1e8a1bfc5241f9b30aacea8" },
@@ -91,6 +116,14 @@ public class RosterIntegrityCheck {
         { "pump_base", "5", "5", "e98ea8012b1ace9e53d63f19e52ffa487b4dea189b6ecc561670f0e712fb15c7" },
         { "pump_house", "7", "7", "1b318d5a4bb61572c939da10624b9e132a09f81b01ee9eb50375bd4b20ee86db" },
         { "rail_platform", "12", "12", "ed4c5067f0beca8f94cc67f48f7fe84dd21e725323f422c239604a1f22792657" },
+        { "ruin_aqueduct_span", "16", "16", "ec744287c321542dd63c429e095edc56917789a97cc8bb86d639b501f615297f" },
+        { "ruin_boiler_lean", "9", "9", "dac0563a9a4c1b4821f4182ce5a267881b397bbe1c436071e79d7f0e90454580" },
+        { "ruin_chimney_fan", "5", "5", "f1e745093461af6fc6e9b5ddf4589f43f06e02083f9fb27d58eac45436314688" },
+        { "ruin_gallery_span", "13", "13", "f8eac8e8ff4e84b377dfed3df8ddf65a78512cc9b6431a5168d1ee8e56a65bf0" },
+        { "ruin_kiln_stump", "8", "8", "e7d84372567c946ffc12168185d91aefb75c9bdfbc29fbd6030bdf8b445c852a" },
+        { "ruin_pump_chip", "5", "5", "1b5e909d26a3c8835be43c62e79b6bffce7f83afc92ea3f3f9e03037bb9ca273" },
+        { "ruin_truss_fan", "16", "16", "6c0980dd906c03e1fd4fd551e4aa4a15c497abd7677aa933be452fe1f5cecb5a" },
+        { "ruin_watch_buried", "7", "7", "f6a72656a6d83d1a6819b4a362255dac28268a471c8e54f34c455ad68df47a03" },
         { "slag_heap", "5", "5", "4a7c7811f132db6f7443d8c14580b2feb15067b77796c4cc3c038ee14cf2e3e4" },
         { "steam_gallery", "13", "3", "77cbe3cbbfc2cdb57bb5d33f0a981a31368d6f078fe22c9425e92846c58cca65" },
         { "tram_depot", "9", "9", "b8664e78ca55e89307c80aa004c59029f6a691cf9fbf8cd081db759712de3412" },
@@ -120,11 +153,15 @@ public class RosterIntegrityCheck {
 
         /** 登记进 StructureRegistry 时的 footprint（与各类 registerVariants 的真实口径一致）。 */
         int fpX() {
-            return "city".equals(group) || "outpost".equals(group) ? Math.max(sizeX, sizeZ) : sizeX;
+            return "city".equals(group) || "outpost".equals(group) || "ruin".equals(group)
+                ? Math.max(sizeX, sizeZ)
+                : sizeX;
         }
 
         int fpZ() {
-            return "city".equals(group) || "outpost".equals(group) ? Math.max(sizeX, sizeZ) : sizeZ;
+            return "city".equals(group) || "outpost".equals(group) || "ruin".equals(group)
+                ? Math.max(sizeX, sizeZ)
+                : sizeZ;
         }
     }
 
@@ -136,6 +173,8 @@ public class RosterIntegrityCheck {
         RuinedMachinePlacer.registerVariants();
         CityVariants.registerVariants();
         ProsperityOutpostPlacer.registerVariants();
+        // P8：废墟族（破坏结构）。注册顺序不参与名册序（TreeMap 字典序），放在这里只为"五源齐全"。
+        RuinPlacer.registerVariants();
         WorldGenShatteredRuins.registerVariants();
 
         final Map<String, Tpl> derived = deriveFromSources();
@@ -222,9 +261,10 @@ public class RosterIntegrityCheck {
         final int shards = countByGroup(derived, "husk");
         System.out.println("ROSTER INTEGRITY PASS: roster=" + shaOk + "/" + EXPECTED_TOTAL
             + " footprint=OK templateSHA=OK double-build=OK canary=" + canary + "/" + EXPECTED_TOTAL);
-        System.out.println("  city=" + countByGroup(derived, "city") + " outpost=" + countByGroup(derived, "outpost")
-            + " machine=" + countByGroup(derived, "machine") + " husk=" + shards
-            + " dim78=" + (EXPECTED_TOTAL - shards));
+        System.out.println(
+            "  city=" + countByGroup(derived, "city") + " outpost=" + countByGroup(derived, "outpost")
+                + " machine=" + countByGroup(derived, "machine") + " ruin=" + countByGroup(derived, "ruin")
+                + " husk=" + shards + " dim78=" + (EXPECTED_TOTAL - shards));
         System.out.println("ROSTER INTEGRITY DONE");
     }
 
@@ -261,6 +301,11 @@ public class RosterIntegrityCheck {
         }
         for (final RuinedMachineShapes.Shape s : RuinedMachineShapes.ALL) {
             put(out, new Tpl(s.name, "machine", s.sizeX, s.sizeY, s.sizeZ, s.layers));
+        }
+        // P8 废墟族：layers 是 RuinDamageOps 的纯函数产物（母体 + 盐 + 算子序列），类加载期已定盘，
+        // 这里读的就是生产放置器读的同一份；"派生可复算"另由 RuinFamilyCheck 的 DERIVE 组钉。
+        for (final RuinTemplate r : RuinShapes.ALL) {
+            put(out, new Tpl(r.name, "ruin", r.sizeX, r.sizeY, r.sizeZ, r.layers));
         }
         put(out, husk(WorldGenShatteredRuins.HUSK_SMALL));
         put(out, husk(WorldGenShatteredRuins.HUSK_TALL));
