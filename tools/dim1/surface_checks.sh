@@ -707,7 +707,7 @@ com/miaokatze/gtsr/config/Config.java"
       -sourcepath "$BASE5" -d "$OUT/p5-base-classes" $P5_SRC >"$OUT/p5-javac-base.log" 2>&1
     echo "COMPILE P5-BASE EXIT=$? ($(grep -ac 'error:' "$OUT/p5-javac-base.log") error)"
     [ "$(grep -ac 'error:' "$OUT/p5-javac-base.log")" = "0" ] \
-      || { echo "   FAIL：P5-BASE 树编译失败（还原清单不完整，摘要对拍会退化成自比）"; FAILS=$((FAILS + 1)); } 
+      || { echo "   FAIL：P5-BASE 树编译失败（还原清单不完整，摘要对拍会退化成自比）"; FAILS=$((FAILS + 1)); }
     # 工具源码同一份，只在 BASE classpath 上重编（证明本工具确实是双树可跑的）
     MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8 \
       -cp "$OUT/p5-base-classes;$CP" -sourcepath "$BASE5;tools/dim1" -d "$OUT/p5-base-tools" \
@@ -847,7 +847,7 @@ com/miaokatze/gtsr/config/Config.java"
       -sourcepath "$BASE6" -d "$OUT/p6-base-classes" $P6_SRC >"$OUT/p6-javac-base.log" 2>&1
     echo "COMPILE P6-BASE EXIT=$? ($(grep -ac 'error:' "$OUT/p6-javac-base.log") error)"
     [ "$(grep -ac 'error:' "$OUT/p6-javac-base.log")" = "0" ] \
-      || { echo "   FAIL：P6-BASE 树编译失败（还原清单不完整，[11a] 的 0 差异会是假绿）"; FAILS=$((FAILS + 1)); } 
+      || { echo "   FAIL：P6-BASE 树编译失败（还原清单不完整，[11a] 的 0 差异会是假绿）"; FAILS=$((FAILS + 1)); }
 
     # [11a] 表层/高度/群系面 512 chunk 逐字节对拍（AFTER 侧三个 P6 键回退到改造前口径）
     MSYS2_ARG_CONV_EXCL='*' java $STD $LOG4J -cp "$OUT/tools;$OUT/p6-base-classes;$CP" \

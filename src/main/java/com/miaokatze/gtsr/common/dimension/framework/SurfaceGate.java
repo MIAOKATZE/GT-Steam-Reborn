@@ -36,7 +36,7 @@ import com.miaokatze.gtsr.main.GTSteamReborn;
  * {@code ReplaceSurfaceRuntimeCheck:401-403} 仍按旧名引用，见 plan §5 P4 允许改动 1/3）。
  * <p>
  * ═══ <b>单一真值表：可落地方块集 + 门通过率实测列</b>（plan §2.1 横切 roster / §5 P4 判据）═══
- * 
+ *
  * <pre>
  * 三个口径（都是<b>列级</b>：每列用生产 findSurfaceY 取顶格方块，再过本谓词）：
  *   A「pristine 自然面」＝L3 表层缝铺完、未经任何 placer 写入；
@@ -66,7 +66,7 @@ import com.miaokatze.gtsr.main.GTSteamReborn;
  * shattered-lands(dim79)   | 4 |shatteredAshTop / SlagTop / GlassTop / TarTop |100.000| —     | 四 top 合计 100.000
  *                          |    |                                              | %     |（dim79 无编排链可跑）
  * </pre>
- * 
+ *
  * <b>缺陷修复的净效应（同 seed 集 A/B 两跑，逐位可复现）</b>：
  * <table border="1">
  * <tr>

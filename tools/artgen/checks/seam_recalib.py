@@ -249,4 +249,3 @@ if __name__ == "__main__":
         raise SystemExit(probe())
     print("未知参数：%s（可用 --probe / --sweep / --inject [--size=N]）" % flags, file=sys.stderr)
     raise SystemExit(3)
-

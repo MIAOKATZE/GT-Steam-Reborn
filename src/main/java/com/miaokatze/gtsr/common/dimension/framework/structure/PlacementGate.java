@@ -46,7 +46,7 @@ import com.miaokatze.gtsr.config.Config;
  * </ol>
  * <p>
  * ═══ 用法（结构侧三步）═══
- * 
+ *
  * <pre>
  * PlacementGate.ChunkGate gate = PlacementGate.beginChunk(SurfaceGate.DIM78, worldSeed, cx, cz); // 编排器每 chunk 一个
  * Permit p = placer 内 gate.request(family, template, placer 的 IntentFn); // 预算/互斥/H-2 两条（含掷骰前置短路）
