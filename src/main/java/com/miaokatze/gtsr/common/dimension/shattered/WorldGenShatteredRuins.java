@@ -8,6 +8,7 @@ import net.minecraft.world.World;
 import net.minecraft.world.chunk.IChunkProvider;
 
 import com.miaokatze.gtsr.common.blocks.BlocksGTSR;
+import com.miaokatze.gtsr.common.dimension.framework.GTSROwnedGenerator;
 import com.miaokatze.gtsr.common.dimension.framework.structure.BlockSink;
 import com.miaokatze.gtsr.common.dimension.framework.structure.ChunkClampedSink;
 import com.miaokatze.gtsr.common.dimension.framework.structure.GTSRWorldgenHash;
@@ -35,7 +36,7 @@ import cpw.mods.fml.common.IWorldGenerator;
  * ——全部写入完整落在当前 populate chunk，ChunkClampedSink 零丢弃。随机从 chunk 确定性哈希派生
  * （02 §0.3 口径，同 RuinedMachinePlacer），禁用 populate 裸 Random。
  */
-public class WorldGenShatteredRuins implements IWorldGenerator {
+public class WorldGenShatteredRuins implements IWorldGenerator, GTSROwnedGenerator {
 
     /** 盐 "shru"（与残缺机器 SALT_MACHINE 同风格隔离随机流）。 */
     private static final long SALT_RUINS = 0x73687275L;

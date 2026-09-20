@@ -4,7 +4,6 @@ import java.util.Random;
 
 import net.minecraft.block.Block;
 import net.minecraft.world.World;
-import net.minecraftforge.common.BiomeDictionary;
 
 import com.miaokatze.gtsr.common.blocks.BlocksGTSR;
 import com.miaokatze.gtsr.common.dimension.framework.GTSRBiomeBase;
@@ -16,7 +15,8 @@ import cpw.mods.fml.relauncher.SideOnly;
  * 锈蚀草原（dim78 群系 180，plan S2 / 02 §1.1 参数表；S-A1 起自然区方块独立化）。
  * <p>
  * 权重 45；top=锈草甸 top/filler=锈草甸 base（独立 Block ID，plan §12 修订 2/4；S-A1 前=
- * prosperitySurface meta0/1）；高度 0.10/0.28；偶雨（温/雨 0.9/0.2，无雪）；
+ * prosperitySurface meta0/1）；高度 0.10/0.28；无雨（R4 全维度禁雨：setDisableRain；
+ * 温/雨 0.9/0.2 保留为生态参数，无雪）；
  * 草色 = 固定锈褐绿 RGB（S-A1 起消费端为草丛/叶 tint 的邻域均值）。
  */
 public class BiomeRustedSteppe extends GTSRBiomeBase {
@@ -31,8 +31,9 @@ public class BiomeRustedSteppe extends GTSRBiomeBase {
     public static final int GRASS_COLOR = 0x8A7B4A;
 
     public BiomeRustedSteppe(int biomeId) {
-        // 偶雨、无雪：温度 0.9 >= 0.2 不落雪，湿度 0.2 = 偶雨
+        // R4 全维度禁雨：温 0.9 / 湿 0.2 保留为生态参数（不落雪），降水由 setDisableRain 关死
         super(biomeId, "Rusted Steppe", new Height(0.10F, 0.28F), 0.9F, 0.2F);
+        this.setDisableRain();
         this.topBlock = BlocksGTSR.prosperitySteppeTop;
         this.field_150604_aj = TOP_META;
         this.fillerBlock = BlocksGTSR.prosperitySteppeBase;
@@ -40,8 +41,8 @@ public class BiomeRustedSteppe extends GTSRBiomeBase {
         this.theBiomeDecorator.treesPerChunk = 0;
         this.theBiomeDecorator.grassPerChunk = 0;
         this.theBiomeDecorator.flowersPerChunk = 0;
-        // plan §1.2 S2：PLAINS + WASTELAND；不调 addSpawnBiome（维度专属群系）
-        BiomeDictionary.registerBiomeType(this, BiomeDictionary.Type.PLAINS, BiomeDictionary.Type.WASTELAND);
+        // R1：不向 BiomeDictionary 登记群系类型——维度专属群系不参与主世界的类型
+        // 检索面（他 mod 据类型查群系表是干涉入口之一）；不调 addSpawnBiome（维度专属群系）
     }
 
     /** 补齐 fillerBlock meta（原版只写 top meta，见 {@link ProsperityBiomes#applyFillerMeta}）。 */

@@ -28,7 +28,8 @@ import com.miaokatze.gtsr.main.GTSteamReborn;
  * 由 {@code GTSRWorldChunkManager} 展开为 per-chunk 选择表；<b>空表不再回退 plains</b>；</li>
  * <li>补齐 fillerBlock meta 写入（{@link #applyFillerMeta}）。</li>
  * </ol>
- * BiomeDictionary 注册与草色覆写在各群系类构造器/方法内自持；不调 addSpawnBiome（维度专属群系）。
+ * 草色覆写在各群系类方法内自持；R1 起不向 BiomeDictionary 登记群系类型、不调 addSpawnBiome
+ * （维度专属群系，不参与主世界检索面）。
  * <p>
  * <b>日志锚点（L8，用户只 grep {@code [GTSR]} 即可分辨三态）</b>：
  * 汇总行 {@code [GTSR] prosperity biomes: allocated=[180->180, ...] degraded=NONE} ——

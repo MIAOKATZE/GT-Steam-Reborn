@@ -4,7 +4,6 @@ import java.util.Random;
 
 import net.minecraft.block.Block;
 import net.minecraft.world.World;
-import net.minecraftforge.common.BiomeDictionary;
 
 import com.miaokatze.gtsr.common.blocks.BlocksGTSR;
 import com.miaokatze.gtsr.common.dimension.framework.GTSRBiomeBase;
@@ -40,8 +39,8 @@ public class BiomeBrassWastes extends GTSRBiomeBase {
         this.theBiomeDecorator.treesPerChunk = 0;
         this.theBiomeDecorator.grassPerChunk = 0;
         this.theBiomeDecorator.flowersPerChunk = 0;
-        // plan §1.2 S2：DESERT + WASTELAND；不调 addSpawnBiome（维度专属群系）
-        BiomeDictionary.registerBiomeType(this, BiomeDictionary.Type.DESERT, BiomeDictionary.Type.WASTELAND);
+        // R1：不向 BiomeDictionary 登记群系类型（维度专属群系不参与主世界类型检索面）；
+        // 不调 addSpawnBiome（维度专属群系）
     }
 
     /** 补齐 fillerBlock meta（原版只写 top meta，见 {@link ProsperityBiomes#applyFillerMeta}）。 */

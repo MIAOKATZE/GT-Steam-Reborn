@@ -6,6 +6,7 @@ import net.minecraft.world.World;
 import net.minecraft.world.chunk.IChunkProvider;
 
 import com.miaokatze.gtsr.common.dimension.framework.GTSRBiomeAuthority;
+import com.miaokatze.gtsr.common.dimension.framework.GTSROwnedGenerator;
 import com.miaokatze.gtsr.common.dimension.framework.SurfaceGate;
 import com.miaokatze.gtsr.common.dimension.framework.structure.BlockSink;
 import com.miaokatze.gtsr.common.dimension.framework.structure.ChunkClampedSink;
@@ -38,7 +39,7 @@ import cpw.mods.fml.common.IWorldGenerator;
  * 机器与散布共用同一 Sink。构造时向 {@link StructureRegistry} 登记 5 机型变体并输出注册证据日志
  * （plan S4a 验收：runServer 日志 grep 锚点）。
  */
-public class ProsperityWorldGenerator implements IWorldGenerator {
+public class ProsperityWorldGenerator implements IWorldGenerator, GTSROwnedGenerator {
 
     /**
      * 群系机器权重表（02 §1.1 结构权重列·残缺机器）：下标 = L1 维内名册下标

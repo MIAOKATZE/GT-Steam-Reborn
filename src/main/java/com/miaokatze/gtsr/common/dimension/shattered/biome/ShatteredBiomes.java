@@ -29,7 +29,8 @@ import com.miaokatze.gtsr.main.GTSteamReborn;
  * 由 {@code GTSRWorldChunkManager} 消费（def 挂 BiomeZoneSelector 空间连贯分区，CommonProxy 接线）；
  * <b>空表不再回退 plains</b>。</li>
  * </ol>
- * BiomeDictionary（END+DEAD+SPOOKY）在各群系构造器内自持；不调 addSpawnBiome（维度专属群系）。
+ * R1 起不向 BiomeDictionary 登记群系类型（原 END+DEAD+SPOOKY 已随维度干涉收口移除）、
+ * 不调 addSpawnBiome（维度专属群系）。
  * <p>
  * <b>日志锚点（L8）</b>：{@code [GTSR] shattered biomes: allocated=[190->190, ...] degraded=NONE}；
  * 三态由 {@code degraded=} 后的 {@code NONE}/{@code SHORT}/{@code EMPTY} 直接分辨

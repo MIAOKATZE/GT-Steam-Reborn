@@ -1,12 +1,12 @@
 package com.miaokatze.gtsr.common.dimension.prosperity.ruins.city;
 
-import com.miaokatze.gtsr.common.dimension.framework.BiomeZoneSelector;
+import java.util.Arrays;
+
+import net.minecraft.world.biome.BiomeGenBase;
+
 import com.miaokatze.gtsr.common.dimension.framework.GTSRBiomeAuthority;
+import com.miaokatze.gtsr.common.dimension.framework.genlayer.GTSRGenLayerChain;
 import com.miaokatze.gtsr.common.dimension.framework.structure.GTSRWorldgenHash;
-import com.miaokatze.gtsr.common.dimension.prosperity.biome.BiomeBrassWastes;
-import com.miaokatze.gtsr.common.dimension.prosperity.biome.BiomeFumaroleSwamp;
-import com.miaokatze.gtsr.common.dimension.prosperity.biome.BiomeGearworkForest;
-import com.miaokatze.gtsr.common.dimension.prosperity.biome.BiomeRustedSteppe;
 import com.miaokatze.gtsr.config.Config;
 
 /**
@@ -25,13 +25,18 @@ import com.miaokatze.gtsr.config.Config;
  * 故 chunk 检索扫描 3×3 cell 邻域（{@link #citiesNear}），渲染/跳过判定统一用
  * {@code |chunk - centerChunk| ≤ radius+1} 窗口（plan §3.4 半径+1 缓冲同口径）。
  * <p>
- * <b>P6 城门（plan §2.1 L6 + §2.2 H-1 + §7.1 U2）</b>：城市只允许出现在<b>锈蚀草原 macro 带</b>。
+ * <b>城门（plan §2.1 L6 + §2.2 H-1 + §7.1 U2；B2 起读链身份面）</b>：城市只允许出现在
+ * <b>锈蚀草原群系身份</b>的 chunk 上。
  * <ul>
- * <li>门条件档由 {@link Config#prosperityCityBiomeGate} 决定（默认 1 = 锚点带；见
- * {@link #cityGateAllows}），带尺度由 {@link Config#prosperityBiomeMacroBandChunks} 决定；</li>
- * <li>身份判定走 {@link BiomeZoneSelector#bandIndex}——与 {@code GTSRWorldChunkManager.biomeAt}
- * （即 L1 {@link GTSRBiomeAuthority} 的绑定源）<b>同一个纯函数、同一张权重表、同一个域分离盐</b>，
- * 故渲染侧与放置侧不可能各说一套；</li>
+ * <li>门条件档由 {@link Config#prosperityCityBiomeGate} 决定（默认 1 = 锚点群系；见
+ * {@link #cityGateAllows}）；P6 时代的 macro 带尺度键（{@code prosperityBiomeMacroBandChunks}）
+ * 自 B2 起不再参与城门（带机制退役，链的空间尺度由 GenLayer zoom 决定）；</li>
+ * <li>身份判定走 {@link #bandIndexAt}——在本地按与 {@code GTSRWorldChunkManager.biomeAt}
+ * <b>完全相同的构造参数</b>（{@code worldSeed ^ def.seedSalt}、L1 名册已配槽 id 的等权表、
+ * chunk 中心块代表点）重建同一条 {@link GTSRGenLayerChain} 粗层，故渲染侧与放置侧不可能
+ * 各说一套（逐位同一性由 {@code tools/dim1/BiomeBandHierarchyCheck} C1 在真实链上钉住）；
+ * 保持本地重建而不是读 manager 实例，是为了守住本类"纯函数、零世界读取"的既有契约
+ * （CityDeterminismCheck 在无任何 manager 绑定的 JVM 里照样自证）；</li>
  * <li><b>禁止</b> {@code world.getBiomeGenForCoords}（plan §2.1 L6：城中心最远跨 8 chunk，读世界会
  * 触发邻 chunk 生成）；本类因此<b>继续保持零世界读取</b>；</li>
  * <li>门<b>只</b>在 {@link #citiesNear} 内生效——渲染（{@code placeCities}）与抑制
@@ -50,23 +55,18 @@ public final class CityPlanner {
 
     /** 城门条件档：关（改造前行为，四带均可出城）。 */
     public static final int GATE_OFF = 0;
-    /** 城门条件档：城盘锚点（中心 chunk）所在 macro 带为锈蚀草原（U2 锁定默认档）。 */
+    /** 城门条件档：城盘锚点（中心 chunk）所在群系身份为锈蚀草原（U2 锁定默认档）。 */
     public static final int GATE_ANCHOR_BAND = 1;
-    /** 城门条件档：城盘（边长 2r+1 方形盘）≥50% chunk 落在锈蚀草原带。 */
+    /** 城门条件档：城盘（边长 2r+1 方形盘）≥50% chunk 落在锈蚀草原身份。 */
     public static final int GATE_DISC_HALF = 2;
-    /** 城门条件档：城盘 100% 落在锈蚀草原带。 */
+    /** 城门条件档：城盘 100% 落在锈蚀草原身份。 */
     public static final int GATE_DISC_ALL = 3;
 
     /**
-     * dim78 群系权重表（macro 带尺度守恒的输入）。
-     * <p>
-     * <b>不新增数值真值</b>：四项分别引用四个群系类自己的 {@code WEIGHT} 常数，顺序与
-     * {@code ProsperityBiomes.init} 的 {@code attachBiome} 挂接顺序、
-     * {@link GTSRBiomeAuthority.BiomeId} 的维内下标完全一致（0=草原）；三处一致性由
-     * {@code tools/dim1/BiomeBandHierarchyCheck} 的 C 组源级断言 + 与真实 def 权重表的逐位对比钉住。
+     * dim78 def.seedSalt（与 {@code CommonProxy} 构造 def 处的字面量 {@code 0x50524F53L} 一致；
+     * 链种子 = {@code worldSeed ^ 此值}，与 {@code GTSRWorldChunkManager} 的种子礼仪同式）。
      */
-    private static final int[] PROSPERITY_BAND_WEIGHTS = { BiomeRustedSteppe.WEIGHT, BiomeGearworkForest.WEIGHT,
-        BiomeBrassWastes.WEIGHT, BiomeFumaroleSwamp.WEIGHT };
+    private static final long PROSPERITY_SEED_SALT = 0x50524F53L;
 
     private CityPlanner() {}
 
@@ -126,24 +126,49 @@ public final class CityPlanner {
     }
 
     /**
-     * 该 chunk 所在 macro 带的群系身份下标（H-1 唯一出口；dim78 权重表/名册下标口径）。
+     * 该 chunk 的群系身份下标（dim78 名册下标口径；B2 起读链身份面，历史名 bandIndexAt 保留）。
      * <p>
-     * 与 {@code GTSRWorldChunkManager.biomeAt} 走同一个 {@link BiomeZoneSelector#bandIndex}：
-     * 同 seed、同 {@link Config#prosperityBiomeMacroBandChunks}、同权重表、同域分离盐
-     * （{@link BiomeZoneSelector#ZONE_SALT_PROSPERITY}）。零世界读取（L6 红线）。
+     * 本地按 {@code GTSRWorldChunkManager.biomeAt} 的同一构造参数重建 {@link GTSRGenLayerChain}
+     * 粗层：种子 = {@code worldSeed ^ def.seedSalt}、入参 = L1 名册<b>已配槽</b>成员的 biome id
+     * 等权表（名册序，与 def 群系表挂接顺序同源）、代表点 = chunk 中心块
+     * {@code (chunkX<<4)+8, (chunkZ<<4)+8}。链是纯函数（同 seed 同坐标恒同值），本地重建与
+     * manager 常驻链逐位同一（BiomeBandHierarchyCheck C1 钉住），且不引入跨线程共享的可变链
+     * 实例（每调用一条短命链，链构造为常数代价）。零世界读取（L6 红线）。
+     *
+     * @return 名册下标 ∈ [0, 4)；{@code -1} = 名册一个都没配槽（EMPTY 降级，无身份面，
+     *         <b>不</b>伪造身份——与 {@code biomeAt} 的 null 口径同源）
      */
     public static int bandIndexAt(long worldSeed, int chunkX, int chunkZ) {
-        return BiomeZoneSelector.bandIndex(
-            worldSeed,
-            chunkX,
-            chunkZ,
-            PROSPERITY_BAND_WEIGHTS.length,
-            PROSPERITY_BAND_WEIGHTS,
-            Config.prosperityBiomeMacroBandChunks,
-            BiomeZoneSelector.ZONE_SALT_PROSPERITY);
+        final GTSRBiomeAuthority authority = GTSRBiomeAuthority.forDimKey(GTSRBiomeAuthority.DIM_KEY_PROSPERITY);
+        final int[] ids = new int[authority.rosterSize()];
+        int kept = 0;
+        for (final GTSRBiomeAuthority.BiomeId key : GTSRBiomeAuthority.BiomeId.values()) {
+            if (!GTSRBiomeAuthority.DIM_KEY_PROSPERITY.equals(key.dimKey())) {
+                continue;
+            }
+            final BiomeGenBase biome = authority.biomeOf(key);
+            if (biome != null) {
+                ids[kept++] = biome.biomeID;
+            }
+        }
+        if (kept == 0) {
+            return -1;
+        }
+        final int id = new GTSRGenLayerChain(worldSeed ^ PROSPERITY_SEED_SALT, Arrays.copyOf(ids, kept))
+            .biomeAtCoarse((chunkX << 4) + 8, (chunkZ << 4) + 8);
+        for (final GTSRBiomeAuthority.BiomeId key : GTSRBiomeAuthority.BiomeId.values()) {
+            if (!GTSRBiomeAuthority.DIM_KEY_PROSPERITY.equals(key.dimKey())) {
+                continue;
+            }
+            final BiomeGenBase biome = authority.biomeOf(key);
+            if (biome != null && biome.biomeID == id) {
+                return key.rosterIndex();
+            }
+        }
+        return -1; // 理论不可达：链输出钳制 ∈ 入参 id 集合（防御，不伪造身份）
     }
 
-    /** 该 chunk 的 macro 带是否为锈蚀草原（门的原子判定）。 */
+    /** 该 chunk 的群系身份是否为锈蚀草原（门的原子判定；链身份面）。 */
     public static boolean steppeBandAt(long worldSeed, int chunkX, int chunkZ) {
         return bandIndexAt(worldSeed, chunkX, chunkZ) == GTSRBiomeAuthority.BiomeId.RUSTED_STEPPE.rosterIndex();
     }
@@ -151,13 +176,14 @@ public final class CityPlanner {
     /**
      * 城门（L6）：候选城是否允许存在。纯函数、零世界读取。
      * <p>
-     * 档由 {@link Config#prosperityCityBiomeGate} 给出（0 关 / 1 锚点带 / 2 城盘 ≥50% / 3 城盘全落带；
-     * 越界值钳到 [0,3]，未知值按最严档 3 处理）。"城盘"取以中心 chunk 为心、半径
+     * 档由 {@link Config#prosperityCityBiomeGate} 给出（0 关 / 1 锚点群系 / 2 城盘 ≥50% / 3 城盘
+     * 全落群系；越界值钳到 [0,3]，未知值按最严档 3 处理）。"城盘"取以中心 chunk 为心、半径
      * {@code getRadiusChunks()} 的方形盘（边长 9..15 chunk，与 {@code CityPlan} 的城界半径同口径），
      * <b>不含</b>缓冲窗外溢（外溢是渲染裁剪口径，不是城的占地）。
      * <p>
-     * 代价提示：档 2/3 每城最多 15×15=225 次带掷骰（每次 O(1) 纯哈希），且只在候选城非空时跑；
-     * 默认档 1 每候选城 1 次。城市数与暴露面积的门档选择见 plan/investigation/p6-*（四张数字表）。
+     * 代价提示：档 2/3 每城最多 15×15=225 次身份采样（每次本地重建一条短命链，常数代价的
+     * 纯哈希族），且只在候选城非空时跑；默认档 1 每候选城 1 次。城市数与暴露面积的门档选择
+     * 见 plan/维度计划/调查取证/Phase1按片报告/p6-*（四张数字表）。
      */
     public static boolean cityGateAllows(long worldSeed, CityPlan plan) {
         if (plan == null) {

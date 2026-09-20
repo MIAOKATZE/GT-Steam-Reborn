@@ -1,6 +1,11 @@
 package com.miaokatze.gtsr.common.dimension.framework;
 
+import java.util.ArrayList;
+import java.util.EnumMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.function.IntConsumer;
 
 import net.minecraft.entity.EntityLiving;
@@ -109,6 +114,15 @@ public abstract class GTSRBiomeBase extends BiomeGenBase {
     private boolean creatureSpawnsApplied;
 
     /**
+     * R1 声明真值账本（防线 4 的一部分）：{@link #addCreatureSpawn}（L7 唯一合法写入口）每写
+     * 一条就登记「类型 → 实体类」。{@code EntityRegistry.addSpawn} 之类第三方注入直接改
+     * {@code super.getSpawnableList} 返回的活列表、不经过本入口，故<b>不进账本</b>——账本即
+     * 「本群系声明过什么」的判别依据（{@link #filterDeclaredSpawns}/{@link #retainDeclaredSpawns}）。
+     * 框架仍不认识任何具体实体类（纯登记，零内容）。
+     */
+    private final Map<EnumCreatureType, Set<Class<?>>> declaredSpawnClasses = new EnumMap<>(EnumCreatureType.class);
+
+    /**
      * 刷怪列表读取（vanilla {@code SpawnerAnimals} / Forge {@code EntityRegistry.addSpawn} /
      * 本仓 {@code GTSRChunkProviderBase.getPossibleCreatures} 的唯一入口）——
      * <b>P9 起在返回前做一次幂等填充</b>，见类注释的延迟理由。
@@ -143,7 +157,70 @@ public abstract class GTSRBiomeBase extends BiomeGenBase {
         if (GTSRBiomeAuthority.identityOf(biome) == null) {
             return declared;
         }
-        return policy.scaleForLocation(biome, creatureType, declared, worldSeed, chunkX, chunkZ);
+        // R1 防线 4：活列表（声明表 + 可能的第三方 EntityRegistry.addSpawn 注入项）先按声明真值
+        // 过滤出<b>副本</b>再交给策略调制——非声明实体类不进入生效表。这也覆盖了
+        // GTSRChunkProviderBase.getPossibleCreatures 的出口（其唯一来源就是本方法）。
+        final List<SpawnListEntry> owned = biome instanceof GTSRBiomeBase
+            ? ((GTSRBiomeBase) biome).filterDeclaredSpawns(creatureType, declared)
+            : declared;
+        if (owned.isEmpty()) {
+            return owned;
+        }
+        return policy.scaleForLocation(biome, creatureType, owned, worldSeed, chunkX, chunkZ);
+    }
+
+    /**
+     * 声明真值过滤（R1 防线 4；只服务 {@link #effectiveSpawnableList} 与
+     * {@code DimensionInterferenceGuard}，返回<b>新副本</b>，不动在册列表）：
+     * 仅保留经 {@link #addCreatureSpawn} 声明过的「类型 × 实体类」条目。
+     * <ul>
+     * <li>活列表与声明完全一致 ⇒ 原实例返回（零分配，行为与过滤前逐位一致）；</li>
+     * <li>有注入项 ⇒ 返回剔除后的新列表（声明表真值不被污染，副本口径）；</li>
+     * <li>声明为空（dim79 四群系 / 生物层关闭 / 未接线）而活列表非空 ⇒ 返回空表
+     * （本群系没有声明任何生物，第三方注入不得生效）。</li>
+     * </ul>
+     */
+    private List<SpawnListEntry> filterDeclaredSpawns(EnumCreatureType creatureType, List<SpawnListEntry> live) {
+        final Set<Class<?>> declared = this.declaredSpawnClasses.get(creatureType);
+        if (declared == null || declared.isEmpty()) {
+            return live.isEmpty() ? live : new ArrayList<>(0);
+        }
+        boolean hasForeign = false;
+        for (final SpawnListEntry entry : live) {
+            if (!declared.contains(entry.entityClass)) {
+                hasForeign = true;
+                break;
+            }
+        }
+        if (!hasForeign) {
+            return live;
+        }
+        final List<SpawnListEntry> out = new ArrayList<>(live.size());
+        for (final SpawnListEntry entry : live) {
+            if (declared.contains(entry.entityClass)) {
+                out.add(entry);
+            }
+        }
+        return out;
+    }
+
+    /**
+     * 就地保留声明条目（R1 防线 3：{@code WorldEvent.PotentialSpawns} 守卫用）：
+     * 从 {@code list}（事件携带的候选表）里移除一切非声明「类型 × 实体类」条目。
+     * 声明为空时清空整表（语义同 {@link #filterDeclaredSpawns} 的空声明分支）。
+     * 先做一次幂等填充（保证惰性注册在读取前完成），再按账本裁决。
+     */
+    public final void retainDeclaredSpawns(EnumCreatureType creatureType, List<SpawnListEntry> list) {
+        if (list == null || list.isEmpty()) {
+            return;
+        }
+        this.applyCreatureSpawnsOnce();
+        final Set<Class<?>> declared = this.declaredSpawnClasses.get(creatureType);
+        if (declared == null || declared.isEmpty()) {
+            list.clear();
+            return;
+        }
+        list.removeIf(entry -> entry == null || !declared.contains(entry.entityClass));
     }
 
     /**
@@ -186,6 +263,13 @@ public abstract class GTSRBiomeBase extends BiomeGenBase {
             return;
         }
         listOf(creatureType).add(new SpawnListEntry(entityClass, weight, minGroup, maxGroup));
+        // R1 声明真值账本：与写列表同一原子动作登记（见 declaredSpawnClasses 注释）
+        Set<Class<?>> declared = this.declaredSpawnClasses.get(creatureType);
+        if (declared == null) {
+            declared = new HashSet<>();
+            this.declaredSpawnClasses.put(creatureType, declared);
+        }
+        declared.add(entityClass);
     }
 
     /** {@code super.getSpawnableList} 的等价私有实现（<b>不</b>经被覆写的公开入口 ⇒ 无自递归）。 */

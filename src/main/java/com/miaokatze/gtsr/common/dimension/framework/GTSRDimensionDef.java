@@ -32,17 +32,6 @@ public class GTSRDimensionDef {
         IChunkProvider create(World world, long seed);
     }
 
-    /**
-     * 群系选择策略（dim78 修复 S-A2）：给定（世界种子，chunk 坐标，群系表长度，权重表）返回
-     * 群系权重表下标 ∈ [0, biomeCount)。实现必须是纯函数（同输入恒同输出，离线可复算——
-     * BiomeZoneCheck 双跑逐字节一致的前提）。{@code null}（默认）= 原 per-chunk 均匀掷骰行为。
-     */
-    @FunctionalInterface
-    public interface BiomeSelector {
-
-        int select(long seed, int chunkX, int chunkZ, int biomeCount, int[] weights);
-    }
-
     private final String key;
     private final String englishName;
     private final long seedSalt;
@@ -55,9 +44,6 @@ public class GTSRDimensionDef {
     /** 群系表（S1 为空；S2/S6a 经 {@link #addBiome} 填充，与权重表按下标一一对应）。 */
     private final List<BiomeGenBase> biomeTable = new ArrayList<>();
     private final List<Integer> biomeWeights = new ArrayList<>();
-
-    /** 可选群系选择策略（S-A2；null = 原 per-chunk 均匀掷骰行为，注册前经 {@link #setBiomeSelector} 接线）。 */
-    private BiomeSelector biomeSelector;
 
     /** 注册解析结果；-1 = 禁用/未注册（DimensionRegistrar 冲突检测失败或总开关关闭）。 */
     private int resolvedDimId = -1;
@@ -109,7 +95,12 @@ public class GTSRDimensionDef {
         return this.chunkProviderFactory;
     }
 
-    /** 群系权重表追加（S2/S6a 注册群系时调用；weight >= 1）。 */
+    /**
+     * 群系权重表追加（S2/S6a 注册群系时调用；weight >= 1）。
+     * <p>
+     * <b>B2 起</b>：权重不再进入群系身份（身份 = GenLayer 等权链，见
+     * {@code GTSRWorldChunkManager}）；本表只作为 def 的挂接元数据与其空表判门口径存在。
+     */
     public void addBiome(BiomeGenBase biome, int weight) {
         this.biomeTable.add(biome);
         this.biomeWeights.add(weight);
@@ -119,23 +110,13 @@ public class GTSRDimensionDef {
         return Collections.unmodifiableList(this.biomeTable);
     }
 
-    /** 与 {@link #getBiomeTable()} 下标对应的权重表。 */
+    /** 与 {@link #getBiomeTable()} 下标对应的权重表（B2 起不被身份面消费，仅元数据）。 */
     public int[] getBiomeWeights() {
         int[] weights = new int[this.biomeWeights.size()];
         for (int i = 0; i < weights.length; i++) {
             weights[i] = this.biomeWeights.get(i);
         }
         return weights;
-    }
-
-    /** 可选群系选择策略（null = 原 per-chunk 均匀掷骰行为）。 */
-    public BiomeSelector getBiomeSelector() {
-        return this.biomeSelector;
-    }
-
-    /** 注册前接线群系选择策略（dim78 在 CommonProxy def 构造处挂 {@link BiomeZoneSelector}）。 */
-    public void setBiomeSelector(BiomeSelector biomeSelector) {
-        this.biomeSelector = biomeSelector;
     }
 
     /** 解析后的实际维度 ID；-1 = 禁用。 */

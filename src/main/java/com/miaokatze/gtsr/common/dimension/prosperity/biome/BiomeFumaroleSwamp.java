@@ -4,7 +4,6 @@ import java.util.Random;
 
 import net.minecraft.block.Block;
 import net.minecraft.world.World;
-import net.minecraftforge.common.BiomeDictionary;
 
 import com.miaokatze.gtsr.common.blocks.BlocksGTSR;
 import com.miaokatze.gtsr.common.dimension.framework.GTSRBiomeBase;
@@ -16,7 +15,7 @@ import cpw.mods.fml.relauncher.SideOnly;
  * 起雾沼泽（dim78 群系 183，plan S2 / 02 §1.1 参数表；02 文档旧称"汽雾沼泽"；S-A1 起自然区方块独立化）。
  * <p>
  * 权重 10；top=泥炭沼表土 top/filler=泥炭沼泥 base（独立 Block ID，plan §12 修订 2/4；S-A1 前=
- * prosperitySurface meta3/4）；高度 -0.08/0.16；常雨（温/雨 0.8/0.9，原版 swampland 同款）；
+ * prosperitySurface meta3/4）；高度 -0.08/0.16；无雨（R4 全维度禁雨：温/雨 0.8/0.9 保留为生态参数）；
  * 草色 = 压暗雾浊橄榄固定 RGB（S-A1 与森林旧值脱钩）。终日雾属 Provider 视觉（后续切片），不在群系参数内。
  */
 public class BiomeFumaroleSwamp extends GTSRBiomeBase {
@@ -31,16 +30,17 @@ public class BiomeFumaroleSwamp extends GTSRBiomeBase {
     public static final int GRASS_COLOR = 0x4A5732;
 
     public BiomeFumaroleSwamp(int biomeId) {
-        // 常雨：温 0.8（无雪），湿 0.9
+        // R4 全维度禁雨：温 0.8（无雪），湿 0.9 保留为生态参数，降水由 setDisableRain 关死
         super(biomeId, "Fumarole Swamp", new Height(-0.08F, 0.16F), 0.8F, 0.9F);
+        this.setDisableRain();
         this.topBlock = BlocksGTSR.prosperitySwampTop;
         this.field_150604_aj = TOP_META;
         this.fillerBlock = BlocksGTSR.prosperitySwampBase;
         this.theBiomeDecorator.treesPerChunk = 0;
         this.theBiomeDecorator.grassPerChunk = 0;
         this.theBiomeDecorator.flowersPerChunk = 0;
-        // plan §1.2 S2：SWAMP + WET；不调 addSpawnBiome（维度专属群系）
-        BiomeDictionary.registerBiomeType(this, BiomeDictionary.Type.SWAMP, BiomeDictionary.Type.WET);
+        // R1：不向 BiomeDictionary 登记群系类型（维度专属群系不参与主世界类型检索面）；
+        // 不调 addSpawnBiome（维度专属群系）
     }
 
     /** 补齐 fillerBlock meta（原版只写 top meta，见 {@link ProsperityBiomes#applyFillerMeta}）。 */

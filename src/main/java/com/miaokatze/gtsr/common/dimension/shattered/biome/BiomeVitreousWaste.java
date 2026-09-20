@@ -1,7 +1,5 @@
 package com.miaokatze.gtsr.common.dimension.shattered.biome;
 
-import net.minecraftforge.common.BiomeDictionary;
-
 import com.miaokatze.gtsr.common.blocks.BlocksGTSR;
 import com.miaokatze.gtsr.common.dimension.framework.GTSRBiomeBase;
 
@@ -32,8 +30,7 @@ public class BiomeVitreousWaste extends GTSRBiomeBase {
         this.theBiomeDecorator.treesPerChunk = 0;
         this.theBiomeDecorator.grassPerChunk = 0;
         this.theBiomeDecorator.flowersPerChunk = 0;
-        // plan §S6a 承袭：END + DEAD + SPOOKY；不调 addSpawnBiome（维度专属群系）
-        BiomeDictionary
-            .registerBiomeType(this, BiomeDictionary.Type.END, BiomeDictionary.Type.DEAD, BiomeDictionary.Type.SPOOKY);
+        // R1：不向 BiomeDictionary 登记群系类型（维度专属群系不参与主世界类型检索面）；
+        // 不调 addSpawnBiome（维度专属群系）
     }
 }

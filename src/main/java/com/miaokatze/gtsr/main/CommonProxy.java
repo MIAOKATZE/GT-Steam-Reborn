@@ -11,11 +11,12 @@ import com.miaokatze.gtsr.Tags;
 import com.miaokatze.gtsr.common.commands.GTSRCommand;
 import com.miaokatze.gtsr.common.crossmod.ae2.GTSRAE2ExternalStorageHandler;
 import com.miaokatze.gtsr.common.crossmod.waila.GTSRWailaCompat;
-import com.miaokatze.gtsr.common.dimension.framework.BiomeZoneSelector;
+import com.miaokatze.gtsr.common.dimension.framework.DimensionInterferenceGuard;
 import com.miaokatze.gtsr.common.dimension.framework.DimensionRegistrar;
 import com.miaokatze.gtsr.common.dimension.framework.GTSRBiomeAuthority;
 import com.miaokatze.gtsr.common.dimension.framework.GTSRChunkProviderBase;
 import com.miaokatze.gtsr.common.dimension.framework.GTSRDimensionDef;
+import com.miaokatze.gtsr.common.dimension.framework.genlayer.GTSRGenLayerChain;
 import com.miaokatze.gtsr.common.dimension.framework.structure.PlacementGate;
 import com.miaokatze.gtsr.common.dimension.framework.structure.StructureRegistry;
 import com.miaokatze.gtsr.common.dimension.prosperity.ChunkProviderProsperityRuins;
@@ -28,7 +29,6 @@ import com.miaokatze.gtsr.common.dimension.prosperity.entity.GTSRCreatureRoster;
 import com.miaokatze.gtsr.common.dimension.prosperity.ruins.ProsperitySurfaceScatter;
 import com.miaokatze.gtsr.common.dimension.prosperity.ruins.ProsperityWorldGenerator;
 import com.miaokatze.gtsr.common.dimension.shattered.ChunkProviderShatteredGrounds;
-import com.miaokatze.gtsr.common.dimension.shattered.ShatteredWeatherHandler;
 import com.miaokatze.gtsr.common.dimension.shattered.WorldGenShatteredRuins;
 import com.miaokatze.gtsr.common.dimension.shattered.WorldProviderShatteredLands;
 import com.miaokatze.gtsr.common.dimension.shattered.biome.ShatteredBiomes;
@@ -146,19 +146,10 @@ public class CommonProxy {
                 // ChunkProvider = ProsperityTerrainProfile.heightAt 高度场，与古代城同源纯函数）
                 WorldProviderProsperityRuins.class,
                 ChunkProviderProsperityRuins::new);
-            // dim78 修复 S-A2（plan §4 S-A2 + §12 修订第 6 条）：挂空间连贯分区 selector——
-            // zone cell=16 chunk（用户：不要把群系做得太大）+ 边带 12% 邻 cell 过渡碎斑；盐
-            // 0x5A4F4E45（"ZONE"）与其他 cellSeed 用途域分离。selector 为纯函数（零 MC import），
-            // biomeAt 头部优先走之，空表 plains 回退保持；dim79 def 同款挂接（S-B3，盐 +1 域分离）。
-            prosperityDef.setBiomeSelector(
-                (seed, chunkX, chunkZ, biomeCount, weights) -> BiomeZoneSelector.select(
-                    seed,
-                    chunkX,
-                    chunkZ,
-                    biomeCount,
-                    weights,
-                    BiomeZoneSelector.ZONE_CELL_CHUNKS,
-                    0x5A4F4E45L));
+            // B2（GenLayer 迁移收尾）：S-A2 时代的 BiomeZoneSelector 接线（cell 级权重掷骰 + 边带
+            // 12% 碎斑，盐 0x5A4F4E45）已随身份带职责退役——群系身份自 B1 起唯一出口是
+            // GTSRWorldChunkManager 背后的 GTSRGenLayerChain（等权 + Zoom×4 + Smooth），def 不再挂
+            // 任何选择策略； prosperityBiomes.init 的权重挂接仅剩元数据意义。
             ProsperityBiomes.init(prosperityDef);
             final GTSRDimensionDef shatteredDef = new GTSRDimensionDef(
                 "shattered-lands",
@@ -171,18 +162,8 @@ public class CommonProxy {
                 // （ShatteredTerrainProfile.heightAt 高度场，基准 64 / 钳制 36..96，零 MC 纯函数）
                 WorldProviderShatteredLands.class,
                 ChunkProviderShatteredGrounds::new);
-            // dim79 重做 S-B3（plan §5 S-B3）：挂空间连贯分区 selector（S-A2 框架同款，zone cell 同 16）——
-            // 四群系（190..193 权重 40/30/20/10）在 def 注册前挂接；盐 0x5A4F4E46（dim78 ZONE 盐 +1
-            // 域分离，seed 已由 def.seedSalt 分维）。selector 为纯函数（零 MC import），空表 plains 回退保持。
-            shatteredDef.setBiomeSelector(
-                (seed, chunkX, chunkZ, biomeCount, weights) -> BiomeZoneSelector.select(
-                    seed,
-                    chunkX,
-                    chunkZ,
-                    biomeCount,
-                    weights,
-                    BiomeZoneSelector.ZONE_CELL_CHUNKS,
-                    0x5A4F4E46L));
+            // dim79 重做 S-B3 的 selector 挂接（盐 0x5A4F4E46）同随 B2 退役（见上段 dim78 注释）；
+            // dim79 群系身份同样走 GenLayer 链（seed 已由 def.seedSalt 分维域分离）。
             // dim1 S6a → S-B3：四群系（190..193 权重 40/30/20/10）在 def 注册前挂接（BlockLoader 已注册 shattered* 方块）
             ShatteredBiomes.init(shatteredDef);
             DimensionRegistrar.preInitDimensions(prosperityDef, shatteredDef);
@@ -273,8 +254,13 @@ public class CommonProxy {
         // 构造时向 StructureRegistry 登记 2 骨架变体并输出注册证据日志（plan S6b 验收 grep 锚点）。
         GameRegistry.registerWorldGenerator(new WorldGenShatteredRuins(), 1);
 
-        // dim1 S6b：破碎之地强制雷暴 + 附加雷（WorldTickEvent 服务端 dim79 守卫，离开维度不再写入天气）。
-        ShatteredWeatherHandler.register();
+        // R1（维度干涉收口）：事件守卫双 bus 注册（TerrainGen Populate DENY + PotentialSpawns
+        // 声明白名单），dim78/79 之外的维度零触碰。防线的其余三层：GameRegistryMixin（防线 1）、
+        // GTSRChunkProviderBase 不再主动 post Populate Pre/Post（防线 2 前置）、
+        // GTSRBiomeBase.effectiveSpawnableList 声明真值过滤（防线 4）。
+        // R4：dim79 强制雷暴 + 附加雷控制器已按用户裁决移除（留档文字在计划文档；
+        // 全维度禁雨由各群系 setDisableRain 承担）。
+        DimensionInterferenceGuard.register();
 
         // Waila 跨 mod 兼容：外置 isModLoaded 守卫；Waila 缺失时不加载兼容类（详见 GTSRWailaCompat）
         if (Loader.isModLoaded(Mods.Waila.ID)) {
@@ -359,10 +345,14 @@ public class CommonProxy {
 
         private DiagAssembly() {}
 
-        /** 注入进维诊断行的内容段（scatter/structure/creature/textures；roster 在框架核心列）。 */
+        /** 注入进维诊断行的内容段（macro/chain/identity/scatter/structure/creature/textures；roster 在框架核心列）。 */
         public static void install() {
             GTSRChunkProviderBase.setDiagSupplement(
                 dimKey -> "macro=" + macroBandFor(dimKey)
+                    + " chain="
+                    + genChainFor(dimKey)
+                    + " identity="
+                    + identityModeFor(dimKey)
                     + " scatter=["
                     + ProsperitySurfaceScatter.diagSummary()
                     + "]"
@@ -428,6 +418,29 @@ public class CommonProxy {
                 return String.valueOf(Config.shatteredBiomeMacroBandChunks);
             }
             return "NA";
+        }
+
+        /**
+         * B1 GenLayer 链观测列（{@code chain=}）：{@code ZOOM<n>} = 该维名册有已配槽成员
+         * （manager 将以等权 id 数组建链，zoom 次数取 {@link GTSRGenLayerChain#DEFAULT_ZOOM_LEVELS}）；
+         * {@code NA} = 该维不是 dim78/dim79 或名册零配槽（EMPTY，无链）。
+         */
+        private static String genChainFor(String dimKey) {
+            if (!GTSRBiomeAuthority.DIM_KEY_PROSPERITY.equals(dimKey)
+                && !GTSRBiomeAuthority.DIM_KEY_SHATTERED.equals(dimKey)) {
+                return "NA";
+            }
+            return GTSRBiomeAuthority.forDimKey(dimKey)
+                .allocatedCount() > 0 ? "ZOOM" + GTSRGenLayerChain.DEFAULT_ZOOM_LEVELS : "NA";
+        }
+
+        /**
+         * B1 身份面观测列（{@code identity=}）：{@code coarse-center} = chunk 身份取链粗层的
+         * <b>chunk 中心块</b> {@code ((chunkX<<4)+8, (chunkZ<<4)+8)}（B1 定稿口径）；
+         * {@code NA} = 无链维度（与 {@link #genChainFor} 同判）。
+         */
+        private static String identityModeFor(String dimKey) {
+            return "NA".equals(genChainFor(dimKey)) ? "NA" : "coarse-center";
         }
 
         private static String occupantOrDash(GTSRBiomeAuthority authority) {

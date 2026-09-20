@@ -21,7 +21,6 @@ import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.IChunkProvider;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.terraingen.ChunkProviderEvent;
-import net.minecraftforge.event.terraingen.PopulateChunkEvent;
 
 import com.miaokatze.gtsr.common.dimension.framework.structure.GTSRWorldgenHash;
 import com.miaokatze.gtsr.common.dimension.framework.structure.StructureRegistry;
@@ -34,8 +33,9 @@ import cpw.mods.fml.common.eventhandler.Event.Result;
  * <p>
  * provideChunk 主流程：确定性 chunk 种子 → {@link #generateTerrain}（子类钩子）→
  * {@link #replaceBlocksForBiome}（ChunkProviderEvent.ReplaceBiomeBlocks 事件 + L3 表层）→
- * Chunk 组装（biome 数组 + 天空光照）。populate：确定性种子 + PopulateChunkEvent Pre/Post +
- * {@link #onPopulate} 钩子。S1 默认 generateTerrain 生成基岩底 + 石层平台，保证空群系表下
+ * Chunk 组装（biome 数组 + 天空光照）。populate：确定性种子 + {@link #onPopulate} 钩子
+ * （R1 起<b>不再</b>主动投递 PopulateChunkEvent Pre/Post，见 populate 方法注释）。S1 默认
+ * generateTerrain 生成基岩底 + 石层平台，保证空群系表下
  * 维度可运行；S2/S6a 子类覆写为专属噪声地形。
  * <p>
  * <b>P2 起本类是 L3 表层链的唯一实现体</b>（plan §5 P2 / §2.1 L3 / §3.1 更正 1）：
@@ -701,15 +701,13 @@ public class GTSRChunkProviderBase implements IChunkProvider {
         long a = this.rand.nextLong() / 2L * 2L + 1L;
         long b = this.rand.nextLong() / 2L * 2L + 1L;
         this.rand.setSeed(chunkX * a + chunkZ * b ^ this.seed);
-        boolean hasVillage = false;
-
-        MinecraftForge.EVENT_BUS
-            .post(new PopulateChunkEvent.Pre(chunkProvider, this.worldObj, this.rand, chunkX, chunkZ, hasVillage));
-
+        // R1（维度干涉收口）：不再主动投递 PopulateChunkEvent.Pre/Post——这两个事件是第三方
+        // 生成器进入本维的入口（BC 油井订 Post 后回调 TerrainGen.populate；Pre 供礼仪生成器
+        // 感知 populate 窗口）。维度要干净独立，本维 populate 只做自家 onPopulate；
+        // ChunkProviderServer.populate 仍会外层调 GameRegistry.generateWorld（那一层由
+        // GameRegistryMixin 防线 1 过滤）与 TerrainGen 事件（由 DimensionInterferenceGuard
+        // 防线 2 DENY），第三方在两条路径上都被拦下。
         onPopulate(this.rand, chunkX, chunkZ);
-
-        MinecraftForge.EVENT_BUS
-            .post(new PopulateChunkEvent.Post(chunkProvider, this.worldObj, this.rand, chunkX, chunkZ, hasVillage));
 
         BlockFalling.fallInstantly = false;
     }
@@ -778,6 +776,8 @@ public class GTSRChunkProviderBase implements IChunkProvider {
             logCreatureWeightAbsorbedOnce(authority);
             return null;
         }
+        // R1 防线 4：本出口的生效表经 effectiveSpawnableList 内的声明真值过滤
+        // （非 GTSR 声明的实体类不出现），EntityRegistry.addSpawn 注入在此被挡下。
         return GTSRBiomeBase.effectiveSpawnableList(resolved.biome, creatureType, world.getSeed(), x >> 4, z >> 4);
     }
 

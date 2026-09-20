@@ -18,6 +18,7 @@
     "SteamHatchElementOutputBusMixin",
     "StructureCheckerMixin",
     "BaseMetaTileEntityMixin",
+    "GameRegistryMixin",
     "gtnl/SteamMultiMachineBaseGTNLMixin"
   ],
   "client": [],
