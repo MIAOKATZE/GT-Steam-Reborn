@@ -18,6 +18,13 @@ import cpw.mods.fml.relauncher.SideOnly;
  */
 public class BlockRuinDebris extends Block {
 
+    /**
+     * 残骸散点的 <b>meta 唯一真值源</b>（P13b U6 合并：{@code ProsperitySurfaceScatter} 原内联副本
+     * {@code BlockRuinDebrisMeta} 已删并改引本处常量；数值 0/1/2/3 一字未改，对拍证据 =
+     * {@code tools/dim1/surface_checks.sh} [19]）。消费现状：散布层四件 + {@code BlockLoader:56}/
+     * {@code ItemBlockProsperityMeta:39}（META_COUNT）；城内 's' 件走字符盘模板的 meta 数值，不经本组
+     * 常量——两侧同源同值由 {@code CityBlockResolver:56} 的方块映射与 P8 冻结链共同保证。
+     */
     public static final int META_SLEEPER = 0;
     public static final int META_PIPE = 1;
     public static final int META_RIVET_PLATE = 2;

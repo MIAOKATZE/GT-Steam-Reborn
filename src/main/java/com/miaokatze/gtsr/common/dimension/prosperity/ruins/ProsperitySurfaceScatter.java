@@ -11,6 +11,7 @@ import com.miaokatze.gtsr.common.dimension.framework.SurfaceGate;
 import com.miaokatze.gtsr.common.dimension.framework.structure.BlockSink;
 import com.miaokatze.gtsr.common.dimension.framework.structure.GTSRWorldgenHash;
 import com.miaokatze.gtsr.common.dimension.framework.structure.StructureBuilder;
+import com.miaokatze.gtsr.common.dimension.prosperity.block.BlockRuinDebris;
 import com.miaokatze.gtsr.config.Config;
 
 /**
@@ -448,7 +449,7 @@ public final class ProsperitySurfaceScatter {
         if (!world.isAirBlock(x, y, z)) {
             return 0;
         }
-        return builder.setBlock(x, y, z, BlocksGTSR.ruinDebris, BlockRuinDebrisMeta.SLEEPER, BlockSink.FLAG_POPULATE)
+        return builder.setBlock(x, y, z, BlocksGTSR.ruinDebris, BlockRuinDebris.META_SLEEPER, BlockSink.FLAG_POPULATE)
             ? 1
             : 0;
     }
@@ -469,7 +470,8 @@ public final class ProsperitySurfaceScatter {
             if (!world.isAirBlock(wx, y, wz)) {
                 break; // 让行规则：只长在空气里（02 §3.2）
             }
-            if (builder.setBlock(wx, y, wz, BlocksGTSR.ruinDebris, BlockRuinDebrisMeta.PIPE, BlockSink.FLAG_POPULATE)) {
+            if (builder
+                .setBlock(wx, y, wz, BlocksGTSR.ruinDebris, BlockRuinDebris.META_PIPE, BlockSink.FLAG_POPULATE)) {
                 placed++;
             }
         }
@@ -482,7 +484,8 @@ public final class ProsperitySurfaceScatter {
             return 0;
         }
         return builder
-            .setBlock(x, y, z, BlocksGTSR.ruinDebris, BlockRuinDebrisMeta.RIVET_PLATE, BlockSink.FLAG_POPULATE) ? 1 : 0;
+            .setBlock(x, y, z, BlocksGTSR.ruinDebris, BlockRuinDebris.META_RIVET_PLATE, BlockSink.FLAG_POPULATE) ? 1
+                : 0;
     }
 
     /**
@@ -500,7 +503,7 @@ public final class ProsperitySurfaceScatter {
                 break; // 让行规则：只长在空气里
             }
             if (builder
-                .setBlock(x, y + i, z, BlocksGTSR.ruinDebris, BlockRuinDebrisMeta.CHIMNEY, BlockSink.FLAG_POPULATE)) {
+                .setBlock(x, y + i, z, BlocksGTSR.ruinDebris, BlockRuinDebris.META_CHIMNEY, BlockSink.FLAG_POPULATE)) {
                 placed++;
             }
         }
@@ -510,7 +513,7 @@ public final class ProsperitySurfaceScatter {
                 y + placed - 1,
                 z,
                 BlocksGTSR.ruinDebris,
-                BlockRuinDebrisMeta.RIVET_PLATE,
+                BlockRuinDebris.META_RIVET_PLATE,
                 BlockSink.FLAG_POPULATE)) {
                 placed++;
             }
@@ -534,12 +537,11 @@ public final class ProsperitySurfaceScatter {
         return 0;
     }
 
-    /** BlockRuinDebris meta 常量引用（避免反向依赖 S2 方块类名在散布层扩散）。 */
-    private static final class BlockRuinDebrisMeta {
-
-        static final int SLEEPER = 0;
-        static final int PIPE = 1;
-        static final int RIVET_PLATE = 2;
-        static final int CHIMNEY = 3;
-    }
+    // P13b U6 合并登记（原内联私有副本类 SLEEPER/PIPE/RIVET_PLATE/CHIMNEY = 0/1/2/3 已删）：
+    // 四个 meta 真值收敛到唯一真值源 BlockRuinDebris 的 META_SLEEPER / META_PIPE /
+    // META_RIVET_PLATE / META_CHIMNEY（数值逐位相同，合并前后一字未改——证据 =
+    // tools/dim1/surface_checks.sh [19]：512 chunk 逐字节对拍 + 散布 digest BASE/AFTER 对拍，
+    // 本文件为 BASE 还原清单唯一成员）。原注释"避免反向依赖 S2 方块类名"不再成立：
+    // 本类已按 BlocksGTSR.ruinDebris 持有该方块实例，常量本为 public，引用方向与
+    // BlockLoader:56 / ItemBlockProsperityMeta:39 消费 META_COUNT 的既有方向一致，不构成新依赖边。
 }

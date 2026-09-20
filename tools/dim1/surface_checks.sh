@@ -49,6 +49,15 @@
 #                                                  #          BASE 仍含被删成员声明 / AFTER 已净；
 #                                                  #          快档侧 P13 另修 asset 行 echo 粘连并补
 #                                                  #          RosterIntegrity/S8Registry 两条 run 挂点）
+#                                                  #   [19] P13b 尾巴清理：U6 meta 双真值源合并——512 chunk
+#                                                  #         逐字节对拍（BASE=temp/p13b-base 开工前快照
+#                                                  #         a354ef5，含 BASE 编译零 error 硬门槛 + 两面
+#                                                  #         反假绿：BASE 仍含内联副本 BlockRuinDebrisMeta /
+#                                                  #         AFTER 已净且改引 BlockRuinDebris.META_* +
+#                                                  #         8 条声明值跨树对钉）+ [19b] 散布 digest
+#                                                  #         BASE/AFTER 双树逐位对拍（scatter 路径的直达证据）
+#                                                  #         + [19c] U4 SurfaceSpecUnreachableCheck 影子树
+#                                                  #         RED→GREEN（快档 GREEN 挂点在 [2i]）
 #                                                  #   [13] P7c 结构 H-2 语义改判：非本片路径零漂移对拍
 #                                                  #         （BASE=temp/p7c-base 开工前快照）+ CHAIN 硬门槛
 #                                                  #         RED→GREEN + 两条新规则的 4 个单变量 RED
@@ -225,6 +234,7 @@ MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8 \
   tools/dim1/TpdimNearestBiomeCheck.java \
 tools/dim1/StructureViewerExport.java tools/dim1/RosterIntegrityCheck.java \
 tools/dim1/S8RegistryRosterCheck.java tools/dim1/OutpostTemplateCheck.java tools/dim1/CityDeterminismCheck.java \
+tools/dim1/SurfaceSpecUnreachableCheck.java \
   tools/dim1/gregtech/api/GregTechAPI.java \
   >"$OUT/javac-tools.log" 2>&1
 echo "COMPILE tools EXIT=$? ($(grep -ac 'error:' "$OUT/javac-tools.log") error)"
@@ -336,6 +346,15 @@ run "TpdimNearestBiomeCheck empty79（dim79 降级态：名单空/解析 null/81
 run "TpdimNearestBiomeCheck source（判据 1/5：基线路径逐字钉+补全单一真值+diag 反复制钉）" \
   TpdimNearestBiomeCheck source
 echo "   P14 合计 assertions=$(total_assertions TpdimNearestBiomeCheck)"
+
+echo "== [2i] P13b U4 表层 null 回退分支「生产不可达」源级断言（RED→GREEN 影子树在 --parity 的 [19c]） =="
+# 纯 JDK 源码扫描（同 [7] 的 HeightHashSingleSourceCheck 口径：只挂 $OUT/tools，不挂生产 classpath）
+MSYS2_ARG_CONV_EXCL='*' java $STD -cp "$OUT/tools" SurfaceSpecUnreachableCheck src/main/java \
+  >"$OUT/spec-unreachable-green.txt" 2>&1
+esu=$?
+tail -1 "$OUT/spec-unreachable-green.txt" | cut -c1-170
+echo "   EXIT=$esu log=$OUT/spec-unreachable-green.txt"
+[ "$esu" = "0" ] || FAILS=$((FAILS + 1))
 
 echo "== [3] 既有回归（必须保持绿） =="
 run "ReplaceSurfaceRuntimeCheck（46 项，含 null/plains 回退与逐列下标断言；P2b 起 256 格假绿已除）" ReplaceSurfaceRuntimeCheck
@@ -1650,12 +1669,127 @@ com/miaokatze/gtsr/common/dimension/shattered/biome/ShatteredBiomes.java"
     [ "$n13" = "0" ] || { echo "   FAIL：表层/高度/群系面出现漂移（$n13 行）⇒ P13 的「纯删除」主张不成立"; FAILS=$((FAILS + 1)); }
   fi
 
+  # ── [19] P13b U6：G-5 meta 双真值源合并——512 chunk 逐字节对拍 + 散布 digest 直达对拍 ──
+  # 本片生产面只改一处真值来源：ProsperitySurfaceScatter 内联副本 BlockRuinDebrisMeta(0/1/2/3) 删除，
+  # 四件落块改引 BlockRuinDebris.META_*（数值一字未改；BlockRuinDebris 侧只加注释）。
+  # BASE=temp/p13b-base（开工前快照 a354ef5 的散布件副本，还原清单唯一成员）。
+  # 反假绿两面：① BASE 树必须仍含内联副本声明与 4 条内联值；② AFTER 工作树必须已净且改引 META_*。
+  # 另有 8 条"声明值跨树对钉"（内联 4 + 方块侧 4，两侧同为 0/1/2/3 ⇒ 合并前后逐位同值）。
+  # [19b] 是散布路径的<b>直达</b>证据：[19a] 的 SurfaceByteParityDump 只走 provideChunk 链（表层/
+  # 高度/群系面），scatter 属 populate 链不在其输入域——digest= 覆盖每件落块的 (block,x,y,z,meta)
+  # 写入序列（Dim78ScatterDensityCheck 行 651 writeInt），digest 相同 ⇒ meta 消费逐位不变。
+  echo "== [19] P13b U6：512 chunk 逐字节对拍 + 散布 digest 双树对拍（BASE=p13b-base=a354ef5 快照） =="
+  BASE13B=temp/p13b-base/all
+  SNAP13B=temp/p13b-base/src/main/java
+  P13B_SCATTER=com/miaokatze/gtsr/common/dimension/prosperity/ruins/ProsperitySurfaceScatter.java
+  if [ ! -f "$SNAP13B/$P13B_SCATTER" ]; then
+    echo "   FAIL：缺 P13b BASE 快照 $SNAP13B（必须先自建 = 本片第一个写入之前的工作树副本，git a354ef5）"
+    FAILS=$((FAILS + 1))
+  else
+    rm -rf "$BASE13B" "$OUT/p13b-base-classes"
+    mkdir -p "$BASE13B/com" "$OUT/p13b-base-classes"
+    cp -a src/main/java/. "$BASE13B/"
+    cp "$SNAP13B/$P13B_SCATTER" "$BASE13B/$P13B_SCATTER"
+    cmp -s "$BASE13B/$P13B_SCATTER" "src/main/java/$P13B_SCATTER" \
+      && { echo "   FAIL：BASE 还原后与工作树相同（快照已失效）"; FAILS=$((FAILS + 1)); }
+    # 反假绿①：BASE 树仍含内联副本声明 + 4 条内联值（0/1/2/3）
+    p13bog=0
+    grep -aqF "private static final class BlockRuinDebrisMeta" "$BASE13B/$P13B_SCATTER" \
+      || { echo "   FAIL：P13b-BASE 已无内联副本声明 ⇒ 快照不是开工前形态（对拍退化为自比）"; p13bog=1; }
+    for pin in "static final int SLEEPER = 0;" "static final int PIPE = 1;" \
+               "static final int RIVET_PLATE = 2;" "static final int CHIMNEY = 3;"; do
+      grep -aqF "$pin" "$BASE13B/$P13B_SCATTER" \
+        || { echo "   FAIL：P13b-BASE 内联值缺失/被改: $pin"; p13bog=1; }
+    done
+    # 反假绿②：AFTER 工作树内联副本已净，且四件改引方块侧常量
+    grep -qF "BlockRuinDebrisMeta" "src/main/java/$P13B_SCATTER" \
+      && { echo "   FAIL：AFTER 散布件仍引用内联副本 ⇒ 合并未落地"; p13bog=1; }
+    [ "$(grep -acF "BlockRuinDebris.META_" "src/main/java/$P13B_SCATTER")" = "5" ] \
+      || { echo "   FAIL：AFTER 散布件 BlockRuinDebris.META_* 消费点应恰 5 处"; p13bog=1; }
+    # 方块侧唯一真值源在场（BASE/AFTER 同文件——本片对其只加注释，声明值必须原样）
+    for pin in "META_SLEEPER = 0;" "META_PIPE = 1;" "META_RIVET_PLATE = 2;" "META_CHIMNEY = 3;"; do
+      grep -aqF "$pin" "$BASE13B/com/miaokatze/gtsr/common/dimension/prosperity/block/BlockRuinDebris.java" \
+        || { echo "   FAIL：方块侧 meta 声明值缺失/被改: $pin"; p13bog=1; }
+    done
+    [ "$p13bog" = "0" ] && echo "   P13b 反假绿：BASE 内联 0/1/2/3 在场 / AFTER 已净并改引 BlockRuinDebris.META_*×5 / 方块侧 0/1/2/3 跨树同值"
+    P13B_SRC="$(prefix $BASE13B)"
+    MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8 -cp "$CP" \
+      -sourcepath "$BASE13B" -d "$OUT/p13b-base-classes" $P13B_SRC >"$OUT/p13b-javac-base.log" 2>&1
+    echo "COMPILE P13B-BASE EXIT=$? ($(grep -ac 'error:' "$OUT/p13b-javac-base.log") error)"
+    [ "$(grep -ac 'error:' "$OUT/p13b-javac-base.log")" = "0" ] \
+      || { echo "   FAIL：P13b-BASE 树编译失败（还原清单不完整，[19a] 的 0 差异会是假绿）"; FAILS=$((FAILS + 1)); }
+    MSYS2_ARG_CONV_EXCL='*' java $STD $LOG4J -cp "$OUT/tools;$OUT/classes;$CP" \
+      SurfaceByteParityDump 16 >"$OUT/p13b-parity-after.txt" 2>"$OUT/p13b-parity-after.err"
+    MSYS2_ARG_CONV_EXCL='*' java $STD $LOG4J -cp "$OUT/tools;$OUT/p13b-base-classes;$CP" \
+      SurfaceByteParityDump 16 >"$OUT/p13b-parity-base.txt" 2>"$OUT/p13b-parity-base.err"
+    n13b=$(diff "$OUT/p13b-parity-base.txt" "$OUT/p13b-parity-after.txt" | grep -ac "^[<>]")
+    c13b=$(grep -ac "^CHUNK" "$OUT/p13b-parity-after.txt")
+    d78_13b=$(grep -ac "^CHUNK dim=78" "$OUT/p13b-parity-after.txt")
+    d79_13b=$(grep -ac "^CHUNK dim=79" "$OUT/p13b-parity-after.txt")
+    echo "   [19a] 逐字节对拍 chunks=$c13b (dim78=$d78_13b dim79=$d79_13b) diff_lines=$n13b"
+    [ "$n13b" = "0" ] || { echo "   FAIL：表层/高度/群系面出现漂移（$n13b 行）⇒ P13b U6 越界碰了生成链"; FAILS=$((FAILS + 1)); }
+
+    # [19b] 散布 digest 直达对拍（同一份工具源码，只换生产 classpath；skipStructure=1 与 [10] 同纪律，
+    # 两侧 Config 同树同值 ⇒ 无需 rollback 包装；SCAN 行的 digest= 覆盖每件落块 (block,x,y,z,meta)）
+    MSYS2_ARG_CONV_EXCL='*' java $STD $LOG4J -Dgtsr.skipStructure=1 -cp "$OUT/tools;$OUT/classes;$CP" \
+      Dim78ScatterDensityCheck digest 2 2 16 >"$OUT/p13b-digest-after.txt" 2>"$OUT/p13b-digest-after.err"
+    ea13b=$?
+    MSYS2_ARG_CONV_EXCL='*' java $STD $LOG4J -Dgtsr.skipStructure=1 -cp "$OUT/tools;$OUT/p13b-base-classes;$CP" \
+      Dim78ScatterDensityCheck digest 2 2 16 >"$OUT/p13b-digest-base.txt" 2>"$OUT/p13b-digest-base.err"
+    eb13b=$?
+    db13b=$(grep -ao "digest=[0-9a-f]*" "$OUT/p13b-digest-base.txt" | head -1 | cut -d= -f2)
+    da13b=$(grep -ao "digest=[0-9a-f]*" "$OUT/p13b-digest-after.txt" | head -1 | cut -d= -f2)
+    dnd13b=$(grep -ac "^CHUNK\|^SCAN" "$OUT/p13b-digest-after.txt")
+    echo "   [19b] AFTER EXIT=$ea13b BASE EXIT=$eb13b 样本=2seed×2区×16轴 散布 digest：BASE=${db13b:-?} AFTER=${da13b:-?} → $([ -n "$db13b" ] && [ "$db13b" = "$da13b" ] && echo 逐位相同 || echo 不同)（行数=$dnd13b）"
+    [ "$ea13b" = "0" ] && [ "$eb13b" = "0" ] || { echo "   FAIL：散布 digest 两跑有一跑非 0"; FAILS=$((FAILS + 1)); }
+    [ -n "$db13b" ] && [ "$db13b" = "$da13b" ] \
+      || { echo "   FAIL：散布落块序列 digest 不同 ⇒ meta 数值/顺序被移动（U6 硬约束违反）"; FAILS=$((FAILS + 1)); }
+
+    # [19c] U4 断言的影子树单变量 RED→GREEN：<b>整块摘除</b> dim79 provider 的 surfaceSpec 覆写
+    # （@Override+签名+return+右括号 4 行——首版用 sed 改名被摘者，孤儿 @Override 令影子编译
+    # 1 error "does not override"（那是脚本坏，不是 RED），改为删块后影子必须零 error）。
+    echo "== [19c] P13b U4：SurfaceSpecUnreachableCheck 影子树 RED→GREEN =="
+    RED13B=temp/p13b-red-shadow; RED13BCLS=$OUT/p13b-red-classes
+    P13B_RED_SRC=$(echo "$REL" | sed 's|^|temp/p13b-red-shadow/|' | tr '\n' ' ')
+    rm -rf "$RED13B" "$RED13BCLS"; mkdir -p "$RED13BCLS"
+    cp -a src/main/java "$RED13B"
+    python - <<'PY'
+import io
+p = 'temp/p13b-red-shadow/com/miaokatze/gtsr/common/dimension/shattered/ChunkProviderShatteredGrounds.java'
+block = ('    @Override\n'
+         '    protected GTSRChunkProviderBase.SurfaceSpec surfaceSpec() {\n'
+         '        return spec();\n'
+         '    }\n')
+t = io.open(p, encoding='utf-8').read()
+assert t.count(block) == 1, 'surfaceSpec override block not found exactly once'
+io.open(p, 'w', encoding='utf-8', newline='').write(t.replace(block, '', 1))
+print('P13B RED injected: removed surfaceSpec override (dim79 provider)')
+PY
+    MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8 -cp "$CP" \
+      -sourcepath "$RED13B" -d "$RED13BCLS" $P13B_RED_SRC >"$OUT/p13b-red-javac.log" 2>&1
+    if [ $? -ne 0 ]; then echo "   影子树编译失败（不是 RED，是脚本坏了）"; FAILS=$((FAILS + 1)); fi
+    MSYS2_ARG_CONV_EXCL='*' java $STD -cp "$OUT/tools" SurfaceSpecUnreachableCheck "$RED13B" \
+      >"$OUT/p13b-spec-red.txt" 2>&1
+    er13b=$?
+    grep -a "^  FAIL" "$OUT/p13b-spec-red.txt" | head -3 | cut -c1-160 | sed "s/^/     /"
+    tail -1 "$OUT/p13b-spec-red.txt" | cut -c1-160 | sed "s/^/     /"
+    echo "     RED EXIT=$er13b（必须非 0）log=$OUT/p13b-spec-red.txt"
+    [ "$er13b" != "0" ] || { echo "   FAIL：覆写被撤后断言未变红 ⇒ U4 判据不敏感"; FAILS=$((FAILS + 1)); }
+    MSYS2_ARG_CONV_EXCL='*' java $STD -cp "$OUT/tools" SurfaceSpecUnreachableCheck src/main/java \
+      >"$OUT/p13b-spec-green-restore.txt" 2>&1
+    eg13b=$?
+    tail -1 "$OUT/p13b-spec-green-restore.txt" | cut -c1-160 | sed "s/^/     /"
+    echo "     还原 GREEN EXIT=$eg13b log=$OUT/p13b-spec-green-restore.txt"
+    [ "$eg13b" = "0" ] || FAILS=$((FAILS + 1))
+    rm -rf "$RED13B" "$RED13BCLS"
+  fi
+
 fi
 
 echo "== SUMMARY =="
 if [ "$FAILS" = "0" ]; then
-  echo "P2/P3/P4/P5/P5b/P6/P7/P7c/P8/P9/P12/P13/P14 SURFACE CHECKS: ALL GREEN"
+  echo "P2/P3/P4/P5/P5b/P6/P7/P7c/P8/P9/P12/P13/P13b/P14 SURFACE CHECKS: ALL GREEN"
 else
-  echo "P2/P3/P4/P5/P5b/P6/P7/P7c/P8/P9/P12/P13/P14 SURFACE CHECKS: $FAILS tool(s)/step(s) FAILED"
+  echo "P2/P3/P4/P5/P5b/P6/P7/P7c/P8/P9/P12/P13/P13b/P14 SURFACE CHECKS: $FAILS tool(s)/step(s) FAILED"
 fi
 [ "$FAILS" = "0" ]

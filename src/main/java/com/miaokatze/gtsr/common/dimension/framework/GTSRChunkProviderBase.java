@@ -220,6 +220,15 @@ public class GTSRChunkProviderBase implements IChunkProvider {
     /**
      * 本 provider 的 L3 表层规格；返回 {@code null} = 沿用 S1 原版 {@code genTerrainBlocks} 管线
      * （dim78/dim79 的 provider 均已覆写本方法给出声明式规格）。
+     * <p>
+     * <b>P13b U4 登记</b>：{@code null} 回退分支（{@link #replaceBlocksForBiome} 内的
+     * {@code if (spec == null)} → {@link #applyVanillaBiomeTerrain}）在当前生产路径<b>不可达</b>——
+     * 全仓仅有的两个子类（{@code ChunkProviderProsperityRuins} / {@code ChunkProviderShatteredGrounds}）
+     * 都覆写了本方法且返回值非 null。该"不可达"由源级断言
+     * {@code tools/dim1/SurfaceSpecUnreachableCheck}（{@code surface_checks.sh} [2i] 快档 +
+     * [19c] 影子树 RED→GREEN）钉住；<b>若新 provider 不覆写 {@code surfaceSpec()}，就会走到这条
+     * 回退分支</b>，同时让该断言变红——届时必须先裁决（声明 SurfaceSpec 或显式登记豁免）再放行。
+     * 本回退面<b>刻意保留不删</b>（S1 模板契约 + 离线 harness 驱动缝，判据 B 的空表降级门同样生效）。
      */
     protected SurfaceSpec surfaceSpec() {
         return null;
@@ -238,6 +247,8 @@ public class GTSRChunkProviderBase implements IChunkProvider {
         }
         final SurfaceSpec spec = surfaceSpec();
         if (spec == null) {
+            // P13b U4：本分支生产不可达（两个 provider 均覆写 surfaceSpec 且非 null），
+            // 由 tools/dim1/SurfaceSpecUnreachableCheck 钉住；保留理由见 surfaceSpec() 注释。
             applyVanillaBiomeTerrain(chunkX, chunkZ, blocks, metadata, biomes);
             return;
         }
@@ -263,7 +274,11 @@ public class GTSRChunkProviderBase implements IChunkProvider {
         return event.getResult() != Result.DENY;
     }
 
-    /** S1 模板路径（无 {@link SurfaceSpec} 时）：逐列调原版 {@code genTerrainBlocks}。 */
+    /**
+     * S1 模板路径（无 {@link SurfaceSpec} 时）：逐列调原版 {@code genTerrainBlocks}。
+     * 当前生产<b>不可达</b>（{@link #surfaceSpec()} 的 null 回退分支，P13b U4 登记，
+     * 断言 = {@code tools/dim1/SurfaceSpecUnreachableCheck}）；本方法是回退面实现体，刻意保留。
+     */
     private void applyVanillaBiomeTerrain(int chunkX, int chunkZ, Block[] blocks, byte[] metadata,
         BiomeGenBase[] biomes) {
         // 模板路径无维度名册（dimKey=null，不查 L1 账本），但空表降级门同样生效（判据 B）
