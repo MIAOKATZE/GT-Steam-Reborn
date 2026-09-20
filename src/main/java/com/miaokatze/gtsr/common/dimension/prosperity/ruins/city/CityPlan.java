@@ -1,5 +1,6 @@
 package com.miaokatze.gtsr.common.dimension.prosperity.ruins.city;
 
+import com.miaokatze.gtsr.common.dimension.framework.structure.GTSRWorldgenHash;
 import com.miaokatze.gtsr.common.dimension.framework.structure.StructureBuilder;
 
 /**
@@ -10,22 +11,48 @@ import com.miaokatze.gtsr.common.dimension.framework.structure.StructureBuilder;
  * 地块：plot (k,l) 占 u∈[k*16+2, k*16+14]（u = wx - centerX）。plotSeed = cellSeed ^
  * (plotIndex * 0x9E37)（plotIndex = k*1000003+l，k/l 组合编码，plan 公式派生）。
  * <p>
- * 分区（plot 中心距中心 r = max(|k|,|l|)，chunk 口径）：r&lt;2 核心区（civic 池）/
- * 2≤r&lt;5 工业环（halls+infra 池）/ r≥5 边缘废墟环（towers+rubble 池，空地率↑）。
+ * <b>分区（v1.20.34 起沿主街分档）</b>：plot 中心距最近中央大道的曼哈顿距离 md
+ * （md = min(dk,dl)，dk = k≥0 ? k : -1-k，dl 同理；plot 步数口径）：md&lt;2 核心区（civic 池）/
+ * md&lt;4 工业环（halls+infra 池）/ md≥4 边缘废墟环（towers+rubble 池，空地率↑）——档位跟随
+ * 异形轮廓自然弯折（沿主街为骨、远端为缘），替代旧同心方环 max(|k|,|l|)。
  * 地块 roll：空地 25%（核心/工业）或 45%（边缘，"城市消融进荒野"），空地落 rubble 小件。
  * <p>
- * <b>城界（dim78-fix S-A3 异形边界）</b>：城市不再是欧氏圆——边界为 Fourier 径向扰动轮廓
- * r(θ) = radiusBlocks × (1 + Σ_{k=1..3} a_k·cos(kθ + φ_k))（θ = atan2(dv,du)，du/dv 为
- * 至中心偏移；a_k/φ_k 由 cellSeed 经 {@link CityPlanner#mix} 派生，构造期定值）。振幅硬约束
- * Σ|a_k|·radiusBlocks ≤ {@link #MAX_EDGE_PERTURBATION} 格（构造期等比钳制），故最大延伸
- * radiusBlocks+12 ≤ (radius+1)*16 恰在缓冲窗内、reach（radius*16+32）内余 16+ 格。
- * {@link #insideCity(int, int)} 为<b>全城唯一边界判定</b>：plot 圆界（{@link #plotInCircle}）
- * 与街道裁剪（{@link #forEachStreetColumn}）一律委托之——全仓禁止旁路欧氏圆独立实现。
+ * <b>城界（v1.20.34 单城形态异形化：原版村庄式不规则轮廓）</b>：城市不再是近圆盘——边界为
+ * 「各向异性 xy 缩放 ⊗ 三频 Fourier 径向扰动」复合轮廓（同 seed 构造期定值）：
+ * <ol>
+ * <li>各向异性：坐标先旋转到 cellSeed 派生的主轴朝向 ψ，拉长轴除以 (1+w)、压缩轴除以
+ * (1-w)（w ∈ [0.03,0.10]），把圆盘基座扭成椭圆（破坏径向对称）；</li>
+ * <li>Fourier：warp 空间内 r(θ) = R×(1 + a₂cos(2θ+φ₂) + a₃cos(3θ+φ₃) + a₅cos(5θ+φ₅))
+ * ——2/3/5 三频（奇次破上下/左右对称）、相位各自随机；</li>
+ * <li>总预算：世界侧最大延伸 ≤ R×(1+TOT)，TOT ∈ [0.25,0.35]（城半径的 25-35%，随半径
+ * 自适应——4 chunk 城 16-22 格、7 chunk 城 28-39 格；替代旧固定 12 格钳制）。谐波族预算
+ * Σaₖ ≤ (1+TOT)/(1+w)−1 构造期钳定，保证上述包络。</li>
+ * </ol>
+ * {@link #insideCity(int, int)} 仍为<b>全城唯一边界判定</b>：街道裁剪
+ * （{@link #forEachStreetColumn}）与 plot 几何门（{@link #plotInCircle} 的偏置采样）一律
+ * 委托之——全仓禁止旁路独立边界实现（S-A3 红线不变）。
+ * <p>
+ * <b>plot 裁剪（悬突/内凹）</b>：plot 几何门不是光滑的"中心在界内"——采样点沿径向偏移
+ * 一个低频噪声偏置 {@link #plotEdgeBias(int, int)}（±7% 城半径，波长 ≈ 2.7 plot，成簇
+ * 悬突/内凹）后再问 {@link #insideCity(int, int)}，城界附近的地块取舍因此非光滑。
+ * <b>连通性</b>：次街按噪声分段断开（见下），任何因断路而与中央大道失去四邻接连通的
+ * plot 在门内直接剔除（{@link #plotInCircle} = 几何门 ∧ 连通闭包；孤立地块数恒 0）。
+ * <p>
+ * <b>街道分段</b>：两条正交中央大道（过中心、宽 5）永续穿越全城；次街（宽 3）按
+ * 「街线 × 街段」粒度断续——每条街线独立低频噪声（波长 ≈ 3.7 段）过阈值，段开放率约
+ * 70-80%（断开率 10-40% 区间内），交叉格随四邻段任一开放成路口（原版村庄 Road 逐段
+ * 碰撞缩短的分段观感的确定性等价方案；蓝本 build/rfg/minecraft-src MapGenVillage.Road）。
  * <p>
  * <b>渲染协议（plan §3.1）</b>：populate chunk C 时只遍历 footprint 与 C 相交的地块，重算
  * 同一纯函数；{@link PlotVisitor}/{@link StreetVisitor} 回调面向纯几何（本类零 Minecraft
  * 依赖），写入钳制由调用方（ChunkSliceSink+ChunkClampedSink）协议层完成——锚点一次性副作用
- * 不存在（城内无 TE/箱子，纯方块，天然幂等）。
+ * 不存在（城内无 TE/箱子，纯方块，天然幂等）。连通闭包为<b>懒计算纯派生</b>（首次
+ * {@link #plotInCircle} 调用时构建，值只依赖构造期参数，双跑逐字节一致；1.7.10 populate
+ * 单线程，无并发竞争）。
+ * <p>
+ * <b>缓冲窗</b>：{@link #chunkInBuffer} 的 chunk 半径 = radiusChunks + 自适应裕量
+ * （总扰动 35% + plot 偏置 7% + 内容余量折算，4 chunk 城 +3 / 7 chunk 城 +4），保证
+ * 异形轮廓 + 悬突 plot 的全部内容仍在渲染/抑制窗口内（渲染与"城内跳过散布"同口径，plan §3.4）。
  * <p>
  * <b>高度红线</b>：一切落地 y 由消费方经 {@code ProsperityTerrainProfile.heightAt}（同源
  * 纯函数）逐列给出，本类不携带高度、不读方块。
@@ -43,24 +70,53 @@ public final class CityPlan {
 
     private static final long PLOT_SALT_TIER = 0x71E2L; // district roll 分路盐
 
-    /**
-     * 振幅硬约束（格）：Σ|a_k|·radiusBlocks ≤ 12（&lt;16 硬上限，SanityCheck reach =
-     * radius*16+32 余 16+ 格；dim78-fix S-A3）。
-     */
-    public static final double MAX_EDGE_PERTURBATION = 12.0;
-    /** 单谐波振幅候选域下界（radiusBlocks 比例）。 */
-    private static final double EDGE_AMP_MIN = 0.012;
-    /**
-     * 单谐波振幅候选域上界（radiusBlocks 比例）：Σ 候选 ≤ 0.108，7 chunk 城（112 格）未钳
-     * 扰动至多 ≈ 12.1 格 → 构造期等比钳制兜底；4 chunk 城天然在约束内。
-     */
-    private static final double EDGE_AMP_MAX = 0.036;
-    /** a_k 派生盐基（mix(cellSeed, 盐基+k)，k=1..3；与 CityPlanner.planFor 的 1..4 盐分路）。 */
+    // ═══ 城界轮廓常量区（v1.20.34 异形化；集中收口便于二分回退）═══
+
+    /** 轮廓总扰动预算占城半径比例下界（世界侧最大延伸 ≤ R×(1+0.25)）。 */
+    public static final double EDGE_TOT_FRAC_MIN = 0.25;
+    /** 轮廓总扰动预算占城半径比例上界（世界侧最大延伸 ≤ R×(1+0.35)；SanityCheck 对拍口径）。 */
+    public static final double EDGE_TOT_FRAC_MAX = 0.35;
+    /** 各向异性 xy 缩放强度域下界 w（长短轴比下限 ≈ (1+0.03)/(1-0.03) ≈ 1.06）。 */
+    private static final double EDGE_ANISO_MIN = 0.03;
+    /** 各向异性 xy 缩放强度域上界 w（长短轴比上限 ≈ (1+0.10)/(1-0.10) ≈ 1.22）。 */
+    private static final double EDGE_ANISO_MAX = 0.10;
+    /** 谐波族预算填充度下界（族预算 = 上限 × [0.8,1.0]，保证凹凸可辨不塌成圆）。 */
+    private static final double EDGE_HARMONIC_FILL_MIN = 0.80;
+    /** 单谐波原始权重域下界（归一化前；防某频塌零）。 */
+    private static final double EDGE_W_MIN = 0.25;
+    /** 总扰动预算 TOT 派生盐（mix(cellSeed, 盐)）。 */
+    private static final long SALT_EDGE_TOT = 0x707L;
+    /** a_k 派生盐基（mix(cellSeed, 盐基+k)，k=2/3/5；族总量=盐基本身，与 CityPlanner.planFor 的 1..4 盐分路）。 */
     private static final long SALT_EDGE_AMPLITUDE = 0xA1B0L;
-    /** φ_k 派生盐基（mix(cellSeed, 盐基+k)，k=1..3）。 */
+    /** φ_k 派生盐基（mix(cellSeed, 盐基+k)，k=2/3/5）。 */
     private static final long SALT_EDGE_PHASE = 0xC0D0L;
-    /** 2π（φ_k 相位域）。 */
+    /** 各向异性强度 w 派生盐。 */
+    private static final long SALT_EDGE_ANISO = 0xE77L;
+    /** 各向异性主轴朝向 ψ 派生盐。 */
+    private static final long SALT_EDGE_ANISO_ANGLE = 0xFA5EL;
+    /** 2π（相位域）。 */
     private static final double TWO_PI = Math.PI * 2.0;
+
+    // ═══ plot 裁剪 / 街道分段常量区 ═══
+
+    /** plot 级低频边界偏置幅值（城半径比例；悬突/内凹深度 ≈ ±0.07R）。 */
+    public static final double PLOT_EDGE_BIAS_FRAC = 0.07;
+    /** plot 偏置低频噪声频率（1/plot；波长 ≈ 2.7 plot → 悬突成簇非椒盐）。 */
+    private static final double PLOT_NOISE_FREQ = 0.37;
+    /** plot 边界偏置噪声派生盐。 */
+    private static final long SALT_PLOT_EDGE_NOISE = 0xB1A5L;
+    /** 次街段断续噪声频率（段⁻¹；波长 ≈ 3.7 段 → 连 2-4 段、断 1-2 段的观感）。 */
+    public static final double STREET_BREAK_FREQ = 0.27;
+    /**
+     * 次街段断续阈值（valueNoise ∈ [-1,1)；&lt; 阈值 = 该段断开）。t=-0.22 → 断开率均值 ≈ 27%
+     * （分布实测见 CityShapeCheck），多城抽样逐城落在 10-40% 目标区间内且双侧留量。
+     */
+    public static final double STREET_BREAK_THRESHOLD = -0.22;
+    /** 街线断续派生盐基（lineSeed = mix(cellSeed, 盐) ^ 线号×方向乘子）。 */
+    private static final long SALT_STREET_LINE = 0x57EEL;
+    /** 纵/横街线的线号乘子（去相关平行街线）。 */
+    private static final long STREET_LINE_MUL_V = 0x2F13L;
+    private static final long STREET_LINE_MUL_H = 0x5BD1L;
 
     private final long worldSeed;
     private final long cellSeed;
@@ -70,14 +126,35 @@ public final class CityPlan {
     private final int centerX;
     private final int centerZ;
     private final int radiusBlocks;
-    /** k 次谐波振幅（radiusBlocks 比例；构造期钳制后定值）。 */
-    private final double amp1;
+    /** 轮廓总扰动预算（城半径比例，构造期定值 ∈ [0.25,0.35]）。 */
+    private final double edgeTotFrac;
+    /** 各向异性强度 w 与主轴朝向 ψ（构造期定值）。 */
+    private final double anisoW;
+    private final double anisoCos;
+    private final double anisoSin;
+    /** warp 空间拉伸/压缩轴除数（1+w / 1-w，构造期定值）。 */
+    private final double axStretch;
+    private final double azShrink;
+    /** k 次谐波振幅（radiusBlocks 比例；构造期钳定后定值，频次 2/3/5）。 */
     private final double amp2;
     private final double amp3;
+    private final double amp5;
     /** k 次谐波相位（弧度 [0,2π)；构造期定值）。 */
-    private final double phi1;
     private final double phi2;
     private final double phi3;
+    private final double phi5;
+    /** warp 空间边界半径上界 R×(1+Σaₖ)（快速外退用，构造期定值）。 */
+    private final double warpRadiusMax;
+    /** 世界侧最大延伸 R×(1+TOT)（缓冲窗/plot 网格/reach 的共同上界，构造期定值）。 */
+    private final double maxWorldRadius;
+    /** 缓冲窗 chunk 裕量（radiusChunks 之外再加的 chunk 数；构造期定值）。 */
+    private final int bufferMarginChunks;
+    /** plot 边界偏置低频噪声种子（mix(cellSeed, 盐)，构造期定值）。 */
+    private final long plotNoiseSeed;
+    /** 街线断续种子基（mix(cellSeed, 盐)，构造期定值）。 */
+    private final long streetLineSeedBase;
+    /** plot 连通闭包（懒计算；下标 (k+lim)*n+(l+lim)，lim=plotIndexLimit()）。 */
+    private boolean[] plotReachMemo;
 
     CityPlan(long worldSeed, long cellSeed, int centerChunkX, int centerChunkZ, int radiusChunks) {
         this.worldSeed = worldSeed;
@@ -88,23 +165,41 @@ public final class CityPlan {
         this.centerX = centerChunkX * 16 + 8;
         this.centerZ = centerChunkZ * 16 + 8;
         this.radiusBlocks = radiusChunks * 16;
-        // —— 城界 Fourier 参数派生（S-A3）：a_k/φ_k 全由 cellSeed + 盐基+k 决定，纯函数 ——
-        double a1 = EDGE_AMP_MIN
-            + (EDGE_AMP_MAX - EDGE_AMP_MIN) * frac(CityPlanner.mix(cellSeed, SALT_EDGE_AMPLITUDE + 1));
-        double a2 = EDGE_AMP_MIN
-            + (EDGE_AMP_MAX - EDGE_AMP_MIN) * frac(CityPlanner.mix(cellSeed, SALT_EDGE_AMPLITUDE + 2));
-        double a3 = EDGE_AMP_MIN
-            + (EDGE_AMP_MAX - EDGE_AMP_MIN) * frac(CityPlanner.mix(cellSeed, SALT_EDGE_AMPLITUDE + 3));
-        this.phi1 = TWO_PI * frac(CityPlanner.mix(cellSeed, SALT_EDGE_PHASE + 1));
+        // —— 轮廓参数派生（全部 cellSeed + 盐决定，纯函数）——
+        // 总预算 TOT ∈ [0.25,0.35]（城半径 25-35%，随半径自适应）
+        this.edgeTotFrac = EDGE_TOT_FRAC_MIN
+            + (EDGE_TOT_FRAC_MAX - EDGE_TOT_FRAC_MIN) * frac(CityPlanner.mix(cellSeed, SALT_EDGE_TOT));
+        // 各向异性 w ∈ [0.03,0.10]、主轴朝向 ψ ∈ [0,2π)
+        this.anisoW = EDGE_ANISO_MIN
+            + (EDGE_ANISO_MAX - EDGE_ANISO_MIN) * frac(CityPlanner.mix(cellSeed, SALT_EDGE_ANISO));
+        final double psi = TWO_PI * frac(CityPlanner.mix(cellSeed, SALT_EDGE_ANISO_ANGLE));
+        this.anisoCos = Math.cos(psi);
+        this.anisoSin = Math.sin(psi);
+        this.axStretch = 1.0 + this.anisoW;
+        this.azShrink = 1.0 - this.anisoW;
+        // 谐波族预算：Σa ≤ (1+TOT)/(1+w) − 1（warp 空间边界 ×(1+w) ≤ 世界侧 (1+TOT)·R 的构造保证）
+        final double harmCap = (1.0 + this.edgeTotFrac) / this.axStretch - 1.0;
+        final double harmSum = harmCap * (EDGE_HARMONIC_FILL_MIN
+            + (1.0 - EDGE_HARMONIC_FILL_MIN) * frac(CityPlanner.mix(cellSeed, SALT_EDGE_AMPLITUDE)));
+        // 三频原始权重 ∈ [0.25,1.0] → 归一化到族预算（频次 2/3/5：奇次破对称）
+        final double w2 = EDGE_W_MIN + (1.0 - EDGE_W_MIN) * frac(CityPlanner.mix(cellSeed, SALT_EDGE_AMPLITUDE + 2));
+        final double w3 = EDGE_W_MIN + (1.0 - EDGE_W_MIN) * frac(CityPlanner.mix(cellSeed, SALT_EDGE_AMPLITUDE + 3));
+        final double w5 = EDGE_W_MIN + (1.0 - EDGE_W_MIN) * frac(CityPlanner.mix(cellSeed, SALT_EDGE_AMPLITUDE + 5));
+        final double wSum = w2 + w3 + w5;
+        this.amp2 = w2 / wSum * harmSum;
+        this.amp3 = w3 / wSum * harmSum;
+        this.amp5 = w5 / wSum * harmSum;
         this.phi2 = TWO_PI * frac(CityPlanner.mix(cellSeed, SALT_EDGE_PHASE + 2));
         this.phi3 = TWO_PI * frac(CityPlanner.mix(cellSeed, SALT_EDGE_PHASE + 3));
-        // 振幅硬约束钳制（构造期；Σ|a_k|·radiusBlocks ≤ 12 格，超限整族等比缩，保持频谱特征）
-        final double sumAbs = a1 + a2 + a3; // 候选振幅均非负
-        final double maxSum = MAX_EDGE_PERTURBATION / this.radiusBlocks;
-        final double scale = sumAbs > maxSum ? maxSum / sumAbs : 1.0;
-        this.amp1 = a1 * scale;
-        this.amp2 = a2 * scale;
-        this.amp3 = a3 * scale;
+        this.phi5 = TWO_PI * frac(CityPlanner.mix(cellSeed, SALT_EDGE_PHASE + 5));
+        this.warpRadiusMax = this.radiusBlocks * (1.0 + this.amp2 + this.amp3 + this.amp5);
+        this.maxWorldRadius = this.radiusBlocks * (1.0 + this.edgeTotFrac);
+        // 缓冲窗裕量：总扰动上界 35% + plot 偏置 7% 折 chunk + 1 余量（4 chunk 城 +3 / 7 chunk 城 +4）
+        this.bufferMarginChunks = Math.max(
+            1,
+            (int) Math.ceil((EDGE_TOT_FRAC_MAX + PLOT_EDGE_BIAS_FRAC) * this.radiusBlocks / STREET_SPACING) + 1);
+        this.plotNoiseSeed = CityPlanner.mix(cellSeed, SALT_PLOT_EDGE_NOISE);
+        this.streetLineSeedBase = CityPlanner.mix(cellSeed, SALT_STREET_LINE);
     }
 
     /** 长整哈希 → [0,1) 双精度（丢低 11 位取 53 位精度的标准映射）。 */
@@ -140,46 +235,64 @@ public final class CityPlan {
         return this.centerZ;
     }
 
-    /** chunk 是否在城市缓冲窗（半径+1 chunk，plan §3.4；渲染与"城内跳过"同口径）。 */
+    /**
+     * chunk 是否在城市缓冲窗（radiusChunks + 自适应裕量 chunk；渲染与"城内跳过"同口径，
+     * plan §3.4）。裕量按轮廓总扰动上界 + plot 悬突偏置折算，保证异形轮廓全部内容
+     * （街道/plot/footprint 外溢）仍落在窗内。
+     */
     public boolean chunkInBuffer(int chunkX, int chunkZ) {
-        return Math.abs(chunkX - this.centerChunkX) <= this.radiusChunks + 1
-            && Math.abs(chunkZ - this.centerChunkZ) <= this.radiusChunks + 1;
+        return Math.abs(chunkX - this.centerChunkX) <= this.radiusChunks + this.bufferMarginChunks
+            && Math.abs(chunkZ - this.centerChunkZ) <= this.radiusChunks + this.bufferMarginChunks;
     }
 
-    // ═══ 城界（单一判定；dim78-fix S-A3 Fourier 径向扰动）═══
+    // ═══ 城界（单一判定；v1.20.34 各向异性 × 三频 Fourier 复合轮廓）═══
 
     /**
-     * 世界坐标 (wx,wz) 是否落在城界内——<b>全城唯一边界判定</b>（S-A3 红线：plot 圆界与
-     * 街道裁剪一律委托本函数，全仓禁止旁路欧氏圆独立实现）。边界 = Fourier 径向扰动轮廓：
+     * 世界坐标 (wx,wz) 是否落在城界内——<b>全城唯一边界判定</b>（S-A3 红线：街道裁剪与
+     * plot 几何门一律委托本函数，全仓禁止旁路独立边界实现）。边界 =「各向异性 xy 缩放
+     * ⊗ 三频 Fourier 径向扰动」：
      * <p>
-     * {@code r(θ) = radiusBlocks × (1 + Σ_{k=1..3} a_k·cos(k·θ + φ_k))}，θ = atan2(dv,du)
-     * （du/dv = (wx,wz) 至中心偏移）；a_k/φ_k 由 cellSeed 派生（构造期定值），振幅满足硬约束
-     * Σ|a_k|·radiusBlocks ≤ {@value #MAX_EDGE_PERTURBATION} 格（构造期等比钳制），保证最大
-     * 延伸 radiusBlocks+12 在缓冲窗（radius+1 chunk）内、SanityCheck reach（radius*16+32）
-     * 内余 16+ 格，3×3 cell 检索不漏检。
+     * ① (du,dv) 旋转到主轴系 ψ 后，拉长轴 /(1+w)、压缩轴 /(1-w)（warp 进椭圆坐标系）；
+     * ② warp 空间内 r(θ) = R×(1 + a₂cos(2θ+φ₂) + a₃cos(3θ+φ₃) + a₅cos(5θ+φ₅))；
+     * ③ 世界侧最大延伸 ≤ R×(1+TOT)，TOT ∈ [{@value #EDGE_TOT_FRAC_MIN},{@value #EDGE_TOT_FRAC_MAX}]
+     * （谐波族预算构造期钳定 Σaₖ ≤ (1+TOT)/(1+w)−1）。缓冲窗（radiusChunks+裕量）与
+     * {@link #contentReachBlocks()} 均按该包络留量，3×3 cell 检索不漏检。
      */
     public boolean insideCity(int wx, int wz) {
         final double du = wx - this.centerX;
         final double dv = wz - this.centerZ;
-        final double distSq = du * du + dv * dv;
-        // 快速外退：扰动上界 12 格，超出 (radiusBlocks+12)² 必在城外，跳过三角函数
-        final double rOuter = this.radiusBlocks + MAX_EDGE_PERTURBATION;
-        if (distSq >= rOuter * rOuter) {
+        // ① 各向异性 xy 缩放（旋转 + 轴向缩放；构造期定值）
+        final double xu = (du * this.anisoCos + dv * this.anisoSin) / this.axStretch;
+        final double yu = (dv * this.anisoCos - du * this.anisoSin) / this.azShrink;
+        final double distSq = xu * xu + yu * yu;
+        // 快速外退：warp 空间超出边界上界 R×(1+Σaₖ) 必在城外，跳过三角函数
+        if (distSq > this.warpRadiusMax * this.warpRadiusMax) {
             return false;
         }
-        final double theta = Math.atan2(dv, du);
-        final double rBoundary = this.radiusBlocks * (1.0 + this.amp1 * Math.cos(theta + this.phi1)
-            + this.amp2 * Math.cos(2.0 * theta + this.phi2)
-            + this.amp3 * Math.cos(3.0 * theta + this.phi3));
+        // ② 三频 Fourier 径向边界（频次 2/3/5）
+        final double theta = Math.atan2(yu, xu);
+        final double rBoundary = this.radiusBlocks * (1.0 + this.amp2 * Math.cos(2.0 * theta + this.phi2)
+            + this.amp3 * Math.cos(3.0 * theta + this.phi3)
+            + this.amp5 * Math.cos(5.0 * theta + this.phi5));
         return distSq <= rBoundary * rBoundary;
     }
 
-    /** 钳制后总扰动幅值 Σ|a_k|·radiusBlocks（格；≤ {@value #MAX_EDGE_PERTURBATION}，自证用）。 */
+    /** 总扰动包络（格）= TOT×radiusBlocks（≤ {@value #EDGE_TOT_FRAC_MAX}×R，自证用）。 */
     public double edgePerturbationBlocks() {
-        return (Math.abs(this.amp1) + Math.abs(this.amp2) + Math.abs(this.amp3)) * this.radiusBlocks;
+        return this.edgeTotFrac * this.radiusBlocks;
     }
 
-    // ═══ 街道（纯几何）═══
+    /**
+     * 城市内容 reach（格，自中心）：radiusBlocks + 总扰动 + plot 偏置 + 24 内容余量
+     * （plot 半深 + footprint 外溢；SanityCheck 回调坐标上界口径）。
+     */
+    public int contentReachBlocks() {
+        return this.radiusBlocks
+            + (int) Math.ceil(this.maxWorldRadius - this.radiusBlocks + PLOT_EDGE_BIAS_FRAC * this.radiusBlocks)
+            + 24;
+    }
+
+    // ═══ 街道（纯几何；v1.20.34 次街分段断续）═══
 
     /** 普通街带：u ≡ -1/0/+1 (mod 16)。 */
     private static boolean streetBand(int u) {
@@ -187,13 +300,62 @@ public final class CityPlan {
         return m <= 1 || m >= STREET_SPACING - 1;
     }
 
-    /** (wx,wz) 是否街道格（中央大道宽 5，普通街宽 3）。 */
+    /** 街带 u 所属街线号（band 中心 u ≈ line×16；streetBand(u) 为真时才有效）。 */
+    private static int streetLineOf(int u) {
+        return Math.floorDiv(u + 1, STREET_SPACING);
+    }
+
+    /** 街带/plot 带坐标 t 所属段号（plot 行/列口径：t ∈ [n*16+2, n*16+14] → n）。 */
+    private static int segmentOf(int t) {
+        return Math.floorDiv(t - 2, STREET_SPACING);
+    }
+
+    /**
+     * 次街段开放判定（街线 × 街段粒度断续的原子决策；纯函数，公开供离线断言独立重算）。
+     * <p>
+     * 街线 line（u ≈ line×16；line=0 即中央大道所在线）沿街以相邻横街切分成段 index
+     * （= 其服务的 plot 行/列号）。line=0 恒开（大道永续）；其余线各挂独立低频噪声
+     * （波长 ≈ 3.7 段）过 {@value #STREET_BREAK_THRESHOLD} 阈值——同线段成簇开/断
+     * （连 2-4 段、断 1-2 段），平行线互不相关。
+     */
+    public boolean streetSegmentOpen(boolean vertical, int line, int index) {
+        if (line == 0) {
+            return true; // 中央大道
+        }
+        final long lineSeed = this.streetLineSeedBase ^ (line * (vertical ? STREET_LINE_MUL_V : STREET_LINE_MUL_H));
+        return GTSRWorldgenHash.valueNoise(lineSeed, index * STREET_BREAK_FREQ, 0.5) >= STREET_BREAK_THRESHOLD;
+    }
+
+    /** (wx,wz) 是否街道格（中央大道永续；次街按街段断续）。 */
     public boolean onStreet(int wx, int wz) {
         final int u = wx - this.centerX;
         final int v = wz - this.centerZ;
-        final boolean sx = Math.abs(u) <= AVENUE_WIDTH / 2 || streetBand(u);
-        final boolean sz = Math.abs(v) <= AVENUE_WIDTH / 2 || streetBand(v);
-        return sx || sz;
+        if (Math.abs(u) <= AVENUE_WIDTH / 2 || Math.abs(v) <= AVENUE_WIDTH / 2) {
+            return true; // 两条正交主街（中央大道）穿越全城
+        }
+        final boolean bandU = streetBand(u);
+        final boolean bandV = streetBand(v);
+        if (!bandU && !bandV) {
+            return false;
+        }
+        if (bandU) {
+            final int lineU = streetLineOf(u);
+            if (bandV) {
+                // 交叉格：四邻段（纵×2 + 横×2）任一开放即成路口（与连通图的边同口径）
+                if (streetSegmentOpen(true, lineU, streetLineOf(v) - 1)
+                    || streetSegmentOpen(true, lineU, streetLineOf(v))
+                    || streetSegmentOpen(false, streetLineOf(v), lineU - 1)
+                    || streetSegmentOpen(false, streetLineOf(v), lineU)) {
+                    return true;
+                }
+            } else if (streetSegmentOpen(true, lineU, segmentOf(v))) {
+                return true;
+            }
+        }
+        if (bandV && streetSegmentOpen(false, streetLineOf(v), segmentOf(u))) {
+            return true;
+        }
+        return false;
     }
 
     /** 街中线（轨枕嵌位线）：u ≡ 0 (mod 16) 或中央大道中线。 */
@@ -201,7 +363,7 @@ public final class CityPlan {
         return Math.floorMod(u, STREET_SPACING) == 0;
     }
 
-    // ═══ 地块（纯决策）═══
+    // ═══ 地块（纯决策；v1.20.34 偏置几何门 + 连通闭包）═══
 
     /** plotIndex 组合编码（k/l → 单值；plan 公式 plotSeed = cellSeed ^ (plotIndex*0x9E37)）。 */
     private static long plotIndex(int k, int l) {
@@ -213,9 +375,113 @@ public final class CityPlan {
         return this.cellSeed ^ (plotIndex(k, l) * 0x9E37L);
     }
 
-    /** plot (k,l) 中心是否落在城界内（委托 {@link #insideCity(int, int)} 单一判定；S-A3 异形边界，与街道裁剪同口径）。 */
+    /**
+     * plot (k,l) 的低频边界偏置（格，带符号；公开供离线断言独立重算）。
+     * valueNoise（波长 ≈ 2.7 plot）× ±{@value #PLOT_EDGE_BIAS_FRAC}×R —— 正值容忍悬突
+     * （向外探）、负值制造内凹，城界附近地块取舍非光滑且成簇。
+     */
+    public double plotEdgeBias(int k, int l) {
+        return GTSRWorldgenHash.valueNoise(this.plotNoiseSeed, k * PLOT_NOISE_FREQ, l * PLOT_NOISE_FREQ)
+            * PLOT_EDGE_BIAS_FRAC
+            * this.radiusBlocks;
+    }
+
+    /**
+     * plot 网格索引上界（|k|,|l| ≤ 本值；覆盖偏置悬突后全部可能保留的 plot ——
+     * 保留 plot 中心距 ≤ (1+TOT)×R + 偏置上界）。渲染遍历、describe 与断言共用本口径。
+     */
+    public int plotIndexLimit() {
+        return (int) Math.ceil((this.maxWorldRadius + PLOT_EDGE_BIAS_FRAC * this.radiusBlocks) / STREET_SPACING) + 1;
+    }
+
+    /**
+     * plot 几何门：采样点沿径向偏移 bias 格后再问唯一边界函数（悬突/内凹的来源）。
+     * 仍 100% 委托 {@link #insideCity(int, int)}——没有第二套边界公式。
+     */
+    private boolean plotGeometricIn(int k, int l) {
+        final double du = k * STREET_SPACING + 8.0;
+        final double dv = l * STREET_SPACING + 8.0;
+        final double d = Math.sqrt(du * du + dv * dv);
+        if (d < 1e-9) {
+            return true;
+        }
+        final double scale = (d + plotEdgeBias(k, l)) / d;
+        return insideCity(this.centerX + (int) Math.round(du * scale), this.centerZ + (int) Math.round(dv * scale));
+    }
+
+    /** plot (k,l) → (k+1,l) 跨越的纵街段（线 k+1、行 l；大道线 0 恒开）。 */
+    private boolean plotEdgeXOpen(int k, int l) {
+        return k + 1 == 0 || streetSegmentOpen(true, k + 1, l);
+    }
+
+    /** plot (k,l) → (k,l+1) 跨越的横街段（线 l+1、列 k；大道线 0 恒开）。 */
+    private boolean plotEdgeYOpen(int k, int l) {
+        return l + 1 == 0 || streetSegmentOpen(false, l + 1, k);
+    }
+
+    /**
+     * plot (k,l) 是否保留（门 = 几何门 ∧ 连通闭包；S-A3 单一判定纪律的 plot 侧入口）。
+     * <p>
+     * 连通闭包：从大道邻接（k∈{-1,0} 或 l∈{-1,0}）且过几何门的 plot 出发，经<b>开放</b>街段
+     * 四邻接传播——因次街断开而孤立的地块在此直接剔除（孤立地块数恒 0，验收断言钉住）。
+     * 闭包为懒计算纯派生（首次调用构建，值只依赖构造期参数；同 seed 双跑逐字节一致）。
+     */
     public boolean plotInCircle(int k, int l) {
-        return insideCity(this.centerX + k * STREET_SPACING + 8, this.centerZ + l * STREET_SPACING + 8);
+        ensurePlotReach();
+        final int lim = plotIndexLimit();
+        final int n = 2 * lim + 1;
+        final int kk = k + lim;
+        final int ll = l + lim;
+        if (kk < 0 || kk >= n || ll < 0 || ll >= n) {
+            return false; // 网格宇宙之外必不保留（渲染/断言宇宙 = 本网格）
+        }
+        return this.plotReachMemo[kk * n + ll];
+    }
+
+    /** 连通闭包懒构建（BFS；确定性——同 seed 同 cell 任意次构建逐位一致）。 */
+    private void ensurePlotReach() {
+        if (this.plotReachMemo != null) {
+            return;
+        }
+        final int lim = plotIndexLimit();
+        final int n = 2 * lim + 1;
+        final boolean[] reach = new boolean[n * n];
+        // 种子：过几何门 ∧ 大道邻接（大道永续 → 这些 plot 必可达）
+        final int[] queue = new int[n * n];
+        int head = 0;
+        int tail = 0;
+        for (int k = -lim; k <= lim; k++) {
+            for (int l = -lim; l <= lim; l++) {
+                if ((k == -1 || k == 0 || l == -1 || l == 0) && plotGeometricIn(k, l)) {
+                    final int idx = (k + lim) * n + (l + lim);
+                    reach[idx] = true;
+                    queue[tail++] = idx;
+                }
+            }
+        }
+        // 四邻接传播：跨段 = 该方向街段开放 ∧ 邻 plot 过几何门
+        while (head < tail) {
+            final int idx = queue[head++];
+            final int k = idx / n - lim;
+            final int l = idx % n - lim;
+            if (k + 1 <= lim && !reach[idx + n] && plotEdgeXOpen(k, l) && plotGeometricIn(k + 1, l)) {
+                reach[idx + n] = true;
+                queue[tail++] = idx + n;
+            }
+            if (k - 1 >= -lim && !reach[idx - n] && plotEdgeXOpen(k - 1, l) && plotGeometricIn(k - 1, l)) {
+                reach[idx - n] = true;
+                queue[tail++] = idx - n;
+            }
+            if (l + 1 <= lim && !reach[idx + 1] && plotEdgeYOpen(k, l) && plotGeometricIn(k, l + 1)) {
+                reach[idx + 1] = true;
+                queue[tail++] = idx + 1;
+            }
+            if (l - 1 >= -lim && !reach[idx - 1] && plotEdgeYOpen(k, l - 1) && plotGeometricIn(k, l - 1)) {
+                reach[idx - 1] = true;
+                queue[tail++] = idx - 1;
+            }
+        }
+        this.plotReachMemo = reach;
     }
 
     /** plot (k,l) 的世界原点（最小角；u = k*16+2）。 */
@@ -227,10 +493,16 @@ public final class CityPlan {
         return this.centerZ + l * STREET_SPACING + 2;
     }
 
-    /** 分区（plan §3.2：0=核心 / 1=工业环 / 2=边缘废墟环；r = max(|k|,|l|) chunk 口径）。 */
+    /**
+     * 分区（v1.20.34：距最近中央大道的曼哈顿距离分档，跟随异形轮廓；0=核心 / 1=工业环 /
+     * 2=边缘废墟环）。md = min(dk,dl)，dk = k≥0 ? k : -1-k（plot 步数；k∈{-1,0} 邻接
+     * 纵向大道），dl 同理；md&lt;2 / md&lt;4 / ≥4 与旧同心环 &lt;2/&lt;5/≥5 比例感等价。
+     */
     public int districtOf(int k, int l) {
-        final int r = Math.max(Math.abs(k), Math.abs(l));
-        return r < 2 ? 0 : r < 5 ? 1 : 2;
+        final int dk = k >= 0 ? k : -1 - k;
+        final int dl = l >= 0 ? l : -1 - l;
+        final int md = Math.min(dk, dl);
+        return md < 2 ? 0 : md < 4 ? 1 : 2;
     }
 
     /** plot 是否空地（核心/工业 25% / 边缘 45%，plotSeed 哈希）。 */
@@ -295,7 +567,7 @@ public final class CityPlan {
                 final int du = wx - this.centerX;
                 final int dv = wz - this.centerZ;
                 if (!insideCity(wx, wz)) {
-                    continue; // 城界外（街道只在城内；与 plotInCircle 同口径 = insideCity 单一判定）
+                    continue; // 城界外（街道只在城内；与 plot 门同源 = insideCity 单一判定）
                 }
                 if (!onStreet(wx, wz)) {
                     continue;
@@ -317,12 +589,12 @@ public final class CityPlan {
 
     /**
      * 遍历 footprint 与 chunk 相交的地块并回调变体放置参数。
-     * plot 网格 = plot 中心 (k*16+8, l*16+8) 落在城界内（{@link #plotInCircle} 委托
-     * {@link #insideCity(int, int)} 单一判定，与街道裁剪同口径）；bbox 相交 = plot 矩形
-     * （原点扩 footprint 余量 16）与 chunk 矩形相交。
+     * plot 网格 = plot (k,l) 过保留门（{@link #plotInCircle}：偏置几何门 ∧ 连通闭包，
+     * 几何腿委托 {@link #insideCity(int, int)} 单一判定，与街道裁剪同口径）；bbox 相交 =
+     * plot 矩形（原点扩 footprint 余量 16）与 chunk 矩形相交。
      */
     public void forEachPlotInChunk(int chunkX, int chunkZ, PlotVisitor visitor) {
-        final int kLim = this.radiusBlocks / STREET_SPACING + 1;
+        final int kLim = plotIndexLimit();
         final int kMin = -kLim;
         final int kMax = kLim;
         final int minX = chunkX * 16 - 16; // 变体 footprint 外溢余量（最大 16 长）
@@ -336,7 +608,7 @@ public final class CityPlan {
             }
             for (int l = kMin; l <= kMax; l++) {
                 if (!plotInCircle(k, l)) {
-                    continue; // 城界外（plot 中心经 insideCity 单一判定）
+                    continue; // 保留门之外（城界外/悬突反侧/连通剔除）
                 }
                 final int pz = plotOriginZ(l);
                 // plot bbox [px, px+PLOT_DEPTH-1]×[pz, pz+PLOT_DEPTH-1] 外扩 footprint 余量后与 chunk 相交
@@ -362,7 +634,7 @@ public final class CityPlan {
 
     /**
      * 规划描述规范化串（确定性自证用：同 seed 同 cell 两次规划逐字节一致 → 本串相等）。
-     * 覆盖中心/半径/全部 plot 决策（变体/朝向/损伤档）与街道参数。
+     * 覆盖中心/半径/全部保留 plot 决策（变体/朝向/损伤档）与街道参数。
      */
     public String describe() {
         final StringBuilder sb = new StringBuilder(1 << 16);
@@ -377,7 +649,7 @@ public final class CityPlan {
             .append("; radius=")
             .append(this.radiusChunks)
             .append(")\n");
-        final int lim = this.radiusBlocks / STREET_SPACING + 1;
+        final int lim = plotIndexLimit();
         for (int k = -lim; k <= lim; k++) {
             for (int l = -lim; l <= lim; l++) {
                 if (!plotInCircle(k, l)) {
