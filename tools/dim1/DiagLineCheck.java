@@ -5,6 +5,7 @@ import net.minecraft.entity.EnumCreatureType;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.BiomeGenBase;
 
+import com.miaokatze.gtsr.common.dimension.framework.BiomePlaneAccess;
 import com.miaokatze.gtsr.common.dimension.framework.GTSRBiomeAuthority;
 import com.miaokatze.gtsr.common.dimension.framework.GTSRBiomeAuthority.BiomeId;
 import com.miaokatze.gtsr.common.dimension.framework.GTSRChunkProviderBase;
@@ -29,9 +30,10 @@ import com.miaokatze.gtsr.common.dimension.shattered.WorldGenShatteredRuins;
  * 场景：
  * <ol>
  * <li><b>A dim78 正常态</b>：SurfaceHarness 真实装配（recordAllocation×8 + 真 def/manager/bind），
- * 诊断行必须含全部 16 列（dim/def/bound/biomes/allocated/degraded/occupant/surface/
+ * 诊断行必须含全部 17 列（dim/def/bound/plane/biomes/allocated/degraded/occupant/surface/
  * layWhenDegraded/macro/biomeTable/scatter/structure/creature/roster/textures），
- * 且 {@code degraded=NONE surface=laid}；</li>
+ * 且 {@code degraded=NONE surface=laid}；<b>P0（v1.20.33）起 plane 列另做"缺列必红"的反假绿
+ * 自检</b>（把该列从样例行里抹掉后列断言必须变红，否则 {@code contains} 钉是恒真的）；</li>
  * <li><b>B dim79 强制降级态</b>：四名册成员全部 {@code recordNoSlot}（owner 快照带
  * {@code red:} 前缀）+ 空表 def ⇒ {@code degraded=EMPTY surface=not-laid(EMPTY)}；随后
  * ①512 次 emit 尝试 ⇒ 诊断行仍恰 1 行（DIAG_EMITTED 一次性门），②512 chunk 真表层缝生成
@@ -48,9 +50,9 @@ import com.miaokatze.gtsr.common.dimension.shattered.WorldGenShatteredRuins;
 public class DiagLineCheck {
 
     /** 列名申报（判据 1 的"逐项对照"机器面；缺一列即红）。 */
-    private static final String[] COLUMNS = { "dim=", "def=", "bound=", "biomes=[", "allocated=", "degraded=",
-        "occupant=", "surface=", "layWhenDegraded=", "macro=", "biomeTable=", "scatter=[", "structure=[", "creature=[",
-        "roster=", "textures=" };
+    private static final String[] COLUMNS = { "dim=", "def=", "bound=", "plane=", "biomes=[", "allocated=",
+        "degraded=", "occupant=", "surface=", "layWhenDegraded=", "macro=", "biomeTable=", "scatter=[", "structure=[",
+        "creature=[", "roster=", "textures=" };
 
     private static final int ATTEMPTS = 512;
 
@@ -125,6 +127,7 @@ public class DiagLineCheck {
         final String line = GTSRChunkProviderBase.buildEntryDiagLine(78, GTSRBiomeAuthority.DIM_KEY_PROSPERITY, mgr78);
         System.out.println("DIAGLINE78 " + line);
         assertColumns(line, "A");
+        checkPlaneColumn(line, "A");
         check(line.contains("degraded=NONE") && line.contains("surface=laid"), "A 列值错: " + line);
         check(line.contains("roster=47"), "A roster 列应为 47: " + line);
         check(line.contains("allocated=4/4"), "A allocated 列错: " + line);
@@ -169,6 +172,7 @@ public class DiagLineCheck {
         final String line = GTSRChunkProviderBase.buildEntryDiagLine(79, GTSRBiomeAuthority.DIM_KEY_SHATTERED, mgr79);
         System.out.println("DIAGLINE79 " + line);
         assertColumns(line, "B");
+        checkPlaneColumn(line, "B");
         check(line.contains("degraded=EMPTY"), "B degraded 列错: " + line);
         check(line.contains("surface=not-laid(EMPTY)"), "B surface 列错: " + line);
         check(line.contains("allocated=0/4"), "B allocated 列错: " + line);
@@ -221,6 +225,37 @@ public class DiagLineCheck {
         for (final String col : COLUMNS) {
             check(line.contains(col), tag + " 诊断行缺列 " + col + "：line=" + line);
         }
+    }
+
+    /**
+     * P0（v1.20.33）新增的 {@code plane=} 列专属断言（防假绿）：
+     * ①取值只能是 {@code short|byte} 且与 {@code hookPresent()} 同真同假；②行内值必须等于
+     * {@link BiomePlaneAccess#runtimeMode()}（生产同一实现体，不许工具自己拼字符串）；
+     * ③<b>把该列从样例行里抹掉后列断言必须变红</b>——没有这条，"缺列即红"的 {@code contains}
+     * 钉在列名写错时会是恒真的绿。
+     */
+    private static void checkPlaneColumn(String line, String tag) {
+        final String mode = BiomePlaneAccess.runtimeMode();
+        check("short".equals(mode) || "byte".equals(mode), tag + " plane 列取值只能是 short|byte，实得 " + mode);
+        check(("short".equals(mode)) == BiomePlaneAccess.hookPresent(),
+            tag + " runtimeMode 与 hookPresent 脱钩：mode=" + mode + " hookPresent=" + BiomePlaneAccess.hookPresent());
+        check(line.contains("plane=" + mode),
+            tag + " 诊断行 plane 列与 runtimeMode 不一致（期望 plane=" + mode + "）: " + line);
+        final String stripped = line.replaceAll(" plane=[A-Za-z]+", "");
+        check(!stripped.equals(line), tag + " 反假绿前提失败：plane 列抹不掉（列文本形态漂移）: " + line);
+        check(missingColumns(stripped) >= 1,
+            tag + " 反假绿失败：抹掉 plane 列后列断言仍为绿 ⇒ 该列的存在检查恒真（缺列不会变红）");
+    }
+
+    /** COLUMNS 里在行中缺席的列数（0 = 全齐）。 */
+    private static int missingColumns(String line) {
+        int n = 0;
+        for (final String col : COLUMNS) {
+            if (!line.contains(col)) {
+                n++;
+            }
+        }
+        return n;
     }
 
     private static void check(boolean ok, String message) {

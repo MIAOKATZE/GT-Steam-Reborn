@@ -132,6 +132,7 @@ D=src/main/java
 REL="com/miaokatze/gtsr/common/dimension/framework/SurfaceGate.java
 com/miaokatze/gtsr/common/dimension/framework/GTSRBiomeBase.java
 com/miaokatze/gtsr/common/dimension/framework/GTSRBiomeAuthority.java
+com/miaokatze/gtsr/common/dimension/framework/BiomePlaneAccess.java
 com/miaokatze/gtsr/common/dimension/framework/GTSRChunkProviderBase.java
 com/miaokatze/gtsr/common/dimension/framework/GTSRWorldChunkManager.java
 com/miaokatze/gtsr/common/dimension/framework/BiomeZoneSelector.java
@@ -232,6 +233,7 @@ MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8 \
   tools/dim1/CreatureSpawnAuthorityCheck.java \
   tools/dim1/DiagLineCheck.java tools/dim1/StructureChannelCheck.java \
   tools/dim1/TpdimNearestBiomeCheck.java \
+  tools/dim1/BiomePlaneCompatCheck.java \
 tools/dim1/StructureViewerExport.java tools/dim1/RosterIntegrityCheck.java \
 tools/dim1/S8RegistryRosterCheck.java tools/dim1/OutpostTemplateCheck.java tools/dim1/CityDeterminismCheck.java \
 tools/dim1/SurfaceSpecUnreachableCheck.java \
@@ -355,6 +357,27 @@ esu=$?
 tail -1 "$OUT/spec-unreachable-green.txt" | cut -c1-170
 echo "   EXIT=$esu log=$OUT/spec-unreachable-green.txt"
 [ "$esu" = "0" ] || FAILS=$((FAILS + 1))
+
+echo "== [2j] P0（v1.20.33）EndlessIDs 群系平面双通道：short 档 + byte 档（两档分 classpath，缺一条即假绿） =="
+# 通道由运行期 Class.forName 决定 ⇒ 同一 JVM 只能看到一条。short 档挂 $OUT/tools（含替身
+# tools/dim1/com/falsepattern/endlessids/mixin/helpers/ChunkBiomeHook.java，随 -sourcepath 隐式编入）；
+# byte 档必须【不含】 $OUT/tools（否则 hookPresent 恒真、byte-parity 红线永远跑不到），故将本工具与
+# SurfaceHarness 的 class 抄到不含替身的 $OUT/bp-byte 再跑。两档各自硬钉 hookPresent 前提，
+# 挂错 classpath 立刻红。BiomePlaneAccess.java 同步进 REL 编译面（否则 BASE 树靠隐式编译取到的是
+# 当前树副本，AFTER/BASE 的"同一编译面"申报就断了）。
+run "BiomePlaneCompatCheck short（A1 不回绕 / A2 缺席占位 / A3 writeViaHook 真派发 / A4 provideChunk 源文本钉 / A5 非 hook chunk 落回 byte 写 / A5b byte 入口抛错必降级不抛出 / A6 零编译期依赖与通道组成钉 / A7 plane= 列）" \
+  BiomePlaneCompatCheck short
+mkdir -p "$OUT/bp-byte"
+rm -f "$OUT/bp-byte"/*.class
+cp "$OUT/tools/BiomePlaneCompatCheck"*.class "$OUT/tools/SurfaceHarness"*.class "$OUT/bp-byte/" \
+  || echo "   FAIL：抄 byte 档 class 失败（$OUT/bp-byte）"
+MSYS2_ARG_CONV_EXCL='*' java $STD $LOG4J -cp "$OUT/bp-byte;$OUT/classes;$CP" \
+  BiomePlaneCompatCheck byte >"$OUT/BiomePlaneCompatCheck-byte.out" 2>&1
+bpc=$?
+tail -1 "$OUT/BiomePlaneCompatCheck-byte.out" | cut -c1-170
+echo "   EXIT=$bpc log=$OUT/BiomePlaneCompatCheck-byte.out（classpath 故意不含 $OUT/tools ⇒ hookPresent=false）"
+[ "$bpc" = "0" ] || FAILS=$((FAILS + 1))
+echo "   P0 合计 assertions=$(total_assertions BiomePlaneCompatCheck)（short 一档 + byte 一档）"
 
 echo "== [3] 既有回归（必须保持绿） =="
 run "ReplaceSurfaceRuntimeCheck（46 项，含 null/plains 回退与逐列下标断言；P2b 起 256 格假绿已除）" ReplaceSurfaceRuntimeCheck

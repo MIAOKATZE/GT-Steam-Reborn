@@ -576,7 +576,7 @@ public class GTSRChunkProviderBase implements IChunkProvider {
 
     /**
      * 组装进维诊断行（唯一实现体，生产与 {@code tools/dim1/DiagLineCheck} 共用）。
-     * 字段顺序即列名申报顺序：dim / def / bound / biomes / allocated / degraded / occupant /
+     * 字段顺序即列名申报顺序：dim / def / bound / plane / biomes / allocated / degraded / occupant /
      * surface / layWhenDegraded / biomeTable / roster，其后接内容段供给器的 macro/scatter/structure/
      * creature/textures 列。全部取自只读 getter，零副作用；且本方法只引用<b>历代 BASE 快照树都存在</b>
      * 的符号（StructureRegistry.names / WorldChunkManager.getBiomesToSpawnIn / macroBandChunks），
@@ -597,12 +597,10 @@ public class GTSRChunkProviderBase implements IChunkProvider {
             String raw = supplement.apply(dimKey);
             extra = raw == null || raw.isEmpty() ? " extra=empty" : " " + raw;
         }
-        return "[GTSR][diag]" + " dim="
-            + dimId
-            + " def="
-            + dimKey
-            + " bound="
-            + authority.isBound()
+        return "[GTSR][diag]" + " dim=" + dimId + " def=" + dimKey + " bound=" + authority.isBound()
+        // P0：群系平面通道（short = EndlessIDs 群系扩展在场，byte = 原版平面）；取运行时一次性探测值
+            + " plane="
+            + BiomePlaneAccess.runtimeMode()
             + " biomes=["
             + authority.allocationSummary()
             + "]"
@@ -688,7 +686,9 @@ public class GTSRChunkProviderBase implements IChunkProvider {
         replaceBlocksForBiome(chunkX, chunkZ, blocks, metadata, biomes);
 
         Chunk chunk = new Chunk(this.worldObj, blocks, metadata, chunkX, chunkZ);
-        writeBiomePlane(chunk.getBiomeArray(), biomes);
+        // P0（v1.20.33）：群系平面改走 BiomePlaneAccess 双通道——EndlessIDs 的群系扩展在场时
+        // Chunk.getBiomeArray()/setBiomeArray(byte[]) 是被 mixin 取消的崩溃入口，合法通道是 short 平面
+        BiomePlaneAccess.write(chunk, biomes);
         chunk.generateSkylightMap();
         return chunk;
     }
