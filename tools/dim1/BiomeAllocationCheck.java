@@ -23,7 +23,6 @@ import com.miaokatze.gtsr.common.dimension.prosperity.ruins.ProsperityWorldGener
 import com.miaokatze.gtsr.common.dimension.shattered.ChunkProviderShatteredGrounds;
 import com.miaokatze.gtsr.common.dimension.shattered.WorldProviderShatteredLands;
 import com.miaokatze.gtsr.common.dimension.shattered.biome.ShatteredBiomes;
-import com.miaokatze.gtsr.common.dimension.framework.BiomeZoneSelector;
 import com.miaokatze.gtsr.config.Config;
 
 /**
@@ -434,14 +433,12 @@ public class BiomeAllocationCheck {
             "allocate(0,254) yields the first free slot in range, got " + firstFree);
     }
 
-    // ————— def 构造（逐字镜像 CommonProxy 的接线，含 BiomeZoneSelector 盐） —————
+    // ————— def 构造（逐字镜像 CommonProxy 的接线；B2 起无 selector，身份 = 链） —————
 
     private static GTSRDimensionDef prosperityDef() {
         final GTSRDimensionDef def = new GTSRDimensionDef(
             GTSRBiomeAuthority.DIM_KEY_PROSPERITY, "Prosperity Ruins", SEED, 78, 178, () -> true,
             WorldProviderProsperityRuins.class, ChunkProviderProsperityRuins::new);
-        def.setBiomeSelector((seed, chunkX, chunkZ, biomeCount, weights) -> BiomeZoneSelector.select(
-            seed, chunkX, chunkZ, biomeCount, weights, BiomeZoneSelector.ZONE_CELL_CHUNKS, 0x5A4F4E45L));
         return def;
     }
 
@@ -449,8 +446,6 @@ public class BiomeAllocationCheck {
         final GTSRDimensionDef def = new GTSRDimensionDef(
             GTSRBiomeAuthority.DIM_KEY_SHATTERED, "Shattered Lands", 0x53484C53L, 79, 179, () -> true,
             WorldProviderShatteredLands.class, ChunkProviderShatteredGrounds::new);
-        def.setBiomeSelector((seed, chunkX, chunkZ, biomeCount, weights) -> BiomeZoneSelector.select(
-            seed, chunkX, chunkZ, biomeCount, weights, BiomeZoneSelector.ZONE_CELL_CHUNKS, 0x5A4F4E46L));
         return def;
     }
 

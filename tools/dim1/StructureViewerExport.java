@@ -21,7 +21,7 @@ import com.miaokatze.gtsr.common.dimension.prosperity.ruins.ruin.RuinTemplate;
  * dim78 残缺机器 {@link RuinedMachineShapes#ALL}（5，<b>P7 补上，见下</b>）+
  * dim79 破碎残骸 {@code WorldGenShatteredRuins.HUSK_SMALL/HUSK_TALL}（2，反射取形状——
  * HuskRasterPreview 同款单一权威，&lt;clinit&gt; 只构造纯 Java 的 HuskShape 不触发 MC 类初始化）
- * 导出为体素 JSON，落 {@code plan/新维度计划/review/dim1/data/structures-dim7879.json}
+ * 导出为体素 JSON，落 {@code plan/维度计划/设计册与实施计划/review/dim1/data/structures-dim7879.json}
  * （+ 同内容的 {@code structures-dim7879.js} 包装 {@code var STRUCTURES_DATA=...}，
  * file:// 直开 index.html 时绕开 fetch CORS）。
  * <p>
@@ -118,7 +118,7 @@ public class StructureViewerExport {
     public static void main(String[] args) throws Exception {
         final File outDir = new File(
             args.length > 0 ? args[0]
-                : "plan/新维度计划/review/dim1/data");
+                : "plan/维度计划/设计册与实施计划/review/dim1/data");
         if (!outDir.exists() && !outDir.mkdirs()) {
             throw new IllegalStateException("cannot create output dir: " + outDir.getAbsolutePath());
         }

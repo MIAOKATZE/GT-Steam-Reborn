@@ -7,7 +7,6 @@ import net.minecraft.init.Blocks;
 import net.minecraft.world.biome.BiomeGenBase;
 
 import com.miaokatze.gtsr.common.blocks.BlocksGTSR;
-import com.miaokatze.gtsr.common.dimension.framework.BiomeZoneSelector;
 import com.miaokatze.gtsr.common.dimension.framework.GTSRBiomeAuthority;
 import com.miaokatze.gtsr.common.dimension.framework.GTSRDimensionDef;
 import com.miaokatze.gtsr.common.dimension.framework.GTSRWorldChunkManager;
@@ -62,7 +61,7 @@ import com.miaokatze.gtsr.common.dimension.shattered.block.BlockShatteredSurface
  * <b>与既有工具的边界</b>：ShatteredTerrainCheck/BiomeZoneCheck 等零 MC 纯函数与接线级断言保持原样；
  * 本工具与 SurfaceDegradationCheck/SurfaceTranspositionCheck/SurfaceByteParityDump 同属
  * MC-classpath 行为断言（需要 patched MC 类可加载，命令见运行手册
- * plan/investigation/v12030-hotfix-replaceruntime-report.md §6）。
+ * plan/维度计划/调查取证/dim78-修复与整合/v12030-hotfix-replaceruntime-report.md §6）。
  * <p>
  * 命令（Git-Bash 下必须 MSYS2_ARG_CONV_EXCL='*'，classpath 用分号）：
  * <pre>
@@ -410,19 +409,18 @@ public class ReplaceSurfaceRuntimeCheck {
         final GTSRDimensionDef def = new GTSRDimensionDef(
             "prosperity-ruins", "Prosperity Ruins", 0x50524F53L, 78, 100, () -> true,
             WorldProviderProsperityRuins.class, ChunkProviderProsperityRuins::new);
-        def.setBiomeSelector((seed, chunkX, chunkZ, biomeCount, weights) -> BiomeZoneSelector.select(
-            seed, chunkX, chunkZ, biomeCount, weights, BiomeZoneSelector.ZONE_CELL_CHUNKS, 0x5A4F4E45L));
         def.addBiome(prosperity[0], BiomeRustedSteppe.WEIGHT);
         def.addBiome(prosperity[1], BiomeGearworkForest.WEIGHT);
         def.addBiome(prosperity[2], BiomeBrassWastes.WEIGHT);
         def.addBiome(prosperity[3], BiomeFumaroleSwamp.WEIGHT);
         final GTSRWorldChunkManager mgr = new GTSRWorldChunkManager(WORLD_SEED, def);
         // ① 下标口径逐列断言（P2b：替换旧"chunk 内 256 格同群系"假绿——那种断言对下标/转置
-        //    错误结构性免疫，plan §6 诚实性公理禁用）。生产者口径 dx + dz*width 下 64×64 块
-        //    坐标窗逐格 == biomeAt(块坐标>>4)；灵敏度自检：若生产侧写反成 dz + dx*width，
-        //    会有多少格错位——阈值按实测留余量（本轮实测 4/8 窗敏感、6418/32768 格错位），
+        //    错误结构性免疫，plan §6 诚实性公理禁用）。B1 GenLayer 化更新：期望值从 chunk 身份
+        //    biomeAt(>>4) 改为<b>细层单点</b> getBiomeGenAt(blockX, blockZ)（= 懒回填回调同落点，
+        //    1:1 平面与单点必须同源同解；chunk 身份在 voronoi 边界列合法不等，不再是本判据期望）。
+        //    灵敏度自检保留：若生产侧写反成 dz + dx*width 会有多少格错位——1:1 细面对 x/z 不对称；
         //    归零即说明本断言对转置免疫（假绿），直接判失败。窗取 64×64 而非 32×32：
-        //    小窗可能整窗落入单一群系而失去抓力（32 实测仅 3/8 窗敏感）。
+        //    小窗可能整窗落入单一群系而失去抓力。
         final BiomeGenBase[] first = mgr.loadBlockGeneratorData(null, 0, 0, 16, 16);
         check(first != null && first.length == 256, "loadBlockGeneratorData 256-entry array");
         final int w = 64;
@@ -439,7 +437,7 @@ public class ReplaceSurfaceRuntimeCheck {
             int winDrift = 0;
             for (int dx = 0; dx < w; dx++) {
                 for (int dz = 0; dz < w; dz++) {
-                    final BiomeGenBase want = mgr.biomeAt((x0 + dx) >> 4, (z0 + dz) >> 4);
+                    final BiomeGenBase want = mgr.getBiomeGenAt(x0 + dx, z0 + dz);
                     cells++;
                     if (area[dx + dz * w] != want) {
                         badCells++;
@@ -454,8 +452,8 @@ public class ReplaceSurfaceRuntimeCheck {
                 sensitiveWindows++;
             }
         }
-        check(badCells == 0, "producer index contract per-cell: area[dx+dz*64]==biomeAt(cell>>4) over " + cells
-            + " cells in " + windowCount + " windows, bad=" + badCells);
+        check(badCells == 0, "producer index contract per-cell: area[dx+dz*64]==getBiomeGenAt(blockX,blockZ) over "
+            + cells + " cells in " + windowCount + " windows, bad=" + badCells);
         check(sensitiveWindows >= 2 && driftTotal >= 1024,
             "transposition sensitivity: >=2/8 windows broken by dz+dx*64 and >=1024 cells drift (else this"
                 + " assertion is structurally immune = forbidden false green), sensitive=" + sensitiveWindows + "/"
@@ -472,13 +470,11 @@ public class ReplaceSurfaceRuntimeCheck {
                 }
             }
         }
-        check(seen.size() == 4, "BiomeZoneSelector reaches all 4 prosperity biomes over 25600 chunks, seen=" + seen);
+        check(seen.size() == 4, "GenLayer chain reaches all 4 prosperity biomes over 25600 chunks, seen=" + seen);
         // ③ dim79 同款 def 链
         final GTSRDimensionDef def79 = new GTSRDimensionDef(
             "shattered-lands", "Shattered Lands", 0x53484C53L, 79, 101, () -> true,
             WorldProviderShatteredLands.class, ChunkProviderShatteredGrounds::new);
-        def79.setBiomeSelector((seed, chunkX, chunkZ, biomeCount, weights) -> BiomeZoneSelector.select(
-            seed, chunkX, chunkZ, biomeCount, weights, BiomeZoneSelector.ZONE_CELL_CHUNKS, 0x5A4F4E46L));
         def79.addBiome(shattered[0], BiomeAshenPrairie.WEIGHT);
         def79.addBiome(shattered[1], BiomeSlagwoodGrove.WEIGHT);
         def79.addBiome(shattered[2], BiomeVitreousWaste.WEIGHT);

@@ -16,7 +16,6 @@ import net.minecraft.init.Blocks;
 import net.minecraft.world.biome.BiomeGenBase;
 
 import com.miaokatze.gtsr.common.blocks.BlocksGTSR;
-import com.miaokatze.gtsr.common.dimension.framework.BiomeZoneSelector;
 import com.miaokatze.gtsr.common.dimension.framework.GTSRBiomeAuthority;
 import com.miaokatze.gtsr.common.dimension.framework.GTSRBiomeAuthority.BiomeId;
 import com.miaokatze.gtsr.common.dimension.framework.GTSRBiomeAuthority.Degraded;
@@ -60,7 +59,7 @@ import com.miaokatze.gtsr.common.dimension.prosperity.block.BlockProsperityNatur
  * <p>
  * 运行（不再是 JEP330 单文件——本工具需要 MC/Forge classpath 驱动真实链）：
  * {@code bash tools/dim1/surface_checks.sh}（编译+运行均在 [1]/[3] 步）。
- * 可证伪性演示记录：{@code plan/investigation/p2b-identity-closure-20260919.md}。
+ * 可证伪性演示记录：{@code plan/维度计划/调查取证/Phase1按片报告/p2b-identity-closure-20260919.md}。
  */
 public class SurfaceBiomeMatrixCheck {
 
@@ -92,8 +91,6 @@ public class SurfaceBiomeMatrixCheck {
         final GTSRDimensionDef def = new GTSRDimensionDef(
             GTSRBiomeAuthority.DIM_KEY_PROSPERITY, "Prosperity Matrix", 0x50524F53L, 78, 100, () -> true,
             WorldProviderProsperityRuins.class, ChunkProviderProsperityRuins::new);
-        def.setBiomeSelector((seed, chunkX, chunkZ, biomeCount, weights) -> BiomeZoneSelector.select(
-            seed, chunkX, chunkZ, biomeCount, weights, BiomeZoneSelector.ZONE_CELL_CHUNKS, 0x5A4F4E45L));
         ProsperityBiomes.init(def);
         final GTSRBiomeAuthority authority = GTSRBiomeAuthority.forDimKey(GTSRBiomeAuthority.DIM_KEY_PROSPERITY);
         check(authority.degraded() == Degraded.NONE,

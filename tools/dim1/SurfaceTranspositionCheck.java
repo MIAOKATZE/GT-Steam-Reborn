@@ -215,44 +215,89 @@ public class SurfaceTranspositionCheck {
         check(bodyKept == 256, tag + " filler 段以下主体保持 corestone（差异②逐列成立）cols=" + bodyKept);
     }
 
-    // ————— 生产侧 ↔ L1 侧同向（真实 manager 路径） —————
+    // ————— 生产侧 ↔ 细层单点 ↔ L1 身份（真实 manager 路径；B1 双面语义） —————
 
+    /**
+     * <b>B1 GenLayer 双面化后的同解面</b>（旧断言"plane 列 == chunk 身份 ordinalAt"在 1:1
+     * voronoi 平面下于边界列合法不等，已按任务包更新为双面语义）：
+     * <ol>
+     * <li><b>同源同解</b>：{@code loadBlockGeneratorData} 的 16×16 平面列与<b>细层单点</b>
+     * {@code getBiomeGenAt(blockX, blockZ)}（= EndlessIDs/vanilla 懒回填回调的同一落点）逐列相等
+     * ——平面批量采样、单点采样、懒回填三条路出自同一条链必须互相同解；</li>
+     * <li>平面列全部为本维名册成员（L1 账本 {@code of(...)} 解析得到 roster 身份，无外来群系）；</li>
+     * <li><b>双面真实性</b>：平面列与 chunk 身份（{@code ordinalAt} 粗层中心口径）不同处的比例
+     * &gt; 0（证明 1:1 细面真实生效而非恒等平铺粗层）且 &lt; 25%（防退化成噪点）。</li>
+     * </ol>
+     */
     private static void checkProducerAgreesWithAuthority(BiomeGenBase[] p, BiomeGenBase[] s) throws Exception {
         final GTSRDimensionDef def78 = SurfaceHarness.def(true, p, SurfaceHarness.prosperityWeights());
         final GTSRWorldChunkManager mgr78 = SurfaceHarness.manager(true, def78);
         final GTSRBiomeAuthority a78 = GTSRBiomeAuthority.forDimKey(GTSRBiomeAuthority.DIM_KEY_PROSPERITY);
         int ok = 0;
+        int foreign = 0;
+        int differsFromIdentity = 0;
         for (int cx = -5; cx < 5; cx++) {
             for (int cz = -5; cz < 5; cz++) {
                 final BiomeGenBase[] array = mgr78.loadBlockGeneratorData(null, cx * 16, cz * 16, 16, 16);
                 for (int x = 0; x < 16; x++) {
                     for (int z = 0; z < 16; z++) {
-                        // 生产者写 dx+dz*width，L1 按块坐标解析：两侧必须给出同一个群系实例
-                        if (array[x + z * 16] == a78.ordinalAt(cx * 16 + x, cz * 16 + z).biome) {
+                        final BiomeGenBase column = array[x + z * 16];
+                        // 生产者写 dx+dz*width；细层单点（懒回填同落点）按块坐标解析：两侧必须同一实例
+                        if (column == mgr78.getBiomeGenAt(cx * 16 + x, cz * 16 + z)) {
                             ok++;
+                        }
+                        if (column == null || !a78.of(column)
+                            .resolved()) {
+                            foreign++;
+                        }
+                        if (column != a78.ordinalAt(cx * 16 + x, cz * 16 + z).biome) {
+                            differsFromIdentity++;
                         }
                     }
                 }
             }
         }
-        check(ok == 100 * 256, "真实 manager ↔ L1 ordinalAt 逐列一致（dim78 100 chunk）hits=" + ok);
+        check(ok == 100 * 256, "真实 manager 平面列 == 细层单点 getBiomeGenAt（dim78 100 chunk，懒回填同解）hits="
+            + ok);
+        check(foreign == 0, "dim78 平面列全部为本维名册成员（外来/null 列 " + foreign + "）");
+        final double dual78 = (double) differsFromIdentity / (100 * 256);
+        check(dual78 > 0.0D && dual78 < 0.25D, "dim78 双面真实性：平面列 ≠ chunk 身份比例 " + pct(dual78)
+            + " ∈ (0%,25%)（0=细面恒等平铺粗层，≥25%=噪点化）");
 
         final GTSRDimensionDef def79 = SurfaceHarness.def(false, s, SurfaceHarness.shatteredWeights());
         final GTSRWorldChunkManager mgr79 = SurfaceHarness.manager(false, def79);
         final GTSRBiomeAuthority a79 = GTSRBiomeAuthority.forDimKey(GTSRBiomeAuthority.DIM_KEY_SHATTERED);
         int ok79 = 0;
+        int foreign79 = 0;
+        int differs79 = 0;
         for (int cx = -5; cx < 5; cx++) {
             for (int cz = -5; cz < 5; cz++) {
                 final BiomeGenBase[] array = mgr79.loadBlockGeneratorData(null, cx * 16, cz * 16, 16, 16);
                 for (int i = 0; i < 256; i++) {
-                    if (array[i] != null && array[i] == a79.ordinalAt(cx * 16 + (i & 15), cz * 16 + (i >> 4)).biome) {
+                    final BiomeGenBase column = array[i];
+                    if (column != null && column == mgr79.getBiomeGenAt(cx * 16 + (i & 15), cz * 16 + (i >> 4))) {
                         ok79++;
+                    }
+                    if (column != null && !a79.of(column)
+                        .resolved()) {
+                        foreign79++;
+                    }
+                    if (column != a79.ordinalAt(cx * 16 + (i & 15), cz * 16 + (i >> 4)).biome) {
+                        differs79++;
                     }
                 }
             }
         }
-        check(ok79 == 100 * 256, "真实 manager ↔ L1 ordinalAt 逐列一致（dim79 100 chunk，i&15=x / i>>4=z）hits="
-            + ok79);
+        check(ok79 == 100 * 256, "真实 manager 平面列 == 细层单点 getBiomeGenAt（dim79 100 chunk，i&15=x / "
+            + "i>>4=z，懒回填同解）hits=" + ok79);
+        check(foreign79 == 0, "dim79 平面列全部为本维名册成员（外来/null 列 " + foreign79 + "）");
+        final double dual79 = (double) differs79 / (100 * 256);
+        check(dual79 > 0.0D && dual79 < 0.25D, "dim79 双面真实性：平面列 ≠ chunk 身份比例 " + pct(dual79)
+            + " ∈ (0%,25%)");
+    }
+
+    private static String pct(double ratio) {
+        return String.format(java.util.Locale.ROOT, "%.2f%%", ratio * 100.0D);
     }
 
     /**

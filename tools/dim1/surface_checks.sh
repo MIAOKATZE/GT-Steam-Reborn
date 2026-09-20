@@ -5,7 +5,7 @@
 # P6「H-1 群系带分层（macro 64 + micro 16）+ L6 城门（锈蚀草原带）」离线断言与回归的一键复跑入口。
 #
 # 为什么需要脚本：这些片的全部判据都跑在 MC-classpath 的离线 JVM（任务包禁止 gradlew 全量构建），
-# 配方见 plan/investigation/v12030-hotfix-replaceruntime-report.md §3。两个已知坑已由
+# 配方见 plan/维度计划/调查取证/dim78-修复与整合/v12030-hotfix-replaceruntime-report.md §3。两个已知坑已由
 # SurfaceHarness / ReplaceSurfaceRuntimeCheck 在代码内注释：
 #   ① Unsafe.putObject 之前必须先 Class.forName("net.minecraft.init.Blocks")；
 #   ② new Block[65536] 未写入槽位是 null 而非 Blocks.air。
@@ -136,6 +136,8 @@ com/miaokatze/gtsr/common/dimension/framework/BiomePlaneAccess.java
 com/miaokatze/gtsr/common/dimension/framework/GTSRChunkProviderBase.java
 com/miaokatze/gtsr/common/dimension/framework/GTSRWorldChunkManager.java
 com/miaokatze/gtsr/common/dimension/framework/BiomeZoneSelector.java
+com/miaokatze/gtsr/common/dimension/framework/genlayer/GTSRGenLayerChain.java
+com/miaokatze/gtsr/common/dimension/framework/genlayer/GTSRGenLayerSelector.java
 com/miaokatze/gtsr/common/dimension/framework/structure/GTSRWorldgenHash.java
 com/miaokatze/gtsr/common/dimension/framework/structure/PlacementGate.java
 com/miaokatze/gtsr/common/dimension/prosperity/biome/ProsperityBiomes.java
@@ -236,6 +238,7 @@ MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8 \
   tools/dim1/BiomePlaneCompatCheck.java \
 tools/dim1/StructureViewerExport.java tools/dim1/RosterIntegrityCheck.java \
 tools/dim1/S8RegistryRosterCheck.java tools/dim1/OutpostTemplateCheck.java tools/dim1/CityDeterminismCheck.java \
+tools/dim1/CityPlanSanityCheck.java tools/dim1/CityShapeCheck.java tools/dim1/CityOverheadPreview.java \
 tools/dim1/SurfaceSpecUnreachableCheck.java \
   tools/dim1/gregtech/api/GregTechAPI.java \
   >"$OUT/javac-tools.log" 2>&1
@@ -285,11 +288,13 @@ run "SurfaceGateUnifyCheck（P4 判据 2/4：门集合单一真值 + 别名等�
 echo "== [2b] P5 密度 γ 断言（快档：纯函数硬钉 + 16 窗行为钉；P5 全档与对拍在 [10]） =="
 run "RegionRepeatCapCheck（P5 判据 2：H-2 每 16×16 窗同模板发射上限，cap=1..4 穷举硬钉）" RegionRepeatCapCheck 8 2
 
-echo "== [2c] P6 断言（H-1 群系带分层 + L6 城门；四张表的实测出口在 --parity 的 [11]） =="
-run "BiomeBandHierarchyCheck（P6 判据 4/5：分层职责/macro-micro 恒等式与回退位/单一真值/带尺度守恒/确定性）" \
+echo "== [2c] H-1 身份面断言（B2 起链身份语义：分层职责/键惰性/单一真值/等权守恒/城门；四张表的实测出口在 --parity 的 [11]） =="
+run "BiomeBandHierarchyCheck（B2 判据：分层职责/macro 键惰性/manager-链-城门三元同一/等权守恒/确定性）" \
   BiomeBandHierarchyCheck assert src/main/java 8 128
-run "CityBiomeGateCheck（P6 判据 2/3：无鬼窗逐点一致 + 城市 100% 落草原带 + 门非恒真 + 两种数法一致）" \
+run "CityBiomeGateCheck（城门判据：无鬼窗逐点一致 + 城市 100% 落草原身份 + 门非恒真 + 两种数法一致）" \
   CityBiomeGateCheck assert 8 8
+run "CityPlanSanityCheck（R3 形态：plot 门独立几何重算 + kept⊆偏置几何门 + reach 口径）" CityPlanSanityCheck
+run "CityShapeCheck（R3 形态判据：孤立地块=0 + 次街断开率带 + 非圆度双指标 + 半径覆盖）" CityShapeCheck
 echo "   P6 合计 assertions=$(total_assertions BiomeBandHierarchyCheck)（带分层）+ $(total_assertions CityBiomeGateCheck)（城门）"
 
 echo "== [2d] P7 结构放置契约（判据 1/2/3/4/8 的契约单元 + 源级 + 纯函数档；真地形档在 --parity 的 [12]） =="
@@ -342,7 +347,7 @@ echo "== [2h] P14 tpdim 群系定位（环带步进最近性/代价上界/降级
 # 四档分进程跑（L1 账本/bind 同 JVM 互污，与 BiomeAllocationCheck 同纪律）
 run "TpdimNearestBiomeCheck d78（判据 2/3/4：四群系定位+穷举最近对拍+步数/耗时/两条上界档）" \
   TpdimNearestBiomeCheck d78
-run "TpdimNearestBiomeCheck d79（同上，权重 40-30-20-10 与 macro=16 口径）" TpdimNearestBiomeCheck d79
+run "TpdimNearestBiomeCheck d79（同上；B1 起穷举对拍 = 等权 GenLayer 链，种子掺 dim79 seedSalt）" TpdimNearestBiomeCheck d79
 run "TpdimNearestBiomeCheck empty79（dim79 降级态：名单空/解析 null/81 步收口，不乱指）" \
   TpdimNearestBiomeCheck empty79
 run "TpdimNearestBiomeCheck source（判据 1/5：基线路径逐字钉+补全单一真值+diag 反复制钉）" \
@@ -378,6 +383,9 @@ tail -1 "$OUT/BiomePlaneCompatCheck-byte.out" | cut -c1-170
 echo "   EXIT=$bpc log=$OUT/BiomePlaneCompatCheck-byte.out（classpath 故意不含 $OUT/tools ⇒ hookPresent=false）"
 [ "$bpc" = "0" ] || FAILS=$((FAILS + 1))
 echo "   P0 合计 assertions=$(total_assertions BiomePlaneCompatCheck)（short 一档 + byte 一档）"
+
+echo "== [2k] B1 GenLayer 链离线自测（成片连通域/等权均分/边界非直线/单点-整窗逐位一致；批次 A 的包内自测纳入快链） =="
+run "GTSRGenLayerSelfTest（确定性/均分 ±12pp/主导 4-连通域/孤岛率/直线边界反指标/voronoi 抖动带；构造期 fail-fast 契约）"   com.miaokatze.gtsr.common.dimension.framework.genlayer.GTSRGenLayerSelfTest
 
 echo "== [3] 既有回归（必须保持绿） =="
 run "ReplaceSurfaceRuntimeCheck（46 项，含 null/plains 回退与逐列下标断言；P2b 起 256 格假绿已除）" ReplaceSurfaceRuntimeCheck
@@ -970,18 +978,20 @@ com/miaokatze/gtsr/config/Config.java"
     }
     P6F_CFG=com/miaokatze/gtsr/config/Config.java
     P6F_PLAN=com/miaokatze/gtsr/common/dimension/prosperity/ruins/city/CityPlanner.java
-    # R1：关掉城门 ⇒ "城市 100% 落锈蚀草原带" 必须变红
+    # R1：关掉城门 ⇒ "城市 100% 落锈蚀草原身份" 必须变红
     p6red R1_GATE_OFF 's|public static int prosperityCityBiomeGate = 1;|public static int prosperityCityBiomeGate = 0;|' \
       "$P6F_CFG" CityBiomeGateCheck assert 8 8
-    # R2a：把 macro 带尺度改回 16（改造前单层）⇒ 分层申报档断言必须变红
+    # R2a：macro 键默认档漂移（64→16）⇒ A0 的 Config 面申报断言必须变红（B2 起该键惰性，
+    #       只钉"默认值没被悄悄改"，不再钉带尺度行为）
     p6red R2_MACRO16 's|public static int prosperityBiomeMacroBandChunks = 64;|public static int prosperityBiomeMacroBandChunks = 16;|' \
       "$P6F_CFG" BiomeBandHierarchyCheck assert src/main/java 8 128
-    # R2b：同一破坏在城门侧的表现——"整座城能落进同一带"（64 带 57.7%）必须塌回 16 口径而变红
-    p6red R2b_MACRO16 's|public static int prosperityBiomeMacroBandChunks = 64;|public static int prosperityBiomeMacroBandChunks = 16;|' \
-      "$P6F_CFG" CityBiomeGateCheck assert 8 8
-    # R3：门条件从"锚点所在 macro 带"退化成"中心 chunk 的 16 格分区"⇒ 锚点带 100% 必须变红
-    p6red R3_CENTER_CHUNK 's|return steppeBandAt(worldSeed, plan.getCenterChunkX(), plan.getCenterChunkZ());|return BiomeZoneSelector.select(worldSeed, plan.getCenterChunkX(), plan.getCenterChunkZ(), PROSPERITY_BAND_WEIGHTS.length, PROSPERITY_BAND_WEIGHTS, BiomeZoneSelector.MICRO_CELL_CHUNKS, BiomeZoneSelector.ZONE_SALT_PROSPERITY) == GTSRBiomeAuthority.BiomeId.RUSTED_STEPPE.rosterIndex();|' \
+    # R2b（B2 改判）：城门目标群系身份被换成齿轮森林 ⇒ "过门城锚点 100% 落草原身份"（B2）必须变红
+    p6red R2b_GATE_TARGET 's|== GTSRBiomeAuthority.BiomeId.RUSTED_STEPPE.rosterIndex();|== GTSRBiomeAuthority.BiomeId.GEARWORK_FOREST.rosterIndex();|' \
       "$P6F_PLAN" CityBiomeGateCheck assert 8 8
+    # R3（B2 改判）：CityPlanner 本地重建链的种子盐漂移（≠ CommonProxy def.seedSalt）⇒ C1 的
+    #     "城门纯出口 == manager 身份面"三元同一钉必须变红（身份面分叉的单一真值破坏）
+    p6red R3_SALT_DRIFT 's|private static final long PROSPERITY_SEED_SALT = 0x50524F53L;|private static final long PROSPERITY_SEED_SALT = 0x50524F54L;|' \
+      "$P6F_PLAN" BiomeBandHierarchyCheck assert src/main/java 8 128
     rm -rf "$P6RED" "$P6REDCLS" "$OUT/p6-red-tools"
     run "BiomeBandHierarchyCheck（RED 后工作树复位 GREEN）" BiomeBandHierarchyCheck assert src/main/java 8 128
     run "CityBiomeGateCheck（RED 后工作树复位 GREEN）" CityBiomeGateCheck assert 8 8
@@ -1146,7 +1156,7 @@ com/miaokatze/gtsr/config/Config.java"
   #        ④ 判据 4 灵敏度：两条成簇参数的影子树单变量 RED（denom=1 → ContourBudgetCheck 红；
   #           ClusterMode=0 → SurfaceGateUnifyCheck 口径 C 新带红）——带若对破坏不敏感就是假绿。
   # 大样本实测（判据 1/2/3/5 的数字与断言）在 ScatterClusterVarianceCheck 的 variance/structure 档，
-  # 本脚本只挂快档；全量数字见 plan/investigation/p5b-clustered-scatter-20260919.md。
+  # 本脚本只挂快档；全量数字见 plan/维度计划/调查取证/Phase1按片报告/p5b-clustered-scatter-20260919.md。
   echo "== [14] P5b 散布成簇：零漂移对拍 + 逐位退化摘要 + 双跑 SHA + 两条影子 RED =="
   BASE5B=temp/p5b-base/all
   SNAP5B=temp/p5b-base/src/main/java

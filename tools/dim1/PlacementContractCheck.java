@@ -78,7 +78,7 @@ import com.miaokatze.gtsr.config.Config;
  * <p>
  * 离线装配与 P4/P5/P6 同一口径（{@link SurfaceHarness} + {@link Dim78ScatterDensityCheck} 的
  * 平坦网格合成世界与 {@code extraBlocks} 坑位；JEP330/MC-classpath 配方见
- * {@code plan/investigation/v12030-hotfix-replaceruntime-report.md} §3，一键入口
+ * {@code plan/维度计划/调查取证/dim78-修复与整合/v12030-hotfix-replaceruntime-report.md} §3，一键入口
  * {@code tools/dim1/surface_checks.sh} 的 [12] 段）。
  * <p>
  * 用法：{@code PlacementContractCheck [all|source|pure] [seeds=8] [regionsPerSeed=8]}；

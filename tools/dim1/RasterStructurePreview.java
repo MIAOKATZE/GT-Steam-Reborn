@@ -6,7 +6,7 @@ import com.miaokatze.gtsr.common.dimension.prosperity.ruins.RuinedMachineShapes;
 
 /**
  * S4a 验收④ 离线驱动（不进 jar，tools/ 惯例）：把 {@link RuinedMachineShapes} 5 机型经
- * StructureBuilder → RasterSink 栅格化为俯视 PNG，落 plan/新维度计划/review/dim1/structures/
+ * StructureBuilder → RasterSink 栅格化为俯视 PNG，落 plan/维度计划/设计册与实施计划/review/dim1/structures/
  * （S7b HTML 核对页输入）。纯 JEP 330 单文件运行，零 Minecraft 依赖：
  * {@code java -cp build/classes/java/main tools/dim1/RasterStructurePreview.java [outDir]}
  * <p>
@@ -18,7 +18,7 @@ public class RasterStructurePreview {
     public static void main(String[] args) throws Exception {
         final File outDir = new File(
             args.length > 0 ? args[0]
-                : "plan/新维度计划/review/dim1/structures");
+                : "plan/维度计划/设计册与实施计划/review/dim1/structures");
         if (!outDir.exists() && !outDir.mkdirs()) {
             throw new IllegalStateException("cannot create output dir: " + outDir.getAbsolutePath());
         }

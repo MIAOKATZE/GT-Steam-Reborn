@@ -5,7 +5,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.TreeSet;
 
-import com.miaokatze.gtsr.common.dimension.framework.BiomeZoneSelector;
+import net.minecraft.world.biome.BiomeGenBase;
+
 import com.miaokatze.gtsr.common.dimension.framework.GTSRBiomeAuthority;
 import com.miaokatze.gtsr.common.dimension.prosperity.ruins.city.CityPlan;
 import com.miaokatze.gtsr.common.dimension.prosperity.ruins.city.CityPlanner;
@@ -14,7 +15,7 @@ import com.miaokatze.gtsr.config.Config;
 /**
  * P6 · L6 城门与暴露自检（plan §2.1 L6 + §2.2 H-1 + §3 S3 行 + §5 P6 + §7.1 已锁定 U2）。
  * <p>
- * 离线运行（classpath 配方见 {@code plan/investigation/v12030-hotfix-replaceruntime-report.md} §3）：
+ * 离线运行（classpath 配方见 {@code plan/维度计划/调查取证/dim78-修复与整合/v12030-hotfix-replaceruntime-report.md} §3）：
  * <pre>
  *   java ... CityBiomeGateCheck assert [seeds] [regionsPerSeed]
  *   java ... CityBiomeGateCheck table  [seeds] [regionsPerSeed]     # 表 1 + 表 2
@@ -50,11 +51,11 @@ import com.miaokatze.gtsr.config.Config;
  */
 public class CityBiomeGateCheck {
 
-    /** dim78 名册序权重（02 册 §1.1 的 45-30-15-10；只用于把"带基准是否草原"折算成名册下标）。 */
-    private static final int[] WEIGHTS = { 45, 30, 15, 10 };
-    private static final int BIOME_COUNT = WEIGHTS.length;
+    /** dim78 名册规模（B2 起身份 = 等权 GenLayer 链，无权重面；名册序 0..3 与 02 册 §1.1 同序）。 */
+    private static final int BIOME_COUNT = 4;
     private static final int STEPPE = GTSRBiomeAuthority.BiomeId.RUSTED_STEPPE.rosterIndex();
-    private static final long SALT = BiomeZoneSelector.ZONE_SALT_PROSPERITY;
+    /** 表 1/2 的身份汇报格（chunk）：B2 前是 macro 带尺度，现仅作统计分箱，不参与门。 */
+    private static final int REPORT_CELL = 16;
 
     /** 与 P5 同一 seed 集、同一区几何（见类注释）。 */
     private static final long[] SEEDS = Dim78ScatterDensityCheck.SEEDS;
@@ -70,6 +71,9 @@ public class CityBiomeGateCheck {
     public static void main(String[] args) throws Exception {
         final String mode = args.length > 0 ? args[0] : "assert";
         Dim78ScatterDensityCheck.bootstrap();
+        // B2 起 CityPlanner.steppeBandAt/bandIndexAt 走 GTSRBiomeAuthority 名册（biomeOf）——
+        // 先入账真实配槽（离线 harness 的 180-183 段），否则身份出口恒 -1（不伪造身份）。
+        SurfaceHarness.recordAllAllocations(SurfaceHarness.prosperityBiomes(), SurfaceHarness.shatteredBiomes());
         final int seeds = intArg(args, 1, SEEDS.length);
         final int regions = intArg(args, 2, 8);
         if ("table".equals(mode)) {
@@ -163,7 +167,7 @@ public class CityBiomeGateCheck {
         final Row selected = measure(Config.prosperityBiomeMacroBandChunks, Config.prosperityCityBiomeGate, seeds,
             regions);
         check(selected.citiesAnchored > 0, "B1 选定档样本内必须有候选城可测（实测锚点城 " + selected.citiesAnchored + "）");
-        check(selected.anchorInBandPct() == 100.0D, "B2 判据 2：选定档下过门城的锚点所在 macro 带必须 100% 为锈蚀草原"
+        check(selected.anchorInBandPct() == 100.0D, "B2 判据 2：选定档下过门城的锚点 chunk 身份必须 100% 为锈蚀草原"
             + "（实测 " + pct(selected.anchorInBandPct()) + "%，过门城 " + selected.citiesKept + " 座 / 候选 "
             + selected.citiesAnchored + " 座）");
         check(selected.citiesKept > 0 && selected.keptRatio() < 1.0D, "B3 门必须真的在削减：选定档过门 "
@@ -172,19 +176,39 @@ public class CityBiomeGateCheck {
         check(selected.cityCoveredChunks > 0, "B4 选定档仍要有城（城覆盖 chunk " + selected.cityCoveredChunks + "）");
 
         final Row ungated = measure(Config.prosperityBiomeMacroBandChunks, CityPlanner.GATE_OFF, seeds, regions);
-        check(ungated.anchorInBandPct() < 95.0D, "C1 反门恒真（P4 教训：门恒真会掩盖配置）：门关闭时锚点带为草原的城"
+        check(ungated.anchorInBandPct() < 95.0D, "C1 反门恒真（P4 教训：门恒真会掩盖配置）：门关闭时锚点身份为草原的城"
             + "只占 " + pct(ungated.anchorInBandPct()) + "%（&lt;95% 才说明门有实际工作可做），候选城 "
             + ungated.citiesAnchored + " 座");
         check(ungated.citiesKept == ungated.citiesAnchored && ungated.coveragePp() > selected.coveragePp(),
             "C2 门关闭 == 改造前口径（全候选城都算，覆盖 " + pct(ungated.coveragePp()) + "pp 必须高于选定档 "
-                + pct(selected.coveragePp()) + "pp）");
-        check(ungated.discAllPct() > 0.0D || ungated.citiesAnchored == 0,
-            "C3 申报性对照：城盘全落草原带的候选城比例 " + pct(ungated.discAllPct()) + "%（旧实测口径 4.4%@cell16）");
+            + pct(selected.coveragePp()) + "pp）");
+        check(ungated.anchorInBandPct() > 5.0D && ungated.anchorInBandPct() < 60.0D,
+            "C3 申报性对照：门关闭时锚点草原率 " + pct(ungated.anchorInBandPct())
+            + "% ∈ (5,60)（等权链下草原份额 ≈25%，出带即身份面或采样几何漂移）");
 
-        // 分层的几何意义：macro=64 才可能"整座城落进同一带"（旧实测：cell=16 下城盘全落草原仅 4.4%）
-        check(selected.discAllPct() >= 30.0D, "B5 选定档的城盘全落草原带比例 " + pct(selected.discAllPct())
-            + "% ≥ 30%（表 2 实测：macro=64/锚点带档 = 57.7%（大样本）/50.0%（8×8 小样本），"
-            + "而 macro=16 同档只有 3.1%/0.0% ⇒ 把带做到 64 chunk 的全部理由就是这条几何可行性）");
+        // 身份面的几何可行性（B2 改判：城盘能否整体装进草原身份区不再由 macro 带保证，而由链的
+        // 成片尺度保证）——样本窗外扩后最大草原 4-连通簇必须 ≥ 最小城盘 9×9=81 chunk
+        int steppeClusterMax = 0;
+        for (int si = 0; si < seeds; si++) {
+            final long seed = SEEDS[si % SEEDS.length];
+            for (int rg = 0; rg < regions; rg++) {
+                final int cx0b = rg * AXIS * 3 + si * 4096 - 16;
+                final int cz0b = rg * AXIS * 5 + si * 924816 - 16;
+                final int side = AXIS + 32;
+                final int[] grid = new int[side * side];
+                for (int dz = 0; dz < side; dz++) {
+                    for (int dx = 0; dx < side; dx++) {
+                        grid[dx + dz * side] = CityPlanner.bandIndexAt(seed, cx0b + dx, cz0b + dz);
+                    }
+                }
+                steppeClusterMax = Math.max(steppeClusterMax, largestClusterOf(grid, side, STEPPE));
+            }
+        }
+        System.out.println("  # B5 实测：样本窗（外扩 16 chunk）最大草原 4-连通簇 = " + steppeClusterMax
+            + " chunk（最小城盘 81；r=7 城 + 裕量 = 15×15=225 上界档）");
+        check(steppeClusterMax >= 81, "B5 身份面几何可行性：最大草原连通簇 " + steppeClusterMax
+            + " ≥ 最小城盘 81 chunk（9×9，r=4 城的 chunk 盘）⇒ 链的成片尺度装得下整座小城"
+            + "（r=7 大城的 225 chunk 档是上界不是保证，由门档 2/3 按需收紧）");
 
         // E 组：选定档阈值（城不能被门砍光，覆盖面积必须落在申报带内）
         check(selected.keptRatio() >= 0.10D,
@@ -424,14 +448,14 @@ public class CityBiomeGateCheck {
     }
 
     private static void measureRegion(long seed, int cx0, int cz0, Row r) {
-        // 1) 样本窗内实际出现的 macro 带（身份按带基准掷骰；边带改掷的碎斑不计入"带"的归属）
+        // 1) 样本窗内的身份面抽样（B2：带基准掷骰退役，chunk 身份 = CityPlanner.bandIndexAt 链面；
+        //    16-chunk 汇报格只作统计分箱，步长沿用表 1/2 的取样密度）
         for (int dx = 0; dx < AXIS; dx += Math.min(AXIS, r.macro)) {
             for (int dz = 0; dz < AXIS; dz += Math.min(AXIS, r.macro)) {
-                final int bx = Math.floorDiv(cx0 + dx, r.macro);
-                final int bz = Math.floorDiv(cz0 + dz, r.macro);
+                final int bx = Math.floorDiv(cx0 + dx, REPORT_CELL);
+                final int bz = Math.floorDiv(cz0 + dz, REPORT_CELL);
                 final long key = bandKey(bx, bz);
-                if (r.bandKeys.add(key)
-                    && BiomeZoneSelector.zoneOfCell(seed, bx, bz, BIOME_COUNT, WEIGHTS, SALT) == STEPPE) {
+                if (r.bandKeys.add(key) && CityPlanner.bandIndexAt(seed, cx0 + dx, cz0 + dz) == STEPPE) {
                     r.steppeBands++;
                 }
             }
@@ -461,8 +485,8 @@ public class CityBiomeGateCheck {
                     if (CityPlanner.steppeBandAt(seed, p.getCenterChunkX(), p.getCenterChunkZ())) {
                         r.anchorInBand++;
                         r.cityBandKeys.add(bandKey(
-                            Math.floorDiv(p.getCenterChunkX(), r.macro),
-                            Math.floorDiv(p.getCenterChunkZ(), r.macro)));
+                            Math.floorDiv(p.getCenterChunkX(), REPORT_CELL),
+                            Math.floorDiv(p.getCenterChunkZ(), REPORT_CELL)));
                     }
                     final int disc = 2 * p.getRadiusChunks() + 1;
                     int inBand = 0;
@@ -483,7 +507,9 @@ public class CityBiomeGateCheck {
                         r.discAll++;
                     }
                 }
-                final int reach = p.getRadiusChunks() + 1;
+                // 缓冲窗 = radius + 自适应裕量（CityPlan 私有，C1 并行面无 getter）——迭代半径取
+                // 上界，窗口真值由 chunkInBuffer 谓词判（D1 两侧同谓词 ⇒ 与半径/裕量口径解耦）。
+                final int reach = p.getRadiusChunks() * 2 + 2;
                 for (int dx = -reach; dx <= reach; dx++) {
                     for (int dz = -reach; dz <= reach; dz++) {
                         final int cx = p.getCenterChunkX() + dx;
@@ -502,6 +528,48 @@ public class CityBiomeGateCheck {
 
     private static long bandKey(int bx, int bz) {
         return ((long)bx << 32) ^ (bz & 0xFFFFFFFFL);
+    }
+
+    /** 指定 zone 的最大 4-连通簇（chunk 数；B5 几何可行性口径，迭代 flood fill）。 */
+    private static int largestClusterOf(int[] grid, int side, int zone) {
+        final boolean[] seen = new boolean[grid.length];
+        final int[] stack = new int[grid.length];
+        int best = 0;
+        for (int start = 0; start < grid.length; start++) {
+            if (seen[start] || grid[start] != zone) {
+                continue;
+            }
+            int top = 0;
+            stack[top++] = start;
+            seen[start] = true;
+            int size = 0;
+            while (top > 0) {
+                final int idx = stack[--top];
+                size++;
+                final int x = idx % side;
+                final int z = idx / side;
+                if (x > 0 && !seen[idx - 1] && grid[idx - 1] == zone) {
+                    seen[idx - 1] = true;
+                    stack[top++] = idx - 1;
+                }
+                if (x < side - 1 && !seen[idx + 1] && grid[idx + 1] == zone) {
+                    seen[idx + 1] = true;
+                    stack[top++] = idx + 1;
+                }
+                if (z > 0 && !seen[idx - side] && grid[idx - side] == zone) {
+                    seen[idx - side] = true;
+                    stack[top++] = idx - side;
+                }
+                if (z < side - 1 && !seen[idx + side] && grid[idx + side] == zone) {
+                    seen[idx + side] = true;
+                    stack[top++] = idx + side;
+                }
+            }
+            if (size > best) {
+                best = size;
+            }
+        }
+        return best;
     }
 
     // ══════════════════════════════════ 输出 ══════════════════════════════════

@@ -163,7 +163,12 @@ public class ShatteredTerrainCheck {
         }
         check(config.contains("shatteredBiomeIdStart = 190"), "Config default shatteredBiomeIdStart != 190");
         check(proxy.contains("ChunkProviderShatteredGrounds::new"), "CommonProxy factory not ShatteredGrounds");
-        check(proxy.contains("0x5A4F4E46L"), "CommonProxy shatteredDef zone selector salt missing");
+        // B2 起 def 不再挂 selector：锚点盐从"selector 盐 0x5A4F4E46"改为"链种子礼仪的
+        // def.seedSalt 0x53484C53"（GenLayer 链种子 = worldSeed ^ seedSalt）；并反向钉住
+        // 退役的 selector 盐不得回流 CommonProxy。
+        check(proxy.contains("0x53484C53L"), "CommonProxy shatteredDef seedSalt (chain seed etiquette) missing");
+        check(!proxy.contains("0x5A4F4E46L") && !proxy.contains("0x5A4F4E45L"),
+            "CommonProxy still wires a retired zone-selector salt (B2 red line)");
         check(
             Arrays
                 .asList(

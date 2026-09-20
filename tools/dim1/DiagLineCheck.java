@@ -30,8 +30,9 @@ import com.miaokatze.gtsr.common.dimension.shattered.WorldGenShatteredRuins;
  * 场景：
  * <ol>
  * <li><b>A dim78 正常态</b>：SurfaceHarness 真实装配（recordAllocation×8 + 真 def/manager/bind），
- * 诊断行必须含全部 17 列（dim/def/bound/plane/biomes/allocated/degraded/occupant/surface/
- * layWhenDegraded/macro/biomeTable/scatter/structure/creature/roster/textures），
+ * 诊断行必须含全部 19 列（dim/def/bound/plane/biomes/allocated/degraded/occupant/surface/
+ * layWhenDegraded/macro/chain/identity/biomeTable/scatter/structure/creature/roster/textures；
+ * chain/identity 为 B1 GenLayer 观测列），
  * 且 {@code degraded=NONE surface=laid}；<b>P0（v1.20.33）起 plane 列另做"缺列必红"的反假绿
  * 自检</b>（把该列从样例行里抹掉后列断言必须变红，否则 {@code contains} 钉是恒真的）；</li>
  * <li><b>B dim79 强制降级态</b>：四名册成员全部 {@code recordNoSlot}（owner 快照带
@@ -49,10 +50,10 @@ import com.miaokatze.gtsr.common.dimension.shattered.WorldGenShatteredRuins;
  */
 public class DiagLineCheck {
 
-    /** 列名申报（判据 1 的"逐项对照"机器面；缺一列即红）。 */
+    /** 列名申报（判据 1 的"逐项对照"机器面；缺一列即红）。B1 起含 genlayer 的 chain/identity 两列。 */
     private static final String[] COLUMNS = { "dim=", "def=", "bound=", "plane=", "biomes=[", "allocated=",
-        "degraded=", "occupant=", "surface=", "layWhenDegraded=", "macro=", "biomeTable=", "scatter=[", "structure=[",
-        "creature=[", "roster=", "textures=" };
+        "degraded=", "occupant=", "surface=", "layWhenDegraded=", "macro=", "chain=", "identity=", "biomeTable=",
+        "scatter=[", "structure=[", "creature=[", "roster=", "textures=" };
 
     private static final int ATTEMPTS = 512;
 

@@ -83,7 +83,7 @@ public final class ContourBudgetCheck {
 
     /**
      * P5b 成簇默认档件数均值带（实测 1.271，8 seed × 8 窗 = 16384 chunk，见
-     * plan/investigation/p5b-clustered-scatter-20260919.md 判据 1）。旧带 [8.0,11.0] 按 P5
+     * plan/维度计划/调查取证/Phase1按片报告/p5b-clustered-scatter-20260919.md 判据 1）。旧带 [8.0,11.0] 按 P5
      * K=8 均匀档标定，成簇模型下作废（plan §7.2 明文"必须重测重标"）。新带装不下均匀档 9.19、
      * 也装不下"denom 放宽到 1"的失控档（D 组实测），带宽吸收 seed 抖动但不足以容纳退回均匀档。
      */

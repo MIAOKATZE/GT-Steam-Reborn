@@ -1,47 +1,44 @@
 import java.security.MessageDigest;
-import java.util.Arrays;
 
-import com.miaokatze.gtsr.common.dimension.framework.BiomeZoneSelector;
+import com.miaokatze.gtsr.common.dimension.framework.genlayer.GTSRGenLayerChain;
 
 /**
- * S-A2 验收① 群系空间连贯分区自证（一次性自检 main，不进 jar，tools/ 惯例）：
- * 纯 JEP 330 单文件运行，<b>零 Minecraft 依赖</b>（selector 纯函数直接驱动）：
- * {@code java -cp build/classes/java/main tools/dim1/BiomeZoneCheck.java}
+ * 群系空间连贯分区自证（tools/ 惯例的一次性自检 main；<b>B2 起改钉 GenLayer 链</b>）。
  * <p>
- * 断言面（plan §4 S-A2 + §12 修订第 6 条，zone cell=16 chunk、边带 12%）：
+ * S-A2/P6 时代的对象是 {@code BiomeZoneSelector}（cell 权重掷骰 + 边带 12% 碎斑），B2 已整体退役；
+ * 身份面唯一出口是 {@link GTSRGenLayerChain}（等权轮盘 + Zoom×4 + Smooth 粗层）。本检查改钉
+ * <b>chunk 代表点采样口径</b>下的链分区质量——即 {@code GTSRWorldChunkManager.biomeAt} 与
+ * {@code CityPlanner.bandIndexAt} 实际消费的那一面（每 chunk 一次 {@code biomeAtCoarse((cx<<4)+8,
+ * (cz<<4)+8)}）；链自身的粗格性质（确定性/均分/连通域/直线边界/voronoi 抖动/构造期契约）由
+ * {@code com.miaokatze.gtsr.common.dimension.framework.genlayer.GTSRGenLayerSelfTest}（surface_checks [2k]）
+ * 包内自测覆盖，此处不重复。
+ * <p>
+ * 零装配（不触 BiomeGenBase 注册表/L1 账本）：id 用 [0,254] 内哑元（对齐注册段 idStart=180），
+ * 纯 int 语义，{@code java -cp build/classes/java/main;<MC+deps> tools/dim1/BiomeZoneCheck.java}。
+ * <p>
+ * 断言面（B2 链口径）：
  * <ol>
- * <li>双跑逐字节一致：同一 seed 对同一样本窗两次 {@link BiomeZoneSelector#select} 全网格
- * 快照 MessageDigest.isEqual + SHA-256 打印（确定性、与调用顺序无关）；</li>
- * <li>zone 连片度：同 zone 最大 4-连通 chunk 簇 ≥ 阈值（cell=16 口径：主导 zone ≥ 8 cell 当量、
- * 每个 ≥10% 权重 zone ≥ 1 cell 当量），并对照旧 per-chunk 均匀掷骰基线（仅打印）；</li>
- * <li>边带比例：边带 chunk 中实际偏离基准 zone 的比例 ≈12%±（断言区间 [11%,13%]）；</li>
- * <li>权重分布：四群系实测占比对 45/30/15/10 偏差 ≤ 9 个百分点；附带 idStart 段断言
- * （返回下标恒在 [0,biomeCount)，biomeId=idStart+下标 恒在注册段内 → biomeWeight 消费面
- * 不回退 1.0）。</li>
+ * <li>双跑逐字节一致：同 seed 两次全窗快照 MessageDigest.isEqual + SHA-256 打印（确定性）；</li>
+ * <li>连片度：同 id 最大 4-连通 chunk 簇 ≥ 阈值（zoom 成片性），孤岛 chunk 占比 ≤ 8%；</li>
+ * <li>等权分布：四 id 实测占比对 25% 偏差 ≤ 8pp（zoom 中心多数票有轻微收敛偏置，阈值留裕量）；</li>
+ * <li>段断言：输出 id 恒 ∈ 入参集合（biomeWeight 消费面不回退 1.0 的同款 id 段守卫）。</li>
  * </ol>
  */
 public class BiomeZoneCheck {
 
-    /** 样本窗边长（chunk）= 24 cell，覆盖 576 cell 使分布偏差 σ≈2pp。 */
-    private static final int WINDOW = 24 * BiomeZoneSelector.ZONE_CELL_CHUNKS;
+    /** 样本窗边长（chunk）；384² = 147456 chunk 采样，等权份额 σ≈0.11pp。 */
+    private static final int WINDOW = 384;
     private static final long[] SEEDS = { 12345L, -987654321L, 0x50524F53L };
 
-    /** dim78 四群系权重（BiomeRustedSteppe/GearworkForest/BrassWastes/FumaroleSwamp.WEIGHT）。 */
-    private static final int[] WEIGHTS = { 45, 30, 15, 10 };
-    private static final int BIOME_COUNT = WEIGHTS.length;
-    /** 与 Config.prosperityBiomeIdStart 默认一致（纯断言用，不引 config 类）。 */
-    private static final int ID_START = 180;
-    /** dim78 接线盐（CommonProxy S-A2 挂 selector 处同值）。 */
-    private static final long SALT = 0x5A4F4E45L;
+    /** 四群系哑元 id（等权轮盘；与注册段 idStart=180 对齐，纯 int 不注册）。 */
+    private static final int[] BIOME_IDS = { 180, 181, 182, 183 };
+    private static final int BIOME_COUNT = BIOME_IDS.length;
 
-    private static final double BAND_RATIO_MIN = 0.11;
-    private static final double BAND_RATIO_MAX = 0.13;
-    private static final double WEIGHT_DEVIATION_MAX = 0.09;
-    /** 连片度阈值（cell 当量）：主导 zone ≥ 8 cell，其余 zone ≥ 1 cell。 */
-    private static final int DOMINANT_MIN_CELLS = 8;
-    private static final int ANY_MIN_CELLS = 1;
-    /** 孤岛 chunk（4 邻均异 zone）占比上限：分区方案应远低于旧方案基线。 */
-    private static final double ISLAND_RATIO_MAX = 0.08;
+    private static final double SHARE_DEVIATION_MAX = 0.08D;
+    /** 连片度阈值（chunk）：zoom=4 的特征片 ≥ 数百 chunk 量级，留足下限。 */
+    private static final long DOMINANT_MIN_CHUNKS = 256L;
+    /** 孤岛 chunk（4 邻均异 id）占比上限：成片分区的盐胡椒反指标。 */
+    private static final double ISLAND_RATIO_MAX = 0.08D;
 
     public static void main(String[] args) {
         if (BIOME_COUNT >= 256) {
@@ -52,13 +49,14 @@ public class BiomeZoneCheck {
         }
         contractChecks();
         System.out.println(
-            "BIOMEZONE PASS: seeds=" + SEEDS.length + " window=" + WINDOW + "x" + WINDOW + " chunks cell="
-                + BiomeZoneSelector.ZONE_CELL_CHUNKS + " band=12% — determinism/coherence/band/weights all green");
+            "BIOMEZONE PASS: seeds=" + SEEDS.length + " window=" + WINDOW + "x" + WINDOW + " chunks"
+                + " zoomLevels=" + GTSRGenLayerChain.DEFAULT_ZOOM_LEVELS
+                + " — determinism/coherence/equal-shares/id-band all green (B2 chain face)");
     }
 
     private static void checkSeed(long seed) {
         final int half = WINDOW / 2;
-        // —— ① 双跑逐字节一致 ——
+        // —— ① 双跑逐字节一致（chunk 代表点口径与 biomeAt/bandIndexAt 同式）——
         final int[] run1 = sampleWindow(seed, half);
         final int[] run2 = sampleWindow(seed, half);
         final byte[] dump1 = toBytes(run1);
@@ -68,149 +66,108 @@ public class BiomeZoneCheck {
         }
         final String sha = sha256Hex(dump1);
 
-        // —— idStart 段断言：下标恒在注册段内（biomeWeight 消费面不回退 1.0） ——
-        for (final int zone : run1) {
-            if (zone < 0 || zone >= BIOME_COUNT) {
-                fail("zone index out of [0," + BIOME_COUNT + "): " + zone + " seed=" + seed);
-            }
-            final int biomeId = ID_START + zone;
-            if (biomeId < ID_START || biomeId >= ID_START + BIOME_COUNT) {
-                fail("biomeId out of registration band: " + biomeId + " seed=" + seed);
+        // —— ④ id 段断言：链输出恒 ∈ 入参集合（防御钳制不触发时的显式复核）——
+        for (final int id : run1) {
+            if (indexOf(id) < 0) {
+                fail("chain id " + id + " outside input set " + java.util.Arrays.toString(BIOME_IDS) + " seed=" + seed);
             }
         }
 
-        // —— ③ 边带比例 ≈12%± ——
-        long bandChunks = 0;
-        long deviated = 0;
-        for (int z = 0; z < WINDOW; z++) {
-            for (int x = 0; x < WINDOW; x++) {
-                final int cx = x - half;
-                final int cz = z - half;
-                if (!BiomeZoneSelector.isEdgeBand(cx, cz, BiomeZoneSelector.ZONE_CELL_CHUNKS)) {
-                    continue;
-                }
-                bandChunks++;
-                final int base = BiomeZoneSelector.zoneOfCell(
-                    seed,
-                    Math.floorDiv(cx, BiomeZoneSelector.ZONE_CELL_CHUNKS),
-                    Math.floorDiv(cz, BiomeZoneSelector.ZONE_CELL_CHUNKS),
-                    BIOME_COUNT,
-                    WEIGHTS,
-                    SALT);
-                if (run1[x + z * WINDOW] != base) {
-                    deviated++;
-                }
-            }
-        }
-        final double bandRatio = (double) deviated / (double) bandChunks;
-        if (bandRatio < BAND_RATIO_MIN || bandRatio > BAND_RATIO_MAX) {
-            fail(
-                "edge-band ratio " + bandRatio + " outside [" + BAND_RATIO_MIN + "," + BAND_RATIO_MAX + "] seed="
-                    + seed);
-        }
-
-        // —— ② 连片度（4-连通最大簇）——
-        final int[] clusterSizes = largestClusters(run1);
-        final int totalWeight = Arrays.stream(WEIGHTS).sum();
+        // —— ② 连片度（4-连通最大簇）+ 孤岛占比 ——
+        final long[] clusterSizes = largestClusters(run1);
         int dominant = 0;
         for (int i = 1; i < BIOME_COUNT; i++) {
-            if (WEIGHTS[i] > WEIGHTS[dominant]) {
+            if (clusterSizes[i] > clusterSizes[dominant]) {
                 dominant = i;
             }
         }
-        final int chunkPerCell = BiomeZoneSelector.ZONE_CELL_CHUNKS * BiomeZoneSelector.ZONE_CELL_CHUNKS;
-        if (clusterSizes[dominant] < (long) DOMINANT_MIN_CELLS * chunkPerCell) {
-            fail(
-                "dominant zone " + dominant + " largest cluster " + clusterSizes[dominant] + " chunks < "
-                    + DOMINANT_MIN_CELLS
-                    + " cells seed=" + seed);
+        if (clusterSizes[dominant] < DOMINANT_MIN_CHUNKS) {
+            fail("dominant id " + BIOME_IDS[dominant] + " largest cluster " + clusterSizes[dominant]
+                + " chunks < " + DOMINANT_MIN_CHUNKS + " seed=" + seed);
         }
         for (int i = 0; i < BIOME_COUNT; i++) {
-            if (WEIGHTS[i] * 10 >= totalWeight && clusterSizes[i] < (long) ANY_MIN_CELLS * chunkPerCell) {
-                fail("zone " + i + " largest cluster " + clusterSizes[i] + " < 1 cell seed=" + seed);
+            if (clusterSizes[i] <= 0L) {
+                fail("id " + BIOME_IDS[i] + " never appears seed=" + seed);
             }
         }
-
-        // —— 孤岛占比（盐胡椒度反指标）——
         final double islandRatio = islandRatio(run1);
         if (islandRatio > ISLAND_RATIO_MAX) {
             fail("single-island chunk ratio " + islandRatio + " > " + ISLAND_RATIO_MAX + " seed=" + seed);
         }
 
-        // —— ④ 权重分布偏差 ——
+        // —— ③ 等权分布偏差（25% 基准）——
         final long[] counts = new long[BIOME_COUNT];
-        for (final int zone : run1) {
-            counts[zone]++;
+        for (final int id : run1) {
+            counts[indexOf(id)]++;
         }
         final StringBuilder shares = new StringBuilder();
         for (int i = 0; i < BIOME_COUNT; i++) {
-            final double expected = (double) WEIGHTS[i] / totalWeight;
             final double actual = (double) counts[i] / run1.length;
-            final double deviation = Math.abs(actual - expected);
-            if (deviation > WEIGHT_DEVIATION_MAX) {
-                fail(
-                    "zone " + i + " share " + actual + " deviates " + deviation + " from " + expected + " > "
-                        + WEIGHT_DEVIATION_MAX + " seed=" + seed);
+            final double deviation = Math.abs(actual - 1.0D / BIOME_COUNT);
+            if (deviation > SHARE_DEVIATION_MAX) {
+                fail("id " + BIOME_IDS[i] + " share " + actual + " deviates " + deviation + " from "
+                    + (1.0D / BIOME_COUNT) + " > " + SHARE_DEVIATION_MAX + " seed=" + seed);
             }
-            shares.append(actual);
+            shares.append(String.format("%.3f", actual));
             if (i < BIOME_COUNT - 1) {
                 shares.append('/');
             }
         }
 
         System.out.println(
-            "BIOMEZONE PASS seed=" + seed + ": sha256=" + sha.substring(0, 16) + "… bandRatio=" + bandRatio
-                + " (deviated=" + deviated + "/" + bandChunks + ") clusters=" + Arrays.toString(clusterSizes)
-                + " chunks islandRatio=" + islandRatio + " shares=" + shares);
-
-        // —— 对照基线（仅打印，不作断言）：旧 per-chunk 均匀掷骰同窗指标 ——
-        printLegacyContrast(seed, half, totalWeight);
+            "BIOMEZONE PASS seed=" + seed + ": sha256=" + sha.substring(0, 16) + "… clusters="
+                + java.util.Arrays.toString(clusterSizes) + " chunks islandRatio=" + islandRatio
+                + " shares=" + shares);
     }
 
-    /** 同一样本窗逐 chunk 跑两次 {@link BiomeZoneSelector#select} 的快照。 */
+    /**
+     * 同一样本窗逐 chunk 的身份快照——采样式与生产两口（{@code GTSRWorldChunkManager.biomeAt} /
+     * {@code CityPlanner.bandIndexAt}）逐字同款：chunk 中心块 {@code (cx<<4)+8, (cz<<4)+8} 喂
+     * {@link GTSRGenLayerChain#biomeAtCoarse(int, int)}。
+     */
     private static int[] sampleWindow(long seed, int half) {
+        final GTSRGenLayerChain chain = new GTSRGenLayerChain(seed, BIOME_IDS);
         final int[] grid = new int[WINDOW * WINDOW];
         for (int z = 0; z < WINDOW; z++) {
             for (int x = 0; x < WINDOW; x++) {
-                grid[x + z * WINDOW] = BiomeZoneSelector
-                    .select(seed, x - half, z - half, BIOME_COUNT, WEIGHTS, BiomeZoneSelector.ZONE_CELL_CHUNKS, SALT);
+                grid[x + z * WINDOW] = chain.biomeAtCoarse(((x - half) << 4) + 8, ((z - half) << 4) + 8);
             }
         }
         return grid;
     }
 
-    /** 各 zone 最大 4-连通簇（chunk 数；迭代 flood fill，无递归）。 */
-    private static int[] largestClusters(int[] grid) {
-        final int[] sizes = new int[BIOME_COUNT];
+    /** 各 id 最大 4-连通簇（chunk 数；迭代 flood fill，无递归）。 */
+    private static long[] largestClusters(int[] grid) {
+        final long[] sizes = new long[BIOME_COUNT];
         final boolean[] visited = new boolean[grid.length];
         final int[] stack = new int[grid.length];
         for (int start = 0; start < grid.length; start++) {
             if (visited[start]) {
                 continue;
             }
-            final int zone = grid[start];
+            final int zone = indexOf(grid[start]);
             int top = 0;
             stack[top++] = start;
             visited[start] = true;
-            int size = 0;
+            long size = 0;
             while (top > 0) {
                 final int idx = stack[--top];
                 size++;
                 final int x = idx % WINDOW;
                 final int z = idx / WINDOW;
-                if (x > 0 && !visited[idx - 1] && grid[idx - 1] == zone) {
+                if (x > 0 && !visited[idx - 1] && zone == indexOf(grid[idx - 1])) {
                     visited[idx - 1] = true;
                     stack[top++] = idx - 1;
                 }
-                if (x < WINDOW - 1 && !visited[idx + 1] && grid[idx + 1] == zone) {
+                if (x < WINDOW - 1 && !visited[idx + 1] && zone == indexOf(grid[idx + 1])) {
                     visited[idx + 1] = true;
                     stack[top++] = idx + 1;
                 }
-                if (z > 0 && !visited[idx - WINDOW] && grid[idx - WINDOW] == zone) {
+                if (z > 0 && !visited[idx - WINDOW] && zone == indexOf(grid[idx - WINDOW])) {
                     visited[idx - WINDOW] = true;
                     stack[top++] = idx - WINDOW;
                 }
-                if (z < WINDOW - 1 && !visited[idx + WINDOW] && grid[idx + WINDOW] == zone) {
+                if (z < WINDOW - 1 && !visited[idx + WINDOW] && zone == indexOf(grid[idx + WINDOW])) {
                     visited[idx + WINDOW] = true;
                     stack[top++] = idx + WINDOW;
                 }
@@ -222,7 +179,7 @@ public class BiomeZoneCheck {
         return sizes;
     }
 
-    /** 内部 chunk 中 4 邻均异 zone 的孤岛占比（盐胡椒度反指标）。 */
+    /** 内部 chunk 中 4 邻均异 id 的孤岛占比（盐胡椒度反指标）。 */
     private static double islandRatio(int[] grid) {
         long interior = 0;
         long islands = 0;
@@ -237,61 +194,18 @@ public class BiomeZoneCheck {
                 }
             }
         }
-        return (double) islands / (double) interior;
+        return interior == 0 ? 0 : (double) islands / (double) interior;
     }
 
-    /** 旧 per-chunk 均匀掷骰复刻（GTSRWorldChunkManager.hash 同族，仅对照打印，零 MC 依赖）。 */
-    private static void printLegacyContrast(long seed, int half, int totalWeight) {
-        final int[] grid = new int[WINDOW * WINDOW];
-        final int[] cumulative = new int[BIOME_COUNT];
-        int acc = 0;
-        for (int i = 0; i < BIOME_COUNT; i++) {
-            acc += WEIGHTS[i];
-            cumulative[i] = acc;
-        }
-        for (int z = 0; z < WINDOW; z++) {
-            for (int x = 0; x < WINDOW; x++) {
-                long h = seed ^ ((long) (x - half) * 0x9E3779B97F4A7C15L) ^ ((long) (z - half) * 0xBF58476D1CE4E5B9L);
-                h ^= h >>> 33;
-                h *= 0xFF51AFD7ED558CCDL;
-                h ^= h >>> 33;
-                h *= 0xC4CEB9FE1A85EC53L;
-                h ^= h >>> 33;
-                final int r = (int) (h & 0x7FFFFFFFL) % totalWeight;
-                int zone = BIOME_COUNT - 1;
-                for (int i = 0; i < BIOME_COUNT; i++) {
-                    if (r < cumulative[i]) {
-                        zone = i;
-                        break;
-                    }
-                }
-                grid[x + z * WINDOW] = zone;
-            }
-        }
-        final int[] clusters = largestClusters(grid);
-        int dominant = 0;
-        for (int i = 1; i < BIOME_COUNT; i++) {
-            if (clusters[i] > clusters[dominant]) {
-                dominant = i;
-            }
-        }
-        System.out.println(
-            "BIOMEZONE legacy-baseline (per-chunk uniform, contrast only): largestClusterAnyZone="
-                + clusters[dominant]
-                + " chunks islandRatio=" + islandRatio(grid));
-    }
-
-    /** 契约防御：非法入参 fail fast、null 权重表均匀回退。 */
+    /**
+     * 契约防御（链构造期 fail-fast 的透传复核；主断言面在 GTSRGenLayerSelfTest，此处只钉
+     * "哑元 id 段可构造 + 非法入参必抛"这一层，防本工具自身悄悄改用非法档）。
+     */
     private static void contractChecks() {
-        expectThrows(() -> BiomeZoneSelector.select(1L, 0, 0, 0, WEIGHTS, 16, SALT), "biomeCount=0");
-        expectThrows(() -> BiomeZoneSelector.select(1L, 0, 0, 4, WEIGHTS, 0, SALT), "cell=0");
-        expectThrows(() -> BiomeZoneSelector.zoneOfCell(1L, 0, 0, 0, WEIGHTS, SALT), "zoneOfCell biomeCount=0");
-        expectThrows(() -> BiomeZoneSelector.isEdgeBand(0, 0, 0), "isEdgeBand cell=0");
-        final int zone = BiomeZoneSelector.select(42L, -77, 123, 3, null, 8, SALT);
-        if (zone < 0 || zone >= 3) {
-            fail("null-weights uniform fallback out of range: " + zone);
-        }
-        System.out.println("BIOMEZONE CONTRACT PASS: invalid-args fail fast, null-weights uniform fallback");
+        expectThrows(() -> new GTSRGenLayerChain(1L, new int[0]), "empty biomeIds");
+        expectThrows(() -> new GTSRGenLayerChain(1L, new int[] { 256 }), "id 256");
+        expectThrows(() -> new GTSRGenLayerChain(1L, BIOME_IDS, -1), "zoomLevels -1");
+        System.out.println("BIOMEZONE CONTRACT PASS: chain constructor fail-fast passthrough");
     }
 
     private static void expectThrows(Runnable call, String label) {
@@ -304,6 +218,15 @@ public class BiomeZoneCheck {
             return;
         }
         fail(label + " did not throw IllegalArgumentException");
+    }
+
+    private static int indexOf(int id) {
+        for (int i = 0; i < BIOME_IDS.length; i++) {
+            if (BIOME_IDS[i] == id) {
+                return i;
+            }
+        }
+        return -1;
     }
 
     private static byte[] toBytes(int[] grid) {

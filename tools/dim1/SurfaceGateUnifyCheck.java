@@ -118,7 +118,7 @@ public final class SurfaceGateUnifyCheck {
 
     /**
      * D 组：门通过率申报带（百分点，闭区间）。口径 = 列级（每列 {@code findSurfaceY} 顶格方块
-     * 过不过门），样本见 {@code plan/investigation/p4-surface-gate-20260919.md} 表 1/表 2。
+     * 过不过门），样本见 {@code plan/维度计划/调查取证/Phase1按片报告/p4-surface-gate-20260919.md} 表 1/表 2。
      * 容差取「实测 ±0.6pp」量级：吸收跨机器抖动，但<b>不足以容纳删/加一个成员</b>
      * （G 组用影子集合自证这一点）。
      */

@@ -5,7 +5,7 @@ import com.miaokatze.gtsr.common.dimension.prosperity.ruins.city.CityVariants;
 
 /**
  * S4b 验收④ 离线驱动（不进 jar，tools/ 惯例）：把 {@link CityVariants} 代表城变体经
- * StructureBuilder → RasterSink 栅格化为俯视 PNG，落 plan/新维度计划/review/dim1/structures/city/
+ * StructureBuilder → RasterSink 栅格化为俯视 PNG，落 plan/维度计划/设计册与实施计划/review/dim1/structures/city/
  * （S7b HTML 核对页输入，命名=变体名.png）。覆盖全部 5 类别 ≥6 变体（含核心/工业/边缘各≥1），
  * plotSeed 取中损档（tier=1）样本种子（世界生成同一 place 管线，损伤档/朝向可复现）。
  * 纯 JEP 330 单文件运行，零 Minecraft 依赖：
@@ -21,7 +21,7 @@ public class CityRasterPreview {
     public static void main(String[] args) throws Exception {
         final File outDir = new File(
             args.length > 0 ? args[0]
-                : "plan/新维度计划/review/dim1/structures/city");
+                : "plan/维度计划/设计册与实施计划/review/dim1/structures/city");
         if (!outDir.exists() && !outDir.mkdirs()) {
             throw new IllegalStateException("cannot create output dir: " + outDir.getAbsolutePath());
         }

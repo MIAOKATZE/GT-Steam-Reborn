@@ -8,11 +8,18 @@ import com.miaokatze.gtsr.common.dimension.prosperity.ruins.city.CityVariants;
 /**
  * S4b 渲染协议几何自检（一次性 main，tools/ 惯例）：对一座已知城市，验证
  * {@link CityPlan#forEachPlotInChunk} 在城市覆盖窗内每个 chunk 至少回调一次且锚点落在
- * 13×13 plot 界内、变体名均在注册表；街道列回调坐标全部落在该 chunk（协议=切片）。
- * dim78-fix S-A3 扩两条断言：(a) 边界判定同侧性——plot 门与街道裁剪对唯一边界函数
- * {@link CityPlan#insideCity(int, int)} 全网格委托一致、街道回调格全部被判城内且与
- * insideCity∧onStreet 独立重算无多无漏；(b) 全部回调坐标在 reach（radius*16+32）内。
- * 另断言 Fourier 振幅硬约束 Σ|a_k|·radiusBlocks ≤ 12（样本城 + 双 seed × 101×101 cell 实测）。
+ * contentReach 内、变体名均在注册表；街道列回调坐标全部落在该 chunk（协议=切片）。
+ * dim78-fix S-A3 断言（v1.20.34 异形轮廓口径更新）：
+ * <ul>
+ * <li>(a) 边界判定同侧性——街道回调格全部被判城内（{@link CityPlan#insideCity(int, int)}
+ *     唯一边界函数），且街道裁剪与 insideCity∧onStreet 独立重算无多无漏；</li>
+ * <li>(b) 全部回调坐标在 {@link CityPlan#contentReachBlocks()} 内；</li>
+ * <li>(c) plot 门 = 偏置几何门 ∧ 连通闭包——kept plot 必过「公开 {@link CityPlan#plotEdgeBias}
+ *     + insideCity」独立重算的偏置几何门（证明 plot 侧没有第二套边界公式）；闭包剔除数
+ *     （几何门内但非可达）打印登记（=0 孤立地块的专项断言在 CityShapeCheck）；</li>
+ * <li>(d) 轮廓总扰动硬约束：{@code edgePerturbationBlocks()} ∈ [EDGE_TOT_FRAC_MIN,
+ *     EDGE_TOT_FRAC_MAX]×radiusBlocks（自适应 25-35%，样本城 + 双 seed × 101×101 cell 实测）。</li>
+ * </ul>
  * 零 Minecraft 依赖：
  * {@code java -cp build/classes/java/main tools/dim1/CityPlanSanityCheck.java}
  */
@@ -37,22 +44,47 @@ public class CityPlanSanityCheck {
         System.out.println(
             "CITY centerChunk=" + city.getCenterChunkX() + "," + city.getCenterChunkZ() + " radius="
                 + city.getRadiusChunks());
-        // —— S-A3：Fourier 振幅硬约束（样本城即断言；全量实测扫描见文末 sweep）——
-        if (city.edgePerturbationBlocks() > CityPlan.MAX_EDGE_PERTURBATION + 1e-9) {
-            fail("edge amplitude beyond hard cap: " + city.edgePerturbationBlocks());
+        // —— S-A3 断言 (d) 之一：总扰动硬约束（自适应 25-35% × 城半径）——
+        final double capBlocks = CityPlan.EDGE_TOT_FRAC_MAX * city.getRadiusChunks() * 16;
+        final double minBlocks = CityPlan.EDGE_TOT_FRAC_MIN * city.getRadiusChunks() * 16;
+        if (city.edgePerturbationBlocks() > capBlocks + 1e-9) {
+            fail("edge perturbation beyond hard cap: " + city.edgePerturbationBlocks() + " > " + capBlocks);
         }
-        // —— S-A3 断言 (a) 之一：plot 门对 insideCity 全网格委托一致（同 CityPlan kLim 口径）——
-        final int lim = city.getRadiusChunks() + 1; // = radiusBlocks/16 + 1
+        if (city.edgePerturbationBlocks() < minBlocks - 1e-9) {
+            fail("edge perturbation below floor: " + city.edgePerturbationBlocks() + " < " + minBlocks);
+        }
+        // —— S-A3 断言 (c)：kept plot ⊆ 独立重算偏置几何门（plotIndexLimit 口径网格）——
+        final int lim = city.plotIndexLimit();
         int gridChecked = 0;
+        int keptPlots = 0;
+        int geometricIn = 0;
+        int droppedByClosure = 0;
+        int avenueAdjacentKept = 0;
         for (int k = -lim; k <= lim; k++) {
             for (int l = -lim; l <= lim; l++) {
-                final int pcx = city.getCenterX() + k * 16 + 8;
-                final int pcz = city.getCenterZ() + l * 16 + 8;
-                if (city.plotInCircle(k, l) != city.insideCity(pcx, pcz)) {
-                    fail("plot gate diverges from insideCity at plot (" + k + "," + l + ")");
+                final boolean kept = city.plotInCircle(k, l);
+                final boolean geoIn = independentGeometricIn(city, k, l);
+                if (kept && !geoIn) {
+                    fail("kept plot (" + k + "," + l + ") fails independent biased geometric gate"
+                        + " (second boundary formula suspected)");
+                }
+                if (kept) {
+                    keptPlots++;
+                    if (k == -1 || k == 0 || l == -1 || l == 0) {
+                        avenueAdjacentKept++;
+                    }
+                }
+                if (geoIn) {
+                    geometricIn++;
+                    if (!kept) {
+                        droppedByClosure++;
+                    }
                 }
                 gridChecked++;
             }
+        }
+        if (keptPlots == 0 || avenueAdjacentKept == 0) {
+            fail("degenerate plot set: kept=" + keptPlots + " avenueAdjacentKept=" + avenueAdjacentKept);
         }
         int chunksChecked = 0;
         int plotCallbacks = 0;
@@ -61,7 +93,7 @@ public class CityPlanSanityCheck {
         for (int cx = city.getCenterChunkX() - city.getRadiusChunks() - 1; cx <= city.getCenterChunkX()
             + city.getRadiusChunks() + 1; cx++) {
             for (int cz = city.getCenterChunkZ() - city.getRadiusChunks() - 1; cz <= city.getCenterChunkZ()
-                + city.getRadiusChunks() + 1; cz++) {
+            + city.getRadiusChunks() + 1; cz++) {
                 final int fcx = cx;
                 final int fcz = cz;
                 chunksChecked++;
@@ -70,10 +102,10 @@ public class CityPlanSanityCheck {
                     if (v == null) {
                         fail("unregistered variant in plot: " + variant);
                     }
-                    // 锚点必须落在城市 reach（radius*16+32）+ footprint 余量内
+                    // 锚点必须落在城市 contentReach 内（半径 + 扰动 + 偏置 + 内容余量）
                     final int du = ox - fc.getCenterX();
                     final int dv = oz - fc.getCenterZ();
-                    final int reach = fc.getRadiusChunks() * 16 + 32;
+                    final int reach = fc.contentReachBlocks();
                     if (du * du + dv * dv > reach * reach) {
                         fail("anchor beyond city reach: (" + ox + "," + oz + ") variant=" + variant);
                     }
@@ -88,10 +120,10 @@ public class CityPlanSanityCheck {
                     if (!fc.insideCity(wx, wz)) {
                         fail("street column judged OUTSIDE by insideCity: (" + wx + "," + wz + ")");
                     }
-                    // S-A3 断言 (b)：街道回调坐标全部在 reach（radius*16+32）内
+                    // S-A3 断言 (b)：街道回调坐标全部在 contentReach 内
                     final int sdu = wx - fc.getCenterX();
                     final int sdv = wz - fc.getCenterZ();
-                    final int sReach = fc.getRadiusChunks() * 16 + 32;
+                    final int sReach = fc.contentReachBlocks();
                     if (sdu * sdu + sdv * sdv > sReach * sReach) {
                         fail("street column beyond city reach: (" + wx + "," + wz + ")");
                     }
@@ -107,9 +139,10 @@ public class CityPlanSanityCheck {
         if (plotCallbacks == 0 || streetCallbacks == 0) {
             fail("degenerate: plots=" + plotCallbacks + " streets=" + streetCallbacks);
         }
-        // —— S-A3 振幅硬约束全量实测（双 seed × 101×101 cell；供切片报告登记最大值）——
+        // —— S-A3 断言 (d) 之二：总扰动约束全量实测（双 seed × 101×101 cell；按城半径归一）——
         final long[] sweepSeeds = { seed, 0x50524F53L };
-        double maxAmp = city.edgePerturbationBlocks();
+        double maxRel = city.edgePerturbationBlocks() / (double) (city.getRadiusChunks() * 16);
+        double minRel = maxRel;
         int citiesSwept = 0;
         for (final long s : sweepSeeds) {
             for (int sx = -50; sx <= 50; sx++) {
@@ -119,12 +152,14 @@ public class CityPlanSanityCheck {
                         continue;
                     }
                     citiesSwept++;
-                    maxAmp = Math.max(maxAmp, p.edgePerturbationBlocks());
+                    final double rel = p.edgePerturbationBlocks() / (double) (p.getRadiusChunks() * 16);
+                    if (rel > CityPlan.EDGE_TOT_FRAC_MAX + 1e-9 || rel < CityPlan.EDGE_TOT_FRAC_MIN - 1e-9) {
+                        fail("amplitude sweep out of band: rel=" + rel + " at cell " + sx + "," + sz);
+                    }
+                    maxRel = Math.max(maxRel, rel);
+                    minRel = Math.min(minRel, rel);
                 }
             }
-        }
-        if (maxAmp > CityPlan.MAX_EDGE_PERTURBATION + 1e-9) {
-            fail("amplitude sweep beyond hard cap: " + maxAmp);
         }
         System.out.println(
             "SANITY PASS: chunks=" + chunksChecked + " plotCallbacks=" + plotCallbacks + " streetColumns="
@@ -132,11 +167,34 @@ public class CityPlanSanityCheck {
                 + " distinctVariantsSeen="
                 + variantsSeen.size()
                 + " plotGateGrid=" + gridChecked
+                + " keptPlots=" + keptPlots
+                + " geometricIn=" + geometricIn
+                + " droppedByClosure=" + droppedByClosure
+                + " avenueAdjacentKept=" + avenueAdjacentKept
                 + " citiesSwept=" + citiesSwept
-                + " maxEdgeAmp=" + String.format("%.3f", maxAmp)
-                + " (cap=" + CityPlan.MAX_EDGE_PERTURBATION + ") "
+                + " edgeTotFrac=[" + String.format("%.3f", minRel) + "," + String.format("%.3f", maxRel) + "]"
+                + " (band=[" + CityPlan.EDGE_TOT_FRAC_MIN + "," + CityPlan.EDGE_TOT_FRAC_MAX + "]) "
                 + variantsSeen);
         System.out.println("SANITY DONE");
+    }
+
+    /**
+     * 独立重算 plot 偏置几何门（S-A3 断言 (c) 的对照腿）：用公开 API
+     * {@link CityPlan#plotEdgeBias} + {@link CityPlan#insideCity(int, int)} 复刻
+     * 「plot 中心沿径向偏置 bias 后问唯一边界函数」的采样——若 CityPlan 内部藏了第二套
+     * 边界公式，kept 集与本重算必出现分歧。
+     */
+    private static boolean independentGeometricIn(CityPlan city, int k, int l) {
+        final double du = k * CityPlan.STREET_SPACING + 8.0;
+        final double dv = l * CityPlan.STREET_SPACING + 8.0;
+        final double d = Math.sqrt(du * du + dv * dv);
+        if (d < 1e-9) {
+            return true;
+        }
+        final double scale = (d + city.plotEdgeBias(k, l)) / d;
+        return city.insideCity(
+            city.getCenterX() + (int) Math.round(du * scale),
+            city.getCenterZ() + (int) Math.round(dv * scale));
     }
 
     private static int countPlots(CityPlan city, int cx, int cz) {

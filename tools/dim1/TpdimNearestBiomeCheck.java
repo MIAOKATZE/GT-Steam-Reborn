@@ -2,13 +2,13 @@ import java.util.List;
 
 import net.minecraft.world.biome.BiomeGenBase;
 
-import com.miaokatze.gtsr.common.dimension.framework.BiomeZoneSelector;
 import com.miaokatze.gtsr.common.dimension.framework.GTSRBiomeAuthority;
 import com.miaokatze.gtsr.common.dimension.framework.GTSRBiomeAuthority.BiomeId;
 import com.miaokatze.gtsr.common.dimension.framework.GTSRBiomeAuthority.NearestBiomeChunk;
 import com.miaokatze.gtsr.common.dimension.framework.GTSRBiomeAuthority.NearestStatus;
 import com.miaokatze.gtsr.common.dimension.framework.GTSRDimensionDef;
 import com.miaokatze.gtsr.common.dimension.framework.GTSRWorldChunkManager;
+import com.miaokatze.gtsr.common.dimension.framework.genlayer.GTSRGenLayerChain;
 import com.miaokatze.gtsr.config.Config;
 
 /**
@@ -18,11 +18,11 @@ import com.miaokatze.gtsr.config.Config;
  * <ul>
  * <li>{@code d78}——判据 2/3/4（dim78 正常态）：四群系各跑一次 {@code nearestBiomeChunk}
  * （生产同一实现体），落点经 {@code ordinalAt} 复核确属目标带；对每个群系用
- * {@code BiomeZoneSelector.bandIndex}（H-1 权威身份出口，与 L1 绑定源同一带算法）穷举
+ * <b>本地重建的同参 GenLayer 链</b>（种子/等权 id 表/中心代表点与 manager 接线一致）穷举
  * "半径 = 算法命中距离外沿 +2 环"的正方形全域求 chunk 粒度真最近，与算法命中比较
  * （距离差必须为 0）；申报步数/耗时；两条上界档（半径调到最小命中环-1 ⇒ NOT_FOUND；
  * 步数保险丝 ⇒ 评估数不越 cap 且无崩溃）；</li>
- * <li>{@code d79}——同 d78，dim79 权重 40/30/20/10、macro=16、盐 0x5A4F4E46
+ * <li>{@code d79}——同 d78（B1 起两维身份源同为等权 GenLayer 链，穷举对拍链种子掺各自的 def.seedSalt）
  * （离线装配为 NONE 正常态；实机 dim79 若处降级态，其"应报明确错误而不是乱指"判据由
  * {@code empty79} 档承担）；</li>
  * <li>{@code empty79}——dim79 强制 EMPTY：四名册成员 recordNoSlot + 空表 def ⇒
@@ -38,7 +38,7 @@ import com.miaokatze.gtsr.config.Config;
  * （到原点 chunk 的欧氏距离平方——"最近"的申报口径为 chunk 粒度距离）{@code status=}
  * （HIT/NOT_FOUND/STEP_LIMIT）{@code rings=}（完整扫过的环带数）{@code steps=}（实际评估
  * chunk 数）{@code ms=}（本次搜索耗时）{@code minCheb=}（穷举回读的最小命中环带号）
- * {@code brute=(cx,cz)} {@code bruteDistSq=} {@code evals=}（bandIndex 穷举侧数字）
+ * {@code brute=(cx,cz)} {@code bruteDistSq=} {@code evals=}（链粗层穷举侧数字）
  * {@code distDiff=}（algo-brute，判据 3 必须 0）{@code verify=}（ordinalAt 复核命中列中心，
  * 必须等于 biome）。
  * <p>
@@ -47,8 +47,10 @@ import com.miaokatze.gtsr.config.Config;
  */
 public class TpdimNearestBiomeCheck {
 
-    /** dim79 接线盐（与 CommonProxy/SurfaceHarness 的 0x5A4F4E46 同值；此处是对拍入参，非新真值）。 */
-    private static final long SALT79 = 0x5A4F4E46L;
+    /** dim78 def.seedSalt（与 SurfaceHarness.def(true,...) 同值；链种子 = SEED ^ salt 的对拍入参）。 */
+    private static final long SEED_SALT78 = 0x50524F53L;
+    /** dim79 def.seedSalt（同上）。 */
+    private static final long SEED_SALT79 = 0x53484C53L;
 
     private static int assertions;
     private static boolean failed;
@@ -106,32 +108,23 @@ public class TpdimNearestBiomeCheck {
         final GTSRBiomeAuthority auth = bindNormal78();
         check(auth.degraded() == GTSRBiomeAuthority.Degraded.NONE, "d78 前提：degraded 应为 NONE");
         check(auth.isBound(), "d78 前提：应已绑定");
-        runLocateTable(
-            auth,
-            "TPDIM78",
-            SurfaceHarness.PROSPERITY_KEYS,
-            SurfaceHarness.prosperityWeights(),
-            BiomeZoneSelector.normalizeMacroCell(Config.prosperityBiomeMacroBandChunks),
-            BiomeZoneSelector.ZONE_SALT_PROSPERITY);
+        runLocateTable(auth, "TPDIM78", SurfaceHarness.PROSPERITY_KEYS, SurfaceHarness.PROSPERITY_IDS, SEED_SALT78);
         checkNamesAndParsing(auth, new String[] { "Rusted Steppe", "Gearwork Forest", "Brass Wastes", "Fumarole Swamp" });
     }
 
     private static void dim79() {
         final GTSRBiomeAuthority auth = bindNormal79();
         check(auth.degraded() == GTSRBiomeAuthority.Degraded.NONE, "d79 前提：degraded 应为 NONE（离线正常态）");
-        runLocateTable(
-            auth,
-            "TPDIM79",
-            SurfaceHarness.SHATTERED_KEYS,
-            SurfaceHarness.shatteredWeights(),
-            BiomeZoneSelector.normalizeMacroCell(Config.shatteredBiomeMacroBandChunks),
-            SALT79);
+        runLocateTable(auth, "TPDIM79", SurfaceHarness.SHATTERED_KEYS, SurfaceHarness.SHATTERED_IDS, SEED_SALT79);
         checkNamesAndParsing(auth, new String[] { "Ashen Prairie", "Slagwood Grove", "Vitreous Waste", "Tar Basin" });
     }
 
-    /** 判据 2/3/4 主表：四群系逐个 定位 → 穷举对拍 → ordinalAt 复核；表尾两条上界档。 */
-    private static void runLocateTable(GTSRBiomeAuthority auth, String tag, BiomeId[] keys, int[] weights, int macro,
-        long salt) {
+    /** 判据 2/3/4 主表：四群系逐个 定位 → 穷举对拍 → ordinalAt 复核；表尾两条上界档。
+     *
+     * @param ids   该维 def 群系表 id（与 manager 建链入参同一等权数组；穷举复算链的入参）
+     * @param seedSalt 该维 def.seedSalt（与 manager 链种子 seed^seedSalt 同礼仪）
+     */
+    private static void runLocateTable(GTSRBiomeAuthority auth, String tag, BiomeId[] keys, int[] ids, long seedSalt) {
         BiomeId worst = null;
         int worstMinCheb = -1;
         for (final BiomeId key : keys) {
@@ -147,9 +140,10 @@ public class TpdimNearestBiomeCheck {
             // 判据 2：落点经 L1 ordinalAt 复核确属目标带（命中 chunk 中心列，块坐标口径）
             final GTSRBiomeAuthority.Resolution v = auth.ordinalAt(hit.chunkX * 16 + 8, hit.chunkZ * 16 + 8);
             check(v.resolved() && v.biomeId == key, tag + " ordinalAt 复核失配：" + v + " != " + key);
-            // 判据 3：bandIndex 穷举（正方形全域，半径 = 命中距离外沿 +2 环，覆盖一切可能更近格）
+            // 判据 3：链粗层穷举（正方形全域，半径 = 命中距离外沿 +2 环，覆盖一切可能更近格）。
+            // B1 起身份源是 GenLayer 链（本地重建同参链独立复算，不再用带算法）。
             final int radius = (int)Math.ceil(Math.sqrt(hit.distSq)) + 2;
-            final long[] b = bruteForce(weights.length, key.rosterIndex(), weights, macro, salt, radius);
+            final long[] b = bruteForce(ids, key.rosterIndex(), seedSalt, radius);
             check(b[0] >= 0 && b[0] == hit.distSq, tag + " 最近性不成立：algo=" + hit.distSq + " brute=" + b[0]);
             // 判据 4 前置：评估数不越过"扫满 rings 环带正方形"的组合上界
             check(hit.steps <= (2L * hit.ringsScanned + 1) * (2L * hit.ringsScanned + 1), tag + " 步数越界：" + hit);
@@ -185,11 +179,14 @@ public class TpdimNearestBiomeCheck {
     }
 
     /**
-     * 穷举环带（判据 3 的独立实现，走 bandIndex 权威出口）：正方形全域 [-r,r]²。
+     * 穷举环带（判据 3 的独立实现，B1 起走 <b>本地重建的 GenLayer 链</b>——与 manager 同参：
+     * 种子 {@code SEED ^ seedSalt}、等权 id 数组、chunk 中心代表点；不复用被测 manager 实例）：
+     * 正方形全域 [-r,r]²。
      *
      * @return {bestDistSq(-1=无命中), bestCx, bestCy, evals, minCheb(目标群系最小命中环带号)}
      */
-    private static long[] bruteForce(int biomeCount, int idx, int[] weights, int macro, long salt, int radius) {
+    private static long[] bruteForce(int[] ids, int idx, long seedSalt, int radius) {
+        final GTSRGenLayerChain chain = new GTSRGenLayerChain(SurfaceHarness.SEED ^ seedSalt, ids);
         long bestD = Long.MAX_VALUE;
         long bx = 0;
         long bz = 0;
@@ -199,7 +196,7 @@ public class TpdimNearestBiomeCheck {
         for (int cx = -radius; cx <= radius; cx++) {
             for (int cz = -radius; cz <= radius; cz++) {
                 evals++;
-                if (BiomeZoneSelector.bandIndex(SurfaceHarness.SEED, cx, cz, biomeCount, weights, macro, salt) == idx) {
+                if (chain.biomeAtCoarse(cx * 16 + 8, cz * 16 + 8) == ids[idx]) {
                     final long d = (long)cx * cx + (long)cz * cz;
                     if (d < bestD) {
                         bestD = d;

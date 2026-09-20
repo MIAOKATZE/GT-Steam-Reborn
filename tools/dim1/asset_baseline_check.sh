@@ -11,7 +11,7 @@
 #   ② 贴图：两批 artgen（dim7879 / dim1）manifest OUTPUTS ↔ landed.sha256 ↔
 #            src/main/resources/assets/gtsr/textures/blocks/ 磁盘实数 三点反向核对
 #   ③ 结构数据件 data/structures-dim7879.json 的变体计数（当前 34，缺 5 机型；见下方 STRUCT-JSON 行）
-#   ④ 【P13 挂点】展示页一致性 plan/新维度计划/review/dim1/_tools/check_feedback.py
+#   ④ 【P13 挂点】展示页一致性 plan/维度计划/设计册与实施计划/review/dim1/_tools/check_feedback.py
 #      ——含 P11 新增的横向断言「区2 表行群系名集合 == PAGE_ASSETS 群系键集合」。
 #      为什么挂在这里而不是 surface_checks.sh（P11 上报"全仓无脚本调用本 py"）：本脚本已经跑
 #      python 且已声明"资产/页面"职责；surface_checks.sh 跑在 MC-classpath 离线 JVM 域，
@@ -21,7 +21,7 @@
 #
 # 末行输出单行结论：roster=47/47 textures=49/49 SHA=OK（口径不变；页面门在其上方独立成行，红则整体 FAIL）
 #
-# 离线 Java 运行配方来源：plan/investigation/v12030-hotfix-replaceruntime-report.md §3（JEP330 单文件）。
+# 离线 Java 运行配方来源：plan/维度计划/调查取证/dim78-修复与整合/v12030-hotfix-replaceruntime-report.md §3（JEP330 单文件）。
 # 实测本两只检只需 build/classes/java/main + forge universal jar（满足 WorldGenShatteredRuins 的
 # IWorldGenerator 接口链接）；不需要 patchedMc/guava/log4j——零 MC 类初始化。
 # ============================================================================
@@ -185,7 +185,7 @@ echo "[3/4] 结构数据件对账"
 SJ=$(ROSTER_NAMES=$(printf '%s\n' "$S8_OUT" | sed -n 's/^NAMES([0-9]*): \[\(.*\)\]$/\1/p') \
     PYTHONIOENCODING=utf-8 python -B - <<'PY'
 import io, json, os
-p = "plan/新维度计划/review/dim1/data/structures-dim7879.json"
+p = "plan/维度计划/设计册与实施计划/review/dim1/data/structures-dim7879.json"
 roster = [x.strip() for x in os.environ.get("ROSTER_NAMES", "").split(",") if x.strip()]
 d = json.loads(io.open(p, encoding="utf-8").read())
 v = d["variants"]
@@ -216,7 +216,7 @@ echo "$SJ" | grep -q "^STRUCT-JSON COVER=OK$" && STRUCT_FULL=yes
 # 挂整个脚本而非只摘一条：P11 上报的"全仓无脚本调用 check_feedback.py"一次修净，
 # 顺带把 49 张贴图色数标注、俯视域零残留、路径 404 三组也变成常驻门。
 echo "[4/4] 展示页一致性（区2 群系行 ↔ PAGE_ASSETS 群系键 + 色数实测 + 零残留）"
-PAGE_PY="plan/新维度计划/review/dim1/_tools/check_feedback.py"
+PAGE_PY="plan/维度计划/设计册与实施计划/review/dim1/_tools/check_feedback.py"
 if [ ! -f "$PAGE_PY" ]; then
   fail "缺 $PAGE_PY —— 本门要求展示页核对件在场（plan/ 被 gitignore，本脚本是开发树门，不降级为跳过）"
 fi

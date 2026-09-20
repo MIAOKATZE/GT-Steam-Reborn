@@ -97,7 +97,7 @@ public class CityDeterminismCheck {
             }
         }
         if (sample != null) {
-            final File out = new File("plan/新维度计划/review/dim1/structures/city/_determinism_sample.txt");
+            final File out = new File("plan/维度计划/设计册与实施计划/review/dim1/structures/city/_determinism_sample.txt");
             out.getParentFile().mkdirs();
             Files.write(out.toPath(), sample.describe().getBytes(StandardCharsets.UTF_8));
             System.out.println("SAMPLE describe written: " + out.getAbsolutePath());

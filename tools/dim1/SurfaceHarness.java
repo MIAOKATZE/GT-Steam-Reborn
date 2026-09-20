@@ -15,7 +15,6 @@ import net.minecraft.world.storage.ISaveHandler;
 import net.minecraft.world.storage.WorldInfo;
 
 import com.miaokatze.gtsr.common.blocks.BlocksGTSR;
-import com.miaokatze.gtsr.common.dimension.framework.BiomeZoneSelector;
 import com.miaokatze.gtsr.common.dimension.framework.GTSRBiomeAuthority;
 import com.miaokatze.gtsr.common.dimension.framework.GTSRBiomeAuthority.BiomeId;
 import com.miaokatze.gtsr.common.dimension.framework.GTSRChunkProviderBase;
@@ -185,16 +184,18 @@ final class SurfaceHarness {
         }
     }
 
-    /** 生产同款 def 接线（seedSalt/权重/BiomeZoneSelector 与 CommonProxy 一致）。 */
+    /**
+     * 生产同款 def 接线（seedSalt/权重表与 CommonProxy 一致）。
+     * <p>
+     * B2 起 def 不再挂 selector——群系身份由 {@code GTSRWorldChunkManager} 构造期按
+     * {@code seed ^ seedSalt} + 群系表 id 等权表自建 GenLayer 链；权重只作 def 元数据留存。
+     */
     static GTSRDimensionDef def(boolean is78, BiomeGenBase[] biomes, int[] weights) {
         final GTSRDimensionDef def = is78
             ? new GTSRDimensionDef(GTSRBiomeAuthority.DIM_KEY_PROSPERITY, "Parity Prosperity", 0x50524F53L, 78, 100,
                 () -> true, WorldProviderProsperityRuins.class, ChunkProviderProsperityRuins::new)
             : new GTSRDimensionDef(GTSRBiomeAuthority.DIM_KEY_SHATTERED, "Parity Shattered", 0x53484C53L, 79, 101,
                 () -> true, WorldProviderShatteredLands.class, ChunkProviderShatteredGrounds::new);
-        def.setBiomeSelector((seed, chunkX, chunkZ, biomeCount, w) -> BiomeZoneSelector.select(
-            seed, chunkX, chunkZ, biomeCount, w, BiomeZoneSelector.ZONE_CELL_CHUNKS,
-            is78 ? 0x5A4F4E45L : 0x5A4F4E46L));
         for (int i = 0; i < biomes.length; i++) {
             def.addBiome(biomes[i], weights[i]);
         }
