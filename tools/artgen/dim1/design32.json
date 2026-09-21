@@ -1,0 +1,574 @@
+{
+  "_about": "tools/artgen/dim1 批 32 档（v1.20.37 / P16-U1）设计档案：14 张 = S7b 基线批，片 A2 等比重绘 + 磨损细节层（draw32_dim1.py）。逐张记录绘制器与 op 数、所用角色名与色阶（与同目录 manifest.json 的 OUTPUTS[key].params / SEEDS[key] 同源）、PIL 实测尺寸与色数、以及一行「为什么这样画」（文字逐字取自 draw32_dim1.py 的 DETAIL 表行内注释）。gen_dim1_blocks.py 与 manifest.json 本轮未被修改。",
+  "_not_a_gate": "本文件不被 tools/dim1/asset_baseline_check.sh 读取（该门只核 manifest OUTPUTS <-> landed.sha256 <-> 磁盘三点）；它回答「这张为什么这么画」，不是「字节对不对」。",
+  "_measured_by": "PIL，与 review/dim1/_tools/check_feedback.py:163 同口径：distinct_rgba = len(set(RGBA))（页面色数标注用这个）；distinct_rgb_opaque = 非透明像素的唯一 RGB 数（像素纪律 ≤16 用这个）。",
+  "size_landed": [
+    32,
+    32
+  ],
+  "size_master_declared_in_style": [
+    16,
+    16
+  ],
+  "entries": {
+    "prosperity_surface_rust_grass": {
+      "file": "prosperity_surface_rust_grass.png",
+      "group": "prosperity_terrain",
+      "kind": "grass_tinted",
+      "drawer": "tools/artgen/dim1/draw32_dim1.py",
+      "drawer_fn": "DETAIL[prosperity_surface_rust_grass]（4 条细节 op）",
+      "seed_manifest": "0x5EED1001",
+      "palette_roles": {
+        "base": "GRASS_TINT_NEUTRAL",
+        "levels": [
+          "BASE@D140",
+          "BASE@D070",
+          "BASE",
+          "BASE@L090"
+        ],
+        "role_tokens": [
+          "BASE",
+          "BASE@D070",
+          "BASE@D140",
+          "BASE@D240",
+          "BASE@L090",
+          "BASE@L160",
+          "GRASS_TINT_NEUTRAL",
+          "RUST_OXIDE@D070",
+          "RUST_OXIDE@D140"
+        ]
+      },
+      "measured": {
+        "size": [
+          32,
+          32
+        ],
+        "distinct_rgba": 7,
+        "distinct_rgb_opaque": 7,
+        "all_opaque_alpha_255": true,
+        "dominant_opaque": "#9E988A"
+      },
+      "why": "32 档等比重绘（R1-R5：场波长不缩、轮廓级条带 x2、1px 发丝线不加倍、单像素斑点密度不变） + 磨损细节层只在该张既有细节邻位生长、色板轴零新增。锈点下缘压暗 / 草尖受光加宽一格 / 草叶斜生 / 锈块边缘洒锈屑"
+    },
+    "prosperity_surface_rust_grass_side": {
+      "file": "prosperity_surface_rust_grass_side.png",
+      "group": "prosperity_terrain",
+      "kind": "grass_side",
+      "drawer": "tools/artgen/dim1/draw32_dim1.py",
+      "drawer_fn": "DETAIL[prosperity_surface_rust_grass_side]（5 条细节 op）",
+      "seed_manifest": "0x5EED1007",
+      "palette_roles": {
+        "params_from": {
+          "body": "prosperity_surface_rust_dirt",
+          "fringe": "prosperity_surface_rust_grass"
+        },
+        "resolved_via_params_from": {
+          "prosperity_surface_rust_dirt（slot=body）": {
+            "base": "RUST_DIRT",
+            "levels": [
+              "BASE@D070",
+              "BASE@D040",
+              "BASE",
+              "BASE@L022",
+              "BASE@L050"
+            ]
+          },
+          "prosperity_surface_rust_grass（slot=fringe）": {
+            "base": "GRASS_TINT_NEUTRAL",
+            "levels": [
+              "BASE@D140",
+              "BASE@D070",
+              "BASE",
+              "BASE@L090"
+            ]
+          }
+        },
+        "role_tokens": [
+          "BASE@D110",
+          "RUST_OXIDE@D070"
+        ]
+      },
+      "measured": {
+        "size": [
+          32,
+          32
+        ],
+        "distinct_rgba": 14,
+        "distinct_rgb_opaque": 14,
+        "all_opaque_alpha_255": true,
+        "dominant_opaque": "#6B4A32"
+      },
+      "why": "32 档等比重绘（R1-R5：场波长不缩、轮廓级条带 x2、1px 发丝线不加倍、单像素斑点密度不变） + 磨损细节层只在该张既有细节邻位生长、色板轴零新增。沿内锈屑下缘压暗 / 土体亮砂短线 / 锈屑团块 / 垂落草茎加深 / 沿口背光处洒锈屑"
+    },
+    "prosperity_surface_rust_dirt": {
+      "file": "prosperity_surface_rust_dirt.png",
+      "group": "prosperity_terrain",
+      "kind": "terrain_grit",
+      "drawer": "tools/artgen/dim1/draw32_dim1.py",
+      "drawer_fn": "DETAIL[prosperity_surface_rust_dirt]（4 条细节 op）",
+      "seed_manifest": "0x5EED1002",
+      "palette_roles": {
+        "base": "RUST_DIRT",
+        "levels": [
+          "BASE@D070",
+          "BASE@D040",
+          "BASE",
+          "BASE@L022",
+          "BASE@L050"
+        ],
+        "role_tokens": [
+          "BASE",
+          "BASE@D040",
+          "BASE@D070",
+          "BASE@D090",
+          "BASE@D110",
+          "BASE@L022",
+          "BASE@L050",
+          "BASE@L070",
+          "RUST_DIRT",
+          "RUST_OXIDE"
+        ]
+      },
+      "measured": {
+        "size": [
+          32,
+          32
+        ],
+        "distinct_rgba": 8,
+        "distinct_rgb_opaque": 8,
+        "all_opaque_alpha_255": true,
+        "dominant_opaque": "#6B4A32"
+      },
+      "why": "32 档等比重绘（R1-R5：场波长不缩、轮廓级条带 x2、1px 发丝线不加倍、单像素斑点密度不变） + 磨损细节层只在该张既有细节邻位生长、色板轴零新增。粗砂连成短线 / 锈屑聚成小片 / 土块下缘压暗"
+    },
+    "prosperity_surface_rust_sand": {
+      "file": "prosperity_surface_rust_sand.png",
+      "group": "prosperity_terrain",
+      "kind": "terrain_ripple",
+      "drawer": "tools/artgen/dim1/draw32_dim1.py",
+      "drawer_fn": "DETAIL[prosperity_surface_rust_sand]（4 条细节 op）",
+      "seed_manifest": "0x5EED1003",
+      "palette_roles": {
+        "base": "BRASS_SAND",
+        "levels": [
+          "BASE@D055",
+          "BASE@D030",
+          "BASE",
+          "BASE@L022",
+          "BASE@L045"
+        ],
+        "role_tokens": [
+          "BASE",
+          "BASE@D030",
+          "BASE@D055",
+          "BASE@D090",
+          "BASE@L022",
+          "BASE@L045",
+          "BASE@L090",
+          "BRASS_SAND"
+        ]
+      },
+      "measured": {
+        "size": [
+          32,
+          32
+        ],
+        "distinct_rgba": 6,
+        "distinct_rgb_opaque": 6,
+        "all_opaque_alpha_255": true,
+        "dominant_opaque": "#B08D3E"
+      },
+      "why": "32 档等比重绘（R1-R5：场波长不缩、轮廓级条带 x2、1px 发丝线不加倍、单像素斑点密度不变） + 磨损细节层只在该张既有细节邻位生长、色板轴零新增。风向短纹 / 波纹肩补过渡档 / 稀疏补粒（风向已有短纹）"
+    },
+    "prosperity_surface_rust_peat": {
+      "file": "prosperity_surface_rust_peat.png",
+      "group": "prosperity_terrain",
+      "kind": "terrain_fiber",
+      "drawer": "tools/artgen/dim1/draw32_dim1.py",
+      "drawer_fn": "DETAIL[prosperity_surface_rust_peat]（3 条细节 op）",
+      "seed_manifest": "0x5EED1004",
+      "palette_roles": {
+        "base": "RUST_PEAT",
+        "levels": [
+          "BASE@D055",
+          "BASE@D030",
+          "BASE",
+          "BASE@L035"
+        ],
+        "role_tokens": [
+          "BASE",
+          "BASE@D030",
+          "BASE@D055",
+          "BASE@D090",
+          "BASE@D110",
+          "BASE@L035",
+          "BASE@L050",
+          "RUST_PEAT"
+        ]
+      },
+      "measured": {
+        "size": [
+          32,
+          32
+        ],
+        "distinct_rgba": 7,
+        "distinct_rgb_opaque": 7,
+        "all_opaque_alpha_255": true,
+        "dominant_opaque": "#443625"
+      },
+      "why": "32 档等比重绘（R1-R5：场波长不缩、轮廓级条带 x2、1px 发丝线不加倍、单像素斑点密度不变） + 磨损细节层只在该张既有细节邻位生长、色板轴零新增。纤维加长 / 补回 L035 高光档 / 泥斑下缘压暗"
+    },
+    "prosperity_surface_rust_clay": {
+      "file": "prosperity_surface_rust_clay.png",
+      "group": "prosperity_terrain",
+      "kind": "terrain_smooth",
+      "drawer": "tools/artgen/dim1/draw32_dim1.py",
+      "drawer_fn": "DETAIL[prosperity_surface_rust_clay]（4 条细节 op）",
+      "seed_manifest": "0x5EED1005",
+      "palette_roles": {
+        "base": "RUST_CLAY",
+        "levels": [
+          "BASE@D055",
+          "BASE@D030",
+          "BASE",
+          "BASE@L030",
+          "BASE@L055"
+        ],
+        "role_tokens": [
+          "BASE",
+          "BASE@D030",
+          "BASE@D055",
+          "BASE@L030",
+          "BASE@L035",
+          "BASE@L055",
+          "GLINT@D140",
+          "RUST_CLAY"
+        ]
+      },
+      "measured": {
+        "size": [
+          32,
+          32
+        ],
+        "distinct_rgba": 7,
+        "distinct_rgb_opaque": 7,
+        "all_opaque_alpha_255": true,
+        "dominant_opaque": "#868174"
+      },
+      "why": "32 档等比重绘（R1-R5：场波长不缩、轮廓级条带 x2、1px 发丝线不加倍、单像素斑点密度不变） + 磨损细节层只在该张既有细节邻位生长、色板轴零新增。釉面反光加宽 / 反光亮侧补一档 / 明暗边界补过渡档（去带状平坦） / 孤立平区补一粒（16 档画不出的细粒）"
+    },
+    "prosperity_surface_rust_stone": {
+      "file": "prosperity_surface_rust_stone.png",
+      "group": "prosperity_terrain",
+      "kind": "stone_brick",
+      "drawer": "tools/artgen/dim1/draw32_dim1.py",
+      "drawer_fn": "DETAIL[prosperity_surface_rust_stone]（4 条细节 op）",
+      "seed_manifest": "0x5EED1006",
+      "palette_roles": {
+        "base": "RUST_STONE",
+        "role_tokens": [
+          "BASE",
+          "BASE@D040",
+          "BASE@D090",
+          "BASE@D110",
+          "BASE@L022",
+          "RUST_OXIDE",
+          "RUST_OXIDE@D070",
+          "RUST_OXIDE@D140",
+          "RUST_OXIDE@L022",
+          "RUST_STONE"
+        ]
+      },
+      "measured": {
+        "size": [
+          32,
+          32
+        ],
+        "distinct_rgba": 7,
+        "distinct_rgb_opaque": 7,
+        "all_opaque_alpha_255": true,
+        "dominant_opaque": "#7D7667"
+      },
+      "why": "32 档等比重绘（R1-R5：场波长不缩、轮廓级条带 x2、1px 发丝线不加倍、单像素斑点密度不变） + 磨损细节层只在该张既有细节邻位生长、色板轴零新增。麻点连成小坑 / 锈斑下缘垂流 / 砖面沿缝压暗（落砖面第一行） / 亮锈接暗锈"
+    },
+    "ruin_debris_sleeper": {
+      "file": "ruin_debris_sleeper.png",
+      "group": "prosperity_ruin",
+      "kind": "object_sleeper",
+      "drawer": "tools/artgen/dim1/draw32_dim1.py",
+      "drawer_fn": "DETAIL[ruin_debris_sleeper]（5 条细节 op）",
+      "seed_manifest": "0x5EED2001",
+      "palette_roles": {
+        "base": "SLEEPER_WOOD",
+        "role_tokens": [
+          "BASE",
+          "BASE@D055",
+          "BASE@D090",
+          "BASE@D140",
+          "BASE@L050",
+          "RAIL_IRON",
+          "RAIL_IRON@D110",
+          "RAIL_IRON@D180",
+          "RAIL_IRON@L090",
+          "SLEEPER_WOOD",
+          "SLEEPER_WOOD@D180"
+        ]
+      },
+      "measured": {
+        "size": [
+          32,
+          32
+        ],
+        "distinct_rgba": 9,
+        "distinct_rgb_opaque": 9,
+        "all_opaque_alpha_255": true,
+        "dominant_opaque": "#3E3128"
+      },
+      "why": "32 档等比重绘（R1-R5：场波长不缩、轮廓级条带 x2、1px 发丝线不加倍、单像素斑点密度不变） + 磨损细节层只在该张既有细节邻位生长、色板轴零新增。木纹加长 / 板缝毛刺 / 道钉落影 / 木面明暗软肩"
+    },
+    "ruin_debris_pipe": {
+      "file": "ruin_debris_pipe.png",
+      "group": "prosperity_ruin",
+      "kind": "object_pipe",
+      "drawer": "tools/artgen/dim1/draw32_dim1.py",
+      "drawer_fn": "DETAIL[ruin_debris_pipe]（6 条细节 op）",
+      "seed_manifest": "0x5EED2002",
+      "palette_roles": {
+        "base": "IRON_PIPE",
+        "role_tokens": [
+          "BASE",
+          "BASE@D070",
+          "BASE@D140",
+          "BASE@L070",
+          "BASE@L120",
+          "IRON_PIPE",
+          "IRON_PIPE@D180",
+          "IRON_PIPE@D240",
+          "IRON_PIPE@L090",
+          "IRON_PIPE@L160",
+          "RUST_OXIDE",
+          "RUST_OXIDE@D022",
+          "RUST_OXIDE@D070",
+          "RUST_OXIDE@D160"
+        ]
+      },
+      "measured": {
+        "size": [
+          32,
+          32
+        ],
+        "distinct_rgba": 10,
+        "distinct_rgb_opaque": 10,
+        "all_opaque_alpha_255": true,
+        "dominant_opaque": "#5A6069"
+      },
+      "why": "32 档等比重绘（R1-R5：场波长不缩、轮廓级条带 x2、1px 发丝线不加倍、单像素斑点密度不变） + 磨损细节层只在该张既有细节邻位生长、色板轴零新增。凹坑连片 / 锈斑边缘起坑 / 锈水下淌 / 法兰缺角 / 铆钉落影 / 管身受光带下缘软肩"
+    },
+    "ruin_debris_rivet_plate": {
+      "file": "ruin_debris_rivet_plate.png",
+      "group": "prosperity_ruin",
+      "kind": "object_plate",
+      "drawer": "tools/artgen/dim1/draw32_dim1.py",
+      "drawer_fn": "DETAIL[ruin_debris_rivet_plate]（7 条细节 op）",
+      "seed_manifest": "0x5EED2003",
+      "palette_roles": {
+        "base": "STEEL_PLATE",
+        "role_tokens": [
+          "BASE",
+          "BASE@D055",
+          "BASE@D140",
+          "BASE@D180",
+          "BASE@L050",
+          "BASE@L090",
+          "RUST_OXIDE",
+          "RUST_OXIDE@D070",
+          "RUST_OXIDE@D140",
+          "RUST_OXIDE@L022",
+          "STEEL_BARE@D070",
+          "STEEL_BARE@D200",
+          "STEEL_BARE@L070",
+          "STEEL_BARE@L090",
+          "STEEL_PLATE"
+        ]
+      },
+      "measured": {
+        "size": [
+          32,
+          32
+        ],
+        "distinct_rgba": 12,
+        "distinct_rgb_opaque": 12,
+        "all_opaque_alpha_255": true,
+        "dominant_opaque": "#4A505A"
+      },
+      "why": "32 档等比重绘（R1-R5：场波长不缩、轮廓级条带 x2、1px 发丝线不加倍、单像素斑点密度不变） + 磨损细节层只在该张既有细节邻位生长、色板轴零新增。划痕分叉 / 锈斑边缘生长 / 四角铆钉斜向落影 / 钢板明暗场软肩 / 板面平区补细粒"
+    },
+    "ruin_debris_chimney": {
+      "file": "ruin_debris_chimney.png",
+      "group": "prosperity_ruin",
+      "kind": "object_chimney",
+      "drawer": "tools/artgen/dim1/draw32_dim1.py",
+      "drawer_fn": "DETAIL[ruin_debris_chimney]（5 条细节 op）",
+      "seed_manifest": "0x5EED2004",
+      "palette_roles": {
+        "base": "CHIMNEY_BRICK",
+        "role_tokens": [
+          "BASE",
+          "BASE@D055",
+          "BASE@D140",
+          "BASE@L022",
+          "BASE@L035",
+          "BASE@L120",
+          "CASING_SOOT",
+          "CASING_SOOT@D022",
+          "CASING_SOOT@L035",
+          "CHIMNEY_BRICK"
+        ]
+      },
+      "measured": {
+        "size": [
+          32,
+          32
+        ],
+        "distinct_rgba": 9,
+        "distinct_rgb_opaque": 9,
+        "all_opaque_alpha_255": true,
+        "dominant_opaque": "#6A4034"
+      },
+      "why": "32 档等比重绘（R1-R5：场波长不缩、轮廓级条带 x2、1px 发丝线不加倍、单像素斑点密度不变） + 磨损细节层只在该张既有细节邻位生长、色板轴零新增。烟炱拖尾 / 灰缝剥白 / 砖面沿缝压暗（落砖面第一行） / 砖面平区补细粒"
+    },
+    "ruined_casing_rusted": {
+      "file": "ruined_casing_rusted.png",
+      "group": "prosperity_ruin",
+      "kind": "casing_rusted",
+      "drawer": "tools/artgen/dim1/draw32_dim1.py",
+      "drawer_fn": "DETAIL[ruined_casing_rusted]（6 条细节 op）",
+      "seed_manifest": "0x5EED3001",
+      "palette_roles": {
+        "base": "CASING_RUST",
+        "levels": [
+          "BASE@D090",
+          "BASE@D040",
+          "BASE",
+          "BASE@L035",
+          "BASE@L070"
+        ],
+        "role_tokens": [
+          "BASE",
+          "BASE@D040",
+          "BASE@D090",
+          "BASE@L035",
+          "BASE@L070",
+          "CASING_RUST",
+          "CASING_RUST@D070",
+          "CASING_RUST@D240",
+          "CASING_RUST@L090",
+          "CASING_RUST@L160",
+          "RUST_OXIDE",
+          "RUST_OXIDE@D070",
+          "RUST_OXIDE@D160",
+          "RUST_OXIDE@L022",
+          "STEEL_BARE@D070",
+          "STEEL_BARE@D160",
+          "STEEL_BARE@L022"
+        ]
+      },
+      "measured": {
+        "size": [
+          32,
+          32
+        ],
+        "distinct_rgba": 13,
+        "distinct_rgb_opaque": 13,
+        "all_opaque_alpha_255": true,
+        "dominant_opaque": "#8A5528"
+      },
+      "why": "32 档等比重绘（R1-R5：场波长不缩、轮廓级条带 x2、1px 发丝线不加倍、单像素斑点密度不变） + 磨损细节层只在该张既有细节邻位生长、色板轴零新增。漆面剥落扩展 / 锈汗下淌 / 机壳框磨断 / 壳面明暗软肩"
+    },
+    "ruined_casing_sooted": {
+      "file": "ruined_casing_sooted.png",
+      "group": "prosperity_ruin",
+      "kind": "casing_sooted",
+      "drawer": "tools/artgen/dim1/draw32_dim1.py",
+      "drawer_fn": "DETAIL[ruined_casing_sooted]（5 条细节 op）",
+      "seed_manifest": "0x5EED3002",
+      "palette_roles": {
+        "base": "CASING_SOOT",
+        "levels": [
+          "BASE@D070",
+          "BASE",
+          "BASE@L035",
+          "BASE@L090",
+          "BASE@L160"
+        ],
+        "role_tokens": [
+          "BASE",
+          "BASE@D070",
+          "BASE@L035",
+          "BASE@L090",
+          "BASE@L160",
+          "CASING_SOOT",
+          "CASING_SOOT@D070",
+          "CASING_SOOT@D110",
+          "CASING_SOOT@D160",
+          "CASING_SOOT@L022",
+          "CASING_SOOT@L070",
+          "CASING_SOOT@L160",
+          "CASING_SOOT@L240"
+        ]
+      },
+      "measured": {
+        "size": [
+          32,
+          32
+        ],
+        "distinct_rgba": 10,
+        "distinct_rgb_opaque": 10,
+        "all_opaque_alpha_255": true,
+        "dominant_opaque": "#312E2B"
+      },
+      "why": "32 档等比重绘（R1-R5：场波长不缩、轮廓级条带 x2、1px 发丝线不加倍、单像素斑点密度不变） + 磨损细节层只在该张既有细节邻位生长、色板轴零新增。滴痕拖副痕 / 滴尾挂珠 / 挂珠受光"
+    },
+    "ruined_casing_porcelain": {
+      "file": "ruined_casing_porcelain.png",
+      "group": "prosperity_ruin",
+      "kind": "casing_porcelain",
+      "drawer": "tools/artgen/dim1/draw32_dim1.py",
+      "drawer_fn": "DETAIL[ruined_casing_porcelain]（7 条细节 op）",
+      "seed_manifest": "0x5EED3003",
+      "palette_roles": {
+        "base": "PORCELAIN",
+        "levels": [
+          "BASE@D055",
+          "BASE@D022",
+          "BASE",
+          "BASE@L022"
+        ],
+        "role_tokens": [
+          "BASE",
+          "BASE@D022",
+          "BASE@D055",
+          "BASE@L022",
+          "PORCELAIN",
+          "PORCELAIN@D030",
+          "PORCELAIN@D090",
+          "PORCELAIN@D140",
+          "PORCELAIN@D240",
+          "PORCELAIN@L050",
+          "PORCELAIN@L070"
+        ]
+      },
+      "measured": {
+        "size": [
+          32,
+          32
+        ],
+        "distinct_rgba": 10,
+        "distinct_rgb_opaque": 10,
+        "all_opaque_alpha_255": true,
+        "dominant_opaque": "#D8D2C2"
+      },
+      "why": "32 档等比重绘（R1-R5：场波长不缩、轮廓级条带 x2、1px 发丝线不加倍、单像素斑点密度不变） + 磨损细节层只在该张既有细节邻位生长、色板轴零新增。裂纹分叉（淡档） / 细纹晕延展 / 崩边扩口 / 崩口下缘压暗 / 釉面明暗软肩"
+    }
+  }
+}

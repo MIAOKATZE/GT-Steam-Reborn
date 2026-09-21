@@ -8,7 +8,9 @@ import com.miaokatze.gtsr.common.dimension.framework.structure.StructureBuilder;
 import com.miaokatze.gtsr.common.dimension.framework.structure.StructureRegistry;
 
 /**
- * 古代城 26 基础变体库（dim1 S4b，plan §3.3 清单逐项落地；"蒸汽朋克废都"意象）。
+ * 古代城 28 变体库（dim1 S4b，plan §3.3 清单逐项落地；"蒸汽朋克废都"意象。
+ * <b>P16-B3 起含 2 个申报边长 &gt;16 的城内巨构</b>，形状表在 {@link CityMegaVariants}，
+ * 经 {@code CityVariants.ALL} 尾部汇入同一条登记/选型链）。
  * <p>
  * <b>纯数据 + 纯放置</b>：全部形状以字符层串表达（{@link RuinedMachineShapes 记号族} 超集），
  * 经 {@link StructureBuilder} → 注入 {@link BlockSink} 写出，String 方块键参与（零 Minecraft
@@ -29,7 +31,7 @@ import com.miaokatze.gtsr.common.dimension.framework.structure.StructureRegistry
  * y=0 垫层不缺失（残骸被岁月吞没观感，RuinedMachinePlacer 同款纪律）；朝向 0/90/180/270 由
  * plotSeed 哈希驱动、{@link StructureBuilder#rotateDelta} 原语层完成（plan §3.2）。
  * <p>
- * 注册：{@link #registerVariants()} 把 26 基础型登记进 {@link StructureRegistry}
+ * 注册：{@link #registerVariants()} 把 28 型（26 基础 + 2 巨构）登记进 {@link StructureRegistry}
  * （dimension=PROSPERITY，注册名=基础名，S5 /gtsr structure 补全同源；幂等）。
  * 形状尺寸静态校验 fail fast（RuinedMachineShapes 同款）。
  */
@@ -168,7 +170,12 @@ public final class CityVariants {
         return rows;
     }
 
-    /** 26 基础变体（plan §3.3 清单序：塔 6 / 厂房 6 / 基础设施 5 / 民用 5 / 小件 4）。 */
+    /**
+     * 28 变体（plan §3.3 清单序：塔 6 / 厂房 6 / 基础设施 5 / 民用 5 / 小件 4 +
+     * <b>P16-B3 巨构 2（表尾，形状与静态契约见 {@link CityMegaVariants}）</b>）。
+     * 巨构<b>只</b>经 {@code CityPlan} 的工业环/边缘环 district 池进入 {@code plotVariant}
+     * 哈希选型（低空不顶穿街带、大道全高不占、材料零放宽——判据腿在 CityShapeCheck E 组）。
+     */
     public static final Variant[] ALL = {
         // ══ 塔类（6）——垂直地标，天际线骨架 ══
         new Variant(
@@ -288,7 +295,9 @@ public final class CityVariants {
                 // y=1 锥腰
                 { ".GGG.", "GGGGG", "GGGGG", "GGGGG", ".GGG." },
                 // y=0 锥底 + 铆接板瓦砾
-                { "GGGGG", "GGrGG", "GGGGG", "GrGGG", "GGGrG" } }), };
+                { "GGGGG", "GGrGG", "GGGGG", "GrGGG", "GGGrG" } }),
+        // ══ P16-B3 城内巨构（2）——申报边长 >16，跨 chunk 走 CitySliceSink 既有切片协议 ══
+        CityMegaVariants.GREAT_FORGE, CityMegaVariants.TITAN_GEARWORKS, };
 
     static {
         for (Variant v : ALL) {
@@ -327,6 +336,24 @@ public final class CityVariants {
     }
 
     // ═══ 程序化形状（径向轮廓字符串手工展开低效，静态构造）═══
+
+    /**
+     * 全体变体<b>申报边长上界</b>（max(sizeX,sizeZ)；= {@link CityMegaVariants} 的巨构边长）。
+     * <p>
+     * 它是 {@code CityPlan} 三处几何余量（渲染 bbox 外扩 / {@code contentReachBlocks} 内容余量 /
+     * 缓冲窗 chunk 裕量）的<b>唯一输入</b>——余量口径从"城内最大 footprint 16"的写死假设
+     * 改为随名册派生（P16-B3，plan §1 G11；三处各自的公式见 {@code CityPlan} 常量区）。
+     * 由 {@link #ALL} 现算，名册是唯一真值，不在别处第二抄。
+     */
+    public static final int MAX_SIDE = maxDeclaredSide();
+
+    private static int maxDeclaredSide() {
+        int m = 0;
+        for (final Variant v : ALL) {
+            m = Math.max(m, Math.max(v.sizeX, v.sizeZ));
+        }
+        return m;
+    }
 
     /** chimney_stack 8×14×8：2-4 根方形烟囱束总成（4 束 3×3，高 14/12/10/8 错落，顶部破口）。 */
     private static Variant chimneyStack() {
@@ -821,7 +848,8 @@ public final class CityVariants {
      * 故不合并；详见 {@code CityPlanner.mix} 的差异登记与
      * {@code tools/dim1/SurfaceYParityCheck} 的 {@code city.variants_mix} 站点逐位对拍。
      * 本方法被 {@link #damageTier(long)}/{@link #rotationOf(long)} 消费，其取值口径逐位不变，
-     * 因而 26 个城变体的损伤档/朝向选择与改造前完全一致。
+     * 因而既有 26 个城变体的损伤档/朝向选择与改造前完全一致；P16-B3 的 2 个巨构同走这两个函数、
+     * 同一口径（无新随机源，plan §1 G11）。
      */
     private static long mix(long seed, long salt) {
         return GTSRWorldgenHash.saltRoutedHash(seed, salt, GTSRWorldgenHash.CITY_PLOT_SALT_MUL);
@@ -899,8 +927,9 @@ public final class CityVariants {
     private static volatile boolean registered;
 
     /**
-     * 向 {@link StructureRegistry} 登记 26 基础变体（dimension=PROSPERITY，注册名=基础名；
-     * footprint = max(sizeX,sizeZ)（旋转安全口径），幂等；由 ProsperityWorldGenerator 构造时调用）。
+     * 向 {@link StructureRegistry} 登记全部城变体（26 基础 + 2 巨构 = 28；dimension=PROSPERITY，
+     * 注册名=基础名；footprint = max(sizeX,sizeZ)（旋转安全口径，巨构因此登记为<b>申报总 bbox</b>
+     * 24/20——"申报不是钳制"与 P16-B1 城外跨片同语义），幂等；由 ProsperityWorldGenerator 构造时调用）。
      */
     public static void registerVariants() {
         if (registered) {

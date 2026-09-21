@@ -6,7 +6,7 @@
 #   bash tools/dim1/asset_baseline_check.sh --write-sidecars  # 从磁盘重建 landed.sha256 侧车（改动后重钉）
 #
 # 覆盖计划 §2.4 可机检判据 1/2/3 的资产侧：
-#   ① 名册：S8RegistryRosterCheck（47 名 + 分组计数含 P8 ruin 桶 8 条 + 名集合相等）
+#   ① 名册：S8RegistryRosterCheck（49 名 + 分组计数含 P8 ruin 桶 8 条 + P16-B1 colossus 桶 2 条 + 名集合相等）
 #            + RosterIntegrityCheck（名集合三方相等 + 逐名 footprint + 逐名字符模板 SHA256 + 敏感度自检）
 #   ② 贴图：两批 artgen（dim7879 / dim1）manifest OUTPUTS ↔ landed.sha256 ↔
 #            src/main/resources/assets/gtsr/textures/blocks/ 磁盘实数 三点反向核对
@@ -19,7 +19,7 @@
 #      代价（如实申报）：本门因此需要 gitignore 的 plan/ 目录在场——与既有的
 #      build/classes/java/main、~/.gradle 缓存前置同一性质（都是"开发树门"，非 clean clone 可跑）。
 #
-# 末行输出单行结论：roster=47/47 textures=49/49 SHA=OK（口径不变；页面门在其上方独立成行，红则整体 FAIL）
+# 末行输出单行结论：roster=49/49 textures=49/49 SHA=OK（口径不变；页面门在其上方独立成行，红则整体 FAIL）
 #
 # 离线 Java 运行配方来源：plan/维度计划/调查取证/dim78-修复与整合/v12030-hotfix-replaceruntime-report.md §3（JEP330 单文件）。
 # 实测本两只检只需 build/classes/java/main + forge universal jar（满足 WorldGenShatteredRuins 的
@@ -37,9 +37,12 @@ CLASSES="build/classes/java/main"
 ASSET_DIR="src/main/resources/assets/gtsr/textures/blocks"
 BATCHES="tools/artgen/dim7879 tools/artgen/dim1"
 # P8 名册增长：P0 基线 39（26 城 + 6 outpost + 5 机型 + 2 husk）+ 废墟族 8 条 = 47。
-# 这是"增员"，与 P0 的"资产未丢"判据是两件事：贴图侧仍钉 49——废墟族只复用既有方块与记号族，
+# P16-B1 再增长：城外跨 chunk 巨构 2 条（RuinedColossusShapes.ALL）⇒ 47 + 2 = 49，
+# 与 S8RegistryRosterCheck.EXPECTED_TOTAL（= 39 + RuinShapes.ALL.length + RuinedColossusShapes.ALL.length）
+# 同源；本脚本只跟着名册源改数，不独立申报名数。
+# 这是"增员"，与 P0 的"资产未丢"判据是两件事：贴图侧仍钉 49——新族只复用既有方块与记号族，
 # 一张新贴图都不许有（TEXTURES 一旦变成 50/50 就说明本片越了材质红线）。
-EXPECTED_ROSTER=47
+EXPECTED_ROSTER=51
 EXPECTED_TEXTURES=49
 
 fail() { echo "[FAIL] $*"; exit 1; }
@@ -62,6 +65,9 @@ echo "[1/4] 结构名册"
 S8_OUT=$(run_java tools/dim1/S8RegistryRosterCheck.java) || true
 echo "$S8_OUT" | grep -E "ROSTER (PASS|FAIL|INTEGRITY)" | head -5
 if ! echo "$S8_OUT" | grep -q "^ROSTER PASS: StructureRegistry names() = ${EXPECTED_ROSTER} "; then
+  # 名册源自己抛异常时上面那行 grep 什么都没得（S8 用 ExceptionInInitializerError 直接死在 clinit），
+  # 这里把最后 3 行原始输出打出来，避免"红但看不出为什么红"被误读成本脚本的数错了。
+  echo "$S8_OUT" | grep -vE "^\s+at " | tail -3
   fail "S8RegistryRosterCheck 未 PASS（期望 $EXPECTED_ROSTER 名；名数改动要同时改本脚本与 S8 的名册源）"
 fi
 

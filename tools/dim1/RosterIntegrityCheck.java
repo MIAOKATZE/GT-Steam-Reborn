@@ -11,6 +11,7 @@ import java.util.TreeSet;
 
 import com.miaokatze.gtsr.common.dimension.framework.structure.StructureRegistry;
 import com.miaokatze.gtsr.common.dimension.prosperity.ruins.ProsperityOutpostPlacer;
+import com.miaokatze.gtsr.common.dimension.prosperity.ruins.RuinedColossusShapes;
 import com.miaokatze.gtsr.common.dimension.prosperity.ruins.RuinedMachinePlacer;
 import com.miaokatze.gtsr.common.dimension.prosperity.ruins.RuinedMachineShapes;
 import com.miaokatze.gtsr.common.dimension.prosperity.ruins.city.CityVariants;
@@ -65,22 +66,60 @@ public class RosterIntegrityCheck {
 
     /**
      * 期望名数：P0 基线 39（26 城 + 6 outpost + 5 机型 + 2 husk）+ P8 废墟族
-     * {@link RuinShapes#ALL} 条（8）= <b>47</b>。
+     * {@link RuinShapes#ALL} 条（8）+ P16-B1 城外跨 chunk 巨构 {@link RuinedColossusShapes#ALL} 条（2）
+     * + P16-B3 城内巨构（{@code CityVariants.ALL} 中申报边长 &gt;16 的那一路）
+     * = <b>51</b>（26+2 城 / 6 / 5 / 8 / 2 / 2）。
      * <p>
-     * 增长数<b>不写死</b>：这里写成 {@code 39 + RuinShapes.ALL.length}，于是"名册增长了几条"这件事
-     * 只有一个出处（废墟族的模板表本身）。{@link #PIN} 的行数仍单独钉（下面 main 里），
-     * 两者相等才 PASS——把 ALL 加长而忘了重钉 PIN，会红而不是静默通过。
+     * 增长数<b>不写死</b>：这里写成 {@code 39 + RuinShapes.ALL.length + RuinedColossusShapes.ALL.length
+     * + 城内巨构派生数}，于是"名册增长了几条"这件事只有一个出处（三张增员来源本身）。{@link #PIN}
+     * 的行数仍单独钉（下面 main 里），两者相等才 PASS——把表加长而忘了重钉 PIN，会红而不是静默通过。
+     * <p>
+     * <b>城内巨构那一路为什么不写数字、也不在本类另写一条边长判据</b>：判据"申报边长 &gt;
+     * {@code ChunkSpans.CHUNK_BLOCKS} 的城变体＝巨构"已经住在 {@link S8RegistryRosterCheck#cityMegaCount()}
+     * （它自己的 {@code EXPECTED_TOTAL} 也因 {@code CITY_MEGA} 字段的 1–2 上界而必须走方法、不走字段）。
+     * 本类同处默认包 ⇒ 直接复用那一个入口，全仓只有这一处边长口径；复制一份判据＝第二处真值，
+     * 哪天 {@code ChunkSpans.CHUNK_BLOCKS} 或名册变了两处会各说各话。
+     * <b>类初始化环核查</b>（2026-09-21 实测）：{@code S8RegistryRosterCheck} 不引用本类，其 clinit
+     * 只会向下拉 {@code CityVariants}/{@code RuinShapes}/{@code RuinedColossusShapes} 三张表 ⇒ 单向、无环。
+     * 代价是 S8 的"城内巨构须 1–2 个"上界若自抛，会以 {@code ExceptionInInitializerError} 的形式打断
+     * 本类取数 ⇒ {@link #expectedTotal()} 把它翻成指名红行（否则 {@code asset_baseline_check.sh}
+     * 只 grep {@code ROSTER INTEGRITY (PASS|FAIL)} 会出现"红但看不出为什么红"）。
      */
-    static final int EXPECTED_TOTAL = 39 + RuinShapes.ALL.length;
+    static final int EXPECTED_TOTAL = expectedTotal();
+
+    private static int expectedTotal() {
+        try {
+            return 39 + RuinShapes.ALL.length + RuinedColossusShapes.ALL.length
+                + S8RegistryRosterCheck.cityMegaCount();
+        } catch (LinkageError | RuntimeException e) {
+            fail("名册增员不可派生（废墟/城外巨构/城内巨构三张源表之一不齐，含 S8 的城内巨构 1-2 上界自抛）: "
+                + e.getClass().getSimpleName() + ": " + e.getMessage());
+            return -1; // 不可达：fail 即 exit 1
+        }
+    }
 
     /**
      * 逐名钉死表：{name, footprintX, footprintZ, templateSha256}。
      * 由 {@code --emit} 从五类源真实定义派生后钉入（禁止手编形状；改动走重钉 + 双跑）。
      * 序 = {@link StructureRegistry#names()} 的 TreeMap 字典序。
      * <p>
-     * <b>P8 增量的边界</b>：下面 47 行里只有 8 条 {@code ruin_*} 是新钉的（表尾由 {@code --emit} 追加），
+     * <b>P8 增量的边界</b>：下面 51 行里只有 8 条 {@code ruin_*} 是新钉的（表尾由 {@code --emit} 追加），
      * 其余 39 行与 P0/基线 {@code e02b451} <b>逐字节相同</b>——这是判据 1「旧名册零改动」的机检面，
      * 由 {@code RuinFamilyCheck} 的 LEGACY 组与本工具的逐名 SHA 比对共同钉住。
+     * <b>P16-B1 再增 2 条 {@code colossus_*}</b>（城外跨 chunk 巨构，见 {@link RuinedColossusShapes}），
+     * <b>P16-B3 再增 2 条城内巨构 {@code great_forge}/{@code titan_gearworks}</b>
+     * （{@code CityMegaVariants} 汇入 {@link CityVariants#ALL} 尾部，见下段 footprint 口径），
+     * 追加同样只走 {@code --emit}，旧行一字未重钉（实测：49 → 51 行的 diff 只有 2 行新增、
+     * 其余按字母序落位后逐字节不变）。
+     * <p>
+     * <b>{@code colossus_*} 两行的 footprint 口径与 5 个小机型同形（原始 sizeX×sizeZ，不做
+     * {@code max(sizeX,sizeZ)} 外接放大）</b>：机器族没有旋转算子，而跨片巨构登记的就是<b>总 bbox</b>
+     * （24×16 那条横向跨 2 个 chunk、20×20 那条 X/Z 各跨 2 个 chunk）——"总 bbox 与分片并集一致"
+     * 由 {@code tools/dim1/OutpostTemplateCheck} 的成对断言钉，本工具只钉名字/footprint/字符模板三件事。
+     * <b>城内巨构两行不同</b>：它们走 {@code city} 一路的 {@code max(sizeX,sizeZ)} 旋转安全口径
+     * （城链有 rot0/90/180/270 算子），登记的同样是<b>申报总 bbox</b>（24×24 / 20×20），
+     * "申报边长确实 &gt;16 且真的跨了片"由 {@code S8RegistryRosterCheck} 的 CITYMEGA 面与
+     * {@code CityShapeCheck}/{@code CityDeterminismCheck} 的切片面钉。
      */
     private static final String[][] PIN = {
         { "boiler_frame", "7", "7", "9d6738fda5a6a2218d356fedc09044c9fd0d10ecd1e8a1bfc5241f9b30aacea8" },
@@ -91,6 +130,8 @@ public class RosterIntegrityCheck {
         { "chimney_base", "5", "5", "9d895d330e26dc7ad151a343d7cdc5c35f7c73425aed04d0b083b25b1979d3f4" },
         { "chimney_stack", "8", "8", "f9a2b3ed4b75618f0c9d2e34afa71eb8a04caf3fabf88917f0949d06fd490010" },
         { "clock_tower", "5", "5", "17ea1aa2ec54c1fe19463a4cbd87813aa3428379375d3e86db7f2308806af3a3" },
+        { "colossus_boiler_hall", "20", "20", "7b7d36c2071be03767ae5dfc82f319e1f2d0638a7bafd84d98ab236e1e1b6123" },
+        { "colossus_hub_array", "24", "16", "b943596798f7d49d0640f7b14e4470e7534a4dd746406f8db727a6deaf444d81" },
         { "cooling_tower", "9", "9", "6d4a528567d402f640e080a3c1da866b4966fe87ed62c46ddc804b1bb7a6f134" },
         { "crane_ruin", "6", "6", "8add4e9ded9a2200fe5f2a8881c82af2ccf34f9f5d66a0bb2b3f2e3b170c6a5f" },
         { "dome_hall", "11", "11", "9e7c85893f4907a09625e74b9b062a16e0a5c47ed7c399c2499ae7e2d9281a14" },
@@ -101,6 +142,7 @@ public class RosterIntegrityCheck {
         { "gas_holder", "7", "7", "a05b42301e244d03272a3ccccf324b8019ab5aaaef2efa565b28cdd76cae43d8" },
         { "gear_mill_table", "6", "6", "d48c20f744c2d0273dc995492c86103fa642c60301743569c7f1533af89a6fd8" },
         { "gear_tower", "7", "7", "3e333b5fa3d46eb5c145dbd70a788dfd4c283d09f6525b0da98f635682e74bab" },
+        { "great_forge", "24", "24", "4ca8d47704a7228dc25f32603e0b9a3b62dcee5006f42288d1544c6ba7cb4bcd" },
         { "husk_small", "2", "2", "26a3a4c583d0ee2e0d263847f93b485a3dd78ee3665e81212c9fff0766a92b77" },
         { "husk_tall", "2", "2", "7e53fcaad1b803705e4d10d26d68b9f43925dfef2daa9cec6873b406a5fc870e" },
         { "machine_plinth", "4", "4", "42778a637a5fbfccd62c3525d66027287c3f56bd0c4b050eef89d4207aea59e9" },
@@ -126,6 +168,7 @@ public class RosterIntegrityCheck {
         { "ruin_watch_buried", "7", "7", "f6a72656a6d83d1a6819b4a362255dac28268a471c8e54f34c455ad68df47a03" },
         { "slag_heap", "5", "5", "4a7c7811f132db6f7443d8c14580b2feb15067b77796c4cc3c038ee14cf2e3e4" },
         { "steam_gallery", "13", "3", "77cbe3cbbfc2cdb57bb5d33f0a981a31368d6f078fe22c9425e92846c58cca65" },
+        { "titan_gearworks", "20", "20", "48d6cf7a745efb83407aab2c9642976a23b500380d2280e610d235948b4e3e45" },
         { "tram_depot", "9", "9", "b8664e78ca55e89307c80aa004c59029f6a691cf9fbf8cd081db759712de3412" },
         { "viaduct", "16", "16", "94c525b328d2bdeeec24aeae976235ccbbb319bb9b103769c5d7870375b2fb88" },
         { "watch_tower", "5", "5", "bc01a8cfb7ad78d879901cb837ecb6ab8bc13e44d3aae9280de193cd5d1e3035" },
@@ -264,7 +307,8 @@ public class RosterIntegrityCheck {
         System.out.println(
             "  city=" + countByGroup(derived, "city") + " outpost=" + countByGroup(derived, "outpost")
                 + " machine=" + countByGroup(derived, "machine") + " ruin=" + countByGroup(derived, "ruin")
-                + " husk=" + shards + " dim78=" + (EXPECTED_TOTAL - shards));
+                + " colossus=" + countByGroup(derived, "colossus") + " husk=" + shards
+                + " dim78=" + (EXPECTED_TOTAL - shards));
         System.out.println("ROSTER INTEGRITY DONE");
     }
 
@@ -306,6 +350,11 @@ public class RosterIntegrityCheck {
         // 这里读的就是生产放置器读的同一份；"派生可复算"另由 RuinFamilyCheck 的 DERIVE 组钉。
         for (final RuinTemplate r : RuinShapes.ALL) {
             put(out, new Tpl(r.name, "ruin", r.sizeX, r.sizeY, r.sizeZ, r.layers));
+        }
+        // P16-B1 城外跨 chunk 巨构（新机型，族仍是 machine）：footprint 走<b>原始 sizeX×sizeZ</b>
+        // 口径（与 5 个小机型同形——本族没有旋转算子，所以不做 max(sizeX,sizeZ) 的外接放大）。
+        for (final RuinedColossusShapes.Colossus c : RuinedColossusShapes.ALL) {
+            put(out, new Tpl(c.name, "colossus", c.sizeX(), c.sizeY(), c.sizeZ(), c.shape.layers));
         }
         put(out, husk(WorldGenShatteredRuins.HUSK_SMALL));
         put(out, husk(WorldGenShatteredRuins.HUSK_TALL));

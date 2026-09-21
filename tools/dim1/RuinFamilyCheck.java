@@ -1,3 +1,4 @@
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -27,12 +28,15 @@ import com.miaokatze.gtsr.common.dimension.framework.GTSRChunkProviderBase;
 import com.miaokatze.gtsr.common.dimension.framework.GTSRWorldChunkManager;
 import com.miaokatze.gtsr.common.dimension.framework.SurfaceGate;
 import com.miaokatze.gtsr.common.dimension.framework.structure.BlockSink;
+import com.miaokatze.gtsr.common.dimension.framework.structure.ChunkSpans;
 import com.miaokatze.gtsr.common.dimension.framework.structure.PlacementGate;
+import com.miaokatze.gtsr.common.dimension.framework.structure.StructureBuilder;
 import com.miaokatze.gtsr.common.dimension.framework.structure.StructureRegistry;
 import com.miaokatze.gtsr.common.dimension.prosperity.ChunkProviderProsperityRuins;
 import com.miaokatze.gtsr.common.dimension.prosperity.ruins.ProsperityOutpostPlacer;
 import com.miaokatze.gtsr.common.dimension.prosperity.ruins.ProsperitySurfaceScatter;
 import com.miaokatze.gtsr.common.dimension.prosperity.ruins.ProsperityWorldGenerator;
+import com.miaokatze.gtsr.common.dimension.prosperity.ruins.RuinedColossusShapes;
 import com.miaokatze.gtsr.common.dimension.prosperity.ruins.RuinedMachinePlacer;
 import com.miaokatze.gtsr.common.dimension.prosperity.ruins.RuinedMachineShapes;
 import com.miaokatze.gtsr.common.dimension.prosperity.ruins.city.CityBlockResolver;
@@ -68,6 +72,12 @@ import gregtech.api.GregTechAPI;
  * <li><b>F 不重演 S2</b>（判据 4）：真地形上"关新族 vs 开新族"同批 chunk 对照，
  * 打印总座数 / 每 16×16 窗分布 / 贴脸率 / 窗内同模板 max / 每 chunk 上限，
  * 并钉"前两环座数逐位不变"与"上升量恰好等于废墟座数"；</li>
+ * <li><b>K 城外跨 chunk 巨构</b>（<b>P16-B1</b>，plan §1 判据 G6）：新机型落块 (键,meta) 全在申报的
+ * 红线扩档表内（禁 {@code gt.blockmachines} 任意 meta、禁 casings2:14-15 / casings3:15 / casings4 /
+ * casings5 / frames 与高阶壳），并按<b>落块 Block 的类身份</b>钉
+ * {@code ∩ (ITileEntityProvider ∪ BlockContainer ∪ hasTileEntity(meta)) == ∅}；三条 RED 注入臂证明
+ * 判据咬得住（GT 字段指向 TE 方块 / 机器块身份接进来 / 允许表被绕开）。另钉两条密度行为面：
+ * 探测门 abort 不扣预算、一座巨构只吃 1 个预算位；以及"掷骰实现体仍只有一份、没新增 Config 键"；</li>
  * <li><b>G opt-in 边界</b>（判据 2）：{@code allowsDamagedVariant=false} ⇒ 生效缺失率恒 0
  * （⇒ 损毁算子对旧 39 名不可达），旧名册的 opt-in 位实测全 false。</li>
  * </ul>
@@ -122,6 +132,8 @@ public final class RuinFamilyCheck {
         groupA_genealogy();
         groupB_reproducibleDerivation();
         groupC_teClean();
+        groupK_colossus();
+        groupM_colossusMorphology();
         groupG_optInBoundary();
         groupE_microLayer();
         groupD_determinism();
@@ -355,6 +367,42 @@ public final class RuinFamilyCheck {
             + outpostAccent + " 格（不在本检查作用域内，且它们本就无 TE）");
     }
 
+    /**
+     * 跨 chunk 巨构的安全谓词（K3 用）：只判<b>安全属性</b>，不判 ruin 族的谱系政策。
+     * <p>
+     * 与 {@link #teOffense(Block, int)} 的差别是刻意的，两条不能互换：
+     * {@code teOffense} 多带的"类命名域"臂与"sBlockCasings1/2 身份"臂表达的是
+     * <b>P8 废墟族的红线</b>（废墟不得引任何 GT 壳，因为它的字符盘必须由既有母体破败化派生），
+     * 而巨构按 plan §1 G6 / 取证件 B8 是<b>允许</b>镀铜砖、固体钢壳（含齿轮箱/管道两档 meta）、
+     * 青铜/钢燃烧室与防爆玻璃的——那些壳在 GT5U 侧就是
+     * {@code BlockCasingsAbstract extends GTGenericBlock}，无 TE、无 tick 状态迁移。
+     * 直接复用 {@code teOffense} 会把合法材质判红（本组首轮实测正是这个形态）。
+     * <p>
+     * 本谓词保留的四条臂，全部对应"放下去会不会生成 TileEntity / 会不会有机器逻辑"：
+     * {@code ITileEntityProvider}、{@code BlockContainer}、{@code hasTileEntity(meta)}（<b>按落下的
+     * 那一档 meta 问</b>，因为 GT 的 {@code BlockMachines} 是恒 true 而别的方块按 meta 分档），
+     * 以及 {@code gt.blockmachines} 的对象身份。允许面（哪些 (键,meta) 能进模板）由
+     * {@link #COLOSSUS_ALLOWED_KEY_METAS} 单独钉，两件事不混在一起。
+     */
+    private static String colossusOffense(Block b, int meta) {
+        if (b == null) {
+            return "解析落空（不该出现在 GT 在场档）";
+        }
+        if (b instanceof ITileEntityProvider) {
+            return "ITileEntityProvider";
+        }
+        if (b instanceof BlockContainer) {
+            return "BlockContainer";
+        }
+        if (b.hasTileEntity(meta)) {
+            return "hasTileEntity:" + meta;
+        }
+        if (b == GregTechAPI.sBlockMachines) {
+            return "gt.blockmachines(身份)";
+        }
+        return null;
+    }
+
     /** 一条落块是否踩线；{@code null} = 干净。三条臂：tile 接口 / 类命名域 / GT 字段身份。 */
     private static String teOffense(Block b, int meta) {
         if (b == null) {
@@ -434,6 +482,688 @@ public final class RuinFamilyCheck {
         };
         new CityBlockResolver(capture).setBlock(0, 0, 0, key, 0, 0);
         return held[0];
+    }
+
+    // ═══════════════ K 组：城外跨 chunk 巨构（P16-B1，plan §1 判据 G6）═══════════════
+
+    /**
+     * 巨构的 (键,meta) 红线<b>扩档表</b>：键 → 允许 meta 集。这就是任务包 item 3 要的"允许面成文"，
+     * 也是"真正的安全闸不是结构表里少个字符"的落点——判据是<b>使用集 ⊆ 允许表</b>，
+     * 表外的一切（含同一注册块的另一档 meta）都红。
+     * <p>
+     * 表里的键名全部直引生产常量（写错键名 = 编译错），于是本表与 {@code CityBlockResolver} 的解析表、
+     * 与 {@code StructureChannelCheck} 的 12 键镜像三者互相钉：新增记号忘了进本表 ⇒ K2a 红；
+     * 进了本表没进解析表 ⇒ K3 的"GT 在场档"解析不出该键 ⇒ 申报行会显形。
+     */
+    private static final String[][] COLOSSUS_ALLOWED_KEY_METAS = {
+        { CityVariants.K_CASING, "0,1,2" },
+        { CityVariants.K_DEBRIS, "0,1,2,3" },
+        { CityVariants.K_SURFACE, "5" },
+        { CityVariants.K_STONE, "0" },
+        { CityVariants.K_COBBLE, "0" },
+        { CityVariants.K_GRAVEL, "0" },
+        { CityVariants.K_BARS, "0" },
+        { CityVariants.K_AIR, "0" },
+        // GT 静态外壳（无 TE、无 tick 状态迁移；取证件 B6/B8"能安全用于残骸"那一栏的逐档 meta）
+        { CityVariants.K_GT_BRONZE, "10" },
+        { CityVariants.K_GT_STEEL, "0,2,3,12,13" },
+        { CityBlockResolver.K_GT_FIREBOX, "13,14" },
+        { CityBlockResolver.K_GT_GLASS, "10" } };
+
+    /** 显式禁面（政策红线的机检形态；与 K2a 互为交叉验证，任一臂写错都会红）。 */
+    private static final String[] COLOSSUS_FORBIDDEN_KEY_METAS = {
+        "gt.blockmachines:0", "gt.blockmachines:50", "gt.blockmachines:51",
+        CityVariants.K_GT_STEEL + ":14", CityVariants.K_GT_STEEL + ":15",
+        CityBlockResolver.K_GT_FIREBOX + ":15", CityVariants.K_GT_BRONZE + ":0",
+        CityBlockResolver.K_GT_GLASS + ":0" };
+
+    private static void groupK_colossus() throws Exception {
+        check(RuinedColossusShapes.ALL.length >= 1,
+            "K1 城外跨 chunk 巨构至少 1 条（实测 " + RuinedColossusShapes.ALL.length + "）");
+        final Map<String, Set<Integer>> allowed = new TreeMap<>();
+        for (final String[] row : COLOSSUS_ALLOWED_KEY_METAS) {
+            final Set<Integer> metas = new TreeSet<>();
+            for (final String m : row[1].split(",")) {
+                metas.add(Integer.parseInt(m.trim()));
+            }
+            allowed.put(row[0], metas);
+        }
+        final Set<String> usedAll = new TreeSet<>();
+        for (final RuinedColossusShapes.Colossus c : RuinedColossusShapes.ALL) {
+            final Set<String> used = c.usedKeyMetas();
+            usedAll.addAll(used);
+            final Set<String> offMenu = new TreeSet<>();
+            for (final String km : used) {
+                final int at = km.lastIndexOf(':');
+                final Set<Integer> metas = allowed.get(km.substring(0, at));
+                if (metas == null || !metas.contains(Integer.parseInt(km.substring(at + 1)))) {
+                    offMenu.add(km);
+                }
+            }
+            check(offMenu.isEmpty(), "K2a 落块 (键,meta) 全在申报红线内: " + c.name + " 越界 " + offMenu);
+            final Set<String> forbidden = new TreeSet<>();
+            for (final String fk : COLOSSUS_FORBIDDEN_KEY_METAS) {
+                if (used.contains(fk)) {
+                    forbidden.add(fk);
+                }
+            }
+            check(forbidden.isEmpty(), "K2b 落块 ∩ 显式禁面 == ∅: " + c.name + " 命中 " + forbidden);
+            int spanX = 0;
+            int spanZ = 0;
+            for (final ChunkSpans.Slice sl : c.slices) {
+                spanX = Math.max(spanX, sl.chunkDx + 1);
+                spanZ = Math.max(spanZ, sl.chunkDz + 1);
+                check(sl.withinSliceLimits(),
+                    "K2c 分片 ≤16×16×12: " + c.name + " 片 " + sl.chunkDx + "," + sl.chunkDz);
+            }
+            check(spanX * spanZ >= 2 && spanX == c.declaredChunksX && spanZ == c.declaredChunksZ,
+                "K2d 跨 chunk 申报自洽: " + c.name + " 实得 " + spanX + "x" + spanZ + " 申报 " + c.declaredChunksX
+                    + "x" + c.declaredChunksZ);
+            System.out.println(
+                "COLOSSUS-TEMPLATE " + c.name + " bbox=" + c.sizeX() + "x" + c.sizeY() + "x" + c.sizeZ()
+                    + " slices=" + c.slices.length + " solid=" + c.solidChars() + " keyMetas=" + used);
+        }
+        // ── K3 类身份臂：真解析（走生产 CityBlockResolver，工具不自持第二张键表）+ 三条 RED 注入 ──
+        final Block[] saved = new Block[] { GregTechAPI.sBlockCasings1, GregTechAPI.sBlockCasings2,
+            GregTechAPI.sBlockCasings3, GregTechAPI.sBlockGlass1, GregTechAPI.sBlockMachines };
+        try {
+            final Block plainCasing = new PlainProbeBlock();
+            final Block teCasing = new TileProviderProbe();
+            GregTechAPI.sBlockCasings1 = plainCasing;
+            GregTechAPI.sBlockCasings2 = plainCasing;
+            GregTechAPI.sBlockCasings3 = plainCasing;
+            GregTechAPI.sBlockGlass1 = plainCasing;
+            GregTechAPI.sBlockMachines = teCasing;
+            resetResolverCache();
+            final Set<String> offenders = new TreeSet<>();
+            int judged = 0;
+            for (final String km : usedAll) {
+                final int at = km.lastIndexOf(':');
+                final String key = km.substring(0, at);
+                final int meta = Integer.parseInt(km.substring(at + 1));
+                final Block b = resolve(key);
+                if (b == null) {
+                    continue;
+                }
+                judged++;
+                final String why = colossusOffense(b, meta);
+                if (why != null) {
+                    offenders.add(key + ":" + meta + " -> " + b.getClass().getName() + " (" + why + ")");
+                }
+            }
+            check(judged >= 4,
+                "K3 反空转：GT 在场档真的判到了 GT 键（判据对象 " + judged + " 个，usedAll=" + usedAll.size() + "）");
+            for (final String ownKey : new String[] { CityVariants.K_CASING, CityVariants.K_DEBRIS,
+                CityVariants.K_SURFACE, CityVariants.K_STONE, CityVariants.K_BARS, CityVariants.K_AIR }) {
+                final Block b = resolve(ownKey);
+                check(b != null, "K3b 本维/原版键在生产解析表里真实存在: " + ownKey);
+                check(b == null || colossusOffense(b, 0) == null, "K3b 本维/原版键无 TE 身份: " + ownKey);
+            }
+            check(offenders.isEmpty(), "K3 落块 ∩ (ITileEntityProvider ∪ BlockContainer ∪ hasTileEntity) == ∅"
+                + "（GT 在场档）命中 " + offenders);
+            GregTechAPI.sBlockCasings3 = teCasing;
+            resetResolverCache();
+            final Block red = resolve(CityBlockResolver.K_GT_FIREBOX);
+            check(red != null && colossusOffense(red, 13) != null,
+                "K3c RED 臂：燃烧室字段一旦指向 TE 方块，同一判据必须咬住（实得 "
+                    + (red == null ? "null" : String.valueOf(colossusOffense(red, 13))) + "）");
+            // RED②：机器注册体的<b>身份</b>臂——故意给一个"看起来完全无害"的无 TE 方块，
+            // 只要它就是 sBlockMachines（GTSR 全部 MTE 的寄居块）就必须判红。
+            // 这一臂不能省：真游戏里 BlockMachines.hasTileEntity 恒 true，三条类身份臂当然也咬得住，
+            // 但"靠恒 true 才咬得住"意味着判定寄在 GT5U 的实现细节上；身份臂是把这条外部事实
+            // 换成本仓能自己钉住的形状（探针实测取的就是这个差别）。
+            final Block machineIdentity = new PlainProbeBlock();
+            GregTechAPI.sBlockMachines = machineIdentity;
+            check("gt.blockmachines(身份)".equals(colossusOffense(machineIdentity, 50)),
+                "K3d RED 臂：无 TE 外表但身份是 gt.blockmachines 的方块必须被判红（实得 "
+                    + colossusOffense(machineIdentity, 50) + "）");
+            check(colossusOffense(new PlainProbeBlock(), 0) == null,
+                "K3e 身份臂只看那个对象，不牵连其它方块（反「整表判红」式假安全）");
+        } finally {
+            GregTechAPI.sBlockCasings1 = saved[0];
+            GregTechAPI.sBlockCasings2 = saved[1];
+            GregTechAPI.sBlockCasings3 = saved[2];
+            GregTechAPI.sBlockGlass1 = saved[3];
+            GregTechAPI.sBlockMachines = saved[4];
+            resetResolverCache();
+        }
+        // ── K4 密度面：探测门不扣预算；一座巨构只吃一个预算位 ──
+        // 把 H-2 两条规则拧到"0 = 关闭"回退档（组 F 同款存取），让门位判定只由预算/同族互斥决定；
+        // 不这么做的话本组会在"恰好有邻居命中"的 seed 上随机红（判据本身没错，是样本选择错）。
+        final int capSave = Config.prosperityStructureWindowRepeatCap;
+        final int gapSave = Config.prosperityStructureFamilyGapChunks;
+        Config.prosperityStructureWindowRepeatCap = 0;
+        Config.prosperityStructureFamilyGapChunks = 0;
+        try {
+        final PlacementGate.ChunkGate probeGate = PlacementGate.beginChunk(SurfaceGate.DIM78, SEEDS[0], 3, 5);
+        final PlacementGate.Permit p1 = probeGate
+            .request(PlacementGate.FAMILY_MACHINE, RuinedColossusShapes.ALL[0].name,
+                RuinedMachinePlacer.MACHINE_INTENT);
+        check(p1 != null, "K4 门能受理巨构模板名（与 5 个小机型同一族、同一条 request0 序列）");
+        if (p1 != null) {
+            p1.abort();
+        }
+        check(probeGate.committed() == 0, "K4 探测门 abort 后预算未扣（实测 committed=" + probeGate.committed()
+            + "）⇒ 邻槽复现锚点结论不额外吃预算位");
+        final PlacementGate.ChunkGate landGate = PlacementGate.beginChunk(SurfaceGate.DIM78, SEEDS[0], 3, 5);
+        final PlacementGate.Permit p2 = landGate
+            .request(PlacementGate.FAMILY_MACHINE, RuinedColossusShapes.ALL[0].name,
+                RuinedMachinePlacer.MACHINE_INTENT);
+        check(p2 != null && p2.commit(1), "K4b 真实落块才计成功（commit(1)==true）");
+        final PlacementGate.Permit p3 = landGate
+            .request(PlacementGate.FAMILY_MACHINE, RuinedColossusShapes.ALL[1 % RuinedColossusShapes.ALL.length].name,
+                RuinedMachinePlacer.MACHINE_INTENT);
+        check(p3 == null,
+            "K4c 同一 chunk 的第二座（含巨构）被同族互斥/预算挡掉 ⇒ 跨片机制没有把每 chunk 上界抬起来");
+        } finally {
+            Config.prosperityStructureWindowRepeatCap = capSave;
+            Config.prosperityStructureFamilyGapChunks = gapSave;
+        }
+        // ── K5 单一真值面：一份掷骰实现体、一把盐、零新 Config 键 ──
+        final String src = stripCodeComments(new String(
+            Files.readAllBytes(
+                Paths.get("src/main/java/com/miaokatze/gtsr/common/dimension/prosperity/ruins/"
+                    + "RuinedMachinePlacer.java")),
+            StandardCharsets.UTF_8));
+        // K5a 读数口径（首轮实测 2 处，两处都是<b>改造前就存在</b>的形态，不是本片新增）：
+        //   ① roll() 里那把存在掷骰（chunkSeed ^ SALT_MACHINE）；
+        //   ② registerVariants() 的 S5 /gtsr structure 回调里那把（seed 由指令侧 blockSeed 派生）。
+        // 本条真正钉的是"巨构没有再加第三把"，以及"两把都仍由 GTSRWorldgenHash 派生、没有裸随机"。
+        check(countOf(src, "new Random(") == 2,
+            "K5a 机器族的随机源仍是 2 把（roll + S5 指令回调，实测 " + countOf(src, "new Random(")
+                + " 把）⇒ 跨片巨构没新开随机源");
+        check(countOf(src, "GTSRWorldgenHash.chunkSeed(") == 1,
+            "K5a2 槽位种子仍只有 roll() 一处经框架唯一件派生（实测 " + countOf(src, "GTSRWorldgenHash.chunkSeed(")
+                + " 处）⇒ 邻槽回扫复用同一份，不另起炉灶");
+        check(!src.contains("ThreadLocalRandom") && !src.contains("Math.random")
+            && !src.contains("new Random()"),
+            "K5a3 机器族零裸随机（ThreadLocalRandom / Math.random / 无参 new Random() 全部为 0）");
+        check(src.contains("POOL[r.nextInt(POOL.length)]"), "K5b 候选池是 5 小机型 + 巨构的<b>并集</b>，一次抽签");
+        check(!src.contains("prosperityColossus") && !src.contains("ColossusChance"),
+            "K5c 巨构没有自带分母/新 Config 键（密度真值仍只有 Config 一处）");
+        System.out.println("# K 跨 chunk 巨构 verdict=green templates=" + RuinedColossusShapes.ALL.length
+            + " usedKeyMetas=" + usedAll.size() + " allowedRows=" + COLOSSUS_ALLOWED_KEY_METAS.length);
+    }
+
+    /**
+     * 清掉 {@code CityBlockResolver} 的惰性解析缓存，让 K3 的字段注入真的生效。
+     * 不清的话第一次 {@code resolve()} 就把 null 结果钉进了静态表，后面的 RED 注入臂会<b>静默失明</b>
+     * （读到上一次的解析结果）——那是本组最容易假绿的一处，故用反射显式重置并在 finally 再清一次。
+     */
+    private static void resetResolverCache() throws Exception {
+        final Field f = CityBlockResolver.class.getDeclaredField("blockResolver");
+        f.setAccessible(true);
+        f.set(null, null);
+    }
+
+    // ═══════ M 组：城外跨 chunk 巨构的【形态】判据（P16-B2，plan §0 U2 / §1 G8·G9）═══════
+    //
+    // 判据对象是【会落到世界里的那份东西】——RuinedColossusShapes.Wreck 残骸档 + Morph 埋深，
+    // 不是名册里的母体蓝图；几何一律经【生产】入口 RuinedMachinePlacer.placeSlice，
+    // 本组不自算第二套渲染，也不自算第二套允许表（K 组那一张仍是唯一真值）。
+    //
+    // 【机械件的口径 = 落块键，不是字符】：五族各自走自己的 char→键表
+    // （机型 RuinedMachineShapes.blockKeyOf / outpost·城 CityVariants.blockKeyOf /
+    // 巨构 RuinedColossusShapes.blockKeyOf），机械件 = 四把 GT 静态壳键
+    // （镀铜砖 / 固体钢壳含齿轮箱·管道各两档 meta / 燃烧室 / 防爆玻璃）。
+    // 用键而不用字符，是为了让「新巨构 vs 既有废墟族 vs outpost」三组数字在同一把尺上可比。
+
+    /** 机械件键集（G9 的分子；四个键全在 K2a 允许表内，都是无 TE 的静态壳）。 */
+    private static boolean isMachineKey(String key) {
+        return CityVariants.K_GT_BRONZE.equals(key)
+            || CityVariants.K_GT_STEEL.equals(key)
+            || CityBlockResolver.K_GT_FIREBOX.equals(key)
+            || CityBlockResolver.K_GT_GLASS.equals(key);
+    }
+
+    /** G9 机械件占比的实测带（P16-B2 实测钉值；改形态必须同步改这里并说明理由）。 */
+    private static final double WRECK_SHARE_MIN = 6.0D;
+    private static final double WRECK_SHARE_MAX = 32.0D;
+    /**
+     * G8④ 埋到最深一档时，允许的机芯露出比上界（百分数）。
+     * <b>67 = 与生产静态契约 {@code RuinedColossusShapes} 里 {@code exposedMachine(maxBury) * 3
+     * < machine * 2} 同一条阈值</b>（那边是防线、这边是验收，同一个数值只允许一处真值来源，
+     * 改一处必须改两处并说明理由——这条配对由 M3④ 的失败信息直接给出实得读数兜底）。
+     */
+    private static final int DEEPEST_EXPOSED_PCT_MAX = 67;
+
+    private static void groupM_colossusMorphology() {
+        // ── M1 反空转探针：先证明【悬浮/接地】这套判据真的会咬——故意留一格下方是洞的方块 ──
+        final VoxelSet red = new VoxelSet();
+        red.put(0, 64, 0, "gtsr:RuinedCasing");
+        red.put(0, 66, 0, "gtsr:RuinedCasing");
+        check(red.floatingWithFlatGround(63) == 1,
+            "M1 反空转：故意造一格【下方是洞】的落块，悬浮判据必须报 1（实得 " + red.floatingWithFlatGround(63)
+                + "）⇒ 下面那条【悬浮=0】不是恒真式");
+        red.put(0, 65, 0, "gtsr:RuinedCasing");
+        check(red.floatingWithFlatGround(63) == 0, "M1 反空转配对臂：把那一格补上后必须归 0");
+
+        // ── M2 G9：逐残骸档实测机械件占比 + 钉死带内 + 分片/覆盖不缩水 ──
+        double lo = Double.MAX_VALUE;
+        double hi = 0.0D;
+        for (final RuinedColossusShapes.Colossus c : RuinedColossusShapes.ALL) {
+            check(c.motherMachine * 100 / Math.max(1, c.motherSolid) > 50,
+                "M2 对照行失准：母体蓝图里机械件本该是多数的【还立着的样子】: " + c.name);
+            for (final RuinedColossusShapes.Wreck w : c.wrecks) {
+                final double share = 100.0D * w.machine / Math.max(1, w.solid);
+                lo = Math.min(lo, share);
+                hi = Math.max(hi, share);
+                check(w.machine * 2 < w.solid,
+                    "M2 机械件必须是少数（残骸的本体）: " + w.label + ' ' + w.machine + '/' + w.solid);
+                check(share >= WRECK_SHARE_MIN && share <= WRECK_SHARE_MAX,
+                    "M2 实测占比必须落在钉死的带内 [" + WRECK_SHARE_MIN + ", " + WRECK_SHARE_MAX + "]: " + w.label
+                        + " 实得 " + fmt(share, 1));
+                check(w.slices.length == c.slices.length && w.sliceSolidSum() == w.solid,
+                    "M2 形态改动不得让跨片结构缩水或重不漏: " + w.label + " slices=" + w.slices.length + " sum="
+                        + w.sliceSolidSum() + " solid=" + w.solid);
+            }
+        }
+        System.out.println("COLOSSUS-RATIO 残骸档机械件占比实测=[" + fmt(lo, 1) + ", " + fmt(hi, 1)
+            + "] 档数=" + RuinedColossusShapes.ALL.length * RuinedColossusShapes.WRECK_COUNT + " 母体蓝图="
+            + motherShareRow() + " 对照既有族: " + familyShareRow());
+
+        // ── M3 G8 三条判据 + ④联动：逐残骸档 × 逐埋深，用真实地形（heightAt 逐列）经生产链渲染 ──
+        final CityVariants.GroundFn ground = PlacementGate.groundFn(SEEDS[0]);
+        int rendered = 0;
+        int floating = 0;
+        int carved = 0;
+        long worldSolid = 0;
+        long worldMachine = 0;
+        double wlo = Double.MAX_VALUE;
+        double whi = 0.0D;
+        for (final RuinedColossusShapes.Colossus c : RuinedColossusShapes.ALL) {
+            for (final RuinedColossusShapes.Wreck w : c.wrecks) {
+                int prevExposed = -1;
+                for (int d = 0; d <= c.maxBury; d++) {
+                    final VoxelSet vox = render(c, new RuinedColossusShapes.Morph(c, w, d), ground, false);
+                    rendered++;
+                    // 世界读数（含运行期损伤链的逐格缺失）：机械件在世界里也必须还是少数
+                    final int[] census = vox.machineCensus();
+                    worldSolid += census[0];
+                    worldMachine += census[1];
+                    final double wshare = 100.0D * census[1] / Math.max(1, census[0]);
+                    wlo = Math.min(wlo, wshare);
+                    whi = Math.max(whi, wshare);
+                    check(census[1] * 2 < census[0],
+                        "M3 世界读数：机械件必须是少数（含运行期损伤链）: " + w.label + " d=" + d + ' ' + census[1]
+                            + '/' + census[0]);
+                    floating += vox.floatingAgainst(ground);
+                    carved += vox.belowSurface(ground);
+                    check(vox.solidCount() > 0, "M3 该档该埋深必须真落了块: " + w.label + " d=" + d);
+                    if (d >= 1) {
+                        check(coveredCells(w, d) > 0,
+                            "M3① 埋深 " + d + " 必须确有被地形覆压的设计格: " + w.label + " 实得 0");
+                    }
+                    final int exposed = w.exposedMachine(d);
+                    check(prevExposed < 0 || exposed <= prevExposed,
+                        "M3④ 机芯露出数随埋深不升: " + w.label + " d=" + d + ' ' + exposed + " > " + prevExposed);
+                    prevExposed = exposed;
+                }
+                final int deepest = w.exposedMachine(c.maxBury);
+                check(deepest * 100 < Math.max(1, w.machine) * DEEPEST_EXPOSED_PCT_MAX,
+                    "M3④ 埋到 maxBury=" + c.maxBury + " 时机芯露出比必须低于 " + DEEPEST_EXPOSED_PCT_MAX + "%: "
+                        + w.label + " 实得 " + deepest + '/' + w.machine);
+            }
+        }
+        check(rendered >= 8, "M3 反空转：渲染组数 = " + rendered);
+        check(floating == 0, "M3② 悬浮块违反数必须为 0（实测合计 " + floating + "）");
+        check(carved == 0, "M3③ 不得把任何方块写进地表高度场以内（挖空洞/切断地表的入口，实测 " + carved + "）");
+        System.out.println("COLOSSUS-WORLD 世界落块=" + worldSolid + " 其中机械件=" + worldMachine + " 占比带=["
+            + fmt(wlo, 1) + ", " + fmt(whi, 1) + "]（36 组：8 档 × 埋深 0..maxBury，含运行期逐格缺失掷骰）");
+        check(worldMachine * 2 < worldSolid, "M3 世界合计：机械件仍是少数（" + worldMachine + '/' + worldSolid + "）");
+        check(whi < 50.0D, "M3 世界合计上界必须 <50%（实测最高 " + fmt(whi, 1) + "）");
+        System.out.println("COLOSSUS-BURY 渲染组=" + rendered + " 悬浮违反=" + floating + " 写进地形=" + carved
+            + " 埋深带上界=" + maxBuryRow() + " 露出比行=" + exposureRow());
+
+        // ── M4 B1 留下的 anchorFreeBlocks 抖动位：必须同时决定形态档与埋深（不再只是位置噪声） ──
+        final RuinedColossusShapes.Colossus probe = RuinedColossusShapes.ALL[0];
+        final Set<String> variantSeen = new TreeSet<>();
+        final Set<String> burySeen = new TreeSet<>();
+        int pure = 0;
+        for (int jx = 0; jx < ChunkSpans.CHUNK_BLOCKS; jx++) {
+            for (int jz = 0; jz < ChunkSpans.CHUNK_BLOCKS; jz++) {
+                final RuinedColossusShapes.Morph m = RuinedColossusShapes.morphAt(SEEDS[1], jx, jz, probe);
+                final RuinedColossusShapes.Morph again = RuinedColossusShapes.morphAt(SEEDS[1], jx, jz, probe);
+                if (m.wreck.index == again.wreck.index && m.bury == again.bury) {
+                    pure++;
+                }
+                variantSeen.add(String.valueOf(m.wreck.index));
+                burySeen.add(String.valueOf(m.bury));
+            }
+        }
+        check(pure == ChunkSpans.CHUNK_BLOCKS * ChunkSpans.CHUNK_BLOCKS,
+            "M4 morphAt 必须是纯函数（同入参两次调用同结果，实得一致 " + pure + "/256）⇒ 邻槽能复现锚点形态");
+        check(variantSeen.size() >= 2, "M4 抖动窗里必须见到 >=2 个形态档（实得 " + variantSeen.size() + "）");
+        check(burySeen.size() >= 2, "M4 抖动窗里必须见到 >=2 个埋深（实得 " + burySeen + "）⇒ 半埋与锚点自由格打通");
+
+        // ── M5 三条 B1 边界的处置面：成型中的巨构不得覆盖城 buffer、且 footprint 每列都在 y 带内 ──
+        final CityVariants.GroundFn g78 = PlacementGate.groundFn(SEEDS[1]);
+        final int chanceSave = Config.prosperityMachineChance;
+        Config.prosperityMachineChance = 10; // 离线注入（字段本就是给离线档留的）；密度真值与 B4 无关
+        try {
+            int ready = 0;
+            int bufferBad = 0;
+            int bandBad = 0;
+            for (int si = 0; si < 4; si++) {
+                for (int cx = 0; cx < 16; cx++) {
+                    for (int cz = 0; cz < 16; cz++) {
+                        final PlacementGate.Intent it = RuinedMachinePlacer.MACHINE_INTENT
+                            .intentAt(SEEDS[si], cx, cz);
+                        if (it == null || RuinedColossusShapes.byName(it.templateName) == null) {
+                            continue;
+                        }
+                        if (!RuinedMachinePlacer.spanReadyAt(SEEDS[si], cx, cz)) {
+                            continue;
+                        }
+                        ready++;
+                        final int x0 = ChunkSpans.chunkOf(it.originX);
+                        final int x1 = ChunkSpans.chunkOf(it.originX + it.sizeX - 1);
+                        for (int wx = x0; wx <= x1; wx++) {
+                            for (int wz = ChunkSpans.chunkOf(it.originZ); wz <= ChunkSpans
+                                .chunkOf(it.originZ + it.sizeZ - 1); wz++) {
+                                if (CityPlanner.citiesNear(SEEDS[si], wx, wz).length > 0) {
+                                    bufferBad++; // 那一格编排器会整段早退 ⇒ 邻槽不补片 ⇒ 鬼影剪影
+                                }
+                            }
+                        }
+                        for (int dx = 0; dx < it.sizeX && bandBad < 5; dx++) {
+                            for (int dz = 0; dz < it.sizeZ; dz++) {
+                                if (!PlacementGate.readyAtSpan(g78.groundY(it.originX + dx, it.originZ + dz))) {
+                                    bandBad++;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            System.out.println(
+                "COLOSSUS-SPAN 抽样成型巨构=" + ready + " 覆盖到城 buffer 的违例=" + bufferBad + " footprint 越 y 带列数="
+                    + bandBad + "（边界②③的处置读数；配置注入 prosperityMachineChance=10 已在本臂的 finally 复位）");
+            check(ready > 0, "M5 反空转：抽样里必须真有成型的跨片巨构（实得 " + ready + " 座）");
+            check(bufferBad == 0,
+                "M5 边界③ 闭合：成型中的巨构覆盖到的每个 chunk 都不在城 buffer 内（违例 " + bufferBad + "）");
+            check(bandBad == 0, "M5 边界② 收紧臂咬住：footprint 每一列都在可落 y 带内（越带 " + bandBad + "）");
+        } finally {
+            Config.prosperityMachineChance = chanceSave;
+        }
+
+        // ── M6 边界⑤：GT 字段全 null（beta-1 无玻璃/无 GT）时，缺材质不得留下悬在洞上的件 ──
+        final Block[] gtSave = new Block[] { GregTechAPI.sBlockCasings1, GregTechAPI.sBlockCasings2,
+            GregTechAPI.sBlockCasings3, GregTechAPI.sBlockGlass1 };
+        try {
+            GregTechAPI.sBlockCasings1 = null;
+            GregTechAPI.sBlockCasings2 = null;
+            GregTechAPI.sBlockCasings3 = null;
+            GregTechAPI.sBlockGlass1 = null;
+            resetResolverCache();
+            int landed = 0;
+            int bad = 0;
+            for (final RuinedColossusShapes.Colossus c : RuinedColossusShapes.ALL) {
+                for (final RuinedColossusShapes.Wreck w : c.wrecks) {
+                    // 走【生产解析链】（CityBlockResolver 在记录 sink 之前）⇒ 缺字段的拒写真的发生
+                    final VoxelSet vox = render(c, new RuinedColossusShapes.Morph(c, w, 2), g78, true);
+                    landed += vox.solidCount();
+                    bad += vox.floatingAgainst(g78);
+                }
+            }
+            check(landed > 0, "M6 边界⑤ 反空转：GT 全缺时本族仍能落块（实得 " + landed + "）⇒ 不是整族静默消失");
+            check(bad == 0, "M6 边界⑤ 闭合：缺材质那一格不得把上层吊在半空（悬浮违反 " + bad + "）");
+        } catch (Exception e) {
+            check(false, "M6 边界⑤ 跑飞：" + e);
+        } finally {
+            GregTechAPI.sBlockCasings1 = gtSave[0];
+            GregTechAPI.sBlockCasings2 = gtSave[1];
+            GregTechAPI.sBlockCasings3 = gtSave[2];
+            GregTechAPI.sBlockGlass1 = gtSave[3];
+            try {
+                resetResolverCache();
+            } catch (Exception ignored) {
+                // 收尾清缓存失败不影响判据
+            }
+        }
+        System.out.println("# M 巨构形态 verdict=green 渲染组=" + rendered + " 悬浮=0 覆压/切表违例=0 边界②③⑤=已处置");
+    }
+
+    /** 用【生产】放置链把一座残骸档（含埋深）按 chunk 分片渲进体素集。 */
+    private static VoxelSet render(RuinedColossusShapes.Colossus c, RuinedColossusShapes.Morph morph,
+        CityVariants.GroundFn ground, boolean viaResolver) {
+        final VoxelSet vox = new VoxelSet();
+        final BlockSink rec = (x, y, z, block, meta, flags) -> {
+            vox.put(x, y, z, block);
+            return true;
+        };
+        final BlockSink tail = viaResolver ? new CityBlockResolver(rec) : rec;
+        final int cx0 = ChunkSpans.chunkOf(0);
+        final int cz0 = ChunkSpans.chunkOf(0);
+        for (int cx = cx0; cx <= ChunkSpans.chunkOf(c.sizeX() - 1); cx++) {
+            for (int cz = cz0; cz <= ChunkSpans.chunkOf(c.sizeZ() - 1); cz++) {
+                RuinedMachinePlacer.placeSlice(
+                    new StructureBuilder(tail),
+                    new java.util.Random(0xB2L + cx * 31L + cz),
+                    c.shape,
+                    0,
+                    0,
+                    cx,
+                    cz,
+                    ground,
+                    BlockSink.FLAG_POPULATE,
+                    morph);
+            }
+        }
+        return vox;
+    }
+
+    /** 这座残骸档在埋深 d 下【被地形覆压掉】的设计实心格数（G8① 下部被覆盖的读数）。 */
+    private static int coveredCells(RuinedColossusShapes.Wreck w, int d) {
+        int n = 0;
+        for (int y = 0; y < d && y < w.sizeY; y++) {
+            n += w.layerSolid[y];
+        }
+        return n;
+    }
+
+    private static String motherShareRow() {
+        final StringBuilder b = new StringBuilder();
+        for (final RuinedColossusShapes.Colossus c : RuinedColossusShapes.ALL) {
+            if (b.length() > 0) {
+                b.append(',');
+            }
+            b.append(c.name)
+                .append('=')
+                .append(fmt(100.0D * c.motherMachine / Math.max(1, c.motherSolid), 1))
+                .append('%');
+        }
+        return b.toString();
+    }
+
+    private static String maxBuryRow() {
+        final StringBuilder b = new StringBuilder();
+        for (final RuinedColossusShapes.Colossus c : RuinedColossusShapes.ALL) {
+            if (b.length() > 0) {
+                b.append('/');
+            }
+            b.append(c.name).append('=').append(c.maxBury);
+        }
+        return b.toString();
+    }
+
+    /** 逐档报【埋深 → 机芯露出比】（交付说明里那组实测露出比读数）。 */
+    private static String exposureRow() {
+        final StringBuilder b = new StringBuilder();
+        for (final RuinedColossusShapes.Colossus c : RuinedColossusShapes.ALL) {
+            for (final RuinedColossusShapes.Wreck w : c.wrecks) {
+                b.append(' ').append(w.label).append('[');
+                for (int d = 0; d <= c.maxBury; d++) {
+                    if (d > 0) {
+                        b.append(' ');
+                    }
+                    b.append(d)
+                        .append(':')
+                        .append(fmt(100.0D * w.exposedMachine(d) / Math.max(1, w.machine), 0))
+                        .append('%');
+                }
+                b.append(']');
+            }
+        }
+        return b.toString();
+    }
+
+    /** 对照申报：既有四族各自的机械件占比（同一把尺 = 落块键 ∈ 四把 GT 静态壳键）。 */
+    private static String familyShareRow() {
+        final int[] machine = new int[3];
+        final int[] total = new int[3];
+        for (final RuinedMachineShapes.Shape s : RuinedMachineShapes.ALL) {
+            for (int y = 0; y < s.sizeY; y++) {
+                for (int z = 0; z < s.sizeZ; z++) {
+                    for (int x = 0; x < s.sizeX; x++) {
+                        final char c = s.charAt(y, x, z);
+                        if (!ChunkSpans.isSolid(c)) {
+                            continue;
+                        }
+                        total[0]++;
+                        if (isMachineKey(RuinedMachineShapes.blockKeyOf(c))) {
+                            machine[0]++;
+                        }
+                    }
+                }
+            }
+        }
+        for (final ProsperityOutpostPlacer.Outpost o : ProsperityOutpostPlacer.ALL) {
+            for (int y = 0; y < o.sizeY; y++) {
+                for (int z = 0; z < o.sizeZ; z++) {
+                    for (int x = 0; x < o.sizeX; x++) {
+                        final char c = o.charAt(y, x, z);
+                        if (!ChunkSpans.isSolid(c)) {
+                            continue;
+                        }
+                        total[1]++;
+                        if (isMachineKey(CityVariants.blockKeyOf(c))) {
+                            machine[1]++;
+                        }
+                    }
+                }
+            }
+        }
+        for (final RuinTemplate t : RuinShapes.ALL) {
+            for (int y = 0; y < t.sizeY; y++) {
+                for (int z = 0; z < t.sizeZ; z++) {
+                    for (int x = 0; x < t.sizeX; x++) {
+                        final char c = t.charAt(y, x, z);
+                        if (!ChunkSpans.isSolid(c)) {
+                            continue;
+                        }
+                        total[2]++;
+                        if (isMachineKey(CityVariants.blockKeyOf(c))) {
+                            machine[2]++;
+                        }
+                    }
+                }
+            }
+        }
+        return "小机型=" + pctOf(machine[0], total[0]) + " outpost=" + pctOf(machine[1], total[1]) + " ruin="
+            + pctOf(machine[2], total[2]);
+    }
+
+    private static String pctOf(int a, int b) {
+        return b == 0 ? "n/a" : fmt(100.0D * a / b, 1) + '%';
+    }
+
+    /** 一次渲染落进世界的体素集（空气清空位也记，但只作为【不能承重】的那一类）。 */
+    private static final class VoxelSet {
+
+        private final Map<Long, Boolean> solidAt = new HashMap<>();
+        private final Map<Long, String> blockAt = new HashMap<>();
+        private final List<long[]> coords = new ArrayList<>();
+
+        private static long key(int x, int y, int z) {
+            // 无符号打包：各 21 位偏移量，够 ±100 万，且不与真实世界坐标混淆
+            return (x + 1048576L) << 42 | (y + 1048576L) << 21 | (z + 1048576L);
+        }
+
+        void put(int x, int y, int z, Object block) {
+            final boolean solid = !PlacementGate.isAirHandle(block);
+            solidAt.put(key(x, y, z), Boolean.valueOf(solid));
+            blockAt.put(key(x, y, z), solid ? String.valueOf(block) : null);
+            coords.add(new long[] { x, y, z });
+        }
+
+        boolean isEmpty() {
+            return solidAt.isEmpty();
+        }
+
+        int solidCount() {
+            int n = 0;
+            for (final Boolean v : solidAt.values()) {
+                if (v.booleanValue()) {
+                    n++;
+                }
+            }
+            return n;
+        }
+
+        /** {@code {实心块数, 其中机械件块数}}；只在 block 是 String 逻辑键时有效（未走解析链的那一臂）。 */
+        int[] machineCensus() {
+            int solid = 0;
+            int machine = 0;
+            for (final Map.Entry<Long, String> e : blockAt.entrySet()) {
+                final String k = e.getValue();
+                if (k == null || PlacementGate.isAirHandle(k)) {
+                    continue;
+                }
+                solid++;
+                if (isMachineKey(k)) {
+                    machine++;
+                }
+            }
+            return new int[] { solid, machine };
+        }
+
+        private boolean solidAt(int x, int y, int z) {
+            final Boolean v = solidAt.get(key(x, y, z));
+            return v != null && v.booleanValue();
+        }
+
+        /** 悬浮数（单一平坦地表顶，给 M1 探针用）：下方既不是地形也不是本次落块即为悬浮。 */
+        int floatingWithFlatGround(int groundY) {
+            int n = 0;
+            for (final long[] p : coords) {
+                if (!solidAt((int) p[0], (int) p[1], (int) p[2])) {
+                    continue;
+                }
+                if (p[1] - 1 > groundY && !solidAt((int) p[0], (int) p[1] - 1, (int) p[2])) {
+                    n++;
+                }
+            }
+            return n;
+        }
+
+        /** 悬浮数（逐列读真实地形；接地定义与放置器同一口径：下方就是该列地表顶）。 */
+        int floatingAgainst(CityVariants.GroundFn ground) {
+            int n = 0;
+            for (final long[] p : coords) {
+                final int x = (int) p[0];
+                final int y = (int) p[1];
+                final int z = (int) p[2];
+                if (!solidAt(x, y, z)) {
+                    continue;
+                }
+                if (y - 1 > ground.groundY(x, z) && !solidAt(x, y - 1, z)) {
+                    n++;
+                }
+            }
+            return n;
+        }
+
+        /** 写进地表高度场以内的格数（含空气清空位）——非 0 即意味着挖洞或切断地表。 */
+        int belowSurface(CityVariants.GroundFn ground) {
+            int n = 0;
+            for (final long[] p : coords) {
+                if (p[1] <= ground.groundY((int) p[0], (int) p[2])) {
+                    n++;
+                }
+            }
+            return n;
+        }
     }
 
     // ══════════════════════════════════ D 组：确定性 ══════════════════════════════════
@@ -516,7 +1246,9 @@ public final class RuinFamilyCheck {
         }
         check(hits > 0, "E4 采样带上废墟确有命中（实测 " + hits + " 次）⇒ 强度层不是接了根空线");
         // 规模档调制的<b>确定性</b>证据：三档候选集大小必须严格单调（弱 cell 拿不到大件）。
-        // 这里不拿"实测均值"当断言——每档样本量是 512/(1/48)≈千级以下的随机量，均值排序会翻。
+        // 这里不拿"实测均值"当断言——每档样本量是 512 格按 Config.prosperityRuinChance 分之一掷出的
+        // 随机量（分母真值只在 Config 字段处，P16-B5b 起该键已改判、注释不再复写具体数字），
+        // 千级以下的均值排序会翻。
         final int pool0 = RuinShapes.candidates(RuinShapes.allowedMaxScaleTier(0)).length;
         final int pool1 = RuinShapes.candidates(RuinShapes.allowedMaxScaleTier(1)).length;
         final int pool2 = RuinShapes.candidates(RuinShapes.allowedMaxScaleTier(2)).length;
@@ -623,12 +1355,49 @@ public final class RuinFamilyCheck {
     // ══════════════════════════ F 组：密度对照（判据 4）═════════════════════════
 
     /**
+     * P16-B5b 申报：疏密三键<b>改判前</b>的代码默认（留档给对照臂用；作废理由见
+     * {@link #groupF_density} 里 F8 那条，不是这里）。生产真值出处仍只有 {@code Config} 字段一处
+     * （plan §1 G10），本文件这三份是"独立申报"，同 {@code SurfaceGateUnifyCheck} 的 {@code EXPECTED78}
+     * 与 {@code Dim78ScatterDensityCheck} 的 {@code DECL_*} 一族纪律。
+     */
+    private static final int LEGACY_MACHINE_DENOM = 16;
+    /** 见 {@link #LEGACY_MACHINE_DENOM}。 */
+    private static final int LEGACY_OUTPOST_DENOM = 64;
+    /** 见 {@link #LEGACY_MACHINE_DENOM}。 */
+    private static final int LEGACY_RUIN_DENOM = 48;
+    /**
+     * F8 的申报带：改后"每 chunk 城外结构座数"（%，ON 档，4 seed × 4 区 = 4096 chunk）。
+     * 实测 <b>2.0508%</b>（84 座 / 4096 chunk）；同一次运行注回旧疏密复算 = 6.3721%（261 座）。
+     * 带宽取实测 ±20%（不是把旧值圈进来的宽带来）⇒ 旧值 3.11 倍于新值、稳稳在带外。
+     */
+    private static final double PIN_NEW_PER_CHUNK_MIN = 1.64D, PIN_NEW_PER_CHUNK_MAX = 2.46D;
+    /**
+     * F9b 的巨构<b>成型率</b>带（落地的跨片巨构座数 / 机器族座数，4 seed × 4 区 = 4096 chunk）。
+     * <p>
+     * 实测：改后（72/192/144）<b>27.273%</b>（12/44）；注回改前疏密（16/64/48）同批 chunk 复算
+     * <b>15.000%</b>（24/160）。两臂<b>不相等</b>，而且这不是缺陷：成型率是"落地之后"的量，巨构除了
+     * 那一次抽签还要多过一道 {@code spanAllowsAt} 覆盖让行（B1 设计），让行的通过率取决于邻格有没有
+     * 别的结构——疏密降到 1/3 后邻格空出来，巨构的让行通过率上升，于是它在<b>落地</b>机器族里的份额
+     * 从 15.0% 抬到 27.3%。<b>抽签</b>那一侧才是"同一 POOL 同一次 nextInt"的口径，它的两臂份额
+     * 由 {@code Dim78ScatterDensityCheck} 的 D-PIN ④ 钉（实测新 28.431% / 旧 28.279%，漂移 0.152pp ≤
+     * 该处的 2pp 上界），本处只钉成型率自身的量级带。
+     * <p>
+     * 带取 [20, 40]：新值 27.273 居带中（±28%），下界 20 咬住"巨构被让行门整段挤掉"（实测把
+     * {@code prosperityStructureFamilyGapChunks} 一抬就会掉到带下），上界 40 咬住"巨构变成机器族主体"
+     * （>2/7 理论份额的合理上限）。这条带<b>不</b>声称两臂相等——那正是首版写错并被实测打回的地方
+     * （当时的断言要求两臂漂移 ≤2pp，改前臂 15.0% 直接判红）。
+     */
+    private static final double PIN_SPAN_SHARE_MIN = 20.0D, PIN_SPAN_SHARE_MAX = 40.0D;
+
+    /**
      * 真地形上跑「关掉新族」与「开新族」两条档，同一批 chunk、同一份<b>只读</b>网格，
      * 唯一变量是 {@link Config#prosperityRuinsEnabled}。编排顺序逐字照
      * {@code ProsperityWorldGenerator.generate}：城窗抑制 → outpost → 机器 → 废墟，
      * 同一 {@link PlacementGate.ChunkGate}（预算 / 同族互斥 / 窗上限 / 间距都在里面）。
      */
     private static void groupF_density(int seeds, int regions) throws Exception {
+        final int[] savedChances = new int[] { Config.prosperityMachineChance, Config.prosperityOutpostChance,
+            Config.prosperityRuinChance };
         final int budget0 = Config.prosperityStructureBudgetPerChunk;
         final int cap0 = Config.prosperityStructureWindowRepeatCap;
         final int ruinCap0 = Config.prosperityRuinWindowRepeatCap;
@@ -651,6 +1420,9 @@ public final class RuinFamilyCheck {
                 }
             }
         } finally {
+            Config.prosperityMachineChance = savedChances[0];
+            Config.prosperityOutpostChance = savedChances[1];
+            Config.prosperityRuinChance = savedChances[2];
             Config.prosperityStructureBudgetPerChunk = budget0;
             Config.prosperityStructureWindowRepeatCap = cap0;
             Config.prosperityRuinWindowRepeatCap = ruinCap0;
@@ -679,12 +1451,76 @@ public final class RuinFamilyCheck {
         check(on.maxWinEmit <= Math.max(cap0, ruinCap0),
             "F7 窗内同模板放行数不越过两档上限里较松的那档（实测 " + on.maxWinEmit + " <= max(" + cap0 + ","
                 + ruinCap0 + ")）");
-        System.out.println("DENSITY-RISE 总座数 OFF=" + off.structures + " ON=" + on.structures + " 上升=" + rise + " ("
-            + fmt(100.0 * rise / Math.max(1, off.structures), 2) + "%) 废墟=" + on.ruinLanded + " 窗均="
-            + off.winMean() + "->" + on.winMean() + " 贴脸率=" + off.adjPp() + "%->" + on.adjPp()
-            + "% 窗内同模板max=" + off.maxWinEmit + "->" + on.maxWinEmit + " 每chunk max=" + off.maxPerChunk + "->"
-            + on.maxPerChunk + "（约束：预算 " + budget0 + "/chunk、窗上限 " + cap0 + "(族)/" + ruinCap0
-            + "(ruin)、同族间距 " + gap0 + " 档）");
+        // ═══════════════ F8/F9 P16-B5b：申报式密度带 + 巨构共存（两面反假绿） ═══════════════
+        // 立论：城外疏密三键从 16/64/48 改到 72/192/144（plan §0 U2、§3）是<b>本轮有意的行为改变</b>，
+        // 所以这里不按"byte-parity 不许变"办，而是按 P13 死代码清扫轮那种<b>申报式差异断言</b>办：
+        // 新值钉带、旧值留档并写明作废理由、同一次运行再跑一条"注回旧疏密"的对照臂并断言它<b>落在带外</b>
+        // ——带若连"把概率调回去"都测不出来，它就是恒真式，那才是本片禁止的事。
+        // 对照臂的手法：进程内反射式直写 Config 三键（它们仍是 public static int，U6 的"不可配"只靠
+        // 不注册进 gtsr.cfg 达成），跑完 finally 立即还原；<b>不改工作树、不碰影子树</b>。
+        final Dens legacy = new Dens("OLD-改前疏密");
+        try {
+            for (int si = 0; si < seeds; si++) {
+                final long seed = SEEDS[si % SEEDS.length];
+                final GTSRWorldChunkManager mgr = new GTSRWorldChunkManager(seed, SurfaceHarness.def(true,
+                    SurfaceHarness.prosperityBiomes(),
+                    SurfaceHarness.prosperityWeights()));
+                for (int rg = 0; rg < regions; rg++) {
+                    final int cx0 = si * 4096 + rg * AXIS;
+                    final int cz0 = si * 924816;
+                    final Block[] grid = new Block[SIDE * SIDE * 256];
+                    final World world = Dim78ScatterDensityCheck.world(grid, cx0, cz0, seed, SIDE);
+                    materialize(world, seed, mgr, cx0, cz0, grid);
+                    Config.prosperityMachineChance = LEGACY_MACHINE_DENOM;
+                    Config.prosperityOutpostChance = LEGACY_OUTPOST_DENOM;
+                    Config.prosperityRuinChance = LEGACY_RUIN_DENOM;
+                    legacy.run(seed, world, cx0, cz0, true);
+                }
+            }
+        } finally {
+            Config.prosperityMachineChance = savedChances[0];
+            Config.prosperityOutpostChance = savedChances[1];
+            Config.prosperityRuinChance = savedChances[2];
+            Config.prosperityRuinsEnabled = true;
+        }
+        legacy.report();
+        final double newPp = 100.0 * on.structures / Math.max(1L, on.chunks);
+        final double oldPp = 100.0 * legacy.structures / Math.max(1L, legacy.chunks);
+        System.out.println("DENSITY-PIN 每 chunk 座数：改前 " + fmt(oldPp, 4) + "% → 改后 " + fmt(newPp, 4)
+            + "%（旧/新 = " + fmt(oldPp / Math.max(1.0E-9D, newPp), 3) + "×；申报带 ["
+            + fmt(PIN_NEW_PER_CHUNK_MIN, 4) + ", " + fmt(PIN_NEW_PER_CHUNK_MAX, 4) + "]%）");
+        check(newPp >= PIN_NEW_PER_CHUNK_MIN && newPp <= PIN_NEW_PER_CHUNK_MAX,
+            "F8 申报式密度带：改后每 chunk 座数 " + fmt(newPp, 4) + "% ∈ [" + PIN_NEW_PER_CHUNK_MIN + ", "
+                + PIN_NEW_PER_CHUNK_MAX + "]（旧值留档 " + fmt(oldPp, 4) + "%；作废理由 = plan §0 U2 把城外"
+                + "疏密降到实机现值的 1/3，且 B1 新入 2 条跨片巨构改变了同一次抽签的候选集）");
+        check(oldPp < PIN_NEW_PER_CHUNK_MIN || oldPp > PIN_NEW_PER_CHUNK_MAX,
+            "F8b 两面反假绿：改前疏密实测 " + fmt(oldPp, 4) + "% 必须落在新带之外（落在带内 ⇒ 本带对\"把概率"
+                + "调回去\"不敏感＝恒真判据）");
+        // ── F9 巨构与 5 个小机型共存（B1 申报"同一 POOL 同一次 nextInt、同一 prosperityMachineChance
+        //    分母"的实测面）：成型率两臂同带、单 chunk 自有锚点上界仍是预算、三环互斥没有多出第四环 ──
+        final double spanShare = 100.0 * on.colossusLanded / Math.max(1L, on.machineLanded);
+        final double oldSpanShare = 100.0 * legacy.colossusLanded / Math.max(1L, legacy.machineLanded);
+        System.out.println("COLOSSUS-PIN 机器族座数=" + on.machineLanded + " 其中跨片巨构=" + on.colossusLanded
+            + " 成型率=" + fmt(spanShare, 3) + "%｜改前对照臂 机器=" + legacy.machineLanded + " 巨构="
+            + legacy.colossusLanded + " 成型率=" + fmt(oldSpanShare, 3) + "%｜单 chunk 自有锚点上界实测="
+            + on.maxPerChunk + "（预算 " + budget0 + "）｜只被邻槽补片压到、自己没出结构的 chunk="
+            + on.foreignOnlyChunks + "（" + fmt(100.0 * on.foreignOnlyChunks / Math.max(1L, on.chunks), 3)
+            + "%，落块 " + on.foreignOnlySolid + "）");
+        check(on.maxPerChunk <= Math.max(1, budget0),
+            "F9a 每 chunk 自有锚点（真问过门的那一座）座数上界仍是 " + Math.max(1, budget0) + "（实测 "
+                + on.maxPerChunk + "）⇒ 巨构与 5 个小机型抢同一次抽签，没有各开一条概率线");
+        check(spanShare >= PIN_SPAN_SHARE_MIN && spanShare <= PIN_SPAN_SHARE_MAX,
+            "F9b 巨构成型率 ∈ [" + PIN_SPAN_SHARE_MIN + ", " + PIN_SPAN_SHARE_MAX + "]（实测 "
+                + fmt(spanShare, 3) + "%，12/44 座）；改前疏密同批实测 " + fmt(oldSpanShare, 3)
+                + "% 是<b>另一档</b>而不是同一量的两臂——成型率要过多邻格覆盖让行，稀疏后通过率上升，"
+                + "两臂相等从来不是应有的形状（理由全文见 PIN_SPAN_SHARE_* 的注释）");
+        check(oldSpanShare < spanShare,
+            "F9c 方向自检：改前疏密的成型率 " + fmt(oldSpanShare, 3) + "% 必须<b>低于</b>改后 "
+                + fmt(spanShare, 3) + "%（让行门在密档更常咬住巨构）——反了说明我把两臂的注键顺序写反，"
+                + "上面的 F9b 就成了拿错读数钉的带");
+        check(on.outpostLanded + on.machineLanded + on.ruinLanded == on.structures,
+            "F9d 三环互斥未破：outpost+机器+废墟 == 总座数（实测 " + on.outpostLanded + "+" + on.machineLanded
+                + "+" + on.ruinLanded + " vs " + on.structures + "）⇒ 巨构入池没有多出第四环");
     }
 
     /** 一档（OFF/ON）的累计量。 */
@@ -696,6 +1532,12 @@ public final class RuinFamilyCheck {
         long outpostLanded;
         long machineLanded;
         long ruinLanded;
+        /** P16-B5b：机器族里真落地的<b>跨片巨构</b>锚点数（按门登记的模板名判，不数补片）。 */
+        long colossusLanded;
+        /** P16-B5b：自己没出任何结构、但被邻槽巨构补片压到的 chunk 数。 */
+        long foreignOnlyChunks;
+        /** P16-B5b：上一行那些 chunk 里落进的块数（申报"补片面"的量级）。 */
+        long foreignOnlySolid;
         long adjacent;
         long solidSum;
         int maxPerChunk;
@@ -736,8 +1578,12 @@ public final class RuinFamilyCheck {
                         landed = ru;
                     }
                     int perChunk = 0;
+                    boolean spanAsked = false;
                     for (final String t : gate.requestedTemplates()) {
                         perChunk++;
+                        if (RuinedColossusShapes.isColossus(t)) {
+                            spanAsked = true;
+                        }
                         final long wk = windowKey(seed, cx, cz);
                         final Map<String, Integer> m = winEmit.computeIfAbsent(wk, k -> new HashMap<>());
                         final int n = m.merge(t, 1, Integer::sum);
@@ -746,6 +1592,11 @@ public final class RuinFamilyCheck {
                         }
                     }
                     if (!landed) {
+                        if (sink.solid > 0) {
+                            // 只有别人的巨构片压进来：一座都不算本 chunk 的，但块是真的落了
+                            foreignOnlyChunks++;
+                            foreignOnlySolid += sink.solid;
+                        }
                         continue;
                     }
                     structures++;
@@ -757,6 +1608,11 @@ public final class RuinFamilyCheck {
                         outpostLanded++;
                     } else if (mc) {
                         machineLanded++;
+                        // 每 chunk 至多记一次（模板名循环里可能同时出现两条巨构请求），
+                        // 所以这里按"本 chunk 落地的机器是不是跨片"计，不按名字计数
+                        if (spanAsked) {
+                            colossusLanded++;
+                        }
                     } else {
                         ruinLanded++;
                     }

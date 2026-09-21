@@ -197,6 +197,53 @@ no_entity() { grep -v "prosperity/entity/"; }
 src_era7p() { prefix "$1" | no_entity; }
 src_list() { prefix "$1" | grep -v "framework/structure/PlacementGate.java" | no_entity; }
 P12SRC="$(prefix src/main/java)"
+
+# ── P16-B7：era BASE 树的「新 API 桩」＝BASE 还原清单的第三个动词（前两个：cp 快照 / rm 本 era 不存在的新文件）──
+# 为什么需要第三个动词：BASE 树是「cp -a 当前树 + 只还原该 era 清单」，于是"当前生产文件的调用点"会绑到
+# "被还原成旧版的依赖"里还不存在的新 API ⇒ BASE 编不过 ⇒ 该档按硬门槛判红
+# （`… 还原清单不完整，对拍会退化成自比`）。P7c 注释给的先例是"还原该 era 的全部引用方"，但 P16 引入的
+# 这两处该先例都用不上：
+#   · (乙) PlacementGate.readyAtSpan(int)（B1 新增）的引用方 RuinedMachinePlacer 在本 era 清单里
+#     **没有对应的同 era 快照**（P5b 期根本没有那份 placer；从 p8 快照取会连带把 P8 的废墟族拖进 P5b 树）；
+#   · (丙) GTSRCreatureRoster.skinTexturePath()（D1 把旧名 vanillaTexturePath() 改名）的引用方
+#     GTSRCreatureRenderers 从未进过 temp/p13-base 的快照（P13 清单只 4 件，实体包只快照了名册）。
+# 所以反过来补：把"被引用侧缺的那**一个成员**"以**转调 era 自身既有实现**的形式注入 BASE 树里的那份旧文件。
+# 语义不变的两条根据（缺一即不成立，故逐条留证）：
+#   ① 桩体不引用任何 era 里不存在的常量/字段，只对 era 自己的成员做一次转调 ⇒ 即使真被执行，返回值也
+#      逐位等于该 era 的判定（readyAtSpan 用 readyAt(y,true)，`true` 是 `&&` 的单位元 ⇒ 恒等于 era 的 y 带；
+#      skinTexturePath 直接 return era 的 vanillaTexturePath()，字段与值一个字节都没换）。
+#   ② 这些 BASE 档的测量面走不到桩：[14a]/[15a]/[16a]/[18a] 的 SurfaceByteParityDump 只走 provideChunk 链
+#      （表层/高度/群系标签+meta；scatter/populate 不在其输入域，见 [19] 段注释），
+#      [14b]/[15a2]/[16a2] 一律带 -Dgtsr.skipStructure=1（结构前序整段跳过），
+#      而 readyAtSpan 只在结构 populate 链被读、skinTexturePath 只在客户端渲染器 textureOf 被读。
+# 只写进 temp/p*-base/all 的副本；src/main/java 一字不动（生产 API 绝不为了"让 BASE 编得过"而改）。
+# 本函数 era 无关且幂等（锚点在→注入、旧文件里已有该成员→静默、该 era 没这个文件→申报后跳过），
+# 后续再有新 API 打红 BASE 树时**只加调用点，不再另立机制**。
+B7_F_PG=com/miaokatze/gtsr/common/dimension/framework/structure/PlacementGate.java
+B7_F_ROSTER=com/miaokatze/gtsr/common/dimension/prosperity/entity/GTSRCreatureRoster.java
+B7_SPAN_ANCHOR='    public static boolean readyAt(int surfaceY, boolean surfaceTopLandable) {'
+B7_SPAN_STUB='    public static boolean readyAtSpan(int surfaceY) { return readyAt(surfaceY, true); } /* P16-B7 BASE 桩：era 树无 B1 新增臂；转调本文件 readyAt 的 y 带，true=&&单位元 ⇒ 语义==该 era 判定 */'
+B7_SKIN_ANCHOR='        public String vanillaTexturePath() {'
+B7_SKIN_STUB='        public String skinTexturePath() { return this.vanillaTexturePath(); } /* P16-B7 BASE 桩：D1 改名前的旧成员名；纯转调，字段与值未动 */'
+b7_stub() { # b7_stub <BASE树根> <相对包路径> <锚点行（须唯一）> <桩正文> <成员名（仅展示）>
+  local root="$1" rel="$2" anchor="$3" stub="$4" member="$5" f="$1/$2" ln
+  if [ ! -f "$f" ]; then
+    echo "     B7 桩跳过：本 era 树无 $rel（该 era 不含此类，属正常 era 修正）"
+    return 0
+  fi
+  if ! grep -aqF "$anchor" "$f"; then
+    echo "     FAIL：B7 桩锚点不在 $rel ⇒ era 快照形态与预期不符，拒绝注入（宁可留红也不伪造 BASE）"
+    FAILS=$((FAILS + 1)); return 1
+  fi
+  grep -qF "$stub" "$f" && return 0            # 幂等：该 era 已有此成员
+  ln=$(grep -anF -m1 "$anchor" "$f" | cut -d: -f1)
+  awk -v n="$ln" -v s="$stub" 'NR==n{print s} {print}' "$f" > "$f.b7tmp" && mv "$f.b7tmp" "$f"
+  grep -qF "$stub" "$f" || { echo "     FAIL：B7 桩注入后 $rel 内仍无 $member"; FAILS=$((FAILS + 1)); return 1; }
+  echo "     B7 桩：$rel += $member（第 $ln 行前转调桩；只写 temp/ 副本）"
+  return 0
+}
+b7_stub_span()  { b7_stub "$1" "$B7_F_PG"     "$B7_SPAN_ANCHOR"  "$B7_SPAN_STUB"  "readyAtSpan(int)"; }
+b7_stub_roster(){ b7_stub "$1" "$B7_F_ROSTER" "$B7_SKIN_ANCHOR"  "$B7_SKIN_STUB"  "skinTexturePath()"; }
 BASEALL=temp/p4-base/all            # 编译面：cp -a 当前树后按快照覆盖 → $BASEALL/<包路径>.java
 SNAP=$BASEALL/src/main/java        # 快照面：本片开工前的原始路径副本
 BASE_D=$BASEALL/com/miaokatze/gtsr/common/dimension
@@ -1194,6 +1241,9 @@ com/miaokatze/gtsr/config/Config.java"
     # 所以从"本片开工前快照"取它 = P5b 终态那一份；同时删掉本 era 还不存在的 ruin 新包。
     cp "$SNAP8_LATE/com/miaokatze/gtsr/common/dimension/framework/structure/PlacementGate.java"       "$BASE5B/com/miaokatze/gtsr/common/dimension/framework/structure/PlacementGate.java"
     rm -rf "$BASE5B/com/miaokatze/gtsr/common/dimension/prosperity/ruins/ruin"
+    # P16-B7 (乙)：上面那份 pre-P8 的 PlacementGate 里没有 B1 新增的 readyAtSpan(int)，而本 era 清单
+    # 不含 RuinedMachinePlacer（其当前版本在 :267/:416 调它）⇒ 实测 P5B-BASE 2 error。补法见 b7_stub 注释。
+    b7_stub_span "$BASE5B"
     P5B_SRC="$(src_era7p $BASE5B)"
     MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8 -cp "$CP" \
       -sourcepath "$BASE5B" -d "$OUT/p5b-base-classes" $P5B_SRC >"$OUT/p5b-javac-base.log" 2>&1
@@ -1320,6 +1370,10 @@ com/miaokatze/gtsr/config/Config.java"
     # 废墟族是本片<b>新增</b>的包 ⇒ BASE 树里必须没有它（留着会让 BASE 侧编排器引用到本片才有的
     # PlacementGate.FAMILY_RUIN，而 PlacementGate 已还原 ⇒ BASE 编不过，对拍退化成自比）
     rm -rf "$BASE8/com/miaokatze/gtsr/common/dimension/prosperity/ruins/ruin"
+    # P16-B7 (乙)：同上——P8_BASE_FILES 还原的 PlacementGate 无 readyAtSpan(int)，而清单外的
+    # RuinedMachinePlacer 走当前版本 ⇒ P8-BASE 的 7 error 里那 2 条（:267/:416）由本桩补；
+    # 余下 5 条在 GTSRWorldChunkManager（v1.20.34 既存债，另开工单，本片不碰）。
+    b7_stub_span "$BASE8"
     [ "$miss8" = "0" ] || FAILS=$((FAILS + 1))
     if grep -aq "prosperityRuinChance" "$BASE8/com/miaokatze/gtsr/config/Config.java"; then
       echo "   FAIL：P8-BASE 侧 Config 已含废墟族新键 ⇒ 快照不是开工前形态"; FAILS=$((FAILS + 1))
@@ -1572,7 +1626,9 @@ com/miaokatze/gtsr/config/Config.java"
     p9red R5_CITY_MULT_DEAD 's|^    public static final int CITY_WINDOW_WEIGHT_MULTIPLIER = 2;|    public static final int CITY_WINDOW_WEIGHT_MULTIPLIER = 1;|' \
       "$F_ROSTER" all
     # R6：纹理路径改成指不存在的 ⇒ D2「资源实际可解析」必红（防隐形实体的正向断言被钉住）
-    p9red R6_TEX_DEAD 's|"textures/entity/chicken.png"|"textures/entity/gtsr_not_there_pigeon.png"|' \
+    #     锚点随 D1 换域：v1.20.35 借原版鸡皮，D1 起三档全走 gtsr 域自有皮肤（替换件仍留 gtsr 域，
+    #     这样红的是 D2「不可解析」而不是 D1「domain 非 gtsr」）。
+    p9red R6_TEX_DEAD 's|"gtsr:textures/entity/gear-pigeon.png"|"gtsr:textures/entity/gtsr_not_there_pigeon.png"|' \
       "$F_ROSTER" all
     rm -rf "$P9RED" "$P9REDCLS" "$OUT/p9-red-tools"
     runres "CreatureSpawnAuthorityCheck all（P9 RED 后工作树复位 GREEN）" CreatureSpawnAuthorityCheck all
@@ -1657,6 +1713,10 @@ com/miaokatze/gtsr/common/dimension/shattered/biome/ShatteredBiomes.java"
       fi
     done
     [ "$miss13" = "0" ] || FAILS=$((FAILS + 1))
+    # P16-B7 (丙)：P13_BASE_FILES 把名册还原成 D1 改名前的形态（成员叫 vanillaTexturePath()），
+    # 而清单外的 GTSRCreatureRenderers:97 调 D1 的新名 skinTexturePath() ⇒ P13-BASE 1 error。
+    # 引用方在 temp/p13-base 的快照里根本不存在（P13 只快照了 4 件），故只能补被引用侧这一个成员。
+    b7_stub_roster "$BASE13"
     # 反假绿①：BASE 侧必须还能看到被删成员的<b>声明签名</b>（用声明而非裸名，避免 AFTER 的
     # 收口说明注释里提到这些名字造成误判）
     dead13=0

@@ -30,6 +30,7 @@ import com.miaokatze.gtsr.common.dimension.framework.GTSRDimensionDef;
 import com.miaokatze.gtsr.common.dimension.framework.GTSRWorldChunkManager;
 import com.miaokatze.gtsr.common.dimension.framework.SurfaceGate;
 import com.miaokatze.gtsr.common.dimension.framework.structure.BlockSink;
+import com.miaokatze.gtsr.common.dimension.framework.structure.ChunkSpans;
 import com.miaokatze.gtsr.common.dimension.framework.structure.PlacementGate;
 import com.miaokatze.gtsr.common.dimension.framework.structure.StructureRegistry;
 import com.miaokatze.gtsr.common.dimension.prosperity.ChunkProviderProsperityRuins;
@@ -43,6 +44,7 @@ import com.miaokatze.gtsr.common.dimension.prosperity.block.BlockRuinDebris;
 import com.miaokatze.gtsr.common.dimension.prosperity.ruins.ProsperityOutpostPlacer;
 import com.miaokatze.gtsr.common.dimension.prosperity.ruins.ProsperitySurfaceScatter;
 import com.miaokatze.gtsr.common.dimension.prosperity.ruins.ProsperityWorldGenerator;
+import com.miaokatze.gtsr.common.dimension.prosperity.ruins.RuinedColossusShapes;
 import com.miaokatze.gtsr.common.dimension.prosperity.ruins.RuinedMachinePlacer;
 import com.miaokatze.gtsr.common.dimension.prosperity.ruins.city.CityPlanner;
 import com.miaokatze.gtsr.common.dimension.prosperity.ruins.city.CityVariants;
@@ -361,6 +363,57 @@ public final class PlacementContractCheck {
             }
         }
         check(noIntent == 0, "A9 两族都导出了命中重放口（缺失 " + noIntent + " 个）⇒ H-2 两条规则有据可依");
+
+        // A10（P16-B1）：跨 chunk 巨构<b>走的就是机器族那一份重放口</b>，而且真的能掷出来。
+        // 为什么必须钉：巨构接进候选池后，如果 MACHINE_INTENT 永远只报小机型（例如候选池没并上、
+        // 或 roll 的 span 分流写反），那么 H-2 两条规则与城/废墟两族的邻域判定全都<b>看不到</b>巨构，
+        // 窗上限与让行就成了"注释里互斥、代码上叠罗汉"——这正是 A9 要防的那一类静默失效。
+        // 货币：纯函数 intentAt（不读世界、不落块），所以这条判据在零地形的 source 档也成立。
+        int spanHits = 0;
+        int spanBadBox = 0;
+        int spanOutsideAnchor = 0;
+        int smallHits = 0;
+        final Set<String> spanNames = new LinkedHashSet<>();
+        for (int si = 0; si < SEEDS.length; si++) {
+            final long sweepSeed = SEEDS[si];
+            for (int dx = 0; dx < AXIS; dx++) {
+                for (int dz = 0; dz < AXIS; dz++) {
+                    final int scx = si * 4096 + dx;
+                    final int scz = si * 924816 + dz;
+                    final PlacementGate.Intent it = RuinedMachinePlacer.MACHINE_INTENT
+                        .intentAt(sweepSeed, scx, scz);
+                    if (it == null) {
+                        continue;
+                    }
+                    final RuinedColossusShapes.Colossus c = RuinedColossusShapes.byName(it.templateName);
+                    if (c == null) {
+                        smallHits++;
+                        if (it.sizeX > ChunkSpans.CHUNK_BLOCKS || it.sizeZ > ChunkSpans.CHUNK_BLOCKS) {
+                            spanBadBox++; // 小机型申报了超单 chunk 的 footprint = 钳制失效
+                        }
+                        continue;
+                    }
+                    spanHits++;
+                    spanNames.add(it.templateName);
+                    // 申报的必须是<b>总 bbox</b>（成对断言的第二个量），且原点仍落在锚点 chunk 内
+                    if (it.sizeX != c.sizeX() || it.sizeZ != c.sizeZ()
+                        || it.sizeX <= ChunkSpans.CHUNK_BLOCKS && it.sizeZ <= ChunkSpans.CHUNK_BLOCKS) {
+                        spanBadBox++;
+                    }
+                    if (ChunkSpans.chunkOf(it.originX) != scx || ChunkSpans.chunkOf(it.originZ) != scz) {
+                        spanOutsideAnchor++;
+                    }
+                }
+            }
+        }
+        check(spanHits > 0, "A10 跨片巨构经 MACHINE_INTENT 真的掷得出（8 seed × 一整窗实测 " + spanHits
+            + " 次，模板集 " + spanNames + "）⇒ 门与邻域判定看得见它，不是死分支");
+        check(smallHits > 0, "A10b 同一份重放口仍掷得出 5 个小机型（实测 " + smallHits
+            + " 次）⇒ 候选池是并集而不是替换");
+        check(spanBadBox == 0, "A10c 每条 intent 申报的 footprint 与形状表一致（越界 " + spanBadBox
+            + " 处）：小机型不超单 chunk，巨构报的是总 bbox");
+        check(spanOutsideAnchor == 0, "A10d 巨构原点仍在锚点 chunk 内（越界 " + spanOutsideAnchor
+            + " 处）⇒ 邻槽回扫窗 BACK_REACH_CHUNKS 的推导前提成立");
         // A9 用"自洽"的合成重放口（本格自己就在命中集里，与生产侧 placer 的用法同形）：
         // 单命中槽 ⇒ cap=1 必放行；同窗双命中槽 ⇒ cap=1 恰活一个；cap=2 ⇒ 两个都活。
         final PlacementGate.IntentFn oneHit = fixedPairIntent(3, 5, 3, 5, "boiler_frame", PlacementGate.FAMILY_MACHINE);
@@ -431,12 +484,24 @@ public final class PlacementContractCheck {
                 ruinMissingDamaged++;
             }
         }
-        check(Integer.valueOf(5).equals(famCount.get(PlacementGate.FAMILY_MACHINE))
+        // P16-B1：machine 族的条目数改由<b>生产访问器</b>派生（5 单片机型 + 跨片巨构），
+        // 于是"跨片机型并入既有族"这件事在本断言里是看得见的名册增量，而不是把 5 手改成 7 凑绿；
+        // A10 另外钉"这些条目里确实有跨片形态、且掷得出来"。
+        // P16-B3：城内那一路同理改由 {@link CityVariants#ALL} 派生（26 基础 + 2 巨构 = 28）。
+        // B3 <b>有意</b>让两个申报边长 &gt;16 的城内巨构与 26 个城内件一样保持 unscoped——城链走
+        // CityPlanner 选型、不进 PlacementGate 的 outpost/机器/废墟三环，所以"未标注数"随城名册一起长，
+        // 不在本断言里另钉第三个字面量（26→28 手改就是第二处真值）。巨构"必须仍是 unscoped、且 footprint
+        // 确实超单 chunk"的<b>逐名</b>面在 S8RegistryRosterCheck 的 CITYMEGA 段（本工具只钉桶计数）。
+        check(Integer.valueOf(RuinedMachinePlacer.registeredCount())
+            .equals(famCount.get(PlacementGate.FAMILY_MACHINE))
+            && RuinedMachinePlacer.registeredCount() == 5 + RuinedMachinePlacer.spanningCount()
             && Integer.valueOf(6).equals(famCount.get(PlacementGate.FAMILY_OUTPOST))
-            && Integer.valueOf(26).equals(famCount.get(PlacementGate.FAMILY_UNSCOPED))
+            && Integer.valueOf(CityVariants.ALL.length).equals(famCount.get(PlacementGate.FAMILY_UNSCOPED))
             && famCount.get(PlacementGate.FAMILY_RUIN) != null
             && famCount.get(PlacementGate.FAMILY_RUIN) == RuinShapes.ALL.length,
-            "A6 族标注 = machine 5 / outpost 6 / 城内 26 未标注 / ruin " + RuinShapes.ALL.length
+            "A6 族标注 = machine " + RuinedMachinePlacer.registeredCount()
+                + "(含跨片 " + RuinedMachinePlacer.spanningCount() + ") / outpost 6 / 城内 "
+                + CityVariants.ALL.length + " 未标注（含巨构）/ ruin " + RuinShapes.ALL.length
                 + "（P8 废墟族，实测 " + famCount + "）");
         check(badNumeric == 0, "A6 既有 39 条目的分母/窗上限一律 0 = 跟随 Config（非 0 者 " + badNumeric
             + " 条 ⇒ 会出现第二处数字真值）");
@@ -999,12 +1064,22 @@ public final class PlacementContractCheck {
                     b.substring(at, Math.min(b.length(), at + 96 + arity * 24)).contains("_INTENT") ? "yes" : "NO");
             }
         }
-        check(begin == 4, "D4 全仓 beginChunk 调用点 = 4（编排器 1 + 三个 placer 的无门兼容重载 3），实测 " + begin);
-        check(request == 3 && commit == 3 && counting == 3,
-            "D4 三 placer 各恰一次 request / commit / counting（实测 " + request + "/" + commit + "/" + counting
-                + "）");
+        // P16-B1 读数同步（不是放宽，是多了一处真实调用）：机器族为跨 chunk 巨构新增
+        //   ① spanAllowsAt 里那把<b>探测门</b>（beginChunk + request，取到许可立刻 abort，不扣预算），
+        //      它是"邻槽必须能独立复现锚点结论"的那一份纯判定；
+        //   ② renderForeignSpans 里邻槽补片的 counting（<b>没有</b> request/commit——补片不占预算位，
+        //      一座结构的预算与真值只记在锚点那一格上）。
+        // 于是 beginChunk 4→5、request 3→4、counting 3→4，而 commit 仍是 3：
+        // 预算扣减点没有增加，这正是"巨构不叠加密度"的调用面证据。
+        check(begin == 5, "D4 全仓 beginChunk 调用点 = 5（编排器 1 + 三个 placer 的无门兼容重载 3"
+            + " + 机器族跨片探测门 1），实测 " + begin);
+        check(request == 4 && commit == 3 && counting == 4,
+            "D4 request/commit/counting 调用面 = 4/3/4（实测 " + request + "/" + commit + "/" + counting
+                + "）：多出来的 request 是机器族的<b>探测门</b>（abort 不扣预算），多出来的 counting 是"
+                + "邻槽补片（不占预算位）⇒ 落块真值仍只有三处 commit");
         // D7（P7c 新增，P8 扩到三族）：生产侧的每一次 request 都必须带命中重放口，否则 H-2 两条静默失效
-        check(requestArity.size() == 3, "D7 生产侧 request 调用点 = 3，实测元组 " + requestArity);
+        check(requestArity.size() == 4, "D7 生产侧 request 调用点 = 4（P16-B1 起含机器族跨片探测门），实测元组 "
+            + requestArity);
         check(!requestCarriesIntent.contains("NO"),
             "D7 每一次生产 request 的实参里都出现本族的 *_INTENT 重放口（实测 " + requestCarriesIntent
                 + "）；少了它 = 门拿不到命中集 = 上限不咬合或退回密度乘子");
@@ -1012,12 +1087,18 @@ public final class PlacementContractCheck {
         // (Entry, 窗上限命中集, 邻域命中集)——后者是 P7c 给 P8 预留的 Entry 通道，P8 额外把
         // "邻域让行"的命中集从"同族"换成"三条城外族的合并集"（废墟填的是前两环的空槽，
         // 跨族贴脸只能由新族这一侧让掉）。两族的三参与废墟的三参实参形状不同但元数相同。
-        check(Collections.frequency(requestArity, 3) == 3,
-            "D7 三处生产 request 都是三参形态（两族 = 族/模板/IntentFn，废墟 = Entry/窗上限集/邻域集），实测 "
-                + requestArity);
-        check(count(flat(machine), "MACHINE_INTENT") == 2 && count(flat(outpost), "OUTPOST_INTENT") == 2
-            && count(flat(ruin), "RUIN_INTENT") == 2,
-            "D7 三族各恰有\"定义 + 传给门\"两处重放口引用（实测 " + count(flat(machine), "MACHINE_INTENT") + "/"
+        // P16-B1 频次同步：机器族为跨片巨构多了一次<b>同形态</b>的三参 request（探测门），
+        // 所以"每一处都带命中重放口"这条性质必须仍然成立（少了实参就不是 3 元，立刻红）。
+        check(Collections.frequency(requestArity, 3) == 4,
+            "D7 四处生产 request 都是三参形态（两族 = 族/模板/IntentFn，废墟 = Entry/窗上限集/邻域集，"
+                + "机器族的探测门与真实门同形），实测 " + requestArity);
+        // 机器族现在是三处：定义 + 真实门 + 跨片<b>探测门</b>（P16-B1）。探测门用的是<b>同一个</b>
+        // MACHINE_INTENT 对象，不是第二份重放实现——这正是"邻槽复现锚点结论"不引入第二真值的结构条件，
+        // 所以这里按"引用次数"钉而不是按"IntentFn 定义个数"钉（定义个数由上一条 requestCarriesIntent 管）。
+        check(count(flat(machine), "MACHINE_INTENT") == 3
+            && count(flat(outpost), "OUTPOST_INTENT") == 2 && count(flat(ruin), "RUIN_INTENT") == 2,
+            "D7 重放口引用处数 = machine 3 / outpost 2 / ruin 2（实测 "
+                + count(flat(machine), "MACHINE_INTENT") + "/"
                 + count(flat(outpost), "OUTPOST_INTENT") + "/" + count(flat(ruin), "RUIN_INTENT") + "）");
         // 掷骰唯一实现体：placeAll 里不得再留第二份 Config.prosperityMachineChance 读取
         check(count(flat(machine), "Config.prosperityMachineChance") == 1

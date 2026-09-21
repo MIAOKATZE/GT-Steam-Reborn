@@ -30,6 +30,8 @@ import com.miaokatze.gtsr.common.dimension.prosperity.ruins.city.CityVariants;
  * ═══ 确定性 ═══
  * 全部掷骰走 {@link GTSRWorldgenHash}（plan §2.1 L2 禁止项：不得手搓哈希、不得内联已登记的位混合
  * 常数），盐由调用点给出 ⇒ "同母体 + 同盐 + 同尺寸"必得同一破坏模板，类加载即定盘。
+ * <b>P16-B2</b>：这份掷骰实现体（{@link #roll}）同时是城外跨 chunk 巨构形态层的唯一掷骰出口——
+ * 形态侧要"每座残骸各不相同"但不许新开随机源，正解就是复用本方法（盐与坐标组合由调用点给）。
  * 运行期的<b>逐块侵蚀</b>不在本类，走放置器里的 {@link CityVariants#MISSING_RATES} +
  * {@code Random(placeSeed)}，与既有三族同一纪律（y=0 垫层恒放＝现成半埋语义）。
  */
@@ -453,12 +455,19 @@ public final class RuinDamageOps {
     private static final long ROLL_DOMAIN = 0x5241444CL; // "RADL"
 
     /**
-     * 派生用掷骰的唯一入口：算法体走框架唯一件（{@link GTSRWorldgenHash#cellSeed} +
+     * 派生用掷骰的<b>全仓唯一实现体</b>：算法体走框架唯一件（{@link GTSRWorldgenHash#cellSeed} +
      * {@link GTSRWorldgenHash#splitmix64}），返回值用 {@link Math#floorMod(long, long)} 取模到
      * {@code [0, mod)}。plan §2.1 L2 禁止项：不得在本类手搓位混合常数（那些常数各自有唯一出处，
      * {@code HeightHashSingleSourceCheck} 逐字钉次数）。
+     * <p>
+     * <b>P16-B2 起本方法是 public</b>：城外跨 chunk 巨构的形态层（{@code RuinedColossusShapes} 的
+     * 残骸派生与"锚点自由格 → 半埋深度/侵蚀档"那条打通链）<b>复用这一份</b>掷骰实现体，
+     * 不再在自己文件里抄第二份 cellSeed+splitmix 组合（任务包 B2"不得新开随机源"的正解就是这一条：
+     * 形态侧一律经本方法，盐由调用点给、域由 {@code a}/{@code b} 的坐标组合给）。
+     * public 只放宽可见性，<b>不改变任何一次掷骰的取值</b> ⇒ ruin 族 8 条派生模板逐字节不变
+     * （由 {@code RuinFamilyCheck} B2 的派生复算与 {@code RosterIntegrityCheck} 的逐名 SHA 共同钉住）。
      */
-    private static long roll(long salt, long a, long b, int mod) {
+    public static long roll(long salt, long a, long b, int mod) {
         if (mod <= 0) {
             return 0L;
         }

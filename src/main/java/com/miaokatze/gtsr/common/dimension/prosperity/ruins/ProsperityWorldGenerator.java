@@ -74,13 +74,17 @@ public class ProsperityWorldGenerator implements IWorldGenerator, GTSROwnedGener
         // 用户包真值行（plan/log.txt:11452 "scatterBudget=64/chunk"）就是被硬编码骗过去的。
         // 竖向件关闭时权重表不含烟囱项（权重和 85），故一并回显，便于实机一眼分辨"柱阵回没回来"。
         GTSteamReborn.LOG.info(
-            "[GTSR] prosperity worldgen registered: dimId={} machines=5 outposts=6 {} scatterK={}/chunk"
+            "[GTSR] prosperity worldgen registered: dimId={} machines={} (spanning={}) outposts=6 {}"
+                + " scatterK={}/chunk"
                 + " scatterBlocks={}/chunk scatterAttempts={}/chunk scatterVertical={} scatterWindowCap={}"
                 + " scatterWeights={}/{}/{}/{} scatterClusterMode={} clusterCell={}ch clusterDenom={}"
                 + " clusterPieces={}..{} clusterRadius={}ch clusterFalloff={} machineChance=1/{} outpostChance=1/{}"
                 + " structureBudget={}/chunk structureWindowCap={} structureFamilyGap={}"
                 + " ruins={} ruinEnabled={} ruinChance=1/{} ruinWindowCap={}",
             Config.prosperityDimId,
+            // P16-B1：机型数不再写死在格式串里（"5" 曾是第二份真值；候选池并上跨片巨构后它会变）
+            RuinedMachinePlacer.registeredCount(),
+            RuinedMachinePlacer.spanningCount(),
             StructureRegistry.names(),
             Config.prosperityScatterContoursPerChunk,
             Config.prosperityScatterBlocksPerChunk,

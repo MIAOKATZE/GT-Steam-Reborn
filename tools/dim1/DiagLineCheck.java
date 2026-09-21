@@ -130,7 +130,13 @@ public class DiagLineCheck {
         assertColumns(line, "A");
         checkPlaneColumn(line, "A");
         check(line.contains("degraded=NONE") && line.contains("surface=laid"), "A 列值错: " + line);
-        check(line.contains("roster=47"), "A roster 列应为 47: " + line);
+        // P16-B1：roster 列的期望值改由 S8 的独立期望量派生（原来这里写死 "roster=47"）。
+        // 不取 StructureRegistry.names().size()——诊断行本身就是从它算出来的，那样这条判据恒真；
+        // EXPECTED_TOTAL 由 P0 基线 + 两张模板表派生，且 S8 另有一遍"名集合逐名相等"的对账，
+        // 所以这仍是一个独立预期量（名册少了/多了都会在两处各自红）。
+        check(line.contains("roster=" + S8RegistryRosterCheck.EXPECTED_TOTAL),
+            "A roster 列应为 " + S8RegistryRosterCheck.EXPECTED_TOTAL + "（P0 基线 + 废墟族 + 跨片巨构族）: "
+                + line);
         check(line.contains("allocated=4/4"), "A allocated 列错: " + line);
         // 正常态不得出现"权重被吞"锚点（NONE 零介入，与表层门同一纪律）
         check(!GTSRChunkProviderBase.logCreatureWeightAbsorbedOnce(

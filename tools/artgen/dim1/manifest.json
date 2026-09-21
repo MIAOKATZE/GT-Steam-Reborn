@@ -1,5 +1,6 @@
 {
   "_manifest": "dim1 S7a 方块材质 唯一权威（gtnh-block-texture-artgen 契约：manifest 单点收口 PALETTE / DERIVED_RULES / SEEDS / STYLE / OUTPUTS）。",
+  "_p16_32": "P16（v1.20.37，U1 裁决）：本批 14 张已由片 A2 等比重绘为 32x32 并在产，逐张设计档案见同目录 design32.json，绘制器 = draw32_dim1.py（只读消费本 manifest 与 gen_dim1_blocks.py；两者本轮零改动，既有 _changelog 条目亦未改）。landed.sha256 已按新字节重钉（14 行全换）。STYLE.pixel_discipline.size [16,16] 是 16 档母版标定值、不是在产档位（在产 = 32x32）。",
   "_authority": {
     "plan": "plan/新维度计划/dim1-implementation-plan.md §4（:335-356，17 张清单）+ §S7a（:237-243）",
     "naming_contract": "文件名 = 未来注册 icon 路径；S2/S6a 代码当前用 minecraft: 原版占位（BlockProsperitySurface.java:36-38/65-67、BlockRuinDebris.java:29-30、BlockRuinedCasing.java:29-30），本轮只补像素不改注册名、不改 Java。",

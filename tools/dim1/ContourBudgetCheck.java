@@ -22,9 +22,19 @@ import com.miaokatze.gtsr.config.Config;
  *    ② 必须逐字引用五个 Config 键（各 ≥1 次）；
  *    ③ {@code findSurfaceY} 定义数必须仍为 0（P3 合并件不得被复活）；
  *    ④ 不得出现 {@code >>> 33}（P3 手搓哈希红线，窗排序哈希必须走 GTSRWorldgenHash）。
- *  A3 单一真值（判据 4）：机器概率分母的具体数字在 src/main/java 只剩 Config 的"定义+注释"两处，
- *    其余文件出现 "/24" "/16" 形态的机器分母字面量必须为 0；全仓 Javadoc 残留上界申报 1 处
- *    （framework/SurfaceGate.java 的口径注释，非本片允许路径——修成 0 也绿，只打印位置）。
+ *  A3 单一真值 + U6 不可配（判据 4 的 <b>P16 成对重写</b>）：旧立论"代码默认 16 + cfg 可覆盖"已随 U6 失效
+ *    （三个 getInt 块被删、真值改 72、注释里的"默认 16"消失），旧写法还有一处用
+ *    {@code indexOf("prosperityMachineChance = 16")} 取注释锚点——锚点 -1 之后整段行为未定义。
+ *    新契约每条都成对钉「旧形状消失」+「新形状在场」：① 六个疏密键<b>不得</b>再是
+ *    {@code configuration.get*} 的键名（负判据按"带引号才算键名"做前缀排除，字段名自身不算违规），
+ *    同时保留可配的七键<b>必须</b>仍在 cfg（否则"整段删空"也能凑绿）；② 六键字段仍是
+ *    {@code public static int} 且<b>不得</b> {@code final}——final 会打断 11 处离线测试档注入（含本类
+ *    自己复位 {@code prosperityScatterClusterFieldChanceDenom}），后果是"密度面再没有机检"；
+ *    ③ 机器分母真值 = 申报值 72，声明文本初值与运行期字段值必须相等，注释/日志<b>不复写</b>具体分母数字
+ *    （锚点走声明符号，不走字面值）；④ 消费方只引用 {@code Config.xxx}，全仓 {@code 1/24}·{@code 1/72}·
+ *    {@code machineChance=NN} 复写计数 = 0（旧申报"≤1"那处 SurfaceGate.java Javadoc 已按 P5 纪律改写，
+ *    界值按<b>当前实测</b>重算后收紧）。与疏密无关的 {@code 1/16}、旧叙述 {@code 1/64}/{@code 1/48}
+ *    <b>只登记不判红</b>（属 B1/B2/B4 正在写的文件），见运行时 {@code # A3 未决} 行。
  *  A1b 声明级（P5b）：成簇七键（mode/cell/denom/piecesMin/piecesMax/radius/falloff）默认值
  *    == 申报值（1/4/3/8/14/2/1），放宽任一键立刻红，不依赖采样。
  *  B 行为级（P5b 重标）：真实编排链上 8 seed × 8 个 16×16 窗实测，<b>成簇默认档</b>的件数均值
@@ -60,6 +70,37 @@ public final class ContourBudgetCheck {
     static final int DECL_CLUSTER_PIECES_MAX = 14;
     static final int DECL_CLUSTER_RADIUS = 2;
     static final int DECL_CLUSTER_FALLOFF = 1;
+    /**
+     * P16 / U6：机器分母的代码真值（= 实机生效值 24 的三分之一，plan §3 落地表）。旧申报 16 作废，
+     * 且它现在<b>只</b>能出现在这一处 + Config 的字段声明，其余任何复写都由 A3 判红。
+     */
+    static final int DECL_MACHINE_DENOM = 72;
+
+    /** 六个疏密键（U6 从 gtsr.cfg 摘除，字段保留可写）。 */
+    static final String[] SIX_DENSITY_KEYS = { "prosperityMachineChance", "prosperityOutpostChance",
+        "prosperityRuinChance", "prosperityCityChance", "prosperityScatterClusterFieldChanceDenom",
+        "prosperityStructureBudgetPerChunk" };
+
+    /**
+     * A3 负判据的正向对照：plan §U6「保留可配（非疏密类）」清单。缺了这份对照，"把整段
+     * synchronizeConfiguration 删空"也能让六键的负判据全绿——那是最省事的凑绿路径。
+     */
+    static final String[] KEEP_CONFIGURABLE_KEYS = { "planDimension.prosperityDimension",
+        "planDimension.shatteredDimension", "prosperityRuinsEnabled", "prosperityRuinWindowRepeatCap",
+        "prosperityRuinMicroModulation", "prosperityBiomeMacroBandChunks", "prosperityCityBiomeGate" };
+
+    /** cfg 注册键数地板（当前实测 44 = 旧 50 摘掉六键；只防"删空"，不防正常新增）。 */
+    static final int CFG_KEY_FLOOR = 40;
+
+    /** 机器分母在 P16 之前的历史值：16/64 旧代码默认、24 实机覆盖、48 旧废墟档。 */
+    static final int[] LEGACY_MACHINE_DENOMS = { 16, 24, 48, 64 };
+
+    private static final String CONFIG_REL = "com/miaokatze/gtsr/config/Config.java";
+
+    /** 机器链闭包（定义 1 + 消费 2）；新增消费方须同批在此申报并写明理由。 */
+    private static final List<String> MACHINE_HOLDER_BASELINE = Arrays.asList(
+        "com/miaokatze/gtsr/common/dimension/prosperity/ruins/ProsperityWorldGenerator.java",
+        "com/miaokatze/gtsr/common/dimension/prosperity/ruins/RuinedMachinePlacer.java", CONFIG_REL);
 
     /** H-3 硬上界：K 折算到最大群系权重（荒漠 1.5）后的件数天花板。 */
     static int contourHardCeiling() {
@@ -101,6 +142,35 @@ public final class ContourBudgetCheck {
     private static final double BAND_BASELINE_BLOCK_MIN = 90.0D, BAND_BASELINE_BLOCK_MAX = 110.0D;
 
     private static final Pattern MACHINE_DENOM_LITERAL = Pattern.compile("/\\s*(?:1[0-9]|[2-9][0-9])\\b");
+
+    /**
+     * A3 的"具体机器分母复写"形态：旧漂移 {@code 1/24}、当前真值 {@code 1/72} 的复写，
+     * 以及注册日志里把分母写成字面量（{@code machineChance=72} / {@code machineChance=1/72}）。
+     * 日志占位形式 {@code machineChance=1/{}} 不命中——那是"回显字段值"的正确写法。
+     */
+    private static final Pattern MACHINE_DENOM_DOC = Pattern
+        .compile("1\\s*/\\s*(?:24|72)\\b|machineChance\\s*=\\s*(?:1\\s*/\\s*)?\\d{2,}");
+
+    /** 注释里复写分母的两种口径形态（P5 单一真值纪律）。 */
+    private static final Pattern DENOM_IN_COMMENT = Pattern.compile("1\\s*/\\s*\\d+|默认\\s*[^，。；)】]{0,3}\\d+");
+
+    /** 未决登记面（不判红）：与疏密裁决相邻但归口别的切片的旧密度叙述。 */
+    private static final Pattern PENDING_STALE_DENOM = Pattern.compile("1\\s*/\\s*(?:16|48|64)\\b");
+
+    /** 六键的字段声明形状（组 1=修饰符串、2=键名、3=初值、4=行尾注释；容忍 CRLF）。 */
+    private static final Pattern INT_FIELD_DECL = Pattern.compile(
+        "(?m)^[\\t ]*((?:\\w+\\s+)+?)int\\s+(\\w+)\\s*=\\s*(-?\\d+)\\s*;[\\t ]*(?://([^\\r\\n]*))?[\\t ]*\\r?$");
+
+    /** cfg 注册点：{@code configuration.getXxx("键名", …)} 的首个字符串实参才是"键名"。 */
+    private static final Pattern CFG_KEY_NAME = Pattern
+        .compile("configuration\\s*\\.\\s*get\\w*\\s*\\(\\s*\"((?:[^\"\\\\]|\\\\.)*)\"");
+
+    /** U6 口径注释的合法表述集合（行尾注释里至少要有一种）。 */
+    private static final Pattern NOT_EXPORTED = Pattern.compile("不导出|不注册|不得自定义|不允许自定义");
+
+    /** 机器分母注释块的锚点：<b>声明符号</b>本身，不是"字段 = 字面值"。 */
+    private static final Pattern MACHINE_DECL_ANCHOR = Pattern
+        .compile("public\\s+static\\s+int\\s+prosperityMachineChance\\s*=");
 
     private static int passed;
     private static final List<String> FAILURES = new ArrayList<>();
@@ -199,8 +269,9 @@ public final class ContourBudgetCheck {
             "A H-2 窗重复上限 = " + DECL_WINDOW_CAP + "（实测 " + windowCap + "；放宽即红）");
         check(Arrays.equals(weights, DECL_WEIGHTS),
             "A 件型权重表 = " + Arrays.toString(DECL_WEIGHTS) + "（实测 " + Arrays.toString(weights) + "）");
-        check(Config.prosperityMachineChance == 16,
-            "A3 机器分母代码默认 = 16（设计基线，实机 24 属外部覆盖；实测 " + Config.prosperityMachineChance + "）");
+        check(Config.prosperityMachineChance == DECL_MACHINE_DENOM, "A3 机器分母的运行期真值 = " + DECL_MACHINE_DENOM
+            + "（P16/U6：该键已摘出 cfg，此值即代码唯一真值，不再有「实机覆盖」一说；实测 "
+            + Config.prosperityMachineChance + "）");
     }
 
     /** A2 源级：散布层的预算/权重必须真的只剩 Config 一个出处。 */
@@ -237,10 +308,16 @@ public final class ContourBudgetCheck {
         check(smix > 0, "A2 窗排序哈希走框架唯一件（空白不敏感计数，实测 " + smix + " 处）");
     }
 
-    /** A3 判据 4：机器概率口径的三处漂移收敛为单一真值。 */
+    /**
+     * A3 单一真值 + U6 不可配（判据 4 的 P16 成对重写）。
+     * <p>
+     * 旧立论是"代码默认 16 + cfg 可覆盖"，于是把三件事当成真：键在 Config 代码里出现 3 次（声明 /
+     * synchronizeConfiguration 赋值左值 / getInt 默认值实参）、源码含 {@code = 16}、紧邻注释写"默认 16"。
+     * U6 摘除六个 getInt 块后这些形状全部消失，且取注释的锚点 {@code indexOf("…= 16")} 返回 -1，之后
+     * {@code commentBlockAbove} 的行为未定义——那是"静默失效"而不是"判红"，比判红更糟。本组按新契约成对重写：
+     * 每条都同时钉「旧形状不再在场」与「新形状确实在场」，任一半场被删都会红。
+     */
     private static void checkGroupA3() throws Exception {
-        final List<String> holders = new ArrayList<>();
-        final List<String> stale = new ArrayList<>();
         final java.nio.file.Path root = java.nio.file.Paths.get("src/main/java");
         final List<java.nio.file.Path> files = new ArrayList<>();
         java.nio.file.Files.walk(root)
@@ -248,67 +325,221 @@ public final class ContourBudgetCheck {
                 .endsWith(".java"))
             .forEach(files::add);
         Collections.sort(files);
+
+        // ── (1) 机器链闭包：定义 1（Config）+ 消费 2；消费方只引用 Config.xxx ──
+        final List<String> holders = new ArrayList<>();
+        final List<String> stale = new ArrayList<>();
+        final List<String> notViaConfig = new ArrayList<>();
+        final List<String> privateCopy = new ArrayList<>();
         for (final java.nio.file.Path f : files) {
-            final String code = stripComments(new String(java.nio.file.Files.readAllBytes(f), "UTF-8"));
+            final String code = stripComments(read(f));
+            final String rel = relativize(root, f);
             if (code.contains("prosperityMachineChance")) {
-                final String rel = root.relativize(f)
-                    .toString()
-                    .replace('\\', '/');
                 holders.add(rel);
-                // 定义处（Config.java 的字段初始化与 getInt 默认参数）允许，其它处出现 "/数字" 形态的
-                // 分母字面量即为口径漂移残留
-                if (!"com/miaokatze/gtsr/config/Config.java".equals(rel)) {
+                if (!CONFIG_REL.equals(rel)) {
                     final java.util.regex.Matcher m = MACHINE_DENOM_LITERAL.matcher(code);
                     while (m.find()) {
                         stale.add(rel + ':' + m.group());
                     }
+                    if (!code.contains("Config.prosperityMachineChance")) {
+                        notViaConfig.add(rel);
+                    }
+                }
+            }
+            // 六键的任何"第二处 int 声明"（在 Config.java 之外）都是真值分叉——旧 1/24 漂移就是这么来的。
+            if (!CONFIG_REL.equals(rel)) {
+                for (final String k : SIX_DENSITY_KEYS) {
+                    if (count(code, "\\bint\\s+" + Pattern.quote(k) + "\\s*=") > 0) {
+                        privateCopy.add(rel + '#' + k);
+                    }
                 }
             }
         }
-        check(holders.contains("com/miaokatze/gtsr/config/Config.java"),
-            "A3 机器分母唯一真值出处存在：Config.java");
+        check(holders.contains(CONFIG_REL), "A3 新形状在场：机器分母的唯一真值出处存在：" + CONFIG_REL);
         Collections.sort(holders);
-        check(holders.equals(Arrays.asList("com/miaokatze/gtsr/common/dimension/prosperity/ruins/ProsperityWorldGenerator.java",
-            "com/miaokatze/gtsr/common/dimension/prosperity/ruins/RuinedMachinePlacer.java",
-            "com/miaokatze/gtsr/config/Config.java")),
-            "A3 机器分母只被 3 个文件引用（定义 1 + 消费 2），实测 " + holders);
-        final String cfgStripped = stripComments(new String(
-            java.nio.file.Files.readAllBytes(root.resolve("com/miaokatze/gtsr/config/Config.java")), "UTF-8"));
-        check(count(cfgStripped, "prosperityMachineChance") == 3,
-            "A3 Config 内该键在代码里出现 3 次（字段声明 + synchronizeConfiguration 赋值左值 + getInt 默认值实参；"
-                + "键名字符串经 stripComments 已消），实测 " + count(cfgStripped, "prosperityMachineChance"));
-        check(cfgStripped.contains("prosperityMachineChance = 16"),
-            "A3 字段默认值 = 申报值 16（代码默认保持 16，用户 cfg 的 24 属外部覆盖）");
-        final String cfgRaw = new String(
-            java.nio.file.Files.readAllBytes(root.resolve("com/miaokatze/gtsr/config/Config.java")), "UTF-8");
-        final int cfgIdx = cfgRaw.indexOf("prosperityMachineChance = 16");
-        final String cfgBlock = commentBlockAbove(cfgRaw, cfgIdx);
-        check(cfgBlock.contains("默认 16"),
-            "A3 机器分母的紧邻注释写 '默认 16'，与实际默认值一致（注释块 " + cfgBlock.length() + " 字符）");
+        check(holders.equals(MACHINE_HOLDER_BASELINE),
+            "A3 机器链闭包 = 定义 1 + 消费 2（新增消费方须同批把名写进 MACHINE_HOLDER_BASELINE 并申报理由），实测 "
+                + holders);
+        check(notViaConfig.isEmpty(),
+            "A3 新形状在场：机器分母消费方逐字引用 Config.prosperityMachineChance（未走 Config 的持有者=" + notViaConfig
+                + "；私有常量或字面量都会让真值再次分叉）");
+        check(privateCopy.isEmpty(), "A3 旧形状消失：六键在 Config.java 之外没有任何第二处 int 声明（消费方私有副本＝"
+            + "真值分叉，正是旧 1/24 漂移的成因），命中=" + privateCopy);
+        check(stale.isEmpty(), "A3 旧形状消失：消费方去注释后无 /NN 形态的机器分母字面量（实测 " + stale.size() + " 处 "
+            + stale + "）");
+
+        // ── Config.java 的三份读数：原文 / 去注释保字符串 / 去注释去字符串 ──
+        final String cfgRaw = read(root.resolve(CONFIG_REL));
+        final String cfgCode = stripComments(cfgRaw);
+        final String cfgNoComment = stripCommentsKeepingStrings(cfgRaw);
+        final List<String> registered = registeredConfigKeys(cfgNoComment);
+
+        // ── (2) 旧形状消失：六键不再是 cfg 的键名（负判据按"带引号才算键名"做前缀排除）──
+        final List<String> stillRegistered = new ArrayList<>();
+        final List<String> stillQuoted = new ArrayList<>();
+        final List<String> stillAssigned = new ArrayList<>();
+        final List<String> notSingleTruth = new ArrayList<>();
+        for (final String k : SIX_DENSITY_KEYS) {
+            if (registered.contains(k)) {
+                stillRegistered.add(k);
+            }
+            final int quoted = count(cfgNoComment, Pattern.quote("\"" + k + "\""));
+            if (quoted != 0) {
+                stillQuoted.add(k + " x" + quoted);
+            }
+            final int assign = count(cfgCode, Pattern.quote(k) + "\\s*=\\s*configuration\\s*\\.");
+            if (assign != 0) {
+                stillAssigned.add(k + " x" + assign);
+            }
+            final int occ = count(cfgCode, Pattern.quote(k));
+            if (occ != 1) {
+                notSingleTruth.add(k + " x" + occ);
+            }
+        }
+        check(stillRegistered.isEmpty(), "A3 旧形状消失：六键都不在 configuration.get* 的键名实参位（当前注册 "
+            + registered.size() + " 键，命中=" + stillRegistered + "）");
+        check(stillQuoted.isEmpty(),
+            "A3 旧形状消失（前缀排除式：只有带引号的 \"KEY\" 才是 cfg 键名，字段名自身不算违规）：命中=" + stillQuoted);
+        check(stillAssigned.isEmpty(),
+            "A3 旧形状消失：六键都不是 synchronizeConfiguration 的赋值左值（旧契约每键 1 处，实测 " + cfgCode.length()
+                + " 字符代码里为 0），命中=" + stillAssigned);
+        check(notSingleTruth.isEmpty(), "A3 新形状在场：六键在 Config 代码里各出现恰好 1 次（=字段声明本身；旧契约是 3 次"
+            + "：声明 + 赋值左值 + getInt 默认值实参），命中=" + notSingleTruth);
+
+        // ── (3) 反假绿：非疏密键仍可配 + 抽键完整性（否则"整段删空"也能让 (2) 全绿）──
+        final List<String> lostKeys = new ArrayList<>();
+        for (final String k : KEEP_CONFIGURABLE_KEYS) {
+            if (!registered.contains(k)) {
+                lostKeys.add(k);
+            }
+        }
+        check(lostKeys.isEmpty(), "A3 反假绿：plan §U6「保留可配」的 " + KEEP_CONFIGURABLE_KEYS.length
+            + " 个非疏密键仍在 cfg 里，丢失=" + lostKeys);
+        check(registered.size() >= CFG_KEY_FLOOR, "A3 反假绿：cfg 注册键数 ≥ 地板 " + CFG_KEY_FLOOR + "（实测 "
+            + registered.size() + "，只防整段删空，不防正常新增）");
+        final int getCalls = count(cfgNoComment, "configuration\\s*\\.\\s*get\\w*\\s*\\(");
+        check(getCalls == registered.size(), "A3 抽键完整性：configuration.get*( 调用数 == 抽出的键名数（" + getCalls + " vs "
+            + registered.size() + "；不等即有调用的首个实参不是字面量，(2) 的负判据会漏看）");
+
+        // ── (4) 字段形状：public static int 且【不得】final ──
+        // 理由必须写清：final 会打断离线测试档注入——实测 11 处赋值跨 4 个工具（PlacementContractCheck
+        // :239/253/1426/1466/1576/1617/1634/1639、RuinFamilyCheck:912、本类的复位段、
+        // ScatterClusterVarianceCheck:240）。加 final 最直接的反噬是<b>本工具自己编译不过</b>（本类就要
+        // 复位 prosperityScatterClusterFieldChanceDenom），密度面从此再没有机检——所以这条比"值对不对"更硬。
+        final java.util.regex.Matcher fm = INT_FIELD_DECL.matcher(cfgRaw);
+        final java.util.Map<String, String> mods = new java.util.LinkedHashMap<>();
+        final java.util.Map<String, String> inits = new java.util.LinkedHashMap<>();
+        final java.util.Map<String, String> trails = new java.util.LinkedHashMap<>();
+        final List<String> dupDecl = new ArrayList<>();
+        while (fm.find()) {
+            final String name = fm.group(2);
+            if (!isDensityKey(name)) {
+                continue;
+            }
+            if (mods.containsKey(name)) {
+                dupDecl.add(name);
+            }
+            mods.put(name, fm.group(1)
+                .trim());
+            inits.put(name, fm.group(3));
+            trails.put(name, fm.group(4) == null ? "" : fm.group(4)
+                .trim());
+        }
+        final List<String> badShape = new ArrayList<>();
+        for (final String k : SIX_DENSITY_KEYS) {
+            final String m = mods.get(k);
+            if (m == null) {
+                badShape.add(k + "=<声明不再是「修饰符 int 键名 = 数字;」的一行形状>");
+            } else if (!"public static".equals(m)) {
+                badShape.add(k + "=[" + m + "]");
+            }
+        }
+        check(badShape.isEmpty(), "A3 新形状在场：六键仍是 public static int 且无 final（final 打断 11 处离线档注入，"
+            + "且首个编译失败的就是本工具自己 ⇒ 密度面失去机检），违规=" + badShape);
+        check(dupDecl.isEmpty(), "A3 旧形状消失：六键在 Config.java 里没有第二处声明（双声明=双真值），命中=" + dupDecl);
+        final List<String> badTrail = new ArrayList<>();
+        for (final String k : SIX_DENSITY_KEYS) {
+            final String t = trails.get(k);
+            if (t == null || !t.contains("gtsr.cfg") || !NOT_EXPORTED.matcher(t)
+                .find()) {
+                badTrail.add(k + "=[" + t + "]");
+            }
+        }
+        check(badTrail.isEmpty(), "A3 反假绿：六键的声明行都自带「不导出到 gtsr.cfg + 不可自定义」口径注释（这是读者唯一"
+            + "能看到的「这个键为什么在 cfg 里找不到」的线索，删注释=把不可配变成看似缺陷），违规=" + badTrail);
+
+        // ── (5) 机器分母真值：声明文本、运行期字段、历史值负判据三面一致 ──
+        final String declared = inits.get("prosperityMachineChance");
+        final int declValue = parseIntOr(declared, Integer.MIN_VALUE);
+        check(declValue == DECL_MACHINE_DENOM, "A3 机器分母的声明真值 = " + DECL_MACHINE_DENOM + "（P16 落地值，plan §3"
+            + " 实机生效值 24 的三分之一；实测声明文本里是 \"" + declared + "\"）");
+        final List<String> legacyHit = new ArrayList<>();
+        for (final int v : LEGACY_MACHINE_DENOMS) {
+            if (declValue == v) {
+                legacyHit.add(String.valueOf(v));
+            }
+        }
+        check(legacyHit.isEmpty(), "A3 旧形状消失：机器分母未退回 P16 之前的历史值 " + Arrays.toString(LEGACY_MACHINE_DENOMS)
+            + "（16=旧代码默认、24=旧实机覆盖、48/64=旧档），实测 " + declValue);
         check(!cfgRaw.contains("prosperityMachineChance = 24"),
-            "A3 机器分母默认值未被改成实机观测态 24（用户存档 cfg 属外部覆盖，不改代码）");
-        check(stale.isEmpty(), "A3 消费方无机器分母字面量残留（实测 " + stale.size() + " 处 " + stale + "）");
-        // 改造前那处漂移的具体形态是注释里写死 "1/24"。P5 后 src/main/java 里该字面量必须 ≤ 1 处，
-        // 且只能是已登记的越界残留（framework/SurfaceGate.java 的 Javadoc，非本片允许路径）。
+            "A3 旧形状消失：Config 源码里没有 `prosperityMachineChance = 24`（把代码追成用户存档的观测态）");
+        check(declValue == Config.prosperityMachineChance, "A3 单一真值跨面一致：机器分母的声明文本初值 == 运行期字段值（"
+            + declValue + " vs " + Config.prosperityMachineChance + "；不等即静态块或回填在偷偷改写这个字段）");
+
+        // ── (6) 注释口径：锚点走声明符号（旧写法拿字面值当锚点，默认值一变就 -1 静默失效）──
+        final java.util.regex.Matcher anchor = MACHINE_DECL_ANCHOR.matcher(cfgRaw);
+        final boolean anchored = anchor.find();
+        check(anchored, "A3 判据自身可证：机器分母的注释锚点（声明符号 public static int prosperityMachineChance =）"
+            + "命中；旧锚 indexOf(\"prosperityMachineChance = 16\") 在 -1 之后行为未定义");
+        if (anchored) {
+            final String block = commentBlockAbove(cfgRaw, anchor.start());
+            check(!block.isEmpty(), "A3 新形状在场：机器分母仍有紧邻注释块交代沿革与纪律（实测 " + block.length() + " 字符）");
+            check(block.contains("单一真值"), "A3 新形状在场：紧邻注释写明 P5「单一真值声明」（旧判据要它写「默认 16」，"
+                + "那本身就是复写）——实测块长 " + block.length() + " 字符");
+            final List<String> copied = new ArrayList<>();
+            final java.util.regex.Matcher cm = DENOM_IN_COMMENT.matcher(block);
+            while (cm.find()) {
+                copied.add(cm.group());
+            }
+            check(copied.isEmpty(), "A3 旧形状消失：注释不复写具体分母数字（1/N 与「默认 N」两种形态，P5 单一真值纪律），"
+                + "命中=" + copied);
+            check(!block.contains(String.valueOf(DECL_MACHINE_DENOM)),
+                "A3 旧形状消失：注释里不出现真值数字 " + DECL_MACHINE_DENOM + " 的复写（唯一真值=字段声明处）");
+        }
+
+        // ── (7) 全仓具体分母复写计数：界值按当前实测从旧的 ≤1 收紧为 0 ──
+        // 旧申报的那 1 处是 framework/SurfaceGate.java 的 Javadoc，主代理已按 P5 纪律改写为不含数字，
+        // 实测（plan/tmp/p3-b5a/work/probe-readings.txt）1/24 与 1/72 均为 0 处 ⇒ 0 是"当前可达且不靠
+        // 动冻结文件"的最紧界；与疏密无关的 1/16、旧叙述 1/64 与 1/48 见下面的"未决"行，不在本条面内。
         int docResidual = 0;
         final List<String> docHits = new ArrayList<>();
         for (final java.nio.file.Path f : files) {
-            final String raw = new String(java.nio.file.Files.readAllBytes(f), "UTF-8");
-            int idx = raw.indexOf("1/24");
-            while (idx >= 0) {
+            final java.util.regex.Matcher m = MACHINE_DENOM_DOC.matcher(read(f));
+            while (m.find()) {
                 docResidual++;
-                docHits.add(root.relativize(f)
-                    .toString()
-                    .replace('\\', '/'));
-                idx = raw.indexOf("1/24", idx + 1);
+                if (docHits.size() < 6) {
+                    docHits.add(relativize(root, f) + ':' + m.group());
+                }
             }
         }
-        check(docResidual <= 1, "A3 判据4 具体分母字面量残留 ≤ 申报上界 1（实测 " + docResidual + " 处 " + docHits
-            + "；那 1 处是 framework/SurfaceGate.java 的 Javadoc，不在本片允许路径内，已上报主代理）");
-        check(!stripComments(new String(java.nio.file.Files.readAllBytes(
-            root.resolve("com/miaokatze/gtsr/common/dimension/prosperity/ruins/RuinedMachinePlacer.java")),
-            "UTF-8")).contains("1/24"), "A3 RuinedMachinePlacer 的写死分母注释已改成只写公式与出处");
-        System.out.println("# A3 持有者=" + holders + " 具体分母字面量残留=" + docResidual + " " + docHits);
+        check(docResidual == 0, "A3 旧形状消失：src/main/java 里 1/24、1/72、machineChance=NN 三种复写计数 = 0"
+            + "（旧申报上界 ≤1 按当前实测收紧为 0），实测 " + docResidual + " 处 " + docHits);
+        check(!read(root.resolve(
+            "com/miaokatze/gtsr/common/dimension/prosperity/ruins/RuinedMachinePlacer.java")).contains("1/24"),
+            "A3 消费方注释口径：RuinedMachinePlacer 的写死分母注释已改成只写公式与出处（查的是原文，注释也算复写）");
+
+        // ── 未决登记（只打印，不判红）：旧密度叙述站点归 B1/B2/B4，等形态定稿后按新实测改述 ──
+        final List<String> pending = new ArrayList<>();
+        for (final java.nio.file.Path f : files) {
+            final java.util.regex.Matcher m = PENDING_STALE_DENOM.matcher(read(f));
+            while (m.find()) {
+                pending.add(relativize(root, f) + ':' + m.group());
+            }
+        }
+        System.out.println("# A3 未决(登记不判红，归 B1/B2/B4 按新实测改述)=" + pending.size() + " " + pending);
+        System.out.println("# A3 持有者=" + holders + " cfg注册键=" + registered.size() + " 抽键完整性=" + getCalls
+            + " 机器分母复写=" + docResidual + " 声明真值=" + declared + " 运行期真值=" + Config.prosperityMachineChance
+            + " 六键声明=" + mods);
     }
 
     // ══════════════════════════════════ B 组 ══════════════════════════════════
@@ -418,7 +649,47 @@ public final class ContourBudgetCheck {
 
     // ══════════════════════════════════ 小工具 ══════════════════════════════════
 
-    /** 取某一下标之上紧邻的连续 `//` 注释块（用于"注释与实际默认值一致"的对账）。 */
+    private static String read(java.nio.file.Path p) throws Exception {
+        return new String(java.nio.file.Files.readAllBytes(p), "UTF-8");
+    }
+
+    private static String relativize(java.nio.file.Path root, java.nio.file.Path f) {
+        return root.relativize(f)
+            .toString()
+            .replace('\\', '/');
+    }
+
+    private static boolean isDensityKey(String name) {
+        for (final String k : SIX_DENSITY_KEYS) {
+            if (k.equals(name)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static int parseIntOr(String s, int fallback) {
+        try {
+            return Integer.parseInt(s);
+        } catch (NumberFormatException e) {
+            return fallback;
+        }
+    }
+
+    /**
+     * 抽出 Config 源码里的 cfg 注册键名。参数必须是<b>已去注释但保留字符串字面量</b>的文本
+     * （{@link #stripCommentsKeepingStrings}）：注释里重提"某键不导出"不算注册，字符串里的键名才算。
+     */
+    static List<String> registeredConfigKeys(String srcWithoutComments) {
+        final List<String> keys = new ArrayList<>();
+        final java.util.regex.Matcher m = CFG_KEY_NAME.matcher(srcWithoutComments);
+        while (m.find()) {
+            keys.add(m.group(1));
+        }
+        return keys;
+    }
+
+    /** 取某一下标之上紧邻的连续 `//` 注释块（用于"注释口径"的对账；下标必须由调用方证非 -1）。 */
     private static String commentBlockAbove(String src, int idx) {
         final int lineStart = src.lastIndexOf('\n', idx) + 1;
         final StringBuilder sb = new StringBuilder();
@@ -458,6 +729,18 @@ public final class ContourBudgetCheck {
 
     /** 去注释（块注释/行注释/字符串字面量），与 P4 工具同一口径。 */
     static String stripComments(String text) {
+        return scanComments(text, false);
+    }
+
+    /**
+     * 只去注释、<b>保留</b>字符串字面量。A3 的"某键是否还是 cfg 键名"必须用这一份：把字符串也抹掉就
+     * 看不见键名字面量，而不过滤注释又会把"某键不导出"的重提注释算成违规（负判据把修复自身判红的旧坑）。
+     */
+    static String stripCommentsKeepingStrings(String text) {
+        return scanComments(text, true);
+    }
+
+    private static String scanComments(String text, boolean keepStrings) {
         final StringBuilder sb = new StringBuilder(text.length());
         int i = 0;
         while (i < text.length()) {
@@ -474,14 +757,14 @@ public final class ContourBudgetCheck {
                 while (j < text.length() && text.charAt(j) != '"') {
                     j += text.charAt(j) == '\\' ? 2 : 1;
                 }
-                sb.append("\"\"");
+                sb.append(keepStrings ? text.substring(i, Math.min(j + 1, text.length())) : "\"\"");
                 i = j + 1;
             } else if (c == '\'') {
                 int j = i + 1;
                 while (j < text.length() && text.charAt(j) != '\'') {
                     j += text.charAt(j) == '\\' ? 2 : 1;
                 }
-                sb.append("''");
+                sb.append(keepStrings ? text.substring(i, Math.min(j + 1, text.length())) : "''");
                 i = j + 1;
             } else {
                 sb.append(c);

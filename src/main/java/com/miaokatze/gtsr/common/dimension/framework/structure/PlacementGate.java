@@ -177,7 +177,28 @@ public final class PlacementGate {
      * @param surfaceTopLandable 由调用方经 {@code SurfaceGate}（或其一行委托别名）算出的顶块结论
      */
     public static boolean readyAt(int surfaceY, boolean surfaceTopLandable) {
-        return surfaceY >= LANDING_Y_MIN && surfaceY <= LANDING_Y_MAX && surfaceTopLandable;
+        return readyAtSpan(surfaceY) && surfaceTopLandable;
+    }
+
+    /**
+     * 就绪门的<b>纯函数臂</b>（<b>P16-B1 新增</b>，只服务跨 chunk 分片结构）：可落地 y 带。
+     * <p>
+     * 为什么要单独一条：跨 chunk 结构的"放不放"必须是 {@code (worldSeed, 锚点槽)} 的纯函数——
+     * 邻槽 chunk 只知道自己那一格，它要能在<b>没有锚点槽世界读数</b>的情况下复现同一个结论，
+     * 否则就会出现"邻槽画了半座、锚槽弃权"的鬼影剪影（分片渲染协议的成立前提，见
+     * {@link ChunkSliceSink} 类注释）。而旧 {@link #readyAt(int, boolean)} 的第二条臂
+     * （顶块过 {@code SurfaceGate}）要读 {@code world.getBlock}，天然不可跨槽复现。
+     * <p>
+     * <b>继承的先例</b>：城内跨 chunk 结构走的正是同一条口径——{@code ProsperityWorldGenerator
+     * .placeCities} 只按 {@code heightAt} 逐列接地，不判世界顶块（城的密度与位置由城窗 H-1/L6 决定，
+     * 也从不经这条臂）。本方法把这条既有事实显式成门的一部分，而不是让新族自己写一遍 y 带字面量
+     * （plan §2.4 判据 4：同一个数值不得两处漂移；{@link #LANDING_Y_MIN}/{@link #LANDING_Y_MAX} 仍是唯一出处）。
+     * <p>
+     * 单 chunk 族（outpost / 小机型 / 废墟）一律继续用 {@link #readyAt(int, boolean)} 的两臂全判，
+     * 本方法不改变它们任何一条判定。
+     */
+    public static boolean readyAtSpan(int surfaceY) {
+        return surfaceY >= LANDING_Y_MIN && surfaceY <= LANDING_Y_MAX;
     }
 
     /** 空气句柄判定（离线 String 键与游戏内 {@code Blocks.air} 同一口径）。 */

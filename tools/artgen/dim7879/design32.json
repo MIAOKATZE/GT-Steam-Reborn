@@ -1,0 +1,1449 @@
+{
+  "_about": "tools/artgen/dim7879 批 32 档（v1.20.37 / P16-U1）设计档案：35 张 = dim78 17（片 A1a，draw32_dim78.py） + dim79 18（片 A1b，draw32_dim79.py）。逐张记录绘制器与入口、所用角色名与色阶（与同目录 manifest.json 的 OUTPUTS[key].params / SEEDS[key] 同源，不另立真值）、PIL 实测尺寸与色数、以及一行「为什么这样画」（A1a 取 RATIONALE 表、A1b 取各 t_* 的 docstring 同源文字）。16 档母版仍是 manifest + gen_dim7879_blocks.py，本文件不替代它们。",
+  "_not_a_gate": "本文件不被 tools/dim1/asset_baseline_check.sh 读取（该门只核 manifest OUTPUTS <-> landed.sha256 <-> 磁盘三点）；它回答「这张为什么这么画」，不是「字节对不对」。",
+  "_measured_by": "PIL，与 review/dim1/_tools/check_feedback.py:163 同口径：distinct_rgba = len(set(RGBA))（页面色数标注用这个）；distinct_rgb_opaque = 非透明像素的唯一 RGB 数（像素纪律 ≤16 用这个）。",
+  "size_landed": [
+    32,
+    32
+  ],
+  "size_master_declared_in_style": [
+    16,
+    16
+  ],
+  "entries": {
+    "prosperity_steppe_top": {
+      "file": "prosperity_steppe_top.png",
+      "group": "prosperity_natural",
+      "kind": "grass_baked",
+      "drawer": "tools/artgen/dim7879/draw32_dim78.py",
+      "drawer_fn": "BUILDERS[prosperity_steppe_top] -> grass_top(\"prosperity_steppe_top\", \"st\")",
+      "seed_manifest": "0x5EED8101",
+      "palette_roles": {
+        "base": "STEPPE_SWARD",
+        "levels": [
+          "BASE@D220",
+          "BASE@D110",
+          "BASE",
+          "BASE@L120"
+        ],
+        "role_tokens": [
+          "BASE",
+          "BASE@D110",
+          "BASE@D220",
+          "BASE@D340",
+          "BASE@L120",
+          "BASE@L280",
+          "RUST_OXIDE@D070",
+          "RUST_OXIDE@D180",
+          "STEPPE_SWARD"
+        ]
+      },
+      "measured": {
+        "size": [
+          32,
+          32
+        ],
+        "distinct_rgba": 8,
+        "distinct_rgb_opaque": 8,
+        "all_opaque_alpha_255": true,
+        "dominant_opaque": "#625637"
+      },
+      "why": "16 档草叶是均匀撒点 ⇒ 32 档改成簇生（8×8 格位扎 2-4 根 1px 叶 + 1px 亮尖），另用 cells=8/4 低频斑块把基色整体推 ±1 阶：草皮成坨，而不是同一张噪点。",
+      "protected_sparse_colors": [
+        "RUST_OXIDE@D070 | base=STEPPE_SWARD"
+      ]
+    },
+    "prosperity_steppe_top_side": {
+      "file": "prosperity_steppe_top_side.png",
+      "group": "prosperity_side",
+      "kind": "crust_side",
+      "drawer": "tools/artgen/dim7879/draw32_dim78.py",
+      "drawer_fn": "BUILDERS[prosperity_steppe_top_side] -> side(\"prosperity_steppe_top_side\", \"BASE@D220\", 6)",
+      "seed_manifest": "0x5EED8102",
+      "palette_roles": {
+        "params_from": {
+          "body": "prosperity_steppe_base",
+          "fringe": "prosperity_steppe_top"
+        },
+        "resolved_via_params_from": {
+          "prosperity_steppe_base（slot=body）": {
+            "base": "RUST_DIRT",
+            "levels": [
+              "BASE@D140",
+              "BASE@D070",
+              "BASE",
+              "BASE@L070"
+            ]
+          },
+          "prosperity_steppe_top（slot=fringe）": {
+            "base": "STEPPE_SWARD",
+            "levels": [
+              "BASE@D220",
+              "BASE@D110",
+              "BASE",
+              "BASE@L120"
+            ]
+          }
+        },
+        "role_tokens": [
+          "BASE@D110",
+          "RUST_OXIDE@D070"
+        ]
+      },
+      "measured": {
+        "size": [
+          32,
+          32
+        ],
+        "distinct_rgba": 14,
+        "distinct_rgb_opaque": 14,
+        "all_opaque_alpha_255": true,
+        "dominant_opaque": "#6B4A32"
+      },
+      "why": "草裙按 R4 增厚到 6-8px（世界厚度不变），沿顶 1px 受光唇 + 沿下 1px 接触投影仍是发丝线；新画 6 条 1px 根须从草沿扎进土体——16 档装不下这根信息。",
+      "protected_sparse_colors": []
+    },
+    "prosperity_steppe_base": {
+      "file": "prosperity_steppe_base.png",
+      "group": "prosperity_natural",
+      "kind": "terrain_grit",
+      "drawer": "tools/artgen/dim7879/draw32_dim78.py",
+      "drawer_fn": "BUILDERS[prosperity_steppe_base] -> grit_base(\"prosperity_steppe_base\", 12, 5)",
+      "seed_manifest": "0x5EED8103",
+      "palette_roles": {
+        "base": "RUST_DIRT",
+        "levels": [
+          "BASE@D140",
+          "BASE@D070",
+          "BASE",
+          "BASE@L070"
+        ],
+        "role_tokens": [
+          "BASE",
+          "BASE@D070",
+          "BASE@D090",
+          "BASE@D140",
+          "BASE@D180",
+          "BASE@L070",
+          "BASE@L140",
+          "RUST_DIRT",
+          "RUST_OXIDE@D070"
+        ]
+      },
+      "measured": {
+        "size": [
+          32,
+          32
+        ],
+        "distinct_rgba": 8,
+        "distinct_rgb_opaque": 8,
+        "all_opaque_alpha_255": true,
+        "dominant_opaque": "#654630"
+      },
+      "why": "锈壤由盐粒噪点升级为有砾石的土：12 颗 2×2/3×2 小石各带上缘受光、下缘压暗，只用既有 4 阶 + 颗粒色；再补 5 条 1px 细根，与 top/side 的根须成一套。",
+      "protected_sparse_colors": [
+        "RUST_OXIDE@D070 | base=RUST_DIRT"
+      ]
+    },
+    "prosperity_forest_top": {
+      "file": "prosperity_forest_top.png",
+      "group": "prosperity_natural",
+      "kind": "grass_baked",
+      "drawer": "tools/artgen/dim7879/draw32_dim78.py",
+      "drawer_fn": "BUILDERS[prosperity_forest_top] -> grass_top(\"prosperity_forest_top\", \"ft\")",
+      "seed_manifest": "0x5EED8104",
+      "palette_roles": {
+        "base": "PATINA_SWARD",
+        "levels": [
+          "BASE@D220",
+          "BASE@D110",
+          "BASE",
+          "BASE@L140"
+        ],
+        "role_tokens": [
+          "BASE",
+          "BASE@D110",
+          "BASE@D220",
+          "BASE@D340",
+          "BASE@L140",
+          "BASE@L280",
+          "PATINA_BLOOM@D140",
+          "PATINA_DEEP",
+          "PATINA_DEEP@D070",
+          "PATINA_DEEP@L090",
+          "PATINA_SWARD"
+        ]
+      },
+      "measured": {
+        "size": [
+          32,
+          32
+        ],
+        "distinct_rgba": 10,
+        "distinct_rgb_opaque": 10,
+        "all_opaque_alpha_255": true,
+        "dominant_opaque": "#456655"
+      },
+      "why": "与 steppe 同款簇生保持族内一致，但 accent 铜绿口袋用低频场成片铺开（16 档只有零星点），霜点代替锈屑 ⇒ 靠色相 + 成片形态与锈草甸双差可辨。",
+      "protected_sparse_colors": [
+        "PATINA_BLOOM@D140 | base=PATINA_SWARD"
+      ]
+    },
+    "prosperity_forest_top_side": {
+      "file": "prosperity_forest_top_side.png",
+      "group": "prosperity_side",
+      "kind": "crust_side",
+      "drawer": "tools/artgen/dim7879/draw32_dim78.py",
+      "drawer_fn": "BUILDERS[prosperity_forest_top_side] -> side(\"prosperity_forest_top_side\", \"BASE@D220\", 6)",
+      "seed_manifest": "0x5EED8105",
+      "palette_roles": {
+        "params_from": {
+          "body": "prosperity_forest_base",
+          "fringe": "prosperity_forest_top"
+        },
+        "resolved_via_params_from": {
+          "prosperity_forest_base（slot=body）": {
+            "base": "PATINA_SOIL",
+            "levels": [
+              "BASE@D140",
+              "BASE@D070",
+              "BASE",
+              "BASE@L090"
+            ]
+          },
+          "prosperity_forest_top（slot=fringe）": {
+            "base": "PATINA_SWARD",
+            "levels": [
+              "BASE@D220",
+              "BASE@D110",
+              "BASE",
+              "BASE@L140"
+            ]
+          }
+        },
+        "role_tokens": [
+          "BASE@D110",
+          "PATINA_BLOOM@D140"
+        ]
+      },
+      "measured": {
+        "size": [
+          32,
+          32
+        ],
+        "distinct_rgba": 16,
+        "distinct_rgb_opaque": 16,
+        "all_opaque_alpha_255": true,
+        "dominant_opaque": "#3F5C4E"
+      },
+      "why": "本张是 32 档唯一破 16 色的越线件（生成器实测 17）⇒ 把只占 1-6 像素的近重复色折进同族最近主色，保住草沿 4 阶 + 铜绿 accent 主色 + 霜点设计色；草裙/根须与 steppe 同款以锁住朝向关系。",
+      "protected_sparse_colors": []
+    },
+    "prosperity_forest_base": {
+      "file": "prosperity_forest_base.png",
+      "group": "prosperity_natural",
+      "kind": "terrain_grit",
+      "drawer": "tools/artgen/dim7879/draw32_dim78.py",
+      "drawer_fn": "BUILDERS[prosperity_forest_base] -> grit_base(\"prosperity_forest_base\", 12, 6)",
+      "seed_manifest": "0x5EED8106",
+      "palette_roles": {
+        "base": "PATINA_SOIL",
+        "levels": [
+          "BASE@D140",
+          "BASE@D070",
+          "BASE",
+          "BASE@L090"
+        ],
+        "role_tokens": [
+          "BASE",
+          "BASE@D070",
+          "BASE@D090",
+          "BASE@D140",
+          "BASE@D200",
+          "BASE@L090",
+          "BASE@L160",
+          "PATINA_BLOOM",
+          "PATINA_SOIL"
+        ]
+      },
+      "measured": {
+        "size": [
+          32,
+          32
+        ],
+        "distinct_rgba": 8,
+        "distinct_rgb_opaque": 8,
+        "all_opaque_alpha_255": true,
+        "dominant_opaque": "#3C574A"
+      },
+      "why": "砾石同 steppe base，另加 6 条 1px 横向根系纹；霜花碎屑保持稀疏设计色 ⇒ 与 forest top 的 accent 同色系，顶/侧/底读作同一土层。",
+      "protected_sparse_colors": [
+        "PATINA_BLOOM | base=PATINA_SOIL"
+      ]
+    },
+    "prosperity_wastes_top": {
+      "file": "prosperity_wastes_top.png",
+      "group": "prosperity_natural",
+      "kind": "terrain_ripple",
+      "drawer": "tools/artgen/dim7879/draw32_dim78.py",
+      "drawer_fn": "BUILDERS[prosperity_wastes_top] -> ripple_sand(\"prosperity_wastes_top\")",
+      "seed_manifest": "0x5EED8107",
+      "palette_roles": {
+        "base": "BRASS_SAND",
+        "levels": [
+          "BASE@D090",
+          "BASE@D045",
+          "BASE",
+          "BASE@L070",
+          "BASE@L140"
+        ],
+        "role_tokens": [
+          "BASE",
+          "BASE@D045",
+          "BASE@D090",
+          "BASE@D120",
+          "BASE@L070",
+          "BASE@L140",
+          "BASE@L180",
+          "BRASS_SAND",
+          "GLINT@D140"
+        ]
+      },
+      "measured": {
+        "size": [
+          32,
+          32
+        ],
+        "distinct_rgba": 8,
+        "distinct_rgb_opaque": 8,
+        "all_opaque_alpha_255": true,
+        "dominant_opaque": "#B08D3E"
+      },
+      "why": "既有沙纹上补 1px 亮脊线 + 1px 背风暗线（沙纹受光面，R4 不加倍）；cells=16 附加倍频只用来打散大片同色沙面，金属闪点仍极稀疏。",
+      "protected_sparse_colors": [
+        "GLINT@D140 | base=BRASS_SAND"
+      ]
+    },
+    "prosperity_wastes_top_side": {
+      "file": "prosperity_wastes_top_side.png",
+      "group": "prosperity_side",
+      "kind": "crust_side",
+      "drawer": "tools/artgen/dim7879/draw32_dim78.py",
+      "drawer_fn": "BUILDERS[prosperity_wastes_top_side] -> side(\"prosperity_wastes_top_side\", \"BASE@D200\", 2, lit_lip=0.5, peb=3)",
+      "seed_manifest": "0x5EED8108",
+      "palette_roles": {
+        "params_from": {
+          "body": "prosperity_wastes_base",
+          "fringe": "prosperity_wastes_top"
+        },
+        "resolved_via_params_from": {
+          "prosperity_wastes_base（slot=body）": {
+            "base": "BRASS_ROCK",
+            "levels": [
+              "BASE@D140",
+              "BASE@D070",
+              "BASE",
+              "BASE@L070",
+              "BASE@L140"
+            ]
+          },
+          "prosperity_wastes_top（slot=fringe）": {
+            "base": "BRASS_SAND",
+            "levels": [
+              "BASE@D090",
+              "BASE@D045",
+              "BASE",
+              "BASE@L070",
+              "BASE@L140"
+            ]
+          }
+        },
+        "role_tokens": [
+          "BASE@D110",
+          "BRASS_SAND@D220"
+        ]
+      },
+      "measured": {
+        "size": [
+          32,
+          32
+        ],
+        "distinct_rgba": 14,
+        "distinct_rgb_opaque": 14,
+        "all_opaque_alpha_255": true,
+        "dominant_opaque": "#8A6E36"
+      },
+      "why": "沙沿比草沿薄（4-6px）且几乎不挂丝（只 2 条根），土体沿用同族 base 的层理周期 ⇒ 侧面与 base 层带数一致，读作同一块砂岩。",
+      "protected_sparse_colors": []
+    },
+    "prosperity_wastes_base": {
+      "file": "prosperity_wastes_base.png",
+      "group": "prosperity_natural",
+      "kind": "terrain_grit",
+      "drawer": "tools/artgen/dim7879/draw32_dim78.py",
+      "drawer_fn": "BUILDERS[prosperity_wastes_base] -> grit_base(\"prosperity_wastes_base\", 7, 0)",
+      "seed_manifest": "0x5EED8109",
+      "palette_roles": {
+        "base": "BRASS_ROCK",
+        "levels": [
+          "BASE@D140",
+          "BASE@D070",
+          "BASE",
+          "BASE@L070",
+          "BASE@L140"
+        ],
+        "role_tokens": [
+          "BASE",
+          "BASE@D070",
+          "BASE@D140",
+          "BASE@D180",
+          "BASE@L070",
+          "BASE@L140",
+          "BASE@L180",
+          "BRASS_ROCK"
+        ]
+      },
+      "measured": {
+        "size": [
+          32,
+          32
+        ],
+        "distinct_rgba": 7,
+        "distinct_rgb_opaque": 7,
+        "all_opaque_alpha_255": true,
+        "dominant_opaque": "#8A6E36"
+      },
+      "why": "黄铜砂岩：层理带补 1px 受光唇与缝线（轮廓级条带 ×R、缝本身仍发丝），砾石改落层带两侧（层间砾）以免糊掉成层结构。",
+      "protected_sparse_colors": []
+    },
+    "prosperity_swamp_top": {
+      "file": "prosperity_swamp_top.png",
+      "group": "prosperity_natural",
+      "kind": "terrain_fiber",
+      "drawer": "tools/artgen/dim7879/draw32_dim78.py",
+      "drawer_fn": "BUILDERS[prosperity_swamp_top] -> fiber_swamp(\"prosperity_swamp_top\")",
+      "seed_manifest": "0x5EED810A",
+      "palette_roles": {
+        "base": "PEAT_CRUST",
+        "levels": [
+          "BASE@D110",
+          "BASE@D045",
+          "BASE",
+          "BASE@L070"
+        ],
+        "role_tokens": [
+          "BASE",
+          "BASE@D045",
+          "BASE@D110",
+          "BASE@D180",
+          "BASE@D200",
+          "BASE@L070",
+          "BASE@L140",
+          "PEAT_CRUST",
+          "RUST_OXIDE@D140"
+        ]
+      },
+      "measured": {
+        "size": [
+          32,
+          32
+        ],
+        "distinct_rgba": 8,
+        "distinct_rgb_opaque": 8,
+        "all_opaque_alpha_255": true,
+        "dominant_opaque": "#44462E"
+      },
+      "why": "纤维行纹在 32 档画成束芦苇丝（1px、长 3-6、逐行错位），泥斑用 paint_blob 的腐蚀边缘成 3-4px 软边团块（16 档只能一个点）；锈水渗点保持稀疏，全族最暗靠 L 侧大 t 不引新色。",
+      "protected_sparse_colors": [
+        "RUST_OXIDE@D140 | base=PEAT_CRUST"
+      ]
+    },
+    "prosperity_swamp_top_side": {
+      "file": "prosperity_swamp_top_side.png",
+      "group": "prosperity_side",
+      "kind": "crust_side",
+      "drawer": "tools/artgen/dim7879/draw32_dim78.py",
+      "drawer_fn": "BUILDERS[prosperity_swamp_top_side] -> side(\"prosperity_swamp_top_side\", \"BASE@D220\", 5)",
+      "seed_manifest": "0x5EED810B",
+      "palette_roles": {
+        "params_from": {
+          "body": "prosperity_swamp_base",
+          "fringe": "prosperity_swamp_top"
+        },
+        "resolved_via_params_from": {
+          "prosperity_swamp_base（slot=body）": {
+            "base": "PEAT_MUD",
+            "levels": [
+              "BASE@D140",
+              "BASE@D070",
+              "BASE",
+              "BASE@L090"
+            ]
+          },
+          "prosperity_swamp_top（slot=fringe）": {
+            "base": "PEAT_CRUST",
+            "levels": [
+              "BASE@D110",
+              "BASE@D045",
+              "BASE",
+              "BASE@L070"
+            ]
+          }
+        },
+        "role_tokens": [
+          "BASE@D160",
+          "RUST_OXIDE@D140"
+        ]
+      },
+      "measured": {
+        "size": [
+          32,
+          32
+        ],
+        "distinct_rgba": 12,
+        "distinct_rgb_opaque": 12,
+        "all_opaque_alpha_255": true,
+        "dominant_opaque": "#343021"
+      },
+      "why": "壳沿用 top 的橄榄纤维阶，沿内补 1px 芦苇横丝令侧顶同源；土体 5 条 1px 垂落根须 + 1px 接触投影（本族 shadow 走 D160 更压暗，保沼气浊感）。",
+      "protected_sparse_colors": []
+    },
+    "prosperity_swamp_base": {
+      "file": "prosperity_swamp_base.png",
+      "group": "prosperity_natural",
+      "kind": "terrain_grit",
+      "drawer": "tools/artgen/dim7879/draw32_dim78.py",
+      "drawer_fn": "BUILDERS[prosperity_swamp_base] -> grit_base(\"prosperity_swamp_base\", 10, 0)",
+      "seed_manifest": "0x5EED810C",
+      "palette_roles": {
+        "base": "PEAT_MUD",
+        "levels": [
+          "BASE@D140",
+          "BASE@D070",
+          "BASE",
+          "BASE@L090"
+        ],
+        "role_tokens": [
+          "BASE",
+          "BASE@D070",
+          "BASE@D110",
+          "BASE@D140",
+          "BASE@D220",
+          "BASE@L090",
+          "BASE@L160",
+          "PEAT_MUD",
+          "RUST_OXIDE@D180"
+        ]
+      },
+      "measured": {
+        "size": [
+          32,
+          32
+        ],
+        "distinct_rgba": 8,
+        "distinct_rgb_opaque": 8,
+        "all_opaque_alpha_255": true,
+        "dominant_opaque": "#343021"
+      },
+      "why": "泥团在 32 档画成带 1px 上缘受光的软边块，锈水斑按 manifest 稀疏 ⇒ 与 top 同暗域、与 top_side 土体同阶，三面互锁。",
+      "protected_sparse_colors": [
+        "RUST_OXIDE@D180 | base=PEAT_MUD"
+      ]
+    },
+    "prosperity_tuft_rust": {
+      "file": "prosperity_tuft_rust.png",
+      "group": "prosperity_decor",
+      "kind": "cross_decor",
+      "drawer": "tools/artgen/dim7879/draw32_dim78.py",
+      "drawer_fn": "BUILDERS[prosperity_tuft_rust] -> tuft(\"prosperity_tuft_rust\")",
+      "seed_manifest": "0x5EED810D",
+      "palette_roles": {
+        "base": "TUFT_RUST_MAT",
+        "role_tokens": [
+          "BASE@D090",
+          "BASE@D140",
+          "BASE@D340",
+          "BASE@L220",
+          "RUST_OXIDE@L140",
+          "TUFT_RUST_MAT"
+        ]
+      },
+      "measured": {
+        "size": [
+          32,
+          32
+        ],
+        "distinct_rgba": 6,
+        "distinct_rgb_opaque": 5,
+        "all_opaque_alpha_255": true,
+        "dominant_opaque": "#B3A68C"
+      },
+      "why": "锈草丛从空白透明底自绘（叠在生成器底座上会把叶密度翻倍、读作栅栏）：4 个草丛团 ×3 叶 + 3 根独叶，叶高 9-16px、基部 2px 宽向上收束到 1px、每 5px 一个弯折节，45% 带 2px 穗头；锈屑只落在已有草叶的邻位 ⇒ 读作落在草上的尘。中性乘色底与生根（底行 ≥6 列）口径不动。",
+      "protected_sparse_colors": [
+        "RUST_OXIDE@L140 | base=TUFT_RUST_MAT"
+      ]
+    },
+    "prosperity_tuft_copper": {
+      "file": "prosperity_tuft_copper.png",
+      "group": "prosperity_decor",
+      "kind": "cross_decor",
+      "drawer": "tools/artgen/dim7879/draw32_dim78.py",
+      "drawer_fn": "BUILDERS[prosperity_tuft_copper] -> tuft(\"prosperity_tuft_copper\")",
+      "seed_manifest": "0x5EED810E",
+      "palette_roles": {
+        "base": "TUFT_PATINA_MAT",
+        "role_tokens": [
+          "BASE@D090",
+          "BASE@D140",
+          "BASE@D340",
+          "BASE@L220",
+          "PATINA_BLOOM@D140",
+          "TUFT_PATINA_MAT"
+        ]
+      },
+      "measured": {
+        "size": [
+          32,
+          32
+        ],
+        "distinct_rgba": 5,
+        "distinct_rgb_opaque": 4,
+        "all_opaque_alpha_255": true,
+        "dominant_opaque": "#A2AE9D"
+      },
+      "why": "铜绿草丛与锈草丛靠形态分家：5 团 ×4 叶 + 4 独叶，叶高仅 5-10px、部分带紧贴主叶的加宽列 ⇒ 更密更矮的苔垫；霜点同样只落在叶尖邻位。乘 Forest/Swamp 群系色后与锈草丛的疏高形态双差可辨。",
+      "protected_sparse_colors": [
+        "PATINA_BLOOM@D140 | base=TUFT_PATINA_MAT"
+      ]
+    },
+    "prosperity_rust_log_side": {
+      "file": "prosperity_rust_log_side.png",
+      "group": "prosperity_decor",
+      "kind": "log_side",
+      "drawer": "tools/artgen/dim7879/draw32_dim78.py",
+      "drawer_fn": "BUILDERS[prosperity_rust_log_side] -> log_side(\"prosperity_rust_log_side\")",
+      "seed_manifest": "0x5EED810F",
+      "palette_roles": {
+        "base": "RUST_BARK",
+        "role_tokens": [
+          "BASE@D220",
+          "BASE@L180",
+          "RUST_BARK",
+          "RUST_CORE@D220",
+          "RUST_OXIDE@D070"
+        ]
+      },
+      "measured": {
+        "size": [
+          32,
+          32
+        ],
+        "distinct_rgba": 7,
+        "distinct_rgb_opaque": 7,
+        "all_opaque_alpha_255": true,
+        "dominant_opaque": "#3E2D22"
+      },
+      "why": "纵向纹场 cells 4×16 不动（R1）+ 棱脊 ÷R 保持世界根数；两处手绘修正——锈芯环带行号按 ×R 落到 6/22（沿用 3/11 会把两道带挤在上半张），并补 1px 细纵裂与 3px 软边锈斑。",
+      "protected_sparse_colors": [
+        "RUST_OXIDE@D070 | base=RUST_BARK"
+      ]
+    },
+    "prosperity_rust_log_top": {
+      "file": "prosperity_rust_log_top.png",
+      "group": "prosperity_decor",
+      "kind": "log_top",
+      "drawer": "tools/artgen/dim7879/draw32_dim78.py",
+      "drawer_fn": "BUILDERS[prosperity_rust_log_top] -> log_top(\"prosperity_rust_log_top\")",
+      "seed_manifest": "0x5EED8110",
+      "palette_roles": {
+        "base": "RUST_BARK",
+        "role_tokens": [
+          "BASE@D140",
+          "BASE@D220",
+          "RUST_BARK",
+          "RUST_CORE",
+          "RUST_CORE@D220",
+          "RUST_CORE@D340",
+          "RUST_CORE@L140"
+        ]
+      },
+      "measured": {
+        "size": [
+          32,
+          32
+        ],
+        "distinct_rgba": 6,
+        "distinct_rgb_opaque": 6,
+        "all_opaque_alpha_255": true,
+        "dominant_opaque": "#8A6234"
+      },
+      "why": "年轮方向不变（同心环 + 外圈 2px 树皮环带），但髓心由正中手移到 (17,14) ⇒ 环不完美同心（树是长的不是画的）；裂纹 2→3 条仍 1px，凹坑密度按 R3 不变。",
+      "protected_sparse_colors": []
+    },
+    "prosperity_rust_leaves": {
+      "file": "prosperity_rust_leaves.png",
+      "group": "prosperity_natural",
+      "kind": "leaves_clump",
+      "drawer": "tools/artgen/dim7879/draw32_dim78.py",
+      "drawer_fn": "BUILDERS[prosperity_rust_leaves] -> leaves(\"prosperity_rust_leaves\")",
+      "seed_manifest": "0x5EED8111",
+      "palette_roles": {
+        "base": "LEAF_MAT",
+        "levels": [
+          "BASE@D180",
+          "BASE@D090",
+          "BASE",
+          "BASE@L055",
+          "BASE@L140"
+        ],
+        "role_tokens": [
+          "BASE",
+          "BASE@D090",
+          "BASE@D180",
+          "BASE@D340",
+          "BASE@L055",
+          "BASE@L140",
+          "BASE@L240",
+          "LEAF_MAT",
+          "RUST_OXIDE@D070"
+        ]
+      },
+      "measured": {
+        "size": [
+          32,
+          32
+        ],
+        "distinct_rgba": 8,
+        "distinct_rgb_opaque": 8,
+        "all_opaque_alpha_255": true,
+        "dominant_opaque": "#D0CDB5"
+      },
+      "why": "冠层在 32 档加 5 段「缺口弧」暗孔（7-10px 弧、非整圈）沿叶簇边界 ⇒ 读作簇与簇之间的缝，而不是环或虫；亮针尖 1-2px、锈斑稀疏，仍是中性乘色底。",
+      "protected_sparse_colors": [
+        "RUST_OXIDE@D070 | base=LEAF_MAT"
+      ]
+    },
+    "shattered_corestone": {
+      "file": "shattered_corestone.png",
+      "group": "shattered_natural",
+      "kind": "stone_facet",
+      "drawer": "tools/artgen/dim7879/draw32_dim79.py",
+      "drawer_fn": "TABLE 项 t_corestone",
+      "seed_manifest": "0x5EED9101",
+      "palette_roles": {
+        "base": "CORE_ROCK",
+        "levels": [
+          "BASE@D180",
+          "BASE@D070",
+          "BASE",
+          "BASE@L045",
+          "BASE@L110",
+          "BASE@L200"
+        ],
+        "role_tokens": [
+          "BASE",
+          "BASE@D070",
+          "BASE@D180",
+          "BASE@D280",
+          "BASE@D420",
+          "BASE@L045",
+          "BASE@L110",
+          "BASE@L200",
+          "BASE@L280",
+          "CORE_ROCK",
+          "CORE_VEIN",
+          "CORE_VEIN@L180"
+        ]
+      },
+      "measured": {
+        "size": [
+          32,
+          32
+        ],
+        "distinct_rgba": 11,
+        "distinct_rgb_opaque": 11,
+        "all_opaque_alpha_255": true,
+        "dominant_opaque": "#36363D"
+      },
+      "why": "碎核岩：4 格大棱面在 32 档才真正读作\"板状碎裂\"而非盐粒；缝/唇保持 1px 是升档的全部收益； 2 道浅矿脉按条带 x2 增厚成 2-3px，保证远处仍看得见\"核岩有脉\"。"
+    },
+    "shattered_monolith": {
+      "file": "shattered_monolith.png",
+      "group": "shattered_decor",
+      "kind": "stone_banded",
+      "drawer": "tools/artgen/dim7879/draw32_dim79.py",
+      "drawer_fn": "TABLE 项 t_monolith",
+      "seed_manifest": "0x5EED9102",
+      "palette_roles": {
+        "base": "MONO_ROCK",
+        "levels": [
+          "BASE@D220",
+          "BASE@D110",
+          "BASE",
+          "BASE@L090",
+          "BASE@L200"
+        ],
+        "role_tokens": [
+          "BASE",
+          "BASE@D110",
+          "BASE@D220",
+          "BASE@D280",
+          "BASE@D420",
+          "BASE@L090",
+          "BASE@L140",
+          "BASE@L200",
+          "BASE@L280",
+          "MONO_ROCK"
+        ]
+      },
+      "measured": {
+        "size": [
+          32,
+          32
+        ],
+        "distinct_rgba": 7,
+        "distinct_rgb_opaque": 7,
+        "all_opaque_alpha_255": true,
+        "dominant_opaque": "#2A2A32"
+      },
+      "why": "独石：全族最暗 + 周期 8px 的横通缝与错缝竖缝（砌筑）+ 1px 凿痕 + 2 道应力裂纹； 与 corestone 的\"天然碎裂\"靠直线缝区分，32 档能容下 4 层皮通缝而 16 档只有 2 层。"
+    },
+    "shattered_ash_top": {
+      "file": "shattered_ash_top.png",
+      "group": "shattered_natural",
+      "kind": "terrain_ash",
+      "drawer": "tools/artgen/dim7879/draw32_dim79.py",
+      "drawer_fn": "TABLE 项 t_ash_top",
+      "seed_manifest": "0x5EED9103",
+      "palette_roles": {
+        "base": "ASH_CRUST",
+        "levels": [
+          "BASE@D220",
+          "BASE@D110",
+          "BASE",
+          "BASE@L090",
+          "BASE@L200"
+        ],
+        "role_tokens": [
+          "ASH_CHAR",
+          "ASH_CRUST",
+          "BASE",
+          "BASE@D110",
+          "BASE@D220",
+          "BASE@L090",
+          "BASE@L200",
+          "GLINT@D220"
+        ]
+      },
+      "measured": {
+        "size": [
+          32,
+          32
+        ],
+        "distinct_rgba": 7,
+        "distinct_rgb_opaque": 7,
+        "all_opaque_alpha_255": true,
+        "dominant_opaque": "#69655B"
+      },
+      "why": "灰烬表壳：细灰粒 + 周期 8px 风积纹 + 炭渣/炭斑 + 极稀疏余烬； 灰烬的语义是\"细\"，所以 32 档只加波纹层次、不加对比度。"
+    },
+    "shattered_ash_top_side": {
+      "file": "shattered_ash_top_side.png",
+      "group": "shattered_side",
+      "kind": "crust_side",
+      "drawer": "tools/artgen/dim7879/draw32_dim79.py",
+      "drawer_fn": "TABLE 项 t_ash_side",
+      "seed_manifest": "0x5EED9104",
+      "palette_roles": {
+        "params_from": {
+          "body": "shattered_ash_base",
+          "fringe": "shattered_ash_top"
+        },
+        "resolved_via_params_from": {
+          "shattered_ash_base（slot=body）": {
+            "base": "ASH_SOIL",
+            "levels": [
+              "BASE@D140",
+              "BASE@D070",
+              "BASE",
+              "BASE@L110"
+            ]
+          },
+          "shattered_ash_top（slot=fringe）": {
+            "base": "ASH_CRUST",
+            "levels": [
+              "BASE@D220",
+              "BASE@D110",
+              "BASE",
+              "BASE@L090",
+              "BASE@L200"
+            ]
+          }
+        },
+        "role_tokens": [
+          "ASH_CHAR",
+          "BASE@D140"
+        ]
+      },
+      "measured": {
+        "size": [
+          32,
+          32
+        ],
+        "distinct_rgba": 12,
+        "distinct_rgb_opaque": 12,
+        "all_opaque_alpha_255": true,
+        "dominant_opaque": "#38342D"
+      },
+      "why": "灰烬侧面：6-8px 壳沿（条带 x2）压灰土主体，下缘 1px 阴影 + 零星挂垂；只保证水平无缝。"
+    },
+    "shattered_ash_base": {
+      "file": "shattered_ash_base.png",
+      "group": "shattered_natural",
+      "kind": "terrain_grit",
+      "drawer": "tools/artgen/dim7879/draw32_dim79.py",
+      "drawer_fn": "TABLE 项 t_ash_base",
+      "seed_manifest": "0x5EED9105",
+      "palette_roles": {
+        "base": "ASH_SOIL",
+        "levels": [
+          "BASE@D140",
+          "BASE@D070",
+          "BASE",
+          "BASE@L110"
+        ],
+        "role_tokens": [
+          "ASH_CHAR",
+          "ASH_SOIL",
+          "BASE",
+          "BASE@D070",
+          "BASE@D090",
+          "BASE@D140",
+          "BASE@D240",
+          "BASE@L110",
+          "BASE@L180"
+        ]
+      },
+      "measured": {
+        "size": [
+          32,
+          32
+        ],
+        "distinct_rgba": 8,
+        "distinct_rgb_opaque": 8,
+        "all_opaque_alpha_255": true,
+        "dominant_opaque": "#38342D"
+      },
+      "why": "压实灰烬土：4 档中灰基场 + 明暗砂粒（覆盖率不变、颗粒变细）+ 板结团块 + 炭屑。"
+    },
+    "shattered_slag_top": {
+      "file": "shattered_slag_top.png",
+      "group": "shattered_natural",
+      "kind": "terrain_slag",
+      "drawer": "tools/artgen/dim7879/draw32_dim79.py",
+      "drawer_fn": "TABLE 项 t_slag_top",
+      "seed_manifest": "0x5EED9106",
+      "palette_roles": {
+        "base": "SLAG_CRUST",
+        "levels": [
+          "BASE@D220",
+          "BASE@D110",
+          "BASE",
+          "BASE@L090",
+          "BASE@L200"
+        ],
+        "role_tokens": [
+          "BASE",
+          "BASE@D110",
+          "BASE@D220",
+          "BASE@D340",
+          "BASE@D420",
+          "BASE@L090",
+          "BASE@L200",
+          "BASE@L280",
+          "SLAG_CRUST"
+        ]
+      },
+      "measured": {
+        "size": [
+          32,
+          32
+        ],
+        "distinct_rgba": 8,
+        "distinct_rgb_opaque": 8,
+        "all_opaque_alpha_255": true,
+        "dominant_opaque": "#414A31"
+      },
+      "why": "熔渣表壳：4 格锐角渣块 + 1px 暗缝 + 受光棱 + 熔蚀坑带 1px 亮唇； 渣 = \"被熔过又冷下来的硬壳\"，坑唇是它和灰烬（细粒）、琉璃（光滑）分家的关键。"
+    },
+    "shattered_slag_top_side": {
+      "file": "shattered_slag_top_side.png",
+      "group": "shattered_side",
+      "kind": "crust_side",
+      "drawer": "tools/artgen/dim7879/draw32_dim79.py",
+      "drawer_fn": "TABLE 项 t_slag_side",
+      "seed_manifest": "0x5EED9107",
+      "palette_roles": {
+        "params_from": {
+          "body": "shattered_slag_base",
+          "fringe": "shattered_slag_top"
+        },
+        "resolved_via_params_from": {
+          "shattered_slag_base（slot=body）": {
+            "base": "SLAG_SOIL",
+            "levels": [
+              "BASE@D140",
+              "BASE@D070",
+              "BASE",
+              "BASE@L110"
+            ]
+          },
+          "shattered_slag_top（slot=fringe）": {
+            "base": "SLAG_CRUST",
+            "levels": [
+              "BASE@D220",
+              "BASE@D110",
+              "BASE",
+              "BASE@L090",
+              "BASE@L200"
+            ]
+          }
+        },
+        "role_tokens": [
+          "BASE@D140",
+          "SLAG_CRUST@D340"
+        ]
+      },
+      "measured": {
+        "size": [
+          32,
+          32
+        ],
+        "distinct_rgba": 16,
+        "distinct_rgb_opaque": 16,
+        "all_opaque_alpha_255": true,
+        "dominant_opaque": "#313826"
+      },
+      "why": "熔渣侧面：渣壳棱面沿压暗橄榄土，壳沿用同一 facet 配方（横 2 格）保持家族一致。"
+    },
+    "shattered_slag_base": {
+      "file": "shattered_slag_base.png",
+      "group": "shattered_natural",
+      "kind": "terrain_grit",
+      "drawer": "tools/artgen/dim7879/draw32_dim79.py",
+      "drawer_fn": "TABLE 项 t_slag_base",
+      "seed_manifest": "0x5EED9108",
+      "palette_roles": {
+        "base": "SLAG_SOIL",
+        "levels": [
+          "BASE@D140",
+          "BASE@D070",
+          "BASE",
+          "BASE@L110"
+        ],
+        "role_tokens": [
+          "ASH_CHAR",
+          "BASE",
+          "BASE@D070",
+          "BASE@D090",
+          "BASE@D140",
+          "BASE@D240",
+          "BASE@L110",
+          "BASE@L180",
+          "SLAG_SOIL"
+        ]
+      },
+      "measured": {
+        "size": [
+          32,
+          32
+        ],
+        "distinct_rgba": 7,
+        "distinct_rgb_opaque": 7,
+        "all_opaque_alpha_255": true,
+        "dominant_opaque": "#313826"
+      },
+      "why": "渣木林下层土：暗橄榄颗粒 + 炭屑（炭屑与灰烬族共用 ASH_CHAR，保持同 mod 语言）。"
+    },
+    "shattered_glass_top": {
+      "file": "shattered_glass_top.png",
+      "group": "shattered_natural",
+      "kind": "terrain_vitreous",
+      "drawer": "tools/artgen/dim7879/draw32_dim79.py",
+      "drawer_fn": "TABLE 项 t_glass_top",
+      "seed_manifest": "0x5EED9109",
+      "palette_roles": {
+        "base": "GLASS_CRUST",
+        "levels": [
+          "BASE@D220",
+          "BASE@D110",
+          "BASE",
+          "BASE@L090",
+          "BASE@L200"
+        ],
+        "role_tokens": [
+          "BASE",
+          "BASE@D110",
+          "BASE@D220",
+          "BASE@D420",
+          "BASE@L090",
+          "BASE@L200",
+          "BASE@L280",
+          "BASE@L340",
+          "GLASS_CRUST",
+          "GLASS_GLINT"
+        ]
+      },
+      "measured": {
+        "size": [
+          32,
+          32
+        ],
+        "distinct_rgba": 8,
+        "distinct_rgb_opaque": 8,
+        "all_opaque_alpha_255": true,
+        "dominant_opaque": "#587890"
+      },
+      "why": "琉璃表壳：光滑冷蓝基场 + 3 道贝壳状断口（1px 暗线 + 1px 亮唇成对）+ 撞击放射纹 + 反光点带晕。 方块是 Material.rock 不透明实体，\"透明感\"只能靠明度层级（亮面/中面/深缝）与 specular 画出来， 所以这张的 16->32 收益全花在断口可读性上，而不是加 alpha。"
+    },
+    "shattered_glass_top_side": {
+      "file": "shattered_glass_top_side.png",
+      "group": "shattered_side",
+      "kind": "crust_side",
+      "drawer": "tools/artgen/dim7879/draw32_dim79.py",
+      "drawer_fn": "TABLE 项 t_glass_side",
+      "seed_manifest": "0x5EED910A",
+      "palette_roles": {
+        "params_from": {
+          "body": "shattered_glass_base",
+          "fringe": "shattered_glass_top"
+        },
+        "resolved_via_params_from": {
+          "shattered_glass_base（slot=body）": {
+            "base": "GLASS_SOIL",
+            "levels": [
+              "BASE@D140",
+              "BASE@D070",
+              "BASE",
+              "BASE@L110"
+            ]
+          },
+          "shattered_glass_top（slot=fringe）": {
+            "base": "GLASS_CRUST",
+            "levels": [
+              "BASE@D220",
+              "BASE@D110",
+              "BASE",
+              "BASE@L090",
+              "BASE@L200"
+            ]
+          }
+        },
+        "role_tokens": [
+          "BASE@D140",
+          "GLASS_GLINT"
+        ]
+      },
+      "measured": {
+        "size": [
+          32,
+          32
+        ],
+        "distinct_rgba": 14,
+        "distinct_rgb_opaque": 14,
+        "all_opaque_alpha_255": true,
+        "dominant_opaque": "#374A59"
+      },
+      "why": "琉璃侧面：亮壳沿（含 1px 顶亮边）压冷蓝下层，1-2 道断口从壳沿向下延伸进主体。"
+    },
+    "shattered_glass_base": {
+      "file": "shattered_glass_base.png",
+      "group": "shattered_natural",
+      "kind": "terrain_grit",
+      "drawer": "tools/artgen/dim7879/draw32_dim79.py",
+      "drawer_fn": "TABLE 项 t_glass_base",
+      "seed_manifest": "0x5EED910B",
+      "palette_roles": {
+        "base": "GLASS_SOIL",
+        "levels": [
+          "BASE@D140",
+          "BASE@D070",
+          "BASE",
+          "BASE@L110"
+        ],
+        "role_tokens": [
+          "BASE",
+          "BASE@D070",
+          "BASE@D090",
+          "BASE@D140",
+          "BASE@D240",
+          "BASE@L110",
+          "BASE@L180",
+          "GLASS_GLINT@D220",
+          "GLASS_SOIL"
+        ]
+      },
+      "measured": {
+        "size": [
+          32,
+          32
+        ],
+        "distinct_rgba": 8,
+        "distinct_rgb_opaque": 8,
+        "all_opaque_alpha_255": true,
+        "dominant_opaque": "#374A59"
+      },
+      "why": "琉璃下层：冷蓝颗粒 + 少量玻璃碎屑（2px 小片，根数不变、尺寸 x2）—— 下层比表壳暗一档，保证侧面壳沿压得住。"
+    },
+    "shattered_tar_top": {
+      "file": "shattered_tar_top.png",
+      "group": "shattered_natural",
+      "kind": "terrain_tar",
+      "drawer": "tools/artgen/dim7879/draw32_dim79.py",
+      "drawer_fn": "TABLE 项 t_tar_top",
+      "seed_manifest": "0x5EED910C",
+      "palette_roles": {
+        "base": "TAR_CRUST",
+        "levels": [
+          "BASE@D180",
+          "BASE@D070",
+          "BASE",
+          "BASE@L045",
+          "BASE@L110"
+        ],
+        "role_tokens": [
+          "ASH_CHAR",
+          "BASE",
+          "BASE@D070",
+          "BASE@D180",
+          "BASE@L045",
+          "BASE@L110",
+          "BASE@L200",
+          "BASE@L340",
+          "TAR_CRUST"
+        ]
+      },
+      "measured": {
+        "size": [
+          32,
+          32
+        ],
+        "distinct_rgba": 7,
+        "distinct_rgb_opaque": 7,
+        "all_opaque_alpha_255": true,
+        "dominant_opaque": "#29241F"
+      },
+      "why": "焦油壳：4 格龟裂网（1px 深缝）+ 板块内单侧受光 + 裂缝节点的湿亮芯。 基色明度只有 32 档，D 侧步进会塌，所以层次全走 L 侧大 t（manifest 的 _dark_range_note）。"
+    },
+    "shattered_tar_top_side": {
+      "file": "shattered_tar_top_side.png",
+      "group": "shattered_side",
+      "kind": "crust_side",
+      "drawer": "tools/artgen/dim7879/draw32_dim79.py",
+      "drawer_fn": "TABLE 项 t_tar_side",
+      "seed_manifest": "0x5EED910D",
+      "palette_roles": {
+        "params_from": {
+          "body": "shattered_tar_base",
+          "fringe": "shattered_tar_top"
+        },
+        "resolved_via_params_from": {
+          "shattered_tar_base（slot=body）": {
+            "base": "TAR_SOIL",
+            "levels": [
+              "BASE@D140",
+              "BASE",
+              "BASE@L070",
+              "BASE@L180"
+            ]
+          },
+          "shattered_tar_top（slot=fringe）": {
+            "base": "TAR_CRUST",
+            "levels": [
+              "BASE@D180",
+              "BASE@D070",
+              "BASE",
+              "BASE@L045",
+              "BASE@L110"
+            ]
+          }
+        },
+        "role_tokens": [
+          "BASE@D140",
+          "TAR_CRUST@L280"
+        ]
+      },
+      "measured": {
+        "size": [
+          32,
+          32
+        ],
+        "distinct_rgba": 16,
+        "distinct_rgb_opaque": 16,
+        "all_opaque_alpha_255": true,
+        "dominant_opaque": "#1F1916"
+      },
+      "why": "焦油侧面：壳沿下缘挂垂最长（黏稠），挂垂用壳色而非阴影 => 读作\"在流\"。"
+    },
+    "shattered_tar_base": {
+      "file": "shattered_tar_base.png",
+      "group": "shattered_natural",
+      "kind": "terrain_grit",
+      "drawer": "tools/artgen/dim7879/draw32_dim79.py",
+      "drawer_fn": "TABLE 项 t_tar_base",
+      "seed_manifest": "0x5EED910E",
+      "palette_roles": {
+        "base": "TAR_SOIL",
+        "levels": [
+          "BASE@D140",
+          "BASE",
+          "BASE@L070",
+          "BASE@L180"
+        ],
+        "role_tokens": [
+          "BASE",
+          "BASE@D090",
+          "BASE@D140",
+          "BASE@D240",
+          "BASE@L070",
+          "BASE@L110",
+          "BASE@L180",
+          "BASE@L240",
+          "TAR_SOIL"
+        ]
+      },
+      "measured": {
+        "size": [
+          32,
+          32
+        ],
+        "distinct_rgba": 8,
+        "distinct_rgb_opaque": 8,
+        "all_opaque_alpha_255": true,
+        "dominant_opaque": "#1F1916"
+      },
+      "why": "焦油基底：全库最暗 + 湿亮细点（L 侧大 t）；团块走 D 侧只作轮廓不作色阶。"
+    },
+    "shattered_spike_cluster": {
+      "file": "shattered_spike_cluster.png",
+      "group": "shattered_decor",
+      "kind": "cross_decor",
+      "drawer": "tools/artgen/dim7879/draw32_dim79.py",
+      "drawer_fn": "TABLE 项 t_spike",
+      "seed_manifest": "0x5EED910F",
+      "palette_roles": {
+        "base": "SPIKE_STONE",
+        "role_tokens": [
+          "BASE@D090",
+          "BASE@D140",
+          "BASE@D340",
+          "BASE@L200",
+          "GLINT@D090",
+          "SPIKE_STONE"
+        ]
+      },
+      "measured": {
+        "size": [
+          32,
+          32
+        ],
+        "distinct_rgba": 5,
+        "distinct_rgb_opaque": 4,
+        "all_opaque_alpha_255": true,
+        "dominant_opaque": "#53525A"
+      },
+      "why": "石刺簇：4 根锥刺（根宽 x2、收至 1px 尖）+ 1px 中棱线（左暗右亮）+ 尖顶反光 + 底屑； 十字装饰不计色数但 alpha 必须二值，且最下一行要有根（否则游戏里飘空）。"
+    },
+    "shattered_ash_log_side": {
+      "file": "shattered_ash_log_side.png",
+      "group": "shattered_decor",
+      "kind": "log_side",
+      "drawer": "tools/artgen/dim7879/draw32_dim79.py",
+      "drawer_fn": "TABLE 项 t_log_side",
+      "seed_manifest": "0x5EED9110",
+      "palette_roles": {
+        "base": "ASH_BARK",
+        "role_tokens": [
+          "ASH_BARK",
+          "ASH_CHAR",
+          "BASE@D220",
+          "BASE@D420",
+          "BASE@L180",
+          "BASE@L240"
+        ]
+      },
+      "measured": {
+        "size": [
+          32,
+          32
+        ],
+        "distinct_rgba": 7,
+        "distinct_rgb_opaque": 7,
+        "all_opaque_alpha_255": true,
+        "dominant_opaque": "#453E36"
+      },
+      "why": "灰烬枯木侧面：4 块石化树皮（宽 8px，边界蛇行）+ 1px 纵缝与短纤维 + 2 道 x2 加厚暗环带 （环带随树皮起伏，不是一条直尺线）+ 灰白尘点。与 dim78 锈木的分别画在颜色与缝向： 这里无橙、纵缝为主、环带是炭灰而非锈橙，且读起来是\"石化的树\"不是\"木板梯\"。"
+    },
+    "shattered_ash_log_top": {
+      "file": "shattered_ash_log_top.png",
+      "group": "shattered_decor",
+      "kind": "log_top",
+      "drawer": "tools/artgen/dim7879/draw32_dim79.py",
+      "drawer_fn": "TABLE 项 t_log_top",
+      "seed_manifest": "0x5EED9111",
+      "palette_roles": {
+        "base": "ASH_BARK",
+        "role_tokens": [
+          "ASH_BARK",
+          "ASH_CHAR",
+          "ASH_RING@D140",
+          "ASH_RING@D220",
+          "ASH_RING@L180",
+          "BASE@D140",
+          "BASE@D220"
+        ]
+      },
+      "measured": {
+        "size": [
+          32,
+          32
+        ],
+        "distinct_rgba": 6,
+        "distinct_rgb_opaque": 6,
+        "all_opaque_alpha_255": true,
+        "dominant_opaque": "#4E463F"
+      },
+      "why": "枯树横截面：4px 树皮环 + 年轮（明暗交替 + 1px 亮轮线）+ 2 道放射炭化裂。 32 档才容得下 4 条年轮，16 档只能画 2 条，读起来是\"同心圆\"而不是\"年轮\"。"
+    },
+    "shattered_ash_thorn": {
+      "file": "shattered_ash_thorn.png",
+      "group": "shattered_decor",
+      "kind": "cross_decor",
+      "drawer": "tools/artgen/dim7879/draw32_dim79.py",
+      "drawer_fn": "TABLE 项 t_thorn",
+      "seed_manifest": "0x5EED9112",
+      "palette_roles": {
+        "base": "THORN_ASH",
+        "role_tokens": [
+          "ASH_CHAR",
+          "BASE@D140",
+          "BASE@D340",
+          "BASE@L200",
+          "GLINT@D220",
+          "THORN_ASH"
+        ]
+      },
+      "measured": {
+        "size": [
+          32,
+          32
+        ],
+        "distinct_rgba": 6,
+        "distinct_rgb_opaque": 5,
+        "all_opaque_alpha_255": true,
+        "dominant_opaque": "#4D4742"
+      },
+      "why": "灰烬棘丛：6 根 1px 细斜枝（长度 x2、粗细不变、连续不断线）+ 交错倒刺 + 节瘤炭点 + 灰白枯梢； 和石刺簇是形态对立（细/乱/暗 vs 粗/整/亮），所以这里绝不出现块状填充，也不让节瘤把主线打断。"
+    }
+  }
+}

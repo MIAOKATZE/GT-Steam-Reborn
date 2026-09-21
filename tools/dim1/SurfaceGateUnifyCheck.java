@@ -55,6 +55,7 @@ import com.miaokatze.gtsr.common.dimension.shattered.block.BlockShatteredAshLog;
 import com.miaokatze.gtsr.common.dimension.shattered.block.BlockShatteredCrossDecor;
 import com.miaokatze.gtsr.common.dimension.shattered.block.BlockShatteredMonolith;
 import com.miaokatze.gtsr.common.dimension.shattered.ShatteredDecorPlacer;
+import com.miaokatze.gtsr.config.Config;
 
 /**
  * <b>P4 地表门统一 + 缺陷修复的机检与影响量化</b>（plan §5 P4 / §2.1 横切 roster /
@@ -148,11 +149,39 @@ public final class SurfaceGateUnifyCheck {
      */
     private static final double BAND_PRE_SCATTER_MIN = 97.5D, BAND_PRE_SCATTER_MAX = 100.0D;
     /**
-     * D 组：链后 {@code prosperitySurface} 列份额带。下界 0 是<b>诚实下界</b>：全新自然区
-     * （非城 chunk）的 pristine 地表由 L3 表层缝铺四 top，冻结块只随 outpost/机器模板出现，
-     * 故份额取决于该区是否命中 outpost（1/64）与机器（1/24）。上界用于钉住"新增可落面失控"。
+     * D 组：链后 {@code prosperitySurface}（冻结块）列份额带。
+     * <p>
+     * <b>P16-B5b 重测：旧立论作废</b>。旧注释写"份额取决于该区是否命中 outpost（1/64）与机器（1/24）"，
+     * 两个分母在 U6/疏密改判后都已是旧值 ⇒ 现按 plan §1 G10 的单一真值纪律<b>只回显字段名、不回显
+     * 数字</b>（真值出处 = {@code Config.prosperityMachineChance} / {@code prosperityOutpostChance}，
+     * 实测读数由 {@link #assertPassRateBand()} 每次打的 {@code D-BAND} 行给出，不靠注释自证）。
+     * <p>
+     * <b>更要紧的一条：本带上界从来不是密度带</b>。{@code p3-b5a} 未决清单 §3 把它登记成"按旧密度实测
+     * 的命中率带、命中率降 3 倍后过松"，本轮用同一份工具源码 + 反射注回旧疏密（{@code 16/64/48}，
+     * 手法同 {@code BiomeBandHierarchyCheck rollback}，不改任何仓内文件）逐档复算，实测：
+     * <table border="1">
+     * <caption>冻结列份额（列级，与带同一估计量）</caption>
+     * <tr><th>样本</th><th>改后 72/192/144</th><th>改前 16/64/48</th></tr>
+     * <tr><td>{@code 2×1}（本 assert 档）</td><td>0.000pp</td><td>0.003pp（3 列）</td></tr>
+     * <tr><td>{@code 4×2}</td><td>0.000pp（1 列）</td><td>—</td></tr>
+     * <tr><td>{@code 8×2}</td><td>0.004pp（30 列）</td><td>0.005pp（40 列）</td></tr>
+     * <tr><td>{@code 8×4}</td><td>0.004pp（59 列）</td><td>0.005pp（78 列）</td></tr>
+     * </table>
+     * 即改前改后都趴在 0.005pp 以下，与 6.0 差<b>三个数量级</b>；把三键注成 4/4/4（每 chunk 必掷级）在同
+     * {@code 2×2} 档也只抬到 <b>0.019pp</b>，注成 1/1/1 反而回 <b>0.000pp</b>（outpost 环吃掉全部格子，
+     * 而那一族的字符盘不铺冻结顶）⇒ 该量对疏密<b>非单调</b>，"顺着密度比例收上界"是拿错误立论改数字。
+     * 现把上界收 <b>12 倍</b>（6.0 → 0.5pp，仍是实测最大值的 100 倍，不会因跨机抖动误红），
+     * 并<b>申报残余缺口</b>：要让这条上界自证可达（即破坏必红），必须把 D 组样本抬到 {@code 8×2}
+     * 以上（实测 16.0s/次，本工具在 {@code surface_checks.sh} 有 7 个挂点 ⇒ 全链 +90s）或把估计量
+     * 换成"按落块身份计数的结构落面"——两者改的是<b>判据口径</b>而不是期望值，超出 B5b 授权，已回报待裁。
+     * <p>
+     * 下界 0.0 仍是<b>诚实下界</b>（不是凑绿下界）：本 assert 档 {@code 2×1} 的链面在新疏密下实测
+     * {@code outpostHitChunks=0 machineLanded=0}（{@code D-BAND} 行可见），即"份额 0"是稀疏的真实结果；
+     * 结构环的在场性判据归 {@code Dim78ScatterDensityCheck} 的 CHAIN-GATE 与
+     * {@code RuinFamilyCheck} 的 F1/F5，本工具不重复钉，但把这条实测差记进申报，避免下一个人再把它
+     * 当成"按密度定的带"。
      */
-    private static final double BAND_FROZEN_SHARE_MIN = 0.0D, BAND_FROZEN_SHARE_MAX = 6.0D;
+    private static final double BAND_FROZEN_SHARE_MIN = 0.0D, BAND_FROZEN_SHARE_MAX = 0.5D;
 
     /** E 组：生产门调用点清单（文件 → 申报的调用形态标签）。新增 placer 自造门必须先进这张表。 */
     private static final String[][] GATE_CALL_SITES = {
@@ -805,6 +834,17 @@ public final class SurfaceGateUnifyCheck {
     private static void assertPassRateBand() throws Exception {
         final Sampler s = new Sampler(2, 1, 16).run();
         System.out.println("# " + s.describe());
+        // 申报值必须每次可见：带是"钉"，实测是"账"。只留带不留账，下一次重标就只能靠注释——本带上一轮
+        // 就是这么把 6.0pp 说成"按旧密度实测"，实测差三个数量级却无人发现（见 BAND_FROZEN_SHARE_* 注释）。
+        System.out.println("D-BAND seeds=2 regions=1 cols=" + s.cols78Chain
+            + " pristine78=" + fmt(s.rate78Pristine()) + " pristine79=" + fmt(s.rate79Pristine())
+            + " preScatter=" + fmt(s.rate78PreScatter()) + " chain=" + fmt(s.rate78Chain())
+            + " frozenShare=" + fmt(s.share78FrozenChain()) + " frozenCols="
+            + s.memberChain.getOrDefault(Sampler.member(0), 0L)
+            + " 链面在场性（回显 Config 字段名，本文件不写第二处真值）machineChance="
+            + Config.prosperityMachineChance + " outpostChance=" + Config.prosperityOutpostChance
+            + " ruinChance=" + Config.prosperityRuinChance + " outpostHitChunks=" + s.outpostHits
+            + " machineLanded=" + s.machineLanded);
         band("D dim78 列级通过率(pristine)", s.rate78Pristine(), BAND_PRISTINE_MIN, BAND_PRISTINE_MAX);
         band("D dim79 列级通过率(pristine)", s.rate79Pristine(), BAND_PRISTINE_MIN, BAND_PRISTINE_MAX);
         band("D dim78 列级通过率(口径B 散布前)", s.rate78PreScatter(), BAND_PRE_SCATTER_MIN,

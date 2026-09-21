@@ -56,17 +56,18 @@ public class Config {
     // 用途——整合包若想给自家群系预留高位段，把它调小即可让我方群系提前判"无槽"并显式降级。
     public static int biomeIdScanLimit = 254;
 
-    // 繁荣维度残缺机器生成频率分母（平均 1/N chunk × 群系机器权重；默认 16，0 = 禁用；S4a 消费，
-    // S-A5 密度上调 24→16 = plan §12 修订 7）。
+    // 繁荣维度残缺机器生成频率分母（平均 1/N chunk × 群系机器权重；0 = 禁用；S4a 消费；
+    // 沿革：S-A5 上调过一次，P16 按用户裁决把概率降到"当时实机生效值"的三分之一）。
     // <b>P5 单一真值声明（plan §2.4 判据 4 / §3.1 更正 2）</b>：机器概率分母<b>只有本字段一处</b>真值，
     // 消费方（RuinedMachinePlacer.placeAll 的 chance、编排器的注册日志 "machineChance=1/{}"）一律
-    // 引用本字段，不得再在任何常量/注释里复写具体分母数字。设计基线 = 代码默认 16；
+    // 引用本字段，不得再在任何常量/注释里复写具体分母数字。
     // 实机若显示别的分母（如整合包 run/server/config/gtsr/gtsr.cfg 的覆盖值），那是外部覆盖，不改代码默认。
-    public static int prosperityMachineChance = 16;
+    public static int prosperityMachineChance = 72; // 不导出到 gtsr.cfg（P16 裁决：整合包不得自定义疏密）；字段仍可被离线测试注入
 
-    // 繁荣维度城外中型废墟（outpost）生成频率分母（平均 1/N chunk 生成 1 座；默认 64，0 = 禁用；
-    // S-A5 新增消费 = plan §12 修订 7/8，与残缺机器同 chunk 互斥掷骰：先 outpost，命中跳过机器）。
-    public static int prosperityOutpostChance = 64;
+    // 繁荣维度城外中型废墟（outpost）生成频率分母（平均 1/N chunk 生成 1 座；0 = 禁用；
+    // S-A5 新增消费 = plan §12 修订 7/8，与残缺机器同 chunk 互斥掷骰：先 outpost，命中跳过机器；
+    // P16 同纪律把概率降到三分之一，数字只在本字段）。
+    public static int prosperityOutpostChance = 192; // 不导出到 gtsr.cfg（P16 裁决：整合包不得自定义疏密）；字段仍可被离线测试注入
 
     // ═════════ P8 城外废墟族（plan §5 P8 / §2.1 L5 / §2.2 H-2·H-3）═════════
     //
@@ -87,7 +88,7 @@ public class Config {
     // 类注释与注册日志只回显字段值、不写数字。
     public static boolean prosperityRuinsEnabled = true;
 
-    public static int prosperityRuinChance = 48;
+    public static int prosperityRuinChance = 144; // 不导出到 gtsr.cfg（P16 裁决：整合包不得自定义疏密）；字段仍可被离线测试注入
 
     public static int prosperityRuinWindowRepeatCap = 3;
 
@@ -119,7 +120,7 @@ public class Config {
     public static int tpdimBiomeSearchMaxSteps = 400000;
 
     // 繁荣维度古代城存在概率（每个 24×24 chunk cell 的存在掷骰百分比；默认 45，0 = 无城，100 = 全 cell 有城；S4b 消费）。
-    public static int prosperityCityChance = 45;
+    public static int prosperityCityChance = 45; // 不导出到 gtsr.cfg（P16 裁决：整合包不得自定义疏密）；字段仍可被离线测试注入
 
     // ═════════ P6 群系带分层与城门（plan §2.2 H-1/L6 / §5 P6 / §7.1 已锁定 U2）═════════
     //
@@ -224,7 +225,7 @@ public class Config {
 
     // 场中心命中分母：每个候选场格以 1/本值 的概率成为残骸场。默认取实测扫描选定档；
     // 1 = 每格皆场（退化档要件之一，此时密度由 piecesMin/Max 决定）。
-    public static int prosperityScatterClusterFieldChanceDenom = 3;
+    public static int prosperityScatterClusterFieldChanceDenom = 3; // 不导出到 gtsr.cfg（P16 裁决：整合包不得自定义疏密）；字段仍可被离线测试注入
 
     // 单场件数配额的均匀分布下界（该 chunk 对该场的落件上限，round(配额×群系权重) 口径同 P5 的 K）。
     public static int prosperityScatterClusterPiecesMin = 8;
@@ -253,8 +254,10 @@ public class Config {
     // 现语义 = <b>以实际命中集为条件</b>：某窗内某个模板已被请求 N 次，只有第 N+1 次请求在
     // N ≥ cap 时才被拒 ⇒ <b>首次出现永不因 cap 被拒</b>，cap 只削重复副本。贴脸（同族相邻 chunk）
     // 由下面的 prosperityStructureFamilyGapChunks 负责，不由配额负责。
-    // 用户口径同时锁定：<b>城外 outpost/机器的 1/N 概率一律不动</b>（目标"每 16×16 窗 16 座"≈ 现状
-    // 15.4 座/窗，由 machineChance=1/24 与 outpostChance=1/64 算术得出），故本段三键都不碰概率。
+    // 用户口径曾锁定「城外 outpost/机器的 1/N 概率一律不动」（当时"每 16×16 窗 16 座"≈15.4 座/窗即由
+    // 两族 1/N 算术得出），故 P7 本段三键都不碰概率。
+    // 【P16 改判（2026-09-21 用户裁决）】改为"疏密不允许整合包自定义"+ 概率整体降到当时实机生效值的
+    // 三分之一 ⇒ 上述锁定作废；分母真值一律只看本类字段声明，注释与日志不得复写具体数字。
     //
     // 【回退位】prosperityStructureWindowRepeatCap = 0 ⇒ 窗重复上限关闭；
     // prosperityStructureFamilyGapChunks = 0 ⇒ 同族间距关闭 ⇒ 两键同 0 即回到"只受 1/N 独立掷骰 +
@@ -265,7 +268,7 @@ public class Config {
 
     // H-3 每 chunk 允许<b>真实落块</b>的结构座数上限（默认 1 = 与改造前"outpost 命中则跳过机器"的
     // 互斥掷骰等值，但改造前那条只在 outpost 谎报成功时才生效；0 = 不限）。
-    public static int prosperityStructureBudgetPerChunk = 1;
+    public static int prosperityStructureBudgetPerChunk = 1; // 不导出到 gtsr.cfg（P16 裁决：整合包不得自定义疏密）；字段仍可被离线测试注入
 
     // H-2① 每 16×16 chunk 窗内"同一结构模板"允许<b>实际请求</b>的 chunk 数上限（P5b 起默认 8 =
     // 主代理拍板档「cap=8 + gap=1」：cap 退化为仅护栏、对当前命中分布几乎不咬合（P7c 扫描表
@@ -436,29 +439,9 @@ public class Config {
                 + " = byte 平面硬上界，只能收紧不能放宽）。整合包要预留高位段时调小它，"
                 + "我方群系会提前判无槽并在日志显式降级 degraded=SHORT/EMPTY");
 
-        prosperityMachineChance = configuration.getInt(
-            "prosperityMachineChance",
-            Configuration.CATEGORY_GENERAL,
-            prosperityMachineChance,
-            0,
-            1000,
-            "繁荣维度残缺机器生成频率分母（平均 1/N 区块 × 群系机器权重，默认 16 = 约 4-8% 每区块；0 = 禁用）");
-
-        prosperityOutpostChance = configuration.getInt(
-            "prosperityOutpostChance",
-            Configuration.CATEGORY_GENERAL,
-            prosperityOutpostChance,
-            0,
-            1000,
-            "繁荣维度城外中型废墟（outpost）生成频率分母（平均 1/N 区块生成 1 座，默认 64；0 = 禁用；与残缺机器同区块互斥：outpost 命中则跳过机器）");
-
-        prosperityCityChance = configuration.getInt(
-            "prosperityCityChance",
-            Configuration.CATEGORY_GENERAL,
-            prosperityCityChance,
-            0,
-            100,
-            "繁荣维度古代城存在概率（每个 24×24 区块 cell 的存在掷骰百分比，默认 45 = 平均每 500-600 格一座；0 = 无城）");
+        // P16（用户裁决）：城外三类结构的疏密分母（残缺机器 / outpost / 古代城存在率）一律不再导出到
+        // gtsr.cfg —— 整合包不得自定义稀疏程度，真值只在本类字段声明处。cfg 里若残留同名旧键会被
+        // Forge 当孤儿项忽略，不影响加载。
 
         // ═════ P14 tpdim 群系定位（环带步进上界）——键名/默认值/注释与本类字段声明严格一致 ═════
         tpdimBiomeSearchMaxRadiusChunks = configuration.getInt(
@@ -477,20 +460,14 @@ public class Config {
             5000000,
             "tpdim 群系定位单次命令步数保险丝（评估区块数上限，默认 400000；与半径上限先到者生效。" + "步数截断且已有命中时仍传送但回执申报「未证全局最近」。不允许 0/负值 = 关闭保险丝）");
 
-        // ═════ P8 城外废墟族（三键与本类字段声明严格一致：键名 / 默认值 / 注释口径）═════
+        // ═════ P8 城外废墟族（cfg 侧现两键与本类字段声明严格一致：ruinChance 已随 P16 移出 cfg）═════
         prosperityRuinsEnabled = configuration.getBoolean(
             "prosperityRuinsEnabled",
             Configuration.CATEGORY_GENERAL,
             prosperityRuinsEnabled,
             "城外废墟族（P8 破坏结构）总开关（默认开；关闭后本族一条 roster 都不注册、编排器也不问门，" + "城外结构面逐位回到 P5b 终态）");
 
-        prosperityRuinChance = configuration.getInt(
-            "prosperityRuinChance",
-            Configuration.CATEGORY_GENERAL,
-            prosperityRuinChance,
-            0,
-            1000,
-            "繁荣维度城外废墟生成频率分母（平均 1/N 区块 1 座，默认 48；0 = 禁用；" + "互斥掷骰链第三环：outpost → 残缺机器 → 废墟，且与前两环共用每区块结构预算）");
+        // prosperityRuinChance 不导出（P16：疏密不允许整合包自定义，见字段声明）。
 
         prosperityRuinWindowRepeatCap = configuration.getInt(
             "prosperityRuinWindowRepeatCap",
@@ -629,14 +606,7 @@ public class Config {
             16,
             "场中心候选格边长（chunk 数，默认 4 ⇒ 候选格 64×64 格；尺度介于 H-3 与 H-2 之间，" + "不得回到每 chunk 独立判定。1 = 退化档：每 chunk 一个候选场）");
 
-        prosperityScatterClusterFieldChanceDenom = configuration.getInt(
-            "prosperityScatterClusterFieldChanceDenom",
-            Configuration.CATEGORY_GENERAL,
-            prosperityScatterClusterFieldChanceDenom,
-            1,
-            1024,
-            "场中心命中分母（每候选格 1/本值 概率成场；默认档与 cell/pieces/radius 联合标定，"
-                + "目标均值 ≈1.2 件/chunk 且 0 件 chunk 占比 ≥70%。1 = 每格皆场（退化档要件））");
+        // prosperityScatterClusterFieldChanceDenom 不导出（P16：疏密不允许整合包自定义，见字段声明）。
 
         prosperityScatterClusterPiecesMin = configuration.getInt(
             "prosperityScatterClusterPiecesMin",
@@ -671,14 +641,7 @@ public class Config {
             "径向衰减幂次（r = R·u^p；p=1 ⇒ 面密度 ∝1/r 聚簇最强，p 越大越向外均摊。默认 1）");
 
         // ═════ P7 结构放置契约（H-2/H-3 结构侧）——键名/默认值/注释与本类字段声明严格一致 ═════
-        prosperityStructureBudgetPerChunk = configuration.getInt(
-            "prosperityStructureBudgetPerChunk",
-            Configuration.CATEGORY_GENERAL,
-            prosperityStructureBudgetPerChunk,
-            0,
-            16,
-            "H-3 每区块允许真实落块的结构座数上限（默认 1 = 城外废墟与残缺机器互斥的唯一真值口径；"
-                + "0 = 不限，仅供调参观察。判定入口 PlacementGate.ChunkGate.request，预算只在真实落块后扣减）");
+        // prosperityStructureBudgetPerChunk 不导出（P16：疏密不允许整合包自定义，见字段声明）。
 
         prosperityStructureWindowRepeatCap = configuration.getInt(
             "prosperityStructureWindowRepeatCap",

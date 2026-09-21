@@ -232,11 +232,82 @@ public final class Dim78ScatterDensityCheck {
         System.out.println("P5-DENSITY mode=" + mode + " seeds=" + seeds + " regionsPerSeed=" + regions
             + " treeFieldsMissing=" + MISSING_FIELDS.size()
             + (MISSING_FIELDS.isEmpty() ? "" : " " + MISSING_FIELDS));
+        // P16-B5b：申报式密度带（同一份疏密面从"CHAIN 行只打印 + 只判非 0"升成"钉新实测 + 旧值留档
+        // + 对照臂必须越带"）。放在 CHAIN-GATE <b>之前</b>打印：[13]/[10] 的 run() 用 tail -1 取末行做
+        // 显示行，历史上那一直是 CHAIN-GATE 行，不该被本片换掉。
+        final int pinBad = sampler.assertDensityPinDeclared();
         // P7c 判据 4：CHAIN 硬门槛（结构命中为 0 必须判红，不再让散布行的绿灯掩盖整条结构链）
-        if (sampler.assertChainAlive() != 0) {
+        final int chainBad = sampler.assertChainAlive();
+        if (chainBad != 0 || pinBad != 0) {
             System.exit(1);
         }
     }
+
+    /**
+     * P16-B5b 申报：<b>本轮有意改判</b>的三个疏密分母，以及改判前的对照值。
+     * <p>
+     * 这三个数字的<b>生产真值出处只有 {@code Config} 字段一处</b>（plan §1 G10 单一真值纪律）；
+     * 这里再写一份不是第二真值，而是离线判据惯用的"<b>独立申报</b>"——期望值不许从被测实现里读回来
+     * （同 {@code SurfaceGateUnifyCheck} 的 {@code EXPECTED78}、{@code HeightHashSingleSourceCheck}
+     * 的口径，也同 {@code ContourBudgetCheck} 的 {@code DECL_MACHINE_DENOM}）。{@link
+     * #assertDensityPinDeclared()} 把"申报 == {@code Config} 运行期值"钉成硬判据 ⇒ 谁改了字段没改
+     * 申报（或反之）都会红，两边都不是自由量。
+     * <p>
+     * 旧值 {@code 16/64/48} = 本轮开工前 {@code Config} 的代码默认；plan §3 裁定的基线是
+     * <b>实机生效值</b>（用户实例 {@code config/gtsr/gtsr.cfg:50} 把机器那一环覆盖成 24，outpost/ruin
+     * 与默认一致）的 1/3 ⇒ 落地 {@code 24→72}、{@code 64→192}、{@code 48→144}。
+     * <b>⚠ 实机口径必须与离线口径分开写</b>：本工具与全部离线档读的是<b>代码默认值</b>，不受那个
+     * cfg 影响；而用户现有存档/新存档里机器那一环仍被 {@code =24} 覆盖（plan §3 显式的未授权项，
+     * 本轮不改该文件）⇒ 实机那一环不会变稀，outpost/ruin 两环改后即生效。
+     */
+    static final int DECL_MACHINE_DENOM = 72;
+    /** 见 {@link #DECL_MACHINE_DENOM}（三键同一条改判，plan §3 的"实机现值 ×3"）。 */
+    static final int DECL_OUTPOST_DENOM = 192;
+    /** 见 {@link #DECL_MACHINE_DENOM}。 */
+    static final int DECL_RUIN_DENOM = 144;
+    /** 改判前的代码默认（留档，不静默删；作废理由见 {@link #DECL_MACHINE_DENOM} 的注释）。 */
+    static final int LEGACY_MACHINE_DENOM = 16;
+    /** 见 {@link #LEGACY_MACHINE_DENOM}。 */
+    static final int LEGACY_OUTPOST_DENOM = 64;
+    /** 见 {@link #LEGACY_MACHINE_DENOM}。 */
+    static final int LEGACY_RUIN_DENOM = 48;
+
+    /** D-PIN 的样本规模：8 seed × 4096 槽 = 32768 格（纯 {@code intentAt}，实测单臂 1.2s）。 */
+    static final int PIN_SEEDS = 8;
+    /** 见 {@link #PIN_SEEDS}。 */
+    static final int PIN_SLOTS_PER_SEED = 4096;
+    /**
+     * D-PIN 三条落点率带（百分点）——<b>本轮按新疏密实测钉</b>。两臂读数（同一份工具源码、同批 32768
+     * 格点，跨 {@code digest 2 2 / digest 8 2 / all 4 1} 三档跑逐字相同 ⇒ 本组与主采样档位无关）：
+     * <table border="1">
+     * <caption>本工具 D-PIN 行实测；原始台账 plan/tmp/p3-b5b/density-readings.md</caption>
+     * <tr><th>环</th><th>新 72/192/144</th><th>旧 16/64/48（对照臂）</th><th>钉的带</th></tr>
+     * <tr><td>机器</td><td>1.245pp（408 座）</td><td>5.374pp（1761 座）</td><td>[1.05, 1.45]</td></tr>
+     * <tr><td>outpost</td><td>0.528pp（173 座）</td><td>1.208pp（396 座）</td><td>[0.44, 0.62]</td></tr>
+     * <tr><td>废墟</td><td>0.812pp（266 座）</td><td>1.767pp（579 座）</td><td>[0.70, 0.94]</td></tr>
+     * </table>
+     * 带宽取"实测 ±15~18%"（不是把旧值圈进来的宽带来）：新值居带中、旧值全部在带外（旧/新比
+     * 4.32×／2.29×／2.18×）⇒ 三条带都还咬得住。为什么带里不是整齐的"1/3"：落点是<b>互斥三环的一条链</b>
+     * （outpost → 否则机器 → 否则废墟），上游环变稀会把格子让给下游环，所以三条率各自动 2~4 成而不是
+     * 各自的 1/3；再叠上机器那一环的旧基线本身有两个口径（代码默认 16 / 用户 cfg 覆盖成 24，plan §3
+     * 裁定的是<b>实机生效值</b>）⇒ 比值随基线选择漂移，把比值当判据等于再造一个假绿源。故本组钉的是
+     * <b>实测落点率</b>，分母的 3 倍关系由 {@link #DECL_MACHINE_DENOM} 那一组"申报==运行期真值"的
+     * 硬判据单独钉（两边都是死数字，不靠实测）。
+     */
+    static final double PIN_MACHINE_PP_MIN = 1.05D, PIN_MACHINE_PP_MAX = 1.45D;
+    /** 见 {@link #PIN_MACHINE_PP_MIN}。 */
+    static final double PIN_OUTPOST_PP_MIN = 0.44D, PIN_OUTPOST_PP_MAX = 0.62D;
+    /** 见 {@link #PIN_MACHINE_PP_MIN}。 */
+    static final double PIN_RUIN_PP_MIN = 0.70D, PIN_RUIN_PP_MAX = 0.94D;
+    /**
+     * 巨构占机器族的份额带：候选池 = 5 个小机型 + 2 条跨片巨构（{@code RuinedColossusShapes.ALL}），
+     * 抢<b>同一次</b> {@code nextInt(POOL)} ⇒ 理论份额 2/7 = 28.57%；实测新档 28.431%（116/408）、
+     * 旧疏密对照臂 28.279% ⇒ 两臂差 0.152pp。带取 [20, 40]（容 footprint 收缩与小机型被门挤位的偏移），
+     * 两臂漂移上界 2pp（远小于任何"新增第二条独立概率"会造成量级）。
+     */
+    static final double PIN_SPAN_SHARE_MIN = 20.0D, PIN_SPAN_SHARE_MAX = 40.0D;
+    /** 见 {@link #PIN_SPAN_SHARE_MIN}。 */
+    static final double PIN_SPAN_DRIFT_MAX = 2.0D;
 
     private static int intArg(String[] args, int i, int def) {
         return args.length > i ? Integer.parseInt(args[i]) : def;
@@ -492,8 +563,20 @@ public final class Dim78ScatterDensityCheck {
          * <p>
          * 为什么要这道闸：本工具过去只对散布行做断言，CHAIN 行只打印不判——P7b 实测默认档把城外结构
          * 砍到 {@code 0/0/0} 时工具仍 EXIT=0 静默通过（同族几何下 P5 记的是 39/20193/19678），
-         * 这就是"看起来在判"的假绿现场。样本量 ≥ 256 chunk（= 一个 16×16 窗）时，outpost 的 1/64
-         * 与机器的 1/24 独立掷骰让"命中 0 座"在正常链上不可能出现，故 0 就是缺陷而不是稀疏。
+         * 这就是"看起来在判"的假绿现场。
+         * <p>
+         * <b>P16-B5b 改了这道闸的"样本够不够"前提</b>。旧写法是"样本量 ≥ 256 chunk（= 一个 16×16 窗）
+         * 时，outpost 的 1/64 与机器的 1/24 独立掷骰让命中 0 座在正常链上不可能出现"——那两个分母
+         * 随 U6/疏密改判已作废（现值由 {@code Config.prosperityOutpostChance} /
+         * {@code Config.prosperityMachineChance} 给出，本注释按单一真值纪律只回显字段名不写数字），
+         * 而"256 chunk"这个<b>数</b>也随分母一起失效：按稀疏的那个环算，256 格样本上"一座都不中"的
+         * 概率是 {@code (1-1/N)^256}，N 抬到三位数后它已是"多半会"而不是"不可能"（实测 256 档期望命中
+         * 只剩 1.3 座 ⇒ P(0)≈27%，用"0 即缺陷"判它会误红）。故门槛样本量改为<b>由两个分母推导</b>：
+         * {@code 4 × max(outpost, machine)}（P(0 座) ≤ e^-4 = 1.8%），推导式而不是新常数 ⇒ 再调疏密
+         * 不需要动这里。实测本链用到的样本档 {@code digest 8 2}=3936、{@code digest 4 4}=4096、
+         * {@code digest 2 2}=1024（实测 {@code outpostHitChunks=6}）都过得了新门槛，而
+         * {@code [10]/[14b]/[15a2]/[16a2]/[19b]} 的摘要对拍一律带 {@code -Dgtsr.skipStructure=1}
+         * ⇒ 整闸跳过，没有一档因抬门槛而变红。
          *
          * @return 0 = 通过；1 = 结构层静默失效（调用方据此决定退出码，不自己吞掉）
          */
@@ -507,15 +590,231 @@ public final class Dim78ScatterDensityCheck {
             }
         }
 
+        /**
+         * CHAIN-GATE 的样本量门槛：<b>由疏密分母推导，不是写死的 256</b>（P16-B5b）。
+         * 4 × 两个环里较稀疏的那个分母 ⇒ "一座都不中"的概率 ≤ {@code e^-4 ≈ 1.8%}，
+         * 才够得上"0 就是缺陷而不是稀疏"。BASE 树读不到键时 {@code chanceOf} 按 1 处理 ⇒ 门槛退化成 4，
+         * 与改造前对该树的实际行为一致（不为旧树新增判红）。
+         */
+        private int chainSampleFloor() {
+            return 4 * Math.max(chanceOf("prosperityOutpostChance"), chanceOf("prosperityMachineChance"));
+        }
+
+        /**
+         * <b>P16-B5b 申报式密度带（D-PIN 组）</b>：把"城外疏密降到实机现值的 1/3"（plan §0 U2 / §1 G10）
+         * 从"CHAIN 行只打印 + 只判非 0"升成<b>钉住新实测、旧值留档并写明作废理由</b>的成对判据。
+         * <p>
+         * 量的是<b>落点概率面</b>（纯 {@code intentAt} 重放，不需地形；8 seed × 4096 槽 = 32768 格，
+         * 两臂合计实测 2.5s），而不是真地形 CHAIN 的块数：{@code machineLanded} 是<b>块数</b>，
+         * P16-B1 之后巨构会把自己的片写进邻 chunk（同一座结构在多格里各计若干块），拿块数当概率
+         * 证据会串面。三条率按编排器同构的互斥顺序数（outpost → 否则机器 → 否则废墟），加起来就是
+         * "城外结构落点率"本身，不是三张独立的表。
+         * <p>
+         * <b>两面反假绿</b>：同一次运行里再跑一条<b>对照臂</b>——进程内反射把三键注回本轮改判前的
+         * {@code 16/64/48}（手法同 {@code BiomeBandHierarchyCheck} 的 rollback 包装，跑完立即还原，
+         * 不改工作树），对照臂的三条实测值必须<b>落在带外</b>。任何一条落在带内就判红，
+         * 因为那说明这条带对"把概率调回去"不敏感＝恒真判据。
+         * <p>
+         * 整组在 {@code -Dgtsr.skipStructure=1} 档下<b>完全不打</b>（不是打一行 SKIPPED 就完事）：
+         * {@code [10]/[14b]/[15a2]/[16a2]/[19b]} 的 BASE/AFTER 逐字节对拍用同一份工具源码跑旧树，
+         * 旧树的 {@code Config} 还是改造前的分母，多打任何一行都会把"散布回退"这条判据打成假红。
+         *
+         * @return 0 = 通过；非 0 = 红条数
+         */
+        public int assertDensityPinDeclared() throws ReflectiveOperationException {
+            if (SKIP_STRUCTURE_STAGES) {
+                return 0;
+            }
+            if (MISSING_FIELDS.contains("prosperityMachineChance")) {
+                return 0; // BASE 树没有本轮的期望值可言（上面已说明为何连一行都不打）
+            }
+            final int m = chanceOf("prosperityMachineChance");
+            final int o = chanceOf("prosperityOutpostChance");
+            final int r = chanceOf("prosperityRuinChance");
+            int bad = 0;
+            // ① 三面一致：申报常量 == 运行期字段（生产真值出处仍只有 Config 字段一处，见 DECL_* 注释）
+            bad += pinCheck("D-PIN 机器分母运行期真值 = 申报 " + DECL_MACHINE_DENOM + "（实测 " + m
+                + "；改判前代码默认 " + LEGACY_MACHINE_DENOM + "）", m == DECL_MACHINE_DENOM);
+            bad += pinCheck("D-PIN outpost 分母运行期真值 = 申报 " + DECL_OUTPOST_DENOM + "（实测 " + o
+                + "；改判前 " + LEGACY_OUTPOST_DENOM + "）", o == DECL_OUTPOST_DENOM);
+            bad += pinCheck("D-PIN 废墟分母运行期真值 = 申报 " + DECL_RUIN_DENOM + "（实测 " + r
+                + "；改判前 " + LEGACY_RUIN_DENOM + "）", r == DECL_RUIN_DENOM);
+            // ② 落点率带（新档）+ ③ 对照臂必须越带
+            final long[] now = measureIntentRates(m, o, r);
+            final long[] legacy = measureIntentRates(LEGACY_MACHINE_DENOM, LEGACY_OUTPOST_DENOM,
+                LEGACY_RUIN_DENOM);
+            if (now == null || legacy == null) {
+                return 0; // 本树没有命中重放口（P7c 之前的 era 快照）⇒ 不打印、不判，保对拍两侧同形
+            }
+            final double outpostPp = 100.0 * now[1] / now[0];
+            final double machinePp = 100.0 * now[2] / now[0];
+            final double ruinPp = 100.0 * now[3] / now[0];
+            final double spanShare = 100.0 * now[4] / Math.max(1L, now[2]);
+            final double lOutpostPp = 100.0 * legacy[1] / legacy[0];
+            final double lMachinePp = 100.0 * legacy[2] / legacy[0];
+            final double lRuinPp = 100.0 * legacy[3] / legacy[0];
+            final double lSpanShare = 100.0 * legacy[4] / Math.max(1L, legacy[2]);
+            System.out.println("D-PIN slots=" + now[0] + " 新档落点率pp: outpost=" + fmt2(outpostPp)
+                + " machine=" + fmt2(machinePp) + " ruin=" + fmt2(ruinPp) + " 巨构/机器=" + fmt2(spanShare)
+                + "（" + now[4] + "/" + now[2] + "）｜对照臂(注回 " + LEGACY_MACHINE_DENOM + "/"
+                + LEGACY_OUTPOST_DENOM + "/" + LEGACY_RUIN_DENOM + ")pp: outpost=" + fmt2(lOutpostPp)
+                + " machine=" + fmt2(lMachinePp) + " ruin=" + fmt2(lRuinPp)
+                + " 巨构/机器=" + fmt2(lSpanShare) + "（" + legacy[4] + "/" + legacy[2] + "）比值 machine="
+                + fmt2(lMachinePp / Math.max(1.0E-9D, machinePp)) + " outpost="
+                + fmt2(lOutpostPp / Math.max(1.0E-9D, outpostPp)) + " ruin="
+                + fmt2(lRuinPp / Math.max(1.0E-9D, ruinPp)) + " 巨构份额漂移="
+                + fmt2(Math.abs(spanShare - lSpanShare)));
+            bad += pinBand("机器落点率", machinePp, PIN_MACHINE_PP_MIN, PIN_MACHINE_PP_MAX, lMachinePp);
+            bad += pinBand("outpost 落点率", outpostPp, PIN_OUTPOST_PP_MIN, PIN_OUTPOST_PP_MAX, lOutpostPp);
+            bad += pinBand("废墟落点率", ruinPp, PIN_RUIN_PP_MIN, PIN_RUIN_PP_MAX, lRuinPp);
+            // ④ 巨构与 5 个小机型抢<b>同一次</b> nextInt(POOL)、同一 prosperityMachineChance 分母
+            //    （B1 申报）⇒ 巨构在机器族里的份额只由候选池比例决定、不随疏密走。两臂必须都落在同一条带内
+            //    且彼此漂移不超过 PIN_SPAN_DRIFT_MAX：这条同时是"单 chunk 座数上界仍是 1"的概率面证据
+            //    ——若巨构是第二条独立的 1/N，注回旧疏密时它的份额会跟着变，两臂差就会越过漂移上界。
+            bad += pinCheck("D-PIN 巨构占机器族份额：新档 " + fmt2(spanShare) + "% 与对照臂 "
+                + fmt2(lSpanShare) + "% 都 ∈ [" + PIN_SPAN_SHARE_MIN + ", " + PIN_SPAN_SHARE_MAX
+                + "] 且漂移 ≤ " + PIN_SPAN_DRIFT_MAX + "pp（同一 POOL 同一次抽签 ⇒ 巨构不叠加密度）",
+                spanShare >= PIN_SPAN_SHARE_MIN && spanShare <= PIN_SPAN_SHARE_MAX
+                    && lSpanShare >= PIN_SPAN_SHARE_MIN && lSpanShare <= PIN_SPAN_SHARE_MAX
+                    && Math.abs(spanShare - lSpanShare) <= PIN_SPAN_DRIFT_MAX);
+            return bad;
+        }
+
+        private static int pinCheck(String label, boolean ok) {
+            if (!ok) {
+                System.out.println("  FAIL " + label);
+                return 1;
+            }
+            return 0;
+        }
+
+        /** 带内 + 对照臂带外，两半各算一条（缺一半就退化成"只钉新值"或"只比旧值"）。 */
+        private static int pinBand(String label, double actual, double lo, double hi, double legacyArm) {
+            final boolean inside = actual >= lo && actual <= hi;
+            final boolean outside = legacyArm < lo || legacyArm > hi;
+            pinCheck("D-PIN " + label + " = " + fmt2(actual) + "pp ∈ [" + lo + ", " + hi + "]", inside);
+            pinCheck("D-PIN " + label + " 的旧疏密对照臂 = " + fmt2(legacyArm)
+                + "pp 必须落在带外（否则本带对『把概率调回去』不敏感＝恒真判据）", outside);
+            return inside && outside ? 0 : 1;
+        }
+
+        private static String fmt2(double v) {
+            return String.format(Locale.ROOT, "%.3f", v);
+        }
+
+        /**
+         * 纯函数落点面计数，返回 {@code [格子数, outpost 命中, 机器命中, 废墟命中, 其中跨片巨构锚点]}。
+         * 槽位取互质步进的双轴格点（与 {@code plan/tmp/p3-b5b/work-src/B5bRateProbe.java} 同一份坐标式，
+         * 读数可跨工具对读）；城窗格按编排器口径<b>计入分母但不计入命中</b>——本轮没改
+         * {@code prosperityCityChance}，城窗抑制面归 {@code CityBiomeGateCheck} 与
+         * {@code RuinFamilyCheck} 的"城窗跳过"列判。
+         */
+        private static long[] measureIntentRates(int machine, int outpost, int ruin)
+            throws ReflectiveOperationException {
+            final int[] saved = new int[] { chanceOf("prosperityMachineChance"),
+                chanceOf("prosperityOutpostChance"), chanceOf("prosperityRuinChance") };
+            try {
+                applySpec("prosperityMachineChance=" + machine + ",prosperityOutpostChance=" + outpost
+                    + ",prosperityRuinChance=" + ruin);
+                // 三个 intentAt 一律走反射：本文件的既有约定是"BASE 树（改造前那份生产码）也要能跑
+                // 同一份工具源码"——P5/P6 期的 placer 根本没有 intentAt(long,int,int)（P7c 才有命中重放口），
+                // 直连会让 [10]/[14]/[15]/[19] 的 BASE 侧工具编译从 2 error 涨到 4 error（实测踩过）。
+                final java.lang.reflect.Method outpostIntent = intentAtMethod(ProsperityOutpostPlacer.class);
+                final java.lang.reflect.Method machineIntent = intentAtMethod(RuinedMachinePlacer.class);
+                final java.lang.reflect.Method ruinIntent = ruinIntentMethod();
+                if (outpostIntent == null || machineIntent == null) {
+                    return null; // 本树没有命中重放口 ⇒ 三条率无从复算，整组静默跳过（见调用处）
+                }
+                final BiomeGenBase[] pb = SurfaceHarness.prosperityBiomes();
+                final GTSRDimensionDef def = SurfaceHarness.def(true, pb, SurfaceHarness.prosperityWeights());
+                long slots = 0;
+                long hitsO = 0;
+                long hitsM = 0;
+                long hitsR = 0;
+                long span = 0;
+                for (int si = 0; si < PIN_SEEDS; si++) {
+                    final long seed = SEEDS[si % SEEDS.length];
+                    // 每 seed 现建 manager：GTSRBiomeAuthority.bind 是全局覆盖式，跨 seed 复用最外侧那一份
+                    // 会把群系权重钉到别的 seed 上（B5b 首版实测三条率同时偏 ~15%）。
+                    new GTSRWorldChunkManager(seed, def);
+                    for (int i = 0; i < PIN_SLOTS_PER_SEED; i++) {
+                        final int cx = i * 7 - 4096;
+                        final int cz = i * 13 + 9217;
+                        slots++;
+                        if (CityPlanner.citiesNear(seed, cx, cz).length > 0) {
+                            continue;
+                        }
+                        if (callIntent(outpostIntent, seed, cx, cz) != null) {
+                            hitsO++;
+                            continue;
+                        }
+                        final Object mi = callIntent(machineIntent, seed, cx, cz);
+                        if (mi != null) {
+                            hitsM++;
+                            // 跨片巨构的申报口径：总 bbox 任一边 > 16 格（OutpostTemplateCheck 的成对断言
+                            // 用的就是这条）；这里不引 ChunkSpans——BASE 树没有那个类。
+                            if (intentSize(mi, "sizeX") > 16 || intentSize(mi, "sizeZ") > 16) {
+                                span++;
+                            }
+                            continue;
+                        }
+                        if (callIntent(ruinIntent, seed, cx, cz) != null) {
+                            hitsR++;
+                        }
+                    }
+                }
+                return new long[] { slots, hitsO, hitsM, hitsR, span };
+            } catch (ReflectiveOperationException e) {
+                throw new IllegalStateException("D-PIN 反射调命中重放口失败：" + e, e);
+            } finally {
+                applySpec("prosperityMachineChance=" + saved[0] + ",prosperityOutpostChance=" + saved[1]
+                    + ",prosperityRuinChance=" + saved[2]);
+            }
+        }
+
+        /** 命中重放口的反射解析（缺方法返回 null，不抛）。 */
+        private static java.lang.reflect.Method intentAtMethod(Class<?> placer) {
+            try {
+                return placer.getMethod("intentAt", long.class, int.class, int.class);
+            } catch (NoSuchMethodException e) {
+                return null;
+            }
+        }
+
+        /** 废墟族的命中重放口（本类对 ruin 包只做反射，理由同 {@code chanceOf}：BASE 树没这个包）。 */
+        private static java.lang.reflect.Method ruinIntentMethod() {
+            try {
+                return intentAtMethod(Class.forName(
+                    "com.miaokatze.gtsr.common.dimension.prosperity.ruins.ruin.RuinPlacer"));
+            } catch (ClassNotFoundException e) {
+                return null;
+            }
+        }
+
+        private static Object callIntent(java.lang.reflect.Method m, long seed, int cx, int cz)
+            throws ReflectiveOperationException {
+            return m == null ? null : m.invoke(null, seed, cx, cz);
+        }
+
+        /** {@code PlacementGate.Intent.sizeX/sizeZ} 的反射读法（同上：不直连后起类型的成员）。 */
+        private static int intentSize(Object intent, String field) {
+            try {
+                return intent.getClass().getField(field).getInt(intent);
+            } catch (ReflectiveOperationException e) {
+                return 0;
+            }
+        }
+
         public int assertChainAlive() {
             if (SKIP_STRUCTURE_STAGES) {
                 System.out.println("CHAIN-GATE SKIPPED-BY-FLAG（本跑用 -Dgtsr.skipStructure=1 显式跳过结构前序，"
                     + "命中为 0 是档位的定义；结构侧判据见 PlacementContractCheck T4/T7 与本工具的默认档跑）");
                 return 0;
             }
-            if (generatedChunks < 256) {
-                System.out.println("CHAIN-GATE SKIPPED（样本 " + generatedChunks + " chunk < 256 = 一个 H-2 窗，"
-                    + "不足以把\"命中 0 座\"判成缺陷）");
+            final int floor = chainSampleFloor();
+            if (generatedChunks < floor) {
+                System.out.println("CHAIN-GATE SKIPPED（样本 " + generatedChunks + " chunk < 门槛 " + floor
+                    + " = 4 × 两个疏密分母里的稀疏者，不足以把\"命中 0 座\"判成缺陷）");
                 return 0;
             }
             // 逐族判：只死一族同样是静默失效（P7c 的 R4 单变量 RED 就是这个形状——机器 roll 整段 return

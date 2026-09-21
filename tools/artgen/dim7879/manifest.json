@@ -1,5 +1,9 @@
 {
   "_manifest": "dim78 自然区 + dim79 破碎之地 正式方块材质 唯一权威（gtnh-block-texture-artgen 契约：manifest 单点收口 PALETTE / DERIVED_RULES / SEEDS / STYLE / OUTPUTS）。35 张 = dim78 17 + dim79 18。",
+  "_p16_32": "P16（v1.20.37，U1 裁决）：本批 35 张已全部重绘为 32x32 并在产，逐张设计档案见同目录 design32.json，绘制器 = draw32_dim78.py（dim78 17，片 A1a）/ draw32_dim79.py（dim79 18，片 A1b）。本 manifest 的 PALETTE / DERIVED_RULES / SEEDS / OUTPUTS[*].params 仍是这两个脚本的真值来源（本轮未改写）；STYLE.pixel_discipline.size [16,16] 是 16 档母版标定值、不是在产档位（在产 = 32x32，IHDR 与色数实测见 design32.json.entries[*].measured）。",
+  "_changelog": [
+    {"date": "2026-09-21", "change": "P16-A4 回写：32 档设计权威从 plan/tmp（gitignore 且属收束清理区）收进仓内 draw32_dim78.py + draw32_dim79.py + design32.json；landed.sha256 已按新字节重钉（35 行全换）；生成器 gen_dim7879_blocks.py 与本 manifest 的既有条目逐字未改。"}
+  ],
   "_authority": {
     "dim78_semantics": "plan/investigation/dim78-fix-slice-A1-report.md §1（12 方块登记表：四群系 top/base + 2 草丛 + 锈树干 + 锈树叶；17 张占位）",
     "dim79_semantics": "plan/investigation/dim79-redo-slice-B-report.md §0（13 方块登记表：corestone/monolith + 四群系 top/base + 石刺簇 + 灰烬枯树干 + 灰烬棘丛；18 张占位）",

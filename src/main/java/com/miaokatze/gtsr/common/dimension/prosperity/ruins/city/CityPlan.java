@@ -51,8 +51,16 @@ import com.miaokatze.gtsr.common.dimension.framework.structure.StructureBuilder;
  * 单线程，无并发竞争）。
  * <p>
  * <b>缓冲窗</b>：{@link #chunkInBuffer} 的 chunk 半径 = radiusChunks + 自适应裕量
- * （总扰动 35% + plot 偏置 7% + 内容余量折算，4 chunk 城 +3 / 7 chunk 城 +4），保证
- * 异形轮廓 + 悬突 plot 的全部内容仍在渲染/抑制窗口内（渲染与"城内跳过散布"同口径，plan §3.4）。
+ * （总扰动 35% + plot 偏置 7% 折 chunk + (c) 内容 chunk 裕量；4 chunk 城 +3 / 7 chunk 城 +4），保证
+ * 异形轮廓 + 悬突 plot 的全部内容（街道/plot/footprint 外溢，<b>含 P16-B3 申报边长 &gt;16 的城内
+ * 巨构</b>）仍在渲染/抑制窗口内（渲染与"城内跳过散布"同口径，plan §3.4）。
+ * <p>
+ * <b>P16-B3 巨构几何余量（三处同步，单一输入 {@code CityVariants.MAX_SIDE}）</b>：渲染遍历
+ * plot bbox 双侧外扩 (a) 16→24、{@link #contentReachBlocks()} 内容余量 (b) 24→32、缓冲窗
+ * 内容 chunk 裕量 (c) 由写死 +1 改为 ⌈(plot 半跨+巨构外溢)/16⌉（当前边长 24 下数值仍为 1，
+ * 边长 ≥30 自动升 2）。三处公式与"为什么是这个数"的推导集中写在常量区注释，扩巨构不再
+ * 逐处考古（任务包 B3 item 3）。跨片写入仍走 {@code CitySliceSink}（framework {@code
+ * ChunkSliceSink} 的城内薄壳），本类零第二套切片器。
  * <p>
  * <b>高度红线</b>：一切落地 y 由消费方经 {@code ProsperityTerrainProfile.heightAt}（同源
  * 纯函数）逐列给出，本类不携带高度、不读方块。
@@ -67,6 +75,30 @@ public final class CityPlan {
     public static final int AVENUE_WIDTH = 5;
     /** 地块进深（16 间距 - 3 街宽 = 13，plan §3.2）。 */
     public static final int PLOT_DEPTH = STREET_SPACING - STREET_WIDTH;
+
+    // ═══ P16-B3 巨构几何余量（三处同步口径；唯一输入 = CityVariants.MAX_SIDE，plan §1 G11）═══
+    //
+    // 旧口径三处各自写死（16 / 24 / +1），立论都是"城内最大 footprint=16 ⇒ 外溢 ≤16"。
+    // 巨构（申报边长 ≤45）落地时若只放大其中一处，另两处就成了暗雷（渲染漏角 / 检索漏检 /
+    // 缓冲窗外的城外结构压进巨构占地）。现在三处全部从名册现算的 MAX_SIDE 派生，
+    // 任何后续扩巨构自动同步；当前读数（MAX_SIDE=24）：(a) 16→24、(b) 24→32、(c) 公式化、
+    // 数值在边长 ≤29 时保持 +1 不变（7 格半跨 + 6 格外溢 = 13 ≤ 1 chunk，不无谓扩大抑制窗）。
+
+    /** 巨构外溢（格/自 plot 边）= ⌈(最大申报边长 − 地块深)/2⌉；24 → 6（锚点居中，Java 整除口径与 {@link #forEachPlotInChunk} 一致）。 */
+    private static final int MEGA_OVERHANG_BLOCKS = (CityVariants.MAX_SIDE - PLOT_DEPTH + 1) / 2;
+
+    /** (a) 渲染遍历的 plot bbox 双侧外扩：旧=写死 16（"最大 footprint 16"假设），新=max(单 chunk, 巨构申报边长)；相交测试要求余量 ≥ 2×外溢，24 ≥ 2×6 富余一倍。 */
+    private static final int FOOTPRINT_MARGIN_BLOCKS = Math.max(STREET_SPACING, CityVariants.MAX_SIDE);
+
+    /** plot 采样点（k·16+8）到地块远边界的格数（6.5 取整放大）；(b)(c) 共用。 */
+    private static final int PLOT_SAMPLE_TO_EDGE = (PLOT_DEPTH + 3) / 2;
+
+    /** (b) 内容余量尾常数（自 maxWorldRadius+bias 再放的格数）：旧=24（=8+16），新=8+FOOTPRINT_MARGIN_BLOCKS=32，与 (a) 同一 margin 输入。 */
+    private static final int CONTENT_MARGIN_BLOCKS = PLOT_SAMPLE_TO_EDGE + FOOTPRINT_MARGIN_BLOCKS;
+
+    /** (c) 缓冲窗的内容 chunk 裕量：旧=写死 +1，新=⌈(半跨+外溢)/16⌉；13 格 → 1（当前不变），边长 ≥30 自动升 2——巨构整体 bbox 必落渲染/抑制窗内，两侧不脱钩。 */
+    private static final int MEGA_SPILL_CHUNKS = Math
+        .max(1, (PLOT_SAMPLE_TO_EDGE + MEGA_OVERHANG_BLOCKS + STREET_SPACING - 1) / STREET_SPACING);
 
     private static final long PLOT_SALT_TIER = 0x71E2L; // district roll 分路盐
 
@@ -194,10 +226,12 @@ public final class CityPlan {
         this.phi5 = TWO_PI * frac(CityPlanner.mix(cellSeed, SALT_EDGE_PHASE + 5));
         this.warpRadiusMax = this.radiusBlocks * (1.0 + this.amp2 + this.amp3 + this.amp5);
         this.maxWorldRadius = this.radiusBlocks * (1.0 + this.edgeTotFrac);
-        // 缓冲窗裕量：总扰动上界 35% + plot 偏置 7% 折 chunk + 1 余量（4 chunk 城 +3 / 7 chunk 城 +4）
-        this.bufferMarginChunks = Math.max(
-            1,
-            (int) Math.ceil((EDGE_TOT_FRAC_MAX + PLOT_EDGE_BIAS_FRAC) * this.radiusBlocks / STREET_SPACING) + 1);
+        // 缓冲窗裕量：总扰动上界 35% + plot 偏置 7% 折 chunk + (c) 巨构内容 chunk 裕量
+        // （P16-B3：旧写死 +1，现随 CityVariants.MAX_SIDE 派生；当前 24 边长下数值仍为 1，
+        // 推导与"为什么不放大"见常量区 MEGA_SPILL_CHUNKS 注释）
+        this.bufferMarginChunks = Math
+            .max(1, (int) Math.ceil((EDGE_TOT_FRAC_MAX + PLOT_EDGE_BIAS_FRAC) * this.radiusBlocks / STREET_SPACING))
+            + MEGA_SPILL_CHUNKS;
         this.plotNoiseSeed = CityPlanner.mix(cellSeed, SALT_PLOT_EDGE_NOISE);
         this.streetLineSeedBase = CityPlanner.mix(cellSeed, SALT_STREET_LINE);
     }
@@ -283,13 +317,14 @@ public final class CityPlan {
     }
 
     /**
-     * 城市内容 reach（格，自中心）：radiusBlocks + 总扰动 + plot 偏置 + 24 内容余量
-     * （plot 半深 + footprint 外溢；SanityCheck 回调坐标上界口径）。
+     * 城市内容 reach（格，自中心）：radiusBlocks + 总扰动 + plot 偏置 + (b) 内容余量
+     * （plot 半跨 + footprint 外溢口径；P16-B3 随 {@link CityVariants#MAX_SIDE} 派生，
+     * 旧=24、现=32；SanityCheck 回调坐标上界口径）。
      */
     public int contentReachBlocks() {
         return this.radiusBlocks
             + (int) Math.ceil(this.maxWorldRadius - this.radiusBlocks + PLOT_EDGE_BIAS_FRAC * this.radiusBlocks)
-            + 24;
+            + CONTENT_MARGIN_BLOCKS;
     }
 
     // ═══ 街道（纯几何；v1.20.34 次街分段断续）═══
@@ -531,15 +566,30 @@ public final class CityPlan {
         return pool[(int) (CityPlanner.mix(plotSeed, 0x51CE) % pool.length)];
     }
 
-    // 变体池（注册名 = CityVariants.ALL 基础名）
+    // 变体池（注册名 = CityVariants.ALL 基础名；P16-B3 巨构接入面——选型仍是 plotVariant 那
+    // 一行 plotSeed 哈希，池变化只改"谁可能被选中/概率"，不新增随机源）。
+    // 巨构归属：great_forge 只进工业环（md 2..3，24 宽悬挑距中央大道 ≥2 街距；核心区会罩大道、
+    // 边缘区与"消融进荒野"语义相反），titan_gearworks 只进边缘环（md≥4 天际线地标，工业环
+    // 不同池是防同城双巨构连片）——两池各 +1 名，CORE 池零变化。理由全文见
+    // CityMegaVariants 类注释与 B3 回执。
     private static final String[] CORE_POOL = { "dome_hall", "clock_tower", "market_colonnade", "manor_ruin",
         "tram_depot", "fountain_basin" };
     private static final String[] INDUSTRIAL_POOL = { "boiler_house", "pump_house", "forge_hall", "engine_room",
         "gas_holder", "pressure_tank_row", "chimney_stack", "cooling_tower", "gear_tower", "viaduct", "crane_ruin",
-        "rail_platform", "canal_gate", "broken_bridge" };
+        "rail_platform", "canal_gate", "broken_bridge", "great_forge" };
     private static final String[] EDGE_POOL = { "watch_tower", "water_tower", "chimney_stack", "gear_tower",
-        "cooling_tower", "clock_tower", "fallen_arch", "broken_pillars", "machine_plinth", "slag_heap" };
+        "cooling_tower", "clock_tower", "fallen_arch", "broken_pillars", "machine_plinth", "slag_heap",
+        "titan_gearworks" };
     private static final String[] RUBBLE_POOL = { "broken_pillars", "slag_heap", "fallen_arch", "machine_plinth" };
+
+    /**
+     * district 选型池只读视图（0=核心 / 1=工业环 / 2=边缘环）——<b>只为离线选型断言开</b>
+     * （{@code CityShapeCheck} E 组核"巨构只出现在被裁定的池、核心区池永不出巨构"）；
+     * 生产选型唯一入口仍是 {@link #plotVariant}。返回内部数组引用，调用方不得写。
+     */
+    public static String[] poolForDistrict(final int district) {
+        return district == 0 ? CORE_POOL : district == 1 ? INDUSTRIAL_POOL : EDGE_POOL;
+    }
 
     /** 空地 rubble 小件选型（边缘环密度件）。 */
     public String plotRubble(int k, int l) {
@@ -591,19 +641,21 @@ public final class CityPlan {
      * 遍历 footprint 与 chunk 相交的地块并回调变体放置参数。
      * plot 网格 = plot (k,l) 过保留门（{@link #plotInCircle}：偏置几何门 ∧ 连通闭包，
      * 几何腿委托 {@link #insideCity(int, int)} 单一判定，与街道裁剪同口径）；bbox 相交 =
-     * plot 矩形（原点扩 footprint 余量 16）与 chunk 矩形相交。
+     * plot 矩形（原点扩 (a) footprint 余量 {@link #FOOTPRINT_MARGIN_BLOCKS}，P16-B3 起 16→24
+     * 随巨构申报边长派生）与 chunk 矩形相交。
      */
     public void forEachPlotInChunk(int chunkX, int chunkZ, PlotVisitor visitor) {
         final int kLim = plotIndexLimit();
         final int kMin = -kLim;
         final int kMax = kLim;
-        final int minX = chunkX * 16 - 16; // 变体 footprint 外溢余量（最大 16 长）
-        final int minZ = chunkZ * 16 - 16;
-        final int maxX = minX + 47; // 16 + 16 + 15
-        final int maxZ = minZ + 47;
+        final int m = FOOTPRINT_MARGIN_BLOCKS; // 变体 footprint 外溢余量（=max(单chunk, 巨构申报边长)）
+        final int minX = chunkX * 16 - m;
+        final int minZ = chunkZ * 16 - m;
+        final int maxX = minX + 16 + 2 * m - 1; // 16 + 24 + 23
+        final int maxZ = minZ + 16 + 2 * m - 1;
         for (int k = kMin; k <= kMax; k++) {
             final int px = plotOriginX(k);
-            if (px < minX - PLOT_DEPTH - 16 || px > maxX + 16) {
+            if (px < minX - PLOT_DEPTH - m || px > maxX + m) {
                 continue; // 快速横切（原点沿 x 单调，间距 16）
             }
             for (int l = kMin; l <= kMax; l++) {
@@ -612,9 +664,9 @@ public final class CityPlan {
                 }
                 final int pz = plotOriginZ(l);
                 // plot bbox [px, px+PLOT_DEPTH-1]×[pz, pz+PLOT_DEPTH-1] 外扩 footprint 余量后与 chunk 相交
-                if (px + PLOT_DEPTH - 1 + 16 < minX || px - 16 > maxX
-                    || pz + PLOT_DEPTH - 1 + 16 < minZ
-                    || pz - 16 > maxZ) {
+                if (px + PLOT_DEPTH - 1 + m < minX || px - m > maxX
+                    || pz + PLOT_DEPTH - 1 + m < minZ
+                    || pz - m > maxZ) {
                     continue;
                 }
                 final boolean empty = plotEmpty(k, l);
