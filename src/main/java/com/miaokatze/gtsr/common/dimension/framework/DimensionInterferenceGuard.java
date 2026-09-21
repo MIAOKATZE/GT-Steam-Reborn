@@ -91,10 +91,14 @@ public final class DimensionInterferenceGuard {
         final GTSRBiomeAuthority authority = GTSRBiomeAuthority.forDimension(world.provider.dimensionId);
         final GTSRBiomeAuthority.Resolution resolved = authority.ordinalAt(event.x, event.z);
         if (resolved == null || !resolved.resolved() || !(resolved.biome instanceof GTSRBiomeBase)) {
-            // 降级态与 {@code getPossibleCreatures} 同口径：无表 = 不刷（clear 而非回退他方表）
-            event.list.clear();
+            // 降级态与 getPossibleCreatures 同口径：无表 = 不刷（不回退他方表）。
+            // P15：改走 cancel 而非原地清空——list 是 public final 字段且实例归上游 provider 所有，
+            // 清空不可变实例直接崩服、清空他方群系在册表则永久改写全局注册表。cancel 经
+            // ForgeEventFactory 交回 null，WorldServer 对 null 即"该类型此处不刷"，观测语义不变。
+            event.setCanceled(true);
             return;
         }
+        // P15：本行原地写的合法性前提是 provider 出口每次交本次调用私有的可变副本（C1 源级钉）
         ((GTSRBiomeBase) resolved.biome).retainDeclaredSpawns(event.type, event.list);
     }
 }

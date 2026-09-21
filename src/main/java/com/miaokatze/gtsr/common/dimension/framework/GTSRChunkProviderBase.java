@@ -1,5 +1,6 @@
 package com.miaokatze.gtsr.common.dimension.framework;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
@@ -761,6 +762,9 @@ public class GTSRChunkProviderBase implements IChunkProvider {
      * <p>
      * 降级口径与 L1 一致：空表/短表解析不到名册成员时返回 {@code null}（vanilla
      * {@code SpawnerAnimals} 对 null 即"该类型此处不刷"），<b>不</b>回退任何他方群系的表。
+     * <p>
+     * 出口不变量（P15）：非 {@code null} 时返回的必须是<b>本次调用私有</b>的可变副本，
+     * 防线 3 守卫原地收口的前提见 {@code GTSRBiomeBase.retainDeclaredSpawns} 的入参契约。
      */
     @Override
     public List<BiomeGenBase.SpawnListEntry> getPossibleCreatures(EnumCreatureType creatureType, int x, int y, int z) {
@@ -778,7 +782,13 @@ public class GTSRChunkProviderBase implements IChunkProvider {
         }
         // R1 防线 4：本出口的生效表经 effectiveSpawnableList 内的声明真值过滤
         // （非 GTSR 声明的实体类不出现），EntityRegistry.addSpawn 注入在此被挡下。
-        return GTSRBiomeBase.effectiveSpawnableList(resolved.biome, creatureType, world.getSeed(), x >> 4, z >> 4);
+        final List<BiomeGenBase.SpawnListEntry> table = GTSRBiomeBase
+            .effectiveSpawnableList(resolved.biome, creatureType, world.getSeed(), x >> 4, z >> 4);
+        // P15：effectiveSpawnableList 的城窗分支返回名册 SCALED_CACHE 里的不可变共享实例，
+        // 声明与活表一致的分支按原实例返回群系在册表；两者都不是本调用的私有列表。
+        // 不拷贝就等于让防线 3 每 tick 对其原地结构写——前者抛 UnsupportedOperationException
+        // 崩服，后者永久改写全局注册表。null 与空表原样交回，vanilla 的 null 处置零漂移。
+        return table == null || table.isEmpty() ? table : new ArrayList<>(table);
     }
 
     @Override

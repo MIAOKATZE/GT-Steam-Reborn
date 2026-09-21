@@ -209,6 +209,13 @@ public abstract class GTSRBiomeBase extends BiomeGenBase {
      * 从 {@code list}（事件携带的候选表）里移除一切非声明「类型 × 实体类」条目。
      * 声明为空时清空整表（语义同 {@link #filterDeclaredSpawns} 的空声明分支）。
      * 先做一次幂等填充（保证惰性注册在读取前完成），再按账本裁决。
+     * <p>
+     * <b>入参契约（P15）</b>：{@code list} 必须是调用方本次私有的<b>可变</b>列表。本方法做原地
+     * 结构写，而 1.7.10 Forge 的 {@code WorldEvent.PotentialSpawns.list} 是 {@code public final}
+     * 字段、守卫无法改绑实例，所以可变性只能由上游保证——现网唯一上游出口
+     * {@code GTSRChunkProviderBase.getPossibleCreatures} 已改为每次交私有副本。若把名册
+     * {@code SCALED_CACHE} 的不可变共享实例或群系在册活表传进来，本方法分别会抛
+     * {@code UnsupportedOperationException} 崩服与永久改写全局注册表。
      */
     public final void retainDeclaredSpawns(EnumCreatureType creatureType, List<SpawnListEntry> list) {
         if (list == null || list.isEmpty()) {

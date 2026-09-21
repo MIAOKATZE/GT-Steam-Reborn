@@ -312,7 +312,7 @@ echo "== [2f] P9 生物层（L7）：注册链/表内容/渲染器与纹理/Data
 runres "CreatureSpawnAuthorityCheck all（判据 1/2/3/4/5/6 + 城窗 ×2 与结构联动数据）" CreatureSpawnAuthorityCheck all
 runres "CreatureSpawnAuthorityCheck off（判据 2 回退档：关 ⇒ 四群系 4 张表全空 = P8 基线 + 原版零差异）" \
   CreatureSpawnAuthorityCheck off
-runres "CreatureSpawnAuthorityCheck source（判据 3/5 源级档：L1 收口钉 + addObject 索引 ≥16 扫描）" \
+runres "CreatureSpawnAuthorityCheck source（判据 3/5 源级档：L1 收口钉 + P15 出口私有副本与守卫写点钉 + addObject 索引 ≥16 扫描）" \
   CreatureSpawnAuthorityCheck source
 echo "   P9 合计 assertions=$(total_assertions CreatureSpawnAuthorityCheck)"
 

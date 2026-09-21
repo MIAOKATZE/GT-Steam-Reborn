@@ -404,6 +404,14 @@ public final class CreatureSpawnAuthorityCheck {
             "C1 GTSRBiomeAuthority 仍留着已修的『已知边界』条目（判据 3 要求同步收口）");
         check(!authority.contains("仍走旧口径的只剩四处"), "C1 边界条目的「只剩四处」计数未收口");
         check(authority.contains("P9"), "C1 边界注释未记录 P9 的收口事实");
+        // P15 崩溃（进维刷怪 tick 抛 UnsupportedOperationException）的机制级钉：
+        // 事件列表是 public final 字段，守卫无法改绑实例，可变性只能由 provider 出口保证
+        check(body.contains("new ArrayList"), "C1 getPossibleCreatures 未交本次调用私有的可变副本");
+        final String guard = read(
+            "src/main/java/com/miaokatze/gtsr/common/dimension/framework/DimensionInterferenceGuard.java");
+        check(guard.contains("retainDeclaredSpawns"), "C1 防线 3 白名单裁决入口丢失");
+        check(guard.contains("setCanceled"), "C1 防线 3 降级态未走 cancel");
+        check(!guard.contains("event.list.clear"), "C1 防线 3 重新出现对事件列表的原地清空写点");
         // 污染面与蛋注册面的机制级钉（判据 1 / U-B）
         final List<String> addSpawn = grepTree("EntityRegistry.addSpawn");
         check(addSpawn.isEmpty(), "C1 出现 EntityRegistry.addSpawn 调用（漏传 biomes 即污染主世界）：" + addSpawn);
