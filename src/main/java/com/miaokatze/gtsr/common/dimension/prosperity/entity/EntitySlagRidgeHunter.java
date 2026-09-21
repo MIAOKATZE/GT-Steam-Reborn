@@ -23,8 +23,12 @@ import net.minecraft.world.World;
  * （{@code EntityMob.onUpdate}）、{@code attackDamage} 属性注册（{@code EntityMob:230}）、
  * 5 点经验值。
  * <p>
- * <b>Phase 1 素材纪律</b>：零新素材 —— {@code ModelSkeleton} +
- * {@code textures/entity/skeleton/skeleton.png}，皮肤归 P10。
+ * <b>Phase 1 素材纪律（D2 后）</b>：零新素材 —— 模型是我方复刻件
+ * {@code GTSRModelSlagRidgeHunter}（原版 {@code ModelSkeleton} 的 {@code setLivingAnimations()}
+ * 第一句无条件 {@code (EntitySkeleton)} ⇒ 上屏即崩，C-02；复刻件按 {@code ModelSkeleton.java:22-35}
+ * 逐箱照抄四肢与 UV，画布仍 64×32），贴图仍复用 {@code textures/entity/skeleton/skeleton.png}。
+ * 自有皮肤归 D1（<b>画布 64×32</b>，由 {@code CreatureSpawnAuthorityCheck} I2 组三方对钉）。
+ * 唯一与原版骷髅的差别是 {@code aimedBow} 恒 false——那行赋值正是崩因，而本档是近战档（清单 C-10）。
  * <p>
  * <b>本片刻意不接</b>：掉落表（不给原版骨头以外的东西，也不新增物品）、远程攻击、
  * 群聚与"结构上封顶 2 只"的行为面（见 {@link GTSRCreatureRoster#structureLinkCap}）。

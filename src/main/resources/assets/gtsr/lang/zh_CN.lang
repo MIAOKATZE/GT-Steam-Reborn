@@ -2092,3 +2092,6 @@ tile.ShatteredTarBase.name=焦油砾
 tile.ShatteredSpikeCluster.name=石刺簇
 tile.ShatteredAshLog.name=灰烬枯树干
 tile.ShatteredAshThorn.name=灰烬棘丛
+entity.gtsr.gear_pigeon.name=齿轮鸽
+entity.gtsr.steam_firefly.name=汽雾萤
+entity.gtsr.slag_ridge_hunter.name=渣脊猎手

@@ -1,0 +1,496 @@
+{
+ "_about": "dim78 三只自有生物皮肤（D1 · v1.20.37 批）的<b>唯一权威档案</b>：文件名 / 画布 IHDR / UV 部件归属 / 色板角色 / 每张的画法理由。与方块域 49 张同一纪律——派生色一律由锚点经 DERIVED_RULES 插值，脚本零硬编码十六进制。本文件入库（plan/tmp 是清理区、不入库，上一片『资产无源』事故的直接纠正）。",
+ "_authority_chain": [
+  "锚点与明暗阶：tools/artgen/dim7879/manifest.json 与 tools/artgen/dim1/manifest.json 的 PALETTE + DERIVED_RULES（本文件只<b>引用</b>角色名，不复制任何十六进制；两者同名锚点必须等值，由生成器断言）",
+  "画布尺寸：GTSRCreatureRoster.Species.skinWidth/skinHeight（名册申报）== 模型 textureWidth/Height == 本文件 canvas（三方对钉，机检出口是 CreatureSpawnAuthorityCheck 的 I2 组）",
+  "UV 部件归属：本文件 parts[].box = 模型源码里的 (setTextureOffset, addBox) 实参；萤逐箱抄 build/rfg/.../client/model/ModelBat.java:29-52（复刻件 GTSRModelSteamFirefly.java:49-83），猎手抄 ModelSkeleton.java:22-35（复刻件 GTSRModelSlagRidgeHunter.java:43-59），鸽抄 ModelChicken.java:24-46（原版件，D1 不改几何）"
+ ],
+ "_not_doing": [
+  "不动几何、不动 UV 偏移（属 modeler / obj-pipeline）：三张皮只能往模型已钉死的 UV 矩形里画，本文件的 parts[].box 因此是<b>只读输入</b>",
+  "不注册 mcmeta 帧带：三档都是静态皮肤（无 OFF/ON 帧、无发光层），萤的相位微光归渲染侧（清单 C-09），不靠贴图动画",
+  "不碰 textures/blocks/**（49 张已定稿）与 tools/dim1/asset_baseline_check.sh（只扫 blocks 目录，本目录不入它的门）"
+ ],
+ "output_dir": "src/main/resources/assets/gtsr/textures/entity",
+ "pixel_discipline": {
+  "alpha": "被几何采样的面一律 alpha=255（1.7.10 实体渲染不保证开 GL_BLEND，半透明像素的观感不可证 ⇒ 一律画实）；未被任何 UV 面采样的死区一律 (0,0,0,0)",
+  "forbid_rgb": [
+   "000000",
+   "FFFFFF"
+  ],
+  "hairline": "发丝线 1px，不加倍；暗域对比走 L 侧大 t（同方块域 DERIVED_RULES._note 的口径），暗部不靠向 DARK 堆叠",
+  "distinct_gate": "不套方块域 ≤16 硬门（生物皮肤的信息量需求高于地表类），但每张<b>必须申报实测</b> distinct_rgba 与 distinct_rgb_opaque，且逐色都要有角色归属"
+ },
+ "skins": {
+  "STEAM_FIREFLY": {
+   "file": "steam-firefly.png",
+   "species": "STEAM_FIREFLY",
+   "roster_path": "gtsr:textures/entity/steam-firefly.png",
+   "model": "com.miaokatze.gtsr.client.model.GTSRModelSteamFirefly",
+   "canvas": [
+    64,
+    64
+   ],
+   "scale_in_game": "0.35（GTSRCreatureRenderers.RenderScaledVanillaModel）⇒ 6px 头在 4 格外只剩约 2px：信息量预算极低，读感靠『暗铁 + 一处亮 lamp + 黄铜边』三档大色块，不靠细节",
+   "why": "汽雾萤=蒸汽时代的蝙蝠形小生物。把头画成<b>机车烟箱</b>（深铁面 + 黄铜圈灯孔 + GLINT 灯芯），头顶两片原版『耳』改判为<b>排烟管</b>（黄铜帽环 + 焦油管口 + 铁锈烟渍），躯干画成<b>铆接锅炉</b>（两道黄铜箍带 + 铆钉列 + 一条水位镜），膜翼画成<b>冲压铁骨架 + 挂绿锈的膜</b>（外翼末端一排排气孔 + 一片灯）。整张走冷铁灰域（hue≈212），只用黄铜/铜绿做暖隔条，灯芯是唯一亮点 ⇒ 与另两张一眼可分，也不会被读成『换了色的蝙蝠』（原版 bat 通体棕黑、无金属分区）。",
+   "palette_roles": {
+    "BRASS": "BRASS_SAND",
+    "BRASS_DARK": "RAIL_IRON",
+    "DEEP": "MONO_ROCK",
+    "FRAME": "CORE_ROCK",
+    "GLASS": "GLASS_CRUST",
+    "IRON": "IRON_PIPE",
+    "LAMP": "GLINT",
+    "PATINA_DARK": "PATINA_DEEP",
+    "PLATE": "STEEL_PLATE",
+    "PLATE_HI": "STEEL_BARE",
+    "RUST": "RUST_OXIDE",
+    "SOOT": "CASING_SOOT",
+    "VEIN": "CORE_VEIN"
+   },
+   "parts": [
+    {
+     "name": "head",
+     "role": "烟箱头（灯孔＝唯一的脸）",
+     "box": [
+      0,
+      0,
+      6,
+      6,
+      6
+     ],
+     "faces_bbox": [
+      0,
+      0,
+      24,
+      12
+     ],
+     "geom": [
+      -3,
+      -3,
+      -3
+     ]
+    },
+    {
+     "name": "ear",
+     "role": "排烟管（原版耳位改判为烟囱）",
+     "box": [
+      24,
+      0,
+      3,
+      4,
+      1
+     ],
+     "faces_bbox": [
+      24,
+      0,
+      32,
+      5
+     ],
+     "geom": [
+      -4,
+      -6,
+      -2
+     ],
+     "pair": "mirror"
+    },
+    {
+     "name": "body",
+     "role": "铆接锅炉本体 + 水位镜",
+     "box": [
+      0,
+      16,
+      6,
+      12,
+      6
+     ],
+     "faces_bbox": [
+      0,
+      16,
+      24,
+      34
+     ],
+     "geom": [
+      -3,
+      4,
+      -3
+     ]
+    },
+    {
+     "name": "inner_membrane",
+     "role": "贴身内翼膜（骨架肋条）",
+     "box": [
+      0,
+      34,
+      10,
+      6,
+      1
+     ],
+     "faces_bbox": [
+      0,
+      34,
+      22,
+      41
+     ],
+     "geom": [
+      -5,
+      16,
+      0
+     ]
+    },
+    {
+     "name": "wing",
+     "role": "主翼面（前缘黄铜 + 翼尖灯）",
+     "box": [
+      42,
+      0,
+      10,
+      16,
+      1
+     ],
+     "faces_bbox": [
+      42,
+      0,
+      64,
+      17
+     ],
+     "geom": [
+      -12,
+      1,
+      1.5
+     ],
+     "pair": "mirror"
+    },
+    {
+     "name": "outer_wing",
+     "role": "外翼段（一排排气孔 + 铜绿后缘）",
+     "box": [
+      24,
+      16,
+      8,
+      12,
+      1
+     ],
+     "faces_bbox": [
+      24,
+      16,
+      42,
+      29
+     ],
+     "geom": [
+      -20,
+      2,
+      1.5
+     ],
+     "pair": "mirror"
+    }
+   ],
+   "mirror_note": "wing/outer_wing/ear 的左半 mirror=true ⇒ 左翼是右翼的镜像采样，非对称细节画不出来（清单 C-16 ②）。本片因此<b>只画对称可读的分区</b>；灯孔/水位镜落在 front（head/body 不镜像）上。"
+  },
+  "SLAG_RIDGE_HUNTER": {
+   "file": "slag-ridge-hunter.png",
+   "species": "SLAG_RIDGE_HUNTER",
+   "roster_path": "gtsr:textures/entity/slag-ridge-hunter.png",
+   "model": "com.miaokatze.gtsr.client.model.GTSRModelSlagRidgeHunter",
+   "canvas": [
+    64,
+    32
+   ],
+   "scale_in_game": "1.0（RenderLivingVanillaModel，shadow 0.5）⇒ 头部 front 8×8 可承载 1px 断口；四肢 box 只有 2px 宽 ⇒ 每段一条 1px 特征线封顶",
+   "why": "渣脊猎手=敌对的熔渣猎手，与 dim79 的 slag/glass/tar 色家族同一族（橄榄渣壳 SLAG_CRUST + 焦油缝 TAR_SOIL + 冷蓝琉璃 GLASS_GLINT，石头中性色 CORE_ROCK 做结构件）。语言改成<b>棱面断口</b>：每个面用大块的直边斜面（同一基色在相邻多边形上走不同 L/D 阶），焦油只在<b>断面缝隙</b>出现（1px，不成片），冷蓝碎片是<b>断口的露背</b>。这样：与 dim78 的锈/黄铜时代（萤、鸽）拉开，与原版骷髅（通体白骨 + 黑眼洞）拉开，且和 dim79 地表块是同一家族。",
+   "palette_roles": {
+    "ASH_DARK": "ASH_CHAR",
+    "GLASS_HI": "GLASS_CRUST",
+    "GLOW": "GLOW_PURPLE",
+    "SHARD": "GLASS_GLINT",
+    "SLAG": "SLAG_CRUST",
+    "SLAG_DARK": "SLAG_SOIL",
+    "SPIKE": "SPIKE_STONE",
+    "TAR_DEEP": "TAR_SOIL"
+   },
+   "parts": [
+    {
+     "name": "head",
+     "role": "渣块头骨（front＝ brow + 琉璃眼 + 齿排）",
+     "box": [
+      0,
+      0,
+      8,
+      8,
+      8
+     ],
+     "faces_bbox": [
+      0,
+      0,
+      32,
+      16
+     ],
+     "geom": [
+      -4,
+      -8,
+      -4
+     ]
+    },
+    {
+     "name": "body",
+     "role": "叠置渣板胸腹 + 焦油缝 + 紫色炉心（front 是玩家主视面）",
+     "box": [
+      16,
+      16,
+      8,
+      12,
+      4
+     ],
+     "faces_bbox": [
+      16,
+      16,
+      40,
+      32
+     ],
+     "geom": [
+      -4,
+      0,
+      -2
+     ]
+    },
+    {
+     "name": "arm",
+     "role": "细骨臂（肩→肘→腕三段，肘是琉璃棱块）",
+     "box": [
+      40,
+      16,
+      2,
+      12,
+      2
+     ],
+     "faces_bbox": [
+      40,
+      16,
+      48,
+      30
+     ],
+     "geom": [
+      -6,
+      0,
+      -1
+     ],
+     "pair": "mirror"
+    },
+    {
+     "name": "leg",
+     "role": "细骨腿（踝关节 + 挑出的焦油爪尖）",
+     "box": [
+      0,
+      16,
+      2,
+      12,
+      2
+     ],
+     "faces_bbox": [
+      0,
+      16,
+      8,
+      30
+     ],
+     "geom": [
+      -3,
+      12,
+      -1
+     ],
+     "pair": "mirror"
+    }
+   ],
+   "mirror_note": "arm/leg 的左半 mirror=true（GTSRModelSlagRidgeHunter.java:49,56）⇒ 左右臂腿同一张采样镜像，不能画单侧伤疤；head/body 不镜像。"
+  },
+  "GEAR_PIGEON": {
+   "file": "gear-pigeon.png",
+   "species": "GEAR_PIGEON",
+   "roster_path": "gtsr:textures/entity/gear-pigeon.png",
+   "model": "net.minecraft.client.model.ModelChicken（原版件：I1 实测三个每帧热方法零外类强转）",
+   "canvas": [
+    64,
+    32
+   ],
+   "scale_in_game": "1.0（RenderLivingVanillaModel，shadow 0.5）⇒ 头 front 只有 4×6、喙 front 4×2，眼是 2×2 极值预算；躯干 front 6×8 / 侧面 6×8 是主要信息面",
+   "why": "齿轮鸽=被驯化的机械鸽，和平档，读感必须与另两张相反：<b>亮</b>（PORCELAIN + GLINT + 大面积黄铜）而非暗、<b>圆弧</b>（齿轮、铆环、穹顶）而非棱面断口。零件归属：头=抛光马口铁 + 黄铜框琉璃眼（2×2 眼 + 1px 高光＝极小预算下的唯一可行眼型）；喙与颏=黄铜百叶（原版的橙喙被读成散热格栅）；躯干=搪瓷胸甲包一颗真齿轮（齿 1px、不外露，避免加倍发丝线），两侧各一枚黄铜牌徽记；腿=三段黄铜阻尼支柱（原版那只的橙腿换成活塞）；翼=扇形展开的齿轮板。<b>不镜像</b>（ModelChicken.java:37-46 的左右翼/左右腿共用同一 UV）⇒ 左右同图，两侧徽记同内容。",
+   "palette_roles": {
+    "BRASS": "BRASS_SAND",
+    "BRASS_DARK": "RAIL_IRON",
+    "DEEP": "CASING_SOOT",
+    "GLASS": "GLASS_CRUST",
+    "GLOW": "GLINT",
+    "IRON": "IRON_PIPE",
+    "PATINA": "PATINA_DEEP",
+    "SHELL": "PORCELAIN",
+    "STEEL": "STEEL_PLATE",
+    "STEEL_HI": "STEEL_BARE"
+   },
+   "parts": [
+    {
+     "name": "head",
+     "role": "抛光头 + 黄铜框琉璃眼",
+     "box": [
+      0,
+      0,
+      4,
+      6,
+      3
+     ],
+     "faces_bbox": [
+      0,
+      0,
+      14,
+      9
+     ],
+     "geom": [
+      -2,
+      9,
+      -6
+     ]
+    },
+    {
+     "name": "bill",
+     "role": "黄铜百叶喙（原版橙喙改判为散热格栅）",
+     "box": [
+      14,
+      0,
+      4,
+      2,
+      2
+     ],
+     "faces_bbox": [
+      14,
+      0,
+      26,
+      4
+     ],
+     "geom": [
+      -2,
+      11,
+      -8
+     ]
+    },
+    {
+     "name": "chin",
+     "role": "下颏夹板",
+     "box": [
+      14,
+      4,
+      2,
+      2,
+      2
+     ],
+     "faces_bbox": [
+      14,
+      4,
+      22,
+      8
+     ],
+     "geom": [
+      -1,
+      13,
+      -7
+     ]
+    },
+    {
+     "name": "body",
+     "role": "搪瓷胸甲 + 一颗真齿轮 + 两侧黄铜牌",
+     "box": [
+      0,
+      9,
+      6,
+      8,
+      6
+     ],
+     "faces_bbox": [
+      0,
+      9,
+      24,
+      23
+     ],
+     "geom": [
+      -3,
+      12,
+      -3
+     ]
+    },
+    {
+     "name": "leg",
+     "role": "三段黄铜阻尼支柱腿",
+     "box": [
+      26,
+      0,
+      3,
+      5,
+      3
+     ],
+     "faces_bbox": [
+      26,
+      0,
+      38,
+      8
+     ],
+     "geom": [
+      -3,
+      19,
+      -2
+     ],
+     "pair": "same"
+    },
+    {
+     "name": "wing",
+     "role": "扇形齿轮板翼",
+     "box": [
+      24,
+      13,
+      1,
+      4,
+      6
+     ],
+     "faces_bbox": [
+      24,
+      13,
+      38,
+      23
+     ],
+     "geom": [
+      -4,
+      13,
+      -3
+     ],
+     "pair": "same"
+    }
+   ],
+   "mirror_note": "ModelChicken <b>无</b> mirror（原版件），但 rightLeg/leftLeg 同 UV (26,0)、rightWing/leftWing 同 UV (24,13) ⇒ 鸽没有独立左肢体像素可画（清单 C-16 ①），只能整体对称设计。"
+  }
+ },
+ "dead_space": {
+  "STEAM_FIREFLY": {
+   "dead_pixel_count": 2726,
+   "sampled_pixel_count": 1370,
+   "dead_fraction": 0.6655,
+   "note": "死区 = 画布 - 六个面矩形的并集（本字段是实测计数，不是手写矩形清单）；一律 (0,0,0,0)，不画内容也不画签名。"
+  },
+  "SLAG_RIDGE_HUNTER": {
+   "dead_pixel_count": 1104,
+   "sampled_pixel_count": 944,
+   "dead_fraction": 0.5391,
+   "note": "死区 = 画布 - 六个面矩形的并集（本字段是实测计数，不是手写矩形清单）；一律 (0,0,0,0)，不画内容也不画签名。"
+  },
+  "GEAR_PIGEON": {
+   "dead_pixel_count": 1466,
+   "sampled_pixel_count": 582,
+   "dead_fraction": 0.7158,
+   "note": "死区 = 画布 - 六个面矩形的并集（本字段是实测计数，不是手写矩形清单）；一律 (0,0,0,0)，不画内容也不画签名。"
+  }
+ },
+ "_geom_note": "parts[].geom = 该箱在模型空间里<b>未旋转</b>时的绝对最小角 (minx,miny,minz)（MC y 轴向下、-Z 是脸朝向），尺寸取 box 的 w/h/d。出处：萤=GTSRModelSteamFirefly.java:49-83 的 addBox/setRotationPoint 链，猎手=ModelBiped 的 head/body rp + ModelSkeleton.java:22-35 的四肢箱（复刻件 GTSRModelSlagRidgeHunter.java:43-59），鸽=ModelChicken.java:24-46。只服务 --assemble 的正交拼装预览（人眼验收用），不参与像素生成。",
+ "_pair_note": "parts[].pair = 该箱在模型里是否有一条镜像/同 UV 的另一半（\"mirror\" = ModelRenderer.mirror=true，左半是右半的<b>水平镜像采样</b>；\"same\" = 左右两半取<b>同一</b> UV 矩形且不翻转）。只服务 --assemble 的剪影（把另一半也画出来），不参与像素生成；它同时也是清单 C-16 的落点：这两类部件都画不出非对称细节。",
+ "palette_roles_note": "skins.*.palette_roles = 该张皮**实际用到**的角色名 -> 锚点名映射（实测来源是同目录 measured.json 的 palette_roles_used，剪过一轮未用角色）。明暗阶 token 一律走方块清单的 DERIVED_RULES，本清单不复制任何十六进制；锚点跨 dim1/dim7879 两份清单同名必须等值，由生成器断言。",
+ "_sidecars": {
+  "measured.json": "逐张实测（画布 IHDR、len(set(RGBA)) 口径的 distinct_rgba / distinct_rgb_opaque、用到的角色 spec 与其十六进制、每个 UV 面的不透明覆盖率、opaque 占画布比）。由生成器写，不手写。",
+  "landed.sha256": "落盘字节 pin（<file> <sha256>，与方块域同格式）。逐张增量更新：只动本档那一行。",
+  "draw_entity_skins.py": "生成器（无随机、双跑字节一致）。要改像素只能改它或本清单。"
+ },
+ "_discipline": "沿用本仓既有像素纪律：① 发丝线 1px 不加倍（萤的两道箍带是 2 行**色带**（BRASS + BRASS@L180 的受光棱），不是把一条发丝线画粗）；② 禁纯黑纯白——三张的最亮是 GLINT #E8E2D0、最暗 #24201F，均由锚点派生，无一取自极值；③ 暗域走 L 侧：MONO_ROCK/CASING_SOOT/TAR_SOIL 这类暗基色向 DARK 的步进会塌到 1 单位，故暗部对比一律用 @L090/@L180/@L200；④ 实体贴图不入方块图集、按 1 texel = 1 模型单位采样 ⇒ 没有 ×R 档，放大图只服务人眼验收，不改像素。",
+ "dead_space_note": "逐档实测（生成器同式 face_rect 复算）；原先手写的矩形清单与真实并集不符，已换成计数口径。"
+}

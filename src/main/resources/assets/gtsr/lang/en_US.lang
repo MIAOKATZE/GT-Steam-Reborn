@@ -2097,3 +2097,6 @@ tile.ShatteredTarBase.name=Tar-Bound Aggregate
 tile.ShatteredSpikeCluster.name=Shattered Spike Cluster
 tile.ShatteredAshLog.name=Ashen Dead Log
 tile.ShatteredAshThorn.name=Ashen Thorn Thicket
+entity.gtsr.gear_pigeon.name=Gear Pigeon
+entity.gtsr.steam_firefly.name=Steam Fog Firefly
+entity.gtsr.slag_ridge_hunter.name=Slag Ridge Hunter

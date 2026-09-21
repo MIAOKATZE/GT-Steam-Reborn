@@ -1,5 +1,7 @@
 import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -14,11 +16,16 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
+import net.minecraft.block.Block;
+import net.minecraft.client.model.ModelBase;
 import net.minecraft.client.renderer.entity.Render;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLiving;
 import net.minecraft.entity.EnumCreatureType;
+import net.minecraft.init.Blocks;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.BiomeGenBase;
@@ -29,6 +36,7 @@ import com.miaokatze.gtsr.common.dimension.framework.GTSRBiomeBase;
 import com.miaokatze.gtsr.common.dimension.framework.GTSRChunkProviderBase;
 import com.miaokatze.gtsr.common.dimension.framework.GTSRDimensionDef;
 import com.miaokatze.gtsr.common.dimension.framework.GTSRWorldChunkManager;
+import com.miaokatze.gtsr.common.dimension.framework.SurfaceGate;
 import com.miaokatze.gtsr.common.dimension.prosperity.ChunkProviderProsperityRuins;
 import com.miaokatze.gtsr.common.dimension.prosperity.entity.EntityGearPigeon;
 import com.miaokatze.gtsr.common.dimension.prosperity.entity.EntitySlagRidgeHunter;
@@ -68,9 +76,12 @@ import com.miaokatze.gtsr.config.Config;
  * 行为级——离线 mock World <b>没有任何 Chunk byte 平面</b>，仍按坐标拿到与名册一致的表；</li>
  * <li><b>D 渲染器与纹理</b>（判据 4）：FML {@code RenderingRegistry} 在册条目里逐档查到自己的
  * {@code Render}，反射调其 {@code getEntityTexture} 取回纹理，再对该路径做
- * {@code ClassLoader.getResource("assets/<domain>/<path>")} 的<b>实际可解析且非零字节</b>断言
- * （GTNH 的 {@code RendererLivingEntity} 吞异常 ⇒ "没崩"不等于"看得见"）；同时钉渲染器
- * 必须是<b>我方</b>薄壳（原版具体渲染器会向下转型成原版实体 ⇒ 隐形实体）与模型确为申报的原版模型；</li>
+ * <b>实际可解析且非零字节</b>断言（{@link #resolveTexture}：先 classpath，回落
+ * {@code src/main/resources/}，并打印走了哪条通道）。D1 起三档都是 {@code gtsr} 域自有皮肤，
+ * 故本组同时钉 {@code domain == "gtsr"} 与"渲染器返回的整串 ResourceLocation == 名册申报"
+ * （旧判据只比 {@code getResourcePath()}，换 domain 不红 ⇒ 借皮切自有时会静默漏钉）。
+ * 同时钉渲染器必须是<b>我方</b>薄壳（原版具体渲染器会向下转型成原版实体）与模型确为申报的那一个
+ * <b>类名</b>（D2 起申报值可以是我方复刻件 ⇒ "是不是原版"不再是安全条件，I1 才是）；</li>
  * <li><b>E DataWatcher 与 id</b>（判据 5）：三实体离线实例化后枚举 DataWatcher 全索引 ⇒
  * 自定义索引全部 ≥16 且不与 vanilla 链相撞；源级再扫一遍 {@code addObject(} 的字面量；
  * id 快照 = 自增、无重复、名字无重复，且离线不触发 FML 侧注册（无蛋 ⇒ 不占全局 id 段）；
@@ -80,14 +91,35 @@ import com.miaokatze.gtsr.config.Config;
  * <li><b>G 城窗 ×2 与结构联动数据</b>：城窗内 chunk 的生效权 == 声明表 ×2、窗外 == 该带声明表
  * （且声明表本体一字未改）；结构联动封顶恒 ≤2/座、未申报族为 0——
  * <b>本组只断言数据结构与纯函数，不声称行为已在游戏内生效</b>。</li>
+ * <li><b>I 判据 4/5 的结构性盲区补钉（D2）</b>：v1.20.35 三条高危能一路离线全绿到实机，根因是本工具
+ * 旧判据 4 只钉「渲染器类名前缀」与「模型 SimpleName 相符」，<b>从不看所选模型对实体做什么</b>，
+ * 判据 6 只钉「串名唯一」，<b>从不看名牌键怎么拼、lang 有没有</b>。本组补六条：
+ * I1 模型继承链上两个每帧热方法（{@code render}/{@code setLivingAnimations}）不得强转非自家实体类型
+ * （C-01 {@code ModelBat.java:73} / C-02 {@code ModelSkeleton.java:44}，1.7.10 的
+ * {@code RenderManager.java:300-304} 不吞异常 ⇒ 上屏即崩）；
+ * I2 模型申报画布 == 绑定贴图的 IHDR 尺寸（旧判据只到"非零字节"，换尺寸导致的 UV 错位抓不到）；
+ * I3 名册串名不得自带 modid（FML {@code EntityRegistry.java:164} 会自动前缀 ⇒ 双前缀）且两份 lang
+ * 必须有 {@code entity.<modid>.<串名>.name}（C-04）；
+ * I4 齿轮鸽的自家地表谓词必须放行<b>本维声明真值白名单全部成员</b>并拒绝原版草（C-03）；
+ * I5 飞行实体的位移不得只喂 {@code getMoveHelper()}（该类零 motion 写入 ⇒ 原地不动，C-05）；
+ * I6 名册必须以 {@code WorldServer.java:169} 与 {@code getMaxNumberOfCreature} 两条出处记载 creature 档的
+ * 密度压制（<b>不钉 "400"/"10" 字面量</b>——那会让日后"只把 400 tick 改述成 20 秒"的一次注释订正
+ * 把本判据弄成假红；钉引用出处即可承载"口径已写进名册"这条真值，清单 C-07）。
+ * <b>D1 皮肤片（本片）已落地的口径</b>：三档皮肤改走 {@code gtsr} 域自有路径，判据 4 的
+ * 「domain 恒 minecraft」随之翻成「恒 {@code gtsr}」，{@code Species.vanillaTexturePath()}
+ * 改名 {@code skinTexturePath()}（名字不再宣称一件已不成立的事）。I2 的
+ * 「名册申报画布 == 模型实测 == 贴图 IHDR」三方对钉<b>原样保留并被新皮重跑过</b>——
+ * 它是 D1 画布尺寸的唯一机检出口，不许绕过。</li>
  * </ul>
  * <p>
  * <b>货币口径（诚实性申报）</b>：权重单位 = vanilla {@code SpawnListEntry.itemWeight}（同类别内的
  * 相对抽签权）；"逐位一致"= 同实例类、同顺序、四个数字全等；本工具<b>不</b>测量任何刷怪率、出没
- * 频率或渲染像素——那些只有实机目检能给。
+ * 频率或渲染像素——那些只有实机目检能给。皮肤同理：本工具只钉 IHDR 与可解析性，
+ * <b>不</b>判断像素观感（缩放/镜像/光照下的读感一律只能实机看）。
  * <p>
- * <b>运行</b>（MC classpath + <b>原版资源根</b> {@code build/resources/patchedMc}，判据 4 需要后者
- * 才能解析 {@code assets/minecraft/...}；lwjgl 供 {@code Render} 实例化）：
+ * <b>运行</b>（MC classpath + 原版资源根 {@code build/resources/patchedMc}；D1 自有皮肤不在离线
+ * classpath 上，由 {@link #resolveTexture} 回落仓库 {@code src/main/resources/} 读取，
+ * 故 lwjgl 供 {@code Render} 实例化即可，无需额外挂资源根）：
  * <pre>
  * java -cp "temp/p4-surface/tools;temp/p4-surface/classes;build/resources/patchedMc;$CP" \
  *   CreatureSpawnAuthorityCheck [all|off|source]
@@ -170,6 +202,7 @@ public final class CreatureSpawnAuthorityCheck {
         groupF(h);
         groupG(h);
         groupH(h.p);
+        groupI();
     }
 
     /** 判据 2 的回退档：总开关关闭 ⇒ 四群系 4 张表逐位为空（= P8 的无条件清空态）。 */
@@ -450,29 +483,65 @@ public final class CreatureSpawnAuthorityCheck {
                 "D1 " + species + " 挂的是原版具体渲染器 " + render.getClass()
                     .getName() + "（会向下转型成原版实体 ⇒ 隐形实体）");
             final ResourceLocation loc = textureOf(render);
-            check(loc != null && species.vanillaTexturePath()
-                .equals(loc.getResourcePath()), "D1 " + species + " 渲染器返回的纹理不是名册申报的 "
-                    + species.vanillaTexturePath() + "，实际 " + loc);
+            check(loc != null && species.skinTexturePath()
+                .equals(loc.toString()), "D1 " + species + " 渲染器返回的纹理不是名册申报的 "
+                    + species.skinTexturePath() + "，实际 " + loc);
             if (loc == null) {
                 continue;
             }
-            check("minecraft".equals(loc.getResourceDomain()),
-                "D1 " + species + " 纹理 domain=" + loc.getResourceDomain() + "（Phase 1 必须全复用原版）");
+            check("gtsr".equals(loc.getResourceDomain()),
+                "D1 " + species + " 纹理 domain=" + loc.getResourceDomain()
+                    + "（D1 起三档必须全部走 gtsr 域自有皮肤；借原版皮属 v1.20.35~D2 的过渡态）");
             final String cpPath = "assets/" + loc.getResourceDomain() + '/' + loc.getResourcePath();
-            final URL url = loader.getResource(cpPath);
-            check(url != null, "D2 纹理在 classpath 上不可解析（隐形实体的另一半成因）：" + cpPath);
+            final URL url = resolveTexture(loader, loc);
+            check(url != null, "D2 纹理在 classpath 与仓库资源根上都不可解析（隐形实体的另一半成因）：" + cpPath);
             if (url == null) {
                 continue;
             }
             final long size = Files.size(Paths.get(url.toURI()));
             check(size > 0, "D2 纹理存在但 0 字节：" + cpPath);
             final Class<?> model = modelOf(render);
-            check(model != null && species.vanillaModelName()
+            check(model != null && species.modelClassName()
                 .equals(model.getSimpleName()),
-                "D3 " + species + " 复用的模型不是申报的 " + species.vanillaModelName() + "，实际 " + model);
+                "D3 " + species + " 复用的模型不是申报的 " + species.modelClassName() + "，实际 " + model);
             System.out.println("   D " + species + " -> " + render.getClass()
-                .getSimpleName() + " tex=" + loc + " bytes=" + size + " model=" + model.getSimpleName());
+                .getSimpleName() + " tex=" + loc + " bytes=" + size + " model=" + model.getSimpleName()
+                + " 装载通道=" + LAST_TEXTURE_CHANNEL);
         }
+    }
+
+    /**
+     * 皮肤资源的<b>实际</b>解析通道，最近一次 {@link #resolveTexture} 的结果（打印用，
+     * 让"渲染器读到的就是我写的文件"这件事在回执里可追）。
+     */
+    static String LAST_TEXTURE_CHANNEL = "unset";
+
+    /**
+     * 解析一张 {@link ResourceLocation} 指向的材质字节。
+     * <p>
+     * 两条通道，按优先级：① <b>classpath</b>（生产与 gradle 构建后的真通道：jar 里的
+     * {@code assets/<domain>/<path>}）；② 仓库资源根 {@code src/main/resources/<same path>}。
+     * 第二条是 D1 才需要的：一键入口 {@code tools/dim1/surface_checks.sh} 的 {@code runres}
+     * 只挂 {@code build/resources/patchedMc}（原版资源根）与 {@code build/classes}，
+     * <b>不挂</b> {@code src/main/resources}，而 {@code surface_checks.sh} 不属本片的可写面
+     * ⇒ 自有皮肤在离线 JVM 里只能走第二条。两条都试，且把走了哪条打出来，不静默。
+     */
+    private static URL resolveTexture(ClassLoader loader, ResourceLocation loc) throws java.io.IOException {
+        final String cpPath = "assets/" + loc.getResourceDomain() + '/' + loc.getResourcePath();
+        final URL url = loader.getResource(cpPath);
+        if (url != null) {
+            LAST_TEXTURE_CHANNEL = "classpath";
+            return url;
+        }
+        final java.nio.file.Path file = Paths.get("src/main/resources", cpPath.split("/"));
+        if (Files.isRegularFile(file)) {
+            LAST_TEXTURE_CHANNEL = "src-tree";
+            return file.toAbsolutePath()
+                .toUri()
+                .toURL();
+        }
+        LAST_TEXTURE_CHANNEL = "MISSING";
+        return null;
     }
 
     private static ResourceLocation textureOf(Render render) throws Exception {
@@ -482,10 +551,20 @@ public final class CreatureSpawnAuthorityCheck {
     }
 
     private static Class<?> modelOf(Render render) throws Exception {
-        final Field f = findField(render.getClass(), "mainModel");
-        f.setAccessible(true);
-        final Object model = f.get(render);
+        final Object model = modelInstance(render);
         return model == null ? null : model.getClass();
+    }
+
+    /** 渲染器实际持有的模型实例（{@code RenderLiving.mainModel}；判据 4 的 I1/I2 用它做反射级核对）。 */
+    private static ModelBase modelInstance(Render render) {
+        try {
+            final Field f = findField(render.getClass(), "mainModel");
+            f.setAccessible(true);
+            final Object model = f.get(render);
+            return model instanceof ModelBase ? (ModelBase) model : null;
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     private static Field findField(Class<?> cls, String name) {
@@ -774,6 +853,335 @@ public final class CreatureSpawnAuthorityCheck {
         }
         check(GTSRBiomeBase.isCreatureSpawnPolicyInstalled(), "H1 策略未接线（前面的断言全部无意义）");
         System.out.println("   H1 读取路径只读性核对=" + p.length + " 群系 × " + TYPES.length + " 类别");
+    }
+
+    // ————————————————————————— I 判据 4/5 盲区补钉（D2 生物高危修复）—————————————————————————
+
+    /**
+     * RFG 反编译源根（= 编译期真实 classpath 的源码面；缺失时先跑一次 gradle build）。
+     * 本组之所以能读上游源码做源级钉：C-01/C-02 的崩因（模型里的无条件向下转型）只存在于
+     * <b>上游模型类的源码/字节</b>里，既有判据 4 只看渲染器类名前缀与模型 SimpleName ⇒ 结构性漏网。
+     */
+    private static final String MC_SRC = "build/rfg/minecraft-src/java/";
+
+    /**
+     * 会被"无条件向下转型"打崩的三个每帧热方法：{@code {反射名, 反编译源签名前缀}}
+     * （调用频率见 {@code build/rfg/.../client/renderer/entity/RendererLivingEntity.java:164,165,247,266,309,319}；
+     * {@code setRotationAngles} 由 {@code render} 第一句转调，故同属每帧入口）。
+     */
+    private static final String[][] HOT_MODEL_METHODS = { { "render", "public void render(Entity" },
+        { "setLivingAnimations", "public void setLivingAnimations(EntityLivingBase" },
+        { "setRotationAngles", "public void setRotationAngles(float" } };
+
+    private static final String ENTITY_PKG = "src/main/java/com/miaokatze/gtsr/common/dimension/prosperity/entity/";
+    private static final String PIGEON_SRC = ENTITY_PKG + "EntityGearPigeon.java";
+    private static final String FLY_SRC = ENTITY_PKG + "EntitySteamFirefly.java";
+
+    /**
+     * 上游 {@code EntityLiving.getCanSpawnHere()} 的三段落地安全谓词（实测
+     * {@code build/rfg/.../entity/EntityLiving.java:742}）；齿轮鸽的覆写逐条复算它们
+     * （Java 跳不过 {@code EntityAnimal} 那层），故本表与上游必须对钉。
+     */
+    private static final List<String> VANILLA_SPAWN_LEGS = Arrays
+        .asList("checkNoEntityCollision", "getCollidingBoundingBoxes", "isAnyLiquid");
+
+    /** 上游那三段谓词按源文本出现顺序取回（上游一改即与 {@link #VANILLA_SPAWN_LEGS} 不等 ⇒ 红）。 */
+    private static List<String> upperSpawnLegs() throws IOException {
+        final String src = dropCommentLines(read(MC_SRC + "net/minecraft/entity/EntityLiving.java"));
+        final String body = src.contains("public boolean getCanSpawnHere(") ? methodBody(src,
+            "public boolean getCanSpawnHere(") : "";
+        final List<String> found = new ArrayList<>();
+        for (final String leg : VANILLA_SPAWN_LEGS) {
+            if (body.contains(leg)) {
+                found.add(leg);
+            }
+        }
+        return found;
+    }
+
+    private static void groupI() throws Exception {
+        final String modid = modIdFromSource();
+        final ClassLoader loader = CreatureSpawnAuthorityCheck.class.getClassLoader();
+        final String langEn = read("src/main/resources/assets/gtsr/lang/en_US.lang");
+        final String langZh = read("src/main/resources/assets/gtsr/lang/zh_CN.lang");
+
+        // I1 渲染器所选模型（含其继承链上所有覆写）必须对自家实体零外类强转
+        for (final Species species : Species.values()) {
+            final Render render = GTSRCreatureRenderers.newCreatureRenderer(species);
+            final ModelBase instance = modelInstance(render);
+            final Class<?> model = instance == null ? null : instance.getClass();
+            check(model != null, "I1 " + species + " 取不到模型实例（判据 4 的 D3 也无意义）");
+            if (model == null) {
+                continue;
+            }
+            final int scanned = checkNoForeignCast(model, species);
+            // I2 模型申报画布 == 实际绑定贴图的 IHDR 尺寸（旧判据 4 只钉"可解析且非零字节"，
+            // 换尺寸导致的 UV 错位抓不到 ⇒ D1 换自有皮肤的硬口径由此钉住）
+            final ResourceLocation loc = textureOf(render);
+            final URL url = loc == null ? null : resolveTexture(loader, loc);
+            if (url == null) {
+                check(false, "I2 " + species + " 贴图在 classpath 上不可解析 ⇒ 画布无从核对");
+            } else {
+                final int[] png = pngSize(url);
+                final int mw = intField(instance, "textureWidth");
+                final int mh = intField(instance, "textureHeight");
+                check(png[0] == mw && png[1] == mh, "I2 " + species + " 画布不符：模型 " + mw + "x" + mh
+                    + "（" + model.getName() + "，扫描继承链 " + scanned + " 层）vs 贴图 " + png[0] + "x" + png[1]
+                    + " " + loc);
+                // 名册申报画布 == 模型实测 == 贴图 IHDR（三方一致，否则 D1 按申报值画皮会 UV 错位）
+                check(species.skinWidth() == mw && species.skinHeight() == mh, "I2 " + species
+                    + " 名册申报画布 " + species.skinWidth() + "x" + species.skinHeight() + " 与模型实测 " + mw + "x"
+                    + mh + "（贴图 " + png[0] + "x" + png[1] + "）不符 ⇒ D1 的皮尺寸口径出现第二真值");
+                System.out.println("   I " + species + " model=" + model.getSimpleName() + " 画布=名册 "
+                    + species.skinWidth() + "x" + species.skinHeight() + " / 模型 " + mw + "x" + mh + " / 贴图 "
+                    + png[0] + "x" + png[1] + " 外类强转扫描=" + scanned + " 层 装载通道=" + LAST_TEXTURE_CHANNEL);
+            }
+
+            // I3 名牌键：FML 自动前缀 modid（cpw EntityRegistry.java:164）⇒ 名册串名不得自带 modid，
+            // 且两份 lang 必须有该键（v1.20.35 两份 lang 的 ^entity. 键实测 0 个）
+            check(!species.registryName().startsWith(modid + '.'), "I3 " + species + " 名册串名自带 modid 前缀（"
+                + species.registryName() + "）⇒ FML 再前缀后成 " + modid + '.' + species.registryName()
+                + "（双前缀，名牌显示原始 key）");
+            final String key = "entity." + modid + '.' + species.registryName() + ".name";
+            check(langValue(langEn, key) != null, "I3 en_US.lang 缺名牌键：" + key);
+            check(langValue(langZh, key) != null, "I3 zh_CN.lang 缺名牌键：" + key);
+        }
+
+        // I4 C-03：齿轮鸽的本维地表可刷性（EntityAnimal.java:322-327 的 Blocks.grass 硬门 + 光照 >8）
+        final String pigeon = read(PIGEON_SRC);
+        final String marker = "public boolean getCanSpawnHere(";
+        check(pigeon.contains(marker), "I4 EntityGearPigeon 未覆写 getCanSpawnHere ⇒ 走 EntityAnimal 的草方块"
+            + "硬门（EntityAnimal.java:327），dim78 全自研地表 ⇒ 权重最高档永不自然刷出（C-03）");
+        final String spawnBody = dropCommentLines(pigeon.contains(marker) ? methodBody(pigeon, marker) : "");
+        check(spawnBody.contains("canSpawnOnGround("),
+            "I4 getCanSpawnHere 未走本类的地表谓词入口 canSpawnOnGround ⇒ 地表真值无法离线复算");
+        check(dropCommentLines(pigeon).contains("SurfaceGate.isNaturalTop(DIM_KEY, SurfaceGate.landableTops(DIM_KEY),"),
+            "I4 EntityGearPigeon 未以 SurfaceGateUnifyCheck E 组申报的三参形式引地表门唯一真值");
+        check(!spawnBody.contains("Blocks.grass"), "I4 getCanSpawnHere 仍按原版 Blocks.grass 判地表（dim78 恒 false）");
+        check(spawnBody.contains("getFullBlockLightValue"), "I4 getCanSpawnHere 丢了原版光照门（>8）⇒ 密度口径与暗处刷出都失去约束");
+        // 覆写把 super 换成了"逐条复算 EntityLiving 的三段落地安全谓词"（Java 跳不过 EntityAnimal 那层）
+        // ⇒ 复算必须与上游逐条对齐，且上游一旦改动本钉要立刻红，不允许静默漂移
+        for (final String leg : VANILLA_SPAWN_LEGS) {
+            check(spawnBody.contains(leg), "I4 getCanSpawnHere 丢了 EntityLiving 的落地安全谓词一段：" + leg);
+        }
+        check(VANILLA_SPAWN_LEGS.equals(upperSpawnLegs()), "I4 上游 EntityLiving.getCanSpawnHere 的三段与本仓复算"
+            + "不再同形（上游 " + upperSpawnLegs() + " vs 复算 " + VANILLA_SPAWN_LEGS
+            + "）⇒ 同步复算层或改回 super");
+        final Block[] tops = SurfaceGate.landableTops(SurfaceGate.DIM78);
+        check(tops.length == SurfaceGate.DIM78_SIZE, "I4 dim78 地表白名单规模异常（" + tops.length + "）");
+        int offlineUnbound = 0;
+        for (int i = 0; i < tops.length; i++) {
+            if (tops[i] == null) {
+                // 离线装配（SurfaceHarness.blockFamily）不构造城内冻结地表块 prosperitySurface ⇒ 首槽
+                // 允许为 null；别的槽出现 null 就是真值集被改动，必须红。生产侧首槽非空由
+                // SurfaceGateUnifyCheck 的 F 组（a[0] == gtsr:prosperitySurface）钉，本工具不引
+                // BlocksGTSR——它的编译闭包会拉进 gregtech/ae2，超出本工具的 classpath。
+                check(i == 0, "I4 白名单第 " + i + " 槽在离线 JVM 里为 null（只有首槽 prosperitySurface 允许未装配）"
+                    + " ⇒ 本维地表真值集被改坏");
+                offlineUnbound++;
+                continue;
+            }
+            check(tops[i] != Blocks.grass,
+                "I4 白名单成员是原版草 ⇒ 本维地表真值不成立（dim78 四群系 topBlock 全是自研块）");
+        }
+        check(tops.length - offlineUnbound >= 4, "I4 白名单可判成员不足 4 个自然 top（实测可判 "
+            + (tops.length - offlineUnbound) + "，离线未装配 " + offlineUnbound + "）");
+        final Method groundGate = findStatic(EntityGearPigeon.class, "canSpawnOnGround", Block.class);
+        check(groundGate != null, "I4 EntityGearPigeon 无可离线复算的地表谓词入口 canSpawnOnGround(Block) ⇒ \"本维地表确实可刷\"无从机检");
+        if (groundGate != null) {
+            groundGate.setAccessible(true);
+            for (final Block top : tops) {
+                if (top == null) {
+                    continue;
+                }
+                check(Boolean.TRUE.equals(groundGate.invoke(null, top)),
+                    "I4 本维地表声明真值成员 " + top + " 被自家门判不可刷 ⇒ 该带仍刷不出鸽（C-03 未修）");
+            }
+            check(Boolean.FALSE.equals(groundGate.invoke(null, Blocks.grass)),
+                "I4 门放行了原版 Blocks.grass（本维不存在该地表；放行即等于把真值口径退回原版）");
+        }
+
+        // I5 C-05：位移来源。EntityMoveHelper.java:49-74 只写 yaw/jump、零 motion ⇒ 只喂 moveHelper 的
+        // 飞行实体必然原地不动；位移要么由 navigator 驱动，要么由本类直投 motion（原版蝙蝠范式）
+        final String fly = read(FLY_SRC);
+        final String aiMarker = "protected void updateAITasks(";
+        check(fly.contains(aiMarker),
+            "I5 EntitySteamFirefly 无 updateAITasks 覆写 ⇒ 位移仍只喂 getMoveHelper（EntityMoveHelper 零 motion 写入 ⇒ 原地不动，C-05）");
+        final String flyBody = dropCommentLines(fly.contains(aiMarker) ? methodBody(fly, aiMarker) : "");
+        // 认"每轴一条 += 累加写入"而不是"出现过 motionY 字样"：夹位语句里的 this.motionY = 常量 也算
+        // 出现过 motionY，按字样认会让"删掉悬停主写入、只留夹位"这种变异静默通过（实测过一轮）
+        for (final String axis : new String[] { "X", "Y", "Z" }) {
+            check(flyBody.contains("this.motion" + axis + " +="), "I5 updateAITasks 缺 this.motion" + axis
+                + " += 累加写入 ⇒ 该轴不受控（原版蝙蝠的三轴同形写法是 EntityBat.java:175-177）");
+        }
+        check(!dropCommentLines(fly).contains("getMoveHelper()"),
+            "I5 仍把 getMoveHelper() 当位移通道（该类不改 motion/pos；原版蝙蝠也不走这条路）");
+
+        // I6 C-07 口径钉：creature 档受 WorldServer.java:169 的 400 tick 门与 getMaxNumberOfCreature=10
+        // 双重压制，名册必须以这两处 file:line/符号为出处记载（不钉数字字面量，理由见组注释）
+        final String roster = read(
+            "src/main/java/com/miaokatze/gtsr/common/dimension/prosperity/entity/GTSRCreatureRoster.java");
+        check(roster.contains("WorldServer.java:169") && roster.contains("getMaxNumberOfCreature"),
+            "I6 名册未以 WorldServer.java:169 / getMaxNumberOfCreature 两条出处记载 creature 档密度口径"
+                + " ⇒ 权重排序会被读成观感承诺（C-07）");
+        System.out.println("   I4/I6 本维地表可刷门可判成员=" + (tops.length - offlineUnbound) + '/' + tops.length
+            + "（离线未装配 " + offlineUnbound + " 槽，见 I4 注释）；creature 档密度口径以 file:line 记载");
+    }
+
+    /** 沿模型继承链扫描三个每帧热方法里的 {@code (EntityXxx)} 强转；返回实际扫描的类层数。 */
+    private static int checkNoForeignCast(Class<?> model, Species species) throws IOException {
+        int levels = 0;
+        for (Class<?> c = model; c != null && ModelBase.class.isAssignableFrom(c); c = c.getSuperclass()) {
+            final String src;
+            try {
+                src = dropCommentLines(readSourceOf(c));
+            } catch (IOException e) {
+                check(false, "I1 读不到 " + c.getName() + " 的反编译源（" + e.getMessage()
+                    + "）⇒ 外类强转盲区无法闭合，先跑一次 gradle build 生成 " + MC_SRC + "…");
+                return levels;
+            }
+            for (final String[] hot : HOT_MODEL_METHODS) {
+                if (!declares(c, hot[0])) {
+                    continue;
+                }
+                levels++;
+                if (!src.contains(hot[1])) {
+                    check(false, "I1 " + c.getName() + " 声明了 " + hot[0] + " 但源里找不到该签名（映射漂移？）");
+                    continue;
+                }
+                final Matcher m = CAST.matcher(methodBody(src, hot[1]));
+                while (m.find()) {
+                    final String simple = m.group(1);
+                    final Class<?> target = resolveCast(c, simple, src);
+                    check(target != null && target.isAssignableFrom(species.entityClass()), "I1 " + species
+                        + " 的模型 " + c.getSimpleName() + '.' + hot[0] + " 无条件强转 " + simple
+                        + "，而自家实体是 " + species.entityClass().getSimpleName() + " ⇒ 上屏即 ClassCastException"
+                            + "（RenderManager.java:300-304 不吞异常，直接 ReportedException 崩客户端）");
+                }
+            }
+        }
+        return levels;
+    }
+
+    private static final Pattern CAST = Pattern.compile("\\(\\s*(([a-zA-Z_$][\\w$]*\\.)*Entity[A-Za-z_$][\\w$]*)\\s*\\)");
+
+    private static Class<?> resolveCast(Class<?> owner, String name, String src) {
+        if (name.contains(".")) {
+            try {
+                return Class.forName(name);
+            } catch (ClassNotFoundException e) {
+                return null;
+            }
+        }
+        final String imported = "import net.minecraft.";
+        for (final String line : src.split("\n")) {
+            final String t = line.trim();
+            if (t.startsWith(imported) && t.endsWith('.' + name + ';')) {
+                try {
+                    return Class.forName(t.substring(7, t.length() - 1));
+                } catch (ClassNotFoundException e) {
+                    return null;
+                }
+            }
+        }
+        return null;
+    }
+
+    private static boolean declares(Class<?> c, String methodName) {
+        for (final Method m : c.getDeclaredMethods()) {
+            if (m.getName().equals(methodName)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** 类 → 源码路径（上游走 RFG 反编译树，我方走 src/main/java）。 */
+    private static String readSourceOf(Class<?> c) throws IOException {
+        final String rel = c.getName().replace('.', '/') + ".java";
+        if (c.getName().startsWith("net.minecraft.")) {
+            return read(MC_SRC + rel);
+        }
+        if (c.getName().startsWith("com.miaokatze.")) {
+            return read("src/main/java/" + rel);
+        }
+        throw new IOException("未知源码根的类 " + c.getName());
+    }
+
+    private static int intField(Object instance, String name) throws Exception {
+        final Field f = ModelBase.class.getField(name);
+        f.setAccessible(true);
+        return f.getInt(instance);
+    }
+
+    private static Method findStatic(Class<?> cls, String name, Class<?>... params) {
+        try {
+            return cls.getDeclaredMethod(name, params);
+        } catch (NoSuchMethodException e) {
+            return null;
+        }
+    }
+
+    /** 只保留非注释行（与 {@link #grepTree} 同一口径：注释里重申的符号不算违规）。 */
+    private static String dropCommentLines(String src) {
+        final StringBuilder sb = new StringBuilder();
+        for (final String line : src.split("\n")) {
+            final String t = line.trim();
+            if (t.startsWith("//") || t.startsWith("*") || t.startsWith("/*")) {
+                continue;
+            }
+            sb.append(line).append('\n');
+        }
+        return sb.toString();
+    }
+
+    /** PNG IHDR 的宽高（字节 16..23，大端）。 */
+    private static int[] pngSize(URL url) throws IOException {
+        try (InputStream in = url.openStream()) {
+            final byte[] head = new byte[24];
+            int off = 0;
+            while (off < 24) {
+                final int n = in.read(head, off, 24 - off);
+                if (n < 0) {
+                    break;
+                }
+                off += n;
+            }
+            if (off < 24 || head[1] != 'P' || head[2] != 'N' || head[3] != 'G') {
+                throw new IOException("不是合法 PNG 头：" + url);
+            }
+            return new int[] { be(head, 16), be(head, 20) };
+        }
+    }
+
+    private static int be(byte[] b, int at) {
+        return (b[at] & 0xFF) << 24 | (b[at + 1] & 0xFF) << 16 | (b[at + 2] & 0xFF) << 8 | b[at + 3] & 0xFF;
+    }
+
+    /** {@code GTSteamReborn.MODID}（读源取字面量，不加载 @Mod 类）。 */
+    private static String modIdFromSource() throws IOException {
+        final String src = read("src/main/java/com/miaokatze/gtsr/main/GTSteamReborn.java");
+        final Matcher m = Pattern.compile("MODID\\s*=\\s*\"([^\"]+)\"")
+            .matcher(src);
+        check(m.find(), "I3 取不到 GTSteamReborn.MODID 字面量");
+        return m.group(1);
+    }
+
+    /** lang 里该键的值（逐行比对键名，不依赖换行符形态；找不到返回 null）。 */
+    private static String langValue(String langSource, String key) {
+        for (final String line : langSource.split("\n")) {
+            final String t = line.trim();
+            if (t.isEmpty() || t.startsWith("#")) {
+                continue;
+            }
+            final int eq = t.indexOf('=');
+            if (eq > 0 && t.substring(0, eq)
+                .trim()
+                .equals(key)) {
+                return t.substring(eq + 1);
+            }
+        }
+        return null;
     }
 
     // ————————————————————————— 装配与工具 —————————————————————————
