@@ -79,21 +79,42 @@ public final class GTSRBiomeAuthority {
      */
     public enum BiomeId {
 
-        RUSTED_STEPPE(DIM_KEY_PROSPERITY, 0),
-        GEARWORK_FOREST(DIM_KEY_PROSPERITY, 1),
-        BRASS_WASTES(DIM_KEY_PROSPERITY, 2),
-        FUMAROLE_SWAMP(DIM_KEY_PROSPERITY, 3),
-        ASHEN_PRAIRIE(DIM_KEY_SHATTERED, 0),
-        SLAGWOOD_GROVE(DIM_KEY_SHATTERED, 1),
-        VITREOUS_WASTE(DIM_KEY_SHATTERED, 2),
-        TAR_BASIN(DIM_KEY_SHATTERED, 3);
+        RUSTED_STEPPE(DIM_KEY_PROSPERITY, 0, true),
+        GEARWORK_FOREST(DIM_KEY_PROSPERITY, 1, true),
+        BRASS_WASTES(DIM_KEY_PROSPERITY, 2, true),
+        FUMAROLE_SWAMP(DIM_KEY_PROSPERITY, 3, true),
+        /**
+         * 遗忘之川（v1.20.39 T5 第 5 成员，名册下标 4）。<b>不进 selector 等权名册</b>——
+         * {@code CommonProxy}/GenLayer 链的 4 家名册不动 ⇒ 链身份面（{@link #ordinalAt} 的
+         * Source 采样）永远解析不到它；其平面列由 populate 后置写入
+         * （{@code ChunkProviderProsperityRuins.onPopulate} → {@code BiomePlaneAccess}），
+         * 机器侧消费（三途余汽）走与平面写入同一谓词 {@code GTSRVoronoiRiverField.isSanzuColumn}。
+         */
+        SANZU_RIVER(DIM_KEY_PROSPERITY, 4, false),
+        ASHEN_PRAIRIE(DIM_KEY_SHATTERED, 0, true),
+        SLAGWOOD_GROVE(DIM_KEY_SHATTERED, 1, true),
+        VITREOUS_WASTE(DIM_KEY_SHATTERED, 2, true),
+        TAR_BASIN(DIM_KEY_SHATTERED, 3, true);
 
         private final String dimKey;
         private final int ordinal;
+        /**
+         * 是否进 def 群系表（= GenLayer 链 selector 等权名册成员）。
+         * <p>
+         * <b>v1.20.39 T8 真缺陷修复（T5 遗留，重钉暴露）</b>：{@code CityPlanner.bandIndexAt} 与
+         * {@code GTSRGenLayerRosterFace} 的链入参从"账本已配槽成员"取——T5 给账本补第 5 元后，
+         * 这两个身份面悄悄变成 5 元等权链，与 manager 的 def 表 4 元链在(std seed)同坐标解出不同
+         * 群系，破坏"manager == 城门 == 地势取数"的三元同一（plan §3.3 红线："不进 GenLayer 链
+         * selector，4 家等权名册未动"）。修法：selector 成员性作为名册单一真值的一部分登记在
+         * 本枚举，两个链面只吃 {@link #inSelector()} 成员——与 manager 的 def 表挂接口径
+         * （{@code ProsperityBiomes.attachBiome} 只给 4 家挂表）由构造保持一致。
+         */
+        private final boolean selector;
 
-        BiomeId(String dimKey, int ordinal) {
+        BiomeId(String dimKey, int ordinal, boolean selector) {
             this.dimKey = dimKey;
             this.ordinal = ordinal;
+            this.selector = selector;
         }
 
         /** 所属维度的 def key。 */
@@ -104,6 +125,11 @@ public final class GTSRBiomeAuthority {
         /** 该维名册内下标（权重表下标口径；<b>不叫</b> ordinal()——与 {@code Enum#ordinal()} 冲突）。 */
         public int rosterIndex() {
             return this.ordinal;
+        }
+
+        /** 是否进 def 群系表 / GenLayer 链 selector 等权名册（false = roster-only，plan §3.3）。 */
+        public boolean inSelector() {
+            return this.selector;
         }
     }
 

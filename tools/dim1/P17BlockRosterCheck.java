@@ -17,6 +17,8 @@ import com.google.gson.JsonParser;
 import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
 
+import com.miaokatze.gtsr.common.blocks.BlockProsperityFalling;
+import com.miaokatze.gtsr.common.blocks.BlockProsperityStone;
 import com.miaokatze.gtsr.common.blocks.BlocksGTSR;
 import com.miaokatze.gtsr.common.dimension.prosperity.block.BlockProsperityCanopyLeaves;
 import com.miaokatze.gtsr.common.dimension.prosperity.block.BlockProsperityNaturalBase;
@@ -79,13 +81,18 @@ public final class P17BlockRosterCheck {
             "prosperity_tuft_sedge" });
         ROSTER.put("prosperityTuftBristle", new String[] { "ProsperityTuftBristle", "plant",
             "prosperity_tuft_bristle" });
-        // P17-S-B2 沙/砂砾 3 件（B 档 BlockProsperityNaturalBase 吃贴图名 ⇒ 零新 Java 类；全部非 top）
+        // P17-S-B2 沙/砂砾 3 件（B 档 BlockProsperityNaturalBase 吃贴图名 ⇒ 零新 Java 类；全部非 top）。
+        // v1.20.39 T2/T8 重钉（plan §3.9 G8）：coarseSand/riverGravel 切 BlockProsperityFalling
+        //（注册名/贴图不变，材质仍 ground），类族标记 base→falling。
         ROSTER.put("prosperitySilicaSand", new String[] { "ProsperitySilicaSand", "base",
             "prosperity_silica_sand" });
-        ROSTER.put("prosperityCoarseSand", new String[] { "ProsperityCoarseSand", "base",
+        ROSTER.put("prosperityCoarseSand", new String[] { "ProsperityCoarseSand", "falling",
             "prosperity_coarse_sand" });
-        ROSTER.put("prosperityRiverGravel", new String[] { "ProsperityRiverGravel", "base",
+        ROSTER.put("prosperityRiverGravel", new String[] { "ProsperityRiverGravel", "falling",
             "prosperity_river_gravel" });
+        // v1.20.39 T2/T8 名册同步（plan §3.7 G4）：prosperityStone 地底石化主体石入册。
+        ROSTER.put("prosperityStone", new String[] { "ProsperityStone", "stone",
+            "prosperity_stone" });
     }
 
     private static final String BLOCKS = "src/main/java/com/miaokatze/gtsr/common/blocks/BlocksGTSR.java";
@@ -120,7 +127,7 @@ public final class P17BlockRosterCheck {
         final JsonObject design = new JsonParser().parse(read(DESIGN32)).getAsJsonObject()
             .get("entries").getAsJsonObject();
 
-        // —— 1+2. 注册链文本钉 + 运行时实例钉（12 方块） ——
+        // —— 1+2. 注册链文本钉 + 运行时实例钉（v1.20.39 T8 口径 16 方块 = 原 15 + prosperityStone） ——
         for (final Map.Entry<String, String[]> e : ROSTER.entrySet()) {
             final String field = e.getKey();
             final String reg = e.getValue()[0];
@@ -150,6 +157,14 @@ public final class P17BlockRosterCheck {
                 } else if ("base".equals(family)) {
                     check(b instanceof BlockProsperityNaturalBase, field + " 类族应为 BlockProsperityNaturalBase");
                     check(material(b) == Material.ground, field + " 材质应为 ground");
+                } else if ("falling".equals(family)) {
+                    // T2/T8：G8 重力沙砾（BlockFalling 派生），注册名与材质观感不变。
+                    check(b instanceof BlockProsperityFalling, field + " 类族应为 BlockProsperityFalling");
+                    check(material(b) == Material.ground, field + " 材质应为 ground");
+                } else if ("stone".equals(family)) {
+                    // T2/T8：G4 地底石化主体石（Material.rock，pickaxe 档）。
+                    check(b instanceof BlockProsperityStone, field + " 类族应为 BlockProsperityStone");
+                    check(material(b) == Material.rock, field + " 材质应为 rock");
                 } else {
                     check(b instanceof BlockProsperityTuft, field + " 类族应为 BlockProsperityTuft");
                     check(material(b) == Material.plants, field + " 材质应为 plants");
@@ -164,7 +179,7 @@ public final class P17BlockRosterCheck {
                 "SurfaceGate 源文本不得出现新方块 " + field + "（DIM78_SIZE 恒 5 纪律）");
         }
 
-        // —— 3+4. 18 贴图解析 + 像素纪律（classpath 与仓库资源根双通道） ——
+        // —— 3+4. 贴图解析 + 像素纪律（classpath 与仓库资源根双通道；T8 起 22 张） ——
         int texCount = 0;
         for (final Map.Entry<String, String[]> e : ROSTER.entrySet()) {
             for (int i = 2; i < e.getValue().length; i++) {
@@ -197,7 +212,7 @@ public final class P17BlockRosterCheck {
                 }
             }
         }
-        check(texCount == 21, "贴图名册数 != 21：" + texCount);
+        check(texCount == 22, "贴图名册数 != 22（T8 加 prosperity_stone）：" + texCount);
 
         // —— 5. lang 齐备无多余（两份 ×12，重复行与 meta 键反向钉） ——
         for (final String lang : LANGS) {
@@ -227,9 +242,9 @@ public final class P17BlockRosterCheck {
             System.out.println("P17 BLOCK ROSTER FAIL: passed=" + passed + " failed=" + FAILURES.size());
             System.exit(1);
         }
-        System.out.println("P17 BLOCK ROSTER PASS: blocks=15 textures=21 langs=2x15"
-            + " family=log/leaf(canopy-tint 继承)/plant(tuft)/base(砂石砾) 注册链+运行时+字节+lang+纪律1 全钉"
-            + " assertions=" + passed);
+        System.out.println("P17 BLOCK ROSTER PASS: blocks=16 textures=22 langs=2x16"
+            + " family=log/leaf(canopy-tint 继承)/plant(tuft)/base(砂)/falling(砾, G8)/stone(石化, G4)"
+            + " 注册链+运行时+字节+lang+纪律1 全钉 assertions=" + passed);
     }
 
     private static final class JsonEntry {

@@ -143,7 +143,9 @@ public final class CityPlanner {
         final int[] ids = new int[authority.rosterSize()];
         int kept = 0;
         for (final GTSRBiomeAuthority.BiomeId key : GTSRBiomeAuthority.BiomeId.values()) {
-            if (!GTSRBiomeAuthority.DIM_KEY_PROSPERITY.equals(key.dimKey())) {
+            // v1.20.39 T8 真缺陷修复：只吃 selector 成员（!inSelector() 的 roster-only 成员——
+            // sanzu——不得进链），与 manager 的 def 表链保持同参同解（plan §3.3；BBH A1 钉）。
+            if (!GTSRBiomeAuthority.DIM_KEY_PROSPERITY.equals(key.dimKey()) || !key.inSelector()) {
                 continue;
             }
             final BiomeGenBase biome = authority.biomeOf(key);

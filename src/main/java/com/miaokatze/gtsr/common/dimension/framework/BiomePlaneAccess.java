@@ -94,11 +94,20 @@ public final class BiomePlaneAccess {
     /** hook 上合法写方法的名字（javap 实测签名：{@code void setBiomeShortArray(short[])}）。 */
     private static final String SETTER_NAME = "setBiomeShortArray";
 
+    /**
+     * hook 上的读方法名（{@code short[] getBiomeShortArray()}，与 {@link #SETTER_NAME} 同一接口的
+     * 另一半；v1.20.39 T5 的列写通道 {@link #writeColumn} 需要"读出→改一列→写回"）。
+     */
+    private static final String GETTER_NAME = "getBiomeShortArray";
+
     /** 类初始化期探测一次：本运行时的 {@code Chunk} 是否被 EndlessIDs 换成 short 平面（可能为 null）。 */
     private static final Class<?> HOOK = probeHookClass();
 
     /** 与 {@link #HOOK} 同批探测；{@code null} 表示接口在但形状不符（老版本/改名），一律降级为 skip。 */
     private static final Method SHORT_SETTER = probeShortSetter(HOOK);
+
+    /** 同上，读侧探针（仅 {@link #writeColumn} 用；null ⇒ short 列写不可用，走 skip 口径）。 */
+    private static final Method SHORT_GETTER = probeShortGetter(HOOK);
 
     /** skip 原因只打一次（{@code provideChunk} 每 chunk 都过这里，逐 chunk 打会淹掉日志）。 */
     private static final AtomicBoolean SKIP_LOGGED = new AtomicBoolean();
@@ -123,6 +132,17 @@ public final class BiomePlaneAccess {
         }
         try {
             return hook.getMethod(SETTER_NAME, short[].class);
+        } catch (Throwable ignored) {
+            return null;
+        }
+    }
+
+    private static Method probeShortGetter(Class<?> hook) {
+        if (hook == null) {
+            return null;
+        }
+        try {
+            return hook.getMethod(GETTER_NAME);
         } catch (Throwable ignored) {
             return null;
         }
@@ -211,6 +231,71 @@ public final class BiomePlaneAccess {
                     .getName() + ": " + t.getMessage());
             return false;
         }
+    }
+
+    /**
+     * <b>单列群系平面写（v1.20.39 T5，populate 后置的 sanzu 指派用）</b>：把 {@code chunk} 平面的
+     * {@code (localX, localZ)} 列改写为 {@code biome}。与 {@link #write(Chunk, BiomeGenBase[])} 同一
+     * 双通道纪律（short 走"读出→改列→写回"，byte 直接改 {@code getBiomeArray()} 后
+     * {@code setBiomeArray} 回写），同一套一次性 skip 诊断；任何失败都不抛出（返回 false）。
+     * <p>
+     * <b>调用方纪律</b>：本方法不动 {@code chunk.isModified}——平面列不属于方块写，持久化标脏由
+     * 调用方在确有写入后自行置位（GT5U {@code GTWorldgenerator:734} 先例）。
+     *
+     * @return true = 该列已写入；false = 入参非法或通道 skip（原因首次打一行 error）
+     */
+    public static boolean writeColumn(Chunk chunk, int localX, int localZ, BiomeGenBase biome) {
+        if (chunk == null || biome == null || (localX & ~15) != 0 || (localZ & ~15) != 0) {
+            return false;
+        }
+        final int index = (localZ << 4) | localX;
+        try {
+            if (useShortPlane(chunk)) {
+                if (SHORT_GETTER == null || SHORT_SETTER == null) {
+                    logSkipOnce(
+                        mode(chunk),
+                        "column write needs both " + GETTER_NAME
+                            + "() and "
+                            + SETTER_NAME
+                            + "() (getter="
+                            + SHORT_GETTER
+                            + ", setter="
+                            + SHORT_SETTER
+                            + ")");
+                    return false;
+                }
+                final short[] plane = (short[]) SHORT_GETTER.invoke(chunk);
+                if (plane == null || plane.length != PLANE_COLUMNS) {
+                    logSkipOnce(mode(chunk), "column write got malformed short plane (len=" + length(plane) + ")");
+                    return false;
+                }
+                plane[index] = (short) biome.biomeID;
+                SHORT_SETTER.invoke(chunk, new Object[] { plane });
+                return true;
+            }
+            final byte[] plane = chunk.getBiomeArray();
+            if (plane == null || plane.length != PLANE_COLUMNS) {
+                logSkipOnce(mode(chunk), "column write got malformed byte plane (len=" + length(plane) + ")");
+                return false;
+            }
+            plane[index] = (byte) biome.biomeID;
+            chunk.setBiomeArray(plane);
+            return true;
+        } catch (Throwable t) {
+            logSkipOnce(
+                mode(chunk),
+                "column write unexpected " + t.getClass()
+                    .getName() + ": " + t.getMessage());
+            return false;
+        }
+    }
+
+    private static int length(short[] plane) {
+        return plane == null ? -1 : plane.length;
+    }
+
+    private static int length(byte[] plane) {
+        return plane == null ? -1 : plane.length;
     }
 
     /**

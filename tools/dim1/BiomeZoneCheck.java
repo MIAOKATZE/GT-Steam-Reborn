@@ -27,8 +27,16 @@ import com.miaokatze.gtsr.common.dimension.framework.genlayer.GTSRGenLayerChain;
  */
 public class BiomeZoneCheck {
 
-    /** 样本窗边长（chunk）；384² = 147456 chunk 采样，等权份额 σ≈0.11pp。 */
-    private static final int WINDOW = 384;
+    /**
+     * 样本窗边长（chunk）——<b>派生式</b>（T8 重钉，归因 T6 zoom 5→7）：锚定"每轴覆盖
+     * {@link #SELECTOR_CELLS_PER_AXIS} 个 selector 格"的统计功效不变。selector 格 = 2^(zoom-2)
+     * chunk（= 4·2^zoom 方块，GTSRGenLayerChain 同一口径），故 WINDOW = 48·2^(zoom-2)：
+     * zoom=5 时 = 384（P17 时代校准窗，份额 σ≈0.11pp），zoom=7 时自动放大到 1536。
+     * 固定 384 窗在 zoom=7 只剩 12 格/轴，seed 间份额涨落 ±10pp 属窗口功效假红方向
+     * （temp/p4-surface/BiomeZoneCheck.out：seed=-987654321 id183 偏差 9.8pp）。
+     */
+    private static final int SELECTOR_CELLS_PER_AXIS = 48;
+    private static final int WINDOW = SELECTOR_CELLS_PER_AXIS << (GTSRGenLayerChain.DEFAULT_ZOOM_LEVELS - 2);
     private static final long[] SEEDS = { 12345L, -987654321L, 0x50524F53L };
 
     /** 四群系哑元 id（等权轮盘；与注册段 idStart=180 对齐，纯 int 不注册）。 */

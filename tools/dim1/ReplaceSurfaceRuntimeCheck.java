@@ -40,8 +40,9 @@ import com.miaokatze.gtsr.common.dimension.shattered.block.BlockShatteredSurface
  * {@link ChunkProviderShatteredGrounds#applyBiomeSurface}（即 provideChunk 事件段之后的同一实现体），
  * 断言：
  * <ol>
- * <li>dim78 四群系：表层落群系 top（meta=TOP_META）、其下 1-2 格 filler、其余主体 stone→群系 base
- * 整段换装——产出方块非 stone；</li>
+ * <li>dim78 四群系：表层落群系 top（meta=TOP_META）、其下 1-2 格 filler（壤土 base 族）、
+ * 其余主体 stone→<b>prosperityStone</b> 整段换装（v1.20.39 G4 地底石化，plan §3.7；
+ * T8 重钉把 body 期望从壤土 base 改为全群系统一石）——产出方块非 stone；</li>
  * <li>dim79 四群系：表层落群系 top、其下 1-2 格 filler（复用 base）、主体保持 corestone——
  * 产出地表非 corestone；</li>
  * <li>回退语义：null 群系列零改动；非本维群系（plains）走 L1 点名不到回退（top/filler 换、
@@ -291,7 +292,10 @@ public class ReplaceSurfaceRuntimeCheck {
                     if (b == Blocks.stone) {
                         stoneLeft = true;
                     }
-                    if (b != expectedBase) {
+                    // v1.20.39 T2/T8 重钉（plan §3.7 G4 地底石化）：wholeBody 期望从各群系壤土 base
+                    // 改为全群系统一的 prosperityStone（baseBlockOf 四群系同值）；壤土 base 仍注册、
+                    // 只作 filler 段（上一段 filler 循环已按 biome.fillerBlock 钉住）。
+                    if (b != BlocksGTSR.prosperityStone) {
                         baseRunOk = false;
                     }
                 }

@@ -396,6 +396,22 @@ public class CityBiomeGateCheck {
         long bandsWithCity;
         final java.util.Set<Long> bandKeys = new java.util.HashSet<>();
         final java.util.Set<Long> cityBandKeys = new java.util.HashSet<>();
+        /**
+         * 城覆盖 chunk 的<b>去重</b>集合（T8 重钉，归因 T6 zoom 5→7）：城 buffer 方窗半径
+         * ≤ radius+margin=11 &lt; CITY_CELL=24 ⇒ 相邻格两城的 buffer 可交叠；逐城累加会把
+         * 一个被两城 buffer 同时覆盖的 chunk 记 2 次，而 D1 的对照面（citiesNear().length>0）
+         * 是 chunk 级去重谓词——zoom=5 时代样本窗内无交叠故两法恰等，zoom=7 下门带变宽、
+         * 过门城变多，交叠首次出现（实测 1579 对 1574）。数法对齐 = 盖章侧同口径去重。
+         */
+        final java.util.Set<Long> cityCoveredSet = new java.util.HashSet<>();
+
+        void addCoveredChunk(int cx, int cz) {
+            this.cityCoveredSet.add(((long) cx << 32) | (cz & 0xFFFFFFFFL));
+        }
+
+        void sealCoveredChunks() {
+            this.cityCoveredChunks = this.cityCoveredSet.size();
+        }
 
         Row(int macro, int gate) {
             this.macro = macro;
@@ -440,6 +456,7 @@ public class CityBiomeGateCheck {
             }
             r.bandsInWindow = r.bandKeys.size();
             r.bandsWithCity = r.cityBandKeys.size();
+            r.sealCoveredChunks();
             return r;
         } finally {
             Config.prosperityBiomeMacroBandChunks = savedM;
@@ -518,7 +535,7 @@ public class CityBiomeGateCheck {
                             continue;
                         }
                         if (p.chunkInBuffer(cx, cz)) {
-                            r.cityCoveredChunks++;
+                            r.addCoveredChunk(cx, cz);
                         }
                     }
                 }

@@ -39,8 +39,12 @@ import com.miaokatze.gtsr.main.GTSteamReborn;
  */
 public final class ProsperityBiomes {
 
-    /** 本维度名册群系数（首选 id = {@code biomeIdStart + 0..3}；实际 id 由配槽顺延决定）。 */
-    private static final int BIOME_SLOT_COUNT = 4;
+    /**
+     * 本维度名册群系数（首选 id = {@code biomeIdStart + 0..4}；实际 id 由配槽顺延决定）。
+     * v1.20.39 T5 起为 5：第 5 元遗忘之川 {@link BiomeSanzuRiver} 走<b>名册配槽但不挂 def 表</b>
+     * （不进 GenLayer 链 selector，plan §3.3），见 {@link #attachSanzuRiver}。
+     */
+    private static final int BIOME_SLOT_COUNT = 5;
 
     /** meta 补写扫描带上界（原版 genBiomeTerrain 的 topBand 从 y=62 起，filler 只会出现在其下方）。 */
     private static final int TOP_BAND_MIN_Y = 62;
@@ -108,7 +112,59 @@ public final class ProsperityBiomes {
             BiomeId.FUMAROLE_SWAMP,
             maxId,
             scannedOccupants);
+        // v1.20.39 T5（plan §3.3）：第 5 群系遗忘之川——同一条配槽扫描机制（首选 start+4，默认 184；
+        // 顺延上界 254），但<b>只进名册账本不挂 def 群系表</b> ⇒ 不进 GenLayer 链 selector（4 家
+        // 等权名册不动）；平面由 populate 后置写入（onPopulate → BiomePlaneAccess）
+        registered += attachSanzuRiver(start + 4, maxId, scannedOccupants);
         logAllocation(def, start, maxId, registered, scannedOccupants);
+    }
+
+    /**
+     * <b>遗忘之川的专用配槽（v1.20.39 T5，plan §3.3）</b>：与 {@link #attachBiome} 同一条
+     * {@link GTSRBiomeBase#allocate} 扫描（首选 id、占用者快照、无槽降级记录全部同款），差别只有
+     * 一处——<b>不调 {@code def.addBiome}</b>：def 群系表是 GenLayer 链 selector 的入参面
+     * （{@code GTSRWorldChunkManager} 构造链），挂进去就等于进等权名册，违反"selector 4 家不动"
+     * 红线。本群系的平面列由 populate 后置写入（{@code ChunkProviderProsperityRuins.onPopulate}
+     * → {@code BiomePlaneAccess}），实际落位 id 由本方法的 INFO 行 + 汇总 allocationSummary 记录。
+     *
+     * @return 实际注册数（0 或 1）
+     */
+    private static int attachSanzuRiver(int preferredId, int maxId, Map<Integer, String> scannedOccupants) {
+        final BiomeId key = BiomeId.SANZU_RIVER;
+        final int actualId = GTSRBiomeBase.allocate(preferredId, maxId, occupiedId -> {
+            final String owner = GTSRBiomeBase.occupantName(occupiedId);
+            if (occupiedId == preferredId) {
+                GTSRBiomeAuthority.recordPreferredOccupant(key, preferredId, owner);
+                GTSteamReborn.LOG.warn(
+                    "[GTSR] prosperity slot {} already occupied by {} (owner snapshot; {} slides forward)",
+                    preferredId,
+                    owner,
+                    key.name());
+            } else {
+                scannedOccupants.put(occupiedId, owner);
+            }
+        });
+        if (actualId == GTSRBiomeBase.NO_SLOT) {
+            GTSRBiomeAuthority.recordNoSlot(
+                key,
+                preferredId,
+                preferredId <= maxId ? GTSRBiomeBase.occupantName(preferredId) : "out of range");
+            GTSteamReborn.LOG.error(
+                "[GTSR] prosperity biome {} got NO slot in {}..{} (byte-plane ceiling {}) — roster degrades",
+                key.name(),
+                preferredId,
+                maxId,
+                GTSRBiomeBase.HARD_ID_MAX);
+            return 0;
+        }
+        final GTSRBiomeBase biome = new BiomeSanzuRiver(actualId);
+        GTSRBiomeAuthority.recordAllocation(key, preferredId, actualId, biome);
+        GTSteamReborn.LOG.info(
+            "[GTSR] prosperity biome SANZU_RIVER allocated {}->{} (roster-only: not in selector/def biome table;"
+                + " plane written post-populate)",
+            preferredId,
+            actualId);
+        return 1;
     }
 
     /**

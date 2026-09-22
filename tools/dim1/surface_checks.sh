@@ -138,6 +138,8 @@ com/miaokatze/gtsr/common/dimension/framework/GTSRWorldChunkManager.java
 com/miaokatze/gtsr/common/dimension/framework/BiomeZoneSelector.java
 com/miaokatze/gtsr/common/dimension/framework/genlayer/GTSRGenLayerChain.java
 com/miaokatze/gtsr/common/dimension/framework/genlayer/GTSRGenLayerSelector.java
+com/miaokatze/gtsr/common/dimension/framework/genlayer/GTSRGenLayerRosterFace.java
+com/miaokatze/gtsr/common/dimension/framework/genlayer/GTSRGenLayerSelfTest.java
 com/miaokatze/gtsr/common/dimension/framework/structure/GTSRWorldgenHash.java
 com/miaokatze/gtsr/common/dimension/framework/structure/PlacementGate.java
 com/miaokatze/gtsr/common/dimension/prosperity/biome/ProsperityBiomes.java
@@ -509,7 +511,7 @@ code=$?; tail -2 "$OUT/P17BlockRosterCheck.out" | cut -c1-170; echo "   EXIT=$co
 
 # ── P17 纯追加步骤 [3sa]/[3sb2]/[3sd]（主代理代贴；只新增行、未改上面任何既有行）──────────────
 # 三片都被外部中断杀掉过回执，故步骤行由主代理按各片结果文件/§6 原样贴入，判据本体未改一字。
-echo "== [3sa] P17-SA 群系成片与地势四档（zoom=5；振幅档表 1.1/1.7/0.8/0.4；四族同源） =="
+echo "== [3sa] P17-SA 群系成片与地势四档（v1.20.39 T6 起 zoom=7；振幅档表 1.1/1.7/0.8/0.4/0.38；四族同源） =="
 MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8   -cp "$OUT/classes;$CP" -sourcepath "src/main/java;tools/dim1" -d "$OUT/tools"   tools/dim1/P17TerrainReliefCheck.java >"$OUT/javac-p17sa.log" 2>&1
 echo "COMPILE P17TerrainReliefCheck EXIT=$? ($(grep -ac 'error:' "$OUT/javac-p17sa.log") error)"
 # args[0]=src 根：SOURCE 组要读源文件钉"三参==显式档""名册面==bandIndexAt""城侧禁读方块"三条红线。
@@ -540,14 +542,25 @@ MSYS2_ARG_CONV_EXCL='*' java $STD $LOG4J -Xmx2g -cp "$OUT/tools;$OUT/classes;$CP
 code=$?; tail -2 "$OUT/P17StructureBiomeVarianceCheck.out" | cut -c1-170; echo "   EXIT=$code log=$OUT/P17StructureBiomeVarianceCheck.out"
 [ $code -ne 0 ] && FAILS=$((FAILS + 1))
 
-echo "== [3sc] P17-S-C dim78 河流水系（populate 后置灌河；河网密度档偏序/断面成层/水不外溢活闸/照明与流体置位/isAnyLiquid 连带/确定性） =="
-MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8   -cp "$OUT/classes;$CP" -sourcepath "src/main/java;tools/dim1" -d "$OUT/tools"   tools/dim1/P17RiverNetworkCheck.java >"$OUT/javac-p17sc.log" 2>&1
-echo "COMPILE P17RiverNetworkCheck EXIT=$? ($(grep -ac 'error:' "$OUT/javac-p17sc.log") error)"
-# args[0]=src 根：F 组要在源面上钉"Blocks.water 唯一写点 + generateTerrain 段无水 + 模型层零 net.minecraft +
-# 不新增方块"。世界/照明/流体三组全部走真实 provideChunk + 真实 populate + 真实 World.setBlock。
-# 确定性口径：两次输出逐字节相同，唯一例外是两行 `…耗时=…ms`（计时行不进任何断言）。
-MSYS2_ARG_CONV_EXCL='*' java $STD $LOG4J -Xmx2g -cp "$OUT/tools;$OUT/classes;$CP" P17RiverNetworkCheck src/main/java   >"$OUT/P17RiverNetworkCheck.out" 2>&1
-code=$?; tail -2 "$OUT/P17RiverNetworkCheck.out" | cut -c1-170; echo "   EXIT=$code log=$OUT/P17RiverNetworkCheck.out"
+# ── v1.20.39 T4：河流模型换血——P17RiverNetworkCheck（旧轴向等距线模型）随
+# GTSRRiverNetwork 一并删除（红清单见 plan/tmp/p18-t4-prered.md），接替者为 RiverMorphologyCheck
+# （Voronoi 河流强度场形态判据：河宽/谷坡/蜿蜒度/支流分叉/荒漠断流/沼泽×1.6/heightAt 集成）。
+echo "== [3t4] dim78 Voronoi 河流场形态（两级 Disk jitter 蜿蜒 + border2；宽度/谷坡/蜿蜒/分叉/断流） =="
+MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8   -cp "$OUT/classes;$CP" -sourcepath "src/main/java;tools/dim1" -d "$OUT/tools"   tools/dim1/RiverMorphologyCheck.java >"$OUT/javac-t4river.log" 2>&1
+echo "COMPILE RiverMorphologyCheck EXIT=$? ($(grep -ac 'error:' "$OUT/javac-t4river.log") error)"
+# 纯模型驱动（GTSRVoronoiRiverField/heightAt 均零世界读取，无需离线装配账本）。
+MSYS2_ARG_CONV_EXCL='*' java $STD $LOG4J -Xmx2g -cp "$OUT/tools;$OUT/classes;$CP" RiverMorphologyCheck   >"$OUT/RiverMorphologyCheck.out" 2>&1
+code=$?; tail -2 "$OUT/RiverMorphologyCheck.out" | cut -c1-170; echo "   EXIT=$code log=$OUT/RiverMorphologyCheck.out"
+[ $code -ne 0 ] && FAILS=$((FAILS + 1))
+
+# v1.20.39 T5：遗忘之川判据（主干覆盖/巨湖/少支流/细长形状；trunk/lake 激活后 RiverMorphologyCheck
+# 的 A4（骨架恒 0）与 A5（档表 4 元）按设计转红，红清单见 plan/tmp/p18-t5-prered.md，重钉归 T8）。
+echo "== [3t5] dim78 遗忘之川（主干带覆盖 1/6-1/8 + 巨湖 + 少支流 + sanzu 细长） =="
+MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8   -cp "$OUT/classes;$CP" -sourcepath "src/main/java;tools/dim1" -d "$OUT/tools"   tools/dim1/SanzuTrunkCoverageCheck.java >"$OUT/javac-t5sanzu.log" 2>&1
+echo "COMPILE SanzuTrunkCoverageCheck EXIT=$? ($(grep -ac 'error:' "$OUT/javac-t5sanzu.log") error)"
+# 纯模型驱动（isSanzuColumn/heightAt 均零世界读取，无需离线装配账本）。
+MSYS2_ARG_CONV_EXCL='*' java $STD $LOG4J -Xmx2g -cp "$OUT/tools;$OUT/classes;$CP" SanzuTrunkCoverageCheck   >"$OUT/SanzuTrunkCoverageCheck.out" 2>&1
+code=$?; tail -2 "$OUT/SanzuTrunkCoverageCheck.out" | cut -c1-170; echo "   EXIT=$code log=$OUT/SanzuTrunkCoverageCheck.out"
 [ $code -ne 0 ] && FAILS=$((FAILS + 1))
 
 if [ "${1:-}" = "--parity" ]; then

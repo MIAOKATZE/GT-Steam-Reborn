@@ -3,6 +3,8 @@ package com.miaokatze.gtsr.loader;
 import net.minecraft.block.Block;
 import net.minecraft.item.ItemStack;
 
+import com.miaokatze.gtsr.common.blocks.BlockProsperityFalling;
+import com.miaokatze.gtsr.common.blocks.BlockProsperityStone;
 import com.miaokatze.gtsr.common.blocks.BlockRunawaySingularity;
 import com.miaokatze.gtsr.common.blocks.BlocksGTSR;
 import com.miaokatze.gtsr.common.blocks.ItemBlockRunawaySingularity;
@@ -178,18 +180,24 @@ public class BlockLoader {
         // P17-S-B2：沙/砂砾 3 件（B 档 BlockProsperityNaturalBase 吃贴图名 ⇒ 零新 Java 类；
         // 全部非表层 top，不进 SurfaceGate 名册。消费方 = ProsperityDecorPlacer 荒漠沙砾趟，
         // prosperityRiverGravel 同时是 S-C 河床料）。
+        // v1.20.39 T2（G8 重力沙砾，plan §3.9）：coarseSand/riverGravel 两件切 BlockProsperityFalling
+        // （注册名/unlocalizedName 不变，世界数据兼容）；silicaSand 保持非重力（已拍板）。
         BlocksGTSR.prosperitySilicaSand = new BlockProsperityNaturalBase(
             "ProsperitySilicaSand",
             "gtsr:prosperity_silica_sand");
         GameRegistry.registerBlock(BlocksGTSR.prosperitySilicaSand, "ProsperitySilicaSand");
-        BlocksGTSR.prosperityCoarseSand = new BlockProsperityNaturalBase(
+        BlocksGTSR.prosperityCoarseSand = new BlockProsperityFalling(
             "ProsperityCoarseSand",
             "gtsr:prosperity_coarse_sand");
         GameRegistry.registerBlock(BlocksGTSR.prosperityCoarseSand, "ProsperityCoarseSand");
-        BlocksGTSR.prosperityRiverGravel = new BlockProsperityNaturalBase(
+        BlocksGTSR.prosperityRiverGravel = new BlockProsperityFalling(
             "ProsperityRiverGravel",
             "gtsr:prosperity_river_gravel");
         GameRegistry.registerBlock(BlocksGTSR.prosperityRiverGravel, "ProsperityRiverGravel");
+        // v1.20.39 T2（G4 地底石化，plan §3.7）：地底 wholeBody 主体石（Material.rock，单一变体），
+        // 消费方 = ChunkProviderProsperityRuins.baseBlockOf；非表层 top，不进 SurfaceGate 名册。
+        BlocksGTSR.prosperityStone = new BlockProsperityStone("ProsperityStone", "gtsr:prosperity_stone");
+        GameRegistry.registerBlock(BlocksGTSR.prosperityStone, "ProsperityStone");
         final Block[] prosperityNaturalBlocks = { BlocksGTSR.prosperitySteppeTop, BlocksGTSR.prosperitySteppeBase,
             BlocksGTSR.prosperityForestTop, BlocksGTSR.prosperityForestBase, BlocksGTSR.prosperityWastesTop,
             BlocksGTSR.prosperityWastesBase, BlocksGTSR.prosperitySwampTop, BlocksGTSR.prosperitySwampBase,
@@ -199,14 +207,15 @@ public class BlockLoader {
             BlocksGTSR.prosperityMarshLeaves, BlocksGTSR.prosperityFlowerRust, BlocksGTSR.prosperityFlowerPatina,
             BlocksGTSR.prosperityFlowerBrass, BlocksGTSR.prosperityFlowerMarsh, BlocksGTSR.prosperityTuftSedge,
             BlocksGTSR.prosperityTuftBristle, BlocksGTSR.prosperitySilicaSand, BlocksGTSR.prosperityCoarseSand,
-            BlocksGTSR.prosperityRiverGravel };
+            BlocksGTSR.prosperityRiverGravel, BlocksGTSR.prosperityStone };
         for (final Block natural : prosperityNaturalBlocks) {
             CreativeTabManager.addItemToTab(new ItemStack(natural));
         }
         GTSteamReborn.LOG.info(
             "[GTSR] prosperity natural blocks registered: terrain=8 (4x top+base) decor=4 (2x tuft+log+leaves)"
                 + " + p17-sb1 wood=6 (3x log+canopy) flora=6 (4x flower+2x tuft)"
-                + " + p17-sb2 sand=3 (2x sand + river gravel, all non-top)");
+                + " + p17-sb2 sand=3 (2x sand + river gravel, all non-top; coarse+gravel now falling)"
+                + " + v1.20.39 stone=1 (prosperityStone underground wholeBody)");
 
         // dim79 重做（S-B）：破碎之地高硬度方块族（全部独立 Block ID，plan §12 修订 2/3：
         // hardness ≥1000F、blast 1200、harvest pickaxe 3；分层值登记 dim79-redo-slice-B-report.md，

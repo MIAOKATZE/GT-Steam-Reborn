@@ -45,8 +45,10 @@ BATCHES="tools/artgen/dim7879 tools/artgen/dim1"
 # 本数仍是"跟着两批 OUTPUTS 名册改数"，不是放宽：TEXTURES 与 EXPECTED_TEXTURES 不等即红。
 # 67 → 70 = 上式 35(dim7879) + 14(dim1) + 18(P17-SB1) 再加 P17-S-B2 沙类名册新增 3
 # （细硅沙 / 粗粒沙 / 河床砂砾，均 draw32_dim78.py 手绘层可再生）= 35+14+18+3；同口径改数不放宽。
+# 70 → 71 = 再加 v1.20.39 T2 地底石化 1 张（prosperity_stone，draw32_dim78.py stone_ruin 可再生；
+# plan §3.7）= 36(dim7879) + 14(dim1) + 18 + 3 + 1；同口径跟着 OUTPUTS 名册改数，不放宽。
 EXPECTED_ROSTER=51
-EXPECTED_TEXTURES=70
+EXPECTED_TEXTURES=71
 
 fail() { echo "[FAIL] $*"; exit 1; }
 

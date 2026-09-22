@@ -158,5 +158,10 @@ public final class BlocksGTSR {
     /** 河床砂砾（S-C 河床主料；S-B2 先在荒漠砾石斑上真实消费一次，避免"注册了但没人读"）。 */
     public static Block prosperityRiverGravel;
 
+    // ==== v1.20.39 T2：地底石化 + 重力沙砾（plan §3.7/§3.9；BlockLoader.initBlocks 注册期写入）====
+
+    /** 繁荣废岩（dim78 地底 wholeBody 主体石；ChunkProviderProsperityRuins.baseBlockOf 四群系统一返回。） */
+    public static Block prosperityStone;
+
     private BlocksGTSR() {}
 }

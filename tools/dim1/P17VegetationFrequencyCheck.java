@@ -121,21 +121,24 @@ public final class P17VegetationFrequencyCheck {
     /** 改前干高带实测（同 log：min 3 / max 5 / mean 3.866..4.538）。 */
     private static final String PRE_TRUNK_BAND = "3..5";
 
-    // ═══════════════ M 组带（锚 = 本片实测 4 seed × 2 区 × 16² chunk；带宽 ≈ 实测 ±18~25%）═══════════════
+    // ══ M 组带（T8 重钉，归因 T7 树木三档：灌木/普通/巨树——灌木抬密度压 min、巨树抬 max。
+    // 锚 = T8 确定性实测 4 seed × 2 区 × 16² chunk（与 temp/p18-t7/p17-red.out 同值：本检查的
+    // 身份面是 GenLayer 链面（ordinalAt），sanzu 平面档（vegRosterIndex）不在其上，由 T7 探针
+    // 另行覆盖；T8 城门面修复后读数与 T7 记录逐位一致）；带 ≈ 实测 ±20%）═══
 
-    /** 每 chunk 树数带；荒漠一行是 {@code {0,0}} 精确带。 */
-    private static final double[][] BAND_TREES = { { 0.065D, 0.175D }, { 0.60D, 1.06D }, { 0.0D, 0.0D },
-        { 0.23D, 0.45D } };
-    /** 干高最小值带（档表值；无树群系取 {0,0}）。 */
-    private static final int[][] BAND_TRUNK_MIN = { { 4, 4 }, { 11, 11 }, { 0, 0 }, { 7, 7 } };
-    /** 干高最大值带（实测最大值 = 档上界，说明浮动档真被跑到）。 */
-    private static final int[][] BAND_TRUNK_MAX = { { 6, 6 }, { 16, 16 }, { 0, 0 }, { 10, 10 } };
-    /** 干高均值带。 */
-    private static final double[][] BAND_TRUNK_MEAN = { { 4.55D, 5.75D }, { 12.4D, 14.6D }, { 0.0D, 0.0D },
-        { 7.9D, 9.3D } };
-    /** 叶块数/chunk 带（冠幅的行为级投影）。 */
-    private static final double[][] BAND_LEAVES = { { 1.5D, 3.4D }, { 62D, 112D }, { 0.0D, 0.0D },
-        { 7.4D, 14.2D } };
+    /** 每 chunk 树数带（灌木+普通+巨树合计期望）；荒漠一行是 {@code {0,0}} 精确带。 */
+    private static final double[][] BAND_TREES = { { 0.80D, 1.21D }, { 2.57D, 3.86D }, { 0.0D, 0.0D },
+        { 1.31D, 1.98D } };
+    /** 干高最小值带（T7 灌木档干 1-2 节 ⇒ 三群系 min 恒 1；无树群系取 {0,0}）。 */
+    private static final int[][] BAND_TRUNK_MIN = { { 1, 1 }, { 1, 1 }, { 0, 0 }, { 1, 1 } };
+    /** 干高最大值带（巨树档上界：GreatOak 20-28 实测 25 / Redwood 28-38 ⇒ 38 / Bayou 20-26 ⇒ 26）。 */
+    private static final int[][] BAND_TRUNK_MAX = { { 25, 25 }, { 38, 38 }, { 0, 0 }, { 26, 26 } };
+    /** 干高均值带（三档混合期望）。 */
+    private static final double[][] BAND_TRUNK_MEAN = { { 2.05D, 3.07D }, { 6.30D, 9.45D }, { 0.0D, 0.0D },
+        { 3.85D, 5.77D } };
+    /** 叶块数/chunk 带（三档冠幅的行为级投影）。 */
+    private static final double[][] BAND_LEAVES = { { 32.5D, 48.7D }, { 103.6D, 155.4D }, { 0.0D, 0.0D },
+        { 31D, 46.5D } };
     /** 草块数/chunk 带。 */
     private static final double[][] BAND_TUFTS = { { 4.3D, 7.5D }, { 4.9D, 8.3D }, { 1.3D, 3.0D },
         { 6.0D, 9.4D } };
@@ -211,8 +214,14 @@ public final class P17VegetationFrequencyCheck {
 
     private static void assertTierTables() {
         final VegTier[] t = ProsperityDecorPlacer.VEG_TIERS_BY_ROSTER;
-        check(t.length == 4, "DECL 档表长度 == 4（L1 每维四名册）；实测 " + t.length);
-        check(BiomeId.values().length == 8, "DECL 前置：BiomeId 枚举 8 员（两维各 4）");
+        // v1.20.39 T5/T8 重钉（plan §3.3）：档表族 4→5——第 5 元 sanzu（名册配槽非 selector）。
+        check(t.length == 5, "DECL 档表长度 == 5（T5 起含 sanzu 第 5 元）；实测 " + t.length);
+        // v1.20.39 T5/T8 重钉：BiomeId 枚举 9 员（两维各 4 + sanzu）。
+        check(BiomeId.values().length == 9, "DECL 前置：BiomeId 枚举 9 员（两维各 4 + sanzu）");
+        // T7/T8：树木三档表与档表族同长（sanzu 1/4 灌木 + 1/6 普通 + 1/32 Bayou，plan §3.7 表）。
+        check(ProsperityDecorPlacer.TREE_TIERS_BY_ROSTER.length == t.length,
+            "DECL 树木三档表长度 == VEG 档表长度（T7 三档同族扩元）；实测 "
+                + ProsperityDecorPlacer.TREE_TIERS_BY_ROSTER.length + " vs " + t.length);
         final double dS = density(t[STEPPE]);
         final double dF = density(t[FOREST]);
         final double dW = density(t[WASTES]);
@@ -320,10 +329,15 @@ public final class P17VegetationFrequencyCheck {
             "SOURCE 装饰层不读群系实例选档");
         check(!decor.contains("net.minecraft.world.biome"), "SOURCE 装饰层零 biome import");
         check(!decor.contains("GTSRBiomeAuthority"), "SOURCE 装饰层不自己解析身份（身份由编排器传入）");
-        check(count(gen, "ProsperityDecorPlacer.decorate(") == 1,
-            "SOURCE 编排器装饰调用恰 1 处；实测 " + count(gen, "ProsperityDecorPlacer.decorate("));
-        check(gen.contains("chunkX, chunkZ, rosterIndex, sink)"),
-            "SOURCE 装饰调用带 rosterIndex 实参（「decorate 无群系入参」这条根因已闭合）");
+        check(count(condense(gen), "ProsperityDecorPlacer.decorate(") == 1,
+            "SOURCE 编排器装饰调用恰 1 处（condense 口径，防 spotless 折行）；实测 "
+                + count(condense(gen), "ProsperityDecorPlacer.decorate("));
+        // T7/T8 重钉：装饰身份改走 vegRosterIndex（sanzu 平面档接线，plan §3.3/§3.7）——
+        // 旧 "chunkX, chunkZ, rosterIndex, sink)" 文本钉随之退役；新钉用 flat（去注释 + 折叠
+        // 全部空白）匹配，防 spotlessApply 折行打死 needle（v1.20.38 纪律 2）。
+        check(condense(gen).contains(
+            "chunkX,chunkZ,vegRosterIndex(worldSeed,chunkX,chunkZ,rosterIndex),sink)"),
+            "SOURCE 装饰调用带 vegRosterIndex 实参（T7 平面档接线；condense 口径防折行）");
         check(count(gen, "ordinalAt(") == 1,
             "SOURCE 编排器每 chunk 只解析一次身份（改造前是 biomeWeight 每次各解析一次）；实测 "
                 + count(gen, "ordinalAt("));
@@ -622,9 +636,12 @@ public final class P17VegetationFrequencyCheck {
             "ORDER 真实链干高均值 森(" + fmt(tf) + ") > 沼(" + fmt(tw) + ") > 原(" + fmt(ts) + ")");
         // 用<b>每 chunk 密度比</b>而不是绝对数比：四群系 chunk 数本身不等权（实测 404/346/495/528），
         // 拿绝对数比会把"面积抽样不等"当成"密度不分流"。
-        check(div(get(m, FOREST).trees, get(m, FOREST).chunks) > 6.0D * div(get(m, STEPPE).trees,
+        // T8 重钉（归因 T7 三档）：灌木 1/2 把草原密度抬到 ~1.0/chunk，森林/平原比值从单档时代
+        // 的 ~8× 压到 3.2×；需求语义「森林树明显更多、量级可辨」改钉 ≥2.5×（实测 3.19×）。
+        check(div(get(m, FOREST).trees, get(m, FOREST).chunks) > 2.5D * div(get(m, STEPPE).trees,
             get(m, STEPPE).chunks),
-            "ORDER 森林树密度 > 平原 6 倍；实测 " + fmt(div(get(m, FOREST).trees, get(m, FOREST).chunks))
+            "ORDER 森林树密度 > 平原 2.5 倍（T7 三档口径）；实测 "
+                + fmt(div(get(m, FOREST).trees, get(m, FOREST).chunks))
                 + " vs " + fmt(div(get(m, STEPPE).trees, get(m, STEPPE).chunks)));
         final Agg all = total(m);
         check(div(all.trees, all.chunks) > 3.0D * PRE_TREES_PER_CHUNK,
@@ -695,10 +712,16 @@ public final class P17VegetationFrequencyCheck {
         final String harness = read(Paths.get("tools/dim1/SurfaceHarness.java"));
         final String decor = read(Paths.get(DECOR_SRC));
         final String[] sand = { "prosperitySilicaSand", "prosperityCoarseSand", "prosperityRiverGravel" };
+        // T2/T8 重钉（plan §3.9 G8）：coarseSand/riverGravel 切 BlockProsperityFalling（注册名不变），
+        // silicaSand 维持非重力 NaturalBase——实例化类族按方块分钉，不再一刀切 NaturalBase。
+        final java.util.Map<String, String> sandCtor = new java.util.HashMap<>();
+        sandCtor.put("prosperitySilicaSand", "BlockProsperityNaturalBase");
+        sandCtor.put("prosperityCoarseSand", "BlockProsperityFalling");
+        sandCtor.put("prosperityRiverGravel", "BlockProsperityFalling");
         for (final String f : sand) {
             check(blocks.contains("public static Block " + f + ";"), "ROSTER BlocksGTSR 缺字段 " + f);
-            check(loader.contains("BlocksGTSR." + f + " = new BlockProsperityNaturalBase("),
-                "ROSTER BlockLoader 缺实例化 " + f);
+            check(loader.contains("BlocksGTSR." + f + " = new " + sandCtor.get(f) + "("),
+                "ROSTER BlockLoader 缺实例化（类族 " + sandCtor.get(f) + "）" + f);
             check(loader.contains("GameRegistry.registerBlock(BlocksGTSR." + f + ", \"" + capitalize(f) + "\")"),
                 "ROSTER BlockLoader 缺注册名 " + f);
             check(loader.contains("gtsr:" + texOf(f)), "ROSTER BlockLoader 注册段缺贴图名 gtsr:" + texOf(f));
@@ -821,6 +844,23 @@ public final class P17VegetationFrequencyCheck {
             }
         }
         return "";
+    }
+
+    /**
+     * flat 口径（v1.20.38 纪律 2）：stripComments 之后把全部空白（含换行）折叠为单个空格——
+     * 源级 needle 一律经本方法匹配，防 spotlessApply 折行打死按行文本。
+     */
+    private static String flat(String text) {
+        return stripComments(text).replaceAll("\\s+", " ");
+    }
+
+    /**
+     * condense 口径（T8）：flat 的加强版——去掉<b>全部</b>空白。spotless 会把
+     * {@code ProsperityDecorPlacer.decorate(...)} 折成两行（类名与 .decorate 分行），
+     * flat 折叠出的 "X .decorate(" 仍打不死匹配；condense 对任意换行形态稳健。
+     */
+    private static String condense(String text) {
+        return flat(text).replace(" ", "");
     }
 
     private static String stripComments(String text) {

@@ -7,6 +7,10 @@ log_side/log_top/leaves_side/leaves_top）+ 自有花 4 张（新 flower() 族�
 新 18 张全部走本文件（32 档直画、无 DRY 档、直写 src/ 的既有纪律不变）；既 17 张的字节不受影响
 （同一批 builder 与同一批 manifest 参数，双跑逐张 SHA 对拍为证）。
 
+v1.20.39 T2 增补（plan §3.7 地底石化）：再 +1 张 prosperity_stone（半边 36 张）——地底 wholeBody 主体石，
+新 builder stone_ruin()（grit_base 同骨架 + 锈染短缝/锈点层），母版参数与种子在 manifest.json
+（PALETTE 锚 PROSPERITY_STONE / SEED 0x5EED8151）。既 35 张的 builder 与参数逐字未改。
+
 风格锚底座 = 仓内既有管线 tools/artgen/dim7879/gen_dim7879_blocks.py 的原语与 R1-R6 口径
 （Rules/Tex/h01/tile_noise/scatter/paint_blob/各 kind 画法，经 importlib 复用，不复制色值）。
 本文件只加两样：① 32 档才吃得下的手绘细节层（R6）；② 配色收敛闸（越线项折近重复色）。
@@ -64,7 +68,8 @@ prosperity_marsh_log_side prosperity_marsh_log_top
 prosperity_marsh_leaves_side prosperity_marsh_leaves_top
 prosperity_flower_rust prosperity_flower_patina prosperity_flower_brass prosperity_flower_marsh
 prosperity_tuft_sedge prosperity_tuft_bristle
-prosperity_silica_sand prosperity_coarse_sand prosperity_river_gravel""".split()
+prosperity_silica_sand prosperity_coarse_sand prosperity_river_gravel
+prosperity_stone""".split()
 
 RATIONALE = {
  "prosperity_steppe_top": "16 档草叶是均匀撒点 ⇒ 32 档改成簇生（8×8 格位扎 2-4 根 1px 叶 + 1px 亮尖），另用 cells=8/4 低频斑块把基色整体推 ±1 阶：草皮成坨，而不是同一张噪点。",
@@ -107,6 +112,8 @@ RATIONALE = {
  "prosperity_silica_sand": "细硅沙：沿用黄铜丘沙的 ripple_sand 族刷，但 ripple_period 8→4（同族笔刷不同读数）+ 闪点密度 0.006→0.004，底谱换 SILICA_SAND（全批最亮的冷沙相）⇒ 与在产的 prosperity_wastes_top 顶面双差可辨（色相 + 纹周期）。",
  "prosperity_coarse_sand": "风成粗粒沙：grit_base 骨架，颗粒密度 0.18→0.24、14 颗 2×2/3×2 砾粒带上缘受光与下缘压暗（同 base 族画法），底谱 COARSE_SAND 比细硅沙压暗两阶 ⇒ 读作「被风选过的粗砂」，不是另一张沙。",
  "prosperity_river_gravel": "河床砂砾：grit_base 骨架 + 砾密度 0.30（全批最高）+ 明暗阶拉到 D220/L220，底谱 RIVER_GRAVEL 是沙类里唯一不带暖相的灰褐 ⇒ 水磨砾石感；S-C 河床主料，本片先在荒漠砾石斑上真实消费一次。",
+ # —— v1.20.39 T2：地底石化 1 张（wholeBody 主体石；冷灰带锈调）——
+ "prosperity_stone": "繁荣废岩：grit_base 同骨架（母版 terrain_grit 带周期 8 沉积层理 ⇒ 成层废岩，不是土）+ 9 颗小砾 + 4 条 1px 锈染短缝与稀疏锈点，底谱 PROSPERITY_STONE 冷灰 ⇒ 贴近 prosperity_*_base 族但更石质，与 RIVER_GRAVEL（亮灰褐）和 SPIKE_STONE（冷蓝灰）三方拉开。",
 }
 
 
@@ -264,6 +271,27 @@ def grit_base(key, peb=12, roots=0):
     pebbles(tex, seed, clod, lit, "peb", count=peb, per=8)
     if roots:
         strand_field(tex, seed, "gr", roots, levels[0], None, 6, sideways=True)
+    return tex
+
+
+def stone_ruin(key):
+    """繁荣废岩（v1.20.39 T2）：grit_base 同骨架（层理由母版 terrain_grit 的 strata 参数进底座场：
+    strata_period/strength 偏置 + strata_joint/strata_lip 的 1px 缝线/受光唇，颜色复用 grit_dark/
+    grit_lit 两阶 ⇒ 零新增色）+ 9 颗小砾 + 4 条 1px 锈染短缝（读作石缝里的锈流；稀疏锈点由母版
+    flake 参数直接出，不在此重复撒）。零硬编码色值，全部角色名走 manifest params。"""
+    tex, seed, p = base_tex(key)
+    levels = rlevels(p)
+    clod = RULES.resolve(p["clod"], p["base"]) if p.get("clod") else levels[0]
+    lit = RULES.resolve(p["grit_lit"], p["base"])
+    level_shift(tex, seed ^ 0x77, 8, 1, levels)
+    pebbles(tex, seed, clod, lit, "peb", count=9, per=8)
+    rust = RULES.resolve(p["flake"], p["base"])
+    for k in range(4):
+        x = int(G.h01(seed, "rvx", k, 0) * SIZE)
+        y = int(G.h01(seed, "rvy", k, 0) * SIZE)
+        ln = 4 + int(G.h01(seed, "rvl", k, 0) * 6.0)
+        for i in range(ln):
+            tex.put(x + (1 if G.h01(seed, "rvd", k, i) < 0.28 else 0), y + i, rust)
     return tex
 
 
@@ -576,6 +604,8 @@ BUILDERS = {
     "prosperity_silica_sand": lambda: ripple_sand("prosperity_silica_sand"),
     "prosperity_coarse_sand": lambda: grit_base("prosperity_coarse_sand", 14, 0),
     "prosperity_river_gravel": lambda: grit_base("prosperity_river_gravel", 20, 0),
+    # —— v1.20.39 T2 地底石化 1 张：grit_base 同骨架 + 锈染层（新 builder 仅因锈缝层，画架原语零新）——
+    "prosperity_stone": lambda: stone_ruin("prosperity_stone"),
 }
 
 # 设计性稀疏色（闪点/锈屑/渗点/霜点）：配色收敛时永不合并
@@ -606,6 +636,8 @@ PROTECTED_SPEC = {
     # —— P17-S-B2：沙类的闪点/砾影是设计性稀疏色，永不参与收敛 ——
     "prosperity_silica_sand": [("GLINT@D140", "SILICA_SAND")],
     "prosperity_river_gravel": [("BASE@D220", "RIVER_GRAVEL")],
+    # —— v1.20.39 T2：废岩的锈染短缝/锈点是设计性稀疏色，永不参与收敛 ——
+    "prosperity_stone": [("RUST_OXIDE@D070", "PROSPERITY_STONE")],
 }
 
 

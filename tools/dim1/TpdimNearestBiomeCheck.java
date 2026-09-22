@@ -109,7 +109,10 @@ public class TpdimNearestBiomeCheck {
         check(auth.degraded() == GTSRBiomeAuthority.Degraded.NONE, "d78 前提：degraded 应为 NONE");
         check(auth.isBound(), "d78 前提：应已绑定");
         runLocateTable(auth, "TPDIM78", SurfaceHarness.PROSPERITY_KEYS, SurfaceHarness.PROSPERITY_IDS, SEED_SALT78);
-        checkNamesAndParsing(auth, new String[] { "Rusted Steppe", "Gearwork Forest", "Brass Wastes", "Fumarole Swamp" });
+        // T5/T8 重钉（plan §3.3）：补全名单 = 账本名册（5 元，含 roster-only 的 sanzu）；
+        // 定位主表仍只走 4 家 selector 群系（sanzu 平面由 populate 后置写入，不在链身份面）。
+        checkNamesAndParsing(auth, new String[] { "Rusted Steppe", "Gearwork Forest", "Brass Wastes",
+            "Fumarole Swamp", "Sanzu River" });
     }
 
     private static void dim79() {

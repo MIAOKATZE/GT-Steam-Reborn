@@ -249,8 +249,8 @@ gtsr.tooltip.pressure_steam_cooling_hatch.desc=Recovers steam from cooled superh
 
 # Mega Air Input Hatch
 gt.blockmachines.gtsr.mega.air.input.hatch.name=Mega Air Input Hatch
-gtsr.tooltip.mega_air_input_hatch.desc=Used to input large amounts of air or nether air
-gtsr.tooltip.mega_air_input_hatch.fluid_type=Air/Nether Air
+gtsr.tooltip.mega_air_input_hatch.desc=Used to input large amounts of air, nether air, or Sanzu residual steam
+gtsr.tooltip.mega_air_input_hatch.fluid_type=Air/Nether Air/Sanzu Residual Steam
 
 # Distilled Water Hatch
 gt.blockmachines.gtsr.distilled.water.hatch.name=Distilled Water Hatch
@@ -2041,6 +2041,7 @@ biome.Rusted Steppe.name=Rusted Steppe
 biome.Gearwork Forest.name=Gearwork Forest
 biome.Brass Wastes.name=Brass Wastes
 biome.Fumarole Swamp.name=Fumarole Swamp
+biome.Sanzu River.name=Sanzu River
 
 # Dimension prosperity-ruins: block family (dim1 S2; textures are vanilla placeholders until S7a artgen)
 tile.ProsperitySurface.0.name=Rusted Grass Block
@@ -2088,12 +2089,15 @@ tile.ProsperityTuftBristle.name=Bristle Tuft
 tile.ProsperitySilicaSand.name=Silica Sand
 tile.ProsperityCoarseSand.name=Coarse Sand
 tile.ProsperityRiverGravel.name=River Gravel
+# Dimension prosperity-ruins: v1.20.39 T2 underground whole-body stone (plan §3.7 petrification; non-top, meta 0)
+tile.ProsperityStone.name=Prosperity Stone
 
 # Prosperity Air Materials (dim1 S3)
 Material.wastesigh=Waste Sigh
 Material.thickgrease=Thick Grease
 Material.metalgrit=Metal Grit
 Material.umbralmire=Umbral Mire
+Material.sanzu_residual_steam=Sanzu Residual Steam
 
 # Dimension shattered-lands: biomes (S-B3; keys follow biome.<biomeName>.name from setBiomeName)
 biome.Ashen Prairie.name=Ashen Prairie

@@ -125,7 +125,10 @@ public final class SurfaceGateUnifyCheck {
         "gtsr:prosperityFlowerMarsh", "gtsr:prosperityTuftSedge", "gtsr:prosperityTuftBristle",
         // P17-S-B2 名册同步（静默面之三，34→37）：沙/砂砾 3 件同样申报为"必须关门"——它们是
         // "贴面覆盖斑"，从不替换群系 top（DIM78_SIZE 恒 5 的纪律与 S-B1 同条）。
-        "gtsr:prosperitySilicaSand", "gtsr:prosperityCoarseSand", "gtsr:prosperityRiverGravel" };
+        "gtsr:prosperitySilicaSand", "gtsr:prosperityCoarseSand", "gtsr:prosperityRiverGravel",
+        // v1.20.39 T2/T8 名册同步（37→38）：prosperityStone 是地底 wholeBody 石（plan §3.7 G4），
+        // 由 baseBlockOf 生产，不经 SurfaceGate 门（门只认表层 top）——申报为"必须关门"。
+        "gtsr:prosperityStone" };
 
     /**
      * D 组：门通过率申报带（百分点，闭区间）。口径 = 列级（每列 {@code findSurfaceY} 顶格方块

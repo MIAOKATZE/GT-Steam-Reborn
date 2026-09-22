@@ -59,7 +59,10 @@ public final class GTSRGenLayerRosterFace {
         final int[] ids = new int[authority.rosterSize()];
         int kept = 0;
         for (final GTSRBiomeAuthority.BiomeId key : GTSRBiomeAuthority.BiomeId.values()) {
-            if (!dimKey.equals(key.dimKey())) {
+            if (!dimKey.equals(key.dimKey()) || !key.inSelector()) {
+                // v1.20.39 T8 真缺陷修复：只吃 selector 成员（plan §3.3）。T5 把 sanzu 记进账本后，
+                // 不过滤会让本链面变成 5 元等权链，与 manager 的 def 表 4 元链同坐标不同解——
+                // "同格同值"不变量（本类 javadoc / BBH A1+C1 / P17 SOURCE 组）被静默破坏。
                 continue;
             }
             final BiomeGenBase biome = authority.biomeOf(key);

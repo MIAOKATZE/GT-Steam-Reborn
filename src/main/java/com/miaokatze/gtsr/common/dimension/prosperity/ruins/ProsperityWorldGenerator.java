@@ -6,6 +6,7 @@ import net.minecraft.world.World;
 import net.minecraft.world.chunk.IChunkProvider;
 
 import com.miaokatze.gtsr.common.dimension.framework.GTSRBiomeAuthority;
+import com.miaokatze.gtsr.common.dimension.framework.GTSRBiomeAuthority.BiomeId;
 import com.miaokatze.gtsr.common.dimension.framework.GTSROwnedGenerator;
 import com.miaokatze.gtsr.common.dimension.framework.SurfaceGate;
 import com.miaokatze.gtsr.common.dimension.framework.structure.BlockSink;
@@ -14,6 +15,7 @@ import com.miaokatze.gtsr.common.dimension.framework.structure.PlacementGate;
 import com.miaokatze.gtsr.common.dimension.framework.structure.StructureBuilder;
 import com.miaokatze.gtsr.common.dimension.framework.structure.StructureRegistry;
 import com.miaokatze.gtsr.common.dimension.prosperity.ProsperityTerrainProfile;
+import com.miaokatze.gtsr.common.dimension.prosperity.river.GTSRVoronoiRiverField;
 import com.miaokatze.gtsr.common.dimension.prosperity.ruins.city.CityBlockResolver;
 import com.miaokatze.gtsr.common.dimension.prosperity.ruins.city.CityPlan;
 import com.miaokatze.gtsr.common.dimension.prosperity.ruins.city.CityPlanner;
@@ -182,8 +184,11 @@ public class ProsperityWorldGenerator implements IWorldGenerator, GTSROwnedGener
 
         // —— 6. 自然区装饰（S-A1，plan §12 修订 5；<b>P17 S-B2 起带身份</b>：树趟 + 植被趟各按
         // ProsperityDecorPlacer.VEG_TIERS_BY_ROSTER[名册下标] 取档 ⇒ 青铜森林树最多最大、平原矮树、
-        // 沼泽中等、荒漠零树，并新增花/新草/沙砾三件；城 buffer 窗由上方 citiesNear return 天然保证）——
-        ProsperityDecorPlacer.decorate(world, worldSeed, chunkX, chunkZ, rosterIndex, sink);
+        // 沼泽中等、荒漠零树，并新增花/新草/沙砾三件；城 buffer 窗由上方 citiesNear return 天然保证——
+        // <b>T7 起树趟扩三档（灌木/普通/巨树），植被身份走 vegRosterIndex</b>（sanzu 平面档当趟生效，
+        // 见 {@link #vegRosterIndex}；机器/散布/结构仍用 GenLayer 面 rosterIndex，不受影响）——
+        ProsperityDecorPlacer
+            .decorate(world, worldSeed, chunkX, chunkZ, vegRosterIndex(worldSeed, chunkX, chunkZ, rosterIndex), sink);
     }
 
     /**
@@ -260,5 +265,26 @@ public class ProsperityWorldGenerator implements IWorldGenerator, GTSROwnedGener
     private static int biomeRosterIndex(World world, int chunkX, int chunkZ) {
         return GTSRBiomeAuthority.forDimension(world.provider.dimensionId)
             .ordinalAt((chunkX << 4) + 8, (chunkZ << 4) + 8).ordinal;
+    }
+
+    /**
+     * <b>植被档身份（T7，plan §3.3 / §3.8）</b>：GenLayer 面下标之上叠加 sanzu 平面档——
+     * sanzu 不进 selector（T5 裁决），其群系平面在 populate 后置由
+     * {@code ChunkProviderProsperityRuins.assignSanzuRiverBiome} 按
+     * {@link GTSRVoronoiRiverField#isSanzuColumn} 逐列写入；decorate 晚于该写入 ⇒ 这里用<b>同一谓词</b>
+     * 在 chunk 中心确定性重算（纯函数、跨 chunk 一致，与河流回填同族），命中且 sanzu 已配槽
+     * （账本点名得到实例，无槽降级不伪造）⇒ 植被档取 sanzu 名册下标
+     * （{@link BiomeId#SANZU_RIVER}，档值=档表第 5 行，身份仍只有 {@code ordinalAt} 一条出口）。
+     * <p>
+     * 只影响 decorate 的档位选择：机器/散布/结构继续消费 GenLayer 面 {@code rosterIndex}
+     * （四元素权重表的下标语义与 T5 前逐位一致），本方法不是第二身份真值源。
+     */
+    private static int vegRosterIndex(long worldSeed, int chunkX, int chunkZ, int chainIndex) {
+        if (GTSRVoronoiRiverField.isSanzuColumn(worldSeed, (chunkX << 4) + 8, (chunkZ << 4) + 8)
+            && GTSRBiomeAuthority.forDimKey(SurfaceGate.DIM78)
+                .biomeOf(BiomeId.SANZU_RIVER) != null) {
+            return BiomeId.SANZU_RIVER.rosterIndex();
+        }
+        return chainIndex;
     }
 }

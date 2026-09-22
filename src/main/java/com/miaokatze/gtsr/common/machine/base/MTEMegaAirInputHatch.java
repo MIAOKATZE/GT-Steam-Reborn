@@ -15,7 +15,8 @@ import gregtech.api.metatileentity.implementations.MTEHatchInput;
 /**
  * 巨型空气输入仓
  * <p>
- * 仿照 GT5U 的液态空气仓（{@code MTECompressedFluidHatch}）实现，但仅允许输入「空气」与「下界空气」。
+ * 仿照 GT5U 的液态空气仓（{@code MTECompressedFluidHatch}）实现，但仅允许输入「空气」「下界空气」
+ * 与「三途余汽」（v1.20.39 plan §3.4，供遗忘之川收集链接收）。
  * 容量为 100,000,000 L，用于为耗气量巨大的多方块机器（如空气离心机）提供大量空气供给。
  * <p>
  * 材质继承自 {@link MTEHatchInput} 的标准管道覆盖层（与液态空气仓一致），不重写 getTexturesActive/Inactive。
@@ -40,18 +41,19 @@ public class MTEMegaAirInputHatch extends MTEHatchInput {
     }
 
     /**
-     * 仅允许输入「空气」与「下界空气」。
+     * 仅允许输入「空气」「下界空气」与「三途余汽」。
      * <p>
      * 注意：{@code Materials.Air} 未调用 {@code addFluid()}，{@code Materials.Air.getFluid(1)} 会返回 null，
      * 因此不能用 {@code GTUtility.areFluidsEqual} 比较。这里直接按流体注册名判断，
-     * 与 {@code MTEAirCompressor} 产出空气（{@code Materials.Air.getGas}）的方式一致。
+     * 与 {@code MTEAirCompressor} 产出空气（{@code Materials.Air.getGas}）的方式一致；
+     * {@code sanzu_residual_steam} 是繁荣维度第五气（v1.20.39 plan §3.4）的 FluidRegistry 注册名。
      */
     @Override
     public boolean isFluidInputAllowed(FluidStack aFluid) {
         if (aFluid == null || aFluid.getFluid() == null) return false;
         String fluidName = aFluid.getFluid()
             .getName();
-        return "air".equals(fluidName) || "netherair".equals(fluidName);
+        return "air".equals(fluidName) || "netherair".equals(fluidName) || "sanzu_residual_steam".equals(fluidName);
     }
 
     @Override

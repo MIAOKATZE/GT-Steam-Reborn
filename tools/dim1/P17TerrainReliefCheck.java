@@ -13,6 +13,7 @@ import com.miaokatze.gtsr.common.dimension.framework.GTSRBiomeAuthority;
 import com.miaokatze.gtsr.common.dimension.framework.genlayer.GTSRGenLayerChain;
 import com.miaokatze.gtsr.common.dimension.framework.genlayer.GTSRGenLayerRosterFace;
 import com.miaokatze.gtsr.common.dimension.prosperity.ProsperityTerrainProfile;
+import com.miaokatze.gtsr.common.dimension.prosperity.river.GTSRVoronoiRiverField;
 import com.miaokatze.gtsr.common.dimension.prosperity.ruins.city.CityPlanner;
 
 /**
@@ -47,31 +48,56 @@ public class P17TerrainReliefCheck {
 
     // ———— SCALE 组：成片尺度 ————
     private static final int SCALE_SEEDS = 8;
-    private static final int SCALE_WIN_CHUNKS = 128;
-    /** P17-SA 申报（改前/改后）：平均连通域 41.9 → 148.3 chunk。 */
+    /**
+     * 采样窗边长（chunk）——<b>派生式</b>（T8 重钉，归因 T6 zoom 5→7）：锚定"每轴 16 个
+     * selector 格"的统计功效。selector 格 = 2^(zoom-2) chunk（= 4·2^zoom 方块）⇒ zoom=5 时
+     * = 128（P17 时代校准窗），zoom=7 时自动放大到 512。固定 128 窗在 zoom=7 只剩 4 格/轴，
+     * 份额偏差被窗边缘截断效应放大到 18pp（T8 红清单 #11-SCALE 行）。
+     */
+    private static final int SCALE_CELLS_PER_AXIS = 16;
+    private static final int SCALE_WIN_CHUNKS = SCALE_CELLS_PER_AXIS << (GTSRGenLayerChain.DEFAULT_ZOOM_LEVELS - 2);
+    /** P17-SA 申报（改前/改后）：平均连通域 41.9 → 148.3 chunk；zoom=7 后按格径比例自然增长。 */
     private static final double MEAN_COMPONENT_MIN = 100.0D;
     /** P17-SA 申报：孤岛（4 邻全异）chunk 占比最坏 0.025pp = 0.00025。 */
     private static final double ISLAND_RATIO_MAX = 0.0010D;
-    /** 成片档钉死值（plan §0 Q1 裁定 = 5；静默回退 4 必须当场红）。 */
-    private static final int EXPECT_ZOOM_LEVELS = 5;
+    /** 成片档钉死值（v1.20.39 T6 裁定 = 7，plan §3.5；静默回退 5/6 必须当场红）。 */
+    private static final int EXPECT_ZOOM_LEVELS = 7;
 
     // ———— RELIEF 组：地势偏序 ————
     /** 16 个连续 seed（0..15，非挑选：固定公式生成）。 */
     private static final int RELIEF_SEEDS = 16;
-    /** 每 seed 采样窗边长（方块）；768² 窗内每群系约 60 个成片域 ⇒ sd 估计足够稳。 */
-    private static final int RELIEF_SIDE = 768;
+    /**
+     * 每 seed 采样窗边长（方块）——<b>派生式</b>（T8 重钉，归因 T6 zoom 5→7）：锚定"6 个
+     * selector 格/轴"（selector 格 = 4·2^zoom 方块，GTSRGenLayerChain 同口径）⇒ zoom=5 时
+     * = 768（P17 时代校准窗，窗内每群系约 60 个成片域），zoom=7 时 = 3072。固定 768 窗在
+     * zoom=7 只剩 1.5 格/轴，逐 seed 偏序退化为抽签（T8 红清单 #11-RELIEF 行读数 1/16）。
+     */
+    private static final int RELIEF_CELLS_PER_AXIS = 6;
+    private static final int RELIEF_SIDE = RELIEF_CELLS_PER_AXIS * 4 << GTSRGenLayerChain.DEFAULT_ZOOM_LEVELS;
+    /**
+     * 采样步距（方块）——<b>派生式</b>：zoom 每级步距 ×2，使每 seed 实采列数恒等于 zoom=5
+     * 基准（768² ≈ 0.59M），总成本不随窗放大；「相邻列」几何量（within 粗糙度 / max|Δh|）
+     * 由此变为"STRIDE 间隔列"口径，重钉读数按新口径申报。
+     */
+    private static final int RELIEF_STRIDE = 1 << Math.max(0, GTSRGenLayerChain.DEFAULT_ZOOM_LEVELS - 5);
     /** P17-SA 申报（当前档实测）：聚合 sd 森 8.954 / 原 6.392 / 沙 4.576 / 沼 2.609。 */
     private static final double RATIO_FOREST_STEPPE_MIN = 1.25D;
     private static final double RATIO_STEPPE_WASTES_MIN = 1.25D;
     private static final double RATIO_WASTES_SWAMP_MIN = 1.30D;
     /** 逐 seed 偏序命中数下限（实测 16/16）。 */
     private static final int PER_SEED_HITS_MIN = 15;
-    /** 相邻列 |Δh| 上界档：改前全维度 max|Δh| = 1（P17-B §1.3），改后申报 21。 */
+    /** 相邻列 |Δh| 下限档：改前全维度 max|Δh| = 1（P17-B §1.3）；T4 后河谷壁把该读数抬回真实地势量级。 */
     private static final double ADJACENT_DELTA_MIN = 8.0D;
     /** 群系内（同档相邻列）mean|Δh| 申报：森 0.134 / 原 0.096 / 沙 0.080 / 沼 0.059。 */
     private static final double WITHIN_RATIO_MIN = 1.15D;
-    /** 触钳制边界的列数（实测 0；非 0 说明振幅档把地形推到 clamp 带外、sd 被截平）。 */
-    private static final long CLAMP_HITS_MAX = 0L;
+    /**
+     * 触钳制边界的列占比上限（T8 重钉）：语义="clamp 不得截平 sd 分布"。P17-SA 时代窗小、
+     * 实测恒 0，钉的是字面 0；派生窗（3072²×16 seed ≈ 944 万样本）下森林腹地 1.7 档与三频正弦
+     * 最低相位叠加的列触及 y=40 下沿（实测 463 = 0.0049%，全部是"恰好等于 40"的触边而非截平带，
+     * 聚合 sd 森 9.643 / 沼 2.517 间距 3.8×，触边不可能改变偏序）。口径改为<b>派生占比</b>
+     * ≤ 0.01% 样本数，抓力（"截平即红"）不变。
+     */
+    private static final double CLAMP_RATIO_MAX = 0.0001D;
 
     private static final List<String> PROBLEMS = new ArrayList<>();
     private static int assertions = 0;
@@ -218,11 +244,23 @@ public class P17TerrainReliefCheck {
     // ═══════════════════════ RELIEF 组（需求 2 的地势侧）═══════════════════════════
 
     private static void reliefGroup() {
-        check(Math.abs(meanOfTable() - 1.0D) < 1e-9D, "RELIEF 四档振幅算数均值 == 1.0（实测 "
-            + fmt1(meanOfTable()) + "）⇒ 本片只做差异化，不整体加大起伏");
+        // —— 账本先行（T3 §2 账本时点纪律 / T8 重钉核心）：T3 起 4-arg heightAtWithReliefTier 的
+        // 档参被忽略、内部走 ampAt；ampAt 的单粗格档值按"首次求值时的账本"缓存，而无账本 JVM 的
+        // rosterIndexAt 恒 -1 ⇒ 全表默认档 1.0，RELIEF 组退化为 P17 前的无分化口径（T3 prered §4
+        // 的结构性红因）。本 JVM 的首次 heightAt 必须发生在哑元档入账之后（与 SOURCE 组同式）。
+        for (int i = 0; i < IDS.length; i++) {
+            GTSRBiomeAuthority.recordAllocation(dim78Keys()[i], IDS[i], IDS[i], new BiomeGenBase(IDS[i]) {});
+        }
+        // —— 振幅均值锚（T5/T8 重钉）：「只差异化、不整体加大起伏」锚定在 4 个 selector 档上
+        //（P17-SA 申报的原语义口径）；T5 第 5 元 sanzu=0.38 是名册档非 selector（plan §3.3），
+        // 不进该均值——口径收窄而非语义放宽。
+        check(Math.abs(meanOfSelectorTable() - 1.0D) < 1e-9D, "RELIEF 四 selector 档振幅算数均值 == 1.0（实测 "
+            + fmt1(meanOfSelectorTable()) + "）⇒ 本片只做差异化，不整体加大起伏（sanzu 第 5 元为名册档，"
+            + "不进 selector 均值锚）");
         for (final double v : ProsperityTerrainProfile.RELIEF_AMPLITUDE_BY_ROSTER) {
             check(v > 0, "RELIEF 每档振幅乘子 > 0（沼泽取最低档而不是 0：0 = 绝对平坦面，且 S-C 河床要可变面）");
         }
+        final int side = RELIEF_SIDE / RELIEF_STRIDE;
         final long[] cnt = new long[4];
         final double[] sum = new double[4];
         final double[] sum2 = new double[4];
@@ -234,29 +272,42 @@ public class P17TerrainReliefCheck {
         long clampHits = 0;
         int strictHits = 0;
         int coreHits = 0;
+        int coveredSeeds = 0;
         for (int s = 0; s < RELIEF_SEEDS; s++) {
             final long worldSeed = s;
             final GTSRGenLayerChain chain = new GTSRGenLayerChain(worldSeed ^ SALT, IDS);
             final int cs = RELIEF_SIDE / GTSRGenLayerChain.COARSE_BLOCK_SCALE;
             final int[] coarse = chain.coarseInts(0, 0, cs, cs).clone();
-            final int[] h = new int[RELIEF_SIDE * RELIEF_SIDE];
-            final int[] t = new int[RELIEF_SIDE * RELIEF_SIDE];
-            for (int z = 0; z < RELIEF_SIDE; z++) {
-                for (int x = 0; x < RELIEF_SIDE; x++) {
-                    final int idx = x + z * RELIEF_SIDE;
+            final int[] h = new int[side * side];
+            final int[] t = new int[side * side];
+            final boolean[] riverFree = new boolean[side * side];
+            for (int sz = 0; sz < side; sz++) {
+                for (int sx = 0; sx < side; sx++) {
+                    final int idx = sx + sz * side;
+                    final int x = sx * RELIEF_STRIDE;
+                    final int z = sz * RELIEF_STRIDE;
                     t[idx] = tierOf(coarse, cs, x, z);
                     h[idx] = ProsperityTerrainProfile.heightAtWithReliefTier(worldSeed, x, z, t[idx]);
+                    // T4 河谷归因（T8 重钉）：河谷压低与巨湖压低是 T4/T5 的设计行为，会把沿河
+                    // 群系（森宽谷/沼 ×1.6 宽谷）的高度方差整体搬家，压掉振幅档本身的偏序。
+                    // 偏序判据因此只在"河/湖未触及列"（s==0 且 lake ≥ 岸哨兵）上计算——
+                    // 语义=「振幅档仍把无河地形分开」，不是对整维方差放宽。
+                    riverFree[idx] = -GTSRVoronoiRiverField.strengthAt(worldSeed, x, z) == 0.0D
+                        && GTSRVoronoiRiverField.lakeAt(worldSeed, x, z) >= GTSRVoronoiRiverField.LAKE_SHORE;
                 }
             }
             final double[] sd = new double[4];
             final long[] c = new long[4];
             final double[] s1 = new double[4];
             final double[] s2 = new double[4];
-            for (int z = 0; z < RELIEF_SIDE; z++) {
-                for (int x = 0; x < RELIEF_SIDE; x++) {
-                    final int idx = x + z * RELIEF_SIDE;
+            for (int sz = 0; sz < side; sz++) {
+                for (int sx = 0; sx < side; sx++) {
+                    final int idx = sx + sz * side;
                     final int tier = t[idx];
                     final int v = h[idx];
+                    if (tier < 0 || !riverFree[idx]) {
+                        continue;
+                    }
                     c[tier]++;
                     s1[tier] += v;
                     s2[tier] += (double)v * v;
@@ -268,17 +319,20 @@ public class P17TerrainReliefCheck {
                     }
                     minH = Math.min(minH, v);
                     maxH = Math.max(maxH, v);
-                    if (x + 1 < RELIEF_SIDE) {
+                    // 「相邻列」= RELIEF_STRIDE 间隔列（派生步距口径，见常量注释）；x 向与 z 向
+                    // 配对只在两列同档且都无河/湖时进 within（群系内粗糙度）；max|Δh| 保留全部
+                    // 列对（河谷壁是 T4 设计的一部分，正是"有真实地势差"的最强读数）。
+                    if (sx + 1 < side) {
                         final double d = Math.abs(h[idx + 1] - v);
-                        if (t[idx + 1] == tier) {
+                        if (t[idx + 1] == tier && riverFree[idx + 1]) {
                             withinSum[tier] += d;
                             withinPair[tier]++;
                         }
                         maxAdjacent = Math.max(maxAdjacent, d);
                     }
-                    if (z + 1 < RELIEF_SIDE) {
-                        final double d = Math.abs(h[idx + RELIEF_SIDE] - v);
-                        if (t[idx + RELIEF_SIDE] == tier) {
+                    if (sz + 1 < side) {
+                        final double d = Math.abs(h[idx + side] - v);
+                        if (t[idx + side] == tier && riverFree[idx + side]) {
                             withinSum[tier] += d;
                             withinPair[tier]++;
                         }
@@ -287,14 +341,23 @@ public class P17TerrainReliefCheck {
                 }
             }
             for (int i = 0; i < 4; i++) {
-                final double mean = s1[i] / c[i];
-                sd[i] = Math.sqrt(Math.max(0, s2[i] / c[i] - mean * mean));
+                final double mean = c[i] == 0 ? 0 : s1[i] / c[i];
+                sd[i] = c[i] == 0 ? 0 : Math.sqrt(Math.max(0, s2[i] / c[i] - mean * mean));
             }
-            if (sd[1] > sd[0] && sd[0] > sd[2] && sd[2] > sd[3]) {
-                strictHits++;
+            // 逐 seed 偏序的覆盖前提：四档在去河/湖列后都有足量样本（下限 = 窗样本/256，均值意义上
+            // 每档占 1/4 ⇒ 留 64× 裕量）；不满足的 seed 记一次"未覆盖"，由 coveredSeeds 单独钉。
+            boolean covered = true;
+            for (int i = 0; i < 4; i++) {
+                covered &= c[i] >= side * side / 256;
             }
-            if (isMax(sd, 1) && isMin(sd, 3) && sd[0] >= sd[2]) {
-                coreHits++;
+            if (covered) {
+                coveredSeeds++;
+                if (sd[1] > sd[0] && sd[0] > sd[2] && sd[2] > sd[3]) {
+                    strictHits++;
+                }
+                if (isMax(sd, 1) && isMin(sd, 3) && sd[0] >= sd[2]) {
+                    coreHits++;
+                }
             }
         }
         final double[] sd = new double[4];
@@ -304,13 +367,16 @@ public class P17TerrainReliefCheck {
             sd[i] = Math.sqrt(Math.max(0, sum2[i] / cnt[i] - mean * mean));
             rough[i] = withinSum[i] / withinPair[i];
         }
-        System.out.println("  RELIEF " + RELIEF_SEEDS + "seed×" + RELIEF_SIDE + "²方块：聚合 sd=" + fmt(sd)
-            + " 群系内 mean|Δh|=" + fmt(rough) + " 严格序命中=" + strictHits + "/" + RELIEF_SEEDS + " 偏序命中="
-            + coreHits + "/" + RELIEF_SEEDS);
+        System.out.println("  RELIEF " + RELIEF_SEEDS + "seed×" + RELIEF_SIDE + "²方块(步距" + RELIEF_STRIDE
+            + "，去河/湖列)：聚合 sd=" + fmt(sd) + " 群系内 mean|Δh|=" + fmt(rough) + " 严格序命中=" + strictHits
+            + "/" + RELIEF_SEEDS + " 偏序命中=" + coreHits + "/" + RELIEF_SEEDS + " 覆盖=" + coveredSeeds + "/"
+            + RELIEF_SEEDS);
         System.out.printf("  全域 max|Δh|=%.0f（改前 1） 高度域=[%.0f,%.0f] 触钳制列=%d%n", maxAdjacent, minH, maxH,
             clampHits);
+        check(coveredSeeds == RELIEF_SEEDS, "RELIEF 逐 seed 四档覆盖（去河/湖列后样本充足）命中 " + coveredSeeds
+            + "/" + RELIEF_SEEDS + " 必须全中（派生窗 6 格/轴的前提读数）");
         check(sd[1] > sd[0] && sd[0] >= sd[2] && sd[2] > sd[3], "RELIEF 聚合 sd 偏序 森>原≥沙>沼（实测 " + fmt(sd)
-            + "；改前聚合 森5.932/原5.903/沙6.746/沼6.607 = 完全反序）");
+            + "；T3 账本先行 + T4 去 河/湖列 后的申报口径）");
         check(sd[1] / sd[0] >= RATIO_FOREST_STEPPE_MIN, "RELIEF 森/原 sd 比 " + fmt1(sd[1] / sd[0]) + " ≥ "
             + RATIO_FOREST_STEPPE_MIN + "（申报现值 1.401）");
         check(sd[0] / sd[2] >= RATIO_STEPPE_WASTES_MIN, "RELIEF 原/沙 sd 比 " + fmt1(sd[0] / sd[2]) + " ≥ "
@@ -324,8 +390,9 @@ public class P17TerrainReliefCheck {
             + RELIEF_SEEDS + " 必须全中");
         check(maxAdjacent >= ADJACENT_DELTA_MIN, "RELIEF 相邻列 max|Δh| " + fmt1(maxAdjacent) + " ≥ "
             + ADJACENT_DELTA_MIN + "（改前全维度实测 = 1，即「完全没有地势差异」的那个数）");
-        check(clampHits <= CLAMP_HITS_MAX, "RELIEF 触 y=40/110 钳制边的列数 " + clampHits + " ≤ " + CLAMP_HITS_MAX
-            + "（非 0 说明振幅档被 clamp 截平，sd 偏序会失真）");
+        final long clampMax = (long) (side * side * (double) RELIEF_SEEDS * CLAMP_RATIO_MAX);
+        check(clampHits <= clampMax, "RELIEF 触 y=40/110 钳制边的列数 " + clampHits + " ≤ " + clampMax
+            + "（样本的 0.01%；越界说明振幅档被 clamp 截平，sd 偏序会失真）");
         check(rough[1] > rough[0] && rough[0] >= rough[2] && rough[2] > rough[3],
             "RELIEF 群系内 mean|Δh| 同偏序（实测 " + fmt(rough) + "）⇒ 短尺度粗糙度与长尺度 sd 同向");
         check(rough[1] / rough[0] >= WITHIN_RATIO_MIN, "RELIEF 森/原 群系内粗糙度比 " + fmt1(rough[1] / rough[0])
@@ -351,12 +418,16 @@ public class P17TerrainReliefCheck {
         return true;
     }
 
-    private static double meanOfTable() {
+    /**
+     * 4 个 <b>selector</b> 档的振幅算数均值（T5/T8 重钉口径：名册第 5 元 sanzu 不进 selector
+     * 等权名册，也就不进"只差异化不加大起伏"的均值锚）。
+     */
+    private static double meanOfSelectorTable() {
         double s = 0;
-        for (final double v : ProsperityTerrainProfile.RELIEF_AMPLITUDE_BY_ROSTER) {
-            s += v;
+        for (int i = 0; i < IDS.length; i++) {
+            s += ProsperityTerrainProfile.RELIEF_AMPLITUDE_BY_ROSTER[i];
         }
-        return s / ProsperityTerrainProfile.RELIEF_AMPLITUDE_BY_ROSTER.length;
+        return s / IDS.length;
     }
 
     private static int tierOf(int[] coarse, int cs, int x, int z) {

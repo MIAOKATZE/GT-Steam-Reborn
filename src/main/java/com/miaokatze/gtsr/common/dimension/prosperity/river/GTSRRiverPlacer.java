@@ -15,54 +15,53 @@ import com.miaokatze.gtsr.common.dimension.prosperity.ProsperityTerrainProfile;
 import com.miaokatze.gtsr.main.GTSteamReborn;
 
 /**
- * dim78 河流水系的<b>落块器</b>（dim1 P17 S-C）：在 {@code onPopulate} 窗口里按
- * {@link GTSRRiverNetwork} 那套纯函数模型把河道切成水。全部算式与几何证明在
- * {@link GTSRRiverNetwork}（本类只负责"按模型读写世界"），需求原话「增加河流」+
- * 「沼泽……河网密集」的兑现点即本文件与那张档表。
+ * dim78 河流水系的<b>落块器</b>（v1.20.39 T4 重写）：在 {@code onPopulate} 窗口里按
+ * {@link GTSRVoronoiRiverField} 纯函数河流场做<b>水面回填 / 河床料铺放 / 瀑布落差处理</b>。
+ * 河谷压低已并入 {@link ProsperityTerrainProfile#heightAt}（本类不切地形，只回填）——
+ * 与 P17 S-C 旧模型"落块器下切河床"的分工不同：旧 {@code GTSRRiverNetwork}（轴向等距线、
+ * SPACING/MEANDER/CUT_DEPTH/holdsWater/整条掷骰 wet）已整类删除。
  *
  * <p>
- * ═══ 写入协议（三条都是既存纪律，本片零新发明） ═══
+ * ═══ 每列断面（H = {@code heightAt}，即含河谷压低后的地表实体顶）═══
  * <ul>
- * <li><b>只写本 chunk</b>：跨 chunk 方块读与写一并禁止——写入经 {@link BlockSink}
- * （生产传 {@code ChunkClampedSink}，协议层钳制），几何读取一律走
- * {@link ProsperityTerrainProfile#heightAtWithReliefTier} 这条<b>解析纯函数</b>，
- * 连邻列的地表都不碰 {@code World} ⇒ 框架的"provider 不做跨 chunk 方块读取"红线不动；</li>
- * <li><b>{@link BlockSink#FLAG_POPULATE}（=2）</b>：只送客户端、不触发邻块更新——与原版
- * {@code WorldGenLakes:108} 事后灌水的 flag 一字同形。这一条是"我们自己不把自己的水源叫醒"
- * 的实现手段（后果与不可避的那一半见 {@link GTSRRiverNetwork} 类注释）；</li>
- * <li><b>光照与流体不需要任何额外置位</b>（P17-B 留的 {@code [未实测]} 项，本片实测闭合，
- * 证据见 {@code plan/tmp/p17-sc2/SC2-RESULT.md} §4）：{@code World.setBlock} 在 flags 之外
- * <b>无条件</b>调 {@code func_147451_t(x,y,z)}（{@code World.java:527-529}，Sky+Block 两种光都走），
- * 且 {@code Chunk.func_150807_a} 自己按新旧不透明度做 {@code relightBlock}/
- * {@code generateSkylightMap}/{@code propagateSkylightOcclusion}（{@code Chunk.java:675-702}）。
- * 流体侧：{@code Blocks.water} 是静态源（{@code BlockStaticLiquid.java:15} 对水
- * {@code setTickRandomly(false)}），{@code Chunk} 组装期那条"裸数组 + generateSkylightMap"的路
- * 本片<b>不走</b>（水在 Chunk 之后才写），因此 provider 阶段无需、也不应再排一次 tick——
- * 排了反而会让 {@code BlockDynamicLiquid} 去够不着的邻格。</li>
+ * <li><b>置水列</b>（{@code wetAt} 过且 H &lt; SEA_LEVEL=68）：{@code y=H+1..67} 置
+ * {@code Blocks.water}（meta 0，静态源），水面口径 68 = 最高水格 67 的上一格；</li>
+ * <li><b>河核列</b>（s ≥ {@link GTSRVoronoiRiverField#WET_MIN}，含置水/干谷/浅滩）：
+ * 地表 {@code y=H} 换 {@code gtsr:prosperityRiverGravel} 河床料——RiverGravel 自 T2 起
+ * 是 {@code BlockFalling} 重力方块，<b>只写一格且写在固体顶</b>（下方恒有支撑），
+ * populate 窗口 fallInstantly 置位期不产生悬浮结算；</li>
+ * <li><b>瀑布落差列</b>（相邻河核列 H 高差 &gt; {@link #WATERFALL_DROP}）：保留落差不拉平
+ * （床函数本来就不平滑），且<b>两侧都不铺河床料</b>——防 fallInstantly 结算把重力床料
+ * 掉进落差面堵住瀑面（plan §9 风险表的既定处理）。落差竖直面的水由深列的回填天然覆盖
+ * （深列水柱 H+1..67 恰好贴着高列的岩壁），无额外写面。</li>
  * </ul>
  *
  * <p>
- * ═══ 断面（每列，{@code H =} 该列天然地表） ═══
- * 过水列：{@code y=H} 清成空气、{@code y=H-1} 灌 {@code Blocks.water}（meta 0）、
- * {@code y=H-2} 铺 {@code gtsr:prosperityRiverGravel}（水床成层关系由判据 LAYER 组钉）。
- * 干谷列（档=不过水，或几何闸未过）：{@code y=H} 空气、{@code y=H-1} 铺同一份砂砾作谷底。
- * 水格四同层邻格与床格必为固体——这就是 {@link GTSRRiverNetwork#holdsWater} 的结论。
- *
- * <p>
- * ═══ 成本口径（实测见交付件 §5） ═══
- * 每 chunk：身份 6×6 格（coarse 面 1:4，含一列外的邻格环）+ 高度 18×18 格 + 骨架掩码 18×18 格，
- * 全部是<b>纯函数采样</b>；方块写入只发生在河道列（实测每 chunk 约 8-40 格）。
- * 本类不消费 {@code onPopulate} 传进来的 {@code Random}（全部掷骰走
- * {@link GTSRWorldgenHash} 的坐标哈希）⇒ <b>既有 rand 流一个数都不动</b>。
+ * ═══ 写入协议（全部既存纪律，零新发明）═══
+ * <ul>
+ * <li><b>只写本 chunk</b>：写入经 {@link BlockSink}（生产传 {@code ChunkClampedSink} 钳制）；
+ * 邻列量（s/床/落差检测）一律由 {@link GTSRVoronoiRiverField}/{@code heightAt} <b>纯函数重算</b>
+ * （18×18 含一列邻格环），零跨 chunk 方块读；</li>
+ * <li><b>{@link BlockSink#FLAG_POPULATE}（=2）</b>：只送客户端、不触发邻块更新（与原版
+ * {@code WorldGenLakes} 事后灌水同形；水是静态源 {@code setTickRandomly(false)}，
+ * provider 阶段不排流体 tick——P17 S-C2 的照明/流体实测结论原样沿用）；</li>
+ * <li><b>不消费 populate 的 {@code Random}</b>：全部判定走纯函数 ⇒ 既有 rand 流一个数不动。</li>
+ * </ul>
  */
 public final class GTSRRiverPlacer {
 
-    /** 河道统计日志窗口（沿用 {@code ChunkClampedSink} 的每 256 chunk 一行口径）。 */
+    /** 相邻河核列地表高差超过该值判为瀑布落差列对（格）。 */
+    public static final int WATERFALL_DROP = 3;
+
+    /** 河道统计日志窗口（沿用每 256 chunk 一行口径）。 */
     private static final int LOG_WINDOW_CHUNKS = 256;
 
     private static final AtomicLong CHUNKS_SERVED = new AtomicLong();
-    private static final AtomicLong CHANNEL_COLUMNS = new AtomicLong();
+    private static final AtomicLong CORE_COLUMNS = new AtomicLong();
     private static final AtomicLong WATER_COLUMNS = new AtomicLong();
+    private static final AtomicLong WATER_CELLS = new AtomicLong();
+    private static final AtomicLong BED_PLACED = new AtomicLong();
+    private static final AtomicLong FALL_COLUMNS = new AtomicLong();
     private static final AtomicLong WRITES = new AtomicLong();
 
     /** 河床料缺失锚点是否已打过（一次性；正常生产路径不可达，见 {@link #bedMaterial()}）。 */
@@ -71,7 +70,7 @@ public final class GTSRRiverPlacer {
     private GTSRRiverPlacer() {}
 
     /**
-     * 本 chunk 的河流水系。由 {@code ChunkProviderProsperityRuins.onPopulate} 调用（唯一生产入口）。
+     * 本 chunk 的河流水系（唯一生产入口，{@code ChunkProviderProsperityRuins.onPopulate} 调用）。
      *
      * @param worldSeed {@code world.getSeed()}——必须与 {@code heightAt} 的其它调用点同一个值
      *                  （不含 def.seedSalt；身份面的盐在 {@link #tierGrid} 内按 S-A 同式掺入）
@@ -79,103 +78,87 @@ public final class GTSRRiverPlacer {
     public static void place(World world, long worldSeed, int chunkX, int chunkZ, BlockSink sink) {
         final int baseX = chunkX << 4;
         final int baseZ = chunkZ << 4;
-        // —— 1. 身份档：coarse 面 1:4 ⇒ 本 chunk 的 4×4 格 + 一列邻格所需的边圈 = 6×6 次解析
+        // —— 1. 身份档（coarse 面 1:4，6×6 格 + 冗余圈：河核列/床/置水判定全部要按列取档）
         final int[] tiers = tierGrid(worldSeed, baseX, baseZ);
-        // —— 2. 天然地表（解析纯函数，与真实表层逐列同值；由 P17RiverNetworkCheck 的 C8 逐列对拍钉死）
-        final int[] height = new int[18 * 18];
+        // —— 2. 纯函数重算 18×18（16×16 + 一列邻格环，落差检测与统计都只在本 chunk 内写）
+        final double[] s = new double[18 * 18];
+        final boolean[] wet = new boolean[18 * 18];
+        final int[] h = new int[18 * 18];
         for (int lz = 0; lz < 18; lz++) {
             for (int lx = 0; lx < 18; lx++) {
-                final int x = baseX - 1 + lx;
-                final int z = baseZ - 1 + lz;
-                height[lz * 18 + lx] = ProsperityTerrainProfile
-                    .heightAtWithReliefTier(worldSeed, x, z, tierAt(tiers, x, z, baseX, baseZ));
-            }
-        }
-        // —— 3. 骨架掩码（成道位 + 过水位）
-        final int[] mask = new int[18 * 18];
-        for (int lz = 0; lz < 18; lz++) {
-            for (int lx = 0; lx < 18; lx++) {
+                final int i = lz * 18 + lx;
                 final int x = baseX - 1 + lx;
                 final int z = baseZ - 1 + lz;
                 final int tier = tierAt(tiers, x, z, baseX, baseZ);
-                mask[lz * 18 + lx] = GTSRRiverNetwork.riverMask(
-                    worldSeed,
-                    x,
-                    z,
-                    GTSRRiverNetwork.bandForRosterIndex(tier),
-                    GTSRRiverNetwork.wetForRosterIndex(tier));
+                // T3 审查点落地：不再走 4 参 heightAtWithReliefTier（rosterIndex 形参已被忽略），
+                // 直接用 3 参 heightAt——与 generateTerrain/PlacementGate 同一出口
+                h[i] = ProsperityTerrainProfile.heightAt(worldSeed, x, z);
+                s[i] = -GTSRVoronoiRiverField.strengthAt(worldSeed, x, z, tier);
+                wet[i] = GTSRVoronoiRiverField.wetAt(worldSeed, x, z, tier);
             }
         }
         final Block bed = bedMaterial();
-        final int[] nbY = new int[4];
-        final int[] nbMask = new int[4];
-        int channelColumns = 0;
+        int coreColumns = 0;
         int waterColumns = 0;
+        int waterCells = 0;
+        int bedPlaced = 0;
+        int fallColumns = 0;
         int writes = 0;
-        // —— 4. 逐列落块：只走本 chunk 的 16×16（邻格环只参与判定，一律不写）
+        // —— 3. 逐列落块：只走本 chunk 的 16×16（邻格环只参与判定，一律不写）
         for (int lz = 1; lz < 17; lz++) {
             for (int lx = 1; lx < 17; lx++) {
                 final int i = lz * 18 + lx;
-                if (!GTSRRiverNetwork.isChannel(mask[i])) {
-                    continue;
+                if (s[i] < GTSRVoronoiRiverField.WET_MIN) {
+                    continue; // 谷坡列（0 < s < WET_MIN）：河谷已由 heightAt 压低，不铺不灌
                 }
-                channelColumns++;
-                final int surface = height[i];
-                nbY[0] = height[i - 1];
-                nbY[1] = height[i + 1];
-                nbY[2] = height[i - 18];
-                nbY[3] = height[i + 18];
-                nbMask[0] = mask[i - 1];
-                nbMask[1] = mask[i + 1];
-                nbMask[2] = mask[i - 18];
-                nbMask[3] = mask[i + 18];
-                // 几何闸：水格四同层邻格与床格必须都是固体（证明见 GTSRRiverNetwork 类注释）
-                final boolean wet = GTSRRiverNetwork.wantsWater(mask[i])
-                    && GTSRRiverNetwork.holdsWater(surface, nbY, nbMask);
+                coreColumns++;
                 final int x = baseX + lx - 1;
                 final int z = baseZ + lz - 1;
-                // 不穿基岩带（heightAt 下界 40、bedrockTop 上界 3 ⇒ 生产恒不触发，纯防御）
-                if (GTSRRiverNetwork.bedY(surface) <= GTSRWorldgenHash.bedrockTopHash(worldSeed, x, z)) {
-                    continue;
+                // 瀑布落差列：四邻河核列地表高差超过 WATERFALL_DROP 即判落差（保留落差不拉平）
+                boolean dropColumn = false;
+                for (int d = 0; d < 4 && !dropColumn; d++) {
+                    final int ni = i + (d == 0 ? -1 : d == 1 ? 1 : d == 2 ? -18 : 18);
+                    if (s[ni] >= GTSRVoronoiRiverField.WET_MIN && Math.abs(h[i] - h[ni]) > WATERFALL_DROP) {
+                        dropColumn = true;
+                    }
                 }
-                final int waterY = GTSRRiverNetwork.waterY(surface);
-                // 先固体、后水（同一 flag，顺序只为"写序即断面序"可读）
-                writes += accept(sink, x, GTSRRiverNetwork.airY(surface), z, Blocks.air, 0);
-                writes += accept(
-                    sink,
-                    x,
-                    wet ? GTSRRiverNetwork.bedY(surface) : GTSRRiverNetwork.dryBedY(surface),
-                    z,
-                    bed,
-                    0);
-                if (wet) {
+                if (dropColumn) {
+                    // 落差列不铺重力河床料（防 fallInstantly 结算堵瀑面）；水照回填（深列水柱贴岩壁即瀑面）
+                    fallColumns++;
+                } else if (h[i] > GTSRWorldgenHash.bedrockTopHash(worldSeed, x, z)) {
+                    // 床料写在地表固体顶（下方恒有支撑；单格替换，自下而上纪律天然满足）
+                    writes += accept(sink, x, h[i], z, bed, 0);
+                    bedPlaced++;
+                }
+                // 水面回填：置水资格列 且 地表在海面之下（水面 68 口径 → 最高水格 67）
+                if (wet[i] && h[i] < ProsperityTerrainProfile.SEA_LEVEL) {
                     waterColumns++;
-                    writes += accept(sink, x, waterY, z, Blocks.water, 0);
+                    for (int y = h[i] + 1; y <= ProsperityTerrainProfile.SEA_LEVEL - 1; y++) {
+                        writes += accept(sink, x, y, z, Blocks.water, 0);
+                        waterCells++;
+                    }
                 }
             }
         }
-        // —— 5. 观测：每 256 chunk 一行（无河道也是读数，不静默）
-        CHANNEL_COLUMNS.addAndGet(channelColumns);
+        // —— 4. 观测：每 256 chunk 一行（无河道也是读数，不静默）
+        CORE_COLUMNS.addAndGet(coreColumns);
         WATER_COLUMNS.addAndGet(waterColumns);
+        WATER_CELLS.addAndGet(waterCells);
+        BED_PLACED.addAndGet(bedPlaced);
+        FALL_COLUMNS.addAndGet(fallColumns);
         WRITES.addAndGet(writes);
         final long served = CHUNKS_SERVED.incrementAndGet();
         if (served % LOG_WINDOW_CHUNKS == 0) {
             GTSteamReborn.LOG.info(
-                "[GTSR] dim78 river over {} chunks: channelCols={} waterCols={} ({}pp of all cols)"
-                    + " writes={} band={}/{}/{}/{} wet={}/{}/{}/{}",
+                "[GTSR] dim78 river over {} chunks: coreCols={} waterCols={} waterCells={} bedCols={}"
+                    + " fallCols={} writes={}",
                 served,
-                CHANNEL_COLUMNS.get(),
+                CORE_COLUMNS.get(),
                 WATER_COLUMNS.get(),
-                formatPp(CHANNEL_COLUMNS.get(), served * 256L),
-                WRITES.get(),
-                GTSRRiverNetwork.RIVER_BAND_BY_ROSTER[0],
-                GTSRRiverNetwork.RIVER_BAND_BY_ROSTER[1],
-                GTSRRiverNetwork.RIVER_BAND_BY_ROSTER[2],
-                GTSRRiverNetwork.RIVER_BAND_BY_ROSTER[3],
-                GTSRRiverNetwork.RIVER_WET_BY_ROSTER[0],
-                GTSRRiverNetwork.RIVER_WET_BY_ROSTER[1],
-                GTSRRiverNetwork.RIVER_WET_BY_ROSTER[2],
-                GTSRRiverNetwork.RIVER_WET_BY_ROSTER[3]);
+                WATER_CELLS.get(),
+                BED_PLACED.get(),
+                FALL_COLUMNS.get(),
+                WRITES.get());
         }
     }
 
@@ -185,10 +168,9 @@ public final class GTSRRiverPlacer {
     }
 
     /**
-     * 河床料（S-B1/S-B2 在册的 {@code gtsr:prosperity_river_gravel}；本片不新增方块）。
+     * 河床料（在册 {@code gtsr:prosperityRiverGravel}，T2 起 BlockFalling 派生）。
      * <b>{@code BlockLoader} 未跑时该静态字段为 null</b>——生产路径由 preInit 顺序保证非 null，
-     * 真为 null 时本方法回退 {@code Blocks.stone} 并打<b>一次性</b> WARN（plan §2.1 L8「禁止无日志的
-     * 降级」；断面仍然闭合，只是河床料退化成骨架石）。
+     * 真为 null 时回退 {@code Blocks.stone} 并打<b>一次性</b> WARN（断面仍闭合，只是床料退化）。
      */
     private static Block bedMaterial() {
         final Block bed = BlocksGTSR.prosperityRiverGravel;
@@ -204,11 +186,6 @@ public final class GTSRRiverPlacer {
         return Blocks.stone;
     }
 
-    /** 千分位读数格式化（仅日志用）。 */
-    private static String formatPp(long part, long total) {
-        return total <= 0L ? "-" : String.format("%.3f", 100.0D * part / total);
-    }
-
     // ————————————————————————— 身份格网 —————————————————————————
 
     /** coarse 面（1:4）的格网起点：覆盖 [baseX-4, baseX+20) ⇒ 含一列邻格环所需的边圈。 */
@@ -218,10 +195,9 @@ public final class GTSRRiverPlacer {
 
     /**
      * 本 chunk 及其一列邻格环的 L1 名册下标（coarse 身份面，与 {@code heightAt} 内部的取数口
-     * <b>同一个</b> {@link GTSRGenLayerRosterFace}，盐也沿用 {@link ProsperityTerrainProfile#CHAIN_SEED_SALT}
-     * 的<b>常数引用</b>——不在本片再抄一份字面量，S-A 的 SALT 组钉的是"三处字面量"，第四处引用不新增真值）。
-     * 缺失身份 = {@link GTSRGenLayerRosterFace#NO_IDENTITY}，由两张档表各自回退默认档（本片无任何
-     * 身份等值判断）。
+     * <b>同一个</b> {@link GTSRGenLayerRosterFace}，盐沿用 {@link ProsperityTerrainProfile#CHAIN_SEED_SALT}
+     * 的<b>常数引用</b>——不抄字面量，不新增第二真值）。缺失身份 =
+     * {@link GTSRGenLayerRosterFace#NO_IDENTITY}，由档表各自回退默认档（无身份等值判断）。
      */
     private static int[] tierGrid(long worldSeed, int baseX, int baseZ) {
         final long chainSeed = worldSeed ^ ProsperityTerrainProfile.CHAIN_SEED_SALT;

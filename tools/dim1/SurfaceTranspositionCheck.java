@@ -9,6 +9,7 @@ import com.miaokatze.gtsr.common.dimension.framework.GTSRBiomeAuthority.Degraded
 import com.miaokatze.gtsr.common.dimension.framework.GTSRChunkProviderBase;
 import com.miaokatze.gtsr.common.dimension.framework.GTSRDimensionDef;
 import com.miaokatze.gtsr.common.dimension.framework.GTSRWorldChunkManager;
+import com.miaokatze.gtsr.common.dimension.framework.genlayer.GTSRGenLayerChain;
 import com.miaokatze.gtsr.common.dimension.prosperity.ChunkProviderProsperityRuins;
 import com.miaokatze.gtsr.common.dimension.prosperity.ProsperityTerrainProfile;
 import com.miaokatze.gtsr.common.dimension.shattered.ChunkProviderShatteredGrounds;
@@ -120,23 +121,29 @@ public class SurfaceTranspositionCheck {
                     bad++;
                     continue;
                 }
-                // 裸露面以下整段换 base（filler 复用 base ⇒ 同实例）：逐列必须落在本列群系的 base 上
-                boolean body = true;
-                for (int y = height - 1; y > 3; y--) {
+                // 裸露面以下两段（v1.20.39 T2/T8 重钉，plan §3.7 G4 石化）：
+                //   filler 段 1-2 格 = 壤土 base（深度 = 独立重算列哈希，钉 x/z→世界坐标方向）；
+                //   其下 wholeBody 整段 = prosperityStone（baseBlockOf 四群系统一返石，旧"整段 base"
+                //   期望随石化转红，主体期望按新表层语义改石）。
+                final int depth = 1 + (int) (independentMix(SurfaceHarness.SEED, wx, wz) & 1);
+                boolean fillerOk = true;
+                for (int y = height - 1; y >= height - depth; y--) {
                     if (blocks[column | y] != want.fillerBlock) {
+                        fillerOk = false;
+                    }
+                }
+                if (fillerOk) {
+                    depthOk++;
+                }
+                boolean body = true;
+                for (int y = height - depth - 1; y > 3; y--) {
+                    if (blocks[column | y] != BlocksGTSR.prosperityStone) {
                         body = false;
                         break;
                     }
                 }
                 if (body) {
                     bodyOk++;
-                }
-                // filler 深度 = 独立重算的列哈希（钉 x/z→世界坐标方向）
-                final int depth = 1 + (int) (independentMix(SurfaceHarness.SEED, wx, wz) & 1);
-                final boolean fillerRun = blocks[column | height - 1] == want.fillerBlock
-                    && (depth == 1 || blocks[column | height - depth] == want.fillerBlock);
-                if (fillerRun) {
-                    depthOk++;
                 }
                 final GTSRBiomeAuthority.Resolution r = authority.of(want);
                 if (r.resolved() && r.biomeId != null && r.biomeId.rosterIndex() == pattern[idx]) {
@@ -146,7 +153,7 @@ public class SurfaceTranspositionCheck {
         }
         check(bad == 0 && topOk == 256, tag + " 逐列 top+topMeta 全部对号（转置后不可能成立）cols=" + topOk
             + " bad=" + bad);
-        check(bodyOk == 256, tag + " 逐列主体整段换 base 对号 cols=" + bodyOk);
+        check(bodyOk == 256, tag + " 逐列主体整段换 prosperityStone 对号 cols=" + bodyOk);
         check(depthOk == 256, tag + " filler 深度与 (worldX,worldZ) 独立重算一致 cols=" + depthOk);
         check(idOk == 256, tag + " 每列群系的 L1 rosterIndex 与指派下标一致 cols=" + idOk);
         check(distinct.size() == 4, tag + " 合成数组逐列覆盖 4 个群系（非整 chunk 单一群系）distinct=" + distinct);
@@ -230,14 +237,22 @@ public class SurfaceTranspositionCheck {
      * </ol>
      */
     private static void checkProducerAgreesWithAuthority(BiomeGenBase[] p, BiomeGenBase[] s) throws Exception {
+        // 双面真实性采样窗（T8 重钉，归因 T6 zoom 5→7）——<b>派生式</b>：锚定"2 个 selector 格/轴"
+        //（selector 格 = 2^(zoom-2) chunk）⇒ zoom=5 时 = 16 chunk、zoom=7 时 = 64 chunk。
+        // 固定 10×10 chunk 窗（160 方块）在 zoom=7 整窗落进单个 selector 格腹地、一条群系边界线
+        // 都不含，细面==粗面恒等是几何事实而非"细面未生效"（探针实测：160 方块窗 0.00%、
+        // ≥512 方块窗 0.45%~3.3%）——窗口功效假红，扩窗即恢复抓力。
+        final int winChunks = 2 << (GTSRGenLayerChain.DEFAULT_ZOOM_LEVELS - 2);
+        final int half = winChunks / 2;
+        final int total = winChunks * winChunks;
         final GTSRDimensionDef def78 = SurfaceHarness.def(true, p, SurfaceHarness.prosperityWeights());
         final GTSRWorldChunkManager mgr78 = SurfaceHarness.manager(true, def78);
         final GTSRBiomeAuthority a78 = GTSRBiomeAuthority.forDimKey(GTSRBiomeAuthority.DIM_KEY_PROSPERITY);
         int ok = 0;
         int foreign = 0;
         int differsFromIdentity = 0;
-        for (int cx = -5; cx < 5; cx++) {
-            for (int cz = -5; cz < 5; cz++) {
+        for (int cx = -half; cx < half; cx++) {
+            for (int cz = -half; cz < half; cz++) {
                 final BiomeGenBase[] array = mgr78.loadBlockGeneratorData(null, cx * 16, cz * 16, 16, 16);
                 for (int x = 0; x < 16; x++) {
                     for (int z = 0; z < 16; z++) {
@@ -257,10 +272,10 @@ public class SurfaceTranspositionCheck {
                 }
             }
         }
-        check(ok == 100 * 256, "真实 manager 平面列 == 细层单点 getBiomeGenAt（dim78 100 chunk，懒回填同解）hits="
-            + ok);
+        check(ok == total * 256, "真实 manager 平面列 == 细层单点 getBiomeGenAt（dim78 " + total
+            + " chunk，懒回填同解）hits=" + ok);
         check(foreign == 0, "dim78 平面列全部为本维名册成员（外来/null 列 " + foreign + "）");
-        final double dual78 = (double) differsFromIdentity / (100 * 256);
+        final double dual78 = (double) differsFromIdentity / (total * 256);
         check(dual78 > 0.0D && dual78 < 0.25D, "dim78 双面真实性：平面列 ≠ chunk 身份比例 " + pct(dual78)
             + " ∈ (0%,25%)（0=细面恒等平铺粗层，≥25%=噪点化）");
 
@@ -270,8 +285,8 @@ public class SurfaceTranspositionCheck {
         int ok79 = 0;
         int foreign79 = 0;
         int differs79 = 0;
-        for (int cx = -5; cx < 5; cx++) {
-            for (int cz = -5; cz < 5; cz++) {
+        for (int cx = -half; cx < half; cx++) {
+            for (int cz = -half; cz < half; cz++) {
                 final BiomeGenBase[] array = mgr79.loadBlockGeneratorData(null, cx * 16, cz * 16, 16, 16);
                 for (int i = 0; i < 256; i++) {
                     final BiomeGenBase column = array[i];
@@ -288,10 +303,10 @@ public class SurfaceTranspositionCheck {
                 }
             }
         }
-        check(ok79 == 100 * 256, "真实 manager 平面列 == 细层单点 getBiomeGenAt（dim79 100 chunk，i&15=x / "
+        check(ok79 == total * 256, "真实 manager 平面列 == 细层单点 getBiomeGenAt（dim79 " + total + " chunk，i&15=x / "
             + "i>>4=z，懒回填同解）hits=" + ok79);
         check(foreign79 == 0, "dim79 平面列全部为本维名册成员（外来/null 列 " + foreign79 + "）");
-        final double dual79 = (double) differs79 / (100 * 256);
+        final double dual79 = (double) differs79 / (total * 256);
         check(dual79 > 0.0D && dual79 < 0.25D, "dim79 双面真实性：平面列 ≠ chunk 身份比例 " + pct(dual79)
             + " ∈ (0%,25%)");
     }

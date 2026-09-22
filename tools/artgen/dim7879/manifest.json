@@ -2,7 +2,8 @@
   "_manifest": "dim78 自然区 + dim79 破碎之地 正式方块材质 唯一权威（gtnh-block-texture-artgen 契约：manifest 单点收口 PALETTE / DERIVED_RULES / SEEDS / STYLE / OUTPUTS）。35 张 = dim78 17 + dim79 18。",
   "_p16_32": "P16（v1.20.37，U1 裁决）：本批 35 张已全部重绘为 32x32 并在产，逐张设计档案见同目录 design32.json，绘制器 = draw32_dim78.py（dim78 17，片 A1a）/ draw32_dim79.py（dim79 18，片 A1b）。本 manifest 的 PALETTE / DERIVED_RULES / SEEDS / OUTPUTS[*].params 仍是这两个脚本的真值来源（本轮未改写）；STYLE.pixel_discipline.size [16,16] 是 16 档母版标定值、不是在产档位（在产 = 32x32，IHDR 与色数实测见 design32.json.entries[*].measured）。",
   "_changelog": [
-    {"date": "2026-09-21", "change": "P16-A4 回写：32 档设计权威从 plan/tmp（gitignore 且属收束清理区）收进仓内 draw32_dim78.py + draw32_dim79.py + design32.json；landed.sha256 已按新字节重钉（35 行全换）；生成器 gen_dim7879_blocks.py 与本 manifest 的既有条目逐字未改。"}
+    {"date": "2026-09-21", "change": "P16-A4 回写：32 档设计权威从 plan/tmp（gitignore 且属收束清理区）收进仓内 draw32_dim78.py + draw32_dim79.py + design32.json；landed.sha256 已按新字节重钉（35 行全换）；生成器 gen_dim7879_blocks.py 与本 manifest 的既有条目逐字未改。"},
+    {"date": "2026-09-22", "change": "v1.20.39 T2（plan §3.7 地底石化）：OUTPUTS 追加 prosperity_stone 1 张（PALETTE 新锚 PROSPERITY_STONE，kind terrain_grit 带层理，绘制走 draw32_dim78.py 新 builder stone_ruin）；既有 56 张参数与种子逐字未改。"}
   ],
   "_authority": {
     "dim78_semantics": "plan/investigation/dim78-fix-slice-A1-report.md §1（12 方块登记表：四群系 top/base + 2 草丛 + 锈树干 + 锈树叶；17 张占位）",
@@ -70,7 +71,8 @@
     "TUFT_BRISTLE_MAT": "C9B48A",
     "SILICA_SAND": "D6C79B",
     "COARSE_SAND": "C0A76B",
-    "RIVER_GRAVEL": "9A8E7A"
+    "RIVER_GRAVEL": "9A8E7A",
+    "PROSPERITY_STONE": "6E6A64"
   },
   "DERIVED_RULES": {
     "D006": { "toward": "DARK_ANCHOR", "t": 0.006 },
@@ -166,6 +168,7 @@
     "prosperity_silica_sand": "0x5EED8141",
     "prosperity_coarse_sand": "0x5EED8146",
     "prosperity_river_gravel": "0x5EED814B",
+    "prosperity_stone": "0x5EED8151",
     "shattered_corestone": "0x5EED9101",
     "shattered_monolith": "0x5EED9102",
     "shattered_ash_top": "0x5EED9103",
@@ -1204,6 +1207,30 @@
         "clod": "BASE@D090"
       },
       "_read": "河床砂砾：全批最冷的灰褐谱（唯一不带暖沙相的沙类）+ 砾密度 0.30 与明暗对比拉到 D220/L220 ⇒ 水磨砾石感，S-C 河床主料"
+    },
+    {
+      "key": "prosperity_stone",
+      "file": "prosperity_stone.png",
+      "group": "prosperity_natural",
+      "block": "ProsperityStone（BlockLoader.java v1.20.39 T2 地底 wholeBody 石化段，baseBlockOf 四群系统一返回）",
+      "kind": "terrain_grit",
+      "tileable": true,
+      "params": {
+        "base": "PROSPERITY_STONE",
+        "levels": ["BASE@D160", "BASE@D070", "BASE", "BASE@L070", "BASE@L160"],
+        "strata_period": 8,
+        "strata_strength": 0.5,
+        "strata_joint": "BASE@D200",
+        "strata_lip": "BASE@L180",
+        "grit_dark": "BASE@D200",
+        "grit_lit": "BASE@L180",
+        "grit_density": 0.16,
+        "clod": "BASE@D110",
+        "clod_density": 0.05,
+        "flake": "RUST_OXIDE@D070",
+        "flake_density": 0.014
+      },
+      "_read": "繁荣废岩（v1.20.39 T2，plan §3.7）：地底 wholeBody 主体石——冷灰基谱（比 RIVER_GRAVEL 暗一档、比 SPIKE_STONE 暖一档）+ 周期 8 沉积层理 + 砾粒 + 锈染短缝/锈点 = 贴近 prosperity_*_base 族但更石质（蒸汽朋克锈调）"
     },
     {
       "key": "shattered_corestone",

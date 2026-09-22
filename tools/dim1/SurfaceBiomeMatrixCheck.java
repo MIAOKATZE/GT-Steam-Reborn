@@ -15,6 +15,8 @@ import net.minecraft.block.Block;
 import net.minecraft.init.Blocks;
 import net.minecraft.world.biome.BiomeGenBase;
 
+import com.miaokatze.gtsr.common.blocks.BlockProsperityFalling;
+import com.miaokatze.gtsr.common.blocks.BlockProsperityStone;
 import com.miaokatze.gtsr.common.blocks.BlocksGTSR;
 import com.miaokatze.gtsr.common.dimension.framework.GTSRBiomeAuthority;
 import com.miaokatze.gtsr.common.dimension.framework.GTSRBiomeAuthority.BiomeId;
@@ -43,14 +45,16 @@ import com.miaokatze.gtsr.common.dimension.prosperity.block.BlockProsperityNatur
  * <p>
  * 断言面（每格失败信息点名 BiomeId + 列坐标 + 期望/实际方块）：
  * <ol>
- * <li>注册链产出 4/4、degraded==NONE、账本身份与名册互洽（{@code identityOf} 对四实例逐一命中、
+ * <li>注册链产出 5/5（v1.20.39 T5 起 4 selector + sanzu roster-only）、degraded==NONE、
+ * 账本身份与名册互洽（{@code identityOf} 对全部实例逐一命中、
  * 对外来群系（plains）返回 null）；</li>
  * <li>群系声明自洽：{@code field_150604_aj == TOP_META} 常量、meta 常量 ∈ 0..15、
  * top/filler 属独立方块族（§12 修订 2：非冻结的 prosperitySurface）；</li>
  * <li>表层链实际输出＝声明：每列裸露面落 top 且 meta==TOP_META；其下 filler 段（深度按
  * {@code mixColumn} 的<b>独立重写</b>重算，同 {@code SurfaceTranspositionCheck} 断言侧纪律）
- * 落 filler 且 meta==FILLER_META；filler 段以下整段主体 == 该群系 filler 方块（§12 修订 4
- * "filler 复用 base" ⇒ 该等式即 {@code baseBlockOf} 身份表的运行时钉——表错一格即红）且
+ * 落 filler 且 meta==FILLER_META；filler 段以下整段主体 == <b>prosperityStone</b>
+ * （v1.20.39 T2/T8 重钉：G4 地底石化后 baseBlockOf 全群系统一返石，旧"主体 == 该群系 filler
+ * 方块"的 §12 修订 4 等式随石化退役）且
  * meta==0、全程无 stone 残留；</li>
  * <li>四元组互异 / top 冲突 / filler 冲突（运行时实例逐对比对）；</li>
  * <li>注册链与配置的<b>接线级</b>保底（离线无法执行 FML/GameRegistry 与 lang 加载，这三段
@@ -78,7 +82,9 @@ public class SurfaceBiomeMatrixCheck {
         "prosperityMarshLog", "prosperityMarshLeaves", "prosperityFlowerRust", "prosperityFlowerPatina",
         "prosperityFlowerBrass", "prosperityFlowerMarsh", "prosperityTuftSedge", "prosperityTuftBristle",
         // P17-S-B2 名册同步（24→27：沙/砂砾 3 件；同样全部非 top，不进 SurfaceGate 成员表）。
-        "prosperitySilicaSand", "prosperityCoarseSand", "prosperityRiverGravel" };
+        "prosperitySilicaSand", "prosperityCoarseSand", "prosperityRiverGravel",
+        // v1.20.39 T2/T8 名册同步（27→28：prosperityStone 地底石化主体石；非 top，不进 SurfaceGate）。
+        "prosperityStone" };
 
     private static final String[] LANG_FILES = { "src/main/resources/assets/gtsr/lang/en_US.lang",
         "src/main/resources/assets/gtsr/lang/zh_CN.lang" };
@@ -119,18 +125,35 @@ public class SurfaceBiomeMatrixCheck {
             check(biome != null, key + " not allocated (ledger biomeOf=null)");
             check(ChunkProviderProsperityRuins.identityOf(biome) == key,
                 key + " identityOf mismatch — provider L1 table not nameable");
-            check(biome == def.getBiomeTable().get(key.rosterIndex()),
-                key + " rosterIndex " + key.rosterIndex() + " != def table slot order");
+            // v1.20.39 T5/T8 重钉（plan §3.3）：SANZU_RIVER 走名册配槽但<b>不挂 def 表</b>
+            //（def 表保持 4 项 selector 名册）——rosterIndex 4 对 def 表越界是设计事实不是漂移。
+            if (key != BiomeId.SANZU_RIVER) {
+                check(biome == def.getBiomeTable().get(key.rosterIndex()),
+                    key + " rosterIndex " + key.rosterIndex() + " != def table slot order");
+            } else {
+                check(!def.getBiomeTable().contains(biome),
+                    "SANZU_RIVER must stay out of the def (selector) biome table (roster-only, plan §3.3)");
+            }
             final int topMeta = classConst(biome.getClass(), "TOP_META");
             final int fillerMeta = classConst(biome.getClass(), "FILLER_META");
             check(biome.field_150604_aj == topMeta,
                 key + " field_150604_aj=" + biome.field_150604_aj + " != TOP_META=" + topMeta);
             check(topMeta >= 0 && topMeta < 16, key + " TOP_META out of 0..15: " + topMeta);
             check(fillerMeta >= 0 && fillerMeta < 16, key + " FILLER_META out of 0..15: " + fillerMeta);
-            check(biome.topBlock instanceof BlockProsperityNaturalTop,
-                key + " topBlock not BlockProsperityNaturalTop: " + label(biome.topBlock));
-            check(biome.fillerBlock instanceof BlockProsperityNaturalBase,
-                key + " fillerBlock not BlockProsperityNaturalBase: " + label(biome.fillerBlock));
+            // T8 重钉注：sanzu top = prosperityRiverGravel（BlockProsperityFalling，河床语义）、
+            // filler = prosperityStone（BlockProsperityStone）——与四 selector 群系的
+            // NaturalTop/NaturalBase 族不同类，按 T5 群系声明单独钉类族。
+            if (key == BiomeId.SANZU_RIVER) {
+                check(biome.topBlock instanceof BlockProsperityFalling,
+                    key + " topBlock not BlockProsperityFalling: " + label(biome.topBlock));
+                check(biome.fillerBlock instanceof BlockProsperityStone,
+                    key + " fillerBlock not BlockProsperityStone: " + label(biome.fillerBlock));
+            } else {
+                check(biome.topBlock instanceof BlockProsperityNaturalTop,
+                    key + " topBlock not BlockProsperityNaturalTop: " + label(biome.topBlock));
+                check(biome.fillerBlock instanceof BlockProsperityNaturalBase,
+                    key + " fillerBlock not BlockProsperityNaturalBase: " + label(biome.fillerBlock));
+            }
             check(biome.topBlock != BlocksGTSR.prosperitySurface
                 && biome.fillerBlock != BlocksGTSR.prosperitySurface,
                 key + " still wired to frozen meta block prosperitySurface (plan §12-2 violation)");
@@ -139,7 +162,7 @@ public class SurfaceBiomeMatrixCheck {
             MATRIX.put(key.name(), new String[] { label(biome.topBlock), String.valueOf(topMeta),
                 label(biome.fillerBlock), String.valueOf(fillerMeta) });
         }
-        check(keys.size() == 4, "prosperity roster members != 4: " + keys);
+        check(keys.size() == 5, "prosperity roster members != 5 (T5 sanzu 5th): " + keys);
 
         // —— 3. 行为侧：真实表层链逐格对账（取代旧文本钉 return BiomeXxx.FILLER_META /
         //        return BlocksGTSR.xBase / instanceof BiomeXxx>=2） ——
@@ -177,7 +200,8 @@ public class SurfaceBiomeMatrixCheck {
         // —— 6. biomeId 分配锚点（真实链已由 1 段跑通；此处只钉 Config 段与日志锚点存在） ——
         final String biomes = read(root, SRC + "/common/dimension/prosperity/biome/ProsperityBiomes.java");
         final String config = read(root, SRC + "/config/Config.java");
-        check(biomes.contains("private static final int BIOME_SLOT_COUNT = 4;"), "BIOME_SLOT_COUNT != 4");
+        // v1.20.39 T5/T8 重钉（plan §3.3）：名册槽位数 4→5（第 5 元 sanzu 走同一扫描配槽）。
+        check(biomes.contains("private static final int BIOME_SLOT_COUNT = 5;"), "BIOME_SLOT_COUNT != 5");
         check(biomes.contains("[GTSR] prosperity biomes: "), "missing success log anchor (plan §6.1 grep point)");
         check(biomes.contains("already occupied by"), "missing degrade warn anchor (plan R3)");
         final int idStart = Integer
@@ -205,11 +229,12 @@ public class SurfaceBiomeMatrixCheck {
             System.out.println(
                 "  " + String.format("%-16s", e.getKey()) + " -> " + String.join(" / ", e.getValue()));
         }
-        System.out.println("MATRIX PASS: biomes=4 quadruplesDistinct=true providerTableSync=behavioral(L1 identityOf)");
+        System.out.println("MATRIX PASS: biomes=5(incl. sanzu) quadruplesDistinct=true providerTableSync=behavioral(L1 identityOf)");
         System.out.println(
-            "REGISTRATION PASS: blocks=" + NATURAL_BLOCKS.length + " (8 terrain + 4 decor + 6 wood + 6 flora) declared+registered (wiring-level)");
+            "REGISTRATION PASS: blocks=" + NATURAL_BLOCKS.length
+                + " (8 terrain + 4 decor + 6 wood + 6 flora + 1 stone(G4)) declared+registered (wiring-level)");
         System.out
-            .println("BIOMEID PASS: real-chain 4/4 slots via ProsperityBiomes.init, idStart=" + idStart
+            .println("BIOMEID PASS: real-chain 5/5 slots (incl. sanzu roster-only) via ProsperityBiomes.init, idStart=" + idStart
                 + ".. band, no-degrade anchors present");
         System.out.println("LANG PASS: " + LANG_FILES.length + " lang files x " + NATURAL_BLOCKS.length + " keys");
     }
@@ -256,8 +281,10 @@ public class SurfaceBiomeMatrixCheck {
                         + fillerMeta + " got " + meta[column | y]);
                 }
                 for (; y > bedrockTop; y--) {
-                    check(blocks[column | y] == biome.fillerBlock, where + " body expected base="
-                        + label(biome.fillerBlock) + " got " + label(blocks[column | y])
+                    // v1.20.39 T2/T8 重钉（plan §3.7 G4 石化）：wholeBody 期望 = prosperityStone
+                    //（baseBlockOf 全群系统一返石；壤土 base 只在 filler 段，上一循环已钉）。
+                    check(blocks[column | y] == BlocksGTSR.prosperityStone, where + " body expected stone="
+                        + label(BlocksGTSR.prosperityStone) + " got " + label(blocks[column | y])
                         + " (baseBlockOf L1 table drift or stone left)");
                     check(meta[column | y] == 0, where + " body meta must stay 0, got " + meta[column | y]);
                 }

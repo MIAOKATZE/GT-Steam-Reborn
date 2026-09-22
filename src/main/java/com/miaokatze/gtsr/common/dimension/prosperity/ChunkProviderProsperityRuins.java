@@ -1,30 +1,38 @@
 package com.miaokatze.gtsr.common.dimension.prosperity;
 
 import java.util.Random;
+import java.util.concurrent.atomic.AtomicLong;
 
 import net.minecraft.block.Block;
 import net.minecraft.init.Blocks;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.BiomeGenBase;
+import net.minecraft.world.chunk.Chunk;
 
 import com.miaokatze.gtsr.common.blocks.BlocksGTSR;
+import com.miaokatze.gtsr.common.dimension.framework.BiomePlaneAccess;
 import com.miaokatze.gtsr.common.dimension.framework.GTSRBiomeAuthority;
 import com.miaokatze.gtsr.common.dimension.framework.GTSRBiomeAuthority.BiomeId;
 import com.miaokatze.gtsr.common.dimension.framework.GTSRChunkProviderBase;
+import com.miaokatze.gtsr.common.dimension.framework.structure.BlockSink;
 import com.miaokatze.gtsr.common.dimension.framework.structure.ChunkClampedSink;
 import com.miaokatze.gtsr.common.dimension.prosperity.biome.BiomeBrassWastes;
 import com.miaokatze.gtsr.common.dimension.prosperity.biome.BiomeFumaroleSwamp;
 import com.miaokatze.gtsr.common.dimension.prosperity.biome.BiomeGearworkForest;
 import com.miaokatze.gtsr.common.dimension.prosperity.biome.BiomeRustedSteppe;
+import com.miaokatze.gtsr.common.dimension.prosperity.biome.BiomeSanzuRiver;
 import com.miaokatze.gtsr.common.dimension.prosperity.river.GTSRRiverPlacer;
+import com.miaokatze.gtsr.common.dimension.prosperity.river.GTSRVoronoiRiverField;
+import com.miaokatze.gtsr.main.GTSteamReborn;
 
 /**
  * 繁荣维度地形生成器（dim1 S4b，plan §1.2 :59-65 / 02 §2 参数表；S-A1 起自然区按群系独立化）。
  * <p>
  * 地形模型 = {@link ProsperityTerrainProfile#heightAt} 高度场（全维度统一缓丘 + 低频幅度调制，
  * 模板异变简化口径，见 Profile 类注释）：每列 y=0..bedrockDepth 基岩（深度 1-4，02 §2.1
- * "基岩层 y0-4"口径）、其上 stone 填至 heightAt，以上留空气。无海平面流体（gtsr.brine 在
- * 用户裁剪范围外，02 §0.2）；无洞穴/矿洞（02 §4/§5 裁剪，plan §1 范围红线）。
+ * "基岩层 y0-4"口径）、其上 stone 填至 heightAt，以上留空气。<b>v1.20.39 T4 起 heightAt 已含
+ * 河谷压低链（plan §3.2），自然水只经 populate 后置的河流水面回填出现（本类 {@link #onPopulate}
+ * → GTSRRiverPlacer），generateTerrain 阶段仍零流体</b>；无洞穴/矿洞（02 §4/§5 裁剪，plan §1 范围红线）。
  * <p>
  * 表面与主体替换（<b>P2 起表层链上收框架</b>，S-A1 plan §12 修订 4）：generateTerrain 保持
  * stone 主体（框架 provideChunk 在 generateTerrain 之后才加载 biomes 数组，主体替换无法前移）；
@@ -136,13 +144,15 @@ public class ChunkProviderProsperityRuins extends GTSRChunkProviderBase {
     }
 
     /**
-     * 群系主体 base 方块映射（S-A1，plan §12 修订 4：自然区主体 stone 按群系替换为 base 方块）。
+     * 群系主体 base 方块映射（S-A1，plan §12 修订 4：自然区主体 stone 按群系替换为 base 方块；
+     * v1.20.39 G4 地底石化，plan §3.7：四群系 wholeBody 统一改返 prosperityStone——整段同质单一变体，
+     * 第二变体无消费面不做。topBlock/filler 表层链保留现状，各群系 base 壤土方块仍注册、仍作 filler）。
      * <b>P2b 起身份读面收口 L1</b>：经 {@link #identityOf} 解析为 {@link BiomeId} 后 switch——
      * 不再 {@code instanceof} 判类（plan §2.1 L1 禁止项），也不读 Chunk 保存的 byte 平面。
      * 名册点名不到（S1 平坦模板群系 / 外来群系 / 缺席实例）回退 {@link Blocks#stone}，与
      * 改造前 instanceof 未命中口径逐格一致（行为矩阵由
      * {@code tools/dim1/SurfaceBiomeMatrixCheck} 行为钉断言，逐字节回归由
-     * {@code SurfaceByteParityDump} 对拍断言）。
+     * {@code SurfaceByteParityDump} 对拍断言；wholeBody 口径变化的重钉归 v1.20.39 T8）。
      */
     private static Block baseBlockOf(BiomeGenBase biome) {
         final BiomeId key = identityOf(biome);
@@ -151,16 +161,21 @@ public class ChunkProviderProsperityRuins extends GTSRChunkProviderBase {
         }
         switch (key) {
             case RUSTED_STEPPE: {
-                return BlocksGTSR.prosperitySteppeBase;
+                return BlocksGTSR.prosperityStone;
             }
             case GEARWORK_FOREST: {
-                return BlocksGTSR.prosperityForestBase;
+                return BlocksGTSR.prosperityStone;
             }
             case BRASS_WASTES: {
-                return BlocksGTSR.prosperityWastesBase;
+                return BlocksGTSR.prosperityStone;
             }
             case FUMAROLE_SWAMP: {
-                return BlocksGTSR.prosperitySwampBase;
+                return BlocksGTSR.prosperityStone;
+            }
+            case SANZU_RIVER: {
+                // T5：遗忘之川 wholeBody 同走 prosperityStone（G4 全群系统一口径；生产路径
+                // provideChunk 期平面是链面 4 家，本分支供 populate 后置写平面后的离线/复算消费面）
+                return BlocksGTSR.prosperityStone;
             }
             default: {
                 return Blocks.stone;
@@ -194,6 +209,9 @@ public class ChunkProviderProsperityRuins extends GTSRChunkProviderBase {
             case FUMAROLE_SWAMP: {
                 return BiomeFumaroleSwamp.FILLER_META;
             }
+            case SANZU_RIVER: {
+                return BiomeSanzuRiver.FILLER_META;
+            }
             default: {
                 return 0;
             }
@@ -201,11 +219,15 @@ public class ChunkProviderProsperityRuins extends GTSRChunkProviderBase {
     }
 
     /**
-     * populate 钩子（<b>P17 S-C 起 = dim78 河流水系的唯一生产入口</b>，需求原话「增加河流」+
-     * 「沼泽……河网密集」）。
+     * populate 钩子（<b>= dim78 河流水面回填的唯一生产入口</b>，v1.20.39 T4 起按 plan §3.2
+     * 接 {@link GTSRRiverPlacer} 新河流场：水面回填（s≥WET_MIN 且 h1&lt;SEA_LEVEL 置水至
+     * y=67）/ riverStyle 档表（浅滩·干谷断流·沼地河）/ 瀑布落差列处理 / 河床料铺放；
+     * <b>T5 起追加巨湖回填与遗忘之川群系指派</b>，见 {@link #fillSanzuLakes} 与
+     * {@link #assignSanzuRiverBiome}——后置链序 plan §5：水面回填 → sanzu 写平面 → decorate
+     * （decorate 在本方法返回之后才由 GameRegistry.generateWorld 驱动，写入当趟生效）。
      * <p>
      * <b>为什么只能挂在这里</b>（P17-Q2 裁决，码据见 {@link GTSRRiverPlacer} 类注释）：框架表层内核
-     * {@code GTSRChunkProviderBase.applyBiomeSurface} 的列门是「本格须为主体方块」（{@code :348}）+
+     * {@code GTSRChunkProviderBase.applyBiomeSurface} 的列门是「本格须为主体方块」({{@code :348})+
      * 「上方须为空气或空槽」（{@code :352} 与 {@code isAirOrEmpty:90-92}）——在
      * {@link #generateTerrain} 阶段往裸数组里灌水会让"水在 stone 之上"的那些列<b>整列不铺表层、
      * 不换主体</b>（P17-B 码据）。那是三份表层字节对拍（{@code SurfaceByteParityDump} /
@@ -213,22 +235,99 @@ public class ChunkProviderProsperityRuins extends GTSRChunkProviderBase {
      * 故水只能在 Chunk 组装、表层替换之后写，本方法是 dim78 唯一那个钩子（框架 {@code populate}
      * 只转调它，形与 dim79 侧 {@code ChunkProviderShatteredGrounds:109} 的装饰挂点同构）。
      * <p>
-     * <b>不消费 {@code random} 参数</b>：河道的全部掷骰走 {@code GTSRWorldgenHash} 的坐标哈希
-     * （必须"任一 chunk 可独立重算"才接得上跨 chunk 的河道），因此本方法一处都不碰
+     * <b>不消费 {@code random} 参数</b>：河流与 sanzu 的全部判定走 {@link GTSRVoronoiRiverField} 的
+     * 纯函数（必须"任一 chunk 可独立重算"才接得上跨 chunk 的河道），因此本方法一处都不碰
      * {@code this.rand} ⇒ 既有 rand 取数序一字不变，兄弟挂点（结构/装饰在
-     * {@code GameRegistry.generateWorld} 阶段、<b>晚于</b>本方法）看到的世界状态只多了"河"。
+     * {@code GameRegistry.generateWorld} 阶段、<b>晚于</b>本方法）看到的世界状态只多了"河/湖/sanzu"。
      * <p>
      * 与四族同源：本方法不新算任何高度——断面用的地表就是
-     * {@link ProsperityTerrainProfile#heightAtWithReliefTier}（与 {@link #generateTerrain} 同一算式，
-     * 只把身份档显式化以免逐列重建链；两出口同值由 {@code P17TerrainReliefCheck} 的 SOURCE 组钉）。
+     * {@link ProsperityTerrainProfile#heightAt}（与 {@link #generateTerrain} 同一算式，且已含
+     * 河谷压低与巨湖压低链）。
      */
     @Override
     protected void onPopulate(Random random, int chunkX, int chunkZ) {
-        GTSRRiverPlacer.place(
-            this.worldObj,
-            this.worldObj.getSeed(),
-            chunkX,
-            chunkZ,
-            new ChunkClampedSink(this.worldObj, chunkX, chunkZ));
+        final long worldSeed = this.worldObj.getSeed();
+        final BlockSink sink = new ChunkClampedSink(this.worldObj, chunkX, chunkZ);
+        GTSRRiverPlacer.place(this.worldObj, worldSeed, chunkX, chunkZ, sink);
+        fillSanzuLakes(worldSeed, chunkX, chunkZ, sink);
+        assignSanzuRiverBiome(worldSeed, chunkX, chunkZ);
+    }
+
+    // ═════════════════ v1.20.39 T5（plan §3.3）：巨湖回填 + 遗忘之川指派 ═════════════════
+
+    /** 巨湖回填观察窗口（chunk 数；与 GTSRRiverPlacer 的 256 口径同款量级，单独一条 lake 行）。 */
+    private static final int LAKE_LOG_WINDOW_CHUNKS = 1024;
+
+    private static final AtomicLong LAKE_CHUNKS_SERVED = new AtomicLong();
+    private static final AtomicLong LAKE_WATER_CELLS = new AtomicLong();
+
+    /**
+     * <b>巨湖水面回填</b>（populate 后置，水面口径 68 与河流回填同一条）：主干带内
+     * {@code lakeAt < LAKE_SHORE}（湖水区+湖滨带；带外 lakeAt 恒 {@code NO_LAKE} 哨兵 ⇒ 零成本
+     * 短路）且列地表 {@code h1 < SEA_LEVEL} 的列，从地表向上置水至 y=67。地形压到 62-64 已由
+     * {@link ProsperityTerrainProfile#heightAt} 完成（本方法只回填，不切地形）；与河流回填的
+     * 重叠列两次写同值水，幂等。同样不消费 populate 的 {@code Random}（纯函数判定）。
+     */
+    private static void fillSanzuLakes(long worldSeed, int chunkX, int chunkZ, BlockSink sink) {
+        int waterCells = 0;
+        for (int lz = 0; lz < 16; lz++) {
+            for (int lx = 0; lx < 16; lx++) {
+                final int x = (chunkX << 4) + lx;
+                final int z = (chunkZ << 4) + lz;
+                if (GTSRVoronoiRiverField.lakeAt(worldSeed, x, z) >= GTSRVoronoiRiverField.LAKE_SHORE) {
+                    continue;
+                }
+                final int h = ProsperityTerrainProfile.heightAt(worldSeed, x, z);
+                if (h < ProsperityTerrainProfile.SEA_LEVEL) {
+                    for (int y = h + 1; y <= ProsperityTerrainProfile.SEA_LEVEL - 1; y++) {
+                        if (sink.setBlock(x, y, z, Blocks.water, 0, BlockSink.FLAG_POPULATE)) {
+                            waterCells++;
+                        }
+                    }
+                }
+            }
+        }
+        LAKE_WATER_CELLS.addAndGet(waterCells);
+        if (LAKE_CHUNKS_SERVED.incrementAndGet() % LAKE_LOG_WINDOW_CHUNKS == 0) {
+            GTSteamReborn.LOG.info(
+                "[GTSR] dim78 sanzu lake over {} chunks: waterCells={} (trunk-gated lakePressure)",
+                LAKE_CHUNKS_SERVED.get(),
+                LAKE_WATER_CELLS.get());
+        }
+    }
+
+    /**
+     * <b>遗忘之川群系指派</b>（populate 后置，RTG BiomeAnalyzer.newRepair 先例；plan §3.3
+     * 已定机制）：列满足 {@code trunk>0 且 s≥0.7 且 h1≤68}（{@link GTSRVoronoiRiverField#isSanzuColumn}
+     * 单点谓词，与空气压缩机的三途余汽判定同一份）⇒ 经 {@link BiomePlaneAccess#writeColumn}
+     * （群系平面<b>唯一写通道</b>，short/byte 双通道）写 {@link BiomeSanzuRiver}。细长形状天然来自
+     * "河道核 × 主干带"交集，无第二套形状逻辑。sanzu 未配槽（无槽降级）时账本点名不到实例 ⇒
+     * 平面一格不写（与 ProsperityAirLookup 的同门判定一致，不伪造）。写后置
+     * {@code chunk.isModified = true}：平面列不属于方块写，须显式标脏防丢（GT5U
+     * {@code GTWorldgenerator:734} 先例）。
+     */
+    private void assignSanzuRiverBiome(long worldSeed, int chunkX, int chunkZ) {
+        final BiomeGenBase sanzu = GTSRBiomeAuthority.forDimKey(GTSRBiomeAuthority.DIM_KEY_PROSPERITY)
+            .biomeOf(BiomeId.SANZU_RIVER);
+        if (sanzu == null) {
+            return;
+        }
+        final Chunk chunk = this.worldObj.getChunkFromChunkCoords(chunkX, chunkZ);
+        if (chunk == null) {
+            return;
+        }
+        boolean wrote = false;
+        for (int lz = 0; lz < 16; lz++) {
+            for (int lx = 0; lx < 16; lx++) {
+                final int x = (chunkX << 4) + lx;
+                final int z = (chunkZ << 4) + lz;
+                if (GTSRVoronoiRiverField.isSanzuColumn(worldSeed, x, z)) {
+                    wrote |= BiomePlaneAccess.writeColumn(chunk, lx, lz, sanzu);
+                }
+            }
+        }
+        if (wrote) {
+            chunk.isModified = true;
+        }
     }
 }

@@ -182,13 +182,17 @@ public final class GTSRGenLayerSelfTest {
     private static final double STRAIGHT_ROW_MAX = 0.10;
     /**
      * voronoi 抖动率界：细层 ≠ 平铺粗层的比例。vanilla 抖动 ±1.8/4 格下只有格边界附近的方块会被
-     * 邻角抢走，故量级本就是百分点级：S-G 现跑（zoom=5、3 seed × 3 原点 = 9 个细窗）实测
-     * <b>0.8%~2.2%</b>（日志 {@code temp/p17-sg/out/selftest-verify-1.log}；被本条替换掉的旧注释写
-     * "1.4%~3.9%"，那是 zoom=4 代 6 窗的读数，已不适用）。下界取 0.5% 只为证明 voronoi 真实生效
-     * （恒等映射会精确得 0），上界 50% 防退化成噪点。S-G <b>未动</b>本判据口径，只把
-     * {@link #FINE_WINDOW} 纳入同一条 zoom 换算式。
+     * 邻角抢走，故量级本就是百分点级。S-G 基准（zoom=5、3 seed × 3 原点 = 9 个细窗）实测
+     * <b>0.8%~2.2%</b>（日志 {@code temp/p17-sg/out/selftest-verify-1.log}），下界 0.5% = 该读数的
+     * 1.6× 余量；上界 50% 防退化成噪点。
+     * <p>
+     * <b>T8 重钉（归因 T6 zoom 5→7）</b>：抖动只发生在层间边界带（带宽不变），细胞边长随 zoom
+     * 每级加倍 ⇒ 边界密度（因而抖动占比）每级减半，下界按同一几何比例从 zoom=5 基准派生：
+     * {@code 0.005 / 2^(zoom-5)}（zoom=7 ⇒ 0.00125）。派生窗下 9 窗实测最坏 0.1865%（T8 全量跑
+     * {@code temp/p4-surface/…GTSRGenLayerSelfTest.out}），余量 1.49×，与 S-G 时代 1.6× 同档；
+     * 恒等映射仍精确得 0，判据抓力（"voronoi 真实生效"）不变。
      */
-    private static final double VORONOI_JITTER_MIN = 0.005;
+    private static final double VORONOI_JITTER_MIN = 0.005 / (1 << (GTSRGenLayerChain.DEFAULT_ZOOM_LEVELS - 5));
     private static final double VORONOI_JITTER_MAX = 0.50;
 
     private GTSRGenLayerSelfTest() {}

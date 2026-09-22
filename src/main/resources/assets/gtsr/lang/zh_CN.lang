@@ -249,8 +249,8 @@ gtsr.tooltip.pressure_steam_cooling_hatch.desc=回收工作中过热蒸汽降温
 
 # Mega Air Input Hatch
 gt.blockmachines.gtsr.mega.air.input.hatch.name=巨型空气输入仓
-gtsr.tooltip.mega_air_input_hatch.desc=用于输入大量的空气或者下界空气
-gtsr.tooltip.mega_air_input_hatch.fluid_type=空气/下界空气
+gtsr.tooltip.mega_air_input_hatch.desc=用于输入大量的空气、下界空气或三途余汽
+gtsr.tooltip.mega_air_input_hatch.fluid_type=空气/下界空气/三途余汽
 
 # Distilled Water Hatch
 gt.blockmachines.gtsr.distilled.water.hatch.name=蒸馏水仓
@@ -2036,6 +2036,7 @@ biome.Rusted Steppe.name=锈蚀草原
 biome.Gearwork Forest.name=齿轮森林
 biome.Brass Wastes.name=黄铜荒漠
 biome.Fumarole Swamp.name=起雾沼泽
+biome.Sanzu River.name=遗忘之川
 
 # 维度繁荣蒸汽时代遗迹：方块族（dim1 S2；贴图为原版路径占位，S7a artgen 换像素不改注册名）
 tile.ProsperitySurface.0.name=锈蚀草方块
@@ -2083,12 +2084,15 @@ tile.ProsperityTuftBristle.name=刚毛草
 tile.ProsperitySilicaSand.name=硅沙
 tile.ProsperityCoarseSand.name=粗粒沙
 tile.ProsperityRiverGravel.name=河床砂砾
+# 维度繁荣蒸汽时代遗迹：v1.20.39 T2 地底 wholeBody 主体石（§3.7 地底石化；非表层，meta 恒 0）
+tile.ProsperityStone.name=繁荣废岩
 
 # 繁荣四空气材料 (dim1 S3)
 Material.wastesigh=荒原叹息
 Material.thickgrease=浓稠油污
 Material.metalgrit=金属风沙
 Material.umbralmire=至暗泥泞
+Material.sanzu_residual_steam=三途余汽
 
 # 维度破碎之地：群系（S-B3；键名跟随 setBiomeName 的 biome.<biomeName>.name）
 biome.Ashen Prairie.name=灰烬草原

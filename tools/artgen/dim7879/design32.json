@@ -1,5 +1,5 @@
 {
-  "_about": "tools/artgen/dim7879 批 32 档（v1.20.37 / P16-U1）设计档案：56 张 = dim78 17（片 A1a，draw32_dim78.py） + dim79 18（片 A1b，draw32_dim79.py） + P17-SB1 dim78 木/花/草 18 + P17-SB2 dim78 沙/砾 3。逐张记录绘制器与入口、所用角色名与色阶（与同目录 manifest.json 的 OUTPUTS[key].params / SEEDS[key] 同源，不另立真值）、PIL 实测尺寸与色数、以及一行「为什么这样画」（A1a 取 RATIONALE 表、A1b 取各 t_* 的 docstring 同源文字）。16 档母版仍是 manifest + gen_dim7879_blocks.py，本文件不替代它们。",
+  "_about": "tools/artgen/dim7879 批 32 档（v1.20.37 / P16-U1）设计档案：57 张 = dim78 17（片 A1a，draw32_dim78.py） + dim79 18（片 A1b，draw32_dim79.py） + P17-SB1 dim78 木/花/草 18 + P17-SB2 dim78 沙/砾 3 + v1.20.39 T2 dim78 废岩 1（plan §3.7 地底石化）。逐张记录绘制器与入口、所用角色名与色阶（与同目录 manifest.json 的 OUTPUTS[key].params / SEEDS[key] 同源，不另立真值）、PIL 实测尺寸与色数、以及一行「为什么这样画」（A1a 取 RATIONALE 表、A1b 取各 t_* 的 docstring 同源文字）。16 档母版仍是 manifest + gen_dim7879_blocks.py，本文件不替代它们。",
   "_not_a_gate": "本文件不被 tools/dim1/asset_baseline_check.sh 读取（该门只核 manifest OUTPUTS <-> landed.sha256 <-> 磁盘三点）；它回答「这张为什么这么画」，不是「字节对不对」。",
   "_measured_by": "PIL，与 review/dim1/_tools/check_feedback.py:163 同口径：distinct_rgba = len(set(RGBA))（页面色数标注用这个）；distinct_rgb_opaque = 非透明像素的唯一 RGB 数（像素纪律 ≤16 用这个）。",
   "size_landed": [
@@ -2180,6 +2180,51 @@
       "why": "河床砂砾：grit_base 骨架 + 砾密度 0.30（全批最高）+ 明暗阶拉到 D220/L220，底谱 RIVER_GRAVEL 是沙类里唯一不带暖相的灰褐 ⇒ 水磨砾石感；S-C 河床主料，本片先在荒漠砾石斑上真实消费一次。",
       "protected_sparse_colors": [
         "BASE@D220 | base=RIVER_GRAVEL"
+      ]
+    },
+    "prosperity_stone": {
+      "file": "prosperity_stone.png",
+      "group": "prosperity_natural",
+      "kind": "terrain_grit",
+      "drawer": "tools/artgen/dim7879/draw32_dim78.py",
+      "drawer_fn": "BUILDERS[prosperity_stone] -> stone_ruin(\"prosperity_stone\")",
+      "seed_manifest": "0x5EED8151",
+      "palette_roles": {
+        "base": "PROSPERITY_STONE",
+        "levels": [
+          "BASE@D160",
+          "BASE@D070",
+          "BASE",
+          "BASE@L070",
+          "BASE@L160"
+        ],
+        "strata": "period 8 / strength 0.5 / joint BASE@D200 + lip BASE@L180（复用 grit 两阶 ⇒ 零新增色）",
+        "role_tokens": [
+          "BASE",
+          "BASE@D070",
+          "BASE@D110",
+          "BASE@D160",
+          "BASE@D200",
+          "BASE@L070",
+          "BASE@L160",
+          "BASE@L180",
+          "RUST_OXIDE@D070",
+          "PROSPERITY_STONE"
+        ]
+      },
+      "measured": {
+        "size": [
+          32,
+          32
+        ],
+        "distinct_rgba": 9,
+        "distinct_rgb_opaque": 9,
+        "all_opaque_alpha_255": true,
+        "dominant_opaque": "#6E6A64"
+      },
+      "why": "繁荣废岩：grit_base 同骨架（母版 terrain_grit 带周期 8 沉积层理 ⇒ 成层废岩，不是土）+ 9 颗小砾 + 4 条 1px 锈染短缝与稀疏锈点，底谱 PROSPERITY_STONE 冷灰 ⇒ 贴近 prosperity_*_base 族但更石质，与 RIVER_GRAVEL（亮灰褐）和 SPIKE_STONE（冷蓝灰）三方拉开。",
+      "protected_sparse_colors": [
+        "RUST_OXIDE@D070 | base=PROSPERITY_STONE"
       ]
     }
   }

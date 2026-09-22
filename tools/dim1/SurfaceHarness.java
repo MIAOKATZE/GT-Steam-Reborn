@@ -14,6 +14,8 @@ import net.minecraft.world.chunk.IChunkProvider;
 import net.minecraft.world.storage.ISaveHandler;
 import net.minecraft.world.storage.WorldInfo;
 
+import com.miaokatze.gtsr.common.blocks.BlockProsperityFalling;
+import com.miaokatze.gtsr.common.blocks.BlockProsperityStone;
 import com.miaokatze.gtsr.common.blocks.BlocksGTSR;
 import com.miaokatze.gtsr.common.dimension.framework.GTSRBiomeAuthority;
 import com.miaokatze.gtsr.common.dimension.framework.GTSRBiomeAuthority.BiomeId;
@@ -26,6 +28,7 @@ import com.miaokatze.gtsr.common.dimension.prosperity.biome.BiomeBrassWastes;
 import com.miaokatze.gtsr.common.dimension.prosperity.biome.BiomeFumaroleSwamp;
 import com.miaokatze.gtsr.common.dimension.prosperity.biome.BiomeGearworkForest;
 import com.miaokatze.gtsr.common.dimension.prosperity.biome.BiomeRustedSteppe;
+import com.miaokatze.gtsr.common.dimension.prosperity.biome.BiomeSanzuRiver;
 import com.miaokatze.gtsr.common.dimension.prosperity.block.BlockProsperityCanopyLeaves;
 import com.miaokatze.gtsr.common.dimension.prosperity.block.BlockProsperityNaturalBase;
 import com.miaokatze.gtsr.common.dimension.prosperity.block.BlockProsperityNaturalTop;
@@ -63,6 +66,13 @@ final class SurfaceHarness {
     /** 与 ReplaceSurfaceRuntimeCheck 同一世界种子。 */
     static final long SEED = 0x53484C53L;
     static final int[] PROSPERITY_IDS = { 180, 181, 182, 183 };
+    /**
+     * 遗忘之川首选槽（v1.20.39 T5/T8，plan §3.3）：{@code prosperityBiomeIdStart(180) + 4}。
+     * <b>sanzu 配槽进 L1 账本但不挂 def 群系表</b>（def 表保持 4 项 selector 名册）⇒ 账本
+     * rosterSize=5，离线装配若只记 4 元则 degraded=SHORT——T8 红清单 ⑥⑦⑧⑬⑭ 的
+     * 「dim78 应处 NONE」装配假红单一根因，故两个"全配"记账口都补第 5 元。
+     */
+    static final int SANZU_ID = 184;
     static final int[] SHATTERED_IDS = { 190, 191, 192, 193 };
     static final BiomeId[] PROSPERITY_KEYS = { BiomeId.RUSTED_STEPPE, BiomeId.GEARWORK_FOREST,
         BiomeId.BRASS_WASTES, BiomeId.FUMAROLE_SWAMP };
@@ -159,12 +169,17 @@ final class SurfaceHarness {
             "gtsr:prosperity_tuft_bristle");
         // P17-S-B2 名册同步（三处静默面之一）：沙/砂砾 3 件的离线实例，构造参数逐字照抄 BlockLoader。
         // 全部非表层 top（不进 SurfaceGate 名册），消费方 = ProsperityDecorPlacer 的荒漠沙砾趟 + S-C 河床。
+        // v1.20.39 T2（plan §3.9）：coarseSand/riverGravel 切 BlockProsperityFalling（镜像 BlockLoader，
+        // 注册名不变）；silicaSand 保持非重力。
         BlocksGTSR.prosperitySilicaSand = new BlockProsperityNaturalBase("ProsperitySilicaSand",
             "gtsr:prosperity_silica_sand");
-        BlocksGTSR.prosperityCoarseSand = new BlockProsperityNaturalBase("ProsperityCoarseSand",
+        BlocksGTSR.prosperityCoarseSand = new BlockProsperityFalling("ProsperityCoarseSand",
             "gtsr:prosperity_coarse_sand");
-        BlocksGTSR.prosperityRiverGravel = new BlockProsperityNaturalBase("ProsperityRiverGravel",
+        BlocksGTSR.prosperityRiverGravel = new BlockProsperityFalling("ProsperityRiverGravel",
             "gtsr:prosperity_river_gravel");
+        // v1.20.39 T2（plan §3.7 地底石化）：地底 wholeBody 主体石离线实例（缺席＝baseBlockOf 回 null、
+        // 行为侧读数失真——同上"静默面同步"纪律），构造参数逐字照抄 BlockLoader。
+        BlocksGTSR.prosperityStone = new BlockProsperityStone("ProsperityStone", "gtsr:prosperity_stone");
     }
 
     static BiomeGenBase[] prosperityBiomes() {
@@ -195,6 +210,7 @@ final class SurfaceHarness {
             GTSRBiomeAuthority.recordAllocation(PROSPERITY_KEYS[i], PROSPERITY_IDS[i], PROSPERITY_IDS[i], p[i]);
             GTSRBiomeAuthority.recordAllocation(SHATTERED_KEYS[i], SHATTERED_IDS[i], SHATTERED_IDS[i], s[i]);
         }
+        recordSanzuAllocation();
     }
 
     /** 只让 dim78 的前 {@code allocated} 个成员入账，其余记 no-slot ⇒ 该维 degraded=SHORT。 */
@@ -208,11 +224,24 @@ final class SurfaceHarness {
         }
     }
 
-    /** 只把 dim78 的 4 个成员全部入账（把该维从 SHORT 拉回 NONE，用于"门零介入"对照场景）。 */
+    /**
+     * 只把 dim78 的 4+1 个成员全部入账（把该维从 SHORT 拉回 NONE，用于"门零介入"对照场景）。
+     * T8 重钉注：sanzu 为 T5 名册第 5 元（plan §3.3），不补记则账本 4/5 恒 SHORT，
+     * NONE 对照档自为假红（SurfaceDegradationCheck NONE-control 红的归因）。
+     */
     static void recordProsperityAll(BiomeGenBase[] p) {
         for (int i = 0; i < 4; i++) {
             GTSRBiomeAuthority.recordAllocation(PROSPERITY_KEYS[i], PROSPERITY_IDS[i], PROSPERITY_IDS[i], p[i]);
         }
+        recordSanzuAllocation();
+    }
+
+    /**
+     * 遗忘之川入账（roster-only，plan §3.3）：与生产 {@code ProsperityBiomes.attachSanzuRiver}
+     * 同口径——{@code recordAllocation(SANZU_RIVER, 184, 184, 实例)}，<b>不</b>进任何 def 群系表。
+     */
+    private static void recordSanzuAllocation() {
+        GTSRBiomeAuthority.recordAllocation(BiomeId.SANZU_RIVER, SANZU_ID, SANZU_ID, new BiomeSanzuRiver(SANZU_ID));
     }
 
     /** 把 dim78 全部成员记为无槽（且没有任何 allocation 记录）⇒ degraded=EMPTY。 */

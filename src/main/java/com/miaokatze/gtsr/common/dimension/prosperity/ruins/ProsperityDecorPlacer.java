@@ -59,6 +59,12 @@ public final class ProsperityDecorPlacer {
     private static final long SALT_DECOR = 0x6465636FL;
 
     /**
+     * 盐 "mega"（T7 树木三档，plan §3.7/§3.8）：巨树 chunk 级 1/N 掷骰的<b>独立</b>派生盐——
+     * 巨树趟用单独 {@code Random}，普通/灌木两趟的既有随机流一位都不动。
+     */
+    private static final long SALT_MEGA = 0x6D656761L;
+
+    /**
      * 本类所属维度键（P4：门的显式维度入参）。取 L1 账本同一词汇 {@link SurfaceGate#DIM78}
      * （= {@code GTSRBiomeAuthority.DIM_KEY_PROSPERITY}），不另造字符串。
      */
@@ -95,6 +101,15 @@ public final class ProsperityDecorPlacer {
     public static final int WOOD_MARSH = 3;
     /** 混生档关闭的哨兵值（{@code woodSecondary} 取它 ⇒ 一次随机都不掷，恒用主档）。 */
     public static final int WOOD_NONE = -1;
+
+    /** 巨树形态码：关闭（该群系无巨树档；荒漠三档全 0 即用它）。 */
+    public static final int MEGA_NONE = 0;
+    /** 巨树形态码：GreatOak 式（草原档——vanilla BigTree 分叉参数化 + 遇障自底向上截断，干 20-28）。 */
+    public static final int MEGA_GREATOAK = 1;
+    /** 巨树形态码：Redwood 式（森林档——圆锥实心层圆干 + 顶部轮枝 + 冠顶 6 层盘收尖，干 28-38）。 */
+    public static final int MEGA_REDWOOD = 2;
+    /** 巨树形态码：Bayou 式（沼泽/sanzu 档——底部 4 层 2×2+十字板根 + 平展伞冠，可落在水缘，干 20-26）。 */
+    public static final int MEGA_BAYOU = 3;
 
     /** 花种码：锈华花。 */
     public static final int FLOWER_RUST = 0;
@@ -205,7 +220,12 @@ public final class ProsperityDecorPlacer {
         // 沙砾斑 4 次 = 需求侧的"铺沙"
         new VegTier(0, 0, 4, 3, 1, WOOD_RUST, WOOD_NONE, 0, 3, 1, 4, FLOWER_BRASS, GRASS_BRISTLE, SAND_FINE),
         // 3 起雾沼泽：中等树（7..10）+ 平展伞冠 + 密矮苔薹草与沼地兰
-        new VegTier(1, 3, 7, 4, 2, WOOD_MARSH, WOOD_NONE, 0, 8, 5, 0, FLOWER_MARSH, GRASS_SEDGE, SAND_FINE) };
+        new VegTier(1, 3, 7, 4, 2, WOOD_MARSH, WOOD_NONE, 0, 8, 5, 0, FLOWER_MARSH, GRASS_SEDGE, SAND_FINE),
+        // 4 遗忘之川（v1.20.39 T5 <b>占位档</b>，plan §3.7 表 sanzu 行：普通档 1/6 骰 干 5..8 r1-2；
+        // 灌木 1/4 与 mega 1/32 Bayou 式归 T7 完整化——本片只保证档表族 4→5 长度一致编译绿，
+        // 花草沙取湿地近邻档。生产链路 rosterIndex=4 不从 GenLayer 链身份面出现（sanzu 不进
+        // selector），平面档当趟生效的接线在 T7）
+        new VegTier(1, 6, 5, 4, 2, WOOD_MARSH, WOOD_NONE, 0, 6, 2, 0, FLOWER_MARSH, GRASS_SEDGE, SAND_GRAVEL) };
 
     /**
      * 默认档的草尝试次数 = 3。改前是"每 chunk {@code 2 + nextInt(3)} 次"（2/3/4 等概率，均值 3），
@@ -242,6 +262,77 @@ public final class ProsperityDecorPlacer {
 
     private ProsperityDecorPlacer() {}
 
+    // ═════════════════════════ T7 树木三档（plan §3.7 表 / §3.8）═════════════════════════
+
+    /**
+     * 一群系一行的<b>树木三档</b>（T7，plan §3.8"灌木/普通/巨树"）：
+     * <ul>
+     * <li>{@code shrubDenom}：灌木档 chunk 级 1/N（0 = 关）。灌木 = 干 1-2 节单干 + 两叶盘
+     * （Highlands WorldGenHighlandsShrub 形态），概率高但单株生物量极低——"小的更小分布稀疏"
+     * 落在单株上，不是把普通档压小；</li>
+     * <li>{@code normal}：普通档 = 既有 {@link VegTier} 原行（四冠形 + 密度 + 花草沙全部保留），
+     * 本表只引用不自建 ⇒ 不构成第二真值源；</li>
+     * <li>{@code megaDenom}：巨树档 chunk 级 1/N（0 = 关），掷中走 {@link MegaTreeForms} 三形态之一；
+     * <b>掷骰用独立盐 {@link #SALT_MEGA} 的 chunk 级 Random</b>（Highlands IWorldGenerator 式亮点补发），
+     * 与普通/灌木趟的随机流互不扰动。</li>
+     * </ul>
+     * 荒漠行三档全 0（"维持无木本"继续写成档值，不写身份判断）；sanzu 行 = T5 占位档转正。
+     */
+    public static final class TreeTierSet {
+
+        /** 灌木档 1/N 分母（0 = 该群系无灌木档）。 */
+        public final int shrubDenom;
+        /** 普通档（引用 {@link #VEG_TIERS_BY_ROSTER} 原行，不自建副本）。 */
+        public final VegTier normal;
+        /** 巨树档 1/N 分母（0 = 该群系无巨树档）。 */
+        public final int megaDenom;
+        /** 巨树形态码（{@link #MEGA_NONE} = 无；仅 {@code megaDenom>0} 时被消费）。 */
+        public final int megaForm;
+
+        /** public 只为离线判据读表（同 {@link VegTier} 口径）；生产侧只读 {@link #TREE_TIERS_BY_ROSTER}。 */
+        public TreeTierSet(int shrubDenom, VegTier normal, int megaDenom, int megaForm) {
+            this.shrubDenom = shrubDenom;
+            this.normal = normal;
+            this.megaDenom = megaDenom;
+            this.megaForm = megaForm;
+        }
+    }
+
+    /**
+     * 树木三档表（下标口径与 {@link #VEG_TIERS_BY_ROSTER} 同族 = L1 维内名册下标，plan §3.7 表起步值）：
+     * 
+     * <pre>
+     *   群系          shrub   normal（保留）        mega（chunk 级亮点）
+     *   草原 Steppe   1/2     1/8 骰 干4-6 r1       1/24 GreatOak 干20-28
+     *   森林 Forest   1/2     1.0/chunk 干11-16 r3  1/8  Redwood 干28-38
+     *   荒漠 Wastes   0       0                    0
+     *   沼泽 Swamp    1/2     1/3 干7-10 r2         1/16 Bayou 干20-26
+     *   sanzu         1/4     1/6 干5-8 r1-2       1/32 Bayou
+     * </pre>
+     */
+    public static final TreeTierSet[] TREE_TIERS_BY_ROSTER = {
+        // 0 锈蚀草原：灌木密而小；普通矮树档保留；巨树 = GreatOak 式大分叉树
+        new TreeTierSet(2, VEG_TIERS_BY_ROSTER[0], 24, MEGA_GREATOAK),
+        // 1 齿轮森林：普通档树最多最大保留；巨树 = Redwood 式圆锥巨木
+        new TreeTierSet(2, VEG_TIERS_BY_ROSTER[1], 8, MEGA_REDWOOD),
+        // 2 黄铜荒漠：三档全 0（无木本）
+        new TreeTierSet(0, VEG_TIERS_BY_ROSTER[2], 0, MEGA_NONE),
+        // 3 起雾沼泽：普通伞冠档保留；巨树 = Bayou 式板根树（可立水缘）
+        new TreeTierSet(2, VEG_TIERS_BY_ROSTER[3], 16, MEGA_BAYOU),
+        // 4 遗忘之川（T5 占位转正）：普通 1/6 干5-8；巨树 = Bayou 式（稀）
+        new TreeTierSet(4, VEG_TIERS_BY_ROSTER[4], 32, MEGA_BAYOU) };
+
+    /**
+     * 默认树木档（身份不可得）：三档退化为<b>只有普通默认档</b>（灌木/巨树皆 0）——降级口径与
+     * T7 改造前逐位重合，同 {@link #DEFAULT_TIER} 纪律。
+     */
+    public static final TreeTierSet DEFAULT_TREE_TIERS = new TreeTierSet(0, DEFAULT_TIER, 0, MEGA_NONE);
+
+    /** 名册下标 → 树木三档（越界/缺席回退 {@link #DEFAULT_TREE_TIERS}，同 {@link #tierForRosterIndex} 形状）。 */
+    public static TreeTierSet treeTiersForRosterIndex(int index) {
+        return index >= 0 && index < TREE_TIERS_BY_ROSTER.length ? TREE_TIERS_BY_ROSTER[index] : DEFAULT_TREE_TIERS;
+    }
+
     /**
      * 名册下标 → 植被档（与 {@code ProsperityTerrainProfile.reliefAmplitudeForRosterIndex}、
      * {@code ProsperityWorldGenerator.weightForRosterIndex} 同一形状：越界/缺席一律回退默认档，
@@ -267,7 +358,7 @@ public final class ProsperityDecorPlacer {
         final Random rand = new Random(GTSRWorldgenHash.chunkSeed(worldSeed, chunkX, chunkZ) ^ SALT_DECOR);
         final StructureBuilder builder = new StructureBuilder(sink);
         final VegTier tier = tierForRosterIndex(rosterIndex);
-        placeTreePass(world, builder, rand, chunkX, chunkZ, tier);
+        placeTreePass(world, worldSeed, builder, rand, chunkX, chunkZ, tier, treeTiersForRosterIndex(rosterIndex));
         placeVegetationPass(world, builder, rand, chunkX, chunkZ, tier);
         placeRubble(world, builder, rand, chunkX, chunkZ);
         placeSandPass(world, builder, rand, chunkX, chunkZ, tier);
@@ -276,15 +367,66 @@ public final class ProsperityDecorPlacer {
     // ═════════════════════════════ 树趟（P17 S-B2）═════════════════════════════
 
     /**
-     * 树趟：{@code tier.treeRolls} 枚独立 1/{@code treeChanceDenom} 树骰 ⇒ 一 chunk 可中 0..rolls 棵。
-     * {@code treeRolls <= 0}（荒漠档）⇒ 循环体不进、<b>一次随机都不掷</b>，后续趟的随机流与"零树"同源确定。
+     * 树趟（T7 起三段）：巨树（独立盐 chunk 级 1/N 亮点，先落位 ⇒ 同 chunk 后续树让行）→ 灌木
+     * （1/{@code shrubDenom}）→ 普通（{@code treeRolls × 1/treeChanceDenom}，P17 S-B2 原样）。
+     * 三段顺序固定 ⇒ 同 seed 同坐标逐位一致；巨树趟独立 Random，普通/灌木的随机流与掷序不受其影响。
+     * {@code treeRolls <= 0} 且两分母为 0（荒漠档）⇒ 一段都不进、一次随机都不掷。
      */
-    private static void placeTreePass(World world, StructureBuilder builder, Random rand, int chunkX, int chunkZ,
-        VegTier tier) {
+    private static void placeTreePass(World world, long worldSeed, StructureBuilder builder, Random rand, int chunkX,
+        int chunkZ, VegTier tier, TreeTierSet trees) {
+        if (trees.megaDenom > 0 && trees.megaForm != MEGA_NONE) {
+            final Random megaRand = new Random(GTSRWorldgenHash.chunkSeed(worldSeed, chunkX, chunkZ) ^ SALT_MEGA);
+            if (megaRand.nextInt(trees.megaDenom) == 0) {
+                final int wood = pickWood(megaRand, tier);
+                MegaTreeForms.place(
+                    world,
+                    worldSeed,
+                    builder,
+                    megaRand,
+                    chunkX,
+                    chunkZ,
+                    trees.megaForm,
+                    logOf(wood),
+                    leavesOf(wood));
+            }
+        }
+        if (trees.shrubDenom > 0 && rand.nextInt(trees.shrubDenom) == 0) {
+            placeShrub(world, builder, rand, chunkX, chunkZ, tier);
+        }
         for (int i = 0; i < tier.treeRolls; i++) {
             if (tier.treeChanceDenom > 0 && rand.nextInt(tier.treeChanceDenom) == 0) {
                 placeTree(world, builder, rand, chunkX, chunkZ, tier);
             }
+        }
+    }
+
+    /**
+     * 灌木（T7 灌木档，Highlands WorldGenHighlandsShrub 形态参数化）：单干 1-2 节 + 干顶两叶盘
+     * （r2 缺角盘 + r1 小盘）。整柱空气门与普通树同款（占用即整株跳过）；干位按叶盘半径 2 内收。
+     */
+    private static void placeShrub(World world, StructureBuilder builder, Random rand, int chunkX, int chunkZ,
+        VegTier tier) {
+        final int radius = 2;
+        final int x = (chunkX << 4) + radius + rand.nextInt(16 - 2 * radius);
+        final int z = (chunkZ << 4) + radius + rand.nextInt(16 - 2 * radius);
+        final int surfaceY = naturalTopAt(world, x, z);
+        if (surfaceY < 0) {
+            return;
+        }
+        final int wood = pickWood(rand, tier);
+        final int trunkHeight = 1 + rand.nextInt(2);
+        for (int i = 1; i <= trunkHeight; i++) {
+            if (!world.isAirBlock(x, surfaceY + i, z)) {
+                return;
+            }
+        }
+        final Block log = logOf(wood);
+        final Block leaves = leavesOf(wood);
+        final int topY = surfaceY + trunkHeight;
+        placeLeafDisc(builder, world, x, topY, z, 2, leaves);
+        placeLeafDisc(builder, world, x, topY + 1, z, 1, leaves);
+        for (int i = 1; i <= trunkHeight; i++) {
+            builder.setBlock(x, surfaceY + i, z, log, 0, BlockSink.FLAG_POPULATE);
         }
     }
 
@@ -390,9 +532,11 @@ public final class ProsperityDecorPlacer {
         }
     }
 
-    /** 一层冠：以干为心、半径 rr 的方盘，去掉 |dx|==rr 且 |dz|==rr 的四角（rr==0 ⇒ 单格）。 */
-    private static void placeLeafDisc(StructureBuilder builder, World world, int x, int y, int z, int rr,
-        Block leaves) {
+    /**
+     * 一层冠：以干为心、半径 rr 的方盘，去掉 |dx|==rr 且 |dz|==rr 的四角（rr==0 ⇒ 单格）。
+     * 包内可见：{@link MegaTreeForms} 冠层盘共用（同一缺角剪形）。
+     */
+    static void placeLeafDisc(StructureBuilder builder, World world, int x, int y, int z, int rr, Block leaves) {
         if (rr <= 0) {
             placeLeafIfAir(builder, world, x, y, z, leaves);
             return;
@@ -407,8 +551,8 @@ public final class ProsperityDecorPlacer {
         }
     }
 
-    /** 顶层十字（中心 + 四正各一格）。 */
-    private static void placeCrossTop(StructureBuilder builder, World world, int x, int y, int z, Block leaves) {
+    /** 顶层十字（中心 + 四正各一格）。包内可见：{@link MegaTreeForms} 冠顶共用。 */
+    static void placeCrossTop(StructureBuilder builder, World world, int x, int y, int z, Block leaves) {
         placeLeafIfAir(builder, world, x, y, z, leaves);
         placeLeafIfAir(builder, world, x + 1, y, z, leaves);
         placeLeafIfAir(builder, world, x - 1, y, z, leaves);
@@ -621,10 +765,17 @@ public final class ProsperityDecorPlacer {
         }
     }
 
-    /** 单块叶：仅空气位放置（让行规则）；冠层坐标经干位钳制保证不越界（见类注释跨界协议）。 */
-    private static void placeLeafIfAir(StructureBuilder builder, World world, int x, int y, int z, Block leaves) {
+    /**
+     * 单块叶：<b>T7 起只覆写 air/草/雪</b>（plan §3.7 通用纪律，改前纯空气门口径的扩展——叶可落
+     * 在草顶/雪盖上，仍绝不切结构/地形/水体）。冠层坐标经干位钳制保证不越界（见类注释跨界协议）。
+     * 包内可见：{@link MegaTreeForms} 三形态共用同一叶门。
+     */
+    static void placeLeafIfAir(StructureBuilder builder, World world, int x, int y, int z, Block leaves) {
         if (!world.isAirBlock(x, y, z)) {
-            return;
+            final Block cur = world.getBlock(x, y, z);
+            if (cur != Blocks.grass && cur != Blocks.snow_layer) {
+                return;
+            }
         }
         builder.setBlock(x, y, z, leaves, 0, BlockSink.FLAG_POPULATE);
     }
@@ -634,8 +785,11 @@ public final class ProsperityDecorPlacer {
      * （返回 surfaceY，不过门返回 -1）。本文件 {@code isNaturalTop(} 恰 5 处：定义 + 框架委托 +
      * 本方法 1 处 + 碎石 2 处；新增趟全部经本方法，故 {@code SurfaceGateUnifyCheck} 的那条次数 pin
      * <b>零改动</b>（多一处少一处都红，见其 :557-559）。
+     * <p>
+     * <b>T7 包内直通</b>：{@link MegaTreeForms} 巨树三形态的接地判定与水缘 ±2 邻列探测也走本谓词
+     * （仅放宽可见性，实现体一字未动，次数 pin 不受影响）。
      */
-    private static int naturalTopAt(World world, int x, int z) {
+    static int naturalTopAt(World world, int x, int z) {
         final int surfaceY = findSurfaceY(world, x, z);
         if (surfaceY <= 0 || surfaceY > MAX_SURFACE_Y || !isNaturalTop(world.getBlock(x, surfaceY, z))) {
             return -1;

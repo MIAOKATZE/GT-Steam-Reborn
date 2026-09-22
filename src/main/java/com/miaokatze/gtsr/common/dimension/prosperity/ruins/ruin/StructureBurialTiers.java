@@ -70,7 +70,9 @@ public final class StructureBurialTiers {
 
     /**
      * 埋深档表：下标 = L1 维内名册下标，值 = 该档的<b>埋深下限 / 本族验证过的最深档</b>。
-     * 0 锈蚀草原 / 1 齿轮森林 / <b>2 黄铜荒漠（档最大 = 恒取最深验证档）</b> / 3 起雾沼泽。
+     * 0 锈蚀草原 / 1 齿轮森林 / <b>2 黄铜荒漠（档最大 = 恒取最深验证档）</b> / 3 起雾沼泽 /
+     * 4 遗忘之川（v1.20.39 T5 = 沼泽档 0.05，plan §3.3「BURIAL=沼泽档」；生产路径链身份面
+     * 只产生 0..3，第 5 元按档表族 4→5 长度一致约定就位）。
      * <p>
      * <b>三档非沙漠为什么这么小</b>：档值是"下限"，走 {@link #floorDepthFor} 的量化
      * （{@code Math.round(tier * ceiling)}）⇒ 验证档浅的盘（27 张里 12 张 {@code ceiling ≤ 2}）
@@ -80,7 +82,7 @@ public final class StructureBurialTiers {
      * "四档算数均值精确 1.0 ⇒ 不整体加大起伏"的同一条纪律）。逐张盘的实算窗口与露出比见
      * {@code tools/dim1/P17StructureBiomeVarianceCheck} 的 TIER 组读数。
      */
-    public static final double[] DEPTH_TIER_BY_ROSTER = { 0.30D, 0.15D, 1.00D, 0.05D };
+    public static final double[] DEPTH_TIER_BY_ROSTER = { 0.30D, 0.15D, 1.00D, 0.05D, 0.05D };
 
     /**
      * 默认档（身份不可得 = 该维名册零配槽的 EMPTY 降级态，或未装配 L1 账本的离线 JVM）。

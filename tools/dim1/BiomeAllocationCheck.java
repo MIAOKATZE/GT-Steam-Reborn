@@ -142,7 +142,9 @@ public class BiomeAllocationCheck {
         final GTSRBiomeAuthority a79 = GTSRBiomeAuthority.forDimKey(GTSRBiomeAuthority.DIM_KEY_SHATTERED);
         check(a78.degraded() == Degraded.NONE, "A degraded=NONE for dim78, got " + a78.degraded());
         check(a79.degraded() == Degraded.NONE, "A degraded=NONE for dim79, got " + a79.degraded());
-        check(a78.allocationSummary().equals("180->180, 181->181, 182->182, 183->183"),
+        // v1.20.39 T5/T8 重钉（plan §3.3）：账本口径 4→5 元——第 5 元 SANZU_RIVER 经同一配槽机制入账
+        //（首选 184=idStart+4），但<b>不挂 def 群系表</b>（def 表保持 4 项 selector 名册）。
+        check(a78.allocationSummary().equals("180->180, 181->181, 182->182, 183->183, 184->184"),
             "A dim78 allocation summary drift: " + a78.allocationSummary());
         check(a79.allocationSummary().equals("190->190, 191->191, 192->192, 193->193"),
             "A dim79 allocation summary drift: " + a79.allocationSummary());
@@ -150,7 +152,8 @@ public class BiomeAllocationCheck {
         checkWeights(def78.getBiomeWeights(), new int[] { 45, 30, 15, 10 }, "A dim78 roster weights");
         checkWeights(def79.getBiomeWeights(), new int[] { 40, 30, 20, 10 }, "A dim79 roster weights");
 
-        // 名册顺序 == 首选槽顺序（注册链未被改动的前置事实）
+        // 名册顺序 == 首选槽顺序（注册链未被改动的前置事实）；sanzu（T5 第 5 元）单独补钉：
+        // 账本可解析 + 落在首选 184 + 实例<b>不在</b> def 表（roster-only，plan §3.3 的反向钉）。
         final BiomeId[] roster78 = { BiomeId.RUSTED_STEPPE, BiomeId.GEARWORK_FOREST, BiomeId.BRASS_WASTES,
             BiomeId.FUMAROLE_SWAMP };
         for (int i = 0; i < 4; i++) {
@@ -159,6 +162,11 @@ public class BiomeAllocationCheck {
             check(a78.biomeOf(roster78[i]) == def78.getBiomeTable()
                 .get(i), "A ledger instance != def table entry #" + i);
         }
+        check(a78.actualIdOf(BiomeId.SANZU_RIVER) == PROSPERITY_START_DEFAULT + 4,
+            "A SANZU_RIVER actualId=" + a78.actualIdOf(BiomeId.SANZU_RIVER));
+        check(a78.biomeOf(BiomeId.SANZU_RIVER) != null && !def78.getBiomeTable()
+            .contains(a78.biomeOf(BiomeId.SANZU_RIVER)),
+            "A SANZU_RIVER must be ledger-resolvable but absent from the def (selector) table");
         // byte 平面往返（机制级：id<=254 时 (byte)id&255 读回同一实例）
         for (int i = 0; i < 4; i++) {
             final int id = a78.actualIdOf(roster78[i]);
@@ -224,12 +232,13 @@ public class BiomeAllocationCheck {
         final GTSRDimensionDef def78 = prosperityDef();
         ProsperityBiomes.init(def78);
         final GTSRBiomeAuthority a78 = GTSRBiomeAuthority.forDimKey(GTSRBiomeAuthority.DIM_KEY_PROSPERITY);
-        // 核心：四群系全部注册（旧实现此处只有 183 一个，即"1/4 slots free"）
+        // 核心：四群系全部注册（旧实现此处只有 183 一个，即"1/4 slots free"）；
+        // T5/T8 重钉：账本口径 5 元——sanzu（首选 184 被顺延中的 forest 占用）继续滑到 187。
         check(def78.getBiomeTable().size() == 4,
             "B all four biomes must register via sliding, table=" + def78.getBiomeTable().size());
-        check(a78.allocatedCount() == 4, "B ledger allocated=" + a78.allocatedCount());
+        check(a78.allocatedCount() == 5, "B ledger allocated=" + a78.allocatedCount());
         check(a78.degraded() == Degraded.NONE, "B degraded=NONE expected (all roster got slots), got " + a78.degraded());
-        check(a78.allocationSummary().equals("180->183, 181->184, 182->185, 183->186"),
+        check(a78.allocationSummary().equals("180->183, 181->184, 182->185, 183->186, 184->187"),
             "B non-contiguous sliding summary drift: " + a78.allocationSummary());
         final int[] expected = { 183, 184, 185, 186 };
         final BiomeId[] roster78 = { BiomeId.RUSTED_STEPPE, BiomeId.GEARWORK_FOREST, BiomeId.BRASS_WASTES,
@@ -380,7 +389,7 @@ public class BiomeAllocationCheck {
         assertNoHighBiomeIds();
         Config.biomeIdScanLimit = 254;
 
-        // ③ idStart=252 ⇒ 只拿得到 252/253/254 三槽，第四个无槽 ⇒ SHORT（短表级可见）
+        // ③ idStart=252 ⇒ 只拿得到 252/253/254 三槽，沼泽与 sanzu（T5/T8 第 5 元）无槽 ⇒ SHORT
         Config.prosperityBiomeIdStart = 252;
         final GTSRDimensionDef defC = prosperityDef();
         ProsperityBiomes.init(defC);
@@ -388,7 +397,7 @@ public class BiomeAllocationCheck {
             .size());
         check(a78.degraded() == Degraded.SHORT, "D idStart=252 degraded=SHORT, got " + a78.degraded());
         check(a78.allocationSummary()
-            .equals("252->252, 253->253, 254->254, 255->NONE"),
+            .equals("252->252, 253->253, 254->254, 255->NONE, 256->NONE"),
             "D SHORT summary drift: " + a78.allocationSummary());
         assertNoHighBiomeIds();
         System.out.println("D short-table allocation=[" + a78.allocationSummary() + "] degraded=" + a78.degraded());
