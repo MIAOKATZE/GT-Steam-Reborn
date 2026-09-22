@@ -46,23 +46,29 @@ import com.miaokatze.gtsr.main.GTSteamReborn;
  *   C「装饰前」＝真实编排链（outpost →（互斥）机器 → 散布）全部写完、装饰尚未落笔——
  *     这一列就是 {@link com.miaokatze.gtsr.common.dimension.prosperity.ruins.ProsperityDecorPlacer}
  *     每次落笔时真正面对的可落地面。
- * 由 tools/dim1/SurfaceGateUnifyCheck 的 measure 模式实测；D 组申报带：A 99.99-100、B 97.5-100、
- * <b>C 93.5-96.5</b> 百分点。C 带原钉 [68,76]（P4 期小样本实测 100 / 99.315 / 71.850），P5 把散布
- * 从 K=64 含 15% 竖向件改为 K=8 且摘除竖向件后，散布不再把列埋成残骸，实测上移到 94.968
- * （8 seed × 8 窗、14091 可散布 chunk）——是期望值随行为更新，不是放宽阈值凑绿。
+ * 由 tools/dim1/SurfaceGateUnifyCheck 的 measure 模式实测；<b>真正生效的带在代码里</b>：
+ * A 99.99-100、B 97.5-100、<b>C [98.6, 99.6]</b>（{@code SurfaceGateUnifyCheck:154 BAND_CHAIN_MIN/MAX}，
+ * P5b 按成簇散布实测重标，锚 = 确定性样本 99.202 ±0.6pp）。本段旧文曾写"C 93.5-96.5 / 实测 94.968"，
+ * 那是 P5b 之前的历史值且<b>从未跟代码同步</b>——照它去"改回"代码带就是造回归。C 带更早的历史：
+ * [68,76]（P4 期小样本 100 / 99.315 / 71.850），P5 把散布从 K=64 含 15% 竖向件改为 K=8 且摘除竖向件后上移。
  * 城 buffer 窗 chunk 按同源 CityPlanner.citiesNear 判据排除；采样前提"列内无悬块/无洞穴"
  * 实测 violations=0（悬块/洞穴会让列级口径与门读到的地表不同源，故必须先证它为空）。
  *
- * 样本（权威跑）：8 seed × 8 区 × 16×16 chunk ＝ 16384 chunk 生成 / 12544 区内部 chunk 采样
- *                / 10918 eligible chunk / 2 795 008 列（dim78）＋ 401 408 列（dim79）
+ * 样本（权威跑，P17 复测 2026-09-22）：8 seed × 8 区 × 16×16 chunk ＝ 16384 chunk 生成 / 12544 区内部 chunk 采样
+ *                / <b>11690</b> eligible chunk / <b>2 992 640</b> 列（dim78）＋ 401 408 列（dim79）
+ *
+ * ★<b>本表没有任何判据钉住这些数字</b>（D 组钉的是成员名集合与通过率带，不是份额）——
+ *   改动群系身份链 / 编排链 / 散布门后必须重跑并回写，否则它就成了第二条"看着像真值"的假事实。
+ *   复现：{@code java -cp "temp/p4-surface/tools;temp/p4-surface/classes;<CP>" SurfaceGateUnifyCheck measure 8 8 16}
+ *   （旧表 P4 期曾记荒漠 8.294，而同一 measure 实测约 24-26，差 2-6 倍 ⇒ 那类陈旧值的成因就是缺这条重跑纪律。）
  *
  * dimKey                   |集合|成员（BlocksGTSR 字段名）                    |口径A  |口径C  |份额 A ／ 份额 C
  * -------------------------+----+----------------------------------------------+-------+-------+------------------
- * prosperity-ruins(dim78)  | 5 |prosperitySurface                             |100.000| 70.334| 0.000 ／  0.035 ← 本片新增面
- *                          |    |prosperitySteppeTop                           | %     | %     | 53.774 ／ 37.612
- *                          |    |prosperityForestTop                           |       |       | 29.181 ／ 21.479
- *                          |    |prosperityWastesTop                           |       |       | 12.979 ／  8.294
- *                          |    |prosperitySwampTop                            |       |       |  4.067 ／  2.914
+ * prosperity-ruins(dim78)  | 5 |prosperitySurface                             |100.000| 99.175| 0.000 ／  0.001 ← 新增面（列级通过率）
+ *                          |    |prosperitySteppeTop                           | %     | %     | 23.892 ／ 23.693
+ *                          |    |prosperityForestTop                           |       |       | 28.136 ／ 27.935
+ *                          |    |prosperityWastesTop                           |       |       | 24.700 ／ 24.456
+ *                          |    |prosperitySwampTop                            |       |       | 23.272 ／ 23.091
  * shattered-lands(dim79)   | 4 |shatteredAshTop / SlagTop / GlassTop / TarTop |100.000| —     | 四 top 合计 100.000
  *                          |    |                                              | %     |（dim79 无编排链可跑）
  * </pre>

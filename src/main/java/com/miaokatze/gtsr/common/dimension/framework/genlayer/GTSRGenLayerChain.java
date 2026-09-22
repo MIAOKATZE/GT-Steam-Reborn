@@ -18,7 +18,8 @@ import com.miaokatze.gtsr.common.dimension.framework.GTSRBiomeBase;
  * dim78/dim79 GenLayer 群系分布链的组合器/门面（切片 A：纯新增核心，B1/B2 才接线消费）。
  * <p>
  * 链结构（复用 vanilla 三个纯 id 操作层，蓝本 {@code GenLayer.initializeAllBiomeGenerators}
- * {@code GenLayer.java:32-100} 的 b0=4 zoom + Smooth + VoronoiZoom 骨架）：
+ * {@code GenLayer.java:32-100} 的 b0=4 zoom + Smooth + VoronoiZoom 骨架；<b>骨架同形、zoom 次数
+ * 本仓自成档位</b>，见 {@link #DEFAULT_ZOOM_LEVELS}）：
  * 
  * <pre>
  *   粗层（1:4 比例尺，身份面）：
@@ -66,8 +67,23 @@ public final class GTSRGenLayerChain {
 
     private static final Logger LOG = LogManager.getLogger("GTSR.GenLayerChain");
 
-    /** vanilla 默认 biome size（GenLayer.java:54 {@code b0 = 4}）。 */
-    public static final int DEFAULT_ZOOM_LEVELS = 4;
+    /**
+     * 粗层 selector 格的 zoom 次数。
+     * <p>
+     * <b>P17 S-A 由 4 递进到 5</b>（需求："单个群系略大一些（现在生成的太破碎了，一小块一小块的）"）。
+     * vanilla 骨架该位是 {@code b0 = 4}（{@code GenLayer.java:54}）——本仓不跟 vanilla 取值，跟的是
+     * "成片尺度"这条观感判据：取证 {@code plan/tmp/p17-a/A-biome-scale.md} §1.3 实测平均连通域
+     * 41.9 → 149.1 chunk（×3.6）、孤岛率 0.170 → 0.025pp、chunk 份额对等权基准的最大偏差
+     * 0.725 → 1.967pp（容差 5.0pp，仍绿）。取 6 会把份额偏差推到 4.700pp（余量 0.3pp）且四窗红，
+     * 故按裁定档停在 5。
+     * <p>
+     * <b>这一常量的消费面</b>（改它=同时改这些，不存在"只改一处调用点"的余地）：manager 身份面
+     * {@code GTSRWorldChunkManager} 构链、城门 {@code CityPlanner.bandIndexAt} 本地重建链、
+     * 高度面 {@code ProsperityTerrainProfile.heightAt} 经 {@link GTSRGenLayerRosterFace} 重建的同一条链、
+     * 以及全部离线判据（{@code GTSRGenLayerSelfTest} / {@code BiomeZoneCheck} /
+     * {@code BiomeBandHierarchyCheck}）——同一个常量 ⇒ "三元逐位同一"结构上不可能漂移（BBH A1/C1）。
+     */
+    public static final int DEFAULT_ZOOM_LEVELS = 5;
 
     /** 粗层比例尺：1 粗层格 = 4 方块（voronoi 的 4× 放大倍数，GenLayerVoronoiZoom.java:21-24）。 */
     public static final int COARSE_BLOCK_SCALE = 4;
@@ -110,7 +126,9 @@ public final class GTSRGenLayerChain {
 
     /**
      * @param zoomLevels 粗层相对 1:4 比例尺的 zoom 次数（0 = selector 直接当 1:4 面；
-     *                   vanilla 口径 4 ⇒ selector 格 = 16×16 粗格 = 64 方块，特征尺度约数 chunk）
+     *                   vanilla 口径 4 ⇒ selector 格 = 16×16 粗格 = 64 方块；本仓默认
+     *                   {@link #DEFAULT_ZOOM_LEVELS} = 5 ⇒ selector 格 = 32×32 粗格 = 128 方块
+     *                   = <b>8×8 chunk</b>，即"单个群系"的典型线性尺度）
      * @throws IllegalArgumentException biomeIds 空/越界，或 zoomLevels ∉ [0, {@link #MAX_ZOOM_LEVELS}]
      */
     public GTSRGenLayerChain(long worldSeed, int[] biomeIds, int zoomLevels) {

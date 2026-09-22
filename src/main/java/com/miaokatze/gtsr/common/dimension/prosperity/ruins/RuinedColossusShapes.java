@@ -6,10 +6,12 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
+import com.miaokatze.gtsr.common.dimension.framework.genlayer.GTSRGenLayerRosterFace;
 import com.miaokatze.gtsr.common.dimension.framework.structure.ChunkSpans;
 import com.miaokatze.gtsr.common.dimension.prosperity.ruins.city.CityBlockResolver;
 import com.miaokatze.gtsr.common.dimension.prosperity.ruins.city.CityVariants;
 import com.miaokatze.gtsr.common.dimension.prosperity.ruins.ruin.RuinDamageOps;
+import com.miaokatze.gtsr.common.dimension.prosperity.ruins.ruin.StructureBurialTiers;
 
 /**
  * 城外<b>跨 chunk 巨型机器残骸</b>形状库（<b>P16-B1</b>，plan §0 U2 / §1 G6·G7 / 任务包 item 1·3·4）：
@@ -146,7 +148,15 @@ public final class RuinedColossusShapes {
         // ══════════════ 以下四组量都是 P16-B2（形态层）新增 ══════════════
         /** 本条在 {@link #ALL} 里的序号（形态层派生盐的位移量，不写第二份真值）。 */
         public final int index;
-        /** 半埋深度上界（层）：{@link #morphAt} 在 {@code 0..maxBury} 上均匀取一档，0 = 全露。 */
+        /**
+         * 半埋深度上界（层）：{@link #morphAt} 的埋深窗口 {@code [下限档, maxBury]}，0 = 全露。
+         * <p>
+         * <b>P17 S-D 起的读法</b>：这个模板常量是"本条巨构<b>被静态契约逐档验过</b>的最深一档"，
+         * 群系档表只在它<b>之内</b>重排分布（沙漠恒取 {@code maxBury}、其余档以它为上界向浅处开窗），
+         * 从不外扩 —— {@code #CONTRACT} 的三条"塌过头/联动"判据恰好覆盖到它，越过去就是
+         * clinit 抛（无判据可红），故它同时是档表的<b>硬上界</b>。
+         * 契约实际还能容忍几档，由 {@link #contractValidatedThrough(Colossus)} 用同一份谓词报出。
+         */
         public final int maxBury;
         /** 派生残骸档（世界渲染的就是它们）；长度 = {@link #WRECK_COUNT}。 */
         public final Wreck[] wrecks;
@@ -569,54 +579,15 @@ public final class RuinedColossusShapes {
                 // 它是全表最大的一块自然质量，埋掉它的第一层会让"露出部分的机械占比"反而抬头。
                 int prevExposed = -1;
                 for (int d = 0; d <= c.maxBury; d++) {
-                    final int total = w.exposedSolid(d);
-                    final int mach = w.exposedMachine(d);
-                    if (total < RUIN_SILHOUETTE_MIN || total * 6 < w.solid) {
-                        throw new IllegalStateException(
-                            "[GTSR] colossus " + c.name
-                                + '/'
-                                + w.label
-                                + " 埋 "
-                                + d
-                                + " 层后只剩 "
-                                + total
-                                + "/"
-                                + w.solid
-                                + " 格（塌过头，G8①『还是一座结构』不成立：下界借 ruin 族既有"
-                                + " silhouette 契约的 "
-                                + RUIN_SILHOUETTE_MIN
-                                + " 格，另加"
-                                + "『至少还剩六分之一质量』一条）");
+                    // 三条 G8 判据的实现在 depthContractViolation 里（本段与 contractValidatedThrough
+                    // 共用同一份谓词——P17 S-D 抽出，判据文本与阈值一字未改）
+                    final String violation = depthContractViolation(c, w, d, prevExposed);
+                    if (violation != null) {
+                        throw new IllegalStateException(violation);
                     }
-                    if (prevExposed >= 0 && mach > prevExposed) {
-                        throw new IllegalStateException(
-                            "[GTSR] colossus " + c.name
-                                + '/'
-                                + w.label
-                                + ": 埋深 "
-                                + d
-                                + " 还有 "
-                                + mach
-                                + " 格机械件露着，比前一档 "
-                                + prevExposed
-                                + " 多（G8④ 联动被破坏）");
-                    }
-                    // 半埋档之间（d ≥ 2）必须每档都真吃掉机芯；d=0→1 只判不升——
-                    // 因为本族 y=0 是整层垫层（机器族"垫层恒放"纪律），它一颗机芯都没有。
-                    if (d >= 2 && mach >= prevExposed) {
-                        throw new IllegalStateException(
-                            "[GTSR] colossus " + c.name
-                                + '/'
-                                + w.label
-                                + ": 埋深 "
-                                + d
-                                + " 的机芯露出数没比前一档（"
-                                + prevExposed
-                                + "）少 ⇒ 半埋没吃掉任何机芯（G8④ 空转）");
-                    }
-                    prevExposed = mach;
+                    prevExposed = w.exposedMachine(d);
                 }
-                if (w.exposedMachine(c.maxBury) * 3 >= w.machine * 2) {
+                if (!deepestExposedOk(w, c.maxBury)) {
                     throw new IllegalStateException(
                         "[GTSR] colossus " + c.name
                             + '/'
@@ -645,6 +616,99 @@ public final class RuinedColossusShapes {
     }
 
     private RuinedColossusShapes() {}
+
+    /**
+     * {@code #CONTRACT} 里"逐埋深"三条判据的<b>唯一实现体</b>（P17 S-D 抽出，文本与阈值一字未改）：
+     * ① 塌过头下界、② 机芯露出数随埋深不升、③ 真半埋档之间必须每档都真吃掉机芯。
+     *
+     * @param prevExposed 前一档的机芯露出数；{@code -1} = 没有前一档（{@code d == 0}）
+     * @return {@code null} = 该档无违例
+     */
+    private static String depthContractViolation(Colossus c, Wreck w, int d, int prevExposed) {
+        final int total = w.exposedSolid(d);
+        final int mach = w.exposedMachine(d);
+        if (total < RUIN_SILHOUETTE_MIN || total * 6 < w.solid) {
+            return "[GTSR] colossus " + c.name
+                + '/'
+                + w.label
+                + " 埋 "
+                + d
+                + " 层后只剩 "
+                + total
+                + "/"
+                + w.solid
+                + " 格（塌过头，G8①『还是一座结构』不成立：下界借 ruin 族既有 silhouette 契约的 "
+                + RUIN_SILHOUETTE_MIN
+                + " 格，另加『至少还剩六分之一质量』一条）";
+        }
+        if (prevExposed >= 0 && mach > prevExposed) {
+            return "[GTSR] colossus " + c.name
+                + '/'
+                + w.label
+                + ": 埋深 "
+                + d
+                + " 还有 "
+                + mach
+                + " 格机械件露着，比前一档 "
+                + prevExposed
+                + " 多（G8④ 联动被破坏）";
+        }
+        // 半埋档之间（d ≥ 2）必须每档都真吃掉机芯；d=0→1 只判不升——
+        // 因为本族 y=0 是整层垫层（机器族"垫层恒放"纪律），它一颗机芯都没有。
+        if (d >= 2 && prevExposed >= 0 && mach >= prevExposed) {
+            return "[GTSR] colossus " + c.name
+                + '/'
+                + w.label
+                + ": 埋深 "
+                + d
+                + " 的机芯露出数没比前一档（"
+                + prevExposed
+                + "）少 ⇒ 半埋没吃掉任何机芯（G8④ 空转）";
+        }
+        return null;
+    }
+
+    /** 第四条：埋到 {@code d} 档时机芯露出比必须 ≤ 2/3（G8④ 的上界臂；同上抽出，阈值一字未改）。 */
+    private static boolean deepestExposedOk(Wreck w, int d) {
+        return w.exposedMachine(d) * 3 < w.machine * 2;
+    }
+
+    /**
+     * 本巨构<b>契约能接受到第几档</b>（只读派生出口，P17 S-D 为"档表不自证"而加）：从
+     * {@code sizeY/2 - 1}（{@code #CONTRACT} 对 {@code maxBury} 的那条几何界）往下扫，返回第一个
+     * "把 {@code maxBury} 写成它时整条静态契约仍然成立"的档——即"全部残骸档在 {@code 0..d} 上无违例，
+     * 且在 {@code d} 档时机芯露出比仍 ≤ 2/3"。
+     * <p>
+     * 存在理由：档表把"沙漠恒取最深验证档"押在 {@code c.maxBury} 上，判据要能申报
+     * "<b>档表离契约边界还剩几档余量</b>"，而那一维必须由<b>同一份谓词</b>算出——判据侧再抄一遍
+     * 阈值就是第二个真值源。本方法<b>不</b>参与放置（放置读的仍是 {@code maxBury}），也不会放宽
+     * 任何一条判据：它只是把 clinit 已经跑过的那三条判据换个方向再问一次。
+     */
+    public static int contractValidatedThrough(Colossus c) {
+        for (int d = c.sizeY() / 2 - 1; d >= 1; d--) {
+            if (contractAcceptsTopDepth(c, d)) {
+                return d;
+            }
+        }
+        return 0;
+    }
+
+    /** {@link #contractValidatedThrough} 的判定体：把"本条巨构的 maxBury 写成 {@code d}"是否契约成立。 */
+    private static boolean contractAcceptsTopDepth(Colossus c, int d) {
+        for (final Wreck w : c.wrecks) {
+            if (!deepestExposedOk(w, d)) {
+                return false;
+            }
+            int prevExposed = -1;
+            for (int k = 0; k <= d; k++) {
+                if (depthContractViolation(c, w, k, prevExposed) != null) {
+                    return false;
+                }
+                prevExposed = w.exposedMachine(k);
+            }
+        }
+        return true;
+    }
 
     /** 名字是否属于本表（{@link RuinedMachinePlacer} 的记号分流谓词，全仓唯一一份）。 */
     public static boolean isColossus(String name) {
@@ -966,9 +1030,26 @@ public final class RuinedColossusShapes {
      * @param morphSeed populate 侧 = worldSeed；{@code /gtsr structure} 侧不使用本方法（摆的是母体蓝图）
      */
     public static Morph morphAt(long morphSeed, int originX, int originZ, Colossus c) {
+        // P17 S-D：默认档（身份不可得）⇒ 窗口 [0, maxBury]，掷骰算式与改造前逐字符同形
+        return morphAt(morphSeed, originX, originZ, c, GTSRGenLayerRosterFace.NO_IDENTITY);
+    }
+
+    /**
+     * {@link #morphAt(long, int, int, Colossus)} 的<b>群系档档</b>（P17 S-D，需求
+     * 「结构生成上也有些差异，比如沙漠更多是半埋的结构等等」在巨构族的落点）：
+     * 埋深窗口由 {@link StructureBurialTiers#depthAt} 按 L1 名册下标给出，
+     * <b>窗口上界仍是 {@code c.maxBury}</b> ⇒ 档表能掷出的每一档都已被 {@code #CONTRACT} 逐档验过
+     * （这是"埋深被推过 {@code sizeY/2} 就是 clinit 抛"那条无回归网高危点的处置方式：不外扩，只重排分布）。
+     *
+     * @param rosterIndex 结构<b>锚点原点</b>反查到的 L1 维内名册下标（不是当前 chunk！理由见
+     *                    {@link StructureBurialTiers} 类注释的坐标口径段）；
+     *                    {@link GTSRGenLayerRosterFace#NO_IDENTITY} ⇒ 默认档 ⇒ 与改造前逐位相同
+     */
+    public static Morph morphAt(long morphSeed, int originX, int originZ, Colossus c, int rosterIndex) {
         final long salt = morphSeed ^ SALT_MORPH;
         final int variant = (int) RuinDamageOps.roll(salt, originX, originZ, WRECK_COUNT);
-        final int bury = (int) RuinDamageOps.roll(salt, originZ, 1 - originX, c.maxBury + 1);
+        // legacyTop = c.maxBury：本族改造前就是"0..maxBury 均匀"，那条抖动窗是 P16-B2 的既有通道
+        final int bury = StructureBurialTiers.depthAt(salt, originZ, 1 - originX, c.maxBury, c.maxBury, rosterIndex);
         return new Morph(c, c.wrecks[variant], bury);
     }
 

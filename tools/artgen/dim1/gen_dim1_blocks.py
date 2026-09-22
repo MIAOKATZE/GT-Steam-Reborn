@@ -40,7 +40,9 @@ ROOT = Path(__file__).resolve().parents[3]
 HERE = Path(__file__).resolve().parent
 MANIFEST_PATH = HERE / "manifest.json"
 ASSET_DIR = ROOT / "src" / "main" / "resources" / "assets" / "gtsr" / "textures" / "blocks"
-PREVIEW_PATH = ROOT / "plan" / "新维度计划" / "review" / "dim1" / "textures" / "preview.png"
+# P17-SB1 改口：旧值指向不存在的 plan/新维度计划/（P17-D §0 既存矛盾第 2 条；dim1 32 档整板
+# 产出器缺位是裁决题 D-4，归主代理，本行只把路径指到在产 review 目录，不新增第二真值）。
+PREVIEW_PATH = ROOT / "plan" / "维度计划" / "设计册与实施计划" / "review" / "dim1" / "textures" / "preview.png"
 
 SIZE = 16
 BASE_SIZE = 16          # 母版尺度：manifest 与画笔里所有 px 量按 16 标定

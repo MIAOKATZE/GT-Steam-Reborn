@@ -1,0 +1,1163 @@
+import java.lang.reflect.Field;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.IdentityHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.TreeMap;
+import java.util.TreeSet;
+
+import net.minecraft.block.Block;
+import net.minecraft.block.material.Material;
+import net.minecraft.entity.Entity;
+import net.minecraft.init.Blocks;
+import net.minecraft.profiler.Profiler;
+import net.minecraft.world.World;
+import net.minecraft.world.WorldProvider;
+import net.minecraft.world.WorldSettings;
+import net.minecraft.world.biome.BiomeGenBase;
+import net.minecraft.world.chunk.IChunkProvider;
+import net.minecraft.world.storage.ISaveHandler;
+import net.minecraft.world.storage.WorldInfo;
+
+import com.miaokatze.gtsr.common.blocks.BlocksGTSR;
+import com.miaokatze.gtsr.common.dimension.framework.GTSRBiomeAuthority;
+import com.miaokatze.gtsr.common.dimension.framework.GTSRBiomeAuthority.BiomeId;
+import com.miaokatze.gtsr.common.dimension.framework.GTSRChunkProviderBase;
+import com.miaokatze.gtsr.common.dimension.framework.GTSRDimensionDef;
+import com.miaokatze.gtsr.common.dimension.framework.GTSRWorldChunkManager;
+import com.miaokatze.gtsr.common.dimension.framework.SurfaceGate;
+import com.miaokatze.gtsr.common.dimension.framework.structure.BlockSink;
+import com.miaokatze.gtsr.common.dimension.prosperity.ChunkProviderProsperityRuins;
+import com.miaokatze.gtsr.common.dimension.prosperity.block.BlockProsperityNaturalBase;
+import com.miaokatze.gtsr.common.dimension.prosperity.block.BlockProsperityRustLeaves;
+import com.miaokatze.gtsr.common.dimension.prosperity.block.BlockProsperityRustLog;
+import com.miaokatze.gtsr.common.dimension.prosperity.block.BlockProsperitySurface;
+import com.miaokatze.gtsr.common.dimension.prosperity.block.BlockProsperityTuft;
+import com.miaokatze.gtsr.common.dimension.prosperity.ruins.ProsperityDecorPlacer;
+import com.miaokatze.gtsr.common.dimension.prosperity.ruins.ProsperityDecorPlacer.VegTier;
+import com.miaokatze.gtsr.common.dimension.prosperity.ruins.city.CityPlanner;
+
+/**
+ * P17 S-B2「树与花草的群系身份分流」<b>频率机检</b>（plan §1-S-B★ / §2 第 4 条）。
+ * 这一层改前<b>全仓零回归网</b>：{@code tools/dim1/*.java} 对装饰层那六个频率常量零引用
+ * （P17-C §Q1 实跑 grep 结论），树密度 / 干高 / 花草密度只能实机目测 ⇒ 本片唯一的净增机检。
+ * <p>
+ * <b>六组断言</b>
+ * <ol>
+ * <li><b>DECL（档表结构与偏序）</b>：只读 {@code ProsperityDecorPlacer.VEG_TIERS_BY_ROSTER} /
+ * {@code DEFAULT_TIER}。树密度 <b>森 &gt; 沼 &gt; 原 &gt; 沙 = 0</b>（荒漠那一行写成
+ * {@code treeRolls == 0} 的档值）、干高三区间<b>两两分离</b>（平原 4..6 &lt; 沼泽 7..10 &lt; 森林
+ * 11..16 ⇒ "矮/中/大"是可判序而不是比均值）、木种↔群系映射逐员钉、四木种 + 四花 + 两新草全员有消费者、
+ * 默认档逐字段 = 改前；</li>
+ * <li><b>SOURCE（源级红线）</b>：装饰层去注释源码不含 {@code BiomeId.} / {@code rosterIndex()} /
+ * {@code ordinal ==} / {@code getBiomeGenForCoords} / {@code instanceof BiomeGen} /
+ * 零 biome import（plan §2 第 8 条：抑制只能写成档值，不能写成身份等值判断）；
+ * 编排器每 chunk 只解析一次身份且把 {@code rosterIndex} 传给装饰；
+ * {@code tuftForGround} 体内 top 成员比较恰 4 处、全文件 top 成员比较总数恰 4、装饰层
+ * {@code isNaturalTop(} 恰 5 处 —— 与 {@code SurfaceGateUnifyCheck} E 组同口径的<b>冗余</b>钉，
+ * 不是替代（那条被钉死"多一处少一处都红"）；</li>
+ * <li><b>M（真实链实测带）</b>：真实 {@code generateTerrain} + 真实表层缝 + 真实
+ * {@code ProsperityDecorPlacer.decorate}（身份走生产同一个 {@code ordinalAt} 出口、同一个 chunk 中心
+ * 采样点、同一份城 buffer 窗排除），逐群系钉 树数/chunk · 干高 min/max/mean · 叶/草/花/沙 块数/chunk；
+ * 荒漠 {@code trees == 0 且 logs == 0} <b>精确</b>钉（不是"落进一条含 0 的宽带"）；
+ * 另钉 sink 越界写入 == 0（冠层半径与干位内收自洽）；</li>
+ * <li><b>ORDER（行为级偏序）</b>：同一次实测里再断言一遍 森&gt;沼&gt;原&gt;沙=0 与干高 森&gt;沼&gt;原
+ * —— 档表对了但链上被门吃光也算红；</li>
+ * <li><b>ANTI（反假绿对照臂）</b>：在<b>同一批荒漠 chunk 坐标</b>上跑三臂 ——
+ * 原档（必须 0 树）⇒ 进程内把该行换成「每 chunk 必掷一棵」（必须 &gt; 0 且与 1.0/chunk 同阶）⇒
+ * 还原（必须回到 0 树且沙砾/花草计数与第一臂逐位相同）。手法同 {@code SurfaceGateUnifyCheck} G 组、
+ * {@code Dim78ScatterDensityCheck} D-PIN 对照臂；不成立即「沙漠零树」绿在一条不可达分支上；</li>
+ * <li><b>ROSTER（沙类交付数）</b>：三个沙/砾方块的"盘上存在 + 被真实消费方读到"六面对账
+ * （BlocksGTSR 字段 / BlockLoader 注册 / SurfaceGate 源文本<b>零</b>命中 / MUST_NOT_PASS /
+ * NATURAL_BLOCKS / SurfaceHarness / 装饰层真实读用）。判据是交付数，不是清单数。</li>
+ * </ol>
+ * <p>
+ * <b>口径边界（申报，不静默）</b>：M/ORDER 组只跑装饰趟（不跑城/outpost/机器/散布），带对的是
+ * 「纯装饰链」；与生产整链的实测差 = 结构落块占掉的空气位，方向是生产略低。平坦 {@code Block[]}
+ * 网格合成世界的口径逐字承袭 {@code SurfaceGateUnifyCheck.RegionWorld} /
+ * {@code Dim78ScatterDensityCheck.GridWorld}（界外 null、y&gt;255 bedrock、离线条款同套 Unsafe 装配）。
+ * 实机（真 World、真 setBlock 更新）目视 {@code [未实测]}。
+ * <p>
+ * 用法：{@code java P17VegetationFrequencyCheck [seeds=4] [regionsPerSeed=2] [axis=16] [antiChunks=120]}
+ * <br>退出码 0 = 全绿；1 = 有申报项被破坏。同一份工具源码连跑两次逐位一致（判据 1）。
+ */
+public final class P17VegetationFrequencyCheck {
+
+    private static final String[] BIO = { "RUSTED_STEPPE", "GEARWORK_FOREST", "BRASS_WASTES", "FUMAROLE_SWAMP" };
+    private static final int STEPPE = 0;
+    private static final int FOREST = 1;
+    private static final int WASTES = 2;
+    private static final int SWAMP = 3;
+
+    private static final long[] SEEDS = { 0x503441L, 0x503442L, 0x503443L, 0x503444L, 0x503445L, 0x503446L,
+        0x503447L, 0x503448L };
+
+    /**
+     * <b>同一批群系实例必须全程复用</b>：{@code GTSRBiomeAuthority.of(biome)} 的 byInstance 表按<b>身份</b>
+     * 查，{@code SurfaceHarness.prosperityBiomes()} 每次 {@code new} 一组 ⇒ 记账用一组、def 用另一组
+     * 会让所有 {@code ordinalAt} 解析成 -1（实测踩过：全量落到默认档，测出来就是"分流没生效"的假读数）。
+     */
+    private static BiomeGenBase[] pb;
+    /** 见 {@link #pb}（dim79 那一组，只为 recordAllAllocations 的第二参）。 */
+    private static BiomeGenBase[] sb;
+    /** 见 {@link #pb}。 */
+    private static GTSRDimensionDef defP;
+
+    private static final String DECOR_SRC = "src/main/java/com/miaokatze/gtsr/common/dimension/prosperity/ruins/"
+        + "ProsperityDecorPlacer.java";
+    private static final String GEN_SRC = "src/main/java/com/miaokatze/gtsr/common/dimension/prosperity/ruins/"
+        + "ProsperityWorldGenerator.java";
+
+    /** 改前基线（同口径实测：{@code plan/tmp/p17-sb2/out/probe-before.log}；申报对照，不当判据）。 */
+    private static final double PRE_TREES_PER_CHUNK = 0.059786D;
+    /** 见 {@link #PRE_TREES_PER_CHUNK}（草 + 花件数/chunk；改前花恒 0）。 */
+    private static final double PRE_FLORA_PER_CHUNK = 3.015228D;
+    /** 改前干高带实测（同 log：min 3 / max 5 / mean 3.866..4.538）。 */
+    private static final String PRE_TRUNK_BAND = "3..5";
+
+    // ═══════════════ M 组带（锚 = 本片实测 4 seed × 2 区 × 16² chunk；带宽 ≈ 实测 ±18~25%）═══════════════
+
+    /** 每 chunk 树数带；荒漠一行是 {@code {0,0}} 精确带。 */
+    private static final double[][] BAND_TREES = { { 0.065D, 0.175D }, { 0.60D, 1.06D }, { 0.0D, 0.0D },
+        { 0.23D, 0.45D } };
+    /** 干高最小值带（档表值；无树群系取 {0,0}）。 */
+    private static final int[][] BAND_TRUNK_MIN = { { 4, 4 }, { 11, 11 }, { 0, 0 }, { 7, 7 } };
+    /** 干高最大值带（实测最大值 = 档上界，说明浮动档真被跑到）。 */
+    private static final int[][] BAND_TRUNK_MAX = { { 6, 6 }, { 16, 16 }, { 0, 0 }, { 10, 10 } };
+    /** 干高均值带。 */
+    private static final double[][] BAND_TRUNK_MEAN = { { 4.55D, 5.75D }, { 12.4D, 14.6D }, { 0.0D, 0.0D },
+        { 7.9D, 9.3D } };
+    /** 叶块数/chunk 带（冠幅的行为级投影）。 */
+    private static final double[][] BAND_LEAVES = { { 1.5D, 3.4D }, { 62D, 112D }, { 0.0D, 0.0D },
+        { 7.4D, 14.2D } };
+    /** 草块数/chunk 带。 */
+    private static final double[][] BAND_TUFTS = { { 4.3D, 7.5D }, { 4.9D, 8.3D }, { 1.3D, 3.0D },
+        { 6.0D, 9.4D } };
+    /** 花块数/chunk 带（改前恒 0 ⇒ 四档下界一律 &gt; 0）。 */
+    private static final double[][] BAND_FLOWERS = { { 2.8D, 5.1D }, { 3.7D, 6.5D }, { 0.55D, 1.5D },
+        { 3.5D, 6.1D } };
+    /** 沙/砾块数/chunk 带（只允许荒漠非 0）。 */
+    private static final double[][] BAND_SAND = { { 0.0D, 0.0D }, { 0.0D, 0.0D }, { 4.4D, 9.2D }, { 0.0D, 0.0D } };
+    /** ANTI 臂：荒漠档改成必掷后的树数/chunk 带（0.5 下界 = 门没把荒漠整段挡死）。 */
+    private static final double[] BAND_ANTI_WASTES = { 0.5D, 1.35D };
+
+    // ═══════════════════════════════════ 记账 ═══════════════════════════════════
+
+    private static int passed;
+    private static final List<String> FAILURES = new ArrayList<>();
+    private static final Map<Block, Integer> KINDS = new IdentityHashMap<>();
+    private static long sinkDrops;
+    private static final int KIND_NONE = 0;
+    private static final int KIND_LOG = 1;
+    private static final int KIND_LEAF = 2;
+    private static final int KIND_TUFT = 3;
+    private static final int KIND_FLOWER = 4;
+    private static final int KIND_SAND = 5;
+
+    private P17VegetationFrequencyCheck() {}
+
+    public static void main(String[] args) throws Exception {
+        quietLogging();
+        bootstrap();
+        assertTierTables();
+        assertSourceRedlines();
+        final int seeds = intArg(args, 0, 4);
+        final int regions = intArg(args, 1, 2);
+        final int axis = intArg(args, 2, 16);
+        final int antiChunks = intArg(args, 3, 120);
+        final Map<Integer, Agg> m = measureRegion(seeds, regions, axis);
+        System.out.println("VEG seeds=" + seeds + " regionsPerSeed=" + regions + " axis=" + axis
+            + " cityWindowExcluded=true sinkCrossChunkDrops=" + sinkDrops);
+        for (final Map.Entry<Integer, Agg> e : m.entrySet()) {
+            System.out.println(biomeLine(e.getKey(), e.getValue()));
+        }
+        System.out.println("VEG-TOTAL " + biomeLine(-1, total(m)));
+        assertBands(m);
+        assertBehaviouralOrder(m);
+        assertDesertSensitivity(antiChunks);
+        assertRosterConsumed();
+        if (!FAILURES.isEmpty()) {
+            for (final String f : FAILURES) {
+                System.out.println("  FAIL " + f);
+            }
+            System.out.println("P17 VEGETATION FREQUENCY FAIL: passed=" + passed + " failed=" + FAILURES.size());
+            System.exit(1);
+        }
+        System.out.println("P17 VEGETATION FREQUENCY PASS: assertions=" + passed
+            + " groups=DECL/SOURCE/M/ORDER/ANTI/ROSTER"
+            + " 树密度 森>沼>原>沙=0 与 干高 森>沼>原 双钉（档表 + 真实链实测 + 反假绿臂）");
+    }
+
+    private static String biomeLine(int idx, Agg a) {
+        return "idx=" + idx + " name=" + (idx >= 0 && idx < BIO.length ? BIO[idx] : "TOTAL") + " chunks=" + a.chunks
+            + " trees=" + a.trees + " treesPerChunk=" + fmt(div(a.trees, a.chunks)) + " logs=" + a.logs
+            + " trunkMin=" + trunkMin(a) + " trunkMax=" + trunkMax(a) + " trunkMean=" + fmt(trunkMean(a))
+            + " leavesPerChunk=" + fmt(div(a.leaves, a.chunks)) + " tuftsPerChunk="
+            + fmt(div(a.tufts, a.chunks)) + " flowersPerChunk=" + fmt(div(a.flowers, a.chunks))
+            + " sandPerChunk=" + fmt(div(a.sand, a.chunks));
+    }
+
+    private static int intArg(String[] args, int i, int def) {
+        return args.length > i ? Integer.parseInt(args[i]) : def;
+    }
+
+    // ═════════════════════════════════ DECL ═════════════════════════════════
+
+    private static void assertTierTables() {
+        final VegTier[] t = ProsperityDecorPlacer.VEG_TIERS_BY_ROSTER;
+        check(t.length == 4, "DECL 档表长度 == 4（L1 每维四名册）；实测 " + t.length);
+        check(BiomeId.values().length == 8, "DECL 前置：BiomeId 枚举 8 员（两维各 4）");
+        final double dS = density(t[STEPPE]);
+        final double dF = density(t[FOREST]);
+        final double dW = density(t[WASTES]);
+        final double dM = density(t[SWAMP]);
+        check(t[WASTES].treeRolls == 0, "DECL 荒漠 treeRolls == 0（「沙漠没有树」写成档值，不是 return / 不是等值判断）");
+        check(dW == 0.0D, "DECL 荒漠期望密度 == 0 精确；实测 " + dW);
+        check(dF > dM && dM > dS && dS > 0.0D,
+            "DECL 树密度偏序 森(" + dF + ") > 沼(" + dM + ") > 原(" + dS + ") > 沙(0)");
+        check(dF >= 4.0D * dS, "DECL 森林期望密度 ≥ 平原 4 倍（「更多」要量级可辨）；实测 " + ratio(dF, dS) + "×");
+        check(hi(t[STEPPE]) < lo(t[SWAMP]) && hi(t[SWAMP]) < lo(t[FOREST]),
+            "DECL 干高三区间分离 原[" + lo(t[STEPPE]) + "," + hi(t[STEPPE]) + "] < 沼[" + lo(t[SWAMP]) + ","
+                + hi(t[SWAMP]) + "] < 森[" + lo(t[FOREST]) + "," + hi(t[FOREST]) + "]");
+        check(hi(t[FOREST]) > 5, "DECL 森林干上界 > 改前上界 5（「更大」落在可测区间上移）；实测 " + hi(t[FOREST]));
+        check(distinctTrunkBands(t) >= 3, "DECL 三个有树的群系干高档互不相同（distinct >= 3）");
+        for (int i = 0; i < 4; i++) {
+            check(t[i].trunkSpan >= 1, "DECL 档 " + i + " trunkSpan >= 1（nextInt(0) 会抛）");
+            check(t[i].treeRolls == 0 || t[i].treeChanceDenom > 0,
+                "DECL 档 " + i + " 不变式 treeRolls>0 ⇒ treeChanceDenom>0");
+            check(t[i].canopyRadius >= 1 && t[i].canopyRadius <= 7,
+                "DECL 档 " + i + " canopyRadius ∈ [1,7]（干位内收 16−2r 必须 > 0）；实测 " + t[i].canopyRadius);
+            check(t[i].grassRolls + t[i].flowerRolls > ProsperityDecorPlacer.DEFAULT_TIER.grassRolls,
+                "DECL 档 " + i + "（" + BIO[i] + "）草+花 尝试数 > 改前默认档 "
+                    + ProsperityDecorPlacer.DEFAULT_TIER.grassRolls + "（「增加更多花草」逐群系都成立）；实测 "
+                    + (t[i].grassRolls + t[i].flowerRolls));
+        }
+        check(t[WASTES].sandRolls > 0, "DECL 荒漠沙砾趟 > 0（沙类方块有真实消费者）");
+        for (int i = 0; i < 4; i++) {
+            if (i != WASTES) {
+                check(t[i].sandRolls == 0, "DECL 非荒漠档 " + i + " sandRolls == 0（铺沙不外溢）");
+            }
+        }
+        check(t[STEPPE].woodPrimary == ProsperityDecorPlacer.WOOD_RUST, "DECL 草原木种 = rust（沿用改前唯一树种）");
+        check(t[FOREST].woodPrimary == ProsperityDecorPlacer.WOOD_BRASS
+            && t[FOREST].woodSecondary == ProsperityDecorPlacer.WOOD_COPPER && t[FOREST].woodMixDenom > 1,
+            "DECL 森林木种 = brass 主 + copper 混生（同群系两副干色两副冠形）");
+        check(t[SWAMP].woodPrimary == ProsperityDecorPlacer.WOOD_MARSH
+            && t[SWAMP].woodSecondary == ProsperityDecorPlacer.WOOD_NONE, "DECL 沼树木种 = marsh 单档");
+        check(t[STEPPE].woodSecondary == ProsperityDecorPlacer.WOOD_NONE, "DECL 草原无混生档（次档关闭 ⇒ 不掷随机）");
+        final TreeSet<Integer> woods = new TreeSet<>();
+        final TreeSet<Integer> flowers = new TreeSet<>();
+        final TreeSet<Integer> grasses = new TreeSet<>();
+        for (final VegTier v : t) {
+            if (v.treeRolls > 0) {
+                woods.add(v.woodPrimary);
+                if (v.woodSecondary >= 0) {
+                    woods.add(v.woodSecondary);
+                }
+            }
+            flowers.add(v.flowerKind);
+            grasses.add(v.grassKind);
+        }
+        check(woods.equals(new TreeSet<>(Arrays.asList(ProsperityDecorPlacer.WOOD_RUST,
+            ProsperityDecorPlacer.WOOD_COPPER, ProsperityDecorPlacer.WOOD_BRASS,
+            ProsperityDecorPlacer.WOOD_MARSH))),
+            "DECL 四木种全员被某个有树的群系消费（防「注册了但永不被读到」）；实测 " + woods);
+        check(flowers.size() == 4, "DECL 四自有花全员被消费（改前花设施数 = 0）；实测 " + flowers);
+        check(grasses.size() == 2, "DECL 两新草全员被消费；实测 " + grasses);
+        final VegTier d = ProsperityDecorPlacer.DEFAULT_TIER;
+        check(d.treeRolls == 1 && d.treeChanceDenom == 16, "DECL 默认档树 = 改前 1 掷 × 1/16");
+        check(d.trunkMin == 3 && d.trunkSpan == 3, "DECL 默认档干高 = 改前 " + PRE_TRUNK_BAND);
+        check(d.canopyRadius == 2, "DECL 默认档冠半径 = 改前 5×5（r=2）");
+        check(d.woodPrimary == ProsperityDecorPlacer.WOOD_RUST
+            && d.woodSecondary == ProsperityDecorPlacer.WOOD_NONE, "DECL 默认档木种 = 改前 rust 单档");
+        check(d.flowerRolls == 0 && d.sandRolls == 0, "DECL 默认档花/沙 = 改前 0（身份缺失不凭空造设施）");
+        check(d.grassRolls == 3, "DECL 默认档草 = 3（改前 2-4 的均值；非逐位相同，RESULT 已申报）");
+        check(ProsperityDecorPlacer.tierForRosterIndex(-1) == d && ProsperityDecorPlacer.tierForRosterIndex(99) == d,
+            "DECL 越界/身份缺失一律走默认档（回退臂与档表同一处，无第二真值源）");
+    }
+
+    private static double density(VegTier t) {
+        return t.treeRolls <= 0 || t.treeChanceDenom <= 0 ? 0.0D : (double)t.treeRolls / t.treeChanceDenom;
+    }
+
+    private static int lo(VegTier t) {
+        return t.trunkMin;
+    }
+
+    private static int hi(VegTier t) {
+        return t.trunkMin + Math.max(1, t.trunkSpan) - 1;
+    }
+
+    private static int distinctTrunkBands(VegTier[] t) {
+        final TreeSet<String> s = new TreeSet<>();
+        for (final VegTier v : t) {
+            if (v.treeRolls > 0) {
+                s.add(lo(v) + "-" + hi(v));
+            }
+        }
+        return s.size();
+    }
+
+    private static String ratio(double a, double b) {
+        return String.format(Locale.ROOT, "%.2f", b <= 0D ? Double.NaN : a / b);
+    }
+
+    // ═════════════════════════════════ SOURCE ═════════════════════════════════
+
+    private static void assertSourceRedlines() throws Exception {
+        final String decor = stripComments(read(Paths.get(DECOR_SRC)));
+        final String gen = stripComments(read(Paths.get(GEN_SRC)));
+        check(!decor.contains("BiomeId."), "SOURCE 装饰层零 BiomeId 引用（身份等值判断＝第二真值源）");
+        check(!decor.contains("rosterIndex()"), "SOURCE 装饰层零 rosterIndex() 等值判断");
+        check(!decor.contains("ordinal ==") && !decor.contains("ordinal=="), "SOURCE 装饰层零 ordinal 等值判断");
+        check(!decor.contains("getBiomeGenForCoords") && !decor.contains("instanceof BiomeGen"),
+            "SOURCE 装饰层不读群系实例选档");
+        check(!decor.contains("net.minecraft.world.biome"), "SOURCE 装饰层零 biome import");
+        check(!decor.contains("GTSRBiomeAuthority"), "SOURCE 装饰层不自己解析身份（身份由编排器传入）");
+        check(count(gen, "ProsperityDecorPlacer.decorate(") == 1,
+            "SOURCE 编排器装饰调用恰 1 处；实测 " + count(gen, "ProsperityDecorPlacer.decorate("));
+        check(gen.contains("chunkX, chunkZ, rosterIndex, sink)"),
+            "SOURCE 装饰调用带 rosterIndex 实参（「decorate 无群系入参」这条根因已闭合）");
+        check(count(gen, "ordinalAt(") == 1,
+            "SOURCE 编排器每 chunk 只解析一次身份（改造前是 biomeWeight 每次各解析一次）；实测 "
+                + count(gen, "ordinalAt("));
+        check(count(decor, "isNaturalTop(") == 5,
+            "SOURCE 装饰层 isNaturalTop( 恰 5 处（1 定义 + 1 委托 + 1 naturalTopAt + 2 碎石内联）；实测 "
+                + count(decor, "isNaturalTop("));
+        check(count(methodBody(decor, "static Block tuftForGround("), "== BlocksGTSR.prosperity") == 4,
+            "SOURCE tuftForGround 体内 top 成员比较恰 4 处（分流没走地表比选）");
+        check(count(decor, "== BlocksGTSR.prosperity") == 4,
+            "SOURCE 装饰层全文件 top/surface 成员比较总数恰 4（新四趟一律经档表或选择器返回值）；实测 "
+                + count(decor, "== BlocksGTSR.prosperity"));
+    }
+
+    // ═════════════════════════════ 真实链实测 ═════════════════════════════
+
+    static final class Agg {
+        long chunks;
+        long trees;
+        long logs;
+        final int[] trunk = new int[96];
+        long leaves;
+        long tufts;
+        long flowers;
+        long sand;
+
+        Agg copy() {
+            final Agg b = new Agg();
+            b.chunks = chunks;
+            b.trees = trees;
+            b.logs = logs;
+            b.leaves = leaves;
+            b.tufts = tufts;
+            b.flowers = flowers;
+            b.sand = sand;
+            System.arraycopy(trunk, 0, b.trunk, 0, trunk.length);
+            return b;
+        }
+
+        long trunkSum() {
+            long n = 0;
+            for (final int c : trunk) {
+                n += c;
+            }
+            return n;
+        }
+
+        /** 干高直方的加权合计（= 干格总数），与 {@link #logs} 必须逐位相等（同一批格的两种数法）。 */
+        long trunkBlockSum() {
+            long n = 0;
+            for (int i = 0; i < trunk.length; i++) {
+                n += (long)i * trunk[i];
+            }
+            return n;
+        }
+
+        String digest() {
+            return "chunks=" + chunks + " trees=" + trees + " logs=" + logs + " leaves=" + leaves + " tufts=" + tufts
+                + " flowers=" + flowers + " sand=" + sand + " trunkHist=" + Arrays.toString(trunk);
+        }
+    }
+
+    private static Agg total(Map<Integer, Agg> m) {
+        final Agg s = new Agg();
+        for (final Agg a : m.values()) {
+            s.chunks += a.chunks;
+            s.trees += a.trees;
+            s.logs += a.logs;
+            s.leaves += a.leaves;
+            s.tufts += a.tufts;
+            s.flowers += a.flowers;
+            s.sand += a.sand;
+            for (int i = 0; i < s.trunk.length; i++) {
+                s.trunk[i] += a.trunk[i];
+            }
+        }
+        return s;
+    }
+
+    /** 区采样（M/ORDER 组）：真实地形 + 真实表层缝 + 真实装饰，城 buffer 窗生产同源排除。 */
+    private static Map<Integer, Agg> measureRegion(int seeds, int regions, int axis) throws Exception {
+        final Map<Integer, Agg> out = new TreeMap<>();
+        final int side = axis * 16;
+        final Block[] scratch = new Block[65536];
+        final byte[] scratchMeta = new byte[65536];
+        for (int si = 0; si < seeds; si++) {
+            final long seed = SEEDS[si % SEEDS.length];
+            final GTSRWorldChunkManager mgrP = new GTSRWorldChunkManager(seed, defP);
+            final java.lang.reflect.Method gen = SurfaceHarness.generateTerrain();
+            for (int r = 0; r < regions; r++) {
+                final int cx0 = r * axis * 3 + si * 4096;
+                final int cz0 = r * axis * 5 + si * 924816;
+                final Block[] grid = new Block[side * side * 256];
+                final FlatWorld world = FlatWorld.of(grid, cx0 << 4, cz0 << 4, seed, side);
+                final GTSRChunkProviderBase provP = new ChunkProviderProsperityRuins(world, seed);
+                final java.lang.reflect.Method seam = SurfaceHarness.surfaceSeam(provP.getClass());
+                for (int dx = 0; dx < axis; dx++) {
+                    for (int dz = 0; dz < axis; dz++) {
+                        final int cx = cx0 + dx;
+                        final int cz = cz0 + dz;
+                        Arrays.fill(scratch, null);
+                        Arrays.fill(scratchMeta, (byte)0);
+                        gen.invoke(provP, cx, cz, scratch, scratchMeta, null);
+                        final BiomeGenBase[] plane = mgrP.loadBlockGeneratorData(null, cx * 16, cz * 16, 16, 16);
+                        seam.invoke(null, seed, cx * 16, cz * 16, scratch, scratchMeta, plane);
+                        final int bx = dx * 16;
+                        final int bz = dz * 16;
+                        for (int lx = 0; lx < 16; lx++) {
+                            for (int lz = 0; lz < 16; lz++) {
+                                final int col = (lx << 12) | (lz << 8);
+                                final int dst = (bx + lx) + (bz + lz) * side;
+                                for (int y = 0; y < 256; y++) {
+                                    grid[y * side * side + dst] = scratch[col | y];
+                                }
+                            }
+                        }
+                    }
+                }
+                decorateRegion(out, world, grid, side, seed, cx0, cz0, axis);
+            }
+        }
+        return out;
+    }
+
+    /** 对一个区跑装饰并计数（干高由网格竖直段扫描，与 sink 计数分面）。 */
+    private static void decorateRegion(Map<Integer, Agg> out, FlatWorld world, Block[] grid, int side, long seed,
+        int cx0, int cz0, int axis) {
+        final CountingSink sink = new CountingSink(world, out);
+        for (int dx = 0; dx < axis; dx++) {
+            for (int dz = 0; dz < axis; dz++) {
+                final int gcx = cx0 + dx;
+                final int gcz = cz0 + dz;
+                if (CityPlanner.citiesNear(seed, gcx, gcz).length > 0) {
+                    continue;
+                }
+                final int idx = ordinal(gcx, gcz);
+                sink.chunk(gcx, gcz, idx, bucket(out, idx));
+                ProsperityDecorPlacer.decorate(world, seed, gcx, gcz, idx, sink);
+            }
+        }
+        for (int dx = 0; dx < axis; dx++) {
+            for (int dz = 0; dz < axis; dz++) {
+                final int gcx = cx0 + dx;
+                final int gcz = cz0 + dz;
+                if (CityPlanner.citiesNear(seed, gcx, gcz).length > 0) {
+                    continue;
+                }
+                countTrunks(grid, side, dx, dz, out.get(Integer.valueOf(ordinal(gcx, gcz))));
+            }
+        }
+    }
+
+    private static void countTrunks(Block[] grid, int side, int cx, int cz, Agg a) {
+        if (a == null) {
+            return;
+        }
+        for (int lx = 0; lx < 16; lx++) {
+            for (int lz = 0; lz < 16; lz++) {
+                final int col = (cx * 16 + lx) + (cz * 16 + lz) * side;
+                int run = 0;
+                for (int y = 0; y < 256; y++) {
+                    final Block b = grid[y * side * side + col];
+                    if (b != null && kind(b) == KIND_LOG) {
+                        run++;
+                    } else if (run > 0) {
+                        a.trees++;
+                        a.logs += run;
+                        a.trunk[Math.min(run, 95)]++;
+                        run = 0;
+                    }
+                }
+                if (run > 0) {
+                    a.trees++;
+                    a.logs += run;
+                    a.trunk[Math.min(run, 95)]++;
+                }
+            }
+        }
+    }
+
+    private static Agg bucket(Map<Integer, Agg> out, int idx) {
+        Agg a = out.get(Integer.valueOf(idx));
+        if (a == null) {
+            out.put(Integer.valueOf(idx), a = new Agg());
+            a.chunks = 0;
+        }
+        a.chunks++;
+        return a;
+    }
+
+    private static int ordinal(int cx, int cz) {
+        return GTSRBiomeAuthority.forDimKey(GTSRBiomeAuthority.DIM_KEY_PROSPERITY)
+            .ordinalAt((cx << 4) + 8, (cz << 4) + 8).ordinal;
+    }
+
+    /** 单 chunk 世界采样（ANTI 臂用）：只取身份 == 目标档的前 N 个 chunk，坐标集在臂间复用。 */
+    private static List<int[]> findChunks(int targetIdx, int count) {
+        final List<int[]> hits = new ArrayList<>();
+        final long seed = ANTI_SEED;
+        outer: for (int kx = 0; kx < 220; kx++) {
+            for (int kz = 0; kz < 220; kz++) {
+                final int cx = 31000 + kx * 7;
+                final int cz = -47000 + kz * 5;
+                if (CityPlanner.citiesNear(seed, cx, cz).length > 0) {
+                    continue;
+                }
+                if (ordinal(cx, cz) == targetIdx) {
+                    hits.add(new int[] { cx, cz });
+                    if (hits.size() >= count) {
+                        break outer;
+                    }
+                }
+            }
+        }
+        return hits;
+    }
+
+    /** ANTI 臂固定 seed（保证三臂跑的是同一坐标集）。 */
+    private static final long ANTI_SEED = 0x503444L;
+    private static Agg measureSingleChunks(List<int[]> coords) throws Exception {
+        final Agg agg = new Agg();
+        final Map<Integer, Agg> out = new IdentityHashMap<>();
+        out.put(Integer.valueOf(WASTES), agg);
+        final GTSRWorldChunkManager mgrP = new GTSRWorldChunkManager(ANTI_SEED, defP);
+        final java.lang.reflect.Method gen = SurfaceHarness.generateTerrain();
+        final Block[] scratch = new Block[65536];
+        final byte[] scratchMeta = new byte[65536];
+        final Block[] grid = new Block[16 * 16 * 256];
+        for (final int[] c : coords) {
+            final int cx = c[0];
+            final int cz = c[1];
+            Arrays.fill(scratch, null);
+            Arrays.fill(scratchMeta, (byte)0);
+            final FlatWorld world = FlatWorld.of(grid, cx << 4, cz << 4, ANTI_SEED, 16);
+            final GTSRChunkProviderBase provP = new ChunkProviderProsperityRuins(world, ANTI_SEED);
+            gen.invoke(provP, cx, cz, scratch, scratchMeta, null);
+            final BiomeGenBase[] plane = mgrP.loadBlockGeneratorData(null, cx * 16, cz * 16, 16, 16);
+            SurfaceHarness.surfaceSeam(provP.getClass())
+                .invoke(null, ANTI_SEED, cx * 16, cz * 16, scratch, scratchMeta, plane);
+            for (int lx = 0; lx < 16; lx++) {
+                for (int lz = 0; lz < 16; lz++) {
+                    final int col = (lx << 12) | (lz << 8);
+                    final int dst = lx + lz * 16;
+                    for (int y = 0; y < 256; y++) {
+                        grid[y * 256 + dst] = scratch[col | y];
+                    }
+                }
+            }
+            agg.chunks++;
+            final CountingSink sink = new CountingSink(world, out);
+            sink.chunk(cx, cz, WASTES, agg);
+            ProsperityDecorPlacer.decorate(world, ANTI_SEED, cx, cz, WASTES, sink);
+            countTrunks(grid, 16, 0, 0, agg);
+        }
+        return agg;
+    }
+
+    // ═════════════════════════════════ M / ORDER ═════════════════════════════════
+
+    private static void assertBands(Map<Integer, Agg> m) {
+        for (int idx = 0; idx < 4; idx++) {
+            final Agg a = m.get(Integer.valueOf(idx));
+            check(a != null && a.chunks > 0, "M 前置：档 " + idx + "（" + BIO[idx] + "）样本 chunk 数 > 0");
+            if (a == null || a.chunks == 0) {
+                continue;
+            }
+            band("M " + BIO[idx] + " 树数/chunk", div(a.trees, a.chunks), BAND_TREES[idx]);
+            band("M " + BIO[idx] + " 干高 min", trunkMin(a), BAND_TRUNK_MIN[idx]);
+            band("M " + BIO[idx] + " 干高 max", trunkMax(a), BAND_TRUNK_MAX[idx]);
+            band("M " + BIO[idx] + " 干高 mean", trunkMean(a), BAND_TRUNK_MEAN[idx]);
+            band("M " + BIO[idx] + " 叶/chunk", div(a.leaves, a.chunks), BAND_LEAVES[idx]);
+            band("M " + BIO[idx] + " 草/chunk", div(a.tufts, a.chunks), BAND_TUFTS[idx]);
+            band("M " + BIO[idx] + " 花/chunk", div(a.flowers, a.chunks), BAND_FLOWERS[idx]);
+            band("M " + BIO[idx] + " 沙砾/chunk", div(a.sand, a.chunks), BAND_SAND[idx]);
+            if (idx == WASTES) {
+                check(a.trees == 0 && a.logs == 0,
+                    "M 荒漠<b>精确</b>零树：trees=" + a.trees + " logs=" + a.logs + "（含 0 的宽带不算达成需求）");
+            } else {
+                check(a.trees > 0, "M 有树群系 " + BIO[idx] + " trees > 0（实测 " + a.trees + "）");
+                check(a.flowers > 0, "M 有树群系 " + BIO[idx] + " flowers > 0（改前全密度 = 0）");
+            }
+        }
+        check(sinkDrops == 0, "M 零越界落块（冠层半径与干位内收自洽，跨界协议未破）；实测 " + sinkDrops);
+    }
+
+    private static void assertBehaviouralOrder(Map<Integer, Agg> m) {
+        final double f = div(get(m, FOREST).trees, get(m, FOREST).chunks);
+        final double w = div(get(m, SWAMP).trees, get(m, SWAMP).chunks);
+        final double s = div(get(m, STEPPE).trees, get(m, STEPPE).chunks);
+        final double d = div(get(m, WASTES).trees, get(m, WASTES).chunks);
+        check(f > w && w > s && s > d && d == 0.0D,
+            "ORDER 真实链树密度 森(" + fmt(f) + ") > 沼(" + fmt(w) + ") > 原(" + fmt(s) + ") > 沙(" + fmt(d) + "=0)");
+        final double tf = trunkMean(get(m, FOREST));
+        final double tw = trunkMean(get(m, SWAMP));
+        final double ts = trunkMean(get(m, STEPPE));
+        check(tf > tw && tw > ts,
+            "ORDER 真实链干高均值 森(" + fmt(tf) + ") > 沼(" + fmt(tw) + ") > 原(" + fmt(ts) + ")");
+        // 用<b>每 chunk 密度比</b>而不是绝对数比：四群系 chunk 数本身不等权（实测 404/346/495/528），
+        // 拿绝对数比会把"面积抽样不等"当成"密度不分流"。
+        check(div(get(m, FOREST).trees, get(m, FOREST).chunks) > 6.0D * div(get(m, STEPPE).trees,
+            get(m, STEPPE).chunks),
+            "ORDER 森林树密度 > 平原 6 倍；实测 " + fmt(div(get(m, FOREST).trees, get(m, FOREST).chunks))
+                + " vs " + fmt(div(get(m, STEPPE).trees, get(m, STEPPE).chunks)));
+        final Agg all = total(m);
+        check(div(all.trees, all.chunks) > 3.0D * PRE_TREES_PER_CHUNK,
+            "ORDER 全图树密度较改前(" + fmt(PRE_TREES_PER_CHUNK) + ") 升 > 3×；实测 "
+                + fmt(div(all.trees, all.chunks)));
+        check(div(all.tufts + all.flowers, all.chunks) > 2.0D * PRE_FLORA_PER_CHUNK,
+            "ORDER 全图花草密度较改前(" + fmt(PRE_FLORA_PER_CHUNK) + ") 升 > 2×；实测 "
+                + fmt(div(all.tufts + all.flowers, all.chunks)));
+        for (int idx = 0; idx < 4; idx++) {
+            final Agg a = get(m, idx);
+            check(a.chunks == 0 || div(a.flowers + a.tufts, a.chunks) > 1.0D,
+                "ORDER " + BIO[idx] + " 花草合计 > 1 件/chunk；实测 " + fmt(div(a.flowers + a.tufts, a.chunks)));
+        }
+    }
+
+    // ═════════════════════════════════ ANTI ═════════════════════════════════
+
+    private static void assertDesertSensitivity(int antiChunks) throws Exception {
+        // 先把身份源绑到 ANTI_SEED（GTSRWorldChunkManager 构造期 bind），否则 findChunks 读到的是
+        // 上一个 seed 的链 ⇒ "同一坐标集"这条话不成立。
+        new GTSRWorldChunkManager(ANTI_SEED, defP);
+        final List<int[]> coords = findChunks(WASTES, antiChunks);
+        final VegTier original = ProsperityDecorPlacer.VEG_TIERS_BY_ROSTER[WASTES];
+        final Agg before = measureSingleChunks(coords);
+        check(coords.size() >= 20 && before.chunks == coords.size(),
+            "ANTI 前置：荒漠单 chunk 样本 = " + coords.size() + "（测量记录 " + before.chunks + "）");
+        check(before.trees == 0 && before.logs == 0,
+            "ANTI 前置：原档下同坐标集 trees/logs == 0；实测 " + before.trees + "/" + before.logs);
+        check(before.sand > 0 && before.flowers > 0 && before.tufts > 0,
+            "ANTI 前置：同坐标集上花/草/沙砾均 > 0（⇒ 零树不是「整趟没跑」，沙 " + before.sand + " 花 " + before.flowers
+                + " 草 " + before.tufts + "）");
+        ProsperityDecorPlacer.VEG_TIERS_BY_ROSTER[WASTES] = new VegTier(1, 1, original.trunkMin, original.trunkSpan,
+            original.canopyRadius, original.woodPrimary, original.woodSecondary, original.woodMixDenom,
+            original.grassRolls, original.flowerRolls, original.sandRolls, original.flowerKind, original.grassKind,
+            original.sandKind);
+        final Agg arm;
+        try {
+            arm = measureSingleChunks(coords);
+        } finally {
+            ProsperityDecorPlacer.VEG_TIERS_BY_ROSTER[WASTES] = original;
+        }
+        check(arm.trees > 0, "ANTI 荒漠档改成必掷 ⇒ 同坐标集 trees > 0（实测 " + arm.trees + "/" + arm.chunks
+            + "）；不成立＝「沙漠零树」绿在一条不可达分支上");
+        band("ANTI 必掷臂 树数/chunk", div(arm.trees, arm.chunks), BAND_ANTI_WASTES);
+        check(arm.logs == arm.trunkBlockSum() && arm.trees == arm.trunkSum() && arm.trees > 0,
+            "ANTI 臂：干格总数 == 干高直方加权合计 且 树数 == 直方合计（两种数法同体，防网格扫描与 sink 计数"
+                + "各说各话）；实测 logs=" + arm.logs + " blockSum=" + arm.trunkBlockSum() + " trees=" + arm.trees
+                + " trunkSum=" + arm.trunkSum());
+        check(before.logs == before.trunkBlockSum() && before.trees == before.trunkSum() && before.trees == 0,
+            "ANTI 前置臂：同一对合计在\"原档零树\"侧也成立（0 == 0）；实测 logs=" + before.logs
+                + " trees=" + before.trees);
+        final Agg restored = measureSingleChunks(coords);
+        check(restored.trees == 0 && restored.digest()
+            .equals(before.digest()), "ANTI 还原自证：换回原档后同坐标集逐位回到第一臂（trees 归 0 且全部计数相同）");
+        check(ProsperityDecorPlacer.VEG_TIERS_BY_ROSTER[WASTES] == original, "ANTI 还原自证：档数组引用已复原");
+    }
+
+    // ═════════════════════════════════ ROSTER ═════════════════════════════════
+
+    private static void assertRosterConsumed() throws Exception {
+        final String loader = read(Paths.get("src/main/java/com/miaokatze/gtsr/loader/BlockLoader.java"));
+        final String blocks = read(Paths.get(
+            "src/main/java/com/miaokatze/gtsr/common/blocks/BlocksGTSR.java"));
+        final String gate = read(Paths.get(
+            "src/main/java/com/miaokatze/gtsr/common/dimension/framework/SurfaceGate.java"));
+        final String unify = read(Paths.get("tools/dim1/SurfaceGateUnifyCheck.java"));
+        final String matrix = read(Paths.get("tools/dim1/SurfaceBiomeMatrixCheck.java"));
+        final String harness = read(Paths.get("tools/dim1/SurfaceHarness.java"));
+        final String decor = read(Paths.get(DECOR_SRC));
+        final String[] sand = { "prosperitySilicaSand", "prosperityCoarseSand", "prosperityRiverGravel" };
+        for (final String f : sand) {
+            check(blocks.contains("public static Block " + f + ";"), "ROSTER BlocksGTSR 缺字段 " + f);
+            check(loader.contains("BlocksGTSR." + f + " = new BlockProsperityNaturalBase("),
+                "ROSTER BlockLoader 缺实例化 " + f);
+            check(loader.contains("GameRegistry.registerBlock(BlocksGTSR." + f + ", \"" + capitalize(f) + "\")"),
+                "ROSTER BlockLoader 缺注册名 " + f);
+            check(loader.contains("gtsr:" + texOf(f)), "ROSTER BlockLoader 注册段缺贴图名 gtsr:" + texOf(f));
+            check(!gate.contains(f), "ROSTER SurfaceGate 源文本零命中 " + f + "（DIM78_SIZE 恒 5 纪律）");
+            check(unify.contains("\"gtsr:" + f + "\""), "ROSTER MUST_NOT_PASS 缺 " + f + "（静默面之三）");
+            check(matrix.contains("\"" + f + "\""), "ROSTER NATURAL_BLOCKS 缺 " + f + "（静默面之一）");
+            check(harness.contains("BlocksGTSR." + f + " = new "), "ROSTER SurfaceHarness 缺装配行 " + f
+                + "（静默面之二：漏了就没有任何判据红，但新方块永久不被覆盖）");
+            check(decor.contains("BlocksGTSR." + f), "ROSTER 装饰层未读 " + f + "（注册了但没人消费）");
+        }
+        check(count(decor, "sandOf(") >= 4, "ROSTER 装饰层沙料解析调用 >= 4（细/粗/砾三样都有取用路径）；实测 "
+            + count(decor, "sandOf("));
+        final String en = read(Paths.get("src/main/resources/assets/gtsr/lang/en_US.lang"));
+        final String zh = read(Paths.get("src/main/resources/assets/gtsr/lang/zh_CN.lang"));
+        for (final String f : sand) {
+            final String key = "tile." + capitalize(f) + ".name=";
+            check(count(en, key) == 1 && count(zh, key) == 1, "ROSTER 两份 lang 各含恰 1 条 " + key);
+        }
+    }
+
+    private static String capitalize(String field) {
+        return Character.toUpperCase(field.charAt(0)) + field.substring(1);
+    }
+
+    private static String texOf(String field) {
+        final StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < field.length(); i++) {
+            final char c = field.charAt(i);
+            if (Character.isUpperCase(c)) {
+                sb.append('_').append(Character.toLowerCase(c));
+            } else {
+                sb.append(c);
+            }
+        }
+        return sb.toString();
+    }
+
+    // ═════════════════════════════════ 计数/工具 ═════════════════════════════════
+
+    private static Agg get(Map<Integer, Agg> m, int idx) {
+        final Agg a = m.get(Integer.valueOf(idx));
+        return a == null ? new Agg() : a;
+    }
+
+    private static void band(String label, double v, double[] range) {
+        check(v >= range[0] && v <= range[1], label + " = " + fmt(v) + " ∉ 带 [" + range[0] + ", " + range[1] + "]");
+    }
+
+    private static void band(String label, long v, int[] range) {
+        check(v >= range[0] && v <= range[1], label + " = " + v + " ∉ 带 [" + range[0] + ", " + range[1] + "]");
+    }
+
+    private static int trunkMin(Agg a) {
+        for (int i = 0; i < a.trunk.length; i++) {
+            if (a.trunk[i] > 0) {
+                return i;
+            }
+        }
+        return 0;
+    }
+
+    private static int trunkMax(Agg a) {
+        for (int i = a.trunk.length - 1; i >= 0; i--) {
+            if (a.trunk[i] > 0) {
+                return i;
+            }
+        }
+        return 0;
+    }
+
+    private static double trunkMean(Agg a) {
+        long n = 0;
+        long sum = 0;
+        for (int i = 0; i < a.trunk.length; i++) {
+            n += a.trunk[i];
+            sum += (long)i * a.trunk[i];
+        }
+        return n == 0 ? 0D : (double)sum / n;
+    }
+
+    private static double div(long a, long b) {
+        return b == 0 ? 0D : (double)a / b;
+    }
+
+    private static String fmt(double d) {
+        return String.format(Locale.ROOT, "%.6f", d);
+    }
+
+    private static void check(boolean ok, String msg) {
+        if (ok) {
+            passed++;
+        } else {
+            FAILURES.add(msg);
+        }
+    }
+
+    private static int count(String hay, String needle) {
+        int n = 0;
+        for (int i = hay.indexOf(needle); i >= 0; i = hay.indexOf(needle, i + needle.length())) {
+            n++;
+        }
+        return n;
+    }
+
+    private static String methodBody(String code, String signaturePrefix) {
+        final int sig = code.indexOf(signaturePrefix);
+        if (sig < 0) {
+            return "";
+        }
+        final int open = code.indexOf('{', sig);
+        if (open < 0) {
+            return "";
+        }
+        int depth = 0;
+        for (int i = open; i < code.length(); i++) {
+            if (code.charAt(i) == '{') {
+                depth++;
+            } else if (code.charAt(i) == '}' && --depth == 0) {
+                return code.substring(open, i + 1);
+            }
+        }
+        return "";
+    }
+
+    private static String stripComments(String text) {
+        final StringBuilder sb = new StringBuilder(text.length());
+        int i = 0;
+        while (i < text.length()) {
+            final char c = text.charAt(i);
+            if (c == '"' || c == '\'') {
+                final int end = skipLiteral(text, i);
+                sb.append(text, i, end);
+                i = end;
+                continue;
+            }
+            if (c == '/' && i + 1 < text.length() && text.charAt(i + 1) == '/') {
+                while (i < text.length() && text.charAt(i) != '\n') {
+                    i++;
+                }
+                continue;
+            }
+            if (c == '/' && i + 1 < text.length() && text.charAt(i + 1) == '*') {
+                final int end = text.indexOf("*/", i + 2);
+                i = end < 0 ? text.length() : end + 2;
+                sb.append(' ');
+                continue;
+            }
+            sb.append(c);
+            i++;
+        }
+        return sb.toString();
+    }
+
+    private static int skipLiteral(String text, int start) {
+        final char quote = text.charAt(start);
+        int i = start + 1;
+        while (i < text.length()) {
+            if (text.charAt(i) == '\\') {
+                i += 2;
+                continue;
+            }
+            if (text.charAt(i) == quote) {
+                return i + 1;
+            }
+            i++;
+        }
+        return i;
+    }
+
+    private static String read(Path file) throws Exception {
+        return new String(Files.readAllBytes(file), StandardCharsets.UTF_8);
+    }
+
+    private static int kind(Block b) {
+        final Integer k = KINDS.get(b);
+        return k == null ? KIND_NONE : k.intValue();
+    }
+
+    /** 写回网格并按身份分类计数（干格由网格竖直段扫描计，这里不重复计）。 */
+    static final class CountingSink implements BlockSink {
+
+        private final FlatWorld world;
+        private final Map<Integer, Agg> out;
+        private int cx;
+        private int cz;
+        private int idx;
+        private Agg agg;
+
+        CountingSink(FlatWorld world, Map<Integer, Agg> out) {
+            this.world = world;
+            this.out = out;
+        }
+
+        void chunk(int cx, int cz, int idx, Agg agg) {
+            this.cx = cx;
+            this.cz = cz;
+            this.idx = idx;
+            this.agg = agg;
+            if (out.get(Integer.valueOf(idx)) != agg) {
+                out.put(Integer.valueOf(idx), agg);
+            }
+        }
+
+        @Override
+        public boolean setBlock(int x, int y, int z, Object block, int meta, int flags) {
+            if ((x >> 4) != cx || (z >> 4) != cz || y < 0 || y > 255 || !(block instanceof Block)) {
+                sinkDrops++; // 跨界协议违例（本层应当恒为 0）
+                return false;
+            }
+            final Block b = (Block)block;
+            switch (kind(b)) {
+                case KIND_LEAF: {
+                    agg.leaves++;
+                    break;
+                }
+                case KIND_TUFT: {
+                    agg.tufts++;
+                    break;
+                }
+                case KIND_FLOWER: {
+                    agg.flowers++;
+                    break;
+                }
+                case KIND_SAND: {
+                    agg.sand++;
+                    break;
+                }
+                default: {
+                    break;
+                }
+            }
+            world.write(x, y, z, b);
+            return true;
+        }
+    }
+
+    // ═════════════════════════════ 离线装配与世界 ═════════════════════════════
+
+    private static void bootstrap() {
+        SurfaceHarness.initVanillaBlocks();
+        SurfaceHarness.blockFamily();
+        // 装饰域补齐（SurfaceHarness.blockFamily 不含这五件；缺席 ⇒ 落块测成假 0，
+        // 理由同 Dim78ScatterDensityCheck.extraBlocks 的 P4 实测坑）
+        if (BlocksGTSR.prosperitySurface == null) {
+            BlocksGTSR.prosperitySurface = new BlockProsperitySurface();
+        }
+        if (BlocksGTSR.prosperityTuftRust == null) {
+            BlocksGTSR.prosperityTuftRust = new BlockProsperityTuft("ProsperityTuftRust",
+                "gtsr:prosperity_tuft_rust");
+        }
+        if (BlocksGTSR.prosperityTuftCopper == null) {
+            BlocksGTSR.prosperityTuftCopper = new BlockProsperityTuft("ProsperityTuftCopper",
+                "gtsr:prosperity_tuft_copper");
+        }
+        if (BlocksGTSR.prosperityRustLog == null) {
+            BlocksGTSR.prosperityRustLog = new BlockProsperityRustLog("ProsperityRustLog",
+                "gtsr:prosperity_rust_log_side", "gtsr:prosperity_rust_log_top");
+        }
+        if (BlocksGTSR.prosperityRustLeaves == null) {
+            BlocksGTSR.prosperityRustLeaves = new BlockProsperityRustLeaves("ProsperityRustLeaves",
+                "gtsr:prosperity_rust_leaves");
+        }
+        if (BlocksGTSR.prosperitySilicaSand == null) {
+            BlocksGTSR.prosperitySilicaSand = new BlockProsperityNaturalBase("ProsperitySilicaSand",
+                "gtsr:prosperity_silica_sand");
+        }
+        if (BlocksGTSR.prosperityCoarseSand == null) {
+            BlocksGTSR.prosperityCoarseSand = new BlockProsperityNaturalBase("ProsperityCoarseSand",
+                "gtsr:prosperity_coarse_sand");
+        }
+        if (BlocksGTSR.prosperityRiverGravel == null) {
+            BlocksGTSR.prosperityRiverGravel = new BlockProsperityNaturalBase("ProsperityRiverGravel",
+                "gtsr:prosperity_river_gravel");
+        }
+        final List<String> missing = new ArrayList<>();
+        for (final String f : new String[] { "prosperitySilicaSand", "prosperityCoarseSand",
+            "prosperityRiverGravel", "prosperityFlowerPatina", "prosperityTuftSedge", "prosperityBrassLog",
+            "prosperityCopperLeaves", "prosperityMarshLog" }) {
+            try {
+                if (((Block)BlocksGTSR.class.getField(f)
+                    .get(null)) == null) {
+                    missing.add(f);
+                }
+            } catch (ReflectiveOperationException e) {
+                missing.add(f + "(无字段)");
+            }
+        }
+        if (!missing.isEmpty()) {
+            throw new IllegalStateException("S-B2/S-B1 名册方块缺席，测出来必然是假读数：" + missing);
+        }
+        pb = SurfaceHarness.prosperityBiomes();
+        sb = SurfaceHarness.shatteredBiomes();
+        defP = SurfaceHarness.def(true, pb, SurfaceHarness.prosperityWeights());
+        SurfaceHarness.recordAllAllocations(pb, sb);
+        buildKinds();
+        if (SurfaceGate.landableTops(SurfaceGate.DIM78).length != 5) {
+            throw new IllegalStateException("SurfaceGate dim78 名册不是 5 员 = "
+                + SurfaceGate.landableTops(SurfaceGate.DIM78).length + "（S-B2 禁改 top 名册）");
+        }
+    }
+
+    private static void buildKinds() {
+        put(BlocksGTSR.prosperityRustLog, KIND_LOG);
+        put(BlocksGTSR.prosperityCopperLog, KIND_LOG);
+        put(BlocksGTSR.prosperityBrassLog, KIND_LOG);
+        put(BlocksGTSR.prosperityMarshLog, KIND_LOG);
+        put(BlocksGTSR.prosperityRustLeaves, KIND_LEAF);
+        put(BlocksGTSR.prosperityCopperLeaves, KIND_LEAF);
+        put(BlocksGTSR.prosperityBrassLeaves, KIND_LEAF);
+        put(BlocksGTSR.prosperityMarshLeaves, KIND_LEAF);
+        put(BlocksGTSR.prosperityTuftRust, KIND_TUFT);
+        put(BlocksGTSR.prosperityTuftCopper, KIND_TUFT);
+        put(BlocksGTSR.prosperityTuftSedge, KIND_TUFT);
+        put(BlocksGTSR.prosperityTuftBristle, KIND_TUFT);
+        put(BlocksGTSR.prosperityFlowerRust, KIND_FLOWER);
+        put(BlocksGTSR.prosperityFlowerPatina, KIND_FLOWER);
+        put(BlocksGTSR.prosperityFlowerBrass, KIND_FLOWER);
+        put(BlocksGTSR.prosperityFlowerMarsh, KIND_FLOWER);
+        put(BlocksGTSR.prosperitySilicaSand, KIND_SAND);
+        put(BlocksGTSR.prosperityCoarseSand, KIND_SAND);
+        put(BlocksGTSR.prosperityRiverGravel, KIND_SAND);
+    }
+
+    private static void put(Block b, int kind) {
+        KINDS.put(b, Integer.valueOf(kind));
+    }
+
+    /** 平坦网格合成世界（口径逐字承袭 SurfaceGateUnifyCheck.RegionWorld / GridWorld）。 */
+    static final class FlatWorld extends World {
+
+        Block[] grid;
+        int originBlockX;
+        int originBlockZ;
+        int side;
+        long seedValue;
+
+        private FlatWorld() {
+            super((ISaveHandler)null, (String)null, (WorldProvider)null, (WorldSettings)null, (Profiler)null);
+        }
+
+        static FlatWorld of(Block[] grid, int originBlockX, int originBlockZ, long seed, int side) throws Exception {
+            final sun.misc.Unsafe u = SurfaceHarness.unsafe();
+            final FlatWorld w = (FlatWorld)u.allocateInstance(FlatWorld.class);
+            w.grid = grid;
+            w.originBlockX = originBlockX;
+            w.originBlockZ = originBlockZ;
+            w.side = side;
+            w.seedValue = seed;
+            final WorldInfo info = (WorldInfo)u.allocateInstance(WorldInfo.class);
+            final Field sf = WorldInfo.class.getDeclaredField("randomSeed");
+            sf.setAccessible(true);
+            u.putLong(info, u.objectFieldOffset(sf), seed);
+            final Field wf = World.class.getDeclaredField("worldInfo");
+            wf.setAccessible(true);
+            u.putObject(w, u.objectFieldOffset(wf), info);
+            final VegProvider p = (VegProvider)u.allocateInstance(VegProvider.class);
+            final Field dim = WorldProvider.class.getDeclaredField("dimensionId");
+            dim.setAccessible(true);
+            u.putInt(p, u.objectFieldOffset(dim), 78);
+            p.seedValue = seed;
+            final Field pf = World.class.getDeclaredField("provider");
+            pf.setAccessible(true);
+            u.putObject(w, u.objectFieldOffset(pf), p);
+            return w;
+        }
+
+        private int index(int x, int y, int z) {
+            if (y < 0 || y > 255) {
+                return -1;
+            }
+            final int lx = x - originBlockX;
+            final int lz = z - originBlockZ;
+            if (lx < 0 || lz < 0 || lx >= side || lz >= side) {
+                return -1;
+            }
+            return (y * side + lz) * side + lx;
+        }
+
+        @Override
+        public Block getBlock(int x, int y, int z) {
+            if (y > 255) {
+                return Blocks.bedrock; // 镜像 vanilla 界外实心口径（防上界假绿）
+            }
+            final int i = index(x, y, z);
+            return i < 0 ? null : grid[i];
+        }
+
+        @Override
+        public boolean isAirBlock(int x, int y, int z) {
+            if (y > 255) {
+                return false;
+            }
+            final int i = index(x, y, z);
+            if (i < 0) {
+                return true; // 区外 = 未加载；落点全部钳在本 chunk 内，故不影响计数
+            }
+            final Block b = grid[i];
+            return b == null || b.getMaterial() == Material.air;
+        }
+
+        void write(int x, int y, int z, Block block) {
+            final int i = index(x, y, z);
+            if (i >= 0) {
+                grid[i] = block == Blocks.air ? null : block;
+            }
+        }
+
+        @Override
+        public int getActualHeight() {
+            return 256;
+        }
+
+        @Override
+        public long getSeed() {
+            return seedValue;
+        }
+
+        @Override
+        protected IChunkProvider createChunkProvider() {
+            return null;
+        }
+
+        @Override
+        protected int func_152379_p() {
+            return 0;
+        }
+
+        @Override
+        public Entity getEntityByID(int entityId) {
+            return null;
+        }
+    }
+
+    /** 带种子/维号的 provider（dimensionId = 78 ⇒ L1 身份与 SurfaceGate 维度键都取得到）。 */
+    public static final class VegProvider extends WorldProvider {
+
+        long seedValue;
+
+        @Override
+        public String getDimensionName() {
+            return "gtsr-p17-sb2-veg";
+        }
+
+        @Override
+        public long getSeed() {
+            return seedValue;
+        }
+    }
+
+    private static void quietLogging() {
+        try {
+            final Path cfg = Paths.get("temp", "p17-sb2-log4j2.xml");
+            Files.createDirectories(cfg.getParent());
+            Files.write(cfg, ("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+                + "<Configuration status=\"OFF\"><Loggers><Root level=\"OFF\"/></Loggers></Configuration>\n")
+                    .getBytes(StandardCharsets.UTF_8));
+            System.setProperty("log4j.configurationFile", cfg.toAbsolutePath().toString());
+        } catch (Exception e) {
+            System.out.println("NOTE: log4j quiet bootstrap failed (" + e.getClass().getSimpleName() + ")");
+        }
+    }
+}

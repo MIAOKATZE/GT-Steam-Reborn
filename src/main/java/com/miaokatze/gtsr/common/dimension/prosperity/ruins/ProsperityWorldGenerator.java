@@ -134,6 +134,9 @@ public class ProsperityWorldGenerator implements IWorldGenerator, GTSROwnedGener
         final long worldSeed = world.getSeed();
         // 每 chunk 一个钳制 Sink：越界写入协议层丢弃并计数（每 256 chunk 汇总日志，02 代码 15 越界瑕疵修复）
         final BlockSink sink = new ChunkClampedSink(world, chunkX, chunkZ);
+        // P17 S-B2：本 chunk 的 L1 名册下标<b>只解析一次</b>，机器权重 / 散布权重 / 植被档三族共用
+        // （改造前是 biomeWeight 每次调用各解析一次，且装饰根本没有身份 ⇒ 旧 :182 的"零分流"根因）。
+        final int rosterIndex = biomeRosterIndex(world, chunkX, chunkZ);
 
         // —— 1. 古代城（S4b）：3×3 cell 检索邻域城市，仅渲染与 C 相交的交集切片（plan §3.1）——
         final CityPlan[] cities = CityPlanner.citiesNear(worldSeed, chunkX, chunkZ);
@@ -161,7 +164,7 @@ public class ProsperityWorldGenerator implements IWorldGenerator, GTSROwnedGener
                 worldSeed,
                 chunkX,
                 chunkZ,
-                biomeWeight(world, chunkX, chunkZ, MACHINE_WEIGHTS),
+                weightForRosterIndex(rosterIndex, MACHINE_WEIGHTS),
                 sink,
                 structureGate);
         }
@@ -175,11 +178,12 @@ public class ProsperityWorldGenerator implements IWorldGenerator, GTSROwnedGener
         // —— 5. 地表散布（P5：每 chunk 件数 K × 群系散布权重 + 落块/掷点上限，全部 Config 取值；
         // 最低优先级，只落自然锈变地表+空气让行。掷骰顺序与上方 2→3→4 的互斥关系一字未改）——
         ProsperitySurfaceScatter
-            .scatter(world, worldSeed, chunkX, chunkZ, biomeWeight(world, chunkX, chunkZ, SCATTER_WEIGHTS), sink);
+            .scatter(world, worldSeed, chunkX, chunkZ, weightForRosterIndex(rosterIndex, SCATTER_WEIGHTS), sink);
 
-        // —— 6. 自然区装饰（S-A1，plan §12 修订 5：草丛 2-4/锈树 1/16/碎石 0-2 堆，频率常量
-        // 登记 ProsperityDecorPlacer 类注释；城 buffer 窗由上方 :90-92 return 天然保证）——
-        ProsperityDecorPlacer.decorate(world, worldSeed, chunkX, chunkZ, sink);
+        // —— 6. 自然区装饰（S-A1，plan §12 修订 5；<b>P17 S-B2 起带身份</b>：树趟 + 植被趟各按
+        // ProsperityDecorPlacer.VEG_TIERS_BY_ROSTER[名册下标] 取档 ⇒ 青铜森林树最多最大、平原矮树、
+        // 沼泽中等、荒漠零树，并新增花/新草/沙砾三件；城 buffer 窗由上方 citiesNear return 天然保证）——
+        ProsperityDecorPlacer.decorate(world, worldSeed, chunkX, chunkZ, rosterIndex, sink);
     }
 
     /**
@@ -232,24 +236,29 @@ public class ProsperityWorldGenerator implements IWorldGenerator, GTSROwnedGener
      * 非本维群系 / 降级态（{@code ordinal < 0}）一律回退 1.0F（与改造前"越界回退 1.0"数值口径一致）。
      * <p>
      * 公开是为了离线断言（{@code tools/dim1/BiomeAllocationCheck}）用<b>同一段代码</b>对拍改造前后
-     * 的权重数值，不是给生产代码开的后门：生产侧唯一调用者是本类的 {@link #biomeWeight}。
+     * 的权重数值，不是给生产代码开的后门：生产侧唯一调用者是本类的 {@code generate}（机器与散布两族）。
      */
     public static float weightForRosterIndex(int index, float[] table) {
         return index >= 0 && index < table.length ? table[index] : 1.0F;
     }
 
     /**
-     * 群系权重解析（chunk 中心坐标）。
+     * 群系身份解析（chunk 中心坐标）。
      * <p>
      * <b>P1 改造点</b>：改造前是 {@code world.getBiomeGenForCoords(...)} 读 {@code Chunk} 的 byte
      * biome 平面，再按 {@code biomeID - Config.prosperityBiomeIdStart} 做减法——配槽改为逐群系顺延
      * （允许非连续）后减法必然失真（186 被算成下标 6 ⇒ 恒回退 1.0）。现改为走 L1 唯一出口，
      * 既不再读 byte id，也不再依赖 id 段连续性。采样坐标（chunk 中心块坐标）与判定阈值保持不变，
      * 故正常态（四群系连号）下逐位权重与改造前一致——由 BiomeAllocationCheck 场景 A 对拍钉住。
+     * <p>
+     * <b>P17 S-B2 改判</b>：原 {@code biomeWeight(World,int,int,float[])} 每次调用各解析一次身份
+     * （机器 + 散布 = 每 chunk 两次），而装饰那一趟<b>拿不到</b>身份 ⇒ 分流无从发生。
+     * 现把解析上提为 {@code generate} 里的<b>一次</b> {@link #biomeRosterIndex}，三族共用同一个
+     * {@code ordinal}（权重侧仍走 {@link #weightForRosterIndex}，数值逐位不变；植被侧走
+     * {@code ProsperityDecorPlacer.tierForRosterIndex}）。身份出口仍只有 {@code ordinalAt} 一条。
      */
-    private static float biomeWeight(World world, int chunkX, int chunkZ, float[] table) {
-        final GTSRBiomeAuthority.Resolution resolution = GTSRBiomeAuthority.forDimension(world.provider.dimensionId)
-            .ordinalAt((chunkX << 4) + 8, (chunkZ << 4) + 8);
-        return weightForRosterIndex(resolution.ordinal, table);
+    private static int biomeRosterIndex(World world, int chunkX, int chunkZ) {
+        return GTSRBiomeAuthority.forDimension(world.provider.dimensionId)
+            .ordinalAt((chunkX << 4) + 8, (chunkZ << 4) + 8).ordinal;
     }
 }

@@ -52,7 +52,25 @@
     "SPIKE_STONE": "74747E",
     "THORN_ASH": "56504A",
     "ASH_BARK": "453E36",
-    "ASH_RING": "5E564C"
+    "ASH_RING": "5E564C",
+    "COPPER_BARK": "3E5A48",
+    "COPPER_CORE": "7A9A72",
+    "CANOPY_PATINA": "9FC4A8",
+    "BRASS_BARK": "6E5A2E",
+    "BRASS_CORE": "B49A4C",
+    "CANOPY_BRASS": "D6CB96",
+    "MARSH_BARK": "35342A",
+    "MARSH_CORE": "5A6446",
+    "CANOPY_MARSH": "8FA086",
+    "FLOWER_RUST": "C07A4A",
+    "FLOWER_PATINA": "A8D0B4",
+    "FLOWER_BRASS": "E0C060",
+    "FLOWER_MARSH": "9A7AB0",
+    "TUFT_SEDGE_MAT": "9AAE82",
+    "TUFT_BRISTLE_MAT": "C9B48A",
+    "SILICA_SAND": "D6C79B",
+    "COARSE_SAND": "C0A76B",
+    "RIVER_GRAVEL": "9A8E7A"
   },
   "DERIVED_RULES": {
     "D006": { "toward": "DARK_ANCHOR", "t": 0.006 },
@@ -127,6 +145,27 @@
     "prosperity_rust_log_side": "0x5EED810F",
     "prosperity_rust_log_top": "0x5EED8110",
     "prosperity_rust_leaves": "0x5EED8111",
+    "prosperity_copper_log_side": "0x5EED8161",
+    "prosperity_copper_log_top": "0x5EED8122",
+    "prosperity_copper_leaves_side": "0x5EED8123",
+    "prosperity_copper_leaves_top": "0x5EED8124",
+    "prosperity_brass_log_side": "0x5EED8167",
+    "prosperity_brass_log_top": "0x5EED8126",
+    "prosperity_brass_leaves_side": "0x5EED8127",
+    "prosperity_brass_leaves_top": "0x5EED8128",
+    "prosperity_marsh_log_side": "0x5EED816C",
+    "prosperity_marsh_log_top": "0x5EED812A",
+    "prosperity_marsh_leaves_side": "0x5EED812B",
+    "prosperity_marsh_leaves_top": "0x5EED812C",
+    "prosperity_flower_rust": "0x5EED812D",
+    "prosperity_flower_patina": "0x5EED812E",
+    "prosperity_flower_brass": "0x5EED812F",
+    "prosperity_flower_marsh": "0x5EED8130",
+    "prosperity_tuft_sedge": "0x5EED8131",
+    "prosperity_tuft_bristle": "0x5EED8132",
+    "prosperity_silica_sand": "0x5EED8141",
+    "prosperity_coarse_sand": "0x5EED8146",
+    "prosperity_river_gravel": "0x5EED814B",
     "shattered_corestone": "0x5EED9101",
     "shattered_monolith": "0x5EED9102",
     "shattered_ash_top": "0x5EED9103",
@@ -577,6 +616,594 @@
         "oxide_density": 0.018
       },
       "_read": "锈树叶：细碎冠层簇 + 暗孔 + 亮针尖 + 稀疏锈斑；中性乘色底 → 同一冠层跨群系读作锈褐/铜绿（与草丛同 tint 消费口径）"
+    },
+    {
+    "key": "prosperity_copper_log_side",
+    "file": "prosperity_copper_log_side.png",
+    "group": "prosperity_decor",
+    "block": "ProsperityCopperLog side（BlockLoader P17-SB1 段）",
+    "kind": "log_side",
+    "tileable": true,
+    "params": {
+      "base": "COPPER_BARK",
+      "bark_dark": "BASE@D220",
+      "bark_lit": "BASE@L180",
+      "grain_cells_x": 4,
+      "grain_cells_y": 16,
+      "ridge_chance": 0.34,
+      "bloom": "PATINA_BLOOM@D140",
+      "bloom_density": 0.035,
+      "bloom_count": 2,
+      "band": "COPPER_CORE@D220",
+      "band_rows": [
+        3,
+        11
+      ]
+    },
+    "_read": "铜绿树干侧面：与 rust 档同骨架（纵向纹场 4×16 + 棱脊 + 锈斑 + 2 道环带），仅换 Bark/Core 谱 ⇒ 族内一致、跨档双差可辨"
+  }
+,
+    {
+    "key": "prosperity_copper_log_top",
+    "file": "prosperity_copper_log_top.png",
+    "group": "prosperity_decor",
+    "block": "ProsperityCopperLog top（BlockLoader P17-SB1 段）",
+    "kind": "log_top",
+    "tileable": false,
+    "params": {
+      "base": "COPPER_BARK",
+      "core": "COPPER_CORE",
+      "ring_alt": "COPPER_CORE@D220",
+      "ring_lit": "COPPER_CORE@L140",
+      "bark_rim_1": "BASE@D140",
+      "bark_rim_2": "BASE@D220",
+      "pit": "COPPER_CORE@D340",
+      "pit_density": 0.05,
+      "crack": "COPPER_CORE@D340",
+      "crack_count": 2,
+      "ring_period": 3
+    },
+    "_read": "铜绿树干横截面：同心年轮 + 外圈树皮环 + 放射裂纹；逐块各自成环（vanilla 原木顶面同款口径）"
+  }
+,
+    {
+    "key": "prosperity_copper_leaves_side",
+    "file": "prosperity_copper_leaves_side.png",
+    "group": "prosperity_natural",
+    "block": "ProsperityCopperLeaves side（BlockProsperityCanopyLeaves，双图标）",
+    "kind": "leaves_clump",
+    "tileable": true,
+    "tint": "biome_grass_multiplier",
+    "params": {
+      "base": "CANOPY_PATINA",
+      "levels": [
+        "BASE@D180",
+        "BASE@D090",
+        "BASE",
+        "BASE@L055",
+        "BASE@L140"
+      ],
+      "hole": "BASE@D340",
+      "hole_density": 0.09,
+      "octaves": [
+        [
+          4,
+          0.36
+        ],
+        [
+          8,
+          0.36
+        ],
+        [
+          16,
+          0.28
+        ]
+      ],
+      "needle_lit": "BASE@L240",
+      "needle_density": 0.16,
+      "oxide": "PATINA_BLOOM@D140",
+      "oxide_density": 0.018
+    },
+    "_read": "铜绿树冠侧面：细碎簇场 + 暗孔 + 亮针尖 + 稀疏点缀；中性乘色底 → tint 按邻域群系草色"
+  }
+,
+    {
+    "key": "prosperity_copper_leaves_top",
+    "file": "prosperity_copper_leaves_top.png",
+    "group": "prosperity_natural",
+    "block": "ProsperityCopperLeaves top（BlockProsperityCanopyLeaves 顶图标）",
+    "kind": "leaves_clump",
+    "tileable": true,
+    "tint": "biome_grass_multiplier",
+    "params": {
+      "base": "CANOPY_PATINA",
+      "levels": [
+        "BASE@D180",
+        "BASE@D090",
+        "BASE",
+        "BASE@L055",
+        "BASE@L140"
+      ],
+      "hole": "BASE@D340",
+      "hole_density": 0.12,
+      "octaves": [
+        [
+          4,
+          0.36
+        ],
+        [
+          8,
+          0.36
+        ],
+        [
+          16,
+          0.28
+        ]
+      ],
+      "needle_lit": "BASE@L240",
+      "needle_density": 0.2,
+      "oxide": "PATINA_BLOOM@D140",
+      "oxide_density": 0.018
+    },
+    "_read": "铜绿树冠顶视：与同档 side 同谱同画法，暗孔 0.12/亮针 0.20 加密 ⇒ 顶视读作冠层缝隙（俯视树冠的日光斑）"
+  }
+,
+    {
+    "key": "prosperity_brass_log_side",
+    "file": "prosperity_brass_log_side.png",
+    "group": "prosperity_decor",
+    "block": "ProsperityBrassLog side（BlockLoader P17-SB1 段）",
+    "kind": "log_side",
+    "tileable": true,
+    "params": {
+      "base": "BRASS_BARK",
+      "bark_dark": "BASE@D220",
+      "bark_lit": "BASE@L180",
+      "grain_cells_x": 4,
+      "grain_cells_y": 16,
+      "ridge_chance": 0.34,
+      "bloom": "GLINT@D070",
+      "bloom_density": 0.035,
+      "bloom_count": 2,
+      "band": "BRASS_CORE@D220",
+      "band_rows": [
+        3,
+        11
+      ]
+    },
+    "_read": "黄铜树干侧面：与 rust 档同骨架（纵向纹场 4×16 + 棱脊 + 锈斑 + 2 道环带），仅换 Bark/Core 谱 ⇒ 族内一致、跨档双差可辨"
+  }
+,
+    {
+    "key": "prosperity_brass_log_top",
+    "file": "prosperity_brass_log_top.png",
+    "group": "prosperity_decor",
+    "block": "ProsperityBrassLog top（BlockLoader P17-SB1 段）",
+    "kind": "log_top",
+    "tileable": false,
+    "params": {
+      "base": "BRASS_BARK",
+      "core": "BRASS_CORE",
+      "ring_alt": "BRASS_CORE@D220",
+      "ring_lit": "BRASS_CORE@L140",
+      "bark_rim_1": "BASE@D140",
+      "bark_rim_2": "BASE@D220",
+      "pit": "BRASS_CORE@D340",
+      "pit_density": 0.05,
+      "crack": "BRASS_CORE@D340",
+      "crack_count": 2,
+      "ring_period": 3
+    },
+    "_read": "黄铜树干横截面：同心年轮 + 外圈树皮环 + 放射裂纹；逐块各自成环（vanilla 原木顶面同款口径）"
+  }
+,
+    {
+    "key": "prosperity_brass_leaves_side",
+    "file": "prosperity_brass_leaves_side.png",
+    "group": "prosperity_natural",
+    "block": "ProsperityBrassLeaves side（BlockProsperityCanopyLeaves，双图标）",
+    "kind": "leaves_clump",
+    "tileable": true,
+    "tint": "biome_grass_multiplier",
+    "params": {
+      "base": "CANOPY_BRASS",
+      "levels": [
+        "BASE@D180",
+        "BASE@D090",
+        "BASE",
+        "BASE@L055",
+        "BASE@L140"
+      ],
+      "hole": "BASE@D340",
+      "hole_density": 0.09,
+      "octaves": [
+        [
+          4,
+          0.36
+        ],
+        [
+          8,
+          0.36
+        ],
+        [
+          16,
+          0.28
+        ]
+      ],
+      "needle_lit": "BASE@L240",
+      "needle_density": 0.16,
+      "oxide": "BRASS_SAND@D140",
+      "oxide_density": 0.018
+    },
+    "_read": "黄铜树冠侧面：细碎簇场 + 暗孔 + 亮针尖 + 稀疏点缀；中性乘色底 → tint 按邻域群系草色"
+  }
+,
+    {
+    "key": "prosperity_brass_leaves_top",
+    "file": "prosperity_brass_leaves_top.png",
+    "group": "prosperity_natural",
+    "block": "ProsperityBrassLeaves top（BlockProsperityCanopyLeaves 顶图标）",
+    "kind": "leaves_clump",
+    "tileable": true,
+    "tint": "biome_grass_multiplier",
+    "params": {
+      "base": "CANOPY_BRASS",
+      "levels": [
+        "BASE@D180",
+        "BASE@D090",
+        "BASE",
+        "BASE@L055",
+        "BASE@L140"
+      ],
+      "hole": "BASE@D340",
+      "hole_density": 0.12,
+      "octaves": [
+        [
+          4,
+          0.36
+        ],
+        [
+          8,
+          0.36
+        ],
+        [
+          16,
+          0.28
+        ]
+      ],
+      "needle_lit": "BASE@L240",
+      "needle_density": 0.2,
+      "oxide": "BRASS_SAND@D140",
+      "oxide_density": 0.018
+    },
+    "_read": "黄铜树冠顶视：与同档 side 同谱同画法，暗孔 0.12/亮针 0.20 加密 ⇒ 顶视读作冠层缝隙（俯视树冠的日光斑）"
+  }
+,
+    {
+    "key": "prosperity_marsh_log_side",
+    "file": "prosperity_marsh_log_side.png",
+    "group": "prosperity_decor",
+    "block": "ProsperityMarshLog side（BlockLoader P17-SB1 段）",
+    "kind": "log_side",
+    "tileable": true,
+    "params": {
+      "base": "MARSH_BARK",
+      "bark_dark": "BASE@D220",
+      "bark_lit": "BASE@L180",
+      "grain_cells_x": 4,
+      "grain_cells_y": 16,
+      "ridge_chance": 0.34,
+      "bloom": "RUST_OXIDE@D140",
+      "bloom_density": 0.035,
+      "bloom_count": 2,
+      "band": "MARSH_CORE@D220",
+      "band_rows": [
+        3,
+        11
+      ]
+    },
+    "_read": "沼木树干侧面：与 rust 档同骨架（纵向纹场 4×16 + 棱脊 + 锈斑 + 2 道环带），仅换 Bark/Core 谱 ⇒ 族内一致、跨档双差可辨"
+  }
+,
+    {
+    "key": "prosperity_marsh_log_top",
+    "file": "prosperity_marsh_log_top.png",
+    "group": "prosperity_decor",
+    "block": "ProsperityMarshLog top（BlockLoader P17-SB1 段）",
+    "kind": "log_top",
+    "tileable": false,
+    "params": {
+      "base": "MARSH_BARK",
+      "core": "MARSH_CORE",
+      "ring_alt": "MARSH_CORE@D220",
+      "ring_lit": "MARSH_CORE@L140",
+      "bark_rim_1": "BASE@D140",
+      "bark_rim_2": "BASE@D220",
+      "pit": "MARSH_CORE@D340",
+      "pit_density": 0.05,
+      "crack": "MARSH_CORE@D340",
+      "crack_count": 2,
+      "ring_period": 3
+    },
+    "_read": "沼木树干横截面：同心年轮 + 外圈树皮环 + 放射裂纹；逐块各自成环（vanilla 原木顶面同款口径）"
+  }
+,
+    {
+    "key": "prosperity_marsh_leaves_side",
+    "file": "prosperity_marsh_leaves_side.png",
+    "group": "prosperity_natural",
+    "block": "ProsperityMarshLeaves side（BlockProsperityCanopyLeaves，双图标）",
+    "kind": "leaves_clump",
+    "tileable": true,
+    "tint": "biome_grass_multiplier",
+    "params": {
+      "base": "CANOPY_MARSH",
+      "levels": [
+        "BASE@D180",
+        "BASE@D090",
+        "BASE",
+        "BASE@L055",
+        "BASE@L140"
+      ],
+      "hole": "BASE@D340",
+      "hole_density": 0.09,
+      "octaves": [
+        [
+          4,
+          0.36
+        ],
+        [
+          8,
+          0.36
+        ],
+        [
+          16,
+          0.28
+        ]
+      ],
+      "needle_lit": "BASE@L240",
+      "needle_density": 0.16,
+      "oxide": "RUST_OXIDE@D070",
+      "oxide_density": 0.018
+    },
+    "_read": "沼木树冠侧面：细碎簇场 + 暗孔 + 亮针尖 + 稀疏点缀；中性乘色底 → tint 按邻域群系草色"
+  }
+,
+    {
+    "key": "prosperity_marsh_leaves_top",
+    "file": "prosperity_marsh_leaves_top.png",
+    "group": "prosperity_natural",
+    "block": "ProsperityMarshLeaves top（BlockProsperityCanopyLeaves 顶图标）",
+    "kind": "leaves_clump",
+    "tileable": true,
+    "tint": "biome_grass_multiplier",
+    "params": {
+      "base": "CANOPY_MARSH",
+      "levels": [
+        "BASE@D180",
+        "BASE@D090",
+        "BASE",
+        "BASE@L055",
+        "BASE@L140"
+      ],
+      "hole": "BASE@D340",
+      "hole_density": 0.12,
+      "octaves": [
+        [
+          4,
+          0.36
+        ],
+        [
+          8,
+          0.36
+        ],
+        [
+          16,
+          0.28
+        ]
+      ],
+      "needle_lit": "BASE@L240",
+      "needle_density": 0.2,
+      "oxide": "RUST_OXIDE@D070",
+      "oxide_density": 0.018
+    },
+    "_read": "沼木树冠顶视：与同档 side 同谱同画法，暗孔 0.12/亮针 0.20 加密 ⇒ 顶视读作冠层缝隙（俯视树冠的日光斑）"
+  }
+,
+    {
+    "key": "prosperity_flower_rust",
+    "file": "prosperity_flower_rust.png",
+    "group": "prosperity_decor",
+    "block": "ProsperityFlowerRust（BlockProsperityTuft 十字，dim78 原花设施数=0 的补齐面）",
+    "kind": "cross_decor",
+    "tileable": false,
+    "tint": "biome_grass_multiplier",
+    "alpha": "binary",
+    "params": {
+      "form": "flower",
+      "base": "FLOWER_RUST",
+      "blade_dark": "BASE@D220",
+      "blade_mid": "BASE",
+      "blade_lit": "BASE@L180",
+      "center": "GLINT@D070",
+      "stem": "TUFT_RUST_MAT@D340",
+      "head_count": 6
+    },
+    "_read": "锈华花：6 茎（全花头/蕾/纯茎三态）+ 2px 生根足；透明底 alpha 二值，花瓣 3 阶 + 花心 + 茎 = ≤6 色"
+  }
+,
+    {
+    "key": "prosperity_flower_patina",
+    "file": "prosperity_flower_patina.png",
+    "group": "prosperity_decor",
+    "block": "ProsperityFlowerPatina（BlockProsperityTuft 十字，dim78 原花设施数=0 的补齐面）",
+    "kind": "cross_decor",
+    "tileable": false,
+    "tint": "biome_grass_multiplier",
+    "alpha": "binary",
+    "params": {
+      "form": "flower",
+      "base": "FLOWER_PATINA",
+      "blade_dark": "BASE@D220",
+      "blade_mid": "BASE",
+      "blade_lit": "BASE@L180",
+      "center": "GLINT@D140",
+      "stem": "PATINA_SOIL",
+      "head_count": 6
+    },
+    "_read": "铜绿霜花：6 茎（全花头/蕾/纯茎三态）+ 2px 生根足；透明底 alpha 二值，花瓣 3 阶 + 花心 + 茎 = ≤6 色"
+  }
+,
+    {
+    "key": "prosperity_flower_brass",
+    "file": "prosperity_flower_brass.png",
+    "group": "prosperity_decor",
+    "block": "ProsperityFlowerBrass（BlockProsperityTuft 十字，dim78 原花设施数=0 的补齐面）",
+    "kind": "cross_decor",
+    "tileable": false,
+    "tint": "biome_grass_multiplier",
+    "alpha": "binary",
+    "params": {
+      "form": "flower",
+      "base": "FLOWER_BRASS",
+      "blade_dark": "BASE@D220",
+      "blade_mid": "BASE",
+      "blade_lit": "BASE@L180",
+      "center": "DARK_ANCHOR@L420",
+      "stem": "BRASS_ROCK@D090",
+      "head_count": 6
+    },
+    "_read": "黄铜金盏：6 茎（全花头/蕾/纯茎三态）+ 2px 生根足；透明底 alpha 二值，花瓣 3 阶 + 花心 + 茎 = ≤6 色"
+  }
+,
+    {
+    "key": "prosperity_flower_marsh",
+    "file": "prosperity_flower_marsh.png",
+    "group": "prosperity_decor",
+    "block": "ProsperityFlowerMarsh（BlockProsperityTuft 十字，dim78 原花设施数=0 的补齐面）",
+    "kind": "cross_decor",
+    "tileable": false,
+    "tint": "biome_grass_multiplier",
+    "alpha": "binary",
+    "params": {
+      "form": "flower",
+      "base": "FLOWER_MARSH",
+      "blade_dark": "BASE@D220",
+      "blade_mid": "BASE",
+      "blade_lit": "BASE@L180",
+      "center": "GLINT@D045",
+      "stem": "PEAT_CRUST@L070",
+      "head_count": 6
+    },
+    "_read": "沼地兰：6 茎（全花头/蕾/纯茎三态）+ 2px 生根足；透明底 alpha 二值，花瓣 3 阶 + 花心 + 茎 = ≤6 色"
+  }
+,
+    {
+    "key": "prosperity_tuft_sedge",
+    "file": "prosperity_tuft_sedge.png",
+    "group": "prosperity_decor",
+    "block": "ProsperityTuftSedge（BlockProsperityTuft 十字，密矮苔相）",
+    "kind": "cross_decor",
+    "tileable": false,
+    "tint": "biome_grass_multiplier",
+    "alpha": "binary",
+    "params": {
+      "form": "moss_tuft",
+      "base": "TUFT_SEDGE_MAT",
+      "blade_dark": "BASE@D340",
+      "blade_mid": "BASE@D140",
+      "blade_lit": "BASE@L220",
+      "head": "BASE@D090",
+      "blade_count": 16,
+      "height_min": 3,
+      "height_max": 5,
+      "head_chance": 0.28,
+      "bloom": "PATINA_BLOOM@D180",
+      "bloom_density": 0.032
+    },
+    "_read": "苔薹草：moss_tuft 密矮形态锚定（与铜绿草丛同款族形），黄绿色谱 + 独立种子 ⇒ 跨实例形态去重"
+  }
+,
+    {
+    "key": "prosperity_tuft_bristle",
+    "file": "prosperity_tuft_bristle.png",
+    "group": "prosperity_decor",
+    "block": "ProsperityTuftBristle（BlockProsperityTuft 十字，疏高带穗相）",
+    "kind": "cross_decor",
+    "tileable": false,
+    "tint": "biome_grass_multiplier",
+    "alpha": "binary",
+    "params": {
+      "form": "dry_tuft",
+      "base": "TUFT_BRISTLE_MAT",
+      "blade_dark": "BASE@D340",
+      "blade_mid": "BASE@D140",
+      "blade_lit": "BASE@L220",
+      "head": "BASE@D090",
+      "blade_count": 12,
+      "height_min": 4,
+      "height_max": 7,
+      "head_chance": 0.4,
+      "oxide": "RUST_OXIDE@L140",
+      "oxide_density": 0.028
+    },
+    "_read": "刚毛草：dry_tuft 疏高+穗头形态锚定（与锈草丛同款族形），秸秆色谱 + 独立种子"
+  }
+,
+    {
+      "key": "prosperity_silica_sand",
+      "file": "prosperity_silica_sand.png",
+      "group": "prosperity_natural",
+      "block": "ProsperitySilicaSand（BlockLoader.java P17-S-B2 沙类段）",
+      "kind": "terrain_ripple",
+      "tileable": true,
+      "params": {
+        "base": "SILICA_SAND",
+        "levels": ["BASE@D090", "BASE@D045", "BASE", "BASE@L070", "BASE@L140"],
+        "octaves": [[2, 0.24], [8, 0.36], [16, 0.4]],
+        "ripple_period": 4,
+        "ripple_strength": 0.7,
+        "grit_dark": "BASE@D120",
+        "grit_lit": "BASE@L180",
+        "grit_density": 0.14,
+        "glint": "GLINT@D140",
+        "glint_density": 0.004
+      },
+      "_read": "荒漠铺沙主料：细硅沙，沙纹周期 4（比黄铜丘沙 top 的周期 8 更密 ⇒ 同族笔刷不同读数，双差可辨）+ 闪点密度砍到 0.004"
+    },
+    {
+      "key": "prosperity_coarse_sand",
+      "file": "prosperity_coarse_sand.png",
+      "group": "prosperity_natural",
+      "block": "ProsperityCoarseSand（BlockLoader.java P17-S-B2 沙类段）",
+      "kind": "terrain_grit",
+      "tileable": true,
+      "params": {
+        "base": "COARSE_SAND",
+        "levels": ["BASE@D140", "BASE@D070", "BASE", "BASE@L070", "BASE@L140"],
+        "grit_dark": "BASE@D180",
+        "grit_lit": "BASE@L180",
+        "grit_density": 0.24,
+        "clod": "BASE@D090"
+      },
+      "_read": "风成粗粒沙/砾砂：grit 密度 0.24（同族 base 里最高）+ 14 颗 2×2 砾粒 ⇒ 与细硅沙靠颗粒密度与色阶双差"
+    },
+    {
+      "key": "prosperity_river_gravel",
+      "file": "prosperity_river_gravel.png",
+      "group": "prosperity_natural",
+      "block": "ProsperityRiverGravel（BlockLoader.java P17-S-B2 沙类段；S-C 河床料）",
+      "kind": "terrain_grit",
+      "tileable": true,
+      "params": {
+        "base": "RIVER_GRAVEL",
+        "levels": ["BASE@D140", "BASE@D070", "BASE", "BASE@L070", "BASE@L140"],
+        "grit_dark": "BASE@D220",
+        "grit_lit": "BASE@L220",
+        "grit_density": 0.3,
+        "clod": "BASE@D090"
+      },
+      "_read": "河床砂砾：全批最冷的灰褐谱（唯一不带暖沙相的沙类）+ 砾密度 0.30 与明暗对比拉到 D220/L220 ⇒ 水磨砾石感，S-C 河床主料"
     },
     {
       "key": "shattered_corestone",

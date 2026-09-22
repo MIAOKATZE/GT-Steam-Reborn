@@ -70,7 +70,15 @@ public class SurfaceBiomeMatrixCheck {
     private static final String[] NATURAL_BLOCKS = { "prosperitySteppeTop", "prosperitySteppeBase",
         "prosperityForestTop", "prosperityForestBase", "prosperityWastesTop", "prosperityWastesBase",
         "prosperitySwampTop", "prosperitySwampBase", "prosperityTuftRust", "prosperityTuftCopper",
-        "prosperityRustLog", "prosperityRustLeaves" };
+        "prosperityRustLog", "prosperityRustLeaves",
+        // P17-SB1 名册同步（12→24：木 3 档 + 花 4 + 草 2；P17-S-B2 再 24→27 加沙 3 件。
+        // 全部非 top，不进 SurfaceGate 成员表）。
+        // 漏进本数组＝lang/注册文本钉静默不覆盖（P17-D §3★），故新方块随名册入册。
+        "prosperityCopperLog", "prosperityCopperLeaves", "prosperityBrassLog", "prosperityBrassLeaves",
+        "prosperityMarshLog", "prosperityMarshLeaves", "prosperityFlowerRust", "prosperityFlowerPatina",
+        "prosperityFlowerBrass", "prosperityFlowerMarsh", "prosperityTuftSedge", "prosperityTuftBristle",
+        // P17-S-B2 名册同步（24→27：沙/砂砾 3 件；同样全部非 top，不进 SurfaceGate 成员表）。
+        "prosperitySilicaSand", "prosperityCoarseSand", "prosperityRiverGravel" };
 
     private static final String[] LANG_FILES = { "src/main/resources/assets/gtsr/lang/en_US.lang",
         "src/main/resources/assets/gtsr/lang/zh_CN.lang" };
@@ -182,7 +190,7 @@ public class SurfaceBiomeMatrixCheck {
             check(authority.actualIdOf(key) >= idStart && authority.actualIdOf(key) < shatteredStart,
                 key + " allocated id " + authority.actualIdOf(key) + " outside configured band");
         }
-        // —— 7. lang 键齐（en_US + zh_CN，12 键 × 2 文件） ——
+        // —— 7. lang 键齐（en_US + zh_CN，NATURAL_BLOCKS.length 键 × 2 文件；P17-SB1 起 =24） ——
         for (final String lang : LANG_FILES) {
             final String text = read(root, lang);
             for (final String field : NATURAL_BLOCKS) {
@@ -199,7 +207,7 @@ public class SurfaceBiomeMatrixCheck {
         }
         System.out.println("MATRIX PASS: biomes=4 quadruplesDistinct=true providerTableSync=behavioral(L1 identityOf)");
         System.out.println(
-            "REGISTRATION PASS: blocks=" + NATURAL_BLOCKS.length + " (8 terrain + 4 decor) declared+registered (wiring-level)");
+            "REGISTRATION PASS: blocks=" + NATURAL_BLOCKS.length + " (8 terrain + 4 decor + 6 wood + 6 flora) declared+registered (wiring-level)");
         System.out
             .println("BIOMEID PASS: real-chain 4/4 slots via ProsperityBiomes.init, idStart=" + idStart
                 + ".. band, no-degrade anchors present");

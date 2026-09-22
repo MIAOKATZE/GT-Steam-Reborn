@@ -2,6 +2,11 @@
 # -*- coding: utf-8 -*-
 """draw32_dim78.py — 片 A1a（原文件名 gen_a1a.py，P16-A4 由 plan/tmp 回写进仓）：片 A1a：dim78 半边 17 张 16×16 → 32×32 重绘（逐张增量落盘）。
 
+P17-SB1 增补（v1.20.38 轮）：dim78 半边扩到 35 张 = 原 17 + 木 3 档 12 张（copper/brass/marsh 的
+log_side/log_top/leaves_side/leaves_top）+ 自有花 4 张（新 flower() 族形）+ 新草 2 张（复用 tuft() 两形态）。
+新 18 张全部走本文件（32 档直画、无 DRY 档、直写 src/ 的既有纪律不变）；既 17 张的字节不受影响
+（同一批 builder 与同一批 manifest 参数，双跑逐张 SHA 对拍为证）。
+
 风格锚底座 = 仓内既有管线 tools/artgen/dim7879/gen_dim7879_blocks.py 的原语与 R1-R6 口径
 （Rules/Tex/h01/tile_noise/scatter/paint_blob/各 kind 画法，经 importlib 复用，不复制色值）。
 本文件只加两样：① 32 档才吃得下的手绘细节层（R6）；② 配色收敛闸（越线项折近重复色）。
@@ -50,7 +55,16 @@ prosperity_forest_top prosperity_forest_top_side prosperity_forest_base
 prosperity_wastes_top prosperity_wastes_top_side prosperity_wastes_base
 prosperity_swamp_top prosperity_swamp_top_side prosperity_swamp_base
 prosperity_tuft_rust prosperity_tuft_copper
-prosperity_rust_log_side prosperity_rust_log_top prosperity_rust_leaves""".split()
+prosperity_rust_log_side prosperity_rust_log_top prosperity_rust_leaves
+prosperity_copper_log_side prosperity_copper_log_top
+prosperity_copper_leaves_side prosperity_copper_leaves_top
+prosperity_brass_log_side prosperity_brass_log_top
+prosperity_brass_leaves_side prosperity_brass_leaves_top
+prosperity_marsh_log_side prosperity_marsh_log_top
+prosperity_marsh_leaves_side prosperity_marsh_leaves_top
+prosperity_flower_rust prosperity_flower_patina prosperity_flower_brass prosperity_flower_marsh
+prosperity_tuft_sedge prosperity_tuft_bristle
+prosperity_silica_sand prosperity_coarse_sand prosperity_river_gravel""".split()
 
 RATIONALE = {
  "prosperity_steppe_top": "16 档草叶是均匀撒点 ⇒ 32 档改成簇生（8×8 格位扎 2-4 根 1px 叶 + 1px 亮尖），另用 cells=8/4 低频斑块把基色整体推 ±1 阶：草皮成坨，而不是同一张噪点。",
@@ -70,6 +84,29 @@ RATIONALE = {
  "prosperity_rust_log_side": "纵向纹场 cells 4×16 不动（R1）+ 棱脊 ÷R 保持世界根数；两处手绘修正——锈芯环带行号按 ×R 落到 6/22（沿用 3/11 会把两道带挤在上半张），并补 1px 细纵裂与 3px 软边锈斑。",
  "prosperity_rust_log_top": "年轮方向不变（同心环 + 外圈 2px 树皮环带），但髓心由正中手移到 (17,14) ⇒ 环不完美同心（树是长的不是画的）；裂纹 2→3 条仍 1px，凹坑密度按 R3 不变。",
  "prosperity_rust_leaves": "冠层在 32 档加 5 段「缺口弧」暗孔（7-10px 弧、非整圈）沿叶簇边界 ⇒ 读作簇与簇之间的缝，而不是环或虫；亮针尖 1-2px、锈斑稀疏，仍是中性乘色底。",
+ # —— P17-SB1：木 3 档 + 花 4 + 草 2（18 张；rust 档骨架的换谱姊妹张 + dim78 首批自有花）——
+ "prosperity_copper_log_side": "与 rust 档同骨架（纵向纹场 4×16 + 棱脊 ÷R + 7 条细纵裂 + 2 团锈斑 + 环带 6/22），仅 Bark/Core 谱换铜绿系 ⇒ 族内一致、跨档靠色相与色斑谱双差可辨。",
+ "prosperity_copper_log_top": "年轮骨架同 rust 档（髓心 (17,14) 手移、非完美同心），芯色换 COPPER_CORE 系；环带 2px ×R、裂纹 3 条 1px。",
+ "prosperity_copper_leaves_side": "rust 叶同款 5 段缺口弧 + 亮针 + 稀疏霜点画法，底换 CANOPY_PATINA；乘色 tint 与草丛同口径 ⇒ 森林冠层读作铜绿。",
+ "prosperity_copper_leaves_top": "顶视档：同谱同画法，暗孔 0.12/亮针 0.20 加密 ⇒ 俯视树冠的日光缝隙（与 side 的差异来自参数而非另一套笔刷）。",
+ "prosperity_brass_log_side": "同骨架换黄铜系 Bark/Core + GLINT@D070 闪点斑 ⇒ 荒漠树干的金属砂感。",
+ "prosperity_brass_log_top": "同骨架年轮，芯色 BRASS_CORE；顶面闪点在侧面谱系里不出现（双差）。",
+ "prosperity_brass_leaves_side": "CANOPY_BRASS 秸秆色底 + BRASS_SAND@D140 稀疏点；乘群系黄铜草色后仍是废都可辨识的暗冠。",
+ "prosperity_brass_leaves_top": "顶视加密档（孔 0.12/针 0.20），同谱。",
+ "prosperity_marsh_log_side": "同骨架换 MARSH_BARK 深橄榄 + RUST_OXIDE@D140 锈斑 ⇒ 沼泽湿木的暗潮感。",
+ "prosperity_marsh_log_top": "同骨架年轮，芯色 MARSH_CORE。",
+ "prosperity_marsh_leaves_side": "CANOPY_MARSH 灰绿底 + 锈暗点；乘沼泽草色 4A5732 后与铜绿冠拉开色相。",
+ "prosperity_marsh_leaves_top": "顶视加密档（孔 0.12/针 0.20），同谱。",
+ "prosperity_flower_rust": "自有花族形（32 档自绘透明底）：6 茎 = 全花头/蕾/纯茎三态（42% / 30% / 28%），花头 = 1px 花心 + 4 正瓣（上左取亮阶、其余中阶）+ 4 角半瓣 70% 出现，顶瓣上一道 1px 亮唇；每茎 2px 生根足 ⇒ 底行 ≥6 列有底；色 = 花瓣 3 阶 + 心 + 茎 ≤6。",
+ "prosperity_flower_patina": "同族形换霜花谱：花瓣 CANOPY 邻近亮铜绿（与叶冠靠形态+花心区分），茎 PATINA_SOIL ⇒ 森林林下花读作花而非叶簇。",
+ "prosperity_flower_brass": "同族形换金盏谱：暖黄花瓣 + DARK_ANCHOR@L420 心（花心为族内最亮点，荒漠强日光口径）+ BRASS_ROCK@D090 茎。",
+ "prosperity_flower_marsh": "同族形换沼兰谱：紫罗兰花瓣（全批唯一冷紫相，识别度最高）+ GLINT@D045 心 + PEAT_CRUST@L070 茎。",
+ "prosperity_tuft_sedge": "苔薹草：与铜绿草丛同 moss_tuft 族形（密矮 5-10px 带加宽列），换 TUFT_SEDGE_MAT 黄绿谱 + PATINA_BLOOM@D180 暗霜点 + 独立种子 ⇒ 同形不同种，跨实例靠种子去重。",
+ "prosperity_tuft_bristle": "刚毛草：与锈草丛同 dry_tuft 族形（疏高 9-16px + 45% 穗头），换 TUFT_BRISTLE_MAT 秸秆谱 + RUST_OXIDE@L140 亮尘 + 独立种子。",
+ # —— P17-S-B2：沙/砂砾 3 张（全部非表层 top；荒漠铺沙 + S-C 河床料）——
+ "prosperity_silica_sand": "细硅沙：沿用黄铜丘沙的 ripple_sand 族刷，但 ripple_period 8→4（同族笔刷不同读数）+ 闪点密度 0.006→0.004，底谱换 SILICA_SAND（全批最亮的冷沙相）⇒ 与在产的 prosperity_wastes_top 顶面双差可辨（色相 + 纹周期）。",
+ "prosperity_coarse_sand": "风成粗粒沙：grit_base 骨架，颗粒密度 0.18→0.24、14 颗 2×2/3×2 砾粒带上缘受光与下缘压暗（同 base 族画法），底谱 COARSE_SAND 比细硅沙压暗两阶 ⇒ 读作「被风选过的粗砂」，不是另一张沙。",
+ "prosperity_river_gravel": "河床砂砾：grit_base 骨架 + 砾密度 0.30（全批最高）+ 明暗阶拉到 D220/L220，底谱 RIVER_GRAVEL 是沙类里唯一不带暖相的灰褐 ⇒ 水磨砾石感；S-C 河床主料，本片先在荒漠砾石斑上真实消费一次。",
 }
 
 
@@ -343,6 +380,62 @@ def tuft(key):
     return tex
 
 
+def flower(key):
+    """P17-SB1 自有花族形（32 档自绘透明底，同 tuft 不叠生成器底座的理由——覆盖闸双钉）。
+
+    形态学：6 茎槽位均布（防扎堆同 tuft 的槽位法），三态 = 全花头(42%)/花蕾(30%)/纯茎(28%)；
+    花头 = 1px 花心 + 上下左右 4 正瓣（左上取亮阶、其余中阶，光源锚左上）+ 4 角半瓣（70% 出现）
+    + 顶瓣上一道 1px 亮唇；蕾 = 中阶 1px + 暗尖 1px；每茎 2px 生根足 ⇒ 底行前景 ≥6 列（落地生根闸）。
+    用色 = 花瓣暗/中/亮 3 阶（族参数 blade_*，与四形态十字同词汇）+ 花心 + 茎 = ≤6 色；
+    一切色经 Rules.resolve('NAME@TOKEN') 派生。
+    """
+    p = G._resolve_params(BY_KEY[key], BY_KEY, STYLE)
+    seed = G._parse_seed(MAN["SEEDS"][key])
+    base = p["base"]
+    pmid = RULES.resolve(p.get("blade_mid", "BASE"), base)
+    pdark = RULES.resolve(p["blade_dark"], base)
+    plit = RULES.resolve(p["blade_lit"], base)
+    center = RULES.resolve(p["center"], base)
+    stem = RULES.resolve(p["stem"], base)
+    tex = G.Tex(bg=TRANSPARENT)
+    n = int(p["head_count"])                       # 6
+    for k in range(n):
+        x = int((k + 0.30 + G.h01(seed, "fx", k, 0) * 0.40) * SIZE / float(n)) % SIZE
+        role = G.h01(seed, "fr", k, 0)
+        h = (13 + int(G.h01(seed, "fh", k, 0) * 6.0)) if role < 0.42 else \
+            (9 + int(G.h01(seed, "fh", k, 0) * 4.0))
+        lean = (-1, 0, 0, 1)[int(G.h01(seed, "fl", k, 0) * 4.0) % 4]
+        tex.put(x, SIZE - 1, stem, wrap=False)     # 生根足 2px
+        tex.put(x + 1, SIZE - 1, pdark if role >= 0.42 else stem, wrap=False)
+        for b in range(2):                         # 基叶一对（茎色斜叶 4-6px，撑覆盖率与"草里开花"读感）
+            side = -1 if b == 0 else 1
+            bln = 4 + int(G.h01(seed, "bl", k, b) * 3.0)
+            for i in range(1, bln):
+                tex.put(x + side * (1 + i // 2), SIZE - 1 - i, stem, wrap=False)
+        cx = x
+        for i in range(1, h):
+            y = SIZE - 1 - i
+            if i % 4 == 0:
+                cx += lean
+            tex.put(cx, y, stem, wrap=False)
+            if i == h - 2 and role < 0.42:         # 花头茎侧一片垂叶（同茎色，不新增色）
+                tex.put(cx - lean if lean else cx + 1, y, stem, wrap=False)
+        hy = SIZE - 1 - h
+        if role < 0.42:                            # 全花头
+            tex.put(cx, hy, center, wrap=False)
+            for dx, dy in ((0, -1), (0, 1), (-1, 0), (1, 0)):
+                tex.put(cx + dx, hy + dy, plit if dx + dy < 0 else pmid, wrap=False)
+            for dx, dy in ((-1, -1), (1, -1), (-1, 1), (1, 1)):
+                if G.h01(seed, "fc", k, dx * 3 + dy) < 0.7:
+                    tex.put(cx + dx, hy + dy, pmid, wrap=False)
+            tex.put(cx, hy - 2, plit, wrap=False)  # 顶瓣亮唇
+        elif role < 0.72:                          # 花蕾
+            tex.put(cx, hy, pmid, wrap=False)
+            tex.put(cx, hy - 1, pdark, wrap=False)
+        # else 纯茎（茎已画）
+    return tex
+
+
 def log_side(key):
     tex, seed, p = base_tex(key, {"band_rows": [6, 22]})   # ×R：锈芯环带保持世界位置
     base = p["base"]
@@ -459,6 +552,30 @@ BUILDERS = {
     "prosperity_rust_log_side": lambda: log_side("prosperity_rust_log_side"),
     "prosperity_rust_log_top": lambda: log_top("prosperity_rust_log_top"),
     "prosperity_rust_leaves": lambda: leaves("prosperity_rust_leaves"),
+    # —— P17-SB1 18 张：木 3 档复用 rust 族 builder（换 manifest 谱与种子），新花族形 flower()，
+    #    新草复用 tuft() 两形态（moss/dry）——与「每种新花/草 = 1 实例 + 1 贴图，零新画架」口径一致。
+    "prosperity_copper_log_side": lambda: log_side("prosperity_copper_log_side"),
+    "prosperity_copper_log_top": lambda: log_top("prosperity_copper_log_top"),
+    "prosperity_copper_leaves_side": lambda: leaves("prosperity_copper_leaves_side"),
+    "prosperity_copper_leaves_top": lambda: leaves("prosperity_copper_leaves_top"),
+    "prosperity_brass_log_side": lambda: log_side("prosperity_brass_log_side"),
+    "prosperity_brass_log_top": lambda: log_top("prosperity_brass_log_top"),
+    "prosperity_brass_leaves_side": lambda: leaves("prosperity_brass_leaves_side"),
+    "prosperity_brass_leaves_top": lambda: leaves("prosperity_brass_leaves_top"),
+    "prosperity_marsh_log_side": lambda: log_side("prosperity_marsh_log_side"),
+    "prosperity_marsh_log_top": lambda: log_top("prosperity_marsh_log_top"),
+    "prosperity_marsh_leaves_side": lambda: leaves("prosperity_marsh_leaves_side"),
+    "prosperity_marsh_leaves_top": lambda: leaves("prosperity_marsh_leaves_top"),
+    "prosperity_flower_rust": lambda: flower("prosperity_flower_rust"),
+    "prosperity_flower_patina": lambda: flower("prosperity_flower_patina"),
+    "prosperity_flower_brass": lambda: flower("prosperity_flower_brass"),
+    "prosperity_flower_marsh": lambda: flower("prosperity_flower_marsh"),
+    "prosperity_tuft_sedge": lambda: tuft("prosperity_tuft_sedge"),
+    "prosperity_tuft_bristle": lambda: tuft("prosperity_tuft_bristle"),
+    # —— P17-S-B2 沙类 3 张：零新画架（ripple_sand / grit_base 两个既有族刷 + 换谱换种子换读数）——
+    "prosperity_silica_sand": lambda: ripple_sand("prosperity_silica_sand"),
+    "prosperity_coarse_sand": lambda: grit_base("prosperity_coarse_sand", 14, 0),
+    "prosperity_river_gravel": lambda: grit_base("prosperity_river_gravel", 20, 0),
 }
 
 # 设计性稀疏色（闪点/锈屑/渗点/霜点）：配色收敛时永不合并
@@ -474,6 +591,21 @@ PROTECTED_SPEC = {
     "prosperity_tuft_rust": [("RUST_OXIDE@L140", "TUFT_RUST_MAT")],
     "prosperity_tuft_copper": [("PATINA_BLOOM@D140", "TUFT_PATINA_MAT")],
     "prosperity_rust_log_side": [("RUST_OXIDE@D070", "RUST_BARK")],
+    # —— P17-SB1：稀疏设计色（锈斑/霜点/花心）永不参与收敛 ——
+    "prosperity_copper_log_side": [("PATINA_BLOOM@D140", "COPPER_BARK")],
+    "prosperity_copper_leaves_side": [("PATINA_BLOOM@D140", "CANOPY_PATINA")],
+    "prosperity_copper_leaves_top": [("PATINA_BLOOM@D140", "CANOPY_PATINA")],
+    "prosperity_brass_log_side": [("GLINT@D070", "BRASS_BARK")],
+    "prosperity_brass_leaves_side": [("BRASS_SAND@D140", "CANOPY_BRASS")],
+    "prosperity_brass_leaves_top": [("BRASS_SAND@D140", "CANOPY_BRASS")],
+    "prosperity_marsh_log_side": [("RUST_OXIDE@D140", "MARSH_BARK")],
+    "prosperity_marsh_leaves_side": [("RUST_OXIDE@D070", "CANOPY_MARSH")],
+    "prosperity_marsh_leaves_top": [("RUST_OXIDE@D070", "CANOPY_MARSH")],
+    "prosperity_tuft_sedge": [("PATINA_BLOOM@D180", "TUFT_SEDGE_MAT")],
+    "prosperity_tuft_bristle": [("RUST_OXIDE@L140", "TUFT_BRISTLE_MAT")],
+    # —— P17-S-B2：沙类的闪点/砾影是设计性稀疏色，永不参与收敛 ——
+    "prosperity_silica_sand": [("GLINT@D140", "SILICA_SAND")],
+    "prosperity_river_gravel": [("BASE@D220", "RIVER_GRAVEL")],
 }
 
 

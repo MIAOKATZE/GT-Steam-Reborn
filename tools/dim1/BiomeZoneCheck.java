@@ -6,7 +6,8 @@ import com.miaokatze.gtsr.common.dimension.framework.genlayer.GTSRGenLayerChain;
  * 群系空间连贯分区自证（tools/ 惯例的一次性自检 main；<b>B2 起改钉 GenLayer 链</b>）。
  * <p>
  * S-A2/P6 时代的对象是 {@code BiomeZoneSelector}（cell 权重掷骰 + 边带 12% 碎斑），B2 已整体退役；
- * 身份面唯一出口是 {@link GTSRGenLayerChain}（等权轮盘 + Zoom×4 + Smooth 粗层）。本检查改钉
+ * 身份面唯一出口是 {@link GTSRGenLayerChain}（等权轮盘 + Zoom×DEFAULT_ZOOM_LEVELS + Smooth 粗层；
+ * P17 S-A 起该档 = 5）。本检查改钉
  * <b>chunk 代表点采样口径</b>下的链分区质量——即 {@code GTSRWorldChunkManager.biomeAt} 与
  * {@code CityPlanner.bandIndexAt} 实际消费的那一面（每 chunk 一次 {@code biomeAtCoarse((cx<<4)+8,
  * (cz<<4)+8)}）；链自身的粗格性质（确定性/均分/连通域/直线边界/voronoi 抖动/构造期契约）由
@@ -35,7 +36,7 @@ public class BiomeZoneCheck {
     private static final int BIOME_COUNT = BIOME_IDS.length;
 
     private static final double SHARE_DEVIATION_MAX = 0.08D;
-    /** 连片度阈值（chunk）：zoom=4 的特征片 ≥ 数百 chunk 量级，留足下限。 */
+    /** 连片度阈值（chunk）：特征片 ≥ 数百 chunk 量级，留足下限（P17 S-A zoom 4→5 后实测 1480–2832）。 */
     private static final long DOMINANT_MIN_CHUNKS = 256L;
     /** 孤岛 chunk（4 邻均异 id）占比上限：成片分区的盐胡椒反指标。 */
     private static final double ISLAND_RATIO_MAX = 0.08D;

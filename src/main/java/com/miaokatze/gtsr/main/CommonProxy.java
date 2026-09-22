@@ -148,7 +148,8 @@ public class CommonProxy {
                 ChunkProviderProsperityRuins::new);
             // B2（GenLayer 迁移收尾）：S-A2 时代的 BiomeZoneSelector 接线（cell 级权重掷骰 + 边带
             // 12% 碎斑，盐 0x5A4F4E45）已随身份带职责退役——群系身份自 B1 起唯一出口是
-            // GTSRWorldChunkManager 背后的 GTSRGenLayerChain（等权 + Zoom×4 + Smooth），def 不再挂
+            // GTSRWorldChunkManager 背后的 GTSRGenLayerChain（等权 + Zoom×{@code DEFAULT_ZOOM_LEVELS}
+            // 当前 5 档 + Smooth），def 不再挂
             // 任何选择策略； prosperityBiomes.init 的权重挂接仅剩元数据意义。
             ProsperityBiomes.init(prosperityDef);
             final GTSRDimensionDef shatteredDef = new GTSRDimensionDef(

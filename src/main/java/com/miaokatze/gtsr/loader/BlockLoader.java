@@ -7,6 +7,7 @@ import com.miaokatze.gtsr.common.blocks.BlockRunawaySingularity;
 import com.miaokatze.gtsr.common.blocks.BlocksGTSR;
 import com.miaokatze.gtsr.common.blocks.ItemBlockRunawaySingularity;
 import com.miaokatze.gtsr.common.blocks.TileRunawaySingularity;
+import com.miaokatze.gtsr.common.dimension.prosperity.block.BlockProsperityCanopyLeaves;
 import com.miaokatze.gtsr.common.dimension.prosperity.block.BlockProsperityNaturalBase;
 import com.miaokatze.gtsr.common.dimension.prosperity.block.BlockProsperityNaturalTop;
 import com.miaokatze.gtsr.common.dimension.prosperity.block.BlockProsperityRustLeaves;
@@ -120,16 +121,92 @@ public class BlockLoader {
             "ProsperityRustLeaves",
             "gtsr:prosperity_rust_leaves");
         GameRegistry.registerBlock(BlocksGTSR.prosperityRustLeaves, "ProsperityRustLeaves");
+        // P17-SB1：木 3 档 + 花 4 + 草 2（plan §0-Q3/§2-3；全部非表层 top，不进 SurfaceGate 名册；
+        // 世界生成消费方＝S-B2，本片零生成接线。新类仅 BlockProsperityCanopyLeaves 一支）。
+        BlocksGTSR.prosperityCopperLog = new BlockProsperityRustLog(
+            "ProsperityCopperLog",
+            "gtsr:prosperity_copper_log_side",
+            "gtsr:prosperity_copper_log_top");
+        GameRegistry.registerBlock(BlocksGTSR.prosperityCopperLog, "ProsperityCopperLog");
+        BlocksGTSR.prosperityCopperLeaves = new BlockProsperityCanopyLeaves(
+            "ProsperityCopperLeaves",
+            "gtsr:prosperity_copper_leaves_side",
+            "gtsr:prosperity_copper_leaves_top");
+        GameRegistry.registerBlock(BlocksGTSR.prosperityCopperLeaves, "ProsperityCopperLeaves");
+        BlocksGTSR.prosperityBrassLog = new BlockProsperityRustLog(
+            "ProsperityBrassLog",
+            "gtsr:prosperity_brass_log_side",
+            "gtsr:prosperity_brass_log_top");
+        GameRegistry.registerBlock(BlocksGTSR.prosperityBrassLog, "ProsperityBrassLog");
+        BlocksGTSR.prosperityBrassLeaves = new BlockProsperityCanopyLeaves(
+            "ProsperityBrassLeaves",
+            "gtsr:prosperity_brass_leaves_side",
+            "gtsr:prosperity_brass_leaves_top");
+        GameRegistry.registerBlock(BlocksGTSR.prosperityBrassLeaves, "ProsperityBrassLeaves");
+        BlocksGTSR.prosperityMarshLog = new BlockProsperityRustLog(
+            "ProsperityMarshLog",
+            "gtsr:prosperity_marsh_log_side",
+            "gtsr:prosperity_marsh_log_top");
+        GameRegistry.registerBlock(BlocksGTSR.prosperityMarshLog, "ProsperityMarshLog");
+        BlocksGTSR.prosperityMarshLeaves = new BlockProsperityCanopyLeaves(
+            "ProsperityMarshLeaves",
+            "gtsr:prosperity_marsh_leaves_side",
+            "gtsr:prosperity_marsh_leaves_top");
+        GameRegistry.registerBlock(BlocksGTSR.prosperityMarshLeaves, "ProsperityMarshLeaves");
+        BlocksGTSR.prosperityFlowerRust = new BlockProsperityTuft(
+            "ProsperityFlowerRust",
+            "gtsr:prosperity_flower_rust");
+        GameRegistry.registerBlock(BlocksGTSR.prosperityFlowerRust, "ProsperityFlowerRust");
+        BlocksGTSR.prosperityFlowerPatina = new BlockProsperityTuft(
+            "ProsperityFlowerPatina",
+            "gtsr:prosperity_flower_patina");
+        GameRegistry.registerBlock(BlocksGTSR.prosperityFlowerPatina, "ProsperityFlowerPatina");
+        BlocksGTSR.prosperityFlowerBrass = new BlockProsperityTuft(
+            "ProsperityFlowerBrass",
+            "gtsr:prosperity_flower_brass");
+        GameRegistry.registerBlock(BlocksGTSR.prosperityFlowerBrass, "ProsperityFlowerBrass");
+        BlocksGTSR.prosperityFlowerMarsh = new BlockProsperityTuft(
+            "ProsperityFlowerMarsh",
+            "gtsr:prosperity_flower_marsh");
+        GameRegistry.registerBlock(BlocksGTSR.prosperityFlowerMarsh, "ProsperityFlowerMarsh");
+        BlocksGTSR.prosperityTuftSedge = new BlockProsperityTuft("ProsperityTuftSedge", "gtsr:prosperity_tuft_sedge");
+        GameRegistry.registerBlock(BlocksGTSR.prosperityTuftSedge, "ProsperityTuftSedge");
+        BlocksGTSR.prosperityTuftBristle = new BlockProsperityTuft(
+            "ProsperityTuftBristle",
+            "gtsr:prosperity_tuft_bristle");
+        GameRegistry.registerBlock(BlocksGTSR.prosperityTuftBristle, "ProsperityTuftBristle");
+        // P17-S-B2：沙/砂砾 3 件（B 档 BlockProsperityNaturalBase 吃贴图名 ⇒ 零新 Java 类；
+        // 全部非表层 top，不进 SurfaceGate 名册。消费方 = ProsperityDecorPlacer 荒漠沙砾趟，
+        // prosperityRiverGravel 同时是 S-C 河床料）。
+        BlocksGTSR.prosperitySilicaSand = new BlockProsperityNaturalBase(
+            "ProsperitySilicaSand",
+            "gtsr:prosperity_silica_sand");
+        GameRegistry.registerBlock(BlocksGTSR.prosperitySilicaSand, "ProsperitySilicaSand");
+        BlocksGTSR.prosperityCoarseSand = new BlockProsperityNaturalBase(
+            "ProsperityCoarseSand",
+            "gtsr:prosperity_coarse_sand");
+        GameRegistry.registerBlock(BlocksGTSR.prosperityCoarseSand, "ProsperityCoarseSand");
+        BlocksGTSR.prosperityRiverGravel = new BlockProsperityNaturalBase(
+            "ProsperityRiverGravel",
+            "gtsr:prosperity_river_gravel");
+        GameRegistry.registerBlock(BlocksGTSR.prosperityRiverGravel, "ProsperityRiverGravel");
         final Block[] prosperityNaturalBlocks = { BlocksGTSR.prosperitySteppeTop, BlocksGTSR.prosperitySteppeBase,
             BlocksGTSR.prosperityForestTop, BlocksGTSR.prosperityForestBase, BlocksGTSR.prosperityWastesTop,
             BlocksGTSR.prosperityWastesBase, BlocksGTSR.prosperitySwampTop, BlocksGTSR.prosperitySwampBase,
             BlocksGTSR.prosperityTuftRust, BlocksGTSR.prosperityTuftCopper, BlocksGTSR.prosperityRustLog,
-            BlocksGTSR.prosperityRustLeaves };
+            BlocksGTSR.prosperityRustLeaves, BlocksGTSR.prosperityCopperLog, BlocksGTSR.prosperityCopperLeaves,
+            BlocksGTSR.prosperityBrassLog, BlocksGTSR.prosperityBrassLeaves, BlocksGTSR.prosperityMarshLog,
+            BlocksGTSR.prosperityMarshLeaves, BlocksGTSR.prosperityFlowerRust, BlocksGTSR.prosperityFlowerPatina,
+            BlocksGTSR.prosperityFlowerBrass, BlocksGTSR.prosperityFlowerMarsh, BlocksGTSR.prosperityTuftSedge,
+            BlocksGTSR.prosperityTuftBristle, BlocksGTSR.prosperitySilicaSand, BlocksGTSR.prosperityCoarseSand,
+            BlocksGTSR.prosperityRiverGravel };
         for (final Block natural : prosperityNaturalBlocks) {
             CreativeTabManager.addItemToTab(new ItemStack(natural));
         }
-        GTSteamReborn.LOG
-            .info("[GTSR] prosperity natural blocks registered: terrain=8 (4x top+base) decor=4 (2x tuft+log+leaves)");
+        GTSteamReborn.LOG.info(
+            "[GTSR] prosperity natural blocks registered: terrain=8 (4x top+base) decor=4 (2x tuft+log+leaves)"
+                + " + p17-sb1 wood=6 (3x log+canopy) flora=6 (4x flower+2x tuft)"
+                + " + p17-sb2 sand=3 (2x sand + river gravel, all non-top)");
 
         // dim79 重做（S-B）：破碎之地高硬度方块族（全部独立 Block ID，plan §12 修订 2/3：
         // hardness ≥1000F、blast 1200、harvest pickaxe 3；分层值登记 dim79-redo-slice-B-report.md，

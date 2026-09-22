@@ -1,5 +1,5 @@
 {
-  "_about": "tools/artgen/dim7879 批 32 档（v1.20.37 / P16-U1）设计档案：35 张 = dim78 17（片 A1a，draw32_dim78.py） + dim79 18（片 A1b，draw32_dim79.py）。逐张记录绘制器与入口、所用角色名与色阶（与同目录 manifest.json 的 OUTPUTS[key].params / SEEDS[key] 同源，不另立真值）、PIL 实测尺寸与色数、以及一行「为什么这样画」（A1a 取 RATIONALE 表、A1b 取各 t_* 的 docstring 同源文字）。16 档母版仍是 manifest + gen_dim7879_blocks.py，本文件不替代它们。",
+  "_about": "tools/artgen/dim7879 批 32 档（v1.20.37 / P16-U1）设计档案：56 张 = dim78 17（片 A1a，draw32_dim78.py） + dim79 18（片 A1b，draw32_dim79.py） + P17-SB1 dim78 木/花/草 18 + P17-SB2 dim78 沙/砾 3。逐张记录绘制器与入口、所用角色名与色阶（与同目录 manifest.json 的 OUTPUTS[key].params / SEEDS[key] 同源，不另立真值）、PIL 实测尺寸与色数、以及一行「为什么这样画」（A1a 取 RATIONALE 表、A1b 取各 t_* 的 docstring 同源文字）。16 档母版仍是 manifest + gen_dim7879_blocks.py，本文件不替代它们。",
   "_not_a_gate": "本文件不被 tools/dim1/asset_baseline_check.sh 读取（该门只核 manifest OUTPUTS <-> landed.sha256 <-> 磁盘三点）；它回答「这张为什么这么画」，不是「字节对不对」。",
   "_measured_by": "PIL，与 review/dim1/_tools/check_feedback.py:163 同口径：distinct_rgba = len(set(RGBA))（页面色数标注用这个）；distinct_rgb_opaque = 非透明像素的唯一 RGB 数（像素纪律 ≤16 用这个）。",
   "size_landed": [
@@ -1444,6 +1444,743 @@
         "dominant_opaque": "#4D4742"
       },
       "why": "灰烬棘丛：6 根 1px 细斜枝（长度 x2、粗细不变、连续不断线）+ 交错倒刺 + 节瘤炭点 + 灰白枯梢； 和石刺簇是形态对立（细/乱/暗 vs 粗/整/亮），所以这里绝不出现块状填充，也不让节瘤把主线打断。"
+    },
+    "prosperity_copper_log_side": {
+      "file": "prosperity_copper_log_side.png",
+      "group": "prosperity_decor",
+      "kind": "log_side",
+      "drawer": "tools/artgen/dim7879/draw32_dim78.py",
+      "drawer_fn": "BUILDERS[prosperity_copper_log_side] -> log_side(\"prosperity_copper_log_side\")",
+      "seed_manifest": "0x5EED8161",
+      "palette_roles": {
+        "base": "COPPER_BARK",
+        "role_tokens": [
+          "BASE@D220",
+          "BASE@L180",
+          "COPPER_BARK",
+          "COPPER_CORE@D220",
+          "PATINA_BLOOM@D140"
+        ]
+      },
+      "measured": {
+        "size": [
+          32,
+          32
+        ],
+        "distinct_rgba": 7,
+        "distinct_rgb_opaque": 7,
+        "all_opaque_alpha_255": true,
+        "dominant_opaque": "#354A3C"
+      },
+      "why": "与 rust 档同骨架（纵向纹场 4×16 + 棱脊 ÷R + 7 条细纵裂 + 2 团锈斑 + 环带 6/22），仅 Bark/Core 谱换铜绿系 ⇒ 族内一致、跨档靠色相与色斑谱双差可辨。",
+      "protected_sparse_colors": [
+        "PATINA_BLOOM@D140 | base=COPPER_BARK"
+      ]
+    },
+    "prosperity_copper_log_top": {
+      "file": "prosperity_copper_log_top.png",
+      "group": "prosperity_decor",
+      "kind": "log_top",
+      "drawer": "tools/artgen/dim7879/draw32_dim78.py",
+      "drawer_fn": "BUILDERS[prosperity_copper_log_top] -> log_top(\"prosperity_copper_log_top\")",
+      "seed_manifest": "0x5EED8122",
+      "palette_roles": {
+        "base": "COPPER_BARK",
+        "role_tokens": [
+          "BASE@D140",
+          "BASE@D220",
+          "COPPER_BARK",
+          "COPPER_CORE",
+          "COPPER_CORE@D220",
+          "COPPER_CORE@D340",
+          "COPPER_CORE@L140"
+        ]
+      },
+      "measured": {
+        "size": [
+          32,
+          32
+        ],
+        "distinct_rgba": 6,
+        "distinct_rgb_opaque": 6,
+        "all_opaque_alpha_255": true,
+        "dominant_opaque": "#7A9A72"
+      },
+      "why": "年轮骨架同 rust 档（髓心 (17,14) 手移、非完美同心），芯色换 COPPER_CORE 系；环带 2px ×R、裂纹 3 条 1px。",
+      "protected_sparse_colors": []
+    },
+    "prosperity_copper_leaves_side": {
+      "file": "prosperity_copper_leaves_side.png",
+      "group": "prosperity_natural",
+      "kind": "leaves_clump",
+      "drawer": "tools/artgen/dim7879/draw32_dim78.py",
+      "drawer_fn": "BUILDERS[prosperity_copper_leaves_side] -> leaves(\"prosperity_copper_leaves_side\")",
+      "seed_manifest": "0x5EED8123",
+      "palette_roles": {
+        "base": "CANOPY_PATINA",
+        "levels": [
+          "BASE@D180",
+          "BASE@D090",
+          "BASE",
+          "BASE@L055",
+          "BASE@L140"
+        ],
+        "role_tokens": [
+          "BASE@D340",
+          "BASE@L240",
+          "CANOPY_PATINA",
+          "PATINA_BLOOM@D140"
+        ]
+      },
+      "measured": {
+        "size": [
+          32,
+          32
+        ],
+        "distinct_rgba": 8,
+        "distinct_rgb_opaque": 8,
+        "all_opaque_alpha_255": true,
+        "dominant_opaque": "#9FC4A8"
+      },
+      "why": "rust 叶同款 5 段缺口弧 + 亮针 + 稀疏霜点画法，底换 CANOPY_PATINA；乘色 tint 与草丛同口径 ⇒ 森林冠层读作铜绿。",
+      "protected_sparse_colors": [
+        "PATINA_BLOOM@D140 | base=CANOPY_PATINA"
+      ]
+    },
+    "prosperity_copper_leaves_top": {
+      "file": "prosperity_copper_leaves_top.png",
+      "group": "prosperity_natural",
+      "kind": "leaves_clump",
+      "drawer": "tools/artgen/dim7879/draw32_dim78.py",
+      "drawer_fn": "BUILDERS[prosperity_copper_leaves_top] -> leaves(\"prosperity_copper_leaves_top\")",
+      "seed_manifest": "0x5EED8124",
+      "palette_roles": {
+        "base": "CANOPY_PATINA",
+        "levels": [
+          "BASE@D180",
+          "BASE@D090",
+          "BASE",
+          "BASE@L055",
+          "BASE@L140"
+        ],
+        "role_tokens": [
+          "BASE@D340",
+          "BASE@L240",
+          "CANOPY_PATINA",
+          "PATINA_BLOOM@D140"
+        ]
+      },
+      "measured": {
+        "size": [
+          32,
+          32
+        ],
+        "distinct_rgba": 8,
+        "distinct_rgb_opaque": 8,
+        "all_opaque_alpha_255": true,
+        "dominant_opaque": "#A3C6AB"
+      },
+      "why": "顶视档：同谱同画法，暗孔 0.12/亮针 0.20 加密 ⇒ 俯视树冠的日光缝隙（与 side 的差异来自参数而非另一套笔刷）。",
+      "protected_sparse_colors": [
+        "PATINA_BLOOM@D140 | base=CANOPY_PATINA"
+      ]
+    },
+    "prosperity_brass_log_side": {
+      "file": "prosperity_brass_log_side.png",
+      "group": "prosperity_decor",
+      "kind": "log_side",
+      "drawer": "tools/artgen/dim7879/draw32_dim78.py",
+      "drawer_fn": "BUILDERS[prosperity_brass_log_side] -> log_side(\"prosperity_brass_log_side\")",
+      "seed_manifest": "0x5EED8167",
+      "palette_roles": {
+        "base": "BRASS_BARK",
+        "role_tokens": [
+          "BASE@D220",
+          "BASE@L180",
+          "BRASS_BARK",
+          "BRASS_CORE@D220",
+          "GLINT@D070"
+        ]
+      },
+      "measured": {
+        "size": [
+          32,
+          32
+        ],
+        "distinct_rgba": 7,
+        "distinct_rgb_opaque": 7,
+        "all_opaque_alpha_255": true,
+        "dominant_opaque": "#6E5A2E"
+      },
+      "why": "同骨架换黄铜系 Bark/Core + GLINT@D070 闪点斑 ⇒ 荒漠树干的金属砂感。",
+      "protected_sparse_colors": [
+        "GLINT@D070 | base=BRASS_BARK"
+      ]
+    },
+    "prosperity_brass_log_top": {
+      "file": "prosperity_brass_log_top.png",
+      "group": "prosperity_decor",
+      "kind": "log_top",
+      "drawer": "tools/artgen/dim7879/draw32_dim78.py",
+      "drawer_fn": "BUILDERS[prosperity_brass_log_top] -> log_top(\"prosperity_brass_log_top\")",
+      "seed_manifest": "0x5EED8126",
+      "palette_roles": {
+        "base": "BRASS_BARK",
+        "role_tokens": [
+          "BASE@D140",
+          "BASE@D220",
+          "BRASS_BARK",
+          "BRASS_CORE",
+          "BRASS_CORE@D220",
+          "BRASS_CORE@D340",
+          "BRASS_CORE@L140"
+        ]
+      },
+      "measured": {
+        "size": [
+          32,
+          32
+        ],
+        "distinct_rgba": 6,
+        "distinct_rgb_opaque": 6,
+        "all_opaque_alpha_255": true,
+        "dominant_opaque": "#B49A4C"
+      },
+      "why": "同骨架年轮，芯色 BRASS_CORE；顶面闪点在侧面谱系里不出现（双差）。",
+      "protected_sparse_colors": []
+    },
+    "prosperity_brass_leaves_side": {
+      "file": "prosperity_brass_leaves_side.png",
+      "group": "prosperity_natural",
+      "kind": "leaves_clump",
+      "drawer": "tools/artgen/dim7879/draw32_dim78.py",
+      "drawer_fn": "BUILDERS[prosperity_brass_leaves_side] -> leaves(\"prosperity_brass_leaves_side\")",
+      "seed_manifest": "0x5EED8127",
+      "palette_roles": {
+        "base": "CANOPY_BRASS",
+        "levels": [
+          "BASE@D180",
+          "BASE@D090",
+          "BASE",
+          "BASE@L055",
+          "BASE@L140"
+        ],
+        "role_tokens": [
+          "BASE@D340",
+          "BASE@L240",
+          "BRASS_SAND@D140",
+          "CANOPY_BRASS"
+        ]
+      },
+      "measured": {
+        "size": [
+          32,
+          32
+        ],
+        "distinct_rgba": 8,
+        "distinct_rgb_opaque": 8,
+        "all_opaque_alpha_255": true,
+        "dominant_opaque": "#C5BA8A"
+      },
+      "why": "CANOPY_BRASS 秸秆色底 + BRASS_SAND@D140 稀疏点；乘群系黄铜草色后仍是废都可辨识的暗冠。",
+      "protected_sparse_colors": [
+        "BRASS_SAND@D140 | base=CANOPY_BRASS"
+      ]
+    },
+    "prosperity_brass_leaves_top": {
+      "file": "prosperity_brass_leaves_top.png",
+      "group": "prosperity_natural",
+      "kind": "leaves_clump",
+      "drawer": "tools/artgen/dim7879/draw32_dim78.py",
+      "drawer_fn": "BUILDERS[prosperity_brass_leaves_top] -> leaves(\"prosperity_brass_leaves_top\")",
+      "seed_manifest": "0x5EED8128",
+      "palette_roles": {
+        "base": "CANOPY_BRASS",
+        "levels": [
+          "BASE@D180",
+          "BASE@D090",
+          "BASE",
+          "BASE@L055",
+          "BASE@L140"
+        ],
+        "role_tokens": [
+          "BASE@D340",
+          "BASE@L240",
+          "BRASS_SAND@D140",
+          "CANOPY_BRASS"
+        ]
+      },
+      "measured": {
+        "size": [
+          32,
+          32
+        ],
+        "distinct_rgba": 8,
+        "distinct_rgb_opaque": 8,
+        "all_opaque_alpha_255": true,
+        "dominant_opaque": "#DCD2A8"
+      },
+      "why": "顶视加密档（孔 0.12/针 0.20），同谱。",
+      "protected_sparse_colors": [
+        "BRASS_SAND@D140 | base=CANOPY_BRASS"
+      ]
+    },
+    "prosperity_marsh_log_side": {
+      "file": "prosperity_marsh_log_side.png",
+      "group": "prosperity_decor",
+      "kind": "log_side",
+      "drawer": "tools/artgen/dim7879/draw32_dim78.py",
+      "drawer_fn": "BUILDERS[prosperity_marsh_log_side] -> log_side(\"prosperity_marsh_log_side\")",
+      "seed_manifest": "0x5EED816C",
+      "palette_roles": {
+        "base": "MARSH_BARK",
+        "role_tokens": [
+          "BASE@D220",
+          "BASE@L180",
+          "MARSH_BARK",
+          "MARSH_CORE@D220",
+          "RUST_OXIDE@D140"
+        ]
+      },
+      "measured": {
+        "size": [
+          32,
+          32
+        ],
+        "distinct_rgba": 7,
+        "distinct_rgb_opaque": 7,
+        "all_opaque_alpha_255": true,
+        "dominant_opaque": "#35342A"
+      },
+      "why": "同骨架换 MARSH_BARK 深橄榄 + RUST_OXIDE@D140 锈斑 ⇒ 沼泽湿木的暗潮感。",
+      "protected_sparse_colors": [
+        "RUST_OXIDE@D140 | base=MARSH_BARK"
+      ]
+    },
+    "prosperity_marsh_log_top": {
+      "file": "prosperity_marsh_log_top.png",
+      "group": "prosperity_decor",
+      "kind": "log_top",
+      "drawer": "tools/artgen/dim7879/draw32_dim78.py",
+      "drawer_fn": "BUILDERS[prosperity_marsh_log_top] -> log_top(\"prosperity_marsh_log_top\")",
+      "seed_manifest": "0x5EED812A",
+      "palette_roles": {
+        "base": "MARSH_BARK",
+        "role_tokens": [
+          "BASE@D140",
+          "BASE@D220",
+          "MARSH_BARK",
+          "MARSH_CORE",
+          "MARSH_CORE@D220",
+          "MARSH_CORE@D340",
+          "MARSH_CORE@L140"
+        ]
+      },
+      "measured": {
+        "size": [
+          32,
+          32
+        ],
+        "distinct_rgba": 6,
+        "distinct_rgb_opaque": 6,
+        "all_opaque_alpha_255": true,
+        "dominant_opaque": "#5A6446"
+      },
+      "why": "同骨架年轮，芯色 MARSH_CORE。",
+      "protected_sparse_colors": []
+    },
+    "prosperity_marsh_leaves_side": {
+      "file": "prosperity_marsh_leaves_side.png",
+      "group": "prosperity_natural",
+      "kind": "leaves_clump",
+      "drawer": "tools/artgen/dim7879/draw32_dim78.py",
+      "drawer_fn": "BUILDERS[prosperity_marsh_leaves_side] -> leaves(\"prosperity_marsh_leaves_side\")",
+      "seed_manifest": "0x5EED812B",
+      "palette_roles": {
+        "base": "CANOPY_MARSH",
+        "levels": [
+          "BASE@D180",
+          "BASE@D090",
+          "BASE",
+          "BASE@L055",
+          "BASE@L140"
+        ],
+        "role_tokens": [
+          "BASE@D340",
+          "BASE@L240",
+          "CANOPY_MARSH",
+          "RUST_OXIDE@D070"
+        ]
+      },
+      "measured": {
+        "size": [
+          32,
+          32
+        ],
+        "distinct_rgba": 8,
+        "distinct_rgb_opaque": 8,
+        "all_opaque_alpha_255": true,
+        "dominant_opaque": "#8FA086"
+      },
+      "why": "CANOPY_MARSH 灰绿底 + 锈暗点；乘沼泽草色 4A5732 后与铜绿冠拉开色相。",
+      "protected_sparse_colors": [
+        "RUST_OXIDE@D070 | base=CANOPY_MARSH"
+      ]
+    },
+    "prosperity_marsh_leaves_top": {
+      "file": "prosperity_marsh_leaves_top.png",
+      "group": "prosperity_natural",
+      "kind": "leaves_clump",
+      "drawer": "tools/artgen/dim7879/draw32_dim78.py",
+      "drawer_fn": "BUILDERS[prosperity_marsh_leaves_top] -> leaves(\"prosperity_marsh_leaves_top\")",
+      "seed_manifest": "0x5EED812C",
+      "palette_roles": {
+        "base": "CANOPY_MARSH",
+        "levels": [
+          "BASE@D180",
+          "BASE@D090",
+          "BASE",
+          "BASE@L055",
+          "BASE@L140"
+        ],
+        "role_tokens": [
+          "BASE@D340",
+          "BASE@L240",
+          "CANOPY_MARSH",
+          "RUST_OXIDE@D070"
+        ]
+      },
+      "measured": {
+        "size": [
+          32,
+          32
+        ],
+        "distinct_rgba": 8,
+        "distinct_rgb_opaque": 8,
+        "all_opaque_alpha_255": true,
+        "dominant_opaque": "#A6B29C"
+      },
+      "why": "顶视加密档（孔 0.12/针 0.20），同谱。",
+      "protected_sparse_colors": [
+        "RUST_OXIDE@D070 | base=CANOPY_MARSH"
+      ]
+    },
+    "prosperity_flower_rust": {
+      "file": "prosperity_flower_rust.png",
+      "group": "prosperity_decor",
+      "kind": "cross_decor",
+      "drawer": "tools/artgen/dim7879/draw32_dim78.py",
+      "drawer_fn": "BUILDERS[prosperity_flower_rust] -> flower(\"prosperity_flower_rust\")",
+      "seed_manifest": "0x5EED812D",
+      "palette_roles": {
+        "base": "FLOWER_RUST",
+        "role_tokens": [
+          "BASE",
+          "BASE@D220",
+          "BASE@L180",
+          "FLOWER_RUST",
+          "GLINT@D070",
+          "TUFT_RUST_MAT@D340"
+        ]
+      },
+      "measured": {
+        "size": [
+          32,
+          32
+        ],
+        "distinct_rgba": 6,
+        "distinct_rgb_opaque": 5,
+        "all_opaque_alpha_255": true,
+        "dominant_opaque": "#8E8370"
+      },
+      "why": "自有花族形（32 档自绘透明底）：6 茎 = 全花头/蕾/纯茎三态（42% / 30% / 28%），花头 = 1px 花心 + 4 正瓣（上左取亮阶、其余中阶）+ 4 角半瓣 70% 出现，顶瓣上一道 1px 亮唇；每茎 2px 生根足 ⇒ 底行 ≥6 列有底；色 = 花瓣 3 阶 + 心 + 茎 ≤6。",
+      "protected_sparse_colors": []
+    },
+    "prosperity_flower_patina": {
+      "file": "prosperity_flower_patina.png",
+      "group": "prosperity_decor",
+      "kind": "cross_decor",
+      "drawer": "tools/artgen/dim7879/draw32_dim78.py",
+      "drawer_fn": "BUILDERS[prosperity_flower_patina] -> flower(\"prosperity_flower_patina\")",
+      "seed_manifest": "0x5EED812E",
+      "palette_roles": {
+        "base": "FLOWER_PATINA",
+        "role_tokens": [
+          "BASE",
+          "BASE@D220",
+          "BASE@L180",
+          "FLOWER_PATINA",
+          "GLINT@D140",
+          "PATINA_SOIL"
+        ]
+      },
+      "measured": {
+        "size": [
+          32,
+          32
+        ],
+        "distinct_rgba": 6,
+        "distinct_rgb_opaque": 5,
+        "all_opaque_alpha_255": true,
+        "dominant_opaque": "#3F5C4E"
+      },
+      "why": "同族形换霜花谱：花瓣 CANOPY 邻近亮铜绿（与叶冠靠形态+花心区分），茎 PATINA_SOIL ⇒ 森林林下花读作花而非叶簇。",
+      "protected_sparse_colors": []
+    },
+    "prosperity_flower_brass": {
+      "file": "prosperity_flower_brass.png",
+      "group": "prosperity_decor",
+      "kind": "cross_decor",
+      "drawer": "tools/artgen/dim7879/draw32_dim78.py",
+      "drawer_fn": "BUILDERS[prosperity_flower_brass] -> flower(\"prosperity_flower_brass\")",
+      "seed_manifest": "0x5EED812F",
+      "palette_roles": {
+        "base": "FLOWER_BRASS",
+        "role_tokens": [
+          "BASE",
+          "BASE@D220",
+          "BASE@L180",
+          "BRASS_ROCK@D090",
+          "DARK_ANCHOR@L420",
+          "FLOWER_BRASS"
+        ]
+      },
+      "measured": {
+        "size": [
+          32,
+          32
+        ],
+        "distinct_rgba": 6,
+        "distinct_rgb_opaque": 5,
+        "all_opaque_alpha_255": true,
+        "dominant_opaque": "#7F6533"
+      },
+      "why": "同族形换金盏谱：暖黄花瓣 + DARK_ANCHOR@L420 心（花心为族内最亮点，荒漠强日光口径）+ BRASS_ROCK@D090 茎。",
+      "protected_sparse_colors": []
+    },
+    "prosperity_flower_marsh": {
+      "file": "prosperity_flower_marsh.png",
+      "group": "prosperity_decor",
+      "kind": "cross_decor",
+      "drawer": "tools/artgen/dim7879/draw32_dim78.py",
+      "drawer_fn": "BUILDERS[prosperity_flower_marsh] -> flower(\"prosperity_flower_marsh\")",
+      "seed_manifest": "0x5EED8130",
+      "palette_roles": {
+        "base": "FLOWER_MARSH",
+        "role_tokens": [
+          "BASE",
+          "BASE@D220",
+          "BASE@L180",
+          "FLOWER_MARSH",
+          "GLINT@D045",
+          "PEAT_CRUST@L070"
+        ]
+      },
+      "measured": {
+        "size": [
+          32,
+          32
+        ],
+        "distinct_rgba": 6,
+        "distinct_rgb_opaque": 5,
+        "all_opaque_alpha_255": true,
+        "dominant_opaque": "#50513A"
+      },
+      "why": "同族形换沼兰谱：紫罗兰花瓣（全批唯一冷紫相，识别度最高）+ GLINT@D045 心 + PEAT_CRUST@L070 茎。",
+      "protected_sparse_colors": []
+    },
+    "prosperity_tuft_sedge": {
+      "file": "prosperity_tuft_sedge.png",
+      "group": "prosperity_decor",
+      "kind": "cross_decor",
+      "drawer": "tools/artgen/dim7879/draw32_dim78.py",
+      "drawer_fn": "BUILDERS[prosperity_tuft_sedge] -> tuft(\"prosperity_tuft_sedge\")",
+      "seed_manifest": "0x5EED8131",
+      "palette_roles": {
+        "base": "TUFT_SEDGE_MAT",
+        "role_tokens": [
+          "BASE@D090",
+          "BASE@D140",
+          "BASE@D340",
+          "BASE@L220",
+          "PATINA_BLOOM@D180",
+          "TUFT_SEDGE_MAT"
+        ]
+      },
+      "measured": {
+        "size": [
+          32,
+          32
+        ],
+        "distinct_rgba": 5,
+        "distinct_rgb_opaque": 4,
+        "all_opaque_alpha_255": true,
+        "dominant_opaque": "#879872"
+      },
+      "why": "苔薹草：与铜绿草丛同 moss_tuft 族形（密矮 5-10px 带加宽列），换 TUFT_SEDGE_MAT 黄绿谱 + PATINA_BLOOM@D180 暗霜点 + 独立种子 ⇒ 同形不同种，跨实例靠种子去重。",
+      "protected_sparse_colors": [
+        "PATINA_BLOOM@D180 | base=TUFT_SEDGE_MAT"
+      ]
+    },
+    "prosperity_tuft_bristle": {
+      "file": "prosperity_tuft_bristle.png",
+      "group": "prosperity_decor",
+      "kind": "cross_decor",
+      "drawer": "tools/artgen/dim7879/draw32_dim78.py",
+      "drawer_fn": "BUILDERS[prosperity_tuft_bristle] -> tuft(\"prosperity_tuft_bristle\")",
+      "seed_manifest": "0x5EED8132",
+      "palette_roles": {
+        "base": "TUFT_BRISTLE_MAT",
+        "role_tokens": [
+          "BASE@D090",
+          "BASE@D140",
+          "BASE@D340",
+          "BASE@L220",
+          "RUST_OXIDE@L140",
+          "TUFT_BRISTLE_MAT"
+        ]
+      },
+      "measured": {
+        "size": [
+          32,
+          32
+        ],
+        "distinct_rgba": 6,
+        "distinct_rgb_opaque": 5,
+        "all_opaque_alpha_255": true,
+        "dominant_opaque": "#B09D79"
+      },
+      "why": "刚毛草：与锈草丛同 dry_tuft 族形（疏高 9-16px + 45% 穗头），换 TUFT_BRISTLE_MAT 秸秆谱 + RUST_OXIDE@L140 亮尘 + 独立种子。",
+      "protected_sparse_colors": [
+        "RUST_OXIDE@L140 | base=TUFT_BRISTLE_MAT"
+      ]
+    },
+    "prosperity_silica_sand": {
+      "file": "prosperity_silica_sand.png",
+      "group": "prosperity_natural",
+      "kind": "terrain_ripple",
+      "drawer": "tools/artgen/dim7879/draw32_dim78.py",
+      "drawer_fn": "BUILDERS[prosperity_silica_sand] -> ripple_sand(\"prosperity_silica_sand\")",
+      "seed_manifest": "0x5EED8141",
+      "palette_roles": {
+        "base": "SILICA_SAND",
+        "levels": [
+          "BASE@D090",
+          "BASE@D045",
+          "BASE",
+          "BASE@L070",
+          "BASE@L140"
+        ],
+        "role_tokens": [
+          "BASE",
+          "BASE@D045",
+          "BASE@D090",
+          "BASE@D120",
+          "BASE@L070",
+          "BASE@L140",
+          "BASE@L180",
+          "GLINT@D140",
+          "SILICA_SAND"
+        ]
+      },
+      "measured": {
+        "size": [
+          32,
+          32
+        ],
+        "distinct_rgba": 8,
+        "distinct_rgb_opaque": 8,
+        "all_opaque_alpha_255": true,
+        "dominant_opaque": "#D6C79B"
+      },
+      "why": "细硅沙：沿用黄铜丘沙的 ripple_sand 族刷，但 ripple_period 8→4（同族笔刷不同读数）+ 闪点密度 0.006→0.004，底谱换 SILICA_SAND（全批最亮的冷沙相）⇒ 与在产的 prosperity_wastes_top 顶面双差可辨（色相 + 纹周期）。",
+      "protected_sparse_colors": [
+        "GLINT@D140 | base=SILICA_SAND"
+      ]
+    },
+    "prosperity_coarse_sand": {
+      "file": "prosperity_coarse_sand.png",
+      "group": "prosperity_natural",
+      "kind": "terrain_grit",
+      "drawer": "tools/artgen/dim7879/draw32_dim78.py",
+      "drawer_fn": "BUILDERS[prosperity_coarse_sand] -> grit_base(\"prosperity_coarse_sand\", 14, 0)",
+      "seed_manifest": "0x5EED8146",
+      "palette_roles": {
+        "base": "COARSE_SAND",
+        "levels": [
+          "BASE@D140",
+          "BASE@D070",
+          "BASE",
+          "BASE@L070",
+          "BASE@L140"
+        ],
+        "role_tokens": [
+          "BASE",
+          "BASE@D070",
+          "BASE@D090",
+          "BASE@D140",
+          "BASE@D180",
+          "BASE@L070",
+          "BASE@L140",
+          "BASE@L180",
+          "COARSE_SAND"
+        ]
+      },
+      "measured": {
+        "size": [
+          32,
+          32
+        ],
+        "distinct_rgba": 8,
+        "distinct_rgb_opaque": 8,
+        "all_opaque_alpha_255": true,
+        "dominant_opaque": "#C0A76B"
+      },
+      "why": "风成粗粒沙：grit_base 骨架，颗粒密度 0.18→0.24、14 颗 2×2/3×2 砾粒带上缘受光与下缘压暗（同 base 族画法），底谱 COARSE_SAND 比细硅沙压暗两阶 ⇒ 读作「被风选过的粗砂」，不是另一张沙。",
+      "protected_sparse_colors": []
+    },
+    "prosperity_river_gravel": {
+      "file": "prosperity_river_gravel.png",
+      "group": "prosperity_natural",
+      "kind": "terrain_grit",
+      "drawer": "tools/artgen/dim7879/draw32_dim78.py",
+      "drawer_fn": "BUILDERS[prosperity_river_gravel] -> grit_base(\"prosperity_river_gravel\", 20, 0)",
+      "seed_manifest": "0x5EED814B",
+      "palette_roles": {
+        "base": "RIVER_GRAVEL",
+        "levels": [
+          "BASE@D140",
+          "BASE@D070",
+          "BASE",
+          "BASE@L070",
+          "BASE@L140"
+        ],
+        "role_tokens": [
+          "BASE",
+          "BASE@D070",
+          "BASE@D090",
+          "BASE@D140",
+          "BASE@D220",
+          "BASE@L070",
+          "BASE@L140",
+          "BASE@L220",
+          "RIVER_GRAVEL"
+        ]
+      },
+      "measured": {
+        "size": [
+          32,
+          32
+        ],
+        "distinct_rgba": 8,
+        "distinct_rgb_opaque": 8,
+        "all_opaque_alpha_255": true,
+        "dominant_opaque": "#9A8E7A"
+      },
+      "why": "河床砂砾：grit_base 骨架 + 砾密度 0.30（全批最高）+ 明暗阶拉到 D220/L220，底谱 RIVER_GRAVEL 是沙类里唯一不带暖相的灰褐 ⇒ 水磨砾石感；S-C 河床主料，本片先在荒漠砾石斑上真实消费一次。",
+      "protected_sparse_colors": [
+        "BASE@D220 | base=RIVER_GRAVEL"
+      ]
     }
   }
 }

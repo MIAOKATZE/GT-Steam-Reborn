@@ -244,6 +244,36 @@ b7_stub() { # b7_stub <BASE树根> <相对包路径> <锚点行（须唯一）> 
 }
 b7_stub_span()  { b7_stub "$1" "$B7_F_PG"     "$B7_SPAN_ANCHOR"  "$B7_SPAN_STUB"  "readyAtSpan(int)"; }
 b7_stub_roster(){ b7_stub "$1" "$B7_F_ROSTER" "$B7_SKIN_ANCHOR"  "$B7_SKIN_STUB"  "skinTexturePath()"; }
+# ── P17-S-H：第四个 BASE 动词的第四类缺口 = P17-SB2 给 ProsperityDecorPlacer.decorate 加了身份入参 ──
+# 现网签名：decorate(World,long,int,int,<b>int rosterIndex</b>,BlockSink)（ProsperityDecorPlacer.java:263）；
+# 各 era 的编排器快照仍按 5 参调用（p5-base 的 ProsperityWorldGenerator:115 / p5b:148 / p6:130 /
+# p7c:146 / p8:157）⇒ 而 BASE 树是「cp -a 当前树 + 只还原该 era 清单」，清单里没有 placer ⇒
+# BASE 侧的 placer 是当前 6 参版 ⇒ 实测每棵都多出 1 条
+# `error: method decorate in class ProsperityDecorPlacer cannot be applied to given types`。
+# 反向还有第二处：[4]/[5]/[8] 的 p4-BASE 树**还原了** era placer（PARITY_BASE_FILES 第 1 项，5 参），
+# 而清单外的工具 tools/dim1/SurfaceGateUnifyCheck.java:1117/1173 用当前 6 参调用 ⇒
+# base-tools 编译 2 error ⇒ BASE 侧什么都没产出 ⇒ [8] 的 10 条 A/B 门槛全红（本轮从 0 涨到 10 的那一批）。
+# 两个方向各补一个**加法重载**（只写 temp/p*-base 副本，src/main/java 一字不动）：
+#   sh_stub_decor5 —— BASE 树里是**当前** placer：补 era 的 5 参臂，转调 6 参实现并传 -1。
+#     语义不变：① -1 = GTSRGenLayerRosterFace.NO_IDENTITY ⇒ tierForRosterIndex(ProsperityDecorPlacer.java:250-252)
+#     落到 DEFAULT_TIER（同文件 :217-241 的 javadoc 自述"逐字段刻意等于改前"，唯一申报的偏差是
+#     grassRolls 取均值 3 而非旧的 2+nextInt(3)，两者期望相同）⇒ 正是"该 era 身份不可得"的口径；
+#     ② 这些档的测量面走不到桩：[13a]/[14a] 的 SurfaceByteParityDump 只走 provideChunk（scatter/populate
+#     不在其输入域，同 b7 注释②），[14b] 的 Dim78ScatterDensityCheck grid 只直达 ProsperitySurfaceScatter
+#     .scatter 与结构前序（该工具对 decorate 零调用）⇒ 桩只为编译存在，不参与任何被测读数。
+#   sh_stub_decor6 —— BASE 树里是**era** placer：补当前 6 参臂，丢弃 rosterIndex 转调 era 的 5 参实现。
+#     语义不变：被丢的那个参数在该 era 的代码里没有任何消费者（era 根本没有身份入参）⇒ 桩体逐位等于
+#     era 判定。此处与上一条不同，[8] 的 measure 档**会**走到桩（SurfaceGateUnifyCheck 直接调 decorate），
+#     所以它的根据是"参数无消费者"而不是"走不到"。
+# 敏感度证据（实跑读数与"哪个判据会红"逐条见 plan/tmp/p17-sh/SH-RESULT.md §2.3；无桩时的红现场
+# 就在本轮的 temp/p4-surface/p{5,6,7c,5b,8}-javac-base.log 与 javac-base-tools.log 里，属负对照实测）。
+SH_F_DECOR=com/miaokatze/gtsr/common/dimension/prosperity/ruins/ProsperityDecorPlacer.java
+SH_DECOR5_ANCHOR='    public static void decorate(World world, long worldSeed, int chunkX, int chunkZ, BlockSink sink) {'
+SH_DECOR6_ANCHOR='    public static void decorate(World world, long worldSeed, int chunkX, int chunkZ, int rosterIndex, BlockSink sink) {'
+SH_DECOR5_STUB='    public static void decorate(World world, long worldSeed, int chunkX, int chunkZ, BlockSink sink) { decorate(world, worldSeed, chunkX, chunkZ, -1, sink); } /* P17-S-H BASE 桩：era 编排器按 5 参调用；-1=NO_IDENTITY ⇒ DEFAULT_TIER（该档 javadoc 自述逐字段==改前）；本档测量面不经 decorate */'
+SH_DECOR6_STUB='    public static void decorate(World world, long worldSeed, int chunkX, int chunkZ, int rosterIndex, BlockSink sink) { decorate(world, worldSeed, chunkX, chunkZ, sink); } /* P17-S-H BASE 桩：era placer 无身份入参 ⇒ 被丢的参数没有消费者，逐位等于 era 判定 */'
+sh_stub_decor5() { b7_stub "$1" "$SH_F_DECOR" "$SH_DECOR6_ANCHOR" "$SH_DECOR5_STUB" "decorate(5 参 era 臂)"; }
+sh_stub_decor6() { b7_stub "$1" "$SH_F_DECOR" "$SH_DECOR5_ANCHOR" "$SH_DECOR6_STUB" "decorate(6 参当前臂)"; }
 BASEALL=temp/p4-base/all            # 编译面：cp -a 当前树后按快照覆盖 → $BASEALL/<包路径>.java
 SNAP=$BASEALL/src/main/java        # 快照面：本片开工前的原始路径副本
 BASE_D=$BASEALL/com/miaokatze/gtsr/common/dimension
@@ -463,6 +493,63 @@ run "RosterIntegrityCheck（P0 判据 1：名集合三方相等 + 逐名 footpri
 run "S8RegistryRosterCheck（P0 判据 1 名数面：名册名数 + 分组计数 + 名集合相等）" \
   S8RegistryRosterCheck
 
+# ── P17-SB1 纯追加步骤 [3sb1]（只新增行、未改上面任何既有行）：新增方块名册与资产面自证 ──────────
+# 钉六组：12 方块注册链文本 + 运行时实例（类族/材质/名）、18 贴图 classpath+资源根双解析、
+# 32×32 正方形与实测色数==design32 档案、两份 lang 各 12 键无缺无多无重复、
+# MUST_NOT_PASS 全员在列 + SurfaceGate 源文本零新名（纪律 1 反向钉）。幂等：连跑两次逐位一致。
+echo "== [3sb1] P17-SB1 方块名册与资产自证（12 方块 / 18 贴图 / 24×2 lang） =="
+MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8   -cp "$OUT/classes;$CP" -sourcepath "src/main/java;tools/dim1" -d "$OUT/tools"   tools/dim1/P17BlockRosterCheck.java >"$OUT/javac-p17sb1.log" 2>&1
+echo "COMPILE P17BlockRosterCheck EXIT=$? ($(grep -ac 'error:' "$OUT/javac-p17sb1.log") error)"
+# classpath 追加 src/main/resources：贴图必须能按 ResourceLocation 同构路径从 classpath 解析
+# （缺挂＝getResource 恒 null，本步直接判红，不静默跳过）。
+echo "-- P17BlockRosterCheck（P17-SB1 名册自证）"
+MSYS2_ARG_CONV_EXCL='*' java $STD $LOG4J -cp "src/main/resources;$OUT/tools;$OUT/classes;$CP" P17BlockRosterCheck   >"$OUT/P17BlockRosterCheck.out" 2>&1
+code=$?; tail -2 "$OUT/P17BlockRosterCheck.out" | cut -c1-170; echo "   EXIT=$code log=$OUT/P17BlockRosterCheck.out"
+[ $code -ne 0 ] && FAILS=$((FAILS + 1))
+
+# ── P17 纯追加步骤 [3sa]/[3sb2]/[3sd]（主代理代贴；只新增行、未改上面任何既有行）──────────────
+# 三片都被外部中断杀掉过回执，故步骤行由主代理按各片结果文件/§6 原样贴入，判据本体未改一字。
+echo "== [3sa] P17-SA 群系成片与地势四档（zoom=5；振幅档表 1.1/1.7/0.8/0.4；四族同源） =="
+MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8   -cp "$OUT/classes;$CP" -sourcepath "src/main/java;tools/dim1" -d "$OUT/tools"   tools/dim1/P17TerrainReliefCheck.java >"$OUT/javac-p17sa.log" 2>&1
+echo "COMPILE P17TerrainReliefCheck EXIT=$? ($(grep -ac 'error:' "$OUT/javac-p17sa.log") error)"
+# args[0]=src 根：SOURCE 组要读源文件钉"三参==显式档""名册面==bandIndexAt""城侧禁读方块"三条红线。
+echo "-- P17TerrainReliefCheck（P17-SA 成片/偏序/同源/红线/盐同值）"
+MSYS2_ARG_CONV_EXCL='*' java $STD $LOG4J -Xmx2g -cp "$OUT/tools;$OUT/classes;$CP" P17TerrainReliefCheck src/main/java   >"$OUT/P17TerrainReliefCheck.out" 2>&1
+code=$?; tail -2 "$OUT/P17TerrainReliefCheck.out" | cut -c1-170; echo "   EXIT=$code log=$OUT/P17TerrainReliefCheck.out"
+[ $code -ne 0 ] && FAILS=$((FAILS + 1))
+
+echo "== [3sb2] P17-SB2 植被频率与树形档表（树密度 森>沼>原>沙=0；干高 森>沼>原） =="
+MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8   -cp "$OUT/classes;$CP" -sourcepath "src/main/java;tools/dim1" -d "$OUT/tools"   tools/dim1/P17VegetationFrequencyCheck.java >"$OUT/javac-p17sb2.log" 2>&1
+echo "COMPILE P17VegetationFrequencyCheck EXIT=$? ($(grep -ac 'error:' "$OUT/javac-p17sb2.log") error)"
+echo "-- P17VegetationFrequencyCheck（P17-SB2 频率面唯一回归网，补 P17-B 实测的零判据空白）"
+MSYS2_ARG_CONV_EXCL='*' java $STD $LOG4J -Xmx2g -cp "$OUT/tools;$OUT/classes;$CP" P17VegetationFrequencyCheck   >"$OUT/P17VegetationFrequencyCheck.out" 2>&1
+code=$?; tail -2 "$OUT/P17VegetationFrequencyCheck.out" | cut -c1-170; echo "   EXIT=$code log=$OUT/P17VegetationFrequencyCheck.out"
+[ $code -ne 0 ] && FAILS=$((FAILS + 1))
+
+# ── P17-SD 纯追加步骤 [3sd]：城外结构半埋的群系差异（沙漠更多是半埋；四族同源档表）──────────
+# 钉六组：A 档表本体（沙漠档唯一最大 / 其余严格递减 / 默认档 0）+ B 夹紧与 clinit 自证（396 组 ceiling×名册下标、
+#   6237 次生产埋深取数、contractValidatedThrough == maxBury、34% 露出比活闸）+ C 沙漠显著性（逐盘 27 行 + 逐族汇总：
+#   露出比比值 ≤0.80、最近比值 ≤0.80、埋深倍数 ≥1.5、沙漠零埋深占比 = 0）+ D 生产链世界读数（写进地形 = 0、
+#   巨构悬浮 = 0、悬浮不新增、沙漠落块 ≤ 基线 85%）+ E 源级红线（档表唯一 / 四族同源 / 身份按锚点原点 /
+#   WorldGenerator 与 SurfaceGate 零引用）+ F 双跑逐位一致。
+echo "== [3sd] P17-SD 结构半埋的群系差异（四族同源档表） =="
+MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8   -cp "$OUT/classes;$CP" -sourcepath "src/main/java;tools/dim1" -d "$OUT/tools"   tools/dim1/P17StructureBiomeVarianceCheck.java >"$OUT/javac-p17sd.log" 2>&1
+echo "COMPILE P17StructureBiomeVarianceCheck EXIT=$? ($(grep -ac 'error:' "$OUT/javac-p17sd.log") error)"
+echo "-- P17StructureBiomeVarianceCheck（P17-SD 档表 + 夹紧 + 显著性 + 世界读数；args[0]=src 根）"
+MSYS2_ARG_CONV_EXCL='*' java $STD $LOG4J -Xmx2g -cp "$OUT/tools;$OUT/classes;$CP" P17StructureBiomeVarianceCheck src/main/java   >"$OUT/P17StructureBiomeVarianceCheck.out" 2>&1
+code=$?; tail -2 "$OUT/P17StructureBiomeVarianceCheck.out" | cut -c1-170; echo "   EXIT=$code log=$OUT/P17StructureBiomeVarianceCheck.out"
+[ $code -ne 0 ] && FAILS=$((FAILS + 1))
+
+echo "== [3sc] P17-S-C dim78 河流水系（populate 后置灌河；河网密度档偏序/断面成层/水不外溢活闸/照明与流体置位/isAnyLiquid 连带/确定性） =="
+MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8   -cp "$OUT/classes;$CP" -sourcepath "src/main/java;tools/dim1" -d "$OUT/tools"   tools/dim1/P17RiverNetworkCheck.java >"$OUT/javac-p17sc.log" 2>&1
+echo "COMPILE P17RiverNetworkCheck EXIT=$? ($(grep -ac 'error:' "$OUT/javac-p17sc.log") error)"
+# args[0]=src 根：F 组要在源面上钉"Blocks.water 唯一写点 + generateTerrain 段无水 + 模型层零 net.minecraft +
+# 不新增方块"。世界/照明/流体三组全部走真实 provideChunk + 真实 populate + 真实 World.setBlock。
+# 确定性口径：两次输出逐字节相同，唯一例外是两行 `…耗时=…ms`（计时行不进任何断言）。
+MSYS2_ARG_CONV_EXCL='*' java $STD $LOG4J -Xmx2g -cp "$OUT/tools;$OUT/classes;$CP" P17RiverNetworkCheck src/main/java   >"$OUT/P17RiverNetworkCheck.out" 2>&1
+code=$?; tail -2 "$OUT/P17RiverNetworkCheck.out" | cut -c1-170; echo "   EXIT=$code log=$OUT/P17RiverNetworkCheck.out"
+[ $code -ne 0 ] && FAILS=$((FAILS + 1))
+
 if [ "${1:-}" = "--parity" ]; then
   echo "== [4] 正常态逐字节对拍（BASE=本片开工前快照 / AFTER=当前树，各 256 chunk × 两维） =="
   if [ ! -f "$SNAP/com/miaokatze/gtsr/common/dimension/prosperity/ruins/ProsperityDecorPlacer.java" ]; then
@@ -485,6 +572,9 @@ if [ "${1:-}" = "--parity" ]; then
       fi
     done
     rm -f "$BASEALL/$PRE_P7_NEW"   # P4 era 还没有 PlacementGate（P7c：不删则 BASE 侧编不过）
+    # P17-S-H：本树的 placer 已还原成 era 的 5 参版，而清单外的工具（SurfaceGateUnifyCheck:1117/1173）
+    # 按当前 6 参调用 ⇒ base-tools 编译 2 error ⇒ [8] 的 BASE 侧空转（10 条门槛全红）。补 6 参转调桩。
+    sh_stub_decor6 "$BASEALL"
     [ "$miss" = "0" ] || FAILS=$((FAILS + 1))
     MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8 -cp "$CP" \
       -sourcepath "$BASEALL" -d "$OUT/base-classes" $BASE_SRC >"$OUT/javac-base.log" 2>&1
@@ -787,6 +877,8 @@ com/miaokatze/gtsr/config/Config.java"
       fi
     done
     rm -f "$BASE5/$PRE_P7_NEW"   # P5 era 还没有 PlacementGate（P7c 修正）
+    # P17-S-H：era 编排器按 5 参调 decorate，而清单外的 placer 是当前 6 参版 ⇒ 5 参转调桩（见函数注释）
+    sh_stub_decor5 "$BASE5"
     [ "$miss" = "0" ] || FAILS=$((FAILS + 1))
     if grep -aq "prosperityCityBiomeGate" "$BASE5/com/miaokatze/gtsr/config/Config.java"; then
       echo "   FAIL：P5-BASE 树仍含 P6 新键 ⇒ P6 还原失败"; FAILS=$((FAILS + 1))
@@ -933,6 +1025,8 @@ com/miaokatze/gtsr/config/Config.java"
       fi
     done
     rm -f "$BASE6/$PRE_P7_NEW"   # P5 era（P6 开工前）还没有 PlacementGate（P7c 修正）
+    # P17-S-H：同 [10]——P6 开工前的编排器按 5 参调 decorate ⇒ 补 5 参转调桩
+    sh_stub_decor5 "$BASE6"
     [ "$miss" = "0" ] || FAILS=$((FAILS + 1))
     if grep -aq "prosperityCityBiomeGate" "$BASE6/com/miaokatze/gtsr/config/Config.java"; then
       echo "   FAIL：BASE 侧 Config 已含 P6 新键 ⇒ 快照不是开工前形态"; FAILS=$((FAILS + 1))
@@ -1114,6 +1208,8 @@ com/miaokatze/gtsr/config/Config.java"
       fi
     done
     [ "$miss7c" = "0" ] || FAILS=$((FAILS + 1))
+    # P17-S-H：P7c 开工前的编排器按 5 参调 decorate，清单外的 placer 是当前 6 参版 ⇒ 补 5 参转调桩
+    sh_stub_decor5 "$BASE7C"
     # 反假绿：BASE 侧必须"还没有 P7c 的新键"，否则快照其实是改造后
     if grep -aq "prosperityStructureFamilyGapChunks" "$BASE7C/com/miaokatze/gtsr/config/Config.java"; then
       echo "   FAIL：P7c-BASE 侧 Config 已含 prosperityStructureFamilyGapChunks ⇒ 快照不是开工前形态"
@@ -1244,6 +1340,8 @@ com/miaokatze/gtsr/config/Config.java"
     # P16-B7 (乙)：上面那份 pre-P8 的 PlacementGate 里没有 B1 新增的 readyAtSpan(int)，而本 era 清单
     # 不含 RuinedMachinePlacer（其当前版本在 :267/:416 调它）⇒ 实测 P5B-BASE 2 error。补法见 b7_stub 注释。
     b7_stub_span "$BASE5B"
+    # P17-S-H：同 [10]——P5b 开工前的编排器按 5 参调 decorate ⇒ 补 5 参转调桩
+    sh_stub_decor5 "$BASE5B"
     P5B_SRC="$(src_era7p $BASE5B)"
     MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8 -cp "$CP" \
       -sourcepath "$BASE5B" -d "$OUT/p5b-base-classes" $P5B_SRC >"$OUT/p5b-javac-base.log" 2>&1
@@ -1374,6 +1472,9 @@ com/miaokatze/gtsr/config/Config.java"
     # RuinedMachinePlacer 走当前版本 ⇒ P8-BASE 的 7 error 里那 2 条（:267/:416）由本桩补；
     # 余下 5 条在 GTSRWorldChunkManager（v1.20.34 既存债，另开工单，本片不碰）。
     b7_stub_span "$BASE8"
+    # P17-S-H：P8 开工前的编排器同样按 5 参调 decorate ⇒ 补 5 参转调桩（本树余下 5 error 仍是
+    # GTSRWorldChunkManager 的 v1.20.34 既存债 (甲)，另开工单、本片不碰）
+    sh_stub_decor5 "$BASE8"
     [ "$miss8" = "0" ] || FAILS=$((FAILS + 1))
     if grep -aq "prosperityRuinChance" "$BASE8/com/miaokatze/gtsr/config/Config.java"; then
       echo "   FAIL：P8-BASE 侧 Config 已含废墟族新键 ⇒ 快照不是开工前形态"; FAILS=$((FAILS + 1))

@@ -42,7 +42,10 @@ HERE = Path(__file__).resolve().parent
 MANIFEST_PATH = HERE / "manifest.json"
 SIDECAR_PATH = HERE / "landed.sha256"
 ASSET_DIR = ROOT / "src" / "main" / "resources" / "assets" / "gtsr" / "textures" / "blocks"
-PREVIEW_PATH = ROOT / "plan" / "新维度计划" / "review" / "dim7879" / "textures" / "preview.png"
+# P17-SB1 改口：旧值指向不存在的 plan/新维度计划/（跑一次即造第二真值源，P17-D §0 既存矛盾第 2 条）。
+# 在产 32 档整板的权威产出器 = make_preview32.py（DEFAULT_OUT 同路径）；本生成器主入口若不带
+# --no-preview/--preview 会用它自己构建的板覆写同一路径 ⇒ 默认仍不跑主入口，此路径只作真实化兜底。
+PREVIEW_PATH = ROOT / "plan" / "维度计划" / "设计册与实施计划" / "review" / "dim7879" / "textures" / "preview.png"
 
 SIZE = 16
 BASE_SIZE = 16          # 母版尺度：manifest 与画笔里所有 px 量按 16 标定
@@ -1045,6 +1048,37 @@ def paint_cross_decor(r, seed, p):
                         put_fg(x + direction, y + 1, dark)
             if h01(seed, "tbase", k, 0) < 0.5:
                 put_fg(x0 + direction, W - 1, node)
+    elif form == "flower":
+        # P17-SB1 自有花族形（16 档母版腿：6 茎槽位三态——全花头 42% / 花蕾 30% / 纯茎 28%；
+        # dark/mid/lit 复用族参数 blade_*（花瓣暗/中/亮），center=花心、stem=茎、head_count=茎数。
+        # 32 档在产权威 = draw32_dim78.flower()（自绘 + 生根足 + 基叶一对，本腿只保证 manifest 全量可再生）。
+        center = r.resolve(p["center"], base)
+        stem_col = r.resolve(p["stem"], base)
+        n_stems = int(p["head_count"])
+        for k in range(n_stems):
+            x = int((k + 0.30 + h01(seed, "fx", k, 0) * 0.40) * W / float(n_stems)) % W
+            role = h01(seed, "fr", k, 0)
+            h = (7 + int(h01(seed, "fh", k, 0) * 3.0)) if role < 0.42 else \
+                (5 + int(h01(seed, "fh", k, 0) * 2.0))
+            lean = (-1, 0, 0, 1)[int(h01(seed, "fl", k, 0) * 4.0) % 4]
+            put_fg(x, W - 1, stem_col)
+            cx = x
+            for i in range(1, sp(h)):
+                y = W - 1 - i
+                if i % (2 * R) == 0:
+                    cx += lean
+                put_fg(cx, y, stem_col)
+            hy = W - 1 - sp(h)
+            if role < 0.42:                        # 全花头：心 + 4 正瓣（左上受光）+ 4 角半瓣
+                put_fg(cx, hy, center)
+                for dx, dy in ((0, -1), (0, 1), (-1, 0), (1, 0)):
+                    put_fg(cx + dx * R, hy + dy * R, lit if dx + dy < 0 else mid)
+                for dx, dy in ((-1, -1), (1, -1), (-1, 1), (1, 1)):
+                    if h01(seed, "fc", k, dx * 3 + dy) < 0.7:
+                        put_fg(cx + dx * R, hy + dy * R, dark)
+            elif role < 0.72:                      # 花蕾
+                put_fg(cx, hy, mid)
+                put_fg(cx, hy - R, dark)
     else:
         raise AssertionError("未知十字形态: %s" % form)
     if fg[form] < 8 * R * R:            # 前景像素下限随面积走（R6）；R=1 恒等于母版阈值 8

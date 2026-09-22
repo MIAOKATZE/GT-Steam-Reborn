@@ -18,6 +18,7 @@ import com.miaokatze.gtsr.common.dimension.prosperity.ruins.city.CityBlockResolv
 import com.miaokatze.gtsr.common.dimension.prosperity.ruins.city.CityPlanner;
 import com.miaokatze.gtsr.common.dimension.prosperity.ruins.city.CityVariants;
 import com.miaokatze.gtsr.common.dimension.prosperity.ruins.ruin.RuinPlacer;
+import com.miaokatze.gtsr.common.dimension.prosperity.ruins.ruin.StructureBurialTiers;
 import com.miaokatze.gtsr.config.Config;
 import com.miaokatze.gtsr.main.GTSteamReborn;
 
@@ -131,6 +132,61 @@ public final class RuinedMachinePlacer {
      * 不是两条独立的 1/N。池子的长度只由两张形状表派生（本类不写第二个数字真值）。
      */
     static final RuinedMachineShapes.Shape[] POOL = buildPool();
+
+    /**
+     * 五个<b>小机型</b>各自的"验证过的最深埋深档"（<b>P17 S-D</b>；下标与
+     * {@link RuinedMachineShapes#ALL} 同序）。
+     * <p>
+     * 值一律由 {@link StructureBurialTiers#ceilingFor} 从<b>该机型自己的字符盘</b>实算
+     * （几何界 {@code (sizeY-1)/2} ∩ "露出比 ≥ 三分之一"那道闸），本类不写第二个数字真值，
+     * 也不新增任何申报常数 ⇒ 五个小机型的形状字节一格未改，逐名模板 SHA 面不受影响。
+     * 跨片巨构<b>不在</b>这张表里：它的档就是 {@code Colossus.maxBury}，由
+     * {@link RuinedColossusShapes} 的静态契约逐档验过，走 {@link RuinedColossusShapes#morphAt}。
+     */
+    private static final int[] SMALL_BURY_CEILINGS = buildSmallBuryCeilings();
+
+    private static int[] buildSmallBuryCeilings() {
+        final RuinedMachineShapes.Shape[] small = RuinedMachineShapes.ALL;
+        final int[] out = new int[small.length];
+        for (int i = 0; i < small.length; i++) {
+            out[i] = StructureBurialTiers.ceilingFor(small[i].sizeX, small[i].sizeY, small[i].sizeZ, small[i]::charAt);
+        }
+        return out;
+    }
+
+    /**
+     * 本机型的验证档查表（引用相等，≤5 次；巨构形状走这里必得 0 —— 它的埋深由 {@code Morph} 带进来，
+     * 两轨不互踩，见 {@link RuinedColossusShapes#morphAt}）。
+     * <b>public 的唯一理由</b>：离线判据要按"档表 × 逐张盘"报实测窗口，不能再抄一份算式。
+     */
+    public static int buryCeilingOf(RuinedMachineShapes.Shape shape) {
+        final RuinedMachineShapes.Shape[] small = RuinedMachineShapes.ALL;
+        for (int i = 0; i < small.length; i++) {
+            if (small[i] == shape) {
+                return SMALL_BURY_CEILINGS[i];
+            }
+        }
+        return 0;
+    }
+
+    /**
+     * 一次小机型放置的埋深（<b>P17 S-D</b>）：身份按<b>锚点原点</b>反查（与巨构那支同一条坐标口径），
+     * 档深走 {@link StructureBurialTiers#burialDepthFor} —— 小机型改造前<b>没有</b>埋深通道，
+     * 所以取的是已夹紧的档表下限（零新增随机源、零新增族盐）。
+     * 默认档（身份不可得）⇒ 0 ⇒ 与改造前逐位相同。
+     */
+    public static int buryingAt(RuinedMachineShapes.Shape shape, int originX, int originZ) {
+        return buryingAt(shape, originX, originZ, StructureBurialTiers.rosterIndexAtOrigin(originX, originZ));
+    }
+
+    /**
+     * {@link #buryingAt(RuinedMachineShapes.Shape, int, int)} 的<b>身份显式形态</b>（同一实现体）：
+     * 离线判据据此在未装配 L1 账本的 JVM 里逐档复算生产同一条算式；装配了账本时两条出口逐点同值
+     * （{@code P17StructureBiomeVarianceCheck} 的 SOURCE 组）。
+     */
+    public static int buryingAt(RuinedMachineShapes.Shape shape, int originX, int originZ, int rosterIndex) {
+        return StructureBurialTiers.burialDepthFor(buryCeilingOf(shape), rosterIndex);
+    }
 
     private static RuinedMachineShapes.Shape[] buildPool() {
         final RuinedMachineShapes.Shape[] small = RuinedMachineShapes.ALL;
@@ -289,7 +345,19 @@ public final class RuinedMachinePlacer {
                 // P16-B2：形态由"锚点自由格 + worldSeed"的纯函数给出，锚点槽与每个邻槽各自重放必同源
                 morphAt(worldSeed, roll.shape, x, z));
         } else {
-            place(builder, roll.rnd, roll.shape, x, z, ground, BlockSink.FLAG_POPULATE);
+            // P17 S-D：小机型改前<b>没有</b>埋深通道（整座永远骑在地表上）；现在它与巨构读同一张
+            // 群系埋深档表，只是窗口上界换成本机型字符盘实算的验证档（见 #SMALL_BURY_CEILINGS）。
+            // morph 仍传 null ⇒ 渲染的还是母体字符盘（小机型没有 P16-B2 那四档派生残骸）。
+            place(
+                builder,
+                roll.rnd,
+                roll.shape,
+                x,
+                z,
+                ground,
+                BlockSink.FLAG_POPULATE,
+                null,
+                buryingAt(roll.shape, x, z));
         }
         return permit.commit(counter.solid());
     }
@@ -301,15 +369,33 @@ public final class RuinedMachinePlacer {
      * <p>
      * 为什么必须只有一处：分片协议要求"每个 chunk 画自己那一片"时看到的必须是<b>同一座</b>残骸，
      * 而两处各自算一次就是两个真值源（B1 的鬼影剪影正是这类问题的形状）。
+     * <p>
+     * <b>P17 S-D 补的一刀</b>：群系埋深档也<b>必须</b>在这唯一一处解析，且入参是
+     * {@code originX/originZ}（锚点世界原点）而不是当前 chunk 号 —— 邻槽补片
+     * （{@link #renderForeignSpans}）带的就是这两个原点值，按 chunk 号反查身份会让同一座巨构
+     * 在锚点槽读到 A 档、邻槽读到 B 档，埋深差几层就是鬼影。
      */
     private static RuinedColossusShapes.Morph morphAt(long worldSeed, RuinedMachineShapes.Shape shape, int originX,
         int originZ) {
+        return morphAt(worldSeed, shape, originX, originZ, StructureBurialTiers.rosterIndexAtOrigin(originX, originZ));
+    }
+
+    /**
+     * {@link #morphAt(long, RuinedMachineShapes.Shape, int, int)} 的<b>身份显式形态</b>
+     * （<b>P17 S-D</b>，同一个实现体，只是"锚点原点 → 名册下标"那一跳由调用方给出）：
+     * 离线判据据此在未装配 L1 账本的 JVM 里逐档复算生产同一条形态/埋深链；装配了账本时两条出口
+     * 逐点同值（{@code P17StructureBiomeVarianceCheck} 的 SOURCE 组）。
+     *
+     * @param rosterIndex 锚点原点的 L1 名册下标（{@code -1} ⇒ 默认档 ⇒ 与改造前逐位相同）
+     */
+    public static RuinedColossusShapes.Morph morphAt(long worldSeed, RuinedMachineShapes.Shape shape, int originX,
+        int originZ, int rosterIndex) {
         final RuinedColossusShapes.Colossus c = RuinedColossusShapes.byName(shape.name);
         if (c == null) {
             return null;
         }
         warnUnresolvableColossusKeysOnce();
-        return RuinedColossusShapes.morphAt(worldSeed, originX, originZ, c);
+        return RuinedColossusShapes.morphAt(worldSeed, originX, originZ, c, rosterIndex);
     }
 
     /** GT 壳键是否已经解析过（只在第一次放巨构时探测一次，之后零开销）。 */
@@ -623,12 +709,14 @@ public final class RuinedMachinePlacer {
      */
     private static int placeRange(StructureBuilder builder, Random r, RuinedMachineShapes.Shape shape, int originX,
         int originZ, int dxLo, int dxHi, int dzLo, int dzHi, CityVariants.GroundFn ground, int flags,
-        RuinedColossusShapes.Morph morph) {
+        RuinedColossusShapes.Morph morph, int burying) {
         final int damage = 20 + r.nextInt(76); // 损伤度 20-95（02 §6.3）
         final int missingChance = damage < 40 ? 10 : damage < 70 ? 25 : 45;
         final boolean colossus = RuinedColossusShapes.isColossus(shape.name);
-        final int bury = morph == null ? 0 : morph.bury;
-        final int baseY = morph == null ? 0 : bury; // "垫层恒放"下移到第一层可见格
+        // P17 S-D：morph == null 时埋深来自群系档表（小机型；默认档恒 0 ⇒ 逐位退化回改造前）。
+        // 两者都已在各自那条链上夹进"本形状验证过的最深档"之内，这里只做一次非负自卫。
+        final int bury = Math.max(0, morph == null ? burying : morph.bury);
+        final int baseY = bury; // "垫层恒放"下移到第一层可见格（morph == null && bury == 0 时即改造前的 0）
         // 同列截断状态位（只在巨构支分配；列宽 ≤16 ⇒ 一格一 bit，且该列必属本 chunk）
         final boolean[] broken = morph == null ? null : new boolean[(dxHi - dxLo + 1) * (dzHi - dzLo + 1)];
         int writes = 0;
@@ -707,6 +795,21 @@ public final class RuinedMachinePlacer {
      */
     static int place(StructureBuilder builder, Random r, RuinedMachineShapes.Shape shape, int originX, int originZ,
         CityVariants.GroundFn ground, int flags, RuinedColossusShapes.Morph morph) {
+        return place(builder, r, shape, originX, originZ, ground, flags, morph, 0);
+    }
+
+    /**
+     * {@link #place(StructureBuilder, Random, RuinedMachineShapes.Shape, int, int, CityVariants.GroundFn, int,
+     * RuinedColossusShapes.Morph)} 的<b>群系埋深档</b>形态（<b>P17 S-D</b>）：多收一个已经由
+     * {@link StructureBurialTiers#depthAt} 夹进"本形状验证过的最深档"之内的 {@code burying}。
+     * <p>
+     * 两个入口的分工：{@code morph != null}（跨片巨构）时埋深真值在 {@code morph.bury} 里，
+     * 本参数被忽略（同一座残骸在两槽必须读到同一个埋深，不能让调用点再投一票）；
+     * {@code morph == null}（5 个小机型与 S5 指令）时本参数才是埋深，且默认 {@code 0} ⇒
+     * 既有工具与指令路径<b>逐位</b>退化回改造前。
+     */
+    static int place(StructureBuilder builder, Random r, RuinedMachineShapes.Shape shape, int originX, int originZ,
+        CityVariants.GroundFn ground, int flags, RuinedColossusShapes.Morph morph, int burying) {
         return placeRange(
             builder,
             r,
@@ -719,7 +822,8 @@ public final class RuinedMachinePlacer {
             shape.sizeZ - 1,
             ground,
             flags,
-            morph);
+            morph,
+            burying);
     }
 
     /**
@@ -761,7 +865,40 @@ public final class RuinedMachinePlacer {
         if (dxLo > dxHi || dzLo > dzHi) {
             return 0; // 本 chunk 与总 bbox 不相交（调用方的 intersects 已筛过，这里是自卫）
         }
-        return placeRange(builder, r, shape, originX, originZ, dxLo, dxHi, dzLo, dzHi, ground, flags, morph);
+        return placeRange(builder, r, shape, originX, originZ, dxLo, dxHi, dzLo, dzHi, ground, flags, morph, 0);
+    }
+
+    /**
+     * {@link #placeSlice(StructureBuilder, Random, RuinedMachineShapes.Shape, int, int, int, int,
+     * CityVariants.GroundFn, int, RuinedColossusShapes.Morph)} 的<b>群系埋深档</b>形态
+     * （<b>P17 S-D</b>，{@code tools/dim1/P17StructureBiomeVarianceCheck} 按生产实现体复算四族埋深用）：
+     * {@code morph != null} 时埋深真值仍在 {@code morph.bury}（同一座残骸在两槽必须同源），本参数被忽略；
+     * {@code morph == null}（五个小机型）时本参数就是埋深，传 {@code 0} ⇒ 逐位等于改造前。
+     */
+    public static int placeSlice(StructureBuilder builder, Random r, RuinedMachineShapes.Shape shape, int originX,
+        int originZ, int chunkX, int chunkZ, CityVariants.GroundFn ground, int flags, RuinedColossusShapes.Morph morph,
+        int burying) {
+        final int dxLo = ChunkSpans.localMin(originX, shape.sizeX, chunkX);
+        final int dxHi = ChunkSpans.localMax(originX, shape.sizeX, chunkX);
+        final int dzLo = ChunkSpans.localMin(originZ, shape.sizeZ, chunkZ);
+        final int dzHi = ChunkSpans.localMax(originZ, shape.sizeZ, chunkZ);
+        if (dxLo > dxHi || dzLo > dzHi) {
+            return 0; // 本 chunk 与总 bbox 不相交（调用方的 intersects 已筛过，这里是自卫）
+        }
+        return placeRange(
+            builder,
+            r,
+            shape,
+            originX,
+            originZ,
+            dxLo,
+            dxHi,
+            dzLo,
+            dzHi,
+            ground,
+            flags,
+            morph,
+            morph == null ? burying : 0);
     }
 
     /** 记号→键的单点分流（跨片机型走本族记号表，其余逐字委托既有表）。 */

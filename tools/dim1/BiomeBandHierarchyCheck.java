@@ -94,7 +94,7 @@ public class BiomeBandHierarchyCheck {
     /** 连贯性阈值（与 {@code tools/dim1/BiomeZoneCheck} 同口径）。 */
     private static final double ISLAND_RATIO_MAX = 0.08D;
 
-    /** 主导簇下限（chunk；zoom=4 特征片量级，留足裕量防碎斑）。 */
+    /** 主导簇下限（chunk；P17 S-A 起 zoom=5 档，特征片量级整体上移，本下限按 zoom=4 量级留裕量不抬）。 */
     private static final int DOMINANT_CLUSTER_MIN = 64;
 
     /** 惰性键扫描档（B2 语义：四档身份面必须逐位一致；Config 键本身仍钉默认 64）。 */

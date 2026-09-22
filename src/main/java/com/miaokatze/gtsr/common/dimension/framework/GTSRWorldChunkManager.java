@@ -18,7 +18,7 @@ import com.miaokatze.gtsr.main.GTSteamReborn;
  * 自写 BiomeProvider（dim1 S1 骨架；<b>B1 起群系分布走 GenLayer 链</b>，plan §1.2/§5.4 口径）。
  * <p>
  * <b>B1 双面消费（本片接线）</b>：每维（每 manager 实例）持有一条 {@link GTSRGenLayerChain}
- * （selector→Zoom×4→Smooth 粗层 + VoronoiZoom 细层，入参 = def 群系表 id 的<b>等权</b>数组，
+ * （selector→Zoom×DEFAULT_ZOOM_LEVELS(=5，P17 S-A 由 4 递进)→Smooth 粗层 + VoronoiZoom 细层，入参 = def 群系表 id 的<b>等权</b>数组，
  * 不再引用 45/30/15/10 权重常量），两面分工仿 vanilla {@code WorldChunkManager}：
  * <ul>
  * <li><b>粗层身份面</b>（1:4）：{@link #biomeAt(int, int)}（chunk 粒度，代表点 = chunk 中心块

@@ -70,6 +70,57 @@ public final class RuinPlacer {
     /** 逐块缺失的百分数域（与 {@link CityVariants#MISSING_RATES} 同一词汇）。 */
     private static final int PCT_BOUND = 100;
 
+    /**
+     * 八条废墟各自的"验证过的最深埋深档"（<b>P17 S-D</b>；下标与 {@link RuinShapes#ALL} 同序）。
+     * 值由 {@link StructureBurialTiers#ceilingFor} 从<b>该模板自己的字符盘</b>实算 ⇒
+     * 派生模板字节一格未改（逐名模板 SHA256 钉死面不动，无需 {@code --emit} 重钉）。
+     */
+    private static final int[] BURY_CEILINGS = buildBuryCeilings();
+
+    private static int[] buildBuryCeilings() {
+        final RuinTemplate[] all = RuinShapes.ALL;
+        final int[] out = new int[all.length];
+        for (int i = 0; i < all.length; i++) {
+            out[i] = StructureBurialTiers.ceilingFor(all[i].sizeX, all[i].sizeY, all[i].sizeZ, all[i]::charAt);
+        }
+        return out;
+    }
+
+    /**
+     * 本条废墟的验证档（引用相等查，≤8 次；不在 {@link RuinShapes#ALL} 里的模板 ⇒ 0 = 不埋，
+     * 于是"给了新模板忘了进表"最坏退化成改造前形态，不是越界）。
+     * <b>public 的唯一理由</b>：离线判据要按"档表 × 逐张盘"报实测窗口，不能再抄一份算式。
+     */
+    public static int buryCeilingOf(RuinTemplate ruin) {
+        final RuinTemplate[] all = RuinShapes.ALL;
+        for (int i = 0; i < all.length; i++) {
+            if (all[i] == ruin) {
+                return BURY_CEILINGS[i];
+            }
+        }
+        return 0;
+    }
+
+    /**
+     * 一次放置的埋深（<b>P17 S-D</b>，四族同源）：身份按<b>锚点原点</b>反查 L1 名册下标，档深由
+     * {@link StructureBurialTiers#burialDepthFor} 在 {@code [档表下限, 本模板验证档]} 的窗口里给出
+     * （本族改造前没有抖动埋深通道 ⇒ 实际取的是已夹紧的档表下限，零新增随机源）。
+     * 默认档（身份不可得）⇒ 0 ⇒ 与改造前逐位相同。
+     */
+    public static int buryingAt(RuinTemplate ruin, int originX, int originZ) {
+        return buryingAt(ruin, originX, originZ, StructureBurialTiers.rosterIndexAtOrigin(originX, originZ));
+    }
+
+    /**
+     * {@link #buryingAt(RuinTemplate, int, int)} 的<b>身份显式形态</b>（同一个实现体，只是把
+     * "锚点原点 → 名册下标"那一跳交给调用方）：离线判据据此在未装配 L1 账本的 JVM 里逐档复算
+     * 生产同一条算式（装配了账本时两条出口逐点同值，由
+     * {@code P17StructureBiomeVarianceCheck} 的 SOURCE 组钉）。
+     */
+    public static int buryingAt(RuinTemplate ruin, int originX, int originZ, int rosterIndex) {
+        return StructureBurialTiers.burialDepthFor(buryCeilingOf(ruin), rosterIndex);
+    }
+
     private static volatile boolean registered;
 
     private RuinPlacer() {}
@@ -170,7 +221,9 @@ public final class RuinPlacer {
             roll.missingRate,
             new Random(roll.placeSeed),
             ground,
-            BlockSink.FLAG_POPULATE);
+            BlockSink.FLAG_POPULATE,
+            // P17 S-D：群系埋深档，身份按锚点原点 (x,z) 反查；默认档 ⇒ 0 ⇒ 逐位等于改造前
+            buryingAt(roll.ruin, x, z));
         return permit.commit(counter.solid());
     }
 
@@ -316,14 +369,40 @@ public final class RuinPlacer {
      * 传 0 即"关掉损毁算子"（既有三族走的就是这一支，故本算子对它们不可达）；
      * {@code '.'} 在 {@code y>0} 清空气、在 {@code y=0} 是地坪留白让行地形；
      * 每列落地 y 由 {@code ground} 给出（L2 唯一制式，禁止整台平面接地）。
+     * <p>
+     * <b>P17 S-D 的两条埋深通道要分清</b>（同一条需求"沙漠更多是半埋"在本族的两半）：
+     * <ol>
+     * <li><b>烘进字符盘的那一半</b>（{@link RuinDamageOps#halfBury} 的 {@code sink} 1-2 层）——
+     * 它随模板 SHA256 一起定盘，<b>本切片一格未改</b>（改它要 {@code --emit} 重钉逐名模板 SHA，
+     * 且那是"每座废墟都沉同样深"的族内基线，与群系无关）；</li>
+     * <li><b>运行期的那一半</b>（本方法的 {@code burying}）——由群系档表给出，四族同源。</li>
+     * </ol>
      *
+     * @param burying 已经由 {@link StructureBurialTiers} 夹进"本模板验证过的最深档"内的埋深层数；
+     *                {@code 0} = 与改造前逐位相同（既有三方调用点用的就是这一档）
      * @return 尝试写入 sink 的格数（含被拒绝的）；真实落块数由调用方经
      *         {@link PlacementGate.CountingSink} 折算
      */
     public static int place(StructureBuilder builder, RuinTemplate ruin, int originX, int originZ, int rot,
         int missingRate, Random r, CityVariants.GroundFn ground, int flags) {
+        return place(builder, ruin, originX, originZ, rot, missingRate, r, ground, flags, 0);
+    }
+
+    /**
+     * {@link #place(StructureBuilder, RuinTemplate, int, int, int, int, Random, CityVariants.GroundFn, int)}
+     * 的<b>群系埋深档</b>形态（P17 S-D）：{@code y < burying} 的那几层一格都不写（连清空空气都不写），
+     * 其余每列落地 {@code wy = ground + 1 + (y - burying)} ⇒ 写入面永远在该列地表顶之上，
+     * "垫层恒放"随之下移到第一层可见格。掷缺失误不消费被埋掉的那几层 ⇒ 同一 {@code burying}
+     * 下锚点/邻槽/离线复算三者读到的仍是同一份几何。
+     */
+    public static int place(StructureBuilder builder, RuinTemplate ruin, int originX, int originZ, int rot,
+        int missingRate, Random r, CityVariants.GroundFn ground, int flags, int burying) {
+        final int bury = Math.max(0, burying);
         int writes = 0;
         for (int y = 0; y < ruin.sizeY; y++) {
+            if (y < bury) {
+                continue; // 半埋：这几层在地形以下，一格都不写（与巨构族同一条纪律）
+            }
             for (int dz = 0; dz < ruin.sizeZ; dz++) {
                 for (int dx = 0; dx < ruin.sizeX; dx++) {
                     final char c = ruin.charAt(y, dx, dz);
@@ -333,17 +412,17 @@ public final class RuinPlacer {
                     final int[] rd = StructureBuilder.rotateDelta(dx, dz, rot, ruin.sizeX, ruin.sizeZ);
                     final int wx = originX + rd[0];
                     final int wz = originZ + rd[1];
-                    final int wy = ground.groundY(wx, wz) + 1 + y;
+                    final int wy = ground.groundY(wx, wz) + 1 + (y - bury);
                     if (wy < 1 || wy > 255) {
                         continue;
                     }
                     if (c == '.') {
-                        if (y > 0) {
+                        if (y > bury) {
                             writes += builder.setBlock(wx, wy, wz, CityVariants.K_AIR, 0, flags) ? 1 : 0; // 内腔清空
                         }
-                        continue; // y=0 的 '.' = 地坪留白（地形让行）
+                        continue; // 第一层可见格的 '.' = 地坪留白（地形让行）
                     }
-                    if (y > 0 && missingRate > 0 && r.nextInt(PCT_BOUND) < missingRate) {
+                    if (y > bury && missingRate > 0 && r.nextInt(PCT_BOUND) < missingRate) {
                         continue; // 损伤档缺失（垫层不缺失——既有三族同一纪律）
                     }
                     writes += builder.setBlock(wx, wy, wz, CityVariants.blockKeyOf(c), CityVariants.metaOf(c), flags)

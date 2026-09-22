@@ -14,6 +14,7 @@ import com.miaokatze.gtsr.common.dimension.framework.structure.StructureRegistry
 import com.miaokatze.gtsr.common.dimension.prosperity.ProsperityTerrainProfile;
 import com.miaokatze.gtsr.common.dimension.prosperity.ruins.city.CityBlockResolver;
 import com.miaokatze.gtsr.common.dimension.prosperity.ruins.city.CityVariants;
+import com.miaokatze.gtsr.common.dimension.prosperity.ruins.ruin.StructureBurialTiers;
 import com.miaokatze.gtsr.config.Config;
 
 /**
@@ -248,6 +249,49 @@ public final class ProsperityOutpostPlacer {
     public static final Outpost[] ALL = { WATCH_POST, BROKEN_AQUEDUCT, TOPPLED_BOILER, BRICK_KILN, COLLAPSED_TRUSS,
         GEAR_SLAG_MOUND };
 
+    /**
+     * 六个变体各自的"验证过的最深埋深档"（<b>P17 S-D</b>；下标与 {@link #ALL} 同序）。
+     * 值由 {@link StructureBurialTiers#ceilingFor} 从本变体<b>自己的字符盘</b>实算 ⇒
+     * 模板字节一格未改（逐名模板 SHA 钉死面不动），本类也不写第二个数字真值。
+     */
+    private static final int[] BURY_CEILINGS = buildBuryCeilings();
+
+    private static int[] buildBuryCeilings() {
+        final int[] out = new int[ALL.length];
+        for (int i = 0; i < out.length; i++) {
+            out[i] = StructureBurialTiers.ceilingFor(ALL[i].sizeX, ALL[i].sizeY, ALL[i].sizeZ, ALL[i]::charAt);
+        }
+        return out;
+    }
+
+    /** 本变体的验证档（引用相等查，≤6 次；不在 {@link #ALL} 里的变体 ⇒ 0 = 不埋，最坏退化回改造前）。 */
+    public static int buryCeilingOf(Outpost outpost) {
+        for (int i = 0; i < ALL.length; i++) {
+            if (ALL[i] == outpost) {
+                return BURY_CEILINGS[i];
+            }
+        }
+        return 0;
+    }
+
+    /**
+     * 一次 outpost 放置的埋深（<b>P17 S-D</b>，四族同源）：身份按<b>锚点原点</b>反查，档深走
+     * {@link StructureBurialTiers#burialDepthFor}（本族改造前没有埋深通道 ⇒ 取已夹紧的档表下限，
+     * 零新增随机源、零新增族盐）。默认档（身份不可得）⇒ 0 ⇒ 与改造前逐位相同。
+     */
+    public static int buryingAt(Outpost outpost, int originX, int originZ) {
+        return buryingAt(outpost, originX, originZ, StructureBurialTiers.rosterIndexAtOrigin(originX, originZ));
+    }
+
+    /**
+     * {@link #buryingAt(Outpost, int, int)} 的<b>身份显式形态</b>（同一实现体）：离线判据据此在未装配
+     * L1 账本的 JVM 里逐档复算生产同一条算式；装配了账本时两条出口逐点同值
+     * （{@code P17StructureBiomeVarianceCheck} 的 SOURCE 组）。
+     */
+    public static int buryingAt(Outpost outpost, int originX, int originZ, int rosterIndex) {
+        return StructureBurialTiers.burialDepthFor(buryCeilingOf(outpost), rosterIndex);
+    }
+
     static {
         for (Outpost outpost : ALL) {
             if (outpost.layers.length != outpost.sizeY) {
@@ -391,7 +435,9 @@ public final class ProsperityOutpostPlacer {
             CityVariants.MISSING_RATES[CityVariants.damageTier(roll.placeSeed)],
             new Random(roll.placeSeed),
             ground,
-            BlockSink.FLAG_POPULATE);
+            BlockSink.FLAG_POPULATE,
+            // P17 S-D：群系埋深档，身份按锚点原点 (x,z) 反查；默认档 ⇒ 0 ⇒ 逐位等于改造前
+            buryingAt(roll.outpost, x, z));
         return permit.commit(counter.solid());
     }
 
@@ -481,8 +527,26 @@ public final class ProsperityOutpostPlacer {
      */
     public static int place(StructureBuilder builder, Outpost outpost, int originX, int originZ, int rot,
         int missingRate, Random r, CityVariants.GroundFn ground, int flags) {
+        return place(builder, outpost, originX, originZ, rot, missingRate, r, ground, flags, 0);
+    }
+
+    /**
+     * {@link #place(StructureBuilder, Outpost, int, int, int, int, Random, CityVariants.GroundFn, int)}
+     * 的<b>群系埋深档</b>形态（<b>P17 S-D</b>，四族同源）：{@code y < burying} 的那几层一格都不写
+     * （连清空空气都不写 ⇒ 不在地表以下挖洞），其余每列落地 {@code wy = ground + 1 + (y - burying)}，
+     * "垫层恒放"随之下移到第一层可见格 —— 与 {@code RuinedMachinePlacer.placeRange} 的巨构半埋
+     * 同一条纪律、同一个 {@link StructureBurialTiers} 出口。
+     *
+     * @param burying 已夹进"本变体验证过的最深档"内的埋深层数；{@code 0} ⇒ 与改造前逐位相同
+     */
+    public static int place(StructureBuilder builder, Outpost outpost, int originX, int originZ, int rot,
+        int missingRate, Random r, CityVariants.GroundFn ground, int flags, int burying) {
+        final int bury = Math.max(0, burying);
         int writes = 0;
         for (int y = 0; y < outpost.sizeY; y++) {
+            if (y < bury) {
+                continue; // 半埋：这几层在地形以下，一格都不写
+            }
             for (int dz = 0; dz < outpost.sizeZ; dz++) {
                 for (int dx = 0; dx < outpost.sizeX; dx++) {
                     final char c = outpost.charAt(y, dx, dz);
@@ -493,17 +557,17 @@ public final class ProsperityOutpostPlacer {
                     final int[] rd = StructureBuilder.rotateDelta(dx, dz, rot, outpost.sizeX, outpost.sizeZ);
                     final int wx = originX + rd[0];
                     final int wz = originZ + rd[1];
-                    final int wy = ground.groundY(wx, wz) + 1 + y;
+                    final int wy = ground.groundY(wx, wz) + 1 + (y - bury);
                     if (wy < 1 || wy > 255) {
                         continue;
                     }
                     if (c == '.') {
-                        if (y > 0) {
+                        if (y > bury) {
                             writes += builder.setBlock(wx, wy, wz, CityVariants.K_AIR, 0, flags) ? 1 : 0; // 内腔清空
                         }
-                        continue; // y=0 的 '.' = 地坪留白（地形让行）
+                        continue; // 第一层可见格的 '.' = 地坪留白（地形让行）
                     }
-                    if (y > 0 && r.nextInt(100) < missingRate) {
+                    if (y > bury && r.nextInt(100) < missingRate) {
                         continue; // 损伤档缺失（垫层不缺失）
                     }
                     writes += builder.setBlock(wx, wy, wz, CityVariants.blockKeyOf(c), CityVariants.metaOf(c), flags)

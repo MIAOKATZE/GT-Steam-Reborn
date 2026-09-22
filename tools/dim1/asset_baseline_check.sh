@@ -19,7 +19,7 @@
 #      代价（如实申报）：本门因此需要 gitignore 的 plan/ 目录在场——与既有的
 #      build/classes/java/main、~/.gradle 缓存前置同一性质（都是"开发树门"，非 clean clone 可跑）。
 #
-# 末行输出单行结论：roster=49/49 textures=49/49 SHA=OK（口径不变；页面门在其上方独立成行，红则整体 FAIL）
+# 末行输出单行结论：roster=51/51 textures=67/67 SHA=OK（口径不变；页面门在其上方独立成行，红则整体 FAIL）
 #
 # 离线 Java 运行配方来源：plan/维度计划/调查取证/dim78-修复与整合/v12030-hotfix-replaceruntime-report.md §3（JEP330 单文件）。
 # 实测本两只检只需 build/classes/java/main + forge universal jar（满足 WorldGenShatteredRuins 的
@@ -40,10 +40,13 @@ BATCHES="tools/artgen/dim7879 tools/artgen/dim1"
 # P16-B1 再增长：城外跨 chunk 巨构 2 条（RuinedColossusShapes.ALL）⇒ 47 + 2 = 49，
 # 与 S8RegistryRosterCheck.EXPECTED_TOTAL（= 39 + RuinShapes.ALL.length + RuinedColossusShapes.ALL.length）
 # 同源；本脚本只跟着名册源改数，不独立申报名数。
-# 这是"增员"，与 P0 的"资产未丢"判据是两件事：贴图侧仍钉 49——新族只复用既有方块与记号族，
-# 一张新贴图都不许有（TEXTURES 一旦变成 50/50 就说明本片越了材质红线）。
+# 这是"增员"，与 P0 的"资产未丢"判据是两件事。贴图侧口径更新（P17-SB1，D-6 裁定＝注释同轮改写）：
+# 49 → 67 = P16 的 35(dim7879) + 14(dim1) + P17-SB1 名册新增 18（木 3 档 12 + 花 4 + 草 2）。
+# 本数仍是"跟着两批 OUTPUTS 名册改数"，不是放宽：TEXTURES 与 EXPECTED_TEXTURES 不等即红。
+# 67 → 70 = 上式 35(dim7879) + 14(dim1) + 18(P17-SB1) 再加 P17-S-B2 沙类名册新增 3
+# （细硅沙 / 粗粒沙 / 河床砂砾，均 draw32_dim78.py 手绘层可再生）= 35+14+18+3；同口径改数不放宽。
 EXPECTED_ROSTER=51
-EXPECTED_TEXTURES=49
+EXPECTED_TEXTURES=70
 
 fail() { echo "[FAIL] $*"; exit 1; }
 

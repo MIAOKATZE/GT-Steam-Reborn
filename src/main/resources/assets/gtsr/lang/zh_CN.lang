@@ -2066,6 +2066,24 @@ tile.ProsperityTuftCopper.name=铜绿草丛
 tile.ProsperityRustLog.name=锈木原木
 tile.ProsperityRustLeaves.name=锈树叶
 
+# 维度繁荣蒸汽时代遗迹：P17-SB1 木/花/草名册（树冠三档 + 花四种 + 草两种；非表层方块，meta 恒 0）
+tile.ProsperityCopperLog.name=铜绿原木
+tile.ProsperityCopperLeaves.name=铜绿树冠
+tile.ProsperityBrassLog.name=黄铜原木
+tile.ProsperityBrassLeaves.name=黄铜树冠
+tile.ProsperityMarshLog.name=沼木原木
+tile.ProsperityMarshLeaves.name=沼木树冠
+tile.ProsperityFlowerRust.name=锈华花
+tile.ProsperityFlowerPatina.name=铜绿霜花
+tile.ProsperityFlowerBrass.name=黄铜金盏
+tile.ProsperityFlowerMarsh.name=沼地兰
+tile.ProsperityTuftSedge.name=苔薹草
+tile.ProsperityTuftBristle.name=刚毛草
+# 维度繁荣蒸汽时代遗迹：P17-S-B2 沙/砂砾名册（非表层方块：荒漠铺沙覆盖斑 + 河床料）
+tile.ProsperitySilicaSand.name=硅沙
+tile.ProsperityCoarseSand.name=粗粒沙
+tile.ProsperityRiverGravel.name=河床砂砾
+
 # 繁荣四空气材料 (dim1 S3)
 Material.wastesigh=荒原叹息
 Material.thickgrease=浓稠油污

@@ -2071,6 +2071,24 @@ tile.ProsperityTuftCopper.name=Copper Tuft
 tile.ProsperityRustLog.name=Rust Log
 tile.ProsperityRustLeaves.name=Rust Leaves
 
+# Dimension prosperity-ruins: P17-SB1 wood/flower/tuft roster (3 canopy tiers + 4 flowers + 2 tufts; non-top blocks, meta 0)
+tile.ProsperityCopperLog.name=Verdigris Log
+tile.ProsperityCopperLeaves.name=Verdigris Canopy
+tile.ProsperityBrassLog.name=Brass Log
+tile.ProsperityBrassLeaves.name=Brass Canopy
+tile.ProsperityMarshLog.name=Bogwood Log
+tile.ProsperityMarshLeaves.name=Bogwood Canopy
+tile.ProsperityFlowerRust.name=Rust Bloom
+tile.ProsperityFlowerPatina.name=Patina Frostlily
+tile.ProsperityFlowerBrass.name=Brass Marigold
+tile.ProsperityFlowerMarsh.name=Marsh Orchid
+tile.ProsperityTuftSedge.name=Sedge Tuft
+tile.ProsperityTuftBristle.name=Bristle Tuft
+# Dimension prosperity-ruins: P17-S-B2 sand/gravel roster (non-top surface litter: dune scatter cover + riverbed stock)
+tile.ProsperitySilicaSand.name=Silica Sand
+tile.ProsperityCoarseSand.name=Coarse Sand
+tile.ProsperityRiverGravel.name=River Gravel
+
 # Prosperity Air Materials (dim1 S3)
 Material.wastesigh=Waste Sigh
 Material.thickgrease=Thick Grease

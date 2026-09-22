@@ -26,8 +26,11 @@ import com.miaokatze.gtsr.common.dimension.prosperity.biome.BiomeBrassWastes;
 import com.miaokatze.gtsr.common.dimension.prosperity.biome.BiomeFumaroleSwamp;
 import com.miaokatze.gtsr.common.dimension.prosperity.biome.BiomeGearworkForest;
 import com.miaokatze.gtsr.common.dimension.prosperity.biome.BiomeRustedSteppe;
+import com.miaokatze.gtsr.common.dimension.prosperity.block.BlockProsperityCanopyLeaves;
 import com.miaokatze.gtsr.common.dimension.prosperity.block.BlockProsperityNaturalBase;
 import com.miaokatze.gtsr.common.dimension.prosperity.block.BlockProsperityNaturalTop;
+import com.miaokatze.gtsr.common.dimension.prosperity.block.BlockProsperityRustLog;
+import com.miaokatze.gtsr.common.dimension.prosperity.block.BlockProsperityTuft;
 import com.miaokatze.gtsr.common.dimension.shattered.ChunkProviderShatteredGrounds;
 import com.miaokatze.gtsr.common.dimension.shattered.WorldProviderShatteredLands;
 import com.miaokatze.gtsr.common.dimension.shattered.biome.BiomeAshenPrairie;
@@ -127,6 +130,41 @@ final class SurfaceHarness {
             "ShatteredTarTop", "gtsr:shattered_tar_top", "gtsr:shattered_tar_top_side", "gtsr:shattered_tar_base");
         BlocksGTSR.shatteredTarBase = new BlockShatteredSurfaceBase(
             "ShatteredTarBase", "gtsr:shattered_tar_base");
+        // P17-SB1 名册同步（三处静默面之一，P17-D §3★）：木 3 档 + 花 4 + 草 2 的离线实例。
+        // 构造参数逐字照抄 loader/BlockLoader P17-SB1 段；不接任何生成逻辑，只保证 blockFamily 的
+        // 12 个消费工具能真实测到这些实例（缺席＝静默不覆盖，比红更危险）。
+        BlocksGTSR.prosperityCopperLog = new BlockProsperityRustLog("ProsperityCopperLog",
+            "gtsr:prosperity_copper_log_side", "gtsr:prosperity_copper_log_top");
+        BlocksGTSR.prosperityCopperLeaves = new BlockProsperityCanopyLeaves("ProsperityCopperLeaves",
+            "gtsr:prosperity_copper_leaves_side", "gtsr:prosperity_copper_leaves_top");
+        BlocksGTSR.prosperityBrassLog = new BlockProsperityRustLog("ProsperityBrassLog",
+            "gtsr:prosperity_brass_log_side", "gtsr:prosperity_brass_log_top");
+        BlocksGTSR.prosperityBrassLeaves = new BlockProsperityCanopyLeaves("ProsperityBrassLeaves",
+            "gtsr:prosperity_brass_leaves_side", "gtsr:prosperity_brass_leaves_top");
+        BlocksGTSR.prosperityMarshLog = new BlockProsperityRustLog("ProsperityMarshLog",
+            "gtsr:prosperity_marsh_log_side", "gtsr:prosperity_marsh_log_top");
+        BlocksGTSR.prosperityMarshLeaves = new BlockProsperityCanopyLeaves("ProsperityMarshLeaves",
+            "gtsr:prosperity_marsh_leaves_side", "gtsr:prosperity_marsh_leaves_top");
+        BlocksGTSR.prosperityFlowerRust = new BlockProsperityTuft("ProsperityFlowerRust",
+            "gtsr:prosperity_flower_rust");
+        BlocksGTSR.prosperityFlowerPatina = new BlockProsperityTuft("ProsperityFlowerPatina",
+            "gtsr:prosperity_flower_patina");
+        BlocksGTSR.prosperityFlowerBrass = new BlockProsperityTuft("ProsperityFlowerBrass",
+            "gtsr:prosperity_flower_brass");
+        BlocksGTSR.prosperityFlowerMarsh = new BlockProsperityTuft("ProsperityFlowerMarsh",
+            "gtsr:prosperity_flower_marsh");
+        BlocksGTSR.prosperityTuftSedge = new BlockProsperityTuft("ProsperityTuftSedge",
+            "gtsr:prosperity_tuft_sedge");
+        BlocksGTSR.prosperityTuftBristle = new BlockProsperityTuft("ProsperityTuftBristle",
+            "gtsr:prosperity_tuft_bristle");
+        // P17-S-B2 名册同步（三处静默面之一）：沙/砂砾 3 件的离线实例，构造参数逐字照抄 BlockLoader。
+        // 全部非表层 top（不进 SurfaceGate 名册），消费方 = ProsperityDecorPlacer 的荒漠沙砾趟 + S-C 河床。
+        BlocksGTSR.prosperitySilicaSand = new BlockProsperityNaturalBase("ProsperitySilicaSand",
+            "gtsr:prosperity_silica_sand");
+        BlocksGTSR.prosperityCoarseSand = new BlockProsperityNaturalBase("ProsperityCoarseSand",
+            "gtsr:prosperity_coarse_sand");
+        BlocksGTSR.prosperityRiverGravel = new BlockProsperityNaturalBase("ProsperityRiverGravel",
+            "gtsr:prosperity_river_gravel");
     }
 
     static BiomeGenBase[] prosperityBiomes() {

@@ -1,5 +1,7 @@
 package com.miaokatze.gtsr.common.dimension.prosperity;
 
+import java.util.Random;
+
 import net.minecraft.block.Block;
 import net.minecraft.init.Blocks;
 import net.minecraft.world.World;
@@ -9,10 +11,12 @@ import com.miaokatze.gtsr.common.blocks.BlocksGTSR;
 import com.miaokatze.gtsr.common.dimension.framework.GTSRBiomeAuthority;
 import com.miaokatze.gtsr.common.dimension.framework.GTSRBiomeAuthority.BiomeId;
 import com.miaokatze.gtsr.common.dimension.framework.GTSRChunkProviderBase;
+import com.miaokatze.gtsr.common.dimension.framework.structure.ChunkClampedSink;
 import com.miaokatze.gtsr.common.dimension.prosperity.biome.BiomeBrassWastes;
 import com.miaokatze.gtsr.common.dimension.prosperity.biome.BiomeFumaroleSwamp;
 import com.miaokatze.gtsr.common.dimension.prosperity.biome.BiomeGearworkForest;
 import com.miaokatze.gtsr.common.dimension.prosperity.biome.BiomeRustedSteppe;
+import com.miaokatze.gtsr.common.dimension.prosperity.river.GTSRRiverPlacer;
 
 /**
  * 繁荣维度地形生成器（dim1 S4b，plan §1.2 :59-65 / 02 §2 参数表；S-A1 起自然区按群系独立化）。
@@ -194,5 +198,37 @@ public class ChunkProviderProsperityRuins extends GTSRChunkProviderBase {
                 return 0;
             }
         }
+    }
+
+    /**
+     * populate 钩子（<b>P17 S-C 起 = dim78 河流水系的唯一生产入口</b>，需求原话「增加河流」+
+     * 「沼泽……河网密集」）。
+     * <p>
+     * <b>为什么只能挂在这里</b>（P17-Q2 裁决，码据见 {@link GTSRRiverPlacer} 类注释）：框架表层内核
+     * {@code GTSRChunkProviderBase.applyBiomeSurface} 的列门是「本格须为主体方块」（{@code :348}）+
+     * 「上方须为空气或空槽」（{@code :352} 与 {@code isAirOrEmpty:90-92}）——在
+     * {@link #generateTerrain} 阶段往裸数组里灌水会让"水在 stone 之上"的那些列<b>整列不铺表层、
+     * 不换主体</b>（P17-B 码据）。那是三份表层字节对拍（{@code SurfaceByteParityDump} /
+     * {@code SurfaceDegradationCheck} / {@code SurfaceTranspositionCheck}）的口径面，本片<b>一字未动</b>。
+     * 故水只能在 Chunk 组装、表层替换之后写，本方法是 dim78 唯一那个钩子（框架 {@code populate}
+     * 只转调它，形与 dim79 侧 {@code ChunkProviderShatteredGrounds:109} 的装饰挂点同构）。
+     * <p>
+     * <b>不消费 {@code random} 参数</b>：河道的全部掷骰走 {@code GTSRWorldgenHash} 的坐标哈希
+     * （必须"任一 chunk 可独立重算"才接得上跨 chunk 的河道），因此本方法一处都不碰
+     * {@code this.rand} ⇒ 既有 rand 取数序一字不变，兄弟挂点（结构/装饰在
+     * {@code GameRegistry.generateWorld} 阶段、<b>晚于</b>本方法）看到的世界状态只多了"河"。
+     * <p>
+     * 与四族同源：本方法不新算任何高度——断面用的地表就是
+     * {@link ProsperityTerrainProfile#heightAtWithReliefTier}（与 {@link #generateTerrain} 同一算式，
+     * 只把身份档显式化以免逐列重建链；两出口同值由 {@code P17TerrainReliefCheck} 的 SOURCE 组钉）。
+     */
+    @Override
+    protected void onPopulate(Random random, int chunkX, int chunkZ) {
+        GTSRRiverPlacer.place(
+            this.worldObj,
+            this.worldObj.getSeed(),
+            chunkX,
+            chunkZ,
+            new ChunkClampedSink(this.worldObj, chunkX, chunkZ));
     }
 }

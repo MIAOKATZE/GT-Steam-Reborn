@@ -115,7 +115,17 @@ public final class SurfaceGateUnifyCheck {
         "gtsr:ruinDebris", "gtsr:shatteredCorestone", "gtsr:shatteredMonolith", "gtsr:shatteredAshThorn",
         "gtsr:shatteredSpikeCluster", "gtsr:shatteredAshBase", "gtsr:shatteredAshLog", "gtsr:shatteredSlagBase",
         "gtsr:shatteredGlassBase", "gtsr:shatteredTarBase", "mc:stone", "mc:gravel", "mc:bedrock",
-        "mc:cobblestone" };
+        "mc:cobblestone",
+        // P17-SB1 名册同步（静默面之三，22→34；P17-S-B2 再 34→37，见下方沙类三行）：
+        // 木 3 档 + 花 4 + 草 2 全部申报为"必须关门"——
+        // 它们不是表层 top（plan §0-Q3/§1-S-B），进不了 SurfaceGate 成员表， DIM78_SIZE 恒 5。
+        "gtsr:prosperityCopperLog", "gtsr:prosperityCopperLeaves", "gtsr:prosperityBrassLog",
+        "gtsr:prosperityBrassLeaves", "gtsr:prosperityMarshLog", "gtsr:prosperityMarshLeaves",
+        "gtsr:prosperityFlowerRust", "gtsr:prosperityFlowerPatina", "gtsr:prosperityFlowerBrass",
+        "gtsr:prosperityFlowerMarsh", "gtsr:prosperityTuftSedge", "gtsr:prosperityTuftBristle",
+        // P17-S-B2 名册同步（静默面之三，34→37）：沙/砂砾 3 件同样申报为"必须关门"——它们是
+        // "贴面覆盖斑"，从不替换群系 top（DIM78_SIZE 恒 5 的纪律与 S-B1 同条）。
+        "gtsr:prosperitySilicaSand", "gtsr:prosperityCoarseSand", "gtsr:prosperityRiverGravel" };
 
     /**
      * D 组：门通过率申报带（百分点，闭区间）。口径 = 列级（每列 {@code findSurfaceY} 顶格方块
@@ -544,8 +554,11 @@ public final class SurfaceGateUnifyCheck {
 
         final String decor = stripComments(read(root.resolve(GATE_CALL_SITES[0][0])));
         check(SurfaceGate.DIM78.equals(dimKeyOf(decor)), "E 装饰层 DIM_KEY 声明 == dim78 键");
+        // P17 S-B2 形状申报（次数 pin 未动，仍 5）：1 定义 + 1 框架委托 + 1 个 naturalTopAt 取列谓词
+        // + 碎石趟 2 处内联。新增的树/花/草/沙四趟全部经 naturalTopAt 或 tuftForGround，故不增计数。
         check(count(decor, "isNaturalTop(") == 5,
-            "E 装饰层 = 3 个调用点 + 1 个定义 + 1 个框架委托（实测 " + count(decor, "isNaturalTop(") + "）");
+            "E 装饰层 = 1 定义 + 1 委托 + 1 naturalTopAt + 2 碎石内联 == 5（实测 "
+                + count(decor, "isNaturalTop(") + "）");
 
         final String outpost = stripComments(read(root.resolve(GATE_CALL_SITES[1][0])));
         check(outpost.contains("isNaturalProsperityTop(world.getBlock(centerX, surfaceY, centerZ))"),
@@ -1087,6 +1100,9 @@ public final class SurfaceGateUnifyCheck {
 
         /** 装饰单独跑在 pristine 面上（判据 3 的"纯门效应"侧）。 */
         private void runDecorOnly(RegionWorld world, long seed, int cx0, int cz0) {
+            // P17 S-B2：decorate 现在带身份入参 —— 与生产同一个 ordinalAt 出口、同一个 chunk 中心采样点
+            final GTSRBiomeAuthority decorAuthority = GTSRBiomeAuthority
+                .forDimKey(GTSRBiomeAuthority.DIM_KEY_PROSPERITY);
             final CountingSink sink = new CountingSink(world);
             for (int cx = 1; cx < axis - 1; cx++) {
                 for (int cz = 1; cz < axis - 1; cz++) {
@@ -1098,7 +1114,8 @@ public final class SurfaceGateUnifyCheck {
                     chunksEligibleForPristine++;
                     sink.chunk(gcx, gcz);
                     final long before = sink.accepted;
-                    ProsperityDecorPlacer.decorate(world, seed, gcx, gcz, sink);
+                    ProsperityDecorPlacer
+                        .decorate(world, seed, gcx, gcz, ordinalAt(decorAuthority, gcx, gcz), sink);
                     decorLandedPristine += sink.accepted - before;
                 }
             }
@@ -1153,7 +1170,8 @@ public final class SurfaceGateUnifyCheck {
                     world.cursorZ = cz;
                     countColumns(world, true, cx0, cz0, memberChain, true, CENSUS_PRE_DECOR);
                     final long beforeDecor = sink.accepted;
-                    ProsperityDecorPlacer.decorate(world, seed, gcx, gcz, sink);
+                    ProsperityDecorPlacer
+                        .decorate(world, seed, gcx, gcz, ordinalAt(authority, gcx, gcz), sink);
                     final long landed = sink.accepted - beforeDecor;
                     decorLandedChain += landed;
                     if (landed > 0) {
