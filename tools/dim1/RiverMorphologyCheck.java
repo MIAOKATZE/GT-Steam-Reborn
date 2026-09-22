@@ -27,8 +27,12 @@ import com.miaokatze.gtsr.common.dimension.prosperity.river.GTSRVoronoiRiverFiel
  * <li><b>E 支流连通</b>：Voronoi 三叉点（2×2 列块内 ≥3 个不同最近细胞签名）非零且成量
  * ——边界网络天然连通的分叉证据；</li>
  * <li><b>F 荒漠断流</b>：荒漠档河核列 wetAt 占比 ∈ [0.2,0.4]（约 30%±10 河段有水，串珠断流）；</li>
- * <li><b>G 沼泽河宽 ×1.6</b>：沼泽档/常态档水道半宽比 ∈ [1.3,1.9]（×1.6 断言带）；外加
- * heightAt 河谷集成：河核列 heightAt 与 bedAt 偏差 ≤1.5（压低链真接进了高度）。</li>
+ * <li><b>G 沼泽河宽 ×1.2</b>：沼泽档/常态档水道半宽比 ∈ [1.05,1.45]（v1.20.40 P19 §A.2 重钉：
+ * ×1.6→×1.2 档乘子的行为读数带）；外加 heightAt 河谷集成：河核列 heightAt 与 bedAt 偏差 ≤1.5
+ * （压低链真接进了高度）；</li>
+ * <li><b>H 分段水位与端面（v1.20.40 P19 §B/§C 新增；U2 探针 P2/P3 读数升格）</b>：
+ * H1 同 segKey 湿核列 poolLevelAt 全同（段内恒水面的纯函数性）；H2 干段端面收尾沿顺流剖面
+ * 逐列床高差 ≤ 2（smoothstep 构造 ≤1/列；限顺流方向——段界斜交尖端的横向邻列不在口径内）。</li>
  * </ul>
  *
  * <p>
@@ -75,6 +79,7 @@ public final class RiverMorphologyCheck {
         groupE();
         groupF();
         groupG(centers);
+        groupH();
         report();
     }
 
@@ -143,10 +148,11 @@ public final class RiverMorphologyCheck {
                 && styles[4].widthScale == GTSRVoronoiRiverField.TRUNK_WIDTH_SCALE
                 && !styles[4].shoals && !styles[4].wetGated,
             "length=" + styles.length + " sanzuWidthScale=" + (styles.length > 4 ? styles[4].widthScale : -1));
-        check("A6 越界/缺席名册一律默认档（常态河）且沼泽 widthScale == 1.6×常态",
+        check("A6 越界/缺席名册一律默认档（常态河）且沼泽 widthScale == 1.2×常态（v1.20.40 P19 §A.2 从 1.6"
+            + "收窄——归因 U2 prered 读数 1.2/1.0；带 [1.05,1.45] 见 G1）",
             GTSRVoronoiRiverField.styleForRosterIndex(-1) == GTSRVoronoiRiverField.DEFAULT_STYLE
                 && GTSRVoronoiRiverField.styleForRosterIndex(99) == GTSRVoronoiRiverField.DEFAULT_STYLE
-                && styles[3].widthScale == 1.6D * styles[0].widthScale,
+                && styles[3].widthScale == 1.2D * styles[0].widthScale,
             "widthScale=" + styles[3].widthScale + "/" + styles[0].widthScale);
         check("A7 床档表值域：常态床目标=64.5（水面 68 ⇒ 水深 2-5 源头）、沼泽床 ∈ [66.5,67.5]（水面近地）",
             styles[0].bedTarget == GTSRVoronoiRiverField.BED_TARGET
@@ -256,8 +262,9 @@ public final class RiverMorphologyCheck {
         final double median = median(widths);
         say("B-READ 常态水道半宽 样本=" + widths.size() + " p10/中位/p90=" + pct(widths, 10) + "/"
             + f3(median) + "/" + pct(widths, 90));
-        check("B1 常态河半宽中位数 ∈ [5,8] 格（plan §3.1 目标带；校准回路 WIDTH 的验收读数）",
-            widths.size() >= N_CENTERS / 2 && median >= 5.0D && median <= 8.0D,
+        check("B1 常态河半宽中位数 ∈ [3,4.5] 格（v1.20.40 P19 §A.2 重钉：WIDTH 0.14→0.08 收窄后的目标带"
+            + "「常态半宽 3-4.5 格」；归因 U2/U34 prered 中位 4.0 在带）",
+            widths.size() >= N_CENTERS / 2 && median >= 3.0D && median <= 4.5D,
             "中位=" + f3(median) + " n=" + widths.size());
     }
 
@@ -275,8 +282,9 @@ public final class RiverMorphologyCheck {
         final double median = median(slopes);
         say("C-READ 谷坡半宽（水缘→谷缘 s==0）样本=" + slopes.size() + " p10/中位/p90=" + pct(slopes, 10)
             + "/" + f3(median) + "/" + pct(slopes, 90));
-        check("C1 谷坡半宽中位数 ∈ [20,40] 格（plan §3.1 校准目标；valleyLevel 校准回路的验收读数）",
-            slopes.size() >= N_CENTERS / 2 && median >= 20.0D && median <= 40.0D,
+        check("C1 谷坡半宽中位数 ∈ [15,35] 格（v1.20.40 P19 §A.5 重钉：两段式压低+收窄后的校准带；"
+            + "归因 U2/U34 prered 中位 19.0 在带）",
+            slopes.size() >= N_CENTERS / 2 && median >= 15.0D && median <= 35.0D,
             "中位=" + f3(median) + " n=" + slopes.size());
     }
 
@@ -434,9 +442,10 @@ public final class RiverMorphologyCheck {
         }
         final double ratio = median(swamp) / Math.max(1.0D, median(normal));
         say("G-READ 水道半宽 常态中位=" + f3(median(normal)) + " 沼泽中位=" + f3(median(swamp)) + " 比值="
-            + f3(ratio) + "（档表 widthScale=1.6）");
-        check("G1 沼泽河宽 ≈ 常态 ×1.6（档表乘子的行为读数；断言带 [1.3,1.9]）",
-            !swamp.isEmpty() && ratio >= 1.3D && ratio <= 1.9D, "比值=" + f3(ratio));
+            + f3(ratio) + "（档表 widthScale=1.2）");
+        check("G1 沼泽河宽 ≈ 常态 ×1.2（v1.20.40 P19 §A.2 档乘子收窄 1.6→1.2 的行为读数；半宽整数化的"
+            + "量化容差后断言带 [1.05,1.45]——归因 U2/U34 prered 实测 1.250 居带中）",
+            !swamp.isEmpty() && ratio >= 1.05D && ratio <= 1.45D, "比值=" + f3(ratio));
         // heightAt 集成：河核列地表 = round(bed)（高地支）或低地原样 h0 ≤ bed+1（防抬升支）
         // ⇒ 上界 h1 ≤ bed+1 恒成立；|h1-bed| ≤1.5 的平底占比应是绝大多数（低地支是少数）。
         int n = 0;
@@ -483,6 +492,145 @@ public final class RiverMorphologyCheck {
             }
         }
         check("G3 heightAt 值域 [40,110] 不变（压低链不破钳制契约）", rangeBad == 0, "越界=" + rangeBad);
+    }
+
+    // ══════════════════════ H 分段水位与端面（v1.20.40 P19 §B/§C 新增） ══════════════════════
+
+    /**
+     * P19 §B/§C 两个新面的正式断言（U2/U34 切片探针读数升格，验收 = 面被钉住）：
+     * <ul>
+     * <li><b>H1 池水位水平</b>：按 segKey（细胞对签名 = 段）分组后钉 §C 的构造不变量——
+     * 一条细胞边只有<b>两个端点结点</b>，每端点的结点裁决（三边池水位取最小，"水往低池走"）
+     * 只产生<b>一个</b>低于本段基池的档 ⇒ 每段的 poolLevelAt 档数 ≤ 3（本体 + 两端结点档），
+     * 且达到段内最高池（= 边基池）的列占绝对多数。全部同档的严格版（U2 探针 P2 的 48 点）只对
+     * 边中段成立——湿核列穿过端结点域时按裁决降档是<b>设计行为</b>（首轮实测湿核列 ~2 成带结点
+     * 降档、12/36 向几何探环均有漏检角，故放弃"全同"与几何排除两种钉法），档数 &gt; 3 或最高池
+     * 非多数 ⇒ 分段实现里存在逐列噪声型第二真值源；</li>
+     * <li><b>H2 端面渐变</b>（U34 遗留① 的顺流口径）：荒漠整段闸档湿核列的干段端面（面 A：
+     * 邻列换段且（非湿核 或 邻段未激活——与 endFaceBed 的面检测同判式））收尾，沿面向段内的
+     * <b>顺流剖面</b>逐列床高差 ≤ 2——endFaceBed 的 smoothstep 抬升式每列 ≤ (target−bed)/2 ≪ 2
+     * （U34 探针 P5：沿程剖面 ≤1/列）。段界斜交尖端的<b>横向</b>邻列小槛（同探针 2/80 的已知
+     * 遗留）不在顺流口径内。</li>
+     * </ul>
+     */
+    static void groupH() {
+        // —— H1 池水位水平（每段档数 ≤ 3 = 本体 + 两端结点档；最高池 = 边基池占多数）——
+        final java.util.HashMap<Long, java.util.HashMap<Integer, int[]>> segPools =
+            new java.util.HashMap<Long, java.util.HashMap<Integer, int[]>>();
+        int cols = 0;
+        for (int z = -SCAN_EXTENT; z <= SCAN_EXTENT; z += SCAN_STRIDE * 2) {
+            for (int x = -SCAN_EXTENT; x <= SCAN_EXTENT; x += SCAN_STRIDE * 2) {
+                if (s(x, z) < GTSRVoronoiRiverField.WET_MIN) {
+                    continue;
+                }
+                cols++;
+                final long key = GTSRVoronoiRiverField.segKeyAt(SEED, x, z);
+                final int pool = GTSRVoronoiRiverField.poolLevelAt(SEED, x, z, 0);
+                java.util.HashMap<Integer, int[]> hist = segPools.get(Long.valueOf(key));
+                if (hist == null) {
+                    segPools.put(Long.valueOf(key), hist = new java.util.HashMap<Integer, int[]>());
+                }
+                final int[] slot = hist.get(Integer.valueOf(pool));
+                if (slot == null) {
+                    hist.put(Integer.valueOf(pool), new int[] { 1 });
+                } else {
+                    slot[0]++;
+                }
+            }
+        }
+        int worstLevels = 0;
+        int segsOverLevels = 0;
+        double worstMaxShare = 1.0D;
+        for (final java.util.HashMap<Integer, int[]> hist : segPools.values()) {
+            int total = 0;
+            int maxCount = 0;
+            final int levels = hist.size();
+            worstLevels = Math.max(worstLevels, levels);
+            for (final int[] c : hist.values()) {
+                total += c[0];
+                maxCount = Math.max(maxCount, c[0]);
+            }
+            if (levels > 3) {
+                segsOverLevels++;
+            }
+            worstMaxShare = Math.min(worstMaxShare, maxCount / (double) total);
+        }
+        say("H-READ 池水位水平：湿核列=" + cols + " 段（segKey）=" + segPools.size() + " 段内档数最坏=" + worstLevels
+            + " 档数>3 的段=" + segsOverLevels + " 最高池份额最坏=" + f3(worstMaxShare));
+        check("H1 每段 poolLevelAt 档数 ≤ 3（本体 + 两端结点裁决档）且段内最高池份额 ≥ 1/2（P19 §C 段内恒"
+            + "水面 + 结点取最小；实测最坏 0.500 = 短段两端结点域占满余量；档数超限或基池份额跌穿半数 = "
+            + "逐列噪声型第二真值源）",
+            segPools.size() >= N_CENTERS / 2 && segsOverLevels == 0 && worstMaxShare >= 0.5D,
+            "段=" + segPools.size() + " 档数最坏=" + worstLevels + " 最高池份额最坏=" + f3(worstMaxShare));
+        // —— H2 端面渐变（顺流剖面逐列床高差 ≤ 2）——
+        // 扫描步距用 SCAN_STRIDE（端面 dist=1 抬满列是稀有面：U34 探针 80 抬升列/5665 湿核列
+        // ≈1.4%，步距放大后窗内只剩个位数锚点——首轮 ×4 步距实测 walks=1）。
+        int walks = 0;
+        int badPairs = 0;
+        double worst = 0.0D;
+        for (int z = -SCAN_EXTENT; z <= SCAN_EXTENT; z += SCAN_STRIDE) {
+            for (int x = -SCAN_EXTENT; x <= SCAN_EXTENT; x += SCAN_STRIDE) {
+                if (-GTSRVoronoiRiverField.strengthAt(SEED, x, z, 2) < GTSRVoronoiRiverField.WET_MIN
+                    || !GTSRVoronoiRiverField.wetAt(SEED, x, z, 2)) {
+                    continue;
+                }
+                // 端面锚（dist=1 列）：8 邻域内"换段且（非湿核 或 邻段未激活）"的邻列 = 干段面
+                // （与 endFaceBed 面 A 同判式）；床已抬满（round(bed) ≥ pool ⇒ dist=1 抬满到 pool−0.5）
+                final long ownKey = GTSRVoronoiRiverField.segKeyAt(SEED, x, z);
+                final int pool = GTSRVoronoiRiverField.poolLevelAt(SEED, x, z, 2);
+                if (Math.round(GTSRVoronoiRiverField.bedAt(SEED, x, z, 2)) < pool) {
+                    continue;
+                }
+                int fdx = 0;
+                int fdz = 0;
+                seek: for (int dz = -1; dz <= 1; dz++) {
+                    for (int dx = -1; dx <= 1; dx++) {
+                        if (dx == 0 && dz == 0) {
+                            continue;
+                        }
+                        final int nx = x + dx;
+                        final int nz = z + dz;
+                        if (GTSRVoronoiRiverField.segKeyAt(SEED, nx, nz) != ownKey
+                            && (-GTSRVoronoiRiverField.strengthAt(SEED, nx, nz, 2) < GTSRVoronoiRiverField.WET_MIN
+                                || !GTSRVoronoiRiverField.segWetAt(SEED, nx, nz))) {
+                            fdx = dx;
+                            fdz = dz;
+                            break seek;
+                        }
+                    }
+                }
+                if (fdx == 0 && fdz == 0) {
+                    continue;
+                }
+                // 顺流剖面 = 面向的反方向（同一几何直线收进段内）走 END_FACE_LEN−1 列
+                double prev = GTSRVoronoiRiverField.bedAt(SEED, x, z, 2);
+                boolean any = false;
+                for (int k = 1; k < GTSRVoronoiRiverField.END_FACE_LEN; k++) {
+                    final int nx = x - fdx * k;
+                    final int nz = z - fdz * k;
+                    if (-GTSRVoronoiRiverField.strengthAt(SEED, nx, nz, 2) < GTSRVoronoiRiverField.WET_MIN
+                        || GTSRVoronoiRiverField.segKeyAt(SEED, nx, nz) != ownKey) {
+                        break; // 出湿核/出段：剖面只在本段湿核列上判
+                    }
+                    final double bed = GTSRVoronoiRiverField.bedAt(SEED, nx, nz, 2);
+                    final double d = Math.abs(bed - prev);
+                    worst = Math.max(worst, d);
+                    if (d > 2.0D) {
+                        badPairs++;
+                    }
+                    prev = bed;
+                    any = true;
+                }
+                if (any) {
+                    walks++;
+                }
+            }
+        }
+        say("H-READ 端面渐变（荒漠档顺流剖面）：剖面数=" + walks + " 逐列 |Δbed|>2 的对=" + badPairs + " 最坏="
+            + f3(worst));
+        check("H2 干段端面收尾沿顺流剖面逐列床高差 ≤ 2（P19 §B smoothstep 抬升式；U34 遗留① 的"
+            + "横向尖端小槛不在顺流口径内）",
+            walks >= 8 && badPairs == 0, "walks=" + walks + " badPairs=" + badPairs + " worst=" + f3(worst));
     }
 
     // ══════════════════════ 统计小件 ══════════════════════

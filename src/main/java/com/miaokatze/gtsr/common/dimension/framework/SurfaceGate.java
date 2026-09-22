@@ -54,9 +54,10 @@ import com.miaokatze.gtsr.main.GTSteamReborn;
  * 城 buffer 窗 chunk 按同源 CityPlanner.citiesNear 判据排除；采样前提"列内无悬块/无洞穴"
  * 实测 violations=0（悬块/洞穴会让列级口径与门读到的地表不同源，故必须先证它为空）。
  *
- * 样本（权威跑，v1.20.39 T8 改链后重跑回写 2026-09-22；上一轮 = P17 复测同日）：8 seed × 8 区 × 16×16 chunk
+ * 样本（权威跑，v1.20.40 P19-U9 变体场后重跑回写 2026-09-22；上一轮 = v1.20.39 T8 改链后同日）：
+ * 8 seed × 8 区 × 16×16 chunk
  *                ＝ 16384 chunk 生成 / 12544 区内部 chunk 采样
- *                / <b>11443</b> eligible chunk / <b>2 929 408</b> 列（dim78）＋ 401 408 列（dim79）
+ *                / <b>11650</b> eligible chunk / <b>2 982 400</b> 列（dim78）＋ 401 408 列（dim79）
  *
  * ★<b>本表没有任何判据钉住这些数字</b>（D 组钉的是成员名集合与通过率带，不是份额）——
  *   改动群系身份链 / 编排链 / 散布门后必须重跑并回写，否则它就成了第二条"看着像真值"的假事实。
@@ -65,11 +66,11 @@ import com.miaokatze.gtsr.main.GTSteamReborn;
  *
  * dimKey                   |集合|成员（BlocksGTSR 字段名）                    |口径A  |口径C  |份额 A ／ 份额 C
  * -------------------------+----+----------------------------------------------+-------+-------+------------------
- * prosperity-ruins(dim78)  | 5 |prosperitySurface                             |100.000| 99.178| 0.000 ／  0.000 ← 新增面（列级通过率）
- *                          |    |prosperitySteppeTop                           | %     | %     | 21.076 ／ 20.898
- *                          |    |prosperityForestTop                           |       |       | 26.334 ／ 26.128
- *                          |    |prosperityWastesTop                           |       |       | 22.619 ／ 22.396
- *                          |    |prosperitySwampTop                            |       |       | 29.971 ／ 29.756
+ * prosperity-ruins(dim78)  | 5 |prosperitySurface                             |100.000| 99.208| 0.000 ／  0.001 ← 新增面（列级通过率）
+ *                          |    |prosperitySteppeTop                           | %     | %     | 21.646 ／ 21.464
+ *                          |    |prosperityForestTop                           |       |       | 25.866 ／ 25.668
+ *                          |    |prosperityWastesTop                           |       |       | 22.370 ／ 22.163
+ *                          |    |prosperitySwampTop                            |       |       | 30.118 ／ 29.911
  * shattered-lands(dim79)   | 4 |shatteredAshTop / SlagTop / GlassTop / TarTop |100.000| —     | 四 top 合计 100.000
  *                          |    |                                              | %     |（dim79 无编排链可跑）
  * </pre>

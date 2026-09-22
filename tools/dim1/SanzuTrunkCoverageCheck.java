@@ -14,21 +14,26 @@ import com.miaokatze.gtsr.common.dimension.prosperity.river.GTSRVoronoiRiverFiel
  * strengthAt 对 rosterIndex 构造不变 ⇒ -1 与生产档同解，见 isSanzuColumn javadoc）。
  *
  * <p>
- * ═══ 五组断言（全部实跑；阈值 = plan §8 验收指标，统计功效参数全部从生产常数派生——
+ * ═══ 六组断言（全部实跑；阈值 = plan 验收指标，统计功效参数全部从生产常数派生——
  * v1.20.38 纪律 2：不写字面量窗口）═══
  * <ul>
  * <li><b>A 合同面</b>：trunkAt 值域/确定性/换 seed；lakeAt 主干门（带外恒 NO_LAKE、带内存在非
  * 哨兵）；档表族 5 元（RIVER_STYLE[4]=主干宽河档、RELIEF[4]=0.38、DEPTH[4]=0.05、VEG 长度 5）；
  * strengthAt 值域仍 ⊆ [-1,0]；主干带内 s 对 rosterIndex 不变（宽档 max(底,3.5) 的构造不变量）；</li>
- * <li><b>B 主干覆盖占河网 1/6-1/8</b>：河核列（s≥WET_MIN）口径，主干带内核列份额 ∈
- * [12.5%, 16.7%]（SANZU_TRUNK_EDGE 校准回路的验收读数，对齐门后实测）；</li>
- * <li><b>C 巨湖存在 + 水面口径</b>：主干带内 c_lake&lt;LAKE_WATER_LEVEL 的 4-连通区存在且规模
- * 超阈（离散巨湖，非边界湖网）；湖心列 heightAt 压至 62-64 带（水面 SEA_LEVEL=68 ⇒ 深 4-6）；</li>
+ * <li><b>B 主干覆盖占河网 ∈ [11%,16.7%]</b>：河核列（s≥WET_MIN）口径（v1.20.40 P19 §A.2
+ * 重钉：WIDTH 0.14→0.08 收窄后下界从 1/8 收口到 11%，上界 1/6 语义不变）；</li>
+ * <li><b>C 巨湖存在 + 湖心渐深</b>（v1.20.40 P19 §D 重钉）：主干带内 c_lake&lt;LAKE_WATER_LEVEL
+ * 的 4-连通区存在且规模超阈；最大区 h 全部 ≤ SEA_LEVEL + 湖心压力带 minH 锚在
+ * SEA_LEVEL−LAKE_CENTER_DEPTH ±2 + 水缘带 maxH−湖心带 minH ≥ 5（中心渐深梯度）；C3 湖形
+ * 不规则度 = 最大湖 8 向水径 CV &gt; 0.1（domain-warp 破圆，纯圆 = 0）；</li>
  * <li><b>D 少支流</b>：主干带内"三叉块"（2×2 采样块内 ≥3 个不同最近细胞签名的河核列）密度
  * 显著低于带外对照（对齐门清零横截次级边界的行为读数；"很少支流"≠零分叉，带内近结点
  * 60° 短残支按设计保留，故按密度对比断言——TRUNK_ALIGN_COS javadoc 口径）；</li>
  * <li><b>E sanzu 列存在 + 细长</b>：isSanzuColumn 列数 &gt; 0；最大 4-连通簇的长短轴比
- * （协方差特征值 √(λmax/λmin)）&gt; 5（plan §6-T5 细长断言；形状 = 河道核 × 主干带交集）。</li>
+ * （协方差特征值 √(λmax/λmin)）&gt; 5（plan §6-T5 细长断言；形状 = 河道核 × 主干带交集）；</li>
+ * <li><b>F 沼泽微池</b>（v1.20.40 P19 §E 新增）：swampLakeAt 第二激活档（rosterIndex==3）在窗内
+ * 的 4-连通水域簇数 ≥ 粗格数 1/4、最大簇 π 反解半径 ∈ [0.7,1.4]×INTERVAL×W/(1+W)（U34 探针
+ * P4 升格）。</li>
  * </ul>
  *
  * <p>
@@ -44,8 +49,9 @@ public final class SanzuTrunkCoverageCheck {
     static final int SCAN_EXTENT = (int) (GTSRVoronoiRiverField.TRUNK_SCALE * 2);
     /** 主扫描步距（格）：SEPARATION/64 = 16（与 RiverMorphologyCheck 的分叉步距同口径）。 */
     static final int SCAN_STRIDE = (int) (GTSRVoronoiRiverField.SEPARATION / 64);
-    /** 主干覆盖判据带（plan §3.3：占河网 1/6-1/8 ⇒ [12.5%, 16.7%]）。 */
-    static final double COVER_MIN = 1.0D / 8.0D;
+    /** 主干覆盖判据带（v1.20.40 P19 §A.2 重钉：WIDTH 0.14→0.08 收窄挤掉份额 −0.37pp——下界从 1/8
+     * 收口到 11%（U2/U34/U8 prered 三轮实测 12.132% 稳定在带内），上界 1/6 语义不变）。 */
+    static final double COVER_MIN = 0.11D;
     static final double COVER_MAX = 1.0D / 6.0D;
     /** 巨湖扫描窗半径（格）：3×TRUNK_SCALE——湖间隔 LAKE_INTERVAL=1200 下窗内 ≥ 数十个湖细胞。 */
     static final int LAKE_EXTENT = (int) (GTSRVoronoiRiverField.TRUNK_SCALE * 3);
@@ -108,6 +114,7 @@ public final class SanzuTrunkCoverageCheck {
         groupC();
         groupD(n, trunk, core, hash);
         groupE(n, sanzu, sanzuPre);
+        groupFSwampPools();
         report();
     }
 
@@ -196,7 +203,7 @@ public final class SanzuTrunkCoverageCheck {
                 + "（河核 " + coreTotal + " 列 / 主干河核 " + coreTrunk + " 列；目标带 ["
                 + f3(100.0D * COVER_MIN) + "%," + f3(100.0D * COVER_MAX) + "%]，SANZU_TRUNK_EDGE="
                 + GTSRVoronoiRiverField.SANZU_TRUNK_EDGE + "）");
-        check("B1 主干覆盖占河网 1/6-1/8（SANZU_TRUNK_EDGE 校准回路的验收读数）",
+        check("B1 主干覆盖占河网 ∈ [11%,16.7%]（v1.20.40 P19 §A.2 重钉：WIDTH 收窄后下界从 1/8 收口到 11%，上界 1/6 语义不变；归因 U2/U34/U8 prered 实测 12.132%）",
             share >= COVER_MIN && share <= COVER_MAX, "份额=" + f3(100.0D * share) + "%");
     }
 
@@ -204,14 +211,15 @@ public final class SanzuTrunkCoverageCheck {
 
     static void groupC() {
         final int n = 2 * (LAKE_EXTENT / LAKE_STRIDE) + 1;
-        final byte[] lake = new byte[n * n]; // 1 = 湖水区样本
+        final double[] pressure = new double[n * n]; // >0 = 湖水区样本的湖压（LAKE_WATER_LEVEL − c_lake）
         int lakeSamples = 0;
         for (int iz = 0; iz < n; iz++) {
             final int z = -LAKE_EXTENT + iz * LAKE_STRIDE;
             for (int ix = 0; ix < n; ix++) {
                 final int x = -LAKE_EXTENT + ix * LAKE_STRIDE;
-                if (GTSRVoronoiRiverField.lakeAt(SEED, x, z) < GTSRVoronoiRiverField.LAKE_WATER_LEVEL) {
-                    lake[iz * n + ix] = 1;
+                final double p = GTSRVoronoiRiverField.LAKE_WATER_LEVEL - GTSRVoronoiRiverField.lakeAt(SEED, x, z);
+                if (p > 0.0D) {
+                    pressure[iz * n + ix] = p;
                     lakeSamples++;
                 }
             }
@@ -223,7 +231,7 @@ public final class SanzuTrunkCoverageCheck {
         int bestId = 0;
         final int[] stack = new int[n * n];
         for (int i = 0; i < n * n; i++) {
-            if (lake[i] == 0 || mark[i] != 0) {
+            if (pressure[i] <= 0.0D || mark[i] != 0) {
                 continue;
             }
             regions++;
@@ -236,19 +244,19 @@ public final class SanzuTrunkCoverageCheck {
                 size++;
                 final int px = p % n;
                 final int pz = p / n;
-                if (px > 0 && lake[p - 1] == 1 && mark[p - 1] == 0) {
+                if (px > 0 && pressure[p - 1] > 0.0D && mark[p - 1] == 0) {
                     mark[p - 1] = regions;
                     stack[top++] = p - 1;
                 }
-                if (px < n - 1 && lake[p + 1] == 1 && mark[p + 1] == 0) {
+                if (px < n - 1 && pressure[p + 1] > 0.0D && mark[p + 1] == 0) {
                     mark[p + 1] = regions;
                     stack[top++] = p + 1;
                 }
-                if (pz > 0 && lake[p - n] == 1 && mark[p - n] == 0) {
+                if (pz > 0 && pressure[p - n] > 0.0D && mark[p - n] == 0) {
                     mark[p - n] = regions;
                     stack[top++] = p - n;
                 }
-                if (pz < n - 1 && lake[p + n] == 1 && mark[p + n] == 0) {
+                if (pz < n - 1 && pressure[p + n] > 0.0D && mark[p + n] == 0) {
                     mark[p + n] = regions;
                     stack[top++] = p + n;
                 }
@@ -258,11 +266,18 @@ public final class SanzuTrunkCoverageCheck {
                 bestId = regions;
             }
         }
-        // 湖心列高度口径：最大区内逐样本 heightAt
+        // 湖心渐深口径（v1.20.40 P19 §D 重钉）：最大区内逐样本 heightAt 分压力带——
+        // 湖心带（湖压 ≥ 2/3 水位线）minH 锚在 SEA_LEVEL−LAKE_CENTER_DEPTH ±2；
+        // 水缘带（湖压 < 1/3 水位线）maxH 与湖心带 minH 的差 = 中心渐深梯度。
         int hChecked = 0;
-        int inBedBand = 0;
         int hMin = Integer.MAX_VALUE;
         int hMax = Integer.MIN_VALUE;
+        int centerMinH = Integer.MAX_VALUE;
+        int rimMaxH = Integer.MIN_VALUE;
+        int centerSamples = 0;
+        int rimSamples = 0;
+        long centroidX = 0;
+        long centroidZ = 0;
         for (int iz = 0; iz < n; iz++) {
             final int z = -LAKE_EXTENT + iz * LAKE_STRIDE;
             for (int ix = 0; ix < n; ix++) {
@@ -270,32 +285,238 @@ public final class SanzuTrunkCoverageCheck {
                 if (mark[i] != bestId) {
                     continue;
                 }
+                centroidX += -LAKE_EXTENT + ix * LAKE_STRIDE;
+                centroidZ += z;
                 final int h = ProsperityTerrainProfile.heightAt(SEED, -LAKE_EXTENT + ix * LAKE_STRIDE, z);
                 hChecked++;
-                if (h >= LAKE_BED_MIN && h <= LAKE_BED_MAX) {
-                    inBedBand++;
-                }
                 hMin = Math.min(hMin, h);
                 hMax = Math.max(hMax, h);
+                if (pressure[i] >= GTSRVoronoiRiverField.LAKE_WATER_LEVEL * 2.0D / 3.0D) {
+                    centerMinH = Math.min(centerMinH, h);
+                    centerSamples++;
+                }
+                if (pressure[i] < GTSRVoronoiRiverField.LAKE_WATER_LEVEL / 3.0D) {
+                    rimMaxH = Math.max(rimMaxH, h);
+                    rimSamples++;
+                }
             }
         }
-        final double bedShare = hChecked == 0 ? 0.0D : inBedBand / (double) hChecked;
+        final double depthGrad = hChecked == 0 || centerMinH == Integer.MAX_VALUE || rimMaxH == Integer.MIN_VALUE
+            ? -1.0D
+            : rimMaxH - (double) centerMinH;
         say(
             "C-READ 巨湖（主干带内 c_lake<LAKE_WATER_LEVEL，粗扫步距 " + LAKE_STRIDE + "）：湖水样本=" + lakeSamples
                 + " 连通区=" + regions + " 最大区=" + best + " 样本（≈" + (best * LAKE_STRIDE * LAKE_STRIDE)
-                + " 列）；最大区 heightAt ∈ [" + hMin + "," + hMax + "]，62-64 带内占比 "
-                + f3(100.0D * bedShare) + "%（水面 SEA_LEVEL=" + ProsperityTerrainProfile.SEA_LEVEL + "）");
+                + " 列）；最大区 heightAt ∈ [" + hMin + "," + hMax + "]，湖心带(" + centerSamples + "样本) minH="
+                + centerMinH + " 水缘带(" + rimSamples + "样本) maxH=" + rimMaxH + " 渐深差=" + f3(depthGrad)
+                + "（水面 SEA_LEVEL=" + ProsperityTerrainProfile.SEA_LEVEL + " 湖心锚="
+                + (ProsperityTerrainProfile.SEA_LEVEL - (int) GTSRVoronoiRiverField.LAKE_CENTER_DEPTH) + "）");
         check("C1 巨湖存在：最大 4-连通区 ≥ " + LAKE_MIN_SAMPLES + " 样本（离散巨湖，非边界湖网）",
             best >= LAKE_MIN_SAMPLES && regions > 0, "最大区=" + best + " 区数=" + regions);
-        check("C2 湖心床口径：最大区 heightAt ≥90% ∈ [62,64] 且全部 < SEA_LEVEL（水面 68 ⇒ 深 4-6；"
-            + "低地湖心更深列按防抬升语义保留并逐样本报数）",
-            hChecked > 0 && bedShare >= 0.9D && hMax < ProsperityTerrainProfile.SEA_LEVEL,
-            "band=" + f3(100.0D * bedShare) + "% h∈[" + hMin + "," + hMax + "]");
+        // v1.20.40 P19 §D 重钉（归因 U34 prered：渐深后旧"62-64 带 ≥90%"口径失去意义——
+        // 湖滨锚 67/湖心锚 58，最大区 h ∈ [57,67]；LAKE_BED_TARGET 不再参与生成，随退役）。
+        check("C2 湖心渐深：最大区 h 全部 ≤ SEA_LEVEL（湖床不高于水面）且湖心带 minH ∈ [SEA_LEVEL−"
+            + "LAKE_CENTER_DEPTH−2, SEA_LEVEL−LAKE_CENTER_DEPTH+2] 且 水缘带 maxH − 湖心带 minH ≥ 5"
+            + "（中心渐深梯度；U34 探针 P2 实测 diff=11）",
+            hChecked > 0 && hMax <= ProsperityTerrainProfile.SEA_LEVEL
+                && centerMinH >= ProsperityTerrainProfile.SEA_LEVEL - (int) GTSRVoronoiRiverField.LAKE_CENTER_DEPTH - 2
+                && centerMinH <= ProsperityTerrainProfile.SEA_LEVEL - (int) GTSRVoronoiRiverField.LAKE_CENTER_DEPTH + 2
+                && depthGrad >= 5.0D,
+            "h∈[" + hMin + "," + hMax + "] 湖心minH=" + centerMinH + " 水缘maxH=" + rimMaxH + " 渐深差="
+                + f3(depthGrad));
+        groupCLakeShape();
     }
 
-    /** 湖床带下/上界（派生：LAKE_BED_TARGET ± 1 噪声）。 */
-    static final int LAKE_BED_MIN = (int) Math.floor(GTSRVoronoiRiverField.LAKE_BED_TARGET - 1.0D);
-    static final int LAKE_BED_MAX = (int) Math.ceil(GTSRVoronoiRiverField.LAKE_BED_TARGET + 1.0D);
+    // ══════════════════════ C3 湖形不规则度（v1.20.40 P19 §D 新增） ══════════════════════
+
+    /**
+     * 湖形不规则度（U34 探针 P1 升格）：湖心 domain-warp（LAKE_WARP 幅度 70）后，主要湖
+     * （规模 ≥ 最大区 1/4 的连通区，排除碎裂采样片）各自取质心走 8 向细步距水径，变异系数
+     * CV 的<b>最大值</b> &gt; 0.1——纯圆 = 0；细步距（粗距 1/4）走查的量化地板 ≈ 步长/均径
+     * ≈ 0.01-0.05，0.1 = 抓住"肉眼可辨的不规则"而量化噪声不可达（warp 是全域均匀场 ⇒ 任一
+     * 主要湖显著不规则即证 warp 生效；U34 探针湖 CV=0.196）。单取最大湖会漏掉"大而近圆"的
+     * 个湖（U9 全量首轮实测最大湖 CV=0.070 而其它主要湖显著更不规则）。
+     */
+    static void groupCLakeShape() {
+        final int n = 2 * (LAKE_EXTENT / LAKE_STRIDE) + 1;
+        final int[] mark = new int[n * n];
+        int regions = 0;
+        int best = 0;
+        final int[] stack = new int[n * n];
+        final java.util.List<long[]> regSum = new ArrayList<long[]>(); // {sx, sz, size} per region id-1
+        for (int i = 0; i < n * n; i++) {
+            final int z = -LAKE_EXTENT + (i / n) * LAKE_STRIDE;
+            final int x = -LAKE_EXTENT + (i % n) * LAKE_STRIDE;
+            if (GTSRVoronoiRiverField.lakeAt(SEED, x, z) >= GTSRVoronoiRiverField.LAKE_WATER_LEVEL
+                || mark[i] != 0) {
+                continue;
+            }
+            regions++;
+            int size = 0;
+            int top = 0;
+            stack[top++] = i;
+            mark[i] = regions;
+            long sx = 0;
+            long sz = 0;
+            regSum.add(new long[] { 0L, 0L, 0L });
+            while (top > 0) {
+                final int p = stack[--top];
+                size++;
+                final int px = p % n;
+                final int pz = p / n;
+                sx += -LAKE_EXTENT + px * LAKE_STRIDE;
+                sz += -LAKE_EXTENT + pz * LAKE_STRIDE;
+                final int[] nb = { px > 0 ? p - 1 : -1, px < n - 1 ? p + 1 : -1, pz > 0 ? p - n : -1,
+                    pz < n - 1 ? p + n : -1 };
+                for (final int q : nb) {
+                    if (q < 0 || mark[q] != 0) {
+                        continue;
+                    }
+                    final int qx = -LAKE_EXTENT + (q % n) * LAKE_STRIDE;
+                    final int qz = -LAKE_EXTENT + (q / n) * LAKE_STRIDE;
+                    if (GTSRVoronoiRiverField.lakeAt(SEED, qx, qz) < GTSRVoronoiRiverField.LAKE_WATER_LEVEL) {
+                        mark[q] = regions;
+                        stack[top++] = q;
+                    }
+                }
+            }
+            regSum.set(regions - 1, new long[] { sx, sz, size });
+            best = Math.max(best, size);
+        }
+        final int RAY_STRIDE = Math.max(1, LAKE_STRIDE / 4);
+        final int RAY_LIMIT = 2 * LAKE_EXTENT;
+        final int minSize = Math.max(LAKE_MIN_SAMPLES, best / 4);
+        double bestCv = 0.0D;
+        String bestDesc = "-";
+        int qualified = 0;
+        for (int id = 1; id <= regions; id++) {
+            final long[] s = regSum.get(id - 1);
+            final int size = (int) s[2];
+            if (size < minSize) {
+                continue;
+            }
+            qualified++;
+            final int cx = (int) (s[0] / size);
+            final int cz = (int) (s[1] / size);
+            final double[] radii = new double[8];
+            int rays = 0;
+            for (int d = 0; d < 8; d++) {
+                final double ang = d * Math.PI / 4.0D;
+                final double dx = Math.cos(ang);
+                final double dz = Math.sin(ang);
+                int r = RAY_STRIDE;
+                while (r <= RAY_LIMIT
+                    && GTSRVoronoiRiverField.lakeAt(SEED, cx + (int) Math.round(dx * r),
+                        cz + (int) Math.round(dz * r)) < GTSRVoronoiRiverField.LAKE_WATER_LEVEL) {
+                    r += RAY_STRIDE;
+                }
+                if (r <= RAY_LIMIT) {
+                    radii[rays++] = r;
+                }
+            }
+            if (rays < 6) {
+                continue;
+            }
+            double mean = 0.0D;
+            for (int i = 0; i < rays; i++) {
+                mean += radii[i];
+            }
+            mean /= rays;
+            double var = 0.0D;
+            for (int i = 0; i < rays; i++) {
+                var += (radii[i] - mean) * (radii[i] - mean);
+            }
+            var /= rays;
+            final double cv = mean <= 0.0D ? 0.0D : Math.sqrt(var) / mean;
+            if (cv > bestCv) {
+                bestCv = cv;
+                bestDesc = "质心(" + cx + "," + cz + ") 均径=" + f3(mean) + " size=" + size;
+            }
+        }
+        say("C-READ 湖形不规则度：主要湖（≥最大区 1/4）=" + qualified + " 个，最大 CV=" + f3(bestCv) + " @ "
+            + bestDesc + "（warp 幅度 " + GTSRVoronoiRiverField.LAKE_WARP + "；U34 探针 CV=0.196）");
+        check("C3 湖形不规则度：主要湖 8 向水径 CV 最大值 > 0.1（P19 §D domain-warp 破圆；纯圆 = 0，"
+            + "细步距量化地板 ≈ 0.01-0.05）",
+            qualified > 0 && bestCv > 0.1D, "qualified=" + qualified + " bestCV=" + f3(bestCv));
+    }
+
+    // ══════════════════════ F 沼泽微池（v1.20.40 P19 §E 新增） ══════════════════════
+
+    /**
+     * 沼泽微池场存在性（U34 探针 P4 升格）：swampLakeAt 第二激活档（rosterIndex==3）在窗内形成
+     * 量级正确的水域簇群。窗 ±5×SWAMP_POOL_INTERVAL（粗格数 (2×5)²=100，U34 实测 101 簇 ≈
+     * 1 簇/粗格）；簇数下界取粗格数的 1/4（采样离散与激活阈值余量）；最大簇换算半径（π 反解）
+     * ∈ [0.7,1.4]×INTERVAL×W/(1+W)（SWAMP_POOL_WATER_LEVEL=0.055 的水径推导式 ⇒ [8,16]，
+     * U34 实测最大簇半径 ≈12）。
+     */
+    static void groupFSwampPools() {
+        final int extent = (int) (GTSRVoronoiRiverField.SWAMP_POOL_INTERVAL * 5);
+        final int stride = 4;
+        final int n = 2 * (extent / stride) + 1;
+        final boolean[] pool = new boolean[n * n];
+        int samples = 0;
+        for (int iz = 0; iz < n; iz++) {
+            final int z = -extent + iz * stride;
+            for (int ix = 0; ix < n; ix++) {
+                final int x = -extent + ix * stride;
+                if (GTSRVoronoiRiverField.swampLakeAt(SEED, x, z, 3) < GTSRVoronoiRiverField.SWAMP_POOL_WATER_LEVEL) {
+                    pool[iz * n + ix] = true;
+                    samples++;
+                }
+            }
+        }
+        final int[] mark = new int[n * n];
+        final int[] stack = new int[n * n];
+        int regions = 0;
+        int best = 0;
+        for (int i = 0; i < n * n; i++) {
+            if (!pool[i] || mark[i] != 0) {
+                continue;
+            }
+            regions++;
+            int size = 0;
+            int top = 0;
+            stack[top++] = i;
+            mark[i] = regions;
+            while (top > 0) {
+                final int p = stack[--top];
+                size++;
+                final int px = p % n;
+                final int pz = p / n;
+                if (px > 0 && pool[p - 1] && mark[p - 1] == 0) {
+                    mark[p - 1] = regions;
+                    stack[top++] = p - 1;
+                }
+                if (px < n - 1 && pool[p + 1] && mark[p + 1] == 0) {
+                    mark[p + 1] = regions;
+                    stack[top++] = p + 1;
+                }
+                if (pz > 0 && pool[p - n] && mark[p - n] == 0) {
+                    mark[p - n] = regions;
+                    stack[top++] = p - n;
+                }
+                if (pz < n - 1 && pool[p + n] && mark[p + n] == 0) {
+                    mark[p + n] = regions;
+                    stack[top++] = p + n;
+                }
+            }
+            best = Math.max(best, size);
+        }
+        final double w = GTSRVoronoiRiverField.SWAMP_POOL_WATER_LEVEL;
+        final double radiusMin = 0.7D * GTSRVoronoiRiverField.SWAMP_POOL_INTERVAL * w / (1.0D + w);
+        final double radiusMax = 1.4D * GTSRVoronoiRiverField.SWAMP_POOL_INTERVAL * w / (1.0D + w);
+        final double bestRadius = best == 0 ? 0.0D : Math.sqrt(best * (double) stride * stride / Math.PI);
+        final int cells = (2 * extent / (int) GTSRVoronoiRiverField.SWAMP_POOL_INTERVAL)
+            * (2 * extent / (int) GTSRVoronoiRiverField.SWAMP_POOL_INTERVAL);
+        say("F-READ 沼泽微池：窗 ±" + extent + " 步距 " + stride + " 水域样本=" + samples + " 簇=" + regions
+            + "（粗格 " + cells + "）最大簇=" + best + " 样本（换算半径 " + f3(bestRadius) + "，带 ["
+            + f3(radiusMin) + "," + f3(radiusMax) + "]；U34 探针 101 簇 / 最大簇半径 ≈12）");
+        check("F1 沼泽微池场存在：4-连通水域簇数 ≥ 粗格数的 1/4（rosterIndex==3 第二激活档在窗内成量级）",
+            regions >= cells / 4, "簇=" + regions + " 阈=" + (cells / 4));
+        check("F2 微池水径带：最大簇 π 反解半径 ∈ [0.7,1.4]×INTERVAL×W/(1+W)（W=SWAMP_POOL_WATER_LEVEL"
+            + " 的水径推导式）",
+            bestRadius >= radiusMin && bestRadius <= radiusMax, "最大簇=" + best + " 样本 半径=" + f3(bestRadius));
+    }
 
     // ══════════════════════ D 少支流（三叉密度对比） ══════════════════════
 

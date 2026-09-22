@@ -563,6 +563,18 @@ MSYS2_ARG_CONV_EXCL='*' java $STD $LOG4J -Xmx2g -cp "$OUT/tools;$OUT/classes;$CP
 code=$?; tail -2 "$OUT/SanzuTrunkCoverageCheck.out" | cut -c1-170; echo "   EXIT=$code log=$OUT/SanzuTrunkCoverageCheck.out"
 [ $code -ne 0 ] && FAILS=$((FAILS + 1))
 
+# ── v1.20.40 P19 U8（纯追加步骤 [3u8]）：地形填充段性能基准 ──────────────────────────────
+# plan §J「新增性能基准判据」：对照 v1.20.38 P17-SA probe4 有账本基线 241µs/chunk（单列串行
+# heightAt walk，temp/p17-sa/probe4.log），派生式阈值 = 241×1.30 = 313.3µs/chunk，per-chunk
+# 中位数超门即红（劣化>30% 对赌门）。判据内置账本装配（生产形状）与串行纪律——v1.20.38 实测
+# 与本 harness 并发跑会失真，本脚本顺序执行各步即满足，勿与其他判据并行。
+echo "== [3u8] dim78 地形填充段性能基准（GenBenchCheck：串行 + 有账本 + per-chunk 中位对 313.3µs 门） =="
+MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8   -cp "$OUT/classes;$CP" -sourcepath "src/main/java;tools/dim1" -d "$OUT/tools"   tools/dim1/GenBenchCheck.java >"$OUT/javac-u8bench.log" 2>&1
+echo "COMPILE GenBenchCheck EXIT=$? ($(grep -ac 'error:' "$OUT/javac-u8bench.log") error)"
+MSYS2_ARG_CONV_EXCL='*' java $STD $LOG4J -Xmx2g -cp "$OUT/tools;$OUT/classes;$CP" GenBenchCheck   >"$OUT/GenBenchCheck.out" 2>&1
+code=$?; tail -4 "$OUT/GenBenchCheck.out" | cut -c1-170; echo "   EXIT=$code log=$OUT/GenBenchCheck.out"
+[ $code -ne 0 ] && FAILS=$((FAILS + 1))
+
 if [ "${1:-}" = "--parity" ]; then
   echo "== [4] 正常态逐字节对拍（BASE=本片开工前快照 / AFTER=当前树，各 256 chunk × 两维） =="
   if [ ! -f "$SNAP/com/miaokatze/gtsr/common/dimension/prosperity/ruins/ProsperityDecorPlacer.java" ]; then

@@ -6,6 +6,7 @@ import net.minecraft.block.Block;
 import net.minecraft.init.Blocks;
 import net.minecraft.world.World;
 
+import com.miaokatze.gtsr.common.blocks.BlocksGTSR;
 import com.miaokatze.gtsr.common.dimension.framework.structure.BlockSink;
 import com.miaokatze.gtsr.common.dimension.framework.structure.StructureBuilder;
 import com.miaokatze.gtsr.common.dimension.prosperity.ProsperityTerrainProfile;
@@ -288,9 +289,14 @@ final class MegaTreeForms {
         return true;
     }
 
-    /** 板根/干辅助落块：只写空气或水位（不切地形、不切结构）。 */
+    /**
+     * 板根/干辅助落块：只写空气或水位（不切地形、不切结构）。水位 = 原版水或维度水体
+     * {@code BlocksGTSR.abyssalFluid}（v1.20.40 P19 §I 换块：巨湖/河道水体已是深渊执念，
+     * 水缘 Bayou 板根的"可写水位"比较同步，否则湖缘树根被自有流体挡住）。
+     */
     private static void placeLogSoft(StructureBuilder builder, World world, int x, int y, int z, Block log) {
-        if (!world.isAirBlock(x, y, z) && world.getBlock(x, y, z) != Blocks.water) {
+        final Block at = world.getBlock(x, y, z);
+        if (!world.isAirBlock(x, y, z) && at != Blocks.water && at != BlocksGTSR.abyssalFluid) {
             return;
         }
         builder.setBlock(x, y, z, log, 0, BlockSink.FLAG_POPULATE);

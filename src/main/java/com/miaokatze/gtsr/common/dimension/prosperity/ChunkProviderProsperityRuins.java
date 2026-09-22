@@ -223,7 +223,10 @@ public class ChunkProviderProsperityRuins extends GTSRChunkProviderBase {
      * 接 {@link GTSRRiverPlacer} 新河流场：水面回填（s≥WET_MIN 且 h1&lt;SEA_LEVEL 置水至
      * y=67）/ riverStyle 档表（浅滩·干谷断流·沼地河）/ 瀑布落差列处理 / 河床料铺放；
      * <b>T5 起追加巨湖回填与遗忘之川群系指派</b>，见 {@link #fillSanzuLakes} 与
-     * {@link #assignSanzuRiverBiome}——后置链序 plan §5：水面回填 → sanzu 写平面 → decorate
+     * {@link #assignSanzuRiverBiome}；<b>v1.20.40 P19 §E 起追加沼泽微池回填</b>
+     * （{@link #fillSwampPools}）、§I 起全部水体 = 深渊执念（{@link GTSRRiverPlacer#waterMaterial()}，
+     * 视觉色由 BlockAbyssalFluid.colorMultiplier 按群系分档）——后置链序 plan §5：水面回填 →
+     * 巨湖回填 → 微池回填 → sanzu 写平面 → decorate
      * （decorate 在本方法返回之后才由 GameRegistry.generateWorld 驱动，写入当趟生效）。
      * <p>
      * <b>为什么只能挂在这里</b>（P17-Q2 裁决，码据见 {@link GTSRRiverPlacer} 类注释）：框架表层内核
@@ -250,6 +253,7 @@ public class ChunkProviderProsperityRuins extends GTSRChunkProviderBase {
         final BlockSink sink = new ChunkClampedSink(this.worldObj, chunkX, chunkZ);
         GTSRRiverPlacer.place(this.worldObj, worldSeed, chunkX, chunkZ, sink);
         fillSanzuLakes(worldSeed, chunkX, chunkZ, sink);
+        fillSwampPools(worldSeed, chunkX, chunkZ, sink);
         assignSanzuRiverBiome(worldSeed, chunkX, chunkZ);
     }
 
@@ -260,15 +264,23 @@ public class ChunkProviderProsperityRuins extends GTSRChunkProviderBase {
 
     private static final AtomicLong LAKE_CHUNKS_SERVED = new AtomicLong();
     private static final AtomicLong LAKE_WATER_CELLS = new AtomicLong();
+    /** 沼泽微池回填观察（v1.20.40 P19 §E；窗口与巨湖行同款）。 */
+    private static final AtomicLong SWAMP_CHUNKS_SERVED = new AtomicLong();
+    private static final AtomicLong SWAMP_WATER_CELLS = new AtomicLong();
 
     /**
      * <b>巨湖水面回填</b>（populate 后置，水面口径 68 与河流回填同一条）：主干带内
      * {@code lakeAt < LAKE_SHORE}（湖水区+湖滨带；带外 lakeAt 恒 {@code NO_LAKE} 哨兵 ⇒ 零成本
-     * 短路）且列地表 {@code h1 < SEA_LEVEL} 的列，从地表向上置水至 y=67。地形压到 62-64 已由
-     * {@link ProsperityTerrainProfile#heightAt} 完成（本方法只回填，不切地形）；与河流回填的
+     * 短路）且列地表 {@code h1 < SEA_LEVEL} 的列，从地表向上置水至 y=67。地形压低（渐深湖床）
+     * 已由 {@link ProsperityTerrainProfile#heightAt} 完成（本方法只回填，不切地形）；与河流回填的
      * 重叠列两次写同值水，幂等。同样不消费 populate 的 {@code Random}（纯函数判定）。
+     * <p>
+     * v1.20.40（P19 §D/§I）：湖水区已随 heightCore 渐深（湖心最深 {@code LAKE_CENTER_DEPTH}
+     * 格）+ 湖形 domain-warp 破圆；水体 = {@link GTSRRiverPlacer#waterMaterial()}（深渊执念，
+     * meta 0 静态源）。
      */
     private static void fillSanzuLakes(long worldSeed, int chunkX, int chunkZ, BlockSink sink) {
+        final Block water = GTSRRiverPlacer.waterMaterial();
         int waterCells = 0;
         for (int lz = 0; lz < 16; lz++) {
             for (int lx = 0; lx < 16; lx++) {
@@ -280,7 +292,7 @@ public class ChunkProviderProsperityRuins extends GTSRChunkProviderBase {
                 final int h = ProsperityTerrainProfile.heightAt(worldSeed, x, z);
                 if (h < ProsperityTerrainProfile.SEA_LEVEL) {
                     for (int y = h + 1; y <= ProsperityTerrainProfile.SEA_LEVEL - 1; y++) {
-                        if (sink.setBlock(x, y, z, Blocks.water, 0, BlockSink.FLAG_POPULATE)) {
+                        if (sink.setBlock(x, y, z, water, 0, BlockSink.FLAG_POPULATE)) {
                             waterCells++;
                         }
                     }
@@ -290,9 +302,54 @@ public class ChunkProviderProsperityRuins extends GTSRChunkProviderBase {
         LAKE_WATER_CELLS.addAndGet(waterCells);
         if (LAKE_CHUNKS_SERVED.incrementAndGet() % LAKE_LOG_WINDOW_CHUNKS == 0) {
             GTSteamReborn.LOG.info(
-                "[GTSR] dim78 sanzu lake over {} chunks: waterCells={} (trunk-gated lakePressure)",
+                "[GTSR] dim78 sanzu lake over {} chunks: waterCells={} (trunk-gated lakePressure, abyssal fluid)",
                 LAKE_CHUNKS_SERVED.get(),
                 LAKE_WATER_CELLS.get());
+        }
+    }
+
+    /**
+     * <b>沼泽微池回填</b>（v1.20.40 P19 plan §E，与 {@link #fillSanzuLakes} 同构的 populate
+     * 后置回填）：roster 3（喷气沼泽）的微池列（{@link GTSRVoronoiRiverField#swampLakeAt}
+     * &lt; {@link GTSRVoronoiRiverField#SWAMP_POOL_WATER_LEVEL}，水径 8-16 格）且列地表低于
+     * 本段池水面（{@code h < pool−1}，与河流回填同一门）——从地表向上置水至 y=pool−1，
+     * 水面 = 本段池水位（与沼泽河同水面，微池成"水面贴地的沼地水网"）。地形压低已由
+     * heightCore 微池段完成（压至 {@code pool−2±0.5} ⇒ 常态 1-2 层水）。roster 门走
+     * {@link GTSRRiverPlacer#tierGrid}（与 placer/heightCore 同一身份面，无第二真值）；
+     * 水体 = {@link GTSRRiverPlacer#waterMaterial()}；不消费 populate 的 {@code Random}。
+     */
+    private static void fillSwampPools(long worldSeed, int chunkX, int chunkZ, BlockSink sink) {
+        final int baseX = chunkX << 4;
+        final int baseZ = chunkZ << 4;
+        final int[] tiers = GTSRRiverPlacer.tierGrid(worldSeed, baseX, baseZ);
+        final Block water = GTSRRiverPlacer.waterMaterial();
+        int waterCells = 0;
+        for (int lz = 0; lz < 16; lz++) {
+            for (int lx = 0; lx < 16; lx++) {
+                final int x = baseX + lx;
+                final int z = baseZ + lz;
+                final int tier = GTSRRiverPlacer.tierAt(tiers, x, z, baseX, baseZ);
+                if (GTSRVoronoiRiverField.swampLakeAt(worldSeed, x, z, tier)
+                    >= GTSRVoronoiRiverField.SWAMP_POOL_WATER_LEVEL) {
+                    continue;
+                }
+                final int pool = GTSRVoronoiRiverField.poolLevelAt(worldSeed, x, z, tier);
+                final int h = ProsperityTerrainProfile.heightAt(worldSeed, x, z);
+                if (h < pool - 1) {
+                    for (int y = h + 1; y <= pool - 1; y++) {
+                        if (sink.setBlock(x, y, z, water, 0, BlockSink.FLAG_POPULATE)) {
+                            waterCells++;
+                        }
+                    }
+                }
+            }
+        }
+        SWAMP_WATER_CELLS.addAndGet(waterCells);
+        if (SWAMP_CHUNKS_SERVED.incrementAndGet() % LAKE_LOG_WINDOW_CHUNKS == 0) {
+            GTSteamReborn.LOG.info(
+                "[GTSR] dim78 swamp pools over {} chunks: waterCells={} (roster3-gated swampLakePressure)",
+                SWAMP_CHUNKS_SERVED.get(),
+                SWAMP_WATER_CELLS.get());
         }
     }
 

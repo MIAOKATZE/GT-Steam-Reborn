@@ -3,6 +3,7 @@ package com.miaokatze.gtsr.loader;
 import net.minecraft.block.Block;
 import net.minecraft.item.ItemStack;
 
+import com.miaokatze.gtsr.common.blocks.BlockAbyssalFluid;
 import com.miaokatze.gtsr.common.blocks.BlockProsperityFalling;
 import com.miaokatze.gtsr.common.blocks.BlockProsperityStone;
 import com.miaokatze.gtsr.common.blocks.BlockRunawaySingularity;
@@ -282,5 +283,36 @@ public class BlockLoader {
         }
         GTSteamReborn.LOG
             .info("[GTSR] shattered blocks registered: Corestone/Monolith terrain=8 (4x top+base) decor=3");
+    }
+
+    /**
+     * 深渊执念流体方块注册（v1.20.40 P19-U1，plan §I）——<b>init 段调用</b>
+     * （CommonProxy.init，晚于 GT preInit），不在 {@link #initBlocks()}：
+     * <ul>
+     * <li><b>时序依据</b>：材料流体 abyssal_obsession 由 GT5U 于自身 preInit 末尾的
+     * Materials.init() 回调链（onMaterialsInit → initMaterialProperties → mFluid →
+     * FluidRegistry，见 GTSRProsperityAirMaterials 类注释）注册；gtsr 为 required-before:gregtech，
+     * 自身 preInit 早于 GT preInit，initBlocks 时 {@code FluidRegistry.getFluid} 必为 null。
+     * CommonProxy.init 已有同款时序先例：空气材料 dev 探针即因"init 晚于 Materials.init()/流体
+     * 注册管线"才放在 init（CommonProxy.java:227-229 注释）。</li>
+     * <li><b>fluid.setBlock 无需手动挂接</b>：BlockFluidBase 构造函数自即调
+     * {@code fluid.setBlock(this)}（BlockFluidBase.java:60-76）；GT 材料管线只造 Fluid 不造世界
+     * 方块，本构造是该流体唯一 block 绑定点（Fluid.setBlock 二次绑定告警，Fluid.java:117-127）。</li>
+     * <li><b>失败开放</b>：流体未注册（材料链异常被 GTSRProsperityAirMaterials 降级吞掉）时跳过
+     * 并告警，零崩溃面；worldgen 换块消费方（批2 U34）读 null 持有者自行降级。</li>
+     * </ul>
+     * 流体方块不进创造页签（GT 流体方块惯例；取用面=桶装+NEI）。
+     */
+    public static void initAbyssalFluid() {
+        final net.minecraftforge.fluids.Fluid fluid = net.minecraftforge.fluids.FluidRegistry
+            .getFluid("abyssal_obsession");
+        if (fluid == null) {
+            GTSteamReborn.LOG
+                .warn("[GTSR] abyssal fluid material missing from FluidRegistry, fluid block registration skipped");
+            return;
+        }
+        BlocksGTSR.abyssalFluid = new BlockAbyssalFluid(fluid);
+        GameRegistry.registerBlock(BlocksGTSR.abyssalFluid, "AbyssalFluid");
+        GTSteamReborn.LOG.info("[GTSR] abyssal fluid block registered: AbyssalFluid fluid=abyssal_obsession");
     }
 }

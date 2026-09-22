@@ -1367,8 +1367,11 @@ public final class RuinFamilyCheck {
     private static final int LEGACY_RUIN_DENOM = 48;
     /**
      * F8 的申报带：改后"每 chunk 城外结构座数"（%，ON 档，4 seed × 4 区 = 4096 chunk）。
-     * 实测 <b>2.0508%</b>（84 座 / 4096 chunk）；同一次运行注回旧疏密复算 = 6.3721%（261 座）。
+     * P16-B5b 实测 <b>2.0508%</b>（84 座 / 4096 chunk）；同一次运行注回旧疏密复算 = 6.3721%（261 座）。
      * 带宽取实测 ±20%（不是把旧值圈进来的宽带来）⇒ 旧值 3.11 倍于新值、稳稳在带外。
+     * v1.20.40 P19-U5 复核（结构避水二次 redirect 后同档重跑）：改后 <b>1.7822%</b>——四族
+     * 弃位率 5.4-7.2%（U5 prered §二次 redirect）把座数再压 ~13%，仍稳在带内 ⇒ 带值不动，
+     * 本注补录避水后的新读数依据。
      */
     private static final double PIN_NEW_PER_CHUNK_MIN = 1.64D, PIN_NEW_PER_CHUNK_MAX = 2.46D;
     /**

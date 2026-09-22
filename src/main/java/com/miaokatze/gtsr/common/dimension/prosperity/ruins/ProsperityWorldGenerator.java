@@ -6,7 +6,6 @@ import net.minecraft.world.World;
 import net.minecraft.world.chunk.IChunkProvider;
 
 import com.miaokatze.gtsr.common.dimension.framework.GTSRBiomeAuthority;
-import com.miaokatze.gtsr.common.dimension.framework.GTSRBiomeAuthority.BiomeId;
 import com.miaokatze.gtsr.common.dimension.framework.GTSROwnedGenerator;
 import com.miaokatze.gtsr.common.dimension.framework.SurfaceGate;
 import com.miaokatze.gtsr.common.dimension.framework.structure.BlockSink;
@@ -15,7 +14,6 @@ import com.miaokatze.gtsr.common.dimension.framework.structure.PlacementGate;
 import com.miaokatze.gtsr.common.dimension.framework.structure.StructureBuilder;
 import com.miaokatze.gtsr.common.dimension.framework.structure.StructureRegistry;
 import com.miaokatze.gtsr.common.dimension.prosperity.ProsperityTerrainProfile;
-import com.miaokatze.gtsr.common.dimension.prosperity.river.GTSRVoronoiRiverField;
 import com.miaokatze.gtsr.common.dimension.prosperity.ruins.city.CityBlockResolver;
 import com.miaokatze.gtsr.common.dimension.prosperity.ruins.city.CityPlan;
 import com.miaokatze.gtsr.common.dimension.prosperity.ruins.city.CityPlanner;
@@ -268,23 +266,20 @@ public class ProsperityWorldGenerator implements IWorldGenerator, GTSROwnedGener
     }
 
     /**
-     * <b>植被档身份（T7，plan §3.3 / §3.8）</b>：GenLayer 面下标之上叠加 sanzu 平面档——
-     * sanzu 不进 selector（T5 裁决），其群系平面在 populate 后置由
-     * {@code ChunkProviderProsperityRuins.assignSanzuRiverBiome} 按
-     * {@link GTSRVoronoiRiverField#isSanzuColumn} 逐列写入；decorate 晚于该写入 ⇒ 这里用<b>同一谓词</b>
-     * 在 chunk 中心确定性重算（纯函数、跨 chunk 一致，与河流回填同族），命中且 sanzu 已配槽
-     * （账本点名得到实例，无槽降级不伪造）⇒ 植被档取 sanzu 名册下标
-     * （{@link BiomeId#SANZU_RIVER}，档值=档表第 5 行，身份仍只有 {@code ordinalAt} 一条出口）。
+     * <b>植被档身份（T7 引入；P19 U6 起密度场主导，plan §G / K1 渗色修复）</b>：改造前是
+     * "chunk 中心单点二值"——中心列命中 sanzu（{@code isSanzuColumn}）整块取 sanzu 档、否则整块取
+     * GenLayer 面下标 ⇒ 群系/河界两侧的边界 chunk 整块按错档装饰（档位渗色，G4/G5 根因 ②）。
+     * 现改由 {@link DensityField#dominantVegRosterAt} 在 chunk 中心对 11×11 粗格内核按<b>有效身份</b>
+     * （sanzu 列覆写仍走同一 {@code isSanzuColumn} 谓词与同一配槽守卫，见 DensityField）做普通档
+     * 密度 argmax：腹地与改造前逐位一致（均匀短路），边界 chunk 自动跟随密度过渡，河擦角 chunk
+     * 不再整块错档；平票取名册序小者，身份不可得（默认桶胜出，离线/EMPTY 降级态）回退
+     * {@code chainIndex}。
      * <p>
      * 只影响 decorate 的档位选择：机器/散布/结构继续消费 GenLayer 面 {@code rosterIndex}
-     * （四元素权重表的下标语义与 T5 前逐位一致），本方法不是第二身份真值源。
+     * （四元素权重表的下标语义与 T5 前逐位一致），本方法不是第二身份真值源——身份出口仍只有
+     * {@code ordinalAt}（链面）与 {@code isSanzuColumn}（平面谓词）两条，密度场只是它们的折叠者。
      */
     private static int vegRosterIndex(long worldSeed, int chunkX, int chunkZ, int chainIndex) {
-        if (GTSRVoronoiRiverField.isSanzuColumn(worldSeed, (chunkX << 4) + 8, (chunkZ << 4) + 8)
-            && GTSRBiomeAuthority.forDimKey(SurfaceGate.DIM78)
-                .biomeOf(BiomeId.SANZU_RIVER) != null) {
-            return BiomeId.SANZU_RIVER.rosterIndex();
-        }
-        return chainIndex;
+        return DensityField.dominantVegRosterAt(worldSeed, (chunkX << 4) + 8, (chunkZ << 4) + 8, chainIndex);
     }
 }

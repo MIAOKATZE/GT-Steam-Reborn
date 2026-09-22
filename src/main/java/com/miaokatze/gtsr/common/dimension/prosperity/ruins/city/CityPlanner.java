@@ -6,7 +6,9 @@ import net.minecraft.world.biome.BiomeGenBase;
 
 import com.miaokatze.gtsr.common.dimension.framework.GTSRBiomeAuthority;
 import com.miaokatze.gtsr.common.dimension.framework.genlayer.GTSRGenLayerChain;
+import com.miaokatze.gtsr.common.dimension.framework.structure.ChunkSpans;
 import com.miaokatze.gtsr.common.dimension.framework.structure.GTSRWorldgenHash;
+import com.miaokatze.gtsr.common.dimension.framework.structure.PlacementGate;
 import com.miaokatze.gtsr.config.Config;
 
 /**
@@ -43,6 +45,12 @@ import com.miaokatze.gtsr.config.Config;
  * （{@code cities.length > 0} 跳过散布/机器）本来就共用这一个入口，因此不存在"鬼窗"
  * （渲染说有城、放置器说不许放）。{@link #planFor} 保持<b>不含门</b>的纯几何口径，
  * 使既有确定性自检与 /gtsr structure 直写不受影响。</li>
+ * <li><b>P19 §F 湿区避让臂</b>：城门在群系档之外还过一道<b>干区门</b>（纯函数）——
+ * 外扩城盘过<b>占比制</b>（{@link PlacementGate#DRY_RATIO_CITY}）+ 城心核心区过<b>全过制</b>
+ * strict 臂（{@link PlacementGate#dryFootprintStrict}），列级判据为<b>回填真值口径</b>
+ * （回填置水列/湖面/贴河护带算湿，自然洼地放行）；任一臂不过该 cell 本轮<b>弃置且不重试</b>
+ * （实测弃置率 17.4%）。这是"废弃城市泡在湖里"（G4/G3 根因：placer 与选址零水体感知）
+ * 的选址侧修复。</li>
  * </ul>
  */
 public final class CityPlanner {
@@ -176,21 +184,53 @@ public final class CityPlanner {
     }
 
     /**
-     * 城门（L6）：候选城是否允许存在。纯函数、零世界读取。
+     * 城盘干区检查的半径上限（chunk，<b>P19 §F 拍板</b>）：城半径上界 7 chunk（{@link #planFor}
+     * 的 4+%4）+ 1 chunk 街道/地块外溢缓冲 = 8 chunk —— 与 {@code CityPlan.chunkInBuffer} 的
+     * 最大覆盖窗同量级，保证 footprint 包住任何一档城盘的全部内容。
+     */
+    private static final int CITY_DRY_HALF_CHUNKS = 8;
+
+    /**
+     * 城心核心区半宽（方块，<b>P19 §F 拍板 + U5-redirect 占比制修正</b>）：64×64 全过制
+     * strict 干区门（{@link PlacementGate#dryFootprintStrict}）——城市核心（街道网中心、
+     * 主体地块）落水不可接受；外缘滩带由占比制容忍。
+     */
+    private static final int CITY_CORE_HALF_BLOCKS = 32;
+
+    /**
+     * 城门（L6 + <b>P19 §F 湿区避让</b>）：候选城是否允许存在。纯函数、零世界读取。
      * <p>
-     * 档由 {@link Config#prosperityCityBiomeGate} 给出（0 关 / 1 锚点群系 / 2 城盘 ≥50% / 3 城盘
-     * 全落群系；越界值钳到 [0,3]，未知值按最严档 3 处理）。"城盘"取以中心 chunk 为心、半径
-     * {@code getRadiusChunks()} 的方形盘（边长 9..15 chunk，与 {@code CityPlan} 的城界半径同口径），
-     * <b>不含</b>缓冲窗外溢（外溢是渲染裁剪口径，不是城的占地）。
+     * <b>两道臂</b>（依次过，任一不过该 cell 本轮弃置）：
+     * <ol>
+     * <li><b>群系臂</b>（既有语义一字未改）：档由 {@link Config#prosperityCityBiomeGate} 给出
+     * （0 关 / 1 锚点群系 / 2 城盘 ≥50% / 3 城盘全落群系；越界值钳到 [0,3]，未知值按最严档 3
+     * 处理）。"城盘"取以中心 chunk 为心、半径 {@code getRadiusChunks()} 的方形盘
+     * （边长 9..15 chunk，与 {@code CityPlan} 的城界半径同口径），<b>不含</b>缓冲窗外溢
+     * （外溢是渲染裁剪口径，不是城的占地）。</li>
+     * <li><b>干区臂</b>（P19 新增，群系门<b>关也生效</b>——避水不是群系偏好，是放置事实）：
+     * 城心按 {@link #CITY_DRY_HALF_CHUNKS} 外扩的 footprint 过 {@link PlacementGate#dryFootprint}
+     * （四角+中心+周界步 8 采样），存在水体/河滩/贴河采样列即<b>弃置该 cell 且不重试</b>
+     * （城市密度略降属预期）。</li>
+     * </ol>
+     * <p>
+     * <b>近似口径（拍板记录）</b>：只检查城盘 footprint 的干湿，街道/地块逐列仍走
+     * {@code groundFn} 接地——城心盘已干则城内街道一般安全，无需逐列；残留风险：城缘个别列
+     * 若贴河道可能仍在滩带，属可接受观感（plan §F）。
      * <p>
      * 代价提示：档 2/3 每城最多 15×15=225 次身份采样（每次本地重建一条短命链，常数代价的
-     * 纯哈希族），且只在候选城非空时跑；默认档 1 每候选城 1 次。城市数与暴露面积的门档选择
-     * 见 plan/维度计划/调查取证/Phase1按片报告/p6-*（四张数字表）。
+     * 纯哈希族），且只在候选城非空时跑；默认档 1 每候选城 1 次。干区臂每候选城一次 footprint
+     * 采样（周界/8 ≈ 百余列 × heightAt/lakeAt/strengthAt 三个纯函数，首列湿即早退）。城市数与
+     * 暴露面积的门档选择见 plan/维度计划/调查取证/Phase1按片报告/p6-*（四张数字表）。
      */
     public static boolean cityGateAllows(long worldSeed, CityPlan plan) {
-        if (plan == null) {
+        if (plan == null || !cityBiomeGateAllows(worldSeed, plan)) {
             return false;
         }
+        return cityDryAllows(worldSeed, plan);
+    }
+
+    /** 城门的<b>群系臂</b>（{@link #cityGateAllows} 的既有实现体，语义与档位一字未改）。 */
+    private static boolean cityBiomeGateAllows(long worldSeed, CityPlan plan) {
         final int tier = Math.max(GATE_OFF, Math.min(GATE_DISC_ALL, Config.prosperityCityBiomeGate));
         if (tier == GATE_OFF) {
             return true;
@@ -212,6 +252,23 @@ public final class CityPlanner {
             }
         }
         return false;
+    }
+
+    /**
+     * 城门的<b>干区臂</b>（P19 §F；U5-redirect 占比制修正后的城盘封装）：外扩城盘过
+     * <b>占比制</b>（{@link PlacementGate#DRY_RATIO_CITY}=0.85，外缘允许 15% 滩带），
+     * 城心核心区（中心 64×64）另过<b>全过制</b> strict 臂（城市核心泡水不可接受）。
+     */
+    private static boolean cityDryAllows(long worldSeed, CityPlan plan) {
+        final int half = CITY_DRY_HALF_CHUNKS * ChunkSpans.CHUNK_BLOCKS;
+        final int cx = plan.getCenterX();
+        final int cz = plan.getCenterZ();
+        if (!PlacementGate
+            .dryFootprint(worldSeed, cx - half, cz - half, cx + half, cz + half, PlacementGate.DRY_RATIO_CITY)) {
+            return false;
+        }
+        final int coreHalf = CITY_CORE_HALF_BLOCKS;
+        return PlacementGate.dryFootprintStrict(worldSeed, cx - coreHalf, cz - coreHalf, cx + coreHalf, cz + coreHalf);
     }
 
     /**

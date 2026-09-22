@@ -2092,12 +2092,17 @@ tile.ProsperityRiverGravel.name=River Gravel
 # Dimension prosperity-ruins: v1.20.39 T2 underground whole-body stone (plan §3.7 petrification; non-top, meta 0)
 tile.ProsperityStone.name=Prosperity Stone
 
+# Dimension prosperity-ruins: v1.20.40 P19-U1 abyssal obsession fluid (plan §I; BlockFluidClassic + own bucket)
+tile.AbyssalFluid.name=Abyssal Obsession
+item.AbyssalObsessionBucket.name=Abyssal Obsession Bucket
+
 # Prosperity Air Materials (dim1 S3)
 Material.wastesigh=Waste Sigh
 Material.thickgrease=Thick Grease
 Material.metalgrit=Metal Grit
 Material.umbralmire=Umbral Mire
 Material.sanzu_residual_steam=Sanzu Residual Steam
+Material.abyssal_obsession=Abyssal Obsession
 
 # Dimension shattered-lands: biomes (S-B3; keys follow biome.<biomeName>.name from setBiomeName)
 biome.Ashen Prairie.name=Ashen Prairie

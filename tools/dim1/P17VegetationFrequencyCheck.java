@@ -39,6 +39,7 @@ import com.miaokatze.gtsr.common.dimension.prosperity.block.BlockProsperityRustL
 import com.miaokatze.gtsr.common.dimension.prosperity.block.BlockProsperityRustLog;
 import com.miaokatze.gtsr.common.dimension.prosperity.block.BlockProsperitySurface;
 import com.miaokatze.gtsr.common.dimension.prosperity.block.BlockProsperityTuft;
+import com.miaokatze.gtsr.common.dimension.prosperity.ruins.DensityField;
 import com.miaokatze.gtsr.common.dimension.prosperity.ruins.ProsperityDecorPlacer;
 import com.miaokatze.gtsr.common.dimension.prosperity.ruins.ProsperityDecorPlacer.VegTier;
 import com.miaokatze.gtsr.common.dimension.prosperity.ruins.city.CityPlanner;
@@ -121,23 +122,33 @@ public final class P17VegetationFrequencyCheck {
     /** 改前干高带实测（同 log：min 3 / max 5 / mean 3.866..4.538）。 */
     private static final String PRE_TRUNK_BAND = "3..5";
 
-    // ══ M 组带（T8 重钉，归因 T7 树木三档：灌木/普通/巨树——灌木抬密度压 min、巨树抬 max。
-    // 锚 = T8 确定性实测 4 seed × 2 区 × 16² chunk（与 temp/p18-t7/p17-red.out 同值：本检查的
-    // 身份面是 GenLayer 链面（ordinalAt），sanzu 平面档（vegRosterIndex）不在其上，由 T7 探针
-    // 另行覆盖；T8 城门面修复后读数与 T7 记录逐位一致）；带 ≈ 实测 ±20%）═══
+    /**
+     * 荒漠界带灌木渗入上界（树/chunk）——任务包口径「≤20 株/609 chunk」的率式：观测 8 株/609 chunk
+     * （U6 prered 与 U9 全量同值，全部为界 chunk 密度渐变渗入的干高 1-2 灌木），上界 ≈2.5× 观测。
+     * 荒漠的「绝对零」由 M 组<b>腹地精确零</b>断言承担（密度场均匀区密度 ≡0 ⇒ 零树），本上界只
+     * 钉界带渐变的量级。
+     */
+    private static final double WASTES_LEAK = 20.0D / 609.0D;
 
-    /** 每 chunk 树数带（灌木+普通+巨树合计期望）；荒漠一行是 {@code {0,0}} 精确带。 */
-    private static final double[][] BAND_TREES = { { 0.80D, 1.21D }, { 2.57D, 3.86D }, { 0.0D, 0.0D },
+    // ══ M 组带（v1.20.40 P19 §G 重钉，归因 U6 prered：DecorPlacer 三层掷骰改 DensityField 密度场
+    // 驱动 + vegRoster 渗色修复——跨界 chunk 的树期望按 11×11 核连续过渡，区域含边界 chunk 时
+    // 森林带被邻档混低（设计效果）、荒漠界带渗入灌木（干高 1-2，腹地均匀区密度 ≡0 保持零树）。
+    // 锚 = U9 全量实测 4 seed × 2 区 × 16² chunk（与 U6 prered 同值）；率带 ≈ 实测 ±20%）═══
+
+    /** 每 chunk 树数带（灌木+普通+巨树合计期望）；荒漠一行是界带渐变上界（见 WASTES_SHRUB_LEAK_MAX）。 */
+    private static final double[][] BAND_TREES = { { 0.80D, 1.21D }, { 1.82D, 2.74D }, { 0.0D, WASTES_LEAK },
         { 1.31D, 1.98D } };
-    /** 干高最小值带（T7 灌木档干 1-2 节 ⇒ 三群系 min 恒 1；无树群系取 {0,0}）。 */
-    private static final int[][] BAND_TRUNK_MIN = { { 1, 1 }, { 1, 1 }, { 0, 0 }, { 1, 1 } };
-    /** 干高最大值带（巨树档上界：GreatOak 20-28 实测 25 / Redwood 28-38 ⇒ 38 / Bayou 20-26 ⇒ 26）。 */
-    private static final int[][] BAND_TRUNK_MAX = { { 25, 25 }, { 38, 38 }, { 0, 0 }, { 26, 26 } };
-    /** 干高均值带（三档混合期望）。 */
-    private static final double[][] BAND_TRUNK_MEAN = { { 2.05D, 3.07D }, { 6.30D, 9.45D }, { 0.0D, 0.0D },
+    /** 干高最小值带（T7 灌木档干 1-2 节 ⇒ 三群系 min 恒 1；荒漠界带灌木在场取 1、无树样本取 0；
+     * 无树群系取 {0,0}）。 */
+    private static final int[][] BAND_TRUNK_MIN = { { 1, 1 }, { 1, 1 }, { 0, 1 }, { 1, 1 } };
+    /** 干高最大值带（巨树档上界；密度场混合使巨树采样随密度微移——v1.20.40 重录 原 24 / 森 37；
+     * 荒漠界带灌木上界 2、无树样本取 0）。 */
+    private static final int[][] BAND_TRUNK_MAX = { { 24, 24 }, { 37, 37 }, { 0, 2 }, { 26, 26 } };
+    /** 干高均值带（三档混合期望）；荒漠带 [0,2] = 无树样本 0 或界带灌木 1-2 的混合期望。 */
+    private static final double[][] BAND_TRUNK_MEAN = { { 2.05D, 3.07D }, { 6.30D, 9.45D }, { 0.0D, 2.0D },
         { 3.85D, 5.77D } };
-    /** 叶块数/chunk 带（三档冠幅的行为级投影）。 */
-    private static final double[][] BAND_LEAVES = { { 32.5D, 48.7D }, { 103.6D, 155.4D }, { 0.0D, 0.0D },
+    /** 叶块数/chunk 带（三档冠幅的行为级投影）；荒漠 = 界带灌木小冠上界（实测 0.3186 +20%）。 */
+    private static final double[][] BAND_LEAVES = { { 32.5D, 48.7D }, { 103.6D, 155.4D }, { 0.0D, 0.38D },
         { 31D, 46.5D } };
     /** 草块数/chunk 带。 */
     private static final double[][] BAND_TUFTS = { { 4.3D, 7.5D }, { 4.9D, 8.3D }, { 1.3D, 3.0D },
@@ -194,7 +205,7 @@ public final class P17VegetationFrequencyCheck {
         }
         System.out.println("P17 VEGETATION FREQUENCY PASS: assertions=" + passed
             + " groups=DECL/SOURCE/M/ORDER/ANTI/ROSTER"
-            + " 树密度 森>沼>原>沙=0 与 干高 森>沼>原 双钉（档表 + 真实链实测 + 反假绿臂）");
+            + " 树密度 森>沼>原>沙(腹地零+界带渐变) 与 干高 森>沼>原 双钉（档表 + 真实链实测 + 反假绿臂）");
     }
 
     private static String biomeLine(int idx, Agg a) {
@@ -484,15 +495,22 @@ public final class P17VegetationFrequencyCheck {
                 if (CityPlanner.citiesNear(seed, gcx, gcz).length > 0) {
                     continue;
                 }
-                countTrunks(grid, side, dx, dz, out.get(Integer.valueOf(ordinal(gcx, gcz))));
+                final int idx = ordinal(gcx, gcz);
+                final int chunkTrees = countTrunks(grid, side, dx, dz, out.get(Integer.valueOf(idx)));
+                if (idx == WASTES && wastesInterior(seed, gcx, gcz)) {
+                    wastesInteriorChunks++;
+                    wastesInteriorTrees += chunkTrees;
+                }
             }
         }
     }
 
-    private static void countTrunks(Block[] grid, int side, int cx, int cz, Agg a) {
+    /** 数一个 chunk 的干柱（同时累进 {@link Agg}）；返回本 chunk 树数（腹地记账用）。 */
+    private static int countTrunks(Block[] grid, int side, int cx, int cz, Agg a) {
         if (a == null) {
-            return;
+            return 0;
         }
+        int chunkTrees = 0;
         for (int lx = 0; lx < 16; lx++) {
             for (int lz = 0; lz < 16; lz++) {
                 final int col = (cx * 16 + lx) + (cz * 16 + lz) * side;
@@ -506,16 +524,36 @@ public final class P17VegetationFrequencyCheck {
                         a.logs += run;
                         a.trunk[Math.min(run, 95)]++;
                         run = 0;
+                        chunkTrees++;
                     }
                 }
                 if (run > 0) {
                     a.trees++;
                     a.logs += run;
                     a.trunk[Math.min(run, 95)]++;
+                    chunkTrees++;
                 }
             }
         }
+        return chunkTrees;
     }
+
+    /**
+     * 密度场均匀区（荒漠腹地）判据（P19 §G「腹地精确零」的测量口径）：chunk 中心列的三层密度
+     * 全部精确为 0 ⇒ 三层掷骰门恒关，该 chunk 不可能落树。坐标与 {@code placeTreePass} 同式
+     * （(chunkX&lt;&lt;4)+8）；与 DecorPlacer 同一 DensityField 出口，无第二真值。
+     */
+    private static boolean wastesInterior(long seed, int chunkX, int chunkZ) {
+        final int bx = (chunkX << 4) + 8;
+        final int bz = (chunkZ << 4) + 8;
+        return DensityField.shrubDensityAt(seed, bx, bz) == 0.0D
+            && DensityField.normalDensityAt(seed, bx, bz) == 0.0D
+            && DensityField.megaDensityAt(seed, bx, bz) == 0.0D;
+    }
+
+    /** 腹地精确零的记账（M 组荒漠断言用）。 */
+    private static long wastesInteriorChunks;
+    private static long wastesInteriorTrees;
 
     private static Agg bucket(Map<Integer, Agg> out, int idx) {
         Agg a = out.get(Integer.valueOf(idx));
@@ -532,7 +570,12 @@ public final class P17VegetationFrequencyCheck {
             .ordinalAt((cx << 4) + 8, (cz << 4) + 8).ordinal;
     }
 
-    /** 单 chunk 世界采样（ANTI 臂用）：只取身份 == 目标档的前 N 个 chunk，坐标集在臂间复用。 */
+    /**
+     * 单 chunk 世界采样（ANTI 臂用）：只取身份 == 目标档且<b>密度场均匀区（腹地）</b>的前 N 个
+     * chunk，坐标集在臂间复用。v1.20.40 P19 §G 重钉：界带渐变后非腹地的荒漠 chunk 可含少量
+     * 灌木（原档 trees=3 的 U6 现场），「原档零树」前置只在腹地（三层密度 ≡0 ⇒ 掷骰门恒关）
+     * 成立——坐标集收腹地后三臂语义复原。
+     */
     private static List<int[]> findChunks(int targetIdx, int count) {
         final List<int[]> hits = new ArrayList<>();
         final long seed = ANTI_SEED;
@@ -543,7 +586,7 @@ public final class P17VegetationFrequencyCheck {
                 if (CityPlanner.citiesNear(seed, cx, cz).length > 0) {
                     continue;
                 }
-                if (ordinal(cx, cz) == targetIdx) {
+                if (ordinal(cx, cz) == targetIdx && wastesInterior(seed, cx, cz)) {
                     hits.add(new int[] { cx, cz });
                     if (hits.size() >= count) {
                         break outer;
@@ -612,8 +655,12 @@ public final class P17VegetationFrequencyCheck {
             band("M " + BIO[idx] + " 花/chunk", div(a.flowers, a.chunks), BAND_FLOWERS[idx]);
             band("M " + BIO[idx] + " 沙砾/chunk", div(a.sand, a.chunks), BAND_SAND[idx]);
             if (idx == WASTES) {
-                check(a.trees == 0 && a.logs == 0,
-                    "M 荒漠<b>精确</b>零树：trees=" + a.trees + " logs=" + a.logs + "（含 0 的宽带不算达成需求）");
+                // v1.20.40 P19 §G 重钉（归因 U6 prered）：密度场界带渐变后荒漠可含少量界带灌木
+                //（量级由 WASTES_LEAK 率带钉）；「绝对零」改钉<b>腹地精确零</b>——密度场均匀区
+                //（三层密度 ≡0）的 chunk 掷骰门恒关，必须 trees == 0（旧"区域精确零树"口径退役）。
+                check(wastesInteriorChunks > 0 && wastesInteriorTrees == 0,
+                    "M 荒漠腹地精确零树：密度场均匀区（三层密度 ≡0）chunk=" + wastesInteriorChunks
+                        + " 落树=" + wastesInteriorTrees + "（P19 §G 腹地零树 + 界带渐变口径）");
             } else {
                 check(a.trees > 0, "M 有树群系 " + BIO[idx] + " trees > 0（实测 " + a.trees + "）");
                 check(a.flowers > 0, "M 有树群系 " + BIO[idx] + " flowers > 0（改前全密度 = 0）");
@@ -627,8 +674,11 @@ public final class P17VegetationFrequencyCheck {
         final double w = div(get(m, SWAMP).trees, get(m, SWAMP).chunks);
         final double s = div(get(m, STEPPE).trees, get(m, STEPPE).chunks);
         final double d = div(get(m, WASTES).trees, get(m, WASTES).chunks);
-        check(f > w && w > s && s > d && d == 0.0D,
-            "ORDER 真实链树密度 森(" + fmt(f) + ") > 沼(" + fmt(w) + ") > 原(" + fmt(s) + ") > 沙(" + fmt(d) + "=0)");
+        // v1.20.40 P19 §G 重钉：严格偏序 森>沼>原>沙 保留；「沙==0 精确项」随界带渐变退役
+        //（沙的绝对量级已由 M 组 WASTES_LEAK 率带与腹地精确零钉住，此处只钉偏序）。
+        check(f > w && w > s && s > d,
+            "ORDER 真实链树密度 森(" + fmt(f) + ") > 沼(" + fmt(w) + ") > 原(" + fmt(s) + ") > 沙(" + fmt(d)
+                + "，界带渗入上限见 M 组带)");
         final double tf = trunkMean(get(m, FOREST));
         final double tw = trunkMean(get(m, SWAMP));
         final double ts = trunkMean(get(m, STEPPE));

@@ -105,8 +105,11 @@ import com.miaokatze.gtsr.main.GTSteamReborn;
  * "邻槽画半座、锚槽弃权"的鬼影剪影；城内跨 chunk 结构从一开始就是这条口径（{@code placeCities}
  * 只按 {@code heightAt} 接地）。<b>P16-B2 把这条纯臂从"只判中心列"收紧为"总 bbox 覆盖到的每一列
  * 都要在带内"</b>（{@link #spanAllowsAt}），于是"半埋 + 坡地"这一类真实失败形态被它挡下；
- * 剩下的"水/非自然顶不挡"要闭合必须先有一个<b>纯函数</b>的水面/顶块谓词（现框架只有
- * {@code SurfaceGate} 的世界读数版），那是 framework 的活，不在本片写锁内。
+ * <b>P19 §F 把"水"的那一半也闭合了</b>：framework 现在有纯函数湿区谓词
+ * {@link PlacementGate#dryFootprint}，本类小机型（{@link #placeAll}）与跨片巨构
+ * （{@link #spanAllowsAt} 第⑤道）在落块前过同一道干区门，失败弃位不重试；
+ * 仍开放的只剩"非自然顶不挡"那一半——顶块臂要读 {@code world.getBlock}，跨槽不可复现，
+ * 维持"只在单 chunk 小机型上判"的既有口径不变。
  */
 public final class RuinedMachinePlacer {
 
@@ -326,6 +329,19 @@ public final class RuinedMachinePlacer {
             permit.abort(); // 未落块：显式归还，预算不扣
             return false;
         }
+        // P19 湿区避让（plan §F）：掷骰命中后、落块前，footprint 过纯函数干区门。跨片巨构已在
+        // {@link #spanAllowsAt} 的第⑤道按同一谓词对总 bbox 检查（邻槽补片同判），这里不再算第二遍；
+        // 小机型（单 chunk）就地检查。失败 ⇒ 弃位且不重试，本 chunk 结构变稀属预期密度影响。
+        if (!roll.span && !PlacementGate.dryFootprint(
+            worldSeed,
+            x,
+            z,
+            x + roll.shape.sizeX - 1,
+            z + roll.shape.sizeZ - 1,
+            PlacementGate.DRY_RATIO_STRUCTURAL)) {
+            permit.abort(); // 未落块：显式归还，预算不扣
+            return false;
+        }
         final PlacementGate.CountingSink counter = PlacementGate.counting(sink);
         // 键解析一律走城/outpost/废墟族同一张红线表（P16-B1 起本类不再有私有 resolveBlock）。
         // 跨片：切片器包在计数外侧 ⇒ commit 的真值只数"真的落进本 chunk 的块"。
@@ -503,6 +519,19 @@ public final class RuinedMachinePlacer {
                     return false;
                 }
             }
+        }
+        // 第⑤道（P19 §F 湿区避让）：总 bbox 的干区门（PlacementGate.dryFootprint，四角+中心+
+        // 周界步 8 采样）。三个读数（heightAt/lakeAt/strengthAt）全是 (worldSeed, x, z) 的纯函数
+        // ⇒ 邻槽复现锚点结论的前提一字未破；失败 ⇒ 本座弃位且不重试（锚点与每个邻槽同判，
+        // 不会出现"锚槽弃了、邻槽还画半座泡水剪影"的分叉）。
+        if (!PlacementGate.dryFootprint(
+            worldSeed,
+            ox,
+            oz,
+            ox + roll.shape.sizeX - 1,
+            oz + roll.shape.sizeZ - 1,
+            PlacementGate.DRY_RATIO_STRUCTURAL)) {
+            return false;
         }
         return true;
     }

@@ -393,7 +393,8 @@ public final class ProsperityOutpostPlacer {
      *
      * @param gate 本 chunk 的结构门（编排器创建）；{@code null} = 自派生（与改造前等价）
      * @return true = 本 chunk <b>真实</b>落了至少一块的 outpost（编排器据此跳过残缺机器并扣预算）；
-     *         false = 未掷中 / 被门拒 / 落点门不过 / 一块都没落进世界
+     *         false = 未掷中 / 被门拒 / 落点门不过 / 湿区弃位（P19 §F，弃位不重试） /
+     *         一块都没落进世界
      */
     public static boolean placeAll(World world, long worldSeed, int cx, int cz, BlockSink sink,
         PlacementGate.ChunkGate gate) {
@@ -422,6 +423,19 @@ public final class ProsperityOutpostPlacer {
         final int centerZ = z + roll.rotatedZ / 2;
         final int surfaceY = ground.groundY(centerX, centerZ);
         if (!PlacementGate.readyAt(surfaceY, isNaturalProsperityTop(world.getBlock(centerX, surfaceY, centerZ)))) {
+            permit.abort(); // 未落块：显式归还，预算不扣
+            return false;
+        }
+        // P19 湿区避让（plan §F）：掷骰命中后、落块前，对旋转后 footprint 过纯函数干区门
+        // （PlacementGate.dryFootprint，四角+中心+周界步 8 采样）。失败 ⇒ 弃位且不重试
+        // （同 seed 同坐标恒同结论），本 chunk 结构变稀属预期密度影响；半埋档表不受影响。
+        if (!PlacementGate.dryFootprint(
+            worldSeed,
+            x,
+            z,
+            x + roll.rotatedX - 1,
+            z + roll.rotatedZ - 1,
+            PlacementGate.DRY_RATIO_STRUCTURAL)) {
             permit.abort(); // 未落块：显式归还，预算不扣
             return false;
         }

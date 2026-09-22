@@ -179,12 +179,17 @@ public class CityBiomeGateCheck {
         check(ungated.anchorInBandPct() < 95.0D, "C1 反门恒真（P4 教训：门恒真会掩盖配置）：门关闭时锚点身份为草原的城"
             + "只占 " + pct(ungated.anchorInBandPct()) + "%（&lt;95% 才说明门有实际工作可做），候选城 "
             + ungated.citiesAnchored + " 座");
-        check(ungated.citiesKept == ungated.citiesAnchored && ungated.coveragePp() > selected.coveragePp(),
-            "C2 门关闭 == 改造前口径（全候选城都算，覆盖 " + pct(ungated.coveragePp()) + "pp 必须高于选定档 "
-            + pct(selected.coveragePp()) + "pp）");
+        // v1.20.40 P19 §F 重钉（归因 U5 prered + 二次 redirect）：cityGateAllows 的干区臂
+        //（wetAt 回填真值口径）按拍板<b>独立于带门常开</b>（GATE_OFF 只关带门），旧语义
+        // "门关闭 == 改造前全候选城都算"随干区臂退役。现钉单向性：关带门后保留城数 ≥ 选定档
+        //（带门只减不增）且覆盖仍严格高于选定档。
+        check(ungated.citiesKept >= selected.citiesKept && ungated.coveragePp() > selected.coveragePp(),
+            "C2 带门关闭只减不增：GATE_OFF 保留城 " + ungated.citiesKept + " ≥ 选定档 " + selected.citiesKept
+                + "（P19 §F 干区臂常开，旧「全候选城都算」口径退役）且覆盖 " + pct(ungated.coveragePp())
+                + "pp > 选定档 " + pct(selected.coveragePp()) + "pp");
         check(ungated.anchorInBandPct() > 5.0D && ungated.anchorInBandPct() < 60.0D,
             "C3 申报性对照：门关闭时锚点草原率 " + pct(ungated.anchorInBandPct())
-            + "% ∈ (5,60)（等权链下草原份额 ≈25%，出带即身份面或采样几何漂移）");
+                + "% ∈ (5,60)（等权链下草原份额 ≈25%，出带即身份面或采样几何漂移）");
 
         // 身份面的几何可行性（B2 改判：城盘能否整体装进草原身份区不再由 macro 带保证，而由链的
         // 成片尺度保证）——样本窗外扩后最大草原 4-连通簇必须 ≥ 最小城盘 9×9=81 chunk

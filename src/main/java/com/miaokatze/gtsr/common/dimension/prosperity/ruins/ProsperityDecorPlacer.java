@@ -40,6 +40,9 @@ import com.miaokatze.gtsr.common.dimension.framework.structure.StructureBuilder;
  * ProsperitySurfaceScatter 同款 splitmix 范式），同 seed 同坐标跨 chunk 重算一致；禁用 populate 裸
  * Random 语义（Random 仅作哈希种子的取数器）。掷趟顺序固定 = 树 → 花草 → 碎石 → 沙砾。
  * <p>
+ * <b>P19 U6</b>：树趟三层掷骰的门概率改由 {@link DensityField} 密度场驱动（跨界渐变 + 渗色修复，
+ * plan §G），掷骰次数/盐族/形态离散档位纪律不变，见 {@code #placeTreePass} 说明。
+ * <p>
  * 让行纪律（不覆盖已有结构）：花草/沙砾逐块 {@code isAirBlock} 让行（02 §8.4 优先级 4 口径）；
  * 树整柱干 + 冠层中心列先查空气、有占用整树跳过。接地：逐列 {@code findSurfaceY}
  * （WorldGenRunawaySingularity.java:82-91 范式）。<b>落点门（P4 起）= 框架单一谓词
@@ -367,35 +370,53 @@ public final class ProsperityDecorPlacer {
     // ═════════════════════════════ 树趟（P17 S-B2）═════════════════════════════
 
     /**
-     * 树趟（T7 起三段）：巨树（独立盐 chunk 级 1/N 亮点，先落位 ⇒ 同 chunk 后续树让行）→ 灌木
-     * （1/{@code shrubDenom}）→ 普通（{@code treeRolls × 1/treeChanceDenom}，P17 S-B2 原样）。
-     * 三段顺序固定 ⇒ 同 seed 同坐标逐位一致；巨树趟独立 Random，普通/灌木的随机流与掷序不受其影响。
-     * {@code treeRolls <= 0} 且两分母为 0（荒漠档）⇒ 一段都不进、一次随机都不掷。
+     * 树趟（T7 起三段；<b>P19 U6 起三层掷骰由密度场驱动</b>，plan §G）：巨树（独立盐 chunk 级
+     * 亮点，先落位 ⇒ 同 chunk 后续树让行）→ 灌木 → 普通。三段顺序固定 ⇒ 同 seed 同坐标逐位一致；
+     * 巨树趟独立 Random，普通/灌木的随机流与掷序不受其影响。
+     * <p>
+     * <b>P19 U6 改造点（只改门，不改流）</b>：三层门的<b>命中概率</b>由"档表 1/N"换成
+     * {@link DensityField} 在 chunk 中心的当前密度取值（{@code nextInt(DICE_GATE) < gateOf(密度)}），
+     * 修复群系边界整 chunk 硬切（用户 image5「树界过硬」）：跨界 chunk 的树期望按密度场连续过渡。
+     * 三条纪律保持：① <b>每 chunk 掷骰次数与盐族纪律不变</b>——巨树仍独立盐 1 骰、灌木 1 骰、
+     * 普通 {@code treeRolls} 骰（密度为 0 时跳骰，与改造前"分母 0 不掷"同形，均匀区随机流消耗
+     * 逐位同构）；② <b>均匀区期望 == 档表原值逐位</b>——腹地密度即档表行值（DensityField 均匀短路），
+     * {@code DICE_GATE}=96000 取全部分母 LCM ⇒ 门概率与 {@code 1/N} 有理数重合；③ <b>密度只驱动
+     * 生成概率</b>——干高/冠形/木种仍按主导档 {@code tier} 离散取值（形态不插值，判据友好）。
+     * 混合区里普通档单骰概率 = chunk 级期望密度 ÷ {@code treeRolls}（rolls 数仍按主导档）。
      */
     private static void placeTreePass(World world, long worldSeed, StructureBuilder builder, Random rand, int chunkX,
         int chunkZ, VegTier tier, TreeTierSet trees) {
-        if (trees.megaDenom > 0 && trees.megaForm != MEGA_NONE) {
-            final Random megaRand = new Random(GTSRWorldgenHash.chunkSeed(worldSeed, chunkX, chunkZ) ^ SALT_MEGA);
-            if (megaRand.nextInt(trees.megaDenom) == 0) {
-                final int wood = pickWood(megaRand, tier);
-                MegaTreeForms.place(
-                    world,
-                    worldSeed,
-                    builder,
-                    megaRand,
-                    chunkX,
-                    chunkZ,
-                    trees.megaForm,
-                    logOf(wood),
-                    leavesOf(wood));
+        final int centerX = (chunkX << 4) + 8;
+        final int centerZ = (chunkZ << 4) + 8;
+        if (trees.megaForm != MEGA_NONE) {
+            final double megaDensity = DensityField.megaDensityAt(worldSeed, centerX, centerZ);
+            if (megaDensity > 0.0D) {
+                final Random megaRand = new Random(GTSRWorldgenHash.chunkSeed(worldSeed, chunkX, chunkZ) ^ SALT_MEGA);
+                if (megaRand.nextInt(DensityField.DICE_GATE) < DensityField.gateOf(megaDensity)) {
+                    final int wood = pickWood(megaRand, tier);
+                    MegaTreeForms.place(
+                        world,
+                        worldSeed,
+                        builder,
+                        megaRand,
+                        chunkX,
+                        chunkZ,
+                        trees.megaForm,
+                        logOf(wood),
+                        leavesOf(wood));
+                }
             }
         }
-        if (trees.shrubDenom > 0 && rand.nextInt(trees.shrubDenom) == 0) {
+        final double shrubDensity = DensityField.shrubDensityAt(worldSeed, centerX, centerZ);
+        if (shrubDensity > 0.0D && rand.nextInt(DensityField.DICE_GATE) < DensityField.gateOf(shrubDensity)) {
             placeShrub(world, builder, rand, chunkX, chunkZ, tier);
         }
-        for (int i = 0; i < tier.treeRolls; i++) {
-            if (tier.treeChanceDenom > 0 && rand.nextInt(tier.treeChanceDenom) == 0) {
-                placeTree(world, builder, rand, chunkX, chunkZ, tier);
+        if (tier.treeRolls > 0) {
+            final double perRoll = DensityField.normalDensityAt(worldSeed, centerX, centerZ) / tier.treeRolls;
+            for (int i = 0; i < tier.treeRolls; i++) {
+                if (rand.nextInt(DensityField.DICE_GATE) < DensityField.gateOf(perRoll)) {
+                    placeTree(world, builder, rand, chunkX, chunkZ, tier);
+                }
             }
         }
     }

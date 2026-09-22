@@ -80,7 +80,8 @@ public class P17TerrainReliefCheck {
      * 由此变为"STRIDE 间隔列"口径，重钉读数按新口径申报。
      */
     private static final int RELIEF_STRIDE = 1 << Math.max(0, GTSRGenLayerChain.DEFAULT_ZOOM_LEVELS - 5);
-    /** P17-SA 申报（当前档实测）：聚合 sd 森 8.954 / 原 6.392 / 沙 4.576 / 沼 2.609。 */
+    /** P17-SA 申报（v1.20.40 P19 §H 变体场后的重录实测）：聚合 sd 森 13.130 / 原 6.493 / 沙 4.987 / 沼 1.894
+     *  （改前申报 森 8.954 / 原 6.392 / 沙 4.576 / 沼 2.609；严格序不变——沼泽夹持压平后仍最平坦）。 */
     private static final double RATIO_FOREST_STEPPE_MIN = 1.25D;
     private static final double RATIO_STEPPE_WASTES_MIN = 1.25D;
     private static final double RATIO_WASTES_SWAMP_MIN = 1.30D;
@@ -88,8 +89,18 @@ public class P17TerrainReliefCheck {
     private static final int PER_SEED_HITS_MIN = 15;
     /** 相邻列 |Δh| 下限档：改前全维度 max|Δh| = 1（P17-B §1.3）；T4 后河谷壁把该读数抬回真实地势量级。 */
     private static final double ADJACENT_DELTA_MIN = 8.0D;
-    /** 群系内（同档相邻列）mean|Δh| 申报：森 0.134 / 原 0.096 / 沙 0.080 / 沼 0.059。 */
+    /**
+     * 群系内（同档相邻列）mean|Δh| 申报（v1.20.40 P19 §H 重录）：森 0.583 / 原 0.428 / 沙 0.457 / 沼 0.198
+     * （改前申报 森 0.134 / 原 0.096 / 沙 0.080 / 沼 0.059——变体场整体抬了短尺度粗糙度）。
+     * <p>
+     * WITHIN 偏序 v1.20.40 重钉（归因 U7 prered：荒漠沙丘垄脊把短尺度粗糙度抬到与草原同量级，
+     * 原 0.428 &lt; 沙 0.457——「原 ≥ 沙」旧序随沙丘语义退役）：荒漠短尺度粗糙度对草原的比值
+     * 钉带 [0.85, 1.30]——下界咬住"沙丘场存在"（塌回草原 85% 以下 = 垄脊消失），上界咬住
+     * "沙丘抬升受控"（碎浪幅度不得失控）；实测比 1.068 居带中。
+     */
     private static final double WITHIN_RATIO_MIN = 1.15D;
+    private static final double WITHIN_DUNES_MIN = 0.85D;
+    private static final double WITHIN_DUNES_MAX = 1.30D;
     /**
      * 触钳制边界的列占比上限（T8 重钉）：语义="clamp 不得截平 sd 分布"。P17-SA 时代窗小、
      * 实测恒 0，钉的是字面 0；派生窗（3072²×16 seed ≈ 944 万样本）下森林腹地 1.7 档与三频正弦
@@ -378,11 +389,11 @@ public class P17TerrainReliefCheck {
         check(sd[1] > sd[0] && sd[0] >= sd[2] && sd[2] > sd[3], "RELIEF 聚合 sd 偏序 森>原≥沙>沼（实测 " + fmt(sd)
             + "；T3 账本先行 + T4 去 河/湖列 后的申报口径）");
         check(sd[1] / sd[0] >= RATIO_FOREST_STEPPE_MIN, "RELIEF 森/原 sd 比 " + fmt1(sd[1] / sd[0]) + " ≥ "
-            + RATIO_FOREST_STEPPE_MIN + "（申报现值 1.401）");
+            + RATIO_FOREST_STEPPE_MIN + "（v1.20.40 重录现值 2.024）");
         check(sd[0] / sd[2] >= RATIO_STEPPE_WASTES_MIN, "RELIEF 原/沙 sd 比 " + fmt1(sd[0] / sd[2]) + " ≥ "
-            + RATIO_STEPPE_WASTES_MIN + "（申报现值 1.397）");
+            + RATIO_STEPPE_WASTES_MIN + "（v1.20.40 重录现值 1.302）");
         check(sd[2] / sd[3] >= RATIO_WASTES_SWAMP_MIN, "RELIEF 沙/沼 sd 比 " + fmt1(sd[2] / sd[3]) + " ≥ "
-            + RATIO_WASTES_SWAMP_MIN + "（申报现值 1.754）");
+            + RATIO_WASTES_SWAMP_MIN + "（v1.20.40 重录现值 2.639）");
         check(strictHits >= PER_SEED_HITS_MIN, "RELIEF 逐 seed 严格序（森>原>沙>沼）命中 " + strictHits + "/"
             + RELIEF_SEEDS + " ≥ " + PER_SEED_HITS_MIN + "（改前 0/10；P17-B §2.1 的"
             + "「最小下一步」门槛是 ≥9/10）");
@@ -393,8 +404,12 @@ public class P17TerrainReliefCheck {
         final long clampMax = (long) (side * side * (double) RELIEF_SEEDS * CLAMP_RATIO_MAX);
         check(clampHits <= clampMax, "RELIEF 触 y=40/110 钳制边的列数 " + clampHits + " ≤ " + clampMax
             + "（样本的 0.01%；越界说明振幅档被 clamp 截平，sd 偏序会失真）");
-        check(rough[1] > rough[0] && rough[0] >= rough[2] && rough[2] > rough[3],
-            "RELIEF 群系内 mean|Δh| 同偏序（实测 " + fmt(rough) + "）⇒ 短尺度粗糙度与长尺度 sd 同向");
+        check(rough[1] > rough[0] && rough[3] < rough[2],
+            "RELIEF 群系内 mean|Δh| 森>原 且 沙>沼（实测 " + fmt(rough) + "）⇒ 森林最粗糙、沼泽最平坦的双向钉");
+        check(rough[2] >= rough[0] * WITHIN_DUNES_MIN && rough[2] <= rough[0] * WITHIN_DUNES_MAX,
+            "RELIEF 沙/原 群系内粗糙度比 " + fmt1(rough[2] / rough[0]) + " ∈ [" + WITHIN_DUNES_MIN + ","
+                + WITHIN_DUNES_MAX + "]（v1.20.40 P19 §H 沙丘语义重钉：垄脊把荒漠短尺度粗糙度抬到与草原"
+                + "同量级；旧「原 ≥ 沙」序随沙丘退役——归因 U7 prered 原0.428<沙0.457）");
         check(rough[1] / rough[0] >= WITHIN_RATIO_MIN, "RELIEF 森/原 群系内粗糙度比 " + fmt1(rough[1] / rough[0])
             + " ≥ " + WITHIN_RATIO_MIN);
         check(rough[3] < rough[2], "RELIEF 沼<沙 群系内粗糙度（沼泽最平坦）");

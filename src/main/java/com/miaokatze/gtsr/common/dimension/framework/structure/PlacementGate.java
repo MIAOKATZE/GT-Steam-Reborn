@@ -9,6 +9,7 @@ import net.minecraft.block.Block;
 import net.minecraft.init.Blocks;
 
 import com.miaokatze.gtsr.common.dimension.prosperity.ProsperityTerrainProfile;
+import com.miaokatze.gtsr.common.dimension.prosperity.river.GTSRVoronoiRiverField;
 import com.miaokatze.gtsr.common.dimension.prosperity.ruins.ProsperitySurfaceScatter;
 import com.miaokatze.gtsr.common.dimension.prosperity.ruins.city.CityVariants;
 import com.miaokatze.gtsr.config.Config;
@@ -42,7 +43,9 @@ import com.miaokatze.gtsr.config.Config;
  * 从此各自唯一实现、互不共用，由 {@code tools/dim1/PlacementContractCheck} D5 钉住。
  * 该"框架件引用内容件"的过渡依赖（窗边长常量）登记为未闭合项（P13 把窗判定上收至 framework）；
  * 同一性质的还有 {@link #groundFn(long)} 对 {@code ProsperityTerrainProfile.heightAt} 的直引
- * （dim79 的结构侧目前不经本门，理由见该方法注释）。</li>
+ * 与 <b>P19</b> 湿区谓词 {@link #dryFootprint(long, int, int, int, int)} 对
+ * {@code GTSRVoronoiRiverField} 的直引（dim79 的结构侧目前不经本门，理由见该方法注释；
+ * framework→prosperity 直引按 plan p19 §F 拍板集中在 P13 债务账登记）。</li>
  * </ol>
  * <p>
  * ═══ 用法（结构侧三步）═══
@@ -588,6 +591,174 @@ public final class PlacementGate {
      */
     public static CityVariants.GroundFn groundFn(final long worldSeed) {
         return (x, z) -> ProsperityTerrainProfile.heightAt(worldSeed, x, z);
+    }
+
+    /**
+     * 干区占比阈值——<b>结构族</b>（outpost/machine·巨构/ruin；<b>P19 §F 拍板，U5-redirect
+     * 修正</b>）：footprint 采样面上干列占比 ≥ 本值才可放置。原"全列全过"语义对任何非零
+     * 河网密度都近乎必弃（探针：61-67% 弃位），与 vanilla 结构"采样检查"的实际口径不符；
+     * 0.90 允许小 footprint 摊上 0-2 列河缘滩带（结构本体随 groundFn 逐列接地，个别滩列
+     * 只影响观感不影响"整体泡水"），河道/湖心仍必然弃位。
+     */
+    public static final double DRY_RATIO_STRUCTURAL = 0.90D;
+
+    /**
+     * 干区占比阈值——<b>城市 cell</b>（<b>P19 §F 拍板，U5-redirect 修正</b>）：城盘外扩面
+     * （{@code CityPlanner.CITY_DRY_HALF_CHUNKS}=8 chunk）干列占比 ≥ 0.85 即放行——城市
+     * 地块密度高、街道逐列接地，允许外缘 15% 滩带换"城市能正常生成"；但城心核心区
+     * （中心 64×64，{@code CityPlanner} 的 strict 臂）仍要求<b>全干</b>（城市核心泡在水里
+     * 是用户明确不可接受的观感）。
+     */
+    public static final double DRY_RATIO_CITY = 0.85D;
+
+    /**
+     * 贴河护带下界（<b>P19 §F 拍板值，U5 二次 redirect 定口径</b>）：{@code -strengthAt ≥
+     * 本值} 的列算"贴水"（水面以上贴水边 + 滩带外沿；河核窄带已由 wetAt 覆盖）——
+     * "结构生成在水里或河滩里"均不可接受。取 {@code WET_MIN - 0.08}：比水面窄一档的
+     * 缓冲，把水线以上第一圈滩坡纳入避让。地形常数不出自本类（单一真值在
+     * {@link GTSRVoronoiRiverField}），本类不引 Config（这不是密度数字，不进"不持有
+     * 数字"那条纪律的管辖面）。
+     */
+    private static final double WET_SHORE_GUARD = GTSRVoronoiRiverField.WET_MIN - 0.08D;
+
+    /**
+     * 湿区避让谓词的<b>单列判定</b>（P19 §F；U5 二次 redirect 后的<b>回填真值口径</b>）：
+     * 一列算"湿"当且仅当 ①回填会置水（{@code wetAt}——{@code GTSRVoronoiRiverField} 的
+     * 单一真值，含荒漠整段闸与浅滩干出语义；本门传 {@code rosterIndex=0} 取<b>最保守</b>
+     * 非荒漠口径，结构无列身份，任何群系的河道水带都避开）、②湖置水带
+     * （{@code lakeAt < LAKE_WATER_LEVEL}）、③贴河护带（{@code -strengthAt ≥ WET_MIN-0.08}，
+     * 拦住水面以上贴水边与滩带外沿——"结构生成在水里或河滩里"均不可接受）。
+     * <p>
+     * <b>为什么没有 heightAt 门（U5 首版读数 49-92% 弃位的根因）</b>：{@code heightAt<68}
+     * 大量命中<b>自然洼地</b>（BASE 70 + 三频波动 + zone 乘子 0.6-1.4 的低区，无河无湖、
+     * 回填不置水），把干地误判湿区；回填真值口径下自然洼地放行，湿带收窄到河核/湖面/
+     * 贴水窄条。三个读数仍是 {@code (worldSeed, x, z)} 纯函数（不读世界方块）。
+     */
+    private static boolean dryColumnAt(long worldSeed, int x, int z) {
+        if (GTSRVoronoiRiverField.wetAt(worldSeed, x, z, 0)) {
+            return false;
+        }
+        if (GTSRVoronoiRiverField.lakeAt(worldSeed, x, z) < GTSRVoronoiRiverField.LAKE_WATER_LEVEL) {
+            return false;
+        }
+        return -GTSRVoronoiRiverField.strengthAt(worldSeed, x, z) < WET_SHORE_GUARD;
+    }
+
+    /**
+     * 湿区避让门（<b>P19 §F「结构避水」，城市泡水根因修复；U5-redirect 改占比制</b>）：矩形
+     * footprint {@code [x0..x1] × [z0..z1]} 的<b>干区占比判定</b>——采样<b>四角 + 中心 +
+     * 周界步 8 + 内部网格步 24</b>，每列过 {@link #dryColumnAt} 三关，干列占比 ≥
+     * {@code minRatio} 才 true。
+     * <p>
+     * <b>占比制而非全过制（U5-redirect 裁决）</b>：全过制对大 footprint 近乎必弃（首版探针：
+     * 城市 99.77% / outpost 67.1% / machine 61.4% / ruin 59.3% 弃位——257×257 城盘的 min
+     * 高度均值 59，"每列都高出水面"在任何非零河网密度下不成立）。占比制允许边缘摊上少量
+     * 河缘滩带列（结构本体随 groundFn 逐列接地，个别滩列只影响观感不影响"整体泡水"）；
+     * 河道/湖心仍必然弃位（河道列三关全败）。调用方按族传
+     * {@link #DRY_RATIO_STRUCTURAL}（四族）/{@link #DRY_RATIO_CITY}（城盘外扩面）。
+     * <p>
+     * <b>弃位语义（四族 placer 与城门统一）</b>：调用方（outpost / 机器·巨构 / 废墟 /
+     * {@code CityPlanner.cityGateAllows}）在<b>掷骰命中后、落块前</b>查本门，失败即
+     * <b>弃位且不重试</b>（vanilla House 模式——不换点、不降级、不递延到下一 chunk），掷骰流
+     * 与既有概率值一字不改 ⇒ 同 seed 同坐标恒同结论（确定性）。弃位后该 chunk / 该 cell 的
+     * 结构密度略降，属<b>预期观感</b>（结构让水，不是水让结构）；半埋档表不受影响
+     * （弃位发生在落块之前，与埋深无关）。
+     * <p>
+     * <b>纯函数边界</b>：{@link #dryColumnAt} 的三个读数（heightAt / lakeAt / strengthAt）
+     * 都不读世界方块，故跨 chunk 分片协议（P16-B1：邻槽必须能独立复现锚点结论）与离线判据
+     * （无世界 JVM）都能逐位复算本门。
+     * <p>
+     * 依赖登记：本方法是 framework→prosperity 的第二处直引（第一处是 {@link #groundFn(long)}），
+     * 按 plan p19 §F 拍板集中在 P13 债务账，见类注释。
+     *
+     * @param minRatio 干列占比下界（{@link #DRY_RATIO_STRUCTURAL} / {@link #DRY_RATIO_CITY}）
+     * @return true = 干列占比达标（可放置）；false = 湿/滩/贴河采样列过多（弃位）
+     */
+    public static boolean dryFootprint(long worldSeed, int x0, int z0, int x1, int z1, double minRatio) {
+        return dryRatioAt(worldSeed, x0, z0, x1, z1) >= minRatio;
+    }
+
+    /**
+     * 城心核心区专用<b>全过制</b>门（{@link #DRY_RATIO_CITY} 的配套臂，P19 §F 拍板）：
+     * 中心 64×64 内<b>每列</b>（四角+中心+周界步 8+内部网格步 16 采样，全过制）必须全干——
+     * 城市核心泡在水里是用户明确不可接受的观感，占比制的外缘容忍不适用。
+     */
+    public static boolean dryFootprintStrict(long worldSeed, int x0, int z0, int x1, int z1) {
+        final int loX = Math.min(x0, x1);
+        final int hiX = Math.max(x0, x1);
+        final int loZ = Math.min(z0, z1);
+        final int hiZ = Math.max(z0, z1);
+        if (!dryColumnAt(worldSeed, loX, loZ) || !dryColumnAt(worldSeed, loX, hiZ)
+            || !dryColumnAt(worldSeed, hiX, loZ)
+            || !dryColumnAt(worldSeed, hiX, hiZ)
+            || !dryColumnAt(worldSeed, loX + (hiX - loX) / 2, loZ + (hiZ - loZ) / 2)) {
+            return false;
+        }
+        for (int x = loX + 8; x < hiX; x += 8) {
+            if (!dryColumnAt(worldSeed, x, loZ) || !dryColumnAt(worldSeed, x, hiZ)) {
+                return false;
+            }
+        }
+        for (int z = loZ + 8; z < hiZ; z += 8) {
+            if (!dryColumnAt(worldSeed, loX, z) || !dryColumnAt(worldSeed, hiX, z)) {
+                return false;
+            }
+        }
+        for (int x = loX + 16; x < hiX; x += 16) {
+            for (int z = loZ + 16; z < hiZ; z += 16) {
+                if (!dryColumnAt(worldSeed, x, z)) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    /**
+     * footprint 采样面上的干列占比（{@link #dryFootprint(long, int, int, int, int, double)} 的
+     * 实现体）：采样面 = 四角 + 周界步 8 + 内部网格步 24 + 中心（内部网格保证大 footprint 的
+     * <b>腹地</b>也被覆盖——首版只有周界+中心，湖心/河道穿腹地时边缘采样可能全干而腹地全湿）。
+     */
+    private static double dryRatioAt(long worldSeed, int x0, int z0, int x1, int z1) {
+        final int loX = Math.min(x0, x1);
+        final int hiX = Math.max(x0, x1);
+        final int loZ = Math.min(z0, z1);
+        final int hiZ = Math.max(z0, z1);
+        final int[] xs = axisSamples(loX, hiX);
+        final int[] zs = axisSamples(loZ, hiZ);
+        final int midX = loX + (hiX - loX) / 2;
+        final int midZ = loZ + (hiZ - loZ) / 2;
+        int dry = 0;
+        int total = 0;
+        for (final int x : xs) {
+            for (final int z : zs) {
+                final boolean edge = x == loX || x == hiX || z == loZ || z == hiZ;
+                final boolean grid24 = (x - loX) % 24 == 0 && (z - loZ) % 24 == 0;
+                final boolean mid = x == midX && z == midZ;
+                if (!edge && !grid24 && !mid) {
+                    continue;
+                }
+                total++;
+                if (dryColumnAt(worldSeed, x, z)) {
+                    dry++;
+                }
+            }
+        }
+        return total == 0 ? 1.0D : (double) dry / total;
+    }
+
+    /** 轴采样点：起点起步 8 前进 + 显式收尾端点（循环 {@code x < hi} 严格小于 ⇒ 端点不重复）。 */
+    private static int[] axisSamples(int lo, int hi) {
+        if (hi <= lo) {
+            return new int[] { lo };
+        }
+        final int[] buf = new int[(hi - lo) / 8 + 2];
+        int m = 0;
+        for (int x = lo; x < hi; x += 8) {
+            buf[m++] = x;
+        }
+        buf[m++] = hi;
+        return java.util.Arrays.copyOf(buf, m);
     }
 
     /**

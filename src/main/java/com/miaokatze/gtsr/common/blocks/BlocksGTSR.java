@@ -163,5 +163,13 @@ public final class BlocksGTSR {
     /** 繁荣废岩（dim78 地底 wholeBody 主体石；ChunkProviderProsperityRuins.baseBlockOf 四群系统一返回。） */
     public static Block prosperityStone;
 
+    // ==== v1.20.40 P19-U1：深渊执念流体（plan §I；BlockLoader.initAbyssalFluid 于 CommonProxy.init
+    // 段注册期写入——材料流体 abyssal_obsession 在 GT preInit 的 Materials.init() 回调链才进
+    // FluidRegistry，gtsr 自身 preInit（initBlocks）时不可取，故本方块是 init 段后置注册的
+    // 既有自持持有者范式的唯一晚到例；worldgen 换块消费方归 P19 批2 U34）====
+
+    /** 深渊执念流体方块（BlockFluidClassic，源 meta0；舀取/放置转换见 AbyssalFluidConversionHandler）。 */
+    public static Block abyssalFluid;
+
     private BlocksGTSR() {}
 }

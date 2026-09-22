@@ -224,6 +224,15 @@ public class CommonProxy {
      */
     @SuppressWarnings({ "unused" })
     public void init(FMLInitializationEvent event) {
+        // v1.20.40 P19-U1：深渊执念流体方块+桶+事件面（plan §I）。init 段调用——材料流体
+        // abyssal_obsession 在 GT preInit 末尾 Materials.init() 回调链才进 FluidRegistry
+        // （gtsr required-before:gregtech ⇒ 自身 preInit 时不可取，同下方探针的时序依据）；
+        // fluid.setBlock 由 BlockFluidBase 构造函数自挂（BlockFluidBase.java:71），详见
+        // BlockLoader.initAbyssalFluid 注释。失败开放：材料链降级时两段跳过+告警。
+        BlockLoader.initAbyssalFluid();
+        ItemLoader.initAbyssalBucket();
+        com.miaokatze.gtsr.common.event.AbyssalFluidConversionHandler.register();
+
         // dim1 S3 dev 探针（S3 验收②）：init 晚于 GT preInit 的 Materials.init()/流体注册管线，
         // 此处回读 FluidRegistry 与静态持有者，逐材料输出非空证据（行为级验证 defer S8 冒烟）。
         GTSRProsperityAirMaterials.logRegistrationProbe();

@@ -2087,12 +2087,17 @@ tile.ProsperityRiverGravel.name=河床砂砾
 # 维度繁荣蒸汽时代遗迹：v1.20.39 T2 地底 wholeBody 主体石（§3.7 地底石化；非表层，meta 恒 0）
 tile.ProsperityStone.name=繁荣废岩
 
+# 维度繁荣蒸汽时代遗迹：v1.20.40 P19-U1 深渊执念流体（§I；BlockFluidClassic + 自有桶）
+tile.AbyssalFluid.name=深渊执念
+item.AbyssalObsessionBucket.name=深渊执念桶
+
 # 繁荣四空气材料 (dim1 S3)
 Material.wastesigh=荒原叹息
 Material.thickgrease=浓稠油污
 Material.metalgrit=金属风沙
 Material.umbralmire=至暗泥泞
 Material.sanzu_residual_steam=三途余汽
+Material.abyssal_obsession=深渊执念
 
 # 维度破碎之地：群系（S-B3；键名跟随 setBiomeName 的 biome.<biomeName>.name）
 biome.Ashen Prairie.name=灰烬草原

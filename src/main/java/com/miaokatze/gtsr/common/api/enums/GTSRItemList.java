@@ -117,6 +117,10 @@ public enum GTSRItemList implements IItemContainer {
     // 调试工具（管理员物品，无配方无 NEI 途径）
     SingularityTuningWand,
 
+    // v1.20.40 P19-U1：深渊执念桶（注册在 ItemLoader.initAbyssalBucket，CommonProxy.init 段
+    // ——桶 isFull 依赖 BlockAbyssalFluid，后者须待 GT 材料流体注册后构造，故早于 init 不可行）
+    AbyssalObsessionBucket,
+
     ;
 
     // [GT-compat] beta 兼容层（beta1/beta2/beta3）：GTLog.err/GTMod.GT_FML_LOGGER 于 beta-3 移除，改用环境 log4j2（三版本通用）
