@@ -563,6 +563,18 @@ MSYS2_ARG_CONV_EXCL='*' java $STD $LOG4J -Xmx2g -cp "$OUT/tools;$OUT/classes;$CP
 code=$?; tail -2 "$OUT/SanzuTrunkCoverageCheck.out" | cut -c1-170; echo "   EXIT=$code log=$OUT/SanzuTrunkCoverageCheck.out"
 [ $code -ne 0 ] && FAILS=$((FAILS + 1))
 
+# v1.20.41 P20 S5b/S5c/S5d：巨湖形态学判据（plan §15.3 D1/D2/D3 + §15.4 湖岸衔接第一判据 A 组六条
+# + §15.5 中心岛与岛底柱 C 组 + §15.6 "整体更壮观"四条可测代理 S 组）。32 条断言，判据内置双跑逐位
+# 一致自检，纯模型驱动（lakeAt/lakeBedAt/lakeIslandTopAt 均零世界读取，无需离线装配账本）。
+# 已知留红一条：S1 三档比 1:2:2 是主代理代拟口径、已证在满足 A 系列的机制族内全域不可达，
+# 按 plan §27-D 裁决"不放宽、不暗改、留红转终验向用户摊开取舍"⇒ 本步 EXIT 非零属预期红，非回归。
+echo "== [3t5b] dim78 巨湖形态学（渐深触底 D / 湖岸衔接第一判据 A / 中心岛与岛底柱 C / 壮观度代理 S） =="
+MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8   -cp "$OUT/classes;$CP" -sourcepath "src/main/java;tools/dim1" -d "$OUT/tools"   tools/dim1/SanzuLakeMorphologyCheck.java >"$OUT/javac-t5blake.log" 2>&1
+echo "COMPILE SanzuLakeMorphologyCheck EXIT=$? ($(grep -ac 'error:' "$OUT/javac-t5blake.log") error)"
+MSYS2_ARG_CONV_EXCL='*' java $STD $LOG4J -Xmx2g -cp "$OUT/tools;$OUT/classes;$CP" SanzuLakeMorphologyCheck   >"$OUT/SanzuLakeMorphologyCheck.out" 2>&1
+code=$?; tail -2 "$OUT/SanzuLakeMorphologyCheck.out" | cut -c1-170; echo "   EXIT=$code log=$OUT/SanzuLakeMorphologyCheck.out"
+[ $code -ne 0 ] && FAILS=$((FAILS + 1))
+
 # ── v1.20.40 P19 U8（纯追加步骤 [3u8]）：地形填充段性能基准 ──────────────────────────────
 # plan §J「新增性能基准判据」：对照 v1.20.38 P17-SA probe4 有账本基线 241µs/chunk（单列串行
 # heightAt walk，temp/p17-sa/probe4.log），派生式阈值 = 241×1.30 = 313.3µs/chunk，per-chunk

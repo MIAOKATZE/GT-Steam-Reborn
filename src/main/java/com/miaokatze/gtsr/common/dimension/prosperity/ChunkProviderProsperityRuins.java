@@ -14,6 +14,7 @@ import com.miaokatze.gtsr.common.dimension.framework.BiomePlaneAccess;
 import com.miaokatze.gtsr.common.dimension.framework.GTSRBiomeAuthority;
 import com.miaokatze.gtsr.common.dimension.framework.GTSRBiomeAuthority.BiomeId;
 import com.miaokatze.gtsr.common.dimension.framework.GTSRChunkProviderBase;
+import com.miaokatze.gtsr.common.dimension.framework.GTSRSurfaceBorderBand;
 import com.miaokatze.gtsr.common.dimension.framework.structure.BlockSink;
 import com.miaokatze.gtsr.common.dimension.framework.structure.ChunkClampedSink;
 import com.miaokatze.gtsr.common.dimension.prosperity.biome.BiomeBrassWastes;
@@ -111,7 +112,11 @@ public class ChunkProviderProsperityRuins extends GTSRChunkProviderBase {
             ChunkProviderProsperityRuins::fillerMetaOf,
             ChunkProviderProsperityRuins::baseBlockOf,
             false,
-            false);
+            false,
+            // v1.20.41 P20 S5（plan §15.4）：湖滨湿带 = S1 混合带的包装层（先原样委托、只在湿带列
+            // 改派同维名册内的河滩料）。域外列逐字退回 S1 结果，见 LakeWetBandTopSelector 契约段。
+            // SurfaceSpecUnreachableCheck 的"分配点恰 1 处"计数不受影响（仍是本行一处 new）。
+            new LakeWetBandTopSelector());
     }
 
     @Override
@@ -264,9 +269,81 @@ public class ChunkProviderProsperityRuins extends GTSRChunkProviderBase {
 
     private static final AtomicLong LAKE_CHUNKS_SERVED = new AtomicLong();
     private static final AtomicLong LAKE_WATER_CELLS = new AtomicLong();
+    /** v1.20.41 P20 S5：已写岛底柱的<b>列数</b>（每湖 5 柱 × 3×3 = 45 列量级，供 §15.6 判据 3 取数）。 */
+    private static final AtomicLong LAKE_PILLAR_COLUMNS = new AtomicLong();
+    /** v1.20.41 P20 S5：岛底柱实际<b>写入的方块格数</b>（口径 = 本地表之上的部分，见 {@link #fillSanzuLakes}）。 */
+    private static final AtomicLong LAKE_PILLAR_CELLS = new AtomicLong();
     /** 沼泽微池回填观察（v1.20.40 P19 §E；窗口与巨湖行同款）。 */
     private static final AtomicLong SWAMP_CHUNKS_SERVED = new AtomicLong();
     private static final AtomicLong SWAMP_WATER_CELLS = new AtomicLong();
+    /**
+     * v1.20.41 P20 S5：沼泽三档 + NONE 的"<b>实际送水</b>列数"分桶累计（下标 =
+     * {@code TerrainVariants.SWAMP_TIER_NONE/POOL/DEEP/MARSH} 的 int 值）。与
+     * {@link #SWAMP_WATER_CELLS}（水格数）互补：本表回答"哪一档真的被灌到了"，
+     * 是 §21-F 三档分布位移的复测取数口。
+     */
+    private static final AtomicLong[] SWAMP_TIER_WATERED_COLS = { new AtomicLong(), new AtomicLong(), new AtomicLong(),
+        new AtomicLong() };
+
+    /**
+     * <b>湖滨湿带的表层选择器</b>（v1.20.41 P20 S5，plan §15.4 第三条形态「湿带：水陆之间一条
+     * <b>不积水</b>的半湿表层带」）。
+     * <p>
+     * <b>它是 P20 S1 混合带的包装层，不是第二真值</b>——这是 §15.4「复用 S1 的表层钩子出口
+     * （{@code SurfaceTopSelector}），不得另起第二真值」的落地形态：
+     * <ol>
+     * <li>群系交界的<b>皮肤选择</b>逻辑一行都不在此重写：本类第一个动作就是
+     * {@link GTSRSurfaceBorderBand#forChunk} 拿到 S1 那份 selector，并把每一列<b>原样委托</b>给它；
+     * 委托结果在本类眼里只是"这一列 S1 会铺什么"，湿带只在 S1 答案之上做一次<b>范围极窄的改派</b>
+     * （判据 = {@link GTSRVoronoiRiverField#lakeWetBandAt}，三门：湖滨带内 + 地表贴水 +
+     * 不深于水面 2 格）。域外的列 ⇒ 逐字返回委托结果 ⇒ 与框架默认路径逐字节相同。</li>
+     * <li>改派只取<b>同维名册内已注册的方块</b>（{@link BlocksGTSR#prosperityRiverGravel}，
+     * 即 {@code GTSRRiverPlacer} 现有的河滩料），零新方块（H-4 ⇒ 名册读数 408 不变），
+     * 也不引入 plains/grass/dirt（S1 降级口径的强条件仍然成立）。</li>
+     * <li>框架侧那条"spec.topSelector == null ⇒ 走 {@code forChunk} 默认"的解析序
+     * （{@code GTSRChunkProviderBase.applyBiomeSurface:394}）<b>不被绕过、只被前移</b>：
+     * 本类替框架调了同一次 {@code forChunk}，入参（dimKey / 未掺盐 worldSeed / baseX / baseZ）
+     * 与框架那行逐字同值 ⇒ 两条路只会剩一条生效，不会同时存在两份混合带实现。</li>
+     * </ol>
+     * <p>
+     * <b>为什么 delegate 是懒绑定的</b>：{@code SurfaceSpec} 由 {@code surfaceSpec()} <b>每 chunk
+     * 新建一份</b>（{@code GTSRChunkProviderBase:293}），但该钩子签名里没有 chunk 坐标，而
+     * {@code forChunk} 的固定成本（一条短命粗层链 + 一张粗格身份窗）绝不可下沉到逐列
+     * （S1 类注释的同一条纪律）。故本实例在<b>首列</b>用世界坐标反推 chunk 原点
+     * （{@code x & ~15}）解析一次并持有；实例的生命周期 = 一个 chunk ⇒ 状态不可能跨 chunk 泄漏，
+     * 而框架警告的"任何跨列状态都会把 chunk 边界写进地表"在这里由"坐标一变即重解析"挡死
+     * （生产不可达，防御口径）。
+     */
+    private static final class LakeWetBandTopSelector implements GTSRChunkProviderBase.SurfaceTopSelector {
+
+        /** S1 混合带本体；{@code null} = 本维不启用混合带（未绑定/白名单外），此时基线 = biome.topBlock。 */
+        private GTSRChunkProviderBase.SurfaceTopSelector blended;
+        private boolean resolved;
+        private int boundBaseX;
+        private int boundBaseZ;
+
+        @Override
+        public Block topAt(long seed, int x, int z, BiomeGenBase biome) {
+            if (!this.resolved) {
+                this.resolved = true;
+                this.boundBaseX = x & ~15;
+                this.boundBaseZ = z & ~15;
+                this.blended = GTSRSurfaceBorderBand
+                    .forChunk(GTSRBiomeAuthority.DIM_KEY_PROSPERITY, seed, this.boundBaseX, this.boundBaseZ);
+            } else if ((x & ~15) != this.boundBaseX || (z & ~15) != this.boundBaseZ) {
+                // 越出本实例绑定的 chunk（生产不可达：spec 每 chunk 新建）⇒ 重绑定，绝不沿用旧窗
+                this.boundBaseX = x & ~15;
+                this.boundBaseZ = z & ~15;
+                this.blended = GTSRSurfaceBorderBand
+                    .forChunk(GTSRBiomeAuthority.DIM_KEY_PROSPERITY, seed, this.boundBaseX, this.boundBaseZ);
+            }
+            final Block base = this.blended == null ? biome.topBlock : this.blended.topAt(seed, x, z, biome);
+            if (base == BlocksGTSR.prosperityRiverGravel) {
+                return base; // 已是湿料，省一次湖场求值
+            }
+            return GTSRVoronoiRiverField.lakeWetBandAt(seed, x, z) ? BlocksGTSR.prosperityRiverGravel : base;
+        }
+    }
 
     /**
      * <b>巨湖水面回填</b>（populate 后置，水面口径 68 与河流回填同一条）：主干带内
@@ -278,6 +355,24 @@ public class ChunkProviderProsperityRuins extends GTSRChunkProviderBase {
      * v1.20.40（P19 §D/§I）：湖水区已随 heightCore 渐深（湖心最深 {@code LAKE_CENTER_DEPTH}
      * 格）+ 湖形 domain-warp 破圆；水体 = {@link GTSRRiverPlacer#waterMaterial()}（深渊执念，
      * meta 0 静态源）。
+     * <p>
+     * <b>v1.20.41 P20 S5（plan §15.3/§15.5）追加两处</b>：
+     * <ol>
+     * <li><b>水深 10 → 28</b> 使本段的回填水柱从 9–10 格变成 <b>27–28 格</b>（床 40/41 → 水面顶 67）；
+     * 置水高度式 {@code y ∈ [h+1, SEA_LEVEL−1]} <b>一字未改</b> ⇒ 水柱长度是 heightCore 床深的
+     * 被动读数，本方法不另立水深真值。</li>
+     * <li><b>岛底柱</b>：置水循环之后同 chunk 再扫一趟 {@link GTSRVoronoiRiverField#islandPillarAt}
+     * 为真的列，把 {@code y ∈ [LAKE_PILLAR_FLOOR_Y, LAKE_PILLAR_TOP_Y]} = [40,71] 中<b>本地表之上</b>
+     * 的格写 {@link BlocksGTSR#prosperityStone}（已注册、非 top ⇒ H-4 安全）。
+     * 本地表以下本来就是 {@link #generateTerrain} 填的实心 stone ⇒ 只补 [h+1,71] 即得
+     * <b>[40,71] 逐格连续</b>的柱，写量从 32 格/列降到最多 31、中心柱常为 0。
+     * 逐列谓词 ⇒ 每根柱的每一列由<b>它自己所在 chunk</b> 写满同一个 y 区间，3×3 截面骑在 chunk
+     * 边界上也只是"两边各写自己那几列"，{@code ChunkClampedSink} 零越界丢弃。
+     * 与 {@code ChunkSpans.MAX_SLICE_HEIGHT = 12} 无关（§15.5 表末行：柱高 32 格走不了字符盘模板路）。
+     * <b>不消费 populate 的 {@code Random}</b>（同既有纪律，H-3）。</li>
+     * </ol>
+     * 观察口径：{@code LAKE_WATER_CELLS} 在写柱<b>之前</b>累计 ⇒ 被柱吃到的那几格水同时计入两个
+     * 计数器（水柱长度读数会略偏大，属已知观察计数器语义，不改）。
      */
     private static void fillSanzuLakes(long worldSeed, int chunkX, int chunkZ, BlockSink sink) {
         final Block water = GTSRRiverPlacer.waterMaterial();
@@ -300,11 +395,36 @@ public class ChunkProviderProsperityRuins extends GTSRChunkProviderBase {
             }
         }
         LAKE_WATER_CELLS.addAndGet(waterCells);
+        // ═══ v1.20.41 P20 S5（plan §15.5）岛底柱：置水之后写柱 ⇒ 柱身覆盖水格，后写者胜 ═══
+        int pillarColumns = 0;
+        int pillarCells = 0;
+        final int top = GTSRVoronoiRiverField.LAKE_PILLAR_TOP_Y;
+        for (int lz = 0; lz < 16; lz++) {
+            for (int lx = 0; lx < 16; lx++) {
+                final int x = (chunkX << 4) + lx;
+                final int z = (chunkZ << 4) + lz;
+                if (!GTSRVoronoiRiverField.islandPillarAt(worldSeed, x, z)) {
+                    continue;
+                }
+                pillarColumns++;
+                final int h = ProsperityTerrainProfile.heightAt(worldSeed, x, z);
+                for (int y = Math.max(GTSRVoronoiRiverField.LAKE_PILLAR_FLOOR_Y, h + 1); y <= top; y++) {
+                    if (sink.setBlock(x, y, z, BlocksGTSR.prosperityStone, 0, BlockSink.FLAG_POPULATE)) {
+                        pillarCells++;
+                    }
+                }
+            }
+        }
+        LAKE_PILLAR_COLUMNS.addAndGet(pillarColumns);
+        LAKE_PILLAR_CELLS.addAndGet(pillarCells);
         if (LAKE_CHUNKS_SERVED.incrementAndGet() % LAKE_LOG_WINDOW_CHUNKS == 0) {
             GTSteamReborn.LOG.info(
-                "[GTSR] dim78 sanzu lake over {} chunks: waterCells={} (trunk-gated lakePressure, abyssal fluid)",
+                "[GTSR] dim78 sanzu lake over {} chunks: waterCells={} pillarColumns={} pillarCells={}"
+                    + " (trunk-gated lakePressure, abyssal fluid, per-column pillar predicate)",
                 LAKE_CHUNKS_SERVED.get(),
-                LAKE_WATER_CELLS.get());
+                LAKE_WATER_CELLS.get(),
+                LAKE_PILLAR_COLUMNS.get(),
+                LAKE_PILLAR_CELLS.get());
         }
     }
 
@@ -317,6 +437,25 @@ public class ChunkProviderProsperityRuins extends GTSRChunkProviderBase {
      * heightCore 微池段完成（压至 {@code pool−2±0.5} ⇒ 常态 1-2 层水）。roster 门走
      * {@link GTSRRiverPlacer#tierGrid}（与 placer/heightCore 同一身份面，无第二真值）；
      * 水体 = {@link GTSRRiverPlacer#waterMaterial()}；不消费 populate 的 {@code Random}。
+     * <p>
+     * <b>v1.20.41 P20 S5 两处改动</b>（plan §5 S6-4 的"三档回填门"由 §23-C 转派到本片：本方法是
+     * §23-C 点名的<b>第三处</b> {@code h < pool − 1} 复刻的宿主，与"回填门改取档位"是同一次改动，
+     * 顺路收口零额外风险）：
+     * <ol>
+     * <li><b>回填门改取 {@link TerrainVariants#swampTierAt}</b>（需求 3「表面水池 / 深水池 / 水沼地」
+     * 三档各走各自置水语义）：本列只要被判成<b>任一</b>水体档（POOL/DEEP/MARSH）就送水，不再只吃
+     * 微池 Voronoi 压力门。改造前"地形侧已按档挖好床、回填侧却只认微池门"＝<b>挖而不灌</b>，
+     * 正是需求 3 抱怨"太单调"的机制面。微池压力门作为 POOL 档的<b>并集</b>入口保留（防既有
+     * 微池水网退化）。<b>置水高度式一字不改</b>（{@code y ∈ [h+1, pool−1]}）⇒ 三档水层厚度
+     * 由 S4/S4b 已验收的<b>地形侧下挖深度</b>给出（POOL 1–2 层 / DEEP 5–9 层 / MARSH 0–1 层），
+     * <b>零新增水位常量</b>。本片<b>只消费</b>档位，不改 {@code TerrainVariants} 的判档语义
+     * （§21-D 的互斥修复已验收）。</li>
+     * <li><b>消灭第三处复刻</b>：门 {@code h < pool − 1} 改走
+     * {@link GTSRVoronoiRiverField#submergedAt(int, int)} 唯一出口。该出口<b>签名锁死 int</b>
+     * （§23-A 对拍：合计 255,428 样本差异 0，而 double 形参对照臂差 2,093 例，全部来自
+     * {@code pool = Integer.MIN_VALUE} 处的 int 回绕）⇒ <b>禁止"顺手泛化"</b>。</li>
+     * </ol>
+     * 观察：日志行增印三档<b>实际送水列数</b>分桶，供 §21-F 的三档分布位移复测取数。
      */
     private static void fillSwampPools(long worldSeed, int chunkX, int chunkZ, BlockSink sink) {
         final int baseX = chunkX << 4;
@@ -324,32 +463,44 @@ public class ChunkProviderProsperityRuins extends GTSRChunkProviderBase {
         final int[] tiers = GTSRRiverPlacer.tierGrid(worldSeed, baseX, baseZ);
         final Block water = GTSRRiverPlacer.waterMaterial();
         int waterCells = 0;
+        final int[] wateredByTier = new int[4];
         for (int lz = 0; lz < 16; lz++) {
             for (int lx = 0; lx < 16; lx++) {
                 final int x = baseX + lx;
                 final int z = baseZ + lz;
                 final int tier = GTSRRiverPlacer.tierAt(tiers, x, z, baseX, baseZ);
-                if (GTSRVoronoiRiverField.swampLakeAt(worldSeed, x, z, tier)
+                final int swamp = TerrainVariants.swampTierAt(worldSeed, x, z, tier);
+                if (swamp == TerrainVariants.SWAMP_TIER_NONE && GTSRVoronoiRiverField.swampLakeAt(worldSeed, x, z, tier)
                     >= GTSRVoronoiRiverField.SWAMP_POOL_WATER_LEVEL) {
                     continue;
                 }
                 final int pool = GTSRVoronoiRiverField.poolLevelAt(worldSeed, x, z, tier);
                 final int h = ProsperityTerrainProfile.heightAt(worldSeed, x, z);
-                if (h < pool - 1) {
-                    for (int y = h + 1; y <= pool - 1; y++) {
-                        if (sink.setBlock(x, y, z, water, 0, BlockSink.FLAG_POPULATE)) {
-                            waterCells++;
-                        }
+                if (!GTSRVoronoiRiverField.submergedAt(h, pool)) {
+                    continue;
+                }
+                for (int y = h + 1; y <= pool - 1; y++) {
+                    if (sink.setBlock(x, y, z, water, 0, BlockSink.FLAG_POPULATE)) {
+                        waterCells++;
                     }
                 }
+                wateredByTier[swamp]++;
             }
         }
         SWAMP_WATER_CELLS.addAndGet(waterCells);
+        for (int t = 0; t < 4; t++) {
+            SWAMP_TIER_WATERED_COLS[t].addAndGet(wateredByTier[t]);
+        }
         if (SWAMP_CHUNKS_SERVED.incrementAndGet() % LAKE_LOG_WINDOW_CHUNKS == 0) {
             GTSteamReborn.LOG.info(
-                "[GTSR] dim78 swamp pools over {} chunks: waterCells={} (roster3-gated swampLakePressure)",
+                "[GTSR] dim78 swamp pools over {} chunks: waterCells={} wateredCols none={} pool={} deep={}"
+                    + " marsh={} (tier-gated backfill via swampTierAt; gate = submergedAt)",
                 SWAMP_CHUNKS_SERVED.get(),
-                SWAMP_WATER_CELLS.get());
+                SWAMP_WATER_CELLS.get(),
+                SWAMP_TIER_WATERED_COLS[0].get(),
+                SWAMP_TIER_WATERED_COLS[1].get(),
+                SWAMP_TIER_WATERED_COLS[2].get(),
+                SWAMP_TIER_WATERED_COLS[3].get());
         }
     }
 

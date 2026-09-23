@@ -24,20 +24,33 @@ import com.miaokatze.gtsr.main.GTSteamReborn;
  * ═══ 每列断面（H = {@code heightAt}，即含两段式河谷压低后的地表实体顶；P = 本段池水位
  * {@link GTSRVoronoiRiverField#poolLevelAt}，同 segKey 段内恒定）═══
  * <ul>
- * <li><b>置水列</b>（{@code wetAt} 过且 H &lt; P−1）：{@code y=H+1..P−1} 置
+ * <li><b>置水列</b>（{@code wetAt} 过且 {@link GTSRVoronoiRiverField#submergedAt}(H, P) 为真）：
+ * {@code y=H+1..P−1} 置
  * {@link #waterMaterial}（v1.20.40 P19 §I 起为 {@code BlocksGTSR.abyssalFluid} meta 0 静态源；
  * {@code FLAG_POPULATE}）——水面恒 = 段池水位 P，不再是全局 68；段与段之间 P 差 ≥
  * {@link GTSRVoronoiRiverField#POOL_DROP} 的交界两侧各按本段水面回填，竖直落差面由上游池
  * 末列的水柱天然贴出（<b>落差墙/瀑布</b>，P19 §C）；湿段末端面由 heightCore 的床端面修正
  * （P19 §B）收成缓坡，回填门随床自动关水；</li>
- * <li><b>河核列</b>（s ≥ WET_MIN）地表料：水下（H &lt; P−1）= {@code gtsr:prosperityRiverGravel}
- * 床料；水上且 s ∈ [WET_MIN, WET_MIN+{@link GTSRVoronoiRiverField#SHORE_FLAT_BAND}] =
- * <b>滩料</b>（草原/森林=硅沙、荒漠=粗沙、沼泽/sanzu=河砾，P19 §A.3 河滩带）；带外露头列
- * = 床料（干砾浅滩，浅滩重释的派生干出）。RiverGravel 是 {@code BlockFalling}，只写一格
- * 且写在固体顶（fallInstantly 置位期不产生悬浮结算）；</li>
+ * <li><b>河核列</b>（s ≥ WET_MIN）地表料：选型走 {@link GTSRVoronoiRiverField#bedTopAtSurface}
+ * <b>单一真值出口</b>（v1.20.41 P20 S3 起从本类内联三目提出，生产与离线判据共用同一式）——
+ * {@link GTSRVoronoiRiverField#submergedAt}(H, P) 为真 = {@code gtsr:prosperityRiverGravel} 床料；水上且
+ * s ∈ [WET_MIN, WET_MIN+{@link GTSRVoronoiRiverField#SHORE_FLAT_BAND}] = <b>滩料</b>
+ * （草原/森林=硅沙、荒漠=粗沙、沼泽/sanzu=河砾，P19 §A.3 河滩带）；带外露头列 = 床料
+ * （干砾浅滩，浅滩重释的派生干出）。RiverGravel 是 {@code BlockFalling}，只写一格且写在固体顶；</li>
+ * <li><b>谷坡环列</b>（{@link GTSRVoronoiRiverField#inBankBand}，v1.20.41 P20 S3 需求 1 新增）：
+ * 不铺床料、不回填水，改铺<b>滩料</b>＝水陆过渡带。改造前这一格<b>一格都不铺</b> ⇒ 河床砾与一列
+ * 之隔的原群系草皮直接相邻＝图上的水陆硬边；其地面另被 {@code heightCore} 下切
+ * {@link GTSRVoronoiRiverField#bankCutAt}（需求 2「看不到河床」）；</li>
  * <li><b>落差墙列</b>（四邻河核列池水位差 &gt;= POOL_DROP，即 segKey 不同的段界陡坎）：
- * 保留落差不拉平，且<b>不铺重力床/滩料</b>——防 fallInstantly 结算把重力料掉进落差面堵住
- * 瀑面（v1.20.39 plan §9 风险表的既定处理，P19 起判据由 H 高差改为 P 池差）。</li>
+ * 保留落差不拉平，且<b>不铺重力床/滩料</b>——重力料落在落差面上会滚进瀑面把墙糊掉。
+ * ⚠ <b>旧注释把这条理由写成"防 {@code fallInstantly} 结算"，该写法在本仓从未落地</b>（不是"机制不存在"：
+ * 它在参考库是真的——BOP {@code ChunkProviderBOPEnd} 有 {@code BlockFalling.fallInstantly} 的
+ * {@code true}/{@code false} 成对窗口、TFC 的 {@code FallingBlockManager} 读它；本仓注释是<b>借来未落地</b>，
+ * P20 §G-1 改准）：
+ * {@code GTSRChunkProviderBase} 的 provideChunk 与 populate 两处只把
+ * {@code BlockFalling.fallInstantly} 置 {@code false}（P20 S0b 实测），即本仓从不开"置位窗口"、
+ * 落块期走原版默认的下落实体路。故真实风险是"生成下落实体"而非"结算被抑制"——<b>行为不变、
+ * 理由改对</b>（v1.20.39 plan §9 风险表的既定处理，P19 起判据由 H 高差改为 P 池差）。</li>
  * </ul>
  *
  * <p>
@@ -125,14 +138,26 @@ public final class GTSRRiverPlacer {
         for (int lz = 1; lz < 17; lz++) {
             for (int lx = 1; lx < 17; lx++) {
                 final int i = lz * 18 + lx;
-                if (s[i] < GTSRVoronoiRiverField.WET_MIN) {
-                    continue; // 谷坡列（0 < s < WET_MIN）：河谷已由 heightAt 压低，不铺不灌
-                }
-                coreColumns++;
                 final int x = baseX + lx - 1;
                 final int z = baseZ + lz - 1;
+                if (s[i] < GTSRVoronoiRiverField.WET_MIN) {
+                    // 谷坡列（0 < s < WET_MIN）：河谷已由 heightAt 压低，不铺床料、不回填水。
+                    // ═══ v1.20.41 P20 S3 需求 1：其中的<b>谷坡环</b>（inBankBand，外缘带噪声扰动）
+                    // 改铺滩料＝水陆过渡带。改造前这一格不铺 ⇒ 河床砾与一列之隔的原群系草皮直接
+                    // 相邻＝图上水陆硬边。滩料计入 flatCols，与 coreCols 的比值即"滩带真出来了"的
+                    // 实机读数（不新增日志字段，避免打既有观测口径）。═══
+                    if (GTSRVoronoiRiverField.inBankBand(worldSeed, x, z, s[i])
+                        && h[i] > GTSRWorldgenHash.bedrockTopHash(worldSeed, x, z)) {
+                        writes += accept(sink, x, h[i], z, flatMaterial(tierAt(tiers, x, z, baseX, baseZ), bed), 0);
+                        flatPlaced++;
+                    }
+                    continue;
+                }
+                coreColumns++;
                 final int p = pool[i];
-                final boolean submerged = h[i] < p - 1; // 水下（水面 = p，最高水格 p−1）
+                // 没水判据走河流场单一出口（v1.20.41 P20 S3c T1）：原内联式 `h[i] < p - 1` 与
+                // 下方回填门是同一条式的两处复刻，现合并为一次 submergedAt 调用 + 一个局部量。
+                final boolean submerged = GTSRVoronoiRiverField.submergedAt(h[i], p);
                 // 落差墙列：四邻河核列池水位差 ≥ POOL_DROP 即段界陡坎（保留落差，不拉平）
                 boolean dropColumn = false;
                 for (int d = 0; d < 4 && !dropColumn; d++) {
@@ -143,16 +168,16 @@ public final class GTSRRiverPlacer {
                     }
                 }
                 if (dropColumn) {
-                    // 落差列不铺重力床/滩料（防 fallInstantly 结算堵瀑面）；水照回填
-                    // （上游池列水柱到 p_hi−1，贴着下游 p_lo−1 水面 = 落差竖直面）
+                    // 落差列不铺重力床/滩料（重力料会滚进瀑面把墙糊掉）；水照回填
+                    // （上游池列水柱到 p_hi−1，贴着下游 p_lo−1 水面 = 落差竖直面）。
+                    // ⚠ 旧注释写"防 fallInstantly 结算"——本仓该标志恒 false，无置位窗口，见类注释。
                     fallColumns++;
                 } else if (h[i] > GTSRWorldgenHash.bedrockTopHash(worldSeed, x, z)) {
-                    // 地表料：水下 = 床料；水上且在河滩带（s ∈ [WET_MIN, WET_MIN+SHORE_FLAT_BAND]）
-                    // = 滩料（群系档表）；滩带外露头列 = 床料（干砾浅滩）
-                    final Block surface = submerged ? bed
-                        : (s[i] <= GTSRVoronoiRiverField.WET_MIN + GTSRVoronoiRiverField.SHORE_FLAT_BAND
-                            ? flatMaterial(tierAt(tiers, x, z, baseX, baseZ), bed)
-                            : bed);
+                    // 地表料选型：v1.20.41 P20 S3 起改走河流场单一真值出口 bedTopAtSurface
+                    // （水下＝床料、滩带内露头＝滩料、滩带外露头＝干砾床料），生产侧与离线判据
+                    // RiverMorphologyCheck 共用同一式——原内联三目已删，不再有两处口径。
+                    final Block surface = GTSRVoronoiRiverField.bedTopAtSurface(worldSeed, x, z, s[i], submerged) ? bed
+                        : flatMaterial(tierAt(tiers, x, z, baseX, baseZ), bed);
                     writes += accept(sink, x, h[i], z, surface, 0);
                     if (surface == bed) {
                         bedPlaced++;
@@ -160,8 +185,10 @@ public final class GTSRRiverPlacer {
                         flatPlaced++;
                     }
                 }
-                // 水面回填：置水资格列 且 地表在本段水面之下（水面 = 池水位 p → 最高水格 p−1）
-                if (wet[i] && h[i] < p - 1) {
+                // 水面回填：置水资格列 且 地表在本段水面之下（水面 = 池水位 p → 最高水格 p−1）。
+                // 没水门与上方选型门共用同一个 submergedAt 出口结果（S3c T1：一处出口、一次求值，
+                // 不再有两处内联式；水柱区间 y=h+1..p−1 是"填到哪"的另一件事，不并进谓词）。
+                if (wet[i] && submerged) {
                     waterColumns++;
                     for (int y = h[i] + 1; y <= p - 1; y++) {
                         writes += accept(sink, x, y, z, water, 0);

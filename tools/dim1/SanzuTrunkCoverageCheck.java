@@ -58,10 +58,30 @@ public final class SanzuTrunkCoverageCheck {
     /** 巨湖粗扫步距（格）：LAKE_INTERVAL/32 ≈ 37（湖理论半径 ≈ 0.11×间隔/2 ≈ 66 格 ⇒ 直径 ≈ 3.6 步）。 */
     static final int LAKE_STRIDE = (int) (GTSRVoronoiRiverField.LAKE_INTERVAL / 32);
     /**
-     * 巨湖最小连通样本数（派生：湖理论直径 (2×0.11×LAKE_INTERVAL/2)/LAKE_STRIDE ≈ 3.6 ⇒ 取 3
-     * ——小于它的连通区按采样碎片不计，杜绝"单样本假湖"）。
+     * 巨湖"水径"目标半径（格）：§5 S5-1 与 §15.2 钉的<b>实测水径 r = 110</b>（水面直径 220 ≥
+     * 用户"更大"口径 200，留 10% 余量；§6.1 R3 的派生即用此 r）。<b>注意</b>：S5 尚未落地，
+     * {@code LAKE_WATER_LEVEL} 仍是 0.13 ⇒ 今天 C-READ 的均径 ≈ 87.75。本常量是<b>判据侧的目标
+     * 锚</b>，不是对当前几何的实测声明；提前钉 14 不产生假红（当前最大区实测 68 样本 ≫ 14），
+     * 却能在 S5 缩湖/碎片化时立刻变红——阈从"防单样本假湖"升级成"湖必须成规模"。
      */
-    static final int LAKE_MIN_SAMPLES = 3;
+    static final int LAKE_R_TARGET = 110;
+    /**
+     * 巨湖最小连通样本数（v1.20.41 P20 §6.1 R3 重派生：<b>3 → 14</b>）。
+     * <p>
+     * 派生式 = {@code round(π·r² / LAKE_STRIDE² × 0.5)}，r = {@link #LAKE_R_TARGET} = 110、
+     * {@code LAKE_STRIDE = LAKE_INTERVAL/32 = 37} ⇒ {@code round(3.1416×12100/1369×0.5) =
+     * round(13.884) = 14}（0.5 = 采样碎片折半：粗扫步距 37 的网格命中一个直径 220 的圆盘，
+     * 期望样本数 π·r²/stride² ≈ 27.8，取一半作下界 ⇒ 小于它即"不是一整块湖"）。
+     * <p>
+     * <b>旧口径保留原文</b>（v1.20.39 T5：湖理论直径 (2×0.11×LAKE_INTERVAL/2)/LAKE_STRIDE ≈ 3.6
+     * ⇒ 取 3，只防"单样本假湖"）——覆盖理由：§15.2 巨湖终裁把湖规模抬到 r=110 后，3 样本
+     * （≈3×37² ≈ 4107 列 ≈ 半径 36）连"湖滨碎片"都能过，判据失去区分力；C1 的语义从"存在离散
+     * 巨湖"升级为"湖达到终裁规模"。C2/C3/B1/E 组的带与派生式<b>一律未动</b>（任务包禁改面）；
+     * C3 的 {@code minSize = max(LAKE_MIN_SAMPLES, best/4)} 当前由 best/4 = 68/4 = 17 主导 ⇒
+     * 阈 3→14 不改 C3 读数（已在片回执以实测对表）。
+     */
+    static final int LAKE_MIN_SAMPLES =
+        (int) Math.round(Math.PI * LAKE_R_TARGET * LAKE_R_TARGET / (LAKE_STRIDE * LAKE_STRIDE) * 0.5D);
     /** 细长判据带（plan §6-T5：采样窗内长短轴比 > 5）。 */
     static final double ELONGATION_MIN = 5.0D;
     /** sanzu 最大簇最小样本数（派生：主边界沿主干带至少延伸一个 Voronoi 间距 ⇒ SEPARATION/步距）。 */
@@ -276,6 +296,14 @@ public final class SanzuTrunkCoverageCheck {
         int rimMaxH = Integer.MIN_VALUE;
         int centerSamples = 0;
         int rimSamples = 0;
+        // §30 主代理裁决（P20 S5 家族）：需求 8 的<b>中心岛是干地</b>（岛面 = SEA + LIFT = 72），
+        // 所以"最大区 h 全部 ≤ SEA_LEVEL"这条 v1.20.40 时期的子句<b>按设计失效</b>了——被它判红的正是
+        // 岛本身（实测 h ∈ [40,72]）。改法不是放宽阈值，而是<b>把"高出水面的列"交给生产自己的出口解释</b>：
+        // 每一列都必须被 {@code lakeIslandTopAt}（同一个真值，非判据侧复刻）盖住 ⇒ 高出水面 = 岛；
+        // 只要有一列高出水面却不是岛（湖床被抬、或杂类写入），本条照旧转红。
+        int aboveSea = 0;
+        int aboveSeaByIsland = 0;
+        final StringBuilder unexplained = new StringBuilder(320);
         long centroidX = 0;
         long centroidZ = 0;
         for (int iz = 0; iz < n; iz++) {
@@ -291,6 +319,27 @@ public final class SanzuTrunkCoverageCheck {
                 hChecked++;
                 hMin = Math.min(hMin, h);
                 hMax = Math.max(hMax, h);
+                if (h > ProsperityTerrainProfile.SEA_LEVEL) {
+                    aboveSea++;
+                    // 高出水面的列只允许是岛；判据不另立"什么叫岛"的第二真值——问生产出口本人。
+                    // ⚠ 形参口径：本文件的 {@code pressure[]} 存的是 <b>{@code WATER − lakeAt}</b>（反向量，
+                    // 越大越靠水缘），而 {@code lakeIslandTopAt} 的第四形参要的是<b>原始 {@code lakeAt}</b>。
+                    // 主代理第一版直接喂了 pressure[i] ⇒ 岛域列被判成 NaN（假红一条）。⇒ 这里重取真值，
+                    // 不做减法（少一处口径耦合），且只在这种罕见列上付这一次求值。
+                    final int sx = -LAKE_EXTENT + ix * LAKE_STRIDE;
+                    final double lakeRaw = GTSRVoronoiRiverField.lakeAt(SEED, sx, z);
+                    final double isleTop = GTSRVoronoiRiverField.lakeIslandTopAt(SEED, sx, z, lakeRaw);
+                    if (!Double.isNaN(isleTop) && h <= (int) Math.ceil(isleTop)) {
+                        aboveSeaByIsland++;
+                    } else if (unexplained.length() < 300) {
+                        // 只报诊断（§30）：未解释列的逐列读数 ⇒ 区分"自然高地压在湖足迹里"与"岛域门
+                        // 与生产支路门不同源"两类，前者是既有形态、后者是真缺陷。
+                        unexplained.append(" (").append(sx).append(',').append(z)
+                            .append(") h=").append(h).append(" lakeAt=").append(f3(lakeRaw))
+                            .append(" isle=").append(Double.isNaN(isleTop) ? "NaN" : f3(isleTop))
+                            .append(" bed=").append(f3(GTSRVoronoiRiverField.lakeBedAt(SEED, sx, z))).append(';');
+                    }
+                }
                 if (pressure[i] >= GTSRVoronoiRiverField.LAKE_WATER_LEVEL * 2.0D / 3.0D) {
                     centerMinH = Math.min(centerMinH, h);
                     centerSamples++;
@@ -315,15 +364,20 @@ public final class SanzuTrunkCoverageCheck {
             best >= LAKE_MIN_SAMPLES && regions > 0, "最大区=" + best + " 区数=" + regions);
         // v1.20.40 P19 §D 重钉（归因 U34 prered：渐深后旧"62-64 带 ≥90%"口径失去意义——
         // 湖滨锚 67/湖心锚 58，最大区 h ∈ [57,67]；LAKE_BED_TARGET 不再参与生成，随退役）。
-        check("C2 湖心渐深：最大区 h 全部 ≤ SEA_LEVEL（湖床不高于水面）且湖心带 minH ∈ [SEA_LEVEL−"
+        check("C2 湖心渐深：最大区内<b>高出水面的列必须全部由生产岛面出口解释</b>（= 它们是中心岛，"
+            + "不是湖床被抬）且湖心带 minH ∈ [SEA_LEVEL−"
             + "LAKE_CENTER_DEPTH−2, SEA_LEVEL−LAKE_CENTER_DEPTH+2] 且 水缘带 maxH − 湖心带 minH ≥ 5"
-            + "（中心渐深梯度；U34 探针 P2 实测 diff=11）",
-            hChecked > 0 && hMax <= ProsperityTerrainProfile.SEA_LEVEL
+            + "（中心渐深梯度；U34 探针 P2 实测 diff=11）。【<b>子句一原文保留</b>（v1.20.40 P19 §D 时期）："
+            + "「最大区 h 全部 ≤ SEA_LEVEL（湖床不高于水面）」——需求 8 的中心岛落地后该字面<b>按设计失效</b>"
+            + "（实测最大区 h ∈ [40,72]，72 = 岛面 SEA+LIFT），故改为「岛解释制」：<b>阈值一处未放宽</b>，"
+            + "湖床若真被抬出水面仍会红。推导见上方声明段与 plan §30】",
+            hChecked > 0 && aboveSea == aboveSeaByIsland
                 && centerMinH >= ProsperityTerrainProfile.SEA_LEVEL - (int) GTSRVoronoiRiverField.LAKE_CENTER_DEPTH - 2
                 && centerMinH <= ProsperityTerrainProfile.SEA_LEVEL - (int) GTSRVoronoiRiverField.LAKE_CENTER_DEPTH + 2
                 && depthGrad >= 5.0D,
-            "h∈[" + hMin + "," + hMax + "] 湖心minH=" + centerMinH + " 水缘maxH=" + rimMaxH + " 渐深差="
-                + f3(depthGrad));
+            "h∈[" + hMin + "," + hMax + "] 高出水面 " + aboveSea + " 样本（其中岛面出口解释 "
+                + aboveSeaByIsland + "）湖心minH=" + centerMinH + " 水缘maxH=" + rimMaxH + " 渐深差="
+                + f3(depthGrad) + " 未解释列=" + unexplained);
         groupCLakeShape();
     }
 

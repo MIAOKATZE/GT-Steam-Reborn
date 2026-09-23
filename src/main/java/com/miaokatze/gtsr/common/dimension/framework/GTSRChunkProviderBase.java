@@ -174,6 +174,22 @@ public class GTSRChunkProviderBase implements IChunkProvider {
     protected static final int NO_META_WRITE = -1;
 
     /**
+     * 表层 <b>top 方块选择器</b>（P20 S1 新增，需求 1「群系交界一格换皮」的接线缝）。
+     * <p>
+     * 契约：给定<b>世界坐标</b>与该列的群系身份，返回裸露面应铺的 top 方块。实现方<b>必须</b>是
+     * {@code (worldSeed, x, z)} 的确定性纯函数且<b>不得</b>读 {@code World}/方块数组——
+     * 本类的表层内核按 chunk 调用，任何跨列状态都会把 chunk 边界写进地表（{@code H-1} 同源坑）。
+     * 返回值只允许取自<b>入参群系自身</b>或<b>同维名册成员</b>的 {@code topBlock}
+     * （降级口径判据「无 plains/grass/dirt」的强条件；框架侧实现见 {@link GTSRSurfaceBorderBand}）。
+     * <p>
+     * {@code null} = 不启用（逐字退回改造前的 {@code biome.topBlock} 表达式）。
+     */
+    public interface SurfaceTopSelector {
+
+        Block topAt(long worldSeed, int x, int z, BiomeGenBase biome);
+    }
+
+    /**
      * L3 表层规格——两维表层差异的<b>显式</b>承载（plan §3.1 更正 1：表层主体不等价，
      * 真正逐字符重复的只有事件段 13 行与 {@code mix} 7 行，故合并必须参数化而非假装同源）。
      * <p>
@@ -204,10 +220,37 @@ public class GTSRChunkProviderBase implements IChunkProvider {
         final boolean stopAfterFiller;
         /** 差异③的伴随：filler 段是否跳过"上方为空气"的悬空主体格（dim79 防御口径）。 */
         final boolean skipDanglingFiller;
+        /**
+         * P20 S1（需求 1）新增的可空 top 选择器；{@code null} = 本规格不自带选择器。
+         * <p>
+         * <b>解析序（单点）</b>：本字段非空 ⇒ 用它；为空 ⇒ 走
+         * {@link GTSRSurfaceBorderBand#forChunk} 的框架侧默认（按 dimKey 白名单 + 链盐可解析性
+         * 决定启用或恒等回退）。provider 侧声明优先级更高，故 S3/S7 把实参搬回
+         * {@code ChunkProviderProsperityRuins.spec()} 后框架白名单清空即可，两条路不会同时生效。
+         */
+        final SurfaceTopSelector topSelector;
 
+        /**
+         * P20 S1 前的 7 参构造（两个 provider 与全部离线 harness 的调用点 arity 不变，
+         * 新 field 委托 {@code null}）——保留原因与"缺 arity 会级联多条判据红"的先例同族。
+         */
         public SurfaceSpec(String dimKey, Supplier<Block> bodyBlock, boolean topWritesBiomeMeta,
             ToIntFunction<BiomeGenBase> fillerMeta, Function<BiomeGenBase, Block> wholeBody, boolean stopAfterFiller,
             boolean skipDanglingFiller) {
+            this(
+                dimKey,
+                bodyBlock,
+                topWritesBiomeMeta,
+                fillerMeta,
+                wholeBody,
+                stopAfterFiller,
+                skipDanglingFiller,
+                null);
+        }
+
+        public SurfaceSpec(String dimKey, Supplier<Block> bodyBlock, boolean topWritesBiomeMeta,
+            ToIntFunction<BiomeGenBase> fillerMeta, Function<BiomeGenBase, Block> wholeBody, boolean stopAfterFiller,
+            boolean skipDanglingFiller, SurfaceTopSelector topSelector) {
             this.dimKey = dimKey;
             this.bodyBlock = bodyBlock;
             this.topWritesBiomeMeta = topWritesBiomeMeta;
@@ -215,6 +258,7 @@ public class GTSRChunkProviderBase implements IChunkProvider {
             this.wholeBody = wholeBody;
             this.stopAfterFiller = stopAfterFiller;
             this.skipDanglingFiller = skipDanglingFiller;
+            this.topSelector = topSelector;
         }
     }
 
@@ -324,6 +368,18 @@ public class GTSRChunkProviderBase implements IChunkProvider {
      * 本内联扫裸数组、起点 254、以"是否为本维主体方块"为门，且必须在同一循环里承载
      * top/filler/主体三段状态机；{@code findSurfaceY} 读 {@code World}、起点 255、
      * 以"是否空气"为门且无状态。两者输入域与谓词都不同，合并即改变生成结果。
+     * <p>
+     * <b>P20 S1（需求 1：群系交界表层材质混合带）登记</b>：本方法是全仓<b>唯一</b>写裸露面 top 的
+     * 站点，改造前该站点是 {@code blocks[idx] = biome.topBlock}（逐列单值、无距离/权重项 ⇒
+     * 边界宽度恒 1 方块，见 {@code plan/tmp/wg41-B1-terrain-border.md} §2.3）。现 top 方块经
+     * {@link SurfaceTopSelector} 可选地改派<b>同维名册成员</b>的 {@code topBlock}，而
+     * {@code metadata[idx] = biome.field_150604_aj} <b>刻意不变</b>——凭据：dim78 四个 selector
+     * 群系（{@code BiomeRustedSteppe}/{@code BiomeGearworkForest}/{@code BiomeBrassWastes}/
+     * {@code BiomeFumaroleSwamp}，另含名册第 5 元 {@code BiomeSanzuRiver}）的 {@code TOP_META}
+     * <b>全部为 0</b>，故"换皮不换 meta"在现状字节相同；选择器实现侧另有一道
+     * 「两侧 {@code field_150604_aj} 不等则不换」的显式门，防未来某群系声明非 0 top meta 时
+     * 静默写错元数据。filler 段与主体段（{@code biome.fillerBlock}/{@code wholeBody}）
+     * <b>未接入选择器</b>——它们跟着本列群系走，本片需求只覆盖裸露面 top（越界即扩大改动面）。
      *
      * @param baseX / baseZ chunk 原点<b>世界坐标</b>（filler 深度哈希按世界坐标，跨 chunk 无缝）
      */
@@ -333,6 +389,10 @@ public class GTSRChunkProviderBase implements IChunkProvider {
             return;
         }
         final Block body = spec.bodyBlock.get();
+        // P20 S1：top 选择器按 chunk 解析一次（内含"每 chunk 一条短命粗层链 + 一张粗格窗"的
+        // 固定成本，绝不可下沉到逐列）；返回 null = 本维不启用混合带，下方表达式逐字退回改造前。
+        final SurfaceTopSelector top = spec.topSelector != null ? spec.topSelector
+            : GTSRSurfaceBorderBand.forChunk(spec.dimKey, worldSeed, baseX, baseZ);
         for (int x = 0; x < 16; x++) {
             for (int z = 0; z < 16; z++) {
                 final BiomeGenBase biome = biomeAtColumn(biomes, x, z);
@@ -352,7 +412,10 @@ public class GTSRChunkProviderBase implements IChunkProvider {
                         if (!isAirOrEmpty(blocks[idx + 1])) {
                             continue; // 尚未到达裸露面（上方仍被主体覆盖）
                         }
-                        blocks[idx] = biome.topBlock;
+                        // P20 S1（需求 1）：裸露面 top 由「整格换成本列群系 top」改为
+                        // 「top 选择器可选地改派同维名册成员的 top」；top == null 时与本行改造前
+                        // 逐字同表达式（dim79 / 未绑定 / 白名单外维度的零影响凭据）。
+                        blocks[idx] = top == null ? biome.topBlock : top.topAt(worldSeed, baseX + x, baseZ + z, biome);
                         if (spec.topWritesBiomeMeta) {
                             metadata[idx] = (byte) biome.field_150604_aj; // 差异①
                         }

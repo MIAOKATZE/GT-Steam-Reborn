@@ -102,6 +102,13 @@ public final class ProsperityTerrainProfile {
      * 需求原话（成功判据唯一来源）：「青铜森林……地势也相对更起伏」「平原则是矮树」「沼泽则是
      * ……地势最平坦」「沙漠则是没有树，地势相对更平坦一些」⇒ 偏序 <b>森 &gt; 原 ≥ 沙 &gt; 沼</b>。
      * <p>
+     * <b>v1.20.41 起上述偏序的「原 ≥ 沙」一支废止</b>，旧句原文保留在上一行不删。覆盖来源是本轮需求 5
+     * 原话「黄铜荒漠过于单调了……且地势介于锈蚀草原和齿轮森林之间」——它与更早一轮的「沙漠……地势相对
+     * 更平坦一些」直接冲突，按最新指令取新，偏序改钉 <b>森 &gt; 沙 &gt; 原 &gt; 沼</b>（荒漠档
+     * 0.80 → 1.30，实测聚合 sd 森 13.145 / 沙 7.688 / 原 6.518 / 沼 1.908）。需求 2 的其余两支
+     * （森林最起伏、沼泽最平坦）不变。裁决与授权见 {@code plan/p20-plan.md} §13 C2，判据侧同步重钉见
+     * {@code tools/dim1/P17TerrainReliefCheck}。
+     * <p>
      * 取档前的事实（{@code plan/tmp/p17-b/B-terrain-river-flora.md} §1.3）：改前四群系 sd 为
      * 森 5.932 / 原 5.903 / 沼 6.607 / 沙 <b>6.746</b> —— 与需求方向<b>完全相反</b>，
      * 逐 seed 严格序命中 0/10；那个差异只是两个无关噪声场在小窗内的相关涨落，不是分化。
@@ -109,7 +116,11 @@ public final class ProsperityTerrainProfile {
      * 本档表的设计约束（实测值见 {@code plan/tmp/p17-sa/SA-RESULT.md}）：
      * <ul>
      * <li><b>四档算数均值精确 = 1.0</b>（(1.10+1.70+0.80+0.40)/4）⇒ 全域期望振幅与改前同阶，
-     * 本片只"差异化"，不借机整体加大起伏（那是另一条需求，未获授权）；</li>
+     * 本片只"差异化"，不借机整体加大起伏（那是另一条需求，未获授权）；
+     * <b>v1.20.41 起该不变量被需求本身废止</b>：需求 4「齿轮森林地势起伏再更大一些」与需求 5 的荒漠
+     * 地势子句联合要求整体加大，荒漠档 0.80 → 1.30 后均值 = <b>1.125</b>（(1.10+1.70+1.30+0.40)/4）。
+     * 锚没有取消、只是换值：{@code P17TerrainReliefCheck} 现钉 1.125，任何一档再动而未同步该常量即当场红
+     * ⇒ 抓力从"不得整体加大"变为"不得在档表之外整体加大"；旧口径原文保留在本行上方不删；</li>
      * <li>乘子作用位是 <b>zone 乘子之外</b>的独立一档（见 {@link #heightAtWithReliefTier(long, int, int, int)}），
      * 保留 zone 的 0.6..1.4 连续调制，于是同一群系内部仍有"平缓区/起伏区"的长尺度变化；</li>
      * <li>沼泽档最低但<b>不为 0</b>——0 会造出绝对平坦面（与"最平坦"不是同一件事），
@@ -124,7 +135,7 @@ public final class ProsperityTerrainProfile {
      * （与档表族"4→5 + 长度一致"约定一致，判据/后续消费面用）；"四档算数均值精确 = 1.0"的 P17
      * 不变量按 selector 口径（前 4 元）保持不变。
      */
-    public static final double[] RELIEF_AMPLITUDE_BY_ROSTER = { 1.10D, 1.70D, 0.80D, 0.40D, 0.38D };
+    public static final double[] RELIEF_AMPLITUDE_BY_ROSTER = { 1.10D, 1.70D, 1.30D, 0.40D, 0.38D };
 
     /**
      * 默认档（身份不可得 = {@link GTSRGenLayerRosterFace#NO_IDENTITY}，即该维名册零配槽的 EMPTY
@@ -502,6 +513,15 @@ public final class ProsperityTerrainProfile {
                 final double t = Math.min(1.0D, (s - GTSRVoronoiRiverField.S_ERODE) / span);
                 lowered = lowered * (1.0D - t) + bed * t;
             }
+            // ═══ v1.20.41 P20 S3 需求 2「看不到河床」主修：岸坡下切 ═══
+            // 谷坡环（水陆过渡带，与 GTSRRiverPlacer 的滩料同一谓词 inBankBand）整段再削
+            // bankCutAt（∈[BANK_CUT_DEPTH/2, BANK_CUT_DEPTH] 格），使床料在断面上成宽度出露——
+            // 改造前 board 恒 1 格 ⇒ 水面贴岸、看不见河床。
+            // <b>沼泽档（roster 3）豁免</b>：A7「沼泽床 ∈[66.5,67.5]＝水面近地」是档表语义，
+            // 下切会打掉沼地河口径（§5 S3 判据 3 的处置＝下切域限缩 roster ∈ {0,1,2,4}）。
+            if (rosterIndex != 3 && GTSRVoronoiRiverField.inBankBand(worldSeed, x, z, s)) {
+                lowered -= GTSRVoronoiRiverField.bankCutAt(worldSeed, x, z);
+            }
             if (h0 > lowered + 1.0D) {
                 y = (int) Math.round(lowered);
             }
@@ -528,10 +548,23 @@ public final class ProsperityTerrainProfile {
                 final double lakeBed = GTSRVoronoiRiverField.lakeBedAt(worldSeed, x, z, lake);
                 if (lake < GTSRVoronoiRiverField.LAKE_WATER_LEVEL) {
                     y = Math.min(y, (int) Math.round(lakeBed));
+                    // ═══ v1.20.41 P20 S5（plan §15.5）中心固定岛：湖段 min 压低之后<b>唯一允许的
+                    // 抬升支路</b>——岛域（lakeAt < LAKE_ISLAND）把地表从湖床抬到岛面 72。
+                    // 抬升面本身是 s01(k) 衰减（岛缘 k=0 ⇒ 值 = 湖心锚 40，与上面的床值同侧连续），
+                    // 故岛缘不出现单格悬崖；抬升量恒 ≤ 72 ⇒ 与 MAX_HEIGHT=110 / HEIGHT_SENTINEL=108
+                    // 零接触。岛外列 lakeIslandTopAt 返回 NaN 哨兵 ⇒ 本支路一步短路、零改动。═══
+                    final double islandTop = GTSRVoronoiRiverField.lakeIslandTopAt(worldSeed, x, z, lake);
+                    if (!Double.isNaN(islandTop)) {
+                        y = Math.max(y, (int) Math.round(islandTop));
+                    }
                 } else {
-                    final double t = (lake - GTSRVoronoiRiverField.LAKE_WATER_LEVEL)
-                        / (GTSRVoronoiRiverField.LAKE_SHORE - GTSRVoronoiRiverField.LAKE_WATER_LEVEL);
-                    y = (int) Math.min(y, Math.round(lakeBed * (1.0D - t) + y * t));
+                    // ═══ v1.20.41 P20 S5（plan §15.4 第一判据）湖滨带形状：改造前这里是
+                    // <b>线性</b> lerp（在环带两端各留一个折角 = "衔接生硬"的形状根因之一）。
+                    // 换成生产侧唯一出口 lakeShoreBlend = s01 缓入缓出 + 多级台阶（riser ≤ 总抬升/4），
+                    // 环带<b>宽度不动</b>（理由见该常量的 LAKE_SHORE 注释）。min 语义原样保留 ⇒
+                    // 环带恒不高于本列无湖时的原地形 ⇒ "环形堤"在本式下结构上不可表示。═══
+                    final double q = GTSRVoronoiRiverField.lakeShoreBlend(lake);
+                    y = (int) Math.min(y, Math.round(lakeBed * (1.0D - q) + y * q));
                 }
             }
         }

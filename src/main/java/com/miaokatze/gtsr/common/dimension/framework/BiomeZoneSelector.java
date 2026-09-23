@@ -11,7 +11,8 @@ import com.miaokatze.gtsr.common.dimension.framework.structure.GTSRWorldgenHash;
  * 12% 过渡碎斑（{@code EDGE_BAND_FRACTION}/{@code isEdgeBand}/{@code bandChunks}/{@code chunkRoll}）
  * 已全部删除——群系身份自 B1 起唯一出口是 {@link GTSRWorldChunkManager#biomeAt} 背后的
  * {@link com.miaokatze.gtsr.common.dimension.framework.genlayer.GTSRGenLayerChain}（等权轮盘 +
- * Zoom×DEFAULT_ZOOM_LEVELS(=5) + Smooth 粗层），城市门（{@code CityPlanner}）与装饰 micro 档（本类）都改吃该身份面。
+ * Zoom×DEFAULT_ZOOM_LEVELS(=7，v1.20.40 P19 由 5 抬到 7；旧值 (=5) 是本页落后于常量的假陈述，P20 债① 改齐)
+ * + Smooth 粗层），城市门（{@code CityPlanner}）与装饰 micro 档（本类）都改吃该身份面。
  * 历史 selector 盐（{@code ZONE_SALT_PROSPERITY}）随机制一并退役，不再有申报处。
  * <p>
  * 本类保留下来的唯一职责是 <b>micro 强度层</b>（P6 U2「micro cell 16 chunk + 0.7/1.0/1.3」）：

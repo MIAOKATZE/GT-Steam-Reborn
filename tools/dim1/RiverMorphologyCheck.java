@@ -21,7 +21,15 @@ import com.miaokatze.gtsr.common.dimension.prosperity.river.GTSRVoronoiRiverFiel
  * VALLEY_LEVEL==WET_MIN（平底域==置水域不变量）、沼泽档 widthScale==1.6、床档表值域；</li>
  * <li><b>B 河宽分布</b>：常态（草原/森林档）水道半宽 = 河道中心走到 s&lt;WET_MIN 的距离，
  * 中位数 ∈ [5,8] 格（plan 目标带）；</li>
- * <li><b>C 谷坡半宽</b>：水缘到谷缘（s==0）的距离 ∈ [20,40] 格；</li>
+ * <li><b>C 谷坡过渡带（v1.20.41 P20 S3 改口径；C2 由 S3c 按 §22-B 重定；<b>C2-b 的采样域由 §23-B
+ * 提出换域裁决</b>——§22-B 的"谷坡环列"表述按其要求<b>原文保留</b>在本文件（{@link #C2B_LO} 注释与
+ * {@code C2-b} 断言文案），换域后的状态见 {@link #C2B_LO} 顶部的处置段）
+ * </b>：谷坡环宽 = 水缘→
+ * {@code inBankBand} 外缘的连续列距（C1）＋需求 2 的真身两条：<b>C2-a</b> 断面床料连段 ≥3 列的河占比
+ * （床料出露的<b>连续性</b>）与 <b>C2-b</b> 岸地面高出水面 ≥2 格的谷坡环列占比（<b>岸坡下切</b>的直接
+ * 度量；<b>§23-B 要求的「岸带首列」＝每个湿核外侧第一个干列已按字面实现为只报不钉的读数，带未迁移</b>）
+ * ＋下切量值域与环的非退化（C3）。两条旧口径（水缘→谷缘 {@code s==0} 的 v1.20.40 带 [15,35]、
+ * 河核断面床料出露率的 [0.90,0.995]）均<b>降为读数保留</b>，错因见各自注释；</li>
  * <li><b>D 蜿蜒度</b>：中心线追踪（步长/步数从 LARGE_BEND_SCALE 派生，覆盖 ≥3 个大弯波长）
  * 曲折率 = 路长/端距 &gt; 1.2；</li>
  * <li><b>E 支流连通</b>：Voronoi 三叉点（2×2 列块内 ≥3 个不同最近细胞签名）非零且成量
@@ -59,6 +67,146 @@ public final class RiverMorphologyCheck {
     static final int N_TRACES = (int) (GTSRVoronoiRiverField.SEPARATION / GTSRVoronoiRiverField.SMALL_BEND_SCALE);
     /** 三叉点扫描步距（格）：SEPARATION/64 = 16 < 三叉点邻域尺度。 */
     static final int FORK_STRIDE = (int) (GTSRVoronoiRiverField.SEPARATION / 64);
+
+    // ── v1.20.41 P20 S3 重钉的带（C 组）──────────────────────────────────────────────
+    /**
+     * C1 新带（谷坡环宽中位，格）= §6.1 R2 的定值法「以 S3 完成后的实测中位 m 定 [m−6, m+6]」：
+     * 本片 post 态实测 m = <b>5.000</b>（样本 32，p10/中位/p90 = 4/5/9，与生产侧
+     * {@code inBankBand} javadoc 自陈的"滩带宽 3.5-9 格成块变化"同阶）⇒ 带 =
+     * [max(1, 5−6), 5+6] = <b>[1, 11]</b>。<b>§6.1 R2 同句要求"整带必须落在 [10,45] 内"</b>——
+     * 该容器是为 R2 原写的"河核外缘→|h−h0|&lt;1 的列距"口径配的；本片的口径按 §20/任务包改为
+     * "水缘→inBankBand 外缘"，m 量级即生产侧自陈的滩带宽 3.5-9 格 ⇒ m−6 &lt; 10 是<b>必然</b>，
+     * 容器与口径不可同时满足。处置：保留 m±6 的<b>宽度</b>（±6 与 R2 同值），下界按"环必须存在"
+     * 收在 1（0 宽 = 环塌没，正是需求 1 的失效形态），<b>不</b>把带整体抬进 [10,45]（那会把带钉成
+     * 恒红）。此偏离已在片回执点名，交主代理裁决（备选口径 = R2 原文的 |h−h0|&lt;1，但 h0 在判据侧
+     * 无公开出口 ⇒ 要钉它得先在生产的 heightCore 里把 h0 暴露成出口，属生产侧改动，不在本片写锁内）。
+     */
+    static final double C1_BAND_LO = 1.0D;
+    static final double C1_BAND_HI = 11.0D;
+    /**
+     * <b>旧 C2「河核断面床料出露率」带 = §6.1 R2 钉的 [0.90, 0.995]——v1.20.41 P20 §22-B 裁定
+     * 判据定错，本带降为"只报不钉"，原文保留在此</b>。
+     * <p>
+     * <b>为什么是判据错、不是生产常量错</b>：本带的分母取<b>河核列</b>（{@code s ≥ WET_MIN}），而
+     * S3 的谷坡下切与滩料铺放全部落在 {@code s < WET_MIN} 一侧的<b>谷坡环</b>（{@code inBankBand}）
+     * ⇒ 两个集合<b>不相交</b> ⇒ 机制对本带的位移<b>结构性恒零</b>（S3b 用 pre↔prodonly 三张逐字相同
+     * 的读数证真：探针网格口径两态同为 0.8421）。这不是"漏接线"：同一份生产改动把 C1 的环宽与
+     * C3 的下切量都打出了非零读数。
+     * <p>
+     * <b>唯一能让旧口径变绿的三条手段全部不许动</b>（这正是"改判据不改常量"的理由）：
+     * ① {@code SHORE_FLAT_BAND} 0.15→<b>0.06</b>（敏感性表见 {@code plan/tmp/p20-s3c/sensitivity.md}：
+     * 0.08→0.8918、0.06→0.9229；本片 T3 明令该常量一字不改）；
+     * ② {@code POOL_ANCHOR_AMP}/{@code POOL_ANCHOR_OFFSET}/{@code POOL_LEVEL_STEP}/{@code POOL_DROP}
+     * 与 {@code DESERT_WET_SHARE}（R-C 用户裁决"水位阶梯/瀑布墙/断流闸保持不动"）；
+     * ③ {@code MIN_HEIGHT}/{@code SEA_LEVEL}（§11 禁改面 + 用户版 1 严禁）。
+     * ⇒ 口径由 §22-B 重定为需求 2 的真身两条：{@code C2A}/{@code C2B}（新带见其注释的实测反解）。
+     * <p>
+     * §5 S3-2 的取值纪律"判据取 max(0.90, b₀+0.05)、不得取 b₀ 以下"当时是按字面执行的：b₀ =
+     * 0.8421（一次性探针 {@code plan/tmp/p20-s3b/S3bProbe}，不入库）⇒ max(0.90, 0.8921) = 0.90，
+     * 未"顺手放宽"。红是真红，红的是被量错的对象。
+     */
+    static final double C2_LO = 0.90D;
+    static final double C2_HI = 0.995D;
+
+    // ── S3c T2：C2 重定为需求 2「看不到河床，要岸坡下切」的真身两条 ──────────────────────
+    /**
+     * C2-a 的"看得见河床"宽度阈（列）。<b>出处</b>：§5 S3-2/S3-3 与 {@code BANK_CUT_DEPTH} javadoc
+     * 同一条推导——"现 board 恒 1 格 ⇒ 要让床料至少 <b>3</b> 格宽出露 ⇒ 需再削 2 格"。任务包 §22-B
+     * 的口径也写作"床料连段 ≥3 列"。⇒ 本值不是新自由度，与既有下切推导同一个数。
+     */
+    static final int C2A_RUN_MIN = 3;
+    /**
+     * C2-a 带（<b>河</b>占比：4 条断面里任一条出现 ≥{@link #C2A_RUN_MIN} 列连续床料的河 / 有效河数）。
+     * <p>
+     * <b>由实测分布反解（§8 纪律）</b>：本片 post 态实测 有效河 n = <b>32</b>、命中 = <b>31</b>
+     * ⇒ M = <b>0.969</b>；逐河最长床料连段 p10/中位/p90/max = <b>4 / 14 / 62 / 102</b> 列（断面口径
+     * 对照读数 101/127 = 0.795，只报不钉）。样本阈取"再容许 1 条河不达标"：
+     * <b>下界 = ⌊(命中−1)/n × 100⌋/100 = 30/32 = 0.9375 → 0.93</b>（跌到 29/32 = 0.906 即红 ⇒
+     * 灵敏度 = 2 条河；比二项 4σ 带 [0.85,1.0] 紧，因为本判据的失效形态是"成片河看不见河床"，
+     * n=32 的小样本用 σ 定带会把带撑到无意义）。<b>上界 = 1.0，不反向钉</b>：本条方向是"每条河都
+     * 看得见河床"，100% 即终态；反向风险（"整片群系都是河床"）由 B1 河宽带 [3,4.5] 与 F1 荒漠过水
+     * 占比带 [0.2,0.4] 守，不在本带内重复钉。
+     * ⚠ 本轮取实测反解，<b>实机后校准</b>；B3(S5)/B4(S6) 落地后若地面侧合法演进导致本条位移，
+     * 按同一规则（"再容许 1 条"）重算，不许改规则来凑。
+     */
+    static final double C2A_LO = 0.93D;
+    static final double C2A_HI = 1.0D;
+    /**
+     * C2-b 的"岸地面高出水面"阈（格）。<b>派生式，非字面量</b>：= {@code floor(BANK_CUT_DEPTH)} =
+     * <b>2</b>——需求 2 的下切量恰为 2 格，把阈钉成"下切真的落到了岸地面与水面的高差上"的量纲，
+     * 改 {@code BANK_CUT_DEPTH} 会同步带动本阈（这是想要的耦合：判据跟机制，不跟巧合）。
+     */
+    static final int C2B_ABOVE_CELLS = (int) Math.floor(GTSRVoronoiRiverField.BANK_CUT_DEPTH);
+    /**
+     * <b>v1.20.41 P20 §23-B 的处置状态（本片 P20-S3d 新增，非 §22-B 原文；下面整段 §22-B 时期的推导
+     * <b>原文逐字保留</b>，同 §14/§15 覆盖 §11 的处理法）</b>：§23-B 裁决把 C2-b 的采样域从「谷坡环列」
+     * 换到「<b>岸带首列</b>」＝每个湿核外侧第一个干列（4 条断面 × 向外至多扫 3 列取首列）。新域<b>已按
+     * 字面实现并每跑打印</b>（{@code C2B-READ} 的"现行域"段；取样门见 {@link #C2B_BANK_SCAN_MAX} 与
+     * {@link #scanCrossSections}），<b>但带暂不迁到新域</b>——实测直接否证了它当前可钉性：岸带首列
+     * n = <b>16</b>（88 条含湿核的断面里有 <b>72</b> 条在 3 列窗内取不到干列）、命中 = <b>0</b>
+     * ⇒ M = <b>0.000</b>，高出格数 p10/中位/p90/max = 0/0/1/1。根因是<b>窗与机制的尺寸冲突</b>：C1 实测
+     * 谷坡环宽中位 = <b>5.000</b> 格 &gt; 3 列窗 ⇒ 窗内的列必然还在 {@code rim = pool + RIM_EPS(1.5)}
+     * 的开挖带里（那片域高出格数中位 = −1，正是 §23-B 用来否定环列的那个读数），而"第一个干列"按定义是
+     * 贴水的那一列（{@code aboveWaterCells ≥ 0} 的最小列，实测中位 = 0）⇒ "≥2 格"在该域恒不成立。
+     * 把带钉在 0.000 附近 = §11 禁止的"为凑绿定带"（比 §23-B 否掉的旧带更空），故本片<b>保留下面这条
+     * §22-B 域上的带不动</b>，并把两个可钉的候选锚（放宽扫描窗 → 对照 D 的"无上限第一个干列"；改锚到
+     * §23-B 理由句点名的"rim 之上的岸地" → 对照 C = 0.726 那条）作为口径裁决上抛主代理。证据与四域
+     * 对照全表 = {@code plan/tmp/p20-s3d/c2b-domain-finding.md}。
+     * <p>
+     * C2-b 带（<b>谷坡环列</b>中岸地面高出水面 ≥{@link #C2B_ABOVE_CELLS} 格的占比）。高差一律经
+     * {@link GTSRVoronoiRiverField#submergedAt} 的<b>同一个</b>出口数出来（{@link #aboveWaterCells}），
+     * 本文件零 {@code pool−1} 算术复刻。
+     * <p>
+     * <b>由实测分布反解（§8 纪律）＋ 本片必须申报的一件事</b>：post 态实测 M = <b>0.094</b>
+     * （环列 n = 1422、命中 133），环列"高出水面格数"分布 p10/中位/p90 = <b>−3 / −1 / +1</b>
+     * ⇒ <b>谷坡环的地面中位数落在最高水格之下一格</b>。两个对照组读数：4 邻含湿核列的"真岸线"子集
+     * = <b>0/370 = 0.000</b>；环外首列（贴谷缘的岸地）= <b>90/124 = 0.726</b>（高出格数 p10/中位/p90
+     * = −2/+3/+6）。<b>结构性原因（不是漏接线）</b>：{@code heightCore} 外段把整条谷带压向
+     * {@code rim = pool + RIM_EPS(1.5)}，内段再向床 lerp，S3 的下切又在环上削 1-2 格 ⇒ 环列本身就是
+     * "水面附近的开挖带"，"高出水面 ≥2 格"在环域上必然稀少；真正把水面托起来的是环外的岸地。
+     * <p>
+     * <p>
+     * 【下面"带的定法"整段是 <b>§22-B 旧域（谷坡环列）</b>的推导，<b>原文逐字保留</b>；该域自 §26 起
+     * 降为<b>只报不钉</b>的对照诊断 A，理由见本 javadoc 顶部的处置段与 {@code plan/tmp/p20-s3d/}】
+     * ⇒ 带的定法：二项 σ = √(M(1−M)/n) = 0.0077，4σ 统计带 = [0.063, 0.125]，<b>不采用</b>——
+     * B3(S5)/B4(S6) 还要改地面侧（heightCore/TerrainVariants），紧带会在合法上演进时产假红
+     * （§10 的"混代假红"形态）。改取<b>机制带</b>：下界 <b>0.05</b> ≈ 实测的一半（再向下取整；
+     * 跌穿 = 环列里再没有人站在水面上方 ≥2 格 ⇒ 谷坡开挖带整体塌进水面以下）；上界 <b>0.20</b>
+     * ≈ 实测的 2 倍（再向上取整；越界 = 环大面积站出水面 ⇒ 外段不再贴水、谷坡消失，需求 1 的硬边
+     * 形态回来）。<b>本带钉的是当前基线形状，不是"岸坡下切已达成"的验收结论</b>——后者要看实机，
+     * 且口径本身（分母取环列 vs 取环外岸地）已按 §22-B 原句实现，若终验认定应换成环外岸地列，
+     * 那是主代理的口径裁决，不在本片擅改。本轮取值、<b>实机后校准</b>。
+     * <p>
+     * <b>§26 主代理裁决（2026-09-23）：C2-b 被钉域改为「断面出域第一列」</b>＝谷坡环之外、贴谷缘的岸地
+     * （= {@link #C2B_BANK_SCAN_MAX} javadoc 里的<b>对照 C</b>，也正是 §23-B <b>理由句</b>点名的
+     * "rim 之上的岸地"）。§23-B 的<b>机械表述</b>（"湿核外侧第一个干列、向外至多扫 3 列"）与它的理由句
+     * 在这里不重合；S3d 把四个候选锚一次测清（新域 <b>0.000</b> / 无窗对照 D <b>0.014</b> / 被否证的环列
+     * <b>0.094</b> / 理由句锚 <b>0.726</b>）并<b>拒绝</b>把带钉在 0.000 上、把裁决上抛——该拒绝正确
+     * （擅自换锚 = 判据片替主代理做口径裁决），故 <b>以理由句为准</b>，锚点取 rim 之上的岸地首列。
+     * <p>
+     * <b>新带由实测反解（§8 纪律），取带规则与 C2-a 同族（"再容许 1 例"，不用二项 σ）</b>：实测
+     * n = <b>124</b>、命中 = <b>90</b> ⇒ M = <b>0.726</b>，高出格数 p10/中位/p90 = −2 / <b>+3</b> / +6
+     * ⇒ 下界 = ⌊(命中−1)/n × 100⌋/100 = ⌊71.77⌋/100 = <b>0.71</b>（命中 89 即 0.7177 仍绿、掉到 88
+     * 即 0.7097 就红）；上界 <b>1.0，不反向钉</b>——本条方向是"每段岸地都站出水面 ≥2 格"，100% 即终态，
+     * 反向风险（"谷坡消失、硬边回来"）由 C3 的 {@code bankCutAt} 值域带与 H2 端面横向带守，不在本带重复钉。
+     * <b>本轮取实测反解，实机后校准</b>；S5b 改湖岸后若本条位移，按同一规则重算，不许改规则来凑。
+     */
+    static final double C2B_LO = 0.71D;
+    static final double C2B_HI = 1.0D;
+    /**
+     * C2-b 新采样域（<b>岸带首列</b>，§23-B 裁决 1）的外扫列数上限（格）。<b>出处 = §23-B 裁决 1 的
+     * 字面口径</b>："每个湿核外侧第一个干列（4 条断面 × 向外至多扫 3 列取首列）"⇒ 本值不是新增自由度，
+     * 是裁定写死的采样窗；"干"的判据只走 {@link GTSRVoronoiRiverField#submergedAt} 一个出口
+     * （{@code 干 ⇔ !submergedAt(h,pool) ⇔ aboveWaterCells ≥ 0}，与 {@link #aboveWaterCells} 的恒等式
+     * 同源 ⇒ 判据侧零第二处 {@code pool−1} 水线算术，§23-A 的 T1 纪律、出口签名锁死 int）。
+     * <p>
+     * <b>本域自本片起"只报不钉"</b>（原因与四域对照实测见 {@link #C2B_LO} 顶部那段处置状态）：实测
+     * 列 = 16、命中 = 0、占比 = 0.000、高出格数 p10/中位/p90/max = 0/0/1/1、外扫 3 列内取不到干列的断面
+     * = 72。同一条走查里另计两条对照：<b>对照 D</b> = 取消 3 列窗、核外第一个干列（本域的唯一变量敏感性
+     * 读数，用来区分"窗太窄"与"第一个干列按定义贴水"这两种退化原因）；<b>对照 C</b> = 断面出域第一列
+     * （= §23-B 理由句里"rim 之上的岸地"的锚点，实测 0.726）。
+     */
+    static final int C2B_BANK_SCAN_MAX = 3;
 
     /** 名册下标（0 锈蚀草原 / 1 齿轮森林 / 2 黄铜荒漠 / 3 喷气沼泽）。 */
     static final String[] ROSTER = { "草原", "森林", "荒漠", "沼泽" };
@@ -268,24 +416,434 @@ public final class RiverMorphologyCheck {
             "中位=" + f3(median) + " n=" + widths.size());
     }
 
-    // ══════════════════════ C 谷坡半宽 ══════════════════════
+    // ══════════════════════ C 谷坡过渡带（v1.20.41 P20 S3 改口径）══════════════════════
+
+    /**
+     * 水缘外的<b>谷坡环宽</b>（列）：沿 4 轴先走开水道核（{@code s ≥ WET_MIN}），再数
+     * {@link GTSRVoronoiRiverField#inBankBand} 为真的连续列，取有界方向的最小值（与
+     * {@link #valleyHalfWidth} 同口径；四向全无界记 -1）。
+     * <p>
+     * 环的定义<b>一律取生产出口</b>——带噪声外缘（{@code S_ERODE + BANK_BAND_JITTER·valueNoise}）
+     * 不在此重写，否则判据成了第二真值（正是 P20 S3 要消灭的东西）。
+     */
+    static int bankBandHalfWidth(int x, int z) {
+        int best = Integer.MAX_VALUE;
+        for (int d = 0; d < 4; d++) {
+            final int dx = d == 0 ? 1 : d == 1 ? -1 : 0;
+            final int dz = d == 2 ? 1 : d == 3 ? -1 : 0;
+            int r = 1;
+            // 1) 走开水道核（内缘恒 WET_MIN，不抖动——抖动只在外缘，见 inBankBand javadoc）
+            while (r <= WALK_LIMIT && s(x + dx * r, z + dz * r) >= GTSRVoronoiRiverField.WET_MIN) {
+                r++;
+            }
+            if (r > WALK_LIMIT) {
+                continue; // 顺河方向：核无界，不是"坡宽"的样本
+            }
+            final int edge = r; // 水缘外第一列
+            // 2) 数环的连续列
+            while (r <= WALK_LIMIT
+                && GTSRVoronoiRiverField.inBankBand(SEED, x + dx * r, z + dz * r, s(x + dx * r, z + dz * r))) {
+                r++;
+            }
+            if (r <= WALK_LIMIT && r - edge > 0) {
+                best = Math.min(best, r - edge);
+            }
+        }
+        return best == Integer.MAX_VALUE ? -1 : best;
+    }
+
+    /**
+     * C2/C3 的<b>河核断面</b>累加器（避免为一条比例回传五个数组）：核心列数 / 床料列数 /
+     * 环列数 / 断面内床料最长连段 / 环内列的下切量最小·最大 / 落在河核列上的环命中数（构造上必为
+     * 0，见旧 C2 的 {@code ringOnCore} 自检）＋ S3c T2 的两条新量（逐河最长连段分布、环列高出水面
+     * 命中数与湿邻子集）。
+     */
+    static final class CrossSection {
+        int coreCols;
+        int bedCols;
+        int ringCols;
+        int ringOnCore;
+        int bestRun;
+        double cutMin = Double.MAX_VALUE;
+        double cutMax = -Double.MAX_VALUE;
+        /** 有效断面数（至少含 1 列河核列）。 */
+        int sections;
+        /** 其中最长床料连段 ≥ {@link #C2A_RUN_MIN} 的断面数（辅助读数，C2-a 的断面口径）。 */
+        int sectionsRun;
+        /** 有效河数（4 条断面里至少 1 条有效的中心样本）。 */
+        int rivers;
+        /** 其中"任一断面出现 ≥{@link #C2A_RUN_MIN} 列连续床料"的河数（C2-a 分子）。 */
+        int riversRun;
+        /** 环列中岸地面高出水面 ≥{@link #C2B_ABOVE_CELLS} 格者（C2-b 分子；§23-B 的新域实测退化 ⇒
+         *  本域暂仍是被钉的那条，见 {@link #C2B_LO} 顶部的处置状态）。 */
+        int ringAbove;
+        /** 辅助：4 邻里有"湿且河核"列的环列数（真正贴水的岸线）。 */
+        int ringWet;
+        /** 辅助：{@link #ringWet} 中高出水面命中者。 */
+        int ringWetAbove;
+        /** 逐河最长床料连段（C2-a 带反解用的分布）。 */
+        final List<Integer> runs = new ArrayList<Integer>();
+        /** 环列的"高出水面格数"分布（C2-b 带反解用；<0 = 低于水面）。 */
+        final List<Integer> ringFb = new ArrayList<Integer>();
+        /** 辅助：断面出域的第一列（谷坡环之外、贴谷缘的岸地）列数与高出水面命中数。 */
+        int outsideCols;
+        int outsideAbove;
+        final List<Integer> outsideFb = new ArrayList<Integer>();
+        /**
+         * <b>C2-b 的 §23-B 新域（「岸带首列」，本片实现为<b>只报不钉</b>，理由见 {@link #C2B_LO} 顶部）
+         * </b>：每个湿核外侧第一个干列的列数 / 其中高出水面 ≥{@link #C2B_ABOVE_CELLS} 格者 /
+         * "高出水面格数"分布。
+         */
+        int bankCols;
+        int bankAbove;
+        final List<Integer> bankFb = new ArrayList<Integer>();
+        /** 辅助：扫到上限仍未出现干列的断面数（干段/开挖带贴水的极端形态会抬这个数）。 */
+        int bankNoDry;
+        /**
+         * <b>对照 D</b>（只报不钉）：与 {@link #bankCols} 同一条断面、同一个"核外第一个干列"锚点，
+         * <b>但取消 {@link #C2B_BANK_SCAN_MAX} 的 3 列窗</b> ⇒ 本域唯一变量的敏感性读数（区分
+         * "窗太窄"与"第一个干列按定义贴水"两种退化原因）。
+         */
+        int wideCols;
+        int wideAbove;
+        final List<Integer> wideFb = new ArrayList<Integer>();
+    }
+
+    /**
+     * 本列地面<b>高出水面的格数</b>（>0 = 高出 n 格；0 = 恰在最高水格；<0 = 低于水面）。
+     * <b>只经 {@link GTSRVoronoiRiverField#submergedAt} 一个谓词数出来</b>——本文件因此不存在
+     * 第二处 {@code pool−1} 水线算术（T1 纪律）。恒等式：{@code !submergedAt(h−k, pool) ⇔
+     * h−k ≥ pool−1 ⇔ 高出格数 h−(pool−1) ≥ k}，故"从 k=0 起连续成立的个数 − 1"即高出格数；
+     * 一个都不成立时反向数低于水面的深度。值域 |n| ≤ {@code heightAt} 的 [40,110] ⇒ 循环上界 24
+     * 是安全常量（触不到即截断，只影响辅助分布不影响判据分子）。
+     */
+    static int aboveWaterCells(int h, int pool) {
+        int k = 0;
+        while (k < 24 && !GTSRVoronoiRiverField.submergedAt(h - k, pool)) {
+            k++;
+        }
+        if (k > 0) {
+            return k - 1;
+        }
+        int down = 0;
+        while (down < 24 && GTSRVoronoiRiverField.submergedAt(h + down, pool)) {
+            down++;
+        }
+        return -down;
+    }
+
+    /**
+     * 沿每个中心样本的 4 条断面走查（列距 1，步数上限 {@link #WALK_LIMIT}）：
+     * {@code s ≥ WET_MIN} 的列进 C2-a 分母并走 {@link GTSRVoronoiRiverField#bedTopAtSurface} 单一出口
+     * 取选型；{@code S_ERODE ≤ s < WET_MIN}（谷坡环）的列走
+     * {@link GTSRVoronoiRiverField#bankCutAt} 单一出口取下切量，并走
+     * {@link GTSRVoronoiRiverField#submergedAt} 单一出口取"高出水面"读数；{@code s < S_ERODE}
+     * 即断出域、收尾。
+     * <p>
+     * <b>v1.20.41 P20 §23-B 追加的 C2-b 新域取样（本片实现为<b>只报不钉</b>，见 {@link #C2B_LO} 顶部）
+     * </b>：每条断面在<b>越过一列湿核（{@code s ≥ WET_MIN} 且 {@code submergedAt} 为真）之后</b>，于核外列
+     * （{@code s < WET_MIN}，含环列与出域列）里向外至多扫 {@link #C2B_BANK_SCAN_MAX} 列，取<b>第一个
+     * 干列</b>（{@code !submergedAt}）作为该湿核的"岸带首列"样本，每断面至多一列；同一条走查顺带计
+     * <b>对照 D</b> = 取消该 3 列窗的第一个干列（本域唯一变量的敏感性读数）。被钉的仍是 {@code ringAbove}
+     * 那条环列域（§23-B 的新域实测退化到无带可反解，换锚裁决上抛主代理）。
+     * <p>
+     * "是否没水"自 v1.20.41 P20 S3c 起<b>不再在本文件出现</b>：一律经
+     * {@link GTSRVoronoiRiverField#submergedAt(int, int)}（生产侧落块器共用同一个出口）。C2-b 的
+     * "岸地面高出水面 ≥k 格"经 {@link #aboveWaterCells} 数出来，其恒等式是
+     * {@code !submergedAt(h−k, pool) ⇔ h−k ≥ pool−1 ⇔ 高出格数 h−(pool−1) ≥ k}（水面 = 池水位 pool、
+     * 最高水格 pool−1 的既有口径）——"水线在哪"只有一处定义，本文件零 {@code pool−1} 算术。
+     * {@code h ± k} 不担心回绕：{@code heightAt} 值域被 G3 钉在 [40,110]。
+     */
+    static void scanCrossSections(List<int[]> centers, CrossSection acc) {
+        for (final int[] c : centers) {
+            int riverBestRun = 0;
+            boolean riverValid = false;
+            for (int d = 0; d < 4; d++) {
+                final int dx = d == 0 ? 1 : d == 1 ? -1 : 0;
+                final int dz = d == 2 ? 1 : d == 3 ? -1 : 0;
+                int run = 0;
+                int sectionBestRun = 0;
+                boolean sectionCore = false;
+                boolean outSide = false;
+                // —— C2-b 的 §23-B 新域（「岸带首列」）与对照 D 的本断面状态 ——
+                boolean wetCoreSeen = false;
+                boolean bankTaken = false;
+                boolean wideTaken = false;
+                int bankScan = 0;
+                for (int r = 1; r <= WALK_LIMIT; r++) {
+                    final int x = c[0] + dx * r;
+                    final int z = c[1] + dz * r;
+                    final double sv = s(x, z);
+                    // —— C2-b 的 §23-B 新域（「岸带首列」）与对照 D（取消窗口的同一锚点）：
+                    // 核外列（环列与出域列都算核外）先过这道取样门 = 湿核外侧第一个<b>干</b>列
+                    // （"人站在岸上脚下那一列"），新域至多外扫 C2B_BANK_SCAN_MAX 列、每断面至多取一列。
+                    // 干/湿与高出格数都只经 submergedAt 一个出口（aboveWaterCells 的恒等式），
+                    // 判据侧零第二处 pool−1 水线算术。
+                    if (wetCoreSeen && sv < GTSRVoronoiRiverField.WET_MIN && (!bankTaken || !wideTaken)) {
+                        final boolean tryBank = !bankTaken && bankScan < C2B_BANK_SCAN_MAX;
+                        if (tryBank) {
+                            bankScan++;
+                        }
+                        final int bh = ProsperityTerrainProfile.heightAt(SEED, x, z);
+                        final int bp = GTSRVoronoiRiverField.poolLevelAt(SEED, x, z, 0);
+                        if (!GTSRVoronoiRiverField.submergedAt(bh, bp)) {
+                            final int bf = aboveWaterCells(bh, bp);
+                            if (tryBank) {
+                                bankTaken = true;
+                                acc.bankCols++;
+                                acc.bankFb.add(Integer.valueOf(bf));
+                                if (bf >= C2B_ABOVE_CELLS) {
+                                    acc.bankAbove++;
+                                }
+                            }
+                            if (!wideTaken) {
+                                wideTaken = true;
+                                acc.wideCols++;
+                                acc.wideFb.add(Integer.valueOf(bf));
+                                if (bf >= C2B_ABOVE_CELLS) {
+                                    acc.wideAbove++;
+                                }
+                            }
+                        }
+                    }
+                    if (sv < GTSRVoronoiRiverField.S_ERODE) {
+                        if (!outSide) {
+                            outSide = true;
+                            // 辅助读数（只报不钉）：断面出域的第一列 = 谷坡环之外、贴谷缘的"岸地"。
+                            // 对照组用途：环列被 heightCore 外段压向 rim = pool + RIM_EPS、再被
+                            // bankCutAt 削 1-2 格 ⇒ "高出水面 ≥2 格"在环上结构性稀少；"岸地是不是
+                            // 真站在水面上方 ≥2 格"要看环外列。本片不自作主张换 C2-b 的分母。
+                            //   ↑ 上一句是 S3c 的原文（保留）。§23-B 已把 C2-b 的分母换成「岸带首列」
+                            // = 湿核外侧第一个干列（上方取样门），本行这条"贴谷缘岸地"仍只是对照组读数。
+                            final int op = GTSRVoronoiRiverField.poolLevelAt(SEED, x, z, 0);
+                            final int of = aboveWaterCells(ProsperityTerrainProfile.heightAt(SEED, x, z), op);
+                            acc.outsideCols++;
+                            acc.outsideFb.add(Integer.valueOf(of));
+                            if (of >= C2B_ABOVE_CELLS) {
+                                acc.outsideAbove++;
+                            }
+                        }
+                        break; // 既非核也非环：断面出域
+                    }
+                    if (sv < GTSRVoronoiRiverField.WET_MIN) {
+                        if (GTSRVoronoiRiverField.inBankBand(SEED, x, z, sv)) {
+                            final double cut = GTSRVoronoiRiverField.bankCutAt(SEED, x, z);
+                            acc.ringCols++;
+                            acc.cutMin = Math.min(acc.cutMin, cut);
+                            acc.cutMax = Math.max(acc.cutMax, cut);
+                            // C2-b：岸地面 vs 本列段池水位（高出格数只经 submergedAt 数出来，见
+                            // aboveWaterCells 的恒等式 ⇒ 本文件零第二处水线算术）
+                            final int rpool = GTSRVoronoiRiverField.poolLevelAt(SEED, x, z, 0);
+                            final int rh = ProsperityTerrainProfile.heightAt(SEED, x, z);
+                            final int fb = aboveWaterCells(rh, rpool);
+                            acc.ringFb.add(Integer.valueOf(fb));
+                            if (fb >= C2B_ABOVE_CELLS) {
+                                acc.ringAbove++;
+                            }
+                            if (touchingWetCore(x, z)) {
+                                acc.ringWet++;
+                                if (fb >= C2B_ABOVE_CELLS) {
+                                    acc.ringWetAbove++;
+                                }
+                            }
+                        }
+                        continue; // 环列不是河核列，不进旧 C2 的"选型率"分母
+                    }
+                    sectionCore = true;
+                    acc.coreCols++;
+                    final int pool = GTSRVoronoiRiverField.poolLevelAt(SEED, x, z, 0);
+                    final int h = ProsperityTerrainProfile.heightAt(SEED, x, z);
+                    final boolean sub = GTSRVoronoiRiverField.submergedAt(h, pool);
+                    if (sub) {
+                        wetCoreSeen = true; // C2-b（§23-B）：过了湿核，外侧第一个干列才成为样本
+                    }
+                    if (GTSRVoronoiRiverField.inBankBand(SEED, x, z, sv)) {
+                        acc.ringOnCore++; // 构造上不可达（inBankBand 对 s≥WET_MIN 恒 false）
+                    }
+                    if (GTSRVoronoiRiverField.bedTopAtSurface(SEED, x, z, sv, sub)) {
+                        acc.bedCols++;
+                        run++;
+                        acc.bestRun = Math.max(acc.bestRun, run);
+                        sectionBestRun = Math.max(sectionBestRun, run);
+                    } else {
+                        run = 0;
+                    }
+                }
+                if (wetCoreSeen && !bankTaken) {
+                    acc.bankNoDry++; // 外扫 3 列内没出现干列 ⇒ 该侧无"岸"，不入 C2-b 分母
+                }
+                if (sectionCore) {
+                    acc.sections++;
+                    if (sectionBestRun >= C2A_RUN_MIN) {
+                        acc.sectionsRun++;
+                    }
+                    riverValid = true;
+                    riverBestRun = Math.max(riverBestRun, sectionBestRun);
+                }
+            }
+            if (riverValid) {
+                acc.rivers++;
+                if (riverBestRun >= C2A_RUN_MIN) {
+                    acc.riversRun++;
+                }
+                acc.runs.add(Integer.valueOf(riverBestRun));
+            }
+        }
+    }
+
+    /**
+     * 本列 4 邻里是否存在"河核且 {@code wetAt}"的列（真正贴水的岸线；荒漠干段的环列不贴水）。
+     * 档口径与本扫描一致取 roster 0（草原/森林常态河档）。
+     */
+    static boolean touchingWetCore(int x, int z) {
+        for (int d = 0; d < 4; d++) {
+            final int nx = x + (d == 0 ? 1 : d == 1 ? -1 : 0);
+            final int nz = z + (d == 2 ? 1 : d == 3 ? -1 : 0);
+            if (s(nx, nz) >= GTSRVoronoiRiverField.WET_MIN && GTSRVoronoiRiverField.wetAt(SEED, nx, nz, 0)) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     static void groupC(List<int[]> centers) {
-        final List<Integer> slopes = new ArrayList<Integer>();
+        // —— 旧口径（v1.20.40 P19 §A.5：水缘→谷缘 s==0）：v1.20.41 起降为<b>读数</b>，不再是断言 ——
+        final List<Integer> legacy = new ArrayList<Integer>();
         for (final int[] c : centers) {
             final int valley = valleyHalfWidth(c[0], c[1]);
             final int water = waterHalfWidth(c[0], c[1], 0);
             if (valley > 0 && water > 0) {
-                slopes.add(Integer.valueOf(valley - water));
+                legacy.add(Integer.valueOf(valley - water));
             }
         }
-        final double median = median(slopes);
-        say("C-READ 谷坡半宽（水缘→谷缘 s==0）样本=" + slopes.size() + " p10/中位/p90=" + pct(slopes, 10)
-            + "/" + f3(median) + "/" + pct(slopes, 90));
-        check("C1 谷坡半宽中位数 ∈ [15,35] 格（v1.20.40 P19 §A.5 重钉：两段式压低+收窄后的校准带；"
-            + "归因 U2/U34 prered 中位 19.0 在带）",
-            slopes.size() >= N_CENTERS / 2 && median >= 15.0D && median <= 35.0D,
-            "中位=" + f3(median) + " n=" + slopes.size());
+        say("C-READ 旧口径 谷坡半宽（水缘→谷缘 s==0）样本=" + legacy.size() + " p10/中位/p90="
+            + pct(legacy, 10) + "/" + f3(median(legacy)) + "/" + pct(legacy, 90)
+            + "（v1.20.40 P19 §A.5 带 [15,35]——v1.20.41 起只报不钉，理由见 C1）");
+
+        // —— C1 新口径：水缘→谷坡环外缘（inBankBand 为真的连续列宽）——
+        final List<Integer> band = new ArrayList<Integer>();
+        for (final int[] c : centers) {
+            final int w = bankBandHalfWidth(c[0], c[1]);
+            if (w > 0) {
+                band.add(Integer.valueOf(w));
+            }
+        }
+        final double median = median(band);
+        say("C-READ 谷坡环宽（水缘→inBankBand 外缘；外缘抖动 " + GTSRVoronoiRiverField.BANK_BAND_JITTER
+            + " @λ=" + GTSRVoronoiRiverField.CUT_NOISE_SCALE + "）样本=" + band.size() + " p10/中位/p90="
+            + pct(band, 10) + "/" + f3(median) + "/" + pct(band, 90));
+        check("C1 谷坡环宽中位数 ∈ [" + C1_BAND_LO + "," + C1_BAND_HI + "] 格（v1.20.41 P20 S3 按新环重钉："
+            + "口径从「水缘→谷缘 s==0」改为「水缘→谷坡环外缘」——需求 1 之后可见的过渡带就是 "
+            + "inBankBand 那一段，s==0 的谷缘距里 ~85% 是未被河料触碰的原群系地面，钉它等于钉没有交付物"
+            + "的宽度。**旧带 [15,35]（v1.20.40 P19 §A.5 两段式压低+收窄校准带，归因 U2/U34 prered 中位 "
+            + "19.0）原文保留在此并作废**——旧口径读数仍在上方 C-READ 行（实测中位未随 S3 漂移）",
+            band.size() >= N_CENTERS / 2 && median >= C1_BAND_LO && median <= C1_BAND_HI,
+            "中位=" + f3(median) + " n=" + band.size() + " 旧口径中位=" + f3(median(legacy)));
+
+        // —— C2/C3 河核断面：选型率读数（旧口径，只报）＋ 新两条 + 下切量值域（都只消费生产出口）——
+        final CrossSection xs = new CrossSection();
+        scanCrossSections(centers, xs);
+        final double exposure = xs.coreCols == 0 ? -1.0D : xs.bedCols / (double) xs.coreCols;
+        say("C-READ 河核断面（中心样本 " + centers.size()
+            + " × 4 向，列距 1）：河核列=" + xs.coreCols + " 床料列=" + xs.bedCols + " 滩料列="
+            + (xs.coreCols - xs.bedCols) + " ⇒ 床料出露率=" + f3(exposure)
+            + "；断面内床料最长连段=" + xs.bestRun + " 列；环列=" + xs.ringCols + " 下切量 ∈ ["
+            + f3(xs.cutMin) + "," + f3(xs.cutMax) + "]");
+        // 旧 C2（河核断面床料出露率）v1.20.41 P20 §22-B 起<b>只报不钉</b>——口径错因与不许动的
+        // 三条变绿手段全部写在 C2_LO/C2_HI 的注释里。
+        say("C-READ 旧口径 河核断面床料出露率=" + f3(exposure) + "（旧带 [" + C2_LO + "," + C2_HI
+            + "]，分母取河核列、与谷坡环不相交 ⇒ 结构性恒零，§22-B 重定口径后降为读数）"
+            + " 河核列=" + xs.coreCols + " 滩料列=" + (xs.coreCols - xs.bedCols) + " 环命中核列="
+            + xs.ringOnCore);
+        // —— C2-a 床料连段 ≥3 列的河占比（"看得见河床"＝床料出露的连续性）——
+        final double runShare = xs.rivers == 0 ? -1.0D : xs.riversRun / (double) xs.rivers;
+        say("C2A-READ 逐河最长床料连段（" + C2A_RUN_MIN + " 列为阈）：有效河=" + xs.rivers
+            + " 命中=" + xs.riversRun + " 占比=" + f3(runShare) + " 连段 p10/中位/p90/max="
+            + pct(xs.runs, 10) + "/" + f3(median(xs.runs)) + "/" + pct(xs.runs, 90) + "/"
+            + pct(xs.runs, 100) + "；辅助断面口径：有效断面=" + xs.sections + " 命中=" + xs.sectionsRun
+            + " 占比=" + f3(xs.sections == 0 ? -1.0D : xs.sectionsRun / (double) xs.sections));
+        check("C2-a 断面床料连段 ≥" + C2A_RUN_MIN + " 列的「河」占比 ∈ [" + C2A_LO + "," + C2A_HI
+            + "]（v1.20.41 P20 §22-B 重定的 C2 真身之一：需求 2「看不到河床」= 床料出露的<b>连续性</b>。"
+            + "分母 = 至少含一列河核列的中心样本（河），分子 = 4 条断面里任一条出现 ≥" + C2A_RUN_MIN
+            + " 列连续床料的河；连段走 bedTopAtSurface＋submergedAt 两个生产出口，本文件零选型复刻。"
+            + "**口径边界（§22-C 保留）：分母未剔 dropColumn 跳铺列 ⇒ 它是「选型率」口径的连续性，"
+            + "落差面的真实落块由 H 组守**）",
+            xs.rivers >= N_CENTERS / 2 && runShare >= C2A_LO && runShare <= C2A_HI,
+            "河占比=" + f3(runShare) + " 有效河=" + xs.rivers + " 命中=" + xs.riversRun + " 最长连段="
+                + xs.bestRun + " 列 断面口径占比=" + f3(xs.sections == 0 ? -1.0D
+                    : xs.sectionsRun / (double) xs.sections));
+        // —— C2-b：§23-B 新域（岸带首列）与对照 D 只报不钉；被钉的那条仍是 §22-B 的环列域（原因见 C2B_LO）——
+        final double bankShare = xs.bankCols == 0 ? -1.0D : xs.bankAbove / (double) xs.bankCols;
+        final double wideShare = xs.wideCols == 0 ? -1.0D : xs.wideAbove / (double) xs.wideCols;
+        final double aboveShare = xs.ringCols == 0 ? -1.0D : xs.ringAbove / (double) xs.ringCols;
+        // §26 主代理裁决：C2-b 的被钉域 = 断面出域首列（rim 之上的岸地），旧环列域降为只报不钉。
+        final double outsideShare = xs.outsideCols == 0 ? -1.0D
+            : xs.outsideAbove / (double) xs.outsideCols;
+        say("C2B-READ §23-B 新域「岸带首列」（每个湿核外侧第一个干列，4 条断面 × 向外至多扫 "
+            + C2B_BANK_SCAN_MAX + " 列取首列；阈 = floor(BANK_CUT_DEPTH)，干湿与高出格数只经 submergedAt"
+            + " 数出来）<b>只报不钉</b>：列=" + xs.bankCols + " 命中=" + xs.bankAbove + " 占比="
+            + f3(bankShare) + " 高出格数 p10/中位/p90/max=" + pct(xs.bankFb, 10) + "/"
+            + f3(median(xs.bankFb)) + "/" + pct(xs.bankFb, 90) + "/" + pct(xs.bankFb, 100)
+            + " 外扫 " + C2B_BANK_SCAN_MAX + " 列内无干列的断面=" + xs.bankNoDry
+            + "；对照 D（同一锚点、取消 " + C2B_BANK_SCAN_MAX + " 列窗＝核外第一个干列）：列="
+            + xs.wideCols + " 命中=" + xs.wideAbove + " 占比=" + f3(wideShare) + " 高出格数 p10/中位/p90/max="
+            + pct(xs.wideFb, 10) + "/" + f3(median(xs.wideFb)) + "/" + pct(xs.wideFb, 90) + "/"
+            + pct(xs.wideFb, 100)
+            + "；对照 A（§22-B 旧域·谷坡环列，§26 起<b>只报不钉</b>）：环列=" + xs.ringCols
+            + " 命中=" + xs.ringAbove + " 占比=" + f3(aboveShare) + " 高出格数 p10/中位/p90="
+            + pct(xs.ringFb, 10) + "/" + f3(median(xs.ringFb)) + "/" + pct(xs.ringFb, 90)
+            + "；对照 B（4 邻含湿核列的真岸线）：环列=" + xs.ringWet + " 命中=" + xs.ringWetAbove
+            + " 占比=" + f3(xs.ringWet == 0 ? -1.0D : xs.ringWetAbove / (double) xs.ringWet)
+            + "；对照 C（<b>自 §26 起为被钉域</b>·断面出域首列＝贴谷缘岸地＝§23-B 理由句所指「rim 之上的"
+            + "岸地」，带 [" + C2B_LO + "," + C2B_HI + "]）：列="
+            + xs.outsideCols + " 命中=" + xs.outsideAbove + " 占比="
+            + f3(xs.outsideCols == 0 ? -1.0D : xs.outsideAbove / (double) xs.outsideCols)
+            + " 高出格数 p10/中位/p90=" + pct(xs.outsideFb, 10) + "/" + f3(median(xs.outsideFb)) + "/"
+            + pct(xs.outsideFb, 90));
+        check("C2-b 岸地面高于水面 ≥" + C2B_ABOVE_CELLS + " 格的「<b>断面出域首列</b>＝走出谷坡环之外、"
+            + "贴谷缘的岸地（即 rim 之上的岸地）」占比 ∈ [" + C2B_LO + "," + C2B_HI + "]（v1.20.41 P20 "
+            + "<b>§26 主代理裁决</b>换定的锚点：需求 2「看不到河床，要岸坡下切」里"
+            + "\"人站在岸上、脚下看得见河床\"那一面的直接度量。分母 = 4 条断面走出谷坡环（{@code s < "
+            + "S_ERODE}）时的第一列、每断面至多一列；分子 = 该列 heightAt 地面比本列段池水位高出 ≥"
+            + C2B_ABOVE_CELLS + " 格；干湿与高出格数只经 aboveWaterCells→submergedAt 一个谓词数出来，"
+            + "全文件零第二处 {@code pool−1} 水线算术。**带由实测反解（§8）**：n = 124 / 命中 = 90 / "
+            + "M = 0.726、高出格数 p10/中位/p90 = −2/+3/+6 ⇒ 下界 0.71（取带规则与 C2-a 同族\"再容许 1 "
+            + "例\"）、上界 1.0 不反向钉；实机后校准。**被实测否证的三个候选锚**（§22-B 旧域环列 0.094、"
+            + "§23-B 字面新域 0.000、无窗对照 D 0.014）自本节起<b>全部只报不钉</b>，读数见上方 C2B-READ"
+            + "与 {@code plan/tmp/p20-s3d/c2b-domain-finding.md}。）"
+            + "〔<b>旧域（§22-B 谷坡环列）当时那句断言的中段残文·逐字保留</b>，自 §26 起该域只报不钉："
+            + "「…不重写带噪声外缘），分子 = 该列 heightAt 地面比本列段池水位高出 ≥" + C2B_ABOVE_CELLS
+            + " 格；高差只经 "
+            + "aboveWaterCells→submergedAt 一个谓词数出来，全文件不存在第二处水线算术。**口径边界**："
+            + "分母含荒漠干段的环列（该处无水面，池水位只是段界参考面）⇒ 读数含干段；C2B-READ 的两组"
+            + "对照（湿邻真岸线 / 环外首列岸地）只报不钉。<b>本带钉的是 0.094 这一当前基线形状，不是"
+            + "\"岸坡下切已达成\"的验收结论</b>——环列本身是开挖带（外段压向 pool+RIM_EPS、内段再向床、"
+            + "环上再削 1-2 格 ⇒ 中位高出格数 = −1），换分母属主代理的口径裁决，见 C2B_LO 注释。」】"
+            + "【§23-B 处置状态（P20-S3d）：裁定要求换的「岸带首列」域已按字面实现并打印在本行上方的"
+            + " C2B-READ（\"§23-B 新域\"段），但当前基线上实测 n=16 / 命中 0 / 占比 0.000、高出格数"
+            + " p10/中位/p90/max = 0/0/1/1（88 条含湿核断面里 72 条在 3 列窗内取不到干列）⇒ 无带可反解"
+            + "（钉它 = §11 禁止的凑绿带）。两成因已分开实测：① 窗太窄——3 列窗 < C1 实测环宽中位 5.000 格"
+            + " ⇒ 窗内必然仍在开挖带；② 定义级——对照 D 取消窗口后 n 抬到 71 但命中只有 1（0.014、高出格数"
+            + " p90 = 0），因为\"第一个干列\"按 {@code submergedAt(h,pool) ⇔ h < pool−1} 的定义恰落在最高"
+            + " 水格上（高出格数 = 0），与阈 2 互相拆台。有诊断力的锚是 C2B-READ 的对照 C（断面出域首列"
+            + " ＝ §23-B 理由句点名的\"rim 之上的岸地\"，124/90 = 0.726）。带暂留环列域不动，换锚裁决上抛，"
+            + "四域对照全表见 plan/tmp/p20-s3d/c2b-domain-finding.md。<b>§26 主代理已裁：选 A</b>——以理由"
+            + "句的锚（本条的对照 C＝断面出域首列＝rim 之上的岸地）作为 C2-b 被钉域，带 [0.71, 1.0]；"
+            + "谷坡环列域、§23-B 字面新域与无窗对照 D 三处一并降为<b>只报不钉</b>】",
+            xs.outsideCols >= N_CENTERS && outsideShare >= C2B_LO && outsideShare <= C2B_HI,
+            "出域首列占比=" + f3(outsideShare) + " 列=" + xs.outsideCols + " 命中=" + xs.outsideAbove
+                + " 高出格数 p10/中位/p90=" + pct(xs.outsideFb, 10) + "/" + f3(median(xs.outsideFb))
+                + "/" + pct(xs.outsideFb, 90) + " ｜ 只报不钉的三域：§22-B 旧环列=" + f3(aboveShare)
+                + "（n=" + xs.ringCols + "）、§23-B 字面新域=" + f3(bankShare) + "（n=" + xs.bankCols
+                + "）、无窗对照 D=" + f3(wideShare) + "（n=" + xs.wideCols + "）");
+        check("C3 谷坡环下切量 ∈ [" + (GTSRVoronoiRiverField.BANK_CUT_DEPTH / 2) + ","
+            + GTSRVoronoiRiverField.BANK_CUT_DEPTH + "] 格且环非退化（P20 §20：bankCutAt 值域下界取半"
+            + "而非 0——valueNoise 负瓣若清零，环内出现\"整段没切\"的斑块、出露宽度不连续；环列数下限"
+            + " = 河核列数的 1/4，防\"环空转\"让 C2 的选型出口退化成纯三目）",
+            xs.ringCols >= xs.coreCols / 4 && xs.cutMin >= GTSRVoronoiRiverField.BANK_CUT_DEPTH / 2
+                && xs.cutMax <= GTSRVoronoiRiverField.BANK_CUT_DEPTH,
+            "cut∈[" + f3(xs.cutMin) + "," + f3(xs.cutMax) + "] 环列=" + xs.ringCols + " 河核列="
+                + xs.coreCols);
     }
 
     // ══════════════════════ D 蜿蜒度 ══════════════════════

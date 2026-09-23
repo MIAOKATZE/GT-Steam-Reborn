@@ -13,6 +13,7 @@ import com.miaokatze.gtsr.common.dimension.framework.SurfaceGate;
 import com.miaokatze.gtsr.common.dimension.framework.structure.BlockSink;
 import com.miaokatze.gtsr.common.dimension.framework.structure.GTSRWorldgenHash;
 import com.miaokatze.gtsr.common.dimension.framework.structure.StructureBuilder;
+import com.miaokatze.gtsr.common.dimension.prosperity.TerrainVariants;
 
 /**
  * 自然区地表装饰散布器（dim78 S-A1，plan §12 修订 5：修复自然区"光秃秃"；草丛/锈树/碎石三件。
@@ -38,7 +39,9 @@ import com.miaokatze.gtsr.common.dimension.framework.structure.StructureBuilder;
  * <p>
  * 确定性：全部随机从 chunk 级哈希派生（盐 {@link #SALT_DECOR}，RuinedMachinePlacer/
  * ProsperitySurfaceScatter 同款 splitmix 范式），同 seed 同坐标跨 chunk 重算一致；禁用 populate 裸
- * Random 语义（Random 仅作哈希种子的取数器）。掷趟顺序固定 = 树 → 花草 → 碎石 → 沙砾。
+ * Random 语义（Random 仅作哈希种子的取数器）。掷趟顺序固定 = 树 → 花草 → 碎石 → 沙砾
+ * （<b>v1.20.41 P20 S6 起追加第五趟：风蚀柱</b>，{@link #placeWindStumpPass}，只用独立盐
+ * {@link #SALT_WIND}；灌木成簇另用独立盐 {@link #SALT_SHRUB_CLUSTER}，两者的取数都不占共享流）。
  * <p>
  * <b>P19 U6</b>：树趟三层掷骰的门概率改由 {@link DensityField} 密度场驱动（跨界渐变 + 渗色修复，
  * plan §G），掷骰次数/盐族/形态离散档位纪律不变，见 {@code #placeTreePass} 说明。
@@ -66,6 +69,19 @@ public final class ProsperityDecorPlacer {
      * 巨树趟用单独 {@code Random}，普通/灌木两趟的既有随机流一位都不动。
      */
     private static final long SALT_MEGA = 0x6D656761L;
+
+    /**
+     * 盐 "wind"（v1.20.41 P20 S6 风蚀柱趟，需求 5）：与 {@link #SALT_MEGA} 同一条纪律——<b>独立</b>
+     * {@code Random(chunkSeed ^ 本盐)}，故 {@link #decorate} 既有四趟（树 → 花草 → 碎石 → 沙砾）
+     * 的共享 {@code rand} 取数序<b>一位都不动</b>（P20 §3 H-3）。
+     */
+    private static final long SALT_WIND = 0x77696E64L;
+
+    /**
+     * 盐 "shrc"（v1.20.41 P20 S6 灌木成簇，需求 6）：簇的"抑制骰 + 附加株位/形态骰"全部走本盐派生的
+     * 独立 {@code Random} ⇒ 主株仍由共享 {@code rand} 掷（逐位同改造前），簇只在其<b>之外</b>加料。
+     */
+    private static final long SALT_SHRUB_CLUSTER = 0x73687263L;
 
     /**
      * 本类所属维度键（P4：门的显式维度入参）。取 L1 账本同一词汇 {@link SurfaceGate#DIM78}
@@ -220,8 +236,10 @@ public final class ProsperityDecorPlacer {
         new VegTier(2, 2, 11, 6, 3, WOOD_BRASS, WOOD_COPPER, 3, 8, 6, 0, FLOWER_PATINA, GRASS_SEDGE, SAND_FINE),
         // 2 黄铜荒漠（用户口径"沙漠"）：treeRolls = 0 ⇒ 一条树骰都不掷（"没有树"真达成，不是"很少"）；
         // 花草压到全档最低但非 0（金盏 + 刚毛草 = 荒漠唯一的植被表达，且仍 > 改前的"花恒 0"），
-        // 沙砾斑 4 次 = 需求侧的"铺沙"
-        new VegTier(0, 0, 4, 3, 1, WOOD_RUST, WOOD_NONE, 0, 3, 1, 4, FLOWER_BRASS, GRASS_BRISTLE, SAND_FINE),
+        // <b>v1.20.41 P20 S6 需求 5</b>：沙砾斑 4 → <b>7</b> 次 + 沙料族 SAND_FINE → <b>SAND_COARSE</b>
+        // （= 需求"覆盖更多的粗砂粒"的两处最小落点；粗砂由 1/3 抬到 5/6，砾 1/6 不变，见
+        // {@link #placeSandPass} 的料种说明。<b>绝不</b>改 topBlock ⇒ 仍走覆盖斑路，H-4/§1.2 第 5 条）
+        new VegTier(0, 0, 4, 3, 1, WOOD_RUST, WOOD_NONE, 0, 3, 1, 7, FLOWER_BRASS, GRASS_BRISTLE, SAND_COARSE),
         // 3 起雾沼泽：中等树（7..10）+ 平展伞冠 + 密矮苔薹草与沼地兰
         new VegTier(1, 3, 7, 4, 2, WOOD_MARSH, WOOD_NONE, 0, 8, 5, 0, FLOWER_MARSH, GRASS_SEDGE, SAND_FINE),
         // 4 遗忘之川（v1.20.39 T5 <b>占位档</b>，plan §3.7 表 sanzu 行：普通档 1/6 骰 干 5..8 r1-2；
@@ -336,6 +354,169 @@ public final class ProsperityDecorPlacer {
         return index >= 0 && index < TREE_TIERS_BY_ROSTER.length ? TREE_TIERS_BY_ROSTER[index] : DEFAULT_TREE_TIERS;
     }
 
+    // ═══════════════ v1.20.41 P20 S6：风蚀柱 feature（需求 5 的 populate 侧落点）═══════════════
+
+    /**
+     * 风蚀柱的<b>名册档</b>（下标口径与 {@link #VEG_TIERS_BY_ROSTER} 同族 = L1 维内名册下标）：
+     * 值 = <b>每个落点候选列</b>的 1/N 稀疏骰分母，<b>0 = 该群系零柱</b>（原实现的"每 chunk 1/N"已被
+     * 实测否证，机制改判与目标率的推导见本常量下方）。
+     * <p>
+     * 与 {@code treeRolls = 0} 表达"沙漠没有树"同一条纪律：抑制写成<b>档值</b>，本类不出现任何
+     * 身份等值判断（{@code P17VegetationFrequencyCheck} SOURCE 组的四条红线一字不动）。
+     * <p>
+     * <b>为什么另立一张表、不给 {@link VegTier} / {@link TreeTierSet} 加构造参数</b>：
+     * {@code VegTier} 的 14 参构造器被 {@code P17VegetationFrequencyCheck} 的 ANTI 反假绿臂按
+     * <b>字面 14 元</b>整行重建（@727-729 一带），加字段即改该臂协议；{@code TreeTierSet} 的语义是
+     * "树木三档"，把非木本的沙柱塞进去会污染 {@code DensityField.rowDensity} 的三层枚举。
+     * 本表是一维 {@code int[]}，形状与两张档表同族、零构造器改动、越界回退 0。
+     * <p>
+     * <b>取值的推导（本轮按实测改判机制，保留 §5 的<b>目标率</b>）</b>：P20 §5 S6 的字面口径是
+     * "每 chunk 期望 1/12 柱"。本片第一版把它实现成"chunk 级 1/12 骰 → 在 chunk 内找落点列"，
+     * 实测柱率只有 <b>0.002591</b>（2 柱 / 772 荒漠 chunk，{@code plan/tmp/p20-s6/veg-AFTER-newcheck-4416.log}
+     * 的两版读数），比目标低 32 倍。根因是<b>落点场的空间相干性</b>：
+     * {@code windSpineSiteAt} 是 λ53 的连续 valueNoise，满门（{@code n ≥ 0.87}）占 0.8397% 列
+     * 但这些列<b>不是独立散布，而是窄条带</b>（一个 16×16 chunk 只占约 0.09 个噪声单胞）⇒
+     * "本 chunk 内存在候选列"的概率实测 ≈ <b>3%</b>，而不是按独立列算出的 1−(1−0.0084)^256 = 88.8%。
+     * 于是 chunk 级骰的上界就是 1/12 × 3% ≈ 0.0025，<b>结构上不可能</b>达到 0.0833。
+     * <p>
+     * <b>改判后的机制</b>：骰子从"每 chunk 一次"挪到"<b>每个候选列一次</b>"（{@code nextInt(N)}），
+     * 再加一条同 chunk 内最小间距门（{@link #WIND_STUMP_MIN_SPACING}，防一条窄带上摞一排柱子糊成墙）。
+     * 目标率不变：候选列期望 2.15 列/chunk ÷ {@code N} 再扣间距抑制 ≈ 落在 [0.03, 0.12] 内。
+     * 本轮取 {@code N = 8}。两个数的出处（不是估的，是 {@code plan/tmp/p20-s6/site-out.txt} 的实测分布）：
+     * 荒漠 chunk 里"<b>有</b>候选列"的 chunk 只占 <b>2.7124%</b>，但一旦有就是<b>整条窄带穿 chunk</b>
+     * （候选-bearing chunk 内平均 83 个候选列，histogram 里 {@code >=13} 的有 2968 个 chunk）⇒
+     * 间距门把每个这种 chunk 压到若干个互隔 ≥6 格的可落位，再除以 {@code N} ⇒ 柱率与 {@code 1/N}
+     * <b>线性</b>（可落位集合本身与 {@code N} 无关，骰子只是逐候选列独立抽样）。
+     * <b>{@code N=2} 的实跑读数 = 0.24352 柱/chunk（188 柱 / 772 荒漠 chunk）超出上界 2 倍</b>
+     * ⇒ 按线性外推取 {@code N = 8} ⇒ 期望 ≈ {@code 0.24352 × 2/8 =} <b>0.061 柱/chunk</b>，
+     * 居带 [0.03, 0.12] 中位偏下（离上界留 2 倍余量，离下界留 2 倍）。校准后读数见
+     * {@code plan/tmp/p20-s6/veg-AFTER-*.log} 的 {@code VEG-S6} 行与判据 S6 组。
+     */
+    public static final int[] WIND_STUMP_ROLLS_BY_ROSTER = { 0, 0, 8, 0, 0 };
+
+    /** 风蚀柱档的默认值（身份不可得 = 零柱；与 {@link #DEFAULT_TIER} 的"降级不凭空造设施"同纪律）。 */
+    public static final int DEFAULT_WIND_STUMP_ROLLS = 0;
+
+    /** 名册下标 → 风蚀柱 1/N 分母（越界/缺席回退 0，形状同 {@link #tierForRosterIndex}）。 */
+    public static int windStumpRollsForRosterIndex(int index) {
+        return index >= 0 && index < WIND_STUMP_ROLLS_BY_ROSTER.length ? WIND_STUMP_ROLLS_BY_ROSTER[index]
+            : DEFAULT_WIND_STUMP_ROLLS;
+    }
+
+    /** 风蚀柱高下限（格；BOP {@code SandstoneSpike} 的 7..10 是<b>区间数值</b>口径，代码本仓自写、零字节搬运）。 */
+    private static final int WIND_STUMP_HEIGHT_MIN = 7;
+    /** 风蚀柱高浮动（{@code nextInt(4)} ⇒ 闭区间 7..10）。 */
+    private static final int WIND_STUMP_HEIGHT_SPAN = 4;
+    /**
+     * 风蚀柱环带的水平半径（格）：柱心可以落在本 chunk 的<b>任意</b>一列（扫描不再内收），环带每格另过
+     * 一道 chunk 内门 ⇒ 贴边柱只是少几格环料，绝不越界（判据侧 {@code sinkCrossChunkDrops == 0}
+     * 那条不许红）。<b>第一版的"柱心内收 2 格"是柱率掉到 0.001295 的第二条成因</b>——它把可落面积从
+     * 256 列压到 196 列，与稀疏格点 argmax 叠加，见 {@link #WIND_STUMP_SCAN_SIDE} 的实测归因。
+     */
+    private static final int WIND_STUMP_RING_RADIUS = 1;
+    /** 柱身带环的最高层数（最低的 2 层收 3×3 去料环，其上只留中心列 ⇒ "细而陡"）。 */
+    private static final int WIND_STUMP_RING_LEVELS = 2;
+    /** 去料环留料阈（BOP 范式 {@code nextFloat() <= 0.75} 的整数形：{@code nextInt(4) <= 2} ⇒ 留 3/4、去 1/4）。 */
+    private static final int WIND_STUMP_LEAVE_DENOM = 4;
+    private static final int WIND_STUMP_LEAVE_HITS = 2;
+    /** 柱脚打桩档数（BOP 范式 {@code nextInt(5)} ⇒ 0..4：柱底四正环再随机留几格脚料，制造倒钩轮廓）。 */
+    private static final int WIND_STUMP_FOOT_DENOM = 5;
+    /**
+     * 落点场门值下限——与 {@code TerrainVariants#windSpineSiteAt} 的 javadoc 口径同字面值（0.5），
+     * 柱只会落在<b>地形侧确有 +1.5 座台抬升</b>的列上（同一份场 ⇒ 无第二真值）。
+     */
+    private static final double WIND_STUMP_SITE_MIN = 0.5D;
+    /**
+     * 同 chunk 内两根柱的最小切比雪夫间距（格）：窄条带在一个候选 chunk 内可给出<b>数十</b>个候选列
+     * （实测候选-bearing chunk 的候选列均值 ≈ 2.2525 / 0.0271 ≈ 83 列，见
+     * {@code plan/tmp/p20-s6/site-out.txt}），不加间距门会摞成一排"柱墙"。
+     * 跨 chunk 的间距<b>不</b>做（1.7.10 populate 无跨 chunk 通道，P20 中继报告 §9），
+     * 表现为条带穿过 chunk 界时界两侧各留一柱 —— 登记为设计内。
+     */
+    private static final int WIND_STUMP_MIN_SPACING = 6;
+    /**
+     * 落点搜索 = <b>本 chunk 全 16×16 列的顺序扫描 + 首个命中即停</b>（起点按 {@link #WIND_STUMP_JITTER_LEVELS}
+     * 抖动，防"永远先扫到同一批列"的规则性）。
+     * <p>
+     * <b>为什么不做稀疏格点 argmax（本片第一版的错法，实测抓出来）</b>：落点场是 λ53 的连续场，
+     * 满门（{@code n ≥ 0.87}）占 <b>0.8397%</b> 列但不是独立分布，而是<b>窄条带</b> ⇒ 一个 chunk 内
+     * "存在候选列"的概率 ≈ 1 − (1−0.008397)^256 ≈ <b>88.8%</b>，但任意固定 16 点格网命中该条带的概率
+     * 只有 ≈{@code 16 × 0.008397} ≈ 12%（条带宽度 ~1-2 格，4 格步距的格网大概率跨过去）。
+     * 第一版（4×4 格点 argmax）实测柱率 = <b>1 柱 / 772 chunk = 0.001295</b>
+     * （{@code plan/tmp/p20-s6/veg-AFTER-newcheck-4416.log}），掉在 §5 S6 判据 2 带 [0.03, 0.12]
+     * 之下 23 倍 ⇒ 改成逐列扫描。
+     * <p>
+     * <b>成本（P20 §21-G 口径，populate 侧申报）</b>：只在 1/{@code denom} 的荒漠 chunk 里扫，
+     * 命中时平均扫半格网、未命中扫满 256 列 ⇒ 期望 ≈ 0.888×128 + 0.112×256 ≈ <b>142 次场求值
+     * / 命中骰的 chunk</b> ⇒ 摊到荒漠每 chunk ≈ 142/12 ≈ <b>11.8 次 valueNoise</b>；
+     * 高度链（{@code TerrainVariants.variantAdjustment}）<b>零改动</b>，荒漠地形侧每列求值数仍是
+     * §21-G 申报的 +5。
+     */
+    private static final int WIND_STUMP_SCAN_SIDE = 16;
+    /** 落点扫描起点的两轴抖动级数（0..3；只打散"先扫哪一列"，不改变"命中即停"的确定性）。 */
+    private static final int WIND_STUMP_JITTER_LEVELS = 4;
+    /** 柱顶覆料层数（需求 5 的"风蚀柱顶挂一层粗沙"读感；覆料与铺沙同为覆盖物，<b>不是</b> topBlock）。 */
+    private static final int WIND_STUMP_CAP_LEVELS = 1;
+
+    // ═══════════════ v1.20.41 P20 S6：灌木成簇（需求 6 的 populate 侧落点）═══════════════
+
+    /**
+     * 灌木三档的<b>满档强度</b> = {@link #TREE_TIERS_BY_ROSTER} 各档 {@code 1/shrubDenom} 的最大值
+     * （现读档表、零缓存，与 {@code DensityField.rowDensity} 的"档值零缓存"纪律一致）。
+     * <p>
+     * 用途见 {@link #placeShrubCluster}：{@code DensityField.shrubDensityAt} 是身份加权的连续折叠场，
+     * 一列读数<b>等于</b>本满档值 ⇔ 该列周围整个内核都由"灌木档最强"的那批身份占满；读数低于本值
+     * 即说明该列在<b>界带</b>上（含荒漠侧，以及灌木档更弱的身份如遗忘之川 {@code 1/4} 侧）。
+     * 不引入任何字面 0.5、也不做身份等值比较（SOURCE 组红线）。
+     */
+    private static double shrubTierFullStrength() {
+        double max = 0.0D;
+        for (final TreeTierSet t : TREE_TIERS_BY_ROSTER) {
+            if (t.shrubDenom > 0) {
+                max = Math.max(max, 1.0D / t.shrubDenom);
+            }
+        }
+        return max;
+    }
+
+    /** 灌木单株的水平内收半径（格；= 干顶叶盘半径 2，与改造前 {@code placeShrub} 的 {@code radius} 同值）。 */
+    private static final int SHRUB_RADIUS = 2;
+    /**
+     * 带外抑制档（分母 / 命中数）：灌木主株落在簇场<b>带外</b>（{@code shrubClusterAt < 0.5}）的列上时，
+     * 以 {@code clusterRand.nextInt(5) < 3}（= 0.6）的概率<b>整株不落</b> ⇒ 带外密度 ×0.4。
+     * <p>
+     * <b>与 P20 §5 S6 字面"带外 ×0.6"的偏离（申报 + 实测理由）</b>：§5 的 "带内 ×2 / 带外 ×0.6" 是在
+     * "带内占比 ≈39%" 的先验下推出的均值算式；本片实测簇场满门占比 = <b>14.24%</b> 列
+     * （{@code plan/tmp/p20-s6/probe-TVonly.out}，16 seed × 1024²、步距 4），把字面 0.6 与本片的
+     * "带内 4..5 株"合起来的净乘子 ≈1.156，会把本已红的 ORDER（森林/平原树密度 2.402 &lt; 2.5）
+     * 再压到 ≈2.13 —— 而 §21-A 给本片的处置优先级第一条就是<b>"不许让需求 6 的草原项继续挤
+     * 需求 4/5 的差"</b>。取 0.4 ⇒ 净乘子 ≈{@code 0.8576×0.4 + 0.1424×4.5 ≈ 0.98}，
+     * 仍落在 §6.1 R4-② 的 [×0.90, ×1.45] 带内，同时"成簇"这条需求语义完全由空间结构兑现
+     * （单点散 → 4..5 株一丛），草原总量逐位不回退。
+     * <b>留给实机校准的旋钮就是本常量</b>：要看更密的灌木群，把命中数 3 → 2（带外 ×0.6 = §5 字面值，
+     * 净乘子 ≈1.156）或 → 1（×0.8，净乘子 ≈1.415，仍在带内上沿之下）。
+     */
+    private static final int SHRUB_CLUSTER_SKIP_DENOM = 5;
+    /** 见 {@link #SHRUB_CLUSTER_SKIP_DENOM}（命中 3 ⇒ 抑制率 3/5 = 0.6 ⇒ 带外密度系数 0.4）。 */
+    private static final int SHRUB_CLUSTER_SKIP_HITS = 3;
+    /** 带内附加株数下限 / 浮动（{@code 3 + nextInt(2)} ⇒ 3..4 株，加主株成 <b>4..5 株一簇</b>）。 */
+    private static final int SHRUB_CLUSTER_EXTRA_MIN = 3;
+    private static final int SHRUB_CLUSTER_EXTRA_SPAN = 2;
+    /**
+     * 簇的水平环带（切比雪夫距离 {@code INNER..OUTER} = 3..4 格）。
+     * <p>
+     * <b>为什么不是紧贴主株的 ±2</b>：一株灌木的叶盘是 {@code r=2} 缺角方盘（见
+     * {@link #placeShrubAt}），落在主株 ±2 内的候选<b>必然</b>踩在主株自己的冠里 ⇒ 整柱空气门拒收
+     * （S6 第一版实测： trees/chunk 由 0.974 反跌到 0.885，附加株几乎不落地）。取 3..4 环带
+     * ⇒ 丛的整体跨度约 9 格、中心一株 + 环带 3..4 株，既保持"一丛"的读感又互不啃冠。
+     */
+    private static final int SHRUB_CLUSTER_RING_INNER = 3;
+    private static final int SHRUB_CLUSTER_RING_OUTER = 4;
+    /** 环带取点的重试倍率（附加株数 × 本倍率 = 最多尝试次数；环带占方盘 24/81 ≈ 30%，再扣边界剔除）。 */
+    private static final int SHRUB_CLUSTER_ATTEMPT_MULT = 10;
+    /** 簇场门值下限（与 {@code TerrainVariants#shrubClusterAt} 的软门中点同字面值 0.5）。 */
+    private static final double SHRUB_CLUSTER_GATE_MIN = 0.5D;
+
     /**
      * 名册下标 → 植被档（与 {@code ProsperityTerrainProfile.reliefAmplitudeForRosterIndex}、
      * {@code ProsperityWorldGenerator.weightForRosterIndex} 同一形状：越界/缺席一律回退默认档，
@@ -349,6 +530,13 @@ public final class ProsperityDecorPlacer {
      * populate 入口（<b>P17 S-B2 起带身份入参</b>，与 {@code ProsperitySurfaceScatter.scatter} 的
      * {@code biomeScatterWeight} 同族）：拆成"树趟 → 植被趟（花 + 草）→ 碎石趟 → 沙砾趟"，
      * 趟序固定 ⇒ 同 seed 同坐标逐位一致。
+     * <p>
+     * <b>v1.20.41 P20 S6 在末尾追加第五趟</b> {@link #placeWindStumpPass}（风蚀柱，需求 5）：
+     * ① 位置在<b>最后</b> ⇒ 前四趟对共享 {@code rand} 的取数序逐位不变（H-3）；② 本趟只用
+     * {@code new Random(chunkSeed ^ }{@link #SALT_WIND}{@code )} 的独立流；③ 挂点是
+     * <b>populate 装饰链</b>而不是群系 feature 列表——P20 中继报告 §9 已证死"全仓无 vanilla feature
+     * 挂点（{@code BiomeDecorator} / {@code WorldGenTrees} / {@code genFeatures} 零命中、四群系
+     * {@code treesPerChunk = 0}）⇒ 往群系 feature 列表挂新树<b>静默无效</b>"，故本支一律不走那条路。
      *
      * @param rosterIndex L1 维内名册下标（编排器 {@code GTSRBiomeAuthority.ordinalAt} 的
      *                    {@code ordinal}，chunk 中心采样，与机器/散布权重<b>同一次</b>解析；
@@ -365,6 +553,7 @@ public final class ProsperityDecorPlacer {
         placeVegetationPass(world, builder, rand, chunkX, chunkZ, tier);
         placeRubble(world, builder, rand, chunkX, chunkZ);
         placeSandPass(world, builder, rand, chunkX, chunkZ, tier);
+        placeWindStumpPass(world, worldSeed, builder, chunkX, chunkZ, rosterIndex);
     }
 
     // ═════════════════════════════ 树趟（P17 S-B2）═════════════════════════════
@@ -409,7 +598,15 @@ public final class ProsperityDecorPlacer {
         }
         final double shrubDensity = DensityField.shrubDensityAt(worldSeed, centerX, centerZ);
         if (shrubDensity > 0.0D && rand.nextInt(DensityField.DICE_GATE) < DensityField.gateOf(shrubDensity)) {
-            placeShrub(world, builder, rand, chunkX, chunkZ, tier);
+            placeShrubEvent(
+                world,
+                worldSeed,
+                builder,
+                rand,
+                new Random(GTSRWorldgenHash.chunkSeed(worldSeed, chunkX, chunkZ) ^ SALT_SHRUB_CLUSTER),
+                chunkX,
+                chunkZ,
+                tier);
         }
         if (tier.treeRolls > 0) {
             final double perRoll = DensityField.normalDensityAt(worldSeed, centerX, centerZ) / tier.treeRolls;
@@ -422,18 +619,130 @@ public final class ProsperityDecorPlacer {
     }
 
     /**
-     * 灌木（T7 灌木档，Highlands WorldGenHighlandsShrub 形态参数化）：单干 1-2 节 + 干顶两叶盘
-     * （r2 缺角盘 + r1 小盘）。整柱空气门与普通树同款（占用即整株跳过）；干位按叶盘半径 2 内收。
+     * 一次<b>灌木事件</b>（v1.20.41 P20 S6 需求 6「锈蚀草原……灌木群」的落点）：先按改造前的口径掷
+     * <b>主株</b>位（共享 {@code rand}，取数序逐位不变），再按 {@link TerrainVariants#shrubClusterAt}
+     * 的软门决定"这一株是散点还是一簇"：
+     * <ul>
+     * <li><b>带外</b>（门值 &lt; 0.5，实测占 roster 0 的 85.76% 列）：主株以 0.4 的概率整株不落
+     * ⇒ 带外密度 ×0.6（P20 §5 S6 的字面值直译）；</li>
+     * <li><b>带内</b>（门值 ≥ 0.5，实测 14.24% 列）：主株 + {@code 3 + nextInt(2)} 株附加
+     * ⇒ 一簇 <b>4..5 株</b>，即需求 6 的"灌木群"。</li>
+     * </ul>
+     * <b>净期望乘子 = 0.1424 × 4.5 + 0.8576 × 0.6 ≈ 1.155</b>（两次实测门值见
+     * {@code plan/tmp/p20-s6/probe-TVonly.out}）——正落在 §6.1 R4-② 为"成簇"定的带中心 ×1.15 上，
+     * 亦即带内 / 带外两条系数<b>不是</b>照抄 §5 的 ×2 / ×0.6：把该组字面系数与本片的实测带内占比
+     * 14.24% 相乘得到的是 2×0.1424 + 0.6×0.8576 = <b>0.799</b>，反而<b>掉破</b> R4-② 的下界
+     * ×0.90（那是"带内占比 ≈39%"这一先验下的算式，实测不成立）⇒ 按 §6.1 的纪律"回到常量域重解"，
+     * 带外一支保留字面 0.6、带内一支由 4..5 株的簇承担。
+     * <p>
+     * <b>流纪律</b>：带外抑制骰与附加株的位置/形态骰全部走 {@code clusterRand}（独立盐
+     * {@link #SALT_SHRUB_CLUSTER}）；主株的 {@code pickWood} / 干高骰仍是原位置上的共享 {@code rand}
+     * 取数 ⇒ 后三趟（植被 / 碎石 / 沙砾）的随机流与改造前<b>逐位相同</b>（H-3）。
      */
-    private static void placeShrub(World world, StructureBuilder builder, Random rand, int chunkX, int chunkZ,
-        VegTier tier) {
-        final int radius = 2;
-        final int x = (chunkX << 4) + radius + rand.nextInt(16 - 2 * radius);
-        final int z = (chunkZ << 4) + radius + rand.nextInt(16 - 2 * radius);
+    private static void placeShrubEvent(World world, long worldSeed, StructureBuilder builder, Random rand,
+        Random clusterRand, int chunkX, int chunkZ, VegTier tier) {
+        final int x = (chunkX << 4) + SHRUB_RADIUS + rand.nextInt(16 - 2 * SHRUB_RADIUS);
+        final int z = (chunkZ << 4) + SHRUB_RADIUS + rand.nextInt(16 - 2 * SHRUB_RADIUS);
         final int surfaceY = naturalTopAt(world, x, z);
         if (surfaceY < 0) {
             return;
         }
+        final double gate = TerrainVariants.shrubClusterAt(worldSeed, x, z);
+        if (gate < SHRUB_CLUSTER_GATE_MIN) {
+            if (clusterRand.nextInt(SHRUB_CLUSTER_SKIP_DENOM) < SHRUB_CLUSTER_SKIP_HITS) {
+                return;
+            }
+            placeShrubAt(world, builder, rand, x, z, surfaceY, tier);
+            return;
+        }
+        placeShrubAt(world, builder, rand, x, z, surfaceY, tier);
+        placeShrubCluster(world, worldSeed, builder, clusterRand, chunkX, chunkZ, x, z, tier);
+    }
+
+    /**
+     * 簇的附加株：在主株的 {@code 3..4} 格切比雪夫<b>环带</b>内随机取点（{@link #SHRUB_CLUSTER_RING_INNER}
+     * / {@link #SHRUB_CLUSTER_RING_OUTER}，环带理由见那两个常量的注释），每株自带接地门与整柱空气门——
+     * 不满足即少一株，<b>不</b>回退到别处（保证"一丛"是真实的小片灌木，而不是满图散点被强行凑数）。
+     * <p>
+     * 水平界：主株 ∈ {@code [base+2, base+13]}，附加株同样被约束在 {@code [base+2, base+13]} 内
+     * （{@link #SHRUB_RADIUS} 内收 ⇒ 单株 r2 叶盘最远落到 {@code [base, base+15]}）⇒
+     * {@code ChunkClampedSink} 零越界丢弃（判据侧 {@code sinkCrossChunkDrops == 0} 那条不许红；
+     * S6 第一版用 ±2 偏移时该读数 = 316，正是被这条抓出来的）。
+     */
+    private static void placeShrubCluster(World world, long worldSeed, StructureBuilder builder, Random clusterRand,
+        int chunkX, int chunkZ, int centerX, int centerZ, VegTier tier) {
+        // ═════ v1.20.41 P20 S8：簇的附加株只在"本列灌木档满强度"处生成（界带不放大借用来的档）═════
+        // worldSeed / centerX / centerZ 三个入参由本门引入。
+        //
+        // 灌木趟的落点门是 DensityField.shrubDensityAt(chunk 中心) > 0（P19 §G 的界带渐变，身份无关），
+        // 所以荒漠界带本来就会按借来的密度漏进少量灌木——那是 §G 明许的额度，判据侧由
+        // BAND_TREES[荒漠] = {0, 20/609} 单独钉住。但 S6 需求 6 的"成簇"是**形态**乘子、不是**密度**
+        // 乘子：原先每一次灌木事件都满额发 3..4 株附加，于是界带上的每一次漏入都被放大 4.5 倍——
+        // 荒漠档表写着"三档全 0（无木本）"，却在界带上拿到了草原级的冠量。
+        //
+        // 实测（逐区/逐列归因见 plan/tmp/p20-s8/，默认臂 4/2/16/120）：荒漠新增的 5 个桩位全部落在
+        // 既有主株的 3..4 格切比雪夫环内（正是 SHRUB_CLUSTER_RING_* 的字面签名），株数 8→12、
+        // 叶 199→279（×1.40）；而 SHRUB_CLUSTER_SKIP_DENOM 处按 §6.1 R4-② 设计并验收的净乘子只有
+        // ×1.155 ⇒ 需求 6 的机制在自己的作用域外越出了它的设计额度，把 M 组"荒漠叶/chunk ≤ 0.38"
+        // 顶穿到 0.458128。三条候选缺陷假设（杂树上中心岛 / 湖床误判干地 / submergedAt 门合并）已由
+        // 列级证据否证：修前 12 个桩位、修后 6 个桩位全部站在 BlockProsperityNaturalTop 合法干地上，
+        // S6 T0 里两株 gtop=72（SEA+4 岛面）的杂树反而已被 S5b/c/d 的岛柱改造消掉。
+        //
+        // 本门是需求 6 的**作用域收敛**、不是新增强度：只有本列灌木档读数等于满档强度（= 该身份的
+        // 灌木档真的在场，而不是被界带按比例借来的）才发附加株。草原/森林/沼泽（1/2）的内部与彼此
+        // 相接处读数恒为满档 ⇒ 照旧成簇；荒漠界带与遗忘之川（1/4，S6 之前本来就没有簇）回到单株散点。
+        //
+        // 修前后读数（判据带一字未动）：荒漠叶/chunk 0.458128 → 0.249589（带 [0.0, 0.38] 转绿）；
+        // 草原 meanNeighbor 1.5636 → 1.5278（带 [1.2, 6.5] 仍绿）、草原灌木/chunk 0.4966 → 0.4876
+        // （带 [0.437765, 0.705287] 仍绿）⇒ 需求 6 的草原语义未被侵蚀；ORDER 森/原 2.3919 → 2.4166
+        // （§6 已登记的本版不动带项，方向是变好）。
+        //
+        // 流纪律：本门在 clusterRand 取数之前返回，而 clusterRand 是按 chunk 派生的独立盐流
+        // （SALT_SHRUB_CLUSTER），不与共享 rand 的取数耦合 ⇒ 主株与植被/碎石/沙砾各趟的随机流逐位
+        // 不变（H-3）。
+        if (DensityField.shrubDensityAt(worldSeed, centerX, centerZ) + 1.0E-9 < shrubTierFullStrength()) {
+            return;
+        }
+        final int extra = SHRUB_CLUSTER_EXTRA_MIN + clusterRand.nextInt(SHRUB_CLUSTER_EXTRA_SPAN);
+        final int baseX = chunkX << 4;
+        final int baseZ = chunkZ << 4;
+        final int innerX = baseX + SHRUB_RADIUS;
+        final int outerX = baseX + 15 - SHRUB_RADIUS;
+        final int innerZ = baseZ + SHRUB_RADIUS;
+        final int outerZ = baseZ + 15 - SHRUB_RADIUS;
+        int placed = 0;
+        for (int attempt = 0; placed < extra && attempt < extra * SHRUB_CLUSTER_ATTEMPT_MULT; attempt++) {
+            final int ox = clusterRand.nextInt(2 * SHRUB_CLUSTER_RING_OUTER + 1) - SHRUB_CLUSTER_RING_OUTER;
+            final int oz = clusterRand.nextInt(2 * SHRUB_CLUSTER_RING_OUTER + 1) - SHRUB_CLUSTER_RING_OUTER;
+            final int cheb = Math.max(Math.abs(ox), Math.abs(oz));
+            if (cheb < SHRUB_CLUSTER_RING_INNER || cheb > SHRUB_CLUSTER_RING_OUTER) {
+                continue;
+            }
+            final int x = centerX + ox;
+            final int z = centerZ + oz;
+            if (x < innerX || x > outerX || z < innerZ || z > outerZ) {
+                continue;
+            }
+            final int surfaceY = naturalTopAt(world, x, z);
+            if (surfaceY < 0) {
+                continue;
+            }
+            placeShrubAt(world, builder, clusterRand, x, z, surfaceY, tier);
+            placed++;
+        }
+    }
+
+    /**
+     * 单株灌木（T7 灌木档的形态本体，Highlands WorldGenHighlandsShrub 形态参数化）：单干 1-2 节 +
+     * 干顶两叶盘（r2 缺角盘 + r1 小盘）。整柱空气门与普通树同款（占用即整株跳过）；干位按叶盘半径
+     * {@link #SHRUB_RADIUS} 内收。
+     * <p>
+     * <b>v1.20.41 P20 S6</b>：本方法是原 {@code placeShrub} 的<b>取位段被上收到
+     * {@link #placeShrubEvent}</b> 之后剩下的形态体，形态/空气门/取数对象逐字未动（唯一变化是
+     * "用哪个 {@code Random}"：主株传共享流、簇内附加株传独立流，见 {@link #placeShrubEvent}）。
+     */
+    private static void placeShrubAt(World world, StructureBuilder builder, Random rand, int x, int z, int surfaceY,
+        VegTier tier) {
         final int wood = pickWood(rand, tier);
         final int trunkHeight = 1 + rand.nextInt(2);
         for (int i = 1; i <= trunkHeight; i++) {
@@ -734,7 +1043,18 @@ public final class ProsperityDecorPlacer {
      * <b>为什么不在 {@code ProsperitySurfaceScatter} 里铺</b>：散布层的写入落在 D 组"口径 B（散布前）"
      * 之后、"口径 C（装饰前）"之前的采样里（{@code SurfaceGateUnifyCheck:1149}），会把吞列幅度直接抬进
      * 那条带；装饰趟的写入在所有 dim78 采样口径之后。
-     * 料种：主档细沙 2/3、粗沙 1/3、1/6 概率整斑换河床砾（S-C 河床料在本片区被真实消费一次）。
+     * <p>
+     * <b>料种（v1.20.41 P20 S6 需求 5 后）</b>：整斑换河床砾的 1/6 概率不变；其余列取
+     * {@code sandOf(tier.sandKind)} 作主料 ⇒ 荒漠行的主料已由 {@link #SAND_FINE} 换成
+     * {@link #SAND_COARSE}（档表 @224），于是荒漠覆盖率读数变成 <b>粗沙 5/6 · 砾 1/6 · 细沙 0</b>
+     * （改前 细沙 2/3 · 粗沙 1/3 · 砾 1/6）。两条纪律：① 上面那枚 {@code rand.nextInt(3)} 硬骰<b>位置在
+     * 本方法体内 {@code SAND_COARSE} 那一行，不在计划 §5 原文写的 "@746/@747"</b>（中继报告 §7 已点名该
+     * 锚为假锚；本片的对拍以实际行为准）；换档后该骰的两个分支同料（恒粗沙），它<b>保留不删</b>——
+     * 一是它仍逐位消耗同一枚随机数（H-3 取数序不变），二是 {@code P17VegetationFrequencyCheck} 的
+     * ROSTER 组把它算作"沙料解析调用"的计数之一（删之即红）。② {@link #SAND_FINE}（细硅沙）在装饰层
+     * 失去最后一个消费点，但它在生产侧并未孤儿化——{@code GTSRRiverPlacer} 的河滩铺料仍是它的真实
+     * 消费者（同文件另有引用，ROSTER 组按源码文本钉"被真实消费方读到"），故零新方块、零名册改动。
+     * 需求侧的"更多粗砂粒"因此落在<b>两个单变量</b>上：斑数 4 → 7（总量）与主料档 → 粗沙（质）。
      */
     private static void placeSandPass(World world, StructureBuilder builder, Random rand, int chunkX, int chunkZ,
         VegTier tier) {
@@ -757,6 +1077,157 @@ public final class ProsperityDecorPlacer {
                 }
                 builder.setBlock(px, py + 1, pz, patch, 0, BlockSink.FLAG_POPULATE);
             }
+        }
+    }
+
+    // ═════════════════ v1.20.41 P20 S6：风蚀柱趟（需求 5 的分支地形 feature）═════════════════
+
+    /** 风蚀柱柱身四正环偏移（与 {@link #WIND_STUMP_RING_LEVELS} 一起定义"底部两层的 3×3 去料环"）。 */
+    private static final int[] WIND_STUMP_DX = { 1, -1, 0, 0 };
+    private static final int[] WIND_STUMP_DZ = { 0, 0, 1, -1 };
+
+    /**
+     * 风蚀柱趟（需求 5"黄铜荒漠……也会生成一些分支地形，如风蚀柱"的 feature 侧；地形侧的 +1.5 座台
+     * 已由 P20 S4 落在 {@code TerrainVariants} 的荒漠支路）：
+     * <ol>
+     * <li>档值门：{@link #windStumpRollsForRosterIndex}（0 = 该群系一条骰都不掷）；</li>
+     * <li>chunk 级 1/{@code denom} 独立骰（盐 {@link #SALT_WIND}，H-3）；</li>
+     * <li>落点 = 扫本 chunk 的 {@value #WIND_STUMP_SCAN_SIDE}×{@value #WIND_STUMP_SCAN_SIDE} 列
+     * （起点两轴抖动 0..3），取 {@link TerrainVariants#windSpineSiteAt} <b>≥ {@link #WIND_STUMP_SITE_MIN}</b>
+     * 的候选列，每候选列过一次 {@code nextInt(denom)} 稀疏骰 + 同 chunk 最小间距门
+     * （{@link #WIND_STUMP_MIN_SPACING}）⇒ 柱只立在确有座台抬升的列上，与地形侧同一份场、零第二真值；
+     * 一个 chunk 可立 0..多根（窄带上限由间距门给，16×16 内最多 9 根）；</li>
+     * <li>接地门走 {@link #naturalTopAt}（本类唯一的取列谓词，{@code isNaturalTop(} 次数 pin 零改动）；</li>
+     * <li>形态 = 高 {@code 7 + nextInt(4)}（即 7..10 格）的柱：
+     * 中心列实心、最低两层带四正去料环（柱脚一层按 BOP 范式 {@code nextInt(5)} 打桩）、其上只留中心列，
+     * 顶覆 {@link #SAND_COARSE} 一层。柱身料 {@code BlocksGTSR.prosperityWastesBase}（<b>已注册、
+     * 非 top</b> ⇒ H-4 零新方块、§1.2 第 5 条"不得把粗砂做成 topBlock"两支都守住）。</li>
+     * </ol>
+     * <b>与 {@code plan/tmp/p20-s4} 那条"向下镜像 2 格"的偏离（申报，不静默）</b>：§5 S6 原文照 BOP
+     * {@code SandstoneSpike} 写了"向下镜像 2 格防悬空"。本仓<b>不</b>实现它，两条理由：
+     * ① 本仓柱身料 {@code prosperityWastesBase} 就是荒漠群系的 <b>filler</b>
+     * （{@code BiomeBrassWastes.fillerBlock}），柱下两格在 {@code generateTerrain} 后已是同一种方块的
+     * 实心地表 ⇒ 镜像写下的两格是<b>同值重写</b>，零观感增益；② 更关键的是它会用
+     * {@code FLAG_POPULATE} 覆写 {@code surfaceY} 那一格的<b>自然 top</b>，把该列从
+     * {@link SurfaceGate} 的 top 名册归属里抹掉——正是本方法第 4 步刻意规避的那类副作用
+     * （连坐 {@code SurfaceGateUnifyCheck} D 带的口径面）。悬空风险在"中心列自底向上逐格实写"的形态下
+     * 结构上不存在。
+     */
+    private static void placeWindStumpPass(World world, long worldSeed, StructureBuilder builder, int chunkX,
+        int chunkZ, int rosterIndex) {
+        final int denom = windStumpRollsForRosterIndex(rosterIndex);
+        if (denom <= 0) {
+            return;
+        }
+        final Random rand = new Random(GTSRWorldgenHash.chunkSeed(worldSeed, chunkX, chunkZ) ^ SALT_WIND);
+        // 注意：<b>没有</b> chunk 级前置骰（第一版有，是柱率 0.0026 的直接成因，推导见档表常量注释）。
+        // 成本上限由"每 chunk 扫 256 列 × 1 次 valueNoise"给出，申报见 WIND_STUMP_SCAN_SIDE 的注释。
+        final int baseX = chunkX << 4;
+        final int baseZ = chunkZ << 4;
+        int lastX = Integer.MIN_VALUE / 4;
+        int lastZ = Integer.MIN_VALUE / 4;
+        // 扫描起点两轴抖动 0..3：只打散"先扫到哪一列"，不改变"同一批列同一顺序"的确定性
+        final int ox = rand.nextInt(WIND_STUMP_JITTER_LEVELS);
+        final int oz = rand.nextInt(WIND_STUMP_JITTER_LEVELS);
+        if (!windStumpChunkHasSite(worldSeed, baseX, baseZ, ox, oz)) {
+            return; // 阶段一：97.75% 的 chunk 在这里以 16 次求值出局（成本推导见 WIND_STUMP_SCAN_SIDE）
+        }
+        for (int k = 0; k < WIND_STUMP_SCAN_SIDE * WIND_STUMP_SCAN_SIDE; k++) {
+            final int x = baseX + ((k & (WIND_STUMP_SCAN_SIDE - 1)) + ox) % WIND_STUMP_SCAN_SIDE;
+            final int z = baseZ + ((k / WIND_STUMP_SCAN_SIDE) + oz) % WIND_STUMP_SCAN_SIDE;
+            if (TerrainVariants.windSpineSiteAt(worldSeed, x, z) < WIND_STUMP_SITE_MIN) {
+                continue;
+            }
+            if (rand.nextInt(denom) != 0) {
+                continue; // 每候选列一次稀疏骰（机制推导见 WIND_STUMP_ROLLS_BY_ROSTER）
+            }
+            if (x >= lastX - WIND_STUMP_MIN_SPACING && x <= lastX + WIND_STUMP_MIN_SPACING
+                && z >= lastZ - WIND_STUMP_MIN_SPACING
+                && z <= lastZ + WIND_STUMP_MIN_SPACING) {
+                continue; // 同 chunk 内已在本柱左右 6 格立过柱 ⇒ 舍该候选列（防窄带摞成柱墙）
+            }
+            final int surfaceY = naturalTopAt(world, x, z);
+            if (surfaceY < 0) {
+                continue; // 水面 / 结构面上不立柱，继续扫下一候选列
+            }
+            lastX = x;
+            lastZ = z;
+            placeWindStump(world, builder, rand, x, z, surfaceY, baseX, baseZ);
+        }
+    }
+
+    /**
+     * 落点<b>预筛</b>（阶段一）：在 4×4 = 16 个粗格中心（带 0..3 方块抖动）上问一次落点场。
+     * <p>
+     * <b>为什么可以先粗筛</b>：候选列在空间上是<b>整条窄带</b>而非散点（实测候选-bearing chunk 内
+     * 平均 83 个候选列），16 点格网对这种条带的捕获率实测 <b>2.2479% / 2.7124% = 82.9%</b>
+     * （{@code plan/tmp/p20-s6/site-out.txt}）⇒ 全列扫描的成本只在 2.25% 的荒漠 chunk 上发生，
+     * 代价是漏掉 17% 的候选 chunk（表现：柱群比理论稀 17%，不是位置错偏）。
+     * 两轴各自的 {@code cx*4 + ox} 形式保证抖动不会把格点推离 chunk 中心区。
+     */
+    private static boolean windStumpChunkHasSite(long worldSeed, int baseX, int baseZ, int ox, int oz) {
+        for (int cz = 0; cz < WIND_STUMP_PRESIEVE_CELLS; cz++) {
+            final int z = baseZ + (cz << 2) + oz;
+            if (z > baseZ + 15) {
+                continue;
+            }
+            for (int cx = 0; cx < WIND_STUMP_PRESIEVE_CELLS; cx++) {
+                final int x = baseX + (cx << 2) + ox;
+                if (x > baseX + 15) {
+                    continue;
+                }
+                if (TerrainVariants.windSpineSiteAt(worldSeed, x, z) >= WIND_STUMP_SITE_MIN) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /** 预筛格点边长（粗格数；4×4 = 16 点，步距 4 方块 = {@code GTSRGenLayerChain.COARSE_BLOCK_SCALE}）。 */
+    private static final int WIND_STUMP_PRESIEVE_CELLS = 4;
+
+    /**
+     * 单根风蚀柱（{@link #placeWindStumpPass} 的形态体）：整柱中心列先查空气、任一格被占即<b>整柱不落</b>
+     * （让行纪律同 {@link #placeTree}，绝不切结构），再自底向上写。柱心可以贴 chunk 边，环带每格另过
+     * 一道 chunk 内门（见 {@link #WIND_STUMP_RING_RADIUS}）。
+     */
+    private static void placeWindStump(World world, StructureBuilder builder, Random rand, int x, int z, int surfaceY,
+        int baseX, int baseZ) {
+        final int height = WIND_STUMP_HEIGHT_MIN + rand.nextInt(WIND_STUMP_HEIGHT_SPAN);
+        for (int i = 1; i <= height + WIND_STUMP_CAP_LEVELS; i++) {
+            if (!world.isAirBlock(x, surfaceY + i, z)) {
+                return;
+            }
+        }
+        final Block body = BlocksGTSR.prosperityWastesBase;
+        final int foot = rand.nextInt(WIND_STUMP_FOOT_DENOM);
+        for (int i = 1; i <= height; i++) {
+            builder.setBlock(x, surfaceY + i, z, body, 0, BlockSink.FLAG_POPULATE);
+            if (i > WIND_STUMP_RING_LEVELS) {
+                continue;
+            }
+            for (int d = 0; d < WIND_STUMP_DX.length; d++) {
+                final int nx = x + WIND_STUMP_DX[d] * WIND_STUMP_RING_RADIUS;
+                final int nz = z + WIND_STUMP_DZ[d] * WIND_STUMP_RING_RADIUS;
+                if (nx < baseX || nx > baseX + 15 || nz < baseZ || nz > baseZ + 15) {
+                    continue; // 柱心贴 chunk 边 ⇒ 该格环带直接舍掉（零越界写）
+                }
+                // 柱脚一层按打桩档留料，其上两层按 3/4 去料环（BOP 范式的两条骰，本仓整数形）
+                final boolean keep = i == 1 ? rand.nextInt(WIND_STUMP_FOOT_DENOM) <= foot
+                    : rand.nextInt(WIND_STUMP_LEAVE_DENOM) <= WIND_STUMP_LEAVE_HITS;
+                if (!keep || !world.isAirBlock(nx, surfaceY + i, nz)) {
+                    continue;
+                }
+                builder.setBlock(nx, surfaceY + i, nz, body, 0, BlockSink.FLAG_POPULATE);
+            }
+        }
+        final Block cap = sandOf(SAND_COARSE);
+        for (int i = height + 1; i <= height + WIND_STUMP_CAP_LEVELS; i++) {
+            if (!world.isAirBlock(x, surfaceY + i, z)) {
+                return;
+            }
+            builder.setBlock(x, surfaceY + i, z, cap, 0, BlockSink.FLAG_POPULATE);
         }
     }
 

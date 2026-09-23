@@ -16,7 +16,10 @@ import cpw.mods.fml.relauncher.SideOnly;
  * <p>
  * 构造观感与 {@code BlockProsperityNaturalBase} 逐项对齐：Material.ground、hardness 0.5F、
  * soundTypeGravel；掉落自身（BlockFalling 默认 getItemDropped，不覆写）。
- * 生成时序沿用框架 populate 期 fallInstantly 置位/复位窗口（GTSRChunkProviderBase :699/:713）。
+ * 生成时序<b>不</b>依赖任何 {@code fallInstantly} 窗口：该标志在本仓只在
+ * {@code GTSRChunkProviderBase} 的两处被<b>显式置 {@code false}</b>、全仓无 {@code true} 置位点（S0b
+ * 实测，P20 债⑤ 按符号改齐——旧注释写"沿用框架 populate 期置位/复位窗口 + 行号"，行号会随改动漂移，
+ * 而"窗口"本身从未落地）。⇒ 重力结算走 vanilla 默认路径。
  * <p>
  * 单 icon；贴图名随实例传入（gtsr:prosperity_coarse_sand / gtsr:prosperity_river_gravel，
  * 既有 32px 贴图零改动）。专用服字段剥离纪律：@SideOnly 字段不带字段级初始化器，

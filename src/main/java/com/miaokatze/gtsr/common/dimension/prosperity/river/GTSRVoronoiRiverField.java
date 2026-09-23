@@ -156,6 +156,128 @@ public final class GTSRVoronoiRiverField {
      */
     public static final double SHORE_FLAT_BAND = 0.15D;
 
+    // ═════════════ v1.20.41（P20 S3 需求 1 + 需求 2）：谷坡环水陆过渡带 + 岸坡下切 ═════════════
+
+    /**
+     * 岸坡下切深度（格，只向更深；P20 S3 需求 2"看不到河床"的主修量）。推导（§13 C10 只取比值，
+     * 禁抄 RTG 绝对值）：RTG 的 {@code erodedNoise} 用 {@code actualRiverProportion = 300/1600 =
+     * 18.75%} 只把<b>水道中心</b>那一段压到床高，其余宽度线性插回原地形；本仓对应的"切床域"是
+     * {@code s ∈ [S_ERODE=0.557, WET_MIN=0.78)}，横向半宽 ≈ 188×(0.78−0.557) ≈ 4.2-9 格，占谷半宽
+     * （≈188×0.78 ≈ 19 格）的 22%-47%，与 RTG 的 18.75% 同阶 ⇒ 域宽照搬即可，深度另算：
+     * 现地面 board 恒 1 格（回填门 {@code h < pool−1}、床 = pool−depth±amp），要让床料在断面上
+     * 至少 3 格宽出露需在现有水深上再削 2 格 ⇒ <b>本轮取 2.0，实机后在 {1.5, 2.0, 2.5} 内校准</b>
+     * （取值同时受 {@code RiverMorphologyCheck} H2「端面顺流剖面逐列床高差 ≤ 2」带约束——下切量
+     * 会被 {@link #endFaceBed} 的 smoothstep 权重 (1−w) 放大到 (target−bed) 项上）。
+     * <p>
+     * <b>沼泽档（roster 3）豁免</b>：本值不作用于沼地河（见 {@link #bankCut}）——A7「沼泽床
+     * ∈ [66.5,67.5]＝水面近地」是档表断言（结构上不可能被运行时下切打红），其语义地板只能由
+     * 实现域守住；§5 S3 判据 3 给的处置正是"下切域限缩到 roster ∈ {0,1,2,4}"。
+     */
+    public static final double BANK_CUT_DEPTH = 2.0D;
+
+    /**
+     * 下切量与谷坡环外缘扰动<b>共用的噪声波长</b>（格；两者盐不同 ⇒ 域互不相关）。
+     * H-1：{@code 33 % 16 = 1} ✔。取 {@link #BED_NOISE_SCALE}=96 的 1/3（意图 32 是 16 的倍数
+     * ⇒ 规避账本 §7 RTG 的 chunk 对齐条纹坑，落 33）。
+     */
+    public static final double CUT_NOISE_SCALE = 33.0D;
+
+    /**
+     * 谷坡环<b>外缘</b>的噪声扰动幅度（s 域；需求 1"消硬边"的第二半——环与群系表土的分界若
+     * 是一条等值线，只是把硬边从"水陆"搬到了"滩料/草皮"）。比值移植（§13 C10）：RTG
+     * {@code SurfaceVanillaRiver} 的材质分界是 {@code river + noise2(i/10,j/10)×0.15 > 0.8}，
+     * 即扰动占归一河强域的 15%；本仓 s 同样归一到 [0,1] ⇒ 直译会是 0.15，但本仓滩带宽只有
+     * {@code WET_MIN − S_ERODE = 0.223}（RTG 的对应带 0.2），0.15 会把外缘摆动到"环几乎不存在"
+     * ⇒ 取其半 = 0.08。换算成格：谷域内 ds/dcol ≈ 0.78/19 ≈ 0.041 ⇒ 0.08 ≈ 外缘摆动 ±2 格。
+     */
+    public static final double BANK_BAND_JITTER = 0.08D;
+
+    /** 岸坡下切量噪声盐（{@link #SALT_BED} 之外的独立域，P20 S3 新增）。 */
+    public static final long SALT_BANK_CUT = 0x5249F110L;
+    /** 谷坡环外缘扰动噪声盐（与 {@link #SALT_BANK_CUT} 亦互不相关）。 */
+    public static final long SALT_BANK_BAND = 0x5249F111L;
+
+    /**
+     * <b>谷坡环 = 水陆过渡带</b>判定（P20 S3 需求 1）：{@code S_ERODE + 扰动 ≤ s < WET_MIN}。
+     * 该域的地表已被 {@code heightCore} 的两段式压低（外段贴水缓坡 + 内段向床 lerp）但落在
+     * 置水域（{@code s ≥ WET_MIN}）之外，改造前由 {@code GTSRRiverPlacer} 的
+     * {@code s < WET_MIN → continue} 一格河料都不铺 ⇒ 裸露面仍是原群系草皮，与一列之隔的河床砾
+     * 直接相邻＝水陆硬边（账本 §5 {@code [主验]} bullet 2）。现由本谓词圈出、铺<b>滩料</b>
+     * （不铺床料、不回填水）。
+     * <p>
+     * 内缘恒取 {@link #WET_MIN}（核/环的铺料与统计分界，抖动会把水↔滩的边界糊进核内），
+     * 只有外缘抖动 ⇒ 滩带宽在 3.5-9 格间成块变化（RTG 材质分界的同款肌理）。
+     */
+    public static boolean inBankBand(long worldSeed, int x, int z, double s) {
+        if (s >= WET_MIN) {
+            return false;
+        }
+        final double jitter = GTSRWorldgenHash
+            .valueNoise(worldSeed ^ SALT_BANK_BAND, x / CUT_NOISE_SCALE, z / CUT_NOISE_SCALE);
+        return s >= S_ERODE + BANK_BAND_JITTER * jitter;
+    }
+
+    /**
+     * 河道断面的<b>地表料选型</b>（单一真值；生产侧 {@code GTSRRiverPlacer} 与离线判据
+     * {@code RiverMorphologyCheck} 共用同一出口，P20 S3 起从落块器内联式提出）。返回
+     * {@code true} = 铺<b>床料</b>（{@code prosperityRiverGravel}），{@code false} = 铺<b>滩料</b>
+     * （群系档表，见 {@code GTSRRiverPlacer.flatMaterial}）：
+     * <ol>
+     * <li>谷坡环（{@link #inBankBand}）→ 滩料（需求 1 的过渡带，恒不铺床料）；</li>
+     * <li>水下（{@code submerged}，即 {@link #submergedAt} 为真）→ 床料；</li>
+     * <li>滩带外露头（{@code s > WET_MIN + }{@link #SHORE_FLAT_BAND}）→ 床料（干砾浅滩）；</li>
+     * <li>其余（滩带内露头）→ 滩料。</li>
+     * </ol>
+     * 域外列（{@code s < S_ERODE} 且不在环内）本方法无意义——调用方一律先按 S_ERODE 短路。
+     * <p>
+     * ⚠ {@code submerged} 入参的<b>算法</b>不属于本方法的口径：调用方一律走 {@link #submergedAt}
+     * 取，禁止在调用方内联 {@code h < pool−1}（P20 S3b 曾在判据里内联复刻一次，S3c 收掉）。
+     */
+    public static boolean bedTopAtSurface(long worldSeed, int x, int z, double s, boolean submerged) {
+        if (inBankBand(worldSeed, x, z, s)) {
+            return false;
+        }
+        return submerged || s > WET_MIN + SHORE_FLAT_BAND;
+    }
+
+    /**
+     * 「本列是否<b>没在本段水面之下</b>」的<b>唯一出口</b>（v1.20.41 P20 S3c 需求 2 侧的第二真值清除）：
+     * 水面 = 段池水位 {@code pool}、<b>最高水格 = {@code pool − 1}</b>（{@code GTSRRiverPlacer} 类注释
+     * 的既有口径，P19 §C），固体顶 {@code h} 落在最高水格或其下即没水。三处消费面共用本式——
+     * <ol>
+     * <li>落块器 {@code GTSRRiverPlacer.place} 的<b>地表料选型</b>（喂 {@link #bedTopAtSurface}）；</li>
+     * <li>落块器同一列的<b>水面回填门</b>（原第二处内联式，S3c 一并收口）；</li>
+     * <li>离线判据 {@code RiverMorphologyCheck} 的断面扫描（P20 S3b 偏离③自报的复刻式）。</li>
+     * </ol>
+     * <b>形参必须保持 {@code int}</b>（不得"顺手改宽"成 double）：{@code pool - 1} 的 int 减法在
+     * {@code pool = Integer.MIN_VALUE} 处按 JLS 回绕为 {@code MAX_VALUE} ⇒ 本式在该极值为真；
+     * 若形参是 double 则该处为假。对拍探针
+     * {@code plan/tmp/p20-s3c/SubmergedParity.java}（一次性，不入库）实测：<b>合计 255,428 对样本、
+     * 差异数 = 0</b>——固定随机合成域 {@code Random(0x5EED)} 100,000 对（含 pool 边界 ±2 与
+     * {@code Integer.MIN_VALUE/MAX_VALUE} 极值）＋ 关键 pool × h∈pool±4 穷举 192 对 ＋ 生产真值列
+     * 155,236 列（{@code (heightAt, poolLevelAt)} 实取）；另开 double 形参对照臂，该臂与 int 路真值
+     * 不同 <b>2,093</b> 例（全部来自 int 回绕极值）⇒ 证明 int 签名不可迁移。
+     * 参数为 int ⇒ NaN/±Infinity 在本域<b>不可表示、进不来</b>（不存在"NaN 语义"要复刻）。
+     */
+    public static boolean submergedAt(int h, int pool) {
+        return h < pool - 1;
+    }
+
+    /**
+     * 本列的<b>岸坡下切量</b>（格，恒 ∈ [{@link #BANK_CUT_DEPTH}/2, {@link #BANK_CUT_DEPTH}]；
+     * P20 S3 需求 2 的唯一出口，生产侧 {@code ProsperityTerrainProfile.heightCore} 与离线判据共用）。
+     * 域 = {@link #inBankBand} 的谷坡环；沼泽档（roster 3）的豁免在调用侧（heightCore）落，
+     * 不在本函数落——本函数是纯场，档位语义归地形侧，避免"两处各挡一次"的第二真值。
+     * <p>
+     * 取值下界取半而非 0：{@code valueNoise} 的负瓣若把下切清零，环内会出现"整段没切"的斑块，
+     * 断面出露宽度不连续（{@code RiverMorphologyCheck} 的床料出露率判据正是钉这个）。
+     */
+    public static double bankCutAt(long worldSeed, int x, int z) {
+        final double n = GTSRWorldgenHash
+            .valueNoise(worldSeed ^ SALT_BANK_CUT, x / CUT_NOISE_SCALE, z / CUT_NOISE_SCALE);
+        return BANK_CUT_DEPTH * (0.5D + 0.25D * (n + 1.0D));
+    }
+
     /**
      * 荒漠整段闸的湿段份额（v1.20.40 P19 §B）：{@code wet(seg) = hash(segKey) < 本值}——
      * 干:湿 = <b>65:35</b>（用户拍板"荒漠干段为主、符合逻辑"；BOP DryRiver 先例=干段整段
@@ -238,6 +360,12 @@ public final class GTSRVoronoiRiverField {
     public static final long SALT_LAKE_CELL_Z = 0x5249F10AL;
     /** 巨湖床噪声盐。 */
     public static final long SALT_LAKE_BED = 0x5249F10BL;
+    /**
+     * 岛底柱柱位抖动的域盐（v1.20.41 P20 S5 新增，plan §15.5）：与巨湖细胞盐/床盐/盘盐四域
+     * 分离——柱位抖动只吃"湖格 × 柱序号"，不吃列坐标，故同一座湖的 5 根柱对全部列一致。
+     * 值落在本类盐段尾（{@code …10CL} 已被 {@link #SALT_SEG_KEY} 占用 ⇒ 取 {@code …110L}）。
+     */
+    public static final long SALT_LAKE_PILLAR = 0x5249F110L;
     /**
      * 巨湖破圆 domain-warp 的 disk 盐（v1.20.40 P19 §D 新增；第 4 张 disk 表，与河网两级
      * 蜿蜒/主干带的 disk 盐域分离）。
@@ -327,9 +455,6 @@ public final class GTSRVoronoiRiverField {
      */
     public static final double LAKE_WATER_LEVEL = 0.13D;
 
-    /** 巨湖湖滨带外缘（RTG lakeShoreLevel 同位参数）：[WATER, SHORE) 为床→原地形渐变带。 */
-    public static final double LAKE_SHORE = 0.15D;
-
     /**
      * 巨湖床基准历史值（v1.20.39 T5 的平底床 63±1）。<b>v1.20.40（P19 §D）中心渐深后
      * 生产公式改由湖滨/湖心锚派生</b>（见 {@link #lakeBedAt}），本常量不再参与生成判定，
@@ -339,18 +464,219 @@ public final class GTSRVoronoiRiverField {
     public static final double LAKE_BED_TARGET = 63.0D;
 
     /**
-     * 湖心最大水深（格，v1.20.40 P19 plan §D"湖心最深 8-12"带内取 10）：
-     * {@link #lakeBedAt} 的湖心锚 = {@code SEA_LEVEL − 本值} = 58（带 56-60，旧平底床 63±1
-     * 水深 4-6 → 湖心水深 8-12）；湖滨锚 = 水面下 1 格（plan §D"湖滨床≈pool−1"口径，
-     * 见 {@link #lakeBedAt} 的插值说明）。
+     * 湖心最大水深（格）。<b>v1.20.41 P20 S5（plan §15.3）10.0 → 28.0</b>，本值旧口径原文保留：
+     * 「v1.20.40 P19 plan §D 湖心最深 8-12 带内取 10 ⇒ 湖心锚 = {@code SEA_LEVEL − 本值} = 58」。
+     * <p>
+     * 改 28 的依据（§15.1 用户二次裁决「改判水深 28，放弃 40」+ S0a 实测否证旧假设）：湖心锚
+     * = {@code 68 − 28 = 40}，恰落 {@code ProsperityTerrainProfile.MIN_HEIGHT = 40} 的全局高度地板
+     * 上——**不动** {@code MIN_HEIGHT}/{@code SEA_LEVEL}/{@code BASE_HEIGHT}。§13 C1 的「岸底落差 ≥40」
+     * 已被 {@code plan/tmp/p20-baseline/c1-drop.txt} 证伪（裸地面中位仅 69、p90 76 ⇒ 落差上界
+     * 中位 29 / p90 36 / 极端 54，≥40 的湖占比 3.63%），故本值改由**水深**口径钉（判据 D1/D2），
+     * 该旧口径原文保留在同一份证据文件里，不静默删除。
      */
-    public static final double LAKE_CENTER_DEPTH = 10.0D;
+    public static final double LAKE_CENTER_DEPTH = 28.0D;
 
     /**
      * 巨湖床噪声波长（格，v1.20.40 P19 §D 随湖径放大从 192 收 160——床纹波长与湖径保持
      * 同阶（≈湖径的 1.2 倍量级），破圆后的大湖不至于整湖一条直线纹理）。
      */
     public static final double LAKE_BED_NOISE_SCALE = 160.0D;
+
+    /**
+     * 湖床渐深的<b>深盆平台占比</b>（湖压力 u = {@code lakeAt/LAKE_WATER_LEVEL} ∈ [0,1] 的域内比例，
+     * v1.20.41 P20 S5 新增；<b>S5b 复扫后维持 0.55</b>）：{@code u ≤ 本值} 的整片湖心区床高恒等于
+     * 湖心锚（40 + 非负床纹），只在 {@code (本值, 1]} 的外段做 smoothstep 抬升到湖滨锚 67。
+     * <p>
+     * <b>本常量存在的理由（S5b 按 §25 改对的口径分层——S5 原注释把动机记在 D1/D2 上，那是错的）</b>：
+     * <ul>
+     * <li>§15.3 的 <b>D1/D2 是「逐湖」占比</b>（"湖心床 minH ≤ 41 的<b>湖</b>占比 ≥90%"、"逐湖水深 ≥26
+     * 的<b>湖</b>占比 ≥90%"）⇒ <b>纯碗形即满足</b>（碗心天然触底），与本值几乎无关：S5b 实扫
+     * plateau ∈ {0.35, 0.40, 0.45, 0.50, 0.55, 0.60} 六档，D1/D2 <b>逐档都是 100%</b>（证据
+     * {@code plan/tmp/p20-s5b/plateau-scan.md}）；</li>
+     * <li>真正需要平台的是 <b>§15.6-1 的三档列数比 浅:中:深 ≥ 1:2:2</b>——它是<b>逐列面积</b>口径，
+     * 纯碗形下"水深 ≥26 的湖底列"只占面积 <b>(0.166)² ≈ 2.8%</b>（推导：{@code g ≥ 25/27 ⇒ u ≤ 0.166}），
+     * 方向与判据相反，单靠 {@code LAKE_CENTER_DEPTH} 无解。平台把深盆从"针尖"摊成"整片湖底"。</li>
+     * </ul>
+     * <p>
+     * <b>为什么维持 0.55（§25 的"取小值"条件在全档都不成立，S5b 扫描是证据）</b>：§25 给的规则是
+     * "若取 &lt;0.55 仍能满足 1:2:2 与 D1/D2 ⇒ 取小值"。实测两数：① <b>三档比的中/浅档在本形状族内
+     * 恒 ≈1.70–1.73</b>（床公式口径六档扫描，见 plateau-scan.md）⇒ <b>1:2:2 对任何本值都不可达</b>，
+     * "仍满足"这个前提从未成立；② 唯一<b>已成立</b>的一半是"深 ≥ 2×浅"，且它随本值单调
+     * （heightAt 实测：0.55 → 浅:中:深 = 1:1.338:<b>2.151</b>；0.40 → 1:1.253:<b>1.007</b>）
+     * ⇒ 取 0.40 会把目前<b>唯一达标</b>的那一半也打掉。于是在"整条判据不可达"的事实下，本值取该族的
+     * argmax = 0.55，而不是任意"更小以保渐深"。<b>实机后校准 ∈ {0.55, 0.60}</b>；
+     * §15.6-1 本身要转绿必须换床剖面形状（幂律/多段），属常量域外的形状裁决，已交回主代理。
+     * <p>
+     * <b>"浴缸感"由哪四条实测守住（§25 点名的申报义务，S5b 在 0.55 档实跑）</b>：
+     * ① 外段坡面 <b>0.98 格/列</b>（导数上界见下）＋ 实测相邻列高差 <b>p95 = 1 格</b>、
+     * 径向 ≥5 格单级跳变 <b>0.28%</b> ⇒ 水线以上没有陡壁；
+     * ② 外缘 |Δh| ≥ 5 的列占比 <b>0.17%</b>（A1 带 &lt;1%）⇒ 湖岸衔接不被平台边缘打断；
+     * ③ 多级缓坡的<b>结构</b>级数 = {@link #LAKE_SHORE_TREADS} + 1 = <b>5</b> 个量化级（A4a；实测台阶数受
+     * 岸地面中位仅 69 的总抬升量限制，逐湖中位 3 级，已按 §23-B 法降级为只报不钉）；
+     * ④ 湿带实测宽 = 环带列的 <b>33.87%</b>、逐湖弧宽中位 <b>6.6 格</b>（A5-READ）⇒ 水陆之间是渐变湿滩。
+     * 面积侧的直读：床公式口径"深井 ≥26"占 58.96%，但 {@code heightCore} 的
+     * {@code Math.min(原地形)} 钳制把外半稀释掉 ⇒ <b>heightAt 实测只占 35.84%</b>，
+     * "全湖 &gt;50% 是 26+ 平底"这一 §25 担心的形态在实测里不成立。
+     * <p>
+     * 外段坡度上界（衔接安全性）：最大导数在 v=0.5（u=0.775）处，{@code dg/du = 1.5/(1−0.55) =
+     * 3.33} ⇒ 每单位压力降 27×3.33 = 90 格高，除以实测 {@code dr/dW = 708.6 格/单位压力 × 0.13}
+     * ≈ 92 格/单位 u ⇒ <b>≈0.98 格/列</b> ⇒ 远低于 A1 的 5 格悬崖阈与 A2 的 p95 ≤ 2。
+     * <p>
+     * <b>S5 原推导（本轮废止其比值结论，原文保留不删）</b>："三档列数比按面积算（面积 ∝ u²）——深档
+     * u ∈ [0, 0.55 + 0.146·0.45 = 0.616] ⇒ 面积占比 0.379；中档（水深 9–20）u ∈ [0.664, 0.831] ⇒ 0.311；
+     * 浅档（3–8）u ∈ [0.838, 0.934] ⇒ 0.176 ⇒ 比 ≈ 1 : 1.77 : 2.26。0.55 是该族里让'深 ≥ 2×浅、
+     * 中 ≥ 2×浅'同时最接近成立的点"——它的<b>结论方向对、量级错</b>：中/浅实测恒 ≈1.72（六档），
+     * 到不了 2；该算式把"深井"档按 u 区间宽估，漏了取整与外段 {@code min(原地形)} 钳制的稀释。
+     * 它同时把本常量的动机记在 D1/D2 上（见上面的口径分层第一条），<b>该句是错的、已废止</b>。
+     */
+    public static final double LAKE_BED_PLATEAU = 0.55D;
+
+    // ═════════════ v1.20.41 P20 S5（plan §15）：中心固定岛 / 岛底柱 / 湖滨多级缓坡 / 湿带 ═════════════
+
+    /**
+     * 中心固定岛的**岛内压力腿阈**（三条腿之一；另两条见 {@link #LAKE_ISLAND_PLATEAU} 与
+     * {@link #LAKE_ISLAND_RADIUS}）：{@code lakeAt <} 本值 = 岛域（压力腿）。必须 &lt;
+     * {@link #LAKE_WATER_LEVEL}（岛在湖水区内）⇒ 岛域恒 ⊂ 湖水区，§15.4 的 A 组判据由构造隔离。
+     * <p>
+     * <b>§15.5 原文与该行的"实测反解"凭据（原文保留不删）</b>："0.030 档岛半径中位 30.375 ⇒ 干列
+     * ≈2903，是判据上界 1050 的 2.8 倍、只有 2.12% 湖落在几何解带内；0.013 档岛半径中位 16.875、
+     * 均值 15.918 ⇒ <b>岛直径 ≈30–32 格</b>，正是用户「岛大小约 30 格」，带内命中 65.69%（峰档）"。
+     * <p>
+     * <b>⚠ v1.20.41 P20 S5c 假因登记（上面那句"0.013 档 ⇒ 直径 30–32"已被证伪，本值随之改判）</b>：
+     * 反解用的 16.875 / 15.918 / 30.375 全是 S0a 的 <b>9 格射线均值半径</b>
+     * （{@code plan/tmp/p20-baseline/c5-island.txt}，RAY_STRIDE = LAKE_STRIDE/4 = 9）——射线法读的是
+     * "岛面等值线跌到水面以下"的那一格，而判据数的是<b>逐列干面积</b>；穹顶形状下两者不重合 ⇒
+     * 射线法<b>系统性高估</b>。S5b/S5c 逐列实测：0.013 档岛<b>域</b>（{@code lakeAt < 0.013}）中位
+     * 397 列 = 半径 11.24（直径 22.5，<b>不是 30–32</b>），其中<b>干</b>列中位只有 <b>23</b>（半径 2.7）。
+     * 逐列真值反解：穹顶的干面积 = 岛域面积 × 0.0486（干阈 {@code h ≥ SEA_LEVEL = 68} ⇔
+     * {@code s01(k) ≥ 28/32} ⇔ {@code k ≥ 0.7795}），要干列进 {@code [600,1050]} 需岛域半径 63–68 格
+     * ⇒ 纯压力腿要达标必须 {@code LAKE_ISLAND ≈ 0.075–0.080}，代价是水下浅棚占掉中位湖面积的 33%
+     * （直接吃光 §15.6-1 的三档与"越往中心越深"）⇒ <b>单抬本值不可解</b>。§15.5 表那一行按本节
+     * 口径覆盖（同 §14/§15 覆盖 §11、§26 覆盖 §23-B 的处理法：原文留、假因点名、不静默删）。
+     * <p>
+     * <b>本值 0.045 的取法（扫描数据选的，表 = {@code plan/tmp/p20-s5c/island-scan.md}）</b>：
+     * 压力腿与绝对腿的<b>拐点</b>。逐列实测的湖尺度散布 p10/中位/p90 = 0.78/1.00/1.23（半径），
+     * 岛域半径 = 849·本值·尺度 ⇒ 取本值 = 0.045 时 {@code 849·0.045·0.78 ≈ 30 =}{@link #LAKE_ISLAND_RADIUS}
+     * ⇒ <b>约九成湖被绝对腿钉在同一个岛直径</b>（需求 8 的"约 30 格"是绝对尺寸，判据带也是绝对面积带），
+     * 再小则绝对腿不 binding、散布原样透进干面积（带内命中率掉回 43–47%），再大只是把压力腿的
+     * 空转区摊大（S1 三档被多剔除一圈<b>其实是湖床</b>的列：0.065 档 10175 列 vs 0.045 档 4817 列，
+     * 深/浅档比 0.689 vs 1.484）。实档读数：干列中位 827（p10 742 / p90 831）、带内 29/32 = 90.63%。
+     */
+    public static final double LAKE_ISLAND = 0.045D;
+
+    /**
+     * 岛面的<b>平台半宽</b>（k 域，∈ (0,1]；v1.20.41 P20 S5c 新增）：岛抬升形状由纯穹顶
+     * {@code s01(k)} 改为 {@code s01(min(1, k/本值))} ⇒ <b>k ≥ 本值的整段都是满高岛面</b>
+     * （平台），全部 32 格落差被压进外檐 {@code k < 本值} 的环带里。取 1.0 时与纯穹顶<b>逐位等价</b>。
+     * <p>
+     * <b>为什么必须有这条支路（S5c 的解析结论，先算后改）</b>：干列判据要求干面积 ∈[600,1050]
+     * = 干半径 {@code r_d ∈ [13.82,18.28]}，而穹顶形状下干半径 = 岛域半径 × (1 − 0.7795)（干阈
+     * {@code h ≥ 68 = SEA_LEVEL} 反解 s01(k) ≥ 28/32 ⇒ k ≥ 0.7795），故纯穹顶要达标必须把岛域
+     * 半径推到 63–68 格 ⇒ {@code LAKE_ISLAND ≈ 0.075–0.080} ⇒ 岛域（水下浅棚）面积
+     * {@code π·68² ≈ 14500} 列 = 中位湖水面积的 <b>33%</b>，把 §15.6-1 的三档与"越往中心越深"
+     * 整个吃掉。改平台后同样的 {@code r_d} 只需岛域半径 25–34 格（占湖面积 4–8%）。
+     * <p>
+     * <b>与外檐坡度的取舍</b>（同一条式的两端）：最大径向爬升 = {@code 48/(本值 × 岛域半径)}
+     * （s01 导数上界 1.5、落差 32 格）。穹顶在 0.013 档的实测值是 {@code 48/11.04 = 4.35} 格/列
+     * ——即<b>改造前的岛缘本来就比注释里宣称的 2.8 陡</b>（2.8 是用被证伪的射线半径 17 算的，
+     * 见 {@link #LAKE_ISLAND} 的假因登记）。平台系在本值 ∈[0.6,0.8] 时坡度降到 1.4–2.9 格/列，
+     * <b>同时</b>把岛做宽 ⇒ 形态与判据两个方向都变好，不是拿坡度换面积。
+     * <p>
+     * <b>终值 0.60</b>（与 {@link #LAKE_ISLAND_RADIUS} = 30 配套，反解式 {@code 干半径 = 半径上限 ×
+     * (1 − 0.7795·本值) = 30 × 0.532 = 15.96 ⇒ 干面积 800 列 = 直径 31.9 格，落在 §15.5 的
+     * [600,1050] 带内且留足两侧余量}）：再小（0.50 档实测干 811、带内同为 90.63%）只把外檐坡度
+     * 从 2.67 推到 3.70 格/列、换不到任何判据收益；再大（0.75 档）坡度 1.73 但要配 38.5 的半径上限、
+     * 水下浅棚从 2827 列摊到 4657 列 ⇒ 三档比 S1 被多剔一圈床列。0.60 是"坡度不陡于既有穹顶 +
+     * 浅棚最小"的那一点。实测岛缘悬崖列（{@code islandCliffCols}，A1 同阈 5 格、只报不钉）见扫描表。
+     */
+    public static final double LAKE_ISLAND_PLATEAU = 0.60D;
+
+    /**
+     * 岛域的<b>绝对半径上限</b>（格，从湖心量；v1.20.41 P20 S5c 新增）。岛域 = 两条腿的<b>交</b>：
+     * 压力腿 {@code lakeAt < LAKE_ISLAND}（尺度归一，随湖大小缩放）与本腿
+     * {@code r(湖心) < 本值}（绝对）。{@code k = min(压力腿 k, 1 − r/本值)}。
+     * <p>
+     * <b>为什么必须有绝对腿（扫描数据选的，不是感觉选的）</b>：需求 8 原话「岛大小约 30 格」是
+     * <b>绝对</b>尺寸，§15.5 的 C_DRY 带 {@code [600,1050]}（= 半径带 {@code [13.82,18.28]}，
+     * 宽 1.32 倍）也是绝对的；而纯压力腿的岛面积 ∝ 湖面积，实测逐湖尺度散布
+     * p10/p90 = 0.78/1.23（半径）⇒ 干面积散布 2.5 倍 &gt; 带的 1.75 倍 ⇒ <b>带内命中率数学上限
+     * ≈56%</b>（实测峰档 46.88%，见 {@code plan/tmp/p20-s5c/island-scan.md}），永远喂不饱
+     * §15.6-3 的 60% 门。加绝对腿后大湖被钉在同一个直径、命中率随之以外的湖只剩"比上限还小"的
+     * 左尾 ⇒ 需求 8 的"约 30 格"与已钉的判据带第一次真正互洽。
+     * <p>
+     * <b>取值</b>：本值 × (1 − 0.7795·{@link #LAKE_ISLAND_PLATEAU}) = 干半径目标（干阈
+     * {@code h ≥ SEA_LEVEL = 68} 的反解）。上限只收不放 ⇒ 小湖由压力腿自己缩回去，
+     * <b>不会</b>把岛推进 §15.4 的环带（A 组的取样域是 {@code [LAKE_WATER_LEVEL, LAKE_SHORE)}，
+     * 岛域恒 ⊂ 湖水区 ⇒ 由构造隔离，S5c 双跑复核）。终值与推导见 {@link #LAKE_ISLAND} 的假因段。
+     * <p>
+     * <b>终值 30</b>：与 {@link #LAKE_ISLAND} = 0.045 成拐点配对（{@code 849·0.045·尺度p10 0.78 ≈ 30}）
+     * ⇒ 约九成湖被钉在干直径 ≈32 格。本值是<b>几何半径</b>（格），不是噪声波长 ⇒ §9 的
+     * "新增波长 %16≠0" 纪律对本值不适用（无任何噪声采样吃它；它只进 {@link #lakeIslandTopAt} 的
+     * 一条除法）。
+     */
+    public static final double LAKE_ISLAND_RADIUS = 30.0D;
+
+    /**
+     * 岛面相对 {@link ProsperityTerrainProfile#SEA_LEVEL} 的抬升（格）⇒ 岛面 = 68 + 4 = <b>72</b>。
+     * 取 4 的依据（§5 S5-5）：P20 S3 的 {@link #BANK_CUT_DEPTH} 会再削岸 2 格 + 1 格容差 + 1 格
+     * 观感余量；<b>本轮取 4，实机后校准</b>。离 {@code MAX_HEIGHT=110} 余 38、离
+     * {@code HEIGHT_SENTINEL=108} 余 36 ⇒ 与两个上界零接触（§15.5 表最后一列）。
+     */
+    public static final double LAKE_ISLAND_LIFT = 4.0D;
+
+    /**
+     * 湖滨带 [WATER, SHORE) 的<b>台阶级数</b>（plan §15.4「多级缓坡 ≥3 个高差 ≤2 的台阶，
+     * 非单一大台阶」）：把原来的线性 lerp 换成 {@code round(s01(t)·N)/N} 阶梯，N 级 ⇒ 每级
+     * 踏面是等压环、每级 riser = 总抬升/N。取 4 的理由：环带实测宽 ≈14 格（见 {@link #LAKE_SHORE}
+     * 注释）⇒ 4 级 = 每级踏面 ≈3.5 格，肉眼可读成"层叠滩地"而非噪声；<b>实机后校准 ∈{3,4,5}</b>。
+     */
+    public static final int LAKE_SHORE_TREADS = 4;
+
+    /** 湿带（水陆之间不积水的半湿表层带）贴水判据：地表距水面的最大格数（plan §15.4）。 */
+    public static final int LAKE_WET_BAND_DROP = 2;
+
+    /**
+     * 岛底柱的<b>柱环半径</b>（格，plan §15.5 终值 6，替换 §8 先验 8）：0.013 档岛半径 p10 = 11.25，
+     * 环半径 6 + 抖动 1 + 截面半宽 1 = 8 &lt; 11.25 ⇒ <b>全档不越岛缘</b>。原环 8+2=10 在 0.014 档
+     * 下"5/5 全落岛内"仅 60.65% ⇒ 约四成湖会缺柱，故收环。
+     * <b>v1.20.41 S5c 复核：值不动（6）</b>，成立条件反而变宽 —— 三条腿落地后岛干半径 = 15.96、
+     * 岛域半径实测 min 19.6，"5 柱全落岛内"的湖占比 68.75% → <b>75.00%</b>（判据 C5 实跑）。
+     */
+    public static final double LAKE_PILLAR_RING = 6.0D;
+
+    /** 岛底柱<b>抖动幅度</b>（格，终裁 ±1，替换 §8 先验 ±2）：取整后落在 {−1,0,+1}。 */
+    public static final int LAKE_PILLAR_JITTER = 1;
+
+    /** 岛底柱<b>截面半宽</b>（格，1 ⇒ 3×3 = 9 列/柱；§13 C5 已裁定逐列谓词允许 3×3/5×5）。 */
+    public static final int LAKE_PILLAR_HALF_SECTION = 1;
+
+    /** 岛底柱<b>根数</b>：1 根中心柱 + 4 根斜向环柱（§15.6 判据 3 的"5 柱全部贯通"口径）。 */
+    public static final int LAKE_PILLAR_COUNT = 5;
+
+    /**
+     * 岛底柱写入的<b>最低 y</b>（湖床锚）：派生式 = {@code SEA_LEVEL − LAKE_CENTER_DEPTH} = 40，
+     * 与 {@link #lakeBedAt} 的湖心锚同一条式子（不另立第二真值，也不引用 Profile 的 private
+     * {@code MIN_HEIGHT}）——柱脚正好坐在湖床上。
+     */
+    public static final int LAKE_PILLAR_FLOOR_Y = ProsperityTerrainProfile.SEA_LEVEL - (int) LAKE_CENTER_DEPTH;
+
+    /**
+     * 岛底柱写入的<b>最高 y</b>（岛底锚）：派生式 = {@code SEA_LEVEL + LAKE_ISLAND_LIFT − 1} = 71，
+     * 正好顶在岛面（72）之下 ⇒ 柱与岛面逐格相接、中间不隔水。
+     */
+    public static final int LAKE_PILLAR_TOP_Y = ProsperityTerrainProfile.SEA_LEVEL + (int) LAKE_ISLAND_LIFT - 1;
+
+    /**
+     * 湖滨带<b>外缘</b>（RTG lakeShoreLevel 同位参数）：[WATER, SHORE) 为床→原地形渐变带。
+     * <p>
+     * <b>v1.20.41 S5 裁决：保持 0.15，不照 §8 抬到 WATER+0.035。</b>§8 的"+0.035 ⇒ 环带 ≈16 格"
+     * 用的是判据注释里的旧斜率 600 格/单位压力；S0a 实测 {@code dr/dW|0.13 = 708.579}
+     * （{@code plan/tmp/p20-baseline/lake-model-fit.txt} §3）⇒ 现值 0.02 压力宽 = <b>环带 ≈14.2 格</b>，
+     * 已经在 §8 想要的 16 格量级内，多级缓坡（§15.4）在 14 格里足够铺 4 级台阶。抬到 0.035 只会
+     * 把环带推到 ≈24.8 格：无收益地扩大置水面、抬高 §7 的结构挤压风险与 §7-6 的环带落块敞口。
+     * 衔接的短板是<b>形状</b>（线性 → 台阶 + 湿带），不是宽度 ⇒ 本片改形状、不改本值。
+     */
+    public static final double LAKE_SHORE = 0.15D;
 
     /**
      * {@link #lakeAt} 的"无湖"哨兵（带外/带内无湖一律返回它）：≥ {@link #LAKE_SHORE}，与压力同向
@@ -829,9 +1155,43 @@ public final class GTSRVoronoiRiverField {
         if (trunkAt(worldSeed, x, z) <= 0.0D) {
             return NO_LAKE;
         }
+        // v1.20.41 P20 S5d：3×3 站距扫描原样抽到 {@link #lakeStationDistances}（算术一字未动 ⇒
+        // lakeAt 逐位不变，S5d 双跑对拍为证），本式仍取 dC/dN。抽出的动机见那里：岛的绝对半径腿
+        // 要的是 <b>dC 本身</b>（绝对量），而 dC/dN 是尺度归一量 —— 同一次扫描、同一份形状真值。
+        final double[] dd = LAKE_DIST_BUF.get();
+        lakeStationDistances(worldSeed, x, z, dd);
+        return dd[0] / dd[1];
+    }
+
+    /**
+     * 巨湖 Voronoi 的<b>一次共用几何求值</b>（v1.20.41 P20 S5d 从 {@link #lakeAt0} 原样抽出）：对坐标
+     * 加一次 domain-warp（{@link #LAKE_WARP_SCALE}/{@link #LAKE_WARP}，第 4 张 disk 表）后做 3×3 Worley
+     * 扫描，把 {@code out[0] = dC}（到最近湖站的<b>绝对</b>格距，未归一）与 {@code out[1] = dN}（次近
+     * 格距）写给调用方。两个消费口：
+     * <ul>
+     * <li>{@link #lakeAt0} = {@code dC/dN}（尺度归一压力，湖域/水缘/床形用它）；</li>
+     * <li>{@link #lakeIslandTopAt} 的<b>绝对半径腿</b> = {@code 1 − dC/LAKE_ISLAND_RADIUS}（plan §28-A
+     * 路 (b)）：需求 8 的"岛约 30 格"是绝对尺寸，要的是绝对量 dC，而 {@code dC/dN} 会随湖大小涨落。</li>
+     * </ul>
+     * <b>为什么绝对腿吃 dC 而不是"到 {@link #lakeCellCenterAt} 中心的距离"</b>：后者要先反解压力零点
+     * （两次不动点），而位移场是幅度 {@link #LAKE_WARP} = 70、波长 {@link #LAKE_WARP_SCALE} = 320 的正弦
+     * ⇒ <b>最大</b>斜率 {@code 2π·70/320 = 1.374 > 1} ⇒ 收缩比 0.22 的估计在陡区不成立，两步后残差可达
+     * 几十格，把岛整体推离自家湖心（S5c 的只报量 minP 实测：outlier #23 = 2.37e-02 / #30 = 1.86e-02
+     * vs 其余 30 座 1.17e-04）。dC 是本列 3×3 扫描的直接观测量、<b>零反解</b> ⇒ 对该残差免疫；且它的
+     * 等值线天然活在 warp 后的坐标空间里，与压力腿同域，两条腿取 min 才可比。
+     * <p>
+     * 位移 ≪ 3×3 窗半宽（{@code 1.5×LAKE_INTERVAL}）⇒ F1/F2 窗内仍数学精确（原 {@link #lakeAt0} 的
+     * 申报随扫描一起搬来）。{@code out} 由调用方持有（热路径零分配），本式不跨调用保存任何东西。
+     * <p>
+     * <b>公开理由（v1.20.41 S5d）</b>：离线判据 {@code SanzuLakeMorphologyCheck} 要区分"C1b 的 dry=0"
+     * 是<b>绝对腿</b>裁的（dC 已超干半径）还是<b>压力腿</b>裁的（p 已超干阈），必须直读 dC/dN 两站；
+     * 本仓判据纪律是"全部读数是生产纯函数的直调 ⇒ 判据侧零重写任何形状式"（该文件类注释），
+     * 故开本出口，与 {@link #lakeCellCenterAt} 同级待遇。<b>生产侧唯一消费口仍是 {@link #lakeAt0}
+     * 与 {@link #lakeIslandTopAt}</b>。
+     */
+    public static void lakeStationDistances(long worldSeed, int x, int z, double[] out) {
         // v1.20.40 P19 §D 破圆：湖 Voronoi 输入坐标先揉一次 disk 位移（幅度/波长见常量注释）；
-        // 位移 ≪ 3×3 窗半宽（1.5×LAKE_INTERVAL）⇒ F1/F2 窗内仍数学精确。buf 取完即拷出，
-        // 不跨后续调用持有（DISK_BUF 单缓冲纪律）。
+        // buf 取完即拷出，不跨后续 diskAt 持有（DISK_BUF 单缓冲纪律）。
         final double[] buf = diskBuffer();
         diskAt(worldSeed, SLOT_DISK_LAKE_WARP, LAKE_WARP_SCALE, x, z, buf);
         final double px = x + buf[0] * LAKE_WARP;
@@ -857,7 +1217,8 @@ public final class GTSRVoronoiRiverField {
                 }
             }
         }
-        return dC / dN;
+        out[0] = dC;
+        out[1] = dN;
     }
 
     /**
@@ -872,12 +1233,27 @@ public final class GTSRVoronoiRiverField {
      * <ul>
      * <li><b>湖滨锚</b> = {@code SEA_LEVEL − 1}（plan §D"湖滨床≈pool−1"口径：巨湖水面恒
      * = SEA_LEVEL=68，水缘处床贴水面下 1 格）；</li>
-     * <li><b>湖心锚</b> = {@code SEA_LEVEL − LAKE_CENTER_DEPTH} = 58（湖心水深 10，
-     * 带 8-12；旧平底床 63±1 水深 4-6 → 湖心可达 56-60）；</li>
-     * <li><b>插值域</b> = 湖水区压力 [0, {@link #LAKE_WATER_LEVEL}]，smoothstep 防坡折——
+     * <li><b>湖心锚</b> = {@code SEA_LEVEL − LAKE_CENTER_DEPTH} = <b>40</b>（v1.20.41 S5 水深 28 ⇒
+     * 湖心锚正好贴全局高度地板 {@code MIN_HEIGHT=40}；v1.20.40 旧口径"锚 = 58、水深 10 带 8-12"
+     * 原文保留在 {@link #LAKE_CENTER_DEPTH} 的注释里）；</li>
+     * <li><b>插值域</b> = 湖水区压力 [0, {@link #LAKE_WATER_LEVEL}] 归一成的 u ∈ [0,1]，
+     * <b>深盆平台 + 外段 smoothstep</b>（平台占比 {@link #LAKE_BED_PLATEAU}）：u ≤ 平台 ⇒ 恒取湖心锚，
+     * 平台之外沿 smoothstep 抬到湖滨锚——防坡折与"三档列数比"的形状见 {@link #LAKE_BED_PLATEAU}；
      * 水缘（lake=WATER）床恰为湖滨锚，湖滨带 [WATER, SHORE) 的 heightCore 渐变从同一值
      * 接续抬回原地形（水缘两侧连续，无坡折）；</li>
-     * <li>床纹 = ±1 低频 valueNoise（波长 {@link #LAKE_BED_NOISE_SCALE}）叠在渐变之上。</li>
+     * <li>床纹 = 低频 valueNoise（波长 {@link #LAKE_BED_NOISE_SCALE}）叠在渐变之上，<b>v1.20.41 S5
+     * 起仿射 remap 到非负档</b>：本仓 {@code GTSRWorldgenHash.valueNoise} 的值域是
+     * {@code [-1,1)}（{@code unitNoise} 双线性插值，见其 javadoc），改造前直接相加 ⇒ 床纹
+     * {@code ±1}。<b>水深 10 时无所谓</b>（湖心锚 58，±1 全在地板之上）；水深 28 后湖心锚 = 40 =
+     * {@code MIN_HEIGHT} ⇒ 负瓣会被 {@code heightCore} 末尾的钳制整段截平（一半的床纹列塌成同一个
+     * 整数，sd 失真、判据 D1/D2 的分布也失真）。故床纹项改为 {@code 0.5 + 0.5·noise ∈ [0,1)}：
+     * 湖心床恒 ∈ [40,41) ⇒ <b>零截平</b>，且仍取到 40/41 两个整数值（各向同性、不退化成单值）。
+     * 注：计划 §5 S5-3 字面写的是非负半波 {@code 0.5 + 0.5·|noise|}，该式给 [0.5,1] ⇒ 床恒 ∈
+     * [40.5,41) ⇒ 取整后<b>只剩一个值 41</b>（床纹退化成平地），与同一句自陈的目标"床恒 ∈ [40,41]
+     * ⇒ 零截平、零 sd 失真"矛盾；本式（无绝对值的仿射 remap）才是该目标的解，已按实测申报为偏离，
+     * <b>覆盖 §15 轮次里该字面的一切引用</b>——含 §8 常量取值纪律总表"床纹改非负半波 =
+     * {@code 0.5 + 0.5·|noise|}"那一行（与 §5 S5-3 同源，S7 收口按本式回填，实现片不改计划文件）。
+     * 值域证死出处：{@code GTSRWorldgenHash.java:141-147}（{@code unitNoise} 双线性 ⇒ [-1,1)）。</li>
      * </ul>
      * lakePressure 显式形态供 heightCore 复用同一次 {@link #lakeAt} 求值（消重复）；
      * 压力 ≥ WATER（湖滨带）时 u 饱和为 1 ⇒ 床 = 湖滨锚 ±1，与水缘列同解。
@@ -887,10 +1263,269 @@ public final class GTSRVoronoiRiverField {
         final double shoreBed = seaLevel - 1.0D;
         final double centerBed = seaLevel - LAKE_CENTER_DEPTH;
         final double u = Math.min(1.0D, Math.max(0.0D, lakePressure / LAKE_WATER_LEVEL));
-        final double g = 1.0D - u * u * (3.0D - 2.0D * u);
+        final double v = Math.min(1.0D, Math.max(0.0D, (u - LAKE_BED_PLATEAU) / (1.0D - LAKE_BED_PLATEAU)));
+        final double g = 1.0D - v * v * (3.0D - 2.0D * v);
         return shoreBed + (centerBed - shoreBed) * g
-            + GTSRWorldgenHash
+            + 0.5D
+            + 0.5D * GTSRWorldgenHash
                 .valueNoise(worldSeed ^ SALT_LAKE_BED, x / LAKE_BED_NOISE_SCALE, z / LAKE_BED_NOISE_SCALE);
+    }
+
+    /**
+     * 湖滨带 [WATER, SHORE) 的<b>多级缓坡混合权重</b>（plan §15.4「多级缓坡 ≥3 个高差 ≤2 的台阶，
+     * 非单一大台阶」的唯一实现真值，v1.20.41 P20 S5 新增；生产侧
+     * {@code ProsperityTerrainProfile.heightCore} 的湖段与离线判据共用本式，无第二真值）。
+     * <p>
+     * 形状 = 先 {@code s01}（smoothstep 缓入缓出，替掉改造前的<b>线性</b> lerp——线性在环带两端
+     * 各留一个折角，正是"衔接生硬"的来源），再量化成 {@link #LAKE_SHORE_TREADS} 级台阶
+     * （{@code round(e·N)/N}）⇒ 从湖床到原地形之间出现 N 段等压踏面，每级 riser = 总抬升/N。
+     * <p>
+     * <b>为什么本式不可能形成"环形堤"</b>（§15.4 第三条形态的禁止项）：调用侧对本式的结果始终走
+     * {@code y = Math.min(y, …)} 语义 ⇒ 环带列的高度<b>恒 ≤ 该列无湖时的原地形</b>，任何各向同性的
+     * 等距抬升在结构上不可表示；残留的堤感只可能来自 riser 过大，由判据 A2（相邻列差值 p95）
+     * 与 A4（台阶数）钉住。
+     *
+     * @param lakePressure {@link #lakeAt} 的原值（调用侧已保证 ∈ [WATER, SHORE)；带外入参按端点截断）
+     * @return 混合权重 ∈ [0,1]：0 = 取满湖床，1 = 完全回到原地形
+     */
+    public static double lakeShoreBlend(double lakePressure) {
+        final double t = (lakePressure - LAKE_WATER_LEVEL) / (LAKE_SHORE - LAKE_WATER_LEVEL);
+        final double c = t < 0.0D ? 0.0D : (t > 1.0D ? 1.0D : t);
+        final double e = c * c * (3.0D - 2.0D * c);
+        return Math.round(e * LAKE_SHORE_TREADS) / (double) LAKE_SHORE_TREADS;
+    }
+
+    /**
+     * 中心固定岛的<b>岛面高</b>（plan §15.5，v1.20.41 P20 S5 新增，逐列纯函数）：湖心区
+     * {@code lakeAt < LAKE_ISLAND} 内把地表从湖床抬到 {@code SEA_LEVEL + LAKE_ISLAND_LIFT} = 72。
+     * <p>
+     * 形状 = {@code centerBed + (islandTop − centerBed) · s01(min(1, k/LAKE_ISLAND_PLATEAU))}，其中
+     * {@code k = min(压力腿 (LAKE_ISLAND − lake)/LAKE_ISLAND, 绝对腿 1 − dC/LAKE_ISLAND_RADIUS)}
+     * （岛缘 k=0、岛心 k=1；绝对腿自 v1.20.41 S5d 起吃 <b>dC</b>=本列到最近湖站的绝对格距，旧式
+     * {@code 1 − r(lakeCellCenterAt)/本值} 的不动点反解残差问题见下面 S5c 的 ⚠ 依赖声明与其后的 S5d 段）
+     * 。用 s01 而非线性/硬切
+     * 的理由（§5 S5-5「岛缘无单格悬崖」）：<b>旧句"岛半径实测中位 ≈17 格 ⇒ 每格最大爬升 ≈2.8"
+     * 的 17 是被证伪的 9 格射线估值（见 {@link #LAKE_ISLAND} 的假因登记），当时岛域真半径只有
+     * ≈11.2 ⇒ 旧穹顶的最大爬升 = 48/11.2 ≈ 4.3 格/列，接近而不是远低于 A1 的 5 格阈</b>。
+     * v1.20.41 S5c 改平台 + 绝对半径后：坡 = {@code 48/(PLATEAU × 岛域半径) = 48/(0.6×30) = 2.67}
+     * 格/列 ⇒ <b>岛变宽的同时坡度反而比改造前缓</b>（且岛缘列全部落在湖水区内，A1/A2/A4c 的取样域
+     * 是环带 {@code [WATER, SHORE)} ⇒ 由构造不吃这条坡；只报读数 {@code islandCliffCols} 可见）。
+     * <p>
+     * 抬升量恒 ≤ 72（岛面）⇒ 与 {@code MAX_HEIGHT=110}、{@code HEIGHT_SENTINEL=108} 零接触。
+     * 岛缘处本式给 40（= 湖心锚），而 {@link #lakeBedAt} 在同压列给 ≈40.8 ⇒ 调用侧
+     * {@code Math.max} 取床值，接缝处不出现凹陷。
+     *
+     * @param lakePressure {@link #lakeAt} 的原值
+     * @return 岛面高；列不在岛域（{@code lakePressure ≥ LAKE_ISLAND}，或被绝对半径裁出 ⇒
+     *         {@code k ≤ 0}）时返回 {@link Double#NaN} 作"无抬升"哨兵（调用侧按 {@code !NaN} 分支，
+     *         禁止与 0 混淆——0 是合法高度域外的值，NaN 不可比较 ⇒ 误用必显形）
+     */
+    public static double lakeIslandTopAt(long worldSeed, int x, int z, double lakePressure) {
+        if (lakePressure >= LAKE_ISLAND) {
+            return Double.NaN;
+        }
+        final double seaLevel = ProsperityTerrainProfile.SEA_LEVEL;
+        final double centerBed = seaLevel - LAKE_CENTER_DEPTH;
+        final double islandTop = seaLevel + LAKE_ISLAND_LIFT;
+        final double kPress = (LAKE_ISLAND - lakePressure) / LAKE_ISLAND;
+        // v1.20.41 P20 S5c（plan §15.5 假因收束）：岛域的第二条腿 = 到湖心的<b>绝对</b>距离。
+        // 只靠压力腿时岛线性于湖尺度（lakeAt = dC/dN 是尺度归一量），而 C_DRY 带是<b>绝对</b>面积带
+        // （r ∈ [13.82,18.28] = 半径 ±15%），实测逐湖尺度散布 p10/p90 = 0.78/1.23（半径 ±23%）
+        // ⇒ 面积散布 2.5 倍 > 带的 1.75 倍 ⇒ 任何"纯压力腿"的岛都数学上吃不满这条带
+        // （S5c 扫描：0.030/0.60 档 43.75%、0.045/0.75 档 46.88%，见 island-scan.md）。
+        // 取 min(压力腿, 绝对腿) 后：大湖被绝对腿钉在固定直径（正是需求 8 的「岛大小约 30 格」），
+        // 小湖仍由压力腿兜住 ⇒ 岛不会越出自家湖域、绝不进 §15.4 的环带（A 组由构造隔离）。
+        // 本条腿只在压力腿已判"岛域内"（lakePressure < LAKE_ISLAND，全湖 ≈5% 的列）时才付代价。
+        double k = kPress;
+        // ⚠ 依赖声明（S5c 实测登记，别把这条腿当无损）：绝对腿吃的是 lakeCellCenterAt 的两次不动点
+        // 反解，其收缩比按"幅度/波长 = 70/320 = 0.22"估，但正弦位移场的<b>最大</b>斜率是
+        // 2π·70/320 = 1.37 > 1 ⇒ 两步后残差在陡区不保证 < 1 格。S5c 的只报量 minP 实测：32 座细扫湖里
+        // 30 座的窗内最小压力 ≈1e-4（反解到位），2 座 = 1.9e-2 / 2.4e-2（干阈 2.4e-2 附近）
+        // ⇒ 这两座的岛被本条腿裁到近空（判据 C1b 的 min=0 即此，且<b>基线穹顶同样为 0</b> ⇒ 非本片引入）。
+        // 彻底免疫的改法是把本条腿写成 dC 式（k_abs = 1 − dC/本值，dC = 未归一的站距，与压力腿同一
+        // 次 3×3 扫描、不依赖反解）；本片不改，登记给主代理（与 §15.6-1 的 S1 一并裁决）。
+        // ── v1.20.41 P20 S5d（plan §28-A 路 (b)）：上面"彻底免疫的改法"<b>已照本式落地</b>，本条登记
+        // 就此关闭；原文保留在上八行（同 §14/§15 覆盖 §11、§26 覆盖 §23-B 的处理法）。本腿现在与
+        // 压力腿共用同一次 {@link #lakeStationDistances} 扫描（一次 diskAt + 一次 3×3），<b>零反解</b>
+        // ⇒ 对不动点残差免疫；代价比改造前<b>更低</b>（旧式 = lakeCellCenterAt：diskAt ×3 + 3×3 扫描
+        // + 两次不动点迭代）。等值线活在 warp 后的坐标空间里 ⇒ 与压力腿（同一空间的 dC/dN）同域可比。
+        final double[] dd = LAKE_DIST_BUF.get();
+        lakeStationDistances(worldSeed, x, z, dd);
+        {
+            final double kAbs = 1.0D - dd[0] / LAKE_ISLAND_RADIUS;
+            if (kAbs < k) {
+                k = kAbs;
+            }
+        }
+        if (k <= 0.0D) {
+            // 被绝对腿裁出岛域（只可能发生在 LAKE_ISLAND_RADIUS 小于该湖的尺度半径时）
+            return Double.NaN;
+        }
+        // v1.20.41 P20 S5c：k 先按 LAKE_ISLAND_PLATEAU 归一再截到 1 ⇒ k ≥ 平台半宽 = 满高岛面。
+        // 本值 = 1.0 时本行恒等（kn == kPress），与改造前的纯穹顶逐位一致。
+        final double kn = k >= LAKE_ISLAND_PLATEAU ? 1.0D : k / LAKE_ISLAND_PLATEAU;
+        final double s = kn * kn * (3.0D - 2.0D * kn);
+        return centerBed + (islandTop - centerBed) * s;
+    }
+
+    /**
+     * 湖细胞中心（v1.20.41 P20 S5 新增，供 {@link #islandPillarAt} 与离线判据取"岛心/柱位基准"）：
+     * 与 {@link #lakeAt0} <b>同一次</b> domain-warp + 同一次 3×3 Worley 扫描（不另立第二份形状），
+     * 把<b>压力零点（真正的湖心）</b>的<b>世界坐标</b>与<b>格坐标</b>写进调用方给的 4 元缓冲。
+     * <p>
+     * <b>为什么不能直接返回最近湖站</b>（v1.20.41 P20 S5b 修的实质缺陷）：{@link #lakeAt0} 的输入坐标
+     * 先被 {@code + disk × LAKE_WARP} 揉过一次 ⇒ 压力零点是方程 {@code X + W(X) = 湖站} 的解，
+     * <b>不是</b>湖站本身；两者相差一个 warp 位移，S0a 实测该位移<b>中位 26.862 格、p90 44.820、
+     * max 60.951</b>（{@code plan/tmp/p20-baseline/lake-model-fit.txt} §3）。而湖域
+     * （{@code lakeAt < LAKE_ISLAND}）的实测半径只有 ≈11 格 ⇒ 拿湖站当岛心会把整座岛推到湖域之外，
+     * {@link #islandPillarAt} 的域门（同一条 {@code lakeAt < LAKE_ISLAND}）随之恒假 ⇒
+     * <b>大多数湖一根柱都写不出来</b>（S5b 判据实测：逐湖柱连通分量数中位 0、"5 柱全中"仅 9.38%）。
+     * 修法 = 对 {@code X = 湖站 − W(X)} 做两次不动点迭代（{@code |W| ≤ LAKE_WARP = 70}、位移场波长
+     * {@code LAKE_WARP_SCALE = 320} ⇒ 每步收缩比 ≈ 70/320 ≪ 1，两步后残差 &lt; 1 格），
+     * 仍然只吃同一份 {@code diskAt} 表与同一条 {@code cellOffset} ⇒ 零新增真值。
+     *
+     * @param out 长度 ≥4 的缓冲：{@code [0]=中心世界 X、[1]=中心世界 Z、[2]=格 gx、[3]=格 gz}；
+     *            主干带外（{@code trunk ≤ 0} ⇒ 无湖）时写 {@code out[2] = Integer.MIN_VALUE} 作失败标记
+     */
+    public static void lakeCellCenterAt(long worldSeed, int x, int z, double[] out) {
+        out[2] = Integer.MIN_VALUE;
+        if (trunkAt(worldSeed, x, z) <= 0.0D) {
+            return;
+        }
+        final double[] buf = diskBuffer();
+        diskAt(worldSeed, SLOT_DISK_LAKE_WARP, LAKE_WARP_SCALE, x, z, buf);
+        final double px = x + buf[0] * LAKE_WARP;
+        final double pz = z + buf[1] * LAKE_WARP;
+        final int cellX = (int) Math.floor(px / LAKE_INTERVAL + 0.5D);
+        final int cellZ = (int) Math.floor(pz / LAKE_INTERVAL + 0.5D);
+        double best = Double.POSITIVE_INFINITY;
+        double bestEx = 0.0D;
+        double bestEz = 0.0D;
+        int bestGx = 0;
+        int bestGz = 0;
+        for (int dz = -1; dz <= 1; dz++) {
+            for (int dx = -1; dx <= 1; dx++) {
+                final int gx = cellX + dx;
+                final int gz = cellZ + dz;
+                final double sx = gx * LAKE_INTERVAL + cellOffset(worldSeed, gx, gz, SALT_LAKE_CELL_X, LAKE_INTERVAL);
+                final double sz = gz * LAKE_INTERVAL + cellOffset(worldSeed, gx, gz, SALT_LAKE_CELL_Z, LAKE_INTERVAL);
+                final double ddx = sx - px;
+                final double ddz = sz - pz;
+                final double d = Math.sqrt(ddx * ddx + ddz * ddz);
+                if (d < best) {
+                    best = d;
+                    bestEx = sx;
+                    bestEz = sz;
+                    bestGx = gx;
+                    bestGz = gz;
+                }
+            }
+        }
+        // 反解压力零点 X + W(X) = 湖站：两次不动点（收缩比 ≈ LAKE_WARP/LAKE_WARP_SCALE = 0.22 ⇒
+        // 残差 < 1 格）。buf 是 DISK_BUF 单缓冲，取值即用于是本行，不跨下次 diskAt 持有。
+        double centerX = bestEx;
+        double centerZ = bestEz;
+        for (int it = 0; it < 2; it++) {
+            diskAt(
+                worldSeed,
+                SLOT_DISK_LAKE_WARP,
+                LAKE_WARP_SCALE,
+                (int) Math.round(centerX),
+                (int) Math.round(centerZ),
+                buf);
+            centerX = bestEx - buf[0] * LAKE_WARP;
+            centerZ = bestEz - buf[1] * LAKE_WARP;
+        }
+        out[0] = centerX;
+        out[1] = centerZ;
+        out[2] = bestGx;
+        out[3] = bestGz;
+    }
+
+    /**
+     * <b>岛底柱列谓词</b>（plan §15.5，需求 8「岛和底部是有柱子相连的」；v1.20.41 P20 S5 新增）：
+     * 本列是否落在某根岛的底柱截面上。
+     * <p>
+     * <b>柱位集合</b> = 1 根中心柱 + 4 根斜向环柱（{@link #LAKE_PILLAR_COUNT} = 5），环柱极角取
+     * 45°/135°/225°/315°、半径 {@link #LAKE_PILLAR_RING} = 6 加 {@link #LAKE_PILLAR_JITTER} = ±1 的
+     * 确定性抖动（抖动脉冲 = {@link #cellOffset} 同一条 splitmix 哈希，键 = 湖格 × 柱序号 ⇒
+     * <b>同一座湖的柱位对全部列一致</b>，不会逐列各抖各的把截面抖散）；截面
+     * {@code 2·LAKE_PILLAR_HALF_SECTION + 1 = 3×3}。
+     * <p>
+     * <b>为什么必须是逐列纯函数而不是结构通道</b>（§13 C5 / §15.5 表末行）：柱高
+     * {@code y ∈ [LAKE_PILLAR_FLOOR_Y, LAKE_PILLAR_TOP_Y]} = 32 格 &gt;
+     * {@code ChunkSpans.MAX_SLICE_HEIGHT = 12}，字符盘模板路承不住；而本谓词只判"本列是不是柱"，
+     * 每一列由<b>它自己所在 chunk</b> 的那一趟 {@code fillSanzuLakes} 写满同一个 y 区间 ⇒
+     * 跨 chunk 天然无缝，且 3×3 截面骑在 chunk 边界上也只是"两边各写自己那几列"，
+     * 不构成任何跨界写（{@code ChunkClampedSink} 的丢弃计数应为 0，见 S5 回执）。
+     * <p>
+     * 域门 {@code lakeAt < LAKE_ISLAND}：只可能给岛域内的列 ⇒ 环柱半径 6 + 抖 1 + 半宽 1 = 8
+     * 恒小于岛半径 p10 = 11.25（§15.5），柱不越岛缘。<b>v1.20.41 S5c 复核（原句保留）</b>：那个
+     * 11.25 是 §15.5 的 9 格射线估值，逐列真值更小时刻反而更紧；S5c 三条腿落地后岛<b>干</b>半径
+     * = 15.96、岛域半径实测 min 19.6 ⇒ 8 &lt; 15.96 有余量，且柱位全落在平台段（{@code k ≥ 0.60}）
+     * ⇒ 柱顶正对满高岛面 72（判据实测柱脚床高由 [40,72] 收到 [72,72]）。
+     */
+    public static boolean islandPillarAt(long worldSeed, int x, int z) {
+        if (lakeAt(worldSeed, x, z) >= LAKE_ISLAND) {
+            return false;
+        }
+        final double[] c = LAKE_CENTER_BUF.get();
+        lakeCellCenterAt(worldSeed, x, z, c);
+        if (c[2] == Integer.MIN_VALUE) {
+            return false;
+        }
+        final int gx = (int) c[2];
+        final int gz = (int) c[3];
+        for (int p = 0; p < LAKE_PILLAR_COUNT; p++) {
+            // 中心柱（p=0）不抖环半径（抖了就不是"岛心正下方那根"了），只抖一个格内相位
+            final double radius = p == 0 ? 0.0D : LAKE_PILLAR_RING + pillarJitter(worldSeed, gx, gz, p, 0L);
+            final double angle = p == 0 ? 0.0D : Math.PI / 4.0D + (p - 1) * Math.PI / 2.0D;
+            final int px = (int) Math.round(c[0] + Math.cos(angle) * radius);
+            final int pz = (int) Math.round(c[1] + Math.sin(angle) * radius);
+            if (Math.abs(x - px) <= LAKE_PILLAR_HALF_SECTION && Math.abs(z - pz) <= LAKE_PILLAR_HALF_SECTION) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * 柱位抖动（格，∈ {−{@link #LAKE_PILLAR_JITTER}, …, +{@link #LAKE_PILLAR_JITTER}} 的整数）：
+     * 复用 {@link #cellOffset} 的同一条 splitmix 哈希，把 interval 归一到 ±1 再取整——
+     * 柱位是<b>湖格级</b>常量（同一 (gx,gz,柱序,轴) 永远同一抖值），不是列级噪声。
+     */
+    private static int pillarJitter(long worldSeed, int gx, int gz, int pillarIndex, long axisSalt) {
+        final double raw = cellOffset(
+            worldSeed,
+            gx * LAKE_PILLAR_COUNT + pillarIndex,
+            gz * 2 + (int) axisSalt,
+            SALT_LAKE_PILLAR,
+            1.0D / CELL_JITTER);
+        return (int) Math.max(-LAKE_PILLAR_JITTER, Math.min(LAKE_PILLAR_JITTER, Math.round(raw)));
+    }
+
+    /**
+     * <b>湖滨湿带列谓词</b>（plan §15.4 第三条形态「湿带：水陆之间一条<b>不积水</b>的半湿表层带」；
+     * v1.20.41 P20 S5 新增）：本列是否是湖滨带里贴水的那一段。
+     * <p>
+     * 三门：① 在湖滨带内（{@code WATER ≤ lakeAt < LAKE_SHORE}，湖水区本身已有真水，不算湿带）；
+     * ② 地表在水面之<b>上</b>或正好齐平（{@code h ≤ SEA_LEVEL} ⇒ 高于水面 1 格以内，不会有一圈
+     * 干台地插在中间）；③ 地表距水面 ≤ {@link #LAKE_WET_BAND_DROP} 格（{@code h ≥ SEA_LEVEL − 2}
+     * ⇒ 太深的沟是给水的，不该铺湿料）。
+     * <p>
+     * <b>本谓词只回答"是不是湿带"，不写任何方块</b>：表层的实际改派在
+     * {@code ChunkProviderProsperityRuins} 的 {@code SurfaceTopSelector} 里做，而该 selector 是
+     * <b>包一层</b> P20 S1 的 {@code GTSRSurfaceBorderBand}（先原样委托群系交界混合带、只在湿带列
+     * 改派同一名册内的湿料），故表层身份仍是<b>单一真值</b>，见那里的类注释契约段。
+     */
+    public static boolean lakeWetBandAt(long worldSeed, int x, int z) {
+        final double lake = lakeAt(worldSeed, x, z);
+        if (lake < LAKE_WATER_LEVEL || lake >= LAKE_SHORE) {
+            return false;
+        }
+        final int sea = ProsperityTerrainProfile.SEA_LEVEL;
+        final int h = ProsperityTerrainProfile.heightAt(worldSeed, x, z);
+        return h <= sea && h >= sea - LAKE_WET_BAND_DROP;
     }
 
     // ═════════════════ v1.20.40（P19 plan §E）：沼泽微池（第二激活档） ═════════════════
@@ -910,9 +1545,6 @@ public final class GTSRVoronoiRiverField {
 
     /** {@link #swampLakeAt} 的"无微池"哨兵（非沼泽 roster/带外一律返回它；与 {@link #NO_LAKE} 同向）。 */
     public static final double NO_SWAMP_POOL = 1.0D;
-
-    /** 微池床低频纹理波长（格；池径同阶，池底起伏 ±0.5 的波长）。 */
-    public static final double SWAMP_POOL_BED_SCALE = 48.0D;
 
     /**
      * 沼泽微池压力场（plan §E 第二激活档）：roster 3 专属的独立低频 Voronoi（3×3 邻域
@@ -1355,6 +1987,20 @@ public final class GTSRVoronoiRiverField {
     private static double[] diskBuffer() {
         return DISK_BUF.get();
     }
+
+    /**
+     * 湖细胞中心的可复用缓冲（v1.20.41 P20 S5：{@link #islandPillarAt} 逐列调用
+     * {@link #lakeCellCenterAt} 时避免每列分配 4 元数组——同 {@link #DISK_BUF} 的单线程生成域纪律）。
+     */
+    private static final ThreadLocal<double[]> LAKE_CENTER_BUF = ThreadLocal.withInitial(() -> new double[4]);
+
+    /**
+     * {@code dC/dN} 两站的（绝对站距、次近站距）可复用缓冲（v1.20.41 P20 S5d：{@link #lakeAt0} 与
+     * {@link #lakeIslandTopAt} 各一次 {@link #lakeStationDistances} 求值的零分配出口——同
+     * {@link #DISK_BUF}/{@link #LAKE_CENTER_BUF} 的单线程生成域纪律；两处调用都在取值后立即用完，
+     * 不跨下一次 {@code diskAt} 持有）。
+     */
+    private static final ThreadLocal<double[]> LAKE_DIST_BUF = ThreadLocal.withInitial(() -> new double[2]);
 
     /** disk 槽位：0=大弯、1=小弯、2=主干带（T5）、3=巨湖破圆 warp（v1.20.40 P19 §D）。 */
     private static final int SLOT_DISK_LARGE = 0;

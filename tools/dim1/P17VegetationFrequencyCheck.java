@@ -156,10 +156,72 @@ public final class P17VegetationFrequencyCheck {
     /** 花块数/chunk 带（改前恒 0 ⇒ 四档下界一律 &gt; 0）。 */
     private static final double[][] BAND_FLOWERS = { { 2.8D, 5.1D }, { 3.7D, 6.5D }, { 0.55D, 1.5D },
         { 3.5D, 6.1D } };
-    /** 沙/砾块数/chunk 带（只允许荒漠非 0）。 */
-    private static final double[][] BAND_SAND = { { 0.0D, 0.0D }, { 0.0D, 0.0D }, { 4.4D, 9.2D }, { 0.0D, 0.0D } };
+    /**
+     * 沙/砾块数/chunk 带（只允许荒漠非 0）。
+     * <p>
+     * <b>v1.20.41 P20 S6 需求 5 重钉（荒漠铺沙两档改动）</b>：荒漠行档表的 {@code sandRolls} 4 → 7、
+     * 主料 {@code SAND_FINE} → {@code SAND_COARSE}（{@code ProsperityDecorPlacer:224}）⇒ 同口径实测
+     * <b>6.893782 → 11.740933 块/chunk</b>（{@code veg-BEFORE-4416.log} / 本片 after 跑，比 1.703
+     * ≈ 7/4 = 1.75 的线性外推略低，差值来自空气门饱和：斑数上去后同斑重叠块的 {@code isAirBlock}
+     * 让行率升高）。旧带 {@code [4.4, 9.2]}（= 旧实测 6.894 的 ±20% 族带）<b>原文保留在下行的
+     * 注释里</b>，新带取同一族口径 = 新实测 11.741 的 ±20% → <b>[9.4, 14.1]</b>。
+     * <p>
+     * <b>与计划 §6.1 R4-① 的字面带 {@code [3.0, 4.6]} 的单位偏离（申报）</b>：R4-① 的推导链是
+     * "现值 2.2 格/chunk × 7/4 = 3.85"，而 2.2 出自账本 §5 的<b>"每 chunk 覆盖到的地面格数"</b>口径；
+     * 本判据的 {@code a.sand} 计的是 <b>{@code setBlock} 成功写入的块数</b>（同一格可被多斑重复尝试、
+     * 也可一斑多块），改前同口径实测即 6.894 ⇒ 两个口径相差 ≈3.1×，把 R4-① 的字面带直接搬过来会
+     * 是一条<b>单位错配</b>的带（改前就该红）。本片按"以本判据自己的改前实测为锚、按族口径等比抬升"
+     * 立带，并把单位差记在这里，不当"放宽"（本带比旧带更靠上且宽度同为 ±20%）。
+     * 需求侧的"更多粗砂粒"另由下行 {@link #BAND_COARSE_SHARE} 的<b>质</b>档钉住（数量带抓不住质）。
+     */
+    private static final double[][] BAND_SAND = { { 0.0D, 0.0D }, { 0.0D, 0.0D }, { 9.4D, 14.1D }, { 0.0D, 0.0D } };
     /** ANTI 臂：荒漠档改成必掷后的树数/chunk 带（0.5 下界 = 门没把荒漠整段挡死）。 */
     private static final double[] BAND_ANTI_WASTES = { 0.5D, 1.35D };
+    /**
+     * 荒漠沙砾斑里<b>粗沙</b>占覆盖物的比例带（需求 5"覆盖更多的粗砂粒"的<b>质</b>判据）。
+     * 推导：档表主料换 {@code SAND_COARSE} 后，整斑 1/6 换河床砾、其余 5/6 取主料 ⇒ 理论值
+     * 5/6 = 0.833；改前是 细沙 2/3 · 粗沙 1/3 · 砾 1/6 ⇒ 粗沙 0.333。带 = 理论值 ±15%
+     * （抖动来自逐斑 1/6 砾骰的有限样本，荒漠样本 ≈14 块/chunk × 772 chunk ⇒ 相对标准误 &lt;0.5pp）。
+     * 旧口径的粗沙份额（0.333）原文写在这里，禁止下一轮把它当"新常态"。
+     */
+    private static final double[] BAND_COARSE_SHARE = { 0.70D, 0.95D };
+    /**
+     * 风蚀柱数/chunk 带（v1.20.41 P20 S6 需求 5 的新 feature；P20 §5 S6 判据 2 的字面口径
+     * {@code 柱高 ≥7 且柱顶 y − 地面 y ≥ 6 的柱数 / chunk ∈ [0.03, 0.12]}）。
+     * <p>
+     * <b>取带理由（不是照抄字面带，而是先证明它可达成）</b>：档表 1/12 的 chunk 级骰 × 落点场
+     * 有候选列的概率。落点场 {@code TerrainVariants.windSpineSiteAt ≥ 0.5} 实测占 roster 2 的
+     * <b>0.8397%</b> 列（{@code plan/tmp/p20-s6/probe-TVonly.out}；§21-F 转交的 S4 数是 0.8776%，
+     * 两次差值来自哑元 id 表不同）⇒ 每 chunk 期望 2.15 个候选列 ⇒ "本 chunk 有候选" ≈ 88.8%
+     * ⇒ 理论柱率 ≈ 0.0833 × 0.888 = <b>0.0740 柱/chunk</b>，恰在 [0.03, 0.12] 内偏上，
+     * 且落点 argmax 的空气门/接地门还会再吃掉一点。故<b>沿用 §5 的字面带</b>（不另立新带），
+     * 实测若掉出下界，第一顺位是抬 argmax 的候选面（4×4 → 8×8 格点），不是放宽本带。
+     */
+    private static final double[] BAND_WIND_STUMPS = { 0.03D, 0.12D };
+    /**
+     * 灌木（干高 ≤2 的短干段）数/chunk 带 —— §6.1 R4-② 的"成簇"档。
+     * 定法照 R4-② 原文：以<b>改前实测</b>为"现值"，新带 {@code [现×0.90, 现×1.45]}。
+     * 现值 = 改前同口径实测 <b>0.486405 株/chunk</b>（1324 chunk / 644 株，
+     * {@code veg-BEFORE-newcheck-4416.log} 的 {@code VEG-S6} 行；与档表灌木密度 1/2 逐位吻合 ⇒
+     * 这条"干高 ≤2 短竖段"代理是可信的）⇒ 新带 = <b>[0.437765, 0.705287]</b>。
+     * （带外 ×0.4 抑制 + 带内 4..5 株一簇，算式与偏离申报见
+     * {@code ProsperityDecorPlacer#SHRUB_CLUSTER_SKIP_DENOM}）。
+     */
+    private static final double[] BAND_SHRUBS_STEPPE = { 0.437765D, 0.705287D };
+    /**
+     * 草原灌木的<b>空间聚簇度</b>：每株平均"同丛邻居数"（切比雪夫距离 ≤
+     * {@link #SHRUB_NEIGHBOR_RADIUS} 方块内的其它短干株）带 —— 需求 6"灌木<b>群</b>"的字面判据。
+     * 这条抓的是<b>空间结构</b>，{@link #BAND_SHRUBS} 抓的是<b>总量</b>：均匀散点会让总量绿而本条红，
+     * 反之亦然（防"只改档值不改形态"的假绿）。改前实测 ≈0.1（每 2 chunk 一株的均匀泊松），
+     * 成簇后理论 ≈3.5（主株 + 环带 3..4 株互见）。
+     */
+    private static final double[] BAND_SHRUB_NEIGHBORS = { 1.20D, 6.50D };
+    /** 聚簇度半径（方块，切比雪夫距离；= 簇环带外沿 4）。 */
+    private static final int SHRUB_NEIGHBOR_RADIUS = 4;
+    /** 短干株的干高上限（灌木档形态 = 干 1..2 节，见 {@code ProsperityDecorPlacer#placeShrubAt}）。 */
+    private static final int SHRUB_TRUNK_MAX = 2;
+    /** 风蚀柱的最小柱高（格；= {@code WIND_STUMP_HEIGHT_MIN}，判据侧按"柱身料竖段 ≥7"独立数，不复用生产常量表达式）。 */
+    private static final int WIND_STUMP_MIN_RUN = 7;
 
     // ═══════════════════════════════════ 记账 ═══════════════════════════════════
 
@@ -167,6 +229,12 @@ public final class P17VegetationFrequencyCheck {
     private static final List<String> FAILURES = new ArrayList<>();
     private static final Map<Block, Integer> KINDS = new IdentityHashMap<>();
     private static long sinkDrops;
+    /**
+     * v1.20.41 P20 S8 列级归因只报读数：环境变量 {@code VEG_DUMP=<生物群系序号>} 置位时，把该档
+     * 荒漠 chunk 里每一格原木/树叶连同<b>装饰前</b>该列地表高度与方块打出来（默认 -1=关，不参与
+     * 任何带判定）。用途：比较两个生产快照之间"哪些列从非叶变有叶、它们站在什么地表上"。
+     */
+    private static int plantDumpIdx = -1;
     private static final int KIND_NONE = 0;
     private static final int KIND_LOG = 1;
     private static final int KIND_LEAF = 2;
@@ -178,6 +246,10 @@ public final class P17VegetationFrequencyCheck {
 
     public static void main(String[] args) throws Exception {
         quietLogging();
+        final String dumpEnv = System.getenv("VEG_DUMP");
+        if (dumpEnv != null && !dumpEnv.isEmpty()) {
+            plantDumpIdx = Integer.parseInt(dumpEnv.trim());
+        }
         bootstrap();
         assertTierTables();
         assertSourceRedlines();
@@ -192,7 +264,12 @@ public final class P17VegetationFrequencyCheck {
             System.out.println(biomeLine(e.getKey(), e.getValue()));
         }
         System.out.println("VEG-TOTAL " + biomeLine(-1, total(m)));
+        // v1.20.41 P20 S8 只报读数：荒漠叶/chunk 的逐区拆解（不参与带判定）
+        for (final String line : TILE_LINES) {
+            System.out.println(line);
+        }
         assertBands(m);
+        assertSpineShrubAndSand(m);
         assertBehaviouralOrder(m);
         assertDesertSensitivity(antiChunks);
         assertRosterConsumed();
@@ -259,7 +336,27 @@ public final class P17VegetationFrequencyCheck {
                     + (t[i].grassRolls + t[i].flowerRolls));
         }
         check(t[WASTES].sandRolls > 0, "DECL 荒漠沙砾趟 > 0（沙类方块有真实消费者）");
-        for (int i = 0; i < 4; i++) {
+        // v1.20.41 P20 S6 需求 5 的两处档值钉：量（斑数 4 → 7）与质（主料 SAND_FINE → SAND_COARSE）。
+        // 这两条是"回到常量域重解"的可见锚 —— 任何一条被回退，M 组的量带/份额带会同时红，而本条先点名是哪一档。
+        check(t[WASTES].sandRolls == 7,
+            "DECL 荒漠沙砾斑数 == 7（v1.20.41 需求 5『更粗砂粒』的量档，改前 4；7/4 的线性外推见 BAND_SAND）；实测 "
+                + t[WASTES].sandRolls);
+        final String decorTier;
+        try {
+            decorTier = condense(stripComments(read(Paths.get(DECOR_SRC))));
+        } catch (Exception e) {
+            throw new IllegalStateException(e);
+        }
+        check(decorTier.contains("WIND_STUMP_ROLLS_BY_ROSTER={0,0,8,0,0}"),
+            "DECL 风蚀柱名册档 = 只在荒漠档 8、其余（含身份缺失回退）0（抑制写成档值而非身份等值判断；"
+                + "档表按源码文本钉，同一份判据源码要能同时链接改前/改后两套生产 class）");
+        check(decorTier.contains(
+            "newVegTier(0,0,4,3,1,WOOD_RUST,WOOD_NONE,0,3,1,7,FLOWER_BRASS,GRASS_BRISTLE,SAND_COARSE)"),
+            "DECL 荒漠植被档整行字面 = 沙砾斑 7 + 主料 SAND_COARSE（condense 口径，防 spotless 折行打死 needle）");
+        check(t[WASTES].sandKind == ProsperityDecorPlacer.SAND_COARSE,
+            "DECL 荒漠主料档 == SAND_COARSE（需求 5 的质档，改前 SAND_FINE；只走覆盖物、绝不进 top，"
+                + "H-4 与 §1.2 第 5 条）；实测 kind=" + t[WASTES].sandKind);
+       for (int i = 0; i < 4; i++) {
             if (i != WASTES) {
                 check(t[i].sandRolls == 0, "DECL 非荒漠档 " + i + " sandRolls == 0（铺沙不外溢）");
             }
@@ -373,6 +470,17 @@ public final class P17VegetationFrequencyCheck {
         long tufts;
         long flowers;
         long sand;
+        /** v1.20.41 P20 S6：沙/砾三档各自块数（需求 5"更多<b>粗</b>砂粒"的质判据分子）。 */
+        long sandCoarse;
+        long sandGravel;
+        long sandFine;
+        /** v1.20.41 P20 S6：风蚀柱数（柱身料竖段 ≥7 格）、最宽柱高读数、柱顶粗沙覆料数。 */
+        long stumps;
+        long stumpRunMax;
+        long stumpCaps;
+        /** v1.20.41 P20 S6：短干株数（干高 ≤{@link #SHRUB_TRUNK_MAX}）与聚簇邻居合计。 */
+        long shrubs;
+        long shrubNeighbors;
 
         Agg copy() {
             final Agg b = new Agg();
@@ -383,6 +491,14 @@ public final class P17VegetationFrequencyCheck {
             b.tufts = tufts;
             b.flowers = flowers;
             b.sand = sand;
+            b.sandCoarse = sandCoarse;
+            b.sandGravel = sandGravel;
+            b.sandFine = sandFine;
+            b.stumps = stumps;
+            b.stumpRunMax = stumpRunMax;
+            b.stumpCaps = stumpCaps;
+            b.shrubs = shrubs;
+            b.shrubNeighbors = shrubNeighbors;
             System.arraycopy(trunk, 0, b.trunk, 0, trunk.length);
             return b;
         }
@@ -404,9 +520,22 @@ public final class P17VegetationFrequencyCheck {
             return n;
         }
 
+        /** 短干株数（灌木档代理：干高 1..{@link #SHRUB_TRUNK_MAX} 的 LOG 竖段）。 */
+        long shrubProxy() {
+            long n = 0;
+            for (int i = 1; i <= SHRUB_TRUNK_MAX && i < trunk.length; i++) {
+                n += trunk[i];
+            }
+            return n;
+        }
+
         String digest() {
             return "chunks=" + chunks + " trees=" + trees + " logs=" + logs + " leaves=" + leaves + " tufts=" + tufts
-                + " flowers=" + flowers + " sand=" + sand + " trunkHist=" + Arrays.toString(trunk);
+                + " flowers=" + flowers + " sand=" + sand + " trunkHist=" + Arrays.toString(trunk)
+                // v1.20.41 P20 S6 起 S6 新增的四组计数也进逐位自证摘要：ANTI 的"换档→还原必须逐位回到
+                // 第一臂"因此同时证明<b>风蚀柱趟与灌木簇趟</b>是 seed 纯函数（不读共享 rand、不依赖时序）。
+                + " sandKinds=" + sandCoarse + "/" + sandGravel + "/" + sandFine + " stumps=" + stumps + "/"
+                + stumpRunMax + "/" + stumpCaps + " shrubs=" + shrubs + "/" + shrubNeighbors;
         }
     }
 
@@ -420,6 +549,14 @@ public final class P17VegetationFrequencyCheck {
             s.tufts += a.tufts;
             s.flowers += a.flowers;
             s.sand += a.sand;
+            s.sandCoarse += a.sandCoarse;
+            s.sandGravel += a.sandGravel;
+            s.sandFine += a.sandFine;
+            s.stumps += a.stumps;
+            s.stumpRunMax = Math.max(s.stumpRunMax, a.stumpRunMax);
+            s.stumpCaps += a.stumpCaps;
+            s.shrubs += a.shrubs;
+            s.shrubNeighbors += a.shrubNeighbors;
             for (int i = 0; i < s.trunk.length; i++) {
                 s.trunk[i] += a.trunk[i];
             }
@@ -427,8 +564,34 @@ public final class P17VegetationFrequencyCheck {
         return s;
     }
 
+    /**
+     * v1.20.41 P20 S8 只报读数（不参与任何带判定）：荒漠 {@code leavesPerChunk} 的<b>逐区</b>拆解。
+     * 全量链默认臂 4/2 出现 0.3268(S6 T0) → 0.4581 的位移，而 4/4 臂逐字不变，故必须按
+     * (seed, 区序号) 拆开才能指认"是哪一区贡献的"。此处只做差值快照，不改计数口径。
+     */
+    private static final java.util.List<String> TILE_LINES = new ArrayList<>();
+
+    private static Agg diffAgg(final Agg before, final Agg after) {
+        final Agg d = new Agg();
+        d.chunks = after.chunks - before.chunks;
+        d.trees = after.trees - before.trees;
+        d.logs = after.logs - before.logs;
+        d.leaves = after.leaves - before.leaves;
+        d.tufts = after.tufts - before.tufts;
+        d.flowers = after.flowers - before.flowers;
+        d.sand = after.sand - before.sand;
+        d.shrubs = after.shrubs - before.shrubs;
+        d.stumps = after.stumps - before.stumps;
+        d.stumpRunMax = Math.max(before.stumpRunMax, after.stumpRunMax);
+        for (int i = 0; i < d.trunk.length; i++) {
+            d.trunk[i] = after.trunk[i] - before.trunk[i];
+        }
+        return d;
+    }
+
     /** 区采样（M/ORDER 组）：真实地形 + 真实表层缝 + 真实装饰，城 buffer 窗生产同源排除。 */
     private static Map<Integer, Agg> measureRegion(int seeds, int regions, int axis) throws Exception {
+        TILE_LINES.clear();
         final Map<Integer, Agg> out = new TreeMap<>();
         final int side = axis * 16;
         final Block[] scratch = new Block[65536];
@@ -466,7 +629,13 @@ public final class P17VegetationFrequencyCheck {
                         }
                     }
                 }
-                decorateRegion(out, world, grid, side, seed, cx0, cz0, axis);
+                // 注意：bucket() 的语义是"取桶并 +1 chunk"，此处只读快照，绝不能走 bucket()
+                final Agg w0 = out.get(Integer.valueOf(WASTES));
+                final Agg wastesBefore = w0 == null ? new Agg() : w0.copy();
+                decorateRegion(out, world, grid, side, seed, cx0, cz0, axis, si + "/" + r);
+                final Agg wastesDelta = diffAgg(wastesBefore, out.get(Integer.valueOf(WASTES)));
+                TILE_LINES.add("VEG-TILE si=" + si + " r=" + r + " seed=0x" + Long.toHexString(seed)
+                    + " cx0=" + cx0 + " cz0=" + cz0 + " axis=" + axis + " " + biomeLine(WASTES, wastesDelta));
             }
         }
         return out;
@@ -474,8 +643,23 @@ public final class P17VegetationFrequencyCheck {
 
     /** 对一个区跑装饰并计数（干高由网格竖直段扫描，与 sink 计数分面）。 */
     private static void decorateRegion(Map<Integer, Agg> out, FlatWorld world, Block[] grid, int side, long seed,
-        int cx0, int cz0, int axis) {
-        final CountingSink sink = new CountingSink(world, out);
+        int cx0, int cz0, int axis, String tile) {
+        // v1.20.41 P20 S6：装饰<b>前</b>的每列地表高度 —— 风蚀柱的柱身竖段与灌木短干都按"从原地面
+        // 往上数"判定，装饰后再找地表会把柱本身当地表（findSurfaceY 的口径），故必须在此刻快照。
+        final int[] topBefore = new int[side * side];
+        final int yTop = Math.min(255, MAX_SURFACE_Y_SCAN);
+        for (int c = 0; c < topBefore.length; c++) {
+            int t = -1;
+            for (int y = yTop; y >= 0; y--) {
+                if (grid[y * side * side + c] != null) {
+                    t = y;
+                    break;
+                }
+            }
+            topBefore[c] = t;
+        }
+        final CountingSink sink = plantDumpIdx < 0 ? new CountingSink(world, out)
+            : new CountingSink(world, out, topBefore, grid, side, cx0, cz0, tile);
         for (int dx = 0; dx < axis; dx++) {
             for (int dz = 0; dz < axis; dz++) {
                 final int gcx = cx0 + dx;
@@ -488,6 +672,7 @@ public final class P17VegetationFrequencyCheck {
                 ProsperityDecorPlacer.decorate(world, seed, gcx, gcz, idx, sink);
             }
         }
+        final List<int[]> shrubCols = new ArrayList<>();
         for (int dx = 0; dx < axis; dx++) {
             for (int dz = 0; dz < axis; dz++) {
                 final int gcx = cx0 + dx;
@@ -496,11 +681,101 @@ public final class P17VegetationFrequencyCheck {
                     continue;
                 }
                 final int idx = ordinal(gcx, gcz);
-                final int chunkTrees = countTrunks(grid, side, dx, dz, out.get(Integer.valueOf(idx)));
+                final Agg a = out.get(Integer.valueOf(idx));
+                final int chunkTrees = countTrunks(grid, side, dx, dz, a);
                 if (idx == WASTES && wastesInterior(seed, gcx, gcz)) {
                     wastesInteriorChunks++;
                     wastesInteriorTrees += chunkTrees;
                 }
+                // S6 新增两组的几何扫描（柱 / 灌木株位）——只在有 agg 桶时进，防"比了个空"
+                if (a != null) {
+                    scanSpinesAndShrubs(grid, side, dx, dz, topBefore, a, idx, shrubCols);
+                }
+            }
+        }
+        countShrubNeighbors(shrubCols, out);
+    }
+
+    /** 装饰侧列扫的上界（与 {@code ProsperityDecorPlacer.MAX_SURFACE_Y} 同量级；高度域上沿 108 远在其下）。 */
+    private static final int MAX_SURFACE_Y_SCAN = 200;
+
+    /**
+     * 一个 chunk 内的两笔几何账（v1.20.41 P20 S6）：
+     * <ol>
+     * <li><b>风蚀柱</b>：从装饰前地表往上数连续的柱身料（{@code prosperityWastesBase}）竖段，
+     * 段高 ≥{@link #WIND_STUMP_MIN_RUN} 记一柱。这条<b>不</b>依赖 sink 的方块分类，是独立的第二数法
+     * （防"柱只在 sink 里被记一笔、实际没立起来"）；柱顶的粗沙覆料不计入段高，故
+     * "柱顶 y − 地面 y ≥ 6"由段高 ≥7 直接蕴含。</li>
+     * <li><b>灌木株位</b>：从装饰前地表往上数连续的干料（{@code KIND_LOG}）竖段，段高 ∈
+     * {@code [1, SHRUB_TRUNK_MAX]} 的列记为株位（连同其 biome 桶下标），供
+     * {@link #countShrubNeighbors} 算聚簇度。巨树的分叉枝段偶尔也是 1-2 格短段 ⇒ 计进株位；
+     * 这类枝段空间上孤立，只会把聚簇度<b>拉低</b>（对"成簇"判据是保守方向，不会造假绿）。</li>
+     * </ol>
+     */
+    private static void scanSpinesAndShrubs(Block[] grid, int side, int cx, int cz, int[] topBefore, Agg a, int idx,
+        List<int[]> shrubCols) {
+        for (int lx = 0; lx < 16; lx++) {
+            for (int lz = 0; lz < 16; lz++) {
+                final int col = (cx * 16 + lx) + (cz * 16 + lz) * side;
+                final int top = topBefore[col];
+                if (top < 0 || top >= 254) {
+                    continue;
+                }
+                int run = 0;
+                int y = top + 1;
+                while (y < 255 && grid[y * side * side + col] == BlocksGTSR.prosperityWastesBase) {
+                    run++;
+                    y++;
+                }
+                if (run >= WIND_STUMP_MIN_RUN) {
+                    a.stumps++;
+                    a.stumpRunMax = Math.max(a.stumpRunMax, run);
+                    if (y < 255 && grid[y * side * side + col] == BlocksGTSR.prosperityCoarseSand) {
+                        a.stumpCaps++; // 柱顶那一层粗沙覆料（要从"铺沙份额"的分子里精确扣掉）
+                    }
+                    continue; // 柱列不再当灌木
+                }
+                run = 0;
+                y = top + 1;
+                while (y < 255) {
+                    final Block b = grid[y * side * side + col];
+                    if (b == null || kind(b) != KIND_LOG) {
+                        break;
+                    }
+                    run++;
+                    y++;
+                }
+                if (run >= 1 && run <= SHRUB_TRUNK_MAX) {
+                    a.shrubs++;
+                    shrubCols.add(new int[] { cx * 16 + lx, cz * 16 + lz, idx });
+                }
+            }
+        }
+    }
+
+    /**
+     * 株位的同丛邻居合计（切比雪夫距离 ≤{@link #SHRUB_NEIGHBOR_RADIUS}，<b>不含</b>自身）。
+     * 区内膜扫描：株位量级 ≈ 每区 1-2 千，{@code O(n²)} 在判据档可接受（实测每条 <b>秒级</b>）。
+     */
+    private static void countShrubNeighbors(List<int[]> cols, Map<Integer, Agg> out) {
+        final int n = cols.size();
+        for (int i = 0; i < n; i++) {
+            final int[] p = cols.get(i);
+            final Agg a = out.get(Integer.valueOf(p[2]));
+            int neighbours = 0;
+            for (int j = 0; j < n; j++) {
+                if (i == j) {
+                    continue;
+                }
+                final int[] q = cols.get(j);
+                if (Math.abs(p[0] - q[0]) <= SHRUB_NEIGHBOR_RADIUS && Math.abs(p[1] - q[1]) <= SHRUB_NEIGHBOR_RADIUS) {
+                    neighbours++;
+                }
+            }
+            // 邻居数记在<b>本株</b>自己的桶上（株位三元组第 3 元 = 采集时那次 ordinal 解析的名册下标，
+            // 与 M 组同一次解析，不另起第二条身份取数路）
+            if (a != null) {
+                a.shrubNeighbors += neighbours;
             }
         }
     }
@@ -667,6 +942,60 @@ public final class P17VegetationFrequencyCheck {
             }
         }
         check(sinkDrops == 0, "M 零越界落块（冠层半径与干位内收自洽，跨界协议未破）；实测 " + sinkDrops);
+    }
+
+    // ═════════════════ v1.20.41 P20 S6：风蚀柱 / 灌木成簇 / 粗沙份额 ═════════════════
+
+    /**
+     * S6 组（需求 5 的风蚀柱 + 需求 6 的灌木群 + 需求 5 的"粗"砂）：三条各抓一个不同的轴，
+     * 任何一条单独绿都不足以说明改动落地了。
+     * <ol>
+     * <li><b>量</b>：荒漠沙砾块数/chunk（{@link #BAND_SAND}）与<b>质</b>：粗沙份额
+     * （{@link #BAND_COARSE_SHARE}）——只钉量的话，把主料留在细沙也算"绿"；</li>
+     * <li><b>风蚀柱</b>：柱数/chunk 落带 ＋ <b>其余三群系必须精确 0 柱</b>（档值抑制的跨群系自证，
+     * 形状同"铺沙不外溢"那条 DECL）；柱身竖段由网格几何独立数出，不走 sink 分类 ⇒ 第二数法；</li>
+     * <li><b>灌木</b>：株数/chunk（总量，{@link #BAND_SHRUBS}）与<b>聚簇度</b>
+     * （每株平均同丛邻居数，{@link #BAND_SHRUB_NEIGHBORS}）——需求原话是"灌木<b>群</b>"，
+     * 只钉总量的话均匀散点也绿（改前实测聚簇度 = <b>0.000000</b>，见同一份 before 日志）。</li>
+     * </ol>
+     */
+    private static void assertSpineShrubAndSand(Map<Integer, Agg> m) {
+        for (int idx = 0; idx < 4; idx++) {
+            final Agg a = get(m, idx);
+            if (a.chunks == 0) {
+                continue;
+            }
+            if (idx != WASTES) {
+                check(a.stumps == 0, "S6 非荒漠档 " + BIO[idx] + " 零风蚀柱（档表 0 = 一条骰都不掷）；实测 " + a.stumps);
+            } else {
+                band("S6 荒漠 风蚀柱数/chunk", div(a.stumps, a.chunks), BAND_WIND_STUMPS);
+                check(a.stumpRunMax >= WIND_STUMP_MIN_RUN,
+                    "S6 荒漠柱高最值 ≥ " + WIND_STUMP_MIN_RUN + "（柱真的立起来了，不是 sink 记账假绿）；实测 max run="
+                        + a.stumpRunMax);
+                // 柱顶粗沙覆料与铺沙同类方块 ⇒ 会从 sink 的 coarse/sand 里混进来；按<b>几何扫出的精确
+                // 覆料数</b>同扣分子分母（扣柱数是近似，已弃）⇒ 份额量的是"铺沙趟"自己的质。
+                final double total = a.sand - a.stumpCaps;
+                final double coarse = a.sandCoarse - a.stumpCaps;
+                check(total > 0 && coarse >= 0.0D, "S6 前置：荒漠沙砾样本 > 0 且粗沙份额分子非负（覆料已精确扣除）；"
+                    + "实测 sand=" + a.sand + " coarse=" + a.sandCoarse + " caps=" + a.stumpCaps);
+                check(a.stumpCaps <= a.stumps, "S6 前置：柱顶覆料数 ≤ 柱数（每柱至多一层覆料）；实测 caps="
+                    + a.stumpCaps + " stumps=" + a.stumps);
+                band("S6 荒漠 粗沙占铺沙份额", ddiv(coarse, total), BAND_COARSE_SHARE);
+                check(a.sandFine == 0L,
+                    "S6 荒漠铺沙里细沙不再被放置（档表主料已换粗沙；改前细沙占 2/3）；实测 fine=" + a.sandFine);
+            }
+            if (idx == STEPPE) {
+                band("S6 草原 灌木株数/chunk（短干竖段）", div(a.shrubs, a.chunks), BAND_SHRUBS_STEPPE);
+                band("S6 草原 灌木聚簇度（每株同丛邻居均值）", div(a.shrubNeighbors, a.shrubs), BAND_SHRUB_NEIGHBORS);
+            }
+        }
+        final Agg w = get(m, WASTES);
+        final Agg s = get(m, STEPPE);
+        System.out.println("VEG-S6 wastes sand=" + w.sand + " coarse/gravel/fine=" + w.sandCoarse + "/" + w.sandGravel
+            + "/" + w.sandFine + " stumps=" + w.stumps + "(maxRun " + w.stumpRunMax + ") | steppe shrubs=" + s.shrubs
+            + " neighbours=" + s.shrubNeighbors + " meanNeighbor=" + fmt(div(s.shrubNeighbors, s.shrubs))
+            + " | ORDER 森/原=" + fmt(ddiv(ddiv(get(m, FOREST).trees, get(m, FOREST).chunks),
+                ddiv(s.trees, s.chunks))));
     }
 
     private static void assertBehaviouralOrder(Map<Integer, Agg> m) {
@@ -852,6 +1181,11 @@ public final class P17VegetationFrequencyCheck {
         return n == 0 ? 0D : (double)sum / n;
     }
 
+    /** double 域的比值（{@link #div(long,long)} 之外另立一件：S6 的份额/比值分子分母是扣过覆料的 double）。 */
+    private static double ddiv(double a, double b) {
+        return b <= 0.0D ? Double.NaN : a / b;
+    }
+
     private static double div(long a, long b) {
         return b == 0 ? 0D : (double)a / b;
     }
@@ -976,10 +1310,29 @@ public final class P17VegetationFrequencyCheck {
         private int cz;
         private int idx;
         private Agg agg;
+        /** S8 只报读数用：装饰前逐列地表 + 该列网格索引换算（{@code VEG_DUMP=1} 时才打印）。 */
+        private int[] topBeforeDump;
+        private Block[] gridDump;
+        private int sideDump;
+        private int baseXDump;
+        private int baseZDump;
+        private String tileDump = "?";
 
         CountingSink(FlatWorld world, Map<Integer, Agg> out) {
             this.world = world;
             this.out = out;
+        }
+
+        /** S8 重载：附带列级上下文，仅当 {@code VEG_DUMP=1} 时用于打印只报读数。 */
+        CountingSink(FlatWorld world, Map<Integer, Agg> out, int[] topBefore, Block[] grid, int side, int cx0,
+            int cz0, String tile) {
+            this(world, out);
+            this.topBeforeDump = topBefore;
+            this.gridDump = grid;
+            this.sideDump = side;
+            this.baseXDump = cx0 << 4;
+            this.baseZDump = cz0 << 4;
+            this.tileDump = tile;
         }
 
         void chunk(int cx, int cz, int idx, Agg agg) {
@@ -999,7 +1352,17 @@ public final class P17VegetationFrequencyCheck {
                 return false;
             }
             final Block b = (Block)block;
-            switch (kind(b)) {
+            final int kind = kind(b);
+            if (plantDumpIdx >= 0 && gridDump != null && this.idx == plantDumpIdx
+                && (kind == KIND_LOG || kind == KIND_LEAF)) {
+                final int col = (x - baseXDump) + (z - baseZDump) * sideDump;
+                final int gt = (col >= 0 && col < topBeforeDump.length) ? topBeforeDump[col] : -2;
+                final String gb = (gt >= 0 && gridDump != null)
+                    ? String.valueOf(gridDump[gt * sideDump * sideDump + col].getClass().getSimpleName()) : "-";
+                System.out.println("VEG-PLANT t=" + tileDump + " k=" + (kind == KIND_LOG ? "L" : "F") + " cx=" + cx
+                    + " cz=" + cz + " x=" + x + " z=" + z + " y=" + y + " gtop=" + gt + " gblk=" + gb);
+            }
+            switch (kind) {
                 case KIND_LEAF: {
                     agg.leaves++;
                     break;
@@ -1014,6 +1377,15 @@ public final class P17VegetationFrequencyCheck {
                 }
                 case KIND_SAND: {
                     agg.sand++;
+                    // v1.20.41 P20 S6 需求 5 的"质"档：三种沙/砾分开数（需求原话是"更多的<b>粗</b>砂粒"，
+                    // 只数合计块数的 BAND_SAND 分不清"细沙变多"与"粗沙变多"这两件事）
+                    if (b == BlocksGTSR.prosperityCoarseSand) {
+                        agg.sandCoarse++;
+                    } else if (b == BlocksGTSR.prosperityRiverGravel) {
+                        agg.sandGravel++;
+                    } else {
+                        agg.sandFine++;
+                    }
                     break;
                 }
                 default: {

@@ -14,7 +14,10 @@ import cpw.mods.fml.relauncher.SideOnly;
 /**
  * 遗忘之川（dim78 第 5 群系，v1.20.39 T5 / plan §3.3）——细长稀有的主干宽河带：主干带
  * （{@code GTSRVoronoiRiverField.trunkAt}，波长约 5000 格、占河网 1/6-1/8）内的 Voronoi 主边界
- * 宽河（width×3.5）+ 巨湖（第二 Voronoi，湖床 62-64/水面 68），与普通河同网连通但少支流
+ * 宽河（width×3.5）+ 巨湖（第二 Voronoi；湖心床贴全局高度地板 = {@code SEA_LEVEL −
+ * LAKE_CENTER_DEPTH}、水面吃 {@code ProsperityTerrainProfile.SEA_LEVEL}，一律按符号引不写字面档——
+ * 旧注释的"湖床 62-64/水面 68"是 v1.20.40 前的渐深档，P20 §15.3 加深 {@code LAKE_CENTER_DEPTH}
+ * 后该口径按设计失效（真值以常量为准、本页不重抄数值，P20 债③ 改齐），与普通河同网连通但少支流
  * （带内对齐门清零横截次级边界）。
  * <p>
  * <b>注册与常规四群系不同轨</b>：经 {@link ProsperityBiomes} 既有扫描配槽机制占 biomeList 槽
