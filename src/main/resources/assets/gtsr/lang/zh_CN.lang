@@ -2086,6 +2086,10 @@ tile.ProsperityCoarseSand.name=粗粒沙
 tile.ProsperityRiverGravel.name=河床砂砾
 # 维度繁荣蒸汽时代遗迹：v1.20.39 T2 地底 wholeBody 主体石（§3.7 地底石化；非表层，meta 恒 0）
 tile.ProsperityStone.name=繁荣废岩
+# 维度繁荣蒸汽时代遗迹：v1.20.43 P22-B S2 岛心巨树三件套（p21 §4；非表层，meta 恒 0）
+tile.ProsperityZenithLog.name=垂天玄柯
+tile.ProsperityJadeLeaves.name=漱玉清羽
+tile.ProsperityRoostGlow.name=旧栖晴晕
 
 # 维度繁荣蒸汽时代遗迹：v1.20.40 P19-U1 深渊执念流体（§I；BlockFluidClassic + 自有桶）
 tile.AbyssalFluid.name=深渊执念

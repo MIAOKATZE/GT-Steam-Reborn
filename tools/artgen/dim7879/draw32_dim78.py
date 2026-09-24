@@ -11,6 +11,14 @@ v1.20.39 T2 增补（plan §3.7 地底石化）：再 +1 张 prosperity_stone（
 新 builder stone_ruin()（grit_base 同骨架 + 锈染短缝/锈点层），母版参数与种子在 manifest.json
 （PALETTE 锚 PROSPERITY_STONE / SEED 0x5EED8151）。既 35 张的 builder 与参数逐字未改。
 
+v1.20.43 P22-B S2 增补（p21 §4 岛心巨树三件套）：半边 36 → 41 张 = +玄柯 log_side/log_top +
+清羽 leaves_side/leaves_top（4 张 32×32，全部复用既有族刷 log_side/log_top/leaves，仅新谱新种子：
+PALETTE 锚 ZENITH_BARK/ZENITH_CORE/CANOPY_JADE，种子 0x5EED8171..74）+ 旧栖晴晕
+prosperity_roost_glow（1 张 **32×192 竖条 6 帧** + 同名 mcmeta frametime=5，§4.4 lumen 档：
+新 kind=frame_strip、新 builder lumen_strip() + 独立幂等写出器 write_strip()；PALETTE 锚
+LUMEN_GOLD/LUMEN_WICK，种子 0x5EED8175；16 档母版 gen 主入口对该 kind 显式跳过，本文件是其
+唯一绘制器）。既 36 张的 builder 与参数逐字未改。
+
 风格锚底座 = 仓内既有管线 tools/artgen/dim7879/gen_dim7879_blocks.py 的原语与 R1-R6 口径
 （Rules/Tex/h01/tile_noise/scatter/paint_blob/各 kind 画法，经 importlib 复用，不复制色值）。
 本文件只加两样：① 32 档才吃得下的手绘细节层（R6）；② 配色收敛闸（越线项折近重复色）。
@@ -69,7 +77,10 @@ prosperity_marsh_leaves_side prosperity_marsh_leaves_top
 prosperity_flower_rust prosperity_flower_patina prosperity_flower_brass prosperity_flower_marsh
 prosperity_tuft_sedge prosperity_tuft_bristle
 prosperity_silica_sand prosperity_coarse_sand prosperity_river_gravel
-prosperity_stone""".split()
+prosperity_stone
+prosperity_zenith_log_side prosperity_zenith_log_top
+prosperity_jade_leaves_side prosperity_jade_leaves_top
+prosperity_roost_glow""".split()
 
 RATIONALE = {
  "prosperity_steppe_top": "16 档草叶是均匀撒点 ⇒ 32 档改成簇生（8×8 格位扎 2-4 根 1px 叶 + 1px 亮尖），另用 cells=8/4 低频斑块把基色整体推 ±1 阶：草皮成坨，而不是同一张噪点。",
@@ -114,6 +125,12 @@ RATIONALE = {
  "prosperity_river_gravel": "河床砂砾：grit_base 骨架 + 砾密度 0.30（全批最高）+ 明暗阶拉到 D220/L220，底谱 RIVER_GRAVEL 是沙类里唯一不带暖相的灰褐 ⇒ 水磨砾石感；S-C 河床主料，本片先在荒漠砾石斑上真实消费一次。",
  # —— v1.20.39 T2：地底石化 1 张（wholeBody 主体石；冷灰带锈调）——
  "prosperity_stone": "繁荣废岩：grit_base 同骨架（母版 terrain_grit 带周期 8 沉积层理 ⇒ 成层废岩，不是土）+ 9 颗小砾 + 4 条 1px 锈染短缝与稀疏锈点，底谱 PROSPERITY_STONE 冷灰 ⇒ 贴近 prosperity_*_base 族但更石质，与 RIVER_GRAVEL（亮灰褐）和 SPIKE_STONE（冷蓝灰）三方拉开。",
+ # —— v1.20.43 P22-B S2：岛心巨树三件套 5 张（玄柯 2 + 清羽 2 + 旧栖晴晕帧带 1）——
+ "prosperity_zenith_log_side": "垂天玄柯侧面：rust 骨架五档同款（纵向纹场 4×16 + 棱脊 ÷R + 7 细纵裂 + 2 斑团 + 环带 6/22），底谱换 ZENITH_BARK 靛黑、斑团/环带走 ZENITH_CORE@L140/@D220 淡靛（冷苔斑）⇒ 与锈/铜绿/黄铜/沼木四档靠『冷相斑团 + 更暗树皮』双差可辨，湖心古树的阴润感。",
+ "prosperity_zenith_log_top": "垂天玄柯横截面：年轮骨架同族（髓心 (17,14) 手移、非完美同心、环带 2px ×R、裂纹 3 条 1px），芯色 ZENITH_CORE 淡靛 ⇒ 巨树断面的冷芯年轮。",
+ "prosperity_jade_leaves_side": "漱玉清羽侧面：leaves_clump 同骨架（细碎簇场 + 暗孔 + 亮针尖），底换 CANOPY_JADE 青碧（比铜绿更冷更透）、点缀 GLINT@D140 淡滴（漱玉水痕）⇒ 巨树冠与三档灌木冠靠色相 + 点缀谱拉开；仍中性乘色底（tint 继承锈叶口径）。",
+ "prosperity_jade_leaves_top": "清羽顶视：同谱同画法，暗孔 0.12/亮针 0.20 加密 ⇒ 俯视巨树冠的日光缝隙（差异只来自参数，与铜绿/黄铜/沼木顶档同口径）。",
+ "prosperity_roost_glow": "旧栖晴晕帧带（§4.4 lumen 档，32×192 竖条 6 帧）：LUMEN_WICK 暗芯烛柱（2px 宽 ×11px 高 + 上缘 L090 亮口）+ LUMEN_GOLD 四阶金焰（hot L280/mid BASE/low D140/deep D280）+ 奇数帧 1 粒 GLINT@D045 飞火；跃动 = 逐行相位正向的行进摆（amp 1.6px / 0.55rad/行 / 初相由种子派生，帧 f 推进 TAU·f/6）⇒ 零新色零随机、双跑确定复现，金色画进像素（Java 侧零 tint）。",
 }
 
 
@@ -562,6 +579,62 @@ def leaves(key):
     return tex
 
 
+def lumen_strip(key):
+    """旧栖晴晕帧带 builder（§4.4 lumen 档）：返回 frames 个 32×32 透明底十字帧 Tex，竖条堆叠由
+    write_strip 完成（p21：帧带必为竖条，奇点族 hub_frame_receive 32×352=11 帧同口径）。
+
+    形态学：LUMEN_WICK 暗芯烛柱（x=15..16 两列、y=21..31 共 11 行 + 顶行亮口 L090）+ 金焰泪滴形
+    （半宽按 sin 包络收束、顶端 1px）；分层 = 外圈 deep(D280) / 内圈 low(D140) / 主体 mid(BASE) /
+    下段芯柱 hot(L280) 3 列——光源锚左上的口径同花族；奇数帧焰尖上方 1 粒 GLINT@D045 飞火。
+    跃动 = 逐行正弦行进摆：row r 在帧 f 的偏移 round(amp·sin(TAU·f/F + phase + rph·r))，
+    初相 phase 由 h01(seed) 派生 ⇒ 一切位移是种子/帧号的确定函数（禁 random/time，AST 自检覆盖）。
+    金色直接画进像素：Java 类零 colorMultiplier/getBlockColor 覆写，本帧带即最终观感。
+    """
+    p = G._resolve_params(BY_KEY[key], BY_KEY, STYLE)
+    seed = G._parse_seed(MAN["SEEDS"][key])
+    base = p["base"]
+    wick = RULES.resolve(p["wick"], base)
+    wick_lit = RULES.resolve(p["wick_lit"], base)
+    hot = RULES.resolve(p["flame_hot"], base)
+    mid = RULES.resolve(p["flame_mid"], base)
+    low = RULES.resolve(p["flame_low"], base)
+    deep = RULES.resolve(p["flame_deep"], base)
+    spark = RULES.resolve(p["spark"], base)
+    hflame = int(p["flame_height"])
+    amp = float(p["sway_amp"])
+    rph = float(p["sway_row_phase"])
+    phase = G.h01(seed, "lph", 0, 0) * TAU
+    frames = int(BY_KEY[key].get("frames", 6))
+    out = []
+    for f in range(frames):
+        tex = G.Tex(bg=TRANSPARENT)
+        for y in range(21, SIZE):                       # 烛柱：顶行亮口，柱身暗芯
+            tex.put(15, y, wick_lit if y == 21 else wick, wrap=False)
+            tex.put(16, y, wick, wrap=False)
+        y0 = 20                                         # 焰根（烛柱正上方）
+        for r in range(hflame):                         # 自根到尖 r=0..H-1
+            cx = 16 + int(round(amp * math.sin(TAU * f / frames + phase + rph * r)))
+            hw = max(1, int(round(2.5 * math.sin(math.pi * (r + 1) / (hflame + 1)))))
+            if r >= hflame - 1:
+                tex.put(cx, y0 - r, deep, wrap=False)   # 焰尖单像素（泪滴收口）
+                continue
+            for dx in range(-hw, hw + 1):
+                if r <= 3 and abs(dx) <= 1:
+                    col = hot                           # 下段芯柱最亮（光源在根）
+                elif abs(dx) == hw:
+                    col = low                           # 外圈
+                elif r >= hflame - 3:
+                    col = deep                          # 上段收冷
+                else:
+                    col = mid
+                tex.put(cx + dx, y0 - r, col, wrap=False)
+        if f % 2 == 1:                                  # 奇数帧：焰尖上一粒飞火
+            cx_tip = 16 + int(round(amp * math.sin(TAU * f / frames + phase + rph * (hflame - 1))))
+            tex.put(cx_tip, y0 - hflame - 1, spark, wrap=False)
+        out.append(tex)
+    return out
+
+
 BUILDERS = {
     "prosperity_steppe_top": lambda: grass_top("prosperity_steppe_top", "st"),
     "prosperity_forest_top": lambda: grass_top("prosperity_forest_top", "ft"),
@@ -606,6 +679,13 @@ BUILDERS = {
     "prosperity_river_gravel": lambda: grit_base("prosperity_river_gravel", 20, 0),
     # —— v1.20.39 T2 地底石化 1 张：grit_base 同骨架 + 锈染层（新 builder 仅因锈缝层，画架原语零新）——
     "prosperity_stone": lambda: stone_ruin("prosperity_stone"),
+    # —— v1.20.43 P22-B S2 岛树三件套 5 张：玄柯/清羽复用 rust 族 builder（换谱换种子，零新画架）；
+    #    旧栖晴晕走 lumen_strip（新 kind=frame_strip，返回 frames 个 32×32 帧，由 write_strip 竖条落盘）——
+    "prosperity_zenith_log_side": lambda: log_side("prosperity_zenith_log_side"),
+    "prosperity_zenith_log_top": lambda: log_top("prosperity_zenith_log_top"),
+    "prosperity_jade_leaves_side": lambda: leaves("prosperity_jade_leaves_side"),
+    "prosperity_jade_leaves_top": lambda: leaves("prosperity_jade_leaves_top"),
+    "prosperity_roost_glow": lambda: lumen_strip("prosperity_roost_glow"),
 }
 
 # 设计性稀疏色（闪点/锈屑/渗点/霜点）：配色收敛时永不合并
@@ -638,6 +718,11 @@ PROTECTED_SPEC = {
     "prosperity_river_gravel": [("BASE@D220", "RIVER_GRAVEL")],
     # —— v1.20.39 T2：废岩的锈染短缝/锈点是设计性稀疏色，永不参与收敛 ——
     "prosperity_stone": [("RUST_OXIDE@D070", "PROSPERITY_STONE")],
+    # —— v1.20.43 P22-B S2：玄柯冷苔斑与清羽漱玉滴是设计性稀疏色，永不参与收敛
+    #（旧栖晴晕帧带走 write_strip 独立闸，色数天然 7+透明，不收敛）——
+    "prosperity_zenith_log_side": [("ZENITH_CORE@L140", "ZENITH_BARK")],
+    "prosperity_jade_leaves_side": [("GLINT@D140", "CANOPY_JADE")],
+    "prosperity_jade_leaves_top": [("GLINT@D140", "CANOPY_JADE")],
 }
 
 
@@ -739,6 +824,68 @@ def write_texture(key, tex, merged):
     return path
 
 
+def write_strip(key, frame_texes):
+    """frame_strip 竖条写出器（lumen 档，幂等）：n 个 32×32 帧堆成 32×(32n) PNG + 同名 mcmeta。
+
+    自检与 write_texture 同族、把方形断言换成 §4.4 lumen 档：宽==32 ∧ 高==32·n（高%32==0 ∧
+    帧数==高/32 由构造保证并回读复核）/ 整条 RGBA 去重（含透明底）色数 ≤16 / 禁极值色 /
+    alpha 二值 / 逐帧前景非空 / 各帧两两互异（跃动死帧＝红）/ mcmeta = manifest entry.mcmeta 的
+    紧凑 JSON 字节（`{"animation":{"frametime":5}}`，与奇点族先例同式）且回读可解析 / 落盘回读字节一致。
+    """
+    entry = BY_KEY[key]
+    frames = int(entry.get("frames", len(frame_texes)))
+    assert frames == len(frame_texes), "%s 帧数 %d != 构建帧 %d" % (key, frames, len(frame_texes))
+    seen_rgba = set()
+    opaque_rgb = set()
+    sigs = []
+    for f, tex in enumerate(frame_texes):
+        fg = 0
+        rows = []
+        for y in range(SIZE):
+            row = []
+            for x in range(SIZE):
+                c = tex.px[y][x]
+                assert c is not None, "%s 帧%d 像素空洞 (%d,%d)" % (key, f, x, y)
+                if len(c) > 3 and c[3] == 0:
+                    val = TRANSPARENT
+                else:
+                    assert len(c) <= 3 or c[3] == 255, "%s 帧%d alpha 非二值 (%d,%d)=%s" % (key, f, x, y, c)
+                    val = rgb_of(c) + (255,)
+                    fg += 1
+                    opaque_rgb.add(rgb_of(c))
+                row.append(val)
+                seen_rgba.add(val)
+            rows.append(tuple(row))
+        sigs.append(tuple(rows))
+        assert fg > 0, "%s 帧%d 全空（跃动死帧）" % (key, f, f)
+    assert len(set(sigs)) == frames, "%s 帧带存在重复帧（跃动语义失效）" % key
+    assert len(opaque_rgb) <= MAX_COLORS, "%s 整条不透明色数 %d > 16" % (key, len(opaque_rgb))
+    for rgb in opaque_rgb:
+        assert rgb not in FORBID, "%s 用了极值色 %s" % (key, rgb)
+    im = G.Image.new("RGBA", (SIZE, SIZE * frames), TRANSPARENT)
+    px = im.load()
+    for f, rows in enumerate(sigs):
+        for y in range(SIZE):
+            for x in range(SIZE):
+                px[x, y + f * SIZE] = rows[y][x]
+    path = ASSET_DIR / (key + ".png")
+    im.save(str(path))
+    back = G.Image.open(str(path)).convert("RGBA")
+    assert back.size == (SIZE, SIZE * frames), "%s 竖条回读尺寸 %s != %s" % (key, back.size, (SIZE, SIZE * frames))
+    assert back.width == 32 and back.height % 32 == 0 and back.height // 32 == frames, \
+        "%s lumen 档回读：宽32 ∧ 高%%32==0 ∧ 帧数==高/32 不符" % key
+    mcmeta_body = json.dumps(entry["mcmeta"], separators=(",", ":"))
+    mc_path = ASSET_DIR / (key + ".png.mcmeta")
+    with open(str(mc_path), "w", encoding="utf-8", newline="") as fh:
+        fh.write(mcmeta_body)
+    with open(str(mc_path), encoding="utf-8") as fh:
+        assert json.loads(fh.read()) == entry["mcmeta"], "%s mcmeta 回读与 manifest 不符" % key
+    line = "%-28s %-4dx%-4d frames=%d rgba_total=%d strip+mcmeta(frametime=%s)" % (
+        key, back.width, back.height, frames, len(seen_rgba), entry["mcmeta"]["animation"]["frametime"])
+    print(line)
+    return path
+
+
 def palette_of_image(im, skip_transparent):
     seen = set()
     for c in im.getdata():
@@ -754,6 +901,10 @@ def main(argv):
     for key, specs in PROTECTED_SPEC.items():
         prot[key] = {RULES.resolve(spec, base)[:3] for spec, base in specs}
     for key in keys:
+        if BY_KEY[key]["kind"] == "frame_strip":
+            # lumen 档：方形画架/收敛闸/覆盖率-生根闸不适用，走独立幂等竖条写出器（§4.4 裁决）。
+            write_strip(key, BUILDERS[key]())
+            continue
         tex = BUILDERS[key]()
         is_cross = BY_KEY[key]["kind"] == "cross_decor"
         merged = collapse_palette(tex, prot.get(key, set()), is_cross)

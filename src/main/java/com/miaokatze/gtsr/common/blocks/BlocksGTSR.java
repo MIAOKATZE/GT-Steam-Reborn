@@ -171,5 +171,17 @@ public final class BlocksGTSR {
     /** 深渊执念流体方块（BlockFluidClassic，源 meta0；舀取/放置转换见 AbyssalFluidConversionHandler）。 */
     public static Block abyssalFluid;
 
+    // ==== v1.20.43 P22-B S2：dim78 岛心巨树三件套（p21 §4.1 名册；BlockLoader.initBlocks 注册期
+    // 写入；全部独立 Block ID、meta 恒 0；世界生成消费方 = S3 巨树重放趟 / S4 光源趟，本片零接线）====
+
+    /** 垂天玄柯（巨树主干/巨大侧枝原木；复用 BlockProsperityRustLog 骨架，锈木换谱）。 */
+    public static Block prosperityZenithLog;
+
+    /** 漱玉清羽（巨树冠层叶块；复用 BlockProsperityCanopyLeaves side/top 双图标 + 锈叶 tint 继承）。 */
+    public static Block prosperityJadeLeaves;
+
+    /** 旧栖晴晕（光 14 / 硬度 0 / 无碰撞 / 十字渲染光源；类 BlockProsperityRoostGlow，零 tint 金进像素）。 */
+    public static Block prosperityRoostGlow;
+
     private BlocksGTSR() {}
 }

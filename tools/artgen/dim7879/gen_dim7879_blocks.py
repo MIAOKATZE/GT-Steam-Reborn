@@ -59,6 +59,10 @@ DIRS = ((1, 0), (0, 1), (-1, 0), (0, -1))
 TRANSPARENT = (0, 0, 0, 0)
 DEFAULT_OCTAVES = ((4, 0.42), (8, 0.34), (16, 0.24))
 CROSS_KINDS = ("cross_decor",)
+# p21 §4.4 lumen 档：动画帧带 kind 不进入 16 档母版构建（帧带原生 32 档，唯一绘制器 =
+# draw32_dim78.py 的 lumen_strip/write_strip；build_all/main 对该 kind 显式跳过并在读数行注明，
+# 不是静默丢条目）。
+FRAME_STRIP_KIND = "frame_strip"
 PREVIEW_BG = (18, 20, 24, 255)
 PREVIEW_CHK_A = (34, 37, 42, 255)
 PREVIEW_CHK_B = (24, 26, 30, 255)
@@ -1343,6 +1347,9 @@ def build_all(manifest):
     for entry in manifest["OUTPUTS"]:
         key = entry["key"]
         kind = entry["kind"]
+        if kind == FRAME_STRIP_KIND:
+            # 16 档母版不承载动画帧带（见 FRAME_STRIP_KIND 注；主入口在 [SIZE] 行注明跳过数）。
+            continue
         seed = _parse_seed(manifest["SEEDS"][key])
         params = _resolve_params(entry, by_key, style)
         try:
@@ -1666,7 +1673,10 @@ def main(argv=None):
     landed = []
     if landing:
         out_dir.mkdir(parents=True, exist_ok=True)
+    strip_keys = [e["key"] for e in manifest["OUTPUTS"] if e["kind"] == FRAME_STRIP_KIND]
     for entry in manifest["OUTPUTS"]:
+        if entry["kind"] == FRAME_STRIP_KIND:
+            continue
         rel = "blocks/" + entry["file"]
         data = first[rel]
         ihdr_check(data, (SIZE, SIZE))
@@ -1689,9 +1699,11 @@ def main(argv=None):
             "\n".join(sorted("%s %s" % (n, d) for n, _, d in landed)) + "\n", encoding="utf-8"
         )
 
-    print("[SIZE] SIZE=%d（母版 %d，倍率 R=%d），条目 %d 张，落地=%s 目录=%s"
-          % (SIZE, BASE_SIZE, R, len(manifest["OUTPUTS"]), "开" if landing else "关（草稿档）",
-             out_dir if landing else "-"))
+    print("[SIZE] SIZE=%d（母版 %d，倍率 R=%d），条目 %d 张（另 lumen 帧带 %s 本入口不产，唯一绘制器 "
+          "draw32_dim78.lumen_strip），落地=%s 目录=%s"
+          % (SIZE, BASE_SIZE, R, len(manifest["OUTPUTS"]) - len(strip_keys),
+             "+".join(strip_keys) if strip_keys else "无",
+             "开" if landing else "关（草稿档）", out_dir if landing else "-"))
     print("[SOURCE] AST 自检：%d 个 .py 无 random/time/datetime/hash() 依赖" % len(list(HERE.glob("*.py"))))
     print("[PALETTE] 基色锚点（manifest.PALETTE 原值）:")
     for key in sorted(k for k in manifest["PALETTE"] if not k.startswith("_")):

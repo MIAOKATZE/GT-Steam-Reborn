@@ -81,6 +81,21 @@ public class GTSRChunkProviderBase implements IChunkProvider {
     protected void onPopulate(Random random, int chunkX, int chunkZ) {}
 
     /**
+     * 洞穴钩子（P22 版 B · S1b，p21 §1.1）：子类覆写在<b>裸数组</b>上挖洞（生产实现 =
+     * {@code framework/GTSRCaveCarver}，身份经本类 {@link #biomeAtColumn} 唯一下标出口，
+     * 覆写体全链路禁 {@code World.getBiomeGenForCoords} / {@code worldObj.}——EndlessIDs
+     * mixin 崩溃入口）。基类空实现 ⇒ 不覆写的 provider（dim79/shattered）直通、逐字节零影响。
+     * <p>
+     * <b>时序钉</b>：调用点在 {@link #replaceBlocksForBiome} 之后、{@code new Chunk} 之前——
+     * 不得前移（表层列门「本格==主体 ∧ 上方 isAirOrEmpty」会把洞顶当裸露面铺草，wg41-B3 已
+     * 推演该后果）；{@code chunk.generateSkylightMap()} 在其后 ⇒ 地表洞口自动获得天光。
+     *
+     * @param worldSeed 世界种子（由 provideChunk 以现产 getSeed() 传入；钩子自身零 World 读）
+     */
+    protected void carveCaves(long worldSeed, int chunkX, int chunkZ, Block[] blocks, byte[] metadata,
+        BiomeGenBase[] biomes) {}
+
+    /**
      * 原始 Block[] 数组"空"判定（<b>框架级约定</b>，v1.20.30 终验修复）：provideChunk 以
      * {@code new Block[65536]} 建列——未写入槽位为 <b>null</b>（{@code Blocks.air} 实例仅存在于
      * 已写入槽位；{@code new Chunk(world, blocks, ...)} 构造时才把 null 视作空气）。
@@ -777,6 +792,9 @@ public class GTSRChunkProviderBase implements IChunkProvider {
         BiomeGenBase[] biomes = this.worldObj.getWorldChunkManager()
             .loadBlockGeneratorData(null, chunkX * 16, chunkZ * 16, 16, 16);
         replaceBlocksForBiome(chunkX, chunkZ, blocks, metadata, biomes);
+        // P22 版 B · S1b：洞穴钩子（p21 §1.1 同位——表层之后、Chunk 组装之前；基类空实现=不覆写
+        // 者直通；generateSkylightMap 在其后 ⇒ 地表洞口自动获得天光；SOURCE 组钉本行位置序）。
+        carveCaves(this.worldObj.getSeed(), chunkX, chunkZ, blocks, metadata, biomes);
 
         Chunk chunk = new Chunk(this.worldObj, blocks, metadata, chunkX, chunkZ);
         // P0（v1.20.33）：群系平面改走 BiomePlaneAccess 双通道——EndlessIDs 的群系扩展在场时

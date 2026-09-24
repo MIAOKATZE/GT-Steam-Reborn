@@ -14,6 +14,7 @@ import com.miaokatze.gtsr.common.blocks.BlocksGTSR;
 import com.miaokatze.gtsr.common.dimension.framework.BiomePlaneAccess;
 import com.miaokatze.gtsr.common.dimension.framework.GTSRBiomeAuthority;
 import com.miaokatze.gtsr.common.dimension.framework.GTSRBiomeAuthority.BiomeId;
+import com.miaokatze.gtsr.common.dimension.framework.GTSRCaveCarver;
 import com.miaokatze.gtsr.common.dimension.framework.GTSRChunkProviderBase;
 import com.miaokatze.gtsr.common.dimension.framework.GTSRSurfaceBorderBand;
 import com.miaokatze.gtsr.common.dimension.framework.structure.BlockSink;
@@ -262,6 +263,25 @@ public class ChunkProviderProsperityRuins extends GTSRChunkProviderBase {
         fillSanzuLakes(worldSeed, chunkX, chunkZ, sink);
         fillSwampPools(worldSeed, chunkX, chunkZ, sink);
         assignSanzuRiverBiome(worldSeed, chunkX, chunkZ);
+    }
+
+    /**
+     * <b>dim78 洞穴覆写</b>（P22 版 B · S1b，p21 §1.1 覆写行）：框架
+     * {@code GTSRChunkProviderBase.provideChunk} 在表层之后、Chunk 组装之前转调本方法，
+     * 本方法把裸数组交给 {@link GTSRCaveCarver}（写入器契约/白名单/保护门全部在 carver 侧）。
+     * <ul>
+     * <li>chunk 内自足零 World 读：种子经基类钩子形参传入（基类挂点行自带现产 getSeed()），
+     * 身份取数在 carver 内只走 {@code biomeAtColumn}，roster 走 {@code chainRosterIndexAt}
+     * （与 populate 期 tierGrid 同源，P0-FILL 表 3）——覆写体本身零 {@code worldObj.}
+     * （SOURCE 组负形状钉）；</li>
+     * <li>dim79（shattered）不覆写 = 直通零影响（p21 §0 非目标"dim79 不获得洞穴"）；</li>
+     * <li>坐标换算用乘法（下标口径判据：本文件本方法内出现 {@code <<4} 即红）。</li>
+     * </ul>
+     */
+    @Override
+    protected void carveCaves(long worldSeed, int chunkX, int chunkZ, Block[] blocks, byte[] metadata,
+        BiomeGenBase[] biomes) {
+        GTSRCaveCarver.carve(worldSeed, chunkX * 16, chunkZ * 16, blocks, metadata, biomes);
     }
 
     // ═════════════════ v1.20.39 T5（plan §3.3）：巨湖回填 + 遗忘之川指派 ═════════════════

@@ -128,7 +128,10 @@ public final class SurfaceGateUnifyCheck {
         "gtsr:prosperitySilicaSand", "gtsr:prosperityCoarseSand", "gtsr:prosperityRiverGravel",
         // v1.20.39 T2/T8 名册同步（37→38）：prosperityStone 是地底 wholeBody 石（plan §3.7 G4），
         // 由 baseBlockOf 生产，不经 SurfaceGate 门（门只认表层 top）——申报为"必须关门"。
-        "gtsr:prosperityStone" };
+        "gtsr:prosperityStone",
+        // v1.20.43 P22-B S2 名册同步（38→41）：岛心巨树三件套（p21 §4）全部非表层 top——玄柯/清羽
+        // 由 S3 巨树趟直接落格、旧栖晴晕由 S4 光趟悬挂，均不经 SurfaceGate（DIM78_SIZE 恒 5 纪律）。
+        "gtsr:prosperityZenithLog", "gtsr:prosperityJadeLeaves", "gtsr:prosperityRoostGlow" };
 
     /**
      * D 组：门通过率申报带（百分点，闭区间）。口径 = 列级（每列 {@code findSurfaceY} 顶格方块

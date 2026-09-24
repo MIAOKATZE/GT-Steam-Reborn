@@ -3,7 +3,8 @@
   "_p16_32": "P16（v1.20.37，U1 裁决）：本批 35 张已全部重绘为 32x32 并在产，逐张设计档案见同目录 design32.json，绘制器 = draw32_dim78.py（dim78 17，片 A1a）/ draw32_dim79.py（dim79 18，片 A1b）。本 manifest 的 PALETTE / DERIVED_RULES / SEEDS / OUTPUTS[*].params 仍是这两个脚本的真值来源（本轮未改写）；STYLE.pixel_discipline.size [16,16] 是 16 档母版标定值、不是在产档位（在产 = 32x32，IHDR 与色数实测见 design32.json.entries[*].measured）。",
   "_changelog": [
     {"date": "2026-09-21", "change": "P16-A4 回写：32 档设计权威从 plan/tmp（gitignore 且属收束清理区）收进仓内 draw32_dim78.py + draw32_dim79.py + design32.json；landed.sha256 已按新字节重钉（35 行全换）；生成器 gen_dim7879_blocks.py 与本 manifest 的既有条目逐字未改。"},
-    {"date": "2026-09-22", "change": "v1.20.39 T2（plan §3.7 地底石化）：OUTPUTS 追加 prosperity_stone 1 张（PALETTE 新锚 PROSPERITY_STONE，kind terrain_grit 带层理，绘制走 draw32_dim78.py 新 builder stone_ruin）；既有 56 张参数与种子逐字未改。"}
+    {"date": "2026-09-22", "change": "v1.20.39 T2（plan §3.7 地底石化）：OUTPUTS 追加 prosperity_stone 1 张（PALETTE 新锚 PROSPERITY_STONE，kind terrain_grit 带层理，绘制走 draw32_dim78.py 新 builder stone_ruin）；既有 56 张参数与种子逐字未改。"},
+    {"date": "2026-09-24", "change": "v1.20.43 P22-B S2（p21 §4）：OUTPUTS 追加岛心巨树三件套 5 张——垂天玄柯 log_side/log_top（PALETTE 新锚 ZENITH_BARK/ZENITH_CORE，复用 log_side/log_top 族刷）、漱玉清羽 leaves_side/leaves_top（新锚 CANOPY_JADE，复用 leaves_clump 族刷）、旧栖晴晕 prosperity_roost_glow（新锚 LUMEN_GOLD/LUMEN_WICK，新 kind=frame_strip：32×192 竖条 6 帧 + 同名 mcmeta animation.frametime=5，§4.4 裁决的 lumen 档；本 kind 不入 16 档母版 gen 主入口（显式跳过），唯一绘制器 = draw32_dim78.py lumen_strip）。_authority.no_mcmeta 的『本轮 35 张不做动画帧带』仅约束 P16 那批 35 张，本条为其后新域的显式例外登记。既有 57 张参数与种子逐字未改。"}
   ],
   "_authority": {
     "dim78_semantics": "plan/investigation/dim78-fix-slice-A1-report.md §1（12 方块登记表：四群系 top/base + 2 草丛 + 锈树干 + 锈树叶；17 张占位）",
@@ -72,7 +73,12 @@
     "SILICA_SAND": "D6C79B",
     "COARSE_SAND": "C0A76B",
     "RIVER_GRAVEL": "9A8E7A",
-    "PROSPERITY_STONE": "6E6A64"
+    "PROSPERITY_STONE": "6E6A64",
+    "ZENITH_BARK": "3A3648",
+    "ZENITH_CORE": "8A7AA6",
+    "CANOPY_JADE": "8FD6C8",
+    "LUMEN_GOLD": "DCA33C",
+    "LUMEN_WICK": "3A2A18"
   },
   "DERIVED_RULES": {
     "D006": { "toward": "DARK_ANCHOR", "t": 0.006 },
@@ -169,6 +175,11 @@
     "prosperity_coarse_sand": "0x5EED8146",
     "prosperity_river_gravel": "0x5EED814B",
     "prosperity_stone": "0x5EED8151",
+    "prosperity_zenith_log_side": "0x5EED8171",
+    "prosperity_zenith_log_top": "0x5EED8172",
+    "prosperity_jade_leaves_side": "0x5EED8173",
+    "prosperity_jade_leaves_top": "0x5EED8174",
+    "prosperity_roost_glow": "0x5EED8175",
     "shattered_corestone": "0x5EED9101",
     "shattered_monolith": "0x5EED9102",
     "shattered_ash_top": "0x5EED9103",
@@ -1231,6 +1242,116 @@
         "flake_density": 0.014
       },
       "_read": "繁荣废岩（v1.20.39 T2，plan §3.7）：地底 wholeBody 主体石——冷灰基谱（比 RIVER_GRAVEL 暗一档、比 SPIKE_STONE 暖一档）+ 周期 8 沉积层理 + 砾粒 + 锈染短缝/锈点 = 贴近 prosperity_*_base 族但更石质（蒸汽朋克锈调）"
+    },
+    {
+      "key": "prosperity_zenith_log_side",
+      "file": "prosperity_zenith_log_side.png",
+      "group": "prosperity_decor",
+      "block": "ProsperityZenithLog side（BlockLoader v1.20.43 P22-B S2 岛树段；垂天玄柯）",
+      "kind": "log_side",
+      "tileable": true,
+      "params": {
+        "base": "ZENITH_BARK",
+        "bark_dark": "BASE@D220",
+        "bark_lit": "BASE@L180",
+        "grain_cells_x": 4,
+        "grain_cells_y": 16,
+        "ridge_chance": 0.34,
+        "bloom": "ZENITH_CORE@L140",
+        "bloom_density": 0.035,
+        "bloom_count": 2,
+        "band": "ZENITH_CORE@D220",
+        "band_rows": [3, 11]
+      },
+      "_read": "垂天玄柯树干侧面：与 rust/copper/brass/marsh 同骨架（纵向纹场 4×16 + 棱脊 + 斑团 2 + 2 道环带），换靛黑 ZENITH_BARK 谱、斑团/环带走 ZENITH_CORE 淡靛（岛心古树的冷苔斑）⇒ 与锈系四档的暖锈斑/霜点/闪点/锈暗点靠色温双差可辨"
+    },
+    {
+      "key": "prosperity_zenith_log_top",
+      "file": "prosperity_zenith_log_top.png",
+      "group": "prosperity_decor",
+      "block": "ProsperityZenithLog top（BlockLoader v1.20.43 P22-B S2 岛树段）",
+      "kind": "log_top",
+      "tileable": false,
+      "params": {
+        "base": "ZENITH_BARK",
+        "core": "ZENITH_CORE",
+        "ring_alt": "ZENITH_CORE@D220",
+        "ring_lit": "ZENITH_CORE@L140",
+        "bark_rim_1": "BASE@D140",
+        "bark_rim_2": "BASE@D220",
+        "pit": "ZENITH_CORE@D340",
+        "pit_density": 0.05,
+        "crack": "ZENITH_CORE@D340",
+        "crack_count": 2,
+        "ring_period": 3
+      },
+      "_read": "垂天玄柯横截面：同心年轮骨架同族（髓心 (17,14) 手移、非完美同心），芯色换 ZENITH_CORE 淡靛 ⇒ 巨树断面的冷芯年轮"
+    },
+    {
+      "key": "prosperity_jade_leaves_side",
+      "file": "prosperity_jade_leaves_side.png",
+      "group": "prosperity_natural",
+      "block": "ProsperityJadeLeaves side（BlockProsperityCanopyLeaves，双图标；漱玉清羽）",
+      "kind": "leaves_clump",
+      "tileable": true,
+      "tint": "biome_grass_multiplier",
+      "params": {
+        "base": "CANOPY_JADE",
+        "levels": ["BASE@D180", "BASE@D090", "BASE", "BASE@L055", "BASE@L140"],
+        "hole": "BASE@D340",
+        "hole_density": 0.09,
+        "octaves": [[4, 0.36], [8, 0.36], [16, 0.28]],
+        "needle_lit": "BASE@L240",
+        "needle_density": 0.16,
+        "oxide": "GLINT@D140",
+        "oxide_density": 0.018
+      },
+      "_read": "漱玉清羽冠层侧面：leaves_clump 同骨架（细碎簇场 + 暗孔 + 亮针尖），底换 CANOPY_JADE 青碧玉色（比铜绿冠层更冷更透）、点缀用 GLINT 淡滴（漱玉水痕）⇒ 巨树冠与三档灌木冠靠色相 + 点缀谱拉开"
+    },
+    {
+      "key": "prosperity_jade_leaves_top",
+      "file": "prosperity_jade_leaves_top.png",
+      "group": "prosperity_natural",
+      "block": "ProsperityJadeLeaves top（BlockProsperityCanopyLeaves 顶图标）",
+      "kind": "leaves_clump",
+      "tileable": true,
+      "tint": "biome_grass_multiplier",
+      "params": {
+        "base": "CANOPY_JADE",
+        "levels": ["BASE@D180", "BASE@D090", "BASE", "BASE@L055", "BASE@L140"],
+        "hole": "BASE@D340",
+        "hole_density": 0.12,
+        "octaves": [[4, 0.36], [8, 0.36], [16, 0.28]],
+        "needle_lit": "BASE@L240",
+        "needle_density": 0.2,
+        "oxide": "GLINT@D140",
+        "oxide_density": 0.018
+      },
+      "_read": "漱玉清羽顶视：与 side 同谱同画法，暗孔 0.12/亮针 0.20 加密 ⇒ 俯视巨树冠的日光缝隙（差异来自参数不是另一套笔刷，同铜绿/黄铜/沼木档口径）"
+    },
+    {
+      "key": "prosperity_roost_glow",
+      "file": "prosperity_roost_glow.png",
+      "group": "prosperity_decor",
+      "block": "ProsperityRoostGlow（BlockProsperityRoostGlow 十字渲染 renderType=1；旧栖晴晕，光 14）",
+      "kind": "frame_strip",
+      "tileable": false,
+      "frames": 6,
+      "mcmeta": { "animation": { "frametime": 5 } },
+      "params": {
+        "base": "LUMEN_GOLD",
+        "wick": "LUMEN_WICK",
+        "wick_lit": "LUMEN_WICK@L090",
+        "flame_hot": "BASE@L280",
+        "flame_mid": "BASE",
+        "flame_low": "BASE@D140",
+        "flame_deep": "BASE@D280",
+        "spark": "GLINT@D045",
+        "flame_height": 11,
+        "sway_amp": 1.6,
+        "sway_row_phase": 0.55
+      },
+      "_read": "旧栖晴晕帧带（§4.4 lumen 档）：32×192 竖条 6 帧 = 暗芯烛柱 LUMEN_WICK + 金焰四阶（hot/mid/low/deep 全由 LUMEN_GOLD 派生，零 tint——金色画进像素）+ 奇数帧一粒 GLINT 飞火；帧间跃动 = 行相位正弦摆（相位由种子派生、逐帧 TAU·f/6 推进），全帧确定可双跑复现。16 档母版 gen 主入口对本 kind 显式跳过（帧带原生 32 档，唯一绘制器 = draw32_dim78.py lumen_strip）"
     },
     {
       "key": "shattered_corestone",

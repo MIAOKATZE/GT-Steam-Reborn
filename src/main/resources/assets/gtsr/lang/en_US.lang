@@ -2091,6 +2091,10 @@ tile.ProsperityCoarseSand.name=Coarse Sand
 tile.ProsperityRiverGravel.name=River Gravel
 # Dimension prosperity-ruins: v1.20.39 T2 underground whole-body stone (plan §3.7 petrification; non-top, meta 0)
 tile.ProsperityStone.name=Prosperity Stone
+# Dimension prosperity-ruins: v1.20.43 P22-B S2 island mega-tree trio (p21 §4; non-top, meta 0)
+tile.ProsperityZenithLog.name=Zenith Bough Log
+tile.ProsperityJadeLeaves.name=Jade-Rinsed Plume Leaves
+tile.ProsperityRoostGlow.name=Old Roost Glow
 
 # Dimension prosperity-ruins: v1.20.40 P19-U1 abyssal obsession fluid (plan §I; BlockFluidClassic + own bucket)
 tile.AbyssalFluid.name=Abyssal Obsession

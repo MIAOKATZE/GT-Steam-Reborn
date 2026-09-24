@@ -32,6 +32,7 @@ import com.miaokatze.gtsr.common.dimension.prosperity.biome.BiomeSanzuRiver;
 import com.miaokatze.gtsr.common.dimension.prosperity.block.BlockProsperityCanopyLeaves;
 import com.miaokatze.gtsr.common.dimension.prosperity.block.BlockProsperityNaturalBase;
 import com.miaokatze.gtsr.common.dimension.prosperity.block.BlockProsperityNaturalTop;
+import com.miaokatze.gtsr.common.dimension.prosperity.block.BlockProsperityRoostGlow;
 import com.miaokatze.gtsr.common.dimension.prosperity.block.BlockProsperityRustLog;
 import com.miaokatze.gtsr.common.dimension.prosperity.block.BlockProsperityTuft;
 import com.miaokatze.gtsr.common.dimension.shattered.ChunkProviderShatteredGrounds;
@@ -180,6 +181,15 @@ final class SurfaceHarness {
         // v1.20.39 T2（plan §3.7 地底石化）：地底 wholeBody 主体石离线实例（缺席＝baseBlockOf 回 null、
         // 行为侧读数失真——同上"静默面同步"纪律），构造参数逐字照抄 BlockLoader。
         BlocksGTSR.prosperityStone = new BlockProsperityStone("ProsperityStone", "gtsr:prosperity_stone");
+        // v1.20.43 P22-B S2 名册同步（三处静默面之一）：岛心巨树三件套离线实例，构造参数逐字照抄
+        // BlockLoader P22 段（垂天玄柯/漱玉清羽/旧栖晴晕；全部非表层 top，不进 SurfaceGate 名册，
+        // 消费方 = S3 巨树重放趟 / S4 光源趟，本 harness 只保 blockFamily 真实装配可供名册判据）。
+        BlocksGTSR.prosperityZenithLog = new BlockProsperityRustLog("ProsperityZenithLog",
+            "gtsr:prosperity_zenith_log_side", "gtsr:prosperity_zenith_log_top");
+        BlocksGTSR.prosperityJadeLeaves = new BlockProsperityCanopyLeaves("ProsperityJadeLeaves",
+            "gtsr:prosperity_jade_leaves_side", "gtsr:prosperity_jade_leaves_top");
+        BlocksGTSR.prosperityRoostGlow = new BlockProsperityRoostGlow("ProsperityRoostGlow",
+            "gtsr:prosperity_roost_glow");
     }
 
     static BiomeGenBase[] prosperityBiomes() {

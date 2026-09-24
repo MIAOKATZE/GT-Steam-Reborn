@@ -22,6 +22,7 @@ import com.miaokatze.gtsr.common.blocks.BlockProsperityStone;
 import com.miaokatze.gtsr.common.blocks.BlocksGTSR;
 import com.miaokatze.gtsr.common.dimension.prosperity.block.BlockProsperityCanopyLeaves;
 import com.miaokatze.gtsr.common.dimension.prosperity.block.BlockProsperityNaturalBase;
+import com.miaokatze.gtsr.common.dimension.prosperity.block.BlockProsperityRoostGlow;
 import com.miaokatze.gtsr.common.dimension.prosperity.block.BlockProsperityRustLeaves;
 import com.miaokatze.gtsr.common.dimension.prosperity.block.BlockProsperityRustLog;
 import com.miaokatze.gtsr.common.dimension.prosperity.block.BlockProsperityTuft;
@@ -29,8 +30,10 @@ import com.miaokatze.gtsr.common.dimension.prosperity.block.BlockProsperityTuft;
 /**
  * P17-SB1「新增方块的注册与资产面」自证断言（plan §1-S-B 交付判据：不接受"清单里加了名字"）。
  * <p>
- * 名册现量：<b>17 方块 / 22 张 32 档贴图 / 2 份 lang × 17 tile 键 + 1 item 键</b>
- * （P17-SB1 的 12/18 + P17-S-B2 的沙砾 3/3 + T2/T8 的 prosperityStone + P19-U1 的 abyssalFluid 流体与桶物品）。
+ * 名册现量：<b>20 方块 / 27 张 32 档贴图 / 2 份 lang × 20 tile 键 + 1 item 键</b>
+ * （P17-SB1 的 12/18 + P17-S-B2 的沙砾 3/3 + T2/T8 的 prosperityStone + P19-U1 的 abyssalFluid 流体与桶物品
+ * + v1.20.43 P22-B S2 的岛心巨树三件套 3/5：垂天玄柯（log 复用）+ 漱玉清羽（leaf 复用）+ 旧栖晴晕
+ * （新家族档 {@code lumen}：32×192 竖条 6 帧 + mcmeta，p21 §4.4 裁决）。
  * 钉六组事实，全部离线、零随机、读数幂等（连跑两次逐位一致）：
  * <ol>
  * <li><b>注册链</b>：{@code BlocksGTSR} 12 字段声明 + {@code BlockLoader} 逐块
@@ -99,6 +102,16 @@ public final class P17BlockRosterCheck {
         // 流体实例必为 null，运行时实例/32×32 贴图两档不适用（见 "fluid" 家族分支的专属钉）；
         // 流体贴图由 GT 材料管线自动生成（autogen+tint），不在 blocks/ 32×32 名册内。
         ROSTER.put("abyssalFluid", new String[] { "AbyssalFluid", "fluid" });
+        // v1.20.43 P22-B S2（p21 §4）名册同步 17→20：岛心巨树三件套。log/leaf 复用既有家族分支
+        // （rust 骨架换谱 / 冠叶 tint 继承）；旧栖晴晕走新家族档 lumen——贴图 = 32×192 竖条 6 帧
+        // + 同名 mcmeta（§4.4 冲突裁决：lumen 族不套 32×32 断言，改钉「宽==32 ∧ 高%32==0 ∧
+        // 帧数==高/32 ∧ mcmeta 在场合法 JSON ∧ animation.frametime>0」），其余 4 张新图仍 32×32。
+        ROSTER.put("prosperityZenithLog", new String[] { "ProsperityZenithLog", "log",
+            "prosperity_zenith_log_side", "prosperity_zenith_log_top" });
+        ROSTER.put("prosperityJadeLeaves", new String[] { "ProsperityJadeLeaves", "leaf",
+            "prosperity_jade_leaves_side", "prosperity_jade_leaves_top" });
+        ROSTER.put("prosperityRoostGlow", new String[] { "ProsperityRoostGlow", "lumen",
+            "prosperity_roost_glow" });
     }
 
     private static final String BLOCKS = "src/main/java/com/miaokatze/gtsr/common/blocks/BlocksGTSR.java";
@@ -109,6 +122,9 @@ public final class P17BlockRosterCheck {
     private static final String MATRIX = "tools/dim1/SurfaceBiomeMatrixCheck.java";
     private static final String HARNESS = "tools/dim1/SurfaceHarness.java";
     private static final String DESIGN32 = "tools/artgen/dim7879/design32.json";
+    /** lumen 族源级副钉对象（P22-B S2 新类；行为面主断言走运行时实例，这里钉字面纪律）。 */
+    private static final String GLOW_SRC = "src/main/java/com/miaokatze/gtsr/common/dimension"
+        + "/prosperity/block/BlockProsperityRoostGlow.java";
     private static final String[] LANGS = { "src/main/resources/assets/gtsr/lang/en_US.lang",
         "src/main/resources/assets/gtsr/lang/zh_CN.lang" };
     private static final String TEX_ROOT = "src/main/resources/assets/gtsr/textures/blocks/";
@@ -188,6 +204,24 @@ public final class P17BlockRosterCheck {
                     // T2/T8：G4 地底石化主体石（Material.rock，pickaxe 档）。
                     check(b instanceof BlockProsperityStone, field + " 类族应为 BlockProsperityStone");
                     check(material(b) == Material.rock, field + " 材质应为 rock");
+                } else if ("lumen".equals(family)) {
+                    // v1.20.43 P22-B S2（p21 §5）：旧栖晴晕行为面主断言直钉——运行时光级 ==14（主判据）、
+                    // 硬度 ==0.0F（=torch）、碰撞箱 null（可穿身）、十字四件套、材质 circuits（torch 同料）；
+                    // 源级副钉：setLightLevel(0.9375F)/setHardness(0.0F) 字面在场、`14.0F` 浮点侥幸写法缺席、
+                    // `return null;` 恰 1 处（防"整段没写"式假绿的成对钉）。
+                    check(b instanceof BlockProsperityRoostGlow, field + " 类族应为 BlockProsperityRoostGlow");
+                    check(material(b) == Material.circuits, field + " 材质应为 circuits（BlockTorch 构造同料）");
+                    check(b.getLightValue() == 14, field + " 运行时光级应 ==14，实得 " + b.getLightValue());
+                    check(b.getBlockHardness(null, 0, 0, 0) == 0.0F, field + " 硬度应 ==0.0F（torch 同值）");
+                    check(b.getCollisionBoundingBoxFromPool(null, 0, 0, 0) == null,
+                        field + " 碰撞箱应为 null（无碰撞可穿身）");
+                    check(b.getRenderType() == 1 && !b.isOpaqueCube() && !b.renderAsNormalBlock(),
+                        field + " 应为十字渲染四件套（renderType=1 / 非不透明 / 非普通渲染）");
+                    final String glow = read(GLOW_SRC);
+                    check(glow.contains("setLightLevel(0.9375F)"), field + " 源级副钉缺 setLightLevel(0.9375F)");
+                    check(glow.contains("setHardness(0.0F)"), field + " 源级副钉缺 setHardness(0.0F)");
+                    check(!glow.contains("14.0F"), field + " 源级反向钉：禁 14.0F 浮点侥幸写法（p21 §5）");
+                    check(countHits(glow, "return null;") == 1, field + " 类源 `return null;` 应恰 1 处");
                 } else {
                     check(b instanceof BlockProsperityTuft, field + " 类族应为 BlockProsperityTuft");
                     check(material(b) == Material.plants, field + " 材质应为 plants");
@@ -221,7 +255,8 @@ public final class P17BlockRosterCheck {
         final File bucketTex = new File("src/main/resources/assets/gtsr/textures/items/AbyssalObsessionBucket.png");
         check(bucketTex.isFile(), "缺桶物品贴图 assets/gtsr/textures/items/AbyssalObsessionBucket.png");
 
-        // —— 3+4. 贴图解析 + 像素纪律（classpath 与仓库资源根双通道；T8 起 22 张） ——
+        // —— 3+4. 贴图解析 + 像素纪律（classpath 与仓库资源根双通道；T8 起 22 张，
+        // v1.20.43 P22-B S2 起 27 张＝22 + 玄柯/清羽 4 张 32×32 + 旧栖晴晕 1 张 lumen 竖条） ——
         int texCount = 0;
         for (final Map.Entry<String, String[]> e : ROSTER.entrySet()) {
             for (int i = 2; i < e.getValue().length; i++) {
@@ -236,8 +271,38 @@ public final class P17BlockRosterCheck {
                     final BufferedImage im = ImageIO.read(f);
                     check(im != null, "ImageIO 解码失败 " + tex);
                     if (im != null) {
-                        check(im.getWidth() == 32 && im.getHeight() == 32 && im.getWidth() == im.getHeight(),
-                            tex + " 非 32×32 正方形：" + im.getWidth() + "x" + im.getHeight());
+                        if ("lumen".equals(e.getValue()[1])) {
+                            // §4.4 裁决的 lumen 档（p21）：帧带必为竖条，不套 32×32 断言——
+                            // 钉「宽==32 ∧ 高%32==0 ∧ 帧数==高/32 ∧ 同名 .mcmeta 在场且合法 JSON ∧
+                            // animation.frametime>0」。这是换档不是放宽：帧数取派生式（不写死 6），
+                            // 且要求 frames≥2（退化成单帧=绕开帧带语义，正是 §8 失败回路点名的假绿形态）。
+                            check(im.getWidth() == 32, tex + "（lumen）宽应 32：" + im.getWidth());
+                            check(im.getHeight() % 32 == 0 && im.getHeight() > 32,
+                                tex + "（lumen）高应为 32 的整数倍且 >32：" + im.getHeight());
+                            final int frames = im.getHeight() / 32;
+                            check(frames == im.getHeight() / 32 && frames >= 2,
+                                tex + "（lumen）帧数派生式 frames==高/32 且 ≥2，实得 " + frames);
+                            final File meta = new File(TEX_ROOT + tex + ".png.mcmeta");
+                            check(meta.isFile(), tex + "（lumen）缺同名帧带纪律件 " + meta.getName());
+                            if (meta.isFile()) {
+                                JsonObject mj = null;
+                                try {
+                                    mj = new JsonParser().parse(read(meta.getPath())).getAsJsonObject();
+                                } catch (RuntimeException | java.io.IOException ex) {
+                                    check(false, tex + ".png.mcmeta 非合法 JSON：" + ex.getMessage());
+                                }
+                                if (mj != null && mj.has("animation")) {
+                                    final JsonObject anim = mj.getAsJsonObject("animation");
+                                    check(anim.has("frametime") && anim.get("frametime").getAsInt() > 0,
+                                        tex + " mcmeta 缺 animation.frametime>0");
+                                } else {
+                                    check(false, tex + " mcmeta 缺 animation 对象");
+                                }
+                            }
+                        } else {
+                            check(im.getWidth() == 32 && im.getHeight() == 32 && im.getWidth() == im.getHeight(),
+                                tex + " 非 32×32 正方形：" + im.getWidth() + "x" + im.getHeight());
+                        }
                         final java.util.Set<Integer> hist = new java.util.HashSet<>();
                         for (int y = 0; y < im.getHeight(); y++) {
                             for (int x = 0; x < im.getWidth(); x++) {
@@ -254,9 +319,9 @@ public final class P17BlockRosterCheck {
                 }
             }
         }
-        check(texCount == 22, "贴图名册数 != 22（T8 加 prosperity_stone）：" + texCount);
+        check(texCount == 27, "贴图名册数 != 27（T8 加 prosperity_stone、P22-B S2 加岛树三件套 5 张）：" + texCount);
 
-        // —— 5. lang 齐备无多余（两份 ×12，重复行与 meta 键反向钉） ——
+        // —— 5. lang 齐备无多余（两份 ×20：P17-SB1 12 + S-B2/T2/P19 5 + P22-B S2 3；重复行与 meta 键反向钉） ——
         for (final String lang : LANGS) {
             final List<String> lines = Files.readAllLines(Paths.get(lang), StandardCharsets.UTF_8);
             for (final Map.Entry<String, String[]> e : ROSTER.entrySet()) {
@@ -295,9 +360,10 @@ public final class P17BlockRosterCheck {
             System.out.println("P17 BLOCK ROSTER FAIL: passed=" + passed + " failed=" + FAILURES.size());
             System.exit(1);
         }
-        System.out.println("P17 BLOCK ROSTER PASS: blocks=17 textures=22 langs=2x17(+bucket item)"
+        System.out.println("P17 BLOCK ROSTER PASS: blocks=20 textures=27 langs=2x20(+bucket item)"
             + " family=log/leaf(canopy-tint 继承)/plant(tuft)/base(砂)/falling(砾, G8)/stone(石化, G4)"
             + "/fluid(abyssal, P19-U1 离线实例 null 态源级钉)"
+            + "/lumen(旧栖晴晕, P22-S2 §4.4 竖条帧带档: 光14+硬0+碰撞null 运行时直钉)"
             + " 注册链+运行时+字节+lang+纪律1 全钉 assertions=" + passed);
     }
 
@@ -314,6 +380,14 @@ public final class P17BlockRosterCheck {
         out.distinctRgba = el.getAsJsonObject().get("measured").getAsJsonObject().get("distinct_rgba")
             .getAsInt();
         return out;
+    }
+
+    private static int countHits(String text, String needle) {
+        int n = 0;
+        for (int i = text.indexOf(needle); i >= 0; i = text.indexOf(needle, i + needle.length())) {
+            n++;
+        }
+        return n;
     }
 
     private static Material material(Block b) {

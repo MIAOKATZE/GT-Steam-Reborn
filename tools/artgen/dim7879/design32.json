@@ -1,5 +1,5 @@
 {
-  "_about": "tools/artgen/dim7879 批 32 档（v1.20.37 / P16-U1）设计档案：57 张 = dim78 17（片 A1a，draw32_dim78.py） + dim79 18（片 A1b，draw32_dim79.py） + P17-SB1 dim78 木/花/草 18 + P17-SB2 dim78 沙/砾 3 + v1.20.39 T2 dim78 废岩 1（plan §3.7 地底石化）。逐张记录绘制器与入口、所用角色名与色阶（与同目录 manifest.json 的 OUTPUTS[key].params / SEEDS[key] 同源，不另立真值）、PIL 实测尺寸与色数、以及一行「为什么这样画」（A1a 取 RATIONALE 表、A1b 取各 t_* 的 docstring 同源文字）。16 档母版仍是 manifest + gen_dim7879_blocks.py，本文件不替代它们。",
+  "_about": "tools/artgen/dim7879 批 32 档（v1.20.37 / P16-U1）设计档案：62 张 = dim78 17（片 A1a，draw32_dim78.py） + dim79 18（片 A1b，draw32_dim79.py） + P17-SB1 dim78 木/花/草 18 + P17-SB2 dim78 沙/砾 3 + v1.20.39 T2 dim78 废岩 1（plan §3.7 地底石化）+ v1.20.43 P22-B S2 dim78 岛心巨树 5（玄柯 2 + 清羽 2 + 旧栖晴晕 lumen 帧带 1，kind=frame_strip=32×192 竖条 6 帧，measured.distinct_rgba 按 §4.4 整条去重口径）。逐张记录绘制器与入口、所用角色名与色阶（与同目录 manifest.json 的 OUTPUTS[key].params / SEEDS[key] 同源，不另立真值）、PIL 实测尺寸与色数、以及一行「为什么这样画」（A1a 取 RATIONALE 表、A1b 取各 t_* 的 docstring 同源文字）。16 档母版仍是 manifest + gen_dim7879_blocks.py，本文件不替代它们。",
   "_not_a_gate": "本文件不被 tools/dim1/asset_baseline_check.sh 读取（该门只核 manifest OUTPUTS <-> landed.sha256 <-> 磁盘三点）；它回答「这张为什么这么画」，不是「字节对不对」。",
   "_measured_by": "PIL，与 review/dim1/_tools/check_feedback.py:163 同口径：distinct_rgba = len(set(RGBA))（页面色数标注用这个）；distinct_rgb_opaque = 非透明像素的唯一 RGB 数（像素纪律 ≤16 用这个）。",
   "size_landed": [
@@ -2226,6 +2226,176 @@
       "protected_sparse_colors": [
         "RUST_OXIDE@D070 | base=PROSPERITY_STONE"
       ]
+    },
+    "prosperity_zenith_log_side": {
+      "file": "prosperity_zenith_log_side.png",
+      "group": "prosperity_decor",
+      "kind": "log_side",
+      "drawer": "tools/artgen/dim7879/draw32_dim78.py",
+      "drawer_fn": "BUILDERS[prosperity_zenith_log_side] -> log_side(\"prosperity_zenith_log_side\")",
+      "seed_manifest": "0x5EED8171",
+      "palette_roles": {
+        "base": "ZENITH_BARK",
+        "role_tokens": [
+          "BASE@D220",
+          "BASE@L180",
+          "ZENITH_BARK",
+          "ZENITH_CORE@D220",
+          "ZENITH_CORE@L140"
+        ]
+      },
+      "measured": {
+        "size": [
+          32,
+          32
+        ],
+        "distinct_rgba": 7,
+        "distinct_rgb_opaque": 7,
+        "all_opaque_alpha_255": true,
+        "dominant_opaque": "#3A3648"
+      },
+      "why": "垂天玄柯侧面：rust 骨架五档同款（纵向纹场 4×16 + 棱脊 + 斑团 + 环带 6/22），底谱 ZENITH_BARK 靛黑、斑/环带 ZENITH_CORE 淡靛 ⇒ 与四档暖锈斑靠色温双差可辨。",
+      "protected_sparse_colors": [
+        "ZENITH_CORE@L140 | base=ZENITH_BARK"
+      ]
+    },
+    "prosperity_zenith_log_top": {
+      "file": "prosperity_zenith_log_top.png",
+      "group": "prosperity_decor",
+      "kind": "log_top",
+      "drawer": "tools/artgen/dim7879/draw32_dim78.py",
+      "drawer_fn": "BUILDERS[prosperity_zenith_log_top] -> log_top(\"prosperity_zenith_log_top\")",
+      "seed_manifest": "0x5EED8172",
+      "palette_roles": {
+        "base": "ZENITH_BARK",
+        "role_tokens": [
+          "BASE@D140",
+          "BASE@D220",
+          "ZENITH_BARK",
+          "ZENITH_CORE@D220",
+          "ZENITH_CORE@D340",
+          "ZENITH_CORE@L140"
+        ]
+      },
+      "measured": {
+        "size": [
+          32,
+          32
+        ],
+        "distinct_rgba": 6,
+        "distinct_rgb_opaque": 6,
+        "all_opaque_alpha_255": true,
+        "dominant_opaque": "#8A7AA6"
+      },
+      "why": "垂天玄柯横截面：年轮骨架同族（髓心 (17,14) 手移），芯色 ZENITH_CORE 淡靛 ⇒ 巨树断面的冷芯年轮。",
+      "protected_sparse_colors": []
+    },
+    "prosperity_jade_leaves_side": {
+      "file": "prosperity_jade_leaves_side.png",
+      "group": "prosperity_natural",
+      "kind": "leaves_clump",
+      "drawer": "tools/artgen/dim7879/draw32_dim78.py",
+      "drawer_fn": "BUILDERS[prosperity_jade_leaves_side] -> leaves(\"prosperity_jade_leaves_side\")",
+      "seed_manifest": "0x5EED8173",
+      "palette_roles": {
+        "base": "CANOPY_JADE",
+        "role_tokens": [
+          "BASE@D340",
+          "BASE@L240",
+          "CANOPY_JADE",
+          "GLINT@D140"
+        ],
+        "levels": [
+          "BASE@D180",
+          "BASE@D090",
+          "BASE",
+          "BASE@L055",
+          "BASE@L140"
+        ]
+      },
+      "measured": {
+        "size": [
+          32,
+          32
+        ],
+        "distinct_rgba": 8,
+        "distinct_rgb_opaque": 8,
+        "all_opaque_alpha_255": true,
+        "dominant_opaque": "#84C4B8"
+      },
+      "why": "漱玉清羽侧面：leaves_clump 同骨架，底 CANOPY_JADE 青碧 + GLINT@D140 漱玉滴；中性乘色底（tint 继承锈叶口径）。",
+      "protected_sparse_colors": [
+        "GLINT@D140 | base=CANOPY_JADE"
+      ]
+    },
+    "prosperity_jade_leaves_top": {
+      "file": "prosperity_jade_leaves_top.png",
+      "group": "prosperity_natural",
+      "kind": "leaves_clump",
+      "drawer": "tools/artgen/dim7879/draw32_dim78.py",
+      "drawer_fn": "BUILDERS[prosperity_jade_leaves_top] -> leaves(\"prosperity_jade_leaves_top\")",
+      "seed_manifest": "0x5EED8174",
+      "palette_roles": {
+        "base": "CANOPY_JADE",
+        "role_tokens": [
+          "BASE@D340",
+          "BASE@L240",
+          "CANOPY_JADE",
+          "GLINT@D140"
+        ],
+        "levels": [
+          "BASE@D180",
+          "BASE@D090",
+          "BASE",
+          "BASE@L055",
+          "BASE@L140"
+        ]
+      },
+      "measured": {
+        "size": [
+          32,
+          32
+        ],
+        "distinct_rgba": 8,
+        "distinct_rgb_opaque": 8,
+        "all_opaque_alpha_255": true,
+        "dominant_opaque": "#A6DBCE"
+      },
+      "why": "清羽顶视：同谱同画法，暗孔 0.12/亮针 0.20 加密 ⇒ 俯视巨树冠日光缝隙（同三档顶视口径）。",
+      "protected_sparse_colors": [
+        "GLINT@D140 | base=CANOPY_JADE"
+      ]
+    },
+    "prosperity_roost_glow": {
+      "file": "prosperity_roost_glow.png",
+      "group": "prosperity_decor",
+      "kind": "frame_strip",
+      "drawer": "tools/artgen/dim7879/draw32_dim78.py",
+      "drawer_fn": "BUILDERS[prosperity_roost_glow] -> lumen_strip(\"prosperity_roost_glow\")",
+      "seed_manifest": "0x5EED8175",
+      "palette_roles": {
+        "base": "LUMEN_GOLD",
+        "role_tokens": [
+          "BASE@D140",
+          "BASE@D280",
+          "BASE@L280",
+          "GLINT@D045",
+          "LUMEN_GOLD",
+          "LUMEN_WICK@L090"
+        ]
+      },
+      "measured": {
+        "size": [
+          32,
+          192
+        ],
+        "distinct_rgba": 8,
+        "distinct_rgb_opaque": 7,
+        "all_opaque_alpha_255": true,
+        "dominant_opaque": "#3A2A18"
+      },
+      "why": "旧栖晴晕帧带（§4.4 lumen 档）：32×192 竖条 6 帧 = LUMEN_WICK 暗芯烛柱 + LUMEN_GOLD 四阶金焰 + 奇数帧 GLINT@D045 飞火；跃动=逐行相位正弦行进摆（相位由种子派生），零 tint 金色进像素，mcmeta frametime=5（奇点族同值）。measured.distinct_rgba 按 §4.4 口径 = 整条 RGBA 去重（与现式同式，不逐帧）。",
+      "protected_sparse_colors": []
     }
   }
 }

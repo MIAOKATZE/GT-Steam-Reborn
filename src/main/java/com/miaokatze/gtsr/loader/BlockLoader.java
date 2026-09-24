@@ -13,6 +13,7 @@ import com.miaokatze.gtsr.common.blocks.TileRunawaySingularity;
 import com.miaokatze.gtsr.common.dimension.prosperity.block.BlockProsperityCanopyLeaves;
 import com.miaokatze.gtsr.common.dimension.prosperity.block.BlockProsperityNaturalBase;
 import com.miaokatze.gtsr.common.dimension.prosperity.block.BlockProsperityNaturalTop;
+import com.miaokatze.gtsr.common.dimension.prosperity.block.BlockProsperityRoostGlow;
 import com.miaokatze.gtsr.common.dimension.prosperity.block.BlockProsperityRustLeaves;
 import com.miaokatze.gtsr.common.dimension.prosperity.block.BlockProsperityRustLog;
 import com.miaokatze.gtsr.common.dimension.prosperity.block.BlockProsperitySurface;
@@ -199,6 +200,25 @@ public class BlockLoader {
         // 消费方 = ChunkProviderProsperityRuins.baseBlockOf；非表层 top，不进 SurfaceGate 名册。
         BlocksGTSR.prosperityStone = new BlockProsperityStone("ProsperityStone", "gtsr:prosperity_stone");
         GameRegistry.registerBlock(BlocksGTSR.prosperityStone, "ProsperityStone");
+        // v1.20.43 P22-B S2（p21 §4）：岛心巨树三件套——垂天玄柯（rust 骨架换谱复用 BlockProsperityRustLog）、
+        // 漱玉清羽（冠叶复用 BlockProsperityCanopyLeaves，tint 随锈叶父类）、旧栖晴晕（新类
+        // BlockProsperityRoostGlow：circuits 料 + setLightLevel(0.9375F)=光 14 + 硬度 0.0F + 无碰撞 +
+        // 十字渲染，零 tint——金色画进像素）。meta 恒 0、ItemBlock 三全零；全部非表层 top，
+        // 不进 SurfaceGate 名册（DIM78_SIZE 恒 5）；世界生成消费方 = S3 树趟 / S4 光趟，本片零接线。
+        BlocksGTSR.prosperityZenithLog = new BlockProsperityRustLog(
+            "ProsperityZenithLog",
+            "gtsr:prosperity_zenith_log_side",
+            "gtsr:prosperity_zenith_log_top");
+        GameRegistry.registerBlock(BlocksGTSR.prosperityZenithLog, "ProsperityZenithLog");
+        BlocksGTSR.prosperityJadeLeaves = new BlockProsperityCanopyLeaves(
+            "ProsperityJadeLeaves",
+            "gtsr:prosperity_jade_leaves_side",
+            "gtsr:prosperity_jade_leaves_top");
+        GameRegistry.registerBlock(BlocksGTSR.prosperityJadeLeaves, "ProsperityJadeLeaves");
+        BlocksGTSR.prosperityRoostGlow = new BlockProsperityRoostGlow(
+            "ProsperityRoostGlow",
+            "gtsr:prosperity_roost_glow");
+        GameRegistry.registerBlock(BlocksGTSR.prosperityRoostGlow, "ProsperityRoostGlow");
         final Block[] prosperityNaturalBlocks = { BlocksGTSR.prosperitySteppeTop, BlocksGTSR.prosperitySteppeBase,
             BlocksGTSR.prosperityForestTop, BlocksGTSR.prosperityForestBase, BlocksGTSR.prosperityWastesTop,
             BlocksGTSR.prosperityWastesBase, BlocksGTSR.prosperitySwampTop, BlocksGTSR.prosperitySwampBase,
@@ -208,7 +228,8 @@ public class BlockLoader {
             BlocksGTSR.prosperityMarshLeaves, BlocksGTSR.prosperityFlowerRust, BlocksGTSR.prosperityFlowerPatina,
             BlocksGTSR.prosperityFlowerBrass, BlocksGTSR.prosperityFlowerMarsh, BlocksGTSR.prosperityTuftSedge,
             BlocksGTSR.prosperityTuftBristle, BlocksGTSR.prosperitySilicaSand, BlocksGTSR.prosperityCoarseSand,
-            BlocksGTSR.prosperityRiverGravel, BlocksGTSR.prosperityStone };
+            BlocksGTSR.prosperityRiverGravel, BlocksGTSR.prosperityStone, BlocksGTSR.prosperityZenithLog,
+            BlocksGTSR.prosperityJadeLeaves, BlocksGTSR.prosperityRoostGlow };
         for (final Block natural : prosperityNaturalBlocks) {
             CreativeTabManager.addItemToTab(new ItemStack(natural));
         }
@@ -216,7 +237,8 @@ public class BlockLoader {
             "[GTSR] prosperity natural blocks registered: terrain=8 (4x top+base) decor=4 (2x tuft+log+leaves)"
                 + " + p17-sb1 wood=6 (3x log+canopy) flora=6 (4x flower+2x tuft)"
                 + " + p17-sb2 sand=3 (2x sand + river gravel, all non-top; coarse+gravel now falling)"
-                + " + v1.20.39 stone=1 (prosperityStone underground wholeBody)");
+                + " + v1.20.39 stone=1 (prosperityStone underground wholeBody)"
+                + " + v1.20.43 p22-island-tree trio=3 (zenith log + jade canopy + roost glow light14, all non-top)");
 
         // dim79 重做（S-B）：破碎之地高硬度方块族（全部独立 Block ID，plan §12 修订 2/3：
         // hardness ≥1000F、blast 1200、harvest pickaxe 3；分层值登记 dim79-redo-slice-B-report.md，

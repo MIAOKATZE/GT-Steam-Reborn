@@ -47,8 +47,13 @@ BATCHES="tools/artgen/dim7879 tools/artgen/dim1"
 # （细硅沙 / 粗粒沙 / 河床砂砾，均 draw32_dim78.py 手绘层可再生）= 35+14+18+3；同口径改数不放宽。
 # 70 → 71 = 再加 v1.20.39 T2 地底石化 1 张（prosperity_stone，draw32_dim78.py stone_ruin 可再生；
 # plan §3.7）= 36(dim7879) + 14(dim1) + 18 + 3 + 1；同口径跟着 OUTPUTS 名册改数，不放宽。
+# 71 → 76 = 再加 v1.20.43 P22-B S2 岛心巨树 5 张（玄柯 side/top + 清羽 side/top 四张 32×32 复用既有
+# 族刷；旧栖晴晕 1 张 = lumen 帧带 32×192 竖条，§4.4 新档，draw32_dim78.py lumen_strip+write_strip
+# 幂等可再生，另带同名 .png.mcmeta——mcmeta 不计入 PNG 数，口径不变）= 41(dim7879) + 14(dim1) + …；
+# 同口径跟着两批 OUTPUTS 名册改数（57+5=62 与 14 合计 76），不放宽。EXPECTED_ROSTER=51 是
+# 结构名册（S8），本版零结构条目 ⇒ 不改。
 EXPECTED_ROSTER=51
-EXPECTED_TEXTURES=71
+EXPECTED_TEXTURES=76
 
 fail() { echo "[FAIL] $*"; exit 1; }
 

@@ -84,7 +84,10 @@ public class SurfaceBiomeMatrixCheck {
         // P17-S-B2 名册同步（24→27：沙/砂砾 3 件；同样全部非 top，不进 SurfaceGate 成员表）。
         "prosperitySilicaSand", "prosperityCoarseSand", "prosperityRiverGravel",
         // v1.20.39 T2/T8 名册同步（27→28：prosperityStone 地底石化主体石；非 top，不进 SurfaceGate）。
-        "prosperityStone" };
+        "prosperityStone",
+        // v1.20.43 P22-B S2 名册同步（28→31：岛心巨树三件套 p21 §4；全部非 top，不进 SurfaceGate，
+        // 漏进本数组＝lang/注册文本钉静默不覆盖——同 P17-D §3★ 纪律）。
+        "prosperityZenithLog", "prosperityJadeLeaves", "prosperityRoostGlow" };
 
     private static final String[] LANG_FILES = { "src/main/resources/assets/gtsr/lang/en_US.lang",
         "src/main/resources/assets/gtsr/lang/zh_CN.lang" };
@@ -257,7 +260,8 @@ public class SurfaceBiomeMatrixCheck {
         System.out.println("MATRIX PASS: biomes=5(incl. sanzu) quadruplesDistinct=true providerTableSync=behavioral(L1 identityOf)");
         System.out.println(
             "REGISTRATION PASS: blocks=" + NATURAL_BLOCKS.length
-                + " (8 terrain + 4 decor + 6 wood + 6 flora + 1 stone(G4)) declared+registered (wiring-level)");
+                + " (8 terrain + 4 decor + 6 wood + 6 flora + 3 sand + 1 stone(G4) + 3 island-tree(P22-S2))"
+                + " declared+registered (wiring-level)");
         System.out
             .println("BIOMEID PASS: real-chain 5/5 slots (incl. sanzu roster-only) via ProsperityBiomes.init, idStart=" + idStart
                 + ".. band, no-degrade anchors present");

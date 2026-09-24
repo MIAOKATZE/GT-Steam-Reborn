@@ -466,6 +466,13 @@ echo "   P0 合计 assertions=$(total_assertions BiomePlaneCompatCheck)（short 
 echo "== [2k] B1 GenLayer 链离线自测（成片连通域/等权均分/边界非直线/单点-整窗逐位一致；批次 A 的包内自测纳入快链） =="
 run "GTSRGenLayerSelfTest（确定性/均分 ±12pp/主导 4-连通域/孤岛率/直线边界反指标/voronoi 抖动带；构造期 fail-fast 契约）"   com.miaokatze.gtsr.common.dimension.framework.genlayer.GTSRGenLayerSelfTest
 
+echo "== [2l] P22 版 B · S1b 洞穴判据入链（S1a 的 A/WAVE/SINGLE + 本片 CARVE/SOURCE/PERF；串行纪律沿用，run 顺序执行即满足） =="
+# 自仓根运行：WAVE/SOURCE 组读生产源文件字面（FIELD/CARVER/BASE/PROVIDER 四件），PERF 组门 =
+# CARVE_BASELINE×1.30 派生式（BASE 首测读数钉在 plan/tmp/p22-s1b/PROGRESS.md，同 GenBenchCheck 口径）。
+MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8   -cp "$OUT/classes;$CP" -sourcepath "src/main/java;tools/dim1" -d "$OUT/tools"   tools/dim1/CaveFieldCheck.java >"$OUT/javac-cavefield.log" 2>&1
+echo "COMPILE CaveFieldCheck EXIT=$? ($(grep -ac 'error:' "$OUT/javac-cavefield.log") error)"
+run "CaveFieldCheck（A 形态/WAVE 波长/SINGLE 幂等 + CARVE 白名单/lava/壳/岛柱/铺top + SOURCE 源级红线三负三正+挂点序 + PERF carver 中位门）" CaveFieldCheck
+
 echo "== [3] 既有回归（必须保持绿） =="
 run "ReplaceSurfaceRuntimeCheck（46 项，含 null/plains 回退与逐列下标断言；P2b 起 256 格假绿已除）" ReplaceSurfaceRuntimeCheck
 # BiomeAllocationCheck 按场景分进程跑（同一 JVM 里账本会互相污染）；A+B+C+D 合计 = P1 的 121 项
