@@ -18,6 +18,13 @@ import com.miaokatze.gtsr.common.dimension.framework.structure.GTSRWorldgenHash;
  * 本类给该站点补上「按粗格距离加权 + 噪声扰动分界」的顶层皮肤选择，其余三段
  * （filler / 主体 / meta）一律不动。
  * <p>
+ * <b>P22 A2b（G1）改写上句的"filler 不动"</b>：A2a 取证（{@code plan/tmp/p22-a2a/REPORT.md} §2）
+ * 硬线读数——top 皮肤有 8-17 格渐变带，而 filler 在交界 p50=0.5 格单列硬换、0/5160 列例外。
+ * filler 写格现经同一实例的 {@link #fillerAt} 走<b>同一条</b> (cell, frac, pick) 表达式
+ * （{@link #pickTier}），皮肤与其下 1-2 格同源同档；meta 侧框架仍写本列群系的
+ * {@code fillerMeta}，本类以 {@code FILLER_META} 常量等值门把关（现状五档全 0，见
+ * {@link #fillerMetaConst}）。主体段（wholeBody）仍不动（v1.20.39 G4 起四群系统一石，无硬线）。
+ * <p>
  * ═══ 技法来源与许可纪律（H-2）═══
  * 只取 RTG {@code LandscapeGenerator.setWeightings()} 的<b>范式</b>（距离加权交叉淡化 + 幂 0.7
  * 压平远端 + 线性截断 + Σ 归一，取证见 {@code plan/tmp/wg41-F-1710-reflibs.md} §2.1-A）：
@@ -275,26 +282,9 @@ public final class GTSRSurfaceBorderBand implements GTSRChunkProviderBase.Surfac
 
     @Override
     public Block topAt(long worldSeed, int x, int z, BiomeGenBase biome) {
-        final int mine = rosterIndexOf(biome);
-        if (mine < 0) {
-            return biome.topBlock; // 非本维 selector 成员：一格都不改派（合成数组/外来群系/sanzu）
-        }
-        final int shift = GTSRGenLayerChain.COARSE_BLOCK_SHIFT;
-        final int cx = (x >> shift) - chunkCellX0;
-        final int cz = (z >> shift) - chunkCellZ0;
-        if (cx < 0 || cx >= CELLS_PER_CHUNK || cz < 0 || cz >= CELLS_PER_CHUNK) {
-            return biome.topBlock; // 越出本 chunk 的 4×4 中心格（生产不可达，防御口径）
-        }
-        final int cell = cz * CELLS_PER_CHUNK + cx;
-        final int head = headTier[cell];
-        if (head < 0) {
-            return biome.topBlock; // 邻域单档 = 群系腹地，逐字退回改造前表达式
-        }
-        final double frac = headMargin[cell] - BORDER_JITTER_AMPLITUDE * GTSRWorldgenHash
-            .valueNoise(worldSeed ^ S_BORDER_JITTER, x / BORDER_JITTER_SCALE, z / BORDER_JITTER_SCALE);
-        final int pick = frac > BORDER_SWITCH_MARGIN ? head : secondTier[cell];
-        if (pick == mine) {
-            return biome.topBlock;
+        final int pick = pickTier(worldSeed, x, z, rosterIndexOf(biome));
+        if (pick < 0) {
+            return biome.topBlock; // 无裁定（非成员/越格/腹地单档/胜者即本档）：逐字退回改造前表达式
         }
         final BiomeGenBase other = biomeByRosterIndex[pick];
         if (other == null || other.topBlock == null) {
@@ -304,6 +294,91 @@ public final class GTSRSurfaceBorderBand implements GTSRChunkProviderBase.Surfac
             return biome.topBlock; // 换皮不换 meta 的显式门（现状四档 TOP_META 全 0，见类注释③）
         }
         return other.topBlock;
+    }
+
+    /**
+     * P22 A2b（G1）：filler 段与 top <b>同一条</b>裁定（{@link #pickTier} 同一表达式、同一
+     * (cell, frac, pick)），胜档的 {@code fillerBlock} 直接作为该列 1-2 格填充层的方块——
+     * 消除 A2a 读数的 filler 硬线（p50=0.5 格单列切换、埋线列对 1.6/断面）。
+     * <p>
+     * <b>meta 纪律（与 top 的 {@code field_150604_aj} 门同族）</b>：框架侧 filler meta 恒按
+     * <b>本列群系</b>查 {@code SurfaceSpec#fillerMeta}（provider 表＝身份→各群系 {@code FILLER_META}
+     * 常量），故此处以两侧 <b>{@code FILLER_META} 常量等值</b>为门：常量读不到（非本维声明群系）
+     * 或不相等 ⇒ 不改派。<b>现状凭据</b>：dim78 五档 {@code TOP_META}/{@code FILLER_META}
+     * 全部为 0（{@code BiomeRustedSteppe}:29 / {@code BiomeGearworkForest}:29 /
+     * {@code BiomeBrassWastes}:28 / {@code BiomeFumaroleSwamp}:28 / {@code BiomeSanzuRiver}:43），
+     * 改派换料不换 meta 在现状字节相同。
+     */
+    @Override
+    public Block fillerAt(long worldSeed, int x, int z, BiomeGenBase biome) {
+        final int pick = pickTier(worldSeed, x, z, rosterIndexOf(biome));
+        if (pick < 0) {
+            return biome.fillerBlock;
+        }
+        final BiomeGenBase other = biomeByRosterIndex[pick];
+        if (other == null || other.fillerBlock == null) {
+            return biome.fillerBlock; // 该档未配槽（SHORT 降级）：不伪造填充层
+        }
+        final int mineMeta = fillerMetaConst(biome);
+        if (mineMeta == UNKNOWN_FILLER_META || fillerMetaConst(other) != mineMeta) {
+            return biome.fillerBlock; // 换料不换 meta 的显式门（见上方凭据）
+        }
+        return other.fillerBlock;
+    }
+
+    /** {@link #fillerMetaConst} 的"读不到常量"哨兵（负值 = 非本维声明群系，不得改派）。 */
+    private static final int UNKNOWN_FILLER_META = -1;
+
+    /** biome 类 → {@code FILLER_META} 常量（反射一次/类，实例生命周期 = 一个 chunk）。 */
+    private final java.util.HashMap<Class<?>, Integer> fillerMetaCache = new java.util.HashMap<>();
+
+    /**
+     * 读群系<b>类</b>声明的 {@code FILLER_META} 常量（provider 侧 {@code fillerMetaOf} 查表的
+     * 同源真值；读不到 = {@link #UNKNOWN_FILLER_META}，调用方按"不改派"处置）。
+     */
+    private int fillerMetaConst(BiomeGenBase biome) {
+        final Class<?> cls = biome.getClass();
+        final Integer hit = fillerMetaCache.get(cls);
+        if (hit != null) {
+            return hit.intValue();
+        }
+        int value = UNKNOWN_FILLER_META;
+        try {
+            value = cls.getField("FILLER_META")
+                .getInt(null);
+        } catch (ReflectiveOperationException | RuntimeException e) {
+            // 非本维声明群系（合成实例/未来子类缺常量）：保守直通，绝不猜 meta
+        }
+        fillerMetaCache.put(cls, Integer.valueOf(value));
+        return value;
+    }
+
+    /**
+     * 取胜者档下标（topAt 与 fillerAt 共用的<b>唯一</b>裁定式，P22 A2b G1 从 {@link #topAt}
+     * 抽出 ⇒ 两条出口对同一列必然给出同一档，皮肤与其下填充层不再跨档）。
+     *
+     * @param mine 本列群系的名册下标（{@code rosterIndexOf} 结果）
+     * @return 胜档下标；{@code -1} = 不改派（非成员 / 越出中心格 / 邻域单档 / 胜者即本档）
+     */
+    private int pickTier(long worldSeed, int x, int z, int mine) {
+        if (mine < 0) {
+            return -1; // 非本维 selector 成员：一格都不改派（合成数组/外来群系/sanzu）
+        }
+        final int shift = GTSRGenLayerChain.COARSE_BLOCK_SHIFT;
+        final int cx = (x >> shift) - chunkCellX0;
+        final int cz = (z >> shift) - chunkCellZ0;
+        if (cx < 0 || cx >= CELLS_PER_CHUNK || cz < 0 || cz >= CELLS_PER_CHUNK) {
+            return -1; // 越出本 chunk 的 4×4 中心格（生产不可达，防御口径）
+        }
+        final int cell = cz * CELLS_PER_CHUNK + cx;
+        final int head = headTier[cell];
+        if (head < 0) {
+            return -1; // 邻域单档 = 群系腹地，逐字退回改造前表达式
+        }
+        final double frac = headMargin[cell] - BORDER_JITTER_AMPLITUDE * GTSRWorldgenHash
+            .valueNoise(worldSeed ^ S_BORDER_JITTER, x / BORDER_JITTER_SCALE, z / BORDER_JITTER_SCALE);
+        final int pick = frac > BORDER_SWITCH_MARGIN ? head : secondTier[cell];
+        return pick == mine ? -1 : pick;
     }
 
     /** 名册下标 → 群系实例的只读出口（离线探针用；{@code null} = 该档未配槽）。 */

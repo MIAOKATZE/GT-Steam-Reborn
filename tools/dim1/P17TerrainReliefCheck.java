@@ -12,6 +12,7 @@ import net.minecraft.world.biome.BiomeGenBase;
 import com.miaokatze.gtsr.common.dimension.framework.GTSRBiomeAuthority;
 import com.miaokatze.gtsr.common.dimension.framework.genlayer.GTSRGenLayerChain;
 import com.miaokatze.gtsr.common.dimension.framework.genlayer.GTSRGenLayerRosterFace;
+import com.miaokatze.gtsr.common.dimension.framework.structure.GTSRWorldgenHash;
 import com.miaokatze.gtsr.common.dimension.prosperity.ProsperityTerrainProfile;
 import com.miaokatze.gtsr.common.dimension.prosperity.TerrainVariants;
 import com.miaokatze.gtsr.common.dimension.prosperity.river.GTSRVoronoiRiverField;
@@ -95,6 +96,12 @@ public class P17TerrainReliefCheck {
      * 顺着群系边界渗进邻档（森 +0.015 / 原 +0.024 / 沼 +0.014），不是"只有沙档在动"。
      * 森林绝对 sd 的 ≥ 15.5 终值（计划 §6.1 R1-⑥）<b>不在本档表能取得的量级内</b>，归 S4 形态场
      * （{@code TerrainVariants.HILL_AMP_FOREST} / 山地门 / 岭脊）落地时重钉。
+     * <p>
+     * <b>v1.20.42 P22 A4 重录（森林谷地负瓣 + RIDGE_AMP 12→18）</b>：聚合 sd <b>森 14.807 / 沙 7.959 /
+     * 原 6.994 / 沼 2.916</b>（同口径；A4 前申报 森 14.043 / 沙 7.951 / 原 6.981 / 沼 2.882 =
+     * {@code plan/tmp/p22-a0/full-0.log}）。森/沙、原/沼两比随森林上抬而走阔（1.766→1.860、
+     * 2.417→2.399——后者因沼泽档被边界渗入微抬 0.034 而略收，仍在带内）；沙/原 1.138 ∈ [1.10,1.45]
+     * 不动。逐 seed 严格序/核心偏序命中 14/16、14/16 与 A4 前持平（负瓣不改变逐 seed 序结构）。
      */
     private static final double RATIO_FOREST_WASTES_MIN = 1.60D;
     private static final double RATIO_WASTES_STEPPE_MIN = 1.10D;
@@ -149,6 +156,10 @@ public class P17TerrainReliefCheck {
      * {@code plan/tmp/p20-s2/sdprobe-AFTER16.log}）。新带按计划的 R1-③ 定法取 [c−0.25, c+0.30] =
      * <b>[1.044, 1.594]</b>（R1 规定的 [0.80, 1.60] 净空内）；上下界的语义不变——下界仍是"沙丘场存在"，
      * 上界仍是"沙地短尺度粗糙度不得失控"，只是中心随档表实测对齐。
+     * <p>
+     * <b>v1.20.42 P22 A4 重录（森林谷地负瓣 + RIDGE_AMP 12→18）</b>：mean|Δh| 实测 <b>森 0.822 / 沙 0.682 /
+     * 原 0.515 / 沼 0.388</b>（A4 前 0.713/0.678/0.511/0.384）。沙/原 比 c = <b>1.325</b> ∈ 带内不动；
+     * 森/原 比 1.397→<b>1.597</b>（负瓣 −10 与岭脊 +18 都抬短尺度差，森最粗糙的双向钉更稳）。
      */
     private static final double WITHIN_RATIO_MIN = 1.15D;
     private static final double WITHIN_DUNES_MIN = 1.044D;
@@ -166,6 +177,12 @@ public class P17TerrainReliefCheck {
      * {@code plan/tmp/p20-s2/relief-BEFORE.log} / {@code relief-AFTER.log}）。预算 = 943 − 167 =
      * <b>776 列</b>（计划 §2 N4 写的"480 列"是以 463 为基算的，同样不可复现）。荒漠档抬到 1.30 后
      * 实测仍 167 ⇒ 本档零消耗预算。<b>本阈值禁止放宽</b>（计划 §6.1 R1-⑤）。
+     * <p>
+     * <b>v1.20.42 P22 A4 重录（森林谷地负瓣落地后，阈值不动）</b>：同口径实测触钳制列 = <b>539</b>
+     * （= 0.0057% 样本；A4 前 145）——增量全部来自负瓣把低基线森林列压到 y=40 地板的"恰好触边"，
+     * 预算余量 943 − 539 = <b>404 列</b>；岭脊 amp 12→18 的正 delta 反向抵消部分下挖（负瓣单独臂 556
+     * → 合臂 539）。上沿 110 侧零触（高度域上沿 = 108 哨兵，非 110 硬钳）。阈值 0.01% 与
+     * "截平即红"抓力不变。
      */
     private static final double CLAMP_RATIO_MAX = 0.0001D;
     /**
@@ -197,8 +214,42 @@ public class P17TerrainReliefCheck {
      * 1.766）」同时钉"森林是绝对最起伏主体"，任何一档再动而未同步本常量即当场红。
      * <b>必须向用户披露的口径代价</b>：需求 4 的可见增量主要由<b>形态</b>承载（新增岭脊条、山地覆盖率
      * 10%→≥15%、丘陵幅度 ×14→×20），<b>聚合 sd 只 +7%</b>（13.145→14.044）——写进交付说明与游戏内文案两处。
+     * <p>
+     * <b>v1.20.42 P22 A4 重钉 14.0 → 14.7（旧带原文与 §21-B 裁定全段保留在上方）</b>：A4 落地
+     * <b>森林谷地负瓣</b>（{@code TerrainVariants} 森林支路 λ139 负瓣门 + 下挖 −(4+6·门)·门 ≤ −10——顶部
+     * 三面封死后的下侧路径）+ 次级杠杆 {@code RIDGE_AMP} 12→18（授权域 {14,16,18} 上沿，探针反解最大
+     * 可达档）。<b>可达性曲线</b>（16 seed × 3072² 步距 4 去河/湖列，{@code plan/tmp/p22-a4/}）：
+     * HEAD 14.043 → 负瓣单独 14.465 → +amp14 14.552 → +amp16 14.668 → <b>+amp18 14.807（本带基准）</b>；
+     * 反证两臂：岭脊门放宽 0.72→0.66 单独 14.337 / 合臂 14.691（门放宽抬低尾 ⇒ spread 收缩，弃用）、
+     * {@code DELTA_CAP} 32→36 不过"不推高 108 哨兵"门判（高度域上沿已 = 108，弃用）。
+     * ⇒ <b>14.807 是授权域内最大可达 sd</b>，本带取其 −0.7% 余量钉 14.7（旧 14.0 带已不能咬住 A4 后的
+     * 任何 ≥0.7 回退）。**披露**：负瓣实测覆盖 any 10.10%/half 5.29%/满门 2.28%（计划按三角边际估
+     * 12-18%，bilinear valueNoise 边际更尖）；正侧 delta ≥ +24 的森林列 15.72%→17.49%（amp18 的平顶代价）。
      */
-    private static final double FOREST_SD_MIN = 14.0D;
+    private static final double FOREST_SD_MIN = 14.7D;
+
+    // ═════════════ VARIANT 组（A4 森林谷地负瓣两条；v1.20.42 P22 A4 新增落点）═════════════
+    /**
+     * 森林谷地负瓣的<b>净下挖覆盖</b>（roster1 内 {@code delta ≤ −4} 的列占比）下限。
+     * <p>
+     * 实测（本判据 variant 口径：16 seed × 1024² 步距 4、h0=70 旁路）＝ <b>1.5990%</b>；带按沼泽三档
+     * 同族规则 [M×0.6, M×1.6] 取整——因 M 量级只有 1.6pp，0.5pp 网格太粗，改取 <b>0.1pp 网格</b> ⇒
+     * [0.9%, 2.6%]。带两端语义：下界 = "谷地作为分支形态存在"（负瓣门塌掉即红，需求「起伏更大、
+     * 山脉丘陵状」的下侧形态落空）；上界 = "森林不被谷地吞掉大半"。口径是<b>净</b> delta（含同列
+     * 丘陵/岭脊正项抵消），不是门覆盖（门 any 10.10% 是形态侧自陈，见 {@code TerrainVariants}
+     * FOREST_VALLEY_GATE_LO 注释）；A4 探针与判据同源对账：探针 variant 臂同口径 1.5990%。
+     */
+    private static final double FOREST_VALLEY_SHARE_MIN = 0.009D;
+    /** 森林谷地负瓣净下挖覆盖上限（[M×0.6, M×1.6] 的 M+60% 侧，0.1pp 网格取整）。 */
+    private static final double FOREST_VALLEY_SHARE_MAX = 0.026D;
+    /**
+     * 森林谷地负瓣<b>单列最大下挖</b>（格）。机制满门深度 = {@code −(4.0+6.0·门)·门} 的最深 −10
+     * （{@code TerrainVariants.FOREST_VALLEY_BASE/SPAN}）；本带 = −10 加 0.5 的取整容差 ⇒
+     * {@code delta ≥ −10.5}。实测最深 <b>−10.00</b>（旁路口径，{@code plan/tmp/p22-a4/} variant 终态）。
+     * 语义 = "负瓣不得超挖"——加深负瓣会直通 DELTA_CAP（softMin 只封上侧）且吃 y=40 地板预算，
+     * 超挖即红（与 {@link #CLAMP_RATIO_MAX} 的预算带互为犄角）。
+     */
+    private static final double FOREST_VALLEY_DIG_MAX = 10.5D;
 
     // ═════════════ VARIANT 组：S4 形态场（TerrainVariants）三条判据的落点（P20 §21-E / §21-F）═════════════
     /**
@@ -287,11 +338,33 @@ public class P17TerrainReliefCheck {
      * 三档共同决定），绝对带更硬——下界 50% = 水体合计不得过半（沼泽不能整体水化），上界 70% = 任一条
      * 水体档的门塌掉（单 POOL 就占 20.8pp）必然把 NONE 抬过 70%。<b>POOL/MARSH 无逐档数字自陈 ⇒
      * 本轮取实测，实机后校准</b>（§8 纪律）。
+     * <p>
+     * <b>v1.20.42 P22 A3 重钉（边缘门后的新分布；旧带 [{0.50,0.70},{0.12,0.335},{0.03,0.09},
+     * {0.075,0.215}] 原文保留在上一段）</b>：{@code TerrainVariants.swampGates} 的 SWG_TIER 槽乘
+     * {@code swampInteriorAt}（N=16 ⇒ coarse R=4）后，边缘列（距群系边 &lt;R 粗格）一律归 NONE ⇒
+     * 实测 <b>NONE 66.46% ／ POOL 17.74% ／ DEEP 4.678% ／ MARSH 11.12%</b>（16 seed × 1024²
+     * 步距 4，与上一段同口径）。取带规则不变（三水体档 [M×0.6, M×1.6] 取整 0.5pp 网格；NONE 绝对带
+     * 换轴为 <b>[0.60,0.72]</b>——下界 = 边缘门后水体合计 ≤40% 的硬口，上界 = 任一水体档塌掉
+     * （MARSH 11.1pp 并入 ⇒ 77.6%）必过 72）。旧带在边缘门后仍碰巧全绿（NONE 66.46 &lt; 70 等），
+     * 但其中心已漂 ⇒ 按任务包「按新分布重钉」收紧；相对规则与归一不变量、样本下限不动。
      */
-    private static final double[][] SWAMP_TIER_SHARE_BAND = { {0.50D, 0.70D}, {0.12D, 0.335D},
-        {0.03D, 0.09D}, {0.075D, 0.215D} };
+    private static final double[][] SWAMP_TIER_SHARE_BAND = { {0.60D, 0.72D}, {0.105D, 0.285D},
+        {0.025D, 0.075D}, {0.065D, 0.18D} };
     /** 沼泽三档各档样本数下限（§5 S4 判据 2 的字面阈"各 ≥30 样本"；实测最小档 DEEP = 16459 ⇒ 裕量三个数量级）。 */
     private static final long SWAMP_TIER_SAMPLE_MIN = 30L;
+
+    // ═════════════ A3 组（v1.20.42 P22 A3：沼泽水体避群系边缘 + 包含性）═════════════
+    /** A3 采样 seed 数（0..3；探针大样本 8 seed 的判据侧钉子——stride 1 区域场重算成本高）。 */
+    private static final int A3_SEEDS = 4;
+    /** A3 采样窗边长（方块，chunk 对齐 = 恰好 2×2 个区域场）。 */
+    private static final int A3_SIDE = 512;
+    /** 边缘门粗格半径的字面复算（= TerrainVariants N=16 ⇒ ceil(16/4)；判据侧只读镜像）。 */
+    private static final int A3_EDGE_R = 4;
+    /** 区域场常量的字面复算（= ChunkProviderProsperityRuins.SWAMP_FIELD_*；同上只读镜像）。 */
+    private static final int A3_FREG = 256;
+    private static final int A3_FMAR = 64;
+    /** §21-D 净下挖复跑：夹持门域盐的字面复算（= TerrainVariants.S_SWAMP_CLAMP，p20-s4b 探针同款）。 */
+    private static final long A3_S_SWAMP_CLAMP = 0x6811C29DL;
 
     /** 沼泽水体档位名（下标 = {@code TerrainVariants.SWAMP_TIER_*} 的 int 值）。 */
     private static final String[] TIER_NAME = { "NONE", "POOL", "DEEP", "MARSH" };
@@ -304,6 +377,7 @@ public class P17TerrainReliefCheck {
         scaleGroup();
         reliefGroup();
         variantGroup();
+        a3Group();
         sourceGroup();
         redlineGroup(srcRoot);
         saltGroup(srcRoot);
@@ -588,7 +662,7 @@ public class P17TerrainReliefCheck {
         // 三条比值随新序换轴：旧「森/原 ≥1.25（现值 2.024）」「原/沙 ≥1.25（现值 1.302）」
         // 「沙/沼 ≥1.30（现值 2.639）」的现值全部保留在注释里，新带按 16 seed 实跑取。
         check(sd[1] / sd[2] >= RATIO_FOREST_WASTES_MIN, "RELIEF 森/沙 sd 比 " + fmt1(sd[1] / sd[2]) + " ≥ "
-            + RATIO_FOREST_WASTES_MIN + "（v1.20.41 实跑现值 1.710；旧「森/原」比 2.024 已随序换轴退役）");
+            + RATIO_FOREST_WASTES_MIN + "（v1.20.42 A4 实跑现值 1.860、A4 前 1.766；旧「森/原」比 2.024 已随序换轴退役）");
         check(sd[2] / sd[0] >= RATIO_WASTES_STEPPE_MIN && sd[2] / sd[0] <= RATIO_WASTES_STEPPE_MAX,
             "RELIEF 沙/原 sd 比 " + fmt1(sd[2] / sd[0]) + " ∈ [" + RATIO_WASTES_STEPPE_MIN + ","
                 + RATIO_WASTES_STEPPE_MAX + "]（v1.20.41 实跑现值 1.179；带语义=沙档必须高于但不得吞并原档，"
@@ -608,8 +682,9 @@ public class P17TerrainReliefCheck {
             + "（样本的 0.01%；越界说明振幅档被 clamp 截平，sd 偏序会失真）");
         check(rough[1] > rough[0] && rough[3] < rough[2] && sd[1] >= FOREST_SD_MIN,
             "RELIEF 群系内 mean|Δh| 森>原 且 沙>沼（实测 " + fmt(rough) + "）⇒ 森林最粗糙、沼泽最平坦的双向钉"
-            + " ＋ 森林绝对聚合 sd ≥ " + FOREST_SD_MIN + "（实测 " + fmt1(sd[1]) + "；v1.20.41 P20 §6.1 R1-⑥"
-            + " 的字面终值，基线 13.130×1.18——落点理由与实跑缺口见 {@link #FOREST_SD_MIN} 声明处）");
+                + " ＋ 森林绝对聚合 sd ≥ " + FOREST_SD_MIN + "（实测 " + fmt1(sd[1]) + "；v1.20.42 P22 A4 由 14.0 重钉"
+                + "——探针反解授权域最大可达 14.807（谷地负瓣 + RIDGE_AMP 18）取 −0.7% 余量，可达性曲线与旧带"
+                + "原文见 {@link #FOREST_SD_MIN} 声明处）");
         check(rough[2] >= rough[0] * WITHIN_DUNES_MIN && rough[2] <= rough[0] * WITHIN_DUNES_MAX,
             "RELIEF 沙/原 群系内粗糙度比 " + fmt1(rough[2] / rough[0]) + " ∈ [" + WITHIN_DUNES_MIN + ","
                 + WITHIN_DUNES_MAX + "]（v1.20.40 P19 §H 沙丘语义重钉：垄脊把荒漠短尺度粗糙度抬到与草原"
@@ -635,6 +710,10 @@ public class P17TerrainReliefCheck {
         long steppeLe6 = 0; // 满门（G6 自陈 ≈12% 的对账锚）
         long wasteCols = 0;
         long wasteGe12 = 0;
+        // —— A4 森林谷地负瓣（v1.20.42）：净下挖覆盖 + 最深下挖（与 FOREST_VALLEY_* 常量同口径）——
+        long forestCols = 0;
+        long forestLe4 = 0;
+        double forestMin = 0;
         final long[] tierN = new long[4];
         final double[] tierDeltaSum = new double[4];
         final double[] tierDeltaMax = new double[4];
@@ -670,6 +749,12 @@ public class P17TerrainReliefCheck {
                         if (d <= -6.0D) {
                             steppeLe6++;
                         }
+                    } else if (tier == 1) {
+                        forestCols++;
+                        if (d <= -4.0D) {
+                            forestLe4++;
+                        }
+                        forestMin = Math.min(forestMin, d);
                     } else if (tier == 2) {
                         wasteCols++;
                         if (d >= BRYCE_DELTA_MIN) {
@@ -687,6 +772,7 @@ public class P17TerrainReliefCheck {
         }
         final double lowShare = steppeLe5 / (double) steppeCols;
         final double bryceShare = wasteGe12 / (double) wasteCols;
+        final double valleyShare = forestLe4 / (double) forestCols;
         System.out.printf("  VARIANT %dseed×%d²方块(步距%d，h0=%d 旁路对照)：采样列=%d 形态 |delta| 最大=%.1f%n",
             VARIANT_SEEDS, VARIANT_SIDE, VARIANT_STRIDE, VARIANT_H0, totalCols, worstDelta);
         System.out.printf("  VARIANT-READ 草原(roster0) 列=%d ｜ 现行阈 delta≤−%.0f 占比=%.4f%% ｜ 旧阈"
@@ -695,6 +781,8 @@ public class P17TerrainReliefCheck {
             steppeLe3 / (double) steppeCols * 100, steppeLe6 / (double) steppeCols * 100);
         System.out.printf("  VARIANT-READ 荒漠(roster2) 列=%d ｜ delta≥%.0f 占比=%.4f%%（风蚀山体）%n", wasteCols,
             BRYCE_DELTA_MIN, bryceShare * 100);
+        System.out.printf("  VARIANT-READ 森林(roster1) 列=%d ｜ 净下挖 delta≤−4 占比=%.4f%%（谷地负瓣）｜"
+            + " 最深=%.2f%n", forestCols, valleyShare * 100, forestMin);
         final StringBuilder tb = new StringBuilder();
         for (int t = 0; t < 4; t++) {
             tb.append("  ").append(TIER_NAME[t]).append(" n=").append(tierN[t]).append(" 份额=")
@@ -716,6 +804,17 @@ public class P17TerrainReliefCheck {
                 + " ∈ [" + BRYCE_SHARE_MIN + "," + BRYCE_SHARE_MAX + "]（§5 S4 判据 3 的字面带"
                 + "「山体应稀有但不是零」，§21-F 交实测 1.3429%、本片同口径复跑；改前 0.252% 会红 ⇒ 过带的"
                 + "唯一改动是已落地的 BRYCE_GAIN 18→26，本片不动任何生产常量）");
+        // —— A4 森林谷地负瓣两条（v1.20.42 P22 A4 新增；A4 前该形态不存在 ⇒ 无旧带，实测 M=1.5990% 反解）——
+        check(forestCols >= 10000 && valleyShare >= FOREST_VALLEY_SHARE_MIN
+            && valleyShare <= FOREST_VALLEY_SHARE_MAX,
+            "VARIANT 森林谷地负瓣净下挖覆盖：roster1 内 delta ≤ −4 的列占比 " + fmt1(valleyShare) + " ∈ ["
+                + FOREST_VALLEY_SHARE_MIN + "," + FOREST_VALLEY_SHARE_MAX + "]（实测 M=1.5990% 按 [M×0.6,M×1.6]"
+                + " 0.1pp 网格反解；下界=谷地形态存在（负瓣门塌掉即红），上界=森林不被谷地吞掉；净口径"
+                + "含同列丘陵/岭脊正项抵消，与门覆盖 any 10.10% 的形态侧自陈口径不同，见常量注释）");
+        check(forestMin >= -FOREST_VALLEY_DIG_MAX,
+            "VARIANT 森林谷地负瓣不超挖：roster1 净 delta 最深 " + fmt1(forestMin) + " ≥ −" + FOREST_VALLEY_DIG_MAX
+                + "（机制满门最深 −10 + 0.5 取整容差；加深负瓣直通 DELTA_CAP 且吃 y=40 地板预算，超挖即红——"
+                + "与 CLAMP_RATIO_MAX 预算带互为犄角）");
         long tierSum = 0;
         for (int t = 0; t < 4; t++) {
             tierSum += tierN[t];
@@ -731,10 +830,297 @@ public class P17TerrainReliefCheck {
                 + TIER_NAME[t] + " 份额 " + fmt1(share) + " ∈ [" + lo + "," + hi + "] 且样本 " + tierN[t]
                 + " ≥ " + SWAMP_TIER_SAMPLE_MIN + "（§5 S4 判据 2 的字面样本阈 + §21-F 第三条：档名 "
                 + TIER_NAME[t] + "，带值与取带规则见 SWAMP_TIER_SHARE_BAND 注释 = 实测 M 的"
-                + (t == 0 ? "[0.5,0.7] 绝对带（NONE 是三档补集，绝对带更硬）。本轮取实测，实机后校准）"
+                + (t == 0 ? "[0.60,0.72] 绝对带（NONE 是三档补集，绝对带更硬；v1.20.42 P22 A3 边缘门后"
+                    + "重钉，旧带 [0.5,0.7] 见常量注释）"
                     : t == 2 ? " [M×0.6, M×1.6] 取整到 0.5pp，另有深水池门自陈 ≈5% 与实测 5.505% 互证）"
                     : " [M×0.6, M×1.6] 取整到 0.5pp。本轮取实测，实机后校准）"));
         }
+    }
+
+    // ═════════════ A3 组（v1.20.42 P22 A3 新增落点：边缘截断清零 + 包含性清零 + N 生效 + §21-D 复跑）═══
+
+    /**
+     * 沼泽水体的<b>避群系边缘 + 包含性</b>判据（v1.20.42 P22 A3）。逐列复刻
+     * {@code ChunkProviderProsperityRuins.fillSwampPools} 的 A3 终态语义：边缘门（swampInteriorAt，
+     * 本文件按 N=16/R=4 字面复算）+ 区域场 N8 不动点钳制（区域 256 对齐 + 环 64，与
+     * {@code SwampFieldGrid} 逐行同构——低地排干链是池尺度，per-chunk 窗口追不上，见 A3 片
+     * {@code plan/tmp/p22-a3/PROGRESS.md} 的机制迭代记录）。四条断言：
+     * <ol>
+     * <li><b>边缘截断水潭 == 0</b>：水列 4 邻粗格含非 roster 3 即红（三档 + 微池口径）；</li>
+     * <li><b>悬空水列 == 0</b>：每水列的干邻（含被钳干空坑列，按<b>钳后</b>实际状态判）固体顶
+     * ≥ 水顶——A1b {@code GTSRRiverPlacer.neighborBarrier} 的 0 余量口径，收口 v1.20.40 申报
+     * "微池 69/71 桶低地悬空"（改前 8 seed×512² 实测 874，其中腹地低地 193）；</li>
+     * <li><b>N=16 生效</b>：水列距边（coarse Chebyshev）≥ R+1=5——边缘门恰在 R=4 咬合的证据；</li>
+     * <li><b>§21-D 穿透复跑</b>：纯 roster3 腹地列上 NONE/POOL/MARSH 档净下挖 ≥4 格 == 0
+     * （p20-s4b 净测口径：net = −(总 delta − 夹持基线)，修复后实测 0——A3 边缘门把边缘列归 NONE
+     * 后仍须为 0，互斥语义不破）。</li>
+     * </ol>
+     * <b>断言计数登记（v1.20.42 P22 A3）：53 → 57（A3 组 +4，无删改）。</b>
+     */
+    private static void a3Group() {
+        final int side = A3_SIDE;
+        final int off = A3_FMAR;
+        final int w = side + 2 * off; // 数组窗 [−64, 576)
+        final int n = w * w;
+        final int[] h = new int[n];
+        final int[] pool = new int[n];
+        final int[] nominal = new int[n];
+        final int[] fixed = new int[n];
+        final int[] effTop = new int[n];
+        final byte[] stA = new byte[n];
+        long waterCols = 0;
+        long truncated4 = 0;
+        long suspendedDry = 0;
+        int minDist = Integer.MAX_VALUE;
+        // —— §21-D 净下挖复跑（stride 4，与 p20-s4b/probe-after.out 同口径）——
+        final long[] netGe4 = new long[4];
+        final long[] pureN = new long[4];
+        long pureAll = 0;
+        for (int s = 0; s < A3_SEEDS; s++) {
+            final long seed = s;
+            // —— pass 1：逐列名义顶/固定水面（与 fillSwampPools→SwampFieldGrid 同式）——
+            for (int z = -off; z < side + off; z++) {
+                for (int x = -off; x < side + off; x++) {
+                    final int i = x + off + (z + off) * w;
+                    final int tier = ProsperityTerrainProfile.chainRosterIndexAt(seed, x >> 2, z >> 2);
+                    final int hv = ProsperityTerrainProfile.heightAt(seed, x, z);
+                    final int p = GTSRVoronoiRiverField.poolLevelAt(seed, x, z, tier);
+                    h[i] = hv;
+                    pool[i] = p;
+                    nominal[i] = -1;
+                    fixed[i] = -1;
+                    stA[i] = 0;
+                    final boolean sub = GTSRVoronoiRiverField.submergedAt(hv, p);
+                    if (tier == 3) {
+                        final int t = sub ? TerrainVariants.swampTierAt(seed, x, z, 3) : 0;
+                        stA[i] = (byte) t;
+                        if (sub && a3Interior(seed, x >> 2, z >> 2)
+                            && (t != TerrainVariants.SWAMP_TIER_NONE
+                                || GTSRVoronoiRiverField.swampLakeAt(seed, x, z, 3)
+                                    < GTSRVoronoiRiverField.SWAMP_POOL_WATER_LEVEL)) {
+                            nominal[i] = p - 1;
+                        }
+                    }
+                    if (sub && GTSRVoronoiRiverField.wetAt(seed, x, z, tier)) {
+                        fixed[i] = p - 1;
+                    }
+                    if (GTSRVoronoiRiverField.lakeAt(seed, x, z) < GTSRVoronoiRiverField.LAKE_SHORE
+                        && hv < ProsperityTerrainProfile.SEA_LEVEL) {
+                        fixed[i] = Math.max(fixed[i], ProsperityTerrainProfile.SEA_LEVEL - 1);
+                    }
+                    if (tier == 3 && GTSRVoronoiRiverField.swampRiverPoolAt(seed, x, z, 3) > 0.0D) {
+                        fixed[i] = Math.max(fixed[i], p + GTSRVoronoiRiverField.SWAMP_RIVER_POOL_FILL_TOP);
+                    }
+                }
+            }
+            // —— pass 2：区域场不动点（区域 {0,1}²，+64 环恰为数组内边距；与 SwampFieldGrid 同构）——
+            System.arraycopy(nominal, 0, effTop, 0, n);
+            for (int rz = 0; rz < side / A3_FREG; rz++) {
+                for (int rx = 0; rx < side / A3_FREG; rx++) {
+                    final int regX = rx * A3_FREG;
+                    final int regZ = rz * A3_FREG;
+                    final int gw = A3_FREG + 2 * A3_FMAR;
+                    final int[] top = new int[gw * gw];
+                    for (int lz = 0; lz < gw; lz++) {
+                        for (int lx = 0; lx < gw; lx++) {
+                            top[lx + lz * gw] = nominal[regX - A3_FMAR + lx + off
+                                + (regZ - A3_FMAR + lz + off) * w];
+                        }
+                    }
+                    for (int pass = 0; pass < 96; pass++) {
+                        boolean changed = false;
+                        final int[] cur = top.clone();
+                        for (int lz = 0; lz < gw; lz++) {
+                            for (int lx = 0; lx < gw; lx++) {
+                                final int gi = regX - A3_FMAR + lx + off + (regZ - A3_FMAR + lz + off) * w;
+                                if (nominal[gi] < 0) {
+                                    continue;
+                                }
+                                int t = cur[lx + lz * gw];
+                                for (int dz = -1; dz <= 1; dz++) {
+                                    final int nz = lz + dz;
+                                    if (nz < 0 || nz >= gw) {
+                                        continue;
+                                    }
+                                    for (int dx = -1; dx <= 1; dx++) {
+                                        if (dx == 0 && dz == 0) {
+                                            continue;
+                                        }
+                                        final int nx = lx + dx;
+                                        if (nx < 0 || nx >= gw) {
+                                            continue;
+                                        }
+                                        final int gj = regX - A3_FMAR + nx + off
+                                            + (regZ - A3_FMAR + nz + off) * w;
+                                        final int b = fixed[gj] >= 0
+                                            ? Math.max(
+                                                fixed[gj],
+                                                cur[nx + nz * gw] >= h[gj] + 1 ? cur[nx + nz * gw] : h[gj])
+                                            : (cur[nx + nz * gw] >= h[gj] + 1 ? cur[nx + nz * gw] : h[gj]);
+                                        if (b < t) {
+                                            t = b;
+                                        }
+                                    }
+                                }
+                                if (t < cur[lx + lz * gw]) {
+                                    top[lx + lz * gw] = t;
+                                    changed = true;
+                                }
+                            }
+                        }
+                        if (!changed) {
+                            break;
+                        }
+                    }
+                    for (int lz = A3_FMAR; lz < A3_FMAR + A3_FREG; lz++) {
+                        for (int lx = A3_FMAR; lx < A3_FMAR + A3_FREG; lx++) {
+                            effTop[regX - A3_FMAR + lx + off + (regZ - A3_FMAR + lz + off) * w] = top[lx + lz * gw];
+                        }
+                    }
+                }
+            }
+            // —— pass 3：判据统计（统计域 [16, side−16)²）——
+            for (int z = 16; z < side - 16; z++) {
+                for (int x = 16; x < side - 16; x++) {
+                    final int i = x + off + (z + off) * w;
+                    if (nominal[i] < 0 || effTop[i] < h[i] + 1) {
+                        continue; // 无名义项 / 钳干（宁缺不悬）——不是水列
+                    }
+                    waterCols++;
+                    final int cx = x >> 2;
+                    final int cz = z >> 2;
+                    if (rosterAt(seed, cx + 1, cz) != 3 || rosterAt(seed, cx - 1, cz) != 3
+                        || rosterAt(seed, cx, cz + 1) != 3 || rosterAt(seed, cx, cz - 1) != 3) {
+                        truncated4++;
+                    }
+                    minDist = Math.min(minDist, a3CellDist(seed, cx, cz));
+                    final int tw = effTop[i];
+                    for (int dz = -1; dz <= 1; dz++) {
+                        for (int dx = -1; dx <= 1; dx++) {
+                            if (dx == 0 && dz == 0) {
+                                continue;
+                            }
+                            final int ni = i + dz * w + dx;
+                            final int nt;
+                            if (fixed[ni] >= 0) {
+                                nt = Math.max(fixed[ni], effTop[ni] >= h[ni] + 1 ? effTop[ni] : h[ni]);
+                            } else if (effTop[ni] >= h[ni] + 1) {
+                                nt = effTop[ni];
+                            } else {
+                                nt = -1; // 干列（含被钳干空坑——按钳后实际状态）
+                            }
+                            if (nt < 0 && h[ni] < tw) {
+                                suspendedDry++;
+                            }
+                        }
+                    }
+                }
+            }
+            // —— §21-D 净下挖复跑（stride 4；纯腹地列 = 11×11 核 69 粗格全 3，|delta| ≤ 22）——
+            for (int z = 0; z < side; z += 4) {
+                for (int x = 0; x < side; x += 4) {
+                    final int cx = x >> 2;
+                    final int cz = z >> 2;
+                    if (rosterAt(seed, cx, cz) != 3) {
+                        continue;
+                    }
+                    final int tier = TerrainVariants.swampTierAt(seed, x, z, 3);
+                    final double d = TerrainVariants.variantAdjustment(seed, x, z, 3, VARIANT_H0)
+                        - (double) VARIANT_H0;
+                    if (!a3PureCell(seed, cx, cz) || d < -22.0D || d > 22.0D) {
+                        continue;
+                    }
+                    // 夹持基线 (SEA_LEVEL − h0)·f（p20-s4b 口径；f = 0.55 + 0.40·s01((gs+1)/2)）
+                    final double gs = GTSRWorldgenHash
+                        .valueNoise(seed ^ A3_S_SWAMP_CLAMP, x / 256.0D, z / 256.0D);
+                    final double c = Math.max(0.0D, Math.min(1.0D, (gs + 1.0D) * 0.5D));
+                    final double f = 0.55D + 0.40D * (c * c * (3.0D - 2.0D * c));
+                    final double net = -(d - (ProsperityTerrainProfile.SEA_LEVEL - VARIANT_H0) * f);
+                    pureN[tier]++;
+                    pureAll++;
+                    if (net >= 4.0D && tier != TerrainVariants.SWAMP_TIER_DEEP) {
+                        netGe4[tier]++;
+                    }
+                }
+            }
+        }
+        System.out.printf(
+            "  A3 %dseed×%d²方块(stride1 区域场)：waterCols=%d truncated4=%d suspendedDry=%d minDistCoarse=%d"
+                + " §21D净测 pure=%d netGe4 NONE/POOL/MARSH=%d/%d/%d%n",
+            A3_SEEDS,
+            A3_SIDE,
+            waterCols,
+            truncated4,
+            suspendedDry,
+            minDist == Integer.MAX_VALUE ? -1 : minDist,
+            pureAll,
+            netGe4[0],
+            netGe4[1],
+            netGe4[3]);
+        check(waterCols >= 10000 && truncated4 == 0,
+            "A3 边缘截断水潭 == 0：三档+微池水列的 4 邻粗格含非 roster3 计数 " + truncated4 + "（水列样本 "
+                + waterCols + " ≥ 10000；改前 8 seed×512² 实测 1069——v1.20.42 P22 A3 边缘门"
+                + "（TerrainVariants.swampInteriorAt N=16 ⇒ coarse R=4）+ 微池腿同门后构造性为 0："
+                + "水列所在粗格 Chebyshev 4 内全 3 ⇒ 4 邻格必为 3）");
+        check(suspendedDry == 0,
+            "A3 包含性（悬空水列 == 0）：每水列的干邻固体顶 ≥ 水顶（0 余量口径；干邻含被钳干空坑列，"
+                + "按区域场钳后实际状态判）实测 " + suspendedDry + "——收口 v1.20.40 申报「微池 69/71 桶低地"
+                + "悬空」（改前 874 = 边缘 681 + 腹地 193；N8 区域场钳制 = A1b 残潭钳制同族，"
+                + "宁缺不悬；低地排干链是池尺度 ⇒ per-chunk 窗口 1/2/4/8 圈环实测漏 59/31/43/72，"
+                + "区域场+64 环后实测 0，机制迭代记录见 plan/tmp/p22-a3/PROGRESS.md）");
+        check(minDist >= A3_EDGE_R + 1,
+            "A3 N=16 生效证明：水列距群系边缘（coarse Chebyshev）最小 " + minDist + " ≥ R+1 = "
+                + (A3_EDGE_R + 1) + "（边缘门恰在 R=" + A3_EDGE_R + " 咬合；方块口径最坏 4×(R−1)=12 格"
+                + "属 coarse 1:4 量化裕度，粗格口径为判据口径）");
+        check(netGe4[0] == 0 && netGe4[1] == 0 && netGe4[3] == 0 && pureAll >= 10000,
+            "A3 §21-D 穿透复跑：纯 roster3 腹地列净下挖 ≥4 格 NONE/POOL/MARSH = " + netGe4[0] + "/"
+                + netGe4[1] + "/" + netGe4[3] + " 全 0（p20-s4b 净测口径复跑；A3 边缘门把边缘列归 NONE 后"
+                + "互斥语义不破——NONE 档的净下挖上界仍是夹持 1.9 + 非水体限幅 1.5 = 3.4 < 4）");
+    }
+
+    /** A3 边缘门谓词的字面复算（Chebyshev R 内 rosterIndexAt 全 3；只读镜像生产 swampInteriorAt）。 */
+    private static boolean a3Interior(long seed, int cellX, int cellZ) {
+        for (int dz = -A3_EDGE_R; dz <= A3_EDGE_R; dz++) {
+            for (int dx = -A3_EDGE_R; dx <= A3_EDGE_R; dx++) {
+                if (rosterAt(seed, cellX + dx, cellZ + dz) != 3) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    /** 粗格距最近非 roster3 格的 Chebyshev 距离（cap R+3；A3 组只取水列 min，无需更大界）。 */
+    private static int a3CellDist(long seed, int cellX, int cellZ) {
+        for (int r = 0; r <= A3_EDGE_R + 3; r++) {
+            for (int dz = -r; dz <= r; dz++) {
+                for (int dx = -r; dx <= r; dx++) {
+                    if (Math.max(Math.abs(dx), Math.abs(dz)) != r) {
+                        continue;
+                    }
+                    if (rosterAt(seed, cellX + dx, cellZ + dz) != 3) {
+                        return r;
+                    }
+                }
+            }
+        }
+        return A3_EDGE_R + 4;
+    }
+
+    /** 纯 roster3 腹地列（11×11 核 69 粗格全 3；p20-s4b 的 pure 口径）。 */
+    private static boolean a3PureCell(long seed, int cellX, int cellZ) {
+        for (int dz = -5; dz <= 5; dz++) {
+            for (int dx = -5; dx <= 5; dx++) {
+                if (dx * dx + dz * dz < 25 && rosterAt(seed, cellX + dx, cellZ + dz) != 3) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    private static int rosterAt(long seed, int cellX, int cellZ) {
+        return ProsperityTerrainProfile.chainRosterIndexAt(seed, cellX, cellZ);
     }
 
     private static boolean isMax(double[] v, int i) {

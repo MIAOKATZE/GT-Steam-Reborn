@@ -522,6 +522,19 @@ public final class ProsperityTerrainProfile {
             if (rosterIndex != 3 && GTSRVoronoiRiverField.inBankBand(worldSeed, x, z, s)) {
                 lowered -= GTSRVoronoiRiverField.bankCutAt(worldSeed, x, z);
             }
+            // ═══ v1.20.42（P22 A1b）沼泽河床残潭下挖：枯竭沼泽河核列（roster 3 ∧ s≥WET_MIN ∧
+            // trunk≤0——A1a 后 wetAt 为假的干河床）在潭场门内（swampRiverPoolAt>0，内含微池/三档
+            // 互斥腿）把床面再下挖 DIG = DIG_BASE+DIG_SPAN·gate（总域 1.5-4 格校准）。外层三条件是
+            // 本方法已求出量的廉价预筛（rosterIndex/s/trunk 就地复用，非沼泽带外零成本）；
+            // 非潭列 lowered 逐位不动（均匀退化纪律）⇒ digest 逐位不变。下游钳制/低地防抬升/
+            // 微池/巨湖语义原样作用（本支路只减不加）。═══
+            if (rosterIndex == 3 && s >= GTSRVoronoiRiverField.WET_MIN && trunk <= 0.0D) {
+                final double poolGate = GTSRVoronoiRiverField.swampRiverPoolAt(worldSeed, x, z, rosterIndex);
+                if (poolGate > 0.0D) {
+                    lowered -= GTSRVoronoiRiverField.SWAMP_RIVER_POOL_DIG_BASE
+                        + GTSRVoronoiRiverField.SWAMP_RIVER_POOL_DIG_SPAN * poolGate;
+                }
+            }
             if (h0 > lowered + 1.0D) {
                 y = (int) Math.round(lowered);
             }

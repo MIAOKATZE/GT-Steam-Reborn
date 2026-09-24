@@ -625,9 +625,13 @@ public final class PlacementGate {
      * 湿区避让谓词的<b>单列判定</b>（P19 §F；U5 二次 redirect 后的<b>回填真值口径</b>）：
      * 一列算"湿"当且仅当 ①回填会置水（{@code wetAt}——{@code GTSRVoronoiRiverField} 的
      * 单一真值，含荒漠整段闸与浅滩干出语义；本门传 {@code rosterIndex=0} 取<b>最保守</b>
-     * 非荒漠口径，结构无列身份，任何群系的河道水带都避开）、②湖置水带
+     * 非荒漠口径，结构无列身份，任何群系的河道水带都避开。<b>P22 A1a（v1.20.42）口径</b>：
+     * {@code wetAt} 收紧为 {@code s ≥ WET_MIN ∧ trunk > 0} 后，枯竭带外河核列（干河床）过
+     * ①——干河床可进结构，符合直觉；本谓词零逻辑改动，只随门自动收窄）、②湖置水带
      * （{@code lakeAt < LAKE_WATER_LEVEL}）、③贴河护带（{@code -strengthAt ≥ WET_MIN-0.08}，
-     * 拦住水面以上贴水边与滩带外沿——"结构生成在水里或河滩里"均不可接受）。
+     * 拦住水面以上贴水边与滩带外沿——"结构生成在水里或河滩里"均不可接受）、④沼泽河床残潭场
+     * （v1.20.42 P22 A1b，{@link GTSRVoronoiRiverField#swampRiverPoolAt} &gt; 0，roster 走生产
+     * coarse 身份链——A1a 后干河床本可进结构，但潭列有水有下挖，重新算湿）。
      * <p>
      * <b>为什么没有 heightAt 门（U5 首版读数 49-92% 弃位的根因）</b>：{@code heightAt<68}
      * 大量命中<b>自然洼地</b>（BASE 70 + 三频波动 + zone 乘子 0.6-1.4 的低区，无河无湖、
@@ -639,6 +643,16 @@ public final class PlacementGate {
             return false;
         }
         if (GTSRVoronoiRiverField.lakeAt(worldSeed, x, z) < GTSRVoronoiRiverField.LAKE_WATER_LEVEL) {
+            return false;
+        }
+        // ④ 沼泽河床残潭场（v1.20.42 P22 A1b）：潭列（含下挖潭底）算湿——结构不落潭。roster 走
+        // 生产 coarse 身份链（本谓词无列身份，wetAt 腿传 0 取最保守口径的先例不适用于此腿：
+        // 潭场内部有 roster==3 硬门，传实际 roster 才能让非沼泽列在门腿零成本短路，语义也更准
+        // ——潭只存在于实际沼泽河床上）。与 A1a 口径衔接：①的干河床可进结构，但 A1b 起干河床上
+        // 的残潭列重新算湿（潭列有水有下挖，"结构生成在水里"仍不可接受）。
+        if (GTSRVoronoiRiverField
+            .swampRiverPoolAt(worldSeed, x, z, ProsperityTerrainProfile.chainRosterIndexAt(worldSeed, x >> 2, z >> 2))
+            > 0.0D) {
             return false;
         }
         return -GTSRVoronoiRiverField.strengthAt(worldSeed, x, z) < WET_SHORE_GUARD;

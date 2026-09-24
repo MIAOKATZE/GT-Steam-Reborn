@@ -166,7 +166,32 @@ public class SurfaceBiomeMatrixCheck {
 
         // —— 3. 行为侧：真实表层链逐格对账（取代旧文本钉 return BiomeXxx.FILLER_META /
         //        return BlocksGTSR.xBase / instanceof BiomeXxx>=2） ——
+        // P22 A2b：p20 §31-1 假绿处置——本工具走「(b) 显式绕过混合带」这条路，且把"绕过"从
+        // 巧合变断言。本 JVM 不向 DimensionRegistrar 登记 dim78 def ⇒ 混合带链盐解析不到 ⇒
+        // forChunk 恒 null（P20S1Probe/A2bProbe 用反射登记 def 正是为了"让它生效"，本工具不登记
+        // 正是为了"逐格对声明恒等"）。今后若有人给本 harness 补登记，下面第一条 check 立即变红，
+        // 强制在"改断言允许 repainted"与"保持绕过+迁走恒等钉"之间重新裁决，不得静默。
+        // P22 A2b G1 后 filler 写格也走同一 selector（fillerAt）——恒等钉同时覆盖两条出口。
         final GTSRChunkProviderBase provider = SurfaceHarness.provider(true);
+        check(
+            com.miaokatze.gtsr.common.dimension.framework.GTSRSurfaceBorderBand
+                .forChunk(GTSRBiomeAuthority.DIM_KEY_PROSPERITY, SurfaceHarness.SEED, CHUNK_X * 16, CHUNK_Z * 16) == null,
+            "p20 §31-1 bypass evidence broken: border band active in this JVM, identity pin would flip to repainted"
+                + " — re-adjudicate (allow same-roster top/filler) OR keep unbound harness");
+        int wetCols = 0;
+        for (int x = 0; x < 16; x++) {
+            for (int z = 0; z < 16; z++) {
+                if (com.miaokatze.gtsr.common.dimension.prosperity.river.GTSRVoronoiRiverField.lakeWetBandAt(
+                    SurfaceHarness.SEED, CHUNK_X * 16 + x, CHUNK_Z * 16 + z)) {
+                    wetCols++;
+                }
+            }
+        }
+        check(wetCols == 0, "driven chunk unexpectedly contains wet-band columns: " + wetCols);
+        System.out.println(
+            "MATRIX BYPASS PATH (p22-a2b, p20 §31-1): (b) 显式绕过混合带 — forChunk==null（本 JVM 未登记 def）"
+                + " + 驱动窗湿带列=0（砾/羽化檐不介入）；混合带 top/filler 改派行为由 P20S1Probe 与"
+                + " plan/tmp/p22-a2b/A2bProbe 钉（含 top 零漂移与 dim79 逐字节对拍）");
         for (final BiomeId key : keys) {
             assertSurfaceMatrix(provider, key, roster.get(key));
         }

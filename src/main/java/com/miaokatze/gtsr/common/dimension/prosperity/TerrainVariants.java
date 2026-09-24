@@ -9,7 +9,7 @@ import com.miaokatze.gtsr.common.dimension.framework.structure.GTSRWorldgenHash;
  * 群系内分支地形变体（<b>P19 §H 新增</b>，plan §H「实现放新类 TerrainVariants（profile 只留调用点）」）：
  * 在 {@link ProsperityTerrainProfile#heightCore} 的三频缓丘 {@code h0} 之上、河谷两段式压低<b>之前</b>，
  * 按 roster 注入群系性格形态项——齿轮森林丘陵/山地/<b>岭脊</b>（RTG TerrainBase hills 模板 + ATG
- * CoreNoise plateau 模板）、黄铜荒漠垄状沙丘 + <b>风蚀山体与风蚀柱座台</b>（RTG dunes +
+ * CoreNoise plateau 模板）+ <b>谷地负瓣</b>（v1.20.42 P22 A4，冲沟/谷地的下侧形态）、黄铜荒漠垄状沙丘 + <b>风蚀山体与风蚀柱座台</b>（RTG dunes +
  * TerrainHLDunes domain-warp + {@code terrainBryce} 倒数式模板）、起雾沼泽水位渐变夹持 +
  * <b>三档水体分支的下挖 delta</b> + 泥丘 + 炭屑滩（ATG swamp 模板）、锈蚀草原轻微丘陵与<b>低地</b>、
  * 遗忘之川微起伏（同场降档）。
@@ -31,7 +31,7 @@ import com.miaokatze.gtsr.common.dimension.framework.structure.GTSRWorldgenHash;
  * <h2>全软门纪律（无硬地形阈值）</h2>
  * <ul>
  * <li>所有门限都是低频噪声 → smoothstep 带通（{@link #s01}），带外<b>精确等于 0.0</b>：
- * 丘陵/山地/岭脊/低地/风蚀山体/深水池/水沼地/泥丘/炭屑滩各门关死的列 delta 恒为 ±0.0，
+ * 丘陵/山地/岭脊/<b>谷地负瓣</b>/低地/风蚀山体/深水池/水沼地/泥丘/炭屑滩各门关死的列 delta 恒为 ±0.0，
  * {@code h0 + 0.0} 经 round 回 int 与改造前<b>逐位相同</b>
  * （"均匀区（门噪声极值外）h0 与改造前逐位同"的构造性保证）。荒漠沙丘与沼泽夹持是群系身份本身
  * （RTG/ATG 原型亦无关死态），全群系起作用、无恒等区，属设计内例外；身份缺席
@@ -72,6 +72,13 @@ import com.miaokatze.gtsr.common.dimension.framework.structure.GTSRWorldgenHash;
  * 山地门 512 之间，取"比值/形状"不取 RTG 绝对值，§13 C10），门带
  * {@code s01((1−|n|−0.72)/0.16)} ⇒ 满门域 |n|≤0.12、缓入域 |n|≤0.28；幅
  * {@code RIDGE_AMP=12.0} = 丘陵 20 与山地 +14..+26 之间的中间档。</li>
+ * <li><b>谷地负瓣（仅森林，v1.20.42 P22 A4 新增）</b>：顶部抬升路径三面封死（幅度域上沿 22.0 实测
+ * 零收益、15.28% 列被 {@code DELTA_CAP}=32 软顶吃掉、高度域上沿已是 108 哨兵）后，"山脉丘陵状"的
+ * 起伏补强换到<b>下侧</b>——独立场波长 <b>139</b>（139%16=11 ✔ H-1）取负瓣门
+ * {@code s01((−n−0.45)/0.25)}（满门 n≤−0.70、缓入到 −0.45；实测覆盖 any 10.10%/half 5.29%/满门 2.28%
+ * ——计划按三角边际估 12-18%，实测 bilinear 边际更尖，差入披露），下挖
+ * {@code −(4.0+6.0·门)·门}（外侧乘门 = 低地/深水池同款软门纪律）⇒ 满门最深 −10；负 delta 不经
+ * {@code DELTA_CAP}（softMin 只封上侧）⇒ 只花下侧预算（触 y=40 地板现状 145 列 vs 预算带 943）。</li>
  * <li><b>荒漠沙丘（roster 2，无丘陵）</b>：TerrainHLDunes:11-27 domain-warp（波长 20、幅度 6 的
  * x 向方向性抖动先扭坐标）喂 RTG TerrainBase:226-247 dunes 参数化——强度场
  * {@code 0.38+0.30·n(/224)}、主波 {@code n(/60)·st·DUNE_MAIN_GAIN}（增益按符号引，别在这里重抄倍数——
@@ -116,7 +123,10 @@ import com.miaokatze.gtsr.common.dimension.framework.structure.GTSRWorldgenHash;
  * （7111/62169）被同列的深水池/水沼地项挖到 ≥4 格、NONE 档另有 1258 列 ≥4 格（S4 散文写 1257，其探针
  * 输出与本片复现都是 1258），S6 按"档位→水面"回填
  * 会出"档位浅、水却深"。④⑤ 两项是<b>非水体项</b>，保持相加但合计下挖限幅到
- * {@link #SWAMP_NONWATER_DIG_MAX} = 1.5 格。夹持本体幅度保守（≤±3.2）。</li>
+ * {@link #SWAMP_NONWATER_DIG_MAX} = 1.5 格。夹持本体幅度保守（≤±3.2）。
+ * <b>v1.20.42 P22 A3 起三档水体加"避群系边缘"门</b>：非腹地列（coarse Chebyshev
+ * {@link #SWAMP_EDGE_RADIUS_CELLS} 内 roster 非 3）的 {@link #SWG_TIER} 槽钳 NONE ⇒ 水体项
+ * 精确 0（边缘截断水潭清零，判据落 P17TerrainReliefCheck A3 组）；波长与门带不动。</li>
  * <li><b>遗忘之川（roster 4）</b>：同沼泽场降档（f=0.25+0.25·s01、洼 ≤1.6）⇒ ±1..2 微起伏。
  * 生产路径身份面只产生 0..3（见 RELIEF_AMPLITUDE_BY_ROSTER 第 5 元同款纪律），本档为名册
  * 对称兜底，与 P17"生产取不到"口径一致；三档水体分支与泥丘/炭屑滩<b>不</b>进本档（roster 3 专属，
@@ -134,12 +144,18 @@ import com.miaokatze.gtsr.common.dimension.framework.structure.GTSRWorldgenHash;
  * {@code ProsperityTerrainProfile.ROSTER_CELL_CACHE} 同款：线程私有、上限 16384、超限整清）。
  * 噪声求值（{@code valueNoise}，每次 4 格点哈希）：草原 1（门开 +2）；森林 2 常态、
  * 丘陵列 4、山地列 3-5；荒漠 3（扭曲/强度/主波，碎浪复用扭曲种子换波长零加费）；沼泽 2。
+ * <b>v1.20.42 P22 A4 复核（森林支路 +1）</b>：谷地负瓣的独立场（λ139）在 {@code w[1]>0} 的列上
+ * 无条件求值一次（门开关须先求值才能判）⇒ 森林常态 2→<b>3</b>、丘陵列 4→<b>5</b>、山地列 3-5→<b>4-6</b>；
+ * 其余群系求值数不变（谷地场在 {@code w[1]==0} 的列不进分支）。
  * 常态腹地 2-3 次，与任务包"每列 1-3 次"口径一致；门全开列最坏 5 次（幅度小、value noise 便宜，
  * 实测账交 U8 基准判据对 241µs 基线总账）。
  * <b>v1.20.41 P20 §21-D 复核（沼泽支路求值数）</b>：三档水体项改互斥<b>不</b>减少每列求值次数——
  * 深水池/水沼地/泥丘三个独立场都必须先求值才能定档并取本档值（半淹场同出炭屑负瓣 ⇒ 零加费），
  * 与互斥前一致：roster 3 每列 5 次（夹持 1 + 表面池 1 + §21-D 起仍为 +3），roster 4 保持 2 次
  * （{@code withTiers=false} 路径逐字未动）。
+ * <b>v1.20.42 P22 A3 复核（边缘门求值数）</b>：{@code SWG_TIER} 槽的边缘门是粗格级缓存查表
+ * （零噪声求值，见 {@link #swampInteriorAt}）⇒ 沼泽支路每列噪声求值数不变；非沼泽列不进
+ * {@code swampGates} 的 withTiers 路径，逐位不动。
  * <b>P19 U8 实测账（GenBenchCheck 口径，基线 = 批2 终态）</b>：权重查表随
  * {@link #weightsAt} 改判为粗格终值缓存（69 次查表 → 1 次，同一粗格内列间恒等），
  * 身份取数并入 Profile 的 {@code chainRosterIndexAt} 单一 memo；其余见 plan/tmp/p19-u8-prered.md。
@@ -161,6 +177,15 @@ public final class TerrainVariants {
      */
     private static final int VAR_CELL_CACHE_CAP = 65536;
     private static final ThreadLocal<HashMap<Long, HashMap<Long, double[]>>> VAR_CELL_CACHE = ThreadLocal
+        .withInitial(HashMap::new);
+
+    /**
+     * 每线程每 seed 的<b>沼泽腹地粗格布尔缓存</b>（v1.20.42 P22 A3）：{@link #swampInteriorAt} 的
+     * 判定量只依赖 (seed, 粗格) ⇒ 同一粗格内所有列恒等，缓存终值零噪声求值。纪律同
+     * {@link #VAR_CELL_CACHE}：线程私有、上限 {@link #SWAMP_INTERIOR_CACHE_CAP}、超限整清重算值不变。
+     */
+    private static final int SWAMP_INTERIOR_CACHE_CAP = 65536;
+    private static final ThreadLocal<HashMap<Long, HashMap<Long, Boolean>>> SWAMP_INTERIOR_CACHE = ThreadLocal
         .withInitial(HashMap::new);
 
     // —— 丘陵场（RTG hills 模板）——
@@ -216,8 +241,52 @@ public final class TerrainVariants {
     private static final double RIDGE_GATE_LO = 0.72D;
     /** 岭脊门带宽（满门 = |n|≤0.12、缓入到 |n|≤0.28 ⇒ 覆盖率约 12%，本轮取值实机校准）。 */
     private static final double RIDGE_GATE_SPAN = 0.16D;
-    /** 岭脊幅度（丘陵 20 与山地 +14..+26 之间的中间档；需求 4 的"第三形态"）。 */
-    private static final double RIDGE_AMP = 12.0D;
+    /**
+     * 岭脊幅度（丘陵 20 与山地 +14..+26 之间的中间档；需求 4 的"第三形态"）。
+     * <p>
+     * <b>v1.20.42 P22 A4 校准 12.0 → 18.0</b>（任务包授权域 {14,16,18} 的上沿；次级杠杆按探针证据启用
+     * 的<b>唯一一个</b>）。可达性曲线（16 seed × 3072² 步距 4 去河/湖列，{@code plan/tmp/p22-a4/}
+     * relief-L*.out）：L1 负瓣单独 14.465 → amp14 14.552 → amp16 14.668 → <b>amp18 14.807</b>（每 +2 近线性
+     * +0.09..+0.14），且岭脊正 delta 抵消部分谷地下挖 ⇒ 触 y=40 地板列反降（556→539，预算 943）。
+     * <b>岭脊门带放宽（0.72→0.66）被同表证伪</b>：单独臂 14.337 &lt; 14.465、合臂 14.691 &lt; 14.807——
+     * 门放宽把低尾脊列抬向均值 ⇒ spread 收缩（钳制列也降 556→435，同机制互证）；<b>DELTA_CAP 32→36
+     * 不启用</b>：全部 rung 高度域上沿已 = 108 哨兵（顶部路径被哨兵吃死，与 P20 §21-B ② 同判）。
+     */
+    private static final double RIDGE_AMP = 18.0D;
+
+    // —— 森林谷地负瓣（v1.20.42 P22 A4 新增，仅森林；"山脉丘陵状"的下侧形态）——
+    /**
+     * 森林谷地场域盐（波长 {@link #FOREST_VALLEY_SCALE}=139）。盐值在本类盐段<b>尾追加</b>：
+     * 续 {@code 0x6811C2B1} 起 ×0x12 等差族的下一未用值（上一已用 = 灌木簇场② {@code 0x6811C365}，
+     * +0x12 ⇒ 本值），不与既有任何域盐重合。
+     */
+    private static final long S_FOREST_VALLEY = 0x6811C377L;
+    /**
+     * 谷地场波长（139 % 16 = 11 ⇒ 合 P20 §3 H-1「新增波长不得取 16 倍数」）。量级取在岭脊门 188 与
+     * 丘陵小波 55 之间——谷地要比岭脊更细（冲沟尺度）但比碎坡（40）粗，避免与山地碎坡噪声在视觉上混频。
+     */
+    private static final double FOREST_VALLEY_SCALE = 139.0D;
+    /**
+     * 谷地覆盖门下檐（作用于<b>负</b>瓣 {@code s01((−n−0.45)/0.25)}：满门 n ≤ −0.70、缓入到 n ≤ −0.45）。
+     * <b>计划估计 vs 实测（A4 探针披露项）</b>：计划按三角边际估覆盖 ~12-18%；实测 bilinear valueNoise
+     * 边际更尖，any(门&gt;0) = <b>10.10%</b>、half(门≥0.5) = 5.29%、满门 2.28%（16 seed × 1024² 步距 4，
+     * {@code plan/tmp/p22-a4/}）。门式按任务包字面落地不漂移，覆盖差入交付披露。
+     */
+    private static final double FOREST_VALLEY_GATE_LO = 0.45D;
+    /** 谷地覆盖门带宽。 */
+    private static final double FOREST_VALLEY_GATE_SPAN = 0.25D;
+    /**
+     * 谷地基础下挖（满门深度档 {@code −(4.0+6.0·门)·门} 的下沿 = −4；外侧乘门 = 草原低地/深水池同款
+     * 软门纪律——门关死列 delta 精确 0，缓入环无硬崖）。
+     * <b>为什么走下侧不走顶部（v1.20.42 P22 A4 的路径论证）</b>：顶部三面被封死——{@code HILL_AMP_FOREST}
+     * 20 已在授权域上沿（22.0 实测只 +0.001 sd）、15.28% 森林列被 {@link #DELTA_CAP}=32 软顶吃掉、顶部路径
+     * 被 {@link #HEIGHT_SENTINEL}=108 吃死（高度域已 [0,108]）；而下侧预算余量充足——触 y=40 地板现状
+     * 145 列 vs 预算带 943（P20 §21-A 证据），负 delta 不受 {@code softMin(·,32,10)} 影响（|a−b|≥k 时
+     * 逐位等于 min ⇒ 负值直通）。
+     */
+    private static final double FOREST_VALLEY_BASE = 4.0D;
+    /** 谷地按门加深档（满门最深 −10 ⇒ 与岭脊 +18 形成谷-脊相对高差 ≥28 格的"山脉丘陵状"读数）。 */
+    private static final double FOREST_VALLEY_SPAN = 6.0D;
 
     // —— 荒漠沙丘（RTG dunes + TerrainHLDunes domain-warp 模板）——
     /** 沙丘扭曲噪声域盐（波长 20 扭曲 + 波长 17 碎浪共种子换波长）。 */
@@ -417,6 +486,20 @@ public final class TerrainVariants {
 
     /** 三档水体分支只在 roster 3（汽雾/喷气沼泽）出现——与 {@code swampLakeAt} 的 roster 门同口径。 */
     private static final int SWAMP_ROSTER = 3;
+    // —— 沼泽边缘门（v1.20.42 P22 A3：三档水体 + 微池避群系边缘）——
+    /**
+     * 沼泽水体的<b>边缘净空</b>（方块）：水体只落在"距群系边缘 ≥ 本值"的腹地列——现状三档/微池
+     * 水面会一路铺到 coarse 群系边界，被边界截断后水从断口外流到处都是（A3 探针改前基线：边缘截断
+     * 水列 1069 / 8 seed×512²）。<b>v1.20.42 P22 A3 新增</b>；校准域 {@code N ∈ {12,16,24}}
+     * （粗格半径 R ∈ {3,4,6}），本轮取 16。
+     */
+    private static final int SWAMP_EDGE_MARGIN_BLOCKS = 16;
+    /**
+     * 边缘门的粗格 Chebyshev 半径（派生式 = {@code ceil(N / COARSE_BLOCK_SCALE)}，N=16 ⇒ R=4）。
+     * 边缘定义在 coarse 1:4 身份面：见 {@link #swampInteriorAt}。
+     */
+    private static final int SWAMP_EDGE_RADIUS_CELLS = (int) Math
+        .ceil(SWAMP_EDGE_MARGIN_BLOCKS / (double) GTSRGenLayerChain.COARSE_BLOCK_SCALE);
     /** 分档判据：门值 ≥ 本值才算"该档成立"（0.5 = smoothstep 的中点，两侧对称、不随带宽漂移）。 */
     private static final double TIER_MIN = 0.5D;
     /** 档：无水体分支。 */
@@ -583,6 +666,14 @@ public final class TerrainVariants {
                     forest = plateau - h0;
                 }
                 delta += w[1] * (forest + ridge);
+                // —— 森林谷地负瓣（v1.20.42 P22 A4：顶部路径被 DELTA_CAP 软顶/108 哨兵/振幅档域三面
+                // 封死后，起伏补强换到下侧——负瓣只在下侧花预算（y=40 地板现状 145 列 vs 预算 943）。
+                // 式 = 草原低地同款"外侧乘门"软门：门关死列贡献精确 0，缓入环从 0 连续过渡；
+                // 负 delta 直通 DELTA_CAP（softMin 只封上侧），最深 −10 ⇒ 与岭脊 +18 拉开 ≥28 格谷-脊差。
+                final double vn = GTSRWorldgenHash
+                    .valueNoise(worldSeed ^ S_FOREST_VALLEY, x / FOREST_VALLEY_SCALE, z / FOREST_VALLEY_SCALE);
+                final double valleyGate = s01((-vn - FOREST_VALLEY_GATE_LO) / FOREST_VALLEY_GATE_SPAN);
+                delta += w[1] * (-(FOREST_VALLEY_BASE + FOREST_VALLEY_SPAN * valleyGate) * valleyGate);
             }
         }
         // —— 荒漠沙丘（RTG dunes 参数化 + domain-warp；无丘陵）——
@@ -730,6 +821,56 @@ public final class TerrainVariants {
     }
 
     /**
+     * 沼泽<b>腹地谓词</b>（v1.20.42 P22 A3 新增；三档水体 + 微池的统一边缘门）：列所在粗格的
+     * Chebyshev 半径 {@link #SWAMP_EDGE_RADIUS_CELLS}（N=16 ⇒ R=4 粗格 = 名义 16 方块）内
+     * {@code rosterIndexAt} <b>全为 roster 3</b> 才算腹地。
+     * <p>
+     * <b>边缘定义在 coarse 1:4 身份面</b>（{@link GTSRGenLayerChain#COARSE_BLOCK_SHIFT}）：身份取数走
+     * {@link ProsperityTerrainProfile#chainRosterIndexAt} 的共享 memo——与 {@link #weightsAt}/
+     * {@code GTSRRiverPlacer.tierGrid} 同一身份面同一条盐，<b>不引入第二身份面</b>。粗格级常量 ⇒
+     * 判定按 (seed, 粗格) 缓存（{@link #SWAMP_INTERIOR_CACHE}），每列一次查表、<b>零噪声求值</b>；
+     * 未命中一次最坏 {@code (2R+1)² = 81} 次 memo 化身份查表（摊销后每新粗格 ~几个新格）。
+     * <p>
+     * <b>消费契约（单一真值）</b>：地形侧经 {@link #swampGates} 的 {@link #SWG_TIER} 槽乘本谓词
+     * （非腹地 ⇒ tier=NONE ⇒ delta 侧水体项精确 0，"地形不挖"），回填侧
+     * {@code ChunkProviderProsperityRuins.fillSwampPools} 三档腿读同一槽（自动 NONE）、微池腿显式乘
+     * 本方法（"回填不灌"）——两侧不可能各写一遍而漂移。 {@code swampRiverPoolAt}（P22 A1b 残潭）
+     * 的三档互斥腿读 {@link #swampTierAt}，边缘列 tier 归 NONE 后该腿对边缘河床列放行——残潭自身的
+     * 不外流钳制归 A1b 片验收，本片不代管（全量复跑归 A5）。
+     * <p>
+     * <b>纯函数</b>、零 {@code net.minecraft} 依赖；N 的校准域 {12,16,24}（R∈{3,4,6}），域外取值禁。
+     */
+    public static boolean swampInteriorAt(long worldSeed, int x, int z) {
+        final int cellX = x >> GTSRGenLayerChain.COARSE_BLOCK_SHIFT;
+        final int cellZ = z >> GTSRGenLayerChain.COARSE_BLOCK_SHIFT;
+        final HashMap<Long, HashMap<Long, Boolean>> bySeed = SWAMP_INTERIOR_CACHE.get();
+        HashMap<Long, Boolean> cells = bySeed.get(worldSeed);
+        if (cells == null) {
+            cells = new HashMap<>();
+            bySeed.put(worldSeed, cells);
+        }
+        final Long key = Long.valueOf(packCell(cellX, cellZ));
+        final Boolean cached = cells.get(key);
+        if (cached != null) {
+            return cached.booleanValue();
+        }
+        boolean interior = true;
+        for (int dz = -SWAMP_EDGE_RADIUS_CELLS; dz <= SWAMP_EDGE_RADIUS_CELLS && interior; dz++) {
+            for (int dx = -SWAMP_EDGE_RADIUS_CELLS; dx <= SWAMP_EDGE_RADIUS_CELLS; dx++) {
+                if (ProsperityTerrainProfile.chainRosterIndexAt(worldSeed, cellX + dx, cellZ + dz) != SWAMP_ROSTER) {
+                    interior = false;
+                    break;
+                }
+            }
+        }
+        if (cells.size() >= SWAMP_INTERIOR_CACHE_CAP) {
+            cells.clear();
+        }
+        cells.put(key, Boolean.valueOf(interior));
+        return interior;
+    }
+
+    /**
      * 风蚀柱<b>落点场</b>（v1.20.41 需求 5；给 populate 侧柱 feature 的单一真值谓词，P20 S6 消费）。
      * 式子与本类地形侧座台<b>同域同值</b>（{@code variantAdjustment} 的荒漠支路直接调用本方法加
      * {@link #SPINE_PEDESTAL} 的座台）⇒ 柱只会落在自己有座台抬升的列上，不存在"柱落在平沙上"或
@@ -820,6 +961,13 @@ public final class TerrainVariants {
         g[SWG_TIER] = g[SWG_DEEP] >= TIER_MIN ? SWAMP_TIER_DEEP
             : (g[SWG_MARSH] >= TIER_MIN ? SWAMP_TIER_MARSH
                 : (g[SWG_POOL] >= TIER_MIN ? SWAMP_TIER_POOL : SWAMP_TIER_NONE));
+        // ═══ v1.20.42 P22 A3 边缘门：非腹地列（Chebyshev R 内 roster 非 3）一律 NONE ═══
+        // 只钳 SWG_TIER 槽、不碰门值槽 ⇒ 遗忘之川（withTiers=false，上方已 return）与本档
+        // 非水体项（泥丘/炭屑滩/夹持）的读数逐位不变；delta 侧（variantAdjustment 只在本档
+        // tier 槽取水体项）与回填侧（swampTierAt）经同一槽自动同口径，"地形不挖、回填不灌"。
+        if (g[SWG_TIER] != SWAMP_TIER_NONE && !swampInteriorAt(worldSeed, x, z)) {
+            g[SWG_TIER] = SWAMP_TIER_NONE;
+        }
         return g;
     }
 

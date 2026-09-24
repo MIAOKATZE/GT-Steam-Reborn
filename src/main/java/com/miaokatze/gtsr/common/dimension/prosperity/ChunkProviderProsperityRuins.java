@@ -1,5 +1,6 @@
 package com.miaokatze.gtsr.common.dimension.prosperity;
 
+import java.util.HashMap;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -17,6 +18,7 @@ import com.miaokatze.gtsr.common.dimension.framework.GTSRChunkProviderBase;
 import com.miaokatze.gtsr.common.dimension.framework.GTSRSurfaceBorderBand;
 import com.miaokatze.gtsr.common.dimension.framework.structure.BlockSink;
 import com.miaokatze.gtsr.common.dimension.framework.structure.ChunkClampedSink;
+import com.miaokatze.gtsr.common.dimension.framework.structure.GTSRWorldgenHash;
 import com.miaokatze.gtsr.common.dimension.prosperity.biome.BiomeBrassWastes;
 import com.miaokatze.gtsr.common.dimension.prosperity.biome.BiomeFumaroleSwamp;
 import com.miaokatze.gtsr.common.dimension.prosperity.biome.BiomeGearworkForest;
@@ -296,7 +298,11 @@ public class ChunkProviderProsperityRuins extends GTSRChunkProviderBase {
      * {@link GTSRSurfaceBorderBand#forChunk} 拿到 S1 那份 selector，并把每一列<b>原样委托</b>给它；
      * 委托结果在本类眼里只是"这一列 S1 会铺什么"，湿带只在 S1 答案之上做一次<b>范围极窄的改派</b>
      * （判据 = {@link GTSRVoronoiRiverField#lakeWetBandAt}，三门：湖滨带内 + 地表贴水 +
-     * 不深于水面 2 格）。域外的列 ⇒ 逐字返回委托结果 ⇒ 与框架默认路径逐字节相同。</li>
+     * 不深于水面 2 格）。域外的列 ⇒ 逐字返回委托结果 ⇒ 与框架默认路径逐字节相同。
+     * <b>P22 A2b（G3）改写上句的判据</b>：三门布尔谓词换成同包内
+     * {@link LakeWetBandTopSelector#wetBandGravelAt}——核心（三门全真）恒砾一字不动，仅在各门
+     * 外缘加五档噪声覆盖率外檐（A2a 读数：布尔边 ⇒ 外缘 100% 材质阶跃）；
+     * {@code lakeWetBandAt} 本体仍是河流场的公开谓词（消费面 = 本包装层核心 + 离线探针）。</li>
      * <li>改派只取<b>同维名册内已注册的方块</b>（{@link BlocksGTSR#prosperityRiverGravel}，
      * 即 {@code GTSRRiverPlacer} 现有的河滩料），零新方块（H-4 ⇒ 名册读数 408 不变），
      * 也不引入 plains/grass/dirt（S1 降级口径的强条件仍然成立）。</li>
@@ -322,6 +328,35 @@ public class ChunkProviderProsperityRuins extends GTSRChunkProviderBase {
         private int boundBaseX;
         private int boundBaseZ;
 
+        /** G3（P22 A2b）羽化盐域：ASCII {@code "WETB"}——新域，与 BORDER/河/湖/主干/振幅各域互不相关。 */
+        private static final long S_WETB_JITTER = 0x57455442L;
+        /** 羽化噪声波长（方块）：{@code 13 % 16 = 13}（H-1），与 S1 BORDER 同数值但独立盐域。 */
+        private static final double WETB_JITTER_SCALE = 13.0D;
+        /**
+         * 门①外檐的"一格"湖压当量：带压宽 {@code SHORE−WATER = 0.02} ÷ 实测环带宽 ≈14 格
+         * ≈ 0.00143，取 {@code 0.0015}（压力梯度按环带均摊，湖形 warp 处会有 ±数格出入，
+         * 但外檐总深 ≤5 格当量 ⇒ 对判定形状不敏感；实际覆盖率以探针复测为准）。
+         */
+        private static final double WETB_HALO_UNIT = 0.0015D;
+        /**
+         * 外檐五档铺砾阈值（{@code valueNoise} ∈ [-1,1)，{@code >= 阈值} 即铺）。分位基准取自
+         * {@code plan/tmp/p22-a2b/calib}（scale=13、同 seed 网格：-0.80≈0.97 / -0.74≈0.96 /
+         * -0.65≈0.93 / -0.60≈0.92 / -0.50≈0.85）；但 valueNoise 是 13 格<b>平滑场</b> ⇒ 边界按
+         * "段"整体制裁、实测覆盖系统性偏离网格分位（段内近 0 或近 1），故阈值经三轮 A2bProbe
+         * 实测校准：第一轮（-0.71/-0.58/-0.40/-0.25/-0.06，MAX=8）dryPureSkin=7.4%；第二轮
+         * （-0.77/-0.71/-0.58/-0.50/-0.40，MAX=10）stepRate=5.59% 达标、dryPureSkin=5.27% 微超；
+         * 本值 = 第三轮（终读数复跑见 {@code plan/tmp/p22-a2b/PROGRESS.md}，两向申报）。
+         * 逐档递减即羽化梯度，檐缘无连续等值线；出檐 >{@link #WETB_HALO_MAX} 格当量不铺
+         * （陡崖/急压段的硬边 = 地形自身的边，非布尔门产物，不属本判据对象，保留并披露）。
+         */
+        private static final double WETB_T1 = -0.80D;
+        private static final double WETB_T2 = -0.74D;
+        private static final double WETB_T3 = -0.65D;
+        private static final double WETB_T4 = -0.60D;
+        private static final double WETB_T5 = -0.50D;
+        /** 外檐最大深度（格当量）：超界整档排除，不向远处外扩。 */
+        private static final double WETB_HALO_MAX = 10.0D;
+
         @Override
         public Block topAt(long seed, int x, int z, BiomeGenBase biome) {
             if (!this.resolved) {
@@ -341,7 +376,84 @@ public class ChunkProviderProsperityRuins extends GTSRChunkProviderBase {
             if (base == BlocksGTSR.prosperityRiverGravel) {
                 return base; // 已是湿料，省一次湖场求值
             }
-            return GTSRVoronoiRiverField.lakeWetBandAt(seed, x, z) ? BlocksGTSR.prosperityRiverGravel : base;
+            // P22 A2b（G3）：布尔改派换为「核心恒砾 + 三门外缘五档噪声外檐」（见 wetBandGravelAt）；
+            // 改造前表达式为 `lakeWetBandAt(seed,x,z) ? gravel : base`（三门全布尔 ⇒ 外缘 100% 阶跃）。
+            return wetBandGravelAt(seed, x, z) ? BlocksGTSR.prosperityRiverGravel : base;
+        }
+
+        /**
+         * P22 A2b（G1）：filler 段直通 S1 混合带（与 top 同一档裁定、同一 meta 等值门，见
+         * {@code GTSRSurfaceBorderBand#fillerAt}）。湿带/羽化檐列<b>不改</b>下垫——湿料语义只作用
+         * 在裸露面 top（plan §15.4 原契约），湖床底下的填充层维持群系列。
+         * <p>
+         * <b>不重复绑定</b>（刻意不调 forChunk 第二条路）：内核同列循环先写 top 后写 filler、
+         * spec 每 chunk 新建 ⇒ 本方法被调时 topAt 已完成绑定；若未触发过（理论不可达）则
+         * {@code blended==null} 恰为直通回退，不存在"用错 chunk 窗"的路径。Sanzu L4 的
+         * "forChunk 实参面计数恰 2"钉因此零移动。
+         */
+        @Override
+        public Block fillerAt(long seed, int x, int z, BiomeGenBase biome) {
+            return this.blended == null ? biome.fillerBlock : this.blended.fillerAt(seed, x, z, biome);
+        }
+
+        /**
+         * <b>湿带外缘羽化判定</b>（P22 A2b，G3）：本列裸露面是否铺湿料
+         * （{@link BlocksGTSR#prosperityRiverGravel}）。
+         * <p>
+         * A2a 取证（{@code plan/tmp/p22-a2a/REPORT.md} §1）：改造前三门（湖滨带 ∧ h≤SEA ∧
+         * h≥SEA−{@code LAKE_WET_BAND_DROP}，与 {@code GTSRVoronoiRiverField#lakeWetBandAt} 同式）
+         * 是纯布尔 ⇒ 湿带外缘 2133/2133 = 100% 材质阶跃、94.2% 为砾→异族皮全族跳。本判定
+         * <b>核心一字不动</b>：核心分支<b>直接复用</b> {@code lakeWetBandAt}（非复刻）⇒ 三门全真
+         * 恒铺砾由构造保证，plan §15.4 的湿带语义与湖岸衔接判据（Sanzu A 组）不受影响。
+         * <p>
+         * 外缘改为<b>连续出檐距离</b> e 上的<b>五档覆盖率外檐</b>：
+         * <ul>
+         * <li>{@code e = max(高度出窗块数, 距带区间 [WATER,SHORE) 的格当量数)}——高度腿按<b>方块</b>
+         * 计（h−sea 本身就是格点跳），湖压腿按 {@link #WETB_HALO_UNIT}（粗格/格当量）折算，
+         * 两腿共用阈值梯（几何上陡岸 1 方块与 1 粗格当量同属"贴檐"，无第三条真值）；
+         * "双门同出窗"的角部列自动归入较高档；<b>湖盆侧与陆侧对称羽化</b>：A2a 边集实测 39%
+         * 的"外缘边"面向湖盆侧（水线列），只羽化陆侧到不了验收线；浅水砾滩本就是水陆之间的
+         * 自然形态，深湖盆（e 超界）恒不铺——改派集合 = 核心 ∪ 双侧外檐散点；</li>
+         * <li>档一 e≤1 覆盖 ≈0.96、档二 e≤2 ≈0.95、档三 e≤3 ≈0.90、档四 e≤5 ≈0.85、
+         * 档五 e≤10 ≈0.80、e>10 不铺（不向远处外扩；陡崖/急压段本就留硬边，见阈值注释）；</li>
+         * <li>裁定 = 逐列值噪声（盐域 {@code "WETB"}、波长 13）对照档位阈值——纯世界坐标
+         * 函数 ⇒ 跨 chunk 一致；覆盖率随 e 逐档递减 ⇒ 檐缘无连续等值线（羽化的定义面）。</li>
+         * </ul>
+         * 候选方块仍只有 prosperityRiverGravel（零新方块，H-4）。验收读数（阶跃率/全族跳/
+         * 各档覆盖率）在 {@code plan/tmp/p22-a2b/PROGRESS.md}（A2bProbe after 跑）。
+         */
+        private static boolean wetBandGravelAt(long worldSeed, int x, int z) {
+            // 核心 = 原三门谓词<b>逐字复用</b>（lakeWetBandAt 本体，非复刻）：三门全真恒铺砾，
+            // 改派集合包含关系由构造保证（A2a 验收"核心不变"的机制面凭据）。
+            if (GTSRVoronoiRiverField.lakeWetBandAt(worldSeed, x, z)) {
+                return true;
+            }
+            // 外檐 = 到三门判定域 [WATER, SHORE)×[SEA−drop, SEA] 的连续出檐距离（格当量），
+            // 干侧与湖盆侧共用同一标尺：水线两侧都是"湿→干"的自然渐变带（浅滩砾），
+            // 而 A2a 边集里 39% 的外缘边实际面向湖盆侧——只羽化陆侧永远到不了验收线。
+            final double lake = GTSRVoronoiRiverField.lakeAt(worldSeed, x, z);
+            final int sea = ProsperityTerrainProfile.SEA_LEVEL;
+            final int drop = GTSRVoronoiRiverField.LAKE_WET_BAND_DROP;
+            final int h = ProsperityTerrainProfile.heightAt(worldSeed, x, z);
+            double e = Math.max(h - sea, sea - drop - h);
+            final double eBand = Math.max(
+                (lake - GTSRVoronoiRiverField.LAKE_SHORE) / WETB_HALO_UNIT,
+                (GTSRVoronoiRiverField.LAKE_WATER_LEVEL - lake) / WETB_HALO_UNIT);
+            if (eBand > e) {
+                e = eBand;
+            }
+            if (e > WETB_HALO_MAX) {
+                return false; // 湖心深盆 / 高台 / 带远侧：整档排除，不外扩
+            }
+            final double n = wetBandJitter(worldSeed, x, z);
+            final double t = e <= 1.0D ? WETB_T1
+                : e <= 2.0D ? WETB_T2 : e <= 3.0D ? WETB_T3 : e <= 5.0D ? WETB_T4 : WETB_T5;
+            return n >= t;
+        }
+
+        /** 羽化抖动场（独立盐域 + 波长 13；与 S1 BORDER_JITTER 无相关）。 */
+        private static double wetBandJitter(long worldSeed, int x, int z) {
+            return GTSRWorldgenHash.valueNoise(worldSeed ^ S_WETB_JITTER, x / WETB_JITTER_SCALE, z / WETB_JITTER_SCALE);
         }
     }
 
@@ -456,6 +568,22 @@ public class ChunkProviderProsperityRuins extends GTSRChunkProviderBase {
      * {@code pool = Integer.MIN_VALUE} 处的 int 回绕）⇒ <b>禁止"顺手泛化"</b>。</li>
      * </ol>
      * 观察：日志行增印三档<b>实际送水列数</b>分桶，供 §21-F 的三档分布位移复测取数。
+     * <p>
+     * <b>v1.20.42 P22 A3 两处改动</b>（沼泽水体避群系边缘 + 包含性收口）：
+     * <ol>
+     * <li><b>边缘门</b>：入口先乘 {@link TerrainVariants#swampInteriorAt}（coarse Chebyshev R=4 内
+     * roster 全 3 才回填）。三档腿经 {@code swampTierAt} 的 {@code SWG_TIER} 槽已同门自动 NONE
+     * （{@code TerrainVariants.swampGates} 单点分流），本方法补微池腿 ⇒ 三档+微池统一"距群系边缘
+     * ≥16 格"；微池的<b>地形压低在 heightCore 微池段</b>（本片禁区）⇒ 边缘微池留 1-2 格干洼地、
+     * 不置水（设计代价，见 A3 交付披露）。</li>
+     * <li><b>包含性钳制（N8 不动点）</b>：18×18 网格上把沼泽水顶只降不升地钳到 8 邻阻挡面 min
+     * （干列/被钳干空坑列 = 固体顶 h，0 余量——"8 邻固体顶 ≥ 水顶"验收口径，A1b 残潭 N8 钳制
+     * 同族；水邻 = 其水面，水—水同面不流）——收口 v1.20.40 申报"微池 69/71 桶低地悬空"（改前
+     * 8 seed×512² 实测悬空 874 列 = 边缘 681 + 腹地低地 193；1 级钳制仍漏 276 对"空坑邻外流"，
+     * 故取 Jacobi 不动点，实测 2-3 趟收敛）；钳到本床面之下则整列不置水（"宁缺不悬"，
+     * wg41-E-options D2 处置先例）。置水区间高度式 {@code y ∈ [h+1, 顶]} 与三档水层厚度语义
+     * （由地形侧下挖深度给出）不变——钳制只在"会外流"的列上削顶。</li>
+     * </ol>
      */
     private static void fillSwampPools(long worldSeed, int chunkX, int chunkZ, BlockSink sink) {
         final int baseX = chunkX << 4;
@@ -464,27 +592,41 @@ public class ChunkProviderProsperityRuins extends GTSRChunkProviderBase {
         final Block water = GTSRRiverPlacer.waterMaterial();
         int waterCells = 0;
         final int[] wateredByTier = new int[4];
-        for (int lz = 0; lz < 16; lz++) {
-            for (int lx = 0; lx < 16; lx++) {
-                final int x = baseX + lx;
-                final int z = baseZ + lz;
-                final int tier = GTSRRiverPlacer.tierAt(tiers, x, z, baseX, baseZ);
-                final int swamp = TerrainVariants.swampTierAt(worldSeed, x, z, tier);
-                if (swamp == TerrainVariants.SWAMP_TIER_NONE && GTSRVoronoiRiverField.swampLakeAt(worldSeed, x, z, tier)
-                    >= GTSRVoronoiRiverField.SWAMP_POOL_WATER_LEVEL) {
-                    continue;
-                }
-                final int pool = GTSRVoronoiRiverField.poolLevelAt(worldSeed, x, z, tier);
-                final int h = ProsperityTerrainProfile.heightAt(worldSeed, x, z);
-                if (!GTSRVoronoiRiverField.submergedAt(h, pool)) {
-                    continue;
-                }
-                for (int y = h + 1; y <= pool - 1; y++) {
-                    if (sink.setBlock(x, y, z, water, 0, BlockSink.FLAG_POPULATE)) {
-                        waterCells++;
+        // ═══ v1.20.42 P22 A3 快挡：7×7 档格无 roster 3 ⇒ 全 chunk 无沼泽水体（边缘门要求水列
+        // 所在粗格本身为 3，档格覆盖 [base−4, base+24) ⊇ 列域 [base, base+16)）——非沼泽 chunk
+        // 零网格求值，比改造前"逐列 tierAt+swampTierAt 短路"更便宜。═══
+        boolean anySwamp = false;
+        for (int i = 0; i < tiers.length && !anySwamp; i++) {
+            anySwamp = tiers[i] == 3;
+        }
+        if (anySwamp) {
+            // ═══ v1.20.42 P22 A3：沼泽水顶场（区域缓存）═══ 包含性钳制的低地排干链是池尺度
+            // （探针实测最深 43 趟），per-chunk 有界窗口追不上（1/2/4/8 圈环实测漏 59/31/43/72 对，
+            // 全窗不动点理想值 0）⇒ 钳制在 256 格<b>区域场</b>上一次算清（+64 环），按 (seed, 区域)
+            // 缓存——纯函数 ⇒ 同列恒同值、跨 chunk 接缝一致（每列只从<b>自己区域</b>的场取值，
+            // 与哪个 chunk 先生成无关）。场内逐列存钳后水顶/床高/档位，本方法只读场置水。
+            // 更长的跨区域排干链（>64 环深）理论可漏——A3 探针 8 seed×512² 实测 0（判据 P17 A3 组）。═══
+            for (int lz = 0; lz < 16; lz++) {
+                for (int lx = 0; lx < 16; lx++) {
+                    final int x = baseX + lx;
+                    final int z = baseZ + lz;
+                    final SwampFieldGrid field = swampFieldAt(worldSeed, x, z);
+                    final int fi = x - field.originX
+                        + SWAMP_FIELD_MARGIN
+                        + (z - field.originZ + SWAMP_FIELD_MARGIN) * SWAMP_FIELD_SIDE;
+                    final int fillTop = field.top[fi];
+                    final int h = field.h[fi];
+                    if (fillTop < h + 1) {
+                        continue; // 无水体名义项或被钳干（宁缺不悬）
                     }
+                    for (int y = h + 1; y <= fillTop; y++) {
+                        if (sink.setBlock(x, y, z, water, 0, BlockSink.FLAG_POPULATE)) {
+                            waterCells++;
+                        }
+                    }
+                    final int swamp = field.st[fi];
+                    wateredByTier[swamp]++;
                 }
-                wateredByTier[swamp]++;
             }
         }
         SWAMP_WATER_CELLS.addAndGet(waterCells);
@@ -494,7 +636,8 @@ public class ChunkProviderProsperityRuins extends GTSRChunkProviderBase {
         if (SWAMP_CHUNKS_SERVED.incrementAndGet() % LAKE_LOG_WINDOW_CHUNKS == 0) {
             GTSteamReborn.LOG.info(
                 "[GTSR] dim78 swamp pools over {} chunks: waterCells={} wateredCols none={} pool={} deep={}"
-                    + " marsh={} (tier-gated backfill via swampTierAt; gate = submergedAt)",
+                    + " marsh={} (tier-gated backfill via swampTierAt; gate = submergedAt"
+                    + " + swampInterior edge gate + region-field containment clamp)",
                 SWAMP_CHUNKS_SERVED.get(),
                 SWAMP_WATER_CELLS.get(),
                 SWAMP_TIER_WATERED_COLS[0].get(),
@@ -502,6 +645,162 @@ public class ChunkProviderProsperityRuins extends GTSRChunkProviderBase {
                 SWAMP_TIER_WATERED_COLS[2].get(),
                 SWAMP_TIER_WATERED_COLS[3].get());
         }
+    }
+
+    // ═══════════════ v1.20.42 P22 A3：沼泽水顶场（区域缓存的包含性钳制）═══════════════
+
+    /** 水顶场区域边长（方块，2 的幂，区域原点 = 坐标按本值对齐）。 */
+    private static final int SWAMP_FIELD_REGION = 256;
+    /** 场环宽（方块）：排干链跨区域可见深度的保守界（探针实测最深链 ~43 格 ⇒ 64 留余量）。 */
+    private static final int SWAMP_FIELD_MARGIN = 64;
+    /** 场边长 = 区域 + 两侧环。 */
+    private static final int SWAMP_FIELD_SIDE = SWAMP_FIELD_REGION + 2 * SWAMP_FIELD_MARGIN;
+    /** 每 seed 保留的区域场数（超限整清——纪律同 Profile 各表，重算值不变）。 */
+    private static final int SWAMP_FIELD_CACHE_CAP = 4;
+    private static final ThreadLocal<HashMap<Long, HashMap<Long, SwampFieldGrid>>> SWAMP_FIELD_CACHE = ThreadLocal
+        .withInitial(HashMap::new);
+
+    /**
+     * 沼泽水顶场（v1.20.42 P22 A3）：一个 256×256 区域（+64 环）上的<b>钳后水顶场</b>——
+     * {@link #fillSwampPools} 的唯一取数口。构建（纯函数，同 seed 同区域恒同值）：
+     * <ol>
+     * <li>逐列 nominal（三档/微池名义水顶，含 A3 边缘门与 submerged 门）与 fixed（河/主干/
+     * 巨湖/残潭水面，其它置水通道不动）；</li>
+     * <li>N8 Jacobi 不动点钳制：干列/被钳干列的阻挡面 = 固体顶 h（"8 邻固体顶 ≥ 水顶"验收口径，
+     * 0 余量；A1b 残潭 N8 钳制同族），水邻 = 其当前水面；单调下降必收敛（趟上限 96 为保守界）；</li>
+     * <li>被钳到床面之下的列 top &lt; h+1 ⇒ 整列不置水（"宁缺不悬"，wg41-E-options D2 先例）。</li>
+     * </ol>
+     * 缓存纪律：线程私有、(seed, 区域原点) 键、上限 {@link #SWAMP_FIELD_CACHE_CAP} 超限整清
+     * （重算值不变，同 {@code ProsperityTerrainProfile} 各表）。首触一个区域做一次
+     * {@code 384²} 列求值（数百 ms 量级、摊到该区域 256 个 chunk）；此后每 chunk 只读场。
+     */
+    private static final class SwampFieldGrid {
+
+        final int originX;
+        final int originZ;
+        /** 钳后水顶（-1 = 无沼泽水体名义项）；置水另行判 top ≥ h+1。 */
+        final int[] top = new int[SWAMP_FIELD_SIDE * SWAMP_FIELD_SIDE];
+        /** 床高（heightAt 整链终值，含微池/三档/河谷/巨湖压低）。 */
+        final int[] h = new int[SWAMP_FIELD_SIDE * SWAMP_FIELD_SIDE];
+        /** {@code TerrainVariants.swampTierAt} 档位（微池列 = NONE 桶）。 */
+        final byte[] st = new byte[SWAMP_FIELD_SIDE * SWAMP_FIELD_SIDE];
+
+        SwampFieldGrid(long worldSeed, int regionX, int regionZ) {
+            this.originX = regionX;
+            this.originZ = regionZ;
+            final int w = SWAMP_FIELD_SIDE;
+            final int[] nominal = new int[w * w];
+            final int[] fixed = new int[w * w];
+            for (int lz = 0; lz < w; lz++) {
+                for (int lx = 0; lx < w; lx++) {
+                    final int i = lz * w + lx;
+                    final int x = regionX - SWAMP_FIELD_MARGIN + lx;
+                    final int z = regionZ - SWAMP_FIELD_MARGIN + lz;
+                    final int tier = ProsperityTerrainProfile.chainRosterIndexAt(worldSeed, x >> 2, z >> 2);
+                    final int p = GTSRVoronoiRiverField.poolLevelAt(worldSeed, x, z, tier);
+                    final int hv = ProsperityTerrainProfile.heightAt(worldSeed, x, z);
+                    this.h[i] = hv;
+                    nominal[i] = -1;
+                    fixed[i] = -1;
+                    this.st[i] = 0;
+                    final boolean sub = GTSRVoronoiRiverField.submergedAt(hv, p);
+                    if (tier == 3) {
+                        final int t = sub ? TerrainVariants.swampTierAt(worldSeed, x, z, 3) : 0;
+                        this.st[i] = (byte) t;
+                        // A3 边缘门（三档腿经 swampTierAt 的 SWG_TIER 槽同门自动 NONE + 微池腿显式乘
+                        // swampInteriorAt——TerrainVariants.swampGates 单点分流，两侧同一真值）
+                        if (sub && TerrainVariants.swampInteriorAt(worldSeed, x, z)
+                            && (t != TerrainVariants.SWAMP_TIER_NONE
+                                || GTSRVoronoiRiverField.swampLakeAt(worldSeed, x, z, 3)
+                                    < GTSRVoronoiRiverField.SWAMP_POOL_WATER_LEVEL)) {
+                            nominal[i] = p - 1;
+                        }
+                    }
+                    if (sub && GTSRVoronoiRiverField.wetAt(worldSeed, x, z, tier)) {
+                        fixed[i] = p - 1; // 河/主干水（A1a 新门）
+                    }
+                    if (GTSRVoronoiRiverField.lakeAt(worldSeed, x, z) < GTSRVoronoiRiverField.LAKE_SHORE
+                        && hv < ProsperityTerrainProfile.SEA_LEVEL) {
+                        fixed[i] = Math.max(fixed[i], ProsperityTerrainProfile.SEA_LEVEL - 1); // 巨湖水
+                    }
+                    if (tier == 3 && GTSRVoronoiRiverField.swampRiverPoolAt(worldSeed, x, z, 3) > 0.0D) {
+                        fixed[i] = Math.max(fixed[i], p + GTSRVoronoiRiverField.SWAMP_RIVER_POOL_FILL_TOP); // 残潭（A1b）
+                    }
+                }
+            }
+            // N8 不动点钳制（Jacobi 逐趟，趟用上趟快照 ⇒ 确定性与扫描序无关；单调下降必收敛）
+            final int[] tops = nominal.clone();
+            for (int pass = 0; pass < 96; pass++) {
+                boolean changed = false;
+                final int[] cur = tops.clone();
+                for (int lz = 0; lz < w; lz++) {
+                    for (int lx = 0; lx < w; lx++) {
+                        final int i = lz * w + lx;
+                        if (nominal[i] < 0) {
+                            continue;
+                        }
+                        int t = cur[i];
+                        for (int dz = -1; dz <= 1; dz++) {
+                            final int nz = lz + dz;
+                            if (nz < 0 || nz >= w) {
+                                continue;
+                            }
+                            for (int dx = -1; dx <= 1; dx++) {
+                                if (dx == 0 && dz == 0) {
+                                    continue;
+                                }
+                                final int nx = lx + dx;
+                                if (nx < 0 || nx >= w) {
+                                    continue;
+                                }
+                                final int j = nz * w + nx;
+                                final int b = fixed[j] >= 0
+                                    ? Math.max(fixed[j], cur[j] >= this.h[j] + 1 ? cur[j] : this.h[j])
+                                    : (cur[j] >= this.h[j] + 1 ? cur[j] : this.h[j]);
+                                if (b < t) {
+                                    t = b;
+                                }
+                            }
+                        }
+                        if (t < cur[i]) {
+                            tops[i] = t;
+                            changed = true;
+                        }
+                    }
+                }
+                if (!changed) {
+                    break;
+                }
+            }
+            System.arraycopy(tops, 0, this.top, 0, tops.length);
+        }
+    }
+
+    /** 列所在区域的水顶场（构建并缓存；区域原点 = 坐标按 {@link #SWAMP_FIELD_REGION} 对齐）。 */
+    private static SwampFieldGrid swampFieldAt(long worldSeed, int x, int z) {
+        final HashMap<Long, HashMap<Long, SwampFieldGrid>> bySeed = SWAMP_FIELD_CACHE.get();
+        HashMap<Long, SwampFieldGrid> regions = bySeed.get(worldSeed);
+        if (regions == null) {
+            regions = new HashMap<>();
+            bySeed.put(worldSeed, regions);
+        }
+        final int regX = Math.floorDiv(x, SWAMP_FIELD_REGION) * SWAMP_FIELD_REGION;
+        final int regZ = Math.floorDiv(z, SWAMP_FIELD_REGION) * SWAMP_FIELD_REGION;
+        final Long key = Long.valueOf(packRegion(regX, regZ));
+        SwampFieldGrid field = regions.get(key);
+        if (field == null) {
+            if (regions.size() >= SWAMP_FIELD_CACHE_CAP) {
+                regions.clear();
+            }
+            field = new SwampFieldGrid(worldSeed, regX, regZ);
+            regions.put(key, field);
+        }
+        return field;
+    }
+
+    /** (regX, regZ) → long 打包（低 32 位 regZ；与 Profile.packCell 同式负坐标两侧一致）。 */
+    private static long packRegion(int regX, int regZ) {
+        return ((long) regX << 32) | (regZ & 0xFFFFFFFFL);
     }
 
     /**

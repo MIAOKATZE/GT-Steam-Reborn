@@ -187,6 +187,22 @@ public class GTSRChunkProviderBase implements IChunkProvider {
     public interface SurfaceTopSelector {
 
         Block topAt(long worldSeed, int x, int z, BiomeGenBase biome);
+
+        /**
+         * P22 A2b（G1：filler 硬线接入表层混合带）新增的第二个出口——top 下 1-2 格 filler 段
+         * 的方块选择。契约与 {@link #topAt} 完全同侧：确定性纯函数、不得读 {@code World}、
+         * 返回值只允许取自<b>入参群系自身</b>或<b>同维名册成员</b>的 {@code fillerBlock}。
+         * <p>
+         * <b>default 直通 {@code biome.fillerBlock}</b>：这是"未接入者零影响"的机制面——
+         * dim79（spec 不传 selector）与任何只覆写 {@code topAt} 的既有实现（含
+         * {@code shattered} 侧若未来接入）行为逐字节不变；filler meta 仍由框架按<b>本列群系</b>
+         * 的 {@code SurfaceSpec#fillerMeta} 写（等值门在选择器侧：见
+         * {@code GTSRSurfaceBorderBand#fillerMetaOfTier}——只有两侧 FILLER_META 常量相等才改派，
+         * 现状五档全 0，字节相同）。
+         */
+        default Block fillerAt(long worldSeed, int x, int z, BiomeGenBase biome) {
+            return biome.fillerBlock;
+        }
     }
 
     /**
@@ -380,6 +396,13 @@ public class GTSRChunkProviderBase implements IChunkProvider {
      * 「两侧 {@code field_150604_aj} 不等则不换」的显式门，防未来某群系声明非 0 top meta 时
      * 静默写错元数据。filler 段与主体段（{@code biome.fillerBlock}/{@code wholeBody}）
      * <b>未接入选择器</b>——它们跟着本列群系走，本片需求只覆盖裸露面 top（越界即扩大改动面）。
+     * <p>
+     * <b>P22 A2b（G1）更正上文末句</b>：filler 段现已接入同一 selector 的
+     * {@link SurfaceTopSelector#fillerAt} 出口（上面那句"未接入"是 P20 S1 切片时的原文，按
+     * 「旧带原文保留+标注」纪律保留）；主体段（{@code wholeBody}）仍不接入——A2a 读数
+     * {@code wholeBody} 已四群系统一 prosperityStone（v1.20.39 G4），无硬线可言，接入只增风险。
+     * meta 纪律与 top 同族：框架写本列群系的 {@code fillerMeta}，选择器侧另有
+     * FILLER_META 常量等值门（现状五档全 0）。
      *
      * @param baseX / baseZ chunk 原点<b>世界坐标</b>（filler 深度哈希按世界坐标，跨 chunk 无缝）
      */
@@ -429,7 +452,13 @@ public class GTSRChunkProviderBase implements IChunkProvider {
                         continue; // 悬空主体格（不应出现，防御跳过）
                     }
                     if (fillerLeft > 0) {
-                        blocks[idx] = biome.fillerBlock;
+                        // P22 A2b（G1）：filler 写格与 top 同源——A2a 取证「top 下 1-2 格 filler 在群系
+                        // 交界 p50=0.5 格硬切换、0/5160 列例外」根因即本行改造前的逐列单值。selector 为
+                        // null（dim79 / 白名单外 / 未绑定）或与 topAt 同档时逐字退回改造前表达式；
+                        // fillerMeta 仍按<b>本列群系</b>查表——选择器侧有 FILLER_META 等值门（四档现值
+                        // 全 0，见 GTSRSurfaceBorderBand#fillerAt 凭据），换料不换 meta 在现状字节相同。
+                        blocks[idx] = top == null ? biome.fillerBlock
+                            : top.fillerAt(worldSeed, baseX + x, baseZ + z, biome);
                         final int fillerMeta = spec.fillerMeta.applyAsInt(biome);
                         if (fillerMeta != NO_META_WRITE) {
                             metadata[idx] = (byte) fillerMeta;

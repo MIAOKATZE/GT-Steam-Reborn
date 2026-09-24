@@ -53,7 +53,9 @@ import com.miaokatze.gtsr.common.dimension.prosperity.river.GTSRVoronoiRiverFiel
  * <li><b>P 组 {@code LAKE_BED_PLATEAU} 扫描</b>（本片 T2 的唯一取数口）：先与生产 {@code lakeBedAt}
  * 逐位对拍，再扫候选档；</li>
  * <li><b>L 组 表层单一真值复用</b>：湿带必须走 S1 的 {@code SurfaceTopSelector} 包装层，非湿带列逐字
- * 退回 {@code GTSRSurfaceBorderBand} 的答案（「不得新立第二真值」的机检形态）；</li>
+ * 退回 {@code GTSRSurfaceBorderBand} 的答案（「不得新立第二真值」的机检形态）；
+ * <b>P22 A2b（G3）放宽为"逐字退回，或差异列 top==prosperityRiverGravel（仅加铺既有湿料）"</b>
+ * ——羽化檐禁第三料、本窗檐必须可见，旧口径原文保留在 L1 断言处注释；</li>
  * <li><b>R 组 §7-6 环带结构落块暴露面</b>：只报不钉（处置顺位归主代理，权威门是
  * {@code PlacementContractCheck}）。</li>
  * </ul>
@@ -1840,6 +1842,8 @@ public final class SanzuLakeMorphologyCheck {
             int outside = 0;
             int identical = 0;
             int mism = 0;
+            // P22 A2b（G3）新增：非湿带列被外檐加铺"既有湿料"的列数（羽化的机检形态，见 L1 新口径）
+            int halo = 0;
             for (int lz = 0; lz < 16; lz++) {
                 for (int lx = 0; lx < 16; lx++) {
                     final int x = baseX + lx;
@@ -1859,8 +1863,10 @@ public final class SanzuLakeMorphologyCheck {
                         outside++;
                         if (got == base) {
                             identical++;
+                        } else if (got == BlocksGTSR.prosperityRiverGravel) {
+                            halo++; // 改派仅可为既有湿料（单一真值的羽化口径）
                         } else {
-                            mism++;
+                            mism++; // 第三料 = 真正的"第二真值"，必 0
                         }
                     }
                 }
@@ -1868,9 +1874,15 @@ public final class SanzuLakeMorphologyCheck {
             final String note = "chunk(" + baseX + "," + baseZ + ") S1 blended="
                 + (blended == null ? "null(退回 topBlock)" : blended.getClass().getSimpleName())
                 + "；湿带列=" + wet + "，表层 = prosperityRiverGravel 的 " + wetAsGravel
-                + "；域外列=" + outside + "，与 S1 结果逐字相同 " + identical + "（不同 " + mism + "）";
-            check("L1 §15.4 湿带复用 S1 表层钩子：包装层在非湿带列必须逐字退回 S1（GTSRSurfaceBorderBand）的答案"
-                + "（「不得新立第二真值」的机检形态）", outside > 0 && mism == 0, note);
+                + "；域外列=" + outside + "，逐字退回 " + identical + "，羽化檐(=砾) " + halo + "，第三料 " + mism;
+            // 旧口径原文（P20 §15.4，v1.20.41）：「包装层在非湿带列必须逐字退回 S1 的答案」
+            // （outside > 0 && mism == 0）。P22 A2b（G3 湿带外缘羽化）把"逐字退回"放宽为
+            // "退回，或仅加铺既有湿料 prosperityRiverGravel"——"不得新立第二真值"的语义不变：
+            // 第三料 mism 仍必 0，且改派料=湿带本体（无新方块、无新皮肤选择逻辑）；
+            // 反假绿：本 chunk 是含大量湿带的羽化中心窗，halo 必须 >0（檐未生效即红）。
+            check("L1 §15.4+P22G3 湿带复用 S1 表层钩子：非湿带列要么逐字退回 S1（GTSRSurfaceBorderBand），"
+                + "要么差异列 top==prosperityRiverGravel（羽化檐只加铺既有湿料，禁第三料），"
+                + "且本湿带中心窗羽化必须可见", outside > 0 && mism == 0 && halo > 0, note);
             check("L2 §15.4 湿带确实改派同维名册内的湿料 prosperityRiverGravel（H-4 零新方块）：本 chunk 湿带列全中",
                 wet > 0 && wetAsGravel == wet, note);
             say("L-READ 装配态说明：离线 JVM 的 SurfaceHarness def <b>未过 DimensionRegistrar</b>"

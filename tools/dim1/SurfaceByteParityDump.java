@@ -37,6 +37,13 @@ import com.miaokatze.gtsr.common.dimension.framework.GTSRWorldChunkManager;
  * 正常态前提：8 个名册成员全部 {@code recordAllocation} 进 {@link GTSRBiomeAuthority}
  * ⇒ {@code degraded=NONE} ⇒ P2 的降级门必须完全不介入（摘要头部会打印实际 degraded）。
  * <p>
+ * <b>v1.20.42 P22 A2b 重钉注</b>：本片起 top 与 filler 写格都可经 {@code SurfaceTopSelector}
+ * 可选改派（混合带 fillerAt + 湿带外缘羽化）。本工具是<b>树对树</b>对拍（BASE/AFTER 同一装配
+ * JVM，均不把 def 登记进 DimensionRegistrar ⇒ forChunk 恒 null、无湖驱动窗，两条改派路在两棵树
+ * 里同为恒等），故摘要 diff 的语义不变；混合带<b>生效</b>态的逐字节面由
+ * {@code plan/tmp/p22-a2b/A2bProbe} 钉（dim79 1600-chunk 摘要 base==after、dim78 top 行摘要
+ * base==after、filler 行摘要必变 = 反假绿）。改本工具装配前先读这条。
+ * <p>
  * 每 chunk 一行 {@code sha256(65536 × (label 序号 int32 + meta byte))} + 方块直方图。
  * label 取 {@code BlocksGTSR} / {@code Blocks} 的 public static 字段名，按<b>字典序</b>赋号
  * （与反射 {@code getFields()} 顺序无关 ⇒ 跨构建可复现）；出现未命名方块实例时记入

@@ -4,6 +4,7 @@ import java.util.HashMap;
 
 import com.miaokatze.gtsr.common.dimension.framework.structure.GTSRWorldgenHash;
 import com.miaokatze.gtsr.common.dimension.prosperity.ProsperityTerrainProfile;
+import com.miaokatze.gtsr.common.dimension.prosperity.TerrainVariants;
 
 /**
  * <b>dim78 河流强度场（v1.20.39 T4，plan §3.1/§3.2）</b>：两级 OpenSimplex Disk jitter 蜿蜒
@@ -44,9 +45,9 @@ import com.miaokatze.gtsr.common.dimension.prosperity.ProsperityTerrainProfile;
  * <ul>
  * <li>草原(0)/森林(1)：常态河——床 = pool−{@code depth}±n_bed，n_bed 抬到 ≥ 水面的列自然
  * 干出为<b>浅滩/河滩</b>（浅滩重释 = 派生条件，独立 shoalNoise 档已废）；</li>
- * <li>荒漠(2)：干谷断流——河谷照刻，置水改<b>整段闸</b>（{@code wet = hash(segKey)}，干:湿
- * = 65:35，{@link #DESERT_WET_SHARE}；同一段全干或全湿，BOP DryRiver 先例=干段整段连贯；
- * v1.20.39 的 wetNoise 串珠闸已废）；</li>
+ * <li>荒漠(2)：干谷断流——<b>P22 A1a（v1.20.42）起与全域一致</b>：置水门
+ * {@link #wetAt} = {@code s ≥ WET_MIN ∧ trunk > 0}，带外全枯竭（干河床），原"整段闸
+ * 干:湿 = 65:35"（{@link #DESERT_WET_SHARE}/{@link #segWetAt}）退役；</li>
  * <li>沼泽(3)：沼地河——width×1.2（v1.20.40 从 1.6 收窄）、depth=1（水近地，水深 0-1 成沼地
  * 肌理）；不换河群系（RTG swamp 豁免先例）。</li>
  * </ul>
@@ -282,6 +283,11 @@ public final class GTSRVoronoiRiverField {
      * 荒漠整段闸的湿段份额（v1.20.40 P19 §B）：{@code wet(seg) = hash(segKey) < 本值}——
      * 干:湿 = <b>65:35</b>（用户拍板"荒漠干段为主、符合逻辑"；BOP DryRiver 先例=干段整段
      * 连贯）。整段同值 = 同一条细胞边（同 segKey）全干或全湿，跨 chunk 一致。
+     * <p>
+     * <b>v1.20.42（P22 A1a）退役</b>：置水门收紧为 {@link #wetAt} 的
+     * {@code s ≥ WET_MIN ∧ trunkAt > 0}（全域枯竭＋sanzu 豁免），整段闸不再是任何生成判定
+     * 的一部分。<b>保留字段</b>只因判据侧消费点（tools/dim1 下 RMC 等）本片不改（归 A1c 片
+     * 一并退役），生产链路不得消费它——先例同 {@link #WET_EDGE}。
      */
     public static final double DESERT_WET_SHARE = 0.35D;
 
@@ -375,6 +381,12 @@ public final class GTSRVoronoiRiverField {
     public static final long SALT_SWAMP_POOL_X = 0x5249F10EL;
     /** 沼泽微池 Voronoi 细胞 z 偏移盐。 */
     public static final long SALT_SWAMP_POOL_Z = 0x5249F10FL;
+    /**
+     * 沼泽河床残潭噪声盐（v1.20.42 P22 A1b 新增）：值落在本类盐段尾——{@code …110L} 起
+     * 已被 {@link #SALT_BANK_CUT}/{@link #SALT_LAKE_PILLAR}（同值两用）与
+     * {@link #SALT_BANK_BAND}（{@code …111L}）占满 ⇒ 取 {@code …112L}。
+     */
+    public static final long SALT_SWAMP_RIVER_POOL = 0x5249F112L;
 
     // ═════════════════ T5：遗忘之川主干/巨湖（plan §3.3）═════════════════
 
@@ -708,7 +720,12 @@ public final class GTSRVoronoiRiverField {
          * （RiverMorphologyCheck A 组钉面），不参与生成判定。
          */
         public final boolean shoals;
-        /** 断流档（荒漠 true：置水走 segKey 整段闸）。 */
+        /**
+         * 断流档（荒漠 true：置水走 segKey 整段闸）。<b>v1.20.42（P22 A1a）从生产链退役</b>：
+         * {@link #wetAt} 收紧为 {@code s ≥ WET_MIN ∧ trunkAt > 0}（全域枯竭＋sanzu 豁免）后，
+         * 本布尔不再参与任何生成判定（{@link #bedFromPool} 的 wetGated 腿已删）。字段保留只因
+         * 档表构造签名与判据侧口径本片不改（归 A1c 片）——先例同 {@link #WET_EDGE}。
+         */
         public final boolean wetGated;
 
         RiverStyle(double widthScale, double bedTarget, double bedNoiseAmp, double depth, boolean shoals,
@@ -727,8 +744,9 @@ public final class GTSRVoronoiRiverField {
 
     /**
      * riverStyle 档表（plan §3.2 + §3.3 + P19 §A.2/§C）：0 草原 / 1 森林 = 常态河
-     * （depth 2.0、amp 2.5 → 周期浅滩/河滩）；2 荒漠 = 干谷断流（整段闸，湿段 35%）；
-     * 3 沼泽 = 沼地河（×1.2、depth 1.0 → 水深 0-1 沼地肌理）；4 sanzu = <b>主干宽河占位档</b>
+     * （depth 2.0、amp 2.5 → 周期浅滩/河滩）；2 荒漠 = 干谷断流（<b>P22 A1a 起整段闸退役：
+     * 与全域一致按 {@link #wetAt} 新门枯竭</b>，本档仅余纯参数差异）；3 沼泽 = 沼地河
+     * （×1.2、depth 1.0 → 水深 0-1 沼地肌理）；4 sanzu = <b>主干宽河占位档</b>
      * （v1.20.39 T5 按档表族 4→5 约定就位）：宽乘子 = {@link #TRUNK_WIDTH_SCALE}——主干带内
      * {@link #strengthAt} 对任何底档统一取 max(底档, 3.5) ⇒ 本档被带入时与主干带分支同值
      * （<b>无双乘</b>），depth 2.5（主干河更深）。生产链路 rosterIndex=4 不会从 GenLayer 链
@@ -820,7 +838,8 @@ public final class GTSRVoronoiRiverField {
      * <p>
      * <b>v1.20.40（P19 plan §B）端面收尾修正</b>：湿段（含湖滨带）末 {@link #END_FACE_LEN}
      * 列的床沿 smoothstep 渐变抬升至 {@code poolLevel − END_FACE_BED_OFFSET}（见
-     * {@link #endFaceBed}）——修"湿段整段闸/湖滨交接处的垂直水墙"。修正对
+     * {@link #endFaceBed}）——修"段端交接处的垂直水墙"（P22 A1a 起面 A 以 {@link #wetAt}
+     * 新湿门为真值：枯竭边界同治）。修正对
      * {@link #heightAt} 消费面自动生效（heightCore 内段切床走本方法，同一真值），
      * 置水面（placer 的 {@code h < pool−1} 回填门）随床抬升自动收窄。
      */
@@ -829,8 +848,9 @@ public final class GTSRVoronoiRiverField {
         double bed = poolLevel - style.depth
             + style.bedNoiseAmp
                 * GTSRWorldgenHash.valueNoise(worldSeed ^ SALT_BED, x / BED_NOISE_SCALE, z / BED_NOISE_SCALE);
-        // 端面收尾：只对"可能有干段面（整段闸档）或湖滨交接面（主干带内）"的湿核列求值
-        if (style.wetGated || trunkAt(worldSeed, x, z) > 0.0D) {
+        // 端面收尾入口门（P22 A1a）：只对"可能有端面"的湿核列求值——v1.20.42 起置水 ⇔
+        // trunk 带内核列（wetAt 新门），带外河核列必枯竭（无水墙可收），荒漠 wetGated 腿退役。
+        if (trunkAt(worldSeed, x, z) > 0.0D) {
             bed = endFaceBed(worldSeed, x, z, rosterIndex, poolLevel, bed);
         }
         return bed;
@@ -843,8 +863,11 @@ public final class GTSRVoronoiRiverField {
      * ═══ 面检测（纯函数，跨 chunk 一致）═══ 湿核列（s ≥ {@link #WET_MIN}）沿<b>边切向</b>
      * （border2 法向的 90° 旋转 = 河道走向；两端都查）逐列探 {@link #END_FACE_LEN} 列：
      * <ul>
-     * <li><b>面 A·干段端面</b>（整段闸档）：邻列换了段（segKey 不同）且不是湿核列——
-     * 段界即水墙位置，靠本列一侧 {@code dist} 列进入渐变域；</li>
+     * <li><b>面 A·枯竭端面</b>（<b>P22 A1a 重接</b>，以 {@link #wetAt} 新门为真值）：本列湿
+     * （过 s ≥ WET_MIN 早退后 ⇔ trunk 带内核列）∧ 邻列换段（segKey 不同）且枯竭（邻列
+     * {@code trunkAt ≤ 0} 或 {@code s < WET_MIN}，即新湿门为假）——全域枯竭后湿段在段界
+     * 交给干河床的位置即水墙位置，靠本列一侧 {@code dist} 列进入渐变域（旧"荒漠整段闸 +
+     * segWetAt"腿退役）；</li>
      * <li><b>面 B·湖滨交接面</b>（主干带内，plan §B"湖滨带部分湿列同理"）：邻列是湖水区
      * （{@code lakeAt < LAKE_WATER_LEVEL}，其水面向 = SEA_LEVEL）——河口交接处同样收缓坡；</li>
      * </ul>
@@ -852,15 +875,16 @@ public final class GTSRVoronoiRiverField {
      * target = {@code poolLevel − END_FACE_BED_OFFSET}——末端列（dist=1）抬满到水面下
      * 0.5 格（回填门 {@code h < pool−1} 自动关水 ⇒ 端面收成一格干砾滩），只抬不降
      * （target ≤ bed 时不动）。smoothstep 防坡折，每列高差 ≤ (target−bed)/2 ≪ 2。
+     * <b>不变量（P22 A1a）：每个湿段端面床抬升收尾——枯竭边界无竖直水墙。</b>
      */
     private static double endFaceBed(long worldSeed, int x, int z, int rosterIndex, int poolLevel, double bed) {
         final double s = -strengthAt(worldSeed, x, z, rosterIndex);
         if (s < WET_MIN) {
             return bed; // 只对湿核列收尾（干列/谷坡列的床抬了也没有水墙可灭）
         }
-        final boolean gated = styleForRosterIndex(rosterIndex).wetGated;
-        final boolean trunkBand = trunkAt(worldSeed, x, z) > 0.0D;
-        if (!gated && !trunkBand) {
+        // P22 A1a：s ≥ WET_MIN 且要求置水 ⇒ trunk 带内核列（wetAt 新门）；带外河核列必枯竭
+        // （干河床），床不收尾。荒漠 gated 腿（整段闸）随新门一并退役。
+        if (trunkAt(worldSeed, x, z) <= 0.0D) {
             return bed;
         }
         // P19 U8：自有段的 warp+evalBorder 复合走 warpedBorder 列级 memo——与调用链上游
@@ -881,13 +905,13 @@ public final class GTSRVoronoiRiverField {
                 final int sign = dir == 0 ? 1 : -1;
                 final int nx = x + (int) Math.round(tx * k * sign);
                 final int nz = z + (int) Math.round(tz * k * sign);
-                if (gated && segKeyAt(worldSeed, nx, nz) != ownKey) {
-                    // 同段内不重判（干湿整段同值）；换段才验"邻段是否湿核"
-                    if (-strengthAt(worldSeed, nx, nz, rosterIndex) < WET_MIN || !segWetAt(worldSeed, nx, nz)) {
-                        dist = k;
-                    }
+                // 面 A·枯竭端面（P22 A1a）：邻列换段才判（段内枯竭带整段同观感，不重判）；
+                // "邻段干" = 邻列新湿门为假（trunk ≤ 0 或 s < WET_MIN），不再走 segWetAt。
+                if (segKeyAt(worldSeed, nx, nz) != ownKey
+                    && (trunkAt(worldSeed, nx, nz) <= 0.0D || -strengthAt(worldSeed, nx, nz, rosterIndex) < WET_MIN)) {
+                    dist = k;
                 }
-                if (dist == 0 && trunkBand && lakeAt(worldSeed, nx, nz) < LAKE_WATER_LEVEL) {
+                if (dist == 0 && lakeAt(worldSeed, nx, nz) < LAKE_WATER_LEVEL) {
                     dist = k; // 湖滨交接面：邻列已入湖水区
                 }
             }
@@ -905,22 +929,25 @@ public final class GTSRVoronoiRiverField {
     }
 
     /**
-     * (x,z) 列是否<b>置水资格</b>（纯函数；populate 与判据共用，无第二真值）：
-     * s ≥ {@link #WET_MIN} 且——荒漠档（{@code wetGated}）过<b>整段闸</b>
-     * {@code hash(segKey) < DESERT_WET_SHARE}（v1.20.40 P19 §B：同一条细胞边整段同干湿，
-     * BOP DryRiver 先例；v1.20.39 的 wetNoise 串珠闸已废），非荒漠段恒真。列在水面之下
-     * （h1 &lt; poolLevel−1）的最终回填门在落块器（那里才有 h1）。
+     * (x,z) 列是否<b>置水资格</b>（纯函数；populate 与判据共用，无第二真值）。
+     * <p>
+     * ═══ v1.20.42（P22 A1a）全域枯竭＋sanzu 豁免 ═══ 门收紧为<b>单点一行语义</b>：
+     * {@code s ≥ WET_MIN && trunkAt(seed,x,z) > 0}——除遗忘之川域（主干带）外全部河段不再置水
+     * （干河床，沿用既有断流段观感），带内全有水、无枯竭段。三腿依据：
+     * <ol>
+     * <li>{@link #strengthAt} 带内有效宽档 = max(底档, {@link #TRUNK_WIDTH_SCALE}) ⇒ 带内 s 与
+     * roster 无关（{@link #isSanzuColumn} 的构造不变量同源）⇒ 带内主干宽河自动豁免；</li>
+     * <li>带外河核列（trunk ≤ 0 的常态河核）整域枯竭——荒漠整段闸（{@link #segWetAt}）与
+     * 非荒漠恒湿两腿一并退役，wetness 从"段粒度"变"带粒度"；</li>
+     * <li>湖水回填走 provider {@code fillSanzuLakes} 的 {@link #lakeAt} 独立通道（不经本门）
+     * ⇒ 湖域不受影响；沼泽微池（{@code fillSwampPools}）同。</li>
+     * </ol>
+     * rosterIndex 形参自此不参与判定（保留签名：GTSRRiverPlacer/PlacementGate 既有调用面与
+     * 判据口径不改）。列在水面之下（h1 &lt; poolLevel−1）的最终回填门在落块器（那里才有 h1）。
+     * 枯竭边界的端面收尾由 {@link #endFaceBed} 面 A 以本门为真值重接（防竖直水墙）。
      */
     public static boolean wetAt(long worldSeed, int x, int z, int rosterIndex) {
-        final RiverStyle style = styleForRosterIndex(rosterIndex);
-        final double s = -strengthAt(worldSeed, x, z, rosterIndex);
-        if (s < WET_MIN) {
-            return false;
-        }
-        if (!style.wetGated) {
-            return true;
-        }
-        return segWetAt(worldSeed, x, z);
+        return -strengthAt(worldSeed, x, z, rosterIndex) >= WET_MIN && trunkAt(worldSeed, x, z) > 0.0D;
     }
 
     // ═════════════════ v1.20.40（P19 plan §B/§C）：段键 / 池水位阶梯 / 整段闸 ═════════════════
@@ -1061,6 +1088,12 @@ public final class GTSRVoronoiRiverField {
      * 荒漠<b>整段闸</b>（段干/段湿）：{@code hash(segKey ^ SALT_WET)} 高 53 位归一后
      * &lt; {@link #DESERT_WET_SHARE} ⇒ 湿段。同段（同 segKey）所有列同值 ⇒ 干段整段连贯、
      * 湿段整段有水，跨 chunk 一致。
+     * <p>
+     * <b>v1.20.42（P22 A1a）从生产链退役</b>：{@link #wetAt} 收紧为
+     * {@code s ≥ WET_MIN ∧ trunkAt > 0}（全域枯竭＋sanzu 豁免）后，本方法不再是任何生产
+     * 判型的输入（原消费点 wetAt / endFaceBed 面 A 均已改走新湿门）。方法与 {@link #SALT_WET}
+     * <b>保留</b>只因判据侧消费点（tools/dim1 下 RMC）本片不改（归 A1c 片），生产链路不得
+     * 消费它——先例同 {@link #WET_EDGE}。
      */
     public static boolean segWetAt(long worldSeed, int x, int z) {
         final long h = GTSRWorldgenHash.splitmix64(segKeyAt(worldSeed, x, z) ^ SALT_WET);
@@ -1599,6 +1632,92 @@ public final class GTSRVoronoiRiverField {
             }
         }
         return dC / dN;
+    }
+
+    // ═════════════════ v1.20.42（P22 A1b）：沼泽河床残潭场 ═════════════════
+
+    /**
+     * 沼泽河床残潭噪声波长（格）：{@code 29 % 16 = 13} ✔（账本 §9 的 chunk 对齐条纹坑，
+     * 同 {@link #CUT_NOISE_SCALE}=33 的取值纪律）。斑块尺度 ≈ λ/2 ≈ 10-15 格（"断断续续"）。
+     * 校准域 [23, 37] 且 %16≠0。
+     */
+    public static final double SWAMP_RIVER_POOL_SCALE = 29.0D;
+
+    /**
+     * 残潭门带中心（{@link GTSRWorldgenHash#valueNoise} 的 n 域）：门 = s01((n−本值)/宽度)。
+     * 校准读数（P22 A1b 探针，seed 20260924，沼泽河床 19,624 列）：0.55 档带率 ~6%（互斥腿
+     * 剔 34% 三档列后覆盖 0.036，低于目标带下沿）；0.50 档带率 ~8.3%、覆盖 0.052（贴下沿）；
+     * 0.46 档带率 ~11%（计划"床面约 10-15% 列成潭"的中带）、覆盖 ~0.075。校准域可调（配套
+     * {@link #SWAMP_RIVER_POOL_BAND_WIDTH}），潭覆盖率目标 ∈ [0.05, 0.25]（沼泽河床列口径）。
+     */
+    public static final double SWAMP_RIVER_POOL_BAND_CENTER = 0.46D;
+
+    /** 残潭门带宽度（n 域，软边）。 */
+    public static final double SWAMP_RIVER_POOL_BAND_WIDTH = 0.20D;
+
+    /**
+     * 潭底额外下挖基深（格，v1.20.42 P22 A1b）：地形侧 dig = 本值 + {@link #SWAMP_RIVER_POOL_DIG_SPAN}·门
+     * （只对潭列 gate&gt;0 生效，非潭列逐位不变——均匀退化纪律）。校准（探针 VDIAG）：
+     * 2.5 档会让床纹高瓣 + 浅门的列落到 {@code h = pool−3 = 名义潭顶} ⇒ 挖而无水的"空坑"，
+     * 邻潭水柱在坑沿产生 39 处不外流违规；基深 ≥3.0 数学上恒 {@code h ≤ pool−4 < 潭顶} ⇒
+     * 未被钳制的潭列必有水。终值 [3.0, 4.0] ⊂ 计划下挖域 [1.5, 4]。
+     */
+    public static final double SWAMP_RIVER_POOL_DIG_BASE = 3.0D;
+
+    /** 潭底下挖跨度（格，× 门值 ⇒ 床成软边浅心；基深+跨度 = 4.0 封顶，不越计划域）。 */
+    public static final double SWAMP_RIVER_POOL_DIG_SPAN = 1.0D;
+
+    /**
+     * 潭水顶相对段池水位的偏移（格）：水柱 {@code y ∈ [h+1, pool+本值]}，缺省 −3 ⇒ 水顶
+     * {@code pool−3} 恒低于干床顶最小值 {@code pool−2} 至少 1 格（<b>不外流</b>构造不变量，
+     * 见 {@code GTSRRiverPlacer} 潭置水支路的邻列钳制）＋嵌入河床面以下 ≥1 格。校准域
+     * {−2, −3, −4}（保持不变量：|本值| ≥ 2）。
+     */
+    public static final int SWAMP_RIVER_POOL_FILL_TOP = -3;
+
+    /**
+     * <b>沼泽河床残潭场</b>（v1.20.42 P22 A1b，纯函数软门 ∈ [0,1]）：沼泽群系（roster 3）的
+     * 河流河床枯竭后（A1a 起 {@link #wetAt} 新门 ⇒ 河核列 s ≥ {@link #WET_MIN} ∧ trunk ≤ 0 =
+     * 干河床），在床面上残留断断续续的下沉嵌入式水潭。门腿（全部短路，任一不过 = 0）：
+     * <ol>
+     * <li>{@code rosterIndex == 3}（沼泽档；非沼泽零成本短路）；</li>
+     * <li>{@code trunkAt ≤ 0}——<b>遗忘之川域（主干带）内零潭</b>（带内本就有水，无"残"可言）；</li>
+     * <li>{@code s ≥ WET_MIN}（河核列 = 河床面，谷坡列不成潭）；</li>
+     * <li><b>微池互斥</b>：{@link #swampLakeAt} ≥ {@link #SWAMP_POOL_WATER_LEVEL}——微池域由
+     * provider {@code fillSwampPools} 按 {@code pool−1} 回填，潭列若与微池重叠会被顶破
+     * "水顶低于干床 ≥1 格"的硬不变量（同因下一腿）；</li>
+     * <li><b>沼泽三档水体互斥</b>：{@link TerrainVariants#swampTierAt} == {@code SWAMP_TIER_NONE}
+     * ——三档列同样被 {@code fillSwampPools} 按 {@code pool−1} 回填（tier 门），重叠即水面顶到
+     * 床面。两腿互斥让残潭只落在"干河床"上，{@code fillSwampPools} 对潭列恒短路
+     * （tier NONE ∧ 非微池 ⇒ 其入口 continue），潭水顶由 {@code GTSRRiverPlacer} 独占；
+     * 依赖声明：本类→TerrainVariants 是单向引用（后者不引用本类，无环）。</li>
+     * </ol>
+     * 门带值 = s01((n−{@link #SWAMP_RIVER_POOL_BAND_CENTER})/{@link #SWAMP_RIVER_POOL_BAND_WIDTH})
+     * （n 为独立盐 {@link #SALT_SWAMP_RIVER_POOL}、波长 {@link #SWAMP_RIVER_POOL_SCALE} 的
+     * valueNoise）。消费面三处同一真值：{@code ProsperityTerrainProfile.heightCore} 的潭底下挖、
+     * {@code GTSRRiverPlacer} 的潭置水、{@code PlacementGate.dryColumnAt} 的结构避潭。
+     */
+    public static double swampRiverPoolAt(long worldSeed, int x, int z, int rosterIndex) {
+        if (rosterIndex != 3) {
+            return 0.0D;
+        }
+        if (trunkAt(worldSeed, x, z) > 0.0D) {
+            return 0.0D;
+        }
+        if (-strengthAt(worldSeed, x, z, rosterIndex) < WET_MIN) {
+            return 0.0D;
+        }
+        if (swampLakeAt(worldSeed, x, z, rosterIndex) < SWAMP_POOL_WATER_LEVEL) {
+            return 0.0D;
+        }
+        if (TerrainVariants.swampTierAt(worldSeed, x, z, rosterIndex) != TerrainVariants.SWAMP_TIER_NONE) {
+            return 0.0D;
+        }
+        final double n = GTSRWorldgenHash
+            .valueNoise(worldSeed ^ SALT_SWAMP_RIVER_POOL, x / SWAMP_RIVER_POOL_SCALE, z / SWAMP_RIVER_POOL_SCALE);
+        final double t = (n - SWAMP_RIVER_POOL_BAND_CENTER) / SWAMP_RIVER_POOL_BAND_WIDTH;
+        final double c = t < 0.0D ? 0.0D : (t > 1.0D ? 1.0D : t);
+        return c * c * (3.0D - 2.0D * c);
     }
 
     /**

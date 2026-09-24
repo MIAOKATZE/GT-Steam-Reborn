@@ -548,7 +548,8 @@ code=$?; tail -2 "$OUT/P17StructureBiomeVarianceCheck.out" | cut -c1-170; echo "
 echo "== [3t4] dim78 Voronoi 河流场形态（两级 Disk jitter 蜿蜒 + border2；宽度/谷坡/蜿蜒/分叉/断流） =="
 MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8   -cp "$OUT/classes;$CP" -sourcepath "src/main/java;tools/dim1" -d "$OUT/tools"   tools/dim1/RiverMorphologyCheck.java >"$OUT/javac-t4river.log" 2>&1
 echo "COMPILE RiverMorphologyCheck EXIT=$? ($(grep -ac 'error:' "$OUT/javac-t4river.log") error)"
-# 纯模型驱动（GTSRVoronoiRiverField/heightAt 均零世界读取，无需离线装配账本）。
+# 纯模型驱动（GTSRVoronoiRiverField/heightAt 均零世界读取；v1.20.42 P22 A1c 起 I 组残潭断言在
+# 判据内注入 4 家 BiomeGenBase 配槽并新线程采样（真身份链，仍零世界读取）——A~H 组默认档不受扰）。
 MSYS2_ARG_CONV_EXCL='*' java $STD $LOG4J -Xmx2g -cp "$OUT/tools;$OUT/classes;$CP" RiverMorphologyCheck   >"$OUT/RiverMorphologyCheck.out" 2>&1
 code=$?; tail -2 "$OUT/RiverMorphologyCheck.out" | cut -c1-170; echo "   EXIT=$code log=$OUT/RiverMorphologyCheck.out"
 [ $code -ne 0 ] && FAILS=$((FAILS + 1))

@@ -64,6 +64,26 @@ public class CityBiomeGateCheck {
     /** P5 报告 §10 的城门暴露预算（百分点）与等效件数换算（每 +1pp 暴露 ≈ +0.096 件）。 */
     private static final double P5_BUDGET_PP = 8.0D;
     private static final double P5_PIECES_PER_PP = 0.096D;
+    /**
+     * E3 的<b>干区臂弃位率上界</b>（v1.20.42 P22 A1c 新增——本判据首个弃位率断言；写法照
+     * {@code RuinFamilyCheck} 弃位率带的「实测登记 + 带值」式）。分母 = 样本内候选城
+     * （{@code citiesAnchored}，8 seed × 8 区 = 16384 chunk 窗内锚定的 planFor 非空 cell），
+     * 分子 = 其中被<b>干区臂</b>（{@code PlacementGate.dryFootprint} 占比制 + 城心全过制；
+     * {@code GATE_OFF} 只关带门、干区臂常开——C2 的既有口径）弃置者。
+     * <p>
+     * <b>读数登记</b>：v1.20.42 P22 复跑（A1a wetAt 收紧为 {@code s≥WET_MIN ∧ trunk>0}（干河床可
+     * 进结构）+ A1b 潭避让腿（{@code swampRiverPoolAt} 列重新算湿）后）实测 <b>3/12 = 25.0%</b>，
+     * 与 A0 基线（{@code plan/tmp/p22-a0/full-0.log}，pre-A1a 同采样）<b>逐位同</b> ⇒ 本样本内
+     * 新门对城弃置零位移（12 候选城里 3 座湿弃置者换门前后同批）。<b>旧 CITY 17.44%</b> 是
+     * P19-U5 全候选探针（6 seed、全部候选 cell）的记录值（{@code CityPlanner} javadoc:52 与
+     * {@code plan/tmp/p19-u5-prered.md} 留档），<b>非判据钉</b>——p20-plan R6 曾计划在
+     * PlacementContractCheck 加上界断言但未落地 ⇒ 无带可塌缩、无可重钉点，本条是弃位率的首钉。
+     * <b>带上界 50% 的取法</b>：样本 n=12 只支撑粗回归闸——50% = 候选城被水避让门砍半（远超
+     * 17.44% 记录口径的 2.8 倍）时提前于 E1（keptRatio ≥ 0.10）可见的红灯；越界 = wetAt 门
+     * 反向放宽 / 潭·微池场外溢 / 占比制常量漂移一类回归。精确弃位率（全候选 cell 口径）归
+     * {@code PlacementContractCheck} 的「城窗跳过=」报告行域（R6 裁定域，本片不动它）。
+     */
+    private static final double DRY_ABANDON_MAX = 0.5D;
 
     private static int assertions;
     private static final List<String> FAILURES = new ArrayList<>();
@@ -190,6 +210,19 @@ public class CityBiomeGateCheck {
         check(ungated.anchorInBandPct() > 5.0D && ungated.anchorInBandPct() < 60.0D,
             "C3 申报性对照：门关闭时锚点草原率 " + pct(ungated.anchorInBandPct())
                 + "% ∈ (5,60)（等权链下草原份额 ≈25%，出带即身份面或采样几何漂移）");
+        // v1.20.42 P22 A1c：干区臂弃位率首钉（E3，读数依据与旧 17.44% 记录的关系见 DRY_ABANDON_MAX javadoc）
+        final double dryAbandon = ungated.citiesAnchored == 0 ? 0.0D
+            : (ungated.citiesAnchored - ungated.citiesKept) / (double) ungated.citiesAnchored;
+        System.out.println(
+            "  # E3-READ 干区臂弃位率=" + pct(dryAbandon * 100.0D) + "%（候选 " + ungated.citiesAnchored
+                + " 弃 " + (ungated.citiesAnchored - ungated.citiesKept)
+                + "；P19-U5 全候选口径记录 17.44%（非判据钉）；P22 A1a/A1b 后与 A0 基线逐位同）");
+        check(dryAbandon <= DRY_ABANDON_MAX,
+            "E3 干区臂弃位率 " + pct(dryAbandon * 100.0D) + "% ≤ " + pct(DRY_ABANDON_MAX * 100.0D)
+                + "%（v1.20.42 P22 A1c 首钉的水避让回归上界：GATE_OFF 档只含干区臂（C2 口径），"
+                + "候选城被该臂弃置 " + (ungated.citiesAnchored - ungated.citiesKept) + "/"
+                + ungated.citiesAnchored + "；旧 CITY 17.44% 为 P19-U5 全候选探针记录值非判据钉，"
+                + "A1a wetAt 收紧 + A1b 潭避让腿后本样本零位移——见 DRY_ABANDON_MAX javadoc）");
 
         // 身份面的几何可行性（B2 改判：城盘能否整体装进草原身份区不再由 macro 带保证，而由链的
         // 成片尺度保证）——样本窗外扩后最大草原 4-连通簇必须 ≥ 最小城盘 9×9=81 chunk

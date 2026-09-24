@@ -42,6 +42,13 @@ import com.miaokatze.gtsr.common.dimension.shattered.ChunkProviderShatteredGroun
  * <b>白名单</b>断言（只允许 bedrock / stone / shatteredCorestone / null 四种槽位值）；
  * 不用"chunk 内 256 格同群系"式断言。
  * <p>
+ * <b>v1.20.42 P22 A2b 重钉注</b>：filler 写格自本片起也过 {@code SurfaceTopSelector#fillerAt}
+ * （G1）。降级三态语义零变化：缺席/降级列在框架列门 {@code columnSurfaceable} 就被拦下，
+ * top 与 filler 一都不写（上面"零方块写入"钉的覆盖面因此自动含 filler 新出口）；在场列侧本工具
+ * JVM 未登记 def ⇒ 选择器恒 null 直通，白名单断言原文保留即仍成立。改派生效态（含 SHORT 下
+ * {@code other==null} 不伪造皮肤/填充层的分支）由 {@code plan/tmp/p22-a2b/A2bProbe} 与
+ * {@code GTSRSurfaceBorderBand#fillerAt} 的显式门注释钉。
+ * <p>
  * 命令见 {@code tools/dim1/surface_checks.sh}。
  */
 public class SurfaceDegradationCheck {

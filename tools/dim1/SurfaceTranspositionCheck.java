@@ -125,6 +125,12 @@ public class SurfaceTranspositionCheck {
                 //   filler 段 1-2 格 = 壤土 base（深度 = 独立重算列哈希，钉 x/z→世界坐标方向）；
                 //   其下 wholeBody 整段 = prosperityStone（baseBlockOf 四群系统一返石，旧"整段 base"
                 //   期望随石化转红，主体期望按新表层语义改石）。
+                // v1.20.42 P22 A2b 重钉注：filler 写格自本片起经 SurfaceTopSelector#fillerAt 可选
+                //   改派同维名册成员（G1 灭 filler 硬线）。本工具 JVM 未把 def 登记进
+                //   DimensionRegistrar ⇒ GTSRSurfaceBorderBand.forChunk 恒 null ⇒ 混合带与湿带两条
+                //   改派路都退化为恒等（"filler 段 = 该列群系 base" 的转置方向钉语义零漂移，旧期望
+                //   原文如上保留）；改派<b>生效</b>一态由 plan/tmp/p22-a2b/A2bProbe 钉
+                //   （wFill 过渡宽 1→8=p50 与 wTop 同分布、top 零漂移、dim79 逐字节对拍）。
                 final int depth = 1 + (int) (independentMix(SurfaceHarness.SEED, wx, wz) & 1);
                 boolean fillerOk = true;
                 for (int y = height - 1; y >= height - depth; y--) {
