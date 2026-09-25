@@ -1197,6 +1197,19 @@ public final class GTSRVoronoiRiverField {
     }
 
     /**
+     * <b>湖置水列谓词</b>（v1.20.43 P22 版 B O1a，{@link #lakeAt} 的布尔单一出口，
+     * {@code submergedAt} 先例同款）：{@code lakeAt < LAKE_WATER_LEVEL} 的逐字包装——湖床/湖水区
+     * （水径推导见 {@link #LAKE_WATER_LEVEL}）。消费面两处同一真值：{@code PlacementGate.dryColumnAt}
+     * 腿② 与 {@code ProsperityCaveField.waterColumnProtected} 腿④。
+     * <p>
+     * ⚠ 与湖<b>岸</b>口径（{@code lakeAt < LAKE_SHORE}，SwampFieldGrid / ProsperityLumenPlacer /
+     * fillSanzuLakes 消费）<b>不同阈不并收</b>——O1a 纪律：阈值语义差异不得强行统一，岸径腿保持内联。
+     */
+    public static boolean lakeWaterAt(long worldSeed, int x, int z) {
+        return lakeAt(worldSeed, x, z) < LAKE_WATER_LEVEL;
+    }
+
+    /**
      * 巨湖 Voronoi 的<b>一次共用几何求值</b>（v1.20.41 P20 S5d 从 {@link #lakeAt0} 原样抽出）：对坐标
      * 加一次 domain-warp（{@link #LAKE_WARP_SCALE}/{@link #LAKE_WARP}，第 4 张 disk 表）后做 3×3 Worley
      * 扫描，把 {@code out[0] = dC}（到最近湖站的<b>绝对</b>格距，未归一）与 {@code out[1] = dN}（次近
@@ -1634,6 +1647,18 @@ public final class GTSRVoronoiRiverField {
         return dC / dN;
     }
 
+    /**
+     * <b>微池置水列谓词</b>（v1.20.43 P22 版 B O1a，{@link #swampLakeAt} 的布尔单一出口，
+     * {@code submergedAt} 先例同款）：{@code swampLakeAt < SWAMP_POOL_WATER_LEVEL} 的逐字包装——
+     * 非沼泽 roster 恒 {@link #NO_SWAMP_POOL}（比较式天然 false，roster 门短路语义保持）。
+     * 消费面三处同一真值：{@code ProsperityCaveField.waterColumnProtected} 腿②、
+     * {@code GTSRRiverPlacer.neighborBarrier} 微池腿、{@code ChunkProviderProsperityRuins.SwampFieldGrid}
+     * nominal 门的微池腿。
+     */
+    public static boolean swampPoolWaterAt(long worldSeed, int x, int z, int rosterIndex) {
+        return swampLakeAt(worldSeed, x, z, rosterIndex) < SWAMP_POOL_WATER_LEVEL;
+    }
+
     // ═════════════════ v1.20.42（P22 A1b）：沼泽河床残潭场 ═════════════════
 
     /**
@@ -1718,6 +1743,20 @@ public final class GTSRVoronoiRiverField {
         final double t = (n - SWAMP_RIVER_POOL_BAND_CENTER) / SWAMP_RIVER_POOL_BAND_WIDTH;
         final double c = t < 0.0D ? 0.0D : (t > 1.0D ? 1.0D : t);
         return c * c * (3.0D - 2.0D * c);
+    }
+
+    /**
+     * <b>残潭列谓词</b>（v1.20.43 P22 版 B O1a，{@link #swampRiverPoolAt} 的布尔单一出口，
+     * {@code submergedAt} 先例同款）：{@code swampRiverPoolAt > 0} 的逐字包装——潭列（含下挖潭底）。
+     * 消费面同一真值：{@code PlacementGate.dryColumnAt} 腿④（结构避潭）、
+     * {@code ProsperityCaveField.waterColumnProtected} 腿①（洞不穿潭）、{@code GTSRRiverPlacer}
+     * 潭置水支路（本列门 + 潭邻钳内外两环）、{@code ChunkProviderProsperityRuins.SwampFieldGrid}
+     * fixed 门的潭腿。roster 实参由各消费面自定（0 最保守 / 生产 coarse 链 / 3 字面 / 邻列实档），
+     * 本出口<b>不统一</b> roster 语义（O1a 纪律：阈值/roster 语义差异不得强行统一）。
+     * 需要<b>门值</b>的消费面（heightCore 的潭底下挖）仍取 {@link #swampRiverPoolAt} 本值。
+     */
+    public static boolean swampRiverPoolColumnAt(long worldSeed, int x, int z, int rosterIndex) {
+        return swampRiverPoolAt(worldSeed, x, z, rosterIndex) > 0.0D;
     }
 
     /**

@@ -11,6 +11,7 @@ import net.minecraft.world.World;
 import com.miaokatze.gtsr.common.blocks.BlocksGTSR;
 import com.miaokatze.gtsr.common.dimension.framework.SurfaceGate;
 import com.miaokatze.gtsr.common.dimension.framework.structure.BlockSink;
+import com.miaokatze.gtsr.common.dimension.framework.structure.ChunkSliceSink;
 import com.miaokatze.gtsr.common.dimension.framework.structure.GTSRWorldgenHash;
 import com.miaokatze.gtsr.common.dimension.framework.structure.StructureBuilder;
 import com.miaokatze.gtsr.common.dimension.prosperity.TerrainVariants;
@@ -82,6 +83,16 @@ public final class ProsperityDecorPlacer {
      * 独立 {@code Random} ⇒ 主株仍由共享 {@code rand} 掷（逐位同改造前），簇只在其<b>之外</b>加料。
      */
     private static final long SALT_SHRUB_CLUSTER = 0x73687263L;
+
+    /**
+     * 盐 "ISLND"（v1.20.43 P22-B S3 岛心巨树趟）：与 {@link #SALT_MEGA} 同一条独立盐纪律，
+     * 但<b>禁复用 SALT_MEGA</b>——岛树的 rand 由<b>锚点槽</b>（{@code chunkSeed(worldSeed,
+     * ax>>4, az>>4)}，即锚点所在 chunk）派生而非本 chunk，保证"任何被跨 chunk 重算得同一棵树"
+     * （树 rand 的种子与渲染 chunk 无关 ⇒ 9 chunk 各自枚举到同一锚点时取到同一条随机流）。
+     * <b>S4 起包内可见（去 private）</b>：{@code ProsperityLumenPlacer} 冠下趟重放同一棵树的冠层
+     * 时按<b>同一盐</b>派生 formRand（盐单源；本字段值与取数点一字未动）。
+     */
+    static final long SALT_ISLAND_TREE = 0x49534C4E44L;
 
     /**
      * 本类所属维度键（P4：门的显式维度入参）。取 L1 账本同一词汇 {@link SurfaceGate#DIM78}
@@ -549,7 +560,16 @@ public final class ProsperityDecorPlacer {
         final Random rand = new Random(GTSRWorldgenHash.chunkSeed(worldSeed, chunkX, chunkZ) ^ SALT_DECOR);
         final StructureBuilder builder = new StructureBuilder(sink);
         final VegTier tier = tierForRosterIndex(rosterIndex);
-        placeTreePass(world, worldSeed, builder, rand, chunkX, chunkZ, tier, treeTiersForRosterIndex(rosterIndex));
+        placeTreePass(
+            world,
+            worldSeed,
+            builder,
+            rand,
+            sink,
+            chunkX,
+            chunkZ,
+            tier,
+            treeTiersForRosterIndex(rosterIndex));
         placeVegetationPass(world, builder, rand, chunkX, chunkZ, tier);
         placeRubble(world, builder, rand, chunkX, chunkZ);
         placeSandPass(world, builder, rand, chunkX, chunkZ, tier);
@@ -559,9 +579,12 @@ public final class ProsperityDecorPlacer {
     // ═════════════════════════════ 树趟（P17 S-B2）═════════════════════════════
 
     /**
-     * 树趟（T7 起三段；<b>P19 U6 起三层掷骰由密度场驱动</b>，plan §G）：巨树（独立盐 chunk 级
-     * 亮点，先落位 ⇒ 同 chunk 后续树让行）→ 灌木 → 普通。三段顺序固定 ⇒ 同 seed 同坐标逐位一致；
-     * 巨树趟独立 Random，普通/灌木的随机流与掷序不受其影响。
+     * 树趟（T7 起三段；<b>P19 U6 起三层掷骰由密度场驱动</b>，plan §G）：<b>S3 起最前面追加岛心
+     * 巨树段</b>（先落位 ⇒ 同 chunk 后续三段树在各自空气门/整柱门上自然让行）→ 巨树（独立盐
+     * chunk 级亮点）→ <b>S4 起旧栖晴晕光点段</b>（{@code ProsperityLumenPlacer.placeLumenPass}
+     * 一行委托，独立盐 SALT_LUMEN，共享流零取数——p21 §5 链序「巨树趟（含岛心树）→ 光点趟 →
+     * 灌木」）→ 灌木 → 普通。段序固定 ⇒ 同 seed 同坐标逐位一致；岛心巨树、光点与巨树三段各用
+     * 独立 Random，普通/灌木的随机流与掷序不受其影响。
      * <p>
      * <b>P19 U6 改造点（只改门，不改流）</b>：三层门的<b>命中概率</b>由"档表 1/N"换成
      * {@link DensityField} 在 chunk 中心的当前密度取值（{@code nextInt(DICE_GATE) < gateOf(密度)}），
@@ -573,10 +596,11 @@ public final class ProsperityDecorPlacer {
      * 生成概率</b>——干高/冠形/木种仍按主导档 {@code tier} 离散取值（形态不插值，判据友好）。
      * 混合区里普通档单骰概率 = chunk 级期望密度 ÷ {@code treeRolls}（rolls 数仍按主导档）。
      */
-    private static void placeTreePass(World world, long worldSeed, StructureBuilder builder, Random rand, int chunkX,
-        int chunkZ, VegTier tier, TreeTierSet trees) {
+    private static void placeTreePass(World world, long worldSeed, StructureBuilder builder, Random rand,
+        BlockSink sink, int chunkX, int chunkZ, VegTier tier, TreeTierSet trees) {
         final int centerX = (chunkX << 4) + 8;
         final int centerZ = (chunkZ << 4) + 8;
+        placeIslandTreePass(world, worldSeed, chunkX, chunkZ, sink);
         if (trees.megaForm != MEGA_NONE) {
             final double megaDensity = DensityField.megaDensityAt(worldSeed, centerX, centerZ);
             if (megaDensity > 0.0D) {
@@ -596,6 +620,8 @@ public final class ProsperityDecorPlacer {
                 }
             }
         }
+        // S4 光点趟（p21 §5 链序：岛心树+巨树段之后、灌木段之前）：一行委托 + 独立盐，共享 rand 零取数
+        ProsperityLumenPlacer.placeLumenPass(world, worldSeed, chunkX, chunkZ, sink);
         final double shrubDensity = DensityField.shrubDensityAt(worldSeed, centerX, centerZ);
         if (shrubDensity > 0.0D && rand.nextInt(DensityField.DICE_GATE) < DensityField.gateOf(shrubDensity)) {
             placeShrubEvent(
@@ -615,6 +641,52 @@ public final class ProsperityDecorPlacer {
                     placeTree(world, builder, rand, chunkX, chunkZ, tier);
                 }
             }
+        }
+    }
+
+    // ═════════════════════════ 岛心巨树趟（v1.20.43 P22-B S3，p21 §4）═════════════════════════
+
+    /**
+     * 岛心巨树趟（<b>v1.20.43 P22-B S3 新增</b>，消费 {@link MegaTreeAnchors} 锚点与
+     * {@link IslandMegaTree} 形态）：枚举本 chunk 的派生窗（{@code MegaTreeAnchors.windowChunks}
+     * × 同窗，radius=15 ⇒ 3×3 = 至多 9 chunk）内相交的全部活湖锚点，逐锚点以<b>锚点槽</b>派生
+     * 独立 {@code Random(chunkSeed(worldSeed, ax>>4, az>>4) ^ }{@link #SALT_ISLAND_TREE}{@code )}
+     * 重放同一棵树，写入经 {@link ChunkSliceSink}——非本 chunk 的格静默吸收（owns 单射，先例
+     * {@code RuinedMachinePlacer.renderForeignSpans}），邻 chunk 在自己的趟里枚举到<b>同一锚点</b>
+     * 重放<b>同一棵</b>树、只写自己那片 ⇒ 跨 chunk 无缝。
+     * <p>
+     * <b>流纪律（H-3 同款）</b>：本段只消费锚点槽 rand，<b>共享 {@code rand} 一个数都不取</b>
+     * ⇒ 既有三段（巨树/灌木/普通）与后三趟（植被/碎石/沙砾）的取数序逐位不变。
+     * <b>共享 sink 不重复计账</b>：本段从 {@code decorate} 的原始 {@code sink} 另套切片层，
+     * 不动 {@code builder}（builder 仍只服务既有三段）。
+     * <p>
+     * <b>树干穿水口径（已核实）</b>：水回填（河→湖→微池→sanzu）在
+     * {@code ChunkProviderProsperityRuins.onPopulate}（:258-265），装饰经
+     * {@code GameRegistry.generateWorld} 在<b>其后</b>驱动（onPopulate 注释链序原文）⇒ 装饰时
+     * 湖水已在世界里，树干/枝为<b>无条件写</b>，≤{@code SEA_LEVEL}−1 的穿水段由木取代水
+     * （p21 A3 口径），叶仍走 {@code placeLeafIfAir} 不覆写水体。
+     * <p>
+     * <b>public = 离线判据重放口</b>（{@code tools/dim1/MegaTreeCheck} D 组 9-chunk 并集对拍；
+     * 生产侧唯一调用者是本类 {@code placeTreePass}，先例 {@code RuinedMachinePlacer.spanReadyAt}）。
+     */
+    public static void placeIslandTreePass(World world, long worldSeed, int chunkX, int chunkZ, BlockSink sink) {
+        if (sink == null) {
+            return;
+        }
+        final double[][] anchors = new double[MegaTreeAnchors.ENUM_CAP][MegaTreeAnchors.ANCHOR_OUT_LEN];
+        final int n = MegaTreeAnchors
+            .enumerateAnchors(worldSeed, chunkX, chunkZ, MegaTreeAnchors.CANOPY_RADIUS, anchors);
+        if (n == 0) {
+            return;
+        }
+        final StructureBuilder slice = new StructureBuilder(new ChunkSliceSink(sink, chunkX, chunkZ));
+        for (int i = 0; i < n; i++) {
+            final int ax = (int) anchors[i][0];
+            final int az = (int) anchors[i][1];
+            final int y0 = (int) anchors[i][4];
+            final Random treeRand = new Random(
+                GTSRWorldgenHash.chunkSeed(worldSeed, ax >> 4, az >> 4) ^ SALT_ISLAND_TREE);
+            IslandMegaTree.placeInto(world, slice, treeRand, ax, az, y0);
         }
     }
 

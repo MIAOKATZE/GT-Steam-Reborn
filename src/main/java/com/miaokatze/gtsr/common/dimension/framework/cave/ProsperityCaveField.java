@@ -137,10 +137,8 @@ public final class ProsperityCaveField {
      * 消费序约定（S1b carver 必须遵守）：本谓词为假 ⇒ 该列 {@link #tubeAt} 一个都不算。
      */
     public static boolean densityOpenAt(long worldSeed, int x, int z) {
-        final double n = GTSRWorldgenHash.valueNoise(
-            worldSeed ^ SALT_CAVE_DENSITY,
-            x / CAVE_DENSITY_SCALE,
-            z / CAVE_DENSITY_SCALE);
+        final double n = GTSRWorldgenHash
+            .valueNoise(worldSeed ^ SALT_CAVE_DENSITY, x / CAVE_DENSITY_SCALE, z / CAVE_DENSITY_SCALE);
         return n >= CAVE_DENSITY_MIN;
     }
 
@@ -168,6 +166,14 @@ public final class ProsperityCaveField {
      * 3×3 jitter 站扫描取最近/次近两站，最近两站的<b>垂直平分线</b>即谷线；站对掩码
      * （对称 splitmix 哈希，千分率 {@link #CANYON_EDGE_PERMILLE}）决定该线是否存在；
      * 点到线的垂距 {@code |d1²−d2²| / (2D)} 小于沿程正弦半宽即入谷。
+     * <p>
+     * <b>O1b 不加列级 memo 的申报（v1.20.43 P22 版 B）</b>：生产侧唯一调用点
+     * {@code GTSRCaveCarver.carveColumn} 每 chunk 256 列各求值<b>一次</b>、无同列重入、
+     * 无跨方法重入（全仓唯一生产消费点）⇒ 直接映射 memo 命中率恒 0，纯增哈希+比较开销。
+     * 实测（CaveFieldCheck PERF carver 空载串行各 3 跑）：无 memo 中位 44/59/62µs vs
+     * memo 中位 50/44/61µs——差值在样本噪声带内、无收益。数据与结论见
+     * {@code plan/tmp/p22-o1/PROGRESS.md}；若未来新增 canyonAt 消费面（同列多次求值），
+     * 照 {@code ProsperityTerrainProfile.heightAtMemoized} 先例补包裹层即可（算式零改动）。
      *
      * @return 顶面下切深度（格）：谷心最深 {@link #CANYON_DEPTH_MAX}、入谷边缘收至
      *         {@link #CANYON_DEPTH_MIN}；谷外恒 {@code 0.0}
@@ -251,10 +257,10 @@ public final class ProsperityCaveField {
      * 地表洞口稀疏且不成排。
      */
     public static boolean surfaceBreakAllowed(long worldSeed, int x, int z) {
-        final double nx = GTSRWorldgenHash.valueNoise(
-            worldSeed ^ SALT_CAVE_BREAK_A, x / CAVE_BREAK_SCALE, z / CAVE_BREAK_SCALE);
-        final double nz = GTSRWorldgenHash.valueNoise(
-            worldSeed ^ SALT_CAVE_BREAK_B, x / CAVE_BREAK_SCALE, z / CAVE_BREAK_SCALE);
+        final double nx = GTSRWorldgenHash
+            .valueNoise(worldSeed ^ SALT_CAVE_BREAK_A, x / CAVE_BREAK_SCALE, z / CAVE_BREAK_SCALE);
+        final double nz = GTSRWorldgenHash
+            .valueNoise(worldSeed ^ SALT_CAVE_BREAK_B, x / CAVE_BREAK_SCALE, z / CAVE_BREAK_SCALE);
         return nx * nx + nz * nz > CAVE_BREAK_NORM_MIN * CAVE_BREAK_NORM_MIN;
     }
 
@@ -284,17 +290,18 @@ public final class ProsperityCaveField {
      * 钳制按"无洞地形"算成，carver 挖穿壳即复现，见 P0-FILL 表 3）。
      */
     public static boolean waterColumnProtected(long worldSeed, int x, int z, int rosterIndex) {
-        if (GTSRVoronoiRiverField.swampRiverPoolAt(worldSeed, x, z, rosterIndex) > 0.0D) {
+        // O1a（v1.20.43 P22 版 B）：①②③④腿的比较式并入 RVF/TerrainVariants 布尔单一出口
+        // （纯包装，腿序与短路语义逐字保持）；⑤主干腿是本谓词独有子式，保持内联。
+        if (GTSRVoronoiRiverField.swampRiverPoolColumnAt(worldSeed, x, z, rosterIndex)) {
             return true;
         }
-        if (GTSRVoronoiRiverField.swampLakeAt(worldSeed, x, z, rosterIndex)
-            < GTSRVoronoiRiverField.SWAMP_POOL_WATER_LEVEL) {
+        if (GTSRVoronoiRiverField.swampPoolWaterAt(worldSeed, x, z, rosterIndex)) {
             return true;
         }
-        if (TerrainVariants.swampTierAt(worldSeed, x, z, rosterIndex) != TerrainVariants.SWAMP_TIER_NONE) {
+        if (TerrainVariants.swampTieredAt(worldSeed, x, z, rosterIndex)) {
             return true;
         }
-        if (GTSRVoronoiRiverField.lakeAt(worldSeed, x, z) < GTSRVoronoiRiverField.LAKE_WATER_LEVEL) {
+        if (GTSRVoronoiRiverField.lakeWaterAt(worldSeed, x, z)) {
             return true;
         }
         return GTSRVoronoiRiverField.trunkAt(worldSeed, x, z) > 0.0D;
@@ -326,8 +333,7 @@ public final class ProsperityCaveField {
         }
         for (int dz = -CAVE_ISLAND_GUARD; dz <= CAVE_ISLAND_GUARD; dz++) {
             for (int dx = -CAVE_ISLAND_GUARD; dx <= CAVE_ISLAND_GUARD; dx++) {
-                if (GTSRVoronoiRiverField.lakeAt(worldSeed, x + dx, z + dz)
-                    < GTSRVoronoiRiverField.LAKE_ISLAND) {
+                if (GTSRVoronoiRiverField.lakeAt(worldSeed, x + dx, z + dz) < GTSRVoronoiRiverField.LAKE_ISLAND) {
                     return true;
                 }
             }
@@ -339,8 +345,8 @@ public final class ProsperityCaveField {
 
     /** 峡谷格点 jitter（∈ [-CANYON_JITTER, +CANYON_JITTER)，cell 的分数；轴用 flip 常数分离）。 */
     private static double jitter(long worldSeed, int gx, int gz, long axisFlip) {
-        final long h = GTSRWorldgenHash.splitmix64(
-            GTSRWorldgenHash.cellSeed(worldSeed, gx, gz, SALT_CANYON) ^ axisFlip);
+        final long h = GTSRWorldgenHash
+            .splitmix64(GTSRWorldgenHash.cellSeed(worldSeed, gx, gz, SALT_CANYON) ^ axisFlip);
         return (((h >>> 11) / (double) GTSRWorldgenHash.UNIT_DIVISOR) * 2.0D - 1.0D) * CANYON_JITTER;
     }
 

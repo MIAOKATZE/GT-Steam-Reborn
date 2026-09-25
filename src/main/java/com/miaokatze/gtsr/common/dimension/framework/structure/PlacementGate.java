@@ -642,17 +642,21 @@ public final class PlacementGate {
         if (GTSRVoronoiRiverField.wetAt(worldSeed, x, z, 0)) {
             return false;
         }
-        if (GTSRVoronoiRiverField.lakeAt(worldSeed, x, z) < GTSRVoronoiRiverField.LAKE_WATER_LEVEL) {
+        // ②湖置水带：O1a 起走 RVF 布尔单一出口（湖<岸>口径 LAKE_SHORE 腿不在此列，保持各处内联）
+        if (GTSRVoronoiRiverField.lakeWaterAt(worldSeed, x, z)) {
             return false;
         }
         // ④ 沼泽河床残潭场（v1.20.42 P22 A1b）：潭列（含下挖潭底）算湿——结构不落潭。roster 走
         // 生产 coarse 身份链（本谓词无列身份，wetAt 腿传 0 取最保守口径的先例不适用于此腿：
         // 潭场内部有 roster==3 硬门，传实际 roster 才能让非沼泽列在门腿零成本短路，语义也更准
         // ——潭只存在于实际沼泽河床上）。与 A1a 口径衔接：①的干河床可进结构，但 A1b 起干河床上
-        // 的残潭列重新算湿（潭列有水有下挖，"结构生成在水里"仍不可接受）。
-        if (GTSRVoronoiRiverField
-            .swampRiverPoolAt(worldSeed, x, z, ProsperityTerrainProfile.chainRosterIndexAt(worldSeed, x >> 2, z >> 2))
-            > 0.0D) {
+        // 的残潭列重新算湿（潭列有水有下挖，"结构生成在水里"仍不可接受）。O1a 起比较式并入
+        // RVF swampRiverPoolColumnAt 单一出口（布尔纯包装，腿序/短路语义逐字保持）。
+        if (GTSRVoronoiRiverField.swampRiverPoolColumnAt(
+            worldSeed,
+            x,
+            z,
+            ProsperityTerrainProfile.chainRosterIndexAt(worldSeed, x >> 2, z >> 2))) {
             return false;
         }
         return -GTSRVoronoiRiverField.strengthAt(worldSeed, x, z) < WET_SHORE_GUARD;

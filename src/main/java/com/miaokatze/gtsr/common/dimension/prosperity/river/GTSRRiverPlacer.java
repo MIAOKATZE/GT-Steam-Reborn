@@ -212,7 +212,7 @@ public final class GTSRRiverPlacer {
                 // top1 ≤ 坑底兜住，跨段水位差的潭对靠名义潭顶互钳对齐。读数取自 18×18 网格；
                 // 外环列的 top1 第 2 列越出网格时按同一纯函数重算（见内层 P22 审查修复注释）。═══
                 if (!wet[i] && tierAt(tiers, x, z, baseX, baseZ) == 3
-                    && GTSRVoronoiRiverField.swampRiverPoolAt(worldSeed, x, z, 3) > 0.0D) {
+                    && GTSRVoronoiRiverField.swampRiverPoolColumnAt(worldSeed, x, z, 3)) {
                     int poolTop = p + GTSRVoronoiRiverField.SWAMP_RIVER_POOL_FILL_TOP;
                     for (int dz = -1; dz <= 1; dz++) {
                         for (int dx = -1; dx <= 1; dx++) {
@@ -223,7 +223,7 @@ public final class GTSRRiverPlacer {
                             final int nx = x + dx;
                             final int nz = z + dz;
                             final int nTier = tierAt(tiers, nx, nz, baseX, baseZ);
-                            if (GTSRVoronoiRiverField.swampRiverPoolAt(worldSeed, nx, nz, nTier) > 0.0D) {
+                            if (GTSRVoronoiRiverField.swampRiverPoolColumnAt(worldSeed, nx, nz, nTier)) {
                                 // 潭邻：取其 1 级钳后顶 top1（名义潭顶与其 8 邻阻挡面的 min）；
                                 // 内层的潭列取<b>名义</b>潭顶（实际被钳更低的空坑由外层 top1 兜）
                                 int top1 = pool[ni] + GTSRVoronoiRiverField.SWAMP_RIVER_POOL_FILL_TOP;
@@ -252,7 +252,7 @@ public final class GTSRRiverPlacer {
                                             hM = ProsperityTerrainProfile.heightAt(worldSeed, mx, mz);
                                             poolM = GTSRVoronoiRiverField.poolLevelAt(worldSeed, mx, mz, mTier);
                                         }
-                                        if (GTSRVoronoiRiverField.swampRiverPoolAt(worldSeed, mx, mz, mTier) > 0.0D) {
+                                        if (GTSRVoronoiRiverField.swampRiverPoolColumnAt(worldSeed, mx, mz, mTier)) {
                                             top1 = Math
                                                 .min(top1, poolM + GTSRVoronoiRiverField.SWAMP_RIVER_POOL_FILL_TOP);
                                         } else {
@@ -332,10 +332,9 @@ public final class GTSRRiverPlacer {
      * 潭列不走本方法（走调用点的 top1 腿）。
      */
     private static int neighborBarrier(long worldSeed, int x, int z, int nTier, int hM, int poolM) {
-        if (GTSRVoronoiRiverField.submergedAt(hM, poolM)
-            && (TerrainVariants.swampTierAt(worldSeed, x, z, nTier) != TerrainVariants.SWAMP_TIER_NONE
-                || GTSRVoronoiRiverField.swampLakeAt(worldSeed, x, z, nTier)
-                    < GTSRVoronoiRiverField.SWAMP_POOL_WATER_LEVEL)) {
+        // O1a（v1.20.43 P22 版 B）：三档/微池两条子式并入布尔单一出口（纯包装，∥ 左右腿序不变）
+        if (GTSRVoronoiRiverField.submergedAt(hM, poolM) && (TerrainVariants.swampTieredAt(worldSeed, x, z, nTier)
+            || GTSRVoronoiRiverField.swampPoolWaterAt(worldSeed, x, z, nTier))) {
             return poolM - 1;
         }
         return hM;

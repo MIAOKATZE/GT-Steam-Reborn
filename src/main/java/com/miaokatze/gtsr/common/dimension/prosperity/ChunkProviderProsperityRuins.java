@@ -728,11 +728,12 @@ public class ChunkProviderProsperityRuins extends GTSRChunkProviderBase {
                         final int t = sub ? TerrainVariants.swampTierAt(worldSeed, x, z, 3) : 0;
                         this.st[i] = (byte) t;
                         // A3 边缘门（三档腿经 swampTierAt 的 SWG_TIER 槽同门自动 NONE + 微池腿显式乘
-                        // swampInteriorAt——TerrainVariants.swampGates 单点分流，两侧同一真值）
+                        // swampInteriorAt——TerrainVariants.swampGates 单点分流，两侧同一真值；
+                        // O1a：微池比较式并入 RVF swampPoolWaterAt 单一出口；三档腿用已求出的档位值 t
+                        // 比较（一次求值），不并入 swampTieredAt 布尔出口）
                         if (sub && TerrainVariants.swampInteriorAt(worldSeed, x, z)
                             && (t != TerrainVariants.SWAMP_TIER_NONE
-                                || GTSRVoronoiRiverField.swampLakeAt(worldSeed, x, z, 3)
-                                    < GTSRVoronoiRiverField.SWAMP_POOL_WATER_LEVEL)) {
+                                || GTSRVoronoiRiverField.swampPoolWaterAt(worldSeed, x, z, 3))) {
                             nominal[i] = p - 1;
                         }
                     }
@@ -743,7 +744,7 @@ public class ChunkProviderProsperityRuins extends GTSRChunkProviderBase {
                         && hv < ProsperityTerrainProfile.SEA_LEVEL) {
                         fixed[i] = Math.max(fixed[i], ProsperityTerrainProfile.SEA_LEVEL - 1); // 巨湖水
                     }
-                    if (tier == 3 && GTSRVoronoiRiverField.swampRiverPoolAt(worldSeed, x, z, 3) > 0.0D) {
+                    if (tier == 3 && GTSRVoronoiRiverField.swampRiverPoolColumnAt(worldSeed, x, z, 3)) {
                         fixed[i] = Math.max(fixed[i], p + GTSRVoronoiRiverField.SWAMP_RIVER_POOL_FILL_TOP); // 残潭（A1b）
                     }
                 }

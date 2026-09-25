@@ -473,6 +473,22 @@ MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8   -cp
 echo "COMPILE CaveFieldCheck EXIT=$? ($(grep -ac 'error:' "$OUT/javac-cavefield.log") error)"
 run "CaveFieldCheck（A 形态/WAVE 波长/SINGLE 幂等 + CARVE 白名单/lava/壳/岛柱/铺top + SOURCE 源级红线三负三正+挂点序 + PERF carver 中位门）" CaveFieldCheck
 
+echo "== [2m] P22 版 B · S3 岛心巨树判据入链（A 净空五读/B 派生窗/C 30 座活湖实测/D 重放幂等+9-chunk 单射+源级纪律；串行纪律沿用） =="
+# 自仓根运行：D 组读生产源文件字面（ANCHOR/TREE/DECOR 三件）；MegaTreeAnchors/IslandMegaTree 两新类
+# 不在 [0] 的 REL 清单 ⇒ 由本步 javac 经 -sourcepath 隐式编译入 $OUT/tools（tools 先于 classes ⇒ 新类生效）；
+# ProsperityDecorPlacer 已在 REL（[0] 每轮 rm -rf 重编），岛心树支线随之入 $OUT/classes。
+MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8   -cp "$OUT/classes;$CP" -sourcepath "src/main/java;tools/dim1" -d "$OUT/tools"   tools/dim1/MegaTreeCheck.java >"$OUT/javac-megatree.log" 2>&1
+echo "COMPILE MegaTreeCheck EXIT=$? ($(grep -ac 'error:' "$OUT/javac-megatree.log") error)"
+run "MegaTreeCheck（A bbox31/跨≤9chunk/windowChunks(15)==3/顶≤255/预算9500+3600 + B 公式防写死+采样容差 + C 30 活湖 y0 带/必有树/穿水 + D 双跑序列/9-chunk 并集==单树/荒漠 0/盐字面钉）" MegaTreeCheck
+
+echo "== [2n] P22 版 B · S4 旧栖晴晕光点判据入链（A 密度比值 lake<canopy/B 光衰减三档[自立口径]/C 9-chunk 并集同形/D 让行只写空气/E 源级纪律零裸rand+盐字面成对；串行纪律沿用） =="
+# 自仓根运行：E 组读生产源文件字面（LUMEN/DECOR 两件）；ProsperityLumenPlacer 新类不在 [0] 的
+# REL 清单 ⇒ 由本步 javac 经 -sourcepath 隐式编译入 $OUT/tools（tools 先于 classes ⇒ 新类生效）；
+# ProsperityDecorPlacer 已在 REL（[0] 每轮 rm -rf 重编，经 -sourcepath 隐式带上 LumenPlacer/新枚举口）。
+MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8   -cp "$OUT/classes;$CP" -sourcepath "src/main/java;tools/dim1" -d "$OUT/tools"   tools/dim1/LumenLightCheck.java >"$OUT/javac-lumen.log" 2>&1
+echo "COMPILE LumenLightCheck EXIT=$? ($(grep -ac 'error:' "$OUT/javac-lumen.log") error)"
+run "LumenLightCheck（A 分趟独立计数 lakeMean<canopyMean 严格+0.8 带/两趟在场 + B 光14衰减 r1≥13/r7≥7/r15==0 + C 冠下光位 9-chunk 重放并集==纯函数参照/单射/owns + D 门带让行湖上0/冠下0 互换臂 + E 零裸rand+SALT_LUMEN 字面成对/两槽位派生式/挂点链 island<mega<lumen<shrub）" LumenLightCheck
+
 echo "== [3] 既有回归（必须保持绿） =="
 run "ReplaceSurfaceRuntimeCheck（46 项，含 null/plains 回退与逐列下标断言；P2b 起 256 格假绿已除）" ReplaceSurfaceRuntimeCheck
 # BiomeAllocationCheck 按场景分进程跑（同一 JVM 里账本会互相污染）；A+B+C+D 合计 = P1 的 121 项
