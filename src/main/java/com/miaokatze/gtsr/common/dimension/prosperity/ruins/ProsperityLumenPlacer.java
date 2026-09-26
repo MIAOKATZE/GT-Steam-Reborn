@@ -27,11 +27,12 @@ import com.miaokatze.gtsr.common.dimension.prosperity.river.GTSRVoronoiRiverFiel
  * 含死湖——湖上光点不要求岛在场）且 {@code heightAt < SEA_LEVEL}（真实水列，排除湖心岛与出水岸坡）
  * 的列，按 {@link #LAKE_LIGHT_DENOM} 抽样，落位 {@code y = SEA_LEVEL}（水面上空首格）。</li>
  * </ol>
- * <b>两档密度独立常量，湖上严格稀于冠下</b>（判据 {@code tools/dim1/LumenLightCheck} A 组按实测
- * 每 chunk 光源数钉 {@code lake < canopy}，不钉绝对值）。
+ * <b>两档密度独立常量，设计意图湖上严格稀于冠下</b>（判据 {@code tools/dim1/LumenLightCheck}
+ * A 组按实测每 chunk 光源数钉 {@code lake < canopy}，不钉绝对值；S3 冠半径 50 档后 A 组带为
+ * 过渡态，归 S6 随湖面/密度重钉——见 {@link #LAKE_LIGHT_DENOM}）。
  * <p>
  * <b>随机流纪律（SALT_WIND / SALT_ISLAND_TREE 同款）</b>：一个盐 {@link #SALT_LUMEN} 两种槽位——
- * <b>冠下趟按锚点槽</b> {@code chunkSeed(worldSeed, ax>>4, az>>4)}（冠光位集跨 ≤9 chunk ⇒ 与
+ * <b>冠下趟按锚点槽</b> {@code chunkSeed(worldSeed, ax>>4, az>>4)}（冠光位集跨 ≤64 chunk ⇒ 与
  * S3 岛树同一条"任何被跨 chunk 重算得同一集"论证，任一 chunk 独立 decorate 时重放同一光位集，
  * {@link ChunkSliceSink} owns 过滤后只写本片）；<b>湖上趟按本 chunk 槽</b>
  * {@code chunkSeed(worldSeed, chunkX, chunkZ)}（湖上光点单格不跨界，chunk 级自洽即够）。两趟各自的
@@ -58,21 +59,20 @@ public final class ProsperityLumenPlacer {
     public static final long SALT_LUMEN = 0x4C554D4EL;
 
     /**
-     * 冠下密度：每个候选列（冠 footprint 内有冠壳格的列）的 1/N 抽样分母。候选列 ≈ π·(r²+r) ≈ 754
-     * ⇒ 单树期望 ≈ 15.7 枚光点，摊到 ≤2.9 个被跨 chunk。判据只钉「湖上 &lt; 冠下」比值，不钉本值
-     * （实机校准旋钮 = 本常量，调它不动盐）。
+     * 冠下密度：每个候选列（冠 footprint 内有冠壳格的列）的 1/N 抽样分母。候选列 ≈ π·(r²+r) ≈ 8011
+     * （r=50）⇒ 单树期望 ≈ 15.0 枚光点（48×(50/15)²≈11.11 ⇒ 533，保旧档面密度），摊到 ≤64 个被跨
+     * chunk。判据只钉「湖上 &lt; 冠下」比值，不钉本值（实机校准旋钮 = 本常量，调它不动盐）。
      */
-    static final int CANOPY_LIGHT_DENOM = 48;
+    static final int CANOPY_LIGHT_DENOM = 533;
 
     /**
-     * 湖上密度：每个合格水列的 1/N 抽样分母。{@link #CANOPY_LIGHT_DENOM}=48 与冠下候选列 ~754/树
-     * 相比，本档按「全水列 256/chunk ÷ 192 ≈ 1.3/chunk」对「冠下 ≈ 5.4/chunk（被跨窗均值）」取
-     * 严格更稀（判据 A 组实测带 ≤0.8×）；<b>必须严格大于 {@link #CANOPY_LIGHT_DENOM}</b>
-     * （分母大 ⇒ 密度小，判据 SOURCE 组钉偏序）。
+     * 湖上密度：每个合格水列的 1/N 抽样分母。<b>S3 过渡态</b>：冠下档升至 533 后本值暂小于
+     * {@link #CANOPY_LIGHT_DENOM}，原「湖上严格稀于冠下」偏序暂倒挂（每 chunk 口径：湖上 ≈1.3
+     * vs 冠下 ≈0.2..0.5）——湖面随批2 湖半径 200 扩张后由 S6 一并重钉（本片按任务包不动本值）。
      */
     static final int LAKE_LIGHT_DENOM = 192;
 
-    /** 单锚点光位缓冲上限（footprint 31×31 = 961 列封顶，防御性；判据按同一常量分配）。 */
+    /** 单锚点光位缓冲上限（footprint 101×101 = 10201 列封顶，防御性；判据按同一常量分配）。 */
     public static final int CANOPY_LIGHT_CAP = IslandMegaTree.CROWN_QUERY_SIDE * IslandMegaTree.CROWN_QUERY_SIDE;
 
     private ProsperityLumenPlacer() {}
@@ -111,7 +111,7 @@ public final class ProsperityLumenPlacer {
                     continue;
                 }
                 if (n >= out.length) {
-                    return n; // 防御性封顶（候选列数 ≤ 961 = CANOPY_LIGHT_CAP，正常不可达）
+                    return n; // 防御性封顶（候选列数 ≤ 10201 = CANOPY_LIGHT_CAP，正常不可达）
                 }
                 out[n][0] = ax + dx;
                 out[n][1] = cy + minDy - 1;

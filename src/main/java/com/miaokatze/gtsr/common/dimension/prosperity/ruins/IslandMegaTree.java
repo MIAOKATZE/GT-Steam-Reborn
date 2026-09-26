@@ -14,9 +14,10 @@ import com.miaokatze.gtsr.common.dimension.framework.structure.StructureBuilder;
  * 垂天玄柯<b>岛心巨树形态</b>（P22 版 B · S3；方块 = 已注册 {@code BlocksGTSR.prosperityZenithLog}
  * / {@code prosperityJadeLeaves}，复用既有类，无方块侧工作）。
  * <p>
- * <b>形态</b>（p21 §4「巨湖中心岛固定生成」）：干 5×5（顶部两段收窄到 3×3、1×1）× 干高 66..74
- * （≈70）+ 3 轮巨枝（每轮 5 臂，BOP 红杉范式：{@link #BRANCH_SLOPE}=0.381 逐格爬升、
- * {@link #HEIGHT_ATTENUATION}=0.618 上层轮收短、臂端叶团）+ 冠壳 = 以干顶为心的<b>逐层环带盘</b>
+ * <b>形态</b>（p21 §4「巨湖中心岛固定生成」；R1③ 加码档）：干 9×9（顶部四段收窄到 7×7、5×5、
+ * 3×3、1×1）× 干高 84..96（≈90）+ 4 轮巨枝（每轮 5 臂，BOP 红杉范式：{@link #BRANCH_SLOPE}=0.381
+ * 逐格爬升、{@link #HEIGHT_ATTENUATION}=0.618 上层轮收短、臂端叶团——底轮臂端含叶团达覆盖
+ * 半径 50，悬出岛缘为设计意图）+ 冠壳 = 以干顶为心的<b>逐层环带盘</b>
  * （每层只写半径 r−2..r 的外壳带 + 外沿<b>缺角抖动</b>，<b>禁实心球</b>）。
  * 分支算法只取 BOP 的参数范式（衰减/斜率/截短三件），无逐字复制。
  * <p>
@@ -39,18 +40,23 @@ import com.miaokatze.gtsr.common.dimension.framework.structure.StructureBuilder;
  */
 public final class IslandMegaTree {
 
-    /** 干高下限（{@code TRUNK_HEIGHT_MIN + nextInt(9)} ⇒ 66..74，均值 70）。 */
-    static final int TRUNK_HEIGHT_MIN = 66;
+    /** 干高下限（{@code TRUNK_HEIGHT_MIN + nextInt(13)} ⇒ 84..96，均值 90）。 */
+    static final int TRUNK_HEIGHT_MIN = 84;
     /** 干高掷骰跨度。 */
-    static final int TRUNK_HEIGHT_SPAN = 9;
-    /** 干 5×5 段的高度上界（自顶向下 12 格起收窄到 3×3、5 格起 1×1）。 */
-    static final int TRUNK_FULL_BELOW_TOP = 12;
-    static final int TRUNK_MID_BELOW_TOP = 5;
-    /** 冠心相对干顶的回撤（冠壳竖向半径 {@link #CROWN_HALF_HEIGHT} ⇒ 冠顶 = y0+干高−{@code 本值}+18）。 */
-    static final int CROWN_CENTER_INSET = 10;
+    static final int TRUNK_HEIGHT_SPAN = 13;
+    /**
+     * 干粗收窄四段的高度上界（自顶向下 20 格起收窄到 7×7、12 格起 5×5、7 格起 3×3、
+     * 3 格起 1×1；干底 9×9）。阈值须严格递减（trunk 的分段判定按自顶向下次序比较）。
+     */
+    static final int TRUNK_FULL_BELOW_TOP = 20;
+    static final int TRUNK_WIDE_BELOW_TOP = 12;
+    static final int TRUNK_MID_BELOW_TOP = 7;
+    static final int TRUNK_CORE_BELOW_TOP = 3;
+    /** 冠心相对干顶的回撤（冠壳竖向半径 {@link #CROWN_HALF_HEIGHT} ⇒ 冠顶 = y0+干高−{@code 本值}+28）。 */
+    static final int CROWN_CENTER_INSET = 12;
     /** 冠壳竖向半高。 */
-    static final int CROWN_HALF_HEIGHT = 18;
-    /** 冠壳单层外壳带厚度（内缘 = r−2 ⇒ 逐层 2 格厚环带盘，非实心；预算实测带单树 ≤9500/单 chunk ≤3600 的主旋钮）。 */
+    static final int CROWN_HALF_HEIGHT = 28;
+    /** 冠壳单层外壳带厚度（内缘 = r−2 ⇒ 逐层 2 格厚环带盘，非实心；预算主旋钮，半径 50 档实测带归 S6 重钉）。 */
     static final int CROWN_SHELL_BAND = 2;
     /** 薄层阈值：r &lt; 本值的层整盘写（环带带不出壳的薄帽层）。 */
     static final int CROWN_THIN_R = 4;
@@ -63,18 +69,21 @@ public final class IslandMegaTree {
     static final double HEIGHT_ATTENUATION = 0.618D;
     /** 每轮臂数 / 轮数。 */
     static final int BRANCHES_PER_RING = 5;
-    static final int RING_COUNT = 3;
-    /** 底轮臂长（11 格；上两轮按衰减收短，下限 4）。 */
-    static final int RING_ARM_BASE = 11;
-    static final int RING_ARM_MIN = 4;
-    /** 三轮的干高相位（0.45/0.60/0.75 × 干高，自底向上）。 */
-    static final double[] RING_HEIGHT_FRACTION = { 0.45D, 0.60D, 0.75D };
+    static final int RING_COUNT = 4;
+    /**
+     * 底轮臂长（48 格；上三轮按衰减收短，下限 8）。臂端叶团半径 {@link #ARM_TUFT_R}=2 ⇒
+     * 底轮绿端水平达 48+2 = 50 = 覆盖半径（与冠壳赤道半径同一硬值，双路覆盖）。
+     */
+    static final int RING_ARM_BASE = 48;
+    static final int RING_ARM_MIN = 8;
+    /** 四轮的干高相位（0.40/0.55/0.70/0.85 × 干高，自底向上，等差步 0.15）。 */
+    static final double[] RING_HEIGHT_FRACTION = { 0.40D, 0.55D, 0.70D, 0.85D };
     /** 臂端叶团半径（主盘 + 上一层小盘）。 */
     static final int ARM_TUFT_R = 2;
 
     /**
-     * 冠底查询表边长（2×{@link MegaTreeAnchors#CANOPY_RADIUS}+1 = 31；public = 消费方
-     * {@code ProsperityLumenPlacer} 与判据按同一 footprint 分配表，防两处各写一个 31）。
+     * 冠底查询表边长（2×{@link MegaTreeAnchors#CANOPY_RADIUS}+1 = 101；public = 消费方
+     * {@code ProsperityLumenPlacer} 与判据按同一 footprint 分配表，防两处各写一个 101）。
      */
     public static final int CROWN_QUERY_SIDE = 2 * MegaTreeAnchors.CANOPY_RADIUS + 1;
 
@@ -106,10 +115,12 @@ public final class IslandMegaTree {
         return true;
     }
 
-    /** 主干：底部 5×5，自顶向下 12 格起 3×3、5 格起 1×1；无条件写（穿水段由木取代水，p21 A3）。 */
+    /** 主干：底部 9×9，自顶向下 20 格起 7×7、12 格起 5×5、7 格起 3×3、3 格起 1×1；无条件写（穿水段由木取代水，p21 A3）。 */
     private static void trunk(StructureBuilder builder, int ax, int az, int y0, int trunkH, Block log) {
         for (int i = 1; i <= trunkH; i++) {
-            final int half = i <= trunkH - TRUNK_FULL_BELOW_TOP ? 2 : (i <= trunkH - TRUNK_MID_BELOW_TOP ? 1 : 0);
+            final int half = i <= trunkH - TRUNK_FULL_BELOW_TOP ? 4
+                : (i <= trunkH - TRUNK_WIDE_BELOW_TOP ? 3
+                    : (i <= trunkH - TRUNK_MID_BELOW_TOP ? 2 : (i <= trunkH - TRUNK_CORE_BELOW_TOP ? 1 : 0)));
             for (int dx = -half; dx <= half; dx++) {
                 for (int dz = -half; dz <= half; dz++) {
                     builder.setBlock(ax + dx, y0 + i, az + dz, log, 0, BlockSink.FLAG_POPULATE);
@@ -119,8 +130,8 @@ public final class IslandMegaTree {
     }
 
     /**
-     * 3 轮巨枝（BOP 红杉范式）：轮 k 自干高相位 {@link #RING_HEIGHT_FRACTION} 起枝，5 臂按
-     * 72° 均分 + 轮相位；臂长 = {@link #RING_ARM_BASE}×0.618^k（下限 4）；每水平步升
+     * 4 轮巨枝（BOP 红杉范式）：轮 k 自干高相位 {@link #RING_HEIGHT_FRACTION} 起枝，5 臂按
+     * 72° 均分 + 轮相位；臂长 = {@link #RING_ARM_BASE}×0.618^k（下限 8）；每水平步升
      * {@link #BRANCH_SLOPE} 格。<b>截短</b>（遇障范式的本域退化）：枝头一旦超过干顶−2 即停
      * （岛面上方由锚点平台保证净空，域内唯一硬障碍是自己的干顶收窄段——界内截短，不硬伸）。
      * 臂端小叶团（主盘 r2 + 上一层 r1）补足低两轮不被冠壳覆盖的绿量。
@@ -225,7 +236,7 @@ public final class IslandMegaTree {
      * 以与 {@link #placeInto} <b>完全相同的 rand 消费前缀</b>（干高 → 255 早退 → 缺角盐）重放冠形态，
      * 再走 {@link #forEachCrownCell} 同一枚举，给出每个冠 footprint 列（dx,dz ∈
      * [−{@link MegaTreeAnchors#CANOPY_RADIUS}, +{@link MegaTreeAnchors#CANOPY_RADIUS}]）的<b>最低
-     * 冠壳层 dy</b>（冠底带；三轮枝相位不在前缀内——枝不参与冠壳，见 {@link #branchRings}）。
+     * 冠壳层 dy</b>（冠底带；四轮枝相位不在前缀内——枝不参与冠壳，见 {@link #branchRings}）。
      * <b>零 World、零写入</b>，{@code placeInto} 行为零牵连；重放口径 = 形态格集（缺角跳格后的
      * 尝试集），不是世界让行后的实写集——让行是逐格叶门的职责，不进形态查询。
      *

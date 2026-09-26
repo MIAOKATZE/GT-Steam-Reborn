@@ -30,11 +30,13 @@ import com.miaokatze.gtsr.common.dimension.prosperity.river.GTSRVoronoiRiverFiel
 
 /**
  * P22 版 B · S3 岛心巨树（垂天玄柯）判据：A（净空五读）/ B（派生窗）/ C（30 座活湖实测）/
- * D（重放幂等 + 9-chunk 单射 + 源级纪律）四组，范式照 {@code CaveFieldCheck}。
+ * D（重放幂等 + 全跨并集单射 + 源级纪律）四组（范式同源已随 CaveFieldCheck 退役，P23 S1）。
  *
- * <p>═══ A 净空五读（单树几何硬界）═══ 冠 bbox 水平_extent ≤ 31（直径 30 硬值 + 1）且 ≥ 29
- * （在场，防冠壳缩水）；单树跨 ≤ 9 chunk；{@code windowChunks(15) == 3}（派生式，改半径档自动跟）；
- * 树顶 ≤ 255（+ y0=200 早退臂零写入，照 MegaTreeForms:93）；单树写格 ≤ 9500 / 单 chunk ≤ 3600。
+ * <p>═══ A 净空五读（单树几何硬界；P23 R1·S6 随冠半径 15→50 重钉，全部改派生式）═══ 冠 bbox
+ * 水平_extent ≤ 2R+1（R=CANOPY_RADIUS=50，枝丫覆盖 50 格硬值）且 ≥ 2R−1（在场，防冠壳缩水）；
+ * 单树跨 chunk 数 ≤ bbox chunk 面积（7×7=49）；{@code windowChunks(R) == 13}（派生式，改半径档
+ * 自动跟）；树顶 ≤ 255（+ y0=200 早退臂零写入）；单树写格 ≤ 42000 / 单 chunk ≤ 7600
+ * （30 湖实测 [36544,37406]/6689 的 ×1.12/×1.14 帽，见 TREE_CELL_CAP 注释）。
  *
  * <p>═══ B 派生窗（防写死）═══ 多 radius 断言 {@code windowChunks} == 独立重算公式
  * {@code 2*ceil((2r+1)/16)-1}；恒奇数；且 ≥ 穷举最小窗（充分性方向：窗口至少够大）。
@@ -59,7 +61,7 @@ import com.miaokatze.gtsr.common.dimension.prosperity.river.GTSRVoronoiRiverFiel
  */
 public final class MegaTreeCheck {
 
-    /** 岛心锚点搜索种（CaveFieldCheck.CARVE_SEED 同族步进）。 */
+    /** 岛心锚点搜索种（原 CaveFieldCheck.CARVE_SEED 同族步进；该判据已随洞穴移除退役，P23 S1）。 */
     static final long SEARCH_SEED0 = 0x1AFEE7A9E5A7L;
     static final long SEARCH_SEED_STEP = 0x9E37L;
 
@@ -69,8 +71,15 @@ public final class MegaTreeCheck {
     static final int Y0_MAX = 73;
 
     /** 单树写格硬顶（p21 §4 预算）/ 单 chunk 硬顶。 */
-    static final int TREE_CELL_CAP = 9500;
-    static final int CHUNK_CELL_CAP = 3600;
+    /**
+     * P23 R1·S6 重钉（冠半径 15→50，枝丫覆盖 50 格档）：30 活湖实测 cells ∈ [36544,37406]
+     * （散布 2.4%）、chunkMax ≤ 6689 ⇒ TREE_CELL_CAP=42000（实测上限 ×1.12）、
+     * CHUNK_CELL_CAP=7600（×1.14）——判据域随几何档换算（旧 9500/3600 是半径 15 档的
+     * [7417,7551]×~1.26，散布同族）。几何确定性 ⇒ 两帽防的是"形状生成失控"（分叉指数化/
+     * 收窄段缺失），不是密度抖动。
+     */
+    static final int TREE_CELL_CAP = 42000;
+    static final int CHUNK_CELL_CAP = 7600;
 
     /** 出岛必有树的下界（干/叶量级在场，防"落了 1 格也算树"式假绿）。 */
     static final int LOG_FLOOR = 1000;
@@ -103,7 +112,7 @@ public final class MegaTreeCheck {
     static void bootstrap() throws Exception {
         SurfaceHarness.initVanillaBlocks();
         SurfaceHarness.blockFamily();
-        // 账本装配（GenBenchCheck/CaveFieldCheck 同形：dim78 四 selector 成员占 180..183）
+        // 账本装配（GenBenchCheck 同形：dim78 四 selector 成员占 180..183）
         for (int i = 0; i < 4; i++) {
             final BiomeGenBase b = new BiomeGenBase(180 + i) {};
             GTSRBiomeAuthority.recordAllocation(GTSRBiomeAuthority.BiomeId.values()[i], 180 + i, 180 + i, b);
@@ -249,7 +258,7 @@ public final class MegaTreeCheck {
         }
     }
 
-    /** 活湖锚点搜索（CaveFieldCheck A7 同式：湖心反解 + 域门）。 */
+    /** 活湖锚点搜索（湖心反解 + 域门；原 CaveFieldCheck A7 同式已随其退役）。 */
     static Anchor searchAnchor(long seed, int x, int z) {
         if (GTSRVoronoiRiverField.trunkAt(seed, x, z) <= 0.0D) {
             return null;
@@ -357,14 +366,19 @@ public final class MegaTreeCheck {
         read("A tree cells=" + s.cells + " logs=" + rec.logs() + " leaves=" + rec.leaves() + " dxExtent=" + s.dxExtent
             + " dzExtent=" + s.dzExtent + " topY=" + s.topY + " spanChunks=" + s.chunksSpanned + " chunkMax="
             + s.chunkMax);
-        a("A", "bbox.horizontalExtent<=31(dx=" + s.dxExtent + ",dz=" + s.dzExtent + ")",
-            s.dxExtent <= 31 && s.dzExtent <= 31);
-        a("A", "bbox.horizontalPresence>=29", s.dxExtent >= 29 && s.dzExtent >= 29);
-        a("A", "spanChunks<=9(" + s.chunksSpanned + ")", s.chunksSpanned <= 9);
-        a("A", "windowChunks(15)==3(derived)", MegaTreeAnchors.windowChunks(15) == 3);
+        final int crownSide = 2 * MegaTreeAnchors.CANOPY_RADIUS + 1;
+        a("A", "bbox.horizontalExtent<=" + crownSide + "(dx=" + s.dxExtent + ",dz=" + s.dzExtent
+            + "; P23 R1 半径 50 档，派生式)",
+            s.dxExtent <= crownSide && s.dzExtent <= crownSide);
+        a("A", "bbox.horizontalPresence>=" + (crownSide - 2), s.dxExtent >= crownSide - 2 && s.dzExtent >= crownSide - 2);
+        a("A", "spanChunks<=bboxChunkArea(" + s.chunksSpanned + ")", s.chunksSpanned
+            <= ((2 * MegaTreeAnchors.CANOPY_RADIUS + 16) / 16) * ((2 * MegaTreeAnchors.CANOPY_RADIUS + 16) / 16));
+        a("A", "windowChunks(RADIUS)==" + MegaTreeAnchors.windowChunks(MegaTreeAnchors.CANOPY_RADIUS)
+            + "(derived,R=50)", MegaTreeAnchors.windowChunks(MegaTreeAnchors.CANOPY_RADIUS)
+                == 2 * ((2 * MegaTreeAnchors.CANOPY_RADIUS + 16) / 16) - 1);
         a("A", "topY<=255(" + s.topY + ")", s.topY <= 255);
-        a("A", "cells<=9500(" + s.cells + ")", s.cells <= TREE_CELL_CAP);
-        a("A", "chunkMax<=3600(" + s.chunkMax + ")", s.chunkMax <= CHUNK_CELL_CAP);
+        a("A", "cells<=" + TREE_CELL_CAP + "(" + s.cells + ")", s.cells <= TREE_CELL_CAP);
+        a("A", "chunkMax<=" + CHUNK_CELL_CAP + "(" + s.chunkMax + ")", s.chunkMax <= CHUNK_CELL_CAP);
         // 255 红线早退臂（照 MegaTreeForms:93）：合成高锚 y0=200 ⇒ 整树零写入
         final Rec early = new Rec();
         final boolean placed = IslandMegaTree.placeInto(world,
@@ -461,15 +475,17 @@ public final class MegaTreeCheck {
             if (s.cells > TREE_CELL_CAP || s.chunkMax > CHUNK_CELL_CAP) {
                 budgetOk = false;
             }
-            if (Math.max(s.dxExtent, s.dzExtent) > 31) {
+            if (Math.max(s.dxExtent, s.dzExtent) > 2 * MegaTreeAnchors.CANOPY_RADIUS + 1) {
                 extentOk = false;
             }
         }
         a("C", "anchor.tripleLeg.doubleSource", activeOk);
         a("C", "y0.band[" + Y0_MIN + "," + Y0_MAX + "](measured " + y0Min + ".." + y0Max + ")", y0BandOk);
         a("C", "treePresence.100pct(30/30,log>=" + LOG_FLOOR + ",leaf>=" + LEAF_FLOOR + ")", allPlaced);
-        a("C", "budget.treeCells<=9500 & chunkMax<=3600", budgetOk);
-        a("C", "extent<=31.all30(" + extentMax + ")", extentOk);
+        a("C", "budget.treeCells<=" + TREE_CELL_CAP + " & chunkMax<=" + CHUNK_CELL_CAP
+            + "（P23 R1·S6 按半径 50 档实测重钉）", budgetOk);
+        a("C", "extent<=" + (2 * MegaTreeAnchors.CANOPY_RADIUS + 1) + ".all30(" + extentMax
+            + "; 派生式随半径档)", extentOk);
         a("C", "top<=255.all30(" + topMax + ")", topMax <= 255);
         read("C y0=" + y0Min + ".." + y0Max + " cells=" + cellsMin + ".." + cellsMax + " chunkMax=" + chunkMaxAll
             + " extentMax=" + extentMax + " topMax=" + topMax);
@@ -526,7 +542,10 @@ public final class MegaTreeCheck {
         }
         a("D", "doubleRun.sequence.identical n=" + seqChecked, seqOk);
 
-        // D2 9-chunk 重放并集 == 单树一次性写入（owner 单射行为级证明）
+        // D2 全跨重放并集 == 单树一次性写入（owner 单射行为级证明；P23 R1·S6：冠半径 50 ⇒
+        // 单树跨 windowChunks(R)×windowChunks(R) chunk 窗（13×13，派生式），旧 ±1 的 3×3 窗
+        // 是半径 15 档口径）
+        final int halfSpan = (MegaTreeAnchors.windowChunks(MegaTreeAnchors.CANOPY_RADIUS) - 1) >> 1;
         boolean unionOk = true;
         boolean injectiveOk = true;
         boolean ownedOk = true;
@@ -537,8 +556,8 @@ public final class MegaTreeCheck {
             int sumSizes = 0;
             final int ocx = an.ax >> 4;
             final int ocz = an.az >> 4;
-            for (int dz = -1; dz <= 1; dz++) {
-                for (int dx = -1; dx <= 1; dx++) {
+            for (int dz = -halfSpan; dz <= halfSpan; dz++) {
+                for (int dx = -halfSpan; dx <= halfSpan; dx++) {
                     final Rec piece = new Rec();
                     ProsperityDecorPlacer.placeIslandTreePass(world, an.seed, ocx + dx, ocz + dz, piece);
                     for (final Map.Entry<Long, Integer> e : piece.cells.entrySet()) {
@@ -562,7 +581,8 @@ public final class MegaTreeCheck {
             read("D union#" + unionChecked + " single=" + single.cells.size() + " union=" + union.size()
                 + " sumPieces=" + sumSizes);
         }
-        a("D", "replayUnion9.equalsSingleShot", unionOk);
+        a("D", "replayUnionSpan(" + (2 * halfSpan + 1) + "x" + (2 * halfSpan + 1)
+            + ").equalsSingleShot", unionOk);
         a("D", "ownerInjection.noDuplicateWrites", injectiveOk);
         a("D", "slicePieces.allOwned", ownedOk);
 
@@ -623,7 +643,7 @@ public final class MegaTreeCheck {
         return new String(Files.readAllBytes(Paths.get(path)), StandardCharsets.UTF_8);
     }
 
-    /** 去注释（CaveFieldCheck 同款：注释置空格、保留字符串字面量与换行）。 */
+    /** 去注释（注释置空格、保留字符串字面量与换行）。 */
     static String stripComments(String src) {
         final int n = src.length();
         final StringBuilder sb = new StringBuilder(n);
@@ -669,7 +689,7 @@ public final class MegaTreeCheck {
         return sb.toString();
     }
 
-    /** 确定性 LCG（CaveFieldCheck 同款）。 */
+    /** 确定性 LCG。 */
     static final class Lcg {
 
         long state;

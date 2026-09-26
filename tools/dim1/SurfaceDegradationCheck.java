@@ -63,9 +63,15 @@ public class SurfaceDegradationCheck {
         final BiomeGenBase[] p = SurfaceHarness.prosperityBiomes();
         final BiomeGenBase[] s = SurfaceHarness.shatteredBiomes();
 
+        // P23 R1·S6：固定样本窗 (0,0) 被 R1 全域湖淹没（湖面/湿带/滩带的 top ≠ 群系 top）⇒
+        // SHORT 在场列与 NONE 对照的 256/256 断言结构性漂移（S2 实测 drift=256）。换确定性
+        // 「全旱 chunk」窗（螺旋首中；判据=每列 lakeAt ≥ LAKE_SHORE ∧ 非沼泽潭列 ∧ h ≥ SEA
+        // ——即表层语义「top==biome.topBlock」的成立域）。语义与断言带一字不动。
+        final int[] dry = findDryChunk();
+        System.out.println("DEG-READ dryChunk=(" + dry[0] + "," + dry[1] + ")（S6 换窗，原 (0,0) 已入湖）");
         checkEmptyDim79(s);
-        checkShortDim78(p);
-        checkNormalDim78Control(p);
+        checkShortDim78(p, dry[0], dry[1]);
+        checkNormalDim78Control(p, dry[0], dry[1]);
 
         if (failures > 0) {
             System.out.println("SURFACE DEGRADATION CHECK FAIL: failures=" + failures + " passed=" + passed);
@@ -165,7 +171,41 @@ public class SurfaceDegradationCheck {
 
     // ————— SHORT（短表级）：缺席群系处不铺、在场群系处正常 —————
 
-    private static void checkShortDim78(BiomeGenBase[] p) throws Exception {
+    /** 螺旋找首个全旱 chunk（16×16 每列都非湖/滩/潭且 h ≥ SEA；确定性，双跑一致）。 */
+    private static int[] findDryChunk() {
+        for (int r = 0; r <= 96; r++) {
+            for (int dz = -r; dz <= r; dz++) {
+                for (int dx = -r; dx <= r; dx++) {
+                    if (Math.max(Math.abs(dx), Math.abs(dz)) != r) {
+                        continue;
+                    }
+                    boolean dry = true;
+                    for (int x = 0; x < 16 && dry; x++) {
+                        for (int z = 0; z < 16 && dry; z++) {
+                            final int wx = dx * 16 + x;
+                            final int wz = dz * 16 + z;
+                            if (com.miaokatze.gtsr.common.dimension.prosperity.river.GTSRVoronoiRiverField
+                                .lakeAt(SurfaceHarness.SEED, wx, wz) < com.miaokatze.gtsr.common.dimension
+                                    .prosperity.river.GTSRVoronoiRiverField.LAKE_SHORE
+                                || com.miaokatze.gtsr.common.dimension.prosperity.river.GTSRVoronoiRiverField
+                                    .swampRiverPoolColumnAt(SurfaceHarness.SEED, wx, wz, 0)
+                                || com.miaokatze.gtsr.common.dimension.prosperity.ProsperityTerrainProfile
+                                    .heightAt(SurfaceHarness.SEED, wx, wz)
+                                    < com.miaokatze.gtsr.common.dimension.prosperity.ProsperityTerrainProfile.SEA_LEVEL) {
+                                dry = false;
+                            }
+                        }
+                    }
+                    if (dry) {
+                        return new int[] { dx, dz };
+                    }
+                }
+            }
+        }
+        return new int[] { 0, 0 };
+    }
+
+    private static void checkShortDim78(BiomeGenBase[] p, int dcx, int dcz) throws Exception {
         final String tag = "SHORT(dim78)";
         SurfaceHarness.recordProsperityShort(2, p); // 0,1 在场；2,3 缺席
         final GTSRBiomeAuthority authority = GTSRBiomeAuthority.forDimKey(GTSRBiomeAuthority.DIM_KEY_PROSPERITY);
@@ -189,9 +229,9 @@ public class SurfaceDegradationCheck {
         }
         final Method gen = SurfaceHarness.generateTerrain();
         final GTSRChunkProviderBase provider = SurfaceHarness.provider(true);
-        gen.invoke(provider, 0, 0, blocks, meta, null);
+        gen.invoke(provider, dcx, dcz, blocks, meta, null);
         SurfaceHarness.surfaceSeam(ChunkProviderProsperityRuins.class)
-            .invoke(null, SurfaceHarness.SEED, 0, 0, blocks, meta, biomes);
+            .invoke(null, SurfaceHarness.SEED, dcx * 16, dcz * 16, blocks, meta, biomes);
 
         int presentOk = 0;
         int absentBad = 0;
@@ -199,7 +239,7 @@ public class SurfaceDegradationCheck {
         for (int x = 0; x < 16; x++) {
             for (int z = 0; z < 16; z++) {
                 final BiomeGenBase assigned = biomes[x + z * 16];
-                final int height = heightAt78(x, z);
+                final int height = heightAt78(dcx * 16 + x, dcz * 16 + z);
                 final Block surface = blocks[(x << 12 | z << 8) | height];
                 final boolean present = assigned == p[0] || assigned == p[1];
                 if (present) {
@@ -254,7 +294,7 @@ public class SurfaceDegradationCheck {
     }
 
     /** NONE 对照：同一 JVM 内 4 群系全入账后必须每列都铺（防"门永久关闭"假绿）。 */
-    private static void checkNormalDim78Control(BiomeGenBase[] p) throws Exception {
+    private static void checkNormalDim78Control(BiomeGenBase[] p, int dcx, int dcz) throws Exception {
         final String tag = "NONE-control(dim78)";
         SurfaceHarness.recordProsperityAll(p);
         final GTSRBiomeAuthority authority = GTSRBiomeAuthority.forDimKey(GTSRBiomeAuthority.DIM_KEY_PROSPERITY);
@@ -268,13 +308,13 @@ public class SurfaceDegradationCheck {
             }
         }
         final GTSRChunkProviderBase provider = SurfaceHarness.provider(true);
-        SurfaceHarness.runRealSurface(provider, 0, 0, blocks, meta, biomes);
+        SurfaceHarness.runRealSurface(provider, dcx, dcz, blocks, meta, biomes);
         int laid = 0;
         int drift = 0;
         for (int x = 0; x < 16; x++) {
             for (int z = 0; z < 16; z++) {
                 final BiomeGenBase assigned = biomes[x + z * 16];
-                if (blocks[(x << 12 | z << 8) | heightAt78(x, z)] == assigned.topBlock) {
+                if (blocks[(x << 12 | z << 8) | heightAt78(dcx * 16 + x, dcz * 16 + z)] == assigned.topBlock) {
                     laid++;
                 } else {
                     drift++;

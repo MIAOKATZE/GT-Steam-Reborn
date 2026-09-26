@@ -26,14 +26,10 @@ import com.miaokatze.gtsr.main.GTSteamReborn;
  * {@link GTSRVoronoiRiverField#poolLevelAt}，同 segKey 段内恒定）═══
  * <ul>
  * <li><b>置水列</b>（{@code wetAt} 过且 {@link GTSRVoronoiRiverField#submergedAt}(H, P) 为真；
- * <b>P22 A1a（v1.20.42）起 {@code wetAt} = s ≥ WET_MIN ∧ trunk &gt; 0</b>——除遗忘之川域
- * （主干带）外全部河段不置水（干河床，本类零逻辑改动，观感随门收紧））：
- * {@code y=H+1..P−1} 置
+ * <b>P23 R1（v1.20.46 批2 S2）起 {@code wetAt} 恒 false</b>——主干河移除、河流场置水死，
+ * 本支路成为死路径（保留不删，S6 收口登记）；水归湖/沼泽池独立通道）：{@code y=H+1..P−1} 置
  * {@link #waterMaterial}（v1.20.40 P19 §I 起为 {@code BlocksGTSR.abyssalFluid} meta 0 静态源；
- * {@code FLAG_POPULATE}）——水面恒 = 段池水位 P，不再是全局 68；段与段之间 P 差 ≥
- * {@link GTSRVoronoiRiverField#POOL_DROP} 的交界两侧各按本段水面回填，竖直落差面由上游池
- * 末列的水柱天然贴出（<b>落差墙/瀑布</b>，P19 §C）；湿段末端面由 heightCore 的床端面修正
- * （P19 §B）收成缓坡，回填门随床自动关水；</li>
+ * {@code FLAG_POPULATE}）；</li>
  * <li><b>河核列</b>（s ≥ WET_MIN）地表料：选型走 {@link GTSRVoronoiRiverField#bedTopAtSurface}
  * <b>单一真值出口</b>（v1.20.41 P20 S3 起从本类内联三目提出，生产与离线判据共用同一式）——
  * {@link GTSRVoronoiRiverField#submergedAt}(H, P) 为真 = {@code gtsr:prosperityRiverGravel} 床料；水上且
@@ -44,16 +40,9 @@ import com.miaokatze.gtsr.main.GTSteamReborn;
  * 不铺床料、不回填水，改铺<b>滩料</b>＝水陆过渡带。改造前这一格<b>一格都不铺</b> ⇒ 河床砾与一列
  * 之隔的原群系草皮直接相邻＝图上的水陆硬边；其地面另被 {@code heightCore} 下切
  * {@link GTSRVoronoiRiverField#bankCutAt}（需求 2「看不到河床」）；</li>
- * <li><b>落差墙列</b>（四邻河核列池水位差 &gt;= POOL_DROP，即 segKey 不同的段界陡坎）：
- * 保留落差不拉平，且<b>不铺重力床/滩料</b>——重力料落在落差面上会滚进瀑面把墙糊掉。
- * ⚠ <b>旧注释把这条理由写成"防 {@code fallInstantly} 结算"，该写法在本仓从未落地</b>（不是"机制不存在"：
- * 它在参考库是真的——BOP {@code ChunkProviderBOPEnd} 有 {@code BlockFalling.fallInstantly} 的
- * {@code true}/{@code false} 成对窗口、TFC 的 {@code FallingBlockManager} 读它；本仓注释是<b>借来未落地</b>，
- * P20 §G-1 改准）：
- * {@code GTSRChunkProviderBase} 的 provideChunk 与 populate 两处只把
- * {@code BlockFalling.fallInstantly} 置 {@code false}（P20 S0b 实测），即本仓从不开"置位窗口"、
- * 落块期走原版默认的下落实体路。故真实风险是"生成下落实体"而非"结算被抑制"——<b>行为不变、
- * 理由改对</b>（v1.20.39 plan §9 风险表的既定处理，P19 起判据由 H 高差改为 P 池差）。</li>
+ * <li><b>落差墙列</b>（<b>P23 R1（v1.20.46 批2 S2）支路删除</b>——原四邻池水位差 ≥
+ * 段界陡坎检测（旧 POOL_DROP 判据，字段已删）与"不铺重力料"分支随主干河移除收口：
+ * 无水即无瀑面，重力料滚落风险面消失；历史口径见 v1.20.45 版本树）。</li>
  * </ul>
  *
  * <p>
@@ -82,7 +71,7 @@ public final class GTSRRiverPlacer {
     private static final AtomicLong WATER_CELLS = new AtomicLong();
     private static final AtomicLong BED_PLACED = new AtomicLong();
     private static final AtomicLong FLAT_PLACED = new AtomicLong();
-    private static final AtomicLong FALL_COLUMNS = new AtomicLong();
+    // P23 R1（v1.20.46 批2 S2）：FALL_COLUMNS 随落差墙支路删除收口。
     private static final AtomicLong WRITES = new AtomicLong();
 
     /** 河床料缺失锚点是否已打过（一次性；正常生产路径不可达，见 {@link #bedMaterial()}）。 */
@@ -135,7 +124,6 @@ public final class GTSRRiverPlacer {
         int waterCells = 0;
         int bedPlaced = 0;
         int flatPlaced = 0;
-        int fallColumns = 0;
         int writes = 0;
         // —— 3. 逐列落块：只走本 chunk 的 16×16（邻格环只参与判定，一律不写）
         for (int lz = 1; lz < 17; lz++) {
@@ -161,21 +149,10 @@ public final class GTSRRiverPlacer {
                 // 没水判据走河流场单一出口（v1.20.41 P20 S3c T1）：原内联式 `h[i] < p - 1` 与
                 // 下方回填门是同一条式的两处复刻，现合并为一次 submergedAt 调用 + 一个局部量。
                 final boolean submerged = GTSRVoronoiRiverField.submergedAt(h[i], p);
-                // 落差墙列：四邻河核列池水位差 ≥ POOL_DROP 即段界陡坎（保留落差，不拉平）
-                boolean dropColumn = false;
-                for (int d = 0; d < 4 && !dropColumn; d++) {
-                    final int ni = i + (d == 0 ? -1 : d == 1 ? 1 : d == 2 ? -18 : 18);
-                    if (s[ni] >= GTSRVoronoiRiverField.WET_MIN
-                        && Math.abs(p - pool[ni]) >= GTSRVoronoiRiverField.POOL_DROP) {
-                        dropColumn = true;
-                    }
-                }
-                if (dropColumn) {
-                    // 落差列不铺重力床/滩料（重力料会滚进瀑面把墙糊掉）；水照回填
-                    // （上游池列水柱到 p_hi−1，贴着下游 p_lo−1 水面 = 落差竖直面）。
-                    // ⚠ 旧注释写"防 fallInstantly 结算"——本仓该标志恒 false，无置位窗口，见类注释。
-                    fallColumns++;
-                } else if (h[i] > GTSRWorldgenHash.bedrockTopHash(worldSeed, x, z)) {
+                // P23 R1（v1.20.46 批2 S2）：落差墙支路（dropColumn 四邻检测循环 + if 分支 +
+                // fallColumns 计数）整段删除——主干河移除、wetAt 恒 false 后无水可成瀑面，
+                // 落差墙判据（旧 POOL_DROP=3，字段已随 S6 删除）生产侧零消费。
+                if (h[i] > GTSRWorldgenHash.bedrockTopHash(worldSeed, x, z)) {
                     // 地表料选型：v1.20.41 P20 S3 起改走河流场单一真值出口 bedTopAtSurface
                     // （水下＝床料、滩带内露头＝滩料、滩带外露头＝干砾床料），生产侧与离线判据
                     // RiverMorphologyCheck 共用同一式——原内联三目已删，不再有两处口径。
@@ -189,6 +166,8 @@ public final class GTSRRiverPlacer {
                     }
                 }
                 // 水面回填：置水资格列 且 地表在本段水面之下（水面 = 池水位 p → 最高水格 p−1）。
+                // P23 R1：wetAt 恒 false ⇒ 本门恒假，死路径（保留不删，S6 收口登记）——
+                // 残留水路径只剩下方沼泽残潭支路与 provider 侧湖/微池回填。
                 // 没水门与上方选型门共用同一个 submergedAt 出口结果（S3c T1：一处出口、一次求值，
                 // 不再有两处内联式；水柱区间 y=h+1..p−1 是"填到哪"的另一件事，不并进谓词）。
                 if (wet[i] && submerged) {
@@ -282,20 +261,19 @@ public final class GTSRRiverPlacer {
         WATER_CELLS.addAndGet(waterCells);
         BED_PLACED.addAndGet(bedPlaced);
         FLAT_PLACED.addAndGet(flatPlaced);
-        FALL_COLUMNS.addAndGet(fallColumns);
         WRITES.addAndGet(writes);
         final long served = CHUNKS_SERVED.incrementAndGet();
         if (served % LOG_WINDOW_CHUNKS == 0) {
+            // P23 R1：fallCols 字段随落差墙支路删除一并收口（无水即无瀑面，计数无意义）。
             GTSteamReborn.LOG.info(
                 "[GTSR] dim78 river over {} chunks: coreCols={} waterCols={} waterCells={} bedCols={}"
-                    + " flatCols={} fallCols={} writes={}",
+                    + " flatCols={} writes={}",
                 served,
                 CORE_COLUMNS.get(),
                 WATER_COLUMNS.get(),
                 WATER_CELLS.get(),
                 BED_PLACED.get(),
                 FLAT_PLACED.get(),
-                FALL_COLUMNS.get(),
                 WRITES.get());
         }
     }

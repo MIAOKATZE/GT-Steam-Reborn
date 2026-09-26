@@ -823,9 +823,9 @@ public final class TerrainVariants {
     /**
      * <b>三档沼泽列谓词</b>（v1.20.43 P22 版 B O1a，{@link #swampTierAt} 的布尔单一出口，
      * RVF {@code submergedAt} 先例同款）：{@code swampTierAt != SWAMP_TIER_NONE} 的逐字包装——
-     * 本列判出三档水体（POOL/DEEP/MARSH 任一档）。消费面两处同一真值：
-     * {@code ProsperityCaveField.waterColumnProtected} 腿③ 与 {@code GTSRRiverPlacer.neighborBarrier}
-     * 三档腿。需要档位<b>值</b>的消费面（SwampFieldGrid 的 st[] 档位表 / 地形侧 delta）仍取
+     * 本列判出三档水体（POOL/DEEP/MARSH 任一档）。消费面同一真值：
+     * {@code GTSRRiverPlacer.neighborBarrier} 三档腿。需要档位<b>值</b>的消费面（SwampFieldGrid
+     * 的 st[] 档位表 / 地形侧 delta）仍取
      * {@link #swampTierAt} 本值、不走本布尔出口（一处出口一次求值，避免同一列二次求档）。
      */
     public static boolean swampTieredAt(long worldSeed, int x, int z, int rosterIndex) {

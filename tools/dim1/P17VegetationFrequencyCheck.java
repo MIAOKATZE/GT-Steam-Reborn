@@ -39,6 +39,7 @@ import com.miaokatze.gtsr.common.dimension.prosperity.block.BlockProsperityRustL
 import com.miaokatze.gtsr.common.dimension.prosperity.block.BlockProsperityRustLog;
 import com.miaokatze.gtsr.common.dimension.prosperity.block.BlockProsperitySurface;
 import com.miaokatze.gtsr.common.dimension.prosperity.block.BlockProsperityTuft;
+import com.miaokatze.gtsr.common.dimension.prosperity.river.GTSRVoronoiRiverField;
 import com.miaokatze.gtsr.common.dimension.prosperity.ruins.DensityField;
 import com.miaokatze.gtsr.common.dimension.prosperity.ruins.ProsperityDecorPlacer;
 import com.miaokatze.gtsr.common.dimension.prosperity.ruins.ProsperityDecorPlacer.VegTier;
@@ -135,20 +136,72 @@ public final class P17VegetationFrequencyCheck {
     // 森林带被邻档混低（设计效果）、荒漠界带渗入灌木（干高 1-2，腹地均匀区密度 ≡0 保持零树）。
     // 锚 = U9 全量实测 4 seed × 2 区 × 16² chunk（与 U6 prered 同值）；率带 ≈ 实测 ±20%）═══
 
-    /** 每 chunk 树数带（灌木+普通+巨树合计期望）；荒漠一行是界带渐变上界（见 WASTES_SHRUB_LEAK_MAX）。 */
-    private static final double[][] BAND_TREES = { { 0.80D, 1.21D }, { 1.82D, 2.74D }, { 0.0D, WASTES_LEAK },
+    /**
+     * <b>P23 R1·S6 口径修正（v1.20.46）：树木植被密度改按「可落树列当量」归一</b>。
+     * <p>
+     * <b>旧口径（v1.20.45 及更早）</b>：{@code 树数 / 命中该档的 chunk 数}——分母 = <b>全部</b>
+     * 16×16 列，不区分"这列能不能落树"。
+     * <p>
+     * <b>新口径</b>：{@code 树数 / (Σ可落树列 / 256)}，其中"可落树列" = 该档样本 chunk 内
+     * {@link GTSRVoronoiRiverField#isSanzuColumn(long, int, int)} 为<b>假</b>的列（谓词走生产
+     * 公开出口直调，本判据零第二份判定）。分母单位仍是"chunk 当量"（256 列 = 1.0），故带值的
+     * 量级与旧口径同族、只有"被湖占掉的那部分面积"被剔除。
+     * <p>
+     * <b>为何必须改（换算式）</b>：R1 全域湖后，湖面 + 湖滩带（{@code isSanzuColumn} 域，
+     * 水面/滩带列地表 ≤ {@code SEA_LEVEL}）在样本窗内占掉一部分 16×16 列，而这些列<b>结构上
+     * 不可落树</b>（水面列无 naturalTop、滩带列被群系指派为 sanzu 且地表贴水）⇒ 旧口径把它们
+     * 记进分母 = 让"森/原"这类陆地群系的树密度读数<b>系统性虚降</b>（本判据种子实测 森
+     * 2.28 → 1.33、原 1.005 → 0.666），而沼泽样本窗几乎无湖重叠故 1.402 未动 ⇒ 读出
+     * "沼 &gt; 森"的<b>伪序违反</b>（档表/真实链本征密度是 森 &gt; 沼）。序断言是群系
+     * <b>本征</b>密度序 ⇒ 分母必须是"能落树的面积"。旧读数（含旧带）原文保留在下行注释里，
+     * 禁止下一轮把它当新常态。
+     */
+    /**
+     * 每 chunk 当量树数带（灌木+普通+巨树合计期望，分母口径见上方口径段）；荒漠一行是界带渐变上界
+     * （见 {@link #WASTES_LEAK}）。
+     * <p>
+     * <b>P23 R1·S6 重钉（原/森两行按新口径实测重钉；沼/沙两行实测未漂 ⇒ 带原文不动）</b>：
+     * 新口径实测 原 <b>0.827032</b>（capCols 118554/575 chunk ⇒ 可落树列占比 80.55%）/ 森
+     * <b>2.052825</b>（92532/558 ⇒ 64.78%）/ 沼 <b>1.401961</b>（78336/306 ⇒ 100.00%，样本窗
+     * 零 sanzu 列 ⇒ 新旧口径逐位相同）/ 沙 <b>0.010473</b>（146664/609 ⇒ 94.09%，≤ 界带上界）。
+     * 新带 = 新实测 <b>±20%</b>（同族口径）：原 [0.66,0.99]、森 [1.64,2.46]；沼 [1.31,1.98] 与
+     * 沙 [0, {@link #WASTES_LEAK}] 原文不动。
+     * <p>
+     * <b>旧口径历史读数（禁止当新常态）</b>：原 0.666087（旧带 [0.53,0.80]）/ 森 1.329749
+     * （旧带 [1.06,1.60]）/ 沼 1.401961（旧带 [1.31,1.98]）；v1.20.45 及更早的锚
+     * 原 1.005 / 森 2.28（带 [0.80,1.21]/[1.82,2.74]）见版本树。
+     */
+    private static final double[][] BAND_TREES = { { 0.66D, 0.99D }, { 1.64D, 2.46D }, { 0.0D, WASTES_LEAK },
         { 1.31D, 1.98D } };
     /** 干高最小值带（T7 灌木档干 1-2 节 ⇒ 三群系 min 恒 1；荒漠界带灌木在场取 1、无树样本取 0；
      * 无树群系取 {0,0}）。 */
     private static final int[][] BAND_TRUNK_MIN = { { 1, 1 }, { 1, 1 }, { 0, 1 }, { 1, 1 } };
-    /** 干高最大值带（巨树档上界；密度场混合使巨树采样随密度微移——v1.20.40 重录 原 24 / 森 37；
-     * 荒漠界带灌木上界 2、无树样本取 0）。 */
-    private static final int[][] BAND_TRUNK_MAX = { { 24, 24 }, { 37, 37 }, { 0, 2 }, { 26, 26 } };
+    /**
+     * 干高最大值带（巨树档上界；密度场混合使巨树采样随密度微移——v1.20.40 重录 原 24 / 森 37；
+     * 荒漠界带灌木上界 2、无树样本取 0）。<b>P23 R1·S6 重钉（森行 {37,37}→{33,37}）</b>：R1 湖
+     * 吞掉样本窗内巨树落位（巨树要 naturalTop 列，湖面/滩带列不可落）⇒ 实测 max 33（普通最高
+     * 档）；37 巨树档形态本身由 MegaTreeCheck C 组（30 活湖必有树）守，本行只守"最高档不缺席
+     * 整档"——下界 33 = 普通最高档在场，24 以下（退化成草原档）仍红。
+     * <p>
+     * <b>P23 R1·S6 口径修正复核</b>：逐株形态读数（trunkMin/Max/Mean）与分母口径无关——
+     * 可落树列归一化<b>不改变</b>任何一株的实测干高，故森行实测仍为 33（新口径下巨树落位被
+     * 湖水列吞掉这件事本身不变：水列无 naturalTop）⇒ 带原文不动；原 24 / 沼 26 同。
+     */
+    private static final int[][] BAND_TRUNK_MAX = { { 24, 24 }, { 33, 37 }, { 0, 2 }, { 26, 26 } };
     /** 干高均值带（三档混合期望）；荒漠带 [0,2] = 无树样本 0 或界带灌木 1-2 的混合期望。 */
     private static final double[][] BAND_TRUNK_MEAN = { { 2.05D, 3.07D }, { 6.30D, 9.45D }, { 0.0D, 2.0D },
         { 3.85D, 5.77D } };
-    /** 叶块数/chunk 带（三档冠幅的行为级投影）；荒漠 = 界带灌木小冠上界（实测 0.3186 +20%）。 */
-    private static final double[][] BAND_LEAVES = { { 32.5D, 48.7D }, { 103.6D, 155.4D }, { 0.0D, 0.38D },
+    /**
+     * 叶块数/可落树列 chunk 当量带（三档冠幅的行为级投影，分母口径同 {@link #BAND_TREES}）；
+     * 荒漠 = 界带灌木小冠<b>上界</b>（下界 0 是刻意的：那一行只钉"灌木冠幅不许长成树"，无树下界即 0）。
+     * <p>
+     * <b>P23 R1·S6 重钉（原/森两行，同 BAND_TREES 的湖吞列归因）</b>：新口径实测 原
+     * <b>35.469541</b> / 森 <b>116.983357</b> ⇒ ±20% 同族带 原 [28.4,42.6]、森 [93.6,140.4]；
+     * 沼 32.990196（新口径可落树列 = 全部列 ⇒ 逐位同旧读数）与沙 0.268805（旧读 0.252874，
+     * 仍 ≤ 0.38 上界，且该行为只钉上界）⇒ 两行带原文不动。旧带原文：原 [22.9,34.3]、
+     * 森 [60.6,90.9]（旧口径实测 原 28.567 / 森 75.778 的 ±20%）。
+     */
+    private static final double[][] BAND_LEAVES = { { 28.4D, 42.6D }, { 93.6D, 140.4D }, { 0.0D, 0.38D },
         { 31D, 46.5D } };
     /** 草块数/chunk 带。 */
     private static final double[][] BAND_TUFTS = { { 4.3D, 7.5D }, { 4.9D, 8.3D }, { 1.3D, 3.0D },
@@ -207,7 +260,17 @@ public final class P17VegetationFrequencyCheck {
      * （带外 ×0.4 抑制 + 带内 4..5 株一簇，算式与偏离申报见
      * {@code ProsperityDecorPlacer#SHRUB_CLUSTER_SKIP_DENOM}）。
      */
-    private static final double[] BAND_SHRUBS_STEPPE = { 0.437765D, 0.705287D };
+    /**
+     * <b>P23 R1·S6 重钉：[0.437765,0.705287] → [0.28,0.45]</b>。R1 湖吞列（同 BAND_TREES 归因）
+     * ⇒ 本判据种子实测 0.311304（179 株/575 chunk）；按 R4-② 同族定法 [现×0.90, 现×1.45] 以新
+     * 实测为现值 ⇒ [0.28, 0.45]。旧带推导原文：以改前实测 0.486405（1324 chunk/644 株）为现值
+     * ⇒ [0.437765, 0.705287]。
+     * <p>
+     * <b>P23 R1·S6 口径修正复核（分母改可落树列当量，见 {@link #BAND_TREES} 前口径段）</b>：
+     * 新口径实测 <b>0.386524</b>（179 株 / (118554/256) = 179/463.10），仍在 [0.28,0.45] 内 ⇒
+     * 带原文不动（不重钉 = 不放宽：新读数距上界 +16.4%、距下界 -27.6%，无需另立带）。
+     */
+    private static final double[] BAND_SHRUBS_STEPPE = { 0.28D, 0.45D };
     /**
      * 草原灌木的<b>空间聚簇度</b>：每株平均"同丛邻居数"（切比雪夫距离 ≤
      * {@link #SHRUB_NEIGHBOR_RADIUS} 方块内的其它短干株）带 —— 需求 6"灌木<b>群</b>"的字面判据。
@@ -215,7 +278,12 @@ public final class P17VegetationFrequencyCheck {
      * 反之亦然（防"只改档值不改形态"的假绿）。改前实测 ≈0.1（每 2 chunk 一株的均匀泊松），
      * 成簇后理论 ≈3.5（主株 + 环带 3..4 株互见）。
      */
-    private static final double[] BAND_SHRUB_NEIGHBORS = { 1.20D, 6.50D };
+    /**
+     * <b>P23 R1·S6 重钉下界：1.20 → 1.05</b>。R1 湖吞掉部分簇成员（簇环列落湖面/滩带）⇒ 实测
+     * 1.173184 微破旧下界；新下界 = 实测 ×0.90（同族余量），上界 6.50 与"均匀散点 ≈0.1"的
+     * 对照语义不动。
+     */
+    private static final double[] BAND_SHRUB_NEIGHBORS = { 1.05D, 6.50D };
     /** 聚簇度半径（方块，切比雪夫距离；= 簇环带外沿 4）。 */
     private static final int SHRUB_NEIGHBOR_RADIUS = 4;
     /** 短干株的干高上限（灌木档形态 = 干 1..2 节，见 {@code ProsperityDecorPlacer#placeShrubAt}）。 */
@@ -287,11 +355,57 @@ public final class P17VegetationFrequencyCheck {
 
     private static String biomeLine(int idx, Agg a) {
         return "idx=" + idx + " name=" + (idx >= 0 && idx < BIO.length ? BIO[idx] : "TOTAL") + " chunks=" + a.chunks
-            + " trees=" + a.trees + " treesPerChunk=" + fmt(div(a.trees, a.chunks)) + " logs=" + a.logs
+            + " trees=" + a.trees + " treesPerChunk=" + fmt(div(a.trees, a.chunks)) + " capCols=" + a.capableCols
+            + " treesPerCapChunk=" + fmt(treesPerCapChunk(a)) + " leavesPerCapChunk=" + fmt(leavesPerCapChunk(a))
+            + " logs=" + a.logs
             + " trunkMin=" + trunkMin(a) + " trunkMax=" + trunkMax(a) + " trunkMean=" + fmt(trunkMean(a))
             + " leavesPerChunk=" + fmt(div(a.leaves, a.chunks)) + " tuftsPerChunk="
             + fmt(div(a.tufts, a.chunks)) + " flowersPerChunk=" + fmt(div(a.flowers, a.chunks))
             + " sandPerChunk=" + fmt(div(a.sand, a.chunks));
+    }
+
+    /**
+     * 树木植被密度族的分母（chunk 当量）：可落树列 / 256。见 {@link #BAND_TREES} 前的口径段。
+     * 样本为空（ANTI 臂的 {@link #measureSingleChunks} 不累计列账）时回退 {@link Agg#chunks}
+     * ——那些臂不消费本族带。
+     */
+    private static double capChunks(Agg a) {
+        return a.capableCols > 0 ? a.capableCols / 256.0D : a.chunks;
+    }
+
+    /** 树材计数（树数/叶数/灌木株数）÷ 可落树列 chunk 当量（新口径，见 {@link #BAND_TREES} 前口径段）。 */
+    private static double perCapChunk(long n, Agg a) {
+        final double d = capChunks(a);
+        return d <= 0.0D ? 0.0D : n / d;
+    }
+
+    /** 树数 / 可落树列 chunk 当量（新口径，见 {@link #BAND_TREES} 前的口径段）。 */
+    private static double treesPerCapChunk(Agg a) {
+        return perCapChunk(a.trees, a);
+    }
+
+    /** 叶数 / 可落树列 chunk 当量（新口径，同 {@link #treesPerCapChunk}）。 */
+    private static double leavesPerCapChunk(Agg a) {
+        return perCapChunk(a.leaves, a);
+    }
+
+    /**
+     * 一个 chunk 的<b>可落树列</b>计数（16×16 列，{@link GTSRVoronoiRiverField#isSanzuColumn} 为假者）。
+     * 谓词走生产公开出口直调（禁抄第二份判定）；湖/滩带列地表 ≤ {@code SEA_LEVEL} ⇒ 不可落树，故
+     * 从树木植被密度的分母里剔除。
+     */
+    private static int capableColumns(long seed, int chunkX, int chunkZ) {
+        final int bx = chunkX << 4;
+        final int bz = chunkZ << 4;
+        int n = 0;
+        for (int lx = 0; lx < 16; lx++) {
+            for (int lz = 0; lz < 16; lz++) {
+                if (!GTSRVoronoiRiverField.isSanzuColumn(seed, bx + lx, bz + lz)) {
+                    n++;
+                }
+            }
+        }
+        return n;
     }
 
     private static int intArg(String[] args, int i, int def) {
@@ -463,6 +577,12 @@ public final class P17VegetationFrequencyCheck {
 
     static final class Agg {
         long chunks;
+        /**
+         * <b>P23 R1·S6 新增</b>：本档样本 chunk 内<b>可落树列</b>合计（{@code isSanzuColumn} 为假的列
+         * 数，见 {@link #BAND_TREES} 口径段）。树木植被密度族的分母 = {@code 本值 / 256}（chunk 当量）；
+         * 其余读数（草/花/沙/柱）仍按 {@link #chunks} 原口径。
+         */
+        long capableCols;
         long trees;
         long logs;
         final int[] trunk = new int[96];
@@ -485,6 +605,7 @@ public final class P17VegetationFrequencyCheck {
         Agg copy() {
             final Agg b = new Agg();
             b.chunks = chunks;
+            b.capableCols = capableCols;
             b.trees = trees;
             b.logs = logs;
             b.leaves = leaves;
@@ -543,6 +664,7 @@ public final class P17VegetationFrequencyCheck {
         final Agg s = new Agg();
         for (final Agg a : m.values()) {
             s.chunks += a.chunks;
+            s.capableCols += a.capableCols;
             s.trees += a.trees;
             s.logs += a.logs;
             s.leaves += a.leaves;
@@ -574,6 +696,7 @@ public final class P17VegetationFrequencyCheck {
     private static Agg diffAgg(final Agg before, final Agg after) {
         final Agg d = new Agg();
         d.chunks = after.chunks - before.chunks;
+        d.capableCols = after.capableCols - before.capableCols;
         d.trees = after.trees - before.trees;
         d.logs = after.logs - before.logs;
         d.leaves = after.leaves - before.leaves;
@@ -668,7 +791,11 @@ public final class P17VegetationFrequencyCheck {
                     continue;
                 }
                 final int idx = ordinal(gcx, gcz);
-                sink.chunk(gcx, gcz, idx, bucket(out, idx));
+                final Agg buck = bucket(out, idx);
+                // P23 R1·S6：树木植被密度族的分母账（可落树列，见 BAND_TREES 前的口径段）——
+                // 与 sink 记账同一批 chunk（城窗 chunk 在上面的 continue 已排除，两侧同域）。
+                buck.capableCols += capableColumns(seed, gcx, gcz);
+                sink.chunk(gcx, gcz, idx, buck);
                 ProsperityDecorPlacer.decorate(world, seed, gcx, gcz, idx, sink);
             }
         }
@@ -921,11 +1048,11 @@ public final class P17VegetationFrequencyCheck {
             if (a == null || a.chunks == 0) {
                 continue;
             }
-            band("M " + BIO[idx] + " 树数/chunk", div(a.trees, a.chunks), BAND_TREES[idx]);
+            band("M " + BIO[idx] + " 树数/可落树列chunk当量", treesPerCapChunk(a), BAND_TREES[idx]);
             band("M " + BIO[idx] + " 干高 min", trunkMin(a), BAND_TRUNK_MIN[idx]);
             band("M " + BIO[idx] + " 干高 max", trunkMax(a), BAND_TRUNK_MAX[idx]);
             band("M " + BIO[idx] + " 干高 mean", trunkMean(a), BAND_TRUNK_MEAN[idx]);
-            band("M " + BIO[idx] + " 叶/chunk", div(a.leaves, a.chunks), BAND_LEAVES[idx]);
+            band("M " + BIO[idx] + " 叶/可落树列chunk当量", leavesPerCapChunk(a), BAND_LEAVES[idx]);
             band("M " + BIO[idx] + " 草/chunk", div(a.tufts, a.chunks), BAND_TUFTS[idx]);
             band("M " + BIO[idx] + " 花/chunk", div(a.flowers, a.chunks), BAND_FLOWERS[idx]);
             band("M " + BIO[idx] + " 沙砾/chunk", div(a.sand, a.chunks), BAND_SAND[idx]);
@@ -985,7 +1112,10 @@ public final class P17VegetationFrequencyCheck {
                     "S6 荒漠铺沙里细沙不再被放置（档表主料已换粗沙；改前细沙占 2/3）；实测 fine=" + a.sandFine);
             }
             if (idx == STEPPE) {
-                band("S6 草原 灌木株数/chunk（短干竖段）", div(a.shrubs, a.chunks), BAND_SHRUBS_STEPPE);
+                // P23 R1·S6：灌木与树木同族（都是"树材立在地表上的密度"）⇒ 同一可落树列分母；
+                // 聚簇度是"每株邻居数"的株内均值，与分母口径无关，原样。
+                band("S6 草原 灌木株数/可落树列chunk当量（短干竖段）", perCapChunk(a.shrubs, a),
+                    BAND_SHRUBS_STEPPE);
                 band("S6 草原 灌木聚簇度（每株同丛邻居均值）", div(a.shrubNeighbors, a.shrubs), BAND_SHRUB_NEIGHBORS);
             }
         }
@@ -994,20 +1124,22 @@ public final class P17VegetationFrequencyCheck {
         System.out.println("VEG-S6 wastes sand=" + w.sand + " coarse/gravel/fine=" + w.sandCoarse + "/" + w.sandGravel
             + "/" + w.sandFine + " stumps=" + w.stumps + "(maxRun " + w.stumpRunMax + ") | steppe shrubs=" + s.shrubs
             + " neighbours=" + s.shrubNeighbors + " meanNeighbor=" + fmt(div(s.shrubNeighbors, s.shrubs))
-            + " | ORDER 森/原=" + fmt(ddiv(ddiv(get(m, FOREST).trees, get(m, FOREST).chunks),
-                ddiv(s.trees, s.chunks))));
+            + " shrubsPerCapChunk=" + fmt(perCapChunk(s.shrubs, s))
+            + " | ORDER 森/原=" + fmt(ddiv(treesPerCapChunk(get(m, FOREST)), treesPerCapChunk(s))));
     }
 
     private static void assertBehaviouralOrder(Map<Integer, Agg> m) {
-        final double f = div(get(m, FOREST).trees, get(m, FOREST).chunks);
-        final double w = div(get(m, SWAMP).trees, get(m, SWAMP).chunks);
-        final double s = div(get(m, STEPPE).trees, get(m, STEPPE).chunks);
-        final double d = div(get(m, WASTES).trees, get(m, WASTES).chunks);
+        final double f = treesPerCapChunk(get(m, FOREST));
+        final double w = treesPerCapChunk(get(m, SWAMP));
+        final double s = treesPerCapChunk(get(m, STEPPE));
+        final double d = treesPerCapChunk(get(m, WASTES));
         // v1.20.40 P19 §G 重钉：严格偏序 森>沼>原>沙 保留；「沙==0 精确项」随界带渐变退役
         //（沙的绝对量级已由 M 组 WASTES_LEAK 率带与腹地精确零钉住，此处只钉偏序）。
+        // P23 R1·S6：口径改按「可落树列当量」（见 BAND_TREES 前的口径段）——R1 全域湖把湖/滩带
+        // 列塞进旧分母，读出过 沼>森 的伪序违反；本序是群系<b>本征</b>密度序，分母必须是可落树面积。
         check(f > w && w > s && s > d,
             "ORDER 真实链树密度 森(" + fmt(f) + ") > 沼(" + fmt(w) + ") > 原(" + fmt(s) + ") > 沙(" + fmt(d)
-                + "，界带渗入上限见 M 组带)");
+                + ")，口径=可落树列当量（P23 R1·S6），界带渗入上限见 M 组带)");
         final double tf = trunkMean(get(m, FOREST));
         final double tw = trunkMean(get(m, SWAMP));
         final double ts = trunkMean(get(m, STEPPE));
@@ -1017,11 +1149,11 @@ public final class P17VegetationFrequencyCheck {
         // 拿绝对数比会把"面积抽样不等"当成"密度不分流"。
         // T8 重钉（归因 T7 三档）：灌木 1/2 把草原密度抬到 ~1.0/chunk，森林/平原比值从单档时代
         // 的 ~8× 压到 3.2×；需求语义「森林树明显更多、量级可辨」改钉 ≥2.5×（实测 3.19×）。
-        check(div(get(m, FOREST).trees, get(m, FOREST).chunks) > 2.5D * div(get(m, STEPPE).trees,
-            get(m, STEPPE).chunks),
-            "ORDER 森林树密度 > 平原 2.5 倍（T7 三档口径）；实测 "
-                + fmt(div(get(m, FOREST).trees, get(m, FOREST).chunks))
-                + " vs " + fmt(div(get(m, STEPPE).trees, get(m, STEPPE).chunks)));
+        // P23 R1·S6：本比值是"森林本征密度 / 平原本征密度"，两侧同口径（可落树列当量）。
+        check(treesPerCapChunk(get(m, FOREST)) > 2.5D * treesPerCapChunk(get(m, STEPPE)),
+            "ORDER 森林树密度 > 平原 2.5 倍（T7 三档口径，分母=可落树列当量）；实测 "
+                + fmt(treesPerCapChunk(get(m, FOREST)))
+                + " vs " + fmt(treesPerCapChunk(get(m, STEPPE))));
         final Agg all = total(m);
         check(div(all.trees, all.chunks) > 3.0D * PRE_TREES_PER_CHUNK,
             "ORDER 全图树密度较改前(" + fmt(PRE_TREES_PER_CHUNK) + ") 升 > 3×；实测 "

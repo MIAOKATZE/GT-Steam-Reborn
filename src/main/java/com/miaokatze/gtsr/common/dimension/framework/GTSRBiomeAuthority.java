@@ -444,9 +444,37 @@ public final class GTSRBiomeAuthority {
     }
 
     /**
+     * zh_CN 显示名别名表（S5，P23 plan §2）：中文客户端 F3 显示名（zh_CN.lang 的
+     * {@code biome.<biomeName>.name} 值）→ 名册身份。英文 {@code biomeName} 匹配失配后查本表；
+     * 命中仍要求该成员在本维 roster 已配槽（跨维中文名不串档，与英文路径同一约束）。
+     * 键为 {@link #normalizeBiomeName} 归一化形态（中文串归一化 = 原文）。单一真值纪律：
+     * 值只写 {@link BiomeId} 枚举成员、不复制英文 biomeName；九串须与 lang 文件逐字一致
+     * （S6 判据将加"别名↔lang 双向同步钉"强制闭环）。
+     */
+    private static final Map<String, BiomeId> ZH_CN_DISPLAY_NAME_ALIASES = new HashMap<>(16);
+
+    static {
+        // dim78（zh_CN.lang:2035-2039）
+        ZH_CN_DISPLAY_NAME_ALIASES.put("锈蚀草原", BiomeId.RUSTED_STEPPE);
+        ZH_CN_DISPLAY_NAME_ALIASES.put("齿轮森林", BiomeId.GEARWORK_FOREST);
+        ZH_CN_DISPLAY_NAME_ALIASES.put("黄铜荒漠", BiomeId.BRASS_WASTES);
+        ZH_CN_DISPLAY_NAME_ALIASES.put("起雾沼泽", BiomeId.FUMAROLE_SWAMP);
+        // P23 R1 批2 S2 已兑现：注册名 "Sanzu River"→"Sanzu Lake"、zh_CN 值改"遗忘之湖"
+        // （注册名/lang/别名表三处同轮，plan §2 S2 第 8 条）
+        ZH_CN_DISPLAY_NAME_ALIASES.put("遗忘之湖", BiomeId.SANZU_RIVER);
+        // dim79（zh_CN.lang:2107-2110）
+        ZH_CN_DISPLAY_NAME_ALIASES.put("灰烬草原", BiomeId.ASHEN_PRAIRIE);
+        ZH_CN_DISPLAY_NAME_ALIASES.put("渣木林", BiomeId.SLAGWOOD_GROVE);
+        ZH_CN_DISPLAY_NAME_ALIASES.put("琉璃荒漠", BiomeId.VITREOUS_WASTE);
+        ZH_CN_DISPLAY_NAME_ALIASES.put("焦油洼地", BiomeId.TAR_BASIN);
+    }
+
+    /**
      * 群系名 → 名册身份（大小写不敏感；接受显示名原文、下划线别名与含多余空白形态——
      * 服务端 1.7.10 的 {@code String.split(" ")} 不识别引号，故带空格名字由调用方把尾随参数
      * 以空格重join 后传入，这里再折叠连续空白并把 {@code '_'} 视为空格别名）。
+     * 英文 {@code biomeName} 匹配失配后再查 {@link #ZH_CN_DISPLAY_NAME_ALIASES}
+     * （S5：中文显示名与英文 biomeName 是两套串，别名表是二者间唯一的桥，不复制英文真值）。
      *
      * @return 名册成员；{@code null} = 不在该维（已配槽）名册内，调用方必须给可读错误
      */
@@ -461,6 +489,16 @@ public final class GTSRBiomeAuthority {
         for (final Entry entry : this.roster) {
             if (entry.biome != null && normalized.equalsIgnoreCase(normalizeBiomeName(entry.biome.biomeName))) {
                 return entry.id;
+            }
+        }
+        // S5：中文显示名别名——归一化键查表；命中仍须本维已配槽（跨维中文名解析到 null，
+        // 与英文失配同一出口，调用方按"不在本维名册"报可读错误）
+        final BiomeId aliased = ZH_CN_DISPLAY_NAME_ALIASES.get(normalized);
+        if (aliased != null) {
+            for (final Entry entry : this.roster) {
+                if (entry.id == aliased && entry.biome != null) {
+                    return entry.id;
+                }
             }
         }
         return null;

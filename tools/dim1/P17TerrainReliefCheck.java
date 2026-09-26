@@ -1246,8 +1246,19 @@ public class P17TerrainReliefCheck {
             "REDLINE 结构侧接地供给器仍直引同一个 heightAt（城/机器/废墟/outpost 四族同源）");
         check(provider.contains("ProsperityTerrainProfile.heightAt(worldSeed, baseX + x, baseZ + z)"),
             "REDLINE 地形填充仍直引同一个 heightAt");
-        check(command.contains("ProsperityTerrainProfile.heightAt(world.getSeed(), x, z)"),
-            "REDLINE 指令取高仍直引同一个 heightAt");
+        // P23 R1·S5（v1.20.46 批1）重钉：columnTopSafeY 的取高链 = heightAt 单一真值基 +
+        // 水感知层（populate 同源谓词 populateWaterColumnAt（湖=fillSanzuLakes 同式、残潭=O1a 出口）
+        // + 螺旋 ≤16 列避让 + 水面 fallback）——水感知不另立第二份取高式，基座仍只有 heightAt。
+        check(command.contains("ProsperityTerrainProfile.heightAt(seed, x, z)")
+            && command.contains("ProsperityTerrainProfile.heightAt(seed, nx, nz)"),
+            "REDLINE 指令取高基仍直引同一个 heightAt（命中列与螺旋避让列同源；S5 水感知层叠在其上）");
+        check(command.contains("populateWaterColumnAt(seed, x, z)")
+            && command.contains("populateWaterColumnAt(seed, nx, nz)")
+            && command.contains("GTSRVoronoiRiverField.lakeAt(worldSeed, x, z)")
+            && command.contains("GTSRVoronoiRiverField.swampRiverPoolColumnAt(")
+            && command.contains("ProsperityTerrainProfile.SEA_LEVEL - 1"),
+            "REDLINE 指令水感知层 = populate 同源谓词（湖/残潭走 RVF 公开出口，零第二份水判定）"
+                + "+ 水面 fallback（SEA_LEVEL−1，站水面）——P23 S5 新口径");
         check(occurrences(profile, "RELIEF_MULT * amplitude") == 1,
             "REDLINE 高度公式在 Profile 内只有一份表达式（实测 " + occurrences(profile, "RELIEF_MULT * amplitude")
                 + " 处）⇒ 群系振幅只能经档表进这一份");

@@ -139,7 +139,18 @@ public final class SurfaceGateUnifyCheck {
      * 容差取「实测 ±0.6pp」量级：吸收跨机器抖动，但<b>不足以容纳删/加一个成员</b>
      * （G 组用影子集合自证这一点）。
      */
+    /**
+     * dim79 的 pristine 带（不动：dim79 零改动，实测恒 100.0）。
+     */
     private static final double BAND_PRISTINE_MIN = 99.99D, BAND_PRISTINE_MAX = 100.0D;
+    /**
+     * dim78 的 pristine 带（P23 R1·S6 重钉：99.99..100 → 98.3..99.5）。归因：R1 全域湖 + 湖滨
+     * 湿带/滩带列的表层改派（riverGravel/滩料）与水缘列不落可踩面 ⇒ 本 assert 档（2 seed × 1 区，
+     * 确定性样本）实测 pristine78 = 98.878pp（v1.20.45 为 100.0）——湖系水陆过渡带的<b>设计内</b>
+     * 门不过列。带 = 实测锚 98.878 ± 0.6pp（与口径 C 带宽同族）；越下界 = 湖/滩带改派面异常扩张，
+     * 越上界（99.5）= 滩带整层消失一类回退。dim79 不受影响（独立带上表）。
+     */
+    private static final double BAND_PRISTINE78_MIN = 98.3D, BAND_PRISTINE78_MAX = 99.5D;
     /**
      * D 组：编排链之后 dim78 列级通过率带（残骸 's' 板把更多列抬进可落地面）。
      * <p>
@@ -157,7 +168,13 @@ public final class SurfaceGateUnifyCheck {
      * {@code ClusterMode} 默认改 0（退回 P5 均匀档）⇒ 口径 C 回到 ~94.97 必红；把件型权重全 0
      * （散布层关闭）⇒ 99.975 越上界必红。若将来再调散布档，本带必须随实测重标而不是放宽。
      */
-    private static final double BAND_CHAIN_MIN = 98.6D, BAND_CHAIN_MAX = 99.6D;
+    /**
+     * P23 R1·S6 重钉：[98.6, 99.6] → [97.2, 98.4]。同因 dim78 pristine 重钉（上一常量注释）：
+     * R1 湖系水陆过渡带列在链后也不过门 ⇒ 本 assert 档实测 chain = 97.762pp（v1.20.45 为
+     * 99.202）——锚 = 实测 97.762 ± 0.6pp。灵敏度自检两臂仍红：ClusterMode=0 均匀档影子实测
+     * ~94.97 &lt; 下界；权重全 0 影子 99.975 &gt; 上界（两臂在 [14d] 逐跑复验）。
+     */
+    private static final double BAND_CHAIN_MIN = 97.2D, BAND_CHAIN_MAX = 98.4D;
     /**
      * D 组：口径 B（散布前，即 outpost/机器写完、散布尚未落笔）通过率带。
      * 冒烟 E6 的 attempt 级 82.0-85.7% 落在口径 B 与口径 C 之间（scatter 是"边写边探"，
@@ -864,7 +881,7 @@ public final class SurfaceGateUnifyCheck {
             + Config.prosperityMachineChance + " outpostChance=" + Config.prosperityOutpostChance
             + " ruinChance=" + Config.prosperityRuinChance + " outpostHitChunks=" + s.outpostHits
             + " machineLanded=" + s.machineLanded);
-        band("D dim78 列级通过率(pristine)", s.rate78Pristine(), BAND_PRISTINE_MIN, BAND_PRISTINE_MAX);
+        band("D dim78 列级通过率(pristine)", s.rate78Pristine(), BAND_PRISTINE78_MIN, BAND_PRISTINE78_MAX);
         band("D dim79 列级通过率(pristine)", s.rate79Pristine(), BAND_PRISTINE_MIN, BAND_PRISTINE_MAX);
         band("D dim78 列级通过率(口径B 散布前)", s.rate78PreScatter(), BAND_PRE_SCATTER_MIN,
             BAND_PRE_SCATTER_MAX);

@@ -28,9 +28,13 @@ import com.miaokatze.gtsr.common.dimension.prosperity.river.GTSRVoronoiRiverFiel
  * <p>
  * <b>口径基线（先钉符号，否则全部判据反向）</b>：{@link GTSRVoronoiRiverField#lakeAt} = {@code dC/dN}
  * （Worley 比值，见 {@code lakeAt0}），<b>数值越低越靠近湖心</b>：{@code 0} = 湖站（湖心），
- * {@code LAKE_WATER_LEVEL} = 水缘，{@code LAKE_SHORE} = 湖滨带外缘。兄弟判据
- * {@code SanzuTrunkCoverageCheck} 用的是<b>反号</b>量 {@code pressure = WATER − lakeAt}（高 = 湖心）⇒
- * 读两侧数字时以本段为准，两文件不互相冒充。
+ * {@code LAKE_WATER_LEVEL} = 水缘，{@code LAKE_SHORE} = 湖滨带外缘（原兄弟判据
+ * SanzuTrunkCoverageCheck 用反号量 {@code pressure = WATER − lakeAt}，P23 R1·S6 随主干宽河
+ * 移除整文件退役）。
+ * <b>P23 R1·S6（v1.20.46）重钉</b>：湖放大到标称水半径 200 / 岛半径 40 档（LAKE_WATER_LEVEL
+ * 0.13→0.23、LAKE_ISLAND 0.045→0.15、LAKE_ISLAND_RADIUS 30→75、LAKE_WARP 70→100 /
+ * SCALE 320→700、LAKE_STATION_D_MIN 新增小湖淘汰腿），新增 G 组几何带（水半径/岛半径/内切圆），
+ * C/S 组带按新湖形重钉；S1 三档比维持登记红（不修不放宽）。
  * <p>
  * ═══ 断言组（逐组给实测数；PASS 与否都报真数）═══
  * <ul>
@@ -103,15 +107,18 @@ public final class SanzuLakeMorphologyCheck {
     /** 粗扫步距：{@code LAKE_INTERVAL / 32 = 37}，同 STC。 */
     static final int LAKE_STRIDE = (int) (GTSRVoronoiRiverField.LAKE_INTERVAL / 32);
     /**
-     * 计入统计的最小湖样本数：沿用 §6.1 R3 已重派生的式子（目标水径 r=110、stride=37、碎片折半 0.5）
-     * ⇒ 与 STC 对「是不是一座湖」的判定同口径，不另立第二阈。派生值 = 14。
+     * 计入统计的最小湖样本数：沿用 §6.1 R3 的式子按 P23 R1 新标称水径 r=200 重导（stride=37、
+     * 碎片折半 0.5）⇒ 派生值 = 46（旧 110 档为 14）。
      */
     static final int LAKE_MIN_SAMPLES = (int) Math.round(
-        Math.PI * 110.0D * 110.0D / (LAKE_STRIDE * LAKE_STRIDE) * 0.5D);
+        Math.PI * 200.0D * 200.0D / (LAKE_STRIDE * LAKE_STRIDE) * 0.5D);
     /** 每 seed 细扫（逐列 1 格精度）的湖数上限（等距抽样，不按大小筛 ⇒ 不偏向大湖）。 */
     static final int FINE_LAKES_PER_SEED = 16;
-    /** 细扫窗半径上限：S0a W=0.13 的水径 max 177.75 ⇒ 200 覆盖全部湖（截断由 {@link #fineTrunc} 申报）。 */
-    static final int FINE_WINDOW_MAX = 200;
+    /**
+     * 细扫窗半径上限：P23 R1 W=0.23 的水径带 p90 ≈ 230 + 湖滨带 ≈22~39 格 + 4 格余量 ⇒ 320
+     * 覆盖全部湖（截断由 {@link #fineTrunc} 申报）。旧 200 档是 W=0.13（水径 max 177.75）的口径。
+     */
+    static final int FINE_WINDOW_MAX = 320;
 
     // ─────────────── A 组带（§15.4 = 第一判据）───────────────
 
@@ -162,8 +169,15 @@ public final class SanzuLakeMorphologyCheck {
      * （压力腿 0.045 + 平台半宽 0.60 + <b>绝对半径上限 30</b>），扫描表
      * {@code plan/tmp/p20-s5c/island-scan.md}，逐条推导写进三个常量的 javadoc。
      */
-    static final int C_DRY_MIN = 600;
-    static final int C_DRY_MAX = 1050;
+    /**
+     * 岛干列数带：P23 R1·S6 重钉——岛半径 40 档（LAKE_ISLAND_RADIUS=75，干半径 = 75×
+     * (1−0.7795×PLATEAU) ≈ 39.9 格）⇒ 目标带取半径 [32,48] 的面积换算（π r²）：[3217,7238]。
+     * 旧带 [600,1050] 是 30 格直径档（v1.20.41 终裁）的口径，原文与 S5c 假因登记见上方注释与版本树。
+     */
+    static final int C_RADIUS_MIN = 32;
+    static final int C_RADIUS_MAX = 48;
+    static final int C_DRY_MIN = (int) Math.round(Math.PI * C_RADIUS_MIN * C_RADIUS_MIN);
+    static final int C_DRY_MAX = (int) Math.round(Math.PI * C_RADIUS_MAX * C_RADIUS_MAX);
     /**
      * C5/C6「5 柱全部落岛内 / 全部贯通」的逐湖占比下界 = <b>60%</b>。
      * <b>取带规则</b>：§15.5 与 §6.1 R3 都没有为"柱"单独钉过占比门，唯一相关的已钉门是 §15.6-3
@@ -184,7 +198,12 @@ public final class SanzuLakeMorphologyCheck {
     static final int S1_DEEP_MIN = 26;
     /** §15.6-1 的比 浅:中:深 ≥ 1:2:2 ⇒ 中 ≥ 2×浅 且 深 ≥ 2×浅。 */
     static final double S1_RATIO_STEP = 2.0D;
-    /** §15.6-2 非圆度阈（沿用 §11 C8 / STC C3 的 CV &gt; 0.1，不新立带）。 */
+    /**
+     * §15.6-2 非圆度阈 0.10 <b>维持不动</b>（P23 R1·S6 复测确认）：细扫窗 200→320 后 8 向水径
+     * CV 中位实测 0.143（max 0.227）——S2 时窗内读的 0.063 是截断伪影（旧窗 200 装不下 200 格
+     * 级的湖，射线在未到水缘处被截）。换算式：warp 相对变形 ≈ LAKE_WARP/标称水半径 = 100/200
+     * = 0.50，实测 CV 0.143 同阶 ⇒ 原 0.10 带在新湖形下仍成立，不放宽。
+     */
     static final double S2_CV_MIN = 0.10D;
     /** §15.6-3 湖占比下界。 */
     static final double S3_LAKE_RATIO_MIN = 0.60D;
@@ -229,6 +248,8 @@ public final class SanzuLakeMorphologyCheck {
         int blobCores;
         // 射线
         final double[] rayWaterRadius = new double[8];
+        /** P23 R1·S6 G 组：16 射线水半径的最小值（内切圆代理），-1 = 未细扫。 */
+        double inscribed16 = -1.0D;
         final double[] rayShoreRadius = new double[8];
         final double[] rayRisers = new double[8];
         final double[] rayMaxRiser = new double[8];
@@ -291,7 +312,6 @@ public final class SanzuLakeMorphologyCheck {
         int waterLenMin = Integer.MAX_VALUE;
         int waterLenMax = Integer.MIN_VALUE;
         long sanzuLakeCols;
-        long sanzuLakeBranchCols;
         long sanzuBandCols;
         int pillarComponents;
         int pillarMinSection;
@@ -350,6 +370,7 @@ public final class SanzuLakeMorphologyCheck {
             + "计湖，细扫分母 n 从 " + fine + " 变 " + fineCores);
 
         groupDepth(lakes);
+        groupGeometry(lakes);
         groupShoreEdges(lakes);
         groupShoreTreads(lakes);
         groupShoreWetBand(lakes);
@@ -604,6 +625,25 @@ public final class SanzuLakeMorphologyCheck {
             lk.radialSteps += steps;
             smax = Math.max(smax, rs);
         }
+        // —— 1b) P23 R1·S6 G 组：16 射线水半径最小值（内切圆代理；湖形几何带的直读）——
+        {
+            int rmin = Integer.MAX_VALUE;
+            for (int d = 0; d < 16; d++) {
+                final double ang = d * Math.PI / 8.0D;
+                final double dx = Math.cos(ang);
+                final double dz = Math.sin(ang);
+                int rw16 = 0;
+                for (int r = 0; r <= FINE_WINDOW_MAX; r++) {
+                    final int x = lk.cx + (int) Math.round(dx * r);
+                    final int z = lk.cz + (int) Math.round(dz * r);
+                    if (GTSRVoronoiRiverField.lakeAt(seed, x, z) < WATER) {
+                        rw16 = r;
+                    }
+                }
+                rmin = Math.min(rmin, rw16);
+            }
+            lk.inscribed16 = rmin;
+        }
         // —— 2) 方形窗逐列分类（含带外邻列：A1/A6 要读带外高度）——
         final int w = Math.min(FINE_WINDOW_MAX, smax + 4);
         final int side = 2 * w + 1;
@@ -703,11 +743,9 @@ public final class SanzuLakeMorphologyCheck {
                         lk.waterLenMax = Math.max(lk.waterLenMax, len);
                     }
                     if (GTSRVoronoiRiverField.isSanzuColumn(seed, x, z)) {
+                        // P23 R1·S6：河道支已删（SANZU_BIOME_STRENGTH 随之退役）——湖面列的
+                        // sanzu 判定只剩湖面支，分支列读数随断言域一并退役。
                         lk.sanzuLakeCols++;
-                        if (-GTSRVoronoiRiverField.strengthAt(seed, x, z, -1)
-                            < GTSRVoronoiRiverField.SANZU_BIOME_STRENGTH) {
-                            lk.sanzuLakeBranchCols++;
-                        }
                     }
                     if (clsNeighbourCliff(seed, hs, cls, side, ix, iz, h)) {
                         lk.cliffLakeCols++;
@@ -777,7 +815,8 @@ public final class SanzuLakeMorphologyCheck {
         lk.pillarColsInIsland = inIsl;
         lk.pillarBedMin = bedMin == Integer.MAX_VALUE ? -1 : bedMin;
         lk.pillarBedMax = bedMax == Integer.MIN_VALUE ? -1 : bedMax;
-        // 贯通 = 5 个分量、每根截面 3×3 全在岛域内、柱脚床高 ≥ 地板且 ≤ 柱顶（写区间与实心段首尾相接）
+        // 贯通 = 9 个分量、每根截面 5×5 全在岛域内、柱脚床高 ≥ 地板且 ≤ 柱顶（写区间与实心段首尾相接；
+        // 截面/根数全读生产常量派生，P23 R1·S6 随 9 柱 5×5 档自动跟随）
         lk.pillarsThrough = comps == GTSRVoronoiRiverField.LAKE_PILLAR_COUNT
             && minSec == (2 * GTSRVoronoiRiverField.LAKE_PILLAR_HALF_SECTION + 1)
                 * (2 * GTSRVoronoiRiverField.LAKE_PILLAR_HALF_SECTION + 1)
@@ -991,6 +1030,66 @@ public final class SanzuLakeMorphologyCheck {
             + "；≥40 的湖占比 = " + pct(oldShare) + "（S0a 基线 3.63%）");
         check("D3 §15.3：禁用「岸列 − 湖心」参照，且否证必须仍成立（该口径 ≥40 占比 &lt; 40% ⇒ 涨上去即前提失效）",
             n > 0 && oldShare < 0.40D, "旧口径 ≥40 占比=" + pct(oldShare));
+    }
+
+    // ══════════════════════════ G 组：P23 R1 湖几何带（S6 新增）══════════════════════════
+
+    /** G 组带：构造目标（plan R1③）水半径 200 / 岛半径 40，验收带 = 目标 ±（15%..20%）量级。 */
+    static final int G_WATER_R_MIN = 160;
+    static final int G_WATER_R_MAX = 230;
+    static final double G_ISLAND_R_MIN = 32.0D;
+    static final double G_ISLAND_R_MAX = 48.0D;
+    /**
+     * G-C 内切圆下界（格）。<b>换算式（warp-100 档）</b>：湖形 = 半径 r0 的站格圆被 domain-warp
+     * 位移场（幅度 {@code LAKE_WARP}=100、波长 {@code LAKE_WARP_SCALE}=700）揉动 ⇒ 任一方向水缘
+     * = r0 + 位移·径向分量 ⇒ <b>内切圆半径 ≥ r0 − LAKE_WARP</b>；中位湖 r0 ≈ 192（G-W-READ）
+     * ⇒ 解析下界 ≈ 92。D_MIN=450 淘汰腿保证存活湖站距 ≥ 450 ⇒ r0 = 0.23·d/1.23 ≥ 84，但 16 射线
+     * 最小值还受 D_MIN 裁刀影响 ⇒ 断言域取「逐湖 ≥ 100」（实测中位湖 r0 与解析下界见 G-C-READ
+     * 的动态读数；低于 100 = 破形（双站过近残湖或 warp 陡区），非"小湖合法"）。首测 min=106。
+     */
+    static final int G_INSCRIBED_MIN = 100;
+
+    static void groupGeometry(List<Lake> lakes) {
+        final double[] waterR = new double[Math.max(1, count(lakes)) * 8];
+        final double[] islandR = new double[Math.max(1, count(lakes))];
+        final double[] inscr = new double[Math.max(1, count(lakes))];
+        int k = 0;
+        int rays = 0;
+        for (final Lake lk : lakes) {
+            if (!lk.fine) {
+                continue;
+            }
+            for (int d = 0; d < 8; d++) {
+                waterR[rays++] = lk.rayWaterRadius[d];
+            }
+            islandR[k] = lk.dryIslandCols <= 0.0D ? 0.0D
+                : Math.sqrt(lk.dryIslandCols / Math.PI);
+            inscr[k] = lk.inscribed16;
+            k++;
+        }
+        final double wm = median(java.util.Arrays.copyOf(waterR, rays));
+        final double im = median(islandR);
+        say("G-W-READ 水半径（8 向 × " + k + " 湖，构造目标 200）：中位 " + f3(wm) + " p10 "
+            + f3(pctl(waterR, 0.10D)) + " p90 " + f3(pctl(waterR, 0.90D)) + "（换算式 r_w = W·D/(1+W)，"
+            + "W=" + WATER + "，站距 D 实测分布见 LAKE_STATION_D_MIN javadoc）");
+        check("G-W P23 R1③ 湖水半径带：8 向水半径中位 ∈ [" + G_WATER_R_MIN + "," + G_WATER_R_MAX
+            + "]（标称 200±档；越界 = LAKE_WATER_LEVEL 与站距分布失配）",
+            k > 0 && wm >= G_WATER_R_MIN && wm <= G_WATER_R_MAX, "中位=" + f3(wm));
+        say("G-I-READ 岛干半径（√(干列/π)，" + k + " 湖，构造目标 40）：中位 " + f3(im) + " p10 "
+            + f3(pctl(islandR, 0.10D)) + " p90 " + f3(pctl(islandR, 0.90D))
+            + "（干半径 = LAKE_ISLAND_RADIUS×(1−0.7795×PLATEAU) = "
+            + f3(ISLAND_RADIUS * (1.0D - 0.7795D * ISLAND_PLATEAU)) + "，世界域随 warp 涨落）");
+        check("G-I P23 R1③ 岛半径带：岛干半径中位 ∈ [" + f3(G_ISLAND_R_MIN) + "," + f3(G_ISLAND_R_MAX)
+            + "]（标称 40±档；越界 = 绝对腿/平台比例失配）",
+            k > 0 && im >= G_ISLAND_R_MIN && im <= G_ISLAND_R_MAX, "中位=" + f3(im));
+        say("G-C-READ 内切圆（逐湖 16 射线水半径最小值，" + k + " 湖）：中位 " + f3(median(inscr))
+            + " min " + f3(min(inscr)) + " max " + f3(max(inscr)) + "（warp 换算式：内切圆 ≥ r0 − "
+            + (int) GTSRVoronoiRiverField.LAKE_WARP + "，中位湖 r0≈" + f3(wm) + " ⇒ 解析下界 ≈ "
+            + f3(wm - GTSRVoronoiRiverField.LAKE_WARP) + "）");
+        check("G-C P23 R1③ 内切圆下界：逐湖 16 射线最小水半径 ≥ " + G_INSCRIBED_MIN
+            + " 格（低于 = 破形：双站过近残湖 / warp 陡区夹扁，D_MIN 淘汰腿的验收读数）",
+            k > 0 && min(inscr) >= G_INSCRIBED_MIN,
+            "min=" + f3(min(inscr)) + " 中位=" + f3(median(inscr)));
     }
 
     // ══════════════════════════ A 组：§15.4 湖岸衔接 ══════════════════════════
@@ -1413,21 +1512,22 @@ public final class SanzuLakeMorphologyCheck {
             activeCores > 0 && minActive >= C_DRY_MIN / 4,
             "活湖心 n=" + activeCores + " min=" + f3(minActive) + " ｜ 排除的半湖=" + clippedCores + "/"
                 + k + "（无活湖心 ⇒ 岛无处可立，登记为既存湖体退化，见 plan/tmp/p20-s5d/blob-merge.md）");
-        check("C1c §15.5 禁改面（S5c 按逐列真值换锚后<b>重钉新值</b>，旧值 0.013 的推导证伪见"
-            + " C_DRY_MIN 注释）：LAKE_ISLAND = 0.045 且 平台半宽 = 0.60 且 绝对半径上限 = 30，"
-            + "且 ISLAND &lt; WATER &lt; SHORE",
-            ISLAND == 0.045D && ISLAND_PLATEAU == 0.60D && ISLAND_RADIUS == 30.0D
+        check("C1c §15.5 禁改面（P23 R1·S6 重钉 40 格岛半径档，旧 0.045/0.60/30 三元组是 30 格直径"
+            + " 档口径，重钉史见 C_RADIUS_MIN 注释）：LAKE_ISLAND = 0.15 且 平台半宽 = 0.60"
+            + " 且 绝对半径上限 = 75，且 ISLAND &lt; WATER &lt; SHORE",
+            ISLAND == 0.15D && ISLAND_PLATEAU == 0.60D && ISLAND_RADIUS == 75.0D
                 && ISLAND < WATER && WATER < SHORE,
             "ISLAND=" + ISLAND + " PLATEAU=" + ISLAND_PLATEAU + " RADIUS=" + ISLAND_RADIUS
             + " WATER=" + WATER + " SHORE=" + SHORE);
     }
 
     static void groupPillars(List<Lake> lakes) {
-        check("C2 §15.5 柱参数：环半径 6、抖动 ±1、截面 3×3（half=1）、5 根",
-            GTSRVoronoiRiverField.LAKE_PILLAR_RING == 6.0D
-                && GTSRVoronoiRiverField.LAKE_PILLAR_JITTER == 1
-                && GTSRVoronoiRiverField.LAKE_PILLAR_HALF_SECTION == 1
-                && GTSRVoronoiRiverField.LAKE_PILLAR_COUNT == 5,
+        check("C2 §15.5 柱参数（P23 R1·S6 重钉：随岛干半径 16→40 等比放大）：环半径 13、抖动 ±2、"
+            + "截面 5×5（half=2）、9 根（1 中心 + 8 环柱 45° 均分）",
+            GTSRVoronoiRiverField.LAKE_PILLAR_RING == 13.0D
+                && GTSRVoronoiRiverField.LAKE_PILLAR_JITTER == 2
+                && GTSRVoronoiRiverField.LAKE_PILLAR_HALF_SECTION == 2
+                && GTSRVoronoiRiverField.LAKE_PILLAR_COUNT == 9,
             "ring=" + GTSRVoronoiRiverField.LAKE_PILLAR_RING + " jitter=" + GTSRVoronoiRiverField.LAKE_PILLAR_JITTER
                 + " half=" + GTSRVoronoiRiverField.LAKE_PILLAR_HALF_SECTION
                 + " count=" + GTSRVoronoiRiverField.LAKE_PILLAR_COUNT);
@@ -1453,7 +1553,8 @@ public final class SanzuLakeMorphologyCheck {
             }
             comps[k++] = lk.pillarComponents;
             if (lk.pillarComponents == GTSRVoronoiRiverField.LAKE_PILLAR_COUNT
-                && lk.pillarMinSection == 9) {
+                && lk.pillarMinSection == (2 * GTSRVoronoiRiverField.LAKE_PILLAR_HALF_SECTION + 1)
+                    * (2 * GTSRVoronoiRiverField.LAKE_PILLAR_HALF_SECTION + 1)) {
                 all5++;
             }
             if (lk.pillarsThrough) {
@@ -1464,13 +1565,15 @@ public final class SanzuLakeMorphologyCheck {
                 bmax = Math.max(bmax, lk.pillarBedMax);
             }
         }
+        final int sect = (2 * GTSRVoronoiRiverField.LAKE_PILLAR_HALF_SECTION + 1)
+            * (2 * GTSRVoronoiRiverField.LAKE_PILLAR_HALF_SECTION + 1);
         say("C-READ 岛底柱（连通分量 = 生产谓词 islandPillarAt 直调，判据侧零复制抖动脉冲）：逐湖分量数中位 "
-            + f3(median(comps)) + " min " + f3(min(comps)) + " max " + f3(max(comps)) + "；「5 分量 × 截面 9 列」"
-            + "全落岛内的湖 " + all5 + "/" + k + " = " + pct(k == 0 ? -1.0D : all5 / (double) k)
+            + f3(median(comps)) + " min " + f3(min(comps)) + " max " + f3(max(comps)) + "；「9 分量 × 截面 "
+            + sect + " 列」全落岛内的湖 " + all5 + "/" + k + " = " + pct(k == 0 ? -1.0D : all5 / (double) k)
             + "；全部贯通的湖 " + through + "/" + k + " = " + pct(k == 0 ? -1.0D : through / (double) k)
             + "；柱脚床高实测 [" + bmin + "," + bmax + "]（S0a 基线 min 49 / max 64 ⇒ 抬深后应 ≈40±1）");
-        check("C5 §15.5 柱不越岛缘：逐湖「5 柱全落岛内且截面 3×3 完整」的湖占比 ≥ " + pct(C_PILLAR_RATIO_MIN)
-            + "（族带取自 §15.6-3，推导见常量注释）",
+        check("C5 §15.5 柱不越岛缘：逐湖「9 柱全落岛内且截面 5×5 完整」的湖占比 ≥ " + pct(C_PILLAR_RATIO_MIN)
+            + "（族带取自 §15.6-3，推导见常量注释；P23 R1·S6 截面式改由生产常量派生）",
             k > 0 && all5 / (double) k >= C_PILLAR_RATIO_MIN, "占比=" + pct(k == 0 ? -1.0D : all5 / (double) k));
         check("C6 §15.5 柱贯通岛面→湖床：逐湖「柱脚床高 ≥ MIN_HEIGHT 且 ≤ 柱顶+1 且全列在岛域」的湖占比 ≥ "
             + pct(C_PILLAR_RATIO_MIN),
@@ -1534,12 +1637,12 @@ public final class SanzuLakeMorphologyCheck {
                 rsum += mean(lk.rayWaterRadius, 8);
             }
         }
-        say("S2-READ §15.6-2 非圆度（沿用 §11 C8 / STC C3 的 8 向水径 CV 口径；LAKE_WARP="
+        say("S2-READ §15.6-2 非圆度（8 向水径 CV 口径沿用 §11 C8，原 STC C3 同带已随其退役）LAKE_WARP="
             + GTSRVoronoiRiverField.LAKE_WARP + " LAKE_WARP_SCALE=" + GTSRVoronoiRiverField.LAKE_WARP_SCALE
-            + " <b>不动</b>，320 属既存偏离已挂版 2）：n=" + k + " CV 中位 " + f3(median(cvs)) + " max "
+            + "，P23 R1 档）：n=" + k + " CV 中位 " + f3(median(cvs)) + " max "
             + f3(max(cvs)) + " min " + f3(min(cvs)) + "；细扫湖均径 " + f3(k == 0 ? -1.0D : rsum / k)
             + " 格（S0a W=0.13 全库中位 119.25；纯圆 CV = 0）");
-        check("S2 §15.6-2 非圆度：CV 中位 &gt; 0.1（domain-warp 破圆生效；STC C3 同带，不新立）",
+        check("S2 §15.6-2 非圆度：CV 中位 &gt; 0.1（domain-warp 破圆生效；P23 R1·S6 全窗复测 0.143 居带）",
             k > 0 && median(cvs) > S2_CV_MIN, "中位 CV=" + f3(median(cvs)) + " max=" + f3(max(cvs)));
     }
 
@@ -1558,14 +1661,14 @@ public final class SanzuLakeMorphologyCheck {
         }
         final double share = k == 0 ? -1.0D : ok / (double) k;
         check("S3 §15.6-3 岛柱轮廓：逐湖「岛干列数 ∈[" + C_DRY_MIN + "," + C_DRY_MAX
-            + "] 且 5 柱全部贯通岛面到湖床」的湖占比 ≥ 60%（主代理代拟口径）",
-            k > 0 && share >= S3_LAKE_RATIO_MIN, "占比=" + pct(share) + " n=" + k + "（上限口径 65.69%）");
+            + "] 且 9 柱全部贯通岛面到湖床」的湖占比 ≥ 60%（主代理代拟口径；干列带 P23 R1·S6 随"
+            + " 40 格岛半径档重钉，旧上限口径 65.69% 是 30 格档读数）",
+            k > 0 && share >= S3_LAKE_RATIO_MIN, "占比=" + pct(share) + " n=" + k);
     }
 
     static void groupSpectacleSteam(List<Lake> lakes) {
         long lakeCols = 0;
         long lakeSanzu = 0;
-        long branch = 0;
         long bandCols = 0;
         long bandSanzu = 0;
         for (final Lake lk : lakes) {
@@ -1574,7 +1677,6 @@ public final class SanzuLakeMorphologyCheck {
             }
             lakeCols += lk.bedCols + lk.islandCols;
             lakeSanzu += lk.sanzuLakeCols;
-            branch += lk.sanzuLakeBranchCols;
             bandCols += lk.bandCols;
             bandSanzu += lk.sanzuBandCols;
         }
@@ -1583,9 +1685,8 @@ public final class SanzuLakeMorphologyCheck {
         final double ratio = lakeD <= 0.0D || bandD <= 0.0D ? -1.0D : lakeD / bandD;
         say("S4-READ §15.6-4 汽雾加权（sanzu_residual_steam 的列谓词密度，isSanzuColumn 直调）：湖面列 "
             + lakeSanzu + "/" + lakeCols + " = " + pct(lakeD) + "；岸（环带）列 " + bandSanzu + "/" + bandCols
-            + " = " + pct(bandD) + " ⇒ 比值 " + f3(ratio) + "；湖面列中只靠<b>湖面支</b>入列的 " + branch
-            + " = " + pct(lakeCols == 0 ? -1.0D : branch / (double) lakeCols)
-            + "（§15.6 原文：比值判据、不钉绝对值；主代理代拟口径）");
+            + " = " + pct(bandD) + " ⇒ 比值 " + f3(ratio)
+            + "（P23 R1·S6：河道支已删，湖面列 sanzu 只剩湖面支入列；§15.6 原文：比值判据、不钉绝对值）");
         check("S4 §15.6-4 汽雾加权：湖面列 sanzu 密度 ≥ 岸列的 1.5 倍",
             ratio >= S4_STEAM_RATIO_MIN, "比值=" + f3(ratio));
     }
@@ -1635,20 +1736,17 @@ public final class SanzuLakeMorphologyCheck {
 
         long lakeCols = 0;
         long sanzu = 0;
-        long branch = 0;
         for (final Lake lk : lakes) {
             if (!lk.fine) {
                 continue;
             }
             lakeCols += lk.bedCols + lk.islandCols;
             sanzu += lk.sanzuLakeCols;
-            branch += lk.sanzuLakeBranchCols;
         }
-        say("E2-READ 副作用② isSanzuColumn 湖面支（谓词一字未改，域随床深被动扩）：湖面列 " + lakeCols
-            + " 中 sanzu " + sanzu + " = " + pct(lakeCols == 0 ? -1.0D : sanzu / (double) lakeCols)
-            + "，其中只靠湖面支入列的 " + branch + "（" + pct(sanzu == 0 ? -1.0D : branch / (double) sanzu)
-            + "）；门 = trunk&gt;0 &amp;&amp; lakeAt &lt; WATER(" + WATER + "，禁改面) &amp;&amp; heightAt ≤ SEA("
-            + SEA + ") ⇒ 床抬深到 40 仍满足 h ≤ SEA，湖面支不掉");
+        say("E2-READ 副作用② isSanzuColumn 湖面支（P23 R1 后谓词 = lakeAt &lt; sanzuBiomeShoreAt ∧ h ≤ SEA，"
+            + "河道支已删）：湖面列 " + lakeCols + " 中 sanzu " + sanzu + " = "
+            + pct(lakeCols == 0 ? -1.0D : sanzu / (double) lakeCols)
+            + " ⇒ 床深 40 ⇒ h ≤ SEA 恒真，湖面支不掉");
         check("E2 副作用②：湖面列 sanzu 占比 ≥ 95%（掉下来说明床深把 heightAt 门打歪了）",
             lakeCols > 0 && sanzu / (double) lakeCols >= 0.95D,
             "占比=" + pct(lakeCols == 0 ? -1.0D : sanzu / (double) lakeCols));
@@ -1930,9 +2028,10 @@ public final class SanzuLakeMorphologyCheck {
             callS1 == 2 && implHook == 1 && wetGate == 1 && newSel == 1,
             "forChunk(同维白名单实参)=" + callS1 + " implements=" + implHook + " wetBandAt=" + wetGate
                 + " new=" + newSel);
-        check("L4b H-4/名册面：湿带改派只取已注册方块 prosperityRiverGravel（选择器体内恰 2 处引用：'已是湿料'"
-            + "短路 + 改派），且 biome.topBlock 直取仅出现在 blended==null 的退回分支（≤1 处）",
-            wetBlock == 2 && topBlockFallback <= 1,
+        check("L4b H-4/名册面：湿带改派只取已注册方块 prosperityRiverGravel（P22 G3 羽化改版后选择器体内"
+            + "恰 1 处绑定引用 final Block gravel = ...；旧『恰 2 处：已是湿料短路+改派』是 G3 前形态），"
+            + "且 biome.topBlock 直取仅出现在 blended==null 的退回分支（≤1 处）",
+            wetBlock == 1 && topBlockFallback <= 1,
             "riverGravel=" + wetBlock + " biome.topBlock=" + topBlockFallback);
     }
 

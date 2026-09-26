@@ -649,7 +649,7 @@ public final class ProsperityDecorPlacer {
     /**
      * 岛心巨树趟（<b>v1.20.43 P22-B S3 新增</b>，消费 {@link MegaTreeAnchors} 锚点与
      * {@link IslandMegaTree} 形态）：枚举本 chunk 的派生窗（{@code MegaTreeAnchors.windowChunks}
-     * × 同窗，radius=15 ⇒ 3×3 = 至多 9 chunk）内相交的全部活湖锚点，逐锚点以<b>锚点槽</b>派生
+     * 派生 × 同窗——窗宽由 MTA 按冠半径派生、不写死数；现档 CANOPY_RADIUS=50 ⇒ 13×13）内相交的全部活湖锚点，逐锚点以<b>锚点槽</b>派生
      * 独立 {@code Random(chunkSeed(worldSeed, ax>>4, az>>4) ^ }{@link #SALT_ISLAND_TREE}{@code )}
      * 重放同一棵树，写入经 {@link ChunkSliceSink}——非本 chunk 的格静默吸收（owns 单射，先例
      * {@code RuinedMachinePlacer.renderForeignSpans}），邻 chunk 在自己的趟里枚举到<b>同一锚点</b>

@@ -28,10 +28,13 @@ import com.miaokatze.gtsr.config.Config;
  * <li>{@code empty79}——dim79 强制 EMPTY：四名册成员 recordNoSlot + 空表 def ⇒
  * 补全名单为空、名字解析一律 null（指令层据此走错误通道，不触发搜索）、
  * 小半径搜索 0 命中且步数恰为环带轮廓格数（降级态路径同样有上界，不伪造身份）；</li>
- * <li>{@code source}——判据 1/5 源级钉：GTSRCommand 基线 (0,0) 路径的调用序列/文案/return
+ * <li>{@code source}——判据 1/5 源级钉：GTSRCommand 基线 2 参分支的调用序列/文案/return
  * 逐字保留且群系分支仅在其后可达；tab 名单取 {@code rosterBiomeNames()} 单一真值；
  * diag 走 P12 同一实现体（buildEntryDiagLine/bootSummaryLine，禁复制装配）；
- * 指令层零 {@code getBiomeGenForCoords}、零 {@code BiomeGenBase} 直触（身份只经 L1）。</li>
+ * 指令层零 {@code getBiomeGenForCoords}、零 {@code BiomeGenBase} 直触（身份只经 L1）。
+ * <b>P23 R1·S6 新增</b>：S5 新路径源级钉（原点参数化/sanzu 湖格分支/NOT_FOUND 文案补引号）
+ * ＋ 别名↔lang 双向同步钉（9 串对 lang 键往返）＋ 落点水感知谓词零 chunk 读源级钉
+ * ＋ nearestActiveLakeCenter 站格枚举 vs 暴力扫描对拍（distDiff==0，纯函数直调）。</li>
  * </ul>
  * <b>列名申报</b>（d78/d79 每群系一行，前缀 {@code TPDIM78} / {@code TPDIM79}）：
  * {@code biome=}（目标名册身份）{@code algo=(cx,cz)}（环带步进命中 chunk）{@code algoDistSq=}
@@ -112,7 +115,7 @@ public class TpdimNearestBiomeCheck {
         // T5/T8 重钉（plan §3.3）：补全名单 = 账本名册（5 元，含 roster-only 的 sanzu）；
         // 定位主表仍只走 4 家 selector 群系（sanzu 平面由 populate 后置写入，不在链身份面）。
         checkNamesAndParsing(auth, new String[] { "Rusted Steppe", "Gearwork Forest", "Brass Wastes",
-            "Fumarole Swamp", "Sanzu River" });
+            "Fumarole Swamp", "Sanzu Lake" });
     }
 
     private static void dim79() {
@@ -303,6 +306,186 @@ public class TpdimNearestBiomeCheck {
         check(
             flat.indexOf("Config.tpdimBiomeSearchMaxRadiusChunks") > flat.indexOf("if(args.length==2){"),
             "钉9：搜索上界 Config 键早于基线分支被读取（基线路径必须零触碰）");
+        // ══ P23 R1·S5（v1.20.46 批1）新路径源级钉：只钉新代码路径，基线 2 参分支钉 1a-1e 逐字保留 ══
+        check(
+            flat.contains("finalintoriginChunkX=MathHelper.floor_double(player.posX)>>4;")
+                && flat.contains("finalintoriginChunkZ=MathHelper.floor_double(player.posZ)>>4;")
+                && flat.contains("target,originChunkX,originChunkZ,Config.tpdimBiomeSearchMaxRadiusChunks"),
+            "钉10：环带搜索原点 = 玩家当前 chunk（原硬编码 0,0 已参数化，4 家 selector 路径同一调用点）");
+        check(
+            flat.contains("if(target==GTSRBiomeAuthority.BiomeId.SANZU_RIVER){")
+                && flat.contains("processTpdimSanzuLake(sender,player,targetWorld,dimId,which,rawName);")
+                && flat.contains("GTSRVoronoiRiverField.nearestActiveLakeCenter(")
+                && flat.contains("GTSRVoronoiRiverField.sanzuArrivalColumn(")
+                && flat.contains("GTSRVoronoiRiverField.isSanzuColumn(worldSeed,bx,bz);"),
+            "钉11：sanzu（roster-only）专属湖格分支在场（nearestActiveLakeCenter→sanzuArrivalColumn，"
+                + "就地复核走 isSanzuColumn——ordinalAt 对 roster-only 结构性不可见）");
+        check(
+            flat.contains("\"tpdimfailed:该维度内未找到该群系'\"+rawName+\"'（已搜半径\""),
+            "钉12：NOT_FOUND 文案补闭合引号（S5 前丢引号，玩家看到不闭合回执）");
+        aliasLangSync();
+        waterSenseSourcePins(flat);
+        nearestLakeEnumerationParity();
+    }
+
+    /** P23 R1·S6 新档①：别名↔lang 双向同步钉（9 串对 lang 键往返）。 */
+    private static void aliasLangSync() throws Exception {
+        final String authority = new String(
+            java.nio.file.Files.readAllBytes(
+                java.nio.file.Paths.get("src/main/java/com/miaokatze/gtsr/common/dimension/framework/GTSRBiomeAuthority.java")),
+            "UTF-8");
+        final String zh = new String(
+            java.nio.file.Files.readAllBytes(java.nio.file.Paths.get("src/main/resources/assets/gtsr/lang/zh_CN.lang")),
+            "UTF-8");
+        final String en = new String(
+            java.nio.file.Files.readAllBytes(java.nio.file.Paths.get("src/main/resources/assets/gtsr/lang/en_US.lang")),
+            "UTF-8");
+        // 正抽：别名表 put 行（中文 → BiomeId）应恰 9 条
+        final java.util.regex.Matcher m = java.util.regex.Pattern
+            .compile("ZH_CN_DISPLAY_NAME_ALIASES\\.put\\(\"([^\"]+)\", BiomeId\\.([A-Z_]+)\\)")
+            .matcher(authority);
+        final java.util.List<String[]> pairs = new java.util.ArrayList<>();
+        while (m.find()) {
+            pairs.add(new String[] { m.group(1), m.group(2) });
+        }
+        check(pairs.size() == 9, "钉13a：别名表恰 9 串（实测 " + pairs.size() + "）");
+        int roundTripped = 0;
+        for (final String[] pair : pairs) {
+            // 反抽：lang 文件里应恰有一条 biome.<英文名>.name=<中文>——英文名按 BiomeId 的注册名
+            // （roster 顺序钉：dim78 5 家 + dim79 4 家；lang 键与注册名同轮改值，见 P23 R1 批2 S2）
+            final String biomesSrc = new String(
+                java.nio.file.Files.readAllBytes(
+                    java.nio.file.Paths.get("src/main/java/com/miaokatze/gtsr/common/dimension/prosperity/biome/ProsperityBiomes.java")),
+                "UTF-8");
+            // 中文值行（lang）：值 → 键
+            final java.util.regex.Matcher lz = java.util.regex.Pattern
+                .compile("(?m)^biome\\.(.+)\\.name=(.+)$")
+                .matcher(zh);
+            String keyForZh = null;
+            while (lz.find()) {
+                if (lz.group(2).equals(pair[0])) {
+                    keyForZh = lz.group(1);
+                    break;
+                }
+            }
+            check(keyForZh != null, "钉13b：别名 '" + pair[0] + "' 在 zh_CN.lang 无对应 biome.*.name 值（改名失同步）");
+            if (keyForZh != null) {
+                roundTripped++;
+                check(
+                    en.contains("biome." + keyForZh + ".name="),
+                    "钉13c：zh 值 '" + pair[0] + "' 的 lang 键 biome." + keyForZh + ".name 在 en_US.lang 缺失（双语文案失同步）");
+            }
+        }
+        // 反向：lang 的 biome.*.name 值若不在别名表 ⇒ 中文客户端 F3 名解析断链
+        final java.util.regex.Matcher lzAll = java.util.regex.Pattern
+            .compile("(?m)^biome\\.(.+)\\.name=(.+)$")
+            .matcher(zh);
+        int zhBiomeLines = 0;
+        int orphan = 0;
+        while (lzAll.find()) {
+            zhBiomeLines++;
+            boolean known = false;
+            for (final String[] pair : pairs) {
+                if (pair[0].equals(lzAll.group(2))) {
+                    known = true;
+                    break;
+                }
+            }
+            if (!known) {
+                orphan++;
+                System.out.println("  FAIL 钉13d：zh_CN.lang 值 '" + lzAll.group(2) + "' 不在别名表（9 串外）");
+            }
+        }
+        check(
+            zhBiomeLines == 9 && orphan == 0,
+            "钉13d：zh_CN.lang biome 行恰 9 且全部在别名表（实测 行=" + zhBiomeLines + " 孤儿=" + orphan + "）");
+        System.out.println("TPDIM-SOURCE ALIAS-SYNC pairs=" + pairs.size() + " roundTripped=" + roundTripped);
+    }
+
+    /** P23 R1·S6 新档③：落点水感知谓词零 chunk 读源级钉。 */
+    private static void waterSenseSourcePins(String flat) {
+        // 取 columnTopSafeY + populateWaterColumnAt 两方法的区段（到 joinTrailingArgs 为止）
+        final int begin = flat.indexOf("privatestaticintcolumnTopSafeY(");
+        final int end = flat.indexOf("privatestaticStringjoinTrailingArgs(");
+        check(begin > 0 && end > begin, "钉14a：水感知两方法区段抽取失败（方法被改名/删除）");
+        if (begin > 0 && end > begin) {
+            final String seg = flat.substring(begin, end);
+            check(
+                seg.contains("populateWaterColumnAt(seed,x,z)")
+                    && seg.contains("populateWaterColumnAt(seed,nx,nz)")
+                    && seg.contains("GTSRVoronoiRiverField.lakeAt(worldSeed,x,z)")
+                    && seg.contains("GTSRVoronoiRiverField.swampRiverPoolColumnAt(worldSeed,x,z,0)")
+                    && seg.contains("ProsperityTerrainProfile.SEA_LEVEL-1;"),
+                "钉14b：水感知链 = populate 同源谓词（湖 fillSanzuLakes 同式 + 残潭 O1a 出口）+ 螺旋避让"
+                    + "+ 水面 fallback（SEA_LEVEL−1）——形态完整");
+            check(
+                !seg.contains("getChunk") && !seg.contains(".getBlock(") && !seg.contains("worldObj")
+                    && !seg.contains("getBiomeGenForCoords"),
+                "钉14c：落点水感知谓词零 chunk 读（纯函数；出现 Chunk/方块读 = 谓词抄了第二份世界判定）");
+        }
+    }
+
+    /**
+     * P23 R1·S6 新档②：nearestActiveLakeCenter 站格枚举 vs 暴力扫描对拍（distDiff==0）。
+     * 暴力侧 = 9×9 站窗（＞生产的 ≤3 环 7×7）逐站 lakeCellCenterAt 反解 + 活湖门
+     * （lakeAt < LAKE_ISLAND，与生产同式直调），取欧氏最近；两者距离平方必须相等
+     * （生产窗外的更近湖不存在 ⇒ 枚举窗闭合性成立）。
+     */
+    private static void nearestLakeEnumerationParity() {
+        final long[] seeds = { 0x1AFEE7A9E5A7L, 0x7269_7665_4C42L, 20260925L };
+        final int[][] origins = { { 0, 0 }, { 4813, -2277 }, { -7153, 2269 }, { 350, -90000 }, { 123456, -654321 } };
+        int checked = 0;
+        int diffBad = 0;
+        int hitMiss = 0;
+        double worstGap = 0.0D;
+        for (final long seed : seeds) {
+            for (final int[] o : origins) {
+                final int[] out = new int[2];
+                final boolean hit = com.miaokatze.gtsr.common.dimension.prosperity.river.GTSRVoronoiRiverField
+                    .nearestActiveLakeCenter(seed, o[0], o[1], out);
+                // 暴力：原点所在站格 ±4 环（9×9 站）
+                final double iv = com.miaokatze.gtsr.common.dimension.prosperity.river.GTSRVoronoiRiverField.LAKE_INTERVAL;
+                final int gx = (int) Math.floor(o[0] / iv + 0.5D);
+                final int gz = (int) Math.floor(o[1] / iv + 0.5D);
+                double bestD = Double.POSITIVE_INFINITY;
+                final double[] cc = new double[4];
+                for (int dz = -4; dz <= 4; dz++) {
+                    for (int dx = -4; dx <= 4; dx++) {
+                        com.miaokatze.gtsr.common.dimension.prosperity.river.GTSRVoronoiRiverField.lakeCellCenterAt(
+                            seed,
+                            (int) Math.round((gx + dx) * iv),
+                            (int) Math.round((gz + dz) * iv),
+                            cc);
+                        if ((int) cc[2] == Integer.MIN_VALUE) {
+                            continue;
+                        }
+                        final int ax = (int) Math.round(cc[0]);
+                        final int az = (int) Math.round(cc[1]);
+                        if (com.miaokatze.gtsr.common.dimension.prosperity.river.GTSRVoronoiRiverField
+                            .lakeAt(seed, ax, az) >= com.miaokatze.gtsr.common.dimension.prosperity.river.GTSRVoronoiRiverField.LAKE_ISLAND) {
+                            continue; // 死湖
+                        }
+                        bestD = Math.min(bestD, (double) (ax - o[0]) * (ax - o[0]) + (double) (az - o[1]) * (az - o[1]));
+                    }
+                }
+                checked++;
+                if (hit) {
+                    final double pd = (double) (out[0] - o[0]) * (out[0] - o[0])
+                        + (double) (out[1] - o[1]) * (out[1] - o[1]);
+                    if (pd != bestD) {
+                        diffBad++;
+                        worstGap = Math.max(worstGap, Math.sqrt(pd) - Math.sqrt(bestD));
+                    }
+                } else if (bestD != Double.POSITIVE_INFINITY) {
+                    hitMiss++;
+                }
+            }
+        }
+        System.out.println(
+            "TPDIM-SOURCE LAKE-PARITY checked=" + checked + " distBad=" + diffBad + " hitMiss=" + hitMiss
+                + " worstGap=" + worstGap);
+        check(checked > 0 && diffBad == 0, "钉15：nearestActiveLakeCenter 站格枚举最近性（distDiff==0）失守 " + diffBad + "/" + checked);
+        check(hitMiss == 0, "钉15b：枚举未命中但暴力窗内有活湖（枚举窗闭合性破裂）：" + hitMiss);
     }
 
     private static void check(boolean ok, String msg) {

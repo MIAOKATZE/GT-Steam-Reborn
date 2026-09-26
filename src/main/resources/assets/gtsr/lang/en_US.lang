@@ -2041,7 +2041,7 @@ biome.Rusted Steppe.name=Rusted Steppe
 biome.Gearwork Forest.name=Gearwork Forest
 biome.Brass Wastes.name=Brass Wastes
 biome.Fumarole Swamp.name=Fumarole Swamp
-biome.Sanzu River.name=Sanzu River
+biome.Sanzu Lake.name=Sanzu Lake
 
 # Dimension prosperity-ruins: block family (dim1 S2; textures are vanilla placeholders until S7a artgen)
 tile.ProsperitySurface.0.name=Rusted Grass Block

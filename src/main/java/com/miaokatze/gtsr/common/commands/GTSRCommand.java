@@ -25,6 +25,7 @@ import com.miaokatze.gtsr.common.dimension.framework.structure.DirectWorldSink;
 import com.miaokatze.gtsr.common.dimension.framework.structure.GTSRWorldgenHash;
 import com.miaokatze.gtsr.common.dimension.framework.structure.StructureRegistry;
 import com.miaokatze.gtsr.common.dimension.prosperity.ProsperityTerrainProfile;
+import com.miaokatze.gtsr.common.dimension.prosperity.river.GTSRVoronoiRiverField;
 import com.miaokatze.gtsr.common.dimension.prosperity.ruins.city.CityBlockResolver;
 import com.miaokatze.gtsr.common.dimension.shattered.ShatteredTerrainProfile;
 import com.miaokatze.gtsr.config.Config;
@@ -54,7 +55,12 @@ import com.miaokatze.gtsr.main.CommonProxy;
  * 禁 getBiomeGenForCoords 逐格试探；半径与步数上界见 Config 两键），命中 chunk 中心列
  * (cx*16+8, cz*16+8)，y = 对应 {@code *TerrainProfile.heightAt}+1（确定性纯函数列顶，不强制加载 chunk；
  * 基岩以上实心填充至 heightAt（含）⇒ 站立位恒为 heightAt+1，与 teleporter 地表 y+1 同约定）。
- * 搜索失败/权威未绑定/降级态一律<b>不动玩家</b>并回可读错误（含已搜半径）。</li>
+ * 搜索失败/权威未绑定/降级态一律<b>不动玩家</b>并回可读错误（含已搜半径）。
+ * <b>S5（P23 plan §2）</b>：搜索原点 = 玩家当前 chunk；中文显示名经权威的 zh_CN 别名表解析
+ * （英文 biomeName 失配后查）；SANZU_RIVER（roster-only，链身份面结构性不可见）走 RVF 湖格
+ * 几何的<b>指令层定位通道</b>（nearestActiveLakeCenter → sanzuArrivalColumn 滩带列）——
+ * <b>不动 L1 身份面</b>（ordinalAt 单出口约束原样）、<b>不读 Chunk byte 平面</b>（类头硬约束保持）；
+ * 落点高度对 populate 同源水列（巨湖/沼泽残潭）做螺旋 ≤16 列避让，找不到非水列时站水面（湖=68）。</li>
  * <li>/gtsr diag [A|B]（P14 顺手项）——把 P12 进维 {@code [GTSR][diag]} 诊断行直接打给发送者：
  * 调 {@link GTSRChunkProviderBase#buildEntryDiagLine}（生产同一实现体，内容段经 DiagAssembly 注入的
  * 供给器拼入）+ {@link CommonProxy.DiagAssembly#bootSummaryLine()}（LoadComplete 同款组装）。
@@ -288,6 +294,8 @@ public class GTSRCommand extends CommandBase {
      * 命中后传送复用 {@link GTSRDimTeleporter}（无门体系不变），仅以匿名子类覆写 placeInPortal
      * 把落点改为「命中 chunk 中心列 + heightAt+1」——不改 GTSRDimTeleporter 本体（基线 (0,0)
      * 列扫路径原样保留给无群系名分支）。
+     * <b>S5</b>：SANZU_RIVER 目标先于此分派到 {@link #processTpdimSanzuLake}（RVF 湖格定位，
+     * 环带搜索对其结构性恒空）；环带搜索原点 = 玩家当前 chunk；columnTopSafeY 带水柱感知。
      */
     private void processTpdimBiome(ICommandSender sender, String[] args, EntityPlayerMP player, int dimId, String which,
         WorldServer targetWorld) {
@@ -312,15 +320,29 @@ public class GTSRCommand extends CommandBase {
                 new ChatComponentText("tpdim failed: biome authority for dimension " + dimId + " is not bound yet"));
             return;
         }
+        // S5：搜索原点 = 玩家当前 chunk（原硬编码 0,0 命中的是"离世界原点最近"的带，玩家深处
+        // 再传送会被拉回原点附近；nearestBiomeChunk 的 origin 本就参数化，4 家 selector 路径同一调用点跟随）
+        final int originChunkX = MathHelper.floor_double(player.posX) >> 4;
+        final int originChunkZ = MathHelper.floor_double(player.posZ) >> 4;
+        if (target == GTSRBiomeAuthority.BiomeId.SANZU_RIVER) {
+            // roster-only 群系：链身份面（4 家 selector）结构性解析不到 ⇒ 环带搜索恒 NOT_FOUND，
+            // 走 RVF 湖格几何的指令层定位通道（见 processTpdimSanzuLake）
+            processTpdimSanzuLake(sender, player, targetWorld, dimId, which, rawName);
+            return;
+        }
         final long t0 = System.nanoTime();
-        final GTSRBiomeAuthority.NearestBiomeChunk hit = authority
-            .nearestBiomeChunk(target, 0, 0, Config.tpdimBiomeSearchMaxRadiusChunks, Config.tpdimBiomeSearchMaxSteps);
+        final GTSRBiomeAuthority.NearestBiomeChunk hit = authority.nearestBiomeChunk(
+            target,
+            originChunkX,
+            originChunkZ,
+            Config.tpdimBiomeSearchMaxRadiusChunks,
+            Config.tpdimBiomeSearchMaxSteps);
         final long ms = (System.nanoTime() - t0) / 1_000_000L;
         if (hit.biome == null) {
             sender.addChatMessage(
                 new ChatComponentText(
                     "tpdim failed: 该维度内未找到该群系 '" + rawName
-                        + "（已搜半径 "
+                        + "'（已搜半径 "
                         + Config.tpdimBiomeSearchMaxRadiusChunks
                         + " chunk"
                         + (hit.status == GTSRBiomeAuthority.NearestStatus.STEP_LIMIT
@@ -378,18 +400,124 @@ public class GTSRCommand extends CommandBase {
     }
 
     /**
+     * S5：SANZU_RIVER（遗忘之川/湖）专属定位分支——该群系是 roster-only（selector=false），
+     * 平面列由 populate 后置写入，链身份面（GenLayer 4 家 selector）永远解析不到 ⇒ 环带搜索
+     * 恒 NOT_FOUND（结构性，非半径问题）。本分支是指令层定位通道：直接走 RVF 的湖格几何
+     * （{@link GTSRVoronoiRiverField#nearestActiveLakeCenter} → {@link GTSRVoronoiRiverField#sanzuArrivalColumn}
+     * 滩带列，避岛心树干与岛底柱），<b>不动 L1 身份面</b>（ordinalAt 单出口约束原样）、
+     * <b>零 Chunk byte 读</b>（类头硬约束保持）、全程确定性纯函数。
+     * 未命中（主干带外全死湖等）→ NOT_FOUND 文案出口，玩家不动。
+     */
+    private void processTpdimSanzuLake(ICommandSender sender, EntityPlayerMP player, WorldServer targetWorld, int dimId,
+        String which, String rawName) {
+        final long t0 = System.nanoTime();
+        final long worldSeed = targetWorld.getSeed();
+        final int[] center = new int[2];
+        final boolean lakeHit = GTSRVoronoiRiverField.nearestActiveLakeCenter(
+            worldSeed,
+            MathHelper.floor_double(player.posX),
+            MathHelper.floor_double(player.posZ),
+            center);
+        final int[] col = lakeHit ? GTSRVoronoiRiverField.sanzuArrivalColumn(worldSeed, center[0], center[1]) : null;
+        final long ms = (System.nanoTime() - t0) / 1_000_000L;
+        if (!lakeHit || col == null) {
+            sender.addChatMessage(
+                new ChatComponentText(
+                    "tpdim failed: 该维度内未找到该群系 '" + rawName
+                        + "'（已搜半径 49 湖站格（7×7 站 × LAKE_INTERVAL 1200），耗时 "
+                        + ms
+                        + "ms）"));
+            return;
+        }
+        // 落点 = 滩带列；y 走 columnTopSafeY 的水柱感知（滩带含水缘列时螺旋避让/站水面）
+        final int bx = col[0];
+        final int bz = col[1];
+        final int ly = columnTopSafeY(targetWorld, dimId, bx, bz) + 1;
+        // 就地复核走 populate 同源谓词 isSanzuColumn（ordinalAt 对 roster-only 群系结构性不可见）
+        final boolean verify = GTSRVoronoiRiverField.isSanzuColumn(worldSeed, bx, bz);
+        player.mcServer.getConfigurationManager()
+            .transferPlayerToDimension(player, dimId, new GTSRDimTeleporter(targetWorld) {
+
+                @Override
+                public void placeInPortal(Entity entity, double oldX, double oldY, double oldZ, float rotationYaw) {
+                    entity.setLocationAndAngles(bx + 0.5D, ly, bz + 0.5D, rotationYaw, 0.0F);
+                    entity.motionX = entity.motionY = entity.motionZ = 0.0D;
+                }
+            });
+        sender.addChatMessage(
+            new ChatComponentText(
+                "tpdim: sent player to dimension " + dimId
+                    + " ("
+                    + which
+                    + ") biome '"
+                    + rawName
+                    + "'"
+                    + " lakeCenter=("
+                    + center[0]
+                    + ","
+                    + center[1]
+                    + ") block=("
+                    + bx
+                    + ","
+                    + ly
+                    + ","
+                    + bz
+                    + ") ms="
+                    + ms
+                    + " verify=SANZU_RIVER:"
+                    + verify
+                    + "（populate 谓词；滩带落点，湖心树干/岛底柱避让）"));
+    }
+
+    /**
      * 命中列的可站立顶高（纯函数，零 chunk 读取）：dim78={@link ProsperityTerrainProfile#heightAt}、
      * dim79={@link ShatteredTerrainProfile#heightAt}，种子口径与 provider 一致（{@code world.getSeed()}，
      * seedSalt 只进 ChunkProvider 掷骰不进高度场）。def 缺失（理论不可达，上游已守卫）按繁荣侧兜底。
+     * <p>
+     * <b>S5 水柱感知</b>（dim78）：命中列若是 populate 同源水列（{@link #populateWaterColumnAt}——
+     * 巨湖/沼泽残潭），heightAt 是湖床/潭底，+1 会把玩家放进深水；改为螺旋 ≤16 列（环 1 全 8 列 +
+     * 环 2 最近 8 列，欧氏近→远）找最近非水列取其 heightAt（调用方 +1 = 站该列顶），找不到 →
+     * 湖面 {@code SEA_LEVEL−1}（+1 = 68 = 站水面）。谓词全部复用 RVF 公开出口，不抄第二份判定。
      */
     private static int columnTopSafeY(WorldServer world, int dimId, int x, int z) {
         final String dimKey = DimensionRegistrar.defForDimension(dimId) == null ? null
             : DimensionRegistrar.defForDimension(dimId)
                 .getKey();
+        final long seed = world.getSeed();
         if (GTSRBiomeAuthority.DIM_KEY_SHATTERED.equals(dimKey)) {
-            return ShatteredTerrainProfile.heightAt(world.getSeed(), x, z);
+            return ShatteredTerrainProfile.heightAt(seed, x, z);
         }
-        return ProsperityTerrainProfile.heightAt(world.getSeed(), x, z);
+        if (!populateWaterColumnAt(seed, x, z)) {
+            return ProsperityTerrainProfile.heightAt(seed, x, z);
+        }
+        // 螺旋 16 列（字面量表，S5 任务包钉的 ≤16 列预算）：环 1 正交→对角，环 2 距离 2 → √5
+        final int[][] spiral = { { 1, 0 }, { 0, 1 }, { -1, 0 }, { 0, -1 }, { 1, 1 }, { -1, 1 }, { -1, -1 }, { 1, -1 },
+            { 2, 0 }, { -2, 0 }, { 0, 2 }, { 0, -2 }, { 1, 2 }, { -1, 2 }, { 1, -2 }, { -1, -2 } };
+        for (int i = 0; i < spiral.length; i++) {
+            final int nx = x + spiral[i][0];
+            final int nz = z + spiral[i][1];
+            if (!populateWaterColumnAt(seed, nx, nz)) {
+                return ProsperityTerrainProfile.heightAt(seed, nx, nz);
+            }
+        }
+        // 16 列内无干列：站水面（湖面 = SEA_LEVEL = 68，调用方 +1）
+        return ProsperityTerrainProfile.SEA_LEVEL - 1;
+    }
+
+    /**
+     * <b>populate 同源水列谓词</b>（S5，dim78）：巨湖 = {@code ChunkProviderProsperityRuins.fillSanzuLakes}
+     * 的逐字同式（{@code lakeAt < LAKE_SHORE} ∧ {@code heightAt < SEA_LEVEL}，两符号皆
+     * RVF/Profile 公开出口，不抄第二份判定）；沼泽残潭 =
+     * {@link GTSRVoronoiRiverField#swampRiverPoolColumnAt}（rosterIndex=0 保守档，O1a 纪律不统一
+     * roster 语义）。河道支路的 populate 池水柱不在本谓词内（批2 S2 将 wetAt 置死，不为其新立真值；
+     * S5 回执已申报此限）。
+     */
+    private static boolean populateWaterColumnAt(long worldSeed, int x, int z) {
+        if (GTSRVoronoiRiverField.lakeAt(worldSeed, x, z) < GTSRVoronoiRiverField.LAKE_SHORE
+            && ProsperityTerrainProfile.heightAt(worldSeed, x, z) < ProsperityTerrainProfile.SEA_LEVEL) {
+            return true;
+        }
+        return GTSRVoronoiRiverField.swampRiverPoolColumnAt(worldSeed, x, z, 0);
     }
 
     /** 第 {@code from} 参起到末尾以单空格重 join（1.7.10 服务端无引号感知切分的兼容层）。 */

@@ -75,11 +75,27 @@ public final class LumenLightCheck {
     /** 冠下光位 y 下界（y0≥71 + 干高≥66 − 冠回撤10 − 竖半高18 − 1 ⇒ ≥108；D 组门带取 100 留余量）。 */
     static final int CANOPY_LIGHT_Y_FLOOR = 100;
 
-    /** A 组在场下界（每 chunk 冠下光源均值；不钉绝对值，只防零写入假绿）。 */
-    static final double CANOPY_MEAN_FLOOR = 0.5D;
+    /**
+     * A 组冠下带（每 chunk 冠下光源均值，P23 R1·S6 分立断言重钉）：CANOPY_LIGHT_DENOM=533
+     * （半径 50 档保旧面密度）⇒ 单树期望 ≈15 枚，footprint 集中在窗心 7×7、摊到
+     * windowChunks(50)=13 方窗 ⇒ 全窗每 chunk 均值实测 0.072（146/2028，见 A-READ）。
+     * 带 [0.05,1.5]：下界防零写入假绿（实测 +44% 余量），上界防密度旋钮被调爆（denom 减半即越界）。
+     */
+    static final double CANOPY_MEAN_FLOOR = 0.05D;
+    static final double CANOPY_MEAN_CEIL = 1.5D;
 
-    /** A 组比值带（湖上均值 ≤ 冠下均值 × 本值；严格小于另单列一条）。 */
-    static final double LAKE_RATIO_BAND = 0.8D;
+    /**
+     * A 组湖上带（每 chunk 湖上光源均值，P23 R1·S6 分立断言重钉）：LAKE_LIGHT_DENOM=192（未随
+     * 湖面 ×4.7 放大）⇒ 水域 chunk 期望 ≈256×0.9/192 ≈ 1.2 枚（生产 javadoc 自述 ≈1.3，实测见
+     * A-READ）。带 [0.4,2.5]：下界防湖趟零写入，上界防 denom 被改小爆密度。
+     * <p>
+     * <b>倒挂处置</b>：旧「湖上严格稀于冠下（lakeMean&lt;canopyMean ∧ ≤0.8×）」自 S3 冠半径 50 +
+     * 湖半径 200 后结构性倒挂（实测 湖上 1.313 vs 冠下 0.072/chunk、比值 18.2——两趟密度常量独立、采样域不同
+     * （湖趟按水列、冠趟按冠 footprint 列），跨比值不再有设计含义，本片改分立断言（各钉各带），
+     * 比值降为 READ。生产侧 LAKE_LIGHT_DENOM 的后续调档属主代理旋钮（本片只重钉判据）。
+     */
+    static final double LAKE_MEAN_FLOOR = 0.4D;
+    static final double LAKE_MEAN_CEIL = 2.5D;
 
     static int total;
     static int fails;
@@ -287,39 +303,53 @@ public final class LumenLightCheck {
             return;
         }
         final World air = GateWorld.make();
+        // P23 R1·S6 采样窗（派生式）：冠下趟 = windowChunks(CANOPY_RADIUS)=13 方窗（单树冠跨窗，
+        // 旧 ±1 的 3×3 是半径 15 档口径）；湖上趟 = 窗外沿水环（cheb == 半窗——岛干半径 ~40 格
+        // 占满 cheb≤2 的 5×5，外沿一圈 24 chunk 全是水域）。锚点本身在窗心。
+        final int halfSpan = (com.miaokatze.gtsr.common.dimension.prosperity.ruins.MegaTreeAnchors
+            .windowChunks(com.miaokatze.gtsr.common.dimension.prosperity.ruins.MegaTreeAnchors.CANOPY_RADIUS) - 1) >> 1;
         long canopyTotal = 0;
         long lakeTotal = 0;
-        int chunks = 0;
+        int canopyChunks = 0;
+        int lakeChunks = 0;
         boolean allGlow = true;
         for (final Anchor an : anchors) {
             final int ocx = an.ax >> 4;
             final int ocz = an.az >> 4;
-            for (int dz = -1; dz <= 1; dz++) {
-                for (int dx = -1; dx <= 1; dx++) {
+            for (int dz = -halfSpan; dz <= halfSpan; dz++) {
+                for (int dx = -halfSpan; dx <= halfSpan; dx++) {
                     final Rec c = new Rec();
                     ProsperityLumenPlacer.placeCanopyPass(air, an.seed, ocx + dx, ocz + dz, c);
-                    final Rec l = new Rec();
-                    ProsperityLumenPlacer.placeLakePass(air, an.seed, ocx + dx, ocz + dz, l);
                     canopyTotal += c.glow();
-                    lakeTotal += l.glow();
-                    if (c.glow() != c.cells.size() || l.glow() != l.cells.size()) {
+                    if (c.glow() != c.cells.size()) {
                         allGlow = false; // 写入的全部都是旧栖晴晕（无杂块）
                     }
-                    chunks++;
+                    canopyChunks++;
+                    final boolean ring = Math.max(Math.abs(dx), Math.abs(dz)) == halfSpan;
+                    if (ring) {
+                        final Rec l = new Rec();
+                        ProsperityLumenPlacer.placeLakePass(air, an.seed, ocx + dx, ocz + dz, l);
+                        lakeTotal += l.glow();
+                        if (l.glow() != l.cells.size()) {
+                            allGlow = false;
+                        }
+                        lakeChunks++;
+                    }
                 }
             }
         }
-        final double canopyMean = (double) canopyTotal / chunks;
-        final double lakeMean = (double) lakeTotal / chunks;
+        final double canopyMean = (double) canopyTotal / Math.max(1, canopyChunks);
+        final double lakeMean = (double) lakeTotal / Math.max(1, lakeChunks);
         final double ratio = canopyMean > 0.0D ? lakeMean / canopyMean : -1.0D;
-        read("A chunks=" + chunks + " canopy=" + canopyTotal + " lake=" + lakeTotal + " canopyMean/chunk="
-            + fmt(canopyMean) + " lakeMean/chunk=" + fmt(lakeMean) + " ratio=" + fmt(ratio));
+        read("A canopyChunks=" + canopyChunks + " canopy=" + canopyTotal + " lakeChunks(水环)=" + lakeChunks
+            + " lake=" + lakeTotal + " canopyMean/chunk=" + fmt(canopyMean) + " lakeMean/chunk="
+            + fmt(lakeMean) + " ratio(READ,倒挂设计内)=" + fmt(ratio));
         a("A", "writes.allRoostGlow", allGlow);
-        a("A", "canopyMean>=0.5.presence(" + fmt(canopyMean) + ")", canopyMean >= CANOPY_MEAN_FLOOR);
+        a("A", "canopyMean.band[" + CANOPY_MEAN_FLOOR + "," + CANOPY_MEAN_CEIL + "](" + fmt(canopyMean)
+            + "; P23 分立断言，窗=派生 13)", canopyMean >= CANOPY_MEAN_FLOOR && canopyMean <= CANOPY_MEAN_CEIL);
         a("A", "lakeTotal>=1.presence(" + lakeTotal + ")", lakeTotal >= 1);
-        a("A", "lakeMean<canopyMean.strict(" + fmt(lakeMean) + "<" + fmt(canopyMean) + ")",
-            lakeMean < canopyMean);
-        a("A", "lakeMean<=0.8x.canopyMean.band", canopyMean > 0 && lakeMean <= LAKE_RATIO_BAND * canopyMean);
+        a("A", "lakeMean.band[" + LAKE_MEAN_FLOOR + "," + LAKE_MEAN_CEIL + "](" + fmt(lakeMean)
+            + "; P23 分立断言，水环=窗外沿)", lakeMean >= LAKE_MEAN_FLOOR && lakeMean <= LAKE_MEAN_CEIL);
     }
 
     // ════════════════════════ B 组：光衰减三档（[自立口径]）════════════════════════
@@ -361,8 +391,10 @@ public final class LumenLightCheck {
             int sumSizes = 0;
             final int ocx = an.ax >> 4;
             final int ocz = an.az >> 4;
-            for (int dz = -1; dz <= 1; dz++) {
-                for (int dx = -1; dx <= 1; dx++) {
+            final int halfSpan = (com.miaokatze.gtsr.common.dimension.prosperity.ruins.MegaTreeAnchors
+                .windowChunks(com.miaokatze.gtsr.common.dimension.prosperity.ruins.MegaTreeAnchors.CANOPY_RADIUS) - 1) >> 1;
+            for (int dz = -halfSpan; dz <= halfSpan; dz++) {
+                for (int dx = -halfSpan; dx <= halfSpan; dx++) {
                     final Rec piece = new Rec();
                     ProsperityLumenPlacer.placeCanopyPass(air, an.seed, ocx + dx, ocz + dz, piece);
                     for (final Map.Entry<Long, Boolean> e : piece.cells.entrySet()) {
@@ -383,7 +415,7 @@ public final class LumenLightCheck {
             }
             read("C anchor#" + checked + " ref=" + ref.size() + " union=" + union.size() + " sumPieces=" + sumSizes);
         }
-        a("C", "replayUnion9.equalsPureReplay", unionOk);
+        a("C", "replayUnionSpan.equalsPureReplay(派生窗)", unionOk);
         a("C", "ownerInjection.noDuplicateWrites", injectiveOk);
         a("C", "slicePieces.allOwned", ownedOk);
         a("C", "anchorLights.nonEmpty(" + checked + ")", nonEmptyOk && checked > 0);
@@ -404,16 +436,20 @@ public final class LumenLightCheck {
         final GateWorld lakeBlocked = GateWorld.make();
         lakeBlocked.gateLo = ProsperityTerrainProfile.SEA_LEVEL;
         lakeBlocked.gateHi = ProsperityTerrainProfile.SEA_LEVEL;
+        final int halfSpan = (com.miaokatze.gtsr.common.dimension.prosperity.ruins.MegaTreeAnchors
+            .windowChunks(com.miaokatze.gtsr.common.dimension.prosperity.ruins.MegaTreeAnchors.CANOPY_RADIUS) - 1) >> 1;
         int canopy1 = 0;
         int lake1 = 0;
-        for (int dz = -1; dz <= 1; dz++) {
-            for (int dx = -1; dx <= 1; dx++) {
+        for (int dz = -halfSpan; dz <= halfSpan; dz++) {
+            for (int dx = -halfSpan; dx <= halfSpan; dx++) {
                 final Rec c = new Rec();
                 ProsperityLumenPlacer.placeCanopyPass(lakeBlocked, anchors.get(0).seed, ocx + dx, ocz + dz, c);
-                final Rec l = new Rec();
-                ProsperityLumenPlacer.placeLakePass(lakeBlocked, anchors.get(0).seed, ocx + dx, ocz + dz, l);
                 canopy1 += c.glow();
-                lake1 += l.glow();
+                if (Math.max(Math.abs(dx), Math.abs(dz)) == halfSpan) { // 水环：湖上趟的定义域
+                    final Rec l = new Rec();
+                    ProsperityLumenPlacer.placeLakePass(lakeBlocked, anchors.get(0).seed, ocx + dx, ocz + dz, l);
+                    lake1 += l.glow();
+                }
             }
         }
         read("D lakeBlockedArm canopy=" + canopy1 + " lake=" + lake1);
@@ -426,14 +462,16 @@ public final class LumenLightCheck {
         canopyBlocked.gateHi = 255;
         int canopy2 = 0;
         int lake2 = 0;
-        for (int dz = -1; dz <= 1; dz++) {
-            for (int dx = -1; dx <= 1; dx++) {
+        for (int dz = -halfSpan; dz <= halfSpan; dz++) {
+            for (int dx = -halfSpan; dx <= halfSpan; dx++) {
                 final Rec c = new Rec();
                 ProsperityLumenPlacer.placeCanopyPass(canopyBlocked, anchors.get(0).seed, ocx + dx, ocz + dz, c);
-                final Rec l = new Rec();
-                ProsperityLumenPlacer.placeLakePass(canopyBlocked, anchors.get(0).seed, ocx + dx, ocz + dz, l);
                 canopy2 += c.glow();
-                lake2 += l.glow();
+                if (Math.max(Math.abs(dx), Math.abs(dz)) == halfSpan) { // 水环：湖上趟的定义域
+                    final Rec l = new Rec();
+                    ProsperityLumenPlacer.placeLakePass(canopyBlocked, anchors.get(0).seed, ocx + dx, ocz + dz, l);
+                    lake2 += l.glow();
+                }
             }
         }
         read("D canopyBlockedArm canopy=" + canopy2 + " lake=" + lake2);

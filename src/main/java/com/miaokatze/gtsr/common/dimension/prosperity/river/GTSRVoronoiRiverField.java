@@ -45,9 +45,10 @@ import com.miaokatze.gtsr.common.dimension.prosperity.TerrainVariants;
  * <ul>
  * <li>草原(0)/森林(1)：常态河——床 = pool−{@code depth}±n_bed，n_bed 抬到 ≥ 水面的列自然
  * 干出为<b>浅滩/河滩</b>（浅滩重释 = 派生条件，独立 shoalNoise 档已废）；</li>
- * <li>荒漠(2)：干谷断流——<b>P22 A1a（v1.20.42）起与全域一致</b>：置水门
- * {@link #wetAt} = {@code s ≥ WET_MIN ∧ trunk > 0}，带外全枯竭（干河床），原"整段闸
- * 干:湿 = 65:35"（{@link #DESERT_WET_SHARE}/{@link #segWetAt}）退役；</li>
+ * <li>荒漠(2)：干谷断流——<b>P22 A1a（v1.20.42）起与全域一致</b>（原"整段闸 干:湿 = 65:35"
+ * 已退役，见顶部已删字段登记）；<b>P23 R1（v1.20.46 批2 S2）主干移除
+ * 后 {@link #wetAt} 恒 false——全域置水死，河流场只剩零散干床（段激活门
+ * {@link #RIVER_SEGMENT_ACTIVATE_P}），水归湖/沼泽池独立通道</b>；</li>
  * <li>沼泽(3)：沼地河——width×1.2（v1.20.40 从 1.6 收窄）、depth=1（水近地，水深 0-1 成沼地
  * 肌理）；不换河群系（RTG swamp 豁免先例）。</li>
  * </ul>
@@ -108,12 +109,12 @@ public final class GTSRVoronoiRiverField {
     public static final double VALLEY_LEVEL = WET_MIN;
 
     /**
-     * <b>v1.20.40（P19 §B）退役</b>：荒漠断流从 wetNoise 串珠闸改为 {@link #segKeyAt} 整段闸
-     * （{@link #DESERT_WET_SHARE}），本常量不再参与任何生成判定。<b>保留字段</b>只因
-     * {@code tools/dim1/RiverMorphologyCheck} 的 F 组读数行仍引用（判据文件 P19 批4 重钉时随
-     * 串珠口径一并退役），生产链路不得消费它。
+     * <b>已删字段登记（P23 R1·S6，v1.20.46）</b>：WET_EDGE（v1.20.40 退役的 wetNoise 串珠闸）、
+     * DESERT_WET_SHARE/segWetAt/SALT_WET 消费口径（荒漠整段闸）、LAKE_BED_TARGET（平底床历史值）、
+     * POOL_DROP（落差墙判据）、SANZU_TRUNK_INNER/TRUNK_ALIGN_COS（主干三重门）、
+     * SANZU_BIOME_STRENGTH（sanzu 河道支）——判据侧引用随 STC 退役与 RMC/SLMC 重钉一并摘除后，
+     * 生产零消费字段本片兑现删除（历史 javadoc 见版本树）。
      */
-    public static final double WET_EDGE = 0.6D;
 
     /**
      * 池水位锚基基准（v1.20.40 P19 §C 起）：{@link #poolLevelAt} 沿细胞边三点采样
@@ -280,16 +281,10 @@ public final class GTSRVoronoiRiverField {
     }
 
     /**
-     * 荒漠整段闸的湿段份额（v1.20.40 P19 §B）：{@code wet(seg) = hash(segKey) < 本值}——
-     * 干:湿 = <b>65:35</b>（用户拍板"荒漠干段为主、符合逻辑"；BOP DryRiver 先例=干段整段
-     * 连贯）。整段同值 = 同一条细胞边（同 segKey）全干或全湿，跨 chunk 一致。
-     * <p>
-     * <b>v1.20.42（P22 A1a）退役</b>：置水门收紧为 {@link #wetAt} 的
-     * {@code s ≥ WET_MIN ∧ trunkAt > 0}（全域枯竭＋sanzu 豁免），整段闸不再是任何生成判定
-     * 的一部分。<b>保留字段</b>只因判据侧消费点（tools/dim1 下 RMC 等）本片不改（归 A1c 片
-     * 一并退役），生产链路不得消费它——先例同 {@link #WET_EDGE}。
+     * 荒漠整段闸的湿段份额。<b>已删字段（P23 R1·S6，v1.20.46）</b>：v1.20.40 立档、v1.20.42
+     * 随 {@link #wetAt} 新门从生产链退役、判据侧（RMC F 组读数行）引用随 S6 重钉摘除后兑现
+     * 删除（干:湿 = 65:35 的历史校准原文见版本树）。
      */
-    public static final double DESERT_WET_SHARE = 0.35D;
 
     /**
      * 湿段末端面收尾的渐变列数（v1.20.40 P19 plan §B"末端 3-5 列"带内取 4）：湿核列沿边
@@ -333,13 +328,16 @@ public final class GTSRVoronoiRiverField {
      * 池水位阶梯档距（格，v1.20.40 P19 §C）：池水位量化到本档距的格级
      * （{@code floor(min/step)×step+1}）——连续 min 会让相邻段水位挤在 1-2 格差内
      * （初跑实测采样窗 pool ∈ {65,67}、段间差全 0/2、落差墙 0 面），显式阶梯档距使段间
-     * 水位差聚到 {0,2,4}：2 格级差 = 段界小跌水（&lt; {@link #POOL_DROP} 不成墙），
+     * 水位差聚到 {0,2,4}：2 格级差 = 段界小跌水（&lt; 旧落差墙阈 3，字段已删见类顶登记），
      * 4 格级差 = 落差墙/瀑布。
      */
     public static final int POOL_LEVEL_STEP = 2;
 
-    /** 段间落差墙判据（格）：相邻列池水位差 ≥ 本值 → 落差墙（{@code GTSRRiverPlacer} 消费）。 */
-    public static final int POOL_DROP = 3;
+    /**
+     * 段间落差墙判据（格）。<b>已删字段（P23 R1·S6，v1.20.46）</b>：批2 S2 删
+     * {@code GTSRRiverPlacer} 的 dropColumn 检测支路后生产零消费，判据侧（RMC 注释）引用随
+     * S6 重钉摘除后兑现删除（历史语义"相邻列池水位差 ≥ 3 → 落差墙"见版本树）。
+     */
 
     /** 域分离盐（与 {@code ProsperityTerrainProfile.CHAIN_SEED_SALT} 无关；用途间互不相关）。 */
     public static final long SALT_DISK_LARGE = 0x5249F101L;
@@ -388,6 +386,23 @@ public final class GTSRVoronoiRiverField {
      */
     public static final long SALT_SWAMP_RIVER_POOL = 0x5249F112L;
 
+    // ═════════════════ P23 R1（v1.20.46 批2 S2）：主干移除后的零散干床段激活门 ═════════════════
+
+    /**
+     * <b>干床段激活率</b>（P23 R1② 零散干床）：主干宽河移除后，{@link #strengthAt} 对每条
+     * Voronoi 边段（同 {@link #segKeyAt}）按 {@code hash01(segKey ^ SALT_RIVER_SEGMENT_GATE)
+     * < 本值} 独立决定是否保留干河床——未激活段整段清零（干床不再成网，约 1/5 段零散保留；
+     * 同段同值 ⇒ 跨 chunk 一致）。判定在 {@link #WET_MIN} 置水门之外独立存在：干床段不置水
+     * （{@link #wetAt} 恒 false），只保留谷形/床/滩料。
+     */
+    public static final double RIVER_SEGMENT_ACTIVATE_P = 0.20D;
+
+    /**
+     * 干床段激活门的盐（P23 R1②）：取本类盐段尾 {@code …113L}（{@code …112L} 已被
+     * {@link #SALT_SWAMP_RIVER_POOL} 占用）。
+     */
+    public static final long SALT_RIVER_SEGMENT_GATE = 0x5249F113L;
+
     // ═════════════════ T5：遗忘之川主干/巨湖（plan §3.3）═════════════════
 
     /**
@@ -407,36 +422,19 @@ public final class GTSRVoronoiRiverField {
     public static final double SANZU_TRUNK_EDGE = 0.27D;
 
     /**
-     * 主干<b>内带门</b>（T5 实测补的第三重门，noise 域余量：trunkNoise ≥ SANZU_TRUNK_EDGE +
-     * 本值 才可能是主边界）：对齐门只按<b>方向</b>筛选——抖动格 Voronoi 的三族边界互成 ~60°，
-     * 与带向同向的<b>平行族往往整族通过 45.6° 门</b>，带内成"梯状平行河网"（实测 sanzu 最大簇
-     * 长短轴比 1.1-3.6，map 呈多条平行河条带联网，违反 plan §3.3"只沿单一主边界延伸"）。
-     * 内带门按<b>位置</b>排他：主干带是从带缘向带脊 trunkNoise 单调升的条带，主边界（贴着带脊
-     * 走的那条）的河条带整体落在高值内带里，带缘的平行次级则整条落在内带之外 ⇒ 一并清零。
-     * 内带宽度 ≈ 本值/|∇trunkNoise|（实测梯度 ~3e-4/格 ⇒ 0.08 ≈ ±130 格的内带收窄），取值
-     * 大到只容一条边界（边界间距 ~SEPARATION/√3≈600）穿过、小到不把主边界自身的 ±77 格宽河
-     * 条带切出内带——校准读数见 SanzuTrunkCoverageCheck E 组（长短轴比 &gt;5 的验收带）。
+     * 主干<b>内带门</b>。<b>已删字段（P23 R1·S6，v1.20.46）</b>：批2 S2 随 {@link #strengthAt}
+     * 的 trunk 支整段删除而生产零消费，判据侧（STC）随整文件退役后兑现删除（历史值 0.08 与
+     * 三重门校准原文见版本树）。
      */
-    public static final double SANZU_TRUNK_INNER = 0.08D;
 
     /** 主干带内河宽乘子（plan §3.3 "width×3.5"：河宽 ×3-4 带内取 3.5）。 */
     public static final double TRUNK_WIDTH_SCALE = 3.5D;
 
-    /** 主干带内河谷深度档乘子（plan §3.3 "valleyLevel×1.3"：谷更深）。 */
-    public static final double TRUNK_VALLEY_SCALE = 1.3D;
-
     /**
-     * 主干对齐门余弦阈值（T5"少支流"机制，见 {@link #strengthAt} 主干支与 {@link #trunkAligned}）：
-     * 边界法向与 trunkNoise 梯度的 |cos| ≥ 本值才保留河流强度，否则清零。v1.20.39 T5 实测定值
-     * <b>0.70（≈45.6°）</b>，取代 T4 骨架 javadoc 论证的 0.45（63°）——决定性实测（SanzuTrunkCoverageCheck
-     * D/E 组，seed 0x5A614E5A，窗 ±2×TRUNK_SCALE 步距 SEPARATION/64）：抖动格 Voronoi 的三族边界
-     * 互成 ~60°，63° 门等于"只清 ~90° 直穿的一族"，另两族 60° 边界全保留 ⇒ 带内河网仍是二维网
-     * （实测带内三叉密度仅降 3-4×、sanzu 最大簇长短轴比 1.4-3.6，远低于"细长"判据 &gt;5）。
-     * 45.6° 门清零全部 ±60° 横截族；主干连续性不受威胁——Voronoi 边在结点间是<b>直线段</b>
-     * （段长 ~SEPARATION/√3≈600），沿带延伸的主边界段方向与带向偏差 ~±15°（带宽 ~600-1000，
-     * 穿带边界必越带而出），45.6° 有三倍裕度；穿带后带外无门，普通河照常（同网连通不破）。
+     * 主干对齐门余弦阈值。<b>已删字段（P23 R1·S6，v1.20.46）</b>：批2 S2 随
+     * {@code trunkAligned}（无消费者即删）删除而生产零消费，判据侧（STC）随整文件退役后
+     * 兑现删除（历史值 0.70≈45.6° 与"少支流"几何论证见 v1.20.45 版本树）。
      */
-    public static final double TRUNK_ALIGN_COS = 0.70D;
 
     /** 主干梯度差分步距（格）：TRUNK_SCALE/16——梯度方向在带内数百格尺度上稳定。 */
     public static final int TRUNK_GRAD_STEP = (int) (TRUNK_SCALE / 16.0D);
@@ -445,35 +443,58 @@ public final class GTSRVoronoiRiverField {
     public static final double LAKE_INTERVAL = 1200.0D;
 
     /**
-     * 巨湖破圆 domain-warp 位移尺度（格，v1.20.40 P19 plan §D 新增）：disk 噪声波长
-     * ≈ 1.24×本值 ≈ 400 格——与湖径同阶 ⇒ 同一座湖内位移场显著变化，细胞圆被揉成不规则形。
+     * <b>小湖淘汰腿</b>（P23 R1 新增，v1.20.46 批2 S2）：{@link #lakeStationDistances} 的第二近
+     * 站距 {@code dd[1] < 本值} ⇒ {@link #NO_LAKE}——防双站过近破形。淘汰是逐列判定 ⇒ 贴近
+     * 邻站的湖侧被裁（与旧 trunk 门同族的 NO_LAKE 硬边语义，S6 归因重钉）。
+     * <p>
+     * <b>取值推导（直跑实测重导，偏离计划初值 900 申报）</b>：站心第二近站距实测分布
+     * p10/p25/med/p75/p90 = 585/725/847/987/1098（seed 0x5A614E5A，16×16 站窗）——计划初值
+     * 0.75×1200=900 会裁掉 62% 站、中位湖水半径被压到 ≈40（验收 200±30 不可达）。湖对最近邻
+     * 方向的水半径 {@code r = W·d/(1+W) = 0.187·d}（{@link #LAKE_WATER_LEVEL} 换算式），D_MIN
+     * 裁刀生效当 {@code d − D_MIN < r ⇔ d < D_MIN/0.813}。取"水半径跌出 200 档 2/3（&lt;135 ⇒
+     * d&lt;722）即判破形"的淘汰档 ⇒ <b>D_MIN = 450 = 0.375×LAKE_INTERVAL</b>（裁刀线 d&lt;553、
+     * 站心整湖淘汰线 d&lt;450，实测站心 dead ≈3%）：中位湖（d=847 ⇒ 水缘处 dN=688 &gt; 450）零裁。
+     * S6 SLMC 逐湖内切圆组读数后可单常量再校。
      */
-    public static final double LAKE_WARP_SCALE = 320.0D;
+    public static final double LAKE_STATION_D_MIN = 0.375D * LAKE_INTERVAL;
 
     /**
-     * 巨湖破圆 domain-warp 位移幅度（格，圆盘向量全长上限；plan §D"幅度 60-80"带内取 70）：
-     * {@link #lakeAt} 在湖 Voronoi 求值前对坐标加
-     * {@code disk(p/LAKE_WARP_SCALE)×本值}（第 4 张 OpenSimplexDisk 表，盐
-     * {@link #SALT_DISK_LAKE_WARP}）——复用河网蜿蜒同一份实现/ThreadLocal 缓存纪律。
-     * 位移 ≪ 3×3 邻域窗半宽（1.5×{@link #LAKE_INTERVAL}），F1/F2 在窗内仍数学精确。
+     * 巨湖破圆 domain-warp 位移尺度（格；v1.20.40 P19 plan §D 新增，<b>P23 R1（v1.20.46 批2
+     * S2）320 → 700</b>）：disk 噪声波长 ≈ 1.24×本值 ≈ 870 格——与标称水半径 200 同阶
+     * （≈4.3×半径）⇒ 同一座湖内位移场显著变化，细胞圆被揉成不规则形。放大湖后噪声波长按
+     * 同比例跟随（原 320 ≈ 200/92 × 320 ≈ 2.2×旧水径；新 700 ≈ 3.5×新水径，同为"湖内变场"档）。
      */
-    public static final double LAKE_WARP = 70.0D;
+    public static final double LAKE_WARP_SCALE = 700.0D;
+
+    /**
+     * 巨湖破圆 domain-warp 位移幅度（格，圆盘向量全长上限）。<b>P23 R1（v1.20.46 批2 S2）
+     * 70 → 100 = 标称水半径 200 的 50%</b>：{@link #lakeAt} 在湖 Voronoi 求值前对坐标加
+     * {@code disk(p/LAKE_WARP_SCALE)×本值}（第 4 张 OpenSimplexDisk 表，盐
+     * {@link #SALT_DISK_LAKE_WARP}）。换算式（P23 R1）：位移 ≪ 3×3 邻域窗半宽
+     * （1.5×{@link #LAKE_INTERVAL}=1800）⇒ F1/F2 窗内仍数学精确；<b>内切圆下界 ≈ r0 − 本值
+     * = 200 − 100 = 100 格</b>（r0 = 标称水半径）；{@link #lakeCellCenterAt} 两次不动点的
+     * 收缩斜率上界 = 2π×本值/{@link #LAKE_WARP_SCALE} = 2π×100/700 ≈ <b>0.898 &lt; 1</b>
+     * ⇒ 良态（改造前 2π×70/320 = 1.374 &gt; 1 的陡区不保证收敛，本次放湖后反而转良）。
+     */
+    public static final double LAKE_WARP = 100.0D;
 
     /**
      * 巨湖水位（RTG lakeWaterLevel 同位参数）：lakePressure &lt; 本值 = 湖水区。
-     * <b>v1.20.40（P19 plan §D）0.11→0.13</b>：水径 r ≈ 本值×D/(1+本值)（D=相邻湖心距
-     * ≈ (0.7..1.4)×间隔）随本值近线性放大 ⇒ 湖径 ×~1.2 更大；湖水区再经
-     * {@link #lakeBedAt} 中心渐深（湖心水面下 {@link #LAKE_CENTER_DEPTH} 格）。
+     * <b>P23 R1（v1.20.46 批2 S2）0.13 → 0.23（标称水半径 200 格）</b>。
+     * <p>
+     * <b>换算式（javadoc 钉）</b>：水线处 P=W ⇒ dC = W·dN，dC+dN ≈ 相邻湖站距 D ⇒
+     * <b>r_w = W·D/(1+W)</b>。v1.20.45 校准点：W=0.13 ⇒ 世界水半径中位 ≈92 格（D_eff≈800）。
+     * 直跑校准（seed 0x5A614E5A，16 射线×64 湖）：W=0.30 档实测水半径中位 247 ⇒ D_eff =
+     * 247×1.30/0.30 ≈ 1070 ⇒ 目标 200 反解 <b>W = 200/(1070−200) ≈ 0.23</b>（复测中位 192，
+     * 验收带 ≈200±30 内；越界按本式重导）。
      */
-    public static final double LAKE_WATER_LEVEL = 0.13D;
+    public static final double LAKE_WATER_LEVEL = 0.23D;
 
     /**
-     * 巨湖床基准历史值（v1.20.39 T5 的平底床 63±1）。<b>v1.20.40（P19 §D）中心渐深后
-     * 生产公式改由湖滨/湖心锚派生</b>（见 {@link #lakeBedAt}），本常量不再参与生成判定，
-     * 保留只因 {@code tools/dim1/SanzuTrunkCoverageCheck} 的床带派生仍引用（判据批4 重钉时
-     * 随 C2 带一并退役/重钉）。
+     * 巨湖床基准历史值。<b>已删字段（P23 R1·S6，v1.20.46）</b>：v1.20.40 中心渐深起生产零
+     * 消费（公式改由湖滨/湖心锚派生，见 {@link #lakeBedAt}），判据侧（STC 床带派生）随整文件
+     * 退役后兑现删除（历史值 63±1 见版本树）。
      */
-    public static final double LAKE_BED_TARGET = 63.0D;
 
     /**
      * 湖心最大水深（格）。<b>v1.20.41 P20 S5（plan §15.3）10.0 → 28.0</b>，本值旧口径原文保留：
@@ -566,15 +587,15 @@ public final class GTSRVoronoiRiverField {
      * （直接吃光 §15.6-1 的三档与"越往中心越深"）⇒ <b>单抬本值不可解</b>。§15.5 表那一行按本节
      * 口径覆盖（同 §14/§15 覆盖 §11、§26 覆盖 §23-B 的处理法：原文留、假因点名、不静默删）。
      * <p>
-     * <b>本值 0.045 的取法（扫描数据选的，表 = {@code plan/tmp/p20-s5c/island-scan.md}）</b>：
-     * 压力腿与绝对腿的<b>拐点</b>。逐列实测的湖尺度散布 p10/中位/p90 = 0.78/1.00/1.23（半径），
-     * 岛域半径 = 849·本值·尺度 ⇒ 取本值 = 0.045 时 {@code 849·0.045·0.78 ≈ 30 =}{@link #LAKE_ISLAND_RADIUS}
-     * ⇒ <b>约九成湖被绝对腿钉在同一个岛直径</b>（需求 8 的"约 30 格"是绝对尺寸，判据带也是绝对面积带），
-     * 再小则绝对腿不 binding、散布原样透进干面积（带内命中率掉回 43–47%），再大只是把压力腿的
-     * 空转区摊大（S1 三档被多剔除一圈<b>其实是湖床</b>的列：0.065 档 10175 列 vs 0.045 档 4817 列，
-     * 深/浅档比 0.689 vs 1.484）。实档读数：干列中位 827（p10 742 / p90 831）、带内 29/32 = 90.63%。
+     * <b>本值 0.15 的取法（P23 R1，v1.20.46 批2 S2，岛半径 40 档）</b>：压力腿域半径
+     * {@code r(I) = I·D/(1+I)}（D = 相邻湖站距）须 ≥ 绝对腿上限 {@link #LAKE_ISLAND_RADIUS}=75
+     * 才不先于绝对腿裁形 ⇒ I ≥ 75/(D−75)；D 的有效下界 = 淘汰线上沿 ≈ 585（本档
+     * {@link #LAKE_STATION_D_MIN}=450 的 1.3 倍，见其推导）⇒ I ≥ 75/510 ≈ 0.147，取 0.15
+     * 留余量（D=585 时域半径 76.4、D=847 时 110.5 ⇒ 绝对腿正常钉形）。
+     * 岛域 ⊂ 湖水区（0.15 &lt; {@link #LAKE_WATER_LEVEL}）由构造保持。v1.20.45 及更早的
+     * 0.045/0.013 档校准史见版本树（S5c 假因登记：射线法系统性高估岛半径，逐列真值口径为准）。
      */
-    public static final double LAKE_ISLAND = 0.045D;
+    public static final double LAKE_ISLAND = 0.15D;
 
     /**
      * 岛面的<b>平台半宽</b>（k 域，∈ (0,1]；v1.20.41 P20 S5c 新增）：岛抬升形状由纯穹顶
@@ -621,12 +642,14 @@ public final class GTSRVoronoiRiverField {
      * <b>不会</b>把岛推进 §15.4 的环带（A 组的取样域是 {@code [LAKE_WATER_LEVEL, LAKE_SHORE)}，
      * 岛域恒 ⊂ 湖水区 ⇒ 由构造隔离，S5c 双跑复核）。终值与推导见 {@link #LAKE_ISLAND} 的假因段。
      * <p>
-     * <b>终值 30</b>：与 {@link #LAKE_ISLAND} = 0.045 成拐点配对（{@code 849·0.045·尺度p10 0.78 ≈ 30}）
-     * ⇒ 约九成湖被钉在干直径 ≈32 格。本值是<b>几何半径</b>（格），不是噪声波长 ⇒ §9 的
-     * "新增波长 %16≠0" 纪律对本值不适用（无任何噪声采样吃它；它只进 {@link #lakeIslandTopAt} 的
-     * 一条除法）。
+     * <b>终值 75（P23 R1，v1.20.46 批2 S2，岛半径 40 档）</b>：干半径 = 本值 ×
+     * (1 − 0.7795·{@link #LAKE_ISLAND_PLATEAU}) = 75 × 0.5323 ≈ <b>39.9 ≈ 40 格</b>
+     * （0.7795 = 干阈 {@code h ≥ SEA_LEVEL=68} 的 s01 反解 k 值；PLATEAU 0.60 不变）。
+     * 本值是<b>warped 空间</b>的绝对半径（dC 同域）——世界空间岛半径 = c×39.9（c = warp
+     * 压缩系数，同 {@link #LAKE_WATER_LEVEL} 换算式），直跑岛心采样校准（验收带 ≈40±8）。
+     * v1.20.45 的 30 档（干直径 ≈31.9）与推导史见版本树（S5c 扫描表 island-scan.md）。
      */
-    public static final double LAKE_ISLAND_RADIUS = 30.0D;
+    public static final double LAKE_ISLAND_RADIUS = 75.0D;
 
     /**
      * 岛面相对 {@link ProsperityTerrainProfile#SEA_LEVEL} 的抬升（格）⇒ 岛面 = 68 + 4 = <b>72</b>。
@@ -648,22 +671,30 @@ public final class GTSRVoronoiRiverField {
     public static final int LAKE_WET_BAND_DROP = 2;
 
     /**
-     * 岛底柱的<b>柱环半径</b>（格，plan §15.5 终值 6，替换 §8 先验 8）：0.013 档岛半径 p10 = 11.25，
-     * 环半径 6 + 抖动 1 + 截面半宽 1 = 8 &lt; 11.25 ⇒ <b>全档不越岛缘</b>。原环 8+2=10 在 0.014 档
-     * 下"5/5 全落岛内"仅 60.65% ⇒ 约四成湖会缺柱，故收环。
-     * <b>v1.20.41 S5c 复核：值不动（6）</b>，成立条件反而变宽 —— 三条腿落地后岛干半径 = 15.96、
-     * 岛域半径实测 min 19.6，"5 柱全落岛内"的湖占比 68.75% → <b>75.00%</b>（判据 C5 实跑）。
+     * 岛底柱的<b>柱环半径</b>（格）。<b>P23 R1（v1.20.46 批2 S2）6 → 13</b>：随岛干半径
+     * 16 → 40 等比放大（≈2.17×就近整数档）；环 13 + 抖 2 + 截面半宽 2 = 17 &lt; 40 恒落岛内。
+     * v1.20.45 及更早的 6 档校准史（"5 柱全落岛内" 75.00% 等）见版本树。
      */
-    public static final double LAKE_PILLAR_RING = 6.0D;
+    public static final double LAKE_PILLAR_RING = 13.0D;
 
-    /** 岛底柱<b>抖动幅度</b>（格，终裁 ±1，替换 §8 先验 ±2）：取整后落在 {−1,0,+1}。 */
-    public static final int LAKE_PILLAR_JITTER = 1;
+    /**
+     * 岛底柱<b>抖动幅度</b>（格）。<b>P23 R1：±1 → ±2</b>（随岛尺寸等比放大；取整后落在
+     * {−2,−1,0,+1,+2}）。
+     */
+    public static final int LAKE_PILLAR_JITTER = 2;
 
-    /** 岛底柱<b>截面半宽</b>（格，1 ⇒ 3×3 = 9 列/柱；§13 C5 已裁定逐列谓词允许 3×3/5×5）。 */
-    public static final int LAKE_PILLAR_HALF_SECTION = 1;
+    /**
+     * 岛底柱<b>截面半宽</b>（格；1 ⇒ 3×3、<b>P23 R1：1 → 2 ⇒ 5×5</b> = 25 列/柱，随岛尺寸
+     * 等比放大——任务包"9×3×5 或等比"的等比落地）。
+     */
+    public static final int LAKE_PILLAR_HALF_SECTION = 2;
 
-    /** 岛底柱<b>根数</b>：1 根中心柱 + 4 根斜向环柱（§15.6 判据 3 的"5 柱全部贯通"口径）。 */
-    public static final int LAKE_PILLAR_COUNT = 5;
+    /**
+     * 岛底柱<b>根数</b>。<b>P23 R1：5 → 9</b> = 1 根中心柱 + 8 根环柱（45° 均分，随岛尺寸
+     * 等比放大）；y 域 [{@link #LAKE_PILLAR_FLOOR_Y}, {@link #LAKE_PILLAR_TOP_Y}] = [40,71]
+     * 机制不动。
+     */
+    public static final int LAKE_PILLAR_COUNT = 9;
 
     /**
      * 岛底柱写入的<b>最低 y</b>（湖床锚）：派生式 = {@code SEA_LEVEL − LAKE_CENTER_DEPTH} = 40，
@@ -680,19 +711,18 @@ public final class GTSRVoronoiRiverField {
 
     /**
      * 湖滨带<b>外缘</b>（RTG lakeShoreLevel 同位参数）：[WATER, SHORE) 为床→原地形渐变带。
-     * <p>
-     * <b>v1.20.41 S5 裁决：保持 0.15，不照 §8 抬到 WATER+0.035。</b>§8 的"+0.035 ⇒ 环带 ≈16 格"
-     * 用的是判据注释里的旧斜率 600 格/单位压力；S0a 实测 {@code dr/dW|0.13 = 708.579}
-     * （{@code plan/tmp/p20-baseline/lake-model-fit.txt} §3）⇒ 现值 0.02 压力宽 = <b>环带 ≈14.2 格</b>，
-     * 已经在 §8 想要的 16 格量级内，多级缓坡（§15.4）在 14 格里足够铺 4 级台阶。抬到 0.035 只会
-     * 把环带推到 ≈24.8 格：无收益地扩大置水面、抬高 §7 的结构挤压风险与 §7-6 的环带落块敞口。
-     * 衔接的短板是<b>形状</b>（线性 → 台阶 + 湿带），不是宽度 ⇒ 本片改形状、不改本值。
+     * <b>P23 R1（v1.20.46 批2 S2）0.15 → 0.26</b>：随 {@link #LAKE_WATER_LEVEL} 0.23 取 ΔP=0.03。
+     * <b>换算式（javadoc 钉）</b>：带格宽 ≈ ΔP × D/((1+W)(1+S))，D_eff≈1070 ⇒ ≈0.03×1070/1.47
+     * ≈ <b>22 格</b>（v1.20.45 为 ΔP=0.02×≈708 ≈14 格；放湖后带格宽按比例放大，4 级台阶踏面
+     * ≈5 格，多级缓坡语义不变）。sanzu 群系滩带外边在 {@link #sanzuBiomeShoreAt}（本值之上
+     * 再叠噪声 0~+17 格 ⇒ 滩带总宽 ≈22~39 格 ∈ 目标带 10~40），与本带的口径解耦见该处。
      */
-    public static final double LAKE_SHORE = 0.15D;
+    public static final double LAKE_SHORE = 0.26D;
 
     /**
-     * {@link #lakeAt} 的"无湖"哨兵（带外/带内无湖一律返回它）：≥ {@link #LAKE_SHORE}，与压力同向
+     * {@link #lakeAt} 的"无湖"哨兵（无湖/D_MIN 淘汰一律返回它）：≥ {@link #LAKE_SHORE}，与压力同向
      * （低=湖心），消费面（heightCore 压低 / 水面回填）统一判 {@code lake < LAKE_SHORE}。
+     * <b>P23 R1</b>：trunk 带外哨兵语义随全域站格化作废——现仅 D_MIN 淘汰与普通远场返回。
      */
     public static final double NO_LAKE = 1.0D;
 
@@ -724,7 +754,7 @@ public final class GTSRVoronoiRiverField {
          * 断流档（荒漠 true：置水走 segKey 整段闸）。<b>v1.20.42（P22 A1a）从生产链退役</b>：
          * {@link #wetAt} 收紧为 {@code s ≥ WET_MIN ∧ trunkAt > 0}（全域枯竭＋sanzu 豁免）后，
          * 本布尔不再参与任何生成判定（{@link #bedFromPool} 的 wetGated 腿已删）。字段保留只因
-         * 档表构造签名与判据侧口径本片不改（归 A1c 片）——先例同 {@link #WET_EDGE}。
+         * 档表构造签名与判据侧口径不改（先例见类顶部已删字段登记）。
          */
         public final boolean wetGated;
 
@@ -773,20 +803,12 @@ public final class GTSRVoronoiRiverField {
      * 河流强度 rs ∈ [-1,0]（0=无影响、-1=河道中心）。<b>纯函数</b>；档表走名册面
      * （rosterIndex 选 widthScale，荒漠/沼泽等的床与置水差异见 {@link #bedAt}/{@link #wetAt}）。
      * <p>
-     * ═══ T5 主干支（plan §3.3，带内 = 主边界三重门，任一不过整列清零）═══
-     * <ol>
-     * <li><b>宽河</b>：带内有效宽档 = max(底档, {@link #TRUNK_WIDTH_SCALE})——"河宽×3-4"对任何
-     * 底档统一为 3.5×（底档沼泽 1.6 不叠加成 5.6，守住 plan"×3-4"带；两档同值还使带内 s 与
-     * rosterIndex 无关，见 {@link #isSanzuColumn} 的构造不变量）；</li>
-     * <li><b>少支流·对齐门</b>：边界法向与带脊（trunkNoise 梯度）夹角 &gt;45.6°
-     * （|cos| &lt; {@link #TRUNK_ALIGN_COS}）的<b>横截族</b>整段清零；</li>
-     * <li><b>少支流·内带门</b>：trunkNoise &lt; EDGE+{@link #SANZU_TRUNK_INNER} 的带缘列清零
-     * ——对齐门只筛方向，与带向平行的整族边界照样通过（实测带内成"梯状平行河网"），内带门按
-     * 位置排他、只留贴带脊的那一条主边界；带外一切照旧 ⇒ 主干与普通河网<b>同用一套 Voronoi
-     * 边界</b>，天然连通（plan §3.3）；</li>
-     * <li><b>性能门</b>（plan §9 ③）：c ≥ 带内最大展宽（WIDTH×3.5）的列不求值 trunk——远离边界
-     * 的腹地列零主干成本。</li>
-     * </ol>
+     * ═══ P23 R1①（v1.20.46 批2 S2）：主干宽河彻底移除 ═══ 原 T5 的 trunk&gt;0 三重门支路
+     * （宽河 max(底档,3.5) / 对齐门 / 内带门）<b>整段删除</b>（不保留干峡谷骨架）——带内带外
+     * 同一常态档公式，主干带噪声（{@link #trunkAt}）不再是本方法的输入。带外支路原样保留，
+     * 并在其上加<b>段激活门</b>（R1② 零散干床）：每条 Voronoi 边段（同 segKey）按确定性哈希
+     * 以 {@link #RIVER_SEGMENT_ACTIVATE_P}=0.20 独立激活，未激活段整段清零。门在性能短路
+     * 之后 ⇒ 远离边界的腹地列零成本。
      */
     public static double strengthAt(long worldSeed, int x, int z, int rosterIndex) {
         final double styleScale = styleForRosterIndex(rosterIndex).widthScale;
@@ -795,23 +817,17 @@ public final class GTSRVoronoiRiverField {
         // 不再各重算一遍；算式与逐位结果同前）——
         final BorderEval border = warpedBorder(worldSeed, x, z);
         final double c = border.c;
-        // —— 3. 主干带门（性能：带内最大展宽也够不着的列不求值 trunk）——
-        if (c >= WIDTH * Math.max(styleScale, TRUNK_WIDTH_SCALE)) {
+        // —— 3. 性能短路：河/谷域（c ≥ 本档宽）之外的列零后续成本 ——
+        if (c >= WIDTH * styleScale) {
             return 0.0D;
         }
-        final double trunk = trunkAt(worldSeed, x, z);
-        if (trunk <= 0.0D) {
-            return c < WIDTH * styleScale ? c / (WIDTH * styleScale) - 1.0D : 0.0D;
-        }
-        // 带内 = 主边界三重门（plan §3.3"只沿单一主边界延伸"），任一不过即清零（带内无次级河）：
-        // ① 宽河：任何底档统一 max(底档, TRUNK_WIDTH_SCALE)；② 对齐门（横截族清零）；
-        // ③ 内带门（带缘平行族清零，见 SANZU_TRUNK_INNER）。
-        if (!trunkAligned(worldSeed, x, z, border.nx, border.nz) || trunk < SANZU_TRUNK_INNER) {
+        // —— 3b. 段激活门（P23 R1②）：同段（同 segKey）所有列同值 ⇒ 激活段整段连贯、
+        // 未激活段整段清零，跨 chunk 一致；segKeyAt 已列级 memo。——
+        if (hash01(segKeyAt(worldSeed, x, z) ^ SALT_RIVER_SEGMENT_GATE) >= RIVER_SEGMENT_ACTIVATE_P) {
             return 0.0D;
         }
-        final double width = WIDTH * Math.max(styleScale, TRUNK_WIDTH_SCALE);
-        // —— 4. 强度 ——
-        return c / width - 1.0D;
+        // —— 4. 强度（P23 R1①：trunk>0 宽河三重门支路已删，主干带内外同一常态档式）——
+        return c / (WIDTH * styleScale) - 1.0D;
     }
 
     /** 三参便捷形态（名册不可得 ⇒ 默认档；离线判据/骨架用）。 */
@@ -850,6 +866,8 @@ public final class GTSRVoronoiRiverField {
                 * GTSRWorldgenHash.valueNoise(worldSeed ^ SALT_BED, x / BED_NOISE_SCALE, z / BED_NOISE_SCALE);
         // 端面收尾入口门（P22 A1a）：只对"可能有端面"的湿核列求值——v1.20.42 起置水 ⇔
         // trunk 带内核列（wetAt 新门），带外河核列必枯竭（无水墙可收），荒漠 wetGated 腿退役。
+        // P23 R1（批2 S2）：wetAt 恒 false 后"水墙"不复存在，本门保留的是床形端面收尾的保守观感
+        // （主干带内激活段的床缘渐变），不再承载防水墙语义——保留不删（S6 收口登记）。
         if (trunkAt(worldSeed, x, z) > 0.0D) {
             bed = endFaceBed(worldSeed, x, z, rosterIndex, poolLevel, bed);
         }
@@ -867,7 +885,7 @@ public final class GTSRVoronoiRiverField {
      * （过 s ≥ WET_MIN 早退后 ⇔ trunk 带内核列）∧ 邻列换段（segKey 不同）且枯竭（邻列
      * {@code trunkAt ≤ 0} 或 {@code s < WET_MIN}，即新湿门为假）——全域枯竭后湿段在段界
      * 交给干河床的位置即水墙位置，靠本列一侧 {@code dist} 列进入渐变域（旧"荒漠整段闸 +
-     * segWetAt"腿退役）；</li>
+     * 整段闸"腿退役，见类顶已删字段登记）；</li>
      * <li><b>面 B·湖滨交接面</b>（主干带内，plan §B"湖滨带部分湿列同理"）：邻列是湖水区
      * （{@code lakeAt < LAKE_WATER_LEVEL}，其水面向 = SEA_LEVEL）——河口交接处同样收缓坡；</li>
      * </ul>
@@ -906,7 +924,7 @@ public final class GTSRVoronoiRiverField {
                 final int nx = x + (int) Math.round(tx * k * sign);
                 final int nz = z + (int) Math.round(tz * k * sign);
                 // 面 A·枯竭端面（P22 A1a）：邻列换段才判（段内枯竭带整段同观感，不重判）；
-                // "邻段干" = 邻列新湿门为假（trunk ≤ 0 或 s < WET_MIN），不再走 segWetAt。
+                // "邻段干" = 邻列新湿门为假（trunk ≤ 0 或 s < WET_MIN；整段闸已删，见类顶登记）。
                 if (segKeyAt(worldSeed, nx, nz) != ownKey
                     && (trunkAt(worldSeed, nx, nz) <= 0.0D || -strengthAt(worldSeed, nx, nz, rosterIndex) < WET_MIN)) {
                     dist = k;
@@ -931,23 +949,16 @@ public final class GTSRVoronoiRiverField {
     /**
      * (x,z) 列是否<b>置水资格</b>（纯函数；populate 与判据共用，无第二真值）。
      * <p>
-     * ═══ v1.20.42（P22 A1a）全域枯竭＋sanzu 豁免 ═══ 门收紧为<b>单点一行语义</b>：
-     * {@code s ≥ WET_MIN && trunkAt(seed,x,z) > 0}——除遗忘之川域（主干带）外全部河段不再置水
-     * （干河床，沿用既有断流段观感），带内全有水、无枯竭段。三腿依据：
-     * <ol>
-     * <li>{@link #strengthAt} 带内有效宽档 = max(底档, {@link #TRUNK_WIDTH_SCALE}) ⇒ 带内 s 与
-     * roster 无关（{@link #isSanzuColumn} 的构造不变量同源）⇒ 带内主干宽河自动豁免；</li>
-     * <li>带外河核列（trunk ≤ 0 的常态河核）整域枯竭——荒漠整段闸（{@link #segWetAt}）与
-     * 非荒漠恒湿两腿一并退役，wetness 从"段粒度"变"带粒度"；</li>
-     * <li>湖水回填走 provider {@code fillSanzuLakes} 的 {@link #lakeAt} 独立通道（不经本门）
-     * ⇒ 湖域不受影响；沼泽微池（{@code fillSwampPools}）同。</li>
-     * </ol>
-     * rosterIndex 形参自此不参与判定（保留签名：GTSRRiverPlacer/PlacementGate 既有调用面与
-     * 判据口径不改）。列在水面之下（h1 &lt; poolLevel−1）的最终回填门在落块器（那里才有 h1）。
-     * 枯竭边界的端面收尾由 {@link #endFaceBed} 面 A 以本门为真值重接（防竖直水墙）。
+     * ═══ P23 R1（v1.20.46 批2 S2）：主干河置水死 ═══ 方法体恒 {@code return false}——主干宽河
+     * 移除后河流场全域无水（干河床），湖/沼泽池走各自独立通道（provider {@code fillSanzuLakes}
+     * 的 {@link #lakeAt} 湖面、{@code fillSwampPools} 的三档/微池、落块器的沼泽残潭支路），
+     * 不经本门。签名保留：GTSRRiverPlacer/PlacementGate/SwampFieldGrid 既有调用面与判据口径
+     * 不改（调用点成为死路径，S6 收口登记）。历史：v1.20.42 P22 A1a 曾收紧为
+     * {@code s ≥ WET_MIN && trunkAt > 0}（全域枯竭＋sanzu 豁免），P23 R1 把带内豁免一并拆除。
+     * rosterIndex 形参不参与判定（保留签名）。
      */
     public static boolean wetAt(long worldSeed, int x, int z, int rosterIndex) {
-        return -strengthAt(worldSeed, x, z, rosterIndex) >= WET_MIN && trunkAt(worldSeed, x, z) > 0.0D;
+        return false;
     }
 
     // ═════════════════ v1.20.40（P19 plan §B/§C）：段键 / 池水位阶梯 / 整段闸 ═════════════════
@@ -1000,7 +1011,7 @@ public final class GTSRVoronoiRiverField {
     /**
      * <b>段池水位</b>（int 格；v1.20.40 P19 plan §C 核心）：该列所在边的<b>纯函数水位</b>——
      * 段内（同 segKey）所有列同值 ⇒ 跨 chunk 接缝一致；段与段之间水位成<b>阶梯</b>，
-     * 差 ≥ {@link #POOL_DROP} 的段界由落块器回填成落差墙/瀑布。
+     * 差 ≥ 旧落差墙阈（3 格，字段已删见类顶登记）的段界随落差墙检测支路删除而不再回填。
      * <p>
      * ═══ 取值式 ═══ 对边两端点与中点（t=0.2/0.5/0.8，端点坐标 = A、B 细胞中心 + 确定性
      * 线性 offset 重构）采样锚基 {@code bedTarget + POOL_ANCHOR_OFFSET ± POOL_ANCHOR_AMP}，
@@ -1011,11 +1022,11 @@ public final class GTSRVoronoiRiverField {
      * {@link BorderEval} 的第三近细胞随 c 同次带出）时，取共享该结点的三条边
      * (A,B)/(A,C)/(B,C) 池水位的<b>最小者</b>——水往低池走：结点不成水墙，落差集中到
      * 边中段（三细胞由 nearestCellHash 同源的 evalBorder 确定性给出）。池水位差 0-2 的
-     * 邻段交界只是 1-2 格小跌水（&lt; POOL_DROP，不触发落差墙口径），结点域边界处的
+     * 邻段交界只是 1-2 格小跌水（&lt; 旧落差墙阈 3，不触发墙口径），结点域边界处的
      * 水位台阶 ≤ 同一量级。
      * <p>
      * rosterIndex 只影响采样档（{@code bedTarget} 档），同段内跨粗格群系边界的池差被档差
-     * （常态 64.5 vs 沼泽 66.5）限制在 ~2 格——按 {@link #POOL_DROP}=3 之下，不触发墙。
+     * （常态 64.5 vs 沼泽 66.5）限制在 ~2 格——按旧落差墙阈 3 之下，不触发墙。
      * 池水位经 {@link #POOL_LEVEL_STEP} 量化成阶梯级（段间差 ∈ {0,2,4}）。
      */
     public static int poolLevelAt(long worldSeed, int x, int z, int rosterIndex) {
@@ -1085,19 +1096,17 @@ public final class GTSRVoronoiRiverField {
     private static final double[] POOL_SAMPLE_T = { 0.2D, 0.5D, 0.8D };
 
     /**
-     * 荒漠<b>整段闸</b>（段干/段湿）：{@code hash(segKey ^ SALT_WET)} 高 53 位归一后
-     * &lt; {@link #DESERT_WET_SHARE} ⇒ 湿段。同段（同 segKey）所有列同值 ⇒ 干段整段连贯、
-     * 湿段整段有水，跨 chunk 一致。
-     * <p>
-     * <b>v1.20.42（P22 A1a）从生产链退役</b>：{@link #wetAt} 收紧为
-     * {@code s ≥ WET_MIN ∧ trunkAt > 0}（全域枯竭＋sanzu 豁免）后，本方法不再是任何生产
-     * 判型的输入（原消费点 wetAt / endFaceBed 面 A 均已改走新湿门）。方法与 {@link #SALT_WET}
-     * <b>保留</b>只因判据侧消费点（tools/dim1 下 RMC）本片不改（归 A1c 片），生产链路不得
-     * 消费它——先例同 {@link #WET_EDGE}。
+     * 荒漠<b>整段闸</b> segWetAt。<b>已删方法（P23 R1·S6，v1.20.46）</b>：v1.20.42 随
+     * {@link #wetAt} 新门从生产链退役，判据侧（RMC）引用随 S6 重钉摘除后兑现删除
+     * （{@code hash(segKey ^ SALT_WET) < 0.35} 的历史算式见版本树；{@link #SALT_WET} 盐保留）。
      */
-    public static boolean segWetAt(long worldSeed, int x, int z) {
-        final long h = GTSRWorldgenHash.splitmix64(segKeyAt(worldSeed, x, z) ^ SALT_WET);
-        return (h >>> 11) / (double) GTSRWorldgenHash.UNIT_DIVISOR < DESERT_WET_SHARE;
+
+    /**
+     * splitmix64 → [0,1)（高 53 位归一；原 segWetAt 同款口径抽出，P23 R1②
+     * {@link #strengthAt} 段激活门派生用）：确定性纯函数，无第二份真值。
+     */
+    private static double hash01(long key) {
+        return (GTSRWorldgenHash.splitmix64(key) >>> 11) / (double) GTSRWorldgenHash.UNIT_DIVISOR;
     }
 
     // ═════════════════ T5（v1.20.39，plan §3.3）：主干带 / 巨湖 / sanzu 列谓词 ═════════════════
@@ -1106,8 +1115,13 @@ public final class GTSRVoronoiRiverField {
      * 主干带标记 trunk(x,z) = max(0, trunkNoise − {@link #SANZU_TRUNK_EDGE})（plan §3.3 已定机制）。
      * trunkNoise = 内嵌 {@link OpenSimplexDisk}（第 3 张表，盐 {@link #SALT_TRUNK}）在
      * {@link #TRUNK_SCALE} 尺度上的 x 分量，波长约 5000 格 ⇒ 带状高值区沿噪声脊线蜿蜒成
-     * "主干带"。<b>纯函数</b>；带内语义（宽河 ×3.5 / 谷 ×1.3 / 对齐门 / 巨湖激活）见
-     * {@link #strengthAt} 主干支与 {@link #lakeAt}。
+     * "主干带"。<b>纯函数</b>。
+     * <p>
+     * <b>P23 R1①（v1.20.46 批2 S2）降格</b>：主干宽河移除后，本场的生产消费者只剩地形/床收尾/
+     * 残潭两类"带语义"残留——{@code ProsperityTerrainProfile.heightCore} 的残潭预筛（trunk≤0 腿，
+     * 谷深 ×1.3 已随 P23 R1 退役）、{@link #bedFromPool}/{@link #endFaceBed} 的端面入口门、
+     * {@link #swampRiverPoolAt} 的带内零潭腿；湖已解耦（{@link #lakeAt0} 去 trunk 门）、
+     * {@link #strengthAt}/{@link #wetAt}/{@link #isSanzuColumn} 不再消费它。
      */
     public static double trunkAt(long worldSeed, int x, int z) {
         final int idx = slotIndex(worldSeed, x, z, MEMO_MASK);
@@ -1137,36 +1151,22 @@ public final class GTSRVoronoiRiverField {
         return buf[0];
     }
 
-    /**
-     * <b>主干对齐门（"少支流"机制）</b>：主干带内只保留沿带脊方向延伸的边界。判据 =
-     * 边界法向（{@code (nx,nz)}：p' 指向最近 Voronoi 细胞中心的单位向量，即 c 的梯度向）
-     * 与 trunkNoise 梯度（前向差分，步距 {@link #TRUNK_GRAD_STEP}——梯度方向在带内数百格尺度上
-     * 稳定）的 |cos| ≥ {@link #TRUNK_ALIGN_COS}；横截主干带的次级边界（|cos|≈0）整段清零。
-     * 几何论证见 {@link #TRUNK_ALIGN_COS} javadoc（三叉结点 60° 角距 ⇒ 主干恒有保留出边、无断头）。
-     */
-    private static boolean trunkAligned(long worldSeed, int x, int z, double nx, double nz) {
-        final double[] buf = diskBuffer();
-        final double n0 = trunkNoiseRaw(worldSeed, x, z, buf);
-        final double gx = trunkNoiseRaw(worldSeed, x + TRUNK_GRAD_STEP, z, buf) - n0;
-        final double gz = trunkNoiseRaw(worldSeed, x, z + TRUNK_GRAD_STEP, buf) - n0;
-        final double len = Math.sqrt(gx * gx + gz * gz);
-        if (len < 1.0E-9D) {
-            return false; // 带内鞍点：无带脊方向可对齐 ⇒ 不保留（带边缘极窄环，主干主体不受影响）
-        }
-        return Math.abs((nx * gx + nz * gz) / len) >= TRUNK_ALIGN_COS;
-    }
+    // P23 R1①（v1.20.46 批2 S2）：主干对齐门 trunkAligned（边界法向 × trunkNoise 梯度的 |cos|
+    // ≥ TRUNK_ALIGN_COS）已随 strengthAt 的 trunk>0 三重门支路删除——本类零消费者即删，
+    // 常量 TRUNK_ALIGN_COS 已删（见类顶登记）；TRUNK_GRAD_STEP 保留（历史梯度步距，零消费）。
 
     /**
-     * 巨湖压力场（T5，plan §3.3；<b>v1.20.40 P19 §D 破圆</b>）：第二 Voronoi（{@link #LAKE_INTERVAL}
-     * 格、{@link #SALT_LAKE_CELL_X}/{@link #SALT_LAKE_CELL_Z} 盐域分离、偏移幅度同
-     * {@link #CELL_JITTER}×间隔），压力 = dC/dN ∈ [0,1)——<b>低值在细胞中心</b>（与河网的
-     * 河网 border2 低值在边界相反）⇒ 每细胞腹地一座<b>离散巨湖</b>（c_lake&lt;{@link #LAKE_WATER_LEVEL}
-     * 即湖水区，水径 ≈ 本值×D/(1+本值)，D ≈ (0.7..1.4)×间隔）。求值前对坐标加一次
-     * domain-warp（{@link #LAKE_WARP_SCALE}/{@link #LAKE_WARP}，第 4 张 disk 表）——
-     * 湖形从细胞圆破成不规则形，湖径也随揉动逐湖涨落。
+     * 巨湖压力场（T5，plan §3.3；<b>v1.20.40 P19 §D 破圆</b>；<b>P23 R1①（v1.20.46 批2 S2）
+     * 全域站格独立激活</b>）：第二 Voronoi（{@link #LAKE_INTERVAL} 格、{@link #SALT_LAKE_CELL_X}/
+     * {@link #SALT_LAKE_CELL_Z} 盐域分离、偏移幅度同 {@link #CELL_JITTER}×间隔），压力 = dC/dN
+     * ∈ [0,1)——<b>低值在细胞中心</b>（与河网的河网 border2 低值在边界相反）⇒ 每细胞腹地一座
+     * <b>离散巨湖</b>（c_lake&lt;{@link #LAKE_WATER_LEVEL} 即湖水区，水径 ≈ 本值×D/(1+本值)，
+     * D ≈ (0.7..1.4)×间隔）。求值前对坐标加一次 domain-warp（{@link #LAKE_WARP_SCALE}/
+     * {@link #LAKE_WARP}，第 4 张 disk 表）——湖形从细胞圆破成不规则形，湖径也随揉动逐湖涨落。
      * <p>
-     * <b>性能门（plan §9 ③）</b>：仅主干带内求值——trunk ≤ 0 一律返回 {@link #NO_LAKE} 哨兵
-     * （第二 Voronoi 一个字都不算），"巨湖场仅主干带内激活"与性能约束同一条判。
+     * <b>P23 R1：与主干带解耦</b>——trunk 门删除（原"仅主干带内求值"的性能门随之作废，全域
+     * 每列都付一次湖 Voronoi 成本，GenBench 时基漂移归 S6 重钉）；新增 {@link #LAKE_STATION_D_MIN}
+     * 小湖淘汰腿防双站过近破形。
      */
     public static double lakeAt(long worldSeed, int x, int z) {
         final int idx = slotIndex(worldSeed, x, z, MEMO_MASK);
@@ -1183,24 +1183,32 @@ public final class GTSRVoronoiRiverField {
         return v;
     }
 
-    /** lakeAt 原始求值体（P19 U8 起由 {@link #lakeAt} 的列级 memo 包裹；算式一字未动）。 */
+    /**
+     * lakeAt 原始求值体（P19 U8 起由 {@link #lakeAt} 的列级 memo 包裹；算式一字未动）。
+     * <p>
+     * <b>P23 R1①（v1.20.46 批2 S2）</b>：trunk 激活门删除——湖改为<b>全域 {@link #LAKE_INTERVAL}
+     * 站格独立判定</b>（主干带不再是湖存在的前提）；新增 {@link #LAKE_STATION_D_MIN} 小湖淘汰腿
+     * （第二近站过近 ⇒ NO_LAKE，防双站过近破形）。v1.20.41 P20 S5d 的抽出口说明仍适用：
+     * 3×3 站距扫描在 {@link #lakeStationDistances}，本式仍取 dC/dN。
+     */
     private static double lakeAt0(long worldSeed, int x, int z) {
-        if (trunkAt(worldSeed, x, z) <= 0.0D) {
-            return NO_LAKE;
-        }
-        // v1.20.41 P20 S5d：3×3 站距扫描原样抽到 {@link #lakeStationDistances}（算术一字未动 ⇒
-        // lakeAt 逐位不变，S5d 双跑对拍为证），本式仍取 dC/dN。抽出的动机见那里：岛的绝对半径腿
-        // 要的是 <b>dC 本身</b>（绝对量），而 dC/dN 是尺度归一量 —— 同一次扫描、同一份形状真值。
+        // v1.20.41 P20 S5d：3×3 站距扫描原样抽到 {@link #lakeStationDistances}（算术一字未动），
+        // 本式仍取 dC/dN。岛的绝对半径腿要的是 <b>dC 本身</b>（绝对量），而 dC/dN 是尺度归一量
+        // —— 同一次扫描、同一份形状真值。
         final double[] dd = LAKE_DIST_BUF.get();
         lakeStationDistances(worldSeed, x, z, dd);
+        // P23 R1：小湖淘汰腿——第二近站 dd[1] 过近（双站破形域）整列 NO_LAKE。
+        if (dd[1] < LAKE_STATION_D_MIN) {
+            return NO_LAKE;
+        }
         return dd[0] / dd[1];
     }
 
     /**
      * <b>湖置水列谓词</b>（v1.20.43 P22 版 B O1a，{@link #lakeAt} 的布尔单一出口，
      * {@code submergedAt} 先例同款）：{@code lakeAt < LAKE_WATER_LEVEL} 的逐字包装——湖床/湖水区
-     * （水径推导见 {@link #LAKE_WATER_LEVEL}）。消费面两处同一真值：{@code PlacementGate.dryColumnAt}
-     * 腿② 与 {@code ProsperityCaveField.waterColumnProtected} 腿④。
+     * （水径推导见 {@link #LAKE_WATER_LEVEL}）。消费面：{@code PlacementGate.dryColumnAt} 腿②
+     * （O1a 出口口径；原 ProsperityCaveField 水柱保护腿已随洞穴移除（P23 S1）退役）。
      * <p>
      * ⚠ 与湖<b>岸</b>口径（{@code lakeAt < LAKE_SHORE}，SwampFieldGrid / ProsperityLumenPlacer /
      * fillSanzuLakes 消费）<b>不同阈不并收</b>——O1a 纪律：阈值语义差异不得强行统一，岸径腿保持内联。
@@ -1238,6 +1246,13 @@ public final class GTSRVoronoiRiverField {
     public static void lakeStationDistances(long worldSeed, int x, int z, double[] out) {
         // v1.20.40 P19 §D 破圆：湖 Voronoi 输入坐标先揉一次 disk 位移（幅度/波长见常量注释）；
         // buf 取完即拷出，不跨后续 diskAt 持有（DISK_BUF 单缓冲纪律）。
+        // ── P23 R1·S6 性能尝试（v1.20.46）：已试并已回退 ── 曾把 3×3 站帧按 (seed,cellX,cellZ)
+        // 单格缓存（消 18 次 cellOffset）+ 平方距离选站（消 7 次 sqrt），两者都<b>逐位等价</b>
+        // （对拍证据 temp/p23-s6/lake-{before,after}.bin：4,194,304 列×3 值 + 1,048,576 列
+        // islandTop，SHA256 相同），但<b>本机实测零收益</b>（同列热路径 lakeStationDistances
+        // 旧 0.062-0.070us vs 新 0.061-0.078us；GenBench 交替 13/18 次中位 370.9 vs 372.0us）
+        // ——省下的哈希成本被两个 ThreadLocal.get() 抵掉 ⇒ 按"S6 性能尝试不可行即回退"纪律
+        // 还原原式（本轮 GenBench 只做 BASE 重立，不做代码优化）。详见 GenBenchCheck javadoc。
         final double[] buf = diskBuffer();
         diskAt(worldSeed, SLOT_DISK_LAKE_WARP, LAKE_WARP_SCALE, x, z, buf);
         final double px = x + buf[0] * LAKE_WARP;
@@ -1426,18 +1441,18 @@ public final class GTSRVoronoiRiverField {
      * （{@code lakeAt < LAKE_ISLAND}）的实测半径只有 ≈11 格 ⇒ 拿湖站当岛心会把整座岛推到湖域之外，
      * {@link #islandPillarAt} 的域门（同一条 {@code lakeAt < LAKE_ISLAND}）随之恒假 ⇒
      * <b>大多数湖一根柱都写不出来</b>（S5b 判据实测：逐湖柱连通分量数中位 0、"5 柱全中"仅 9.38%）。
-     * 修法 = 对 {@code X = 湖站 − W(X)} 做两次不动点迭代（{@code |W| ≤ LAKE_WARP = 70}、位移场波长
-     * {@code LAKE_WARP_SCALE = 320} ⇒ 每步收缩比 ≈ 70/320 ≪ 1，两步后残差 &lt; 1 格），
+     * 修法 = 对 {@code X = 湖站 − W(X)} 做两次不动点迭代（P23 R1 档：{@code |W| ≤ LAKE_WARP = 100}、
+     * 位移场波长 {@code LAKE_WARP_SCALE = 700} ⇒ 最大斜率 2π×100/700 ≈ 0.898 &lt; 1，每步收缩比
+     * ≈ 100/700 ≪ 1 ⇒ 两步后残差 &lt; 1 格；v1.20.45 档 70/320 的旧读数见版本树），
      * 仍然只吃同一份 {@code diskAt} 表与同一条 {@code cellOffset} ⇒ 零新增真值。
      *
      * @param out 长度 ≥4 的缓冲：{@code [0]=中心世界 X、[1]=中心世界 Z、[2]=格 gx、[3]=格 gz}；
-     *            主干带外（{@code trunk ≤ 0} ⇒ 无湖）时写 {@code out[2] = Integer.MIN_VALUE} 作失败标记
+     *            失败标记 {@code out[2] = Integer.MIN_VALUE}（P23 R1 起 trunk 门已删、全域站格
+     *            均有湖心零点，本标记仅作防御性出口保留——{@link #nearestActiveLakeCenter} 的
+     *            跳过臂随之失活）
      */
     public static void lakeCellCenterAt(long worldSeed, int x, int z, double[] out) {
         out[2] = Integer.MIN_VALUE;
-        if (trunkAt(worldSeed, x, z) <= 0.0D) {
-            return;
-        }
         final double[] buf = diskBuffer();
         diskAt(worldSeed, SLOT_DISK_LAKE_WARP, LAKE_WARP_SCALE, x, z, buf);
         final double px = x + buf[0] * LAKE_WARP;
@@ -1467,8 +1482,8 @@ public final class GTSRVoronoiRiverField {
                 }
             }
         }
-        // 反解压力零点 X + W(X) = 湖站：两次不动点（收缩比 ≈ LAKE_WARP/LAKE_WARP_SCALE = 0.22 ⇒
-        // 残差 < 1 格）。buf 是 DISK_BUF 单缓冲，取值即用于是本行，不跨下次 diskAt 持有。
+        // 反解压力零点 X + W(X) = 湖站：两次不动点（收缩比 ≈ LAKE_WARP/LAKE_WARP_SCALE = 100/700
+        // ≈ 0.143 ⇒ 残差 < 1 格）。buf 是 DISK_BUF 单缓冲，取值即用于是本行，不跨下次 diskAt 持有。
         double centerX = bestEx;
         double centerZ = bestEz;
         for (int it = 0; it < 2; it++) {
@@ -1488,15 +1503,123 @@ public final class GTSRVoronoiRiverField {
         out[3] = bestGz;
     }
 
+    // ═════════ S5 传送定位出口（P23 plan §2 S5，纯新增段；零 Chunk 读、纯函数、不加新常量—— ═════════
+    // 枚举窗/射线/步长全为字面量；湖形只经 lakeAt / lakeCellCenterAt / LAKE_* 的公开函数表面，
+    // 批2 S2 重写湖区（去 trunk 门、warp 与半径改档）后本两出口自动跟随新湖形（签名与语义表面不变约定）。
+
+    /**
+     * <b>最近活湖湖心</b>（S5，tpdim 传送定位通道）：以查询列 (x,z) 所在 {@link #LAKE_INTERVAL}
+     * 站格为心、≤3 环（7×7 站）枚举每站的 {@link #lakeCellCenterAt} 压力零点，活湖门与
+     * {@code MegaTreeAnchors.anchorAt} 同一条腿——湖心列 {@code lakeAt < }{@link #LAKE_ISLAND}
+     * （死湖无岛穹无锚，同一域门），返回欧氏最近活湖心。
+     * <p>
+     * <b>站内代表列 = 该站标称格点</b>（{@code gx·LAKE_INTERVAL}）：站锚定偏移 ≤ 0.35×间隔 = 420、
+     * warp ≤ {@link #LAKE_WARP} = 70 ⇒ 自家站到格点 ≤ 490 &lt; 他站 ≥ 1200−420−70 = 710 ⇒
+     * 格点查询恒命中自家站（{@code MegaTreeAnchors.ENUM_STEP} 采样论证同一口径），且湖心反解只依赖
+     * 获胜站坐标 ⇒ 同站恒得同一湖心，无需去重。<b>P23 R1（v1.20.46 批2 S2）已兑现</b>：
+     * {@link #lakeCellCenterAt} 的 trunk 门删除 ⇒ 原"主干带外站跳过"臂失活、全域站格自动生效
+     * （死湖门仍裁 D_MIN 淘汰与 {@code lakeAt ≥ LAKE_ISLAND} 的站）。非热路径（指令级），
+     * 49 站全扫取最小欧氏距离，确定性。
+     *
+     * @param outXY 长度 ≥2 的输出：{@code [0]=湖心 X、[1]=湖心 Z}（世界列坐标，四舍五入）
+     * @return {@code true} = outXY 已写最近活湖心；{@code false} = 7×7 站内无活湖（不承诺 out 内容）
+     */
+    public static boolean nearestActiveLakeCenter(long worldSeed, int x, int z, int[] outXY) {
+        final double[] c = new double[4];
+        final int baseGx = (int) Math.floor(x / LAKE_INTERVAL + 0.5D);
+        final int baseGz = (int) Math.floor(z / LAKE_INTERVAL + 0.5D);
+        boolean found = false;
+        double bestD = Double.POSITIVE_INFINITY;
+        int bestX = 0;
+        int bestZ = 0;
+        for (int gz = baseGz - 3; gz <= baseGz + 3; gz++) {
+            for (int gx = baseGx - 3; gx <= baseGx + 3; gx++) {
+                // 站标称格点（warp 前整数列）：自家站恒最近，见方法注释的间距论证
+                final int qx = (int) Math.round(gx * LAKE_INTERVAL);
+                final int qz = (int) Math.round(gz * LAKE_INTERVAL);
+                lakeCellCenterAt(worldSeed, qx, qz, c);
+                if ((int) c[2] == Integer.MIN_VALUE) {
+                    continue; // 防御臂（P23 R1 去 trunk 门后理论不可达；见 lakeCellCenterAt 注释）
+                }
+                final int ax = (int) Math.round(c[0]);
+                final int az = (int) Math.round(c[1]);
+                if (lakeAt(worldSeed, ax, az) >= LAKE_ISLAND) {
+                    continue; // 死湖（与 MegaTreeAnchors.anchorAt 同一条活湖门）
+                }
+                final double ddx = ax - x;
+                final double ddz = az - z;
+                final double d = ddx * ddx + ddz * ddz;
+                if (d < bestD) {
+                    bestD = d;
+                    bestX = ax;
+                    bestZ = az;
+                    found = true;
+                }
+            }
+        }
+        if (!found) {
+            return false;
+        }
+        outXY[0] = bestX;
+        outXY[1] = bestZ;
+        return true;
+    }
+
+    /**
+     * <b>sanzu 传送落点列</b>（S5，滩带列——避岛心树干与岛底柱）：自湖心 (cx,cz) 沿 8 条
+     * 45° 均分射线向外步进（步长 4 格、行程上限 600 格 = {@link #LAKE_INTERVAL}/2，全程留在
+     * 本站湖域内），取每条射线上<b>首个</b>压力 ∈ [{@link #LAKE_ISLAND}, {@link #LAKE_SHORE})
+     * 的列（岛域外缘～湖岸的滩带），再取其中距湖心最近者。
+     * <p>
+     * 可达性：调用方湖心来自 {@link #nearestActiveLakeCenter}（活湖 ⇒ 湖心压力 &lt;
+     * {@link #LAKE_ISLAND}，岛域内部）⇒ 向外必穿越本带；岛域 + 水径上界 ≪ 600 ⇒ 必命中。
+     * 命中列若仍是置水列（滩带含水缘），由指令层的水柱感知（columnTopSafeY 螺旋避让）兜底。
+     * 参数全字面量、不加新常量；湖形变更（批2 S2）自动跟随。纯函数、零 Chunk 读。
+     *
+     * @param cx 湖心世界列 X（{@link #nearestActiveLakeCenter} 的输出）
+     * @param cz 湖心世界列 Z
+     * @return {@code {x, z}} 滩带列；{@code null} = 8 射线全程未命中（理论不达）
+     */
+    public static int[] sanzuArrivalColumn(long worldSeed, int cx, int cz) {
+        int bestX = 0;
+        int bestZ = 0;
+        double bestD = Double.POSITIVE_INFINITY;
+        for (int dir = 0; dir < 8; dir++) {
+            final double ux = Math.cos(dir * Math.PI / 4.0D);
+            final double uz = Math.sin(dir * Math.PI / 4.0D);
+            // 步长 4：滩带压力宽度（岛域外缘到湖岸）数十格，粗扫不跳带；上限 600 = 半站距
+            for (int step = 4; step <= 600; step += 4) {
+                final int px = cx + (int) Math.round(ux * step);
+                final int pz = cz + (int) Math.round(uz * step);
+                final double p = lakeAt(worldSeed, px, pz);
+                if (p >= LAKE_ISLAND && p < LAKE_SHORE) {
+                    final double ddx = px - cx;
+                    final double ddz = pz - cz;
+                    final double d = ddx * ddx + ddz * ddz;
+                    if (d < bestD) {
+                        bestD = d;
+                        bestX = px;
+                        bestZ = pz;
+                    }
+                    break; // 本射线首个命中即止（最近的滩带十字段）
+                }
+            }
+        }
+        if (bestD == Double.POSITIVE_INFINITY) {
+            return null;
+        }
+        return new int[] { bestX, bestZ };
+    }
+
     /**
      * <b>岛底柱列谓词</b>（plan §15.5，需求 8「岛和底部是有柱子相连的」；v1.20.41 P20 S5 新增）：
      * 本列是否落在某根岛的底柱截面上。
      * <p>
-     * <b>柱位集合</b> = 1 根中心柱 + 4 根斜向环柱（{@link #LAKE_PILLAR_COUNT} = 5），环柱极角取
-     * 45°/135°/225°/315°、半径 {@link #LAKE_PILLAR_RING} = 6 加 {@link #LAKE_PILLAR_JITTER} = ±1 的
-     * 确定性抖动（抖动脉冲 = {@link #cellOffset} 同一条 splitmix 哈希，键 = 湖格 × 柱序号 ⇒
-     * <b>同一座湖的柱位对全部列一致</b>，不会逐列各抖各的把截面抖散）；截面
-     * {@code 2·LAKE_PILLAR_HALF_SECTION + 1 = 3×3}。
+     * <b>柱位集合</b> = 1 根中心柱 + 8 根环柱（{@link #LAKE_PILLAR_COUNT} = 9，P23 R1 随岛放大
+     * 的等比档），环柱极角 45° 均分（0°,45°,…,315°）、半径 {@link #LAKE_PILLAR_RING} = 13 加
+     * {@link #LAKE_PILLAR_JITTER} = ±2 的确定性抖动（抖动脉冲 = {@link #cellOffset} 同一条
+     * splitmix 哈希，键 = 湖格 × 柱序号 ⇒ <b>同一座湖的柱位对全部列一致</b>，不会逐列各抖各的
+     * 把截面抖散）；截面 {@code 2·LAKE_PILLAR_HALF_SECTION + 1 = 5×5}。
      * <p>
      * <b>为什么必须是逐列纯函数而不是结构通道</b>（§13 C5 / §15.5 表末行）：柱高
      * {@code y ∈ [LAKE_PILLAR_FLOOR_Y, LAKE_PILLAR_TOP_Y]} = 32 格 &gt;
@@ -1505,11 +1628,9 @@ public final class GTSRVoronoiRiverField {
      * 跨 chunk 天然无缝，且 3×3 截面骑在 chunk 边界上也只是"两边各写自己那几列"，
      * 不构成任何跨界写（{@code ChunkClampedSink} 的丢弃计数应为 0，见 S5 回执）。
      * <p>
-     * 域门 {@code lakeAt < LAKE_ISLAND}：只可能给岛域内的列 ⇒ 环柱半径 6 + 抖 1 + 半宽 1 = 8
-     * 恒小于岛半径 p10 = 11.25（§15.5），柱不越岛缘。<b>v1.20.41 S5c 复核（原句保留）</b>：那个
-     * 11.25 是 §15.5 的 9 格射线估值，逐列真值更小时刻反而更紧；S5c 三条腿落地后岛<b>干</b>半径
-     * = 15.96、岛域半径实测 min 19.6 ⇒ 8 &lt; 15.96 有余量，且柱位全落在平台段（{@code k ≥ 0.60}）
-     * ⇒ 柱顶正对满高岛面 72（判据实测柱脚床高由 [40,72] 收到 [72,72]）。
+     * 域门 {@code lakeAt < LAKE_ISLAND}：只可能给岛域内的列 ⇒ <b>P23 R1 档：环柱半径 13 + 抖 2
+     * + 半宽 2 = 17 &lt; 岛干半径 40</b>（v1.20.45 档为 8 &lt; 15.96，S5c 复核），柱不越岛缘；
+     * 柱位落在平台段（{@code k ≥ 0.60}）⇒ 柱顶正对满高岛面 72。
      */
     public static boolean islandPillarAt(long worldSeed, int x, int z) {
         if (lakeAt(worldSeed, x, z) >= LAKE_ISLAND) {
@@ -1523,9 +1644,10 @@ public final class GTSRVoronoiRiverField {
         final int gx = (int) c[2];
         final int gz = (int) c[3];
         for (int p = 0; p < LAKE_PILLAR_COUNT; p++) {
-            // 中心柱（p=0）不抖环半径（抖了就不是"岛心正下方那根"了），只抖一个格内相位
+            // 中心柱（p=0）不抖环半径（抖了就不是"岛心正下方那根"了），只抖一个格内相位；
+            // P23 R1：8 根环柱 45° 均分（p=1..8 ⇒ 极角 0°,45°,…,315°，原 4 根斜向环的放大档）
             final double radius = p == 0 ? 0.0D : LAKE_PILLAR_RING + pillarJitter(worldSeed, gx, gz, p, 0L);
-            final double angle = p == 0 ? 0.0D : Math.PI / 4.0D + (p - 1) * Math.PI / 2.0D;
+            final double angle = p == 0 ? 0.0D : Math.PI / 4.0D * (p - 1);
             final int px = (int) Math.round(c[0] + Math.cos(angle) * radius);
             final int pz = (int) Math.round(c[1] + Math.sin(angle) * radius);
             if (Math.abs(x - px) <= LAKE_PILLAR_HALF_SECTION && Math.abs(z - pz) <= LAKE_PILLAR_HALF_SECTION) {
@@ -1651,8 +1773,8 @@ public final class GTSRVoronoiRiverField {
      * <b>微池置水列谓词</b>（v1.20.43 P22 版 B O1a，{@link #swampLakeAt} 的布尔单一出口，
      * {@code submergedAt} 先例同款）：{@code swampLakeAt < SWAMP_POOL_WATER_LEVEL} 的逐字包装——
      * 非沼泽 roster 恒 {@link #NO_SWAMP_POOL}（比较式天然 false，roster 门短路语义保持）。
-     * 消费面三处同一真值：{@code ProsperityCaveField.waterColumnProtected} 腿②、
-     * {@code GTSRRiverPlacer.neighborBarrier} 微池腿、{@code ChunkProviderProsperityRuins.SwampFieldGrid}
+     * 消费面同一真值（O1a 出口口径；原 ProsperityCaveField 水柱保护腿已随洞穴移除（P23 S1）
+     * 退役）：{@code GTSRRiverPlacer.neighborBarrier} 微池腿、{@code ChunkProviderProsperityRuins.SwampFieldGrid}
      * nominal 门的微池腿。
      */
     public static boolean swampPoolWaterAt(long worldSeed, int x, int z, int rosterIndex) {
@@ -1716,6 +1838,9 @@ public final class GTSRVoronoiRiverField {
      * 床面。两腿互斥让残潭只落在"干河床"上，{@code fillSwampPools} 对潭列恒短路
      * （tier NONE ∧ 非微池 ⇒ 其入口 continue），潭水顶由 {@code GTSRRiverPlacer} 独占；
      * 依赖声明：本类→TerrainVariants 是单向引用（后者不引用本类，无环）。</li>
+     * <li><b>沼泽腹地门</b>（P23 E，v1.20.46 批2 S2）：{@code !}{@link TerrainVariants#swampInteriorAt}
+     * ⇒ 0——残潭不得落群系边缘（A3 边缘门把边缘三档/微池钳 NONE 后，本场的三档互斥腿在边缘
+     * 反而放行，交界干河床上的潭水敞口即此；与三档/微池同一粗层真值，同门同判）。</li>
      * </ol>
      * 门带值 = s01((n−{@link #SWAMP_RIVER_POOL_BAND_CENTER})/{@link #SWAMP_RIVER_POOL_BAND_WIDTH})
      * （n 为独立盐 {@link #SALT_SWAMP_RIVER_POOL}、波长 {@link #SWAMP_RIVER_POOL_SCALE} 的
@@ -1738,6 +1863,10 @@ public final class GTSRVoronoiRiverField {
         if (TerrainVariants.swampTierAt(worldSeed, x, z, rosterIndex) != TerrainVariants.SWAMP_TIER_NONE) {
             return 0.0D;
         }
+        // P23 E（v1.20.46 批2 S2）第六腿：沼泽腹地门——边缘列零潭（三档/微池同门，粗层真值）。
+        if (!TerrainVariants.swampInteriorAt(worldSeed, x, z)) {
+            return 0.0D;
+        }
         final double n = GTSRWorldgenHash
             .valueNoise(worldSeed ^ SALT_SWAMP_RIVER_POOL, x / SWAMP_RIVER_POOL_SCALE, z / SWAMP_RIVER_POOL_SCALE);
         final double t = (n - SWAMP_RIVER_POOL_BAND_CENTER) / SWAMP_RIVER_POOL_BAND_WIDTH;
@@ -1748,8 +1877,8 @@ public final class GTSRVoronoiRiverField {
     /**
      * <b>残潭列谓词</b>（v1.20.43 P22 版 B O1a，{@link #swampRiverPoolAt} 的布尔单一出口，
      * {@code submergedAt} 先例同款）：{@code swampRiverPoolAt > 0} 的逐字包装——潭列（含下挖潭底）。
-     * 消费面同一真值：{@code PlacementGate.dryColumnAt} 腿④（结构避潭）、
-     * {@code ProsperityCaveField.waterColumnProtected} 腿①（洞不穿潭）、{@code GTSRRiverPlacer}
+     * 消费面同一真值（O1a 出口口径；原 ProsperityCaveField 水柱保护腿已随洞穴移除（P23 S1）退役）：
+     * {@code PlacementGate.dryColumnAt} 腿④（结构避潭）、{@code GTSRRiverPlacer}
      * 潭置水支路（本列门 + 潭邻钳内外两环）、{@code ChunkProviderProsperityRuins.SwampFieldGrid}
      * fixed 门的潭腿。roster 实参由各消费面自定（0 最保守 / 生产 coarse 链 / 3 字面 / 邻列实档），
      * 本出口<b>不统一</b> roster 语义（O1a 纪律：阈值/roster 语义差异不得强行统一）。
@@ -1760,38 +1889,63 @@ public final class GTSRVoronoiRiverField {
     }
 
     /**
-     * sanzu 群系指派的最小河强（plan §3.3「列满足 trunk&gt;0 且 s ≥ 0.7 且 h1 ≤ 68」的 0.7 档）。
+     * sanzu 群系指派的最小河强。<b>已删字段（P23 R1·S6，v1.20.46）</b>：批2 S2 随
+     * {@link #isSanzuColumn} 的河道支删除而生产零消费，判据侧（SLMC 分支列读数）引用随 S6
+     * 重钉摘除后兑现删除（历史值 0.7 档见版本树）。
      */
-    public static final double SANZU_BIOME_STRENGTH = 0.7D;
 
     /**
-     * <b>sanzu 列谓词（单点真值）</b>，两支（plan §3.3 河道支 + v1.20.40 P19 §D 湖面支）：
-     * <ol>
-     * <li><b>河道支</b>（plan §3.3 逐字）：trunk &gt; 0 且 s ≥ {@link #SANZU_BIOME_STRENGTH} 且
-     * {@code heightAt ≤ SEA_LEVEL}；</li>
-     * <li><b>湖面支</b>（P19 §D"湖列写 sanzu"）：trunk &gt; 0 且 {@code lakeAt < LAKE_WATER_LEVEL}
-     * （湖水区）且 {@code heightAt ≤ SEA_LEVEL}——heightCore 湖段压低保证湖水区列
-     * h ≤ 床 ≤ 水面−1 &lt; SEA_LEVEL，两支与回填/空气压缩机消费面同解（air 走同一谓词
-     * 自动生效——余汽域扩到湖面 = 拍板合意：深渊执念湖面收集三途余汽）。</li>
-     * </ol>
-     * 两个消费面——{@code ChunkProviderProsperityRuins.onPopulate} 的平面写入与本谓词是
-     * <b>同一份实现</b>（写什么列、空气压缩机就认什么列，无第二真值）；{@code ProsperityAirLookup}
-     * 因链身份面（GenLayer 链 4 家 selector）永远解析不到 populate 后置写入的第 5 群系而复用它。
+     * sanzu 滩带噪声波长（格，P23 R1 新增）：与湖尺度匹配的低频档（任务包带 100~200，取 150
+     * ——标称水半径 200 的 ~75%，滩带外缘在湖岸尺度上缓变、不成锯齿）。
+     */
+    public static final double SANZU_BIOME_SHORE_NOISE_SCALE = 150.0D;
+
+    /**
+     * sanzu 滩带噪声调制幅度（压力域，P23 R1 新增）。<b>换算式（javadoc 钉）</b>：滩带外缘阈值
+     * {@code sanzuBiomeShoreAt = LAKE_SHORE + n01×本值}，噪声腿格宽 ≈ 本值 ×
+     * D_eff/((1+{@link #LAKE_WATER_LEVEL})(1+{@link #LAKE_SHORE})) ≈ 0.03×1070/1.55 ≈ <b>0~17 格</b>
+     * （D_eff = 相邻湖站距实测 ≈1070）；叠加湖滨带本身的 ≈22 格 ⇒ 滩带（水线→群系外缘）
+     * 总宽 ≈<b>22~39 格逐点起伏</b>（目标带 10~40）。n01 ∈ [0,1) ⇒ 阈值 ≥ {@link #LAKE_SHORE} &gt;
+     * {@link #LAKE_WATER_LEVEL} ⇒ <b>恒覆盖置水区</b>（凡 {@code lakeAt < LAKE_SHORE ∧ h < 68}
+     * 的置水列（fillSanzuLakes 口径）必在本谓词域内——E"湖滨灌水由滩带认领自解"的几何前提）。
+     */
+    public static final double SANZU_BIOME_SHORE_JITTER = 0.03D;
+
+    /**
+     * sanzu 滩带噪声盐（P23 R1 新增）：取本类盐段尾 {@code …114L}（{@code …113L} 已被
+     * {@link #SALT_RIVER_SEGMENT_GATE} 占用）。
+     */
+    public static final long SALT_SANZU_BIOME_SHORE = 0x5249F114L;
+
+    /**
+     * sanzu 群系滩带外缘阈值（P23 R1 新增私有）：{@link #LAKE_SHORE} + n01×
+     * {@link #SANZU_BIOME_SHORE_JITTER}（n01 = 低频 valueNoise 的 [0,1) 归一；换算式见
+     * {@link #SANZU_BIOME_SHORE_JITTER}）。单边调制（阈值只往岸外扩）：对称 ± 式会在噪声低瓣
+     * 把阈值压回 {@link #LAKE_SHORE} 之下、破坏"恒覆盖置水区"，禁止改对称。
+     */
+    private static double sanzuBiomeShoreAt(long worldSeed, int x, int z) {
+        final double n = GTSRWorldgenHash.valueNoise(
+            worldSeed ^ SALT_SANZU_BIOME_SHORE,
+            x / SANZU_BIOME_SHORE_NOISE_SCALE,
+            z / SANZU_BIOME_SHORE_NOISE_SCALE);
+        return LAKE_SHORE + (n + 1.0D) * 0.5D * SANZU_BIOME_SHORE_JITTER;
+    }
+
+    /**
+     * <b>sanzu 列谓词（单点真值）</b>：<b>P23 R1（v1.20.46 批2 S2）遗忘之湖 = 湖面 + 可变宽
+     * 湖滩带</b>——trunk&gt;0 门与河道支（s ≥ 0.7 档，字段已删见类顶登记）随主干宽河移除
+     * 一并删除，湖面支阈值由 {@link #LAKE_WATER_LEVEL} 放宽为 {@link #sanzuBiomeShoreAt}
+     * （水线起、噪声调制的滩带外缘，宽 ≈10~40 格）。heightAt ≤ SEA_LEVEL 腿<b>保留</b>：
+     * 滩带列的 heightCore 湖滨渐变只保证 [WATER, SHORE) 内压低，噪声腿扩出去的滩带外列地形
+     * 已回原高（≈69），本腿把群系外缘钉在"地表贴水（≤68）"的可信滩面上（非平凡真值，不可删）。
      * <p>
-     * rosterIndex 不带参是<b>构造不变量</b>而非省略：主干带内 strengthAt 的有效宽档 =
-     * max(底档, {@link #TRUNK_WIDTH_SCALE})，对全部名册档（1.0/1.2）与缺席档（-1）同为 3.5
-     * ⇒ 带内 s 与名册无关，-1 与生产档同解。h1 用 {@code ProsperityTerrainProfile.heightAt}
-     * 整链（含河谷压低与巨湖压低——本谓词所在包引用 Profile 的先例 = {@link GTSRRiverPlacer}）。
+     * 消费面与写平面同前：{@code ChunkProviderProsperityRuins.assignSanzuRiverBiome} 的平面
+     * 写入与 {@code ProsperityAirLookup} 的三途余汽判定是<b>同一份实现</b>（写什么列、空气压缩
+     * 机就认什么列，无第二真值——余汽域自动跟随新谓词扩到滩带）。湖面本身的 h ≤ 床 &lt;
+     * SEA_LEVEL 由 heightCore 湖段压低保证（P23 湖放大后自动跟随场值，见 PTP 湖段）。
      */
     public static boolean isSanzuColumn(long worldSeed, int x, int z) {
-        if (trunkAt(worldSeed, x, z) <= 0.0D) {
-            return false;
-        }
-        if (-strengthAt(worldSeed, x, z, -1) >= SANZU_BIOME_STRENGTH) {
-            return ProsperityTerrainProfile.heightAt(worldSeed, x, z) <= ProsperityTerrainProfile.SEA_LEVEL;
-        }
-        // 湖面支：主干带内湖水区列（湖形经 domain-warp 破圆）——heightAt 门只对候选列求值
-        return lakeAt(worldSeed, x, z) < LAKE_WATER_LEVEL
+        return lakeAt(worldSeed, x, z) < sanzuBiomeShoreAt(worldSeed, x, z)
             && ProsperityTerrainProfile.heightAt(worldSeed, x, z) <= ProsperityTerrainProfile.SEA_LEVEL;
     }
 
@@ -1934,7 +2088,7 @@ public final class GTSRVoronoiRiverField {
     // <ul>
     // <li><b>逐位一致</b>：命中返回的 double/long/int 与未命中重算的原始求值体（*At0）逐位相同；
     // 探针 {@code temp/p19-u8/ParityProbe}（16 seed × ≈4.1 万列/seed，heightAt/strengthAt/
-    // wetAt/poolLevelAt/lakeAt/segWetAt/isSanzuColumn/trunkAt 全函数 digest）前后对拍为证；</li>
+    // wetAt/poolLevelAt/lakeAt/isSanzuColumn/trunkAt 全函数 digest）前后对拍为证；</li>
     // <li><b>ThreadLocal 不跨线程</b>（沿用本类 EVAL_BUF/DISK_CACHE 同一条线程纪律）；</li>
     // <li><b>淘汰有界</b>：全部为直接映射定长表——容量固定、槽位按精确键覆盖，无需清空逻辑；
     // 键全字段精确比较（seed/x/z[/roster]），冲突即淘汰重算，无假命中；</li>

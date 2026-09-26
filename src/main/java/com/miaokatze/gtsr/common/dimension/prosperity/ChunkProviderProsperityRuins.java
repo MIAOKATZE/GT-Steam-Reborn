@@ -14,7 +14,6 @@ import com.miaokatze.gtsr.common.blocks.BlocksGTSR;
 import com.miaokatze.gtsr.common.dimension.framework.BiomePlaneAccess;
 import com.miaokatze.gtsr.common.dimension.framework.GTSRBiomeAuthority;
 import com.miaokatze.gtsr.common.dimension.framework.GTSRBiomeAuthority.BiomeId;
-import com.miaokatze.gtsr.common.dimension.framework.GTSRCaveCarver;
 import com.miaokatze.gtsr.common.dimension.framework.GTSRChunkProviderBase;
 import com.miaokatze.gtsr.common.dimension.framework.GTSRSurfaceBorderBand;
 import com.miaokatze.gtsr.common.dimension.framework.structure.BlockSink;
@@ -265,25 +264,6 @@ public class ChunkProviderProsperityRuins extends GTSRChunkProviderBase {
         assignSanzuRiverBiome(worldSeed, chunkX, chunkZ);
     }
 
-    /**
-     * <b>dim78 洞穴覆写</b>（P22 版 B · S1b，p21 §1.1 覆写行）：框架
-     * {@code GTSRChunkProviderBase.provideChunk} 在表层之后、Chunk 组装之前转调本方法，
-     * 本方法把裸数组交给 {@link GTSRCaveCarver}（写入器契约/白名单/保护门全部在 carver 侧）。
-     * <ul>
-     * <li>chunk 内自足零 World 读：种子经基类钩子形参传入（基类挂点行自带现产 getSeed()），
-     * 身份取数在 carver 内只走 {@code biomeAtColumn}，roster 走 {@code chainRosterIndexAt}
-     * （与 populate 期 tierGrid 同源，P0-FILL 表 3）——覆写体本身零 {@code worldObj.}
-     * （SOURCE 组负形状钉）；</li>
-     * <li>dim79（shattered）不覆写 = 直通零影响（p21 §0 非目标"dim79 不获得洞穴"）；</li>
-     * <li>坐标换算用乘法（下标口径判据：本文件本方法内出现 {@code <<4} 即红）。</li>
-     * </ul>
-     */
-    @Override
-    protected void carveCaves(long worldSeed, int chunkX, int chunkZ, Block[] blocks, byte[] metadata,
-        BiomeGenBase[] biomes) {
-        GTSRCaveCarver.carve(worldSeed, chunkX * 16, chunkZ * 16, blocks, metadata, biomes);
-    }
-
     // ═════════════════ v1.20.39 T5（plan §3.3）：巨湖回填 + 遗忘之川指派 ═════════════════
 
     /** 巨湖回填观察窗口（chunk 数；与 GTSRRiverPlacer 的 256 口径同款量级，单独一条 lake 行）。 */
@@ -353,9 +333,10 @@ public class ChunkProviderProsperityRuins extends GTSRChunkProviderBase {
         /** 羽化噪声波长（方块）：{@code 13 % 16 = 13}（H-1），与 S1 BORDER 同数值但独立盐域。 */
         private static final double WETB_JITTER_SCALE = 13.0D;
         /**
-         * 门①外檐的"一格"湖压当量：带压宽 {@code SHORE−WATER = 0.02} ÷ 实测环带宽 ≈14 格
-         * ≈ 0.00143，取 {@code 0.0015}（压力梯度按环带均摊，湖形 warp 处会有 ±数格出入，
-         * 但外檐总深 ≤5 格当量 ⇒ 对判定形状不敏感；实际覆盖率以探针复测为准）。
+         * 门①外檐的"一格"湖压当量：带压宽 {@code SHORE−WATER}（P23 R1 批2 S2 起 = 0.26−0.23 =
+         * 0.03，放湖档）÷ 环带宽 ≈22 格 ≈ 0.00136，取 {@code 0.0015}（压力梯度按环带均摊，
+         * 湖形 warp 处会有 ±数格出入，但外檐总深 ≤5 格当量 ⇒ 对判定形状不敏感；实际覆盖率以
+         * 探针复测为准；v1.20.45 档 0.02/14 格的旧算式见版本树）。
          */
         private static final double WETB_HALO_UNIT = 0.0015D;
         /**
@@ -393,12 +374,18 @@ public class ChunkProviderProsperityRuins extends GTSRChunkProviderBase {
                     .forChunk(GTSRBiomeAuthority.DIM_KEY_PROSPERITY, seed, this.boundBaseX, this.boundBaseZ);
             }
             final Block base = this.blended == null ? biome.topBlock : this.blended.topAt(seed, x, z, biome);
-            if (base == BlocksGTSR.prosperityRiverGravel) {
+            final Block gravel = BlocksGTSR.prosperityRiverGravel;
+            if (base == gravel) {
                 return base; // 已是湿料，省一次湖场求值
             }
-            // P22 A2b（G3）：布尔改派换为「核心恒砾 + 三门外缘五档噪声外檐」（见 wetBandGravelAt）；
-            // 改造前表达式为 `lakeWetBandAt(seed,x,z) ? gravel : base`（三门全布尔 ⇒ 外缘 100% 阶跃）。
-            return wetBandGravelAt(seed, x, z) ? BlocksGTSR.prosperityRiverGravel : base;
+            // P23 R1（v1.20.46 批2 S2）：湖全域站格化后湿带/羽化檐可落在<b>任意</b> chunk（原
+            // trunk 门时代 chunk(0,0) 类窗口恒 NO_LAKE、此路不可达）——BlocksGTSR 字段未注册的
+            // 离线 JVM（BlockLoader 未跑，如 ReplaceSurfaceRuntimeCheck 装配面）回退 base，
+            // 不写 null top（bedMaterial/waterMaterial 的同款防线；生产 preInit 顺序保证非 null）。
+            if (gravel != null && wetBandGravelAt(seed, x, z)) {
+                return gravel;
+            }
+            return base;
         }
 
         /**
@@ -478,9 +465,10 @@ public class ChunkProviderProsperityRuins extends GTSRChunkProviderBase {
     }
 
     /**
-     * <b>巨湖水面回填</b>（populate 后置，水面口径 68 与河流回填同一条）：主干带内
-     * {@code lakeAt < LAKE_SHORE}（湖水区+湖滨带；带外 lakeAt 恒 {@code NO_LAKE} 哨兵 ⇒ 零成本
-     * 短路）且列地表 {@code h1 < SEA_LEVEL} 的列，从地表向上置水至 y=67。地形压低（渐深湖床）
+     * <b>巨湖水面回填</b>（populate 后置，水面口径 68 与河流回填同一条）：<b>P23 R1（v1.20.46
+     * 批2 S2）全域站格化</b>——{@code lakeAt < LAKE_SHORE}（湖水区+湖滨带；全域独立判定，带外
+     * 恒 {@code NO_LAKE} 哨兵 ⇒ 零成本短路）且列地表 {@code h1 < SEA_LEVEL} 的列，从地表向上
+     * 置水至 y=67。地形压低（渐深湖床）
      * 已由 {@link ProsperityTerrainProfile#heightAt} 完成（本方法只回填，不切地形）；与河流回填的
      * 重叠列两次写同值水，幂等。同样不消费 populate 的 {@code Random}（纯函数判定）。
      * <p>
@@ -550,9 +538,10 @@ public class ChunkProviderProsperityRuins extends GTSRChunkProviderBase {
         LAKE_PILLAR_COLUMNS.addAndGet(pillarColumns);
         LAKE_PILLAR_CELLS.addAndGet(pillarCells);
         if (LAKE_CHUNKS_SERVED.incrementAndGet() % LAKE_LOG_WINDOW_CHUNKS == 0) {
+            // P23 R1（批2 S2）：湖全域站格化（trunk 门删除）+ D_MIN 淘汰——日志括号串同步。
             GTSteamReborn.LOG.info(
                 "[GTSR] dim78 sanzu lake over {} chunks: waterCells={} pillarColumns={} pillarCells={}"
-                    + " (trunk-gated lakePressure, abyssal fluid, per-column pillar predicate)",
+                    + " (station-grid lakePressure, abyssal fluid, per-column pillar predicate)",
                 LAKE_CHUNKS_SERVED.get(),
                 LAKE_WATER_CELLS.get(),
                 LAKE_PILLAR_COLUMNS.get(),
@@ -737,8 +726,10 @@ public class ChunkProviderProsperityRuins extends GTSRChunkProviderBase {
                             nominal[i] = p - 1;
                         }
                     }
+                    // 河/主干水腿（A1a 新门）：P23 R1（批2 S2）起 wetAt 恒 false——本腿成为死路径
+                    // （保留不删，S6 收口登记）；fixed 水面只剩巨湖/残潭两腿。
                     if (sub && GTSRVoronoiRiverField.wetAt(worldSeed, x, z, tier)) {
-                        fixed[i] = p - 1; // 河/主干水（A1a 新门）
+                        fixed[i] = p - 1;
                     }
                     if (GTSRVoronoiRiverField.lakeAt(worldSeed, x, z) < GTSRVoronoiRiverField.LAKE_SHORE
                         && hv < ProsperityTerrainProfile.SEA_LEVEL) {
@@ -825,12 +816,14 @@ public class ChunkProviderProsperityRuins extends GTSRChunkProviderBase {
     }
 
     /**
-     * <b>遗忘之川群系指派</b>（populate 后置，RTG BiomeAnalyzer.newRepair 先例；plan §3.3
-     * 已定机制）：列满足 {@code trunk>0 且 s≥0.7 且 h1≤68}（{@link GTSRVoronoiRiverField#isSanzuColumn}
-     * 单点谓词，与空气压缩机的三途余汽判定同一份）⇒ 经 {@link BiomePlaneAccess#writeColumn}
-     * （群系平面<b>唯一写通道</b>，short/byte 双通道）写 {@link BiomeSanzuRiver}。细长形状天然来自
-     * "河道核 × 主干带"交集，无第二套形状逻辑。sanzu 未配槽（无槽降级）时账本点名不到实例 ⇒
-     * 平面一格不写（与 ProsperityAirLookup 的同门判定一致，不伪造）。写后置
+     * <b>遗忘之湖群系指派</b>（populate 后置，RTG BiomeAnalyzer.newRepair 先例；plan §3.3
+     * 已定机制；<b>P23 R1（v1.20.46 批2 S2）改名+谓词湖化</b>）：列满足
+     * {@code lakeAt < sanzuBiomeShoreAt ∧ h1≤68}（{@link GTSRVoronoiRiverField#isSanzuColumn}
+     * 单点谓词，与空气压缩机的三途余汽判定同一份——湖面+可变宽湖滩带）⇒ 经
+     * {@link BiomePlaneAccess#writeColumn}（群系平面<b>唯一写通道</b>，short/byte 双通道）写
+     * {@link BiomeSanzuRiver}。湖形+滩带形状天然来自湖压力场与噪声调制的交集，无第二套形状
+     * 逻辑。sanzu 未配槽（无槽降级）时账本点名不到实例 ⇒ 平面一格不写（与
+     * ProsperityAirLookup 的同门判定一致，不伪造）。写后置
      * {@code chunk.isModified = true}：平面列不属于方块写，须显式标脏防丢（GT5U
      * {@code GTWorldgenerator:734} 先例）。
      */

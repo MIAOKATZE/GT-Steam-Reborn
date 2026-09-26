@@ -639,6 +639,8 @@ public final class PlacementGate {
      * 贴水窄条。三个读数仍是 {@code (worldSeed, x, z)} 纯函数（不读世界方块）。
      */
     private static boolean dryColumnAt(long worldSeed, int x, int z) {
+        // ① 回填置水列：P23 R1（v1.20.46 批2 S2）起 wetAt 恒 false——本腿成为死路径
+        // （保留不删，S6 收口登记）；河/湖/潭的避让由 ②④ 两腿接手。
         if (GTSRVoronoiRiverField.wetAt(worldSeed, x, z, 0)) {
             return false;
         }

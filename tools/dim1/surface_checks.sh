@@ -429,7 +429,7 @@ run "TpdimNearestBiomeCheck d78（判据 2/3/4：四群系定位+穷举最近对
 run "TpdimNearestBiomeCheck d79（同上；B1 起穷举对拍 = 等权 GenLayer 链，种子掺 dim79 seedSalt）" TpdimNearestBiomeCheck d79
 run "TpdimNearestBiomeCheck empty79（dim79 降级态：名单空/解析 null/81 步收口，不乱指）" \
   TpdimNearestBiomeCheck empty79
-run "TpdimNearestBiomeCheck source（判据 1/5：基线路径逐字钉+补全单一真值+diag 反复制钉）" \
+run "TpdimNearestBiomeCheck source（判据 1/5：基线 2 参分支逐字钉+补全单一真值+diag 反复制钉；P23 S6 增：S5 新路径钉[原点/sanzu 湖格分支/文案引号]+别名↔lang 双向同步+水感知零 chunk 读+nearestActiveLakeCenter 枚举对拍）" \
   TpdimNearestBiomeCheck source
 echo "   P14 合计 assertions=$(total_assertions TpdimNearestBiomeCheck)"
 
@@ -466,22 +466,15 @@ echo "   P0 合计 assertions=$(total_assertions BiomePlaneCompatCheck)（short 
 echo "== [2k] B1 GenLayer 链离线自测（成片连通域/等权均分/边界非直线/单点-整窗逐位一致；批次 A 的包内自测纳入快链） =="
 run "GTSRGenLayerSelfTest（确定性/均分 ±12pp/主导 4-连通域/孤岛率/直线边界反指标/voronoi 抖动带；构造期 fail-fast 契约）"   com.miaokatze.gtsr.common.dimension.framework.genlayer.GTSRGenLayerSelfTest
 
-echo "== [2l] P22 版 B · S1b 洞穴判据入链（S1a 的 A/WAVE/SINGLE + 本片 CARVE/SOURCE/PERF；串行纪律沿用，run 顺序执行即满足） =="
-# 自仓根运行：WAVE/SOURCE 组读生产源文件字面（FIELD/CARVER/BASE/PROVIDER 四件），PERF 组门 =
-# CARVE_BASELINE×1.30 派生式（BASE 首测读数钉在 plan/tmp/p22-s1b/PROGRESS.md，同 GenBenchCheck 口径）。
-MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8   -cp "$OUT/classes;$CP" -sourcepath "src/main/java;tools/dim1" -d "$OUT/tools"   tools/dim1/CaveFieldCheck.java >"$OUT/javac-cavefield.log" 2>&1
-echo "COMPILE CaveFieldCheck EXIT=$? ($(grep -ac 'error:' "$OUT/javac-cavefield.log") error)"
-run "CaveFieldCheck（A 形态/WAVE 波长/SINGLE 幂等 + CARVE 白名单/lava/壳/岛柱/铺top + SOURCE 源级红线三负三正+挂点序 + PERF carver 中位门）" CaveFieldCheck
-
 echo "== [2m] P22 版 B · S3 岛心巨树判据入链（A 净空五读/B 派生窗/C 30 座活湖实测/D 重放幂等+9-chunk 单射+源级纪律；串行纪律沿用） =="
 # 自仓根运行：D 组读生产源文件字面（ANCHOR/TREE/DECOR 三件）；MegaTreeAnchors/IslandMegaTree 两新类
 # 不在 [0] 的 REL 清单 ⇒ 由本步 javac 经 -sourcepath 隐式编译入 $OUT/tools（tools 先于 classes ⇒ 新类生效）；
 # ProsperityDecorPlacer 已在 REL（[0] 每轮 rm -rf 重编），岛心树支线随之入 $OUT/classes。
 MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8   -cp "$OUT/classes;$CP" -sourcepath "src/main/java;tools/dim1" -d "$OUT/tools"   tools/dim1/MegaTreeCheck.java >"$OUT/javac-megatree.log" 2>&1
 echo "COMPILE MegaTreeCheck EXIT=$? ($(grep -ac 'error:' "$OUT/javac-megatree.log") error)"
-run "MegaTreeCheck（A bbox31/跨≤9chunk/windowChunks(15)==3/顶≤255/预算9500+3600 + B 公式防写死+采样容差 + C 30 活湖 y0 带/必有树/穿水 + D 双跑序列/9-chunk 并集==单树/荒漠 0/盐字面钉）" MegaTreeCheck
+run "MegaTreeCheck（A bbox=2R+1(101)/跨≤bbox块域/windowChunks(50)==13/顶≤255/预算42000+7600[R50 档重钉] + B 公式防写死+采样容差 + C 30 活湖 y0 带/必有树/穿水 + D 双跑序列/13×13 并集==单树/荒漠 0/盐字面钉）" MegaTreeCheck
 
-echo "== [2n] P22 版 B · S4 旧栖晴晕光点判据入链（A 密度比值 lake<canopy/B 光衰减三档[自立口径]/C 9-chunk 并集同形/D 让行只写空气/E 源级纪律零裸rand+盐字面成对；串行纪律沿用） =="
+echo "== [2n] P22 版 B · S4 旧栖晴晕光点判据入链（A 湖上/冠下密度分立带[R50+S6 重钉]/B 光衰减三档[自立口径]/C 派生窗并集同形/D 让行只写空气/E 源级纪律零裸rand+盐字面成对；串行纪律沿用） =="
 # 自仓根运行：E 组读生产源文件字面（LUMEN/DECOR 两件）；ProsperityLumenPlacer 新类不在 [0] 的
 # REL 清单 ⇒ 由本步 javac 经 -sourcepath 隐式编译入 $OUT/tools（tools 先于 classes ⇒ 新类生效）；
 # ProsperityDecorPlacer 已在 REL（[0] 每轮 rm -rf 重编，经 -sourcepath 隐式带上 LumenPlacer/新枚举口）。
@@ -543,7 +536,7 @@ MSYS2_ARG_CONV_EXCL='*' java $STD $LOG4J -Xmx2g -cp "$OUT/tools;$OUT/classes;$CP
 code=$?; tail -2 "$OUT/P17TerrainReliefCheck.out" | cut -c1-170; echo "   EXIT=$code log=$OUT/P17TerrainReliefCheck.out"
 [ $code -ne 0 ] && FAILS=$((FAILS + 1))
 
-echo "== [3sb2] P17-SB2 植被频率与树形档表（树密度 森>沼>原>沙=0；干高 森>沼>原） =="
+echo "== [3sb2] P17-SB2 植被频率与树形档表（树密度 森>沼>原>沙；干高 森>沼>原；密度分母=可落树列当量[R1·S6]） =="
 MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8   -cp "$OUT/classes;$CP" -sourcepath "src/main/java;tools/dim1" -d "$OUT/tools"   tools/dim1/P17VegetationFrequencyCheck.java >"$OUT/javac-p17sb2.log" 2>&1
 echo "COMPILE P17VegetationFrequencyCheck EXIT=$? ($(grep -ac 'error:' "$OUT/javac-p17sb2.log") error)"
 echo "-- P17VegetationFrequencyCheck（P17-SB2 频率面唯一回归网，补 P17-B 实测的零判据空白）"
@@ -567,7 +560,8 @@ code=$?; tail -2 "$OUT/P17StructureBiomeVarianceCheck.out" | cut -c1-170; echo "
 
 # ── v1.20.39 T4：河流模型换血——P17RiverNetworkCheck（旧轴向等距线模型）随
 # GTSRRiverNetwork 一并删除（红清单见 plan/tmp/p18-t4-prered.md），接替者为 RiverMorphologyCheck
-# （Voronoi 河流强度场形态判据：河宽/谷坡/蜿蜒度/支流分叉/荒漠断流/沼泽×1.6/heightAt 集成）。
+# （Voronoi 河流场形态判据：河宽/谷坡/蜿蜒/分叉/段激活率/全域置水死/沼泽×1.2/heightAt 集成；
+# P23 R1·S6 重钉：主干河移除 + 段激活门 P=0.20，F2 随主干退役、F3 段激活率带/I3b 腹地腿新立）。
 echo "== [3t4] dim78 Voronoi 河流场形态（两级 Disk jitter 蜿蜒 + border2；宽度/谷坡/蜿蜒/分叉/断流） =="
 MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8   -cp "$OUT/classes;$CP" -sourcepath "src/main/java;tools/dim1" -d "$OUT/tools"   tools/dim1/RiverMorphologyCheck.java >"$OUT/javac-t4river.log" 2>&1
 echo "COMPILE RiverMorphologyCheck EXIT=$? ($(grep -ac 'error:' "$OUT/javac-t4river.log") error)"
@@ -577,21 +571,18 @@ MSYS2_ARG_CONV_EXCL='*' java $STD $LOG4J -Xmx2g -cp "$OUT/tools;$OUT/classes;$CP
 code=$?; tail -2 "$OUT/RiverMorphologyCheck.out" | cut -c1-170; echo "   EXIT=$code log=$OUT/RiverMorphologyCheck.out"
 [ $code -ne 0 ] && FAILS=$((FAILS + 1))
 
-# v1.20.39 T5：遗忘之川判据（主干覆盖/巨湖/少支流/细长形状；trunk/lake 激活后 RiverMorphologyCheck
-# 的 A4（骨架恒 0）与 A5（档表 4 元）按设计转红，红清单见 plan/tmp/p18-t5-prered.md，重钉归 T8）。
-echo "== [3t5] dim78 遗忘之川（主干带覆盖 1/6-1/8 + 巨湖 + 少支流 + sanzu 细长） =="
-MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8   -cp "$OUT/classes;$CP" -sourcepath "src/main/java;tools/dim1" -d "$OUT/tools"   tools/dim1/SanzuTrunkCoverageCheck.java >"$OUT/javac-t5sanzu.log" 2>&1
-echo "COMPILE SanzuTrunkCoverageCheck EXIT=$? ($(grep -ac 'error:' "$OUT/javac-t5sanzu.log") error)"
-# 纯模型驱动（isSanzuColumn/heightAt 均零世界读取，无需离线装配账本）。
-MSYS2_ARG_CONV_EXCL='*' java $STD $LOG4J -Xmx2g -cp "$OUT/tools;$OUT/classes;$CP" SanzuTrunkCoverageCheck   >"$OUT/SanzuTrunkCoverageCheck.out" 2>&1
-code=$?; tail -2 "$OUT/SanzuTrunkCoverageCheck.out" | cut -c1-170; echo "   EXIT=$code log=$OUT/SanzuTrunkCoverageCheck.out"
-[ $code -ne 0 ] && FAILS=$((FAILS + 1))
+# P23 R1（v1.20.46 S6）：[3t5] SanzuTrunkCoverageCheck 整文件退役（主干宽河移除 ⇒ 判据对象不存在，
+# 同轮摘本步骤块——缺源即 javac 红窗，纪律同 S1 的 [2l]）。巨湖职责由 [3t5b] SLMC 承接并加
+# 水半径/岛半径/内切圆组（S6 重钉）；退役清单见 plan.md §3 表序 1。
 
 # v1.20.41 P20 S5b/S5c/S5d：巨湖形态学判据（plan §15.3 D1/D2/D3 + §15.4 湖岸衔接第一判据 A 组六条
-# + §15.5 中心岛与岛底柱 C 组 + §15.6 "整体更壮观"四条可测代理 S 组）。32 条断言，判据内置双跑逐位
-# 一致自检，纯模型驱动（lakeAt/lakeBedAt/lakeIslandTopAt 均零世界读取，无需离线装配账本）。
-# 已知留红一条：S1 三档比 1:2:2 是主代理代拟口径、已证在满足 A 系列的机制族内全域不可达，
-# 按 plan §27-D 裁决"不放宽、不暗改、留红转终验向用户摊开取舍"⇒ 本步 EXIT 非零属预期红，非回归。
+# + §15.5 中心岛与岛底柱 C 组 + §15.6 "整体更壮观"四条可测代理 S 组）。P23 R1·S6 重钉后 35 条断言
+# （新增 G 组几何带：水半径/岛半径/16 射线内切圆；C 组随岛半径 40 档、S2/S4 复测原带成立——
+# S2 时窗读 0.063 是截断伪影，全窗复测 0.143 居原带 [>0.1] 不放宽），细扫窗 200→320 随湖放大。
+# 纯模型驱动（lakeAt/lakeBedAt/lakeIslandTopAt 均零世界读取，无需离线装配账本）。
+# 已知留红一条：S1 三档比 1:2:2 是主代理代拟口径、已证在满足 A 系列的机制族内全域不可达
+# （P23 R1 岛放大后深盆全域并入岛域，深档实测 0.000——不可达性更强，仍按 plan §27-D 裁决
+# "不放宽、不暗改、留红转终验向用户摊开取舍"）⇒ 本步 EXIT 非零属预期红，非回归。
 echo "== [3t5b] dim78 巨湖形态学（渐深触底 D / 湖岸衔接第一判据 A / 中心岛与岛底柱 C / 壮观度代理 S） =="
 MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8   -cp "$OUT/classes;$CP" -sourcepath "src/main/java;tools/dim1" -d "$OUT/tools"   tools/dim1/SanzuLakeMorphologyCheck.java >"$OUT/javac-t5blake.log" 2>&1
 echo "COMPILE SanzuLakeMorphologyCheck EXIT=$? ($(grep -ac 'error:' "$OUT/javac-t5blake.log") error)"
@@ -601,10 +592,11 @@ code=$?; tail -2 "$OUT/SanzuLakeMorphologyCheck.out" | cut -c1-170; echo "   EXI
 
 # ── v1.20.40 P19 U8（纯追加步骤 [3u8]）：地形填充段性能基准 ──────────────────────────────
 # plan §J「新增性能基准判据」：对照 v1.20.38 P17-SA probe4 有账本基线 241µs/chunk（单列串行
-# heightAt walk，temp/p17-sa/probe4.log），派生式阈值 = 241×1.30 = 313.3µs/chunk，per-chunk
-# 中位数超门即红（劣化>30% 对赌门）。判据内置账本装配（生产形状）与串行纪律——v1.20.38 实测
-# 与本 harness 并发跑会失真，本脚本顺序执行各步即满足，勿与其他判据并行。
-echo "== [3u8] dim78 地形填充段性能基准（GenBenchCheck：串行 + 有账本 + per-chunk 中位对 313.3µs 门） =="
+# heightAt walk，temp/p17-sa/probe4.log；P23 R1·S6 重立基线 386.5[湖全域化结构性成本，N-4 空载
+# ×3 连跑 398.0/401.7/373.2/374.9 取中位 386.5]，派生式阈值 = 386.5×1.30 = 502.5µs/chunk，
+# per-chunk 中位数超门即红（劣化>30% 对赌门）。判据内置账本装配（生产形状）与串行纪律——
+# v1.20.38 实测与本 harness 并发跑会失真，本脚本顺序执行各步即满足，勿与其他判据并行。
+echo "== [3u8] dim78 地形填充段性能基准（GenBenchCheck：串行 + 有账本 + per-chunk 中位对 502.5µs 门[P23 R1·S6 重立 386.5]） =="
 MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8   -cp "$OUT/classes;$CP" -sourcepath "src/main/java;tools/dim1" -d "$OUT/tools"   tools/dim1/GenBenchCheck.java >"$OUT/javac-u8bench.log" 2>&1
 echo "COMPILE GenBenchCheck EXIT=$? ($(grep -ac 'error:' "$OUT/javac-u8bench.log") error)"
 MSYS2_ARG_CONV_EXCL='*' java $STD $LOG4J -Xmx2g -cp "$OUT/tools;$OUT/classes;$CP" GenBenchCheck   >"$OUT/GenBenchCheck.out" 2>&1

@@ -489,8 +489,10 @@ public final class ProsperityTerrainProfile {
         // </ol>
         // 低地防抬升语义保留：仅 h0 &gt; 压低结果+1 时落地（沼泽等低地原样）。
         // s = 0 的列（河谷外）一步短路，零河流成本。
-        // ═══ v1.20.39 T5 主干深谷（plan §3.3「valleyLevel×1.3」）：主干带内谷深档 ×1.3
-        // （外段 e1 域拉长、谷坡更缓更长）；带外分支同解。═══
+        // ═══ v1.20.39 T5 主干深谷 → <b>P23 R1（v1.20.46）退役</b>：批2 S2 主干河移除后，
+        // 主干带内谷深档 ×1.3（旧 plan §3.3「valleyLevel×1.3」，外段 e1 域拉长）随之退役——
+        // 带内/带外干床统一为带外口径 valleyLevel。旧放大常量 TRUNK_VALLEY_SCALE（生产零消费）已删。
+        // trunk 局部量保留：仍供下方沼泽残潭下挖的 trunk≤0 预筛消费。═══
         int y = h0;
         final int rosterIndex = rosterIndexCached(worldSeed, x, z);
         final double trunk = GTSRVoronoiRiverField.trunkAt(worldSeed, x, z);
@@ -498,8 +500,7 @@ public final class ProsperityTerrainProfile {
         if (s > 0.0D) {
             final int pool = GTSRVoronoiRiverField.poolLevelAt(worldSeed, x, z, rosterIndex);
             final double rim = pool + GTSRVoronoiRiverField.RIM_EPS;
-            final double valley = GTSRVoronoiRiverField.VALLEY_LEVEL
-                * (trunk > 0.0D ? GTSRVoronoiRiverField.TRUNK_VALLEY_SCALE : 1.0D);
+            final double valley = GTSRVoronoiRiverField.VALLEY_LEVEL;
             // —— 外段：全谷带压向贴水缓坡（rim）——
             double lowered = h0;
             final double e1 = Math.max(0.0D, 1.0D - s / valley);
@@ -549,36 +550,38 @@ public final class ProsperityTerrainProfile {
             final double bed = GTSRVoronoiRiverField.bedFromPool(worldSeed, x, z, rosterIndex, pool) - 1.0D;
             y = Math.min(y, (int) Math.round(bed));
         }
-        // ═══ v1.20.39 T5 巨湖压低（plan §3.3）：仅主干带内激活（lakeAt 的性能门在河流场侧），
+        // ═══ v1.20.39 T5 巨湖压低（plan §3.3）：<b>P23 R1（v1.20.46 批2 S2）全域站格化</b>——
+        // lakeAt 已去 trunk 门（湖独立激活），本段 trunk 门随之删除（否则带外湖无床无压低、
+        // fillSanzuLakes 的 h<68 散水成灾）；湖放大（水半径 92→200 档）后压低/渐深经
+        // lakeAt/lakeBedAt/lakeIslandTopAt/lakeShoreBlend 场值自动跟随（渐深 28、湖心锚 40=
+        // MIN_HEIGHT 机制不动，无按旧湖半径写死的分支——核验结论），
         // <b>非河道列也压</b>——湖水区（c_lake < LAKE_WATER_LEVEL）压至渐深湖床（v1.20.40
         // P19 §D：湖滨锚=水面下 1 → 湖心锚=水面下 LAKE_CENTER_DEPTH）；湖滨带
         // [WATER, SHORE) 从湖床线性渐变回当前地形（与河谷 e 的联合 = 先河谷后巨湖、湖水区取
         // 两者之深 ⇒ e 与 bed 在湖心联合作用）。v1.20.40 起湖滨带渐变加 min 语义：与河谷/
         // 微池压低取更深者，防"河道/低地穿湖滨带被渐变抬高成坝"。═══
-        if (trunk > 0.0D) {
-            final double lake = GTSRVoronoiRiverField.lakeAt(worldSeed, x, z);
-            if (lake < GTSRVoronoiRiverField.LAKE_SHORE) {
-                final double lakeBed = GTSRVoronoiRiverField.lakeBedAt(worldSeed, x, z, lake);
-                if (lake < GTSRVoronoiRiverField.LAKE_WATER_LEVEL) {
-                    y = Math.min(y, (int) Math.round(lakeBed));
-                    // ═══ v1.20.41 P20 S5（plan §15.5）中心固定岛：湖段 min 压低之后<b>唯一允许的
-                    // 抬升支路</b>——岛域（lakeAt < LAKE_ISLAND）把地表从湖床抬到岛面 72。
-                    // 抬升面本身是 s01(k) 衰减（岛缘 k=0 ⇒ 值 = 湖心锚 40，与上面的床值同侧连续），
-                    // 故岛缘不出现单格悬崖；抬升量恒 ≤ 72 ⇒ 与 MAX_HEIGHT=110 / HEIGHT_SENTINEL=108
-                    // 零接触。岛外列 lakeIslandTopAt 返回 NaN 哨兵 ⇒ 本支路一步短路、零改动。═══
-                    final double islandTop = GTSRVoronoiRiverField.lakeIslandTopAt(worldSeed, x, z, lake);
-                    if (!Double.isNaN(islandTop)) {
-                        y = Math.max(y, (int) Math.round(islandTop));
-                    }
-                } else {
-                    // ═══ v1.20.41 P20 S5（plan §15.4 第一判据）湖滨带形状：改造前这里是
-                    // <b>线性</b> lerp（在环带两端各留一个折角 = "衔接生硬"的形状根因之一）。
-                    // 换成生产侧唯一出口 lakeShoreBlend = s01 缓入缓出 + 多级台阶（riser ≤ 总抬升/4），
-                    // 环带<b>宽度不动</b>（理由见该常量的 LAKE_SHORE 注释）。min 语义原样保留 ⇒
-                    // 环带恒不高于本列无湖时的原地形 ⇒ "环形堤"在本式下结构上不可表示。═══
-                    final double q = GTSRVoronoiRiverField.lakeShoreBlend(lake);
-                    y = (int) Math.min(y, Math.round(lakeBed * (1.0D - q) + y * q));
+        final double lake = GTSRVoronoiRiverField.lakeAt(worldSeed, x, z);
+        if (lake < GTSRVoronoiRiverField.LAKE_SHORE) {
+            final double lakeBed = GTSRVoronoiRiverField.lakeBedAt(worldSeed, x, z, lake);
+            if (lake < GTSRVoronoiRiverField.LAKE_WATER_LEVEL) {
+                y = Math.min(y, (int) Math.round(lakeBed));
+                // ═══ v1.20.41 P20 S5（plan §15.5）中心固定岛：湖段 min 压低之后<b>唯一允许的
+                // 抬升支路</b>——岛域（lakeAt < LAKE_ISLAND）把地表从湖床抬到岛面 72。
+                // 抬升面本身是 s01(k) 衰减（岛缘 k=0 ⇒ 值 = 湖心锚 40，与上面的床值同侧连续），
+                // 故岛缘不出现单格悬崖；抬升量恒 ≤ 72 ⇒ 与 MAX_HEIGHT=110 / HEIGHT_SENTINEL=108
+                // 零接触。岛外列 lakeIslandTopAt 返回 NaN 哨兵 ⇒ 本支路一步短路、零改动。═══
+                final double islandTop = GTSRVoronoiRiverField.lakeIslandTopAt(worldSeed, x, z, lake);
+                if (!Double.isNaN(islandTop)) {
+                    y = Math.max(y, (int) Math.round(islandTop));
                 }
+            } else {
+                // ═══ v1.20.41 P20 S5（plan §15.4 第一判据）湖滨带形状：改造前这里是
+                // <b>线性</b> lerp（在环带两端各留一个折角 = "衔接生硬"的形状根因之一）。
+                // 换成生产侧唯一出口 lakeShoreBlend = s01 缓入缓出 + 多级台阶（riser ≤ 总抬升/4），
+                // 环带<b>宽度不动</b>（理由见该常量的 LAKE_SHORE 注释）。min 语义原样保留 ⇒
+                // 环带恒不高于本列无湖时的原地形 ⇒ "环形堤"在本式下结构上不可表示。═══
+                final double q = GTSRVoronoiRiverField.lakeShoreBlend(lake);
+                y = (int) Math.min(y, Math.round(lakeBed * (1.0D - q) + y * q));
             }
         }
         return y < MIN_HEIGHT ? MIN_HEIGHT : Math.min(y, MAX_HEIGHT);

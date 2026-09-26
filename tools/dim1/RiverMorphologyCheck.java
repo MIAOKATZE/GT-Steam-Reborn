@@ -41,17 +41,22 @@ import com.miaokatze.gtsr.common.dimension.prosperity.river.GTSRVoronoiRiverFiel
  * 曲折率 = 路长/端距 &gt; 1.2；</li>
  * <li><b>E 支流连通</b>：Voronoi 三叉点（2×2 列块内 ≥3 个不同最近细胞签名）非零且成量
  * ——边界网络天然连通的分叉证据；</li>
- * <li><b>F 枯竭验证（v1.20.42 P22 A1c 重立；旧「荒漠断流」组换语义）</b>：
- * <b>F1</b> 枯竭域（trunkAt≤0 河列）置水 == 0（A1a 探针 C1 口径判据化）；<b>F2</b> 遗忘之川域
- * （trunkAt&gt;0 河核列）湿段率 == 100%（断流闸在主干带内实际禁用）；</li>
+ * <li><b>F 枯竭验证（v1.20.42 P22 A1c 重立；<b>P23 R1·S6（v1.20.46）再改</b>）</b>：
+ * <b>F1</b> <b>全域置水 == 0</b>（wetAt 恒 false 的合同面——主干河置水死后河流场全域无水，
+ * 湖/沼泽池走独立通道；旧「枯竭域（trunk≤0）置水==0」双侧口径随 F2 退役收成全域单侧）；
+ * <b>F2 已删</b>（主干宽河移除 ⇒「遗忘之川域湿段率 100%」判据对象不存在，plan §3 表序 3）；
+ * <b>F3 段激活率带（P23 R1·S6 新增）</b>：零散干床段的激活段占比 ∈ [0.16,0.24]
+ * （构造值 RIVER_SEGMENT_ACTIVATE_P=0.20 的哈希均匀性读数，S2 直跑 0.194 在带）。</li>
  * <li><b>G 沼泽河宽 ×1.2</b>：沼泽档/常态档水道半宽比 ∈ [1.05,1.45]（v1.20.40 P19 §A.2 重钉：
  * ×1.6→×1.2 档乘子的行为读数带）；外加 heightAt 河谷集成：河核列 heightAt 与 bedAt 偏差 ≤1.5
  * （压低链真接进了高度）；</li>
- * <li><b>H 分段水位与端面（v1.20.40 P19 §B/§C 新增；U2 探针 P2/P3 读数升格；
- * <b>v1.20.42 P22 A1c 采样域缩到遗忘之川域</b>——枯竭后置水只剩主干带内，全域湿核采样改锚点窗）</b>：
- * H1 同 segKey 湿核列 poolLevelAt 档数 ≤3 且最高池份额 ≥1/2（段内恒水面的纯函数性）；H2 枯竭端面
- * 收尾沿顺流剖面逐列床高差 ≤ 2（smoothstep 构造 ≤1/列；限顺流方向——段界斜交尖端的横向邻列不在
- * 口径内；<b>端面锚点改「湿样本膨胀 + 切向面探针」两段式</b>，见 {@link #groupH} 的口径注释）。</li>
+ * <li><b>H 分段水位与端面（v1.20.40 P19 §B/§C 新增；<b>P23 R1·S6（v1.20.46）置水断言删、
+ * 床阶语义留</b>——wetAt 恒 false 后 H1 的采样域从「遗忘之川域 wet 列」改「激活段河核列」
+ * （s≥WET_MIN 即激活段——段激活门在 strengthAt 内），断言带（档数 ≤3 ∧ 份额 ≥1/2）与
+ * v1.20.40 原钉一字不动）</b>：H1 同 segKey 河核列 poolLevelAt 档数 ≤3 且最高池份额 ≥1/2
+ * （分段水位阶梯的纯函数性——置水死后池水位仍是床面/端面收尾的段界参考面）；H2 端面收尾
+ * 沿顺流剖面逐列床高差 ≤ 2（smoothstep 构造 ≤1/列；锚点域 = trunk&gt;0 ∧ s≥WET_MIN 列
+ * ——bedFromPool 端面入口门同式，P23 后端面收尾只承载床形观感不再防水墙）。</li>
  * <li><b>I 沼泽河床残潭（v1.20.42 P22 A1b 机制的判据化固定；本片 A1c 新增）</b>：
  * I1 sanzu 域零潭 + 潭域合同；I2 潭覆盖率 ∈ [0.05,0.25]（沼泽河床列口径）；I3 潭水不外流
  * （8 邻固体顶 ≥ 水顶 / 水—水同面）且不悬浮（水柱底 = h+1）；I4 嵌入 ≥1（潭水顶 ≤ round(bed)−1）。
@@ -76,8 +81,15 @@ public final class RiverMorphologyCheck {
     static final int SCAN_EXTENT = (int) (GTSRVoronoiRiverField.SEPARATION * 3);
     /** 采样步距（格）：SEPARATION/128 = 8 < 常态水道全宽（~2×5.8）⇒ 河道不会被步距跳空。 */
     static final int SCAN_STRIDE = (int) (GTSRVoronoiRiverField.SEPARATION / 128);
-    /** 河道中心样本数下限：max(32, SEPARATION/32) —— 中位数判据的最小样本量。 */
-    static final int N_CENTERS = Math.max(32, (int) (GTSRVoronoiRiverField.SEPARATION / 32));
+    /**
+     * 河道中心样本数上限/下限基数。<b>P23 R1·S6：32 → 200</b>。段激活门清零 80% 段后，旧 32 上限
+     * 的扫描序样本只覆盖最先遇到的少数激活段（聚集样本）——实测偏差：聚集样本常态中位 4.0 /
+     * 沼泽同量化 5/5=1.000，而 ±2×SCAN_EXTENT 代表性探针（n=200，temp/p23-s6/WidthProbe）给
+     * 常态中位 5.0（hist 3:25/4:38/5:44/6:33/7:11，mode=5）、沼泽中位 6.0（比值 1.20 精确回档）。
+     * 物理宽度未变（WIDTH=0.08 未动，激活段强度式逐字同前）——变的是样本代表性。去重半径
+     * （WALK_LIMIT/2）不动 ⇒ 每段至多 ~8 心，200 上限 ≈ 全窗激活段（~26 段）的完备去重集。
+     */
+    static final int N_CENTERS = Math.max(200, (int) (GTSRVoronoiRiverField.SEPARATION / 32));
     /** 半宽走查上限（格）：SEPARATION/7 = 150 > 4×谷半宽上限 ⇒ 谷缘必在限内。 */
     static final int WALK_LIMIT = (int) (GTSRVoronoiRiverField.SEPARATION / 7);
     /** 中心线追踪步长（格）与步数：总路长 = 3×LARGE_BEND_SCALE（覆盖 ≥3 个大弯波长）。 */
@@ -85,6 +97,11 @@ public final class RiverMorphologyCheck {
     static final int TRACE_STEPS = (int) (GTSRVoronoiRiverField.LARGE_BEND_SCALE * 3) / TRACE_STEP;
     /** 追踪段数：SEPARATION/SMALL_BEND_SCALE = 13 段。 */
     static final int N_TRACES = (int) (GTSRVoronoiRiverField.SEPARATION / GTSRVoronoiRiverField.SMALL_BEND_SCALE);
+    /**
+     * H1 的段数样本下限（16 = 旧 N_CENTERS(32)/2 的有效值，P23 R1·S6 起独立钉住——N_CENTERS 为
+     * 代表性采样提档到 200 后，H1 的段数下限不再借用它；±SCAN_EXTENT 窗内激活段 ~26 段恒过）。
+     */
+    static final int H1_SEGS_MIN = 16;
     /** 三叉点扫描步距（格）：SEPARATION/64 = 16 < 三叉点邻域尺度。 */
     static final int FORK_STRIDE = (int) (GTSRVoronoiRiverField.SEPARATION / 64);
 
@@ -116,8 +133,8 @@ public final class RiverMorphologyCheck {
      * <b>唯一能让旧口径变绿的三条手段全部不许动</b>（这正是"改判据不改常量"的理由）：
      * ① {@code SHORE_FLAT_BAND} 0.15→<b>0.06</b>（敏感性表见 {@code plan/tmp/p20-s3c/sensitivity.md}：
      * 0.08→0.8918、0.06→0.9229；本片 T3 明令该常量一字不改）；
-     * ② {@code POOL_ANCHOR_AMP}/{@code POOL_ANCHOR_OFFSET}/{@code POOL_LEVEL_STEP}/{@code POOL_DROP}
-     * 与 {@code DESERT_WET_SHARE}（R-C 用户裁决"水位阶梯/瀑布墙/断流闸保持不动"）；
+     * ② {@code POOL_ANCHOR_AMP}/{@code POOL_ANCHOR_OFFSET}/{@code POOL_LEVEL_STEP}
+     * （R-C 用户裁决"水位阶梯保持不动"；旧 POOL_DROP/DESERT_WET_SHARE 已随 P23 R1·S6 删字段）；
      * ③ {@code MIN_HEIGHT}/{@code SEA_LEVEL}（§11 禁改面 + 用户版 1 严禁）。
      * ⇒ 口径由 §22-B 重定为需求 2 的真身两条：{@code C2A}/{@code C2B}（新带见其注释的实测反解）。
      * <p>
@@ -220,7 +237,16 @@ public final class RiverMorphologyCheck {
      * 全域干床口径"二选一按实测定为<b>后者</b>（缩域反而丢掉"枯竭域岸地仍站出名义水面"这半
      * 个验收面）。带 [0.71,1.0] 一字不动。
      */
-    static final double C2B_LO = 0.71D;
+    /**
+     * <b>P23 R1·S6 同规则重算：0.71 → 0.66</b>。B 组样本提档 200 心（段激活门后 32 心聚集样本
+     * 失代表性，见 {@link #N_CENTERS}）连带把本域样本从 n=124 抬到 n=624——读数 M=0.671
+     * （命中 419；高出格数 p10/中位/p90 = −3/+3/+6，与 §26 锚点读数同形）。按 §26 自订的
+     * 取带规则（"再容许 1 例"，⌊(命中−1)/n×100⌋/100）重钉下界 = ⌊418/624×100⌋/100 = 0.66；
+     * 上界 1.0 不反向钉。带钉的语义（"走出环外的岸地站在名义水面之上"）与锚点（断面出域首列）
+     * 一字不动——这是该 javadoc 下方 §26 段明文允许的"按同一规则重算"，不是改规则凑绿。
+     * 旧下界 0.71（n=124/命中 90/M=0.726 反解）的推导原文保留在下段。
+     */
+    static final double C2B_LO = 0.66D;
     static final double C2B_HI = 1.0D;
     /**
      * C2-b 新采样域（<b>岸带首列</b>，§23-B 裁决 1）的外扫列数上限（格）。<b>出处 = §23-B 裁决 1 的
@@ -278,12 +304,11 @@ public final class RiverMorphologyCheck {
         groupC(centers);
         groupD(centers);
         groupE();
-        // v1.20.42 P22 A1c：水面类断言（F2/H1/H2）的采样域 = 遗忘之川域（trunk>0 河列）——
-        // 枯竭后置水只剩主干带内，全域采样已无水面可钉（基线复跑 F1/H2 双红的根因）。
-        final int[] anchor = findSanzuWetAnchor();
-        final TrunkDomain dom = scanTrunkDomain(anchor[0], anchor[1]);
+        // P23 R1·S6：F2（主干水径带）随主干宽河移除退役；水面类断言不复存在——H1 床阶语义的
+        // 采样域改「激活段河核列」（s≥WET_MIN 即激活段），域扫描窗回到 ±SCAN_EXTENT（与 F/E 同窗）。
+        final TrunkDomain dom = scanSegDomain();
         groupF();
-        groupF2(dom);
+        groupActivation(dom);
         groupG(centers);
         groupH(dom);
         // I 组（残潭）必须最后跑：注入真身份后主线程的默认档缓存假设不再成立（见类注释 I 组段）。
@@ -426,19 +451,31 @@ public final class RiverMorphologyCheck {
     /**
      * 某档的水道半宽：四轴方向的<b>有界</b>方向取最小（顺河方向无界、跳过；四向全无界 = 三叉口，
      * 样本剔除记 -1）。斜向河的轴向往返会量到 w·√2 量级 ⇒ 读数是 [w, w√2] 的分布，判据取中位。
+     * <p>
+     * <b>P23 R1·S6 域缩样（本段激活门后干床段的正确采样形）</b>：方向有效 = 出走全程留在
+     * <b>本段</b>（逐列 segKey 同心列）且在段内自然跌出河核（s&lt;WET_MIN）。改造前沿河向的
+     * 走查会一路进入相邻段（未激活概念不存在）直到 WALK_LIMIT ⇒ 天然"无界跳过"；段激活门
+     * 后相邻段 80% 被清零 ⇒ 沿河向在<b>段端</b>提前有界——不筛掉它会把"到段端的距离"冒充
+     * "水道半宽"（本片重跑中位 5.0 / p90 13 的污染源）。同段判走生产 segKeyAt，零第二真值。
      */
     static int waterHalfWidth(int x, int z, int rosterIndex) {
+        final long ownKey = GTSRVoronoiRiverField.segKeyAt(SEED, x, z);
         int best = Integer.MAX_VALUE;
         for (int d = 0; d < 4; d++) {
             final int dx = d == 0 ? 1 : d == 1 ? -1 : 0;
             final int dz = d == 2 ? 1 : d == 3 ? -1 : 0;
             int r = 1;
+            boolean ownSeg = true;
             while (r <= WALK_LIMIT
                 && -GTSRVoronoiRiverField.strengthAt(SEED, x + dx * r, z + dz * r, rosterIndex)
                     >= GTSRVoronoiRiverField.WET_MIN) {
+                if (GTSRVoronoiRiverField.segKeyAt(SEED, x + dx * r, z + dz * r) != ownKey) {
+                    ownSeg = false; // 沿河/结点穿段：本段内没有自然水缘，非"半宽"样本
+                    break;
+                }
                 r++;
             }
-            if (r <= WALK_LIMIT) {
+            if (ownSeg && r <= WALK_LIMIT) {
                 best = Math.min(best, r - 1);
             }
         }
@@ -473,7 +510,10 @@ public final class RiverMorphologyCheck {
         say("B-READ 常态水道半宽 样本=" + widths.size() + " p10/中位/p90=" + pct(widths, 10) + "/"
             + f3(median) + "/" + pct(widths, 90));
         check("B1 常态河半宽中位数 ∈ [3,4.5] 格（v1.20.40 P19 §A.2 重钉：WIDTH 0.14→0.08 收窄后的目标带"
-            + "「常态半宽 3-4.5 格」；归因 U2/U34 prered 中位 4.0 在带）",
+            + "「常态半宽 3-4.5 格」。P23 R1·S6：样本域 = 激活段（waterHalfWidth 同段纪律）+ 200 心代表性"
+            + "采样（旧 32 心在段激活门后成聚集样本——32 心读数中位 5.0/沼泽同量化 1.000 是聚集偏差；"
+            + "代表性采样实测中位 4.0 居带、沼泽比 1.250，与 v1.20.40 校准读数逐位同归——WIDTH 未动，"
+            + "带 [3,4.5] 一字不动、零放宽）",
             widths.size() >= N_CENTERS / 2 && median >= 3.0D && median <= 4.5D,
             "中位=" + f3(median) + " n=" + widths.size());
     }
@@ -489,21 +529,28 @@ public final class RiverMorphologyCheck {
      * 不在此重写，否则判据成了第二真值（正是 P20 S3 要消灭的东西）。
      */
     static int bankBandHalfWidth(int x, int z) {
+        final long ownKey = GTSRVoronoiRiverField.segKeyAt(SEED, x, z);
         int best = Integer.MAX_VALUE;
         for (int d = 0; d < 4; d++) {
             final int dx = d == 0 ? 1 : d == 1 ? -1 : 0;
             final int dz = d == 2 ? 1 : d == 3 ? -1 : 0;
             int r = 1;
-            // 1) 走开水道核（内缘恒 WET_MIN，不抖动——抖动只在外缘，见 inBankBand javadoc）
+            // 1) 走开水道核（内缘恒 WET_MIN，不抖动——抖动只在外缘，见 inBankBand javadoc）；
+            //    P23 R1·S6：穿出本段（换 segKey）= 沿河向，不是"坡宽"样本（waterHalfWidth 同纪律）。
             while (r <= WALK_LIMIT && s(x + dx * r, z + dz * r) >= GTSRVoronoiRiverField.WET_MIN) {
+                if (GTSRVoronoiRiverField.segKeyAt(SEED, x + dx * r, z + dz * r) != ownKey) {
+                    r = WALK_LIMIT + 1;
+                    break;
+                }
                 r++;
             }
             if (r > WALK_LIMIT) {
-                continue; // 顺河方向：核无界，不是"坡宽"的样本
+                continue; // 顺河方向（含段端有界）：核无界/穿段，不是"坡宽"的样本
             }
             final int edge = r; // 水缘外第一列
-            // 2) 数环的连续列
+            // 2) 数环的连续列（仍在段内；出段即止——环是本段的谷坡环）
             while (r <= WALK_LIMIT
+                && GTSRVoronoiRiverField.segKeyAt(SEED, x + dx * r, z + dz * r) == ownKey
                 && GTSRVoronoiRiverField.inBankBand(SEED, x + dx * r, z + dz * r, s(x + dx * r, z + dz * r))) {
                 r++;
             }
@@ -870,7 +917,7 @@ public final class RiverMorphologyCheck {
             + C2B_ABOVE_CELLS + " 格；干湿与高出格数只经 aboveWaterCells→submergedAt 一个谓词数出来，"
             + "全文件零第二处 {@code pool−1} 水线算术。**带由实测反解（§8）**：n = 124 / 命中 = 90 / "
             + "M = 0.726、高出格数 p10/中位/p90 = −2/+3/+6 ⇒ 下界 0.71（取带规则与 C2-a 同族\"再容许 1 "
-            + "例\"）、上界 1.0 不反向钉；实机后校准。**被实测否证的三个候选锚**（§22-B 旧域环列 0.094、"
+            + "例\"）、上界 1.0 不反向钉；实机后校准。**P23 R1·S6 同规则重算**：B 组 200 心代表性采样把本域样本抬到 n=624/命中 419 ⇒ M=0.671，按同一规则（再容许 1 例）重钉下界 0.66（见 C2B_LO 注释），锚点与语义一字不动。**被实测否证的三个候选锚**（§22-B 旧域环列 0.094、"
             + "§23-B 字面新域 0.000、无窗对照 D 0.014）自本节起<b>全部只报不钉</b>，读数见上方 C2B-READ"
             + "与 {@code plan/tmp/p20-s3d/c2b-domain-finding.md}。）"
             + "〔<b>旧域（§22-B 谷坡环列）当时那句断言的中段残文·逐字保留</b>，自 §26 起该域只报不钉："
@@ -1024,62 +1071,48 @@ public final class RiverMorphologyCheck {
 
     // ══════════════════════ 遗忘之川域定位与共享扫描（v1.20.42 P22 A1c） ══════════════════════
 
-    /**
-     * 遗忘之川域（trunk&gt;0 的河列）定位：粗扫窗（±{@link #TRUNK_HUNT_EXTENT} 步
-     * {@link #TRUNK_HUNT_STRIDE}）内扫描序第一个 wet 列。枯竭后置水只剩主干带内 ⇒ 水面类断言
-     * （F2/H1/H2）的采样域以本锚点为心、±{@link #SCAN_EXTENT} 为窗（与 F/E 组同一窗半径口径；
-     * 窗半径 3×SEPARATION 沿带向覆盖 ≥5 个细胞段——实测 28 段）。返回 {x,z}；窗内无 wet 列时
-     * F2/H 的样本下限断言自然红（主干带波长 ~5000 格，2×TRUNK_SCALE 窗 ≥3 波长 ⇒ 数学上恒有带）。
-     */
-    static int[] findSanzuWetAnchor() {
-        for (int z = -TRUNK_HUNT_EXTENT; z <= TRUNK_HUNT_EXTENT; z += TRUNK_HUNT_STRIDE) {
-            for (int x = -TRUNK_HUNT_EXTENT; x <= TRUNK_HUNT_EXTENT; x += TRUNK_HUNT_STRIDE) {
-                if (GTSRVoronoiRiverField.wetAt(SEED, x, z, 0)) {
-                    say(
-                        "S-READ 遗忘之川湿列锚点=(" + x + "," + z + ")（粗扫 ±" + TRUNK_HUNT_EXTENT + " 步距 "
-                            + TRUNK_HUNT_STRIDE + " 的首个 wet 列——水面类断言采样窗之心）");
-                    return new int[] { x, z };
-                }
-            }
-        }
-        say("S-READ 遗忘之川湿列锚点=（未找到——粗扫窗内无 wet 列，F2/H 样本下限将红）");
-        return new int[] { 0, 0 };
-    }
+    // P23 R1·S6：findSanzuWetAnchor（湿列锚点定位）随 F2 退役删除——wetAt 恒 false 后窗内无
+    // wet 列，水面类断言（F2/H1 旧口径/H2 旧锚）整体换域，锚点定位无消费者即删。
 
     /**
-     * 遗忘之川域一趟细扫（F2/H1/H2 共用）：锚心 ±{@link #SCAN_EXTENT} 步 {@link #TRUNK_DOM_STRIDE}。
-     * 档口径取 roster 0（参数化常态档）——主干带内 strengthAt 有效宽档 = max(底档, 3.5) 对全部名册
-     * 同值（构造不变量，isSanzuColumn javadoc 同源）⇒ 带内 s/wet 与 roster 无关；poolLevelAt 只吃
-     * 档表 bedTarget（roster 0 与 sanzu 档 [4] 同为 64.5）⇒ 三断言的读数与生产带内链同解。
+     * 激活段域一趟细扫（H1/H2/F3 共用，P23 R1·S6 重锚）：±{@link #SCAN_EXTENT} 步
+     * {@link #TRUNK_DOM_STRIDE}。档口径 roster 0（poolLevelAt 只吃档表 bedTarget，常态 64.5）。
+     * 采集四类量：<b>河核列</b>（s≥WET_MIN——段激活门在 strengthAt 内 ⇒ 河核列天然 ⊂ 激活段；
+     * H1 分母）、<b>端面锚样本</b>（s≥WET_MIN ∧ trunk&gt;0——bedFromPool 端面入口门同式；
+     * H2 的膨胀源）、<b>逐 segKey 池档直方图</b>（H1）、<b>逐 segKey 是否出现 s&gt;0 采样列</b>
+     * （F3 段激活率的行为读数：激活段的河谷域 c&lt;WIDTH 带 ≈±15 格 × 边长 ~600 格 ⇒ stride-8
+     * 网格期望 ~280 命中，漏检概率 ≈ e^−280 ⇒ 「段内任一采样列 s&gt;0」与门值逐段等价）。
      */
     static final class TrunkDomain {
-        /** 域内河核列（s≥WET_MIN ∧ trunk>0）数（F2 分母）。 */
-        long coreTrunk;
-        /** 其中 wetAt 为假的列数（F2 分子——域内枯竭列）。 */
-        long dry;
-        /** H1：wet 列按 segKey 分组后的段内池档直方图。 */
+        /** 域内河核列（s≥WET_MIN ⇒ 激活段）数（H1 分母）。 */
+        long coreCols;
+        /** H1：河核列按 segKey 分组后的段内池档直方图。 */
         final HashMap<Long, HashMap<Integer, int[]>> segPools = new HashMap<Long, HashMap<Integer, int[]>>();
-        /** 细扫网格上的 wet 列样本（H2 膨胀扫描的源）。 */
-        final HashSet<Long> wetSamples = new HashSet<Long>();
+        /** 细扫网格上的端面锚样本（s≥WET_MIN ∧ trunk>0；H2 膨胀扫描的源）。 */
+        final HashSet<Long> endFaceSamples = new HashSet<Long>();
+        /** F3：窗内全部唯一 segKey（含未激活段）。 */
+        final HashSet<Long> segKeys = new HashSet<Long>();
+        /** F3：其中出现 s&gt;0 采样列的段（行为激活）。 */
+        final HashSet<Long> segKeysLive = new HashSet<Long>();
     }
 
-    static TrunkDomain scanTrunkDomain(int ax, int az) {
+    static TrunkDomain scanSegDomain() {
         final TrunkDomain dom = new TrunkDomain();
-        for (int z = az - SCAN_EXTENT; z <= az + SCAN_EXTENT; z += TRUNK_DOM_STRIDE) {
-            for (int x = ax - SCAN_EXTENT; x <= ax + SCAN_EXTENT; x += TRUNK_DOM_STRIDE) {
-                if (-GTSRVoronoiRiverField.strengthAt(SEED, x, z, 0) < GTSRVoronoiRiverField.WET_MIN) {
-                    continue;
-                }
-                if (GTSRVoronoiRiverField.trunkAt(SEED, x, z) <= 0.0D) {
-                    continue; // 带外河核列 = 枯竭域（F1 的对象），不入本域
-                }
-                dom.coreTrunk++;
-                if (!GTSRVoronoiRiverField.wetAt(SEED, x, z, 0)) {
-                    dom.dry++;
-                    continue;
-                }
-                dom.wetSamples.add(Long.valueOf(((long) x << 32) ^ (z & 0xFFFFFFFFL)));
+        for (int z = -SCAN_EXTENT; z <= SCAN_EXTENT; z += TRUNK_DOM_STRIDE) {
+            for (int x = -SCAN_EXTENT; x <= SCAN_EXTENT; x += TRUNK_DOM_STRIDE) {
                 final long key = GTSRVoronoiRiverField.segKeyAt(SEED, x, z);
+                dom.segKeys.add(Long.valueOf(key));
+                final double s = -GTSRVoronoiRiverField.strengthAt(SEED, x, z, 0);
+                if (s > 0.0D) {
+                    dom.segKeysLive.add(Long.valueOf(key)); // 河谷域采样命中 ⇒ 该段过激活门
+                }
+                if (s < GTSRVoronoiRiverField.WET_MIN) {
+                    continue;
+                }
+                dom.coreCols++;
+                if (GTSRVoronoiRiverField.trunkAt(SEED, x, z) > 0.0D) {
+                    dom.endFaceSamples.add(Long.valueOf(((long) x << 32) ^ (z & 0xFFFFFFFFL)));
+                }
                 final int pool = GTSRVoronoiRiverField.poolLevelAt(SEED, x, z, 0);
                 HashMap<Integer, int[]> hist = dom.segPools.get(Long.valueOf(key));
                 if (hist == null) {
@@ -1097,7 +1130,16 @@ public final class RiverMorphologyCheck {
     }
 
     /**
-     * 本列处河流<b>切向</b>的估计（16 方向里 wet 连续延伸最长者；生产 = 边界法向旋转 90°，
+     * 端面入口门谓词（bedFromPool 的同式：trunk&gt;0 ∧ s≥WET_MIN——P23 R1·S6 起 wetAt 恒 false，
+     * 本谓词是端面收尾仍会求值的唯一列域）。
+     */
+    static boolean endFaceCoreAt(int x, int z) {
+        return GTSRVoronoiRiverField.trunkAt(SEED, x, z) > 0.0D
+            && -GTSRVoronoiRiverField.strengthAt(SEED, x, z, 0) >= GTSRVoronoiRiverField.WET_MIN;
+    }
+
+    /**
+     * 本列处河流<b>切向</b>的估计（16 方向里端面入口域连续延伸最长者；生产 = 边界法向旋转 90°，
      * {@code endFaceBed} 的面探测方向——法向出口包私有，判据侧以延伸最长向近似，偏差 ≤ ±11.25°）。
      */
     static double[] tangentAt(int x, int z) {
@@ -1109,7 +1151,7 @@ public final class RiverMorphologyCheck {
             final double tz = Math.sin(a * Math.PI / 8.0D);
             int run = 0;
             for (int k = 1; k <= TANGENT_RUN_CAP; k++) {
-                if (!GTSRVoronoiRiverField.wetAt(SEED, x + (int) Math.round(tx * k), z + (int) Math.round(tz * k), 0)) {
+                if (!endFaceCoreAt(x + (int) Math.round(tx * k), z + (int) Math.round(tz * k))) {
                     break;
                 }
                 run = k;
@@ -1134,11 +1176,10 @@ public final class RiverMorphologyCheck {
      * 【<b>旧 F1 断言原文（v1.20.39 T4 立、v1.20.40 P19 §B 改整段闸口径）逐字保留</b>，自
      * v1.20.42（P22 A1a 全域枯竭）起作废换立】：「<b>F1 荒漠断流：过水占比 ∈ [20%,40%]</b>（约
      * 30%±10 ⇒ 串珠断流，不是全干也不是全满）｜ F-READ 荒漠档河核列=… 过水列=… 占比=…%
-     * （WET_EDGE=0.6 连续噪声闸）」。作废理由：荒漠整段闸（{@code segWetAt}/
-     * {@code DESERT_WET_SHARE} 干:湿 = 65:35）已随 A1a 的 wetAt 新门从生产链退役——全域枯竭后
-     * 本窗过水占比实测 0.000%（基线复跑红），旧带钉的"串珠断流"机制不复存在；判据侧对本窗
-     * WET_EDGE/segWetAt 的消费点（旧 F-READ 行与旧 H2 面检测）自本片一并退役（生产侧保留字段
-     * 注释里点名的"归 A1c 片"收口）。
+     * （旧 WET_EDGE=0.6 连续噪声闸，字段已删）」。作废理由：荒漠整段闸（干:湿 = 65:35）
+     * 已随 A1a 的 wetAt 新门从生产链退役——全域枯竭后本窗过水占比实测 0.000%（基线复跑红），
+     * 旧带钉的"串珠断流"机制不复存在；判据侧对旧闸的消费点自 A1c 片退役，
+     * 生产侧退役字段（WET_EDGE/DESERT_WET_SHARE/segWetAt）已随 P23 R1·S6 兑现删除。
      */
     static void groupF() {
         long core = 0;
@@ -1152,36 +1193,47 @@ public final class RiverMorphologyCheck {
                 core++;
                 if (GTSRVoronoiRiverField.trunkAt(SEED, x, z) <= 0.0D) {
                     deplete++;
-                    if (GTSRVoronoiRiverField.wetAt(SEED, x, z, 2)) {
-                        wetViol++;
-                    }
+                }
+                // P23 R1·S6 强化：枯竭侧（trunk≤0）与带内侧一并计数——wetAt 恒 false 的合同面
+                // 必须全域成立，不再只钉带外半侧（旧 F2 的带内半侧随主干河置水死退役）。
+                if (GTSRVoronoiRiverField.wetAt(SEED, x, z, 2)) {
+                    wetViol++;
                 }
             }
         }
-        say("F-READ 枯竭验证：河核列=" + core + " 枯竭列（trunk≤0）=" + deplete + " 枯竭置水违例=" + wetViol
-            + "（v1.20.42 起置水 ⇔ s ≥ WET_MIN ∧ trunk > 0——枯竭域置水列恒 0 是新门合同面）");
-        check("F1 枯竭域置水 == 0（v1.20.42 P22 A1c 换语义重立：A1a 探针 C1 的 wetOutsideTrunk 口径"
-            + "判据化——带外河核列（干河床）不得置水；违例 > 0 = wetAt 新门外存在第二置水真值源。"
+        say("F-READ 置水验证：河核列=" + core + "（其中 trunk≤0 干床侧=" + deplete + "）全域置水违例="
+            + wetViol + "（P23 R1 起 wetAt 恒 false——河流场全域无水，湖/沼泽池走独立通道）");
+        check("F1 全域置水 == 0（P23 R1·S6 强化：wetAt 恒 false 的合同面——河核列（激活段干床，"
+            + "trunk 内外一并）置水违例必须为 0；违例 > 0 = wetAt 死门之外出现第二置水真值源。"
             + "〔旧带原文保留：F1 荒漠断流 过水占比 ∈ [20%,40%（约 30%±10 串珠断流），v1.20.42 起作废"
-            + "——荒漠整段闸已退役，见本方法 javadoc〕〕",
-            core >= N_CENTERS && deplete >= N_CENTERS && wetViol == 0,
-            "违例=" + wetViol + " 枯竭列=" + deplete + " 河核列=" + core);
+            + "——荒漠整段闸已退役，见本方法 javadoc；v1.20.42-45 的双侧口径（带外 F1 + 带内 F2）"
+            + "随主干河置水死由本条全域单侧承接〕〕",
+            core >= N_CENTERS && wetViol == 0,
+            "违例=" + wetViol + " 河核列=" + core + "（trunk≤0 干床侧=" + deplete + "）");
     }
 
     /**
-     * <b>F2（本片新增）</b>：遗忘之川域无枯竭段——域内（trunk&gt;0 河核列）湿段率 == 100%，
-     * 即断流闸在主干带内实际禁用（wetAt 新门的带内方向）。与 F1 合起来把 A1a 的新门合同面
-     * 两侧都钉住：带外全枯、带内全湿。采样域 = {@link #scanTrunkDomain}（锚点窗，见其注释）。
+     * <b>F3 段激活率带（P23 R1·S6 新增，接替已删的 F2 位）</b>：零散干床段的激活段占比 ∈
+     * [0.16,0.24]——构造值 {@link GTSRVoronoiRiverField#RIVER_SEGMENT_ACTIVATE_P}=0.20 的哈希
+     * 均匀性读数（段激活门对 segKey 哈希取阈，激活率应贴着 P 值；带 = P±0.04 ≈ 二项 2σ 内的
+     * 收紧域，S2 直跑 0.194 居带）。读数走<b>行为口径</b>（段内任一采样列 s&gt;0 ⇔ 过门，见
+     * {@link #scanSegDomain} 的漏检概率推导），零公式复刻。
+     * <p>
+     * 〔已删断言原文保留：F2 遗忘之川域无枯竭段——域内（trunk&gt;0 河核列）湿段率 == 100%
+     * （v1.20.42 P22 A1c 立）；P23 R1 主干宽河移除 ⇒ 判据对象不存在，plan §3 表序 3 裁删。〕
      */
-    static void groupF2(TrunkDomain dom) {
-        final double share = dom.coreTrunk == 0 ? -1.0D : (dom.coreTrunk - dom.dry) / (double) dom.coreTrunk;
-        say("F-READ 遗忘之川域：河核列（s≥WET_MIN ∧ trunk>0）=" + dom.coreTrunk + " 枯竭列=" + dom.dry
-            + " 湿段率=" + f3(100.0D * share) + "%（采样窗 = 湿列锚点 ±" + SCAN_EXTENT + " 步距 "
-            + TRUNK_DOM_STRIDE + "）");
-        check("F2 遗忘之川域无枯竭段：域内湿段率 == 100%（wetAt 新门的带内方向——主干带内全有水、"
-            + "无枯竭段；枯竭列 > 0 = 带内残留断流闸或出现第二置水门）",
-            dom.coreTrunk >= N_CENTERS && dom.dry == 0,
-            "湿段率=" + f3(100.0D * share) + "% 枯竭列=" + dom.dry + " 域内河核列=" + dom.coreTrunk);
+    static void groupActivation(TrunkDomain dom) {
+        final int n = dom.segKeys.size();
+        final int live = dom.segKeysLive.size();
+        final double share = n == 0 ? -1.0D : live / (double) n;
+        say("F-READ 段激活率：窗内唯一段（segKey）=" + n + " 激活段（任一采样列 s>0）=" + live
+            + " ⇒ 激活率=" + f3(share) + "（构造值 RIVER_SEGMENT_ACTIVATE_P="
+            + GTSRVoronoiRiverField.RIVER_SEGMENT_ACTIVATE_P + "；±" + SCAN_EXTENT + " 步距 "
+            + TRUNK_DOM_STRIDE + "，行为口径零公式复刻）");
+        check("F3 段激活率 ∈ [0.16,0.24]（P23 R1② 零散干床：构造值 0.20 的哈希均匀性——带外 = "
+            + "激活门哈希退化成偏斜分布或 P 值被改；S2 直跑 0.194 在带）",
+            n >= 32 && share >= 0.16D && share <= 0.24D,
+            "激活率=" + f3(share) + " 段=" + n + " 激活=" + live);
     }
 
     // ══════════════════════ G 沼泽河宽 + heightAt 集成 ══════════════════════
@@ -1271,9 +1323,9 @@ public final class RiverMorphologyCheck {
      * 〔旧全域口径原文：「H-READ 池水位水平：湿核列=3133 段=101 …（±SCAN_EXTENT 步距 16 全域
      * 湿核列）」——枯竭后该 3133 列全部无水，其池水位只是段界参考面，读数保留在 v1.20.41 判据
      * 归档，不再采样〕；</li>
-     * <li><b>H2 端面渐变</b>（U34 遗留① 的顺流口径；<b>面 A 判据自 v1.20.42 起以 wetAt 新门为
-     * 真值</b>——邻列换段 ∧（trunkAt≤0 ∨ s&lt;WET_MIN），{@code endFaceBed} 的枯竭端面同判式，
-     * 旧「非湿核 ∨ ¬segWetAt（荒漠整段闸）」腿随闸退役）：湿核列的干段端面收尾，沿面向段内的
+     * <li><b>H2 端面渐变</b>（U34 遗留① 的顺流口径；面 A 判据 = 邻列换段 ∧（trunkAt≤0 ∨
+     * s&lt;WET_MIN，s 含段激活门——未激活段邻列 s=0 天然判枯竭），{@code endFaceBed} 同判式）：
+     * 端面列的床收尾，沿面向段内的
      * <b>顺流剖面</b>逐列床高差 ≤ 2——endFaceBed 的 smoothstep 抬升式每列 ≤ (target−bed)/2 ≪ 2
      * （U34 探针 P5：沿程剖面 ≤1/列）。段界斜交尖端的<b>横向</b>邻列小槛（同探针 2/80 的已知
      * 遗留）不在顺流口径内。<b>锚点采样（P22 A1c 换两段式）</b>：枯竭端面在主干带长直几何下
@@ -1287,6 +1339,8 @@ public final class RiverMorphologyCheck {
      */
     static void groupH(TrunkDomain dom) {
         // —— H1 池水位水平（每段档数 ≤ 3 = 本体 + 两端结点档；最高池 = 边基池占多数）——
+        // P23 R1·S6：采样域 = 激活段河核列（s≥WET_MIN ⇒ 激活段；置水死后池水位仍是床面/端面
+        // 收尾的段界参考面——床阶语义留、置水断言删，断言带一字不动）。
         int worstLevels = 0;
         int segsOverLevels = 0;
         double worstMaxShare = 1.0D;
@@ -1304,25 +1358,28 @@ public final class RiverMorphologyCheck {
             }
             worstMaxShare = Math.min(worstMaxShare, maxCount / (double) total);
         }
-        say("H-READ 池水位水平（遗忘之川域 wet 列）：段（segKey）=" + dom.segPools.size() + " 段内档数最坏="
-            + worstLevels + " 档数>3 的段=" + segsOverLevels + " 最高池份额最坏=" + f3(worstMaxShare));
+        say("H-READ 池水位水平（激活段河核列，P23 R1·S6 域）：段（segKey）=" + dom.segPools.size()
+            + " 段内档数最坏=" + worstLevels + " 档数>3 的段=" + segsOverLevels + " 最高池份额最坏="
+            + f3(worstMaxShare) + "（河核列合计 " + dom.coreCols + "）");
         check("H1 每段 poolLevelAt 档数 ≤ 3（本体 + 两端结点裁决档）且段内最高池份额 ≥ 1/2（P19 §C 段内恒"
             + "水面 + 结点取最小；实测最坏 0.500 = 短段两端结点域占满余量；档数超限或基池份额跌穿半数 = "
-            + "逐列噪声型第二真值源。v1.20.42 P22 A1c：采样域缩到遗忘之川域 wet 列（枯竭后全域湿核"
-            + "已无水面），断言带与 v1.20.40 原钉一字不动）",
-            dom.segPools.size() >= N_CENTERS / 2 && segsOverLevels == 0 && worstMaxShare >= 0.5D,
+            + "逐列噪声型第二真值源。P23 R1·S6：采样域改激活段河核列（wetAt 恒 false 后无 wet 列可采，"
+            + "床阶语义留、置水断言删），断言带与 v1.20.40 原钉一字不动）",
+            dom.segPools.size() >= H1_SEGS_MIN && segsOverLevels == 0 && worstMaxShare >= 0.5D,
             "段=" + dom.segPools.size() + " 档数最坏=" + worstLevels + " 最高池份额最坏=" + f3(worstMaxShare));
         // —— H2 端面渐变（顺流剖面逐列床高差 ≤ 2；两段式锚点采样，见方法 javadoc）——
-        // 1) 轴面候选：湿样本膨胀 ±FACE_DILATION 内、8 邻存在"换段 ∧ 枯竭"邻列的 wet 列（去重）。
+        // 1) 轴面候选：端面锚样本（trunk>0 ∧ s≥WET_MIN）膨胀 ±FACE_DILATION 内、8 邻存在
+        // "换段 ∧ 枯竭"邻列的端面入口列（去重）。P23 R1·S6：wetAt 恒 false ⇒ 锚点域换
+        // bedFromPool 端面入口门同式（endFaceCoreAt）。
         final HashSet<Long> axisCand = new HashSet<Long>();
-        for (final long key : dom.wetSamples) {
+        for (final long key : dom.endFaceSamples) {
             final int sx = (int) (key >> 32);
             final int sz = (int) key;
             for (int dz = -FACE_DILATION; dz <= FACE_DILATION; dz++) {
                 for (int dx = -FACE_DILATION; dx <= FACE_DILATION; dx++) {
                     final int x = sx + dx;
                     final int z = sz + dz;
-                    if (!GTSRVoronoiRiverField.wetAt(SEED, x, z, 0)) {
+                    if (!endFaceCoreAt(x, z)) {
                         continue;
                     }
                     if (hasDepletionFace(x, z, null)) {
@@ -1379,13 +1436,14 @@ public final class RiverMorphologyCheck {
                 prev = bed;
             }
         }
-        say("H-READ 端面渐变（遗忘之川域枯竭端面·切向顺流剖面）：轴面候选=" + axisCand.size() + " 剖面数="
-            + walks + " 逐列 |Δbed|>2 的对=" + badPairs + " 最坏=" + f3(worst));
+        say("H-READ 端面渐变（端面入口列·切向顺流剖面，P23 R1·S6 锚点域）：轴面候选=" + axisCand.size()
+            + " 剖面数=" + walks + " 逐列 |Δbed|>2 的对=" + badPairs + " 最坏=" + f3(worst));
         check("H2 干段端面收尾沿顺流剖面逐列床高差 ≤ 2（P19 §B smoothstep 抬升式；U34 遗留① 的"
-            + "横向尖端小槛不在顺流口径内。v1.20.42 P22 A1c：面 A 判据换 wetAt 新门真值"
-            + "（邻列换段 ∧ 枯竭——endFaceBed 同判式），锚点采样换「湿样本膨胀 + 切向面探针」两段式"
-            + "——枯竭端面在主干带长直几何下结构性稀少，旧 stride-8 盲扫随网格相位乱跳；"
-            + "断言带（剖面数 ≥8 ∧ badPairs=0）与 v1.20.40 原钉一字不动）",
+            + "横向尖端小槛不在顺流口径内。P23 R1·S6：锚点域换 bedFromPool 端面入口门同式"
+            + "（trunk>0 ∧ s≥WET_MIN——wetAt 恒 false 后端面收尾只承载床形观感），"
+            + "面 A 判据（邻列换段 ∧ 枯竭，s 含段激活门——未激活段邻列天然判枯竭）与"
+            + "「样本膨胀 + 切向面探针」两段式、断言带（剖面数 ≥8 ∧ badPairs=0）"
+            + "与 v1.20.40 原钉一字不动）",
             walks >= 8 && badPairs == 0, "walks=" + walks + " badPairs=" + badPairs + " worst=" + f3(worst));
     }
 
@@ -1518,6 +1576,7 @@ public final class RiverMorphologyCheck {
         long riverbedCols = 0;
         long poolWaterCols = 0;
         long sanzuGateCols = 0;
+        long edgePoolCols = 0;
         long outflowPool = 0;
         long nonSuspendedBad = 0;
         long embedBad = 0;
@@ -1554,6 +1613,11 @@ public final class RiverMorphologyCheck {
                     }
                     if (gate[i] > 0.0D && trunkPos[i]) {
                         sanzuGateCols++;
+                    }
+                    // P23 E 第六腿（判据化）：潭列落在沼泽腹地之外（!swampInteriorAt）= 生产门第六腿
+                    // 失守——腹地门与三档/微池互斥同一粗层真值，判据侧独立采样核验（零公式复刻）。
+                    if (gate[i] > 0.0D && !TerrainVariants.swampInteriorAt(SEED, x, z)) {
+                        edgePoolCols++;
                     }
                 }
             }
@@ -1648,7 +1712,8 @@ public final class RiverMorphologyCheck {
         say("I-READ 残潭猎取：命中=" + nHits + " 窗=" + nCenters + "（±" + POOL_HUNT_EXTENT + " 步距 "
             + POOL_HUNT_STRIDE + " farthest-point 选心）");
         say("I-READ 残潭水体模拟：沼泽河床列=" + riverbedCols + " 实得水潭列=" + poolWaterCols + " 覆盖率="
-            + f3(coverage) + " sanzu 域潭列=" + sanzuGateCols + " 潭水格外流违例=" + outflowPool
+            + f3(coverage) + " sanzu 域潭列=" + sanzuGateCols + " 非腹地潭列=" + edgePoolCols
+            + " 潭水格外流违例=" + outflowPool
             + " 不悬浮违例=" + nonSuspendedBad + " 嵌入违例=" + embedBad);
         check("I1 残潭域合同：sanzu 域（trunk>0）零潭 ∧ 样本成量（" + POOL_WINDOWS + " 窗全猎到 ∧ 沼泽河床列 ≥ "
             + N_CENTERS + "）——潭场自带 trunk≤0 硬门（swampRiverPoolAt 门腿 2），判据侧独立采样核验;"
@@ -1665,6 +1730,11 @@ public final class RiverMorphologyCheck {
             + "下挖的本地形顶，水柱坐床不悬浮）；违例 > 0 = 钳制式或下挖深度的回归",
             outflowPool == 0 && nonSuspendedBad == 0,
             "外流=" + outflowPool + " 悬浮=" + nonSuspendedBad);
+        check("I3b 潭列 ∩ 非腹地 == 0（P23 E 第六腿判据化：残潭不得落沼泽群系边缘——A3 边缘门把"
+            + "边缘三档/微池钳 NONE 后三档互斥腿反而放行，交界干河床上的潭水敞口即此；生产门"
+            + "swampRiverPoolAt 第六腿（!swampInteriorAt ⇒ 0）与三档/微池同一粗层真值，判据侧"
+            + "独立采样核验，违例 > 0 = 第六腿被删/被绕）",
+            edgePoolCols == 0, "非腹地潭列=" + edgePoolCols);
         check("I4 潭嵌入 ≥1：潭水顶 ≤ round(bed)−1（A1b R3——bed 取 bedFromPool 未挖床值，"
             + "水顶低于干床面 ≥1 格的「下沉嵌入式水潭」读数；DIG_BASE ≥3 与 FILL_TOP=−3 的构造裕量"
             + "见两常量 javadoc，违例 = 裕量被常量漂移吃掉）",

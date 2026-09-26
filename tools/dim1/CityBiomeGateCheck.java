@@ -82,8 +82,14 @@ public class CityBiomeGateCheck {
      * 17.44% 记录口径的 2.8 倍）时提前于 E1（keptRatio ≥ 0.10）可见的红灯；越界 = wetAt 门
      * 反向放宽 / 潭·微池场外溢 / 占比制常量漂移一类回归。精确弃位率（全候选 cell 口径）归
      * {@code PlacementContractCheck} 的「城窗跳过=」报告行域（R6 裁定域，本片不动它）。
+     * <p>
+     * <b>P23 R1·S6 重钉：50% → 75%</b>。归因：R1 全域站格湖（水半径 200/站距 1200，湖面占
+     * ~9%）+ 干区臂「城心全过制」⇒ 候选城落湖心的概率结构性上升——本样本实测 7/12 = 58.33%
+     * （v1.20.42 复跑 3/12 = 25.0%），属放湖的<b>设计内</b>漂移非门回归（E1 keptRatio 5/12 =
+     * 41.7% ≥ 0.10 照绿）。75% = 候选城被砍 3/4（n=12 粗样本一城 ≈ 8.3pp ⇒ 9/12 仍绿、
+     * 10/12 = 83.3% 红），保留"提前于 E1 可见的红灯"语义与 1.29× 余量。
      */
-    private static final double DRY_ABANDON_MAX = 0.5D;
+    private static final double DRY_ABANDON_MAX = 0.75D;
 
     private static int assertions;
     private static final List<String> FAILURES = new ArrayList<>();

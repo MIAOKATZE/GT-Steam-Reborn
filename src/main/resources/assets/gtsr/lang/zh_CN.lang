@@ -2036,7 +2036,7 @@ biome.Rusted Steppe.name=锈蚀草原
 biome.Gearwork Forest.name=齿轮森林
 biome.Brass Wastes.name=黄铜荒漠
 biome.Fumarole Swamp.name=起雾沼泽
-biome.Sanzu River.name=遗忘之川
+biome.Sanzu Lake.name=遗忘之湖
 
 # 维度繁荣蒸汽时代遗迹：方块族（dim1 S2；贴图为原版路径占位，S7a artgen 换像素不改注册名）
 tile.ProsperitySurface.0.name=锈蚀草方块
