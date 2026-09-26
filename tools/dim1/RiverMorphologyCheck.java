@@ -4,22 +4,28 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 
+import net.minecraft.block.Block;
 import net.minecraft.world.biome.BiomeGenBase;
 
+import com.miaokatze.gtsr.common.blocks.BlocksGTSR;
 import com.miaokatze.gtsr.common.dimension.framework.GTSRBiomeAuthority;
 import com.miaokatze.gtsr.common.dimension.framework.genlayer.GTSRGenLayerRosterFace;
 import com.miaokatze.gtsr.common.dimension.prosperity.ProsperityTerrainProfile;
 import com.miaokatze.gtsr.common.dimension.prosperity.TerrainVariants;
+import com.miaokatze.gtsr.common.dimension.prosperity.river.GTSRRiverPlacer;
 import com.miaokatze.gtsr.common.dimension.prosperity.river.GTSRVoronoiRiverField;
 
 /**
  * <b>v1.20.39 T4 机检：dim78 Voronoi 河流强度场形态（plan §3.1/§3.2 校准回路的判据面）</b>。
  * 纯模型驱动（{@link GTSRVoronoiRiverField}/{@link ProsperityTerrainProfile} 均零世界读取，
  * 无需离线装配账本：按档测量传显式 rosterIndex；heightAt 链在未装配 JVM 走默认档，河谷
- * 压低链仍在）。P17RiverNetworkCheck（旧轴向等距线模型）已随旧模型删除，本判据接替其位。
+ * 压低链仍在。<b>P26-B2（v1.20.49）K 组起补一处离线装配</b>：床/滩料群系分布断言需要方块
+ * 身份判等，经 {@code SurfaceHarness} 直填 BlocksGTSR 三沙族字段——<b>不触 L1 账本</b>
+ * （不调 recordAllAllocations ⇒ rosterIndexCached 仍 -1，A-H/J 组读数不受影响））。
+ * P17RiverNetworkCheck（旧轴向等距线模型）已随旧模型删除，本判据接替其位。
  *
  * <p>
- * ═══ 八组断言（全部实跑；阈值 = plan §8 验收指标，统计功效参数全部从生产常数派生——
+ * ═══ 断言组 A-H + J + K（全部实跑；阈值 = plan §8 验收指标，统计功效参数全部从生产常数派生——
  * v1.20.38 纪律 2：不写字面量窗口）═══
  * <ul>
  * <li><b>A 合同面</b>：strengthAt ∈ [-1,0] 且确定性（双跑逐位）、换 seed 必换场、档表 5 元
@@ -66,6 +72,12 @@ import com.miaokatze.gtsr.common.dimension.prosperity.river.GTSRVoronoiRiverFiel
  * 内河流强度 s ≡ 0（strengthAt 湖让位腿的行为直读）；J2 isDryRiverColumn 过渡带几何宽中位
  * ∈ [8,16] 格（阈带 [0.40,0.60) × 42 格/单位 s 的 javadoc 换算式实测复核）；J3 isDryRiverColumn
  * ⇒ !isSanzuColumn 逐列不相交（≥10⁶ 列采样，违例 = 0——谓词内含湖让位双保险腿的行为证）。</li>
+ * <li><b>K 床料群系分布（P26-B2 v1.20.49 判据化新增）</b>：K1 沼泽河核列表面==硅砂 ≥0.98 /
+ * K2 沼泽谷坡环列==硅砂 ≥0.95（D6 沼泽床/滩料引入硅砂的行为钉——基线沼泽核/环 889/848 全河砾）；
+ * K3 非沼泽档（0/1/2）床选型列==河砾 ≥0.98（「其余档恒河砾」腿，非沼泽段床料逐位不变硬约束）；
+ * K4 沼泽 pool 档 ⊆ {63,65,67} ∧ bed−pool ∈ [−2.5,−0.5]（床档随枯竭下调 66.5/1.0→64.5/2.0 的
+ * 行为钉）。材料表走 {@code GTSRRiverPlacer} public 出口，方块身份经 SurfaceHarness 离线装配
+ * （不触 L1 账本），断言带由缩样读数钉（{@code plan/tmp/p26-b2-readings.md}）。</li>
  * </ul>
  *
  * <p>
@@ -304,6 +316,9 @@ public final class RiverMorphologyCheck {
         // J 组（枯竭河床）为 P25 新增，且不再需要 I 组的真身份注入（谓词三参形态走默认档，
         // 与 PlacementGate.dryColumnAt ⑥ 腿 3 参调用同口径）。
         groupJ();
+        // P26-B2（v1.20.49）：K 组床/滩料群系分布（材料身份需离线方块族装配，放最后——
+        // 装配不触 L1 账本，A-H/J 组读数不受影响）。
+        groupK();
         report();
     }
 
@@ -385,11 +400,16 @@ public final class RiverMorphologyCheck {
                 && GTSRVoronoiRiverField.styleForRosterIndex(99) == GTSRVoronoiRiverField.DEFAULT_STYLE
                 && styles[3].widthScale == 1.2D * styles[0].widthScale,
             "widthScale=" + styles[3].widthScale + "/" + styles[0].widthScale);
-        check("A7 床档表值域：常态床目标=64.5（水面 68 ⇒ 水深 2-5 源头）、沼泽床 ∈ [66.5,67.5]（水面近地）",
+        check("A7 床档表值域：常态床目标=64.5（水面 68 ⇒ 水深 2-5 源头）、沼泽床目标=64.5±0.5"
+            + "（<b>P26-B2（v1.20.49）重钉</b>：原「沼泽床 ∈ [66.5,67.5]＝水面近地」是湿河时代口径，"
+            + "全域枯竭后未随动 ⇒ 沼泽干床砾最高 68.5≈SEA＝『部分河床砂砾偏高』第一主因；随枯竭下调"
+            + "66.5→64.5（与常态同锚，跨粗格群系边界零池差）后沼泽 pool 档 {65,67,69}→{63,65,67}、"
+            + "床域 [pool−2.5,pool−0.5] 全低于 SEA≥2.5 格——行为钉见 K4）",
             styles[0].bedTarget == GTSRVoronoiRiverField.BED_TARGET
                 && GTSRVoronoiRiverField.BED_TARGET == 64.5D
-                && styles[3].bedTarget + styles[3].bedNoiseAmp >= 66.5D
-                && styles[3].bedTarget - styles[3].bedNoiseAmp <= 67.5D,
+                && styles[3].bedTarget == GTSRVoronoiRiverField.BED_TARGET
+                && styles[3].bedTarget - styles[3].bedNoiseAmp >= 64.0D
+                && styles[3].bedTarget + styles[3].bedNoiseAmp <= 65.0D,
             "normal=" + styles[0].bedTarget + " swamp=" + styles[3].bedTarget + "±" + styles[3].bedNoiseAmp);
         check("A8 VALLEY_LEVEL == WET_MIN（平底域精确等于置水域：水下平床、水外起坡——高度链不变量）",
             GTSRVoronoiRiverField.VALLEY_LEVEL == GTSRVoronoiRiverField.WET_MIN,
@@ -1601,6 +1621,139 @@ public final class RiverMorphologyCheck {
             + "：≥10⁶ 列采样交列 = 0 ∧ 干床/sanzu 两域各自成量（≥100 列，防双空集假绿）",
             j3Cols >= 1_000_000L && j3Violations == 0 && j3Dry >= 100 && j3Sanzu >= 100,
             "列=" + j3Cols + " 交=" + j3Violations + " 干床=" + j3Dry + " sanzu=" + j3Sanzu);
+    }
+
+    // ══════════════════════ K 床料群系分布（P26-B2 新增） ══════════════════════
+
+    /** K 组采样步距（格）：{@link #SCAN_STRIDE}×2 = 16——床/滩料分布是面读数，stride 8 会把四档全扫推到 ~250 万列求值。 */
+    static final int K_STRIDE = SCAN_STRIDE * 2;
+    /** K 组沼泽侧样本成量下限（河核列；stride 16 窗 ±SCAN_EXTENT 实测 889，848 环列同窗）。 */
+    static final int K_MIN_COLS = 200;
+    /** K4 的 bed−pool 域容差（纯 double 端点等值噪声，非观测余量）。 */
+    static final double K_EPS = 1e-9D;
+
+    /**
+     * <b>K 组：床/滩料群系分布（P26-B2 判据化新增）</b>——补 u49-riverbed §6 点名的判据面缺口
+     * （「无任何断言钉床料/滩料的群系分布或硅砂覆盖率；沼泽缺硅砂、河床砾偏高均不在现有判据网内」）。
+     * 选型链<b>零复刻</b>：s/pool/submerged/bedTopAtSurface 全走生产出口，材料表走
+     * {@link GTSRRiverPlacer#bedMaterial}/{@link GTSRRiverPlacer#flatMaterial}（P26-B2 起 public，
+     * 单一真值）；方块身份经 {@code SurfaceHarness.blockFamily} 离线直填（<b>不触 L1 账本</b> ⇒
+     * rosterIndexCached 仍 -1、heightAt 仍默认档——与 G2a/G2b 同一近似口径，A-H/J 组不受装配影响）。
+     * 口径边界（与生产落块的两处登记偏差）：① 落块的 {@code h > bedrockTopHash} 写入门不在采样面
+     * （该门只剔基岩顶邻列，不改分布形状）；② heightAt 离线走默认档（生产沼泽列 amp 0.40 更平、
+     * 床更深 0.5-1 格 ⇒ 滩/床分界略有偏移——断言带按本口径缩样读数钉，两态自洽）。
+     * 断言带全部由缩样读数钉（{@code plan/tmp/p26-b2-readings.md}，前→后对拍在案）：
+     * <ul>
+     * <li><b>K1</b> 沼泽河核列表面 == 硅砂占比 ≥0.98（后态实测 1.000，889/889；P26 前基线
+     * 沼泽核+环全清一色河砾——本条抓「沼泽段硅砂=0」回归）；</li>
+     * <li><b>K2</b> 沼泽谷坡环列表面 == 硅砂占比 ≥0.95（后态实测 1.000，848/848）；</li>
+     * <li><b>K3</b> 非沼泽档（0/1/2）床选型列表面 == 河砾占比 ≥0.98（实测 1.000——床料分档的
+     * 「其余档恒河砾」腿，非沼泽段床料逐位不变是本片硬约束；滩带露头列按 flatMaterial 档表铺
+     * 硅砂/粗沙属设计内，<b>不计入本分母</b>——离线口径草原档滩带列约占核列 17%）；</li>
+     * <li><b>K4</b> 沼泽床高带：pool ∈ {63,65,67}（P26 前基线 {65,67,69}，最高档 69=SEA+1 正是
+     * 「沼泽床砂砾与地面齐平」读数源）∧ 逐列 bed−pool ∈ [−2.5, −0.5]（下界 = depth 2.0+amp 0.5
+     * 的结构域；上界 = {@code endFaceBed} 端面抬满值 pool−0.5，只抬不降）——床档随枯竭下调的
+     * 行为钉（回潮 66.5/1.0 ⇒ pool 集合先红）。</li>
+     * </ul>
+     */
+    static void groupK() {
+        // 离线装配三沙族方块（身份判等用；先 vanilla 后家族，与 WitheredPlaneCheck 同序——
+        // 不调 recordAllAllocations，理由见本组 javadoc）
+        SurfaceHarness.initVanillaBlocks();
+        SurfaceHarness.blockFamily();
+        final Block silica = BlocksGTSR.prosperitySilicaSand;
+        final Block gravel = BlocksGTSR.prosperityRiverGravel;
+        // —— K1/K2/K4：沼泽档（roster 3）——
+        long core = 0, coreSilica = 0, bank = 0, bankSilica = 0, bedDomBad = 0;
+        final HashSet<Integer> pools = new HashSet<Integer>();
+        double bedDomMin = Double.MAX_VALUE, bedDomMax = -Double.MAX_VALUE;
+        for (int z = -SCAN_EXTENT; z <= SCAN_EXTENT; z += K_STRIDE) {
+            for (int x = -SCAN_EXTENT; x <= SCAN_EXTENT; x += K_STRIDE) {
+                final double s = -GTSRVoronoiRiverField.strengthAt(SEED, x, z, 3);
+                if (s >= GTSRVoronoiRiverField.WET_MIN) {
+                    final int h = ProsperityTerrainProfile.heightAt(SEED, x, z);
+                    final int pool = GTSRVoronoiRiverField.poolLevelAt(SEED, x, z, 3);
+                    final boolean submerged = GTSRVoronoiRiverField.submergedAt(h, pool);
+                    final Block bed = GTSRRiverPlacer.bedMaterial(3);
+                    final Block surf = GTSRVoronoiRiverField.bedTopAtSurface(SEED, x, z, s, submerged) ? bed
+                        : GTSRRiverPlacer.flatMaterial(3, bed);
+                    core++;
+                    if (surf == silica) {
+                        coreSilica++;
+                    }
+                    pools.add(Integer.valueOf(pool));
+                    final double d = GTSRVoronoiRiverField.bedFromPool(SEED, x, z, 3, pool) - pool;
+                    bedDomMin = Math.min(bedDomMin, d);
+                    bedDomMax = Math.max(bedDomMax, d);
+                    if (d < -2.5D - K_EPS || d > -0.5D + K_EPS) {
+                        bedDomBad++;
+                    }
+                } else if (GTSRVoronoiRiverField.inBankBand(SEED, x, z, s)) {
+                    bank++;
+                    if (GTSRRiverPlacer.flatMaterial(3, GTSRRiverPlacer.bedMaterial(3)) == silica) {
+                        bankSilica++;
+                    }
+                }
+            }
+        }
+        final double coreShare = core == 0 ? 0.0D : coreSilica / (double) core;
+        final double bankShare = bank == 0 ? 0.0D : bankSilica / (double) bank;
+        boolean poolsOk = !pools.isEmpty();
+        for (final Integer p : pools) {
+            if (p.intValue() != 63 && p.intValue() != 65 && p.intValue() != 67) {
+                poolsOk = false;
+            }
+        }
+        say("K-READ 沼泽床/滩料：河核列=" + core + " 硅砂=" + coreSilica + "（" + f3(100.0D * coreShare)
+            + "%）谷坡环列=" + bank + " 硅砂=" + bankSilica + "（" + f3(100.0D * bankShare) + "%）"
+            + " pool档=" + pools + " bed−pool∈[" + f3(bedDomMin) + "," + f3(bedDomMax) + "] 域违例="
+            + bedDomBad + "（P26 前基线：核/环河砾 889/848 全清一色、pool {65,67,69}、"
+            + "bed−pool∈[−1.488,−0.500]）");
+        check("K1 沼泽河核列表面 == prosperitySilicaSand 占比 ≥0.98（P26-B2 D6 沼泽床/滩料引入硅砂的"
+            + "行为钉；样本 ≥" + K_MIN_COLS + "。回退形态＝占比跌回 0（基线沼泽核 889/889 全河砾——"
+            + "「沼泽河段硅砂=0」正是 u49-riverbed §2 根因读数）",
+            core >= K_MIN_COLS && coreShare >= 0.98D,
+            "占比=" + f3(100.0D * coreShare) + "% n=" + core + "/" + coreSilica);
+        check("K2 沼泽谷坡环列表面 == prosperitySilicaSand 占比 ≥0.95（flatMaterial case 3 河砾→硅砂"
+            + "的滩料腿；环列是滩带露头+谷坡环的合并采样面，容差比 K1 宽一档）",
+            bank >= K_MIN_COLS && bankShare >= 0.95D,
+            "占比=" + f3(100.0D * bankShare) + "% n=" + bank + "/" + bankSilica);
+        check("K4 沼泽床高带：pool 档集合 ⊆ {63,65,67} ∧ 逐列 bed−pool ∈ [−2.5,−0.5]（P26-B2 随枯竭"
+            + "下调 66.5/1.0→64.5/2.0 的行为钉：pool 量化步长 2 下合法档全部低于 SEA=68；域下界 ="
+            + " depth+amp 结构域、上界 = endFaceBed 端面抬满值。回潮旧档 ⇒ pool 集 {65,67,69} 先红）",
+            core >= K_MIN_COLS && poolsOk && bedDomBad == 0,
+            "pools=" + pools + " bed−pool∈[" + f3(bedDomMin) + "," + f3(bedDomMax) + "] 违例=" + bedDomBad);
+        // —— K3：非沼泽档（0/1/2）床选型列恒河砾 ——
+        long bedSel = 0, bedSelGravel = 0, flatSel = 0;
+        for (int r = 0; r <= 2; r++) {
+            for (int z = -SCAN_EXTENT; z <= SCAN_EXTENT; z += K_STRIDE) {
+                for (int x = -SCAN_EXTENT; x <= SCAN_EXTENT; x += K_STRIDE) {
+                    final double s = -GTSRVoronoiRiverField.strengthAt(SEED, x, z, r);
+                    if (s < GTSRVoronoiRiverField.WET_MIN) {
+                        continue;
+                    }
+                    final int h = ProsperityTerrainProfile.heightAt(SEED, x, z);
+                    final int pool = GTSRVoronoiRiverField.poolLevelAt(SEED, x, z, r);
+                    final boolean submerged = GTSRVoronoiRiverField.submergedAt(h, pool);
+                    if (GTSRVoronoiRiverField.bedTopAtSurface(SEED, x, z, s, submerged)) {
+                        bedSel++;
+                        if (GTSRRiverPlacer.bedMaterial(r) == gravel) {
+                            bedSelGravel++;
+                        }
+                    } else {
+                        flatSel++;
+                    }
+                }
+            }
+        }
+        final double bedShare = bedSel == 0 ? 0.0D : bedSelGravel / (double) bedSel;
+        say("K-READ 非沼泽床料（0/1/2 合并）：床选型列=" + bedSel + " 河砾=" + bedSelGravel + "（"
+            + f3(100.0D * bedShare) + "%）滩带露头列（设计内、不入分母）=" + flatSel);
+        check("K3 非沼泽档床选型列表面 == prosperityRiverGravel 占比 ≥0.98（床料分档「其余档恒河砾」腿"
+            + "——非沼泽段床料逐位不变是 P26-B2 硬约束，digest 对拍 temp/p26-base 三 sha 逐位一致在案；"
+            + "滩带露头列按 flatMaterial 档表铺硅砂/粗沙属设计内、不入分母）",
+            bedSel >= 3 * K_MIN_COLS && bedShare >= 0.98D,
+            "占比=" + f3(100.0D * bedShare) + "% n=" + bedSel + "/" + bedSelGravel + " flat=" + flatSel);
     }
 
     /** 真身份链取列 tier（粗格 4 格对齐，与 A1b 探针/生产 coarse 面同口径）。 */

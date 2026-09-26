@@ -14,10 +14,12 @@ import com.miaokatze.gtsr.config.Config;
 /**
  * 古代城选址规划纯函数（dim1 S4b，plan §3.1 选址与尺度）。
  * <p>
- * cell 网格 = 24 chunk（384 格）；{@code cellSeed = GTSRWorldgenHash.cellSeed(worldSeed,
- * floorDiv(cx,24), floorDiv(cz,24), SALT_CITY)}。存在掷骰 = 混合哈希 % 100 &lt;
- * {@link Config#prosperityCityChance}（默认 45，0 = 全禁用）。中心 chunk = cell 原点 +
- * (8 + hash%8, 8 + hash%8)（cell 中部 8×8 内）；半径 = 4 + hash%4（4-7 chunk，≤8 chunk 钳制）。
+ * cell 网格 = 48 chunk（768 格；v1.20.49 D8「废弃城市间距翻倍」：24→48，锚点最小间距 17→41 chunk，
+ * 每面积城市数 ÷4——概率 {@link Config#prosperityCityChance} 本身不动）；{@code cellSeed =
+ * GTSRWorldgenHash.cellSeed(worldSeed, floorDiv(cx,48), floorDiv(cz,48), SALT_CITY)}。存在掷骰 =
+ * 混合哈希 % 100 &lt; {@link Config#prosperityCityChance}（默认 45，0 = 全禁用）。中心 chunk =
+ * cell 原点 + (8 + hash%8, 8 + hash%8)（cell 原点 +8 起的 8×8 域，域不随 cell 放大）；半径 =
+ * 4 + hash%4（4-7 chunk，≤8 chunk 钳制）。
  * <p>
  * <b>纯函数</b>：只依赖（worldSeed, cell 坐标）与 Config 常量，零世界读取；同 seed 同 cell
  * 任意次规划逐字节一致（tools/dim1/CityDeterminismCheck 自证）。任何 chunk 都能独立重算
@@ -58,16 +60,22 @@ import com.miaokatze.gtsr.config.Config;
  */
 public final class CityPlanner {
 
-    /** 城市网格周期（chunk；plan §3.1：CITY_CELL = 24）。 */
-    public static final int CITY_CELL = 24;
+    /**
+     * 城市网格周期（chunk；plan §3.1 原钉 24，v1.20.49 D8「废弃城市间距翻倍」改 48：cell 周期
+     * 384→768 格，相邻 cell 锚点最小间距 17→41 chunk，每面积城市数 ÷4。锚点域 [8,15]、缓冲窗、
+     * 干区臂均为绝对标定且不按 ×CITY_CELL 派生 ⇒ 单改本常量即成，无随动 src 常量）。
+     */
+    public static final int CITY_CELL = 48;
 
     /**
-     * cell 内候选城心的偏移域（chunk，含端）：城心 chunk = cell 原点 + {@code [8,15]}（cell 中部
-     * 8×8）。{@link #planFor} 首次选点与 {@link #resolveCityPlan} 迁移换点<b>共用本域</b>。
+     * cell 内候选城心的偏移域（chunk，含端）：城心 chunk = cell 原点 + {@code [8,15]}
+     * （cell 原点 +8 起的 8×8 域；v1.20.49 D8 cell 24→48 后仍在原点侧，<b>不随 cell 放大</b>）。
+     * {@link #planFor} 首次选点与 {@link #resolveCityPlan} 迁移换点<b>共用本域</b>。
      * <p>
      * <b>为什么迁移不扩域（P24-B 的边界）</b>：相邻 cell 锚点的最小间距 =
-     * {@code CITY_CELL - ANCHOR_OFFSET_MAX + ANCHOR_OFFSET_MIN = 17} chunk，是 plan §3.1
-     * "中部 8×8" 给出的既有城距包络。P24-B 的迁移只在本域内换点 ⇒ 城距包络与改动前
+     * {@code CITY_CELL - ANCHOR_OFFSET_MAX + ANCHOR_OFFSET_MIN = 41} chunk（v1.20.49 D8
+     * CITY_CELL 24→48 前为 17；包络随主常量单调放大，锚点域不动），是 plan §3.1 8×8 锚点域
+     * 给出的既有城距包络。P24-B 的迁移只在本域内换点 ⇒ 城距包络与改动前
      * <b>逐格同界</b>（不引入城-城贴近/交叠的新风险），迁移只是"在同一批既有候选落点里
      * 换一个"。
      */
@@ -288,8 +296,9 @@ public final class CityPlanner {
      * 门判定复用 {@link #cityGateAllowsAt}（与 {@link #planFor} 同一 {@code cellSeed}，掷骰流不
      * 受扰动）。同 seed 同 cell 任意次解析逐位一致（CityDeterminismCheck 自证）。
      * <p>
-     * <b>落点边界</b>：备选点仍在 cell 中部 8×8 内 ⇒ 相邻 cell 锚点最小间距仍是 17 chunk
-     * （与改动前同界，见 {@link #ANCHOR_OFFSET_MIN}）；半径沿用 basePlan，城盘尺度不变。
+     * <b>落点边界</b>：备选点仍在 cell 原点 +8 起的 8×8 域内 ⇒ 相邻 cell 锚点最小间距仍是
+     * 41 chunk（v1.20.49 D8 CITY_CELL 24→48 前为 17，同式包络，见 {@link #ANCHOR_OFFSET_MIN}）；
+     * 半径沿用 basePlan，城盘尺度不变。
      * <p>
      * <b>调用纪律</b>：生产侧唯一入口 {@link #citiesNear} 用本方法取<b>落点</b>再判缓冲窗——
      * 迁移后的城按新锚点渲染，不存在"门放行但渲染落在原湿点"的鬼窗；{@link #cityGateAllows}

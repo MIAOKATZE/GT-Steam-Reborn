@@ -121,8 +121,16 @@ public final class GenBenchCheck {
      * 残潭下挖支路删除（−微量）；D2 侵蚀门不在地形填充段（isSanzuColumn 是 populate 平面通道，
      * 其成本由 CHANNEL-READ 独立读数，见 {@link #assignmentChannelRead()}）。机器背景负载摆幅
      * 实测 170.7-220.1（另两批 {207.4,206.0,187.2} / {202.1,186.0,170.7}）⇒ 取中位批的 210.0。
+     * <p>
+     * <b>P26 重立（三跑中位）：210.0 → 154.5</b>。本批（v1.20.49 五片终树、串行空载、
+     * {@code temp/p26-b6/GenBenchCheck-run{1,2,3}.out}）：154.3 / 160.2 / 154.5 ⇒ 中位
+     * <b>154.5</b>（−26.4% vs P25 BASE 210.0——P25 期读数含更高背景负载底噪；P26 各批对旧门
+     * 304.5 批内实测 204.9 / 281.5→150.8 / 304.4，本批空载复测与批 4 v2 的 150.8 同量级）。
+     * P26 设计内增量（A1 第二倍频 valueNoise、灌木域门 λ193、盆地门 λ167、沙海域门 λ281、
+     * 延绵脊 λ433、水网域门 λ151、沼泽深潭/泥炭丘参数重钉）在域外短路下净成本 < 负载摆幅。
+     * 新门 = 154.5 × 1.45 = <b>224.0</b>（比旧门 304.5 更紧——方向为收紧，不属放宽）。
      */
-    static final double BASELINE_US_PER_CHUNK = 210.0D;
+    static final double BASELINE_US_PER_CHUNK = 154.5D;
 
     /**
      * 派生式对赌门（劣化 &gt;45% 判红；<b>P24 收尾把余量系数由 1.30 放宽到 1.45</b>）：
@@ -198,7 +206,7 @@ public final class GenBenchCheck {
                 + " meanCol=%.3fus medianCol=%.0fns acc=%d%n",
             seeds, chunks.length, chunks.length * 256L, medianChunkUs, meanChunkUs, p90ChunkUs, meanColUs,
             medianColNs, acc);
-        System.out.printf("GENBENCH gate=medianChunk<=%.1f (baseline %.1f x 1.45 [P24 close: 1.30->1.45; P25 BASE re-set 3-run median],"
+        System.out.printf("GENBENCH gate=medianChunk<=%.1f (baseline %.1f x 1.45 [P24 close: 1.30->1.45; P25 BASE re-set 3-run median; P26 BASE re-set 3-run median 154.5],"
                 + " serial idle + ledger on; red>45%%) verdict=%s%n",
             GATE_US_PER_CHUNK, BASELINE_US_PER_CHUNK, pass ? "PASS" : "FAIL");
         System.out.println("GENBENCH note=serial-only by contract (v1.20.38: concurrent harness runs distort);"

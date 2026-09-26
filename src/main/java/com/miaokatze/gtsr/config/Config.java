@@ -119,7 +119,8 @@ public class Config {
     // 调到 2048 后单跑逼近 1300 万次评估。0 与负值按 1 处理——保险丝不允许关掉）。
     public static int tpdimBiomeSearchMaxSteps = 400000;
 
-    // 繁荣维度古代城存在概率（每个 24×24 chunk cell 的存在掷骰百分比；默认 45，0 = 无城，100 = 全 cell 有城；S4b 消费）。
+    // 繁荣维度古代城存在概率（每个 48×48 chunk cell 的存在掷骰百分比——v1.20.49 城距翻倍
+    // CITY_CELL 24→48 ⇒ 同面积城市数 ÷4，概率本身不动；默认 45，0 = 无城，100 = 全 cell 有城；S4b 消费）。
     public static int prosperityCityChance = 45; // 不导出到 gtsr.cfg（P16 裁决：整合包不得自定义疏密）；字段仍可被离线测试注入
 
     // ═════════ P6 群系带分层与城门（plan §2.2 H-1/L6 / §5 P6 / §7.1 已锁定 U2）═════════

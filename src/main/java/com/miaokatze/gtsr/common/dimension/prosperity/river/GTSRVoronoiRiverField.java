@@ -44,13 +44,15 @@ import com.miaokatze.gtsr.common.dimension.prosperity.ProsperityTerrainProfile;
  * {@link #poolLevelAt} 分段水位阶梯 + {@code depth} 深度档，见 P19 plan §A/§B/§C）：
  * <ul>
  * <li>草原(0)/森林(1)：常态河——床 = pool−{@code depth}±n_bed，n_bed 抬到 ≥ 水面的列自然
- * 干出为<b>浅滩/河滩</b>（浅滩重释 = 派生条件，独立 shoalNoise 档已废）；</li>
+ * 干出为<b>浅滩/河滩</b>（浅滩重释 = 派生条件，独立 shoalNoise 档已废；<b>P26-B2（v1.20.49）
+ * amp 2.5→2.0 后 amp ≤ depth ⇒ 周期性干出退役</b>，露头只剩滩带水缘）；</li>
  * <li>荒漠(2)：干谷断流——<b>P22 A1a（v1.20.42）起与全域一致</b>（原"整段闸 干:湿 = 65:35"
  * 已退役，见顶部已删字段登记）；<b>P23 R1（v1.20.46 批2 S2）主干移除
  * 后 {@link #wetAt} 恒 false——全域置水死，河流场只剩零散干床（段激活门
  * {@link #RIVER_SEGMENT_ACTIVATE_P}），水归湖/沼泽池独立通道</b>；</li>
- * <li>沼泽(3)：沼地河——width×1.2（v1.20.40 从 1.6 收窄）、depth=1（水近地，水深 0-1 成沼地
- * 肌理）；不换河群系（RTG swamp 豁免先例）。</li>
+ * <li>沼泽(3)：沼地河——width×1.2（v1.20.40 从 1.6 收窄）、<b>P26-B2（v1.20.49）bedTarget
+ * 66.5→64.5 / depth 1→2（湿河"水近地"口径随枯竭下调，床域 [pool−2.5, pool−1.5] 全低于
+ * SEA ≥2.5 格——"沼泽干床砂砾与地面齐平"观感修复）</b>；不换河群系（RTG swamp 豁免先例）。</li>
  * </ul>
  *
  * <p>
@@ -184,9 +186,11 @@ public final class GTSRVoronoiRiverField {
      * （取值同时受 {@code RiverMorphologyCheck} H2「端面顺流剖面逐列床高差 ≤ 2」带约束——下切量
      * 会被 {@link #endFaceBed} 的 smoothstep 权重 (1−w) 放大到 (target−bed) 项上）。
      * <p>
-     * <b>沼泽档（roster 3）豁免</b>：本值不作用于沼地河（见 {@link #bankCut}）——A7「沼泽床
-     * ∈ [66.5,67.5]＝水面近地」是档表断言（结构上不可能被运行时下切打红），其语义地板只能由
-     * 实现域守住；§5 S3 判据 3 给的处置正是"下切域限缩到 roster ∈ {0,1,2,4}"。
+     * <b>沼泽档（roster 3）豁免——v1.20.49 P26-B2 移除</b>：原豁免护的是 A7 旧档表语义
+     * 「沼泽床 ∈ [66.5,67.5]＝水面近地」（结构上不可能被运行时下切打红），其语义地板只能由
+     * 实现域守住；§5 S3 判据 3 给的处置正是"下切域限缩到 roster ∈ {0,1,2,4}"。P26-B2 沼泽
+     * 床档随枯竭下调（66.5/1.0→64.5/2.0）后该语义退役，heightCore 调用侧的
+     * {@code rosterIndex != 3} 条件已删（复核读数见 {@code plan/tmp/p26-b2-readings.md}）。
      */
     public static final double BANK_CUT_DEPTH = 2.0D;
 
@@ -235,8 +239,9 @@ public final class GTSRVoronoiRiverField {
     /**
      * 河道断面的<b>地表料选型</b>（单一真值；生产侧 {@code GTSRRiverPlacer} 与离线判据
      * {@code RiverMorphologyCheck} 共用同一出口，P20 S3 起从落块器内联式提出）。返回
-     * {@code true} = 铺<b>床料</b>（{@code prosperityRiverGravel}），{@code false} = 铺<b>滩料</b>
-     * （群系档表，见 {@code GTSRRiverPlacer.flatMaterial}）：
+     * {@code true} = 铺<b>床料</b>（群系分档：P26-B2 v1.20.49 起沼泽=硅砂、其余=河砾，见
+     * {@code GTSRRiverPlacer.bedMaterial}；此前恒 {@code prosperityRiverGravel}），{@code false}
+     * = 铺<b>滩料</b>（群系档表，见 {@code GTSRRiverPlacer.flatMaterial}）：
      * <ol>
      * <li>谷坡环（{@link #inBankBand}）→ 滩料（需求 1 的过渡带，恒不铺床料）；</li>
      * <li>水下（{@code submerged}，即 {@link #submergedAt} 为真）→ 床料；</li>
@@ -281,8 +286,9 @@ public final class GTSRVoronoiRiverField {
     /**
      * 本列的<b>岸坡下切量</b>（格，恒 ∈ [{@link #BANK_CUT_DEPTH}/2, {@link #BANK_CUT_DEPTH}]；
      * P20 S3 需求 2 的唯一出口，生产侧 {@code ProsperityTerrainProfile.heightCore} 与离线判据共用）。
-     * 域 = {@link #inBankBand} 的谷坡环；沼泽档（roster 3）的豁免在调用侧（heightCore）落，
-     * 不在本函数落——本函数是纯场，档位语义归地形侧，避免"两处各挡一次"的第二真值。
+     * 域 = {@link #inBankBand} 的谷坡环；沼泽档（roster 3）的豁免曾在调用侧（heightCore）落、
+     * <b>P26-B2（v1.20.49）已随沼泽床档下调移除</b>（见 {@link #BANK_CUT_DEPTH} 注）——本函数
+     * 是纯场，档位语义归地形侧，避免"两处各挡一次"的第二真值。
      * <p>
      * 取值下界取半而非 0：{@code valueNoise} 的负瓣若把下切清零，环内会出现"整段没切"的斑块，
      * 断面出露宽度不连续（{@code RiverMorphologyCheck} 的床料出露率判据正是钉这个）。
@@ -812,6 +818,33 @@ public final class GTSRVoronoiRiverField {
     public static final long SALT_LAKE_ISLAND_GATE = 0x5249F119L;
 
     /**
+     * 岛绝对腿<b>周向起伏</b>噪声盐（P26-B3 D1·I1' 新增，v1.20.49）：盐段尾续取
+     * {@code …11AL}（…117/…118/…119 已被湖压力/岛半径/岛阈抖占用；…11B 归
+     * {@link #SALT_LAKE_PRESSURE2}）。I1' = kAbs 的 dC 乘性噪声（破岛圆的周向起伏，见
+     * {@link #LAKE_ISLAND_EDGE_JITTER}）。
+     */
+    public static final long SALT_LAKE_ISLAND_EDGE = 0x5249F11AL;
+
+    /**
+     * 岛绝对腿<b>周向起伏幅度</b>（乘性，P26-B3 D1·I1' 新增，v1.20.49）：
+     * {@code kAbs = 1 − dC·(1 + 本值·n(λ}{@link #LAKE_ISLAND_EDGE_SCALE}{@code ))/rEff}
+     * ——R_eff 是逐湖标量 ⇒ 改造前绝对腿在 warped 空间是<b>正圆</b>（warp 只整体搬运+缓变
+     * 拉伸、不产生周向起伏）。乘性噪声 ±{@value} ⇒ 岛缘周向起伏 ±9.8 格（0.13×R_eff≈75）、
+     * 特征长 ≈45 格（周长 2π·40≈250 的 ~1/5，连续列自身坐标取噪声——无 atan2/无站查询/无缝）。
+     * 判据账（evolve-lake I1'）：面积中位 +a²/2 ≈ +0.85% ⇒ C-DRY 面积带不动；岛域最小半径
+     * R_eff,min×(1−a) ≈ 67.5×0.87 ≈ 59 ≫ 环 13+抖 2+半宽 2 = 17（柱不变式）；R2 降级链 =
+     * 0.13 → 0.10（C-DRY 越带 &gt;10% 湖或 C5 &lt;60% 触发）。
+     */
+    public static final double LAKE_ISLAND_EDGE_JITTER = 0.13D;
+
+    /**
+     * 岛缘周向起伏噪声波长（格，P26-B3 D1·I1' 新增）：λ = 90（岛缘特征长 ≈45 格 =
+     * λ/2；90 % 16 = 10 ≠ 0 ✔ 账本 §9 取值纪律）。<b>求值域</b>：只在岛域列（压力腿过门后，
+     * 全湖 ≈5% 列）求值 ⇒ 岛域外零成本（短路保持，见 {@link #lakeIslandTopAt}）。
+     */
+    public static final double LAKE_ISLAND_EDGE_SCALE = 90.0D;
+
+    /**
      * 岛面相对 {@link ProsperityTerrainProfile#SEA_LEVEL} 的抬升（格）⇒ 岛面 = 68 + 4 = <b>72</b>。
      * 取 4 的依据（§5 S5-5）：P20 S3 的 {@link #BANK_CUT_DEPTH} 会再削岸 2 格 + 1 格容差 + 1 格
      * 观感余量；<b>本轮取 4，实机后校准</b>。离 {@code MAX_HEIGHT=110} 余 38、离
@@ -886,6 +919,8 @@ public final class GTSRVoronoiRiverField {
     /**
      * 湖压力<b>加性轮廓噪声</b>波长（格，P25 D3③ 新增）：λ ≈ 220——滩带总宽（≈22 格）的
      * ~10 倍、标称水径 200 的 ~1/9 ⇒ 湖缘在"数十格一段"的尺度上缓摆，不与滩带/台阶宽打架。
+     * <b>P26-B3（D1·A1）起为本档 = 双倍频的低频腿</b>（高频腿见
+     * {@link #LAKE_PRESSURE_NOISE_SCALE2}）。
      */
     public static final double LAKE_PRESSURE_NOISE_SCALE = 220.0D;
 
@@ -893,11 +928,29 @@ public final class GTSRVoronoiRiverField {
      * 湖压力加性噪声幅度（压力域，P25 D3③ 新增，{@link #lakeAt0} 返回值上加
      * 本值×valueNoise ∈ [−1,1)）。<b>径向格数口径（javadoc 钉）</b>：水缘处 dr/dP =
      * D_eff/(1+S')² ≈ 2670/1.091² ≈ 2244 格/单位压力 ⇒ <b>幅 = 8 格/(D_eff/(1+S')²) ≈
-     * 8/2244 ≈ 0.0035</b> ⇒ 湖缘径向微摆 ±8 格。与 warp 揉形（坐标域形变 ≤97 格）、
+     * 8/2244 ≈ 0.0035</b> ⇒ 湖缘径向微摆 ±8 格。
+     * <b>P26-B3（D1·A1，v1.20.49）：0.0035 → 0.0025</b>——双倍频改造的低频腿降档（高频腿
+     * {@link #LAKE_PRESSURE_NOISE_AMP2}=0.0012），总幅 0.0025+0.0012 = 0.0037 ≈ 8.3 格与
+     * 改前 ±8 同量级（evolve-lake A1：λ70 特征长 ≈35 格 ≈ 滩带 1.5 倍，湖缘"细褶"与既有
+     * warp 大形正交——"自然不规则"的频谱缺口）；与 warp 揉形（坐标域形变 ≤97 格）、
      * {@link #SANZU_BIOME_SHORE_JITTER}（滩外缘单边 0~17 格）三尺度正交分级：
-     * 形变(warp) &gt; 走线(n01 单边) &gt; 微廓(本噪声)。
+     * 形变(warp) &gt; 走线(n01 单边) &gt; 微廓(本噪声双倍频)。
      */
-    public static final double LAKE_PRESSURE_NOISE_AMP = 0.0035D;
+    public static final double LAKE_PRESSURE_NOISE_AMP = 0.0025D;
+
+    /**
+     * 湖压力加性轮廓噪声<b>第二倍频波长</b>（格，P26-B3 D1·A1 新增）：λ = 70——滩带总宽
+     * （≈22 格）的 ~1/3、低频腿 λ220 的 ~1/3 ⇒ 湖缘细褶特征长 ≈35 格；70 % 16 = 6 ≠ 0 ✔
+     * （账本 §9 chunk 对齐条纹坑的取值纪律）。
+     */
+    public static final double LAKE_PRESSURE_NOISE_SCALE2 = 70.0D;
+
+    /**
+     * 湖压力加性噪声<b>第二倍频幅度</b>（压力域，P26-B3 D1·A1 新增）：与低频腿同式相加，
+     * 幅 0.0012 × 2244 格/单位压力 ≈ 2.7 格高频微摆；R1 降级链 = 0.0012 → 0.0008
+     * （G-C 内切圆 slack 保护，见 SLMC G-C 复测读数）。
+     */
+    public static final double LAKE_PRESSURE_NOISE_AMP2 = 0.0012D;
 
     /**
      * 湖压力加性轮廓噪声盐（P25 D3③ 新增）：盐段尾续取 {@code …117L}（…115/…116 已被
@@ -905,6 +958,15 @@ public final class GTSRVoronoiRiverField {
      * 不回收不复用）。
      */
     public static final long SALT_LAKE_PRESSURE = 0x5249F117L;
+
+    /**
+     * 湖压力<b>第二倍频</b>噪声盐（P26-B3 D1·A1 新增）：盐段尾续取 {@code …11BL}（…11A
+     * 已被 {@link #SALT_LAKE_ISLAND_EDGE} 占用）。独立盐域纪律同
+     * {@link #SALT_DISK_LAKE_WARP}/{@link #SALT_DISK_LAKE_SUB}（两张盘各自独立盐）——同盐
+     * 不同 λ 的两档是"同一底层格点场重采样"（格点重合处取值恒同 ⇒ 两档强相关），非独立
+     * 倍频 ⇒ 必须分盐。
+     */
+    public static final long SALT_LAKE_PRESSURE2 = 0x5249F11BL;
 
     /**
      * {@link #lakeAt} 的"无湖"哨兵（无湖/D_MIN 淘汰一律返回它）：≥ {@link #LAKE_SHORE}，与压力同向
@@ -926,9 +988,12 @@ public final class GTSRVoronoiRiverField {
         public final double bedNoiseAmp;
         /**
          * 河床深度档（格，v1.20.40 P19 §C 新增）：{@code bed = poolLevel − depth + n_bed}——
-         * 水面恒 = poolLevel，本档决定常态水深（草原/森林 2.0 / 荒漠 2.0 / 沼泽 1.0 /
-         * sanzu 2.5）。取值 &lt; {@link #bedNoiseAmp} 的档才会周期性干出浅滩
-         * （草原/森林 amp=2.5 &gt; depth=2.0）。
+         * 水面恒 = poolLevel，本档决定常态水深（草原/森林 2.0 / 荒漠 2.0 / <b>沼泽 2.0
+         * （v1.20.49 P26-B2 随枯竭下调：原 1.0 是湿河时代"水深 0-1 沼地肌理"口径，全域枯竭后
+         * 语义退役，与沼泽 bedTarget 66.5→64.5 一同下调）</b> / sanzu 2.5）。取值 &lt;
+         * {@link #bedNoiseAmp} 的档才会周期性干出浅滩（<b>P26-B2 起 amp ≤ depth 全表成立：
+         * 草原/森林 amp 2.5→2.0 后「amp=2.5 &gt; depth=2.0 ⇒ 周期性干出浅滩」的设计性干出退役
+         * ——枯竭语境下 n_bed 抬到 ≥ 池水位的干出读作"砂砾偏高"，观感修复</b>）。
          */
         public final double depth;
         /**
@@ -961,19 +1026,28 @@ public final class GTSRVoronoiRiverField {
 
     /**
      * riverStyle 档表（plan §3.2 + §3.3 + P19 §A.2/§C）：0 草原 / 1 森林 = 常态河
-     * （depth 2.0、amp 2.5 → 周期浅滩/河滩）；2 荒漠 = 干谷断流（<b>P22 A1a 起整段闸退役：
+     * （depth 2.0、<b>amp 2.0（v1.20.49 P26-B2 从 2.5 收平：amp ≤ depth 修正，"周期浅滩/河滩"
+     * 的设计性干出退役——滩带出露只剩 s ∈ [WET_MIN, WET_MIN+SHORE_FLAT_BAND] 的水缘滩，归因
+     * 见 depth 字段注）</b>）；2 荒漠 = 干谷断流（<b>P22 A1a 起整段闸退役：
      * 与全域一致按 {@link #wetAt} 新门枯竭</b>，本档仅余纯参数差异）；3 沼泽 = 沼地河
-     * （×1.2、depth 1.0 → 水深 0-1 沼地肌理）；4 sanzu = <b>主干宽河占位档</b>
+     * （×1.2、<b>bedTarget 64.5 / depth 2.0（v1.20.49 P26-B2 随枯竭下调：原 66.5/1.0 是
+     * "湿河近地＝水面近地"口径——旧 A7 档表断言沼泽床 ∈ [66.5,67.5]，全域枯竭后未随动 ⇒
+     * 沼泽干床砾最高 68.5 ≈ SEA_LEVEL=68、与沼泽地面（均值 ~70）近齐平＝"部分河床砂砾偏高"
+     * 第一主因；下调后沼泽 pool 档 {65,67,69}→{63,65,67}，床域 [pool−2.5, pool−1.5] ⊆
+     * [60.5,65.5] 全低于 SEA ≥2.5 格）</b>）；4 sanzu = <b>主干宽河占位档</b>
      * （v1.20.39 T5 按档表族 4→5 约定就位）：宽乘子 = {@link #TRUNK_WIDTH_SCALE}——主干带内
      * {@link #strengthAt} 对任何底档统一取 max(底档, 3.5) ⇒ 本档被带入时与主干带分支同值
      * （<b>无双乘</b>），depth 2.5（主干河更深）。生产链路 rosterIndex=4 不会从 GenLayer 链
      * 出现（selector 名册仍 4 家，plan §3.3/§5），本元供档表族长度一致与判据/后续消费面。
      */
     public static final RiverStyle[] RIVER_STYLE_BY_ROSTER = {
-        /* 0 锈蚀草原 */ new RiverStyle(1.0D, BED_TARGET, 2.5D, 2.0D, true, false),
-        /* 1 齿轮森林 */ new RiverStyle(1.0D, BED_TARGET, 2.5D, 2.0D, true, false),
+        /* 0 锈蚀草原（P26-B2：amp 2.5→2.0，amp≤depth 修正） */
+        new RiverStyle(1.0D, BED_TARGET, 2.0D, 2.0D, true, false),
+        /* 1 齿轮森林（P26-B2：amp 2.5→2.0，amp≤depth 修正） */
+        new RiverStyle(1.0D, BED_TARGET, 2.0D, 2.0D, true, false),
         /* 2 黄铜荒漠 */ new RiverStyle(1.0D, BED_TARGET, 1.5D, 2.0D, false, true),
-        /* 3 喷气沼泽 */ new RiverStyle(1.2D, 66.5D, 0.5D, 1.0D, false, false),
+        /* 3 喷气沼泽（P26-B2 随枯竭下调：66.5/1.0 → 64.5/2.0） */
+        new RiverStyle(1.2D, BED_TARGET, 0.5D, 2.0D, false, false),
         /* 4 遗忘之川 */ new RiverStyle(TRUNK_WIDTH_SCALE, BED_TARGET, 1.5D, 2.5D, false, false) };
 
     private GTSRVoronoiRiverField() {}
@@ -1224,7 +1298,8 @@ public final class GTSRVoronoiRiverField {
      * 水位台阶 ≤ 同一量级。
      * <p>
      * rosterIndex 只影响采样档（{@code bedTarget} 档），同段内跨粗格群系边界的池差被档差
-     * （常态 64.5 vs 沼泽 66.5）限制在 ~2 格——按旧落差墙阈 3 之下，不触发墙。
+     * 限制（<b>P26-B2 起</b>常态 64.5 vs 沼泽 64.5 同锚 ⇒ 档差 0，跨界零池差；P26-B2 前沼泽
+     * 66.5 档差 ~2 格也在旧落差墙阈 3 之下，不触发墙——历史口径留档）。
      * 池水位经 {@link #POOL_LEVEL_STEP} 量化成阶梯级（段间差 ∈ {0,2,4}）。
      */
     public static int poolLevelAt(long worldSeed, int x, int z, int rosterIndex) {
@@ -1395,11 +1470,12 @@ public final class GTSRVoronoiRiverField {
      * （{@code d0/d1/distValid}），供 {@link #lakeIslandTopAt} 的绝对半径腿<b>零重扫复用</b>
      * （原式在岛域列把整次 disk+3×3+9 sqrt 再付一遍）。纯快照、无新真值。
      * <p>
-     * <b>P25（D3③）压力加性轮廓噪声</b>：返回值 = dC/dN + {@link #LAKE_PRESSURE_NOISE_AMP}×
-     * valueNoise（λ{@link #LAKE_PRESSURE_NOISE_SCALE}，盐 {@link #SALT_LAKE_PRESSURE}）——湖缘
-     * 径向微摆 ±8 格（径向格数口径见 {@link #LAKE_PRESSURE_NOISE_AMP}）。加在返回值上、
-     * <b>不进</b> dC/dN 快照与岛绝对腿（dC 仍是几何真值）；D_MIN 淘汰哨兵路径不加噪声
-     * （NO_LAKE 语义纯净）。
+     * <b>P25（D3③）压力加性轮廓噪声 + P26-B3（D1·A1）双倍频</b>：返回值 = dC/dN +
+     * {@link #LAKE_PRESSURE_NOISE_AMP}×valueNoise（λ{@link #LAKE_PRESSURE_NOISE_SCALE}，盐
+     * {@link #SALT_LAKE_PRESSURE}）+ {@link #LAKE_PRESSURE_NOISE_AMP2}×valueNoise（λ
+     * {@link #LAKE_PRESSURE_NOISE_SCALE2}，盐 {@link #SALT_LAKE_PRESSURE2}）——湖缘径向微摆
+     * 总幅 ±8.3 格（频谱 λ220+λ70 加密）。加在返回值上、<b>不进</b> dC/dN 快照与岛绝对腿
+     * （dC 仍是几何真值）；D_MIN 淘汰哨兵路径不加噪声（NO_LAKE 语义纯净）。
      */
     private static double lakeAt0(long worldSeed, int x, int z, LakeSlot slot) {
         // v1.20.41 P20 S5d：3×3 站距扫描原样抽到 {@link #lakeStationDistances}（算术一字未动），
@@ -1416,9 +1492,15 @@ public final class GTSRVoronoiRiverField {
         if (dd[1] < LAKE_STATION_D_MIN) {
             return NO_LAKE;
         }
-        // P25 D3③：压力加性轮廓噪声（±8 格湖缘径向微摆，换算式见 LAKE_PRESSURE_NOISE_AMP）。
+        // P25 D3③ + P26-B3 D1·A1：压力加性轮廓噪声双倍频（λ220 低频腿 + λ70 高频腿，
+        // 独立盐域；总幅 0.0037 ≈ ±8.3 格湖缘径向微摆，换算式见 LAKE_PRESSURE_NOISE_AMP）。
+        // D_MIN 淘汰哨兵路径在上方已 return ⇒ NO_LAKE 域零新求值（digest 对拍口径）。
         return dd[0] / dd[1] + LAKE_PRESSURE_NOISE_AMP * GTSRWorldgenHash
-            .valueNoise(worldSeed ^ SALT_LAKE_PRESSURE, x / LAKE_PRESSURE_NOISE_SCALE, z / LAKE_PRESSURE_NOISE_SCALE);
+            .valueNoise(worldSeed ^ SALT_LAKE_PRESSURE, x / LAKE_PRESSURE_NOISE_SCALE, z / LAKE_PRESSURE_NOISE_SCALE)
+            + LAKE_PRESSURE_NOISE_AMP2 * GTSRWorldgenHash.valueNoise(
+                worldSeed ^ SALT_LAKE_PRESSURE2,
+                x / LAKE_PRESSURE_NOISE_SCALE2,
+                z / LAKE_PRESSURE_NOISE_SCALE2);
     }
 
     /**
@@ -1696,7 +1778,13 @@ public final class GTSRVoronoiRiverField {
             final double uJit = 2.0D
                 * hash01(GTSRWorldgenHash.cellSeed(worldSeed, stCellX, stCellZ, SALT_LAKE_ISLAND_RADIUS)) - 1.0D;
             final double rEff = LAKE_ISLAND_RADIUS * (1.0D + LAKE_ISLAND_RADIUS_JITTER * uJit);
-            final double kAbs = 1.0D - dC / rEff;
+            // P26-B3 D1·I1'（v1.20.49）：dC 乘性周向起伏——kAbs = 1 − dC·(1 + JITTER·n(λ90))/rEff。
+            // R_eff 逐湖标量 ⇒ 原式在 warped 空间正圆；乘 (1±0.13·n) 后等值线获得周向起伏
+            // （列自身坐标取噪声，连续无缝）。噪声在岛域列（压力腿已过门）才求值 ⇒ 域外零成本；
+            // 岛域 ⊂ 湖水区不变式不受影响（乘子 &gt;0，kAbs 等值线族只平移不反号）。
+            final double edgeJit = LAKE_ISLAND_EDGE_JITTER * GTSRWorldgenHash
+                .valueNoise(worldSeed ^ SALT_LAKE_ISLAND_EDGE, x / LAKE_ISLAND_EDGE_SCALE, z / LAKE_ISLAND_EDGE_SCALE);
+            final double kAbs = 1.0D - dC * (1.0D + edgeJit) / rEff;
             if (kAbs < k) {
                 k = kAbs;
             }
@@ -1913,10 +2001,10 @@ public final class GTSRVoronoiRiverField {
      * y = 67，<b>生成侧同源字面量</b>，见 {@code ChunkProviderProsperityRuins.fillSanzuLakes} 的
      * 「{@code h < SEA_LEVEL} 才从 {@code h+1} 灌水到 {@code SEA_LEVEL−1}」）：该门与"本列是否
      * 被灌了湖水面"<b>逐列等价</b>（{@code h ≥ 67 ⇒} 灌水区间 [{@code h+1}, 67] 为空 ⇒ 列顶上方无
-     * 水格）。<b>不能只取 SEA_LEVEL=68 当干门</b>：步长 4 会跳过 h==68 的那一环（实测 h 67→69
-     * 直跳），落点一旦是 ≥69 就出了 sanzu 平面（{@code isSanzuColumn} 要求 h ≤ 68），指令层回执
-     * {@code verify} 会假。故干门取<b>闭区间 [67, 68]</b>：下界保证无水格、上界复用 sanzu 平面的
-     * h 门 ⇒ 落点恒同时满足「无水格」与「在遗忘之湖滩带平面内」。
+     * 水格）。<b>不能只取 SEA_LEVEL=68 当干门下沿</b>：步长 4 会跳过 h==68 的那一环（实测 h 67→69
+     * 直跳）。故干门取<b>闭区间 [67, 68+{@link #SANZU_DRY_BEACH_RISE}] = [67,69]</b>（P26-B3 D2·b1
+     * 随滩缘腿 +1）：下界保证无水格、上界复用 sanzu 平面的 h 门上沿（h=69 干滩列 P26-B3 起在
+     * 遗忘之湖滩带平面内）⇒ 落点恒同时满足「无水格」与「在遗忘之湖滩带平面内」。
      * <p>
      * <b>为什么必须跳过滩带内半缘</b>：P24-D 湖床剖面重设计（{@link #LAKE_BED_PLATEAU} 0.55→0.790）
      * 把深盆平台推到岛缘之外 ⇒ 滩带 0.15→0.23 段是 h≈40–41 的深水（P25 档：滩带
@@ -1957,11 +2045,13 @@ public final class GTSRVoronoiRiverField {
                 final double ddz = pz - cz;
                 final double d = ddx * ddx + ddz * ddz;
                 final int h = ProsperityTerrainProfile.heightAt(worldSeed, px, pz);
-                if (h >= ProsperityTerrainProfile.SEA_LEVEL - 1 && h <= ProsperityTerrainProfile.SEA_LEVEL) {
-                    // 优先级 1：本射线首个<b>群系平面内</b>的干滩列即止。上界 SEA_LEVEL = sanzu 平面
-                    // 自身的 h 门；但 P25 D2 侵蚀门会把滩带外缘 ≤2 粗格（名义 8 格）的锯齿列蚀出
-                    // 群系平面——h 门通过 ≠ isSanzuColumn（Tpdim 钉16e 实测 11/15 落点被蚀）⇒ 候选
-                    // 必须过全谓词；被蚀列不取也不 break（带内侧仍是平面内干滩，继续外推）。
+                if (h >= ProsperityTerrainProfile.SEA_LEVEL - 1
+                    && h <= ProsperityTerrainProfile.SEA_LEVEL + SANZU_DRY_BEACH_RISE) {
+                    // 优先级 1：本射线首个<b>群系平面内</b>的干滩列即止。上界 SEA+RISE = sanzu 平面
+                    // h 门上沿（P26-B3 D2·b1 随滩缘腿 +1：h=69 干滩列首次入平面 ⇒ "整湖无干滩"
+                    // 情形直接缓解）；但侵蚀门会把滩带外缘锯齿列蚀出群系平面——h 门通过 ≠
+                    // isSanzuColumn（Tpdim 钉16e 实测 11/15 落点被蚀）⇒ 候选必须过全谓词；
+                    // 被蚀列不取也不 break（带内侧仍是平面内干滩，继续外推）。
                     if (isSanzuColumn(worldSeed, px, pz)) {
                         if (d < dryBest) {
                             dryBest = d;
@@ -2079,6 +2169,33 @@ public final class GTSRVoronoiRiverField {
     /** {@link #swampLakeAt} 的"无微池"哨兵（非沼泽 roster/带外一律返回它；与 {@link #NO_LAKE} 同向）。 */
     public static final double NO_SWAMP_POOL = 1.0D;
 
+    // ═══ v1.20.49 P26-B4 ⑦：沼泽浅水水网区域门（λ151；微池压力腿的域内加密）═══
+
+    /**
+     * 水网域场盐（波长 {@link #SWAMP_NET_SCALE}=151；151 % 16 = 7 ✔ H-1）。取 RVF 盐段
+     * {@code 0x5249F1xx} 的下一未用值（上一已用 = 湖压二倍频 {@code 0x5249F11B}；退役盐
+     * {@code 0x5249F112} 不回收不复用）。
+     */
+    public static final long SALT_SWAMP_NET = 0x5249F11CL;
+    /** 水网域波长（区域直径 ~60-120 格）。 */
+    public static final double SWAMP_NET_SCALE = 151.0D;
+    /** 水网域门下檐/带宽（{@code s01((n−0.45)/0.20)} ⇒ 覆盖 ~10-15% 沼泽腹地）。 */
+    public static final double SWAMP_NET_GATE_LO = 0.45D;
+    /** 水网域门带宽。 */
+    public static final double SWAMP_NET_GATE_SPAN = 0.20D;
+    /**
+     * 域内压力腿加密系数：返回压力除以 {@code (1 + 本值·netGate)} ⇒ 水径 8-16 → <b>14-26 格</b>。
+     * <b>取值由缩样读数钉死（v1.20.49 P26-B4）</b>：域门是缓入软门，水面面积比对 B <b>凸增长</b>
+     * （B=0.6 ⇒ 半径比 1.20、B=2.0 ⇒ 2.13，两点实测见 {@code plan/tmp/p26-b4-readings.md}）
+     * ⇒ 取 <b>B=1.3（两点插值）⇒ 半径比 ~1.7 ⇒ 水径 ~14-27 落 14-26 目标带</b>。
+     * <b>域外 netGate 精确 0 ⇒ 除数 (1+0.0) = 1.0，IEEE 除法恒等 ⇒ 微池读数与改造前逐位相同</b>
+     * （82 纪律：不新增置水真值——地形侧压低（heightCore 微池段）、回填侧
+     * {@code fillSwampPools}/SwampFieldGrid 的 nominal 微池腿与 {@code GTSRRiverPlacer.neighborBarrier}
+     * 微池腿都读本方法 ⇒ 同一谓词自动跟随，N8 钳制零改动）。水深维持 1-2 层
+     * （{@link #SWAMP_POOL_WATER_LEVEL}=0.055 不动）；域内不压制泥丘场 ⇒ 泥炭丘天然成草甸岛。
+     */
+    public static final double SWAMP_NET_PRESSURE_BOOST = 1.3D;
+
     /**
      * 沼泽微池压力场（plan §E 第二激活档）：roster 3 专属的独立低频 Voronoi（3×3 邻域
      * Worley，压力 = dC/dN，低值在池心——与巨湖同形、间隔/盐/阈值不同）。非沼泽 roster
@@ -2154,7 +2271,15 @@ public final class GTSRVoronoiRiverField {
                 }
             }
         }
-        return dC / dN;
+        // ═══ v1.20.49 P26-B4 ⑦：浅水水网区域门——压力腿域内加密（λ151 软门，域外逐位 0）═══
+        // 净压力 = dC/dN ÷ (1 + SWAMP_NET_PRESSURE_BOOST·netGate)：域内等效阈值放大 ⇒ 水径 8-16 →
+        // 14-26、池心间干廊收窄成水网；域外 netGate=0 ⇒ 除数 1.0、IEEE 除法恒等（x/1.0 == x 逐位），
+        // 微池读数不变。让位腿（湖/干床）在 Voronoi 扫描之前 return ⇒ 水网域构造性不进湖/滩。
+        final double nn = GTSRWorldgenHash
+            .valueNoise(worldSeed ^ SALT_SWAMP_NET, x / SWAMP_NET_SCALE, z / SWAMP_NET_SCALE);
+        final double nt = Math.max(0.0D, Math.min(1.0D, (nn - SWAMP_NET_GATE_LO) / SWAMP_NET_GATE_SPAN));
+        final double netGate = nt * nt * (3.0D - 2.0D * nt);
+        return dC / dN / (1.0D + SWAMP_NET_PRESSURE_BOOST * netGate);
     }
 
     /**
@@ -2313,37 +2438,63 @@ public final class GTSRVoronoiRiverField {
      * <b>sanzu 列谓词（单点真值）</b>：<b>P23 R1（v1.20.46 批2 S2）遗忘之湖 = 湖面 + 可变宽
      * 湖滩带</b>——trunk&gt;0 门与河道支（s ≥ 0.7 档，字段已删见类顶登记）随主干宽河移除
      * 一并删除，湖面支阈值由 {@link #LAKE_WATER_LEVEL} 放宽为 {@link #sanzuBiomeShoreAt}
-     * （水线起、噪声调制的滩带外缘，宽 ≈10~40 格）。heightAt ≤ SEA_LEVEL 腿<b>保留</b>：
-     * 滩带列的 heightCore 湖滨渐变只保证 [WATER, SHORE) 内压低，噪声腿扩出去的滩带外列地形
-     * 已回原高（≈69），本腿把群系外缘钉在"地表贴水（≤68）"的可信滩面上（非平凡真值，不可删）。
+     * （水线起、噪声调制的滩带外缘，宽 ≈10~40 格）。
      * <p>
-     * ═══ P25（D2）侵蚀式粗格净空门（sanzu 外缘软化）═══ 原始谓词之上加"5×5 粗格邻域全真"
-     * 门：粗格 4 格粒（{@code >>}COARSE_BLOCK_SHIFT，与 coarse 身份面同一条 1:4 粒）、
-     * R = {@link #SANZU_CLEAR_RADIUS_CELLS} = 2 的 5×5 = 25 个粗格，其<b>代表列</b>（格基列
-     * {@code cell<<2}）上"原始谓词（压力腿 ∧ h ≤ SEA_LEVEL）全真"才入群系——形态学侵蚀
-     * （半径 8 格）消掉半岛/尖角/毛边，群系外缘从逐列锯齿变粗粒缓边。按 (seed, cellX, cellZ)
-     * memo 缓存（{@link #SANZU_CLEAR_CACHE}，{@code TerrainVariants.swampInteriorAt} 同构先例：
-     * 线程私有、上限整清重算值不变）；单边 ≥ 不变式（sanzuBiomeShoreAt 只往岸外扩）与 h 腿
-     * 原样保留。消费面（assignSanzuRiverBiome 平面写入 / ProsperityAirLookup 三途余汽）随
-     * 本谓词自动收窄，无第二真值。
+     * ═══ h 腿两档（P26-B3 D2·b1，v1.20.49）═══ 核心列（h ≤ SEA_LEVEL=68）维持 P23 语义
+     * （"地表贴水"的可信滩面，非平凡真值）；新增<b>滩缘腿</b> h ≤ SEA_LEVEL+
+     * {@link #SANZU_DRY_BEACH_RISE}（=69）——只放进噪声腿扩出的 0~17 格干滩环（滩带外列地形
+     * 已回原高 ≈69、裸地中位 69：+1 格恰覆盖干滩环、h≥70 的常规平地/丘陵天然不进），解
+     * "整湖无干滩"（sanzuArrivalColumn 穷举先例：一湖压力滩带 32769 列/几何干列 3081/sanzu
+     * 干列 0）。<b>置水域不随动</b>：fillSanzuLakes 的置水门 {@code h < SEA_LEVEL} 原样 ⇒
+     * 滩缘列（h=69）天然不满足置水门——本腿只扩群系平面不扩水面（82 纪律 1）。
+     * <p>
+     * ═══ P25（D2）侵蚀式粗格净空门（sanzu 外缘软化）→ <b>P26-B3 两档</b>═══ 原始谓词之上加
+     * "粗格邻域全真"门：粗格 4 格粒（{@code >>}COARSE_BLOCK_SHIFT，与 coarse 身份面同一条 1:4
+     * 粒），其<b>代表列</b>（格基列 {@code cell<<2}）上"原始谓词全真"才入群系——形态学侵蚀消掉
+     * 半岛/尖角/毛边。<b>P26-B3 起分两档</b>：核心列（h ≤ SEA）R =
+     * {@link #SANZU_CLEAR_RADIUS_CELLS} = 2（5×5，名义 8 格侵蚀带，逐字不动）；滩缘列（h=69
+     * 干滩环）R = {@link #SANZU_FRINGE_CLEAR_RADIUS_CELLS} = 1（3×3，名义 4 格）——不分档则
+     * R=2 的 8 格侵蚀会吃掉 0~17 格噪声腿干滩环的绝大部分、b1 滩缘腿形同虚设（evolve-lake b1
+     * 方案①）。两张 memo 表（{@link #SANZU_CLEAR_CACHE} / {@link #SANZU_FRINGE_CLEAR_CACHE}，
+     * {@code TerrainVariants.swampInteriorAt} 同构先例：线程私有、上限整清重算值不变）；单边 ≥
+     * 不变式（sanzuBiomeShoreAt 只往岸外扩）原样保留。核心列的 5×5 核心谓词路径与 P25 逐字
+     * 相同 ⇒ 核心群系平面逐位不动。
      * <p>
      * 消费面与写平面同前：{@code ChunkProviderProsperityRuins.assignSanzuRiverBiome} 的平面
-     * 写入与 {@code ProsperityAirLookup} 的三途余汽判定是<b>同一份实现</b>（写什么列、空气压缩
-     * 机就认什么列，无第二真值——余汽域自动跟随新谓词扩到滩带）。湖面本身的 h ≤ 床 &lt;
-     * SEA_LEVEL 由 heightCore 湖段压低保证（P23 湖放大后自动跟随场值，见 PTP 湖段）。
+     * 写入、{@code ProsperityAirLookup} 的三途余汽（<b>语义披露已获用户接受：余汽随本谓词自动
+     * 扩到干滩</b>）、{@code PlacementGate.dryColumnAt} ⑤腿（结构禁入滩缘）与
+     * {@link #isDryRiverColumn} 的 {@code !isSanzuColumn} 互斥腿全部经本单点谓词自动跟随，
+     * 无第二真值。湖面本身的 h ≤ 床 &lt; SEA_LEVEL 由 heightCore 湖段压低保证（P23 湖放大后
+     * 自动跟随场值，见 PTP 湖段）。
      */
     public static boolean isSanzuColumn(long worldSeed, int x, int z) {
-        if (!(lakeAt(worldSeed, x, z) < sanzuBiomeShoreAt(worldSeed, x, z)
-            && ProsperityTerrainProfile.heightAt(worldSeed, x, z) <= ProsperityTerrainProfile.SEA_LEVEL)) {
+        if (!(lakeAt(worldSeed, x, z) < sanzuBiomeShoreAt(worldSeed, x, z))) {
             return false;
         }
-        // —— P25 D2：侵蚀式粗格净空门（5×5 邻域"原始谓词全真"；memo 见 sanzuCellClearAt）——
+        final int h = ProsperityTerrainProfile.heightAt(worldSeed, x, z);
+        // h 腿两档（P26-B3 D2）：核心 h ≤ SEA 维持 P25 语义；滩缘 h ≤ SEA+SANZU_DRY_BEACH_RISE
+        // （只放进噪声腿 0~17 格干滩环；h≥70 常规平地不进）。
+        final boolean coreLeg = h <= ProsperityTerrainProfile.SEA_LEVEL;
+        if (!coreLeg && h > ProsperityTerrainProfile.SEA_LEVEL + SANZU_DRY_BEACH_RISE) {
+            return false;
+        }
+        // —— 侵蚀门两档（P25 D2 → P26-B3）：核心 5×5 核心谓词（逐字同 P25）｜滩缘 3×3 滩缘谓词 ——
         final int cellX = x >> GTSRGenLayerChain.COARSE_BLOCK_SHIFT;
         final int cellZ = z >> GTSRGenLayerChain.COARSE_BLOCK_SHIFT;
-        for (int dz = -SANZU_CLEAR_RADIUS_CELLS; dz <= SANZU_CLEAR_RADIUS_CELLS; dz++) {
-            for (int dx = -SANZU_CLEAR_RADIUS_CELLS; dx <= SANZU_CLEAR_RADIUS_CELLS; dx++) {
-                if (!sanzuCellClearAt(worldSeed, cellX + dx, cellZ + dz)) {
-                    return false;
+        if (coreLeg) {
+            for (int dz = -SANZU_CLEAR_RADIUS_CELLS; dz <= SANZU_CLEAR_RADIUS_CELLS; dz++) {
+                for (int dx = -SANZU_CLEAR_RADIUS_CELLS; dx <= SANZU_CLEAR_RADIUS_CELLS; dx++) {
+                    if (!sanzuCellClearAt(worldSeed, cellX + dx, cellZ + dz)) {
+                        return false;
+                    }
+                }
+            }
+        } else {
+            for (int dz = -SANZU_FRINGE_CLEAR_RADIUS_CELLS; dz <= SANZU_FRINGE_CLEAR_RADIUS_CELLS; dz++) {
+                for (int dx = -SANZU_FRINGE_CLEAR_RADIUS_CELLS; dx <= SANZU_FRINGE_CLEAR_RADIUS_CELLS; dx++) {
+                    if (!sanzuFringeCellClearAt(worldSeed, cellX + dx, cellZ + dz)) {
+                        return false;
+                    }
                 }
             }
         }
@@ -2353,13 +2504,37 @@ public final class GTSRVoronoiRiverField {
     /**
      * 净空门的侵蚀半径（粗格数，P25 D2）：R=2 ⇒ 5×5 = 25 邻格 = 名义 8 格侵蚀带——软边宽与
      * 滩带总宽（≈22 格）同量级偏小，只削毛边不啃滩。校准域 {1,2,3}（名义 4/8/12 格）。
+     * <b>P26-B3 起本值只管核心列（h ≤ SEA）</b>；滩缘列见
+     * {@link #SANZU_FRINGE_CLEAR_RADIUS_CELLS}。
      */
     private static final int SANZU_CLEAR_RADIUS_CELLS = 2;
+
+    /**
+     * <b>滩缘腿干滩升高（格，P26-B3 D2·b1 新增）</b>：h 腿上沿 = SEA_LEVEL + 本值。取 1 ⇒
+     * 恰好放进噪声腿 0~17 格干滩环（滩带外列回原高 ≈69、裸地中位 69）；校准域 {0,1,2}——
+     * 0 = b1 退档（还原 P25「h ≤ SEA」单档，R3 降级腿）；2 会放进中位 69 的普通平地
+     * （面积失控 ⇒ "无滩之滩"），慎用。消费面：{@link #isSanzuColumn} h 腿 /
+     * {@link #sanzuArrivalColumn} 干列窗 / CPR 湖滩干滩料档（LakeWetBandTopSelector）三处
+     * 引同一常量，不另立第二份升高值。
+     */
+    public static final int SANZU_DRY_BEACH_RISE = 1;
+
+    /**
+     * 滩缘列（h = SEA+{@link #SANZU_DRY_BEACH_RISE} 干滩环）的净空门侵蚀半径（粗格数，
+     * P26-B3 D2 新增）：R=1 ⇒ 3×3 = 9 邻格 = 名义 4 格侵蚀带——只削毛边，不吃掉 0~17 格
+     * 噪声腿干滩环的主体（R=2 的名义 8 格会吃掉其绝大部分）。校准域 {1,2}；R3 降级腿 =
+     * 收紧本档（或 {@link #SANZU_DRY_BEACH_RISE} 退 0）。
+     */
+    private static final int SANZU_FRINGE_CLEAR_RADIUS_CELLS = 1;
 
     /** 净空门粗格 memo 上限（超限整清重算值不变，swampInteriorAt 同款）。 */
     private static final int SANZU_CLEAR_CACHE_CAP = 65536;
 
     private static final ThreadLocal<HashMap<Long, HashMap<Long, Boolean>>> SANZU_CLEAR_CACHE = ThreadLocal
+        .withInitial(HashMap::new);
+
+    /** 滩缘净空门粗格 memo（P26-B3 D2 第二张表，同 {@link #SANZU_CLEAR_CACHE} 范式与上限）。 */
+    private static final ThreadLocal<HashMap<Long, HashMap<Long, Boolean>>> SANZU_FRINGE_CLEAR_CACHE = ThreadLocal
         .withInitial(HashMap::new);
 
     /**
@@ -2368,6 +2543,10 @@ public final class GTSRVoronoiRiverField {
      * 25 格 × (lakeAt+heightAt)，摊销后每新粗格 ~几个新格。<b>无递归环</b>：heightAt →
      * heightCore → strengthAt（P25 湖腿 → lakeAt/valueNoise）与 swampLakeAt（P25 湖腿的
      * 压力形式，不回 isSanzuColumn）均不触本谓词。
+     * <p>
+     * <b>P26-B3 起本表 = 核心谓词（h ≤ SEA_LEVEL）</b>——只服务 isSanzuColumn 的核心档
+     * 5×5 门；滩缘档（h ≤ SEA+RISE）走 {@link #sanzuFringeCellClearAt} 第二张表（同范式，
+     * 不复用本表 ⇒ 核心档 memo 值与 P25 逐位相同）。
      */
     private static boolean sanzuCellClearAt(long worldSeed, int cellX, int cellZ) {
         final HashMap<Long, HashMap<Long, Boolean>> bySeed = SANZU_CLEAR_CACHE.get();
@@ -2385,6 +2564,37 @@ public final class GTSRVoronoiRiverField {
         final int rz = cellZ << GTSRGenLayerChain.COARSE_BLOCK_SHIFT;
         final boolean clear = lakeAt(worldSeed, rx, rz) < sanzuBiomeShoreAt(worldSeed, rx, rz)
             && ProsperityTerrainProfile.heightAt(worldSeed, rx, rz) <= ProsperityTerrainProfile.SEA_LEVEL;
+        if (cells.size() >= SANZU_CLEAR_CACHE_CAP) {
+            cells.clear();
+        }
+        cells.put(key, Boolean.valueOf(clear));
+        return clear;
+    }
+
+    /**
+     * 滩缘档粗格代表列的<b>滩缘原始谓词</b>（P26-B3 D2 新增，压力腿 ∧ h ≤ SEA_LEVEL+
+     * {@link #SANZU_DRY_BEACH_RISE}——b1 扩腿后的 isSanzuColumn 两腿逐字）：按 (seed, cellX,
+     * cellZ) memo 于 {@link #SANZU_FRINGE_CLEAR_CACHE}（第二张表，与核心表
+     * {@link #sanzuCellClearAt} 分离 ⇒ 两档互不污染、核心档值与 P25 逐位相同）。求值面、
+     * 上限整清、无递归环论证全部同 {@link #sanzuCellClearAt}（h 腿阈 +1 是唯一差异）。
+     */
+    private static boolean sanzuFringeCellClearAt(long worldSeed, int cellX, int cellZ) {
+        final HashMap<Long, HashMap<Long, Boolean>> bySeed = SANZU_FRINGE_CLEAR_CACHE.get();
+        HashMap<Long, Boolean> cells = bySeed.get(worldSeed);
+        if (cells == null) {
+            cells = new HashMap<>();
+            bySeed.put(worldSeed, cells);
+        }
+        final Long key = Long.valueOf(((long) cellX << 32) | (cellZ & 0xFFFFFFFFL));
+        final Boolean cached = cells.get(key);
+        if (cached != null) {
+            return cached.booleanValue();
+        }
+        final int rx = cellX << GTSRGenLayerChain.COARSE_BLOCK_SHIFT;
+        final int rz = cellZ << GTSRGenLayerChain.COARSE_BLOCK_SHIFT;
+        final boolean clear = lakeAt(worldSeed, rx, rz) < sanzuBiomeShoreAt(worldSeed, rx, rz)
+            && ProsperityTerrainProfile.heightAt(worldSeed, rx, rz)
+                <= ProsperityTerrainProfile.SEA_LEVEL + SANZU_DRY_BEACH_RISE;
         if (cells.size() >= SANZU_CLEAR_CACHE_CAP) {
             cells.clear();
         }

@@ -309,9 +309,11 @@ public class ChunkProviderProsperityRuins extends GTSRChunkProviderBase {
      * {@link LakeWetBandTopSelector#wetBandGravelAt}——核心（三门全真）恒砾一字不动，仅在各门
      * 外缘加五档噪声覆盖率外檐（A2a 读数：布尔边 ⇒ 外缘 100% 材质阶跃）；
      * {@code lakeWetBandAt} 本体仍是河流场的公开谓词（消费面 = 本包装层核心 + 离线探针）。</li>
-     * <li>改派只取<b>同维名册内已注册的方块</b>（{@link BlocksGTSR#prosperityRiverGravel}，
-     * 即 {@code GTSRRiverPlacer} 现有的河滩料），零新方块（H-4 ⇒ 名册读数 408 不变），
-     * 也不引入 plains/grass/dirt（S1 降级口径的强条件仍然成立）。</li>
+     * <li>改派只取<b>同维名册内已注册的方块</b>（{@link BlocksGTSR#prosperityRiverGravel}
+     * 即 {@code GTSRRiverPlacer} 现有的河滩料；<b>P26-B3（D3·c3）追加第二改派料
+     * {@link BlocksGTSR#prosperitySilicaSand}（干滩档，先于湿砾檐裁定，判定
+     * {@link LakeWetBandTopSelector#dryBeachSandAt}）</b>——两料均零新方块（H-4 ⇒ 名册读数
+     * 408 不变），也不引入 plains/grass/dirt（S1 降级口径的强条件仍然成立）。</li>
      * <li>框架侧那条"spec.topSelector == null ⇒ 走 {@code forChunk} 默认"的解析序
      * （{@code GTSRChunkProviderBase.applyBiomeSurface:394}）<b>不被绕过、只被前移</b>：
      * 本类替框架调了同一次 {@code forChunk}，入参（dimKey / 未掺盐 worldSeed / baseX / baseZ）
@@ -383,6 +385,13 @@ public class ChunkProviderProsperityRuins extends GTSRChunkProviderBase {
             final Block gravel = BlocksGTSR.prosperityRiverGravel;
             if (base == gravel) {
                 return base; // 已是湿料，省一次湖场求值
+            }
+            // P26-B3（D3·c3 + D4·d2，v1.20.49）：干滩硅砂档<b>先于</b>湿砾檐裁定——干滩核心
+            // （b1 滩缘腿 h=SEA+RISE 干列）恒硅砂、陆侧沿 WETB 五档羽化；湿域列（h≤SEA）在本档
+            // 首行恒假 ⇒ 湿砾档（核心恒砾+羽化檐）语义与求值序逐字不动。
+            final Block drySand = BlocksGTSR.prosperitySilicaSand;
+            if (drySand != null && base != drySand && dryBeachSandAt(seed, x, z)) {
+                return drySand;
             }
             // P23 R1（v1.20.46 批2 S2）：湖全域站格化后湿带/羽化檐可落在<b>任意</b> chunk（原
             // trunk 门时代 chunk(0,0) 类窗口恒 NO_LAKE、此路不可达）——BlocksGTSR 字段未注册的
@@ -457,6 +466,47 @@ public class ChunkProviderProsperityRuins extends GTSRChunkProviderBase {
             }
             if (e > WETB_HALO_MAX) {
                 return false; // 湖心深盆 / 高台 / 带远侧：整档排除，不外扩
+            }
+            final double n = wetBandJitter(worldSeed, x, z);
+            final double t = e <= 1.0D ? WETB_T1
+                : e <= 2.0D ? WETB_T2 : e <= 3.0D ? WETB_T3 : e <= 5.0D ? WETB_T4 : WETB_T5;
+            return n >= t;
+        }
+
+        /**
+         * <b>干滩硅砂档判定</b>（P26-B3 D3·c3 + D4·d2 新增，v1.20.49）：本列裸露面是否铺干滩料
+         * （{@link BlocksGTSR#prosperitySilicaSand}）。与 {@link #wetBandGravelAt} 同构的
+         * 「确定性核心 + 出檐五档羽化」两段，材质语义沿水线分带：<b>湿域（h ≤ SEA）恒砾
+         * （本档首行直接 false，湿砾核心+檐一字不动）→ 干滩环（h = SEA+
+         * {@code SANZU_DRY_BEACH_RISE}、b1 滩缘腿域）恒硅砂 → 陆侧按覆盖率梯递减羽化</b>
+         * （d2 湖→陆衔接：视觉上滩→草渐变，语义上平面身份谓词零新真值）。
+         * <ul>
+         * <li>核心 = 岸带压内（{@code lakeAt < LAKE_SHORE}）∧ 恰在水上 1 格——b1 滩缘腿 h 窗的
+         * 干列，恒硅砂（对应湿带核心恒砾；噪声腿扩出的滩带外列 e ∈ (0,5] 格当量、走羽化档）；</li>
+         * <li>外缘 e = max(高度出窗格数（h − SEA−RISE）, 岸压出窗格当量（lakeAt − SHORE）/
+         * {@link #WETB_HALO_UNIT})——两条腿分别覆盖「陡岸往上爬」与「平岸往陆侧走」，<b>只向
+         * 陆侧出檐</b>（无湖盆侧腿：h ≤ SEA 首行已截断）；梯/硬界/抖动场全部复用
+         * {@link #WETB_T1}..{@link #WETB_T5}/{@link #WETB_HALO_MAX}/{@link #wetBandJitter}
+         * ⇒ <b>零新场求值</b>（与湿檐同一张 λ13 抖动场、同一组阈值，仅 e 的定义域不同）；</li>
+         * <li>候选方块 prosperitySilicaSand：非 top 名册、已注册（BlockLoader）、非重力
+         * （BlockProsperityNaturalBase）——「砾当 top」同性质先例（P22 全绿）。</li>
+         * </ul>
+         */
+        private static boolean dryBeachSandAt(long worldSeed, int x, int z) {
+            final int h = ProsperityTerrainProfile.heightAt(worldSeed, x, z);
+            if (h <= ProsperityTerrainProfile.SEA_LEVEL) {
+                return false; // 湿域归河砾档（核心恒砾+檐，一字不动）；干滩档只向陆侧
+            }
+            final double lake = GTSRVoronoiRiverField.lakeAt(worldSeed, x, z);
+            if (lake < GTSRVoronoiRiverField.LAKE_SHORE
+                && h <= ProsperityTerrainProfile.SEA_LEVEL + GTSRVoronoiRiverField.SANZU_DRY_BEACH_RISE) {
+                return true; // 干滩核心（b1 滩缘腿 h=SEA+RISE 干列）：恒硅砂
+            }
+            double e = Math.max(
+                h - (ProsperityTerrainProfile.SEA_LEVEL + GTSRVoronoiRiverField.SANZU_DRY_BEACH_RISE),
+                (lake - GTSRVoronoiRiverField.LAKE_SHORE) / WETB_HALO_UNIT);
+            if (e > WETB_HALO_MAX) {
+                return false; // 高台 / 岸带远侧：整档排除，不外扩
             }
             final double n = wetBandJitter(worldSeed, x, z);
             final double t = e <= 1.0D ? WETB_T1
@@ -826,8 +876,10 @@ public class ChunkProviderProsperityRuins extends GTSRChunkProviderBase {
     /**
      * <b>遗忘之湖群系指派</b>（populate 后置，RTG BiomeAnalyzer.newRepair 先例；plan §3.3
      * 已定机制；<b>P23 R1（v1.20.46 批2 S2）改名+谓词湖化</b>）：列满足
-     * {@code lakeAt < sanzuBiomeShoreAt ∧ h1≤68}（{@link GTSRVoronoiRiverField#isSanzuColumn}
-     * 单点谓词，与空气压缩机的三途余汽判定同一份——湖面+可变宽湖滩带）⇒ 经
+     * {@code lakeAt < sanzuBiomeShoreAt ∧ h ≤ SEA+SANZU_DRY_BEACH_RISE(=69)}
+     * （{@link GTSRVoronoiRiverField#isSanzuColumn} 单点谓词，与空气压缩机的三途余汽判定同一份
+     * ——湖面+可变宽湖滩带；<b>P26-B3 D2·b1 起含 h=69 干滩环滩缘腿</b>，置水域
+     * {@code h < SEA} 不随动）⇒ 经
      * {@link BiomePlaneAccess#writeColumn}（群系平面<b>唯一写通道</b>，short/byte 双通道）写
      * {@link BiomeSanzuRiver}。湖形+滩带形状天然来自湖压力场与噪声调制的交集，无第二套形状
      * 逻辑。sanzu 未配槽（无槽降级）时账本点名不到实例 ⇒ 平面一格不写（与

@@ -107,6 +107,29 @@ public final class ProsperityDecorPlacer {
     private static final long SALT_TREE_FORM = 0x7466726DL;
 
     /**
+     * 盐 "snag"（0x736E6167 截断；v1.20.49 P26-B4 ⑨ 枯木滩趟）：与 {@link #SALT_WIND} 同一条
+     * 独立盐纪律——本趟的落点/形态骰全部走 {@code Random(chunkSeed ^ 本盐)}，既有五趟的随机流
+     * 一位都不动（H-3）。
+     */
+    private static final long SALT_MARSH_SNAG = 0x736E6167L;
+
+    /**
+     * 盐 "shwd"（0x73687764 截断；v1.20.49 P26-B4 ⑫ 灌木林域的<b>事件补骰</b>）：独立盐第二个
+     * 事件骰专用——只掷本 chunk 的第二次灌木事件门，共享 {@code rand} 与簇盐
+     * {@link #SALT_SHRUB_CLUSTER} 的取数序一位不动（域外 chunk 连本盐的 Random 都不构造 ⇒ 零成本）。
+     */
+    private static final long SALT_SHRUB_WOOD = 0x73687764L;
+
+    /**
+     * <b>树线</b>（v1.20.49 P26-B4 ③）：接地高度门——{@code naturalTopAt ≥ 100} 的列不落树
+     * （脊上森林不上树、裸岩带）。破顶解封后森林脊峰 150~165、山地碎坡顶可达 ~140+，本门把
+     * 木本让位给裸岩观感；普通树按<b>树位列</b>精确判，巨树档按 chunk 中心列判（形态学接地归
+     * {@code MegaTreeForms} 内部，本类只在掷中后预筛——山脊穿角的残留巨树属该粒度的已知边界，
+     * 登记读数），岛心树链路<b>形式同挂</b>（锚点 y0=72 恒不触发 ⇒ 保单一约定）。
+     */
+    private static final int TREE_LINE_MIN_Y = 100;
+
+    /**
      * 本类所属维度键（P4：门的显式维度入参）。取 L1 账本同一词汇 {@link SurfaceGate#DIM78}
      * （= {@code GTSRBiomeAuthority.DIM_KEY_PROSPERITY}），不另造字符串。
      */
@@ -127,7 +150,7 @@ public final class ProsperityDecorPlacer {
     /** 单堆碎石块数上限（1..3 块小簇）。 */
     private static final int RUBBLE_PIECES_MAX = 3;
 
-    /** findSurfaceY 上界（散布同款 200 门；heightAt clamp 40..110 之下留余量）。 */
+    /** findSurfaceY 上界（散布同款 200 门；heightAt clamp 40..180 之下留余量——P26-B4 解封后 180 + 城顶饰 < 200）。 */
     private static final int MAX_SURFACE_Y = 200;
 
     /** 一格的旧草 / 新草二分概率分母（{@code nextInt(2)==0} ⇒ 旧草，否则该档新草）。 */
@@ -269,7 +292,7 @@ public final class ProsperityDecorPlacer {
         // 灌木 1/4 与 mega 1/32 Bayou 式归 T7 完整化——本片只保证档表族 4→5 长度一致编译绿，
         // 花草沙取湿地近邻档。生产链路 rosterIndex=4 不从 GenLayer 链身份面出现（sanzu 不进
         // selector），平面档当趟生效的接线在 T7）
-        new VegTier(1, 6, 5, 4, 2, WOOD_MARSH, WOOD_NONE, 0, 6, 2, 0, FLOWER_MARSH, GRASS_SEDGE, SAND_GRAVEL) };
+        new VegTier(1, 6, 5, 4, 2, WOOD_MARSH, WOOD_NONE, 0, 6, 2, 5, FLOWER_MARSH, GRASS_SEDGE, SAND_FINE) };
 
     /**
      * 默认档的草尝试次数 = 3。改前是"每 chunk {@code 2 + nextInt(3)} 次"（2/3/4 等概率，均值 3），
@@ -426,6 +449,12 @@ public final class ProsperityDecorPlacer {
             : DEFAULT_WIND_STUMP_ROLLS;
     }
 
+    /** 名册下标 → 枯木滩尝试次数（越界/缺席回退 0，形状同 {@link #windStumpRollsForRosterIndex}）。 */
+    public static int marshSnagRollsForRosterIndex(int index) {
+        return index >= 0 && index < MARSH_SNAG_ROLLS_BY_ROSTER.length ? MARSH_SNAG_ROLLS_BY_ROSTER[index]
+            : DEFAULT_MARSH_SNAG_ROLLS;
+    }
+
     /** 风蚀柱高下限（格；BOP {@code SandstoneSpike} 的 7..10 是<b>区间数值</b>口径，代码本仓自写、零字节搬运）。 */
     private static final int WIND_STUMP_HEIGHT_MIN = 7;
     /** 风蚀柱高浮动（{@code nextInt(4)} ⇒ 闭区间 7..10）。 */
@@ -480,6 +509,60 @@ public final class ProsperityDecorPlacer {
     private static final int WIND_STUMP_JITTER_LEVELS = 4;
     /** 柱顶覆料层数（需求 5 的"风蚀柱顶挂一层粗沙"读感；覆料与铺沙同为覆盖物，<b>不是</b> topBlock）。 */
     private static final int WIND_STUMP_CAP_LEVELS = 1;
+
+    // ═══ v1.20.49 P26-B4 ④：巨大风蚀柱（双档的巨柱窄带；同场 windSpineSiteAt 零第二真值）═══
+
+    /**
+     * 巨柱窄带的落点场门值下限——与 {@code TerrainVariants.windSpineSiteAt} <b>同一份场</b>
+     * （site ≥ 0.88 ⇔ n₅₃ ≥ ~0.90，约 0.15-0.3% 荒漠列；首演缩样实测窄带占 0.509% 荒漠列，
+     * 计划先验偏窄 2 倍，读数见 {@code plan/tmp/p26-b4-readings.md}）。普通档（site ∈ [0.5, 0.88)）的
+     * 高度/间距/骰全部不动；本窄带上的列只走巨柱分支（不再掷普通骰 ⇒ 两档互斥、同场不摞）。
+     */
+    private static final double GIANT_WIND_STUMP_SITE_MIN = 0.88D;
+    /**
+     * 巨柱稀疏骰分母（每候选列 1/N ⇒ 目标 ~0.008-0.02 巨柱/chunk，一片荒漠视界 2-4 根）。
+     * <b>取值由缩样读数钉死</b>：落点场窄带（site ≥ 0.88）实测占 0.509% 荒漠列 ⇒ 每 chunk 期望
+     * ~1.30 个窄带候选列，N=64 ⇒ ~0.020 巨柱/chunk（间距门再扣一点），落在目标带内沿；
+     * N=32（计划先验值）会到 ~0.04 超带 2 倍。
+     */
+    private static final int GIANT_WIND_STUMP_ROLL_DENOM = 64;
+    /** 巨柱高下限/浮动（{@code 20 + nextInt(16)} ⇒ 20..36 格）。 */
+    private static final int GIANT_WIND_STUMP_HEIGHT_MIN = 20;
+    private static final int GIANT_WIND_STUMP_HEIGHT_SPAN = 16;
+    /**
+     * 巨柱同 chunk 最小切比雪夫间距（普通档 6 → 巨柱 12；与最近已立柱（含普通柱）比较——巨柱
+     * 稀疏 ⇒ 该门实际约束巨柱-巨柱）。跨 chunk 间距仍不做（1.7.10 populate 无跨 chunk 通道）。
+     */
+    private static final int GIANT_WIND_STUMP_MIN_SPACING = 12;
+    /** 巨柱底部 5×5 去角环层数（柱径 3-5 的"5"来源）。 */
+    private static final int GIANT_WIND_STUMP_BASE_LEVELS = 3;
+    /** 巨柱中部 3×3 去角环层数（其上只留中心列 = "细而陡"的收顶）。 */
+    private static final int GIANT_WIND_STUMP_MID_LEVELS = 4;
+    /**
+     * 枯木滩名册档（v1.20.49 P26-B4 ⑨；{@link #WIND_STUMP_ROLLS_BY_ROSTER} 的 int[] 表族先例）：
+     * 值 = 每 chunk 落点尝试次数，<b>0 = 该群系零枯木</b>（抑制写档值，非身份判断）。密度目标
+     * 0.5-1 件/chunk（每尝试还要过 MARSH 档/炭屑滩谓词 + 接地门 + 枯竭河床 bail）。
+     */
+    public static final int[] MARSH_SNAG_ROLLS_BY_ROSTER = { 0, 0, 0, 8, 0 };
+    /** 枯木滩档默认值（身份不可得 = 零枯木；降级不凭空造设施纪律）。 */
+    public static final int DEFAULT_MARSH_SNAG_ROLLS = 0;
+    /** 躺倒 marsh 木长度下限/浮动（{@code 2 + nextInt(4)} ⇒ 2..5 格）。 */
+    private static final int MARSH_SNAG_LOG_MIN = 2;
+    private static final int MARSH_SNAG_LOG_SPAN = 4;
+    /** 立枯桩高浮动（{@code 1 + nextInt(3)} ⇒ 1..3 格）。 */
+    private static final int MARSH_SNAG_STUMP_SPAN = 3;
+    /**
+     * 灌木林域的域门中点（与簇场 {@link #SHRUB_CLUSTER_GATE_MIN} 同 0.5 口径；读
+     * {@code TerrainVariants.shrubWoodlandAt} 的软门值）。
+     */
+    private static final double SHRUB_WOODLAND_GATE_MIN = 0.5D;
+    /** 灌木林域内附加株下限/浮动（{@code 8 + nextInt(6)} ⇒ 8..14 附加株，加主株 9-15 株/丛）。 */
+    private static final int SHRUB_WOODLAND_EXTRA_MIN = 8;
+    private static final int SHRUB_WOODLAND_EXTRA_SPAN = 6;
+    /** 灌木林域内环带外沿（4 → 8；{@link #SHRUB_CLUSTER_RING_INNER} 3 不动防啃冠；丛跨度 ~17 格）。 */
+    private static final int SHRUB_WOODLAND_RING_OUTER = 8;
+    /** 灌木林域内草趟增量（6 → 9）。 */
+    private static final int SHRUB_WOODLAND_GRASS_EXTRA = 3;
 
     // ═══════════════ v1.20.41 P20 S6：灌木成簇（需求 6 的 populate 侧落点）═══════════════
 
@@ -572,6 +655,13 @@ public final class ProsperityDecorPlacer {
         final Random rand = new Random(GTSRWorldgenHash.chunkSeed(worldSeed, chunkX, chunkZ) ^ SALT_DECOR);
         final StructureBuilder builder = new StructureBuilder(sink);
         final VegTier tier = tierForRosterIndex(rosterIndex);
+        // P26-B4 ⑫：灌木林域门（chunk 中心列的软门中点；decorate 侧只读谓词，不进高度链）。
+        // 域场是全局噪声场（不读身份面）⇒ 必须按 vegRosterIndex 钉域（roster 0 专属，需求 5 平原档）：
+        // 无此腿时荒漠/森林 chunk 中心过门会带走草趟/簇加密（实测荒漠草/chunk 2.15 → 3.30 越带），
+        // 身份约束口径与 P20 S8"簇附加株只在本列灌木档满强度处生成"同族。
+        final boolean shrubWood = rosterIndex == 0
+            && TerrainVariants.shrubWoodlandAt(worldSeed, (chunkX << 4) + 8, (chunkZ << 4) + 8)
+                >= SHRUB_WOODLAND_GATE_MIN;
         placeTreePass(
             world,
             worldSeed,
@@ -581,11 +671,14 @@ public final class ProsperityDecorPlacer {
             chunkX,
             chunkZ,
             tier,
-            treeTiersForRosterIndex(rosterIndex));
-        placeVegetationPass(world, builder, rand, chunkX, chunkZ, tier);
+            treeTiersForRosterIndex(rosterIndex),
+            shrubWood);
+        placeVegetationPass(world, builder, rand, chunkX, chunkZ, tier, shrubWood);
         placeRubble(world, builder, rand, chunkX, chunkZ);
         placeSandPass(world, builder, rand, chunkX, chunkZ, tier);
         placeWindStumpPass(world, worldSeed, builder, chunkX, chunkZ, rosterIndex);
+        // P26-B4 ⑨：枯木滩趟（末位追加 ⇒ 既有五趟随机流逐位不变，H-3；独立盐 SALT_MARSH_SNAG）
+        placeMarshSnagPass(world, worldSeed, builder, chunkX, chunkZ, rosterIndex);
     }
 
     // ═════════════════════════════ 树趟（P17 S-B2）═════════════════════════════
@@ -611,7 +704,7 @@ public final class ProsperityDecorPlacer {
      * 混合区里普通档单骰概率 = chunk 级期望密度 ÷ {@code treeRolls}（rolls 数仍按主导档）。
      */
     private static void placeTreePass(World world, long worldSeed, StructureBuilder builder, Random rand,
-        BlockSink sink, int chunkX, int chunkZ, VegTier tier, TreeTierSet trees) {
+        BlockSink sink, int chunkX, int chunkZ, VegTier tier, TreeTierSet trees, boolean shrubWood) {
         final int centerX = (chunkX << 4) + 8;
         final int centerZ = (chunkZ << 4) + 8;
         placeIslandTreePass(world, worldSeed, chunkX, chunkZ, sink);
@@ -619,7 +712,10 @@ public final class ProsperityDecorPlacer {
             final double megaDensity = DensityField.megaDensityAt(worldSeed, centerX, centerZ);
             if (megaDensity > 0.0D) {
                 final Random megaRand = new Random(GTSRWorldgenHash.chunkSeed(worldSeed, chunkX, chunkZ) ^ SALT_MEGA);
-                if (megaRand.nextInt(DensityField.DICE_GATE) < DensityField.gateOf(megaDensity)) {
+                if (megaRand.nextInt(DensityField.DICE_GATE) < DensityField.gateOf(megaDensity)
+                    // P26-B4 ③ 树线：巨树档按 chunk 中心列预筛（形态学接地归 MegaTreeForms 内部，
+                    // 本类唯一可挂点；粒度登记见 TREE_LINE_MIN_Y 注释）
+                    && naturalTopAt(world, centerX, centerZ) < TREE_LINE_MIN_Y) {
                     final int wood = pickWood(megaRand, tier);
                     MegaTreeForms.place(
                         world,
@@ -648,6 +744,15 @@ public final class ProsperityDecorPlacer {
                 chunkZ,
                 tier);
         }
+        // ═══ v1.20.49 P26-B4 ⑫：灌木林域事件补骰（域内事件率 1/2 → ~1/chunk ⇒ 6-12× 成林）═══
+        // 独立盐 SALT_SHRUB_WOOD ⇒ 共享 rand 与簇盐流零扰动；域外 chunk 不构造不掷（零成本、
+        // 随机流一位不动）。第二次事件同样走 placeShrubEvent（簇参数由 placeShrubCluster 域内分档）。
+        if (shrubWood && shrubDensity > 0.0D) {
+            final Random woodRand = new Random(GTSRWorldgenHash.chunkSeed(worldSeed, chunkX, chunkZ) ^ SALT_SHRUB_WOOD);
+            if (woodRand.nextInt(DensityField.DICE_GATE) < DensityField.gateOf(shrubDensity)) {
+                placeShrubEvent(world, worldSeed, builder, rand, woodRand, chunkX, chunkZ, tier);
+            }
+        }
         if (tier.treeRolls > 0) {
             final double perRoll = DensityField.normalDensityAt(worldSeed, centerX, centerZ) / tier.treeRolls;
             for (int i = 0; i < tier.treeRolls; i++) {
@@ -664,7 +769,7 @@ public final class ProsperityDecorPlacer {
     /**
      * 岛心巨树趟（<b>v1.20.43 P22-B S3 新增</b>，消费 {@link MegaTreeAnchors} 锚点与
      * {@link IslandMegaTree} 形态）：枚举本 chunk 的派生窗（{@code MegaTreeAnchors.windowChunks}
-     * 派生 × 同窗——窗宽由 MTA 按冠半径派生、不写死数；现档 CANOPY_RADIUS=50 ⇒ 13×13）内相交的全部活湖锚点，逐锚点以<b>锚点槽</b>派生
+     * 派生 × 同窗——窗宽由 MTA 按冠半径派生、不写死数；现档 CANOPY_RADIUS=64 ⇒ 17×17）内相交的全部活湖锚点，逐锚点以<b>锚点槽</b>派生
      * 独立 {@code Random(chunkSeed(worldSeed, ax>>4, az>>4) ^ }{@link #SALT_ISLAND_TREE}{@code )}
      * 重放同一棵树，写入经 {@link ChunkSliceSink}——非本 chunk 的格静默吸收（owns 单射，先例
      * {@code RuinedMachinePlacer.renderForeignSpans}），邻 chunk 在自己的趟里枚举到<b>同一锚点</b>
@@ -699,6 +804,10 @@ public final class ProsperityDecorPlacer {
             final int ax = (int) anchors[i][0];
             final int az = (int) anchors[i][1];
             final int y0 = (int) anchors[i][4];
+            // P26-B4 ③ 树线（形式同挂：岛面锚 y0=72 恒 < 100 ⇒ 永不触发，保 placeTree 单一约定）
+            if (y0 >= TREE_LINE_MIN_Y) {
+                continue;
+            }
             final Random treeRand = new Random(
                 GTSRWorldgenHash.chunkSeed(worldSeed, ax >> 4, az >> 4) ^ SALT_ISLAND_TREE);
             IslandMegaTree.placeInto(world, slice, treeRand, ax, az, y0);
@@ -790,7 +899,15 @@ public final class ProsperityDecorPlacer {
         if (DensityField.shrubDensityAt(worldSeed, centerX, centerZ) + 1.0E-9 < shrubTierFullStrength()) {
             return;
         }
-        final int extra = SHRUB_CLUSTER_EXTRA_MIN + clusterRand.nextInt(SHRUB_CLUSTER_EXTRA_SPAN);
+        // ═══ v1.20.49 P26-B4 ⑫：灌木林域分档（域内 附加株 8..14 + 环带外沿 8；域外旧档 3..4 + 4）═══
+        // 域外三值与旧常量逐字相同 ⇒ 非灌木林 chunk 的簇行为逐位不变；域内一丛 9-15 株、
+        // 丛跨度 ~17 格 = "成林"量级。流纪律不变（全部骰走 clusterRand）。
+        final boolean woodland = TerrainVariants.shrubWoodlandAt(worldSeed, centerX, centerZ)
+            >= SHRUB_WOODLAND_GATE_MIN;
+        final int extraMin = woodland ? SHRUB_WOODLAND_EXTRA_MIN : SHRUB_CLUSTER_EXTRA_MIN;
+        final int extraSpan = woodland ? SHRUB_WOODLAND_EXTRA_SPAN : SHRUB_CLUSTER_EXTRA_SPAN;
+        final int ringOuter = woodland ? SHRUB_WOODLAND_RING_OUTER : SHRUB_CLUSTER_RING_OUTER;
+        final int extra = extraMin + clusterRand.nextInt(extraSpan);
         final int baseX = chunkX << 4;
         final int baseZ = chunkZ << 4;
         final int innerX = baseX + SHRUB_RADIUS;
@@ -799,10 +916,10 @@ public final class ProsperityDecorPlacer {
         final int outerZ = baseZ + 15 - SHRUB_RADIUS;
         int placed = 0;
         for (int attempt = 0; placed < extra && attempt < extra * SHRUB_CLUSTER_ATTEMPT_MULT; attempt++) {
-            final int ox = clusterRand.nextInt(2 * SHRUB_CLUSTER_RING_OUTER + 1) - SHRUB_CLUSTER_RING_OUTER;
-            final int oz = clusterRand.nextInt(2 * SHRUB_CLUSTER_RING_OUTER + 1) - SHRUB_CLUSTER_RING_OUTER;
+            final int ox = clusterRand.nextInt(2 * ringOuter + 1) - ringOuter;
+            final int oz = clusterRand.nextInt(2 * ringOuter + 1) - ringOuter;
             final int cheb = Math.max(Math.abs(ox), Math.abs(oz));
-            if (cheb < SHRUB_CLUSTER_RING_INNER || cheb > SHRUB_CLUSTER_RING_OUTER) {
+            if (cheb < SHRUB_CLUSTER_RING_INNER || cheb > ringOuter) {
                 continue;
             }
             final int x = centerX + ox;
@@ -916,6 +1033,9 @@ public final class ProsperityDecorPlacer {
         final int surfaceY = naturalTopAt(world, x, z);
         if (surfaceY < 0) {
             return;
+        }
+        if (surfaceY >= TREE_LINE_MIN_Y) {
+            return; // P26-B4 ③ 树线：脊上森林不上树（≥100 裸岩带）
         }
         final int wood = pickWood(rand, tier);
         final int canopyForm = formRand.nextInt(CANOPY_FORM_DENOM);
@@ -1113,13 +1233,15 @@ public final class ProsperityDecorPlacer {
      * 草位上旧草（干燥系/湿生系二分）与新草（该档种）各半 ⇒ 六个草丛/花方块全员有真实消费者。
      */
     private static void placeVegetationPass(World world, StructureBuilder builder, Random rand, int chunkX, int chunkZ,
-        VegTier tier) {
+        VegTier tier, boolean shrubWood) {
         final Block flower = flowerOf(tier.flowerKind);
         for (int i = 0; flower != null && i < tier.flowerRolls; i++) {
             placeCrossPlant(builder, world, rand, chunkX, chunkZ, flower, null);
         }
         final Block newTuft = tuftOf(tier.grassKind);
-        for (int i = 0; i < tier.grassRolls; i++) {
+        // P26-B4 ⑫：灌木林域内草趟加密（6 → 9；域外 rolls 与档表逐字相同 ⇒ 随机流一位不动）
+        final int grassRolls = shrubWood ? tier.grassRolls + SHRUB_WOODLAND_GRASS_EXTRA : tier.grassRolls;
+        for (int i = 0; i < grassRolls; i++) {
             // newTuft 为 null（离线未装配）时 placeCrossPlant 内部自动退化为旧草，不掷空方块
             placeCrossPlant(builder, world, rand, chunkX, chunkZ, null, newTuft);
         }
@@ -1349,7 +1471,29 @@ public final class ProsperityDecorPlacer {
         for (int k = 0; k < WIND_STUMP_SCAN_SIDE * WIND_STUMP_SCAN_SIDE; k++) {
             final int x = baseX + ((k & (WIND_STUMP_SCAN_SIDE - 1)) + ox) % WIND_STUMP_SCAN_SIDE;
             final int z = baseZ + ((k / WIND_STUMP_SCAN_SIDE) + oz) % WIND_STUMP_SCAN_SIDE;
-            if (TerrainVariants.windSpineSiteAt(worldSeed, x, z) < WIND_STUMP_SITE_MIN) {
+            final double site = TerrainVariants.windSpineSiteAt(worldSeed, x, z);
+            if (site < WIND_STUMP_SITE_MIN) {
+                continue;
+            }
+            // ═══ v1.20.49 P26-B4 ④：巨柱窄带（site ≥ 0.88）——同场双档，只走巨柱分支（不掷普通骰
+            // ⇒ 两档互斥不摞）；稀疏骰 1/64 + 巨柱间距 ≥12。窄带外（site ∈ [0.5, 0.88)）的
+            // 普通档骰序/间距门/形态逐字不动 ⇒ 无窄带候选的 chunk 随机流与改造前逐位相同。═══
+            if (site >= GIANT_WIND_STUMP_SITE_MIN) {
+                if (rand.nextInt(GIANT_WIND_STUMP_ROLL_DENOM) != 0) {
+                    continue; // 巨柱稀疏骰（每候选列一次，普通档同机制）
+                }
+                if (x >= lastX - GIANT_WIND_STUMP_MIN_SPACING && x <= lastX + GIANT_WIND_STUMP_MIN_SPACING
+                    && z >= lastZ - GIANT_WIND_STUMP_MIN_SPACING
+                    && z <= lastZ + GIANT_WIND_STUMP_MIN_SPACING) {
+                    continue; // 与本 chunk 已立柱（含普通柱）的最小切比雪夫间距门（6 → 巨柱 12）
+                }
+                final int surfaceY = naturalTopAt(world, x, z);
+                if (surfaceY < 0) {
+                    continue;
+                }
+                lastX = x;
+                lastZ = z;
+                placeGiantWindStump(world, builder, rand, x, z, surfaceY, baseX, baseZ);
                 continue;
             }
             if (rand.nextInt(denom) != 0) {
@@ -1442,6 +1586,147 @@ public final class ProsperityDecorPlacer {
                 return;
             }
             builder.setBlock(x, surfaceY + i, z, cap, 0, BlockSink.FLAG_POPULATE);
+        }
+    }
+
+    /**
+     * 单根<b>巨大风蚀柱</b>（v1.20.49 P26-B4 ④；{@link #placeWindStumpPass} 巨柱窄带的形态体）：
+     * 高 20..36、视觉径 3-5——底 {@link #GIANT_WIND_STUMP_BASE_LEVELS} 层 5×5 去角盘 +
+     * 中 {@link #GIANT_WIND_STUMP_MID_LEVELS} 层 3×3 去角盘 + 其上中心列，顶部 3×3 粗沙帽岩盘一层。
+     * 整柱中心列先查空气、任一格被占即<b>整柱不落</b>（让行纪律同 {@link #placeWindStump}）；
+     * 环带每格另过 chunk 内门（贴边少几格料、绝不越界，{@code sinkCrossChunkDrops==0} 那条不许红）。
+     * 悬空风险同普通柱：中心列自底向上逐格实写 ⇒ 结构上不存在（不实现"向下镜像"，理由见
+     * {@link #placeWindStumpPass} 的申报段）。
+     */
+    private static void placeGiantWindStump(World world, StructureBuilder builder, Random rand, int x, int z,
+        int surfaceY, int baseX, int baseZ) {
+        final int height = GIANT_WIND_STUMP_HEIGHT_MIN + rand.nextInt(GIANT_WIND_STUMP_HEIGHT_SPAN);
+        for (int i = 1; i <= height + WIND_STUMP_CAP_LEVELS; i++) {
+            if (!world.isAirBlock(x, surfaceY + i, z)) {
+                return;
+            }
+        }
+        final Block body = BlocksGTSR.prosperityWastesBase;
+        final int midStart = GIANT_WIND_STUMP_BASE_LEVELS + GIANT_WIND_STUMP_MID_LEVELS;
+        for (int i = 1; i <= height; i++) {
+            builder.setBlock(x, surfaceY + i, z, body, 0, BlockSink.FLAG_POPULATE);
+            final int rr = i <= GIANT_WIND_STUMP_BASE_LEVELS ? 2 : (i <= midStart ? 1 : 0);
+            if (rr == 0) {
+                continue; // 收顶段只留中心列（"细而陡"）
+            }
+            for (int dx = -rr; dx <= rr; dx++) {
+                for (int dz = -rr; dz <= rr; dz++) {
+                    if ((dx == 0 && dz == 0) || (Math.abs(dx) == rr && Math.abs(dz) == rr)) {
+                        continue; // 中心已写；四角剪形（placeLeafDisc 同款）
+                    }
+                    final int nx = x + dx;
+                    final int nz = z + dz;
+                    if (nx < baseX || nx > baseX + 15 || nz < baseZ || nz > baseZ + 15) {
+                        continue; // 柱心贴 chunk 边 ⇒ 该格环带直接舍掉（零越界写）
+                    }
+                    if (!world.isAirBlock(nx, surfaceY + i, nz)) {
+                        continue;
+                    }
+                    builder.setBlock(nx, surfaceY + i, nz, body, 0, BlockSink.FLAG_POPULATE);
+                }
+            }
+        }
+        // 帽岩：柱顶一层 3×3 粗沙盘（普通柱单格覆料的巨柱版；覆盖物，不是 topBlock——H-4 同款）
+        final Block cap = sandOf(SAND_COARSE);
+        final int capY = surfaceY + height + 1;
+        for (int dx = -1; dx <= 1; dx++) {
+            for (int dz = -1; dz <= 1; dz++) {
+                final int nx = x + dx;
+                final int nz = z + dz;
+                if (nx < baseX || nx > baseX + 15 || nz < baseZ || nz > baseZ + 15) {
+                    continue;
+                }
+                if (!world.isAirBlock(nx, capY, nz)) {
+                    continue;
+                }
+                builder.setBlock(nx, capY, nz, cap, 0, BlockSink.FLAG_POPULATE);
+            }
+        }
+    }
+
+    // ═══════════════ v1.20.49 P26-B4 ⑨：枯木滩趟（沼泽 MARSH 档/炭屑滩列的装饰 feature）═══════════════
+
+    /**
+     * 枯木滩趟（需求 5 沼泽侧的 populate 装饰；<b>零地形成本</b>——落点谓词全部只读
+     * {@link TerrainVariants#swampTierAt} 的 MARSH 档与 {@link TerrainVariants#swampCharFlatAt}
+     * 炭屑滩列（地形侧下挖的同一次门比较 ⇒ 单一真值），接地走 {@link #naturalTopAt}，枯竭河床
+     * bail 与 placeTree/placeShrubAt 同位同口径（P25 D6：枯竭河床禁木）。
+     * <p>
+     * 形态：每次命中掷 躺倒 marsh 木 {@code 2 + nextInt(4)} 格（四正方向随机、逐格空气门、
+     * chunk 内钳制零越界）或 立枯桩 {@code 1 + nextInt(3)} 格。独立盐 {@link #SALT_MARSH_SNAG}
+     * ⇒ 既有五趟随机流一位不动（H-3）；密度 = {@link #MARSH_SNAG_ROLLS_BY_ROSTER} × 命中率
+     * （目标 0.5-1 件/chunk，读数登记 plan/tmp/p26-b4-readings.md）。
+     */
+    private static void placeMarshSnagPass(World world, long worldSeed, StructureBuilder builder, int chunkX,
+        int chunkZ, int rosterIndex) {
+        final int rolls = marshSnagRollsForRosterIndex(rosterIndex);
+        if (rolls <= 0) {
+            return;
+        }
+        final Random rand = new Random(GTSRWorldgenHash.chunkSeed(worldSeed, chunkX, chunkZ) ^ SALT_MARSH_SNAG);
+        final int baseX = chunkX << 4;
+        final int baseZ = chunkZ << 4;
+        for (int i = 0; i < rolls; i++) {
+            final int x = baseX + rand.nextInt(16);
+            final int z = baseZ + rand.nextInt(16);
+            if (GTSRVoronoiRiverField.isDryRiverColumn(worldSeed, x, z)) {
+                continue; // 枯竭河床群系禁木（P25 D6 同位；W3 零违例的前提）
+            }
+            final boolean marsh = TerrainVariants.swampTierAt(worldSeed, x, z, rosterIndex)
+                == TerrainVariants.SWAMP_TIER_MARSH;
+            if (!marsh && !TerrainVariants.swampCharFlatAt(worldSeed, x, z, rosterIndex)) {
+                continue; // 只在 MARSH 档/炭屑滩列上落枯木（半淹列水面无 naturalTop 自然跳过）
+            }
+            final int surfaceY = naturalTopAt(world, x, z);
+            if (surfaceY < 0) {
+                continue;
+            }
+            if (rand.nextInt(2) == 0) {
+                placeFallenMarshLog(world, builder, rand, x, z, surfaceY, baseX, baseZ);
+            } else {
+                placeMarshSnagStump(world, builder, rand, x, z, surfaceY);
+            }
+        }
+    }
+
+    /** 躺倒枯木：四正方向随机、长 2..5 格、逐格空气门 + chunk 内钳制（贴边截短、零越界）。 */
+    private static void placeFallenMarshLog(World world, StructureBuilder builder, Random rand, int x, int z,
+        int surfaceY, int baseX, int baseZ) {
+        final int len = MARSH_SNAG_LOG_MIN + rand.nextInt(MARSH_SNAG_LOG_SPAN);
+        final int dir = rand.nextInt(4);
+        final int dx = dir == 0 ? 1 : (dir == 1 ? -1 : 0);
+        final int dz = dir == 2 ? 1 : (dir == 3 ? -1 : 0);
+        final Block log = logOf(WOOD_MARSH);
+        for (int i = 0; i < len; i++) {
+            final int nx = x + dx * i;
+            final int nz = z + dz * i;
+            if (nx < baseX || nx > baseX + 15 || nz < baseZ || nz > baseZ + 15) {
+                continue;
+            }
+            if (!world.isAirBlock(nx, surfaceY + 1, nz)) {
+                continue;
+            }
+            builder.setBlock(nx, surfaceY + 1, nz, log, 0, BlockSink.FLAG_POPULATE);
+        }
+    }
+
+    /** 立枯桩：1..3 格竖段，整段空气门（占用即整桩不落，让行纪律同树）。 */
+    private static void placeMarshSnagStump(World world, StructureBuilder builder, Random rand, int x, int z,
+        int surfaceY) {
+        final int h = 1 + rand.nextInt(MARSH_SNAG_STUMP_SPAN);
+        for (int i = 1; i <= h; i++) {
+            if (!world.isAirBlock(x, surfaceY + i, z)) {
+                return;
+            }
+        }
+        final Block log = logOf(WOOD_MARSH);
+        for (int i = 1; i <= h; i++) {
+            builder.setBlock(x, surfaceY + i, z, log, 0, BlockSink.FLAG_POPULATE);
         }
     }
 

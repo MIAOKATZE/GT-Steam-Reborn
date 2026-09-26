@@ -73,7 +73,7 @@ public final class GTSRRiverPlacer {
     // P23 R1（v1.20.46 批2 S2）：FALL_COLUMNS 随落差墙支路删除收口。
     private static final AtomicLong WRITES = new AtomicLong();
 
-    /** 河床料缺失锚点是否已打过（一次性；正常生产路径不可达，见 {@link #bedMaterial()}）。 */
+    /** 河床料缺失锚点是否已打过（一次性；正常生产路径不可达，见 {@link #bedMaterial(int)}）。 */
     private static boolean bedMissingLogged;
 
     /** 水体方块缺失锚点是否已打过（一次性；正常生产路径不可达，见 {@link #waterMaterial()}）。 */
@@ -116,7 +116,6 @@ public final class GTSRRiverPlacer {
                 h[i] = ProsperityTerrainProfile.heightAt(worldSeed, x, z);
             }
         }
-        final Block bed = bedMaterial();
         final Block water = waterMaterial();
         int coreColumns = 0;
         int waterColumns = 0;
@@ -130,6 +129,10 @@ public final class GTSRRiverPlacer {
                 final int i = lz * 18 + lx;
                 final int x = baseX + lx - 1;
                 final int z = baseZ + lz - 1;
+                // P26-B2 床料群系分档：bed 从"每 chunk 一次"改为逐列取档（沼泽=硅砂，其余=河砾，
+                // 见 bedMaterial(int)）。tierAt 是粗格数组查表，逐列成本可忽略（GenBench 不受扰）。
+                final int tier = tierAt(tiers, x, z, baseX, baseZ);
+                final Block bed = bedMaterial(tier);
                 if (s[i] < GTSRVoronoiRiverField.WET_MIN) {
                     // 谷坡列（0 < s < WET_MIN）：河谷已由 heightAt 压低，不铺床料、不回填水。
                     // ═══ v1.20.41 P20 S3 需求 1：其中的<b>谷坡环</b>（inBankBand，外缘带噪声扰动）
@@ -138,7 +141,7 @@ public final class GTSRRiverPlacer {
                     // 实机读数（不新增日志字段，避免打既有观测口径）。═══
                     if (GTSRVoronoiRiverField.inBankBand(worldSeed, x, z, s[i])
                         && h[i] > GTSRWorldgenHash.bedrockTopHash(worldSeed, x, z)) {
-                        writes += accept(sink, x, h[i], z, flatMaterial(tierAt(tiers, x, z, baseX, baseZ), bed), 0);
+                        writes += accept(sink, x, h[i], z, flatMaterial(tier, bed), 0);
                         flatPlaced++;
                     }
                     continue;
@@ -156,7 +159,7 @@ public final class GTSRRiverPlacer {
                     // （水下＝床料、滩带内露头＝滩料、滩带外露头＝干砾床料），生产侧与离线判据
                     // RiverMorphologyCheck 共用同一式——原内联三目已删，不再有两处口径。
                     final Block surface = GTSRVoronoiRiverField.bedTopAtSurface(worldSeed, x, z, s[i], submerged) ? bed
-                        : flatMaterial(tierAt(tiers, x, z, baseX, baseZ), bed);
+                        : flatMaterial(tier, bed);
                     writes += accept(sink, x, h[i], z, surface, 0);
                     if (surface == bed) {
                         bedPlaced++;
@@ -205,18 +208,26 @@ public final class GTSRRiverPlacer {
     }
 
     /**
-     * 河滩料（P19 plan §A.3 群系档表）：草原/森林 = 硅沙、荒漠 = 粗沙、沼泽/sanzu = 河砾；
-     * 越界/缺席（离线 -1）回退硅沙（常态河口径）。字段缺失（BlockLoader 未跑）时回退床料
-     * {@code fallback}（其自身再退 stone，见 {@link #bedMaterial()}）——断面仍闭合。
+     * 河滩料（P19 plan §A.3 群系档表）：草原/森林 = 硅沙、荒漠 = 粗沙、<b>沼泽 = 硅沙
+     * （v1.20.49 P26-B2 需求变更：原档表沼泽=河砾致沼泽河段从床到岸清一色砾、硅砂一处不出，
+     * 用户诉求"干枯河床与沼泽衔接缺硅砂"——case 3 由河砾改硅砂；sanzu 占位档（case 4，生产
+     * 链不出）保河砾原值）</b>；越界/缺席（离线 -1）回退硅沙（常态河口径）。字段缺失
+     * （BlockLoader 未跑）时回退床料 {@code fallback}（其自身再退 stone，见
+     * {@link #bedMaterial(int)}）——断面仍闭合。v1.20.49 P26-B2 起 public：离线判据
+     * {@code RiverMorphologyCheck} K 组与生产共用本表（单一真值，先例 {@code bedTopAtSurface}）。
      */
-    private static Block flatMaterial(int rosterIndex, Block fallback) {
+    public static Block flatMaterial(int rosterIndex, Block fallback) {
         final Block flat;
         switch (rosterIndex) {
             case 2: {
                 flat = BlocksGTSR.prosperityCoarseSand;
                 break;
             }
-            case 3:
+            // P26-B2：沼泽滩料河砾→硅砂（需求变更归因见 javadoc）；case 4 不动
+            case 3: {
+                flat = BlocksGTSR.prosperitySilicaSand;
+                break;
+            }
             case 4: {
                 flat = BlocksGTSR.prosperityRiverGravel;
                 break;
@@ -238,19 +249,36 @@ public final class GTSRRiverPlacer {
     }
 
     /**
-     * 河床料（在册 {@code gtsr:prosperityRiverGravel}，T2 起 BlockFalling 派生）。
-     * <b>{@code BlockLoader} 未跑时该静态字段为 null</b>——生产路径由 preInit 顺序保证非 null，
+     * 河床料（P26-B2 v1.20.49 起<b>群系分档</b>）：沼泽档（roster 3）=
+     * {@code prosperitySilicaSand}（非重力，与滩料同料 ⇒ 沼泽河段断面全硅砂），其余档
+     * （0/1/2/4 与越界/缺席 -1）恒 {@code gtsr:prosperityRiverGravel}（T2 起 BlockFalling 派生）
+     * <b>逐位不变</b>——非沼泽段床料不动是本片硬约束。改造前本方法无参、全群系统一河砾
+     * （沼泽缺硅砂的根因之一，见 u49-riverbed §2）。v1.20.49 P26-B2 起 public：离线判据
+     * {@code RiverMorphologyCheck} K 组与生产共用本表（单一真值）。
+     * <p>
+     * <b>{@code BlockLoader} 未跑时档表静态字段为 null</b>——生产路径由 preInit 顺序保证非 null，
      * 真为 null 时回退 {@code Blocks.stone} 并打<b>一次性</b> WARN（断面仍闭合，只是床料退化）。
      */
-    private static Block bedMaterial() {
-        final Block bed = BlocksGTSR.prosperityRiverGravel;
+    public static Block bedMaterial(int rosterIndex) {
+        final Block bed;
+        switch (rosterIndex) {
+            case 3: {
+                // P26-B2：沼泽床料引入硅砂（D6；其余档恒河砾不变）
+                bed = BlocksGTSR.prosperitySilicaSand;
+                break;
+            }
+            default: {
+                bed = BlocksGTSR.prosperityRiverGravel;
+                break;
+            }
+        }
         if (bed != null) {
             return bed;
         }
         if (!bedMissingLogged) {
             bedMissingLogged = true;
             GTSteamReborn.LOG.warn(
-                "[GTSR] dim78 river bed material MISSING (BlocksGTSR.prosperityRiverGravel == null"
+                "[GTSR] dim78 river bed material MISSING (BlocksGTSR 档表字段 == null"
                     + " before BlockLoader) -> 河床退化为 stone，水断面不变（一次性告警）");
         }
         return Blocks.stone;

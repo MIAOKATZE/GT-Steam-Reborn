@@ -78,8 +78,15 @@ public final class ProsperityTerrainProfile {
 
     /** 高度钳制下界（防极端调制穿 y=20 裂隙带以下的观感）。 */
     private static final int MIN_HEIGHT = 40;
-    /** 高度钳制上界（城变体最高 16 层 + 顶饰留出余量）。 */
-    private static final int MAX_HEIGHT = 110;
+    /**
+     * 高度钳制上界。<b>v1.20.49 P26-B4 ①（D7' 破顶放大档）：110 → 180</b>——"高耸入云"解封
+     * （森林延绵脊峰目标 150~165，{@code TerrainVariants} 的 DELTA_CAP=96/HEIGHT_SENTINEL=172 双重
+     * 软顶 ⇒ 变体列恒 &lt; 172，本钳制线对变体列零截平）。重算：180 + 城变体最高 16 层 + 顶饰 ≈ 208
+     * &gt; 散布/findSurfaceY 的 200 门——结构/城市/机器接地经同一 {@code heightAt} 自动上移，
+     * {@code PlacementGate}/{@code columnTopSafeY} 的缓存时点不变（同源契约，理论不可能悬空）；
+     * 180 恰在 {@code MAX_SURFACE_Y}=200 之下留 20 格余量（装饰/散布列扫上界不动）。
+     */
+    private static final int MAX_HEIGHT = 180;
 
     /**
      * dim78 def.seedSalt（身份链域分离盐）。
@@ -559,9 +566,14 @@ public final class ProsperityTerrainProfile {
             // 谷坡环（水陆过渡带，与 GTSRRiverPlacer 的滩料同一谓词 inBankBand）整段再削
             // bankCutAt（∈[BANK_CUT_DEPTH/2, BANK_CUT_DEPTH] 格），使床料在断面上成宽度出露——
             // 改造前 board 恒 1 格 ⇒ 水面贴岸、看不见河床。
-            // <b>沼泽档（roster 3）豁免</b>：A7「沼泽床 ∈[66.5,67.5]＝水面近地」是档表语义，
-            // 下切会打掉沼地河口径（§5 S3 判据 3 的处置＝下切域限缩 roster ∈ {0,1,2,4}）。
-            if (rosterIndex != 3 && GTSRVoronoiRiverField.inBankBand(worldSeed, x, z, s)) {
+            // <b>沼泽档（roster 3）豁免——v1.20.49 P26-B2 移除</b>：原豁免护的是 A7 旧档表语义
+            // 「沼泽床 ∈[66.5,67.5]＝水面近地」（§5 S3 判据 3 的处置＝下切域限缩 roster ∈
+            // {0,1,2,4}）；P26-B2 沼泽 bedTarget/depth 随枯竭下调（66.5/1.0→64.5/2.0）后该语义
+            // 退役，批内量化复核（plan/tmp/p26-b2-readings.md）：下调后沼泽谷坡环列−床列高差
+            // 中位 1.999 &lt; 2.5 格（豁免在位读数；P26 前基线 1.177）⇒ 按批2复核规则「中位
+            // &lt;2.5 ⇒ 移除豁免」删去 {@code rosterIndex != 3} 条件——沼泽谷坡环与其余群系同走
+            // 岸坡下切（修 u49-riverbed §3-②「沼泽岸坡不出露、砾面高台直达群系边」）。
+            if (GTSRVoronoiRiverField.inBankBand(worldSeed, x, z, s)) {
                 lowered -= GTSRVoronoiRiverField.bankCutAt(worldSeed, x, z);
             }
             // ═══ 残潭下挖支路（v1.20.42 P22 A1b 引入）<b>已删（P25 用户裁定退役）</b>：残潭场
@@ -569,6 +581,11 @@ public final class ProsperityTerrainProfile {
             // （D6 干河床谓词）承载；swampRiverPoolAt 与 SWAMP_RIVER_POOL_* 常量已同批删除（RVF
             // 类顶登记 + 退役段）。非潭列 lowered 逐位不变（本支路原本只减不加 ⇒ 删除后全列
             // lowered 与 v1.20.47 的非潭列逐位一致、潭列回到无潭值）。═══
+            // P26-B2（v1.20.49）低地防抬升门复核（阈值不动）：沼泽河核列被门吃掉占比 0.43%、
+            // 草原 20.1%——两档门内列的"原生地面−床"高差 max 均 &lt; 1 格（0.899/0.854），按批2
+            // 复核规则「占比 &gt;15% 且高差 &gt;2 ⇒ 阈 1.0→0.5」两条件无一同时成立 ⇒ 阈值保持
+            // 1.0 不动，读数登记 plan/tmp/p26-b2-readings.md（床料贴原生地面的观感由床档下调
+            // 承担，不在本门再让步）。
             if (h0 > lowered + 1.0D) {
                 y = (int) Math.round(lowered);
             }
@@ -604,7 +621,7 @@ public final class ProsperityTerrainProfile {
                 // ═══ v1.20.41 P20 S5（plan §15.5）中心固定岛：湖段 min 压低之后<b>唯一允许的
                 // 抬升支路</b>——岛域（lakeAt < LAKE_ISLAND）把地表从湖床抬到岛面 72。
                 // 抬升面本身是 s01(k) 衰减（岛缘 k=0 ⇒ 值 = 湖心锚 40，与上面的床值同侧连续），
-                // 故岛缘不出现单格悬崖；抬升量恒 ≤ 72 ⇒ 与 MAX_HEIGHT=110 / HEIGHT_SENTINEL=108
+                // 故岛缘不出现单格悬崖；抬升量恒 ≤ 72 ⇒ 与 MAX_HEIGHT=180 / HEIGHT_SENTINEL=172
                 // 零接触。岛外列 lakeIslandTopAt 返回 NaN 哨兵 ⇒ 本支路一步短路、零改动。═══
                 final double islandTop = GTSRVoronoiRiverField.lakeIslandTopAt(worldSeed, x, z, lake);
                 if (!Double.isNaN(islandTop)) {

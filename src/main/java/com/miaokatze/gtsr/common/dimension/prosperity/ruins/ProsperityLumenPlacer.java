@@ -32,7 +32,7 @@ import com.miaokatze.gtsr.common.dimension.prosperity.river.GTSRVoronoiRiverFiel
  * 过渡态，归 S6 随湖面/密度重钉——见 {@link #LAKE_LIGHT_DENOM}）。
  * <p>
  * <b>随机流纪律（SALT_WIND / SALT_ISLAND_TREE 同款）</b>：一个盐 {@link #SALT_LUMEN} 两种槽位——
- * <b>冠下趟按锚点槽</b> {@code chunkSeed(worldSeed, ax>>4, az>>4)}（冠光位集跨 ≤64 chunk ⇒ 与
+ * <b>冠下趟按锚点槽</b> {@code chunkSeed(worldSeed, ax>>4, az>>4)}（冠光位集跨 ≤81 chunk（P26-B5 半径 64 档派生窗 17×17）⇒ 与
  * S3 岛树同一条"任何被跨 chunk 重算得同一集"论证，任一 chunk 独立 decorate 时重放同一光位集，
  * {@link ChunkSliceSink} owns 过滤后只写本片）；<b>湖上趟按本 chunk 槽</b>
  * {@code chunkSeed(worldSeed, chunkX, chunkZ)}（湖上光点单格不跨界，chunk 级自洽即够）。两趟各自的
@@ -44,7 +44,7 @@ import com.miaokatze.gtsr.common.dimension.prosperity.river.GTSRVoronoiRiverFiel
  * 湖上趟先掷骰后验列），被让掉的格<b>不消耗</b>额外随机数 ⇒ 光<b>位集</b>与世界内容无关、逐 chunk
  * 重放逐位一致，世界只决定"这一格最终写不写得进"。
  * <p>
- * <b>public 面 = 离线判据重放口</b>（{@code LumenLightCheck}：密度比值臂分趟独立跑、9-chunk 并集
+ * <b>public 面 = 离线判据重放口</b>（{@code LumenLightCheck}：密度比值臂分趟独立跑、全窗并集
  * 对拍 {@link #canopyLightsAt} 参照臂；先例 {@code IslandMegaTree.placeInto} 的重放口纪律）；
  * 生产侧唯一调用者是 {@code ProsperityDecorPlacer.placeTreePass}（一行委托
  * {@link #placeLumenPass}）。不进 {@code PlacementGate}（p21 §5：光点无结构契约）。
@@ -59,11 +59,13 @@ public final class ProsperityLumenPlacer {
     public static final long SALT_LUMEN = 0x4C554D4EL;
 
     /**
-     * 冠下密度：每个候选列（冠 footprint 内有冠壳格的列）的 1/N 抽样分母。候选列 ≈ π·(r²+r) ≈ 8011
-     * （r=50）⇒ 单树期望 ≈ 15.0 枚光点（48×(50/15)²≈11.11 ⇒ 533，保旧档面密度），摊到 ≤64 个被跨
-     * chunk。判据只钉「湖上 &lt; 冠下」比值，不钉本值（实机校准旋钮 = 本常量，调它不动盐）。
+     * 冠下密度：每个候选列（冠 footprint 内有冠形态格的列，含垂帘列）的 1/N 抽样分母。候选列 ≈
+     * π·(r²+r) ≈ 13069（P26-B5 半径 64 档）⇒ 单树期望 ≈ 21 枚光点（13069/622），摊到
+     * windowChunks(64)=17 方窗 289 chunk ⇒ 每 chunk 均值 ≈ 0.072（与 r50/533 旧档实测面密度
+     * 逐位同档——保的是<b>每 chunk 观感密度</b>而非单树枚数）。判据只钉带，不钉本值
+     * （实机校准旋钮 = 本常量，调它不动盐）。
      */
-    static final int CANOPY_LIGHT_DENOM = 533;
+    static final int CANOPY_LIGHT_DENOM = 622;
 
     /**
      * 湖上密度：每个合格水列的 1/N 抽样分母。<b>S3 过渡态</b>：冠下档升至 533 后本值暂小于
@@ -72,13 +74,13 @@ public final class ProsperityLumenPlacer {
      */
     static final int LAKE_LIGHT_DENOM = 192;
 
-    /** 单锚点光位缓冲上限（footprint 101×101 = 10201 列封顶，防御性；判据按同一常量分配）。 */
+    /** 单锚点光位缓冲上限（footprint 129×129 = 16641 列封顶（P26-B5 半径 64 档派生），防御性；判据按同一常量分配）。 */
     public static final int CANOPY_LIGHT_CAP = IslandMegaTree.CROWN_QUERY_SIDE * IslandMegaTree.CROWN_QUERY_SIDE;
 
     private ProsperityLumenPlacer() {}
 
     /**
-     * 单锚点冠下光位集（<b>纯函数重放口</b>，判据 9-chunk 并集对拍的参照臂）：formRand 以
+     * 单锚点冠下光位集（<b>纯函数重放口</b>，判据全窗并集对拍的参照臂，窗 = windowChunks 派生）：formRand 以
      * {@code ProsperityDecorPlacer.SALT_ISLAND_TREE} 锚点槽派生（与 {@code placeIslandTreePass}
      * 同一派生式、盐单源——重放的是<b>同一棵</b>树的冠层），{@code IslandMegaTree.crownUnderside}
      * 给出每列冠底带，lumenRand 以 {@link #SALT_LUMEN} <b>同一锚点槽</b>派生做抽样。
@@ -111,7 +113,7 @@ public final class ProsperityLumenPlacer {
                     continue;
                 }
                 if (n >= out.length) {
-                    return n; // 防御性封顶（候选列数 ≤ 10201 = CANOPY_LIGHT_CAP，正常不可达）
+                    return n; // 防御性封顶（候选列数 ≤ 16641 = CANOPY_LIGHT_CAP，正常不可达）
                 }
                 out[n][0] = ax + dx;
                 out[n][1] = cy + minDy - 1;

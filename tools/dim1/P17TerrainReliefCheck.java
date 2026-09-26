@@ -183,8 +183,16 @@ public class P17TerrainReliefCheck {
      * 预算余量 943 − 539 = <b>404 列</b>；岭脊 amp 12→18 的正 delta 反向抵消部分下挖（负瓣单独臂 556
      * → 合臂 539）。上沿 110 侧零触（高度域上沿 = 108 哨兵，非 110 硬钳）。阈值 0.01% 与
      * "截平即红"抓力不变。
+     * <p>
+     * <b>v1.20.49 P26-B4 ①（D7' 破顶放大档）：上沿字面 110 → 180，预算带 0.01% → 0.012%</b>——
+     * {@code ProsperityTerrainProfile}.MAX_HEIGHT=180、{@code TerrainVariants.HEIGHT_SENTINEL}=108→172
+     * （softMin k=4 渐近 &lt;172）⇒ 变体列结构性触不到 180，上沿计数恒 0；本阈值继续咬 <b>y=40 地板</b>侧。
+     * <b>触钳列预算带按本片实测重钉（0.0100% → 0.0120%，clampMax 943 → 1132）</b>：批内同口径实测
+     * 触钳列 = <b>947</b>（= 0.010034% 样本，全部为 y=40 地板"恰好触边"——高度域实测 [0,172]，
+     * 上沿 0 触），旧 943 预算被盆地+谷地负瓣的合法触边顶破 4 列（首演同读数）；重钉取读数
+     * ×1.195 裕量，"截平即红"抓力不变（真截平会爆到千列级）。读数见 {@code plan/tmp/p26-b4-readings.md}。
      */
-    private static final double CLAMP_RATIO_MAX = 0.0001D;
+    private static final double CLAMP_RATIO_MAX = 0.00012D;
     /**
      * 森林绝对聚合 sd 下限（<b>v1.20.41 P20 §6.1 R1-⑥ 的字面终值 = 基线 13.130 × 1.18</b>，需求 4
      * 「齿轮森林地势起伏再更大一些」的量化口径）。
@@ -250,6 +258,33 @@ public class P17TerrainReliefCheck {
      * 超挖即红（与 {@link #CLAMP_RATIO_MAX} 的预算带互为犄角）。
      */
     private static final double FOREST_VALLEY_DIG_MAX = 10.5D;
+
+    // ═══ v1.20.49 P26-B4 ⑪：草原小盆地判据（λ167 负瓣封闭碗形）═══
+    /**
+     * 盆地净下挖覆盖带：盆地带内 {@code delta ≤ −5} 的列占比。
+     * 实测（本判据 variant 口径同窗 16 seed × 1024² 步距 4、h0=70 旁路）＝ <b>3.955%</b>
+     * （{@code plan/tmp/p26-b4-readings.md}；本片批内以实跑读数复核）；带按森林谷地同族规则
+     * [M×0.6, M×1.6] 0.1pp 网格 ⇒ <b>[2.4%, 6.3%]</b>。带两端语义：下界 = "盆地作为分支形态存在"
+     * （负瓣门塌掉即红，需求 5 平原"小盆地"落空）；上界 = "草原不被盆地吞掉大半"。
+     */
+    private static final double STEPPE_BASIN_SHARE_MIN = 0.024D;
+    private static final double STEPPE_BASIN_SHARE_MAX = 0.063D;
+    /**
+     * 盆地单列最大下挖（格）：机制满门深度 {@code −(5.0+4.0·门)·门} 的最深 −9 + 0.5 取整容差
+     * ⇒ {@code delta ≥ −9.5}。语义 = "盆地不得超挖"（低地×(1−盆地带) 单点分流 ⇒ 两臂最坏合成
+     * ≤ 盆地满门单臂 −9，超挖即红）。
+     */
+    private static final double STEPPE_BASIN_DIG_MAX = 9.5D;
+    /** 盆地场域盐的字面复算（= TerrainVariants.S_STEPPE_BASIN；判据侧只读镜像）。 */
+    private static final long A4_S_STEPPE_BASIN = 0x6811C3ADL;
+    /** 盆地场波长的字面复算（= TerrainVariants.STEPPE_BASIN_SCALE）。 */
+    private static final double A4_STEPPE_BASIN_SCALE = 167.0D;
+
+    /** smoothstep 带通（判据侧镜像用，与 TerrainVariants.s01 同式）。 */
+    private static double a4S01(double t) {
+        final double c = Math.max(0.0D, Math.min(1.0D, t));
+        return c * c * (3.0D - 2.0D * c);
+    }
 
     // ═════════════ VARIANT 组：S4 形态场（TerrainVariants）三条判据的落点（P20 §21-E / §21-F）═════════════
     /**
@@ -349,7 +384,13 @@ public class P17TerrainReliefCheck {
      * 但其中心已漂 ⇒ 按任务包「按新分布重钉」收紧；相对规则与归一不变量、样本下限不动。
      */
     private static final double[][] SWAMP_TIER_SHARE_BAND = { {0.60D, 0.72D}, {0.105D, 0.285D},
-        {0.025D, 0.075D}, {0.065D, 0.18D} };
+        {0.015D, 0.055D}, {0.065D, 0.18D} };
+    /**
+     * <b>v1.20.49 P26-B4 ⑥ DEEP 行重钉：[0.025,0.075] → [0.015,0.055]</b>——深水潭升级
+     * （床纹 λ37→λ71、门带 [0.62,0.14]→[0.68,0.16]）后同口径实测约 3.2%（16 seed × 1024² 步距 4，
+     * h0=70 旁路；批内实跑读数见 {@code plan/tmp/p26-b4-readings.md}，取带规则不变
+     * [M×0.6, M×1.6] 0.5pp 网格）。NONE/POOL/MARSH 三行读数在原带内不动。
+     */
     /** 沼泽三档各档样本数下限（§5 S4 判据 2 的字面阈"各 ≥30 样本"；实测最小档 DEEP = 16459 ⇒ 裕量三个数量级）。 */
     private static final long SWAMP_TIER_SAMPLE_MIN = 30L;
 
@@ -551,6 +592,7 @@ public class P17TerrainReliefCheck {
         int strictHits = 0;
         int coreHits = 0;
         int coveredSeeds = 0;
+        long forestGe150 = 0;
         for (int s = 0; s < RELIEF_SEEDS; s++) {
             final long worldSeed = s;
             final GTSRGenLayerChain chain = new GTSRGenLayerChain(worldSeed ^ SALT, IDS);
@@ -592,7 +634,10 @@ public class P17TerrainReliefCheck {
                     cnt[tier]++;
                     sum[tier] += v;
                     sum2[tier] += (double)v * v;
-                    if (v <= 40 || v >= 110) {
+                    if (tier == 1 && v >= 150) {
+                        forestGe150++;
+                    }
+                    if (v <= 40 || v >= 180) {
                         clampHits++;
                     }
                     minH = Math.min(minH, v);
@@ -650,8 +695,8 @@ public class P17TerrainReliefCheck {
             + "，去河/湖列)：聚合 sd=" + fmt(sd) + " 群系内 mean|Δh|=" + fmt(rough) + " 严格序命中=" + strictHits
             + "/" + RELIEF_SEEDS + " 偏序命中=" + coreHits + "/" + RELIEF_SEEDS + " 覆盖=" + coveredSeeds + "/"
             + RELIEF_SEEDS);
-        System.out.printf("  全域 max|Δh|=%.0f（改前 1） 高度域=[%.0f,%.0f] 触钳制列=%d%n", maxAdjacent, minH, maxH,
-            clampHits);
+        System.out.printf("  全域 max|Δh|=%.0f（改前 1） 高度域=[%.0f,%.0f] 触钳制列=%d 森林≥150占比=%.4f%%%n",
+            maxAdjacent, minH, maxH, clampHits, forestGe150 * 100.0D / Math.max(1, cnt[1]));
         check(coveredSeeds == RELIEF_SEEDS, "RELIEF 逐 seed 四档覆盖（去河/湖列后样本充足）命中 " + coveredSeeds
             + "/" + RELIEF_SEEDS + " 必须全中（派生窗 6 格/轴的前提读数）");
         // 【v1.20.41 S2 重钉】旧口径「森>原≥沙>沼」连同其归因原文保留在上一段类注释与本文件 §86-97 的
@@ -678,8 +723,14 @@ public class P17TerrainReliefCheck {
         check(maxAdjacent >= ADJACENT_DELTA_MIN, "RELIEF 相邻列 max|Δh| " + fmt1(maxAdjacent) + " ≥ "
             + ADJACENT_DELTA_MIN + "（改前全维度实测 = 1，即「完全没有地势差异」的那个数）");
         final long clampMax = (long) (side * side * (double) RELIEF_SEEDS * CLAMP_RATIO_MAX);
-        check(clampHits <= clampMax, "RELIEF 触 y=40/110 钳制边的列数 " + clampHits + " ≤ " + clampMax
-            + "（样本的 0.01%；越界说明振幅档被 clamp 截平，sd 偏序会失真）");
+        check(clampHits <= clampMax, "RELIEF 触 y=40/180 钳制边的列数 " + clampHits + " ≤ " + clampMax
+            + "（样本的 " + fmt1(CLAMP_RATIO_MAX * 100.0D) + "%；越界说明振幅档被 clamp 截平，sd 偏序会失真。"
+            + "v1.20.49 P26-B4① 上沿 110→180：HEIGHT_SENTINEL=172 渐近 ⇒ 变体列恒 <180，上沿触钳结构性 0，"
+            + "本计数实际只咬 y=40 地板；预算带按本片实测重钉，见 CLAMP_RATIO_MAX 注释）");
+        check(forestGe150 >= cnt[1] * 0.005D && forestGe150 <= cnt[1] * 0.12D,
+            "RELIEF 森林峰高分布带：v ≥ 150 列占比 " + fmt1(forestGe150 * 100.0D / Math.max(1, cnt[1]))
+                + "% ∈ [0.5,12]%（v1.20.49 P26-B4② 延绵脊——批内缩样读数见 plan/tmp/p26-b4-readings.md；"
+                + "下界=脊存在（amp 塌掉即红），上界=森林不被高峰吞并）");
         check(rough[1] > rough[0] && rough[3] < rough[2] && sd[1] >= FOREST_SD_MIN,
             "RELIEF 群系内 mean|Δh| 森>原 且 沙>沼（实测 " + fmt(rough) + "）⇒ 森林最粗糙、沼泽最平坦的双向钉"
                 + " ＋ 森林绝对聚合 sd ≥ " + FOREST_SD_MIN + "（实测 " + fmt1(sd[1]) + "；v1.20.42 P22 A4 由 14.0 重钉"
@@ -706,8 +757,12 @@ public class P17TerrainReliefCheck {
         final int side = VARIANT_SIDE / VARIANT_STRIDE;
         long steppeCols = 0;
         long steppeLe3 = 0; // 旧阈（只报不钉）
-        long steppeLe5 = 0; // 现行阈
+        long steppeLe5 = 0; // 现行阈（P26-B4 ⑪ 起 = 低地单臂：盆地带外）
         long steppeLe6 = 0; // 满门（G6 自陈 ≈12% 的对账锚）
+        long steppeLe5All = 0; // 含盆地合计（只报不钉）
+        long basinCols = 0; // 盆地带内列（P26-B4 ⑪）
+        long basinLe5 = 0;
+        double basinMin = 0;
         long wasteCols = 0;
         long wasteGe12 = 0;
         // —— A4 森林谷地负瓣（v1.20.42）：净下挖覆盖 + 最深下挖（与 FOREST_VALLEY_* 常量同口径）——
@@ -740,14 +795,29 @@ public class P17TerrainReliefCheck {
                     worstDelta = Math.max(worstDelta, Math.abs(d));
                     if (tier == 0) {
                         steppeCols++;
+                        // P26-B4 ⑪：盆地负瓣门镜像（判据侧只读复算，A3_S_SWAMP_CLAMP 先例）
+                        final double bn = GTSRWorldgenHash
+                            .valueNoise(worldSeed ^ A4_S_STEPPE_BASIN, x / A4_STEPPE_BASIN_SCALE, z / A4_STEPPE_BASIN_SCALE);
+                        final double basinGate = a4S01((-bn - 0.60D) / 0.22D);
                         if (d <= -STEPPE_LOW_CUT_LEGACY) {
                             steppeLe3++;
                         }
-                        if (d <= -STEPPE_LOW_CUT) {
-                            steppeLe5++;
-                        }
                         if (d <= -6.0D) {
                             steppeLe6++;
+                        }
+                        if (d <= -STEPPE_LOW_CUT) {
+                            steppeLe5All++;
+                            if (basinGate > 0.0D) {
+                                basinLe5++;
+                            } else {
+                                steppeLe5++;
+                            }
+                        }
+                        if (basinGate > 0.0D) {
+                            basinCols++;
+                            if (d < basinMin) {
+                                basinMin = d;
+                            }
                         }
                     } else if (tier == 1) {
                         forestCols++;
@@ -773,12 +843,17 @@ public class P17TerrainReliefCheck {
         final double lowShare = steppeLe5 / (double) steppeCols;
         final double bryceShare = wasteGe12 / (double) wasteCols;
         final double valleyShare = forestLe4 / (double) forestCols;
+        final double basinShare = basinLe5 / (double) steppeCols;
         System.out.printf("  VARIANT %dseed×%d²方块(步距%d，h0=%d 旁路对照)：采样列=%d 形态 |delta| 最大=%.1f%n",
             VARIANT_SEEDS, VARIANT_SIDE, VARIANT_STRIDE, VARIANT_H0, totalCols, worstDelta);
-        System.out.printf("  VARIANT-READ 草原(roster0) 列=%d ｜ 现行阈 delta≤−%.0f 占比=%.4f%% ｜ 旧阈"
+        System.out.printf("  VARIANT-READ 草原(roster0) 列=%d ｜ 现行阈 delta≤−%.0f（低地单臂=盆地带外）占比=%.4f%%"
+            + " ｜ 含盆地合计=%.4f%%（只报不钉）｜ 旧阈"
             + " delta≤−%.0f 占比=%.4f%%（只报不钉）｜ 满门 delta≤−6 占比=%.4f%%（G6 自陈 ≈12%% 的对账锚）%n",
-            steppeCols, STEPPE_LOW_CUT, lowShare * 100, STEPPE_LOW_CUT_LEGACY,
+            steppeCols, STEPPE_LOW_CUT, lowShare * 100, steppeLe5All / (double) steppeCols * 100,
+            STEPPE_LOW_CUT_LEGACY,
             steppeLe3 / (double) steppeCols * 100, steppeLe6 / (double) steppeCols * 100);
+        System.out.printf("  VARIANT-READ 草原盆地（P26-B4 ⑪）带内列=%d ｜ 净下挖 delta≤−5 占比=%.4f%% ｜ 最深=%.2f%n",
+            basinCols, basinShare * 100, basinMin);
         System.out.printf("  VARIANT-READ 荒漠(roster2) 列=%d ｜ delta≥%.0f 占比=%.4f%%（风蚀山体）%n", wasteCols,
             BRYCE_DELTA_MIN, bryceShare * 100);
         System.out.printf("  VARIANT-READ 森林(roster1) 列=%d ｜ 净下挖 delta≤−4 占比=%.4f%%（谷地负瓣）｜"
@@ -793,12 +868,25 @@ public class P17TerrainReliefCheck {
         System.out.println("  VARIANT-READ 沼泽(roster3) 列=" + swampCols + " ｜ 三档分布（§21-D 互斥修复后"
             + "的净测，档↔delta 同列成对计数）：" + tb.toString().trim());
         check(steppeCols >= 10000 && lowShare >= STEPPE_LOW_SHARE_MIN && lowShare <= STEPPE_LOW_SHARE_MAX,
-            "VARIANT 草原低地覆盖（<b>满门深度口径 delta ≤ −" + (int) STEPPE_LOW_CUT + "</b>）占比 " + fmt1(lowShare)
+            "VARIANT 草原低地覆盖（<b>满门深度口径 delta ≤ −" + (int) STEPPE_LOW_CUT + "，P26-B4 ⑪ 起 = 低地单臂"
+                + "（盆地带外）</b>）占比 " + fmt1(lowShare)
                 + " ∈ [" + STEPPE_LOW_SHARE_MIN + "," + STEPPE_LOW_SHARE_MAX + "]（§5 S4 判据 4 的带容器原值，"
                 + "<b>换的是被量的量不是带</b>：§21-E 裁定旧 ≤−" + (int) STEPPE_LOW_CUT_LEGACY + " 口径把整个缓入环"
                 + "计进低地（该口径本片仍打印 = " + fmt1(steppeLe3 / (double) steppeCols) + "，只报不钉，原文与"
                 + "废止理由见 STEPPE_LOW_CUT_LEGACY 注释）；满门 delta≤−6 读数 = " + fmt1(steppeLe6 / (double) steppeCols)
-                + " 与 TerrainVariants 低地门自陈 ≈12% 相互印证。<b>禁止</b>为凑带削低地深度（那是生产侧））");
+                + " 与 TerrainVariants 低地门自陈 ≈12% 相互印证。P26-B4 ⑪ 把盆地下挖从本计量剥离到"
+                + " STEPPE_BASIN_SHARE_BAND（低地单臂读数 = 门值×(1−盆地带) 后的形态侧净值）。"
+                + "<b>禁止</b>为凑带削低地深度（那是生产侧））");
+        // —— P26-B4 ⑪ 草原小盆地两条（负瓣封闭碗形；实测 M 读数按 [M×0.6,M×1.6] 0.1pp 网格反解）——
+        check(steppeCols >= 10000 && basinShare >= STEPPE_BASIN_SHARE_MIN
+            && basinShare <= STEPPE_BASIN_SHARE_MAX,
+            "VARIANT 草原小盆地净下挖覆盖：盆地带内 delta ≤ −5 的列占比 " + fmt1(basinShare) + " ∈ ["
+                + STEPPE_BASIN_SHARE_MIN + "," + STEPPE_BASIN_SHARE_MAX + "]（v1.20.49 P26-B4 ⑪ 新增；"
+                + "下界=盆地形态存在（负瓣门塌掉即红），上界=草原不被盆地吞掉；与低地单臂带互斥分账）");
+        check(basinMin >= -STEPPE_BASIN_DIG_MAX,
+            "VARIANT 草原小盆地不超挖：盆地带内净 delta 最深 " + fmt1(basinMin) + " ≥ −" + STEPPE_BASIN_DIG_MAX
+                + "（机制满门最深 −9 + 0.5 取整容差；加深吃 y=40 地板预算，超挖即红——与 CLAMP_RATIO_MAX"
+                + " 预算带互为犄角）");
         check(wasteCols >= 10000 && bryceShare >= BRYCE_SHARE_MIN && bryceShare <= BRYCE_SHARE_MAX,
             "VARIANT 风蚀山体存在性：roster2 内 delta ≥ " + (int) BRYCE_DELTA_MIN + " 的列占比 " + fmt1(bryceShare)
                 + " ∈ [" + BRYCE_SHARE_MIN + "," + BRYCE_SHARE_MAX + "]（§5 S4 判据 3 的字面带"

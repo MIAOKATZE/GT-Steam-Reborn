@@ -32,11 +32,11 @@ import com.miaokatze.gtsr.common.dimension.prosperity.river.GTSRVoronoiRiverFiel
  * P22 版 B · S3 岛心巨树（垂天玄柯）判据：A（净空五读）/ B（派生窗）/ C（30 座活湖实测）/
  * D（重放幂等 + 全跨并集单射 + 源级纪律）四组（范式同源已随 CaveFieldCheck 退役，P23 S1）。
  *
- * <p>═══ A 净空五读（单树几何硬界；P23 R1·S6 随冠半径 15→50 重钉，全部改派生式）═══ 冠 bbox
- * 水平_extent ≤ 2R+1（R=CANOPY_RADIUS=50，枝丫覆盖 50 格硬值）且 ≥ 2R−1（在场，防冠壳缩水）；
- * 单树跨 chunk 数 ≤ bbox chunk 面积（7×7=49）；{@code windowChunks(R) == 13}（派生式，改半径档
- * 自动跟）；树顶 ≤ 255（+ y0=200 早退臂零写入）；单树写格 ≤ 42000 / 单 chunk ≤ 7600
- * （30 湖实测 [36544,37406]/6689 的 ×1.12/×1.14 帽，见 TREE_CELL_CAP 注释）。
+ * <p>═══ A 净空五读（单树几何硬界；P26-B5 随垂帘擎天放大档重钉，全部派生式）═══ 冠 bbox
+ * 水平_extent ≤ 2R+1（R=CANOPY_RADIUS=64，枝系绿端 ≤61 + 冠壳 64 双路覆盖）且 ≥ 2R−1（在场，防冠壳缩水）；
+ * 单树跨 chunk 数 ≤ bbox chunk 面积（9×9=81）；{@code windowChunks(R) == 17}（派生式，改半径档
+ * 自动跟）；树顶 ≤ 255（实测 ≤250；+ y0=200 早退臂零写入）；单树写格 ≤ 65000 / 单 chunk ≤ 12000
+ * （30 湖实测 [57490,58933]/10368 的帽，见 TREE_CELL_CAP 注释）。
  *
  * <p>═══ B 派生窗（防写死）═══ 多 radius 断言 {@code windowChunks} == 独立重算公式
  * {@code 2*ceil((2r+1)/16)-1}；恒奇数；且 ≥ 穷举最小窗（充分性方向：窗口至少够大）。
@@ -48,8 +48,9 @@ import com.miaokatze.gtsr.common.dimension.prosperity.river.GTSRVoronoiRiverFiel
  * p21 A3 口径）且整套写集与空世界逐格相同（写不依赖世界内容 ⇒ owner-local 让行只发生在叶门）。
  *
  * <p>═══ D 重放幂等 + 一致性 ═══ 同 (seed,chunk) 双跑 {@code placeIslandTreePass} 落块
- * <b>序列</b>逐位同；<b>9-chunk 重放并集 == 单世界一次性写入逐格</b>（owner 单射行为级证明：
- * 每格恰被一个 chunk 写，无空洞无重复——枚举漏一个 chunk 即红）；荒漠区（3×3 窗采样全无主干带）
+ * <b>序列</b>逐位同；<b>全窗重放并集 == 单世界一次性写入逐格</b>（owner 单射行为级证明：
+ * 每格恰被一个 chunk 写，无空洞无重复——枚举漏一个 chunk 即红；窗 = windowChunks(R)×windowChunks(R)
+ * = 17×17，派生式）；荒漠区（3×3 窗采样全无主干带）
  * 精确 0 写入；源级纪律：两新类零 {@code this.rand}/{@code world.rand}/{@code nextLong}；
  * 新盐 {@code SALT_ISLAND_TREE = 0x49534C4E44L} 在场且与 {@code SALT_MEGA}(0x6D656761) 不同值、
  * 由<b>锚点槽</b> {@code chunkSeed(worldSeed, ax>>4, az>>4)} 派生（成对断言防假绿）；
@@ -72,18 +73,19 @@ public final class MegaTreeCheck {
 
     /** 单树写格硬顶（p21 §4 预算）/ 单 chunk 硬顶。 */
     /**
-     * P23 R1·S6 重钉（冠半径 15→50，枝丫覆盖 50 格档）：30 活湖实测 cells ∈ [36544,37406]
-     * （散布 2.4%）、chunkMax ≤ 6689 ⇒ TREE_CELL_CAP=42000（实测上限 ×1.12）、
-     * CHUNK_CELL_CAP=7600（×1.14）——判据域随几何档换算（旧 9500/3600 是半径 15 档的
-     * [7417,7551]×~1.26，散布同族）。几何确定性 ⇒ 两帽防的是"形状生成失控"（分叉指数化/
-     * 收窄段缺失），不是密度抖动。
+     * P26-B5 重钉（垂帘擎天放大档：冠半径 64、干高 133..146、总高 165..178）：30 活湖实测
+     * cells ∈ [57490,58933]（散布 2.5%）、chunkMax ≤ 10368 ⇒ TREE_CELL_CAP=65000
+     * （D5' 预算上限即帽——实测上限 ×1.10 收口）、CHUNK_CELL_CAP=12000（×1.16，预算 14000 内）
+     * ——判据域随几何档换算（P23 R1·S6 同款先例：42000/7600 ← 半径 50 档实测 [36544,37406]/6689）。
+     * 几何确定性 ⇒ 两帽防的是"形状生成失控"（分叉指数化/收窄段缺失），不是密度抖动。
      */
-    static final int TREE_CELL_CAP = 42000;
-    static final int CHUNK_CELL_CAP = 7600;
+    static final int TREE_CELL_CAP = 65000;
+    static final int CHUNK_CELL_CAP = 12000;
 
-    /** 出岛必有树的下界（干/叶量级在场，防"落了 1 格也算树"式假绿）。 */
-    static final int LOG_FLOOR = 1000;
-    static final int LEAF_FLOOR = 1500;
+    /** 出岛必有树的下界（干/叶量级在场，防"落了 1 格也算树"式假绿；P26-B5 随放大档收紧，
+     * 30 湖实测 logs ≈ 12.1k+ / leaves ≈ 45.5k+）。 */
+    static final int LOG_FLOOR = 9000;
+    static final int LEAF_FLOOR = 24000;
 
     /** 生产盐字面（源级断言与 DecorPlacer 钉同值后才用于单树 rand 派生）。 */
     static final long SALT_ISLAND_TREE = 0x49534C4E44L;
@@ -368,13 +370,13 @@ public final class MegaTreeCheck {
             + s.chunkMax);
         final int crownSide = 2 * MegaTreeAnchors.CANOPY_RADIUS + 1;
         a("A", "bbox.horizontalExtent<=" + crownSide + "(dx=" + s.dxExtent + ",dz=" + s.dzExtent
-            + "; P23 R1 半径 50 档，派生式)",
+            + "; P26-B5 半径 64 档，派生式)",
             s.dxExtent <= crownSide && s.dzExtent <= crownSide);
         a("A", "bbox.horizontalPresence>=" + (crownSide - 2), s.dxExtent >= crownSide - 2 && s.dzExtent >= crownSide - 2);
         a("A", "spanChunks<=bboxChunkArea(" + s.chunksSpanned + ")", s.chunksSpanned
             <= ((2 * MegaTreeAnchors.CANOPY_RADIUS + 16) / 16) * ((2 * MegaTreeAnchors.CANOPY_RADIUS + 16) / 16));
         a("A", "windowChunks(RADIUS)==" + MegaTreeAnchors.windowChunks(MegaTreeAnchors.CANOPY_RADIUS)
-            + "(derived,R=50)", MegaTreeAnchors.windowChunks(MegaTreeAnchors.CANOPY_RADIUS)
+            + "(derived,R=64)", MegaTreeAnchors.windowChunks(MegaTreeAnchors.CANOPY_RADIUS)
                 == 2 * ((2 * MegaTreeAnchors.CANOPY_RADIUS + 16) / 16) - 1);
         a("A", "topY<=255(" + s.topY + ")", s.topY <= 255);
         a("A", "cells<=" + TREE_CELL_CAP + "(" + s.cells + ")", s.cells <= TREE_CELL_CAP);
@@ -483,7 +485,7 @@ public final class MegaTreeCheck {
         a("C", "y0.band[" + Y0_MIN + "," + Y0_MAX + "](measured " + y0Min + ".." + y0Max + ")", y0BandOk);
         a("C", "treePresence.100pct(30/30,log>=" + LOG_FLOOR + ",leaf>=" + LEAF_FLOOR + ")", allPlaced);
         a("C", "budget.treeCells<=" + TREE_CELL_CAP + " & chunkMax<=" + CHUNK_CELL_CAP
-            + "（P23 R1·S6 按半径 50 档实测重钉）", budgetOk);
+            + "（P26-B5 按垂帘擎天放大档 30 湖实测重钉）", budgetOk);
         a("C", "extent<=" + (2 * MegaTreeAnchors.CANOPY_RADIUS + 1) + ".all30(" + extentMax
             + "; 派生式随半径档)", extentOk);
         a("C", "top<=255.all30(" + topMax + ")", topMax <= 255);
@@ -542,9 +544,8 @@ public final class MegaTreeCheck {
         }
         a("D", "doubleRun.sequence.identical n=" + seqChecked, seqOk);
 
-        // D2 全跨重放并集 == 单树一次性写入（owner 单射行为级证明；P23 R1·S6：冠半径 50 ⇒
-        // 单树跨 windowChunks(R)×windowChunks(R) chunk 窗（13×13，派生式），旧 ±1 的 3×3 窗
-        // 是半径 15 档口径）
+        // D2 全跨重放并集 == 单树一次性写入（owner 单射行为级证明；P26-B5：冠半径 64 ⇒
+        // 单树跨 windowChunks(R)×windowChunks(R) chunk 窗（17×17，派生式），旧 13×13 是半径 50 档口径）
         final int halfSpan = (MegaTreeAnchors.windowChunks(MegaTreeAnchors.CANOPY_RADIUS) - 1) >> 1;
         boolean unionOk = true;
         boolean injectiveOk = true;

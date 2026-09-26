@@ -92,6 +92,12 @@ public final class SanzuLakeMorphologyCheck {
     static final double ISLAND_PLATEAU = GTSRVoronoiRiverField.LAKE_ISLAND_PLATEAU;
     static final double ISLAND_RADIUS = GTSRVoronoiRiverField.LAKE_ISLAND_RADIUS;
     static final int SEA = ProsperityTerrainProfile.SEA_LEVEL;
+    /**
+     * 滩缘干滩升高（P26-B3 D2）：<b>判据侧字面钉</b>，须与生产 {@code RVF.SANZU_DRY_BEACH_RISE}
+     * 同值（判据源码要在改前基线树上也能编译 ⇒ 不引生产常量；不同步 = P26-1 读数口径漂移，
+     * 复核时对拍）。
+     */
+    static final int DRY_RISE = 1;
     /** 水面顶：{@code fillSanzuLakes} 置水写到 {@code y ≤ SEA_LEVEL − 1} ⇒ 水深口径的零点。 */
     static final int WATER_TOP = SEA - 1;
     /** 湖心锚 = {@code SEA_LEVEL − LAKE_CENTER_DEPTH}（与 {@code LAKE_PILLAR_FLOOR_Y} 同一条式子）。 */
@@ -384,6 +390,7 @@ public final class SanzuLakeMorphologyCheck {
         groupDepth(lakes);
         groupGeometry(lakes);
         groupP25(lakes);
+        groupP26(lakes);
         groupShoreEdges(lakes);
         groupShoreTreads(lakes);
         groupShoreWetBand(lakes);
@@ -1251,6 +1258,119 @@ public final class SanzuLakeMorphologyCheck {
                 && (irP90 - irP10) / irMed <= 0.35D && !outlier,
             "散布=" + f3(irMed <= 0.0D ? -1.0D : (irP90 - irP10) / irMed) + " 中位=" + f3(irMed)
                 + " n=" + ira.length + " 越包络=" + outlier);
+    }
+
+    // ══════════════════════════ P26 组（B3 D1/D2）：干滩滩缘 + 岛缘自然化判据面 ══════════════════════════
+
+    /**
+     * <b>P26-B3 判据面</b>（v1.20.49 批3，方案 = evolve-lake §5 推荐组合 b1+A1/I1'）：
+     * <ul>
+     * <li><b>P26-1 干滩缓解（钉带）</b>：逐湖 sanzu <b>干滩列</b>（{@code isSanzuColumn ∧ h ==
+     * SEA+} {@link #DRY_RISE}，b1 滩缘腿的行为直读）——读数口径 = 滩带外缘外扩 20 格窗、步距 2
+     * 的方格采样（非穷举；方向性读数见 sanzuArrivalColumn 的 32 射线先例）。「>0 干滩列湖占比」
+     * 钉带：b1 前 {@code isSanzuColumn} 要求 h ≤ SEA ⇒ 干滩列恒 0（"整湖无干滩"穷举证的判据面，
+     * 本条在基线树必红 = 负对照）；b1 后干滩环湖常在（0~17 格噪声腿 ∩ h=69 环带）。</li>
+     * <li><b>P26-2 岛缘 8 向 CV（只报读数）</b>：逐湖岛缘半径（lakeIslandTopAt 非 NaN 的最远列距，
+     * 8 向）的 CV = std/mean——I1'（kAbs dC 乘性噪声 0.13/λ90）前 = warp 搬运下的近圆参考；
+     * I1' 后周向起伏抬升。本批先报后钉（无带）。</li>
+     * </ul>
+     */
+    static void groupP26(List<Lake> lakes) {
+        // ── P26-1：逐湖 sanzu 干滩列（h==SEA+DRY_RISE ∧ isSanzuColumn）──
+        final List<Integer> dryCounts = new ArrayList<Integer>();
+        int fine = 0;
+        int withDry = 0;
+        for (final Lake lk : lakes) {
+            if (!lk.fine) {
+                continue;
+            }
+            fine++;
+            int rMax = 0;
+            for (int d = 0; d < 8; d++) {
+                rMax = Math.max(rMax, (int) lk.rayBiomeShoreRadius[d]);
+            }
+            final int w = Math.min(FINE_WINDOW_MAX, rMax + 20);
+            int dry = 0;
+            for (int z = lk.cz - w; z <= lk.cz + w; z += 2) {
+                for (int x = lk.cx - w; x <= lk.cx + w; x += 2) {
+                    if (ProsperityTerrainProfile.heightAt(lk.seed, x, z) != SEA + DRY_RISE) {
+                        continue; // 干滩列的 h 快筛（heightAt 列级 memo，非干滩列零谓词成本）
+                    }
+                    if (GTSRVoronoiRiverField.isSanzuColumn(lk.seed, x, z)) {
+                        dry++;
+                    }
+                }
+            }
+            dryCounts.add(Integer.valueOf(dry));
+            if (dry > 0) {
+                withDry++;
+            }
+        }
+        final double[] drys = new double[dryCounts.size()];
+        for (int i = 0; i < drys.length; i++) {
+            drys[i] = dryCounts.get(i).intValue();
+        }
+        final double dryShare = fine == 0 ? -1.0D : withDry / (double) fine;
+        say("P26-READ 干滩列（逐湖 h==SEA+" + DRY_RISE + " ∧ isSanzuColumn，滩缘外扩 20 格窗步距 2 采样）："
+            + "n=" + fine + " >0 干滩湖 " + withDry + " = " + pct(dryShare) + "，逐湖列数中位 "
+            + f3(drys.length == 0 ? -1.0D : median(drys)) + " p10 "
+            + f3(drys.length == 0 ? -1.0D : pctl(drys, 0.10D)) + " p90 "
+            + f3(drys.length == 0 ? -1.0D : pctl(drys, 0.90D))
+            + "（b1 前干滩列恒 0——本读数在基线树必为 0/0 = 负对照锚）");
+        check("P26-1 干滩缓解（D2·b1 滩缘腿行为证）：「sanzu 干滩列 >0」湖占比 ≥ 0.80"
+            + "（b1 前恒 0 = 负对照锚；带 = 缩样实测 1.000 − 0.20 容差钉：h=69 环带随噪声腿逐湖"
+            + "必有落区，0.20 容差吸收个别「噪声腿趋 0 + 侵蚀缘吃尽」的湖；0.80 下界同时钉住"
+            + "「RISE 退 0」回退态必红）",
+            fine >= 20 && dryShare >= 0.80D,
+            "占比=" + pct(dryShare) + " n=" + fine + " 中位列数=" + f3(drys.length == 0 ? -1.0D : median(drys)));
+        // ── P26-2：岛缘 8 向 CV（I1' 前后对照读数，只报不钉）──
+        final List<Double> cvs = new ArrayList<Double>();
+        for (final Lake lk : lakes) {
+            if (!lk.fine) {
+                continue;
+            }
+            final double[] rr = new double[8];
+            boolean any = false;
+            for (int d = 0; d < 8; d++) {
+                final double ang = d * Math.PI / 4.0D;
+                final double dx = Math.cos(ang);
+                final double dz = Math.sin(ang);
+                int r = 0;
+                for (int s = 0; s <= 140; s++) {
+                    final int x = lk.cx + (int) Math.round(dx * s);
+                    final int z = lk.cz + (int) Math.round(dz * s);
+                    final double top = GTSRVoronoiRiverField
+                        .lakeIslandTopAt(lk.seed, x, z, GTSRVoronoiRiverField.lakeAt(lk.seed, x, z));
+                    if (!Double.isNaN(top)) {
+                        r = s;
+                    }
+                }
+                rr[d] = r;
+                if (r > 0) {
+                    any = true;
+                }
+            }
+            if (!any) {
+                continue; // 湖心被裁/无岛穹的湖（C1b min=0 同族）不入 CV 分母
+            }
+            final double m = mean(rr, 8);
+            if (m <= 0.0D) {
+                continue;
+            }
+            double var = 0.0D;
+            for (int d = 0; d < 8; d++) {
+                var += (rr[d] - m) * (rr[d] - m);
+            }
+            cvs.add(Double.valueOf(Math.sqrt(var / 8.0D) / m));
+        }
+        final double[] cva = new double[cvs.size()];
+        for (int i = 0; i < cva.length; i++) {
+            cva[i] = cvs.get(i).doubleValue();
+        }
+        say("P26-READ 岛缘 8 向 CV（lakeIslandTopAt 非 NaN 最远列距；I1' 效果读数，先报后钉）：n="
+            + cva.length + " 中位 " + f3(cva.length == 0 ? -1.0D : median(cva)) + " p10 "
+            + f3(cva.length == 0 ? -1.0D : pctl(cva, 0.10D)) + " p90 "
+            + f3(cva.length == 0 ? -1.0D : pctl(cva, 0.90D)) + "（纯圆 = 0；warp 搬运下近圆）");
     }
 
     // ══════════════════════════ A 组：§15.4 湖岸衔接 ══════════════════════════
@@ -2147,6 +2267,8 @@ public final class SanzuLakeMorphologyCheck {
             int mism = 0;
             // P22 A2b（G3）新增：非湿带列被外檐加铺"既有湿料"的列数（羽化的机检形态，见 L1 新口径）
             int halo = 0;
+            // P26-B3（D3）新增：非湿带列被干滩档改派硅砂的列数（c3 干滩料 + d2 陆侧羽化的机检形态）
+            int drySand = 0;
             for (int lz = 0; lz < 16; lz++) {
                 for (int lx = 0; lx < 16; lx++) {
                     final int x = baseX + lx;
@@ -2168,6 +2290,9 @@ public final class SanzuLakeMorphologyCheck {
                             identical++;
                         } else if (got == BlocksGTSR.prosperityRiverGravel) {
                             halo++; // 改派仅可为既有湿料（单一真值的羽化口径）
+                        } else if (got == BlocksGTSR.prosperitySilicaSand) {
+                            drySand++; // 干滩档（P26-B3）：合法第二改派料（非 top 名册、已注册，
+                            // 「砾当 top」同性质先例；只在 h>SEA 的陆侧出窗 ≤10 格当量域可达）
                         } else {
                             mism++; // 第三料 = 真正的"第二真值"，必 0
                         }
@@ -2177,15 +2302,21 @@ public final class SanzuLakeMorphologyCheck {
             final String note = "chunk(" + baseX + "," + baseZ + ") S1 blended="
                 + (blended == null ? "null(退回 topBlock)" : blended.getClass().getSimpleName())
                 + "；湿带列=" + wet + "，表层 = prosperityRiverGravel 的 " + wetAsGravel
-                + "；域外列=" + outside + "，逐字退回 " + identical + "，羽化檐(=砾) " + halo + "，第三料 " + mism;
+                + "；域外列=" + outside + "，逐字退回 " + identical + "，羽化檐(=砾) " + halo
+                + "，干滩档(=硅砂) " + drySand + "，第三料 " + mism;
             // 旧口径原文（P20 §15.4，v1.20.41）：「包装层在非湿带列必须逐字退回 S1 的答案」
             // （outside > 0 && mism == 0）。P22 A2b（G3 湿带外缘羽化）把"逐字退回"放宽为
-            // "退回，或仅加铺既有湿料 prosperityRiverGravel"——"不得新立第二真值"的语义不变：
-            // 第三料 mism 仍必 0，且改派料=湿带本体（无新方块、无新皮肤选择逻辑）；
-            // 反假绿：本 chunk 是含大量湿带的羽化中心窗，halo 必须 >0（檐未生效即红）。
-            check("L1 §15.4+P22G3 湿带复用 S1 表层钩子：非湿带列要么逐字退回 S1（GTSRSurfaceBorderBand），"
-                + "要么差异列 top==prosperityRiverGravel（羽化檐只加铺既有湿料，禁第三料），"
-                + "且本湿带中心窗羽化必须可见", outside > 0 && mism == 0 && halo > 0, note);
+            // "退回，或仅加铺既有湿料 prosperityRiverGravel"；P26-B3（D3·c3/d2）再纳
+            // prosperitySilicaSand 为合法第二改派料（干滩环+陆侧羽化，P22 A2b G3 放宽先例同款
+            // 操作）——"不得新立第二真值"的语义不变：第三料 mism 仍必 0，两改派料均为同维
+            // 已注册非 top 名册块、无新皮肤选择逻辑。
+            // 反假绿（P26-B3 重钉）：本 chunk 是湿带中心窗，非湿带列 <b>结构性全落干滩档</b>
+            //（h=69 干滩核心列，干滩档先于砾檐裁定 ⇒ 砾檐在本窗恒 0——P26-B3 前该窗 117/117
+            // 全砾檐、后 120/120 全硅砂）⇒ 可见性钉从「halo>0」改「drySand>0」；湿料侧的
+            // 可见性由 L2（湿核全砾）钉住。
+            check("L1 §15.4+P22G3+P26B3 湿带复用 S1 表层钩子：非湿带列要么逐字退回 S1（GTSRSurfaceBorderBand），"
+                + "要么差异列 top ∈ {prosperityRiverGravel（羽化檐）, prosperitySilicaSand（干滩档）}"
+                + "（禁第三料），且本湿带中心窗干滩改派必须可见", outside > 0 && mism == 0 && drySand > 0, note);
             check("L2 §15.4 湿带确实改派同维名册内的湿料 prosperityRiverGravel（H-4 零新方块）：本 chunk 湿带列全中",
                 wet > 0 && wetAsGravel == wet, note);
             say("L-READ 装配态说明：离线 JVM 的 SurfaceHarness def <b>未过 DimensionRegistrar</b>"
@@ -2222,10 +2353,13 @@ public final class SanzuLakeMorphologyCheck {
         final int implHook = count(code, "implementsGTSRChunkProviderBase.SurfaceTopSelector");
         final int wetGate = count(code, "GTSRVoronoiRiverField.lakeWetBandAt(");
         final int wetBlock = count(code, "BlocksGTSR.prosperityRiverGravel");
+        final int dryGate = count(code, "dryBeachSandAt(seed,x,z)");
+        final int dryBlock = count(code, "BlocksGTSR.prosperitySilicaSand");
         final int newSel = count(code, "newLakeWetBandTopSelector(");
         final int topBlockFallback = count(code, "biome.topBlock");
         say("L4-READ 源级（剥注释后计数）：调 S1 forChunk=" + callS1 + " implements SurfaceTopSelector="
             + implHook + " lakeWetBandAt 门=" + wetGate + " prosperityRiverGravel=" + wetBlock
+            + " dryBeachSandAt 门调用=" + dryGate + " prosperitySilicaSand=" + dryBlock
             + " new 选择器=" + newSel + " biome.topBlock 直取=" + topBlockFallback);
         check("L4 §15.4：湿带选择器必须 ①implements S1 的 SurfaceTopSelector 接口 ②第一动作委托"
             + " GTSRSurfaceBorderBand.forChunk ③域门只吃 lakeWetBandAt ④挂载点恰 1 处 new"
@@ -2238,6 +2372,11 @@ public final class SanzuLakeMorphologyCheck {
             + "且 biome.topBlock 直取仅出现在 blended==null 的退回分支（≤1 处）",
             wetBlock == 1 && topBlockFallback <= 1,
             "riverGravel=" + wetBlock + " biome.topBlock=" + topBlockFallback);
+        // P26-B3（D3）追加：干滩档（c3+d2）的源级钉——绑定恰 1 处、裁定恰 1 处、且只挂在既有的
+        // 同一选择器内（无第二选择器实例；上面 new==1 已钉）。防"硅砂档复制一份湿带判定另立真值"。
+        check("L4c P26-B3 干滩档源级：dryBeachSandAt 绑定 prosperitySilicaSand 恰 1 处、topAt 裁定恰 1 处"
+            + "（干滩料=同选择器内第二改派档，非第二份混合带实现）",
+            dryBlock == 1 && dryGate == 1, "silicaSand=" + dryBlock + " dryBeachSandAt 裁定=" + dryGate);
     }
 
     static String stripComments(String src) {

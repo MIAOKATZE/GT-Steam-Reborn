@@ -39,8 +39,9 @@ import com.miaokatze.gtsr.common.dimension.prosperity.river.GTSRVoronoiRiverFiel
  * {@code max(0, L−r)}</b>（逐格递减 1，torch 族同式）对三档距离出读：r=1 ≥13 / r=7 ≥7 /
  * r=15 ==0。L 从实例读出（不自造第二份注册事实），衰减式是判据侧自立的几何复刻。
  *
- * <p>═══ C 9-chunk 并集同形 ═══ 对每座锚点：参照臂 = {@code canopyLightsAt} 纯函数光位集（无 sink、
- * 无世界）；重放臂 = 9 个邻 chunk 各自 {@code placeCanopyPass}（各自枚举锚点、各自 ChunkSliceSink）。
+ * <p>═══ C 全窗并集同形 ═══ 对每座锚点：参照臂 = {@code canopyLightsAt} 纯函数光位集（无 sink、
+ * 无世界）；重放臂 = 派生窗（windowChunks=17×17）内各 chunk 各自 {@code placeCanopyPass}（各自枚举
+ * 锚点、各自 ChunkSliceSink）。
  * 断言：并集 == 参照集逐格（缺角即红——窗枚举/去重任何一处漏一个 chunk 就对不上）、写格数和 ==
  * 并集数（单射无重复写）、每片只含本 chunk owns 的格。照 S3 MegaTreeCheck D 组范式。
  *
@@ -72,16 +73,20 @@ public final class LumenLightCheck {
     static final String DECOR_SRC =
         "src/main/java/com/miaokatze/gtsr/common/dimension/prosperity/ruins/ProsperityDecorPlacer.java";
 
-    /** 冠下光位 y 下界（y0≥71 + 干高≥66 − 冠回撤10 − 竖半高18 − 1 ⇒ ≥108；D 组门带取 100 留余量）。 */
+    /**
+     * 冠下光位 y 下界（P26-B5 复核钉）：冠形态最低格 = 垂帘底，形态级硬钳 DROOP_MIN_TIP_Y=102
+     * （IslandMegaTree.droopCurtains）⇒ 光位 = 帘底−1 ≥ 101（30 湖实测最低 123）；D 组门带取
+     * 100 留余量——垂帘若跌破 102 本常量即最后一道红线。
+     */
     static final int CANOPY_LIGHT_Y_FLOOR = 100;
 
     /**
-     * A 组冠下带（每 chunk 冠下光源均值，P23 R1·S6 分立断言重钉）：CANOPY_LIGHT_DENOM=533
-     * （半径 50 档保旧面密度）⇒ 单树期望 ≈15 枚，footprint 集中在窗心 7×7、摊到
-     * windowChunks(50)=13 方窗 ⇒ 全窗每 chunk 均值实测 0.072（146/2028，见 A-READ）。
-     * 带 [0.05,1.5]：下界防零写入假绿（实测 +44% 余量），上界防密度旋钮被调爆（denom 减半即越界）。
+     * A 组冠下带（每 chunk 冠下光源均值，P26-B5 垂帘擎天放大档分立断言重钉）：CANOPY_LIGHT_DENOM=622
+     * （候选列实测 ≈9877——π(r²+r) 13069 经带厚空腔+缺角剪形后的实集 ⇒ 单树期望 ≈16 枚）⇒
+     * 摊到 windowChunks(64)=17 方窗 289 chunk ⇒ 全窗每 chunk 均值实测 0.059（203/3468，见 A-READ）。
+     * 带 [0.04,1.5]：下界防零写入假绿（实测 +47% 余量），上界防密度旋钮被调爆（denom 减半即越界）。
      */
-    static final double CANOPY_MEAN_FLOOR = 0.05D;
+    static final double CANOPY_MEAN_FLOOR = 0.04D;
     static final double CANOPY_MEAN_CEIL = 1.5D;
 
     /**
@@ -90,8 +95,8 @@ public final class LumenLightCheck {
      * A-READ）。带 [0.4,2.5]：下界防湖趟零写入，上界防 denom 被改小爆密度。
      * <p>
      * <b>倒挂处置</b>：旧「湖上严格稀于冠下（lakeMean&lt;canopyMean ∧ ≤0.8×）」自 S3 冠半径 50 +
-     * 湖半径 200 后结构性倒挂（实测 湖上 1.313 vs 冠下 0.072/chunk、比值 18.2——两趟密度常量独立、采样域不同
-     * （湖趟按水列、冠趟按冠 footprint 列），跨比值不再有设计含义，本片改分立断言（各钉各带），
+     * 湖半径 200 后结构性倒挂（P26-B5 放大档实测 湖上 0.966 vs 冠下 0.059/chunk——两趟密度常量独立、
+     * 采样域不同（湖趟按水列、冠趟按冠 footprint 列），跨比值不再有设计含义，本片改分立断言（各钉各带），
      * 比值降为 READ。生产侧 LAKE_LIGHT_DENOM 的后续调档属主代理旋钮（本片只重钉判据）。
      */
     static final double LAKE_MEAN_FLOOR = 0.4D;
@@ -303,9 +308,9 @@ public final class LumenLightCheck {
             return;
         }
         final World air = GateWorld.make();
-        // P23 R1·S6 采样窗（派生式）：冠下趟 = windowChunks(CANOPY_RADIUS)=13 方窗（单树冠跨窗，
-        // 旧 ±1 的 3×3 是半径 15 档口径）；湖上趟 = 窗外沿水环（cheb == 半窗——岛干半径 ~40 格
-        // 占满 cheb≤2 的 5×5，外沿一圈 24 chunk 全是水域）。锚点本身在窗心。
+        // P26-B5 采样窗（派生式）：冠下趟 = windowChunks(CANOPY_RADIUS)=17 方窗（单树冠跨窗，
+        // 旧 13 是半径 50 档口径）；湖上趟 = 窗外沿水环（cheb == 半窗——岛干半径 ~46 格
+        // 占满 cheb≤4 的 9×9，外沿一圈 64 chunk 全是水域）。锚点本身在窗心。
         final int halfSpan = (com.miaokatze.gtsr.common.dimension.prosperity.ruins.MegaTreeAnchors
             .windowChunks(com.miaokatze.gtsr.common.dimension.prosperity.ruins.MegaTreeAnchors.CANOPY_RADIUS) - 1) >> 1;
         long canopyTotal = 0;

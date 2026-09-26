@@ -8,7 +8,7 @@ import com.miaokatze.gtsr.common.dimension.prosperity.river.GTSRVoronoiRiverFiel
  * 回答"世界列 (x,z) 属于哪座活湖 ⇒ 岛心锚点在哪、树基 y0 是多少"，<b>零 World 读</b>
  * （三腿全部走 {@link GTSRVoronoiRiverField} 与 {@link ProsperityTerrainProfile} 的公开纯函数）。
  * <p>
- * <b>为什么锚点必须是纯函数</b>：单树冠幅 101 ⇒ 至多跨 8×8 = 64 chunk ⇒ 任何一个被跨的 chunk
+ * <b>为什么锚点必须是纯函数</b>：单树冠幅 129 ⇒ 至多跨 9×9 = 81 chunk ⇒ 任何一个被跨的 chunk
  * 在自己的 populate 趟里<b>独立重算</b>同一棵树、只写自己 owns 的那一片（{@code ChunkSliceSink}
  * 单射，先例 {@code RuinedMachinePlacer.renderForeignSpans}）。锚点若掺任何 World 读
  * （表面扫描/占位检测），不同 chunk 装饰时点不同就会各得各的锚 ⇒ 同一棵树在不同 chunk 里
@@ -31,8 +31,12 @@ import com.miaokatze.gtsr.common.dimension.prosperity.river.GTSRVoronoiRiverFiel
  */
 public final class MegaTreeAnchors {
 
-    /** 冠半径（直径 100 硬值的半边；巨树形态常量归锚点侧，{@code IslandMegaTree} 只消费）。 */
-    public static final int CANOPY_RADIUS = 50;
+    /**
+     * 冠半径（P26-B5「垂帘擎天」放大档 r56→r64；巨树形态常量归锚点侧，{@code IslandMegaTree} 只消费）。
+     * footprint = max(冠 64, 枝系绿端 61) ⇒ {@link #windowChunks}(64) = 17、
+     * {@code IslandMegaTree.CROWN_QUERY_SIDE} = 129、单树跨 ≤ 9×9 = 81 chunk，全部派生自动跟随。
+     */
+    public static final int CANOPY_RADIUS = 64;
 
     /** anchorAt 输出缓冲长度：[0]=ax、[1]=az、[2]=gx、[3]=gz、[4]=y0。 */
     public static final int ANCHOR_OUT_LEN = 5;
@@ -40,7 +44,7 @@ public final class MegaTreeAnchors {
     /** 枚举采样步长：任意列到最近采样列 ≤ 4 格，warp 场波长 ≈700（主）/340（副 P25）⇒ 采样列与岛心同格（见类注释采样论证）。public = 判据镜像同一网格。 */
     public static final int ENUM_STEP = 8;
 
-    /** 单 chunk 窗内可能相交的锚点数上限：湖格间隔 {@code LAKE_INTERVAL}=3000（P25 D1 1200→3000）≫ 窗宽 208（r=50 派生），>1 已不可能，留 4 防御。 */
+    /** 单 chunk 窗内可能相交的锚点数上限：湖格间隔 {@code LAKE_INTERVAL}=3000（P25 D1 1200→3000）≫ 窗宽 272（r=64 派生），>1 已不可能，留 4 防御。 */
     static final int ENUM_CAP = 4;
 
     private MegaTreeAnchors() {}
@@ -48,10 +52,10 @@ public final class MegaTreeAnchors {
     /**
      * 跨 chunk 枚举窗边长（chunk 数，恒奇数）：派生式 {@code 2*ceil((2*radius+1)/16)-1}——
      * 锚点列距本 chunk 任一列 ≤ radius ⇒ 落在以本 chunk 为心的 (2h+1)² 窗内（h = 派生半窗）。
-     * radius=50 ⇒ 13；<b>禁写死 13</b>：换冠幅档时窗口自动跟随（判据 B 组按公式对拍 + 逐半径穷举钉）。
+     * radius=64 ⇒ 17；<b>禁写死 17</b>：换冠幅档时窗口自动跟随（判据 B 组按公式对拍 + 逐半径穷举钉）。
      * <b>前提（S3 偏离 1 申报，MegaTreeCheck B 组容差腿覆盖）</b>：本公式对 r≤7 的档几何不足
      * （窗宽 < 2r+1 的穷举覆盖），完备性由采样容差腿（B 组 r=4 实测 gap=12、drift=40.3<180）
-     * 保证；本类唯一消费档 r=50 时窗宽 208 ≥ 2r+1=101，窗与穷举等价。
+     * 保证；本类唯一消费档 r=64 时窗宽 272 ≥ 2r+1=129，窗与穷举等价。
      */
     public static int windowChunks(int radius) {
         return 2 * ((2 * radius + 1 + 15) / 16) - 1;

@@ -41,8 +41,11 @@ public class CityDeterminismCheck {
                         fail("describe bytes differ cell=" + cellX + "," + cellZ + " seed=" + seed);
                     }
                     // —— 窗口判定双跑（3×3 cell 检索入口）——
-                    for (int cx = cellX * 24 - 2; cx <= cellX * 24 + 26; cx += 7) {
-                        for (int cz = cellZ * 24 - 2; cz <= cellZ * 24 + 26; cz += 7) {
+                    // v1.20.49 D8：采样窗由 CITY_CELL 派生（原 24 时代字面 -2..+26 = cell 边界 ±2 越界裕量）。
+                    final int cellBaseX = cellX * CityPlanner.CITY_CELL;
+                    final int cellBaseZ = cellZ * CityPlanner.CITY_CELL;
+                    for (int cx = cellBaseX - 2; cx <= cellBaseX + CityPlanner.CITY_CELL + 2; cx += 7) {
+                        for (int cz = cellBaseZ - 2; cz <= cellBaseZ + CityPlanner.CITY_CELL + 2; cz += 7) {
                             final CityPlan[] n1 = CityPlanner.citiesNear(seed, cx, cz);
                             final CityPlan[] n2 = CityPlanner.citiesNear(seed, cx, cz);
                             if (n1.length != n2.length) {

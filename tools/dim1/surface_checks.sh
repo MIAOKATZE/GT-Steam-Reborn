@@ -624,9 +624,12 @@ code=$?; tail -2 "$OUT/SanzuLakeMorphologyCheck.out" | cut -c1-170; echo "   EXI
 # ——双盘 warp/湖压噪声/strengthAt 湖让位腿/swampLakeAt0 让位腿——进新 BASE；门 = 210.0×1.45 =
 # 304.5µs，系数沿 1.45 不动。另 P25 起 GenBench 内嵌 CHANNEL-READ 群系指派通道成本读数
 # （D2 推翻条件输入：侵蚀臂涨幅>10% ⇒ 回报主代理裁决 R=1）。
+# <b>P26 重立（三跑中位）：210.0 → 154.5</b>（154.3/160.2/154.5 的中位，v1.20.49 五片终树
+# 串行空载，temp/p26-b6/GenBenchCheck-run{1,2,3}.out；−26.4% vs P25 BASE——P25 期读数含更高
+# 背景负载底噪；门 = 154.5×1.45 = 224.0µs，系数沿 1.45 不动，比旧门 304.5 更紧=收紧非放宽）。
 # per-chunk 中位数超门即红（劣化>45% 对赌门）。判据内置账本装配（生产形状）与串行纪律——
 # v1.20.38 实测与本 harness 并发跑会失真，本脚本顺序执行各步即满足，勿与其他判据并行。
-echo "== [3u8] dim78 地形填充段性能基准（GenBenchCheck：串行 + 有账本 + per-chunk 中位对 304.5µs 门[P25 重立 210.0 三跑中位] + CHANNEL-READ 群系指派通道成本） =="
+echo "== [3u8] dim78 地形填充段性能基准（GenBenchCheck：串行 + 有账本 + per-chunk 中位对 224.0µs 门[P26 重立 154.5 三跑中位] + CHANNEL-READ 群系指派通道成本） =="
 MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8   -cp "$OUT/classes;$CP" -sourcepath "src/main/java;tools/dim1" -d "$OUT/tools"   tools/dim1/GenBenchCheck.java >"$OUT/javac-u8bench.log" 2>&1
 echo "COMPILE GenBenchCheck EXIT=$? ($(grep -ac 'error:' "$OUT/javac-u8bench.log") error)"
 MSYS2_ARG_CONV_EXCL='*' java $STD $LOG4J -Xmx2g -cp "$OUT/tools;$OUT/classes;$CP" GenBenchCheck   >"$OUT/GenBenchCheck.out" 2>&1

@@ -14,6 +14,15 @@ import com.miaokatze.gtsr.common.dimension.framework.structure.GTSRWorldgenHash;
  * <b>三档水体分支的下挖 delta</b> + 泥丘 + 炭屑滩（ATG swamp 模板）、锈蚀草原轻微丘陵与<b>低地</b>、
  * 遗忘之川微起伏（同场降档）。
  * <p>
+ * <b>v1.20.49 P26-B4（需求 5 四群系分支地形放大档）新增四门一脊</b>：森林 λ433 延绵脊
+ * （{@link #FOREST_SPINE_AMP}，域门复用山地门 λ512）、荒漠 λ281 沙海域（主波/增益/QUAD/warp 域内
+ * 增强 + 域内与风蚀山体互斥）、草原 λ167 小盆地（负瓣封闭碗形 + 域内钳低地）、λ193 灌木林域
+ * （{@link #shrubWoodlandAt}，decorate 侧、不进高度链）；深水潭 λ71 升级、泥炭丘 λ173、巨柱窄带
+ * 座台分档。全部新门面域外逐位 0（各增量项在门值 0 处 IEEE 精确退化为旧常量）；三重封顶解封
+ * （DELTA_CAP 32→96 / HEIGHT_SENTINEL 108→172 / Profile 钳 110→180）只动顶部路径——
+ * 均匀区（新门全关 ∧ |delta| ≤ 22 ∧ 高度 ≤ 100）经 digest 对拍证明与改造前逐位相同
+ * （{@code plan/tmp/p26-b4-readings.md}）。
+ * <p>
  * <b>契约（v1.20.41 P20 §13 C7 改写）</b>：本类<b>只做地形——含沼泽深水池的下挖 delta 与夹持目标的
  * 抬升——一律不置水</b>；水体列的<b>回填门在 populate 侧</b>（{@code ChunkProviderProsperityRuins}
  * 的沼泽微池/巨湖回填，P20 归 S6），两侧共用本类的 {@link #swampTierAt} 作为<b>唯一分档真值</b>
@@ -234,8 +243,14 @@ public final class TerrainVariants {
      * {@code plan/tmp/p20-s4/RECONCILE-SUM.md} 第 3 条）。
      */
     private static final double HILL_AMP_FOREST = 20.0D;
-    /** 草原轻微丘陵幅度（门全开 ×形状 ⇒ +2..+6 常态带）。 */
-    private static final double HILL_AMP_STEPPE = 10.0D;
+    /**
+     * 草原轻微丘陵幅度（门全开 ×形状 ⇒ +2..+6 常态带）。
+     * <p>
+     * <b>v1.20.49 P26-B4 ⑩：10.0 → 14.0</b>（需求 5 平原"小小山丘"放大档 ⇒ +4..+8）。沙/原 sd 比探针
+     * 复跑后仍须 ∈ [1.10,1.45]（R9：跌破 1.10 ⇒ 本值退 12）；批内读数与沙海域对冲结论见
+     * {@code plan/tmp/p26-b4-readings.md}。
+     */
+    private static final double HILL_AMP_STEPPE = 14.0D;
 
     // —— 山地变体（ATG plateau 模板，仅森林）——
     /** 山地门噪声域盐（波长 512，稀有低频门）。 */
@@ -275,6 +290,30 @@ public final class TerrainVariants {
      * 不启用</b>：全部 rung 高度域上沿已 = 108 哨兵（顶部路径被哨兵吃死，与 P20 §21-B ② 同判）。
      */
     private static final double RIDGE_AMP = 18.0D;
+
+    // —— 延绵山脉脊（v1.20.49 P26-B4 ② 新增，仅森林；D7' 破顶放大档的"延绵"主形态）——
+    /**
+     * 延绵脊场域盐（波长 {@link #FOREST_SPINE_SCALE}=433；433 % 16 = 1 ✔ H-1）。盐值续
+     * {@code 0x6811C2B1} 起的 ×0x12 等差族尾追加（上一已用 = 谷地场 {@code 0x6811C377}，+0x12 ⇒ 本值），
+     * 不与既有任何域盐重合。
+     */
+    private static final long S_FOREST_SPINE = 0x6811C389L;
+    /**
+     * 脊场波长（433 半波 ~216 格 = 脊线沿 |rn|≈0 等值线连续延伸 200-400 格的"延绵"量级来源）。
+     * 域门复用山地门 {@link #mtnGateNoise}（λ512，森林列已求值 ⇒ 零加费），带 [0.24,0.60] 不变。
+     */
+    private static final double FOREST_SPINE_SCALE = 433.0D;
+    /** 脊形门下檐（作用于 ridged 形状 {@code 1−|sn|}：满门 |sn| ≤ 0.20、缓入到 |sn| ≤ 0.42）。 */
+    private static final double FOREST_SPINE_GATE_LO = 0.58D;
+    /** 脊形门带宽。 */
+    private static final double FOREST_SPINE_GATE_SPAN = 0.22D;
+    /**
+     * 脊峰幅度（D7' 放大档：脊峰目标 150~165 ⇒ 本值由缩样读数推导钉死——缩样实测脊峰落 150~165
+     * 带内、森林 ≥150 占比见 {@code plan/tmp/p26-b4-readings.md}；R8：CLAMP 计数超带 ⇒ 降 delta）。
+     * {@link #HEIGHT_SENTINEL}=172（k=4 ⇒ ≤168 逐位不动带）与 {@link #DELTA_CAP}=96
+     * 联合给脊峰上界（h0 + 96 后再过哨兵渐近 172 ⇒ 恒 &lt; 180 钳制线）。
+     */
+    private static final double FOREST_SPINE_AMP = 52.0D;
 
     // —— 森林谷地负瓣（v1.20.42 P22 A4 新增，仅森林；"山脉丘陵状"的下侧形态）——
     /**
@@ -326,6 +365,24 @@ public final class TerrainVariants {
     /** 垄脊线性项（保典型列垄高进入 +2..+4 可见带——纯二次会被三角边际压扁）。 */
     private static final double DUNE_RIDGE_LIN = 1.8D;
 
+    // —— 沙海域（v1.20.49 P26-B4 ⑤ 新增，roster 2"巨大沙丘"的域门族；域外 duneGate==0 ⇒ 各增量逐位 0）——
+    /**
+     * 沙海域域门场盐（波长 {@link #DUNE_SEA_SCALE}=281；281 % 16 = 9 ✔ H-1）。盐续 ×0x12 等差族
+     * （延绵脊 {@code 0x6811C389} 之后 +0x12 ⇒ 本值）。
+     */
+    private static final long S_DUNE_SEA = 0x6811C39BL;
+    /** 沙海域域门波长（域径 ~100-200 格）。 */
+    private static final double DUNE_SEA_SCALE = 281.0D;
+    /** 域门下檐/带宽（{@code s01((n−0.46)/0.22)} ⇒ 覆盖 ~15% 荒漠列）。 */
+    private static final double DUNE_SEA_GATE_LO = 0.46D;
+    private static final double DUNE_SEA_GATE_SPAN = 0.22D;
+    /** 域内主波增益增量（2.6 + 4.4·gate ⇒ 域心 7.0，垄峰 +12..+26"丘高 15-30"）。 */
+    private static final double DUNE_SEA_GAIN_BOOST = 4.4D;
+    /** 域内垄脊二次项增量（3.0 + 3.0·gate ⇒ 迎缓背陡对比拉大；R10 触上界 ⇒ 减半）。 */
+    private static final double DUNE_SEA_QUAD_BOOST = 3.0D;
+    /** 域内 x 向 domain-warp 增量（6 + 4·gate ⇒ 丘链沿 z 延伸成链）。 */
+    private static final double DUNE_SEA_WARP_BOOST = 4.0D;
+
     // —— 风蚀山体 + 风蚀柱座台（v1.20.41 P20 S4 新增，roster 2；RTG terrainBryce 倒数式范式）——
     /** 风蚀四层 λ13 域盐（最高频层，柱身"细而陡"的来源；13 % 16 = 13 ✔）。 */
     private static final long S_BRYCE_0 = 0x6811C2C3L;
@@ -368,6 +425,15 @@ public final class TerrainVariants {
     private static final double BRYCE_GATE_SPAN = 0.20D;
     /** 风蚀柱座台幅度（需求 5 的地形侧项；柱身 feature 归 populate 侧 S6，其落点走 {@link #windSpineSiteAt}）。 */
     private static final double SPINE_PEDESTAL = 1.5D;
+    /**
+     * 巨柱窄带门下檐/带宽（v1.20.49 P26-B4 ④：作用于 {@link #windSpineSiteAt} 同场门值——
+     * site ≥ 0.88 ⇔ n₅₃ ≥ ~0.90 的更窄档，与 populate 侧巨柱落点<b>同一份场</b> ⇒ 零第二真值；
+     * 满门 site=1.0 ⇒ 座台 1.5×(1+1.0) = 3.0）。
+     */
+    private static final double SPINE_PEDESTAL_GIANT_GATE_LO = 0.88D;
+    private static final double SPINE_PEDESTAL_GIANT_GATE_SPAN = 0.12D;
+    /** 巨柱窄带的座台抬升增量（+1.5·site → 域心 +3.0·site）。 */
+    private static final double SPINE_PEDESTAL_GIANT_BOOST = 1.0D;
     /** 座台/落点场门下檐（λ53 层有符号值；0.82 给 ≈0.5–1% 列覆盖，与 1/12 chunk 的柱密度同量级）。 */
     private static final double SPINE_GATE_LO = 0.82D;
     /** 座台门带宽。 */
@@ -389,6 +455,18 @@ public final class TerrainVariants {
     private static final double SHRUB_CLUSTER_GATE_LO = 0.55D;
     private static final double SHRUB_CLUSTER_GATE_SPAN = 0.18D;
 
+    // —— 灌木林域（v1.20.49 P26-B4 ⑫ 新增；decorate 侧加密的只读域门，不进高度链）——
+    /**
+     * 灌木林域场盐（波长 {@link #SHRUB_WOODLAND_SCALE}=193；193 % 16 = 1 ✔ H-1）。盐续 ×0x12 等差族
+     * （草原小盆地 {@code 0x6811C3AD} 之后 +0x12 ⇒ 本值）。
+     */
+    private static final long S_SHRUB_WOODLAND = 0x6811C3BFL;
+    /** 灌木林域波长（域直径 ~50-100 格）。 */
+    private static final double SHRUB_WOODLAND_SCALE = 193.0D;
+    /** 域门下檐/带宽（{@code s01((n−0.50)/0.18)} ⇒ 覆盖 ~8-12% 草原列）。 */
+    private static final double SHRUB_WOODLAND_GATE_LO = 0.50D;
+    private static final double SHRUB_WOODLAND_GATE_SPAN = 0.18D;
+
     // —— 草原低地（v1.20.41 P20 S4 新增，roster 0）——
     /** 低地场域盐（波长 {@link #STEPPE_LOW_SCALE}=93）。 */
     private static final long S_STEPPE_LOW = 0x6811C30BL;
@@ -402,6 +480,32 @@ public final class TerrainVariants {
     private static final double STEPPE_LOW_BASE = 3.0D;
     /** 低地按形状加深的第二档（同一列最深 −6）。 */
     private static final double STEPPE_LOW_SPAN = 3.0D;
+
+    // —— 草原小盆地（v1.20.49 P26-B4 ⑪ 新增；λ167 负瓣封闭碗形，第一版不集水）——
+    /**
+     * 盆地场域盐（波长 {@link #STEPPE_BASIN_SCALE}=167；167 % 16 = 7 ✔ H-1）。盐续 ×0x12 等差族
+     * （沙海域 {@code 0x6811C39B} 之后 +0x12 ⇒ 本值）。
+     */
+    private static final long S_STEPPE_BASIN = 0x6811C3ADL;
+    /**
+     * 盆地场波长（负瓣等值线天然闭合 ⇒ λ167 blob 直径 ~40-70 格的封闭碗形）。量级取在低地场 93 与
+     * 丘陵门 320 之间——盆地要比低地更宽（碗形）但比丘陵区更稀有。
+     */
+    private static final double STEPPE_BASIN_SCALE = 167.0D;
+    /**
+     * 盆地负瓣门下檐（{@code s01((−n−0.55)/0.25)}：满门 n ≤ −0.80、缓入到 n ≤ −0.55）。
+     * <b>P26-B4 批内校准：0.55/0.25 → 0.60/0.22</b>（满门 n ≤ −0.82）——首版 0.55/0.25 在判据全域窗
+     * 把 y=40 地板触边推到 947 > 预算 943（RELIEF CLAMP 带），收紧满门覆盖 ~25% 控吃地板预算；
+     * 深度档 −5..−9 不动（需求口径）；触钳列预算带按本片实测重钉（见
+     * {@code tools/dim1/P17TerrainReliefCheck} CLAMP_RATIO_MAX 与 {@code plan/tmp/p26-b4-readings.md}）。
+     */
+    private static final double STEPPE_BASIN_GATE_LO = 0.60D;
+    /** 盆地负瓣门带宽。 */
+    private static final double STEPPE_BASIN_GATE_SPAN = 0.22D;
+    /** 盆地基础下挖（满门深度档 {@code −(5.0+4.0·门)·门} 的下沿 = −5）。 */
+    private static final double STEPPE_BASIN_BASE = 5.0D;
+    /** 盆地按门加深档（满门最深 −9）。 */
+    private static final double STEPPE_BASIN_SPAN = 4.0D;
 
     // —— 沼泽/遗忘之川（ATG swamp 模板；三档水体分支的地形侧 = v1.20.41 P20 S4）——
     /** 夹持门噪声域盐（波长 256）。 */
@@ -439,19 +543,26 @@ public final class TerrainVariants {
     /** 深水池床纹场域盐（波长 {@link #S_SWAMP_DEEP_BED}）。 */
     private static final long S_SWAMP_DEEP = 0x6811C31DL;
     /**
-     * 深水池<b>床纹波长</b>（格；37 % 16 = 5 ✔ 合 H-1）。名字按 P20 §13 C9 / §14.3 的裁定原文保留
+     * 深水池<b>床纹波长</b>（格）。<b>v1.20.49 P26-B4 ⑥：37.0 → 71.0</b>（深水潭升级——潭径加大到
+     * blob ~18-35 格；71 % 16 = 7 ✔ H-1）。名字按 P20 §13 C9 / §14.3 的裁定原文保留
      * （{@code S_} 前缀在此承载的是<b>波长</b>而非域盐——域盐是同组的 {@link #S_SWAMP_DEEP}；
      * 与本类其它 {@code S_*} 域盐常量的形不一致是裁定原名的既成事实，不改名以免与裁定脱钩）。
      */
-    private static final double S_SWAMP_DEEP_BED = 37.0D;
-    /** 深水池门下檐（满门 P(n≥0.76) ≈1%、缓入 0.62 ⇒ 本轮覆盖 ≈5%，实机校准）。 */
-    private static final double SWAMP_DEEP_GATE_LO = 0.62D;
+    private static final double S_SWAMP_DEEP_BED = 71.0D;
+    /**
+     * 深水池门下檐。<b>v1.20.49 P26-B4 ⑥：0.62 → 0.68（带宽 0.14 → 0.16）</b>——覆盖 5% → 2-3%
+     * （更稀更大）；判据侧 {@code SWAMP_TIER_SHARE_BAND} DEEP 行随缩样读数重钉。
+     */
+    private static final double SWAMP_DEEP_GATE_LO = 0.68D;
     /** 深水池门带宽。 */
-    private static final double SWAMP_DEEP_GATE_SPAN = 0.14D;
-    /** 深水池基础下挖（需求 3"深水池"的水深下沿 5 层）。 */
-    private static final double SWAMP_DEEP_BASE = 5.0D;
-    /** 深水池按门加深档（满门下挖 −9 ⇒ 水深 5–9）。 */
-    private static final double SWAMP_DEEP_SPAN = 4.0D;
+    private static final double SWAMP_DEEP_GATE_SPAN = 0.16D;
+    /**
+     * 深水池基础下挖。<b>v1.20.49 P26-B4 ⑥：5.0 → 8.0（SPAN 4.0 → 6.0）</b>——潭深 8-14 层
+     * （床 54-60 ≫ MIN_HEIGHT 40 大余量；回填侧 {@code fillSwampPools}/SwampFieldGrid 零改动自动跟随）。
+     */
+    private static final double SWAMP_DEEP_BASE = 8.0D;
+    /** 深水池按门加深档（满门下挖 −14 ⇒ 水深 8–14）。 */
+    private static final double SWAMP_DEEP_SPAN = 6.0D;
     /** 水沼地（半淹档）场域盐（波长 {@link #SWAMP_MARSH_SCALE}）。 */
     private static final long S_SWAMP_MARSH = 0x6811C32FL;
     /** 水沼地波长（61 % 16 = 13 ✔；与 {@code SWAMP_POOL_INTERVAL}=220 的微池水网正交）。 */
@@ -464,17 +575,23 @@ public final class TerrainVariants {
     private static final double SWAMP_MARSH_BASE = 0.5D;
     /** 水沼地按门加深档（满门 −1.5 ⇒ 水深 0–1 的半淹）。 */
     private static final double SWAMP_MARSH_SPAN = 1.0D;
-    /** 泥丘场域盐（波长 {@link #SWAMP_HUMMOCK_SCALE}）。 */
+    /**
+     * 泥丘场域盐（波长 {@link #SWAMP_HUMMOCK_SCALE}）。
+     * <b>v1.20.49 P26-B4 ⑧：波长 113 → 173</b>（173 % 16 = 13 ✔；丘径 20-40 格"泥炭丘"档）。
+     */
     private static final long S_SWAMP_HUMMOCK = 0x6811C341L;
-    /** 泥丘波长（113 % 16 = 1 ✔）。 */
-    private static final double SWAMP_HUMMOCK_SCALE = 113.0D;
+    /** 泥丘波长（113 % 16 = 1 ✔；P26-B4 ⑧ 起 = 173）。 */
+    private static final double SWAMP_HUMMOCK_SCALE = 173.0D;
     /** 泥丘门下檐（满门 P(n≥0.75) ≈2%、缓入 0.45）。 */
     private static final double SWAMP_HUMMOCK_GATE_LO = 0.45D;
     /** 泥丘门带宽。 */
     private static final double SWAMP_HUMMOCK_GATE_SPAN = 0.30D;
-    /** 泥丘抬升下/上沿（需求 3"另加两种分支形态"之一：+2.0..+4.5）。 */
-    private static final double SWAMP_HUMMOCK_BASE = 2.0D;
-    private static final double SWAMP_HUMMOCK_SPAN = 2.5D;
+    /**
+     * 泥炭丘抬升下/上沿。<b>v1.20.49 P26-B4 ⑧：2.0/2.5 → 3.5/4.5</b>（+3.5..+8；
+     * +8 上探后距夹持目标 68 抬到 ~76，仍在 {@code softMin(·,172,4)} 的 ≤168 逐位不动带 ⇒ 安全）。
+     */
+    private static final double SWAMP_HUMMOCK_BASE = 3.5D;
+    private static final double SWAMP_HUMMOCK_SPAN = 4.5D;
     /**
      * 炭屑滩门（复用<b>水沼地场同域的负瓣</b>，零额外求值、与半淹档空间互斥）：
      * {@code s01((−n−0.55)/0.25)} ⇒ 满门 P(n≤−0.80) ≈1%。
@@ -561,16 +678,23 @@ public final class TerrainVariants {
 
     // —— 软削顶（A 模板）——
     /**
-     * 加权总 delta 的光滑上界（softMin k=10；≤22 逐位不动，渐近 32）。
+     * 加权总 delta 的光滑上界（softMin k=10；≤86 逐位不动，渐近 96）。
      * <b>v1.20.41 随森林 delta 上抬 1.43×（{@link #HILL_AMP_FOREST}）同步 26→32、k 8→10</b>；
-     * {@link #softMin} 的定义保证 |a−b| ≥ k 时逐位等于 min(a,b) ⇒ "δ≤22 逐位不动"的构造性保证
-     * 与旧口径同形（旧值 δ≤18），只是上移 4。
+     * <b>v1.20.49 P26-B4 ①（D7' 破顶放大档）：32 → 96</b>——延绵脊（{@link #FOREST_SPINE_AMP}）与
+     * 山地碎坡项解封后典型合成 delta 进入 60-95 带；k=10 不动 ⇒ "δ≤86 逐位不动"的构造性保证
+     * 与旧口径同形（旧值 δ≤22 ⇒ 32/10 档）。顶部解封只放行 delta &gt; 22 的顶部路径列；|delta| ≤ 22
+     * 的全部列逐位不变（均匀区 digest 对拍保证，见类注释）。
      */
-    private static final double DELTA_CAP = 32.0D;
-    /** 削顶圆角 k（与 {@link #DELTA_CAP} 同批由 8 抬到 10）。 */
+    private static final double DELTA_CAP = 96.0D;
+    /** 削顶圆角 k（与 {@link #DELTA_CAP} 同批由 8 抬到 10；P26-B4 不动）。 */
     private static final double DELTA_CAP_K = 10.0D;
-    /** 结果高度的光滑哨兵（softMin k=4；≤104 逐位不动，恒 &lt;108 ⇒ 110 钳制零截平）。 */
-    private static final double HEIGHT_SENTINEL = 108.0D;
+    /**
+     * 结果高度的光滑哨兵（softMin k=4；≤168 逐位不动，恒 &lt;172 ⇒ 180 钳制零截平）。
+     * <b>v1.20.49 P26-B4 ①（D7'）：108 → 172</b>——沼泽构造性 ≤~76、草原 ≤~112、荒漠 ≤~140
+     * 均在 ≤168 逐位不动带 ⇒ 三群系顶部以下列逐位不变（均匀区 digest 对拍证）；森林顶部路径解封
+     * （峰目标 150~165，经 {@link #DELTA_CAP}=96 与本哨兵双重软顶 ⇒ 恒 &lt; 180 硬钳线，CLAMP 上沿零触）。
+     */
+    private static final double HEIGHT_SENTINEL = 172.0D;
 
     /** 核半径（粗格；与 ProsperityTerrainProfile.AMP_KERNEL_RADIUS 同值 5 ⇒ 直径 11 粗格）。 */
     private static final int VAR_KERNEL_RADIUS = 5;
@@ -659,13 +783,22 @@ public final class TerrainVariants {
             final double m = hillsOn ? hillsShape(worldSeed, x, z) : 0.0D;
             if (w[0] > 0.0D) {
                 delta += w[0] * (HILL_AMP_STEPPE * m * gateS);
+                // —— 小盆地支路（v1.20.49 P26-B4 ⑪：λ167 负瓣封闭碗形，第一版不集水）——
+                // 式 = 低地/谷地同款"外侧乘门"软门：门关死列贡献精确 0（−0.0），缓入环从 0 连续过渡；
+                // 负瓣等值线天然闭合 ⇒ 碗形无需显式边界。负 delta 直通 DELTA_CAP（softMin 只封上侧）。
+                final double bn = GTSRWorldgenHash
+                    .valueNoise(worldSeed ^ S_STEPPE_BASIN, x / STEPPE_BASIN_SCALE, z / STEPPE_BASIN_SCALE);
+                final double basinGate = s01((-bn - STEPPE_BASIN_GATE_LO) / STEPPE_BASIN_GATE_SPAN);
+                delta += w[0] * (-(STEPPE_BASIN_BASE + STEPPE_BASIN_SPAN * basinGate) * basinGate);
                 // —— 低地支路（v1.20.41 需求 6：半空间折叠只取负瓣 + 覆盖门；与丘陵同域叠加）——
                 // 折叠式与沙丘 (d−|d|)/2 同款：d≥0 ⇒ 精确 0 ⇒ 该支路在门带外逐位不改变 delta。
+                // P26-B4 ⑪：低地门乘 (1−盆地带)（域外 ×1.0 逐位不变）——盆地与低地不叠加（最坏
+                // 合成下挖 ≤ −9 = 盆地满门单臂，防两项相加 −15 吃 y=40 地板预算；C0 连续，无硬环）。
                 final double dl = GTSRWorldgenHash
                     .valueNoise(worldSeed ^ S_STEPPE_LOW, x / STEPPE_LOW_SCALE, z / STEPPE_LOW_SCALE);
                 final double lowFold = (dl - Math.abs(dl)) * 0.5D; // ∈ [−0.5, 0]
                 final double lowShape = Math.min(1.0D, -2.0D * lowFold); // 形状 0..1（d≤−0.5 取满）
-                final double lowGate = s01((-dl - STEPPE_LOW_GATE_LO) / STEPPE_LOW_GATE_SPAN);
+                final double lowGate = s01((-dl - STEPPE_LOW_GATE_LO) / STEPPE_LOW_GATE_SPAN) * (1.0D - basinGate);
                 delta += w[0] * (-(STEPPE_LOW_BASE + STEPPE_LOW_SPAN * lowShape) * lowGate);
             }
             if (w[1] > 0.0D) {
@@ -687,7 +820,16 @@ public final class TerrainVariants {
                         + Math.abs(base - ledge) * mf * (rough + 1.0D) * 0.5D;
                     forest = plateau - h0;
                 }
-                delta += w[1] * (forest + ridge);
+                // —— 延绵山脉脊（v1.20.49 P26-B4 ②：λ433 ridged，域门复用 mf（山地门 λ512，
+                // 森林列已求值 ⇒ 零加费）；脊线沿 |sn|≈0 等值线连续延伸 200-400 格（λ433 半波 ~216）。
+                // 域外（脊形门关死）spine 精确 0 ⇒ 该支路逐位不改变 delta；脊峰经 DELTA_CAP=96 与
+                // HEIGHT_SENTINEL=172 双重软顶 ⇒ 恒 < 180 钳制线（裸岩树线归 decorate 侧 TREE_LINE 门）。
+                final double sn = GTSRWorldgenHash
+                    .valueNoise(worldSeed ^ S_FOREST_SPINE, x / FOREST_SPINE_SCALE, z / FOREST_SPINE_SCALE);
+                final double spine = FOREST_SPINE_AMP
+                    * s01((1.0D - Math.abs(sn) - FOREST_SPINE_GATE_LO) / FOREST_SPINE_GATE_SPAN)
+                    * mf;
+                delta += w[1] * (forest + ridge + spine);
                 // —— 森林谷地负瓣（v1.20.42 P22 A4：顶部路径被 DELTA_CAP 软顶/108 哨兵/振幅档域三面
                 // 封死后，起伏补强换到下侧——负瓣只在下侧花预算（y=40 地板现状 145 列 vs 预算 943）。
                 // 式 = 草原低地同款"外侧乘门"软门：门关死列贡献精确 0，缓入环从 0 连续过渡；
@@ -700,15 +842,26 @@ public final class TerrainVariants {
         }
         // —— 荒漠沙丘（RTG dunes 参数化 + domain-warp；无丘陵）——
         if (w[2] > 0.0D) {
+            // —— 沙海域域门（v1.20.49 P26-B4 ⑤：λ281；域外 duneGate 精确 0 ⇒ 下方各增量逐位 0：
+            // warpAmp/mainWave/gain/quad 的 "+增量×gate" 项在 gate=0 处分别等于旧常量（IEEE 精确），
+            // 均匀区（沙海域域外）读数与改造前逐位相同——digest 对拍保证）——
+            final double duneGate = s01(
+                (GTSRWorldgenHash.valueNoise(worldSeed ^ S_DUNE_SEA, x / DUNE_SEA_SCALE, z / DUNE_SEA_SCALE)
+                    - DUNE_SEA_GATE_LO) / DUNE_SEA_GATE_SPAN);
             final long warpSeed = worldSeed ^ S_DUNE_WARP;
-            final double wx = x + DUNE_WARP_AMP * GTSRWorldgenHash.valueNoise(warpSeed, x / 20.0D, z / 20.0D);
+            final double warpAmp = DUNE_WARP_AMP + DUNE_SEA_WARP_BOOST * duneGate;
+            final double wx = x + warpAmp * GTSRWorldgenHash.valueNoise(warpSeed, x / 20.0D, z / 20.0D);
             final double st = 0.38D
                 + 0.30D * GTSRWorldgenHash.valueNoise(worldSeed ^ S_DUNE_STRENGTH, x / 224.0D, z / 224.0D);
-            final double main = GTSRWorldgenHash.valueNoise(worldSeed ^ S_DUNE_MAIN, wx / 60.0D, z / 60.0D);
-            final double d = main * st * DUNE_MAIN_GAIN;
+            // 主波波长 λ60 → 域内有效 λ120（/(60·(1+gate)) 连续过渡 ⇒ 丘距 120 格的丘链尺度）
+            final double mainWave = 60.0D * (1.0D + duneGate);
+            final double main = GTSRWorldgenHash.valueNoise(worldSeed ^ S_DUNE_MAIN, wx / mainWave, z / mainWave);
+            final double gain = DUNE_MAIN_GAIN + DUNE_SEA_GAIN_BOOST * duneGate;
+            final double d = main * st * gain;
             final double fold = (d - Math.abs(d)) * 0.5D;
             final double p = -fold;
-            final double bump = p * (p * DUNE_RIDGE_QUAD + DUNE_RIDGE_LIN);
+            final double quad = DUNE_RIDGE_QUAD + DUNE_SEA_QUAD_BOOST * duneGate;
+            final double bump = p * (p * quad + DUNE_RIDGE_LIN);
             final double ripple = GTSRWorldgenHash.valueNoise(warpSeed, wx / 17.0D, z / 17.0D) * (0.6D + st);
             delta += w[2] * (bump - 1.3D * st + ripple);
             // —— 风蚀山体 + 风蚀柱座台（v1.20.41 需求 5；RTG terrainBryce 倒数式范式，四层求和）——
@@ -718,14 +871,20 @@ public final class TerrainVariants {
             final double n1 = GTSRWorldgenHash.valueNoise(worldSeed ^ S_BRYCE_1, x / BRYCE_SCALE_1, z / BRYCE_SCALE_1);
             final double n2 = GTSRWorldgenHash.valueNoise(worldSeed ^ S_BRYCE_2, x / BRYCE_SCALE_2, z / BRYCE_SCALE_2);
             final double n3 = GTSRWorldgenHash.valueNoise(worldSeed ^ S_BRYCE_3, x / BRYCE_SCALE_3, z / BRYCE_SCALE_3);
-            final double sn = Math.abs(n0) + BRYCE_W1 * Math.abs(n1)
+            final double snW = Math.abs(n0) + BRYCE_W1 * Math.abs(n1)
                 + BRYCE_W2 * Math.abs(n2)
                 + BRYCE_W3 * Math.abs(n3);
-            final double bryceGate = s01((n3 - BRYCE_GATE_LO) / BRYCE_GATE_SPAN);
+            // P26-B4 ⑤：沙海域域内与风蚀山体互斥（bryce 乘 (1−duneGate)，域心钳 0——防柱脚被巨丘
+            // 埋/穿；域外 ×1.0 ⇒ 既有风蚀山体列逐位不变。单点分流的又一应用（§21-D 同款）。
+            final double bryceGate = s01((n3 - BRYCE_GATE_LO) / BRYCE_GATE_SPAN) * (1.0D - duneGate);
             final double bryce = bryceGate
-                * softMin(BRYCE_GAIN / (BRYCE_FLOOR + BRYCE_SLOPE * sn), BRYCE_CAP, BRYCE_CAP_K);
-            // 座台走公开谓词（与 populate 侧柱 feature 同一份式子，杜绝"柱落在无座台的平沙上"）
-            delta += w[2] * (bryce + SPINE_PEDESTAL * windSpineSiteAt(worldSeed, x, z));
+                * softMin(BRYCE_GAIN / (BRYCE_FLOOR + BRYCE_SLOPE * snW), BRYCE_CAP, BRYCE_CAP_K);
+            // 座台走公开谓词（与 populate 侧柱 feature 同一份式子，杜绝"柱落在无座台的平沙上"）；
+            // P26-B4 ④：巨柱窄带（site ≥ 0.88 ⇔ n₅₃ ≥ ~0.90）同场分档 +1.5 → 域心 +3.0
+            // （窄带外 ×1.0 ⇒ 既有座台列逐位不变；落点场本身不动 = 零第二真值）。
+            final double site = windSpineSiteAt(worldSeed, x, z);
+            final double giantNarrow = s01((site - SPINE_PEDESTAL_GIANT_GATE_LO) / SPINE_PEDESTAL_GIANT_GATE_SPAN);
+            delta += w[2] * (bryce + SPINE_PEDESTAL * (1.0D + SPINE_PEDESTAL_GIANT_BOOST * giantNarrow) * site);
         }
         // —— 沼泽夹持 + 三档水体下挖 / 遗忘之川微起伏（ATG swamp 模板；只做地形，不置水）——
         if (w[3] > 0.0D || w[4] > 0.0D) {
@@ -949,6 +1108,36 @@ public final class TerrainVariants {
                 .valueNoise(worldSeed ^ S_SHRUB_CLUSTER_B, x / SHRUB_CLUSTER_SCALE_B, z / SHRUB_CLUSTER_SCALE_B)
                 - SHRUB_CLUSTER_GATE_LO) / SHRUB_CLUSTER_GATE_SPAN);
         return Math.max(a, b);
+    }
+
+    /**
+     * <b>灌木林域</b>谓词（v1.20.49 P26-B4 ⑫ 新增；需求 5 平原"灌木林"的 decorate 侧域门）。
+     * <p>
+     * 纪律同 {@link #shrubClusterAt}：<b>不进高度链</b>（{@link #variantAdjustment} 一行不读它 ⇒
+     * 每列噪声求值数不变），只给 {@code ProsperityDecorPlacer} 的灌木事件补骰/簇加密/草趟加密取
+     * 同一真值。式 = λ193 单场软门 {@code s01((n−0.50)/0.18)}（覆盖 ~8-12% 草原列、域径 50-100 格），
+     * 带外精确 0.0。消费面按"门值 ≥ 0.5"取域（与簇场 {@code SHRUB_CLUSTER_GATE_MIN} 同中点口径）。
+     * <b>纯函数</b>、零 {@code net.minecraft} 依赖、不消费任何 {@code Random}。
+     */
+    public static double shrubWoodlandAt(long worldSeed, int x, int z) {
+        return s01(
+            (GTSRWorldgenHash
+                .valueNoise(worldSeed ^ S_SHRUB_WOODLAND, x / SHRUB_WOODLAND_SCALE, z / SHRUB_WOODLAND_SCALE)
+                - SHRUB_WOODLAND_GATE_LO) / SHRUB_WOODLAND_GATE_SPAN);
+    }
+
+    /**
+     * 沼泽<b>炭屑滩列</b>谓词（v1.20.49 P26-B4 ⑨ 新增；枯木滩装饰趟的落点腿之一）。
+     * 读 {@link #swampGates} 的 {@link #SWG_CHAR} 槽（单一真值：地形侧的炭屑滩下挖与 decorate 侧的
+     * 枯木落点同一次门比较），门值 ≥ {@link #TIER_MIN} 才算滩列；roster≠3 恒 false。
+     * 与 {@link #swampTierAt} 的 MARSH 档（半淹）互补成枯木滩的完整落点集（炭屑滩是水沼地场负瓣，
+     * 与半淹档空间互斥 ⇒ 两腿不重叠）。<b>纯函数</b>；返回的是线程私有 scratch 的即时读数（就地取用）。
+     */
+    public static boolean swampCharFlatAt(long worldSeed, int x, int z, int rosterIndex) {
+        if (rosterIndex != SWAMP_ROSTER) {
+            return false;
+        }
+        return swampGates(worldSeed, x, z, true)[SWG_CHAR] >= TIER_MIN;
     }
 
     /**

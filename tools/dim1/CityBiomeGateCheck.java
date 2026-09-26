@@ -116,6 +116,13 @@ public class CityBiomeGateCheck {
      * 湖弃位原态）必红</b>。诚实申报：50% 同时让"迁移整体失效退回仅调档（P24 读数 6/12）"落绿，
      * 该形态的判别从本闸移交 E1（keptRatio ≥ 0.10）与 PlacementContractCheck 城窗跳过报告行
      * （P25 起新腿增量与迁移失效在 6/12 档不可分，须靠那两处分账）。
+     * <p>
+     * <b>P26-B1 复核（带值不变，测量窗加倍）</b>：v1.20.49 D8 CITY_CELL 24→48 ⇒ 候选城池 ÷4，
+     * 名义 8×8 档候选 12→2 座（1 城 50pp，E3 恰踩线、C1/C3 双红失真）。按「缩样先于放宽」纪律改在
+     * assert 档内部把 regionsPerSeed 加倍（8×16 = 32768 chunk）：实测候选 6 座、弃 2 = <b>33.333%</b>，
+     * 按「实测 + 一格粒度」同式复核 = 33.333% + 16.667% = <b>50.0%，与 P25 钉值逐位同 ⇒ 本带
+     * 不重钉</b>（4/6 = 66.7% 仍红；粒度从 8.3pp 放粗到 16.7pp 属城距翻倍的结构性代价，已用
+     * 样本加倍压回可分辨档）。
      */
     private static final double DRY_ABANDON_MAX = 0.50D;
 
@@ -145,8 +152,16 @@ public class CityBiomeGateCheck {
             System.out.println("CITY BIOME GATE FAIL: 未知 mode=" + mode + "（可用：assert|table|load）");
             System.exit(2);
         }
-        assertAll(seeds, regions);
-        printTables(seeds, regions);
+        // P26-B1（v1.20.49 D8 城距翻倍）：CITY_CELL 24→48 ⇒ 同面积候选城池 ÷4（本采样几何实测
+        // 12→2 座），C1/C3（锚点草原率带）与 E3（弃位率，1 城 12→50pp）粒度坍缩失真——8×8 名义档
+        // 实跑 C1/C3 双红、E3 恰踩 0.50 线。按「缩样先于放宽」纪律：<b>assert 档测量窗加倍</b>
+        // （regionsPerSeed ×2 ⇒ 8×16 = 32768 chunk，实测候选 6 座、1 城 ≈16.7pp），断言语义与
+        // surface_checks.sh 的 `assert 8 8` 调用行<b>一字不动</b>；加倍后实测 E3 = 2/6 = 33.333%，
+        // 按 P24/P25「实测 + 一格粒度」同式复核带值 = 33.333% + 16.667% = <b>50.0%（与 P25 钉值
+        // 恰同，DRY_ABANDON_MAX 不重钉）</b>；E2 实测 2.661pp > 2.0 下界（带 [2,20] 不重钉）。
+        final int regionsAssert = regions * 2;
+        assertAll(seeds, regionsAssert);
+        printTables(seeds, regionsAssert);
         finish();
     }
 
