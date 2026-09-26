@@ -172,12 +172,34 @@ public final class TerrainVariants {
      * 每线程每 seed 的<b>粗格权重向量</b>缓存（P19 U8 改判）：11×11 核对逐粗格身份的加权结果
      * {@code w[0..4]} 只依赖核中心粗格（核偏移固定、各粗格身份只依赖 (seed, 该粗格)）⇒ 同一粗格内
      * 所有列的权重向量<b>数学恒等</b>，缓存终值与旧"逐列 69 次查表累积"逐位相同（同一批加法同一
-     * 次序）。每列成本从 69 次 HashMap 查表降为 1 次。纪律同 Profile 各表：线程私有、上限
-     * {@link #VAR_CELL_CACHE_CAP}、超限整清重算值不变。
+     * 次序）。每列成本从 69 次 HashMap 查表降为 1 次。
+     * <p>
+     * <b>P24-C2（v1.20.47）由两层 {@code HashMap<Long,…>} 改直接映射定长槽表</b>（同
+     * {@link ProsperityTerrainProfile#cellSlotIndex} 散列口径）：key = (worldSeed, cellX, cellZ)
+     * 全字段精确比较进槽、冲突即覆盖淘汰；省 {@code Long} 装箱与两层查表。纪律同 Profile 各表：
+     * 线程私有、上限 {@link #VAR_CELL_CACHE_CAP}、淘汰映射确定性（值只依赖纯函数 ⇒ 逐位等价）。
      */
     private static final int VAR_CELL_CACHE_CAP = 65536;
-    private static final ThreadLocal<HashMap<Long, HashMap<Long, double[]>>> VAR_CELL_CACHE = ThreadLocal
-        .withInitial(HashMap::new);
+
+    /** 权重向量槽（P24-C2）；{@code w} 只读返回、调用方不得改写（与旧缓存同一条纪律）。 */
+    private static final class VarSlot {
+
+        long seed;
+        int cx;
+        int cz;
+        boolean valid;
+        final double[] w = new double[ROSTER_SLOTS];
+    }
+
+    private static VarSlot[] varSlots() {
+        final VarSlot[] a = new VarSlot[VAR_CELL_CACHE_CAP];
+        for (int i = 0; i < a.length; i++) {
+            a[i] = new VarSlot();
+        }
+        return a;
+    }
+
+    private static final ThreadLocal<VarSlot[]> VAR_CELL_CACHE = ThreadLocal.withInitial(TerrainVariants::varSlots);
 
     /**
      * 每线程每 seed 的<b>沼泽腹地粗格布尔缓存</b>（v1.20.42 P22 A3）：{@link #swampInteriorAt} 的
@@ -994,18 +1016,17 @@ public final class TerrainVariants {
     private static double[] weightsAt(long worldSeed, int x, int z) {
         final int cellX = x >> GTSRGenLayerChain.COARSE_BLOCK_SHIFT;
         final int cellZ = z >> GTSRGenLayerChain.COARSE_BLOCK_SHIFT;
-        final HashMap<Long, HashMap<Long, double[]>> bySeed = VAR_CELL_CACHE.get();
-        HashMap<Long, double[]> cells = bySeed.get(worldSeed);
-        if (cells == null) {
-            cells = new HashMap<>();
-            bySeed.put(worldSeed, cells);
+        final VarSlot[] slots = VAR_CELL_CACHE.get();
+        final VarSlot slot = slots[ProsperityTerrainProfile
+            .cellSlotIndex(worldSeed, cellX, cellZ, VAR_CELL_CACHE_CAP - 1)];
+        if (slot.valid && slot.seed == worldSeed && slot.cx == cellX && slot.cz == cellZ) {
+            return slot.w;
         }
-        final Long key = Long.valueOf(packCell(cellX, cellZ));
-        final double[] cached = cells.get(key);
-        if (cached != null) {
-            return cached;
+        // 未命中：整槽重算（w 逐项清 0 后累加，与旧路径同一批加法同一次序）。
+        final double[] w = slot.w;
+        for (int i = 0; i < w.length; i++) {
+            w[i] = 0.0D;
         }
-        final double[] w = new double[ROSTER_SLOTS];
         for (int k = 0; k < VAR_KERNEL_DX.length; k++) {
             final int r = ProsperityTerrainProfile
                 .chainRosterIndexAt(worldSeed, cellX + VAR_KERNEL_DX[k], cellZ + VAR_KERNEL_DZ[k]);
@@ -1013,10 +1034,10 @@ public final class TerrainVariants {
                 w[r] += VAR_KERNEL_W[k];
             }
         }
-        if (cells.size() >= VAR_CELL_CACHE_CAP) {
-            cells.clear();
-        }
-        cells.put(key, w);
+        slot.seed = worldSeed;
+        slot.cx = cellX;
+        slot.cz = cellZ;
+        slot.valid = true;
         return w;
     }
 

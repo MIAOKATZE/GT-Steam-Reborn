@@ -35,6 +35,11 @@ import com.miaokatze.gtsr.common.dimension.prosperity.river.GTSRVoronoiRiverFiel
  * 0.13→0.23、LAKE_ISLAND 0.045→0.15、LAKE_ISLAND_RADIUS 30→75、LAKE_WARP 70→100 /
  * SCALE 320→700、LAKE_STATION_D_MIN 新增小湖淘汰腿），新增 G 组几何带（水半径/岛半径/内切圆），
  * C/S 组带按新湖形重钉；S1 三档比维持登记红（不修不放宽）。
+ * <b>P24-D（v1.20.47）解除该登记红</b>：床剖面改「深盆平台外移 + 多段线性外坡」（见
+ * {@code GTSRVoronoiRiverField.LAKE_BED_PLATEAU} 的 P24-D 段）后，S1 由 1:1.337:0.000 变
+ * <b>1:3.042:3.563（绿）</b>——深档不再全体并入岛域、中带面积同时加厚；A/D/C/G 组随床形重跑实测未变
+ * （A2 p95=1.000、D1/D2 100%、C1 中位 5451、G 三带读数同）。P 组扫描族随之由「单参数 smoothstep」
+ * 换成「平台外缘参数 + 定长控制点」（P0 对拍采样域同时扩到全水径，否则只落到 g=1 段、对拍退化）。
  * <p>
  * ═══ 断言组（逐组给实测数；PASS 与否都报真数）═══
  * <ul>
@@ -1781,19 +1786,30 @@ public final class SanzuLakeMorphologyCheck {
 
     // ══════════════════════════ P 组：LAKE_BED_PLATEAU 扫描（T2）══════════════════════════
 
-    /** 候选档：§25 建议扫 0.35/0.40/0.45/0.50，另加现值 0.55 与上沿 0.60 作对照。 */
-    static final double[] PLATEAU_CANDIDATES = { 0.35D, 0.40D, 0.45D, 0.50D, 0.55D, 0.60D };
+    /**
+     * 候选档：<b>P24-D（v1.20.47）重钉</b>——剖面族由「单参数 smoothstep」换成「平台外缘参数 +
+     * 定长控制点」（{@link #bedProfileG}）。本档扫的是<b>深盆平台外缘 u</b>（生产现值
+     * {@code LAKE_BED_PLATEAU}=0.79），展示深井占湖面积/中浅比随平台外移的单调抬升。
+     * <b>注意本组口径不含岛域排除</b>（是"床"口径的 8 向射线，见下方 P-READ 原句）⇒ 它<b>不能</b>
+     * 复现 S1 的"深档恒 0"（那是 heightAt 逐列口径 + 岛域排除的结果），S1 的真读数在 S 组逐列实测。
+     * 旧 0.35–0.60 六档（P20 S5b 的 smoothstep 族）随形状族一并退役，读数见
+     * {@code plan/tmp/p20-s5b/plateau-scan.md}。上界 &lt; 首个控制点 0.85（否则首段区间退化）。
+     */
+    static final double[] PLATEAU_CANDIDATES = { 0.60D, 0.66D, 0.72D, 0.79D, 0.83D };
 
     static void groupPlateauSweep(List<Lake> lakes) {
         int pairs = 0;
         double worst = 0.0D;
         for (final Lake lk : lakes) {
-            if (!lk.fine || pairs >= 6000) {
+            if (!lk.fine || pairs >= 40000) {
                 continue;
             }
             for (int d = 0; d < 8; d++) {
                 final double ang = d * Math.PI / 4.0D;
-                for (int r = 0; r <= 60; r += 3) {
+                // P24-D：对拍半径扩到<b>实测水径</b>（旧档 r≤60 只落在 u≤0.28 的 g=1 平台段，
+                // 外坡改了也照样"逐位相等"⇒ 对拍退化）。步长 3 覆盖全剖面，样本 ≥ 上方上限的一小半。
+                final int rMax = Math.max(60, (int) lk.rayWaterRadius[d]);
+                for (int r = 0; r <= rMax; r += 3) {
                     final int x = lk.cx + (int) Math.round(Math.cos(ang) * r);
                     final int z = lk.cz + (int) Math.round(Math.sin(ang) * r);
                     final double p = GTSRVoronoiRiverField.lakeAt(lk.seed, x, z);
@@ -1875,18 +1891,43 @@ public final class SanzuLakeMorphologyCheck {
             + "不含 heightCore 的 min(原地形) 与岛抬升 ⇒ 与 S1 的逐列实测并列不互替）：" + sb);
     }
 
-    /** 生产 {@code lakeBedAt} 的参数化副本（只有平台占比可变）；仅在 P0 对拍 PASS 后可用。 */
+    /**
+     * 生产 {@code lakeBedAt} 的参数化副本（<b>P24-D 后：只有"平台外缘 u"可变，外坡控制点
+     * {@code LAKE_BED_KNOT_U/G} 与生产同源直引</b>）；仅在 P0 对拍 PASS 后可用。
+     * {@code plateau == LAKE_BED_PLATEAU} 时与生产 {@code lakeBedAt} <b>逐位同式</b>（同算术序）。
+     */
     static double bedFormula(long seed, int x, int z, double pressure, double plateau) {
         final double shoreBed = SEA - 1.0D;
         final double centerBed = SEA - GTSRVoronoiRiverField.LAKE_CENTER_DEPTH;
         final double u = Math.min(1.0D, Math.max(0.0D, pressure / WATER));
-        final double v = Math.min(1.0D, Math.max(0.0D, (u - plateau) / (1.0D - plateau)));
-        final double g = 1.0D - v * v * (3.0D - 2.0D * v);
+        final double g = bedProfileG(u, plateau);
         return shoreBed + (centerBed - shoreBed) * g
             + 0.5D + 0.5D * GTSRWorldgenHash
                 .valueNoise(seed ^ GTSRVoronoiRiverField.SALT_LAKE_BED,
                     x / GTSRVoronoiRiverField.LAKE_BED_NOISE_SCALE,
                     z / GTSRVoronoiRiverField.LAKE_BED_NOISE_SCALE);
+    }
+
+    /**
+     * 剖面 g(u)：{@code u ≤ plateau} 恒 1；其上按生产控制点 {@code LAKE_BED_KNOT_U/G} 逐段线性插值
+     * （首段起点用入参 plateau 替换，故 {@code plateau=LAKE_BED_PLATEAU} 时与生产
+     * {@code lakeBedProfileG} 逐位同式）。{@code plateau} 必须 &lt; {@code LAKE_BED_KNOT_U[1]}。
+     */
+    static double bedProfileG(double u, double plateau) {
+        final double[] us = GTSRVoronoiRiverField.LAKE_BED_KNOT_U;
+        final double[] gs = GTSRVoronoiRiverField.LAKE_BED_KNOT_G;
+        if (u <= plateau) {
+            return gs[0];
+        }
+        for (int k = 0; k + 1 < us.length; k++) {
+            final double u0 = k == 0 ? plateau : us[k];
+            final double u1 = us[k + 1];
+            if (u <= u1) {
+                final double t = (u - u0) / (u1 - u0);
+                return gs[k] + (gs[k + 1] - gs[k]) * t;
+            }
+        }
+        return gs[gs.length - 1];
     }
 
     // ══════════════════════════ L 组：表层单一真值复用 ══════════════════════════

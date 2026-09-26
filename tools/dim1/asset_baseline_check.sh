@@ -52,8 +52,12 @@ BATCHES="tools/artgen/dim7879 tools/artgen/dim1"
 # 幂等可再生，另带同名 .png.mcmeta——mcmeta 不计入 PNG 数，口径不变）= 41(dim7879) + 14(dim1) + …；
 # 同口径跟着两批 OUTPUTS 名册改数（57+5=62 与 14 合计 76），不放宽。EXPECTED_ROSTER=51 是
 # 结构名册（S8），本版零结构条目 ⇒ 不改。
+# 76 → 75 = v1.20.44 P24-A2 旧栖晴晕改「不可见载体 + 纯光点光效」（用户裁决「不要材质」）——
+# 该帧带条目从 dim7879 OUTPUTS/SEEDS、design32 档案与 draw32_dim78.py 三处挂点退役，自有 PNG
+# 与同名 mcmeta（mcmeta 本不计入 PNG 数）一并删除，Java 侧改绑 vanilla 全透明贴图 ⇒
+# 62→61(dim7879) + 14(dim1) = 75；同口径跟着 OUTPUTS 名册改数，不放宽。
 EXPECTED_ROSTER=51
-EXPECTED_TEXTURES=76
+EXPECTED_TEXTURES=75
 
 fail() { echo "[FAIL] $*"; exit 1; }
 

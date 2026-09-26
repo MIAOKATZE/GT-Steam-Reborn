@@ -34,7 +34,10 @@ import com.miaokatze.gtsr.config.Config;
  * 指令层零 {@code getBiomeGenForCoords}、零 {@code BiomeGenBase} 直触（身份只经 L1）。
  * <b>P23 R1·S6 新增</b>：S5 新路径源级钉（原点参数化/sanzu 湖格分支/NOT_FOUND 文案补引号）
  * ＋ 别名↔lang 双向同步钉（9 串对 lang 键往返）＋ 落点水感知谓词零 chunk 读源级钉
- * ＋ nearestActiveLakeCenter 站格枚举 vs 暴力扫描对拍（distDiff==0，纯函数直调）。</li>
+ * ＋ nearestActiveLakeCenter 站格枚举 vs 暴力扫描对拍（distDiff==0，纯函数直调）。
+ * <b>P24-F（v1.20.47）新增</b>：sanzu 落点契约断言（nearestActiveLakeCenter → sanzuArrivalColumn，
+ * 落点必须满足「滩带内 ∧ 无水格 heightAt ≥ SEA_LEVEL−1 ∧ isSanzuColumn==true」，
+ * 走公开出口不抄第二份判定）。</li>
  * </ul>
  * <b>列名申报</b>（d78/d79 每群系一行，前缀 {@code TPDIM78} / {@code TPDIM79}）：
  * {@code biome=}（目标名册身份）{@code algo=(cx,cz)}（环带步进命中 chunk）{@code algoDistSq=}
@@ -325,7 +328,70 @@ public class TpdimNearestBiomeCheck {
             "钉12：NOT_FOUND 文案补闭合引号（S5 前丢引号，玩家看到不闭合回执）");
         aliasLangSync();
         waterSenseSourcePins(flat);
+        arrivalColumnDryBeach();
         nearestLakeEnumerationParity();
+    }
+
+    /**
+     * P24-F（v1.20.47）落点契约断言：沿 {@link #nearestLakeEnumerationParity} 同一组
+     * (seed, origin)，直调生产出口 {@code nearestActiveLakeCenter → sanzuArrivalColumn}，
+     * 再以 {@code lakeAt / heightAt / isSanzuColumn} 三个公开谓词复核落点列满足新语义
+     * 「滩带内 ∧ 无水格 ∧ 在 sanzu 平面内」：
+     * <ul>
+     * <li>{@code lakeAt ∈ [LAKE_ISLAND, LAKE_SHORE)}——仍是滩带列（避岛心树干/岛底柱）；</li>
+     * <li>{@code heightAt ≥ SEA_LEVEL−1}（= 67 = 最高水格 y）——生成侧
+     * {@code fillSanzuLakes} 只在 {@code h < SEA_LEVEL} 时灌水，故该门逐列等价于"列顶无水格"；</li>
+     * <li>{@code isSanzuColumn == true}——仍在遗忘之湖滩带平面内（指令层就地 verify 为真）。</li>
+     * </ul>
+     * 全部走公开出口，<b>不抄第二份判定</b>（不重写射线扫描、滩带压力口径或水位判据）。
+     */
+    private static void arrivalColumnDryBeach() {
+        final long[] seeds = { 0x1AFEE7A9E5A7L, 0x7269_7665_4C42L, 20260925L };
+        final int[][] origins = { { 0, 0 }, { 4813, -2277 }, { -7153, 2269 }, { 350, -90000 }, { 123456, -654321 } };
+        int checked = 0;
+        int nullCol = 0;
+        int notBeach = 0;
+        int wet = 0;
+        int outOfPlane = 0;
+        for (final long seed : seeds) {
+            for (final int[] o : origins) {
+                final int[] out = new int[2];
+                if (!com.miaokatze.gtsr.common.dimension.prosperity.river.GTSRVoronoiRiverField
+                    .nearestActiveLakeCenter(seed, o[0], o[1], out)) {
+                    continue;
+                }
+                final int[] col = com.miaokatze.gtsr.common.dimension.prosperity.river.GTSRVoronoiRiverField
+                    .sanzuArrivalColumn(seed, out[0], out[1]);
+                if (col == null) {
+                    nullCol++;
+                    continue;
+                }
+                checked++;
+                final double p = com.miaokatze.gtsr.common.dimension.prosperity.river.GTSRVoronoiRiverField
+                    .lakeAt(seed, col[0], col[1]);
+                if (!(p >= com.miaokatze.gtsr.common.dimension.prosperity.river.GTSRVoronoiRiverField.LAKE_ISLAND
+                    && p < com.miaokatze.gtsr.common.dimension.prosperity.river.GTSRVoronoiRiverField.LAKE_SHORE)) {
+                    notBeach++;
+                }
+                if (com.miaokatze.gtsr.common.dimension.prosperity.ProsperityTerrainProfile
+                    .heightAt(seed, col[0], col[1]) < com.miaokatze.gtsr.common.dimension.prosperity.ProsperityTerrainProfile.SEA_LEVEL
+                        - 1) {
+                    wet++;
+                }
+                if (!com.miaokatze.gtsr.common.dimension.prosperity.river.GTSRVoronoiRiverField
+                    .isSanzuColumn(seed, col[0], col[1])) {
+                    outOfPlane++;
+                }
+            }
+        }
+        System.out.println(
+            "TPDIM-SOURCE ARRIVAL-CONTRACT checked=" + checked + " null=" + nullCol + " notBeach=" + notBeach + " wet="
+                + wet + " outOfPlane=" + outOfPlane);
+        check(checked > 0, "钉16a：sanzuArrivalColumn 落点契约样本为空（枚举/射线出口不可达）");
+        check(nullCol == 0, "钉16b：sanzuArrivalColumn 返回 null（8 射线滩带段全未命中）：" + nullCol);
+        check(notBeach == 0, "钉16c：落点不在滩带 lakeAt∈[LAKE_ISLAND, LAKE_SHORE)：" + notBeach);
+        check(wet == 0, "钉16d：落点是置水列（heightAt < SEA_LEVEL−1，会落湖水面）：" + wet);
+        check(outOfPlane == 0, "钉16e：落点不在 sanzu 平面（isSanzuColumn==false）：" + outOfPlane);
     }
 
     /** P23 R1·S6 新档①：别名↔lang 双向同步钉（9 串对 lang 键往返）。 */

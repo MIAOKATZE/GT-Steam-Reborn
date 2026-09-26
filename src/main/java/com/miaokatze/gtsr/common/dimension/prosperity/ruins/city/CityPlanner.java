@@ -48,15 +48,50 @@ import com.miaokatze.gtsr.config.Config;
  * <li><b>P19 §F 湿区避让臂</b>：城门在群系档之外还过一道<b>干区门</b>（纯函数）——
  * 外扩城盘过<b>占比制</b>（{@link PlacementGate#DRY_RATIO_CITY}）+ 城心核心区过<b>全过制</b>
  * strict 臂（{@link PlacementGate#dryFootprintStrict}），列级判据为<b>回填真值口径</b>
- * （回填置水列/湖面/贴河护带算湿，自然洼地放行）；任一臂不过该 cell 本轮<b>弃置且不重试</b>
- * （实测弃置率 17.4%）。这是"废弃城市泡在湖里"（G4/G3 根因：placer 与选址零水体感知）
- * 的选址侧修复。</li>
+ * （回填置水列/湖面/贴河护带算湿，自然洼地放行）。这是"废弃城市泡在湖里"（G4/G3 根因：
+ * placer 与选址零水体感知）的选址侧修复。</li>
+ * <li><b>P24-B 候选迁移（弃位改挪位）</b>：任一臂在原锚点不过时，该 cell 不再直接弃位，而是
+ * 在同一 cell 的 8×8 候选锚点域内按确定性子序再试 1-2 个备选点（{@link #resolveCityPlan}）；
+ * 全不过才弃位。列级谓词与档位一字不动——只换"候选落点选择"，把 P23 R1 全域湖带来的
+ * 湖心弃位（干区臂弃位率 25.0%→58.33%）从"弃"变"挪"。</li>
  * </ul>
  */
 public final class CityPlanner {
 
     /** 城市网格周期（chunk；plan §3.1：CITY_CELL = 24）。 */
     public static final int CITY_CELL = 24;
+
+    /**
+     * cell 内候选城心的偏移域（chunk，含端）：城心 chunk = cell 原点 + {@code [8,15]}（cell 中部
+     * 8×8）。{@link #planFor} 首次选点与 {@link #resolveCityPlan} 迁移换点<b>共用本域</b>。
+     * <p>
+     * <b>为什么迁移不扩域（P24-B 的边界）</b>：相邻 cell 锚点的最小间距 =
+     * {@code CITY_CELL - ANCHOR_OFFSET_MAX + ANCHOR_OFFSET_MIN = 17} chunk，是 plan §3.1
+     * "中部 8×8" 给出的既有城距包络。P24-B 的迁移只在本域内换点 ⇒ 城距包络与改动前
+     * <b>逐格同界</b>（不引入城-城贴近/交叠的新风险），迁移只是"在同一批既有候选落点里
+     * 换一个"。
+     */
+    private static final int ANCHOR_OFFSET_MIN = 8;
+    private static final int ANCHOR_OFFSET_MAX = 15;
+    /** 候选锚点偏移域边长（chunk；8 ⇒ 每 cell {@code 8×8=64} 个候选落点）。 */
+    private static final int ANCHOR_REGION_SIDE = ANCHOR_OFFSET_MAX - ANCHOR_OFFSET_MIN + 1;
+
+    /**
+     * 候选迁移（P24-B）每 cell 最多再尝试的<b>备选锚点数</b>（原锚点之外；纯重试上限，
+     * 非概率参数）。取 2 = 任务包给的余量档：本样本（12 候选）实测 <b>1 次</b>尝试即捕获
+     * 全部迁移收益（cap=1 与 cap=2 读数逐位同：GATE_OFF 弃位 4/12），故第 2 次是"未见种子"
+     * 的确定性余量，只在第 1 个备选点也被弃时才付代价（最坏代价 = 3 次锚点判定/cell）。
+     */
+    private static final int MIGRATION_MAX_ATTEMPTS = 2;
+
+    /** 备选锚点枚举次序的起点盐（{@code mix(cellSeed, 盐)} 定起点；与 planFor 的 1..4 盐分路）。 */
+    private static final long MIGRATION_ORDER_SALT = 0x3E7L;
+    /**
+     * 备选锚点枚举步长（与 64 互质 ⇒ {@code (start + k·13) mod 64} 走遍全部 64 个候选点）。
+     * 起点由 cellSeed 决定、步长固定 ⇒ 子序是<b>确定性的纯置换</b>，零额外随机源；
+     * 起点随 cell 变使"总是先试 +x 方向"的方向偏置不成立。
+     */
+    private static final int MIGRATION_SCAN_STRIDE = 13;
 
     /** 城市盐（"cItY" 助记；GTSRWorldgenHash.cellSeed 盐隔离不同用途）。 */
     public static final long SALT_CITY = 0xC174L;
@@ -84,8 +119,8 @@ public final class CityPlanner {
         if (mix(cellSeed, 1) % 100L >= Config.prosperityCityChance) {
             return null;
         }
-        final int offsetChunkX = 8 + (int) (mix(cellSeed, 2) % 8); // 8..15
-        final int offsetChunkZ = 8 + (int) (mix(cellSeed, 3) % 8); // 8..15
+        final int offsetChunkX = ANCHOR_OFFSET_MIN + (int) (mix(cellSeed, 2) % ANCHOR_REGION_SIDE); // 8..15
+        final int offsetChunkZ = ANCHOR_OFFSET_MIN + (int) (mix(cellSeed, 3) % ANCHOR_REGION_SIDE); // 8..15
         final int radiusChunks = 4 + (int) (mix(cellSeed, 4) % 4); // 4..7
         return new CityPlan(
             worldSeed,
@@ -111,8 +146,11 @@ public final class CityPlanner {
         int n = 0;
         for (int dx = -1; dx <= 1; dx++) {
             for (int dz = -1; dz <= 1; dz++) {
-                final CityPlan plan = planFor(worldSeed, baseCellX + dx, baseCellZ + dz);
-                if (plan != null && cityGateAllows(worldSeed, plan) && plan.chunkInBuffer(chunkX, chunkZ)) {
+                // P24-B：门 = resolveCityPlan（原锚点过门即原样；不过则同 cell 内迁移换点；
+                // 全不过 = 弃位）。落点（placed）才是渲染/缓冲窗的真值——迁移后的城必须
+                // 按新锚点渲染与判窗，否则就是"门说能放、渲染放在湿点"。
+                final CityPlan placed = resolveCityPlan(worldSeed, planFor(worldSeed, baseCellX + dx, baseCellZ + dz));
+                if (placed != null && placed.chunkInBuffer(chunkX, chunkZ)) {
                     if (out == null) {
                         out = new CityPlan[4];
                     }
@@ -121,7 +159,7 @@ public final class CityPlanner {
                         System.arraycopy(out, 0, bigger, 0, n);
                         out = bigger;
                     }
-                    out[n++] = plan;
+                    out[n++] = placed;
                 }
             }
         }
@@ -198,9 +236,12 @@ public final class CityPlanner {
     private static final int CITY_CORE_HALF_BLOCKS = 32;
 
     /**
-     * 城门（L6 + <b>P19 §F 湿区避让</b>）：候选城是否允许存在。纯函数、零世界读取。
+     * 城门（L6 + <b>P19 §F 湿区避让 + P24-B 候选迁移</b>）：该 cell 是否有可放置的候选城。
+     * 纯函数、零世界读取。<b>本方法是 {@link #resolveCityPlan} 的布尔薄包装</b>——返回 true 只
+     * 表示"该 cell 存在一个过门的落点"，落点坐标须经 {@link #resolveCityPlan} 取（原锚点或迁移
+     * 后的备选锚点）；生产侧唯一入口 {@link #citiesNear} 正是这样用的。
      * <p>
-     * <b>两道臂</b>（依次过，任一不过该 cell 本轮弃置）：
+     * <b>两道臂</b>（在每个候选锚点上依次过）：
      * <ol>
      * <li><b>群系臂</b>（既有语义一字未改）：档由 {@link Config#prosperityCityBiomeGate} 给出
      * （0 关 / 1 锚点群系 / 2 城盘 ≥50% / 3 城盘全落群系；越界值钳到 [0,3]，未知值按最严档 3
@@ -209,20 +250,95 @@ public final class CityPlanner {
      * （外溢是渲染裁剪口径，不是城的占地）。</li>
      * <li><b>干区臂</b>（P19 新增，群系门<b>关也生效</b>——避水不是群系偏好，是放置事实）：
      * 城心按 {@link #CITY_DRY_HALF_CHUNKS} 外扩的 footprint 过 {@link PlacementGate#dryFootprint}
-     * （四角+中心+周界步 8 采样），存在水体/河滩/贴河采样列即<b>弃置该 cell 且不重试</b>
-     * （城市密度略降属预期）。</li>
+     * （四角+中心+周界步 8 采样）+ 城心 64×64 过全过制 strict 臂；存在水体/河滩/贴河采样列即
+     * <b>该锚点不可放</b>。</li>
      * </ol>
+     * <b>弃位语义（P24-B 起）</b>：单个锚点不过 ⇒ 不是立刻弃位，而是在同 cell 的 8×8 候选锚点域
+     * 内按确定性子序再试 {@link #MIGRATION_MAX_ATTEMPTS} 个备选点；<b>全部锚点都不过才弃位</b>
+     * （弃位后该 cell 无城，城市密度略降属预期）。迁移只换落点、不放松任一谓词。
      * <p>
      * <b>近似口径（拍板记录）</b>：只检查城盘 footprint 的干湿，街道/地块逐列仍走
      * {@code groundFn} 接地——城心盘已干则城内街道一般安全，无需逐列；残留风险：城缘个别列
      * 若贴河道可能仍在滩带，属可接受观感（plan §F）。
      * <p>
      * 代价提示：档 2/3 每城最多 15×15=225 次身份采样（每次本地重建一条短命链，常数代价的
-     * 纯哈希族），且只在候选城非空时跑；默认档 1 每候选城 1 次。干区臂每候选城一次 footprint
-     * 采样（周界/8 ≈ 百余列 × heightAt/lakeAt/strengthAt 三个纯函数，首列湿即早退）。城市数与
+     * 纯哈希族），且只在候选城非空时跑；默认档 1 每候选锚点 1 次。干区臂每锚点一次 footprint
+     * 采样（周界/8 ≈ 百余列 × heightAt/lakeAt/strengthAt 三个纯函数，首列湿即早退）；P24-B 后
+     * 每个弃位 cell 的代价上界 = (1 + {@link #MIGRATION_MAX_ATTEMPTS}) 倍锚点判定。城市数与
      * 暴露面积的门档选择见 plan/维度计划/调查取证/Phase1按片报告/p6-*（四张数字表）。
      */
     public static boolean cityGateAllows(long worldSeed, CityPlan plan) {
+        return resolveCityPlan(worldSeed, plan) != null;
+    }
+
+    /**
+     * 候选城<b>最终落点解析</b>（P24-B「候选迁移 / 弃位改挪位」）：{@code basePlan} 原锚点过门即
+     * 原样返回；否则在<b>同一 cell</b> 的 8×8 候选锚点域（{@link #ANCHOR_OFFSET_MIN}..
+     * {@link #ANCHOR_OFFSET_MAX}）内按确定性子序再试最多 {@link #MIGRATION_MAX_ATTEMPTS} 个
+     * 备选点，返回第一个过门者；全部不过返回 {@code null}（弃位）。
+     * <p>
+     * <b>为什么是"迁移"而不是"放松"（P24-B 口径）</b>：P23 R1 全域站格湖后，湖盘半径
+     * （水径中位 ≈192 格）与城盘（±128 格）同量级，候选城掷中湖心的概率结构性上升
+     * （干区臂弃位率 25.0%→58.33%，见 {@code PlacementGate.DRY_RATIO_CITY} javadoc）。
+     * 迁移只改<b>候选落点选择</b>（在同一批既有候选点里换一个更干的），把"弃位"变成"挪位"，
+     * <b>不动任何列级谓词</b>——湖/河/潭/护带四腿与城心全过制逐字不变，水的避让强度不降。
+     * <p>
+     * <b>确定性/纯函数</b>：备选点序 = {@code (mix(cellSeed, MIGRATION_ORDER_SALT) + k·13) mod 64}
+     * 的纯置换（起点随 cellSeed 变、步长固定，零额外随机源），只依赖 {@code cellSeed} 与常量；
+     * 门判定复用 {@link #cityGateAllowsAt}（与 {@link #planFor} 同一 {@code cellSeed}，掷骰流不
+     * 受扰动）。同 seed 同 cell 任意次解析逐位一致（CityDeterminismCheck 自证）。
+     * <p>
+     * <b>落点边界</b>：备选点仍在 cell 中部 8×8 内 ⇒ 相邻 cell 锚点最小间距仍是 17 chunk
+     * （与改动前同界，见 {@link #ANCHOR_OFFSET_MIN}）；半径沿用 basePlan，城盘尺度不变。
+     * <p>
+     * <b>调用纪律</b>：生产侧唯一入口 {@link #citiesNear} 用本方法取<b>落点</b>再判缓冲窗——
+     * 迁移后的城按新锚点渲染，不存在"门放行但渲染落在原湿点"的鬼窗；{@link #cityGateAllows}
+     * 是本方法的布尔薄包装（"该 cell 有可放置落点"），保持既有调用面的语义。
+     *
+     * @param basePlan {@link #planFor} 的原始候选（{@code null} 直接返回 {@code null}）
+     * @return 可放置的落点（原锚点或迁移后的备选锚点）；无落点 = {@code null}（弃位）
+     */
+    public static CityPlan resolveCityPlan(long worldSeed, CityPlan basePlan) {
+        if (basePlan == null) {
+            return null;
+        }
+        if (cityGateAllowsAt(worldSeed, basePlan)) {
+            return basePlan;
+        }
+        final long cellSeed = basePlan.getCellSeed();
+        final int cellX = Math.floorDiv(basePlan.getCenterChunkX(), CITY_CELL);
+        final int cellZ = Math.floorDiv(basePlan.getCenterChunkZ(), CITY_CELL);
+        final int baseOffX = basePlan.getCenterChunkX() - cellX * CITY_CELL;
+        final int baseOffZ = basePlan.getCenterChunkZ() - cellZ * CITY_CELL;
+        final int region = ANCHOR_REGION_SIDE * ANCHOR_REGION_SIDE;
+        final int start = (int) (mix(cellSeed, MIGRATION_ORDER_SALT) % region);
+        int attempts = 0;
+        for (int k = 0; k < region && attempts < MIGRATION_MAX_ATTEMPTS; k++) {
+            final int idx = (start + k * MIGRATION_SCAN_STRIDE) % region;
+            final int offX = ANCHOR_OFFSET_MIN + idx % ANCHOR_REGION_SIDE;
+            final int offZ = ANCHOR_OFFSET_MIN + idx / ANCHOR_REGION_SIDE;
+            if (offX == baseOffX && offZ == baseOffZ) {
+                continue; // 原锚点已在上一步判过（不过门），不重复计次
+            }
+            attempts++;
+            final CityPlan alt = new CityPlan(
+                worldSeed,
+                cellSeed,
+                cellX * CITY_CELL + offX,
+                cellZ * CITY_CELL + offZ,
+                basePlan.getRadiusChunks());
+            if (cityGateAllowsAt(worldSeed, alt)) {
+                return alt;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * <b>单锚点</b>城门判定（{@link #resolveCityPlan} 的原子步）：群系臂 ∧ 干区臂。与
+     * {@link #cityGateAllows} 的区别只在"不迁移"——本方法问的是"<b>这一点</b>是否可放"。
+     */
+    private static boolean cityGateAllowsAt(long worldSeed, CityPlan plan) {
         if (plan == null || !cityBiomeGateAllows(worldSeed, plan)) {
             return false;
         }
@@ -255,8 +371,8 @@ public final class CityPlanner {
     }
 
     /**
-     * 城门的<b>干区臂</b>（P19 §F；U5-redirect 占比制修正后的城盘封装）：外扩城盘过
-     * <b>占比制</b>（{@link PlacementGate#DRY_RATIO_CITY}=0.85，外缘允许 15% 滩带），
+     * 城门的<b>干区臂</b>（P19 §F；U5-redirect 占比制修正后的城盘封装；P24-B 档值 0.85→0.75）：
+     * 外扩城盘过<b>占比制</b>（{@link PlacementGate#DRY_RATIO_CITY}=0.75，外缘允许 25% 滩带），
      * 城心核心区（中心 64×64）另过<b>全过制</b> strict 臂（城市核心泡水不可接受）。
      */
     private static boolean cityDryAllows(long worldSeed, CityPlan plan) {

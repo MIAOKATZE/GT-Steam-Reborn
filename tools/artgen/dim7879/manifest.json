@@ -4,7 +4,15 @@
   "_changelog": [
     {"date": "2026-09-21", "change": "P16-A4 回写：32 档设计权威从 plan/tmp（gitignore 且属收束清理区）收进仓内 draw32_dim78.py + draw32_dim79.py + design32.json；landed.sha256 已按新字节重钉（35 行全换）；生成器 gen_dim7879_blocks.py 与本 manifest 的既有条目逐字未改。"},
     {"date": "2026-09-22", "change": "v1.20.39 T2（plan §3.7 地底石化）：OUTPUTS 追加 prosperity_stone 1 张（PALETTE 新锚 PROSPERITY_STONE，kind terrain_grit 带层理，绘制走 draw32_dim78.py 新 builder stone_ruin）；既有 56 张参数与种子逐字未改。"},
-    {"date": "2026-09-24", "change": "v1.20.43 P22-B S2（p21 §4）：OUTPUTS 追加岛心巨树三件套 5 张——垂天玄柯 log_side/log_top（PALETTE 新锚 ZENITH_BARK/ZENITH_CORE，复用 log_side/log_top 族刷）、漱玉清羽 leaves_side/leaves_top（新锚 CANOPY_JADE，复用 leaves_clump 族刷）、旧栖晴晕 prosperity_roost_glow（新锚 LUMEN_GOLD/LUMEN_WICK，新 kind=frame_strip：32×192 竖条 6 帧 + 同名 mcmeta animation.frametime=5，§4.4 裁决的 lumen 档；本 kind 不入 16 档母版 gen 主入口（显式跳过），唯一绘制器 = draw32_dim78.py lumen_strip）。_authority.no_mcmeta 的『本轮 35 张不做动画帧带』仅约束 P16 那批 35 张，本条为其后新域的显式例外登记。既有 57 张参数与种子逐字未改。"}
+    {"date": "2026-09-24", "change": "v1.20.43 P22-B S2（p21 §4）：OUTPUTS 追加岛心巨树三件套 5 张——垂天玄柯 log_side/log_top（PALETTE 新锚 ZENITH_BARK/ZENITH_CORE，复用 log_side/log_top 族刷）、漱玉清羽 leaves_side/leaves_top（新锚 CANOPY_JADE，复用 leaves_clump 族刷）、旧栖晴晕帧带（新锚 LUMEN_GOLD/LUMEN_WICK，新 kind=frame_strip：32×192 竖条 6 帧 + 同名 mcmeta animation.frametime=5，§4.4 裁决的 lumen 档；本 kind 不入 16 档母版 gen 主入口（显式跳过），唯一绘制器 = draw32_dim78.py lumen_strip）。_authority.no_mcmeta 的『本轮 35 张不做动画帧带』仅约束 P16 那批 35 张，本条为其后新域的显式例外登记。既有 57 张参数与种子逐字未改。"},
+    {
+      "date": "2026-09-26",
+      "change": "P24-A1 贴图重绘（纯像素轮，无 mod 版本变更）：岛心巨树四张（prosperity_zenith_log_side/top、prosperity_jade_leaves_side/top）改走 32 档直画层——新增 OUTPUTS[*].params32（32 档在产档位，含全部数值与色角色）+ draw32_dim78.py 新 builder zenith_log_side/zenith_log_top/jade_leaves（+ params32 色值 lint）；entry.params（16 档母版档位）、SEEDS、PALETTE/DERIVED_RULES、其余 58 张 OUTPUTS 与产物逐字未改（landed.sha256 对照 58 行不变）。旧档被用户判「暗岩竖纹 + 稀疏噪点 / 青底散点像苔藓」的根因是 32 档仍吃 16 档细格点场 + 逐像素撒点；新档改为「长条树皮鳞 + 深浅两档成段 + 玉脉」/「显式半径年轮 + ZENITH_CORE 芯 + 玉髓镶边」/「交错格位成簇叶团 + 叶隙网 + 玉质高光」。同步三处色数契约（design32.measured 9/8/5/5、review/dim1/index.html colors 9/8/5/5、landed.sha256 重钉四行）。"
+    },
+    {
+      "date": "2026-09-26",
+      "change": "P24-A2 旧栖晴晕改纯光效（无 mod 版本变更）：按用户裁决「不要材质，纯粹的光源光效（和奇点一样）」——该帧带条目从 OUTPUTS/SEEDS 移除（62→61）、design32 档案同步删（62→61）、自有 PNG 与同名 mcmeta 删除、draw32_dim78.py 的 KEYS/BUILDERS/REASONS 三处挂点退役（lumen_strip/write_strip 画架保留作历史实现，无调用方）；Java 侧改绑 vanilla 全透明贴图 + randomDisplayTick 纯光点光效。既有 61 张参数与种子逐字未改（landed.sha256 对照 61 行重钉）。"
+    }
   ],
   "_authority": {
     "dim78_semantics": "plan/investigation/dim78-fix-slice-A1-report.md §1（12 方块登记表：四群系 top/base + 2 草丛 + 锈树干 + 锈树叶；17 张占位）",
@@ -179,7 +187,6 @@
     "prosperity_zenith_log_top": "0x5EED8172",
     "prosperity_jade_leaves_side": "0x5EED8173",
     "prosperity_jade_leaves_top": "0x5EED8174",
-    "prosperity_roost_glow": "0x5EED8175",
     "shattered_corestone": "0x5EED9101",
     "shattered_monolith": "0x5EED9102",
     "shattered_ash_top": "0x5EED9103",
@@ -1263,7 +1270,41 @@
         "band": "ZENITH_CORE@D220",
         "band_rows": [3, 11]
       },
-      "_read": "垂天玄柯树干侧面：与 rust/copper/brass/marsh 同骨架（纵向纹场 4×16 + 棱脊 + 斑团 2 + 2 道环带），换靛黑 ZENITH_BARK 谱、斑团/环带走 ZENITH_CORE 淡靛（岛心古树的冷苔斑）⇒ 与锈系四档的暖锈斑/霜点/闪点/锈暗点靠色温双差可辨"
+      "params32": {
+        "_scope": "32 档直画层（P24-A1 重绘）档位；entry.params 仍是 16 档母版档位（本片逐字未改）。数值含义见 tools/artgen/dim7879/draw32_dim78.py:zenith_log_side",
+        "base": "ZENITH_BARK",
+        "plate_dark": "BASE@D070",
+        "plate": "BASE",
+        "plate_lit": "BASE@L090",
+        "crack": "BASE@D420",
+        "crack_pale": "BASE@L060",
+        "ridge": "BASE@L180",
+        "vein": "CANOPY_JADE@D340",
+        "vein_core": "CANOPY_JADE@D240",
+        "vein_glint": "ZENITH_CORE@L140",
+        "run_rows": 8,
+        "run_jitter": 3,
+        "crack_strip_ratio": 0.34,
+        "crack_w_min": 1,
+        "crack_w_span": 2,
+        "plate_w_min": 2,
+        "plate_w_span": 3,
+        "crack_absent_ratio": 0.16,
+        "crack_deep_ratio": 0.5,
+        "plate_lit_ratio": 0.16,
+        "plate_dark_ratio": 0.3,
+        "ridge_ratio": 0.5,
+        "ridge_len": 5,
+        "knot_count": 2,
+        "vein_count": 2,
+        "vein_min_x": 3,
+        "vein_max_x": 29,
+        "vein_span_x": 24,
+        "vein_len_min": 8,
+        "vein_len_span": 5,
+        "vein_jog": 7
+      },
+      "_read": "垂天玄柯树干侧面（P24-A1 重绘，在产档位 = params32）：原版树皮口径的「长条树皮鳞 + 裂纹 + 受光棱」——自 x=0 铺 ~10 条不等宽纵向条（板条 2..4px / 裂纹条 1..2px），每条沿高分 4 段（段界 8px 逐条抖动）、段内**整段**取档（板条 {BASE@D070,BASE,BASE@L090}；裂纹条 {缺席填板色, BASE@L060 浅裂, BASE@D420 深裂}）⇒ 长条 + 深浅两档 + 偶发断口（旧档 4×16 细格点场 + 逐列撒点节疤在 32 档读作暗岩噪点）；裂纹条右侧 1px BASE@L180 受光棱断续 5px 短划；2 枚暗结节（3×3 环 + 左上受光）；2 道 CANOPY_JADE 玉脉（8..12px、每 7px 一抖、玉首渐亮 + 1px ZENITH_CORE@L140 玉髓闪）⇒「玄柯里长着玉」。环边零跳变由构造保证（末条类型/逐段档位/段界全取首条；每条末段档位 = 首段；末条不画棱），实测 seam x=0.00 y=0.00（组阈值 0.40）。entry.params 旧档 = 16 档母版（gen 复跑口径不变），在产 32×32 只由 params32 决定"
     },
     {
       "key": "prosperity_zenith_log_top",
@@ -1285,7 +1326,37 @@
         "crack_count": 2,
         "ring_period": 3
       },
-      "_read": "垂天玄柯横截面：同心年轮骨架同族（髓心 (17,14) 手移、非完美同心），芯色换 ZENITH_CORE 淡靛 ⇒ 巨树断面的冷芯年轮"
+      "params32": {
+        "_scope": "32 档直画层（P24-A1 重绘）档位；entry.params 仍是 16 档母版档位（本片逐字未改）。数值含义见 tools/artgen/dim7879/draw32_dim78.py:zenith_log_top",
+        "base": "ZENITH_BARK",
+        "bark_dark": "BASE@D420",
+        "bark_mid": "BASE",
+        "bark_lit": "BASE@L180",
+        "bark_w": 3,
+        "bark_tick_pitch": 8,
+        "wood": "ZENITH_CORE@D160",
+        "ring": "ZENITH_CORE@D420",
+        "ring_lit": "ZENITH_CORE@L140",
+        "core": "ZENITH_CORE",
+        "jade_rim": "CANOPY_JADE@D340",
+        "center": [17, 14],
+        "ring_radii": [7.0, 11.5],
+        "ring_w": 1.4,
+        "ring_lit_w": 1.0,
+        "ring_lit_every": 1,
+        "ring_wobble": 0.075,
+        "core_r": 2.6,
+        "core_rim": 0.0,
+        "jade_rim_w": 1.6,
+        "crack_count": 2,
+        "crack_len_min": 8,
+        "crack_len_span": 4,
+        "bark_wedge_count": 1,
+        "bark_wedge_r0": 12.0,
+        "bark_wedge_len_min": 5,
+        "bark_wedge_len_span": 3
+      },
+      "_read": "垂天玄柯横截面（P24-A1 重绘，在产档位 = params32）：年轮改为**显式半径**（ring_radii=[7.0,11.5] 两道 1.4px 暗线 ZENITH_CORE@D420 + 线内侧 1px ZENITH_CORE@L140 受光）⇒ 不是周期等厚等距密排环（旧档 + 高亮圆心在 16 档读作靶心/瞳孔）；半径 ×(1+0.075·sin(3θ+φ)) 起伏、圆心 (17,14) 手移 ⇒ 不完美同心；中心核按 brief = ZENITH_CORE 本体 2.6px + 左上象限偏心受光点 + 核外 1.6px CANOPY_JADE@D340 玉髓镶边 ⇒「玄玉的芯镶着玉」；树皮环 3px（外缘 BASE@D420 + 体 BASE + 每 8px 径向暗齿、内端 BASE@L180 受光）+ 1 条树皮楔入 + 2 条自核向外的放射裂纹；木面 ZENITH_CORE@D160 比树皮亮一档（原版原木「断面比树皮亮」口径）。tileable=false ⇒ 不做拼接断言"
     },
     {
       "key": "prosperity_jade_leaves_side",
@@ -1306,7 +1377,38 @@
         "oxide": "GLINT@D140",
         "oxide_density": 0.018
       },
-      "_read": "漱玉清羽冠层侧面：leaves_clump 同骨架（细碎簇场 + 暗孔 + 亮针尖），底换 CANOPY_JADE 青碧玉色（比铜绿冠层更冷更透）、点缀用 GLINT 淡滴（漱玉水痕）⇒ 巨树冠与三档灌木冠靠色相 + 点缀谱拉开"
+      "params32": {
+        "_scope": "32 档直画层（P24-A1 重绘）档位；entry.params 仍是 16 档母版档位（本片逐字未改）。数值含义见 tools/artgen/dim7879/draw32_dim78.py:jade_leaves",
+        "base": "CANOPY_JADE",
+        "leaf_lit": "BASE",
+        "leaf_shade": "BASE@D180",
+        "gap": "BASE@D420",
+        "sheen": "BASE@L420",
+        "warm_tip": "GLINT@D200",
+        "cells": 4,
+        "stagger": 4,
+        "clump_r": 4.0,
+        "clump_r_span": 1.0,
+        "center_jitter": 2.4,
+        "elong_x": 0.96,
+        "elong_y": 1.16,
+        "solid_frac": 0.84,
+        "edge_keep": 0.45,
+        "edge_wobble_amp": 0.6,
+        "edge_wobble_cells": 4,
+        "shade_mode": "diag",
+        "diag_bias": 0.42,
+        "rim_inner": 0.78,
+        "skip_ratio": 0.1,
+        "node_hole_ratio": 0.25,
+        "inner_hole_ratio": 0.2,
+        "inner_hole_cells": 4,
+        "dark_clump_ratio": 0.22,
+        "sheen_ratio": 0.5,
+        "warm_ratio": 0.16,
+        "warm_frac": 0.85
+      },
+      "_read": "漱玉清羽冠层侧面（P24-A1 重绘，在产档位 = params32）：弃细碎场撒点（32 档读作水面/苔藓），改原版树叶口径的成簇叶团——4×4 格位（8px、奇数行错半格 ⇒ 砖缝排布）每格一团（半径 4.0..5.0、纵向 1.16 拉长、中心抖动 ±1.2px、半径再乘 8px 低频场形变 0.6 ⇒ 团界不读作圆点），团内 diag 斜分受光面 CANOPY_JADE / 背光面 BASE@D180 两档、团缘以 0.45 概率保留 ⇒ 成簇不齐；约 2 成叶团取背光团（整团 @D180）⇒ 深浅团块之分（零新增色）；团间留底座 BASE@D420 ⇒ 叶隙网 + 格位交点深孔 0.25 + 0.1 概率整格空洞 ⇒ 透光孔；每团左上 1..2px BASE@L420 玉质高光 + 极稀疏 GLINT@D200 偏暖叶尖（按 0.85→0.72→0.92 找第一个叶面像素落笔 ⇒ 暖点不落叶隙）。用色 5 = 原版树叶色数档。装饰层在**全部叶团画完之后**再落笔（随团即画会被后画的团吃掉）。tint 仍走父类 3×3 群系草色乘色（乘色底口径未改：原图自带青玉色相，入游戏后由群系色相乘）"
     },
     {
       "key": "prosperity_jade_leaves_top",
@@ -1327,31 +1429,38 @@
         "oxide": "GLINT@D140",
         "oxide_density": 0.018
       },
-      "_read": "漱玉清羽顶视：与 side 同谱同画法，暗孔 0.12/亮针 0.20 加密 ⇒ 俯视巨树冠的日光缝隙（差异来自参数不是另一套笔刷，同铜绿/黄铜/沼木档口径）"
-    },
-    {
-      "key": "prosperity_roost_glow",
-      "file": "prosperity_roost_glow.png",
-      "group": "prosperity_decor",
-      "block": "ProsperityRoostGlow（BlockProsperityRoostGlow 十字渲染 renderType=1；旧栖晴晕，光 14）",
-      "kind": "frame_strip",
-      "tileable": false,
-      "frames": 6,
-      "mcmeta": { "animation": { "frametime": 5 } },
-      "params": {
-        "base": "LUMEN_GOLD",
-        "wick": "LUMEN_WICK",
-        "wick_lit": "LUMEN_WICK@L090",
-        "flame_hot": "BASE@L280",
-        "flame_mid": "BASE",
-        "flame_low": "BASE@D140",
-        "flame_deep": "BASE@D280",
-        "spark": "GLINT@D045",
-        "flame_height": 11,
-        "sway_amp": 1.6,
-        "sway_row_phase": 0.55
+      "params32": {
+        "_scope": "32 档直画层（P24-A1 重绘）档位；entry.params 仍是 16 档母版档位（本片逐字未改）。与 side 同 builder（jade_leaves），差异全在本块参数（同铜绿/黄铜/沼木顶档口径）",
+        "base": "CANOPY_JADE",
+        "leaf_lit": "BASE",
+        "leaf_shade": "BASE@D180",
+        "gap": "BASE@D420",
+        "sheen": "BASE@L420",
+        "warm_tip": "GLINT@D200",
+        "cells": 4,
+        "stagger": 4,
+        "clump_r": 5.0,
+        "clump_r_span": 1.0,
+        "center_jitter": 1.6,
+        "elong_x": 1.0,
+        "elong_y": 1.0,
+        "solid_frac": 0.84,
+        "edge_keep": 0.5,
+        "edge_wobble_amp": 0.5,
+        "edge_wobble_cells": 4,
+        "shade_mode": "rim",
+        "diag_bias": 0.42,
+        "rim_inner": 0.82,
+        "skip_ratio": 0.04,
+        "node_hole_ratio": 0.55,
+        "inner_hole_ratio": 0.28,
+        "inner_hole_cells": 4,
+        "dark_clump_ratio": 0.18,
+        "sheen_ratio": 0.4,
+        "warm_ratio": 0.16,
+        "warm_frac": 0.85
       },
-      "_read": "旧栖晴晕帧带（§4.4 lumen 档）：32×192 竖条 6 帧 = 暗芯烛柱 LUMEN_WICK + 金焰四阶（hot/mid/low/deep 全由 LUMEN_GOLD 派生，零 tint——金色画进像素）+ 奇数帧一粒 GLINT 飞火；帧间跃动 = 行相位正弦摆（相位由种子派生、逐帧 TAU·f/6 推进），全帧确定可双跑复现。16 档母版 gen 主入口对本 kind 显式跳过（帧带原生 32 档，唯一绘制器 = draw32_dim78.py lumen_strip）"
+      "_read": "漱玉清羽顶视（P24-A1 重绘，在产档位 = params32）：同 builder 同谱，差异**全在参数**（同铜绿/黄铜/沼木顶档口径，不是另一套笔刷）——半径 5.0..6.0（更密：叶面 567px vs side 409px）、中心抖动 ±0.8px（更匀）、shade_mode=rim（俯视受光在团心、背光在团缘，side 是左上斜分）、低频形变 0.5/格点 4、skip_ratio 0.04（side 0.1）、格位交点深孔 0.55（side 0.25）⇒ 更密的叶簇 + 更细碎的透光孔（原版 oak_leaves_top 比 side 更密匀的口径）。主导色 = CANOPY_JADE 本体（side 是 @D180）⇒ 顶视更亮。装饰层落笔纪律同 side"
     },
     {
       "key": "shattered_corestone",

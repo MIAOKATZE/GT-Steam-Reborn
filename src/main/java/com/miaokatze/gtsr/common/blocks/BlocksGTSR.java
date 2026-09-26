@@ -180,7 +180,10 @@ public final class BlocksGTSR {
     /** 漱玉清羽（巨树冠层叶块；复用 BlockProsperityCanopyLeaves side/top 双图标 + 锈叶 tint 继承）。 */
     public static Block prosperityJadeLeaves;
 
-    /** 旧栖晴晕（光 14 / 硬度 0 / 无碰撞 / 十字渲染光源；类 BlockProsperityRoostGlow，零 tint 金进像素）。 */
+    /**
+     * 旧栖晴晕（光 14 / 硬度 0 / 无碰撞 / 十字渲染光源载体；类 BlockProsperityRoostGlow）。
+     * v1.20.44 P24-A2：贴图改 vanilla 全透明 ⇒ 不可见方块本体 + randomDisplayTick 纯光点光效（零自有 PNG/mcmeta）。
+     */
     public static Block prosperityRoostGlow;
 
     private BlocksGTSR() {}

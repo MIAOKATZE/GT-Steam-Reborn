@@ -203,7 +203,8 @@ public class BlockLoader {
         // v1.20.43 P22-B S2（p21 §4）：岛心巨树三件套——垂天玄柯（rust 骨架换谱复用 BlockProsperityRustLog）、
         // 漱玉清羽（冠叶复用 BlockProsperityCanopyLeaves，tint 随锈叶父类）、旧栖晴晕（新类
         // BlockProsperityRoostGlow：circuits 料 + setLightLevel(0.9375F)=光 14 + 硬度 0.0F + 无碰撞 +
-        // 十字渲染，零 tint——金色画进像素）。meta 恒 0、ItemBlock 三全零；全部非表层 top，
+        // 十字渲染；v1.20.44 P24-A2 起贴图 = vanilla 全透明 ⇒ 不可见载体 + randomDisplayTick 纯光点光效，
+        // 零自有 PNG/mcmeta）。meta 恒 0、ItemBlock 三全零；全部非表层 top，
         // 不进 SurfaceGate 名册（DIM78_SIZE 恒 5）；世界生成消费方 = S3 树趟 / S4 光趟，本片零接线。
         BlocksGTSR.prosperityZenithLog = new BlockProsperityRustLog(
             "ProsperityZenithLog",
@@ -215,9 +216,7 @@ public class BlockLoader {
             "gtsr:prosperity_jade_leaves_side",
             "gtsr:prosperity_jade_leaves_top");
         GameRegistry.registerBlock(BlocksGTSR.prosperityJadeLeaves, "ProsperityJadeLeaves");
-        BlocksGTSR.prosperityRoostGlow = new BlockProsperityRoostGlow(
-            "ProsperityRoostGlow",
-            "gtsr:prosperity_roost_glow");
+        BlocksGTSR.prosperityRoostGlow = new BlockProsperityRoostGlow("ProsperityRoostGlow");
         GameRegistry.registerBlock(BlocksGTSR.prosperityRoostGlow, "ProsperityRoostGlow");
         final Block[] prosperityNaturalBlocks = { BlocksGTSR.prosperitySteppeTop, BlocksGTSR.prosperitySteppeBase,
             BlocksGTSR.prosperityForestTop, BlocksGTSR.prosperityForestBase, BlocksGTSR.prosperityWastesTop,

@@ -185,9 +185,27 @@ public final class P17VegetationFrequencyCheck {
      * <p>
      * <b>P23 R1·S6 口径修正复核</b>：逐株形态读数（trunkMin/Max/Mean）与分母口径无关——
      * 可落树列归一化<b>不改变</b>任何一株的实测干高，故森行实测仍为 33（新口径下巨树落位被
-     * 湖水列吞掉这件事本身不变：水列无 naturalTop）⇒ 带原文不动；原 24 / 沼 26 同。
+     * 湖水列吞掉这件事本身不变：水列无 naturalTop）⇒ 带原文不动（原 24 / 沼 26 同；原行的
+     * P24-B 漂移见下段）。
+     * <p>
+     * <b>P24-B 城窗采样集漂移重钉（原行 {24,24} → [22,24]）</b>：P24-B 城市片改
+     * {@code PlacementGate.DRY_RATIO_CITY}（0.85 → 0.75）与 {@code CityPlanner} 候选迁移 ⇒ 本判据
+     * <b>城窗排除的 chunk 集</b>位移（M 组样本 = 区域 chunk − 城窗 chunk，两边同一处
+     * {@code CityPlanner.citiesNear} 判定）⇒ 采样集变化。同口径复跑（seeds=4 regions=2 axis=16）：
+     * 原行样本 chunk <b>575 → 483</b>、trunkMax <b>24 → 22</b>——旧采样集里那株 24 高 GreatOak
+     * 不再被采到；22 与 24 同在 {@code MegaTreeForms.greatOak} 的结构域 <b>20..28</b> 内，差值是
+     * 逐株高度掷骰 + 障碍截断的取样差异，<b>不是</b>巨树形态改动。新带取 <b>[22,24]</b>：
+     * <b>下界 = 新实测</b>（与森行 [33,37] 的下界取法同族——都取"新样本集下实测最高档在场"）＋
+     * <b>上界保留旧锚 24</b> 守"最高档不缺席"语义（原带 [24,24] 原文保留在上一段历史说明里；
+     * 22 仍远高于原档<b>普通</b>最高档 4..6 ⇒ 退化成普通/草原档仍红，不是无意义区间）。
+     * 归因链：C+D 片影子树复跑已证把 {@code CityPlanner}/{@code PlacementGate} 还原到 HEAD 即回
+     * 1 条 ORDER 红（本行一并转绿）⇒ 本红属 P24-B 采样集漂移，非装饰层形态回归。
+     * <p>
+     * 复跑证据（同口径）：旧样本集 max 24 且本断言<b>绿</b>见 {@code temp/p23-s6/VEG-1.out}
+     * 与 {@code temp/p22-s3/veg-after.out}；P24-B 落地后 max 22 见
+     * {@code temp/p4-surface/P17VegetationFrequencyCheck.out}。
      */
-    private static final int[][] BAND_TRUNK_MAX = { { 24, 24 }, { 33, 37 }, { 0, 2 }, { 26, 26 } };
+    private static final int[][] BAND_TRUNK_MAX = { { 22, 24 }, { 33, 37 }, { 0, 2 }, { 26, 26 } };
     /** 干高均值带（三档混合期望）；荒漠带 [0,2] = 无树样本 0 或界带灌木 1-2 的混合期望。 */
     private static final double[][] BAND_TRUNK_MEAN = { { 2.05D, 3.07D }, { 6.30D, 9.45D }, { 0.0D, 2.0D },
         { 3.85D, 5.77D } };

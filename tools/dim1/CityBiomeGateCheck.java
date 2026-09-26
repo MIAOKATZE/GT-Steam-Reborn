@@ -88,8 +88,27 @@ public class CityBiomeGateCheck {
      * （v1.20.42 复跑 3/12 = 25.0%），属放湖的<b>设计内</b>漂移非门回归（E1 keptRatio 5/12 =
      * 41.7% ≥ 0.10 照绿）。75% = 候选城被砍 3/4（n=12 粗样本一城 ≈ 8.3pp ⇒ 9/12 仍绿、
      * 10/12 = 83.3% 红），保留"提前于 E1 可见的红灯"语义与 1.29× 余量。
+     * <p>
+     * <b>P24-B 重钉：75% → 42%</b>（用户裁决「调档 + 候选迁移」后按实跑回钉）。两项改动：
+     * ① {@code PlacementGate.DRY_RATIO_CITY} 0.85→0.75（城盘外缘滩带容忍 15%→25%，列级谓词
+     * 一字不动）；② {@code CityPlanner.resolveCityPlan} 候选迁移（原锚点被弃时在同 cell 的
+     * 8×8 候选锚点域内确定性地再试 ≤2 个备选点）。本样本实测（GATE_OFF 分母口径不变）：
+     * <pre>
+     *   P23 原态（0.85，不迁移）          : 7/12 = 58.333%
+     *   仅调档（0.75，不迁移）            : 6/12 = 50.000%   （救回 1 座近线候选）
+     *   调档 + 迁移（本态）               : 4/12 = 33.333%   （迁移再救 2 座：湖缘平移到干锚点）
+     * </pre>
+     * 42% 的取法：n=12 ⇒ 一城 8.33pp，42% = 实测 33.333% + 一格粒度 ⇒ 5/12（41.667%）仍绿，
+     * 6/12（50.0% = <b>迁移失效/退回仅调档态</b>）即红，7/12（58.333% = P23 湖弃位原态）必红；
+     * 余量 1.26×，保留"提前于 E1（keptRatio ≥ 0.10 ⇒ 弃位 90%）可见"的回归闸语义。
+     * <p>
+     * <b>为什么不回退到 50%</b>：50% 会把"迁移机制整体失效"（恰好退回仅调档读数）判绿，
+     * 而迁移正是 P24-B 的另一半交付；42% 是同时钉住档值与迁移的两用闸。
+     * <p>
+     * <b>迁移只改落点不改谓词</b>：本闸的读数下降全部来自"候选落点选择"，湖/河/潭/护带四腿
+     * 与城心 64×64 全过制逐字未动 ⇒ 越界不可能由"谓词被放松"造成，必是落点解析回归。
      */
-    private static final double DRY_ABANDON_MAX = 0.75D;
+    private static final double DRY_ABANDON_MAX = 0.42D;
 
     private static int assertions;
     private static final List<String> FAILURES = new ArrayList<>();
@@ -134,7 +153,16 @@ public class CityBiomeGateCheck {
         groupD(seeds, regions);
     }
 
-    /** A 组：无鬼窗——渲染侧与抑制侧对"此处有城"逐点相同。 */
+    /**
+     * A 组：无鬼窗——渲染侧与抑制侧对"此处有城"逐点相同。
+     * <p>
+     * <b>P24-B 独立性口径说明（如实登记）</b>：抑制侧复算在 P24-B 起也用
+     * {@code CityPlanner.resolveCityPlan}（与生产入口同一"门"），故本组对<b>迁移落点选择</b>
+     * 不再独立（那是另两处同源性的必然代价）；本组仍独立钉住的是：① 渲染返回的每一座城都过门
+     * （{@code ghost}）；② 3×3 cell 扫描 + cellSeed 集合身份 + 缓冲窗过滤的记账等价
+     * （{@code missing}/{@code contentDiff}）——即"渲染说有城、放置器说不许放"与"扫描漏检"
+     * 两类真缺陷仍在射程内。
+     */
     private static void groupA(int seeds, int regions) {
         int chunks = 0;
         int ghost = 0;
@@ -152,14 +180,21 @@ public class CityBiomeGateCheck {
                         chunks++;
                         // 渲染侧：生产唯一入口（ProsperityWorldGenerator.placeCities 用的就是它）
                         final CityPlan[] render = CityPlanner.citiesNear(seed, cx, cz);
-                        // 抑制侧的等价复算：3×3 cell 的原始候选城 → 逐座过门 → 再套缓冲窗
+                        // 抑制侧的等价复算：3×3 cell 的原始候选城 → 逐座解析落点 → 再套缓冲窗。
+                        // P24-B 起"门"= resolveCityPlan（原锚点过门，或同 cell 内迁移后的备选
+                        // 锚点），两侧必须同走该入口——否则迁移会把"渲染有城 / 复算无城"打成
+                        // 鬼窗假红（集合键仍是 cellSeed，迁移不改 cell 身份）。
                         final TreeSet<Long> manual = new TreeSet<>();
                         final int bcx = Math.floorDiv(cx, CityPlanner.CITY_CELL);
                         final int bcz = Math.floorDiv(cz, CityPlanner.CITY_CELL);
                         for (int k = -1; k <= 1; k++) {
                             for (int l = -1; l <= 1; l++) {
                                 final CityPlan p = CityPlanner.planFor(seed, bcx + k, bcz + l);
-                                if (p != null && CityPlanner.cityGateAllows(seed, p) && p.chunkInBuffer(cx, cz)) {
+                                if (p == null) {
+                                    continue;
+                                }
+                                final CityPlan placed = CityPlanner.resolveCityPlan(seed, p);
+                                if (placed != null && placed.chunkInBuffer(cx, cz)) {
                                     manual.add(Long.valueOf(p.getCellSeed()));
                                 }
                             }
@@ -196,6 +231,8 @@ public class CityBiomeGateCheck {
         check(selected.anchorInBandPct() == 100.0D, "B2 判据 2：选定档下过门城的锚点 chunk 身份必须 100% 为锈蚀草原"
             + "（实测 " + pct(selected.anchorInBandPct()) + "%，过门城 " + selected.citiesKept + " 座 / 候选 "
             + selected.citiesAnchored + " 座）");
+        // P24-B 核过：迁移不改 cell 身份、也不放松谓词，选定档仍被 biome 臂削掉 10/12
+        // （keptRatio 0.1667 < 1.0）⇒ "门真的在削减" 语义保持，断言原文不动。
         check(selected.citiesKept > 0 && selected.keptRatio() < 1.0D, "B3 门必须真的在削减：选定档过门 "
             + selected.citiesKept + " / 候选 " + selected.citiesAnchored + "（keptRatio="
             + fmt(selected.keptRatio(), 4) + "）");
@@ -217,18 +254,20 @@ public class CityBiomeGateCheck {
             "C3 申报性对照：门关闭时锚点草原率 " + pct(ungated.anchorInBandPct())
                 + "% ∈ (5,60)（等权链下草原份额 ≈25%，出带即身份面或采样几何漂移）");
         // v1.20.42 P22 A1c：干区臂弃位率首钉（E3，读数依据与旧 17.44% 记录的关系见 DRY_ABANDON_MAX javadoc）
+        // P24-B：分母（候选）= planFor 的<b>原锚点</b>口径不变 ⇒ 与 P22/P23 读数直接可比；分子 =
+        // 该 cell 的全部候选锚点（原锚点 + ≤2 个迁移备选点）都被弃的 cell 数。
         final double dryAbandon = ungated.citiesAnchored == 0 ? 0.0D
             : (ungated.citiesAnchored - ungated.citiesKept) / (double) ungated.citiesAnchored;
         System.out.println(
             "  # E3-READ 干区臂弃位率=" + pct(dryAbandon * 100.0D) + "%（候选 " + ungated.citiesAnchored
                 + " 弃 " + (ungated.citiesAnchored - ungated.citiesKept)
-                + "；P19-U5 全候选口径记录 17.44%（非判据钉）；P22 A1a/A1b 后与 A0 基线逐位同）");
+                + "；P22 25.0% → P23 58.333%（湖全域化）→ P24-B 本读；P19-U5 全候选口径记录 17.44% 非判据钉）");
         check(dryAbandon <= DRY_ABANDON_MAX,
             "E3 干区臂弃位率 " + pct(dryAbandon * 100.0D) + "% ≤ " + pct(DRY_ABANDON_MAX * 100.0D)
-                + "%（v1.20.42 P22 A1c 首钉的水避让回归上界：GATE_OFF 档只含干区臂（C2 口径），"
-                + "候选城被该臂弃置 " + (ungated.citiesAnchored - ungated.citiesKept) + "/"
-                + ungated.citiesAnchored + "；旧 CITY 17.44% 为 P19-U5 全候选探针记录值非判据钉，"
-                + "A1a wetAt 收紧 + A1b 潭避让腿后本样本零位移——见 DRY_ABANDON_MAX javadoc）");
+                + "%（P24-B 重钉的水避让回归上界：GATE_OFF 档只含干区臂（C2 口径），候选城被弃 "
+                + (ungated.citiesAnchored - ungated.citiesKept) + "/" + ungated.citiesAnchored
+                + "；P24-B = DRY_RATIO_CITY 0.85→0.75 调档 + resolveCityPlan 候选迁移，"
+                + "列级谓词逐字未动——42% 的取法与三态读数见 DRY_ABANDON_MAX javadoc）");
 
         // 身份面的几何可行性（B2 改判：城盘能否整体装进草原身份区不再由 macro 带保证，而由链的
         // 成片尺度保证）——样本窗外扩后最大草原 4-连通簇必须 ≥ 最小城盘 9×9=81 chunk
@@ -255,6 +294,10 @@ public class CityBiomeGateCheck {
             + "（r=7 大城的 225 chunk 档是上界不是保证，由门档 2/3 按需收紧）");
 
         // E 组：选定档阈值（城不能被门砍光，覆盖面积必须落在申报带内）
+        // P24-B 核过（调档 + 迁移后的新选址行为）：E1 实测 2/12 = 0.1667（原 0.1667，未变）；
+        // E2 实测 8.740pp（原 7.953pp，仍在 [2,20] 内）——两项<b>均未触线、无需重钉</b>，
+        // 采样窗内选定档（gate=1）保留城数不变（biome 臂是选定档的主过滤器，迁移在 gate=1 下
+        // 本样本零救回；见 DRY_ABANDON_MAX javadoc 的三态读数），故申报带与断言原文保持。
         check(selected.keptRatio() >= 0.10D,
             "E1 选定档 keptRatio " + fmt(selected.keptRatio(), 4) + " ≥ 0.10（城市数不得塌到不可用）");
         check(selected.coveragePp() >= 2.0D && selected.coveragePp() <= 20.0D,
@@ -521,7 +564,7 @@ public class CityBiomeGateCheck {
                 }
             }
         }
-        // 2) 逐城：候选（planFor）→ 门（cityGateAllows）→ 盖缓冲窗
+        // 2) 逐城：候选（planFor）→ 落点（resolveCityPlan：原锚点/迁移）→ 盖缓冲窗
         r.sampleChunks += (long)AXIS * AXIS;
         final int cellFrom = Math.floorDiv(cx0, CityPlanner.CITY_CELL) - 2;
         final int cellTo = Math.floorDiv(cx0 + AXIS, CityPlanner.CITY_CELL) + 2;
@@ -533,30 +576,35 @@ public class CityBiomeGateCheck {
                 if (p == null) {
                     continue;
                 }
+                // 候选基数（citiesAnchored）仍按 planFor 的<b>原锚点</b>口径 —— 与 P22/P23 的
+                // 25.0%/58.33% 读数同分母，E3 弃位率才与历史可比（迁移只改"落点"，不改"候选"）。
                 final boolean anchorInWindow = p.getCenterChunkX() >= cx0 && p.getCenterChunkX() < cx0 + AXIS
                     && p.getCenterChunkZ() >= cz0 && p.getCenterChunkZ() < cz0 + AXIS;
                 if (anchorInWindow) {
                     r.citiesAnchored++;
                 }
-                if (!CityPlanner.cityGateAllows(seed, p)) {
+                // P24-B：落点 = 原锚点过门，或同 cell 内迁移后的备选锚点；统计与盖窗<b>一律用落点</b>
+                // （城市真值坐标）——否则 D1（逐 chunk citiesNear 对照）与迁移后的窗口径脱钩。
+                final CityPlan placed = CityPlanner.resolveCityPlan(seed, p);
+                if (placed == null) {
                     continue;
                 }
                 if (anchorInWindow) {
                     r.citiesKept++;
-                    if (CityPlanner.steppeBandAt(seed, p.getCenterChunkX(), p.getCenterChunkZ())) {
+                    if (CityPlanner.steppeBandAt(seed, placed.getCenterChunkX(), placed.getCenterChunkZ())) {
                         r.anchorInBand++;
                         r.cityBandKeys.add(bandKey(
-                            Math.floorDiv(p.getCenterChunkX(), REPORT_CELL),
-                            Math.floorDiv(p.getCenterChunkZ(), REPORT_CELL)));
+                            Math.floorDiv(placed.getCenterChunkX(), REPORT_CELL),
+                            Math.floorDiv(placed.getCenterChunkZ(), REPORT_CELL)));
                     }
-                    final int disc = 2 * p.getRadiusChunks() + 1;
+                    final int disc = 2 * placed.getRadiusChunks() + 1;
                     int inBand = 0;
-                    for (int dx = -p.getRadiusChunks(); dx <= p.getRadiusChunks(); dx++) {
-                        for (int dz = -p.getRadiusChunks(); dz <= p.getRadiusChunks(); dz++) {
+                    for (int dx = -placed.getRadiusChunks(); dx <= placed.getRadiusChunks(); dx++) {
+                        for (int dz = -placed.getRadiusChunks(); dz <= placed.getRadiusChunks(); dz++) {
                             if (CityPlanner.steppeBandAt(
                                 seed,
-                                p.getCenterChunkX() + dx,
-                                p.getCenterChunkZ() + dz)) {
+                                placed.getCenterChunkX() + dx,
+                                placed.getCenterChunkZ() + dz)) {
                                 inBand++;
                             }
                         }
@@ -570,15 +618,15 @@ public class CityBiomeGateCheck {
                 }
                 // 缓冲窗 = radius + 自适应裕量（CityPlan 私有，C1 并行面无 getter）——迭代半径取
                 // 上界，窗口真值由 chunkInBuffer 谓词判（D1 两侧同谓词 ⇒ 与半径/裕量口径解耦）。
-                final int reach = p.getRadiusChunks() * 2 + 2;
+                final int reach = placed.getRadiusChunks() * 2 + 2;
                 for (int dx = -reach; dx <= reach; dx++) {
                     for (int dz = -reach; dz <= reach; dz++) {
-                        final int cx = p.getCenterChunkX() + dx;
-                        final int cz = p.getCenterChunkZ() + dz;
+                        final int cx = placed.getCenterChunkX() + dx;
+                        final int cz = placed.getCenterChunkZ() + dz;
                         if (cx < cx0 || cx >= cx0 + AXIS || cz < cz0 || cz >= cz0 + AXIS) {
                             continue;
                         }
-                        if (p.chunkInBuffer(cx, cz)) {
+                        if (placed.chunkInBuffer(cx, cz)) {
                             r.addCoveredChunk(cx, cz);
                         }
                     }

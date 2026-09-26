@@ -512,10 +512,12 @@ run "S8RegistryRosterCheck（P0 判据 1 名数面：名册名数 + 分组计数
   S8RegistryRosterCheck
 
 # ── P17-SB1 纯追加步骤 [3sb1]（只新增行、未改上面任何既有行）：新增方块名册与资产面自证 ──────────
-# 钉六组：12 方块注册链文本 + 运行时实例（类族/材质/名）、18 贴图 classpath+资源根双解析、
-# 32×32 正方形与实测色数==design32 档案、两份 lang 各 12 键无缺无多无重复、
+# 钉六组：20 方块注册链文本 + 运行时实例（类族/材质/名）、26 贴图 classpath+资源根双解析、
+# 32×32 正方形与实测色数==design32 档案、两份 lang 各 20 键无缺无多无重复、
 # MUST_NOT_PASS 全员在列 + SurfaceGate 源文本零新名（纪律 1 反向钉）。幂等：连跑两次逐位一致。
-echo "== [3sb1] P17-SB1 方块名册与资产自证（12 方块 / 18 贴图 / 24×2 lang） =="
+# P24-A2：旧栖晴晕改 vanilla 全透明载体 + randomDisplayTick 纯光效 ⇒ texCount 27→26，lumen 档改钉
+# 「引 vanilla 透明贴图 + 零自有 gtsr 贴图名 + randomDisplayTick 在场」（原 32×192/mcmeta/色数断言退役）。
+echo "== [3sb1] P17-SB1 方块名册与资产自证（20 方块 / 26 贴图 / 20×2 lang） =="
 MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8   -cp "$OUT/classes;$CP" -sourcepath "src/main/java;tools/dim1" -d "$OUT/tools"   tools/dim1/P17BlockRosterCheck.java >"$OUT/javac-p17sb1.log" 2>&1
 echo "COMPILE P17BlockRosterCheck EXIT=$? ($(grep -ac 'error:' "$OUT/javac-p17sb1.log") error)"
 # classpath 追加 src/main/resources：贴图必须能按 ResourceLocation 同构路径从 classpath 解析
@@ -580,9 +582,11 @@ code=$?; tail -2 "$OUT/RiverMorphologyCheck.out" | cut -c1-170; echo "   EXIT=$c
 # （新增 G 组几何带：水半径/岛半径/16 射线内切圆；C 组随岛半径 40 档、S2/S4 复测原带成立——
 # S2 时窗读 0.063 是截断伪影，全窗复测 0.143 居原带 [>0.1] 不放宽），细扫窗 200→320 随湖放大。
 # 纯模型驱动（lakeAt/lakeBedAt/lakeIslandTopAt 均零世界读取，无需离线装配账本）。
-# 已知留红一条：S1 三档比 1:2:2 是主代理代拟口径、已证在满足 A 系列的机制族内全域不可达
-# （P23 R1 岛放大后深盆全域并入岛域，深档实测 0.000——不可达性更强，仍按 plan §27-D 裁决
-# "不放宽、不暗改、留红转终验向用户摊开取舍"）⇒ 本步 EXIT 非零属预期红，非回归。
+# P23 R1·S6 起"已知留红一条（S1 三档比 1:2:2）"的登记<b>已由 P24-D（v1.20.47）解除</b>：
+# 床剖面改「深盆平台外移 0.55→0.79 + 多段线性外坡」（GTSRVoronoiRiverField.LAKE_BED_PLATEAU 的
+# P24-D 段）后深档不再全体并入岛域、中带面积同时加厚 ⇒ S1 实测 1:3.042:3.563（绿），
+# A/D/C/G 组随床形重跑读数未变（A2 p95=1.000、D1/D2 100%、C1 中位 5451、G 三带同）。
+# 判据不暗改、不调 S1_RATIO_STEP；本步现为全绿步骤（EXIT 非零 = 真回归）。
 echo "== [3t5b] dim78 巨湖形态学（渐深触底 D / 湖岸衔接第一判据 A / 中心岛与岛底柱 C / 壮观度代理 S） =="
 MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8   -cp "$OUT/classes;$CP" -sourcepath "src/main/java;tools/dim1" -d "$OUT/tools"   tools/dim1/SanzuLakeMorphologyCheck.java >"$OUT/javac-t5blake.log" 2>&1
 echo "COMPILE SanzuLakeMorphologyCheck EXIT=$? ($(grep -ac 'error:' "$OUT/javac-t5blake.log") error)"
@@ -592,11 +596,16 @@ code=$?; tail -2 "$OUT/SanzuLakeMorphologyCheck.out" | cut -c1-170; echo "   EXI
 
 # ── v1.20.40 P19 U8（纯追加步骤 [3u8]）：地形填充段性能基准 ──────────────────────────────
 # plan §J「新增性能基准判据」：对照 v1.20.38 P17-SA probe4 有账本基线 241µs/chunk（单列串行
-# heightAt walk，temp/p17-sa/probe4.log；P23 R1·S6 重立基线 386.5[湖全域化结构性成本，N-4 空载
-# ×3 连跑 398.0/401.7/373.2/374.9 取中位 386.5]，派生式阈值 = 386.5×1.30 = 502.5µs/chunk，
-# per-chunk 中位数超门即红（劣化>30% 对赌门）。判据内置账本装配（生产形状）与串行纪律——
+# heightAt walk，temp/p17-sa/probe4.log；P23 R1·S6 重立 386.5[湖全域化结构性成本]，派生式阈值
+# = 386.5×1.30 = 502.5µs/chunk）。<b>P24-C（v1.20.47）优化 4 项（trunkAt 下沉 / ampAt·roster·weights
+# 槽表化 / 岛腿复用站距 / 湖站扫平方选站）后逐位等价（temp/lake-d/tri-*.bin 2,097,152 列×3 值
+# SHA256 相同）且 medianChunk 301.3→139.8µs，BASE 重立 138.5 ⇒ 派生式阈值 = 138.5×1.45 =
+# 200.8µs/chunk（余量系数 1.30→1.45：BASE 批次中位 138.5 后同树实测 175.4[+26.6%]，
+# 1.30 门会被背景突发误红；1.45 为"劣化>45% 必红"语义下的最松档）</b>
+# （逐项收益与新门的负载敏感性申报见 GenBenchCheck javadoc）。
+# per-chunk 中位数超门即红（劣化>45% 对赌门）。判据内置账本装配（生产形状）与串行纪律——
 # v1.20.38 实测与本 harness 并发跑会失真，本脚本顺序执行各步即满足，勿与其他判据并行。
-echo "== [3u8] dim78 地形填充段性能基准（GenBenchCheck：串行 + 有账本 + per-chunk 中位对 502.5µs 门[P23 R1·S6 重立 386.5]） =="
+echo "== [3u8] dim78 地形填充段性能基准（GenBenchCheck：串行 + 有账本 + per-chunk 中位对 200.8µs 门[P24-C 重立 138.5]） =="
 MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8   -cp "$OUT/classes;$CP" -sourcepath "src/main/java;tools/dim1" -d "$OUT/tools"   tools/dim1/GenBenchCheck.java >"$OUT/javac-u8bench.log" 2>&1
 echo "COMPILE GenBenchCheck EXIT=$? ($(grep -ac 'error:' "$OUT/javac-u8bench.log") error)"
 MSYS2_ARG_CONV_EXCL='*' java $STD $LOG4J -Xmx2g -cp "$OUT/tools;$OUT/classes;$CP" GenBenchCheck   >"$OUT/GenBenchCheck.out" 2>&1

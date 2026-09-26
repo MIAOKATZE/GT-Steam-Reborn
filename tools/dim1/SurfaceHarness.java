@@ -188,8 +188,7 @@ final class SurfaceHarness {
             "gtsr:prosperity_zenith_log_side", "gtsr:prosperity_zenith_log_top");
         BlocksGTSR.prosperityJadeLeaves = new BlockProsperityCanopyLeaves("ProsperityJadeLeaves",
             "gtsr:prosperity_jade_leaves_side", "gtsr:prosperity_jade_leaves_top");
-        BlocksGTSR.prosperityRoostGlow = new BlockProsperityRoostGlow("ProsperityRoostGlow",
-            "gtsr:prosperity_roost_glow");
+        BlocksGTSR.prosperityRoostGlow = new BlockProsperityRoostGlow("ProsperityRoostGlow");
     }
 
     static BiomeGenBase[] prosperityBiomes() {

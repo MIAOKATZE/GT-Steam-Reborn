@@ -1,7 +1,5 @@
 package com.miaokatze.gtsr.common.dimension.prosperity;
 
-import java.util.HashMap;
-
 import com.miaokatze.gtsr.common.dimension.framework.GTSRBiomeAuthority;
 import com.miaokatze.gtsr.common.dimension.framework.genlayer.GTSRGenLayerChain;
 import com.miaokatze.gtsr.common.dimension.framework.genlayer.GTSRGenLayerRosterFace;
@@ -235,12 +233,15 @@ public final class ProsperityTerrainProfile {
     /**
      * 粗格 <b>amp 终值</b>缓存（线程私有：GenLayer 链 + vanilla IntCache 均<b>非线程安全</b>，
      * 现状的"每调用一条短命链"纪律本来就是单线程域——缓存沿用同一纪律且以 ThreadLocal 结构上
-     * 杜绝跨线程共享）。外层 key = worldSeed（离线判据会在一个 JVM 里扫多个 seed），
-     * 内层 key = (cellX, cellZ) 打包 long，值为该粗格的 ampAt 终值（P19 U8 起由"档乘子"改判，
-     * 见 {@link #AMP_CELL_CACHE_CAP} 注释——同一粗格内所有列 amp 恒等，缓存终值逐位等价）。
+     * 杜绝跨线程共享）。<b>P24-C2（v1.20.47）由两层 {@code HashMap<Long,…>} 改直接映射定长槽表</b>：
+     * key = (worldSeed, cellX, cellZ) 全字段精确比较进槽，冲突即覆盖淘汰（下标 = splitmix 散列，
+     * 与 {@code GTSRVoronoiRiverField.slotIndex} 同口径，散列只决定淘汰分布、不构成真值）。
+     * 值为该粗格的 ampAt 终值（P19 U8 起由"档乘子"改判，见 {@link #AMP_CELL_CACHE_CAP} 注释——
+     * 同一粗格内所有列 amp 恒等，缓存终值逐位等价）。省掉 {@code Long} 装箱与两层 HashMap 查找
+     * （原热路径每列 2 次查表 + 1 次装箱）。
      */
-    private static final ThreadLocal<HashMap<Long, HashMap<Long, Double>>> AMP_CELL_CACHE = ThreadLocal
-        .withInitial(HashMap::new);
+    private static final ThreadLocal<CellDblSlot[]> AMP_CELL_CACHE = ThreadLocal
+        .withInitial(() -> cellDblSlots(AMP_CELL_CACHE_CAP));
 
     /**
      * (x,z) 列的<b>群系振幅连续场</b>（P18 T3 新增，plan §3.6）：包含 (x,z) 的 relief 粗格
@@ -270,16 +271,10 @@ public final class ProsperityTerrainProfile {
     public static double ampAt(long worldSeed, int x, int z) {
         final int cellX = x >> GTSRGenLayerChain.COARSE_BLOCK_SHIFT;
         final int cellZ = z >> GTSRGenLayerChain.COARSE_BLOCK_SHIFT;
-        final HashMap<Long, HashMap<Long, Double>> bySeed = AMP_CELL_CACHE.get();
-        HashMap<Long, Double> cells = bySeed.get(worldSeed);
-        if (cells == null) {
-            cells = new HashMap<>();
-            bySeed.put(worldSeed, cells);
-        }
-        final Long key = Long.valueOf(packCell(cellX, cellZ));
-        final Double cached = cells.get(key);
-        if (cached != null) {
-            return cached.doubleValue();
+        final CellDblSlot[] slots = AMP_CELL_CACHE.get();
+        final CellDblSlot slot = slots[cellSlotIndex(worldSeed, cellX, cellZ, AMP_CELL_CACHE_CAP - 1)];
+        if (slot.valid && slot.seed == worldSeed && slot.cx == cellX && slot.cz == cellZ) {
+            return slot.val;
         }
         double amp = 0.0D;
         double uniformTier = Double.NaN;
@@ -297,10 +292,11 @@ public final class ProsperityTerrainProfile {
         // 邻域全同档 ⇒ 加权和数学上恒等于该档值；直接返回避免 Σ(w_k/wSum) 的 ulp 级浮点误差，
         // 使群系腹地与未装配/EMPTY 降级口径（全默认档 1.0）和 P17 硬查表<b>逐位相同</b>。
         final double result = uniform ? uniformTier : amp;
-        if (cells.size() >= AMP_CELL_CACHE_CAP) {
-            cells.clear();
-        }
-        cells.put(key, Double.valueOf(result));
+        slot.seed = worldSeed;
+        slot.cx = cellX;
+        slot.cz = cellZ;
+        slot.val = result;
+        slot.valid = true;
         return result;
     }
 
@@ -311,42 +307,80 @@ public final class ProsperityTerrainProfile {
      * {@code GTSRGenLayerRosterFace.rosterIndexAt(worldSeed ^ CHAIN_SEED_SALT,
      * GTSRBiomeAuthority.DIM_KEY_PROSPERITY, cellX << COARSE_BLOCK_SHIFT, cellZ << COARSE_BLOCK_SHIFT)}
      * ——同 seed 同粗格必得同 int，缓存只是记忆化，不构成第二真值；账本时点假设与 {@link #ampAt}
-     * 注释同款。容量 {@link #CHAIN_CELL_CACHE_CAP}（固定上限，超限整清重算值不变），
+     * 注释同款。容量 {@link #CHAIN_CELL_CACHE_CAP}（固定上限，冲突即覆盖淘汰、重算值不变），
      * 线程私有（GenLayer 链与 vanilla IntCache 均非线程安全的既有纪律）。
+     * <b>P24-C2：同 {@link #ampAt} 改直接映射定长槽表</b>（消 {@code Long} 装箱与两层 HashMap）。
      */
     public static int chainRosterIndexAt(long worldSeed, int cellX, int cellZ) {
-        final HashMap<Long, HashMap<Long, Integer>> bySeed = CHAIN_CELL_CACHE.get();
-        HashMap<Long, Integer> cells = bySeed.get(worldSeed);
-        if (cells == null) {
-            cells = new HashMap<>();
-            bySeed.put(worldSeed, cells);
+        final CellIntSlot[] slots = CHAIN_CELL_CACHE.get();
+        final CellIntSlot slot = slots[cellSlotIndex(worldSeed, cellX, cellZ, CHAIN_CELL_CACHE_CAP - 1)];
+        if (!(slot.valid && slot.seed == worldSeed && slot.cx == cellX && slot.cz == cellZ)) {
+            slot.seed = worldSeed;
+            slot.cx = cellX;
+            slot.cz = cellZ;
+            slot.val = GTSRGenLayerRosterFace.rosterIndexAt(
+                worldSeed ^ CHAIN_SEED_SALT,
+                GTSRBiomeAuthority.DIM_KEY_PROSPERITY,
+                cellX << GTSRGenLayerChain.COARSE_BLOCK_SHIFT,
+                cellZ << GTSRGenLayerChain.COARSE_BLOCK_SHIFT);
+            slot.valid = true;
         }
-        final Long key = Long.valueOf(packCell(cellX, cellZ));
-        Integer cached = cells.get(key);
-        if (cached == null) {
-            if (cells.size() >= CHAIN_CELL_CACHE_CAP) {
-                cells.clear();
-            }
-            cached = Integer.valueOf(
-                GTSRGenLayerRosterFace.rosterIndexAt(
-                    worldSeed ^ CHAIN_SEED_SALT,
-                    GTSRBiomeAuthority.DIM_KEY_PROSPERITY,
-                    cellX << GTSRGenLayerChain.COARSE_BLOCK_SHIFT,
-                    cellZ << GTSRGenLayerChain.COARSE_BLOCK_SHIFT));
-            cells.put(key, cached);
-        }
-        return cached.intValue();
+        return slot.val;
     }
 
     /** 共享身份 memo 的粗格数上限（= 65536 格 = 1024×1024 方块工作集；同 {@link #AMP_CELL_CACHE_CAP} 口径）。 */
     private static final int CHAIN_CELL_CACHE_CAP = 65536;
 
-    private static final ThreadLocal<HashMap<Long, HashMap<Long, Integer>>> CHAIN_CELL_CACHE = ThreadLocal
-        .withInitial(HashMap::new);
+    private static final ThreadLocal<CellIntSlot[]> CHAIN_CELL_CACHE = ThreadLocal
+        .withInitial(() -> cellIntSlots(CHAIN_CELL_CACHE_CAP));
 
-    /** (cellX, cellZ) → long 打包（低 32 位 cellZ；算术语义下负坐标两侧一致）。 */
-    private static long packCell(int cellX, int cellZ) {
-        return ((long) cellX << 32) | (cellZ & 0xFFFFFFFFL);
+    /** 粗格双精度槽（P24-C2：ampAt 的 amp 终值）。 */
+    private static final class CellDblSlot {
+
+        long seed;
+        int cx;
+        int cz;
+        boolean valid;
+        double val;
+    }
+
+    /** 粗格整型槽（P24-C2：chainRosterIndexAt 的名册下标）。 */
+    private static final class CellIntSlot {
+
+        long seed;
+        int cx;
+        int cz;
+        boolean valid;
+        int val;
+    }
+
+    private static CellDblSlot[] cellDblSlots(int cap) {
+        final CellDblSlot[] a = new CellDblSlot[cap];
+        for (int i = 0; i < cap; i++) {
+            a[i] = new CellDblSlot();
+        }
+        return a;
+    }
+
+    private static CellIntSlot[] cellIntSlots(int cap) {
+        final CellIntSlot[] a = new CellIntSlot[cap];
+        for (int i = 0; i < cap; i++) {
+            a[i] = new CellIntSlot();
+        }
+        return a;
+    }
+
+    /**
+     * (seed, cellX, cellZ) → 槽下标（P24-C2；splitmix 终混取高位，与
+     * {@code GTSRVoronoiRiverField.slotIndex} 同式/同口径 —— 散列只决定直接映射表的淘汰分布，
+     * 正确性只靠槽内全键精确比较）。<b>包内共享</b>：{@code TerrainVariants.weightsAt} 的同口径槽表复用本式。
+     */
+    static int cellSlotIndex(long worldSeed, int cellX, int cellZ, int mask) {
+        long k = worldSeed ^ (cellX * 0x9E3779B97F4A7C15L) ^ (cellZ * 0xC2B2AE3D27D4EB4FL);
+        k ^= k >>> 33;
+        k *= 0xFF51AFD7ED558CCDL;
+        k ^= k >>> 33;
+        return (int) (k >>> 40) & mask;
     }
 
     // ═══ P18 T4（plan §3.2）：河谷压低链并入 heightCore ═══
@@ -492,10 +526,15 @@ public final class ProsperityTerrainProfile {
         // ═══ v1.20.39 T5 主干深谷 → <b>P23 R1（v1.20.46）退役</b>：批2 S2 主干河移除后，
         // 主干带内谷深档 ×1.3（旧 plan §3.3「valleyLevel×1.3」，外段 e1 域拉长）随之退役——
         // 带内/带外干床统一为带外口径 valleyLevel。旧放大常量 TRUNK_VALLEY_SCALE（生产零消费）已删。
-        // trunk 局部量保留：仍供下方沼泽残潭下挖的 trunk≤0 预筛消费。═══
+        // trunk 局部量：<b>P24-C1（v1.20.47）已删除</b>——原为无条件求值，现内联进下方沼泽残潭
+        // 下挖的 trunk≤0 预筛（唯一消费点），非残潭列零成本。═══
         int y = h0;
         final int rosterIndex = rosterIndexCached(worldSeed, x, z);
-        final double trunk = GTSRVoronoiRiverField.trunkAt(worldSeed, x, z);
+        // ── P24-C1（v1.20.47）trunkAt 调用下沉到唯一消费点 ──
+        // 改造前在本行无条件求值 trunkAt（列级 memo 未命中 = 1 次 OpenSimplexDisk），但该值全文件
+        // 只被下方 swampRiverPoolAt 预筛的左操作数读一次（`&&` 短路）⇒ 把它内联进那条 `&&` 链，
+        // 使非沼泽残潭列（≥99% 列）整段省掉这次 disk 求值。<b>构造性逐位等价</b>：trunkAt 是同 seed
+        // 纯函数、无副作用；`&&` 求值次序与短路语义不变（roster==3 ∧ s≥WET_MIN 才求值）。
         final double s = -GTSRVoronoiRiverField.strengthAt(worldSeed, x, z, rosterIndex);
         if (s > 0.0D) {
             final int pool = GTSRVoronoiRiverField.poolLevelAt(worldSeed, x, z, rosterIndex);
@@ -526,10 +565,12 @@ public final class ProsperityTerrainProfile {
             // ═══ v1.20.42（P22 A1b）沼泽河床残潭下挖：枯竭沼泽河核列（roster 3 ∧ s≥WET_MIN ∧
             // trunk≤0——A1a 后 wetAt 为假的干河床）在潭场门内（swampRiverPoolAt>0，内含微池/三档
             // 互斥腿）把床面再下挖 DIG = DIG_BASE+DIG_SPAN·gate（总域 1.5-4 格校准）。外层三条件是
-            // 本方法已求出量的廉价预筛（rosterIndex/s/trunk 就地复用，非沼泽带外零成本）；
+            // 本方法已求出量的廉价预筛（rosterIndex/s 就地复用；trunkAt 自 P24-C1 起内联在此，
+            // 只在前两条件成立时求值，非沼泽带外零成本）；
             // 非潭列 lowered 逐位不动（均匀退化纪律）⇒ digest 逐位不变。下游钳制/低地防抬升/
             // 微池/巨湖语义原样作用（本支路只减不加）。═══
-            if (rosterIndex == 3 && s >= GTSRVoronoiRiverField.WET_MIN && trunk <= 0.0D) {
+            if (rosterIndex == 3 && s >= GTSRVoronoiRiverField.WET_MIN
+                && GTSRVoronoiRiverField.trunkAt(worldSeed, x, z) <= 0.0D) {
                 final double poolGate = GTSRVoronoiRiverField.swampRiverPoolAt(worldSeed, x, z, rosterIndex);
                 if (poolGate > 0.0D) {
                     lowered -= GTSRVoronoiRiverField.SWAMP_RIVER_POOL_DIG_BASE

@@ -603,13 +603,32 @@ public final class PlacementGate {
     public static final double DRY_RATIO_STRUCTURAL = 0.90D;
 
     /**
-     * 干区占比阈值——<b>城市 cell</b>（<b>P19 §F 拍板，U5-redirect 修正</b>）：城盘外扩面
-     * （{@code CityPlanner.CITY_DRY_HALF_CHUNKS}=8 chunk）干列占比 ≥ 0.85 即放行——城市
-     * 地块密度高、街道逐列接地，允许外缘 15% 滩带换"城市能正常生成"；但城心核心区
-     * （中心 64×64，{@code CityPlanner} 的 strict 臂）仍要求<b>全干</b>（城市核心泡在水里
-     * 是用户明确不可接受的观感）。
+     * 干区占比阈值——<b>城市 cell</b>（<b>P19 §F 拍板，U5-redirect 修正；P24-B 由 0.85 调为
+     * 0.75</b>）：城盘外扩面（{@code CityPlanner.CITY_DRY_HALF_CHUNKS}=8 chunk）干列占比 ≥
+     * 0.75 即放行——城市地块密度高、街道逐列接地，允许外缘 25% 滩带换"城市能正常生成"；
+     * 但城心核心区（中心 64×64，{@code CityPlanner} 的 strict 臂）仍要求<b>全干</b>
+     * （城市核心泡在水里是用户明确不可接受的观感）。
+     * <p>
+     * <b>P24-B 调档依据（实测，非放宽掩盖）</b>：P23 R1 把湖从主干带解耦为<b>全域站格湖</b>
+     * 后，干区臂弃位率由 25.0% 升到 <b>58.33%</b>（{@code CityBiomeGateCheck} E3-READ，
+     * 样本 7/12），其中湖置水带腿占 6/7；12 座候选里有 1 座正是被本阈值卡在线下
+     * （占比干率 0.825，只差 0.025）。本档位只动"城盘外缘容忍滩带列的<b>比例</b>"（15%→25%），
+     * <b>不放松任何列级谓词</b>（{@link #dryColumnAt} 湖/河/潭/护带四腿逐字不变），城心 64×64
+     * 全过制也不动。实测三态（同采样、同 GATE_OFF 分母口径）：
+     *
+     * <pre>
+     *   0.85 不迁移（P23 原态） : 7/12 = 58.333%
+     *   0.75 不迁移（仅本档位） : 6/12 = 50.000%（救回 1 座）
+     *   0.75 + 候选迁移         : 4/12 = 33.333%（迁移再救 2 座——本档位配套
+     *                             {@code CityPlanner.resolveCityPlan} 把近线候选平移到干锚点）
+     * </pre>
+     *
+     * 登记更正：调查稿 §6.2 曾预计 0.75 同时救回占比干率 0.734 的候选，实测 0.734 &lt; 0.75
+     * <b>仍在线下</b>，故仅调档只得 1 座——本档位不追平该预计值，交由迁移机制处理。
+     * 城缘多容忍的滩带列仍逐列经 {@code groundFn} 接地，观感代价 = 城缘滩带列比例上界
+     * 由 15% 放到 25%；配套的"弃位改挪位"在 {@code CityPlanner.resolveCityPlan}。
      */
-    public static final double DRY_RATIO_CITY = 0.85D;
+    public static final double DRY_RATIO_CITY = 0.75D;
 
     /**
      * 贴河护带下界（<b>P19 §F 拍板值，U5 二次 redirect 定口径</b>）：{@code -strengthAt ≥

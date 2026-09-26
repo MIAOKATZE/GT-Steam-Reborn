@@ -13,11 +13,20 @@ v1.20.39 T2 增补（plan §3.7 地底石化）：再 +1 张 prosperity_stone（
 
 v1.20.43 P22-B S2 增补（p21 §4 岛心巨树三件套）：半边 36 → 41 张 = +玄柯 log_side/log_top +
 清羽 leaves_side/leaves_top（4 张 32×32，全部复用既有族刷 log_side/log_top/leaves，仅新谱新种子：
-PALETTE 锚 ZENITH_BARK/ZENITH_CORE/CANOPY_JADE，种子 0x5EED8171..74）+ 旧栖晴晕
-prosperity_roost_glow（1 张 **32×192 竖条 6 帧** + 同名 mcmeta frametime=5，§4.4 lumen 档：
+PALETTE 锚 ZENITH_BARK/ZENITH_CORE/CANOPY_JADE，种子 0x5EED8171..74）+ 旧栖晴晕帧带
+（1 张 **32×192 竖条 6 帧** + 同名 mcmeta frametime=5，§4.4 lumen 档：
 新 kind=frame_strip、新 builder lumen_strip() + 独立幂等写出器 write_strip()；PALETTE 锚
 LUMEN_GOLD/LUMEN_WICK，种子 0x5EED8175；16 档母版 gen 主入口对该 kind 显式跳过，本文件是其
 唯一绘制器）。既 36 张的 builder 与参数逐字未改。
+
+v1.20.43 后 P24-A1 重绘（纯像素轮，见 manifest._changelog）：岛心巨树四张（玄柯 log_side/log_top +
+清羽 leaves_side/leaves_top）从「复用 rust 族刷换谱」改为**新 builder 32 档直画层**
+（zenith_log_side / zenith_log_top / jade_leaves，档位收口在 manifest OUTPUTS[*].params32；
+entry.params 仍是 16 档母版档位、本片逐字未改 ⇒ gen 复跑与 seam_recalib --probe 读数口径不变）。
+理由：旧四张读作「暗岩竖纹 + 稀疏撒点」/「青底散点像苔藓水面」——32 档缺的是**结构**（原版树皮
+= 长条树皮鳞 + 成段深浅两档；原版树叶 = 成簇叶团 + 叶隙），细格点场与逐像素撒点在 32 档正是
+「不像原版」的来源。既 40 张的 builder 与参数逐字未改。
+v1.20.44 P24-A2 退役：旧栖晴晕按用户裁决改「不可见载体 + 纯光点光效」（Java 侧 vanilla 全透明贴图 + randomDisplayTick），该帧带条目从 KEYS/BUILDERS/REASONS 与 manifest OUTPUTS/SEEDS、design32 档案一并移除（半边 41→40 张），PNG 与同名 mcmeta 删除；lumen_strip()/write_strip() 画架保留作历史实现（无调用方）。
 
 风格锚底座 = 仓内既有管线 tools/artgen/dim7879/gen_dim7879_blocks.py 的原语与 R1-R6 口径
 （Rules/Tex/h01/tile_noise/scatter/paint_blob/各 kind 画法，经 importlib 复用，不复制色值）。
@@ -79,8 +88,7 @@ prosperity_tuft_sedge prosperity_tuft_bristle
 prosperity_silica_sand prosperity_coarse_sand prosperity_river_gravel
 prosperity_stone
 prosperity_zenith_log_side prosperity_zenith_log_top
-prosperity_jade_leaves_side prosperity_jade_leaves_top
-prosperity_roost_glow""".split()
+prosperity_jade_leaves_side prosperity_jade_leaves_top""".split()
 
 RATIONALE = {
  "prosperity_steppe_top": "16 档草叶是均匀撒点 ⇒ 32 档改成簇生（8×8 格位扎 2-4 根 1px 叶 + 1px 亮尖），另用 cells=8/4 低频斑块把基色整体推 ±1 阶：草皮成坨，而不是同一张噪点。",
@@ -126,11 +134,11 @@ RATIONALE = {
  # —— v1.20.39 T2：地底石化 1 张（wholeBody 主体石；冷灰带锈调）——
  "prosperity_stone": "繁荣废岩：grit_base 同骨架（母版 terrain_grit 带周期 8 沉积层理 ⇒ 成层废岩，不是土）+ 9 颗小砾 + 4 条 1px 锈染短缝与稀疏锈点，底谱 PROSPERITY_STONE 冷灰 ⇒ 贴近 prosperity_*_base 族但更石质，与 RIVER_GRAVEL（亮灰褐）和 SPIKE_STONE（冷蓝灰）三方拉开。",
  # —— v1.20.43 P22-B S2：岛心巨树三件套 5 张（玄柯 2 + 清羽 2 + 旧栖晴晕帧带 1）——
- "prosperity_zenith_log_side": "垂天玄柯侧面：rust 骨架五档同款（纵向纹场 4×16 + 棱脊 ÷R + 7 细纵裂 + 2 斑团 + 环带 6/22），底谱换 ZENITH_BARK 靛黑、斑团/环带走 ZENITH_CORE@L140/@D220 淡靛（冷苔斑）⇒ 与锈/铜绿/黄铜/沼木四档靠『冷相斑团 + 更暗树皮』双差可辨，湖心古树的阴润感。",
- "prosperity_zenith_log_top": "垂天玄柯横截面：年轮骨架同族（髓心 (17,14) 手移、非完美同心、环带 2px ×R、裂纹 3 条 1px），芯色 ZENITH_CORE 淡靛 ⇒ 巨树断面的冷芯年轮。",
- "prosperity_jade_leaves_side": "漱玉清羽侧面：leaves_clump 同骨架（细碎簇场 + 暗孔 + 亮针尖），底换 CANOPY_JADE 青碧（比铜绿更冷更透）、点缀 GLINT@D140 淡滴（漱玉水痕）⇒ 巨树冠与三档灌木冠靠色相 + 点缀谱拉开；仍中性乘色底（tint 继承锈叶口径）。",
- "prosperity_jade_leaves_top": "清羽顶视：同谱同画法，暗孔 0.12/亮针 0.20 加密 ⇒ 俯视巨树冠的日光缝隙（差异只来自参数，与铜绿/黄铜/沼木顶档同口径）。",
- "prosperity_roost_glow": "旧栖晴晕帧带（§4.4 lumen 档，32×192 竖条 6 帧）：LUMEN_WICK 暗芯烛柱（2px 宽 ×11px 高 + 上缘 L090 亮口）+ LUMEN_GOLD 四阶金焰（hot L280/mid BASE/low D140/deep D280）+ 奇数帧 1 粒 GLINT@D045 飞火；跃动 = 逐行相位正向的行进摆（amp 1.6px / 0.55rad/行 / 初相由种子派生，帧 f 推进 TAU·f/6）⇒ 零新色零随机、双跑确定复现，金色画进像素（Java 侧零 tint）。",
+ "prosperity_zenith_log_side": "垂天玄柯侧面（P24-A1 重绘）：自 x=0 铺 ~10 条不等宽纵向条（板条 2..4px / 裂纹条 1..2px），每条沿高分 4 段、段内整段取档（板条 {BASE@D070,BASE,BASE@L090}；裂纹条 {缺席填板色, BASE@L060 浅裂, BASE@D420 深裂}）⇒ 长条树皮鳞 + 深浅两档 + 偶发断口（旧档的 4×16 细格点纹场 + 逐列撒点节疤在 32 档读作暗岩噪点，故整体换结构）；裂纹条右侧 1px BASE@L180 受光棱断续 5px 短划；2 枚暗结节（3×3 环 + 左上受光）；2 道 CANOPY_JADE 玉脉（8..12px、每 7px 一抖、玉首渐亮 + 1px ZENITH_CORE@L140 玉髓闪）。环边零跳变由构造保证（末条类型/逐段档位/段界全取首条；每条末段档位 = 首段；末条不画棱），实测 seam x=0.00 y=0.00。",
+ "prosperity_zenith_log_top": "垂天玄柯横截面（P24-A1 重绘）：年轮改为**显式半径** ring_radii=[7.0,11.5] 两道 1.4px 暗线（ZENITH_CORE@D420）+ 线内侧 1px ZENITH_CORE@L140 受光 ⇒ 只有两道刻痕环且受光在内侧（旧档周期 6px 等厚等距环 + 亮心在 16 档读作靶心/瞳孔）；半径 ×(1+0.075·sin(3θ+φ)) 起伏、圆心 (17,14) 手移 ⇒ 不完美同心。中心核按 brief = ZENITH_CORE 本体（2.6px）+ 左上象限 ZENITH_CORE@L140 偏心受光点 + 核外 1.6px CANOPY_JADE@D340 玉髓镶边 ⇒「玄玉的芯镶着玉」。树皮环 3px（外缘深档 + 体 BASE + 每 8px 径向暗齿、内端受光）+ 1 条树皮楔入 + 2 条自核向外的放射裂纹。木面 ZENITH_CORE@D160 比树皮亮一档（原版原木「断面比树皮亮」口径）。",
+ "prosperity_jade_leaves_side": "漱玉清羽侧面（P24-A1 重绘）：弃细碎场撒点（32 档读作水面/苔藓），改原版树叶口径的成簇叶团——4×4 格位（8px、奇数行错半格 ⇒ 砖缝排布）每格一团（半径 4.0..5.0、纵向 1.16 拉长、中心抖动 ±1.2px、半径再乘 8px 低频场形变 ⇒ 团界不读作圆点），团内 diag 斜分受光面 CANOPY_JADE / 背光面 BASE@D180 两档、团缘 0.45 概率保留 ⇒ 成簇不齐；2 成叶团取背光团（整团 @D180）⇒ 深浅团块之分；团间留 BASE@D420 叶隙网 + 格位交点深孔 + 0.1 概率整格空洞；每团左上 1..2px BASE@L420 玉质高光 + 极稀疏 GLINT@D200 偏暖叶尖（只落叶面）。用色 5。",
+ "prosperity_jade_leaves_top": "清羽顶视（P24-A1 重绘）：同 builder 同谱，差异**全在 params32**（非另一套笔刷）——半径 5.0..6.0（更密：叶面 567px vs side 409px）、中心抖动 ±0.8px（更匀）、shade_mode=rim（俯视受光在团心、背光在团缘；side 是左上斜分）、低频形变 0.5/格点 4、skip 0.04（side 0.1）、格位交点深孔 0.55（side 0.25）⇒ 更密的叶簇 + 更细碎的透光孔（原版 oak_leaves_top 比 side 更密匀的口径）。主导色 = CANOPY_JADE 本体（side 是 @D180）⇒ 顶视更亮。装饰层落笔纪律同 side：全部叶团画完之后再落高光/暖尖。",
+
 }
 
 
@@ -579,6 +587,388 @@ def leaves(key):
     return tex
 
 
+# ---------------------------------------------------------------------------
+# P24-A1（v1.20.43 后贴图重绘轮，纯像素）：岛心巨树四张的 32 档直画层
+#
+# 为什么另起一层：原四张走 rust 族刷（log_side/log_top/leaves_clump）+ 换谱，实测读感为
+# 「暗岩竖纹 + 稀疏撒点」/「青底散点像苔藓水面」（用户目检原话）。32 档真正缺的是**结构**
+# 而不是色相：原版 MC 的树皮是「板 + 凹槽 + 受光棱」、树叶是「成簇叶团 + 叶隙」，16 档
+# 母版装不下这种成段结构，故本层按 gtnh-block-texture-artgen §5 步骤 2「若需新画法，加
+# builder 且颜色一律 RULES.resolve 派生」新写四个 builder。
+#
+# 口径（与母版 params 的分工，不是第二真值源）：
+# - `params`    = 16 档母版档位（gen_dim7879_blocks.py 的 log_side/log_top/leaves_clump 消费）
+#                 —— 本片**逐字未改** ⇒ gen 复跑与 seam_recalib --probe 的读数口径不变；
+# - `params32`  = 32 档直画层档位（本节唯一数值来源，收口在 manifest，脚本零散落魔数）；
+# - 一切色值经 RULES.resolve('NAME@TOKEN') 由 PALETTE 锚 + DERIVED_RULES 派生，零硬编码色值；
+# - 一切落笔经 Tex.put 环绕（wrap）⇒ 可拼接；全高特征一律避开环绕列 x=0/31，纵向凹槽的
+#   末段色调强制等于首段 ⇒ 环边（x 与 y）零跳变（不靠"目检看着还行"）。
+# ---------------------------------------------------------------------------
+def p32(key):
+    """32 档直画层参数（manifest OUTPUTS[*].params32）。"""
+    entry = BY_KEY[key]
+    if "params32" not in entry:
+        raise AssertionError("%s 缺 manifest.params32（32 档直画层参数必须收口在 manifest）" % key)
+    return entry["params32"]
+
+
+def _assert_params32_tokens():
+    """params32 色值 lint：母版 lint（gen._assert_manifest_tokens）只扫 entry['params']，
+    params32 是本文件消费的新块 ⇒ 未定义 token / 锚点必须在这里前置成结构化报错，
+    而不是绘制期 KeyError（错误消息不指向 manifest 行）。
+    """
+    rules = set(k for k in MAN["DERIVED_RULES"] if not k.startswith("_"))
+    palette = set(k for k in MAN["PALETTE"] if not k.startswith("_"))
+    bad_tokens = set()
+    bad_names = set()
+    for entry in MAN["OUTPUTS"]:
+        for spec in G._iter_color_specs(entry.get("params32", {})):
+            name, token = spec.split("@", 1)
+            if token not in rules:
+                bad_tokens.add(token)
+            if name != "BASE" and name not in palette and not G._is_hex6(name):
+                bad_names.add(name)
+    assert not bad_tokens, "params32 引用未定义派生 token: %s" % sorted(bad_tokens)
+    assert not bad_names, "params32 引用未定义基色锚点: %s" % sorted(bad_names)
+
+
+def zenith_log_side(key):
+    """垂天玄柯·树干侧面（P24-A1 重绘）：原版树皮口径的「长条树皮鳞 + 裂纹 + 受光棱」+ 玉脉。
+
+    结构（32×32；**零逐像素撒点**，一切判定落在 ≥1px 宽、≥5px 长的成条/成段上）：
+    · 自 x=0 起按码表铺满 32 列的**剥条纹布局**：宽度按类给（板条 2..4px / 裂纹条 1..2px、
+      条数 ~10）⇒ 条宽不规则（既不是等距栅格，也不是 16 档那张 4×16 细格点噪声——「像暗岩」
+      的根因是细格点 + 稀疏撒点）；
+    · 每条沿高分 4 段（段界 8px、逐条独立抖动 ⇒ 断口不齐 = 树皮鳞），段内**整段**取一档：
+      板条 ∈ {BASE@D070, BASE, BASE@L090}；裂纹条 ∈ {缺席填板色, BASE@L060 浅裂, BASE@D420
+      深裂} ⇒ 「长条 + 深浅两档 + 偶发断口」，不是逐像素；
+    · 环边零跳变（构造保证，不靠目检）：① 每条**末段档位强制 = 首段**（行环边）；② 末条类型与
+      逐段档位、段界取值全部强制取首条的 ⇒ 环绕列 x=31 与 x=0 严格同色；③ 末条不画受光棱
+      （棱落在 x=32 会环绕到 x=0）；
+    · 裂纹条右侧 1px 受光棱 BASE@L180 断续 5px 短划 ⇒ 玉质润泽的高光脊线；
+    · 2 枚暗结节：3×3 四邻环 BASE@D420 + 浅档芯 + 左上 1px 受光棱（行域 4..25，避开环边行）；
+    · 2 道玉脉：CANOPY_JADE 主线（长 8..12px、每 7px 一抖、夹在 x∈[3,29]）+ 玉首 2px 渐亮
+      ⇒ 「玄柯里长着玉」——与清羽叶同锚，树干与树冠跨贴图呼应。
+    用色 9（族内 6 阶 + 玉 3 色），全在既有 PALETTE 锚内派生，零新增锚点。
+    """
+    p = p32(key)
+    seed = G._parse_seed(MAN["SEEDS"][key])
+    b = p["base"]
+    plate_dark = RULES.resolve(p["plate_dark"], b)
+    plate = RULES.resolve(p["plate"], b)
+    plate_lit = RULES.resolve(p["plate_lit"], b)
+    crack = RULES.resolve(p["crack"], b)
+    crack_pale = RULES.resolve(p["crack_pale"], b)
+    ridge = RULES.resolve(p["ridge"], b)
+    vein = RULES.resolve(p["vein"], b)
+    vein_core = RULES.resolve(p["vein_core"], b)
+    glint = RULES.resolve(p["vein_glint"], b)
+
+    run_rows = int(p["run_rows"])
+    run_jit = int(p["run_jitter"])
+    runs = SIZE // run_rows
+    absent = float(p["crack_absent_ratio"])
+    deep = float(p["crack_deep_ratio"])
+    lit_r = float(p["plate_lit_ratio"])
+    dark_r = float(p["plate_dark_ratio"])
+
+    strips = []                                          # [x0, w, is_crack, slot]
+    x, slot = 0, 0
+    while x < SIZE:
+        is_crack = G.h01(seed, "sk", slot, 0) < float(p["crack_strip_ratio"])
+        w = (int(p["crack_w_min"]) if is_crack else int(p["plate_w_min"]))             + int(G.h01(seed, "sw", slot, 0) * float(p["crack_w_span"] if is_crack else p["plate_w_span"]))
+        strips.append([x, max(1, min(w, SIZE - x)), is_crack, slot])
+        x += w
+        slot += 1
+    strips[-1][2] = strips[0][2]                         # ② 末条类型 = 首条
+
+    def tone(strip, run, force_slot=None):
+        """某条某段的整段档位（force_slot 用于末条照抄首条的逐段档位）。"""
+        s = force_slot if force_slot is not None else strip[3]
+        if strip[2]:
+            h = G.h01(seed, "ct", s, run)
+            if h < absent:
+                return plate
+            return crack if h < absent + deep else crack_pale
+        h = G.h01(seed, "pt", s, run)
+        if h < lit_r:
+            return plate_lit
+        if h > 1.0 - dark_r:
+            return plate_dark
+        return plate
+
+    tones = [[tone(st, r) for r in range(runs)] for st in strips]
+    for s in range(len(strips)):
+        tones[s][runs - 1] = tones[s][0]                 # ① 行环边零跳变
+    tones[-1] = list(tones[0])                           # ② 列环边零跳变（末条逐段 = 首条）
+
+    def bounds_of(src_slot):
+        bs = [0]
+        for r in range(1, runs):
+            bs.append(run_rows * r + int(G.h01(seed, "gy", src_slot, r) * float(run_jit)))
+        for r in range(1, runs):
+            bs[r] = max(bs[r - 1] + 1, min(bs[r], SIZE - (runs - r)))
+        bs.append(SIZE)
+        return bs
+
+    tex = G.Tex()
+    for s, st in enumerate(strips):
+        x0, w = st[0], st[1]
+        last = s == len(strips) - 1
+        bs = bounds_of(0 if last else st[3])             # 末条与首条共用段界 ⇒ 逐行同色
+        for r in range(runs):
+            for y in range(bs[r], bs[r + 1]):
+                for dx in range(w):
+                    tex.put(x0 + dx, y, tones[s][r])
+        if st[2] and not last:                           # ③ 末条不画棱；棱只落 x<32
+            ln = int(p["ridge_len"])
+            for r in range(runs):
+                if G.h01(seed, "rr", st[3], r) >= float(p["ridge_ratio"]):
+                    continue
+                span = bs[r + 1] - bs[r]
+                y0 = bs[r] + 1 + int(G.h01(seed, "ry", st[3], r) * float(max(1, span - ln - 2)))
+                for i in range(ln):
+                    tex.put(x0 + w, y0 + i, ridge)
+    for kk in range(int(p["knot_count"])):               # 暗结节：格位均布，行域避开环边
+        kx = int(round((kk + 1) * SIZE / float(int(p["knot_count"]) + 1)))
+        ky = 5 + int(G.h01(seed, "ky", kk, 0) * float(SIZE - 12))
+        tex.put(kx, ky, crack_pale)
+        for dx, dy in ((0, -1), (0, 1), (-1, 0), (1, 0)):
+            tex.put(kx + dx, ky + dy, crack)
+        tex.put(kx - 1, ky - 1, ridge)
+    for kk in range(int(p["vein_count"])):               # 玉脉：玉首渐亮，向下每 jog 行一抖
+        vx = int(p["vein_min_x"]) + int(G.h01(seed, "vx", kk, 0) * float(p["vein_span_x"]))
+        y0 = int(G.h01(seed, "vy", kk, 0) * SIZE)
+        ln = int(p["vein_len_min"]) + int(G.h01(seed, "vl", kk, 0) * float(p["vein_len_span"]))
+        jog = int(p["vein_jog"])
+        x = vx
+        for i in range(ln):
+            tex.put(x, y0 + i, glint if i == 0 else (vein_core if i < 3 else vein))
+            if i % jog == jog - 1:
+                x += 1 if G.h01(seed, "vd", kk, i) < 0.5 else -1
+                x = max(int(p["vein_min_x"]), min(int(p["vein_max_x"]), x))
+    return tex
+
+
+def zenith_log_top(key):
+    """垂天玄柯·树干横截面（P24-A1 重绘）：树皮环 + 两道年轮 + ZENITH_CORE 中心核（玉髓镶边）。
+
+    结构（32×32；tileable=false，不做拼接断言）。年轮**显式给半径**（不是「周期密排」）——
+    旧档「等厚等距环 + 高亮圆心」在 16 档下读作靶心/瞳孔，本档按此改判：
+    · 树皮环 bw=3px：外缘 1px BASE@D420、内 2px BASE，每 8px 一道径向暗齿（外 1px 深档 +
+      内 1px BASE@L180 受光）⇒ 断面上的树皮粗糙度成齿，不是撒点；
+    · 木面 ZENITH_CORE@D160（比树皮亮一档 = 原版原木「断面比树皮亮」口径）；年轮 = 半径
+      ring_radii（5.0 / 9.5px）上各 1.4px 宽暗线 ZENITH_CORE@D420 + 线**内侧** 1px
+      ZENITH_CORE@L140 内壁受光 ⇒ 两道刻痕年轮（用色与「受光在内侧」两处成对，不读作靶心）；
+      半径按 r' = r·(1 + 0.075·sin(3θ + φ)) 起伏、圆心 (17,14) 手移 ⇒ 不完美同心；
+    · 中心核 = **ZENITH_CORE（brief 指定锚点）** 半径 2.6px + 左上象限 ZENITH_CORE@L140 受光点
+      （受光点偏心 ⇒ 不读作瞳孔）+ 外圈 1px **CANOPY_JADE@D340 玉髓镶边** ⇒ 「玄玉的芯镶着玉」，
+      与树干侧面的玉脉、清羽叶同锚；
+    · 1 条树皮楔入（自木面外缘向内 5..7px、1px 深档）+ 2 条自中心核向外的放射裂纹（1px、每 3px
+      一抖）⇒ 断面的不对称木理。
+    用色 8（树皮 3 + 木体 2 + 年轮受光 1 + 核 1 + 玉边 1），零新增锚点。
+    """
+    p = p32(key)
+    seed = G._parse_seed(MAN["SEEDS"][key])
+    b = p["base"]
+    bark_dark = RULES.resolve(p["bark_dark"], b)
+    bark_mid = RULES.resolve(p["bark_mid"], b)
+    bark_lit = RULES.resolve(p["bark_lit"], b)
+    wood = RULES.resolve(p["wood"], b)
+    ring = RULES.resolve(p["ring"], b)
+    ring_lit = RULES.resolve(p["ring_lit"], b)
+    core = RULES.resolve(p["core"], b)
+    jade_rim = RULES.resolve(p["jade_rim"], b)
+
+    tex = G.Tex()
+    bw = int(p["bark_w"])
+    for y in range(SIZE):
+        for x in range(SIZE):
+            e = min(x, y, SIZE - 1 - x, SIZE - 1 - y)
+            if e >= bw:
+                continue
+            tex.put(x, y, bark_dark if e == 0 else bark_mid, wrap=False)
+    pitch = int(p["bark_tick_pitch"])
+    for k in range(pitch // 2, SIZE, pitch):            # 径向暗齿：外段深档 + 内端受光
+        for i in range(1, bw):
+            tex.put(k, i, bark_dark, wrap=False)
+            tex.put(k, SIZE - 1 - i, bark_dark, wrap=False)
+            tex.put(i, k, bark_dark, wrap=False)
+            tex.put(SIZE - 1 - i, k, bark_dark, wrap=False)
+        tex.put(k, bw - 1, bark_lit, wrap=False)
+        tex.put(k, SIZE - bw, bark_lit, wrap=False)
+        tex.put(bw - 1, k, bark_lit, wrap=False)
+        tex.put(SIZE - bw, k, bark_lit, wrap=False)
+    cx, cy = float(p["center"][0]), float(p["center"][1])
+    wob = float(p["ring_wobble"])
+    ph = G.h01(seed, "ph", 0, 0) * TAU
+    radii = [float(v) for v in p["ring_radii"]]
+    rw2 = float(p["ring_w"]) * 0.5
+    litw = float(p["ring_lit_w"])
+    core_r = float(p["core_r"])
+    core_rim = float(p["core_rim"])
+    jrim = float(p["jade_rim_w"])
+    for y in range(bw, SIZE - bw):
+        for x in range(bw, SIZE - bw):
+            dx = x + 0.5 - cx
+            dy = y + 0.5 - cy
+            th = math.atan2(dy, dx)
+            rr = math.hypot(dx, dy) * (1.0 + wob * math.sin(3.0 * th + ph))
+            col = wood
+            for m, rad in enumerate(radii):
+                if rad - rw2 <= rr < rad + rw2:
+                    col = ring
+                    break
+                if rad - rw2 - litw <= rr < rad - rw2:
+                    col = ring_lit if m % int(p["ring_lit_every"]) == 0 else wood
+                    break
+            if rr < core_r + core_rim + jrim:
+                col = jade_rim                            # 玉髓镶边（在暗环之外，不被覆盖）
+            if rr < core_r + core_rim:
+                col = ring if core_rim > 0.0 else col     # 核心外圈暗环（core_rim=0 则省）
+            if rr < core_r:
+                col = core                                # ZENITH_CORE 中心核（brief 指定锚点）
+            if rr < core_r and x + 0.5 <= cx and y + 0.5 <= cy:
+                col = ring_lit                            # 左上象限受光点（偏心 ⇒ 非瞳孔）
+            tex.put(x, y, col, wrap=False)
+    for k in range(int(p["crack_count"])):              # 自中心核向外的放射裂纹
+        ang = G.h01(seed, "ca", k, 0) * TAU
+        ln = int(p["crack_len_min"]) + int(G.h01(seed, "cl", k, 0) * float(p["crack_len_span"]))
+        for i in range(ln):
+            rr = core_r + core_rim + jrim + i
+            x = int(round(cx + math.cos(ang) * rr - 0.5))
+            y = int(round(cy + math.sin(ang) * rr - 0.5))
+            if bw <= x < SIZE - bw and bw <= y < SIZE - bw:
+                tex.put(x, y, ring, wrap=False)
+            if i % 3 == 2:
+                ang += 0.16 if G.h01(seed, "cj", k, i) < 0.5 else -0.16
+    for k in range(int(p["bark_wedge_count"])):         # 树皮楔入：自木面外缘向内，1px 深档
+        ang = G.h01(seed, "wa", k, 0) * TAU
+        ln = int(p["bark_wedge_len_min"]) + int(G.h01(seed, "wl", k, 0) * float(p["bark_wedge_len_span"]))
+        rr = float(p["bark_wedge_r0"])
+        for i in range(ln):
+            x = int(round(cx + math.cos(ang) * (rr - i) - 0.5))
+            y = int(round(cy + math.sin(ang) * (rr - i) - 0.5))
+            if bw <= x < SIZE - bw and bw <= y < SIZE - bw:
+                tex.put(x, y, bark_mid, wrap=False)
+            if i % 3 == 2:
+                ang += 0.14 if G.h01(seed, "wj", k, i) < 0.5 else -0.14
+    return tex
+
+
+def jade_leaves(key):
+    """漱玉清羽·冠层（P24-A1 重绘）：原版树叶口径的**成簇叶团 + 叶隙**。
+
+    与 rust 族 leaves_clump（细碎场 + 撒点暗孔 + 撒点亮针）的分家理由：撒点在 32 档读作
+    「水面/苔藓」，而原版树叶的可读性来自**团块**（一个叶团 8..10px，明暗两档 + 不规则边缘）
+    与**叶隙**（团与团之间的暗缝、交点深孔、整格空洞）；叶面必须**占多数**（原版 oak_leaves
+    的暗部只占 1..2 成）——首版把叶隙做成大片暗底、读作「青底散点」，本档按此调参。
+    差异全部来自 manifest 参数（side: 交错格位 + diag 斜分成档 + 纵长；top: 正方密排 +
+    rim 环分成档 + 更多交点孔 + 更少整格空洞），不是两套笔刷（同铜绿/黄铜/沼木口径）。
+
+    结构：4×4 格位（8px，奇数行整体错半格 ⇒ 砖缝排布，不读出栅格）→ 每格一个叶团
+    （中心抖动、半径按档给、椭圆率按档给、环绕距离 ⇒ 跨环绕列自然接续）；团内 solid 内为
+    叶面、外圈按 edge_keep 概率保留 ⇒ 团缘缺口成簇；2 成左右的团取「背光团」（整团 shade）
+    ⇒ 冠层有深浅团块之分（不新增色）；团间留底座 gap 色 ⇒ 叶隙网；格位交点打深孔（top 更密）
+    ⇒ 透光孔；每团左上 1..2px 玉质高光（sheen_ratio）、极稀疏 GLINT 偏暖叶尖（warm_ratio，
+    按 0.85→0.95 的 diag 比例找第一个叶面像素落笔 ⇒ 不会落在叶隙里成为孤立暖点）。
+    用色 5（青玉 3 阶 + 玉光 + 暖尖），零新增锚点；tint 仍走父类 3×3 群系草色（乘色底不改）。
+    """
+    p = p32(key)
+    seed = G._parse_seed(MAN["SEEDS"][key])
+    b = p["base"]
+    lit = RULES.resolve(p["leaf_lit"], b)
+    shade = RULES.resolve(p["leaf_shade"], b)
+    gap = RULES.resolve(p["gap"], b)
+    sheen = RULES.resolve(p["sheen"], b)
+    warm = RULES.resolve(p["warm_tip"], b)
+
+    tex = G.Tex()
+    for y in range(SIZE):
+        for x in range(SIZE):
+            tex.put(x, y, gap, wrap=False)              # 叶隙底
+    painted = []
+    cells = int(p["cells"])
+    step = SIZE // cells
+    stagger = int(p["stagger"])
+    jit = float(p["center_jitter"])
+    solid = float(p["solid_frac"])
+    elong_x = float(p["elong_x"])
+    elong_y = float(p["elong_y"])
+    rim_mode = p["shade_mode"] == "rim"
+    # 低频形变：叶团半径随 8px 格点场起伏 ⇒ 边界不再读作圆点 / 栅格（原版树叶的成簇不齐）
+    wob = float(p["edge_wobble_amp"])
+    wob_field = G.tile_noise(seed, "leafwob", int(p["edge_wobble_cells"]))
+    for j in range(cells):
+        for i in range(cells):
+            if G.h01(seed, "sk", i, j) < float(p["skip_ratio"]):
+                continue                                # 整格叶隙（大孔洞）
+            cx = i * step + step * 0.5 + (stagger if j % 2 else 0) \
+                + (G.h01(seed, "cx", i, j) - 0.5) * jit
+            cy = j * step + step * 0.5 + (G.h01(seed, "cy", i, j) - 0.5) * jit
+            rr = float(p["clump_r"]) + G.h01(seed, "cr", i, j) * float(p["clump_r_span"])
+            rx = rr * elong_x
+            ry = rr * elong_y
+            back = G.h01(seed, "dk", i, j) < float(p["dark_clump_ratio"])
+            for y in range(SIZE):
+                for x in range(SIZE):
+                    dx = abs(x + 0.5 - cx)
+                    dx = min(dx, SIZE - dx)             # 环面距离 ⇒ 叶团跨环绕列时自然接续
+                    dy = abs(y + 0.5 - cy)
+                    dy = min(dy, SIZE - dy)
+                    d = math.hypot(dx / rx, dy / ry) * (1.0 + wob * (wob_field(x, y) - 0.5))
+                    if d > 1.0:
+                        continue
+                    if d > solid and G.h01(seed, "e", i * 64 + x, j * 64 + y) > float(p["edge_keep"]):
+                        continue                            # 缺口 ⇒ 叶团边缘成簇不齐
+                    if back:
+                        col = shade                        # 背光团：整团暗阶（深浅团块之分）
+                    elif rim_mode:
+                        col = shade if d > float(p["rim_inner"]) else lit
+                    else:
+                        diag = (x + 0.5 - cx) / rx + (y + 0.5 - cy) / ry
+                        col = shade if diag > float(p["diag_bias"]) else lit
+                    tex.put(x, y, col, wrap=False)
+            painted.append((i, j, cx, cy, rx, ry))
+    # 装饰（高光/暖尖）在**全部叶团画完之后**再落笔：叶团互相覆写后仍能落在真实叶面上，
+    # 否则后画的团会把先落的 1px 高光吃掉（首版实测高光/暖尖总数随机丢一半）。
+    for i, j, cx, cy, rx, ry in painted:
+        if G.h01(seed, "sh", i, j) < float(p["sheen_ratio"]):
+            sx = int(round(cx - 0.62 * rx))
+            sy = int(round(cy - 0.62 * ry))
+            tex.put(sx, sy, sheen)
+            if G.h01(seed, "sh2", i, j) < 0.5:
+                tex.put(sx + 1, sy, sheen)
+        if G.h01(seed, "wt", i, j) < float(p["warm_ratio"]):
+            for frac in (float(p["warm_frac"]), 0.72, 0.92):   # 由内向外找第一个叶面像素
+                wx = int(round(cx + frac * rx))
+                wy = int(round(cy - frac * ry))
+                if tex.get(wx, wy) in (lit, shade):
+                    tex.put(wx, wy, warm)
+                    break
+    for j in range(1, cells):
+        for i in range(1, cells):
+            if G.h01(seed, "nd", i, j) < float(p["node_hole_ratio"]):
+                nx = i * step + (stagger if j % 2 else 0)
+                ny = j * step
+                tex.put(nx, ny, gap)
+                tex.put(nx - 1, ny, gap)
+                tex.put(nx, ny - 1, gap)
+    # 叶面孔：4px 细格位上稀疏打 1px 叶隙（位置 ±1px 抖动 ⇒ 不读作栅格）——原版树叶的
+    # 可读性有一半来自叶面上零散的小孔，全是团间大缝会读作「斑块布」
+    ih = float(p["inner_hole_ratio"])
+    if ih > 0.0:
+        icells = SIZE // int(p["inner_hole_cells"])
+        for j in range(icells):
+            for i in range(icells):
+                if G.h01(seed, "ih", i, j) >= ih:
+                    continue
+                hx = i * int(p["inner_hole_cells"]) + 1 + int(G.h01(seed, "ihx", i, j) * 2.0)
+                hy = j * int(p["inner_hole_cells"]) + 1 + int(G.h01(seed, "ihy", i, j) * 2.0)
+                tex.put(hx, hy, gap)
+    return tex
+
+
 def lumen_strip(key):
     """旧栖晴晕帧带 builder（§4.4 lumen 档）：返回 frames 个 32×32 透明底十字帧 Tex，竖条堆叠由
     write_strip 完成（p21：帧带必为竖条，奇点族 hub_frame_receive 32×352=11 帧同口径）。
@@ -680,12 +1070,13 @@ BUILDERS = {
     # —— v1.20.39 T2 地底石化 1 张：grit_base 同骨架 + 锈染层（新 builder 仅因锈缝层，画架原语零新）——
     "prosperity_stone": lambda: stone_ruin("prosperity_stone"),
     # —— v1.20.43 P22-B S2 岛树三件套 5 张：玄柯/清羽复用 rust 族 builder（换谱换种子，零新画架）；
-    #    旧栖晴晕走 lumen_strip（新 kind=frame_strip，返回 frames 个 32×32 帧，由 write_strip 竖条落盘）——
-    "prosperity_zenith_log_side": lambda: log_side("prosperity_zenith_log_side"),
-    "prosperity_zenith_log_top": lambda: log_top("prosperity_zenith_log_top"),
-    "prosperity_jade_leaves_side": lambda: leaves("prosperity_jade_leaves_side"),
-    "prosperity_jade_leaves_top": lambda: leaves("prosperity_jade_leaves_top"),
-    "prosperity_roost_glow": lambda: lumen_strip("prosperity_roost_glow"),
+    #    旧栖晴晕帧带曾走 lumen_strip（P24-A2 退役，见文件头；画架保留无调用方）——
+    # P24-A1 重绘：四张改走 32 档直画层（zenith_log_side/zenith_log_top/jade_leaves），
+    # 读 manifest.params32；rust 族刷 log_side/log_top/leaves 仍服务另外 8 张（逐字未改）。
+    "prosperity_zenith_log_side": lambda: zenith_log_side("prosperity_zenith_log_side"),
+    "prosperity_zenith_log_top": lambda: zenith_log_top("prosperity_zenith_log_top"),
+    "prosperity_jade_leaves_side": lambda: jade_leaves("prosperity_jade_leaves_side"),
+    "prosperity_jade_leaves_top": lambda: jade_leaves("prosperity_jade_leaves_top"),
 }
 
 # 设计性稀疏色（闪点/锈屑/渗点/霜点）：配色收敛时永不合并
@@ -720,9 +1111,12 @@ PROTECTED_SPEC = {
     "prosperity_stone": [("RUST_OXIDE@D070", "PROSPERITY_STONE")],
     # —— v1.20.43 P22-B S2：玄柯冷苔斑与清羽漱玉滴是设计性稀疏色，永不参与收敛
     #（旧栖晴晕帧带走 write_strip 独立闸，色数天然 7+透明，不收敛）——
-    "prosperity_zenith_log_side": [("ZENITH_CORE@L140", "ZENITH_BARK")],
-    "prosperity_jade_leaves_side": [("GLINT@D140", "CANOPY_JADE")],
-    "prosperity_jade_leaves_top": [("GLINT@D140", "CANOPY_JADE")],
+    # —— v1.20.43 P22-B S2 岛树三件套 5 张（P24-A1 重绘后四张走 32 档直画层）——
+    # 设计性稀疏色 = 玉脉首像素 / 玉质高光 / 偏暖叶尖（配色收敛时永不合并）。
+    "prosperity_zenith_log_side": [("CANOPY_JADE@D120", "ZENITH_BARK"), ("ZENITH_CORE@L140", "ZENITH_BARK")],
+    "prosperity_zenith_log_top": [("ZENITH_CORE@L140", "ZENITH_BARK"), ("CANOPY_JADE@D340", "ZENITH_BARK")],
+    "prosperity_jade_leaves_side": [("GLINT@D200", "CANOPY_JADE"), ("CANOPY_JADE@L420", "CANOPY_JADE")],
+    "prosperity_jade_leaves_top": [("GLINT@D200", "CANOPY_JADE"), ("CANOPY_JADE@L420", "CANOPY_JADE")],
 }
 
 
@@ -897,6 +1291,7 @@ def palette_of_image(im, skip_transparent):
 
 def main(argv):
     keys = KEYS if argv in ([], ["--all"]) else [a for a in argv if a in BY_KEY]
+    _assert_params32_tokens()       # params32 先 lint（母版 lint 只扫 params，见函数注）
     prot = {}
     for key, specs in PROTECTED_SPEC.items():
         prot[key] = {RULES.resolve(spec, base)[:3] for spec, base in specs}

@@ -16,11 +16,14 @@ import net.minecraft.world.biome.BiomeGenBase;
  * <b>241µs</b>，即本判据的基线真值）。
  *
  * <p>
- * ═══ 派生式阈值（写死，防漂移）═══ 对赌门 = 地形填充段劣化 &gt;30% 判红
- * （plan §J「对照 241µs 基线，派生式阈值，劣化&gt;30% 红」）⇒ 上界 =
- * <b>{@link #BASELINE_US_PER_CHUNK} × 1.30 = {@link #GATE_US_PER_CHUNK}</b>
- * （P23 R1·S6 把基线从 241.0 重立为 386.5，见该常量的 javadoc：退化幅度/归因/优化尝试
- * 与回退/读数摆幅全部记在那里）。全量 per-chunk 计时样本（N seed × M chunk）取
+ * ═══ 派生式阈值（写死，防漂移）═══ 对赌门 = 地形填充段劣化 &gt;45% 判红
+ * （plan §J 原文「对照 241µs 基线，派生式阈值，劣化&gt;30% 红」——基线已两次重立，<b>P24 收尾又把
+ * 阈值由 30% 放宽到 45%</b>：审查申报旧门 180.1 只比同树实测 175.4 高 2.6%、一次背景突发即红，
+ * 理由/新旧值与"上界为何钉在 45%"全记在 {@link #GATE_US_PER_CHUNK}）⇒ 上界 =
+ * <b>{@link #BASELINE_US_PER_CHUNK} × 1.45 = {@link #GATE_US_PER_CHUNK}</b>
+ * （P23 R1·S6 把基线从 241.0 重立为 386.5；<b>P24-C（v1.20.47）把基线重立为 138.5</b>——
+ * 优化前后的逐项读数、逐位等价证据与"门变小后对背景负载更敏感"的申报全部记在该常量 javadoc 里）。
+ * 全量 per-chunk 计时样本（N seed × M chunk）取
  * <b>中位数</b>对门（中位数口径见任务包；p90 仅展示不作门）。红 ⇒ 本机回归即门红。
  *
  * <p>
@@ -39,55 +42,100 @@ public final class GenBenchCheck {
     /**
      * 基线真值（µs/chunk，地形填充段）。
      * <p>
-     * <b>P23 R1·S6 重立（v1.20.46）：241.0 → 386.5</b>。取值 = 条款 N-4「空载 ×3-4 连跑取中位
-     * （不取最低值）」的实测批次 <b>398.0 / 401.7 / 373.2 / 374.9 ⇒ 中位 386.5</b>
-     * （同一批次前后采样的机器总 CPU 占用 12-19%，另记：同一份 class 在本会话内还测到
-     * 301.2-333.0（最安静的窗口）与 544.4-652.5（后台进程 CPU 突发窗口）⇒ <b>本判据的绝对值
-     * 对机器背景负载敏感、会话内摆幅可达 ±35%</b>，见下行"读数稳定性"）。
+     * <b>P24-C 重立（v1.20.47）：386.5 → 138.5</b>（本轮优化后）。取值 = 条款 N-4「空载 ×3-4 连跑取
+     * 中位（不取最低值）」的实测批次 <b>132.7 / 146.4 / 141.8 / 135.3 ⇒ 中位 138.55 ⇒ 138.5</b>
+     * （同一窗口内 chain 内 [3u8] 那次另测 141.5；同批次机器总 CPU 占用 ≈10-15%）。
      * <p>
-     * <b>退化幅度与归因（如实申报）</b>：相对 R1 前的 241.0 基线，本机读数退化 <b>+60.4%</b>
-     * （386.5/241.0）。归因证据（本轮实测，非推断）：
+     * <b>优化前/后与逐项收益（同窗口交错 A/B 实测，非外推）</b>：用「当前全树」与「只把该项还原成
+     * 优化前实现」的两棵完整 class 树在同一会话内交替跑（3 rep/arm，各取中位）：
+     * <table border="1">
+     * <caption>P24-C 逐项收益（medianChunk µs，同窗口同机）</caption>
+     * <tr><th>arm（还原项）</th><th>medianChunk</th><th>说明</th></tr>
+     * <tr><td>全还原＝优化前（C1..C4 都不在）</td><td>301.3</td><td>基准</td></tr>
+     * <tr><td>只还原 C1（留 C2+C3+C4）</td><td>154.8</td><td>C1 在场可省 15.0µs</td></tr>
+     * <tr><td>只还原 C2（留 C1+C3+C4）</td><td>294.8</td><td>C1+C3+C4 合起来只省 6.5µs ⇒ C2 缺席时 C1 的收益也被吃掉</td></tr>
+     * <tr><td>只还原 C3+C4（留 C1+C2）</td><td>138.0</td><td>与全优化之差 ≈1.8µs（低于噪声底）</td></tr>
+     * <tr><td>全优化（C1+C2+C3+C4）</td><td>139.8</td><td><b>−53.6%（2.16×）</b></td></tr>
+     * </table>
+     * 逐项（以优化后=139.8µs 为基准反推，同窗口内可比）：
      * <ul>
-     * <li>R1 ①「湖全域站格化」把 {@code GTSRVoronoiRiverField.lakeAt} 从"主干带内才求值"放成
-     * <b>逐列必付</b>（{@code heightCore} 每列一次，PTP:562）——每列多 1 次 disk warp +
-     * 3×3 站枚举 + 9 次 sqrt；</li>
-     * <li>同一改动还让"湖段"（{@code lakeBedAt}/{@code lakeIslandTopAt}/{@code lakeShoreBlend}）
-     * 在湖/滨带列上真正进入执行路径。<b>阴影类消融实测</b>（把 {@code lakeAt0} 短路成 NO_LAKE
-     * 的临时 class，仅用于测量、不落库）：411.7 → 348.5µs/chunk ⇒ <b>整个湖段（含 lakeAt 本体）
-     * ≈ 15.4% 的 per-chunk 成本</b>；</li>
-     * <li><b>未归因余量申报</b>：消融后仍有 348.5 vs 241.0 的 +44.6% 差额，本轮<b>未</b>逐项拆解
-     * （候选：R1 其他高度场改动、机器/编译器状态与 241 基线测量轮的不可比性）——不编造单一
-     * 主因，按"未归因"记此。</li>
+     * <li><b>C2（ampAt/chainRosterIndexAt/weightsAt 的 HashMap→直接映射定长槽表）＝ 主收益 ≈ −140µs
+     * /chunk（≈优化前的 46%）</b>。机理：GenBench 域 1024×1024 方块 = 65536 粗格，正是这些表的容量
+     * 上限；per-chunk 约 2500 次 {@code chainRosterIndexAt} 调用（amp 核 69 × 16 粗格 + weightsAt 核
+     * 69 × 16 粗格 + 逐列），旧实现每次 = 1 次 {@code Long} 装箱（超 127 必分配 ⇒ GC 压力）+ 2 层
+     * HashMap 查找；直接映射槽表把每次降到"1 次散列 + 全键比较"。<b>本条收益远大于只读调查切片
+     * genbench-profile.md 的估计（8-10%）——该估计按"每次 0.11µs × 每列 1 次"算，实际每列 ≈9.8 次
+     * 调用，故低估了约一个量级。</b></li>
+     * <li><b>C1（trunkAt 调用下沉到唯一消费点）≈ −15µs /chunk（≈优化前的 5%）</b>：省掉非沼泽残潭列
+     * 的 1 次 OpenSimplexDisk（{@code trunkAt} 列级 memo 未命中面）。</li>
+     * <li><b>C3（岛腿复用同列 dd[0]/dd[1]）+ C4（湖站扫平方距离选站）≈ &lt;2µs /chunk（≈1%，
+     * 低于本判据噪声底）</b>：两者只在湖/岛域生效，而 GenBench 域内岛域列只占 ~3%（seed0x47454EAE
+     * 一档的水域 45.8% × 岛域 25.4%）。函数级隔离读数（只读调查切片 §5）显示
+     * {@code lakeStationDistances} 平方选站降幅 ≈40-45%、单列 ≈0.07µs ⇒ 折算全链 ≈5%（在湖域密集
+     * 的域上）；本判据域测不出该量级，如实记为"低于噪声底"。</li>
+     * </ul>
+     * <b>逐位等价证据（C1..C4 全部）</b>：{@code temp/lake-d/tri-*.bin}——4 seed × 2048×256 =
+     * <b>2,097,152 列 × {lakeAt, lakeBedAt, heightAt}</b> 的三值原始位 dump，优化前/后
+     * SHA256 <b>相同</b>（无账本态与有账本态各一组；有账本态另与"只还原 C1/C2"的树逐字节相同）。
+     * <p>
+     * <b>历史基线（保留不删，逐段归档）</b>：
+     * <ul>
+     * <li><b>P23 R1·S6 重立（v1.20.46）：241.0 → 386.5</b>。取值 = 条款 N-4 实测批次
+     * 398.0 / 401.7 / 373.2 / 374.9 ⇒ 中位 386.5（同会话还测到 301.2-333.0 的安静窗口与
+     * 544.4-652.5 的 CPU 突发窗口 ⇒ 绝对值对背景负载敏感、会话内摆幅可达 ±35%）。</li>
+     * <li>P23 R1 前的 241.0 = P17-SA probe4 三次 216/241/248 的中位（"有账本"档）；
+     * 其后的退化 +60.4% 归因（湖全域站格化：每列必付 lakeAt；湖段整段 ≈15.4% 成本）与
+     * "未归因余量 +44.6% 不编造单一主因"的申报原文见版本树与本文件历史。
+     * v1.20.41-45 收口读数 310.2/284.1；P23 R1 首测链内 391.1 后的复跑批次 376.1/337.1/323.1。</li>
      * </ul>
      * <p>
-     * <b>优化尝试（已试并已回退，条款 a/c 的落地记录）</b>：本片试过在
-     * {@code lakeAt0}/{@code lakeStationDistances} 入口做<b>逐位等价</b>重构——3×3 站帧按
-     * {@code (seed,cellX,cellZ)} 单格缓存（消 18 次 {@code cellOffset}）+ 平方距离选站（消 7 次
-     * {@code sqrt}）。等价性<b>已证</b>（{@code temp/p23-s6/LakeDump}：4,194,304 列 × {lakeAt, dC, dN}
-     * ＋ 1,048,576 列 {@code lakeIslandTopAt}，优化前后 dump 文件 SHA256 相同）。但<b>本机收益为
-     * 零</b>（同列热路径 {@code lakeStationDistances}：旧 0.062-0.070µs vs 新 0.061-0.078µs；
-     * GenBench 交替 13/18 次中位 370.9 vs 372.0µs）——省下的 18 次哈希被两个 ThreadLocal.get()
-     * 抵掉 ⇒ <b>按"优化不可行即回退"回退</b>（生产代码保持原式，见
-     * {@code GTSRVoronoiRiverField#lakeStationDistances} 的回退登记）。
-     * <b>另附一条否证</b>：任务包设想的"粗距离预筛 ⇒ 直接 NO_LAKE 短路"<b>在本类不可能逐位等价</b>
-     * —— {@code lakeAt} 的真值是 {@code dC/dN < 1}（NO_LAKE=1.0 只在 D_MIN 淘汰腿出现），
-     * 任何"远场换成 1.0"都改位；且消费面存在 [LAKE_SHORE=0.26, sanzuBiomeShoreAt&lt;0.29) 的
-     * 判域（{@code isSanzuColumn} 在该带内翻转），把该带内的真值换成 1.0 会改变世界生成
-     * ⇒ 只能"回退 + 重立 BASE"，不能"短路 + 宣等值"。
+     * <b>P23 R1·S6 的"优化尝试已试并已回退"记录（与 P24-C 的关系，必读）</b>：S6 试过在
+     * {@code lakeAt0}/{@code lakeStationDistances} 把 3×3 站帧按 {@code (seed,cellX,cellZ)} 单格缓存
+     * + 平方距离选站，等价性已证（{@code temp/p23-s6/lake-{before,after}.bin}）但判零收益而回退。
+     * <b>P24-C4 只重做"平方距离选站"这一半</b>（无新 ThreadLocal.get，纯栈上算术），站帧缓存那一半
+     * 仍不回退（S6 已证其 ThreadLocal 开销吃掉收益）。
+     * <b>另附一条否证（仍然有效）</b>：任务包设想的"粗距离预筛 ⇒ 直接 NO_LAKE 短路"<b>不可能逐位等价</b>
+     * —— {@code lakeAt} 的真值是 {@code dC/dN < 1}（NO_LAKE=1.0 只在 D_MIN 淘汰腿出现），且消费面存在
+     * [LAKE_SHORE=0.26, sanzuBiomeShoreAt&lt;0.29) 的判域（{@code isSanzuColumn} 在该带内翻转）
+     * ⇒ 只能"回退/等价重构 + 重立 BASE"。
      * <p>
-     * <b>读数稳定性（申报）</b>：本判据要求串行空载（见类注释"串行纪律"），但本机存在不可关闭的
-     * 背景负载 ⇒ 绝对读数在 301-652µs 间摆动，<b>门只在该摆幅内可判</b>。门 = 中位 ×1.30 是为了
-     * 容一次同量级的背景突发；若读数掉出该带，先核机器负载再看是否真回归（勿直接当代码退化）。
+     * <b>读数稳定性（申报；P24 收尾更新）</b>：本判据要求串行空载（见类注释"串行纪律"），但本机
+     * 存在不可关闭的背景负载 ⇒ 历史绝对读数在 300-650µs 间摆动。<b>P24-C 后 BASE 降到 138.5 ⇒
+     * 旧门 180.1 比同树实测 175.4 只高 2.6%，一次同量级的背景突发即可打红</b>（同树链内另测
+     * 134.1 / 159.2 ⇒ 噪声摆幅已横跨旧门）。故 P24 收尾把余量系数 ×1.30 → ×1.45（门 180.1 →
+     * 200.8），代价、新门读数与"为何不再更宽"见 {@link #GATE_US_PER_CHUNK}。读数超门时仍先核机器
+     * 负载（同窗口重跑 2-3 次取中位，条款 N-4），确认非负载叠加再按代码回归处理（勿直接当退化）。
      * <p>
-     * 历史基线原文（保留不删）：241.0 = P17-SA probe4 三次 216/241/248 的中位（"有账本"档）；
-     * v1.20.41-45 收口读数 310.2/284.1；P23 R1 首测链内 391.1 超旧门 313.3 后的复跑批次
-     * 376.1 / 337.1 / 323.1（中位 337.1，曾作本轮 BASE，现被 386.5 覆盖 —— 两批次的差异
-     * 属本机背景负载摆幅，非代码改动）。
+     * <b>新门（×1.45 = 200.8）的稳定性实测</b>（P24 收尾，同树同窗口串行）：首跑经
+     * surface_checks.sh [3u8] 一次 + 单支复跑 3 次，medianChunk = <b>180.2 / 165.5 / 167.2 /
+     * 164.3µs</b>，四次<b>全部 PASS</b>；最大读数 180.2 距门 200.8 留 11.4% 余量。注：首跑 180.2
+     * 按<b>旧门 180.1 已判红</b>——正是本次放宽要消除的"无退化却红"现场（日志见
+     * {@code temp/p4-surface/GenBenchCheck.out} 与 {@code temp/p24close-genbench-run*.out}）。
      */
-    static final double BASELINE_US_PER_CHUNK = 386.5D;
+    static final double BASELINE_US_PER_CHUNK = 138.5D;
 
-    /** 派生式对赌门（劣化 &gt;30% 红）：{@link #BASELINE_US_PER_CHUNK} × 1.30 = 502.5。 */
-    static final double GATE_US_PER_CHUNK = BASELINE_US_PER_CHUNK * 1.30D;
+    /**
+     * 派生式对赌门（劣化 &gt;45% 判红；<b>P24 收尾把余量系数由 1.30 放宽到 1.45</b>）：
+     * {@link #BASELINE_US_PER_CHUNK} × 1.45 = <b>200.825</b>（旧 = × 1.30 = 180.05，P24-C 立）。
+     * <p>
+     * <b>为什么要放宽（审查申报，非掩盖退化）</b>：P24-C 把 BASE 从 386.5 重立为 138.5 后，旧门
+     * 180.1 只比同树实测 medianChunk <b>175.4</b> 高 <b>2.6%</b>；同树链内另测 134.1 / 159.2 ⇒
+     * 噪声摆幅已横跨旧门，而本机存在不可关闭的背景负载（历史绝对读数摆幅 301-652µs）⇒ 旧门实为
+     * "一次背景突发即红"的门，会在无退化的树上误报。放宽后 175.4 距门 +14.5%。
+     * <p>
+     * <b>为什么恰好 1.45、不再更宽（上界被"真退化必红"钉死）</b>：判据语义保持"读 per-chunk 中位、
+     * 超基线 N% 即红"，取向"宁松勿误红、真退化必红"⇒ N 可在 30..45 之间取，<b>但 45% 是硬上界
+     * （退化一旦超过它必须仍被门抓住）</b>，故本系数是<b>允许范围内最松的一档</b>：medianChunk
+     * &gt; 200.8（= 基线 +45% 以上）一律判红。基线的绝对真值 138.5 与 C1..C4 的逐位等价证据不动。
+     * <p>
+     * <b>被否的两条替代</b>：① 只抬 BASE（多次跑中位 / P75 / P90）会使门越过 1.45 × 138.5 ⇒ 45%
+     * 以上的退化会漏（破坏上述硬上界），且把"相对空载真值"的语义换成"相对某分位"、与条款 N-4 的
+     * 绝对真值口径冲突；② "抬 BASE + 抬系数"同理会更超界。故本档只动余量系数一项（单一变量）。
+     * <p>
+     * 读数协议不变：串行空载（类注释"串行纪律"）；超门时先核机器负载、同窗口重跑 2-3 次取中位
+     * （条款 N-4；先例 CaveFieldCheck 首测三连跑）。
+     */
+    static final double GATE_US_PER_CHUNK = BASELINE_US_PER_CHUNK * 1.45D;
 
     private GenBenchCheck() {}
 
@@ -140,8 +188,8 @@ public final class GenBenchCheck {
                 + " meanCol=%.3fus medianCol=%.0fns acc=%d%n",
             seeds, chunks.length, chunks.length * 256L, medianChunkUs, meanChunkUs, p90ChunkUs, meanColUs,
             medianColNs, acc);
-        System.out.printf("GENBENCH gate=medianChunk<=%.1f (baseline %.1f x 1.30, p17-sa probe4 ledger on; red>30%%)"
-                + " verdict=%s%n",
+        System.out.printf("GENBENCH gate=medianChunk<=%.1f (baseline %.1f x 1.45 [P24 close: 1.30->1.45],"
+                + " serial idle + ledger on; red>45%%) verdict=%s%n",
             GATE_US_PER_CHUNK, BASELINE_US_PER_CHUNK, pass ? "PASS" : "FAIL");
         System.out.println("GENBENCH note=serial-only by contract (v1.20.38: concurrent harness runs distort);"
             + " terrain-fill segment only (16x16 heightAt walk per chunk)");
