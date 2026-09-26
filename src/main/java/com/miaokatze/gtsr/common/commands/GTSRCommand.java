@@ -58,7 +58,8 @@ import com.miaokatze.gtsr.main.CommonProxy;
  * 搜索失败/权威未绑定/降级态一律<b>不动玩家</b>并回可读错误（含已搜半径）。
  * <b>S5（P23 plan §2）</b>：搜索原点 = 玩家当前 chunk；中文显示名经权威的 zh_CN 别名表解析
  * （英文 biomeName 失配后查）；SANZU_RIVER（roster-only，链身份面结构性不可见）走 RVF 湖格
- * 几何的<b>指令层定位通道</b>（nearestActiveLakeCenter → sanzuArrivalColumn 滩带列）——
+ * 几何的<b>指令层定位通道</b>（{@code nearestSanzuArrival} 单出口：7×7 站窗内取<b>带安全干滩</b>的
+ * 最近活湖，P25 D2 侵蚀门后无干滩湖被跳过）——
  * <b>不动 L1 身份面</b>（ordinalAt 单出口约束原样）、<b>不读 Chunk byte 平面</b>（类头硬约束保持）；
  * 落点高度对 populate 同源水列（巨湖/沼泽残潭）做螺旋 ≤16 列避让，找不到非水列时站水面（湖=68）。</li>
  * <li>/gtsr diag [A|B]（P14 顺手项）——把 P12 进维 {@code [GTSR][diag]} 诊断行直接打给发送者：
@@ -403,8 +404,9 @@ public class GTSRCommand extends CommandBase {
      * S5：SANZU_RIVER（遗忘之川/湖）专属定位分支——该群系是 roster-only（selector=false），
      * 平面列由 populate 后置写入，链身份面（GenLayer 4 家 selector）永远解析不到 ⇒ 环带搜索
      * 恒 NOT_FOUND（结构性，非半径问题）。本分支是指令层定位通道：直接走 RVF 的湖格几何
-     * （{@link GTSRVoronoiRiverField#nearestActiveLakeCenter} → {@link GTSRVoronoiRiverField#sanzuArrivalColumn}
-     * 滩带列，避岛心树干与岛底柱），<b>不动 L1 身份面</b>（ordinalAt 单出口约束原样）、
+     * （{@link GTSRVoronoiRiverField#nearestSanzuArrival}——7×7 站窗内取<b>带安全干滩</b>的最近
+     * 活湖并给出滩带干列，避岛心树干与岛底柱；P25 S5b 起湿兜底已删、无干滩湖整湖跳过），
+     * <b>不动 L1 身份面</b>（ordinalAt 单出口约束原样）、
      * <b>零 Chunk byte 读</b>（类头硬约束保持）、全程确定性纯函数。
      * 未命中（主干带外全死湖等）→ NOT_FOUND 文案出口，玩家不动。
      */
@@ -413,18 +415,21 @@ public class GTSRCommand extends CommandBase {
         final long t0 = System.nanoTime();
         final long worldSeed = targetWorld.getSeed();
         final int[] center = new int[2];
-        final boolean lakeHit = GTSRVoronoiRiverField.nearestActiveLakeCenter(
+        final int[] col = new int[2];
+        final boolean lakeHit = GTSRVoronoiRiverField.nearestSanzuArrival(
             worldSeed,
             MathHelper.floor_double(player.posX),
             MathHelper.floor_double(player.posZ),
-            center);
-        final int[] col = lakeHit ? GTSRVoronoiRiverField.sanzuArrivalColumn(worldSeed, center[0], center[1]) : null;
+            center,
+            col);
         final long ms = (System.nanoTime() - t0) / 1_000_000L;
-        if (!lakeHit || col == null) {
+        if (!lakeHit) {
             sender.addChatMessage(
                 new ChatComponentText(
                     "tpdim failed: 该维度内未找到该群系 '" + rawName
-                        + "'（已搜半径 49 湖站格（7×7 站 × LAKE_INTERVAL 1200），耗时 "
+                        + "'（已搜半径 49 湖站格（7×7 站 × LAKE_INTERVAL "
+                        + (int) GTSRVoronoiRiverField.LAKE_INTERVAL
+                        + "），耗时 "
                         + ms
                         + "ms）"));
             return;
@@ -475,7 +480,8 @@ public class GTSRCommand extends CommandBase {
      * seedSalt 只进 ChunkProvider 掷骰不进高度场）。def 缺失（理论不可达，上游已守卫）按繁荣侧兜底。
      * <p>
      * <b>S5 水柱感知</b>（dim78）：命中列若是 populate 同源水列（{@link #populateWaterColumnAt}——
-     * 巨湖/沼泽残潭），heightAt 是湖床/潭底，+1 会把玩家放进深水；改为螺旋 ≤16 列（环 1 全 8 列 +
+     * 巨湖；P25 D7 残潭退役后该谓词只剩巨湖一支），heightAt 是湖床底，+1 会把玩家放进深水；改为
+     * 螺旋 ≤16 列（环 1 全 8 列 +
      * 环 2 最近 8 列，欧氏近→远）找最近非水列取其 heightAt（调用方 +1 = 站该列顶），找不到 →
      * 湖面 {@code SEA_LEVEL−1}（+1 = 68 = 站水面）。谓词全部复用 RVF 公开出口，不抄第二份判定。
      */
@@ -507,17 +513,13 @@ public class GTSRCommand extends CommandBase {
     /**
      * <b>populate 同源水列谓词</b>（S5，dim78）：巨湖 = {@code ChunkProviderProsperityRuins.fillSanzuLakes}
      * 的逐字同式（{@code lakeAt < LAKE_SHORE} ∧ {@code heightAt < SEA_LEVEL}，两符号皆
-     * RVF/Profile 公开出口，不抄第二份判定）；沼泽残潭 =
-     * {@link GTSRVoronoiRiverField#swampRiverPoolColumnAt}（rosterIndex=0 保守档，O1a 纪律不统一
-     * roster 语义）。河道支路的 populate 池水柱不在本谓词内（批2 S2 将 wetAt 置死，不为其新立真值；
-     * S5 回执已申报此限）。
+     * RVF/Profile 公开出口，不抄第二份判定）。<b>[P25 D7 残潭退役]</b>原沼泽残潭腿
+     * （{@code swampRiverPoolColumnAt}，v1.20.42 P22 A1b）已随 RVF 该族删除而摘除；河道支路的
+     * populate 池水柱不在本谓词内（批2 S2 已将 wetAt 置死，不为其新立真值）。
      */
     private static boolean populateWaterColumnAt(long worldSeed, int x, int z) {
-        if (GTSRVoronoiRiverField.lakeAt(worldSeed, x, z) < GTSRVoronoiRiverField.LAKE_SHORE
-            && ProsperityTerrainProfile.heightAt(worldSeed, x, z) < ProsperityTerrainProfile.SEA_LEVEL) {
-            return true;
-        }
-        return GTSRVoronoiRiverField.swampRiverPoolColumnAt(worldSeed, x, z, 0);
+        return GTSRVoronoiRiverField.lakeAt(worldSeed, x, z) < GTSRVoronoiRiverField.LAKE_SHORE
+            && ProsperityTerrainProfile.heightAt(worldSeed, x, z) < ProsperityTerrainProfile.SEA_LEVEL;
     }
 
     /** 第 {@code from} 参起到末尾以单空格重 join（1.7.10 服务端无引号感知切分的兼容层）。 */

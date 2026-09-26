@@ -91,6 +91,15 @@ public final class GTSRBiomeAuthority {
          * 机器侧消费（三途余汽）走与平面写入同一谓词 {@code GTSRVoronoiRiverField.isSanzuColumn}。
          */
         SANZU_RIVER(DIM_KEY_PROSPERITY, 4, false),
+        /**
+         * 枯竭河床（v1.20.48 P25 第 6 成员，名册下标 5，用户裁定）。<b>不进 selector 等权名册</b>——
+         * 与 {@link #SANZU_RIVER} 同轨：4 家名册不动 ⇒ 链身份面（{@link #ordinalAt} 的 Source 采样）
+         * <b>结构性解析不到它</b>（链入参只吃 {@link #inSelector()} 成员，见
+         * {@code GTSRGenLayerRosterFace}/{@code GTSRSurfaceBorderBand}/{@code CityPlanner} 的过滤）；
+         * 其平面列由 populate 后置写入，机器侧枯竭气息收集（{@code ProsperityAirLookup}）走与
+         * 平面写入同一谓词 {@code GTSRVoronoiRiverField.isDryRiverColumn}（D6）。
+         */
+        WITHERED_RIVERBED(DIM_KEY_PROSPERITY, 5, false),
         ASHEN_PRAIRIE(DIM_KEY_SHATTERED, 0, true),
         SLAGWOOD_GROVE(DIM_KEY_SHATTERED, 1, true),
         VITREOUS_WASTE(DIM_KEY_SHATTERED, 2, true),
@@ -448,13 +457,13 @@ public final class GTSRBiomeAuthority {
      * {@code biome.<biomeName>.name} 值）→ 名册身份。英文 {@code biomeName} 匹配失配后查本表；
      * 命中仍要求该成员在本维 roster 已配槽（跨维中文名不串档，与英文路径同一约束）。
      * 键为 {@link #normalizeBiomeName} 归一化形态（中文串归一化 = 原文）。单一真值纪律：
-     * 值只写 {@link BiomeId} 枚举成员、不复制英文 biomeName；九串须与 lang 文件逐字一致
+     * 值只写 {@link BiomeId} 枚举成员、不复制英文 biomeName；十串须与 lang 文件逐字一致
      * （S6 判据将加"别名↔lang 双向同步钉"强制闭环）。
      */
     private static final Map<String, BiomeId> ZH_CN_DISPLAY_NAME_ALIASES = new HashMap<>(16);
 
     static {
-        // dim78（zh_CN.lang:2035-2039）
+        // dim78（zh_CN.lang:2035-2040）
         ZH_CN_DISPLAY_NAME_ALIASES.put("锈蚀草原", BiomeId.RUSTED_STEPPE);
         ZH_CN_DISPLAY_NAME_ALIASES.put("齿轮森林", BiomeId.GEARWORK_FOREST);
         ZH_CN_DISPLAY_NAME_ALIASES.put("黄铜荒漠", BiomeId.BRASS_WASTES);
@@ -462,6 +471,8 @@ public final class GTSRBiomeAuthority {
         // P23 R1 批2 S2 已兑现：注册名 "Sanzu River"→"Sanzu Lake"、zh_CN 值改"遗忘之湖"
         // （注册名/lang/别名表三处同轮，plan §2 S2 第 8 条）
         ZH_CN_DISPLAY_NAME_ALIASES.put("遗忘之湖", BiomeId.SANZU_RIVER);
+        // v1.20.48 P25 用户裁定：第 6 群系枯竭河床（roster-only，populate 后置平面写）
+        ZH_CN_DISPLAY_NAME_ALIASES.put("枯竭河床", BiomeId.WITHERED_RIVERBED);
         // dim79（zh_CN.lang:2107-2110）
         ZH_CN_DISPLAY_NAME_ALIASES.put("灰烬草原", BiomeId.ASHEN_PRAIRIE);
         ZH_CN_DISPLAY_NAME_ALIASES.put("渣木林", BiomeId.SLAGWOOD_GROVE);

@@ -278,6 +278,12 @@ public class ProsperityWorldGenerator implements IWorldGenerator, GTSROwnedGener
      * 只影响 decorate 的档位选择：机器/散布/结构继续消费 GenLayer 面 {@code rosterIndex}
      * （四元素权重表的下标语义与 T5 前逐位一致），本方法不是第二身份真值源——身份出口仍只有
      * {@code ordinalAt}（链面）与 {@code isSanzuColumn}（平面谓词）两条，密度场只是它们的折叠者。
+     * <p>
+     * <b>P25 复核（枯竭河床第 6 群系天然不指派，零改）</b>：{@code WITHERED_RIVERBED} 是
+     * roster-only 平面档（同 sanzu 的 {@code inSelector()=false}，GenLayer 链不产它），而
+     * {@code DensityField.effectiveRosterAt} 的平面覆写只有 sanzu 一条 ⇒ 11×11 argmax 的
+     * 候选域恒 ⊆ {-1, 0..4}，decorate 档位链天然取不到第 6 群系（它由 CPR 的
+     * {@code assignWitheredRiverbedBiome} 写平面，装饰侧无需也不该指派档）。
      */
     private static int vegRosterIndex(long worldSeed, int chunkX, int chunkZ, int chainIndex) {
         return DensityField.dominantVegRosterAt(worldSeed, (chunkX << 4) + 8, (chunkZ << 4) + 8, chainIndex);

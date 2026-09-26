@@ -330,6 +330,8 @@ public class MTEAirCompressor extends MTESteamMultiBlockBase<MTEAirCompressor> i
         // dim1 S3：维度分派查表化（原二值三目 isNether，plan S3 ②）。
         // 三分支：繁荣维度（非禁用态）→ ProsperityAirLookup 按四群系出对应四气，未命中/注册降级回落 Air；
         // 下界 → NetherAir.getFluid；其余（含主世界）→ Air.getGas——0/-1 与其他维度行为与改前逐字节一致。
+        // v1.20.48 P25（用户裁定）：第七气 withered_breath（枯竭河床 → 枯竭气息）经
+        // ProsperityAirLookup 泛型覆盖（case WITHERED_RIVERBED），本分支零改即天然产出。
         final World world = getBaseMetaTileEntity().getWorld();
         final int dimensionId = world.provider.dimensionId;
         final int amount = 800 * getMaxParallelRecipes();

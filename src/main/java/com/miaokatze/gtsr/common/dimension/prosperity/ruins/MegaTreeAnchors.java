@@ -37,10 +37,10 @@ public final class MegaTreeAnchors {
     /** anchorAt 输出缓冲长度：[0]=ax、[1]=az、[2]=gx、[3]=gz、[4]=y0。 */
     public static final int ANCHOR_OUT_LEN = 5;
 
-    /** 枚举采样步长：任意列到最近采样列 ≤ 4 格，warp 场波长 320 / 幅度 70 ⇒ 采样列与岛心同格（见类注释采样论证）。public = 判据镜像同一网格。 */
+    /** 枚举采样步长：任意列到最近采样列 ≤ 4 格，warp 场波长 ≈700（主）/340（副 P25）⇒ 采样列与岛心同格（见类注释采样论证）。public = 判据镜像同一网格。 */
     public static final int ENUM_STEP = 8;
 
-    /** 单 chunk 窗内可能相交的锚点数上限：湖格间隔 {@code LAKE_INTERVAL}=1200 ≫ 窗宽 208（r=50 派生），>1 已不可能，留 4 防御。 */
+    /** 单 chunk 窗内可能相交的锚点数上限：湖格间隔 {@code LAKE_INTERVAL}=3000（P25 D1 1200→3000）≫ 窗宽 208（r=50 派生），>1 已不可能，留 4 防御。 */
     static final int ENUM_CAP = 4;
 
     private MegaTreeAnchors() {}
@@ -87,9 +87,10 @@ public final class MegaTreeAnchors {
     /**
      * 枚举与本 chunk 相交的全部活湖锚点（窗 = {@link #windowChunks} 派生；采样步 {@link #ENUM_STEP}，
      * 去重按 (gx,gz)）。<b>采样论证</b>（步 8 够用的原因）：岛心 c 是其格压力零点 ⇒ 列 c 的 warped
-     * 位与湖站距离 ≈ 0；最近采样列 s 距 c ≤ 4 格，warp 场梯度上界 ≈ {@code LAKE_WARP·2π/
-     * LAKE_WARP_SCALE} ≈ 1.37/格 ⇒ s 的 warped 位距本格湖站 ≤ ~8 格，而相邻湖站最小间距 =
-     * {@code LAKE_INTERVAL − 2·CELL_JITTER·LAKE_INTERVAL} = 360 格 ⇒ 获胜格不变，锚点不漏。
+     * 位与湖站距离 ≈ 0；最近采样列 s 距 c ≤ 4 格，warp 场梯度上界 ≈ {@code 2π·(LAKE_WARP/}
+     * {@code LAKE_WARP_SCALE + LAKE_WARP_SUB/LAKE_WARP_SUB_SCALE)} ≈ 0.99/格（P25 D3 双频档）⇒ s 的 warped 位距本格湖站 ≤ ~8
+     * 格，而相邻湖站最小间距 =
+     * {@code LAKE_INTERVAL − 2·CELL_JITTER·LAKE_INTERVAL} = 900 格 ⇒ 获胜格不变，锚点不漏。
      * out 行数 ≥ {@link #ENUM_CAP}（每行长 ≥ {@link #ANCHOR_OUT_LEN}）；返回写入行数。
      */
     public static int enumerateAnchors(long worldSeed, int chunkX, int chunkZ, int radius, double[][] out) {

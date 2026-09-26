@@ -15,6 +15,7 @@ import com.miaokatze.gtsr.common.dimension.framework.structure.ChunkSliceSink;
 import com.miaokatze.gtsr.common.dimension.framework.structure.GTSRWorldgenHash;
 import com.miaokatze.gtsr.common.dimension.framework.structure.StructureBuilder;
 import com.miaokatze.gtsr.common.dimension.prosperity.TerrainVariants;
+import com.miaokatze.gtsr.common.dimension.prosperity.river.GTSRVoronoiRiverField;
 
 /**
  * 自然区地表装饰散布器（dim78 S-A1，plan §12 修订 5：修复自然区"光秃秃"；草丛/锈树/碎石三件。
@@ -93,6 +94,17 @@ public final class ProsperityDecorPlacer {
      * 时按<b>同一盐</b>派生 formRand（盐单源；本字段值与取数点一字未动）。
      */
     static final long SALT_ISLAND_TREE = 0x49534C4E44L;
+
+    /**
+     * 盐 "tfrm"（0x7466726D 截断；v1.20.48 P25 S4 普通树趟<b>同型三抖动</b>的唯一派生盐）：每棵
+     * 普通树按 {@code chunkSeed(worldSeed, chunkX, chunkZ) ^ 本盐 ^ 树序号} 派生 formRand（与
+     * {@link #SALT_ISLAND_TREE} 的锚点槽派生同一条独立盐纪律，多一棵树就多 XOR 一个掷骰下标），
+     * 冠半径 ±1 / 冠形三变体 / 干高带宽抖动的<b>全部</b>掷骰只消费本流 ⇒ 共享 {@code rand} 的
+     * 取数点位与顺序一位不动（placeTreePass 普通段之后的植被/碎石/沙砾三趟随机流不受树形影响，
+     * H-3 同款）。<b>确定性</b>：同 seed 同 chunk 同树序 ⇒ 同 formRand 种子 ⇒ 同一串固定顺序的
+     * 取数（半径抖动 → 冠形选型 → 干高抖动 → 疏叶跳点）⇒ 同树逐位一致。
+     */
+    private static final long SALT_TREE_FORM = 0x7466726DL;
 
     /**
      * 本类所属维度键（P4：门的显式维度入参）。取 L1 账本同一词汇 {@link SurfaceGate#DIM78}
@@ -593,7 +605,9 @@ public final class ProsperityDecorPlacer {
      * 普通 {@code treeRolls} 骰（密度为 0 时跳骰，与改造前"分母 0 不掷"同形，均匀区随机流消耗
      * 逐位同构）；② <b>均匀区期望 == 档表原值逐位</b>——腹地密度即档表行值（DensityField 均匀短路），
      * {@code DICE_GATE}=96000 取全部分母 LCM ⇒ 门概率与 {@code 1/N} 有理数重合；③ <b>密度只驱动
-     * 生成概率</b>——干高/冠形/木种仍按主导档 {@code tier} 离散取值（形态不插值，判据友好）。
+     * 生成概率</b>——干高/冠形/木种仍按主导档 {@code tier} 离散取值（形态不插值，判据友好；
+     * <b>v1.20.48 P25 S4</b> 起普通档同档内另有冠半径/冠形/干高的同型三抖动，全部走独立盐
+     * {@link #SALT_TREE_FORM}，档间离散纪律与密度门不变，见 {@link #placeTree}）。
      * 混合区里普通档单骰概率 = chunk 级期望密度 ÷ {@code treeRolls}（rolls 数仍按主导档）。
      */
     private static void placeTreePass(World world, long worldSeed, StructureBuilder builder, Random rand,
@@ -638,7 +652,8 @@ public final class ProsperityDecorPlacer {
             final double perRoll = DensityField.normalDensityAt(worldSeed, centerX, centerZ) / tier.treeRolls;
             for (int i = 0; i < tier.treeRolls; i++) {
                 if (rand.nextInt(DensityField.DICE_GATE) < DensityField.gateOf(perRoll)) {
-                    placeTree(world, builder, rand, chunkX, chunkZ, tier);
+                    // P25 S4：树序号 i 只喂 formRand 的种子（独立盐），共享 rand 掷序不动
+                    placeTree(world, worldSeed, builder, rand, chunkX, chunkZ, tier, i);
                 }
             }
         }
@@ -724,10 +739,10 @@ public final class ProsperityDecorPlacer {
             if (clusterRand.nextInt(SHRUB_CLUSTER_SKIP_DENOM) < SHRUB_CLUSTER_SKIP_HITS) {
                 return;
             }
-            placeShrubAt(world, builder, rand, x, z, surfaceY, tier);
+            placeShrubAt(world, worldSeed, builder, rand, x, z, surfaceY, tier);
             return;
         }
-        placeShrubAt(world, builder, rand, x, z, surfaceY, tier);
+        placeShrubAt(world, worldSeed, builder, rand, x, z, surfaceY, tier);
         placeShrubCluster(world, worldSeed, builder, clusterRand, chunkX, chunkZ, x, z, tier);
     }
 
@@ -799,7 +814,7 @@ public final class ProsperityDecorPlacer {
             if (surfaceY < 0) {
                 continue;
             }
-            placeShrubAt(world, builder, clusterRand, x, z, surfaceY, tier);
+            placeShrubAt(world, worldSeed, builder, clusterRand, x, z, surfaceY, tier);
             placed++;
         }
     }
@@ -812,9 +827,16 @@ public final class ProsperityDecorPlacer {
      * <b>v1.20.41 P20 S6</b>：本方法是原 {@code placeShrub} 的<b>取位段被上收到
      * {@link #placeShrubEvent}</b> 之后剩下的形态体，形态/空气门/取数对象逐字未动（唯一变化是
      * "用哪个 {@code Random}"：主株传共享流、簇内附加株传独立流，见 {@link #placeShrubEvent}）。
+     * <p>
+     * <b>枯竭河床 bail（v1.20.48 P25 D6，S3 移交）</b>：方法体首行一行
+     * {@link GTSRVoronoiRiverField#isDryRiverColumn} 门——枯竭河床群系禁树禁灌木（与
+     * {@link #placeTree} 的树位门同位同口径）。
      */
-    private static void placeShrubAt(World world, StructureBuilder builder, Random rand, int x, int z, int surfaceY,
-        VegTier tier) {
+    private static void placeShrubAt(World world, long worldSeed, StructureBuilder builder, Random rand, int x, int z,
+        int surfaceY, VegTier tier) {
+        if (GTSRVoronoiRiverField.isDryRiverColumn(worldSeed, x, z)) {
+            return; // 枯竭河床群系禁灌木（P25 D6，S3 移交；与 placeTree 同位）
+        }
         final int wood = pickWood(rand, tier);
         final int trunkHeight = 1 + rand.nextInt(2);
         for (int i = 1; i <= trunkHeight; i++) {
@@ -840,22 +862,66 @@ public final class ProsperityDecorPlacer {
         return rand.nextInt(tier.woodMixDenom) == 0 ? tier.woodSecondary : tier.woodPrimary;
     }
 
+    // ══════════════ v1.20.48 P25 S4：普通树同型三抖动（冠半径 ±1 / 冠形三变体 / 干高带宽）══════════════
+
+    /** 冠半径抖动分母（{@code formRand.nextInt(3) - 1} ⇒ −1/0/+1 各 1/3）。 */
+    private static final int CANOPY_RADIUS_JITTER_DENOM = 3;
+
     /**
-     * 单棵树：干位按该档冠半径内收（{@code radius .. 15-radius} ⇒ 冠层零跨 chunk），
-     * 整柱干空气门，占用即整树跳过；干高 = {@code trunkMin + nextInt(trunkSpan)}。
-     * 造型 = 木种决定冠形（{@link #canopyFor}）+ 该档冠半径 ⇒ 四群系四副骨架。
+     * 干高带宽抖动的<b>升档阈</b>：{@code trunkSpan ≥ 6} 的档（现仅齿轮森林 6）抖幅 ±2，其余档 ±1 ——
+     * 读的是<b>档值</b>不是身份（本类零身份等值判断的纪律不变）。抖后干高 = 原带对称平移 ≤2 格
+     * （均值不动），最大值 +2 ⇒ BAND_TRUNK_MEAN/MAX 的重钉量级不超 ±2（重钉归批 2）。抖后最小
+     * 可达干高 = 各档 {@code trunkMin − 1} ≥ 3（四群系 trunkMin 最小 4）⇒ 永不落进 P17
+     * "≤2 竖段计入灌木"的计数口径（DEFAULT_TIER 的 trunkMin=3 属身份不可得的降级档，生产取不到）。
      */
-    private static void placeTree(World world, StructureBuilder builder, Random rand, int chunkX, int chunkZ,
-        VegTier tier) {
+    private static final int TRUNK_JITTER_WIDE_SPAN = 6;
+
+    /** 冠形变体码（P25 S4 三抖动之一）：平顶 = 现有盘形骨架逐字保留（= 抖动前形态）。 */
+    private static final int CANOPY_FORM_FLAT = 0;
+    /** 冠形变体码：尖顶 = 现有冠<b>之上</b>加十字层 + 单格收尖（只动叶块写入形状，不动干高与株数）。 */
+    private static final int CANOPY_FORM_SPIRE = 1;
+    /** 冠形变体码：疏叶 = 冠层叶盘/十字逐格按 formRand 1/3 跳写（≈33.3% 留空，落在 25-35% 带内）。 */
+    private static final int CANOPY_FORM_SPARSE = 2;
+    /** 冠形选型分母（{@code formRand.nextInt(3)} ⇒ 三变体等概率；四木种 × 三变体全可达）。 */
+    private static final int CANOPY_FORM_DENOM = 3;
+    /**
+     * 疏叶跳写分母（{@code formRand.nextInt(3) != 0} 才写）。沼泽伞骨 30% 垂格（canopyFor MARSH 臂的
+     * 共享 {@code rand} 骰）与四角/伞骨垂枝写入<b>不进</b>疏叶门——那些是 P17 钉过的既有形态面。
+     */
+    private static final int CANOPY_SPARSE_SKIP_DENOM = 3;
+
+    /**
+     * 单棵树：干位按<b>抖动后</b>冠半径内收（{@code radius .. 15-radius} ⇒ 冠层零跨 chunk——类注释
+     * 跨界协议的论证改用抖动后半径重述，仍然成立），整柱干空气门，占用即整树跳过；
+     * 干高 = {@code trunkMin + nextInt(trunkSpan) + 带宽抖动}。造型 = 木种决定冠形
+     * （{@link #canopyFor}）+ 抖动后冠半径 ⇒ 四群系四副骨架。
+     * <p>
+     * <b>v1.20.48 P25 S4</b>：① <b>枯竭河床 bail</b>（S3 移交，P25 D6）：掷出树位后一行
+     * {@link GTSRVoronoiRiverField#isDryRiverColumn} 门——枯竭河床群系禁树禁灌木；② <b>同型三抖动</b>
+     * （冠半径 ±1 / 冠形三变体 / 干高带宽 ±1~2）全部只消费独立盐 {@link #SALT_TREE_FORM} 的
+     * formRand（树序号入参 = placeTreePass 普通段的掷骰下标，同 seed 同 chunk 同序 ⇒ 同树逐位一致），
+     * 共享 {@code rand} 的取数点位与顺序一字不动（H-3）。
+     */
+    private static void placeTree(World world, long worldSeed, StructureBuilder builder, Random rand, int chunkX,
+        int chunkZ, VegTier tier, int treeOrdinal) {
         final int radius = Math.max(1, tier.canopyRadius);
-        final int x = (chunkX << 4) + radius + rand.nextInt(16 - 2 * radius);
-        final int z = (chunkZ << 4) + radius + rand.nextInt(16 - 2 * radius);
+        final Random formRand = new Random(
+            GTSRWorldgenHash.chunkSeed(worldSeed, chunkX, chunkZ) ^ SALT_TREE_FORM ^ treeOrdinal);
+        final int canopyRadius = Math.max(1, radius + formRand.nextInt(CANOPY_RADIUS_JITTER_DENOM) - 1);
+        final int x = (chunkX << 4) + canopyRadius + rand.nextInt(16 - 2 * canopyRadius);
+        final int z = (chunkZ << 4) + canopyRadius + rand.nextInt(16 - 2 * canopyRadius);
+        if (GTSRVoronoiRiverField.isDryRiverColumn(worldSeed, x, z)) {
+            return; // 枯竭河床群系禁树（P25 D6，S3 移交；与 placeShrubAt 同位）
+        }
         final int surfaceY = naturalTopAt(world, x, z);
         if (surfaceY < 0) {
             return;
         }
         final int wood = pickWood(rand, tier);
-        final int trunkHeight = tier.trunkMin + rand.nextInt(Math.max(1, tier.trunkSpan));
+        final int canopyForm = formRand.nextInt(CANOPY_FORM_DENOM);
+        final int trunkJitterSpan = tier.trunkSpan >= TRUNK_JITTER_WIDE_SPAN ? 2 : 1;
+        final int trunkJitter = formRand.nextInt(2 * trunkJitterSpan + 1) - trunkJitterSpan;
+        final int trunkHeight = Math.max(1, tier.trunkMin + rand.nextInt(Math.max(1, tier.trunkSpan)) + trunkJitter);
         for (int i = 1; i <= trunkHeight; i++) {
             if (!world.isAirBlock(x, surfaceY + i, z)) {
                 return; // 让行纪律：整树跳过，不切结构
@@ -864,7 +930,7 @@ public final class ProsperityDecorPlacer {
         final Block log = logOf(wood);
         final Block leaves = leavesOf(wood);
         final int topY = surfaceY + trunkHeight;
-        canopyFor(wood, builder, world, x, topY, z, radius, rand, leaves);
+        canopyFor(wood, builder, world, x, topY, z, canopyRadius, rand, leaves, canopyForm, formRand);
         // 干（冠层之后写，干格冠层让行已由 isAirBlock 保证，重写干位无副作用但按惯例后置）
         for (int i = 1; i <= trunkHeight; i++) {
             builder.setBlock(x, surfaceY + i, z, log, 0, BlockSink.FLAG_POPULATE);
@@ -872,45 +938,62 @@ public final class ProsperityDecorPlacer {
     }
 
     /**
-     * 树形（P17 S-B2 "种类样式多一点"的落点）：一副冠形绑一个木种，r = 该档冠层半径。
-     * 全部格点相对干顶的偏移都 ≤ r，水平不越 chunk（干位已内收），垂直由 {@code MAX_SURFACE_Y} 与
-     * ChunkClampedSink 的 y 域门兜底。
+     * 树形（P17 S-B2 "种类样式多一点"的落点）：一副冠形绑一个木种，r = 该档冠层半径（<b>P25 S4 起
+     * = 抖动后半径</b>，由 {@link #placeTree} 传入）。
+     * 全部格点相对干顶的偏移都 ≤ r，水平不越 chunk（干位已按抖动后半径内收），垂直由
+     * {@code MAX_SURFACE_Y} 与 ChunkClampedSink 的 y 域门兜底。
      * <ul>
      * <li>{@link #WOOD_RUST} 穹顶冠：干顶两层 (2r+1) 缺角 + 顶 3×3 + 十字（= 改前形，r=2 时逐字同）；</li>
      * <li>{@link #WOOD_COPPER} 层叠塔冠：自上而下半径 1→r 的四层盘（针叶感，高干才压得住）；</li>
      * <li>{@link #WOOD_BRASS} 广展穹冠：干顶三层 (2r+1)/(2r+1)/(2r-1) + 顶十字 + 四角垂枝；</li>
      * <li>{@link #WOOD_MARSH} 平展伞冠：单层大平顶 + 顶小盘 + 四边下垂侧枝（沼泽"撑开的伞"）。</li>
      * </ul>
+     * <b>v1.20.48 P25 S4 冠形三变体</b>（每木种内按 {@code formRand.nextInt(3)} 独立选型，四木种
+     * × 三变体全可达 ⇒ 每木种至少 2 冠形；变体只动叶块写入形状，不动干高概率与株数）：
+     * {@link #CANOPY_FORM_FLAT} 平顶 = 上表骨架逐字保留；{@link #CANOPY_FORM_SPIRE} 尖顶 = 骨架
+     * "现有顶"之上统一再抬两层（十字层 + 单格收尖）；{@link #CANOPY_FORM_SPARSE} 疏叶 = 骨架的
+     * 叶盘/十字经 {@link #canopyLeafDisc}/{@link #canopyCrossTop} 逐格 1/3 跳写（沼泽伞骨 30% 垂格
+     * 的共享 {@code rand} 骰与四角/伞骨垂枝写入<b>不进</b>疏叶门，保留不动）。
      */
     private static void canopyFor(int wood, StructureBuilder builder, World world, int x, int topY, int z, int r,
-        Random rand, Block leaves) {
+        Random rand, Block leaves, int canopyForm, Random formRand) {
         switch (wood) {
             case WOOD_COPPER: {
                 // 塔冠：topY..topY-3（自上而下 1,1,2,r），顶一格收尖
-                placeLeafDisc(builder, world, x, topY + 1, z, 0, leaves);
-                placeLeafDisc(builder, world, x, topY, z, 1, leaves);
-                placeLeafDisc(builder, world, x, topY - 1, z, 1, leaves);
-                placeLeafDisc(builder, world, x, topY - 2, z, 2, leaves);
-                placeLeafDisc(builder, world, x, topY - 3, z, Math.max(2, r), leaves);
+                canopyLeafDisc(builder, world, x, topY + 1, z, 0, leaves, canopyForm, formRand);
+                canopyLeafDisc(builder, world, x, topY, z, 1, leaves, canopyForm, formRand);
+                canopyLeafDisc(builder, world, x, topY - 1, z, 1, leaves, canopyForm, formRand);
+                canopyLeafDisc(builder, world, x, topY - 2, z, 2, leaves, canopyForm, formRand);
+                canopyLeafDisc(builder, world, x, topY - 3, z, Math.max(2, r), leaves, canopyForm, formRand);
+                if (canopyForm == CANOPY_FORM_SPIRE) {
+                    // 尖顶：塔顶之上十字层 + 单格收尖（只动叶块）
+                    placeCrossTop(builder, world, x, topY + 2, z, leaves);
+                    placeLeafIfAir(builder, world, x, topY + 3, z, leaves);
+                }
                 return;
             }
             case WOOD_BRASS: {
-                placeLeafDisc(builder, world, x, topY + 2, z, 1, leaves);
-                placeLeafDisc(builder, world, x, topY + 1, z, Math.max(1, r - 1), leaves);
-                placeLeafDisc(builder, world, x, topY, z, r, leaves);
-                placeLeafDisc(builder, world, x, topY - 1, z, r, leaves);
-                // 四角垂枝（对角各 1 格，跨度仍在 r 内）
+                canopyLeafDisc(builder, world, x, topY + 2, z, 1, leaves, canopyForm, formRand);
+                canopyLeafDisc(builder, world, x, topY + 1, z, Math.max(1, r - 1), leaves, canopyForm, formRand);
+                canopyLeafDisc(builder, world, x, topY, z, r, leaves, canopyForm, formRand);
+                canopyLeafDisc(builder, world, x, topY - 1, z, r, leaves, canopyForm, formRand);
+                // 四角垂枝（对角各 1 格，跨度仍在 r 内；不进疏叶门——垂枝是 P17 既有形态面）
                 for (int d = -1; d <= 1; d += 2) {
                     for (int e = -1; e <= 1; e += 2) {
                         placeLeafIfAir(builder, world, x + d * r, topY - 2, z + e * r, leaves);
                     }
                 }
-                placeCrossTop(builder, world, x, topY + 3, z, leaves);
+                canopyCrossTop(builder, world, x, topY + 3, z, leaves, canopyForm, formRand);
+                if (canopyForm == CANOPY_FORM_SPIRE) {
+                    // 尖顶：现有顶（十字层）之上再抬两层（十字 + 单格收尖，只动叶块）
+                    placeCrossTop(builder, world, x, topY + 4, z, leaves);
+                    placeLeafIfAir(builder, world, x, topY + 5, z, leaves);
+                }
                 return;
             }
             case WOOD_MARSH: {
-                placeLeafDisc(builder, world, x, topY + 1, z, 1, leaves);
-                placeLeafDisc(builder, world, x, topY, z, r, leaves);
+                canopyLeafDisc(builder, world, x, topY + 1, z, 1, leaves, canopyForm, formRand);
+                canopyLeafDisc(builder, world, x, topY, z, r, leaves, canopyForm, formRand);
                 // 伞骨下垂：四正边各 1-2 格（30% 概率多挂一格）
                 for (int d = -1; d <= 1; d += 2) {
                     for (int e = -1; e <= 1; e += 2) {
@@ -920,15 +1003,25 @@ public final class ProsperityDecorPlacer {
                         }
                     }
                 }
+                if (canopyForm == CANOPY_FORM_SPIRE) {
+                    // 尖顶：伞面小盘之上十字 + 单格收尖（只动叶块；伞骨垂格与 30% 骰不动）
+                    placeCrossTop(builder, world, x, topY + 2, z, leaves);
+                    placeLeafIfAir(builder, world, x, topY + 3, z, leaves);
+                }
                 return;
             }
             default: {
                 // 穹顶冠（= 改前骨架，r=2 时格集合逐字相同）
                 for (int dy = -1; dy <= 0; dy++) {
-                    placeLeafDisc(builder, world, x, topY + dy, z, r, leaves);
+                    canopyLeafDisc(builder, world, x, topY + dy, z, r, leaves, canopyForm, formRand);
                 }
-                placeLeafDisc(builder, world, x, topY + 1, z, Math.max(1, r - 1), leaves);
-                placeCrossTop(builder, world, x, topY + 2, z, leaves);
+                canopyLeafDisc(builder, world, x, topY + 1, z, Math.max(1, r - 1), leaves, canopyForm, formRand);
+                canopyCrossTop(builder, world, x, topY + 2, z, leaves, canopyForm, formRand);
+                if (canopyForm == CANOPY_FORM_SPIRE) {
+                    // 尖顶：穹顶十字之上再抬两层（十字 + 单格收尖，只动叶块）
+                    placeCrossTop(builder, world, x, topY + 3, z, leaves);
+                    placeLeafIfAir(builder, world, x, topY + 4, z, leaves);
+                }
                 return;
             }
         }
@@ -960,6 +1053,55 @@ public final class ProsperityDecorPlacer {
         placeLeafIfAir(builder, world, x - 1, y, z, leaves);
         placeLeafIfAir(builder, world, x, y, z + 1, leaves);
         placeLeafIfAir(builder, world, x, y, z - 1, leaves);
+    }
+
+    /**
+     * 冠形变体的叶盘消费面（v1.20.48 P25 S4 疏叶臂）：SPARSE 变体把 {@link #placeLeafDisc} 的格点
+     * 遍历换成逐格 {@code formRand} 1/3 跳写，其余变体（FLAT/SPIRE 的骨架盘）逐字转发。缺角剪形
+     * 与 {@code rr<=0} 单格退化均与 {@link #placeLeafDisc} 同款；跳写骰只消费树位 formRand
+     * （独立盐 {@link #SALT_TREE_FORM}），不碰共享 rand，也不改 {@link MegaTreeForms} 共用的包内口。
+     * 遍历顺序（外圈向内、先行后列）固定 ⇒ 同树跳点集逐位一致。
+     */
+    private static void canopyLeafDisc(StructureBuilder builder, World world, int x, int y, int z, int rr, Block leaves,
+        int canopyForm, Random formRand) {
+        if (canopyForm != CANOPY_FORM_SPARSE) {
+            placeLeafDisc(builder, world, x, y, z, rr, leaves);
+            return;
+        }
+        if (rr <= 0) {
+            canopyLeafIfAir(builder, world, x, y, z, leaves, formRand);
+            return;
+        }
+        for (int dx = -rr; dx <= rr; dx++) {
+            for (int dz = -rr; dz <= rr; dz++) {
+                if (Math.abs(dx) == rr && Math.abs(dz) == rr) {
+                    continue; // 缺角（placeLeafDisc 同款剪形）
+                }
+                canopyLeafIfAir(builder, world, x + dx, y, z + dz, leaves, formRand);
+            }
+        }
+    }
+
+    /** 十字层的疏叶消费面（同 {@link #canopyLeafDisc}：五格各自独立 1/3 跳写，非 SPARSE 逐字转发）。 */
+    private static void canopyCrossTop(StructureBuilder builder, World world, int x, int y, int z, Block leaves,
+        int canopyForm, Random formRand) {
+        if (canopyForm != CANOPY_FORM_SPARSE) {
+            placeCrossTop(builder, world, x, y, z, leaves);
+            return;
+        }
+        canopyLeafIfAir(builder, world, x, y, z, leaves, formRand);
+        canopyLeafIfAir(builder, world, x + 1, y, z, leaves, formRand);
+        canopyLeafIfAir(builder, world, x - 1, y, z, leaves, formRand);
+        canopyLeafIfAir(builder, world, x, y, z + 1, leaves, formRand);
+        canopyLeafIfAir(builder, world, x, y, z - 1, leaves, formRand);
+    }
+
+    /** 疏叶单格门：{@code formRand.nextInt(3) != 0} 才写（⇒ 1/3 留空，25-35% 带内的整数实现）。 */
+    private static void canopyLeafIfAir(StructureBuilder builder, World world, int x, int y, int z, Block leaves,
+        Random formRand) {
+        if (formRand.nextInt(CANOPY_SPARSE_SKIP_DENOM) != 0) {
+            placeLeafIfAir(builder, world, x, y, z, leaves);
+        }
     }
 
     // ═════════════════════════════ 植被趟（花 + 草）═════════════════════════════

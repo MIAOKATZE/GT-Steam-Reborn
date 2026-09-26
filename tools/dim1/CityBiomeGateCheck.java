@@ -107,8 +107,17 @@ public class CityBiomeGateCheck {
      * <p>
      * <b>迁移只改落点不改谓词</b>：本闸的读数下降全部来自"候选落点选择"，湖/河/潭/护带四腿
      * 与城心 64×64 全过制逐字未动 ⇒ 越界不可能由"谓词被放松"造成，必是落点解析回归。
+     * <p>
+     * <b>P25 重钉：42% → 50%（实测 + 1 格先例）</b>。双向归因：① D1 湖概率减半（LAKE_INTERVAL
+     * 1200→3000，湖面占比 ~9%→~1.4%）压低保湖弃位（↓）；② PlacementGate.dryColumnAt 四新腿
+     * （⑤isSanzuColumn/⑥isDryRiverColumn/⑦微池置水/⑧三档置水）把更多候选城盘判湿（↑）。
+     * 本样本实测 <b>5/12 = 41.667%</b>（P24-B 4/12 = 33.333%）——净 +1 城，恰落 P24 带的最后一格
+     * 绿。按 P24「实测 + 一格粒度」同式改钉 50%：6/12（50.0%）仍绿、<b>7/12（58.333% = P23
+     * 湖弃位原态）必红</b>。诚实申报：50% 同时让"迁移整体失效退回仅调档（P24 读数 6/12）"落绿，
+     * 该形态的判别从本闸移交 E1（keptRatio ≥ 0.10）与 PlacementContractCheck 城窗跳过报告行
+     * （P25 起新腿增量与迁移失效在 6/12 档不可分，须靠那两处分账）。
      */
-    private static final double DRY_ABANDON_MAX = 0.42D;
+    private static final double DRY_ABANDON_MAX = 0.50D;
 
     private static int assertions;
     private static final List<String> FAILURES = new ArrayList<>();

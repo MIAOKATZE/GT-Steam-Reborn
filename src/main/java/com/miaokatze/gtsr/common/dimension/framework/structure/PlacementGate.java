@@ -9,6 +9,7 @@ import net.minecraft.block.Block;
 import net.minecraft.init.Blocks;
 
 import com.miaokatze.gtsr.common.dimension.prosperity.ProsperityTerrainProfile;
+import com.miaokatze.gtsr.common.dimension.prosperity.TerrainVariants;
 import com.miaokatze.gtsr.common.dimension.prosperity.river.GTSRVoronoiRiverField;
 import com.miaokatze.gtsr.common.dimension.prosperity.ruins.ProsperitySurfaceScatter;
 import com.miaokatze.gtsr.common.dimension.prosperity.ruins.city.CityVariants;
@@ -648,18 +649,29 @@ public final class PlacementGate {
      * {@code wetAt} 收紧为 {@code s ≥ WET_MIN ∧ trunk > 0} 后，枯竭带外河核列（干河床）过
      * ①——干河床可进结构，符合直觉；本谓词零逻辑改动，只随门自动收窄）、②湖置水带
      * （{@code lakeAt < LAKE_WATER_LEVEL}）、③贴河护带（{@code -strengthAt ≥ WET_MIN-0.08}，
-     * 拦住水面以上贴水边与滩带外沿——"结构生成在水里或河滩里"均不可接受）、④沼泽河床残潭场
-     * （v1.20.42 P22 A1b，{@link GTSRVoronoiRiverField#swampRiverPoolAt} &gt; 0，roster 走生产
-     * coarse 身份链——A1a 后干河床本可进结构，但潭列有水有下挖，重新算湿）。
+     * 拦住水面以上贴水边与滩带外沿——"结构生成在水里或河滩里"均不可接受）、
+     * <b>④沼泽河床残潭场已随 P25 D7 残潭退役整腿删除</b>（S1 同批删除 RVF
+     * {@code swampRiverPoolAt} 族，本门零消费；历史语义见版本树）、
+     * ⑤<b>P25 腿</b>sanzu 列（{@link GTSRVoronoiRiverField#isSanzuColumn}——湖面+可变宽滩带
+     * 全禁结构，与群系平面/空气侧同一份单点谓词）、⑥<b>P25 腿</b>枯竭河床列
+     * （{@link GTSRVoronoiRiverField#isDryRiverColumn}——干床+过渡滩带群系面全禁结构，
+     * ①的死路径由本腿接手）、⑦<b>P25 腿</b>沼泽微池置水列
+     * （{@link GTSRVoronoiRiverField#swampPoolWaterAt}，O1a 布尔单一出口——判据=该列会被
+     * 置水成池）、⑧<b>P25 腿</b>沼泽三档水体置水列（{@code TerrainVariants.swampTieredAt}，
+     * {@code swampTierAt != SWAMP_TIER_NONE} 的布尔单一出口，TerrainVariants 只读消费——
+     * 判据=该列被判出 POOL/DEEP/MARSH 任一档、会被 {@code fillSwampPools} 送水）。
+     * ⑦⑧的 roster 实参沿旧④腿先例走生产 coarse 身份链
+     * （{@code ProsperityTerrainProfile.chainRosterIndexAt(x>>2, z>>2)}——微池/三档只存在于
+     * 实际沼泽列，传实档让非沼泽列在谓词 roster 门零成本短路）。
      * <p>
      * <b>为什么没有 heightAt 门（U5 首版读数 49-92% 弃位的根因）</b>：{@code heightAt<68}
      * 大量命中<b>自然洼地</b>（BASE 70 + 三频波动 + zone 乘子 0.6-1.4 的低区，无河无湖、
      * 回填不置水），把干地误判湿区；回填真值口径下自然洼地放行，湿带收窄到河核/湖面/
-     * 贴水窄条。三个读数仍是 {@code (worldSeed, x, z)} 纯函数（不读世界方块）。
+     * 贴水窄条。各读数仍是 {@code (worldSeed, x, z)} 纯函数（不读世界方块）。
      */
     private static boolean dryColumnAt(long worldSeed, int x, int z) {
         // ① 回填置水列：P23 R1（v1.20.46 批2 S2）起 wetAt 恒 false——本腿成为死路径
-        // （保留不删，S6 收口登记）；河/湖/潭的避让由 ②④ 两腿接手。
+        // （保留不删，S6 收口登记）；河床避让由 ⑥ 腿接手，湖面避让由 ②⑤ 两腿接手。
         if (GTSRVoronoiRiverField.wetAt(worldSeed, x, z, 0)) {
             return false;
         }
@@ -667,17 +679,37 @@ public final class PlacementGate {
         if (GTSRVoronoiRiverField.lakeWaterAt(worldSeed, x, z)) {
             return false;
         }
-        // ④ 沼泽河床残潭场（v1.20.42 P22 A1b）：潭列（含下挖潭底）算湿——结构不落潭。roster 走
-        // 生产 coarse 身份链（本谓词无列身份，wetAt 腿传 0 取最保守口径的先例不适用于此腿：
-        // 潭场内部有 roster==3 硬门，传实际 roster 才能让非沼泽列在门腿零成本短路，语义也更准
-        // ——潭只存在于实际沼泽河床上）。与 A1a 口径衔接：①的干河床可进结构，但 A1b 起干河床上
-        // 的残潭列重新算湿（潭列有水有下挖，"结构生成在水里"仍不可接受）。O1a 起比较式并入
-        // RVF swampRiverPoolColumnAt 单一出口（布尔纯包装，腿序/短路语义逐字保持）。
-        if (GTSRVoronoiRiverField.swampRiverPoolColumnAt(
+        // ④ [P25 D7 残潭退役] 原"沼泽河床残潭场"腿（swampRiverPoolColumnAt > 0，v1.20.42 P22 A1b）
+        // 已整腿删除：S1 同批删除 RVF swampRiverPoolAt 族（D7 残潭退役），本门对该符号零消费。
+        // 潭场的置水/结构避让语义随场一并退役；沼泽侧的置水列避让由 ⑦⑧ 两腿（微池/三档）接手。
+        // ⑤ sanzu 列（P25）：湖面+可变宽湖滩带（isSanzuColumn 单点谓词，与 assignSanzuRiverBiome
+        // 的平面写入、空气侧三途余汽判定同一份实现）——滩带列地形未必置水，但结构落滩带观感
+        // 不可接受，全禁。
+        if (GTSRVoronoiRiverField.isSanzuColumn(worldSeed, x, z)) {
+            return false;
+        }
+        // ⑥ 枯竭河床列（P25，S1 冻结接口）：干床+过渡滩带（isDryRiverColumn 单点谓词，与
+        // CPR assignWitheredRiverbedBiome 的平面写入同一份实现）——① 腿死路径后干河床重新
+        // 禁结构，枯竭河床群系面全禁。
+        if (GTSRVoronoiRiverField.isDryRiverColumn(worldSeed, x, z)) {
+            return false;
+        }
+        // ⑦ 沼泽微池置水列（P25）：swampPoolWaterAt（swampLakeAt < SWAMP_POOL_WATER_LEVEL 的
+        // O1a 布尔单一出口）——该列会被置水成池。roster 走生产 coarse 身份链（旧④腿先例：
+        // 微池只存在于实际沼泽列，传实档让非沼泽列在谓词 roster 门零成本短路）。
+        if (GTSRVoronoiRiverField.swampPoolWaterAt(
             worldSeed,
             x,
             z,
             ProsperityTerrainProfile.chainRosterIndexAt(worldSeed, x >> 2, z >> 2))) {
+            return false;
+        }
+        // ⑧ 沼泽三档水体置水列（P25）：swampTieredAt（swampTierAt != SWAMP_TIER_NONE 的布尔
+        // 单一出口，TerrainVariants 只读消费）——POOL/DEEP/MARSH 任一档的列都会被
+        // fillSwampPools 送水。roster 实参口径同 ⑦（生产 coarse 链，GTSRRiverPlacer.neighborBarrier
+        // 传列实档的先例；本谓词无列身份，取该列生产 roster）。
+        if (TerrainVariants
+            .swampTieredAt(worldSeed, x, z, ProsperityTerrainProfile.chainRosterIndexAt(worldSeed, x >> 2, z >> 2))) {
             return false;
         }
         return -GTSRVoronoiRiverField.strengthAt(worldSeed, x, z) < WET_SHORE_GUARD;

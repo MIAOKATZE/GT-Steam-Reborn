@@ -527,7 +527,8 @@ public final class ProsperityTerrainProfile {
         // 主干带内谷深档 ×1.3（旧 plan §3.3「valleyLevel×1.3」，外段 e1 域拉长）随之退役——
         // 带内/带外干床统一为带外口径 valleyLevel。旧放大常量 TRUNK_VALLEY_SCALE（生产零消费）已删。
         // trunk 局部量：<b>P24-C1（v1.20.47）已删除</b>——原为无条件求值，现内联进下方沼泽残潭
-        // 下挖的 trunk≤0 预筛（唯一消费点），非残潭列零成本。═══
+        // 下挖的 trunk≤0 预筛（唯一消费点），非残潭列零成本。═══ P25：残潭支路退役后该预筛随支路
+        // 一并消失（本文件 trunkAt 消费清零；RVF 侧剩余消费见 bedFromPool/endFaceBed）。═══
         int y = h0;
         final int rosterIndex = rosterIndexCached(worldSeed, x, z);
         // ── P24-C1（v1.20.47）trunkAt 调用下沉到唯一消费点 ──
@@ -535,6 +536,7 @@ public final class ProsperityTerrainProfile {
         // 只被下方 swampRiverPoolAt 预筛的左操作数读一次（`&&` 短路）⇒ 把它内联进那条 `&&` 链，
         // 使非沼泽残潭列（≥99% 列）整段省掉这次 disk 求值。<b>构造性逐位等价</b>：trunkAt 是同 seed
         // 纯函数、无副作用；`&&` 求值次序与短路语义不变（roster==3 ∧ s≥WET_MIN 才求值）。
+        // ── P25：该消费点已随残潭支路删除而消失（历史记录保留，见上方 trunk 局部量行的 P25 注）。──
         final double s = -GTSRVoronoiRiverField.strengthAt(worldSeed, x, z, rosterIndex);
         if (s > 0.0D) {
             final int pool = GTSRVoronoiRiverField.poolLevelAt(worldSeed, x, z, rosterIndex);
@@ -562,21 +564,11 @@ public final class ProsperityTerrainProfile {
             if (rosterIndex != 3 && GTSRVoronoiRiverField.inBankBand(worldSeed, x, z, s)) {
                 lowered -= GTSRVoronoiRiverField.bankCutAt(worldSeed, x, z);
             }
-            // ═══ v1.20.42（P22 A1b）沼泽河床残潭下挖：枯竭沼泽河核列（roster 3 ∧ s≥WET_MIN ∧
-            // trunk≤0——A1a 后 wetAt 为假的干河床）在潭场门内（swampRiverPoolAt>0，内含微池/三档
-            // 互斥腿）把床面再下挖 DIG = DIG_BASE+DIG_SPAN·gate（总域 1.5-4 格校准）。外层三条件是
-            // 本方法已求出量的廉价预筛（rosterIndex/s 就地复用；trunkAt 自 P24-C1 起内联在此，
-            // 只在前两条件成立时求值，非沼泽带外零成本）；
-            // 非潭列 lowered 逐位不动（均匀退化纪律）⇒ digest 逐位不变。下游钳制/低地防抬升/
-            // 微池/巨湖语义原样作用（本支路只减不加）。═══
-            if (rosterIndex == 3 && s >= GTSRVoronoiRiverField.WET_MIN
-                && GTSRVoronoiRiverField.trunkAt(worldSeed, x, z) <= 0.0D) {
-                final double poolGate = GTSRVoronoiRiverField.swampRiverPoolAt(worldSeed, x, z, rosterIndex);
-                if (poolGate > 0.0D) {
-                    lowered -= GTSRVoronoiRiverField.SWAMP_RIVER_POOL_DIG_BASE
-                        + GTSRVoronoiRiverField.SWAMP_RIVER_POOL_DIG_SPAN * poolGate;
-                }
-            }
+            // ═══ 残潭下挖支路（v1.20.42 P22 A1b 引入）<b>已删（P25 用户裁定退役）</b>：残潭场
+            // 整体退役（"小湖泊不上枯竭河流"），枯竭语义改由 GTSRVoronoiRiverField.isDryRiverColumn
+            // （D6 干河床谓词）承载；swampRiverPoolAt 与 SWAMP_RIVER_POOL_* 常量已同批删除（RVF
+            // 类顶登记 + 退役段）。非潭列 lowered 逐位不变（本支路原本只减不加 ⇒ 删除后全列
+            // lowered 与 v1.20.47 的非潭列逐位一致、潭列回到无潭值）。═══
             if (h0 > lowered + 1.0D) {
                 y = (int) Math.round(lowered);
             }
@@ -586,7 +578,10 @@ public final class ProsperityTerrainProfile {
         // 水面 = 本段池水位 pool 的贴地口径（与沼泽河同水面），回填后 1-2 层水成沼地肌理；
         // min 语义 = 低地不抬升。═══
         final double poolPressure = GTSRVoronoiRiverField.swampLakeAt(worldSeed, x, z, rosterIndex);
-        if (poolPressure < GTSRVoronoiRiverField.SWAMP_POOL_WATER_LEVEL) {
+        // P25 微池腹地门：加 && TerrainVariants.swampInteriorAt（对齐残潭第六腿先例——A3 边缘门
+        // 的粗层真值，(seed, 粗格) memo、边缘列"地形不挖/回填不灌"两侧同判）——边缘列不起微池。
+        if (poolPressure < GTSRVoronoiRiverField.SWAMP_POOL_WATER_LEVEL
+            && TerrainVariants.swampInteriorAt(worldSeed, x, z)) {
             final int pool = GTSRVoronoiRiverField.poolLevelAt(worldSeed, x, z, rosterIndex);
             final double bed = GTSRVoronoiRiverField.bedFromPool(worldSeed, x, z, rosterIndex, pool) - 1.0D;
             y = Math.min(y, (int) Math.round(bed));

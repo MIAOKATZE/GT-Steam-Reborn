@@ -287,8 +287,17 @@ public final class P17VegetationFrequencyCheck {
      * <b>P23 R1·S6 口径修正复核（分母改可落树列当量，见 {@link #BAND_TREES} 前口径段）</b>：
      * 新口径实测 <b>0.386524</b>（179 株 / (118554/256) = 179/463.10），仍在 [0.28,0.45] 内 ⇒
      * 带原文不动（不重钉 = 不放宽：新读数距上界 +16.4%、距下界 -27.6%，无需另立带）。
+     * <p>
+     * <b>P25 重钉：[0.28,0.45] → [0.41,0.61]（实测 ±20%，与 BAND_TREES 的 P23 重钉同族）</b>。归因：
+     * P25 S4 普通树三抖动的共享流<b>取数模数移位</b>——{@code placeTree} 的落位骰
+     * {@code rand.nextInt(16−2·canopyRadius)} 随冠半径抖动 ±1 换模数，{@code Random.nextInt(非 2 幂)}
+     * 的拒绝采样循环消费数随模数变 ⇒ 树趟之后的灌木趟（共享流）整体换一套掷骰实现——<b>期望不变、
+     * 固定种子样本的实现值漂移</b>（与 P24-B 城窗采样集漂移同族的缩样纪律重钉）。P25 实测
+     * <b>0.509972</b>（179 株，样本 chunk 351）⇒ ±20% = [0.408, 0.612]，取 [0.41,0.61]。分母谓词
+     * P25 扩 {@code isDryRiverColumn}（枯竭河床列灌木禁落）——本档样本窗内干床列为 0（实测新旧
+     * 分母逐位同值 0.509972）。
      */
-    private static final double[] BAND_SHRUBS_STEPPE = { 0.28D, 0.45D };
+    private static final double[] BAND_SHRUBS_STEPPE = { 0.41D, 0.61D };
     /**
      * 草原灌木的<b>空间聚簇度</b>：每株平均"同丛邻居数"（切比雪夫距离 ≤
      * {@link #SHRUB_NEIGHBOR_RADIUS} 方块内的其它短干株）带 —— 需求 6"灌木<b>群</b>"的字面判据。
@@ -408,9 +417,10 @@ public final class P17VegetationFrequencyCheck {
     }
 
     /**
-     * 一个 chunk 的<b>可落树列</b>计数（16×16 列，{@link GTSRVoronoiRiverField#isSanzuColumn} 为假者）。
-     * 谓词走生产公开出口直调（禁抄第二份判定）；湖/滩带列地表 ≤ {@code SEA_LEVEL} ⇒ 不可落树，故
-     * 从树木植被密度的分母里剔除。
+     * 一个 chunk 的<b>可落树列</b>计数（16×16 列，{@link GTSRVoronoiRiverField#isSanzuColumn} 与
+     * {@link GTSRVoronoiRiverField#isDryRiverColumn} 均为假者）。谓词走生产公开出口直调（禁抄第二份
+     * 判定）；湖/滩带列地表 ≤ {@code SEA_LEVEL} ⇒ 不可落树，枯竭河床列（P25 D6：placeTree/
+     * placeShrubAt 首行 bail，树/灌木双禁）⇒ 两者都从树木植被密度的分母里剔除。
      */
     private static int capableColumns(long seed, int chunkX, int chunkZ) {
         final int bx = chunkX << 4;
@@ -418,7 +428,8 @@ public final class P17VegetationFrequencyCheck {
         int n = 0;
         for (int lx = 0; lx < 16; lx++) {
             for (int lz = 0; lz < 16; lz++) {
-                if (!GTSRVoronoiRiverField.isSanzuColumn(seed, bx + lx, bz + lz)) {
+                if (!GTSRVoronoiRiverField.isSanzuColumn(seed, bx + lx, bz + lz)
+                    && !GTSRVoronoiRiverField.isDryRiverColumn(seed, bx + lx, bz + lz)) {
                     n++;
                 }
             }
@@ -436,8 +447,8 @@ public final class P17VegetationFrequencyCheck {
         final VegTier[] t = ProsperityDecorPlacer.VEG_TIERS_BY_ROSTER;
         // v1.20.39 T5/T8 重钉（plan §3.3）：档表族 4→5——第 5 元 sanzu（名册配槽非 selector）。
         check(t.length == 5, "DECL 档表长度 == 5（T5 起含 sanzu 第 5 元）；实测 " + t.length);
-        // v1.20.39 T5/T8 重钉：BiomeId 枚举 9 员（两维各 4 + sanzu）。
-        check(BiomeId.values().length == 9, "DECL 前置：BiomeId 枚举 9 员（两维各 4 + sanzu）");
+        // v1.20.39 T5/T8 重钉：BiomeId 枚举 9 员（两维各 4 + sanzu）；P25：+枯竭河床 ⇒ 10 员。
+        check(BiomeId.values().length == 10, "DECL 前置：BiomeId 枚举 10 员（两维各 4 + sanzu + withered）");
         // T7/T8：树木三档表与档表族同长（sanzu 1/4 灌木 + 1/6 普通 + 1/32 Bayou，plan §3.7 表）。
         check(ProsperityDecorPlacer.TREE_TIERS_BY_ROSTER.length == t.length,
             "DECL 树木三档表长度 == VEG 档表长度（T7 三档同族扩元）；实测 "

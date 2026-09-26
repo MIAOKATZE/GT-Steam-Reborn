@@ -249,8 +249,8 @@ gtsr.tooltip.pressure_steam_cooling_hatch.desc=Recovers steam from cooled superh
 
 # Mega Air Input Hatch
 gt.blockmachines.gtsr.mega.air.input.hatch.name=Mega Air Input Hatch
-gtsr.tooltip.mega_air_input_hatch.desc=Used to input large amounts of air, nether air, or Sanzu residual steam
-gtsr.tooltip.mega_air_input_hatch.fluid_type=Air/Nether Air/Sanzu Residual Steam
+gtsr.tooltip.mega_air_input_hatch.desc=Used to input large amounts of air, nether air, Sanzu residual steam, or withered breath
+gtsr.tooltip.mega_air_input_hatch.fluid_type=Air/Nether Air/Sanzu Residual Steam/Withered Breath
 
 # Distilled Water Hatch
 gt.blockmachines.gtsr.distilled.water.hatch.name=Distilled Water Hatch
@@ -2042,6 +2042,7 @@ biome.Gearwork Forest.name=Gearwork Forest
 biome.Brass Wastes.name=Brass Wastes
 biome.Fumarole Swamp.name=Fumarole Swamp
 biome.Sanzu Lake.name=Sanzu Lake
+biome.Withered Riverbed.name=Withered Riverbed
 
 # Dimension prosperity-ruins: block family (dim1 S2; textures are vanilla placeholders until S7a artgen)
 tile.ProsperitySurface.0.name=Rusted Grass Block
@@ -2107,6 +2108,7 @@ Material.metalgrit=Metal Grit
 Material.umbralmire=Umbral Mire
 Material.sanzu_residual_steam=Sanzu Residual Steam
 Material.abyssal_obsession=Abyssal Obsession
+Material.withered_breath=Withered Breath
 
 # Dimension shattered-lands: biomes (S-B3; keys follow biome.<biomeName>.name from setBiomeName)
 biome.Ashen Prairie.name=Ashen Prairie

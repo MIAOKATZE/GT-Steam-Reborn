@@ -130,12 +130,13 @@ public class SurfaceBiomeMatrixCheck {
                 key + " identityOf mismatch — provider L1 table not nameable");
             // v1.20.39 T5/T8 重钉（plan §3.3）：SANZU_RIVER 走名册配槽但<b>不挂 def 表</b>
             //（def 表保持 4 项 selector 名册）——rosterIndex 4 对 def 表越界是设计事实不是漂移。
-            if (key != BiomeId.SANZU_RIVER) {
+            // P25（v1.20.48）：WITHERED_RIVERBED 同轨 roster-only（rosterIndex 5），同一条防线。
+            if (key != BiomeId.SANZU_RIVER && key != BiomeId.WITHERED_RIVERBED) {
                 check(biome == def.getBiomeTable().get(key.rosterIndex()),
                     key + " rosterIndex " + key.rosterIndex() + " != def table slot order");
             } else {
                 check(!def.getBiomeTable().contains(biome),
-                    "SANZU_RIVER must stay out of the def (selector) biome table (roster-only, plan §3.3)");
+                    key + " must stay out of the def (selector) biome table (roster-only)");
             }
             final int topMeta = classConst(biome.getClass(), "TOP_META");
             final int fillerMeta = classConst(biome.getClass(), "FILLER_META");
@@ -146,7 +147,9 @@ public class SurfaceBiomeMatrixCheck {
             // T8 重钉注：sanzu top = prosperityRiverGravel（BlockProsperityFalling，河床语义）、
             // filler = prosperityStone（BlockProsperityStone）——与四 selector 群系的
             // NaturalTop/NaturalBase 族不同类，按 T5 群系声明单独钉类族。
-            if (key == BiomeId.SANZU_RIVER) {
+            // P25：WITHERED_RIVERBED 与 sanzu 同族（top=河床砾/滩料族，filler=石化石）——
+            // 枯竭河床与湖滩同为"河床语义"，视觉区分走草/叶色（0x8A7A52 vs sanzu 水汽青灰）。
+            if (key == BiomeId.SANZU_RIVER || key == BiomeId.WITHERED_RIVERBED) {
                 check(biome.topBlock instanceof BlockProsperityFalling,
                     key + " topBlock not BlockProsperityFalling: " + label(biome.topBlock));
                 check(biome.fillerBlock instanceof BlockProsperityStone,
@@ -165,7 +168,7 @@ public class SurfaceBiomeMatrixCheck {
             MATRIX.put(key.name(), new String[] { label(biome.topBlock), String.valueOf(topMeta),
                 label(biome.fillerBlock), String.valueOf(fillerMeta) });
         }
-        check(keys.size() == 5, "prosperity roster members != 5 (T5 sanzu 5th): " + keys);
+        check(keys.size() == 6, "prosperity roster members != 6 (P25 withered 6th): " + keys);
 
         // —— 3. 行为侧：真实表层链逐格对账（取代旧文本钉 return BiomeXxx.FILLER_META /
         //        return BlocksGTSR.xBase / instanceof BiomeXxx>=2） ——
@@ -199,19 +202,53 @@ public class SurfaceBiomeMatrixCheck {
             assertSurfaceMatrix(provider, key, roster.get(key));
         }
 
-        // —— 4. 四元组互异（运行时实例逐对比对） ——
+        // —— 4. 四元组互异（运行时实例逐对比对；P25 申报例外一对） ——
+        // P25 重钉三件套：实测 = SANZU_RIVER 与 WITHERED_RIVERBED 四元组逐位相同（top=
+        // prosperityRiverGravel:0 / filler=prosperityStone:0）；换算式 = 无（结构申报）；
+        // 理由 = P25 第 6 元枯竭河床与 sanzu 同属"河床语义"族（生产 javadoc BiomeWitheredRiverbed
+        // 已申报"同族、视觉区分走草/叶色"），全对互异断言对这一声明对不成立。
+        // 防退化臂：该对不是"跳过"而是**正向钉相同**（若生产把同族声明改成异族，或四元组意外
+        // 漂移出声明，本臂立即红）+ 草色分立钉（0x8A7A52 vs 0x4F7370，getBiomeGrassColor 直读）
+        // —— 草色是该对唯一的视觉区分面，钉死防"同族同色"退化成不可分辨。
+        check(roster.get(BiomeId.SANZU_RIVER) != null && roster.get(BiomeId.WITHERED_RIVERBED) != null,
+            "P25 declared pair missing from roster (SANZU_RIVER/WITHERED_RIVERBED)");
+        if (roster.get(BiomeId.SANZU_RIVER) != null && roster.get(BiomeId.WITHERED_RIVERBED) != null) {
+            final BiomeGenBase pa = roster.get(BiomeId.SANZU_RIVER);
+            final BiomeGenBase pb = roster.get(BiomeId.WITHERED_RIVERBED);
+            check(pa.topBlock == pb.topBlock,
+                "P25 declared pair topBlock must share riverbed family: "
+                    + label(pa.topBlock) + " vs " + label(pb.topBlock));
+            check(pa.fillerBlock == pb.fillerBlock,
+                "P25 declared pair fillerBlock must share family: "
+                    + label(pa.fillerBlock) + " vs " + label(pb.fillerBlock));
+            check(java.util.Arrays.equals(MATRIX.get(BiomeId.SANZU_RIVER.name()),
+                MATRIX.get(BiomeId.WITHERED_RIVERBED.name())),
+                "P25 declared pair quadruple drifted apart: "
+                    + java.util.Arrays.toString(MATRIX.get(BiomeId.SANZU_RIVER.name())) + " vs "
+                    + java.util.Arrays.toString(MATRIX.get(BiomeId.WITHERED_RIVERBED.name())));
+            check(pa.getBiomeGrassColor(0, 0, 0) != pb.getBiomeGrassColor(0, 0, 0),
+                "P25 declared pair grass color identical — sole visual discriminator gone: "
+                    + Integer.toHexString(pa.getBiomeGrassColor(0, 0, 0)));
+        }
         for (int i = 0; i < keys.size(); i++) {
             for (int j = i + 1; j < keys.size(); j++) {
-                final BiomeGenBase a = roster.get(keys.get(i));
-                final BiomeGenBase b = roster.get(keys.get(j));
-                final String[] ma = MATRIX.get(keys.get(i).name());
-                final String[] mb = MATRIX.get(keys.get(j).name());
-                check(a.topBlock != b.topBlock, "topBlock collision: " + keys.get(i) + " vs " + keys.get(j));
+                final BiomeId ki = keys.get(i);
+                final BiomeId kj = keys.get(j);
+                final boolean declaredPair = (ki == BiomeId.SANZU_RIVER && kj == BiomeId.WITHERED_RIVERBED)
+                    || (ki == BiomeId.WITHERED_RIVERBED && kj == BiomeId.SANZU_RIVER);
+                if (declaredPair) {
+                    continue; // 该对的正向钉在上面的防退化臂（不得静默：见 P25 重钉三件套注释）
+                }
+                final BiomeGenBase a = roster.get(ki);
+                final BiomeGenBase b = roster.get(kj);
+                final String[] ma = MATRIX.get(ki.name());
+                final String[] mb = MATRIX.get(kj.name());
+                check(a.topBlock != b.topBlock, "topBlock collision: " + ki + " vs " + kj);
                 check(a.fillerBlock != b.fillerBlock,
-                    "fillerBlock collision: " + keys.get(i) + " vs " + keys.get(j));
+                    "fillerBlock collision: " + ki + " vs " + kj);
                 final boolean identical = java.util.Arrays.equals(ma, mb);
                 check(!identical,
-                    "surface quadruple identical: " + keys.get(i) + " vs " + keys.get(j));
+                    "surface quadruple identical: " + ki + " vs " + kj);
             }
         }
 
@@ -229,7 +266,8 @@ public class SurfaceBiomeMatrixCheck {
         final String biomes = read(root, SRC + "/common/dimension/prosperity/biome/ProsperityBiomes.java");
         final String config = read(root, SRC + "/config/Config.java");
         // v1.20.39 T5/T8 重钉（plan §3.3）：名册槽位数 4→5（第 5 元 sanzu 走同一扫描配槽）。
-        check(biomes.contains("private static final int BIOME_SLOT_COUNT = 5;"), "BIOME_SLOT_COUNT != 5");
+        // v1.20.48 P25 再钉：5→6（第 6 元枯竭河床 roster-only 同轨，用户裁定）。
+        check(biomes.contains("private static final int BIOME_SLOT_COUNT = 6;"), "BIOME_SLOT_COUNT != 6");
         check(biomes.contains("[GTSR] prosperity biomes: "), "missing success log anchor (plan §6.1 grep point)");
         check(biomes.contains("already occupied by"), "missing degrade warn anchor (plan R3)");
         final int idStart = Integer
@@ -237,7 +275,8 @@ public class SurfaceBiomeMatrixCheck {
         final int shatteredStart = Integer
             .parseInt(expectGroup(config, "shatteredBiomeIdStart = (\\d+);", "Config"));
         check(idStart == 180, "prosperityBiomeIdStart moved: " + idStart);
-        check(idStart + 4 <= shatteredStart, "id range overlap: prosperity " + idStart + ".." + (idStart + 3));
+        check(idStart + 5 < shatteredStart,
+            "id range overlap: prosperity " + idStart + ".." + (idStart + 5));
         for (final BiomeId key : keys) {
             check(authority.actualIdOf(key) >= idStart && authority.actualIdOf(key) < shatteredStart,
                 key + " allocated id " + authority.actualIdOf(key) + " outside configured band");
@@ -263,7 +302,7 @@ public class SurfaceBiomeMatrixCheck {
                 + " (8 terrain + 4 decor + 6 wood + 6 flora + 3 sand + 1 stone(G4) + 3 island-tree(P22-S2))"
                 + " declared+registered (wiring-level)");
         System.out
-            .println("BIOMEID PASS: real-chain 5/5 slots (incl. sanzu roster-only) via ProsperityBiomes.init, idStart=" + idStart
+            .println("BIOMEID PASS: real-chain 6/6 slots (incl. sanzu+withered roster-only) via ProsperityBiomes.init, idStart=" + idStart
                 + ".. band, no-degrade anchors present");
         System.out.println("LANG PASS: " + LANG_FILES.length + " lang files x " + NATURAL_BLOCKS.length + " keys");
     }

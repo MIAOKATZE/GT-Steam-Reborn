@@ -144,7 +144,10 @@ public class BiomeAllocationCheck {
         check(a79.degraded() == Degraded.NONE, "A degraded=NONE for dim79, got " + a79.degraded());
         // v1.20.39 T5/T8 重钉（plan §3.3）：账本口径 4→5 元——第 5 元 SANZU_RIVER 经同一配槽机制入账
         //（首选 184=idStart+4），但<b>不挂 def 群系表</b>（def 表保持 4 项 selector 名册）。
-        check(a78.allocationSummary().equals("180->180, 181->181, 182->182, 183->183, 184->184"),
+        // P25（v1.20.48 第 6 群系枯竭河床，roster-only 同 sanzu 轨）：账本口径 6 元 ⇒ summary 尾
+        // 追 185->185（首选 185=idStart+5）。
+        check(a78.allocationSummary()
+            .equals("180->180, 181->181, 182->182, 183->183, 184->184, 185->185"),
             "A dim78 allocation summary drift: " + a78.allocationSummary());
         check(a79.allocationSummary().equals("190->190, 191->191, 192->192, 193->193"),
             "A dim79 allocation summary drift: " + a79.allocationSummary());
@@ -167,6 +170,13 @@ public class BiomeAllocationCheck {
         check(a78.biomeOf(BiomeId.SANZU_RIVER) != null && !def78.getBiomeTable()
             .contains(a78.biomeOf(BiomeId.SANZU_RIVER)),
             "A SANZU_RIVER must be ledger-resolvable but absent from the def (selector) table");
+        // P25 新断言：第 6 元 WITHERED_RIVERBED 与 sanzu 同轨 roster-only——账本可解析 + 落首选 185
+        // + 实例不在 def 表（selector 名册 4 元不动）。
+        check(a78.actualIdOf(BiomeId.WITHERED_RIVERBED) == PROSPERITY_START_DEFAULT + 5,
+            "A WITHERED_RIVERBED actualId=" + a78.actualIdOf(BiomeId.WITHERED_RIVERBED));
+        check(a78.biomeOf(BiomeId.WITHERED_RIVERBED) != null && !def78.getBiomeTable()
+            .contains(a78.biomeOf(BiomeId.WITHERED_RIVERBED)),
+            "A WITHERED_RIVERBED must be ledger-resolvable but absent from the def (selector) table");
         // byte 平面往返（机制级：id<=254 时 (byte)id&255 读回同一实例）
         for (int i = 0; i < 4; i++) {
             final int id = a78.actualIdOf(roster78[i]);
@@ -208,6 +218,11 @@ public class BiomeAllocationCheck {
         }
         check(mismatch == 0, "A L1 resolution differs from chunk generation on " + mismatch + " chunks");
         check(hits.size() == 4, "A all four prosperity biomes reachable in " + sampledChunks() + " chunks, hits=" + hits);
+        // P25 新断言：链身份面（GenLayer RosterFace；GTSRSurfaceBorderBand 的表层档取数走同一条链）
+        // 对 roster-only 成员结构性不可解析——采样域内 SANZU_RIVER / WITHERED_RIVERBED 命中必须为 0
+        //（>0 = 平面后置写之外多出第二身份源，withered/sanzu 平面谓词将被链面抢写）。
+        check(!hits.containsKey(BiomeId.WITHERED_RIVERBED) && !hits.containsKey(BiomeId.SANZU_RIVER),
+            "A 链面反查命中 roster-only 成员（sanzu/withered），hits=" + hits.keySet());
         check(weightDrift == 0,
             "A weight parity (old id-idStart subtraction vs new L1 ordinal) drift=" + weightDrift
                 + " oldIndexSeen=" + oldIndexSeen);
@@ -233,12 +248,14 @@ public class BiomeAllocationCheck {
         ProsperityBiomes.init(def78);
         final GTSRBiomeAuthority a78 = GTSRBiomeAuthority.forDimKey(GTSRBiomeAuthority.DIM_KEY_PROSPERITY);
         // 核心：四群系全部注册（旧实现此处只有 183 一个，即"1/4 slots free"）；
-        // T5/T8 重钉：账本口径 5 元——sanzu（首选 184 被顺延中的 forest 占用）继续滑到 187。
+        // T5/T8 重钉：账本口径 5 元——sanzu（首选 184 被顺延中的 forest 占用）继续滑到 187；
+        // P25：账本口径 6 元——枯竭河床（首选 185）滑到 188。
         check(def78.getBiomeTable().size() == 4,
             "B all four biomes must register via sliding, table=" + def78.getBiomeTable().size());
-        check(a78.allocatedCount() == 5, "B ledger allocated=" + a78.allocatedCount());
+        check(a78.allocatedCount() == 6, "B ledger allocated=" + a78.allocatedCount());
         check(a78.degraded() == Degraded.NONE, "B degraded=NONE expected (all roster got slots), got " + a78.degraded());
-        check(a78.allocationSummary().equals("180->183, 181->184, 182->185, 183->186, 184->187"),
+        check(a78.allocationSummary()
+            .equals("180->183, 181->184, 182->185, 183->186, 184->187, 185->188"),
             "B non-contiguous sliding summary drift: " + a78.allocationSummary());
         final int[] expected = { 183, 184, 185, 186 };
         final BiomeId[] roster78 = { BiomeId.RUSTED_STEPPE, BiomeId.GEARWORK_FOREST, BiomeId.BRASS_WASTES,
@@ -389,7 +406,8 @@ public class BiomeAllocationCheck {
         assertNoHighBiomeIds();
         Config.biomeIdScanLimit = 254;
 
-        // ③ idStart=252 ⇒ 只拿得到 252/253/254 三槽，沼泽与 sanzu（T5/T8 第 5 元）无槽 ⇒ SHORT
+        // ③ idStart=252 ⇒ 只拿得到 252/253/254 三槽，沼泽与 sanzu/枯竭河床（T5 第 5 元 + P25 第 6 元）
+        // 无槽 ⇒ SHORT（summary 6 元：255/256/257 三条 NONE）
         Config.prosperityBiomeIdStart = 252;
         final GTSRDimensionDef defC = prosperityDef();
         ProsperityBiomes.init(defC);
@@ -397,7 +415,7 @@ public class BiomeAllocationCheck {
             .size());
         check(a78.degraded() == Degraded.SHORT, "D idStart=252 degraded=SHORT, got " + a78.degraded());
         check(a78.allocationSummary()
-            .equals("252->252, 253->253, 254->254, 255->NONE, 256->NONE"),
+            .equals("252->252, 253->253, 254->254, 255->NONE, 256->NONE, 257->NONE"),
             "D SHORT summary drift: " + a78.allocationSummary());
         assertNoHighBiomeIds();
         System.out.println("D short-table allocation=[" + a78.allocationSummary() + "] degraded=" + a78.degraded());

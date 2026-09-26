@@ -29,6 +29,7 @@ import com.miaokatze.gtsr.common.dimension.prosperity.biome.BiomeFumaroleSwamp;
 import com.miaokatze.gtsr.common.dimension.prosperity.biome.BiomeGearworkForest;
 import com.miaokatze.gtsr.common.dimension.prosperity.biome.BiomeRustedSteppe;
 import com.miaokatze.gtsr.common.dimension.prosperity.biome.BiomeSanzuRiver;
+import com.miaokatze.gtsr.common.dimension.prosperity.biome.BiomeWitheredRiverbed;
 import com.miaokatze.gtsr.common.dimension.prosperity.block.BlockProsperityCanopyLeaves;
 import com.miaokatze.gtsr.common.dimension.prosperity.block.BlockProsperityNaturalBase;
 import com.miaokatze.gtsr.common.dimension.prosperity.block.BlockProsperityNaturalTop;
@@ -74,6 +75,12 @@ final class SurfaceHarness {
      * 「dim78 应处 NONE」装配假红单一根因，故两个"全配"记账口都补第 5 元。
      */
     static final int SANZU_ID = 184;
+    /**
+     * 枯竭河床首选槽（v1.20.48 P25，用户裁定）：{@code prosperityBiomeIdStart(180) + 5}，与 sanzu
+     * 同轨 roster-only（不挂 def 群系表）⇒ 账本 rosterSize 自 P25 起 =<b>6</b>——离线装配若只记
+     * 5 元则 degraded=SHORT（与 SANZU_ID 注释同一条假红根因链），"全配"记账口补第 6 元。
+     */
+    static final int WITHERED_ID = 185;
     static final int[] SHATTERED_IDS = { 190, 191, 192, 193 };
     static final BiomeId[] PROSPERITY_KEYS = { BiomeId.RUSTED_STEPPE, BiomeId.GEARWORK_FOREST,
         BiomeId.BRASS_WASTES, BiomeId.FUMAROLE_SWAMP };
@@ -220,6 +227,7 @@ final class SurfaceHarness {
             GTSRBiomeAuthority.recordAllocation(SHATTERED_KEYS[i], SHATTERED_IDS[i], SHATTERED_IDS[i], s[i]);
         }
         recordSanzuAllocation();
+        recordWitheredAllocation();
     }
 
     /** 只让 dim78 的前 {@code allocated} 个成员入账，其余记 no-slot ⇒ 该维 degraded=SHORT。 */
@@ -243,6 +251,7 @@ final class SurfaceHarness {
             GTSRBiomeAuthority.recordAllocation(PROSPERITY_KEYS[i], PROSPERITY_IDS[i], PROSPERITY_IDS[i], p[i]);
         }
         recordSanzuAllocation();
+        recordWitheredAllocation();
     }
 
     /**
@@ -251,6 +260,26 @@ final class SurfaceHarness {
      */
     private static void recordSanzuAllocation() {
         GTSRBiomeAuthority.recordAllocation(BiomeId.SANZU_RIVER, SANZU_ID, SANZU_ID, new BiomeSanzuRiver(SANZU_ID));
+    }
+
+    /**
+     * 枯竭河床入账（roster-only，v1.20.48 P25 用户裁定）：与生产
+     * {@code ProsperityBiomes.attachWitheredRiverbed} 同口径——{@code recordAllocation(
+     * WITHERED_RIVERBED, 185, 185, 实例)}，<b>不</b>进任何 def 群系表（4 家等权名册不动，
+     * 平面由 populate 后置写入）。
+     */
+    private static void recordWitheredAllocation() {
+        // P25 收尾（[20] parity 对 p25-base）：本方法必须同时服务 BASE 树（master 6ceea9e——
+        // BiomeId 无 WITHERED_RIVERBED 第 6 元）。直接字段引用在 BASE 侧首次解析即抛
+        // NoSuchFieldError ⇒ 整个对拍档崩溃（temp/p25-survey/run20.log 实测）。防御臂：
+        // LinkageError = era 无该员 ⇒ 静默跳过——BASE 语义正是"名册 5 元、无枯竭河床"，
+        // 跳过即正确入账；当前树行为逐字段不变（当前树不触发异常路径）。
+        try {
+            GTSRBiomeAuthority
+                .recordAllocation(BiomeId.WITHERED_RIVERBED, WITHERED_ID, WITHERED_ID, new BiomeWitheredRiverbed(WITHERED_ID));
+        } catch (final LinkageError eraNoWithered) {
+            // BASE era：枚举无第 6 元（NoSuchFieldError）或类缺位（NoClassDefFoundError）——见上注
+        }
     }
 
     /** 把 dim78 全部成员记为无槽（且没有任何 allocation 记录）⇒ degraded=EMPTY。 */

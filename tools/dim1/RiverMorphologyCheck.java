@@ -57,15 +57,15 @@ import com.miaokatze.gtsr.common.dimension.prosperity.river.GTSRVoronoiRiverFiel
  * （分段水位阶梯的纯函数性——置水死后池水位仍是床面/端面收尾的段界参考面）；H2 端面收尾
  * 沿顺流剖面逐列床高差 ≤ 2（smoothstep 构造 ≤1/列；锚点域 = trunk&gt;0 ∧ s≥WET_MIN 列
  * ——bedFromPool 端面入口门同式，P23 后端面收尾只承载床形观感不再防水墙）。</li>
- * <li><b>I 沼泽河床残潭（v1.20.42 P22 A1b 机制的判据化固定；本片 A1c 新增）</b>：
- * I1 sanzu 域零潭 + 潭域合同；I2 潭覆盖率 ∈ [0.05,0.25]（沼泽河床列口径）；I3 潭水不外流
- * （8 邻固体顶 ≥ 水顶 / 水—水同面）且不悬浮（水柱底 = h+1）；I4 嵌入 ≥1（潭水顶 ≤ round(bed)−1）。
- * 全组按 A1b 探针口径（{@code plan/tmp/p22-a1b/A1bProbe.java}）判据化：真身份链 + 三通道水体
- * 模拟（river/foreign/潭含 8 邻钳制，与 GTSRRiverPlacer 潭置水支路逐句同形——探针先例）。
- * <b>身份注入时序</b>：I 组需要真 roster（互斥腿/潭下挖/钳制障碍面都吃档），故在 A~H 组跑完
- * <b>之后</b>注入 4 家配槽、并在<b>新线程</b>采样——ampAt/chainRosterIndexAt/HEIGHT_MEMO 三处
- * ThreadLocal 缓存"首求值定型"（Profile 注释的时点假设），新线程缓存为空 ⇒ 真链自洽、
- * 主线程 A~H 的默认档读数零污染；A~H 仍是纯模型默认档链（本判据特性不变）。</li>
+ * <li><b>I 沼泽河床残潭：<b>已整组退役（P25 D7，对齐生产 RVF swampRiverPoolAt 族删除）</b></b>——
+ * I1~I4 四断言与采样几何（POOL_HUNT/POOL_WINDOWS/poolBarrier）随 {@code swampRiverPoolAt}/
+ * {@code SWAMP_RIVER_POOL_FILL_TOP} 符号删除整段摘除（缺源即 javac 红窗，纪律同 S1 的 SanzuTrunk
+ * CoverageCheck 整文件退役）；退役登记见 {@link #groupJ()} 的 I-RETIRED 行，历史读数（覆盖率
+ * 0.1348 等）见版本树与 {@code plan/sum/86} §5。
+ * <li><b>J 枯竭河床（P25 D6/D4 判据化新增）</b>：J1 湖+滩压力域（lakeAt &lt; sanzuBiomeShoreAt）
+ * 内河流强度 s ≡ 0（strengthAt 湖让位腿的行为直读）；J2 isDryRiverColumn 过渡带几何宽中位
+ * ∈ [8,16] 格（阈带 [0.40,0.60) × 42 格/单位 s 的 javadoc 换算式实测复核）；J3 isDryRiverColumn
+ * ⇒ !isSanzuColumn 逐列不相交（≥10⁶ 列采样，违例 = 0——谓词内含湖让位双保险腿的行为证）。</li>
  * </ul>
  *
  * <p>
@@ -274,18 +274,7 @@ public final class RiverMorphologyCheck {
     static final int FACE_DILATION = 12;
     /** 切向估计的 wet 连续延伸上限（列）：12×END_FACE_LEN = 48 &gt; sanzu 水道半宽 ~17 ⇒ 顺河向（数百格截断于本上限）与横向（~17 格截断）可分辨。 */
     static final int TANGENT_RUN_CAP = 12 * GTSRVoronoiRiverField.END_FACE_LEN;
-    /**
-     * 残潭组（I 组）的猎取窗半径与步距：<b>A1b 探针口径原值判据化</b>（{@code plan/tmp/p22-a1b/}
-     * A1bProbe 的 HUNT 段——本片不复调参，固定其采样几何，避免"选窗凑带"）。15360 ≈ 覆盖数十个
-     * 群系粗格带（macro 带 64 chunk = 1024 格的 15 倍窗）⇒ 恒有沼泽河床可猎；48 &lt; 沼泽水道全宽
-     * ⇒ 逐行扫描不跳空河核。
-     */
-    static final int POOL_HUNT_EXTENT = 15360;
-    static final int POOL_HUNT_STRIDE = 48;
-    /** 残潭组窗数（farthest-point 选心，A1b 探针口径）：8 窗 × 151×151 全列。 */
-    static final int POOL_WINDOWS = 8;
-    /** 残潭组窗半宽（列，A1b 探针口径）：钳制要 ±3 数据 ⇒ 检查区让两圈无假边界读数。 */
-    static final int POOL_WINDOW_HALF = 75;
+    // ── 残潭组（I 组）猎取几何常量：已随 P25 D7 残潭退役整组删除（登记见 groupJ javadoc）──
 
     /** 名册下标（0 锈蚀草原 / 1 齿轮森林 / 2 黄铜荒漠 / 3 喷气沼泽）。 */
     static final String[] ROSTER = { "草原", "森林", "荒漠", "沼泽" };
@@ -311,8 +300,10 @@ public final class RiverMorphologyCheck {
         groupActivation(dom);
         groupG(centers);
         groupH(dom);
-        // I 组（残潭）必须最后跑：注入真身份后主线程的默认档缓存假设不再成立（见类注释 I 组段）。
-        groupI();
+        // P25 D7：I 组（残潭）已整组退役（生产 swampRiverPoolAt 族删除，判据对象不存在）；
+        // J 组（枯竭河床）为 P25 新增，且不再需要 I 组的真身份注入（谓词三参形态走默认档，
+        // 与 PlacementGate.dryColumnAt ⑥ 腿 3 参调用同口径）。
+        groupJ();
         report();
     }
 
@@ -361,7 +352,9 @@ public final class RiverMorphologyCheck {
                     || lv != GTSRVoronoiRiverField.lakeAt(SEED, xi, zi)) {
                     trunkDeterministic = false;
                 }
-                if (tv < 0.0D || tv > 1.0D - GTSRVoronoiRiverField.SANZU_TRUNK_EDGE || lv < 0.0D || lv > 1.0D) {
+                if (tv < 0.0D || tv > 1.0D - GTSRVoronoiRiverField.SANZU_TRUNK_EDGE
+                    || lv < -GTSRVoronoiRiverField.LAKE_PRESSURE_NOISE_AMP
+                    || lv > 1.0D + GTSRVoronoiRiverField.LAKE_PRESSURE_NOISE_AMP) {
                     trunkShapeOk = false;
                 }
                 if (tv > 0.0D) {
@@ -369,7 +362,10 @@ public final class RiverMorphologyCheck {
                 }
             }
         }
-        check("A4 trunkAt/lakeAt 已激活（T5 接线）且确定性：trunk ∈ [0,1-EDGE]、lake ∈ [0,1]、采样窗非恒零",
+        // P25 D3③：lakeAt 返回值 = dC/dN + LAKE_PRESSURE_NOISE_AMP×valueNoise ⇒ 值域从 [0,1] 扩为
+        // [−AMP, 1+AMP]（湖心负压/边界微越 1 都是轮廓噪声的设计内读数；NO_LAKE 哨兵仍 = 1.0）。
+        check("A4 trunkAt/lakeAt 已激活（T5 接线）且确定性：trunk ∈ [0,1-EDGE]、lake ∈ [−AMP,1+AMP]"
+            + "（P25 压力加性噪声 ±0.0035 的设计内扩域）、采样窗非恒零",
             trunkShapeOk && trunkDeterministic && trunkAlive,
             "shapeOk=" + trunkShapeOk + " det=" + trunkDeterministic + " alive=" + trunkAlive);
         final GTSRVoronoiRiverField.RiverStyle[] styles = GTSRVoronoiRiverField.RIVER_STYLE_BY_ROSTER;
@@ -1480,276 +1476,131 @@ public final class RiverMorphologyCheck {
                 || -GTSRVoronoiRiverField.strengthAt(SEED, nx, nz, 0) < GTSRVoronoiRiverField.WET_MIN);
     }
 
-    // ══════════════════════ I 沼泽河床残潭（v1.20.42 P22 A1b 机制判据化；本片 A1c 新增） ══════════════════════
+    // ══════════════════════ J 枯竭河床（P25 D6/D4；I 组残潭已随 D7 退役） ══════════════════════
 
     /**
-     * <b>I 组：沼泽河床残潭四断言</b>（{@link GTSRVoronoiRiverField#swampRiverPoolAt} 机制的判据化
-     * 固定——采样几何与水体模拟逐句取自 A1b 探针 {@code plan/tmp/p22-a1b/A1bProbe.java}，本片不调参）：
-     * <ul>
-     * <li><b>I1 域合同</b>：sanzu 域（trunk&gt;0）零潭（潭场自带硬门 + 判据侧猎取网格双采样核验）∧
-     * 样本成量（{@link #POOL_WINDOWS} 窗全猎到 ∧ 沼泽河床列 ≥ {@link #N_CENTERS}）；</li>
-     * <li><b>I2 潭覆盖率 ∈ [0.05,0.25]</b>（沼泽河床列口径 = tier 3 ∧ s≥WET_MIN ∧ trunk≤0 的分母、
-     * 实得水潭列的分子——A1b 探针 R4 同式；带 = 任务包给定，A1b 校准读数 0.0651、本种子实测 0.1348）；</li>
-     * <li><b>I3 不外流 ∧ 不悬浮</b>：潭水柱每个水格的 8 邻 = 固体顶或水（A1b R1；水体模拟含 8 邻
-     * 钳制，与 {@code GTSRRiverPlacer} 潭置水支路逐句同形——探针先例）∧ 水柱底 = h+1（R2）；</li>
-     * <li><b>I4 嵌入 ≥1</b>：潭水顶 ≤ round(bed)−1（A1b R3——bed 取 bedFromPool 未挖床，水顶低于
-     * 干床面 ≥1 格的"下沉嵌入式水潭"读数）。</li>
-     * </ul>
+     * <b>I 组退役登记（P25 D7，对齐生产）</b>：沼泽河床残潭场（{@code swampRiverPoolAt}/
+     * {@code swampRiverPoolColumnAt} 与 {@code SWAMP_RIVER_POOL_} 前缀常量族）已随 P25 用户裁定整体
+     * 退役——判据对象不存在，I1~I4 四断言 + 猎取几何（POOL_HUNT_EXTENT/POOL_WINDOWS/
+     * POOL_WINDOW_HALF）
+     * + 水体模拟（groupIBody/poolBarrier）整段摘除（生产侧消费面清单见
+     * {@code GTSRVoronoiRiverField} 类顶的"已删成员登记"段）。历史实测读数（覆盖率 0.1348、
+     * 外流/悬浮/嵌入违例 0）见 {@code plan/sum/86} §5 与版本树，不迁移不复测。
      * <p>
-     * <b>身份面时序（本组独有）</b>：互斥腿（微池/三档水体）、潭下挖（heightCore 的 roster 3 支）与
-     * 钳制障碍面（foreign 判定里的 submergedAt）全部吃真 roster ⇒ 本组注入 4 家 BiomeGenBase 配槽
-     * （A1b 探针同法；第 5 家 sanzu 不进 selector 名册，与生产 def 表 4 元一致）并在<b>新线程</b>
-     * 采样——ampAt/chainRosterIndexAt/HEIGHT_MEMO 的 ThreadLocal 缓存"首求值定型"，新线程缓存为空
-     * ⇒ 真链自洽，且主线程 A~H 组的默认档读数零污染（A~H 已在 main 里先跑完）。assertions 计数器
-     * 由新线程经同一 {@link #check} 递增（main join 后才 report，无竞态）。
+     * <b>J 组：枯竭河床三断言（P25 D6 isDryRiverColumn 判据化 + D4① 湖让位腿行为证）</b>：
+     * <ul>
+     * <li><b>J1 湖+滩内 s≡0</b>：湖+滩压力域（{@code lakeAt < sanzuBiomeShoreAt}——含噪声腿扩出的
+     * 滩带外缘，与 {@code strengthAt} 湖让位腿同一判据面）内 {@code -strengthAt} 恒 0；</li>
+     * <li><b>J2 过渡带几何宽 ∈ [8,16] 格（中位）</b>：沿干床核向外 transect 实测
+     * {@code s = -strengthAt ∈ [0.40, 0.60)} 阈带的连续列宽——{@code DRY_RIVERBED_JITTER} javadoc
+     * 换算式（0.20 × 42 格/单位 ≈ 8.4 格）的行为复核；</li>
+     * <li><b>J3 isDryRiverColumn ⇒ !isSanzuColumn（≥10⁶ 列）</b>：谓词内含湖让位双保险腿的
+     * 逐列行为证——违例 &gt; 0 = 冻结接口的 {@code !isSanzuColumn} 腿被删/被绕。</li>
+     * </ul>
      */
-    static void groupI() {
-        for (int i = 0; i < 4; i++) {
-            final BiomeGenBase b = new BiomeGenBase(180 + i) {};
-            GTSRBiomeAuthority.recordAllocation(GTSRBiomeAuthority.BiomeId.values()[i], 180 + i, 180 + i, b);
-        }
-        final Thread worker = new Thread(new Runnable() {
-
-            @Override
-            public void run() {
-                groupIBody();
+    static void groupJ() {
+        final double core = GTSRVoronoiRiverField.DRY_RIVERBED_CORE;
+        final double jit = GTSRVoronoiRiverField.DRY_RIVERBED_JITTER;
+        // ── J1：湖+滩压力域内 s≡0（strengthAt 湖让位腿行为直读）──
+        // 采样域 ±1.5×LAKE_INTERVAL（覆盖 ≥2 个湖站格 ⇒ 窗内必有活湖/滩列），步距 24 < 滩带宽
+        //（22~39 格）⇒ 滩带列不会被步距跳空；成量下限 200（湖概率减半后的保守带）。
+        final int j1Lim = (int) (GTSRVoronoiRiverField.LAKE_INTERVAL * 1.5D);
+        final int j1Stride = 24;
+        long lakeShoreCols = 0;
+        long lakeShoreNonzero = 0;
+        for (int z = -j1Lim; z <= j1Lim; z += j1Stride) {
+            for (int x = -j1Lim; x <= j1Lim; x += j1Stride) {
+                if (GTSRVoronoiRiverField.lakeAt(SEED, x, z) < sanzuShoreAtReflect(SEED, x, z)) {
+                    lakeShoreCols++;
+                    if (-GTSRVoronoiRiverField.strengthAt(SEED, x, z) != 0.0D) {
+                        lakeShoreNonzero++;
+                    }
+                }
             }
-        }, "rmc-groupI");
-        worker.start();
-        try {
-            worker.join();
-        } catch (final InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new IllegalStateException("I 组采样线程被中断", e);
         }
-    }
-
-    static void groupIBody() {
-        final long chainSeed = SEED ^ ProsperityTerrainProfile.CHAIN_SEED_SALT;
-        // ── 1) 猎取：coarse 网格扫沼泽河床命中（tier==3 ∧ trunk≤0 ∧ s≥WET_MIN），farthest-point 选 8 窗心 ──
-        final int[] hitX = new int[8192];
-        final int[] hitZ = new int[8192];
-        int nHits = 0;
-        for (int x = -POOL_HUNT_EXTENT; x < POOL_HUNT_EXTENT && nHits < hitX.length; x += POOL_HUNT_STRIDE) {
-            for (int z = -POOL_HUNT_EXTENT; z < POOL_HUNT_EXTENT && nHits < hitZ.length; z += POOL_HUNT_STRIDE) {
-                final int tier = tierAt(chainSeed, x, z);
-                if (tier != 3 || GTSRVoronoiRiverField.trunkAt(SEED, x, z) > 0.0D) {
+        say("J-READ 枯竭河床：湖+滩压力域列=" + lakeShoreCols + "（步距 " + j1Stride + " 窗 ±" + j1Lim
+            + "）非零强度列=" + lakeShoreNonzero);
+        say("I-RETIRED P25 D7 残潭退役：swampRiverPoolAt 族已随生产删除，I1~I4 判据整组摘除（登记见 groupJ javadoc）");
+        check("J1 湖+滩内 s≡0（P25 D4① 湖让位腿）：lakeAt < sanzuBiomeShoreAt 的列上"
+            + " -strengthAt == 0，违例 = 0 ∧ 样本成量 ≥ 200（湖概率减半后的保守带）",
+            lakeShoreCols >= 200 && lakeShoreNonzero == 0,
+            "湖+滩列=" + lakeShoreCols + " 非零=" + lakeShoreNonzero);
+        // ── J2：isDryRiverColumn 过渡带几何宽（s∈[0.40,0.60) 连续列宽，transect 中位）──
+        // 锚点：河核列（s ≥ WET_MIN 且非湖域）向 ±x/±z 四向走出，数阈带列；transect 途中
+        // 撞上湖让位悬崖（s 直落 0，非连续过渡）⇒ 该向作废不计（湖边界的带宽不是本判据对象）。
+        final List<Integer> bandWidths = new ArrayList<Integer>();
+        long j2Tried = 0;
+        for (final int[] c : findCenters()) {
+            for (int dir = 0; dir < 4 && bandWidths.size() < 128; dir++) {
+                final int dx = dir == 0 ? 1 : (dir == 1 ? -1 : 0);
+                final int dz = dir == 2 ? 1 : (dir == 3 ? -1 : 0);
+                int x = c[0], z = c[1];
+                double s = -GTSRVoronoiRiverField.strengthAt(SEED, x, z);
+                if (s < GTSRVoronoiRiverField.WET_MIN) {
                     continue;
                 }
-                if (-GTSRVoronoiRiverField.strengthAt(SEED, x, z, tier) >= GTSRVoronoiRiverField.WET_MIN) {
-                    hitX[nHits] = x;
-                    hitZ[nHits] = z;
-                    nHits++;
+                j2Tried++;
+                int band = 0;
+                boolean valid = true;
+                boolean entered = false;
+                for (int step = 0; step < WALK_LIMIT; step++) {
+                    x += dx;
+                    z += dz;
+                    s = -GTSRVoronoiRiverField.strengthAt(SEED, x, z);
+                    if (s == 0.0D) {
+                        valid = false; // 湖让位悬崖：transect 出域作废
+                        break;
+                    }
+                    if (s < core) {
+                        break; // 走出阈带下缘 ⇒ 结束
+                    }
+                    if (s < core + jit) {
+                        band++;
+                        entered = true;
+                    }
+                }
+                if (valid && entered) {
+                    bandWidths.add(Integer.valueOf(band));
                 }
             }
         }
-        final int[] centers = new int[POOL_WINDOWS * 2];
-        int nCenters = 0;
-        if (nHits > 0) {
-            centers[0] = hitX[0];
-            centers[1] = hitZ[0];
-            nCenters = 1;
-            while (nCenters < POOL_WINDOWS && nCenters < nHits) {
-                int best = -1;
-                long bestD = -1;
-                for (int i = 0; i < nHits; i++) {
-                    long dmin = Long.MAX_VALUE;
-                    for (int c = 0; c < nCenters; c++) {
-                        final long dx = centers[c * 2] - hitX[i], dz = centers[c * 2 + 1] - hitZ[i];
-                        final long d = dx * dx + dz * dz;
-                        if (d < dmin) {
-                            dmin = d;
-                        }
-                    }
-                    if (dmin > bestD) {
-                        bestD = dmin;
-                        best = i;
-                    }
+        final double j2Median = median(bandWidths);
+        say("J-READ 过渡带：transect 尝试=" + j2Tried + " 有效=" + bandWidths.size() + " 阈带宽中位="
+            + f3(j2Median) + "（s∈[" + f3(core) + "," + f3(core + jit) + ") 连续列宽）");
+        check("J2 isDryRiverColumn 过渡带宽中位 ∈ [8,16] 格（P25 D6 阈抖带 [0.40,0.60) ×"
+            + " ~42 格/单位 s 的 javadoc 换算式 ≈8.4 格 + 斜穿/噪声蜿蜒余量；有效 transect ≥ 32）",
+            bandWidths.size() >= 32 && j2Median >= 8.0D && j2Median <= 16.0D,
+            "中位=" + f3(j2Median) + " 有效=" + bandWidths.size() + "/" + j2Tried);
+        // ── J3：isDryRiverColumn ⇒ !isSanzuColumn（≥10⁶ 列逐列不相交）──
+        // 域 ±3×LAKE_INTERVAL（含湖站格与干床交汇带），步距 6：1001×1001 ≈ 1.002×10⁶ 列。
+        final int j3Lim = (int) (GTSRVoronoiRiverField.LAKE_INTERVAL * 3.0D);
+        final int j3Stride = 6;
+        long j3Cols = 0;
+        long j3Dry = 0;
+        long j3Sanzu = 0;
+        long j3Violations = 0;
+        for (int z = -j3Lim; z <= j3Lim; z += j3Stride) {
+            for (int x = -j3Lim; x <= j3Lim; x += j3Stride) {
+                final boolean dry = GTSRVoronoiRiverField.isDryRiverColumn(SEED, x, z);
+                final boolean sanzu = GTSRVoronoiRiverField.isSanzuColumn(SEED, x, z);
+                j3Cols++;
+                if (dry) {
+                    j3Dry++;
                 }
-                centers[nCenters * 2] = hitX[best];
-                centers[nCenters * 2 + 1] = hitZ[best];
-                nCenters++;
-            }
-        }
-        // ── 2) 窗内全列三通道水体模拟（river wetAt / foreign 微池·三档 / 潭含 8 邻钳制）──
-        final int n = 2 * POOL_WINDOW_HALF + 1;
-        long riverbedCols = 0;
-        long poolWaterCols = 0;
-        long sanzuGateCols = 0;
-        long edgePoolCols = 0;
-        long outflowPool = 0;
-        long nonSuspendedBad = 0;
-        long embedBad = 0;
-        for (int c = 0; c < nCenters; c++) {
-            final int cx = centers[c * 2], cz = centers[c * 2 + 1];
-            final int[] tier = new int[n * n];
-            final boolean[] trunkPos = new boolean[n * n];
-            final boolean[] coreCol = new boolean[n * n];
-            final int[] h = new int[n * n];
-            final int[] pool = new int[n * n];
-            final double[] bed = new double[n * n];
-            final double[] gate = new double[n * n];
-            final boolean[] wet = new boolean[n * n];
-            final boolean[] foreign = new boolean[n * n];
-            for (int iz = 0; iz < n; iz++) {
-                for (int ix = 0; ix < n; ix++) {
-                    final int x = cx - POOL_WINDOW_HALF + ix, z = cz - POOL_WINDOW_HALF + iz;
-                    final int i = iz * n + ix;
-                    tier[i] = tierAt(chainSeed, x, z);
-                    trunkPos[i] = GTSRVoronoiRiverField.trunkAt(SEED, x, z) > 0.0D;
-                    coreCol[i] = -GTSRVoronoiRiverField.strengthAt(SEED, x, z, tier[i]) >= GTSRVoronoiRiverField.WET_MIN;
-                    wet[i] = GTSRVoronoiRiverField.wetAt(SEED, x, z, tier[i]);
-                    pool[i] = GTSRVoronoiRiverField.poolLevelAt(SEED, x, z, tier[i]);
-                    h[i] = ProsperityTerrainProfile.heightAt(SEED, x, z);
-                    bed[i] = GTSRVoronoiRiverField.bedFromPool(SEED, x, z, tier[i], pool[i]);
-                    gate[i] = GTSRVoronoiRiverField.swampRiverPoolAt(SEED, x, z, tier[i]);
-                    final boolean sub = GTSRVoronoiRiverField.submergedAt(h[i], pool[i]);
-                    foreign[i] = sub
-                        && (TerrainVariants.swampTierAt(SEED, x, z, tier[i]) != TerrainVariants.SWAMP_TIER_NONE
-                            || GTSRVoronoiRiverField.swampLakeAt(SEED, x, z, tier[i])
-                                < GTSRVoronoiRiverField.SWAMP_POOL_WATER_LEVEL);
-                    if (tier[i] == 3 && coreCol[i] && !trunkPos[i]) {
-                        riverbedCols++;
-                    }
-                    if (gate[i] > 0.0D && trunkPos[i]) {
-                        sanzuGateCols++;
-                    }
-                    // P23 E 第六腿（判据化）：潭列落在沼泽腹地之外（!swampInteriorAt）= 生产门第六腿
-                    // 失守——腹地门与三档/微池互斥同一粗层真值，判据侧独立采样核验（零公式复刻）。
-                    if (gate[i] > 0.0D && !TerrainVariants.swampInteriorAt(SEED, x, z)) {
-                        edgePoolCols++;
-                    }
+                if (sanzu) {
+                    j3Sanzu++;
                 }
-            }
-            final int[] wLo = new int[n * n];
-            final int[] wHi = new int[n * n];
-            final boolean[] isPoolWater = new boolean[n * n];
-            for (int i = 0; i < n * n; i++) {
-                int lo = Integer.MAX_VALUE, hi = Integer.MIN_VALUE;
-                if (wet[i] && GTSRVoronoiRiverField.submergedAt(h[i], pool[i])) {
-                    lo = h[i] + 1;
-                    hi = pool[i] - 1;
-                }
-                if (foreign[i]) {
-                    lo = h[i] + 1;
-                    hi = Math.max(hi, pool[i] - 1);
-                }
-                wLo[i] = lo;
-                wHi[i] = hi;
-            }
-            // 潭置水 + 8 邻钳制（检查区 [2,n-3]：钳制要 ±3 数据，让两圈无假边界读数）
-            for (int iz = 2; iz < n - 2; iz++) {
-                for (int ix = 2; ix < n - 2; ix++) {
-                    final int i = iz * n + ix;
-                    int lo = wLo[i], hi = wHi[i];
-                    if (gate[i] > 0.0D) {
-                        int top = pool[i] + GTSRVoronoiRiverField.SWAMP_RIVER_POOL_FILL_TOP;
-                        for (int dz = -1; dz <= 1; dz++) {
-                            for (int dx = -1; dx <= 1; dx++) {
-                                if (dx == 0 && dz == 0) {
-                                    continue;
-                                }
-                                final int k = i + dz * n + dx;
-                                if (gate[k] > 0.0D) {
-                                    int top1 = pool[k] + GTSRVoronoiRiverField.SWAMP_RIVER_POOL_FILL_TOP;
-                                    for (int dz0 = -1; dz0 <= 1; dz0++) {
-                                        for (int dx0 = -1; dx0 <= 1; dx0++) {
-                                            if (dx0 == 0 && dz0 == 0) {
-                                                continue;
-                                            }
-                                            top1 = Math
-                                                .min(top1, poolBarrier(gate, foreign, pool, h, k + dz0 * n + dx0));
-                                        }
-                                    }
-                                    top = Math.min(top, top1);
-                                } else {
-                                    top = Math.min(top, poolBarrier(gate, foreign, pool, h, k));
-                                }
-                            }
-                        }
-                        if (top >= h[i] + 1) {
-                            isPoolWater[i] = true;
-                            poolWaterCols++;
-                            lo = h[i] + 1;
-                            hi = Math.max(hi, top);
-                            if (lo != h[i] + 1) {
-                                nonSuspendedBad++;
-                            }
-                            if (top > (int) Math.round(bed[i]) - 1) {
-                                embedBad++;
-                            }
-                        }
-                    }
-                    wLo[i] = lo;
-                    wHi[i] = hi;
-                }
-            }
-            // 不外流（检查区 [3,n-4]：邻列数据完整）：潭水格的 8 邻 = 固体顶或水
-            for (int iz = 3; iz < n - 3; iz++) {
-                for (int ix = 3; ix < n - 3; ix++) {
-                    final int i = iz * n + ix;
-                    if (wLo[i] > wHi[i]) {
-                        continue;
-                    }
-                    for (int y = wLo[i]; y <= wHi[i]; y++) {
-                        for (int dz = -1; dz <= 1; dz++) {
-                            for (int dx = -1; dx <= 1; dx++) {
-                                if (dx == 0 && dz == 0) {
-                                    continue;
-                                }
-                                final int ni = (iz + dz) * n + (ix + dx);
-                                final boolean blocked = y <= h[ni] || (y >= wLo[ni] && y <= wHi[ni]);
-                                if (!blocked && isPoolWater[i]) {
-                                    outflowPool++;
-                                }
-                            }
-                        }
-                    }
+                if (dry && sanzu) {
+                    j3Violations++;
                 }
             }
         }
-        final double coverage = riverbedCols == 0 ? -1.0D : poolWaterCols / (double) riverbedCols;
-        say("I-READ 残潭猎取：命中=" + nHits + " 窗=" + nCenters + "（±" + POOL_HUNT_EXTENT + " 步距 "
-            + POOL_HUNT_STRIDE + " farthest-point 选心）");
-        say("I-READ 残潭水体模拟：沼泽河床列=" + riverbedCols + " 实得水潭列=" + poolWaterCols + " 覆盖率="
-            + f3(coverage) + " sanzu 域潭列=" + sanzuGateCols + " 非腹地潭列=" + edgePoolCols
-            + " 潭水格外流违例=" + outflowPool
-            + " 不悬浮违例=" + nonSuspendedBad + " 嵌入违例=" + embedBad);
-        check("I1 残潭域合同：sanzu 域（trunk>0）零潭 ∧ 样本成量（" + POOL_WINDOWS + " 窗全猎到 ∧ 沼泽河床列 ≥ "
-            + N_CENTERS + "）——潭场自带 trunk≤0 硬门（swampRiverPoolAt 门腿 2），判据侧独立采样核验;"
-            + " 窗缺或河床列塌 = 猎取几何或身份链断裂，后续三断言全部失真",
-            nCenters == POOL_WINDOWS && riverbedCols >= N_CENTERS && sanzuGateCols == 0,
-            "窗=" + nCenters + " 河床列=" + riverbedCols + " sanzu 潭列=" + sanzuGateCols);
-        check("I2 潭覆盖率 ∈ [0.05,0.25]（沼泽河床列口径，A1b 探针 R4 同式：分母 = tier 3 ∧ s≥WET_MIN ∧"
-            + " trunk≤0，分子 = 钳制后仍有水的潭列；带为任务包给定——A1b 校准读数 0.0651（种子 20260924）、"
-            + "本判据种子实测 0.1348，两端都在带 ⇒ 带钉的是机制量级不是单点值）",
-            coverage >= 0.05D && coverage <= 0.25D,
-            "覆盖率=" + f3(coverage) + " 水潭列=" + poolWaterCols + " 河床列=" + riverbedCols);
-        check("I3 潭水不外流且不悬浮：每个潭水格的 8 邻 = 固体顶（h_n ≥ y）或水（A1b R1 验收口径"
-            + "「8 邻固体顶 ≥ 水顶」的水—水同面推广）∧ 水柱底 = h+1（A1b R2——h 为 heightCore 含潭"
-            + "下挖的本地形顶，水柱坐床不悬浮）；违例 > 0 = 钳制式或下挖深度的回归",
-            outflowPool == 0 && nonSuspendedBad == 0,
-            "外流=" + outflowPool + " 悬浮=" + nonSuspendedBad);
-        check("I3b 潭列 ∩ 非腹地 == 0（P23 E 第六腿判据化：残潭不得落沼泽群系边缘——A3 边缘门把"
-            + "边缘三档/微池钳 NONE 后三档互斥腿反而放行，交界干河床上的潭水敞口即此；生产门"
-            + "swampRiverPoolAt 第六腿（!swampInteriorAt ⇒ 0）与三档/微池同一粗层真值，判据侧"
-            + "独立采样核验，违例 > 0 = 第六腿被删/被绕）",
-            edgePoolCols == 0, "非腹地潭列=" + edgePoolCols);
-        check("I4 潭嵌入 ≥1：潭水顶 ≤ round(bed)−1（A1b R3——bed 取 bedFromPool 未挖床值，"
-            + "水顶低于干床面 ≥1 格的「下沉嵌入式水潭」读数；DIG_BASE ≥3 与 FILL_TOP=−3 的构造裕量"
-            + "见两常量 javadoc，违例 = 裕量被常量漂移吃掉）",
-            embedBad == 0, "嵌入违例=" + embedBad);
-    }
-
-    /** 潭钳制的邻列阻挡面（与 {@code GTSRRiverPlacer.neighborBarrier} 同形——A1b 探针先例）。 */
-    static int poolBarrier(double[] gate, boolean[] foreign, int[] pool, int[] h, int m) {
-        if (gate[m] > 0.0D) {
-            return pool[m] + GTSRVoronoiRiverField.SWAMP_RIVER_POOL_FILL_TOP;
-        }
-        if (foreign[m]) {
-            return pool[m] - 1;
-        }
-        return h[m];
+        say("J-READ 不相交：列=" + j3Cols + " 干床列=" + j3Dry + " sanzu列=" + j3Sanzu
+            + " 交列=" + j3Violations);
+        check("J3 isDryRiverColumn ⇒ !isSanzuColumn（P25 D6 冻结接口的湖让位双保险腿）"
+            + "：≥10⁶ 列采样交列 = 0 ∧ 干床/sanzu 两域各自成量（≥100 列，防双空集假绿）",
+            j3Cols >= 1_000_000L && j3Violations == 0 && j3Dry >= 100 && j3Sanzu >= 100,
+            "列=" + j3Cols + " 交=" + j3Violations + " 干床=" + j3Dry + " sanzu=" + j3Sanzu);
     }
 
     /** 真身份链取列 tier（粗格 4 格对齐，与 A1b 探针/生产 coarse 面同口径）。 */
@@ -1757,6 +1608,28 @@ public final class RiverMorphologyCheck {
         return GTSRGenLayerRosterFace
             .rosterIndexAt(chainSeed, GTSRBiomeAuthority.DIM_KEY_PROSPERITY, (x >> 2) << 2, (z >> 2) << 2);
     }
+
+    /**
+     * {@code sanzuBiomeShoreAt(seed,x,z)} 的反射直调（P25 J1 用）：该方法是 RVF private（生产消费
+     * 全在类内），判据侧不复制其公式（噪声盐/波长/单边 ≥ 语义一处抄错即假绿）——与 SLMC 的
+     * {@code readPrivateInt(MIN_HEIGHT)} 同一"反射读真值、不抄第二份"先例。
+     */
+    static double sanzuShoreAtReflect(long seed, int x, int z) {
+        try {
+            if (SANZU_SHORE_METHOD == null) {
+                final java.lang.reflect.Method m = GTSRVoronoiRiverField.class
+                    .getDeclaredMethod("sanzuBiomeShoreAt", long.class, int.class, int.class);
+                m.setAccessible(true);
+                SANZU_SHORE_METHOD = m;
+            }
+            return ((Double) SANZU_SHORE_METHOD
+                .invoke(null, Long.valueOf(seed), Integer.valueOf(x), Integer.valueOf(z))).doubleValue();
+        } catch (final ReflectiveOperationException e) {
+            throw new IllegalStateException("sanzuBiomeShoreAt 反射直调失败（签名漂移）", e);
+        }
+    }
+
+    private static volatile java.lang.reflect.Method SANZU_SHORE_METHOD;
 
     // ══════════════════════ 统计小件 ══════════════════════
 

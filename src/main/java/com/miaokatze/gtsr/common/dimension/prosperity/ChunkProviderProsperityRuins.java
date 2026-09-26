@@ -184,6 +184,11 @@ public class ChunkProviderProsperityRuins extends GTSRChunkProviderBase {
                 // provideChunk 期平面是链面 4 家，本分支供 populate 后置写平面后的离线/复算消费面）
                 return BlocksGTSR.prosperityStone;
             }
+            case WITHERED_RIVERBED: {
+                // P25 D6：枯竭河床 wholeBody 同走 prosperityStone（SANZU_RIVER 同口径；同为
+                // populate 后置写平面的 roster-only 群系，本分支供写平面后的离线/复算消费面）。
+                return BlocksGTSR.prosperityStone;
+            }
             default: {
                 return Blocks.stone;
             }
@@ -262,6 +267,7 @@ public class ChunkProviderProsperityRuins extends GTSRChunkProviderBase {
         fillSanzuLakes(worldSeed, chunkX, chunkZ, sink);
         fillSwampPools(worldSeed, chunkX, chunkZ, sink);
         assignSanzuRiverBiome(worldSeed, chunkX, chunkZ);
+        assignWitheredRiverbedBiome(worldSeed, chunkX, chunkZ);
     }
 
     // ═════════════════ v1.20.39 T5（plan §3.3）：巨湖回填 + 遗忘之川指派 ═════════════════
@@ -674,7 +680,8 @@ public class ChunkProviderProsperityRuins extends GTSRChunkProviderBase {
      * {@link #fillSwampPools} 的唯一取数口。构建（纯函数，同 seed 同区域恒同值）：
      * <ol>
      * <li>逐列 nominal（三档/微池名义水顶，含 A3 边缘门与 submerged 门）与 fixed（河/主干/
-     * 巨湖/残潭水面，其它置水通道不动）；</li>
+     * 巨湖水面，其它置水通道不动；<b>原第四腿"残潭水面"随 P25 D7 残潭退役摘除</b>，
+     * 见构建体内登记）；</li>
      * <li>N8 Jacobi 不动点钳制：干列/被钳干列的阻挡面 = 固体顶 h（"8 邻固体顶 ≥ 水顶"验收口径，
      * 0 余量；A1b 残潭 N8 钳制同族），水邻 = 其当前水面；单调下降必收敛（趟上限 96 为保守界）；</li>
      * <li>被钳到床面之下的列 top &lt; h+1 ⇒ 整列不置水（"宁缺不悬"，wg41-E-options D2 先例）。</li>
@@ -727,7 +734,7 @@ public class ChunkProviderProsperityRuins extends GTSRChunkProviderBase {
                         }
                     }
                     // 河/主干水腿（A1a 新门）：P23 R1（批2 S2）起 wetAt 恒 false——本腿成为死路径
-                    // （保留不删，S6 收口登记）；fixed 水面只剩巨湖/残潭两腿。
+                    // （保留不删，S6 收口登记）；fixed 水面只剩巨湖一腿（原第二腿"残潭"随 P25 D7 退役）。
                     if (sub && GTSRVoronoiRiverField.wetAt(worldSeed, x, z, tier)) {
                         fixed[i] = p - 1;
                     }
@@ -735,9 +742,10 @@ public class ChunkProviderProsperityRuins extends GTSRChunkProviderBase {
                         && hv < ProsperityTerrainProfile.SEA_LEVEL) {
                         fixed[i] = Math.max(fixed[i], ProsperityTerrainProfile.SEA_LEVEL - 1); // 巨湖水
                     }
-                    if (tier == 3 && GTSRVoronoiRiverField.swampRiverPoolColumnAt(worldSeed, x, z, 3)) {
-                        fixed[i] = Math.max(fixed[i], p + GTSRVoronoiRiverField.SWAMP_RIVER_POOL_FILL_TOP); // 残潭（A1b）
-                    }
+                    // [P25 D7 残潭退役] 原"残潭（A1b）"fixed 腿（swampRiverPoolColumnAt ⇒ fixed =
+                    // p + SWAMP_RIVER_POOL_FILL_TOP）已摘除：S1 同批删除 RVF swampRiverPoolAt 族，
+                    // 本场对其零消费；沼泽侧 fixed 水面由 nominal 的三档/微池两腿（swampTierAt /
+                    // swampPoolWaterAt）独占。
                 }
             }
             // N8 不动点钳制（Jacobi 逐趟，趟用上趟快照 ⇒ 确定性与扫描序无关；单调下降必收敛）
@@ -844,6 +852,51 @@ public class ChunkProviderProsperityRuins extends GTSRChunkProviderBase {
                 final int z = (chunkZ << 4) + lz;
                 if (GTSRVoronoiRiverField.isSanzuColumn(worldSeed, x, z)) {
                     wrote |= BiomePlaneAccess.writeColumn(chunk, lx, lz, sanzu);
+                }
+            }
+        }
+        if (wrote) {
+            chunk.isModified = true;
+        }
+    }
+
+    /**
+     * <b>枯竭河床群系指派</b>（P25，populate 后置；与 {@link #assignSanzuRiverBiome} 同通道同构）：
+     * 列满足 {@code !isSanzuColumn ∧ isDryRiverColumn}（枯竭河床干床+过渡滩带，
+     * {@link GTSRVoronoiRiverField#isDryRiverColumn} 单点谓词——S1 冻结接口，与
+     * {@code PlacementGate.dryColumnAt} ⑥ 腿同一份实现，无第二真值）⇒ 经
+     * {@link BiomePlaneAccess#writeColumn}（群系平面<b>唯一写通道</b>，short/byte 双通道）写
+     * {@code BiomeId.WITHERED_RIVERBED} 实例。
+     * <p>
+     * <b>写次序语义（两平面零双写）</b>：{@link #onPopulate} 里 sanzu 平面<b>先写</b>
+     * （{@link #assignSanzuRiverBiome} 在本方法之前调用），本方法<b>显式跳过 sanzu 列</b>
+     * （谓词左腿 {@code !isSanzuColumn}）⇒ 同一列不可能被两个平面先后改写——湖面/湖滩列
+     * 恒归 sanzu，干河床列恒归 withered，交列集为空。跳过腿是<b>谓词级</b>而非写后覆盖，
+     * 故写序对结果不可见（离线对拍按谓词即可复算，与调用次序无关）。
+     * <p>
+     * 未配槽（{@code biomeOf} 返回 null——S2 接线前的空窗/无槽降级）时账本点名不到实例 ⇒
+     * 平面一格不写（与 {@link #assignSanzuRiverBiome} 的取槽口径逐字一致，不伪造）。写后置
+     * {@code chunk.isModified = true}：平面列不属于方块写，须显式标脏防丢（同 sanzu 先例，
+     * GT5U {@code GTWorldgenerator:734}）。
+     */
+    private void assignWitheredRiverbedBiome(long worldSeed, int chunkX, int chunkZ) {
+        final BiomeGenBase withered = GTSRBiomeAuthority.forDimKey(GTSRBiomeAuthority.DIM_KEY_PROSPERITY)
+            .biomeOf(BiomeId.WITHERED_RIVERBED);
+        if (withered == null) {
+            return;
+        }
+        final Chunk chunk = this.worldObj.getChunkFromChunkCoords(chunkX, chunkZ);
+        if (chunk == null) {
+            return;
+        }
+        boolean wrote = false;
+        for (int lz = 0; lz < 16; lz++) {
+            for (int lx = 0; lx < 16; lx++) {
+                final int x = (chunkX << 4) + lx;
+                final int z = (chunkZ << 4) + lz;
+                if (!GTSRVoronoiRiverField.isSanzuColumn(worldSeed, x, z)
+                    && GTSRVoronoiRiverField.isDryRiverColumn(worldSeed, x, z)) {
+                    wrote |= BiomePlaneAccess.writeColumn(chunk, lx, lz, withered);
                 }
             }
         }

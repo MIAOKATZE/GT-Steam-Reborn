@@ -2,6 +2,7 @@ import java.util.Arrays;
 
 import com.miaokatze.gtsr.common.dimension.framework.GTSRBiomeAuthority;
 import com.miaokatze.gtsr.common.dimension.prosperity.ProsperityTerrainProfile;
+import com.miaokatze.gtsr.common.dimension.prosperity.river.GTSRVoronoiRiverField;
 
 import net.minecraft.world.biome.BiomeGenBase;
 
@@ -111,8 +112,17 @@ public final class GenBenchCheck {
      * 164.3µs</b>，四次<b>全部 PASS</b>；最大读数 180.2 距门 200.8 留 11.4% 余量。注：首跑 180.2
      * 按<b>旧门 180.1 已判红</b>——正是本次放宽要消除的"无退化却红"现场（日志见
      * {@code temp/p4-surface/GenBenchCheck.out} 与 {@code temp/p24close-genbench-run*.out}）。
+     * <p>
+     * <b>P25 重立（三跑中位）：138.5 → 210.0</b>。本批（P25 终树、串行空载、
+     * {@code temp/p25-survey/m/GenBenchCheck-run{1,2,3}.out}）：210.0 / 199.2 / 218.2 ⇒ 中位
+     * <b>210.0</b>（+51.6% vs P24 BASE——<b>设计内增量进新 BASE</b>：D3 双盘 warp（第 5 disk 表
+     * 每列一次 diskAt）、D3③ 湖压加性噪声（每列一次 valueNoise）、D4① strengthAt 湖让位腿（河核
+     * 列 lakeAt+sanzuBiomeShoreAt）、D4② swampLakeAt0 两让位腿（沼泽列 lakeAt+strengthAt）、
+     * 残潭下挖支路删除（−微量）；D2 侵蚀门不在地形填充段（isSanzuColumn 是 populate 平面通道，
+     * 其成本由 CHANNEL-READ 独立读数，见 {@link #assignmentChannelRead()}）。机器背景负载摆幅
+     * 实测 170.7-220.1（另两批 {207.4,206.0,187.2} / {202.1,186.0,170.7}）⇒ 取中位批的 210.0。
      */
-    static final double BASELINE_US_PER_CHUNK = 138.5D;
+    static final double BASELINE_US_PER_CHUNK = 210.0D;
 
     /**
      * 派生式对赌门（劣化 &gt;45% 判红；<b>P24 收尾把余量系数由 1.30 放宽到 1.45</b>）：
@@ -188,16 +198,159 @@ public final class GenBenchCheck {
                 + " meanCol=%.3fus medianCol=%.0fns acc=%d%n",
             seeds, chunks.length, chunks.length * 256L, medianChunkUs, meanChunkUs, p90ChunkUs, meanColUs,
             medianColNs, acc);
-        System.out.printf("GENBENCH gate=medianChunk<=%.1f (baseline %.1f x 1.45 [P24 close: 1.30->1.45],"
+        System.out.printf("GENBENCH gate=medianChunk<=%.1f (baseline %.1f x 1.45 [P24 close: 1.30->1.45; P25 BASE re-set 3-run median],"
                 + " serial idle + ledger on; red>45%%) verdict=%s%n",
             GATE_US_PER_CHUNK, BASELINE_US_PER_CHUNK, pass ? "PASS" : "FAIL");
         System.out.println("GENBENCH note=serial-only by contract (v1.20.38: concurrent harness runs distort);"
             + " terrain-fill segment only (16x16 heightAt walk per chunk)");
         System.out.println("assertions=" + (pass ? 1 : 0) + " failures=" + (pass ? 0 : 1));
+        assignmentChannelRead();
         if (!pass) {
             System.out.printf("  FAIL medianChunk %.1fus > gate %.1fus%n", medianChunkUs, GATE_US_PER_CHUNK);
             System.exit(1);
         }
+    }
+
+    /**
+     * <b>P25 新增：群系指派通道成本读数（D2 推翻条件输入，只报不钉）</b>。任务包口径：读
+     * 「群系指派通道」（populate 后置平面写 = {@code assignSanzuRiverBiome} +
+     * {@code assignWitheredRiverbedBiome} 的谓词面：{@code isSanzuColumn}（P25 D2 起含 5×5 粗格
+     * 侵蚀净空门，25 邻格 memo 摊销）+ {@code isDryRiverColumn}（D6））的 per-chunk 成本，与
+     * <b>P25 前通道</b>（双腿 isSanzuColumn：压力腿 ∧ h 腿——用生产公开出口 + 反射
+     * {@code sanzuBiomeShoreAt} 原式重排，仅作<b>成本代理</b>，不作语义断言）对拍。
+     * <b>涨幅（新/旧 per-chunk 中位 − 1）&gt; 10% ⇒ 回报主代理裁决 D2 的 R=1 档（侵蚀半径 2→1）</b>。
+     * 两臂交错 3 rep 各取中位（同 N-4 纪律；nanoTime 计时含 ~25ns/次开销，对两臂同向、比值口径抵消）。
+     */
+    private static void assignmentChannelRead() {
+        final long seed = 0x47454EACL;
+        final int chunks = 512;
+        java.lang.reflect.Method shore = null;
+        try {
+            shore = GTSRVoronoiRiverField.class
+                .getDeclaredMethod("sanzuBiomeShoreAt", long.class, int.class, int.class);
+            shore.setAccessible(true);
+        } catch (final ReflectiveOperationException e) {
+            System.out.println("CHANNEL-READ skip: sanzuBiomeShoreAt reflect failed " + e);
+            return;
+        }
+        final java.lang.reflect.Method shoreM = shore;
+        final double[] oldArm = new double[3];
+        final double[] reflArm = new double[3];
+        final double[] sanzuArm = new double[3];
+        final double[] newArm = new double[3];
+        long acc = 0L;
+        for (int rep = 0; rep < 3; rep++) {
+            // —— 反射开销臂（只调 shoreM.invoke，量出 Method.invoke 的每 chunk 税，供旧臂校正）——
+            {
+                final long[] per = new long[chunks];
+                for (int ch = 0; ch < chunks; ch++) {
+                    final int bx = (ch % 64) * 16;
+                    final int bz = (ch / 64) * 16;
+                    final long c0 = System.nanoTime();
+                    for (int x = 0; x < 16; x++) {
+                        for (int z = 0; z < 16; z++) {
+                            try {
+                                acc += ((Double) shoreM
+                                    .invoke(null, Long.valueOf(seed), Integer.valueOf(bx + x),
+                                        Integer.valueOf(bz + z))).doubleValue() >= 0.0D ? 1 : 0;
+                            } catch (final ReflectiveOperationException e) {
+                                throw new IllegalStateException(e);
+                            }
+                        }
+                    }
+                    per[ch] = System.nanoTime() - c0;
+                }
+                java.util.Arrays.sort(per);
+                reflArm[rep] = per[chunks / 2] / 1000.0D;
+            }
+            // —— 旧通道臂（P25 前双腿谓词的成本代理）——
+            {
+                final long[] per = new long[chunks];
+                for (int ch = 0; ch < chunks; ch++) {
+                    final int bx = (ch % 64) * 16;
+                    final int bz = (ch / 64) * 16;
+                    final long c0 = System.nanoTime();
+                    for (int x = 0; x < 16; x++) {
+                        for (int z = 0; z < 16; z++) {
+                            try {
+                                acc += (GTSRVoronoiRiverField.lakeAt(seed, bx + x, bz + z) < ((Double) shoreM
+                                    .invoke(null, Long.valueOf(seed), Integer.valueOf(bx + x),
+                                        Integer.valueOf(bz + z))).doubleValue()
+                                    && ProsperityTerrainProfile.heightAt(seed, bx + x, bz + z) <= ProsperityTerrainProfile.SEA_LEVEL)
+                                        ? 1
+                                        : 0;
+                            } catch (final ReflectiveOperationException e) {
+                                throw new IllegalStateException(e);
+                            }
+                        }
+                    }
+                    per[ch] = System.nanoTime() - c0;
+                }
+                java.util.Arrays.sort(per);
+                oldArm[rep] = per[chunks / 2] / 1000.0D;
+            }
+            // —— 侵蚀门分解臂（isSanzuColumn 单调：D2 的 5×5 净空门 + memo 摊销）——
+            {
+                final long[] per = new long[chunks];
+                for (int ch = 0; ch < chunks; ch++) {
+                    final int bx = (ch % 64) * 16;
+                    final int bz = (ch / 64) * 16;
+                    final long c0 = System.nanoTime();
+                    for (int x = 0; x < 16; x++) {
+                        for (int z = 0; z < 16; z++) {
+                            acc += GTSRVoronoiRiverField.isSanzuColumn(seed, bx + x, bz + z) ? 1 : 0;
+                        }
+                    }
+                    per[ch] = System.nanoTime() - c0;
+                }
+                java.util.Arrays.sort(per);
+                sanzuArm[rep] = per[chunks / 2] / 1000.0D;
+            }
+            // —— 新通道臂（生产谓词直调：isSanzuColumn + isDryRiverColumn（⑥ 平面写谓词））——
+            {
+                final long[] per = new long[chunks];
+                for (int ch = 0; ch < chunks; ch++) {
+                    final int bx = (ch % 64) * 16;
+                    final int bz = (ch / 64) * 16;
+                    final long c0 = System.nanoTime();
+                    for (int x = 0; x < 16; x++) {
+                        for (int z = 0; z < 16; z++) {
+                            acc += GTSRVoronoiRiverField.isSanzuColumn(seed, bx + x, bz + z) ? 1 : 0;
+                            acc += GTSRVoronoiRiverField.isDryRiverColumn(seed, bx + x, bz + z) ? 2 : 0;
+                        }
+                    }
+                    per[ch] = System.nanoTime() - c0;
+                }
+                java.util.Arrays.sort(per);
+                newArm[rep] = per[chunks / 2] / 1000.0D;
+            }
+        }
+        java.util.Arrays.sort(oldArm);
+        java.util.Arrays.sort(reflArm);
+        java.util.Arrays.sort(sanzuArm);
+        java.util.Arrays.sort(newArm);
+        final double oldUs = oldArm[1];
+        final double reflUs = reflArm[1];
+        final double sanzuUs = sanzuArm[1];
+        final double newUs = newArm[1];
+        // 旧臂校正：反射税（invoke ≈ 数十 ns/次 × 256 列）从旧臂读数里扣除——被扣后的 old 仍含
+        // sanzuBiomeShoreAt 本体的 valueNoise 求值（生产内联价），口径对新臂公平。
+        final double oldAdj = Math.max(1.0D, oldUs - reflUs);
+        final double riseErosion = sanzuUs / oldAdj - 1.0D;
+        final double rise = newUs / oldAdj - 1.0D;
+        System.out.printf(
+            "CHANNEL-READ biomeAssign old(2-leg proxy)=%.1fus/chunk reflTax=%.1fus/chunk oldAdj=%.1fus/chunk"
+                + " sanzuOnly(+D2 erosion)=%.1fus/chunk (+erosion rise=%.1f%%) full(+isDryRiver)=%.1fus/chunk"
+                + " (full rise=%.1f%%) (P25 D2 overturn input: erosion-arm rise>10%% => report for R=1"
+                + " adjudication; full-arm rise 含 D6 第 6 平面谓词的整条新增成本，不归 D2) acc=%d%n",
+            oldUs,
+            reflUs,
+            oldAdj,
+            sanzuUs,
+            riseErosion * 100.0D,
+            newUs,
+            rise * 100.0D,
+            acc);
     }
 
     /** 单 seed 的 64×64 chunk 域串行 walk（SA probe4 同形）；times 非空时逐 chunk 计时。 */

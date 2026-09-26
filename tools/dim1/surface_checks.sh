@@ -64,6 +64,11 @@
 #                                                  #         判据 1 的"改前实现返回 true"另由 temp 探针
 #                                                  #         在 d5b7ca5 影子树上出证（见 p7b 证据文档 §1）
 #                                                  #        + 四张数字表（T1..T4）+ 三条单变量 RED→GREEN
+#   [20] P25（v1.20.48 判据重钉轮）：512 chunk 逐字节对拍（BASE=temp/p25-base =
+#         master 6ceea9e 的 src/main/java 全量快照——git archive 出档 + 再抽档 diff=0
+#         自校验通过；本轮六主题属<b>有意漂移面</b>，[20a] 只硬门控 BASE 编译零 error
+#         ∧ dim79=0 ∧ dim78>0，dim78 的漂移逐条归因登记在 plan/tmp/p25-criteria-report.md）
+#         + 散布档 digest 对拍（[20b]，skipStructure=1 两侧同纪律，差异归因湖重定标）
 #
 # ── P6 口径变更（读旧判据前必看）──
 # P6 给 dim78 加了两个新自由度：macro 群系带尺度（默认 64）与城门条件档（默认 1=锚点带）。
@@ -315,6 +320,7 @@ MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8 \
   tools/dim1/DiagLineCheck.java tools/dim1/StructureChannelCheck.java \
   tools/dim1/TpdimNearestBiomeCheck.java \
   tools/dim1/BiomePlaneCompatCheck.java \
+  tools/dim1/WitheredPlaneCheck.java \
 tools/dim1/StructureViewerExport.java tools/dim1/RosterIntegrityCheck.java \
 tools/dim1/S8RegistryRosterCheck.java tools/dim1/OutpostTemplateCheck.java tools/dim1/CityDeterminismCheck.java \
 tools/dim1/CityPlanSanityCheck.java tools/dim1/CityShapeCheck.java tools/dim1/CityOverheadPreview.java \
@@ -482,6 +488,10 @@ MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8   -cp
 echo "COMPILE LumenLightCheck EXIT=$? ($(grep -ac 'error:' "$OUT/javac-lumen.log") error)"
 run "LumenLightCheck（A 分趟独立计数 lakeMean<canopyMean 严格+0.8 带/两趟在场 + B 光14衰减 r1≥13/r7≥7/r15==0 + C 冠下光位 9-chunk 重放并集==纯函数参照/单射/owns + D 门带让行湖上0/冠下0 互换臂 + E 零裸rand+SALT_LUMEN 字面成对/两槽位派生式/挂点链 island<mega<lumen<shrub）" LumenLightCheck
 
+echo "== [2p] P25（v1.20.48）：枯竭河床群系平面写断言（W1 平面==谓词逐列/零双写 + W2 活性标脏 + W3 枯竭列零树灌） =="
+run "WitheredPlaneCheck（P25 新挂点：随机 chunk 列扫描 byte 平面写对拍 + 真地形装饰落块零违例）" \
+  WitheredPlaneCheck
+
 echo "== [3] 既有回归（必须保持绿） =="
 run "ReplaceSurfaceRuntimeCheck（46 项，含 null/plains 回退与逐列下标断言；P2b 起 256 格假绿已除）" ReplaceSurfaceRuntimeCheck
 # BiomeAllocationCheck 按场景分进程跑（同一 JVM 里账本会互相污染）；A+B+C+D 合计 = P1 的 121 项
@@ -563,7 +573,9 @@ code=$?; tail -2 "$OUT/P17StructureBiomeVarianceCheck.out" | cut -c1-170; echo "
 # ── v1.20.39 T4：河流模型换血——P17RiverNetworkCheck（旧轴向等距线模型）随
 # GTSRRiverNetwork 一并删除（红清单见 plan/tmp/p18-t4-prered.md），接替者为 RiverMorphologyCheck
 # （Voronoi 河流场形态判据：河宽/谷坡/蜿蜒/分叉/段激活率/全域置水死/沼泽×1.2/heightAt 集成；
-# P23 R1·S6 重钉：主干河移除 + 段激活门 P=0.20，F2 随主干退役、F3 段激活率带/I3b 腹地腿新立）。
+# P23 R1·S6 重钉：主干河移除 + 段激活门 P=0.20，F2 随主干退役、F3 段激活率带/I3b 腹地腿新立；
+# P25 D7：I 组残潭断言随生产 swampRiverPoolAt 族整体退役摘除（缺源即红窗纪律），J 组新立——
+# J1 湖+滩内 s≡0 / J2 isDryRiverColumn 过渡带宽 / J3 与 sanzu 不相交 ≥10⁶ 列）。
 echo "== [3t4] dim78 Voronoi 河流场形态（两级 Disk jitter 蜿蜒 + border2；宽度/谷坡/蜿蜒/分叉/断流） =="
 MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8   -cp "$OUT/classes;$CP" -sourcepath "src/main/java;tools/dim1" -d "$OUT/tools"   tools/dim1/RiverMorphologyCheck.java >"$OUT/javac-t4river.log" 2>&1
 echo "COMPILE RiverMorphologyCheck EXIT=$? ($(grep -ac 'error:' "$OUT/javac-t4river.log") error)"
@@ -587,6 +599,11 @@ code=$?; tail -2 "$OUT/RiverMorphologyCheck.out" | cut -c1-170; echo "   EXIT=$c
 # P24-D 段）后深档不再全体并入岛域、中带面积同时加厚 ⇒ S1 实测 1:3.042:3.563（绿），
 # A/D/C/G 组随床形重跑读数未变（A2 p95=1.000、D1/D2 100%、C1 中位 5451、G 三带同）。
 # 判据不暗改、不调 S1_RATIO_STEP；本步现为全绿步骤（EXIT 非零 = 真回归）。
+# P25（v1.20.48 判据重钉轮）：C1c 禁改面三元组随 D1 重钉（LAKE_ISLAND 0.15→0.055）、
+# S2 CV 带 0.10→0.05（D_eff ×2.5 各向异性项换算式）、E2 湖面 sanzu 占比 95%→88%（D2 侵蚀门
+# 面积损失换算式 2×8/200≈8%）、FINE_LAKES_PER_SEED 16→40；新 P25 组四断言（站距/占比/噪声腿/
+# 岛径散布）——P25-1 站距带按主代理裁决重钉 [2600,3400]→[0.70,0.85]×3000=[2100,2550]
+# （实测系数 0.763 换算式，原 0.89 假设更正，javadoc 内申报）；其余读数见 plan/tmp/p25-criteria-report.md。
 echo "== [3t5b] dim78 巨湖形态学（渐深触底 D / 湖岸衔接第一判据 A / 中心岛与岛底柱 C / 壮观度代理 S） =="
 MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8   -cp "$OUT/classes;$CP" -sourcepath "src/main/java;tools/dim1" -d "$OUT/tools"   tools/dim1/SanzuLakeMorphologyCheck.java >"$OUT/javac-t5blake.log" 2>&1
 echo "COMPILE SanzuLakeMorphologyCheck EXIT=$? ($(grep -ac 'error:' "$OUT/javac-t5blake.log") error)"
@@ -603,9 +620,13 @@ code=$?; tail -2 "$OUT/SanzuLakeMorphologyCheck.out" | cut -c1-170; echo "   EXI
 # 200.8µs/chunk（余量系数 1.30→1.45：BASE 批次中位 138.5 后同树实测 175.4[+26.6%]，
 # 1.30 门会被背景突发误红；1.45 为"劣化>45% 必红"语义下的最松档）</b>
 # （逐项收益与新门的负载敏感性申报见 GenBenchCheck javadoc）。
+# <b>P25 重立（三跑中位）：138.5 → 210.0</b>（210.0/199.2/218.2 的中位；+51.6% = P25 设计内增量
+# ——双盘 warp/湖压噪声/strengthAt 湖让位腿/swampLakeAt0 让位腿——进新 BASE；门 = 210.0×1.45 =
+# 304.5µs，系数沿 1.45 不动。另 P25 起 GenBench 内嵌 CHANNEL-READ 群系指派通道成本读数
+# （D2 推翻条件输入：侵蚀臂涨幅>10% ⇒ 回报主代理裁决 R=1）。
 # per-chunk 中位数超门即红（劣化>45% 对赌门）。判据内置账本装配（生产形状）与串行纪律——
 # v1.20.38 实测与本 harness 并发跑会失真，本脚本顺序执行各步即满足，勿与其他判据并行。
-echo "== [3u8] dim78 地形填充段性能基准（GenBenchCheck：串行 + 有账本 + per-chunk 中位对 200.8µs 门[P24-C 重立 138.5]） =="
+echo "== [3u8] dim78 地形填充段性能基准（GenBenchCheck：串行 + 有账本 + per-chunk 中位对 304.5µs 门[P25 重立 210.0 三跑中位] + CHANNEL-READ 群系指派通道成本） =="
 MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8   -cp "$OUT/classes;$CP" -sourcepath "src/main/java;tools/dim1" -d "$OUT/tools"   tools/dim1/GenBenchCheck.java >"$OUT/javac-u8bench.log" 2>&1
 echo "COMPILE GenBenchCheck EXIT=$? ($(grep -ac 'error:' "$OUT/javac-u8bench.log") error)"
 MSYS2_ARG_CONV_EXCL='*' java $STD $LOG4J -Xmx2g -cp "$OUT/tools;$OUT/classes;$CP" GenBenchCheck   >"$OUT/GenBenchCheck.out" 2>&1
@@ -1188,8 +1209,14 @@ com/miaokatze/gtsr/config/Config.java"
     #       只钉"默认值没被悄悄改"，不再钉带尺度行为）
     p6red R2_MACRO16 's|public static int prosperityBiomeMacroBandChunks = 64;|public static int prosperityBiomeMacroBandChunks = 16;|' \
       "$P6F_CFG" BiomeBandHierarchyCheck assert src/main/java 8 128
-    # R2b（B2 改判）：城门目标群系身份被换成齿轮森林 ⇒ "过门城锚点 100% 落草原身份"（B2）必须变红
-    p6red R2b_GATE_TARGET 's|== GTSRBiomeAuthority.BiomeId.RUSTED_STEPPE.rosterIndex();|== GTSRBiomeAuthority.BiomeId.GEARWORK_FOREST.rosterIndex();|' \
+    # R2b（B2 改判）：城门目标身份比较被破坏 ⇒ 判据必须变红。
+    # P25 收尾重钉：原突变（RUSTED_STEPPE→GEARWORK_FOREST）在 p24 靠 E1 偶然触红（kept 1/12
+    # < 0.10 下限）；P25 名册 6 员等权下同一突变 kept 3/12 = 25% ≥ 10%，E1 不再红，而 B2 读的
+    # 就是这条被换的比较（同函数 ⇒ 重言恒绿）⇒ 影子失去灵敏度（parity-final 实测"假绿"FAIL）。
+    # 改为不可达名册下标（-999）：门恒假 ⇒ citiesKept=0 ⇒ B3"门必须真的在削减且产出非 0"结构性
+    # 变红——灵敏度不再依赖样本运气。（换到 WITHERED 不行：CityPlanner 本地链 ids 含全部 6 员，
+    # bandIndexAt 可合法返回 5，门不会死。）
+    p6red R2b_GATE_TARGET 's|== GTSRBiomeAuthority.BiomeId.RUSTED_STEPPE.rosterIndex();|== -999; /*P25 收尾：不可达下标，门恒假，B3 结构性红*/|' \
       "$P6F_PLAN" CityBiomeGateCheck assert 8 8
     # R3（B2 改判）：CityPlanner 本地重建链的种子盐漂移（≠ CommonProxy def.seedSalt）⇒ C1 的
     #     "城门纯出口 == manager 身份面"三元同一钉必须变红（身份面分叉的单一真值破坏）
@@ -2040,12 +2067,87 @@ PY
     rm -rf "$RED13B" "$RED13BCLS"
   fi
 
+  # ── [20] P25（v1.20.48 判据重钉轮）：对 p25-base = master 6ceea9e 全量快照 ──
+  # 本轮六主题（湖重定标/残潭退役/第 6 群系/树三抖动/门新腿/侵蚀门）全部碰 dim78 生成链 ⇒
+  # dim78 的逐字节漂移是<b>有意漂移面</b>（逐条归因登记 plan/tmp/p25-criteria-report.md）；
+  # 本段硬门控三件：BASE 编译零 error（否则对拍退化自比）、dim79 漂移 = 0（本轮 dim79 零改动）、
+  # dim78 漂移 > 0（反假绿：本轮改动必须真的进了生成链）。BASE 树 = 快照本体（git archive 出档，
+  # 再抽档 diff=0 已自校验；不 cp -a 当前树——本轮 16 M+1 新文件全在快照的补集里，无需还原动作）。
+  echo "== [20] P25：512 chunk 逐字节对拍 + 散布 digest（BASE=temp/p25-base = master 6ceea9e 快照） =="
+  BASE25=temp/p25-base/src/main/java
+  SNAP25=temp/p25-base
+  if [ ! -f "$BASE25/com/miaokatze/gtsr/common/dimension/prosperity/river/GTSRVoronoiRiverField.java" ]; then
+    echo "   FAIL：缺 P25 BASE 快照 $BASE25（必须先自建 = git archive 6ceea9e src/main/java + BASE.sha256）"
+    FAILS=$((FAILS + 1))
+  else
+    # 反假绿两面：BASE 侧必须是改造前形态（1200 档/无新谓词/无新群系类），AFTER 侧已净（新谓词在场）
+    if ! grep -aq "LAKE_INTERVAL = 1200.0D" "$BASE25/com/miaokatze/gtsr/common/dimension/prosperity/river/GTSRVoronoiRiverField.java"; then
+      echo "   FAIL：P25-BASE 侧 RVF 非 1200 档 ⇒ 快照不是 master 6ceea9e 形态（对拍退化自比）"
+      FAILS=$((FAILS + 1))
+    else
+      echo "   P25-BASE 侧确认 LAKE_INTERVAL=1200（快照有效 = 改造前形态）"
+    fi
+    if grep -aq "isDryRiverColumn" "$BASE25/com/miaokatze/gtsr/common/dimension/prosperity/river/GTSRVoronoiRiverField.java"; then
+      echo "   FAIL：P25-BASE 侧已含 isDryRiverColumn ⇒ 快照是改造后形态"
+      FAILS=$((FAILS + 1))
+    fi
+    grep -aq "public static boolean isDryRiverColumn" src/main/java/com/miaokatze/gtsr/common/dimension/prosperity/river/GTSRVoronoiRiverField.java \
+      || { echo "   FAIL：AFTER 侧无 isDryRiverColumn ⇒ D6 未落地"; FAILS=$((FAILS + 1)); }
+    # P25-BASE 编译面 = REL 子集 + 本轮 diff 的 dimension 文件（river 两件 + StructureBurialTiers）。
+    # 不能全量 390（api/machine 件要 GT jar，离线 CP 无，实测 100 error）；不能只 REL（REL 早于
+    # prosperity/river 包 ⇒ RVF 回落 build/classes = 当前树 ⇒ swampRiverPoolAt 族 6 错 + JVM 混比
+    # 崩溃 NoSuchFieldError，temp/p25-survey/run20.log 实测）。air×2 走 classpath 回落（机器侧配方
+    # 面，不进 provideChunk 字节域）；GTSRCommand/machine×2 非 dimension 闭包。SurfaceHarness 的
+    # recordWitheredAllocation 带 LinkageError 防御臂（BASE 枚举无第 6 元 ⇒ 静默跳过 = era 语义）。
+    P25_SRC="$(prefix "$BASE25")
+$BASE25/com/miaokatze/gtsr/common/dimension/prosperity/river/GTSRRiverPlacer.java
+$BASE25/com/miaokatze/gtsr/common/dimension/prosperity/river/GTSRVoronoiRiverField.java
+$BASE25/com/miaokatze/gtsr/common/dimension/prosperity/ruins/ruin/StructureBurialTiers.java"
+    rm -rf "$OUT/p25-base-classes"; mkdir -p "$OUT/p25-base-classes"
+    MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8 -cp "$CP" \
+      -sourcepath "$BASE25" -d "$OUT/p25-base-classes" $P25_SRC >"$OUT/p25-javac-base.log" 2>&1
+    jbc=$?
+    ncls=$(find "$OUT/p25-base-classes" -name '*.class' | wc -l)
+    echo "COMPILE P25-BASE EXIT=$jbc ($(grep -ac 'error:' "$OUT/p25-javac-base.log") error, classes=$ncls)"
+    [ "$jbc" = "0" ] && [ -f "$OUT/p25-base-classes/com/miaokatze/gtsr/common/dimension/prosperity/river/GTSRVoronoiRiverField.class" ] \
+      || { echo "   FAIL：P25-BASE 树编译失败或 RVF class 缺失（快照不完整/对拍混比防线）"; FAILS=$((FAILS + 1)); }
+    # [20a] 表层/高度/群系面 512 chunk 逐字节对拍（工具走 $OUT/tools，生产 class 指 BASE——[10b] 同口径）
+    MSYS2_ARG_CONV_EXCL='*' java $STD $LOG4J -cp "$OUT/tools;$OUT/classes;$CP" \
+      SurfaceByteParityDump 16 >"$OUT/p25-parity-after.txt" 2>"$OUT/p25-parity-after.err"
+    MSYS2_ARG_CONV_EXCL='*' java $STD $LOG4J -cp "$OUT/tools;$OUT/p25-base-classes;$CP" \
+      SurfaceByteParityDump 16 >"$OUT/p25-parity-base.txt" 2>"$OUT/p25-parity-base.err"
+    d79_25=$(diff <(grep -a "^CHUNK dim=79\|^AGG dim=79" "$OUT/p25-parity-base.txt") \
+              <(grep -a "^CHUNK dim=79\|^AGG dim=79" "$OUT/p25-parity-after.txt") | grep -ac "^[<>]")
+    d78_25=$(diff <(grep -a "^CHUNK dim=78\|^AGG dim=78" "$OUT/p25-parity-base.txt") \
+              <(grep -a "^CHUNK dim=78\|^AGG dim=78" "$OUT/p25-parity-after.txt") | grep -ac "^[<>]")
+    c25=$(grep -ac "^CHUNK" "$OUT/p25-parity-after.txt")
+    echo "   [20a] 逐字节对拍 chunks=$c25 dim79 diff_lines=$d79_25（必须 0）dim78 diff_lines=$d78_25（必须 >0 = 六主题有意漂移面，归因见报告）"
+    [ "$d79_25" = "0" ] || { echo "   FAIL：dim79 出现漂移（$d79_25 行）——本轮禁止动 dim79 生成链"; FAILS=$((FAILS + 1)); }
+    [ "$d78_25" -gt "0" ] || { echo "   FAIL：dim78 与 master 逐字节相同 ⇒ 本轮改动没进生成链（假绿）"; FAILS=$((FAILS + 1)); }
+
+    # [20b] 散布档 digest（skipStructure=1 两侧同纪律；差异归因 = 湖重定标改变地形/高度 ⇒ 散布落点与表面跟随）
+    MSYS2_ARG_CONV_EXCL='*' java $STD $LOG4J -Dgtsr.skipStructure=1 -Xmx2g \
+      -cp "$OUT/tools;$OUT/classes;$CP" Dim78ScatterDensityCheck digest 2 2 16 >"$OUT/p25-scatter-after.txt" 2>&1
+    esa25=$?
+    MSYS2_ARG_CONV_EXCL='*' java $STD $LOG4J -Dgtsr.skipStructure=1 -Xmx2g \
+      -cp "$OUT/tools;$OUT/p25-base-classes;$CP" Dim78ScatterDensityCheck digest 2 2 16 >"$OUT/p25-scatter-base.txt" 2>&1
+    esb25=$?
+    db25=$(grep -ao "digest=[0-9a-f]*" "$OUT/p25-scatter-base.txt" | head -1 | cut -d= -f2)
+    da25=$(grep -ao "digest=[0-9a-f]*" "$OUT/p25-scatter-after.txt" | head -1 | cut -d= -f2)
+    nd25=$(diff <(grep -av "^WARNING\|^Picked up" "$OUT/p25-scatter-base.txt") \
+               <(grep -av "^WARNING\|^Picked up" "$OUT/p25-scatter-after.txt") | grep -ac "^[<>]")
+    echo "   [20b] 散布 digest：BASE=${db25:-?} AFTER=${da25:-?} → $([ -n "$db25" ] && [ "$db25" != "$da25" ] && echo 不同[设计内：湖重定标改变地形/高度，散布落点跟随] || echo 相同)（行差=$nd25 EXIT $esb25/$esa25）"
+    { [ "$esb25" = "0" ] && [ "$esa25" = "0" ]; } || { echo "   FAIL：散布档两跑有一跑非 0"; FAILS=$((FAILS + 1)); }
+    [ -n "$db25" ] && [ "$db25" != "$da25" ] \
+      || { echo "   FAIL：散布 digest 相同 ⇒ 湖重定标未进散布域（假绿）"; FAILS=$((FAILS + 1)); }
+  fi
+
 fi
 
 echo "== SUMMARY =="
 if [ "$FAILS" = "0" ]; then
-  echo "P2/P3/P4/P5/P5b/P6/P7/P7c/P8/P9/P12/P13/P13b/P14 SURFACE CHECKS: ALL GREEN"
+  echo "P2/P3/P4/P5/P5b/P6/P7/P7c/P8/P9/P12/P13/P13b/P14/P25 SURFACE CHECKS: ALL GREEN"
 else
-  echo "P2/P3/P4/P5/P5b/P6/P7/P7c/P8/P9/P12/P13/P13b/P14 SURFACE CHECKS: $FAILS tool(s)/step(s) FAILED"
+  echo "P2/P3/P4/P5/P5b/P6/P7/P7c/P8/P9/P12/P13/P13b/P14/P25 SURFACE CHECKS: $FAILS tool(s)/step(s) FAILED"
 fi
 [ "$FAILS" = "0" ]

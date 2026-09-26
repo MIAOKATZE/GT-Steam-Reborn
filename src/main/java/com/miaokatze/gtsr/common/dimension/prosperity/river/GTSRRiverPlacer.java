@@ -12,7 +12,6 @@ import com.miaokatze.gtsr.common.dimension.framework.genlayer.GTSRGenLayerRoster
 import com.miaokatze.gtsr.common.dimension.framework.structure.BlockSink;
 import com.miaokatze.gtsr.common.dimension.framework.structure.GTSRWorldgenHash;
 import com.miaokatze.gtsr.common.dimension.prosperity.ProsperityTerrainProfile;
-import com.miaokatze.gtsr.common.dimension.prosperity.TerrainVariants;
 import com.miaokatze.gtsr.main.GTSteamReborn;
 
 /**
@@ -177,82 +176,9 @@ public final class GTSRRiverPlacer {
                         waterCells++;
                     }
                 }
-                // ═══ v1.20.42（P22 A1b）沼泽河床残潭置水：枯竭沼泽河核列（!wet ∧ tier 3；本处
-                // s≥WET_MIN 已由上方 continue 保证 ⇒ !wet ⟺ trunk≤0 = A1a 干河床）在潭场门内
-                // （含微池/三档互斥 ⇒ fillSwampPools 对潭列恒短路，潭水顶由本支路独占）回填
-                // y ∈ [h+1, pool+FILL_TOP]，h = 本地形顶（heightCore 已含潭下挖）⇒ 不悬浮、
-                // 嵌入河床面以下 ≥1 格（水顶 pool−3 ≤ 干床面 round(bed)−1 = pool−2）。
-                // <b>不外流钳制（N8，0 余量）</b>：干邻钳 top ≤ h_n——固体顶本格即阻挡横向流动
-                // （验收口径"8 邻固体顶 ≥ 水顶"），<b>不</b>取 h_n−1：低地 h0 干列（h_n = pool−3
-                // 恰过验收）在 −1 余量下会把邻潭钳低 1 格、与未钳潭列成阶梯，邻潭水反而从阶梯
-                // 面外流（探针 VDIAG 两轮 39-40 处违规的全成因链，读数 plan/tmp/p22-a1b）；
-                // 微池/三档水邻取其水面 pool_n−1（水—水同面不流）；潭邻取其 1 级钳后顶
-                // top1 = min(名义潭顶, 其 8 邻阻挡面)——钳到自身潭底之下的"空坑"邻居由
-                // top1 ≤ 坑底兜住，跨段水位差的潭对靠名义潭顶互钳对齐。读数取自 18×18 网格；
-                // 外环列的 top1 第 2 列越出网格时按同一纯函数重算（见内层 P22 审查修复注释）。═══
-                if (!wet[i] && tierAt(tiers, x, z, baseX, baseZ) == 3
-                    && GTSRVoronoiRiverField.swampRiverPoolColumnAt(worldSeed, x, z, 3)) {
-                    int poolTop = p + GTSRVoronoiRiverField.SWAMP_RIVER_POOL_FILL_TOP;
-                    for (int dz = -1; dz <= 1; dz++) {
-                        for (int dx = -1; dx <= 1; dx++) {
-                            if (dx == 0 && dz == 0) {
-                                continue;
-                            }
-                            final int ni = i + dz * 18 + dx;
-                            final int nx = x + dx;
-                            final int nz = z + dz;
-                            final int nTier = tierAt(tiers, nx, nz, baseX, baseZ);
-                            if (GTSRVoronoiRiverField.swampRiverPoolColumnAt(worldSeed, nx, nz, nTier)) {
-                                // 潭邻：取其 1 级钳后顶 top1（名义潭顶与其 8 邻阻挡面的 min）；
-                                // 内层的潭列取<b>名义</b>潭顶（实际被钳更低的空坑由外层 top1 兜）
-                                int top1 = pool[ni] + GTSRVoronoiRiverField.SWAMP_RIVER_POOL_FILL_TOP;
-                                for (int dz0 = -1; dz0 <= 1; dz0++) {
-                                    for (int dx0 = -1; dx0 <= 1; dx0++) {
-                                        if (dx0 == 0 && dz0 == 0) {
-                                            continue;
-                                        }
-                                        final int mi = ni + dz0 * 18 + dx0;
-                                        final int mx = nx + dx0;
-                                        final int mz = nz + dz0;
-                                        final int mTier = tierAt(tiers, mx, mz, baseX, baseZ);
-                                        // P22 审查修复（reviewer 判据 3 REDIRECT）：网格只有 1 列邻格环，
-                                        // 外环潭列的 top1 需要第 2 列 ⇒ mi 可越出 18×18（行/列回绕读错列、
-                                        // 负/越界下标抛 AIOOBE）。界内读网格；界外按同一纯函数重算
-                                        // （heightAt/poolLevelAt 是 worldSeed 纯函数，与方法顶部 18×18
-                                        // 重算同一出口，零 World/方块读、跨 chunk 确定）。
-                                        final int hM;
-                                        final int poolM;
-                                        if (mx >= baseX - 1 && mx <= baseX + 16
-                                            && mz >= baseZ - 1
-                                            && mz <= baseZ + 16) {
-                                            hM = h[mi];
-                                            poolM = pool[mi];
-                                        } else {
-                                            hM = ProsperityTerrainProfile.heightAt(worldSeed, mx, mz);
-                                            poolM = GTSRVoronoiRiverField.poolLevelAt(worldSeed, mx, mz, mTier);
-                                        }
-                                        if (GTSRVoronoiRiverField.swampRiverPoolColumnAt(worldSeed, mx, mz, mTier)) {
-                                            top1 = Math
-                                                .min(top1, poolM + GTSRVoronoiRiverField.SWAMP_RIVER_POOL_FILL_TOP);
-                                        } else {
-                                            top1 = Math.min(top1, neighborBarrier(worldSeed, mx, mz, mTier, hM, poolM));
-                                        }
-                                    }
-                                }
-                                poolTop = Math.min(poolTop, top1);
-                            } else {
-                                poolTop = Math.min(poolTop, neighborBarrier(worldSeed, nx, nz, nTier, h[ni], pool[ni]));
-                            }
-                        }
-                    }
-                    for (int y = h[i] + 1; y <= poolTop; y++) {
-                        writes += accept(sink, x, y, z, water, 0);
-                        waterCells++;
-                    }
-                    if (poolTop >= h[i] + 1) {
-                        waterColumns++;
-                    }
-                }
+                // ═══ [P25 D7 残潭退役] v1.20.42 P22 A1b 沼泽河床残潭置水支路已整段删除（用户裁定
+                // 「小湖泊不上枯竭河流」+枯竭语义；RVF swampRiverPoolAt 族同批退役见其类顶登记）：
+                // 潭列回填与 8 邻不外流钳制随之零消费，历史实现见版本树。═══
             }
         }
         // —— 4. 观测：每 256 chunk 一行（无河道也是读数，不静默）
@@ -302,21 +228,9 @@ public final class GTSRRiverPlacer {
         }
         return flat != null ? flat : fallback;
     }
-
-    /**
-     * 残潭钳制的<b>邻列阻挡面</b>（P22 A1b）：邻列对潭水柱的"横向流动上界"——微池/三档回填列
-     * 取其水面 {@code pool_m−1}（水—水同面不流），干列取 {@code h_m}（<b>0 余量</b>：固体顶
-     * 本格即阻挡横向流动，验收口径"8 邻固体顶 ≥ 水顶"；不取 h_m−1 的理由见潭置水支路注释）。
-     * 潭列不走本方法（走调用点的 top1 腿）。
-     */
-    private static int neighborBarrier(long worldSeed, int x, int z, int nTier, int hM, int poolM) {
-        // O1a（v1.20.43 P22 版 B）：三档/微池两条子式并入布尔单一出口（纯包装，∥ 左右腿序不变）
-        if (GTSRVoronoiRiverField.submergedAt(hM, poolM) && (TerrainVariants.swampTieredAt(worldSeed, x, z, nTier)
-            || GTSRVoronoiRiverField.swampPoolWaterAt(worldSeed, x, z, nTier))) {
-            return poolM - 1;
-        }
-        return hM;
-    }
+    // [P25 D7 残潭退役] neighborBarrier（P22 A1b 潭邻阻挡面）随下方潭置水支路删除而生产
+    // 零消费，兑现删除（历史实现见版本树）；微池/三档的邻水语义不受影响（fillSwampPools
+    // 回填路径本就不经本方法）。
 
     /** 一次写入；返回 1/0 只为统计，不参与任何生成判定（丢弃语义见 {@code BlockSink} 契约）。 */
     private static int accept(BlockSink sink, int x, int y, int z, Block block, int meta) {

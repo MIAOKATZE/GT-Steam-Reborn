@@ -82,7 +82,7 @@ public final class StructureBurialTiers {
      * "四档算数均值精确 1.0 ⇒ 不整体加大起伏"的同一条纪律）。逐张盘的实算窗口与露出比见
      * {@code tools/dim1/P17StructureBiomeVarianceCheck} 的 TIER 组读数。
      */
-    public static final double[] DEPTH_TIER_BY_ROSTER = { 0.30D, 0.15D, 1.00D, 0.05D, 0.05D };
+    public static final double[] DEPTH_TIER_BY_ROSTER = { 0.30D, 0.15D, 1.00D, 0.05D, 0.05D, 0.05D };
 
     /**
      * 默认档（身份不可得 = 该维名册零配槽的 EMPTY 降级态，或未装配 L1 账本的离线 JVM）。

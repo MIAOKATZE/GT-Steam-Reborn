@@ -115,10 +115,37 @@ public class TpdimNearestBiomeCheck {
         check(auth.degraded() == GTSRBiomeAuthority.Degraded.NONE, "d78 前提：degraded 应为 NONE");
         check(auth.isBound(), "d78 前提：应已绑定");
         runLocateTable(auth, "TPDIM78", SurfaceHarness.PROSPERITY_KEYS, SurfaceHarness.PROSPERITY_IDS, SEED_SALT78);
-        // T5/T8 重钉（plan §3.3）：补全名单 = 账本名册（5 元，含 roster-only 的 sanzu）；
-        // 定位主表仍只走 4 家 selector 群系（sanzu 平面由 populate 后置写入，不在链身份面）。
+        // T5/T8 重钉（plan §3.3）：补全名单 = 账本名册（6 元，含 roster-only 的 sanzu/枯竭河床）；
+        // 定位主表仍只走 4 家 selector 群系（两平面由 populate 后置写入，不在链身份面）。
         checkNamesAndParsing(auth, new String[] { "Rusted Steppe", "Gearwork Forest", "Brass Wastes",
-            "Fumarole Swamp", "Sanzu Lake" });
+            "Fumarole Swamp", "Sanzu Lake", "Withered Riverbed" });
+        // P25 新行：第 6 元 WITHERED_RIVERBED 与 SANZU_RIVER 同族——已配槽（rosterBiomeNames 含它）
+        // 但链面（GenLayer 4 家 selector + coarse 环带）结构性解析不到 ⇒ 环带搜索必须 NOT_FOUND、
+        // ordinalAt 采样域必须 0 命中（tpdim 对它的可达路径只能是"平面谓词专属分支"——生产侧
+        // 本轮未加该分支，属设计态：枯竭河床经 /gtsr tpdim 直达不可达，与 sanzu 的 S5 前状态同形）。
+        final NearestBiomeChunk w = auth.nearestBiomeChunk(
+            GTSRBiomeAuthority.BiomeId.WITHERED_RIVERBED,
+            0,
+            0,
+            256,
+            Integer.MAX_VALUE);
+        check(
+            w.biome == null && w.status == GTSRBiomeAuthority.NearestStatus.NOT_FOUND,
+            "d78 WITHERED_RIVERBED 链面结构性不可解析：环带搜索应 NOT_FOUND，实为 " + w);
+        int witheredHits = 0;
+        for (int cz = -32; cz <= 32; cz += 2) {
+            for (int cx = -32; cx <= 32; cx += 2) {
+                final GTSRBiomeAuthority.Resolution v = auth.ordinalAt(cx * 16 + 8, cz * 16 + 8);
+                if (v.resolved() && v.biomeId == GTSRBiomeAuthority.BiomeId.WITHERED_RIVERBED) {
+                    witheredHits++;
+                }
+            }
+        }
+        check(
+            witheredHits == 0,
+            "d78 WITHERED_RIVERBED 链面结构性不可解析：ordinalAt 采样域命中 = " + witheredHits
+                + "（roster-only 成员泄漏进链身份面 = 双写平面外多出第二身份源）");
+        System.out.println("TPDIM78 WITHERED-UNREACHABLE search=" + w.status + " ordinalHits=" + witheredHits);
     }
 
     private static void dim79() {
@@ -318,10 +345,9 @@ public class TpdimNearestBiomeCheck {
         check(
             flat.contains("if(target==GTSRBiomeAuthority.BiomeId.SANZU_RIVER){")
                 && flat.contains("processTpdimSanzuLake(sender,player,targetWorld,dimId,which,rawName);")
-                && flat.contains("GTSRVoronoiRiverField.nearestActiveLakeCenter(")
-                && flat.contains("GTSRVoronoiRiverField.sanzuArrivalColumn(")
+                && flat.contains("GTSRVoronoiRiverField.nearestSanzuArrival(")
                 && flat.contains("GTSRVoronoiRiverField.isSanzuColumn(worldSeed,bx,bz);"),
-            "钉11：sanzu（roster-only）专属湖格分支在场（nearestActiveLakeCenter→sanzuArrivalColumn，"
+            "钉11：sanzu（roster-only）专属安全湖分支在场（nearestSanzuArrival 同时返回湖心+干滩列，"
                 + "就地复核走 isSanzuColumn——ordinalAt 对 roster-only 结构性不可见）");
         check(
             flat.contains("\"tpdimfailed:该维度内未找到该群系'\"+rawName+\"'（已搜半径\""),
@@ -333,9 +359,10 @@ public class TpdimNearestBiomeCheck {
     }
 
     /**
-     * P24-F（v1.20.47）落点契约断言：沿 {@link #nearestLakeEnumerationParity} 同一组
-     * (seed, origin)，直调生产出口 {@code nearestActiveLakeCenter → sanzuArrivalColumn}，
-     * 再以 {@code lakeAt / heightAt / isSanzuColumn} 三个公开谓词复核落点列满足新语义
+     * P24-F（v1.20.47）落点契约断言，P25 S5b 改走安全湖单出口：沿
+     * {@link #nearestLakeEnumerationParity} 同一组 (seed, origin)，直调生产出口
+     * {@code nearestSanzuArrival}（跳过无群系内干滩湖），再以
+     * {@code lakeAt / heightAt / isSanzuColumn} 三个公开谓词复核落点列满足新语义
      * 「滩带内 ∧ 无水格 ∧ 在 sanzu 平面内」：
      * <ul>
      * <li>{@code lakeAt ∈ [LAKE_ISLAND, LAKE_SHORE)}——仍是滩带列（避岛心树干/岛底柱）；</li>
@@ -356,13 +383,9 @@ public class TpdimNearestBiomeCheck {
         for (final long seed : seeds) {
             for (final int[] o : origins) {
                 final int[] out = new int[2];
+                final int[] col = new int[2];
                 if (!com.miaokatze.gtsr.common.dimension.prosperity.river.GTSRVoronoiRiverField
-                    .nearestActiveLakeCenter(seed, o[0], o[1], out)) {
-                    continue;
-                }
-                final int[] col = com.miaokatze.gtsr.common.dimension.prosperity.river.GTSRVoronoiRiverField
-                    .sanzuArrivalColumn(seed, out[0], out[1]);
-                if (col == null) {
+                    .nearestSanzuArrival(seed, o[0], o[1], out, col)) {
                     nullCol++;
                     continue;
                 }
@@ -387,8 +410,8 @@ public class TpdimNearestBiomeCheck {
         System.out.println(
             "TPDIM-SOURCE ARRIVAL-CONTRACT checked=" + checked + " null=" + nullCol + " notBeach=" + notBeach + " wet="
                 + wet + " outOfPlane=" + outOfPlane);
-        check(checked > 0, "钉16a：sanzuArrivalColumn 落点契约样本为空（枚举/射线出口不可达）");
-        check(nullCol == 0, "钉16b：sanzuArrivalColumn 返回 null（8 射线滩带段全未命中）：" + nullCol);
+        check(checked > 0, "钉16a：nearestSanzuArrival 落点契约样本为空（7×7 站窗内无安全干滩湖）");
+        check(nullCol == 0, "钉16b：nearestSanzuArrival 未命中安全干滩湖：" + nullCol);
         check(notBeach == 0, "钉16c：落点不在滩带 lakeAt∈[LAKE_ISLAND, LAKE_SHORE)：" + notBeach);
         check(wet == 0, "钉16d：落点是置水列（heightAt < SEA_LEVEL−1，会落湖水面）：" + wet);
         check(outOfPlane == 0, "钉16e：落点不在 sanzu 平面（isSanzuColumn==false）：" + outOfPlane);
@@ -406,7 +429,7 @@ public class TpdimNearestBiomeCheck {
         final String en = new String(
             java.nio.file.Files.readAllBytes(java.nio.file.Paths.get("src/main/resources/assets/gtsr/lang/en_US.lang")),
             "UTF-8");
-        // 正抽：别名表 put 行（中文 → BiomeId）应恰 9 条
+        // 正抽：别名表 put 行（中文 → BiomeId）应恰 10 条（P25 +枯竭河床）
         final java.util.regex.Matcher m = java.util.regex.Pattern
             .compile("ZH_CN_DISPLAY_NAME_ALIASES\\.put\\(\"([^\"]+)\", BiomeId\\.([A-Z_]+)\\)")
             .matcher(authority);
@@ -414,7 +437,7 @@ public class TpdimNearestBiomeCheck {
         while (m.find()) {
             pairs.add(new String[] { m.group(1), m.group(2) });
         }
-        check(pairs.size() == 9, "钉13a：别名表恰 9 串（实测 " + pairs.size() + "）");
+        check(pairs.size() == 10, "钉13a：别名表恰 10 串（P25 +枯竭河床；实测 " + pairs.size() + "）");
         int roundTripped = 0;
         for (final String[] pair : pairs) {
             // 反抽：lang 文件里应恰有一条 biome.<英文名>.name=<中文>——英文名按 BiomeId 的注册名
@@ -459,12 +482,13 @@ public class TpdimNearestBiomeCheck {
             }
             if (!known) {
                 orphan++;
-                System.out.println("  FAIL 钉13d：zh_CN.lang 值 '" + lzAll.group(2) + "' 不在别名表（9 串外）");
+                System.out.println("  FAIL 钉13d：zh_CN.lang 值 '" + lzAll.group(2) + "' 不在别名表（10 串外）");
             }
         }
         check(
-            zhBiomeLines == 9 && orphan == 0,
-            "钉13d：zh_CN.lang biome 行恰 9 且全部在别名表（实测 行=" + zhBiomeLines + " 孤儿=" + orphan + "）");
+            zhBiomeLines == 10 && orphan == 0,
+            "钉13d：zh_CN.lang biome 行恰 10（P25 +枯竭河床）且全部在别名表（实测 行=" + zhBiomeLines
+                + " 孤儿=" + orphan + "）");
         System.out.println("TPDIM-SOURCE ALIAS-SYNC pairs=" + pairs.size() + " roundTripped=" + roundTripped);
     }
 
@@ -480,10 +504,11 @@ public class TpdimNearestBiomeCheck {
                 seg.contains("populateWaterColumnAt(seed,x,z)")
                     && seg.contains("populateWaterColumnAt(seed,nx,nz)")
                     && seg.contains("GTSRVoronoiRiverField.lakeAt(worldSeed,x,z)")
-                    && seg.contains("GTSRVoronoiRiverField.swampRiverPoolColumnAt(worldSeed,x,z,0)")
+                    // [P25 D7 残潭退役] 原"残潭 O1a 出口"腿（swampRiverPoolColumnAt）已随生产删除：
+                    // 水感知链 = 湖 fillSanzuLakes 同式单腿（残潭置水通道不存在）。
                     && seg.contains("ProsperityTerrainProfile.SEA_LEVEL-1;"),
-                "钉14b：水感知链 = populate 同源谓词（湖 fillSanzuLakes 同式 + 残潭 O1a 出口）+ 螺旋避让"
-                    + "+ 水面 fallback（SEA_LEVEL−1）——形态完整");
+                "钉14b：水感知链 = populate 同源谓词（湖 fillSanzuLakes 同式；P25 D7 残潭腿已退役）"
+                    + "+ 螺旋避让 + 水面 fallback（SEA_LEVEL−1）——形态完整");
             check(
                 !seg.contains("getChunk") && !seg.contains(".getBlock(") && !seg.contains("worldObj")
                     && !seg.contains("getBiomeGenForCoords"),

@@ -40,11 +40,13 @@ import com.miaokatze.gtsr.main.GTSteamReborn;
 public final class ProsperityBiomes {
 
     /**
-     * 本维度名册群系数（首选 id = {@code biomeIdStart + 0..4}；实际 id 由配槽顺延决定）。
+     * 本维度名册群系数（首选 id = {@code biomeIdStart + 0..5}；实际 id 由配槽顺延决定）。
      * v1.20.39 T5 起为 5：第 5 元遗忘之川 {@link BiomeSanzuRiver} 走<b>名册配槽但不挂 def 表</b>
      * （不进 GenLayer 链 selector，plan §3.3），见 {@link #attachSanzuRiver}。
+     * v1.20.48 P25 起为 6：第 6 元枯竭河床 {@link BiomeWitheredRiverbed} 同轨 roster-only
+     * （用户裁定），见 {@link #attachWitheredRiverbed}。
      */
-    private static final int BIOME_SLOT_COUNT = 5;
+    private static final int BIOME_SLOT_COUNT = 6;
 
     /** meta 补写扫描带上界（原版 genBiomeTerrain 的 topBand 从 y=62 起，filler 只会出现在其下方）。 */
     private static final int TOP_BAND_MIN_Y = 62;
@@ -116,6 +118,11 @@ public final class ProsperityBiomes {
         // 顺延上界 254），但<b>只进名册账本不挂 def 群系表</b> ⇒ 不进 GenLayer 链 selector（4 家
         // 等权名册不动）；平面由 populate 后置写入（onPopulate → BiomePlaneAccess）
         registered += attachSanzuRiver(start + 4, maxId, scannedOccupants);
+        // v1.20.48 P25（用户裁定）：第 6 群系枯竭河床——与 sanzu 同一条配槽扫描机制（首选
+        // start+5，默认 185；顺延上界 254），同样<b>只进名册账本不挂 def 群系表</b> ⇒ 不进
+        // GenLayer 链 selector（4 家等权名册不动）；平面由 populate 后置写入
+        // （onPopulate → BiomePlaneAccess，谓词 isDryRiverColumn）
+        registered += attachWitheredRiverbed(start + 5, maxId, scannedOccupants);
         logAllocation(def, start, maxId, registered, scannedOccupants);
     }
 
@@ -161,6 +168,54 @@ public final class ProsperityBiomes {
         GTSRBiomeAuthority.recordAllocation(key, preferredId, actualId, biome);
         GTSteamReborn.LOG.info(
             "[GTSR] prosperity biome SANZU_RIVER allocated {}->{} (roster-only: not in selector/def biome table;"
+                + " plane written post-populate)",
+            preferredId,
+            actualId);
+        return 1;
+    }
+
+    /**
+     * <b>枯竭河床的专用配槽（v1.20.48 P25，用户裁定）</b>：与 {@link #attachSanzuRiver} 完全同构——
+     * 同一条 {@link GTSRBiomeBase#allocate} 扫描（首选 id start+5 默认 185、占用者快照、无槽降级
+     * recordNoSlot 全部同款），同样<b>不调 {@code def.addBiome}</b>（不进 GenLayer 链 selector，
+     * 4 家等权名册不动）；平面由 populate 后置写入（{@code ChunkProviderProsperityRuins.onPopulate}
+     * → {@code BiomePlaneAccess}，谓词 {@code GTSRVoronoiRiverField.isDryRiverColumn}），
+     * 实际落位 id 由本方法的 INFO 行 + 汇总 allocationSummary 记录。
+     *
+     * @return 实际注册数（0 或 1）
+     */
+    private static int attachWitheredRiverbed(int preferredId, int maxId, Map<Integer, String> scannedOccupants) {
+        final BiomeId key = BiomeId.WITHERED_RIVERBED;
+        final int actualId = GTSRBiomeBase.allocate(preferredId, maxId, occupiedId -> {
+            final String owner = GTSRBiomeBase.occupantName(occupiedId);
+            if (occupiedId == preferredId) {
+                GTSRBiomeAuthority.recordPreferredOccupant(key, preferredId, owner);
+                GTSteamReborn.LOG.warn(
+                    "[GTSR] prosperity slot {} already occupied by {} (owner snapshot; {} slides forward)",
+                    preferredId,
+                    owner,
+                    key.name());
+            } else {
+                scannedOccupants.put(occupiedId, owner);
+            }
+        });
+        if (actualId == GTSRBiomeBase.NO_SLOT) {
+            GTSRBiomeAuthority.recordNoSlot(
+                key,
+                preferredId,
+                preferredId <= maxId ? GTSRBiomeBase.occupantName(preferredId) : "out of range");
+            GTSteamReborn.LOG.error(
+                "[GTSR] prosperity biome {} got NO slot in {}..{} (byte-plane ceiling {}) — roster degrades",
+                key.name(),
+                preferredId,
+                maxId,
+                GTSRBiomeBase.HARD_ID_MAX);
+            return 0;
+        }
+        final GTSRBiomeBase biome = new BiomeWitheredRiverbed(actualId);
+        GTSRBiomeAuthority.recordAllocation(key, preferredId, actualId, biome);
+        GTSteamReborn.LOG.info(
+            "[GTSR] prosperity biome WITHERED_RIVERBED allocated {}->{} (roster-only: not in selector/def biome table;"
                 + " plane written post-populate)",
             preferredId,
             actualId);

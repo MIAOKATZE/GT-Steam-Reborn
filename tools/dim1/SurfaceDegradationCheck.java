@@ -187,8 +187,8 @@ public class SurfaceDegradationCheck {
                             if (com.miaokatze.gtsr.common.dimension.prosperity.river.GTSRVoronoiRiverField
                                 .lakeAt(SurfaceHarness.SEED, wx, wz) < com.miaokatze.gtsr.common.dimension
                                     .prosperity.river.GTSRVoronoiRiverField.LAKE_SHORE
-                                || com.miaokatze.gtsr.common.dimension.prosperity.river.GTSRVoronoiRiverField
-                                    .swampRiverPoolColumnAt(SurfaceHarness.SEED, wx, wz, 0)
+                                // [P25 D7 残潭退役] 原"|| swampRiverPoolColumnAt(SEED,wx,wz,0)"腿已删：
+                                // 残潭场随生产 D7 整体退役，本谓词零消费（登记见 RVF 类顶已删成员段）。
                                 || com.miaokatze.gtsr.common.dimension.prosperity.ProsperityTerrainProfile
                                     .heightAt(SurfaceHarness.SEED, wx, wz)
                                     < com.miaokatze.gtsr.common.dimension.prosperity.ProsperityTerrainProfile.SEA_LEVEL) {

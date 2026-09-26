@@ -137,8 +137,9 @@ public class DiagLineCheck {
         check(line.contains("roster=" + S8RegistryRosterCheck.EXPECTED_TOTAL),
             "A roster 列应为 " + S8RegistryRosterCheck.EXPECTED_TOTAL + "（P0 基线 + 废墟族 + 跨片巨构族）: "
                 + line);
-        // T5/T8 重钉（plan §3.3）：账本口径 5 元——sanzu 配槽入账后诊断行 allocated=5/5。
-        check(line.contains("allocated=5/5"), "A allocated 列错: " + line);
+        // T5/T8 重钉（plan §3.3）：账本口径 5 元——sanzu 配槽入账后诊断行 allocated=5/5；
+        // P25（v1.20.48 第 6 群系枯竭河床，roster-only 同 sanzu 轨）：账本口径 6 元 ⇒ allocated=6/6。
+        check(line.contains("allocated=6/6"), "A allocated 列错: " + line);
         // 正常态不得出现"权重被吞"锚点（NONE 零介入，与表层门同一纪律）
         check(!GTSRChunkProviderBase.logCreatureWeightAbsorbedOnce(
             GTSRBiomeAuthority.forDimKey(GTSRBiomeAuthority.DIM_KEY_PROSPERITY)),

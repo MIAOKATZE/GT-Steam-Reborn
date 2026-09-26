@@ -908,9 +908,9 @@ public class P17TerrainReliefCheck {
                         && hv < ProsperityTerrainProfile.SEA_LEVEL) {
                         fixed[i] = Math.max(fixed[i], ProsperityTerrainProfile.SEA_LEVEL - 1);
                     }
-                    if (tier == 3 && GTSRVoronoiRiverField.swampRiverPoolAt(seed, x, z, 3) > 0.0D) {
-                        fixed[i] = Math.max(fixed[i], p + GTSRVoronoiRiverField.SWAMP_RIVER_POOL_FILL_TOP);
-                    }
+                    // [P25 D7 残潭退役] 原"残潭 fixed 腿"（swampRiverPoolAt>0 ⇒ fixed = p +
+                    // SWAMP_RIVER_POOL_FILL_TOP）已删：残潭场随生产 D7 整体退役，本重算面零消费
+                    // （生产 SwampFieldGrid 的同腿同批摘除，见 ChunkProviderProsperityRuins 构建体登记）。
                 }
             }
             // —— pass 2：区域场不动点（区域 {0,1}²，+64 环恰为数组内边距；与 SwampFieldGrid 同构）——
@@ -1255,10 +1255,10 @@ public class P17TerrainReliefCheck {
         check(command.contains("populateWaterColumnAt(seed, x, z)")
             && command.contains("populateWaterColumnAt(seed, nx, nz)")
             && command.contains("GTSRVoronoiRiverField.lakeAt(worldSeed, x, z)")
-            && command.contains("GTSRVoronoiRiverField.swampRiverPoolColumnAt(")
+            // [P25 D7 残潭退役] 原残潭腿（swampRiverPoolColumnAt）已随生产删除：水感知 = 湖单腿。
             && command.contains("ProsperityTerrainProfile.SEA_LEVEL - 1"),
-            "REDLINE 指令水感知层 = populate 同源谓词（湖/残潭走 RVF 公开出口，零第二份水判定）"
-                + "+ 水面 fallback（SEA_LEVEL−1，站水面）——P23 S5 新口径");
+            "REDLINE 指令水感知层 = populate 同源谓词（湖走 RVF 公开出口，零第二份水判定；"
+                + "P25 D7 残潭腿已退役）+ 水面 fallback（SEA_LEVEL−1，站水面）——P23 S5 口径的 P25 修订");
         check(occurrences(profile, "RELIEF_MULT * amplitude") == 1,
             "REDLINE 高度公式在 Profile 内只有一份表达式（实测 " + occurrences(profile, "RELIEF_MULT * amplitude")
                 + " 处）⇒ 群系振幅只能经档表进这一份");

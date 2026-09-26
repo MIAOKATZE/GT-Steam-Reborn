@@ -19,6 +19,9 @@ import gregtech.api.enums.Materials;
  * <li>起雾沼泽 fumaroleSwamp → UmbralMire 至暗泥泞</li>
  * <li>遗忘之川 sanzuRiver（v1.20.39 T5，plan §3.4 第五气）→ SanzuResidualSteam 三途余汽
  * （产出 800 L×并行档与四气同构，{@code MTEAirCompressor} 的 dim78 分支天然覆盖）</li>
+ * <li>枯竭河床 witheredRiverbed（v1.20.48 P25 第七气，用户裁定）→ WitheredBreath 枯竭气息
+ * （产出与四气同构，{@code MTEAirCompressor} 的 dim78 分支同样天然覆盖；身份判定走
+ * {@code GTSRVoronoiRiverField.isDryRiverColumn}（D6），与 sanzu 支的 isSanzuColumn 互斥）</li>
  * </ul>
  * <b>第五气的身份判定（T5 落位）</b>：sanzu 是 populate 后置写入平面的第 5 群系，链身份面
  * （{@link GTSRBiomeAuthority#ordinalAt} 的 Source=GenLayer 链 4 家 selector）<b>永远解析不到它</b>
@@ -61,6 +64,17 @@ public final class ProsperityAirLookup {
             .biomeOf(BiomeId.SANZU_RIVER) != null && GTSRVoronoiRiverField.isSanzuColumn(world.getSeed(), x, z)) {
             key = BiomeId.SANZU_RIVER;
         }
+        // ═══ P25 第七气判定（v1.20.48 用户裁定）：枯竭河床同样是 populate 后置写入平面的
+        // roster-only 群系，链身份面结构性解析不到 ⇒ 与 sanzu 支同构改判 D6 谓词
+        // isDryRiverColumn（与平面写入同一谓词，无第二真值）；未配槽时账本无实例 ⇒
+        // 平面永不写它 ⇒ 不得配出枯竭气息。次序：本支必须排在 sanzu 支之后——
+        // isDryRiverColumn 冻结接口内含 !isSanzuColumn ⇒ sanzu 命中列在本支恒 false，
+        // 两支互斥、无覆盖竞争（sanzu 优先级由谓词内含保证，不靠分支顺序之外的东西）。═══
+        if (key != BiomeId.WITHERED_RIVERBED && GTSRBiomeAuthority.forDimKey(GTSRBiomeAuthority.DIM_KEY_PROSPERITY)
+            .biomeOf(BiomeId.WITHERED_RIVERBED) != null
+            && GTSRVoronoiRiverField.isDryRiverColumn(world.getSeed(), x, z)) {
+            key = BiomeId.WITHERED_RIVERBED;
+        }
         switch (key) {
             case RUSTED_STEPPE: {
                 return GTSRProsperityAirMaterials.WastesSigh;
@@ -76,6 +90,9 @@ public final class ProsperityAirLookup {
             }
             case SANZU_RIVER: {
                 return GTSRProsperityAirMaterials.SanzuResidualSteam;
+            }
+            case WITHERED_RIVERBED: {
+                return GTSRProsperityAirMaterials.WitheredBreath;
             }
             default: {
                 return null; // dim79 名册成员或未知身份不得配出繁荣气
