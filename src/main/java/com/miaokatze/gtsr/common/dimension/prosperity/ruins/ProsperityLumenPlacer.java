@@ -59,13 +59,13 @@ public final class ProsperityLumenPlacer {
     public static final long SALT_LUMEN = 0x4C554D4EL;
 
     /**
-     * 冠下密度：每个候选列（冠 footprint 内有冠形态格的列，含垂帘列）的 1/N 抽样分母。候选列 ≈
-     * π·(r²+r) ≈ 13069（P26-B5 半径 64 档）⇒ 单树期望 ≈ 21 枚光点（13069/622），摊到
-     * windowChunks(64)=17 方窗 289 chunk ⇒ 每 chunk 均值 ≈ 0.072（与 r50/533 旧档实测面密度
-     * 逐位同档——保的是<b>每 chunk 观感密度</b>而非单树枚数）。判据只钉带，不钉本值
-     * （实机校准旋钮 = 本常量，调它不动盐）。
+     * 冠下密度：每个候选列（冠 footprint 内有冠形态格的列，含垂帘列）的 1/N 抽样分母。<b>P27 分叉顶冠
+     * 重钉</b>：椭球壳退役后候选列 = 末级叶团/叶串/垂帘列的并集，30 湖实测 ≈ [5471,6341]/树（均值
+     * ≈6018——旧壳档 9877 缩至 ~61%）⇒ 单树期望 ≈ 14 枚（6018/420），摊到 windowChunks(64)=17
+     * 方窗 289 chunk ⇒ 每 chunk 均值 ≈ 0.050（判据 A 带下界 0.04 的 +24% 余量）。判据只钉带，
+     * 不钉本值（实机校准旋钮 = 本常量，调它不动盐）。
      */
-    static final int CANOPY_LIGHT_DENOM = 622;
+    static final int CANOPY_LIGHT_DENOM = 420;
 
     /**
      * 湖上密度：每个合格水列的 1/N 抽样分母。<b>S3 过渡态</b>：冠下档升至 533 后本值暂小于
@@ -98,7 +98,7 @@ public final class ProsperityLumenPlacer {
         if (trunkH < 0) {
             return 0;
         }
-        final int cy = y0 + trunkH - IslandMegaTree.CROWN_CENTER_INSET;
+        final int cy = IslandMegaTree.crownCenterY(y0, trunkH);
         final Random lumenRand = new Random(GTSRWorldgenHash.chunkSeed(worldSeed, ax >> 4, az >> 4) ^ SALT_LUMEN);
         final int r = MegaTreeAnchors.CANOPY_RADIUS;
         final int side = IslandMegaTree.CROWN_QUERY_SIDE;

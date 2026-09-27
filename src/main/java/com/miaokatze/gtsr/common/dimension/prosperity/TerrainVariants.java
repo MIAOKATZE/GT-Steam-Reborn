@@ -507,6 +507,59 @@ public final class TerrainVariants {
     /** 盆地按门加深档（满门最深 −9）。 */
     private static final double STEPPE_BASIN_SPAN = 4.0D;
 
+    // —— 草原深芯/缎带沟（v1.20.50 P27 批次A-A3 G 片新增：盆内深芯第二档 + ridged 负像沟；级联互斥）——
+    /**
+     * 深芯场域盐（波长 {@link #STEPPE_BASIN_CORE_SCALE}=89；89 % 16 = 9 ✔ H-1）。盐续 ×0x12 等差族
+     * （盆地 {@code 0x6811C3AD} 之后 +0x12×2 ⇒ 本值；+0x12 的 {@code 0x6811C3BF} 归灌木林域，
+     * +0x12×3 的 {@code 0x6811C3D1} 归沼泽分型域——P27 §0 D7 盐表钉死）。
+     */
+    private static final long S_STEPPE_BASIN_CORE = 0x6811C3E3L;
+    /**
+     * 深芯场波长（λ89 芯径 ~20-40 格 ≈ 碗径 40-70 的 1/3-1/2——"碗中碗"嵌套尺度）。
+     * 深度层级对沼泽深潭 8-14 <b>水</b>：干碗要出同等戏剧感需再深一档 ⇒ 合成 −9..−16 <b>干</b>
+     * （干盆维持：类契约"只做地形不置水" + populate 无草原回填路径，零改动自动成立）。
+     */
+    private static final double STEPPE_BASIN_CORE_SCALE = 89.0D;
+    /**
+     * 深芯负瓣门下檐/带宽（{@code s01((−n−0.62)/0.20)}：满门 n ≤ −0.82、缓入到 n ≤ −0.62）。
+     * any 门估 4-7% ⇒ 芯∩盆 ≈ 0.3-0.5% 草原列 ≈ 每 3-8 个盆地一个深芯。
+     */
+    private static final double STEPPE_BASIN_CORE_GATE_LO = 0.62D;
+    private static final double STEPPE_BASIN_CORE_GATE_SPAN = 0.20D;
+    /** 深芯基础下挖（{@code −(4.0+3.0·门)·门×basinGate} 合成下沿：盆 −5..−9 叠芯 ⇒ −9..−16）。 */
+    private static final double STEPPE_BASIN_CORE_BASE = 4.0D;
+    /** 深芯按门加深档（满门最深 −16，唯一超 −9 的单臂；y=40 地板余量 14-16 格）。 */
+    private static final double STEPPE_BASIN_CORE_SPAN = 3.0D;
+    /**
+     * 缎带沟场域盐（波长 {@link #STEPPE_GULLY_SCALE}=73；73 % 16 = 9 ✔ H-1）。盐续 ×0x12 等差族
+     * （深芯 {@code 0x6811C3E3} 之后 +0x12 ⇒ 本值；+0x12×2 的 {@code 0x6811C407} 归沼泽缓坡床纹）。
+     * <b>v1.20.50 P27 G 片 redirect：波长 λ57 → λ73，域盐不变</b>（主代理裁决，见下）。
+     */
+    private static final long S_STEPPE_GULLY = 0x6811C3F5L;
+    /**
+     * 沟场波长：<b>线状沟 = 场的等值线（n≈c），不是门阈 blob</b>——负瓣门阈是团块，"沟"必须
+     * ridged 形 {@code 1−|n|} 沿 n≈0 等值线取窄带（岭脊 λ188/延绵脊 λ433 的负像）。<b>v1.20.50
+     * P27 G 片 redirect（主代理裁决）：λ57 → λ73 收窄</b>——初版 λ57 实测沟带覆盖 17.99%
+     * （{@code plan/tmp/p27-g-readings.md} §redirect），观感偏密；用户语义"小小的凹陷小峡谷"
+     * = 点缀性 ⇒ 覆盖按线密度 ~(57/73)² ≈ 0.61 收窄至预期 ~11%。λ73 而非 GULLY_GATE_LO 加严：
+     * 73 % 16 = 9 ✔ H-1，且门参数不动 = 沟形机制不变（满带 |n|≤0.10 半宽语义、深度 −4..−6.5、
+     * 侧壁露石带全保持——门加严会同时压窄沟宽与露石，裁决选波长不选门）。λ73 满带空间宽
+     * ~6-10 格（λ 线性放大 5-8 × 73/57）；等值线自然蛇行（曲率尺度 ~2λ≈146 格），被丘陵域
+     * 截断成 30-80 格段——"小小"的长度控制不引入新噪声（复用已求值 gateS 作存在域）。
+     */
+    private static final double STEPPE_GULLY_SCALE = 73.0D;
+    /**
+     * 沟门下檐/带宽（{@code s01((1−|n|−0.78)/0.12)}：满带 |n| ≤ 0.10、缓入到 |n| ≤ 0.22）。
+     * 深 6.5 落在半宽 2-3 格上 ⇒ 侧壁 Δh 3-6/2-3 列 ⇒ 石带 1-3 格、只在两壁窄带出露
+     * （"只裸露一点石头"由 {@link #STEPPE_GULLY_SPAN} 单参数控制；沟底仍铺土——表层状态机涌现）。
+     */
+    private static final double STEPPE_GULLY_GATE_LO = 0.78D;
+    private static final double STEPPE_GULLY_GATE_SPAN = 0.12D;
+    /** 沟基础下挖（{@code −(4.0+2.5·门)·门} ⇒ 深 −4..−6.5）。 */
+    private static final double STEPPE_GULLY_BASE = 4.0D;
+    /** 沟按门加深档（满门最深 −6.5）。 */
+    private static final double STEPPE_GULLY_SPAN = 2.5D;
+
     // —— 沼泽/遗忘之川（ATG swamp 模板；三档水体分支的地形侧 = v1.20.41 P20 S4）——
     /** 夹持门噪声域盐（波长 256）。 */
     private static final long S_SWAMP_CLAMP = 0x6811C29DL;
@@ -563,6 +616,80 @@ public final class TerrainVariants {
     private static final double SWAMP_DEEP_BASE = 8.0D;
     /** 深水池按门加深档（满门下挖 −14 ⇒ 水深 8–14）。 */
     private static final double SWAMP_DEEP_SPAN = 6.0D;
+    // —— v1.20.50 P27 批次B-B1 S 片：潭型分型域（软域门双瓣）+ 缓坡床纹 + 瀑域加密（ue-swamp §2-A/§4-H/§3-b'）——
+    /**
+     * 潭型<b>分型域</b>盐（波长 {@link #SWAMP_POOLTYPE_SCALE}=157；157 % 16 = 13 ✔ H-1）。盐续
+     * ×0x12 等差族：深芯 {@code 0x6811C3E3} / 沟 {@code 0x6811C3F5}（均 G 片）之后，本值占
+     * {@code 0x6811C3D1}、缓坡床纹占 {@code 0x6811C407}——主裁决 §0 D7 盐表钉死（沼泽分型域 /
+     * 草原深芯 / 草原沟 / 沼泽缓坡床纹四值不推翻）。<b>单场双瓣软域门</b>（SWAMP_NET λ151 先例）：
+     * 正瓣 {@code s01((n−LO)/SPAN)} = 瀑布潭域 tyF（实测覆盖 0-23%/seed），负瓣同式 = 缓坡潭域
+     * tyG（实测 2-32%/seed），中带 = 现状陡潭。双瓣带外门值精确 0.0 ⇒ 全部下游写成 ty 乘子式
+     * （域外 IEEE 逐位不变，digest 对拍圈爆炸半径）。
+     */
+    private static final long S_SWAMP_POOLTYPE = 0x6811C3D1L;
+    /** 分型域波长（域径实测 blob 对角线 117-559 格——大片沼泽（单片 ≥4 万格）含数十个分型域， 混型是统计保证）。 */
+    private static final double SWAMP_POOLTYPE_SCALE = 157.0D;
+    /** 分型门下檐/带宽（双瓣同式：正瓣 {@code s01((n−LO)/SPAN)}、负瓣 {@code s01((−n−LO)/SPAN)}）。 */
+    private static final double POOLTYPE_GATE_LO = 0.45D;
+    private static final double POOLTYPE_GATE_SPAN = 0.20D;
+    /**
+     * 缓坡潭<b>床纹</b>盐（波长 {@link #SWAMP_DEEP_GENTLE_BED}=353；353 % 16 = 1 ✔ H-1）。
+     * λ71 门带全宽空间尺度 ~5.3 格，物理不可能 1:3 缓坡（ue-swamp §1 C2）；λ353 带宽 ~26 格 ⇒
+     * 上缘前半 ~13 格 <b>1:3.5 可走</b>、近潭心 1:1.5 陡碗心——"上缓下陡"碗 = "缓坡走到深潭旁"。
+     * 域内门值级混合（{@code g_eff=(1−ty)·g_陡+ty·g_缓}），ty=0 短路跳过本床纹求值（域外零新噪声）。
+     */
+    private static final long S_SWAMP_DEEP_GENTLE = 0x6811C407L;
+    private static final double SWAMP_DEEP_GENTLE_BED = 353.0D;
+    /**
+     * 缓坡潭门带宽（LO 沿用 {@link #SWAMP_DEEP_GATE_LO}=0.68 不动：档线切换深
+     * {@code depth(0.5)=(B+S/2)/2}=3.75 vs 邻列 ≤1.9 ⇒ 台阶 ~1.85 格 = 可走跳档，ue-swamp §1 C1；
+     * DEEP&gt;MARSH&gt;POOL 三档互斥与 §21-D 断言零触碰）。
+     */
+    private static final double GENTLE_GATE_SPAN = 0.30D;
+    /** 缓坡潭基础下挖（{@code (3+9·g)·g} ⇒ 档线 3.75、满门 12——比陡潭浅 2 格的碗）。 */
+    private static final double GENTLE_BASE = 3.0D;
+    /** 缓坡潭按门加深档（满门最深 −12）。 */
+    private static final double GENTLE_SPAN = 9.0D;
+    /**
+     * <b>b' 瀑域加密</b>（ue-swamp §3-b' 参数腿；触发依据 = 实现前探针瀑面密度
+     * <b>0 面/域 &lt; 0.3</b>，{@code temp/p27-s/probe.out} PROBE2）：瀑布域内陡门带宽
+     * {@code /(1+本值·tyF)}（tyF=1 ⇒ 0.16/1.6=0.10 ⇒ 门中阈 n ≥ 0.73，DEEP 覆盖
+     * 2.776%→2.855%，探针 PROBE4）。域外 tyF=0 ⇒ 除数 1.0 ⇒ IEEE 逐位不变。
+     * <p>
+     * <b>v1.20.50 P27 S 片 §redirect2 实测：仅带宽收紧不够</b>——λ71 床纹在 ~140² 的
+     * fall∩沼泽斑内只含 2-3 个独立格（{@code temp/p27-s/r2.out} R2H/R2C：4 个沼泽 seed 中
+     * 3 个的域内深门噪声 n 全 &lt; 0.6 ⇒ DEEP∩fall = 0，期望数百）⇒ 域内有潭仍是抽签。
+     * 叠加 {@link #SWAMP_DEEP_FALL_GATE_DROP} 后域内门中阈降到 ~0.63（覆盖 ~10%）
+     * ⇒ 每个含湿 fall 斑结构上含潭，转换趟（潭面钳低 ⇒ 潭缘段差 ≥2）普遍触发。
+     */
+    private static final double SWAMP_DEEP_FALL_BOOST = 0.6D;
+    /**
+     * <b>b' 第二腿：瀑域内深门下檐整体下移</b>（v1.20.50 P27 S 片 §redirect2 新增； tyF 乘子式：
+     * 门式 {@code s01((n − LO + 本值·tyF)/(SPAN/(1+BOOST·tyF)))}，域外 tyF=0 ⇒ IEEE 逐位 = 旧式）。
+     * 满门 tyF=1 ⇒ 门中阈 0.68 − 0.10 + 0.05 = <b>0.63</b>（P(n≥0.63) ≈ 10%，R2C 噪声分布实测）
+     * ⇒ 域内 DEEP 覆盖 ~10%、全域 share 预演 ~3.3%（现带 [1.5,5.5]% 内，判据侧 VARIANT-READ
+     * 行读数随动）。与潭面钳低（CPR {@code SWAMP_FALL_POOL_FLOOR}）配套：先有潭，才有瀑。
+     */
+    private static final double SWAMP_DEEP_FALL_GATE_DROP = 0.10D;
+    /**
+     * <b>b' 第三腿：瀑域潭存在性</b>（v1.20.50 P27 S 片 §redirect2 新增）——瀑域内深门向
+     * <b>表面池床纹</b>（{@link #S_SWAMP_POOL} λ48，{@link #SWG_POOL} 槽首行已求值 ⇒ 零新求值）
+     * 做<b>门值级混合</b>：{@code g_eff = (1−tyF)·g_陡 + tyF·poolGate}（写法 = 缓坡域混合同款）。
+     * 选场依据（r2d/r2e.out 实测）：λ157/λ61/λ71 在 ~112² 的 fall∩沼泽斑内都只有 4-9 个独立
+     * 格点 ⇒ "斑内有潭"是斑级抽签（seed1：域内 m≥0.55 = 0/12676 列，期望 ~1270）；λ48 一斑
+     * ~16 格点 ⇒ P(整斑无 ≥ 门中阈格点) ≈ 0.6%——潭存在性从抽签变结构保证（潭径 25-50 格）。
+     * 份额预演：域内 DEEP ≈ P(poolGate ≥ 0.5) ≈ 20%、全域 share ≈ 2.9% + fc(~12%)×18% ≈ 5%
+     * （带 [1.5,5.5]% 上沿内；POOL 档让出域内高瓣 ⇒ ~16%（带 [10.5,28.5]% 内）；MARSH 不动）。
+     * tyF=0 短路 ⇒ 域外逐位不变。
+     */
+    /**
+     * <b>瀑域潭心选择阈</b>（v1.20.50 P27 S 片 §redirect2）：潭面钳低只作用于深门值 ≥ 本值的
+     * <b>潭心</b>列（{@link #swampFallPoolCoreAt} 单一出口）——潭缘环（0.5 ≤ 门值 &lt; 本值）保留
+     * 原池水位作转换趟<b>高侧</b>。实测潭缘外微池/湿带列多为非湿（湿列 ≈ DEEP 档，r2.out R2H
+     * 湿pl ≈ DEEPpl）⇒ 高侧只能来自潭自身的缘环；门值分层 ⇒ 每潭"缘环高水位—潭心低水位"
+     * 贴面对（drop 2 = 一档池阶梯），瀑面在潭内结构上成立（v1.20.40-45 dropColumn 同构造）。
+     */
+    private static final double SWAMP_FALL_CORE_GATE = 0.70D;
     /** 水沼地（半淹档）场域盐（波长 {@link #SWAMP_MARSH_SCALE}）。 */
     private static final long S_SWAMP_MARSH = 0x6811C32FL;
     /** 水沼地波长（61 % 16 = 13 ✔；与 {@code SWAMP_POOL_INTERVAL}=220 的微池水网正交）。 */
@@ -667,11 +794,22 @@ public final class TerrainVariants {
      * 的 delta 侧（地形侧真值）都读这一个槽 ⇒ 两侧不可能各写一遍门比较而漂移。
      */
     private static final int SWG_TIER = 5;
-    private static final int SWG_COUNT = 6;
+    /**
+     * 槽位：<b>瀑布潭域门</b>（v1.20.50 P27 批次B-B1 S 片；λ157 正瓣 tyF，b' 瀑域加密与
+     * SwampFieldGrid 转换趟的域条件——消费面经 {@link #swampFallDomainAt} 单一出口）。
+     */
+    private static final int SWG_TYF = 6;
+    /**
+     * 槽位：<b>缓坡潭域门</b>（v1.20.50 P27 批次B-B1 S 片；λ157 负瓣 tyG，深水池门值级混合
+     * 与 depth 参数同型混合的域权——消费面经 {@link #swampGentleDomainAt} 单一出口）。
+     */
+    private static final int SWG_TYG = 7;
+    private static final int SWG_COUNT = 8;
     /**
      * 沼泽门值的线程私有 scratch（<b>零分配</b>：本类每列都会被调，delta 组合与分档判定共用一份，
      * 免得两处各算一遍形成"同式复算"的第二真值）。纪律同 {@link #VAR_CELL_CACHE}：线程私有、
-     * 就地取用、不跨列持有。最后一槽 {@link #SWG_TIER} 承载单点分流出的档位（P20 §21-D）。
+     * 就地取用、不跨列持有。{@link #SWG_TIER} 槽承载单点分流出的档位（P20 §21-D）；
+     * {@link #SWG_TYF}/{@link #SWG_TYG} 承载潭型分型域门值（P27 S 片）。
      */
     private static final ThreadLocal<double[]> SWAMP_GATE_SCRATCH = ThreadLocal
         .withInitial(() -> new double[SWG_COUNT]);
@@ -790,15 +928,39 @@ public final class TerrainVariants {
                     .valueNoise(worldSeed ^ S_STEPPE_BASIN, x / STEPPE_BASIN_SCALE, z / STEPPE_BASIN_SCALE);
                 final double basinGate = s01((-bn - STEPPE_BASIN_GATE_LO) / STEPPE_BASIN_GATE_SPAN);
                 delta += w[0] * (-(STEPPE_BASIN_BASE + STEPPE_BASIN_SPAN * basinGate) * basinGate);
+                // —— 盆内深芯第二档（v1.20.50 P27 G 片：碗中碗，只放大既有碗）——
+                // 式 = 盆地同款"外侧乘门"软门，再乘 basinGate ⇒ 芯只在碗内下挖（域外 IEEE 精确 −0.0，
+                // 逐位不改变 delta；与低地/谷地同款纪律）。芯缘 Δh 7 落在 λ89 缓入 ~8-15 格上 ⇒
+                // 芯缘出 1-2 格窄石带——"深=露石"的语义自洽（侧壁露石是表层状态机涌现，非直写层）。
+                final double cn = GTSRWorldgenHash.valueNoise(
+                    worldSeed ^ S_STEPPE_BASIN_CORE,
+                    x / STEPPE_BASIN_CORE_SCALE,
+                    z / STEPPE_BASIN_CORE_SCALE);
+                final double coreGate = s01((-cn - STEPPE_BASIN_CORE_GATE_LO) / STEPPE_BASIN_CORE_GATE_SPAN);
+                delta += w[0] * (-(STEPPE_BASIN_CORE_BASE + STEPPE_BASIN_CORE_SPAN * coreGate) * coreGate * basinGate);
+                // —— 缎带沟（v1.20.50 P27 G 片：λ73 ridged 负像（redirect 由 λ57 收窄），切平地、避碗避丘）——
+                // ridged 形 1−|n| 沿 n≈0 等值线取窄带（线状沟，非门阈 blob）；互斥全用<b>已求值</b>门
+                // 相乘（零新求值）：×(1−basinGate) 防沟切碗（合成 −15+ 怪坑）、×(1−gateS) 复用丘陵门
+                // （:781 已求值）作存在域 ⇒ 沟只切平坦草原、被丘陵域截断成短段。带外 s01=0 ⇒
+                // gullyGate 精确 +0.0 ⇒ 本支路贡献 −0.0，域外逐位不改变 delta。
+                final double gn = GTSRWorldgenHash
+                    .valueNoise(worldSeed ^ S_STEPPE_GULLY, x / STEPPE_GULLY_SCALE, z / STEPPE_GULLY_SCALE);
+                final double gullyGate = s01((1.0D - Math.abs(gn) - STEPPE_GULLY_GATE_LO) / STEPPE_GULLY_GATE_SPAN)
+                    * (1.0D - basinGate)
+                    * (1.0D - gateS);
+                delta += w[0] * (-(STEPPE_GULLY_BASE + STEPPE_GULLY_SPAN * gullyGate) * gullyGate);
                 // —— 低地支路（v1.20.41 需求 6：半空间折叠只取负瓣 + 覆盖门；与丘陵同域叠加）——
                 // 折叠式与沙丘 (d−|d|)/2 同款：d≥0 ⇒ 精确 0 ⇒ 该支路在门带外逐位不改变 delta。
                 // P26-B4 ⑪：低地门乘 (1−盆地带)（域外 ×1.0 逐位不变）——盆地与低地不叠加（最坏
                 // 合成下挖 ≤ −9 = 盆地满门单臂，防两项相加 −15 吃 y=40 地板预算；C0 连续，无硬环）。
+                // P27 G 片：乘式加长 ×(1−gullyGate)（沟带外 gullyGate=+0.0 ⇒ ×1.0 IEEE 逐位不变）——
+                // 沟与低地不相加 ⇒ 三负臂互斥、单臂最坏 = max(−16 深芯, −6.5 沟, −6 低地)。
                 final double dl = GTSRWorldgenHash
                     .valueNoise(worldSeed ^ S_STEPPE_LOW, x / STEPPE_LOW_SCALE, z / STEPPE_LOW_SCALE);
                 final double lowFold = (dl - Math.abs(dl)) * 0.5D; // ∈ [−0.5, 0]
                 final double lowShape = Math.min(1.0D, -2.0D * lowFold); // 形状 0..1（d≤−0.5 取满）
-                final double lowGate = s01((-dl - STEPPE_LOW_GATE_LO) / STEPPE_LOW_GATE_SPAN) * (1.0D - basinGate);
+                final double lowGate = s01((-dl - STEPPE_LOW_GATE_LO) / STEPPE_LOW_GATE_SPAN) * (1.0D - basinGate)
+                    * (1.0D - gullyGate);
                 delta += w[0] * (-(STEPPE_LOW_BASE + STEPPE_LOW_SPAN * lowShape) * lowGate);
             }
             if (w[1] > 0.0D) {
@@ -905,8 +1067,13 @@ public final class TerrainVariants {
                 final int tier = (int) g[SWG_TIER];
                 final double water;
                 if (tier == SWAMP_TIER_DEEP) {
-                    // ② 深水池：−(5.0 + 4.0·门) ⇒ 水深 5–9（与表面池 1–2 留 4 格分水岭）
-                    water = (SWAMP_DEEP_BASE + SWAMP_DEEP_SPAN * g[SWG_DEEP]) * g[SWG_DEEP];
+                    // ② 深水池：−(8.0 + 6.0·门) ⇒ 水深 8–14（与表面池 1–2 留 4 格分水岭）。
+                    // P27 S 片：缓坡域 depth 参数<b>同型混合</b>（ty=0 ⇒ base/span 还原 8.0/6.0
+                    // 逐位——8·1+3·0=8、6·1+9·0=6，IEEE 精确）；门 g[SWG_DEEP] 已是混合后的 g_eff。
+                    final double tyG = g[SWG_TYG];
+                    final double deepBase = SWAMP_DEEP_BASE * (1.0D - tyG) + GENTLE_BASE * tyG;
+                    final double deepSpan = SWAMP_DEEP_SPAN * (1.0D - tyG) + GENTLE_SPAN * tyG;
+                    water = (deepBase + deepSpan * g[SWG_DEEP]) * g[SWG_DEEP];
                 } else if (tier == SWAMP_TIER_MARSH) {
                     // ③ 水沼地：−(0.5 + 1.0·门) ⇒ 半淹（0–1 层）
                     water = (SWAMP_MARSH_BASE + SWAMP_MARSH_SPAN * g[SWG_MARSH]) * g[SWG_MARSH];
@@ -1141,10 +1308,59 @@ public final class TerrainVariants {
     }
 
     /**
-     * 沼泽支路的五项门值 <b>+ 水体档位</b>（<b>单一真值</b>：{@link #variantAdjustment} 的下挖 delta 与
+     * 沼泽<b>瀑布潭域</b>谓词（v1.20.50 P27 批次B-B1 S 片新增）：读 {@link #swampGates} 的
+     * {@link #SWG_TYF} 槽（λ157 正瓣软门，单一真值），门值 ≥ {@link #TIER_MIN} 才算瀑布域列
+     * （域边界无特殊处理：转换只看高侧列自身阈值化门，不产生"半转换"水柱）；
+     * roster≠3 恒 false。消费面：{@code ChunkProviderProsperityRuins.SwampFieldGrid} 的
+     * nominal→fixed 转换趟（双潭落差）取本谓词为高侧域条件（①）。<b>纯函数</b>；
+     * 返回的是线程私有 scratch 的即时读数（就地取用）。
+     */
+    public static boolean swampFallDomainAt(long worldSeed, int x, int z, int rosterIndex) {
+        if (rosterIndex != SWAMP_ROSTER) {
+            return false;
+        }
+        return swampGates(worldSeed, x, z, true)[SWG_TYF] >= TIER_MIN;
+    }
+
+    /**
+     * 沼泽<b>缓坡潭域</b>谓词（v1.20.50 P27 批次B-B1 S 片新增）：读 {@link #swampGates} 的
+     * {@link #SWG_TYG} 槽（λ157 负瓣软门，与 {@link #swampFallDomainAt} 同场双瓣、空间互斥），
+     * 门值 ≥ {@link #TIER_MIN} 才算缓坡域列；roster≠3 恒 false。地形侧消费在
+     * {@link #variantAdjustment}/{@link #swampGates} 内部（门值级混合，不经本布尔出口）；
+     * 本谓词留给 decorate 侧后续"潭边差异化"腿的单一真值（P27 未接线，先占位公开）。<b>纯函数</b>。
+     */
+    public static boolean swampGentleDomainAt(long worldSeed, int x, int z, int rosterIndex) {
+        if (rosterIndex != SWAMP_ROSTER) {
+            return false;
+        }
+        return swampGates(worldSeed, x, z, true)[SWG_TYG] >= TIER_MIN;
+    }
+
+    /**
+     * 沼泽<b>瀑布潭潭心</b>谓词（v1.20.50 P27 S 片 §redirect2 新增）：读 {@link #swampGates} 的
+     * {@link #SWG_TIER}（=DEEP）/ {@link #SWG_TYF}（≥{@link #TIER_MIN}，瀑布域列）/
+     * {@link #SWG_DEEP}（≥{@link #SWAMP_FALL_CORE_GATE}，潭心）三槽——潭面钳低（CPR
+     * {@code SwampFieldGrid} 的 {@code min(pl−DROP, FLOOR)}）只作用本谓词为真的列；潭缘环
+     * （门值 [0.5, 0.70)）保留原水位作转换趟高侧。三槽全部复用 swampGates 单一真值
+     * （无第二份门比较；三档互斥分流出口仍是 SWG_TIER 那一遍）。roster≠3 恒 false。<b>纯函数</b>；
+     * 返回线程私有 scratch 的即时读数（就地取用）。
+     */
+    public static boolean swampFallPoolCoreAt(long worldSeed, int x, int z, int rosterIndex) {
+        if (rosterIndex != SWAMP_ROSTER) {
+            return false;
+        }
+        final double[] g = swampGates(worldSeed, x, z, true);
+        return (int) g[SWG_TIER] == SWAMP_TIER_DEEP && g[SWG_TYF] >= TIER_MIN && g[SWG_DEEP] >= SWAMP_FALL_CORE_GATE;
+    }
+
+    /**
+     * 沼泽支路的<b>七项门值</b>（五项形态门 + 潭型分型双瓣域门，v1.20.50 P27 批次B-B1 S 片）
+     * <b>+ 水体档位</b>（<b>单一真值</b>：{@link #variantAdjustment} 的下挖 delta 与
      * {@link #swampTierAt} 的分档判定同取本方法，P20 §13 C7 的地形/回填两侧契约）。
      * 槽位见 {@link #SWG_POOL}/{@link #SWG_DEEP}/{@link #SWG_MARSH}/{@link #SWG_HUMMOCK}/
-     * {@link #SWG_CHAR}/{@link #SWG_TIER}；门值全部 {@link #s01} 带通 ⇒ 带外精确 0.0（全软门纪律）。
+     * {@link #SWG_CHAR}/{@link #SWG_TIER}/{@link #SWG_TYF}/{@link #SWG_TYG}；门值全部 {@link #s01}
+     * 带通 ⇒ 带外精确 0.0（全软门纪律）。{@link #SWG_DEEP} 槽在 P27 S 片后存的是
+     * <b>混合后 g_eff</b>（b' 瀑域加密 × 缓坡域门值级混合；双瓣全关列上逐位 = 旧陡门值）。
      * <p>
      * <b>单点分流（P20 §21-D）</b>：三档水体的 {@code ≥ TIER_MIN} 比较<b>只在本方法末尾写这一遍</b>，
      * 结果落在 {@link #SWG_TIER}；delta 侧与 {@link #swampTierAt} 都读该槽 ⇒ "本列被挖到哪一档深"
@@ -1166,12 +1382,46 @@ public final class TerrainVariants {
             g[SWG_MARSH] = 0.0D;
             g[SWG_HUMMOCK] = 0.0D;
             g[SWG_CHAR] = 0.0D;
+            g[SWG_TYF] = 0.0D;
+            g[SWG_TYG] = 0.0D;
             g[SWG_TIER] = SWAMP_TIER_NONE;
             return g;
         }
-        g[SWG_DEEP] = s01(
+        // ═══ v1.20.50 P27 批次B-B1 S 片：潭型分型域（λ157 双瓣软域门，+1 求值/沼泽列）═══
+        // 正瓣 tyF = 瀑布潭域、负瓣 tyG = 缓坡潭域（炭屑滩复用水沼地负瓣的零额外求值先例）；
+        // 带外精确 0.0 ⇒ 下游全部 ty 乘子式在域外 IEEE 逐位不变（digest 对拍口径）。
+        final double tyN = GTSRWorldgenHash
+            .valueNoise(worldSeed ^ S_SWAMP_POOLTYPE, x / SWAMP_POOLTYPE_SCALE, z / SWAMP_POOLTYPE_SCALE);
+        g[SWG_TYF] = s01((tyN - POOLTYPE_GATE_LO) / POOLTYPE_GATE_SPAN);
+        final double tyG = s01((-tyN - POOLTYPE_GATE_LO) / POOLTYPE_GATE_SPAN);
+        g[SWG_TYG] = tyG;
+        // 深水池门：b' 瀑域加密（带宽 /(1+BOOST·tyF) + 下檐 −GATE_DROP·tyF，§redirect2 双腿；
+        // tyF=0 ⇒ 两乘子退 1.0/0.0 ⇒ 域外 IEEE 逐位不变）……
+        double deepGate = s01(
             (GTSRWorldgenHash.valueNoise(worldSeed ^ S_SWAMP_DEEP, x / S_SWAMP_DEEP_BED, z / S_SWAMP_DEEP_BED)
-                - SWAMP_DEEP_GATE_LO) / SWAMP_DEEP_GATE_SPAN);
+                - SWAMP_DEEP_GATE_LO
+                + SWAMP_DEEP_FALL_GATE_DROP * g[SWG_TYF])
+                / (SWAMP_DEEP_GATE_SPAN / (1.0D + SWAMP_DEEP_FALL_BOOST * g[SWG_TYF])));
+        // ……叠缓坡域<b>门值级混合</b> g_eff=(1−ty)·g_陡+ty·g_缓（ue-swamp §4-H 关键写法：
+        // ty=0 短路跳过 λ353 求值 ⇒ 域外零新噪声且 g_eff 逐位 = g_陡；SWG_TIER 仍只比 g_eff ≥
+        // TIER_MIN 这一遍——单点分流结构不动，三档互斥与 §21-D 断言保持）。
+        if (tyG != 0.0D) {
+            final double gentleGate = s01(
+                (GTSRWorldgenHash
+                    .valueNoise(worldSeed ^ S_SWAMP_DEEP_GENTLE, x / SWAMP_DEEP_GENTLE_BED, z / SWAMP_DEEP_GENTLE_BED)
+                    - SWAMP_DEEP_GATE_LO) / GENTLE_GATE_SPAN);
+            deepGate = (1.0D - tyG) * deepGate + tyG * gentleGate;
+        }
+        // ═══ v1.20.50 P27 S 片 §redirect2：瀑域潭存在性腿（门值级混合，写法同缓坡先例）═══
+        // 实测 λ71/λ61 高区都会整斑错过 fall∩沼泽（r2d/r2e.out：seed1 域内 m≥0.55 = 0/12676 列，
+        // 期望 ~1270；λ157/λ61/λ71 均为 ~4-9 格点/斑的小样本 ⇒ 斑级抽签）⇒ 潭存在性改由
+        // <b>表面池床纹 λ48</b>（{@link #SWG_POOL} 槽，swampGates 首行已求值 ⇒ 零新求值/零重排）
+        // 承载：48 格波长 ⇒ 一斑 ~16 格点 ⇒ P(整斑无 ≥0.335 格点) ≈ 0.6%（抽签失效兜底）。
+        // tyF=0 短路 ⇒ 域外 g_eff 逐位 = 旧式。
+        if (g[SWG_TYF] != 0.0D) {
+            deepGate = (1.0D - g[SWG_TYF]) * deepGate + g[SWG_TYF] * g[SWG_POOL];
+        }
+        g[SWG_DEEP] = deepGate;
         final double mn = GTSRWorldgenHash
             .valueNoise(worldSeed ^ S_SWAMP_MARSH, x / SWAMP_MARSH_SCALE, z / SWAMP_MARSH_SCALE);
         g[SWG_MARSH] = s01((mn - SWAMP_MARSH_GATE_LO) / SWAMP_MARSH_GATE_SPAN);

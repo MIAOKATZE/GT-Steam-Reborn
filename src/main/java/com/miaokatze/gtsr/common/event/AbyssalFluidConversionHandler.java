@@ -100,10 +100,16 @@ public final class AbyssalFluidConversionHandler {
         final int x = offset(target.blockX, target.sideHit, 2, 3);
         final int y = offset(target.blockY, target.sideHit, 0, 1);
         final int z = offset(target.blockZ, target.sideHit, 4, 5);
+        // P27 D6 原版水桶下方判定：仅原版水桶且目标格正下方为 air 时本分支不接管——条件不成立
+        // 即不 setBlock / 不置 ALLOW（方法自然返回），回落原版 tryPlaceContainedLiquid 放原版水；
+        // 下方水/草（非 air）维持转化；自有执念桶（abyssalBucket）不受此门（首肢短路跳过下方查询）。
+        // y=0 时 y-1=-1 越界，World.getBlock 返 Blocks.air 且其 isAir=真（World.java:381 界外肢 +
+        // Block.java:1622 材料判定）⇒ 天然归"无方块"，同走原版回落。
         // 可置性对位 tryPlaceContainedLiquid（ItemBucket.java:185-191）：目标格须 air 或非 solid
-        if (world.isAirBlock(x, y, z) || !world.getBlock(x, y, z)
-            .getMaterial()
-            .isSolid()) {
+        if ((current.getItem() != Items.water_bucket || !world.isAirBlock(x, y - 1, z))
+            && (world.isAirBlock(x, y, z) || !world.getBlock(x, y, z)
+                .getMaterial()
+                .isSolid())) {
             if (!world.isRemote && playerCanEdit(event, target)) {
                 // flags=3 对位原版 tryPlaceContainedLiquid（ItemBucket.java:210 setBlock(...,0,3)）
                 world.setBlock(x, y, z, BlocksGTSR.abyssalFluid, 0, 3);

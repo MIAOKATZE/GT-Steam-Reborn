@@ -191,6 +191,11 @@ public class P17TerrainReliefCheck {
      * 触钳列 = <b>947</b>（= 0.010034% 样本，全部为 y=40 地板"恰好触边"——高度域实测 [0,172]，
      * 上沿 0 触），旧 943 预算被盆地+谷地负瓣的合法触边顶破 4 列（首演同读数）；重钉取读数
      * ×1.195 裕量，"截平即红"抓力不变（真截平会爆到千列级）。读数见 {@code plan/tmp/p26-b4-readings.md}。
+     * <p>
+     * <b>v1.20.50 P27 批次A-A3 G 片复核（草原深芯/缎带沟落地后，阈值不动）</b>：同口径实测触钳制列 =
+     * <b>947</b>（与 P26-B4 读数逐值相同——深芯最深 −16 列的 h0 ∈ ~[61,79] ⇒ 合成最低 ~45 &gt; 40，沟
+     * −6.5 同理 ⇒ 两新臂在 RELIEF 窗（去河/湖列）零新增地板触边；新读数 ×1.195 = 1131.7 ≤ clampMax
+     * 1132，0.00012 带保持，无需重钉）。读数见 {@code plan/tmp/p27-g-readings.md}。
      */
     private static final double CLAMP_RATIO_MAX = 0.00012D;
     /**
@@ -273,12 +278,72 @@ public class P17TerrainReliefCheck {
      * 盆地单列最大下挖（格）：机制满门深度 {@code −(5.0+4.0·门)·门} 的最深 −9 + 0.5 取整容差
      * ⇒ {@code delta ≥ −9.5}。语义 = "盆地不得超挖"（低地×(1−盆地带) 单点分流 ⇒ 两臂最坏合成
      * ≤ 盆地满门单臂 −9，超挖即红）。
+     * <p>
+     * <b>v1.20.50 P27 批次A-A3 G 片重钉 9.5 → 16.5（旧带原文保留在上一段）</b>：盆内新增<b>深芯第二档</b>
+     * （{@code TerrainVariants} λ89 负瓣门 {@code −(4.0+3.0·芯门)·芯门×basinGate}，盐 0x6811C3E3）⇒
+     * 机制满门最深 = 盆 −9 叠芯 −7 = <b>−16</b>（干碗，比沼泽深潭 8-14 水再深一档；域外 IEEE 精确 −0.0
+     * 由 digest 对拍证明，见 {@code plan/tmp/p27-g-readings.md}）。批内实测盆地带内最深 = <b>−16.00</b>
+     * ⇒ −16 + 0.5 取整容差 ⇒ 16.5。超挖语义不变（加深直通 y=40 地板预算，与 CLAMP_RATIO_MAX 互为犄角）。
      */
-    private static final double STEPPE_BASIN_DIG_MAX = 9.5D;
+    private static final double STEPPE_BASIN_DIG_MAX = 16.5D;
     /** 盆地场域盐的字面复算（= TerrainVariants.S_STEPPE_BASIN；判据侧只读镜像）。 */
     private static final long A4_S_STEPPE_BASIN = 0x6811C3ADL;
     /** 盆地场波长的字面复算（= TerrainVariants.STEPPE_BASIN_SCALE）。 */
     private static final double A4_STEPPE_BASIN_SCALE = 167.0D;
+    // ═══ v1.20.50 P27 批次A-A3 G 片：草原深芯/缎带沟的字面镜像（盐/波长；门带字面在 variantGroup 内联，
+    //     javadoc 引生产常量名——A4_S_STEPPE_BASIN 先例同款纪律）═══
+    /** 深芯场域盐/波长的字面复算（= TerrainVariants.S_STEPPE_BASIN_CORE / STEPPE_BASIN_CORE_SCALE）。 */
+    private static final long A4_S_STEPPE_BASIN_CORE = 0x6811C3E3L;
+    private static final double A4_STEPPE_BASIN_CORE_SCALE = 89.0D;
+    /** 缎带沟场域盐/波长的字面复算（= TerrainVariants.S_STEPPE_GULLY / STEPPE_GULLY_SCALE；
+     * v1.20.50 P27 G 片 redirect 后 = λ73，域盐不变）。 */
+    private static final long A4_S_STEPPE_GULLY = 0x6811C3F5L;
+    private static final double A4_STEPPE_GULLY_SCALE = 73.0D;
+    /** 丘陵门盐的字面复算（= TerrainVariants.S_HILL_GATE，λ320；沟存在域 gateS 因子用）。 */
+    private static final long A4_S_HILL_GATE = 0x6811C21DL;
+    /**
+     * 缎带沟净下挖覆盖带：沟带内（{@code gullyGate>0 且盆地带外}，纯域口径防缓入环混账）
+     * {@code delta ≤ −4} 的列占比（分母 = roster0 全采样列，与 STEPPE_BASIN_SHARE_BAND 同口径）。
+     * <p>
+     * <b>v1.20.50 P27 G 片 redirect 重钉</b>：主代理裁决 λ57 → λ73（域盐不动、门参数不动）后实测
+     * （同窗 16 seed × 1024² 步距 4、h0=70 旁路；归因口径 = 快照+仅 G 版 TerrainVariants 树，
+     * {@code temp/p27-g/P17TerrainReliefCheck-gonly.out}；与合并树读数逐字相同——VARIANT 组
+     * delta 不受 L/T/W 片影响）＝ <b>18.5121%</b>（带内列 68216）⇒ [M×0.6, M×1.6] 0.1pp 网格
+     * ⇒ <b>[11.1%, 29.6%]</b>（旧带 [10.8, 28.8] 由 λ57 M=17.9941% 反解，重钉前对照见
+     * {@code plan/tmp/p27-g-readings.md} §redirect）。
+     * <p>
+     * <b>redirect 结果披露（重要）</b>：裁决预期覆盖降至 ~11%（按 (57/73)²≈0.61 折算）<b>未成立</b>
+     * ——等值线带的<b>面积占比与 λ 无关</b>：满带空间宽 ~c·λ 与单位面积等值线长 ~1/λ 相消，
+     * λ 只改段数/间距（(57/73)² 压的是"沟条数"）不压面积；实测 17.9941% → 18.5121%（+0.52pp =
+     * 与盆地/丘陵存在域门的相关结构漂移）。λ57 时代的披露仍有效：ue-steppe §4 预估 1.5-2.5%
+     * 偏小一个量级（漏了 d≤−4 只需沟门 ≥0.70 即 |n|≤0.136、三角边际 P≈25%）。<b>面积口径上
+     * 唯一有效的收窄旋钮是 GULLY_GATE_LO 加严</b>（0.78→0.88 ⇒ 计深带 |n|≤0.136 收到 ~|n|≤0.05），
+     * 观感裁决与后续旋钮归主代理（本片只执行波长 redirect + 重钉）。
+     * 带两端语义：下界 = "沟作为分支形态存在"（ridged 门塌掉即红）；上界 = "草原不被沟网吞掉"。
+     */
+    private static final double STEPPE_GULLY_SHARE_MIN = 0.111D;
+    private static final double STEPPE_GULLY_SHARE_MAX = 0.296D;
+    /**
+     * 缎带沟单列最大下挖（格）：机制满门深度 {@code −(4.0+2.5·门)·门}（生产
+     * {@code TerrainVariants.STEPPE_GULLY_BASE/SPAN}）最深 <b>−6.5</b> + 0.5 取整容差 ⇒ 7.0。
+     * 沟带（纯域口径）内低地臂已乘 (1−gullyGate) ⇒ 两负臂不相加（合成上确界 6.5 在 g=1 处、
+     * 低地同时归零）。<b>v1.20.50 P27 G 片 redirect 复核：实测 −6.00 → −7.00</b>（λ73 带重定位后
+     * 命中一条名册核混合列：纯 w0=1 带内列解析上界 −6.5 且 Math.round(70−6.5)=64 ⇒ 读数 ≥ −6，
+     * −7.00 只能来自 w1 谷地（−10 按权混入）或 w3 沼泽池臂的名册边界列——判据口径不按名册纯度
+     * 过滤，先例同款）。−7.00 ≥ −7.0 <b>等值贴边通过</b>：机制上界未破、但批C 复跑若命中更深的
+     * 边界混列即红——贴边风险登记 {@code plan/tmp/p27-g-readings.md} §redirect。语义 = "沟不得
+     * 超挖"（与 CLAMP_RATIO_MAX 预算带互为犄角）。
+     */
+    private static final double STEPPE_GULLY_DIG_MAX = 7.0D;
+    /**
+     * 深芯净下挖覆盖带（可选芯带，A4 族规）：芯∩盆列（{@code coreGate>0 且 basinGate>0}——生产
+     * 深芯臂 ×basinGate 只在此域非零）内 {@code delta ≤ −10} 的列占比（分母同上 = roster0 全采样列）。
+     * 实测 = <b>0.1474%</b>（芯∩盆列 1183 = 0.5115%，与 ue-steppe §1b 预估"芯∩盆 ≈ 0.3-0.5%"相符）
+     * ⇒ [M×0.6, M×1.6]（M 量级 0.1pp，0.1pp 网格太粗 ⇒ 0.01pp 网格）⇒ <b>[0.08%, 0.24%]</b>。
+     * 下界 = "深芯作为第二档存在"（芯门塌掉即红）；上界 = "深碗不普遍化"（那是 1a 整体加深的形态）。
+     */
+    private static final double STEPPE_CORE_SHARE_MIN = 0.0008D;
+    private static final double STEPPE_CORE_SHARE_MAX = 0.0024D;
 
     /** smoothstep 带通（判据侧镜像用，与 TerrainVariants.s01 同式）。 */
     private static double a4S01(double t) {
@@ -390,6 +455,12 @@ public class P17TerrainReliefCheck {
      * （床纹 λ37→λ71、门带 [0.62,0.14]→[0.68,0.16]）后同口径实测约 3.2%（16 seed × 1024² 步距 4，
      * h0=70 旁路；批内实跑读数见 {@code plan/tmp/p26-b4-readings.md}，取带规则不变
      * [M×0.6, M×1.6] 0.5pp 网格）。NONE/POOL/MARSH 三行读数在原带内不动。
+     * <p>
+     * <b>v1.20.50 P27 批次B-B1 S 片复核：四行均不动</b>——潭型分型域（λ157 双瓣）+ 缓坡域门值级
+     * 混合（λ353）+ b' 瀑域加密落地后，实现前探针预演（同口径 16 seed × 1024² 步距 4，字面镜像
+     * 新门，{@code temp/p27-s/probe.out} PROBE4）：DEEP 3.198% → <b>2.776%</b>（缓坡混合）/
+     * <b>2.855%</b>（叠 b'），均在 [1.5,5.5] 带内；NONE 67.24→~67.5%、POOL 18.27→18.36%、
+     * MARSH 11.29→11.33% 同在原带。带不动 ⇒ 无重钉；批内实跑读数以本文件 VARIANT-READ 行为准。
      */
     /** 沼泽三档各档样本数下限（§5 S4 判据 2 的字面阈"各 ≥30 样本"；实测最小档 DEEP = 16459 ⇒ 裕量三个数量级）。 */
     private static final long SWAMP_TIER_SAMPLE_MIN = 30L;
@@ -406,6 +477,19 @@ public class P17TerrainReliefCheck {
     private static final int A3_FMAR = 64;
     /** §21-D 净下挖复跑：夹持门域盐的字面复算（= TerrainVariants.S_SWAMP_CLAMP，p20-s4b 探针同款）。 */
     private static final long A3_S_SWAMP_CLAMP = 0x6811C29DL;
+    /**
+     * 瀑布潭转换段差的字面复算（= {@code ChunkProviderProsperityRuins.SWAMP_FALL_POOL_DROP}=2；
+     * v1.20.50 P27 批次B-B1 S 片；判据侧只读镜像，A4 盐/波长镜像先例同款）。
+     */
+    private static final int A3_FALL_POOL_DROP = 2;
+    /**
+     * <b>v1.20.50 P27 S 片 §redirect2 字面镜像</b>：生产
+     * {@code ChunkProviderProsperityRuins.SWAMP_FALL_POOL_FLOOR}（fall 域内 DEEP 潭池水位钳低：
+     * {@code min(pRaw − A3_FALL_POOL_DROP, 本值)}，65/67 段潭面 62、63 段潭面 60）。pass1 逐列
+     * 复刻钳低（判据侧只读复算，{@link #A3_S_SWAMP_CLAMP} 先例）——漏改=假绿纪律项
+     * （pass2 转换趟的段差判据读本表）。
+     */
+    private static final int A3_FALL_POOL_FLOOR = 63;
 
     /** 沼泽水体档位名（下标 = {@code TerrainVariants.SWAMP_TIER_*} 的 int 值）。 */
     private static final String[] TIER_NAME = { "NONE", "POOL", "DEEP", "MARSH" };
@@ -763,6 +847,13 @@ public class P17TerrainReliefCheck {
         long basinCols = 0; // 盆地带内列（P26-B4 ⑪）
         long basinLe5 = 0;
         double basinMin = 0;
+        // —— P27 G 片草原深芯/缎带沟计数（镜像门同生产式，见下方门值复算处注释）——
+        long gullyCols = 0; // 沟带内列（gullyGate>0 且盆地带外——低地单臂同款"纯域"口径）
+        long gullyLe4 = 0;
+        double gullyMin = 0;
+        long gullyLe5Mixed = 0; // 沟带内 d≤−5（只报不钉：低地单臂剥离沟带前的旧口径读数锚）
+        long coreCols = 0; // 芯∩盆列（coreGate>0 且 basinGate>0——生产深芯臂只在此域非零）
+        long coreLe10 = 0;
         long wasteCols = 0;
         long wasteGe12 = 0;
         // —— A4 森林谷地负瓣（v1.20.42）：净下挖覆盖 + 最深下挖（与 FOREST_VALLEY_* 常量同口径）——
@@ -799,6 +890,20 @@ public class P17TerrainReliefCheck {
                         final double bn = GTSRWorldgenHash
                             .valueNoise(worldSeed ^ A4_S_STEPPE_BASIN, x / A4_STEPPE_BASIN_SCALE, z / A4_STEPPE_BASIN_SCALE);
                         final double basinGate = a4S01((-bn - 0.60D) / 0.22D);
+                        // P27 G 片：深芯/沟门镜像（判据侧只读复算）。门带字面 = 生产
+                        // TerrainVariants.STEPPE_BASIN_CORE_GATE_LO/SPAN（0.62/0.20）与
+                        // STEPPE_GULLY_GATE_LO/SPAN（0.78/0.12）；沟存在域因子 (1−basinGate)(1−gateS)
+                        // 与生产同式（gateS 镜像 = 生产 s01((gh−0.20)/0.30)，gh=λ320 S_HILL_GATE）。
+                        final double cn = GTSRWorldgenHash.valueNoise(
+                            worldSeed ^ A4_S_STEPPE_BASIN_CORE, x / A4_STEPPE_BASIN_CORE_SCALE, z / A4_STEPPE_BASIN_CORE_SCALE);
+                        final double coreGate = a4S01((-cn - 0.62D) / 0.20D);
+                        final double gn = GTSRWorldgenHash.valueNoise(
+                            worldSeed ^ A4_S_STEPPE_GULLY, x / A4_STEPPE_GULLY_SCALE, z / A4_STEPPE_GULLY_SCALE);
+                        final double ghM = GTSRWorldgenHash
+                            .valueNoise(worldSeed ^ A4_S_HILL_GATE, x / 320.0D, z / 320.0D);
+                        final double gateSM = a4S01((ghM - 0.20D) / 0.30D);
+                        final double gullyGate = a4S01((1.0D - Math.abs(gn) - 0.78D) / 0.12D)
+                            * (1.0D - basinGate) * (1.0D - gateSM);
                         if (d <= -STEPPE_LOW_CUT_LEGACY) {
                             steppeLe3++;
                         }
@@ -809,6 +914,10 @@ public class P17TerrainReliefCheck {
                             steppeLe5All++;
                             if (basinGate > 0.0D) {
                                 basinLe5++;
+                            } else if (gullyGate > 0.0D) {
+                                // P27 G 片：低地单臂计量剥离沟带（与 P26-B4 ⑪ 剥离盆地同款"换被量的量
+                                // 不换带"——沟臂 −4..−6.5 的 d≤−5 列不归属低地；剥离前混计读数另行打印）。
+                                gullyLe5Mixed++;
                             } else {
                                 steppeLe5++;
                             }
@@ -817,6 +926,24 @@ public class P17TerrainReliefCheck {
                             basinCols++;
                             if (d < basinMin) {
                                 basinMin = d;
+                            }
+                        }
+                        // P27 G 片计数：沟带 = gullyGate>0 且盆地带外（纯域口径，防 basinGate∈(0,1)
+                        // 缓入环上盆地臂 −8 与沟臂部分共存把"沟最深"读数推过 −7 的机制混账）；
+                        // 芯带 = coreGate>0 且 basinGate>0（生产深芯臂 ×basinGate，只在此域非零）。
+                        if (gullyGate > 0.0D && basinGate == 0.0D) {
+                            gullyCols++;
+                            if (d <= -4.0D) {
+                                gullyLe4++;
+                            }
+                            if (d < gullyMin) {
+                                gullyMin = d;
+                            }
+                        }
+                        if (coreGate > 0.0D && basinGate > 0.0D) {
+                            coreCols++;
+                            if (d <= -10.0D) {
+                                coreLe10++;
                             }
                         }
                     } else if (tier == 1) {
@@ -846,14 +973,19 @@ public class P17TerrainReliefCheck {
         final double basinShare = basinLe5 / (double) steppeCols;
         System.out.printf("  VARIANT %dseed×%d²方块(步距%d，h0=%d 旁路对照)：采样列=%d 形态 |delta| 最大=%.1f%n",
             VARIANT_SEEDS, VARIANT_SIDE, VARIANT_STRIDE, VARIANT_H0, totalCols, worstDelta);
-        System.out.printf("  VARIANT-READ 草原(roster0) 列=%d ｜ 现行阈 delta≤−%.0f（低地单臂=盆地带外）占比=%.4f%%"
-            + " ｜ 含盆地合计=%.4f%%（只报不钉）｜ 旧阈"
+        System.out.printf("  VARIANT-READ 草原(roster0) 列=%d ｜ 现行阈 delta≤−%.0f（低地单臂=盆/沟带外，P27 G 片起）占比=%.4f%%"
+            + " ｜ 沟带内混计=%.4f%%（只报不钉，剥离前口径锚）｜ 含盆地合计=%.4f%%（只报不钉）｜ 旧阈"
             + " delta≤−%.0f 占比=%.4f%%（只报不钉）｜ 满门 delta≤−6 占比=%.4f%%（G6 自陈 ≈12%% 的对账锚）%n",
-            steppeCols, STEPPE_LOW_CUT, lowShare * 100, steppeLe5All / (double) steppeCols * 100,
+            steppeCols, STEPPE_LOW_CUT, lowShare * 100, gullyLe5Mixed / (double) steppeCols * 100,
+            steppeLe5All / (double) steppeCols * 100,
             STEPPE_LOW_CUT_LEGACY,
             steppeLe3 / (double) steppeCols * 100, steppeLe6 / (double) steppeCols * 100);
         System.out.printf("  VARIANT-READ 草原盆地（P26-B4 ⑪）带内列=%d ｜ 净下挖 delta≤−5 占比=%.4f%% ｜ 最深=%.2f%n",
             basinCols, basinShare * 100, basinMin);
+        System.out.printf("  VARIANT-READ 草原缎带沟（P27 G 片）带内列=%d ｜ 净下挖 delta≤−4 占比=%.4f%% ｜ 最深=%.2f%n",
+            gullyCols, gullyLe4 / (double) steppeCols * 100, gullyMin);
+        System.out.printf("  VARIANT-READ 草原深芯（P27 G 片）芯∩盆列=%d ｜ 净下挖 delta≤−10 占比=%.4f%%%n",
+            coreCols, coreLe10 / (double) steppeCols * 100);
         System.out.printf("  VARIANT-READ 荒漠(roster2) 列=%d ｜ delta≥%.0f 占比=%.4f%%（风蚀山体）%n", wasteCols,
             BRYCE_DELTA_MIN, bryceShare * 100);
         System.out.printf("  VARIANT-READ 森林(roster1) 列=%d ｜ 净下挖 delta≤−4 占比=%.4f%%（谷地负瓣）｜"
@@ -869,14 +1001,15 @@ public class P17TerrainReliefCheck {
             + "的净测，档↔delta 同列成对计数）：" + tb.toString().trim());
         check(steppeCols >= 10000 && lowShare >= STEPPE_LOW_SHARE_MIN && lowShare <= STEPPE_LOW_SHARE_MAX,
             "VARIANT 草原低地覆盖（<b>满门深度口径 delta ≤ −" + (int) STEPPE_LOW_CUT + "，P26-B4 ⑪ 起 = 低地单臂"
-                + "（盆地带外）</b>）占比 " + fmt1(lowShare)
+                + "（盆地带外），<b>P27 G 片起再剥离沟带（盆/沟带外）</b></b>）占比 " + fmt1(lowShare)
                 + " ∈ [" + STEPPE_LOW_SHARE_MIN + "," + STEPPE_LOW_SHARE_MAX + "]（§5 S4 判据 4 的带容器原值，"
                 + "<b>换的是被量的量不是带</b>：§21-E 裁定旧 ≤−" + (int) STEPPE_LOW_CUT_LEGACY + " 口径把整个缓入环"
                 + "计进低地（该口径本片仍打印 = " + fmt1(steppeLe3 / (double) steppeCols) + "，只报不钉，原文与"
                 + "废止理由见 STEPPE_LOW_CUT_LEGACY 注释）；满门 delta≤−6 读数 = " + fmt1(steppeLe6 / (double) steppeCols)
-                + " 与 TerrainVariants 低地门自陈 ≈12% 相互印证。P26-B4 ⑪ 把盆地下挖从本计量剥离到"
-                + " STEPPE_BASIN_SHARE_BAND（低地单臂读数 = 门值×(1−盆地带) 后的形态侧净值）。"
-                + "<b>禁止</b>为凑带削低地深度（那是生产侧））");
+                + " 与 TerrainVariants 低地门自陈 ≈12% 相互印证。P26-B4 ⑪ 把盆地下挖剥离到"
+                + " STEPPE_BASIN_SHARE_BAND；P27 G 片把缎带沟（−4..−6.5）同款剥离到 STEPPE_GULLY_SHARE_BAND"
+                + "（沟带内混计读数 = " + fmt1(gullyLe5Mixed / (double) steppeCols) + " 只报不钉）——低地单臂始终量"
+                + " \"低地作为唯一负臂\"的净值。<b>禁止</b>为凑带削低地深度（那是生产侧））");
         // —— P26-B4 ⑪ 草原小盆地两条（负瓣封闭碗形；实测 M 读数按 [M×0.6,M×1.6] 0.1pp 网格反解）——
         check(steppeCols >= 10000 && basinShare >= STEPPE_BASIN_SHARE_MIN
             && basinShare <= STEPPE_BASIN_SHARE_MAX,
@@ -885,8 +1018,30 @@ public class P17TerrainReliefCheck {
                 + "下界=盆地形态存在（负瓣门塌掉即红），上界=草原不被盆地吞掉；与低地单臂带互斥分账）");
         check(basinMin >= -STEPPE_BASIN_DIG_MAX,
             "VARIANT 草原小盆地不超挖：盆地带内净 delta 最深 " + fmt1(basinMin) + " ≥ −" + STEPPE_BASIN_DIG_MAX
-                + "（机制满门最深 −9 + 0.5 取整容差；加深吃 y=40 地板预算，超挖即红——与 CLAMP_RATIO_MAX"
-                + " 预算带互为犄角）");
+                + "（机制满门最深 −16（v1.20.50 P27 G 片深芯第二档：盆 −9 叠芯 −7）+ 0.5 取整容差；加深吃"
+                + " y=40 地板预算，超挖即红——与 CLAMP_RATIO_MAX 预算带互为犄角）");
+        // —— P27 G 片草原缎带沟两条 + 深芯一条（λ73 ridged 负像（redirect 由 λ57 收窄）/ λ89 盆内深芯；实测 M 反解带）——
+        final double gullyShare = gullyLe4 / (double) steppeCols;
+        final double coreShare = coreLe10 / (double) steppeCols;
+        check(steppeCols >= 10000 && gullyShare >= STEPPE_GULLY_SHARE_MIN
+            && gullyShare <= STEPPE_GULLY_SHARE_MAX,
+            "VARIANT 草原缎带沟净下挖覆盖：沟带内（gullyGate>0 且盆地带外）delta ≤ −4 的列占比 "
+                + fmt1(gullyShare) + " ∈ [" + STEPPE_GULLY_SHARE_MIN + "," + STEPPE_GULLY_SHARE_MAX
+                + "]（v1.20.50 P27 G 片新增 λ57 ridged 负像、redirect 后 λ73；实测 M=18.5121%（λ57 旧值 17.9941%）"
+                + "按 [M×0.6,M×1.6] 0.1pp 网格反解——面积占比与 λ 无关（带宽 ~cλ × 线密度 ~1/λ 相消）的披露见常量注释；"
+                + "下界=沟形态存在（ridged 门塌掉"
+                + "即红），上界=草原不被沟网吞掉；与低地单臂带互斥分账）");
+        check(gullyMin >= -STEPPE_GULLY_DIG_MAX,
+            "VARIANT 草原缎带沟不超挖：沟带内净 delta 最深 " + fmt1(gullyMin) + " ≥ −" + STEPPE_GULLY_DIG_MAX
+                + "（机制满门最深 −6.5 + 0.5 取整容差；沟带纯域口径下低地臂已乘 (1−gullyGate) 两负臂不相加，"
+                + "超挖即红——与 CLAMP_RATIO_MAX 预算带互为犄角）");
+        check(steppeCols >= 10000 && coreShare >= STEPPE_CORE_SHARE_MIN
+            && coreShare <= STEPPE_CORE_SHARE_MAX,
+            "VARIANT 草原深芯净下挖覆盖：芯∩盆列（coreGate>0 且 basinGate>0）delta ≤ −10 的列占比 "
+                + fmt1(coreShare) + " ∈ [" + STEPPE_CORE_SHARE_MIN + "," + STEPPE_CORE_SHARE_MAX
+                + "]（v1.20.50 P27 G 片盆内深芯第二档；实测 M=0.1474%（芯∩盆 0.5115%）按 [M×0.6,M×1.6]"
+                + " 0.01pp 网格反解；下界=深芯作为第二档存在（芯门塌掉即红，ue-steppe §6 推翻条件 <0.15% 按"
+                + " 芯∩盆覆盖口径未触发），上界=深碗不普遍化（普遍加深是 1a 方案的形态，已否决））");
         check(wasteCols >= 10000 && bryceShare >= BRYCE_SHARE_MIN && bryceShare <= BRYCE_SHARE_MAX,
             "VARIANT 风蚀山体存在性：roster2 内 delta ≥ " + (int) BRYCE_DELTA_MIN + " 的列占比 " + fmt1(bryceShare)
                 + " ∈ [" + BRYCE_SHARE_MIN + "," + BRYCE_SHARE_MAX + "]（§5 S4 判据 3 的字面带"
@@ -932,7 +1087,10 @@ public class P17TerrainReliefCheck {
      * {@code ChunkProviderProsperityRuins.fillSwampPools} 的 A3 终态语义：边缘门（swampInteriorAt，
      * 本文件按 N=16/R=4 字面复算）+ 区域场 N8 不动点钳制（区域 256 对齐 + 环 64，与
      * {@code SwampFieldGrid} 逐行同构——低地排干链是池尺度，per-chunk 窗口追不上，见 A3 片
-     * {@code plan/tmp/p22-a3/PROGRESS.md} 的机制迭代记录）。四条断言：
+     * {@code plan/tmp/p22-a3/PROGRESS.md} 的机制迭代记录）。
+     * <b>v1.20.50 P27 批次B-B1 S 片同批镜像瀑布潭转换趟</b>（nominal→fixed，段差
+     * {@link #A3_FALL_POOL_DROP}；漏改=假绿纪律项——pass2 是手工镜像 SwampFieldGrid 构建体的
+     * 判据，生产新增的转换必须在判据里同样实现，否则下方四条断言量的是旧行为）。四条断言：
      * <ol>
      * <li><b>边缘截断水潭 == 0</b>：水列 4 邻粗格含非 roster 3 即红（三档 + 微池口径）；</li>
      * <li><b>悬空水列 == 0</b>：每水列的干邻（含被钳干空坑列，按<b>钳后</b>实际状态判）固体顶
@@ -956,6 +1114,8 @@ public class P17TerrainReliefCheck {
         final int[] fixed = new int[n];
         final int[] effTop = new int[n];
         final byte[] stA = new byte[n];
+        // v1.20.50 P27 S 片：转换标记（本列被属主区域的转换趟 nominal→fixed——pass3 水列判据用）
+        final byte[] convA = new byte[n];
         long waterCols = 0;
         long truncated4 = 0;
         long suspendedDry = 0;
@@ -972,16 +1132,29 @@ public class P17TerrainReliefCheck {
                     final int i = x + off + (z + off) * w;
                     final int tier = ProsperityTerrainProfile.chainRosterIndexAt(seed, x >> 2, z >> 2);
                     final int hv = ProsperityTerrainProfile.heightAt(seed, x, z);
-                    final int p = GTSRVoronoiRiverField.poolLevelAt(seed, x, z, tier);
+                    final int pRaw = GTSRVoronoiRiverField.poolLevelAt(seed, x, z, tier);
                     h[i] = hv;
-                    pool[i] = p;
+                    pool[i] = pRaw;
                     nominal[i] = -1;
                     fixed[i] = -1;
                     stA[i] = 0;
-                    final boolean sub = GTSRVoronoiRiverField.submergedAt(hv, p);
+                    convA[i] = 0;
+                    final boolean sub = GTSRVoronoiRiverField.submergedAt(hv, pRaw);
                     if (tier == 3) {
                         final int t = sub ? TerrainVariants.swampTierAt(seed, x, z, 3) : 0;
                         stA[i] = (byte) t;
+                        // v1.20.50 P27 S 片 §redirect2：fall 域内 DEEP 潭心潭面钳低（生产
+                        // SwampFieldGrid 构建体同构镜像——潭心选择走生产谓词 swampFallPoolCoreAt；
+                        // submerged 名义项按 raw 判、nominal/pl 用钳后值 min(pRaw − DROP, FLOOR)）
+                        int p = pRaw;
+                        if (t == TerrainVariants.SWAMP_TIER_DEEP
+                            && TerrainVariants.swampFallPoolCoreAt(seed, x, z, 3)) {
+                            final int pc = Math.min(pRaw - A3_FALL_POOL_DROP, A3_FALL_POOL_FLOOR);
+                            if (pc - 1 >= hv + 1) { // 湿列守卫（生产同构；防钳成干坑悬空邻列）
+                                p = pc;
+                                pool[i] = p;
+                            }
+                        }
                         if (sub && a3Interior(seed, x >> 2, z >> 2)
                             && (t != TerrainVariants.SWAMP_TIER_NONE
                                 || GTSRVoronoiRiverField.swampLakeAt(seed, x, z, 3)
@@ -990,7 +1163,7 @@ public class P17TerrainReliefCheck {
                         }
                     }
                     if (sub && GTSRVoronoiRiverField.wetAt(seed, x, z, tier)) {
-                        fixed[i] = p - 1;
+                        fixed[i] = pRaw - 1;
                     }
                     if (GTSRVoronoiRiverField.lakeAt(seed, x, z) < GTSRVoronoiRiverField.LAKE_SHORE
                         && hv < ProsperityTerrainProfile.SEA_LEVEL) {
@@ -1002,6 +1175,11 @@ public class P17TerrainReliefCheck {
                 }
             }
             // —— pass 2：区域场不动点（区域 {0,1}²，+64 环恰为数组内边距；与 SwampFieldGrid 同构）——
+            // v1.20.50 P27 批次B-B1 S 片：同批镜像转换趟（漏改=假绿纪律项——本 pass 是手工镜像
+            // SwampFieldGrid 构建体的判据，生产新增的 nominal→fixed 转换必须在判据里同样实现）：
+            // 每区域取局部 nomL/fixL（窗边裁剪同生产），水顶快照 top 先于转换（转换列 top 保留
+            // 名义水顶），转换后 Jacobi 读 nomL/fixL（转换列豁免钳制、作邻列屏障），核心列回写
+            // effTop/nominal/fixed/convA（= 属主区域口径，统计域 [16,side−16)² 全在四区域核心内）。
             System.arraycopy(nominal, 0, effTop, 0, n);
             for (int rz = 0; rz < side / A3_FREG; rz++) {
                 for (int rx = 0; rx < side / A3_FREG; rx++) {
@@ -1009,23 +1187,152 @@ public class P17TerrainReliefCheck {
                     final int regZ = rz * A3_FREG;
                     final int gw = A3_FREG + 2 * A3_FMAR;
                     final int[] top = new int[gw * gw];
+                    final int[] nomL = new int[gw * gw];
+                    final int[] fixL = new int[gw * gw];
                     for (int lz = 0; lz < gw; lz++) {
                         for (int lx = 0; lx < gw; lx++) {
-                            top[lx + lz * gw] = nominal[regX - A3_FMAR + lx + off
-                                + (regZ - A3_FMAR + lz + off) * w];
+                            final int gi = regX - A3_FMAR + lx + off + (regZ - A3_FMAR + lz + off) * w;
+                            final int li = lx + lz * gw;
+                            top[li] = nominal[gi];
+                            nomL[li] = nominal[gi];
+                            fixL[li] = fixed[gi];
                         }
                     }
-                    for (int pass = 0; pass < 96; pass++) {
-                        boolean changed = false;
-                        final int[] cur = top.clone();
-                        for (int lz = 0; lz < gw; lz++) {
+                    // —— 转换趟镜像（快照语义 + 窗边裁剪；§redirect2：候选三件套 + 包含性自检
+                    // + 同面连通 sheet + Jacobi 悬空修复环 = 生产构建体同构）——
+                    final boolean[] candL = new boolean[gw * gw];
+                    for (int lz = 0; lz < gw; lz++) {
+                        for (int lx = 0; lx < gw; lx++) {
+                            final int li = lx + lz * gw;
+                            final int gi = regX - A3_FMAR + lx + off + (regZ - A3_FMAR + lz + off) * w;
+                            if (nomL[li] < 0) {
+                                continue;
+                            }
+                            final int x = regX - A3_FMAR + lx;
+                            final int z = regZ - A3_FMAR + lz;
+                            if (!TerrainVariants.swampFallDomainAt(seed, x, z, 3)) {
+                                continue;
+                            }
+                            boolean drop = false;
+                            if (lx > 0 && nomL[li - 1] >= 0 && pool[gi - 1] <= pool[gi] - A3_FALL_POOL_DROP) {
+                                drop = true;
+                            }
+                            if (!drop && lx < gw - 1 && nomL[li + 1] >= 0
+                                && pool[gi + 1] <= pool[gi] - A3_FALL_POOL_DROP) {
+                                drop = true;
+                            }
+                            if (!drop && lz > 0 && nomL[li - gw] >= 0
+                                && pool[gi - w] <= pool[gi] - A3_FALL_POOL_DROP) {
+                                drop = true;
+                            }
+                            if (!drop && lz < gw - 1 && nomL[li + gw] >= 0
+                                && pool[gi + w] <= pool[gi] - A3_FALL_POOL_DROP) {
+                                drop = true;
+                            }
+                            if (!drop) {
+                                continue;
+                            }
+                            if (containedL(nomL, fixL, lx, lz, gw, nomL[li], h,
+                                regX - A3_FMAR + off, regZ - A3_FMAR + off, w)) {
+                                candL[li] = true;
+                            }
+                        }
+                    }
+                    // 同面连通 sheet（生产 SwampFieldGrid 构建体同构）
+                    final boolean[] convL = new boolean[gw * gw];
+                    final int[] queue = new int[gw * gw];
+                    for (int lz = 0; lz < gw; lz++) {
+                        for (int lx = 0; lx < gw; lx++) {
+                            final int li = lx + lz * gw;
+                            if (!candL[li] || convL[li]) {
+                                continue;
+                            }
+                            int qh = 0, qt = 0;
+                            queue[qt++] = li;
+                            convL[li] = true;
+                            while (qh < qt) {
+                                final int c = queue[qh++];
+                                final int cx = c % gw;
+                                final int cz = c / gw;
+                                final int[] nb = { cx > 0 ? c - 1 : -1, cx < gw - 1 ? c + 1 : -1,
+                                    cz > 0 ? c - gw : -1, cz < gw - 1 ? c + gw : -1 };
+                                for (final int j : nb) {
+                                    if (j < 0 || convL[j] || nomL[j] != nomL[li]) {
+                                        continue;
+                                    }
+                                    if (!containedL(nomL, fixL, j % gw, j / gw, gw, nomL[li], h,
+                                        regX - A3_FMAR + off, regZ - A3_FMAR + off, w)) {
+                                        continue;
+                                    }
+                                    convL[j] = true;
+                                    queue[qt++] = j;
+                                }
+                            }
+                        }
+                    }
+                    for (int li = 0; li < gw * gw; li++) {
+                        if (convL[li]) {
+                            fixL[li] = nomL[li];
+                            nomL[li] = -1;
+                        }
+                    }
+                    // Jacobi + 悬空修复环（生产同构：悬空 fixed 簇整簇回退 + 重跑）
+                    for (int repair = 0; repair < gw * gw; repair++) {
+                        for (int pass = 0; pass < 96; pass++) {
+                            boolean changed = false;
+                            final int[] cur = top.clone();
+                            for (int lz = 0; lz < gw; lz++) {
+                                for (int lx = 0; lx < gw; lx++) {
+                                    final int li = lx + lz * gw;
+                                    if (nomL[li] < 0) {
+                                        continue;
+                                    }
+                                    int t = cur[li];
+                                    for (int dz = -1; dz <= 1; dz++) {
+                                        final int nz = lz + dz;
+                                        if (nz < 0 || nz >= gw) {
+                                            continue;
+                                        }
+                                        for (int dx = -1; dx <= 1; dx++) {
+                                            if (dx == 0 && dz == 0) {
+                                                continue;
+                                            }
+                                            final int nx = lx + dx;
+                                            if (nx < 0 || nx >= gw) {
+                                                continue;
+                                            }
+                                            final int lj = nx + nz * gw;
+                                            final int gj = regX - A3_FMAR + nx + off
+                                                + (regZ - A3_FMAR + nz + off) * w;
+                                            final int b = fixL[lj] >= 0
+                                                ? Math.max(
+                                                    fixL[lj],
+                                                    cur[lj] >= h[gj] + 1 ? cur[lj] : h[gj])
+                                                : (cur[lj] >= h[gj] + 1 ? cur[lj] : h[gj]);
+                                            if (b < t) {
+                                                t = b;
+                                            }
+                                        }
+                                    }
+                                    if (t < cur[li]) {
+                                        top[li] = t;
+                                        changed = true;
+                                    }
+                                }
+                            }
+                            if (!changed) {
+                                break;
+                            }
+                        }
+                        int offender = -1;
+                        for (int lz = 0; lz < gw && offender < 0; lz++) {
                             for (int lx = 0; lx < gw; lx++) {
-                                final int gi = regX - A3_FMAR + lx + off + (regZ - A3_FMAR + lz + off) * w;
-                                if (nominal[gi] < 0) {
+                                final int li = lx + lz * gw;
+                                if (fixL[li] < 0) {
                                     continue;
                                 }
-                                int t = cur[lx + lz * gw];
-                                for (int dz = -1; dz <= 1; dz++) {
+                                boolean hang = false;
+                                for (int dz = -1; dz <= 1 && !hang; dz++) {
                                     final int nz = lz + dz;
                                     if (nz < 0 || nz >= gw) {
                                         continue;
@@ -1038,31 +1345,59 @@ public class P17TerrainReliefCheck {
                                         if (nx < 0 || nx >= gw) {
                                             continue;
                                         }
+                                        final int lj = nx + nz * gw;
                                         final int gj = regX - A3_FMAR + nx + off
                                             + (regZ - A3_FMAR + nz + off) * w;
-                                        final int b = fixed[gj] >= 0
-                                            ? Math.max(
-                                                fixed[gj],
-                                                cur[nx + nz * gw] >= h[gj] + 1 ? cur[nx + nz * gw] : h[gj])
-                                            : (cur[nx + nz * gw] >= h[gj] + 1 ? cur[nx + nz * gw] : h[gj]);
-                                        if (b < t) {
-                                            t = b;
+                                        if (fixL[lj] < 0 && top[lj] < h[gj] + 1 && h[gj] < top[li]) {
+                                            hang = true;
+                                            break;
                                         }
                                     }
                                 }
-                                if (t < cur[lx + lz * gw]) {
-                                    top[lx + lz * gw] = t;
-                                    changed = true;
+                                if (hang) {
+                                    offender = li;
+                                    break;
                                 }
                             }
                         }
-                        if (!changed) {
+                        if (offender < 0) {
                             break;
+                        }
+                        int qh = 0, qt = 0;
+                        final boolean[] unfix = new boolean[gw * gw];
+                        queue[qt++] = offender;
+                        unfix[offender] = true;
+                        while (qh < qt) {
+                            final int c = queue[qh++];
+                            final int cx = c % gw;
+                            final int cz = c / gw;
+                            final int[] nb = { cx > 0 ? c - 1 : -1, cx < gw - 1 ? c + 1 : -1,
+                                cz > 0 ? c - gw : -1, cz < gw - 1 ? c + gw : -1 };
+                            for (final int j : nb) {
+                                if (j < 0 || unfix[j] || fixL[j] < 0) {
+                                    continue;
+                                }
+                                unfix[j] = true;
+                                queue[qt++] = j;
+                            }
+                        }
+                        for (int li = 0; li < gw * gw; li++) {
+                            if (unfix[li]) {
+                                nomL[li] = top[li];
+                                fixL[li] = -1;
+                                convL[li] = false;
+                            }
                         }
                     }
                     for (int lz = A3_FMAR; lz < A3_FMAR + A3_FREG; lz++) {
                         for (int lx = A3_FMAR; lx < A3_FMAR + A3_FREG; lx++) {
-                            effTop[regX - A3_FMAR + lx + off + (regZ - A3_FMAR + lz + off) * w] = top[lx + lz * gw];
+                            final int gi = regX - A3_FMAR + lx + off + (regZ - A3_FMAR + lz + off) * w;
+                            effTop[gi] = top[lx + lz * gw];
+                            nominal[gi] = nomL[lx + lz * gw];
+                            fixed[gi] = fixL[lx + lz * gw];
+                            if (convL[lx + lz * gw]) {
+                                convA[gi] = 1;
+                            }
                         }
                     }
                 }
@@ -1071,7 +1406,9 @@ public class P17TerrainReliefCheck {
             for (int z = 16; z < side - 16; z++) {
                 for (int x = 16; x < side - 16; x++) {
                     final int i = x + off + (z + off) * w;
-                    if (nominal[i] < 0 || effTop[i] < h[i] + 1) {
+                    // P27 S 片：转换列 nominal=−1 但 top 保留名义水顶（生产置水读 top 不读 nominal）
+                    // ⇒ convA 标记下仍计入水列（与 fillSwampPools 的 fillTop ≥ h+1 口径一致）。
+                    if ((nominal[i] < 0 && convA[i] == 0) || effTop[i] < h[i] + 1) {
                         continue; // 无名义项 / 钳干（宁缺不悬）——不是水列
                     }
                     waterCols++;
@@ -1167,6 +1504,35 @@ public class P17TerrainReliefCheck {
     }
 
     /** A3 边缘门谓词的字面复算（Chebyshev R 内 rosterIndexAt 全 3；只读镜像生产 swampInteriorAt）。 */
+    /**
+     * §redirect2 转换趟镜像的逐列包含性自检（生产 {@code SwampFieldGrid.containedAt} 同构；
+     * 床高读全局 h[]（宽 {@code w}），gOffX/gOffZ = 局部格 → 全局下标的列/行偏移）。
+     */
+    private static boolean containedL(int[] nomL, int[] fixL, int lx, int lz, int gw, int top, int[] h, int gOffX,
+        int gOffZ, int w) {
+        for (int dz = -1; dz <= 1; dz++) {
+            final int nz = lz + dz;
+            if (nz < 0 || nz >= gw) {
+                continue;
+            }
+            for (int dx = -1; dx <= 1; dx++) {
+                if (dx == 0 && dz == 0) {
+                    continue;
+                }
+                final int nx = lx + dx;
+                if (nx < 0 || nx >= gw) {
+                    continue;
+                }
+                final int lj = nx + nz * gw;
+                final int gj = (nx + gOffX) + (nz + gOffZ) * w;
+                if (nomL[lj] < 0 && fixL[lj] < 0 && h[gj] < top) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
     private static boolean a3Interior(long seed, int cellX, int cellZ) {
         for (int dz = -A3_EDGE_R; dz <= A3_EDGE_R; dz++) {
             for (int dx = -A3_EDGE_R; dx <= A3_EDGE_R; dx++) {

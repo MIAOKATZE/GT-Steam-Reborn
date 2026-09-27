@@ -478,7 +478,7 @@ echo "== [2m] P22 版 B · S3 岛心巨树判据入链（A 净空五读/B 派生
 # ProsperityDecorPlacer 已在 REL（[0] 每轮 rm -rf 重编），岛心树支线随之入 $OUT/classes。
 MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8   -cp "$OUT/classes;$CP" -sourcepath "src/main/java;tools/dim1" -d "$OUT/tools"   tools/dim1/MegaTreeCheck.java >"$OUT/javac-megatree.log" 2>&1
 echo "COMPILE MegaTreeCheck EXIT=$? ($(grep -ac 'error:' "$OUT/javac-megatree.log") error)"
-run "MegaTreeCheck（A bbox=2R+1(101)/跨≤bbox块域/windowChunks(50)==13/顶≤255/预算42000+7600[R50 档重钉] + B 公式防写死+采样容差 + C 30 活湖 y0 带/必有树/穿水 + D 双跑序列/13×13 并集==单树/荒漠 0/盐字面钉）" MegaTreeCheck
+run "MegaTreeCheck（A bbox=2R+1(129)/跨≤bbox块域/windowChunks(64)==17/顶≤255/预算65000+12000[R64 档帽 P26 重钉]+8 扇区腿[P27 分叉顶冠重钉，33→40 断言] + B 公式防写死+采样容差 + C 30 活湖 y0 带/必有树/穿水 + D 双跑序列/17×17 并集==单树/荒漠 0/盐字面钉）" MegaTreeCheck
 
 echo "== [2n] P22 版 B · S4 旧栖晴晕光点判据入链（A 湖上/冠下密度分立带[R50+S6 重钉]/B 光衰减三档[自立口径]/C 派生窗并集同形/D 让行只写空气/E 源级纪律零裸rand+盐字面成对；串行纪律沿用） =="
 # 自仓根运行：E 组读生产源文件字面（LUMEN/DECOR 两件）；ProsperityLumenPlacer 新类不在 [0] 的

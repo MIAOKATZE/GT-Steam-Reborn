@@ -363,8 +363,13 @@ public class ChunkProviderProsperityRuins extends GTSRChunkProviderBase {
         private static final double WETB_T3 = -0.65D;
         private static final double WETB_T4 = -0.60D;
         private static final double WETB_T5 = -0.50D;
-        /** 外檐最大深度（格当量）：超界整档排除，不向远处外扩。 */
-        private static final double WETB_HALO_MAX = 10.0D;
+        /**
+         * 外檐最大深度（格当量）：超界整档排除，不向远处外扩。<b>P27-L（v1.20.50）归一单源</b>：
+         * 本值改引 RVF 的 {@code SANZU_SHORE_SLOPE_HALO}（滩坡档 h 帽 = SEA+RISE+该值 ⇒ 材质
+         * 羽化外檐与群系平面爬坡帽共用同一份 10，{@code SANZU_DRY_BEACH_RISE} 三处同源先例
+         * 同款；字面仍 = 10.0，SLMC 判据侧字面钉对拍）。
+         */
+        private static final double WETB_HALO_MAX = GTSRVoronoiRiverField.SANZU_SHORE_SLOPE_HALO;
 
         @Override
         public Block topAt(long seed, int x, int z, BiomeGenBase biome) {
@@ -522,9 +527,10 @@ public class ChunkProviderProsperityRuins extends GTSRChunkProviderBase {
 
     /**
      * <b>巨湖水面回填</b>（populate 后置，水面口径 68 与河流回填同一条）：<b>P23 R1（v1.20.46
-     * 批2 S2）全域站格化</b>——{@code lakeAt < LAKE_SHORE}（湖水区+湖滨带；全域独立判定，带外
-     * 恒 {@code NO_LAKE} 哨兵 ⇒ 零成本短路）且列地表 {@code h1 < SEA_LEVEL} 的列，从地表向上
-     * 置水至 y=67。地形压低（渐深湖床）
+     * 批2 S2）全域站格化</b>——<b>P27-L（v1.20.50）置水门换 {@code sanzuShoreWaterAt} 单一出口
+     * （{@code lakeAt < sanzuBiomeShoreAt}，4a 灌水对齐：灌水域 = 群系压力域，补上抖动滩缘
+     * [SHORE, shoreAt) 内 h&lt;SEA 的干坑——"平面内干坑"缺口</b>；带外恒 {@code false} ⇒ 零成本
+     * 短路）且列地表 {@code h1 < SEA_LEVEL} 的列，从地表向上置水至 y=67。地形压低（渐深湖床）
      * 已由 {@link ProsperityTerrainProfile#heightAt} 完成（本方法只回填，不切地形）；与河流回填的
      * 重叠列两次写同值水，幂等。同样不消费 populate 的 {@code Random}（纯函数判定）。
      * <p>
@@ -557,7 +563,11 @@ public class ChunkProviderProsperityRuins extends GTSRChunkProviderBase {
             for (int lx = 0; lx < 16; lx++) {
                 final int x = (chunkX << 4) + lx;
                 final int z = (chunkZ << 4) + lz;
-                if (GTSRVoronoiRiverField.lakeAt(worldSeed, x, z) >= GTSRVoronoiRiverField.LAKE_SHORE) {
+                // P27-L（D1·4a 灌水对齐，v1.20.50）：置水门压力阈换 sanzuShoreWaterAt 单一出口
+                // （lakeAt < sanzuBiomeShoreAt）——灌水域对齐群系压力域，补上抖动滩缘
+                // [SHORE, shoreAt) 内 h<SEA 的干坑；h < SEA_LEVEL 置水腿逐字不动（湖心列行为
+                // 逐位不变：[WATER, SHORE) ⊂ [WATER, shoreAt) ⇒ 原域是新城的子集）。
+                if (!GTSRVoronoiRiverField.sanzuShoreWaterAt(worldSeed, x, z)) {
                     continue;
                 }
                 final int h = ProsperityTerrainProfile.heightAt(worldSeed, x, z);
@@ -722,6 +732,27 @@ public class ChunkProviderProsperityRuins extends GTSRChunkProviderBase {
     private static final int SWAMP_FIELD_SIDE = SWAMP_FIELD_REGION + 2 * SWAMP_FIELD_MARGIN;
     /** 每 seed 保留的区域场数（超限整清——纪律同 Profile 各表，重算值不变）。 */
     private static final int SWAMP_FIELD_CACHE_CAP = 4;
+    /**
+     * 瀑布潭转换的 pool 段界落差（格；v1.20.50 P27 批次B-B1 S 片新增）。独立常量（不引用
+     * RVF {@code POOL_LEVEL_STEP}——语义不同：那是阶梯量化步长，本值是"高侧转 fixed 的最小
+     * 段差"，先例 = v1.20.40-45 GTSRRiverPlacer 的 {@code POOL_DROP}=3 瀑布墙腿，本片收 2
+     * = 段间差实态全 0/2 的全收口径，ue-swamp §3-b ③）。
+     */
+    private static final int SWAMP_FALL_POOL_DROP = 2;
+    /**
+     * <b>瀑布潭域内 DEEP 潭的池水位钳低下限</b>（v1.20.50 P27 批次B-B1 S 片 §redirect2 新增）。
+     * tyF ≥ 0.5 域内的深水池列池水位强制 {@code min(poolLevelAt − SWAMP_FALL_POOL_DROP, 本值)}：
+     * 65/67 段潭面钳到 {@code 本值 − 1} = 62（redirect 原语义——域内瀑布潭统一接最低水位线，
+     * 主题：深渊执念下切）；实测 40-80% 沼泽面积本就在 63 段（{@code temp/p27-s/r2.out} R2H，
+     * 沼泽 pl 只见 63/65/67）⇒ 这些段相对再下切一档到 61，任意段位的潭缘段差 ≥
+     * {@link #SWAMP_FALL_POOL_DROP} 普遍成立（fix 前实测：湿湿段差对 98/8 seed 且高侧全不在
+     * fall 域 ⇒ 瀑面 0 面/域，{@code temp/p27-s/probe2.out}）。钳值在 RVF 池水位的奇数格点上
+     * （{@code poolOfPair = floor(min/2)*2+1}，段间差 ∈ {0,2,4}）⇒ 与未钳邻段的段差恰为
+     * {@link #SWAMP_FALL_POOL_DROP} 的整倍数。判据侧字面镜像
+     * {@code P17TerrainReliefCheck.A3_FALL_POOL_FLOOR}（漏改=假绿纪律项）。湖交界安全：巨湖
+     * fixed = SEA_LEVEL−1 = 67 ≥ 任何沼泽水顶 ⇒ 让位腿未触。
+     */
+    private static final int SWAMP_FALL_POOL_FLOOR = 63;
     private static final ThreadLocal<HashMap<Long, HashMap<Long, SwampFieldGrid>>> SWAMP_FIELD_CACHE = ThreadLocal
         .withInitial(HashMap::new);
 
@@ -731,9 +762,27 @@ public class ChunkProviderProsperityRuins extends GTSRChunkProviderBase {
      * <ol>
      * <li>逐列 nominal（三档/微池名义水顶，含 A3 边缘门与 submerged 门）与 fixed（河/主干/
      * 巨湖水面，其它置水通道不动；<b>原第四腿"残潭水面"随 P25 D7 残潭退役摘除</b>，
-     * 见构建体内登记）；</li>
+     * 见构建体内登记）；<b>v1.20.50 P27 S 片 §redirect2</b>：tyF ≥ 0.5 域内 DEEP 档列的池水位
+     * 钳到 {@code min(pl − 2, SWAMP_FALL_POOL_FLOOR)}（65/67 段潭面 62、63 段潭面 60，
+     * {@code pl} 同步钳值）——"域内瀑布潭统一接最低水位线 + 已在底段相对下切一档"，使转换趟
+     * 的段差条件普遍成立；</li>
+     * <li><b>v1.20.50 P27 批次B-B1 S 片：瀑布潭转换趟</b>（双潭落差，Jacobi 之前）——快照语义，
+     * 列 i 满足 ① {@code TerrainVariants.swampFallDomainAt}（λ157 正瓣 tyF ≥ 0.5）
+     * ② {@code nominal[i] ≥ 0} ③ 4 邻存在 {@code nominal[j] ≥ 0} 且
+     * {@code pl[j] ≤ pl[i] − SWAMP_FALL_POOL_DROP} ⇒ {@code fixed[i]=nominal[i]}（高水豁免钳制、
+     * 成为邻列屏障）且 {@code nominal[i]=−1}；前置包含性自检：8 邻干列（无任何水名义项）固体顶
+     * ≥ 本列水顶，不满足则放弃该列转换（保持今天行为——防悬空，v1.20.40-45 dropColumn 同构造：
+     * 瀑面 = 两水柱贴面竖直水墙，静态源 + FLAG_POPULATE 零 tick，玩家更新低侧才溢流）。
+     * 水顶快照 {@code tops} 在转换<b>前</b>取 ⇒ 转换列 top 保留名义水顶（置水通道读 top 不读
+     * nominal，瀑面高水柱照常落水）。<b>§redirect2 两条补构</b>：① <b>同面连通 sheet</b>——
+     * 直接高侧列与其同水顶 4 连通列（逐列包含性自检通过）一并转 fixed（不连通化会在瀑面后侧
+     * 留下贴低水的名义列，被 N8 钳干 ⇒ fixed 水墙悬空）；② <b>悬空修复环</b>——Jacobi 收敛后
+     * 仍悬空的 fixed 列（邻干列床 &lt; 本列水顶）整簇回退 nominal 并重跑 Jacobi，每轮至少摘一列
+     * fixed ⇒ 必终止；nominal 水列经不动点本身无悬空 ⇒ 只需查 fixed 列；</li>
      * <li>N8 Jacobi 不动点钳制：干列/被钳干列的阻挡面 = 固体顶 h（"8 邻固体顶 ≥ 水顶"验收口径，
-     * 0 余量；A1b 残潭 N8 钳制同族），水邻 = 其当前水面；单调下降必收敛（趟上限 96 为保守界）；</li>
+     * 0 余量；A1b 残潭 N8 钳制同族），水邻 = 其当前水面；单调下降必收敛（趟上限 96 为保守界）；
+     * 转换列 nominal=−1 ⇒ 豁免钳制，屏障 {@code max(fixed,·)} 只降不升（高 fixed 水不抽干邻居，
+     * 也不被抽干）；</li>
      * <li>被钳到床面之下的列 top &lt; h+1 ⇒ 整列不置水（"宁缺不悬"，wg41-E-options D2 先例）。</li>
      * </ol>
      * 缓存纪律：线程私有、(seed, 区域原点) 键、上限 {@link #SWAMP_FIELD_CACHE_CAP} 超限整清
@@ -757,22 +806,48 @@ public class ChunkProviderProsperityRuins extends GTSRChunkProviderBase {
             final int w = SWAMP_FIELD_SIDE;
             final int[] nominal = new int[w * w];
             final int[] fixed = new int[w * w];
+            // v1.20.50 P27 S 片：pool 段位表（构建期局部——转换趟的段差判据；pl = poolLevelAt 本值）
+            final int[] pl = new int[w * w];
             for (int lz = 0; lz < w; lz++) {
                 for (int lx = 0; lx < w; lx++) {
                     final int i = lz * w + lx;
                     final int x = regionX - SWAMP_FIELD_MARGIN + lx;
                     final int z = regionZ - SWAMP_FIELD_MARGIN + lz;
                     final int tier = ProsperityTerrainProfile.chainRosterIndexAt(worldSeed, x >> 2, z >> 2);
-                    final int p = GTSRVoronoiRiverField.poolLevelAt(worldSeed, x, z, tier);
+                    final int pRaw = GTSRVoronoiRiverField.poolLevelAt(worldSeed, x, z, tier);
+                    pl[i] = pRaw;
                     final int hv = ProsperityTerrainProfile.heightAt(worldSeed, x, z);
                     this.h[i] = hv;
                     nominal[i] = -1;
                     fixed[i] = -1;
                     this.st[i] = 0;
-                    final boolean sub = GTSRVoronoiRiverField.submergedAt(hv, p);
+                    final boolean sub = GTSRVoronoiRiverField.submergedAt(hv, pRaw);
                     if (tier == 3) {
                         final int t = sub ? TerrainVariants.swampTierAt(worldSeed, x, z, 3) : 0;
                         this.st[i] = (byte) t;
+                        // ═══ v1.20.50 P27 S 片 §redirect2：fall 域内 DEEP 潭心潭面钳低 ═══
+                        // 潭心（深门值 ≥ SWAMP_FALL_CORE_GATE，swampFallPoolCoreAt 单一出口）池水位
+                        // 钳到 min(pRaw − SWAMP_FALL_POOL_DROP, FLOOR)：65/67 段潭心 → 63（redirect
+                        // 原 FLOOR 语义），已在 63 段 → 61（相对再下切一档——实测 40-80% 沼泽面积
+                        // 本就在 63 段，r2.out R2H）⇒ 潭心 vs 潭缘环（保留原水位、转换趟高侧）
+                        // 的段差 ≥ DROP 在每潭结构上成立 ⇒ 缘环 fixed 化（fixed=屏障不抽干）
+                        // ⇒ 潭内缘环-潭心贴面竖直水墙 = 静态瀑面（§21-D 台阶；v1.20.40-45
+                        // dropColumn 同构造；潭缘外微池/湿带多为非湿 ⇒ 高侧只能来自潭自身缘环）。
+                        // submerged 名义项判定仍按 raw 池水位（钳只削水顶；床 ≥ 潭面的浅缘列经
+                        // 下方"宁缺不悬"守卫自然无水）；pl[i] 同步钳值 ⇒ 转换趟段差判据两侧同口径。
+                        // 湖交界安全：巨湖 fixed = SEA_LEVEL−1 = 67 ≥ 任何沼泽水顶。
+                        int p = pRaw;
+                        if (t == TerrainVariants.SWAMP_TIER_DEEP
+                            && TerrainVariants.swampFallPoolCoreAt(worldSeed, x, z, 3)) {
+                            final int pc = Math.min(pRaw - SWAMP_FALL_POOL_DROP, SWAMP_FALL_POOL_FLOOR);
+                            // 湿列守卫：钳后仍是水列（水顶 ≥ 床+1）才钳——浅缘潭心列（床 ≥ 钳后
+                            // 水顶）不钳，保留原水位作高侧/湿邻（钳成"宁缺不悬"干坑会把邻列
+                            // fixed 水墙悬空，A3 suspendedDry 实测 581 的根因）。
+                            if (pc - 1 >= hv + 1) {
+                                p = pc;
+                                pl[i] = p;
+                            }
+                        }
                         // A3 边缘门（三档腿经 swampTierAt 的 SWG_TIER 槽同门自动 NONE + 微池腿显式乘
                         // swampInteriorAt——TerrainVariants.swampGates 单点分流，两侧同一真值；
                         // O1a：微池比较式并入 RVF swampPoolWaterAt 单一出口；三档腿用已求出的档位值 t
@@ -786,7 +861,7 @@ public class ChunkProviderProsperityRuins extends GTSRChunkProviderBase {
                     // 河/主干水腿（A1a 新门）：P23 R1（批2 S2）起 wetAt 恒 false——本腿成为死路径
                     // （保留不删，S6 收口登记）；fixed 水面只剩巨湖一腿（原第二腿"残潭"随 P25 D7 退役）。
                     if (sub && GTSRVoronoiRiverField.wetAt(worldSeed, x, z, tier)) {
-                        fixed[i] = p - 1;
+                        fixed[i] = pRaw - 1;
                     }
                     if (GTSRVoronoiRiverField.lakeAt(worldSeed, x, z) < GTSRVoronoiRiverField.LAKE_SHORE
                         && hv < ProsperityTerrainProfile.SEA_LEVEL) {
@@ -798,19 +873,145 @@ public class ChunkProviderProsperityRuins extends GTSRChunkProviderBase {
                     // swampPoolWaterAt）独占。
                 }
             }
-            // N8 不动点钳制（Jacobi 逐趟，趟用上趟快照 ⇒ 确定性与扫描序无关；单调下降必收敛）
+            // ═══ v1.20.50 P27 批次B-B1 S 片：瀑布潭转换趟（双潭落差）═══
+            // 水顶快照<b>先于</b>转换（转换列 nominal 归 −1 但 top 保留名义水顶——置水通道
+            // fillSwampPools 读 top 不读 nominal ⇒ 瀑面高水柱照常落水）。
             final int[] tops = nominal.clone();
-            for (int pass = 0; pass < 96; pass++) {
-                boolean changed = false;
-                final int[] cur = tops.clone();
-                for (int lz = 0; lz < w; lz++) {
+            // 转换判定按快照语义（条件全按转换前状态判 ⇒ 确定性与扫描序无关，区域窗边裁剪同
+            // Jacobi：窗外邻格视同不存在）。v1.20.40-45 dropColumn 同构造：高水列转 fixed 豁免
+            // 钳制 ⇒ 与低侧名义水贴面成竖直水墙（2 格高 = 阶梯步距），玩家更新低侧才溢流。
+            final boolean[] cand = new boolean[w * w];
+            for (int lz = 0; lz < w; lz++) {
+                for (int lx = 0; lx < w; lx++) {
+                    final int i = lz * w + lx;
+                    if (nominal[i] < 0) {
+                        continue; // ② 本列无名义水名义项
+                    }
+                    final int x = regionX - SWAMP_FIELD_MARGIN + lx;
+                    final int z = regionZ - SWAMP_FIELD_MARGIN + lz;
+                    if (!TerrainVariants.swampFallDomainAt(worldSeed, x, z, 3)) {
+                        continue; // ① 高侧列自身在瀑布潭域（tyF ≥ 0.5 阈值化，无半转换）
+                    }
+                    // ③ 4 邻存在名义水列且 pool 段差 ≥ SWAMP_FALL_POOL_DROP（段间差实态全 0/2 全收）
+                    boolean drop = false;
+                    if (lx > 0 && nominal[i - 1] >= 0 && pl[i - 1] <= pl[i] - SWAMP_FALL_POOL_DROP) {
+                        drop = true;
+                    }
+                    if (!drop && lx < w - 1 && nominal[i + 1] >= 0 && pl[i + 1] <= pl[i] - SWAMP_FALL_POOL_DROP) {
+                        drop = true;
+                    }
+                    if (!drop && lz > 0 && nominal[i - w] >= 0 && pl[i - w] <= pl[i] - SWAMP_FALL_POOL_DROP) {
+                        drop = true;
+                    }
+                    if (!drop && lz < w - 1 && nominal[i + w] >= 0 && pl[i + w] <= pl[i] - SWAMP_FALL_POOL_DROP) {
+                        drop = true;
+                    }
+                    if (!drop) {
+                        continue;
+                    }
+                    if (containedAt(nominal, fixed, this.h, lx, lz, w, nominal[i])) {
+                        cand[i] = true;
+                    }
+                }
+            }
+            // —— §redirect2 同面连通 sheet：直接高侧列 + 与其同水顶的 4 连通列一并转 fixed ——
+            // 不连通化会在瀑面后侧留下"贴低水的名义列"（被 N8 钳干 ⇒ fixed 水墙悬空，
+            // A3 suspendedDry 实测 581-695 的根因）；sheet 整面豁免 ⇒ 瀑面后侧水面不降。
+            // 逐列包含性自检（同候选口径）⇒ sheet 在低干列边界停住。
+            final boolean[] conv = new boolean[w * w];
+            final int[] queue = new int[w * w];
+            for (int lz = 0; lz < w; lz++) {
+                for (int lx = 0; lx < w; lx++) {
+                    final int i = lz * w + lx;
+                    if (!cand[i] || conv[i]) {
+                        continue;
+                    }
+                    int qh = 0, qt = 0;
+                    queue[qt++] = i;
+                    conv[i] = true;
+                    while (qh < qt) {
+                        final int c = queue[qh++];
+                        final int cx = c % w;
+                        final int cz = c / w;
+                        final int[] nb = { cx > 0 ? c - 1 : -1, cx < w - 1 ? c + 1 : -1, cz > 0 ? c - w : -1,
+                            cz < w - 1 ? c + w : -1 };
+                        for (final int j : nb) {
+                            if (j < 0 || conv[j] || nominal[j] != nominal[i]) {
+                                continue;
+                            }
+                            if (!containedAt(nominal, fixed, this.h, j % w, j / w, w, nominal[i])) {
+                                continue;
+                            }
+                            conv[j] = true;
+                            queue[qt++] = j;
+                        }
+                    }
+                }
+            }
+            for (int i = 0; i < w * w; i++) {
+                if (conv[i]) {
+                    fixed[i] = nominal[i];
+                    nominal[i] = -1;
+                }
+            }
+            // N8 不动点钳制（Jacobi 逐趟，趟用上趟快照 ⇒ 确定性与扫描序无关；单调下降必收敛）
+            // + §redirect2 悬空修复环：Jacobi 收敛后若仍有 fixed 列悬空（邻干列床 < 本列水顶——
+            // sheet 停止边界的名义列被更远的低屏障钳干时可发生），把悬空列所在 fixed 4 连通簇
+            // 整簇回退 nominal（=快照水顶）并重跑 Jacobi——每轮至少摘一列 fixed ⇒ 必终止；
+            // nominal 水列经 Jacobi 不动点本身无悬空（钳制面 = 干邻固体顶），故只需查 fixed 列。
+            for (int repair = 0; repair < w * w; repair++) {
+                for (int pass = 0; pass < 96; pass++) {
+                    boolean changed = false;
+                    final int[] cur = tops.clone();
+                    for (int lz = 0; lz < w; lz++) {
+                        for (int lx = 0; lx < w; lx++) {
+                            final int i = lz * w + lx;
+                            if (nominal[i] < 0) {
+                                continue;
+                            }
+                            int t = cur[i];
+                            for (int dz = -1; dz <= 1; dz++) {
+                                final int nz = lz + dz;
+                                if (nz < 0 || nz >= w) {
+                                    continue;
+                                }
+                                for (int dx = -1; dx <= 1; dx++) {
+                                    if (dx == 0 && dz == 0) {
+                                        continue;
+                                    }
+                                    final int nx = lx + dx;
+                                    if (nx < 0 || nx >= w) {
+                                        continue;
+                                    }
+                                    final int j = nz * w + nx;
+                                    final int b = fixed[j] >= 0
+                                        ? Math.max(fixed[j], cur[j] >= this.h[j] + 1 ? cur[j] : this.h[j])
+                                        : (cur[j] >= this.h[j] + 1 ? cur[j] : this.h[j]);
+                                    if (b < t) {
+                                        t = b;
+                                    }
+                                }
+                            }
+                            if (t < cur[i]) {
+                                tops[i] = t;
+                                changed = true;
+                            }
+                        }
+                    }
+                    if (!changed) {
+                        break;
+                    }
+                }
+                // 悬空 fixed 列检测 + 整簇回退
+                int offender = -1;
+                for (int lz = 0; lz < w && offender < 0; lz++) {
                     for (int lx = 0; lx < w; lx++) {
                         final int i = lz * w + lx;
-                        if (nominal[i] < 0) {
+                        if (fixed[i] < 0) {
                             continue;
                         }
-                        int t = cur[i];
-                        for (int dz = -1; dz <= 1; dz++) {
+                        boolean hang = false;
+                        for (int dz = -1; dz <= 1 && !hang; dz++) {
                             final int nz = lz + dz;
                             if (nz < 0 || nz >= w) {
                                 continue;
@@ -824,25 +1025,77 @@ public class ChunkProviderProsperityRuins extends GTSRChunkProviderBase {
                                     continue;
                                 }
                                 final int j = nz * w + nx;
-                                final int b = fixed[j] >= 0
-                                    ? Math.max(fixed[j], cur[j] >= this.h[j] + 1 ? cur[j] : this.h[j])
-                                    : (cur[j] >= this.h[j] + 1 ? cur[j] : this.h[j]);
-                                if (b < t) {
-                                    t = b;
+                                if (fixed[j] < 0 && tops[j] < this.h[j] + 1 && this.h[j] < tops[i]) {
+                                    hang = true;
+                                    break;
                                 }
                             }
                         }
-                        if (t < cur[i]) {
-                            tops[i] = t;
-                            changed = true;
+                        if (hang) {
+                            offender = i;
+                            break;
                         }
                     }
                 }
-                if (!changed) {
-                    break;
+                if (offender < 0) {
+                    break; // 无悬空 ⇒ 收敛完成
+                }
+                // 回退 offender 所在 fixed 4 连通簇（nominal = 快照水顶，fixed/nominal 互换回来）
+                int qh = 0, qt = 0;
+                final boolean[] unfix = new boolean[w * w];
+                queue[qt++] = offender;
+                unfix[offender] = true;
+                while (qh < qt) {
+                    final int c = queue[qh++];
+                    final int cx = c % w;
+                    final int cz = c / w;
+                    final int[] nb = { cx > 0 ? c - 1 : -1, cx < w - 1 ? c + 1 : -1, cz > 0 ? c - w : -1,
+                        cz < w - 1 ? c + w : -1 };
+                    for (final int j : nb) {
+                        if (j < 0 || unfix[j] || fixed[j] < 0) {
+                            continue;
+                        }
+                        unfix[j] = true;
+                        queue[qt++] = j;
+                    }
+                }
+                for (int i = 0; i < w * w; i++) {
+                    if (unfix[i]) {
+                        nominal[i] = tops[i];
+                        fixed[i] = -1;
+                        conv[i] = false;
+                    }
                 }
             }
             System.arraycopy(tops, 0, this.top, 0, tops.length);
+        }
+
+        /**
+         * §redirect2 转换趟的逐列包含性自检：8 邻中所有"无任何水名义项"的干列固体顶 ≥
+         * {@code top}（本列水顶）——不满足则该列不可转 fixed（防悬空水墙，A3 suspendedDry
+         * 口径）。静态工具（A3 镜像同式复用；数组语义：nominal/fixed = 快照名义/固定水顶）。
+         */
+        private static boolean containedAt(int[] nominal, int[] fixed, int[] h, int lx, int lz, int w, int top) {
+            for (int dz = -1; dz <= 1; dz++) {
+                final int nz = lz + dz;
+                if (nz < 0 || nz >= w) {
+                    continue;
+                }
+                for (int dx = -1; dx <= 1; dx++) {
+                    if (dx == 0 && dz == 0) {
+                        continue;
+                    }
+                    final int nx = lx + dx;
+                    if (nx < 0 || nx >= w) {
+                        continue;
+                    }
+                    final int j = nz * w + nx;
+                    if (nominal[j] < 0 && fixed[j] < 0 && h[j] < top) {
+                        return false;
+                    }
+                }
+            }
+            return true;
         }
     }
 
@@ -876,7 +1129,9 @@ public class ChunkProviderProsperityRuins extends GTSRChunkProviderBase {
     /**
      * <b>遗忘之湖群系指派</b>（populate 后置，RTG BiomeAnalyzer.newRepair 先例；plan §3.3
      * 已定机制；<b>P23 R1（v1.20.46 批2 S2）改名+谓词湖化</b>）：列满足
-     * {@code lakeAt < sanzuBiomeShoreAt ∧ h ≤ SEA+SANZU_DRY_BEACH_RISE(=69)}
+     * {@code lakeAt < sanzuBiomeShoreAt} ∧ 四档 h 帽（核心 h ≤ SEA；岛档 lake&lt;LAKE_ISLAND →
+     * h ≤ 72；滩坡档 lake&lt;LAKE_SHORE → h ≤ 79；抖动滩缘 → h ≤ SEA+
+     * SANZU_DRY_BEACH_RISE(=69)——P27-L 四档化，前两档为 v1.20.50 新增）
      * （{@link GTSRVoronoiRiverField#isSanzuColumn} 单点谓词，与空气压缩机的三途余汽判定同一份
      * ——湖面+可变宽湖滩带；<b>P26-B3 D2·b1 起含 h=69 干滩环滩缘腿</b>，置水域
      * {@code h < SEA} 不随动）⇒ 经

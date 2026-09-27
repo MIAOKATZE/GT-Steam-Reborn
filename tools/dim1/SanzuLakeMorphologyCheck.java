@@ -98,6 +98,26 @@ public final class SanzuLakeMorphologyCheck {
      * 复核时对拍）。
      */
     static final int DRY_RISE = 1;
+    /**
+     * 滩坡档帽外檐（P27-L D1·1b）：<b>判据侧字面钉</b>，须与生产 {@code RVF.SANZU_SHORE_SLOPE_HALO}
+     * 同值（{@link #DRY_RISE} 同款对拍纪律）。滩坡帽 = SEA+RISE+本值 = 68+1+10 = <b>79</b>（与
+     * 干滩羽化外檐 WETB_HALO_MAX 对齐——生产侧 CPR 的 WETB_HALO_MAX 已改引 RVF 常量归一单源）。
+     * 缩样三档 {69,74,79} 定档读数见 plan/tmp/p27-l-readings.md（79 档平面占比 1.181% ∈
+     * [1.0,2.0]% 带内 ⇒ 取设计外沿 79，无收帽必要）。
+     */
+    static final int SHORE_HALO = 10;
+    /**
+     * 岛档平面帽（P27-L D1·1e）：<b>判据侧字面钉</b>，须与生产 {@code RVF.SANZU_ISLAND_PLANE_TOP_Y}
+     * （派生式 = SEA+(int)LAKE_ISLAND_LIFT，{@code LAKE_PILLAR_TOP_Y} 先例同款）同值 = <b>72</b>
+     * ——恰为岛面顶高（岛面干列 h ∈ (68,72] 整段可入平面）。
+     */
+    static final int ISLAND_TOP = 72;
+    /**
+     * 湖域振幅带带宽（P27-L D1·2c）：<b>判据侧字面钉</b>，须与生产 {@code RVF.LAKE_AMP_BELT_DELTA}
+     * 同值。换算：带格宽 ≈ Δ×D_eff/((1+W')(1+S')) ≈ 0.03×2244 ≈ 67 格（与 ampAt 11×11 核 44-60 格
+     * 同量级）。缩样三档读数见 plan/tmp/p27-l-readings.md。
+     */
+    static final double AMP_BELT_DELTA = 0.03D;
     /** 水面顶：{@code fillSanzuLakes} 置水写到 {@code y ≤ SEA_LEVEL − 1} ⇒ 水深口径的零点。 */
     static final int WATER_TOP = SEA - 1;
     /** 湖心锚 = {@code SEA_LEVEL − LAKE_CENTER_DEPTH}（与 {@code LAKE_PILLAR_FLOOR_Y} 同一条式子）。 */
@@ -391,6 +411,7 @@ public final class SanzuLakeMorphologyCheck {
         groupGeometry(lakes);
         groupP25(lakes);
         groupP26(lakes);
+        groupP27(lakes);
         groupShoreEdges(lakes);
         groupShoreTreads(lakes);
         groupShoreWetBand(lakes);
@@ -1201,7 +1222,9 @@ public final class SanzuLakeMorphologyCheck {
         say("P25-READ 湖+滩群系占比（isSanzuColumn 直读，seed0 粗扫窗 ±" + LAKE_EXTENT + " 步距 "
             + LAKE_STRIDE + "）：" + planeCols + "/" + totalCols + " = " + pct(share)
             + "（目标 ≈1.4% = π·r_w²/D_eff² 折 D_MIN 淘汰与侵蚀收边）");
-        check("P25-2 湖+滩群系面积占比 ∈ [1.0%,2.0%]（任务包带；湖概率减半轮的群系面预算验收）",
+        check("P25-2 湖+滩群系面积占比 ∈ [1.0%,2.0%]（任务包带；湖概率减半轮的群系面预算验收；"
+            + "<b>P27-L 复核：岛档+滩坡档扩平面后缩样 1.181%（帽 79 档）仍在带内 ⇒ 带不重钉</b>，"
+            + "读数详 plan/tmp/p27-l-readings.md）",
             share >= 0.010D && share <= 0.020D, "占比=" + pct(share));
         // ── P3：滩带噪声腿宽 ──
         final List<Double> legs = new ArrayList<Double>();
@@ -1371,6 +1394,88 @@ public final class SanzuLakeMorphologyCheck {
             + cva.length + " 中位 " + f3(cva.length == 0 ? -1.0D : median(cva)) + " p10 "
             + f3(cva.length == 0 ? -1.0D : pctl(cva, 0.10D)) + " p90 "
             + f3(cva.length == 0 ? -1.0D : pctl(cva, 0.90D)) + "（纯圆 = 0；warp 搬运下近圆）");
+    }
+
+    // ══════════════════════════ P27 组（L 片 D1，v1.20.50）：岛入平面 + 灌水对齐的只报读数 ══════════════════════════
+
+    /**
+     * <b>P27-L 判据面</b>（v1.20.50 湖群系域扩展轮，plan p27 §1 A1；生产侧 = RVF isSanzuColumn
+     * 四档化 + PTP 振幅带 + CPR 灌水对齐）：本组两条均为<b>只报不钉</b>读数（缩样定档与升 4b
+     * 裁决的依据面）：
+     * <ul>
+     * <li><b>P27-1 平面岛覆盖率</b>：岛压力域（{@code lakeAt < LAKE_ISLAND}）内岛面干列
+     * （{@code h ≥ SEA}）中 {@code isSanzuColumn} 的占比——岛档（1e，帽 72、3×3 表 #3）的行为
+     * 直读；读数域同 P26-1（滩缘外扩 20 格窗、步距 2）。</li>
+     * <li><b>P27-2 露水墙列</b>：4a 灌水对齐后的残留水墙读数——水列（{@code sanzuShoreWaterAt
+     * ∧ h < SEA}，会置水）的陆侧 4 邻中「压力域外 ∧ h &lt; SEA」的干列计数（水线被压力域边界
+     * 切在地形分水岭之外的列）；超观感带 ⇒ 升 4b（灌到 shoreAt+0.015，ue-lake §4 的裁决腿，
+     * 本轮不实现）。</li>
+     * </ul>
+     */
+    static void groupP27(List<Lake> lakes) {
+        // ── P27-1：平面岛覆盖率 ──
+        long islDry = 0;
+        long islDryPlane = 0;
+        // ── P27-2：露水墙列 ──
+        long waterCols = 0;
+        long waterWallCols = 0;
+        long wallNeighbors = 0;
+        for (final Lake lk : lakes) {
+            if (!lk.fine) {
+                continue;
+            }
+            int rMax = 0;
+            for (int d = 0; d < 8; d++) {
+                rMax = Math.max(rMax, (int) lk.rayBiomeShoreRadius[d]);
+            }
+            final int w = Math.min(FINE_WINDOW_MAX, rMax + 20);
+            for (int z = lk.cz - w; z <= lk.cz + w; z += 2) {
+                for (int x = lk.cx - w; x <= lk.cx + w; x += 2) {
+                    final double p = GTSRVoronoiRiverField.lakeAt(lk.seed, x, z);
+                    if (p < ISLAND) {
+                        final int h = ProsperityTerrainProfile.heightAt(lk.seed, x, z);
+                        if (h >= SEA && GTSRVoronoiRiverField.isSanzuColumn(lk.seed, x, z)) {
+                            islDryPlane++;
+                        }
+                        if (h >= SEA) {
+                            islDry++;
+                        }
+                    }
+                    // 水墙扫描：只看湖+滩+抖动滩缘压力带（p ≥ SHORE+JITTER 的列既非水列也非其邻）
+                    if (p >= SHORE + GTSRVoronoiRiverField.SANZU_BIOME_SHORE_JITTER + 0.002D) {
+                        continue;
+                    }
+                    if (GTSRVoronoiRiverField.sanzuShoreWaterAt(lk.seed, x, z)
+                        && ProsperityTerrainProfile.heightAt(lk.seed, x, z) < SEA) {
+                        waterCols++;
+                        int walls = 0;
+                        for (int k = 0; k < 4; k++) {
+                            final int nx = x + (k == 0 ? -1 : (k == 1 ? 1 : 0));
+                            final int nz = z + (k == 2 ? -1 : (k == 3 ? 1 : 0));
+                            if (!GTSRVoronoiRiverField.sanzuShoreWaterAt(lk.seed, nx, nz)
+                                && ProsperityTerrainProfile.heightAt(lk.seed, nx, nz) < SEA) {
+                                walls++;
+                            }
+                        }
+                        if (walls > 0) {
+                            waterWallCols++;
+                        }
+                        wallNeighbors += walls;
+                    }
+                }
+            }
+        }
+        say("P27-READ 平面岛覆盖率（岛压力域 lakeAt&lt;LAKE_ISLAND ∧ h≥SEA 的岛面干列中 isSanzuColumn"
+            + " 占比，1e 岛档行为直读；滩缘外扩 20 格窗步距 2）：岛面干列 " + islDry + "，其中入平面 "
+            + islDryPlane + " = " + pct(islDry == 0 ? -1.0D : islDryPlane / (double) islDry)
+            + "（3×3 表 #3 侵蚀收岛缘毛边 ⇒ 期望 &lt;1 但 &gt;0.8 量级；帽 = SEA+(int)LIFT = "
+            + ISLAND_TOP + "）");
+        say("P27-READ 露水墙列（4a 后残留读数：水列 = sanzuShoreWaterAt ∧ h&lt;SEA，陆侧 4 邻"
+            + "「压力域外 ∧ h&lt;SEA」干列计数）：水列 " + waterCols + "，含墙水列 " + waterWallCols
+            + " = " + pct(waterCols == 0 ? -1.0D : waterWallCols / (double) waterCols)
+            + "，墙邻列总数 " + wallNeighbors + "（超观感带 ⇒ 升 4b 灌到 shoreAt+0.015——ue-lake §4 "
+            + "裁决腿，本轮未实现；2c 振幅带把带内 h 拉向 70 ⇒ 带内 h&lt;68 列变稀，残留主要在带外"
+            + "邻接自然洼地）");
     }
 
     // ══════════════════════════ A 组：§15.4 湖岸衔接 ══════════════════════════

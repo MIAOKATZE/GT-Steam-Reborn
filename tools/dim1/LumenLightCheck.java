@@ -74,17 +74,17 @@ public final class LumenLightCheck {
         "src/main/java/com/miaokatze/gtsr/common/dimension/prosperity/ruins/ProsperityDecorPlacer.java";
 
     /**
-     * 冠下光位 y 下界（P26-B5 复核钉）：冠形态最低格 = 垂帘底，形态级硬钳 DROOP_MIN_TIP_Y=102
-     * （IslandMegaTree.droopCurtains）⇒ 光位 = 帘底−1 ≥ 101（30 湖实测最低 123）；D 组门带取
-     * 100 留余量——垂帘若跌破 102 本常量即最后一道红线。
+     * 冠下光位 y 下界（复核钉）：冠形态最低格 = 垂帘底（P27 起锚 = 最外轮叶团底），形态级硬钳
+     * DROOP_MIN_TIP_Y=102（IslandMegaTree.droopCurtains）⇒ 光位 = 帘底−1 ≥ 101（30 湖实测最低
+     * 102=钳位点）；D 组门带取 100 留余量——垂帘若跌破 102 本常量即最后一道红线。
      */
     static final int CANOPY_LIGHT_Y_FLOOR = 100;
 
     /**
-     * A 组冠下带（每 chunk 冠下光源均值，P26-B5 垂帘擎天放大档分立断言重钉）：CANOPY_LIGHT_DENOM=622
-     * （候选列实测 ≈9877——π(r²+r) 13069 经带厚空腔+缺角剪形后的实集 ⇒ 单树期望 ≈16 枚）⇒
-     * 摊到 windowChunks(64)=17 方窗 289 chunk ⇒ 全窗每 chunk 均值实测 0.059（203/3468，见 A-READ）。
-     * 带 [0.04,1.5]：下界防零写入假绿（实测 +47% 余量），上界防密度旋钮被调爆（denom 减半即越界）。
+     * A 组冠下带（每 chunk 冠下光源均值，P27 分叉顶冠重钉）：CANOPY_LIGHT_DENOM=420（椭球壳退役后
+     * 候选列 = 叶团/叶串/垂帘列并集，30 湖实测 ≈ [5471,6341]/树、均值 ≈6018 ⇒ 单树期望 ≈14 枚）
+     * ⇒ 摊到 windowChunks(64)=17 方窗 289 chunk ⇒ 每 chunk 均值 ≈ 0.050。
+     * 带 [0.04,1.5]：下界防零写入假绿（实测 +24% 余量），上界防密度旋钮被调爆（denom 减半即越界）。
      */
     static final double CANOPY_MEAN_FLOOR = 0.04D;
     static final double CANOPY_MEAN_CEIL = 1.5D;

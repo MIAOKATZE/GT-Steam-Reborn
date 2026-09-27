@@ -860,6 +860,21 @@ public final class GTSRVoronoiRiverField {
      */
     public static final int LAKE_SHORE_TREADS = 4;
 
+    /**
+     * <b>湖域振幅带的压力域带宽</b>（P27-L D1·2c 新增，v1.20.50；消费面 =
+     * {@code ProsperityTerrainProfile.heightCore} 的振幅位）：带内 {@code lake ≤ shoreAt} 恒取
+     * sanzu 振幅档（{@code RELIEF_AMPLITUDE_BY_ROSTER[4]}=0.38，档表单源、禁字面量），带外
+     * {@code s01((lake−shoreAt)/本值)} 收敛回 {@code ampAt} 连续场——smoothstep 起点导数 0 ⇒
+     * C1 连续，shoreAt 抖动只摆动起点不造坎（GenLayer 红线约束下"湖域列用 sanzu 振幅档"的唯一
+     * 等价物：核原料从身份面换成压力面）。
+     * <b>换算式（格数口径，javadoc 钉）</b>：带格宽 ≈ 本值 × D_eff/((1+W')(1+S')) ≈ 本值×
+     * 2670/1.1794 ≈ <b>68 格</b>（0.03 档）——与 ampAt 11×11 核（半径 5 粗格 ≈ 44~60 格渐变）
+     * 同量级 ⇒ 振幅带与身份面平滑核的外缘尺度对齐（ue-lake §3 设计一致性钉：皮肤带 56 格 vs
+     * 振幅带 ≈68 格）。缩样三档 {0.02, 0.03, 0.05} ≈ {45, 68, 113} 格的定档读数见
+     * {@code plan/tmp/p27-l-readings.md}。
+     */
+    public static final double LAKE_AMP_BELT_DELTA = 0.03D;
+
     /** 湿带（水陆之间不积水的半湿表层带）贴水判据：地表距水面的最大格数（plan §15.4）。 */
     public static final int LAKE_WET_BAND_DROP = 2;
 
@@ -1514,6 +1529,20 @@ public final class GTSRVoronoiRiverField {
      */
     public static boolean lakeWaterAt(long worldSeed, int x, int z) {
         return lakeAt(worldSeed, x, z) < LAKE_WATER_LEVEL;
+    }
+
+    /**
+     * <b>sanzu 群系压力域布尔出口</b>（P27-L D1·4a 新增，{@code lakeWaterAt} 先例同款）：
+     * {@code lakeAt < sanzuBiomeShoreAt} 的逐字包装——湖+滩+抖动滩缘的<b>群系平面压力域</b>。
+     * 消费面：{@code ChunkProviderProsperityRuins.fillSanzuLakes} 的置水门（4a 灌水对齐：灌水域
+     * 对齐群系压力域，补上抖动滩缘 [SHORE, shoreAt) 内 h&lt;SEA 的干坑，水域 ⊆ 平面压力域）。
+     * <p>
+     * ⚠ 与 {@link #lakeWaterAt}（腿②：{@code lakeAt < LAKE_WATER_LEVEL}，PlacementGate 消费，
+     * <b>逐字不动</b>——改它会动结构禁入域）<b>不同阈不并收</b>：本出口只服务「灌水对齐」，岸/水
+     * 两口径语义差异不得强行统一（O1a 纪律同款）。
+     */
+    public static boolean sanzuShoreWaterAt(long worldSeed, int x, int z) {
+        return lakeAt(worldSeed, x, z) < sanzuBiomeShoreAt(worldSeed, x, z);
     }
 
     /**
@@ -2421,12 +2450,15 @@ public final class GTSRVoronoiRiverField {
     public static final long SALT_SANZU_BIOME_SHORE = 0x5249F114L;
 
     /**
-     * sanzu 群系滩带外缘阈值（P23 R1 新增私有）：{@link #LAKE_SHORE} + n01×
-     * {@link #SANZU_BIOME_SHORE_JITTER}（n01 = 低频 valueNoise 的 [0,1) 归一；换算式见
-     * {@link #SANZU_BIOME_SHORE_JITTER}）。单边调制（阈值只往岸外扩）：对称 ± 式会在噪声低瓣
-     * 把阈值压回 {@link #LAKE_SHORE} 之下、破坏"恒覆盖置水区"，禁止改对称。
+     * sanzu 群系滩带外缘阈值（P23 R1 新增；<b>P27-L（v1.20.50）private → public</b>——单一真值
+     * 直通消费面：PTP 振幅带（heightCore 湖段）与 {@link #sanzuShoreWaterAt}（灌水单一出口）+
+     * C 片客户端水色梯度（{@code BlockAbyssalFluid} 场缓存只准复算 {@code lakeAt}+本式，禁复算
+     * isSanzuColumn 全谓词），不加包装函数第二份）：
+     * {@link #LAKE_SHORE} + n01×{@link #SANZU_BIOME_SHORE_JITTER}（n01 = 低频 valueNoise 的
+     * [0,1) 归一；换算式见{@link #SANZU_BIOME_SHORE_JITTER}）。单边调制（阈值只往岸外扩）：对称
+     * ± 式会在噪声低瓣把阈值压回 {@link #LAKE_SHORE} 之下、破坏"恒覆盖置水区"，禁止改对称。
      */
-    private static double sanzuBiomeShoreAt(long worldSeed, int x, int z) {
+    public static double sanzuBiomeShoreAt(long worldSeed, int x, int z) {
         final double n = GTSRWorldgenHash.valueNoise(
             worldSeed ^ SALT_SANZU_BIOME_SHORE,
             x / SANZU_BIOME_SHORE_NOISE_SCALE,
@@ -2448,14 +2480,21 @@ public final class GTSRVoronoiRiverField {
      * 干列 0）。<b>置水域不随动</b>：fillSanzuLakes 的置水门 {@code h < SEA_LEVEL} 原样 ⇒
      * 滩缘列（h=69）天然不满足置水门——本腿只扩群系平面不扩水面（82 纪律 1）。
      * <p>
-     * ═══ P25（D2）侵蚀式粗格净空门（sanzu 外缘软化）→ <b>P26-B3 两档</b>═══ 原始谓词之上加
-     * "粗格邻域全真"门：粗格 4 格粒（{@code >>}COARSE_BLOCK_SHIFT，与 coarse 身份面同一条 1:4
-     * 粒），其<b>代表列</b>（格基列 {@code cell<<2}）上"原始谓词全真"才入群系——形态学侵蚀消掉
-     * 半岛/尖角/毛边。<b>P26-B3 起分两档</b>：核心列（h ≤ SEA）R =
-     * {@link #SANZU_CLEAR_RADIUS_CELLS} = 2（5×5，名义 8 格侵蚀带，逐字不动）；滩缘列（h=69
-     * 干滩环）R = {@link #SANZU_FRINGE_CLEAR_RADIUS_CELLS} = 1（3×3，名义 4 格）——不分档则
-     * R=2 的 8 格侵蚀会吃掉 0~17 格噪声腿干滩环的绝大部分、b1 滩缘腿形同虚设（evolve-lake b1
-     * 方案①）。两张 memo 表（{@link #SANZU_CLEAR_CACHE} / {@link #SANZU_FRINGE_CLEAR_CACHE}，
+     * ═══ h 腿四档（P27-L D1·1b+1e，v1.20.50）═══ 核心档（h ≤ SEA，5×5 表 #1）<b>逐字不动</b>
+     * （P25 逐位承诺保持）；新增<b>岛档</b>（{@code lake < LAKE_ISLAND} → h ≤
+     * {@link #SANZU_ISLAND_PLANE_TOP_Y}=72，3×3 表 #3——岛面干列入平面，平面岛域 ≈ 岛抬升域）
+     * 与<b>滩坡档</b>（{@code lake < LAKE_SHORE} → h ≤ SEA+RISE+
+     * {@link #SANZU_SHORE_SLOPE_HALO}=79，3×3 表 #4——平面沿设计滩环爬坡入岸坡，与干滩羽化
+     * 材质域外沿对齐）；抖动滩缘 [SHORE, shoreAt) 维持 69 帽（表 #2 逐字不动，防噪声腿外溢）。
+     * <p>
+     * ═══ P25（D2）侵蚀式粗格净空门（sanzu 外缘软化）→ <b>P26-B3 两档 → P27-L 四档</b>═══
+     * 原始谓词之上加"粗格邻域全真"门：粗格 4 格粒（{@code >>}COARSE_BLOCK_SHIFT，与 coarse
+     * 身份面同一条 1:4 粒），其<b>代表列</b>（格基列 {@code cell<<2}）上"原始谓词全真"才入群系
+     * ——形态学侵蚀消掉半岛/尖角/毛边。核心列（h ≤ SEA）R = {@link #SANZU_CLEAR_RADIUS_CELLS}
+     * = 2（5×5，名义 8 格侵蚀带，逐字不动）；其余三档 R =
+     * {@link #SANZU_FRINGE_CLEAR_RADIUS_CELLS} = 1（3×3，名义 4 格），各持独立 memo 表
+     * （{@link #SANZU_CLEAR_CACHE} / {@link #SANZU_FRINGE_CLEAR_CACHE} /
+     * {@link #SANZU_ISLAND_CLEAR_CACHE} / {@link #SANZU_SLOPE_CLEAR_CACHE}，
      * {@code TerrainVariants.swampInteriorAt} 同构先例：线程私有、上限整清重算值不变）；单边 ≥
      * 不变式（sanzuBiomeShoreAt 只往岸外扩）原样保留。核心列的 5×5 核心谓词路径与 P25 逐字
      * 相同 ⇒ 核心群系平面逐位不动。
@@ -2468,23 +2507,54 @@ public final class GTSRVoronoiRiverField {
      * 自动跟随场值，见 PTP 湖段）。
      */
     public static boolean isSanzuColumn(long worldSeed, int x, int z) {
-        if (!(lakeAt(worldSeed, x, z) < sanzuBiomeShoreAt(worldSeed, x, z))) {
+        final double lake = lakeAt(worldSeed, x, z);
+        if (!(lake < sanzuBiomeShoreAt(worldSeed, x, z))) {
             return false;
         }
         final int h = ProsperityTerrainProfile.heightAt(worldSeed, x, z);
-        // h 腿两档（P26-B3 D2）：核心 h ≤ SEA 维持 P25 语义；滩缘 h ≤ SEA+SANZU_DRY_BEACH_RISE
-        // （只放进噪声腿 0~17 格干滩环；h≥70 常规平地不进）。
+        // h 腿（P26-B3 两档 → P27-L 四档）：核心 h ≤ SEA 维持 P25 语义（逐字不动）；岛档
+        // lake<LAKE_ISLAND → h ≤ SANZU_ISLAND_PLANE_TOP_Y（派生式 72，岛面干列入平面）；滩坡档
+        // lake<LAKE_SHORE → h ≤ SEA+RISE+SANZU_SHORE_SLOPE_HALO（设计滩环内爬坡帽 79）；抖动
+        // 滩缘 [SHORE, shoreAt) 维持 69 帽（P26-B3 逐字，防噪声腿外溢）。
         final boolean coreLeg = h <= ProsperityTerrainProfile.SEA_LEVEL;
-        if (!coreLeg && h > ProsperityTerrainProfile.SEA_LEVEL + SANZU_DRY_BEACH_RISE) {
-            return false;
+        if (!coreLeg) {
+            if (lake < LAKE_ISLAND) {
+                if (h > SANZU_ISLAND_PLANE_TOP_Y) {
+                    return false;
+                }
+            } else if (lake < LAKE_SHORE) {
+                if (h > ProsperityTerrainProfile.SEA_LEVEL + SANZU_DRY_BEACH_RISE + SANZU_SHORE_SLOPE_HALO) {
+                    return false;
+                }
+            } else if (h > ProsperityTerrainProfile.SEA_LEVEL + SANZU_DRY_BEACH_RISE) {
+                return false;
+            }
         }
-        // —— 侵蚀门两档（P25 D2 → P26-B3）：核心 5×5 核心谓词（逐字同 P25）｜滩缘 3×3 滩缘谓词 ——
+        // —— 侵蚀门（P25 D2 → P26-B3 两档 → P27-L 四档）：核心 5×5 核心谓词（逐字同 P25，
+        // memo 表 #1 与 P25 逐位相同）｜岛档/滩坡档 3×3 各自独立 memo 表（#3/#4）｜滩缘 3×3
+        // （#2，P26-B3 逐字）——
         final int cellX = x >> GTSRGenLayerChain.COARSE_BLOCK_SHIFT;
         final int cellZ = z >> GTSRGenLayerChain.COARSE_BLOCK_SHIFT;
         if (coreLeg) {
             for (int dz = -SANZU_CLEAR_RADIUS_CELLS; dz <= SANZU_CLEAR_RADIUS_CELLS; dz++) {
                 for (int dx = -SANZU_CLEAR_RADIUS_CELLS; dx <= SANZU_CLEAR_RADIUS_CELLS; dx++) {
                     if (!sanzuCellClearAt(worldSeed, cellX + dx, cellZ + dz)) {
+                        return false;
+                    }
+                }
+            }
+        } else if (lake < LAKE_ISLAND) {
+            for (int dz = -SANZU_FRINGE_CLEAR_RADIUS_CELLS; dz <= SANZU_FRINGE_CLEAR_RADIUS_CELLS; dz++) {
+                for (int dx = -SANZU_FRINGE_CLEAR_RADIUS_CELLS; dx <= SANZU_FRINGE_CLEAR_RADIUS_CELLS; dx++) {
+                    if (!sanzuIslandCellClearAt(worldSeed, cellX + dx, cellZ + dz)) {
+                        return false;
+                    }
+                }
+            }
+        } else if (lake < LAKE_SHORE) {
+            for (int dz = -SANZU_FRINGE_CLEAR_RADIUS_CELLS; dz <= SANZU_FRINGE_CLEAR_RADIUS_CELLS; dz++) {
+                for (int dx = -SANZU_FRINGE_CLEAR_RADIUS_CELLS; dx <= SANZU_FRINGE_CLEAR_RADIUS_CELLS; dx++) {
+                    if (!sanzuSlopeCellClearAt(worldSeed, cellX + dx, cellZ + dz)) {
                         return false;
                     }
                 }
@@ -2520,9 +2590,35 @@ public final class GTSRVoronoiRiverField {
     public static final int SANZU_DRY_BEACH_RISE = 1;
 
     /**
-     * 滩缘列（h = SEA+{@link #SANZU_DRY_BEACH_RISE} 干滩环）的净空门侵蚀半径（粗格数，
-     * P26-B3 D2 新增）：R=1 ⇒ 3×3 = 9 邻格 = 名义 4 格侵蚀带——只削毛边，不吃掉 0~17 格
-     * 噪声腿干滩环的主体（R=2 的名义 8 格会吃掉其绝大部分）。校准域 {1,2}；R3 降级腿 =
+     * <b>岛档平面帽</b>（P27-L D1·1e 新增，v1.20.50）：岛压力域（{@code lakeAt < LAKE_ISLAND}）内
+     * 非核心列（h &gt; SEA_LEVEL）的 h 上沿。派生式 = {@code SEA_LEVEL + (int) LAKE_ISLAND_LIFT}
+     * = <b>72</b>（{@link #LAKE_PILLAR_TOP_Y} 的派生式先例同款，不另立第二真值）——恰为岛面顶高：
+     * 岛面由 {@link #lakeIslandTopAt} 抬到 SEA+LIFT ⇒ 岛面干列（h ∈ (68,72]）整段可入平面；
+     * 岛缘水下床列（h ≤ SEA）由核心档覆盖 ⇒ 平面岛域 ≈ 岛抬升域。岛压力域（中位半径 ≈139）
+     * 大于绝对半径岛（≈40），但差额列全是水下床列（核心档已盖）⇒ 无假阳性；本帽只复用谓词
+     * 已算出的 lakeAt，零新场求值（1e 选型，ue-lake §1）。
+     */
+    public static final int SANZU_ISLAND_PLANE_TOP_Y = ProsperityTerrainProfile.SEA_LEVEL + (int) LAKE_ISLAND_LIFT;
+
+    /**
+     * <b>滩坡档帽的外檐</b>（格，P27-L D1·1b 新增，v1.20.50）：滩坡档 h 上沿 = SEA_LEVEL+
+     * {@link #SANZU_DRY_BEACH_RISE}+本值 = 68+1+10 = <b>79</b>。取 10 = 干滩羽化的最大外檐
+     * （P22 A2b 的 {@code WETB_HALO_MAX} 档，概率羽化域内 h 可到 79）——谓词 h 帽与材质羽化域
+     * 外沿对齐 ⇒ 平面沿<b>设计滩环</b>（宽 22~39 格）爬坡入岸坡，而抖动滩缘（[SHORE, shoreAt)）
+     * 维持 69 帽不外溢。缩样三档 {69(基线), 74, 79} 的定档读数见
+     * {@code plan/tmp/p27-l-readings.md}（占比超 2.0% 且 74 帽仍超 ⇒ 弃滩坡档，D1 回退点）。
+     * <p>
+     * <b>单源纪律</b>：本常量提升为 RVF/CPR 共享真值——CPR {@code LakeWetBandTopSelector}
+     * 的 {@code WETB_HALO_MAX} 引用本值（{@code SANZU_DRY_BEACH_RISE} 三处同源先例同款），
+     * 高度帽与材质檐不再各持一份 10。
+     */
+    public static final int SANZU_SHORE_SLOPE_HALO = 10;
+
+    /**
+     * 非核心档净空门侵蚀半径（粗格数，P26-B3 D2 新增；<b>P27-L 起岛档/滩坡档共用</b>）：R=1
+     * ⇒ 3×3 = 9 邻格 = 名义 4 格侵蚀带——只削毛边，不吃掉 0~17 格噪声腿干滩环的主体（R=2 的
+     * 名义 8 格会吃掉其绝大部分）；岛档同理（5×5 会把平面岛干半径 40 蚀到 ≈32，见
+     * {@link #sanzuIslandCellClearAt}）、滩坡档同理（22~39 格设计滩环）。校准域 {1,2}；R3 降级腿 =
      * 收紧本档（或 {@link #SANZU_DRY_BEACH_RISE} 退 0）。
      */
     private static final int SANZU_FRINGE_CLEAR_RADIUS_CELLS = 1;
@@ -2535,6 +2631,14 @@ public final class GTSRVoronoiRiverField {
 
     /** 滩缘净空门粗格 memo（P26-B3 D2 第二张表，同 {@link #SANZU_CLEAR_CACHE} 范式与上限）。 */
     private static final ThreadLocal<HashMap<Long, HashMap<Long, Boolean>>> SANZU_FRINGE_CLEAR_CACHE = ThreadLocal
+        .withInitial(HashMap::new);
+
+    /** 岛档净空门粗格 memo（P27-L 第三张表，同 {@link #SANZU_CLEAR_CACHE} 范式与上限）。 */
+    private static final ThreadLocal<HashMap<Long, HashMap<Long, Boolean>>> SANZU_ISLAND_CLEAR_CACHE = ThreadLocal
+        .withInitial(HashMap::new);
+
+    /** 滩坡档净空门粗格 memo（P27-L 第四张表，同 {@link #SANZU_CLEAR_CACHE} 范式与上限）。 */
+    private static final ThreadLocal<HashMap<Long, HashMap<Long, Boolean>>> SANZU_SLOPE_CLEAR_CACHE = ThreadLocal
         .withInitial(HashMap::new);
 
     /**
@@ -2595,6 +2699,71 @@ public final class GTSRVoronoiRiverField {
         final boolean clear = lakeAt(worldSeed, rx, rz) < sanzuBiomeShoreAt(worldSeed, rx, rz)
             && ProsperityTerrainProfile.heightAt(worldSeed, rx, rz)
                 <= ProsperityTerrainProfile.SEA_LEVEL + SANZU_DRY_BEACH_RISE;
+        if (cells.size() >= SANZU_CLEAR_CACHE_CAP) {
+            cells.clear();
+        }
+        cells.put(key, Boolean.valueOf(clear));
+        return clear;
+    }
+
+    /**
+     * 岛档粗格代表列的<b>岛档原始谓词</b>（P27-L 1e 新增，{@code lakeAt < LAKE_ISLAND} ∧
+     * {@code heightAt ≤ SANZU_ISLAND_PLANE_TOP_Y}——岛压力域 ⊂ 湖水区 ⊂ 群系压力域 ⇒ 压力腿
+     * 由 {@code lakeAt < LAKE_ISLAND} 一条腿蕴含，不重复比较）：按 (seed, cellX, cellZ) memo 于
+     * {@link #SANZU_ISLAND_CLEAR_CACHE}（第三张表，与核心/滩缘/滩坡各表分离 ⇒ 各档互不污染、
+     * 核心档 memo 值与 P25 逐位相同）。求值面、上限整清、无递归环论证全部同
+     * {@link #sanzuCellClearAt}（h 腿阈 = 岛帽 72 是唯一差异）。岛是湖内紧致团块、四邻皆水列
+     * （核心档已盖）⇒ 3×3 侵蚀只收岛缘毛边（R=2 会把平面岛干半径 40 蚀到 ≈32，观感 = 岛上
+     * 长邻接群系环——故岛档与滩坡档共用滩缘档的 R=1）。
+     */
+    private static boolean sanzuIslandCellClearAt(long worldSeed, int cellX, int cellZ) {
+        final HashMap<Long, HashMap<Long, Boolean>> bySeed = SANZU_ISLAND_CLEAR_CACHE.get();
+        HashMap<Long, Boolean> cells = bySeed.get(worldSeed);
+        if (cells == null) {
+            cells = new HashMap<>();
+            bySeed.put(worldSeed, cells);
+        }
+        final Long key = Long.valueOf(((long) cellX << 32) | (cellZ & 0xFFFFFFFFL));
+        final Boolean cached = cells.get(key);
+        if (cached != null) {
+            return cached.booleanValue();
+        }
+        final int rx = cellX << GTSRGenLayerChain.COARSE_BLOCK_SHIFT;
+        final int rz = cellZ << GTSRGenLayerChain.COARSE_BLOCK_SHIFT;
+        final boolean clear = lakeAt(worldSeed, rx, rz) < LAKE_ISLAND
+            && ProsperityTerrainProfile.heightAt(worldSeed, rx, rz) <= SANZU_ISLAND_PLANE_TOP_Y;
+        if (cells.size() >= SANZU_CLEAR_CACHE_CAP) {
+            cells.clear();
+        }
+        cells.put(key, Boolean.valueOf(clear));
+        return clear;
+    }
+
+    /**
+     * 滩坡档粗格代表列的<b>滩坡原始谓词</b>（P27-L 1b 新增，{@code lakeAt < LAKE_SHORE} ∧
+     * {@code heightAt ≤ SEA_LEVEL+SANZU_DRY_BEACH_RISE+SANZU_SHORE_SLOPE_HALO}（=79）——
+     * {@code lakeAt < LAKE_SHORE} ⇒ 群系压力腿蕴含，不重复比较）：按 (seed, cellX, cellZ)
+     * memo 于{@link #SANZU_SLOPE_CLEAR_CACHE}（第四张表，同范式与上限）。坡上新列来自地形
+     * 连续域、毛边风险与滩缘同类 ⇒ R=1（3×3）；R=2 的 8 格侵蚀会吃掉 22~39 格设计滩环的
+     * 可观份额。求值面、上限整清、无递归环论证全部同 {@link #sanzuCellClearAt}。
+     */
+    private static boolean sanzuSlopeCellClearAt(long worldSeed, int cellX, int cellZ) {
+        final HashMap<Long, HashMap<Long, Boolean>> bySeed = SANZU_SLOPE_CLEAR_CACHE.get();
+        HashMap<Long, Boolean> cells = bySeed.get(worldSeed);
+        if (cells == null) {
+            cells = new HashMap<>();
+            bySeed.put(worldSeed, cells);
+        }
+        final Long key = Long.valueOf(((long) cellX << 32) | (cellZ & 0xFFFFFFFFL));
+        final Boolean cached = cells.get(key);
+        if (cached != null) {
+            return cached.booleanValue();
+        }
+        final int rx = cellX << GTSRGenLayerChain.COARSE_BLOCK_SHIFT;
+        final int rz = cellZ << GTSRGenLayerChain.COARSE_BLOCK_SHIFT;
+        final boolean clear = lakeAt(worldSeed, rx, rz) < LAKE_SHORE
+            && ProsperityTerrainProfile.heightAt(worldSeed, rx, rz)
+                <= ProsperityTerrainProfile.SEA_LEVEL + SANZU_DRY_BEACH_RISE + SANZU_SHORE_SLOPE_HALO;
         if (cells.size() >= SANZU_CLEAR_CACHE_CAP) {
             cells.clear();
         }

@@ -9,11 +9,14 @@ import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.World;
 
 import com.miaokatze.gtsr.common.blocks.GTSRSingularityFX;
+import com.miaokatze.gtsr.common.client.AbyssalTintField;
+import com.miaokatze.gtsr.common.dimension.prosperity.WorldProviderProsperityRuins;
 import com.miaokatze.gtsr.common.machine.MTESingularityDrillingHub;
 import com.miaokatze.gtsr.common.machine.base.MTEHubArrayBase;
 import com.miaokatze.gtsr.common.terminal.TerminalNet;
 
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
+import cpw.mods.fml.common.gameevent.PlayerEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
 import cpw.mods.fml.common.network.NetworkRegistry;
 import cpw.mods.fml.common.network.simpleimpl.IMessage;
@@ -38,6 +41,9 @@ public class GTSRFXNet {
     public static void init() {
         NETWORK.registerMessage(AbsorbMessageHandler.class, AbsorbMessage.class, 0, Side.CLIENT);
         NETWORK.registerMessage(HubBindHandler.class, HubBindMessage.class, 1, Side.SERVER);
+        // P27 C 片（v1.20.50）：dim78 世界种子 S2C 同步（id 2，客户端水色连续场 AbyssalTintField
+        // 消费——1.7.10 客户端 join/respawn 包不含种子，占位 seed 不可复算 RVF 场）
+        NETWORK.registerMessage(SeedSyncHandler.class, SeedSyncMessage.class, 2, Side.CLIENT);
         // 终端轨（channel "gtsr_terminal"）：注册点收束于本 init 尾部，满足「GTSRFXNet 基建可扩展」决策
         TerminalNet.register();
         // 调谐棒轨（channel "gtsr_wand"）：同上收束策略
@@ -45,6 +51,10 @@ public class GTSRFXNet {
         cpw.mods.fml.common.FMLCommonHandler.instance()
             .bus()
             .register(new BindServerDrain());
+        // P27 C 片：登录 + 切入 dim78 时补发种子（见 SeedSyncSender 类注释时序设计）
+        cpw.mods.fml.common.FMLCommonHandler.instance()
+            .bus()
+            .register(new SeedSyncSender());
     }
 
     /** 服务端：吸收方块处生成向心粒子（S2C 广播 64 格内玩家） */
@@ -168,6 +178,76 @@ public class GTSRFXNet {
             // 否则合成方法会在服务端类链接时解析 Minecraft/WorldClient 导致 SideTransformer 崩溃）
             GTSRSingularityFX.spawnAbsorbScheduled(msg.fx, msg.fy, msg.fz, msg.tx, msg.ty, msg.tz);
             return null;
+        }
+    }
+
+    /**
+     * dim78 世界种子同步包（v1.20.50 P27 C 片，通道 id 2，S2C，writeLong 单字段）。种子取
+     * {@code player.worldObj.getSeed()}（RVF 湖压力场消费口径——ChunkProviderProsperityRuins
+     * 亦以此值为 worldSeed 直传 lakeAt/sanzuBiomeShoreAt，两处同一真值；GTSRChunkProviderBase
+     * 构造参的 salted seed 只喂 populate Random，不进 RVF）。
+     */
+    public static class SeedSyncMessage implements IMessage {
+
+        private long seed;
+
+        public SeedSyncMessage() {}
+
+        public SeedSyncMessage(long seed) {
+            this.seed = seed;
+        }
+
+        @Override
+        public void fromBytes(ByteBuf buf) {
+            this.seed = buf.readLong();
+        }
+
+        @Override
+        public void toBytes(ByteBuf buf) {
+            buf.writeLong(this.seed);
+        }
+    }
+
+    public static class SeedSyncHandler implements IMessageHandler<SeedSyncMessage, IMessage> {
+
+        @Override
+        @SideOnly(Side.CLIENT)
+        public IMessage onMessage(SeedSyncMessage msg, MessageContext ctx) {
+            // Netty 线程执行：单 volatile 长整写、零 Minecraft 引用，无需调度回主线程
+            // （AbsorbMessageHandler 的主线程调度是粒子需要世界上下文；本处与 AbsorbMessageHandler
+            // 同纪律——不出现 lambda，客户端类只在本被剥离方法体内被解析，专用服零加载）
+            AbyssalTintField.applyWorldSeed(msg.seed);
+            return null;
+        }
+    }
+
+    /**
+     * 服务端种子补发时机（P27 C 片时序设计，v1.20.50）：
+     * <ul>
+     * <li><b>PlayerLoggedInEvent</b>（FML bus，仅逻辑服触发）：无条件发——SP 进 dim78 存档、
+     * MP 直连即入 dim78、以及"换服后 holder 残留旧服种子"的覆盖刷新（登录包先于首帧渲染
+     * 送达；万一竞先，仅首数帧走盒式退化或短暂错色，包到即自愈）；</li>
+     * <li><b>PlayerChangedDimensionEvent</b>（事件触发时玩家已在目标维）：目标维 provider 为
+     * {@link WorldProviderProsperityRuins} 才发（水色只在 dim78 消费；8 字节包，其余维切换不发）。</li>
+     * </ul>
+     * 常驻退化（AbyssalTintField 类注释）：holder 缺省（包未到）/ 客户端不在 dim78 世界 ⇒
+     * 3×3 群系占比盒式——包时序异常的最坏表现即持续盒式（plan §1-B2 失败迭代条款的内置回退）。
+     */
+    public static final class SeedSyncSender {
+
+        @SubscribeEvent
+        public void onPlayerLoggedIn(PlayerEvent.PlayerLoggedInEvent event) {
+            if (event.player instanceof EntityPlayerMP p) {
+                NETWORK.sendTo(new SeedSyncMessage(p.worldObj.getSeed()), p);
+            }
+        }
+
+        @SubscribeEvent
+        public void onPlayerChangedDimension(PlayerEvent.PlayerChangedDimensionEvent event) {
+            if (event.player instanceof EntityPlayerMP p
+                && p.worldObj.provider instanceof WorldProviderProsperityRuins) {
+                NETWORK.sendTo(new SeedSyncMessage(p.worldObj.getSeed()), p);
+            }
         }
     }
 }

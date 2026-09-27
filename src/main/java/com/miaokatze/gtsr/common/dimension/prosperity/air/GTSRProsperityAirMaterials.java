@@ -63,8 +63,9 @@ public class GTSRProsperityAirMaterials implements IMaterialHandler {
     public static Materials SanzuResidualSteam;
     /**
      * 深渊执念（en: Abyssal Obsession）——dim78 河湖流体本体材料（v1.20.40 P19 plan §I 第六员，
-     * 唯一液体）。深蓝 0x234A6B（普通档 colorMultiplier 0x2E5F8A / 遗忘之川档 0x142C4F 由
-     * BlockAbyssalFluid 两档乘色，见其类注释）。FluidRegistry 名 = "abyssal_obsession"。
+     * 唯一液体）。深蓝 0x234A6B（普通档 colorMultiplier 0x3A6FA0 / 遗忘之川档 0x1C3A63 由
+     * BlockAbyssalFluid 两端点乘色（v1.20.50 P27 D3 提亮档，两端点间按湖压力场连续梯度插值，
+     * 见 AbyssalTintField），见其类注释）。FluidRegistry 名 = "abyssal_obsession"。
      */
     public static Materials AbyssalObsession;
     /**

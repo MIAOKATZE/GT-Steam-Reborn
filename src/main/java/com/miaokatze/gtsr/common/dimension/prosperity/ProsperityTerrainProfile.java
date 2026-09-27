@@ -497,11 +497,46 @@ public final class ProsperityTerrainProfile {
      * v1.20.39 T4 起在 amp 平滑之后追加<b>河谷压低链</b>——plan §3.2）。
      */
     private static int heightCore(long worldSeed, int x, int z) {
+        // P27-L（D1·2c，v1.20.50）：湖压力求值上移到振幅位之前——lakeAt 有 LAKE_MEMO 列槽
+        // 记忆化 ⇒ 下方湖段（原 :616 起的巨湖压低段）复用同一值，零重扫、零新增求值序变化。
+        final double lake = GTSRVoronoiRiverField.lakeAt(worldSeed, x, z);
         // 低频幅度调制（连续化保留）：波长 384，乘子 0.6..1.4
         final double zone = GTSRWorldgenHash.valueNoise(worldSeed ^ 0x5A0E5A0EL, x / 384.0D, z / 384.0D);
         // P17 S-A：再乘一档群系振幅（森 > 原 ≥ 沙 > 沼；默认档 1.0 = 改造前口径）；
-        // P18 T3：该档由平滑场 ampAt 给出（plan §3.6），群系边界 40-60 格渐变、无 4.25× 硬跳
-        final double amplitude = (1.0D + 0.4D * zone) * ampAt(worldSeed, x, z);
+        // P18 T3：该档由平滑场 ampAt 给出（plan §3.6），群系边界 40-60 格渐变、无 4.25× 硬跳。
+        // ═══ P27-L（D1·2c）湖域振幅带 ═══ lake ≤ sanzuBiomeShoreAt 恒取 sanzu 振幅档
+        // （RELIEF_AMPLITUDE_BY_ROSTER[4]=0.38，<b>档表单源、禁字面量</b>——GenLayer 红线约束下
+        // "湖域列用 sanzu 档"的唯一等价物：核原料从身份面换成压力面）；带外
+        // s01((lake−shoreAt)/LAKE_AMP_BELT_DELTA) 收敛回 ampAt——smoothstep 起点导数 0 ⇒ C1
+        // 连续、shoreAt 抖动只摆动起点不造坎（2a/2b 是"把硬换个位置"，已否证）。
+        // <b>构造性逐位保证</b>：① 湖水区（lake &lt; LAKE_WATER_LEVEL）短路取 sanzu 档——域内
+        // 高度由湖段 min 到床/岛面 max 主导，且免 ampAt 求值（GenBench 带列成本对冲）；② 带外
+        // （lake ≥ shoreAt+Δ 的两臂，含 SHORE+JITTER+Δ 快速臂——sanzuBiomeShoreAt &lt; SHORE+
+        // JITTER 恒成立 ⇒ 该臂蕴含带外）<b>直接返回 ampAt 本值</b>，与改造前逐位相同（无
+        // sanzuAmp+(ampAt−sanzuAmp)·1 的 ulp 漂移）；③ 抖动滩缘 [SHORE, shoreAt) 属"平面内"
+        // 取 sanzu 档——平面缘由带过渡，无 4.25× 硬跳的湖版复发。
+        final double sanzuAmp = RELIEF_AMPLITUDE_BY_ROSTER[4];
+        final double ampBase;
+        if (lake < GTSRVoronoiRiverField.LAKE_WATER_LEVEL) {
+            ampBase = sanzuAmp; // waterCore 短路（2c：湖域列振幅档）
+        } else if (lake >= GTSRVoronoiRiverField.LAKE_SHORE + GTSRVoronoiRiverField.SANZU_BIOME_SHORE_JITTER
+            + GTSRVoronoiRiverField.LAKE_AMP_BELT_DELTA) {
+                ampBase = ampAt(worldSeed, x, z); // 带外快速臂：零额外噪声求值、逐位同改造前
+            } else {
+                final double shoreAt = GTSRVoronoiRiverField.sanzuBiomeShoreAt(worldSeed, x, z);
+                if (lake <= shoreAt) {
+                    ampBase = sanzuAmp;
+                } else {
+                    final double t = (lake - shoreAt) / GTSRVoronoiRiverField.LAKE_AMP_BELT_DELTA;
+                    if (t >= 1.0D) {
+                        ampBase = ampAt(worldSeed, x, z); // 带外慢臂：逐位同改造前
+                    } else {
+                        final double e = t * t * (3.0D - 2.0D * t);
+                        ampBase = sanzuAmp + (ampAt(worldSeed, x, z) - sanzuAmp) * e;
+                    }
+                }
+            }
+        final double amplitude = (1.0D + 0.4D * zone) * ampBase;
         // 统一缓丘：主波长 180 ±12（×1.2）+ 次波长 56 ±5.4（×1.2）
         final double h1 = GTSRWorldgenHash.valueNoise(worldSeed, x / 180.0D, z / 180.0D);
         final double h2 = GTSRWorldgenHash.valueNoise(worldSeed ^ 0x11L, x / 56.0D, z / 56.0D);
@@ -613,7 +648,8 @@ public final class ProsperityTerrainProfile {
         // [WATER, SHORE) 从湖床线性渐变回当前地形（与河谷 e 的联合 = 先河谷后巨湖、湖水区取
         // 两者之深 ⇒ e 与 bed 在湖心联合作用）。v1.20.40 起湖滨带渐变加 min 语义：与河谷/
         // 微池压低取更深者，防"河道/低地穿湖滨带被渐变抬高成坝"。═══
-        final double lake = GTSRVoronoiRiverField.lakeAt(worldSeed, x, z);
+        // P27-L（2c）：本段的 lakeAt 求值已上移到 heightCore 顶部振幅位（LAKE_MEMO 复用，
+        // 值逐位相同），此处直用局部量 lake。═══
         if (lake < GTSRVoronoiRiverField.LAKE_SHORE) {
             final double lakeBed = GTSRVoronoiRiverField.lakeBedAt(worldSeed, x, z, lake);
             if (lake < GTSRVoronoiRiverField.LAKE_WATER_LEVEL) {

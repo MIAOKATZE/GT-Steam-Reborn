@@ -32,11 +32,14 @@ import com.miaokatze.gtsr.common.dimension.prosperity.river.GTSRVoronoiRiverFiel
  * P22 版 B · S3 岛心巨树（垂天玄柯）判据：A（净空五读）/ B（派生窗）/ C（30 座活湖实测）/
  * D（重放幂等 + 全跨并集单射 + 源级纪律）四组（范式同源已随 CaveFieldCheck 退役，P23 S1）。
  *
- * <p>═══ A 净空五读（单树几何硬界；P26-B5 随垂帘擎天放大档重钉，全部派生式）═══ 冠 bbox
- * 水平_extent ≤ 2R+1（R=CANOPY_RADIUS=64，枝系绿端 ≤61 + 冠壳 64 双路覆盖）且 ≥ 2R−1（在场，防冠壳缩水）；
- * 单树跨 chunk 数 ≤ bbox chunk 面积（9×9=81）；{@code windowChunks(R) == 17}（派生式，改半径档
- * 自动跟）；树顶 ≤ 255（实测 ≤250；+ y0=200 早退臂零写入）；单树写格 ≤ 65000 / 单 chunk ≤ 12000
- * （30 湖实测 [57490,58933]/10368 的帽，见 TREE_CELL_CAP 注释）。
+ * <p>═══ A 净空五读（单树几何硬界；P27 分叉顶冠随形态换算重钉，全部派生式）═══ 冠 bbox
+ * 水平_extent ≤ 2R+1（R=CANOPY_RADIUS=64，径向硬界派生式：任一冠格到树轴水平距离 ≤64，reachMax+
+ * tuftR 上界的逐格形式）+ <b>8 扇区覆盖腿</b>（k∈[0,8) 界 [k·45°,(k+1)·45°)，各扇区叶格最大半径 ≥
+ * {@link #SECTOR_R_FLOOR}——椭球壳 presence 两轴腿随壳退役，防冠缩水的等价重钉；外轮 5 枝黄金角
+ * 散布最大角隙 85° &lt; 90° 的结构性保证）；单树跨 chunk 数 ≤ bbox chunk 面积（9×9=81）；
+ * {@code windowChunks(R) == 17}（派生式，改半径档自动跟）；树顶 ≤ 255（实测 ≤219；+ y0=200
+ * 早退臂零写入，255 门派生式 helper crownTopAt 口径）；单树写格 ≤ 65000 / 单 chunk ≤ 12000
+ * （30 湖实测 [34015,40414]/10862 的帽，见 TREE_CELL_CAP 注释）。
  *
  * <p>═══ B 派生窗（防写死）═══ 多 radius 断言 {@code windowChunks} == 独立重算公式
  * {@code 2*ceil((2r+1)/16)-1}；恒奇数；且 ≥ 穷举最小窗（充分性方向：窗口至少够大）。
@@ -73,19 +76,25 @@ public final class MegaTreeCheck {
 
     /** 单树写格硬顶（p21 §4 预算）/ 单 chunk 硬顶。 */
     /**
-     * P26-B5 重钉（垂帘擎天放大档：冠半径 64、干高 133..146、总高 165..178）：30 活湖实测
-     * cells ∈ [57490,58933]（散布 2.5%）、chunkMax ≤ 10368 ⇒ TREE_CELL_CAP=65000
-     * （D5' 预算上限即帽——实测上限 ×1.10 收口）、CHUNK_CELL_CAP=12000（×1.16，预算 14000 内）
-     * ——判据域随几何档换算（P23 R1·S6 同款先例：42000/7600 ← 半径 50 档实测 [36544,37406]/6689）。
-     * 几何确定性 ⇒ 两帽防的是"形状生成失控"（分叉指数化/收窄段缺失），不是密度抖动。
+     * P26-B5 重钉（垂帘擎天放大档：冠半径 64、干高 133..146、总高 165..178）+ P27 方案 B 分叉顶冠
+     * （椭球壳退役）复核：30 活湖实测 cells ∈ [34015,40414]（散布 17%）、chunkMax ≤ 10862 ⇒
+     * 帽 65000/12000 不动（保守余量 ≥1.10——两帽防的是"形状生成失控"（分叉指数化/收窄段缺失），
+     * 不是密度抖动；判据域随几何档换算的先例 = P23 R1·S6：42000/7600 ← 半径 50 档）。
      */
     static final int TREE_CELL_CAP = 65000;
     static final int CHUNK_CELL_CAP = 12000;
 
-    /** 出岛必有树的下界（干/叶量级在场，防"落了 1 格也算树"式假绿；P26-B5 随放大档收紧，
-     * 30 湖实测 logs ≈ 12.1k+ / leaves ≈ 45.5k+）。 */
+    /**
+     * 8 扇区覆盖腿阈值（P27 重钉：椭球壳 presence ≥127 两轴腿随壳退役）：30 湖实测各扇区叶格最大
+     * 半径的全局最小 = 46.2（外轮 5 枝黄金角散布 + 叉端外扬的结构性覆盖），向下收口 45 留余量——
+     * 判据域随几何档换算（P23 R1·S6 同款先例）。
+     */
+    static final double SECTOR_R_FLOOR = 45.0D;
+
+    /** 出岛必有树的下界（干/叶量级在场，防"落了 1 格也算树"式假绿；P27 分叉顶冠随形态重钉，
+     * 30 湖实测 logs ≈ 13.0k+ / leaves ≈ 20.8k+，LEAF_FLOOR = 实测下限 ×0.8 收口——壳档 24000 随壳退役）。 */
     static final int LOG_FLOOR = 9000;
-    static final int LEAF_FLOOR = 24000;
+    static final int LEAF_FLOOR = 16000;
 
     /** 生产盐字面（源级断言与 DecorPlacer 钉同值后才用于单树 rand 派生）。 */
     static final long SALT_ISLAND_TREE = 0x49534C4E44L;
@@ -370,9 +379,27 @@ public final class MegaTreeCheck {
             + s.chunkMax);
         final int crownSide = 2 * MegaTreeAnchors.CANOPY_RADIUS + 1;
         a("A", "bbox.horizontalExtent<=" + crownSide + "(dx=" + s.dxExtent + ",dz=" + s.dzExtent
-            + "; P26-B5 半径 64 档，派生式)",
+            + "; P27 径向硬界派生式逐格 ≤64)",
             s.dxExtent <= crownSide && s.dzExtent <= crownSide);
-        a("A", "bbox.horizontalPresence>=" + (crownSide - 2), s.dxExtent >= crownSide - 2 && s.dzExtent >= crownSide - 2);
+        // P27 8 扇区覆盖腿（presence ≥127 两轴腿随椭球壳退役重钉）：k∈[0,8) 界 [k·45°,(k+1)·45°)，
+        // 样本 = 单树叶格集，断言各扇区 max√(dx²+dz²) ≥ SECTOR_R_FLOOR（30 湖全局最小 46.2 收口 45）
+        final double[] sectorMax = new double[8];
+        for (final Map.Entry<Long, Integer> e : rec.cells.entrySet()) {
+            if (e.getValue().intValue() != KIND_LEAF) {
+                continue;
+            }
+            final int x = signFixX((int) (e.getKey() >> 38));
+            final int z = signFixZ((int) ((e.getKey() >> 12) & 0x3FFFFFF));
+            final int dx = x - anchors.get(0).ax;
+            final int dz = z - anchors.get(0).az;
+            int k = (int) Math.floor((Math.atan2(dz, dx) + Math.PI) / (Math.PI / 4.0D));
+            k &= 7; // atan2=+π 边界回卷到 0 号扇区
+            sectorMax[k] = Math.max(sectorMax[k], Math.sqrt(dx * dx + dz * dz));
+        }
+        for (int k = 0; k < 8; k++) {
+            a("A", "sector." + k + ".leafMaxR>=" + SECTOR_R_FLOOR + "(" + String.format("%.1f", Double.valueOf(sectorMax[k]))
+                + "; P27 分叉顶冠重钉)", sectorMax[k] >= SECTOR_R_FLOOR);
+        }
         a("A", "spanChunks<=bboxChunkArea(" + s.chunksSpanned + ")", s.chunksSpanned
             <= ((2 * MegaTreeAnchors.CANOPY_RADIUS + 16) / 16) * ((2 * MegaTreeAnchors.CANOPY_RADIUS + 16) / 16));
         a("A", "windowChunks(RADIUS)==" + MegaTreeAnchors.windowChunks(MegaTreeAnchors.CANOPY_RADIUS)
