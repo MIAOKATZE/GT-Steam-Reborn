@@ -673,6 +673,22 @@ public final class ProsperityTerrainProfile {
                 y = (int) Math.min(y, Math.round(lakeBed * (1.0D - q) + y * q));
             }
         }
+        // ═══ P28-L（v1.20.51 D1·用户①漏水根修）：抖动滩缘贴水线钳制 ═══
+        // 根因：fillSanzuLakes 灌水门 = sanzuShoreWaterAt(lakeAt < sanzuBiomeShoreAt) ∧
+        // h < SEA_LEVEL ⇒ 置水 [h+1, SEA−1]；抖动滩缘 [SHORE, shoreAt) 列不走上方湖段渐变，
+        // 振幅带 0.38 低瓣 h ≤ 66 时被灌 1-2 格薄水（P27 D1·4a 语义"补平面内干坑"的副作用），
+        // 且可落在群系平面 3×3 侵蚀檐外 → 滩缘出现异色漏水。根修 = 地形侧把该带列钳到
+        // ≥ SEA_LEVEL−1 ⇒ 灌水域 [h+1, SEA−1] 为空、干坑变贴水线实地；灌水门与 4a
+        // "水域 ⊆ 平面压力域"不变量原样（门侧零改动）。求值序：单边调制 ⇒ shoreAt ∈
+        // [SHORE, SHORE+JITTER) 恒成立 ⇒ lake ≥ SHORE+JITTER 的列在第二肢短路，缘外列
+        // 零新噪声求值、逐位不变（digest 域外口径）；湖水区/设计滩带 [WATER, SHORE) 列由
+        // 首肢排除（其贴水语义已由湖段 blend 承载）。
+        if (lake >= GTSRVoronoiRiverField.LAKE_SHORE
+            && lake < GTSRVoronoiRiverField.LAKE_SHORE + GTSRVoronoiRiverField.SANZU_BIOME_SHORE_JITTER
+            && lake < GTSRVoronoiRiverField.sanzuBiomeShoreAt(worldSeed, x, z)
+            && y < SEA_LEVEL - 1) {
+            y = SEA_LEVEL - 1;
+        }
         return y < MIN_HEIGHT ? MIN_HEIGHT : Math.min(y, MAX_HEIGHT);
     }
 }

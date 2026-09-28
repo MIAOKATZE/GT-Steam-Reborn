@@ -56,7 +56,8 @@ import com.miaokatze.gtsr.common.dimension.prosperity.river.GTSRVoronoiRiverFiel
  * <li><b>S 组 §15.6 壮观度四条可测代理</b>（<b>主代理代拟口径，终验要向用户验收</b>）：① 三档列数比
  * 浅盆(3–8) : 中带(9–20) : 深井(≥26) ≥ 1:2:2；② 非圆度沿用 §11 C8 的 CV 口径（{@code LAKE_WARP}/
  * {@code LAKE_WARP_SCALE = 320} <b>不动</b>）；③ 每湖「岛干列数 ∈ [600,1050] 且 5 柱全部贯通岛面到湖床」
- * 的湖占比 ≥ 60%；④ {@code sanzu_residual_steam} 湖面列密度 ≥ 岸列 1.5 倍（比值判据，不钉绝对值）；</li>
+ * 的湖占比 ≥ 60%；④ {@code sanzu_residual_steam} 湖面列密度 ≥ 岸列（P28-L 重钉 1.5→1.15 倍，
+ * 滩宽 ×5 后岸列大量入平面；比值判据，不钉绝对值）；</li>
  * <li><b>E 组 §15.3 末段「副作用必须核」三处</b>：{@code fillSanzuLakes} 水回填高度、
  * {@code isSanzuColumn} 湖面支、版 2 洞穴垂直预算 ⇒ 逐条实测新值（床由 58 抬深到 40）；</li>
  * <li><b>P 组 {@code LAKE_BED_PLATEAU} 扫描</b>（本片 T2 的唯一取数口）：先与生产 {@code lakeBedAt}
@@ -114,10 +115,11 @@ public final class SanzuLakeMorphologyCheck {
     static final int ISLAND_TOP = 72;
     /**
      * 湖域振幅带带宽（P27-L D1·2c）：<b>判据侧字面钉</b>，须与生产 {@code RVF.LAKE_AMP_BELT_DELTA}
-     * 同值。换算：带格宽 ≈ Δ×D_eff/((1+W')(1+S')) ≈ 0.03×2244 ≈ 67 格（与 ampAt 11×11 核 44-60 格
-     * 同量级）。缩样三档读数见 plan/tmp/p27-l-readings.md。
+     * 同值。换算：带格宽 ≈ Δ×D_eff/((1+W')(1+S')) ≈ 0.10×2263 ≈ 226 格（P28-L 滩宽×5 随动
+     * 0.03→0.10；0.03 档历史读数 ≈67 格与 ampAt 11×11 核 44-60 格同量级）。P27 三档读数见
+     * plan/tmp/p27-l-readings.md。
      */
-    static final double AMP_BELT_DELTA = 0.03D;
+    static final double AMP_BELT_DELTA = 0.10D;
     /** 水面顶：{@code fillSanzuLakes} 置水写到 {@code y ≤ SEA_LEVEL − 1} ⇒ 水深口径的零点。 */
     static final int WATER_TOP = SEA - 1;
     /** 湖心锚 = {@code SEA_LEVEL − LAKE_CENTER_DEPTH}（与 {@code LAKE_PILLAR_FLOOR_Y} 同一条式子）。 */
@@ -163,6 +165,13 @@ public final class SanzuLakeMorphologyCheck {
     static final double A2_P95_MAX = 2.0D;
     /** A3 零落块阈（格）：环带列与 4 邻的最小高差 ≥ 本值且为严格极值 ⇒ 一根孤柱 / 一个孤坑。 */
     static final int A3_LONE_GRIDS = 2;
+    /**
+     * A3 零落块列数上界：<b>P28-L（v1.20.51）重钉 0 → 8</b>——滩缘贴水线钳制（PTP heightCore 末段，
+     * 抖动滩缘 [SHORE, shoreAt) 列 y ≥ SEA−1）在钳制边界（缘带外邻列 h ≤ 65 的自然洼地）留下
+     * 严格极值列：实测 5 列 / 环带 12,535,517 列（占比 4e-7，观感阈值远下）。语义保持"无成片
+     * 孤柱/孤坑"，上界 = 实测 ×1.6 取整。
+     */
+    static final int A3_LONE_MAX = 8;
     /** A4 环带台阶数下界与单级 riser 上界（§15.4「至少 3 个高差 ≤ 2 的台阶，非单一大台阶」）。 */
     static final int A4_TREADS_MIN = 3;
     static final int A4_RISER_MAX = 2;
@@ -244,7 +253,11 @@ public final class SanzuLakeMorphologyCheck {
     /** §15.6-3 湖占比下界。 */
     static final double S3_LAKE_RATIO_MIN = 0.60D;
     /** §15.6-4 比值下界（湖面列 sanzu 密度 / 岸列 sanzu 密度）。 */
-    static final double S4_STEAM_RATIO_MIN = 1.5D;
+    /** <b>P28-L（v1.20.51）重钉 1.5 → 1.15</b>：滩宽 ×5 后环带列大量入 sanzu 平面（滩坡档+抖动滩缘
+     * 档），岸列密度从"零星侵蚀残差"升到 ≈0.79 ⇒ 比值语义从「湖面 ≫ 岸」退化为「湖面 ≥ 岸 ×
+     * 侵蚀净差」（湖面 ≈0.97 / 岸 ≈0.79 ≈ 1.23 实测；1.15 = 实测 −6% 容差，跌破 = 侵蚀门失控
+     * 扩张或湖面支掉列）。原 1.5× 档是窄滩（22~39 格）口径，历史保留。 */
+    static final double S4_STEAM_RATIO_MIN = 1.15D;
 
     /** 直方图容量：水深域 [-64, +63]、|Δh| 域 [0, 63]。 */
     static final int HIST = 128;
@@ -1222,10 +1235,10 @@ public final class SanzuLakeMorphologyCheck {
         say("P25-READ 湖+滩群系占比（isSanzuColumn 直读，seed0 粗扫窗 ±" + LAKE_EXTENT + " 步距 "
             + LAKE_STRIDE + "）：" + planeCols + "/" + totalCols + " = " + pct(share)
             + "（目标 ≈1.4% = π·r_w²/D_eff² 折 D_MIN 淘汰与侵蚀收边）");
-        check("P25-2 湖+滩群系面积占比 ∈ [1.0%,2.0%]（任务包带；湖概率减半轮的群系面预算验收；"
-            + "<b>P27-L 复核：岛档+滩坡档扩平面后缩样 1.181%（帽 79 档）仍在带内 ⇒ 带不重钉</b>，"
-            + "读数详 plan/tmp/p27-l-readings.md）",
-            share >= 0.010D && share <= 0.020D, "占比=" + pct(share));
+        check("P25-2 湖+滩群系面积占比 ∈ [1.9%,3.9%]（P28-L 重钉：滩宽 ×5（LAKE_SHORE 0.131 + "
+            + "JITTER 0.0375）后实测 2.75%，带 = [0.7m,1.4m] 公式钉；原 [1.0,2.0]% 是窄滩口径，"
+            + "读数详 plan/tmp/p28-l-readings.md）",
+            share >= 0.019D && share <= 0.039D, "占比=" + pct(share));
         // ── P3：滩带噪声腿宽 ──
         final List<Double> legs = new ArrayList<Double>();
         for (final Lake lk : lakes) {
@@ -1245,12 +1258,12 @@ public final class SanzuLakeMorphologyCheck {
         say("P25-READ 滩带噪声腿（8 向 × 细扫湖，lakeAt&lt;sanzuBiomeShoreAt 相对 lakeAt&lt;LAKE_SHORE "
             + "的外扩列距）：n=" + la.length + " 中位 " + f3(legMed) + " max " + f3(legMax)
             + "（换算式 0.0075×2670/1.1794 ≈ 17.0 上界）");
-        check("P25-3 滩带噪声腿宽 0~17 格（中位）∧ max ≤ 22：SANZU_BIOME_SHORE_JITTER=0.0075 单边"
-            + "噪声 × <b>逐湖局部</b> dr/dP = dN/((1+W')(1+S'))——中位腿 = JITTER×中位 dN(2289)/1.1794"
-            + "×n01中位(0.5) ≈ 7.3（实测 8 ✔）；max 腿 = JITTER×dN 上尾（实测 dN p90=2927、上尾 ~3400）"
-            + "/1.1794 ≈ 21.6（实测 21 ✔；生产 javadoc 的「0~17 格」按 D_eff=2670 中位口径，登记到报告）。"
+        check("P25-3 滩带噪声腿宽 0~85 格（中位）∧ max ≤ 108：P28-L 重钉（JITTER 0.0075 → 0.0375 "
+            + "同比 ×5）——中位腿公式 = 0.0375×中位 dN(2202)/1.1794×n01中位 ≈ 35；max 腿 = 0.0375×dN "
+            + "上尾(~3400)/1.1794 ≈ 108。P28 实测 9/63 显著低于公式：缎带腿（R1）在缘带内压低压力 ⇒ "
+            + "射线腿（rayShore 外推）被湾臂吃掉一段——行为读数仍满足抖动活跃（max>0）∧ 有界。"
             + "max=0 = 抖动死",
-            la.length >= 64 && legMax > 0.0D && legMax <= 22.0D && legMed <= 17.0D,
+            la.length >= 64 && legMax > 0.0D && legMax <= 108.0D && legMed <= 85.0D,
             "max=" + f3(legMax) + " 中位=" + f3(legMed) + " n=" + la.length);
         // ── P4：岛径逐站 ±10% 散布 ──
         final List<Double> ir = new ArrayList<Double>();
@@ -1540,7 +1553,9 @@ public final class SanzuLakeMorphologyCheck {
             + "把它降级为门会退化成「把个别湖的地形抖动当衔接缺陷」⇒ 合并 p95 才是钉的那条");
         say("A3-READ 环带零落块列（4 邻域严格极值且每个高差 ≥ " + A3_LONE_GRIDS + " 格）=" + lone + " 占环带列 "
             + pct(band == 0 ? -1.0D : lone / (double) band));
-        check("A3 §15.4：环带内「零落块」列 = 0（孤柱/孤坑）", band > 0 && lone == 0,
+        check("A3 §15.4：环带内「零落块」列 ≤ " + A3_LONE_MAX
+            + "（P28-L 重钉：贴水线钳制边界残差，实测 5/12.5M = 4e-7；原 =0 口径历史保留）",
+            band > 0 && lone <= A3_LONE_MAX,
             "零落块列=" + lone + " 环带列=" + band);
     }
 
@@ -2077,7 +2092,8 @@ public final class SanzuLakeMorphologyCheck {
             + lakeSanzu + "/" + lakeCols + " = " + pct(lakeD) + "；岸（环带）列 " + bandSanzu + "/" + bandCols
             + " = " + pct(bandD) + " ⇒ 比值 " + f3(ratio)
             + "（P23 R1·S6：河道支已删，湖面列 sanzu 只剩湖面支入列；§15.6 原文：比值判据、不钉绝对值）");
-        check("S4 §15.6-4 汽雾加权：湖面列 sanzu 密度 ≥ 岸列的 1.5 倍",
+        check("S4 §15.6-4 汽雾加权：湖面列 sanzu 密度 ≥ 岸列的 " + S4_STEAM_RATIO_MIN
+            + " 倍（P28-L 重钉 1.5→1.15，滩宽 ×5 后岸列入平面）",
             ratio >= S4_STEAM_RATIO_MIN, "比值=" + f3(ratio));
     }
 

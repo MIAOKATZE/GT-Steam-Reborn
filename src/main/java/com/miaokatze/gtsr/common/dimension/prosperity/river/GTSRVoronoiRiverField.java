@@ -834,15 +834,24 @@ public final class GTSRVoronoiRiverField {
      * 判据账（evolve-lake I1'）：面积中位 +a²/2 ≈ +0.85% ⇒ C-DRY 面积带不动；岛域最小半径
      * R_eff,min×(1−a) ≈ 67.5×0.87 ≈ 59 ≫ 环 13+抖 2+半宽 2 = 17（柱不变式）；R2 降级链 =
      * 0.13 → 0.10（C-DRY 越带 &gt;10% 湖或 C5 &lt;60% 触发）。
+     * <p>
+     * <b>P28-L（v1.20.51 D1·I2 岛腿去圆团）：0.13 → 0.15</b>——用户②"中心小岛轮廓也要
+     * 不规则"：乘性 ±0.15 ⇒ 周向起伏 ±11.3 格（0.15×R_eff≈75）、配合 λ 档 90→56（见
+     * {@link #LAKE_ISLAND_EDGE_SCALE}）波瓣 5.5→~9。R2 降级链改挂 = 0.15 → 0.13（P26 值作
+     * 回退档；MegaTree SECTOR_R_FLOOR 余量 1.2 ⇒ L3 回探针复核触发）。
      */
-    public static final double LAKE_ISLAND_EDGE_JITTER = 0.13D;
+    public static final double LAKE_ISLAND_EDGE_JITTER = 0.15D;
 
     /**
      * 岛缘周向起伏噪声波长（格，P26-B3 D1·I1' 新增）：λ = 90（岛缘特征长 ≈45 格 =
      * λ/2；90 % 16 = 10 ≠ 0 ✔ 账本 §9 取值纪律）。<b>求值域</b>：只在岛域列（压力腿过门后，
      * 全湖 ≈5% 列）求值 ⇒ 岛域外零成本（短路保持，见 {@link #lakeIslandTopAt}）。
+     * <p>
+     * <b>P28-L（v1.20.51 D1·I2）：90 → 56</b>——岛缘周长 ≈250 格在 λ90 档只裁 ~5.5 个波瓣
+     * （"圆团+缓包"读感根因之一）；λ56 ⇒ 特征长 ≈28 格、波瓣 ~9，与幅度 0.15（±11.3 格）
+     * 组合出"多瓣不规则"轮廓。56 % 16 = 8 ≠ 0 ✔。
      */
-    public static final double LAKE_ISLAND_EDGE_SCALE = 90.0D;
+    public static final double LAKE_ISLAND_EDGE_SCALE = 56.0D;
 
     /**
      * 岛面相对 {@link ProsperityTerrainProfile#SEA_LEVEL} 的抬升（格）⇒ 岛面 = 68 + 4 = <b>72</b>。
@@ -872,8 +881,14 @@ public final class GTSRVoronoiRiverField {
      * 同量级 ⇒ 振幅带与身份面平滑核的外缘尺度对齐（ue-lake §3 设计一致性钉：皮肤带 56 格 vs
      * 振幅带 ≈68 格）。缩样三档 {0.02, 0.03, 0.05} ≈ {45, 68, 113} 格的定档读数见
      * {@code plan/tmp/p27-l-readings.md}。
+     * <p>
+     * <b>P28-L（v1.20.51 D1·滩宽×5 随动）：0.03 → 0.10</b>——滩带主体扩 5 倍（设计环 22→113 格，
+     * {@link #LAKE_SHORE}）后带外过渡按同一反解式随比例放大：0.10×2670/1.1794 ≈ <b>226 格</b>
+     * （与 ampAt 平滑核 44-60 格的"外缘尺度对齐"关系放宽为"包络"语义——滩主体本身已是缓坡带，
+     * 过渡带只需保证 shoreAt 抖动起点外无 4.25× 硬跳，226 格平滑宽度足够）。快速臂阈（PTP
+     * heightCore 三常量和）0.1285 → 0.2685 常量组合自动跟随。
      */
-    public static final double LAKE_AMP_BELT_DELTA = 0.03D;
+    public static final double LAKE_AMP_BELT_DELTA = 0.10D;
 
     /** 湿带（水陆之间不积水的半湿表层带）贴水判据：地表距水面的最大格数（plan §15.4）。 */
     public static final int LAKE_WET_BAND_DROP = 2;
@@ -928,8 +943,14 @@ public final class GTSRVoronoiRiverField {
      * <b>P25（D1 概率减半）：0.26 → 0.091</b>——同一反解式按新档重导：ΔP = 0.091−0.081 =
      * 0.010，<b>滩带总宽 ≈ ΔP×D_eff/((1+W')(1+S')) = 0.010×2670/(1.081×1.091) ≈ 22.6 ≈
      * 22 格</b>（带格宽不动——台阶踏面语义保持；P23 的 0.03×1070 档算式见上文，历史保留）。
+     * <p>
+     * <b>P28-L（v1.20.51 D1·滩宽×5）：0.091 → 0.131</b>——用户①"河滩宽幅增至当前 5 倍"：
+     * ΔP = 0.131−0.081 = 0.050，<b>滩带总宽 ≈ 0.050×2670/(1.081×1.091) ≈ 113.2 ≈ 113 格</b>
+     * （设计滩环 22→113 ≈ ×5；噪声腿同比 ×5 见 {@link #SANZU_BIOME_SHORE_JITTER} ⇒ 滩带总宽
+     * ≈113~198 格）。台阶踏面随带宽同比放大（4 级 × ≈28 格/级，"层叠滩地"读感由 L3 缩样复核
+     * TREADS 档位，本批不动）。滩缘漏水根修（抖动滩缘贴水线钳制）在 PTP heightCore 末段。
      */
-    public static final double LAKE_SHORE = 0.091D;
+    public static final double LAKE_SHORE = 0.131D;
 
     /**
      * 湖压力<b>加性轮廓噪声</b>波长（格，P25 D3③ 新增）：λ ≈ 220——滩带总宽（≈22 格）的
@@ -982,6 +1003,54 @@ public final class GTSRVoronoiRiverField {
      * 倍频 ⇒ 必须分盐。
      */
     public static final long SALT_LAKE_PRESSURE2 = 0x5249F11BL;
+
+    /**
+     * 湖缘<b>ridged 缎带分支噪声</b>波长（格，P28-L D1·R1 新增，v1.20.51）：λ = 76——设计滩环
+     * （≈113 格）的 ~2/3、与第二倍频 λ70 同档 ⇒ 缎带特征长 ≈38 格的湾臂/滩臂对；76 % 16 = 12 ≠ 0
+     * ✔（账本 §9 取值纪律）。<b>求值域</b>：只在缘带（见 {@link #LAKE_RIBBON_FRINGE_DELTA}）求值
+     * ⇒ 缘外列零新噪声（短路保持）；范式先例 = TerrainVariants 缎带沟（ridged 1−|n| 沿 n≈0
+     * 等值线成带，P27 G 片）。
+     */
+    public static final double LAKE_RIBBON_SCALE = 76.0D;
+
+    /**
+     * 湖缘 ridged 缎带<b>湾深幅度</b>（压力域，P28-L D1·R1 新增）：缎带核（门=1 段）把压力压低
+     * 本值 ⇒ 水缘沿缎带等值线内侵成湾臂。径向格数口径：dr/dP ≈ 2244 格/单位压力 ⇒ 0.012 ≈
+     * <b>27 格湾深上限</b>（等值线垂直穿滩向时兑现；带间留滩臂/半岛——用户②"河滩增加分支地形"）；
+     * R1 降级链 = 0.012 → 0.008（L3 探针存活率 &lt;30% 或湾臂串湖触发）。
+     */
+    public static final double LAKE_RIBBON_AMP = 0.012D;
+
+    /**
+     * 湖缘缎带门<b>脊阈</b>（ridged 形 1−|n| 的门下限，P28-L D1·R1 新增）：门 =
+     * s01((1−|n|−本值)/{@link #LAKE_RIBBON_GATE_SPAN})——|n| &lt; 0.20 起缓入、|n| ≤ 0.08 满门
+     * （门带半宽 ≈ 0.20×λ/2 ≈ <b>7.6 格</b>、核半宽 ≈3 格；与缎带沟 GULLY_GATE_LO=0.78/SPAN=0.12
+     * 先例同档）。湾臂间滩带宽 ≈ λ/2 − 2×门带 ≈ 23 格 ≫ 群系侵蚀缘档 ~4 格 ⇒ 滩臂存活
+     * （侵蚀门不动，臂宽契约承载——计划三口径 c）。
+     */
+    public static final double LAKE_RIBBON_GATE_LO = 0.80D;
+
+    /**
+     * 湖缘缎带门<b>缓入宽度</b>（形状域，P28-L D1·R1 新增）：门宽 0.12 ⇒ 湾缘坡 ≈ 27 格 ÷
+     * 门带 ≈7.6 格 ≈ 3.5 格/列，与滩台阶 riser 同档（无单格悬崖）。
+     */
+    public static final double LAKE_RIBBON_GATE_SPAN = 0.12D;
+
+    /**
+     * 湖缘缎带<b>求值缘带半宽</b>（压力域，P28-L D1·R1 新增）：仅基压 p（dC/dN，双倍频加噪前）
+     * ∈ [{@link #LAKE_WATER_LEVEL}−本值, {@link #LAKE_SHORE}+本值] 的列求缎带门 ⇒ 世界列占比
+     * ≈2-4%（GenBench +1-2µs 预算内）；缘外列零新求值、返回式逐位同改造前（digest 域外口径）。
+     * δ=0.015 ≈ 34 格 ≥ 双倍频微摆 ±8.3 格 ⇒ 门沿不会被既有噪声腿搬出求值窗（窗边门=0 ⇒
+     * 贡献 −0.0 精确、合成连续）。
+     */
+    public static final double LAKE_RIBBON_FRINGE_DELTA = 0.015D;
+
+    /**
+     * 湖缘缎带噪声盐（P28-L D1·R1 新增，v1.20.51）：盐段尾续取 {@code …11DL}——段内现役最高
+     * {@code …11CL} 归 {@link #SALT_SWAMP_NET}；…11D/E/F/120 已 grep 全 src 核零占用。独立盐域
+     * 纪律同 {@link #SALT_LAKE_PRESSURE}/{@link #SALT_LAKE_PRESSURE2}；退役盐不回收不复用。
+     */
+    public static final long SALT_LAKE_RIBBON = 0x5249F11DL;
 
     /**
      * {@link #lakeAt} 的"无湖"哨兵（无湖/D_MIN 淘汰一律返回它）：≥ {@link #LAKE_SHORE}，与压力同向
@@ -1507,15 +1576,38 @@ public final class GTSRVoronoiRiverField {
         if (dd[1] < LAKE_STATION_D_MIN) {
             return NO_LAKE;
         }
+        final double base = dd[0] / dd[1];
+        // ═══ P28-L（D1·R1，v1.20.51）湖缘 ridged 缎带分支腿（用户②滩上分支地形）═══
+        // 缘带短路：基压 ∉ [WATER−δ, SHORE+δ] 的列走原式（零新求值、逐位同改造前——digest
+        // 域外口径）；缘带列追加 −RIB·gate（gate=s01((1−|nR|−LO)/SPAN)，ridged 沿 nR≈0 等值线
+        // 成带 ⇒ 缎带=水湾臂、带间=滩臂/半岛）。gate=0 段贡献 −0.0 精确 ⇒ 缘带内门关死列也
+        // 逐位不变。D_MIN 哨兵路径在上方已 return ⇒ NO_LAKE 域零新求值（对拍口径保持）。
+        if (base < LAKE_WATER_LEVEL - LAKE_RIBBON_FRINGE_DELTA || base > LAKE_SHORE + LAKE_RIBBON_FRINGE_DELTA) {
+            return base
+                + LAKE_PRESSURE_NOISE_AMP * GTSRWorldgenHash.valueNoise(
+                    worldSeed ^ SALT_LAKE_PRESSURE,
+                    x / LAKE_PRESSURE_NOISE_SCALE,
+                    z / LAKE_PRESSURE_NOISE_SCALE)
+                + LAKE_PRESSURE_NOISE_AMP2 * GTSRWorldgenHash.valueNoise(
+                    worldSeed ^ SALT_LAKE_PRESSURE2,
+                    x / LAKE_PRESSURE_NOISE_SCALE2,
+                    z / LAKE_PRESSURE_NOISE_SCALE2);
+        }
         // P25 D3③ + P26-B3 D1·A1：压力加性轮廓噪声双倍频（λ220 低频腿 + λ70 高频腿，
         // 独立盐域；总幅 0.0037 ≈ ±8.3 格湖缘径向微摆，换算式见 LAKE_PRESSURE_NOISE_AMP）。
         // D_MIN 淘汰哨兵路径在上方已 return ⇒ NO_LAKE 域零新求值（digest 对拍口径）。
-        return dd[0] / dd[1] + LAKE_PRESSURE_NOISE_AMP * GTSRWorldgenHash
+        final double nR = GTSRWorldgenHash
+            .valueNoise(worldSeed ^ SALT_LAKE_RIBBON, x / LAKE_RIBBON_SCALE, z / LAKE_RIBBON_SCALE);
+        final double rg = (1.0D - Math.abs(nR) - LAKE_RIBBON_GATE_LO) / LAKE_RIBBON_GATE_SPAN;
+        final double rgc = rg < 0.0D ? 0.0D : (rg > 1.0D ? 1.0D : rg);
+        final double ribbonGate = rgc * rgc * (3.0D - 2.0D * rgc);
+        return base + LAKE_PRESSURE_NOISE_AMP * GTSRWorldgenHash
             .valueNoise(worldSeed ^ SALT_LAKE_PRESSURE, x / LAKE_PRESSURE_NOISE_SCALE, z / LAKE_PRESSURE_NOISE_SCALE)
             + LAKE_PRESSURE_NOISE_AMP2 * GTSRWorldgenHash.valueNoise(
                 worldSeed ^ SALT_LAKE_PRESSURE2,
                 x / LAKE_PRESSURE_NOISE_SCALE2,
-                z / LAKE_PRESSURE_NOISE_SCALE2);
+                z / LAKE_PRESSURE_NOISE_SCALE2)
+            - LAKE_RIBBON_AMP * ribbonGate;
     }
 
     /**
@@ -2440,8 +2532,13 @@ public final class GTSRVoronoiRiverField {
      * <b>本值 = 17 ÷ (D_eff/((1+W')(1+S'))) = 17×(1.081×1.091)/2670 ≈ 0.00751，取 0.0075</b>
      * ⇒ 噪声腿格宽 ≈ 0.0075×2670/1.1794 ≈ 0~17.0 格、滩带总宽 ≈ 22~39 格逐点起伏
      * （目标带 10~40 内；S2 实测钉）。
+     * <p>
+     * <b>P28-L（v1.20.51 D1·滩宽×5 随动）：0.0075 → 0.0375</b>——设计滩环 22→113 格
+     * （{@link #LAKE_SHORE} 0.131）后噪声腿同比 ×5：0.0375×2670/1.1794 ≈ <b>0~85 格</b> ⇒
+     * 滩带总宽 ≈ <b>113~198 格</b>（抖动/环比例保持 P25 口径 17/22 ≈ 0.77）。单边调制语义
+     * 不动（恒覆盖置水区前提原样）；"恒覆盖"面随滩宽放大 ⇒ 灌水门认领域同比放大（设计内）。
      */
-    public static final double SANZU_BIOME_SHORE_JITTER = 0.0075D;
+    public static final double SANZU_BIOME_SHORE_JITTER = 0.0375D;
 
     /**
      * sanzu 滩带噪声盐（P23 R1 新增）：取本类盐段尾 {@code …114L}（{@code …113L} 已被

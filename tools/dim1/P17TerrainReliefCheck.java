@@ -484,12 +484,13 @@ public class P17TerrainReliefCheck {
     private static final int A3_FALL_POOL_DROP = 2;
     /**
      * <b>v1.20.50 P27 S 片 §redirect2 字面镜像</b>：生产
-     * {@code ChunkProviderProsperityRuins.SWAMP_FALL_POOL_FLOOR}（fall 域内 DEEP 潭池水位钳低：
-     * {@code min(pRaw − A3_FALL_POOL_DROP, 本值)}，65/67 段潭面 62、63 段潭面 60）。pass1 逐列
-     * 复刻钳低（判据侧只读复算，{@link #A3_S_SWAMP_CLAMP} 先例）——漏改=假绿纪律项
-     * （pass2 转换趟的段差判据读本表）。
+     * {@code ChunkProviderProsperityRuins.SWAMP_FALL_POOL_FLOOR}（fall 域内 DEEP 潭心池水位钳低：
+     * {@code min(pRaw − A3_FALL_POOL_DROP, 本值)}；<b>v1.20.50 P28 S 片 ③B：63 → 62</b>，钳低域
+     * 收窄到潭心深水 g_eff ≥ 0.76——阈经生产谓词 {@code swampFallPoolCoreAt} 自动跟随，本常量
+     * 只镜像 FLOOR 下限）。pass1 逐列复刻钳低（判据侧只读复算，{@link #A3_S_SWAMP_CLAMP}
+     * 先例）——漏改=假绿纪律项（pass2 转换趟的段差判据读本表）。
      */
-    private static final int A3_FALL_POOL_FLOOR = 63;
+    private static final int A3_FALL_POOL_FLOOR = 62;
 
     /** 沼泽水体档位名（下标 = {@code TerrainVariants.SWAMP_TIER_*} 的 int 值）。 */
     private static final String[] TIER_NAME = { "NONE", "POOL", "DEEP", "MARSH" };
@@ -1160,6 +1161,19 @@ public class P17TerrainReliefCheck {
                                 || GTSRVoronoiRiverField.swampLakeAt(seed, x, z, 3)
                                     < GTSRVoronoiRiverField.SWAMP_POOL_WATER_LEVEL)) {
                             nominal[i] = p - 1;
+                            // ═══ v1.20.50 P28 S 片 ③B：高水台腿镜像（生产 SwampFieldGrid 构建体
+                            // 同构——潭心 blob 内圈 [0.70,0.76) 名义水位 p−1+2×避让门×入流扇形门
+                            // 取整、pool[i] 同步 nominal+1（§redirect：高水/瀑面随入流扇区收口）；
+                            // 漏改=假绿纪律项，pass2 转换趟只读本表（nominal/pool 快照）⇒ 自动跟随，
+                            // 无第二处门式）═══
+                            if (t == TerrainVariants.SWAMP_TIER_DEEP
+                                && TerrainVariants.swampFallShelfAt(seed, x, z, 3)) {
+                                final int add = (int) Math.round(
+                                    2.0D * TerrainVariants.swampFallLipAllowedAt(seed, x, z)
+                                        * TerrainVariants.swampFallInflowGateAt(seed, x, z));
+                                nominal[i] = p - 1 + add;
+                                pool[i] = nominal[i] + 1;
+                            }
                         }
                     }
                     if (sub && GTSRVoronoiRiverField.wetAt(seed, x, z, tier)) {

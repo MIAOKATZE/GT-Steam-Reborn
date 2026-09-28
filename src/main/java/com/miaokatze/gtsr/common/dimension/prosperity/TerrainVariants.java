@@ -4,6 +4,7 @@ import java.util.HashMap;
 
 import com.miaokatze.gtsr.common.dimension.framework.genlayer.GTSRGenLayerChain;
 import com.miaokatze.gtsr.common.dimension.framework.structure.GTSRWorldgenHash;
+import com.miaokatze.gtsr.common.dimension.prosperity.river.GTSRVoronoiRiverField;
 
 /**
  * 群系内分支地形变体（<b>P19 §H 新增</b>，plan §H「实现放新类 TerrainVariants（profile 只留调用点）」）：
@@ -683,13 +684,58 @@ public final class TerrainVariants {
      * tyF=0 短路 ⇒ 域外逐位不变。
      */
     /**
-     * <b>瀑域潭心选择阈</b>（v1.20.50 P27 S 片 §redirect2）：潭面钳低只作用于深门值 ≥ 本值的
-     * <b>潭心</b>列（{@link #swampFallPoolCoreAt} 单一出口）——潭缘环（0.5 ≤ 门值 &lt; 本值）保留
-     * 原池水位作转换趟<b>高侧</b>。实测潭缘外微池/湿带列多为非湿（湿列 ≈ DEEP 档，r2.out R2H
-     * 湿pl ≈ DEEPpl）⇒ 高侧只能来自潭自身的缘环；门值分层 ⇒ 每潭"缘环高水位—潭心低水位"
+     * <b>瀑域潭心 blob 下界</b>（v1.20.50 P27 S 片 §redirect2 引入；<b>P28 S 片 ③B 起语义细分
+     * 为"高水台内圈下沿"</b>——钳低域让位给 {@link #SWAMP_FALL_DEEP_GATE}）：门值 ≥ 本值的
+     * 潭心 blob 内走 深水钳低（≥{@link #SWAMP_FALL_DEEP_GATE}，{@link #swampFallPoolCoreAt}）或
+     * 高水台 p+1（[本值, {@link #SWAMP_FALL_DEEP_GATE})，{@link #swampFallShelfAt}）；潭缘环
+     * （0.5 ≤ 门值 &lt; 本值）保留原池水位。实测潭缘外微池/湿带列多为非湿（湿列 ≈ DEEP 档，r2.out
+     * R2H 湿pl ≈ DEEPpl）⇒ 高侧只能来自潭自身的缘环；门值分层 ⇒ 每潭"缘环高水位—潭心低水位"
      * 贴面对（drop 2 = 一档池阶梯），瀑面在潭内结构上成立（v1.20.40-45 dropColumn 同构造）。
      */
     private static final double SWAMP_FALL_CORE_GATE = 0.70D;
+    // ═══ v1.20.50 P28 S 片 ③B（沼泽瀑布形态重做）：潭心 blob 按 g_eff 三层细分 ═══
+    // 潭心深水 [DEEP_GATE,1]（CPR 钳低 FLOOR 62）→ 高水台 [CORE_GATE,DEEP_GATE)（名义水位 p+1）
+    // → 唇缘环 [LIP_LO,CORE_GATE)（本类 delta 正项 +LIP·lipGate = 环形可走路径，缺口方向挖空）。
+    // 全部新项乘 tyF（或其子门）⇒ tyF=0 列精确 +0.0 ⇒ 双瓣关死列（tyF=0∧tyG=0）delta
+    // IEEE 逐位不变（SWAMP digest era 闭合前提）；零新盐（扇形方位 = 既有 λ157/λ48 场差分）。
+    /**
+     * <b>潭心深水阈</b>（v1.20.50 P28 S 片 ③B 新增）：g_eff ≥ 本值的潭心列才做深水钳低
+     * （{@link #swampFallPoolCoreAt} 单一出口 → CPR {@code SWAMP_FALL_POOL_FLOOR}=62）；
+     * [{@link #SWAMP_FALL_CORE_GATE}, 本值) 的潭心 blob 内圈改走<b>高水台</b>
+     * （{@link #swampFallShelfAt}，名义水位 p+1）。分层只动阈，DROP=2 段差转换语义不变。
+     */
+    private static final double SWAMP_FALL_DEEP_GATE = 0.76D;
+    /**
+     * <b>唇缘环抬升幅度</b>（格；v1.20.50 P28 S 片 ③B）：{@link #variantAdjustment} 沼泽 delta
+     * 的正项 {@code +LIP·lipGate}，满门 +2 格——外缘 0 → 内缘 +2 的缓坡（门值带宽 0.08 × 域内
+     * g_eff 梯度 ⇒ 宽 ≈6-8 格，平均坡 2/7 ≈ <b>1:3.5 可走</b> = 潭周环形路径）。正项在
+     * {@code Math.max(-SWAMP_NONWATER_DIG_MAX, dry)} 之外相加 ⇒ 不受下挖限幅（:743 只限下挖侧）；
+     * +2 ≪ {@link #DELTA_CAP}=96 双 cap（:1100-1101）复核安全。
+     */
+    private static final double SWAMP_FALL_LIP = 2.0D;
+    /** 唇缘环 g_eff 下沿（外缘起坡位；缓入带宽 {@link #SWAMP_FALL_LIP_SPAN}）。 */
+    private static final double SWAMP_FALL_LIP_LO = 0.60D;
+    /** 唇缘缓入带宽（0.60→0.68 满门后平台直抵高水台内圈——"外缘到内缘 0→+2 缓升"）。 */
+    private static final double SWAMP_FALL_LIP_SPAN = 0.08D;
+    /**
+     * <b>入流扇形门余弦下檐/带宽</b>（v1.20.50 P28 S 片 ③B）：{@code inflowGate =
+     * s01((cosΔ − 下檐)/带宽)}，Δ = 列方位角 − 来水方位角（atan2 差）；cosΔ ≥ 0.90 满门
+     * （Δ ≤ 25.8°）、cosΔ ≤ 0.55 关死（Δ ≥ 56.6° ⇒ <b>扇半宽 ≈56°</b>，单侧来水的方向性）。
+     * 唇缘门乘 {@code (1−inflowGate)} ⇒ 来水侧扇区缺口。
+     */
+    private static final double SWAMP_FALL_FAN_COS_LO = 0.55D;
+    private static final double SWAMP_FALL_FAN_SPAN = 0.35D;
+    /** 梯度两点差分步长（格；λ157/λ48 场上 8 格 ⇒ 噪声坐标偏移 0.051/0.167，方向采样充分）。 */
+    private static final int SWAMP_FALL_GRAD_LAG = 8;
+    /** 扇形求值域 g_eff 下沿（0.55：唇缘带外一圈提前进域 ⇒ 缺口边沿连续；上沿 = {@link #SWAMP_FALL_DEEP_GATE}）。 */
+    private static final double SWAMP_FALL_DOMAIN_LO = 0.55D;
+    /**
+     * <b>湖岸避让带宽</b>（v1.20.50 P28 S 片 ③B）：{@link #swampFallLipAllowedAt} 的
+     * {@code s01((lakeAt − LAKE_SHORE − 本值)/本值)}——lakeAt &gt; LAKE_SHORE+本值 满门（唇缘/高水
+     * 照常），带内回落、湖域（lakeAt ≤ LAKE_SHORE）关死 0：p=67 段高水 68=SEA_LEVEL 不与巨湖
+     * fixed 67 贴面。门 0 的列高水腿精确 +0（乘子式位等）。
+     */
+    private static final double SWAMP_FALL_SHORE_BAND = 0.02D;
     /** 水沼地（半淹档）场域盐（波长 {@link #SWAMP_MARSH_SCALE}）。 */
     private static final long S_SWAMP_MARSH = 0x6811C32FL;
     /** 水沼地波长（61 % 16 = 13 ✔；与 {@code SWAMP_POOL_INTERVAL}=220 的微池水网正交）。 */
@@ -1089,7 +1135,23 @@ public final class TerrainVariants {
                 // SWAMP_NONWATER_DIG_MAX（1.5 格）⇒ 两项相加也无法把浅档列穿透到 ≥4 格分水岭。
                 final double dry = (SWAMP_HUMMOCK_BASE + SWAMP_HUMMOCK_SPAN * g[SWG_HUMMOCK]) * g[SWG_HUMMOCK]
                     - (SWAMP_CHAR_BASE + SWAMP_CHAR_SPAN * g[SWG_CHAR]) * g[SWG_CHAR];
-                delta += w[3] * ((h0 * (1.0D - f) + target * f) - h0 - water + Math.max(-SWAMP_NONWATER_DIG_MAX, dry));
+                // ═══ v1.20.50 P28 S 片 ③B：唇缘环抬升（+LIP·lipGate 正项）═══
+                // lipGate = 环形缓入 s01((g_eff−0.60)/0.08) × tyF × (1−入流扇形门) × 湖岸避让门：
+                // 外缘 0 → 内缘 +2 缓升 = 潭周 1:3.5 环形可走路径；来水侧扇区缺口（唇缘挖空）⇒
+                // 高水台（p+1）对潭外低水的 ≥2 段差由 CPR 转换趟出 fixed 瀑面。梯度差分/atan2
+                // 只在 tyF ≥ 0.5 且 0.55 ≤ g_eff < 0.76 域内求值（下方 if 短路，域外零新求值）；
+                // tyF=0 ⇒ lip 精确 0.0 ⇒ 双瓣关死列（tyF=0∧tyG=0）delta IEEE 逐位不变（era 闭合）。
+                double lip = 0.0D;
+                if (g[SWG_TYF] >= TIER_MIN && g[SWG_DEEP] >= SWAMP_FALL_DOMAIN_LO
+                    && g[SWG_DEEP] < SWAMP_FALL_DEEP_GATE) {
+                    lip = s01((g[SWG_DEEP] - SWAMP_FALL_LIP_LO) / SWAMP_FALL_LIP_SPAN) * g[SWG_TYF]
+                        * (1.0D - swampFallInflowGateAt(worldSeed, x, z))
+                        * swampFallLipAllowedAt(worldSeed, x, z);
+                }
+                delta += w[3] * ((h0 * (1.0D - f) + target * f) - h0
+                    - water
+                    + Math.max(-SWAMP_NONWATER_DIG_MAX, dry)
+                    + SWAMP_FALL_LIP * lip);
             }
             if (w[4] > 0.0D) {
                 final double f4 = 0.25D + 0.25D * gate;
@@ -1337,11 +1399,13 @@ public final class TerrainVariants {
     }
 
     /**
-     * 沼泽<b>瀑布潭潭心</b>谓词（v1.20.50 P27 S 片 §redirect2 新增）：读 {@link #swampGates} 的
+     * 沼泽<b>瀑布潭潭心深水</b>谓词（v1.20.50 P27 S 片 §redirect2 新增；<b>P28 S 片 ③B 起阈
+     * 0.70 → {@link #SWAMP_FALL_DEEP_GATE}=0.76</b>——潭心 blob 内圈 [0.70,0.76) 让给高水台
+     * {@link #swampFallShelfAt}，两层互斥同源）：读 {@link #swampGates} 的
      * {@link #SWG_TIER}（=DEEP）/ {@link #SWG_TYF}（≥{@link #TIER_MIN}，瀑布域列）/
-     * {@link #SWG_DEEP}（≥{@link #SWAMP_FALL_CORE_GATE}，潭心）三槽——潭面钳低（CPR
-     * {@code SwampFieldGrid} 的 {@code min(pl−DROP, FLOOR)}）只作用本谓词为真的列；潭缘环
-     * （门值 [0.5, 0.70)）保留原水位作转换趟高侧。三槽全部复用 swampGates 单一真值
+     * {@link #SWG_DEEP}（≥{@link #SWAMP_FALL_DEEP_GATE}，潭心深水）三槽——潭面钳低（CPR
+     * {@code SwampFieldGrid} 的 {@code min(pl−DROP, FLOOR)}）只作用本谓词为真的列；高水台环
+     * （门值 [0.70, 0.76)）走 p+1 高水腿。三槽全部复用 swampGates 单一真值
      * （无第二份门比较；三档互斥分流出口仍是 SWG_TIER 那一遍）。roster≠3 恒 false。<b>纯函数</b>；
      * 返回线程私有 scratch 的即时读数（就地取用）。
      */
@@ -1350,7 +1414,101 @@ public final class TerrainVariants {
             return false;
         }
         final double[] g = swampGates(worldSeed, x, z, true);
-        return (int) g[SWG_TIER] == SWAMP_TIER_DEEP && g[SWG_TYF] >= TIER_MIN && g[SWG_DEEP] >= SWAMP_FALL_CORE_GATE;
+        return (int) g[SWG_TIER] == SWAMP_TIER_DEEP && g[SWG_TYF] >= TIER_MIN && g[SWG_DEEP] >= SWAMP_FALL_DEEP_GATE;
+    }
+
+    /**
+     * 沼泽<b>瀑布潭高水台</b>谓词（v1.20.50 P28 S 片 ③B 新增）：潭心 blob 内圈
+     * [{@link #SWAMP_FALL_CORE_GATE}, {@link #SWAMP_FALL_DEEP_GATE})——读 {@link #swampGates} 的
+     * {@link #SWG_TIER}（=DEEP）/ {@link #SWG_TYF}（≥{@link #TIER_MIN}，瀑布域列）/ {@link #SWG_DEEP}
+     * （g_eff 分层带）三槽，与 {@link #swampFallPoolCoreAt} 同源同构（互斥带，无第二份门比较）。
+     * 消费面：CPR {@code SwampFieldGrid} nominal 构建的高水腿（名义水位 p+1 ×
+     * {@link #swampFallLipAllowedAt} 避让门）。roster≠3 恒 false。<b>纯函数</b>；
+     * 返回线程私有 scratch 的即时读数（就地取用）。
+     */
+    public static boolean swampFallShelfAt(long worldSeed, int x, int z, int rosterIndex) {
+        if (rosterIndex != SWAMP_ROSTER) {
+            return false;
+        }
+        final double[] g = swampGates(worldSeed, x, z, true);
+        return (int) g[SWG_TIER] == SWAMP_TIER_DEEP && g[SWG_TYF] >= TIER_MIN
+            && g[SWG_DEEP] >= SWAMP_FALL_CORE_GATE
+            && g[SWG_DEEP] < SWAMP_FALL_DEEP_GATE;
+    }
+
+    /**
+     * 沼泽瀑布潭<b>唇缘/高水湖岸避让门</b>（v1.20.50 P28 S 片 ③B 新增）：乘子门
+     * {@code s01((lakeAt − LAKE_SHORE − 0.02)/0.02)}——lakeAt &gt; LAKE_SHORE+0.02 满门 1（远离湖岸，
+     * 唇缘抬升/高水台照常），带内回落、湖域关死 0（p=67 段高水 68=SEA_LEVEL 不与巨湖 fixed 67
+     * 贴面）。<b>递归安全</b>：lakeAt 是纯湖场、不触 {@code heightAt}（RVF 湖让位腿先例 :2371——
+     * 本方法从 {@link #variantAdjustment}（heightCore 下游）调用不构成环）。<b>纯函数</b>；
+     * TV 唇缘项与 CPR 高水腿两侧同一真值（高水 +2 乘本门后取整，门 0 列精确 +0）。
+     */
+    public static double swampFallLipAllowedAt(long worldSeed, int x, int z) {
+        return s01(
+            (GTSRVoronoiRiverField.lakeAt(worldSeed, x, z) - GTSRVoronoiRiverField.LAKE_SHORE - SWAMP_FALL_SHORE_BAND)
+                / SWAMP_FALL_SHORE_BAND);
+    }
+
+    /**
+     * 沼泽瀑布潭<b>入流扇形门</b>（v1.20.50 P28 S 片 ③B）：来水方位 = λ157 分型场
+     * （{@link #S_SWAMP_POOLTYPE} 同盐同 λ）两点差分梯度方向（指向 n 增大 = 指向潭心一侧；
+     * 波长 157 ≫ 潭径 25-50 ⇒ 潭内近似常量 = "在潭心求差分"的逐列等价）；列方位角 = g_eff
+     * （{@link #swampFallDeepGateAt} 复算）两点差分梯度方向（指向 g_eff 增大 = 指向潭心，绕潭
+     * 一周旋转 ⇒ 与来水方位的夹差 Δ 在来水侧扇区收 0）。门 {@code s01((cosΔ − 0.55)/0.35)}
+     * （扇半宽 ≈56°）。<b>只在 tyF ≥ 0.5 且 0.55 ≤ g_eff &lt; 0.76 域内求值</b>（调用方短路，
+     * 域外零新求值；域内每列 4+4 偏移点 × 各 ≤3 次 valueNoise）。<b>消费方</b>（P28 S ③B
+     * §redirect：单侧来水收口）：本类唇缘门的 {@code (1−门)} 缺口因子 + CPR
+     * {@code SwampFieldGrid} 高水台腿（{@code nominal = p−1+round(2×避让门×本门)}——高水只在
+     * 入流扇区弧段成立，其余潭缘回落名义水位 p−1（静水）⇒ 瀑面随扇区收口，兑现"水从一边流出"）。
+     */
+    public static double swampFallInflowGateAt(long worldSeed, int x, int z) {
+        final double inflowDx = pooltypeNoiseAt(worldSeed, x + SWAMP_FALL_GRAD_LAG, z)
+            - pooltypeNoiseAt(worldSeed, x - SWAMP_FALL_GRAD_LAG, z);
+        final double inflowDz = pooltypeNoiseAt(worldSeed, x, z + SWAMP_FALL_GRAD_LAG)
+            - pooltypeNoiseAt(worldSeed, x, z - SWAMP_FALL_GRAD_LAG);
+        final double colDx = swampFallDeepGateAt(worldSeed, x + SWAMP_FALL_GRAD_LAG, z)
+            - swampFallDeepGateAt(worldSeed, x - SWAMP_FALL_GRAD_LAG, z);
+        final double colDz = swampFallDeepGateAt(worldSeed, x, z + SWAMP_FALL_GRAD_LAG)
+            - swampFallDeepGateAt(worldSeed, x, z - SWAMP_FALL_GRAD_LAG);
+        final double delta = Math.atan2(colDz, colDx) - Math.atan2(inflowDz, inflowDx);
+        return s01((Math.cos(delta) - SWAMP_FALL_FAN_COS_LO) / SWAMP_FALL_FAN_SPAN);
+    }
+
+    /** λ157 分型场单点（{@link #swampGates} 的 tyN 同式；扇形差分/探针专用，勿在热路径替代 swampGates）。 */
+    private static double pooltypeNoiseAt(long worldSeed, int x, int z) {
+        return GTSRWorldgenHash
+            .valueNoise(worldSeed ^ S_SWAMP_POOLTYPE, x / SWAMP_POOLTYPE_SCALE, z / SWAMP_POOLTYPE_SCALE);
+    }
+
+    /**
+     * g_eff（混合后深门值）单点复算：{@link #swampGates} 深门链（原 :1400-1423）的<b>逐式镜像</b>
+     * （λ71 门 + tyF 门式除数/加 + tyG/tyF 两次门值级混合）——纯局部量、无 scratch，供入流扇形的
+     * 列方位角差分在偏移点上取值（swampGates 的 scratch 会被主链持有，不可重入）。
+     * <b>镜像纪律：swampGates 深门链任何改动须同步本方法（漏改=扇形方位错向）。</b>
+     */
+    private static double swampFallDeepGateAt(long worldSeed, int x, int z) {
+        final double tyN = pooltypeNoiseAt(worldSeed, x, z);
+        final double tyF = s01((tyN - POOLTYPE_GATE_LO) / POOLTYPE_GATE_SPAN);
+        final double tyG = s01((-tyN - POOLTYPE_GATE_LO) / POOLTYPE_GATE_SPAN);
+        double deepGate = s01(
+            (GTSRWorldgenHash.valueNoise(worldSeed ^ S_SWAMP_DEEP, x / S_SWAMP_DEEP_BED, z / S_SWAMP_DEEP_BED)
+                - SWAMP_DEEP_GATE_LO
+                + SWAMP_DEEP_FALL_GATE_DROP * tyF) / (SWAMP_DEEP_GATE_SPAN / (1.0D + SWAMP_DEEP_FALL_BOOST * tyF)));
+        if (tyG != 0.0D) {
+            final double gentleGate = s01(
+                (GTSRWorldgenHash
+                    .valueNoise(worldSeed ^ S_SWAMP_DEEP_GENTLE, x / SWAMP_DEEP_GENTLE_BED, z / SWAMP_DEEP_GENTLE_BED)
+                    - SWAMP_DEEP_GATE_LO) / GENTLE_GATE_SPAN);
+            deepGate = (1.0D - tyG) * deepGate + tyG * gentleGate;
+        }
+        if (tyF != 0.0D) {
+            final double poolGate = s01(
+                (GTSRWorldgenHash.valueNoise(worldSeed ^ S_SWAMP_POOL, x / SWAMP_POOL_BED_WAVE, z / SWAMP_POOL_BED_WAVE)
+                    - SWAMP_POOL_GATE_LO) / SWAMP_POOL_GATE_SPAN);
+            deepGate = (1.0D - tyF) * deepGate + tyF * poolGate;
+        }
+        return deepGate;
     }
 
     /**

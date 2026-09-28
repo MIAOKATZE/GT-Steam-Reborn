@@ -740,19 +740,18 @@ public class ChunkProviderProsperityRuins extends GTSRChunkProviderBase {
      */
     private static final int SWAMP_FALL_POOL_DROP = 2;
     /**
-     * <b>瀑布潭域内 DEEP 潭的池水位钳低下限</b>（v1.20.50 P27 批次B-B1 S 片 §redirect2 新增）。
-     * tyF ≥ 0.5 域内的深水池列池水位强制 {@code min(poolLevelAt − SWAMP_FALL_POOL_DROP, 本值)}：
-     * 65/67 段潭面钳到 {@code 本值 − 1} = 62（redirect 原语义——域内瀑布潭统一接最低水位线，
-     * 主题：深渊执念下切）；实测 40-80% 沼泽面积本就在 63 段（{@code temp/p27-s/r2.out} R2H，
-     * 沼泽 pl 只见 63/65/67）⇒ 这些段相对再下切一档到 61，任意段位的潭缘段差 ≥
-     * {@link #SWAMP_FALL_POOL_DROP} 普遍成立（fix 前实测：湿湿段差对 98/8 seed 且高侧全不在
-     * fall 域 ⇒ 瀑面 0 面/域，{@code temp/p27-s/probe2.out}）。钳值在 RVF 池水位的奇数格点上
-     * （{@code poolOfPair = floor(min/2)*2+1}，段间差 ∈ {0,2,4}）⇒ 与未钳邻段的段差恰为
-     * {@link #SWAMP_FALL_POOL_DROP} 的整倍数。判据侧字面镜像
-     * {@code P17TerrainReliefCheck.A3_FALL_POOL_FLOOR}（漏改=假绿纪律项）。湖交界安全：巨湖
-     * fixed = SEA_LEVEL−1 = 67 ≥ 任何沼泽水顶 ⇒ 让位腿未触。
+     * <b>瀑布潭域内 DEEP 潭心的池水位钳低下限</b>（v1.20.50 P27 批次B-B1 S 片 §redirect2 新增；
+     * <b>v1.20.50 P28 S 片 ③B：63 → 62</b>——潭心深水加深一档，且钳低域收窄到
+     * {@code TerrainVariants.swampFallPoolCoreAt}（g_eff ≥ 0.76 潭心深水；[0.70,0.76) 内圈让位
+     * 高水台腿））。tyF ≥ 0.5 域内的深水潭心列池水位强制 {@code min(poolLevelAt −
+     * SWAMP_FALL_POOL_DROP, 本值)}：65/67 段潭面 62、63 段潭面 61（{@code pl} 同步钳值）⇒
+     * 潭心 vs 潭缘环（保留原水位、转换趟高侧）的段差 ≥ {@link #SWAMP_FALL_POOL_DROP} 普遍成立
+     * （63 段差恰 2、65/67 段差 3/5 ≥ 2 全收口径）。<b>偶数下限注记</b>：本值 62 为偶 ⇒ 65/67 段
+     * 钳值不在 RVF 奇数格点上，段间差 ∈ {2,3,5}（≥ DROP 的"≥2 全收"判据不受影响）。判据侧字面
+     * 镜像 {@code P17TerrainReliefCheck.A3_FALL_POOL_FLOOR}（漏改=假绿纪律项）。湖交界安全：
+     * 巨湖 fixed = SEA_LEVEL−1 = 67 ≥ 任何沼泽水顶 ⇒ 让位腿未触。
      */
-    private static final int SWAMP_FALL_POOL_FLOOR = 63;
+    private static final int SWAMP_FALL_POOL_FLOOR = 62;
     private static final ThreadLocal<HashMap<Long, HashMap<Long, SwampFieldGrid>>> SWAMP_FIELD_CACHE = ThreadLocal
         .withInitial(HashMap::new);
 
@@ -763,9 +762,11 @@ public class ChunkProviderProsperityRuins extends GTSRChunkProviderBase {
      * <li>逐列 nominal（三档/微池名义水顶，含 A3 边缘门与 submerged 门）与 fixed（河/主干/
      * 巨湖水面，其它置水通道不动；<b>原第四腿"残潭水面"随 P25 D7 残潭退役摘除</b>，
      * 见构建体内登记）；<b>v1.20.50 P27 S 片 §redirect2</b>：tyF ≥ 0.5 域内 DEEP 档列的池水位
-     * 钳到 {@code min(pl − 2, SWAMP_FALL_POOL_FLOOR)}（65/67 段潭面 62、63 段潭面 60，
-     * {@code pl} 同步钳值）——"域内瀑布潭统一接最低水位线 + 已在底段相对下切一档"，使转换趟
-     * 的段差条件普遍成立；</li>
+     * 钳到 {@code min(pl − 2, SWAMP_FALL_POOL_FLOOR)}——"域内瀑布潭统一接最低水位线 + 已在底段
+     * 相对下切一档"，使转换趟的段差条件普遍成立；<b>v1.20.50 P28 S 片 ③B</b>：钳低域收窄到
+     * 潭心深水（g_eff ≥ 0.76），FLOOR 63→62（潭心深水加深一档）；[0.70,0.76) 内圈改走
+     * <b>高水台腿</b>（{@code TerrainVariants.swampFallShelfAt} ⇒ nominal = p−1+2×避让门取整、
+     * pl 同步 ⇒ 潭周环形水位 +2），使转换趟的段差条件普遍成立；</li>
      * <li><b>v1.20.50 P27 批次B-B1 S 片：瀑布潭转换趟</b>（双潭落差，Jacobi 之前）——快照语义，
      * 列 i 满足 ① {@code TerrainVariants.swampFallDomainAt}（λ157 正瓣 tyF ≥ 0.5）
      * ② {@code nominal[i] ≥ 0} ③ 4 邻存在 {@code nominal[j] ≥ 0} 且
@@ -826,13 +827,12 @@ public class ChunkProviderProsperityRuins extends GTSRChunkProviderBase {
                         final int t = sub ? TerrainVariants.swampTierAt(worldSeed, x, z, 3) : 0;
                         this.st[i] = (byte) t;
                         // ═══ v1.20.50 P27 S 片 §redirect2：fall 域内 DEEP 潭心潭面钳低 ═══
-                        // 潭心（深门值 ≥ SWAMP_FALL_CORE_GATE，swampFallPoolCoreAt 单一出口）池水位
-                        // 钳到 min(pRaw − SWAMP_FALL_POOL_DROP, FLOOR)：65/67 段潭心 → 63（redirect
-                        // 原 FLOOR 语义），已在 63 段 → 61（相对再下切一档——实测 40-80% 沼泽面积
-                        // 本就在 63 段，r2.out R2H）⇒ 潭心 vs 潭缘环（保留原水位、转换趟高侧）
-                        // 的段差 ≥ DROP 在每潭结构上成立 ⇒ 缘环 fixed 化（fixed=屏障不抽干）
-                        // ⇒ 潭内缘环-潭心贴面竖直水墙 = 静态瀑面（§21-D 台阶；v1.20.40-45
-                        // dropColumn 同构造；潭缘外微池/湿带多为非湿 ⇒ 高侧只能来自潭自身缘环）。
+                        // 潭心深水（g_eff ≥ 0.76 经 swampFallPoolCoreAt 单一出口；P28 S 片 ③B 起阈
+                        // 0.70→0.76，内圈 [0.70,0.76) 让位高水台腿）池水位钳到
+                        // min(pRaw − SWAMP_FALL_POOL_DROP, FLOOR=62)：65/67 段潭心 62、63 段潭心 61，
+                        // 潭心 vs 潭缘环（保留原水位、转换趟高侧）的段差 ≥ DROP 在每潭结构上成立
+                        // ⇒ 缘环 fixed 化（fixed=屏障不抽干）⇒ 潭内缘环-潭心贴面竖直水墙 = 静态瀑面
+                        // （§21-D 台阶；v1.20.40-45 dropColumn 同构造）。
                         // submerged 名义项判定仍按 raw 池水位（钳只削水顶；床 ≥ 潭面的浅缘列经
                         // 下方"宁缺不悬"守卫自然无水）；pl[i] 同步钳值 ⇒ 转换趟段差判据两侧同口径。
                         // 湖交界安全：巨湖 fixed = SEA_LEVEL−1 = 67 ≥ 任何沼泽水顶。
@@ -856,6 +856,21 @@ public class ChunkProviderProsperityRuins extends GTSRChunkProviderBase {
                             && (t != TerrainVariants.SWAMP_TIER_NONE
                                 || GTSRVoronoiRiverField.swampPoolWaterAt(worldSeed, x, z, 3))) {
                             nominal[i] = p - 1;
+                            // ═══ v1.20.50 P28 S 片 ③B：高水台（潭心 blob 内圈 0.70 ≤ g_eff < 0.76）═══
+                            // 名义水位 = p+1（现状 p−1 之上 +2），乘湖岸避让门与<b>入流扇形门</b>（TV
+                            // swampFallLipAllowedAt / swampFallInflowGateAt 同一真值；§redirect：
+                            // 高水只在入流扇区弧段成立，其余潭缘回落名义水位 p−1（静水）⇒ 瀑面随
+                            // 扇区收口——"水从一边流出"）后取整——门 0 列 +0 精确回旧值（乘子式位等）。
+                            // pl[i] 同步 nominal+1（钳值同步纪律，转换趟段差判据两侧同口径）：
+                            // 高水台 vs 潭外/唇缘环（pl=pRaw）段差恰 2 ⇒ 转换趟在扇区弧段出 fixed 瀑面。
+                            if (t == TerrainVariants.SWAMP_TIER_DEEP
+                                && TerrainVariants.swampFallShelfAt(worldSeed, x, z, 3)) {
+                                final int add = (int) Math.round(
+                                    2.0D * TerrainVariants.swampFallLipAllowedAt(worldSeed, x, z)
+                                        * TerrainVariants.swampFallInflowGateAt(worldSeed, x, z));
+                                nominal[i] = p - 1 + add;
+                                pl[i] = nominal[i] + 1;
+                            }
                         }
                     }
                     // 河/主干水腿（A1a 新门）：P23 R1（批2 S2）起 wetAt 恒 false——本腿成为死路径
