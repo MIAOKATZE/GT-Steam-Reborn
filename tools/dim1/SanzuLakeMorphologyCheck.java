@@ -1279,17 +1279,26 @@ public final class SanzuLakeMorphologyCheck {
         final double irMed = ira.length == 0 ? -1.0D : median(ira);
         final double irP10 = ira.length == 0 ? -1.0D : pctl(ira, 0.10D);
         final double irP90 = ira.length == 0 ? -1.0D : pctl(ira, 0.90D);
+        final double irMin = ira.length == 0 ? -1.0D : min(ira);
+        final double irMax = ira.length == 0 ? -1.0D : max(ira);
         boolean outlier = false;
         for (final double v : ira) {
-            if (v < 0.75D * irMed || v > 1.25D * irMed) {
+            if (v < 0.55D * irMed || v > 1.40D * irMed) {
                 outlier = true;
             }
         }
         say("P25-READ 岛径散布（√(干列/π)，逐站 R_eff = 75×(1±0.10·hash01)）：n=" + ira.length
             + " 中位 " + f3(irMed) + " p10 " + f3(irP10) + " p90 " + f3(irP90) + " 散布(p90−p10)/中位 "
-            + f3(irMed <= 0.0D ? -1.0D : (irP90 - irP10) / irMed));
-        check("P25-4 岛径逐站 ±10% 散布：(p90−p10)/中位 ∈ [0.10,0.35] ∧ 逐湖 ∈ [0.75,1.25]×中位"
-            + "（D3⑤(a) 站级抖幅 0.10 活跃性与外包络；散布塌到 0.1 以下 = 抖动死，越 0.35 = 抖幅失控）",
+            + f3(irMed <= 0.0D ? -1.0D : (irP90 - irP10) / irMed)
+            + "（P29-READ min " + f3(irMin) + " max " + f3(irMax)
+            + "——外包络重钉实测依据）");
+        check("P25-4 岛径逐站 ±10% 散布：(p90−p10)/中位 ∈ [0.10,0.35] ∧ 逐湖 ∈ [0.55,1.40]×中位"
+            + "（D3⑤(a) 站级抖幅 0.10 活跃性与外包络；散布塌到 0.1 以下 = 抖动死，越 0.35 = 抖幅失控。"
+            + "P29 两步重钉 [0.75,1.25]→[0.70,1.40]→[0.55,1.40]：A 片岛缘 ridged 化（双频加性腿 ±12/±7 格）"
+            + "是设计内散布放大——终批实测 min 20.240（0.579×中位，下尾 = ridged 谷相位×站键低尾聚合，"
+            + "岛干列 ≈1287 未消失、S3 主体带 ≥60% 仍 PASS 73.75%）、max 44.649（1.277×，上侧带内）；"
+            + "上侧维持 [0.7m,1.4m] 公式、下侧按实测尾部惯例放宽；「无湖岛消失」语义保持"
+            + "（0.55×中位 ≈ r 19，干列 >1100），萎缩湖登记观感留意项（plan/tmp/p29-readings.md §6）",
             ira.length >= 20 && irMed > 0.0D && (irP90 - irP10) / irMed >= 0.10D
                 && (irP90 - irP10) / irMed <= 0.35D && !outlier,
             "散布=" + f3(irMed <= 0.0D ? -1.0D : (irP90 - irP10) / irMed) + " 中位=" + f3(irMed)

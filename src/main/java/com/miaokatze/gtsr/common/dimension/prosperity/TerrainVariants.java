@@ -1050,6 +1050,13 @@ public final class TerrainVariants {
         }
         // —— 荒漠沙丘（RTG dunes 参数化 + domain-warp；无丘陵）——
         if (w[2] > 0.0D) {
+            // ═══ v1.20.52 P29 C 片 C3：湖平面域衰减乘子 w2g = w[2] × lakePlaneTerrainAllowedAt ═══
+            // 平面域（lake ≤ SHORE+JITTER，含抖动滩缘整环）门=0 ⇒ 下方两条 delta（沙海巨丘+风蚀
+            // 巨柱/座台）归零——滩带 q→1 段不再爬回荒漠丘状地形（p29-r §2.2-3 根因收口）；
+            // 域外（门=1）w2g = w[2]×1.0 IEEE 逐位同（era 闭合）；带内各中间量（duneGate/bryce/
+            // site 等）照常求值、只在出口乘门——单点分流纪律（§21-D 同款）。lakeAt 走 LAKE_MEMO
+            // 命中（heightCore 顶部已算同列 lake）。
+            final double w2g = w[2] * lakePlaneTerrainAllowedAt(worldSeed, x, z);
             // —— 沙海域域门（v1.20.49 P26-B4 ⑤：λ281；域外 duneGate 精确 0 ⇒ 下方各增量逐位 0：
             // warpAmp/mainWave/gain/quad 的 "+增量×gate" 项在 gate=0 处分别等于旧常量（IEEE 精确），
             // 均匀区（沙海域域外）读数与改造前逐位相同——digest 对拍保证）——
@@ -1071,7 +1078,7 @@ public final class TerrainVariants {
             final double quad = DUNE_RIDGE_QUAD + DUNE_SEA_QUAD_BOOST * duneGate;
             final double bump = p * (p * quad + DUNE_RIDGE_LIN);
             final double ripple = GTSRWorldgenHash.valueNoise(warpSeed, wx / 17.0D, z / 17.0D) * (0.6D + st);
-            delta += w[2] * (bump - 1.3D * st + ripple);
+            delta += w2g * (bump - 1.3D * st + ripple);
             // —— 风蚀山体 + 风蚀柱座台（v1.20.41 需求 5；RTG terrainBryce 倒数式范式，四层求和）——
             // 四层取有符号值各一次：绝对值进 sn（柱身"细而陡"），最低频层 n₃ 另作山体门、
             // λ53 层 n₂ 另作风蚀柱落点场 ⇒ 与计划"荒漠每列 +4 次"口径一致（门/座台零额外求值）。
@@ -1092,7 +1099,7 @@ public final class TerrainVariants {
             // （窄带外 ×1.0 ⇒ 既有座台列逐位不变；落点场本身不动 = 零第二真值）。
             final double site = windSpineSiteAt(worldSeed, x, z);
             final double giantNarrow = s01((site - SPINE_PEDESTAL_GIANT_GATE_LO) / SPINE_PEDESTAL_GIANT_GATE_SPAN);
-            delta += w[2] * (bryce + SPINE_PEDESTAL * (1.0D + SPINE_PEDESTAL_GIANT_BOOST * giantNarrow) * site);
+            delta += w2g * (bryce + SPINE_PEDESTAL * (1.0D + SPINE_PEDESTAL_GIANT_BOOST * giantNarrow) * site);
         }
         // —— 沼泽夹持 + 三档水体下挖 / 遗忘之川微起伏（ATG swamp 模板；只做地形，不置水）——
         if (w[3] > 0.0D || w[4] > 0.0D) {
@@ -1104,6 +1111,12 @@ public final class TerrainVariants {
             final double pool = g[SWG_POOL];
             final double target = ProsperityTerrainProfile.SEA_LEVEL - SWAMP_CLAMP_UNDERSHOOT;
             if (w[3] > 0.0D) {
+                // ═══ v1.20.52 P29 C 片 C2：湖平面域豁免乘子 w3g = w[3] × lakePlaneTerrainAllowedAt ═══
+                // 平面域（lake ≤ SHORE+JITTER）门=0 ⇒ 夹持/三档下挖/泥丘炭屑/lip 全 0（h0 原样，
+                // 湖滩不再被挖出沼泽潭/沼洼）；域外（门=1）w3g = w[3]×1.0 IEEE 逐位同（era 闭合，
+                // 下方 lip 项自带 swampFallLipAllowedAt 双门并存不合并）；45 格缓入带内按门缩放。
+                // lakeAt 走 LAKE_MEMO 命中（heightCore 顶部 :518-538 已算同列 lake）。
+                final double w3g = w[3] * lakePlaneTerrainAllowedAt(worldSeed, x, z);
                 final double f = 0.55D + 0.40D * gate;
                 // —— P20 §21-D：三档<b>水体项</b>在 delta 侧同样<b>互斥</b>，只落 g[SWG_TIER] 那一档 ——
                 // g[SWG_TIER] 就是 swampTierAt 的返回值（同一次 swampGates、同一个槽），故"地形侧算到哪
@@ -1148,7 +1161,7 @@ public final class TerrainVariants {
                         * (1.0D - swampFallInflowGateAt(worldSeed, x, z))
                         * swampFallLipAllowedAt(worldSeed, x, z);
                 }
-                delta += w[3] * ((h0 * (1.0D - f) + target * f) - h0
+                delta += w3g * ((h0 * (1.0D - f) + target * f) - h0
                     - water
                     + Math.max(-SWAMP_NONWATER_DIG_MAX, dry)
                     + SWAMP_FALL_LIP * lip);
@@ -1448,6 +1461,27 @@ public final class TerrainVariants {
         return s01(
             (GTSRVoronoiRiverField.lakeAt(worldSeed, x, z) - GTSRVoronoiRiverField.LAKE_SHORE - SWAMP_FALL_SHORE_BAND)
                 / SWAMP_FALL_SHORE_BAND);
+    }
+
+    /**
+     * <b>湖平面压力域地形门</b>（v1.20.52 P29 C 片 C1 新增）：乘子门
+     * {@code s01((lakeAt − LAKE_SHORE − SANZU_BIOME_SHORE_JITTER)/SWAMP_FALL_SHORE_BAND)}——
+     * lakeAt ≤ LAKE_SHORE+SANZU_BIOME_SHORE_JITTER（sanzu 平面压力域<b>上确界</b>，含抖动滩缘
+     * 整环：shoreAt ∈ [SHORE, SHORE+JITTER) 单边 ≥ 不变式 ⇒ 本门 0 域 ⊇ 平面域，且免逐列
+     * sanzuBiomeShoreAt 噪声求值）⇒ <b>0</b>（沼泽/荒漠地形腿豁免）；≥ SHORE+JITTER+0.02
+     * （SWAMP_FALL_SHORE_BAND 复用 0.02，零新常量；≈+45 格）⇒ 1；其间 45 格缓入带。
+     * <b>与 {@link #swampFallLipAllowedAt} 并存不合并</b>（双登记）：彼门锚 SHORE+0.02、语义
+     * "水脸贴近"（瀑布潭唇缘环抬升专用），本门锚 SHORE+JITTER+0.02、语义"平面域外才许建
+     * 沼泽/荒漠地形"——两门消费面与阈值各别，合并会同时改掉两处口径。<b>递归安全</b>：
+     * lakeAt 是纯湖场、不触 {@code heightAt}（RVF 湖让位腿先例 :2371——本方法从
+     * {@link #variantAdjustment}（heightCore 下游）调用不构成环）。<b>纯函数</b>；消费面
+     * （P29 C2/C3）：本类 w[2]/w[3] 两支路的 w2g/w3g 乘子 + CPR {@code SwampFieldGrid}
+     * 构建体的 tier==3 门（PTP 微池第四肢是本门的硬阈镜像，直用局部量 lake 零新求值）。
+     */
+    public static double lakePlaneTerrainAllowedAt(long worldSeed, int x, int z) {
+        return s01(
+            (GTSRVoronoiRiverField.lakeAt(worldSeed, x, z) - GTSRVoronoiRiverField.LAKE_SHORE
+                - GTSRVoronoiRiverField.SANZU_BIOME_SHORE_JITTER) / SWAMP_FALL_SHORE_BAND);
     }
 
     /**

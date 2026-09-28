@@ -312,8 +312,10 @@ public class ChunkProviderProsperityRuins extends GTSRChunkProviderBase {
      * <li>改派只取<b>同维名册内已注册的方块</b>（{@link BlocksGTSR#prosperityRiverGravel}
      * 即 {@code GTSRRiverPlacer} 现有的河滩料；<b>P26-B3（D3·c3）追加第二改派料
      * {@link BlocksGTSR#prosperitySilicaSand}（干滩档，先于湿砾檐裁定，判定
-     * {@link LakeWetBandTopSelector#dryBeachSandAt}）</b>——两料均零新方块（H-4 ⇒ 名册读数
-     * 408 不变），也不引入 plains/grass/dirt（S1 降级口径的强条件仍然成立）。</li>
+     * {@link LakeWetBandTopSelector#dryBeachSandAt}）</b>；<b>P29-B2（D3，v1.20.52）追加
+     * 第三改派料 {@link BlocksGTSR#prosperityStone}（滩坡上半废岩档，硅砂档后裁定，判定
+     * {@link LakeWetBandTopSelector#shoreSlopeStoneAt}）</b>——三料均零新方块（H-4 ⇒ 名册读数
+     * 不变），也不引入 plains/grass/dirt（S1 降级口径的强条件仍然成立）。</li>
      * <li>框架侧那条"spec.topSelector == null ⇒ 走 {@code forChunk} 默认"的解析序
      * （{@code GTSRChunkProviderBase.applyBiomeSurface:394}）<b>不被绕过、只被前移</b>：
      * 本类替框架调了同一次 {@code forChunk}，入参（dimKey / 未掺盐 worldSeed / baseX / baseZ）
@@ -370,6 +372,16 @@ public class ChunkProviderProsperityRuins extends GTSRChunkProviderBase {
          * 同款；字面仍 = 10.0，SLMC 判据侧字面钉对拍）。
          */
         private static final double WETB_HALO_MAX = GTSRVoronoiRiverField.SANZU_SHORE_SLOPE_HALO;
+        /**
+         * <b>滩坡下半硅砂过渡带的升高</b>（格，P29-B1 新增，v1.20.52）：硅砂档核心 h 窗上沿 =
+         * {@code SEA_LEVEL + SANZU_DRY_BEACH_RISE + 本值} = 68+1+4 = <b>73</b>——滩坡带
+         * h∈[70,79]（滩坡档帽）按「下半过渡/上半基岩」二分，本常量取分档中点偏下的 4 ⇒
+         * 下半 h∈[70,73] 恒硅砂（水线过渡；原为羽化档部分覆盖 ⇒ GenLayer 料穿透，P29 证据
+         * §2.2-2），上半 h∈(73,79] 归 B2 废岩档 {@link #shoreSlopeStoneAt}。本常量同时是
+         * 硅砂档的<b>硬上界</b>：高于它的列硅砂档整档不裁 ⇒ 旧羽化高度腿（h−69）不再越过 73
+         * 抢占废岩带（topAt 链硅砂→废岩的裁定序由此成立）。
+         */
+        private static final int SANZU_SHORE_SAND_RISE = 4;
 
         @Override
         public Block topAt(long seed, int x, int z, BiomeGenBase biome) {
@@ -397,6 +409,14 @@ public class ChunkProviderProsperityRuins extends GTSRChunkProviderBase {
             final Block drySand = BlocksGTSR.prosperitySilicaSand;
             if (drySand != null && base != drySand && dryBeachSandAt(seed, x, z)) {
                 return drySand;
+            }
+            // P29-B2（D3·B2，v1.20.52）：滩坡上半繁荣废岩档——drySand 档后、湿砾檐前追加
+            // （裁定序 = 硅砂 → 废岩 → 河砾：废岩带 h>73 的列硅砂档已被硬上界整档截断 ⇒ 本档
+            // 先于湿砾檐裁定只发生在自身域内，湿域/干滩/滩坡下半三档先行语义与求值序一字不动；
+            // 79 帽单源引 RVF 常量，见 shoreSlopeStoneAt）。
+            final Block slopeStone = BlocksGTSR.prosperityStone;
+            if (slopeStone != null && base != slopeStone && shoreSlopeStoneAt(seed, x, z)) {
+                return slopeStone;
             }
             // P23 R1（v1.20.46 批2 S2）：湖全域站格化后湿带/羽化檐可落在<b>任意</b> chunk（原
             // trunk 门时代 chunk(0,0) 类窗口恒 NO_LAKE、此路不可达）——BlocksGTSR 字段未注册的
@@ -486,8 +506,11 @@ public class ChunkProviderProsperityRuins extends GTSRChunkProviderBase {
          * {@code SANZU_DRY_BEACH_RISE}、b1 滩缘腿域）恒硅砂 → 陆侧按覆盖率梯递减羽化</b>
          * （d2 湖→陆衔接：视觉上滩→草渐变，语义上平面身份谓词零新真值）。
          * <ul>
-         * <li>核心 = 岸带压内（{@code lakeAt < LAKE_SHORE}）∧ 恰在水上 1 格——b1 滩缘腿 h 窗的
-         * 干列，恒硅砂（对应湿带核心恒砾；噪声腿扩出的滩带外列 e ∈ (0,5] 格当量、走羽化档）；</li>
+         * <li>核心 = 岸带压内（{@code lakeAt < LAKE_SHORE}）∧ h ≤ SEA+
+         * {@code SANZU_DRY_BEACH_RISE}+{@link #SANZU_SHORE_SAND_RISE}（=73）——b1 滩缘腿 h 窗的
+         * 干列（水上 1 格）恒硅砂（对应湿带核心恒砾）；<b>P29-B1（v1.20.52）核心上沿 69→73</b>：
+         * 滩坡下半 h∈[70,73]（原为羽化档部分覆盖 ⇒ GenLayer 料穿透）并入核心恒硅砂，硬上界
+         * 见方法体（岸带外列 e ∈ (0,10] 格当量、走羽化档）；</li>
          * <li>外缘 e = max(高度出窗格数（h − SEA−RISE）, 岸压出窗格当量（lakeAt − SHORE）/
          * {@link #WETB_HALO_UNIT})——两条腿分别覆盖「陡岸往上爬」与「平岸往陆侧走」，<b>只向
          * 陆侧出檐</b>（无湖盆侧腿：h ≤ SEA 首行已截断）；梯/硬界/抖动场全部复用
@@ -502,14 +525,66 @@ public class ChunkProviderProsperityRuins extends GTSRChunkProviderBase {
             if (h <= ProsperityTerrainProfile.SEA_LEVEL) {
                 return false; // 湿域归河砾档（核心恒砾+檐，一字不动）；干滩档只向陆侧
             }
+            // P29-B1（v1.20.52）：硅砂档硬上界 73——高于它的列整档不裁（滩坡上半归 B2 废岩档，
+            // topAt 链本档之后的 shoreSlopeStoneAt）。删除的只是旧羽化高度腿在 74-79 段的
+            // 概率檐；h ≤ 69 的旧核心行为不动，h∈[70,73] 岸内带由旧概率羽化收为恒硅砂
+            // （B1 目标本体，方法 javadoc 已登记）。
+            if (h > ProsperityTerrainProfile.SEA_LEVEL + GTSRVoronoiRiverField.SANZU_DRY_BEACH_RISE
+                + SANZU_SHORE_SAND_RISE) {
+                return false;
+            }
             final double lake = GTSRVoronoiRiverField.lakeAt(worldSeed, x, z);
-            if (lake < GTSRVoronoiRiverField.LAKE_SHORE
-                && h <= ProsperityTerrainProfile.SEA_LEVEL + GTSRVoronoiRiverField.SANZU_DRY_BEACH_RISE) {
-                return true; // 干滩核心（b1 滩缘腿 h=SEA+RISE 干列）：恒硅砂
+            if (lake < GTSRVoronoiRiverField.LAKE_SHORE) {
+                return true; // 干滩核心（b1 滩缘腿干列 + P29-B1 滩坡下半 h∈[70,73]）：恒硅砂
             }
             double e = Math.max(
                 h - (ProsperityTerrainProfile.SEA_LEVEL + GTSRVoronoiRiverField.SANZU_DRY_BEACH_RISE),
                 (lake - GTSRVoronoiRiverField.LAKE_SHORE) / WETB_HALO_UNIT);
+            if (e > WETB_HALO_MAX) {
+                return false; // 高台 / 岸带远侧：整档排除，不外扩
+            }
+            final double n = wetBandJitter(worldSeed, x, z);
+            final double t = e <= 1.0D ? WETB_T1
+                : e <= 2.0D ? WETB_T2 : e <= 3.0D ? WETB_T3 : e <= 5.0D ? WETB_T4 : WETB_T5;
+            return n >= t;
+        }
+
+        /**
+         * <b>滩坡上半繁荣废岩档判定</b>（P29-B2 D3 新增，v1.20.52）：本列裸露面是否铺岸坡基岩料
+         * （{@link BlocksGTSR#prosperityStone}）。与 {@link #dryBeachSandAt} 同构的「确定性核心 +
+         * 出檐五档羽化」两段，材质语义沿滩坡分带：<b>滩坡下半 h∈[70,73] 恒硅砂（B1 扩核，水线
+         * 过渡）→ 滩坡上半 h∈(73,79] 恒废岩（本档核心，岸坡基岩）→ 陆侧按覆盖率梯递减羽化</b>。
+         * <ul>
+         * <li>核心 = 岸带压内（{@code lakeAt < LAKE_SHORE}）∧ h∈(73, 79帽]——79 帽
+         * {@code = SEA_LEVEL + SANZU_DRY_BEACH_RISE + SANZU_SHORE_SLOPE_HALO}，与 RVF
+         * {@code isSanzuColumn} 滩坡档（平面爬坡帽）同一构造式<b>单源引用</b>（WETB_HALO_MAX
+         * 引 SANZU_SHORE_SLOPE_HALO 的同款先例），不另立字面；h≤73 首行恒假 ⇒ 湿域（河砾档）/
+         * 干滩/滩坡下半（硅砂档）三档先行裁定语义与求值序一字不动；</li>
+         * <li>外缘 e = max(高度出窗格数（h − 79帽）, 岸压出窗格当量（lakeAt − SHORE）/
+         * {@link #WETB_HALO_UNIT})——与干滩档同款「陡岸往上爬 + 平岸往陆侧走」两腿、只向陆侧
+         * 出檐（h≤73 首行已截断）；梯/硬界/抖动场全部复用 {@link #WETB_T1}..{@link #WETB_T5}/
+         * {@link #WETB_HALO_MAX}/{@link #wetBandJitter} ⇒ <b>零新场求值/零新盐</b>（与湿檐/
+         * 干滩檐同一张 λ13 抖动场、同一组阈值，仅 e 的定义域不同）；e &gt; HALO_MAX 整档排除
+         * （高台/岸带远侧硬边 = 地形自身的边，同干滩档口径保留并披露）；</li>
+         * <li>候选方块 prosperityStone：岛底柱/wholeBody base 同方块先例
+         * （{@code fillSanzuLakes} 柱趟/{@code baseBlockOf}），非 top 名册、已注册（BlockLoader）
+         * ⇒ H-4 安全；{@code ProsperityDecorPlacer.tuftForGround} 四员映射外 ⇒ 废岩滩不长草簇
+         * （P17 S-B2 纪律，该方法体零改动）。残骸不入表层 pass（S4a 结构通道继续管）。</li>
+         * </ul>
+         */
+        private static boolean shoreSlopeStoneAt(long worldSeed, int x, int z) {
+            final int h = ProsperityTerrainProfile.heightAt(worldSeed, x, z);
+            if (h <= ProsperityTerrainProfile.SEA_LEVEL + GTSRVoronoiRiverField.SANZU_DRY_BEACH_RISE
+                + SANZU_SHORE_SAND_RISE) {
+                return false; // 湿域/干滩/滩坡下半（h≤73）归河砾/硅砂档，本档只裁滩坡上半
+            }
+            final double lake = GTSRVoronoiRiverField.lakeAt(worldSeed, x, z);
+            final int slopeCap = ProsperityTerrainProfile.SEA_LEVEL + GTSRVoronoiRiverField.SANZU_DRY_BEACH_RISE
+                + GTSRVoronoiRiverField.SANZU_SHORE_SLOPE_HALO;
+            if (lake < GTSRVoronoiRiverField.LAKE_SHORE && h <= slopeCap) {
+                return true; // 滩坡上半核心（设计滩环内 h∈(73,79]）：恒繁荣废岩
+            }
+            double e = Math.max(h - slopeCap, (lake - GTSRVoronoiRiverField.LAKE_SHORE) / WETB_HALO_UNIT);
             if (e > WETB_HALO_MAX) {
                 return false; // 高台 / 岸带远侧：整档排除，不外扩
             }
@@ -823,7 +898,13 @@ public class ChunkProviderProsperityRuins extends GTSRChunkProviderBase {
                     fixed[i] = -1;
                     this.st[i] = 0;
                     final boolean sub = GTSRVoronoiRiverField.submergedAt(hv, pRaw);
-                    if (tier == 3) {
+                    // ═══ v1.20.52 P29 C 片 C2：湖平面压力域门 ═══ 平面域（lake ≤ SHORE+JITTER，
+                    // 含抖动滩缘整环）内不建沼泽 nominal/档位（st 归 NONE 桶、nominal 留 −1）——
+                    // 湖滩沼泽水网的 roster 门根因腿收口（p29-r §2.3-3/4）。门放 heightAt 之后
+                    // （LAKE_MEMO 已热，+1 次 memo get/列）；域外（门=1）逐位同。湖 fixed=67 腿
+                    // （下方巨湖水腿，不在本 if 内）不动——湖自身水面照常；fillSwampPools 主体
+                    // 读场零改动。
+                    if (tier == 3 && TerrainVariants.lakePlaneTerrainAllowedAt(worldSeed, x, z) > 0.0D) {
                         final int t = sub ? TerrainVariants.swampTierAt(worldSeed, x, z, 3) : 0;
                         this.st[i] = (byte) t;
                         // ═══ v1.20.50 P27 S 片 §redirect2：fall 域内 DEEP 潭心潭面钳低 ═══

@@ -820,38 +820,95 @@ public final class GTSRVoronoiRiverField {
     /**
      * 岛绝对腿<b>周向起伏</b>噪声盐（P26-B3 D1·I1' 新增，v1.20.49）：盐段尾续取
      * {@code …11AL}（…117/…118/…119 已被湖压力/岛半径/岛阈抖占用；…11B 归
-     * {@link #SALT_LAKE_PRESSURE2}）。I1' = kAbs 的 dC 乘性噪声（破岛圆的周向起伏，见
-     * {@link #LAKE_ISLAND_EDGE_JITTER}）。
+     * {@link #SALT_LAKE_PRESSURE2}）。I1' = kAbs 的 dC 起伏噪声（破岛圆的周向起伏，见
+     * {@link #LAKE_ISLAND_EDGE_LO_AMP}）。
+     * <p>
+     * <b>P29-A2（多频加性改造）起本盐服务低频大瓣腿</b>（LO 腿，λ
+     * {@link #LAKE_ISLAND_EDGE_LO_SCALE}=124）——同盐改 λ/幅度先例 = P28-L 岛腿
+     * λ90→56（D1·I2，盐不动只改档）；中频腿独立盐 {@link #SALT_LAKE_ISLAND_EDGE_MID}。
      */
     public static final long SALT_LAKE_ISLAND_EDGE = 0x5249F11AL;
 
     /**
-     * 岛绝对腿<b>周向起伏幅度</b>（乘性，P26-B3 D1·I1' 新增，v1.20.49）：
-     * {@code kAbs = 1 − dC·(1 + 本值·n(λ}{@link #LAKE_ISLAND_EDGE_SCALE}{@code ))/rEff}
-     * ——R_eff 是逐湖标量 ⇒ 改造前绝对腿在 warped 空间是<b>正圆</b>（warp 只整体搬运+缓变
-     * 拉伸、不产生周向起伏）。乘性噪声 ±{@value} ⇒ 岛缘周向起伏 ±9.8 格（0.13×R_eff≈75）、
-     * 特征长 ≈45 格（周长 2π·40≈250 的 ~1/5，连续列自身坐标取噪声——无 atan2/无站查询/无缝）。
-     * 判据账（evolve-lake I1'）：面积中位 +a²/2 ≈ +0.85% ⇒ C-DRY 面积带不动；岛域最小半径
-     * R_eff,min×(1−a) ≈ 67.5×0.87 ≈ 59 ≫ 环 13+抖 2+半宽 2 = 17（柱不变式）；R2 降级链 =
-     * 0.13 → 0.10（C-DRY 越带 &gt;10% 湖或 C5 &lt;60% 触发）。
+     * 岛绝对腿<b>多频 ridged 脊形加性——低频大瓣幅度</b>（格，P29-A2 新增，A2-R 改 ridged）：
+     * {@code kAbs = 1 − (dC + 本值·g₁ + MID·g₂)/rEff}，g = s01((1−|n|−{@link
+     * #LAKE_ISLAND_EDGE_RIDGE_GATE_LO})/{@link #LAKE_ISLAND_EDGE_RIDGE_GATE_SPAN})——
+     * <b>缎带腿同款 ridged 门形</b>（脊核 |n|≈0 处满门=深咬、带外=0），n₁ = λ
+     * {@link #LAKE_ISLAND_EDGE_LO_SCALE}、n₂ = λ{@link #LAKE_ISLAND_EDGE_MID_SCALE}、
+     * MID 见 {@link #LAKE_ISLAND_EDGE_MID_AMP}。
      * <p>
-     * <b>P28-L（v1.20.51 D1·I2 岛腿去圆团）：0.13 → 0.15</b>——用户②"中心小岛轮廓也要
-     * 不规则"：乘性 ±0.15 ⇒ 周向起伏 ±11.3 格（0.15×R_eff≈75）、配合 λ 档 90→56（见
-     * {@link #LAKE_ISLAND_EDGE_SCALE}）波瓣 5.5→~9。R2 降级链改挂 = 0.15 → 0.13（P26 值作
-     * 回退档；MegaTree SECTOR_R_FLOOR 余量 1.2 ⇒ L3 回探针复核触发）。
+     * <b>为什么 ridged（A2-R，主代理裁决①）</b>：P29-A2 首档（plain 加性 n₁/n₂）实测岛环
+     * 有效瓣 med=2（p29-a-readings §5）——valueNoise 沿半径 40 环的振荡极值仅 ~0.4×(周长/λ)
+     * 个，plain 形的半径极大=噪声极值，瓣数天花板 ≈2-3；ridged 门在<b>零交叉</b>处成脊
+     * （交叉数≈极值总数），且门形"带外精确 0"让脊间段保持基线半径 ⇒ 每个脊都是满对比度的
+     * 内咬缺刻（prominence ≈ 幅度本值），瓣数=脊数可由 λ 直接调度。
+     * <p>
+     * <b>几何账（本值 12 + MID 7）</b>：单侧内咬 pull ∈ [0,19] ⇒ 干沿半径 = 0.5323·rEff −
+     * pull ⇒ 可见缺刻深 LO 12/MID 7（prominence ≥4 门的几何保障）；岛域 ⊂ 湖水区不变式：
+     * 压力腿 islandGate（lakeIslandTopAt 先门）未动 ⇒ 保持；加性项只平移等值线不反号。
+     * <b>柱不变式</b>：kAbs = 0 域半径 ≥ rEff,min(67.5) − 19 = <b>48.5 ≫ 17</b>（环 13+抖 2+
+     * 半宽 2，P25 D3⑤(a) 同款账）。<b>spread 天花板账（登记，不降门）</b>：单侧拉扯
+     * p90−p10 ≤ LO+MID = 19 &lt; 24 目标——A2-R 按"先达瓣数门、spread 按实测算术给重钉建议"
+     * 执行（读数 §A2-R）。R2 降级链（C1/C1b 岛干面积带越幅 &gt;40% 或 MegaTree 重钉
+     * &gt;2 格）：12 → 8（p29 计划 §2-A 失败路径）。
      */
-    public static final double LAKE_ISLAND_EDGE_JITTER = 0.15D;
+    public static final double LAKE_ISLAND_EDGE_LO_AMP = 12.0D;
 
     /**
-     * 岛缘周向起伏噪声波长（格，P26-B3 D1·I1' 新增）：λ = 90（岛缘特征长 ≈45 格 =
-     * λ/2；90 % 16 = 10 ≠ 0 ✔ 账本 §9 取值纪律）。<b>求值域</b>：只在岛域列（压力腿过门后，
-     * 全湖 ≈5% 列）求值 ⇒ 岛域外零成本（短路保持，见 {@link #lakeIslandTopAt}）。
-     * <p>
-     * <b>P28-L（v1.20.51 D1·I2）：90 → 56</b>——岛缘周长 ≈250 格在 λ90 档只裁 ~5.5 个波瓣
-     * （"圆团+缓包"读感根因之一）；λ56 ⇒ 特征长 ≈28 格、波瓣 ~9，与幅度 0.15（±11.3 格）
-     * 组合出"多瓣不规则"轮廓。56 % 16 = 8 ≠ 0 ✔。
+     * 岛绝对腿多频 ridged——<b>低频大瓣波长</b>（格，P29-A2 新增）：λ = 124——与湖缘缎带
+     * {@link #LAKE_RIBBON_SCALE} 同档（"低频宽湾"同一波长纪律：岛大瓣与湖湾臂频谱对齐）；
+     * 124 % 16 = 12 ≠ 0 ✔（账本 §9 取值纪律）。环密度账：半径 40 环（周长 ≈251）在 λ124
+     * 档 ≈1 个大脊（岛剪影级单侧大咬）。<b>求值域</b>：只在岛域列（压力腿过门后，全湖
+     * ≈5% 列）求值 ⇒ 岛域外零成本（短路保持）。<b>盐</b>：复用
+     * {@link #SALT_LAKE_ISLAND_EDGE}（同盐改 λ/幅度先例：P28-L λ90→56）。
      */
-    public static final double LAKE_ISLAND_EDGE_SCALE = 56.0D;
+    public static final double LAKE_ISLAND_EDGE_LO_SCALE = 124.0D;
+
+    /**
+     * 岛绝对腿多频 ridged——<b>中频缺刻幅度</b>（格，P29-A2 新增，A2-R 改 ridged）：同一
+     * 加性式的第二频（见 {@link #LAKE_ISLAND_EDGE_LO_AMP} 算式），7 格缺刻深叠在 12 格大脊上
+     * ⇒ 单点最大内咬 19。失败迭代档（岛瓣数 med &lt;5 或 min &lt;4 时）：SCALE 逐档下调
+     * （p29 redirect 执行要求 5；λ 必须满足 %16≠0——16 档禁用）。
+     */
+    public static final double LAKE_ISLAND_EDGE_MID_AMP = 7.0D;
+
+    /**
+     * 岛绝对腿多频 ridged——<b>中频缺刻波长</b>（格，P29-A2 新增；<b>A2-R：52 → 20 → 18 → 14</b>）：
+     * 环密度算术（redirect 执行要求 1"确保环上格点密度足以出 ≥5 个脊"）——valueNoise 脊密度
+     * 实测系数 ≈0.32×(周长/λ)（零交叉 + 浅 |n| 低谷入带）：λ52 ≈2 脊（A2 首档瓣 med=2 根因，
+     * simr.out）；λ20 ≈5.6 脊（r1 实测 med=5 ✔ min=2 ✗）；λ18 ≈6.4 脊（r2 实测 med=6 ✔
+     * min=3 ✗，两低瓣湖环周长 188/213）。<b>min 门（≥4）反解：λ ≤ 0.32×188/4 ≈ 15 ⇒ 迭代 2
+     * 取 λ14</b>（14 % 16 = 14 ≠ 0 ✔；16 档 %16=0 违反账本 §9 纪律禁用）：中位环（周长 251）
+     * ≈5.7 脊、小环 ≈4.3 脊。缺刻宽 ≈6-8 格、脊距 ≈30-44 格——岛缘"多缺刻不规则海岸线"
+     * 读感（与 LO λ124 大脊双尺度分层）。<b>盐</b>：{@link #SALT_LAKE_ISLAND_EDGE_MID}
+     * 独立盐域（同盐不同 λ = 同底层格点场重采样的强相关档，必须分盐——
+     * {@link #SALT_LAKE_PRESSURE2} 纪律同款）。
+     */
+    public static final double LAKE_ISLAND_EDGE_MID_SCALE = 14.0D;
+
+    /**
+     * 岛缘 ridged 门<b>脊阈</b>（A2-R 新增，redirect 执行要求 1）：g =
+     * s01((1−|n|−本值)/{@link #LAKE_ISLAND_EDGE_RIDGE_GATE_SPAN})——带外（|n| ≥ 1−本值 =
+     * 0.24）g=0 精确 ⇒ 脊间段半径=基线（prominence=幅度满对比）；脊核（|n| ≤ 0.12）满门。
+     * 取 0.76 与湖缘缎带门 {@link #LAKE_RIBBON_GATE_LO}=0.68 同族偏紧档（门带宽 vs 缺刻
+     * 分离度的折中：更宽（0.68）则 λ20 缺刻粘连、更窄（0.84）则缺刻变浅——simr.out
+     * 扫描 3×2 档取 spread/瓣数最优）。
+     */
+    public static final double LAKE_ISLAND_EDGE_RIDGE_GATE_LO = 0.76D;
+
+    /**
+     * 岛缘 ridged 门<b>缓入宽度</b>（A2-R 新增）：0.12 ⇒ 缺刻缘坡 ≈ 幅度 ÷ 半带宽弧长
+     * ≈ 7÷5 ≈ 1.4 格/列（λ20 档）&lt; 滩台阶 riser 3.5——与缎带门 SPAN 同款缓入纪律。
+     */
+    public static final double LAKE_ISLAND_EDGE_RIDGE_GATE_SPAN = 0.12D;
+
+    /**
+     * 岛绝对腿<b>中频细部噪声盐</b>（P29-A2 新增，v1.20.52 计划轨道）：盐段尾续取
+     * {@code …11EL}——实现期 grep 全 src+tools/dim1 已核零占用（…11D 归
+     * {@link #SALT_LAKE_RIBBON}；…11E/…11F/…120 段尾空闲）；占用则回退 …120（p29 计划
+     * §2-A A2，实测未占用 ⇒ 取 …11E）。退役盐不回收不复用。
+     */
+    public static final long SALT_LAKE_ISLAND_EDGE_MID = 0x5249F11EL;
 
     /**
      * 岛面相对 {@link ProsperityTerrainProfile#SEA_LEVEL} 的抬升（格）⇒ 岛面 = 68 + 4 = <b>72</b>。
@@ -1010,40 +1067,67 @@ public final class GTSRVoronoiRiverField {
      * ✔（账本 §9 取值纪律）。<b>求值域</b>：只在缘带（见 {@link #LAKE_RIBBON_FRINGE_DELTA}）求值
      * ⇒ 缘外列零新噪声（短路保持）；范式先例 = TerrainVariants 缎带沟（ridged 1−|n| 沿 n≈0
      * 等值线成带，P27 G 片）。
+     * <p>
+     * <b>P29-A1（v1.20.52 计划轨道，"低频宽湾浅咬"重标定）：76 → 124</b>——P28 档的特征长 ≈38 格
+     * 在每段湖缘排布 ~3 个咬口（λ76 等值线间隔 ≈38 格），湾窄齿密（齿深:齿宽 ≈27:7.6 ≈3.5:1
+     * 尖齿——"狗啃"台阶放大主因，p29 计划 §2-A A1 证据）。λ124 ⇒ 特征长 ≈62~124 格（格点噪声
+     * 振荡特征长 ≈λ 而非 λ/2，p29-r-lake §1.3 同口径）≈ 设计滩环 113 格同量级 ⇒ <b>每段湖缘
+     * 1-2 个宽湾</b>（低频）；124 % 16 = 12 ≠ 0 ✔。备选档：132（湾更疏，未采纳）。
      */
-    public static final double LAKE_RIBBON_SCALE = 76.0D;
+    public static final double LAKE_RIBBON_SCALE = 124.0D;
 
     /**
      * 湖缘 ridged 缎带<b>湾深幅度</b>（压力域，P28-L D1·R1 新增）：缎带核（门=1 段）把压力压低
-     * 本值 ⇒ 水缘沿缎带等值线内侵成湾臂。径向格数口径：dr/dP ≈ 2244 格/单位压力 ⇒ 0.012 ≈
-     * <b>27 格湾深上限</b>（等值线垂直穿滩向时兑现；带间留滩臂/半岛——用户②"河滩增加分支地形"）；
-     * R1 降级链 = 0.012 → 0.008（L3 探针存活率 &lt;30% 或湾臂串湖触发）。
+     * 本值 ⇒ 水缘沿缎带等值线内侵成湾臂。径向格数口径：dr/dP ≈ 2244 格/单位压力 ⇒ 幅度 ×
+     * 2244 = 湾深上限（等值线垂直穿滩向时兑现；带间留滩臂/半岛——用户②"河滩增加分支地形"）。
+     * <b>P29-A1（"低频宽湾浅咬"）：0.012 → 0.008</b>——0.008×2244 ≈ <b>18 格湾深</b> = 0.64×
+     * 踏面 28 格（P28-L 滩带 ×5 后 4 级踏面 ≈28 格/级）⇒ 湾内一次压降不再整跳一级踏面（旧 27 格
+     * ≈ 1.0×踏面 ⇒ "狗啃"台阶放大主因，p29-r-lake §1.2-3）。P28-L 登记的 R1 降级链
+     * 0.012 → 0.008 本轮<b>按预注册值兑现</b>；P29 失败迭代档（湾臂存活率 &lt;30% 时）：
+     * 0.008 → 0.010（p29 计划 §2-A 失败路径，R1'）。
      */
-    public static final double LAKE_RIBBON_AMP = 0.012D;
+    public static final double LAKE_RIBBON_AMP = 0.008D;
 
     /**
      * 湖缘缎带门<b>脊阈</b>（ridged 形 1−|n| 的门下限，P28-L D1·R1 新增）：门 =
-     * s01((1−|n|−本值)/{@link #LAKE_RIBBON_GATE_SPAN})——|n| &lt; 0.20 起缓入、|n| ≤ 0.08 满门
-     * （门带半宽 ≈ 0.20×λ/2 ≈ <b>7.6 格</b>、核半宽 ≈3 格；与缎带沟 GULLY_GATE_LO=0.78/SPAN=0.12
-     * 先例同档）。湾臂间滩带宽 ≈ λ/2 − 2×门带 ≈ 23 格 ≫ 群系侵蚀缘档 ~4 格 ⇒ 滩臂存活
-     * （侵蚀门不动，臂宽契约承载——计划三口径 c）。
+     * s01((1−|n|−本值)/{@link #LAKE_RIBBON_GATE_SPAN})——门带半宽 = 1−本值（|n| 域），
+     * 满门核半宽 = 1−本值−{@link #LAKE_RIBBON_GATE_SPAN}。P28 档 0.80（|n| &lt; 0.20 缓入、
+     * |n| ≤ 0.08 满门，门带 ≈7.6 格）；与缎带沟 GULLY_GATE_LO=0.78/SPAN=0.12 先例同档。
+     * 湾臂间滩带宽 ≈ 特征长 − 2×门带 ⇒ 滩臂存活（侵蚀门不动，臂宽契约承载——计划三口径 c）。
+     * <p>
+     * <b>P29-A1（"低频宽湾浅咬"）：0.80 → 0.68</b>——门带半宽 |n| &lt; 1−0.68 = 0.32 ⇒
+     * ≈ 0.32×62 ≈ <b>20 格</b>（旧 7.6，加宽核）；与 λ124 重标定配套：宽湾需要宽门带，
+     * 射线穿湾概率不降（湾臂存活率门 ≥30% 的几何保障——门带 20 格 ≫ 旧 7.6 格）。
      */
-    public static final double LAKE_RIBBON_GATE_LO = 0.80D;
+    public static final double LAKE_RIBBON_GATE_LO = 0.68D;
 
     /**
-     * 湖缘缎带门<b>缓入宽度</b>（形状域，P28-L D1·R1 新增）：门宽 0.12 ⇒ 湾缘坡 ≈ 27 格 ÷
-     * 门带 ≈7.6 格 ≈ 3.5 格/列，与滩台阶 riser 同档（无单格悬崖）。
+     * 湖缘缎带门<b>缓入宽度</b>（形状域，P28-L D1·R1 新增）：门 = s01((1−|n|−
+     * {@link #LAKE_RIBBON_GATE_LO})/本值) 的缓入段宽。P28 档 0.12 ⇒ 湾缘坡 ≈ 27 格 ÷ 门带
+     * ≈7.6 格 ≈ 3.5 格/列，与滩台阶 riser 同档（无单格悬崖）。
+     * <p>
+     * <b>P29-A1（"低频宽湾浅咬"）：0.12 → 0.16</b>——核半宽 |n| ≤ 0.16 ⇒ ≈ <b>10 格</b>
+     * （旧 3）；齿深:齿宽 ≈ 18:20 = <b>宽湾浅咬</b>（旧 27:7.6 ≈ 3.5:1 尖齿）；缓入肩宽
+     * 0.16×62 ≈ 10 格 ⇒ 湾缘坡 ≈ 18 格 ÷ 10 格 ≈ <b>1.8 格/列</b> &lt; 滩台阶 riser 3.5 档
+     * （dhP95=1 门）。P29 失败迭代档（湾臂存活率 &lt;30% 时）：0.16 → 0.14（p29 计划 §2-A
+     * 失败路径）。
      */
-    public static final double LAKE_RIBBON_GATE_SPAN = 0.12D;
+    public static final double LAKE_RIBBON_GATE_SPAN = 0.16D;
 
     /**
      * 湖缘缎带<b>求值缘带半宽</b>（压力域，P28-L D1·R1 新增）：仅基压 p（dC/dN，双倍频加噪前）
      * ∈ [{@link #LAKE_WATER_LEVEL}−本值, {@link #LAKE_SHORE}+本值] 的列求缎带门 ⇒ 世界列占比
      * ≈2-4%（GenBench +1-2µs 预算内）；缘外列零新求值、返回式逐位同改造前（digest 域外口径）。
-     * δ=0.015 ≈ 34 格 ≥ 双倍频微摆 ±8.3 格 ⇒ 门沿不会被既有噪声腿搬出求值窗（窗边门=0 ⇒
-     * 贡献 −0.0 精确、合成连续）。
+     * 缎带压降 + 双倍频微摆可以把<b>消费面等值线</b>（水线/滩缘）搬出基压窗 ⇒ δ 必须 ≥ 最坏
+     * 搬出量，否则窗沿处门未关死等值线被撕（窗边门=0 ⇒ 贡献 −0.0 精确、合成连续）。
+     * <p>
+     * <b>P29-A1（reviewer 缺口②收口）：0.015 → 0.020</b>——最坏角账：缎带压降（现档
+     * {@link #LAKE_RIBBON_AMP}=0.008 ≈ 18 格，按上一档 0.012 ≈ 27 格的保守口径）+ 双倍频微摆
+     * ±8.3 格 ⇒ 最坏 ≈ <b>35.3 格</b>；本值 0.020 ≈ <b>45 格 ≥ 35.3</b> ⇒ 窗沿覆盖（水线/
+     * 滩缘等值线整体含在求值窗内）。缘带列占比 ~2-4% → ~3-5%（GenBench +0.3-0.8µs 估，
+     * p29 计划 §4 A 行）。域外（含新环带门=0 列）贡献 −0.0 精确 ⇒ IEEE 逐位同（:1583 先例）。
      */
-    public static final double LAKE_RIBBON_FRINGE_DELTA = 0.015D;
+    public static final double LAKE_RIBBON_FRINGE_DELTA = 0.020D;
 
     /**
      * 湖缘缎带噪声盐（P28-L D1·R1 新增，v1.20.51）：盐段尾续取 {@code …11DL}——段内现役最高
@@ -1899,13 +1983,33 @@ public final class GTSRVoronoiRiverField {
             final double uJit = 2.0D
                 * hash01(GTSRWorldgenHash.cellSeed(worldSeed, stCellX, stCellZ, SALT_LAKE_ISLAND_RADIUS)) - 1.0D;
             final double rEff = LAKE_ISLAND_RADIUS * (1.0D + LAKE_ISLAND_RADIUS_JITTER * uJit);
-            // P26-B3 D1·I1'（v1.20.49）：dC 乘性周向起伏——kAbs = 1 − dC·(1 + JITTER·n(λ90))/rEff。
-            // R_eff 逐湖标量 ⇒ 原式在 warped 空间正圆；乘 (1±0.13·n) 后等值线获得周向起伏
-            // （列自身坐标取噪声，连续无缝）。噪声在岛域列（压力腿已过门）才求值 ⇒ 域外零成本；
-            // 岛域 ⊂ 湖水区不变式不受影响（乘子 &gt;0，kAbs 等值线族只平移不反号）。
-            final double edgeJit = LAKE_ISLAND_EDGE_JITTER * GTSRWorldgenHash
-                .valueNoise(worldSeed ^ SALT_LAKE_ISLAND_EDGE, x / LAKE_ISLAND_EDGE_SCALE, z / LAKE_ISLAND_EDGE_SCALE);
-            final double kAbs = 1.0D - dC * (1.0D + edgeJit) / rEff;
+            // P29-A2-R（主代理裁决①，岛腿 ridged 脊形）：kAbs = 1 − (dC + LO·g₁ + MID·g₂)/rEff，
+            // g = s01((1−|n|−RIDGE_GATE_LO)/RIDGE_GATE_SPAN)——缎带腿同款 ridged 门（脊核 |n|≈0
+            // 满门=深咬、带外 g=0 精确 ⇒ 脊间段半径=基线）。旧式两档退役路径：P26-B3 乘性
+            // 1 − dC·(1+JIT·n)/rEff（0.53 可见折扣，"圆团"根因）→ P29-A2 plain 加性（环上
+            // valueNoise 极值 ~0.4×(周长/λ) 个 ⇒ 瓣天花板 2-3，p29-a-readings §5）→ 本档
+            // ridged 门形（脊=零交叉，瓣数由 λ 直接调度：λ124 ≈1 大脊 + λ20 ≈5 缺刻，几何账
+            // 全文见 LAKE_ISLAND_EDGE_LO_AMP）。柱不变式：kAbs=0 域半径 ≥ 67.5−19 = 48.5 ≫ 17；
+            // 噪声在岛域列（压力腿已过门）才求值 ⇒ 域外零成本；岛域 ⊂ 湖水区不变式不受影响
+            // （pull ≥ 0 单侧内咬，kAbs 等值线族只内移不反号；n₁ 复用 SALT_LAKE_ISLAND_EDGE
+            // 改档先例，n₂ 独立盐 SALT_LAKE_ISLAND_EDGE_MID）。
+            final double nLo = GTSRWorldgenHash.valueNoise(
+                worldSeed ^ SALT_LAKE_ISLAND_EDGE,
+                x / LAKE_ISLAND_EDGE_LO_SCALE,
+                z / LAKE_ISLAND_EDGE_LO_SCALE);
+            final double tLo = (1.0D - Math.abs(nLo) - LAKE_ISLAND_EDGE_RIDGE_GATE_LO)
+                / LAKE_ISLAND_EDGE_RIDGE_GATE_SPAN;
+            final double tLoc = tLo < 0.0D ? 0.0D : (tLo > 1.0D ? 1.0D : tLo);
+            final double ridgeLo = tLoc * tLoc * (3.0D - 2.0D * tLoc) * LAKE_ISLAND_EDGE_LO_AMP;
+            final double nMid = GTSRWorldgenHash.valueNoise(
+                worldSeed ^ SALT_LAKE_ISLAND_EDGE_MID,
+                x / LAKE_ISLAND_EDGE_MID_SCALE,
+                z / LAKE_ISLAND_EDGE_MID_SCALE);
+            final double tMid = (1.0D - Math.abs(nMid) - LAKE_ISLAND_EDGE_RIDGE_GATE_LO)
+                / LAKE_ISLAND_EDGE_RIDGE_GATE_SPAN;
+            final double tMidc = tMid < 0.0D ? 0.0D : (tMid > 1.0D ? 1.0D : tMid);
+            final double ridgeMid = tMidc * tMidc * (3.0D - 2.0D * tMidc) * LAKE_ISLAND_EDGE_MID_AMP;
+            final double kAbs = 1.0D - (dC + ridgeLo + ridgeMid) / rEff;
             if (kAbs < k) {
                 k = kAbs;
             }

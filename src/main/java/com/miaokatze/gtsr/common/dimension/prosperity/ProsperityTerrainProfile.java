@@ -632,8 +632,14 @@ public final class ProsperityTerrainProfile {
         final double poolPressure = GTSRVoronoiRiverField.swampLakeAt(worldSeed, x, z, rosterIndex);
         // P25 微池腹地门：加 && TerrainVariants.swampInteriorAt（对齐残潭第六腿先例——A3 边缘门
         // 的粗层真值，(seed, 粗格) memo、边缘列"地形不挖/回填不灌"两侧同判）——边缘列不起微池。
+        // ═══ v1.20.52 P29 C 片 C2：微池湖平面域第四肢 lake ≥ LAKE_SHORE+SANZU_BIOME_SHORE_JITTER ═══
+        // 硬阈 = TerrainVariants.lakePlaneTerrainAllowedAt 门 0 域上界（口径一致）；直用局部量
+        // lake（heightCore 顶部 :502 LAKE_MEMO 已算）——零新求值；平面域内微池不挖（湖滩沼泽
+        // 水网根因腿之一收口）。缓入带 [SHORE+JITTER, +0.02) 内微池仍可挖但 TV 夹持已缓升
+        // （~45 格带，接受——登记 plan/tmp/p29-c-readings.md）。
         if (poolPressure < GTSRVoronoiRiverField.SWAMP_POOL_WATER_LEVEL
-            && TerrainVariants.swampInteriorAt(worldSeed, x, z)) {
+            && TerrainVariants.swampInteriorAt(worldSeed, x, z)
+            && lake >= GTSRVoronoiRiverField.LAKE_SHORE + GTSRVoronoiRiverField.SANZU_BIOME_SHORE_JITTER) {
             final int pool = GTSRVoronoiRiverField.poolLevelAt(worldSeed, x, z, rosterIndex);
             final double bed = GTSRVoronoiRiverField.bedFromPool(worldSeed, x, z, rosterIndex, pool) - 1.0D;
             y = Math.min(y, (int) Math.round(bed));

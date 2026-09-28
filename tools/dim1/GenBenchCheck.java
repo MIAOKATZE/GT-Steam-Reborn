@@ -129,8 +129,18 @@ public final class GenBenchCheck {
      * P26 设计内增量（A1 第二倍频 valueNoise、灌木域门 λ193、盆地门 λ167、沙海域门 λ281、
      * 延绵脊 λ433、水网域门 λ151、沼泽深潭/泥炭丘参数重钉）在域外短路下净成本 < 负载摆幅。
      * 新门 = 154.5 × 1.45 = <b>224.0</b>（比旧门 304.5 更紧——方向为收紧，不属放宽）。
+     * <p>
+     * <b>P29 重立（三跑中位）：154.5 → 229.8</b>。本批（P29 三片终树、串行空载、
+     * {@code temp/p29-final/GenBenchCheck-run{1,2,3}.out}）：229.8 / 247.4 / 218.4 ⇒ 中位
+     * <b>229.8</b>（+48.7% vs P26 BASE 154.5——<b>设计内增量进新 BASE</b>：A 片缎带重标定
+     * λ76→124（缘带占比 2-4%→3-5% by δ 0.020）+ 岛缘 ridged 双频加性腿（岛域列 +1 次
+     * valueNoise）、B 片表层扩域（滩坡 h∈[70,79] 湖料改派 + 羽化 λ13）、C 片共享域门
+     * lakePlaneTerrainAllowedAt（w[2]/w[3] 乘子 + SwampFieldGrid tier==3 门 + PTP 微池
+     * 第四肢，LAKE_MEMO 命中）。P28 终态 201.4 距 224.0 门仅 0.2µs 重立线余量（90 号总结
+     * 遗留①预告），本批越过重立线 = 计划内处置。旧 BASE 154.5 退役登记。
+     * 新门 = 229.8 × 1.45 = <b>333.2</b>。
      */
-    static final double BASELINE_US_PER_CHUNK = 154.5D;
+    static final double BASELINE_US_PER_CHUNK = 229.8D;
 
     /**
      * 派生式对赌门（劣化 &gt;45% 判红；<b>P24 收尾把余量系数由 1.30 放宽到 1.45</b>）：
@@ -206,7 +216,7 @@ public final class GenBenchCheck {
                 + " meanCol=%.3fus medianCol=%.0fns acc=%d%n",
             seeds, chunks.length, chunks.length * 256L, medianChunkUs, meanChunkUs, p90ChunkUs, meanColUs,
             medianColNs, acc);
-        System.out.printf("GENBENCH gate=medianChunk<=%.1f (baseline %.1f x 1.45 [P24 close: 1.30->1.45; P25 BASE re-set 3-run median; P26 BASE re-set 3-run median 154.5],"
+        System.out.printf("GENBENCH gate=medianChunk<=%.1f (baseline %.1f x 1.45 [P24 close: 1.30->1.45; P25 BASE re-set 3-run median; P26 BASE re-set 3-run median 154.5; P29 BASE re-set 3-run median 229.8],"
                 + " serial idle + ledger on; red>45%%) verdict=%s%n",
             GATE_US_PER_CHUNK, BASELINE_US_PER_CHUNK, pass ? "PASS" : "FAIL");
         System.out.println("GENBENCH note=serial-only by contract (v1.20.38: concurrent harness runs distort);"
