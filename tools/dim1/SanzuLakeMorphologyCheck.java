@@ -143,8 +143,11 @@ public final class SanzuLakeMorphologyCheck {
     /** 粗扫步距：{@code LAKE_INTERVAL / 32 = 37}，同 STC。 */
     static final int LAKE_STRIDE = (int) (GTSRVoronoiRiverField.LAKE_INTERVAL / 32);
     /**
-     * 计入统计的最小湖样本数：沿用 §6.1 R3 的式子按 P23 R1 新标称水径 r=200 重导（stride=37、
-     * 碎片折半 0.5）⇒ 派生值 = 46（旧 110 档为 14）。
+     * 计入统计的最小湖样本数：沿用 §6.1 R3 的式子按标称水径 r=200（碎片折半 0.5）。
+     * <b>P32 T1-1 注释修正（46→7）</b>：派生式一字未动；旧注释"派生值 = 46"是 P23 档 stride=37
+     * 的口径，P25 起 LAKE_INTERVAL=3000 ⇒ LAKE_STRIDE=93 ⇒ 运行时值 =
+     * round(π·200²/93²·0.5) = <b>7</b>（计入湖门槛实际为粗扫 ≥7 样本——主输出行一直按
+     * 运行时值打印，本注释此前未随 stride 回写）。
      */
     static final int LAKE_MIN_SAMPLES = (int) Math.round(
         Math.PI * 200.0D * 200.0D / (LAKE_STRIDE * LAKE_STRIDE) * 0.5D);
@@ -154,10 +157,14 @@ public final class SanzuLakeMorphologyCheck {
      * TRUNK_SCALE×3 = 12000 = ±4 站格恒覆盖 ≥64 站）。 */
     static final int FINE_LAKES_PER_SEED = 40;
     /**
-     * 细扫窗半径上限：P23 R1 W=0.23 的水径带 p90 ≈ 230 + 湖滨带 ≈22~39 格 + 4 格余量 ⇒ 320
-     * 覆盖全部湖（截断由 {@link #fineTrunc} 申报）。旧 200 档是 W=0.13（水径 max 177.75）的口径。
+     * 细扫窗半径上限。<b>P32 T1-1 扩窗 320→560</b>：新场（批2 T1-3 落地）外接上限 = r_max 310 +
+     * 滩带 ≈133 + 檐 ≈40 + 余量 ⇒ 560 构造性覆盖，32 射线形状组的水径/滩宽读数不再被窗静默截断
+     * （真截断由 32 射线块的 {@code rayCapped32} 计数申报，见 fineScan 1c）。旧 320 档是 P23 R1
+     * 圆场口径（W=0.23 水径带 p90 ≈ 230 + 湖滨带 ≈22~39 格 + 4 格余量）——对旧场滩带外缘
+     * （最远 ~470 格）存在静默截断；扩窗双跑（320 vs 560）旧场对比读数落档
+     * plan/tmp/p32-t1p1-criteria.md。旧 200 档是 W=0.13（水径 max 177.75）的口径。
      */
-    static final int FINE_WINDOW_MAX = 320;
+    static final int FINE_WINDOW_MAX = 560;
 
     // ─────────────── A 组带（§15.4 = 第一判据）───────────────
 
@@ -302,8 +309,18 @@ public final class SanzuLakeMorphologyCheck {
         final double[] rayWaterRadius = new double[8];
         /** P25 D2①：滩带外缘噪声腿——8 向射线上 lakeAt &lt; sanzuBiomeShoreAt（含噪声）的最远列距。 */
         final double[] rayBiomeShoreRadius = new double[8];
-        /** P23 R1·S6 G 组：16 射线水半径的最小值（内切圆代理），-1 = 未细扫。 */
+        /** P23 R1·S6 G 组：16 射线水半径的最小值（内切圆代理），-1 = 未细扫。P32 起降为参考读数。 */
         double inscribed16 = -1.0D;
+        /**
+         * P32 T1-1：32 射线水半径（角距 π/16，与 8/16 射线块同取<b>最外侧</b>水穿越）。新形状组
+         * （SF/内切外接比/平滑度）与 G-C（32 射线口径）消费；<b>不替</b> {@link #rayWaterRadius}[8]
+         * ——A4/S2/P25-3/perimeterApprox 多处消费，替换会连坐。
+         */
+        final double[] rayWaterRadius32 = new double[32];
+        /** P32 T1-1：32 射线 [W,S) 等压线间距（= 外侧 SHORE 穿越减外侧 WATER 穿越的列距，滩带物理宽）。 */
+        final double[] rayBandWidth32 = new double[32];
+        /** P32 T1-1：32 射线块的窗截断射线数（窗缘仍在 p&lt;SHORE 域 ⇒ 读数被截，真截断申报）。 */
+        int rayCapped32;
         final double[] rayShoreRadius = new double[8];
         final double[] rayRisers = new double[8];
         final double[] rayMaxRiser = new double[8];
@@ -399,7 +416,9 @@ public final class SanzuLakeMorphologyCheck {
             + " ⇒ 连通区（含碎片）=" + regions + "，计入湖（≥" + LAKE_MIN_SAMPLES + " 样本）=" + lakes.size()
             + "，细扫逐列湖数=" + fine + "（每 seed 上限 " + FINE_LAKES_PER_SEED + "，等距抽样）"
             + "，MIN_HEIGHT 反射读值=" + MIN_HEIGHT + " 床纹上界阈 D1=" + D1_BED_MAX
-            + " 水深阈 D2=" + f3(D2_DEPTH_MIN) + "；细扫窗截断湖数=" + fineTrunc);
+            + " 水深阈 D2=" + f3(D2_DEPTH_MIN) + "；细扫窗截断湖数=" + fineTrunc
+            + "（8 射线块既有只报口径：窗缘 p≥SHORE 的射线计数，扩窗 560 后近全量命中，非真截断——"
+            + "32 射线真截断读数见 RAYCAP32-READ）");
         // S5d 只报（plan §28-B：泛洪并块与"湖心被主干带裁掉"对湖计数 n 的影响——量化上抛，不改并块口径）
         int fineZeroCore = 0;
         int fineMerged = 0;
@@ -425,6 +444,7 @@ public final class SanzuLakeMorphologyCheck {
 
         groupDepth(lakes);
         groupGeometry(lakes);
+        groupShape32(lakes);
         groupP25(lakes);
         groupP26(lakes);
         groupP27(lakes);
@@ -706,6 +726,35 @@ public final class SanzuLakeMorphologyCheck {
                 rmin = Math.min(rmin, rw16);
             }
             lk.inscribed16 = rmin;
+        }
+        // —— 1c) P32 T1-1：32 射线水半径 + [W,S) 等压线间距（新形状组 + G-C 32 射线口径 + 滩宽 CV）——
+        //    口径与 8/16 射线块一致：rw32 取该射线上最远的 lakeAt<WATER 列（最外侧穿越；非星形湖
+        //    不保证是"该方向湖缘"——申报见 groupShape32 javadoc）。rayCapped32 与 8 射线块 :657-659
+        //    同为"窗缘档"检测，方向取<b>真截断语义</b>：窗缘仍在 p<SHORE 域 = 水径/滩宽读数被窗截断
+        //    （8 射线块的字面条件方向相反且属既有只报读数，本片不动它——差异登记见
+        //    plan/tmp/p32-t1p1-criteria.md）。
+        for (int d = 0; d < 32; d++) {
+            final double ang = d * Math.PI / 16.0D;
+            final double dx = Math.cos(ang);
+            final double dz = Math.sin(ang);
+            int rw32 = 0;
+            int rs32 = 0;
+            for (int r = 0; r <= FINE_WINDOW_MAX; r++) {
+                final int x = lk.cx + (int) Math.round(dx * r);
+                final int z = lk.cz + (int) Math.round(dz * r);
+                final double p = GTSRVoronoiRiverField.lakeAt(seed, x, z);
+                if (p < WATER) {
+                    rw32 = r;
+                }
+                if (p < SHORE) {
+                    rs32 = r;
+                    if (r == FINE_WINDOW_MAX) {
+                        lk.rayCapped32++;
+                    }
+                }
+            }
+            lk.rayWaterRadius32[d] = rw32;
+            lk.rayBandWidth32[d] = rs32 - rw32;
         }
         // —— 2) 方形窗逐列分类（含带外邻列：A1/A6 要读带外高度）——
         final int w = Math.min(FINE_WINDOW_MAX, smax + 4);
@@ -1103,19 +1152,24 @@ public final class SanzuLakeMorphologyCheck {
     static final double G_ISLAND_R_MIN = 32.0D;
     static final double G_ISLAND_R_MAX = 48.0D;
     /**
-     * G-C 内切圆下界（格）。<b>换算式（warp-100 档）</b>：湖形 = 半径 r0 的站格圆被 domain-warp
-     * 位移场（幅度 {@code LAKE_WARP}=100、波长 {@code LAKE_WARP_SCALE}=700）揉动 ⇒ 任一方向水缘
-     * = r0 + 位移·径向分量 ⇒ <b>内切圆半径 ≥ r0 − LAKE_WARP</b>；中位湖 r0 ≈ 192（G-W-READ）
-     * ⇒ 解析下界 ≈ 92。D_MIN=450 淘汰腿保证存活湖站距 ≥ 450 ⇒ r0 = 0.23·d/1.23 ≥ 84，但 16 射线
-     * 最小值还受 D_MIN 裁刀影响 ⇒ 断言域取「逐湖 ≥ 100」（实测中位湖 r0 与解析下界见 G-C-READ
-     * 的动态读数；低于 100 = 破形（双站过近残湖或 warp 陡区），非"小湖合法"）。首测 min=106。
+     * G-C 内切圆下界（格）。<b>P32 T1-1 账本重裁（判据先行；新场 = 批2 T1-3 落地）</b>：新场湖形 =
+     * 保面积超椭圆/多 blob 融合（等效水半径下界 b_floor = 185）+ warp 降幅后 ΣA = 35
+     * （LAKE_WARP 30/λ700 + LAKE_WARP_SUB 5/λ340）⇒ <b>世界内切 ≥ b_floor − ΣA − 噪声 8.3 =
+     * 185 − 35 − 8.3 = 141.7 ≥ 100</b>（slack 41.7；噪声项 = 加性湖压噪声总幅 0.0037 ×
+     * D_eff/((1+W)(1+S)) ≈ 8.3 格，正瓣向内侵水缘——P31 R2 §5.3 "103 账不含噪声"的张力在新账
+     * 并项）。断言域 =「逐湖 32 射线最小水半径 ≥ 100」（P32 起采样 16→32 射线、阈值 100 不动；
+     * 射线读最外侧穿越，非星形湖上"射线 min = 内切"只是代理，凹形方向由 min32 低估不漏报）。
+     * <b>旧 warp 账本</b>（内切 ≥ r0 − LAKE_WARP，ΣA=97 ⇒ 103、3 格 slack、D_MIN=450 站距论证）
+     * 随 P23 圆场退役，原文见版本树；16 射线 {@code inscribed16} 读数保留为参考行。
      */
     static final int G_INSCRIBED_MIN = 100;
 
     static void groupGeometry(List<Lake> lakes) {
         final double[] waterR = new double[Math.max(1, count(lakes)) * 8];
+        final double[] equivR = new double[Math.max(1, count(lakes))];
         final double[] islandR = new double[Math.max(1, count(lakes))];
         final double[] inscr = new double[Math.max(1, count(lakes))];
+        final double[] inscr32 = new double[Math.max(1, count(lakes))];
         int k = 0;
         int rays = 0;
         for (final Lake lk : lakes) {
@@ -1125,34 +1179,185 @@ public final class SanzuLakeMorphologyCheck {
             for (int d = 0; d < 8; d++) {
                 waterR[rays++] = lk.rayWaterRadius[d];
             }
+            // P32 T1-1 改口径：等效水半径 = √(waterCols/π)（逐列面积换算；先例 = G-I 的 √(dryIslandCols/π)）
+            equivR[k] = lk.waterCols <= 0.0D ? 0.0D : Math.sqrt(lk.waterCols / Math.PI);
             islandR[k] = lk.dryIslandCols <= 0.0D ? 0.0D
                 : Math.sqrt(lk.dryIslandCols / Math.PI);
             inscr[k] = lk.inscribed16;
+            double m32 = Double.POSITIVE_INFINITY;
+            for (int d = 0; d < 32; d++) {
+                m32 = Math.min(m32, lk.rayWaterRadius32[d]);
+            }
+            inscr32[k] = m32;
             k++;
         }
-        final double wm = median(java.util.Arrays.copyOf(waterR, rays));
+        final double wm = median(equivR);
+        final double wmRay = median(java.util.Arrays.copyOf(waterR, rays));
         final double im = median(islandR);
-        say("G-W-READ 水半径（8 向 × " + k + " 湖，构造目标 200）：中位 " + f3(wm) + " p10 "
-            + f3(pctl(waterR, 0.10D)) + " p90 " + f3(pctl(waterR, 0.90D)) + "（换算式 r_w = W·D/(1+W)，"
-            + "W=" + WATER + "，站距 D 实测分布见 LAKE_STATION_D_MIN javadoc）");
-        check("G-W P23 R1③ 湖水半径带：8 向水半径中位 ∈ [" + G_WATER_R_MIN + "," + G_WATER_R_MAX
-            + "]（标称 200±档；越界 = LAKE_WATER_LEVEL 与站距分布失配）",
-            k > 0 && wm >= G_WATER_R_MIN && wm <= G_WATER_R_MAX, "中位=" + f3(wm));
+        say("G-W-READ 水半径（P32 T1-1 改口径：等效水半径 = √(waterCols/π)，" + k + " 湖，构造目标 200）：中位 "
+            + f3(wm) + " p10 " + f3(pctl(equivR, 0.10D)) + " p90 " + f3(pctl(equivR, 0.90D))
+            + "（waterCols = 细扫方窗逐列计数，窗半宽 = min(" + FINE_WINDOW_MAX + ", smax+4)；"
+            + "8 向射线中位参考读数 = " + f3(wmRay) + "。旧口径 = 8 向射线中位 + 换算式 r_w = W·D/(1+W)"
+            + "（绕站圆等压线），随圆场退役原文见版本树；新口径绕开星形假设且零新增采样）");
+        check("G-W P23 R1③ 湖水半径带：等效水半径 √(waterCols/π) 中位 ∈ [" + G_WATER_R_MIN + "," + G_WATER_R_MAX
+            + "]（P32 T1-1 改口径：标称 200±档；新场面积帽 1.32·π·r0² ⇒ 等效 ≤ 230 构造性吻合；"
+            + "越界 = LAKE_WATER_LEVEL/b_floor 与站距分布失配）",
+            k > 0 && wm >= G_WATER_R_MIN && wm <= G_WATER_R_MAX,
+            "中位=" + f3(wm) + "（8 向射线参考中位=" + f3(wmRay) + "）");
         say("G-I-READ 岛干半径（√(干列/π)，" + k + " 湖，构造目标 40）：中位 " + f3(im) + " p10 "
             + f3(pctl(islandR, 0.10D)) + " p90 " + f3(pctl(islandR, 0.90D))
             + "（干半径 = LAKE_ISLAND_RADIUS×(1−0.7795×PLATEAU) = "
-            + f3(ISLAND_RADIUS * (1.0D - 0.7795D * ISLAND_PLATEAU)) + "，世界域随 warp 涨落）");
+            + f3(ISLAND_RADIUS * (1.0D - 0.7795D * ISLAND_PLATEAU)) + "，世界域随 warp 涨落；"
+            + "P32 预登记：新场孤立湖（dN≈3400 上尾）岛干径缩小至 29-34 为<b>设计内读数</b>，"
+            + "中位带不动，新场预估中位 38-40，批2 重测）");
         check("G-I P23 R1③ 岛半径带：岛干半径中位 ∈ [" + f3(G_ISLAND_R_MIN) + "," + f3(G_ISLAND_R_MAX)
-            + "]（标称 40±档；越界 = 绝对腿/平台比例失配）",
+            + "]（标称 40±档；越界 = 绝对腿/平台比例失配；P32 预登记孤立湖缩小为设计内读数，见 READ 行）",
             k > 0 && im >= G_ISLAND_R_MIN && im <= G_ISLAND_R_MAX, "中位=" + f3(im));
-        say("G-C-READ 内切圆（逐湖 16 射线水半径最小值，" + k + " 湖）：中位 " + f3(median(inscr))
-            + " min " + f3(min(inscr)) + " max " + f3(max(inscr)) + "（warp 换算式：内切圆 ≥ r0 − "
-            + (int) GTSRVoronoiRiverField.LAKE_WARP + "，中位湖 r0≈" + f3(wm) + " ⇒ 解析下界 ≈ "
-            + f3(wm - GTSRVoronoiRiverField.LAKE_WARP) + "）");
-        check("G-C P23 R1③ 内切圆下界：逐湖 16 射线最小水半径 ≥ " + G_INSCRIBED_MIN
-            + " 格（低于 = 破形：双站过近残湖 / warp 陡区夹扁，D_MIN 淘汰腿的验收读数）",
-            k > 0 && min(inscr) >= G_INSCRIBED_MIN,
-            "min=" + f3(min(inscr)) + " 中位=" + f3(median(inscr)));
+        say("G-C-READ 内切圆（P32 T1-1 改 32 射线口径，" + k + " 湖）：min32 中位 " + f3(median(inscr32))
+            + " min " + f3(min(inscr32)) + "；16 射线参考读数（旧口径，P23 R1·S6 起）：中位 "
+            + f3(median(inscr)) + " min " + f3(min(inscr)) + " max " + f3(max(inscr))
+            + "（P32 新场账本：ΣA=35（LAKE_WARP 30/λ700 + LAKE_WARP_SUB 5/λ340，T1-3 批2 落地）⇒ "
+            + "世界内切 ≥ b_floor 185 − 35 − 噪声 8.3 = 141.7 ≥ 100，slack 41.7；旧 warp 账本"
+            + "（ΣA=97 ⇒ 103，不含噪声项）随圆场退役，原文见版本树）");
+        check("G-C P23 R1③ 内切圆下界：逐湖 32 射线最小水半径 ≥ " + G_INSCRIBED_MIN
+            + " 格（P32 T1-1 判据重裁：采样 16→32 射线、阈值 100 不动；口径 = 最外侧穿越，非星形湖"
+            + "语义——min32 只会低估内切不漏报；低于 = 破形：双站过近残湖 / warp 陡区夹扁 / 副 blob "
+            + "融合收窄，D_MIN 淘汰腿的验收读数）",
+            k > 0 && min(inscr32) >= G_INSCRIBED_MIN,
+            "min32=" + f3(min(inscr32)) + " 中位32=" + f3(median(inscr32))
+            + "（16 射线参考 min=" + f3(min(inscr)) + "）");
+    }
+
+    // ════════════════ P32 T1-1：32 射线形状组 + 滩宽 CV（判据先行：旧场可运行、新场即用）════════════════
+
+    /** SF 形状因子带初值（P32 上桩，读数后钉）：SF = (rmax−rmin)/(rmax+rmin)，逐湖 32 射线口径。 */
+    static final double SF32_MEDIAN_MIN = 0.10D;
+    static final double SF32_P10_MIN = 0.03D;
+    /** 内切/外接比带初值（读数后钉）：逐湖 min32/max32，组口径 = 中位 ∈ [0.35,0.95]。 */
+    static final double RATIO32_MIN = 0.35D;
+    static final double RATIO32_MAX = 0.95D;
+    /** 平滑度上带初值（读数后钉）：逐湖二阶差分 mean(|r[i−1]−2r[i]+r[i+1]|)/r̄（32 点循环卷绕），组口径 = 中位 ≤ 0.08。 */
+    static final double SMOOTH32_MAX = 0.08D;
+    /** 滩宽 CV 目标带（P32 批1 B6 钉值后启用）：逐湖 32 射线 [W,S) 等压线间距 CV，中位 &gt; 0.15 ∧ p10 &gt; 0.08 ∧ max/median ≤ 2.5。 */
+    static final double CVW_MEDIAN_MIN = 0.15D;
+    static final double CVW_P10_MIN = 0.08D;
+    static final double CVW_MAX_OVER_MEDIAN = 2.5D;
+    /**
+     * 滩宽 CV 只报模式（P32 T1-1 上桩 = true）：测量与读数行已落地、<b>不进断言</b>——批1 B6
+     * 旧场基线读数（预期 0.03-0.06：等宽环带根因 = 固定 ΔP=0.050 / 各向同性 |∇p|，P31 R2 §6.1）
+     * 落档后钉值并把本开关置 false。
+     */
+    static final boolean CVW_REPORT_ONLY = true;
+
+    /**
+     * P32 T1-1 新形状组。<b>口径申报（三风险处置）</b>：32 射线全部读<b>最外侧穿越</b>（同 8/16
+     * 射线块的 rw 持续覆盖语义）——非星形湖（L 型/凹角/副 blob 融合）上射线半径不是"该方向的湖缘
+     * 距离"而是该方向最远一次仍在水区的列距 ⇒ SF/内切外接比/平滑度是"外侧穿越序列"的统计量，
+     * 不是星形几何量（凹形方向的内切由 min32 低估、不漏报）。射线数组 {@code rayWaterRadius}[8]
+     * 一字不动（A4/S2/P25-3/perimeterApprox 多处消费，替换会连坐）。窗截断由 {@code rayCapped32}
+     * 申报（窗缘仍在 p&lt;SHORE 域 = 读数被截；FINE_WINDOW_MAX=560 构造性覆盖新场外接上限
+     * 310+133+40 ⇒ 预期 0）。
+     */
+    static void groupShape32(List<Lake> lakes) {
+        final int n = count(lakes);
+        final double[] sf = new double[Math.max(1, n)];
+        final double[] ratio = new double[Math.max(1, n)];
+        final double[] smooth = new double[Math.max(1, n)];
+        final double[] cvw = new double[Math.max(1, n)];
+        int k = 0;
+        int cappedRays = 0;
+        int cappedLakes = 0;
+        for (final Lake lk : lakes) {
+            if (!lk.fine) {
+                continue;
+            }
+            double rmin = Double.POSITIVE_INFINITY;
+            double rmax = Double.NEGATIVE_INFINITY;
+            for (int d = 0; d < 32; d++) {
+                rmin = Math.min(rmin, lk.rayWaterRadius32[d]);
+                rmax = Math.max(rmax, lk.rayWaterRadius32[d]);
+            }
+            final double m = mean(lk.rayWaterRadius32, 32);
+            sf[k] = (rmax + rmin) <= 0.0D ? 0.0D : (rmax - rmin) / (rmax + rmin);
+            ratio[k] = rmax <= 0.0D ? 0.0D : rmin / rmax;
+            double d2 = 0.0D;
+            for (int i = 0; i < 32; i++) {
+                d2 += Math.abs(lk.rayWaterRadius32[(i + 31) % 32] - 2.0D * lk.rayWaterRadius32[i]
+                    + lk.rayWaterRadius32[(i + 1) % 32]);
+            }
+            smooth[k] = m <= 0.0D ? 0.0D : d2 / 32.0D / m;
+            final double wm = mean(lk.rayBandWidth32, 32);
+            if (wm > 0.0D) {
+                double var = 0.0D;
+                for (int d = 0; d < 32; d++) {
+                    var += (lk.rayBandWidth32[d] - wm) * (lk.rayBandWidth32[d] - wm);
+                }
+                cvw[k] = Math.sqrt(var / 32.0D) / wm;
+            } else {
+                cvw[k] = 0.0D;
+            }
+            if (lk.rayCapped32 > 0) {
+                cappedLakes++;
+                cappedRays += lk.rayCapped32;
+            }
+            k++;
+        }
+        final double sfMed = median(sf);
+        final double sfP10 = pctl(sf, 0.10D);
+        say("SF32-READ 形状因子（逐湖 32 射线 (rmax−rmin)/(rmax+rmin)，最外侧穿越口径）：n=" + k
+            + " 中位 " + f3(sfMed) + " p10 " + f3(sfP10) + " p90 " + f3(pctl(sf, 0.90D))
+            + " min " + f3(min(sf)) + " max " + f3(max(sf)) + "（纯圆 = 0；初值带 中位 ≥ "
+            + SF32_MEDIAN_MIN + " ∧ p10 ≥ " + SF32_P10_MIN + "，读数后钉）");
+        check("SF32 P32 T1-1 形状因子下界：逐湖 32 射线 SF=(rmax−rmin)/(rmax+rmin) 的中位 ≥ "
+            + SF32_MEDIAN_MIN + " ∧ p10 ≥ " + SF32_P10_MIN
+            + "（初值带，读数后钉；口径 = 最外侧穿越序列、非星形湖语义——见组方法 javadoc；"
+            + "圆假设判据重裁的形状组第一条：大形状非圆）",
+            k > 0 && sfMed >= SF32_MEDIAN_MIN && sfP10 >= SF32_P10_MIN,
+            "中位=" + f3(sfMed) + " p10=" + f3(sfP10) + " n=" + k);
+        final double ratioMed = median(ratio);
+        say("RATIO32-READ 内切/外接比（逐湖 min32/max32）：n=" + k + " 中位 " + f3(ratioMed)
+            + " p10 " + f3(pctl(ratio, 0.10D)) + " p90 " + f3(pctl(ratio, 0.90D))
+            + " min " + f3(min(ratio)) + "（初值带 中位 ∈ [" + RATIO32_MIN + "," + RATIO32_MAX
+            + "]：上界抓「过圆」（纯圆 = 1），下界抓「针刺/深凹」破形）");
+        check("RATIO32 P32 T1-1 内切/外接比带：逐湖 min32/max32 的中位 ∈ [" + RATIO32_MIN + "," + RATIO32_MAX
+            + "]（初值带，读数后钉；G-C 绝对下界的比值化一般化，与 SF 互补——SF 抓极差幅度、本带抓形状包容性）",
+            k > 0 && ratioMed >= RATIO32_MIN && ratioMed <= RATIO32_MAX,
+            "中位=" + f3(ratioMed) + " p10=" + f3(pctl(ratio, 0.10D)) + " n=" + k);
+        final double smMed = median(smooth);
+        say("SMOOTH32-READ 平滑度（逐湖二阶差分 mean(|r[i−1]−2r[i]+r[i+1]|)/r̄，32 点循环卷绕）：n=" + k
+            + " 中位 " + f3(smMed) + " p90 " + f3(pctl(smooth, 0.90D)) + " max " + f3(max(smooth))
+            + "（初值上带 中位 ≤ " + SMOOTH32_MAX + "；锯齿/毛刺边抬升二阶差分；备选统计量 = 邻差 CV，"
+            + "不稳时换口径并登记）");
+        check("SMOOTH32 P32 T1-1 平滑度上带：逐湖二阶差分均值/r̄ 的中位 ≤ " + SMOOTH32_MAX
+            + "（初值带，读数后钉；「边缘大部分平滑」的射线序列代理——上带抓锯齿边，大形状起伏"
+            + "（一阶差分）已由 SF 吸收）",
+            k > 0 && smMed <= SMOOTH32_MAX,
+            "中位=" + f3(smMed) + " p90=" + f3(pctl(smooth, 0.90D)) + " n=" + k);
+        say("RAYCAP32-READ 32 射线窗截断（窗缘 r=" + FINE_WINDOW_MAX + " 仍在 p<SHORE 域的射线数，"
+            + "真截断申报）：截断射线 " + cappedRays + "、涉截断湖 " + cappedLakes + "/" + k
+            + "（FINE_WINDOW_MAX=560 构造性覆盖新场外接上限 310+133+40 ⇒ 预期 0；非 0 = 窗帽不足，"
+            + "SF32/RATIO32/SMOOTH32/CVW 读数被截断污染）");
+        final double cvwMed = median(cvw);
+        final double cvwP10 = pctl(cvw, 0.10D);
+        final double cvwMax = max(cvw);
+        final double cvwMaxOverMed = cvwMed <= 0.0D ? -1.0D : cvwMax / cvwMed;
+        say("CVW-READ 滩宽 CV（P32 只报模式，逐湖 32 射线 [W,S) 等压线间距的 CV = std/mean）：n=" + k
+            + " 中位 " + f3(cvwMed) + " p10 " + f3(cvwP10) + " max " + f3(cvwMax)
+            + " max/median " + f3(cvwMaxOverMed)
+            + "（目标带（批1 B6 旧场基线读数后钉值启用）：中位 > " + CVW_MEDIAN_MIN + " ∧ p10 > "
+            + CVW_P10_MIN + " ∧ max/median ≤ " + CVW_MAX_OVER_MEDIAN
+            + "；旧场预期 0.03-0.06 = 等宽环带根因（固定 ΔP=0.050 / 各向同性 |∇p|，P31 R2 §6.1）"
+            + "——TODO(P32-B6)：旧场基线落档后钉值并把 CVW_REPORT_ONLY 置 false）");
+        if (!CVW_REPORT_ONLY) {
+            check("CVW P32 滩宽不等宽：逐湖 32 射线 [W,S) 等压线间距 CV 的中位 > " + CVW_MEDIAN_MIN
+                + " ∧ p10 > " + CVW_P10_MIN + " ∧ max/median ≤ " + CVW_MAX_OVER_MEDIAN
+                + "（批1 B6 钉值后启用；滩宽岸段化的行为读数——中位/p10 下界抓「等宽环带回退」，"
+                + "max/median 上界抓「个别湖异常」）",
+                k > 0 && cvwMed > CVW_MEDIAN_MIN && cvwP10 > CVW_P10_MIN
+                    && cvwMaxOverMed <= CVW_MAX_OVER_MEDIAN,
+                "中位=" + f3(cvwMed) + " p10=" + f3(cvwP10) + " max/median=" + f3(cvwMaxOverMed)
+                    + " n=" + k);
+        }
     }
 
     // ══════════════════════════ P25 组：D1/D2/D3 概率减半 + 侵蚀门 + 岛抖动的判据面 ══════════════════════════
@@ -1261,12 +1466,17 @@ public final class SanzuLakeMorphologyCheck {
         say("P25-READ 滩带噪声腿（8 向 × 细扫湖，lakeAt&lt;sanzuBiomeShoreAt 相对 lakeAt&lt;LAKE_SHORE "
             + "的外扩列距）：n=" + la.length + " 中位 " + f3(legMed) + " max " + f3(legMax)
             + "（换算式 0.0075×2670/1.1794 ≈ 17.0 上界）");
-        check("P25-3 滩带噪声腿宽 0~85 格（中位）∧ max ≤ 108：P28-L 重钉（JITTER 0.0075 → 0.0375 "
-            + "同比 ×5）——中位腿公式 = 0.0375×中位 dN(2202)/1.1794×n01中位 ≈ 35；max 腿 = 0.0375×dN "
-            + "上尾(~3400)/1.1794 ≈ 108。P28 实测 9/63 显著低于公式：缎带腿（R1）在缘带内压低压力 ⇒ "
-            + "射线腿（rayShore 外推）被湾臂吃掉一段——行为读数仍满足抖动活跃（max>0）∧ 有界。"
-            + "max=0 = 抖动死",
-            la.length >= 64 && legMax > 0.0D && legMax <= 108.0D && legMed <= 85.0D,
+        check("P25-3 滩带噪声腿宽 0~85 格（中位）∧ max ≤ 150：P28-L 重钉（JITTER 0.0075 → 0.0375 "
+            + "同比 ×5）——中位腿公式 = 0.0375×中位 dN(2202)/1.1794×n01中位 ≈ 35；max 腿径向公式 = "
+            + "0.0375×dN 上尾(~3400)/1.1794 ≈ 108。<b>P32 T1-1 扩窗重钉 108→150</b>：FINE_WINDOW 320 时 "
+            + "rayBiomeShore 被窗截断（旧读数 中位 12/max 69 = 截断伪影，与 P29 终批逐位一致），560 解除"
+            + "截断后实测 max 142（径向公式 108 未含 warp 斜交穿越通胀，实测/公式 = 1.31；640 探针复核"
+            + "读数不变 = 560 下无截断）⇒ 上界 = 实测 +6% = 150。P28 实测 9/63 显著低于公式（<b>历史归因"
+            + "原文</b>：缎带腿（R1）在缘带内压低压力 ⇒ 射线腿被湾臂吃掉一段——该推导链随 P32 缎带整体"
+            + "移除<b>失效</b>，留档不删）。P32 口径：滩带结构性岸段化（新场 |∇p| 逐方向变化 ⇒ 踏面物理宽"
+            + "随岸段变化，等压线间距读数见 CVW-READ 32 射线组），本带随批3 Q3/批5 重测重钉；行为读数"
+            + "仍满足抖动活跃（max>0）∧ 有界。max=0 = 抖动死",
+            la.length >= 64 && legMax > 0.0D && legMax <= 150.0D && legMed <= 85.0D,
             "max=" + f3(legMax) + " 中位=" + f3(legMed) + " n=" + la.length);
         // ── P4：岛径逐站 ±10% 散布 ──
         final List<Double> ir = new ArrayList<Double>();

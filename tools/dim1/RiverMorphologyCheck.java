@@ -389,8 +389,10 @@ public final class RiverMorphologyCheck {
                     trunkDeterministic = false;
                 }
                 if (tv < 0.0D || tv > 1.0D - GTSRVoronoiRiverField.SANZU_TRUNK_EDGE
-                    || lv < -GTSRVoronoiRiverField.LAKE_PRESSURE_NOISE_AMP
-                    || lv > 1.0D + GTSRVoronoiRiverField.LAKE_PRESSURE_NOISE_AMP) {
+                    || lv < -(GTSRVoronoiRiverField.LAKE_PRESSURE_NOISE_AMP
+                        + GTSRVoronoiRiverField.LAKE_PRESSURE_NOISE_AMP2)
+                    || lv > 1.0D + GTSRVoronoiRiverField.LAKE_PRESSURE_NOISE_AMP
+                        + GTSRVoronoiRiverField.LAKE_PRESSURE_NOISE_AMP2) {
                     trunkShapeOk = false;
                 }
                 if (tv > 0.0D) {
@@ -398,10 +400,16 @@ public final class RiverMorphologyCheck {
                 }
             }
         }
-        // P25 D3③：lakeAt 返回值 = dC/dN + LAKE_PRESSURE_NOISE_AMP×valueNoise ⇒ 值域从 [0,1] 扩为
-        // [−AMP, 1+AMP]（湖心负压/边界微越 1 都是轮廓噪声的设计内读数；NO_LAKE 哨兵仍 = 1.0）。
-        check("A4 trunkAt/lakeAt 已激活（T5 接线）且确定性：trunk ∈ [0,1-EDGE]、lake ∈ [−AMP,1+AMP]"
-            + "（P25 压力加性噪声 ±0.0035 的设计内扩域）、采样窗非恒零",
+        // P25 D3③ 立、P32 T1-1 补 AMP2 漏记重导（R1 长证据 §6.4 口径）：lakeAt 返回值 = base +
+        // LAKE_PRESSURE_NOISE_AMP(0.0025, λ220 腿)×n + LAKE_PRESSURE_NOISE_AMP2(0.0012, λ70 腿)×n
+        // ⇒ 值域从 [0,1] 扩为 [−(AMP+AMP2), 1+(AMP+AMP2)] = [−0.0037, 1.0037]（总幅 0.0037 ≈
+        // ±8.3 格湖缘径向微摆，dr/dP ≈ 2244 格/单位压力）。旧断言只按低频腿 AMP=0.0025 记账、未含
+        // P26-B3 双倍频引入的 AMP2（总幅 0.0037 > 0.0025，理论上可假红、现状未爆）——本次补记。
+        // 上界口径：NO_LAKE 哨兵路径不加噪（哨兵值恒 = 1.0），非哨兵列 P32 新场 clamp 后 P ≤ 0.925、
+        // 加噪上探 ≈ 0.929 ⇒ 新场实际域 [−0.0037, 0.929] ⊂ 带；湖心负压/边界微越 1 都是轮廓噪声的
+        // 设计内读数。
+        check("A4 trunkAt/lakeAt 已激活（T5 接线）且确定性：trunk ∈ [0,1-EDGE]、lake ∈ [−(AMP+AMP2),1+(AMP+AMP2)]"
+            + "（P26-B3 双频压力加性噪声总幅 ±0.0037 的设计内扩域，P32 T1-1 补 AMP2 漏记）、采样窗非恒零",
             trunkShapeOk && trunkDeterministic && trunkAlive,
             "shapeOk=" + trunkShapeOk + " det=" + trunkDeterministic + " alive=" + trunkAlive);
         final GTSRVoronoiRiverField.RiverStyle[] styles = GTSRVoronoiRiverField.RIVER_STYLE_BY_ROSTER;
