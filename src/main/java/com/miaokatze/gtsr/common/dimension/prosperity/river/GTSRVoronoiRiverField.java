@@ -502,7 +502,7 @@ public final class GTSRVoronoiRiverField {
      * 同面积湖站数 1/6.25、按探索半径的可见湖频次约减半档）。派生随动：D_eff ≈ 0.89×本值
      * ≈ 2670（{@link #LAKE_WATER_LEVEL} 的 W' 反解口径）、{@link #LAKE_STATION_D_MIN} 自动
      * = 0.375×本值 = 1125、3×3 站格窗半宽 1.5×本值 = 4500 ≫ 合成 warp 位移 ≤ 97
-     * ⇒ F1/F2 窗内精确性论证不变。
+     * ⇒ F1/F2 窗内精确性论证不变（P32 起 warp ΣA=35，论证更松）。
      */
     public static final double LAKE_INTERVAL = 3000.0D;
 
@@ -536,19 +536,31 @@ public final class GTSRVoronoiRiverField {
 
     /**
      * 巨湖破圆 domain-warp 位移幅度（格，圆盘向量全长上限）。P23 R1（v1.20.46 批2 S2）
-     * 70 → 100 = 标称水半径 200 的 50%；<b>P25（D3 轮廓自然化）100 → 85</b>——主盘让出 15 格
-     * 幅度给新增副倍频盘（{@link #LAKE_WARP_SUB}，同点相加），湖缘在"大形揉动"之上叠高频细廓。
-     * {@link #lakeAt} 在湖 Voronoi 求值前对坐标加 {@code disk₁(p/LAKE_WARP_SCALE)×本值 +
-     * disk₂(p/LAKE_WARP_SUB_SCALE)×LAKE_WARP_SUB}（第 4/5 张 OpenSimplexDisk 表，盐
-     * {@link #SALT_DISK_LAKE_WARP}/{@link #SALT_DISK_LAKE_SUB}）。
+     * 70 → 100 = 标称水半径 200 的 50%；P25（D3 轮廓自然化）100 → 85——主盘让出 15 格
+     * 幅度给新增副倍频盘（{@link #LAKE_WARP_SUB}，同点相加）。{@link #lakeAt} 在湖 Voronoi
+     * 求值前对坐标加 {@code disk₁(p/LAKE_WARP_SCALE)×本值 + disk₂(p/LAKE_WARP_SUB_SCALE)×LAKE_WARP_SUB}
+     * （第 4/5 张 OpenSimplexDisk 表，盐 {@link #SALT_DISK_LAKE_WARP}/{@link #SALT_DISK_LAKE_SUB}）。
      * <p>
-     * <b>P25 收敛账（javadoc 钉，格数口径）</b>：合成位移场最大斜率上界 Σ2πA/λ =
-     * 2π×85/700 + 2π×12/340 = 0.763 + 0.222 = <b>0.985 &lt; 1</b> ⇒ {@link #lakeCellCenterAt}
-     * 两次不动点仍良态（两盘同点相加 ⇒ 斜率线性可加）；ΣA = 85 + 12 = <b>97 ≤ 100</b> ⇒
-     * 内切圆下界 ≈ r0 − ΣA = 200 − 97 = <b>103 ≥ 100 格</b> 保住（r0 = 标称水半径；P23 R1
-     * 单盘账 2π×100/700 ≈ 0.898、下界 100 格见版本树）。
+     * <b>P25 收敛账（javadoc 钉，格数口径；P32 起被下段取代，原文保留）</b>：合成位移场最大
+     * 斜率上界 Σ2πA/λ = 2π×85/700 + 2π×12/340 = 0.763 + 0.222 = <b>0.985 &lt; 1</b> ⇒
+     * {@link #lakeCellCenterAt} 两次不动点仍良态（两盘同点相加 ⇒ 斜率线性可加）；ΣA = 85 + 12 =
+     * <b>97 ≤ 100</b> ⇒ 圆场内切圆下界 ≈ r0 − ΣA = 200 − 97 = <b>103 ≥ 100 格</b>（r0 = 标称
+     * 水半径；P23 R1 单盘账 2π×100/700 ≈ 0.898、下界 100 格见版本树）。
+     * <p>
+     * <b>P32（T1-3 湖基场重构，v1.20.55）：85 → 30</b>——形状多样性改由逐站形状参数承担
+     * （超椭圆/主副 blob 两层制 + 站参数抽签，见 {@link #SALT_LAKE_SHAPE} 段），warp 的职责
+     * 收窄为"参数边界去数学化"（消超椭圆直边感/椭圆弧感）与副尺度细廓：30 = 15%·r0 足够打破
+     * 几何感，同时把内切/岛预算让给形状参数（旧场 CV 0.077 由 warp 97 贡献，新场 35 档估计
+     * 0.03-0.04，非圆度主力转为形状参数）。
+     * <p>
+     * <b>P32 收敛账（javadoc 钉，格数口径；λ 沿 P25 同一保守上界——scale 直接当 λ）</b>：
+     * 合成位移场最大斜率上界 Σ2πA/λ = 2π×30/700 + 2π×5/340 = 0.269 + 0.092 = <b>0.362 &lt; 1</b>
+     * ⇒ {@link #lakeCellCenterAt} 两次不动点仍良态（两盘同点相加 ⇒ 斜率线性可加）；ΣA = 30 + 5
+     * = <b>35</b> ⇒ 世界内切 ≥ b_floor − ΣA − 微噪 8.3 = 185 − 35 − 8.3 = <b>141.7 ≥ 100 格</b>
+     * （b_floor = {@link #LAKE_SHAPE_B_FLOOR}；E-A 终案 §2 三账——G-C 内切/岛绝对腿/G-I 岛干
+     * ——共同钉死 ΣA=35 档，见 plan/tmp/p32-ea-blob-final.md §2 表）。
      */
-    public static final double LAKE_WARP = 85.0D;
+    public static final double LAKE_WARP = 30.0D;
 
     /**
      * 巨湖破圆 domain-warp <b>副倍频</b>位移尺度（格，P25 D3 新增）：disk 噪声波长 ≈ 1.24×340
@@ -559,11 +571,13 @@ public final class GTSRVoronoiRiverField {
     /**
      * 巨湖破圆副倍频位移幅度（格，P25 D3 新增；第 5 张 disk 表，盐 {@link #SALT_DISK_LAKE_SUB}）。
      * 与主盘<b>同点相加</b>（p' = p + disk₁(p)×{@link #LAKE_WARP} + disk₂(p)×本值，两盘各自
-     * 取值后合并，见 {@link #lakeStationDistances}）⇒ 合成位移 ≤ 97、合成斜率上界 0.985 &lt; 1
-     * （收敛账见 {@link #LAKE_WARP}）。幅度 12 ≈ 滩带总宽（≈22 格）的 ~55%——细廓摆动与滩带
-     * 同阶可感、不喧宾夺主。
+     * 取值后合并，见 {@link #lakeStationScan}）⇒ 合成位移 ≤ 35、合成斜率上界 0.362 &lt; 1
+     * （收敛账见 {@link #LAKE_WARP}）。<b>P32（T1-3）：12 → 5</b>——ΣA = 30 + 5 = 35 把内切/
+     * 岛预算让给形状参数（E-A §2 表：岛账 b_floor ≥ 139 + ΣA + 8.3 ≈ 147 + ΣA ⇒ ΣA=35 档配
+     * b_floor=185 留 3 格余量）；λ 不变（700/340 频率分层保留）。P25 档"12 ≈ 当时滩带总宽
+     * （≈22 格）的 ~55%"口径随场换废弃（历史保留）。
      */
-    public static final double LAKE_WARP_SUB = 12.0D;
+    public static final double LAKE_WARP_SUB = 5.0D;
 
     /**
      * 巨湖水位（RTG lakeWaterLevel 同位参数）：lakePressure &lt; 本值 = 湖水区。
@@ -819,7 +833,8 @@ public final class GTSRVoronoiRiverField {
      * 未 warp 的标称湖格</b>（floor(p/{@link #LAKE_INTERVAL}+0.5)，键盐
      * {@link #SALT_LAKE_ISLAND_RADIUS} 经 cellSeed 混淆）——岛列到所属格点 ≤ 0.35×间隔 +
      * 合成 warp 97 + R_eff ≈ 1238 &lt; 半间隔 1500 ⇒ <b>同一座岛的岛列恒得同一站键</b>（无
-     * 跨格缝），且零独立 warp/第二不动点（半径腿仍吃同一次 3×3 扫描的 dC）。
+     * 跨格缝），且零独立 warp/第二不动点（半径腿仍吃同一次 3×3 扫描的 dC）。（P32 起
+     * 合成 warp ΣA = 35 ⇒ 该账 ≤ 1168，论证不变。）
      */
     public static final double LAKE_ISLAND_RADIUS_JITTER = 0.10D;
 
@@ -866,7 +881,8 @@ public final class GTSRVoronoiRiverField {
      * 岛绝对腿<b>多频 ridged 脊形加性——低频大瓣幅度</b>（格，P29-A2 新增，A2-R 改 ridged）：
      * {@code kAbs = 1 − (dC + 本值·g₁ + MID·g₂)/rEff}，g = s01((1−|n|−{@link
      * #LAKE_ISLAND_EDGE_RIDGE_GATE_LO})/{@link #LAKE_ISLAND_EDGE_RIDGE_GATE_SPAN})——
-     * <b>缎带腿同款 ridged 门形</b>（脊核 |n|≈0 处满门=深咬、带外=0），n₁ = λ
+     * <b>ridged 门形</b>（脊核 |n|≈0 处满门=深咬、带外=0；P28-L 湖缘缎带腿同款先例——该腿
+     * 已于 P32 随湖基场重构整体移除，先例算式见版本树），n₁ = λ
      * {@link #LAKE_ISLAND_EDGE_LO_SCALE}、n₂ = λ{@link #LAKE_ISLAND_EDGE_MID_SCALE}、
      * MID 见 {@link #LAKE_ISLAND_EDGE_MID_AMP}。
      * <p>
@@ -888,8 +904,9 @@ public final class GTSRVoronoiRiverField {
     public static final double LAKE_ISLAND_EDGE_LO_AMP = 12.0D;
 
     /**
-     * 岛绝对腿多频 ridged——<b>低频大瓣波长</b>（格，P29-A2 新增）：λ = 124——与湖缘缎带
-     * {@link #LAKE_RIBBON_SCALE} 同档（"低频宽湾"同一波长纪律：岛大瓣与湖湾臂频谱对齐）；
+     * 岛绝对腿多频 ridged——<b>低频大瓣波长</b>（格，P29-A2 新增）：λ = 124（P29 与当时湖缘
+     * 缎带 λ 同档的"低频宽湾"波长纪律——岛大瓣与湖湾臂频谱对齐；缎带腿已于 P32 随湖基场重构
+     * 整体移除，本值独立存续）；
      * 124 % 16 = 12 ≠ 0 ✔（账本 §9 取值纪律）。环密度账：半径 40 环（周长 ≈251）在 λ124
      * 档 ≈1 个大脊（岛剪影级单侧大咬）。<b>求值域</b>：只在岛域列（压力腿过门后，全湖
      * ≈5% 列）求值 ⇒ 岛域外零成本（短路保持）。<b>盐</b>：复用
@@ -923,23 +940,26 @@ public final class GTSRVoronoiRiverField {
      * 岛缘 ridged 门<b>脊阈</b>（A2-R 新增，redirect 执行要求 1）：g =
      * s01((1−|n|−本值)/{@link #LAKE_ISLAND_EDGE_RIDGE_GATE_SPAN})——带外（|n| ≥ 1−本值 =
      * 0.24）g=0 精确 ⇒ 脊间段半径=基线（prominence=幅度满对比）；脊核（|n| ≤ 0.12）满门。
-     * 取 0.76 与湖缘缎带门 {@link #LAKE_RIBBON_GATE_LO}=0.68 同族偏紧档（门带宽 vs 缺刻
-     * 分离度的折中：更宽（0.68）则 λ20 缺刻粘连、更窄（0.84）则缺刻变浅——simr.out
-     * 扫描 3×2 档取 spread/瓣数最优）。
+     * 取 0.76（P29 与当时湖缘缎带门 0.68 同族偏紧档——缎带已于 P32 随湖基场重构整体移除，
+     * 档位独立存续；门带宽 vs 缺刻分离度的折中：更宽（0.68）则 λ20 缺刻粘连、更窄（0.84）
+     * 则缺刻变浅——simr.out 扫描 3×2 档取 spread/瓣数最优）。
      */
     public static final double LAKE_ISLAND_EDGE_RIDGE_GATE_LO = 0.76D;
 
     /**
      * 岛缘 ridged 门<b>缓入宽度</b>（A2-R 新增）：0.12 ⇒ 缺刻缘坡 ≈ 幅度 ÷ 半带宽弧长
-     * ≈ 7÷5 ≈ 1.4 格/列（λ20 档）&lt; 滩台阶 riser 3.5——与缎带门 SPAN 同款缓入纪律。
+     * ≈ 7÷5 ≈ 1.4 格/列（λ20 档）&lt; 滩台阶 riser 3.5——缓入纪律与 P29 时缎带门 SPAN
+     * 同款（缎带腿已于 P32 移除）。
      */
     public static final double LAKE_ISLAND_EDGE_RIDGE_GATE_SPAN = 0.12D;
 
     /**
      * 岛绝对腿<b>中频细部噪声盐</b>（P29-A2 新增，v1.20.52 计划轨道）：盐段尾续取
-     * {@code …11EL}——实现期 grep 全 src+tools/dim1 已核零占用（…11D 归
-     * {@link #SALT_LAKE_RIBBON}；…11E/…11F/…120 段尾空闲）；占用则回退 …120（p29 计划
-     * §2-A A2，实测未占用 ⇒ 取 …11E）。退役盐不回收不复用。
+     * {@code …11EL}——实现期 grep 全 src+tools/dim1 已核零占用（…11D 归湖缘缎带盐——
+     * <b>P32 随缎带腿整体移除而退役，不回收不复用</b>，退役登记见 {@link #SALT_LAKE_SHAPE}
+     * 段；…11E 归本盐；…11F 归 {@link #SALT_LAKE_SHAPE}（P32 T1-3 站形状参数抽签盐）；
+     * …120 段尾空闲）；占用则回退 …120（p29 计划 §2-A A2，实测未占用 ⇒ 取 …11E）。
+     * 退役盐不回收不复用。
      */
     public static final long SALT_LAKE_ISLAND_EDGE_MID = 0x5249F11EL;
 
@@ -1094,80 +1114,145 @@ public final class GTSRVoronoiRiverField {
      */
     public static final long SALT_LAKE_PRESSURE2 = 0x5249F11BL;
 
+    // ═══ P32（v1.20.55 批2 S1，T1-3）：非圆 blob 湖形场——站形状参数域（E-A 终案）═══
+    //
+    // 场结构（{@link #lakeAt0} 重构，湖缘缎带腿整体移除——P28-L 引入、P29-A1 重标定的六常量
+    // 随场换废弃，历史 javadoc 见版本树）：P = clamp(W + s/dN, 0, 1) + 双倍频微噪（λ220/λ70
+    // 原样）。s = 到 argmin 站<b>形状边界</b>的带符号距（内负外正，warp 空间锚点相对系）；
+    // dN = 次近站距（3×3 Worley 原样）。每站一套形状参数（本段常量域 + {@link #SALT_LAKE_SHAPE}
+    // 抽签，512 槽直映缓存——{@link #stationParams}）：
+    //   class0（0.45）单超椭圆 n∈{2,3}——"方形"由 n=3 指数承担（同半轴 45° 向径 1.122·r0，
+    //   内切不损失，不靠深伸缩）；
+    //   class1（0.38）主 blob + 单副 blob（梨 / L-前形态）；class2（0.17）主 blob + 双副
+    //   blob（张角 ≥60°，L / 花生签名形状）。（P32 批2 S1b 档2：0.50/0.35/0.15→0.45/0.38/0.17，
+    //   SF/CV 形状读数驱动——读数档 plan/tmp/p32-t1p3b-iter.md）
+    // 两层制：主形扛内切保证（{@link #LAKE_SHAPE_B_FLOOR}）与岛容器；副 blob 只做剪影多样性
+    // （远置 offset_s ≤ 0.82r0 出真 L 臂——档1 放宽，读数档见 plan/tmp/p32-t1p3b-iter.md）。
+    // D_MIN 淘汰先于形状求值（哨兵不触缓存不加噪）。
+    // 依据：plan/p32-plan.md S1 + plan/tmp/p32-ea-blob-final.md（E-A 终案 §3/§4/§9 表）+
+    // P5 原型 temp/p32-t1p2/p32-blob-defs.jshell（20/20 逻辑 PASS，直接移植）。
+
+    /** 站形状参数的尺度基准：标称水半径 r0（格，E-A §9 表；与 {@link #LAKE_WATER_LEVEL} 的 200 格标称口径同源）。 */
+    public static final double LAKE_SHAPE_R0 = 200.0D;
+
     /**
-     * 湖缘<b>ridged 缎带分支噪声</b>波长（格，P28-L D1·R1 新增，v1.20.51）：λ = 76——设计滩环
-     * （≈113 格）的 ~2/3、与第二倍频 λ70 同档 ⇒ 缎带特征长 ≈38 格的湾臂/滩臂对；76 % 16 = 12 ≠ 0
-     * ✔（账本 §9 取值纪律）。<b>求值域</b>：只在缘带（见 {@link #LAKE_RIBBON_FRINGE_DELTA}）求值
-     * ⇒ 缘外列零新噪声（短路保持）；范式先例 = TerrainVariants 缎带沟（ridged 1−|n| 沿 n≈0
-     * 等值线成带，P27 G 片）。
+     * 主形<b>内切地板</b> b_floor（格，E-A §4 两层制）：class0 保面积 b = r0²/a ≥ 本值
+     * （a ≤ 1.08·r0 ⇒ b ≥ 185.19）；class1/2 主 blob ρ_p ∈ [1.00,1.15]·r0、心偏移 ≤ 0.05·r0
+     * ⇒ 锚点内切 ≥ ρ_p − 10 ≥ 190 ≥ 本值。钉死依据（E-A §2 表三账）：岛绝对腿账 b_floor ≥
+     * 139 + ΣA + 微噪 8.3 ≈ 147 + ΣA = 182（ΣA=35 档）⇒ 取 185 留 3 格余量；R6 旧域
+     * a ≤ 1.7r0/b ≥ 118 被三账全线否决（b=118 ⇒ G-C 74.7 / 岛域 10.7 / G-I 干 ≈6）。
+     */
+    public static final double LAKE_SHAPE_B_FLOOR = 185.0D;
+
+    /**
+     * 副 blob 融合半径 k_smin（格）：多项式 smin（h = clamp(0.5+0.5(a−b)/k)，smin =
+     * a + h·(b−a) − k·h·(1−h)，ATG MathUtil.polymax 对偶；C¹ 切向连续、缝处曲率有界跳变）
+     * ——真并集外的伪内部下探 ≤ k/4 = 10 格（凹腰圆润，设计内）。40 ≈ b_floor 的 22%、
+     * 滩带宽 113（{@link #LAKE_SHORE}）的 ~35% ⇒ 融合痕与滩带不打架。
+     */
+    public static final double LAKE_SHAPE_K_SMIN = 40.0D;
+
+    /** 站形状类占比：class0（单超椭圆）概率 = 本值（抽签 u &lt; 本值 ⇒ class0；档2：0.50→0.45）。 */
+    public static final double LAKE_SHAPE_P_CLASS1 = 0.45D;
+
+    /** 站形状类占比累计：u &lt; 本值 ⇒ class1；否则 class2（档2：0.85→0.83 ⇒ class1/2 = 0.38/0.17）。 */
+    public static final double LAKE_SHAPE_P_CLASS2 = 0.83D;
+
+    /** class0 内部超椭圆指数占比：n=3（方形感）：n=2（椭圆）= 本值 : 1−本值 = 0.75 : 0.25（档2：0.70→0.75）。 */
+    public static final double LAKE_SHAPE_P_N3 = 0.75D;
+
+    /** class0 n=2 强制伸缩下限（×{@link #LAKE_SHAPE_R0}——弱档仍有非圆感，b ≥ 192）。 */
+    public static final double LAKE_SHAPE_A_N2_MIN = 1.04D;
+
+    /** class0 伸缩上限（×r0；n=2/n=3 共用——保面积 b = r0²/a ≥ b_floor = 185.19）。 */
+    public static final double LAKE_SHAPE_A_N2_MAX = 1.08D;
+
+    /** class0 n=3 伸缩下限（×r0——方形由指数承担，可取 1.00）。 */
+    public static final double LAKE_SHAPE_A_N3_MIN = 1.00D;
+
+    /** 见 {@link #LAKE_SHAPE_A_N2_MAX}（n=3 上限同值，单常量复用）。 */
+    public static final double LAKE_SHAPE_A_N3_MAX = LAKE_SHAPE_A_N2_MAX;
+
+    /** class1/2 主 blob 半径域下限（×r0）。 */
+    public static final double LAKE_SHAPE_RHO_P_MIN = 1.00D;
+
+    /** class1/2 主 blob 半径域上限（×r0 ⇒ 锚点内切 ≥ 190 ≥ b_floor）。 */
+    public static final double LAKE_SHAPE_RHO_P_MAX = 1.15D;
+
+    /** class1/2 主 blob 心偏移帽（×r0，沿朝向 ≤ 10 格——主形仍以锚点为容器）。 */
+    public static final double LAKE_SHAPE_CENTER_OFF_MAX = 0.05D;
+
+    /** 副 blob 半径域下限（×r0）。 */
+    public static final double LAKE_SHAPE_RHO_S_MIN = 0.45D;
+
+    /** class1 副 blob 半径域上限（×r0；P32 批2 S1b 档1：0.80→0.86，SF/CV 形状读数驱动）。 */
+    public static final double LAKE_SHAPE_RHO_S_MAX = 0.86D;
+
+    /** class2 副 blob 半径压帽（×r0，控并集面积；档1 同步 0.70→0.76）。 */
+    public static final double LAKE_SHAPE_RHO_S_MAX_C2 = 0.76D;
+
+    /**
+     * 副 blob 心偏移域（×r0，自主 blob 心）与<b>重叠约束</b>：offset_s ≤ ρ_p + ρ_s −
+     * 0.3·{@link #LAKE_SHAPE_K_SMIN}（连通并集；域内恒松、钳制保形——ρ_p+ρ_s−12 ≥ 278 ≫
+     * 0.82·r0 = 164（档1 放宽 0.75→0.82 后复核仍松），P5 L4g 实测 violations=0）。
      * <p>
-     * <b>P29-A1（v1.20.52 计划轨道，"低频宽湾浅咬"重标定）：76 → 124</b>——P28 档的特征长 ≈38 格
-     * 在每段湖缘排布 ~3 个咬口（λ76 等值线间隔 ≈38 格），湾窄齿密（齿深:齿宽 ≈27:7.6 ≈3.5:1
-     * 尖齿——"狗啃"台阶放大主因，p29 计划 §2-A A1 证据）。λ124 ⇒ 特征长 ≈62~124 格（格点噪声
-     * 振荡特征长 ≈λ 而非 λ/2，p29-r-lake §1.3 同口径）≈ 设计滩环 113 格同量级 ⇒ <b>每段湖缘
-     * 1-2 个宽湾</b>（低频）；124 % 16 = 12 ≠ 0 ✔。备选档：132（湾更疏，未采纳）。
+     * <b>腰宽构造账（账本 C"最小臂宽 ≥ 40 构造性免重校"，批3 专项探针验证；档1 ρ_s 上调后
+     * 复核）</b>：两圆割线腰宽 2h = 2√(ρ_p² − x²)、x = (d² + ρ_p² − ρ_s²)/2d（d = 两圆心距，
+     * 按重叠约束上界 d = ρ_p + ρ_s − 0.3k 保守取值——域帽 {@link #LAKE_SHAPE_OFF_S_MAX}·r0
+     * 恒更小，真实腰更宽）。最坏角（ρ_p = 200、ρ_s = 90、d = 278）⇒ x = 196.4、<b>2h ≈ 76
+     * ≥ 40</b>；ρ_s 上调对腰宽单调有利（ρ_s = 0.86r0 = 172 ⇒ 2h ≈ 93）⇒ 最坏角仍在 ρ_s 下限
+     * 处不变 ⇒ L 形内凹臂在侵蚀门（核心 5×5 粗格 = 20 格窗）下构造性存活。
      */
-    public static final double LAKE_RIBBON_SCALE = 124.0D;
+    public static final double LAKE_SHAPE_OFF_S_MIN = 0.35D;
+
+    /** 见 {@link #LAKE_SHAPE_OFF_S_MIN}（上限 0.82·r0 = 164（档1：0.75→0.82）⇒ 域界伸展见 {@link #LAKE_SHAPE_R_MAX}）。 */
+    public static final double LAKE_SHAPE_OFF_S_MAX = 0.82D;
+
+    /** class2 双副 blob 张角下限（弧度 = 60°；抽签域 [本值, π]）。 */
+    public static final double LAKE_SHAPE_C2_SEP_MIN = Math.PI / 3.0D;
 
     /**
-     * 湖缘 ridged 缎带<b>湾深幅度</b>（压力域，P28-L D1·R1 新增）：缎带核（门=1 段）把压力压低
-     * 本值 ⇒ 水缘沿缎带等值线内侵成湾臂。径向格数口径：dr/dP ≈ 2244 格/单位压力 ⇒ 幅度 ×
-     * 2244 = 湾深上限（等值线垂直穿滩向时兑现；带间留滩臂/半岛——用户②"河滩增加分支地形"）。
-     * <b>P29-A1（"低频宽湾浅咬"）：0.012 → 0.008</b>——0.008×2244 ≈ <b>18 格湾深</b> = 0.64×
-     * 踏面 28 格（P28-L 滩带 ×5 后 4 级踏面 ≈28 格/级）⇒ 湾内一次压降不再整跳一级踏面（旧 27 格
-     * ≈ 1.0×踏面 ⇒ "狗啃"台阶放大主因，p29-r-lake §1.2-3）。P28-L 登记的 R1 降级链
-     * 0.012 → 0.008 本轮<b>按预注册值兑现</b>；P29 失败迭代档（湾臂存活率 &lt;30% 时）：
-     * 0.008 → 0.010（p29 计划 §2-A 失败路径，R1'）。
+     * 伸展帽 r_max（格，域界申报而非运行时钳制；P32 批2 S1b 档1 随 offset_s 0.75→0.82 /
+     * ρ_s 0.80→0.86 上限放宽重算 310→336）：offset_s + ρ_s ≤ 0.82 + 0.86 = 1.68·r0 = 336，
+     * 加主 blob 心偏移 ≤ 10 与 smin 外鼓 ≤ k/4 = 10 ⇒ 解析最坏 ≤ <b>356 ≤ 450 = 0.40·
+     * {@link #LAKE_STATION_D_MIN}</b>（不变式断言值，对 D_MIN 改档鲁棒，余量 94；可见 flip
+     * 紧界 0.406×2·D_MIN = 914——E-A §5/§8）。P5 旧域（0.75+0.80）实测 maxReach = 309.75
+     * （plan/tmp/p32-t1p2-bench.md L4h；档1 新域 L 复测读数见 plan/tmp/p32-t1p3b-iter.md）。
+     * 前向 argmin 锚点制下 flip 跳变发生在全消费阈之外的饱和区（flip 处 P ≥ 0.081 + 1 −
+     * 2·336/2250 = 0.782 ≫ 0.2685 PTP 快速臂上界）⇒ 不可见；SLMC FINE_WINDOW_MAX = 560
+     * 覆盖 336 + 滩 133 + 檐 40 = 509 ≤ 560 仍闭（RAYCAP32 = 0 复核）。
      */
-    public static final double LAKE_RIBBON_AMP = 0.008D;
+    public static final double LAKE_SHAPE_R_MAX = 336.0D;
 
     /**
-     * 湖缘缎带门<b>脊阈</b>（ridged 形 1−|n| 的门下限，P28-L D1·R1 新增）：门 =
-     * s01((1−|n|−本值)/{@link #LAKE_RIBBON_GATE_SPAN})——门带半宽 = 1−本值（|n| 域），
-     * 满门核半宽 = 1−本值−{@link #LAKE_RIBBON_GATE_SPAN}。P28 档 0.80（|n| &lt; 0.20 缓入、
-     * |n| ≤ 0.08 满门，门带 ≈7.6 格）；与缎带沟 GULLY_GATE_LO=0.78/SPAN=0.12 先例同档。
-     * 湾臂间滩带宽 ≈ 特征长 − 2×门带 ⇒ 滩臂存活（侵蚀门不动，臂宽契约承载——计划三口径 c）。
-     * <p>
-     * <b>P29-A1（"低频宽湾浅咬"）：0.80 → 0.68</b>——门带半宽 |n| &lt; 1−0.68 = 0.32 ⇒
-     * ≈ 0.32×62 ≈ <b>20 格</b>（旧 7.6，加宽核）；与 λ124 重标定配套：宽湾需要宽门带，
-     * 射线穿湾概率不降（湾臂存活率门 ≥30% 的几何保障——门带 20 格 ≫ 旧 7.6 格）。
+     * <b>⟂-邻站定向</b>触发距（格，E-A §8）：站参数填充期（缓存内一次成本）抽 8 邻站
+     * cellOffset（既有站格盐 {@link #SALT_LAKE_CELL_X}/{@link #SALT_LAKE_CELL_Z}，零新真值），
+     * 最近邻 D &lt; 本值时触发（站距分布 ⇒ ~5-10% 站）：class0 伸展长轴 ⟂ 邻站方向
+     * （θ = 邻站角 + 90° ± {@link #LAKE_SHAPE_PERP_JITTER}）、class1/2 副 blob 禁置邻站
+     * 方向 ±{@link #LAKE_SHAPE_FORBID_HALF} 扇区——向邻站伸展降至 b ∈ [185,200] ⇒ 残留
+     * 近对水切 ≤ 25 格（无规则 155 格）。确定性纯函数保持（邻站偏移同 seed 同值；站参数
+     * 不再站独立，但同 seed 同站恒同值）。
      */
-    public static final double LAKE_RIBBON_GATE_LO = 0.68D;
+    public static final double LAKE_SHAPE_PERP_D = 1600.0D;
+
+    /** ⟂-邻站定向的 class0 长轴抖幅（弧度 = ±15°）。 */
+    public static final double LAKE_SHAPE_PERP_JITTER = Math.PI / 12.0D;
+
+    /** ⟂-邻站定向的副 blob 禁置扇区半宽（弧度 = ±45°）。 */
+    public static final double LAKE_SHAPE_FORBID_HALF = Math.PI / 4.0D;
 
     /**
-     * 湖缘缎带门<b>缓入宽度</b>（形状域，P28-L D1·R1 新增）：门 = s01((1−|n|−
-     * {@link #LAKE_RIBBON_GATE_LO})/本值) 的缓入段宽。P28 档 0.12 ⇒ 湾缘坡 ≈ 27 格 ÷ 门带
-     * ≈7.6 格 ≈ 3.5 格/列，与滩台阶 riser 同档（无单格悬崖）。
-     * <p>
-     * <b>P29-A1（"低频宽湾浅咬"）：0.12 → 0.16</b>——核半宽 |n| ≤ 0.16 ⇒ ≈ <b>10 格</b>
-     * （旧 3）；齿深:齿宽 ≈ 18:20 = <b>宽湾浅咬</b>（旧 27:7.6 ≈ 3.5:1 尖齿）；缓入肩宽
-     * 0.16×62 ≈ 10 格 ⇒ 湾缘坡 ≈ 18 格 ÷ 10 格 ≈ <b>1.8 格/列</b> &lt; 滩台阶 riser 3.5 档
-     * （dhP95=1 门）。P29 失败迭代档（湾臂存活率 &lt;30% 时）：0.16 → 0.14（p29 计划 §2-A
-     * 失败路径）。
+     * 站形状参数抽签盐（P32 T1-3 新增）：盐段尾续取 {@code …11FL}（…11E 归
+     * {@link #SALT_LAKE_ISLAND_EDGE_MID}；…11D 随缎带退役空闲、不回收不复用；…120 段尾空闲）。
      */
-    public static final double LAKE_RIBBON_GATE_SPAN = 0.16D;
+    public static final long SALT_LAKE_SHAPE = 0x5249F11FL;
 
     /**
-     * 湖缘缎带<b>求值缘带半宽</b>（压力域，P28-L D1·R1 新增）：仅基压 p（dC/dN，双倍频加噪前）
-     * ∈ [{@link #LAKE_WATER_LEVEL}−本值, {@link #LAKE_SHORE}+本值] 的列求缎带门 ⇒ 世界列占比
-     * ≈2-4%（GenBench +1-2µs 预算内）；缘外列零新求值、返回式逐位同改造前（digest 域外口径）。
-     * 缎带压降 + 双倍频微摆可以把<b>消费面等值线</b>（水线/滩缘）搬出基压窗 ⇒ δ 必须 ≥ 最坏
-     * 搬出量，否则窗沿处门未关死等值线被撕（窗边门=0 ⇒ 贡献 −0.0 精确、合成连续）。
-     * <p>
-     * <b>P29-A1（reviewer 缺口②收口）：0.015 → 0.020</b>——最坏角账：缎带压降（现档
-     * {@link #LAKE_RIBBON_AMP}=0.008 ≈ 18 格，按上一档 0.012 ≈ 27 格的保守口径）+ 双倍频微摆
-     * ±8.3 格 ⇒ 最坏 ≈ <b>35.3 格</b>；本值 0.020 ≈ <b>45 格 ≥ 35.3</b> ⇒ 窗沿覆盖（水线/
-     * 滩缘等值线整体含在求值窗内）。缘带列占比 ~2-4% → ~3-5%（GenBench +0.3-0.8µs 估，
-     * p29 计划 §4 A 行）。域外（含新环带门=0 列）贡献 −0.0 精确 ⇒ IEEE 逐位同（:1583 先例）。
+     * 湖缘 ridged 缎带盐 {@code 0x5249F11DL}。<b>已删盐（P32 T1-3，v1.20.55）</b>：随缎带腿
+     * 整体移除（P28-L D1·R1 引入、P29-A1 重标定，六常量——尺度/幅度/门阈/门宽/缘带半宽/盐——
+     * 与缘带短路/ribbonGate 支路的历史 javadoc 见版本树）退役——<b>不回收、不复用</b>
+     * （防跨版本 digest 混淆；先例 SALT_WET 残潭盐）。
      */
-    public static final double LAKE_RIBBON_FRINGE_DELTA = 0.020D;
-
-    /**
-     * 湖缘缎带噪声盐（P28-L D1·R1 新增，v1.20.51）：盐段尾续取 {@code …11DL}——段内现役最高
-     * {@code …11CL} 归 {@link #SALT_SWAMP_NET}；…11D/E/F/120 已 grep 全 src 核零占用。独立盐域
-     * 纪律同 {@link #SALT_LAKE_PRESSURE}/{@link #SALT_LAKE_PRESSURE2}；退役盐不回收不复用。
-     */
-    public static final long SALT_LAKE_RIBBON = 0x5249F11DL;
 
     /**
      * {@link #lakeAt} 的"无湖"哨兵（无湖/D_MIN 淘汰一律返回它）：≥ {@link #LAKE_SHORE}，与压力同向
@@ -1700,17 +1785,18 @@ public final class GTSRVoronoiRiverField {
     // 常量 TRUNK_ALIGN_COS 已删（见类顶登记）；TRUNK_GRAD_STEP 保留（历史梯度步距，零消费）。
 
     /**
-     * 巨湖压力场（T5，plan §3.3；<b>v1.20.40 P19 §D 破圆</b>；<b>P23 R1①（v1.20.46 批2 S2）
-     * 全域站格独立激活</b>）：第二 Voronoi（{@link #LAKE_INTERVAL} 格、{@link #SALT_LAKE_CELL_X}/
-     * {@link #SALT_LAKE_CELL_Z} 盐域分离、偏移幅度同 {@link #CELL_JITTER}×间隔），压力 = dC/dN
-     * ∈ [0,1)——<b>低值在细胞中心</b>（与河网的河网 border2 低值在边界相反）⇒ 每细胞腹地一座
-     * <b>离散巨湖</b>（c_lake&lt;{@link #LAKE_WATER_LEVEL} 即湖水区，水径 ≈ 本值×D/(1+本值)，
-     * D ≈ (0.7..1.4)×间隔）。求值前对坐标加一次 domain-warp（{@link #LAKE_WARP_SCALE}/
-     * {@link #LAKE_WARP}，第 4 张 disk 表）——湖形从细胞圆破成不规则形，湖径也随揉动逐湖涨落。
+     * 巨湖压力场（T5，plan §3.3；v1.20.40 P19 §D 破圆；P23 R1①（v1.20.46 批2 S2）全域站格
+     * 独立激活；<b>P32 T1-3（v1.20.55）非圆 blob 形状场重构</b>）：第二 Voronoi
+     * （{@link #LAKE_INTERVAL} 格、{@link #SALT_LAKE_CELL_X}/{@link #SALT_LAKE_CELL_Z} 盐域分离、
+     * 偏移幅度同 {@link #CELL_JITTER}×间隔）按站组织——<b>每细胞腹地一座离散巨湖</b>，形状 =
+     * 逐站抽签的超椭圆/主副 blob 两层制（见 {@link #SALT_LAKE_SHAPE} 段）——压力
+     * P = clamp(W + s/dN, 0, 1) + 双倍频微噪 ∈ [0,1)（<b>低值在湖形内</b>）。
+     * 求值前对坐标加一次 domain-warp（{@link #LAKE_WARP_SCALE}/{@link #LAKE_WARP} +
+     * 副倍频盘，第 4/5 张 disk 表）——湖缘去参数边界的"数学感"（大形揉动改由形状参数承担，
+     * warp 降幅账见 {@link #LAKE_WARP}）。湖缘 ridged 缎带腿（P28-L/P29-A1）已随本重构整体
+     * 移除。{@link #LAKE_STATION_D_MIN} 小湖淘汰腿防双站过近破形（P23 R1 起不变）。
      * <p>
-     * <b>P23 R1：与主干带解耦</b>——trunk 门删除（原"仅主干带内求值"的性能门随之作废，全域
-     * 每列都付一次湖 Voronoi 成本，GenBench 时基漂移归 S6 重钉）；新增 {@link #LAKE_STATION_D_MIN}
-     * 小湖淘汰腿防双站过近破形。
+     * <b>P23 R1：与主干带解耦</b>——trunk 门删除（全域每列都付一次湖 Voronoi 成本）。
      */
     public static double lakeAt(long worldSeed, int x, int z) {
         final int idx = slotIndex(worldSeed, x, z, MEMO_MASK);
@@ -1727,71 +1813,65 @@ public final class GTSRVoronoiRiverField {
     }
 
     /**
-     * lakeAt 原始求值体（P19 U8 起由 {@link #lakeAt} 的列级 memo 包裹；算式一字未动）。
+     * lakeAt 原始求值体（P19 U8 起由 {@link #lakeAt} 的列级 memo 包裹）。
      * <p>
      * <b>P23 R1①（v1.20.46 批2 S2）</b>：trunk 激活门删除——湖改为<b>全域 {@link #LAKE_INTERVAL}
-     * 站格独立判定</b>（主干带不再是湖存在的前提）；新增 {@link #LAKE_STATION_D_MIN} 小湖淘汰腿
-     * （第二近站过近 ⇒ NO_LAKE，防双站过近破形）。v1.20.41 P20 S5d 的抽出口说明仍适用：
-     * 3×3 站距扫描在 {@link #lakeStationDistances}，本式仍取 dC/dN。
+     * 站格独立判定</b>；新增 {@link #LAKE_STATION_D_MIN} 小湖淘汰腿（第二近站过近 ⇒ NO_LAKE，
+     * 防双站过近破形）。
      * <p>
      * <b>P24-C3（v1.20.47）</b>：把本次 3×3 扫描的 dC/dN 顺手快照进列槽 {@code slot}
-     * （{@code d0/d1/distValid}），供 {@link #lakeIslandTopAt} 的绝对半径腿<b>零重扫复用</b>
-     * （原式在岛域列把整次 disk+3×3+9 sqrt 再付一遍）。纯快照、无新真值。
+     * （{@code d0/d1/distValid}），供 {@link #lakeIslandTopAt} 的绝对半径腿<b>零重扫复用</b>。
+     * 纯快照、无新真值。
      * <p>
-     * <b>P25（D3③）压力加性轮廓噪声 + P26-B3（D1·A1）双倍频</b>：返回值 = dC/dN +
-     * {@link #LAKE_PRESSURE_NOISE_AMP}×valueNoise（λ{@link #LAKE_PRESSURE_NOISE_SCALE}，盐
-     * {@link #SALT_LAKE_PRESSURE}）+ {@link #LAKE_PRESSURE_NOISE_AMP2}×valueNoise（λ
-     * {@link #LAKE_PRESSURE_NOISE_SCALE2}，盐 {@link #SALT_LAKE_PRESSURE2}）——湖缘径向微摆
-     * 总幅 ±8.3 格（频谱 λ220+λ70 加密）。加在返回值上、<b>不进</b> dC/dN 快照与岛绝对腿
-     * （dC 仍是几何真值）；D_MIN 淘汰哨兵路径不加噪声（NO_LAKE 语义纯净）。
+     * <b>P32（T1-3 湖基场重构，v1.20.55）：<code>P = clamp(W + s/dN, 0, 1) + 双倍频微噪</code></b>
+     * ——s = 到 <b>argmin 站形状边界</b>的带符号距（内负外正，warp 空间锚点相对系；站形状参数 =
+     * 超椭圆/主副 blob 两层制，抽签盐 {@link #SALT_LAKE_SHAPE}，512 槽直映缓存
+     * {@link #stationParams}）；dN = 次近站距。求值序：<b>D_MIN 淘汰先于形状求值</b>（哨兵路径
+     * 不触站参数缓存、不加噪——镜像原"哨兵不加噪"纪律）；快照后取 argmin 站参数求 s。
+     * <b>钳基压（加噪前）</b>：内侧 P&lt;0 区域（锚点未钳 −0.10 量级）钳 0——零读者区分 P=0 与
+     * P&lt;0（lakeBedAt 的 u=clamp(P/W)、四档帽/island 阈谓词、kPress 归一全为阈/归一口径，
+     * E-A §1 全读者扫描）；上钳只在<b>孤立对 flip 带</b>激活（flip 处 base = W + 1 − 2r/D，
+     * D &gt; 2r/W ≈ 4570 的孤立站对可越 1 ⇒ 饱和 1.0 = {@link #NO_LAKE} 语义——远场"无湖"列，
+     * 两值对全部消费者同判 {@code lake < 阈}，值域断言带 [−0.0037, 1.0037] 内；E-A §1 的
+     * "0.925 恒不激活"账按 D_MIN 反推、未含远 flip，实测读数修正）。缎带缘带短路/ribbonGate
+     * 支路（P28-L D1·R1）随本重构整体
+     * 移除——非哨兵路径收敛为无条件 base + 双噪。微噪两腿 λ{@link #LAKE_PRESSURE_NOISE_SCALE}/
+     * λ{@link #LAKE_PRESSURE_NOISE_SCALE2} 原样（加在返回值上、<b>不进</b> dC/dN 快照与岛绝对
+     * 腿）。LakeSlot.d0/d1 快照契约不变（d1 仍为死字段，维持现状）。
      */
     private static double lakeAt0(long worldSeed, int x, int z, LakeSlot slot) {
-        // v1.20.41 P20 S5d：3×3 站距扫描原样抽到 {@link #lakeStationDistances}（算术一字未动），
-        // 本式仍取 dC/dN。岛的绝对半径腿要的是 <b>dC 本身</b>（绝对量），而 dC/dN 是尺度归一量
-        // —— 同一次扫描、同一份形状真值。
-        final double[] dd = LAKE_DIST_BUF.get();
-        lakeStationDistances(worldSeed, x, z, dd);
+        // P32 T1-3：同一次 warp + 3×3 平方选站扫描带出 argmin 站（lakeStationScan 4 槽）——
+        // dC/dN 快照契约原样（岛的绝对半径腿零重扫复用，P24-C3）。
+        final double[] dd = LAKE_SCAN_BUF.get();
+        lakeStationScan(worldSeed, x, z, dd);
         if (slot != null) {
             slot.d0 = dd[0];
             slot.d1 = dd[1];
             slot.distValid = true;
         }
-        // P23 R1：小湖淘汰腿——第二近站 dd[1] 过近（双站破形域）整列 NO_LAKE。
+        // P23 R1：小湖淘汰腿——第二近站 dd[1] 过近（双站破形域）整列 NO_LAKE。P32 起淘汰
+        // 先于形状求值：哨兵路径不触站参数缓存、不加噪（NO_LAKE 语义纯净）。
         if (dd[1] < LAKE_STATION_D_MIN) {
             return NO_LAKE;
         }
-        final double base = dd[0] / dd[1];
-        // ═══ P28-L（D1·R1，v1.20.51）湖缘 ridged 缎带分支腿（用户②滩上分支地形）═══
-        // 缘带短路：基压 ∉ [WATER−δ, SHORE+δ] 的列走原式（零新求值、逐位同改造前——digest
-        // 域外口径）；缘带列追加 −RIB·gate（gate=s01((1−|nR|−LO)/SPAN)，ridged 沿 nR≈0 等值线
-        // 成带 ⇒ 缎带=水湾臂、带间=滩臂/半岛）。gate=0 段贡献 −0.0 精确 ⇒ 缘带内门关死列也
-        // 逐位不变。D_MIN 哨兵路径在上方已 return ⇒ NO_LAKE 域零新求值（对拍口径保持）。
-        if (base < LAKE_WATER_LEVEL - LAKE_RIBBON_FRINGE_DELTA || base > LAKE_SHORE + LAKE_RIBBON_FRINGE_DELTA) {
-            return base
-                + LAKE_PRESSURE_NOISE_AMP * GTSRWorldgenHash.valueNoise(
-                    worldSeed ^ SALT_LAKE_PRESSURE,
-                    x / LAKE_PRESSURE_NOISE_SCALE,
-                    z / LAKE_PRESSURE_NOISE_SCALE)
-                + LAKE_PRESSURE_NOISE_AMP2 * GTSRWorldgenHash.valueNoise(
-                    worldSeed ^ SALT_LAKE_PRESSURE2,
-                    x / LAKE_PRESSURE_NOISE_SCALE2,
-                    z / LAKE_PRESSURE_NOISE_SCALE2);
-        }
-        // P25 D3③ + P26-B3 D1·A1：压力加性轮廓噪声双倍频（λ220 低频腿 + λ70 高频腿，
-        // 独立盐域；总幅 0.0037 ≈ ±8.3 格湖缘径向微摆，换算式见 LAKE_PRESSURE_NOISE_AMP）。
-        // D_MIN 淘汰哨兵路径在上方已 return ⇒ NO_LAKE 域零新求值（digest 对拍口径）。
-        final double nR = GTSRWorldgenHash
-            .valueNoise(worldSeed ^ SALT_LAKE_RIBBON, x / LAKE_RIBBON_SCALE, z / LAKE_RIBBON_SCALE);
-        final double rg = (1.0D - Math.abs(nR) - LAKE_RIBBON_GATE_LO) / LAKE_RIBBON_GATE_SPAN;
-        final double rgc = rg < 0.0D ? 0.0D : (rg > 1.0D ? 1.0D : rg);
-        final double ribbonGate = rgc * rgc * (3.0D - 2.0D * rgc);
-        return base + LAKE_PRESSURE_NOISE_AMP * GTSRWorldgenHash
-            .valueNoise(worldSeed ^ SALT_LAKE_PRESSURE, x / LAKE_PRESSURE_NOISE_SCALE, z / LAKE_PRESSURE_NOISE_SCALE)
+        final LakeShapeSlot sp = stationParams(worldSeed, (int) dd[2], (int) dd[3]);
+        final double[] rel = LAKE_SCAN_AUX.get();
+        final double s = shapeSDist(sp, rel[0], rel[1]);
+        // P32：加噪前钳基压（clamp(·,0,1)——下钳消"深于锚点平台的无信息区"，上钳纯防御）。
+        double base = LAKE_WATER_LEVEL + s / dd[1];
+        base = base < 0.0D ? 0.0D : (base > 1.0D ? 1.0D : base);
+        // P25 D3③ + P26-B3 D1·A1：压力加性轮廓噪声双倍频（λ220 低频腿 + λ70 高频腿，独立盐域；
+        // 总幅 0.0037 ≈ ±8.3 格湖缘径向微摆，换算式见 LAKE_PRESSURE_NOISE_AMP）。
+        // D_MIN 淘汰哨兵路径在上方已 return ⇒ NO_LAKE 域零形状求值/零噪声（对拍口径保持）。
+        return base
+            + LAKE_PRESSURE_NOISE_AMP * GTSRWorldgenHash.valueNoise(
+                worldSeed ^ SALT_LAKE_PRESSURE,
+                x / LAKE_PRESSURE_NOISE_SCALE,
+                z / LAKE_PRESSURE_NOISE_SCALE)
             + LAKE_PRESSURE_NOISE_AMP2 * GTSRWorldgenHash.valueNoise(
                 worldSeed ^ SALT_LAKE_PRESSURE2,
                 x / LAKE_PRESSURE_NOISE_SCALE2,
-                z / LAKE_PRESSURE_NOISE_SCALE2)
-            - LAKE_RIBBON_AMP * ribbonGate;
+                z / LAKE_PRESSURE_NOISE_SCALE2);
     }
 
     /**
@@ -1822,14 +1902,15 @@ public final class GTSRVoronoiRiverField {
     }
 
     /**
-     * 巨湖 Voronoi 的<b>一次共用几何求值</b>（v1.20.41 P20 S5d 从 {@link #lakeAt0} 原样抽出）：对坐标
-     * 加一次 domain-warp 后做 3×3 Worley 扫描，把 {@code out[0] = dC}（到最近湖站的<b>绝对</b>格距，
-     * 未归一）与 {@code out[1] = dN}（次近格距）写给调用方。<b>P25 D3② 起 warp = 主盘+副倍频盘
-     * 同点相加</b>（{@link #LAKE_WARP_SCALE}/{@link #LAKE_WARP} 第 4 张表 +
-     * {@link #LAKE_WARP_SUB_SCALE}/{@link #LAKE_WARP_SUB} 第 5 张表，盐域分离；<b>out 契约不变：
-     * 仍只写 [0]/[1] 两槽</b>，判据侧 double[2] 调用面零改动）。两个消费口：
+     * 巨湖 Voronoi 的<b>一次共用几何求值</b>（v1.20.41 P20 S5d 从 {@link #lakeAt0} 原样抽出）：
+     * 对坐标加一次 domain-warp 后做 3×3 Worley 扫描，把 {@code out[0] = dC}（到最近湖站的
+     * <b>绝对</b>格距，未归一）与 {@code out[1] = dN}（次近格距）写给调用方。<b>P25 D3② 起
+     * warp = 主盘+副倍频盘同点相加</b>（{@link #LAKE_WARP_SCALE}/{@link #LAKE_WARP} 第 4 张表 +
+     * {@link #LAKE_WARP_SUB_SCALE}/{@link #LAKE_WARP_SUB} 第 5 张表，盐域分离；P32 起幅度
+     * 30/5，收敛账见 {@link #LAKE_WARP}）；<b>out 契约不变：仍只写 [0]/[1] 两槽</b>，判据侧
+     * double[2] 调用面零改动。两个消费口：
      * <ul>
-     * <li>{@link #lakeAt0} = {@code dC/dN}（尺度归一压力，湖域/水缘/床形用它）；</li>
+     * <li>{@link #lakeAt0} = {@code clamp(W + s/dN, 0, 1) + 微噪}（s = argmin 站形状距，P32）；</li>
      * <li>{@link #lakeIslandTopAt} 的<b>绝对半径腿</b> = {@code 1 − dC/LAKE_ISLAND_RADIUS}（plan §28-A
      * 路 (b)）：需求 8 的"岛约 30 格"是绝对尺寸，要的是绝对量 dC，而 {@code dC/dN} 会随湖大小涨落。</li>
      * </ul>
@@ -1848,8 +1929,29 @@ public final class GTSRVoronoiRiverField {
      * 本仓判据纪律是"全部读数是生产纯函数的直调 ⇒ 判据侧零重写任何形状式"（该文件类注释），
      * 故开本出口，与 {@link #lakeCellCenterAt} 同级待遇。<b>生产侧唯一消费口仍是 {@link #lakeAt0}
      * 与 {@link #lakeIslandTopAt}</b>。
+     * <p>
+     * <b>P32 T1-3：内部委托 {@link #lakeStationScan}</b>（同一次 warp + 3×3 平方选站 + argmin 记录
+     * ——lakeAt0 需要的 argmin 站出口与 dC/dN 共用同一次扫描，无第二份形状；本出口仍只写
+     * [0]/[1]，dC 语义 = warp 后空间的锚点绝对距，不变）。
      */
     public static void lakeStationDistances(long worldSeed, int x, int z, double[] out) {
+        final double[] sd = LAKE_SCAN_BUF.get();
+        lakeStationScan(worldSeed, x, z, sd);
+        out[0] = sd[0];
+        out[1] = sd[1];
+    }
+
+    /**
+     * 巨湖 Voronoi 的<b>内部 4 槽扫描</b>（P32 T1-3 从 {@link #lakeStationDistances} 原样抽出并
+     * 加 argmin 出口）：warp 合成 + 3×3 平方距离选站，{@code out} 契约 = {@code [0]=dC、
+     * [1]=dN、[2]=argmin 站格 gx、[3]=argmin 站格 gz}（后两槽以 double 携带整数格号，调用方
+     * 自行取整）。<b>argmin 在平方选站循环内顺手记录</b>（零额外哈希——锚点坐标 ex/ez 循环内
+     * 已在算）；平手规则 = 前向/反解同一条首遇获胜 {@code <}（与 {@link #lakeCellCenterAt} 的
+     * 3×3 同迭代序、同严格比较 ⇒ 双向恒选同站，sqrt 单调 ⇒ 平方序与开根序逐位一致）。
+     * 附带把 {@code [px − argmin 锚 X, pz − argmin 锚 Z]} 写进 {@link #LAKE_SCAN_AUX}
+     * （形状求值的锚点相对坐标；即取即用纪律，调用方在触任何 diskAt 前消费）。
+     */
+    private static void lakeStationScan(long worldSeed, int x, int z, double[] out) {
         // v1.20.40 P19 §D 破圆：湖 Voronoi 输入坐标先揉一次 disk 位移（幅度/波长见常量注释）；
         // buf 取完即拷出，不跨后续 diskAt 持有（DISK_BUF 单缓冲纪律）。
         // ── P23 R1·S6 性能尝试（v1.20.46）：已试并已回退 ── 曾把 3×3 站帧按 (seed,cellX,cellZ)
@@ -1864,8 +1966,8 @@ public final class GTSRVoronoiRiverField {
         final double[] buf = diskBuffer();
         diskAt(worldSeed, SLOT_DISK_LAKE_WARP, LAKE_WARP_SCALE, x, z, buf);
         // P25 D3②：副倍频盘与主盘<b>同点相加</b>（各自在原始 (x,z) 取值；buf 单缓冲纪律——
-        // 主盘分量先拷出再取副盘，不跨 diskAt 持有）。合成位移 ≤ 85+12 = 97、斜率上界
-        // 0.985 < 1（收敛账见 LAKE_WARP）。
+        // 主盘分量先拷出再取副盘，不跨 diskAt 持有）。P32 起合成位移 ≤ 30+5 = 35、斜率上界
+        // 0.362 < 1（收敛账见 LAKE_WARP）。
         final double wx = buf[0] * LAKE_WARP;
         final double wz = buf[1] * LAKE_WARP;
         diskAt(worldSeed, SLOT_DISK_LAKE_SUB, LAKE_WARP_SUB_SCALE, x, z, buf);
@@ -1877,8 +1979,13 @@ public final class GTSRVoronoiRiverField {
         // 等价性：sqrt 在 [0,∞) 上严格单调且正确舍入 ⇒ "sq 序"与"sqrt(sq) 序"逐位一致（含相等/平手
         // 的 `<` 语义）；选中的两个 sq 各自开根，得到的 double 与原式对该站算出的 d 逐位相同。
         // 9 站 → 2 次 sqrt（原 9 次）。构造性逐位等价，对拍证据见 temp/lake-d/tri-*.bin。
+        // P32 T1-3：argmin 站格与胜者相对坐标在循环内顺手记录（零额外哈希）。
         double sC = Double.POSITIVE_INFINITY;
         double sN = Double.POSITIVE_INFINITY;
+        int aGx = 0;
+        int aGz = 0;
+        double winEx = 0.0D;
+        double winEz = 0.0D;
         for (int dz = -1; dz <= 1; dz++) {
             for (int dx = -1; dx <= 1; dx++) {
                 final int gx = cellX + dx;
@@ -1891,6 +1998,10 @@ public final class GTSRVoronoiRiverField {
                 if (sq < sC) {
                     sN = sC;
                     sC = sq;
+                    aGx = gx;
+                    aGz = gz;
+                    winEx = ex;
+                    winEz = ez;
                 } else if (sq < sN) {
                     sN = sq;
                 }
@@ -1898,6 +2009,319 @@ public final class GTSRVoronoiRiverField {
         }
         out[0] = Math.sqrt(sC);
         out[1] = Math.sqrt(sN);
+        out[2] = aGx;
+        out[3] = aGz;
+        final double[] aux = LAKE_SCAN_AUX.get();
+        aux[0] = -winEx;
+        aux[1] = -winEz;
+    }
+
+    // ═══ P32 T1-3：站形状参数——512 槽 ThreadLocal 直映缓存 ═══
+    //
+    // S6 教训边界申报（P23-S6 站帧缓存回退的适用性，RVF:1855-1863 实读）：该教训 = "HashMap 缓
+    // <b>廉</b>价值（18 次 cellOffset ≈ 数十 ns）被装箱 + 两次 ThreadLocal.get() 吃光 ⇒ 零收益"。
+    // 本缓存两个参数都变了：(i) 重算价 = 抽签 4-10 次 hash01 + cos/sin 预计算 + ⟂-邻站 16 次
+    // cellOffset ≈ 150-300ns/站次（10-30× S6 的廉价值）；(ii) <b>直映数组</b>探测（一次
+    // ThreadLocal.get + 下标 + 标签比对，无装箱）≈ 5-10ns——与仓内最热路径 LAKE_MEMO 同款范式。
+    // 教训适用于"HashMap 缓廉价值"，不适用于"数组缓贵值"。命中率：argmin 站在整块 Voronoi 胞
+    // （~3000×3000 连续区）内不变 ⇒ 单 chunk 命中 ≈ 100%；驱逐 = 碰撞重算（标签 (seed,gx,gz)
+    // 全比对，值是纯函数 ⇒ 无陈旧风险）。哨兵路径（D_MIN 门内）不触本缓存（防污染 + 零成本）。
+
+    /** 站参数缓存容量（2 的幂，mask 直取）。 */
+    private static final int LAKE_SHAPE_CAP = 512;
+
+    /** {@link #LAKE_SHAPE_CAP} − 1（直映下标掩码）。 */
+    private static final int LAKE_SHAPE_MASK = LAKE_SHAPE_CAP - 1;
+
+    /**
+     * 站形状参数槽（P32 T1-3）。<b>槽态纯净纪律</b>：{@link #fillShapeSlot} 对<b>全字段</b>显式写
+     * ——class1/2 分支必须清零 class0 的 a/b/invA/invB（值虽不被 cls1/2 求值消费，但直映槽会残留
+     * 前一 class0 occupant 的字段；"命中/未命中两态逐位一致"纪律要求槽内容是 (seed,gx,gz) 的
+     * 纯函数——P5 原型期 L3a 抓出的 bug，实装必须保留清零，plan/tmp/p32-t1p2-bench.md §3.1）。
+     */
+    private static final class LakeShapeSlot {
+
+        long seed;
+        int gx;
+        int gz;
+        boolean valid;
+        /** 0=单超椭圆 / 1=主+单副 blob / 2=主+双副 blob。 */
+        int cls;
+        /** class0 超椭圆指数（2/3；class1/2 恒 0）。 */
+        int n;
+        /** 副 blob 数（0/1/2）。 */
+        int nSub;
+        /** class0 半轴（a ≥ r0 ≥ b 保面积）；class1/2 清零。 */
+        double a;
+        double b;
+        double invA;
+        double invB;
+        /** 朝向（填充期预计算 cos/sin）。 */
+        double cosT;
+        double sinT;
+        /** 主 blob 心与半径（世界系锚点相对坐标，填充期预计算）。 */
+        double cx;
+        double cz;
+        double rhoP;
+        /** 副 blob 1/2（世界系，填充期预计算）。 */
+        double s1x;
+        double s1z;
+        double rhoS1;
+        double s2x;
+        double s2z;
+        double rhoS2;
+    }
+
+    /** lakeAt 站参数专用槽表初始化（容量/淘汰纪律同 {@link #lakeSlots()}）。 */
+    private static LakeShapeSlot[] lakeShapeSlots() {
+        final LakeShapeSlot[] a = new LakeShapeSlot[LAKE_SHAPE_CAP];
+        for (int i = 0; i < a.length; i++) {
+            a[i] = new LakeShapeSlot();
+        }
+        return a;
+    }
+
+    private static final ThreadLocal<LakeShapeSlot[]> LAKE_SHAPE_CACHE = ThreadLocal
+        .withInitial(GTSRVoronoiRiverField::lakeShapeSlots);
+
+    /**
+     * argmin 站的形状参数（512 槽直映缓存：{@code index = (gx·0x9E3779B1 ^ gz·0x85EBCA6B)
+     * & 511} 混合散列、标签 (seed,gx,gz) 全键比对——正确性只靠全键比较，散列仅决定淘汰分布；
+     * 未命中 = 抽签填充 + 预计算）。哨兵路径（D_MIN 门内）不触本缓存。
+     */
+    private static LakeShapeSlot stationParams(long worldSeed, int gx, int gz) {
+        final LakeShapeSlot s = LAKE_SHAPE_CACHE.get()[(gx * 0x9E3779B1 ^ gz * 0x85EBCA6B) & LAKE_SHAPE_MASK];
+        if (s.valid && s.seed == worldSeed && s.gx == gx && s.gz == gz) {
+            return s;
+        }
+        fillShapeSlot(s, worldSeed, gx, gz);
+        return s;
+    }
+
+    /**
+     * 站形状参数抽签（P32 T1-3）。抽签流：{@code cellSeed(seed,gx,gz,SALT_LAKE_SHAPE)} 后逐次
+     * splitmix64 续链（首抽 = hash01(cellSeed)，同 :1638-1640 站键口径）；draw 计数
+     * class0 = 4（⟂ 触发 +1）/ class1 = 7 / class2 = 10 + cos/sin 各 1 次预计算。
+     * <b>⟂-邻站定向</b>（{@link #LAKE_SHAPE_PERP_D} 触发时）：class0 长轴 ⟂ 邻站方向；
+     * class1 单副角旋出禁置扇区（{@link #perpExitAngle}）；class2 双副<b>整对同旋</b>（bisector
+     * → 邻站反向）——张角 sep 逐位保持，两副 blob 距邻站方向 ≥ π − sep/2 ≥ π/2 &gt; π/4 恒出
+     * 扇区。确定性纯函数（邻站偏移同 seed 同值）。
+     */
+    private static void fillShapeSlot(LakeShapeSlot s, long worldSeed, int gx, int gz) {
+        long h = GTSRWorldgenHash.cellSeed(worldSeed, gx, gz, SALT_LAKE_SHAPE);
+        h = GTSRWorldgenHash.splitmix64(h);
+        final double u = (h >>> 11) / (double) GTSRWorldgenHash.UNIT_DIVISOR;
+        h = GTSRWorldgenHash.splitmix64(h);
+        final double th = (h >>> 11) / (double) GTSRWorldgenHash.UNIT_DIVISOR * (2.0D * Math.PI);
+        final int cls = u < LAKE_SHAPE_P_CLASS1 ? 0 : (u < LAKE_SHAPE_P_CLASS2 ? 1 : 2);
+        // 槽态纯净：全字段显式写（含 cls1/2 清零 cls0 半轴——L3a bug 修复面，见 LakeShapeSlot 注）。
+        s.seed = worldSeed;
+        s.gx = gx;
+        s.gz = gz;
+        s.valid = true;
+        s.cls = cls;
+        s.n = 0;
+        s.nSub = 0;
+        s.a = 0.0D;
+        s.b = 0.0D;
+        s.invA = 0.0D;
+        s.invB = 0.0D;
+        s.cx = 0.0D;
+        s.cz = 0.0D;
+        s.rhoP = 0.0D;
+        s.s1x = 0.0D;
+        s.s1z = 0.0D;
+        s.rhoS1 = 0.0D;
+        s.s2x = 0.0D;
+        s.s2z = 0.0D;
+        s.rhoS2 = 0.0D;
+        // ── ⟂-邻站定向裁决（缓存填充期一次成本；16 次 cellOffset，零新真值）──
+        double theta = th;
+        boolean perp = false;
+        double nbAng = 0.0D;
+        {
+            final double ax = gx * LAKE_INTERVAL
+                + cellOffset(worldSeed, gx, gz, SALT_LAKE_CELL_X, LAKE_INTERVAL);
+            final double az = gz * LAKE_INTERVAL
+                + cellOffset(worldSeed, gx, gz, SALT_LAKE_CELL_Z, LAKE_INTERVAL);
+            double bestSq = LAKE_SHAPE_PERP_D * LAKE_SHAPE_PERP_D;
+            for (int nz = -1; nz <= 1; nz++) {
+                for (int nx = -1; nx <= 1; nx++) {
+                    if (nx == 0 && nz == 0) {
+                        continue;
+                    }
+                    final double ox = (gx + nx) * LAKE_INTERVAL
+                        + cellOffset(worldSeed, gx + nx, gz + nz, SALT_LAKE_CELL_X, LAKE_INTERVAL) - ax;
+                    final double oz = (gz + nz) * LAKE_INTERVAL
+                        + cellOffset(worldSeed, gx + nx, gz + nz, SALT_LAKE_CELL_Z, LAKE_INTERVAL) - az;
+                    final double dsq = ox * ox + oz * oz;
+                    if (dsq < bestSq) {
+                        bestSq = dsq;
+                        nbAng = Math.atan2(oz, ox);
+                        perp = true;
+                    }
+                }
+            }
+        }
+        if (perp && cls == 0) {
+            h = GTSRWorldgenHash.splitmix64(h);
+            final double jit = ((h >>> 11) / (double) GTSRWorldgenHash.UNIT_DIVISOR) * 2.0D - 1.0D;
+            theta = nbAng + 0.5D * Math.PI + jit * LAKE_SHAPE_PERP_JITTER;
+        }
+        s.cosT = Math.cos(theta);
+        s.sinT = Math.sin(theta);
+        if (cls == 0) {
+            h = GTSRWorldgenHash.splitmix64(h);
+            final double v = (h >>> 11) / (double) GTSRWorldgenHash.UNIT_DIVISOR;
+            s.n = v < LAKE_SHAPE_P_N3 ? 3 : 2;
+            final double aMin = s.n == 2 ? LAKE_SHAPE_A_N2_MIN : LAKE_SHAPE_A_N3_MIN;
+            h = GTSRWorldgenHash.splitmix64(h);
+            final double t = (h >>> 11) / (double) GTSRWorldgenHash.UNIT_DIVISOR;
+            s.a = (aMin + t * (LAKE_SHAPE_A_N3_MAX - aMin)) * LAKE_SHAPE_R0;
+            s.b = LAKE_SHAPE_R0 * LAKE_SHAPE_R0 / s.a;
+            s.invA = 1.0D / s.a;
+            s.invB = 1.0D / s.b;
+        } else {
+            h = GTSRWorldgenHash.splitmix64(h);
+            final double rhoPt = (h >>> 11) / (double) GTSRWorldgenHash.UNIT_DIVISOR;
+            s.rhoP = (LAKE_SHAPE_RHO_P_MIN + rhoPt * (LAKE_SHAPE_RHO_P_MAX - LAKE_SHAPE_RHO_P_MIN))
+                * LAKE_SHAPE_R0;
+            h = GTSRWorldgenHash.splitmix64(h);
+            final double co = (h >>> 11) / (double) GTSRWorldgenHash.UNIT_DIVISOR * LAKE_SHAPE_CENTER_OFF_MAX
+                * LAKE_SHAPE_R0;
+            s.cx = co * s.cosT;
+            s.cz = co * s.sinT;
+            final double rhoSMax = cls == 2 ? LAKE_SHAPE_RHO_S_MAX_C2 : LAKE_SHAPE_RHO_S_MAX;
+            if (cls == 1) {
+                s.nSub = 1;
+                h = GTSRWorldgenHash.splitmix64(h);
+                double ang = (h >>> 11) / (double) GTSRWorldgenHash.UNIT_DIVISOR * (2.0D * Math.PI);
+                h = GTSRWorldgenHash.splitmix64(h);
+                final double rhoS = (LAKE_SHAPE_RHO_S_MIN
+                    + (h >>> 11) / (double) GTSRWorldgenHash.UNIT_DIVISOR * (rhoSMax - LAKE_SHAPE_RHO_S_MIN))
+                    * LAKE_SHAPE_R0;
+                h = GTSRWorldgenHash.splitmix64(h);
+                final double offSt = (h >>> 11) / (double) GTSRWorldgenHash.UNIT_DIVISOR;
+                // 重叠约束（域内恒松，钳制保形）：offset_s ≤ ρ_p + ρ_s − 0.3·k_smin。
+                final double offS = Math.min(
+                    (LAKE_SHAPE_OFF_S_MIN + offSt * (LAKE_SHAPE_OFF_S_MAX - LAKE_SHAPE_OFF_S_MIN))
+                        * LAKE_SHAPE_R0,
+                    s.rhoP + rhoS - 0.3D * LAKE_SHAPE_K_SMIN);
+                if (perp) {
+                    ang = perpExitAngle(ang, nbAng);
+                }
+                s.rhoS1 = rhoS;
+                s.s1x = s.cx + offS * Math.cos(ang);
+                s.s1z = s.cz + offS * Math.sin(ang);
+            } else {
+                s.nSub = 2;
+                h = GTSRWorldgenHash.splitmix64(h);
+                final double ang0 = (h >>> 11) / (double) GTSRWorldgenHash.UNIT_DIVISOR * (2.0D * Math.PI);
+                h = GTSRWorldgenHash.splitmix64(h);
+                final double sep = LAKE_SHAPE_C2_SEP_MIN
+                    + (h >>> 11) / (double) GTSRWorldgenHash.UNIT_DIVISOR
+                        * (Math.PI - LAKE_SHAPE_C2_SEP_MIN);
+                h = GTSRWorldgenHash.splitmix64(h);
+                final double rhoS1 = (LAKE_SHAPE_RHO_S_MIN
+                    + (h >>> 11) / (double) GTSRWorldgenHash.UNIT_DIVISOR * (rhoSMax - LAKE_SHAPE_RHO_S_MIN))
+                    * LAKE_SHAPE_R0;
+                h = GTSRWorldgenHash.splitmix64(h);
+                final double offS1t = (h >>> 11) / (double) GTSRWorldgenHash.UNIT_DIVISOR;
+                final double offS1 = Math.min(
+                    (LAKE_SHAPE_OFF_S_MIN + offS1t * (LAKE_SHAPE_OFF_S_MAX - LAKE_SHAPE_OFF_S_MIN))
+                        * LAKE_SHAPE_R0,
+                    s.rhoP + rhoS1 - 0.3D * LAKE_SHAPE_K_SMIN);
+                h = GTSRWorldgenHash.splitmix64(h);
+                final double rhoS2 = (LAKE_SHAPE_RHO_S_MIN
+                    + (h >>> 11) / (double) GTSRWorldgenHash.UNIT_DIVISOR * (rhoSMax - LAKE_SHAPE_RHO_S_MIN))
+                    * LAKE_SHAPE_R0;
+                h = GTSRWorldgenHash.splitmix64(h);
+                final double offS2t = (h >>> 11) / (double) GTSRWorldgenHash.UNIT_DIVISOR;
+                final double offS2 = Math.min(
+                    (LAKE_SHAPE_OFF_S_MIN + offS2t * (LAKE_SHAPE_OFF_S_MAX - LAKE_SHAPE_OFF_S_MIN))
+                        * LAKE_SHAPE_R0,
+                    s.rhoP + rhoS2 - 0.3D * LAKE_SHAPE_K_SMIN);
+                double a0 = ang0;
+                if (perp) {
+                    // 整对同旋（bisector → 邻站反向）：sep 逐位保持，两副出禁置扇区（见方法注）。
+                    a0 = nbAng + Math.PI - sep / 2.0D;
+                }
+                final double ang1 = a0 + sep;
+                s.rhoS1 = rhoS1;
+                s.s1x = s.cx + offS1 * Math.cos(a0);
+                s.s1z = s.cz + offS1 * Math.sin(a0);
+                s.rhoS2 = rhoS2;
+                s.s2x = s.cx + offS2 * Math.cos(ang1);
+                s.s2z = s.cz + offS2 * Math.sin(ang1);
+            }
+        }
+    }
+
+    /**
+     * ⟂ 触发时<b>单副</b> blob 的禁置扇区旋出：{@code ang' = 邻站角 + π + δ/2}
+     * （δ = norm(ang − 邻站角) ∈ (−π, π]）。ang' 距邻站方向 ≥ π − |δ|/2 ≥ π/2 &gt;
+     * {@link #LAKE_SHAPE_FORBID_HALF} = π/4 恒出扇区，且保留原抽签的方向多样性（连续映射）。
+     */
+    private static double perpExitAngle(double ang, double center) {
+        double d = ang - center;
+        d -= Math.floor(d / (2.0D * Math.PI)) * (2.0D * Math.PI);
+        if (d > Math.PI) {
+            d -= 2.0D * Math.PI;
+        }
+        return center + Math.PI + 0.5D * d;
+    }
+
+    /**
+     * 多项式 smin（P32 T1-3；ATG MathUtil.polymax 对偶）：{@code h = clamp(0.5+0.5(a−b)/k)}、
+     * {@code smin = a + h·(b−a) − k·h·(1−h)}——C¹ 切向连续，真并集外的伪内部下探 ≤ k/4。
+     */
+    private static double sminPoly(double a, double b, double k) {
+        double h = 0.5D + 0.5D * (a - b) / k;
+        h = h < 0.0D ? 0.0D : (h > 1.0D ? 1.0D : h);
+        return a + h * (b - a) - k * h * (1.0D - h);
+    }
+
+    /**
+     * 到站形状<b>边界</b>的带符号距 s（锚点相对系，内负外正；{@link #lakeAt0} 消费）：
+     * <ul>
+     * <li><b>class0</b>：径向伪 SDF {@code s = (q − 1)·b}（q = 超椭圆向径函数——n=2 走
+     * sqrt、n=3 走 cbrt，零 pow；边界轨迹精确（P=W ⇔ q=1），沿长轴向深压缩 ≤ ×(a/b) ≤ 1.08
+     * ——内切/岛账按短轴（最坏向）推导，不受影响；E-A §4 口径注记，远场斜率账见
+     * plan/tmp/p32-t1p2-bench.md §3.2）；</li>
+     * <li><b>class1/2</b>：{@code s = smin(d_i − ρ_i)}（主 blob 先、副 blob 依次 smin 融合，
+     * k = {@link #LAKE_SHAPE_K_SMIN}；偏差 ≤ k/4 已计入内切 slack）。</li>
+     * </ul>
+     */
+    private static double shapeSDist(LakeShapeSlot sp, double dx, double dz) {
+        if (sp.cls == 0) {
+            final double rx = dx * sp.cosT + dz * sp.sinT;
+            final double rz = -dx * sp.sinT + dz * sp.cosT;
+            final double ux = rx * sp.invA;
+            final double uz = rz * sp.invB;
+            final double q;
+            if (sp.n == 2) {
+                q = Math.sqrt(ux * ux + uz * uz);
+            } else {
+                final double mx = Math.abs(ux);
+                final double mz = Math.abs(uz);
+                q = Math.cbrt(mx * mx * mx + mz * mz * mz);
+            }
+            return (q - 1.0D) * sp.b;
+        }
+        double ddx = dx - sp.cx;
+        double ddz = dz - sp.cz;
+        double v = Math.sqrt(ddx * ddx + ddz * ddz) - sp.rhoP;
+        if (sp.nSub >= 1) {
+            ddx = dx - sp.s1x;
+            ddz = dz - sp.s1z;
+            v = sminPoly(v, Math.sqrt(ddx * ddx + ddz * ddz) - sp.rhoS1, LAKE_SHAPE_K_SMIN);
+        }
+        if (sp.nSub >= 2) {
+            ddx = dx - sp.s2x;
+            ddz = dz - sp.s2z;
+            v = sminPoly(v, Math.sqrt(ddx * ddx + ddz * ddz) - sp.rhoS2, LAKE_SHAPE_K_SMIN);
+        }
+        return v;
     }
 
     /**
@@ -2139,8 +2563,9 @@ public final class GTSRVoronoiRiverField {
      * <b>大多数湖一根柱都写不出来</b>（S5b 判据实测：逐湖柱连通分量数中位 0、"5 柱全中"仅 9.38%）。
      * 修法 = 对 {@code X = 湖站 − W(X)} 做两次不动点迭代（P23 R1 档：{@code |W| ≤ LAKE_WARP = 100}、
      * 位移场波长 {@code LAKE_WARP_SCALE = 700} ⇒ 最大斜率 2π×100/700 ≈ 0.898 &lt; 1，每步收缩比
-     * ≈ 100/700 ≪ 1 ⇒ 两步后残差 &lt; 1 格；v1.20.45 档 70/320 的旧读数见版本树；<b>P25 起位移场
-     * = 主盘+副盘合成</b>：|W| ≤ 97、斜率上界 0.985 &lt; 1，见 {@link #LAKE_WARP} 的收敛账</b>），
+     * ≈ 100/700 ≪ 1 ⇒ 两步后残差 &lt; 1 格；v1.20.45 档 70/320 的旧读数见版本树；P25 起位移场
+     * = 主盘+副盘合成：|W| ≤ 97、斜率上界 0.985 &lt; 1（历史账）；<b>P32 起降幅 30/5 ⇒ |W| ≤ 35、
+     * 斜率上界 0.362 &lt; 1（现账，见 {@link #LAKE_WARP}）</b>），
      * 仍然只吃同一份 {@code diskAt} 表与同一条 {@code cellOffset} ⇒ 零新增真值。
      *
      * @param out 长度 ≥4 的缓冲：{@code [0]=中心世界 X、[1]=中心世界 Z、[2]=格 gx、[3]=格 gz}；
@@ -2184,8 +2609,9 @@ public final class GTSRVoronoiRiverField {
                 }
             }
         }
-        // 反解压力零点 X + W(X) = 湖站：两次不动点（P25 两盘合成斜率上界 0.985 < 1、有效收缩比
-        // ≈ ΣA/λ = 85/700+12/340 ≈ 0.15 ⇒ 残差 < 1 格量级；P23 单盘账 0.898/0.143 见版本树）。
+        // 反解压力零点 X + W(X) = 湖站：两次不动点（P32 两盘合成斜率上界 0.362 < 1、有效收缩比
+        // ≈ ΣA/λ = 30/700+5/340 ≈ 0.057 ⇒ 残差 ≪ 1 格；P25 档 0.985/0.15 与 P23 单盘账
+        // 0.898/0.143 见版本树）。
         // buf 是 DISK_BUF 单缓冲，取值即用于是本行，不跨下次 diskAt 持有；两盘分量同样先拷后取。
         double centerX = bestEx;
         double centerZ = bestEz;
@@ -2229,7 +2655,8 @@ public final class GTSRVoronoiRiverField {
      * 合成 warp ≤ {@link #LAKE_WARP}+{@link #LAKE_WARP_SUB} = 97 ⇒ 自家站到格点 ≤ 1147 &lt; 他站
      * ≥ 3000−1050−97 = 1853 ⇒ 格点查询恒命中自家站（{@code MegaTreeAnchors.ENUM_STEP} 采样论证
      * 同一口径；P25 前的 420/490/710 读数是 1200 档历史值，随 D1 重定标作废），且湖心反解只依赖
-     * 获胜站坐标 ⇒ 同站恒得同一湖心，无需去重。<b>P23 R1（v1.20.46 批2 S2）已兑现</b>：
+     * 获胜站坐标 ⇒ 同站恒得同一湖心，无需去重（P32 起 warp ΣA=35 ⇒ 该账 ≤ 1085 &lt; 1915，
+     * 论证更松）。<b>P23 R1（v1.20.46 批2 S2）已兑现</b>：
      * {@link #lakeCellCenterAt} 的 trunk 门删除 ⇒ 原"主干带外站跳过"臂失活、全域站格自动生效
      * （死湖门仍裁 D_MIN 淘汰与 {@code lakeAt ≥ LAKE_ISLAND} 的站）。非热路径（指令级），
      * 49 站全扫取最小欧氏距离，确定性。
@@ -3463,6 +3890,21 @@ public final class GTSRVoronoiRiverField {
      * 不跨下一次 {@code diskAt} 持有）。
      */
     private static final ThreadLocal<double[]> LAKE_DIST_BUF = ThreadLocal.withInitial(() -> new double[2]);
+
+    /**
+     * {@link #lakeStationScan} 的 4 槽输出缓冲（P32 T1-3：[dC, dN, argminGx, argminGz]——
+     * {@link #lakeAt0} 与 {@link #lakeStationDistances} 内部用，同 {@link #LAKE_DIST_BUF} 的
+     * 单线程生成域零分配纪律）。
+     */
+    private static final ThreadLocal<double[]> LAKE_SCAN_BUF = ThreadLocal.withInitial(() -> new double[4]);
+
+    /**
+     * {@link #lakeStationScan} 的锚点相对坐标附带出口（P32 T1-3：[px − argmin 锚 X,
+     * pz − argmin 锚 Z]，形状求值输入）。<b>即取即用</b>：{@link #lakeAt0} 在 scan 之后、
+     * 任何下次 diskAt/scan 之前消费（{@link #stationParams}/{@link #fillShapeSlot} 只走
+     * cellOffset/hash01，不触 DISK_BUF ⇒ 期间无失效源）——同 {@link #DISK_BUF} 单缓冲纪律。
+     */
+    private static final ThreadLocal<double[]> LAKE_SCAN_AUX = ThreadLocal.withInitial(() -> new double[2]);
 
     /** disk 槽位：0=大弯、1=小弯、2=主干带（T5）、3=巨湖破圆 warp（v1.20.40 P19 §D）、4=副倍频（P25 D3②）。 */
     private static final int SLOT_DISK_LARGE = 0;

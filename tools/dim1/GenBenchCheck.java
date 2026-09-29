@@ -132,7 +132,7 @@ public final class GenBenchCheck {
      * <p>
      * <b>P29 重立（三跑中位）：154.5 → 229.8</b>。本批（P29 三片终树、串行空载、
      * {@code temp/p29-final/GenBenchCheck-run{1,2,3}.out}）：229.8 / 247.4 / 218.4 ⇒ 中位
-     * <b>229.8</b>（+48.7% vs P26 BASE 154.5——<b>设计内增量进新 BASE</b>：A 片缎带重标定
+     * <b>229.8</b>（+48.7% vs P26 BASE 154.5——<b>设计内增量进新 BASE</b>：A 片缎带重标定（该腿已于 P32 随湖基场重构整体移除，λ124/δ0.020 为 P29 历史口径）
      * λ76→124（缘带占比 2-4%→3-5% by δ 0.020）+ 岛缘 ridged 双频加性腿（岛域列 +1 次
      * valueNoise）、B 片表层扩域（滩坡 h∈[70,79] 湖料改派 + 羽化 λ13）、C 片共享域门
      * lakePlaneTerrainAllowedAt（w[2]/w[3] 乘子 + SwampFieldGrid tier==3 门 + PTP 微池
