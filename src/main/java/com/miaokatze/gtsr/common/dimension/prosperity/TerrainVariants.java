@@ -505,7 +505,7 @@ public final class TerrainVariants {
     /** 盆地按门加深档（满门最深 −9）。 */
     private static final double STEPPE_BASIN_SPAN = 4.0D;
 
-    // —— 草原深芯/缎带沟（v1.20.50 P27 批次A-A3 G 片新增：盆内深芯第二档 + ridged 负像沟；级联互斥）——
+    // —— 草原深芯（v1.20.50 P27 批次A-A3 G 片新增：盆内深芯第二档；级联互斥）——
     /**
      * 深芯场域盐（波长 {@link #STEPPE_BASIN_CORE_SCALE}=89；89 % 16 = 9 ✔ H-1）。盐续 ×0x12 等差族
      * （盆地 {@code 0x6811C3AD} 之后 +0x12×2 ⇒ 本值；+0x12 的 {@code 0x6811C3BF} 归灌木林域，
@@ -528,35 +528,6 @@ public final class TerrainVariants {
     private static final double STEPPE_BASIN_CORE_BASE = 4.0D;
     /** 深芯按门加深档（满门最深 −16，唯一超 −9 的单臂；y=40 地板余量 14-16 格）。 */
     private static final double STEPPE_BASIN_CORE_SPAN = 3.0D;
-    /**
-     * 缎带沟场域盐（波长 {@link #STEPPE_GULLY_SCALE}=73；73 % 16 = 9 ✔ H-1）。盐续 ×0x12 等差族
-     * （深芯 {@code 0x6811C3E3} 之后 +0x12 ⇒ 本值；+0x12×2 的 {@code 0x6811C407} 归沼泽缓坡床纹）。
-     * <b>v1.20.50 P27 G 片 redirect：波长 λ57 → λ73，域盐不变</b>（主代理裁决，见下）。
-     */
-    private static final long S_STEPPE_GULLY = 0x6811C3F5L;
-    /**
-     * 沟场波长：<b>线状沟 = 场的等值线（n≈c），不是门阈 blob</b>——负瓣门阈是团块，"沟"必须
-     * ridged 形 {@code 1−|n|} 沿 n≈0 等值线取窄带（岭脊 λ188/延绵脊 λ433 的负像）。<b>v1.20.50
-     * P27 G 片 redirect（主代理裁决）：λ57 → λ73 收窄</b>——初版 λ57 实测沟带覆盖 17.99%
-     * （{@code plan/tmp/p27-g-readings.md} §redirect），观感偏密；用户语义"小小的凹陷小峡谷"
-     * = 点缀性 ⇒ 覆盖按线密度 ~(57/73)² ≈ 0.61 收窄至预期 ~11%。λ73 而非 GULLY_GATE_LO 加严：
-     * 73 % 16 = 9 ✔ H-1，且门参数不动 = 沟形机制不变（满带 |n|≤0.10 半宽语义、深度 −4..−6.5、
-     * 侧壁露石带全保持——门加严会同时压窄沟宽与露石，裁决选波长不选门）。λ73 满带空间宽
-     * ~6-10 格（λ 线性放大 5-8 × 73/57）；等值线自然蛇行（曲率尺度 ~2λ≈146 格），被丘陵域
-     * 截断成 30-80 格段——"小小"的长度控制不引入新噪声（复用已求值 gateS 作存在域）。
-     */
-    private static final double STEPPE_GULLY_SCALE = 73.0D;
-    /**
-     * 沟门下檐/带宽（{@code s01((1−|n|−0.78)/0.12)}：满带 |n| ≤ 0.10、缓入到 |n| ≤ 0.22）。
-     * 深 6.5 落在半宽 2-3 格上 ⇒ 侧壁 Δh 3-6/2-3 列 ⇒ 石带 1-3 格、只在两壁窄带出露
-     * （"只裸露一点石头"由 {@link #STEPPE_GULLY_SPAN} 单参数控制；沟底仍铺土——表层状态机涌现）。
-     */
-    private static final double STEPPE_GULLY_GATE_LO = 0.78D;
-    private static final double STEPPE_GULLY_GATE_SPAN = 0.12D;
-    /** 沟基础下挖（{@code −(4.0+2.5·门)·门} ⇒ 深 −4..−6.5）。 */
-    private static final double STEPPE_GULLY_BASE = 4.0D;
-    /** 沟按门加深档（满门最深 −6.5）。 */
-    private static final double STEPPE_GULLY_SPAN = 2.5D;
 
     // —— 沼泽/遗忘之川（ATG swamp 模板；三档水体分支的地形侧 = v1.20.41 P20 S4）——
     /** 夹持门噪声域盐（波长 256）。 */
@@ -624,9 +595,9 @@ public final class TerrainVariants {
     // （v1.20.53 P30 II-AB 瀑布退役：原正瓣瀑域门及瀑域加密/潭存在性混合删除，负瓣 tyG 缓坡潭域保留）
     /**
      * 潭型<b>分型域</b>盐（波长 {@link #SWAMP_POOLTYPE_SCALE}=157；157 % 16 = 13 ✔ H-1）。盐续
-     * ×0x12 等差族：深芯 {@code 0x6811C3E3} / 沟 {@code 0x6811C3F5}（均 G 片）之后，本值占
+     * ×0x12 等差族：深芯 {@code 0x6811C3E3}（G 片）之后，本值占
      * {@code 0x6811C3D1}、缓坡床纹占 {@code 0x6811C407}——主裁决 §0 D7 盐表钉死（沼泽分型域 /
-     * 草原深芯 / 草原沟 / 沼泽缓坡床纹四值不推翻）。<b>软域门单场负瓣</b>（SWAMP_NET λ151 先例）：
+     * 草原深芯 / 沼泽缓坡床纹三值不推翻）。<b>软域门单场负瓣</b>（SWAMP_NET λ151 先例）：
      * {@code s01((−n−LO)/SPAN)} = 缓坡潭域 tyG（实测 2-32%/seed），带外门值精确 0.0 ⇒ 全部下游
      * 写成 tyG 乘子式（域外 IEEE 逐位不变，digest 对拍圈爆炸半径）。<b>v1.20.53 P30 II-AB</b>：
      * 原同场正瓣（瀑布潭域 tyF，v1.20.50 P27 引入）随沼泽瀑布全套退役删除，本盐只剩负瓣在用。
@@ -930,11 +901,11 @@ public final class TerrainVariants {
             final double m = hillsOn ? hillsShape(worldSeed, x, z) : 0.0D;
             if (w[0] > 0.0D) {
                 // ═══ v1.20.53 P30 I5 片：湖平面域豁免乘子 w0g = w[0] × lakePlaneTerrainAllowedAt ═══
-                // 平面域（lake ≤ SHORE+JITTER，含抖动滩缘整环）门=0 ⇒ 下方五条 delta（丘陵+盆地/
-                // 碗芯/缎带沟/低地）归零——设计滩环不再被草原盆地/ridged 沟壑/低地负项（单臂最坏
+                // 平面域（lake ≤ SHORE+JITTER，含抖动滩缘整环）门=0 ⇒ 下方四条 delta（丘陵+盆地/
+                // 碗芯/低地）归零——设计滩环不再被草原盆地/碗芯/低地负项（单臂最坏
                 // −16）挖出深坑、再被主湖灌水门灌成深水潭（湖平面压力域内不建异族负地形）；
                 // 域外（门=1）w0g = w[0]×1.0 IEEE 逐位同（era 闭合）；带内各中间量（basinGate/
-                // gullyGate/lowGate 等）照常求值、只在出口乘门——单点分流纪律（§21-D 同款）。
+                // lowGate 等）照常求值、只在出口乘门——单点分流纪律（§21-D 同款）。
                 // lakeAt 走 LAKE_MEMO 命中（heightCore 顶部已算同列 lake）；与 w2g/w3g（P29 C2/C3
                 // 先例）同一豁免面收口。
                 final double w0g = w[0] * lakePlaneTerrainAllowedAt(worldSeed, x, z);
@@ -956,29 +927,16 @@ public final class TerrainVariants {
                     z / STEPPE_BASIN_CORE_SCALE);
                 final double coreGate = s01((-cn - STEPPE_BASIN_CORE_GATE_LO) / STEPPE_BASIN_CORE_GATE_SPAN);
                 delta += w0g * (-(STEPPE_BASIN_CORE_BASE + STEPPE_BASIN_CORE_SPAN * coreGate) * coreGate * basinGate);
-                // —— 缎带沟（v1.20.50 P27 G 片：λ73 ridged 负像（redirect 由 λ57 收窄），切平地、避碗避丘）——
-                // ridged 形 1−|n| 沿 n≈0 等值线取窄带（线状沟，非门阈 blob）；互斥全用<b>已求值</b>门
-                // 相乘（零新求值）：×(1−basinGate) 防沟切碗（合成 −15+ 怪坑）、×(1−gateS) 复用丘陵门
-                // （:781 已求值）作存在域 ⇒ 沟只切平坦草原、被丘陵域截断成短段。带外 s01=0 ⇒
-                // gullyGate 精确 +0.0 ⇒ 本支路贡献 −0.0，域外逐位不改变 delta。
-                final double gn = GTSRWorldgenHash
-                    .valueNoise(worldSeed ^ S_STEPPE_GULLY, x / STEPPE_GULLY_SCALE, z / STEPPE_GULLY_SCALE);
-                final double gullyGate = s01((1.0D - Math.abs(gn) - STEPPE_GULLY_GATE_LO) / STEPPE_GULLY_GATE_SPAN)
-                    * (1.0D - basinGate)
-                    * (1.0D - gateS);
-                delta += w0g * (-(STEPPE_GULLY_BASE + STEPPE_GULLY_SPAN * gullyGate) * gullyGate);
                 // —— 低地支路（v1.20.41 需求 6：半空间折叠只取负瓣 + 覆盖门；与丘陵同域叠加）——
                 // 折叠式与沙丘 (d−|d|)/2 同款：d≥0 ⇒ 精确 0 ⇒ 该支路在门带外逐位不改变 delta。
                 // P26-B4 ⑪：低地门乘 (1−盆地带)（域外 ×1.0 逐位不变）——盆地与低地不叠加（最坏
                 // 合成下挖 ≤ −9 = 盆地满门单臂，防两项相加 −15 吃 y=40 地板预算；C0 连续，无硬环）。
-                // P27 G 片：乘式加长 ×(1−gullyGate)（沟带外 gullyGate=+0.0 ⇒ ×1.0 IEEE 逐位不变）——
-                // 沟与低地不相加 ⇒ 三负臂互斥、单臂最坏 = max(−16 深芯, −6.5 沟, −6 低地)。
+                // P32 删沟后：负臂互斥只剩盆×低耦合（上行），单臂最坏 = max(−16 深芯, −6 低地)。
                 final double dl = GTSRWorldgenHash
                     .valueNoise(worldSeed ^ S_STEPPE_LOW, x / STEPPE_LOW_SCALE, z / STEPPE_LOW_SCALE);
                 final double lowFold = (dl - Math.abs(dl)) * 0.5D; // ∈ [−0.5, 0]
                 final double lowShape = Math.min(1.0D, -2.0D * lowFold); // 形状 0..1（d≤−0.5 取满）
-                final double lowGate = s01((-dl - STEPPE_LOW_GATE_LO) / STEPPE_LOW_GATE_SPAN) * (1.0D - basinGate)
-                    * (1.0D - gullyGate);
+                final double lowGate = s01((-dl - STEPPE_LOW_GATE_LO) / STEPPE_LOW_GATE_SPAN) * (1.0D - basinGate);
                 delta += w0g * (-(STEPPE_LOW_BASE + STEPPE_LOW_SPAN * lowShape) * lowGate);
             }
             if (w[1] > 0.0D) {

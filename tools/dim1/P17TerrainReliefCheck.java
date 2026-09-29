@@ -290,58 +290,11 @@ public class P17TerrainReliefCheck {
     private static final long A4_S_STEPPE_BASIN = 0x6811C3ADL;
     /** 盆地场波长的字面复算（= TerrainVariants.STEPPE_BASIN_SCALE）。 */
     private static final double A4_STEPPE_BASIN_SCALE = 167.0D;
-    // ═══ v1.20.50 P27 批次A-A3 G 片：草原深芯/缎带沟的字面镜像（盐/波长；门带字面在 variantGroup 内联，
-    //     javadoc 引生产常量名——A4_S_STEPPE_BASIN 先例同款纪律）═══
+    // ═══ v1.20.50 P27 批次A-A3 G 片：草原深芯的字面镜像（盐/波长；门带字面在 variantGroup 内联，
+    //     javadoc 引生产常量名——A4_S_STEPPE_BASIN 先例同款纪律；原缎带沟镜像随 v1.20.55 P32 R-2 删净）═══
     /** 深芯场域盐/波长的字面复算（= TerrainVariants.S_STEPPE_BASIN_CORE / STEPPE_BASIN_CORE_SCALE）。 */
     private static final long A4_S_STEPPE_BASIN_CORE = 0x6811C3E3L;
     private static final double A4_STEPPE_BASIN_CORE_SCALE = 89.0D;
-    /** 缎带沟场域盐/波长的字面复算（= TerrainVariants.S_STEPPE_GULLY / STEPPE_GULLY_SCALE；
-     * v1.20.50 P27 G 片 redirect 后 = λ73，域盐不变）。 */
-    private static final long A4_S_STEPPE_GULLY = 0x6811C3F5L;
-    private static final double A4_STEPPE_GULLY_SCALE = 73.0D;
-    /** 丘陵门盐的字面复算（= TerrainVariants.S_HILL_GATE，λ320；沟存在域 gateS 因子用）。 */
-    private static final long A4_S_HILL_GATE = 0x6811C21DL;
-    /**
-     * 缎带沟净下挖覆盖带：沟带内（{@code gullyGate>0 且盆地带外}，纯域口径防缓入环混账）
-     * {@code delta ≤ −4} 的列占比（分母 = roster0 全采样列，与 STEPPE_BASIN_SHARE_BAND 同口径）。
-     * <p>
-     * <b>v1.20.50 P27 G 片 redirect 重钉</b>：主代理裁决 λ57 → λ73（域盐不动、门参数不动）后实测
-     * （同窗 16 seed × 1024² 步距 4、h0=70 旁路；归因口径 = 快照+仅 G 版 TerrainVariants 树，
-     * {@code temp/p27-g/P17TerrainReliefCheck-gonly.out}；与合并树读数逐字相同——VARIANT 组
-     * delta 不受 L/T/W 片影响）＝ <b>18.5121%</b>（带内列 68216）⇒ [M×0.6, M×1.6] 0.1pp 网格
-     * ⇒ <b>[11.1%, 29.6%]</b>（旧带 [10.8, 28.8] 由 λ57 M=17.9941% 反解，重钉前对照见
-     * {@code plan/tmp/p27-g-readings.md} §redirect）。
-     * <p>
-     * <b>redirect 结果披露（重要）</b>：裁决预期覆盖降至 ~11%（按 (57/73)²≈0.61 折算）<b>未成立</b>
-     * ——等值线带的<b>面积占比与 λ 无关</b>：满带空间宽 ~c·λ 与单位面积等值线长 ~1/λ 相消，
-     * λ 只改段数/间距（(57/73)² 压的是"沟条数"）不压面积；实测 17.9941% → 18.5121%（+0.52pp =
-     * 与盆地/丘陵存在域门的相关结构漂移）。λ57 时代的披露仍有效：ue-steppe §4 预估 1.5-2.5%
-     * 偏小一个量级（漏了 d≤−4 只需沟门 ≥0.70 即 |n|≤0.136、三角边际 P≈25%）。<b>面积口径上
-     * 唯一有效的收窄旋钮是 GULLY_GATE_LO 加严</b>（0.78→0.88 ⇒ 计深带 |n|≤0.136 收到 ~|n|≤0.05），
-     * 观感裁决与后续旋钮归主代理（本片只执行波长 redirect + 重钉）。
-     * 带两端语义：下界 = "沟作为分支形态存在"（ridged 门塌掉即红）；上界 = "草原不被沟网吞掉"。
-     */
-    private static final double STEPPE_GULLY_SHARE_MIN = 0.111D;
-    private static final double STEPPE_GULLY_SHARE_MAX = 0.296D;
-    /**
-     * 缎带沟单列最大下挖（格）：机制满门深度 {@code −(4.0+2.5·门)·门}（生产
-     * {@code TerrainVariants.STEPPE_GULLY_BASE/SPAN}）最深 <b>−6.5</b> + 0.5 取整容差 ⇒ 7.0。
-     * 沟带（纯域口径）内低地臂已乘 (1−gullyGate) ⇒ 两负臂不相加（合成上确界 6.5 在 g=1 处、
-     * 低地同时归零）。<b>v1.20.50 P27 G 片 redirect 复核：实测 −6.00 → −7.00</b>（λ73 带重定位后
-     * 命中一条名册核混合列：纯 w0=1 带内列解析上界 −6.5 且 Math.round(70−6.5)=64 ⇒ 读数 ≥ −6，
-     * −7.00 只能来自 w1 谷地（−10 按权混入）或 w3 沼泽池臂的名册边界列——判据口径不按名册纯度
-     * 过滤，先例同款）。−7.00 ≥ −7.0 <b>等值贴边通过</b>：机制上界未破、但批C 复跑若命中更深的
-     * 边界混列即红——贴边风险登记 {@code plan/tmp/p27-g-readings.md} §redirect。
-     * <p>
-     * <b>v1.20.53 P30 II-D：贴边风险兑现并处置——计量口径换纯核列，阈值 7.0 不动</b>。本批复跑
-     * 沟带内实测最深 <b>−12.00</b>（seed4 (216,316)：gullyGate=1.0 沟臂 −6.5·w0 叠 w3 沼泽深潭臂
-     * −14·w3 的名册核混合列，臂分解见 {@code temp/p30-iid/} 探针）——非任一单臂机制超挖，是 P27
-     * 登记的"边界混列"风险在 II-AB 连续门后混核列分布变化下兑现。处置 = gullyMin 只在<b>纯核列</b>
-     * （{@link #a3PureRosterCell} 69 粗格全 0 ⇒ w1-w4 精确 0，其它群系臂不叠）上计量；带值 7.0
-     * 仍是机制满门 −6.5 + 0.5，抓力（纯核列上沟超挖即红）不变。份额带（SHARE）仍量全域沟带列，
-     * 口径不变。
-     */
-    private static final double STEPPE_GULLY_DIG_MAX = 7.0D;
     /**
      * 深芯净下挖覆盖带（可选芯带，A4 族规）：芯∩盆列（{@code coreGate>0 且 basinGate>0}——生产
      * 深芯臂 ×basinGate 只在此域非零）内 {@code delta ≤ −10} 的列占比（分母同上 = roster0 全采样列）。
@@ -915,11 +868,7 @@ public class P17TerrainReliefCheck {
         long basinCols = 0; // 盆地带内列（P26-B4 ⑪）
         long basinLe5 = 0;
         double basinMin = 0;
-        // —— P27 G 片草原深芯/缎带沟计数（镜像门同生产式，见下方门值复算处注释）——
-        long gullyCols = 0; // 沟带内列（gullyGate>0 且盆地带外——低地单臂同款"纯域"口径）
-        long gullyLe4 = 0;
-        double gullyMin = 0;
-        long gullyLe5Mixed = 0; // 沟带内 d≤−5（只报不钉：低地单臂剥离沟带前的旧口径读数锚）
+        // —— P27 G 片草原深芯计数（镜像门同生产式，见下方门值复算处注释；缎带沟计数随 v1.20.55 P32 R-2 删净）——
         long coreCols = 0; // 芯∩盆列（coreGate>0 且 basinGate>0——生产深芯臂只在此域非零）
         long coreLe10 = 0;
         long wasteCols = 0;
@@ -962,20 +911,12 @@ public class P17TerrainReliefCheck {
                         final double bn = GTSRWorldgenHash
                             .valueNoise(worldSeed ^ A4_S_STEPPE_BASIN, x / A4_STEPPE_BASIN_SCALE, z / A4_STEPPE_BASIN_SCALE);
                         final double basinGate = a4S01((-bn - 0.60D) / 0.22D);
-                        // P27 G 片：深芯/沟门镜像（判据侧只读复算）。门带字面 = 生产
-                        // TerrainVariants.STEPPE_BASIN_CORE_GATE_LO/SPAN（0.62/0.20）与
-                        // STEPPE_GULLY_GATE_LO/SPAN（0.78/0.12）；沟存在域因子 (1−basinGate)(1−gateS)
-                        // 与生产同式（gateS 镜像 = 生产 s01((gh−0.20)/0.30)，gh=λ320 S_HILL_GATE）。
+                        // P27 G 片：深芯门镜像（判据侧只读复算）。门带字面 = 生产
+                        // TerrainVariants.STEPPE_BASIN_CORE_GATE_LO/SPAN（0.62/0.20）；
+                        // 原缎带沟门镜像与沟存在域因子镜像随 v1.20.55 P32 R-2 删净。
                         final double cn = GTSRWorldgenHash.valueNoise(
                             worldSeed ^ A4_S_STEPPE_BASIN_CORE, x / A4_STEPPE_BASIN_CORE_SCALE, z / A4_STEPPE_BASIN_CORE_SCALE);
                         final double coreGate = a4S01((-cn - 0.62D) / 0.20D);
-                        final double gn = GTSRWorldgenHash.valueNoise(
-                            worldSeed ^ A4_S_STEPPE_GULLY, x / A4_STEPPE_GULLY_SCALE, z / A4_STEPPE_GULLY_SCALE);
-                        final double ghM = GTSRWorldgenHash
-                            .valueNoise(worldSeed ^ A4_S_HILL_GATE, x / 320.0D, z / 320.0D);
-                        final double gateSM = a4S01((ghM - 0.20D) / 0.30D);
-                        final double gullyGate = a4S01((1.0D - Math.abs(gn) - 0.78D) / 0.12D)
-                            * (1.0D - basinGate) * (1.0D - gateSM);
                         if (d <= -STEPPE_LOW_CUT_LEGACY) {
                             steppeLe3++;
                         }
@@ -986,10 +927,6 @@ public class P17TerrainReliefCheck {
                             steppeLe5All++;
                             if (basinGate > 0.0D) {
                                 basinLe5++;
-                            } else if (gullyGate > 0.0D) {
-                                // P27 G 片：低地单臂计量剥离沟带（与 P26-B4 ⑪ 剥离盆地同款"换被量的量
-                                // 不换带"——沟臂 −4..−6.5 的 d≤−5 列不归属低地；剥离前混计读数另行打印）。
-                                gullyLe5Mixed++;
                             } else {
                                 steppeLe5++;
                             }
@@ -998,22 +935,6 @@ public class P17TerrainReliefCheck {
                             basinCols++;
                             if (d < basinMin) {
                                 basinMin = d;
-                            }
-                        }
-                        // P27 G 片计数：沟带 = gullyGate>0 且盆地带外（纯域口径，防 basinGate∈(0,1)
-                        // 缓入环上盆地臂 −8 与沟臂部分共存把"沟最深"读数推过 −7 的机制混账）；
-                        // 芯带 = coreGate>0 且 basinGate>0（生产深芯臂 ×basinGate，只在此域非零）。
-                        if (gullyGate > 0.0D && basinGate == 0.0D) {
-                            gullyCols++;
-                            if (d <= -4.0D) {
-                                gullyLe4++;
-                            }
-                            // v1.20.53 P30 II-D：不超挖读数换<b>纯核列</b>口径（69 粗格全 0 ⇒ w1-w4
-                            // 精确 0，其它群系臂不叠）——旧"不滤名册边界混列"口径本批复跑命中
-                            // −12.00 混合列（w0 沟臂叠 w3 深潭臂，见 a3PureRosterCell 注释），
-                            // P27 G 片登记的贴边风险兑现，非机制超挖。
-                            if (a3PureRosterCell(worldSeed, x >> 2, z >> 2, 0) && d < gullyMin) {
-                                gullyMin = d;
                             }
                         }
                         if (coreGate > 0.0D && basinGate > 0.0D) {
@@ -1061,17 +982,15 @@ public class P17TerrainReliefCheck {
         final double basinShare = basinLe5 / (double) steppeCols;
         System.out.printf("  VARIANT %dseed×%d²方块(步距%d，h0=%d 旁路对照)：采样列=%d 形态 |delta| 最大=%.1f%n",
             VARIANT_SEEDS, VARIANT_SIDE, VARIANT_STRIDE, VARIANT_H0, totalCols, worstDelta);
-        System.out.printf("  VARIANT-READ 草原(roster0) 列=%d ｜ 现行阈 delta≤−%.0f（低地单臂=盆/沟带外，P27 G 片起）占比=%.4f%%"
-            + " ｜ 沟带内混计=%.4f%%（只报不钉，剥离前口径锚）｜ 含盆地合计=%.4f%%（只报不钉）｜ 旧阈"
+        System.out.printf("  VARIANT-READ 草原(roster0) 列=%d ｜ 现行阈 delta≤−%.0f（低地单臂=盆地带外）占比=%.4f%%"
+            + " ｜ 含盆地合计=%.4f%%（只报不钉）｜ 旧阈"
             + " delta≤−%.0f 占比=%.4f%%（只报不钉）｜ 满门 delta≤−6 占比=%.4f%%（G6 自陈 ≈12%% 的对账锚）%n",
-            steppeCols, STEPPE_LOW_CUT, lowShare * 100, gullyLe5Mixed / (double) steppeCols * 100,
+            steppeCols, STEPPE_LOW_CUT, lowShare * 100,
             steppeLe5All / (double) steppeCols * 100,
             STEPPE_LOW_CUT_LEGACY,
             steppeLe3 / (double) steppeCols * 100, steppeLe6 / (double) steppeCols * 100);
         System.out.printf("  VARIANT-READ 草原盆地（P26-B4 ⑪）带内列=%d ｜ 净下挖 delta≤−5 占比=%.4f%% ｜ 最深=%.2f%n",
             basinCols, basinShare * 100, basinMin);
-        System.out.printf("  VARIANT-READ 草原缎带沟（P27 G 片）带内列=%d ｜ 净下挖 delta≤−4 占比=%.4f%% ｜ 最深=%.2f%n",
-            gullyCols, gullyLe4 / (double) steppeCols * 100, gullyMin);
         System.out.printf("  VARIANT-READ 草原深芯（P27 G 片）芯∩盆列=%d ｜ 净下挖 delta≤−10 占比=%.4f%%%n",
             coreCols, coreLe10 / (double) steppeCols * 100);
         System.out.printf("  VARIANT-READ 荒漠(roster2) 列=%d ｜ delta≥%.0f 占比=%.4f%%（风蚀山体）%n", wasteCols,
@@ -1089,14 +1008,13 @@ public class P17TerrainReliefCheck {
             + "的净测，档↔delta 同列成对计数）：" + tb.toString().trim());
         check(steppeCols >= 10000 && lowShare >= STEPPE_LOW_SHARE_MIN && lowShare <= STEPPE_LOW_SHARE_MAX,
             "VARIANT 草原低地覆盖（<b>满门深度口径 delta ≤ −" + (int) STEPPE_LOW_CUT + "，P26-B4 ⑪ 起 = 低地单臂"
-                + "（盆地带外），<b>P27 G 片起再剥离沟带（盆/沟带外）</b></b>）占比 " + fmt1(lowShare)
+                + "（盆地带外）</b>）占比 " + fmt1(lowShare)
                 + " ∈ [" + STEPPE_LOW_SHARE_MIN + "," + STEPPE_LOW_SHARE_MAX + "]（§5 S4 判据 4 的带容器原值，"
                 + "<b>换的是被量的量不是带</b>：§21-E 裁定旧 ≤−" + (int) STEPPE_LOW_CUT_LEGACY + " 口径把整个缓入环"
                 + "计进低地（该口径本片仍打印 = " + fmt1(steppeLe3 / (double) steppeCols) + "，只报不钉，原文与"
                 + "废止理由见 STEPPE_LOW_CUT_LEGACY 注释）；满门 delta≤−6 读数 = " + fmt1(steppeLe6 / (double) steppeCols)
                 + " 与 TerrainVariants 低地门自陈 ≈12% 相互印证。P26-B4 ⑪ 把盆地下挖剥离到"
-                + " STEPPE_BASIN_SHARE_BAND；P27 G 片把缎带沟（−4..−6.5）同款剥离到 STEPPE_GULLY_SHARE_BAND"
-                + "（沟带内混计读数 = " + fmt1(gullyLe5Mixed / (double) steppeCols) + " 只报不钉）——低地单臂始终量"
+                + " STEPPE_BASIN_SHARE_BAND——低地单臂始终量"
                 + " \"低地作为唯一负臂\"的净值。<b>禁止</b>为凑带削低地深度（那是生产侧））");
         // —— P26-B4 ⑪ 草原小盆地两条（负瓣封闭碗形；实测 M 读数按 [M×0.6,M×1.6] 0.1pp 网格反解）——
         check(steppeCols >= 10000 && basinShare >= STEPPE_BASIN_SHARE_MIN
@@ -1108,23 +1026,8 @@ public class P17TerrainReliefCheck {
             "VARIANT 草原小盆地不超挖：盆地带内净 delta 最深 " + fmt1(basinMin) + " ≥ −" + STEPPE_BASIN_DIG_MAX
                 + "（机制满门最深 −16（v1.20.50 P27 G 片深芯第二档：盆 −9 叠芯 −7）+ 0.5 取整容差；加深吃"
                 + " y=40 地板预算，超挖即红——与 CLAMP_RATIO_MAX 预算带互为犄角）");
-        // —— P27 G 片草原缎带沟两条 + 深芯一条（λ73 ridged 负像（redirect 由 λ57 收窄）/ λ89 盆内深芯；实测 M 反解带）——
-        final double gullyShare = gullyLe4 / (double) steppeCols;
+        // —— P27 G 片草原深芯一条（λ89 盆内深芯；实测 M 反解带；缎带沟两条随 v1.20.55 P32 R-2 删净）——
         final double coreShare = coreLe10 / (double) steppeCols;
-        check(steppeCols >= 10000 && gullyShare >= STEPPE_GULLY_SHARE_MIN
-            && gullyShare <= STEPPE_GULLY_SHARE_MAX,
-            "VARIANT 草原缎带沟净下挖覆盖：沟带内（gullyGate>0 且盆地带外）delta ≤ −4 的列占比 "
-                + fmt1(gullyShare) + " ∈ [" + STEPPE_GULLY_SHARE_MIN + "," + STEPPE_GULLY_SHARE_MAX
-                + "]（v1.20.50 P27 G 片新增 λ57 ridged 负像、redirect 后 λ73；实测 M=18.5121%（λ57 旧值 17.9941%）"
-                + "按 [M×0.6,M×1.6] 0.1pp 网格反解——面积占比与 λ 无关（带宽 ~cλ × 线密度 ~1/λ 相消）的披露见常量注释；"
-                + "下界=沟形态存在（ridged 门塌掉"
-                + "即红），上界=草原不被沟网吞掉；与低地单臂带互斥分账）");
-        check(gullyMin >= -STEPPE_GULLY_DIG_MAX,
-            "VARIANT 草原缎带沟不超挖：纯核列（69 粗格全 0，P30 II-D 起口径）沟带内净 delta 最深 "
-                + fmt1(gullyMin) + " ≥ −" + STEPPE_GULLY_DIG_MAX
-                + "（机制满门最深 −6.5 + 0.5 取整容差；沟带纯域口径下低地臂已乘 (1−gullyGate) 两负臂不相加，"
-                + "超挖即红——与 CLAMP_RATIO_MAX 预算带互为犄角。旧全域口径实测 −12.00 = w0 沟臂叠 w3 深潭臂的"
-                + "名册核混合列（P27 登记贴边风险的兑现，臂分解见常量注释），非机制超挖）");
         check(steppeCols >= 10000 && coreShare >= STEPPE_CORE_SHARE_MIN
             && coreShare <= STEPPE_CORE_SHARE_MAX,
             "VARIANT 草原深芯净下挖覆盖：芯∩盆列（coreGate>0 且 basinGate>0）delta ≤ −10 的列占比 "
@@ -1517,12 +1420,12 @@ public class P17TerrainReliefCheck {
 
     /**
      * 纯 roster 列（11×11 核 69 粗格全为给定 roster ⇒ 核权重向量其它分量精确 0.0，其它群系臂
-     * 整支跳过）。<b>v1.20.53 P30 II-D 引入</b>：超挖类断言（沟/泥丘限幅）的计量口径从"名册
-     * 边界混列不滤"（P27 G 片先例，当时即登记贴边风险）收紧为<b>纯核列</b>——本批复跑实测
-     * 沟带内最深 −12.00 = w0 沟臂（−6.5·w0）叠 w3 沼泽深潭臂（−14·w3）的混合列（seed4
-     * (216,316)，gullyGate=1.0/armGully=−6.5/armLow=0，探针 temp/p30-iid/），非任一单臂机制
-     * 超挖；纯核列上机制满门界才是精确读数。注意不能用镜像 w3==1.0 判纯（归一核权重的浮点和
-     * Σ(w_k/wSum) 不保证精确 1.0 ⇒ 恒假，本批复跑实测样本=0）。
+     * 整支跳过）。<b>v1.20.53 P30 II-D 引入</b>：限幅/超挖类断言的计量口径从"名册边界混列
+     * 不滤"收紧为<b>纯核列</b>——混核列上多群系臂按核权叠加，读数可被推过任一单臂机制满门界
+     * （非机制超挖的假红源）；纯核列上机制满门界才是精确读数。v1.20.55 P32 R-2 删净草原缎带沟
+     * 判据后，现存消费面 = 沼泽泥丘正项限幅计量（variantGroup 纯腹地列）。注意不能用镜像
+     * w3==1.0 判纯（归一核权重的浮点和 Σ(w_k/wSum) 不保证精确 1.0 ⇒ 恒假，P30 II-D 批复跑
+     * 实测样本=0）。
      */
     private static boolean a3PureRosterCell(long seed, int cellX, int cellZ, int roster) {
         for (int dz = -5; dz <= 5; dz++) {
