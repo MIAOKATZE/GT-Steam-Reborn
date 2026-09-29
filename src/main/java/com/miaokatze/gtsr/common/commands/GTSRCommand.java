@@ -512,13 +512,15 @@ public class GTSRCommand extends CommandBase {
 
     /**
      * <b>populate 同源水列谓词</b>（S5，dim78）：巨湖 = {@code ChunkProviderProsperityRuins.fillSanzuLakes}
-     * 的逐字同式（{@code lakeAt < LAKE_SHORE} ∧ {@code heightAt < SEA_LEVEL}，两符号皆
-     * RVF/Profile 公开出口，不抄第二份判定）。<b>[P25 D7 残潭退役]</b>原沼泽残潭腿
-     * （{@code swampRiverPoolColumnAt}，v1.20.42 P22 A1b）已随 RVF 该族删除而摘除；河道支路的
-     * populate 池水柱不在本谓词内（批2 S2 已将 wetAt 置死，不为其新立真值）。
+     * 现行置水门的严格同源（P27-L D1·4a 起该门已换 {@link GTSRVoronoiRiverField#sanzuShoreWaterAt}
+     * 单一出口，v1.20.53 P30 I3 骑手把本谓词从旧式 {@code lakeAt < LAKE_SHORE} 对齐过来，消掉
+     * 「逐字同式」漂移表述所对应的口径差）∧ {@code heightAt < SEA_LEVEL}（Profile 公开出口，
+     * 不抄第二份判定）。<b>[P25 D7 残潭退役]</b>原沼泽残潭腿（{@code swampRiverPoolColumnAt}，
+     * v1.20.42 P22 A1b）已随 RVF 该族删除而摘除；河道支路的 populate 池水柱不在本谓词内
+     * （批2 S2 已将 wetAt 置死，不为其新立真值）。
      */
     private static boolean populateWaterColumnAt(long worldSeed, int x, int z) {
-        return GTSRVoronoiRiverField.lakeAt(worldSeed, x, z) < GTSRVoronoiRiverField.LAKE_SHORE
+        return GTSRVoronoiRiverField.sanzuShoreWaterAt(worldSeed, x, z)
             && ProsperityTerrainProfile.heightAt(worldSeed, x, z) < ProsperityTerrainProfile.SEA_LEVEL;
     }
 

@@ -25,6 +25,12 @@ import com.miaokatze.gtsr.common.dimension.framework.structure.GTSRWorldgenHash;
  * {@code fillerMeta}，本类以 {@code FILLER_META} 常量等值门把关（现状五档全 0，见
  * {@link #fillerMetaConst}）。主体段（wholeBody）仍不动（v1.20.39 G4 起四群系统一石，无硬线）。
  * <p>
+ * <b>v1.20.53 P30 I3：交界带「微微侵入」收窄</b>——P30 批0 实测单侧互串带 8-17 格偏宽，本轮只把
+ * {@link #BORDER_JITTER_AMPLITUDE} 0.15 → 0.12、{@link #BORDER_SWITCH_MARGIN} 0.55 → 0.35 两个
+ * 切换常量对调收窄，目标把单侧互串带收到典型 2-4 格、极值 ~6 格；{@link #BORDER_KERNEL_RADIUS}
+ * 核半径与地形侧振幅/变体带（AMP/VAR 域）一律不动（实测证据：地形渐变带无需处置）。除这两个
+ * 常量值与本轮注释外零行为改动。
+ * <p>
  * ═══ 技法来源与许可纪律（H-2）═══
  * 只取 RTG {@code LandscapeGenerator.setWeightings()} 的<b>范式</b>（距离加权交叉淡化 + 幂 0.7
  * 压平远端 + 线性截断 + Σ 归一，取证见 {@code plan/tmp/wg41-F-1710-reflibs.md} §2.1-A）：
@@ -105,14 +111,22 @@ public final class GTSRSurfaceBorderBand implements GTSRChunkProviderBase.Surfac
     /** 分界抖动噪声波长（方块）；取 13 而非 RTG 的 10——10 在本仓尺度下易碎且与 16 同族更近。 */
     private static final double BORDER_JITTER_SCALE = 13.0D;
 
-    /** 分界抖动幅度（从 margin 上扣除，值域 [0, amp)，故切换阈实际在 0.55..0.70 间摆动）。 */
-    private static final double BORDER_JITTER_AMPLITUDE = 0.15D;
+    /**
+     * 分界抖动幅度（v1.20.53 P30 I3：0.15 → 0.12，与 {@link #BORDER_SWITCH_MARGIN} 0.35 配对收窄互串带）。
+     * 从 margin 上扣除的抖动量 = amp × {@link GTSRWorldgenHash#valueNoise}，而 valueNoise 值域是
+     * [−1,1) ⇒ 抖动量 ∈ (−amp, amp]（v1.20.53 前旧注释的「[0, amp)」把噪声当非负读，口径错误，
+     * 本轮修正）；切换阈（对 headMargin 的等效阈 = {@link #BORDER_SWITCH_MARGIN} + amp × noise）
+     * 随之在 [0.35−amp, 0.35+amp) = [0.23, 0.47) 间摆动（noise = −1 可达 ⇒ 下端 0.23 可达；
+     * noise → 1⁻ ⇒ 上端 0.47 不可达）。
+     */
+    private static final double BORDER_JITTER_AMPLITUDE = 0.12D;
 
     /**
-     * 头名/次名切换阈。§13 已裁定为「本轮取 0.55，实机后校准」：RTG 的 0.8 是对噪声场而不是对
-     * 权重差，不可直译，故本值是<b>范式映射</b>而非搬运。
+     * 头名/次名切换阈（v1.20.53 P30 I3：0.55 → 0.35，与 {@link #BORDER_JITTER_AMPLITUDE} 0.12 配对，
+     * 实际摆动阈带见其注释）。§13 已裁定为「本轮取值，实机后校准」（上轮取 0.55）：RTG 的 0.8 是对
+     * 噪声场而不是对权重差，不可直译，故本值是<b>范式映射</b>而非搬运。
      */
-    private static final double BORDER_SWITCH_MARGIN = 0.55D;
+    private static final double BORDER_SWITCH_MARGIN = 0.35D;
 
     /** 权重幂（RTG 同形：{@code pow(d², 0.7)}，只改带内曲线形状，不改带宽）。 */
     private static final double BORDER_WEIGHT_POWER = 0.7D;

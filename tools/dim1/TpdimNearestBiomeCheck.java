@@ -503,11 +503,15 @@ public class TpdimNearestBiomeCheck {
             check(
                 seg.contains("populateWaterColumnAt(seed,x,z)")
                     && seg.contains("populateWaterColumnAt(seed,nx,nz)")
-                    && seg.contains("GTSRVoronoiRiverField.lakeAt(worldSeed,x,z)")
+                    && seg.contains("GTSRVoronoiRiverField.sanzuShoreWaterAt(worldSeed,x,z)")
                     // [P25 D7 残潭退役] 原"残潭 O1a 出口"腿（swampRiverPoolColumnAt）已随生产删除：
                     // 水感知链 = 湖 fillSanzuLakes 同式单腿（残潭置水通道不存在）。
+                    // [v1.20.53 P30 I3] 湖腿对齐 RVF sanzuShoreWaterAt 单一出口（=
+                    // fillSanzuLakes 置水门同式，P27-L D1·4a 灌水对齐；旧 lakeAt<LAKE_SHORE
+                    // 直比式随生产删除退役）。
                     && seg.contains("ProsperityTerrainProfile.SEA_LEVEL-1;"),
-                "钉14b：水感知链 = populate 同源谓词（湖 fillSanzuLakes 同式；P25 D7 残潭腿已退役）"
+                "钉14b：水感知链 = populate 同源谓词（湖走 sanzuShoreWaterAt 单一出口，与 fillSanzuLakes"
+                    + " 置水门同式；P25 D7 残潭腿已退役、P30 I3 起灌水对齐）"
                     + "+ 螺旋避让 + 水面 fallback（SEA_LEVEL−1）——形态完整");
             check(
                 !seg.contains("getChunk") && !seg.contains(".getBlock(") && !seg.contains("worldObj")

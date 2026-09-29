@@ -542,8 +542,21 @@ public final class ProsperityDecorPlacer {
      * 枯木滩名册档（v1.20.49 P26-B4 ⑨；{@link #WIND_STUMP_ROLLS_BY_ROSTER} 的 int[] 表族先例）：
      * 值 = 每 chunk 落点尝试次数，<b>0 = 该群系零枯木</b>（抑制写档值，非身份判断）。密度目标
      * 0.5-1 件/chunk（每尝试还要过 MARSH 档/炭屑滩谓词 + 接地门 + 枯竭河床 bail）。
+     * <p>
+     * <b>v1.20.53 P30 III-3：沼泽行 8 → 5（钉带密度回归，II-AB 连续边缘门的密度侧配套）</b>。
+     * 归因链（A/B + 单变量 overlay + 落点分解，{@code temp/p30-iiie/}）：P30 II-AB 把
+     * {@code swampTierAt} 的边缘抑制从 coarse Chebyshev R=4 布尔阶梯连续化为 w3 等值线软门
+     * （设计面：沼泽水体档边缘连续化， terrain/回填两侧消费不变）⇒ MARSH 档/炭屑滩可落枯木的
+     * 列域扩大（旧 R4 十六格平台边缘带被连续门重新准入）⇒ 枯木滩<b>每次尝试命中率上升</b>。
+     * VEG 判据沼泽窗实测（同 306 chunk 同 78336 可落树列，分母零漂）：run1-3 短干段
+     * <b>815 → 1071（+31.4%）</b>，而树（7-10）与灌木段 250 根逐位不变 ⇒ 命中率漂移全在枯木滩。
+     * 件/chunk 由 P26-B4 钉带时的 ≈1.06 涨到 ≈1.39，越出本表密度目标带 [0.5,1] 上檐；VEG 侧
+     * 沼泽干高均值被短干段稀释 2.592 → 2.341，破「干高 森&gt;沼&gt;原」设计序。本表是枯木滩
+     * 密度的<b>单一真值旋钮</b>：8 → 5 把件/chunk 回落到 ≈0.87（目标带内、与 P26-B4 钉带态
+     * 同量级），沼泽干高均值回 2.652 &gt; 原 2.584。II-AB 的连续门设计面原样保留——
+     * <b>不回退边缘语义，只把密度旋钮拧回钉带值</b>（8 的旧值是窄域时代的调参残留）。
      */
-    public static final int[] MARSH_SNAG_ROLLS_BY_ROSTER = { 0, 0, 0, 8, 0 };
+    public static final int[] MARSH_SNAG_ROLLS_BY_ROSTER = { 0, 0, 0, 5, 0 };
     /** 枯木滩档默认值（身份不可得 = 零枯木；降级不凭空造设施纪律）。 */
     public static final int DEFAULT_MARSH_SNAG_ROLLS = 0;
     /** 躺倒 marsh 木长度下限/浮动（{@code 2 + nextInt(4)} ⇒ 2..5 格）。 */

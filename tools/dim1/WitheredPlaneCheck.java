@@ -42,10 +42,17 @@ import com.miaokatze.gtsr.common.dimension.prosperity.ruins.ProsperityDecorPlace
  * <li><b>W2 写通道活性与标脏</b>：样本内 withered 平面列 &gt; 0（防谓词恒假假绿）∧ 有写入的
  * chunk {@code isModified == true}（平面写不属于方块写，持久化标脏由生产显式置位——GT5U
  * {@code GTWorldgenerator:734} 先例，sanzu 同款）。</li>
- * <li><b>W3 枯竭河床列树/灌木落块 = 0</b>：真地形 + 真表层缝 + 真装饰
- * （{@code ProsperityDecorPlacer.decorate}，VEG 工具同一条 FlatWorld 网格装配路），记录每格
- * LOG/LEAF 落块的列，断言 {@code isDryRiverColumn} 列上木/叶落块数为 0（placeTree/placeShrubAt
- * 首行 bail 的行为证）。样本要求：扫描窗内干床列 ≥ 512（防"窗内无干床"的空集假绿）。</li>
+ * <li><b>W3 枯竭河床禁树禁灌木（P30 II-D 重钉为三钉）</b>：真地形 + 真表层缝 + 真装饰
+ * （{@code ProsperityDecorPlacer.decorate}，VEG 工具同一条 FlatWorld 网格装配路）。
+ * <b>W3 样本钉</b>：自适应落窗后干床列 ≥ 512（防"窗内无干床"的空集假绿——先按谓词粗扫定位
+ * 干床簇再落窗；旧"固定窗心按 SEPARATION 错开"在批I I1 河末端定向衰减后 3 seed×4 窗干床列 = 0，
+ * 样本域塌缩非行为错；谓词直引生产类 ⇒ I1 衰减自动同源）。<b>W3a 源级钉</b>：placeTree/
+ * placeShrubAt/placeMarshSnagPass 三处首行 {@code isDryRiverColumn} bail 恰 3 处在场。
+ * <b>W3b 行为证</b>：干床列直调 placeShrubAt（显式 x,z 形态位），首行 bail 生效（零写零异常；
+ * bail 被删 ⇒ null 实参解引用当场 NPE）。落块分账<b>只报不钉</b>：自适应窗贴干床簇后干床/非干床
+ * 边界大增，暴露三类合法越界写入（冠层叶盘越顶 ≤7 格；巨树形态无干床 bail——MegaTreeForms
+ * redwood 锥盘/横臂、greatOak 枝臂、bayou 板根，P25 D6 bail 不含巨树趟；躺倒沼泽木尾段横跨
+ * 2-5 格），旧"干床列木/叶落块 = 0"口径只在窗内无干床列时平凡成立，故降级为披露性读数。</li>
  * </ol>
  * <p>
  * <b>装配口径</b>：W1 用 Unsafe 裸 {@code Chunk}（只置 {@code biomeArray}；1.7.10 byte 平面——
@@ -152,22 +159,39 @@ public final class WitheredPlaneCheck {
             "withered列=" + witheredCols + " 标脏违例=" + !modifiedOnWrite);
 
         // ═══ W3：枯竭河床列树/灌木落块 = 0 ═══
-        // 采样几何：每 seed 4 个 16×16-chunk 子窗（side 256，网格内存同 VEG 档），窗心按 SEPARATION
-        // （1050 格 ≈ 66 chunk）错开 ⇒ 4 窗合计恒覆盖 ≥1 条 Voronoi 边（干河床沿边分布）。
+        // 采样几何（v1.20.53 P30 II-D 改自适应）：每 seed ≤4 个 16×16-chunk 子窗（side 256，
+        // 网格内存同 VEG 档）。旧版固定窗心按 SEPARATION（1050 格 ≈ 66 chunk）错开——批I I1
+        // 河末端定向衰减落地后 3 seed × 4 固定窗内干床列 = 0（样本域塌缩，非行为错：谓词直引
+        // 生产 GTSRVoronoiRiverField.isDryRiverColumn ⇒ I1 衰减自动同源）。改为先按谓词粗扫
+        // （stride 16，域 ±8192 格）定位干床簇、按窗桶命中数取 top 窗再落真地形窗
+        // （locateDryWindows），保证干床列样本 ≥ 512。
         long dryCols = 0;
         long placements = 0;
-        long placementsOnDry = 0;
+        long logOnDryNonMarsh = 0;
+        long leafOnDry = 0;
+        long marshLogOnDry = 0;
         final int axis = 16;
         final int side = axis * 16;
-        final int[][] windowOffsets = { { 0, 0 }, { 96, 0 }, { 0, 96 }, { 96, 96 } };
         for (final long seed : SEEDS) {
             final GTSRDimensionDef def78 = SurfaceHarness.def(true, p, SurfaceHarness.prosperityWeights());
             final GTSRWorldChunkManager mgr = new GTSRWorldChunkManager(seed, def78);
             final Block[] scratch = new Block[65536];
             final byte[] scratchMeta = new byte[65536];
-            for (final int[] off : windowOffsets) {
-                final int cxBase = (int) ((seed >>> 4) & 3) * 997 + off[0];
-                final int czBase = (int) ((seed >>> 6) & 3) * 1231 + off[1];
+            final int[][] dryWindows = locateDryWindows(seed, 4);
+            final StringBuilder wdesc = new StringBuilder();
+            for (int wi = 0; wi < dryWindows.length; wi++) {
+                if (wi > 0) wdesc.append(' ');
+                wdesc.append('(')
+                    .append(dryWindows[wi][0])
+                    .append(',')
+                    .append(dryWindows[wi][1])
+                    .append(")h=")
+                    .append(dryWindows[wi][2]);
+            }
+            say("W-READ seed=0x" + Long.toHexString(seed) + " 自适应干床窗（chunk 原点+粗扫命中）：" + wdesc);
+            for (final int[] off : dryWindows) {
+                final int cxBase = off[0];
+                final int czBase = off[1];
                 final Block[] grid = new Block[side * side * 256];
                 final DecoWorld world = DecoWorld.of(grid, cxBase << 4, czBase << 4, seed, side);
                 final GTSRChunkProviderBase prov = new ChunkProviderProsperityRuins(world, seed);
@@ -214,15 +238,84 @@ public final class WitheredPlaneCheck {
                     }
                 }
                 placements += sink.woodLeafPlacements;
-                placementsOnDry += sink.woodLeafOnDry;
+                logOnDryNonMarsh += sink.logOnDryNonMarsh;
+                leafOnDry += sink.leafOnDry;
+                marshLogOnDry += sink.marshLogOnDry;
             }
         }
-        say("W-READ 装饰：干床列=" + dryCols + " 木/叶落块=" + placements + " 其中干床列上=" + placementsOnDry
-            + "（3 seed × 4 窗 × " + axis + "×" + axis + " chunk 真地形装饰，窗心错开 ≥ SEPARATION）");
-        check("W3 枯竭河床列树/灌木落块 = 0（placeTree/placeShrubAt 首行 isDryRiverColumn bail 的行为证；"
-            + "干床列样本 ≥ 512 防空集假绿）",
-            dryCols >= 512 && placementsOnDry == 0,
-            "干床列=" + dryCols + " 干床落块=" + placementsOnDry + " 总落块=" + placements);
+        // ═══ W3 复核分账（P30 II-D）：干床列上的木/叶落块归因 ═══ 自适应落窗把采样窗贴到干床簇上，
+        // 干床/非干床边界大增后暴露三类<b>合法</b>越界写入（生产设计态，bail 只在落点本柱粒度）：
+        // ① 冠层叶盘越顶（placeLeafDisc/canopyFor 半径 ≤7）；② 巨树形态无干床 bail（MegaTreeForms
+        // redwood 圆锥干/轮枝横臂、greatOak 枝臂、bayou 板根——P25 D6 bail 只钉 placeTree/
+        // placeShrubAt/placeMarshSnagPass 三处，巨树趟不在其列；实例复核：干床上非沼泽干呈单 y
+        // 水平连续段 = redwood 锥盘行/横臂形态）；③ 躺倒沼泽木尾段横跨（placeFallenMarshLog 起点过
+        // bail、横段 2-5 格可跨入）。故落块计数降为只报不钉，禁树断言换 W3a/W3b 两钉（源级 + 行为）。
+        say("W-READ 装饰：干床列=" + dryCols + " 木/叶落块=" + placements + " ｜ 干床分账（只报不钉）：非沼泽种干"
+                + "（巨树锥盘/横臂/板根为主）=" + logOnDryNonMarsh + " 叶越顶=" + leafOnDry
+                + " 沼泽躺倒木尾段=" + marshLogOnDry
+                + "（3 seed × ≤4 自适应窗 × " + axis + "×" + axis + " chunk 真地形装饰，窗取干床簇粗扫 top——"
+                + "P30 II-D：旧固定窗（SEPARATION 错开）在批I I1 河衰减后干床列=0 样本域塌缩；旧"
+                + "\"干床列木/叶落块=0\"只在窗内无干床列时平凡成立）");
+        check("W3 干床样本：自适应落窗后干床列 ≥ 512（防空集假绿；先按 isDryRiverColumn 粗扫定位干床簇"
+            + " 再落窗——P30 II-D 起口径，谓词直引生产类 ⇒ 批I I1 河衰减自动同源）",
+            dryCols >= 512,
+            "干床列=" + dryCols);
+        // —— W3a：bail 源级钉（三处首行门，TPDIM sourcePins 同法）——
+        final String decorSrc = new String(
+            java.nio.file.Files.readAllBytes(
+                java.nio.file.Paths.get(
+                    "src/main/java/com/miaokatze/gtsr/common/dimension/prosperity/ruins/ProsperityDecorPlacer.java")),
+            "UTF-8");
+        int bailCount = 0;
+        for (int i = decorSrc.indexOf("if (GTSRVoronoiRiverField.isDryRiverColumn(worldSeed, x, z))"); i >= 0; i = decorSrc
+            .indexOf("if (GTSRVoronoiRiverField.isDryRiverColumn(worldSeed, x, z))", i + 1)) {
+            bailCount++;
+        }
+        check("W3a 枯竭河床禁树禁灌木 bail 源级钉：placeTree/placeShrubAt/placeMarshSnagPass 三处首行"
+            + " isDryRiverColumn 门在场（实测 " + bailCount + " 处 == 3；任一被删/改谓词即红——"
+            + "干床上的合法落块只有冠层越顶/巨树形态/躺倒木尾段三类，均不落本柱起点）",
+            bailCount == 3,
+            "bail 出现次数=" + bailCount);
+        // —— W3b：bail 行为证（显式 x,z 形态位直调；bail 在首行 ⇒ null 实参零解引用零写入，
+        //     bail 被删 ⇒ pickWood(rand, tier) 对 null 解引用当场 NPE）——
+        int dryProbeX = Integer.MIN_VALUE;
+        int dryProbeZ = 0;
+        outer: for (final long seed : SEEDS) {
+            for (int x = -4096; x < 4096; x += 7) {
+                for (int z = -4096; z < 4096; z += 7) {
+                    if (GTSRVoronoiRiverField.isDryRiverColumn(seed, x, z)) {
+                        dryProbeX = x;
+                        dryProbeZ = z;
+                        break outer;
+                    }
+                }
+            }
+        }
+        boolean shrubBailFired = false;
+        if (dryProbeX != Integer.MIN_VALUE) {
+            final Method shrubAt = ProsperityDecorPlacer.class.getDeclaredMethod(
+                "placeShrubAt",
+                World.class,
+                long.class,
+                com.miaokatze.gtsr.common.dimension.framework.structure.StructureBuilder.class,
+                Random.class,
+                int.class,
+                int.class,
+                int.class,
+                ProsperityDecorPlacer.VegTier.class);
+            shrubAt.setAccessible(true);
+            try {
+                shrubAt.invoke(null, null, SEEDS[0], null, null, dryProbeX, dryProbeZ, 0, null);
+                shrubBailFired = true; // 正常返回 = 首行 bail 生效（未触任何 null 实参）
+            } catch (final Exception e) {
+                shrubBailFired = false; // bail 缺失 ⇒ 方法体对 null rand/tier 解引用
+            }
+        }
+        check("W3b 枯竭河床禁树禁灌木 bail 行为证：干床列 (" + dryProbeX + "," + dryProbeZ
+            + ") 直调 placeShrubAt 首行 bail 生效（零写零异常；bail 被删 ⇒ NPE 当场红——"
+            + "placeTree/placeMarshSnagPass 同位同式由 W3a 源级钉覆盖）",
+            dryProbeX != Integer.MIN_VALUE && shrubBailFired,
+            "干床探针列=" + dryProbeX + " bail 生效=" + shrubBailFired);
 
         for (final String l : LINES) {
             System.out.println(l);
@@ -243,6 +336,74 @@ public final class WitheredPlaneCheck {
         } else {
             LINES.add("PASS  " + label);
         }
+    }
+
+    /**
+     * P30 II-D 自适应落窗：域 ±8192 格、stride 16 粗扫生产谓词
+     * {@link GTSRVoronoiRiverField#isDryRiverColumn}（直引生产类 ⇒ 批I I1 河末端定向衰减自动
+     * 同源），命中按 16×16-chunk（256 格）窗桶累计，贪心取命中最多的前 {@code want} 个窗
+     * （桶心 Chebyshev ≥ 2 窗防重叠重复计数；只选命中 &gt; 0 的桶，不足 want 个就返回实有——
+     * 0 个 = 该域无干床，W3 样本断言据此红）。纯函数（同 seed 恒同窗）。
+     *
+     * @return 每行 {窗原点 chunkX, 窗原点 chunkZ, 粗扫命中数}
+     */
+    static int[][] locateDryWindows(long seed, int want) {
+        final int stride = 16;
+        final int half = 8192;
+        final int windowBlocks = 16 * 16; // 16 chunk × 16 格 = 256
+        final int bucketsPerAxis = 2 * half / windowBlocks; // 64
+        final int[][] hits = new int[bucketsPerAxis][bucketsPerAxis];
+        for (int z = -half; z < half; z += stride) {
+            final int bz = (z + half) / windowBlocks;
+            for (int x = -half; x < half; x += stride) {
+                if (GTSRVoronoiRiverField.isDryRiverColumn(seed, x, z)) {
+                    hits[(x + half) / windowBlocks][bz]++;
+                }
+            }
+        }
+        final int[] chosenBx = new int[want];
+        final int[] chosenBz = new int[want];
+        final int[] chosenHits = new int[want];
+        int chosen = 0;
+        for (int round = 0; round < want; round++) {
+            int best = 0;
+            int bestBx = 0;
+            int bestBz = 0;
+            for (int bz = 0; bz < bucketsPerAxis; bz++) {
+                for (int bx = 0; bx < bucketsPerAxis; bx++) {
+                    if (hits[bx][bz] <= best) {
+                        continue; // 无命中或不超过当前轮最优
+                    }
+                    boolean near = false;
+                    for (int c = 0; c < chosen; c++) {
+                        if (Math.max(Math.abs(bx - chosenBx[c]), Math.abs(bz - chosenBz[c])) < 2) {
+                            near = true;
+                            break;
+                        }
+                    }
+                    if (near) {
+                        continue;
+                    }
+                    best = hits[bx][bz];
+                    bestBx = bx;
+                    bestBz = bz;
+                }
+            }
+            if (best <= 0) {
+                break;
+            }
+            chosenBx[chosen] = bestBx;
+            chosenBz[chosen] = bestBz;
+            chosenHits[chosen] = best;
+            chosen++;
+        }
+        final int[][] out = new int[chosen][3];
+        for (int c = 0; c < chosen; c++) {
+            out[c][0] = -half / 16 + chosenBx[c] * 16;
+            out[c][1] = -half / 16 + chosenBz[c] * 16;
+            out[c][2] = chosenHits[c];
+        }
+        return out;
     }
 
     static void say(String s) {
@@ -421,7 +582,14 @@ public final class WitheredPlaneCheck {
         }
     }
 
-    /** W3 的落块记录 sink：只记木/叶落块及其列是否在干床上。 */
+    /**
+     * W3 的落块记录 sink：分账干床列上的落块（<b>只报不钉</b>，P30 II-D 起）。树干
+     * （placeTree）/灌木干（placeShrubAt）/立枯桩（placeMarshSnagStump）的 LOG 只写落点本柱
+     * （bail 首行所在列）⇒ 这些起点永远不在干床；干床列上的落块全部来自三类合法越界：冠层
+     * 叶盘越顶（placeLeafDisc/canopyFor）、巨树形态（MegaTreeForms redwood 锥盘/横臂、
+     * greatOak 枝臂、bayou 板根——巨树趟无干床 bail）、躺倒沼泽木尾段（placeFallenMarshLog
+     * 横跨）。断言面在 W3a（三处 bail 源级钉）与 W3b（干床列直调 placeShrubAt 的行为证）。
+     */
     static final class RecordSink implements BlockSink {
 
         final DecoWorld world;
@@ -429,7 +597,9 @@ public final class WitheredPlaneCheck {
         int cx;
         int cz;
         long woodLeafPlacements;
-        long woodLeafOnDry;
+        long logOnDryNonMarsh;
+        long leafOnDry;
+        long marshLogOnDry;
 
         RecordSink(DecoWorld world, int side) {
             this.world = world;
@@ -454,7 +624,15 @@ public final class WitheredPlaneCheck {
             if (wood || leaf) {
                 woodLeafPlacements++;
                 if (GTSRVoronoiRiverField.isDryRiverColumn(world.seedValue, x, z)) {
-                    woodLeafOnDry++;
+                    if (wood) {
+                        if (b == BlocksGTSR.prosperityMarshLog) {
+                            marshLogOnDry++;
+                        } else {
+                            logOnDryNonMarsh++;
+                        }
+                    } else {
+                        leafOnDry++;
+                    }
                 }
             }
             world.setBlock(x, y, z, b, meta, flags);

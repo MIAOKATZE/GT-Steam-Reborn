@@ -61,8 +61,11 @@ import com.miaokatze.gtsr.common.dimension.prosperity.river.GTSRVoronoiRiverFiel
  * （s≥WET_MIN 即激活段——段激活门在 strengthAt 内），断言带（档数 ≤3 ∧ 份额 ≥1/2）与
  * v1.20.40 原钉一字不动）</b>：H1 同 segKey 河核列 poolLevelAt 档数 ≤3 且最高池份额 ≥1/2
  * （分段水位阶梯的纯函数性——置水死后池水位仍是床面/端面收尾的段界参考面）；H2 端面收尾
- * 沿顺流剖面逐列床高差 ≤ 2（smoothstep 构造 ≤1/列；锚点域 = trunk&gt;0 ∧ s≥WET_MIN 列
- * ——bedFromPool 端面入口门同式，P23 后端面收尾只承载床形观感不再防水墙）。</li>
+ * 沿顺流剖面逐列床高差 ≤ 2（<b>P30-III-1a（v1.20.53 批I 后）锚点域重钉</b>：I1 死邻衰减把
+ * 端面从"段界换段面"搬进"结点向衰减带"——原 trunk&gt;0 ∧ s≥WET_MIN 端面入口锚衰减后样本 0
+ * （空集红），新锚 = 三叉结点向 s&lt;{@code DRY_RIVERBED_CORE}→≥WET_MIN 衰减带径向剖面；
+ * smoothstep 构造 ≤1/列的旧语义由 I1 t₁/t₂ 衰减承载，床口径 bedFromPool 照旧、池阶列按
+ * poolLevelAt javadoc 的段间差 ∈ {0,2,4} 设计域排除判据只报读数——细则见 groupH javadoc）。</li>
  * <li><b>I 沼泽河床残潭：<b>已整组退役（P25 D7，对齐生产 RVF swampRiverPoolAt 族删除）</b></b>——
  * I1~I4 四断言与采样几何（POOL_HUNT/POOL_WINDOWS/poolBarrier）随 {@code swampRiverPoolAt}/
  * {@code SWAMP_RIVER_POOL_FILL_TOP} 符号删除整段摘除（缺源即 javac 红窗，纪律同 S1 的 SanzuTrunk
@@ -282,10 +285,28 @@ public final class RiverMorphologyCheck {
     static final int TRUNK_HUNT_STRIDE = (int) (GTSRVoronoiRiverField.SEPARATION / 16);
     /** 遗忘之川域细扫步距（格）：SCAN_STRIDE×2 = 16（旧 H1 采样步距同一派生；sanzu 水道半宽 ~17 格 > 步距 ⇒ 河核不会被跳空）。 */
     static final int TRUNK_DOM_STRIDE = SCAN_STRIDE * 2;
-    /** 端面锚点膨胀外扩（列）：12 ≥ 细扫步距的对角半距 16/√2 ≈ 11.3 ⇒ 湿域内任意列到最近湿样本 ≤ 本值（湿域列分辨率完备覆盖）。 */
-    static final int FACE_DILATION = 12;
-    /** 切向估计的 wet 连续延伸上限（列）：12×END_FACE_LEN = 48 &gt; sanzu 水道半宽 ~17 ⇒ 顺河向（数百格截断于本上限）与横向（~17 格截断）可分辨。 */
-    static final int TANGENT_RUN_CAP = 12 * GTSRVoronoiRiverField.END_FACE_LEN;
+    // ── P30-III-1a（v1.20.53 批I 后重锚）H2 衰减带剖面几何常量（派生式）──────────────────
+    // 旧 FACE_DILATION=12 / TANGENT_RUN_CAP=48 随旧锚点域（trunk>0 ∧ s≥WET_MIN 端面入口列
+    // + 切向面探针）整体退役删除——I1 死邻衰减把 s≥WET_MIN 等值线拉离段界数十格，8 邻
+    // "换段 ∧ 枯竭"面判与切向 k≤END_FACE_LEN 探针双双永假（批I 收口实测 axisCand=0、
+    // walks=0 的空集红），登记见 groupH javadoc 的 P30-III-1a 段。
+    /**
+     * H2 衰减带外向走步数上限（列）：SEPARATION/6 = 175。端面几何中心 = 三叉结点（t₁/t₂ 的
+     * r→0 处），s 从段内值降到 {@link GTSRVoronoiRiverField#DRY_RIVERBED_CORE} 的实测带
+     * 外沿 ≤ ~120 格（TAPER_DEAD=0.20 的 r 域换算 × warp 压缩，批I 后探针实测带宽
+     * 2-47 列）⇒ 175 覆盖带外沿 + 死侧起点余量。
+     */
+    static final int H2_WALK_CAP = (int) (GTSRVoronoiRiverField.SEPARATION / 6);
+    /**
+     * H2 贴脊再居中搜索半窗（列）：8 ≥ 常态水道半宽实测 p90=7（B1 带读数）——剖面走在
+     * border 脊（c≈0）上，横向偏移超出水道半宽即入谷壁混核列。
+     */
+    static final int H2_SNAP = 8;
+    /**
+     * H2 贴脊每步横向位移上限（列）：2——防再居中一跳跨池阶/谷壁造伪 Δ（探针对照：无此
+     * 限的 |Δbed| 伪读 4.00 出自同位振荡跳列；受限后池恒定 run 内 |Δbed| ≤ 0.20）。
+     */
+    static final int H2_TRACK = 2;
     // ── 残潭组（I 组）猎取几何常量：已随 P25 D7 残潭退役整组删除（登记见 groupJ javadoc）──
 
     /** 名册下标（0 锈蚀草原 / 1 齿轮森林 / 2 黄铜荒漠 / 3 喷气沼泽）。 */
@@ -1091,21 +1112,21 @@ public final class RiverMorphologyCheck {
     // wet 列，水面类断言（F2/H1 旧口径/H2 旧锚）整体换域，锚点定位无消费者即删。
 
     /**
-     * 激活段域一趟细扫（H1/H2/F3 共用，P23 R1·S6 重锚）：±{@link #SCAN_EXTENT} 步
-     * {@link #TRUNK_DOM_STRIDE}。档口径 roster 0（poolLevelAt 只吃档表 bedTarget，常态 64.5）。
-     * 采集四类量：<b>河核列</b>（s≥WET_MIN——段激活门在 strengthAt 内 ⇒ 河核列天然 ⊂ 激活段；
-     * H1 分母）、<b>端面锚样本</b>（s≥WET_MIN ∧ trunk&gt;0——bedFromPool 端面入口门同式；
-     * H2 的膨胀源）、<b>逐 segKey 池档直方图</b>（H1）、<b>逐 segKey 是否出现 s&gt;0 采样列</b>
+     * 激活段域一趟细扫（H1/F3 共用，P23 R1·S6 重锚；P30-III-1a 起 H2 改结点站位自采、
+     * 不再消费本域）：±{@link #SCAN_EXTENT} 步 {@link #TRUNK_DOM_STRIDE}。
+     * 档口径 roster 0（poolLevelAt 只吃档表 bedTarget，常态 64.5）。
+     * 采集三类量：<b>河核列</b>（s≥WET_MIN——段激活门在 strengthAt 内 ⇒ 河核列天然 ⊂ 激活段；
+     * H1 分母）、<b>逐 segKey 池档直方图</b>（H1）、<b>逐 segKey 是否出现 s&gt;0 采样列</b>
      * （F3 段激活率的行为读数：激活段的河谷域 c&lt;WIDTH 带 ≈±15 格 × 边长 ~600 格 ⇒ stride-8
      * 网格期望 ~280 命中，漏检概率 ≈ e^−280 ⇒ 「段内任一采样列 s&gt;0」与门值逐段等价）。
+     * 〔P30-III-1a 删面登记：旧第四类量「端面锚样本」（s≥WET_MIN ∧ trunk&gt;0，H2 膨胀扫描
+     * 源）随 H2 锚点域换结点站位退役——I1 衰减后该域与端面几何脱钩（见 groupH javadoc）。〕
      */
     static final class TrunkDomain {
         /** 域内河核列（s≥WET_MIN ⇒ 激活段）数（H1 分母）。 */
         long coreCols;
         /** H1：河核列按 segKey 分组后的段内池档直方图。 */
         final HashMap<Long, HashMap<Integer, int[]>> segPools = new HashMap<Long, HashMap<Integer, int[]>>();
-        /** 细扫网格上的端面锚样本（s≥WET_MIN ∧ trunk>0；H2 膨胀扫描的源）。 */
-        final HashSet<Long> endFaceSamples = new HashSet<Long>();
         /** F3：窗内全部唯一 segKey（含未激活段）。 */
         final HashSet<Long> segKeys = new HashSet<Long>();
         /** F3：其中出现 s&gt;0 采样列的段（行为激活）。 */
@@ -1126,9 +1147,6 @@ public final class RiverMorphologyCheck {
                     continue;
                 }
                 dom.coreCols++;
-                if (GTSRVoronoiRiverField.trunkAt(SEED, x, z) > 0.0D) {
-                    dom.endFaceSamples.add(Long.valueOf(((long) x << 32) ^ (z & 0xFFFFFFFFL)));
-                }
                 final int pool = GTSRVoronoiRiverField.poolLevelAt(SEED, x, z, 0);
                 HashMap<Integer, int[]> hist = dom.segPools.get(Long.valueOf(key));
                 if (hist == null) {
@@ -1145,40 +1163,58 @@ public final class RiverMorphologyCheck {
         return dom;
     }
 
-    /**
-     * 端面入口门谓词（bedFromPool 的同式：trunk&gt;0 ∧ s≥WET_MIN——P23 R1·S6 起 wetAt 恒 false，
-     * 本谓词是端面收尾仍会求值的唯一列域）。
-     */
-    static boolean endFaceCoreAt(int x, int z) {
-        return GTSRVoronoiRiverField.trunkAt(SEED, x, z) > 0.0D
-            && -GTSRVoronoiRiverField.strengthAt(SEED, x, z, 0) >= GTSRVoronoiRiverField.WET_MIN;
-    }
+    // ══════════════════════ P30-III-1a：H2 衰减带端面站位（三叉结点）══════════════════════
+
+    // 删面登记（P30-III-1a）：旧 H2 锚点机械三件——endFaceCoreAt（trunk>0 ∧ s≥WET_MIN 端面
+    // 入口门谓词）、tangentAt（16 方向 wet 延伸最长切向估计）、hasDepletionFace（8 邻/切向
+    // "换段 ∧ 枯竭"面判）——随锚点域换结点站位整段退役删除：I1 死邻衰减把 s≥WET_MIN 等值线
+    // 拉离段界数十格（衰减带内 s 已 <WET_MIN），"湿核列 8 邻见换段枯竭列"与"切向
+    // k≤END_FACE_LEN=4 内见面"双双结构性永假（批I 收口 axisCand=0 ⇒ walks=0 空集红，
+    // 非行为红）。生产侧 endFaceBed 的面探测同因永假而惰化（bedFromPool 返回值与无端面
+    // 列同式——衰减带内床恒 pool−depth+n_bed，探针实测带宽 9-18 列的带内 bed 全程平直，
+    // 详见 temp/p30-iiia 探针归档），端面收尾语义由 I1 t₁/t₂ 衰减在 heightCore 的 s 位承载。
 
     /**
-     * 本列处河流<b>切向</b>的估计（16 方向里端面入口域连续延伸最长者；生产 = 边界法向旋转 90°，
-     * {@code endFaceBed} 的面探测方向——法向出口包私有，判据侧以延伸最长向近似，偏差 ≤ ±11.25°）。
+     * H2 端面站位采集（P30-III-1a 新锚）：E1 同式三叉点检测（2×2 角最近细胞 ≥3 个）扫
+     * ±{@link #SCAN_EXTENT} 步 {@link #FORK_STRIDE}，站位取块心、2×{@link #FORK_STRIDE}
+     * Chebyshev 去重（结点邻域 ±~30 格会被步距 16 的相邻块多次命中）。
+     * <p>
+     * 为什么锚结点：I1 死邻衰减的端面几何中心 = 三叉结点（t₁/t₂ 的 r=(d3−dC)/d3→0 处）——
+     * 活段沿 border 走向结点，s 由段内值 smoothstep 渐灭；端面（衰减带）= 结点向
+     * s ∈ [{@link GTSRVoronoiRiverField#DRY_RIVERBED_CORE}, {@link GTSRVoronoiRiverField#WET_MIN})
+     * 的过渡带。纯场量定位（nearestCellHash 与 strengthAt 同源 warp），零公式复刻。
      */
-    static double[] tangentAt(int x, int z) {
-        double bestTx = 1.0D;
-        double bestTz = 0.0D;
-        int bestRun = -1;
-        for (int a = 0; a < 16; a++) {
-            final double tx = Math.cos(a * Math.PI / 8.0D);
-            final double tz = Math.sin(a * Math.PI / 8.0D);
-            int run = 0;
-            for (int k = 1; k <= TANGENT_RUN_CAP; k++) {
-                if (!endFaceCoreAt(x + (int) Math.round(tx * k), z + (int) Math.round(tz * k))) {
-                    break;
+    static List<int[]> scanEndFaceSites() {
+        final List<int[]> sites = new ArrayList<int[]>();
+        for (int z = -SCAN_EXTENT; z <= SCAN_EXTENT; z += FORK_STRIDE) {
+            for (int x = -SCAN_EXTENT; x <= SCAN_EXTENT; x += FORK_STRIDE) {
+                final long h00 = cellHash(x, z);
+                final long h10 = cellHash(x + FORK_STRIDE, z);
+                final long h01 = cellHash(x, z + FORK_STRIDE);
+                final long h11 = cellHash(x + FORK_STRIDE, z + FORK_STRIDE);
+                final HashSet<Long> distinct = new HashSet<Long>(4);
+                distinct.add(Long.valueOf(h00));
+                distinct.add(Long.valueOf(h10));
+                distinct.add(Long.valueOf(h01));
+                distinct.add(Long.valueOf(h11));
+                if (distinct.size() < 3) {
+                    continue;
                 }
-                run = k;
-            }
-            if (run > bestRun) {
-                bestRun = run;
-                bestTx = tx;
-                bestTz = tz;
+                final int cx = x + FORK_STRIDE / 2;
+                final int cz = z + FORK_STRIDE / 2;
+                boolean dup = false;
+                for (final int[] p : sites) {
+                    if (Math.abs(p[0] - cx) <= 2 * FORK_STRIDE && Math.abs(p[1] - cz) <= 2 * FORK_STRIDE) {
+                        dup = true;
+                        break;
+                    }
+                }
+                if (!dup) {
+                    sites.add(new int[] { cx, cz });
+                }
             }
         }
-        return new double[] { bestTx, bestTz };
+        return sites;
     }
 
     // ══════════════════════ F 枯竭验证（v1.20.42 P22 A1c 重立） ══════════════════════
@@ -1339,18 +1375,37 @@ public final class RiverMorphologyCheck {
      * 〔旧全域口径原文：「H-READ 池水位水平：湿核列=3133 段=101 …（±SCAN_EXTENT 步距 16 全域
      * 湿核列）」——枯竭后该 3133 列全部无水，其池水位只是段界参考面，读数保留在 v1.20.41 判据
      * 归档，不再采样〕；</li>
-     * <li><b>H2 端面渐变</b>（U34 遗留① 的顺流口径；面 A 判据 = 邻列换段 ∧（trunkAt≤0 ∨
-     * s&lt;WET_MIN，s 含段激活门——未激活段邻列 s=0 天然判枯竭），{@code endFaceBed} 同判式）：
-     * 端面列的床收尾，沿面向段内的
-     * <b>顺流剖面</b>逐列床高差 ≤ 2——endFaceBed 的 smoothstep 抬升式每列 ≤ (target−bed)/2 ≪ 2
-     * （U34 探针 P5：沿程剖面 ≤1/列）。段界斜交尖端的<b>横向</b>邻列小槛（同探针 2/80 的已知
-     * 遗留）不在顺流口径内。<b>锚点采样（P22 A1c 换两段式）</b>：枯竭端面在主干带长直几何下
-     * 结构性稀少（湿段端只在带缘/结点失准处）——旧 stride-8 盲扫实测 walks=3/0/1 随网格相位
-     * 乱跳（探针 {@code plan/tmp/p22-a1c/probe.out}）；本片改「湿样本膨胀（±
-     * {@link #FACE_DILATION} ⇒ 湿域列分辨率完备）→ 切向面探针（镜像 endFaceBed 的 ±切向
-     * k=1..LEN 判式）→ dist=1 抬满锚点」，读数与生产抬升带对齐（轴 8 邻面检测在枯竭世界的
-     * 3 处假阳已证伪：锚点 bed=pool−0.5 恰是生产 dist=1 抬满值，但轴方向面 ≠ 生产切向面，
-     * 见 {@code plan/tmp/p22-a1c/probe3/4}）。</li>
+     * <li><b>H2 端面渐变</b>〔<b>P30-III-1a（v1.20.53 批I 后）锚点域整体重钉</b>——原口径
+     * （U34 遗留① 顺流面 A 判据 = 邻列换段 ∧（trunkAt≤0 ∨ s&lt;WET_MIN），{@code endFaceBed}
+     * 同判式 + 「湿样本膨胀 → 切向面探针 → dist=1 抬满锚点」两段式）随 I1 死邻衰减<b>结构性
+     * 退役</b>：衰减把 s≥WET_MIN 等值线拉离段界数十格（带内 s 已 &lt;WET_MIN），"湿核列 8 邻见
+     * 换段枯竭列"永假 ⇒ 批I 收口实测 axisCand=0、walks=0 的<b>空集红</b>（0/0 非行为红）。
+     * 端面收尾的原语义（P19 §B smoothstep 床收尾）由 <b>I1 的 t₁/t₂ 衰减在 heightCore 的
+     * s 位承载</b>——床收尾观感腿（endFaceBed）的抬升带探测同因永假而惰化（衰减带内床恒
+     * pool−depth+n_bed，带宽 9-18 列的带内 bed 全程平直，temp/p30-iiia 探针在案）。新口径：
+     * <b>锚 = 三叉结点站位</b>（{@link #scanEndFaceSites}）× 16 方向，资格 = 死侧起点
+     * （r={@link #FORK_STRIDE} 含 ±{@link #H2_SNAP} 横窗 sMax &lt; {@code DRY_RIVERBED_CORE}）
+     * ∧ {@link #H2_WALK_CAP} 内升过 WET_MIN——即"活段向死邻段方向"的 s 从 ≥WET_MIN 降到
+     * &lt;{@code DRY_RIVERBED_CORE} 的沿程过渡带（反向遍历）；<b>剖面 = 贴脊外向走</b>（每步
+     * 前进 1 列 + 横向跟踪窗 |Δoff| ≤ {@link #H2_TRACK} 的 max-s 再居中，防跳池阶/谷壁的
+     * 伪 Δ）取 [i₄₀−1, i₇₈+3] 列（i₄₀/i₇₈ = s 过 {@code DRY_RIVERBED_CORE}/WET_MIN 的
+     * 首列）；<b>床高口径照旧 = bedAt（bedFromPool）</b>，全剖面 lake−shore ≥
+     * {@code LAKE_FADE}（t_lake=1，纯 B1 死邻腿——湖让位外沿 fade 属湖岸域另册）。
+     * <b>池阶列（poolLevelAt 变列）排除判据、只报读数</b>：结点裁决量化步是 P19 §C 设计域
+     * （poolLevelAt javadoc 自陈"段间差 ∈ {0,2,4}"，H1 已钉档数 ≤3；批I 前该列在端面后
+     * END_FACE_LEN−1=3 列的采样窗外，重钉后长剖面穿见 ⇒ 非端面形态量）——实测带内池阶
+     * |Δpool| ∈ {2,4}、|Δbed−|Δpool|| ≤ 0.12。池恒定 run 内逐列床高差 ≤ 2 断言带与
+     * v1.20.40 原钉一字不动。〔只报不钉的地面侧读数：heightAt 沿同剖面的逐列差最坏
+     * 3-6（谷形闭合的 s-blend 斜率 × 池阶 × relief 噪声的共址叠加，带宽由 TAPER_DEAD
+     * 定）——它不是床收尾量、也不在 ≤2 原带内，读数留档供主代理裁决是否另立地面侧判据。〕
+     * 旧口径原文（P22 A1c 两段式锚点采样）归档：「枯竭端面在主干带长直几何下结构性稀少
+     * （湿段端只在带缘/结点失准处）——旧 stride-8 盲扫实测 walks=3/0/1 随网格相位乱跳
+     * （探针 {@code plan/tmp/p22-a1c/probe.out}）；本片改「湿样本膨胀（±FACE_DILATION ⇒
+     * 湿域列分辨率完备）→ 切向面探针（镜像 endFaceBed 的 ±切向 k=1..LEN 判式）→ dist=1
+     * 抬满锚点」，读数与生产抬升带对齐（轴 8 邻面检测在枯竭世界的 3 处假阳已证伪：锚点
+     * bed=pool−0.5 恰是生产 dist=1 抬满值，但轴方向面 ≠ 生产切向面，见
+     * {@code plan/tmp/p22-a1c/probe3/4}）」。段界斜交尖端的横向邻列小槛（U34 遗留）仍不在
+     * 顺流口径内。</li>
      * </ul>
      */
     static void groupH(TrunkDomain dom) {
@@ -1383,117 +1438,170 @@ public final class RiverMorphologyCheck {
             + "床阶语义留、置水断言删），断言带与 v1.20.40 原钉一字不动）",
             dom.segPools.size() >= H1_SEGS_MIN && segsOverLevels == 0 && worstMaxShare >= 0.5D,
             "段=" + dom.segPools.size() + " 档数最坏=" + worstLevels + " 最高池份额最坏=" + f3(worstMaxShare));
-        // —— H2 端面渐变（顺流剖面逐列床高差 ≤ 2；两段式锚点采样，见方法 javadoc）——
-        // 1) 轴面候选：端面锚样本（trunk>0 ∧ s≥WET_MIN）膨胀 ±FACE_DILATION 内、8 邻存在
-        // "换段 ∧ 枯竭"邻列的端面入口列（去重）。P23 R1·S6：wetAt 恒 false ⇒ 锚点域换
-        // bedFromPool 端面入口门同式（endFaceCoreAt）。
-        final HashSet<Long> axisCand = new HashSet<Long>();
-        for (final long key : dom.endFaceSamples) {
-            final int sx = (int) (key >> 32);
-            final int sz = (int) key;
-            for (int dz = -FACE_DILATION; dz <= FACE_DILATION; dz++) {
-                for (int dx = -FACE_DILATION; dx <= FACE_DILATION; dx++) {
-                    final int x = sx + dx;
-                    final int z = sz + dz;
-                    if (!endFaceCoreAt(x, z)) {
-                        continue;
-                    }
-                    if (hasDepletionFace(x, z, null)) {
-                        axisCand.add(Long.valueOf(((long) x << 32) ^ (z & 0xFFFFFFFFL)));
+        // —— H2 端面渐变（P30-III-1a 重锚：衰减带内端面·结点径向顺流剖面逐列床高差 ≤ 2，
+        // 两段式 = 结点站位 × 16 方向资格探针 + 贴脊外向走剖面，见方法 javadoc）——
+        final List<int[]> sites = scanEndFaceSites();
+        int walks = 0;
+        int noExit = 0;
+        int lakeExcl = 0;
+        int badPairs = 0;
+        int poolSteps = 0;
+        int worstPoolStep = 0;
+        double worst = 0.0D; // 池恒定 run 内 |Δbed|（判据量）
+        double worstPoolNoise = 0.0D; // 池阶列 |Δbed − |Δpool||（设计域读数量）
+        double worstTerrain = 0.0D; // heightAt 逐列差（地面侧只报不钉的形态读数）
+        int bandMin = Integer.MAX_VALUE;
+        int bandMax = 0;
+        long bandSum = 0;
+        for (final int[] j : sites) {
+            for (int a = 0; a < 16; a++) {
+                final double tx = Math.cos(a * Math.PI / 8.0D);
+                final double tz = Math.sin(a * Math.PI / 8.0D);
+                final double px = -tz;
+                final double pz = tx;
+                // 1) 资格探针：死侧起点（r=FORK_STRIDE 含 ±H2_SNAP 横窗步 2 的 sMax <
+                // DRY_RIVERBED_CORE——结点处 s≈0，邻边皆活的方向此处已 ≥ 阈）∧ CAP 内
+                // （r 每 +2×FORK_STRIDE 复探一次横窗）升过 WET_MIN ⇒ 该向有衰减带。
+                double sNear = 0.0D;
+                for (int off = -H2_SNAP; off <= H2_SNAP; off += 2) {
+                    sNear = Math.max(sNear, s(j[0] + (int) Math.round(tx * FORK_STRIDE + px * off),
+                        j[1] + (int) Math.round(tz * FORK_STRIDE + pz * off)));
+                }
+                if (sNear >= GTSRVoronoiRiverField.DRY_RIVERBED_CORE) {
+                    continue;
+                }
+                boolean rises = false;
+                for (int r = FORK_STRIDE; r <= H2_WALK_CAP && !rises; r += 2 * FORK_STRIDE) {
+                    for (int off = -H2_SNAP; off <= H2_SNAP && !rises; off += 2) {
+                        if (s(j[0] + (int) Math.round(tx * r + px * off),
+                            j[1] + (int) Math.round(tz * r + pz * off)) >= GTSRVoronoiRiverField.WET_MIN) {
+                            rises = true;
+                        }
                     }
                 }
-            }
-        }
-        // 2) 切向面探针（镜像 endFaceBed）+ dist=1 抬满锚点 + 顺流剖面。
-        int walks = 0;
-        int badPairs = 0;
-        double worst = 0.0D;
-        for (final long key : axisCand) {
-            final int x = (int) (key >> 32);
-            final int z = (int) key;
-            final double[] tan = tangentAt(x, z);
-            // 面探针：±切向 k=1..END_FACE_LEN 找"换段 ∧ 枯竭"邻列（与 endFaceBed 面 A 同判式）
-            int distSign = 0;
-            int distK = 0;
-            for (int sign = 1; sign >= -1 && distSign == 0; sign -= 2) {
-                for (int k = 1; k <= GTSRVoronoiRiverField.END_FACE_LEN; k++) {
-                    if (hasDepletionFace(x, z, new int[] { (int) Math.round(tan[0] * k * sign),
-                        (int) Math.round(tan[1] * k * sign) })) {
-                        distSign = sign;
-                        distK = k;
+                if (!rises) {
+                    continue;
+                }
+                // 2) 贴脊外向走（结点 → 活段）：每步前进 1 列 + 横向跟踪窗（|Δoff| ≤ H2_TRACK，
+                // 窗体 ±H2_SNAP）内 max-s 再居中——剖面贴 border 脊（c≈0），不跳池阶/谷壁。
+                final int[] xs = new int[H2_WALK_CAP + 1];
+                final int[] zs = new int[H2_WALK_CAP + 1];
+                final double[] ss = new double[H2_WALK_CAP + 1];
+                final int[] pools = new int[H2_WALK_CAP + 1];
+                xs[0] = j[0];
+                zs[0] = j[1];
+                ss[0] = s(j[0], j[1]);
+                pools[0] = GTSRVoronoiRiverField.poolLevelAt(SEED, j[0], j[1], 0);
+                int prevOff = 0;
+                for (int k = 1; k <= H2_WALK_CAP; k++) {
+                    final int ax = xs[k - 1] + (int) Math.round(tx);
+                    final int az = zs[k - 1] + (int) Math.round(tz);
+                    double best = -1.0D;
+                    int bx = ax;
+                    int bz = az;
+                    int bestOff = prevOff;
+                    for (int off = Math.max(-H2_SNAP, prevOff - H2_TRACK); off <= Math.min(H2_SNAP,
+                        prevOff + H2_TRACK); off++) {
+                        final int qx = ax + (int) Math.round(px * off);
+                        final int qz = az + (int) Math.round(pz * off);
+                        final double v = s(qx, qz);
+                        if (v > best) {
+                            best = v;
+                            bx = qx;
+                            bz = qz;
+                            bestOff = off;
+                        }
+                    }
+                    prevOff = bestOff;
+                    xs[k] = bx;
+                    zs[k] = bz;
+                    ss[k] = best;
+                    pools[k] = GTSRVoronoiRiverField.poolLevelAt(SEED, bx, bz, 0);
+                }
+                int i40 = -1;
+                int i78 = -1;
+                for (int k = 0; k <= H2_WALK_CAP; k++) {
+                    if (i40 < 0 && ss[k] >= GTSRVoronoiRiverField.DRY_RIVERBED_CORE) {
+                        i40 = k;
+                    }
+                    if (ss[k] >= GTSRVoronoiRiverField.WET_MIN) {
+                        i78 = k;
                         break;
                     }
                 }
-            }
-            if (distSign == 0) {
-                continue; // 切向探针不见面 ⇒ 生产不抬（轴面候选假阳——8 邻的面不在生产探测向上）
-            }
-            final int pool = GTSRVoronoiRiverField.poolLevelAt(SEED, x, z, 0);
-            if (distK != 1 || Math.round(GTSRVoronoiRiverField.bedAt(SEED, x, z, 0)) < pool) {
-                continue; // 只在 dist=1 抬满列起剖（旧 H2 同滤：round(bed) ≥ pool ⇔ 抬满到 pool−0.5）
-            }
-            walks++;
-            final long ownKey = GTSRVoronoiRiverField.segKeyAt(SEED, x, z);
-            // 顺流剖面 = 面向的反方向（同一几何直线收进段内）走 END_FACE_LEN−1 列
-            double prev = GTSRVoronoiRiverField.bedAt(SEED, x, z, 0);
-            for (int k = 1; k < GTSRVoronoiRiverField.END_FACE_LEN; k++) {
-                final int nx = x - (int) Math.round(tan[0] * k * distSign);
-                final int nz = z - (int) Math.round(tan[1] * k * distSign);
-                if (-GTSRVoronoiRiverField.strengthAt(SEED, nx, nz, 0) < GTSRVoronoiRiverField.WET_MIN
-                    || GTSRVoronoiRiverField.segKeyAt(SEED, nx, nz) != ownKey) {
-                    break; // 出湿核/出段：剖面只在本段湿核列上判
+                if (i40 <= 0 || i78 < 0 || i78 <= i40) {
+                    noExit++; // 死边向/未及带即止（资格探针的横窗假阳——贴脊线本身不穿过带）
+                    continue;
                 }
-                final double bed = GTSRVoronoiRiverField.bedAt(SEED, nx, nz, 0);
-                final double d = Math.abs(bed - prev);
-                worst = Math.max(worst, d);
-                if (d > 2.0D) {
-                    badPairs++;
-                }
-                prev = bed;
-            }
-        }
-        say("H-READ 端面渐变（端面入口列·切向顺流剖面，P23 R1·S6 锚点域）：轴面候选=" + axisCand.size()
-            + " 剖面数=" + walks + " 逐列 |Δbed|>2 的对=" + badPairs + " 最坏=" + f3(worst));
-        check("H2 干段端面收尾沿顺流剖面逐列床高差 ≤ 2（P19 §B smoothstep 抬升式；U34 遗留① 的"
-            + "横向尖端小槛不在顺流口径内。P23 R1·S6：锚点域换 bedFromPool 端面入口门同式"
-            + "（trunk>0 ∧ s≥WET_MIN——wetAt 恒 false 后端面收尾只承载床形观感），"
-            + "面 A 判据（邻列换段 ∧ 枯竭，s 含段激活门——未激活段邻列天然判枯竭）与"
-            + "「样本膨胀 + 切向面探针」两段式、断言带（剖面数 ≥8 ∧ badPairs=0）"
-            + "与 v1.20.40 原钉一字不动）",
-            walks >= 8 && badPairs == 0, "walks=" + walks + " badPairs=" + badPairs + " worst=" + f3(worst));
-    }
-
-    /**
-     * 本列（offset = null）或本列 + offset 处是否存在<b>枯竭换段面</b>（P22 A1a 的 endFaceBed
-     * 面 A 判据，单一真值口径）：目标列换段（segKey 不同）∧ 枯竭（{@code trunkAt≤0 ∨
-     * s < WET_MIN}，即 wetAt 新门为假）。offset 非 null 时面判在 offset 指向的邻列上、段判仍对
-     * 本列（镜像 endFaceBed 的"从本列沿切向探 k 列"）。
-     */
-    static boolean hasDepletionFace(int x, int z, int[] offset) {
-        final long ownKey = GTSRVoronoiRiverField.segKeyAt(SEED, x, z);
-        if (offset == null) {
-            for (int dz = -1; dz <= 1; dz++) {
-                for (int dx = -1; dx <= 1; dx++) {
-                    if (dx == 0 && dz == 0) {
-                        continue;
-                    }
-                    final int nx = x + dx;
-                    final int nz = z + dz;
-                    if (GTSRVoronoiRiverField.segKeyAt(SEED, nx, nz) != ownKey
-                        && (GTSRVoronoiRiverField.trunkAt(SEED, nx, nz) <= 0.0D
-                            || -GTSRVoronoiRiverField.strengthAt(SEED, nx, nz, 0)
-                                < GTSRVoronoiRiverField.WET_MIN)) {
-                        return true;
+                // 湖纯度：全剖面 t_lake=1（lake−shore ≥ LAKE_FADE）——纯 B1 死邻腿；
+                // 湖让位外沿 fade（B2）与硬腿（3a）造成的 s 下降不属本断言的端面域。
+                boolean lakePure = true;
+                for (int k = i40 - 1; k <= Math.min(H2_WALK_CAP, i78 + 3); k++) {
+                    if (GTSRVoronoiRiverField.lakeAt(SEED, xs[k], zs[k])
+                        - GTSRVoronoiRiverField.sanzuBiomeShoreAt(SEED, xs[k],
+                            zs[k]) < GTSRVoronoiRiverField.LAKE_FADE) {
+                        lakePure = false;
+                        break;
                     }
                 }
+                if (!lakePure) {
+                    lakeExcl++;
+                    continue;
+                }
+                walks++;
+                bandMin = Math.min(bandMin, i78 - i40);
+                bandMax = Math.max(bandMax, i78 - i40);
+                bandSum += i78 - i40;
+                // 3) 逐列床高（bedAt——bedFromPool 口径照旧）：池恒定 run 内 |Δbed| 判 ≤2；
+                // 池阶列（Δpool≠0）排除判据、记 |Δpool| 与 |Δbed−|Δpool|| 读数（P19 §C
+                // 结点裁决设计域，段间差 ∈ {0,2,4}）。heightAt 同剖面只报形态读数。
+                double prevBed = Double.NaN;
+                double prevTerrain = Double.NaN;
+                int prevPool = pools[i40 - 1];
+                for (int k = i40 - 1; k <= Math.min(H2_WALK_CAP, i78 + 3); k++) {
+                    final double bed = GTSRVoronoiRiverField.bedAt(SEED, xs[k], zs[k], 0);
+                    final int terrain = ProsperityTerrainProfile.heightAt(SEED, xs[k], zs[k]);
+                    if (!Double.isNaN(prevBed)) {
+                        final double d = Math.abs(bed - prevBed);
+                        final int dp = pools[k] - prevPool;
+                        if (dp == 0) {
+                            worst = Math.max(worst, d);
+                            if (d > 2.0D) {
+                                badPairs++;
+                            }
+                        } else {
+                            poolSteps++;
+                            worstPoolStep = Math.max(worstPoolStep, Math.abs(dp));
+                            worstPoolNoise = Math.max(worstPoolNoise, Math.abs(d - Math.abs(dp)));
+                        }
+                        worstTerrain = Math.max(worstTerrain, Math.abs(terrain - prevTerrain));
+                    }
+                    prevBed = bed;
+                    prevTerrain = terrain;
+                    prevPool = pools[k];
+                }
             }
-            return false;
         }
-        final int nx = x + offset[0];
-        final int nz = z + offset[1];
-        return GTSRVoronoiRiverField.segKeyAt(SEED, nx, nz) != ownKey
-            && (GTSRVoronoiRiverField.trunkAt(SEED, nx, nz) <= 0.0D
-                || -GTSRVoronoiRiverField.strengthAt(SEED, nx, nz, 0) < GTSRVoronoiRiverField.WET_MIN);
+        say("H-READ 端面渐变（衰减带内端面·结点径向顺流剖面，P30-III-1a 锚点域）：结点站位="
+            + sites.size() + " 剖面数=" + walks + " 不及带=" + noExit + " 湖域排除=" + lakeExcl
+            + " 带宽(列) ∈ [" + (bandMin == Integer.MAX_VALUE ? 0 : bandMin) + "," + bandMax + "] 均值="
+            + f3(walks == 0 ? 0.0D : bandSum / (double) walks) + " 池恒定 run 内 |Δbed| 最坏="
+            + f3(worst) + " 池阶列=" + poolSteps + "（|Δpool| 最坏=" + worstPoolStep
+            + " 阶上床噪声最坏=" + f3(worstPoolNoise) + "——P19 §C 设计域只报不钉）"
+            + " heightAt 同剖面逐列差最坏=" + f3(worstTerrain) + "（地面侧形态读数，不钉）");
+        check("H2 干段端面收尾沿顺流剖面逐列床高差 ≤ 2（P30-III-1a（v1.20.53 批I 后）锚点域重钉："
+            + "I1 死邻衰减把端面从「段界换段面」搬进「结点向衰减带」——原 trunk>0 ∧ s≥WET_MIN "
+            + "端面入口锚 + 8 邻换段枯竭面判在衰减带分隔下结构性空集（批I 收口 walks=0 空集红，"
+            + "非行为红）；原 P19 §B smoothstep 床收尾语义由 I1 t1/t2 衰减在 heightCore 的 s 位"
+            + "承载、endFaceBed 抬升腿同因惰化。新口径：锚 = 三叉结点站位 × 16 向资格探针"
+            + "（死侧起点 sMax<DRY_RIVERBED_CORE ∧ CAP 内升过 WET_MIN），剖面 = 贴脊外向走"
+            + "（横向跟踪窗 |Δoff|≤2 防伪 Δ）[i40−1, i78+3] 列，床高口径照旧 = bedAt，"
+            + "湖纯度门 lake−shore≥LAKE_FADE（纯 B1 死邻腿）；池阶列（poolLevelAt 变列——"
+            + "P19 §C 结点裁决量化步，javadoc 自陈段间差 ∈ {0,2,4}，H1 已钉档数 ≤3）排除判据"
+            + "只报读数。断言带（剖面数 ≥8 ∧ badPairs=0 ∧ 逐列床高差 ≤2）与 v1.20.40 原钉"
+            + "一字不动；U34 遗留① 的横向尖端小槛仍不在顺流口径内）",
+            walks >= 8 && badPairs == 0, "walks=" + walks + " badPairs=" + badPairs + " worst=" + f3(worst)
+                + " 池阶列=" + poolSteps + "(只报)");
     }
 
     // ══════════════════════ J 枯竭河床（P25 D6/D4；I 组残潭已随 D7 退役） ══════════════════════

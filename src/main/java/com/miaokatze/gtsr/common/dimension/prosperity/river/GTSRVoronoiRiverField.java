@@ -427,6 +427,39 @@ public final class GTSRVoronoiRiverField {
      */
     public static final long SALT_RIVER_SEGMENT_GATE = 0x5249F113L;
 
+    // ═════════════════ P30 I1（v1.20.53）：枯竭河末端定向衰减（死邻 taper + 湖腿平滑）═════════════════
+
+    /**
+     * <b>死邻衰减带半宽</b>（border2 c 域比值，P30 I1 新增）：<b>数学式</b>——
+     * {@link #strengthAt} 过 3b 段激活门后，对本列所在边 (A,B) 的两个结点邻边 (A,C)/(B,C)
+     * 各判一次死活（{@code hash01(segKeyOfCells(细胞对) ^ SALT_RIVER_SEGMENT_GATE)
+     * ≥ RIVER_SEGMENT_ACTIVATE_P}——与 3b 门同式同盐同阈，仅细胞对不同）；r₁=(d3−dC)/d3、
+     * r₂=(d3−dN)/d3（两邻边各自的 border2 c 值，{@link BorderEval} 第三近细胞随 c 同次带出），
+     * t₁/t₂ = 死邻 ? s01(r/本值) : 1.0，返回式 ×t₁×t₂。t 带通在 r ≥ 本值处精确 1.0 ⇒
+     * <b>衰减只伸到结点侧 r &lt; 本值的邻带</b>（c 域格宽换算 ≈188×c ⇒ 0.20 档 ≈38 格）。
+     * <p>
+     * <b>活-活零漂守卫</b>：两邻边皆活（!deadAC &amp;&amp; !deadBC）时 strengthAt 直接走原返回式
+     * （不触任何 r/t 计算）——活-活结点 IEEE 逐位零漂。
+     * <p>
+     * <b>事实背景</b>：结点两邻边按 {@link #RIVER_SEGMENT_ACTIVATE_P}=0.20 独立激活 ⇒
+     * 至少一邻死概率 1−0.20² = 0.96（≈九成结点）——活段端头几乎都在死邻处经本带自然渐灭，
+     * 消"枯竭河末端刀切山体"（谷形整深到段界、界外原地形）。<b>校准域 0.10-0.25</b>
+     * （≈19-47 格；0.10 衰减更快更陡、0.25 更缓更长）。
+     */
+    public static final double TAPER_DEAD = 0.20D;
+
+    /**
+     * <b>湖腿平滑带宽</b>（湖压力域，P30 I1 新增）：<b>数学式</b>——过了 3a 湖让位硬腿
+     * （{@code lakeAt < sanzuBiomeShoreAt ⇒ return 0}，硬腿原样保留——湖+滩内 s ≡ 0 的
+     * isSanzuColumn/D6/微池让位语义不动）的列，返回式乘
+     * {@code t_lake = s01((lakeAt − sanzuBiomeShoreAt)/本值)}——硬腿判据处强度恰为 0
+     * （连续衔接腿内恒 0），腿外本值压力带宽内 smoothstep 0→1，湖缘由刀切变渐灭。
+     * 格宽换算（{@link #sanzuBiomeShoreAt} 注的 D_eff 口径）：本值×2670/1.1794 ⇒
+     * 0.02 档 ≈45 格。<b>校准域 0.01-0.06</b>（≈23-136 格）。湖带外（压力差 ≥ 本值）
+     * s01 带通精确 1.0 ⇒ 乘法逐位恒等。
+     */
+    public static final double LAKE_FADE = 0.02D;
+
     // ═════════════════ T5：遗忘之川主干/巨湖（plan §3.3）═════════════════
 
     /**
@@ -1245,6 +1278,27 @@ public final class GTSRVoronoiRiverField {
      * 全灭</b>（heightCore 的 {@code s > 0} 支路整体短路），{@link #isDryRiverColumn}（D6，
      * −strengthAt ≥ 0.40）在湖/滩内<b>天然不触发</b>。位置在性能短路之后：仅河核列
      * （c &lt; WIDTH×style，全列 ≪1%）付一次 lakeAt memo 查表 + 一次低频 valueNoise。
+     * <p>
+     * ═══ P30 I1（v1.20.53）：枯竭河末端定向衰减 ═══ 段激活门只按段清零，活段端头在死邻段
+     * 界处"刀切山体"（谷形整深到界、界外骤回原地形）。3b 门之后对返回式乘两个<b>定向</b>因子
+     * （{@link #TAPER_DEAD}/{@link #LAKE_FADE} 注有完整数学式与校准域）：
+     * <ul>
+     * <li><b>B1 死邻衰减</b>：本列所在边 (A,B) 过门后，对结点另两条边 (A,C)/(B,C) 各判一次
+     * 死活（hash01(segKeyOfCells(细胞对) ^ {@link #SALT_RIVER_SEGMENT_GATE}) ≥
+     * {@link #RIVER_SEGMENT_ACTIVATE_P}——与 3b 门同式同盐同阈，仅细胞对不同）；
+     * r₁=(d3−dC)/d3、r₂=(d3−dN)/d3，t₁/t₂ = 死邻 ? s01(r/{@link #TAPER_DEAD}) : 1.0。
+     * <b>衰减只朝死邻方向——r1/r2 各管一条死边</b>（r₁ 管 (A,C) 死、r₂ 管 (B,C) 死），
+     * 活邻不贡献因子（对应 t 恒 1.0）。<b>活-活守卫</b>：!deadAC &amp;&amp; !deadBC 时直接走
+     * 原返回式、不触任何 r/t 计算 ⇒ 活-活结点 IEEE 逐位零漂。</li>
+     * <li><b>B2 湖腿平滑</b>：3a 硬腿原样保留（湖+滩内 s ≡ 0 语义不动），过腿列乘
+     * t_lake = s01((lakeAt − sanzuBiomeShoreAt)/{@link #LAKE_FADE})——湖缘由刀切变渐灭
+     * （湖带外 t_lake 精确 1.0）。</li>
+     * </ul>
+     * 两因子都在本方法（<b>单一真值</b>）内合成 ⇒ 所有消费面自动跟随，无第二份判定：
+     * heightCore 切谷（{@code ProsperityTerrainProfile.heightCore} 的 s 位）、
+     * {@link #isDryRiverColumn}（D6 干河床核）、PlacementGate⑥枯竭河床列
+     * （{@code dryColumnAt} 腿⑥，经 isDryRiverColumn）、微池让位（S3 湖腿的干床让位）、
+     * 枯竭气息（{@code ProsperityAirLookup} 的 witheredRiverbed → WitheredBreath）。
      */
     public static double strengthAt(long worldSeed, int x, int z, int rosterIndex) {
         final double styleScale = styleForRosterIndex(rosterIndex).widthScale;
@@ -1257,8 +1311,11 @@ public final class GTSRVoronoiRiverField {
         if (c >= WIDTH * styleScale) {
             return 0.0D;
         }
-        // —— 3a. P25 D4① 湖让位腿：湖+滩内无河（0=无河；见方法 javadoc 的 P25 段）——
-        if (lakeAt(worldSeed, x, z) < sanzuBiomeShoreAt(worldSeed, x, z)) {
+        // —— 3a. P25 D4① 湖让位硬腿：湖+滩内无河（0=无河；见方法 javadoc 的 P25 段）。
+        // P30 I1：湖/滩两压力值提为局部量供 3d 湖腿平滑复用（同两次调用、同序，零新求值）——
+        final double lake = lakeAt(worldSeed, x, z);
+        final double shoreAt = sanzuBiomeShoreAt(worldSeed, x, z);
+        if (lake < shoreAt) {
             return 0.0D;
         }
         // —— 3b. 段激活门（P23 R1②）：同段（同 segKey）所有列同值 ⇒ 激活段整段连贯、
@@ -1266,8 +1323,40 @@ public final class GTSRVoronoiRiverField {
         if (hash01(segKeyAt(worldSeed, x, z) ^ SALT_RIVER_SEGMENT_GATE) >= RIVER_SEGMENT_ACTIVATE_P) {
             return 0.0D;
         }
-        // —— 4. 强度（P23 R1①：trunk>0 宽河三重门支路已删，主干带内外同一常态档式）——
-        return c / (WIDTH * styleScale) - 1.0D;
+        // —— 3c. P30 I1 死邻判定的局部快照先行（BorderEval 类纪律：EVAL_BUF 不得跨下一次
+        // evalBorder 持有——此刻它仍是本列值：3b 的 segKeyAt 同列走 SEGKEY_MEMO，未命中时
+        // warpedBorder 同列命中 BORDER_MEMO、按槽快照原值回填），任何 hash/segKey 调用前
+        // 取全九量。两结点邻边 (A,C)/(B,C) 的死活判定与 3b 门严格同式同盐同阈，只是
+        // segKey 的细胞对换成结点另两条边——
+        final int aX = border.aX;
+        final int aZ = border.aZ;
+        final int bX = border.bX;
+        final int bZ = border.bZ;
+        final int cX = border.cX;
+        final int cZ = border.cZ;
+        final double dC = border.dC;
+        final double dN = border.dN;
+        final double d3 = border.d3;
+        final boolean deadAC = hash01(segKeyOfCells(worldSeed, aX, aZ, cX, cZ) ^ SALT_RIVER_SEGMENT_GATE)
+            >= RIVER_SEGMENT_ACTIVATE_P;
+        final boolean deadBC = hash01(segKeyOfCells(worldSeed, bX, bZ, cX, cZ) ^ SALT_RIVER_SEGMENT_GATE)
+            >= RIVER_SEGMENT_ACTIVATE_P;
+        // —— 3d. P30 I1 末端定向衰减合成（方法 javadoc 的 P30 I1 段）：B2 湖腿平滑 t_lake
+        // （过了 3a 硬腿的列；湖带外 s01 带通精确 1.0）+ B1 死邻 taper t1×t2——
+        final double rs = c / (WIDTH * styleScale) - 1.0D;
+        final double tLake = s01((lake - shoreAt) / LAKE_FADE);
+        if (!deadAC && !deadBC) {
+            // 活-活守卫（P30 I1）：两结点邻边皆活 ⇒ 不触任何 r/t 计算，直接走原返回式；
+            // 湖带外 t_lake ≡ 1.0 ⇒ 活-活结点 IEEE 逐位零漂。
+            return rs * tLake;
+        }
+        // B1：r1=(d3−dC)/d3（邻边 (A,C) 的 border2 c 值）、r2=(d3−dN)/d3（邻边 (B,C)）——
+        // 衰减只朝死邻方向，r1/r2 各管一条死边，活邻不贡献因子（对应 t 恒 1.0）。
+        final double t1 = deadAC ? s01(((d3 - dC) / d3) / TAPER_DEAD) : 1.0D;
+        final double t2 = deadBC ? s01(((d3 - dN) / d3) / TAPER_DEAD) : 1.0D;
+        // —— 4. 强度（P23 R1①：trunk>0 宽河三重门支路已删，主干带内外同一常态档式；
+        // P30 I1：末端定向衰减 ×t1×t2×t_lake）——
+        return rs * t1 * t2 * tLake;
     }
 
     /** 三参便捷形态（名册不可得 ⇒ 默认档；离线判据/骨架用）。 */
@@ -1548,6 +1637,17 @@ public final class GTSRVoronoiRiverField {
      */
     private static double hash01(long key) {
         return (GTSRWorldgenHash.splitmix64(key) >>> 11) / (double) GTSRWorldgenHash.UNIT_DIVISOR;
+    }
+
+    /**
+     * smoothstep 带通（clamp 后 3t²−2t³；带外精确 0.0/1.0）。P30 I1（v1.20.53）随枯竭末端
+     * 定向衰减引入（{@link #strengthAt} 的 t1/t2/t_lake 三处共享）；口径与
+     * {@code TerrainVariants} 的同名私有帮手一致——<b>带外精确常值</b>是活-活守卫与湖带外列
+     * IEEE 逐位零漂的构造前提（×1.0 逐位恒等）。
+     */
+    private static double s01(double t) {
+        final double c = Math.max(0.0D, Math.min(1.0D, t));
+        return c * c * (3.0D - 2.0D * c);
     }
 
     // ═════════════════ T5（v1.20.39，plan §3.3）：主干带 / 巨湖 / sanzu 列谓词 ═════════════════

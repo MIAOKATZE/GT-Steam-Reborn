@@ -65,7 +65,10 @@ import com.miaokatze.gtsr.common.dimension.prosperity.river.GTSRVoronoiRiverFiel
  * <li><b>L 组 表层单一真值复用</b>：湿带必须走 S1 的 {@code SurfaceTopSelector} 包装层，非湿带列逐字
  * 退回 {@code GTSRSurfaceBorderBand} 的答案（「不得新立第二真值」的机检形态）；
  * <b>P22 A2b（G3）放宽为"逐字退回，或差异列 top==prosperityRiverGravel（仅加铺既有湿料）"</b>
- * ——羽化檐禁第三料、本窗檐必须可见，旧口径原文保留在 L1 断言处注释；</li>
+ * ——羽化檐禁第三料、本窗檐必须可见，旧口径原文保留在 L1 断言处注释；
+ * <b>P26-B3 再纳 prosperitySilicaSand（干滩档）且可见性钉改 drySand&gt;0；P29-B2 第三改派料
+ * prosperityStone（滩坡废岩档）与 P30-III-1b 选窗重钉（I2 滩环钳制后首命中窗 256/256 全湿 ⇒
+ * 改选「湿带列 ∧ 干滩档列」双见 straddle 窗）见 L1 断言处注释</b>；</li>
  * <li><b>R 组 §7-6 环带结构落块暴露面</b>：只报不钉（处置顺位归主代理，权威门是
  * {@code PlacementContractCheck}）。</li>
  * </ul>
@@ -2346,6 +2349,77 @@ public final class SanzuLakeMorphologyCheck {
 
     // ══════════════════════════ L 组：表层单一真值复用 ══════════════════════════
 
+    /**
+     * L1 straddle 选窗的评估 chunk 上限（P30-III-1b）：同一扫描序（z 外 x 内、步 64）下按 chunk
+     * 去重评估「湿带列 ∧ 干滩档列」双见窗，扫满本值仍无命中 ⇒ 按未命中红（干滩改派面在全
+     * ±4000 湿带域不可见 = 真回归信号）。取 256 = 首见实测 12 块（temp/p30-iiib/probe/l1-post.out
+     * STRADDLE-FIRST #12）的 21 倍余量；每块 256 列 × 生产纯函数直调 ≈ 2ms ⇒ 帽内最坏 ≈ 0.5s。
+     */
+    static final int L1_STRADDLE_SCAN_CAP = 256;
+
+    /** L1 单 chunk 计数（P30-III-1b 提出原内联循环）：湿带/退回/檐/砂/岩/第三料列数。 */
+    static final class L1Tally {
+        int wet;
+        int wetAsGravel;
+        int outside;
+        int identical;
+        // P22 A2b（G3）：非湿带列被外檐加铺"既有湿料"的列数（羽化的机检形态）
+        int halo;
+        // P26-B3（D3）：非湿带列被干滩档改派硅砂的列数（c3 干滩料 + d2 陆侧羽化）
+        int drySand;
+        // P29-B2（D3·B2）：非湿带列被滩坡废岩档改派的列数（P30-III-1b 补入合法集，见 L1 注释）
+        int slopeStone;
+        int mism;
+    }
+
+    /**
+     * L1 单 chunk 16×16 逐列计数（P30-III-1b 从原内联循环提出，判定口径逐字不动 + 废岩档计数）：
+     * base = {@code blended==null ? biome.topBlock : blended.topAt(...)}（离线装配态 blended 恒
+     * null，见 L-READ）；非湿带列差异分类 {gravel=羽化檐, silica=干滩档, stone=滩坡废岩档,
+     * 其余=第三料}。全部读数走生产出口（{@code lakeWetBandAt} 谓词 + wrapper.topAt 直调），
+     * 判据侧零重写判定式。
+     */
+    static L1Tally tallyL1Chunk(long seed, GTSRWorldChunkManager mgr,
+        GTSRChunkProviderBase.SurfaceTopSelector wrapper,
+        GTSRChunkProviderBase.SurfaceTopSelector blended, int baseX, int baseZ) {
+        final L1Tally t = new L1Tally();
+        final BiomeGenBase[] plane = mgr.loadBlockGeneratorData(null, baseX, baseZ, 16, 16);
+        for (int lz = 0; lz < 16; lz++) {
+            for (int lx = 0; lx < 16; lx++) {
+                final int x = baseX + lx;
+                final int z = baseZ + lz;
+                final BiomeGenBase bio = plane[(lz << 4) | lx];
+                if (bio == null) {
+                    continue;
+                }
+                final Block base = blended == null ? bio.topBlock : blended.topAt(seed, x, z, bio);
+                final Block got = wrapper.topAt(seed, x, z, bio);
+                if (GTSRVoronoiRiverField.lakeWetBandAt(seed, x, z)) {
+                    t.wet++;
+                    if (got == BlocksGTSR.prosperityRiverGravel) {
+                        t.wetAsGravel++;
+                    }
+                } else {
+                    t.outside++;
+                    if (got == base) {
+                        t.identical++;
+                    } else if (got == BlocksGTSR.prosperityRiverGravel) {
+                        t.halo++; // 改派仅可为既有湿料（单一真值的羽化口径）
+                    } else if (got == BlocksGTSR.prosperitySilicaSand) {
+                        t.drySand++; // 干滩档（P26-B3）：合法第二改派料（非 top 名册、已注册，
+                        // 「砾当 top」同性质先例；只在 h>SEA 的陆侧出窗 ≤10 格当量域可达）
+                    } else if (got == BlocksGTSR.prosperityStone) {
+                        t.slopeStone++; // 滩坡废岩档（P29-B2）：合法第三改派料（P30-III-1b 补入
+                        // 合法集，h∈(73,79] 岸带核心 + 陆侧羽化；岛底柱同方块先例）
+                    } else {
+                        t.mism++; // 第三料 = 真正的"第二真值"，必 0
+                    }
+                }
+            }
+        }
+        return t;
+    }
+
     static void groupSurfaceSingleTruth() {
         try {
             SurfaceHarness.initVanillaBlocks();
@@ -2385,55 +2459,83 @@ public final class SanzuLakeMorphologyCheck {
                     "零命中（SurfaceHarness.SEED = " + seed + "）");
                 return;
             }
-            final int baseX = fx & ~15;
-            final int baseZ = fz & ~15;
-            final GTSRChunkProviderBase.SurfaceTopSelector blended = GTSRSurfaceBorderBand
-                .forChunk(GTSRBiomeAuthority.DIM_KEY_PROSPERITY, seed, baseX, baseZ);
-            final BiomeGenBase[] plane = mgr.loadBlockGeneratorData(null, baseX, baseZ, 16, 16);
-            int wet = 0;
-            int wetAsGravel = 0;
-            int outside = 0;
-            int identical = 0;
-            int mism = 0;
-            // P22 A2b（G3）新增：非湿带列被外檐加铺"既有湿料"的列数（羽化的机检形态，见 L1 新口径）
-            int halo = 0;
-            // P26-B3（D3）新增：非湿带列被干滩档改派硅砂的列数（c3 干滩料 + d2 陆侧羽化的机检形态）
-            int drySand = 0;
-            for (int lz = 0; lz < 16; lz++) {
-                for (int lx = 0; lx < 16; lx++) {
-                    final int x = baseX + lx;
-                    final int z = baseZ + lz;
-                    final BiomeGenBase bio = plane[(lz << 4) | lx];
-                    if (bio == null) {
+            // ═══ P30-III-1b 选窗重钉：首个湿带列所在 chunk → 同一扫描序（z 外 x 内、步 64、按 chunk
+            // 去重）下首个「湿带列>0 ∧ 干滩档（硅砂）列>0」双见 straddle 窗 ═══
+            // 归因（temp/p30-iiib/probe/l1-{pre,post}.out 双跑，pre=P30 批0 冻结基线）：批I I2（PTP
+            // heightCore 末段滩缘贴水线钳制首肢 LAKE_SHORE→LAKE_WATER_LEVEL，设计滩环 [WATER,SHORE)
+            // 内 y<67 洼列全钳到 67）把 67 送进湿带门③窗口 [SEA−2,SEA]=[66,68] ⇒ 整个被钳平台成
+            // 湿带——post 首命中窗 chunk(3424,-3808) 256/256 列全湿、h 均匀 67（钳制签名）、域外列 0
+            // ⇒ L1「outside>0 ∧ drySand>0」结构性红；pre 首命中窗 chunk(3616,-3872) 是 wet 119 +
+            // 干滩硅砂 137 的 straddle 窗（v1.20.52 绿态）。干滩档本身没死（I2 只钳 h<67 洼列，
+            // 环外缘 h69-73 滩坡列照常改派硅砂：post straddle 首见 chunk(3360,-3552) 砂 66/66）；
+            // I3（S1 交界带收窄）不进本装配态计数面（blended==null，见 L-READ）。⇒ 判定：I2 设计内
+            // 形态变化引发的<b>选窗问题</b>，非生产回归 ⇒ 修选窗，断言式（mism==0 ∧ drySand>0）不动。
+            // 扫尽 {@link #L1_STRADDLE_SCAN_CAP} 块仍无 straddle = 干滩改派面在全 ±4000 湿带域不可见
+            // （真回归信号），L1 按未命中红并退回首命中窗出读数。
+            int baseX = fx & ~15;
+            int baseZ = fz & ~15;
+            L1Tally t = null;
+            int scanned = 0;
+            final HashSet<Long> seenChunks = new HashSet<Long>();
+            // 帽标签（P30-III-1b 补）：内层 break 只退当前 x 行，外层 z 条件（t==null）仍真 ⇒
+            // 无 straddle 回归态下每 z 行再多评 1 块、帽外溢 ≈+126 块；break scan 使
+            // L1_STRADDLE_SCAN_CAP 恰为总评估上限，与常量 javadoc 口径一致。
+            scan:
+            for (int z = -4000; z <= 4000 && t == null; z += 64) {
+                for (int x = -4000; x <= 4000 && t == null; x += 64) {
+                    if (!GTSRVoronoiRiverField.lakeWetBandAt(seed, x, z)) {
                         continue;
                     }
-                    final Block base = blended == null ? bio.topBlock : blended.topAt(seed, x, z, bio);
-                    final Block got = wrapper.topAt(seed, x, z, bio);
-                    if (GTSRVoronoiRiverField.lakeWetBandAt(seed, x, z)) {
-                        wet++;
-                        if (got == BlocksGTSR.prosperityRiverGravel) {
-                            wetAsGravel++;
-                        }
-                    } else {
-                        outside++;
-                        if (got == base) {
-                            identical++;
-                        } else if (got == BlocksGTSR.prosperityRiverGravel) {
-                            halo++; // 改派仅可为既有湿料（单一真值的羽化口径）
-                        } else if (got == BlocksGTSR.prosperitySilicaSand) {
-                            drySand++; // 干滩档（P26-B3）：合法第二改派料（非 top 名册、已注册，
-                            // 「砾当 top」同性质先例；只在 h>SEA 的陆侧出窗 ≤10 格当量域可达）
-                        } else {
-                            mism++; // 第三料 = 真正的"第二真值"，必 0
-                        }
+                    final int bx = x & ~15;
+                    final int bz = z & ~15;
+                    final long key = ((long) bx << 32) ^ ((long) bz & 0xffffffffL);
+                    if (!seenChunks.add(Long.valueOf(key))) {
+                        continue;
+                    }
+                    final GTSRChunkProviderBase.SurfaceTopSelector bl = GTSRSurfaceBorderBand
+                        .forChunk(GTSRBiomeAuthority.DIM_KEY_PROSPERITY, seed, bx, bz);
+                    final L1Tally c = tallyL1Chunk(seed, mgr, wrapper, bl, bx, bz);
+                    scanned++;
+                    if (c.wet > 0 && c.drySand > 0) {
+                        t = c;
+                        baseX = bx;
+                        baseZ = bz;
+                    } else if (scanned >= L1_STRADDLE_SCAN_CAP) {
+                        break scan;
                     }
                 }
             }
-            final String note = "chunk(" + baseX + "," + baseZ + ") S1 blended="
+            boolean noStraddle = false;
+            if (t == null) {
+                noStraddle = true;
+                final GTSRChunkProviderBase.SurfaceTopSelector bl = GTSRSurfaceBorderBand
+                    .forChunk(GTSRBiomeAuthority.DIM_KEY_PROSPERITY, seed, baseX, baseZ);
+                t = tallyL1Chunk(seed, mgr, wrapper, bl, baseX, baseZ);
+            }
+            final GTSRChunkProviderBase.SurfaceTopSelector blended = GTSRSurfaceBorderBand
+                .forChunk(GTSRBiomeAuthority.DIM_KEY_PROSPERITY, seed, baseX, baseZ);
+            final int wet = t.wet;
+            final int wetAsGravel = t.wetAsGravel;
+            final int outside = t.outside;
+            final int identical = t.identical;
+            final int mism = t.mism;
+            // P22 A2b（G3）新增：非湿带列被外檐加铺"既有湿料"的列数（羽化的机检形态，见 L1 新口径）
+            final int halo = t.halo;
+            // P26-B3（D3）新增：非湿带列被干滩档改派硅砂的列数（c3 干滩料 + d2 陆侧羽化的机检形态）
+            final int drySand = t.drySand;
+            // P30-III-1b 新增计数：非湿带列被滩坡废岩档（P29-B2 第三改派料）改派的列数——只读数，
+            // 同时把 prosperityStone 补入 L1 合法改派集（P22 G3 加砾 / P26-B3 加硅砂同款操作：
+            // 生产侧 P29-B2 已在 v1.20.52 落地本档，判据侧合法集滞后一轮 ⇒ 在选窗重钉的同时收口，
+            // 防下一轮 straddle 窗撞上 h∈(73,79] 滩坡列时的假红）。
+            final int slopeStone = t.slopeStone;
+            final String note = "chunk(" + baseX + "," + baseZ + ")（"
+                + (noStraddle ? "NO-STRADDLE：扫尽 " + scanned + " 个湿带 chunk 无干滩档可见列，退回首命中窗"
+                    : "湿带 straddle 窗，扫描序第 " + scanned + " 块选中（P30-III-1b）")
+                + "）S1 blended="
                 + (blended == null ? "null(退回 topBlock)" : blended.getClass().getSimpleName())
                 + "；湿带列=" + wet + "，表层 = prosperityRiverGravel 的 " + wetAsGravel
                 + "；域外列=" + outside + "，逐字退回 " + identical + "，羽化檐(=砾) " + halo
-                + "，干滩档(=硅砂) " + drySand + "，第三料 " + mism;
+                + "，干滩档(=硅砂) " + drySand + "，滩坡岩(=废岩) " + slopeStone + "，第三料 " + mism;
             // 旧口径原文（P20 §15.4，v1.20.41）：「包装层在非湿带列必须逐字退回 S1 的答案」
             // （outside > 0 && mism == 0）。P22 A2b（G3 湿带外缘羽化）把"逐字退回"放宽为
             // "退回，或仅加铺既有湿料 prosperityRiverGravel"；P26-B3（D3·c3/d2）再纳
@@ -2444,9 +2546,15 @@ public final class SanzuLakeMorphologyCheck {
             //（h=69 干滩核心列，干滩档先于砾檐裁定 ⇒ 砾檐在本窗恒 0——P26-B3 前该窗 117/117
             // 全砾檐、后 120/120 全硅砂）⇒ 可见性钉从「halo>0」改「drySand>0」；湿料侧的
             // 可见性由 L2（湿核全砾）钉住。
+            // 旧选窗口径原文（v1.20.41～v1.20.52）：「首个 lakeWetBandAt 真列所在 chunk」——
+            // 批I I2 滩环钳制后被钳平台整片成湿带，首命中窗 256/256 全湿（chunk(3424,-3808)，
+            // h 均匀 67）⇒ outside=0 结构性红；P30-III-1b 改选 straddle 窗（断言式不动，归因
+            // 证据与 pre/post 双跑读数见上方选窗注释与 temp/p30-iiib/probe/）。
             check("L1 §15.4+P22G3+P26B3 湿带复用 S1 表层钩子：非湿带列要么逐字退回 S1（GTSRSurfaceBorderBand），"
-                + "要么差异列 top ∈ {prosperityRiverGravel（羽化檐）, prosperitySilicaSand（干滩档）}"
-                + "（禁第三料），且本湿带中心窗干滩改派必须可见", outside > 0 && mism == 0 && drySand > 0, note);
+                + "要么差异列 top ∈ {prosperityRiverGravel（羽化檐）, prosperitySilicaSand（干滩档）, "
+                + "prosperityStone（滩坡废岩档，P29-B2 第三改派料）}（禁第三料），且本湿带 straddle 窗"
+                + "干滩改派必须可见（P30-III-1b 选窗重钉）",
+                !noStraddle && outside > 0 && mism == 0 && drySand > 0, note);
             check("L2 §15.4 湿带确实改派同维名册内的湿料 prosperityRiverGravel（H-4 零新方块）：本 chunk 湿带列全中",
                 wet > 0 && wetAsGravel == wet, note);
             say("L-READ 装配态说明：离线 JVM 的 SurfaceHarness def <b>未过 DimensionRegistrar</b>"
