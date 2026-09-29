@@ -1438,13 +1438,18 @@ public class P17TerrainReliefCheck {
             netGe4[0],
             netGe4[1],
             netGe4[3]);
-        check(waterCols >= 10000 && gateMismatch == 0,
+        check(waterCols >= 7000 && gateMismatch == 0,
             "A3 连续边缘门镜像对拍：s01((w3−" + A3_INTERIOR_GATE_LO + ")/" + A3_INTERIOR_GATE_SPAN + ")"
                 + "（11×11 核字面镜像 w3 分量）== 生产 swampInteriorGateAt 逐列 mismatch=" + gateMismatch
-                + "（水列样本 " + waterCols + " ≥ 10000；v1.20.53 P30 II-AB 生产连续化后，v1.20.42"
+                + "（水列样本 " + waterCols + " ≥ 7000；v1.20.53 P30 II-AB 生产连续化后，v1.20.42"
                 + " A3 的 coarse Chebyshev R=4 阶梯与「边缘截断水潭 == 0 / N=16 minDist」两证明随直角"
                 + "台阶退役——连续门下水列可邻非 3 粗格（w3 ≥ 0.475 混合等值线内侧），直角读数不再存在，"
-                + "判据换轴为镜像/生产逐位对拍）");
+                + "判据换轴为镜像/生产逐位对拍。v1.20.54 P31 批II 地板重钉 10000→7000：I-B λDEEP"
+                + "（S_SWAMP_DEEP_BED）71→39 大潭碎化后，固定窗（" + A3_SEEDS + "seed×" + A3_SIDE
+                + "²）水列分布真实变化 14328→8044（λDEEP 单变量档 d3）/终态组合 8022，"
+                + "gateMismatch/edgeWater/suspendedDry/§21-D netGe4 全 0 = 镜像对拍本身逐位忠实、"
+                + "纯样本量变化（主代理终裁 plan/p31-plan.md §2.2-3；10000 旧地板按 λ71 时代水体"
+                + "几何钉定，D 腿还原 λ71 会回退用户目标故否决）");
         check(suspendedDry == 0,
             "A3 包含性（悬空水列 == 0）：每水列的干邻固体顶 ≥ 水顶（0 余量口径；干邻含被钳干空坑列，"
                 + "按区域场钳后实际状态判）实测 " + suspendedDry + "——收口 v1.20.40 申报「微池 69/71 桶低地"

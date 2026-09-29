@@ -598,8 +598,14 @@ public final class TerrainVariants {
      * blob ~18-35 格；71 % 16 = 7 ✔ H-1）。名字按 P20 §13 C9 / §14.3 的裁定原文保留
      * （{@code S_} 前缀在此承载的是<b>波长</b>而非域盐——域盐是同组的 {@link #S_SWAMP_DEEP}；
      * 与本类其它 {@code S_*} 域盐常量的形不一致是裁定原名的既成事实，不改名以免与裁定脱钩）。
+     * <p>
+     * <b>v1.20.54 P31 批I-B D 腿：71.0 → 39.0</b>（39 % 16 = 7 ✔ H-1；潭规模缩减轮——批0 census
+     * 实测陡深潭最大连通域 52.81 区块超 ≤12 硬门 ⇒ 波长梯 71→50→43→39（包定梯底）按「波长法保份额」
+     * 口径压 blob 线度（×0.549）并打断软门缓入带桥接连片；阈值分布不动 ⇒ 期望份额不变——<b>实测
+     * DEEP 份额随 λ 滑移</b>（3.111→2.872(λ50)→2.392(λ43)→~2.2%(λ39)）：小 blob 与连续边缘门交互，
+     * 边缘带内小潭整潭被门衰减压线下 ⇒ 梯底读数与 STEEP 仍 &gt;12 的事实一并回执申报（主代理终裁）。
      */
-    private static final double S_SWAMP_DEEP_BED = 71.0D;
+    private static final double S_SWAMP_DEEP_BED = 39.0D;
     /**
      * 深水池门下檐。<b>v1.20.49 P26-B4 ⑥：0.62 → 0.68（带宽 0.14 → 0.16）</b>——覆盖 5% → 2-3%
      * （更稀更大）；判据侧 {@code SWAMP_TIER_SHARE_BAND} DEEP 行随缩样读数重钉。
@@ -638,7 +644,18 @@ public final class TerrainVariants {
      * 域内门值级混合（{@code g_eff=(1−ty)·g_陡+ty·g_缓}），ty=0 短路跳过本床纹求值（域外零新噪声）。
      */
     private static final long S_SWAMP_DEEP_GENTLE = 0x6811C407L;
-    private static final double SWAMP_DEEP_GENTLE_BED = 353.0D;
+    /**
+     * 缓坡潭床纹波长。<b>v1.20.54 P31 批I-B C2：353.0 → 250.0</b>（250 % 16 = 10 ✔ H-1；潭规模缩减轮
+     * ——C 腿波长法（同主刀 λ61→43 / D 腿口径）：blob 线度 ×0.708 ⇒ 批0 census 实测最大缓坡潭连通域
+     * 17.75 区块 → 预估 ~8.9（阈值分布不动 ⇒ 份额理论不变）。可走坡语义随 λ 同比缩放：门带全宽
+     * ~26 格 → ~18 格，上缘前半 ~13 格 1:3.5 可走 → ~9 格（ue-swamp §1 C2 口径按 λ 比例）。旧值 353
+     * （353 % 16 = 1 ✔）为 v1.20.50 P27 批次B-B1 S 片起的波长。P31 申报：原计划 C1
+     * （GENTLE_GATE_SPAN 0.30→0.15「缩潭」）经源码语义复核与 census 字面档实证为<b>反向旋钮</b>
+     * （进档阈 = LO + 0.5×SPAN：SPAN 收窄 ⇒ 阈 0.83→0.755 <b>下降</b> ⇒ 实测 17.75 → 29.69 区块扩潭，
+     * temp/p31-ib/c1literal-census.out），C1 未启用、按「缩」意图改走 C2 波长法（plan §4.1 调档次序
+     * 「C1 后仍 &gt;12 ⇒ C2」的条件链照走，C1 滑误申报归主代理终裁）。
+     */
+    private static final double SWAMP_DEEP_GENTLE_BED = 250.0D;
     /**
      * 缓坡潭门带宽（LO 沿用 {@link #SWAMP_DEEP_GATE_LO}=0.68 不动：档线切换深
      * {@code depth(0.5)=(B+S/2)/2}=3.75 vs 邻列 ≤1.9 ⇒ 台阶 ~1.85 格 = 可走跳档，ue-swamp §1 C1；
@@ -662,8 +679,20 @@ public final class TerrainVariants {
     private static final double SWAMP_LAKE_SHORE_BAND = 0.02D;
     /** 水沼地（半淹档）场域盐（波长 {@link #SWAMP_MARSH_SCALE}）。 */
     private static final long S_SWAMP_MARSH = 0x6811C32FL;
-    /** 水沼地波长（61 % 16 = 13 ✔；与 {@code SWAMP_POOL_INTERVAL}=220 的微池水网正交）。 */
-    private static final double SWAMP_MARSH_SCALE = 61.0D;
+    /**
+     * 水沼地波长。<b>v1.20.54 P31 批I-B 主刀：61.0 → 43.0</b>（43 % 16 = 11 ✔ H-1；潭规模缩减轮
+     * ——blob 线度 ×0.705 ⇒ 半淹水面 r 20-45 → 14-32 格；λ43 为批0 正交探针四候选（61/43/41/39）
+     * 中与 λ157/λ353/220 最正交档（|r| ≤ 0.0071，temp/p31-0/ortho-pre.out）。阈值分布不动 ⇒
+     * 档位份额理论不变（波长法）；同场负瓣炭屑滩（{@link #SWAMP_CHAR_GATE_LO} 族）随本场整体重排
+     * = P31 申报项。旧值 61（61 % 16 = 13 ✔）为 v1.20.41 P20 S4 起的波长。
+     * <p>
+     * <b>P31 批I-B MARSH 梯：43.0 → 41.0 → 39.0（梯底）</b>（41/39 % 16 = 9/7 ✔ H-1；census post
+     * λ43/λ41 实测最大连通域 56.88/53.63 区块仍超 ≤12 目标 ⇒ 按计划 §4.1 梯 41→39 续压到包定梯底。
+     * λ39 与微池水网 220 轻度同相（B220 lift 1.423，批0 ortho 读数，绝对重叠列 ~230-370/298971
+     * 量级）= 申报记录项；<b>梯底仍 &gt;12 ⇒ 按计划 §2.1-4 停止调档、保留实测数回执申报</b>——MARSH
+     * 是半淹景观带（深 0-1 格，非深潭），带值重估（≤16）或豁免由主代理终裁，本片不预豁免。
+     */
+    private static final double SWAMP_MARSH_SCALE = 39.0D;
     /** 水沼地门下檐（满门 P(n≥0.65) ≈6%、缓入 0.30 ⇒ 半淹带大面积，需求 3 的 r 20–45 量级）。 */
     private static final double SWAMP_MARSH_GATE_LO = 0.30D;
     /** 水沼地门带宽。 */
@@ -1190,9 +1219,13 @@ public final class TerrainVariants {
     /**
      * <b>三档沼泽列谓词</b>（v1.20.43 P22 版 B O1a，{@link #swampTierAt} 的布尔单一出口，
      * RVF {@code submergedAt} 先例同款）：{@code swampTierAt != SWAMP_TIER_NONE} 的逐字包装——
-     * 本列判出三档水体（POOL/DEEP/MARSH 任一档）。消费面同一真值：
-     * {@code GTSRRiverPlacer.neighborBarrier} 三档腿。需要档位<b>值</b>的消费面（SwampFieldGrid
-     * 的 st[] 档位表 / 地形侧 delta）仍取
+     * 本列判出三档水体（POOL/DEEP/MARSH 任一档）。消费面同一真值
+     * （v1.20.54 P31 批II 勘误：原文引 {@code GTSRRiverPlacer.neighborBarrier} 三档腿——该方法
+     * 已随 P25 D7 残潭退役删除，现消费者以源码为准）＝ {@code PlacementGate} 的 P25 ⑧
+     * 「沼泽三档水体置水列」腿（本布尔出口的唯一消费者）。需要档位<b>值</b>的消费面
+     * （ChunkProviderProsperityRuins.SwampFieldGrid 的 st[] 档位表 / 地形侧 delta
+     * 〔经 {@link #variantAdjustment} 被 ProsperityTerrainProfile.heightAt 消费〕/
+     * GrottoCarver 选址门 / ProsperityDecorPlacer 枯木滩 MARSH 档）仍取
      * {@link #swampTierAt} 本值、不走本布尔出口（一处出口一次求值，避免同一列二次求档）。
      */
     public static boolean swampTieredAt(long worldSeed, int x, int z, int rosterIndex) {

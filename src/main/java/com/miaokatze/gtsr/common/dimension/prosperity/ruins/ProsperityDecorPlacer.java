@@ -121,6 +121,14 @@ public final class ProsperityDecorPlacer {
     private static final long SALT_SHRUB_WOOD = 0x73687764L;
 
     /**
+     * <b>潭前植物加密掷数/chunk</b>（v1.20.54 P31 I-A 新增）：每 chunk 48 次 hash 掷列，命中
+     * {@link GrottoCarver#grottoLandingAt}（潭前干台地）才落 {@code prosperityTuftCopper}
+     * （零新资产——洞内草趟先例 GrottoCarver 草趟）。密度梯 32/64（plan §3.2）；独立盐
+     * {@link GrottoCarver#S_SWAMP_GROTTO_FLORA}（等差族 +0x12×3，src 碰撞预核零命中）。
+     */
+    public static final int GROTTO_LANDING_ROLLS = 48;
+
+    /**
      * <b>树线</b>（v1.20.49 P26-B4 ③）：接地高度门——{@code naturalTopAt ≥ 100} 的列不落树
      * （脊上森林不上树、裸岩带）。破顶解封后森林脊峰 150~165、山地碎坡顶可达 ~140+，本门把
      * 木本让位给裸岩观感；普通树按<b>树位列</b>精确判，巨树档按 chunk 中心列判（形态学接地归
@@ -555,8 +563,19 @@ public final class ProsperityDecorPlacer {
      * 密度的<b>单一真值旋钮</b>：8 → 5 把件/chunk 回落到 ≈0.87（目标带内、与 P26-B4 钉带态
      * 同量级），沼泽干高均值回 2.652 &gt; 原 2.584。II-AB 的连续门设计面原样保留——
      * <b>不回退边缘语义，只把密度旋钮拧回钉带值</b>（8 的旧值是窄域时代的调参残留）。
+     * <p>
+     * <b>v1.20.54 P31 批II：沼泽行 5 → 4（λ39 重排的干高链补偿，ORDER 链回带）</b>。
+     * 归因链（temp/p31-ii/p17veg-snag4.out vs temp/p31-ib/m2-l39-final-p17veg.out）：P31 I-B 把
+     * 沼泽场波长 λMARSH 61→39 / λDEEP 71→39 / λGENTLE 353→250（同场负瓣炭屑滩随场整体重排，
+     * javadoc 见 {@code TerrainVariants} P31 申报段）⇒ 可落枯木的 MARSH 档/炭屑滩列域重排 ⇒
+     * 沼泽干高均值 2.652 → 2.475，破「干高 森&gt;沼&gt;原」设计序（&lt; 原 2.584，余量 −0.109）；
+     * 同因沼泽树密度 3.31 → 3.87 上移（更多枯木桩计入树密度口径）。本表单一真值旋钮 5 → 4：
+     * 沼泽干高均值回 <b>2.636711 &gt; 原 2.584000</b>（链回带，余量 +0.053），树密度回落
+     * <b>3.418301</b>（M 带树行 [2.78,4.18] 内、远离上檐），森/原读数 1.862007/0.869565 逐位不变
+     * （登记红同值纪律复核通过）。P17VegetationFrequencyCheck failed 3→2（ORDER 干高链红消除，
+     * 剩两条登记红）。TV 波长改动设计面原样保留——不回退潭缩减，只拧密度旋钮。
      */
-    public static final int[] MARSH_SNAG_ROLLS_BY_ROSTER = { 0, 0, 0, 5, 0 };
+    public static final int[] MARSH_SNAG_ROLLS_BY_ROSTER = { 0, 0, 0, 4, 0 };
     /** 枯木滩档默认值（身份不可得 = 零枯木；降级不凭空造设施纪律）。 */
     public static final int DEFAULT_MARSH_SNAG_ROLLS = 0;
     /** 躺倒 marsh 木长度下限/浮动（{@code 2 + nextInt(4)} ⇒ 2..5 格）。 */
@@ -692,6 +711,9 @@ public final class ProsperityDecorPlacer {
         placeWindStumpPass(world, worldSeed, builder, chunkX, chunkZ, rosterIndex);
         // P26-B4 ⑨：枯木滩趟（末位追加 ⇒ 既有五趟随机流逐位不变，H-3；独立盐 SALT_MARSH_SNAG）
         placeMarshSnagPass(world, worldSeed, builder, chunkX, chunkZ, rosterIndex);
+        // P31 I-A：潭前植物加密趟（末位追加 ⇒ 既有六趟随机流逐位不变，H-3；
+        // 独立盐 S_SWAMP_GROTTO_FLORA；只消费 GrottoCarver 新公开谓词，零地形成本）
+        placeGrottoFloraPass(world, worldSeed, builder, chunkX, chunkZ);
     }
 
     // ═════════════════════════════ 树趟（P17 S-B2）═════════════════════════════
@@ -1740,6 +1762,44 @@ public final class ProsperityDecorPlacer {
         final Block log = logOf(WOOD_MARSH);
         for (int i = 1; i <= h; i++) {
             builder.setBlock(x, surfaceY + i, z, log, 0, BlockSink.FLAG_POPULATE);
+        }
+    }
+
+    // ═══════════════ v1.20.54 P31 I-A：潭前植物加密趟（GrottoCarver 层降重构的配套装饰腿）═══════════════
+
+    /**
+     * <b>潭前植物加密趟</b>（P31 I-A 新增）：每 chunk {@link #GROTTO_LANDING_ROLLS} 次 hash 掷列，
+     * 命中 {@link GrottoCarver#grottoLandingAt}（site ∧ tread==T−1 ∧ 潭邻的<b>潭前干台地</b>）才在
+     * 洞腔内 {@link GrottoCarver#grottoFloorYAt}+1 落 {@code prosperityTuftCopper}（零新资产——
+     * 洞内草趟先例；carve 已在 populate 期把该处置空，本趟只查空气让行草趟已落的格）。
+     * <p>
+     * 独立盐纪律（H-3，{@link #placeMarshSnagPass} 同款）：落点骰全走
+     * {@code Random(chunkSeed ^ }{@link GrottoCarver#S_SWAMP_GROTTO_FLORA}{@code )} 的独立流，
+     * 既有六趟（树/植被/碎石/沙砾/风蚀柱/枯木滩）随机流一位不动；本趟零地形成本——只读
+     * GrottoCarver 公开谓词（单一真值），不动高度链。cross 植物不入 BAND_TREES/干高口径
+     * ⇒ P17Veg 理论零影响（判据侧复核）。
+     */
+    private static void placeGrottoFloraPass(World world, long worldSeed, StructureBuilder builder, int chunkX,
+        int chunkZ) {
+        final Block tuft = BlocksGTSR.prosperityTuftCopper;
+        if (tuft == null) {
+            return; // 离线未装配
+        }
+        final Random rand = new Random(
+            GTSRWorldgenHash.chunkSeed(worldSeed, chunkX, chunkZ) ^ GrottoCarver.S_SWAMP_GROTTO_FLORA);
+        final int baseX = chunkX << 4;
+        final int baseZ = chunkZ << 4;
+        for (int i = 0; i < GROTTO_LANDING_ROLLS; i++) {
+            final int x = baseX + rand.nextInt(16);
+            final int z = baseZ + rand.nextInt(16);
+            if (!GrottoCarver.grottoLandingAt(worldSeed, x, z)) {
+                continue;
+            }
+            final int floorY = GrottoCarver.grottoFloorYAt(worldSeed, x, z);
+            if (!world.isAirBlock(x, floorY + 1, z)) {
+                continue; // 让行（草趟已落/结构占用）
+            }
+            builder.setBlock(x, floorY + 1, z, tuft, 0, BlockSink.FLAG_POPULATE);
         }
     }
 

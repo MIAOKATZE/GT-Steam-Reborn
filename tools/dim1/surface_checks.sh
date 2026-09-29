@@ -629,11 +629,38 @@ code=$?; tail -2 "$OUT/SanzuLakeMorphologyCheck.out" | cut -c1-170; echo "   EXI
 # 背景负载底噪；门 = 154.5×1.45 = 224.0µs，系数沿 1.45 不动，比旧门 304.5 更紧=收紧非放宽）。
 # per-chunk 中位数超门即红（劣化>45% 对赌门）。判据内置账本装配（生产形状）与串行纪律——
 # v1.20.38 实测与本 harness 并发跑会失真，本脚本顺序执行各步即满足，勿与其他判据并行。
-echo "== [3u8] dim78 地形填充段性能基准（GenBenchCheck：串行 + 有账本 + per-chunk 中位对 224.0µs 门[P26 重立 154.5 三跑中位] + CHANNEL-READ 群系指派通道成本） =="
+echo "== [3u8] dim78 地形填充段性能基准（GenBenchCheck：串行 + 有账本 + per-chunk 中位对 333.2µs 门[P29 重立 229.8 三跑中位] + CHANNEL-READ 群系指派通道成本） =="
 MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8   -cp "$OUT/classes;$CP" -sourcepath "src/main/java;tools/dim1" -d "$OUT/tools"   tools/dim1/GenBenchCheck.java >"$OUT/javac-u8bench.log" 2>&1
 echo "COMPILE GenBenchCheck EXIT=$? ($(grep -ac 'error:' "$OUT/javac-u8bench.log") error)"
 MSYS2_ARG_CONV_EXCL='*' java $STD $LOG4J -Xmx2g -cp "$OUT/tools;$OUT/classes;$CP" GenBenchCheck   >"$OUT/GenBenchCheck.out" 2>&1
 code=$?; tail -4 "$OUT/GenBenchCheck.out" | cut -c1-170; echo "   EXIT=$code log=$OUT/GenBenchCheck.out"
+[ $code -ne 0 ] && FAILS=$((FAILS + 1))
+
+# ── v1.20.54 P31 批II（纯追加步骤 [3u9]，两工具）：Grotto 层降洞判据挂载 + 沼泽潭连通域普查转硬门 ──
+# [3u9a] GrottoCarverCheck（批I-A 新立、批II 定稿挂载）：P31 GrottoCarver 层降大重构的 A–G 量化门
+#   ——A 悬空水 0 容忍 / B 层降可走（riser≤2 + 档数[4,8] + 总深[12,20]）/ C 密封（V-roofed 默认，
+#   --vstrict 双模式）/ D 负对照自证 / E 池存在 ≥12/16 / F 露天度 [0.27,0.33] / G 选址净空。
+#   RED→GREEN 纪律（同 :577 缺源即红窗先例）：D 组双负对照（D-i 旧 RC1 barrier 语义 / D-ii 潭深帽
+#   +1 扰动）<b>设计内红</b>——判据语义 = 「扰动被重算出违例（红）= 检出 = PASS」；负对照意外
+#   干净（绿）才 FAIL（检查器欠灵敏、禁信正绿）。EXIT=0 = A–F+G1 全绿 ∧ G2 结构门绿 ∧ 两负对照
+#   均被检出。G2 = <b>Chebyshev-1 结构门硬门</b>（水列 8 邻无未挖缘列 == 0）+ rimAt2=47/gateHoleAdj
+#   report 行——主代理终裁（plan §2.2 / I-A §3.3）：「潭周环 ≥2 格」字面门与池存在性在 m 场陡缘
+#   几何不可兼得，降档为结构门，2 格环宽取 report-only 读数。
+# [3u9b] SwampPoolBlobCensusCheck（批0 record-only → 批II 硬门）：分源最大连通域
+#   <b>分源带</b> STEEP ≤16.5 / GENTLE ≤12 / MARSH ≤56 / MICRO_ALL ==6.125 同值（主代理终裁
+#   plan §2.2-1/2/5，<b>非原 ≤12 平带</b>——MARSH 半淹景观带深仅 0-1 格豁免深潭硬门；MICRO 同值门
+#   = E 分支未触 ⇒ 微池必须与批0 pre 逐位同值）+ 五主源 sanity。负对照自证 = --negctl6 手工档
+#   （四门临时钉 ≤6 必红，证明门非永绿假门；输出留 temp/p31-ii/，<b>不挂载</b>——挂载段只跑正式带）。
+echo "== [3u9] dim78 Grotto 层降洞（悬空水0容忍/层降可走/密封V-roofed/池存在/露天度/选址净空+G2结构门）与沼泽潭分源连通域硬门（STEEP≤16.5/GENTLE≤12/MARSH≤56/MICRO同值） =="
+MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8   -cp "$OUT/classes;$CP" -sourcepath "src/main/java;tools/dim1" -d "$OUT/tools"   tools/dim1/GrottoCarverCheck.java >"$OUT/javac-u9grotto.log" 2>&1
+echo "COMPILE GrottoCarverCheck EXIT=$? ($(grep -ac 'error:' "$OUT/javac-u9grotto.log") error)"
+MSYS2_ARG_CONV_EXCL='*' java $STD $LOG4J -Xmx2g -cp "$OUT/tools;$OUT/classes;$CP" GrottoCarverCheck   >"$OUT/GrottoCarverCheck.out" 2>&1
+code=$?; tail -2 "$OUT/GrottoCarverCheck.out" | cut -c1-170; echo "   EXIT=$code log=$OUT/GrottoCarverCheck.out"
+[ $code -ne 0 ] && FAILS=$((FAILS + 1))
+MSYS2_ARG_CONV_EXCL='*' javac -J-Duser.language=en -nowarn -encoding UTF-8   -cp "$OUT/classes;$CP" -sourcepath "src/main/java;tools/dim1" -d "$OUT/tools"   tools/dim1/SwampPoolBlobCensusCheck.java >"$OUT/javac-u9census.log" 2>&1
+echo "COMPILE SwampPoolBlobCensusCheck EXIT=$? ($(grep -ac 'error:' "$OUT/javac-u9census.log") error)"
+MSYS2_ARG_CONV_EXCL='*' java $STD $LOG4J -Xmx2g -cp "$OUT/tools;$OUT/classes;$CP" SwampPoolBlobCensusCheck   >"$OUT/SwampPoolBlobCensusCheck.out" 2>&1
+code=$?; tail -2 "$OUT/SwampPoolBlobCensusCheck.out" | cut -c1-170; echo "   EXIT=$code log=$OUT/SwampPoolBlobCensusCheck.out"
 [ $code -ne 0 ] && FAILS=$((FAILS + 1))
 
 if [ "${1:-}" = "--parity" ]; then
