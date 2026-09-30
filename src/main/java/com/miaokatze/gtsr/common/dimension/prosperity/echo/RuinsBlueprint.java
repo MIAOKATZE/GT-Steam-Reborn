@@ -61,6 +61,7 @@ public final class RuinsBlueprint {
         else if (s.kind == 1) factory(d);
         else if (s.kind < 7) medium(d);
         else small(d);
+        detailDecor(d);
         // Restore the public spine after furnishing, then ground every approach at its node level.
         // A service passage cuts only player headroom: upper walls, roofs and gantries remain intact.
         int center = s.width / 2;
@@ -313,7 +314,7 @@ public final class RuinsBlueprint {
                 break;
             case 11:
                 d.pillar(7, 0, 4, 10, "royal_heartwood");
-                d.box(4, 5, 2, 10, 7, 6, Blocks.leaves, 0);
+                d.box(4, 5, 2, 10, 7, 6, Blocks.leaves, 4);
                 d.pipe(8, 8, 28, 8, 2);
                 d.tank(24, 3, 0, 3, 5);
                 break;
@@ -377,6 +378,82 @@ public final class RuinsBlueprint {
         // Weathered supply chest alcove: small ruins do not present a boss lock.
         d.floor(23, 9, 28, 13, 0, "mossroot_paving");
         d.box(24, 1, 13, 27, 2, 13, d.mat("rootwood_archive"), 0);
+    }
+
+    /** Fine details precede final public passages and entity clearance. No gameplay machine is implied. */
+    private static void detailDecor(Draw d) {
+        if (d.s.kind == 0) {
+            d.roofDetail(7, 15, 30, 70, 0, 22);
+            d.roofDetail(65, 15, 88, 70, 0, 22);
+            for (int z = 19; z < 70; z += 12) d.chimney(15, z + 4, 19, 10 + z % 4);
+            for (int x = 5; x <= 80; x += 25) d.workbenchDetail(x + 3, 80, 0);
+        } else if (d.s.kind == 1) {
+            for (int x : new int[] { 17, 72 })
+                for (int z : new int[] { 18, 70 }) d.roofDetail(x - 7, z - 9, x + 7, z + 9, -18, 12);
+            // The central court remains open to sky: only the side sheds acquire lantern ridges.
+            d.workbenchDetail(12, 82, -18);
+            d.workbenchDetail(73, 82, -18);
+        } else if (d.s.kind < 7) {
+            switch (d.s.kind) {
+                case 3:
+                    d.roofDetail(5, 10, 18, 40, 0, 12);
+                    d.roofDetail(30, 7, 43, 39, 0, 15);
+                    break;
+                case 5:
+                    d.roofDetail(3, 9, 16, 37, 0, 12);
+                    d.roofDetail(32, 9, 45, 37, 0, 12);
+                    break;
+                case 6:
+                    d.roofDetail(3, 23, 15, 39, 0, 11);
+                    d.roofDetail(34, 7, 44, 37, 0, 14);
+                    break;
+                default:
+                    d.pipe(6, 12, 14, 12, 6);
+                    d.put(6, 5, 12, "steam_valve");
+                    break;
+            }
+            d.workbenchDetail(6, 42, 0);
+        } else if (d.s.kind == 25) {
+            // Upright open gear, alternating teeth and a rootwood axle; plants grow through its bore.
+            for (int x = -5; x <= 5; x++) for (int y = -5; y <= 5; y++) {
+                double r = Math.hypot(x, y);
+                boolean tooth = Math.abs(x) == 5 && Math.abs(y) <= 1 || Math.abs(y) == 5 && Math.abs(x) <= 1;
+                if (r >= 3.15 && r <= 4.6 || tooth)
+                    d.put(9 + x, 6 + y, 3, tooth ? "rust_riveted_plate" : "patina_trim");
+            }
+            d.pillar(9, 0, 3, 3, "royal_oathwood");
+            d.put(9, 4, 3, "royal_crown_fern");
+            d.pillar(9, 5, 3, 5, "suspended_chain");
+            d.shelter(2, 10, 0, 11, 5);
+            for (int x : new int[] { 3, 14, 28 }) {
+                d.put(x, 1, 12, "boiler_casing");
+                d.put(x, 2, 12, "royal_crown_fern");
+            }
+            d.box(3, 6, 11, 6, 6, 13, Blocks.leaves, 4);
+            d.put(12, 2, 3, "foundry_nameplate");
+        } else if (d.s.kind == 11) {
+            // Cold crucible has a recessed bowl, fractured rear arch and a readable front plaque.
+            d.box(5, 1, 1, 11, 1, 5, d.mat("furnace_firebrick"), 0);
+            d.wall(5, 1, 11, 5, 2, 1, "boiler_casing");
+            d.box(6, 2, 2, 10, 3, 4, Blocks.air, 0);
+            d.put(8, 2, 3, "rust_floor_grate");
+            d.arch(19, 3, 0, 8, 8);
+            d.box(20, 6, 3, 21, 10, 3, Blocks.air, 0);
+            d.put(8, 2, 1, "foundry_nameplate");
+            d.put(4, 1, 2, "cast_iron_pillar");
+            d.put(4, 2, 2, "amber_lamp");
+            d.put(12, 1, 2, "cast_iron_pillar");
+            d.put(12, 2, 2, "amber_lamp");
+            d.put(16, 1, 2, "rootbound_brick");
+            d.put(17, 1, 3, "patina_trim");
+        } else if (d.s.kind == 10) {
+            d.put(20, 12, 3, "steam_valve");
+            d.put(19, 12, 3, "pressure_gauge");
+            d.pipe(8, 3, 19, 3, 13);
+            d.put(20, 4, 3, "riveted_hatch");
+            for (int x = 12; x <= 26; x++) d.put(x, 1, 2, "iron_catwalk_fence");
+            d.workbenchDetail(3, 11, 0);
+        }
     }
 
     private static final class Draw {
@@ -595,6 +672,48 @@ public final class RuinsBlueprint {
                     direction > 0 ? 3 : 2);
                 box(x - 2, yy + 1, z + i * direction, x + 2, yy + 4, z + i * direction, Blocks.air, 0);
             }
+        }
+
+        void roofDetail(int x0, int z0, int x1, int z1, int y, int h) {
+            int center = (x0 + x1) / 2;
+            for (int z = z0 + 4; z < z1 - 2; z += 8) {
+                // Raised glazed lanterns punctuate the stepped roof rather than replacing its volume.
+                int roof = y + h + (center - x0) / 3;
+                box(center - 2, roof + 1, z - 1, center + 2, roof + 1, z + 1, mat("patina_trim"), 0);
+                box(center - 1, roof + 2, z - 1, center + 1, roof + 3, z + 1, mat("patina_window"), 0);
+                box(center - 2, roof + 4, z - 2, center + 2, roof + 4, z + 2, mat("riveted_plate_slab"), 0);
+                for (int x : new int[] { x0, x1 }) {
+                    put(x, y + h + 1, z, "riveted_hatch");
+                    put(x, y + 2, z, "rootbound_brick");
+                    put(x, y + 3, z + 1, Blocks.leaves, 4);
+                }
+                pipe(x0 + 1, z, x0 + 3, z, y + 7);
+                put(x0 + 2, y + 6, z, "pressure_gauge");
+            }
+            for (int z = z0 + 1; z <= z1; z += 3) {
+                put(x0, y + h, z, "patina_trim");
+                put(x1, y + h, z, "patina_trim");
+            }
+        }
+
+        void chimney(int x, int z, int y, int h) {
+            // Broad brick base, narrow throat, reinforcing collars, and a chipped asymmetric crown.
+            box(x - 1, y, z - 1, x + 1, y + 2, z + 1, mat("furnace_firebrick"), 0);
+            pillar(x, y + 3, z, h - 2, "sootstone_tiles");
+            for (int yy = y + 4; yy <= y + h; yy += 4) wall(x - 1, z - 1, x + 1, z + 1, yy, 0, "patina_trim");
+            put(x - 1, y + h + 1, z, "slag_masonry");
+            put(x, y + h + 2, z + 1, "slag_masonry");
+            put(x + 1, y + h + 1, z, "riveted_plate_slab");
+        }
+
+        void workbenchDetail(int x, int z, int y) {
+            put(x, y + 1, z, "salvage_workbench");
+            put(x + 1, y + 1, z, "rootwood_archive");
+            put(x, y + 2, z, "pressure_gauge");
+            put(x + 2, y + 1, z, "riveted_hatch");
+            pillar(x + 3, y, z, 3, "cast_iron_pillar");
+            put(x + 3, y + 3, z, "amber_lamp");
+            pipe(x, z + 1, x + 2, z + 1, y + 3);
         }
 
         void landscape() {

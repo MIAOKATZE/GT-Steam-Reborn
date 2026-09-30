@@ -67,6 +67,11 @@ public final class LoreRegistry {
         FMLCommonHandler.instance()
             .bus()
             .register(new LoreRegistry());
+        HistoryEvents events = new HistoryEvents();
+        net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(events);
+        FMLCommonHandler.instance()
+            .bus()
+            .register(events);
         initialized = true;
     }
 

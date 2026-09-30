@@ -75,7 +75,10 @@ public final class BlockUnsealedChest extends BlockContainer {
         float c) {
         if (!world.isRemote && !world.isSideSolid(x, y + 1, z, net.minecraftforge.common.util.ForgeDirection.DOWN)) {
             TileEntity tile = world.getTileEntity(x, y, z);
-            if (tile instanceof TileEntityUnsealedChest) player.displayGUIChest((TileEntityUnsealedChest) tile);
+            if (tile instanceof TileEntityUnsealedChest) {
+                ((TileEntityUnsealedChest) tile).recordStory(player);
+                player.displayGUIChest((TileEntityUnsealedChest) tile);
+            }
         }
         return true;
     }

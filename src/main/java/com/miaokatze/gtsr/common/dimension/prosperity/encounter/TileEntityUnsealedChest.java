@@ -14,7 +14,41 @@ public final class TileEntityUnsealedChest extends TileEntity implements IInvent
 
     private ItemStack[] contents = new ItemStack[27];
     private int viewers, ticks;
+    private String storyOrigin = "";
+    private int storyEvent = -1;
     public float lidAngle, prevLidAngle;
+
+    public void setStoryOrigin(String origin, int event) {
+        storyOrigin = origin;
+        storyEvent = event >= 8 && event <= 10 ? event : -1;
+        markDirty();
+    }
+
+    public void recordStory(EntityPlayer player) {
+        if (!worldObj.isRemote && isUseableByPlayer(player) && validStoryOrigin()) {
+            com.miaokatze.gtsr.common.dimension.prosperity.lore.HistoryProgress.visit(player, 27 + storyEvent - 8);
+            com.miaokatze.gtsr.common.dimension.prosperity.lore.HistoryProgress.event(player, storyEvent);
+        }
+    }
+
+    private boolean validStoryOrigin() {
+        if (!(worldObj instanceof net.minecraft.world.WorldServer)
+            || !(worldObj.provider instanceof com.miaokatze.gtsr.common.dimension.prosperity.WorldProviderProsperityRuins)
+            || storyEvent < 8
+            || storyEvent > 10) return false;
+        String[] parts = storyOrigin.split(":", -1);
+        if (parts.length != 5 || !parts[0].equals("cache")
+            || !parts[1].equals(new String[] { "mire", "archive", "rail" }[storyEvent - 8])) return false;
+        try {
+            if (Long.parseLong(parts[2]) != worldObj.getSeed()) return false;
+            Integer.parseInt(parts[3]);
+            Integer.parseInt(parts[4]);
+        } catch (NumberFormatException invalid) {
+            return false;
+        }
+        return com.miaokatze.gtsr.common.dimension.prosperity.echo.RuinsEncounterData.get(worldObj)
+            .created(storyOrigin, "chest");
+    }
 
     public int getSizeInventory() {
         return contents.length;
@@ -121,6 +155,8 @@ public final class TileEntityUnsealedChest extends TileEntity implements IInvent
     public void readFromNBT(NBTTagCompound tag) {
         super.readFromNBT(tag);
         contents = new ItemStack[27];
+        storyOrigin = tag.getString("storyOrigin");
+        storyEvent = tag.hasKey("storyEvent") ? tag.getInteger("storyEvent") : -1;
         NBTTagList list = tag.getTagList("Items", 10);
         for (int i = 0; i < list.tagCount(); i++) {
             NBTTagCompound item = list.getCompoundTagAt(i);
@@ -139,5 +175,7 @@ public final class TileEntityUnsealedChest extends TileEntity implements IInvent
             list.appendTag(item);
         }
         tag.setTag("Items", list);
+        tag.setString("storyOrigin", storyOrigin);
+        tag.setInteger("storyEvent", storyEvent);
     }
 }

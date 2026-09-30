@@ -15,6 +15,8 @@ public class TileEntitySealedChest extends TileEntity {
     private int tier = 1, platform = -1, openingTicks = -1;
     private String encounter = "";
     private boolean clickUnlock;
+    private int storyEvent = -1;
+    private String storyRelic = "";
 
     public int getTier() {
         return tier;
@@ -43,6 +45,19 @@ public class TileEntitySealedChest extends TileEntity {
     public void initializeClickUnlock(int t, String id) {
         clickUnlock = true;
         initialize(t, id, -1);
+    }
+
+    /** The story witness is deferred together with the base tier roll until the seal has opened. */
+    public void initializeStoryCache(int t, String id, int event, String relic) {
+        initializeClickUnlock(t, id);
+        storyEvent = event >= 8 && event <= 10 ? event : -1;
+        setStoryRelic(relic);
+    }
+
+    public void setStoryRelic(String relic) {
+        storyRelic = com.miaokatze.gtsr.common.dimension.prosperity.lore.LoreRegistry.RELICS.containsKey(relic) ? relic
+            : "";
+        markDirty();
     }
 
     private boolean allowed() {
@@ -117,6 +132,19 @@ public class TileEntitySealedChest extends TileEntity {
             if (t instanceof TileEntityUnsealedChest) {
                 TileEntityUnsealedChest chest = (TileEntityUnsealedChest) t;
                 chest.setInventorySlotContents(13, lootForTier(tier));
+                chest.setStoryOrigin(encounter, storyEvent);
+                net.minecraft.item.Item relic = com.miaokatze.gtsr.common.dimension.prosperity.lore.LoreRegistry.RELICS
+                    .get(storyRelic);
+                if (relic != null) {
+                    ItemStack witness = new ItemStack(relic);
+                    if (storyEvent >= 8 && storyEvent <= 10) {
+                        NBTTagCompound proof = new NBTTagCompound();
+                        proof.setInteger("gtsr.storyCache", storyEvent);
+                        proof.setString("gtsr.storyOrigin", encounter);
+                        witness.setTagCompound(proof);
+                    }
+                    chest.setInventorySlotContents(12, witness);
+                }
                 chest.markDirty();
             }
         }
@@ -128,6 +156,8 @@ public class TileEntitySealedChest extends TileEntity {
         platform = n.hasKey("platform") ? n.getInteger("platform") : -1;
         encounter = n.getString("encounter");
         clickUnlock = n.getBoolean("clickUnlock");
+        storyEvent = n.hasKey("storyEvent") ? n.getInteger("storyEvent") : -1;
+        storyRelic = n.getString("storyRelic");
         openingTicks = n.hasKey("opening") ? n.getInteger("opening") : -1;
     }
 
@@ -137,6 +167,8 @@ public class TileEntitySealedChest extends TileEntity {
         n.setInteger("platform", platform);
         n.setString("encounter", encounter);
         n.setBoolean("clickUnlock", clickUnlock);
+        n.setInteger("storyEvent", storyEvent);
+        n.setString("storyRelic", storyRelic);
         n.setInteger("opening", openingTicks);
     }
 

@@ -455,7 +455,13 @@ public class EntityOldEcho extends EntityEncounterBase {
     }
 
     @Override
-    protected void dropFewItems(boolean hit, int looting) { /* B2 attaches stable code based LivingDropsEvent. */ }
+    protected void dropFewItems(boolean hit, int looting) {
+        if (worldObj.isRemote || nightSpawn) return;
+        String witness = com.miaokatze.gtsr.common.dimension.prosperity.lore.LoreSources.bossRelic(getKind());
+        net.minecraft.item.Item item = com.miaokatze.gtsr.common.dimension.prosperity.lore.LoreRegistry.RELICS
+            .get(witness);
+        if (item != null) entityDropItem(new net.minecraft.item.ItemStack(item), .1F);
+    }
 
     @Override
     public void writeEntityToNBT(NBTTagCompound n) {

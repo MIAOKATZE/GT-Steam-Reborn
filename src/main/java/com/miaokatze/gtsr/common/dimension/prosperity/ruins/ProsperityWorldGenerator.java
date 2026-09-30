@@ -147,6 +147,8 @@ public class ProsperityWorldGenerator implements IWorldGenerator, GTSROwnedGener
         // 城市缓冲窗（半径+1 chunk）内跳过散布与残缺机器（plan §3.4：城市本身即"结构密度拉满"，
         // 二者混叠只脏；窗判定与渲染检索同源 CityPlanner.citiesNear，跨 chunk 一致）
         if (cities.length > 0) {
+            com.miaokatze.gtsr.common.dimension.prosperity.echo.SpecialCaches
+                .generate(world, worldSeed, chunkX, chunkZ, cities);
             return;
         }
 
@@ -174,7 +176,7 @@ public class ProsperityWorldGenerator implements IWorldGenerator, GTSROwnedGener
         // 本环只在它们都没真实落块时才问门，过的是同一份每 chunk 预算（默认 1）与同一份同族间距档
         // ⇒ 废墟是"在既有预算内挤位"，不是叠加密度（实测对照见 tools/dim1/RuinFamilyCheck DENSITY 行）。
         if (!structureLanded) {
-            RuinPlacer.placeAll(world, worldSeed, chunkX, chunkZ, sink, structureGate);
+            structureLanded = RuinPlacer.placeAll(world, worldSeed, chunkX, chunkZ, sink, structureGate);
         }
 
         // —— 5. 地表散布（P5：每 chunk 件数 K × 群系散布权重 + 落块/掷点上限，全部 Config 取值；
@@ -189,6 +191,8 @@ public class ProsperityWorldGenerator implements IWorldGenerator, GTSROwnedGener
         // 见 {@link #vegRosterIndex}；机器/散布/结构仍用 GenLayer 面 rosterIndex，不受影响）——
         ProsperityDecorPlacer
             .decorate(world, worldSeed, chunkX, chunkZ, vegRosterIndex(worldSeed, chunkX, chunkZ, rosterIndex), sink);
+        com.miaokatze.gtsr.common.dimension.prosperity.echo.SpecialCaches
+            .generate(world, worldSeed, chunkX, chunkZ, cities, !structureLanded);
     }
 
     /**

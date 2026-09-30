@@ -80,8 +80,11 @@ public final class RuinsWorldgen {
                 TileEntity t = w.getTileEntity(x, y, z);
                 if (t instanceof TileEntitySealedChest) {
                     TileEntitySealedChest chest = (TileEntitySealedChest) t;
-                    if (s.kind >= 7) chest.initializeClickUnlock(n.tier, id);
-                    else chest.initialize(n.tier, id, -1);
+                    if (s.kind >= 7) {
+                        chest.initializeClickUnlock(n.tier, id);
+                        chest.setStoryRelic(
+                            com.miaokatze.gtsr.common.dimension.prosperity.lore.LoreSources.chestRelic(s.kind));
+                    } else chest.initialize(n.tier, id, -1);
                     data.markCreated(id, node);
                 }
             } else {
