@@ -118,8 +118,8 @@ public class ChunkProviderProsperityRuins extends GTSRChunkProviderBase {
             ChunkProviderProsperityRuins::baseBlockOf,
             false,
             false,
-            // v1.20.41 P20 S5（plan §15.4）：湖滨湿带 = S1 混合带的包装层（先原样委托、只在湿带列
-            // 改派同维名册内的河滩料）。域外列逐字退回 S1 结果，见 LakeWetBandTopSelector 契约段。
+            // 湖域在生成期已拥有湖群系：top按湿砾/干砂/坡岩裁定，filler保留湖自己的废岩。
+            // 湖域外仍委托S1混合带，再沿湖岸羽化，见LakeWetBandTopSelector契约段。
             // SurfaceSpecUnreachableCheck 的"分配点恰 1 处"计数不受影响（仍是本行一处 new）。
             new LakeWetBandTopSelector());
     }
@@ -183,8 +183,7 @@ public class ChunkProviderProsperityRuins extends GTSRChunkProviderBase {
                 return BlocksGTSR.prosperityStone;
             }
             case SANZU_RIVER: {
-                // T5：遗忘之川 wholeBody 同走 prosperityStone（G4 全群系统一口径；生产路径
-                // provideChunk 期平面是链面 4 家，本分支供 populate 后置写平面后的离线/复算消费面）
+                // 湖列在 provideChunk 期已认领群系，主体与 filler 同走湖自己的废岩。
                 return BlocksGTSR.prosperityStone;
             }
             case WITHERED_RIVERBED: {
@@ -444,9 +443,13 @@ public class ChunkProviderProsperityRuins extends GTSRChunkProviderBase {
                 this.blended = GTSRSurfaceBorderBand
                     .forChunk(GTSRBiomeAuthority.DIM_KEY_PROSPERITY, seed, this.boundBaseX, this.boundBaseZ);
             }
-            final Block base = this.blended == null ? biome.topBlock : this.blended.topAt(seed, x, z, biome);
+            final boolean lakeColumn = identityOf(biome) == BiomeId.SANZU_RIVER;
+            // 湖身份已在生成期落到整列，不能再由四群系边带把湖床改回周边群系皮。
+            // 湖域外仍消费原细层群系与 S1 混合料，陆侧羽化空档继续透传邻料。
+            final Block base = lakeColumn || this.blended == null ? biome.topBlock
+                : this.blended.topAt(seed, x, z, biome);
             final Block gravel = BlocksGTSR.prosperityRiverGravel;
-            if (base == gravel) {
+            if (!lakeColumn && base == gravel) {
                 return base; // 已是湿料，省一次湖场求值
             }
             // P26-B3（D3·c3 + D4·d2，v1.20.49）：干滩硅砂档<b>先于</b>湿砾檐裁定——干滩核心
@@ -483,9 +486,9 @@ public class ChunkProviderProsperityRuins extends GTSRChunkProviderBase {
         }
 
         /**
-         * P22 A2b（G1）：filler 段直通 S1 混合带（与 top 同一档裁定、同一 meta 等值门，见
-         * {@code GTSRSurfaceBorderBand#fillerAt}）。湿带/羽化檐列<b>不改</b>下垫——湿料语义只作用
-         * 在裸露面 top（plan §15.4 原契约），湖床底下的填充层维持群系列。
+         * 湖列直取湖群系 filler，避免湖床下方仍透传周边四群系下垫。湖域外保持 S1 混合带
+         * （与 top 同一档裁定、同一 meta 等值门，见 {@code GTSRSurfaceBorderBand#fillerAt}），
+         * 因而陆侧羽化空档仍延续原细层群系填充。
          * <p>
          * <b>不重复绑定</b>（刻意不调 forChunk 第二条路）：内核同列循环先写 top 后写 filler、
          * spec 每 chunk 新建 ⇒ 本方法被调时 topAt 已完成绑定；若未触发过（理论不可达）则
@@ -494,6 +497,9 @@ public class ChunkProviderProsperityRuins extends GTSRChunkProviderBase {
          */
         @Override
         public Block fillerAt(long seed, int x, int z, BiomeGenBase biome) {
+            if (identityOf(biome) == BiomeId.SANZU_RIVER) {
+                return biome.fillerBlock;
+            }
             return this.blended == null ? biome.fillerBlock : this.blended.fillerAt(seed, x, z, biome);
         }
 

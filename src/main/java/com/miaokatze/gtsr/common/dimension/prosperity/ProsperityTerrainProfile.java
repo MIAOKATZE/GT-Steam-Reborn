@@ -672,7 +672,7 @@ public final class ProsperityTerrainProfile {
             } else {
                 // ═══ v1.20.41 P20 S5（plan §15.4 第一判据）湖滨带形状：改造前这里是
                 // <b>线性</b> lerp（在环带两端各留一个折角 = "衔接生硬"的形状根因之一）。
-                // 换成生产侧唯一出口 lakeShoreBlend = s01 缓入缓出 + 多级台阶（riser ≤ 总抬升/4），
+                // 生产侧唯一出口 lakeShoreBlend 现在直接使用连续 s01 缓入缓出，去掉历史四级权重量化，
                 // 环带<b>宽度不动</b>（理由见该常量的 LAKE_SHORE 注释）。min 语义原样保留 ⇒
                 // 环带恒不高于本列无湖时的原地形 ⇒ "环形堤"在本式下结构上不可表示。═══
                 final double q = GTSRVoronoiRiverField.lakeShoreBlend(lake);

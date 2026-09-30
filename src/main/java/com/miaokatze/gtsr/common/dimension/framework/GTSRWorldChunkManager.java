@@ -12,6 +12,7 @@ import net.minecraft.world.biome.BiomeGenBase;
 import net.minecraft.world.biome.WorldChunkManager;
 
 import com.miaokatze.gtsr.common.dimension.framework.genlayer.GTSRGenLayerChain;
+import com.miaokatze.gtsr.common.dimension.prosperity.river.GTSRVoronoiRiverField;
 import com.miaokatze.gtsr.main.GTSteamReborn;
 
 /**
@@ -29,11 +30,13 @@ import com.miaokatze.gtsr.main.GTSteamReborn;
  * <li><b>细层方块平面</b>（1:1，voronoi 有机边界）：{@link #loadBlockGeneratorData} /
  * {@link #getBiomeGenAt} / {@link #getRainfall}——{@code provideChunk} 的 16×16 逐列平面与
  * vanilla 懒回填回调（{@code Chunk.getBiomeGenForWorldCoords} → 单点 {@code getBiomeGenAt}）
- * 同源同解，故 EndlessIDs 回填路径与直接写逐位一致。</li>
+ * 同源同解，故 EndlessIDs 回填路径与直接写逐位一致。繁荣维度的湖列再统一经过
+ * {@link #columnBiomeAt} 覆写，使生成期top/filler/body与持久群系身份一致。</li>
  * </ul>
  * 两面出自<b>同一条链同一个种子</b>（纯函数：同 seed 同坐标恒同值），但 1:1 平面在粗层格边界
  * ±2 块内有 voronoi 抖动——chunk 身份面与方块平面在边界列可以合法不同（vanilla 同性质，
- * 非三面同解的破坏：三面指 chunk 生成平面、单点采样、懒回填三者互相同解）。
+ * 非三面同解的破坏：三面指 chunk 生成平面、单点采样、懒回填三者互相同解）。湖覆写仅作用
+ * 于细层出口，粗层继续提供无湖覆写的地形与结构身份，防止湖谓词的高度腿反向递归。
  * <p>
  * <b>种子礼仪</b>：链种子 = {@code seed ^ def.getSeedSalt()}（世界种子掺维度域分离盐），
  * 两维同世界种子时链输出互不相关；同 seed 的链只在本 manager 实例内存在，不跨 seed 复用。
@@ -220,6 +223,24 @@ public class GTSRWorldChunkManager extends WorldChunkManager {
     }
 
     /**
+     * 遗忘之湖的方块列覆写：生成期表层、持久平面与单点回填共用同一谓词。
+     * 粗层身份仍走基础链；isSanzuColumn 的高度求值会读粗层，不能把此覆写接入粗层形成递归。
+     * 缺席列/未配槽湖群系不补造身份，其他维度也不求湖场。
+     */
+    private BiomeGenBase columnBiomeAt(int x, int z, BiomeGenBase base) {
+        if (base == null || !GTSRBiomeAuthority.DIM_KEY_PROSPERITY.equals(this.dimKey)) {
+            return base;
+        }
+        final GTSRBiomeAuthority authority = GTSRBiomeAuthority.forDimKey(this.dimKey);
+        final int lakeId = authority.actualIdOf(GTSRBiomeAuthority.BiomeId.SANZU_RIVER);
+        final BiomeGenBase lake = authority.biomeOf(GTSRBiomeAuthority.BiomeId.SANZU_RIVER);
+        if (lake == null || lakeId < 0 || lakeId > GTSRBiomeBase.HARD_ID_MAX || lake.biomeID != lakeId) {
+            return base;
+        }
+        return GTSRVoronoiRiverField.isSanzuColumn(this.seed, x, z) ? lake : base;
+    }
+
+    /**
      * 本维 def key（L1 账本键；{@code null} = 匿名 def）。
      * <p>
      * <b>P12 新增只读出口（plan §2.1 L8）</b>：进维一次性诊断行需要"维度 id ↔ def key ↔ 是否已绑"
@@ -283,7 +304,7 @@ public class GTSRWorldChunkManager extends WorldChunkManager {
         if (this.genChain == null) {
             return null;
         }
-        return biomeById(this.genChain.biomeAtFine(x, z));
+        return columnBiomeAt(x, z, biomeById(this.genChain.biomeAtFine(x, z)));
     }
 
     /**
@@ -317,10 +338,12 @@ public class GTSRWorldChunkManager extends WorldChunkManager {
         if (this.genChain == null) {
             return listToReuse;
         }
-        final int[] ids = this.genChain.fineInts(x, z, width, length);
+        // 湖覆写内的高度采样会再次调用GenLayer并重置共享IntCache；先拷出细层窗口，
+        // 避免后续列读到高度查询复用的瞬态数组。
+        final int[] ids = Arrays.copyOf(this.genChain.fineInts(x, z, width, length), width * length);
         for (int dx = 0; dx < width; dx++) {
             for (int dz = 0; dz < length; dz++) {
-                final BiomeGenBase biome = biomeById(ids[dx + dz * width]);
+                final BiomeGenBase biome = columnBiomeAt(x + dx, z + dz, biomeById(ids[dx + dz * width]));
                 if (biome != null) {
                     listToReuse[dx + dz * width] = biome.getIntRainfall() / 65536.0F;
                 }
@@ -376,9 +399,10 @@ public class GTSRWorldChunkManager extends WorldChunkManager {
             Arrays.fill(listToReuse, 0, width * length, null);
             return listToReuse;
         }
-        final int[] ids = this.genChain.fineInts(x, z, width, length);
+        // 与雨量查询同样先脱离IntCache，再逐列求湖谓词。
+        final int[] ids = Arrays.copyOf(this.genChain.fineInts(x, z, width, length), width * length);
         for (int i = 0; i < width * length; i++) {
-            listToReuse[i] = biomeById(ids[i]);
+            listToReuse[i] = columnBiomeAt(x + i % width, z + i / width, biomeById(ids[i]));
         }
         return listToReuse;
     }

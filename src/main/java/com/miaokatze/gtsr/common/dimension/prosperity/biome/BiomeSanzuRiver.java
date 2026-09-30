@@ -25,10 +25,10 @@ import cpw.mods.fml.relauncher.SideOnly;
  * <b>注册与常规四群系不同轨</b>：经 {@link ProsperityBiomes} 既有扫描配槽机制占 biomeList 槽
  * （首选槽 {@code prosperityBiomeIdStart + 4}，默认 184；被占顺延，上界
  * {@link GTSRBiomeBase#HARD_ID_MAX}=254），但<b>不挂 def 群系表、不进 GenLayer 链 selector
- * 等权名册</b>（4 家不动，plan §3.3/§5）——本群系的平面列由 populate 后置指派写入
- * （{@code ChunkProviderProsperityRuins.onPopulate}，唯一写入通道 {@code BiomePlaneAccess}；
- * 列条件与 {@code GTSRVoronoiRiverField.isSanzuColumn} 同一谓词——湖面+滩带，P23 R1），
- * 湖形+滩带形状天然来自"湖压力场 × 贴水地形"的交集。空气压缩机在本群系收集三途余汽
+ * 等权名册</b>（4 家不动，plan §3.3/§5）——生成期由细层manager按
+ * {@code GTSRVoronoiRiverField.isSanzuColumn}统一覆写，top/filler/body与持久群系平面同源；
+ * populate仍按同一谓词认领平面，写入通道均为{@code BiomePlaneAccess}。湖本体（含湖岛）
+ * 整列按压力域归湖，湖外滩带才应用高度与粗格净空门。空气压缩机在本群系收集三途余汽
  * （{@code ProsperityAirLookup} case SANZU_RIVER）。
  * <p>
  * 构造纪律与四群系同构（参照 {@link BiomeFumaroleSwamp}）：R4 全维度禁雨
