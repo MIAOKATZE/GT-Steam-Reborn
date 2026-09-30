@@ -46,6 +46,11 @@ public final class ForgottenLakeEncounterRegistry {
             2,
             true);
         MinecraftForge.EVENT_BUS.register(new ForgottenLakeEncounterRegistry());
+        com.miaokatze.gtsr.common.dimension.prosperity.echo.EchoWorldEvents echoes = new com.miaokatze.gtsr.common.dimension.prosperity.echo.EchoWorldEvents();
+        MinecraftForge.EVENT_BUS.register(echoes);
+        cpw.mods.fml.common.FMLCommonHandler.instance()
+            .bus()
+            .register(echoes);
         EncounterNetwork.register();
         cpw.mods.fml.common.FMLCommonHandler.instance()
             .bus()

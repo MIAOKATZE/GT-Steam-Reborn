@@ -49,6 +49,9 @@ public class TileEntitySealedChest extends TileEntity {
         if (clickUnlock) return openingTicks >= 0;
         if (tier == 1) return openingTicks >= 0;
         if (encounter.isEmpty()) return false;
+        if (encounter.startsWith("echo:"))
+            return com.miaokatze.gtsr.common.dimension.prosperity.echo.RuinsEncounterData.get(worldObj)
+                .dead(encounter, 0);
         ForgottenLakeEncounterData d = ForgottenLakeEncounterData.get(worldObj);
         return platform < 0 ? d.kingDead(encounter) : d.platformCleared(encounter, platform);
     }

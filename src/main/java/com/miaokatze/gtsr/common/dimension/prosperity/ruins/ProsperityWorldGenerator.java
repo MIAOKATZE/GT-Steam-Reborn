@@ -58,6 +58,7 @@ public class ProsperityWorldGenerator implements IWorldGenerator, GTSROwnedGener
     private static volatile boolean evidenceLogged;
 
     public ProsperityWorldGenerator() {
+        com.miaokatze.gtsr.common.dimension.prosperity.echo.RuinsWorldgen.registerVariants();
         RuinedMachinePlacer.registerVariants();
         CityVariants.registerVariants();
         ProsperityOutpostPlacer.registerVariants();
@@ -131,6 +132,7 @@ public class ProsperityWorldGenerator implements IWorldGenerator, GTSROwnedGener
         if (!Config.planDimension.prosperityDimension) {
             return;
         }
+        if (com.miaokatze.gtsr.common.dimension.prosperity.echo.RuinsWorldgen.generate(world, chunkX, chunkZ)) return;
         final long worldSeed = world.getSeed();
         // 每 chunk 一个钳制 Sink：越界写入协议层丢弃并计数（每 256 chunk 汇总日志，02 代码 15 越界瑕疵修复）
         final BlockSink sink = new ChunkClampedSink(world, chunkX, chunkZ);
