@@ -207,11 +207,12 @@ public class BlockLoader {
         // 十字渲染；v1.20.44 P24-A2 起贴图 = vanilla 全透明 ⇒ 不可见载体 + randomDisplayTick 纯光点光效，
         // 零自有 PNG/mcmeta）。meta 恒 0、ItemBlock 三全零；全部非表层 top，
         // 不进 SurfaceGate 名册（DIM78_SIZE 恒 5）；世界生成消费方 = S3 树趟 / S4 光趟，本片零接线。
-        BlocksGTSR.prosperityZenithLog = new BlockProsperityRustLog(
+        BlocksGTSR.prosperityZenithLog = new com.miaokatze.gtsr.common.dimension.prosperity.architecture.BlockZenithLog(
             "ProsperityZenithLog",
             "gtsr:prosperity_zenith_log_side",
             "gtsr:prosperity_zenith_log_top");
         GameRegistry.registerBlock(BlocksGTSR.prosperityZenithLog, "ProsperityZenithLog");
+        com.miaokatze.gtsr.common.dimension.prosperity.architecture.RoyalArchitecture.registerBlocks();
         BlocksGTSR.prosperityJadeLeaves = new BlockProsperityCanopyLeaves(
             "ProsperityJadeLeaves",
             "gtsr:prosperity_jade_leaves_side",

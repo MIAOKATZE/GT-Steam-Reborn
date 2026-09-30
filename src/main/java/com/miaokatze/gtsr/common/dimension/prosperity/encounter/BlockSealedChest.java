@@ -4,9 +4,11 @@ import java.util.ArrayList;
 
 import net.minecraft.block.BlockContainer;
 import net.minecraft.block.material.Material;
+import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.MathHelper;
 import net.minecraft.world.Explosion;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
@@ -18,8 +20,13 @@ public class BlockSealedChest extends BlockContainer {
         setBlockName("sealedChest");
         setHardness(-1);
         setResistance(6000000);
-        setBlockTextureName("planks_oak");
+        setBlockTextureName("gtsr:prosperity_rust_log_side");
         setBlockBounds(.0625F, 0, .0625F, .9375F, .875F, .9375F);
+    }
+
+    public void onBlockPlacedBy(World w, int x, int y, int z, EntityLivingBase placer, ItemStack stack) {
+        int direction = MathHelper.floor_double(placer.rotationYaw * 4 / 360.0 + .5) & 3;
+        w.setBlockMetadataWithNotify(x, y, z, new int[] { 2, 5, 3, 4 }[direction], 3);
     }
 
     public TileEntity createNewTileEntity(World w, int m) {

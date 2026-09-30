@@ -31,6 +31,23 @@ public final class StructureBuilder {
         return this.sink.setBlock(x, y, z, block, meta, flags);
     }
 
+    /** Read-only clipping bounds for geometry enumerators; unbounded sinks retain replay semantics. */
+    public int minX() {
+        return sink instanceof ChunkSliceSink ? ((ChunkSliceSink) sink).chunkX() << 4 : Integer.MIN_VALUE;
+    }
+
+    public int maxX() {
+        return sink instanceof ChunkSliceSink ? (((ChunkSliceSink) sink).chunkX() << 4) + 15 : Integer.MAX_VALUE;
+    }
+
+    public int minZ() {
+        return sink instanceof ChunkSliceSink ? ((ChunkSliceSink) sink).chunkZ() << 4 : Integer.MIN_VALUE;
+    }
+
+    public int maxZ() {
+        return sink instanceof ChunkSliceSink ? (((ChunkSliceSink) sink).chunkZ() << 4) + 15 : Integer.MAX_VALUE;
+    }
+
     // —— 四元旋转原语（本地坐标顺时针 90°/步；S4b 朝向用，plan §3.2） ——
 
     /** 旋转后 footprint 尺寸（奇数转 X/Z 互换）。rot ∈ 0..3。 */

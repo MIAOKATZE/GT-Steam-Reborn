@@ -19,6 +19,7 @@ public abstract class EntityEncounterBase extends EntityCreature {
         dataWatcher.addObject(21, "");
         dataWatcher.addObject(22, 0);
         dataWatcher.addObject(23, -1);
+        dataWatcher.addObject(24, 90F);
     }
 
     public int getEncounterState() {
@@ -35,6 +36,31 @@ public abstract class EntityEncounterBase extends EntityCreature {
 
     public int getPlatformId() {
         return dataWatcher.getWatchableObjectInt(23);
+    }
+
+    public float getHomeYaw() {
+        return dataWatcher.getWatchableObjectFloat(24);
+    }
+
+    public void setHomeYaw(float yaw) {
+        dataWatcher.updateObject(24, yaw);
+        faceHome();
+    }
+
+    protected void faceHome() {
+        rotationYaw = rotationYawHead = renderYawOffset = getHomeYaw();
+    }
+
+    protected float legacyHomeYaw() {
+        if (getPlatformId() < 0) return 90F;
+        try {
+            String[] parts = getEncounterId().split(":");
+            double dx = Integer.parseInt(parts[1]) + .5 - anchorX;
+            double dz = Integer.parseInt(parts[2]) + .5 - anchorZ;
+            return (float) (Math.atan2(-dx, dz) * 180 / Math.PI);
+        } catch (RuntimeException ignored) {
+            return 90F;
+        }
     }
 
     protected void state(int s) {
@@ -68,6 +94,8 @@ public abstract class EntityEncounterBase extends EntityCreature {
         n.setDouble("ax", anchorX);
         n.setDouble("ay", anchorY);
         n.setDouble("az", anchorZ);
+        n.setFloat("homeYaw", getHomeYaw());
+        n.setInteger("corpseTicks", deathTime);
     }
 
     public void readEntityFromNBT(NBTTagCompound n) {
@@ -80,5 +108,7 @@ public abstract class EntityEncounterBase extends EntityCreature {
             n.getDouble("az"));
         state(n.getInteger("state"));
         phase(n.getInteger("phase"));
+        setHomeYaw(n.hasKey("homeYaw") ? n.getFloat("homeYaw") : legacyHomeYaw());
+        deathTime = n.getInteger("corpseTicks");
     }
 }

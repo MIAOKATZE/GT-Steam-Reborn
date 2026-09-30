@@ -36,6 +36,7 @@ public class ForgottenLakeEncounterData extends WorldSavedData {
         NBTTagCompound n = records.get(id);
         if (n == null) {
             n = new NBTTagCompound();
+            n.setInteger("layoutVersion", 3);
             records.put(id, n);
             markDirty();
         }
@@ -55,19 +56,59 @@ public class ForgottenLakeEncounterData extends WorldSavedData {
         return record(id).getInteger("deaths");
     }
 
+    public void registerLayout(String id, int version) {
+        // Loading legacy records assigns V1 before any queries; registration never upgrades them.
+        boolean fresh = !records.containsKey(id);
+        NBTTagCompound n = record(id);
+        if (fresh || !n.hasKey("layoutVersion")) {
+            n.setInteger("layoutVersion", Math.max(1, Math.min(3, version)));
+            markDirty();
+        }
+    }
+
+    public int layoutVersion(String id) {
+        return Math.max(1, Math.min(3, record(id).getInteger("layoutVersion")));
+    }
+
+    public int guardCount(String id, int platform) {
+        int version = layoutVersion(id);
+        if (platform < 0 || platform >= (version == 3 ? 8 : 4)) return 0;
+        return version == 1 ? 3 : new int[] { 3, 4, 5, 4 }[platform % 4];
+    }
+
+    public int guardIndex(String id, int platform, int ordinal) {
+        if (ordinal < 0 || ordinal >= guardCount(id, platform)) return -1;
+        int start = 0;
+        for (int p = 0; p < platform; p++) start += guardCount(id, p);
+        return start + ordinal;
+    }
+
+    public boolean guardDead(String id, int platform, int ordinal) {
+        int i = guardIndex(id, platform, ordinal);
+        return i >= 0 && (deaths(id) & (1 << i)) != 0;
+    }
+
     public void guardDied(String id, int index) {
-        if (index >= 0 && index < 12) {
+        int version = layoutVersion(id);
+        int count = version == 1 ? 12 : version == 2 ? 16 : 32;
+        if (index >= 0 && index < count) {
             record(id).setInteger("deaths", deaths(id) | (1 << index));
             markDirty();
         }
     }
 
     public boolean platformCleared(String id, int platform) {
-        return platform >= 0 && platform < 4 && (deaths(id) & (7 << (platform * 3))) == (7 << (platform * 3));
+        int count = guardCount(id, platform);
+        if (count == 0) return false;
+        int mask = ((1 << count) - 1) << guardIndex(id, platform, 0);
+        return (deaths(id) & mask) == mask;
     }
 
     public boolean allGuardsDead(String id) {
-        return deaths(id) == 4095;
+        int version = layoutVersion(id);
+        // V3 consumes every bit of the existing int, including the sign bit (guard 31).
+        int mask = version == 1 ? 4095 : version == 2 ? 65535 : -1;
+        return (deaths(id) & mask) == mask;
     }
 
     public boolean kingDead(String id) {
@@ -84,7 +125,11 @@ public class ForgottenLakeEncounterData extends WorldSavedData {
         NBTTagList l = n.getTagList("encounters", 10);
         for (int i = 0; i < l.tagCount(); i++) {
             NBTTagCompound e = l.getCompoundTagAt(i);
-            records.put(e.getString("id"), e.getCompoundTag("record"));
+            NBTTagCompound saved = e.getCompoundTag("record");
+            saved.setInteger(
+                "layoutVersion",
+                saved.hasKey("layoutVersion") ? Math.max(1, Math.min(3, saved.getInteger("layoutVersion"))) : 1);
+            records.put(e.getString("id"), saved);
         }
     }
 

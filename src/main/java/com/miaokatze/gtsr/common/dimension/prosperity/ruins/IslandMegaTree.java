@@ -14,59 +14,12 @@ import com.miaokatze.gtsr.common.dimension.framework.structure.StructureBuilder;
 import com.miaokatze.gtsr.common.dimension.prosperity.ProsperityTerrainProfile;
 
 /**
- * 垂天玄柯<b>岛心巨树形态</b>（P27 方案 B「分层相位表纯分叉顶冠」——椭球冠壳退役；方块 = 已注册
- * {@code BlocksGTSR.prosperityZenithLog} / {@code prosperityJadeLeaves}，复用既有类，无方块侧工作）。
- * <p>
- * <b>形态（五件套）</b>——
- * <ol>
- * <li><b>连续幂收分巨柱干</b>：r(i) = 1.5 + 5.0·((H−i)/H)^0.85，底 r6.5 圆盘（盘测试 d²≤r²+r，
- * 同 {@code MegaTreeForms} redwood 范式）连续收分到顶 r1.5，<b>禁分段台阶</b>；干高 133..146 ⇒
- * 岛面上总高（= 干顶帽团顶 trunkH+1）134..147，y0 带 [71,73] ⇒ 冠顶 ≤ 220（255 余量 ≥30）；
- * 干北侧 2×2 树洞（y0+8..y0+28 一段<b>选择不写</b>，「干无条件写」语义不受影响——洞=不写，不是写洞）；</li>
- * <li><b>抱岛鳍根</b>：9..11 片径向鳍墙，自干底外伸 16..23 格、鳍高 12..16 随距离线性归零，
- * 贴岛坡的基线自 y0 线性降至水线 {@code SEA_LEVEL}=68（鳍格最低 y ≥ 69，<b>不触水体</b>，
- * 干穿水的 p21 A3 口径不经根扩展）；楔形缺口留在鳍间；</li>
- * <li><b>分层相位表分叉顶冠（本档主体，取代旧三级枝+椭球壳两件）</b>：干顶 3 轮 21 条一级骨架枝
- * （相位 0.50/0.66/0.82 × 干高，8/7/6 分布），方位 = 全局哈希旋转 + 序号×{@link #GOLDEN_ANGLE}
- * （外轮 8 枝按黄金角散布，形成更密的扇区覆盖）；臂长下轮 50..57（外张微垂：
- * 抛物线弧升 +0.18→−0.10，承载外轮廓与垂帘锚）、中轮 38..42（+0.30→+0.02 平展）、上轮 30..36
- * （+0.40→+0.12 聚拢上扬）；<b>枝身 2 格粗</b>（沿臂每步水平圆盘 d²≤r²+r、r={@link #TIER1_LIMB_R}≈1.4），
- * 二级保持 1 格线；每枝 55..70% 处 2..3 叉（长 0.42×母臂，外扬 +0.45 / 内垂 −0.10 重力双角）；</li>
- * <li><b>末级叶团 + 枝身叶串（「茂密」的双承载）</b>：枝端 r6..8 叠 5 层、叉端 r6..8 叠 4 层
- * （盘半径逐层递收 r,r−1,r−2,…）+ 干顶帽团（r5 三层收口）+ 沿一级枝每 10..14 格 r3..4 叶串单盘
- * （盘面与枝身同层、包住木芯）；叶团盘几何 = {@link #tuftCellAt} 包内私有复刻
- * {@code ProsperityDecorPlacer#placeLeafDisc} 的方盘缺角剪形（<b>不动 DecorPlacer</b>，本类写/查两侧
- * 共享同一谓词 ⇒ 盘几何单一真值在本类内闭合）；</li>
- * <li><b>冠缘垂帘</b>：12..16 条 1×1 叶柱，锚 = <b>最外轮（下轮）叶团底</b>（骨架枚举收集、按角度序
- * 确定性排序——不再依赖「任意半径带必有壳层」的旧假设），自团底垂 35..60 格，<b>最低端 y ≥
- * {@link #DROOP_MIN_TIP_Y}=102</b>（形态级硬钳：垂帘并入冠形态枚举 ⇒ 冠下光位 = 帘底−1 ≥ 101
- * &gt; 判据 Y_FLOOR=100，冠最低格 y ≥ 101 的红线同源）。</li>
- * </ol>
- * 枯枝点缀：干中下部 4..6 段哈希门控裸木刺（长 5..9，无叶团）。
- * <p>
- * <b>确定性契约（跨 chunk 单射的前提，形态换代前后一字不差）</b>：整棵树的形态只由
- * {@code (treeRand 种子, ax, az, y0)} 决定——四者对每个被跨 chunk 都相同（锚点纯函数 + 树 rand
- * 以<b>锚点槽</b>派生，见 {@code ProsperityDecorPlacer.placeIslandTreePass}），且 {@code treeRand}
- * 的取数点全部在无 World 分支的固定序上：<b>干高 → 255 门 → 缺角盐 → 垂帘盐</b>（唯四 nextInt；
- * 其余形态参数——轮参/角抖/臂长/叉参/团半径/叶串相位/垂帘槽/帘长——全部走「盐混入序号哈希」
- * （{@link #mix}，新骨架统一占 5000-5999 块），零新增取数点），World 读只出现在逐格叶门里、
- * 不参与形态决策（让行口径 = {@code placeLeafIfAir} 同款 owner-local，被让掉的格<b>不消耗</b> rand）。
- * ⇒ 任何 chunk 重算得<b>同一棵</b>树，各写各的 {@code ChunkSliceSink} owns 片。
- * <p>
- * <b>写格纪律</b>：干/枝/鳍根/枯桩<b>无条件写</b>（穿水段 y≤{@code SEA_LEVEL}−1 由木取代水，
- * p21 A3 口径——本档干自 y0+1 起写、鳍根最低 y=69，实际穿水只发生在判据合成的低锚臂）；
- * 叶团/叶串/垂帘走 {@link ProsperityDecorPlacer#placeLeafIfAir}（只覆写 air/草/雪，绝不切
- * 结构/地形/水体；全部叶类格 y ≥ 102 ⇒ 写集与空世界逐格相同）。{@code crownTopAt > 255}
- * 整树早退（派生式 helper，{@link #placeInto} 与 {@link #crownUnderside} 共用同一静态——照
- * {@code MegaTreeForms} 的 255 红线，不硬写）。<b>径向硬界（派生式）</b>：任一冠格（木+叶）到
- * 树轴水平距离 ≤ {@link MegaTreeAnchors#CANOPY_RADIUS}（reachMax+tuftR ≤ R 的逐格形式，
- * 替旧死值 58²）；一级臂长另按 {@code arm ≤ R − tuftR} 参数级收口。
- * <p>
- * <b>单一枚举源</b>：冠形态（叶团格 + 叶串格 + 垂帘列）全部由 {@link #forEachCrownCell} 唯一枚举
- * （写路径与 {@link #crownUnderside} 查询共用；骨架几何收在 {@link #forEachBranchTuft} 一处，
- * 木格写路径与冠枚举共用同一骨架——木格本身不进冠形态枚举），LumenPlacer 只消费不复写。public 面 =
- * 离线判据 {@code tools/dim1/MegaTreeCheck} 直调同一形态重放（"单世界一次性写入"对拍臂）；
- * 生产侧唯一调用者是 {@code ProsperityDecorPlacer.placeIslandTreePass}。
+ * Deterministic royal island tree, P35: 160 metre crown radius, 30 primary limbs
+ * (12/10/8), 2.5 times published arm lengths, broad root fins and dense layered foliage.
+ * Random consumption remains height, notch salt, droop salt, with the original
+ * 255-height early return. Crown geometry is shared by placement and light queries.
+ * A bounded pure-shape cache and builder slice bounds avoid replaying all leaf cells
+ * into every owner chunk. Logs use vanilla axis metadata and leaves preserve terrain.
  */
 public final class IslandMegaTree {
 
@@ -74,27 +27,27 @@ public final class IslandMegaTree {
     static final int TRUNK_HEIGHT_MIN = 133;
     /** 干高掷骰跨度。 */
     static final int TRUNK_HEIGHT_SPAN = 14;
-    /** 连续幂收分：干半径 r(i) = R_TOP + (R_BASE−R_TOP)·((H−i)/H)^POW，底 r6.5 → 顶 r1.5（禁分段台阶）。 */
-    static final double TRUNK_R_BASE = 6.5D;
-    static final double TRUNK_R_TOP = 1.5D;
+    /** 连续幂收分：干半径 r(i) = R_TOP + (R_BASE−R_TOP)·((H−i)/H)^POW，底 r11.5 → 顶 r3.5（禁分段台阶）。 */
+    static final double TRUNK_R_BASE = 11.5D;
+    static final double TRUNK_R_TOP = 3.5D;
     static final double TRUNK_TAPER_POW = 0.85D;
     /** 干北侧 2×2 树洞的干高区间（i ∈ [8,28]，相对 y0；洞 = 选择不写，非「写洞」）。 */
     static final int TRUNK_HOLE_Y_MIN = 8;
     static final int TRUNK_HOLE_Y_MAX = 28;
     /** 一级枝轮相位表（相位 × 干高 = 着枝高度；0.50/0.66/0.82 三轮，P27 输入契约首选表）。 */
     static final double[] TIER1_PHASE = { 0.50D, 0.66D, 0.82D };
-    /** 每轮一级枝数（8/7/6 = 21 枝；保留黄金角散布并加密各层枝叶）。 */
-    static final int[] TIER1_PER_PHASE = { 8, 7, 6 };
-    /** 每轮臂长下限/跨度（下轮 50..57 外张承载外轮廓与垂帘锚；上轮 38..42 / 30..36 渐短聚拢）。 */
-    static final int[] TIER1_ARM_MIN = { 50, 38, 30 };
-    static final int[] TIER1_ARM_SPAN = { 8, 5, 7 };
+    /** 每轮一级枝数（12/10/8 = 30 枝；保留黄金角散布并加密各层枝叶）。 */
+    static final int[] TIER1_PER_PHASE = { 12, 10, 8 };
+    /** 每轮臂长下限/跨度（下轮 125..144 外张承载外轮廓与垂帘锚；上轮 95..107 / 75..91 渐短聚拢）。 */
+    static final int[] TIER1_ARM_MIN = { 125, 95, 75 };
+    static final int[] TIER1_ARM_SPAN = { 20, 13, 17 };
     /** 每轮抛物线弧升 a·s+(b−a)·s²/(2·arm)：下轮外张微垂、中轮平展、上轮聚拢上扬。 */
     static final double[] TIER1_SLOPE_START = { 0.18D, 0.30D, 0.40D };
     static final double[] TIER1_SLOPE_END = { -0.10D, 0.02D, 0.12D };
-    /** 一级枝身盘厚（d²≤r²+r 谓词、r≈1.4 ⇒ 水平 ~3×3 盘 =「2 格粗」观感；二级保持 1 格线）。 */
-    static final double TIER1_LIMB_R = 1.4D;
-    /** 二级叉（沿旧语义）：每母枝 2..3 叉于母臂 55..70% 处、长 0.42×母臂；外扬/内垂双角并存。 */
-    static final int TIER2_MIN = 2;
+    /** 一级枝身盘厚（d²≤r²+r 谓词、r≈2.2 ⇒ 水平 ~3×3 盘 =「2 格粗」观感；二级保持 1 格线）。 */
+    static final double TIER1_LIMB_R = 2.2D;
+    /** 二级叉（沿旧语义）：每母枝 3..4 叉于母臂 55..70% 处、长 0.42×母臂；外扬/内垂双角并存。 */
+    static final int TIER2_MIN = 3;
     static final int TIER2_SPAN = 2;
     static final double TIER2_FORK_LO = 0.55D;
     static final double TIER2_FORK_HI = 0.70D;
@@ -103,31 +56,31 @@ public final class IslandMegaTree {
     static final double TIER2_SLOPE_IN = -0.10D;
     /** 二级子臂方位偏离系数（±0.45 rad 全幅；旧 3200+8i+j 角抖同式）。 */
     static final double TIER2_SPREAD = 0.0009D;
-    /** 末级叶团：盘半径 6..8（mix 5400+i）；枝端叠 5 层、叉端 4 层（半径 r,r−1,r−2,… 逐层递收）。 */
-    static final int TUFT_R_MIN = 6;
-    static final int TUFT_R_SPAN = 3;
-    static final int TUFT_LAYERS_TIP = 5;
-    static final int TUFT_LAYERS_FORK = 4;
-    /** 干顶帽团（leader cap）：干顶−2 起 r5 三层——填补顶轮聚拢后的中轴绿量（椭球壳退役后的顶冠收口）。 */
-    static final int CAP_TUFT_R = 5;
+    /** 末级叶团：盘半径 10..14（mix 5400+i）；枝端叠 7 层、叉端 6 层（半径 r,r−1,r−2,… 逐层递收）。 */
+    static final int TUFT_R_MIN = 10;
+    static final int TUFT_R_SPAN = 5;
+    static final int TUFT_LAYERS_TIP = 7;
+    static final int TUFT_LAYERS_FORK = 6;
+    /** 干顶帽团（leader cap）：干顶−2 起 r14 三层——填补顶轮聚拢后的中轴绿量（椭球壳退役后的顶冠收口）。 */
+    static final int CAP_TUFT_R = 14;
     static final int CAP_TUFT_LAYERS = 3;
-    /** 枝身叶串（茂密感的决定项）：沿一级枝每 10..14 格挂 r3..4 单盘（盘面与枝身同层、包住木芯）。 */
-    static final int GARLAND_STEP_MIN = 10;
+    /** 枝身叶串（茂密感的决定项）：沿一级枝每 7..11 格挂 r6..7 单盘（盘面与枝身同层、包住木芯）。 */
+    static final int GARLAND_STEP_MIN = 7;
     static final int GARLAND_STEP_SPAN = 5;
-    static final int GARLAND_R_MIN = 3;
+    static final int GARLAND_R_MIN = 6;
     static final int GARLAND_R_SPAN = 2;
     /** 冠顶参考上浮（255 门派生式余量：干顶帽团顶 = trunkH+1 ⇒ +4 封顶界）。 */
     static final int CROWN_TOP_RISE = 4;
-    /** 鳍根：9..11 片 / 外伸 16..23 / 鳍高 12..16（随干高同比放大档）。 */
+    /** 鳍根：9..11 片 / 外伸 28..42 / 鳍高 20..24（随干高同比放大档）。 */
     static final int ROOT_FIN_MIN = 9;
     static final int ROOT_FIN_SPAN = 3;
-    static final int ROOT_REACH_MIN = 16;
-    static final int ROOT_REACH_SPAN = 8;
-    static final int ROOT_FIN_H_MIN = 12;
+    static final int ROOT_REACH_MIN = 28;
+    static final int ROOT_REACH_SPAN = 15;
+    static final int ROOT_FIN_H_MIN = 20;
     static final int ROOT_FIN_H_SPAN = 5;
-    /** 垂帘：12..16 槽（最外轮叶团底锚，不足取全）/ 帘长 35..60 / 最低端 y ≥ 102（Y_FLOOR=100 的形态级保证）。 */
-    static final int DROOP_SLOT_MIN = 12;
-    static final int DROOP_SLOT_SPAN = 5;
+    /** 垂帘：36..44 槽（最外轮叶团底锚，不足取全）/ 帘长 35..60 / 最低端 y ≥ 102（Y_FLOOR=100 的形态级保证）。 */
+    static final int DROOP_SLOT_MIN = 36;
+    static final int DROOP_SLOT_SPAN = 9;
     static final int DROOP_LEN_MIN = 35;
     static final int DROOP_LEN_SPAN = 26;
     static final int DROOP_MIN_TIP_Y = 102;
@@ -140,8 +93,8 @@ public final class IslandMegaTree {
     static final int SNAG_LEN_SPAN = 5;
 
     /**
-     * 冠底查询表边长（2×{@link MegaTreeAnchors#CANOPY_RADIUS}+1 = 129；public = 消费方
-     * {@code ProsperityLumenPlacer} 与判据按同一 footprint 分配表，防两处各写一个 129）。
+     * 冠底查询表边长（2×{@link MegaTreeAnchors#CANOPY_RADIUS}+1 = 321；public = 消费方
+     * {@code ProsperityLumenPlacer} 与判据按同一 footprint 分配表，防两处各写一个 321）。
      */
     public static final int CROWN_QUERY_SIDE = 2 * MegaTreeAnchors.CANOPY_RADIUS + 1;
 
@@ -218,7 +171,7 @@ public final class IslandMegaTree {
     }
 
     /**
-     * 主干：连续幂收分圆盘（r(i) = 1.5 + 5.0·((H−i)/H)^0.85，盘测试 d²≤r²+r）逐层上叠；
+     * 主干：连续幂收分圆盘（r(i) = 3.5 + 8.0·((H−i)/H)^0.85，盘测试 d²≤r²+r）逐层上叠；
      * 无条件写（穿水段由木取代水，p21 A3）；干北侧 2×2 树洞（i ∈ 8..28）选择不写。
      */
     private static void trunk(StructureBuilder builder, int ax, int az, int y0, int trunkH, Block log) {
@@ -290,7 +243,7 @@ public final class IslandMegaTree {
     }
 
     /**
-     * 分叉骨架<b>纯枚举</b>（P27 单一真值的骨架单元：干顶 3 轮 12 条一级枝 + 二级叉 + 末级叶团 +
+     * 分叉骨架<b>纯枚举</b>（P27 单一真值的骨架单元：干顶 3 轮 30 条一级枝 + 二级叉 + 末级叶团 +
      * 枝身叶串 + 干顶帽团，dy 相对冠参考 = 干顶；几何含干顶−2 截短与径向硬界，木格写路径
      * {@link #tierBranches} 与冠枚举 {@link #forEachCrownCell} 共用同一骨架，形态不可能长出第二副
      * 真值）。迭代序固定（轮 → 轮内枝 → 枝内先臂身后叉、叉内子臂、叉端团 → 枝端团 → 干顶帽团）；
@@ -385,7 +338,7 @@ public final class IslandMegaTree {
 
     /**
      * 分枝骨架木格写路径（P27 纯木：叶团/叶串归 {@link #crownTufts} 冠枚举）：一级枝身沿臂每步落
-     * <b>2 格粗水平圆盘</b>（d²≤r²+r、r={@link #TIER1_LIMB_R}≈1.4，同干盘谓词）；二级 1 格线。
+     * <b>宽约 5 格的水平圆盘</b>（d²≤r²+r、r={@link #TIER1_LIMB_R}≈1.4，同干盘谓词）；二级 1 格线。
      * 无条件写（穿水臂 p21 A3 口径）；与主干重叠由后写的 trunk 覆盖为同一 log。几何/截短/径向界
      * 全部由 {@link #forEachBranchTuft} 单一骨架给出，本方法零形态决策。
      */
@@ -403,14 +356,26 @@ public final class IslandMegaTree {
                         if (ox * ox + oz * oz > limbR2) {
                             continue; // 圆盘界外
                         }
-                        builder.setBlock(ax + dx + ox, refY + dy, az + dz + oz, log, 0, BlockSink.FLAG_POPULATE);
+                        builder.setBlock(
+                            ax + dx + ox,
+                            refY + dy,
+                            az + dz + oz,
+                            log,
+                            Math.abs(dx) >= Math.abs(dz) ? 4 : 8,
+                            BlockSink.FLAG_POPULATE);
                     }
                 }
             }
 
             @Override
             public void forkLimb(int dx, int dy, int dz) {
-                builder.setBlock(ax + dx, refY + dy, az + dz, log, 0, BlockSink.FLAG_POPULATE);
+                builder.setBlock(
+                    ax + dx,
+                    refY + dy,
+                    az + dz,
+                    log,
+                    Math.abs(dx) >= Math.abs(dz) ? 4 : 8,
+                    BlockSink.FLAG_POPULATE);
             }
 
             @Override
@@ -442,7 +407,7 @@ public final class IslandMegaTree {
                 final int bx = ax + (int) Math.round(cosA * (5 + c));
                 final int bz = az + (int) Math.round(sinA * (5 + c));
                 final int by = attachY - (c / 4); // 远端每 4 格垂 1（枯死下垂感）
-                builder.setBlock(bx, by, bz, log, 0, BlockSink.FLAG_POPULATE);
+                builder.setBlock(bx, by, bz, log, Math.abs(cosA) >= Math.abs(sinA) ? 4 : 8, BlockSink.FLAG_POPULATE);
             }
         }
     }
@@ -450,19 +415,79 @@ public final class IslandMegaTree {
     /**
      * 冠叶写路径：{@link #forEachCrownCell} 单一枚举源（末级叶团格 + 枝身叶串格 + 垂帘列）逐格走
      * {@link ProsperityDecorPlacer#placeLeafIfAir}（owner-local 让行，不耗 rand；径向硬界的逐格
-     * 裁剪收在枚举内 ⇒ 写集 ⊆ 半径 64 bbox 与查询同口径）。
+     * 裁剪收在枚举内 ⇒ 写集 ⊆ 半径 160 bbox 与查询同口径）。
      */
     private static void crownTufts(World world, StructureBuilder builder, int ax, int az, int y0, int trunkH,
         int notchSalt, int droopSalt, Block leaves) {
         final int refY = crownCenterY(y0, trunkH);
+        // Cache pure geometry by shape, then scan only the current 16-column slice.
+        java.util.NavigableMap<Integer, List<int[]>> columns = crownColumns(trunkH, y0, notchSalt, droopSalt);
+        int lo = builder.minX() == Integer.MIN_VALUE ? -MegaTreeAnchors.CANOPY_RADIUS : builder.minX() - ax;
+        int hi = builder.maxX() == Integer.MAX_VALUE ? MegaTreeAnchors.CANOPY_RADIUS : builder.maxX() - ax;
+        if (lo > hi) return;
+        for (List<int[]> cells : columns.subMap(lo, true, hi, true)
+            .values()) for (int[] cell : cells) {
+                int z = az + cell[2];
+                if (z < builder.minZ() || z > builder.maxZ()) continue;
+                ProsperityDecorPlacer.placeLeafIfAir(builder, world, ax + cell[0], refY + cell[1], z, leaves);
+            }
+    }
+
+    /** Bounded shape cache stores pure crown cells only; no World or builder is retained. */
+    private static final java.util.Map<String, java.util.NavigableMap<Integer, List<int[]>>> CROWN_CACHE = new java.util.LinkedHashMap<String, java.util.NavigableMap<Integer, List<int[]>>>(
+        4,
+        .75F,
+        true) {
+
+        @Override
+        protected boolean removeEldestEntry(
+            java.util.Map.Entry<String, java.util.NavigableMap<Integer, List<int[]>>> entry) {
+            return size() > 4;
+        }
+    };
+
+    private static synchronized java.util.NavigableMap<Integer, List<int[]>> crownColumns(int height, int y0, int salt,
+        int droop) {
+        String key = height + ":" + y0 + ":" + salt + ":" + droop;
+        java.util.NavigableMap<Integer, List<int[]>> result = CROWN_CACHE.get(key);
+        if (result != null) return result;
+        result = new java.util.TreeMap<>();
+        final java.util.NavigableMap<Integer, List<int[]>> target = result;
         forEachCrownCell(
-            trunkH,
+            height,
             y0,
-            notchSalt,
-            droopSalt,
-            (dx, dy, dz) -> {
-                ProsperityDecorPlacer.placeLeafIfAir(builder, world, ax + dx, refY + dy, az + dz, leaves);
-            });
+            salt,
+            droop,
+            (x, y, z) -> target.computeIfAbsent(x, k -> new ArrayList<>())
+                .add(new int[] { x, y, z }));
+        CROWN_CACHE.put(key, result);
+        return result;
+    }
+
+    private static final java.util.Map<String, int[]> FLOOR_CACHE = new java.util.LinkedHashMap<String, int[]>(
+        4,
+        .75F,
+        true) {
+
+        @Override
+        protected boolean removeEldestEntry(java.util.Map.Entry<String, int[]> entry) {
+            return size() > 4;
+        }
+    };
+
+    private static synchronized int[] crownFloor(int height, int y0, int salt, int droop) {
+        String key = height + ":" + y0 + ":" + salt + ":" + droop;
+        int[] result = FLOOR_CACHE.get(key);
+        if (result != null) return result;
+        result = new int[CROWN_QUERY_SIDE * CROWN_QUERY_SIDE];
+        Arrays.fill(result, Integer.MIN_VALUE);
+        for (List<int[]> cells : crownColumns(height, y0, salt, droop).values()) for (int[] cell : cells) {
+            int index = (cell[0] + MegaTreeAnchors.CANOPY_RADIUS) * CROWN_QUERY_SIDE + cell[2]
+                + MegaTreeAnchors.CANOPY_RADIUS;
+            if (result[index] == Integer.MIN_VALUE || cell[1] < result[index]) result[index] = cell[1];
+        }
+        FLOOR_CACHE.put(key, result);
+        return result;
     }
 
     /** 冠格访问器：dx/dz 相对锚点列、dy 相对冠参考层=干顶（写路径与查询路径共用的最小回调面）。 */
@@ -471,14 +496,10 @@ public final class IslandMegaTree {
         void visit(int dx, int dy, int dz);
     }
 
-    /**
-     * 叶团盘单格谓词（{@code ProsperityDecorPlacer#placeLeafDisc} 方盘缺角剪形的<b>包内私有复刻</b>：
-     * |dx|==rr 且 |dz|==rr 四角缺角——本片不动 DecorPlacer（跨片写禁令），写路径经
-     * {@code placeLeafIfAir} 逐格走门、查询路径纯读，两侧共享本谓词 ⇒ 盘几何单一真值在本类内闭合，
-     * 与 DecorPlacer/MegaTreeForms 的同款剪形零行为耦合）。
-     */
+    /** Shared rough circular leaf-cluster silhouette; placement and underside lookup use the same cells. */
     private static boolean tuftCellAt(int dx, int dz, int rr) {
-        return Math.abs(dx) != rr || Math.abs(dz) != rr;
+        int edge = ((dx * 31 + dz * 17) & 3) == 0 ? rr : 0;
+        return dx * dx + dz * dz <= rr * rr + rr - edge;
     }
 
     /**
@@ -572,6 +593,10 @@ public final class IslandMegaTree {
             }
             for (int t = 1; t <= len; t++) {
                 visitor.visit(a[0], a[1] - t, a[2]);
+                if (t < len - 3) {
+                    visitor.visit(a[0] + 1, a[1] - t, a[2]);
+                    visitor.visit(a[0], a[1] - t, a[2] + 1);
+                }
             }
         }
     }
@@ -595,14 +620,8 @@ public final class IslandMegaTree {
         }
         final int notchSalt = treeRand.nextInt();
         final int droopSalt = treeRand.nextInt();
-        Arrays.fill(out, Integer.MIN_VALUE);
-        forEachCrownCell(trunkH, y0, notchSalt, droopSalt, (dx, dy, dz) -> {
-            final int idx = (dx + MegaTreeAnchors.CANOPY_RADIUS) * CROWN_QUERY_SIDE
-                + (dz + MegaTreeAnchors.CANOPY_RADIUS);
-            if (out[idx] == Integer.MIN_VALUE || dy < out[idx]) {
-                out[idx] = dy;
-            }
-        });
+        int[] cached = crownFloor(trunkH, y0, notchSalt, droopSalt);
+        System.arraycopy(cached, 0, out, 0, cached.length);
         return trunkH;
     }
 }

@@ -804,7 +804,7 @@ public final class ProsperityDecorPlacer {
     /**
      * 岛心巨树趟（<b>v1.20.43 P22-B S3 新增</b>，消费 {@link MegaTreeAnchors} 锚点与
      * {@link IslandMegaTree} 形态）：枚举本 chunk 的派生窗（{@code MegaTreeAnchors.windowChunks}
-     * 派生 × 同窗——窗宽由 MTA 按冠半径派生、不写死数；现档 CANOPY_RADIUS=64 ⇒ 17×17）内相交的全部活湖锚点，逐锚点以<b>锚点槽</b>派生
+     * 派生 × 同窗——窗宽由 MTA 按冠半径派生、不写死数；现档 CANOPY_RADIUS=160 ⇒ 41×41）内相交的全部活湖锚点，逐锚点以<b>锚点槽</b>派生
      * 独立 {@code Random(chunkSeed(worldSeed, ax>>4, az>>4) ^ }{@link #SALT_ISLAND_TREE}{@code )}
      * 重放同一棵树，写入经 {@link ChunkSliceSink}——非本 chunk 的格静默吸收（owns 单射，先例
      * {@code RuinedMachinePlacer.renderForeignSpans}），邻 chunk 在自己的趟里枚举到<b>同一锚点</b>
@@ -821,7 +821,7 @@ public final class ProsperityDecorPlacer {
      * 湖水已在世界里，树干/枝为<b>无条件写</b>，≤{@code SEA_LEVEL}−1 的穿水段由木取代水
      * （p21 A3 口径），叶仍走 {@code placeLeafIfAir} 不覆写水体。
      * <p>
-     * <b>public = 离线判据重放口</b>（{@code tools/dim1/MegaTreeCheck} D 组 9-chunk 并集对拍；
+     * <b>public = 离线判据重放口</b>（{@code tools/dim1/MegaTreeCheck} D 组派生整窗并集对拍；
      * 生产侧唯一调用者是本类 {@code placeTreePass}，先例 {@code RuinedMachinePlacer.spanReadyAt}）。
      */
     public static void placeIslandTreePass(World world, long worldSeed, int chunkX, int chunkZ, BlockSink sink) {

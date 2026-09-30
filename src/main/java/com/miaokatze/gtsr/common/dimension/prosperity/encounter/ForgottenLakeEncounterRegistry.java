@@ -17,12 +17,16 @@ import cpw.mods.fml.common.registry.GameRegistry;
 public final class ForgottenLakeEncounterRegistry {
 
     public static BlockSealedChest sealedChest;
+    public static BlockUnsealedChest unsealedChest;
     private static boolean registered;
 
     public static void registerBlocks() {
         sealedChest = new BlockSealedChest();
         GameRegistry.registerBlock(sealedChest, "SealedChest");
         GameRegistry.registerTileEntity(TileEntitySealedChest.class, "gtsr.sealedChest");
+        unsealedChest = new BlockUnsealedChest();
+        GameRegistry.registerBlock(unsealedChest, "UnsealedChest");
+        GameRegistry.registerTileEntity(TileEntityUnsealedChest.class, "gtsr.unsealedChest");
     }
 
     public static void preInit() {

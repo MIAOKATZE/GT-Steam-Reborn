@@ -8,7 +8,6 @@ import net.minecraft.network.NetworkManager;
 import net.minecraft.network.Packet;
 import net.minecraft.network.play.server.S35PacketUpdateTileEntity;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.tileentity.TileEntityChest;
 
 /** No inventory exists while sealed: automation cannot extract a deferred roll. */
 public class TileEntitySealedChest extends TileEntity {
@@ -53,6 +52,7 @@ public class TileEntitySealedChest extends TileEntity {
 
     private void startOpening() {
         openingTicks = 0;
+        worldObj.playSoundEffect(xCoord + .5, yCoord + .5, zCoord + .5, "portal.trigger", .45F, 1.5F);
         markDirty();
         worldObj.markBlockForUpdate(xCoord, yCoord, zCoord);
     }
@@ -75,7 +75,21 @@ public class TileEntitySealedChest extends TileEntity {
     }
 
     public void updateEntity() {
-        if (worldObj.isRemote) return;
+        if (worldObj.isRemote) {
+            if (openingTicks >= 0 && openingTicks < 60) {
+                openingTicks++;
+                double angle = openingTicks * .65;
+                worldObj.spawnParticle(
+                    "enchantmenttable",
+                    xCoord + .5 + Math.cos(angle) * .6,
+                    yCoord + .7,
+                    zCoord + .5 + Math.sin(angle) * .6,
+                    0,
+                    .02,
+                    0);
+            }
+            return;
+        }
         if (openingTicks < 0) {
             if (allowed()) startOpening();
             return;
@@ -86,10 +100,12 @@ public class TileEntitySealedChest extends TileEntity {
             return;
         }
         if (worldObj.getBlock(xCoord, yCoord, zCoord) != ForgottenLakeEncounterRegistry.sealedChest) return;
-        if (worldObj.setBlock(xCoord, yCoord, zCoord, Blocks.chest, 2, 3)) {
+        worldObj.playSoundEffect(xCoord + .5, yCoord + .5, zCoord + .5, "random.levelup", .65F, .8F);
+        if (worldObj
+            .setBlock(xCoord, yCoord, zCoord, ForgottenLakeEncounterRegistry.unsealedChest, getBlockMetadata(), 3)) {
             TileEntity t = worldObj.getTileEntity(xCoord, yCoord, zCoord);
-            if (t instanceof TileEntityChest) {
-                TileEntityChest chest = (TileEntityChest) t;
+            if (t instanceof TileEntityUnsealedChest) {
+                TileEntityUnsealedChest chest = (TileEntityUnsealedChest) t;
                 chest.setInventorySlotContents(13, lootForTier(tier));
                 chest.markDirty();
             }

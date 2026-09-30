@@ -20,6 +20,7 @@ import com.miaokatze.gtsr.common.dimension.prosperity.WorldProviderProsperityRui
 import com.miaokatze.gtsr.common.dimension.prosperity.encounter.EntityResidualOathguard;
 import com.miaokatze.gtsr.common.dimension.prosperity.encounter.EntitySilentKing;
 import com.miaokatze.gtsr.common.dimension.prosperity.encounter.TileEntitySealedChest;
+import com.miaokatze.gtsr.common.dimension.prosperity.encounter.TileEntityUnsealedChest;
 
 import cpw.mods.fml.client.registry.ClientRegistry;
 import cpw.mods.fml.client.registry.RenderingRegistry;
@@ -31,8 +32,10 @@ import cpw.mods.fml.common.gameevent.TickEvent;
 public final class EncounterClient extends Gui implements IResourceManagerReloadListener {
 
     private static final ResourceLocation FRAME = new ResourceLocation("gtsr", "textures/gui/silent_king_frame.png");
-    private static final int[] COLORS = { 0xCF554D, 0xD88B42, 0xDFC34F, 0x9AB45B, 0x56B889, 0x55B7C4, 0x618CDD,
-        0x936ADB, 0xBE69BF, 0xDE849E };
+    private static final int[] COLORS = { 0xCF554D, 0xD26746, 0xD67D42, 0xDB9548, 0xE0AE50, 0xE5C360, 0xCFCF65,
+        0xB3C16C, 0x95B774, 0x76AC7C, 0x58A586, 0x439C93, 0x399BA3, 0x3E9EB5, 0x4E9BC8, 0x5C94D5, 0x6E86DB, 0x8178D6,
+        0x966CCB, 0xAB66BF, 0xBC69AF, 0xCD72A2, 0xD67E99, 0xE1919E, 0xE6A2AA, 0xDAB0AA, 0xC3BDA0, 0xA8C3AB, 0x8CCBBB,
+        0x6ECCCE };
     private EntitySilentKing target;
     private ThroneMusic music;
 
@@ -49,6 +52,7 @@ public final class EncounterClient extends Gui implements IResourceManagerReload
             EntityResidualOathguard.class,
             new EncounterEntityRenderer(repository, "dr-09"));
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntitySealedChest.class, new SealedChestRenderer());
+        ClientRegistry.bindTileEntitySpecialRenderer(TileEntityUnsealedChest.class, new UnsealedChestRenderer());
         MinecraftForge.EVENT_BUS.register(owner);
         FMLCommonHandler.instance()
             .bus()
@@ -96,7 +100,7 @@ public final class EncounterClient extends Gui implements IResourceManagerReload
     public void overlay(RenderGameOverlayEvent.Post event) {
         if (event.type != RenderGameOverlayEvent.ElementType.ALL || target == null) return;
         Minecraft mc = Minecraft.getMinecraft();
-        float health = Math.max(0, Math.min(1000, target.getHealth()));
+        float health = Math.max(0, Math.min(EntitySilentKing.MAX_HEALTH, target.getHealth()));
         int layers = (int) Math.ceil(health / 100.0F);
         float segment = layers == 0 ? 0 : (health - (layers - 1) * 100) / 100;
         int x = (event.resolution.getScaledWidth() - 256) / 2;
@@ -113,7 +117,7 @@ public final class EncounterClient extends Gui implements IResourceManagerReload
             mc.getTextureManager()
                 .bindTexture(FRAME);
             func_152125_a(x, y, 0, 0, 256, 40, 256, 40, 256, 40);
-            String name = "（旧日虚影）缄王";
+            String name = "(旧日虚影)缄王";
             String count = "×" + layers;
             int countWidth = mc.fontRenderer.getStringWidth(count);
             int countX = Math.max(4, Math.min(x + 260, event.resolution.getScaledWidth() - countWidth - 4));
