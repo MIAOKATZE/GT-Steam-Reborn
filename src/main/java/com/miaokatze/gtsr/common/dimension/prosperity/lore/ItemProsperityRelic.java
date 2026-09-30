@@ -24,6 +24,12 @@ public class ItemProsperityRelic extends Item {
     }
 
     @Override
+    public ItemStack onItemRightClick(ItemStack stack, net.minecraft.world.World world, EntityPlayer player) {
+        if (!world.isRemote) HistoryProgress.observeRelic(player, id);
+        return stack;
+    }
+
+    @Override
     public void addInformation(ItemStack stack, EntityPlayer player, List text, boolean advanced) {
         text.add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("lore.relic." + id));
     }

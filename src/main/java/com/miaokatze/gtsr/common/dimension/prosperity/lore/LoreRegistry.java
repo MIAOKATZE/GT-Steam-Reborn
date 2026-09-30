@@ -52,10 +52,18 @@ public final class LoreRegistry {
             GameRegistry.registerItem(relic, "ProsperityRelic_" + id);
             CreativeTabManager.addItemToTab(new ItemStack(relic));
         }
+        for (String id : HistoryProgress.NEW_RELICS) {
+            Item relic = new ItemProsperityRelic(id);
+            relic.setMaxStackSize(1);
+            RELICS.put(id, relic);
+            GameRegistry.registerItem(relic, "ProsperityRelic_" + id);
+            CreativeTabManager.addItemToTab(new ItemStack(relic));
+        }
         silentKingDefeated = new Achievement("achievement.gtsr.silentKing", "gtsr.silentKing", 0, 0, kingCrown(), null)
             .setSpecial()
             .registerStat();
-        AchievementPage.registerAchievementPage(new AchievementPage("GTSR · 失落纪年", silentKingDefeated));
+        HistoryProgress.register();
+        AchievementPage.registerAchievementPage(new AchievementPage("GTSR · 失落纪年", HistoryProgress.achievements()));
         FMLCommonHandler.instance()
             .bus()
             .register(new LoreRegistry());

@@ -31,7 +31,7 @@ public final class LoreNetwork {
 
     public static final class Snapshot implements IMessage {
 
-        public int dimension;
+        public int dimension, progress;
         public UUID player;
         public boolean open, kingUnlocked, valid;
 
@@ -42,16 +42,22 @@ public final class LoreNetwork {
             player = p.getUniqueID();
             this.open = open;
             kingUnlocked = LoreRegistry.kingChapterUnlocked(p);
+            progress = HistoryProgress.snapshot(p);
             valid = true;
         }
 
         @Override
         public void fromBytes(ByteBuf buf) {
-            if (buf.readableBytes() != 22) return;
+            valid = false;
+            if (buf.readableBytes() != 26) return;
             dimension = buf.readInt();
             player = new UUID(buf.readLong(), buf.readLong());
-            open = buf.readBoolean();
-            kingUnlocked = buf.readBoolean();
+            int openByte = buf.readUnsignedByte();
+            int kingByte = buf.readUnsignedByte();
+            progress = buf.readInt();
+            if (openByte > 1 || kingByte > 1 || (progress & ~HistoryProgress.VALID_MASK) != 0) return;
+            open = openByte == 1;
+            kingUnlocked = kingByte == 1;
             valid = true;
         }
 
@@ -62,6 +68,7 @@ public final class LoreNetwork {
             buf.writeLong(player.getLeastSignificantBits());
             buf.writeBoolean(open);
             buf.writeBoolean(kingUnlocked);
+            buf.writeInt(progress);
         }
     }
 

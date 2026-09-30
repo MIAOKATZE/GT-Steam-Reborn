@@ -30,9 +30,10 @@ public final class LoreClient {
                 if (snapshot.open) {
                     if (mc.thePlayer.getHeldItem() == null || mc.thePlayer.getHeldItem()
                         .getItem() != LoreRegistry.journal) return;
-                    mc.displayGuiScreen(new GuiProsperityJournal(snapshot.kingUnlocked));
+                    mc.displayGuiScreen(new GuiProsperityJournal(snapshot.kingUnlocked, snapshot.progress));
                 } else if (mc.currentScreen instanceof GuiProsperityJournal) {
                     ((GuiProsperityJournal) mc.currentScreen).setKingUnlocked(snapshot.kingUnlocked);
+                    ((GuiProsperityJournal) mc.currentScreen).setProgress(snapshot.progress);
                 }
             }
         });
