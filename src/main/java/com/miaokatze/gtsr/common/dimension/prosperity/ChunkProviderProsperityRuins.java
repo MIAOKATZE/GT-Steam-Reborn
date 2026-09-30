@@ -350,12 +350,26 @@ public class ChunkProviderProsperityRuins extends GTSRChunkProviderBase {
         /** 羽化噪声波长（方块）：{@code 13 % 16 = 13}（H-1），与 S1 BORDER 同数值但独立盐域。 */
         private static final double WETB_JITTER_SCALE = 13.0D;
         /**
-         * 门①外檐的"一格"湖压当量：带压宽 {@code SHORE−WATER}（P23 R1 批2 S2 起 = 0.26−0.23 =
+         * 门①外檐的"一格"湖压当量（<b>P32 T1-4 重标，公式钉死</b>）：{@code unit := |∇P| 名义值
+         * = 1/D_eff}，D_eff = 0.89×LAKE_INTERVAL = <b>2670</b>（P32 湖基场重构站格与 warp 揉动层
+         * 不变 ⇒ D_eff 口径保持）⇒ 本值 = <b>1/2670 ≈ 0.000375</b>。换算统一线性式
+         * {@code 格数 = ΔP×dN/|∇s|}（名义 ΔP×2670，|∇s| 参考腿=1，P32 全仓统一口径）；逐湖 dN
+         * 散布与 |∇s| 各向异性 = e 的格当量容差（沿用「warp 处 ±数格出入」披露口径，实际覆盖率
+         * 以探针复测为准）。
+         * <p>
+         * <b>旧式历史保留</b>（P23-P28 圆场口径，随 P32 场换废弃，原文不删）：v1.20.41 取
+         * {@code 0.0015}，标定式「带压宽 {@code SHORE−WATER}（P23 R1 批2 S2 起 = 0.26−0.23 =
          * 0.03，放湖档）÷ 环带宽 ≈22 格 ≈ 0.00136，取 {@code 0.0015}（压力梯度按环带均摊，
          * 湖形 warp 处会有 ±数格出入，但外檐总深 ≤5 格当量 ⇒ 对判定形状不敏感；实际覆盖率以
-         * 探针复测为准；v1.20.45 档 0.02/14 格的旧算式见版本树）。
+         * 探针复测为准；v1.20.45 档 0.02/14 格的旧算式见版本树）」三处失准——旧阈 W/S
+         * （0.26/0.23；现行 LAKE_WATER_LEVEL=0.081/LAKE_SHORE=0.131 ⇒ 带压宽实为 0.05、每格
+         * ≈0.00227）、旧带宽 22 格（实 ≈113 格环）、P28 后常量随动未复标（0.0015 ⇒ 檐压力
+         * 0.015 按实测梯度 ≈34 格而非意图 10 格，从未复测）。重标后檐 = 诚实 10 格
+         * （{@link #WETB_HALO_MAX} 与 h 帽的单源语义恢复自洽），陆侧 10→40 格由羽化档
+         * {@link #WETB_FEATHER_MAX} 接管（E-B §4「总外伸不变、梯度形状修正」：34→40 的 +6 格
+         * 来自新场名义带宽 113→133）。
          */
-        private static final double WETB_HALO_UNIT = 0.0015D;
+        private static final double WETB_HALO_UNIT = 0.000375D;
         /**
          * 外檐五档铺砾阈值（{@code valueNoise} ∈ [-1,1)，{@code >= 阈值} 即铺）。分位基准取自
          * {@code plan/tmp/p22-a2b/calib}（scale=13、同 seed 网格：-0.80≈0.97 / -0.74≈0.96 /
@@ -379,6 +393,31 @@ public class ChunkProviderProsperityRuins extends GTSRChunkProviderBase {
          * 同款；字面仍 = 10.0，SLMC 判据侧字面钉对拍）。
          */
         private static final double WETB_HALO_MAX = GTSRVoronoiRiverField.SANZU_SHORE_SLOPE_HALO;
+        /**
+         * 陆侧羽化最大外伸（格当量，<b>P32 T1-4 G3 新增</b>）：羽化域 {@code e ∈
+         * (WETB_HALO_MAX, 本值] = (10,40]}，对应压力域 {@code lake ∈ [LAKE_SHORE, LAKE_SHORE+δ)}、
+         * δ = 40×{@link #WETB_HALO_UNIT} = <b>0.015</b>（重标后恰 = 今日檐实际压力 reach 的
+         * 保持）。“<b>独立常量，不挂 h 帽</b>”——79 帽是高度语义、本值是距离语义，P27-L 的
+         * 同值巧合（10=10）只在檐侧延续、不向羽化侧延续（E-B §4）；40 格 = 今日实际外伸深度的
+         * 保持（P28 后檐实测 ≈34 格 + 新场名义带宽 113→133 的 +6 格，F3 读数）。
+         */
+        private static final double WETB_FEATHER_MAX = 40.0D;
+        /**
+         * 陆侧羽化三档阈值（{@code valueNoise} ∈ [-1,1)，{@code >= 阈值} 即铺；<b>P32 T1-4 G3
+         * 新增，独立于檐梯 {@link #WETB_T1}..{@link #WETB_T5} 名册</b>——三档核心/檐与求值序
+         * 一字不动）：续在檐梯 T5=−0.50 的下降沿之后，档距 e≤15 / e≤25 / e≤40 格。起点初值
+         * {−0.30,−0.10,+0.20}（网格分位 ≈0.63/0.55/0.30），经三轮 A2bProbe 类探针实测定档
+         * （脚本 {@code temp/p32-q1/}，读数 {@code plan/tmp/p32-t1p4-cpr.md}）：R1（+0.20）末档
+         * 覆盖 0.3493 &gt; 0.30 帽 ∧ 外缘阶跃率 0.3047 &gt; 0.20 带 ⇒ 按失败迭代条款「降末档
+         * 覆盖率」升末档阈值；R2（+0.25）0.3152 仍微超；<b>R3 终值 {−0.30,−0.10,+0.30}</b>：
+         * 覆盖 0.7443/0.5934/0.2786 单调续降（T5 实测 0.8692 → F1 0.7443 → F2 0.5934 → F3
+         * 0.2786 ≤ 0.3）、外缘阶跃率 0.1962 ≤ 0.20（a2b 档带）。valueNoise 是 13 格<b>平滑场</b>
+         * ⇒ 实测覆盖系统性偏离网格分位（段化上偏，檐梯同款现象）；40 格外恒 0（残余
+         * 0.28→0 步长按设计披露）。零新料/零新盐/零新场（复用 {@link #wetBandJitter} λ13 场）。
+         */
+        private static final double WETB_FT1 = -0.30D;
+        private static final double WETB_FT2 = -0.10D;
+        private static final double WETB_FT3 = 0.30D;
         /**
          * <b>滩坡下半硅砂过渡带的升高</b>（格，P29-B1 新增，v1.20.52）：硅砂档核心 h 窗上沿 =
          * {@code SEA_LEVEL + SANZU_DRY_BEACH_RISE + 本值} = 68+1+4 = <b>73</b>——滩坡带
@@ -431,6 +470,14 @@ public class ChunkProviderProsperityRuins extends GTSRChunkProviderBase {
             // 不写 null top（bedMaterial/waterMaterial 的同款防线；生产 preInit 顺序保证非 null）。
             if (gravel != null && wetBandGravelAt(seed, x, z)) {
                 return gravel;
+            }
+            // P32 T1-4（G3 湖↔陆表层软过渡，v1.20.55）：裁定链最末位（base 回退之前）追加
+            // 第 4 档陆侧羽化——压力域 lake ∈ [SHORE, SHORE+δ) 与三档核心域（lake<SHORE）
+            // 结构性不相交 ⇒ 0/17892 三守卫与三档核心/檐求值序一字不动；空档列回退 base
+            // （透传取邻料：活趟 base = 周边群系皮，混合由覆盖率空档+base 透传构成）。
+            final Block feather = landFeatherAt(seed, x, z);
+            if (feather != null) {
+                return feather;
             }
             return base;
         }
@@ -599,6 +646,62 @@ public class ChunkProviderProsperityRuins extends GTSRChunkProviderBase {
             final double t = e <= 1.0D ? WETB_T1
                 : e <= 2.0D ? WETB_T2 : e <= 3.0D ? WETB_T3 : e <= 5.0D ? WETB_T4 : WETB_T5;
             return n >= t;
+        }
+
+        /**
+         * <b>陆侧羽化档判定</b>（P32 T1-4 G3 新增，v1.20.55）：三档核心/檐（e ≤
+         * {@link #WETB_HALO_MAX}=10 格）之外的陆侧 10→{@link #WETB_FEATHER_MAX}=40 格第 4 档
+         * 概率补丁——湖↔陆表层材质软过渡（plan E-B §3 终案；topAt 链最末位、base 回退之前）。
+         * 返回 {@code null} = 不在域内 / 梯未命中 ⇒ 调用方回退 base。
+         * <ul>
+         * <li><b>域</b>：压力域 {@code lake ∈ [LAKE_SHORE, LAKE_SHORE+δ)}、δ =
+         * 40×{@link #WETB_HALO_UNIT} = 0.015（⇔ e = (lake−SHORE)/unit ∈ (10,40]）——与三档
+         * 核心域 {@code lake<SHORE} <b>结构性不相交</b> ⇒ 0/17892 三守卫不动、核心域穿透 0
+         * 由构造保持；e≤10 列归三档檐既有概率面（本档不裁 ⇒ 檐空档列保持 base，行为不动）；
+         * e&gt;40 整档排除（不向远处外扩）。</li>
+         * <li><b>料</b>（h 键窗与三档一致，窗内高度腿 ≤0 ⇒ e 实由压力腿主导）：h∈[66,68]
+         * （SEA−drop..SEA）湿砾 / h∈(68,73] 硅砂 / h∈(73,79]（79 帽单源构造式同
+         * {@link #shoreSlopeStoneAt}）废岩 / h&gt;79 陡岸硬边 = 地形自身的边，保留并披露
+         * （同三档檐口径）/ h&lt;66 窗外套档不羽化。<b>零新料/零新盐/零新场</b>——三料均为既有
+         * 改派料（H-4 名册读数不变），抖动场复用 {@link #wetBandJitter}，阈值梯机制同款而
+         * 阈值常量为羽化梯自有 3 档（{@link #WETB_FT1}..{@link #WETB_FT3}，檐梯
+         * {@link #WETB_T1}..{@link #WETB_T5} 名册不扩）。</li>
+         * <li><b>base 透传取邻料</b>：梯未命中的空档列返回 null ⇒ topAt 末位 {@code return
+         * base}——活趟 base = 周边群系皮（链面 4 家 top 族料，F1 证据），混合由「覆盖率空档
+         * + base 透传」构成、不经 biomeAtTier 显式取料；材质带只依赖 lake−SHORE ⇒ 与平面缘
+         * shoreAt 解耦（平面缘抖动不再成缝，设计红利）。</li>
+         * </ul>
+         * 离线 JVM 防线同 {@code topAt} 檐档（:429-431 同款）：BlocksGTSR 未注册 ⇒ 料为
+         * {@code null} ⇒ 回退 base，不写 null top。
+         */
+        private static Block landFeatherAt(long worldSeed, int x, int z) {
+            final double lake = GTSRVoronoiRiverField.lakeAt(worldSeed, x, z);
+            if (lake < GTSRVoronoiRiverField.LAKE_SHORE) {
+                return null; // 核心域（lake<SHORE）归三档核心/檐——羽化域与之结构性不相交
+            }
+            final double e = (lake - GTSRVoronoiRiverField.LAKE_SHORE) / WETB_HALO_UNIT;
+            if (e <= WETB_HALO_MAX || e > WETB_FEATHER_MAX) {
+                return null; // ≤10 格归三档檐既有概率面（空档列保持 base）；>40 格整档排除
+            }
+            final int h = ProsperityTerrainProfile.heightAt(worldSeed, x, z);
+            final int slopeCap = ProsperityTerrainProfile.SEA_LEVEL + GTSRVoronoiRiverField.SANZU_DRY_BEACH_RISE
+                + GTSRVoronoiRiverField.SANZU_SHORE_SLOPE_HALO;
+            final Block material;
+            if (h > slopeCap) {
+                return null; // h>79 陡岸：硬边 = 地形自身的边，保留并披露（同三档檐口径）
+            } else if (h > ProsperityTerrainProfile.SEA_LEVEL + GTSRVoronoiRiverField.SANZU_DRY_BEACH_RISE
+                + SANZU_SHORE_SAND_RISE) {
+                material = BlocksGTSR.prosperityStone; // 滩坡上半窗 (73,79]：废岩羽化补丁
+            } else if (h > ProsperityTerrainProfile.SEA_LEVEL) {
+                material = BlocksGTSR.prosperitySilicaSand; // 干滩窗 (68,73]：硅砂羽化补丁
+            } else if (h >= ProsperityTerrainProfile.SEA_LEVEL - GTSRVoronoiRiverField.LAKE_WET_BAND_DROP) {
+                material = BlocksGTSR.prosperityRiverGravel; // 湿砾窗 [66,68]：湿砾羽化补丁
+            } else {
+                return null; // h<66（湖盆侧残余片）：窗外套档不羽化
+            }
+            final double n = wetBandJitter(worldSeed, x, z);
+            final double t = e <= 15.0D ? WETB_FT1 : e <= 25.0D ? WETB_FT2 : WETB_FT3;
+            return n >= t ? material : null; // 空档列 null ⇒ topAt 回退 base（透传取邻料）
         }
 
         /** 羽化抖动场（独立盐域 + 波长 13；与 S1 BORDER_JITTER 无相关）。 */

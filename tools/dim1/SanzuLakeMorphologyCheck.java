@@ -118,9 +118,12 @@ public final class SanzuLakeMorphologyCheck {
     static final int ISLAND_TOP = 72;
     /**
      * 湖域振幅带带宽（P27-L D1·2c）：<b>判据侧字面钉</b>，须与生产 {@code RVF.LAKE_AMP_BELT_DELTA}
-     * 同值。换算：带格宽 ≈ Δ×D_eff/((1+W')(1+S')) ≈ 0.10×2263 ≈ 226 格（P28-L 滩宽×5 随动
-     * 0.03→0.10；0.03 档历史读数 ≈67 格与 ampAt 11×11 核 44-60 格同量级）。P27 三档读数见
-     * plan/tmp/p27-l-readings.md。
+     * 同值。<b>P32 T1-4 Q3 换算口径同步（E-B §5 统一线性式，tools 侧；生产侧 RVF 注归批3 Q2）</b>：
+     * 格数 = ΔP×dN/|∇s|，名义 ×D_eff（= 0.89×LAKE_INTERVAL = 2670）⇒ 带格宽 ≈ 0.10×2670 ≈
+     * <b>267 格</b>（0.03 档 ≈ 80 格）。旧割线式 Δ×D_eff/((1+W')(1+S')) ≈ 0.10×2263 ≈ 226 格
+     * （P28-L 滩宽×5 随动 0.03→0.10；0.03 档历史读数 ≈67 格与 ampAt 11×11 核 44-60 格同量级）
+     * 为 P23-P28 圆场口径（r(P)=P·D/(1+P) 导出物），随场换<b>废弃</b>，历史保留上文。P27 三档
+     * 读数见 plan/tmp/p27-l-readings.md。
      */
     static final double AMP_BELT_DELTA = 0.10D;
     /** 水面顶：{@code fillSanzuLakes} 置水写到 {@code y ≤ SEA_LEVEL − 1} ⇒ 水深口径的零点。 */
@@ -157,8 +160,11 @@ public final class SanzuLakeMorphologyCheck {
      * TRUNK_SCALE×3 = 12000 = ±4 站格恒覆盖 ≥64 站）。 */
     static final int FINE_LAKES_PER_SEED = 40;
     /**
-     * 细扫窗半径上限。<b>P32 T1-1 扩窗 320→560</b>：新场（批2 T1-3 落地）外接上限 = r_max 310 +
-     * 滩带 ≈133 + 檐 ≈40 + 余量 ⇒ 560 构造性覆盖，32 射线形状组的水径/滩宽读数不再被窗静默截断
+     * 细扫窗半径上限。<b>P32 T1-1 扩窗 320→560</b>：新场（批2 T1-3 落地）外接上限 = r_max <b>336</b>
+     * （<b>S1b 域界随算 310→336</b>：LAKE_SHAPE_OFF_S_MAX 0.82 + RHO_S_MAX 0.86 = 1.68·r0 = 336，
+     * 解析最坏 +心偏 10+smin 外鼓 10 = 356、L 域 200k 站实测 maxReach 343.96 ≤ 356，见
+     * plan/tmp/p32-t1p3b-iter.md §3）+ 滩带 ≈133 + 檐 ≈40 = <b>509 ≤ 560</b> ⇒ 构造性覆盖，
+     * 32 射线形状组的水径/滩宽读数不再被窗静默截断
      * （真截断由 32 射线块的 {@code rayCapped32} 计数申报，见 fineScan 1c）。旧 320 档是 P23 R1
      * 圆场口径（W=0.23 水径带 p90 ≈ 230 + 湖滨带 ≈22~39 格 + 4 格余量）——对旧场滩带外缘
      * （最远 ~470 格）存在静默截断；扩窗双跑（320 vs 560）旧场对比读数落档
@@ -461,6 +467,7 @@ public final class SanzuLakeMorphologyCheck {
         groupSideEffects(lakes);
         groupPlateauSweep(lakes);
         groupSurfaceSingleTruth();
+        groupFeatherDomain();
         groupRingBandStructure(lakes);
 
         for (final String l : LINES) {
@@ -1256,7 +1263,7 @@ public final class SanzuLakeMorphologyCheck {
      * 不是星形几何量（凹形方向的内切由 min32 低估、不漏报）。射线数组 {@code rayWaterRadius}[8]
      * 一字不动（A4/S2/P25-3/perimeterApprox 多处消费，替换会连坐）。窗截断由 {@code rayCapped32}
      * 申报（窗缘仍在 p&lt;SHORE 域 = 读数被截；FINE_WINDOW_MAX=560 构造性覆盖新场外接上限
-     * 310+133+40 ⇒ 预期 0）。
+     * 336+133+40 = 509 ≤ 560（S1b 域界随算，见 FINE_WINDOW_MAX javadoc）⇒ 预期 0）。
      */
     static void groupShape32(List<Lake> lakes) {
         final int n = count(lakes);
@@ -1335,7 +1342,9 @@ public final class SanzuLakeMorphologyCheck {
             "中位=" + f3(smMed) + " p90=" + f3(pctl(smooth, 0.90D)) + " n=" + k);
         say("RAYCAP32-READ 32 射线窗截断（窗缘 r=" + FINE_WINDOW_MAX + " 仍在 p<SHORE 域的射线数，"
             + "真截断申报）：截断射线 " + cappedRays + "、涉截断湖 " + cappedLakes + "/" + k
-            + "（FINE_WINDOW_MAX=560 构造性覆盖新场外接上限 310+133+40 ⇒ 预期 0；非 0 = 窗帽不足，"
+            + "（FINE_WINDOW_MAX=560 构造性覆盖新场外接上限 r_max 336 + 滩带 133 + 檐 40 = 509 ≤ 560"
+            + "（S1b 域界随算 310→336，解析最坏 356 / L 域实测 maxReach 343.96，plan/tmp/p32-t1p3b-iter.md"
+            + " §3）⇒ 预期 0；非 0 = 窗帽不足，"
             + "SF32/RATIO32/SMOOTH32/CVW 读数被截断污染）");
         final double cvwMed = median(cvw);
         final double cvwP10 = pctl(cvw, 0.10D);
@@ -1400,7 +1409,10 @@ public final class SanzuLakeMorphologyCheck {
      * <li><b>P3 滩带噪声腿宽 0~17 格</b>：8 向射线上「lakeAt &lt; sanzuBiomeShoreAt」相对「lakeAt &lt;
      * LAKE_SHORE」的外扩列距 = SANZU_BIOME_SHORE_JITTER 的行为读数；换算式：腿宽 &lt; 本值 ×
      * D_eff/((1+W')(1+S')) = 0.0075×2670/1.1794 ≈ 17.0（n01 ∈ [0,1) ⇒ 严格 &lt; 17；+0.5 格射线
-     * 取整容差 ⇒ 上界 17.5）。max &gt; 0 = 抖动活跃（腿死 ⇒ 恒 0 必红）。</li>
+     * 取整容差 ⇒ 上界 17.5）。max &gt; 0 = 抖动活跃（腿死 ⇒ 恒 0 必红）。<b>P32 T1-4 Q3 换算
+     * 口径退役申报</b>：上式 D_eff/((1+W')(1+S')) 割线式为 P23-P28 圆场导出物，随场换<b>废弃</b>
+     * （E-B §5 统一线性式 格数 = ΔP×dN/|∇s|，名义 ×2670 ⇒ JITTER 0.0375 名义上界 ≈ 100 格）；
+     * 现行带（P28-L / P32 T1-1 / P32 Q3 三代钉值史）与最新读数见 check 文案。</li>
      * <li><b>P4 岛径逐站 ±10% 散布</b>：D3⑤(a) 站级半径抖动 R_eff = 75×(1±0.10·hash01) ⇒ 干径散布
      * (p90−p10)/中位 ∈ [0.10,0.35]（下界 = 抖动活跃：死抖动只剩 warp 张落 ≈ 0.1 以下；上界 = 抖幅
      * 1.10/0.90 = ±10% 叠 warp 的总包络）∧ 逐湖干径 ∈ [0.75,1.25]×中位（±25% 硬外包络）。</li>
@@ -1465,18 +1477,27 @@ public final class SanzuLakeMorphologyCheck {
         final double legMed = la.length == 0 ? -1.0D : median(la);
         say("P25-READ 滩带噪声腿（8 向 × 细扫湖，lakeAt&lt;sanzuBiomeShoreAt 相对 lakeAt&lt;LAKE_SHORE "
             + "的外扩列距）：n=" + la.length + " 中位 " + f3(legMed) + " max " + f3(legMax)
-            + "（换算式 0.0075×2670/1.1794 ≈ 17.0 上界）");
-        check("P25-3 滩带噪声腿宽 0~85 格（中位）∧ max ≤ 150：P28-L 重钉（JITTER 0.0075 → 0.0375 "
-            + "同比 ×5）——中位腿公式 = 0.0375×中位 dN(2202)/1.1794×n01中位 ≈ 35；max 腿径向公式 = "
-            + "0.0375×dN 上尾(~3400)/1.1794 ≈ 108。<b>P32 T1-1 扩窗重钉 108→150</b>：FINE_WINDOW 320 时 "
-            + "rayBiomeShore 被窗截断（旧读数 中位 12/max 69 = 截断伪影，与 P29 终批逐位一致），560 解除"
-            + "截断后实测 max 142（径向公式 108 未含 warp 斜交穿越通胀，实测/公式 = 1.31；640 探针复核"
-            + "读数不变 = 560 下无截断）⇒ 上界 = 实测 +6% = 150。P28 实测 9/63 显著低于公式（<b>历史归因"
-            + "原文</b>：缎带腿（R1）在缘带内压低压力 ⇒ 射线腿被湾臂吃掉一段——该推导链随 P32 缎带整体"
-            + "移除<b>失效</b>，留档不删）。P32 口径：滩带结构性岸段化（新场 |∇p| 逐方向变化 ⇒ 踏面物理宽"
-            + "随岸段变化，等压线间距读数见 CVW-READ 32 射线组），本带随批3 Q3/批5 重测重钉；行为读数"
-            + "仍满足抖动活跃（max>0）∧ 有界。max=0 = 抖动死",
-            la.length >= 64 && legMax > 0.0D && legMax <= 150.0D && legMed <= 85.0D,
+            + "（P32 Q3 换算口径：线性式 腿宽 ≈ (JITTER·n01 + WIDTH_DELTA·(0.5+0.5·n01Low))·dN/|∇s|，"
+            + "含批3 D3 低频带宽腿 RVF.SANZU_BIOME_SHORE_WIDTH_DELTA=0.025；名义（×2670）中位 ≈ "
+            + "0.0375×2100 ≈ 79、上界 ≈ 0.0625×2670 ≈ 167；旧割线式 0.0075×2670/1.1794 ≈ 17.0 为 "
+            + "P25 圆场口径历史档）");
+        check("P25-3 滩带噪声腿宽 0~85 格（中位）∧ max ≤ 185：<b>P32 T1-4 Q3 重钉 150→185（先读数后"
+            + "钉带）</b>——S1b 纯树读数 中位 39/max 119（T1-1 带 150 内 PASS）随批3 D3 低频带宽腿"
+            + "（RVF SANZU_BIOME_SHORE_WIDTH_DELTA 0.025，sanzuBiomeShoreAt 平面上确界 0.131+0.0375"
+            + "+0.025 = 0.1935）整体抬升：线性口径 名义中位 = (0.5×JITTER+0.75×WIDTH)·中位 dN ≈ "
+            + "0.0375×2100 ≈ 79、名义 max = (JITTER+WIDTH)·dN 上尾 ≈ 0.0625×2790 ≈ 174 ⇒ 实测 79/174"
+            + " 与线性式吻合（本树 = Q1/D3/Q2 已落现状；批3 尾合流复跑读数应逐位同）；上界 = 实测 max "
+            + "+6% = 185（S4 容差族），中位带 85 保持（= 名义 79 + 7.6% 余量）。<b>钉值史</b>：P28-L "
+            + "重钉（JITTER 0.0075 → 0.0375 同比 ×5）——中位腿公式 = 0.0375×中位 dN(2202)/1.1794×"
+            + "n01中位 ≈ 35；max 腿径向公式 = 0.0375×dN 上尾(~3400)/1.1794 ≈ 108。<b>P32 T1-1 扩窗"
+            + "重钉 108→150</b>：FINE_WINDOW 320 时 rayBiomeShore 被窗截断（旧读数 中位 12/max 69 = "
+            + "截断伪影，与 P29 终批逐位一致），560 解除截断后实测 max 142（径向公式 108 未含 warp "
+            + "斜交穿越通胀，实测/公式 = 1.31；640 探针复核读数不变 = 560 下无截断）。P28 实测 9/63 "
+            + "显著低于公式（<b>历史归因原文</b>：缎带腿（R1）在缘带内压低压力 ⇒ 射线腿被湾臂吃掉"
+            + "一段——该推导链随 P32 缎带整体移除<b>失效</b>，留档不删）。P32 口径：滩带结构性岸段化"
+            + "（新场 |∇p| 逐方向变化 ⇒ 踏面物理宽随岸段变化，等压线间距读数见 CVW-READ 32 射线组），"
+            + "批3 尾合流复跑 / 批5 重测；行为读数仍满足抖动活跃（max>0）∧ 有界。max=0 = 抖动死",
+            la.length >= 64 && legMax > 0.0D && legMax <= 185.0D && legMed <= 85.0D,
             "max=" + f3(legMax) + " 中位=" + f3(legMed) + " n=" + la.length);
         // ── P4：岛径逐站 ±10% 散布 ──
         final List<Double> ir = new ArrayList<Double>();
@@ -1644,7 +1665,9 @@ public final class SanzuLakeMorphologyCheck {
      * <li><b>P27-2 露水墙列</b>：4a 灌水对齐后的残留水墙读数——水列（{@code sanzuShoreWaterAt
      * ∧ h < SEA}，会置水）的陆侧 4 邻中「压力域外 ∧ h &lt; SEA」的干列计数（水线被压力域边界
      * 切在地形分水岭之外的列）；超观感带 ⇒ 升 4b（灌到 shoreAt+0.015，ue-lake §4 的裁决腿，
-     * 本轮不实现）。</li>
+     * 本轮不实现）。<b>P32 T1-4 Q3 防混同登记</b>：本处 +0.015 是 4b 灌水升级腿的水门余量，
+     * 与羽化外缘 δ=0.015（材质门，{@link #FEATHER_DELTA}，E-B §8.2 同源契约）<b>数值巧合、
+     * 语义不同源</b>——两处各自改钉，不得借数值相等互推。</li>
      * </ul>
      */
     static void groupP27(List<Lake> lakes) {
@@ -2760,6 +2783,14 @@ public final class SanzuLakeMorphologyCheck {
             // 批I I2 滩环钳制后被钳平台整片成湿带，首命中窗 256/256 全湿（chunk(3424,-3808)，
             // h 均匀 67）⇒ outside=0 结构性红；P30-III-1b 改选 straddle 窗（断言式不动，归因
             // 证据与 pre/post 双跑读数见上方选窗注释与 temp/p30-iiib/probe/）。
+            // P32 T1-4 Q3 合法集核验（验证性核对+注释，羽化档 landFeatherAt 归批3 Q1，CPR
+            // topAt :434-435 之间第 4 档）：Q1 设计约束「零新料零新盐零新阈值名册」——梯命中列
+            // = 既有三料（河砾/硅砂/废岩）同料概率补丁，空档列 return base 透传 ⇒ 本 L1 合法集
+            // {prosperityRiverGravel（羽化檐）, prosperitySilicaSand（干滩档）,
+            // prosperityStone（滩坡废岩档）} + 逐字退回<b>不变，断言式一字不动</b>（mism==0 继续
+            // 钉「禁第三料」）。本树（Q1 未落地）结构性满足；批3 尾合流后复跑本断言 + 0/17892
+            // 复测（核心域 {lake<SHORE ∧ h∈[70,79]} 与羽化域构造性不相交 ⇒ 穿透 0 保持）收口。
+            // 羽化域/排除域同源契约与「抖动滩缘逐位不动」豁免分析见 {@link #FEATHER_DELTA}。
             check("L1 §15.4+P22G3+P26B3 湿带复用 S1 表层钩子：非湿带列要么逐字退回 S1（GTSRSurfaceBorderBand），"
                 + "要么差异列 top ∈ {prosperityRiverGravel（羽化檐）, prosperitySilicaSand（干滩档）, "
                 + "prosperityStone（滩坡废岩档，P29-B2 第三改派料）}（禁第三料），且本湿带 straddle 窗"
@@ -2825,6 +2856,91 @@ public final class SanzuLakeMorphologyCheck {
         check("L4c P26-B3 干滩档源级：dryBeachSandAt 绑定 prosperitySilicaSand 恰 1 处、topAt 裁定恰 1 处"
             + "（干滩料=同选择器内第二改派档，非第二份混合带实现）",
             dryBlock == 1 && dryGate == 1, "silicaSand=" + dryBlock + " dryBeachSandAt 裁定=" + dryGate);
+    }
+
+    // ════════════════ P32 T1-4 Q3：羽化域契约（排除域同源 + 断言豁免 + 合法集核对）════════════════
+
+    /**
+     * 羽化外缘压力 δ 的<b>判据侧字面钉</b>（P32 T1-4 Q3；{@link #DRY_RISE}/{@link #SHORE_HALO}
+     * 同款对拍纪律——判据源码要在 Q1（CPR 羽化档）落地前的树上也能编译 ⇒ 不引生产常量，由
+     * {@link #groupFeatherDomain} 反射直读生产常量对拍）。
+     * <p>
+     * <b>同源契约（E-B §8.2 冲突处置：δ 与探针排除域上界两处必须同源，防将来单边漂移）</b>：
+     * <ol>
+     * <li><b>生产侧</b>：羽化外缘 = {@code CPR.LakeWetBandTopSelector} 的
+     * {@code WETB_HALO_UNIT × 外伸上限}（Q1 落地后 = 0.000375 × WETB_FEATHER_MAX 40 = 0.015；
+     * 落地前旧源 = 0.0015 × WETB_HALO_MAX 10 = 0.015——unit 重标前后<b>同值换源</b>，正是
+     * 排除域上界数值不动的构造理由）；</li>
+     * <li><b>探针侧</b>：0/17892 复测（P29SProbe 方法重演，脚本重建于 temp/p32-*，归批3 Q1）的
+     * <b>排除域上界</b> = {@code lake > SHORE + δ}——与羽化外缘同源联动（数值巧合同值，E-B §8.2：
+     * 一处改另一处忘改 = 探针假红/假绿）。Q1 定档若改 δ（校准域 {0.010,0.015,0.022}）⇒ 本字面与
+     * 探针侧<b>同步重钉</b>（FD1 预期红 = 联动检测生效，非生产缺陷）。</li>
+     * </ol>
+     * <b>「抖动滩缘逐位不动」断言豁免分析（P29SProbe fringe/h69 口径，供 Q1 复测脚本消费）</b>：
+     * 旧断言域 {h∈[70,73] ∧ lake≥SHORE}（h=69 干滩附检同族）<b>包含</b>羽化域
+     * {lake ∈ (SHORE+HALO_MAX·unit, SHORE+δ]}——硅砂键窗 h∈[69,73] 与废岩键窗 h∈(73,79] 的
+     * 陆侧压力腿均落入断言域（与 [70,73] 交非空）⇒ 按「在域内」处置：<b>改断言口径 = 豁免羽化域</b>
+     * （新口径 = 羽化域外逐位不动；羽化域内合法性改由 0/17892 穿透门（核心域 {lake&lt;SHORE ∧
+     * h∈[70,79]} 与羽化域构造性不相交 ⇒ 穿透 0 保持）+ L1 合法集接管）。unit 重标
+     * （0.0015→0.000375）本身已破旧断言：三档檐压力 reach 0.015→0.00375 收缩 ⇒
+     * lake∈(SHORE+0.00375, SHORE+0.015] 的檐列决策翻转——羽化域豁免恰好覆盖该翻转带。
+     * <p>
+     * 防混同：{@link #groupP27} P27-2 的「灌到 shoreAt+0.015」是 4b 灌水升级腿（ue-lake §4），
+     * 与本 δ 数值巧合、语义不同源（水门 vs 材质门），见该处注释。
+     */
+    static final double FEATHER_DELTA = 0.015D;
+
+    /**
+     * P32 T1-4 Q3 羽化域契约的机检面：
+     * <ul>
+     * <li><b>FD1 同源联动</b>：反射直读生产 WETB 常量 ⇒ δ = unit×外伸上限 与 {@link #FEATHER_DELTA}
+     * 同值（容差 1e-4 = 吸收 0.000375 与 1/2670 的表示差 ~1.9e-5；δ 校准域相邻档差 ≥5e-3 ≫ 容差
+     * ⇒ 真漂移必红）。Q1 落地前后两态同值 0.015 ⇒ 本 check 跨批3 合流稳定绿；红 = δ 改档未联动
+     * 或 WETB 常量改名（反射读 NaN）——按 check 文案处置，非生产缺陷。</li>
+     * <li><b>FD2 合法集核对（验证性，不另立断言）</b>：羽化档零新料（Q1 设计约束：梯命中列 =
+     * 既有三料同料概率补丁，空档列 base 透传）⇒ L1 合法集 {河砾, 硅砂, 废岩} + 逐字退回不变，
+     * L1/L2 断言式一字不动（见 L1 断言处 P32 段注释）。
+     * {@code groupSurfaceSourceSingleTruth} 的 L4b/L4c 源级<b>计数</b>钉若因羽化方法在选择器体内
+     * 新增 {@code BlocksGTSR.*} 绑定引用而变计数，属「语义钉不动、计数钉随源形重钉」族
+     * （批3 尾/批5 动作），不属合法集变化。</li>
+     * </ul>
+     */
+    static void groupFeatherDomain() {
+        final double unit = readWetbConstant("WETB_HALO_UNIT");
+        final double feather = readWetbConstant("WETB_FEATHER_MAX"); // Q1 落地前不存在（NaN ⇒ 外伸上限退 HALO_MAX 旧源）
+        final double halo = readWetbConstant("WETB_HALO_MAX");
+        final double reach = !Double.isNaN(feather) ? feather : halo;
+        final double derived = Double.isNaN(unit) || Double.isNaN(reach) ? Double.NaN : unit * reach;
+        say("FEATHER-READ 羽化外缘（P32 T1-4 Q3 同源锚，CPR LakeWetBandTopSelector WETB 常量反射直读）："
+            + "HALO_UNIT=" + unit + " HALO_MAX=" + halo + " FEATHER_MAX="
+            + (Double.isNaN(feather) ? "absent（Q1 羽化档未落地 ⇒ 外伸上限走旧源 HALO_MAX）"
+                : String.valueOf(feather))
+            + " ⇒ δ = unit×外伸上限 = " + (Double.isNaN(derived) ? "不可判" : String.valueOf(derived))
+            + "；判据侧排除域上界锚 = SHORE+" + FEATHER_DELTA + " = " + (SHORE + FEATHER_DELTA)
+            + "（探针侧 0/17892 复测的排除域上界必须同源联动；「抖动滩缘逐位不动」豁免分析见 FEATHER_DELTA javadoc）");
+        check("P32 T1-4 FD1 羽化外缘同源联动：δ = WETB_HALO_UNIT × 外伸上限（Q1 后 = WETB_FEATHER_MAX、"
+            + "落地前 = WETB_HALO_MAX 旧源）= 判据侧排除域上界锚 SHORE+" + FEATHER_DELTA
+            + "（E-B §8.2：δ 与探针排除域上界两处必须同源，一处单边改 = 探针假红/假绿。容差 1e-4："
+            + "吸收 0.000375 vs 1/2670 表示差 ~1.9e-5，δ 校准域 {0.010,0.015,0.022} 相邻档差 ≥5e-3 ≫"
+            + " 容差；红 = δ 改档未联动（Q1 定档终值回填时同步重钉本字面与探针侧）或 WETB 常量改名"
+            + "（反射读 NaN ⇒ 按新名重钉 readWetbConstant 字段名），非生产缺陷）",
+            !Double.isNaN(derived) && Math.abs(derived - FEATHER_DELTA) <= 1.0E-4D,
+            "δ=" + (Double.isNaN(derived) ? "不可判（反射读取失败）" : String.valueOf(derived))
+                + " vs 锚=" + FEATHER_DELTA + "（unit=" + unit + " 外伸上限=" + reach + "）");
+    }
+
+    /** CPR 私有嵌套类 {@code LakeWetBandTopSelector} 的 WETB 常量反射直读（NaN = 不存在/不可读）。 */
+    static double readWetbConstant(String field) {
+        try {
+            final Class<?> sel = Class.forName("com.miaokatze.gtsr.common.dimension.prosperity."
+                + "ChunkProviderProsperityRuins$LakeWetBandTopSelector");
+            final Field f = sel.getDeclaredField(field);
+            f.setAccessible(true);
+            final Object v = f.get(null);
+            return v instanceof Number ? ((Number) v).doubleValue() : Double.NaN;
+        } catch (final ReflectiveOperationException e) {
+            return Double.NaN;
+        }
     }
 
     static String stripComments(String src) {

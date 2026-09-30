@@ -644,8 +644,13 @@ public final class TerrainVariants {
     /**
      * <b>湖平面压力域缓入带宽</b>（0.02；v1.20.50 P28 引入时作瀑布潭湖岸避让门带宽，瀑布族随
      * v1.20.53 P30 II-AB 退役后改名归 {@link #lakePlaneTerrainAllowedAt} 专用——数值不动，
-     * 消费面只剩该门的缓入带：湖平面域外沿 ≈ +45 格连续过渡，域内（lakeAt ≤
-     * LAKE_SHORE+SANZU_BIOME_SHORE_JITTER）门 0）。
+     * 消费面只剩该门的缓入带：湖平面域外沿连续过渡，域内（lakeAt ≤
+     * LAKE_SHORE+SANZU_BIOME_SHORE_JITTER）门 0）。<b>P32 批3 T1-4 换算统一</b>：0.02×2670
+     * ≈ <b>53 格</b>（旧割线口径 ≈45 格随 P23-P28 圆场废弃，统一式见 RVF
+     * {@code LAKE_WATER_LEVEL} P32 段）。<b>P32 批3 D3 披露</b>：滩带外缘新增低频带宽腿
+     * （RVF {@code SANZU_BIOME_SHORE_WIDTH_DELTA}，平面压力域上确界 0.131+0.0375+0.025 =
+     * 0.1935）后，本门 0 域上确界 0.1685 保持<b>固定阈语义</b>（两口径不并收先例）——
+     * (0.1685, 0.1935) 宽滩段列本门 &gt; 0，重钉归批3 Q3/批5。
      */
     private static final double SWAMP_LAKE_SHORE_BAND = 0.02D;
     /** 水沼地（半淹档）场域盐（波长 {@link #SWAMP_MARSH_SCALE}）。 */
