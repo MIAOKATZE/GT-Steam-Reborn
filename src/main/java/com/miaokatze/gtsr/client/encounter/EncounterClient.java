@@ -63,6 +63,7 @@ public final class EncounterClient extends Gui implements IResourceManagerReload
     public void tick(TickEvent.ClientTickEvent event) {
         if (event.phase != TickEvent.Phase.END) return;
         Minecraft mc = Minecraft.getMinecraft();
+        EncounterSignals.tick();
         target = null;
         if (mc.theWorld != null && mc.thePlayer != null
             && mc.theWorld.provider instanceof WorldProviderProsperityRuins) {
@@ -98,9 +99,10 @@ public final class EncounterClient extends Gui implements IResourceManagerReload
 
     @SubscribeEvent
     public void overlay(RenderGameOverlayEvent.Post event) {
-        if (event.type != RenderGameOverlayEvent.ElementType.ALL || target == null) return;
+        if (event.type != RenderGameOverlayEvent.ElementType.ALL
+            || (target == null && !EncounterSignals.progressActive())) return;
         Minecraft mc = Minecraft.getMinecraft();
-        float health = Math.max(0, Math.min(EntitySilentKing.MAX_HEALTH, target.getHealth()));
+        float health = target == null ? 0 : Math.max(0, Math.min(EntitySilentKing.MAX_HEALTH, target.getHealth()));
         int layers = (int) Math.ceil(health / 100.0F);
         float segment = layers == 0 ? 0 : (health - (layers - 1) * 100) / 100;
         int x = (event.resolution.getScaledWidth() - 256) / 2;
@@ -121,14 +123,26 @@ public final class EncounterClient extends Gui implements IResourceManagerReload
             String count = "×" + layers;
             int countWidth = mc.fontRenderer.getStringWidth(count);
             int countX = Math.max(4, Math.min(x + 260, event.resolution.getScaledWidth() - countWidth - 4));
-            drawRect(countX - 2, y + 12, countX + countWidth + 2, y + 24, 0xCC151918);
-            mc.fontRenderer.drawStringWithShadow(count, countX, y + 14, 0xE9D7AD);
+            if (target != null) {
+                drawRect(countX - 2, y + 12, countX + countWidth + 2, y + 24, 0xCC151918);
+                mc.fontRenderer.drawStringWithShadow(count, countX, y + 14, 0xE9D7AD);
+            }
             mc.fontRenderer.drawStringWithShadow(
                 name,
                 (event.resolution.getScaledWidth() - mc.fontRenderer.getStringWidth(name)) / 2,
                 y - 9,
                 0xE9D7AD);
-            if (target.getEncounterState() == 1) {
+            if (target == null) {
+                String caption = EncounterSignals.remaining() == 0
+                    ? net.minecraft.util.StatCollector.translateToLocal("encounter.progress.throne")
+                    : net.minecraft.util.StatCollector
+                        .translateToLocalFormatted("encounter.progress.remaining", EncounterSignals.remaining());
+                mc.fontRenderer.drawStringWithShadow(
+                    caption,
+                    (event.resolution.getScaledWidth() - mc.fontRenderer.getStringWidth(caption)) / 2,
+                    y + 31,
+                    0xCCA977);
+            } else if (target.getEncounterState() == 1) {
                 String caption = "王座正在苏醒";
                 mc.fontRenderer.drawStringWithShadow(
                     caption,

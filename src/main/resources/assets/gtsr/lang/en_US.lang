@@ -2234,3 +2234,9 @@ tile.Royal_oath_flower.name=Oath Flower
 tile.Royal_crown_fern.name=Crown Fern
 
 lore.king.condemned=The court has marked your defiance. Returning to the front earns no pardon.
+
+# P36 encounter progress and oath guidance
+encounter.progress.throne=Come before the throne
+encounter.progress.remaining=Oathguards remaining: %s
+encounter.guidance.outside=The old oath fragment answers only within the great tree.
+encounter.guidance.cleared=The remaining oaths have fallen. Come before the throne.

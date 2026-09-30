@@ -47,7 +47,7 @@ public final class LoreRegistry {
         GameRegistry.addShapelessRecipe(new ItemStack(journal), Items.book, Items.gold_nugget);
         for (String id : new String[] { "oath_fragment", "old_crown", "brass_chronicle", "patina_seal", "sigh_glass",
             "mire_memory", "royal_sap", "broken_edict" }) {
-            Item relic = new ItemProsperityRelic(id);
+            Item relic = id.equals("oath_fragment") ? new ItemOathFragment() : new ItemProsperityRelic(id);
             RELICS.put(id, relic);
             GameRegistry.registerItem(relic, "ProsperityRelic_" + id);
             CreativeTabManager.addItemToTab(new ItemStack(relic));

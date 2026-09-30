@@ -38,6 +38,10 @@ public final class ForgottenLakeEncounterRegistry {
         EntityRegistry.registerModEntity(EntityResidualOathguard.class, "ResidualOathguard", 40, mod, 96, 3, true);
         EntityRegistry.registerModEntity(EntitySilentKing.class, "SilentKing", 41, mod, 160, 1, true);
         MinecraftForge.EVENT_BUS.register(new ForgottenLakeEncounterRegistry());
+        EncounterNetwork.register();
+        cpw.mods.fml.common.FMLCommonHandler.instance()
+            .bus()
+            .register(new EncounterProgress());
         registered = true;
     }
 

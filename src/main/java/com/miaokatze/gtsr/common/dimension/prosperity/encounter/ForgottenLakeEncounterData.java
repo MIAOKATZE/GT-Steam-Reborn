@@ -32,6 +32,115 @@ public class ForgottenLakeEncounterData extends WorldSavedData {
         return d;
     }
 
+    /** Read-only queries never create encounter records. */
+    public boolean known(String id) {
+        return records.containsKey(id);
+    }
+
+    public int remaining(String id) {
+        NBTTagCompound n = records.get(id);
+        if (n == null) return 0;
+        int version = n.getInteger("layoutVersion");
+        int count = version == 1 ? 12 : version == 2 ? 16 : 32;
+        int mask = count == 32 ? -1 : (1 << count) - 1;
+        return count - Integer.bitCount(n.getInteger("deaths") & mask);
+    }
+
+    public boolean anyPlatformCleared(String id) {
+        if (!known(id)) return false;
+        for (int p = 0; p < (layoutVersion(id) == 3 ? 8 : 4); p++) if (platformCleared(id, p)) return true;
+        return false;
+    }
+
+    public void registerBounds(String id, int ax, int az, int minY, int maxY, int radius) {
+        NBTTagCompound n = record(id);
+        if (n.hasKey("bounds")) return;
+        NBTTagCompound b = new NBTTagCompound();
+        b.setInteger("x", ax);
+        b.setInteger("z", az);
+        b.setInteger("minY", minY);
+        b.setInteger("maxY", maxY);
+        b.setInteger("radius", radius);
+        n.setTag("bounds", b);
+        markDirty();
+    }
+
+    public boolean contains(String id, double x, double y, double z) {
+        NBTTagCompound n = records.get(id);
+        if (n == null || !n.hasKey("bounds")) return false;
+        NBTTagCompound b = n.getCompoundTag("bounds");
+        double dx = x - b.getInteger("x"), dz = z - b.getInteger("z");
+        int r = Math.min(160, b.getInteger("radius"));
+        return y >= b.getInteger("minY") && y <= b.getInteger("maxY") && dx * dx + dz * dz <= r * r;
+    }
+
+    public void registerGuardAnchor(String id, int index, double x, double y, double z) {
+        if (!known(id) || index < 0 || index >= 32 || !Double.isFinite(x) || !Double.isFinite(y) || !Double.isFinite(z))
+            return;
+        NBTTagCompound n = records.get(id);
+        String key = "guardAnchor:" + index;
+        if (n.hasKey(key)) {
+            NBTTagCompound existing = n.getCompoundTag(key);
+            if (existing.getDouble("x") == x && existing.getDouble("y") == y && existing.getDouble("z") == z) return;
+        }
+        NBTTagCompound a = new NBTTagCompound();
+        a.setDouble("x", x);
+        a.setDouble("y", y);
+        a.setDouble("z", z);
+        n.setTag(key, a);
+        markDirty();
+    }
+
+    public double[] nearestLivingAnchor(String id, double x, double y, double z) {
+        NBTTagCompound n = records.get(id);
+        if (n == null) return null;
+        double[] best = null;
+        double distance = Double.MAX_VALUE;
+        int count = layoutVersion(id) == 1 ? 12 : layoutVersion(id) == 2 ? 16 : 32;
+        for (int i = 0; i < count; i++) {
+            if ((n.getInteger("deaths") & (1 << i)) != 0 || !n.hasKey("guardAnchor:" + i)) continue;
+            NBTTagCompound a = n.getCompoundTag("guardAnchor:" + i);
+            double dx = a.getDouble("x") - x, dy = a.getDouble("y") - y, dz = a.getDouble("z") - z;
+            double d = dx * dx + dy * dy + dz * dz;
+            if (d < distance) {
+                distance = d;
+                best = new double[] { a.getDouble("x"), a.getDouble("y"), a.getDouble("z") };
+            }
+        }
+        return best;
+    }
+
+    /** Reconstruct absent legacy anchor slots from their saved layout, without loading chunks. */
+    public void ensureGuardAnchors(World w, String id) {
+        if (!known(id)) return;
+        String[] parts = id.split(":");
+        if (parts.length != 3) return;
+        try {
+            int ax = Integer.parseInt(parts[1]), az = Integer.parseInt(parts[2]);
+            int[] dimensions = ForgottenLakeEncounterStructure.encounterDimensions(w, ax, az);
+            int version = layoutVersion(id);
+            for (int room = 0; room < (version == 3 ? 8 : 4); room++) {
+                for (int ordinal = 0; ordinal < guardCount(id, room); ordinal++) {
+                    int index = guardIndex(id, room, ordinal);
+                    if (records.get(id)
+                        .hasKey("guardAnchor:" + index) || guardDead(id, room, ordinal)) continue;
+                    int[] p;
+                    if (version == 3) p = ForgottenLakeEncounterStructure
+                        .guardPosition(ax, az, dimensions[0], dimensions[1], room, ordinal);
+                    else if (version == 2) p = ForgottenLakeEncounterStructure
+                        .guardPositionV2(ax, az, dimensions[0], dimensions[1], room, ordinal);
+                    else {
+                        p = ForgottenLakeEncounterStructure.legacyPlatform(ax, az, dimensions[0], dimensions[1], room);
+                        p[0] += -3 + ordinal * 3;
+                        p[1]++;
+                        p[2] += 3;
+                    }
+                    registerGuardAnchor(id, index, p[0] + .5, p[1], p[2] + .5);
+                }
+            }
+        } catch (NumberFormatException ignored) {}
+    }
+
     private NBTTagCompound record(String id) {
         NBTTagCompound n = records.get(id);
         if (n == null) {
@@ -44,7 +153,8 @@ public class ForgottenLakeEncounterData extends WorldSavedData {
     }
 
     public boolean created(String id, String node) {
-        return record(id).getBoolean("node:" + node);
+        NBTTagCompound n = records.get(id);
+        return n != null && n.getBoolean("node:" + node);
     }
 
     public void createdNode(String id, String node) {
@@ -53,7 +163,8 @@ public class ForgottenLakeEncounterData extends WorldSavedData {
     }
 
     public int deaths(String id) {
-        return record(id).getInteger("deaths");
+        NBTTagCompound n = records.get(id);
+        return n == null ? 0 : n.getInteger("deaths");
     }
 
     public void registerLayout(String id, int version) {
@@ -67,7 +178,8 @@ public class ForgottenLakeEncounterData extends WorldSavedData {
     }
 
     public int layoutVersion(String id) {
-        return Math.max(1, Math.min(3, record(id).getInteger("layoutVersion")));
+        NBTTagCompound n = records.get(id);
+        return n == null ? 3 : Math.max(1, Math.min(3, n.getInteger("layoutVersion")));
     }
 
     public int guardCount(String id, int platform) {
@@ -112,7 +224,8 @@ public class ForgottenLakeEncounterData extends WorldSavedData {
     }
 
     public boolean kingDead(String id) {
-        return record(id).getBoolean("kingDead");
+        NBTTagCompound n = records.get(id);
+        return n != null && n.getBoolean("kingDead");
     }
 
     public void kingDied(String id) {

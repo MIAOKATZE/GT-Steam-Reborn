@@ -14,6 +14,7 @@ public class TileEntitySealedChest extends TileEntity {
 
     private int tier = 1, platform = -1, openingTicks = -1;
     private String encounter = "";
+    private boolean clickUnlock;
 
     public int getTier() {
         return tier;
@@ -39,7 +40,13 @@ public class TileEntitySealedChest extends TileEntity {
         worldObj.markBlockForUpdate(xCoord, yCoord, zCoord);
     }
 
+    public void initializeClickUnlock(int t, String id) {
+        clickUnlock = true;
+        initialize(t, id, -1);
+    }
+
     private boolean allowed() {
+        if (clickUnlock) return openingTicks >= 0;
         if (tier == 1) return openingTicks >= 0;
         if (encounter.isEmpty()) return false;
         ForgottenLakeEncounterData d = ForgottenLakeEncounterData.get(worldObj);
@@ -47,7 +54,7 @@ public class TileEntitySealedChest extends TileEntity {
     }
 
     public void tryUnlockByClick() {
-        if (tier == 1 && openingTicks < 0) startOpening();
+        if ((tier == 1 || clickUnlock) && openingTicks < 0) startOpening();
     }
 
     private void startOpening() {
@@ -117,6 +124,7 @@ public class TileEntitySealedChest extends TileEntity {
         tier = n.hasKey("tier") ? n.getInteger("tier") : 1;
         platform = n.hasKey("platform") ? n.getInteger("platform") : -1;
         encounter = n.getString("encounter");
+        clickUnlock = n.getBoolean("clickUnlock");
         openingTicks = n.hasKey("opening") ? n.getInteger("opening") : -1;
     }
 
@@ -125,6 +133,7 @@ public class TileEntitySealedChest extends TileEntity {
         n.setInteger("tier", tier);
         n.setInteger("platform", platform);
         n.setString("encounter", encounter);
+        n.setBoolean("clickUnlock", clickUnlock);
         n.setInteger("opening", openingTicks);
     }
 

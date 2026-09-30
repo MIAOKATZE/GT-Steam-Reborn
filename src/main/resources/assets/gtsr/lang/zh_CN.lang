@@ -2229,3 +2229,9 @@ tile.Royal_oath_flower.name=残誓花
 tile.Royal_crown_fern.name=冠羽蕨
 
 lore.king.condemned=王庭已记下你的忤逆。归正亦不赦。
+
+# P36 encounter progress and oath guidance
+encounter.progress.throne=来到王座之前
+encounter.progress.remaining=剩余残誓兵：%s
+encounter.guidance.outside=旧誓残片只回应巨树中的残誓。
+encounter.guidance.cleared=残誓已尽，来到王座之前。

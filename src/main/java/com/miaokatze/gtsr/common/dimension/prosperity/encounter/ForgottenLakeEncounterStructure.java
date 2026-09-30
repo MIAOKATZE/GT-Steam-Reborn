@@ -410,35 +410,35 @@ public final class ForgottenLakeEncounterStructure {
         int top = y0 + trunkH + 2;
         livingDeck(b, ax, top, az, 84, true, .8D);
         // An open spiral wrapped around the wider living trunk; the final horizontal run faces west.
-        int steps = (top - y0) * 8 + 7;
+        int steps = (top - y0) * 16 + 15;
         for (int s = 0; s <= steps; s++) {
-            int t = s % 96, x, z;
-            if (t < 24) {
-                x = -12 + t;
-                z = -12;
-            } else if (t < 48) {
-                x = 12;
-                z = -12 + t - 24;
-            } else if (t < 72) {
-                x = 12 - (t - 48);
-                z = 12;
+            int t = s % 192, x, z;
+            if (t < 48) {
+                x = -24 + t;
+                z = -24;
+            } else if (t < 96) {
+                x = 24;
+                z = -24 + t - 48;
+            } else if (t < 144) {
+                x = 24 - (t - 96);
+                z = 24;
             } else {
-                x = -12;
-                z = 12 - (t - 72);
+                x = -24;
+                z = 24 - (t - 144);
             }
-            int y = y0 + s / 8;
+            int y = y0 + s / 16;
             for (int a = 0; a < 4; a++) {
-                int xx = ax + x + (Math.abs(z) == 12 ? 0 : (x > 0 ? a : -a));
-                int zz = az + z + (Math.abs(z) == 12 ? (z > 0 ? a : -a) : 0);
+                int xx = ax + x + (Math.abs(z) == 24 ? 0 : (x > 0 ? a : -a));
+                int zz = az + z + (Math.abs(z) == 24 ? (z > 0 ? a : -a) : 0);
                 if (!inSlice(b, xx, zz)) continue;
-                wood(b, xx, y, zz, Math.abs(z) == 12 ? 4 : 8);
+                wood(b, xx, y, zz, Math.abs(z) == 24 ? 4 : 8);
                 for (int h = 1; h <= 4; h++) block(b, xx, y + h, zz, Blocks.air);
             }
         }
         // The final westward riser joins the old spiral to the royal entrance and broad arena.
         int topBase = y0 + 10 + 12 * Math.floorDiv(top - y0 - 10, 12);
         for (int j = -55; j <= 0; j++) for (int a = -3; a <= 3; a++) {
-            int y = j < -14 ? top : Math.min(top, topBase + j + 14);
+            int y = j < -28 ? top : Math.min(top, topBase + (j + 28) / 2);
             if (!inSlice(b, ax + j, az + a)) continue;
             wood(b, ax + j, y, az + a, 4);
             for (int h = 1; h <= 4; h++) block(b, ax + j, y + h, az + a, Blocks.air);
@@ -572,7 +572,7 @@ public final class ForgottenLakeEncounterStructure {
         int[] phase = { 4, 6, 7, 9, 10, 0, 1, 3 };
         int base = y0 + phase[room] + 12 * Math.floorDiv(p[1] - y0 - phase[room], 12);
         double angle = room * Math.PI / 4, cos = Math.cos(angle), sin = Math.sin(angle);
-        double start = room % 2 == 0 ? 12 : Math.sqrt(288);
+        double start = room % 2 == 0 ? 24 : Math.sqrt(1152);
         for (int t = 0; t <= 200; t++) {
             double u = t / 200D, r = start + (112 - start) * u, bend = 8 * Math.sin(Math.PI * u);
             int x = ax + (int) Math.round(cos * r - sin * bend), z = az + (int) Math.round(sin * r + cos * bend);
@@ -625,6 +625,36 @@ public final class ForgottenLakeEncounterStructure {
             for (int n = 0; n < ROOM_CHEST_COUNTS[room]; n++)
                 clearNodeV3(b, chestPosition(ax, az, y0, trunkH, room, n), 0, 2);
         }
+        // High room branches can cut beneath the court boxes; restore their footing and headroom.
+        for (int i = 0; i < 9; i++) {
+            int[] c = throneChestPosition(ax, az, y0, trunkH, i);
+            for (int dx = -2; dx <= 2; dx++) for (int dz = -2; dz <= 2; dz++) {
+                if (!inSlice(b, c[0] + dx, c[2] + dz)) continue;
+                int floor = c[1] - (Math.max(Math.abs(dx), Math.abs(dz)) == 2 ? 2 : 1);
+                wood(b, c[0] + dx, floor, c[2] + dz, 0);
+                for (int h = 1; h <= 4; h++) block(b, c[0] + dx, floor + h, c[2] + dz, Blocks.air);
+            }
+        }
+        java.util.List<int[]> tips = com.miaokatze.gtsr.common.dimension.prosperity.ruins.IslandMegaTree
+            .branchChestPositions(w == null ? 0L : w.getSeed(), ax, az, y0, trunkH);
+        for (int[] c : tips) for (int dx = -2; dx <= 2; dx++) for (int dz = -2; dz <= 2; dz++) {
+            if (!inSlice(b, c[0] + dx, c[2] + dz)) continue;
+            wood(b, c[0] + dx, c[1] - 1, c[2] + dz, 0);
+            for (int h = 0; h < 4; h++) block(b, c[0] + dx, c[1] + h, c[2] + dz, Blocks.air);
+        }
+    }
+
+    public static int[] encounterDimensions(World w, int ax, int az) {
+        return new int[] {
+            com.miaokatze.gtsr.common.dimension.prosperity.ProsperityTerrainProfile.heightAt(w.getSeed(), ax, az),
+            com.miaokatze.gtsr.common.dimension.prosperity.ruins.ProsperityDecorPlacer
+                .islandTreeHeightAt(w.getSeed(), ax, az) };
+    }
+
+    public static void ensureBounds(World w, int ax, int az) {
+        int[] dims = encounterDimensions(w, ax, az);
+        ForgottenLakeEncounterData.get(w)
+            .registerBounds(encounterId(w, ax, az), ax, az, dims[0], dims[0] + dims[1] + 16, 160);
     }
 
     public static void initializeChunk(World w, int ax, int az, int y0, int trunkH, int cx, int cz) {
@@ -632,6 +662,7 @@ public final class ForgottenLakeEncounterStructure {
         ForgottenLakeEncounterData d = ForgottenLakeEncounterData.get(w);
         String id = encounterId(w, ax, az);
         d.registerLayout(id, 3);
+        d.registerBounds(id, ax, az, y0, y0 + trunkH + 16, 160);
         if (d.layoutVersion(id) == 1) {
             initializeLegacyChunk(w, ax, az, y0, trunkH, cx, cz);
             return;
@@ -639,6 +670,19 @@ public final class ForgottenLakeEncounterStructure {
         if (d.layoutVersion(id) == 2) {
             initializeV2Chunk(w, ax, az, y0, trunkH, cx, cz);
             return;
+        }
+        java.util.List<int[]> tips = com.miaokatze.gtsr.common.dimension.prosperity.ruins.IslandMegaTree
+            .branchChestPositions(w.getSeed(), ax, az, y0, trunkH);
+        for (int i = 0; i < tips.size(); i++) {
+            int[] c = tips.get(i);
+            String node = "branchChest" + i;
+            if (!owner(c[0], c[2], cx, cz) || d.created(id, node)) continue;
+            if (!w.setBlock(c[0], c[1], c[2], ForgottenLakeEncounterRegistry.sealedChest, 0, 2)) continue;
+            TileEntity tile = w.getTileEntity(c[0], c[1], c[2]);
+            if (tile instanceof TileEntitySealedChest) {
+                ((TileEntitySealedChest) tile).initializeClickUnlock(1 + (i % 2), id);
+                d.createdNode(id, node);
+            }
         }
         for (int room = 0; room < 8; room++) {
             for (int n = 0; n < ROOM_CHEST_COUNTS[room]; n++) {

@@ -38,6 +38,18 @@ public class EntityResidualOathguard extends EntityEncounterBase {
 
     public void setOrdinal(int n) {
         ordinal = n;
+        registerAnchor();
+    }
+
+    private void registerAnchor() {
+        if (worldObj.isRemote || getEncounterId().isEmpty()) return;
+        ForgottenLakeEncounterData d = ForgottenLakeEncounterData.get(worldObj);
+        d.registerGuardAnchor(
+            getEncounterId(),
+            d.guardIndex(getEncounterId(), getPlatformId(), ordinal),
+            anchorX,
+            anchorY,
+            anchorZ);
     }
 
     private boolean validPlayer(EntityPlayer p) {
@@ -70,6 +82,7 @@ public class EntityResidualOathguard extends EntityEncounterBase {
     public void onLivingUpdate() {
         super.onLivingUpdate();
         if (worldObj.isRemote || !isEntityAlive()) return;
+        if (ticksExisted == 1) registerAnchor();
         EntityLivingBase t = getAttackTarget();
         if (!(t instanceof EntityPlayer) || !validPlayer((EntityPlayer) t) || getDistanceSqToEntity(t) > 1600) {
             setAttackTarget(null);
@@ -146,5 +159,6 @@ public class EntityResidualOathguard extends EntityEncounterBase {
             getEntityAttribute(SharedMonsterAttributes.maxHealth).setBaseValue(200);
             setHealth(Math.min(200, oldHealth * 5));
         }
+        registerAnchor();
     }
 }

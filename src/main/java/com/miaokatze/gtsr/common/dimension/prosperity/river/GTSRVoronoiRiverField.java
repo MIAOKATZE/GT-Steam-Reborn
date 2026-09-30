@@ -847,7 +847,9 @@ public final class GTSRVoronoiRiverField {
      * 映射，逐湖常量）⇒ R_eff ∈ [67.5, 82.5]、干半径 ∈ [35.9, 43.9]——仍在本值 ≈40±8 的
      * 验收带内，岛底柱不变式（环 13+抖 2+半宽 2 = 17 &lt; 35.9）保持。
      */
-    public static final double LAKE_ISLAND_RADIUS = 75.0D;
+    // P36: 45 same-seed islands measured dry land 170974 -> 513300 columns (3.0022x).
+    // Retained additive edge notches make 75*sqrt(3) overshoot; 124 calibrates visible area.
+    public static final double LAKE_ISLAND_RADIUS = 124.0D;
 
     /**
      * 岛绝对半径的<b>站级抖幅</b>（P25 D3⑤(a) 新增）：R_eff = {@link #LAKE_ISLAND_RADIUS}×
@@ -1141,6 +1143,8 @@ public final class GTSRVoronoiRiverField {
 
     /** 标称湖形尺度（格）；用于比例参数，不改变站间隔、水位或岛尺度。 */
     public static final double LAKE_SHAPE_R0 = 200.0D;
+    /** P36: extend each nominal shape radius by 60, retaining station centers and shore widths. */
+    public static final double LAKE_RADIUS_EXTENSION = 60.0D;
 
     /** 锚点的最小内切半径，维持既有岛容器与深盆空间。 */
     public static final double LAKE_SHAPE_B_FLOOR = 185.0D;
@@ -2115,14 +2119,14 @@ public final class GTSRVoronoiRiverField {
             s.n = cls == 0 ? 2 : 3;
             final double minA = cls == 0 ? LAKE_SHAPE_LONG_A_MIN : LAKE_SHAPE_WIDE_A_MIN;
             final double maxA = cls == 0 ? LAKE_SHAPE_LONG_A_MAX : LAKE_SHAPE_WIDE_A_MAX;
-            s.a = (minA + size * (maxA - minA)) * LAKE_SHAPE_R0;
-            s.b = LAKE_SHAPE_B_FLOOR + width * (LAKE_SHAPE_SHORT_MAX - LAKE_SHAPE_B_FLOOR);
+            s.a = (minA + size * (maxA - minA)) * LAKE_SHAPE_R0 + LAKE_RADIUS_EXTENSION;
+            s.b = LAKE_SHAPE_B_FLOOR + width * (LAKE_SHAPE_SHORT_MAX - LAKE_SHAPE_B_FLOOR) + LAKE_RADIUS_EXTENSION;
             s.invA = 1.0D / s.a;
             s.invB = 1.0D / s.b;
             return;
         }
         // 主圆只小幅偏心，内切保证取rhoP−offset而非只读rhoP。
-        s.rhoP = LAKE_SHAPE_MAIN_MIN + width * (LAKE_SHAPE_MAIN_MAX - LAKE_SHAPE_MAIN_MIN);
+        s.rhoP = LAKE_SHAPE_MAIN_MIN + width * (LAKE_SHAPE_MAIN_MAX - LAKE_SHAPE_MAIN_MIN) + LAKE_RADIUS_EXTENSION;
         final double centerOffset = detail * LAKE_SHAPE_MAIN_OFFSET_MAX;
         s.cx = centerOffset * s.cosT;
         s.cz = centerOffset * s.sinT;
@@ -2163,10 +2167,12 @@ public final class GTSRVoronoiRiverField {
                 angle2 = neighborAngle + Math.PI + 0.5D * sep;
             }
         }
-        s.rhoS1 = radius;
+        s.rhoS1 = radius + LAKE_RADIUS_EXTENSION;
         s.s1x = s.cx + offset * Math.cos(angle1);
         s.s1z = s.cz + offset * Math.sin(angle1);
-        s.rhoS2 = s.nSub == 2 ? LAKE_SHAPE_LOBE_MIN + detail * (LAKE_SHAPE_LOBE_MAX - LAKE_SHAPE_LOBE_MIN) : 0.0D;
+        s.rhoS2 = s.nSub == 2
+            ? LAKE_SHAPE_LOBE_MIN + detail * (LAKE_SHAPE_LOBE_MAX - LAKE_SHAPE_LOBE_MIN) + LAKE_RADIUS_EXTENSION
+            : 0.0D;
         s.s2x = s.nSub == 2 ? s.cx + offset2 * Math.cos(angle2) : 0.0D;
         s.s2z = s.nSub == 2 ? s.cz + offset2 * Math.sin(angle2) : 0.0D;
     }
@@ -2352,15 +2358,11 @@ public final class GTSRVoronoiRiverField {
      *         禁止与 0 混淆——0 是合法高度域外的值，NaN 不可比较 ⇒ 误用必显形）
      */
     public static double lakeIslandTopAt(long worldSeed, int x, int z, double lakePressure) {
-        // P25 D3⑤(b)：压力腿阈 ×(1 + 0.08·n01(λ60))——单边只收域（T ≥ LAKE_ISLAND，岛域 ⊂ 湖水区
-        // 不变式保持，见 LAKE_ISLAND_GATE_JITTER）；kPress 归一分母随 T 同源（不留"过阈即 k≤0"
-        // 死带）。n01 与半径抖动（下方 (a) 腿）独立盐、互不相关。
-        final double nGate = 0.5D + 0.5D * GTSRWorldgenHash
-            .valueNoise(worldSeed ^ SALT_LAKE_ISLAND_GATE, x / LAKE_ISLAND_GATE_SCALE, z / LAKE_ISLAND_GATE_SCALE);
-        final double islandGate = LAKE_ISLAND * (1.0D + LAKE_ISLAND_GATE_JITTER * nGate);
-        if (lakePressure >= islandGate) {
-            return Double.NaN;
-        }
+        // P36: the visible island grows to roughly three times its area. The old narrow
+        // pressure gate clipped larger islands; the actual water boundary now guards
+        // the absolute-radius profile without permitting land outside the lake core.
+        if (lakePressure >= LAKE_WATER_LEVEL) return Double.NaN;
+        final double islandGate = LAKE_WATER_LEVEL;
         final double seaLevel = ProsperityTerrainProfile.SEA_LEVEL;
         final double centerBed = seaLevel - LAKE_CENTER_DEPTH;
         final double islandTop = seaLevel + LAKE_ISLAND_LIFT;

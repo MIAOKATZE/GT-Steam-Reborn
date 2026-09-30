@@ -27,9 +27,9 @@ public final class IslandMegaTree {
     static final int TRUNK_HEIGHT_MIN = 133;
     /** 干高掷骰跨度。 */
     static final int TRUNK_HEIGHT_SPAN = 14;
-    /** 连续幂收分：干半径 r(i) = R_TOP + (R_BASE−R_TOP)·((H−i)/H)^POW，底 r11.5 → 顶 r3.5（禁分段台阶）。 */
-    static final double TRUNK_R_BASE = 11.5D;
-    static final double TRUNK_R_TOP = 3.5D;
+    /** 连续幂收分：干半径 r(i) = R_TOP + (R_BASE−R_TOP)·((H−i)/H)^POW，底 r23 → 顶 r7（禁分段台阶）。 */
+    static final double TRUNK_R_BASE = 23.0D;
+    static final double TRUNK_R_TOP = 7.0D;
     static final double TRUNK_TAPER_POW = 0.85D;
     /** 干北侧 2×2 树洞的干高区间（i ∈ [8,28]，相对 y0；洞 = 选择不写，非「写洞」）。 */
     static final int TRUNK_HOLE_Y_MIN = 8;
@@ -334,6 +334,34 @@ public final class IslandMegaTree {
         }
         // 干顶帽团：填补顶轮聚拢后的中轴绿量（非垂帘锚）
         v.tuft(0, capDy, 0, CAP_TUFT_R, CAP_TUFT_LAYERS, false);
+    }
+
+    /** Six primary limb tips, replaying the exact tree random prefix without consuming placement RNG. */
+    public static List<int[]> branchChestPositions(long seed, int ax, int az, int y0, int trunkH) {
+        Random r = new Random(
+            com.miaokatze.gtsr.common.dimension.framework.structure.GTSRWorldgenHash.chunkSeed(seed, ax >> 4, az >> 4)
+                ^ ProsperityDecorPlacer.SALT_ISLAND_TREE);
+        r.nextInt(TRUNK_HEIGHT_SPAN);
+        final List<int[]> positions = new ArrayList<int[]>();
+        forEachBranchTuft(trunkH, r.nextInt(), new SkeletonVisitor() {
+
+            private int primary;
+
+            public void limb(int dx, int dy, int dz) {}
+
+            public void forkLimb(int dx, int dy, int dz) {}
+
+            public void garland(int dx, int dy, int dz, int radius) {}
+
+            public void tuft(int dx, int dy, int dz, int radius, int layers, boolean outer) {
+                if (layers == TUFT_LAYERS_TIP) {
+                    int index = primary++;
+                    if (index == 0 || index == 2 || index == 8 || index == 20 || index == 24 || index == 28)
+                        positions.add(new int[] { ax + dx, y0 + trunkH + dy + layers, az + dz });
+                }
+            }
+        });
+        return positions;
     }
 
     /**

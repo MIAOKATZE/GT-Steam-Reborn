@@ -824,6 +824,13 @@ public final class ProsperityDecorPlacer {
      * <b>public = 离线判据重放口</b>（{@code tools/dim1/MegaTreeCheck} D 组派生整窗并集对拍；
      * 生产侧唯一调用者是本类 {@code placeTreePass}，先例 {@code RuinedMachinePlacer.spanReadyAt}）。
      */
+    /** Pure replay of the first tree draw, shared by generation and unloaded encounter guidance. */
+    public static int islandTreeHeightAt(long worldSeed, int ax, int az) {
+        final Random heightRand = new Random(
+            GTSRWorldgenHash.chunkSeed(worldSeed, ax >> 4, az >> 4) ^ SALT_ISLAND_TREE);
+        return IslandMegaTree.TRUNK_HEIGHT_MIN + heightRand.nextInt(IslandMegaTree.TRUNK_HEIGHT_SPAN);
+    }
+
     public static void placeIslandTreePass(World world, long worldSeed, int chunkX, int chunkZ, BlockSink sink) {
         if (sink == null) {
             return;
@@ -846,10 +853,7 @@ public final class ProsperityDecorPlacer {
             final Random treeRand = new Random(
                 GTSRWorldgenHash.chunkSeed(worldSeed, ax >> 4, az >> 4) ^ SALT_ISLAND_TREE);
             if (IslandMegaTree.placeInto(world, slice, treeRand, ax, az, y0)) {
-                final Random heightRand = new Random(
-                    GTSRWorldgenHash.chunkSeed(worldSeed, ax >> 4, az >> 4) ^ SALT_ISLAND_TREE);
-                final int trunkHeight = IslandMegaTree.TRUNK_HEIGHT_MIN
-                    + heightRand.nextInt(IslandMegaTree.TRUNK_HEIGHT_SPAN);
+                final int trunkHeight = islandTreeHeightAt(worldSeed, ax, az);
                 com.miaokatze.gtsr.common.dimension.prosperity.encounter.ForgottenLakeEncounterStructure
                     .initializeChunk(world, ax, az, y0, trunkHeight, chunkX, chunkZ);
             }
