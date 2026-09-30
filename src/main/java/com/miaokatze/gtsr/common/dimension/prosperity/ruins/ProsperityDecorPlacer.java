@@ -845,7 +845,14 @@ public final class ProsperityDecorPlacer {
             }
             final Random treeRand = new Random(
                 GTSRWorldgenHash.chunkSeed(worldSeed, ax >> 4, az >> 4) ^ SALT_ISLAND_TREE);
-            IslandMegaTree.placeInto(world, slice, treeRand, ax, az, y0);
+            if (IslandMegaTree.placeInto(world, slice, treeRand, ax, az, y0)) {
+                final Random heightRand = new Random(
+                    GTSRWorldgenHash.chunkSeed(worldSeed, ax >> 4, az >> 4) ^ SALT_ISLAND_TREE);
+                final int trunkHeight = IslandMegaTree.TRUNK_HEIGHT_MIN
+                    + heightRand.nextInt(IslandMegaTree.TRUNK_HEIGHT_SPAN);
+                com.miaokatze.gtsr.common.dimension.prosperity.encounter.ForgottenLakeEncounterStructure
+                    .initializeChunk(world, ax, az, y0, trunkHeight, chunkX, chunkZ);
+            }
         }
     }
 

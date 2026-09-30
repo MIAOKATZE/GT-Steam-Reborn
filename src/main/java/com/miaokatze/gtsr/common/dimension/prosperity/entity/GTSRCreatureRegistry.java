@@ -109,15 +109,12 @@ public final class GTSRCreatureRegistry {
      * preInit 注册入口（{@code CommonProxy.preInit} 的<b>新增</b>调用；必须在群系挂接之前，
      * 这样 {@code GTSRBiomeBase} 第一次被读列表时策略已在位）。
      * <p>
-     * 总开关 {@link Config#prosperityCreaturesEnabled} 关闭时整段跳过 ⇒ 既不注册实体、
-     * 也不安装填充策略 ⇒ 四张列表停在构造清空态，与 P8 基线逐位一致（判据 2 的回退档）。
+     * 旧三实体保留注册以读取已有存档，但本轮不再声明自然刷怪条目。
+     * 空填充策略仍安装，让既有声明真值过滤继续拦截第三方注入的候选。
      */
     public static synchronized void preInit() {
-        if (!Config.prosperityCreaturesEnabled) {
-            GTSteamReborn.LOG.info(
-                "[GTSR] creatures skipped: prosperityCreaturesEnabled=false (spawn lists stay cleared, P8 baseline)");
-            return;
-        }
+        if (fmlRegistered) return;
+        planRegistrations();
         final int trackingRange = Config.prosperityCreatureTrackingRange;
         final Object mod = resolveModInstance();
         if (mod == null) {
@@ -185,21 +182,8 @@ public final class GTSRCreatureRegistry {
 
         @Override
         public void fill(GTSRBiomeBase biome, BiomeId key) {
-            if (!Config.prosperityCreaturesEnabled) {
-                return;
-            }
-            for (final Species species : Species.values()) {
-                final int weight = GTSRCreatureRoster.effectiveWeight(species, key);
-                if (weight <= 0) {
-                    continue;
-                }
-                biome.addCreatureSpawn(
-                    species.creatureType(),
-                    species.entityClass(),
-                    weight,
-                    species.minGroup(),
-                    species.maxGroup());
-            }
+            // P34: retired creatures retain registration for old-save compatibility, no natural spawns.
+
         }
 
         @Override

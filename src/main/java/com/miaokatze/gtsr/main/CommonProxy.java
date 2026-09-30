@@ -114,11 +114,12 @@ public class CommonProxy {
         // ═══ P9 / L7 生物层注册（plan §5 P9；本片在此段只<b>新增</b>调用，不改任何既有顺序）═══
         // 必须在下面的群系挂接之前：GTSRBiomeBase 的填充是"第一次读 spawn 列表时"惰性发生的，
         // 但策略注入要在那之前就位，否则空跑的注册链会让群系带着清空态被后续读取（详见基类注释）。
-        // 关掉 Config.prosperityCreaturesEnabled 即整段跳过 ⇒ 与 P8 基线逐位一致。
+        // 旧实体注册保留以读取存档，自然名册已退役；结构 encounter 实体独立注册。
         // 渲染器只在 client 分支加载（专用服不触碰 net.minecraft.client.*；本仓 common 侧跨侧
         // 引用已有先例 MTECrustMatterAggregator:1743 的 GTMod.clientProxy()）。
         try {
             GTSRCreatureRegistry.preInit();
+            com.miaokatze.gtsr.common.dimension.prosperity.encounter.ForgottenLakeEncounterRegistry.preInit();
             if (FMLCommonHandler.instance()
                 .getSide()
                 .isClient()) {

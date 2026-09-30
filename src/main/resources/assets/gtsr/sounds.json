@@ -1,0 +1,11 @@
+{
+  "silent_king.battle": {
+    "category": "music",
+    "sounds": [
+      {
+        "name": "gtsr:music/silent_king",
+        "stream": true
+      }
+    ]
+  }
+}

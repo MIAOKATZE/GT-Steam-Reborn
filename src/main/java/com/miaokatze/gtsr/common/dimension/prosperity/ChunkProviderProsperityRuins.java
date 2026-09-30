@@ -118,8 +118,8 @@ public class ChunkProviderProsperityRuins extends GTSRChunkProviderBase {
             ChunkProviderProsperityRuins::baseBlockOf,
             false,
             false,
-            // 湖域在生成期已拥有湖群系：top按湿砾/干砂/坡岩裁定，filler保留湖自己的废岩。
-            // 湖域外仍委托S1混合带，再沿湖岸羽化，见LakeWetBandTopSelector契约段。
+            // 水核与中心岛保留湖料；岸带按湿砾/干砂/坡岩渐混原始四族皮。
+            // filler在水核外同样恢复周边料，见LakeWetBandTopSelector。
             // SurfaceSpecUnreachableCheck 的"分配点恰 1 处"计数不受影响（仍是本行一处 new）。
             new LakeWetBandTopSelector());
     }
@@ -348,27 +348,8 @@ public class ChunkProviderProsperityRuins extends GTSRChunkProviderBase {
         private static final long S_WETB_JITTER = 0x57455442L;
         /** 羽化噪声波长（方块）：{@code 13 % 16 = 13}（H-1），与 S1 BORDER 同数值但独立盐域。 */
         private static final double WETB_JITTER_SCALE = 13.0D;
-        /**
-         * 门①外檐的"一格"湖压当量（<b>P32 T1-4 重标，公式钉死</b>）：{@code unit := |∇P| 名义值
-         * = 1/D_eff}，D_eff = 0.89×LAKE_INTERVAL = <b>2670</b>（P32 湖基场重构站格与 warp 揉动层
-         * 不变 ⇒ D_eff 口径保持）⇒ 本值 = <b>1/2670 ≈ 0.000375</b>。换算统一线性式
-         * {@code 格数 = ΔP×dN/|∇s|}（名义 ΔP×2670，|∇s| 参考腿=1，P32 全仓统一口径）；逐湖 dN
-         * 散布与 |∇s| 各向异性 = e 的格当量容差（沿用「warp 处 ±数格出入」披露口径，实际覆盖率
-         * 以探针复测为准）。
-         * <p>
-         * <b>旧式历史保留</b>（P23-P28 圆场口径，随 P32 场换废弃，原文不删）：v1.20.41 取
-         * {@code 0.0015}，标定式「带压宽 {@code SHORE−WATER}（P23 R1 批2 S2 起 = 0.26−0.23 =
-         * 0.03，放湖档）÷ 环带宽 ≈22 格 ≈ 0.00136，取 {@code 0.0015}（压力梯度按环带均摊，
-         * 湖形 warp 处会有 ±数格出入，但外檐总深 ≤5 格当量 ⇒ 对判定形状不敏感；实际覆盖率以
-         * 探针复测为准；v1.20.45 档 0.02/14 格的旧算式见版本树）」三处失准——旧阈 W/S
-         * （0.26/0.23；现行 LAKE_WATER_LEVEL=0.081/LAKE_SHORE=0.131 ⇒ 带压宽实为 0.05、每格
-         * ≈0.00227）、旧带宽 22 格（实 ≈113 格环）、P28 后常量随动未复标（0.0015 ⇒ 檐压力
-         * 0.015 按实测梯度 ≈34 格而非意图 10 格，从未复测）。重标后檐 = 诚实 10 格
-         * （{@link #WETB_HALO_MAX} 与 h 帽的单源语义恢复自洽），陆侧 10→40 格由羽化档
-         * {@link #WETB_FEATHER_MAX} 接管（E-B §4「总外伸不变、梯度形状修正」：34→40 的 +6 格
-         * 来自新场名义带宽 113→133）。
-         */
-        private static final double WETB_HALO_UNIT = 0.000375D;
+        /** 每格岸外压力差；直接复用湖外实际距离标尺，避免材质檐再按远站距放大。 */
+        private static final double WETB_HALO_UNIT = 1.0D / GTSRVoronoiRiverField.LAKE_SHORE_DISTANCE_SCALE;
         /**
          * 外檐五档铺砾阈值（{@code valueNoise} ∈ [-1,1)，{@code >= 阈值} 即铺）。分位基准取自
          * {@code plan/tmp/p22-a2b/calib}（scale=13、同 seed 网格：-0.80≈0.97 / -0.74≈0.96 /
@@ -444,10 +425,14 @@ public class ChunkProviderProsperityRuins extends GTSRChunkProviderBase {
                     .forChunk(GTSRBiomeAuthority.DIM_KEY_PROSPERITY, seed, this.boundBaseX, this.boundBaseZ);
             }
             final boolean lakeColumn = identityOf(biome) == BiomeId.SANZU_RIVER;
-            // 湖身份已在生成期落到整列，不能再由四群系边带把湖床改回周边群系皮。
-            // 湖域外仍消费原细层群系与 S1 混合料，陆侧羽化空档继续透传邻料。
-            final Block base = lakeColumn || this.blended == null ? biome.topBlock
-                : this.blended.topAt(seed, x, z, biome);
+            // 真实水核（含中心岛）直取湖料；岸带身份不能覆盖掉羽化空档的周边原料。
+            final boolean lakeCore = lakeColumn && GTSRVoronoiRiverField.lakeWaterAt(seed, x, z);
+            if (lakeCore && ProsperityTerrainProfile.heightAt(seed, x, z) <= ProsperityTerrainProfile.SEA_LEVEL) {
+                return biome.topBlock;
+            }
+            final BiomeGenBase landBiome = lakeCore ? biome : surroundingLandBiome(seed, x, z, biome);
+            final Block base = lakeCore || this.blended == null ? landBiome.topBlock
+                : this.blended.topAt(seed, x, z, landBiome);
             final Block gravel = BlocksGTSR.prosperityRiverGravel;
             if (!lakeColumn && base == gravel) {
                 return base; // 已是湿料，省一次湖场求值
@@ -486,9 +471,9 @@ public class ChunkProviderProsperityRuins extends GTSRChunkProviderBase {
         }
 
         /**
-         * 湖列直取湖群系 filler，避免湖床下方仍透传周边四群系下垫。湖域外保持 S1 混合带
+         * 水核列直取湖群系 filler，避免湖床下方透传周边四群系下垫。岸外恢复陆料并保持 S1 混合带
          * （与 top 同一档裁定、同一 meta 等值门，见 {@code GTSRSurfaceBorderBand#fillerAt}），
-         * 因而陆侧羽化空档仍延续原细层群系填充。
+         * 因而陆侧羽化空档延续原始四族群系填充。
          * <p>
          * <b>不重复绑定</b>（刻意不调 forChunk 第二条路）：内核同列循环先写 top 后写 filler、
          * spec 每 chunk 新建 ⇒ 本方法被调时 topAt 已完成绑定；若未触发过（理论不可达）则
@@ -497,10 +482,21 @@ public class ChunkProviderProsperityRuins extends GTSRChunkProviderBase {
          */
         @Override
         public Block fillerAt(long seed, int x, int z, BiomeGenBase biome) {
-            if (identityOf(biome) == BiomeId.SANZU_RIVER) {
+            if (identityOf(biome) == BiomeId.SANZU_RIVER && GTSRVoronoiRiverField.lakeWaterAt(seed, x, z)) {
                 return biome.fillerBlock;
             }
-            return this.blended == null ? biome.fillerBlock : this.blended.fillerAt(seed, x, z, biome);
+            final BiomeGenBase landBiome = surroundingLandBiome(seed, x, z, biome);
+            return this.blended == null ? landBiome.fillerBlock : this.blended.fillerAt(seed, x, z, landBiome);
+        }
+
+        /** 从尚未叠加湖身份的原始粗层名册取邻料，并继续使用 S1 混合面。 */
+        private BiomeGenBase surroundingLandBiome(long seed, int x, int z, BiomeGenBase biome) {
+            if (identityOf(biome) != BiomeId.SANZU_RIVER || !(this.blended instanceof GTSRSurfaceBorderBand)) {
+                return biome;
+            }
+            final BiomeGenBase land = ((GTSRSurfaceBorderBand) this.blended)
+                .biomeAtTier(ProsperityTerrainProfile.chainRosterIndexAt(seed, x >> 2, z >> 2));
+            return land == null ? biome : land;
         }
 
         /**
@@ -661,7 +657,7 @@ public class ChunkProviderProsperityRuins extends GTSRChunkProviderBase {
          * 返回 {@code null} = 不在域内 / 梯未命中 ⇒ 调用方回退 base。
          * <ul>
          * <li><b>域</b>：压力域 {@code lake ∈ [LAKE_SHORE, LAKE_SHORE+δ)}、δ =
-         * 40×{@link #WETB_HALO_UNIT} = 0.015（⇔ e = (lake−SHORE)/unit ∈ (10,40]）——与三档
+         * 40×{@link #WETB_HALO_UNIT} = 0.05（⇔ e = (lake−SHORE)/unit ∈ (10,40]）——与三档
          * 核心域 {@code lake<SHORE} <b>结构性不相交</b> ⇒ 0/17892 三守卫不动、核心域穿透 0
          * 由构造保持；e≤10 列归三档檐既有概率面（本档不裁 ⇒ 檐空档列保持 base，行为不动）；
          * e&gt;40 整档排除（不向远处外扩）。</li>
@@ -717,13 +713,8 @@ public class ChunkProviderProsperityRuins extends GTSRChunkProviderBase {
     }
 
     /**
-     * <b>巨湖水面回填</b>（populate 后置，水面口径 68 与河流回填同一条）：<b>P23 R1（v1.20.46
-     * 批2 S2）全域站格化</b>——<b>P27-L（v1.20.50）置水门换 {@code sanzuShoreWaterAt} 单一出口
-     * （{@code lakeAt < sanzuBiomeShoreAt}，4a 灌水对齐：灌水域 = 群系压力域，补上抖动滩缘
-     * [SHORE, shoreAt) 内 h&lt;SEA 的干坑——"平面内干坑"缺口</b>；带外恒 {@code false} ⇒ 零成本
-     * 短路）且列地表 {@code h1 < SEA_LEVEL} 的列，从地表向上置水至 y=67。地形压低（渐深湖床）
-     * 已由 {@link ProsperityTerrainProfile#heightAt} 完成（本方法只回填，不切地形）；与河流回填的
-     * 重叠列两次写同值水，幂等。同样不消费 populate 的 {@code Random}（纯函数判定）。
+     * 巨湖回填只在真实湖核内，从地表 h+1 至 SEA_LEVEL−1 写水。
+     * 岸带认领与水域分离，外岸低洼不因群系身份新增独立水；地形床深由 heightAt 控制。
      * <p>
      * v1.20.40（P19 §D/§I）：湖水区已随 heightCore 渐深（湖心最深 {@code LAKE_CENTER_DEPTH}
      * 格）+ 湖形 domain-warp 破圆；水体 = {@link GTSRRiverPlacer#waterMaterial()}（深渊执念，
@@ -754,10 +745,7 @@ public class ChunkProviderProsperityRuins extends GTSRChunkProviderBase {
             for (int lx = 0; lx < 16; lx++) {
                 final int x = (chunkX << 4) + lx;
                 final int z = (chunkZ << 4) + lz;
-                // P27-L（D1·4a 灌水对齐，v1.20.50）：置水门压力阈换 sanzuShoreWaterAt 单一出口
-                // （lakeAt < sanzuBiomeShoreAt）——灌水域对齐群系压力域，补上抖动滩缘
-                // [SHORE, shoreAt) 内 h<SEA 的干坑；h < SEA_LEVEL 置水腿逐字不动（湖心列行为
-                // 逐位不变：[WATER, SHORE) ⊂ [WATER, shoreAt) ⇒ 原域是新城的子集）。
+                // 压力水核与床生成同判；滩带低洼不置水。
                 if (!GTSRVoronoiRiverField.sanzuShoreWaterAt(worldSeed, x, z)) {
                     continue;
                 }

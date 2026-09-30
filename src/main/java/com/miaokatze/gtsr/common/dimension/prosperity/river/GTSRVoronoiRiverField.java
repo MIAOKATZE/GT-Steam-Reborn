@@ -1066,31 +1066,12 @@ public final class GTSRVoronoiRiverField {
     public static final int LAKE_PILLAR_TOP_Y = ProsperityTerrainProfile.SEA_LEVEL + (int) LAKE_ISLAND_LIFT - 1;
 
     /**
-     * 湖滨带<b>外缘</b>（RTG lakeShoreLevel 同位参数）：[WATER, SHORE) 为床→原地形渐变带。
-     * P23 R1（v1.20.46 批2 S2）0.15 → 0.26：随 {@link #LAKE_WATER_LEVEL} 0.23 取 ΔP=0.03。
-     * <b>换算式（javadoc 钉）</b>：带格宽 ≈ ΔP × D/((1+W)(1+S))，D_eff≈1070 ⇒ ≈0.03×1070/1.47
-     * ≈ <b>22 格</b>（v1.20.45 为 ΔP=0.02×≈708 ≈14 格；放湖后带格宽按比例放大，4 级台阶踏面
-     * ≈5 格，多级缓坡语义不变）。sanzu 群系滩带外边在 {@link #sanzuBiomeShoreAt}（本值之上
-     * 再叠噪声 0~+17 格 ⇒ 滩带总宽 ≈22~39 格 ∈ 目标带 10~40），与本带的口径解耦见该处。
-     * <p>
-     * <b>P25（D1 概率减半）：0.26 → 0.091</b>——同一反解式按新档重导：ΔP = 0.091−0.081 =
-     * 0.010，<b>滩带总宽 ≈ ΔP×D_eff/((1+W')(1+S')) = 0.010×2670/(1.081×1.091) ≈ 22.6 ≈
-     * 22 格</b>（带格宽不动——台阶踏面语义保持；P23 的 0.03×1070 档算式见上文，历史保留）。
-     * <p>
-     * <b>P28-L（v1.20.51 D1·滩宽×5）：0.091 → 0.131</b>——用户①"河滩宽幅增至当前 5 倍"：
-     * ΔP = 0.131−0.081 = 0.050，<b>滩带总宽 ≈ 0.050×2670/(1.081×1.091) ≈ 113.2 ≈ 113 格</b>
-     * （设计滩环 22→113 ≈ ×5；噪声腿同比 ×5 见 {@link #SANZU_BIOME_SHORE_JITTER} ⇒ 滩带总宽
-     * ≈113~198 格）。台阶踏面随带宽同比放大（4 级 × ≈28 格/级，"层叠滩地"读感由 L3 缩样复核
-     * TREADS 档位，本批不动）。滩缘漏水根修（抖动滩缘贴水线钳制）在 PTP heightCore 末段。
-     * <p>
-     * <b>P32（批3 T1-4 换算统一，v1.20.55）</b>：统一线性式（见 {@link #LAKE_WATER_LEVEL} 的
-     * P32 段）下 <b>ΔP = 0.050 ⇒ 滩带（[W,S) 踏面带）名义宽 0.050×2670 ≈ <b>133.5 格</b></b>
-     * （探针实测均值 113.6 格 = dN 实测中位下修容差所致，temp/p32-q2/sweep2.out FIXED 腿）；
-     * 上文 {@code ΔP×D/((1+W)(1+S))} 割线式与 P28-L 的 113 格读数是 P23-P28 圆场口径，随场换
-     * 废弃（历史保留）。滩带物理宽 = 等压线间距 {@code ΔP×dN/|∇s|}，|∇s| 逐方向变化 ⇒ 踏面宽
-     * 随岸段结构性变化（D3 方案 A，SLMC CVW 判据面）；群系平面总宽另叠加外缘两腿（见
-     * {@link #SANZU_BIOME_SHORE_WIDTH_DELTA}）。
+     * 湖外压力按形状带符号距离归一到固定方块标尺，水核保持原始场。
+     * 避免旧 s/dN 在远站附近把同一压力带放大成上百格侵略性河滩。
      */
+    public static final double LAKE_SHORE_DISTANCE_SCALE = 800.0D;
+
+    /** 40 格设计岸坡外缘；[WATER, SHORE) 平滑接回原地形。 */
     public static final double LAKE_SHORE = 0.131D;
 
     /**
@@ -1836,12 +1817,17 @@ public final class GTSRVoronoiRiverField {
         // P25 D3③ + P26-B3 D1·A1：压力加性轮廓噪声双倍频（λ220 低频腿 + λ70 高频腿，独立盐域；
         // 总幅 0.0037 ≈ ±8.3 格湖缘径向微摆，换算式见 LAKE_PRESSURE_NOISE_AMP）。
         // D_MIN 淘汰哨兵路径在上方已 return ⇒ NO_LAKE 域零形状求值/零噪声（对拍口径保持）。
-        return base + LAKE_PRESSURE_NOISE_AMP * GTSRWorldgenHash
+        final double pressure = base + LAKE_PRESSURE_NOISE_AMP * GTSRWorldgenHash
             .valueNoise(worldSeed ^ SALT_LAKE_PRESSURE, x / LAKE_PRESSURE_NOISE_SCALE, z / LAKE_PRESSURE_NOISE_SCALE)
             + LAKE_PRESSURE_NOISE_AMP2 * GTSRWorldgenHash.valueNoise(
                 worldSeed ^ SALT_LAKE_PRESSURE2,
                 x / LAKE_PRESSURE_NOISE_SCALE2,
                 z / LAKE_PRESSURE_NOISE_SCALE2);
+        // 水核/湖床/中心岛保持原压力逐位不动。外侧使用同次选站的实际几何距离：
+        // 原式 P=W+s/dN，故 (P-W)*dN 即带微噪的形状距离；不再让站间距放大岸宽。
+        // 固定标尺令 0.05 压力带 = 40 格、两条岸缘噪声各至多 8 格（warp 空间）。
+        return pressure < LAKE_WATER_LEVEL ? pressure
+            : Math.min(NO_LAKE, LAKE_WATER_LEVEL + (pressure - LAKE_WATER_LEVEL) * dd[1] / LAKE_SHORE_DISTANCE_SCALE);
     }
 
     /**
@@ -1857,18 +1843,9 @@ public final class GTSRVoronoiRiverField {
         return lakeAt(worldSeed, x, z) < LAKE_WATER_LEVEL;
     }
 
-    /**
-     * <b>sanzu 群系压力域布尔出口</b>（P27-L D1·4a 新增，{@code lakeWaterAt} 先例同款）：
-     * {@code lakeAt < sanzuBiomeShoreAt} 的逐字包装——湖+滩+抖动滩缘的<b>群系平面压力域</b>。
-     * 消费面：{@code ChunkProviderProsperityRuins.fillSanzuLakes} 的置水门（4a 灌水对齐：灌水域
-     * 对齐群系压力域，补上抖动滩缘 [SHORE, shoreAt) 内 h&lt;SEA 的干坑，水域 ⊆ 平面压力域）。
-     * <p>
-     * ⚠ 与 {@link #lakeWaterAt}（腿②：{@code lakeAt < LAKE_WATER_LEVEL}，PlacementGate 消费，
-     * <b>逐字不动</b>——改它会动结构禁入域）<b>不同阈不并收</b>：本出口只服务「灌水对齐」，岸/水
-     * 两口径语义差异不得强行统一（O1a 纪律同款）。
-     */
+    /** 湖水回填仅属于真实水核；认领滩岸不意味着允许低洼列被独立灌水。 */
     public static boolean sanzuShoreWaterAt(long worldSeed, int x, int z) {
-        return lakeAt(worldSeed, x, z) < sanzuBiomeShoreAt(worldSeed, x, z);
+        return lakeWaterAt(worldSeed, x, z);
     }
 
     /**
@@ -3083,33 +3060,8 @@ public final class GTSRVoronoiRiverField {
      */
     public static final double SANZU_BIOME_SHORE_NOISE_SCALE = 260.0D;
 
-    /**
-     * sanzu 滩带噪声调制幅度（压力域，P23 R1 新增）。<b>换算式（javadoc 钉）</b>：滩带外缘阈值
-     * {@code sanzuBiomeShoreAt = LAKE_SHORE + n01×本值}，噪声腿格宽 ≈ 本值 ×
-     * D_eff/((1+{@link #LAKE_WATER_LEVEL})(1+{@link #LAKE_SHORE}))（P23 档：0.03×1070/1.55 ≈
-     * <b>0~17 格</b>，叠加湖滨带 ≈22 格 ⇒ 滩带总宽 ≈22~39 格）。n01 ∈ [0,1) ⇒ 阈值 ≥
-     * {@link #LAKE_SHORE} &gt; {@link #LAKE_WATER_LEVEL} ⇒ <b>恒覆盖置水区</b>（凡
-     * {@code lakeAt < LAKE_SHORE ∧ h < 68} 的置水列（fillSanzuLakes 口径）必在本谓词域内——
-     * E"湖滨灌水由滩带认领自解"的几何前提）。
-     * <p>
-     * <b>P25（D1⑤/D2①）：0.03 → 0.0075</b>——按"噪声腿格宽 0~17 格"反解（目标带不动）：
-     * <b>本值 = 17 ÷ (D_eff/((1+W')(1+S'))) = 17×(1.081×1.091)/2670 ≈ 0.00751，取 0.0075</b>
-     * ⇒ 噪声腿格宽 ≈ 0.0075×2670/1.1794 ≈ 0~17.0 格、滩带总宽 ≈ 22~39 格逐点起伏
-     * （目标带 10~40 内；S2 实测钉）。
-     * <p>
-     * <b>P28-L（v1.20.51 D1·滩宽×5 随动）：0.0075 → 0.0375</b>——设计滩环 22→113 格
-     * （{@link #LAKE_SHORE} 0.131）后噪声腿同比 ×5：0.0375×2670/1.1794 ≈ <b>0~85 格</b> ⇒
-     * 滩带总宽 ≈ <b>113~198 格</b>（抖动/环比例保持 P25 口径 17/22 ≈ 0.77）。单边调制语义
-     * 不动（恒覆盖置水区前提原样）；"恒覆盖"面随滩宽放大 ⇒ 灌水门认领域同比放大（设计内）。
-     * <p>
-     * <b>P32（批3 T1-4 换算统一 + D3 两段制，v1.20.55）</b>：① 换算口径统一为线性式
-     * {@code 格数 = ΔP×dN/|∇s|}（名义 ΔP×D_eff = ΔP×2670，见 {@link #LAKE_WATER_LEVEL} 的
-     * P32 段）——本值 {@code 0.0375×2670 ≈ 0~100 格}（旧 {@code D_eff/((1+W')(1+S'))} 割线式
-     * 随 P23-P28 圆场退役，历史段落原文保留）；② 本值此后 = <b>高频缘抖动腿</b>（λ260，
-     * "外缘在湖岸尺度上缓变、不成锯齿"），滩带<b>岸段带宽</b>的低频调制由新独立腿
-     * {@link #SANZU_BIOME_SHORE_WIDTH_DELTA}（λ700）承担——两段分工见该处。
-     */
-    public static final double SANZU_BIOME_SHORE_JITTER = 0.0375D;
+    /** 单边岸缘抖动：外侧固定标尺下为 0–8 格，不再随次近站距放大。 */
+    public static final double SANZU_BIOME_SHORE_JITTER = 0.01D;
 
     /**
      * sanzu 滩带噪声盐（P23 R1 新增）：取本类盐段尾 {@code …114L}（{@code …113L} 已被
@@ -3117,40 +3069,12 @@ public final class GTSRVoronoiRiverField {
      */
     public static final long SALT_SANZU_BIOME_SHORE = 0x5249F114L;
 
-    /**
-     * sanzu 滩带<b>岸段带宽低频调制幅度</b>（压力域，P32 批3 T1-4 D3 新增）：
-     * {@link #sanzuBiomeShoreAt} 的第二非负项 {@code 本值×(0.5+0.5×n01_low)}，n01_low =
-     * 独立低频 valueNoise 的 [0,1) 归一 ⇒ 项域 <b>[0.5×本值, 本值)</b>——<b>构造性非负</b>
-     * ⇒ 阈值恒 ≥ {@link #LAKE_SHORE}，"shore 只外扩"单边不变式保持（三先例纪律：只外扩
-     * 禁对称——本式先例 {@link #SANZU_BIOME_SHORE_JITTER}、岛阈抖乘 ≥1 因子
-     * {@link #LAKE_ISLAND_GATE_JITTER}、河岸环内缘冻结 {@code inBankBand}；p31-r2 §6.2）。
-     * <p>
-     * <b>两段语义分工（D3 原义"滩带宽度随低频噪声变化"）</b>：高频腿（λ260 ×
-     * {@link #SANZU_BIOME_SHORE_JITTER}）= <b>外缘抖动</b>——缘带逐段起伏不成锯齿；本低频腿
-     * （λ700 × 本值）= <b>岸段带宽调制</b>——同一湖不同岸段的滩带总宽在数十格尺度上分宽窄
-     * （换算名义口径 ×2670：本值域 [0.0125, 0.025) ⇒ <b>+33~67 格</b>；探针实测均值 +42 格，
-     * temp/p32-q2/sweep2.out）。E-B 失败梯执行：S1b 结构性岸段化（方案 A）CVW 中位 0.114
-     * &lt; 0.15 ⇒ 启用备选 B（plan/p32-plan.md 批3 Q2，主代理裁决）。
-     * <p>
-     * <b>灌水门对齐</b>：{@link #sanzuShoreWaterAt}（= {@code lakeAt < sanzuBiomeShoreAt}，
-     * fillSanzuLakes 单一出口）认领域随宽滩段同比外扩——"凡 {@code lakeAt < LAKE_SHORE ∧
-     * h < 68} 的置水列必在平面域内"恒覆盖链只放宽不收紧，语义一致（设计内）。
-     * <p>
-     * <b>固定阈消费面披露（两口径不并收纪律，本类 sanzuShoreWaterAt/lakeWaterAt 注的
-     * 「不同阈不并收」先例族，O1a）</b>：PTP 快速臂阈
-     * {@code SHORE+JITTER+Δ}=0.2685、微池第四肢 {@code SHORE+JITTER}=0.1685、TV
-     * {@code lakePlaneTerrainAllowedAt} 门 0 域上确界 0.1685 等字面常量和消费点<b>保持固定阈
-     * 语义</b>——平面压力域新上确界 {@code SHORE+JITTER+本值} = 0.1935 &gt; 0.1685 ⇒
-     * (0.1685, 0.1935) 宽滩段列上这些门不再为 0（快速臂 0.2685 仍在平面外 ✓、NO_LAKE=1.0
-     * ≫ 0.1935 ✓）；重钉归批3 Q3/批5（P25-2 面积占比、P25-3 噪声腿带随平面加宽出带）。
-     * <p>
-     * <b>终值依据（δW/λ 扫档，temp/p32-q2/sweep2.out）</b>：δW ∈ {0.015, 0.025, 0.035} ×
-     * λ ∈ [500,900] 五档，SLMC 同口径 32 射线全带 [W, shoreAt) CVW（湖发现逐式镜像
-     * SLMC：±12000 窗/步距 93/≥7 样本/每 seed 40 座）——0.025/700 档 <b>中位 0.155 ≥ 0.15
-     * ∧ p10 0.100 ≥ 0.08 ∧ max/中位 2.220 ≤ 2.5</b>（对照 S1b 固定阈基线 0.114/0.066/2.396；
-     * 低频纯贡献腿中位 0.123）。校准域：δW {0.015, 0.035} 两邻档、λ {500, 900} 带内。
-     */
-    public static final double SANZU_BIOME_SHORE_WIDTH_DELTA = 0.025D;
+    /** 低频宽段变化：外侧固定标尺下为 4–8 格，与高频腿合计至多16格。 */
+    public static final double SANZU_BIOME_SHORE_WIDTH_DELTA = 0.01D;
+
+    /** 全消费面的岸域上界，含两段宽度噪声；不可遗漏低频 width 腿。 */
+    public static final double SANZU_BIOME_SHORE_MAX = LAKE_SHORE + SANZU_BIOME_SHORE_JITTER
+        + SANZU_BIOME_SHORE_WIDTH_DELTA;
 
     /**
      * sanzu 滩带岸段带宽低频调制<b>波长</b>（格，P32 批3 T1-4 D3 新增）：λ = 700——岸段尺度
@@ -3170,19 +3094,7 @@ public final class GTSRVoronoiRiverField {
      */
     public static final long SALT_SANZU_BIOME_SHORE_WIDTH = 0x5249F120L;
 
-    /**
-     * sanzu 群系滩带外缘阈值（P23 R1 新增；<b>P27-L（v1.20.50）private → public</b>——单一真值
-     * 直通消费面：PTP 振幅带（heightCore 湖段）与 {@link #sanzuShoreWaterAt}（灌水单一出口）+
-     * C 片客户端水色梯度（{@code BlockAbyssalFluid} 场缓存只准复算 {@code lakeAt}+本式，禁复算
-     * isSanzuColumn 全谓词），不加包装函数第二份）：
-     * <b>两段制（P32 批3 T1-4 D3 起）</b>——{@link #LAKE_SHORE} + n01×
-     * {@link #SANZU_BIOME_SHORE_JITTER}（高频缘抖动腿，λ260）+ {@code (0.5+0.5×n01_low)×}
-     * {@link #SANZU_BIOME_SHORE_WIDTH_DELTA}（低频岸段带宽腿，λ700，独立盐
-     * {@link #SALT_SANZU_BIOME_SHORE_WIDTH}；两段语义与换算见该常量注）。单边调制（阈值只往
-     * 岸外扩，两腿皆构造性非负 ⇒ 阈值恒 ≥ {@link #LAKE_SHORE}）：对称 ± 式会在噪声低瓣把阈值
-     * 压回 {@link #LAKE_SHORE} 之下、破坏"恒覆盖置水区"，<b>两腿皆禁止改对称</b>（三先例纪律，
-     * 见 {@link #SANZU_BIOME_SHORE_WIDTH_DELTA} 注）。
-     */
+    /** 岸域认领阈值：40 格设计岸坡加两段非负宽度噪声，上界单源为 SANZU_BIOME_SHORE_MAX。 */
     public static double sanzuBiomeShoreAt(long worldSeed, int x, int z) {
         final double n = GTSRWorldgenHash.valueNoise(
             worldSeed ^ SALT_SANZU_BIOME_SHORE,

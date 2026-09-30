@@ -1,7 +1,7 @@
 package com.miaokatze.gtsr.common.dimension.framework;
 
 import java.util.ArrayList;
-import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -120,7 +120,10 @@ public abstract class GTSRBiomeBase extends BiomeGenBase {
      * 「本群系声明过什么」的判别依据（{@link #filterDeclaredSpawns}/{@link #retainDeclaredSpawns}）。
      * 框架仍不认识任何具体实体类（纯登记，零内容）。
      */
-    private final Map<EnumCreatureType, Set<Class<?>>> declaredSpawnClasses = new EnumMap<>(EnumCreatureType.class);
+    // Forge mods can append EnumCreatureType values after biome construction. EnumMap snapshots
+    // the original enum universe and then indexes past its array for those later values.
+    // This identity-keyed ledger must accept extended types without changing the spawn policy.
+    private final Map<EnumCreatureType, Set<Class<?>>> declaredSpawnClasses = new HashMap<>();
 
     /**
      * 刷怪列表读取（vanilla {@code SpawnerAnimals} / Forge {@code EntityRegistry.addSpawn} /

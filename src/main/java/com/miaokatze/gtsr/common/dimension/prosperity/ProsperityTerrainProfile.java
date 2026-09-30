@@ -519,23 +519,22 @@ public final class ProsperityTerrainProfile {
         final double ampBase;
         if (lake < GTSRVoronoiRiverField.LAKE_WATER_LEVEL) {
             ampBase = sanzuAmp; // waterCore 短路（2c：湖域列振幅档）
-        } else if (lake >= GTSRVoronoiRiverField.LAKE_SHORE + GTSRVoronoiRiverField.SANZU_BIOME_SHORE_JITTER
-            + GTSRVoronoiRiverField.LAKE_AMP_BELT_DELTA) {
-                ampBase = ampAt(worldSeed, x, z); // 带外快速臂：零额外噪声求值、逐位同改造前
+        } else if (lake >= GTSRVoronoiRiverField.SANZU_BIOME_SHORE_MAX + GTSRVoronoiRiverField.LAKE_AMP_BELT_DELTA) {
+            ampBase = ampAt(worldSeed, x, z); // 带外快速臂：零额外噪声求值、逐位同改造前
+        } else {
+            final double shoreAt = GTSRVoronoiRiverField.sanzuBiomeShoreAt(worldSeed, x, z);
+            if (lake <= shoreAt) {
+                ampBase = sanzuAmp;
             } else {
-                final double shoreAt = GTSRVoronoiRiverField.sanzuBiomeShoreAt(worldSeed, x, z);
-                if (lake <= shoreAt) {
-                    ampBase = sanzuAmp;
+                final double t = (lake - shoreAt) / GTSRVoronoiRiverField.LAKE_AMP_BELT_DELTA;
+                if (t >= 1.0D) {
+                    ampBase = ampAt(worldSeed, x, z); // 带外慢臂：逐位同改造前
                 } else {
-                    final double t = (lake - shoreAt) / GTSRVoronoiRiverField.LAKE_AMP_BELT_DELTA;
-                    if (t >= 1.0D) {
-                        ampBase = ampAt(worldSeed, x, z); // 带外慢臂：逐位同改造前
-                    } else {
-                        final double e = t * t * (3.0D - 2.0D * t);
-                        ampBase = sanzuAmp + (ampAt(worldSeed, x, z) - sanzuAmp) * e;
-                    }
+                    final double e = t * t * (3.0D - 2.0D * t);
+                    ampBase = sanzuAmp + (ampAt(worldSeed, x, z) - sanzuAmp) * e;
                 }
             }
+        }
         final double amplitude = (1.0D + 0.4D * zone) * ampBase;
         // 统一缓丘：主波长 180 ±12（×1.2）+ 次波长 56 ±5.4（×1.2）
         final double h1 = GTSRWorldgenHash.valueNoise(worldSeed, x / 180.0D, z / 180.0D);
@@ -639,7 +638,7 @@ public final class ProsperityTerrainProfile {
         // （~45 格带，接受——登记 plan/tmp/p29-c-readings.md）。
         if (poolPressure < GTSRVoronoiRiverField.SWAMP_POOL_WATER_LEVEL
             && TerrainVariants.swampInteriorAt(worldSeed, x, z)
-            && lake >= GTSRVoronoiRiverField.LAKE_SHORE + GTSRVoronoiRiverField.SANZU_BIOME_SHORE_JITTER) {
+            && lake >= GTSRVoronoiRiverField.SANZU_BIOME_SHORE_MAX) {
             final int pool = GTSRVoronoiRiverField.poolLevelAt(worldSeed, x, z, rosterIndex);
             final double bed = GTSRVoronoiRiverField.bedFromPool(worldSeed, x, z, rosterIndex, pool) - 1.0D;
             y = Math.min(y, (int) Math.round(bed));
@@ -679,24 +678,9 @@ public final class ProsperityTerrainProfile {
                 y = (int) Math.min(y, Math.round(lakeBed * (1.0D - q) + y * q));
             }
         }
-        // ═══ P28-L（v1.20.51 D1·用户①漏水根修）：抖动滩缘贴水线钳制 ═══
-        // 根因：fillSanzuLakes 灌水门 = sanzuShoreWaterAt(lakeAt < sanzuBiomeShoreAt) ∧
-        // h < SEA_LEVEL ⇒ 置水 [h+1, SEA−1]；抖动滩缘 [SHORE, shoreAt) 列不走上方湖段渐变，
-        // 振幅带 0.38 低瓣 h ≤ 66 时被灌 1-2 格薄水（P27 D1·4a 语义"补平面内干坑"的副作用），
-        // 且可落在群系平面 3×3 侵蚀檐外 → 滩缘出现异色漏水。根修 = 地形侧把该带列钳到
-        // ≥ SEA_LEVEL−1 ⇒ 灌水域 [h+1, SEA−1] 为空、干坑变贴水线实地；灌水门与 4a
-        // "水域 ⊆ 平面压力域"不变量原样（门侧零改动）。
-        // ═══ v1.20.53 P30 I2：钳制铺满整条设计滩环（遗忘之湖独立小水池根除）═══ 原首肢
-        // lake ≥ SHORE 把设计滩环 [WATER, SHORE) 列交给湖段 blend（旧排除理由"其贴水语义
-        // 已由湖段 blend 承载"），但 blend 是 min 语义只压不抬——环外侧踏面 q→1 时退化回
-        // 裸地形，负高程列（h ≤ 66）同样被灌水门置水 [h+1, 67] ⇒ 设计滩环上散布独立小水池。
-        // 扩域 = 首肢改 lake ≥ WATER_LEVEL：[WATER, +∞) 全域干段 y &lt; 67 ⇒ y = 67；湖本体
-        // （lake &lt; WATER_LEVEL，床 40-67）仍由首肢排除不受影响。被钳列 h = 67 ⇒ 灌水区间
-        // [h+1, SEA−1] = [68, 67] 恒空。求值序：单边调制 ⇒ shoreAt ∈ [SHORE, SHORE+JITTER)
-        // 恒成立 ⇒ lake ≥ SHORE+JITTER 的列在第二肢短路，缘外列零新噪声求值、逐位不变
-        // （digest 域外口径）。
-        if (lake >= GTSRVoronoiRiverField.LAKE_WATER_LEVEL
-            && lake < GTSRVoronoiRiverField.LAKE_SHORE + GTSRVoronoiRiverField.SANZU_BIOME_SHORE_JITTER
+        // 整段岸域使用含高/低频两条宽度腿的共同上界；保持岸面至少贴水线。
+        // 灌水已单独收口真实水核，此钳制只塑造连贯干岸，不再负责掩盖滩域泛水。
+        if (lake >= GTSRVoronoiRiverField.LAKE_WATER_LEVEL && lake < GTSRVoronoiRiverField.SANZU_BIOME_SHORE_MAX
             && lake < GTSRVoronoiRiverField.sanzuBiomeShoreAt(worldSeed, x, z)
             && y < SEA_LEVEL - 1) {
             y = SEA_LEVEL - 1;

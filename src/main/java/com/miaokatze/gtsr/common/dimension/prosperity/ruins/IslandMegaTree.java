@@ -26,9 +26,9 @@ import com.miaokatze.gtsr.common.dimension.prosperity.ProsperityTerrainProfile;
  * <li><b>抱岛鳍根</b>：9..11 片径向鳍墙，自干底外伸 16..23 格、鳍高 12..16 随距离线性归零，
  * 贴岛坡的基线自 y0 线性降至水线 {@code SEA_LEVEL}=68（鳍格最低 y ≥ 69，<b>不触水体</b>，
  * 干穿水的 p21 A3 口径不经根扩展）；楔形缺口留在鳍间；</li>
- * <li><b>分层相位表分叉顶冠（本档主体，取代旧三级枝+椭球壳两件）</b>：干顶 3 轮 12 条一级骨架枝
- * （相位 0.50/0.66/0.82 × 干高，5/4/3 分布），方位 = 全局哈希旋转 + 序号×{@link #GOLDEN_ANGLE}
- * （外轮 5 枝黄金角散布最大角隙 85° &lt; 90°——扇区覆盖的结构性保底）；臂长下轮 50..57（外张微垂：
+ * <li><b>分层相位表分叉顶冠（本档主体，取代旧三级枝+椭球壳两件）</b>：干顶 3 轮 21 条一级骨架枝
+ * （相位 0.50/0.66/0.82 × 干高，8/7/6 分布），方位 = 全局哈希旋转 + 序号×{@link #GOLDEN_ANGLE}
+ * （外轮 8 枝按黄金角散布，形成更密的扇区覆盖）；臂长下轮 50..57（外张微垂：
  * 抛物线弧升 +0.18→−0.10，承载外轮廓与垂帘锚）、中轮 38..42（+0.30→+0.02 平展）、上轮 30..36
  * （+0.40→+0.12 聚拢上扬）；<b>枝身 2 格粗</b>（沿臂每步水平圆盘 d²≤r²+r、r={@link #TIER1_LIMB_R}≈1.4），
  * 二级保持 1 格线；每枝 55..70% 处 2..3 叉（长 0.42×母臂，外扬 +0.45 / 内垂 −0.10 重力双角）；</li>
@@ -83,8 +83,8 @@ public final class IslandMegaTree {
     static final int TRUNK_HOLE_Y_MAX = 28;
     /** 一级枝轮相位表（相位 × 干高 = 着枝高度；0.50/0.66/0.82 三轮，P27 输入契约首选表）。 */
     static final double[] TIER1_PHASE = { 0.50D, 0.66D, 0.82D };
-    /** 每轮一级枝数（5/4/3 = 12 枝，9-12 带内；外轮 5 枝 = 黄金角散布最大角隙 85° &lt; 90° 的扇区覆盖档）。 */
-    static final int[] TIER1_PER_PHASE = { 5, 4, 3 };
+    /** 每轮一级枝数（8/7/6 = 21 枝；保留黄金角散布并加密各层枝叶）。 */
+    static final int[] TIER1_PER_PHASE = { 8, 7, 6 };
     /** 每轮臂长下限/跨度（下轮 50..57 外张承载外轮廓与垂帘锚；上轮 38..42 / 30..36 渐短聚拢）。 */
     static final int[] TIER1_ARM_MIN = { 50, 38, 30 };
     static final int[] TIER1_ARM_SPAN = { 8, 5, 7 };
@@ -195,6 +195,8 @@ public final class IslandMegaTree {
         tierBranches(builder, ax, az, y0, trunkH, notchSalt, log);
         trunk(builder, ax, az, y0, trunkH, log);
         snags(builder, ax, az, y0, trunkH, notchSalt, log);
+        com.miaokatze.gtsr.common.dimension.prosperity.encounter.ForgottenLakeEncounterStructure
+            .placeInto(world, builder, ax, az, y0, trunkH);
         return true;
     }
 

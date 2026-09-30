@@ -641,18 +641,8 @@ public final class TerrainVariants {
     // 下移 DROP 两乘子）、P28 S 片 ③B 族常量（潭心 blob 三层细分 CORE_GATE/DEEP_GATE、
     // 唇缘环 LIP/LIP_LO/LIP_SPAN、入流扇形 FAN_COS_LO/FAN_SPAN、梯度差分 GRAD_LAG、扇形求值域
     // DOMAIN_LO）随沼泽瀑布全套删除——深门式还原纯陡潭门式，delta 侧唇缘正项与谓词族同批退役。
-    /**
-     * <b>湖平面压力域缓入带宽</b>（0.02；v1.20.50 P28 引入时作瀑布潭湖岸避让门带宽，瀑布族随
-     * v1.20.53 P30 II-AB 退役后改名归 {@link #lakePlaneTerrainAllowedAt} 专用——数值不动，
-     * 消费面只剩该门的缓入带：湖平面域外沿连续过渡，域内（lakeAt ≤
-     * LAKE_SHORE+SANZU_BIOME_SHORE_JITTER）门 0）。<b>P32 批3 T1-4 换算统一</b>：0.02×2670
-     * ≈ <b>53 格</b>（旧割线口径 ≈45 格随 P23-P28 圆场废弃，统一式见 RVF
-     * {@code LAKE_WATER_LEVEL} P32 段）。<b>P32 批3 D3 披露</b>：滩带外缘新增低频带宽腿
-     * （RVF {@code SANZU_BIOME_SHORE_WIDTH_DELTA}，平面压力域上确界 0.131+0.0375+0.025 =
-     * 0.1935）后，本门 0 域上确界 0.1685 保持<b>固定阈语义</b>（两口径不并收先例）——
-     * (0.1685, 0.1935) 宽滩段列本门 &gt; 0，重钉归批3 Q3/批5。
-     */
-    private static final double SWAMP_LAKE_SHORE_BAND = 0.02D;
+    /** 湖域上界外恢复四族变体的压力带宽：0.05×800 = 40格形状距离，避免快速抬坡。 */
+    private static final double SWAMP_LAKE_SHORE_BAND = 0.05D;
     /** 水沼地（半淹档）场域盐（波长 {@link #SWAMP_MARSH_SCALE}）。 */
     private static final long S_SWAMP_MARSH = 0x6811C32FL;
     /**
@@ -892,8 +882,9 @@ public final class TerrainVariants {
         if (rosterIndex < 0 || rosterIndex >= ROSTER_SLOTS) {
             return h0;
         }
-        // P19 U8：权重向量按粗格缓存（同一粗格内所有列恒等，见 VAR_CELL_CACHE 注释）；只读不写。
-        final double[] w = weightsAt(worldSeed, x, z);
+        // 湖岸局部把既有4格常量权重插值成连续面，避免窄岸恢复丘陵时显露粗格台阶。
+        // 真水核与有限衔接带外仍返回原权重本体；不扩成全维度地形改造。
+        final double[] w = lakeShoreWeightsAt(worldSeed, x, z);
         double delta = 0.0D;
         // —— 丘陵族（草原 w0 / 森林 w1 共场不同档；RTG hills 模板）——
         if (w[0] > 0.0D || w[1] > 0.0D) {
@@ -1321,23 +1312,14 @@ public final class TerrainVariants {
     // 生产与判据消费面（CPR SwampFieldGrid 的潭心钳低腿/高水台腿/转换趟）同批摘除，零残留引用。
 
     /**
-     * <b>湖平面压力域地形门</b>（v1.20.52 P29 C 片 C1 新增）：乘子门
-     * {@code s01((lakeAt − LAKE_SHORE − SANZU_BIOME_SHORE_JITTER)/SWAMP_LAKE_SHORE_BAND)}——
-     * lakeAt ≤ LAKE_SHORE+SANZU_BIOME_SHORE_JITTER（sanzu 平面压力域<b>上确界</b>，含抖动滩缘
-     * 整环：shoreAt ∈ [SHORE, SHORE+JITTER) 单边 ≥ 不变式 ⇒ 本门 0 域 ⊇ 平面域，且免逐列
-     * sanzuBiomeShoreAt 噪声求值）⇒ <b>0</b>（沼泽/荒漠/草原/森林地形腿豁免：P29 C2/C3 收
-     * w[2]/w[3]，P30 I5 收 w[0]/w[1]）；≥ SHORE+JITTER+0.02
-     * （{@link #SWAMP_LAKE_SHORE_BAND} = 0.02，≈+45 格）⇒ 1；其间 45 格缓入带。
-     * <b>递归安全</b>：lakeAt 是纯湖场、不触 {@code heightAt}（RVF 湖让位腿先例 :2371——本方法从
-     * {@link #variantAdjustment}（heightCore 下游）调用不构成环）。<b>纯函数</b>；消费面
-     * （P29 C2/C3、P30 I5）：本类 w[0]-w[3] 四支路的 w0g/w1g/w2g/w3g 乘子 + CPR
-     * {@code SwampFieldGrid} 构建体的 tier==3 门（PTP 微池第四肢是本门的硬阈镜像，直用局部量
-     * lake 零新求值）。
+     * 湖岸内不叠加四族独立地形；统一上界含两条宽度腿，避免宽段漏入沼泽微池。
+     * 上界外以 smoothstep 在 40 个形状距离方块内渐进恢复原地形。
+     * 只调用纯湖场，不触 heightAt，保持递归安全。
      */
     public static double lakePlaneTerrainAllowedAt(long worldSeed, int x, int z) {
         return s01(
-            (GTSRVoronoiRiverField.lakeAt(worldSeed, x, z) - GTSRVoronoiRiverField.LAKE_SHORE
-                - GTSRVoronoiRiverField.SANZU_BIOME_SHORE_JITTER) / SWAMP_LAKE_SHORE_BAND);
+            (GTSRVoronoiRiverField.lakeAt(worldSeed, x, z) - GTSRVoronoiRiverField.SANZU_BIOME_SHORE_MAX)
+                / SWAMP_LAKE_SHORE_BAND);
     }
 
     /**
@@ -1452,6 +1434,46 @@ public final class TerrainVariants {
         slot.cz = cellZ;
         slot.valid = true;
         return w;
+    }
+
+    /** 湖岸40格变体恢复带及其后40格渐退带；边缘精确回原权重。 */
+    private static final double LAKE_WEIGHT_FADE_END = GTSRVoronoiRiverField.SANZU_BIOME_SHORE_MAX
+        + GTSRVoronoiRiverField.LAKE_AMP_BELT_DELTA;
+    private static final ThreadLocal<double[][]> LAKE_WEIGHT_SCRATCH = ThreadLocal
+        .withInitial(() -> new double[][] { new double[ROSTER_SLOTS], new double[ROSTER_SLOTS] });
+
+    private static double[] lakeShoreWeightsAt(long seed, int x, int z) {
+        final double[] raw = weightsAt(seed, x, z);
+        final double lake = GTSRVoronoiRiverField.lakeAt(seed, x, z);
+        if (lake < GTSRVoronoiRiverField.LAKE_WATER_LEVEL || lake >= LAKE_WEIGHT_FADE_END) {
+            return raw; // 真核与远场逐位不变，额外粗格求值仅发生在有限湖外衔接带。
+        }
+        final double[][] scratch = LAKE_WEIGHT_SCRATCH.get();
+        final double[] result = scratch[0], smooth = scratch[1];
+        System.arraycopy(raw, 0, result, 0, ROSTER_SLOTS);
+        java.util.Arrays.fill(smooth, 0.0D);
+        // 粗格权重以格中心为采样锚；负坐标采用floorDiv，避免零点/象限接缝。
+        final int cellX = Math.floorDiv(x - 2, 4), cellZ = Math.floorDiv(z - 2, 4);
+        final double tx = (x - (cellX * 4 + 2)) / 4.0D;
+        final double tz = (z - (cellZ * 4 + 2)) / 4.0D;
+        for (int dz = 0; dz <= 1; dz++) {
+            for (int dx = 0; dx <= 1; dx++) {
+                final double q = (dx == 0 ? 1.0D - tx : tx) * (dz == 0 ? 1.0D - tz : tz);
+                if (q == 0.0D) {
+                    continue;
+                }
+                final double[] corner = weightsAt(seed, (cellX + dx) * 4 + 2, (cellZ + dz) * 4 + 2);
+                for (int i = 0; i < ROSTER_SLOTS; i++) {
+                    smooth[i] += corner[i] * q; // 即读即累，避免直接映射缓存冲突重写前一个角数组。
+                }
+            }
+        }
+        final double start = GTSRVoronoiRiverField.SANZU_BIOME_SHORE_MAX + SWAMP_LAKE_SHORE_BAND;
+        final double fade = s01((lake - start) / (LAKE_WEIGHT_FADE_END - start));
+        for (int i = 0; i < ROSTER_SLOTS; i++) {
+            result[i] = smooth[i] + (result[i] - smooth[i]) * fade;
+        }
+        return result;
     }
 
     /** 丘陵门噪声（波长 320；包内可见仅供离线探针/判据取单一真值门值，生产路径勿直调）。 */
