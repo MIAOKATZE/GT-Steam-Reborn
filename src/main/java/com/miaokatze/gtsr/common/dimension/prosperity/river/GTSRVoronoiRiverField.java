@@ -1166,11 +1166,11 @@ public final class GTSRVoronoiRiverField {
     // 原样）。s = 到 argmin 站<b>形状边界</b>的带符号距（内负外正，warp 空间锚点相对系）；
     // dN = 次近站距（3×3 Worley 原样）。每站一套形状参数（本段常量域 + {@link #SALT_LAKE_SHAPE}
     // 抽签，512 槽直映缓存——{@link #stationParams}）：
-    //   class0（0.45）单超椭圆 n∈{2,3}——"方形"由 n=3 指数承担（同半轴 45° 向径 1.122·r0，
-    //   内切不损失，不靠深伸缩）；
-    //   class1（0.38）主 blob + 单副 blob（梨 / L-前形态）；class2（0.17）主 blob + 双副
-    //   blob（张角 ≥60°，L / 花生签名形状）。（P32 批2 S1b 档2：0.50/0.35/0.15→0.45/0.38/0.17，
-    //   SF/CV 形状读数驱动——读数档 plan/tmp/p32-t1p3b-iter.md）
+    // class0（0.45）单超椭圆 n∈{2,3}——"方形"由 n=3 指数承担（同半轴 45° 向径 1.122·r0，
+    // 内切不损失，不靠深伸缩）；
+    // class1（0.38）主 blob + 单副 blob（梨 / L-前形态）；class2（0.17）主 blob + 双副
+    // blob（张角 ≥60°，L / 花生签名形状）。（P32 批2 S1b 档2：0.50/0.35/0.15→0.45/0.38/0.17，
+    // SF/CV 形状读数驱动——读数档 plan/tmp/p32-t1p3b-iter.md）
     // 两层制：主形扛内切保证（{@link #LAKE_SHAPE_B_FLOOR}）与岛容器；副 blob 只做剪影多样性
     // （远置 offset_s ≤ 0.82r0 出真 L 臂——档1 放宽，读数档见 plan/tmp/p32-t1p3b-iter.md）。
     // D_MIN 淘汰先于形状求值（哨兵不触缓存不加噪）。
@@ -1909,11 +1909,8 @@ public final class GTSRVoronoiRiverField {
         // P25 D3③ + P26-B3 D1·A1：压力加性轮廓噪声双倍频（λ220 低频腿 + λ70 高频腿，独立盐域；
         // 总幅 0.0037 ≈ ±8.3 格湖缘径向微摆，换算式见 LAKE_PRESSURE_NOISE_AMP）。
         // D_MIN 淘汰哨兵路径在上方已 return ⇒ NO_LAKE 域零形状求值/零噪声（对拍口径保持）。
-        return base
-            + LAKE_PRESSURE_NOISE_AMP * GTSRWorldgenHash.valueNoise(
-                worldSeed ^ SALT_LAKE_PRESSURE,
-                x / LAKE_PRESSURE_NOISE_SCALE,
-                z / LAKE_PRESSURE_NOISE_SCALE)
+        return base + LAKE_PRESSURE_NOISE_AMP * GTSRWorldgenHash
+            .valueNoise(worldSeed ^ SALT_LAKE_PRESSURE, x / LAKE_PRESSURE_NOISE_SCALE, z / LAKE_PRESSURE_NOISE_SCALE)
             + LAKE_PRESSURE_NOISE_AMP2 * GTSRWorldgenHash.valueNoise(
                 worldSeed ^ SALT_LAKE_PRESSURE2,
                 x / LAKE_PRESSURE_NOISE_SCALE2,
@@ -2186,10 +2183,8 @@ public final class GTSRVoronoiRiverField {
         boolean perp = false;
         double nbAng = 0.0D;
         {
-            final double ax = gx * LAKE_INTERVAL
-                + cellOffset(worldSeed, gx, gz, SALT_LAKE_CELL_X, LAKE_INTERVAL);
-            final double az = gz * LAKE_INTERVAL
-                + cellOffset(worldSeed, gx, gz, SALT_LAKE_CELL_Z, LAKE_INTERVAL);
+            final double ax = gx * LAKE_INTERVAL + cellOffset(worldSeed, gx, gz, SALT_LAKE_CELL_X, LAKE_INTERVAL);
+            final double az = gz * LAKE_INTERVAL + cellOffset(worldSeed, gx, gz, SALT_LAKE_CELL_Z, LAKE_INTERVAL);
             double bestSq = LAKE_SHAPE_PERP_D * LAKE_SHAPE_PERP_D;
             for (int nz = -1; nz <= 1; nz++) {
                 for (int nx = -1; nx <= 1; nx++) {
@@ -2197,9 +2192,11 @@ public final class GTSRVoronoiRiverField {
                         continue;
                     }
                     final double ox = (gx + nx) * LAKE_INTERVAL
-                        + cellOffset(worldSeed, gx + nx, gz + nz, SALT_LAKE_CELL_X, LAKE_INTERVAL) - ax;
+                        + cellOffset(worldSeed, gx + nx, gz + nz, SALT_LAKE_CELL_X, LAKE_INTERVAL)
+                        - ax;
                     final double oz = (gz + nz) * LAKE_INTERVAL
-                        + cellOffset(worldSeed, gx + nx, gz + nz, SALT_LAKE_CELL_Z, LAKE_INTERVAL) - az;
+                        + cellOffset(worldSeed, gx + nx, gz + nz, SALT_LAKE_CELL_Z, LAKE_INTERVAL)
+                        - az;
                     final double dsq = ox * ox + oz * oz;
                     if (dsq < bestSq) {
                         bestSq = dsq;
@@ -2230,10 +2227,10 @@ public final class GTSRVoronoiRiverField {
         } else {
             h = GTSRWorldgenHash.splitmix64(h);
             final double rhoPt = (h >>> 11) / (double) GTSRWorldgenHash.UNIT_DIVISOR;
-            s.rhoP = (LAKE_SHAPE_RHO_P_MIN + rhoPt * (LAKE_SHAPE_RHO_P_MAX - LAKE_SHAPE_RHO_P_MIN))
-                * LAKE_SHAPE_R0;
+            s.rhoP = (LAKE_SHAPE_RHO_P_MIN + rhoPt * (LAKE_SHAPE_RHO_P_MAX - LAKE_SHAPE_RHO_P_MIN)) * LAKE_SHAPE_R0;
             h = GTSRWorldgenHash.splitmix64(h);
-            final double co = (h >>> 11) / (double) GTSRWorldgenHash.UNIT_DIVISOR * LAKE_SHAPE_CENTER_OFF_MAX
+            final double co = (h >>> 11) / (double) GTSRWorldgenHash.UNIT_DIVISOR
+                * LAKE_SHAPE_CENTER_OFF_MAX
                 * LAKE_SHAPE_R0;
             s.cx = co * s.cosT;
             s.cz = co * s.sinT;
@@ -2250,8 +2247,7 @@ public final class GTSRVoronoiRiverField {
                 final double offSt = (h >>> 11) / (double) GTSRWorldgenHash.UNIT_DIVISOR;
                 // 重叠约束（域内恒松，钳制保形）：offset_s ≤ ρ_p + ρ_s − 0.3·k_smin。
                 final double offS = Math.min(
-                    (LAKE_SHAPE_OFF_S_MIN + offSt * (LAKE_SHAPE_OFF_S_MAX - LAKE_SHAPE_OFF_S_MIN))
-                        * LAKE_SHAPE_R0,
+                    (LAKE_SHAPE_OFF_S_MIN + offSt * (LAKE_SHAPE_OFF_S_MAX - LAKE_SHAPE_OFF_S_MIN)) * LAKE_SHAPE_R0,
                     s.rhoP + rhoS - 0.3D * LAKE_SHAPE_K_SMIN);
                 if (perp) {
                     ang = perpExitAngle(ang, nbAng);
@@ -2265,8 +2261,7 @@ public final class GTSRVoronoiRiverField {
                 final double ang0 = (h >>> 11) / (double) GTSRWorldgenHash.UNIT_DIVISOR * (2.0D * Math.PI);
                 h = GTSRWorldgenHash.splitmix64(h);
                 final double sep = LAKE_SHAPE_C2_SEP_MIN
-                    + (h >>> 11) / (double) GTSRWorldgenHash.UNIT_DIVISOR
-                        * (Math.PI - LAKE_SHAPE_C2_SEP_MIN);
+                    + (h >>> 11) / (double) GTSRWorldgenHash.UNIT_DIVISOR * (Math.PI - LAKE_SHAPE_C2_SEP_MIN);
                 h = GTSRWorldgenHash.splitmix64(h);
                 final double rhoS1 = (LAKE_SHAPE_RHO_S_MIN
                     + (h >>> 11) / (double) GTSRWorldgenHash.UNIT_DIVISOR * (rhoSMax - LAKE_SHAPE_RHO_S_MIN))
@@ -2274,8 +2269,7 @@ public final class GTSRVoronoiRiverField {
                 h = GTSRWorldgenHash.splitmix64(h);
                 final double offS1t = (h >>> 11) / (double) GTSRWorldgenHash.UNIT_DIVISOR;
                 final double offS1 = Math.min(
-                    (LAKE_SHAPE_OFF_S_MIN + offS1t * (LAKE_SHAPE_OFF_S_MAX - LAKE_SHAPE_OFF_S_MIN))
-                        * LAKE_SHAPE_R0,
+                    (LAKE_SHAPE_OFF_S_MIN + offS1t * (LAKE_SHAPE_OFF_S_MAX - LAKE_SHAPE_OFF_S_MIN)) * LAKE_SHAPE_R0,
                     s.rhoP + rhoS1 - 0.3D * LAKE_SHAPE_K_SMIN);
                 h = GTSRWorldgenHash.splitmix64(h);
                 final double rhoS2 = (LAKE_SHAPE_RHO_S_MIN
@@ -2284,8 +2278,7 @@ public final class GTSRVoronoiRiverField {
                 h = GTSRWorldgenHash.splitmix64(h);
                 final double offS2t = (h >>> 11) / (double) GTSRWorldgenHash.UNIT_DIVISOR;
                 final double offS2 = Math.min(
-                    (LAKE_SHAPE_OFF_S_MIN + offS2t * (LAKE_SHAPE_OFF_S_MAX - LAKE_SHAPE_OFF_S_MIN))
-                        * LAKE_SHAPE_R0,
+                    (LAKE_SHAPE_OFF_S_MIN + offS2t * (LAKE_SHAPE_OFF_S_MAX - LAKE_SHAPE_OFF_S_MIN)) * LAKE_SHAPE_R0,
                     s.rhoP + rhoS2 - 0.3D * LAKE_SHAPE_K_SMIN);
                 double a0 = ang0;
                 if (perp) {

@@ -117,6 +117,17 @@ public final class RiverMorphologyCheck {
      * 代表性采样提档到 200 后，H1 的段数下限不再借用它；±SCAN_EXTENT 窗内激活段 ~26 段恒过）。
      */
     static final int H1_SEGS_MIN = 16;
+    /**
+     * B1 的半宽样本数下限（P32 批5 重钉 100→98；旧值 = N_CENTERS/2 = 100 借用式）。
+     * <b>重钉依据（设计内损失，批3 尾三腿对拍归因在案：plan/tmp/p32-batch3-verify.md §4）</b>：
+     * waterHalfWidth 四向走 {@code -strengthAt ≥ WET_MIN} 的有界水缘，段心落入湖+滩压力域
+     * （J1 湖让位 s≡0）即返回 -1 剔除——P32 T1-3 场重构（真实 blob 形）吞 1 心（批1 n=100 →
+     * C-C 树 n=99）+ T1-4 D3 滨带宽低频腿外扩再吞 1 心（n=99 → 98）；中位/p10/p90 分布与批1
+     * 逐位同（2.0/3.0/7.0）⇒ 仅代表性健康度腿移位，非河宽行为变化。98/200 = 49% 仍守住
+     * 「约半数心有可信水缘」的采样健康度语义（P23 R1·S6 反聚集样本门）。工具固定种子 ⇒ 读数
+     * 确定性，钉值即读值；H1_SEGS_MIN 同款「独立钉住、不借用派生式」先例。
+     */
+    static final int B1_MIN_SAMPLES = 98;
     /** 三叉点扫描步距（格）：SEPARATION/64 = 16 < 三叉点邻域尺度。 */
     static final int FORK_STRIDE = (int) (GTSRVoronoiRiverField.SEPARATION / 64);
 
@@ -558,8 +569,10 @@ public final class RiverMorphologyCheck {
             + "「常态半宽 3-4.5 格」。P23 R1·S6：样本域 = 激活段（waterHalfWidth 同段纪律）+ 200 心代表性"
             + "采样（旧 32 心在段激活门后成聚集样本——32 心读数中位 5.0/沼泽同量化 1.000 是聚集偏差；"
             + "代表性采样实测中位 4.0 居带、沼泽比 1.250，与 v1.20.40 校准读数逐位同归——WIDTH 未动，"
-            + "带 [3,4.5] 一字不动、零放宽）",
-            widths.size() >= N_CENTERS / 2 && median >= 3.0D && median <= 4.5D,
+            + "带 [3,4.5] 一字不动、零放宽。<b>P32 批5 样本数腿重钉：下限 N_CENTERS/2(100)→98 独立钉住"
+            + "（B1_MIN_SAMPLES）——S1 场重构吞 1 心 + D3 滨带外扩吞 1 心均设计内湖让位（J1 域），"
+            + "分布逐位同批1，见常量 javadoc；中位带不动</b>）",
+            widths.size() >= B1_MIN_SAMPLES && median >= 3.0D && median <= 4.5D,
             "中位=" + f3(median) + " n=" + widths.size());
     }
 

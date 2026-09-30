@@ -691,14 +691,14 @@ public class ChunkProviderProsperityRuins extends GTSRChunkProviderBase {
                 return null; // h>79 陡岸：硬边 = 地形自身的边，保留并披露（同三档檐口径）
             } else if (h > ProsperityTerrainProfile.SEA_LEVEL + GTSRVoronoiRiverField.SANZU_DRY_BEACH_RISE
                 + SANZU_SHORE_SAND_RISE) {
-                material = BlocksGTSR.prosperityStone; // 滩坡上半窗 (73,79]：废岩羽化补丁
-            } else if (h > ProsperityTerrainProfile.SEA_LEVEL) {
-                material = BlocksGTSR.prosperitySilicaSand; // 干滩窗 (68,73]：硅砂羽化补丁
-            } else if (h >= ProsperityTerrainProfile.SEA_LEVEL - GTSRVoronoiRiverField.LAKE_WET_BAND_DROP) {
-                material = BlocksGTSR.prosperityRiverGravel; // 湿砾窗 [66,68]：湿砾羽化补丁
-            } else {
-                return null; // h<66（湖盆侧残余片）：窗外套档不羽化
-            }
+                    material = BlocksGTSR.prosperityStone; // 滩坡上半窗 (73,79]：废岩羽化补丁
+                } else if (h > ProsperityTerrainProfile.SEA_LEVEL) {
+                    material = BlocksGTSR.prosperitySilicaSand; // 干滩窗 (68,73]：硅砂羽化补丁
+                } else if (h >= ProsperityTerrainProfile.SEA_LEVEL - GTSRVoronoiRiverField.LAKE_WET_BAND_DROP) {
+                    material = BlocksGTSR.prosperityRiverGravel; // 湿砾窗 [66,68]：湿砾羽化补丁
+                } else {
+                    return null; // h<66（湖盆侧残余片）：窗外套档不羽化
+                }
             final double n = wetBandJitter(worldSeed, x, z);
             final double t = e <= 15.0D ? WETB_FT1 : e <= 25.0D ? WETB_FT2 : WETB_FT3;
             return n >= t ? material : null; // 空档列 null ⇒ topAt 回退 base（透传取邻料）
