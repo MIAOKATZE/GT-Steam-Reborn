@@ -2788,7 +2788,7 @@ public final class GTSRVoronoiRiverField {
 
     /**
      * <b>sanzu 传送落点列</b>（S5，滩带<b>干</b>列——避岛心树干/岛底柱，且不落湖水面）：自湖心
-     * (cx,cz) 沿 <b>32 条 11.25° 均分射线</b>向外步进（步长 4 格、行程上限 600 格 &lt;
+     * (cx,cz) 沿 <b>32 条 11.25° 均分射线</b>向外步进（步长 4 格、行程上限 672 格 &lt;
      * {@link #LAKE_INTERVAL}/2，全程留在本站湖域内），在每条射线的滩带段（压力 ∈
      * [{@link #LAKE_ISLAND}, {@link #LAKE_SHORE})）里取<b>第一个群系平面内干滩列</b>，最终返回
      * 距湖心最近者。P25 D2 侵蚀门后的实测反例：8/16 射线会漏掉一座仅在约 34° 方向可达的干滩，
@@ -2827,9 +2827,13 @@ public final class GTSRVoronoiRiverField {
         for (int dir = 0; dir < 32; dir++) {
             final double ux = Math.cos(dir * Math.PI / 16.0D);
             final double uz = Math.sin(dir * Math.PI / 16.0D);
-            // 步长 4：滩带压力宽度（岛域外缘到湖岸）数十格，粗扫不跳带；上限 600 格 ≪ 半站距
-            // （P25 D1 档 = 1500），足以覆盖滩带外缘（水径 ≈200 + ΣA 97 + 噪声腿 ≈17）+ 容差
-            for (int step = 4; step <= 600; step += 4) {
+            // 步长 4：滩带压力宽度（岛域外缘到湖岸）百余格，粗扫不跳带；上限 672 ≪ 半站距 1500。
+            // P32 T1-5 新场重钉（旧 600 圆场账「水径 200+ΣA 97+噪声 17+容差」随场废弃）：覆盖账 =
+            // 1.3×maxReach 344（L 域 200k 站实测长尾；域界 336/解析最坏 356 同量级）+ 滩带 133
+            // （ΔP=0.05 名义 ×2670）+ 檐 40（WETB 檐外伸）+ 容差 50 = 670.2 ⇒ 672（步长 4 对齐）；
+            // 批4 探针实证：80 湖 null=0（= 旧场基线同为 0）、最大命中 step 336、600~1200 各档 null
+            // 全同（temp/p32-b4/arrival-new.out ⇒ plan/tmp/p32-t1p5-arrival.md）。
+            for (int step = 4; step <= 672; step += 4) {
                 final int px = cx + (int) Math.round(ux * step);
                 final int pz = cz + (int) Math.round(uz * step);
                 final double p = lakeAt(worldSeed, px, pz);
